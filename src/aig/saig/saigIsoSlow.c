@@ -22,7 +22,9 @@
 
 ABC_NAMESPACE_IMPL_START
 
-static int s_1kPrimes[1024] = 
+/*
+#define ISO_MASK 0x3FF
+static int s_1kPrimes[ISO_MASK+1] = 
 {
     901403,984877,908741,966307,924437,965639,918787,931067,982621,917669,981473,936407,990487,926077,922897,970861,
     942317,961747,979717,978947,940157,987821,981221,917713,983083,992231,928253,961187,991817,927643,923129,934291,
@@ -89,6 +91,31 @@ static int s_1kPrimes[1024] =
     903673,974359,932219,916933,996019,934399,955813,938089,907693,918223,969421,940903,940703,913027,959323,940993,
     937823,906691,930841,923701,933259,911959,915601,960251,985399,914359,930827,950251,975379,903037,905783,971237
 };
+*/
+
+#define ISO_MASK 0x7F
+static int s_1kPrimes[ISO_MASK+1] = { 
+    1009, 1049, 1093, 1151, 1201, 1249, 1297, 1361, 1427, 1459, 
+    1499, 1559, 1607, 1657, 1709, 1759, 1823, 1877, 1933, 1997, 
+    2039, 2089, 2141, 2213, 2269, 2311, 2371, 2411, 2467, 2543, 
+    2609, 2663, 2699, 2741, 2797, 2851, 2909, 2969, 3037, 3089, 
+    3169, 3221, 3299, 3331, 3389, 3461, 3517, 3557, 3613, 3671, 
+    3719, 3779, 3847, 3907, 3943, 4013, 4073, 4129, 4201, 4243, 
+    4289, 4363, 4441, 4493, 4549, 4621, 4663, 4729, 4793, 4871, 
+    4933, 4973, 5021, 5087, 5153, 5227, 5281, 5351, 5417, 5471, 
+    5519, 5573, 5651, 5693, 5749, 5821, 5861, 5923, 6011, 6073, 
+    6131, 6199, 6257, 6301, 6353, 6397, 6481, 6563, 6619, 6689, 
+    6737, 6803, 6863, 6917, 6977, 7027, 7109, 7187, 7237, 7309, 
+    7393, 7477, 7523, 7561, 7607, 7681, 7727, 7817, 7877, 7933, 
+    8011, 8039, 8059, 8081, 8093, 8111, 8123, 8147
+};
+
+/*
+#define ISO_MASK 0x7
+static int s_1kPrimes[ISO_MASK+1] = { 
+    12582917, 25165843, 50331653, 100663319, 201326611, 402653189, 805306457, 1610612741
+};
+*/
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -102,17 +129,12 @@ struct Iso_Obj_t_
     // hashing entries (related to the parameter ISO_NUM_INTS!)
     unsigned      Level     : 30;
     unsigned      nFinNeg   :  2;
-    unsigned      nFoutPos  :  8;
-    unsigned      nFoutNeg  :  8;
-    unsigned      nFinLev0  :  8;
-    unsigned      nFinLev1  :  8;
-    unsigned      FaninSig  : 16;
-    unsigned      FanoutSig : 16;
+    unsigned      FaninSig;
+    unsigned      FanoutSig;
     // other data
     int           iNext;          // hash table entry
     int           iClass;         // next one in class
     int           Id;             // unique ID
-    Vec_Int_t *   vAllies;        // solved neighbors
 };
 
 typedef struct Iso_Man_t_ Iso_Man_t;
@@ -137,9 +159,9 @@ struct Iso_Man_t_
     int           timeTotal;
 };
 
-static inline Iso_Obj_t *  Iso_ManObj( Iso_Man_t * p, int i )            { assert( i >= 0 && i < p->nObjs ); return i ? p->pObjs + i : NULL;                     }
-static inline int          Iso_ObjId( Iso_Man_t * p, Iso_Obj_t * pObj )  { assert( pObj > p->pObjs && pObj < p->pObjs + p->nObjs ); return pObj - p->pObjs;      }
-static inline Aig_Obj_t *  Iso_AigObj( Iso_Man_t * p, Iso_Obj_t * q )    { return Aig_ManObj( p->pAig, Iso_ObjId(p, q) );                                        }
+static inline Iso_Obj_t *  Iso_ManObj( Iso_Man_t * p, int i )            { assert( i >= 0 && i < p->nObjs ); return i ? p->pObjs + i : NULL;                }
+static inline int          Iso_ObjId( Iso_Man_t * p, Iso_Obj_t * pObj )  { assert( pObj > p->pObjs && pObj < p->pObjs + p->nObjs ); return pObj - p->pObjs; }
+static inline Aig_Obj_t *  Iso_AigObj( Iso_Man_t * p, Iso_Obj_t * q )    { return Aig_ManObj( p->pAig, Iso_ObjId(p, q) );                                   }
 
 #define Iso_ManForEachObj( p, pObj, i )   \
     for ( i = 1; (i < p->nObjs) && ((pObj) = Iso_ManObj(p, i)); i++ ) if ( pIso->Level == -1 ) {} else
@@ -251,9 +273,6 @@ Iso_Man_t * Iso_ManStart( Aig_Man_t * pAig )
 }
 void Iso_ManStop( Iso_Man_t * p, int fVerbose )
 {
-    Iso_Obj_t * pIso;
-    int i;
-
     if ( fVerbose )
     {
         p->timeOther = p->timeTotal - p->timeHash - p->timeFout;
@@ -262,9 +281,6 @@ void Iso_ManStop( Iso_Man_t * p, int fVerbose )
         ABC_PRTP( "Other    ", p->timeOther,  p->timeTotal );
         ABC_PRTP( "TOTAL    ", p->timeTotal,  p->timeTotal );
     }
-
-    Iso_ManForEachObj( p, pIso, i )
-        Vec_IntFreeP( &pIso->vAllies );
     Vec_PtrFree( p->vTemp1 );
     Vec_PtrFree( p->vTemp2 );
     Vec_PtrFree( p->vClasses );
@@ -288,12 +304,7 @@ void Iso_ManStop( Iso_Man_t * p, int fVerbose )
 ***********************************************************************/
 int Iso_ObjCompare( Iso_Obj_t ** pp1, Iso_Obj_t ** pp2 )
 {
-    Iso_Obj_t * pIso1 = *pp1;
-    Iso_Obj_t * pIso2 = *pp2;
-    int Diff = -memcmp( pIso1, pIso2, sizeof(int) * ISO_NUM_INTS );
-    if ( Diff )
-        return Diff;
-    return -Vec_IntCompareVec( pIso1->vAllies, pIso2->vAllies );
+    return -memcmp( *pp1, *pp2, sizeof(int) * ISO_NUM_INTS );
 }
 
 /**Function*************************************************************
@@ -335,12 +346,6 @@ static inline int Iso_ObjHash( Iso_Obj_t * pIso, int nBins )
     assert( ISO_NUM_INTS < 8 );
     for ( i = 0; i < ISO_NUM_INTS; i++ )
         Value ^= BigPrimes[i] * pArray[i];
-    if ( pIso->vAllies )
-    {
-        pArray = (unsigned *)Vec_IntArray(pIso->vAllies);
-        for ( i = 0; i < (unsigned)Vec_IntSize(pIso->vAllies); i++ )
-            Value ^= BigPrimes[i&7] * pArray[i];
-    }
     return Value % nBins;
 }
 static inline int Iso_ObjHashAdd( Iso_Man_t * p, Iso_Obj_t * pIso )
@@ -388,7 +393,6 @@ void Iso_ManCollectClasses( Iso_Man_t * p )
     Vec_PtrClear( p->vClasses );
     for ( i = 0; i < p->nBins; i++ )
     {
-//        int Counter = 0;
         for ( pIso = Iso_ManObj(p, p->pBins[i]); pIso; pIso = Iso_ManObj(p, pIso->iNext) )
         {
             assert( pIso->Id == 0 );
@@ -396,12 +400,8 @@ void Iso_ManCollectClasses( Iso_Man_t * p )
                 Vec_PtrPush( p->vClasses, pIso );
             else 
                 Vec_PtrPush( p->vSingles, pIso );
-//            Counter++;
         }
-//        if ( Counter )
-//        printf( "%d ", Counter );
     }
-//    printf( "\n" );
     Vec_PtrSort( p->vSingles, (int (*)(void))Iso_ObjCompare );
     Vec_PtrSort( p->vClasses, (int (*)(void))Iso_ObjCompare );
     assert( Vec_PtrSize(p->vSingles) == p->nSingles );
@@ -411,8 +411,6 @@ void Iso_ManCollectClasses( Iso_Man_t * p )
         if ( pIso->Id == 0 )
             pIso->Id = p->nObjIds++;
 }
-
-static inline int      Abc_Base2Log64( word n )             { int r; if ( n < 2 ) return (int)n; for ( r = 0, n--; n; n >>= 1, r++ ); return r; }
 
 /**Function*************************************************************
 
@@ -427,114 +425,279 @@ static inline int      Abc_Base2Log64( word n )             { int r; if ( n < 2 
 ***********************************************************************/
 Iso_Man_t * Iso_ManCreate( Aig_Man_t * pAig )
 {
-    int fUseSignatures = 1;
+    int fUseXor = 0;
     Iso_Man_t * p;
-    Iso_Obj_t * pIso;
-    Aig_Obj_t * pObj;
-    int i;//, nNodes = 0, nEdges = 0;
+    Iso_Obj_t * pIso, * pIsoF;
+    Aig_Obj_t * pObj, * pObjLi;
+    int i;
     p = Iso_ManStart( pAig );
-    Aig_ManForEachObj( pAig, pObj, i )
-    {
-        if ( Aig_ObjIsNode(pObj) )
-        {
-            pIso = p->pObjs + Aig_ObjFaninId0(pObj);
-            if ( Aig_ObjFaninC0(pObj) )
-                pIso->nFoutNeg++;
-            else
-                pIso->nFoutPos++;
-            pIso = p->pObjs + Aig_ObjFaninId1(pObj);
-            if ( Aig_ObjFaninC1(pObj) )
-                pIso->nFoutNeg++;
-            else
-                pIso->nFoutPos++;
-        }
-        else if ( Aig_ObjIsPo(pObj) )
-        {
-            pIso = p->pObjs + Aig_ObjFaninId0(pObj);
-            if ( Aig_ObjFaninC0(pObj) )
-                pIso->nFoutNeg++;
-            else
-                pIso->nFoutPos++;
-        }
-    }
 
     // create TFI signatures
-    if ( fUseSignatures )
     Aig_ManForEachObj( pAig, pObj, i )
     {
         if ( Aig_ObjIsPo(pObj) )
             continue;
         pIso = p->pObjs + i;
+        pIso->Level = pObj->Level;
+        pIso->nFinNeg = Aig_ObjFaninC0(pObj) + Aig_ObjFaninC1(pObj);
+
         assert( pIso->FaninSig == 0 );
         assert( pIso->FanoutSig == 0 );
-        pIso->FaninSig = pIso->nFoutNeg * s_1kPrimes[pObj->Level & 0x3FF];
-        if ( Aig_ObjIsNode(pObj) )
+        if ( fUseXor )
         {
-            pIso->FaninSig += p->pObjs[Aig_ObjFaninId0(pObj)].FaninSig;
-            pIso->FaninSig += p->pObjs[Aig_ObjFaninId1(pObj)].FaninSig;
+            if ( Aig_ObjIsNode(pObj) )
+            {
+                pIsoF = p->pObjs + Aig_ObjFaninId0(pObj);
+                pIso->FaninSig ^= pIsoF->FaninSig;
+                pIso->FaninSig ^= s_1kPrimes[Abc_Var2Lit(pIso->Level, Aig_ObjFaninC0(pObj)) & ISO_MASK];
+
+                pIsoF = p->pObjs + Aig_ObjFaninId1(pObj);
+                pIso->FaninSig ^= pIsoF->FaninSig;
+                pIso->FaninSig ^= s_1kPrimes[Abc_Var2Lit(pIso->Level, Aig_ObjFaninC1(pObj)) & ISO_MASK];
+            }
+        }
+        else
+        {
+            if ( Aig_ObjIsNode(pObj) )
+            {
+                pIsoF = p->pObjs + Aig_ObjFaninId0(pObj);
+                pIso->FaninSig += pIsoF->FaninSig;
+                pIso->FaninSig += pIso->Level * s_1kPrimes[Abc_Var2Lit(pIso->Level, Aig_ObjFaninC0(pObj)) & ISO_MASK];
+
+                pIsoF = p->pObjs + Aig_ObjFaninId1(pObj);
+                pIso->FaninSig += pIsoF->FaninSig;
+                pIso->FaninSig += pIso->Level * s_1kPrimes[Abc_Var2Lit(pIso->Level, Aig_ObjFaninC1(pObj)) & ISO_MASK];
+            }
         }
     }
 
     // create TFO signatures
-    if ( fUseSignatures )
     Aig_ManForEachObjReverse( pAig, pObj, i )
     {
         if ( Aig_ObjIsPi(pObj) || Aig_ObjIsConst1(pObj) )
             continue;
         pIso = p->pObjs + i;
-//        pIso->FanoutSig += pIso->nFoutNeg * s_1kPrimes[pObj->Level & 0x3FF];
-        pIso->FanoutSig += s_1kPrimes[pObj->Level & 0x3FF];
-        if ( Aig_ObjIsNode(pObj) )
+        if ( fUseXor )
         {
-            p->pObjs[Aig_ObjFaninId0(pObj)].FanoutSig += pIso->FanoutSig;
-            p->pObjs[Aig_ObjFaninId1(pObj)].FanoutSig += pIso->FanoutSig;
+            if ( Aig_ObjIsNode(pObj) )
+            {
+                pIsoF = p->pObjs + Aig_ObjFaninId0(pObj);
+                pIsoF->FanoutSig ^= pIso->FanoutSig;
+                pIsoF->FanoutSig ^= s_1kPrimes[Abc_Var2Lit(pIso->Level, Aig_ObjFaninC0(pObj)) & ISO_MASK];
+
+                pIsoF = p->pObjs + Aig_ObjFaninId1(pObj);
+                pIsoF->FanoutSig ^= pIso->FanoutSig;
+                pIsoF->FanoutSig ^= s_1kPrimes[Abc_Var2Lit(pIso->Level, Aig_ObjFaninC1(pObj)) & ISO_MASK];
+            }
+            else if ( Aig_ObjIsPo(pObj) )
+            {
+                pIsoF = p->pObjs + Aig_ObjFaninId0(pObj);
+                pIsoF->FanoutSig ^= pIso->FanoutSig;
+                pIsoF->FanoutSig ^= s_1kPrimes[Abc_Var2Lit(pIso->Level, Aig_ObjFaninC0(pObj)) & ISO_MASK];
+            }
         }
-        else if ( Aig_ObjIsPo(pObj) )
-            p->pObjs[Aig_ObjFaninId0(pObj)].FanoutSig += pIso->FanoutSig;
+        else
+        {
+            if ( Aig_ObjIsNode(pObj) )
+            {
+                pIsoF = p->pObjs + Aig_ObjFaninId0(pObj);
+                pIsoF->FanoutSig += pIso->FanoutSig;
+                pIsoF->FanoutSig += pIso->Level * s_1kPrimes[Abc_Var2Lit(pIso->Level, Aig_ObjFaninC0(pObj)) & ISO_MASK];
+
+                pIsoF = p->pObjs + Aig_ObjFaninId1(pObj);
+                pIsoF->FanoutSig += pIso->FanoutSig;
+                pIsoF->FanoutSig += pIso->Level * s_1kPrimes[Abc_Var2Lit(pIso->Level, Aig_ObjFaninC1(pObj)) & ISO_MASK];
+            }
+            else if ( Aig_ObjIsPo(pObj) )
+            {
+                pIsoF = p->pObjs + Aig_ObjFaninId0(pObj);
+                pIsoF->FanoutSig += pIso->FanoutSig;
+                pIsoF->FanoutSig += pIso->Level * s_1kPrimes[Abc_Var2Lit(pIso->Level, Aig_ObjFaninC0(pObj)) & ISO_MASK];
+            }
+        }
     }
 
+    // consider flops
+    Aig_ManForEachLiLoSeq( p->pAig, pObjLi, pObj, i )
+    {
+        if ( Aig_ObjFaninId0(pObjLi) == 0 ) // ignore constant!
+            continue;
+        pIso  = Iso_ManObj( p, Aig_ObjId(pObj) );
+        pIsoF = Iso_ManObj( p, Aig_ObjFaninId0(pObjLi) );
 
-//    Aig_ManForEachPi( pAig, pObj, i )
-//        printf( "%d ", Abc_Base2Log64( (p->pObjs + Aig_ObjId(pObj))->FanoutSig ) );
-//    printf( "\n" );
+        assert( pIso->FaninSig == 0 );
+        pIso->FaninSig = pIsoF->FaninSig;
 
-    // create other signatures
+//        assert( pIsoF->FanoutSig == 0 );
+        pIsoF->FanoutSig += pIso->FanoutSig;
+    }
+/*
+    Aig_ManForEachObj( pAig, pObj, i )
+    {
+        pIso = p->pObjs + i;
+        Aig_ObjPrint( pAig, pObj );
+        printf( "Lev = %4d.  Pos = %4d.  FaninSig = %10d.  FanoutSig = %10d.\n", 
+            pIso->Level, pIso->nFinNeg, pIso->FaninSig, pIso->FanoutSig );
+    }
+*/
+    // add to the hash table
     Aig_ManForEachObj( pAig, pObj, i )
     {
         if ( !Aig_ObjIsPi(pObj) && !Aig_ObjIsNode(pObj) )
             continue;
         pIso = p->pObjs + i;
-        pIso->Level = pObj->Level;
-        pIso->nFinNeg = Aig_ObjFaninC0(pObj) + Aig_ObjFaninC1(pObj);
-        if ( Aig_ObjIsNode(pObj) )
-        {
-            if ( Aig_ObjIsMuxType(pObj) ) // uniqify MUX/XOR
-                pIso->nFinNeg = 3;
-            if ( Aig_ObjFaninC0(pObj) < Aig_ObjFaninC1(pObj) || (Aig_ObjFaninC0(pObj) == Aig_ObjFaninC1(pObj) && Aig_ObjFanin0(pObj)->Level < Aig_ObjFanin1(pObj)->Level) )
-            {
-                pIso->nFinLev0 = Aig_ObjFanin0(pObj)->Level;
-                pIso->nFinLev1 = Aig_ObjFanin1(pObj)->Level;
-            }
-            else
-            {
-                pIso->nFinLev0 = Aig_ObjFanin1(pObj)->Level;
-                pIso->nFinLev1 = Aig_ObjFanin0(pObj)->Level;
-            }
-//            Iso_ManObjCount( pAig, pObj, &nNodes, &nEdges );
-//            pIso->nNodes = nNodes;
-//            pIso->nEdges = nEdges;
-        }
-        else
-        {  
-            pIso->nFinLev0 = (int)(Aig_ObjPioNum(pObj) >= Aig_ManPiNum(pAig) - Aig_ManRegNum(pAig)); // uniqify flop
-        }
-        // add to the hash table
         Iso_ObjHashAdd( p, pIso );
     }
     // derive classes for the first time
     Iso_ManCollectClasses( p );
     return p;
 }
+
+/**Function*************************************************************
+
+  Synopsis    [Creates adjacency lists.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Iso_ManAssignAdjacency( Iso_Man_t * p )
+{
+    int fUseXor = 0;
+    Iso_Obj_t * pIso, * pIsoF;
+    Aig_Obj_t * pObj, * pObjLi;
+    int i;
+
+    // create TFI signatures
+    Aig_ManForEachObj( p->pAig, pObj, i )
+    {
+        pIso = p->pObjs + i;
+        pIso->FaninSig = 0;
+        pIso->FanoutSig = 0;
+
+        if ( Aig_ObjIsPo(pObj) )
+            continue;
+        if ( fUseXor )
+        {
+            if ( Aig_ObjIsNode(pObj) )
+            {
+                pIsoF = p->pObjs + Aig_ObjFaninId0(pObj);
+                pIso->FaninSig ^= pIsoF->FaninSig;
+                if ( pIsoF->Id )
+                    pIso->FaninSig ^= s_1kPrimes[Abc_Var2Lit(pIsoF->Id, Aig_ObjFaninC0(pObj)) & ISO_MASK];
+
+                pIsoF = p->pObjs + Aig_ObjFaninId1(pObj);
+                pIso->FaninSig ^= pIsoF->FaninSig;
+                if ( pIsoF->Id )
+                    pIso->FaninSig ^= s_1kPrimes[Abc_Var2Lit(pIsoF->Id, Aig_ObjFaninC1(pObj)) & ISO_MASK];
+            }
+        }
+        else
+        {
+            if ( Aig_ObjIsNode(pObj) )
+            {
+                pIsoF = p->pObjs + Aig_ObjFaninId0(pObj);
+                pIso->FaninSig += pIsoF->FaninSig;
+                if ( pIsoF->Id )
+                    pIso->FaninSig += pIsoF->Id * s_1kPrimes[Abc_Var2Lit(pIsoF->Id, Aig_ObjFaninC0(pObj)) & ISO_MASK];
+
+                pIsoF = p->pObjs + Aig_ObjFaninId1(pObj);
+                pIso->FaninSig += pIsoF->FaninSig;
+                if ( pIsoF->Id )
+                    pIso->FaninSig += pIsoF->Id * s_1kPrimes[Abc_Var2Lit(pIsoF->Id, Aig_ObjFaninC1(pObj)) & ISO_MASK];
+            }
+        }
+    }
+    // create TFO signatures
+    Aig_ManForEachObjReverse( p->pAig, pObj, i )
+    {
+        if ( Aig_ObjIsPi(pObj) || Aig_ObjIsConst1(pObj) )
+            continue;
+        pIso = p->pObjs + i;
+        assert( !Aig_ObjIsPo(pObj) || pIso->Id == 0 );
+        if ( fUseXor )
+        {
+            if ( Aig_ObjIsNode(pObj) )
+            {
+                pIsoF = p->pObjs + Aig_ObjFaninId0(pObj);
+                pIsoF->FanoutSig ^= pIso->FanoutSig;
+                if ( pIso->Id )
+                    pIsoF->FanoutSig ^= s_1kPrimes[Abc_Var2Lit(pIso->Id, Aig_ObjFaninC0(pObj)) & ISO_MASK];
+
+                pIsoF = p->pObjs + Aig_ObjFaninId1(pObj);
+                pIsoF->FanoutSig ^= pIso->FanoutSig;
+                if ( pIso->Id )
+                    pIsoF->FanoutSig ^= s_1kPrimes[Abc_Var2Lit(pIso->Id, Aig_ObjFaninC1(pObj)) & ISO_MASK];
+            }
+            else if ( Aig_ObjIsPo(pObj) )
+            {
+                pIsoF = p->pObjs + Aig_ObjFaninId0(pObj);
+                pIsoF->FanoutSig ^= pIso->FanoutSig;
+                if ( pIso->Id )
+                    pIsoF->FanoutSig ^= s_1kPrimes[Abc_Var2Lit(pIso->Id, Aig_ObjFaninC0(pObj)) & ISO_MASK];
+            }
+        }
+        else
+        {
+            if ( Aig_ObjIsNode(pObj) )
+            {
+                pIsoF = p->pObjs + Aig_ObjFaninId0(pObj);
+                pIsoF->FanoutSig += pIso->FanoutSig;
+                if ( pIso->Id )
+                    pIsoF->FanoutSig += pIso->Id * s_1kPrimes[Abc_Var2Lit(pIso->Id, Aig_ObjFaninC0(pObj)) & ISO_MASK];
+
+                pIsoF = p->pObjs + Aig_ObjFaninId1(pObj);
+                pIsoF->FanoutSig += pIso->FanoutSig;
+                if ( pIso->Id )
+                    pIsoF->FanoutSig += pIso->Id * s_1kPrimes[Abc_Var2Lit(pIso->Id, Aig_ObjFaninC1(pObj)) & ISO_MASK];
+            }
+            else if ( Aig_ObjIsPo(pObj) )
+            {
+                pIsoF = p->pObjs + Aig_ObjFaninId0(pObj);
+                pIsoF->FanoutSig += pIso->FanoutSig;
+                if ( pIso->Id )
+                    pIsoF->FanoutSig += pIso->Id * s_1kPrimes[Abc_Var2Lit(pIso->Id, Aig_ObjFaninC0(pObj)) & ISO_MASK];
+            }
+        }
+    }
+
+    // consider flops
+    Aig_ManForEachLiLoSeq( p->pAig, pObjLi, pObj, i )
+    {
+        if ( Aig_ObjFaninId0(pObjLi) == 0 ) // ignore constant!
+            continue;
+        pIso  = Iso_ManObj( p, Aig_ObjId(pObj) );
+        pIsoF = Iso_ManObj( p, Aig_ObjFaninId0(pObjLi) );
+        assert( pIso->FaninSig == 0 );
+//        assert( pIsoF->FanoutSig == 0 );
+
+        if ( fUseXor )
+        {
+            pIso->FaninSig = pIsoF->FaninSig;
+            if ( pIsoF->Id )
+                pIso->FaninSig ^= s_1kPrimes[Abc_Var2Lit(pIsoF->Id, Aig_ObjFaninC0(pObjLi)) & ISO_MASK];
+
+            pIsoF->FanoutSig += pIso->FanoutSig;
+            if ( pIso->Id )
+                pIsoF->FanoutSig ^= s_1kPrimes[Abc_Var2Lit(pIso->Id, Aig_ObjFaninC0(pObjLi)) & ISO_MASK];
+        }
+        else
+        {
+            pIso->FaninSig = pIsoF->FaninSig;
+            if ( pIsoF->Id )
+                pIso->FaninSig += pIsoF->Id * s_1kPrimes[Abc_Var2Lit(pIsoF->Id, Aig_ObjFaninC0(pObjLi)) & ISO_MASK];
+
+            pIsoF->FanoutSig += pIso->FanoutSig;
+            if ( pIso->Id )
+                pIsoF->FanoutSig += pIso->Id * s_1kPrimes[Abc_Var2Lit(pIso->Id, Aig_ObjFaninC0(pObjLi)) & ISO_MASK];
+        }
+    }
+}
+
+
 
 /**Function*************************************************************
 
@@ -607,100 +770,12 @@ void Iso_ManPrintClasses( Iso_Man_t * p, int fVerbose, int fVeryVerbose )
                 else
                     printf( " %d", Iso_ObjId(p, pTemp) );
             }
-            printf( "(%d,%d,%d)", pTemp->Level, pTemp->nFoutPos, pTemp->nFoutNeg );
-            if ( pTemp->vAllies )
-            {
-                int Entry, k;
-                printf( "[" );
-                Vec_IntForEachEntry( pTemp->vAllies, Entry, k )
-                    printf( "%s%d", k?",":"", Entry );
-                printf( "]" );
-            }
+            printf( "(%d)", pTemp->Level );
         }        
         printf( " }\n" );
     }
 }
 
-
-/**Function*************************************************************
-
-  Synopsis    [Creates adjacency lists.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-static inline void Iso_ObjAddToAllies( Iso_Obj_t * pIso, int Id, int fCompl )
-{
-    assert( pIso->Id == 0 );
-    if ( pIso->vAllies == NULL )
-        pIso->vAllies = Vec_IntAlloc( 8 );
-    Vec_IntPush( pIso->vAllies, fCompl ? -Id : Id );        
-}
-void Iso_ManAssignAdjacency( Iso_Man_t * p )
-{
-    Iso_Obj_t * pIso, * pIso0, * pIso1;
-    Aig_Obj_t * pObj, * pObjLi;
-    int i;
-    // clean
-    Aig_ManForEachObj( p->pAig, pObj, i )
-    {
-        if ( i == 0 ) continue;
-        pIso = Iso_ManObj( p, i );
-        if ( pIso->vAllies )
-            Vec_IntClear( pIso->vAllies );
-    }
-    // create
-    Aig_ManForEachNode( p->pAig, pObj, i )
-    {
-        pIso  = Iso_ManObj( p, i );
-        pIso0 = Iso_ManObj( p, Aig_ObjFaninId0(pObj) );
-        pIso1 = Iso_ManObj( p, Aig_ObjFaninId1(pObj) );
-        if ( pIso->Id ) // unique - add to non-unique fanins
-        {
-            if ( pIso0->Id == 0 )
-                Iso_ObjAddToAllies( pIso0, pIso->Id, Aig_ObjFaninC0(pObj) );
-            if ( pIso1->Id == 0 )
-                Iso_ObjAddToAllies( pIso1, pIso->Id, Aig_ObjFaninC1(pObj) );
-        }
-        else // non-unique - assign unique fanins to it
-        {
-            if ( pIso0->Id != 0 )
-                Iso_ObjAddToAllies( pIso, pIso0->Id, Aig_ObjFaninC0(pObj) );
-            if ( pIso1->Id != 0 )
-                Iso_ObjAddToAllies( pIso, pIso1->Id, Aig_ObjFaninC1(pObj) );
-        }
-    }
-    // consider flops
-    Aig_ManForEachLiLoSeq( p->pAig, pObjLi, pObj, i )
-    {
-        if ( Aig_ObjFaninId0(pObjLi) == 0 ) // ignore constant!
-            continue;
-        pIso  = Iso_ManObj( p, Aig_ObjId(pObj) );
-        pIso0 = Iso_ManObj( p, Aig_ObjFaninId0(pObjLi) );
-        if ( pIso->Id ) // unique - add to non-unique fanins
-        {
-            if ( pIso0->Id == 0 )
-                Iso_ObjAddToAllies( pIso0, pIso->Id, Aig_ObjFaninC0(pObjLi) );
-        }
-        else // non-unique - assign unique fanins to it
-        {
-            if ( pIso0->Id != 0 )
-                Iso_ObjAddToAllies( pIso, pIso0->Id, Aig_ObjFaninC0(pObjLi) );
-        }
-    }
-    // sort
-    Aig_ManForEachObj( p->pAig, pObj, i )
-    {
-        if ( i == 0 ) continue;
-        pIso = Iso_ManObj( p, i );
-        if ( pIso->vAllies )
-            Vec_IntSort( pIso->vAllies, 0 );
-    }
-}
 
 /**Function*************************************************************
 
@@ -816,7 +891,7 @@ void Iso_ManBreakTies( Iso_Man_t * p, int fVerbose )
             }
             continue;
         }
-        if ( pIso->Level == 0 && pIso->nFoutPos + pIso->nFoutNeg == 0 )
+        if ( pIso->Level == 0 )//&& pIso->nFoutPos + pIso->nFoutNeg == 0 )
         {
             for ( pTemp = pIso; pTemp; pTemp = Iso_ManObj(p, pTemp->iClass) )
                 pTemp->Id = p->nObjIds++;
@@ -923,11 +998,14 @@ void Iso_ManDumpOneClass( Iso_Man_t * p )
 ***********************************************************************/
 Vec_Int_t * Saig_ManFindIsoPerm( Aig_Man_t * pAig, int fVerbose )
 {
+    int fVeryVerbose = 0;
     Vec_Int_t * vRes;
     Iso_Man_t * p;
     int clk, clk2 = clock();
+    clk = clock();
     p = Iso_ManCreate( pAig );
-    Iso_ManPrintClasses( p, fVerbose, 0 );
+    p->timeFout += clock() - clk;
+    Iso_ManPrintClasses( p, fVerbose, fVeryVerbose );
     while ( p->nClasses )
     {
         // assign adjacency to classes
@@ -938,7 +1016,7 @@ Vec_Int_t * Saig_ManFindIsoPerm( Aig_Man_t * pAig, int fVerbose )
         clk = clock();
         Iso_ManRehashClassNodes( p );
         p->timeHash += clock() - clk;
-        Iso_ManPrintClasses( p, fVerbose, 0 );
+        Iso_ManPrintClasses( p, fVerbose, fVeryVerbose );
         // force refinement
         while ( p->nSingles == 0 && p->nClasses )
         {
@@ -953,7 +1031,7 @@ Vec_Int_t * Saig_ManFindIsoPerm( Aig_Man_t * pAig, int fVerbose )
             clk = clock();
             Iso_ManRehashClassNodes( p );
             p->timeHash += clock() - clk;
-            Iso_ManPrintClasses( p, fVerbose, 0 );
+            Iso_ManPrintClasses( p, fVerbose, fVeryVerbose );
         }
     }
     p->timeTotal = clock() - clk2;
