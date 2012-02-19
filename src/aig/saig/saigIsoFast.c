@@ -219,7 +219,7 @@ Vec_Int_t * Iso_StoCollectInfo( Iso_Sto_t * p, Aig_Obj_t * pPo )
 //    printf( "%d ", Vec_IntSize(p->vVisited) );
 
     // sort the costs in the increasing order
-    pPerm = Abc_SortCost( Vec_IntArray(p->vVisited), Vec_IntSize(p->vVisited) );
+    pPerm = Abc_MergeSortCost( Vec_IntArray(p->vVisited), Vec_IntSize(p->vVisited) );
     assert( Vec_IntEntry(p->vVisited, pPerm[0]) <= Vec_IntEntry(p->vVisited, pPerm[Vec_IntSize(p->vVisited)-1]) );
 
     // create information

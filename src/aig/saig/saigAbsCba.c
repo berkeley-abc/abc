@@ -113,7 +113,7 @@ Vec_Int_t * Saig_ManCbaFilterFlops( Aig_Man_t * pAig, Abc_Cex_t * pAbsCex, Vec_I
     Vec_IntForEachEntry( vAbsFfsToAdd, Entry, i )
         Vec_IntPush( vFlopAddCosts, -Vec_IntEntry(vFlopCosts, Entry) );
     // sort the flops
-    pPerm = Abc_SortCost( Vec_IntArray(vFlopAddCosts), Vec_IntSize(vFlopAddCosts) );
+    pPerm = Abc_MergeSortCost( Vec_IntArray(vFlopAddCosts), Vec_IntSize(vFlopAddCosts) );
     // shrink the array
     vFfsToAddBest = Vec_IntAlloc( nFfsToSelect );
     for ( i = 0; i < nFfsToSelect; i++ )

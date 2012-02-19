@@ -1416,7 +1416,7 @@ void sat_solver2_reducedb(sat_solver2* s)
     // preserve 1/10 of most active clauses
     pClaAct = veci_begin(&s->claActs) + 1;
     nClaAct = veci_size(&s->claActs) - 1;
-    pPerm = Abc_SortCost( pClaAct, nClaAct );
+    pPerm = Abc_MergeSortCost( pClaAct, nClaAct );
     assert( pClaAct[pPerm[0]] <= pClaAct[pPerm[nClaAct-1]] );
     ActCutOff = pClaAct[pPerm[nClaAct*9/10]];
     ABC_FREE( pPerm );

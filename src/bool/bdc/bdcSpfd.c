@@ -299,7 +299,7 @@ Bdc_SpfdPrint( pNode + i, 1, vLevels, Truth );
                 goto cleanup;
             }
         }
-        pPerm = Abc_SortCost( Vec_IntArray(vWeight), c );
+        pPerm = Abc_MergeSortCost( Vec_IntArray(vWeight), c );
         assert( Vec_IntEntry(vWeight, pPerm[0]) <= Vec_IntEntry(vWeight, pPerm[c-1]) );
 
         printf( "Best SPFD = %d.\n", Vec_IntEntry(vWeight, pPerm[c-1]) );

@@ -126,7 +126,7 @@ void Abc_Sort_rec( int * pInBeg, int * pInEnd, int * pOutBeg )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_Sort( int * pInput, int nSize )
+void Abc_MergeSort( int * pInput, int nSize )
 {
     int * pOutput;
     if ( nSize < 2 )
@@ -149,7 +149,7 @@ void Abc_Sort( int * pInput, int nSize )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_SortCostMerge( int * p1Beg, int * p1End, int * p2Beg, int * p2End, int * pOut )
+void Abc_MergeSortCostMerge( int * p1Beg, int * p1End, int * p2Beg, int * p2End, int * pOut )
 {
     int nEntries = (p1End - p1Beg) + (p2End - p2Beg);
     int * pOutBeg = pOut;
@@ -180,7 +180,7 @@ void Abc_SortCostMerge( int * p1Beg, int * p1End, int * p2Beg, int * p2End, int 
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_SortCost_rec( int * pInBeg, int * pInEnd, int * pOutBeg )
+void Abc_MergeSortCost_rec( int * pInBeg, int * pInEnd, int * pOutBeg )
 {
     int nSize = (pInEnd - pInBeg)/2;
     assert( nSize > 0 );
@@ -217,9 +217,9 @@ void Abc_SortCost_rec( int * pInBeg, int * pInEnd, int * pOutBeg )
     }
     else
     {
-        Abc_SortCost_rec( pInBeg, pInBeg + 2*(nSize/2), pOutBeg );
-        Abc_SortCost_rec( pInBeg + 2*(nSize/2), pInEnd, pOutBeg + 2*(nSize/2) );
-        Abc_SortCostMerge( pInBeg, pInBeg + 2*(nSize/2), pInBeg + 2*(nSize/2), pInEnd, pOutBeg );
+        Abc_MergeSortCost_rec( pInBeg, pInBeg + 2*(nSize/2), pOutBeg );
+        Abc_MergeSortCost_rec( pInBeg + 2*(nSize/2), pInEnd, pOutBeg + 2*(nSize/2) );
+        Abc_MergeSortCostMerge( pInBeg, pInBeg + 2*(nSize/2), pInBeg + 2*(nSize/2), pInEnd, pOutBeg );
         memcpy( pInBeg, pOutBeg, sizeof(int) * 2 * nSize );
     }
 }
@@ -235,7 +235,7 @@ void Abc_SortCost_rec( int * pInBeg, int * pInEnd, int * pOutBeg )
   SeeAlso     []
 
 ***********************************************************************/
-int * Abc_SortCost( int * pCosts, int nSize )
+int * Abc_MergeSortCost( int * pCosts, int nSize )
 {
     int i, * pResult, * pInput, * pOutput;
     pResult = (int *) calloc( sizeof(int), nSize );
@@ -245,7 +245,7 @@ int * Abc_SortCost( int * pCosts, int nSize )
     pOutput = (int *) malloc( sizeof(int) * 2 * nSize );
     for ( i = 0; i < nSize; i++ )
         pInput[2*i] = i, pInput[2*i+1] = pCosts[i];
-    Abc_SortCost_rec( pInput, pInput + 2*nSize, pOutput );
+    Abc_MergeSortCost_rec( pInput, pInput + 2*nSize, pOutput );
     for ( i = 0; i < nSize; i++ )
         pResult[i] = pInput[2*i];
     free( pOutput );
@@ -269,7 +269,7 @@ int * Abc_SortCost( int * pCosts, int nSize )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_SortCostMerge( int * p1Beg, int * p1End, int * p2Beg, int * p2End, int * pOut, int * pCost )
+void Abc_MergeSortCostMerge( int * p1Beg, int * p1End, int * p2Beg, int * p2End, int * pOut, int * pCost )
 {
     int nEntries = (p1End - p1Beg) + (p2End - p2Beg);
     int * pOutBeg = pOut;
@@ -300,7 +300,7 @@ void Abc_SortCostMerge( int * p1Beg, int * p1End, int * p2Beg, int * p2End, int 
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_SortCost_rec( int * pInBeg, int * pInEnd, int * pOutBeg, int * pCost )
+void Abc_MergeSortCost_rec( int * pInBeg, int * pInEnd, int * pOutBeg, int * pCost )
 {
     int nSize = pInEnd - pInBeg;
     assert( nSize > 0 );
@@ -331,9 +331,9 @@ void Abc_SortCost_rec( int * pInBeg, int * pInEnd, int * pOutBeg, int * pCost )
     }
     else
     {
-        Abc_SortCost_rec( pInBeg, pInBeg + nSize/2, pOutBeg, pCost );
-        Abc_SortCost_rec( pInBeg + nSize/2, pInEnd, pOutBeg + nSize/2, pCost );
-        Abc_SortCostMerge( pInBeg, pInBeg + nSize/2, pInBeg + nSize/2, pInEnd, pOutBeg, pCost );
+        Abc_MergeSortCost_rec( pInBeg, pInBeg + nSize/2, pOutBeg, pCost );
+        Abc_MergeSortCost_rec( pInBeg + nSize/2, pInEnd, pOutBeg + nSize/2, pCost );
+        Abc_MergeSortCostMerge( pInBeg, pInBeg + nSize/2, pInBeg + nSize/2, pInEnd, pOutBeg, pCost );
         memcpy( pInBeg, pOutBeg, sizeof(int) * nSize );
     }
 }
@@ -349,7 +349,7 @@ void Abc_SortCost_rec( int * pInBeg, int * pInEnd, int * pOutBeg, int * pCost )
   SeeAlso     []
 
 ***********************************************************************/
-int * Abc_SortCost( int * pCosts, int nSize )
+int * Abc_MergeSortCost( int * pCosts, int nSize )
 {
     int i, * pInput, * pOutput;
     pInput = (int *) malloc( sizeof(int) * nSize );
@@ -358,7 +358,7 @@ int * Abc_SortCost( int * pCosts, int nSize )
     if ( nSize < 2 )
         return pInput;
     pOutput = (int *) malloc( sizeof(int) * nSize );
-    Abc_SortCost_rec( pInput, pInput + nSize, pOutput, pCosts );
+    Abc_MergeSortCost_rec( pInput, pInput + nSize, pOutput, pCosts );
     free( pOutput );
     return pInput;
 }
@@ -413,7 +413,7 @@ void Abc_SortTest()
         if ( fUseCost )
         {
             clk = clock();
-            pPerm = Abc_SortCost( pArray, nSize );
+            pPerm = Abc_MergeSortCost( pArray, nSize );
             Abc_PrintTime( 1, "New sort", clock() - clk );
             // check
             for ( i = 1; i < nSize; i++ )
@@ -423,7 +423,7 @@ void Abc_SortTest()
         else
         {
             clk = clock();
-            Abc_Sort( pArray, nSize );
+            Abc_MergeSort( pArray, nSize );
             Abc_PrintTime( 1, "New sort", clock() - clk );
             // check
             for ( i = 1; i < nSize; i++ )
@@ -442,6 +442,341 @@ void Abc_SortTest()
 
     free( pArray );
 }
+
+
+
+
+/**Function*************************************************************
+
+  Synopsis    [QuickSort algorithm as implemented by qsort().]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_QuickSort1CompareInc( word * p1, word * p2 )
+{
+    if ( (unsigned)(*p1) < (unsigned)(*p2) )
+        return -1;
+    if ( (unsigned)(*p1) > (unsigned)(*p2) )
+        return 1;
+    return 0;
+}
+int Abc_QuickSort1CompareDec( word * p1, word * p2 )
+{
+    if ( (unsigned)(*p1) > (unsigned)(*p2) )
+        return -1;
+    if ( (unsigned)(*p1) < (unsigned)(*p2) )
+        return 1;
+    return 0;
+}
+void Abc_QuickSort1( word * pData, int nSize, int fDecrement )
+{
+    int i, fVerify = 0;
+    if ( fDecrement )
+    {
+        qsort( (void *)pData, nSize, sizeof(word), (int (*)(const void *, const void *))Abc_QuickSort1CompareDec );
+        if ( fVerify )
+            for ( i = 1; i < nSize; i++ )
+                assert( (unsigned)pData[i-1] >= (unsigned)pData[i] );
+    }
+    else
+    {
+        qsort( (void *)pData, nSize, sizeof(word), (int (*)(const void *, const void *))Abc_QuickSort1CompareInc );
+        if ( fVerify )
+            for ( i = 1; i < nSize; i++ )
+                assert( (unsigned)pData[i-1] <= (unsigned)pData[i] );
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [QuickSort algorithm based on 2/3-way partitioning.]
+
+  Description [This code is based on the online presentation 
+  "QuickSort is Optimal" by Robert Sedgewick and Jon Bentley.
+  http://www.sorting-algorithms.com/static/QuicksortIsOptimal.pdf 
+
+  The first 32-bits of the input data contain values to be compared. 
+  The last 32-bits contain the user's data. When sorting is finished, 
+  the 64-bit words are ordered in the increasing order of their value ]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Iso_SelectSortInc( word * pData, int nSize )
+{
+    int i, j, best_i;
+    for ( i = 0; i < nSize-1; i++ )
+    {
+        best_i = i;
+        for ( j = i+1; j < nSize; j++ )
+            if ( (unsigned)pData[j] < (unsigned)pData[best_i] )
+                best_i = j;
+        ABC_SWAP( word, pData[i], pData[best_i] );
+    }
+}
+static inline void Iso_SelectSortDec( word * pData, int nSize )
+{
+    int i, j, best_i;
+    for ( i = 0; i < nSize-1; i++ )
+    {
+        best_i = i;
+        for ( j = i+1; j < nSize; j++ )
+            if ( (unsigned)pData[j] > (unsigned)pData[best_i] )
+                best_i = j;
+        ABC_SWAP( word, pData[i], pData[best_i] );
+    }
+}
+
+void Abc_QuickSort2Inc_rec( word * pData, int l, int r )
+{
+    word v = pData[r];
+    int i = l-1, j = r;
+    if ( l >= r )
+        return;
+    assert( l < r );
+    if ( r - l < 10 )
+    {
+        Iso_SelectSortInc( pData + l, r - l + 1 );
+        return;
+    }
+    while ( 1 )
+    {
+        while ( (unsigned)pData[++i] < (unsigned)v );
+        while ( (unsigned)v < (unsigned)pData[--j] )
+            if ( j == l )
+                break;
+        if ( i >= j )
+            break;
+        ABC_SWAP( word, pData[i], pData[j] );
+    }
+    ABC_SWAP( word, pData[i], pData[r] ); 
+    Abc_QuickSort2Inc_rec( pData, l, i-1 );
+    Abc_QuickSort2Inc_rec( pData, i+1, r );
+}
+void Abc_QuickSort2Dec_rec( word * pData, int l, int r )
+{
+    word v = pData[r];
+    int i = l-1, j = r;
+    if ( l >= r )
+        return;
+    assert( l < r );
+    if ( r - l < 10 )
+    {
+        Iso_SelectSortDec( pData + l, r - l + 1 );
+        return;
+    }
+    while ( 1 )
+    {
+        while ( (unsigned)pData[++i] > (unsigned)v );
+        while ( (unsigned)v > (unsigned)pData[--j] )
+            if ( j == l )
+                break;
+        if ( i >= j )
+            break;
+        ABC_SWAP( word, pData[i], pData[j] );
+    }
+    ABC_SWAP( word, pData[i], pData[r] ); 
+    Abc_QuickSort2Dec_rec( pData, l, i-1 );
+    Abc_QuickSort2Dec_rec( pData, i+1, r );
+}
+
+void Abc_QuickSort3Inc_rec( word * pData, int l, int r )
+{
+    word v = pData[r];
+    int k, i = l-1, j = r, p = l-1, q = r;
+    if ( l >= r )
+        return;
+    assert( l < r );
+    if ( r - l < 10 )
+    {
+        Iso_SelectSortInc( pData + l, r - l + 1 );
+        return;
+    }
+    while ( 1 )
+    {
+        while ( (unsigned)pData[++i] < (unsigned)v );
+        while ( (unsigned)v < (unsigned)pData[--j] )
+            if ( j == l )
+                break;
+        if ( i >= j )
+            break;
+        ABC_SWAP( word, pData[i], pData[j] );
+        if ( (unsigned)pData[i] == (unsigned)v ) 
+            { p++; ABC_SWAP( word, pData[p], pData[i] ); }
+        if ( (unsigned)v == (unsigned)pData[j] ) 
+            { q--; ABC_SWAP( word, pData[j], pData[q] ); }
+    }
+    ABC_SWAP( word, pData[i], pData[r] ); 
+    j = i-1; i = i+1;
+    for ( k = l; k < p; k++, j-- ) 
+        ABC_SWAP( word, pData[k], pData[j] );
+    for ( k = r-1; k > q; k--, i++ ) 
+        ABC_SWAP( word, pData[i], pData[k] );
+    Abc_QuickSort3Inc_rec( pData, l, j );
+    Abc_QuickSort3Inc_rec( pData, i, r );
+}
+void Abc_QuickSort3Dec_rec( word * pData, int l, int r )
+{
+    word v = pData[r];
+    int k, i = l-1, j = r, p = l-1, q = r;
+    if ( l >= r )
+        return;
+    assert( l < r );
+    if ( r - l < 10 )
+    {
+        Iso_SelectSortDec( pData + l, r - l + 1 );
+        return;
+    }
+    while ( 1 )
+    {
+        while ( (unsigned)pData[++i] > (unsigned)v );
+        while ( (unsigned)v > (unsigned)pData[--j] )
+            if ( j == l )
+                break;
+        if ( i >= j )
+            break;
+        ABC_SWAP( word, pData[i], pData[j] );
+        if ( (unsigned)pData[i] == (unsigned)v ) 
+            { p++; ABC_SWAP( word, pData[p], pData[i] ); }
+        if ( (unsigned)v == (unsigned)pData[j] ) 
+            { q--; ABC_SWAP( word, pData[j], pData[q] ); }
+    }
+    ABC_SWAP( word, pData[i], pData[r] ); 
+    j = i-1; i = i+1;
+    for ( k = l; k < p; k++, j-- ) 
+        ABC_SWAP( word, pData[k], pData[j] );
+    for ( k = r-1; k > q; k--, i++ ) 
+        ABC_SWAP( word, pData[i], pData[k] );
+    Abc_QuickSort3Dec_rec( pData, l, j );
+    Abc_QuickSort3Dec_rec( pData, i, r );
+}
+
+void Abc_QuickSort2( word * pData, int nSize, int fDecrement )
+{
+    int i, fVerify = 0;
+    if ( fDecrement )
+    {
+        Abc_QuickSort2Dec_rec( pData, 0, nSize - 1 );
+        if ( fVerify )
+            for ( i = 1; i < nSize; i++ )
+                assert( (unsigned)pData[i-1] >= (unsigned)pData[i] );
+    }
+    else
+    {
+        Abc_QuickSort2Inc_rec( pData, 0, nSize - 1 );
+        if ( fVerify )
+            for ( i = 1; i < nSize; i++ )
+                assert( (unsigned)pData[i-1] <= (unsigned)pData[i] );
+    }
+}
+void Abc_QuickSort3( word * pData, int nSize, int fDecrement )
+{
+    int i, fVerify = 0;
+    if ( fDecrement )
+    {
+        Abc_QuickSort2Dec_rec( pData, 0, nSize - 1 );
+        if ( fVerify )
+            for ( i = 1; i < nSize; i++ )
+                assert( (unsigned)pData[i-1] >= (unsigned)pData[i] );
+    }
+    else
+    {
+        Abc_QuickSort2Inc_rec( pData, 0, nSize - 1 );
+        if ( fVerify )
+            for ( i = 1; i < nSize; i++ )
+                assert( (unsigned)pData[i-1] <= (unsigned)pData[i] );
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Wrapper around QuickSort to sort entries based on cost.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_QuickSortCostData( int * pCosts, int nSize, int fDecrement, word * pData, int * pResult )
+{
+    int i;
+    for ( i = 0; i < nSize; i++ )
+        pData[i] = ((word)i << 32) | pCosts[i];
+    Abc_QuickSort3( pData, nSize, fDecrement );
+    for ( i = 0; i < nSize; i++ )
+        pResult[i] = (int)(pData[i] >> 32);
+}
+int * Abc_QuickSortCost( int * pCosts, int nSize, int fDecrement )
+{
+    word * pData = ABC_ALLOC( word, nSize );
+    int * pResult = ABC_ALLOC( int, nSize );
+    Abc_QuickSortCostData( pCosts, nSize, fDecrement, pData, pResult );
+    ABC_FREE( pData );
+    return pResult;
+}
+
+//        extern void Abc_QuickSortTest();
+//        Abc_QuickSortTest();
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_QuickSortTest()
+{
+    int nSize = 1000000;
+    int fVerbose = 0;
+    word * pData1, * pData2;
+    int i, clk = clock();
+    // generate numbers
+    pData1 = ABC_ALLOC( word, nSize );
+    pData2 = ABC_ALLOC( word, nSize );
+    srand( 1111 );
+    for ( i = 0; i < nSize; i++ )
+        pData2[i] = pData1[i] = ((word)i << 32) | rand();
+    Abc_PrintTime( 1, "Prepare ", clock() - clk );
+    // perform sorting
+    clk = clock();
+    Abc_QuickSort3( pData1, nSize, 1 );
+    Abc_PrintTime( 1, "Sort new", clock() - clk );
+    // print the result
+    if ( fVerbose )
+    {
+        for ( i = 0; i < nSize; i++ )
+            printf( "(%d,%d) ", (int)(pData1[i] >> 32), (int)pData1[i] );
+        printf( "\n" );
+    }
+    // create new numbers
+    clk = clock();
+    Abc_QuickSort1( pData2, nSize, 1 );
+    Abc_PrintTime( 1, "Sort old", clock() - clk );
+    // print the result
+    if ( fVerbose )
+    {
+        for ( i = 0; i < nSize; i++ )
+            printf( "(%d,%d) ", (int)(pData2[i] >> 32), (int)pData2[i] );
+        printf( "\n" );
+    }
+    ABC_FREE( pData1 );
+    ABC_FREE( pData2 );
+}
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

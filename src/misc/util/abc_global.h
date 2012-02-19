@@ -198,6 +198,8 @@ typedef ABC_UINT64_T word;
 
 #define ABC_INFINITY    (100000000)
 
+#define ABC_SWAP(Type, a, b)  { Type t = a; a = b; b = t; }
+
 #define ABC_PRT(a,t)    (printf("%s = ", (a)), printf("%7.2f sec\n", (float)(t)/(float)(CLOCKS_PER_SEC)))
 #define ABC_PRTr(a,t)   (printf("%s = ", (a)), printf("%7.2f sec\r", (float)(t)/(float)(CLOCKS_PER_SEC)))
 #define ABC_PRTn(a,t)   (printf("%s = ", (a)), printf("%6.2f sec  ", (float)(t)/(float)(CLOCKS_PER_SEC)))
@@ -322,8 +324,14 @@ static inline int Abc_PrimeCudd( unsigned int p )
 
 } // end of Cudd_Prime 
 
-extern void   Abc_Sort( int * pInput, int nSize );
-extern int *  Abc_SortCost( int * pCosts, int nSize );
+// sorting
+extern void   Abc_MergeSort( int * pInput, int nSize );
+extern int *  Abc_MergeSortCost( int * pCosts, int nSize );
+extern void   Abc_QuickSort1( word * pData, int nSize, int fDecrement );
+extern void   Abc_QuickSort2( word * pData, int nSize, int fDecrement );
+extern void   Abc_QuickSort3( word * pData, int nSize, int fDecrement );
+extern void   Abc_QuickSortCostData( int * pCosts, int nSize, int fDecrement, word * pData, int * pResult );
+extern int *  Abc_QuickSortCost( int * pCosts, int nSize, int fDecrement );
 
 
 ABC_NAMESPACE_HEADER_END

@@ -155,7 +155,7 @@ Vec_Int_t * Proof_CollectUsedIter( Vec_Set_t * vProof, Vec_Int_t * vRoots, int f
     Vec_IntFree( vStack );
 //    Abc_PrintTime( 1, "Iterative clause collection time", clock() - clk );
     clk = clock();
-    Abc_Sort( Vec_IntArray(vUsed), Vec_IntSize(vUsed) );
+    Abc_MergeSort( Vec_IntArray(vUsed), Vec_IntSize(vUsed) );
 //    Abc_PrintTime( 1, "Postprocessing with sorting time", clock() - clk );
     // verify topological order
     if ( fVerify )
