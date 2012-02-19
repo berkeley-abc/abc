@@ -327,11 +327,11 @@ static inline int Abc_PrimeCudd( unsigned int p )
 // sorting
 extern void   Abc_MergeSort( int * pInput, int nSize );
 extern int *  Abc_MergeSortCost( int * pCosts, int nSize );
-extern void   Abc_QuickSort1( word * pData, int nSize, int fDecrement );
-extern void   Abc_QuickSort2( word * pData, int nSize, int fDecrement );
-extern void   Abc_QuickSort3( word * pData, int nSize, int fDecrement );
-extern void   Abc_QuickSortCostData( int * pCosts, int nSize, int fDecrement, word * pData, int * pResult );
-extern int *  Abc_QuickSortCost( int * pCosts, int nSize, int fDecrement );
+extern void   Abc_QuickSort1( word * pData, int nSize, int fDecrease );
+extern void   Abc_QuickSort2( word * pData, int nSize, int fDecrease );
+extern void   Abc_QuickSort3( word * pData, int nSize, int fDecrease );
+extern void   Abc_QuickSortCostData( int * pCosts, int nSize, int fDecrease, word * pData, int * pResult );
+extern int *  Abc_QuickSortCost( int * pCosts, int nSize, int fDecrease );
 
 
 ABC_NAMESPACE_HEADER_END

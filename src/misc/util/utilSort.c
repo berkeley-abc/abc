@@ -473,10 +473,10 @@ int Abc_QuickSort1CompareDec( word * p1, word * p2 )
         return 1;
     return 0;
 }
-void Abc_QuickSort1( word * pData, int nSize, int fDecrement )
+void Abc_QuickSort1( word * pData, int nSize, int fDecrease )
 {
     int i, fVerify = 0;
-    if ( fDecrement )
+    if ( fDecrease )
     {
         qsort( (void *)pData, nSize, sizeof(word), (int (*)(const void *, const void *))Abc_QuickSort1CompareDec );
         if ( fVerify )
@@ -658,10 +658,10 @@ void Abc_QuickSort3Dec_rec( word * pData, int l, int r )
     Abc_QuickSort3Dec_rec( pData, i, r );
 }
 
-void Abc_QuickSort2( word * pData, int nSize, int fDecrement )
+void Abc_QuickSort2( word * pData, int nSize, int fDecrease )
 {
     int i, fVerify = 0;
-    if ( fDecrement )
+    if ( fDecrease )
     {
         Abc_QuickSort2Dec_rec( pData, 0, nSize - 1 );
         if ( fVerify )
@@ -676,10 +676,10 @@ void Abc_QuickSort2( word * pData, int nSize, int fDecrement )
                 assert( (unsigned)pData[i-1] <= (unsigned)pData[i] );
     }
 }
-void Abc_QuickSort3( word * pData, int nSize, int fDecrement )
+void Abc_QuickSort3( word * pData, int nSize, int fDecrease )
 {
     int i, fVerify = 0;
-    if ( fDecrement )
+    if ( fDecrease )
     {
         Abc_QuickSort2Dec_rec( pData, 0, nSize - 1 );
         if ( fVerify )
@@ -706,20 +706,20 @@ void Abc_QuickSort3( word * pData, int nSize, int fDecrement )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_QuickSortCostData( int * pCosts, int nSize, int fDecrement, word * pData, int * pResult )
+void Abc_QuickSortCostData( int * pCosts, int nSize, int fDecrease, word * pData, int * pResult )
 {
     int i;
     for ( i = 0; i < nSize; i++ )
         pData[i] = ((word)i << 32) | pCosts[i];
-    Abc_QuickSort3( pData, nSize, fDecrement );
+    Abc_QuickSort3( pData, nSize, fDecrease );
     for ( i = 0; i < nSize; i++ )
         pResult[i] = (int)(pData[i] >> 32);
 }
-int * Abc_QuickSortCost( int * pCosts, int nSize, int fDecrement )
+int * Abc_QuickSortCost( int * pCosts, int nSize, int fDecrease )
 {
     word * pData = ABC_ALLOC( word, nSize );
     int * pResult = ABC_ALLOC( int, nSize );
-    Abc_QuickSortCostData( pCosts, nSize, fDecrement, pData, pResult );
+    Abc_QuickSortCostData( pCosts, nSize, fDecrease, pData, pResult );
     ABC_FREE( pData );
     return pResult;
 }
