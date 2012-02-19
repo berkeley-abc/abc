@@ -759,7 +759,6 @@ int Saig_BmcPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nNodesMax
     vSimInfo = Abs_ManTernarySimulate( pAig, nFramesMax, fVerbose );
     Abs_ManFreeAray( vSimInfo );
 */
-    p = Saig_BmcManStart( pAig, nFramesMax, nNodesMax, nConfMaxOne, nConfMaxAll, fVerbose );
     if ( fVerbose )
     {
         printf( "Running \"bmc2\". AIG:  PI/PO/Reg = %d/%d/%d.  Node = %6d. Lev = %5d.\n", 
@@ -768,6 +767,8 @@ int Saig_BmcPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nNodesMax
         printf( "Params: FramesMax = %d. NodesDelta = %d. ConfMaxOne = %d. ConfMaxAll = %d.\n", 
             nFramesMax, nNodesMax, nConfMaxOne, nConfMaxAll );
     } 
+    nFramesMax = nFramesMax ? nFramesMax : ABC_INFINITY;
+    p = Saig_BmcManStart( pAig, nFramesMax, nNodesMax, nConfMaxOne, nConfMaxAll, fVerbose );
     // set runtime limit
     if ( nTimeOut )
         sat_solver_set_runtime_limit( p->pSat, nTimeToStop );

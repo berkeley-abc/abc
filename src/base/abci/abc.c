@@ -19113,7 +19113,7 @@ int Abc_CommandBmc2( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // set defaults
     nStart      =        0;
-    nFrames     =     2000;
+    nFrames     =        0;
     nSizeMax    =   200000;
     nBTLimit    =     2000;
     nBTLimitAll =  2000000;
@@ -19255,7 +19255,7 @@ usage:
     Abc_Print( -2, "usage: bmc2 [-SFTCGD num] [-L file] [-vh]\n" );
     Abc_Print( -2, "\t         performs bounded model checking with dynamic unrolling\n" );
     Abc_Print( -2, "\t-S num : the starting time frame [default = %d]\n", nStart );
-    Abc_Print( -2, "\t-F num : the max number of time frames [default = %d]\n", nFrames );
+    Abc_Print( -2, "\t-F num : the max number of time frames (0 = unused) [default = %d]\n", nFrames );
 //    Abc_Print( -2, "\t-N num : the max number of nodes in the frames [default = %d]\n", nSizeMax );
     Abc_Print( -2, "\t-T num : approximate runtime limit in seconds [default = %d]\n", nTimeOut );
     Abc_Print( -2, "\t-C num : the max number of conflicts at a node [default = %d]\n", nBTLimit );
@@ -19442,7 +19442,7 @@ usage:
     Abc_Print( -2, "usage: bmc3 [-SFTCDJI num] [-L file] [-sdvh]\n" );
     Abc_Print( -2, "\t         performs bounded model checking with dynamic unrolling\n" );
     Abc_Print( -2, "\t-S num : the starting time frame [default = %d]\n", pPars->nStart );
-    Abc_Print( -2, "\t-F num : the max number of time frames [default = %d]\n", pPars->nFramesMax );
+    Abc_Print( -2, "\t-F num : the max number of time frames (0 = unused) [default = %d]\n", pPars->nFramesMax );
     Abc_Print( -2, "\t-T num : approximate runtime limit in seconds [default = %d]\n", pPars->nTimeOut );
     Abc_Print( -2, "\t-C num : max conflicts at an output [default = %d]\n", pPars->nConfLimit );
     Abc_Print( -2, "\t-D num : max conflicts after jumping (0 = infinity) [default = %d]\n", pPars->nConfLimitJump );

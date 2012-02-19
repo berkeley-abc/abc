@@ -1076,7 +1076,7 @@ void Saig_ParBmcSetDefaultParams( Saig_ParBmc_t * p )
 {
     memset( p, 0, sizeof(Saig_ParBmc_t) );
     p->nStart         =     0;    // maximum number of timeframes 
-    p->nFramesMax     =  2000;    // maximum number of timeframes 
+    p->nFramesMax     =     0;    // maximum number of timeframes 
     p->nConfLimit     =  2000;    // maximum number of conflicts at a node
     p->nConfLimitJump =     0;    // maximum number of conflicts after jumping
     p->nFramesJump    =     0;    // the number of tiemframes to jump
@@ -1120,6 +1120,7 @@ int Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars )
         printf( "Params: Start = %d. FramesMax = %d. ConfLimit = %d. TimeOut = %d. SolveAll = %d.\n", 
             pPars->nStart, pPars->nFramesMax, pPars->nConfLimit, pPars->nTimeOut, pPars->fSolveAll );
     } 
+    pPars->nFramesMax = pPars->nFramesMax ? pPars->nFramesMax : ABC_INFINITY;
     // set runtime limit
     if ( p->pPars->nTimeOut )
         sat_solver_set_runtime_limit( p->pSat, nTimeToStop );
@@ -1246,7 +1247,9 @@ clkOther += clock() - clk2;
                         printf( "Cla =%9.0f. ", (double)p->pSat->stats.clauses );
                         printf( "Conf =%7.0f. ",(double)p->pSat->stats.conflicts );
                         printf( "Imp =%10.0f. ", (double)p->pSat->stats.propagations );
-                        ABC_PRT( "Time", clock() - clk );
+//                        ABC_PRT( "Time", clock() - clk );
+                        printf( "%9.2f sec", (float)(clock() - clkTotal)/(float)(CLOCKS_PER_SEC) );
+                        printf( "\n" );
 //                        ABC_PRM( "Id2Var", (f+1)*p->nObjNums*4 );
 //                        ABC_PRM( "SAT", 42 * p->pSat->size + 16 * (int)p->pSat->stats.clauses + 4 * (int)p->pSat->stats.clauses_literals );
 //                        printf( "Simples = %6d. ", p->nBufNum );
