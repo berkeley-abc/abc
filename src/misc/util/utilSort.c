@@ -509,7 +509,7 @@ void Abc_QuickSort1( word * pData, int nSize, int fDecrease )
   SeeAlso     []
 
 ***********************************************************************/
-static inline void Iso_SelectSortInc( word * pData, int nSize )
+static inline void Abc_SelectSortInc( word * pData, int nSize )
 {
     int i, j, best_i;
     for ( i = 0; i < nSize-1; i++ )
@@ -521,7 +521,7 @@ static inline void Iso_SelectSortInc( word * pData, int nSize )
         ABC_SWAP( word, pData[i], pData[best_i] );
     }
 }
-static inline void Iso_SelectSortDec( word * pData, int nSize )
+static inline void Abc_SelectSortDec( word * pData, int nSize )
 {
     int i, j, best_i;
     for ( i = 0; i < nSize-1; i++ )
@@ -543,7 +543,7 @@ void Abc_QuickSort2Inc_rec( word * pData, int l, int r )
     assert( l < r );
     if ( r - l < 10 )
     {
-        Iso_SelectSortInc( pData + l, r - l + 1 );
+        Abc_SelectSortInc( pData + l, r - l + 1 );
         return;
     }
     while ( 1 )
@@ -569,7 +569,7 @@ void Abc_QuickSort2Dec_rec( word * pData, int l, int r )
     assert( l < r );
     if ( r - l < 10 )
     {
-        Iso_SelectSortDec( pData + l, r - l + 1 );
+        Abc_SelectSortDec( pData + l, r - l + 1 );
         return;
     }
     while ( 1 )
@@ -596,7 +596,7 @@ void Abc_QuickSort3Inc_rec( word * pData, int l, int r )
     assert( l < r );
     if ( r - l < 10 )
     {
-        Iso_SelectSortInc( pData + l, r - l + 1 );
+        Abc_SelectSortInc( pData + l, r - l + 1 );
         return;
     }
     while ( 1 )
@@ -631,7 +631,7 @@ void Abc_QuickSort3Dec_rec( word * pData, int l, int r )
     assert( l < r );
     if ( r - l < 10 )
     {
-        Iso_SelectSortDec( pData + l, r - l + 1 );
+        Abc_SelectSortDec( pData + l, r - l + 1 );
         return;
     }
     while ( 1 )
@@ -678,7 +678,7 @@ void Abc_QuickSort2( word * pData, int nSize, int fDecrease )
 }
 void Abc_QuickSort3( word * pData, int nSize, int fDecrease )
 {
-    int i, fVerify = 0;
+    int i, fVerify = 1;
     if ( fDecrease )
     {
         Abc_QuickSort2Dec_rec( pData, 0, nSize - 1 );

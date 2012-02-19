@@ -400,7 +400,7 @@ p->timeSim += clock() - clk;
 //        Gia_WriteAiger( pSrm, "gia_srm.aig", 0, 0 );
 
         if ( pPars->fVeryVerbose )
-            Gia_ManPrintStats( pSrm, 0 );
+            Gia_ManPrintStats( pSrm, 0, 0 );
         if ( Gia_ManCoNum(pSrm) == 0 )
         {
             Gia_ManStop( pSrm );

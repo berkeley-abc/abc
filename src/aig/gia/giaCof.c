@@ -862,7 +862,7 @@ Gia_Man_t * Gia_ManDupCofAllInt( Gia_Man_t * p, Vec_Int_t * vSigs, int fVerbose 
     if ( fVerbose )
     { 
         printf( "Cofactoring %d signals.\n", Vec_IntSize(vSigs) );
-        Gia_ManPrintStats( p, 0 );
+        Gia_ManPrintStats( p, 0, 0 );
     }
     if ( Vec_IntSize( vSigs ) > 200 )
     {
@@ -888,7 +888,7 @@ Gia_Man_t * Gia_ManDupCofAllInt( Gia_Man_t * p, Vec_Int_t * vSigs, int fVerbose 
         if ( fVerbose )
             printf( "Cofactored variable %d.\n", iVar );
         if ( fVerbose )
-            Gia_ManPrintStats( pAig, 0 );
+            Gia_ManPrintStats( pAig, 0, 0 );
     }
     Vec_IntFree( vSigsNew );
     return pAig;

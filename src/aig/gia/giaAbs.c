@@ -292,7 +292,7 @@ int Gia_ManCbaPerform( Gia_Man_t * pGia, void * pPars )
     Gia_ManFlopsAddToClasses( pGia->vFlopClasses, vAbsFfsToAdd );
     Vec_IntFree( vAbsFfsToAdd );
     if ( p->fVerbose )
-        Gia_ManPrintStats( pGia, 0 );
+        Gia_ManPrintStats( pGia, 0, 0 );
     return -1;
 }
 
@@ -365,7 +365,7 @@ int Gia_ManPbaPerform( Gia_Man_t * pGia, int nStart, int nFrames, int nConfLimit
     }
     Aig_ManStop( pAig );
     if ( fVerbose )
-        Gia_ManPrintStats( pGia, 0 );
+        Gia_ManPrintStats( pGia, 0, 0 );
     return RetValue;
 }
 
@@ -409,7 +409,7 @@ int Gia_ManGlaCbaPerform( Gia_Man_t * pGia, void * pPars, int fNaiveCnf )
     Vec_IntFreeP( &vGateClassesOld );
     pGia->vGateClasses = vGateClasses;
     if ( p->fVerbose )
-        Gia_ManPrintStats( pGia, 0 );
+        Gia_ManPrintStats( pGia, 0, 0 );
     return 1;
 }
 
@@ -494,7 +494,7 @@ int Gia_ManGlaPbaPerform( Gia_Man_t * pGia, void * pPars, int fNewSolver )
         Gia_ManStop( pGiaAbs );
     }
     if ( p->fVerbose )
-        Gia_ManPrintStats( pGia, 0 );
+        Gia_ManPrintStats( pGia, 0, 0 );
     return 1;
 }
 

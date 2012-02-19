@@ -363,7 +363,7 @@ void Gia_ManPrintPlacement( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManPrintStats( Gia_Man_t * p, int fSwitch )
+void Gia_ManPrintStats( Gia_Man_t * p, int fTents, int fSwitch )
 {
     if ( p->pName )
         printf( "%-8s : ", p->pName );
@@ -399,6 +399,19 @@ void Gia_ManPrintStats( Gia_Man_t * p, int fSwitch )
     Gia_ManPrintFlopClasses( p );
     Gia_ManPrintGateClasses( p );
     Gia_ManPrintObjClasses( p );
+    if ( fTents )
+    {
+        int k, Entry, Prev = 1;
+        Vec_Int_t * vLimit = Vec_IntAlloc( 1000 );
+        Gia_Man_t * pNew = Gia_ManUnrollDup( p, vLimit );
+        printf( "Tents:  " );
+        Vec_IntForEachEntryStart( vLimit, Entry, k, 1 )
+            printf( "%d = %d  ", k, Entry-Prev ), Prev = Entry;
+        printf( " Unused = %d.", Gia_ManObjNum(p) - Gia_ManObjNum(pNew) );
+        printf( "\n" );
+        Vec_IntFree( vLimit );
+        Gia_ManStop( pNew );
+    }
 }
 
 /**Function*************************************************************
