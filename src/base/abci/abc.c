@@ -846,8 +846,10 @@ void Abc_Init( Abc_Frame_t * pAbc )
     }
 */
     {
-        extern void If_CluTest();
-        If_CluTest();
+//        extern void If_CluTest();
+//        If_CluTest();
+//        extern void Iso_QuickSortTest();
+//        Iso_QuickSortTest();
     }
 } 
 
@@ -8875,7 +8877,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 //        Aig_ManInterTest( pAig, 1 );
 //        Aig_ManSupportsTest( pAig );
 //        Aig_SupportSizeTest( pAig );
-        if ( !fNewAlgo )
+        if ( fNewAlgo )
             Saig_IsoDetectFast( pAig );
         else
         {
