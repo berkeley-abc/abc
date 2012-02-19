@@ -824,7 +824,7 @@ int Saig_BmcPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nNodesMax
     }
     else // if ( RetValue == l_False || RetValue == l_Undef )
     {
-        printf( "No output was asserted in %d frames.  ", p->iFramePrev-1 );
+        printf( "No output was asserted in %d frames.  ", Abc_MaxInt(p->iFramePrev-1, 0) );
         if ( piFrames )
         {
             if ( p->iOutputLast > 0 )
