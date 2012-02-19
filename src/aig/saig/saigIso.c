@@ -428,6 +428,7 @@ Aig_Man_t * Iso_ManFilterPos( Aig_Man_t * pAig, Vec_Ptr_t ** pvPosEquivs, int fV
     Vec_Str_t * vStr, * vPrev;
     int i, nPos, nUnique = 0, clk = clock();
     int clkDup = 0, clkAig = 0, clkIso = 0, clk2;
+    *pvPosEquivs = NULL;
 
     // derive AIG for each PO
     nPos = Aig_ManPoNum(pAig) - Aig_ManRegNum(pAig);
@@ -521,13 +522,6 @@ Aig_Man_t * Iso_ManFilterPos( Aig_Man_t * pAig, Vec_Ptr_t ** pvPosEquivs, int fV
 //    return (Vec_Vec_t *)vClasses;
 //    Vec_VecFree( (Vec_Vec_t *)vClasses );
     *pvPosEquivs = vClasses;
-    if ( fVerbose && vClasses )
-    {
-        printf( "Non-trivial equivalence clases of primary outputs:\n" );
-        Vec_VecPrintInt( (Vec_Vec_t *)vClasses, 1 );
-    }
-
-//    printf( "The number of all checks %d.  Complex checks %d.\n", nPos*(nPos-1)/2, s_Counter );
     return pPart;
 }
 
@@ -570,7 +564,12 @@ Aig_Man_t * Saig_ManIsoReduce( Aig_Man_t * pAig, Vec_Ptr_t ** pvPosEquivs, int f
     pPart = Iso_ManFilterPos( pAig, pvPosEquivs, fVerbose );
     printf( "Reduced %d outputs to %d outputs.  ", Saig_ManPoNum(pAig), Saig_ManPoNum(pPart) );
     Abc_PrintTime( 1, "Time", clock() - clk );
-//    Aig_ManStop( pPart );
+    if ( fVerbose && *pvPosEquivs )
+    {
+        printf( "Nontrivial classes:\n" );
+        Vec_VecPrintInt( (Vec_Vec_t *)*pvPosEquivs, 1 );
+    }
+//    Aig_ManStopP( &pPart );
     return pPart;
 }
 

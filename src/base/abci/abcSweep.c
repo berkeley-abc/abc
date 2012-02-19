@@ -177,7 +177,7 @@ void Abc_NtkFraigSweepUsingExdc( Fraig_Man_t * pMan, Abc_Ntk_t * pNtk )
 
 /**Function*************************************************************
 
-  Synopsis    [Collects equivalence classses of node in the network.]
+  Synopsis    [Collects equivalence classes of node in the network.]
 
   Description []
                

@@ -352,6 +352,7 @@ static int Abc_CommandAbc9ReachP             ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9ReachN             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9ReachY             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Undo               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Iso                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Test               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandAbcTestNew             ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -782,6 +783,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&reachn",       Abc_CommandAbc9ReachN,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&reachy",       Abc_CommandAbc9ReachY,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&undo",         Abc_CommandAbc9Undo,         0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&iso",          Abc_CommandAbc9Iso,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&test",         Abc_CommandAbc9Test,         0 );
 
     Cmd_CommandAdd( pAbc, "Liveness",     "l2s",           Abc_CommandAbcLivenessToSafety,    0 );
@@ -27835,6 +27837,58 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
+int Abc_CommandAbc9Iso( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern Gia_Man_t * Gia_ManIsoReduce( Gia_Man_t * pGia, Vec_Ptr_t ** pvPosEquivs, int fVerbose );
+
+    Gia_Man_t * pAig;
+    Vec_Ptr_t * vPosEquivs;
+    int c, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Iso(): There is no AIG.\n" );
+        return 1;
+    }
+    pAig = Gia_ManIsoReduce( pAbc->pGia, &vPosEquivs, fVerbose );
+    // update the internal storage of PO equivalences
+    Abc_FrameReplacePoEquivs( pAbc, &vPosEquivs );
+    // update the AIG
+    Abc_CommandUpdate9( pAbc, pAig );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &iso [-vh]\n" );
+    Abc_Print( -2, "\t         removes POs with isomorphic sequential COI\n" );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
 //    Gia_Man_t * pTemp = NULL;
@@ -27843,7 +27897,7 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    extern Gia_Man_t * Gia_VtaTest( Gia_Man_t * p );
 //    extern int Gia_ManSuppSizeTest( Gia_Man_t * p );
 //    extern void Gia_VtaTest( Gia_Man_t * p, int nFramesStart, int nFramesMax, int nConfMax, int nTimeMax, int fVerbose );
-    extern void Gia_IsoTest( Gia_Man_t * p );
+    extern void Gia_IsoTest( Gia_Man_t * p, int fVerbose );
 
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "svh" ) ) != EOF )
@@ -27882,7 +27936,7 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    Gia_ManSuppSizeTest( pAbc->pGia );
 //    Gia_VtaTest( pAbc->pGia, 10, 100000, 0, 0, 1 );
 
-    Gia_IsoTest( pAbc->pGia );
+    Gia_IsoTest( pAbc->pGia, fVerbose );
     return 0;
 usage:
     Abc_Print( -2, "usage: &test [-svh]\n" );

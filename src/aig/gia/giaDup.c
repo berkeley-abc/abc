@@ -1762,7 +1762,7 @@ void Gia_ManDupCones_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Ptr_t * vLeaves, 
         Gia_ManDupCones_rec( p, Gia_ObjFanin1(pObj), vLeaves, vNodes, vRoots );
         Vec_PtrPush( vNodes, pObj );
     }
-    else if ( Gia_ObjIsPo(p, pObj) )
+    else if ( Gia_ObjIsCo(pObj) )
         Gia_ManDupCones_rec( p, Gia_ObjFanin0(pObj), vLeaves, vNodes, vRoots );
     else if ( Gia_ObjIsRo(p, pObj) )
         Vec_PtrPush( vRoots, Gia_ObjRoToRi(p, pObj) );

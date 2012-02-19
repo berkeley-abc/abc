@@ -6,7 +6,7 @@
 
   PackageName [Inductive prover with constraints.]
 
-  Synopsis    [Semiformal for equivalence clases.]
+  Synopsis    [Semiformal for equivalence classes.]
 
   Author      [Alan Mishchenko]
   
