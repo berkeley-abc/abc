@@ -564,7 +564,7 @@ Aig_Man_t * Saig_ManIsoReduce( Aig_Man_t * pAig, Vec_Ptr_t ** pvPosEquivs, int f
     pPart = Iso_ManFilterPos( pAig, pvPosEquivs, fVerbose );
     printf( "Reduced %d outputs to %d outputs.  ", Saig_ManPoNum(pAig), Saig_ManPoNum(pPart) );
     Abc_PrintTime( 1, "Time", clock() - clk );
-    if ( fVerbose && *pvPosEquivs )
+    if ( fVerbose && *pvPosEquivs && Saig_ManPoNum(pAig) != Vec_PtrSize(*pvPosEquivs) )
     {
         printf( "Nontrivial classes:\n" );
         Vec_VecPrintInt( (Vec_Vec_t *)*pvPosEquivs, 1 );
