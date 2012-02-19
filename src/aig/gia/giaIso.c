@@ -116,6 +116,13 @@ struct Gia_IsoMan_t_
     Vec_Int_t *      vLevCounts;
     Vec_Int_t *      vClasses;
     Vec_Int_t *      vClasses2;
+    // statistics 
+    int              timeStart;
+    int              timeSim;
+    int              timeRefine;
+    int              timeSort;
+    int              timeOther;
+    int              timeTotal;
 };
 
 static inline unsigned  Gia_IsoGetValue( Gia_IsoMan_t * p, int i )             { return (unsigned)(p->pStoreW[i]);       }
@@ -130,7 +137,35 @@ static inline void      Gia_IsoSetItem( Gia_IsoMan_t * p, int i, unsigned v )  {
 
 /**Function*************************************************************
 
-  Synopsis    [QuickSort algorithm based on 3-way partitioning.]
+  Synopsis    [QuickSort algorithm as implemented by qsort().]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_QuickSortCompare( word * p1, word * p2 )
+{
+    if ( (unsigned)(*p1) < (unsigned)(*p2) )
+        return -1;
+    if ( (unsigned)(*p1) > (unsigned)(*p2) )
+        return 1;
+    return 0;
+}
+void Abc_QuickSort1( word * pData, int nSize )
+{
+    int i, fVerify = 0;
+    qsort( (void *)pData, nSize, sizeof(word), (int (*)(const void *, const void *))Abc_QuickSortCompare );
+    if ( fVerify )
+        for ( i = 1; i < nSize; i++ )
+            assert( (unsigned)pData[i-1] <= (unsigned)pData[i] );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [QuickSort algorithm based on 2/3-way partitioning.]
 
   Description [This code is based on the online presentation 
   "QuickSort is Optimal" by Robert Sedgewick and Jon Bentley.
@@ -145,7 +180,7 @@ static inline void      Gia_IsoSetItem( Gia_IsoMan_t * p, int i, unsigned v )  {
   SeeAlso     []
 
 ***********************************************************************/
-#define ISO_SWAP(Type, a, b)  { Type t = a; a = b; b = t; }
+#define ABC_SWAP(Type, a, b)  { Type t = a; a = b; b = t; }
 static inline void Iso_SelectSort( word * pData, int nSize )
 {
     int i, j, best_i;
@@ -155,19 +190,19 @@ static inline void Iso_SelectSort( word * pData, int nSize )
         for ( j = i+1; j < nSize; j++ )
             if ( (unsigned)pData[j] < (unsigned)pData[best_i] )
                 best_i = j;
-        ISO_SWAP( word, pData[i], pData[best_i] );
+        ABC_SWAP( word, pData[i], pData[best_i] );
     }
 }
-void Iso_QuickSort_rec( word * pData, int l, int r )
+void Abc_QuickSort2_rec( word * pData, int l, int r )
 {
     word v = pData[r];
-    int k, i = l-1, j = r, p = l-1, q = r;
+    int i = l-1, j = r;
     if ( l >= r )
         return;
     assert( l < r );
     if ( r - l < 10 )
     {
-        Iso_SelectSort( pData, r - l + 1 );
+        Iso_SelectSort( pData + l, r - l + 1 );
         return;
     }
     while ( 1 )
@@ -178,28 +213,91 @@ void Iso_QuickSort_rec( word * pData, int l, int r )
                 break;
         if ( i >= j )
             break;
-        ISO_SWAP( word, pData[i], pData[j] );
-        if ( (unsigned)pData[i] == (unsigned)v ) 
-            { p++; ISO_SWAP( word, pData[p], pData[i] ); }
-        if ( (unsigned)v == (unsigned)pData[j] ) 
-            { q--; ISO_SWAP( word, pData[j], pData[q] ); }
+        ABC_SWAP( word, pData[i], pData[j] );
     }
-    ISO_SWAP( word, pData[i], pData[r] ); 
+    ABC_SWAP( word, pData[i], pData[r] ); 
+    Abc_QuickSort2_rec( pData, l, i-1 );
+    Abc_QuickSort2_rec( pData, i+1, r );
+}
+void Abc_QuickSort3_rec( word * pData, int l, int r )
+{
+    word v = pData[r];
+    int k, i = l-1, j = r, p = l-1, q = r;
+    if ( l >= r )
+        return;
+    assert( l < r );
+    if ( r - l < 10 )
+    {
+        Iso_SelectSort( pData + l, r - l + 1 );
+        return;
+    }
+    while ( 1 )
+    {
+        while ( (unsigned)pData[++i] < (unsigned)v );
+        while ( (unsigned)v < (unsigned)pData[--j] )
+            if ( j == l )
+                break;
+        if ( i >= j )
+            break;
+        ABC_SWAP( word, pData[i], pData[j] );
+        if ( (unsigned)pData[i] == (unsigned)v ) 
+            { p++; ABC_SWAP( word, pData[p], pData[i] ); }
+        if ( (unsigned)v == (unsigned)pData[j] ) 
+            { q--; ABC_SWAP( word, pData[j], pData[q] ); }
+    }
+    ABC_SWAP( word, pData[i], pData[r] ); 
     j = i-1; i = i+1;
     for ( k = l; k < p; k++, j-- ) 
-        ISO_SWAP( word, pData[k], pData[j] );
+        ABC_SWAP( word, pData[k], pData[j] );
     for ( k = r-1; k > q; k--, i++ ) 
-        ISO_SWAP( word, pData[i], pData[k] );
-    Iso_QuickSort_rec( pData, l, j );
-    Iso_QuickSort_rec( pData, i, r );
+        ABC_SWAP( word, pData[i], pData[k] );
+    Abc_QuickSort3_rec( pData, l, j );
+    Abc_QuickSort3_rec( pData, i, r );
 }
-void Iso_QuickSort( word * pData, int nSize )
+void Abc_QuickSort2( word * pData, int nSize )
 {
-    int i, fVerify = 1;
-    Iso_QuickSort_rec( pData, 0, nSize - 1 );
+    int i, fVerify = 0;
+    Abc_QuickSort2_rec( pData, 0, nSize - 1 );
     if ( fVerify )
         for ( i = 1; i < nSize; i++ )
             assert( (unsigned)pData[i-1] <= (unsigned)pData[i] );
+}
+void Abc_QuickSort3( word * pData, int nSize )
+{
+    int i, fVerify = 0;
+    Abc_QuickSort3_rec( pData, 0, nSize - 1 );
+    if ( fVerify )
+        for ( i = 1; i < nSize; i++ )
+            assert( (unsigned)pData[i-1] <= (unsigned)pData[i] );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Wrapper around QuickSort to sort entries based on cost.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_QuickSortCostData( int * pCosts, int nSize, word * pData, int * pResult )
+{
+    int i;
+    for ( i = 0; i < nSize; i++ )
+        pData[i] = ((word)i << 32) | pCosts[i];
+    Abc_QuickSort3( pData, nSize );
+    for ( i = 0; i < nSize; i++ )
+        pResult[i] = (int)(pData[i] >> 32);
+}
+int * Abc_QuickSortCost( int * pCosts, int nSize )
+{
+    word * pData = ABC_ALLOC( word, nSize );
+    int * pResult = ABC_ALLOC( int, nSize );
+    Abc_QuickSortCostData( pCosts, nSize, pData, pResult );
+    ABC_FREE( pData );
+    return pResult;
 }
 
 /**Function*************************************************************
@@ -213,44 +311,40 @@ void Iso_QuickSort( word * pData, int nSize )
   SeeAlso     []
 
 ***********************************************************************/
-int Iso_QuickSortCompare( word * p1, word * p2 )
+void Abc_QuickSortTest()
 {
-    return (unsigned)(*p1)-(unsigned)(*p2);
-}
-void Iso_QuickSortTest()
-{
-    int Size = 10000000;
+    int nSize = 10000000;
     int fVerbose = 0;
     word * pData1, * pData2;
     int i, clk = clock();
     // generate numbers
-    pData1 = ABC_ALLOC( word, Size );
-    pData2 = ABC_ALLOC( word, Size );
+    pData1 = ABC_ALLOC( word, nSize );
+    pData2 = ABC_ALLOC( word, nSize );
     srand( 1111 );
-    for ( i = 0; i < Size; i++ )
+    for ( i = 0; i < nSize; i++ )
         pData2[i] = pData1[i] = ((word)i << 32) | rand();
     Abc_PrintTime( 1, "Prepare ", clock() - clk );
     // perform sorting
     clk = clock();
-    Iso_QuickSort_rec( pData1, 0, Size-1 );
+    Abc_QuickSort3( pData1, nSize );
     Abc_PrintTime( 1, "Sort new", clock() - clk );
     // print the result
     if ( fVerbose )
     {
-    for ( i = 0; i < Size; i++ )
-        printf( "(%d,%d) ", (int)(pData1[i] >> 32), (int)pData1[i] );
-    printf( "\n" );
+        for ( i = 0; i < nSize; i++ )
+            printf( "(%d,%d) ", (int)(pData1[i] >> 32), (int)pData1[i] );
+        printf( "\n" );
     }
     // create new numbers
     clk = clock();
-    qsort( (void *)pData2, Size, sizeof(word), (int (*)(const void *, const void *))Iso_QuickSortCompare );
+    Abc_QuickSort1( pData2, nSize );
     Abc_PrintTime( 1, "Sort old", clock() - clk );
     // print the result
     if ( fVerbose )
     {
-    for ( i = 0; i < Size; i++ )
-        printf( "(%d,%d) ", (int)(pData2[i] >> 32), (int)pData2[i] );
-    printf( "\n" );
+        for ( i = 0; i < nSize; i++ )
+            printf( "(%d,%d) ", (int)(pData2[i] >> 32), (int)pData2[i] );
+        printf( "\n" );
     }
     ABC_FREE( pData1 );
     ABC_FREE( pData2 );
@@ -316,12 +410,12 @@ void Gia_IsoPrintClasses( Gia_IsoMan_t * p )
     printf( "The total of %d classes:\n", Vec_IntSize(p->vClasses)/2 );
     Vec_IntForEachEntryDouble( p->vClasses, iBegin, nSize, i )
     {
-        printf( "%5d : (%d,%d)  ", i/2, iBegin, nSize );
+        printf( "%5d : (%3d,%3d)  ", i/2, iBegin, nSize );
         if ( fVerbose )
         {
             printf( "{" );
             for ( k = 0; k < nSize; k++ )
-                printf( " %d,%d", Gia_IsoGetItem(p, iBegin+k), Gia_IsoGetValue(p, iBegin+k) );
+                printf( " %3d,%08x", Gia_IsoGetItem(p, iBegin+k), Gia_IsoGetValue(p, iBegin+k) );
             printf( " }" );
         }
         printf( "\n" );
@@ -399,7 +493,6 @@ void Gia_IsoPrepare( Gia_IsoMan_t * p )
         printf( "%3d : (%d,%d)\n", i, Gia_IsoGetItem(p, i), Gia_IsoGetValue(p, i) );
     printf( "\n" );
 */
-//    Gia_IsoPrintClasses( p );
 }
 
 /**Function*************************************************************
@@ -432,7 +525,7 @@ void Gia_IsoAssignUnique( Gia_IsoMan_t * p )
             Vec_IntPush( p->vClasses2, nSize );
         }
     }
-    ISO_SWAP( Vec_Int_t *, p->vClasses, p->vClasses2 );
+    ABC_SWAP( Vec_Int_t *, p->vClasses, p->vClasses2 );
     p->nEntries -= p->nSingles;
 }
 
@@ -447,32 +540,40 @@ void Gia_IsoAssignUnique( Gia_IsoMan_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-static inline unsigned Gia_IsoUpdate( int iLevel, int iUniqueF, int fCompl )
+static inline unsigned Gia_IsoUpdate( int Iter, int iLevel, int iUniqueF, int fCompl )
 {
-    return iLevel * s_256Primes[Abc_Var2Lit(iLevel, fCompl) & ISO_MASK] +
-           iUniqueF * s_256Primes[Abc_Var2Lit(iUniqueF+ISO_MASK/2, fCompl) & ISO_MASK];
+//    iLevel = ((Iter + iLevel) * (Iter + iLevel + 1)) >> 1;
+    if ( iUniqueF == 0 )
+        return iLevel * s_256Primes[Abc_Var2Lit(iLevel, fCompl) & ISO_MASK];
+//    iUniqueF = ((Iter + iUniqueF) * (Iter + iUniqueF + 1)) >> 1;
+    return iLevel * s_256Primes[Abc_Var2Lit(iLevel, fCompl) & ISO_MASK] + 
+           iUniqueF * s_256Primes[Abc_Var2Lit(iUniqueF, fCompl) & ISO_MASK];
 }
 void Gia_IsoSimulate( Gia_IsoMan_t * p, int Iter )
 {
     Gia_Obj_t * pObj, * pObjF;
     int i, iObj;
     // initialize constant, inputs, and flops in the first frame
-    Gia_ManConst0(p->pGia)->Value = s_256Primes2[Abc_Var2Lit(Iter, 0) & ISO_MASK];
+//    Gia_ManConst0(p->pGia)->Value = s_256Primes2[Abc_Var2Lit(Iter, 0) & ISO_MASK];
+    Gia_ManConst0(p->pGia)->Value = s_256Primes2[ISO_MASK-2];
     Gia_ManForEachPi( p->pGia, pObj, i )
-        pObj->Value = s_256Primes2[Abc_Var2Lit(Iter, 1) & ISO_MASK];
+//        pObj->Value = s_256Primes2[Abc_Var2Lit(Iter, 1) & ISO_MASK];
+        pObj->Value = s_256Primes2[ISO_MASK-1];
     if ( Iter == 0 )
         Gia_ManForEachRo( p->pGia, pObj, i )
             pObj->Value = s_256Primes2[ISO_MASK];
-    // simiulate objects
+    // simulate objects
     Gia_ManForEachAnd( p->pGia, pObj, i )
     {
-        pObj->Value += Gia_ObjFanin0(pObj)->Value + Gia_IsoUpdate(p->pLevels[i], p->pUniques[Gia_ObjFaninId0(pObj, i)], Gia_ObjFaninC0(pObj));
-        pObj->Value += Gia_ObjFanin1(pObj)->Value + Gia_IsoUpdate(p->pLevels[i], p->pUniques[Gia_ObjFaninId1(pObj, i)], Gia_ObjFaninC1(pObj));
+        pObj->Value += Gia_ObjFanin0(pObj)->Value + Gia_IsoUpdate(Iter, p->pLevels[i], p->pUniques[Gia_ObjFaninId0(pObj, i)], Gia_ObjFaninC0(pObj));
+        pObj->Value += Gia_ObjFanin1(pObj)->Value + Gia_IsoUpdate(Iter, p->pLevels[i], p->pUniques[Gia_ObjFaninId1(pObj, i)], Gia_ObjFaninC1(pObj));
+//printf( "AND %3d: %08x\n", i, pObj->Value );
     }
     Gia_ManForEachCo( p->pGia, pObj, i )
     {
         iObj = Gia_ObjId(p->pGia, pObj);
-        pObj->Value += Gia_ObjFanin0(pObj)->Value + Gia_IsoUpdate(p->pLevels[iObj], p->pUniques[Gia_ObjFaninId0(pObj, iObj)], Gia_ObjFaninC0(pObj));
+        pObj->Value += Gia_ObjFanin0(pObj)->Value + Gia_IsoUpdate(Iter, p->pLevels[iObj], p->pUniques[Gia_ObjFaninId0(pObj, iObj)], Gia_ObjFaninC0(pObj));
+//printf( "CO  %3d: %08x\n", i, pObj->Value );
     }
     // transfer flop values
     Gia_ManForEachRiRo( p->pGia, pObjF, pObj, i )
@@ -493,7 +594,8 @@ void Gia_IsoSimulate( Gia_IsoMan_t * p, int Iter )
 void Gia_IsoSort( Gia_IsoMan_t * p )
 {
     Gia_Obj_t * pObj, * pObj0;
-    int i, k, fSameValue, iBegin, iBeginOld, nSize, nSizeNew;
+    int i, k, fSameValue, iBegin, iBeginOld, nSize, nSizeNew, clk;
+
     // go through the equiv classes
     p->nSingles = 0;
     Vec_IntClear( p->vClasses2 );
@@ -515,9 +617,11 @@ void Gia_IsoSort( Gia_IsoMan_t * p )
             Vec_IntPush( p->vClasses2, nSize );
             continue;
         }
-        // sort the objects
-        Iso_QuickSort( p->pStoreW + iBegin, nSize );
-        // divide them into classes
+        // sort objects
+        clk = clock();
+        Abc_QuickSort3( p->pStoreW + iBegin, nSize );
+        p->timeSort += clock() - clk;
+        // divide into new classes
         iBeginOld = iBegin;
         pObj0 = Gia_ManObj( p->pGia, Gia_IsoGetItem(p,iBegin) );
         for ( k = 1; k < nSize; k++ )
@@ -538,9 +642,24 @@ void Gia_IsoSort( Gia_IsoMan_t * p )
                 Vec_IntPush( p->vClasses2, nSizeNew );
             }
             iBeginOld = iBegin + k;
+            pObj0 = pObj;
+        }
+        // add the last one
+        nSizeNew = iBegin + k - iBeginOld;
+        if ( nSizeNew == 1 )
+        {
+            assert( p->pUniques[Gia_IsoGetItem(p, iBeginOld)] == 0 );
+            p->pUniques[Gia_IsoGetItem(p, iBeginOld)] = p->nUniques++;
+            p->nSingles++;
+        }
+        else
+        {
+            Vec_IntPush( p->vClasses2, iBeginOld );
+            Vec_IntPush( p->vClasses2, nSizeNew );
         }
     }
-    ISO_SWAP( Vec_Int_t *, p->vClasses, p->vClasses2 );
+
+    ABC_SWAP( Vec_Int_t *, p->vClasses, p->vClasses2 );
     p->nEntries -= p->nSingles;
 }
 
@@ -557,22 +676,49 @@ void Gia_IsoSort( Gia_IsoMan_t * p )
 ***********************************************************************/
 void Gia_IsoTest( Gia_Man_t * pGia )
 {
-    int nIterMax = 0;
+    int fVerbose = 1;
+    int nIterMax = 50;
     Gia_IsoMan_t * p;
-    int i, clk = clock();
+    int i, clk = clock(), clkTotal = clock();
+
     Gia_ManCleanValue( pGia );
     p = Gia_IsoManStart( pGia );
     Gia_IsoPrepare( p );
     Gia_IsoAssignUnique( p );
-    Gia_IsoPrint( p, 0, clock() - clk );
+    p->timeStart = clock() - clk;
+
+//    Gia_IsoPrintClasses( p );
+    Gia_IsoPrint( p, 0, clock() - clkTotal );
     for ( i = 0; i < nIterMax; i++ )
     {
+        clk = clock();
         Gia_IsoSimulate( p, i );
+        p->timeSim += clock() - clk;
+
+        clk = clock();
         Gia_IsoSort( p );
-        Gia_IsoPrint( p, i+1, clock() - clk );
+        p->timeRefine += clock() - clk;
+
+//        Gia_IsoPrintClasses( p );
+        Gia_IsoPrint( p, i+1, clock() - clkTotal );
+        if ( p->nSingles == 0 )
+            break;
     }
+
+    if ( fVerbose )
+    {
+        p->timeTotal = clock() - clkTotal;
+        p->timeOther = p->timeTotal - p->timeStart - p->timeSim - p->timeRefine;
+
+        ABC_PRTP( "Start    ", p->timeStart,              p->timeTotal );
+        ABC_PRTP( "Simulate ", p->timeSim,                p->timeTotal );
+        ABC_PRTP( "Refine   ", p->timeRefine-p->timeSort, p->timeTotal );
+        ABC_PRTP( "Sort     ", p->timeSort,               p->timeTotal );
+        ABC_PRTP( "Other    ", p->timeOther,              p->timeTotal );
+        ABC_PRTP( "TOTAL    ", p->timeTotal,              p->timeTotal );
+    }
+
     Gia_IsoManStop( p );
-    Abc_PrintTime( 1, "Time", clock() - clk );
 }
 
 
