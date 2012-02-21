@@ -1791,7 +1791,7 @@ Gia_Man_t * Gia_ManDupCones( Gia_Man_t * p, int * pPos, int nPos )
         Gia_ManDupCones_rec( p, pObj, vLeaves, vNodes, vRoots );
 
     // start the new manager
-    Gia_ManFillValue( p );
+//    Gia_ManFillValue( p );
     pNew = Gia_ManStart( Vec_PtrSize(vLeaves) + Vec_PtrSize(vNodes) + Vec_PtrSize(vRoots) + 1);
     pNew->pName = Abc_UtilStrsav( p->pName );
     // map the constant node

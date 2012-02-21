@@ -21982,11 +21982,19 @@ int Abc_CommandAbc9Write( Abc_Frame_t * pAbc, int argc, char ** argv )
     char * pFileName;
     char ** pArgvNew;
     int c, nArgcNew;
+    int fUnique = 0;
+    int fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "uvh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'u':
+            fUnique ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
         case 'h':
             goto usage;
         default:
@@ -22004,16 +22012,24 @@ int Abc_CommandAbc9Write( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Print( -1, "Abc_CommandAbc9Write(): There is no AIG to write.\n" );
         return 1;
-    } 
-    // create the design to write
+    }
     pFileName = argv[globalUtilOptind];
-    Gia_WriteAiger( pAbc->pGia, pFileName, 0, 0 );
+    if ( fUnique )
+    {
+        Gia_Man_t * pGia = Gia_ManIsoCanonicize( pAbc->pGia, fVerbose );
+        Gia_WriteAigerSimple( pGia, pFileName );
+        Gia_ManStop( pGia );
+    }
+    else
+        Gia_WriteAiger( pAbc->pGia, pFileName, 0, 0 );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &w [-h] <file>\n" );
-    Abc_Print( -2, "\t        writes the current AIG into the AIGER file\n" );
-    Abc_Print( -2, "\t-h    : print the command usage\n");
+    Abc_Print( -2, "usage: &w [-uvh] <file>\n" );
+    Abc_Print( -2, "\t         writes the current AIG into the AIGER file\n" );
+    Abc_Print( -2, "\t-u     : toggle writing canonical AIG structure [default = %s]\n", fUnique? "yes" : "no" );
+    Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
     Abc_Print( -2, "\t<file> : the file name\n");
     return 1;
 }
@@ -27839,8 +27855,6 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Iso( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Gia_Man_t * Gia_ManIsoReduce( Gia_Man_t * pGia, Vec_Ptr_t ** pvPosEquivs, int fVerbose );
-
     Gia_Man_t * pAig;
     Vec_Ptr_t * vPosEquivs;
     int c, fVerbose = 0;

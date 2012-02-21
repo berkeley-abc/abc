@@ -59,41 +59,6 @@ static int s_256Primes[ISO_MASK+1] =
     0x6918928b,0xde3126bb,0x6c99835c,0x63ba1fa2,0xdebbdff0,0x3d02e541,0xd6f7aac6,0xe80b4cd0,
     0xd0fa29f1,0x804cac5e,0x2c226798,0x462f624c,0xad05b377,0x22924fcd,0xfbea205c,0x1b47586d
 };
-static int s_256Primes2[ISO_MASK+1] = 
-{
-    0xcaa57efb,0x64bd4878,0x3419334a,0x712e5f6b,0x9fa9d687,0x06f8645f,0x620ca96f,0xdc5d6cce,
-    0x392f3257,0x52140f06,0xc4b3bda4,0xe8c7eba7,0x066bd754,0xc5941f26,0xe6dfd573,0x328dd14d,
-    0xb1cb4ba7,0x1d37a9b8,0x96a195a5,0x970e535a,0x290351b8,0x570000f6,0xe14ae341,0x35ede6a6,
-    0x9a02f032,0xaf2ebb58,0x146be492,0x670b3e4b,0x72fa6cfd,0xa243af97,0xbbd5fc21,0xcb8852a2,
-    0x5d5b4a42,0xeefff0ac,0xa59ad1b6,0x3ec55544,0x48d64f69,0x9065d3d0,0xdd09485b,0xdd63bd09,
-    0x605e811d,0xc4b4ed7d,0xb0b58558,0x0644400b,0x12222346,0x086f146a,0xad6dee36,0x5488d1a3,
-    0x0c93bc0c,0x18555d92,0x9f4427bf,0xa590a66a,0x3a630fda,0xf1681c2e,0x948a16fb,0x16fe3338,
-    0xc9832357,0xd1e8e6b5,0xd9cfe034,0x05b22f26,0x27233c6e,0x355890e1,0xfbe6eaf3,0x0dcd8e8f,
-    0x00b5df46,0xd97730ac,0xc6dfd8ff,0x0cb1840a,0x41e9d249,0xbb471b4e,0x480b8f63,0x1ffe8871,
-    0x17b11821,0x1709e440,0xcefb3668,0xa4954ddd,0xf03ef8b5,0x6b3e633c,0xe5813096,0x3697c9a6,
-    0x7800f52f,0x73a7aa39,0x59ac23b7,0xb4663166,0x9ca9d6f8,0x2d441072,0x38cef3d3,0x39a3faf6,
-    0x89299fb9,0xd558295f,0xcf79c633,0x232dd96e,0xadb2955b,0xe962cbb9,0xab7c0061,0x1027c329,
-    0xb4b43e07,0x25240a7a,0x98ea4825,0xdbf2edbd,0x8be15d26,0x879f3cd9,0xa4138089,0xa32dcb06,
-    0x602af961,0x4b13f451,0x1c87d0d5,0xc3bb141b,0x9ebf55a1,0xef030a9a,0x8d199b93,0xdabcbb56,
-    0xf412f80f,0x302e90ad,0xc4d9878b,0xc392f650,0x4fd3a614,0x0a96ddc4,0xcd1878c7,0x9ddd3ae1,
-    0xdaf46458,0xba7c8656,0xf667948f,0xc37e3c23,0x04a577c6,0xbe615f1e,0xcc97406c,0xd497f16f,
-    0x79586586,0xd2057d14,0x1bb92028,0xab888e5e,0x26bef100,0xf46b3671,0xf21f1acc,0x67f288c8,
-    0x39c722df,0x61d21eaf,0x9c5853a0,0x63b693c7,0x1ea53c0a,0x95bc0a85,0xa7372f2d,0x3ef6a6b3,
-    0x82c9c4ac,0x4dea10ee,0xdfcb543d,0xd412f427,0x53e27f2c,0x875d8422,0x5367a7d8,0x41acf3fa,
-    0xbce47234,0x8056fb9a,0x4e9a4c48,0xe4a45945,0x2cfee3ae,0xb4554b10,0x5e37a915,0x591b1963,
-    0x4fa255c1,0xe01c897b,0x504e6208,0x7c7368eb,0x13808fd7,0x02ac0816,0x30305d2c,0x6c4bbdb7,
-    0xa48a9599,0x57466059,0x4c6ebfc7,0x8587ccdf,0x6ff0abf0,0x5b6b63fe,0x31d9ec64,0x63458abd,
-    0x21245905,0xccdb28fc,0xac828acb,0xe5e82bea,0xa7d76141,0xa699038e,0xcaba7e06,0x2710253f,
-    0x2ff9c94d,0x26e48a2c,0xd713ec5e,0x869f2ed4,0x25bcd712,0xcb3e918f,0x615c3a5a,0x9fb43903,
-    0x37900eb9,0x4f682db0,0x35a80dc6,0x4eb27c65,0x502735ab,0xb163b4c8,0x604649a8,0xb23a6cd3,
-    0x9f715091,0x2e6fbb51,0x2ec9144b,0x272cbe65,0x90a0a453,0x420e1503,0x2d00d338,0x4aa96675,
-    0xd025b61c,0xab02d9d7,0x2afe2a37,0xf8129b9b,0x4db04c54,0x654a5c06,0x3213ff51,0x4e09d0b1,
-    0x333369a3,0xae27310a,0x91d076d0,0xa96ebcd0,0xefde54f4,0x021c309a,0xd506f53d,0xa5635251,
-    0x2f23916e,0x1fe86bb1,0xcbc62160,0x2147c8cc,0xdeb3e47c,0x028e3987,0x8061de42,0x39be931b,
-    0x2b7e54c5,0xe64d2f96,0x4069522d,0x4aa66857,0x83b62634,0x4ba72095,0x9aade2a9,0xf1223cd9,
-    0x91cbddf0,0xec5d237f,0x593f3280,0x0b924439,0x446f4063,0xc66f8d8c,0x8b7128ba,0xb597f451,
-    0xc8925236,0x1720f235,0x7cd2e9a0,0x4c130339,0x8a665a52,0x5bef2733,0xba35d9bc,0x6d26644c
-};
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -173,6 +138,14 @@ void Gia_IsoManStop( Gia_IsoMan_t * p )
     ABC_FREE( p->pUniques );
     ABC_FREE( p->pStoreW );
     ABC_FREE( p );
+}
+void Gia_IsoManTransferUnique( Gia_IsoMan_t * p )
+{
+    Gia_Obj_t * pObj;
+    int i;
+    // copy unique numbers into the nodes
+    Gia_ManForEachObj( p->pGia, pObj, i )
+        pObj->Value = p->pUniques[i];
 }
 
 
@@ -258,6 +231,7 @@ void Gia_IsoPrepare( Gia_IsoMan_t * p )
     pLevBegins[0] = 1;
     for ( i = 0; i <= MaxLev; i++ )
     {
+        assert( pLevSizes[i] > 0 ); // we do not allow AIG has a const node and no PIs
         Vec_IntPush( p->vClasses, pLevBegins[i] );
         Vec_IntPush( p->vClasses, pLevSizes[i] );
         pLevBegins[i+1] = pLevBegins[i] + pLevSizes[i];
@@ -265,10 +239,7 @@ void Gia_IsoPrepare( Gia_IsoMan_t * p )
     assert( pLevBegins[MaxLev+1] == p->nObjs );
     // put them into the structure
     for ( i = 1; i < p->nObjs; i++ )
-    {
-//        Gia_IsoSetValue( p, pLevBegins[p->pLevels[i]], p->pLevels[i] );
         Gia_IsoSetItem( p, pLevBegins[p->pLevels[i]]++, i );
-    }
     ABC_FREE( pLevBegins );
     ABC_FREE( pLevSizes );
 /*
@@ -311,57 +282,6 @@ void Gia_IsoAssignUnique( Gia_IsoMan_t * p )
     }
     ABC_SWAP( Vec_Int_t *, p->vClasses, p->vClasses2 );
     p->nEntries -= p->nSingles;
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-static inline unsigned Gia_IsoUpdate( int Iter, int iLevel, int iUniqueF, int fCompl )
-{
-//    iLevel = ((Iter + iLevel) * (Iter + iLevel + 1)) >> 1;
-    if ( iUniqueF == 0 )
-        return iLevel * s_256Primes[Abc_Var2Lit(iLevel, fCompl) & ISO_MASK];
-//    iUniqueF = ((Iter + iUniqueF) * (Iter + iUniqueF + 1)) >> 1;
-    return iLevel * s_256Primes[Abc_Var2Lit(iLevel, fCompl) & ISO_MASK] + 
-           iUniqueF * s_256Primes[Abc_Var2Lit(iUniqueF, fCompl) & ISO_MASK];
-}
-void Gia_IsoSimulate( Gia_IsoMan_t * p, int Iter )
-{
-    Gia_Obj_t * pObj, * pObjF;
-    int i, iObj;
-    // initialize constant, inputs, and flops in the first frame
-//    Gia_ManConst0(p->pGia)->Value = s_256Primes2[Abc_Var2Lit(Iter, 0) & ISO_MASK];
-    Gia_ManConst0(p->pGia)->Value = s_256Primes2[ISO_MASK-2];
-    Gia_ManForEachPi( p->pGia, pObj, i )
-//        pObj->Value = s_256Primes2[Abc_Var2Lit(Iter, 1) & ISO_MASK];
-        pObj->Value = s_256Primes2[ISO_MASK-1];
-    if ( Iter == 0 )
-        Gia_ManForEachRo( p->pGia, pObj, i )
-            pObj->Value = s_256Primes2[ISO_MASK];
-    // simulate objects
-    Gia_ManForEachAnd( p->pGia, pObj, i )
-    {
-        pObj->Value += Gia_ObjFanin0(pObj)->Value + Gia_IsoUpdate(Iter, p->pLevels[i], p->pUniques[Gia_ObjFaninId0(pObj, i)], Gia_ObjFaninC0(pObj));
-        pObj->Value += Gia_ObjFanin1(pObj)->Value + Gia_IsoUpdate(Iter, p->pLevels[i], p->pUniques[Gia_ObjFaninId1(pObj, i)], Gia_ObjFaninC1(pObj));
-//printf( "AND %3d: %08x\n", i, pObj->Value );
-    }
-    Gia_ManForEachCo( p->pGia, pObj, i )
-    {
-        iObj = Gia_ObjId(p->pGia, pObj);
-        pObj->Value += Gia_ObjFanin0(pObj)->Value + Gia_IsoUpdate(Iter, p->pLevels[iObj], p->pUniques[Gia_ObjFaninId0(pObj, iObj)], Gia_ObjFaninC0(pObj));
-//printf( "CO  %3d: %08x\n", i, pObj->Value );
-    }
-    // transfer flop values
-    Gia_ManForEachRiRo( p->pGia, pObjF, pObj, i )
-        pObj->Value += pObjF->Value;
 }
 
 /**Function*************************************************************
@@ -461,13 +381,12 @@ int Gia_IsoSort( Gia_IsoMan_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Ptr_t * Gia_IsoCollectCos( Gia_IsoMan_t * p, int fVerbose )
+Vec_Ptr_t * Gia_IsoCollectCosClasses( Gia_IsoMan_t * p, int fVerbose )
 {
     Vec_Ptr_t * vGroups;
     Vec_Int_t * vLevel;
     Gia_Obj_t * pObj;
     int i, k, iBegin, nSize;
-
     // add singletons
     vGroups = Vec_PtrAlloc( 1000 );
     Gia_ManForEachPo( p->pGia, pObj, i )
@@ -518,54 +437,63 @@ Vec_Ptr_t * Gia_IsoCollectCos( Gia_IsoMan_t * p, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Ptr_t * Gia_IsoDeriveEquivPos( Gia_Man_t * pGia, int fVerbose )
+static inline unsigned Gia_IsoUpdateValue( int Value, int fCompl )
 {
-    Vec_Ptr_t * vEquivs;
-    Gia_IsoMan_t * p;
-    int nIterMax = 1000, fRefined;
-    int i, c, clk = clock(), clkTotal = clock();
-
-    Gia_ManCleanValue( pGia );
-    p = Gia_IsoManStart( pGia );
-    Gia_IsoPrepare( p );
-    Gia_IsoAssignUnique( p );
-    p->timeStart = clock() - clk;
-//    Gia_IsoPrintClasses( p );
-    if ( fVerbose )
-        Gia_IsoPrint( p, 0, clock() - clkTotal );
-    for ( i = 0, c = 0; i < nIterMax && c < 3; i++, c++ )
-    {
-        clk = clock();
-        Gia_IsoSimulate( p, i );
-        p->timeSim += clock() - clk;
-
-        clk = clock();
-        fRefined = Gia_IsoSort( p );
-        if ( fRefined )
-            c = 0;
-        p->timeRefine += clock() - clk;
-
-//        Gia_IsoPrintClasses( p );
-        if ( fVerbose )
-            Gia_IsoPrint( p, i+1, clock() - clkTotal );
-    }
-    if ( fVerbose )
-    {
-        p->timeTotal = clock() - clkTotal;
-        p->timeOther = p->timeTotal - p->timeStart - p->timeSim - p->timeRefine;
-
-        ABC_PRTP( "Start    ", p->timeStart,              p->timeTotal );
-        ABC_PRTP( "Simulate ", p->timeSim,                p->timeTotal );
-        ABC_PRTP( "Refine   ", p->timeRefine-p->timeSort, p->timeTotal );
-        ABC_PRTP( "Sort     ", p->timeSort,               p->timeTotal );
-        ABC_PRTP( "Other    ", p->timeOther,              p->timeTotal );
-        ABC_PRTP( "TOTAL    ", p->timeTotal,              p->timeTotal );
-    }
-    vEquivs = Gia_IsoCollectCos( p, fVerbose );
-    Gia_IsoManStop( p );
-    return vEquivs;
+    return (Value+1) * s_256Primes[Abc_Var2Lit(Value, fCompl) & ISO_MASK];
 }
-
+static inline unsigned Gia_IsoUpdate( Gia_IsoMan_t * p, int Iter, int iObj, int fCompl )
+{
+    if ( Iter == 0 )              return Gia_IsoUpdateValue( p->pLevels[iObj], fCompl );
+    if ( p->pUniques[iObj] > 0 )  return Gia_IsoUpdateValue( p->pUniques[iObj], fCompl );
+    return 0;
+}
+void Gia_IsoSimulate( Gia_IsoMan_t * p, int Iter )
+{
+    Gia_Obj_t * pObj, * pObjF;
+    int i, iObj;
+    // initialize constant, inputs, and flops in the first frame
+    Gia_ManConst0(p->pGia)->Value = s_256Primes[ISO_MASK];
+    Gia_ManForEachPi( p->pGia, pObj, i )
+        pObj->Value = s_256Primes[ISO_MASK-1];
+    if ( Iter == 0 )
+        Gia_ManForEachRo( p->pGia, pObj, i )
+            pObj->Value = s_256Primes[ISO_MASK-2];
+    // simulate nodes
+    Gia_ManForEachAnd( p->pGia, pObj, i )
+    {
+        pObj->Value += Gia_ObjFanin0(pObj)->Value + Gia_IsoUpdate(p, Iter, Gia_ObjFaninId0(pObj, i), Gia_ObjFaninC0(pObj));
+        pObj->Value += Gia_ObjFanin1(pObj)->Value + Gia_IsoUpdate(p, Iter, Gia_ObjFaninId1(pObj, i), Gia_ObjFaninC1(pObj));
+    }
+    // simulate COs
+    Gia_ManForEachCo( p->pGia, pObj, i )
+    {
+        iObj = Gia_ObjId(p->pGia, pObj);
+        pObj->Value += Gia_ObjFanin0(pObj)->Value + Gia_IsoUpdate(p, Iter, Gia_ObjFaninId0(pObj, iObj), Gia_ObjFaninC0(pObj));
+    }
+    // transfer flop values
+    Gia_ManForEachRiRo( p->pGia, pObjF, pObj, i )
+        pObj->Value += pObjF->Value;
+}
+void Gia_IsoSimulateBack( Gia_IsoMan_t * p, int Iter )
+{
+    Gia_Obj_t * pObj, * pObjF;
+    int i, iObj;
+    // simulate COs
+    Gia_ManForEachCo( p->pGia, pObj, i )
+    {
+        iObj = Gia_ObjId(p->pGia, pObj);
+        Gia_ObjFanin0(pObj)->Value += pObj->Value + Gia_IsoUpdate(p, Iter, iObj, Gia_ObjFaninC0(pObj));
+    }
+    // simulate objects
+    Gia_ManForEachAndReverse( p->pGia, pObj, i )
+    {
+        Gia_ObjFanin0(pObj)->Value += pObj->Value + Gia_IsoUpdate(p, Iter, i, Gia_ObjFaninC0(pObj));
+        Gia_ObjFanin1(pObj)->Value += pObj->Value + Gia_IsoUpdate(p, Iter, i, Gia_ObjFaninC1(pObj));
+    }
+    // transfer flop values
+    Gia_ManForEachRiRo( p->pGia, pObjF, pObj, i )
+        pObjF->Value += pObj->Value;
+}
 
 /**Function*************************************************************
 
@@ -578,23 +506,499 @@ Vec_Ptr_t * Gia_IsoDeriveEquivPos( Gia_Man_t * pGia, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManIsoReduce( Gia_Man_t * pGia, Vec_Ptr_t ** pvPosEquivs, int fVerbose )
-{ 
+void Gia_IsoAssignOneClass2( Gia_IsoMan_t * p )
+{
+    int i, iBegin, nSize = -1;
+    // find two variable class
+    assert( Vec_IntSize(p->vClasses) > 0 );
+    Vec_IntForEachEntryDouble( p->vClasses, iBegin, nSize, i )
+    {
+        if ( nSize == 2 )
+            break;
+    }
+    assert( nSize > 1 );
+
+    if ( nSize == 2 )
+    {
+        assert( p->pUniques[Gia_IsoGetItem(p, iBegin)] == 0 );
+        p->pUniques[Gia_IsoGetItem(p, iBegin)] = p->nUniques++;
+        p->nSingles++;
+        p->nEntries--;
+
+        assert( p->pUniques[Gia_IsoGetItem(p, iBegin+1)] == 0 );
+        p->pUniques[Gia_IsoGetItem(p, iBegin+1)] = p->nUniques++;
+        p->nSingles++;
+        p->nEntries--;
+    }
+    else
+    {
+        assert( p->pUniques[Gia_IsoGetItem(p, iBegin)] == 0 );
+        p->pUniques[Gia_IsoGetItem(p, iBegin)] = p->nUniques++;
+        p->nSingles++;
+        p->nEntries--;
+    }
+
+    for ( ; i < Vec_IntSize(p->vClasses) - 2; i += 2 )
+    {
+        p->vClasses->pArray[i+0] = p->vClasses->pArray[i+2];
+        p->vClasses->pArray[i+1] = p->vClasses->pArray[i+3];
+    }
+    Vec_IntShrink( p->vClasses, Vec_IntSize(p->vClasses) - 2 );
+
+    printf( "Assinged class %d of size %d at level %d.\n", i/2, nSize, p->pLevels[Gia_IsoGetItem(p, iBegin)] );
+}
+
+void Gia_IsoAssignOneClass3( Gia_IsoMan_t * p )
+{
+    int iBegin, nSize;
+    // find the last class
+    assert( Vec_IntSize(p->vClasses) > 0 );
+    iBegin = Vec_IntEntry( p->vClasses, Vec_IntSize(p->vClasses) - 2 );
+    nSize  = Vec_IntEntry( p->vClasses, Vec_IntSize(p->vClasses) - 1 );
+    Vec_IntShrink( p->vClasses, Vec_IntSize(p->vClasses) - 2 );
+
+    // assign the class
+    assert( nSize > 1 );
+    if ( nSize == 2 )
+    {
+        assert( p->pUniques[Gia_IsoGetItem(p, iBegin)] == 0 );
+        p->pUniques[Gia_IsoGetItem(p, iBegin)] = p->nUniques++;
+        p->nSingles++;
+        p->nEntries--;
+
+        assert( p->pUniques[Gia_IsoGetItem(p, iBegin+1)] == 0 );
+        p->pUniques[Gia_IsoGetItem(p, iBegin+1)] = p->nUniques++;
+        p->nSingles++;
+        p->nEntries--;
+    }
+    else
+    {
+        assert( p->pUniques[Gia_IsoGetItem(p, iBegin)] == 0 );
+        p->pUniques[Gia_IsoGetItem(p, iBegin)] = p->nUniques++;
+        p->nSingles++;
+        p->nEntries--;
+    }
+    printf( "Assinged last class of size %d at level %d.\n", nSize, p->pLevels[Gia_IsoGetItem(p, iBegin)] );
+}
+
+void Gia_IsoAssignOneClass( Gia_IsoMan_t * p, int fVerbose )
+{
+    int i, k, iBegin0, iBegin, nSize, Shrink;
+    // find the classes with the highest level
+    assert( Vec_IntSize(p->vClasses) > 0 );
+    iBegin0 = Vec_IntEntry( p->vClasses, Vec_IntSize(p->vClasses) - 2 );
+    for ( i = Vec_IntSize(p->vClasses) - 2; i >= 0; i -= 2 )
+    {
+        iBegin = Vec_IntEntry( p->vClasses, i );
+        if ( p->pLevels[Gia_IsoGetItem(p, iBegin)] != p->pLevels[Gia_IsoGetItem(p, iBegin0)] )
+            break;
+    }
+    i += 2;
+    assert( i >= 0 );
+    // assign all classes starting with this one
+    for ( Shrink = i; i < Vec_IntSize(p->vClasses); i += 2 )
+    {
+        iBegin = Vec_IntEntry( p->vClasses, i );
+        nSize  = Vec_IntEntry( p->vClasses, i + 1 );
+        for ( k = 0; k < nSize; k++ )
+        {
+            assert( p->pUniques[Gia_IsoGetItem(p, iBegin+k)] == 0 );
+            p->pUniques[Gia_IsoGetItem(p, iBegin+k)] = p->nUniques++;
+            p->nSingles++;
+            p->nEntries--;
+        }
+        if ( fVerbose )
+            printf( "Assinged class of size %d at level %d.\n", nSize, p->pLevels[Gia_IsoGetItem(p, iBegin)] );
+    }
+    Vec_IntShrink( p->vClasses, Shrink );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Gia_IsoDeriveEquivPos( Gia_Man_t * pGia, int fForward, int fVerbose )
+{
+    int nIterMax = 10000;
+    Gia_IsoMan_t * p;
+    Vec_Ptr_t * vEquivs = NULL;
+    int fRefined, fRefinedAll;
+    int i, c, clk = clock(), clkTotal = clock();
+    assert( Gia_ManCiNum(pGia) > 0 );
+    assert( Gia_ManPoNum(pGia) > 0 );
+
+    Gia_ManCleanValue( pGia );
+    p = Gia_IsoManStart( pGia );
+    Gia_IsoPrepare( p );
+    Gia_IsoAssignUnique( p );
+    p->timeStart = clock() - clk;
+    if ( fVerbose )
+        Gia_IsoPrint( p, 0, clock() - clkTotal );
+
+    i = 0;
+    if ( fForward )
+    {
+        for ( c = 0; i < nIterMax && c < 2; i++, c = fRefined ? 0 : c+1 )
+        {
+            clk = clock();   Gia_IsoSimulate( p, i );      p->timeSim += clock() - clk;
+            clk = clock();   fRefined = Gia_IsoSort( p );  p->timeRefine += clock() - clk;
+            if ( fVerbose )
+                Gia_IsoPrint( p, i+1, clock() - clkTotal );
+        }
+    }
+    else
+    {
+        while ( Vec_IntSize(p->vClasses) > 0 )
+        {
+            for ( fRefinedAll = 1; i < nIterMax && fRefinedAll; )
+            {
+                fRefinedAll = 0;
+                for ( c = 0; i < nIterMax && c < 2; i++, c = fRefined ? 0 : c+1 )
+                {
+                    clk = clock();   Gia_IsoSimulate( p, i );      p->timeSim += clock() - clk;
+                    clk = clock();   fRefined = Gia_IsoSort( p );  p->timeRefine += clock() - clk;
+                    if ( fVerbose )
+                        Gia_IsoPrint( p, i+1, clock() - clkTotal );
+                    fRefinedAll |= fRefined;
+                }
+                for ( c = 0; i < nIterMax && c < 2; i++, c = fRefined ? 0 : c+1 )
+                {
+                    clk = clock();   Gia_IsoSimulateBack( p, i );  p->timeSim += clock() - clk;
+                    clk = clock();   fRefined = Gia_IsoSort( p );  p->timeRefine += clock() - clk;
+                    if ( fVerbose )
+                        Gia_IsoPrint( p, i+1, clock() - clkTotal );
+                    fRefinedAll |= fRefined;
+                }
+            }
+            if ( Vec_IntSize(p->vClasses) > 0 )
+                Gia_IsoAssignOneClass( p, fVerbose );
+
+        }
+        if ( fVerbose )
+            Gia_IsoPrint( p, i+2, clock() - clkTotal );
+    }
+//    Gia_IsoPrintClasses( p );
+    if ( fVerbose )
+    {
+        p->timeTotal = clock() - clkTotal;
+        p->timeOther = p->timeTotal - p->timeStart - p->timeSim - p->timeRefine;
+        ABC_PRTP( "Start    ", p->timeStart,              p->timeTotal );
+        ABC_PRTP( "Simulate ", p->timeSim,                p->timeTotal );
+        ABC_PRTP( "Refine   ", p->timeRefine-p->timeSort, p->timeTotal );
+        ABC_PRTP( "Sort     ", p->timeSort,               p->timeTotal );
+        ABC_PRTP( "Other    ", p->timeOther,              p->timeTotal );
+        ABC_PRTP( "TOTAL    ", p->timeTotal,              p->timeTotal );
+    }
+    if ( Gia_ManPoNum(p->pGia) > 1 )
+        vEquivs = Gia_IsoCollectCosClasses( p, fVerbose );
+    Gia_IsoManTransferUnique( p );
+    Gia_IsoManStop( p );
+    return vEquivs;
+}
+
+
+
+
+/**Function*************************************************************
+
+  Synopsis    [Finds canonical ordering of CIs/COs/nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ObjCompareByValue( Gia_Obj_t ** pp1, Gia_Obj_t ** pp2 )
+{
+    Gia_Obj_t * pObj1 = *pp1;
+    Gia_Obj_t * pObj2 = *pp2;
+//    assert( pObj1->Value != pObj2->Value );
+    return (int)pObj1->Value - (int)pObj2->Value;
+}
+void Gia_ManFindCaninicalOrder_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vAnds )
+{
+    if ( Gia_ObjIsTravIdCurrent(p, pObj) )
+        return;
+    Gia_ObjSetTravIdCurrent(p, pObj);
+    assert( Gia_ObjIsAnd(pObj) );
+    if ( !Gia_ObjIsAnd(Gia_ObjFanin0(pObj)) || !Gia_ObjIsAnd(Gia_ObjFanin1(pObj)) )
+    {
+        Gia_ManFindCaninicalOrder_rec( p, Gia_ObjFanin0(pObj), vAnds );
+        Gia_ManFindCaninicalOrder_rec( p, Gia_ObjFanin1(pObj), vAnds );
+    }
+    else
+    {
+        assert( Gia_ObjFanin0(pObj)->Value != Gia_ObjFanin1(pObj)->Value );
+        if ( Gia_ObjFanin0(pObj)->Value < Gia_ObjFanin1(pObj)->Value )
+        {
+            Gia_ManFindCaninicalOrder_rec( p, Gia_ObjFanin0(pObj), vAnds );
+            Gia_ManFindCaninicalOrder_rec( p, Gia_ObjFanin1(pObj), vAnds );
+        }
+        else
+        {
+            Gia_ManFindCaninicalOrder_rec( p, Gia_ObjFanin1(pObj), vAnds );
+            Gia_ManFindCaninicalOrder_rec( p, Gia_ObjFanin0(pObj), vAnds );
+        }
+    }
+    Vec_IntPush( vAnds, Gia_ObjId(p, pObj) );
+}
+void Gia_ManFindCaninicalOrder( Gia_Man_t * p, Vec_Int_t * vCis, Vec_Int_t * vAnds, Vec_Int_t * vCos )
+{
+    Vec_Ptr_t * vTemp;
+    Gia_Obj_t * pObj;
+    int i;
+
+    vTemp = Vec_PtrAlloc( 1000 );
+    Vec_IntClear( vCis );
+    Vec_IntClear( vAnds );
+    Vec_IntClear( vCos );
+
+    // assign unique IDs to PIs
+    Vec_PtrClear( vTemp );
+    Gia_ManForEachPi( p, pObj, i )
+        Vec_PtrPush( vTemp, pObj );
+    Vec_PtrSort( vTemp, (int (*)(void))Gia_ObjCompareByValue );
+    // create the result
+    Vec_PtrForEachEntry( Gia_Obj_t *, vTemp, pObj, i )
+        Vec_IntPush( vCis, Gia_ObjId(p, pObj) );
+
+    // assign unique IDs to POs
+    if ( Gia_ManPoNum(p) == 1 )
+        Vec_IntPush( vCos, Gia_ObjId(p, Gia_ManPo(p, 0)) );
+    else
+    {
+        Vec_PtrClear( vTemp );
+        Gia_ManForEachPo( p, pObj, i )
+        {
+            pObj->Value = Abc_Var2Lit( Gia_ObjFanin0(pObj)->Value, Gia_ObjFaninC0(pObj) );
+            Vec_PtrPush( vTemp, pObj );
+        }
+        Vec_PtrSort( vTemp, (int (*)(void))Gia_ObjCompareByValue );
+        Vec_PtrForEachEntry( Gia_Obj_t *, vTemp, pObj, i )
+            Vec_IntPush( vCos, Gia_ObjId(p, pObj) );
+    }
+
+    // assign unique IDs to ROs
+    Vec_PtrClear( vTemp );
+    Gia_ManForEachRo( p, pObj, i )
+        Vec_PtrPush( vTemp, pObj );
+    Vec_PtrSort( vTemp, (int (*)(void))Gia_ObjCompareByValue );
+    // create the result
+    Vec_PtrForEachEntry( Gia_Obj_t *, vTemp, pObj, i )
+    {
+        Vec_IntPush( vCis, Gia_ObjId(p, pObj) );
+        Vec_IntPush( vCos, Gia_ObjId(p, Gia_ObjRoToRi(p, pObj)) );
+    }
+    Vec_PtrFree( vTemp );
+
+    // assign unique IDs to internal nodes
+    Gia_ManIncrementTravId( p );
+    Gia_ObjSetTravIdCurrent( p, Gia_ManConst0(p) );
+    Gia_ManForEachObjVec( vCis, p, pObj, i )
+        Gia_ObjSetTravIdCurrent( p, pObj );
+    Gia_ManForEachObjVec( vCos, p, pObj, i )
+        Gia_ManFindCaninicalOrder_rec( p, Gia_ObjFanin0(pObj), vAnds );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManDupFromVecs( Gia_Man_t * p, Vec_Int_t * vCis, Vec_Int_t * vAnds, Vec_Int_t * vCos, int nRegs )
+{
+    Gia_Man_t * pNew;
+    Gia_Obj_t * pObj;
+    int i;
+    // start the new manager
+    pNew = Gia_ManStart( 5000 );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    // create constant
+    Gia_ManConst0(p)->Value = 0;
+    // create PIs
+    Gia_ManForEachObjVec( vCis, p, pObj, i )
+        pObj->Value = Gia_ManAppendCi( pNew );
+    // create internal nodes
+    Gia_ManForEachObjVec( vAnds, p, pObj, i )
+        pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    // create ROs
+    Gia_ManForEachObjVec( vCos, p, pObj, i )
+        pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    Gia_ManSetRegNum( pNew, nRegs );
+    return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManIsoCanonicize( Gia_Man_t * p, int fVerbose )
+{
+    Gia_Man_t * vResult = NULL;
+    Vec_Int_t * vCis, * vAnds, * vCos;
+    Vec_Ptr_t * vEquiv;
+    if ( Gia_ManCiNum(p) == 0 ) // const AIG
+    {
+        assert( Gia_ManPoNum(p) == 1 );
+        assert( Gia_ManObjNum(p) == 2 );
+        return Gia_ManDup(p);
+    }
+    // derive canonical values
+    vEquiv = Gia_IsoDeriveEquivPos( p, 0, fVerbose );
+    Vec_VecFreeP( (Vec_Vec_t **)&vEquiv );
+    // find canonical order of CIs/COs/nodes
+    // find canonical order
+    vCis  = Vec_IntAlloc( Gia_ManCiNum(p) );
+    vAnds = Vec_IntAlloc( Gia_ManAndNum(p) );
+    vCos  = Vec_IntAlloc( Gia_ManCoNum(p) );
+    Gia_ManFindCaninicalOrder( p, vCis, vAnds, vCos );
+    // derive the new AIG
+    vResult = Gia_ManDupFromVecs( p, vCis, vAnds, vCos, Gia_ManRegNum(p) );
+    // cleanup
+    Vec_IntFree( vCis );
+    Vec_IntFree( vAnds );
+    Vec_IntFree( vCos );
+    return vResult;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Str_t * Gia_ManIsoFindString( Gia_Man_t * p, int iPo, int fVerbose )
+{
     Gia_Man_t * pPart;
-    Vec_Ptr_t * vEquivs;
-    Vec_Int_t * vRemain, * vLevel;
-    int i, clk = clock();
-    // create equivalences
-    vEquivs = Gia_IsoDeriveEquivPos( pGia, fVerbose );
+    Vec_Ptr_t * vEquiv;
+    Vec_Int_t * vCis, * vAnds, * vCos;
+    Vec_Str_t * vStr;
+    // duplicate
+    pPart = Gia_ManDupCones( p, &iPo, 1 );
+    assert( Gia_ManPoNum(pPart) == 1 );
+    if ( Gia_ManCiNum(pPart) == 0 ) // const AIG
+    {
+        assert( Gia_ManPoNum(pPart) == 1 );
+        assert( Gia_ManObjNum(pPart) == 2 );
+        vStr = Gia_WriteAigerIntoMemoryStr( pPart );
+        Gia_ManStop( pPart );
+        return vStr;
+    }
+    // derive canonical values
+    vEquiv = Gia_IsoDeriveEquivPos( pPart, 0, fVerbose );
+    Vec_VecFreeP( (Vec_Vec_t **)&vEquiv );
+    // find canonical order
+    vCis  = Vec_IntAlloc( Gia_ManCiNum(pPart) );
+    vAnds = Vec_IntAlloc( Gia_ManAndNum(pPart) );
+    vCos  = Vec_IntAlloc( Gia_ManCoNum(pPart) );
+    Gia_ManFindCaninicalOrder( pPart, vCis, vAnds, vCos );
+    // derive the AIGER string
+    vStr = Gia_WriteAigerIntoMemoryStrPart( pPart, vCis, vAnds, vCos, Gia_ManRegNum(pPart) );
+    // cleanup
+    Vec_IntFree( vCis );
+    Vec_IntFree( vAnds );
+    Vec_IntFree( vCos );
+    Gia_ManStop( pPart );
+    return vStr;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManIsoReduce( Gia_Man_t * p, Vec_Ptr_t ** pvPosEquivs, int fVerbose )
+{ 
+    int fVeryVerbose = 0;
+    Gia_Man_t * pPart;
+    Vec_Ptr_t * vEquivs, * vEquivs2, * vStrings;
+    Vec_Int_t * vRemain, * vLevel, * vLevel2;
+    Vec_Str_t * vStr, * vStr2;
+    int i, k, s, sStart, Entry, clk = clock();
+
+    // create preliminary equivalences
+    vEquivs = Gia_IsoDeriveEquivPos( p, 1, fVeryVerbose );
+//    printf( "Reduced %d outputs to %d outputs.  ", Gia_ManPoNum(p), Vec_PtrSize(vEquivs) );
+//    Abc_PrintTime( 1, "Time", clock() - clk );
+
+    // perform refinement of equivalence classes
+    vEquivs2 = Vec_PtrAlloc( 100 );
+    Vec_PtrForEachEntry( Vec_Int_t *, vEquivs, vLevel, i )
+    {
+        if ( Vec_IntSize(vLevel) < 2 )
+        {
+            Vec_PtrPush( vEquivs2, Vec_IntDup(vLevel) );
+            continue;
+        }
+        sStart = Vec_PtrSize( vEquivs2 );
+        vStrings = Vec_PtrAlloc( 100 );
+        Vec_IntForEachEntry( vLevel, Entry, k )
+        {
+            vStr = Gia_ManIsoFindString( p, Entry, 0 );
+            // check if this string already exists
+            Vec_PtrForEachEntry( Vec_Str_t *, vStrings, vStr2, s )
+                if ( Vec_StrCompareVec(vStr, vStr2) == 0 )
+                    break;
+            if ( s == Vec_PtrSize(vStrings) )
+            {
+                Vec_PtrPush( vStrings, vStr );
+                Vec_PtrPush( vEquivs2, Vec_IntAlloc(8) );
+            }
+            else
+                Vec_StrFree( vStr );
+            // add this entry to the corresponding level
+            vLevel2 = (Vec_Int_t *)Vec_PtrEntry( vEquivs2, sStart + s );
+            Vec_IntPush( vLevel2, Entry );
+        }
+        Vec_VecFree( (Vec_Vec_t *)vStrings );
+    }
+    Vec_VecSortByFirstInt( (Vec_Vec_t *)vEquivs2, 0 );
+    Vec_VecFree( (Vec_Vec_t *)vEquivs );
+    vEquivs = vEquivs2;
+
     // collect the first ones
     vRemain = Vec_IntAlloc( 100 );
     Vec_PtrForEachEntry( Vec_Int_t *, vEquivs, vLevel, i )
         Vec_IntPush( vRemain, Vec_IntEntry(vLevel, 0) );
+
     // derive the resulting AIG
-    pPart = Gia_ManDupCones( pGia, Vec_IntArray(vRemain), Vec_IntSize(vRemain) );
+    pPart = Gia_ManDupCones( p, Vec_IntArray(vRemain), Vec_IntSize(vRemain) );
     Vec_IntFree( vRemain );
     // report the results
-    printf( "Reduced %d outputs to %d outputs.  ", Gia_ManPoNum(pGia), Gia_ManPoNum(pPart) );
+    printf( "Reduced %d outputs to %d outputs.  ", Gia_ManPoNum(p), Gia_ManPoNum(pPart) );
     Abc_PrintTime( 1, "Time", clock() - clk );
     if ( fVerbose )
     {
@@ -621,17 +1025,17 @@ Gia_Man_t * Gia_ManIsoReduce( Gia_Man_t * pGia, Vec_Ptr_t ** pvPosEquivs, int fV
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_IsoTest( Gia_Man_t * pGia, int fVerbose )
+void Gia_IsoTest( Gia_Man_t * p, int fVerbose )
 {
     Vec_Ptr_t * vEquivs;
     int clk = clock(); 
-    vEquivs = Gia_IsoDeriveEquivPos( pGia, fVerbose );
-    printf( "Reduced %d outputs to %d.  ", Gia_ManPoNum(pGia), Vec_PtrSize(vEquivs) );
+    vEquivs = Gia_IsoDeriveEquivPos( p, 1, fVerbose );
+    printf( "Reduced %d outputs to %d.  ", Gia_ManPoNum(p), Vec_PtrSize(vEquivs) );
     Abc_PrintTime( 1, "Time", clock() - clk );
-    if ( fVerbose && Gia_ManPoNum(pGia) != Vec_PtrSize(vEquivs) )
+    if ( fVerbose && Gia_ManPoNum(p) != Vec_PtrSize(vEquivs) )
     {
         printf( "Nontrivial classes:\n" );
-        Vec_VecPrintInt( (Vec_Vec_t *)vEquivs, 1 );
+//        Vec_VecPrintInt( (Vec_Vec_t *)vEquivs, 1 );
     }
     Vec_VecFree( (Vec_Vec_t *)vEquivs );
 }

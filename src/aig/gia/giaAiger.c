@@ -1614,7 +1614,7 @@ Vec_Str_t * Gia_WriteAigerIntoMemoryStr( Gia_Man_t * p )
     Gia_Obj_t * pObj;
     int nNodes = 0, i, uLit, uLit0, uLit1; 
     // set the node numbers to be used in the output file
-    Gia_ManConst1(p)->Value = nNodes++;
+    Gia_ManConst0(p)->Value = nNodes++;
     Gia_ManForEachCi( p, pObj, i )
         pObj->Value = nNodes++;
     Gia_ManForEachAnd( p, pObj, i )
@@ -1638,7 +1638,6 @@ Vec_Str_t * Gia_WriteAigerIntoMemoryStr( Gia_Man_t * p )
     Gia_ManForEachRi( p, pObj, i )
     {
         uLit = Abc_Var2Lit( Gia_ObjValue(Gia_ObjFanin0(pObj)), Gia_ObjFaninC0(pObj) );
-//        fprintf( pFile, "%u\n", uLit );
         Vec_StrPrintNum( vBuffer, uLit );
         Vec_StrPrintStr( vBuffer, "\n" );
     }
@@ -1647,7 +1646,6 @@ Vec_Str_t * Gia_WriteAigerIntoMemoryStr( Gia_Man_t * p )
     Gia_ManForEachPo( p, pObj, i )
     {
         uLit = Abc_Var2Lit( Gia_ObjValue(Gia_ObjFanin0(pObj)), Gia_ObjFaninC0(pObj) );
-//        fprintf( pFile, "%u\n", uLit );
         Vec_StrPrintNum( vBuffer, uLit );
         Vec_StrPrintStr( vBuffer, "\n" );
     }
@@ -1679,7 +1677,7 @@ Vec_Str_t * Gia_WriteAigerIntoMemoryStr( Gia_Man_t * p )
   The CI/CO/AND nodes are assumed to be ordered according to some rule.
   The resulting buffer should be deallocated by the user.]
   
-  SideEffects [Note that in vCos, the latches should be ordered first!!!]
+  SideEffects [Note that in vCos, PIs are order first, followed by latches!]
 
   SeeAlso     []
 
@@ -1690,7 +1688,7 @@ Vec_Str_t * Gia_WriteAigerIntoMemoryStrPart( Gia_Man_t * p, Vec_Int_t * vCis, Ve
     Gia_Obj_t * pObj;
     int nNodes = 0, i, uLit, uLit0, uLit1; 
     // set the node numbers to be used in the output file
-    Gia_ManConst1(p)->Value = nNodes++;
+    Gia_ManConst0(p)->Value = nNodes++;
     Gia_ManForEachObjVec( vCis, p, pObj, i )
     {
         assert( Gia_ObjIsCi(pObj) );
@@ -1720,8 +1718,19 @@ Vec_Str_t * Gia_WriteAigerIntoMemoryStrPart( Gia_Man_t * p, Vec_Int_t * vCis, Ve
     Gia_ManForEachObjVec( vCos, p, pObj, i )
     {
         assert( Gia_ObjIsCo(pObj) );
+        if ( i < Vec_IntSize(vCos) - nRegs )
+            continue;
         uLit = Abc_Var2Lit( Gia_ObjValue(Gia_ObjFanin0(pObj)), Gia_ObjFaninC0(pObj) );
-//        fprintf( pFile, "%u\n", uLit );
+        Vec_StrPrintNum( vBuffer, uLit );
+        Vec_StrPrintStr( vBuffer, "\n" );
+    }
+    // write output drivers
+    Gia_ManForEachObjVec( vCos, p, pObj, i )
+    {
+        assert( Gia_ObjIsCo(pObj) );
+        if ( i >= Vec_IntSize(vCos) - nRegs )
+            continue;
+        uLit = Abc_Var2Lit( Gia_ObjValue(Gia_ObjFanin0(pObj)), Gia_ObjFaninC0(pObj) );
         Vec_StrPrintNum( vBuffer, uLit );
         Vec_StrPrintStr( vBuffer, "\n" );
     }
@@ -1744,6 +1753,40 @@ Vec_Str_t * Gia_WriteAigerIntoMemoryStrPart( Gia_Man_t * p, Vec_Int_t * vCis, Ve
     }
     Vec_StrPrintStr( vBuffer, "c" );
     return vBuffer;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Writes the AIG in the binary AIGER format.]
+
+  Description []
+  
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_WriteAigerSimple( Gia_Man_t * pInit, char * pFileName )
+{
+    FILE * pFile;
+    Vec_Str_t * vStr;
+    if ( Gia_ManPoNum(pInit) == 0 )
+    {
+        printf( "Gia_WriteAigerSimple(): AIG cannot be written because it has no POs.\n" );
+        return;
+    }
+    // start the output stream
+    pFile = fopen( pFileName, "wb" );
+    if ( pFile == NULL )
+    {
+        fprintf( stdout, "Gia_WriteAigerSimple(): Cannot open the output file \"%s\".\n", pFileName );
+        return;
+    }
+    // write the buffer
+    vStr = Gia_WriteAigerIntoMemoryStr( pInit );
+    fwrite( Vec_StrArray(vStr), 1, Vec_StrSize(vStr), pFile );
+    Vec_StrFree( vStr );
+    fclose( pFile );
 }
 
 ////////////////////////////////////////////////////////////////////////

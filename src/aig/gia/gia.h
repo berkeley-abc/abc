@@ -623,6 +623,7 @@ extern void                Gia_WriteAiger( Gia_Man_t * p, char * pFileName, int 
 extern void                Gia_DumpAiger( Gia_Man_t * p, char * pFilePrefix, int iFileNum, int nFileNumDigits );
 extern Vec_Str_t *         Gia_WriteAigerIntoMemoryStr( Gia_Man_t * p );
 extern Vec_Str_t *         Gia_WriteAigerIntoMemoryStrPart( Gia_Man_t * p, Vec_Int_t * vCis, Vec_Int_t * vAnds, Vec_Int_t * vCos, int nRegs );
+extern void                Gia_WriteAigerSimple( Gia_Man_t * pInit, char * pFileName );
 /*=== giaBidec.c ===========================================================*/
 extern unsigned *          Gia_ManConvertAigToTruth( Gia_Man_t * p, Gia_Obj_t * pRoot, Vec_Int_t * vLeaves, Vec_Int_t * vTruth, Vec_Int_t * vVisited );
 extern Gia_Man_t *         Gia_ManPerformBidec( Gia_Man_t * p, int fVerbose );
@@ -735,6 +736,9 @@ extern void                Gia_ManHashProfile( Gia_Man_t * p );
 extern int                 Gia_ManHashLookup( Gia_Man_t * p, Gia_Obj_t * p0, Gia_Obj_t * p1 );
 /*=== giaIf.c ===========================================================*/
 extern void                Gia_ManPrintNpnClasses( Gia_Man_t * p );
+/*=== giaIso.c ===========================================================*/
+extern Gia_Man_t *         Gia_ManIsoCanonicize( Gia_Man_t * p, int fVerbose );
+extern Gia_Man_t *         Gia_ManIsoReduce( Gia_Man_t * p, Vec_Ptr_t ** pvPosEquivs, int fVerbose );
 /*=== giaLogic.c ===========================================================*/
 extern void                Gia_ManTestDistance( Gia_Man_t * p );
 extern void                Gia_ManSolveProblem( Gia_Man_t * pGia, Emb_Par_t * pPars );
