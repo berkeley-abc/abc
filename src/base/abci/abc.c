@@ -217,6 +217,7 @@ static int Abc_CommandSuperChoiceLut         ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandFpga                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandFpgaFast               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandIf                     ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandIfif                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandScut                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandInit                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -648,6 +649,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "FPGA mapping", "fpga",          Abc_CommandFpga,             1 );
     Cmd_CommandAdd( pAbc, "FPGA mapping", "ffpga",         Abc_CommandFpgaFast,         1 );
     Cmd_CommandAdd( pAbc, "FPGA mapping", "if",            Abc_CommandIf,               1 );
+    Cmd_CommandAdd( pAbc, "FPGA mapping", "ifif",          Abc_CommandIfif,             1 );
 
 //    Cmd_CommandAdd( pAbc, "Sequential",   "scut",          Abc_CommandScut,             0 );
     Cmd_CommandAdd( pAbc, "Sequential",   "init",          Abc_CommandInit,             1 );
@@ -13594,6 +13596,85 @@ usage:
     Abc_Print( -2, "\t-c       : toggles enabling additional feature [default = %s]\n", pPars->fEnableRealPos? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : prints the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandIfif( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Abc_NtkPerformIfif( Abc_Ntk_t * pNtk, int nDelayLut, int nDegree, int fVerbose );
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+    int c;
+    int nDelayLut = 5;
+    int nDegree   = 3;
+    int fVerbose  = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "DNvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'D':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-D\" should be followed by a floating point number.\n" );
+                goto usage;
+            }
+            nDelayLut = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nDelayLut <= 0.0 ) 
+                goto usage;
+            break;
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-N\" should be followed by a floating point number.\n" );
+                goto usage;
+            }
+            nDegree = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nDegree < 0 ) 
+                goto usage;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        Abc_Print( -1, "Empty network.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkIsLogic(pNtk) )
+    {
+        Abc_Print( -1, "Need mapped network.\n" );
+        return 1;
+    }
+    Abc_NtkPerformIfif( pNtk, nDelayLut, nDegree, fVerbose );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: ifif [-DNvh]\n" );
+    Abc_Print( -2, "\t           experimental technology mapper\n" );
+    Abc_Print( -2, "\t-D num   : the ratio of LUT delay to wire delay [default = %d]\n", nDelayLut );
+    Abc_Print( -2, "\t-N num   : degree of the combination of LUTs [default = %d]\n", nDegree );
+    Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;
 }
 

@@ -279,6 +279,10 @@ SOURCE=.\src\base\abci\abcIf.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\abci\abcIfif.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\abci\abcIfMux.c
 # End Source File
 # Begin Source File
