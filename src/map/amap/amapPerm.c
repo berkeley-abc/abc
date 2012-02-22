@@ -159,7 +159,7 @@ Vec_Int_t * Amap_LibDeriveGatePerm_rec( Amap_Lib_t * pLib, Kit_DsdNtk_t * pNtk, 
     iDsdLit = 0;
     Vec_IntForEachEntry( vNodFanin, iNodFanin, k )
     {
-        if ( iNodFanin == 0 )
+        if ( iNodFanin == 0 && iDsdLit < Vec_IntSize(vDsdLits) )
         {
             iDsdFanin = Vec_IntEntry( vDsdLits, iDsdLit++ );
             Vec_IntPush( vPerm, iDsdFanin );
@@ -304,6 +304,8 @@ int Amap_LibDeriveGatePerm( Amap_Lib_t * pLib, Amap_Gat_t * pGate, Kit_DsdNtk_t 
     int fVerbose = 0;
     Vec_Int_t * vPerm;
     int Entry, Entry2, i, k;
+//    Kit_DsdPrint( stdout, pNtk );
+
     vPerm = Amap_LibDeriveGatePerm_rec( pLib, pNtk, Abc_LitRegular(pNtk->Root), pNod );
     if ( vPerm == NULL )
         return 0;

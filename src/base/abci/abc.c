@@ -22035,7 +22035,7 @@ int Abc_CommandAbc9Put( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     // replace the current network
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtk );
-//    Abc_FrameClearVerifStatus( pAbc );
+    Abc_FrameClearVerifStatus( pAbc );
     return 0;
 
 usage:
