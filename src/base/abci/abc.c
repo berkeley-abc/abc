@@ -21979,12 +21979,16 @@ int Abc_CommandAbc9Put( Abc_Frame_t * pAbc, int argc, char ** argv )
     Aig_Man_t * pMan;
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     int c, fVerbose = 0;
+    int fStatusClear = 1;
 
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "svh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 's':
+            fStatusClear ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -22035,12 +22039,14 @@ int Abc_CommandAbc9Put( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     // replace the current network
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtk );
-    Abc_FrameClearVerifStatus( pAbc );
+    if ( fStatusClear )
+        Abc_FrameClearVerifStatus( pAbc );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &put [-vh]\n" );
+    Abc_Print( -2, "usage: &put [-svh]\n" );
     Abc_Print( -2, "\t         transfer the current network into the old ABC\n" );
+    Abc_Print( -2, "\t-s     : toggle clearning verification status [default = %s]\n", fStatusClear? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;

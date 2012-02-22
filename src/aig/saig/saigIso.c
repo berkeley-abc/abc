@@ -426,7 +426,7 @@ Aig_Man_t * Iso_ManFilterPos( Aig_Man_t * pAig, Vec_Ptr_t ** pvPosEquivs, int fV
     Vec_Ptr_t * vBuffers, * vClasses;
     Vec_Int_t * vLevel, * vRemain;
     Vec_Str_t * vStr, * vPrev;
-    int i, nPos, nUnique = 0, clk = clock();
+    int i, nPos, clk = clock();
     int clkDup = 0, clkAig = 0, clkIso = 0, clk2;
     *pvPosEquivs = NULL;
 
