@@ -80,7 +80,6 @@ int Abc_RealMain( int argc, char * argv[] )
 
 #ifdef ABC_PYTHON_EMBED
     {
-        PyObject* pName;
         PyObject* pModule;
         void init_pyabc(void);
 
