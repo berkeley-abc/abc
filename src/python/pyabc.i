@@ -252,6 +252,44 @@ int _cex_get_frame(Abc_Cex_t* pCex)
     return pCex->iFrame;
 }
 
+static PyObject* VecInt_To_PyList(Vec_Int_t* v)
+{
+    PyObject* pylist = PyList_New( Vec_IntSize(v) );
+    
+    int elem, i;
+    
+    Vec_IntForEachEntry( v, elem, i)
+    {
+        PyList_SetItem( pylist, i, PyInt_FromLong(elem) );
+    }
+    
+    return pylist;
+}
+
+PyObject* iso_eq_classes()
+{
+    Abc_Frame_t* pAbc = Abc_FrameGetGlobalFrame();
+    Vec_Ptr_t *vPoEquivs = Abc_FrameReadPoEquivs(pAbc);
+    
+    PyObject* eq_classes;
+    Vec_Int_t* pEntry;
+    int i;
+    
+    if( ! vPoEquivs )
+    {
+        Py_RETURN_NONE;
+    }
+    
+    eq_classes = PyList_New( Vec_PtrSize(vPoEquivs) );
+    
+    Vec_PtrForEachEntry( Vec_Int_t*, vPoEquivs, pEntry, i )
+    {
+        PyList_SetItem( eq_classes, i, VecInt_To_PyList(pEntry) );
+    }
+
+    return eq_classes;    
+}
+
 static PyObject* pyabc_internal_python_command_callback = 0;
 
 void pyabc_internal_set_command_callback( PyObject* callback )
@@ -570,6 +608,8 @@ int _cex_n_regs(Abc_Cex_t* pCex);
 int _cex_n_pis(Abc_Cex_t* pCex);
 int _cex_get_po(Abc_Cex_t* pCex);
 int _cex_get_frame(Abc_Cex_t* pCex);
+
+PyObject* iso_eq_classes();
 
 void pyabc_internal_set_command_callback( PyObject* callback );
 void pyabc_internal_register_command( char * sGroup, char * sName, int fChanges );
