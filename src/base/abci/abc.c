@@ -13612,14 +13612,21 @@ usage:
 ***********************************************************************/
 int Abc_CommandIfif( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Abc_NtkPerformIfif( Abc_Ntk_t * pNtk, int nDelayLut, int nDegree, int fVerbose );
+    extern void Abc_NtkPerformIfif( Abc_Ntk_t * pNtk, Ifif_Par_t * pPars );
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
-    int c;
-    int nDelayLut = 5;
-    int nDegree   = 3;
-    int fVerbose  = 0;
+    Ifif_Par_t Pars, * pPars = &Pars;
+    int c, fError;
+
+    pPars->nLutSize     =  -1;    // the LUT size
+    pPars->pLutLib      = (If_Lib_t *)Abc_FrameReadLibLut();       // the LUT library
+    pPars->DelayWire    = (float)0.5;    // wire delay
+    pPars->nDegree      =   0;    // structure degree 
+    pPars->fCascade     =   0;    // cascade
+    pPars->fVerbose     =   0;    // verbose
+    pPars->fVeryVerbose =   0;    // verbose
+
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "DNvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "DNcvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -13629,9 +13636,9 @@ int Abc_CommandIfif( Abc_Frame_t * pAbc, int argc, char ** argv )
                 Abc_Print( -1, "Command line switch \"-D\" should be followed by a floating point number.\n" );
                 goto usage;
             }
-            nDelayLut = atoi(argv[globalUtilOptind]);
+            pPars->DelayWire = atof(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nDelayLut <= 0.0 ) 
+            if ( pPars->DelayWire < 0.0 ) 
                 goto usage;
             break;
         case 'N':
@@ -13640,13 +13647,19 @@ int Abc_CommandIfif( Abc_Frame_t * pAbc, int argc, char ** argv )
                 Abc_Print( -1, "Command line switch \"-N\" should be followed by a floating point number.\n" );
                 goto usage;
             }
-            nDegree = atoi(argv[globalUtilOptind]);
+            pPars->nDegree = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nDegree < 0 ) 
+            if ( pPars->nDegree < 0 ) 
                 goto usage;
             break;
+        case 'c':
+            pPars->fCascade ^= 1;
+            break;
         case 'v':
-            fVerbose ^= 1;
+            pPars->fVerbose ^= 1;
+            break;
+        case 'w':
+            pPars->fVeryVerbose ^= 1;
             break;
         case 'h':
             goto usage;
@@ -13665,15 +13678,48 @@ int Abc_CommandIfif( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Need mapped network.\n" );
         return 1;
     }
-    Abc_NtkPerformIfif( pNtk, nDelayLut, nDegree, fVerbose );
+    if ( pPars->pLutLib == NULL )
+    {
+        Abc_Print( -1, "LUT library is not given.\n" );
+        return 1;
+    }
+
+    pPars->nLutSize = Abc_NtkGetFaninMax( pNtk );
+    if ( pPars->nLutSize > pPars->pLutLib->LutMax )
+    {
+        Abc_Print( -1, "The max node size (%d) exceeds the LUT size (%d).\n", pPars->nLutSize, pPars->pLutLib->LutMax );
+        return 1;
+    }
+    if ( pPars->nLutSize < pPars->pLutLib->LutMax )
+        Abc_Print( 0, "Node size (%d) is less than LUT size (%d).\n", pPars->nLutSize, pPars->pLutLib->LutMax );
+    // check delay information
+    fError = 0;
+    for ( c = 0; c < pPars->pLutLib->LutMax; c++ )
+    {
+        pPars->pLutDelays[c] = ( pPars->pLutLib->fVarPinDelays ? pPars->pLutLib->pLutDelays[pPars->pLutLib->LutMax][c] : pPars->pLutLib->pLutDelays[pPars->pLutLib->LutMax][0] );
+        if ( pPars->DelayWire >= pPars->pLutDelays[c] )
+        {
+            fError = 1;
+            printf(" Wire delay (%.2f) exceeds pin+wire delay (%.2f) for pin %d in the LUT library.\n", pPars->DelayWire, pPars->pLutDelays[c], c );
+        }
+    }
+    if ( fError )
+        return 1;
+
+    // call the mapper
+    Abc_NtkPerformIfif( pNtk, pPars );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: ifif [-DNvh]\n" );
-    Abc_Print( -2, "\t           experimental technology mapper\n" );
-    Abc_Print( -2, "\t-D num   : the ratio of LUT delay to wire delay [default = %d]\n", nDelayLut );
-    Abc_Print( -2, "\t-N num   : degree of the combination of LUTs [default = %d]\n", nDegree );
-    Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "usage: ifif [-DNcvwh]\n" );
+    Abc_Print( -2, "\t           technology mapper into N-node K-LUT structures\n" );
+    Abc_Print( -2, "\t           (takes a LUT network and maps it into a delay-optimal network\n" );
+    Abc_Print( -2, "\t            of N-node K-LUT structures using the current LUT library)\n" );
+    Abc_Print( -2, "\t-D float : wire delay (should be less than the LUT delay) [default = %.2f]\n", pPars->DelayWire );
+    Abc_Print( -2, "\t-N num   : degree of the LUT structure [default = %d]\n", pPars->nDegree );
+    Abc_Print( -2, "\t-c       : toggles using LUT cascade vs LUT cluster [default = %s]\n", pPars->fCascade? "cascade": "cluster" );
+    Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-w       : toggles very verbose output [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;
 }

@@ -74,6 +74,19 @@ typedef struct If_Obj_t_     If_Obj_t;
 typedef struct If_Cut_t_     If_Cut_t;
 typedef struct If_Set_t_     If_Set_t;
 
+typedef struct Ifif_Par_t_   Ifif_Par_t;
+struct Ifif_Par_t_
+{
+    int                nLutSize;      // the LUT size
+    If_Lib_t *         pLutLib;       // the LUT library
+    float              pLutDelays[IF_MAX_LUTSIZE];  // pin-to-pin delays of the max LUT
+    float              DelayWire;     // wire delay
+    int                nDegree;       // structure degree 
+    int                fCascade;      // cascade
+    int                fVerbose;      // verbose
+    int                fVeryVerbose;  // verbose
+};
+
 // parameters
 struct If_Par_t_
 {
