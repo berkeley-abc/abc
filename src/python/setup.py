@@ -1,8 +1,10 @@
 import sys
+import sysconfig
 
 from distutils.core import setup, Extension
 from distutils.sysconfig import get_config_vars
 from distutils import util
+from distutils.command.build_ext import build_ext
 
 define_macros = []
 libraries = []
@@ -31,6 +33,21 @@ else:
     libraries.append( 'readline' )
     library_dirs.append('./../../')
 
+
+# ugly hack to silence strict-prototype warnings
+
+class build_ext_subclass( build_ext ):
+    
+    def build_extensions(self):
+        
+        CC = sysconfig.get_config_var("CC")
+        
+        if self.compiler.compiler_type == 'unix' and ( 'gcc' in CC or 'g++' in CC):
+            for e in self.extensions:
+                e.extra_compile_args.append( '-Wno-strict-prototypes' )
+                
+        build_ext.build_extensions(self)
+
 ext = Extension(
     '_pyabc',
     src_file,
@@ -44,5 +61,6 @@ setup(
     name='pyabc',
     version='1.0',
     ext_modules=[ext],
-    py_modules=['pyabc','getch','pyabc_split','redirect', 'reachx_cmd']
+    py_modules=['pyabc','getch','pyabc_split','redirect', 'reachx_cmd'],
+    cmdclass = {'build_ext': build_ext_subclass }
 )

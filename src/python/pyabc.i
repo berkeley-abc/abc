@@ -137,28 +137,28 @@ int n_cex_pis()
 {
     Abc_Frame_t* pAbc = Abc_FrameGetGlobalFrame();
 
-    return Abc_FrameReadCex(pAbc) ? Abc_FrameReadCexPiNum( Abc_FrameReadCex(pAbc) ) : -1;
+    return Abc_FrameReadCex(pAbc) ? Abc_FrameReadCexPiNum( pAbc ) : -1;
 }
 
 int n_cex_regs()
 {
     Abc_Frame_t* pAbc = Abc_FrameGetGlobalFrame();
 
-    return Abc_FrameReadCex(pAbc) ? Abc_FrameReadCexRegNum( Abc_FrameReadCex(pAbc) ) : -1;
+    return Abc_FrameReadCex(pAbc) ? Abc_FrameReadCexRegNum( pAbc ) : -1;
 }
 
 int cex_po()
 {
     Abc_Frame_t* pAbc = Abc_FrameGetGlobalFrame();
 
-    return Abc_FrameReadCex(pAbc) ? Abc_FrameReadCexPo( Abc_FrameReadCex(pAbc) ) : -1;
+    return Abc_FrameReadCex(pAbc) ? Abc_FrameReadCexPo( pAbc ) : -1;
 }
 
 int cex_frame()
 {
     Abc_Frame_t* pAbc = Abc_FrameGetGlobalFrame();
 
-    return Abc_FrameReadCex(pAbc) ? Abc_FrameReadCexFrame( Abc_FrameReadCex(pAbc) ) : -1;
+    return Abc_FrameReadCex(pAbc) ? Abc_FrameReadCexFrame( pAbc ) : -1;
 }
 
 int n_phases()
@@ -217,8 +217,6 @@ Abc_Cex_t* _cex_get_vec(int i)
 
 void _cex_put(Abc_Cex_t* pCex)
 {
-    Abc_Frame_t* pAbc = Abc_FrameGetGlobalFrame();
-    
     if ( pCex )
     {
         pCex = Abc_CexDup(pCex, -1);
