@@ -1,10 +1,10 @@
 import sys
-import sysconfig
 
 from distutils.core import setup, Extension
 from distutils.sysconfig import get_config_vars
 from distutils import util
 from distutils.command.build_ext import build_ext
+from distutils import sysconfig
 
 define_macros = []
 libraries = []
