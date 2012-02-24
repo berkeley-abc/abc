@@ -26,6 +26,9 @@
 
 ABC_NAMESPACE_IMPL_START
 
+#if defined(ABC_NO_DYNAMIC_LINKING)
+#define WIN32
+#endif
 
 #ifndef WIN32
 # include <sys/types.h>
