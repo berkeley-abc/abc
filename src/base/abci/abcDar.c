@@ -133,10 +133,17 @@ Aig_Man_t * Abc_NtkToDarBmc( Abc_Ntk_t * pNtk, Vec_Int_t ** pvMap )
     // collect the drivers
     vSuper   = Vec_PtrAlloc( 100 );
     vDrivers = Vec_PtrAlloc( 100 );
-    if ( pvMap )
+    if ( pvMap ) 
     *pvMap   = Vec_IntAlloc( 100 );
     Abc_NtkForEachPo( pNtk, pObj, i )
     {
+        if ( pNtk->nConstrs && i >= pNtk->nConstrs )
+        {
+            Vec_PtrPush( vDrivers, Abc_ObjNot(Abc_ObjChild0(pObj)) );
+            if ( pvMap )
+            Vec_IntPush( *pvMap, i );
+            continue;
+        }
         Abc_CollectTopOr( Abc_ObjChild0(pObj), vSuper );
         Vec_PtrForEachEntry( Abc_Obj_t *, vSuper, pTemp, k )
         {
