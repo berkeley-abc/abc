@@ -5681,16 +5681,20 @@ usage:
 int Abc_CommandOrPos( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);//, * pNtkRes;
+    int fReverse = 0;
     int fComb = 0;
     int c;
     extern int Abc_NtkCombinePos( Abc_Ntk_t * pNtk, int fAnd );
 
     // set defaults
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "ch" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "rh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'r':
+            fReverse ^= 1;
+            break;
         case 'c':
             fComb ^= 1;
             break;
@@ -5704,43 +5708,52 @@ int Abc_CommandOrPos( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Empty network.\n" );
         return 1;
     }
-
     if ( !Abc_NtkIsStrash(pNtk) )
     {
         Abc_Print( -1, "The network is not strashed.\n" );
         return 1;
     }
-/*
-    if ( Abc_NtkPoNum(pNtk) == 1 )
-    {
-        Abc_Print( -1, "The network already has one PO.\n" );
-        return 1;
-    }
-*/
-/*
-    if ( Abc_NtkLatchNum(pNtk) )
-    {
-        Abc_Print( -1, "The miter has latches. ORing is not performed.\n" );
-        return 1;
-    }
-*/
     // get the new network
-    if ( !Abc_NtkCombinePos( pNtk, 0 ) )
+    if ( fReverse )
     {
-        Abc_Print( -1, "ORing the POs has failed.\n" );
-        return 1;
+        extern Aig_Man_t * Abc_NtkToDarBmc( Abc_Ntk_t * pNtk, Vec_Int_t ** pvMap );
+        extern Abc_Ntk_t * Abc_NtkFromAigPhase( Aig_Man_t * pMan );
+
+        Aig_Man_t * pMan = Abc_NtkToDarBmc( pNtk, NULL );
+        Abc_Ntk_t * pNtkRes = Abc_NtkFromAigPhase( pMan );
+        Aig_ManStop( pMan );
+        // perform expansion
+        if ( Abc_NtkPoNum(pNtk) != Abc_NtkPoNum(pNtkRes) ) 
+            printf( "Expanded %d outputs into %d outputs using OR decomposition.\n", Abc_NtkPoNum(pNtk), Abc_NtkPoNum(pNtkRes) );
+        else
+            printf( "The output(s) cannot be structurally decomposed.\n" );
+        // clear counter-example
+        if ( pAbc->pCex )
+            ABC_FREE( pAbc->pCex );
+        // replace the current network
+        ABC_FREE( pNtkRes->pName );
+        pNtkRes->pName = Extra_UtilStrsav(pNtk->pName);
+        Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
     }
-    // Bug fix: there is now only one PO.  make sure the counterexample points to the right one
-    if ( pAbc->pCex )
-        pAbc->pCex->iPo = 0;
-    // replace the current network
-//    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    else
+    {
+        if ( !Abc_NtkCombinePos( pNtk, 0 ) )
+        {
+            Abc_Print( -1, "ORing the POs has failed.\n" );
+            return 1;
+        }
+        // update counter-example
+        if ( pAbc->pCex )
+            pAbc->pCex->iPo = 0;
+        // replace the current network
+    //    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    }
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: orpos [-h]\n" );
+    Abc_Print( -2, "usage: orpos [-rh]\n" );
     Abc_Print( -2, "\t        creates single-output miter by ORing the POs of the current network\n" );
-//    Abc_Print( -2, "\t-c    : computes combinational miter (latches as POs) [default = %s]\n", fComb? "yes": "no" );
+    Abc_Print( -2, "\t-r    : performs the reverse transform (OR decomposition) [default = %s]\n", fReverse? "yes": "no" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;
 }
@@ -8810,58 +8823,6 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 */
 
-/*
-    {
-//        extern void Llb_Nonlin4Cluster( Aig_Man_t * pAig );
-//        extern void Aig_ManTerSimulate( Aig_Man_t * pAig );
-//        extern Llb4_Nonlin4SweepExperiment( Aig_Man_t * pAig );
-        extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
-        Aig_Man_t * pAig = Abc_NtkToDar( pNtk, 0, 0 );
-//        Aig_ManTerSimulate( pAig );
-//        Llb_Nonlin4Cluster( pAig );
-//        Llb4_Nonlin4SweepExperiment( pAig );
-        Aig_ManStop( pAig );
-    }
-*/
-
-/*
-{
-    extern void Ssm_ManExperiment( char * pFileIn, char * pFileOut );
-//    Ssm_ManExperiment( "m\\big2.ssim", "m\\big2_.ssim" );
-//    Ssm_ManExperiment( "m\\big3.ssim", "m\\big3_.ssim" );
-//    Ssm_ManExperiment( "m\\tb.ssim", "m\\tb_.ssim" );
-    Ssm_ManExperiment( "m\\simp.ssim", "m\\simp_.ssim" );
-}
-*/
-/*
-{
-    Gia_Man_t * pGia = Abc_ManReadAig( "bug\\61\\tmp.out", "aig:" );
-    Gia_ManStop( pGia );
-}
-*/
-/*
-{
-    extern void Abc_BddTest( Aig_Man_t * pAig, int fNew );
-    extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
-    Aig_Man_t * pAig = Abc_NtkToDar( pNtk, 0, 0 );
-    Abc_BddTest( pAig, fVeryVerbose );
-    Aig_ManStop( pAig );
-}
-*/
-/*
-{
-    extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
-    if ( pAbc->pCex && pNtk )
-    {
-        Abc_Cex_t * pNew;
-        Aig_Man_t * pAig = Abc_NtkToDar( pNtk, 0, 1 );
-        pNew = Saig_ManCbaFindCexCareBits( pAig, pAbc->pCex, 0, fVerbose );
-        Aig_ManStop( pAig );
-        Abc_FrameReplaceCex( pAbc, &pNew );
-    }
-}
-*/
-
 {
 //    extern void Abs_VfaManTest( Aig_Man_t * pAig, int nFrames, int nConfLimit, int fVerbose );
     extern void Aig_ManInterRepar( Aig_Man_t * pMan, int fVerbose );
@@ -8872,45 +8833,22 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern Aig_Man_t * Iso_ManTest( Aig_Man_t * pAig, int fVerbose );
     extern Abc_Ntk_t * Abc_NtkFromAigPhase( Aig_Man_t * pMan );
     extern Vec_Vec_t * Saig_IsoDetectFast( Aig_Man_t * pAig );
+    extern Aig_Man_t * Abc_NtkToDarBmc( Abc_Ntk_t * pNtk, Vec_Int_t ** pvMap );
+
     if ( pNtk )
     {
         Aig_Man_t * pAig = Abc_NtkToDar( pNtk, 0, 1 );
-        Aig_Man_t * pRes;
-//        Abc_Ntk_t * pNtkRes;
-//        Aig_ManInterRepar( pAig, 1 );
-//        Aig_ManInterTest( pAig, 1 );
-//        Aig_ManSupportsTest( pAig );
-//        Aig_SupportSizeTest( pAig );
         if ( fNewAlgo )
             Saig_IsoDetectFast( pAig );
         else
         {
-            pRes = Iso_ManTest( pAig, fVerbose );
+            Aig_Man_t * pRes = Iso_ManTest( pAig, fVerbose );
             Aig_ManStopP( &pRes );
         }
-
-/*
-        pRes = Iso_ManTest( pAig, fVerbose );
-        if ( pRes != NULL )
-        {
-            pNtkRes = Abc_NtkFromAigPhase( pRes );
-            Aig_ManStop( pRes );
-
-            ABC_FREE( pNtkRes->pName );
-            pNtkRes->pName = Extra_UtilStrsav(pNtk->pName);
-            Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
-        }
-*/
         Aig_ManStop( pAig );
     }
 }
 
-
-
-    {
-//        void Bdc_SpfdDecomposeTest();
-//        Bdc_SpfdDecomposeTest();
-    }
     return 0;
 usage:
     Abc_Print( -2, "usage: test [-CKDN] [-aovwh] <file_name>\n" );

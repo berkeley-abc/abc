@@ -47,6 +47,144 @@ ABC_NAMESPACE_IMPL_START
 
 /**Function*************************************************************
 
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_ObjCompareById( Abc_Obj_t ** pp1, Abc_Obj_t ** pp2 )
+{
+    return Abc_ObjId(Abc_ObjRegular(*pp1)) - Abc_ObjId(Abc_ObjRegular(*pp2));
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Collects the supergate.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_CollectTopOr_rec( Abc_Obj_t * pObj, Vec_Ptr_t * vSuper )
+{
+    if ( Abc_ObjIsComplement(pObj) || !Abc_ObjIsNode(pObj) )
+    {
+        Vec_PtrPush( vSuper, pObj );
+        return;
+    }
+    // go through the branches
+    Abc_CollectTopOr_rec( Abc_ObjChild0(pObj), vSuper );
+    Abc_CollectTopOr_rec( Abc_ObjChild1(pObj), vSuper );
+}
+void Abc_CollectTopOr( Abc_Obj_t * pObj, Vec_Ptr_t * vSuper )
+{
+    Vec_PtrClear( vSuper );
+    if ( Abc_ObjIsComplement(pObj) )
+    {
+        Abc_CollectTopOr_rec( Abc_ObjNot(pObj), vSuper );
+        Vec_PtrUniqify( vSuper, (int (*)())Abc_ObjCompareById );
+    }
+    else
+        Vec_PtrPush( vSuper, Abc_ObjNot(pObj) );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Converts the network from the AIG manager into ABC.]
+
+  Description [The returned map maps new PO IDs into old ones.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Man_t * Abc_NtkToDarBmc( Abc_Ntk_t * pNtk, Vec_Int_t ** pvMap )
+{
+    Aig_Man_t * pMan;
+    Abc_Obj_t * pObj, * pTemp;
+    Vec_Ptr_t * vDrivers;
+    Vec_Ptr_t * vSuper;
+    int i, k, nDontCares;
+
+    // print warning about initial values
+    nDontCares = 0;
+    Abc_NtkForEachLatch( pNtk, pObj, i )
+        if ( Abc_LatchIsInitDc(pObj) )
+        {
+            Abc_LatchSetInit0(pObj);
+            nDontCares++;
+        }
+    if ( nDontCares )
+    {
+        printf( "Warning: %d registers in this network have don't-care init values.\n", nDontCares );
+        printf( "The don't-care are assumed to be 0. The result may not verify.\n" );
+        printf( "Use command \"print_latch\" to see the init values of registers.\n" );
+        printf( "Use command \"zero\" to convert or \"init\" to change the values.\n" );
+    }
+
+    // collect the drivers
+    vSuper   = Vec_PtrAlloc( 100 );
+    vDrivers = Vec_PtrAlloc( 100 );
+    if ( pvMap )
+    *pvMap   = Vec_IntAlloc( 100 );
+    Abc_NtkForEachPo( pNtk, pObj, i )
+    {
+        Abc_CollectTopOr( Abc_ObjChild0(pObj), vSuper );
+        Vec_PtrForEachEntry( Abc_Obj_t *, vSuper, pTemp, k )
+        {
+            Vec_PtrPush( vDrivers, pTemp );
+            if ( pvMap )
+            Vec_IntPush( *pvMap, i );
+        }       
+    }
+    Vec_PtrFree( vSuper );
+
+    // create network
+    pMan = Aig_ManStart( Abc_NtkNodeNum(pNtk) + 100 );
+    pMan->nConstrs = pNtk->nConstrs;
+    pMan->pName = Extra_UtilStrsav( pNtk->pName );
+
+    // transfer the pointers to the basic nodes
+    Abc_AigConst1(pNtk)->pCopy = (Abc_Obj_t *)Aig_ManConst1(pMan);
+    Abc_NtkForEachCi( pNtk, pObj, i )
+        pObj->pCopy = (Abc_Obj_t *)Aig_ObjCreatePi(pMan);
+    // create flops
+    Abc_NtkForEachLatch( pNtk, pObj, i )
+        Abc_ObjFanout0(pObj)->pCopy = Abc_ObjNotCond( Abc_ObjFanout0(pObj)->pCopy, Abc_LatchIsInit1(pObj) );
+    // copy internal nodes
+    Abc_NtkForEachNode( pNtk, pObj, i )
+        pObj->pCopy = (Abc_Obj_t *)Aig_And( pMan, (Aig_Obj_t *)Abc_ObjChild0Copy(pObj), (Aig_Obj_t *)Abc_ObjChild1Copy(pObj) );
+    // create the POs
+    Vec_PtrForEachEntry( Abc_Obj_t *, vDrivers, pTemp, k )
+        Aig_ObjCreatePo( pMan, (Aig_Obj_t *)Abc_ObjNotCond(Abc_ObjRegular(pTemp)->pCopy, !Abc_ObjIsComplement(pTemp)) );
+    Vec_PtrFree( vDrivers );
+    // create flops
+    Abc_NtkForEachLatchInput( pNtk, pObj, i )
+        Aig_ObjCreatePo( pMan, (Aig_Obj_t *)Abc_ObjNotCond(Abc_ObjChild0Copy(pObj), Abc_LatchIsInit1(Abc_ObjFanout0(pObj))) );
+
+    // remove dangling nodes
+    Aig_ManSetRegNum( pMan, Abc_NtkLatchNum(pNtk) );
+    Aig_ManCleanup( pMan );
+    if ( !Aig_ManCheck( pMan ) )
+    {
+        printf( "Abc_NtkToDarBmc: AIG check has failed.\n" );
+        Aig_ManStop( pMan );
+        return NULL;
+    }
+    return pMan;
+}
+
+
+/**Function*************************************************************
+
   Synopsis    [Converts the network from the AIG manager into ABC.]
 
   Description [Assumes that registers are ordered after PIs/POs.]
@@ -1693,19 +1831,23 @@ static void sigfunc( int signo )
 int Abc_NtkDarBmc( Abc_Ntk_t * pNtk, int nStart, int nFrames, int nSizeMax, int nNodeDelta, int nTimeOut, int nBTLimit, int nBTLimitAll, int fRewrite, int fNewAlgo, int nCofFanLit, int fVerbose, int * piFrames )
 {
     Aig_Man_t * pMan;
+    Vec_Int_t * vMap = NULL;
     int status, RetValue = -1, clk = clock();
     int nTimeLimit = nTimeOut ? time(NULL) + nTimeOut : 0;
-
     // derive the AIG manager
-    pMan = Abc_NtkToDar( pNtk, 0, 1 );
+    pMan = Abc_NtkToDarBmc( pNtk, &vMap );
     if ( pMan == NULL )
     {
         printf( "Converting miter into AIG has failed.\n" );
         return RetValue;
     }
     assert( pMan->nRegs > 0 );
+    assert( Vec_IntSize(vMap) == Aig_ManPoNum(pMan) );
+    if ( fVerbose && vMap && Abc_NtkPoNum(pNtk) != Saig_ManPoNum(pMan) ) 
+        printf( "Expanded %d outputs into %d outputs using OR decomposition.\n", Abc_NtkPoNum(pNtk), Saig_ManPoNum(pMan) );
+
     // perform verification
-    if ( fNewAlgo )
+    if ( fNewAlgo ) // command 'bmc'
     {
         int iFrame;
         RetValue = Saig_ManBmcSimple( pMan, nFrames, nSizeMax, nBTLimit, fRewrite, fVerbose, &iFrame, nCofFanLit );
@@ -1715,64 +1857,24 @@ int Abc_NtkDarBmc( Abc_Ntk_t * pNtk, int nStart, int nFrames, int nSizeMax, int 
         ABC_FREE( pNtk->pSeqModel );
         pNtk->pSeqModel = pMan->pSeqModel; pMan->pSeqModel = NULL;
         if ( RetValue == 1 )
-        {
-//            printf( "No output asserted in %d frames. ", iFrame );
             printf( "Incorrect return value.  " );
-        }
         else if ( RetValue == -1 )
         {
-            printf( "No output asserted in %d frames. Resource limit reached ", iFrame );
-            if ( time(NULL) > nTimeLimit )
+            printf( "No output asserted in %d frames. Resource limit reached ", Abc_MaxInt(iFrame,0) );
+            if ( nTimeLimit && time(NULL) > nTimeLimit )
                 printf( "(timeout %d sec). ", nTimeLimit );
             else
                 printf( "(conf limit %d). ", nBTLimit );
         }
         else // if ( RetValue == 0 )
         {
-//            extern void Aig_ManCounterExampleValueTest( Aig_Man_t * pAig, Abc_Cex_t * pCex );
-
             Abc_Cex_t * pCex = pNtk->pSeqModel;
             printf( "Output %d asserted in frame %d (use \"write_counter\" to dump a witness). ", pCex->iPo, pCex->iFrame );
-
-//            Aig_ManCounterExampleValueTest( pMan, pCex );
         }
 ABC_PRT( "Time", clock() - clk );
     }
     else
     { 
-/*
-        Fra_BmcPerformSimple( pMan, nFrames, nBTLimit, fRewrite, fVerbose );
-        ABC_FREE( pNtk->pModel );
-        ABC_FREE( pNtk->pSeqModel );
-        pNtk->pSeqModel = pMan->pSeqModel; pMan->pSeqModel = NULL;
-        if ( pNtk->pSeqModel )
-        {
-            Abc_Cex_t * pCex = pNtk->pSeqModel;
-            printf( "Output %d asserted in frame %d (use \"write_counter\" to dump a witness). ", pCex->iPo, pCex->iFrame );
-            RetValue = 0;
-        }
-        else
-        {
-            printf( "No output asserted in %d frames. ", nFrames );
-            RetValue = 1;
-        }
-*/
-/*
-        int iFrame;
-        RetValue = Ssw_BmcDynamic( pMan, nFrames, nBTLimit, fVerbose, &iFrame );
-        ABC_FREE( pNtk->pModel );
-        ABC_FREE( pNtk->pSeqModel );
-        pNtk->pSeqModel = pMan->pSeqModel; pMan->pSeqModel = NULL;
-        if ( RetValue == 1 )
-            printf( "No output asserted in %d frames. ", iFrame );
-        else if ( RetValue == -1 )
-            printf( "No output asserted in %d frames. Reached conflict limit (%d). ", iFrame, nBTLimit );
-        else // if ( RetValue == 0 )
-        {
-            Abc_Cex_t * pCex = pNtk->pSeqModel;
-            printf( "Output %d asserted in frame %d (use \"write_counter\" to dump a witness). ", pCex->iPo, pCex->iFrame );
-        }
-*/
         RetValue = Saig_BmcPerform( pMan, nStart, nFrames, nNodeDelta, nTimeOut, nBTLimit, nBTLimitAll, fVerbose, 0, piFrames );
         ABC_FREE( pNtk->pModel );
         ABC_FREE( pNtk->pSeqModel );
@@ -1786,6 +1888,10 @@ ABC_PRT( "Time", clock() - clk );
             printf( "Abc_NtkDarBmc(): Counter-example verification has FAILED.\n" );
     }
     Aig_ManStop( pMan );
+    // update the counter-example
+    if ( pNtk->pSeqModel && vMap )
+        pNtk->pSeqModel->iPo = Vec_IntEntry( vMap, pNtk->pSeqModel->iPo );
+    Vec_IntFree( vMap );
     return RetValue;
 }
 
@@ -1803,15 +1909,22 @@ ABC_PRT( "Time", clock() - clk );
 int Abc_NtkDarBmc3( Abc_Ntk_t * pNtk, Saig_ParBmc_t * pPars )
 {
     Aig_Man_t * pMan;
+    Vec_Int_t * vMap = NULL;
     int status, RetValue = -1, clk = clock();
     int nTimeOut = pPars->nTimeOut ? time(NULL) + pPars->nTimeOut : 0;
-    pMan = Abc_NtkToDar( pNtk, 0, 1 );
+    if ( pPars->fSolveAll )
+        pMan = Abc_NtkToDar( pNtk, 0, 1 );
+    else
+        pMan = Abc_NtkToDarBmc( pNtk, &vMap );
     if ( pMan == NULL )
     {
         printf( "Converting miter into AIG has failed.\n" );
         return RetValue;
     }
     assert( pMan->nRegs > 0 );
+    if ( pPars->fVerbose && vMap && Abc_NtkPoNum(pNtk) != Saig_ManPoNum(pMan) ) 
+        printf( "Expanded %d outputs into %d outputs using OR decomposition.\n", Abc_NtkPoNum(pNtk), Saig_ManPoNum(pMan) );
+
     RetValue = Saig_ManBmcScalable( pMan, pPars );
     ABC_FREE( pNtk->pModel );
     ABC_FREE( pNtk->pSeqModel );
@@ -1824,8 +1937,8 @@ int Abc_NtkDarBmc3( Abc_Ntk_t * pNtk, Saig_ParBmc_t * pPars )
     {
         if ( pPars->nFailOuts == 0 )
         {
-            printf( "No output asserted in %d frames. Resource limit reached ", pPars->iFrame );
-            if ( time(NULL) > nTimeOut )
+            printf( "No output asserted in %d frames. Resource limit reached ", Abc_MaxInt(pPars->iFrame,0) );
+            if ( nTimeOut && time(NULL) > nTimeOut )
                 printf( "(timeout %d sec). ", pPars->nTimeOut );
             else
                 printf( "(conf limit %d). ", pPars->nConfLimit );
@@ -1837,9 +1950,6 @@ int Abc_NtkDarBmc3( Abc_Ntk_t * pNtk, Saig_ParBmc_t * pPars )
                 printf( "(timeout %d sec). ", pPars->nTimeOut );
             else
                 printf( "(conf limit %d). ", pPars->nConfLimit );
-//            if ( pNtk->vSeqModelVec )
-//                Vec_PtrFreeFree( pNtk->vSeqModelVec );
-//            pNtk->vSeqModelVec = pMan->vSeqModelVec;  pMan->vSeqModelVec = NULL;
         }
     }
     else // if ( RetValue == 0 )
@@ -1872,6 +1982,10 @@ int Abc_NtkDarBmc3( Abc_Ntk_t * pNtk, Saig_ParBmc_t * pPars )
             printf( "Abc_NtkDarBmc3(): Counter-example verification has FAILED.\n" );
     }
     Aig_ManStop( pMan );
+    // update the counter-example
+    if ( pNtk->pSeqModel && vMap )
+        pNtk->pSeqModel->iPo = Vec_IntEntry( vMap, pNtk->pSeqModel->iPo );
+    Vec_IntFree( vMap );
     return RetValue;
 }
 
