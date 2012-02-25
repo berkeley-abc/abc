@@ -19003,7 +19003,7 @@ int Abc_CommandBmc( Abc_Frame_t * pAbc, int argc, char ** argv )
     int iFrames;
     char * pLogFileName = NULL;
 
-    extern int Abc_NtkDarBmc( Abc_Ntk_t * pNtk, int nStart, int nFrames, int nSizeMax, int nNodeDelta, int nTimeOut, int nBTLimit, int nBTLimitAll, int fRewrite, int fNewAlgo, int nCofFanLit, int fVerbose, int * piFrames );
+    extern int Abc_NtkDarBmc( Abc_Ntk_t * pNtk, int nStart, int nFrames, int nSizeMax, int nNodeDelta, int nTimeOut, int nBTLimit, int nBTLimitAll, int fRewrite, int fNewAlgo, int fOrDecomp, int nCofFanLit, int fVerbose, int * piFrames );
     // set defaults
     nFrames     =       20;
     nSizeMax    =   100000;
@@ -19126,7 +19126,7 @@ int Abc_CommandBmc( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Does not work for combinational networks.\n" );
         return 0;
     }
-    pAbc->Status = Abc_NtkDarBmc( pNtk, 0, nFrames, nSizeMax, nNodeDelta, 0, nBTLimit, nBTLimitAll, fRewrite, fNewAlgo, nCofFanLit, fVerbose, &iFrames );
+    pAbc->Status = Abc_NtkDarBmc( pNtk, 0, nFrames, nSizeMax, nNodeDelta, 0, nBTLimit, nBTLimitAll, fRewrite, fNewAlgo, 0, nCofFanLit, fVerbose, &iFrames );
     pAbc->nFrames = iFrames;
     Abc_FrameReplaceCex( pAbc, &pNtk->pSeqModel );
     if ( pLogFileName )
@@ -19172,11 +19172,12 @@ int Abc_CommandBmc2( Abc_Frame_t * pAbc, int argc, char ** argv )
     int nTimeOut;
     int fRewrite;
     int fNewAlgo;
+    int fOrDecomp;
     int fVerbose;
     int iFrames;
     char * pLogFileName = NULL;
 
-    extern int Abc_NtkDarBmc( Abc_Ntk_t * pNtk, int nStart, int nFrames, int nSizeMax, int nNodeDelta, int nTimeOut, int nBTLimit, int nBTLimitAll, int fRewrite, int fNewAlgo, int nCofFanLit, int fVerbose, int * piFrames );
+    extern int Abc_NtkDarBmc( Abc_Ntk_t * pNtk, int nStart, int nFrames, int nSizeMax, int nNodeDelta, int nTimeOut, int nBTLimit, int nBTLimitAll, int fRewrite, int fNewAlgo, int fOrDecomp, int nCofFanLit, int fVerbose, int * piFrames );
 
     // set defaults
     nStart      =        0;
@@ -19188,9 +19189,10 @@ int Abc_CommandBmc2( Abc_Frame_t * pAbc, int argc, char ** argv )
     nTimeOut    =        0;
     fRewrite    =        0;
     fNewAlgo    =        0;
+    fOrDecomp   =        1;
     fVerbose    =        0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "SFNTCGDLrvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "SFNTCGDLruvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -19286,6 +19288,9 @@ int Abc_CommandBmc2( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'a':
             fNewAlgo ^= 1;
             break;
+        case 'u':
+            fOrDecomp ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -19310,7 +19315,7 @@ int Abc_CommandBmc2( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Does not work for combinational networks.\n" );
         return 0;
     }
-    pAbc->Status = Abc_NtkDarBmc( pNtk, nStart, nFrames, nSizeMax, nNodeDelta, nTimeOut, nBTLimit, nBTLimitAll, fRewrite, fNewAlgo, 0, fVerbose, &iFrames );
+    pAbc->Status = Abc_NtkDarBmc( pNtk, nStart, nFrames, nSizeMax, nNodeDelta, nTimeOut, nBTLimit, nBTLimitAll, fRewrite, fNewAlgo, fOrDecomp, 0, fVerbose, &iFrames );
     pAbc->nFrames = iFrames;
     Abc_FrameReplaceCex( pAbc, &pNtk->pSeqModel );
     if ( pLogFileName )
@@ -19318,19 +19323,16 @@ int Abc_CommandBmc2( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-//    Abc_Print( -2, "usage: bmc2 [-FNCGD num] [-ravh]\n" );
-    Abc_Print( -2, "usage: bmc2 [-SFTCGD num] [-L file] [-vh]\n" );
+    Abc_Print( -2, "usage: bmc2 [-SFTCGD num] [-L file] [-uvh]\n" );
     Abc_Print( -2, "\t         performs bounded model checking with dynamic unrolling\n" );
     Abc_Print( -2, "\t-S num : the starting time frame [default = %d]\n", nStart );
     Abc_Print( -2, "\t-F num : the max number of time frames (0 = unused) [default = %d]\n", nFrames );
-//    Abc_Print( -2, "\t-N num : the max number of nodes in the frames [default = %d]\n", nSizeMax );
     Abc_Print( -2, "\t-T num : approximate runtime limit in seconds [default = %d]\n", nTimeOut );
     Abc_Print( -2, "\t-C num : the max number of conflicts at a node [default = %d]\n", nBTLimit );
     Abc_Print( -2, "\t-G num : the max number of conflicts globally [default = %d]\n", nBTLimitAll );
     Abc_Print( -2, "\t-D num : the delta in the number of nodes [default = %d]\n", nNodeDelta );
     Abc_Print( -2, "\t-L file: the log file name [default = %s]\n", pLogFileName ? pLogFileName : "no logging" );
-//    Abc_Print( -2, "\t-r     : toggle the use of rewriting [default = %s]\n", fRewrite? "yes": "no" );
-//    Abc_Print( -2, "\t-a     : toggle SAT sweeping and SAT solving [default = %s]\n", fNewAlgo? "SAT solving": "SAT sweeping" );
+    Abc_Print( -2, "\t-u     : toggle performing structural OR-decomposition [default = %s]\n", fOrDecomp? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
@@ -19350,14 +19352,15 @@ usage:
 int Abc_CommandBmc3( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern Abc_Ntk_t * Abc_NtkDarLatchSweep( Abc_Ntk_t * pNtk, int fLatchConst, int fLatchEqual, int fSaveNames, int fUseMvSweep, int nFramesSymb, int nFramesSatur, int fVerbose, int fVeryVerbose );
-    extern int Abc_NtkDarBmc3( Abc_Ntk_t * pNtk, Saig_ParBmc_t * pPars );
+    extern int Abc_NtkDarBmc3( Abc_Ntk_t * pNtk, Saig_ParBmc_t * pPars, int fOrDecomp );
     Saig_ParBmc_t Pars, * pPars = &Pars;
     Abc_Ntk_t * pNtkRes, * pNtk = Abc_FrameReadNtk(pAbc);
     char * pLogFileName = NULL;
+    int fOrDecomp = 1;
     int c;
     Saig_ParBmcSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "SFTCDJILsdrvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "SFTCDJILsdruvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -19453,6 +19456,9 @@ int Abc_CommandBmc3( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'd':
             pPars->fDropSatOuts ^= 1;
             break;
+        case 'u':
+            fOrDecomp ^= 1;
+            break;
         case 'v':
             pPars->fVerbose ^= 1;
             break;
@@ -19477,7 +19483,7 @@ int Abc_CommandBmc3( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Does not work for combinational networks.\n" );
         return 0;
     }
-    pAbc->Status = Abc_NtkDarBmc3( pNtk, pPars );
+    pAbc->Status = Abc_NtkDarBmc3( pNtk, pPars, fOrDecomp );
     pAbc->nFrames = pPars->iFrame;
     Abc_FrameReplaceCex( pAbc, &pNtk->pSeqModel );
     if ( pLogFileName )
@@ -19506,7 +19512,7 @@ int Abc_CommandBmc3( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: bmc3 [-SFTCDJI num] [-L file] [-sdvh]\n" );
+    Abc_Print( -2, "usage: bmc3 [-SFTCDJI num] [-L file] [-sduvh]\n" );
     Abc_Print( -2, "\t         performs bounded model checking with dynamic unrolling\n" );
     Abc_Print( -2, "\t-S num : the starting time frame [default = %d]\n", pPars->nStart );
     Abc_Print( -2, "\t-F num : the max number of time frames (0 = unused) [default = %d]\n", pPars->nFramesMax );
@@ -19518,6 +19524,7 @@ usage:
     Abc_Print( -2, "\t-L file: the log file name [default = %s]\n", pLogFileName ? pLogFileName : "no logging" );
     Abc_Print( -2, "\t-s     : solve all outputs (do not stop when one is SAT) [default = %s]\n", pPars->fSolveAll? "yes": "no" );
     Abc_Print( -2, "\t-d     : drops (replaces by 0) satisfiable outputs [default = %s]\n", pPars->fDropSatOuts? "yes": "no" );
+    Abc_Print( -2, "\t-u     : toggle performing structural OR-decomposition [default = %s]\n", fOrDecomp? "yes": "not" );
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;

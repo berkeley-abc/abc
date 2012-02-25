@@ -1835,14 +1835,17 @@ static void sigfunc( int signo )
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkDarBmc( Abc_Ntk_t * pNtk, int nStart, int nFrames, int nSizeMax, int nNodeDelta, int nTimeOut, int nBTLimit, int nBTLimitAll, int fRewrite, int fNewAlgo, int nCofFanLit, int fVerbose, int * piFrames )
+int Abc_NtkDarBmc( Abc_Ntk_t * pNtk, int nStart, int nFrames, int nSizeMax, int nNodeDelta, int nTimeOut, int nBTLimit, int nBTLimitAll, int fRewrite, int fNewAlgo, int fOrDecomp, int nCofFanLit, int fVerbose, int * piFrames )
 {
     Aig_Man_t * pMan;
     Vec_Int_t * vMap = NULL;
     int status, RetValue = -1, clk = clock();
     int nTimeLimit = nTimeOut ? time(NULL) + nTimeOut : 0;
     // derive the AIG manager
-    pMan = Abc_NtkToDarBmc( pNtk, &vMap );
+    if ( fOrDecomp )
+        pMan = Abc_NtkToDarBmc( pNtk, &vMap );
+    else
+        pMan = Abc_NtkToDar( pNtk, 0, 1 );
     if ( pMan == NULL )
     {
         printf( "Converting miter into AIG has failed.\n" );
@@ -1898,7 +1901,7 @@ ABC_PRT( "Time", clock() - clk );
     // update the counter-example
     if ( pNtk->pSeqModel && vMap )
         pNtk->pSeqModel->iPo = Vec_IntEntry( vMap, pNtk->pSeqModel->iPo );
-    Vec_IntFree( vMap );
+    Vec_IntFreeP( &vMap );
     return RetValue;
 }
 
@@ -1913,16 +1916,16 @@ ABC_PRT( "Time", clock() - clk );
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkDarBmc3( Abc_Ntk_t * pNtk, Saig_ParBmc_t * pPars )
+int Abc_NtkDarBmc3( Abc_Ntk_t * pNtk, Saig_ParBmc_t * pPars, int fOrDecomp )
 {
     Aig_Man_t * pMan;
     Vec_Int_t * vMap = NULL;
     int status, RetValue = -1, clk = clock();
     int nTimeOut = pPars->nTimeOut ? time(NULL) + pPars->nTimeOut : 0;
-    if ( pPars->fSolveAll )
-        pMan = Abc_NtkToDar( pNtk, 0, 1 );
-    else
+    if ( fOrDecomp && !pPars->fSolveAll )
         pMan = Abc_NtkToDarBmc( pNtk, &vMap );
+    else
+        pMan = Abc_NtkToDar( pNtk, 0, 1 );
     if ( pMan == NULL )
     {
         printf( "Converting miter into AIG has failed.\n" );
@@ -1992,7 +1995,7 @@ int Abc_NtkDarBmc3( Abc_Ntk_t * pNtk, Saig_ParBmc_t * pPars )
     // update the counter-example
     if ( pNtk->pSeqModel && vMap )
         pNtk->pSeqModel->iPo = Vec_IntEntry( vMap, pNtk->pSeqModel->iPo );
-    Vec_IntFree( vMap );
+    Vec_IntFreeP( &vMap );
     return RetValue;
 }
 
