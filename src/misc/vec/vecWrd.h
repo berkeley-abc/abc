@@ -1010,7 +1010,7 @@ static inline void Vec_WrdSort( Vec_Wrd_t * p, int fReverse )
   SeeAlso     []
 
 ***********************************************************************/
-static void Vec_WrdUniqify( Vec_Wrd_t * p )
+static inline void Vec_WrdUniqify( Vec_Wrd_t * p )
 {
     int i, k;
     if ( p->nSize < 2 )

@@ -1131,7 +1131,7 @@ static inline void Vec_IntSort( Vec_Int_t * p, int fReverse )
   SeeAlso     []
 
 ***********************************************************************/
-static void Vec_IntUniqify( Vec_Int_t * p )
+static inline void Vec_IntUniqify( Vec_Int_t * p )
 {
     int i, k;
     if ( p->nSize < 2 )
@@ -1154,7 +1154,7 @@ static void Vec_IntUniqify( Vec_Int_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-static int Vec_IntSortCompareUnsigned( unsigned * pp1, unsigned * pp2 )
+static inline int Vec_IntSortCompareUnsigned( unsigned * pp1, unsigned * pp2 )
 {
     if ( *pp1 < *pp2 )
         return -1;
@@ -1353,7 +1353,7 @@ static inline int Vec_IntCompareVec( Vec_Int_t * p1, Vec_Int_t * p2 )
   SeeAlso     []
 
 ***********************************************************************/
-static void Vec_IntAppend( Vec_Int_t * vVec1, Vec_Int_t * vVec2 )
+static inline void Vec_IntAppend( Vec_Int_t * vVec1, Vec_Int_t * vVec2 )
 {
     int Entry, i;
     Vec_IntForEachEntry( vVec2, Entry, i )
