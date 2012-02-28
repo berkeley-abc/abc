@@ -1607,10 +1607,10 @@ void Abc_NtkSwapOneOutput( Abc_Ntk_t * pNtk, int iOutput )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkRemovePo( Abc_Ntk_t * pNtk, int iOutput )
+void Abc_NtkRemovePo( Abc_Ntk_t * pNtk, int iOutput, int fRemoveConst0 )
 {
     Abc_Obj_t * pObj = Abc_NtkPo(pNtk, iOutput);
-    if ( Abc_ObjFanin0(pObj) == Abc_AigConst1(pNtk) && Abc_ObjFaninC0(pObj) )
+    if ( Abc_ObjFanin0(pObj) == Abc_AigConst1(pNtk) && Abc_ObjFaninC0(pObj) == fRemoveConst0 )
         Abc_NtkDeleteObj( pObj );
 }
 

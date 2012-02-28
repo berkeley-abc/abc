@@ -5997,11 +5997,12 @@ int Abc_CommandRemovePo( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);//, * pNtkRes = NULL;
     int c, iOutput = -1;
-    extern void Abc_NtkRemovePo( Abc_Ntk_t * pNtk, int iOutput );
+    int fRemoveConst0 = 1;
+    extern void Abc_NtkRemovePo( Abc_Ntk_t * pNtk, int iOutput, int fRemoveConst0 );
 
     // set defaults
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Nh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Nzh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -6015,6 +6016,9 @@ int Abc_CommandRemovePo( Abc_Frame_t * pAbc, int argc, char ** argv )
             globalUtilOptind++;
             if ( iOutput < 0 ) 
                 goto usage;
+            break;
+        case 'z':
+            fRemoveConst0 ^= 1;
             break;
         default:
             goto usage;
@@ -6047,13 +6051,14 @@ int Abc_CommandRemovePo( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    pNtkRes = Abc_NtkDup( pNtk );
 //    Abc_NtkRemovePo( pNtkRes, iOutput );
 //    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
-    Abc_NtkRemovePo( pNtk, iOutput );
+    Abc_NtkRemovePo( pNtk, iOutput, fRemoveConst0 );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: removepo [-N <num>] [-h]\n" );
+    Abc_Print( -2, "usage: removepo [-N <num>] [-zh]\n" );
     Abc_Print( -2, "\t           remove PO with number <num> if it is const0\n" );
     Abc_Print( -2, "\t-N <num> : the zero-based index of the PO to remove [default = %d]\n", iOutput );
+    Abc_Print( -2, "\t-z       : toggle removing const1 instead of const0 [default = %s]\n", fRemoveConst0? "const0": "const1" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;
 }
