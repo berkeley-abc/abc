@@ -27966,6 +27966,11 @@ int Abc_CommandAbc9Iso( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     pAig = Gia_ManIsoReduce( pAbc->pGia, &vPosEquivs, fVerbose );
+    if ( pAig == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Iso(): Transformation has failed.\n" );
+        return 1;
+    }
     // update the internal storage of PO equivalences
     Abc_FrameReplacePoEquivs( pAbc, &vPosEquivs );
     // update the AIG

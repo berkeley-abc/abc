@@ -977,6 +977,8 @@ Gia_Man_t * Gia_ManIsoReduce( Gia_Man_t * p, Vec_Ptr_t ** pvPosEquivs, int fVerb
 
     // create preliminary equivalences
     vEquivs = Gia_IsoDeriveEquivPos( p, 1, fVeryVerbose );
+    if ( vEquivs == NULL )
+        return NULL;
 //    printf( "Reduced %d outputs to %d outputs.  ", Gia_ManPoNum(p), Vec_PtrSize(vEquivs) );
 //    Abc_PrintTime( 1, "Time", clock() - clk );
 
