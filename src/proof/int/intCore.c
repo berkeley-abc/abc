@@ -83,6 +83,10 @@ int Inter_ManPerformInterpolation( Aig_Man_t * pAig, Inter_ManParams_t * pPars, 
     int s, i, RetValue, Status, clk, clk2, clkTotal = clock(), timeTemp = 0;
     int nTimeNewOut = pPars->nSecLimit ? time(NULL) + pPars->nSecLimit : 0;
 
+    // enable ORing of the interpolants, if containment check is performed inductively with K > 1
+    if ( pPars->nFramesK > 1 )
+        pPars->fTransLoop = 1;
+
     // sanity checks
     assert( Saig_ManRegNum(pAig) > 0 );
     assert( Saig_ManPiNum(pAig) > 0 );
