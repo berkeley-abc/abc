@@ -27960,6 +27960,11 @@ int Abc_CommandAbc9Iso( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Iso(): There is no AIG.\n" );
         return 1;
     }
+    if ( Gia_ManPoNum(pAbc->pGia) == 1 )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Iso(): The AIG has only one PO. Isomorphism detection is not performed.\n" );
+        return 1;
+    }
     pAig = Gia_ManIsoReduce( pAbc->pGia, &vPosEquivs, fVerbose );
     // update the internal storage of PO equivalences
     Abc_FrameReplacePoEquivs( pAbc, &vPosEquivs );
