@@ -113,6 +113,8 @@ Vec_Int_t * Amap_LibDeriveGatePerm_rec( Amap_Lib_t * pLib, Kit_DsdNtk_t * pNtk, 
         iDsdFanin  = Abc_LitRegular(pDsdObj->pFans[0]);
         pNodFanin  = Amap_LibNod( pLib, Abc_Lit2Var(pNod->iFan0) );
         vPermFanin = Amap_LibDeriveGatePerm_rec( pLib, pNtk, iDsdFanin, pNodFanin );
+        if ( vPermFanin == NULL )
+            return NULL;
         Vec_IntForEachEntry( vPermFanin, Value, k )
             Vec_IntPush( vPerm, Value );
         Vec_IntFree( vPermFanin );
@@ -120,6 +122,8 @@ Vec_Int_t * Amap_LibDeriveGatePerm_rec( Amap_Lib_t * pLib, Kit_DsdNtk_t * pNtk, 
         iDsdFanin  = Abc_LitRegular(pDsdObj->pFans[1]);
         pNodFanin  = Amap_LibNod( pLib, Abc_Lit2Var(pNod->iFan1) );
         vPermFanin = Amap_LibDeriveGatePerm_rec( pLib, pNtk, iDsdFanin, pNodFanin );
+        if ( vPermFanin == NULL )
+            return NULL;
         Vec_IntForEachEntry( vPermFanin, Value, k )
             Vec_IntPush( vPerm, Value );
         Vec_IntFree( vPermFanin );
@@ -127,6 +131,8 @@ Vec_Int_t * Amap_LibDeriveGatePerm_rec( Amap_Lib_t * pLib, Kit_DsdNtk_t * pNtk, 
         iDsdFanin  = Abc_LitRegular(pDsdObj->pFans[2]);
         pNodFanin  = Amap_LibNod( pLib, Abc_Lit2Var(pNod->iFan2) );
         vPermFanin = Amap_LibDeriveGatePerm_rec( pLib, pNtk, iDsdFanin, pNodFanin );
+        if ( vPermFanin == NULL )
+            return NULL;
         Vec_IntForEachEntry( vPermFanin, Value, k )
             Vec_IntPush( vPerm, Value );
         Vec_IntFree( vPermFanin );
