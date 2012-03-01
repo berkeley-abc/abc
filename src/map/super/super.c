@@ -169,7 +169,7 @@ int Super_CommandSupergates( Abc_Frame_t * pAbc, int argc, char **argv )
     nLevels    = 3;
     DelayLimit = 3.5;
     AreaLimit  = 9;
-    nGatesMax  = 10000;
+    nGatesMax  = 1000000;
     TimeLimit  = 10;
     fSkipInvs  = 1;
     fVerbose   = 0;
