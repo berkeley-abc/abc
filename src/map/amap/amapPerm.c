@@ -114,7 +114,10 @@ Vec_Int_t * Amap_LibDeriveGatePerm_rec( Amap_Lib_t * pLib, Kit_DsdNtk_t * pNtk, 
         pNodFanin  = Amap_LibNod( pLib, Abc_Lit2Var(pNod->iFan0) );
         vPermFanin = Amap_LibDeriveGatePerm_rec( pLib, pNtk, iDsdFanin, pNodFanin );
         if ( vPermFanin == NULL )
+        {
+            Vec_IntFree( vPerm );
             return NULL;
+        }
         Vec_IntForEachEntry( vPermFanin, Value, k )
             Vec_IntPush( vPerm, Value );
         Vec_IntFree( vPermFanin );
@@ -123,7 +126,10 @@ Vec_Int_t * Amap_LibDeriveGatePerm_rec( Amap_Lib_t * pLib, Kit_DsdNtk_t * pNtk, 
         pNodFanin  = Amap_LibNod( pLib, Abc_Lit2Var(pNod->iFan1) );
         vPermFanin = Amap_LibDeriveGatePerm_rec( pLib, pNtk, iDsdFanin, pNodFanin );
         if ( vPermFanin == NULL )
+        {
+            Vec_IntFree( vPerm );
             return NULL;
+        }
         Vec_IntForEachEntry( vPermFanin, Value, k )
             Vec_IntPush( vPerm, Value );
         Vec_IntFree( vPermFanin );
@@ -132,7 +138,10 @@ Vec_Int_t * Amap_LibDeriveGatePerm_rec( Amap_Lib_t * pLib, Kit_DsdNtk_t * pNtk, 
         pNodFanin  = Amap_LibNod( pLib, Abc_Lit2Var(pNod->iFan2) );
         vPermFanin = Amap_LibDeriveGatePerm_rec( pLib, pNtk, iDsdFanin, pNodFanin );
         if ( vPermFanin == NULL )
+        {
+            Vec_IntFree( vPerm );
             return NULL;
+        }
         Vec_IntForEachEntry( vPermFanin, Value, k )
             Vec_IntPush( vPerm, Value );
         Vec_IntFree( vPermFanin );
@@ -193,7 +202,12 @@ Vec_Int_t * Amap_LibDeriveGatePerm_rec( Amap_Lib_t * pLib, Kit_DsdNtk_t * pNtk, 
                    continue;
             vPermFanin = Amap_LibDeriveGatePerm_rec( pLib, pNtk, Abc_LitRegular(iDsdFanin), pNodFanin );
             if ( vPermFanin == NULL )
-                continue;
+            {
+                Vec_IntFree( vNodFanin );
+                Vec_IntFree( vDsdLits );
+                Vec_IntFree( vPerm );
+                return NULL;
+            }
             pDsdFanin->fMark = 1;
             Vec_IntForEachEntry( vPermFanin, Value, j )
                 Vec_IntPush( vPerm, Value );
