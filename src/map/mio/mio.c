@@ -419,8 +419,9 @@ usage:
 ***********************************************************************/
 int Mio_CommandPrintLibrary( Abc_Frame_t * pAbc, int argc, char **argv )
 {
-    FILE * pOut, * pErr;
+    FILE * pOut, * pErr, * pFile;
     Abc_Ntk_t * pNet;
+    char * FileName;
     int fVerbose;
     int c;
 
@@ -445,22 +446,31 @@ int Mio_CommandPrintLibrary( Abc_Frame_t * pAbc, int argc, char **argv )
                 goto usage;
         }
     }
-
-
-    if ( argc != globalUtilOptind )
+    FileName = argv[globalUtilOptind];
+    if ( argc == globalUtilOptind + 1 )
     {
-        goto usage;
+        pFile = fopen( FileName, "w" );
+        if ( pFile == NULL )
+        {
+            printf( "Error! Cannot open file \"%s\" for writing the library.\n", FileName );
+            return 1;
+        }
+        Mio_WriteLibrary( pFile, (Mio_Library_t *)Abc_FrameReadLibGen(), 0 );
+        fclose( pFile );
+        printf( "The current GENLIB library is written into file \"%s\".\n", FileName );
     }
-
-    // set the new network
-    Mio_WriteLibrary( stdout, (Mio_Library_t *)Abc_FrameReadLibGen(), 0 );
+    else if ( argc == globalUtilOptind )
+        Mio_WriteLibrary( stdout, (Mio_Library_t *)Abc_FrameReadLibGen(), 0 );
+    else
+        goto usage;
     return 0;
 
 usage:
-    fprintf( pErr, "\nusage: print_library [-vh]\n");
+    fprintf( pErr, "\nusage: print_library [-vh] <file>\n");
     fprintf( pErr, "\t          print the current genlib library\n" );  
-    fprintf( pErr, "\t-v      : toggles enabling of verbose output [default = %s]\n", (fVerbose? "yes" : "no") );
+    fprintf( pErr, "\t-v      : toggles enabling of verbose output [default = %s]\n", fVerbose? "yes" : "no" );
     fprintf( pErr, "\t-h      : print the command usage\n");
+    fprintf( pErr, "\t<file>  : optional file name to write the library\n");
     return 1;       /* error exit */
 }
 
