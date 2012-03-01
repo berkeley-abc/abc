@@ -57,7 +57,7 @@ ABC_NAMESPACE_HEADER_START
 /*=== superAnd.c =============================================================*/
 extern void       Super2_Precompute( int nInputs, int nLevels, int fVerbose );
 /*=== superGate.c =============================================================*/
-extern void       Super_Precompute( Mio_Library_t * pLibGen, int nInputs, int nLevels, float tDelayMax, float tAreaMax, int TimeLimit, int fSkipInv, int fWriteOldFormat, int fVerbose );
+extern void       Super_Precompute( Mio_Library_t * pLibGen, int nInputs, int nLevels, int nGatesMax, float tDelayMax, float tAreaMax, int TimeLimit, int fSkipInv, int fWriteOldFormat, int fVerbose );
 
 
 
