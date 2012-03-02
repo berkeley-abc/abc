@@ -2555,6 +2555,10 @@ SOURCE=.\src\misc\util\util_hack.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\misc\util\utilBridge.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\misc\util\utilCex.c
 # End Source File
 # Begin Source File
