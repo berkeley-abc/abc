@@ -466,9 +466,7 @@ void Vta_ManUnsatCoreRemap( Vta_Man_t * p, Vec_Int_t * vCore )
         pThis = Vta_ManObj( p, Entry );
         Entry = (pThis->iFrame << p->nObjBits) | pThis->iObj;
         Vec_IntWriteEntry( vCore, i, Entry );
-//printf( "%d^%d ", pThis->iObj, pThis->iFrame );
     }
-//printf( "\n" );
 }
 
 /**Function*************************************************************
@@ -746,7 +744,7 @@ Abc_Cex_t * Vta_ManRefineAbstraction( Vta_Man_t * p, int f )
         pThis->Prio = Counter++;
     Vec_PtrForEachEntry( Vta_Obj_t *, vTermsUnused, pThis, i )
         pThis->Prio = Counter++;
-//    printf( "Used %d  Unused %d\n", Vec_PtrSize(vTermsUsed), Vec_PtrSize(vTermsUnused) );
+//    Abc_Print( 1, "Used %d  Unused %d\n", Vec_PtrSize(vTermsUsed), Vec_PtrSize(vTermsUnused) );
 
     Vec_PtrFree( vTermsUsed );
     Vec_PtrFree( vTermsUnused );
@@ -908,7 +906,6 @@ Abc_Cex_t * Vta_ManRefineAbstraction( Vta_Man_t * p, int f )
             pThis0 = Vga_ManFind( p, Gia_ObjFaninId0p(p->pGia, pObj), pThis->iFrame );
             pThis1 = Vga_ManFind( p, Gia_ObjFaninId1p(p->pGia, pObj), pThis->iFrame );
             assert( pThis0 && pThis1 );
-//            printf( "AND %d  %d %d  ", Vta_ObjId(p, pThis), Vta_ObjId(p,pThis0), Vta_ObjId(p,pThis1) );
             if ( Vta_ValIs1(pThis0, Gia_ObjFaninC0(pObj)) && Vta_ValIs1(pThis1, Gia_ObjFaninC1(pObj)) )
                 pThis->Value = VTA_VAR1;
             else if ( Vta_ValIs0(pThis0, Gia_ObjFaninC0(pObj)) || Vta_ValIs0(pThis1, Gia_ObjFaninC1(pObj)) )
@@ -929,30 +926,26 @@ Abc_Cex_t * Vta_ManRefineAbstraction( Vta_Man_t * p, int f )
                     pThis->Value = VTA_VAR1;
                 else
                     pThis->Value = VTA_VARX;
-//            printf( "RO %d  ", Vta_ObjId(p, pThis), Vta_ObjId(p,pThis0) );
             }
             else
             {
-//            printf( "RO %d frame0  ", Vta_ObjId(p, pThis) );
                 pThis->Value = VTA_VAR0;
             }
         }
         else if ( Gia_ObjIsConst0(pObj) )
         {
-//            printf( "CONST0 %d  ", Vta_ObjId(p, pThis) );
             pThis->Value = VTA_VAR0;
         }
         else assert( 0 );
-//        printf( "val = %d. \n", (pThis->Value==VTA_VAR0) ? 0 : ((pThis->Value==VTA_VAR0) ? 1 : 2 ) );
         // double check the solver
         assert( pThis->Value == VTA_VARX || (int)pThis->Value == (sat_solver2_var_value(p->pSat, Vta_ObjId(p, pThis)) ? VTA_VAR1 : VTA_VAR0) );
     }
 
     // check the output
     if ( !Vta_ValIs1(pTop, Gia_ObjFaninC0(Gia_ManPo(p->pGia, 0))) )
-        printf( "Vta_ManRefineAbstraction(): Terminary simulation verification failed!\n" );
+        Abc_Print( 1, "Vta_ManRefineAbstraction(): Terminary simulation verification failed!\n" );
 //    else
-//        printf( "Verification OK.\n" );
+//        Abc_Print( 1, "Verification OK.\n" );
     }
 
 
@@ -1013,12 +1006,12 @@ Vta_Man_t * Vga_ManStart( Gia_Man_t * pGia, Gia_ParVta_t * pPars )
         // update parameters
         if ( pPars->nFramesStart != Vec_PtrSize(p->vFrames) )
         {
-            printf( "Starting frame count is changed to match the abstraction (from %d to %d).\n", pPars->nFramesStart, Vec_PtrSize(p->vFrames) ); 
+            Abc_Print( 1, "Starting frame count is changed to match the abstraction (from %d to %d).\n", pPars->nFramesStart, Vec_PtrSize(p->vFrames) ); 
             pPars->nFramesStart = Vec_PtrSize(p->vFrames);
         }
         if ( pPars->nFramesMax && pPars->nFramesMax < pPars->nFramesStart )
         {
-            printf( "Maximum frame count is changed to match the starting frames (from %d to %d).\n", pPars->nFramesMax, pPars->nFramesStart ); 
+            Abc_Print( 1, "Maximum frame count is changed to match the starting frames (from %d to %d).\n", pPars->nFramesMax, pPars->nFramesStart ); 
             pPars->nFramesMax = Abc_MaxInt( pPars->nFramesMax, pPars->nFramesStart );
         }
     }
@@ -1044,7 +1037,7 @@ Vta_Man_t * Vga_ManStart( Gia_Man_t * pGia, Gia_ParVta_t * pPars )
 void Vga_ManStop( Vta_Man_t * p )
 {
 //    if ( p->pPars->fVerbose )
-        printf( "SAT solver:  Variables = %d. Clauses = %d. Conflicts = %d. Cexes = %d.\n", 
+        Abc_Print( 1, "SAT solver:  Variables = %d. Clauses = %d. Conflicts = %d. Cexes = %d.\n", 
             sat_solver2_nvars(p->pSat), sat_solver2_nclauses(p->pSat), sat_solver2_nconflicts(p->pSat), p->nCexes );
 
     Vec_VecFreeP( (Vec_Vec_t **)&p->vCores );
@@ -1097,8 +1090,8 @@ Vec_Int_t * Vta_ManUnsatCore( int iLit, Vec_Int_t * vCla2Var, sat_solver2 * pSat
     }
     if ( fVerbose )
     {
-//        printf( "%6d", (int)pSat->stats.conflicts - nConfPrev );
-//        printf( "UNSAT after %7d conflicts.      ", pSat->stats.conflicts );
+//        Abc_Print( 1, "%6d", (int)pSat->stats.conflicts - nConfPrev );
+//        Abc_Print( 1, "UNSAT after %7d conflicts.      ", pSat->stats.conflicts );
 //        Abc_PrintTime( 1, "Time", clock() - clk );
     }
     assert( RetValue == l_False );
@@ -1108,7 +1101,7 @@ Vec_Int_t * Vta_ManUnsatCore( int iLit, Vec_Int_t * vCla2Var, sat_solver2 * pSat
     vCore = (Vec_Int_t *)Sat_ProofCore( pSat );
     if ( fVerbose )
     {
-//        printf( "Core is %8d clauses (out of %8d).   ", Vec_IntSize(vCore), sat_solver2_nclauses(pSat) );
+//        Abc_Print( 1, "Core is %8d clauses (out of %8d).   ", Vec_IntSize(vCore), sat_solver2_nclauses(pSat) );
 //        Abc_PrintTime( 1, "Time", clock() - clk );
     }
 
@@ -1128,7 +1121,7 @@ Vec_Int_t * Vta_ManUnsatCore( int iLit, Vec_Int_t * vCla2Var, sat_solver2 * pSat
     Vec_IntFree( vPres );
     if ( fVerbose )
     {
-//        printf( "Core is %8d vars    (out of %8d).   ", Vec_IntSize(vCore), sat_solver2_nvars(pSat) );
+//        Abc_Print( 1, "Core is %8d vars    (out of %8d).   ", Vec_IntSize(vCore), sat_solver2_nvars(pSat) );
 //        Abc_PrintTime( 1, "Time", clock() - clk );
     }
     return vCore;
@@ -1177,43 +1170,43 @@ void Vta_ManAbsPrintFrame( Vta_Man_t * p, Vec_Int_t * vCore, int nFrames, int nC
             }
         }
     }
-//    printf( "%5d%5d", pCountAll[0], pCountUni[0] ); 
-    printf( "%3d :", nFrames-1 );
-    printf( "%6d", p->nSeenGla ); 
-    printf( "%4d", Abc_MinInt(100, 100 * p->nSeenAll / (p->nSeenGla * nFrames)) ); 
-    printf( "%8d", nConfls );
+//    Abc_Print( 1, "%5d%5d", pCountAll[0], pCountUni[0] ); 
+    Abc_Print( 1, "%3d :", nFrames-1 );
+    Abc_Print( 1, "%6d", p->nSeenGla ); 
+    Abc_Print( 1, "%4d", Abc_MinInt(100, 100 * p->nSeenAll / (p->nSeenGla * nFrames)) ); 
+    Abc_Print( 1, "%8d", nConfls );
     if ( nCexes == 0 )
-        printf( "%5c", '-' ); 
+        Abc_Print( 1, "%5c", '-' ); 
     else
-        printf( "%5d", nCexes ); 
+        Abc_Print( 1, "%5d", nCexes ); 
     if ( vCore == NULL )
     {
-        printf( "    ..." ); 
+        Abc_Print( 1, "    ..." ); 
         for ( k = 0; k < 10; k++ )
-            printf( "     " );
-        printf( "%9.2f sec", (float)(Time)/(float)(CLOCKS_PER_SEC) );
-        printf( "\r" );
+            Abc_Print( 1, "     " );
+        Abc_Print( 1, "%9.2f sec", (float)(Time)/(float)(CLOCKS_PER_SEC) );
+        Abc_Print( 1, "\r" );
     }
     else
     {
-        printf( "%7d", pCountAll[0] ); 
+        Abc_Print( 1, "%7d", pCountAll[0] ); 
         if ( nFrames > 10 )
         {
             for ( k = 0; k < 4; k++ )
-                printf( "%5d", pCountAll[k+1] ); 
-            printf( "  ..." );
+                Abc_Print( 1, "%5d", pCountAll[k+1] ); 
+            Abc_Print( 1, "  ..." );
             for ( k = nFrames-5; k < nFrames; k++ )
-                printf( "%5d", pCountAll[k+1] ); 
+                Abc_Print( 1, "%5d", pCountAll[k+1] ); 
         }
         else
         {
             for ( k = 0; k < nFrames; k++ )
-                printf( "%5d", pCountAll[k+1] ); 
+                Abc_Print( 1, "%5d", pCountAll[k+1] ); 
             for ( k = nFrames; k < 10; k++ )
-                printf( "     " );
+                Abc_Print( 1, "     " );
         }
-        printf( "%9.2f sec", (float)(Time)/(float)(CLOCKS_PER_SEC) );
-        printf( "\n" );
+        Abc_Print( 1, "%9.2f sec", (float)(Time)/(float)(CLOCKS_PER_SEC) );
+        Abc_Print( 1, "\n" );
     }
     fflush( stdout );
 
@@ -1309,7 +1302,6 @@ void Vga_ManLoadSlice( Vta_Man_t * p, Vec_Int_t * vOne, int Lift )
     Vec_IntForEachEntry( vOne, Entry, i )
         Vga_ManAddClausesOne( p, Entry & p->nObjMask, (Entry >> p->nObjBits) + Lift );
     sat_solver2_simplify( p->pSat );
-//    printf( "\n\n" );
 }
 
 /**Function*************************************************************
@@ -1349,9 +1341,9 @@ void Vga_ManPrintCore( Vta_Man_t * p, Vec_Int_t * vCore, int Lift )
     {
         iObj   = (Entry &  p->nObjMask);
         iFrame = (Entry >> p->nObjBits);
-        printf( "%d*%d ", iObj, iFrame+Lift );
+        Abc_Print( 1, "%d*%d ", iObj, iFrame+Lift );
     }
-    printf( "\n" );
+    Abc_Print( 1, "\n" );
 }
 
 /**Function*************************************************************
@@ -1414,11 +1406,11 @@ int Gia_VtaPerformInt( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
     // perform initial abstraction
     if ( p->pPars->fVerbose )
     {
-        printf( "Running variable-timeframe abstraction (VTA) with the following parameters:\n" );
-        printf( "FrameStart = %d  FramePast = %d  FrameMax = %d  Conf = %d  Timeout = %d. RatioMin = %d %%.\n", 
+        Abc_Print( 1, "Running variable-timeframe abstraction (VTA) with the following parameters:\n" );
+        Abc_Print( 1, "FrameStart = %d  FramePast = %d  FrameMax = %d  Conf = %d  Timeout = %d. RatioMin = %d %%.\n", 
             p->pPars->nFramesStart, p->pPars->nFramesPast, p->pPars->nFramesMax, 
             p->pPars->nConfLimit, p->pPars->nTimeOut, pPars->nRatioMin );
-        printf( "Frame   Abs   %%   Confl  Cex   Core   F0   F1   F2   F3  ...\n" );
+        Abc_Print( 1, "Frame   Abs   %%   Confl  Cex   Core   F0   F1   F2   F3  ...\n" );
     }
     for ( f = i = 0; !p->pPars->nFramesMax || f < p->pPars->nFramesMax; f++ )
     {
@@ -1522,30 +1514,30 @@ finish:
     {
         assert( Vec_PtrSize(p->vCores) > 0 );
         if ( pAig->vObjClasses != NULL )
-            printf( "Replacing the old abstraction by a new one.\n" );
+            Abc_Print( 1, "Replacing the old abstraction by a new one.\n" );
         Vec_IntFreeP( &pAig->vObjClasses );
         pAig->vObjClasses = Gia_VtaFramesToAbs( (Vec_Vec_t *)p->vCores );
         if ( Status == -1 )
         {
             if ( p->pPars->nTimeOut && time(NULL) >= p->pSat->nRuntimeLimit ) 
-                printf( "SAT solver ran out of time at %d sec in frame %d.  ", p->pPars->nTimeOut, f );
+                Abc_Print( 1, "SAT solver ran out of time at %d sec in frame %d.  ", p->pPars->nTimeOut, f );
             else if ( pPars->nConfLimit && sat_solver2_nconflicts(p->pSat) >= pPars->nConfLimit )
-                printf( "SAT solver ran out of resources at %d conflicts in frame %d.  ", pPars->nConfLimit, f );
+                Abc_Print( 1, "SAT solver ran out of resources at %d conflicts in frame %d.  ", pPars->nConfLimit, f );
             else if ( p->nSeenGla >= Gia_ManCandNum(pAig) * (100-pPars->nRatioMin) / 100 )
-                printf( "The ratio of abstracted objects is less than %d %% in frame %d.  ", pPars->nRatioMin, f );
+                Abc_Print( 1, "The ratio of abstracted objects is less than %d %% in frame %d.  ", pPars->nRatioMin, f );
             else
-                printf( "Abstraction stopped for unknown reason in frame %d.  ", f );
+                Abc_Print( 1, "Abstraction stopped for unknown reason in frame %d.  ", f );
         }
         else
-            printf( "SAT solver completed %d frames and produced an abstraction.  ", f );
+            Abc_Print( 1, "SAT solver completed %d frames and produced an abstraction.  ", f );
     }
     else
     {
         ABC_FREE( p->pGia->pCexSeq );
         p->pGia->pCexSeq = pCex;
         if ( !Gia_ManVerifyCex( p->pGia, pCex, 0 ) )
-            printf( "    Gia_VtaPerform(): CEX verification has failed!\n" );
-        printf( "Counter-example detected in frame %d.  ", f );
+            Abc_Print( 1, "    Gia_VtaPerform(): CEX verification has failed!\n" );
+        Abc_Print( 1, "Counter-example detected in frame %d.  ", f );
         p->pPars->iFrame = pCex->iFrame - 1;
     }
     Abc_PrintTime( 1, "Time", clock() - clk );
