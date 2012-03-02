@@ -78,8 +78,8 @@ void Pdr_ManPrintProgress( Pdr_Man_t * p, int fClose, int Time )
     for ( i = ThisSize; i < 70; i++ )
         Abc_Print( 1, " " );
     Abc_Print( 1, "%6d", p->nQueMax );
-    printf(" %8.2f sec", (float)(Time)/(float)(CLOCKS_PER_SEC));
-    printf("%s", fClose ? "\n":"\r" );
+    Abc_Print( 1, " %8.2f sec", (float)(Time)/(float)(CLOCKS_PER_SEC) );
+    Abc_Print( 1, "%s", fClose ? "\n":"\r" );
     if ( fClose )
         p->nQueMax = 0;
 }

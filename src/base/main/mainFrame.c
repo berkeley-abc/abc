@@ -79,7 +79,7 @@ void        Abc_FrameSetFlag( char * pFlag, char * pValue )  { Cmd_FlagUpdateVal
 void        Abc_FrameSetCex( Abc_Cex_t * pCex )              { ABC_FREE( s_GlobalFrame->pCex ); s_GlobalFrame->pCex = pCex; }
 
 int         Abc_FrameIsBridgeMode()                          { return s_GlobalFrame->fBridgeMode;  } 
-void        Abc_FrameSetBridgeMode()                         { s_GlobalFrame->fBridgeMode = 0;     } 
+void        Abc_FrameSetBridgeMode()                         { s_GlobalFrame->fBridgeMode = 1;     } 
 
 /**Function*************************************************************
 
