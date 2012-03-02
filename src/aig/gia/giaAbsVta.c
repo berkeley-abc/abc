@@ -20,6 +20,7 @@
 
 #include "gia.h"
 #include "src/sat/bsat/satSolver2.h"
+#include "src/base/main/main.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -1138,11 +1139,11 @@ Vec_Int_t * Vta_ManUnsatCore( int iLit, Vec_Int_t * vCla2Var, sat_solver2 * pSat
   SeeAlso     []
 
 ***********************************************************************/
-void Vta_ManAbsPrintFrame( Vta_Man_t * p, Vec_Int_t * vCore, int nFrames, int nConfls, int nCexes, int Time )
+int Vta_ManAbsPrintFrame( Vta_Man_t * p, Vec_Int_t * vCore, int nFrames, int nConfls, int nCexes, int Time, int fVerbose )
 {
     unsigned * pInfo;
     int * pCountAll = NULL, * pCountUni = NULL;
-    int i, k, iFrame, iObj, Entry;
+    int i, k, iFrame, iObj, Entry, fChanges = 0;
     // print info about frames
     if ( vCore )
     {
@@ -1167,9 +1168,17 @@ void Vta_ManAbsPrintFrame( Vta_Man_t * p, Vec_Int_t * vCore, int nFrames, int nC
             {
                 Vec_BitWriteEntry(p->vSeenGla, iObj, 1);
                 p->nSeenGla++;
+                fChanges = 1;
             }
         }
     }
+    if ( !fVerbose )
+    {
+        ABC_FREE( pCountAll );
+        ABC_FREE( pCountUni );
+        return fChanges;
+    }
+
 //    Abc_Print( 1, "%5d%5d", pCountAll[0], pCountUni[0] ); 
     Abc_Print( 1, "%3d :", nFrames-1 );
     Abc_Print( 1, "%6d", p->nSeenGla ); 
@@ -1215,6 +1224,7 @@ void Vta_ManAbsPrintFrame( Vta_Man_t * p, Vec_Int_t * vCore, int nFrames, int nC
         ABC_FREE( pCountAll );
         ABC_FREE( pCountUni );
     }
+    return fChanges;
 }
 
 /**Function*************************************************************
@@ -1377,6 +1387,49 @@ void Vga_ManRollBack( Vta_Man_t * p, int nObjOld )
 
 /**Function*************************************************************
 
+  Synopsis    [Send abstracted model or send cancel.]
+
+  Description [Counter-example will be sent automatically when &vta terminates.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_VtaSendAbsracted( Vta_Man_t * p, int fVerbose )
+{
+    extern int Gia_ManToBridgeAbsNetlist( FILE * pFile, Gia_Man_t * p );
+    Gia_Man_t * pAbs;
+    if ( fVerbose )
+        Abc_Print( 1, "Sending abstracted model...\n" );
+    if ( !Abc_FrameIsBridgeMode() )
+        return;
+    // create obj classes
+    Vec_IntFreeP( &p->pGia->vObjClasses );
+    p->pGia->vObjClasses = Gia_VtaFramesToAbs( (Vec_Vec_t *)p->vCores );
+    // create gate classes
+    Vec_IntFreeP( &p->pGia->vGateClasses );
+    p->pGia->vGateClasses = Gia_VtaConvertToGla( p->pGia, p->pGia->vObjClasses );
+    Vec_IntFreeP( &p->pGia->vObjClasses );
+    // create abstrated model
+    pAbs = Gia_ManDupAbsGates( p->pGia, p->pGia->vGateClasses );
+    Vec_IntFreeP( &p->pGia->vGateClasses );
+    // send it out
+    Gia_ManToBridgeAbsNetlist( stdout, pAbs );
+    Gia_ManStop( pAbs );
+}
+void Gia_VtaSendCancel( Vta_Man_t * p, int fVerbose )
+{
+    extern int Gia_ManToBridgeBadAbs( FILE * pFile );
+    if ( fVerbose )
+        Abc_Print( 1, "Cancelling previously sent model...\n" );
+    if ( !Abc_FrameIsBridgeMode() )
+        return;
+    Gia_ManToBridgeBadAbs( stdout );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Collect nodes/flops involved in different timeframes.]
 
   Description []
@@ -1391,7 +1444,7 @@ int Gia_VtaPerformInt( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
     Vta_Man_t * p;
     Vec_Int_t * vCore;
     Abc_Cex_t * pCex = NULL;
-    int i, f, nConfls, Status, nObjOld, RetValue = -1;
+    int i, f, nConfls, Status, nObjOld, RetValue = -1, nCountNoChange = 0, fOneIsSent = 0;
     int clk = clock(), clk2;
     // preconditions
     assert( Gia_ManPoNum(pAig) == 1 );
@@ -1460,9 +1513,8 @@ int Gia_VtaPerformInt( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
                     RetValue = 0;
                     goto finish;
                 }
-                // print the result
-                if ( p->pPars->fVerbose )
-                    Vta_ManAbsPrintFrame( p, NULL, f+1, sat_solver2_nconflicts(p->pSat)-nConflsBeg, i, clock() - clk );
+                // print the result (do not count it towards change)
+                Vta_ManAbsPrintFrame( p, NULL, f+1, sat_solver2_nconflicts(p->pSat)-nConflsBeg, i, clock() - clk, p->pPars->fVerbose );
             }
             assert( Status == 1 );
             // valid core is obtained
@@ -1499,9 +1551,25 @@ int Gia_VtaPerformInt( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
         Vec_IntSort( vCore, 1 );
         Vec_PtrPush( p->vCores, vCore );
         // print the result
-        if ( p->pPars->fVerbose )
-            Vta_ManAbsPrintFrame( p, vCore, f+1, sat_solver2_nconflicts(p->pSat)-nConflsBeg, i, clock() - clk );
-        // chech if the number of objects is below limit
+        if ( Vta_ManAbsPrintFrame( p, vCore, f+1, sat_solver2_nconflicts(p->pSat)-nConflsBeg, i, clock() - clk, p->pPars->fVerbose ) )
+        {
+            // reset the counter of frames without change
+            nCountNoChange = 1;
+            // cancel old one if it was sent
+            if ( fOneIsSent )
+                Gia_VtaSendCancel( p, pPars->fVerbose );
+            fOneIsSent = 0;
+        }
+        else if ( ++nCountNoChange == 2 ) // time to send
+        {
+            // cancel old one if it was sent
+            if ( fOneIsSent )
+                Gia_VtaSendCancel( p, pPars->fVerbose );
+            // send new one 
+            Gia_VtaSendAbsracted( p, pPars->fVerbose );
+            fOneIsSent = 1;
+        }
+        // check if the number of objects is below limit
         if ( p->nSeenGla >= Gia_ManCandNum(pAig) * (100-pPars->nRatioMin) / 100 )
         {
             Status = -1;
