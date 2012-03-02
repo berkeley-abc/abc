@@ -41,6 +41,7 @@ ABC_NAMESPACE_HEADER_START
 ////////////////////////////////////////////////////////////////////////
 
 #define    MIO_STRING_GATE       "GATE"
+#define    MIO_STRING_LATCH      "LATCH"
 #define    MIO_STRING_PIN        "PIN"
 #define    MIO_STRING_NONINV     "NONINV"
 #define    MIO_STRING_INV        "INV"

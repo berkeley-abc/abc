@@ -186,8 +186,25 @@ int Mio_LibraryReadInternal( Mio_Library_t * pLib, char * pBuffer, int fExtended
 
     // read gates one by one
     pToken = strtok( pBuffer, " \t\r\n" );
-    while ( pToken && strcmp( pToken, MIO_STRING_GATE ) == 0 )
+    while ( pToken && (strcmp( pToken, MIO_STRING_GATE ) == 0 || strcmp( pToken, MIO_STRING_LATCH ) == 0) )
     {
+        // skip latches
+        if ( strcmp( pToken, MIO_STRING_LATCH ) == 0 )
+        {
+            while ( pToken && strcmp( pToken, MIO_STRING_GATE ) != 0 && strcmp( pToken, ".end" ) != 0 )
+            {
+                if ( strcmp( pToken, MIO_STRING_LATCH ) == 0 )
+                {
+                    pToken = strtok( NULL, " \t\r\n" );
+                    printf( "Skipping latch \"%s\"...\n", pToken );
+                    continue;
+                }
+                pToken = strtok( NULL, " \t\r\n" );
+            }
+            if ( !(pToken && strcmp( pToken, MIO_STRING_GATE ) == 0) )
+                break;
+        }
+
         // derive the next gate
         pGate = Mio_LibraryReadGate( &pToken, fExtendedFormat );
         if ( pGate == NULL )
@@ -220,6 +237,12 @@ int Mio_LibraryReadInternal( Mio_Library_t * pLib, char * pBuffer, int fExtended
     }
     if ( fVerbose )
     printf( "The number of gates read = %d.\n", nGates );
+
+    if ( nGates == 0 )
+    {
+        printf( "The library contains no gates.\n" );
+        return 1;
+    }
 
     // check what is the last word read
     if ( pToken && strcmp( pToken, ".end" ) != 0 )

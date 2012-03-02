@@ -446,6 +446,11 @@ int Mio_CommandPrintLibrary( Abc_Frame_t * pAbc, int argc, char **argv )
                 goto usage;
         }
     }
+    if ( Abc_FrameReadLibGen() == NULL )
+    {
+        printf( "Library is not available.\n" );
+        return 1;
+    }
     FileName = argv[globalUtilOptind];
     if ( argc == globalUtilOptind + 1 )
     {

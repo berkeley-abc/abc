@@ -183,6 +183,10 @@ Vec_Ptr_t * Amap_DeriveTokens( char * pBuffer )
     {
         Vec_PtrPush( vTokens, pToken );
         pToken = strtok( NULL, " =\t\r\n" );
+        // skip latches
+        if ( pToken && strcmp( pToken, "LATCH" ) == 0 )
+            while ( pToken && strcmp( pToken, "GATE" ) != 0 )
+                pToken = strtok( NULL, " =\t\r\n" );
     }
     return vTokens;
 }
