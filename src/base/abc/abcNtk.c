@@ -226,6 +226,9 @@ void Abc_NtkFinalize( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew )
         pDriverNew = Abc_ObjNotCond(pDriver->pCopy, Abc_ObjFaninC0(pObj));
         Abc_ObjAddFanin( pObj->pCopy, pDriverNew );
     }
+    // duplicate timing manager
+    if ( pNtk->pManTime )
+        Abc_NtkTimeInitialize( pNtkNew, pNtk );
 }
 
 /**Function*************************************************************
@@ -378,6 +381,10 @@ Abc_Ntk_t * Abc_NtkDup( Abc_Ntk_t * pNtk )
         pNtkNew->pExdc = Abc_NtkDup( pNtk->pExdc );
     if ( pNtk->pExcare )
         pNtkNew->pExcare = Abc_NtkDup( (Abc_Ntk_t *)pNtk->pExcare );
+    // duplicate timing manager
+    if ( pNtk->pManTime )
+        Abc_NtkTimeInitialize( pNtkNew, pNtk );
+    // check correctness
     if ( !Abc_NtkCheck( pNtkNew ) )
         fprintf( stdout, "Abc_NtkDup(): Network check has failed.\n" );
     pNtk->pCopy = pNtkNew;

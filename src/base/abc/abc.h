@@ -867,12 +867,13 @@ extern ABC_DLL void               Abc_NtkTimeSetDefaultArrival( Abc_Ntk_t * pNtk
 extern ABC_DLL void               Abc_NtkTimeSetDefaultRequired( Abc_Ntk_t * pNtk, float Rise, float Fall );
 extern ABC_DLL void               Abc_NtkTimeSetArrival( Abc_Ntk_t * pNtk, int ObjId, float Rise, float Fall );
 extern ABC_DLL void               Abc_NtkTimeSetRequired( Abc_Ntk_t * pNtk, int ObjId, float Rise, float Fall );
-extern ABC_DLL void               Abc_NtkTimeInitialize( Abc_Ntk_t * pNtk );
+extern ABC_DLL void               Abc_NtkTimeInitialize( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkOld );
 extern ABC_DLL void               Abc_ManTimeStop( Abc_ManTime_t * p );
 extern ABC_DLL void               Abc_ManTimeDup( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtkNew );
 extern ABC_DLL void               Abc_NtkSetNodeLevelsArrival( Abc_Ntk_t * pNtk );
 extern ABC_DLL float *            Abc_NtkGetCiArrivalFloats( Abc_Ntk_t * pNtk );
 extern ABC_DLL Abc_Time_t *       Abc_NtkGetCiArrivalTimes( Abc_Ntk_t * pNtk );
+extern ABC_DLL Abc_Time_t *       Abc_NtkGetCoRequiredTimes( Abc_Ntk_t * pNtk );
 extern ABC_DLL float              Abc_NtkDelayTrace( Abc_Ntk_t * pNtk );
 extern ABC_DLL int                Abc_ObjLevelNew( Abc_Obj_t * pObj );
 extern ABC_DLL int                Abc_ObjReverseLevelNew( Abc_Obj_t * pObj );

@@ -163,6 +163,7 @@ Map_Man_t * Abc_NtkToMap( Abc_Ntk_t * pNtk, double DelayTarget, int fRecovery, f
     Map_ManSetOutputNames( pMan, Abc_NtkCollectCioNames(pNtk, 1) );
     Map_ManSetDelayTarget( pMan, (float)DelayTarget );
     Map_ManSetInputArrivals( pMan, (Map_Time_t *)Abc_NtkGetCiArrivalTimes(pNtk) );
+    Map_ManSetOutputRequireds( pMan, (Map_Time_t *)Abc_NtkGetCoRequiredTimes(pNtk) );
 
     // create PIs and remember them in the old nodes
     Abc_NtkCleanCopy( pNtk );

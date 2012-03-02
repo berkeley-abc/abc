@@ -106,6 +106,7 @@ struct Map_ManStruct_t_
     // info about the original circuit
     char **             ppOutputNames; // the primary output names
     Map_Time_t *        pInputArrivals;// the PI arrival times
+    Map_Time_t *        pOutputRequireds;// the PI arrival times
 
     // mapping parameters
     int                 nVarsMax;      // the max number of variables

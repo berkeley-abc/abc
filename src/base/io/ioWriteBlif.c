@@ -589,6 +589,8 @@ void Io_WriteTimingInfo( FILE * pFile, Abc_Ntk_t * pNtk )
     if ( pNtk->pManTime == NULL )
         return;
 
+    fprintf( pFile, "\n" );
+
     pTimeDef = Abc_NtkReadDefaultArrival( pNtk );
     fprintf( pFile, ".default_input_arrival %g %g\n", pTimeDef->Rise, pTimeDef->Fall );
     Abc_NtkForEachPi( pNtk, pNode, i )
@@ -596,8 +598,17 @@ void Io_WriteTimingInfo( FILE * pFile, Abc_Ntk_t * pNtk )
         pTime = Abc_NodeReadArrival(pNode);
         if ( pTime->Rise == pTimeDef->Rise && pTime->Fall == pTimeDef->Fall )
             continue;
-//        fprintf( pFile, ".input_arrival %s %g %g\n", Abc_ObjName(pNode), pTime->Rise, pTime->Fall );
         fprintf( pFile, ".input_arrival %s %g %g\n", Abc_ObjName(Abc_ObjFanout0(pNode)), pTime->Rise, pTime->Fall );
+    }
+
+    pTimeDef = Abc_NtkReadDefaultRequired( pNtk );
+    fprintf( pFile, ".default_output_required %g %g\n", pTimeDef->Rise, pTimeDef->Fall );
+    Abc_NtkForEachPo( pNtk, pNode, i )
+    {
+        pTime = Abc_NodeReadRequired(pNode);
+        if ( pTime->Rise == pTimeDef->Rise && pTime->Fall == pTimeDef->Fall )
+            continue;
+        fprintf( pFile, ".output_required %s %g %g\n", Abc_ObjName(Abc_ObjFanin0(pNode)), pTime->Rise, pTime->Fall );
     }
 }
 

@@ -231,7 +231,7 @@ void Map_TimeComputeRequiredGlobal( Map_Man_t * p )
 ***********************************************************************/
 void Map_TimeComputeRequired( Map_Man_t * p, float fRequired )
 {
-    Map_Time_t * ptTime;
+    Map_Time_t * ptTime, * ptTimeA;
     int fPhase, i;
 
     // clean the required times
@@ -250,7 +250,17 @@ void Map_TimeComputeRequired( Map_Man_t * p, float fRequired )
     {
         fPhase  = !Map_IsComplement(p->pOutputs[i]);
         ptTime  =  Map_Regular(p->pOutputs[i])->tRequired + fPhase;
-        ptTime->Rise = ptTime->Fall = ptTime->Worst = fRequired;
+        ptTimeA =  Map_Regular(p->pOutputs[i])->tArrival + fPhase;
+
+        // if external required time can be achieved, use it
+        if ( p->pOutputRequireds && p->pOutputRequireds[i].Worst > 0 && ptTimeA->Worst <= p->pOutputRequireds[i].Worst && p->pOutputRequireds[i].Worst <= fRequired )
+            ptTime->Rise = ptTime->Fall = ptTime->Worst = p->pOutputRequireds[i].Worst;
+        // if external required cannot be achieved, set the earliest possible arrival time
+        else if ( p->pOutputRequireds && p->pOutputRequireds[i].Worst > 0 && ptTimeA->Worst > p->pOutputRequireds[i].Worst )
+            ptTime->Rise = ptTime->Fall = ptTime->Worst = ptTimeA->Worst;
+        // otherwise, set the global required time
+        else
+            ptTime->Rise = ptTime->Fall = ptTime->Worst = fRequired;
     }
 
     // sorts the nodes in the decreasing order of levels

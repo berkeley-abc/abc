@@ -40,7 +40,6 @@ struct Abc_ManTime_t_
 // static functions
 static Abc_ManTime_t *     Abc_ManTimeStart();
 static void                Abc_ManTimeExpand( Abc_ManTime_t * p, int nSize, int fProgressive );
-void                       Abc_NtkTimePrepare( Abc_Ntk_t * pNtk );
 
 void                       Abc_NodeDelayTraceArrival( Abc_Obj_t * pNode );
 
@@ -139,7 +138,7 @@ void Abc_NtkTimeSetDefaultArrival( Abc_Ntk_t * pNtk, float Rise, float Fall )
         pNtk->pManTime = Abc_ManTimeStart();
     pNtk->pManTime->tArrDef.Rise  = Rise;
     pNtk->pManTime->tArrDef.Fall  = Fall;
-    pNtk->pManTime->tArrDef.Worst = Abc_MaxInt( Rise, Fall );
+    pNtk->pManTime->tArrDef.Worst = Abc_MaxFloat( Rise, Fall );
 }
 
 /**Function*************************************************************
@@ -161,7 +160,7 @@ void Abc_NtkTimeSetDefaultRequired( Abc_Ntk_t * pNtk, float Rise, float Fall )
         pNtk->pManTime = Abc_ManTimeStart();
     pNtk->pManTime->tReqDef.Rise  = Rise;
     pNtk->pManTime->tReqDef.Fall  = Fall;
-    pNtk->pManTime->tReqDef.Worst = Abc_MaxInt( Rise, Fall );
+    pNtk->pManTime->tReqDef.Worst = Abc_MaxFloat( Rise, Fall );
 }
 
 /**Function*************************************************************
@@ -189,7 +188,7 @@ void Abc_NtkTimeSetArrival( Abc_Ntk_t * pNtk, int ObjId, float Rise, float Fall 
     pTime = (Abc_Time_t *)vTimes->pArray[ObjId];
     pTime->Rise  = Rise;
     pTime->Fall  = Fall;
-    pTime->Worst = Abc_MaxInt( Rise, Fall );
+    pTime->Worst = Abc_MaxFloat( Rise, Fall );
 }
 
 /**Function*************************************************************
@@ -217,7 +216,7 @@ void Abc_NtkTimeSetRequired( Abc_Ntk_t * pNtk, int ObjId, float Rise, float Fall
     pTime = (Abc_Time_t *)vTimes->pArray[ObjId];
     pTime->Rise  = Rise;
     pTime->Fall  = Fall;
-    pTime->Worst = Abc_MaxInt( Rise, Fall );
+    pTime->Worst = Abc_MaxFloat( Rise, Fall );
 }
 
 /**Function*************************************************************
@@ -231,14 +230,23 @@ void Abc_NtkTimeSetRequired( Abc_Ntk_t * pNtk, int ObjId, float Rise, float Fall
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkTimeInitialize( Abc_Ntk_t * pNtk )
+void Abc_NtkTimeInitialize( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkOld )
 {
     Abc_Obj_t * pObj;
     Abc_Time_t ** ppTimes, * pTime;
     int i;
+    assert( pNtkOld == NULL || pNtkOld->pManTime != NULL );
+    assert( pNtkOld == NULL || Abc_NtkPiNum(pNtk) == Abc_NtkPiNum(pNtkOld) );
+    assert( pNtkOld == NULL || Abc_NtkPoNum(pNtk) == Abc_NtkPoNum(pNtkOld) );
     if ( pNtk->pManTime == NULL )
         return;
     Abc_ManTimeExpand( pNtk->pManTime, Abc_NtkObjNumMax(pNtk), 0 );
+    // set global defaults
+    if ( pNtkOld )
+    {
+        pNtk->pManTime->tArrDef = pNtkOld->pManTime->tArrDef;
+        pNtk->pManTime->tReqDef = pNtkOld->pManTime->tReqDef;
+    }
     // set the default timing
     ppTimes = (Abc_Time_t **)pNtk->pManTime->vArrs->pArray;
     Abc_NtkForEachPi( pNtk, pObj, i )
@@ -246,7 +254,7 @@ void Abc_NtkTimeInitialize( Abc_Ntk_t * pNtk )
         pTime = ppTimes[pObj->Id];
         if ( pTime->Worst != -ABC_INFINITY )
             continue;
-        *pTime = pNtk->pManTime->tArrDef;
+        *pTime = pNtkOld ? *Abc_NodeReadArrival(Abc_NtkPi(pNtkOld, i)) : pNtk->pManTime->tArrDef;
     }
     // set the default timing
     ppTimes = (Abc_Time_t **)pNtk->pManTime->vReqs->pArray;
@@ -255,7 +263,7 @@ void Abc_NtkTimeInitialize( Abc_Ntk_t * pNtk )
         pTime = ppTimes[pObj->Id];
         if ( pTime->Worst != -ABC_INFINITY )
             continue;
-        *pTime = pNtk->pManTime->tReqDef;
+        *pTime = pNtkOld ? *Abc_NodeReadRequired(Abc_NtkPo(pNtkOld, i)) : pNtk->pManTime->tReqDef;
     }
     // set the 0 arrival times for latch outputs and constant nodes
     ppTimes = (Abc_Time_t **)pNtk->pManTime->vArrs->pArray;
@@ -286,7 +294,7 @@ void Abc_NtkTimePrepare( Abc_Ntk_t * pNtk )
     if ( pNtk->pManTime == NULL )
     {
         pNtk->pManTime = Abc_ManTimeStart();
-        Abc_NtkTimeInitialize( pNtk );
+        Abc_NtkTimeInitialize( pNtk, NULL );
         return;
     }
     // if timing manager is given, expand it if necessary
@@ -304,6 +312,17 @@ void Abc_NtkTimePrepare( Abc_Ntk_t * pNtk )
         pTime->Fall = pTime->Rise = pTime->Worst = -ABC_INFINITY;
     }
     // clean required except for POs
+    ppTimes = (Abc_Time_t **)pNtk->pManTime->vReqs->pArray;
+    Abc_NtkForEachNode( pNtk, pObj, i )
+    {
+        pTime = ppTimes[pObj->Id];
+        pTime->Fall = pTime->Rise = pTime->Worst = -ABC_INFINITY;
+    }
+    Abc_NtkForEachPi( pNtk, pObj, i )
+    {
+        pTime = ppTimes[pObj->Id];
+        pTime->Fall = pTime->Rise = pTime->Worst = -ABC_INFINITY;
+    }
 }
 
 
@@ -499,13 +518,37 @@ Abc_Time_t * Abc_NtkGetCiArrivalTimes( Abc_Ntk_t * pNtk )
     Abc_Time_t * p;
     Abc_Obj_t * pNode;
     int i;
-    p = ABC_ALLOC( Abc_Time_t, Abc_NtkCiNum(pNtk) );
-    memset( p, 0, sizeof(Abc_Time_t) * Abc_NtkCiNum(pNtk) );
+    p = ABC_CALLOC( Abc_Time_t, Abc_NtkCiNum(pNtk) );
     if ( pNtk->pManTime == NULL )
         return p;
     // set the PI arrival times
     Abc_NtkForEachPi( pNtk, pNode, i )
         p[i] = *Abc_NodeArrival(pNode);
+    return p;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Sets the CI node levels according to the arrival info.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Time_t * Abc_NtkGetCoRequiredTimes( Abc_Ntk_t * pNtk )
+{
+    Abc_Time_t * p;
+    Abc_Obj_t * pNode;
+    int i;
+    p = ABC_CALLOC( Abc_Time_t, Abc_NtkCoNum(pNtk) );
+    if ( pNtk->pManTime == NULL )
+        return p;
+    // set the PO required times
+    Abc_NtkForEachPo( pNtk, pNode, i )
+        p[i] = *Abc_NodeRequired(pNode);
     return p;
 }
 
@@ -526,8 +569,7 @@ float * Abc_NtkGetCiArrivalFloats( Abc_Ntk_t * pNtk )
     float * p;
     Abc_Obj_t * pNode;
     int i;
-    p = ABC_ALLOC( float, Abc_NtkCiNum(pNtk) );
-    memset( p, 0, sizeof(float) * Abc_NtkCiNum(pNtk) );
+    p = ABC_CALLOC( float, Abc_NtkCiNum(pNtk) );
     if ( pNtk->pManTime == NULL )
         return p;
     // set the PI arrival times
@@ -625,7 +667,7 @@ void Abc_NodeDelayTraceArrival( Abc_Obj_t * pNode )
         }
         pPin = Mio_PinReadNext(pPin);
     }
-    pTimeOut->Worst = Abc_MaxInt( pTimeOut->Rise, pTimeOut->Fall );
+    pTimeOut->Worst = Abc_MaxFloat( pTimeOut->Rise, pTimeOut->Fall );
 }
 
 
@@ -647,7 +689,7 @@ int Abc_ObjLevelNew( Abc_Obj_t * pObj )
     Abc_Obj_t * pFanin;
     int i, Level = 0;
     Abc_ObjForEachFanin( pObj, pFanin, i )
-        Level = Abc_MaxInt( Level, Abc_ObjLevel(pFanin) );
+        Level = Abc_MaxFloat( Level, Abc_ObjLevel(pFanin) );
     return Level + 1;
 }
 
@@ -669,7 +711,7 @@ int Abc_ObjReverseLevelNew( Abc_Obj_t * pObj )
     Abc_ObjForEachFanout( pObj, pFanout, i )
     {
         LevelCur = Abc_ObjReverseLevel( pFanout );
-        Level = Abc_MaxInt( Level, LevelCur );
+        Level = Abc_MaxFloat( Level, LevelCur );
     }
     return Level + 1;
 }
@@ -827,7 +869,7 @@ void Abc_NtkUpdateLevel( Abc_Obj_t * pObjNew, Vec_Vec_t * vLevels )
                 assert( Abc_ObjLevel(pFanout) >= Lev );
                 Vec_VecPush( vLevels, Abc_ObjLevel(pFanout), pFanout );
 //                Counter++;
-//                CounterMax = Abc_MaxInt( CounterMax, Counter );
+//                CounterMax = Abc_MaxFloat( CounterMax, Counter );
                 pFanout->fMarkA = 1;
             }
         }

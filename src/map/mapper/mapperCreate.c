@@ -52,26 +52,28 @@ int             Map_ManReadOutputNum( Map_Man_t * p )                   { return
 Map_Node_t **   Map_ManReadInputs ( Map_Man_t * p )                     { return p->pInputs;    }
 Map_Node_t **   Map_ManReadOutputs( Map_Man_t * p )                     { return p->pOutputs;   }
 Map_Node_t *    Map_ManReadConst1 ( Map_Man_t * p )                     { return p->pConst1;    }
-Map_Time_t *    Map_ManReadInputArrivals( Map_Man_t * p )               { return p->pInputArrivals;}
+Map_Time_t *    Map_ManReadInputArrivals( Map_Man_t * p )               { return p->pInputArrivals; }
+Map_Time_t *    Map_ManReadOutputRequireds( Map_Man_t * p )             { return p->pOutputRequireds; }
 Mio_Library_t * Map_ManReadGenLib ( Map_Man_t * p )                     { return p->pSuperLib->pGenlib; }
 int             Map_ManReadVerbose( Map_Man_t * p )                     { return p->fVerbose;   }
 float           Map_ManReadAreaFinal( Map_Man_t * p )                   { return p->AreaFinal;  }
-float           Map_ManReadRequiredGlo( Map_Man_t * p )                 { return p->fRequiredGlo;  }
+float           Map_ManReadRequiredGlo( Map_Man_t * p )                 { return p->fRequiredGlo; }
 void            Map_ManSetTimeToMap( Map_Man_t * p, int Time )          { p->timeToMap = Time;  }
 void            Map_ManSetTimeToNet( Map_Man_t * p, int Time )          { p->timeToNet = Time;  }
 void            Map_ManSetTimeSweep( Map_Man_t * p, int Time )          { p->timeSweep = Time;  }
 void            Map_ManSetTimeTotal( Map_Man_t * p, int Time )          { p->timeTotal = Time;  }
-void            Map_ManSetOutputNames( Map_Man_t * p, char ** ppNames ) { p->ppOutputNames = ppNames; }
+void            Map_ManSetOutputNames( Map_Man_t * p, char ** ppNames ) { p->ppOutputNames = ppNames;}
 void            Map_ManSetAreaRecovery( Map_Man_t * p, int fAreaRecovery ) { p->fAreaRecovery = fAreaRecovery;}
 void            Map_ManSetDelayTarget( Map_Man_t * p, float DelayTarget ) { p->DelayTarget = DelayTarget;}
-void            Map_ManSetInputArrivals( Map_Man_t * p, Map_Time_t * pArrivals ) { p->pInputArrivals = pArrivals;}
+void            Map_ManSetInputArrivals( Map_Man_t * p, Map_Time_t * pArrivals )     { p->pInputArrivals = pArrivals;    }
+void            Map_ManSetOutputRequireds( Map_Man_t * p, Map_Time_t * pRequireds )  { p->pOutputRequireds = pRequireds; }
 void            Map_ManSetObeyFanoutLimits( Map_Man_t * p, int  fObeyFanoutLimits )  { p->fObeyFanoutLimits = fObeyFanoutLimits;     }
 void            Map_ManSetNumIterations( Map_Man_t * p, int nIterations )            { p->nIterations = nIterations;     }
-int             Map_ManReadFanoutViolations( Map_Man_t * p )            { return p->nFanoutViolations; }  
-void            Map_ManSetFanoutViolations( Map_Man_t * p, int nVio )   { p->nFanoutViolations = nVio; }  
+int             Map_ManReadFanoutViolations( Map_Man_t * p )            { return p->nFanoutViolations;   }  
+void            Map_ManSetFanoutViolations( Map_Man_t * p, int nVio )   { p->nFanoutViolations = nVio;   }  
 void            Map_ManSetChoiceNodeNum( Map_Man_t * p, int nChoiceNodes ) { p->nChoiceNodes = nChoiceNodes; }  
-void            Map_ManSetChoiceNum( Map_Man_t * p, int nChoices )         { p->nChoices = nChoices; }   
-void            Map_ManSetVerbose( Map_Man_t * p, int fVerbose )           { p->fVerbose = fVerbose; }   
+void            Map_ManSetChoiceNum( Map_Man_t * p, int nChoices )         { p->nChoices = nChoices;     }   
+void            Map_ManSetVerbose( Map_Man_t * p, int fVerbose )           { p->fVerbose = fVerbose;     }   
 void            Map_ManSetSwitching( Map_Man_t * p, int fSwitching )       { p->fSwitching = fSwitching; }   
 
 /**Function*************************************************************
@@ -267,6 +269,7 @@ void Map_ManFree( Map_Man_t * p )
     Extra_MmFixedStop( p->mmNodes );
     Extra_MmFixedStop( p->mmCuts );
     ABC_FREE( p->pInputArrivals );
+    ABC_FREE( p->pOutputRequireds );
     ABC_FREE( p->pInputs );
     ABC_FREE( p->pOutputs );
     ABC_FREE( p->pBins );
