@@ -154,6 +154,64 @@ int main(int argc, char** argv)
 }
 */
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+char* vnsprintf(const char* format, va_list args)
+{
+    unsigned n;
+    char*    ret;
+    va_list  args_copy;
+
+    static FILE* dummy_file = NULL;
+    if (!dummy_file)
+    {
+#if !defined(_MSC_VER)
+        dummy_file = fopen("/dev/null", "wb");
+#else
+        dummy_file = fopen("NUL", "wb");
+#endif
+    }
+
+#if defined(__va_copy)
+    __va_copy(args_copy, args);
+#else
+  #if defined(va_copy)
+    va_copy(args_copy, args);
+  #else
+    args_copy = args;
+  #endif
+#endif
+    n = vfprintf(dummy_file, format, args);
+    ret = ABC_ALLOC( char, n + 1 );
+    ret[n] = (char)255;
+    args = args_copy;
+    vsprintf(ret, format, args);
+#if !defined(__va_copy) && defined(va_copy)
+    va_end(args_copy);
+#endif
+    assert(ret[n] == 0);
+    return ret;
+}
+
+char* nsprintf(const char* format, ...)
+{
+    char* ret;
+    va_list args;
+    va_start(args, format);
+    ret = vnsprintf(format, args);
+    va_end(args);
+    return ret;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

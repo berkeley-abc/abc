@@ -29,7 +29,6 @@
 
 ABC_NAMESPACE_IMPL_START
 
-
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -37,7 +36,10 @@ ABC_NAMESPACE_IMPL_START
 extern void Gia_WriteAigerEncodeStr( Vec_Str_t * vStr, unsigned x );
 
 extern unsigned Gia_ReadAigerDecode( unsigned char ** ppPos );
+extern void     Gia_WriteAigerEncodeStr( Vec_Str_t * vStr, unsigned x );
 
+// this variable determines where the output goes
+int in_bridge_mode = 0;
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -54,7 +56,7 @@ extern unsigned Gia_ReadAigerDecode( unsigned char ** ppPos );
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Str_t * Gia_ManToBridgeVec( FILE * pFile, Gia_Man_t * p )
+Vec_Str_t * Gia_ManToBridgeVec( Gia_Man_t * p )
 {
     Vec_Str_t * vBuffer;
     Gia_Obj_t * pObj;
@@ -126,13 +128,113 @@ Vec_Str_t * Gia_ManToBridgeVec( FILE * pFile, Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Gia_ManToBridge( FILE * pFile, Gia_Man_t * pMan )
+void Gia_CreateHeader( FILE * pFile, int Type, int Size, unsigned char * pBuffer )
+{
+    fprintf( pFile, "%.6d", Type );
+    fprintf( pFile, " " );
+    fprintf( pFile, "%.16d", Size );
+    fprintf( pFile, " " );
+    fwrite( pBuffer, Size, 1, pFile );
+    fflush( pFile );
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+
+
+#define BRIDGE_TEXT_MESSAGE   999996
+#define BRIDGE_RESULTS           101
+#define BRIDGE_ABS_NETLIST       107
+#define BRIDGE_BAD_ABS           105
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManToBridgeText( FILE * pFile, int Size, unsigned char * pBuffer )
+{
+    Gia_CreateHeader( pFile, BRIDGE_TEXT_MESSAGE, Size, pBuffer );
+    return 1;
+}
+int Gia_ManToBridgeAbsNetlist( FILE * pFile, Gia_Man_t * p )
 {
     Vec_Str_t * vBuffer;
-    vBuffer = Gia_ManToBridgeVec( pFile, pMan );
-    fwrite( Vec_StrArray(vBuffer), 1, Vec_StrSize(vBuffer), pFile );
+    vBuffer = Gia_ManToBridgeVec( p );
+    Gia_CreateHeader( pFile, BRIDGE_ABS_NETLIST, Vec_StrSize(vBuffer), (unsigned char *)Vec_StrArray(vBuffer) );
     Vec_StrFree( vBuffer );
-    return 0;
+    return 1;
+}
+int Gia_ManToBridgeBadAbs( FILE * pFile )
+{
+    Gia_CreateHeader( pFile, BRIDGE_BAD_ABS, 0, NULL );
+    return 1;
+}
+
+void Gia_ManFromBridgeHolds( FILE * pFile )
+{
+    fputc( (char)3, pFile ); // true
+    fputc( (char)1, pFile ); // size of vector (Armin's encoding)
+    fputc( (char)0, pFile ); // number of the property (Armin's encoding)
+    fputc( (char)0, pFile ); // no invariant
+}
+void Gia_ManFromBridgeUnknown( FILE * pFile )
+{
+    fputc( (char)0, pFile ); // undef
+    fputc( (char)1, pFile ); // size of vector (Armin's encoding)
+    fputc( (char)0, pFile ); // number of the property (Armin's encoding)
+}
+void Gia_ManFromBridgeCex( FILE * pFile, Abc_Cex_t * pCex )
+{
+    int i, f, iBit;
+    Vec_Str_t * vStr = Vec_StrAlloc( 1000 );
+    Vec_StrPush( vStr, (char)2 ); // false
+    Vec_StrPush( vStr, (char)1 ); // size of vector (Armin's encoding)
+    Vec_StrPush( vStr, (char)0 ); // number of the property (Armin's encoding)
+    Vec_StrPush( vStr, (char)1 ); // size of vector (Armin's encoding)
+    Gia_WriteAigerEncodeStr( vStr, pCex->iFrame ); // depth
+    Gia_WriteAigerEncodeStr( vStr, 1 ); // concrete
+    Gia_WriteAigerEncodeStr( vStr, pCex->iFrame ); // n frames
+    iBit = pCex->nRegs;
+    for ( f = 0; f <= pCex->iFrame; f++ )
+    {
+        Gia_WriteAigerEncodeStr( vStr, pCex->nPis ); // num of inputs
+        for ( i = 0; i < pCex->nPis; i++ )
+            Vec_StrPush( vStr, (char)(Abc_InfoHasBit(pCex->pData, iBit++)?3:2) ); // value
+    }
+    assert( iBit == pCex->nBits );
+    Vec_StrPush( vStr, (char)1 ); // the number of frames (for a concrete counter-example)
+    for ( i = 0; i < pCex->nRegs; i++ )
+        Vec_StrPush( vStr, (char)2 ); // always zero ??????????????
+    fwrite( Vec_StrArray(vStr), Vec_StrSize(vStr), 1, pFile );
+    Vec_StrFree( vStr );
+}
+int Gia_ManToBridgeResult( FILE * pFile, int Result, Abc_Cex_t * pCex )
+{
+    if ( Result == 0 ) // sat
+        Gia_ManFromBridgeCex( pFile, pCex );
+    else if ( Result == 1 ) // unsat
+        Gia_ManFromBridgeHolds( pFile );
+    else if ( Result == -1 ) // undef
+        Gia_ManFromBridgeUnknown( pFile );
+    else assert( 0 );
+    return 1;
 }
 
 
@@ -222,6 +324,7 @@ Gia_Man_t *  Gia_ManFromBridgeReadBody( int Size, unsigned char * pBuffer, Vec_I
     for ( i = 0; i < nFlops; i++ )
     {
         iFan0 = Gia_ReadAigerDecode( &pBuffer );
+        assert( (iFan0 & 3) == 2 );
         Vec_IntPush( vInits, iFan0 & 3 ); // 0 = X value; 1 = not used; 2 = false; 3 = true
         iFan0 >>= 2;
         iFan0 = Abc_LitNotCond( Vec_IntEntry(vLits, iFan0 >> 1), iFan0 & 1 );
@@ -359,6 +462,8 @@ void Gia_ManFromBridgeTest( char * pFileName )
 //    Gia_WriteAiger( p, "temp.aig", 0, 0 );
     Gia_ManStop( p );
 }
+
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

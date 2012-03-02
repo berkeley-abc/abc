@@ -256,17 +256,29 @@ enum Abc_VerbLevel
     ABC_VERBOSE  =  2 
 }; 
 
+extern int Gia_ManToBridgeText( FILE * pFile, int Size, unsigned char * pBuffer );
+
+// string printing
+extern char * vnsprintf(const char* format, va_list args);
+extern char * nsprintf(const char* format, ...);
+
 static inline void Abc_Print( int level, const char * format, ... ) 
 {
+    extern int in_bridge_mode;
     va_list args;
-//    if ( level > -2 )
-//        return;
     if ( level == ABC_ERROR ) 
         printf( "Error: " );
     else if ( level == ABC_WARNING ) 
         printf( "Warning: " );
     va_start( args, format );
-    vprintf( format, args );
+    if ( in_bridge_mode )
+    {
+        unsigned char * tmp = vnsprintf( format, args );
+        Gia_ManToBridgeText( stdout, strlen(tmp), tmp );
+        free( tmp );
+    }
+    else
+        vprintf( format, args );
     va_end( args );
 } 
 
