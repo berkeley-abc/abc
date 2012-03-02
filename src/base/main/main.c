@@ -35,7 +35,7 @@ ABC_NAMESPACE_IMPL_START
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
- 
+
 static int TypeCheck( Abc_Frame_t * pAbc, const char * s);
 
 ////////////////////////////////////////////////////////////////////////
@@ -111,7 +111,7 @@ int Abc_RealMain( int argc, char * argv[] )
     sprintf( sWriteCmd, "write" );
     
     Extra_UtilGetoptReset();
-    while ((c = Extra_UtilGetopt(argc, argv, "c:hf:F:o:st:T:x")) != EOF) {
+    while ((c = Extra_UtilGetopt(argc, argv, "c:hf:F:o:st:T:xb")) != EOF) {
         switch(c) {
             case 'c':
                 strcpy( sCommandUsr, globalUtilOptarg );
@@ -177,9 +177,19 @@ int Abc_RealMain( int argc, char * argv[] )
                 fBatch = 1;
                 break;
                 
+            case 'b':
+                Abc_FrameSetBridgeMode();
+                break;
+                
             default:
                 goto usage;
         }
+    }
+
+    if ( Abc_FrameIsBridgeMode() )
+    {
+        extern Gia_Man_t * Gia_ManFromBridge( FILE * pFile, Vec_Int_t ** pvInit );
+        pAbc->pGia = Gia_ManFromBridge( stdin, NULL );
     }
     
     if ( fBatch )

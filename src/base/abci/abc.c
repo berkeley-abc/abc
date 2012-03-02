@@ -379,6 +379,12 @@ extern int Abc_CommandAbcLivenessToSafetyWithLTL( Abc_Frame_t * pAbc, int argc, 
 ***********************************************************************/
 void Abc_FrameReplaceCex( Abc_Frame_t * pAbc, Abc_Cex_t ** ppCex )
 {
+    // update bridge
+    if ( Abc_FrameIsBridgeMode() )
+    {
+        extern int Gia_ManToBridgeResult( FILE * pFile, int Result, Abc_Cex_t * pCex );
+        Gia_ManToBridgeResult( stdout, pAbc->Status, *ppCex );
+    }
     // update CEX
     ABC_FREE( pAbc->pCex );
     pAbc->pCex = *ppCex;
@@ -23473,8 +23479,7 @@ int Abc_CommandAbc9Equiv3( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    else
 //        pAbc->Status = Ssw_RarSignalFilterGia2( pAbc->pGia, nFrames, nWords, nBinSize, nRounds, TimeOut, fUseCex? pAbc->pCex: NULL, fLatchOnly, fVerbose );
 //    pAbc->nFrames = pAbc->pGia->pCexSeq->iFrame;
-    if ( pAbc->pGia->pCexSeq )
-        Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexSeq );
+    Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexSeq );
     return 0;
 
 usage:

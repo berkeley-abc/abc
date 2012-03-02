@@ -120,7 +120,7 @@ void Abc_UtilsPrintUsage( Abc_Frame_t * pAbc, char * ProgName )
 {
     fprintf( pAbc->Err, "\n" );
     fprintf( pAbc->Err,
-             "usage: %s [-c cmd] [-f script] [-h] [-o file] [-s] [-t type] [-T type] [-x] [file]\n", 
+             "usage: %s [-c cmd] [-f script] [-h] [-o file] [-s] [-t type] [-T type] [-x] [-b] [file]\n", 
              ProgName);
     fprintf( pAbc->Err, "    -c cmd\texecute commands `cmd'\n");
     fprintf( pAbc->Err, "    -F script\texecute commands from a script file and echo commands\n");
@@ -131,6 +131,7 @@ void Abc_UtilsPrintUsage( Abc_Frame_t * pAbc, char * ProgName )
     fprintf( pAbc->Err, "    -t type\tspecify input type (blif_mv (default), blif_mvs, blif, or none)\n");
     fprintf( pAbc->Err, "    -T type\tspecify output type (blif_mv (default), blif_mvs, blif, or none)\n");
     fprintf( pAbc->Err, "    -x\t\tequivalent to '-t none -T none'\n");
+    fprintf( pAbc->Err, "    -b\t\trunning in bridge mode\n");
     fprintf( pAbc->Err, "\n" );
 }
 
