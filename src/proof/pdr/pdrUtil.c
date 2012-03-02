@@ -78,11 +78,6 @@ Pdr_Set_t * Pdr_SetCreate( Vec_Int_t * vLits, Vec_Int_t * vPiLits )
         p->Sign   |= ((word)1 << (p->Lits[i] % 63));
     }
     Vec_IntSelectSort( p->Lits, p->nLits );
-/*
-    for ( i = 0; i < p->nLits; i++ )
-        printf( "%d ", p->Lits[i] );
-    printf( "\n" );
-*/
     // remember PI literals 
     for ( i = p->nLits; i < p->nTotal; i++ )
         p->Lits[i] = Vec_IntEntry(vPiLits, i-p->nLits);
@@ -549,7 +544,7 @@ void Pdr_QueuePrint( Pdr_Man_t * p )
 {
     Pdr_Obl_t * pObl;
     for ( pObl = p->pQueue; pObl; pObl = pObl->pLink )
-        printf( "Frame = %2d.  Prio = %8d.\n", pObl->iFrame, pObl->prio );
+        Abc_Print( 1, "Frame = %2d.  Prio = %8d.\n", pObl->iFrame, pObl->prio );
 }
 
 /**Function*************************************************************

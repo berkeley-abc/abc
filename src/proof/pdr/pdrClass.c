@@ -148,11 +148,11 @@ void Pdr_ManPrintMap( Vec_Int_t * vMap )
 {
     Vec_Int_t * vMarks;
     int f, i, iClass, Entry, Counter = 0;
-    printf( "    Consts: " );
+    Abc_Print( 1, "    Consts: " );
     Vec_IntForEachEntry( vMap, Entry, i )
         if ( Entry == -1 )
-            printf( "%d ", i );
-    printf( "\n" );
+            Abc_Print( 1, "%d ", i );
+    Abc_Print( 1, "\n" );
     vMarks = Vec_IntAlloc( 100 );
     Vec_IntForEachEntry( vMap, iClass, f )
     {
@@ -165,11 +165,11 @@ void Pdr_ManPrintMap( Vec_Int_t * vMap )
             continue;
         Vec_IntPush( vMarks, iClass );
         // print class
-        printf( "    Class %d : ", iClass );
+        Abc_Print( 1, "    Class %d : ", iClass );
         Vec_IntForEachEntry( vMap, Entry, i )
             if ( Entry == iClass )
-                printf( "%d ", i );
-        printf( "\n" );
+                Abc_Print( 1, "%d ", i );
+        Abc_Print( 1, "\n" );
     }
     Vec_IntFree( vMarks );
 }
@@ -200,7 +200,7 @@ void Pdr_ManEquivClasses( Aig_Man_t * pAig )
         // implement variable map
         pTemp = Pdr_ManRehashWithMap( pAig, vMap );
         // report the result
-        printf( "F =%4d : Total = %6d. Nodes = %6d. RedRegs = %6d. Prop = %s\n", 
+        Abc_Print( 1, "F =%4d : Total = %6d. Nodes = %6d. RedRegs = %6d. Prop = %s\n", 
             f+1, Aig_ManNodeNum(pAig), Aig_ManNodeNum(pTemp), Pdr_ManCountMap(vMap), 
             Aig_ObjChild0(Aig_ManPo(pTemp,0)) == Aig_ManConst0(pTemp) ? "proof" : "unknown" );
         // recreate the map

@@ -95,7 +95,7 @@ void Pdr_ManStop( Pdr_Man_t * p )
     Aig_ManCleanMarkAB( p->pAig );
     if ( p->pPars->fVerbose ) 
     {
-        printf( "Block =%5d  Oblig =%6d  Clause =%6d  Call =%6d (sat=%.1f%%)  Start =%4d\n", 
+        Abc_Print( 1, "Block =%5d  Oblig =%6d  Clause =%6d  Call =%6d (sat=%.1f%%)  Start =%4d\n", 
             p->nBlocks, p->nObligs, p->nCubes, p->nCalls, 100.0 * p->nCallsS / p->nCalls, p->nStarts );
         ABC_PRTP( "SAT solving", p->tSat,       p->tTotal );
         ABC_PRTP( "  unsat    ", p->tSatUnsat,  p->tTotal );
@@ -107,7 +107,7 @@ void Pdr_ManStop( Pdr_Man_t * p )
         ABC_PRTP( "CNF compute", p->tCnf,       p->tTotal );
         ABC_PRTP( "TOTAL      ", p->tTotal,     p->tTotal );
     }
-//    printf( "SS =%6d. SU =%6d. US =%6d. UU =%6d.\n", p->nCasesSS, p->nCasesSU, p->nCasesUS, p->nCasesUU );
+//    Abc_Print( 1, "SS =%6d. SU =%6d. US =%6d. UU =%6d.\n", p->nCasesSS, p->nCasesSU, p->nCasesUS, p->nCasesUU );
     Vec_PtrForEachEntry( sat_solver *, p->vSolvers, pSat, i )
         sat_solver_delete( pSat );
     Vec_PtrFree( p->vSolvers );

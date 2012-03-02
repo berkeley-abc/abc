@@ -162,7 +162,7 @@ int Pdr_ManPushClauses( Pdr_Man_t * p )
                 pCubeMin = Pdr_ManReduceClause( p, k, pCubeK );
                 if ( pCubeMin != NULL )
                 {
-//                printf( "%d ", pCubeK->nLits - pCubeMin->nLits );
+//                Abc_Print( 1, "%d ", pCubeK->nLits - pCubeMin->nLits );
                     Pdr_SetDeref( pCubeK );
                     pCubeK = pCubeMin;
                 }
@@ -201,11 +201,11 @@ int Pdr_ManPushClauses( Pdr_Man_t * p )
             if ( !Pdr_SetContains( pTemp, pCubeK ) ) // pCubeK contains pTemp
                 continue;
 /*
-            printf( "===\n" );
+            Abc_Print( 1, "===\n" );
             Pdr_SetPrint( stdout, pCubeK, Aig_ManRegNum(p->pAig), NULL );
-            printf( "\n" );
+            Abc_Print( 1, "\n" );
             Pdr_SetPrint( stdout, pTemp, Aig_ManRegNum(p->pAig), NULL );
-            printf( "\n" );
+            Abc_Print( 1, "\n" );
 */
             Pdr_SetDeref( pTemp );
             Vec_PtrWriteEntry( vArrayK, m, Vec_PtrEntryLast(vArrayK) );
@@ -273,8 +273,8 @@ int * Pdr_ManSortByPriority( Pdr_Man_t * p, Pdr_Set_t * pCube )
     }
 /*
     for ( i = 0; i < pCube->nLits; i++ )
-        printf( "%2d : %5d    %5d  %5d\n", i, pArray[i], pCube->Lits[pArray[i]]>>1, pPrios[pCube->Lits[pArray[i]]>>1] );
-    printf( "\n" );
+        Abc_Print( 1, "%2d : %5d    %5d  %5d\n", i, pArray[i], pCube->Lits[pArray[i]]>>1, pPrios[pCube->Lits[pArray[i]]>>1] );
+    Abc_Print( 1, "\n" );
 */
     return pArray;
 }
@@ -486,9 +486,9 @@ int Pdr_ManBlockCube( Pdr_Man_t * p, Pdr_Set_t * pCube )
             // add new clause
             if ( p->pPars->fVeryVerbose )
             {
-            printf( "Adding cube " );
+            Abc_Print( 1, "Adding cube " );
             Pdr_SetPrint( stdout, pCubeMin, Aig_ManRegNum(p->pAig), NULL );
-            printf( " to frame %d.\n", k );
+            Abc_Print( 1, " to frame %d.\n", k );
             }
             // set priority flops
             for ( i = 0; i < pCubeMin->nLits; i++ )
@@ -564,7 +564,7 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
         {
             if ( p->pPars->fVerbose ) 
                 Pdr_ManPrintProgress( p, 1, clock() - clkStart );
-            printf( "Reached conflict limit (%d).\n",  p->pPars->nConfLimit );
+            Abc_Print( 1, "Reached conflict limit (%d).\n",  p->pPars->nConfLimit );
             p->pPars->iFrame = k;
             return -1;
         }
@@ -575,7 +575,7 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
             {
                 if ( p->pPars->fVerbose ) 
                     Pdr_ManPrintProgress( p, 1, clock() - clkStart );
-                printf( "Reached conflict limit (%d).\n",  p->pPars->nConfLimit );
+                Abc_Print( 1, "Reached conflict limit (%d).\n",  p->pPars->nConfLimit );
                 p->pPars->iFrame = k;
                 return -1;
             }
@@ -583,7 +583,7 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
             {
                 if ( fPrintClauses )
                 {
-                    printf( "*** Clauses after frame %d:\n", k );
+                    Abc_Print( 1, "*** Clauses after frame %d:\n", k );
                     Pdr_ManPrintClauses( p, 0 );
                 }
                 if ( p->pPars->fVerbose ) 
@@ -605,7 +605,7 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
             Pdr_ManCreateSolver( p, ++k );
             if ( fPrintClauses )
             {
-                printf( "*** Clauses after frame %d:\n", k );
+                Abc_Print( 1, "*** Clauses after frame %d:\n", k );
                 Pdr_ManPrintClauses( p, 0 );
             }
             // push clauses into this timeframe
@@ -614,7 +614,7 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
             {
                 if ( p->pPars->fVerbose ) 
                     Pdr_ManPrintProgress( p, 1, clock() - clkStart );
-                printf( "Reached conflict limit (%d).\n",  p->pPars->nConfLimit );
+                Abc_Print( 1, "Reached conflict limit (%d).\n",  p->pPars->nConfLimit );
                 p->pPars->iFrame = k;
                 return -1;
             }
@@ -637,12 +637,12 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
         {
             if ( fPrintClauses )
             {
-                printf( "*** Clauses after frame %d:\n", k );
+                Abc_Print( 1, "*** Clauses after frame %d:\n", k );
                 Pdr_ManPrintClauses( p, 0 );
             }
             if ( p->pPars->fVerbose ) 
                 Pdr_ManPrintProgress( p, 1, clock() - clkStart );
-            printf( "Reached timeout (%d seconds).\n",  p->pPars->nTimeOut );
+            Abc_Print( 1, "Reached timeout (%d seconds).\n",  p->pPars->nTimeOut );
             p->pPars->iFrame = k;
             return -1;
         }
@@ -650,7 +650,7 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
         {
             if ( p->pPars->fVerbose ) 
                 Pdr_ManPrintProgress( p, 1, clock() - clkStart );
-            printf( "Reached limit on the number of timeframes (%d).\n", p->pPars->nFrameMax );
+            Abc_Print( 1, "Reached limit on the number of timeframes (%d).\n", p->pPars->nFrameMax );
             p->pPars->iFrame = k;
             return -1;
         } 
@@ -681,7 +681,7 @@ int Pdr_ManSolve_( Aig_Man_t * pAig, Pdr_Par_t * pPars, Vec_Int_t ** pvPrioInit,
         Pdr_ManDumpClauses( p, (char *)"inv.pla", RetValue==1 );
 
 //    if ( *ppCex && pPars->fVerbose )
-//        printf( "Found counter-example in frame %d after exploring %d frames.\n", 
+//        Abc_Print( 1, "Found counter-example in frame %d after exploring %d frames.\n", 
 //            (*ppCex)->iFrame, p->nFrames );
     p->tTotal += clock() - clk;
     if ( pvPrioInit )
@@ -706,12 +706,12 @@ int Pdr_ManSolve_( Aig_Man_t * pAig, Pdr_Par_t * pPars, Vec_Int_t ** pvPrioInit,
 ***********************************************************************/
 int Pdr_ManSolve( Aig_Man_t * pAig, Pdr_Par_t * pPars, Abc_Cex_t ** ppCex )
 {
-//    printf( "Running PDR by Niklas Een (aka IC3 by Aaron Bradley) with these parameters:\n" );
-    printf( "VarMax = %d. FrameMax = %d. QueueMax = %d. TimeMax = %d. ", 
+//    Abc_Print( 1, "Running PDR by Niklas Een (aka IC3 by Aaron Bradley) with these parameters:\n" );
+    Abc_Print( 1, "VarMax = %d. FrameMax = %d. QueueMax = %d. TimeMax = %d. ", 
         pPars->nRecycle, pPars->nFrameMax, pPars->nRestLimit, pPars->nTimeOut );
     if ( pPars->iOutput >= 0 )
-        printf( "Output = %d. ", pPars->iOutput );
-    printf( "MonoCNF = %s. SkipGen = %s.\n", 
+        Abc_Print( 1, "Output = %d. ", pPars->iOutput );
+    Abc_Print( 1, "MonoCNF = %s. SkipGen = %s.\n", 
         pPars->fMonoCnf ? "yes" : "no", pPars->fSkipGeneral ? "yes" : "no" );
 
 /*

@@ -327,7 +327,7 @@ void Pdr_ManPrintCex( Aig_Man_t * pAig, Vec_Int_t * vCiObjs, Vec_Int_t * vCiVals
     if ( vCi2Rem )
     Aig_ManForEachObjVec( vCi2Rem, pAig, pObj, i )
         pBuff[Aig_ObjPioNum(pObj)] = 'x';
-    printf( "%s\n", pBuff );
+    Abc_Print( 1, "%s\n", pBuff );
     ABC_FREE( pBuff );
 }
 
@@ -381,12 +381,12 @@ Pdr_Set_t * Pdr_ManTernarySim( Pdr_Man_t * p, int k, Pdr_Set_t * pCube )
     }
 if ( p->pPars->fVeryVerbose )
 {
-printf( "Trying to justify cube " );
+Abc_Print( 1, "Trying to justify cube " );
 if ( pCube )
     Pdr_SetPrint( stdout, pCube, Aig_ManRegNum(p->pAig), NULL );
 else
-    printf( "<prop=fail>" );
-printf( " in frame %d.\n", k );
+    Abc_Print( 1, "<prop=fail>" );
+Abc_Print( 1, " in frame %d.\n", k );
 }
 
     // collect CI objects

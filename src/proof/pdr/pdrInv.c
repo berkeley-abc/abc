@@ -56,11 +56,11 @@ void Pdr_ManPrintProgress( Pdr_Man_t * p, int fClose, int Time )
         Length += 1 + Abc_Base10Log(Vec_PtrSize(vVec)+1);
     // determine the starting point
     LengthStart = Abc_MaxInt( 0, Length - 60 );
-    printf( "%3d :", Vec_PtrSize(p->vSolvers)-1 );
+    Abc_Print( 1, "%3d :", Vec_PtrSize(p->vSolvers)-1 );
     ThisSize = 5;
     if ( LengthStart > 0 )
     {
-        printf( " ..." );
+        Abc_Print( 1, " ..." );
         ThisSize += 4;
     }
     Length = 0;
@@ -71,13 +71,13 @@ void Pdr_ManPrintProgress( Pdr_Man_t * p, int fClose, int Time )
             Length += 1 + Abc_Base10Log(Vec_PtrSize(vVec)+1);
             continue;
         }
-        printf( " %d", Vec_PtrSize(vVec) );
+        Abc_Print( 1, " %d", Vec_PtrSize(vVec) );
         Length += 1 + Abc_Base10Log(Vec_PtrSize(vVec)+1);
         ThisSize += 1 + Abc_Base10Log(Vec_PtrSize(vVec)+1);
     }
     for ( i = ThisSize; i < 70; i++ )
-        printf( " " );
-    printf( "%6d", p->nQueMax );
+        Abc_Print( 1, " " );
+    Abc_Print( 1, "%6d", p->nQueMax );
     printf(" %8.2f sec", (float)(Time)/(float)(CLOCKS_PER_SEC));
     printf("%s", fClose ? "\n":"\r" );
     if ( fClose )
@@ -130,7 +130,7 @@ int Pdr_ManFindInvariantStart( Pdr_Man_t * p )
             return k;
 //    return -1;
     // if there is no starting point (as in case of SAT or undecided), return the last frame
-//    printf( "The last timeframe contains %d clauses.\n", Vec_PtrSize(Vec_VecEntry(p->vClauses, kMax)) );
+//    Abc_Print( 1, "The last timeframe contains %d clauses.\n", Vec_PtrSize(Vec_VecEntry(p->vClauses, kMax)) );
     return kMax;
 }
 
@@ -204,9 +204,9 @@ void Pdr_ManPrintClauses( Pdr_Man_t * p, int kStart )
         Vec_PtrSort( vArrayK, (int (*)(void))Pdr_SetCompare );
         Vec_PtrForEachEntry( Pdr_Set_t *, vArrayK, pCube, i )
         {
-            printf( "C=%4d. F=%4d ", Counter++, k );
+            Abc_Print( 1, "C=%4d. F=%4d ", Counter++, k );
             Pdr_SetPrint( stdout, pCube, Aig_ManRegNum(p->pAig), NULL );  
-            printf( "\n" ); 
+            Abc_Print( 1, "\n" ); 
         }
     }
 }
@@ -235,7 +235,7 @@ void Pdr_ManDumpClauses( Pdr_Man_t * p, char * pFileName, int fProved )
     pFile = fopen( pFileName, "w" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open file \"%s\" for writing invariant.\n", pFileName );
+        Abc_Print( 1, "Cannot open file \"%s\" for writing invariant.\n", pFileName );
         return;
     } 
     // collect cubes
@@ -276,9 +276,9 @@ void Pdr_ManDumpClauses( Pdr_Man_t * p, char * pFileName, int fProved )
     Vec_IntFreeP( &vFlopCounts );
     Vec_PtrFree( vCubes );
     if ( fProved )
-        printf( "Inductive invariant was written into file \"%s\".\n", pFileName );
+        Abc_Print( 1, "Inductive invariant was written into file \"%s\".\n", pFileName );
     else
-        printf( "Clauses of the last timeframe were written into file \"%s\".\n", pFileName );
+        Abc_Print( 1, "Clauses of the last timeframe were written into file \"%s\".\n", pFileName );
 }
 
 
@@ -298,7 +298,7 @@ void Pdr_ManReportInvariant( Pdr_Man_t * p )
     Vec_Ptr_t * vCubes;
     int kStart = Pdr_ManFindInvariantStart( p );
     vCubes = Pdr_ManCollectCubes( p, kStart );
-    printf( "Invariant F[%d] : %d clauses with %d flops (out of %d)\n", 
+    Abc_Print( 1, "Invariant F[%d] : %d clauses with %d flops (out of %d)\n", 
         kStart, Vec_PtrSize(vCubes), Pdr_ManCountVariables(p, kStart), Aig_ManRegNum(p->pAig) );
     Vec_PtrFree( vCubes );
 }
@@ -344,15 +344,15 @@ void Pdr_ManVerifyInvariant( Pdr_Man_t * p )
         RetValue = sat_solver_solve( pSat, Vec_IntArray(vLits), Vec_IntArray(vLits) + Vec_IntSize(vLits), 0, 0, 0, 0 );
         if ( RetValue != l_False )
         {
-            printf( "Verification of clause %d failed.\n", i );
+            Abc_Print( 1, "Verification of clause %d failed.\n", i );
             Counter++;
         }
     }
     if ( Counter )
-        printf( "Verification of %d clauses has failed.\n", Counter );
+        Abc_Print( 1, "Verification of %d clauses has failed.\n", Counter );
     else
     {
-        printf( "Verification of invariant with %d clauses was successful.  ", Vec_PtrSize(vCubes) );
+        Abc_Print( 1, "Verification of invariant with %d clauses was successful.  ", Vec_PtrSize(vCubes) );
         Abc_PrintTime( 1, "Time", clock() - clk );
     }
 //    sat_solver_delete( pSat );
