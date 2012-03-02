@@ -203,7 +203,7 @@ int Map_SuperLibDeriveFromGenlib( Mio_Library_t * pLib )
     sprintf( FileNameSuper, "%s.super", pNameGeneric );
     ABC_FREE( pNameGeneric );
  
-    sprintf( CommandSuper,  "super -l 1 -i 5 -d 10000000 -a 10000000 -t 100 %s", FileNameGenlib ); 
+    sprintf( CommandSuper,  "super -L 1 -I 5 -D 10000000 -A 10000000 -T 100 %s", FileNameGenlib ); 
     if ( Cmd_CommandExecute( pAbc, CommandSuper ) )
     {
         ABC_FREE( FileNameGenlib );
