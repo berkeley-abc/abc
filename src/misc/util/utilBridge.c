@@ -177,16 +177,28 @@ int Gia_ManToBridgeBadAbs( FILE * pFile )
 ***********************************************************************/
 void Gia_ManFromBridgeHolds( FILE * pFile )
 {
+    fprintf( pFile, "%.6d", 101 /*message type = Result*/);
+    fprintf( pFile, " " );
+    fprintf( pFile, "%.16d", 4 /*size in bytes*/);
+    fprintf( pFile, " " );
+
     fputc( (char)BRIDGE_VALUE_1, pFile ); // true
     fputc( (char)1, pFile ); // size of vector (Armin's encoding)
     fputc( (char)0, pFile ); // number of the property (Armin's encoding)
     fputc( (char)0, pFile ); // no invariant
+    fflush(pFile);
 }
 void Gia_ManFromBridgeUnknown( FILE * pFile )
 {
+    fprintf( pFile, "%.6d", 101 /*message type = Result*/);
+    fprintf( pFile, " " );
+    fprintf( pFile, "%.16d", 3 /*size in bytes*/);
+    fprintf( pFile, " " );
+
     fputc( (char)BRIDGE_VALUE_X, pFile ); // undef
     fputc( (char)1, pFile ); // size of vector (Armin's encoding)
     fputc( (char)0, pFile ); // number of the property (Armin's encoding)
+    fflush(pFile);
 }
 void Gia_ManFromBridgeCex( FILE * pFile, Abc_Cex_t * pCex )
 {
@@ -210,9 +222,11 @@ void Gia_ManFromBridgeCex( FILE * pFile, Abc_Cex_t * pCex )
     Vec_StrPush( vStr, (char)1 ); // the number of frames (for a concrete counter-example)
     for ( i = 0; i < pCex->nRegs; i++ )
         Vec_StrPush( vStr, (char)BRIDGE_VALUE_0 ); // always zero!!!
-    RetValue = fwrite( Vec_StrArray(vStr), Vec_StrSize(vStr), 1, pFile );
-    assert( RetValue == 1 );
+//    RetValue = fwrite( Vec_StrArray(vStr), Vec_StrSize(vStr), 1, pFile );
+    Gia_CreateHeader(pFile, 101/*type=Result*/, Vec_StrSize(vStr), (unsigned char*)Vec_StrArray(vStr));
+
     Vec_StrFree( vStr );
+    fflush(pFile);
 }
 int Gia_ManToBridgeResult( FILE * pFile, int Result, Abc_Cex_t * pCex )
 {
@@ -280,7 +294,7 @@ Gia_Man_t *  Gia_ManFromBridgeReadBody( int Size, unsigned char * pBuffer, Vec_I
         iFan1 = Abc_LitNotCond( Vec_IntEntry(vLits, iFan1 >> 1), iFan1 & 1 );
         if ( fHash )
             Vec_IntPush( vLits, Gia_ManHashAnd(p, iFan0, iFan1) );
-        else 
+        else
             Vec_IntPush( vLits, Gia_ManAppendAnd(p, iFan0, iFan1) );
 
     }
@@ -299,7 +313,7 @@ Gia_Man_t *  Gia_ManFromBridgeReadBody( int Size, unsigned char * pBuffer, Vec_I
     for ( i = 0; i < nProps; i++ )
     {
         iFan0 = Gia_ReadAigerDecode( &pBuffer );
-        iFan0 = Abc_LitNotCond( Vec_IntEntry(vLits, iFan0 >> 1), iFan0 & 1 ); 
+        iFan0 = Abc_LitNotCond( Vec_IntEntry(vLits, iFan0 >> 1), iFan0 & 1 );
         // complement property output!!!
         Gia_ManAppendCo( p, Abc_LitNot(iFan0) );
     }
@@ -396,13 +410,13 @@ Gia_Man_t * Gia_ManFromBridge( FILE * pFile, Vec_Int_t ** pvInit )
     RetValue = Gia_ManFromBridgeReadPackage( pFile, &Type, &Size, &pBuffer );
     ABC_FREE( pBuffer );
     if ( !RetValue )
-        return NULL; 
+        return NULL;
 
     RetValue = Gia_ManFromBridgeReadPackage( pFile, &Type, &Size, &pBuffer );
     if ( !RetValue )
         return NULL;
 
-    p = Gia_ManFromBridgeReadBody( Size, pBuffer, pvInit ); 
+    p = Gia_ManFromBridgeReadBody( Size, pBuffer, pvInit );
     ABC_FREE( pBuffer );
     if ( p == NULL )
         return NULL;
@@ -471,7 +485,7 @@ void Gia_ManFromBridgeTest( char * pFileName )
 
     Gia_ManPrintStats( p, 0, 0 );
     Gia_WriteAiger( p, "temp.aig", 0, 0 );
-   
+
     Gia_ManToBridgeAbsNetlistTest( "par_.dump", p );
     Gia_ManStop( p );
 }
@@ -484,4 +498,3 @@ void Gia_ManFromBridgeTest( char * pFileName )
 
 
 ABC_NAMESPACE_IMPL_END
-
