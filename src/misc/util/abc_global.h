@@ -17,7 +17,7 @@
   Revision    [$Id: abc_global.h,v 1.00 2009/01/30 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
- 
+
 #ifndef ABC__misc__util__abc_global_h
 #define ABC__misc__util__abc_global_h
 
@@ -98,7 +98,7 @@
 #  define ABC_NAMESPACE_IMPL_END
 #  define ABC_NAMESPACE_PREFIX
 #endif // #ifdef __cplusplus
- 
+
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
@@ -208,10 +208,10 @@ typedef ABC_UINT64_T word;
 #define ABC_PRMP(a,f,F) (Abc_Print(1, "%s = ", (a)), Abc_Print(1, "%7.3f Mb (%6.2f %%)  ",  (1.0*(f)/(1<<20)), ((F)? 100.0*(f)/(F) : 0.0) ) )
 
 #define ABC_ALLOC(type, num)     ((type *) malloc(sizeof(type) * (num)))
-#define ABC_CALLOC(type, num)     ((type *) calloc((num), sizeof(type)))
-#define ABC_FALLOC(type, num)     ((type *) memset(malloc(sizeof(type) * (num)), 0xff, sizeof(type) * (num)))
-#define ABC_FREE(obj)             ((obj) ? (free((char *) (obj)), (obj) = 0) : 0)
-#define ABC_REALLOC(type, obj, num)    \
+#define ABC_CALLOC(type, num)    ((type *) calloc((num), sizeof(type)))
+#define ABC_FALLOC(type, num)    ((type *) memset(malloc(sizeof(type) * (num)), 0xff, sizeof(type) * (num)))
+#define ABC_FREE(obj)            ((obj) ? (free((char *) (obj)), (obj) = 0) : 0)
+#define ABC_REALLOC(type, obj, num) \
         ((obj) ? ((type *) realloc((char *)(obj), sizeof(type) * (num))) : \
          ((type *) malloc(sizeof(type) * (num))))
 
@@ -247,48 +247,48 @@ static inline int      Abc_LitNot( int Lit )                  { return Lit ^ 1; 
 static inline int      Abc_LitNotCond( int Lit, int c )       { return Lit ^ (int)(c > 0); }
 static inline int      Abc_LitRegular( int Lit )              { return Lit & ~01;          }
 
-enum Abc_VerbLevel 
+enum Abc_VerbLevel
 {
-    ABC_PROMPT   = -2, 
-    ABC_ERROR    = -1, 
-    ABC_WARNING  =  0, 
-    ABC_STANDARD =  1, 
-    ABC_VERBOSE  =  2 
-}; 
+    ABC_PROMPT   = -2,
+    ABC_ERROR    = -1,
+    ABC_WARNING  =  0,
+    ABC_STANDARD =  1,
+    ABC_VERBOSE  =  2
+};
 
-static inline void Abc_Print( int level, const char * format, ... ) 
+static inline void Abc_Print( int level, const char * format, ... )
 {
     extern ABC_DLL int Abc_FrameIsBridgeMode();
     va_list args;
-    if ( level == ABC_ERROR ) 
+    if ( level == ABC_ERROR )
         printf( "Error: " );
-    else if ( level == ABC_WARNING ) 
+    else if ( level == ABC_WARNING )
         printf( "Warning: " );
     va_start( args, format );
     if ( Abc_FrameIsBridgeMode() )
     {
         extern int Gia_ManToBridgeText( FILE * pFile, int Size, unsigned char * pBuffer );
         extern char * vnsprintf(const char* format, va_list args);
-        unsigned char * tmp = vnsprintf( format, args );
-        Gia_ManToBridgeText( stdout, strlen(tmp), tmp );
+        char * tmp = vnsprintf( format, args );
+        Gia_ManToBridgeText( stdout, strlen(tmp), (unsigned char*)tmp );
         free( tmp );
     }
     else
         vprintf( format, args );
     va_end( args );
-} 
+}
 
-static inline void Abc_PrintTime( int level, const char * pStr, int time ) 
+static inline void Abc_PrintTime( int level, const char * pStr, int time )
 {
     ABC_PRT( pStr, time );
 }
 
-static inline void Abc_PrintTimeP( int level, const char * pStr, int time, int Time ) 
+static inline void Abc_PrintTimeP( int level, const char * pStr, int time, int Time )
 {
     ABC_PRTP( pStr, time, Time );
 }
 
-static inline void Abc_PrintMemoryP( int level, const char * pStr, int time, int Time ) 
+static inline void Abc_PrintMemoryP( int level, const char * pStr, int time, int Time )
 {
     ABC_PRMP( pStr, time, Time );
 }
@@ -300,11 +300,11 @@ static inline int Abc_PrimeCudd( unsigned int p )
     p--;
     do {
         p++;
-        if (p&1) 
+        if (p&1)
         {
             pn = 1;
             i = 3;
-            while ((unsigned) (i * i) <= p) 
+            while ((unsigned) (i * i) <= p)
             {
                 if (p % i == 0) {
                     pn = 0;
@@ -312,8 +312,8 @@ static inline int Abc_PrimeCudd( unsigned int p )
                 }
                 i += 2;
             }
-        } 
-        else 
+        }
+        else
             pn = 0;
     } while (!pn);
     return(p);
@@ -341,4 +341,3 @@ ABC_NAMESPACE_HEADER_END
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
-
