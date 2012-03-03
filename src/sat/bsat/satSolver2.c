@@ -23,7 +23,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include <assert.h>
 #include <string.h>
 #include <math.h>
- 
+
 #include "satSolver2.h"
 
 ABC_NAMESPACE_IMPL_START
@@ -44,7 +44,7 @@ static void printlits(lit* begin, lit* end)
 {
     int i;
     for (i = 0; i < end - begin; i++)
-        printf(L_LIT" ",L_lit(begin[i]));
+        Abc_Print(1,L_LIT" ",L_lit(begin[i]));
 }
 
 //=================================================================================================
@@ -97,19 +97,19 @@ static inline void    var_set_polar (sat_solver2* s, int v, int pol)   { s->vi[v
 
 // variable tags
 static inline int     var_tag       (sat_solver2* s, int v)            { return s->vi[v].tag; }
-static inline void    var_set_tag   (sat_solver2* s, int v, int tag)   { 
+static inline void    var_set_tag   (sat_solver2* s, int v, int tag)   {
     assert( tag > 0 && tag < 16 );
     if ( s->vi[v].tag == 0 )
         veci_push( &s->tagged, v );
-    s->vi[v].tag = tag;                           
+    s->vi[v].tag = tag;
 }
-static inline void    var_add_tag   (sat_solver2* s, int v, int tag)   { 
+static inline void    var_add_tag   (sat_solver2* s, int v, int tag)   {
     assert( tag > 0 && tag < 16 );
     if ( s->vi[v].tag == 0 )
         veci_push( &s->tagged, v );
-    s->vi[v].tag |= tag;                           
+    s->vi[v].tag |= tag;
 }
-static inline void    solver2_clear_tags(sat_solver2* s, int start)    { 
+static inline void    solver2_clear_tags(sat_solver2* s, int start)    {
     int i, * tagged = veci_begin(&s->tagged);
     for (i = start; i < veci_size(&s->tagged); i++)
         s->vi[tagged[i]].tag = 0;
@@ -117,16 +117,16 @@ static inline void    solver2_clear_tags(sat_solver2* s, int start)    {
 }
 
 // level marks
-static inline int     var_lev_mark (sat_solver2* s, int v)             { 
-    return (veci_begin(&s->trail_lim)[var_level(s,v)] & 0x80000000) > 0;   
+static inline int     var_lev_mark (sat_solver2* s, int v)             {
+    return (veci_begin(&s->trail_lim)[var_level(s,v)] & 0x80000000) > 0;
 }
-static inline void    var_lev_set_mark (sat_solver2* s, int v)         { 
+static inline void    var_lev_set_mark (sat_solver2* s, int v)         {
     int level = var_level(s,v);
     assert( level < veci_size(&s->trail_lim) );
     veci_begin(&s->trail_lim)[level] |= 0x80000000;
     veci_push(&s->mark_levels, level);
 }
-static inline void    solver2_clear_marks(sat_solver2* s)              { 
+static inline void    solver2_clear_marks(sat_solver2* s)              {
     int i, * mark_levels = veci_begin(&s->mark_levels);
     for (i = 0; i < veci_size(&s->mark_levels); i++)
         veci_begin(&s->trail_lim)[mark_levels[i]] &= 0x7FFFFFFF;
@@ -142,20 +142,20 @@ static inline int     clause_check  (sat_solver2* s, satset* c)  { return c->lea
 static inline int     clause_proofid(sat_solver2* s, satset* c, int partA)  { return c->learnt ? (veci_begin(&s->claProofs)[c->Id]<<2) | (partA<<1) : (satset_handle(&s->clauses, c)<<2) | (partA<<1) | 1; }
 static inline int     clause_is_used(sat_solver2* s, cla h)      { return (h & 1) ? ((h >> 1) < s->hLearntPivot) : ((h >> 1) < s->hClausePivot);               }
 
-//static inline int     var_reason    (sat_solver2* s, int v)      { return (s->reasons[v]&1) ? 0 : s->reasons[v] >> 1;                   } 
-//static inline int     lit_reason    (sat_solver2* s, int l)      { return (s->reasons[lit_var(l)&1]) ? 0 : s->reasons[lit_var(l)] >> 1; } 
-//static inline satset* var_unit_clause(sat_solver2* s, int v)           { return (s->reasons[v]&1) ? clause_read(s, s->reasons[v] >> 1) : NULL;  } 
-//static inline void    var_set_unit_clause(sat_solver2* s, int v, cla i){ assert(i && !s->reasons[v]); s->reasons[v] = (i << 1) | 1;             } 
-static inline int     var_reason    (sat_solver2* s, int v)            { return s->reasons[v];           } 
-static inline int     lit_reason    (sat_solver2* s, int l)            { return s->reasons[lit_var(l)];  } 
-static inline satset* var_unit_clause(sat_solver2* s, int v)           { return clause_read(s, s->units[v]);                                          } 
+//static inline int     var_reason    (sat_solver2* s, int v)      { return (s->reasons[v]&1) ? 0 : s->reasons[v] >> 1;                   }
+//static inline int     lit_reason    (sat_solver2* s, int l)      { return (s->reasons[lit_var(l)&1]) ? 0 : s->reasons[lit_var(l)] >> 1; }
+//static inline satset* var_unit_clause(sat_solver2* s, int v)           { return (s->reasons[v]&1) ? clause_read(s, s->reasons[v] >> 1) : NULL;  }
+//static inline void    var_set_unit_clause(sat_solver2* s, int v, cla i){ assert(i && !s->reasons[v]); s->reasons[v] = (i << 1) | 1;             }
+static inline int     var_reason    (sat_solver2* s, int v)            { return s->reasons[v];           }
+static inline int     lit_reason    (sat_solver2* s, int l)            { return s->reasons[lit_var(l)];  }
+static inline satset* var_unit_clause(sat_solver2* s, int v)           { return clause_read(s, s->units[v]);                                          }
 static inline void    var_set_unit_clause(sat_solver2* s, int v, cla i){ 
     assert(v >= 0 && v < s->size && !s->units[v]); s->units[v] = i; s->nUnits++; 
-} 
-//static inline void    var_set_unit_clause(sat_solver2* s, int v, cla i){ assert(v >= 0 && v < s->size); s->units[v] = i; s->nUnits++; } 
+}
+//static inline void    var_set_unit_clause(sat_solver2* s, int v, cla i){ assert(v >= 0 && v < s->size); s->units[v] = i; s->nUnits++; }
 
 // these two only work after creating a clause before the solver is called
-int    clause_is_partA (sat_solver2* s, int h)                   { return clause_read(s, h)->partA;         }  
+int    clause_is_partA (sat_solver2* s, int h)                   { return clause_read(s, h)->partA;         }
 void   clause_set_partA(sat_solver2* s, int h, int partA)        { clause_read(s, h)->partA = partA;        }
 int    clause_id(sat_solver2* s, int h)                          { return clause_read(s, h)->Id;            }
 
@@ -224,7 +224,7 @@ static inline void order_update(sat_solver2* s, int v) // updateorder
     heap[i]     = x;
     orderpos[x] = i;
 }
-static inline void order_assigned(sat_solver2* s, int v) 
+static inline void order_assigned(sat_solver2* s, int v)
 {
 }
 static inline void order_unassigned(sat_solver2* s, int v) // undoorder
@@ -300,7 +300,7 @@ static inline void act_clause_rescale(sat_solver2* s) {
     s->cla_inc *= (float)1e-20;
 
     Total += clock() - clk;
-    printf( "Rescaling...   Cla inc = %10.3f  Conf = %10d   ", s->cla_inc,  s->stats.conflicts );
+    Abc_Print(1, "Rescaling...   Cla inc = %10.3f  Conf = %10d   ", s->cla_inc,  s->stats.conflicts );
     Abc_PrintTime( 1, "Time", Total );
 }
 static inline void act_var_bump(sat_solver2* s, int v) {
@@ -314,7 +314,7 @@ static inline void act_clause_bump(sat_solver2* s, satset*c) {
     float * claActs = (float *)veci_begin(&s->claActs);
     assert( c->Id < veci_size(&s->claActs) );
     claActs[c->Id] += s->cla_inc;
-    if (claActs[c->Id] > (float)1e20) 
+    if (claActs[c->Id] > (float)1e20)
         act_clause_rescale(s);
 }
 static inline void act_var_decay(sat_solver2* s)    { s->var_inc *= s->var_decay; }
@@ -340,7 +340,7 @@ static inline void act_clause_rescale(sat_solver2* s) {
     s->cla_inc = Abc_MaxInt( s->cla_inc, (1<<10) );
 
 //    Total += clock() - clk;
-//    printf( "Rescaling...   Cla inc = %5d  Conf = %10d   ", s->cla_inc,  s->stats.conflicts );
+//    Abc_Print(1, "Rescaling...   Cla inc = %5d  Conf = %10d   ", s->cla_inc,  s->stats.conflicts );
 //    Abc_PrintTime( 1, "Time", Total );
 }
 static inline void act_var_bump(sat_solver2* s, int v) {
@@ -354,7 +354,7 @@ static inline void act_clause_bump(sat_solver2* s, satset*c) {
     unsigned * claActs = (unsigned *)veci_begin(&s->claActs);
     assert( c->Id > 0 && c->Id < veci_size(&s->claActs) );
     claActs[c->Id] += s->cla_inc;
-    if (claActs[c->Id] & 0x80000000) 
+    if (claActs[c->Id] & 0x80000000)
         act_clause_rescale(s);
 }
 static inline void act_var_decay(sat_solver2* s)    { s->var_inc += (s->var_inc >>  4); }
@@ -382,7 +382,7 @@ static int clause_create_new(sat_solver2* s, lit* begin, lit* end, int learnt, i
         {
             int nMemAlloc = s->learnts.cap ? 2 * s->learnts.cap : (1 << 20);
             s->learnts.ptr = ABC_REALLOC( int, veci_begin(&s->learnts), nMemAlloc );
-    //        printf( "Reallocing from %d to %d...\n", s->learnts.cap, nMemAlloc );
+    //        Abc_Print(1, "Reallocing from %d to %d...\n", s->learnts.cap, nMemAlloc );
             s->learnts.cap = nMemAlloc;
             if ( veci_size(&s->learnts) == 0 )
                 veci_push( &s->learnts, -1 );
@@ -409,7 +409,7 @@ static int clause_create_new(sat_solver2* s, lit* begin, lit* end, int learnt, i
         s->learnts.size += satset_size(nLits);
         assert( veci_size(&s->learnts) <= s->learnts.cap );
         assert(((ABC_PTRUINT_T)c & 3) == 0);
-//        printf( "Clause for proof %d: ", proof_id );
+//        Abc_Print(1, "Clause for proof %d: ", proof_id );
 //        satset_print( c );
         // remember the last one
         s->hLearntLast = Cid;
@@ -420,7 +420,7 @@ static int clause_create_new(sat_solver2* s, lit* begin, lit* end, int learnt, i
         {
             int nMemAlloc = s->clauses.cap ? 2 * s->clauses.cap : (1 << 20);
             s->clauses.ptr = ABC_REALLOC( int, veci_begin(&s->clauses), nMemAlloc );
-    //        printf( "Reallocing from %d to %d...\n", s->clauses.cap, nMemAlloc );
+    //        Abc_Print(1, "Reallocing from %d to %d...\n", s->clauses.cap, nMemAlloc );
             s->clauses.cap = nMemAlloc;
             if ( veci_size(&s->clauses) == 0 )
                 veci_push( &s->clauses, -1 );
@@ -457,14 +457,14 @@ static inline int solver2_enqueue(sat_solver2* s, lit l, cla from)
 {
     int v = lit_var(l);
 #ifdef VERBOSEDEBUG
-    printf(L_IND"enqueue("L_LIT")\n", L_ind, L_lit(l));
+    Abc_Print(1,L_IND"enqueue("L_LIT")\n", L_ind, L_lit(l));
 #endif
     if (var_value(s, v) != varX)
         return var_value(s, v) == lit_sign(l);
     else
     {  // New fact -- store it.
 #ifdef VERBOSEDEBUG
-        printf(L_IND"bind("L_LIT")\n", L_ind, L_lit(l));
+        Abc_Print(1,L_IND"bind("L_LIT")\n", L_ind, L_lit(l));
 #endif
         var_set_value( s, v, lit_sign(l) );
         var_set_level( s, v, solver2_dlevel(s) );
@@ -475,11 +475,11 @@ static inline int solver2_enqueue(sat_solver2* s, lit l, cla from)
         if ( solver2_dlevel(s) == 0 )
         {
             satset * c = from ? clause_read( s, from ) : NULL;
-            printf( "Enqueing var %d on level %d with reason clause  ", v, solver2_dlevel(s) );
+            Abc_Print(1, "Enqueing var %d on level %d with reason clause  ", v, solver2_dlevel(s) );
             if ( c )
                 satset_print( c );
             else
-                printf( "<none>\n" );           
+                Abc_Print(1, "<none>\n" );           
         }
 */
         return true;
@@ -491,8 +491,8 @@ static inline int solver2_assume(sat_solver2* s, lit l)
     assert(s->qtail == s->qhead);
     assert(var_value(s, lit_var(l)) == varX);
 #ifdef VERBOSEDEBUG
-    printf(L_IND"assume("L_LIT")  ", L_ind, L_lit(l));
-    printf( "act = %.20f\n", s->activity[lit_var(l)] );
+    Abc_Print(1,L_IND"assume("L_LIT")  ", L_ind, L_lit(l));
+    Abc_Print(1, "act = %.20f\n", s->activity[lit_var(l)] );
 #endif
     veci_push(&s->trail_lim,s->qtail);
     return solver2_enqueue(s,l,0);
@@ -502,7 +502,7 @@ static void solver2_canceluntil(sat_solver2* s, int level) {
     int      bound;
     int      lastLev;
     int      c, x;
-   
+
     if (solver2_dlevel(s) <= level)
         return;
     assert( solver2_dlevel(s) > 0 );
@@ -510,7 +510,7 @@ static void solver2_canceluntil(sat_solver2* s, int level) {
     bound   = (veci_begin(&s->trail_lim))[level];
     lastLev = (veci_begin(&s->trail_lim))[veci_size(&s->trail_lim)-1];
 
-    for (c = s->qtail-1; c >= bound; c--) 
+    for (c = s->qtail-1; c >= bound; c--)
     {
         x = lit_var(s->trail[c]);
         var_set_value(s, x, varX);
@@ -654,7 +654,7 @@ static int solver2_analyze_final(sat_solver2* s, satset* conf, int skip_first)
                         var_set_tag(s, x, 1);
                     else
                         proof_chain_resolve( s, NULL, x );
-                } 
+                }
             }else {
                 assert( var_level(s,x) );
                 veci_push(&s->conf_final,lit_neg(s->trail[i]));
@@ -692,8 +692,8 @@ static int solver2_lit_removable_rec(sat_solver2* s, int v)
             if (var_level(s,x) == 0 || var_tag(s,x) == 6) continue;     // -- 'x' checked before, found to be removable (or belongs to the toplevel)
             if (var_tag(s,x) == 2 || !var_lev_mark(s,x) || !solver2_lit_removable_rec(s, x))
             {  // -- 'x' checked before, found NOT to be removable, or it belongs to a wrong level, or cannot be removed
-                var_add_tag(s,v,2); 
-                return 0; 
+                var_add_tag(s,v,2);
+                return 0;
             }
         }
     }
@@ -764,7 +764,7 @@ static void solver2_logging_order(sat_solver2* s, int x)
         x >>= 1;
         c = clause_read(s, var_reason(s,x));
 //        if ( !c )
-//            printf( "solver2_logging_order(): Error in conflict analysis!!!\n" );
+//            Abc_Print(1, "solver2_logging_order(): Error in conflict analysis!!!\n" );
         satset_foreach_var( c, x, i, 1 ){
             if ( !var_level(s,x) || (var_tag(s,x) & 1) )
                 continue;
@@ -846,7 +846,7 @@ static int solver2_analyze(sat_solver2* s, satset* c, veci* learnt)
 //        if (!solver2_lit_removable( s,lit_var(lits[i])))
         if (!solver2_lit_removable_rec(s,lit_var(lits[i]))) // changed to vars!!!
             lits[j++] = lits[i];
-    } 
+    }
 
     // record the proof
     if ( s->fProofLogging )
@@ -886,8 +886,8 @@ static int solver2_analyze(sat_solver2* s, satset* c, veci* learnt)
 #endif
 
 #ifdef VERBOSEDEBUG
-    printf(L_IND"Learnt {", L_ind);
-    for (i = 0; i < veci_size(learnt); i++) printf(" "L_LIT, L_lit(lits[i]));
+    Abc_Print(1,L_IND"Learnt {", L_ind);
+    for (i = 0; i < veci_size(learnt); i++) Abc_Print(1," "L_LIT, L_lit(lits[i]));
 #endif
     if (veci_size(learnt) > 1){
         lit tmp;
@@ -906,7 +906,7 @@ static int solver2_analyze(sat_solver2* s, satset* c, veci* learnt)
 #ifdef VERBOSEDEBUG
     {
         int lev = veci_size(learnt) > 1 ? var_level(s, lit_var(lits[1])) : 0;
-        printf(" } at level %d\n", lev);
+        Abc_Print(1," } at level %d\n", lev);
     }
 #endif
     return proof_id;
@@ -958,7 +958,7 @@ satset* solver2_propagate(sat_solver2* s)
                 Lit = lits[0];
                 if (s->fProofLogging && solver2_dlevel(s) == 0){
                     int k, x, proof_id, Cid, Var = lit_var(Lit);
-                    int fLitIsFalse = (var_value(s, Var) == !lit_sign(Lit)); 
+                    int fLitIsFalse = (var_value(s, Var) == !lit_sign(Lit));
                     // Log production of top-level unit clause:
                     proof_chain_start( s, c );
                     satset_foreach_var( c, x, k, 1 ){
@@ -968,7 +968,7 @@ satset* solver2_propagate(sat_solver2* s)
                     proof_id = proof_chain_stop( s );
                     // get a new clause
                     Cid = clause_create_new( s, &Lit, &Lit + 1, 1, proof_id );
-                    assert( (var_unit_clause(s, Var) == NULL) != fLitIsFalse ); 
+                    assert( (var_unit_clause(s, Var) == NULL) != fLitIsFalse );
                     // if variable already has unit clause, it must be with the other polarity 
                     // in this case, we should derive the empty clause here
                     if ( var_unit_clause(s, Var) == NULL )
@@ -1029,7 +1029,7 @@ static lbool solver2_search(sat_solver2* s, ABC_INT64_T nof_conflicts)
             int blevel;
 
 #ifdef VERBOSEDEBUG
-            printf(L_IND"**CONFLICT**\n", L_ind);
+            Abc_Print(1,L_IND"**CONFLICT**\n", L_ind);
 #endif
             s->stats.conflicts++; conflictC++;
             if (solver2_dlevel(s) <= s->root_level){
@@ -1048,7 +1048,7 @@ static lbool solver2_search(sat_solver2* s, ABC_INT64_T nof_conflicts)
             solver2_record(s,&learnt_clause, proof_id);
             // if (learnt_clause.size() == 1) level[var(learnt_clause[0])] = 0;    
             // (this is ugly (but needed for 'analyzeFinal()') -- in future versions, we will backtrack past the 'root_level' and redo the assumptions)
-            if ( learnt_clause.size == 1 ) 
+            if ( learnt_clause.size == 1 )
                 var_set_level( s, lit_var(learnt_clause.ptr[0]), 0 );
             act_var_decay(s);
             act_clause_decay(s);
@@ -1072,7 +1072,7 @@ static lbool solver2_search(sat_solver2* s, ABC_INT64_T nof_conflicts)
                 s->progress_estimate = solver2_progress(s);
                 solver2_canceluntil(s,s->root_level);
                 veci_delete(&learnt_clause);
-                return l_Undef; 
+                return l_Undef;
             }
 
 //            if (solver2_dlevel(s) == 0 && !s->fSkipSimplify)
@@ -1149,7 +1149,7 @@ sat_solver2* sat_solver2_new(void)
     veci_new(&s->temp_proof);
     veci_new(&s->conf_final);
     veci_new(&s->mark_levels);
-    veci_new(&s->min_lit_order); 
+    veci_new(&s->min_lit_order);
     veci_new(&s->min_step_order);
     veci_new(&s->learnt_live);
     veci_new(&s->claActs);    veci_push(&s->claActs,   -1);
@@ -1218,15 +1218,15 @@ void sat_solver2_setnvars(sat_solver2* s,int n)
         *((int*)s->vi + var) = 0; //s->vi[var].val = varX;
         s->levels  [var] = 0;
         s->assigns [var] = varX;
-        s->reasons [var] = 0;        
+        s->reasons [var] = 0;
         if ( s->fProofLogging )
-        s->units   [var] = 0;        
+        s->units   [var] = 0;
 #ifdef USE_FLOAT_ACTIVITY2
         s->activity[var] = 0;
 #else
         s->activity[var] = (1<<10);
 #endif
-        s->model   [var] = 0; 
+        s->model   [var] = 0;
         // does not hold because variables enqueued at top level will not be reinserted in the heap
         // assert(veci_size(&s->order) == var); 
         s->orderpos[var] = veci_size(&s->order);
@@ -1242,15 +1242,15 @@ void sat_solver2_delete(sat_solver2* s)
     if ( fVerify )
     {
         veci * pCore = (veci *)Sat_ProofCore( s );
-        printf( "UNSAT core contains %d clauses (%6.2f %%).\n", veci_size(pCore), 100.0*veci_size(pCore)/veci_size(&s->clauses) );
+        Abc_Print(1, "UNSAT core contains %d clauses (%6.2f %%).\n", veci_size(pCore), 100.0*veci_size(pCore)/veci_size(&s->clauses) );
         veci_delete( pCore );
-        ABC_FREE( pCore ); 
+        ABC_FREE( pCore );
         if ( s->fProofLogging )
             Sat_ProofCheck( s );
     }
 
     // report statistics
-    printf( "Used %6.2f Mb for proof-logging.   Unit clauses = %d.\n", 1.0 * Vec_SetMemory(&s->Proofs) / (1<<20), s->nUnits );
+    Abc_Print(1, "Used %6.2f Mb for proof-logging.   Unit clauses = %d.\n", 1.0 * Vec_SetMemory(&s->Proofs) / (1<<20), s->nUnits );
 
     // delete vectors
     veci_delete(&s->order);
@@ -1384,15 +1384,15 @@ double luby2(double y, int x)
         x = x % size;
     }
     return pow(y, (double)seq);
-} 
+}
 
 void luby2_test()
 {
     int i;
     for ( i = 0; i < 20; i++ )
-        printf( "%d ", (int)luby2(2,i) );
-    printf( "\n" );
-} 
+        Abc_Print(1, "%d ", (int)luby2(2,i) );
+    Abc_Print(1, "\n" );
+}
 
 
 // updates clauses, watches, units, and proof
@@ -1434,7 +1434,7 @@ void sat_solver2_reducedb(sat_solver2* s)
     }
     // report the results
     if ( s->fVerbose )
-    printf( "reduceDB: Keeping %7d out of %7d clauses (%5.2f %%)  ", 
+    Abc_Print(1, "reduceDB: Keeping %7d out of %7d clauses (%5.2f %%)  ",
         veci_size(&s->learnt_live), s->stats.learnts, 100.0 * veci_size(&s->learnt_live) / s->stats.learnts );
 
     // remap clause proofs and clauses
@@ -1461,7 +1461,7 @@ void sat_solver2_reducedb(sat_solver2* s)
             s->reasons[i] = (c->Id << 1) | 1;
         }
 
-    // compact watches 
+    // compact watches
     for ( i = 0; i < s->size*2; i++ )
     {
         pArray = veci_begin(&s->wlists[i]);
@@ -1631,7 +1631,7 @@ int sat_solver2_find_clause( sat_solver2* s, int Hand, int fVerbose )
             if ( (pArray[k] >> 1) == Hand )
             {
                 if ( fVerbose )
-                printf( "Clause found in list %d at position %d.\n", i, k );
+                Abc_Print(1, "Clause found in list %d at position %d.\n", i, k );
                 Found = 1;
                 break;
             }
@@ -1639,7 +1639,7 @@ int sat_solver2_find_clause( sat_solver2* s, int Hand, int fVerbose )
     if ( Found == 0 )
     {
         if ( fVerbose )
-        printf( "Clause with handle %d is not found.\n", Hand );
+        Abc_Print(1, "Clause with handle %d is not found.\n", Hand );
     }
     return Found;
 }
@@ -1659,16 +1659,16 @@ void sat_solver2_verify( sat_solver2* s )
         }
         if ( k == (int)c->nEnts )
         {
-            printf( "Clause %d is not satisfied.   ", c->Id );
+            Abc_Print(1, "Clause %d is not satisfied.   ", c->Id );
             satset_print( c );
             sat_solver2_find_clause( s, satset_handle(&s->clauses, c), 1 );
             Counter++;
         }
     }
     if ( Counter != 0 )
-        printf( "Verification failed!\n" );
+        Abc_Print(1, "Verification failed!\n" );
 //    else
-//        printf( "Verification passed.\n" );
+//        Abc_Print(1, "Verification passed.\n" );
 }
 
 
@@ -1753,12 +1753,12 @@ int sat_solver2_solve(sat_solver2* s, lit* begin, lit* end, ABC_INT64_T nConfLim
                 veci_resize(&s->conf_final,0);
                 veci_push(&s->conf_final, lit_neg(p));
                 // the two lines below are a bug fix by Siert Wieringa 
-                if (var_level(s, lit_var(p)) > 0) 
+                if (var_level(s, lit_var(p)) > 0)
                     veci_push(&s->conf_final, p);
             }
             s->hProofLast = proof_id;
             solver2_canceluntil(s, 0);
-            return l_False; 
+            return l_False;
         }
         else
         {
@@ -1768,28 +1768,28 @@ int sat_solver2_solve(sat_solver2* s, lit* begin, lit* end, ABC_INT64_T nConfLim
                 assert(s->conf_final.size > 0);
                 s->hProofLast = proof_id;
                 solver2_canceluntil(s, 0);
-                return l_False; 
+                return l_False;
             }
         }
     }
     assert(s->root_level == solver2_dlevel(s));
 
     if (s->verbosity >= 1){
-        printf("==================================[MINISAT]===================================\n");
-        printf("| Conflicts |     ORIGINAL     |              LEARNT              | Progress |\n");
-        printf("|           | Clauses Literals |   Limit Clauses Literals  Lit/Cl |          |\n");
-        printf("==============================================================================\n");
+        Abc_Print(1,"==================================[MINISAT]===================================\n");
+        Abc_Print(1,"| Conflicts |     ORIGINAL     |              LEARNT              | Progress |\n");
+        Abc_Print(1,"|           | Clauses Literals |   Limit Clauses Literals  Lit/Cl |          |\n");
+        Abc_Print(1,"==============================================================================\n");
     }
 
     while (status == l_Undef){
         if (s->verbosity >= 1)
         {
-            printf("| %9.0f | %7.0f %8.0f | %7.0f %7.0f %8.0f %7.1f | %6.3f %% |\n", 
+            Abc_Print(1,"| %9.0f | %7.0f %8.0f | %7.0f %7.0f %8.0f %7.1f | %6.3f %% |\n",
                 (double)s->stats.conflicts,
-                (double)s->stats.clauses, 
+                (double)s->stats.clauses,
                 (double)s->stats.clauses_literals,
-                (double)s->nLearntMax, 
-                (double)s->stats.learnts, 
+                (double)s->nLearntMax,
+                (double)s->stats.learnts,
                 (double)s->stats.learnts_literals,
                 (s->stats.learnts == 0)? 0.0 : (double)s->stats.learnts_literals / s->stats.learnts,
                 s->progress_estimate*100);
@@ -1809,7 +1809,7 @@ int sat_solver2_solve(sat_solver2* s, lit* begin, lit* end, ABC_INT64_T nConfLim
             break;
     }
     if (s->verbosity >= 1)
-        printf("==============================================================================\n");
+        Abc_Print(1,"==============================================================================\n");
 
     solver2_canceluntil(s,0);
 //    assert( s->qhead == s->qtail );
@@ -1820,4 +1820,3 @@ int sat_solver2_solve(sat_solver2* s, lit* begin, lit* end, ABC_INT64_T nConfLim
 
 
 ABC_NAMESPACE_IMPL_END
-

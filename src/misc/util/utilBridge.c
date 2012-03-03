@@ -129,7 +129,7 @@ void Gia_CreateHeader( FILE * pFile, int Type, int Size, unsigned char * pBuffer
     fprintf( pFile, "%.16d", Size );
     fprintf( pFile, " " );
     RetValue = fwrite( pBuffer, Size, 1, pFile );
-    assert( RetValue == 1 );
+    assert( RetValue == 1 || Size == 0);
     fflush( pFile );
 }
 
