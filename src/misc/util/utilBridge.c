@@ -209,8 +209,9 @@ void Gia_ManFromBridgeCex( FILE * pFile, Abc_Cex_t * pCex )
     Vec_StrPush( vStr, (char)0 ); // number of the property (Armin's encoding)
     Vec_StrPush( vStr, (char)1 ); // size of vector (Armin's encoding)
     Gia_WriteAigerEncodeStr( vStr, pCex->iFrame ); // depth
+
     Gia_WriteAigerEncodeStr( vStr, 1 ); // concrete
-    Gia_WriteAigerEncodeStr( vStr, pCex->iFrame ); // n frames
+    Gia_WriteAigerEncodeStr( vStr, pCex->iFrame + 1 ); // number of frames (1 more than depth)
     iBit = pCex->nRegs;
     for ( f = 0; f <= pCex->iFrame; f++ )
     {
@@ -220,6 +221,7 @@ void Gia_ManFromBridgeCex( FILE * pFile, Abc_Cex_t * pCex )
     }
     assert( iBit == pCex->nBits );
     Vec_StrPush( vStr, (char)1 ); // the number of frames (for a concrete counter-example)
+    Gia_WriteAigerEncodeStr( vStr, pCex->nRegs ); // num of flops
     for ( i = 0; i < pCex->nRegs; i++ )
         Vec_StrPush( vStr, (char)BRIDGE_VALUE_0 ); // always zero!!!
 //    RetValue = fwrite( Vec_StrArray(vStr), Vec_StrSize(vStr), 1, pFile );
