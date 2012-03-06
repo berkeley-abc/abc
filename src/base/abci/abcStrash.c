@@ -89,6 +89,80 @@ Abc_Ntk_t * Abc_NtkRestrash( Abc_Ntk_t * pNtk, int fCleanup )
 
 /**Function*************************************************************
 
+  Synopsis    [Performs structural hashing by generating random number.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkRestrashRandom_rec( Abc_Ntk_t * pNtk, Abc_Obj_t * pObj )
+{
+    if ( Abc_NodeIsTravIdCurrent( pObj ) )
+        return;
+    Abc_NodeSetTravIdCurrent( pObj );
+    if ( !Abc_ObjIsNode(pObj) )
+        return;
+    if ( rand() & 1 )
+    {
+        Abc_NtkRestrashRandom_rec( pNtk, Abc_ObjFanin0(pObj) );
+        Abc_NtkRestrashRandom_rec( pNtk, Abc_ObjFanin1(pObj) );
+    }
+    else
+    {
+        Abc_NtkRestrashRandom_rec( pNtk, Abc_ObjFanin1(pObj) );
+        Abc_NtkRestrashRandom_rec( pNtk, Abc_ObjFanin0(pObj) );
+    }
+    pObj->pCopy = Abc_AigAnd( (Abc_Aig_t *)pNtk->pManFunc, Abc_ObjChild0Copy(pObj), Abc_ObjChild1Copy(pObj) );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Reapplies structural hashing to the AIG.]
+
+  Description [Because of the structural hashing, this procedure should not 
+  change the number of nodes. It is useful to detect the bugs in the original AIG.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkRestrashRandom( Abc_Ntk_t * pNtk )
+{
+    Abc_Ntk_t * pNtkAig;
+    Abc_Obj_t * pObj;
+    int i;
+    assert( Abc_NtkIsStrash(pNtk) );
+    // print warning about choice nodes
+    if ( Abc_NtkGetChoiceNum( pNtk ) )
+        printf( "Warning: The choice nodes in the original AIG are removed by strashing.\n" );
+    // start the new network (constants and CIs of the old network will point to the their counterparts in the new network)
+    pNtkAig = Abc_NtkStartFrom( pNtk, ABC_NTK_STRASH, ABC_FUNC_AIG );
+    // restrash the nodes (assuming a topological order of the old network)
+    Abc_NtkIncrementTravId( pNtk );
+    Abc_NtkForEachCo( pNtk, pObj, i )
+        Abc_NtkRestrashRandom_rec( pNtkAig, Abc_ObjFanin0(pObj) );
+    // finalize the network
+    Abc_NtkFinalize( pNtk, pNtkAig );
+    // duplicate EXDC 
+    if ( pNtk->pExdc )
+        pNtkAig->pExdc = Abc_NtkDup( pNtk->pExdc );
+    // make sure everything is okay
+    if ( !Abc_NtkCheck( pNtkAig ) )
+    {
+        printf( "Abc_NtkStrash: The network check has failed.\n" );
+        Abc_NtkDelete( pNtkAig );
+        return NULL;
+    }
+    return pNtkAig;
+
+}
+
+/**Function*************************************************************
+
   Synopsis    [Reapplies structural hashing to the AIG.]
 
   Description [Because of the structural hashing, this procedure should not 

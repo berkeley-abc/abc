@@ -16962,12 +16962,15 @@ usage:
 ***********************************************************************/
 int Abc_CommandPermute( Abc_Frame_t * pAbc, int argc, char ** argv )
 {   
+    extern Abc_Ntk_t * Abc_NtkRestrashRandom( Abc_Ntk_t * pNtk );
     Abc_Ntk_t * pNtk = pAbc->pNtkCur, * pNtkRes = NULL;
     int fInputs = 1;
     int fOutputs = 1;
-    int c, fFlops = 1;
+    int fFlops = 1;
+    int fNodes = 1;
+    int c;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "iofh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "iofnh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -16979,6 +16982,9 @@ int Abc_CommandPermute( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'f':
             fFlops ^= 1;
+            break;
+        case 'n':
+            fNodes ^= 1;
             break;
         case 'h':
             goto usage;
@@ -16992,7 +16998,15 @@ int Abc_CommandPermute( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Empty network.\n" );
         return 1;
     }
-    pNtkRes = Abc_NtkDup( pNtk );
+    if ( fNodes && !Abc_NtkIsStrash(pNtk) )
+    {
+        Abc_Print( -1, "To permute nodes, the network should be structurally hashed.\n" );
+        return 1;
+    }
+    if ( fNodes )
+        pNtkRes = Abc_NtkRestrashRandom( pNtk );
+    else
+        pNtkRes = Abc_NtkDup( pNtk );
     if ( pNtkRes == NULL )
     {
         Abc_Print( -1, "Command \"permute\" has failed.\n" );
@@ -17003,11 +17017,12 @@ int Abc_CommandPermute( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: permute [-iofh]\n" );
+    Abc_Print( -2, "usage: permute [-iofnh]\n" );
     Abc_Print( -2, "\t        performs random permutation of inputs/outputs/flops\n" );
     Abc_Print( -2, "\t-i    : toggle permuting primary inputs [default = %s]\n", fInputs? "yes": "no" );
     Abc_Print( -2, "\t-o    : toggle permuting primary outputs [default = %s]\n", fOutputs? "yes": "no" );
     Abc_Print( -2, "\t-f    : toggle permuting flip-flops [default = %s]\n", fFlops? "yes": "no" );
+    Abc_Print( -2, "\t-n    : toggle deriving new topological ordering of nodes [default = %s]\n", fNodes? "yes": "no" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;
 }
