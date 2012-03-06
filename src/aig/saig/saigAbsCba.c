@@ -407,7 +407,7 @@ Aig_Man_t * Saig_ManCbaUnrollWithCex( Aig_Man_t * pAig, Abc_Cex_t * pCex, int nI
     int i, f;
     // sanity checks
     assert( Saig_ManPiNum(pAig) == pCex->nPis );
-    assert( Saig_ManRegNum(pAig) == pCex->nRegs );
+//    assert( Saig_ManRegNum(pAig) == pCex->nRegs );
     assert( pCex->iPo >= 0 && pCex->iPo < Saig_ManPoNum(pAig) );
 
     // map PIs of the unrolled frames into PIs of the original design
@@ -428,17 +428,23 @@ Aig_Man_t * Saig_ManCbaUnrollWithCex( Aig_Man_t * pAig, Abc_Cex_t * pCex, int nI
             Saig_ManCbaUnrollCollect_rec( pAig, pObj, 
                 Vec_VecEntryInt(vFrameObjs, f),
                 (Vec_Int_t *)(f ? Vec_VecEntry(vFrameCos, f-1) : NULL) );
-//printf( "%d ", Vec_VecLevelSize(vFrameCos, f) );
     }
-//printf( "\n" );
 
     // derive unrolled timeframes
     pFrames = Aig_ManStart( 10000 );
     pFrames->pName = Abc_UtilStrsav( pAig->pName );
     pFrames->pSpec = Abc_UtilStrsav( pAig->pSpec );
     // initialize the flops 
-    Saig_ManForEachLo( pAig, pObj, i )
-        pObj->pData = Aig_NotCond( Aig_ManConst1(pFrames), !Abc_InfoHasBit(pCex->pData, i) );
+    if ( Saig_ManRegNum(pAig) == pCex->nRegs )
+    {
+        Saig_ManForEachLo( pAig, pObj, i )
+            pObj->pData = Aig_NotCond( Aig_ManConst1(pFrames), !Abc_InfoHasBit(pCex->pData, i) );
+    }
+    else // this is the case when synthesis was applied, assume all-0 init state
+    {
+        Saig_ManForEachLo( pAig, pObj, i )
+            pObj->pData = Aig_NotCond( Aig_ManConst1(pFrames), 1 );
+    }
     // iterate through the frames
     for ( f = 0; f <= pCex->iFrame; f++ )
     {
@@ -580,6 +586,123 @@ void Saig_ManCbaShrink( Saig_ManCba_t * p )
     Aig_ManStop( pManNew );
 }
 
+static inline void Saig_ObjCexMinSet0( Aig_Obj_t * pObj ) { pObj->fMarkA = 1; pObj->fMarkB = 0;    }
+static inline void Saig_ObjCexMinSet1( Aig_Obj_t * pObj ) { pObj->fMarkA = 0; pObj->fMarkB = 1;    }
+static inline void Saig_ObjCexMinSetX( Aig_Obj_t * pObj ) { pObj->fMarkA = 1; pObj->fMarkB = 1;    }
+
+static inline int  Saig_ObjCexMinGet0( Aig_Obj_t * pObj ) { return  pObj->fMarkA && !pObj->fMarkB; }
+static inline int  Saig_ObjCexMinGet1( Aig_Obj_t * pObj ) { return !pObj->fMarkA &&  pObj->fMarkB; }
+static inline int  Saig_ObjCexMinGetX( Aig_Obj_t * pObj ) { return  pObj->fMarkA &&  pObj->fMarkB; }
+
+static inline int  Saig_ObjCexMinGet0Fanin0( Aig_Obj_t * pObj ) { return (Saig_ObjCexMinGet1(Aig_ObjFanin0(pObj)) && Aig_ObjFaninC0(pObj)) || (Saig_ObjCexMinGet0(Aig_ObjFanin0(pObj)) && !Aig_ObjFaninC0(pObj)); }
+static inline int  Saig_ObjCexMinGet1Fanin0( Aig_Obj_t * pObj ) { return (Saig_ObjCexMinGet0(Aig_ObjFanin0(pObj)) && Aig_ObjFaninC0(pObj)) || (Saig_ObjCexMinGet1(Aig_ObjFanin0(pObj)) && !Aig_ObjFaninC0(pObj)); }
+
+static inline int  Saig_ObjCexMinGet0Fanin1( Aig_Obj_t * pObj ) { return (Saig_ObjCexMinGet1(Aig_ObjFanin1(pObj)) && Aig_ObjFaninC1(pObj)) || (Saig_ObjCexMinGet0(Aig_ObjFanin1(pObj)) && !Aig_ObjFaninC1(pObj)); }
+static inline int  Saig_ObjCexMinGet1Fanin1( Aig_Obj_t * pObj ) { return (Saig_ObjCexMinGet0(Aig_ObjFanin1(pObj)) && Aig_ObjFaninC1(pObj)) || (Saig_ObjCexMinGet1(Aig_ObjFanin1(pObj)) && !Aig_ObjFaninC1(pObj)); }
+
+static inline void Saig_ObjCexMinSim( Aig_Obj_t * pObj )
+{
+    if ( Aig_ObjIsAnd(pObj) )
+    {
+        if ( Saig_ObjCexMinGet0Fanin0(pObj) || Saig_ObjCexMinGet0Fanin1(pObj) )
+            Saig_ObjCexMinSet0( pObj );
+        else if ( Saig_ObjCexMinGet1Fanin0(pObj) && Saig_ObjCexMinGet1Fanin1(pObj) )
+            Saig_ObjCexMinSet1( pObj );
+        else 
+            Saig_ObjCexMinSetX( pObj );
+    }
+    else if ( Aig_ObjIsPo(pObj) )
+    {
+        if ( Saig_ObjCexMinGet0Fanin0(pObj) )
+            Saig_ObjCexMinSet0( pObj );
+        else if ( Saig_ObjCexMinGet1Fanin0(pObj) )
+            Saig_ObjCexMinSet1( pObj );
+        else 
+            Saig_ObjCexMinSetX( pObj );
+    }
+    else assert( 0 );
+}
+
+static inline void Saig_ObjCexMinPrint( Aig_Obj_t * pObj )
+{
+    if ( Saig_ObjCexMinGet0(pObj) )
+        printf( "0" );
+    else if ( Saig_ObjCexMinGet1(pObj) )
+        printf( "1" );
+    else if ( Saig_ObjCexMinGetX(pObj) )
+        printf( "X" );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Saig_ManCexVerifyUsingTernary( Aig_Man_t * pAig, Abc_Cex_t * pCex, Abc_Cex_t * pCare )
+{
+    Aig_Obj_t * pObj, * pObjRi, * pObjRo;
+    int i, f, iBit = 0;
+    assert( pCex->iFrame == pCare->iFrame );
+    assert( pCex->nBits  == pCare->nBits );
+    assert( pCex->iPo < Saig_ManPoNum(pAig) );
+    Saig_ObjCexMinSet1( Aig_ManConst1(pAig) );
+    // set flops to the init state
+    Saig_ManForEachLo( pAig, pObj, i )
+    {
+        assert( !Abc_InfoHasBit(pCex->pData, iBit) );
+        assert( !Abc_InfoHasBit(pCare->pData, iBit) );
+//        if ( Abc_InfoHasBit(pCare->pData, iBit++) )
+            Saig_ObjCexMinSet0( pObj );
+//        else
+//            Saig_ObjCexMinSetX( pObj );
+    }
+    iBit = pCex->nRegs;
+    for ( f = 0; f <= pCex->iFrame; f++ )
+    {
+        // init inputs
+        Saig_ManForEachPi( pAig, pObj, i )
+        {
+            if ( Abc_InfoHasBit(pCare->pData, iBit++) )
+            {
+                if ( Abc_InfoHasBit(pCex->pData, iBit-1) )
+                    Saig_ObjCexMinSet1( pObj );
+                else
+                    Saig_ObjCexMinSet0( pObj );
+            }
+            else
+                Saig_ObjCexMinSetX( pObj );
+        }
+        // simulate internal nodes
+        Aig_ManForEachNode( pAig, pObj, i )
+            Saig_ObjCexMinSim( pObj );
+        // simulate COs
+        Aig_ManForEachPo( pAig, pObj, i )
+            Saig_ObjCexMinSim( pObj );
+/*
+        Aig_ManForEachObj( pAig, pObj, i )
+        {
+            Aig_ObjPrint(pAig, pObj);
+            printf( "  Value = " );
+            Saig_ObjCexMinPrint( pObj );
+            printf( "\n" );
+        }
+*/
+        // transfer
+        Saig_ManForEachLiLo( pAig, pObjRi, pObjRo, i )
+            pObjRo->fMarkA = pObjRi->fMarkA,
+            pObjRo->fMarkB = pObjRi->fMarkB;
+    }
+    assert( iBit == pCex->nBits );
+    return Saig_ObjCexMinGet1( Aig_ManPo( pAig, pCex->iPo ) );
+}
+
 /**Function*************************************************************
 
   Synopsis    [SAT-based refinement of the counter-example.]
@@ -638,7 +761,12 @@ if ( fVerbose )
 printf( "Care " );
 Abc_CexPrintStats( pCare );
 }
-
+    // verify the reduced counter-example using ternary simulation
+    if ( !Saig_ManCexVerifyUsingTernary( pAig, pCex, pCare ) )
+        printf( "Saig_ManCbaFindCexCareBits(): Counter-example verification has failed!!!\n" );
+    else if ( fVerbose )
+        printf( "Saig_ManCbaFindCexCareBits(): Counter-example verification is successful.\n" );
+    Aig_ManCleanMarkAB( pAig );
     return pCare;
 }
 
