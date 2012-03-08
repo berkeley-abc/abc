@@ -1400,8 +1400,8 @@ void Gia_VtaSendAbsracted( Vta_Man_t * p, int fVerbose )
 {
     extern int Gia_ManToBridgeAbsNetlist( FILE * pFile, Gia_Man_t * p );
     Gia_Man_t * pAbs;
-    if ( fVerbose )
-        Abc_Print( 1, "Sending abstracted model...\n" );
+//    if ( fVerbose )
+//        Abc_Print( 1, "Sending abstracted model...\n" );
     if ( !Abc_FrameIsBridgeMode() )
         return;
     // create obj classes
@@ -1421,8 +1421,8 @@ void Gia_VtaSendAbsracted( Vta_Man_t * p, int fVerbose )
 void Gia_VtaSendCancel( Vta_Man_t * p, int fVerbose )
 {
     extern int Gia_ManToBridgeBadAbs( FILE * pFile );
-    if ( fVerbose )
-        Abc_Print( 1, "Cancelling previously sent model...\n" );
+//    if ( fVerbose )
+//        Abc_Print( 1, "Cancelling previously sent model...\n" );
     if ( !Abc_FrameIsBridgeMode() )
         return;
     Gia_ManToBridgeBadAbs( stdout );
