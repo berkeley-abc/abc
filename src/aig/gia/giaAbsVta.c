@@ -1556,9 +1556,9 @@ int Gia_VtaPerformInt( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
             // reset the counter of frames without change
             nCountNoChange = 1;
             // cancel old one if it was sent
-            if ( fOneIsSent )
-                Gia_VtaSendCancel( p, pPars->fVerbose );
-            fOneIsSent = 0;
+//            if ( fOneIsSent )
+//                Gia_VtaSendCancel( p, pPars->fVerbose );
+//            fOneIsSent = 0;
         }
         else if ( ++nCountNoChange == 2 ) // time to send
         {
