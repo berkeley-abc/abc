@@ -174,7 +174,7 @@ extern Vec_Ptr_t *vecLos, *vecLoNames;
 
 static int Aig_ManPiCleanupBiere( Aig_Man_t * p )
 {
-    int k = 0, nPisOld = Aig_ManPiNum(p);
+    int nPisOld = Aig_ManPiNum(p);
     
     p->nObjs[AIG_OBJ_PI] = Vec_PtrSize( p->vPis );
     if ( Aig_ManRegNum(p) )
@@ -186,7 +186,7 @@ static int Aig_ManPiCleanupBiere( Aig_Man_t * p )
 
 static int Aig_ManPoCleanupBiere( Aig_Man_t * p )
 {
-    int k = 0, nPosOld = Aig_ManPoNum(p);
+    int nPosOld = Aig_ManPoNum(p);
 
     p->nObjs[AIG_OBJ_PO] = Vec_PtrSize( p->vPos );
     if ( Aig_ManRegNum(p) )
@@ -208,7 +208,7 @@ static Aig_Man_t * LivenessToSafetyTransformationSim( Abc_Ntk_t * pNtk, Aig_Man_
     Aig_Obj_t *pObjSafetyPropertyOutput;
     Aig_Obj_t *pDriverImage;
     char *nodeName;
-    int piCopied = 0, liCopied = 0, loCopied = 0, liCreated = 0, loCreated = 0, piVecIndex = 0, liveLatch = 0, fairLatch = 0;
+    int piCopied = 0, liCopied = 0, loCopied = 0, liCreated = 0, loCreated = 0, liveLatch = 0, fairLatch = 0;
     
     vecPis = Vec_PtrAlloc( Saig_ManPiNum( p ) + 1);
     vecPiNames = Vec_PtrAlloc( Saig_ManPiNum( p ) + 1);
@@ -491,7 +491,7 @@ static Aig_Man_t * LivenessToSafetyTransformationOneStepLoopSim( Abc_Ntk_t * pNt
 
 
     char *nodeName;
-    int piCopied = 0, liCopied = 0, loCopied = 0, liCreated = 0, loCreated = 0, piVecIndex = 0;
+    int piCopied = 0, liCopied = 0, loCopied = 0;//, liCreated = 0, loCreated = 0, piVecIndex = 0;
     
     vecPis = Vec_PtrAlloc( Saig_ManPiNum( p ) + 1);
     vecPiNames = Vec_PtrAlloc( Saig_ManPiNum( p ) + 1);

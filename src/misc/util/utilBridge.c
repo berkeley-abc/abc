@@ -202,7 +202,7 @@ void Gia_ManFromBridgeUnknown( FILE * pFile )
 }
 void Gia_ManFromBridgeCex( FILE * pFile, Abc_Cex_t * pCex )
 {
-    int i, f, iBit, RetValue;
+    int i, f, iBit;//, RetValue;
     Vec_Str_t * vStr = Vec_StrAlloc( 1000 );
     Vec_StrPush( vStr, (char)BRIDGE_VALUE_0 ); // false
     Vec_StrPush( vStr, (char)1 ); // size of vector (Armin's encoding)
@@ -381,7 +381,7 @@ int Gia_ManFromBridgeReadPackage( FILE * pFile, int * pType, int * pSize, unsign
     *pType = atoi( Temp );
     *pSize = atoi( Temp + 7 );
 
-    *ppBuffer = ABC_ALLOC( char, *pSize );
+    *ppBuffer = ABC_ALLOC( unsigned char, *pSize );
     RetValue = fread( *ppBuffer, *pSize, 1, pFile );
     if ( RetValue != 1 && *pSize != 0 )
     {
