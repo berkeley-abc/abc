@@ -246,14 +246,14 @@ Aig_Man_t * LivenessToSafetyTransformation( int mode, Abc_Ntk_t * pNtk, Aig_Man_
 {
     Aig_Man_t * pNew;
     int i, nRegCount;
-    Aig_Obj_t * pObjSavePi;
-    Aig_Obj_t *pObjSavedLo, *pObjSavedLi;
+    Aig_Obj_t * pObjSavePi = NULL;
+    Aig_Obj_t *pObjSavedLo = NULL, *pObjSavedLi = NULL;
     Aig_Obj_t *pObj, *pMatch;
-    Aig_Obj_t *pObjSaveOrSaved, *pObjSaveAndNotSaved, *pObjSavedLoAndEquality;
+    Aig_Obj_t *pObjSaveOrSaved = NULL, *pObjSaveAndNotSaved = NULL, *pObjSavedLoAndEquality;
     Aig_Obj_t *pObjShadowLo, *pObjShadowLi, *pObjShadowLiDriver;
     Aig_Obj_t *pObjXor, *pObjXnor, *pObjAndAcc;
     Aig_Obj_t *pObjLive, *pObjFair, *pObjSafetyGate;
-    Aig_Obj_t *pObjSafetyPropertyOutput;
+    Aig_Obj_t *pObjSafetyPropertyOutput = NULL;
     Aig_Obj_t *pObjOriginalSafetyPropertyOutput;
     Aig_Obj_t *pDriverImage, *pArgument, *collectiveAssertSafety, *collectiveAssumeSafety;
     char *nodeName;
@@ -544,17 +544,17 @@ Aig_Man_t * LivenessToSafetyTransformationAbs( int mode, Abc_Ntk_t * pNtk, Aig_M
 {
     Aig_Man_t * pNew;
     int i, nRegCount, iEntry;
-    Aig_Obj_t * pObjSavePi;
-    Aig_Obj_t *pObjSavedLi, *pObjSavedLo;
+    Aig_Obj_t * pObjSavePi = NULL;
+    Aig_Obj_t *pObjSavedLi = NULL, *pObjSavedLo = NULL;
     Aig_Obj_t *pObj, *pMatch;
-    Aig_Obj_t *pObjSavedLoAndEquality, *pObjSaveOrSaved, *pObjSaveAndNotSaved;
+    Aig_Obj_t *pObjSavedLoAndEquality, *pObjSaveOrSaved = NULL, *pObjSaveAndNotSaved = NULL;
     Aig_Obj_t *pObjShadowLo, *pObjShadowLi, *pObjShadowLiDriver;
     Aig_Obj_t *pObjXor, *pObjXnor, *pObjAndAcc;
     Aig_Obj_t *pObjLive, *pObjFair, *pObjSafetyGate;
-    Aig_Obj_t *pObjSafetyPropertyOutput;
+    Aig_Obj_t *pObjSafetyPropertyOutput = NULL;
     Aig_Obj_t *pDriverImage, *pArgument, *collectiveAssertSafety, *collectiveAssumeSafety;
     char *nodeName;
-    int piCopied = 0, liCopied = 0, loCopied = 0, liCreated = 0, loCreated = 0, piVecIndex = 0, liveLatch = 0, fairLatch = 0;
+    int piCopied = 0, liCopied = 0, loCopied = 0, liCreated = 0, loCreated = 0, liveLatch = 0, fairLatch = 0;//, piVecIndex = 0;
     
     vecPis = Vec_PtrAlloc( Saig_ManPiNum( p ) + 1);
     vecPiNames = Vec_PtrAlloc( Saig_ManPiNum( p ) + 1);
@@ -845,12 +845,12 @@ Aig_Man_t * LivenessToSafetyTransformationOneStepLoop( int mode, Abc_Ntk_t * pNt
 {
     Aig_Man_t * pNew;
     int i, nRegCount;
-    Aig_Obj_t * pObjSavePi;
+    Aig_Obj_t * pObjSavePi = NULL;
     Aig_Obj_t *pObj, *pMatch;
     Aig_Obj_t *pObjSavedLoAndEquality;
     Aig_Obj_t *pObjXor, *pObjXnor, *pObjAndAcc, *pObjAndAccDummy;
     Aig_Obj_t *pObjLive, *pObjFair, *pObjSafetyGate;
-    Aig_Obj_t *pObjSafetyPropertyOutput;
+    Aig_Obj_t *pObjSafetyPropertyOutput = NULL;
     Aig_Obj_t *pDriverImage;
     Aig_Obj_t *pObjCorrespondingLi;
     Aig_Obj_t *pArgument;
@@ -1255,7 +1255,7 @@ int Abc_CommandAbcLivenessToSafety( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk, * pNtkTemp, *pNtkNew, *pNtkOld;
-    Aig_Man_t * pAig, *pAigNew;
+    Aig_Man_t * pAig, *pAigNew = NULL;
     int c;
     Vec_Ptr_t * vLive, * vFair, *vAssertSafety, *vAssumeSafety;
     int directive = -1;
@@ -1600,7 +1600,7 @@ int Abc_CommandAbcLivenessToSafetyAbstraction( Abc_Frame_t * pAbc, int argc, cha
 {
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk, * pNtkTemp, *pNtkNew, *pNtkOld;
-    Aig_Man_t * pAig, *pAigNew;
+    Aig_Man_t * pAig, *pAigNew = NULL;
     int c;
     Vec_Ptr_t * vLive, * vFair, *vAssertSafety, *vAssumeSafety;
     int directive = -1;
@@ -1801,10 +1801,10 @@ Aig_Man_t * LivenessToSafetyTransformationWithLTL( int mode, Abc_Ntk_t * pNtk, A
 {
     Aig_Man_t * pNew;
     int i, ii, iii, nRegCount;
-    Aig_Obj_t * pObjSavePi;
-    Aig_Obj_t *pObjSavedLo, *pObjSavedLi;
+    Aig_Obj_t * pObjSavePi = NULL;
+    Aig_Obj_t *pObjSavedLo = NULL, *pObjSavedLi = NULL;
     Aig_Obj_t *pObj, *pMatch;
-    Aig_Obj_t *pObjSaveOrSaved, *pObjSaveAndNotSaved, *pObjSavedLoAndEquality;
+    Aig_Obj_t *pObjSaveOrSaved = NULL, *pObjSaveAndNotSaved = NULL, *pObjSavedLoAndEquality;
     Aig_Obj_t *pObjShadowLo, *pObjShadowLi, *pObjShadowLiDriver;
     Aig_Obj_t *pObjXor, *pObjXnor, *pObjAndAcc;
     Aig_Obj_t *pObjLive, *pObjSafetyGate;
@@ -1815,11 +1815,11 @@ Aig_Man_t * LivenessToSafetyTransformationWithLTL( int mode, Abc_Ntk_t * pNtk, A
     Aig_Obj_t *pObjSafetyAndLiveToSafety;
     char *nodeName, *pFormula;
     int piCopied = 0, liCopied = 0, loCopied = 0, liCreated = 0, loCreated = 0, liveLatch = 0;//, piVecIndex = 0, fairLatch = 0;
-    Vec_Ptr_t *vSignal, *vTopASTNodeArray;
+    Vec_Ptr_t *vSignal, *vTopASTNodeArray = NULL;
     ltlNode *pEnrtyGLOBALLY;
     ltlNode *topNodeOfAST, *tempTopASTNode;
     Vec_Vec_t *vAigGFMap;
-    Vec_Ptr_t *vSignalMemory, *vGFFlopMemory, *vPoForLtlProps;
+    Vec_Ptr_t *vSignalMemory, *vGFFlopMemory, *vPoForLtlProps = NULL;
     Vec_Ptr_t *vecInputLtlFormulae;
     
     vecPis = Vec_PtrAlloc( Saig_ManPiNum( p ) + 1);
@@ -2269,7 +2269,7 @@ int Abc_CommandAbcLivenessToSafetyWithLTL( Abc_Frame_t * pAbc, int argc, char **
 {
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk, * pNtkTemp, *pNtkNew, *pNtkOld;
-    Aig_Man_t * pAig, *pAigNew;
+    Aig_Man_t * pAig, *pAigNew = NULL;
     int c;
     Vec_Ptr_t * vLive, * vFair, *vAssertSafety, *vAssumeSafety;
     int directive = -1;
