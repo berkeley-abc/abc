@@ -194,7 +194,7 @@ int Saig_ManInduction( Aig_Man_t * p, int nFramesMax, int nConfMax, int fUnique,
         if ( fGetCex && vTopVarIds == NULL )
         {
             vTopVarIds = Vec_IntStartFull( Aig_ManPiNum(p) );
-            Aig_ManForEachPi( p, pObjPi, i )
+            Aig_ManForEachCi( p, pObjPi, i )
             {
                 if ( pObjPi->pData == NULL )
                     continue;
@@ -210,7 +210,7 @@ int Saig_ManInduction( Aig_Man_t * p, int nFramesMax, int nConfMax, int fUnique,
 
         // stitch variables of top and bot
         assert( Aig_ManPoNum(pAigPart)-1 == Vec_IntSize(vTopVarNums) );
-        Aig_ManForEachPo( pAigPart, pObjPo, i )
+        Aig_ManForEachCo( pAigPart, pObjPo, i )
         {
             if ( i == 0 )
             {

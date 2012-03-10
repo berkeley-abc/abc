@@ -587,7 +587,7 @@ void Ssw_RarManSimulate( Ssw_RarMan_t * p, Vec_Int_t * vInit, int fUpdate, int f
     Aig_ManIncrementTravId( p->pAig );
     // check comb inputs
     if ( fUpdate )
-    Aig_ManForEachPi( p->pAig, pObj, i )
+    Aig_ManForEachCi( p->pAig, pObj, i )
     {
         pRepr = Aig_ObjRepr(p->pAig, pObj);
         if ( pRepr == NULL || Aig_ObjIsTravIdCurrent( p->pAig, pRepr ) )
@@ -631,7 +631,7 @@ void Ssw_RarManSimulate( Ssw_RarMan_t * p, Vec_Int_t * vInit, int fUpdate, int f
         }
     }
     // transfer to POs
-    Aig_ManForEachPo( p->pAig, pObj, i )
+    Aig_ManForEachCo( p->pAig, pObj, i )
     {
         pSim  = Ssw_RarObjSim( p, Aig_ObjId(pObj) );
         pSim0 = Ssw_RarObjSim( p, Aig_ObjFaninId0(pObj) );
@@ -826,7 +826,7 @@ static Vec_Int_t * Ssw_RarFindStartingState( Aig_Man_t * pAig, Abc_Cex_t * pCex 
             pObj->fMarkB = ( Aig_ObjFanin0(pObj)->fMarkB ^ Aig_ObjFaninC0(pObj) )
                          & ( Aig_ObjFanin1(pObj)->fMarkB ^ Aig_ObjFaninC1(pObj) );
         // assign the COs
-        Aig_ManForEachPo( pAig, pObj, i )
+        Aig_ManForEachCo( pAig, pObj, i )
             pObj->fMarkB = ( Aig_ObjFanin0(pObj)->fMarkB ^ Aig_ObjFaninC0(pObj) );
     }
     assert( iBit == pCex->nBits );

@@ -83,21 +83,21 @@ Aig_Man_t * Dch_DeriveTotalAig( Vec_Ptr_t * vAigs )
     Vec_PtrForEachEntry( Aig_Man_t *, vAigs, pAig2, k )
         Aig_ManConst1(pAig2)->pData = Aig_ManConst1(pAigTotal);
     // map primary inputs
-    Aig_ManForEachPi( pAig, pObj, i )
+    Aig_ManForEachCi( pAig, pObj, i )
     {
-        pObjPi = Aig_ObjCreatePi( pAigTotal );
+        pObjPi = Aig_ObjCreateCi( pAigTotal );
         Vec_PtrForEachEntry( Aig_Man_t *, vAigs, pAig2, k )
             Aig_ManPi( pAig2, i )->pData = pObjPi;
     }
     // construct the AIG in the order of POs
-    Aig_ManForEachPo( pAig, pObj, i )
+    Aig_ManForEachCo( pAig, pObj, i )
     {
         Vec_PtrForEachEntry( Aig_Man_t *, vAigs, pAig2, k )
         {
             pObjPo = Aig_ManPo( pAig2, i );
             Dch_DeriveTotalAig_rec( pAigTotal, Aig_ObjFanin0(pObjPo) );
         }
-        Aig_ObjCreatePo( pAigTotal, Aig_ObjChild0Copy(pObj) );
+        Aig_ObjCreateCo( pAigTotal, Aig_ObjChild0Copy(pObj) );
     }
 /*
     // mark the cone of the first AIG

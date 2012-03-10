@@ -52,7 +52,7 @@ clk = clock();
     // start the manager
     p = Csw_ManStart( pAig, nCutsMax, nLeafMax, fVerbose );
     // set elementary cuts at the PIs
-    Aig_ManForEachPi( p->pManRes, pObj, i )
+    Aig_ManForEachCi( p->pManRes, pObj, i )
     {
         Csw_ObjPrepareCuts( p, pObj, 1 );
         Csw_ObjAddRefs( p, pObj, Aig_ManPi(p->pManAig,i)->nRefs );
@@ -77,8 +77,8 @@ clk = clock();
         Csw_ObjAddRefs( p, Aig_Regular(pObjRes), pObj->nRefs );
     }
     // add the POs
-    Aig_ManForEachPo( pAig, pObj, i )
-        Aig_ObjCreatePo( p->pManRes, Csw_ObjChild0Equiv(p, pObj) );
+    Aig_ManForEachCo( pAig, pObj, i )
+        Aig_ObjCreateCo( p->pManRes, Csw_ObjChild0Equiv(p, pObj) );
     // remove dangling nodes 
     Aig_ManCleanup( p->pManRes );
     // return the resulting manager

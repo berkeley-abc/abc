@@ -82,7 +82,7 @@ static char * retrieveTruePiName( Abc_Ntk_t *pNtkOld, Aig_Man_t *pAigOld, Aig_Ma
     int index;
 
     assert( Saig_ObjIsPi( pAigNew, pObjPivot ) );
-    Aig_ManForEachPi( pAigNew, pObj, index )
+    Aig_ManForEachCi( pAigNew, pObj, index )
         if( pObj == pObjPivot )
             break;
     assert( index < Aig_ManPiNum( pAigNew ) - Aig_ManRegNum( pAigNew ) );
@@ -243,7 +243,7 @@ static Aig_Man_t * LivenessToSafetyTransformationSim( Abc_Ntk_t * pNtk, Aig_Man_
     Saig_ManForEachPi( p, pObj, i )
     {
         piCopied++;
-        pObj->pData = Aig_ObjCreatePi(pNew);
+        pObj->pData = Aig_ObjCreateCi(pNew);
         Vec_PtrPush( vecPis, pObj->pData );
         nodeName = Abc_UtilStrsav(Abc_ObjName( Abc_NtkPi( pNtk, i ) ));
         Vec_PtrPush( vecPiNames, nodeName );
@@ -253,7 +253,7 @@ static Aig_Man_t * LivenessToSafetyTransformationSim( Abc_Ntk_t * pNtk, Aig_Man_
     // Step 4: create the special Pi corresponding to SAVE
     //****************************************************************
 #ifndef DUPLICATE_CKT_DEBUG
-    pObjSavePi = Aig_ObjCreatePi( pNew );
+    pObjSavePi = Aig_ObjCreateCi( pNew );
     nodeName = Abc_UtilStrsav("SAVE_BIERE"),
     Vec_PtrPush( vecPiNames, nodeName );
 #endif
@@ -264,7 +264,7 @@ static Aig_Man_t * LivenessToSafetyTransformationSim( Abc_Ntk_t * pNtk, Aig_Man_
     Saig_ManForEachLo( p, pObj, i )
     {
         loCopied++;
-        pObj->pData = Aig_ObjCreatePi(pNew);
+        pObj->pData = Aig_ObjCreateCi(pNew);
         Vec_PtrPush( vecLos, pObj->pData );
         nodeName = Abc_UtilStrsav(Abc_ObjName( Abc_NtkCi( pNtk, Abc_NtkPiNum(pNtk) + i ) ));
         Vec_PtrPush( vecLoNames, nodeName );
@@ -275,7 +275,7 @@ static Aig_Man_t * LivenessToSafetyTransformationSim( Abc_Ntk_t * pNtk, Aig_Man_
     //****************************************************************
 #ifndef DUPLICATE_CKT_DEBUG
     loCreated++;
-    pObjSavedLo = Aig_ObjCreatePi( pNew );
+    pObjSavedLo = Aig_ObjCreateCi( pNew );
     Vec_PtrPush( vecLos, pObjSavedLo );
     nodeName = Abc_UtilStrsav("SAVED_LO");
     Vec_PtrPush( vecLoNames, nodeName );
@@ -303,7 +303,7 @@ static Aig_Man_t * LivenessToSafetyTransformationSim( Abc_Ntk_t * pNtk, Aig_Man_
     // of the whole circuit, discuss with Sat/Alan for an alternative implementation
     //********************************************************************
 #ifndef DUPLICATE_CKT_DEBUG
-    pObjSafetyPropertyOutput = Aig_ObjCreatePo( pNew, (Aig_Obj_t *)Aig_ObjFanin0(pObj)->pData );
+    pObjSafetyPropertyOutput = Aig_ObjCreateCo( pNew, (Aig_Obj_t *)Aig_ObjFanin0(pObj)->pData );
 #endif
 
     //********************************************************************
@@ -313,7 +313,7 @@ static Aig_Man_t * LivenessToSafetyTransformationSim( Abc_Ntk_t * pNtk, Aig_Man_
 #ifdef DUPLICATE_CKT_DEBUG
     Saig_ManForEachPo( p, pObj, i )
     {
-        Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
+        Aig_ObjCreateCo( pNew, Aig_ObjChild0Copy(pObj) );
     }
 #endif
 
@@ -323,15 +323,15 @@ static Aig_Man_t * LivenessToSafetyTransformationSim( Abc_Ntk_t * pNtk, Aig_Man_
     Saig_ManForEachLo( p, pObj, i )
     {
         pMatch = Saig_ObjLoToLi( p, pObj );
-        //Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pMatch) );
-        Aig_ObjCreatePo( pNew, Aig_NotCond((Aig_Obj_t *)Aig_ObjFanin0(pMatch)->pData, Aig_ObjFaninC0( pMatch ) ) );
+        //Aig_ObjCreateCo( pNew, Aig_ObjChild0Copy(pMatch) );
+        Aig_ObjCreateCo( pNew, Aig_NotCond((Aig_Obj_t *)Aig_ObjFanin0(pMatch)->pData, Aig_ObjFaninC0( pMatch ) ) );
         nRegCount++;
         liCopied++;
     }
 
     // create register input corresponding to the register "saved"
 #ifndef DUPLICATE_CKT_DEBUG
-    pObjSavedLi = Aig_ObjCreatePo( pNew, pObjSaveOrSaved );
+    pObjSavedLi = Aig_ObjCreateCo( pNew, pObjSaveOrSaved );
     nRegCount++;
     liCreated++;
 
@@ -340,7 +340,7 @@ static Aig_Man_t * LivenessToSafetyTransformationSim( Abc_Ntk_t * pNtk, Aig_Man_
     // create the family of shadow registers, then create the cascade of Xnor and And gates for the comparator 
     Saig_ManForEachLo( p, pObj, i )
     {
-        pObjShadowLo = Aig_ObjCreatePi( pNew );
+        pObjShadowLo = Aig_ObjCreateCi( pNew );
 
 #ifdef PROPAGATE_NAMES
         Vec_PtrPush( vecLos, pObjShadowLo );
@@ -350,7 +350,7 @@ static Aig_Man_t * LivenessToSafetyTransformationSim( Abc_Ntk_t * pNtk, Aig_Man_
 #endif
 
         pObjShadowLiDriver = Aig_Mux( pNew, pObjSavePi, (Aig_Obj_t *)pObj->pData, pObjShadowLo );
-        pObjShadowLi = Aig_ObjCreatePo( pNew, pObjShadowLiDriver );
+        pObjShadowLi = Aig_ObjCreateCo( pNew, pObjShadowLiDriver );
         nRegCount++;
         loCreated++; liCreated++;
         
@@ -380,7 +380,7 @@ static Aig_Man_t * LivenessToSafetyTransformationSim( Abc_Ntk_t * pNtk, Aig_Man_
             //Aig_ObjPrint( pNew, pObj );
             liveLatch++;
             pDriverImage = Aig_NotCond((Aig_Obj_t *)Aig_Regular(Aig_ObjChild0( pObj ))->pData, Aig_ObjFaninC0(pObj));
-            pObjShadowLo = Aig_ObjCreatePi( pNew );
+            pObjShadowLo = Aig_ObjCreateCi( pNew );
 
 #ifdef PROPAGATE_NAMES
         Vec_PtrPush( vecLos, pObjShadowLo );
@@ -391,7 +391,7 @@ static Aig_Man_t * LivenessToSafetyTransformationSim( Abc_Ntk_t * pNtk, Aig_Man_
 
             pObjShadowLiDriver = Aig_Or( pNew, Aig_Mux(pNew, pObjSavePi, Aig_Not(Aig_ManConst1(pNew)), pObjShadowLo), 
                                                 Aig_And( pNew, pDriverImage, pObjSaveOrSaved ) );
-            pObjShadowLi = Aig_ObjCreatePo( pNew, pObjShadowLiDriver );
+            pObjShadowLi = Aig_ObjCreateCo( pNew, pObjShadowLiDriver );
             nRegCount++;
             loCreated++; liCreated++;
             
@@ -421,7 +421,7 @@ static Aig_Man_t * LivenessToSafetyTransformationSim( Abc_Ntk_t * pNtk, Aig_Man_
             fairLatch++;
             //assert( Aig_ObjIsNode( Aig_ObjChild0( pObj ) ) );
             pDriverImage = Aig_NotCond((Aig_Obj_t *)Aig_Regular(Aig_ObjChild0( pObj ))->pData, Aig_ObjFaninC0(pObj));
-            pObjShadowLo = Aig_ObjCreatePi( pNew );
+            pObjShadowLo = Aig_ObjCreateCi( pNew );
 
 #ifdef PROPAGATE_NAMES
         Vec_PtrPush( vecLos, pObjShadowLo );
@@ -432,7 +432,7 @@ static Aig_Man_t * LivenessToSafetyTransformationSim( Abc_Ntk_t * pNtk, Aig_Man_
 
             pObjShadowLiDriver = Aig_Or( pNew, Aig_Mux(pNew, pObjSavePi, Aig_Not(Aig_ManConst1(pNew)), pObjShadowLo), 
                                     Aig_And( pNew, pDriverImage, pObjSaveOrSaved ) );
-            pObjShadowLi = Aig_ObjCreatePo( pNew, pObjShadowLiDriver );
+            pObjShadowLi = Aig_ObjCreateCo( pNew, pObjShadowLiDriver );
             nRegCount++;
             loCreated++; liCreated++;
             
@@ -520,7 +520,7 @@ static Aig_Man_t * LivenessToSafetyTransformationOneStepLoopSim( Abc_Ntk_t * pNt
     Saig_ManForEachPi( p, pObj, i )
     {
         piCopied++;
-        pObj->pData = Aig_ObjCreatePi(pNew);
+        pObj->pData = Aig_ObjCreateCi(pNew);
         Vec_PtrPush( vecPis, pObj->pData );
         nodeName = Abc_UtilStrsav(Abc_ObjName( Abc_NtkPi( pNtk, i ) ));
         Vec_PtrPush( vecPiNames, nodeName );
@@ -529,7 +529,7 @@ static Aig_Man_t * LivenessToSafetyTransformationOneStepLoopSim( Abc_Ntk_t * pNt
     //****************************************************************
     // Step 4: create the special Pi corresponding to SAVE
     //****************************************************************
-    pObjSavePi = Aig_ObjCreatePi( pNew );
+    pObjSavePi = Aig_ObjCreateCi( pNew );
     nodeName = "SAVE_BIERE",
     Vec_PtrPush( vecPiNames, nodeName );
         
@@ -539,7 +539,7 @@ static Aig_Man_t * LivenessToSafetyTransformationOneStepLoopSim( Abc_Ntk_t * pNt
     Saig_ManForEachLo( p, pObj, i )
     {
         loCopied++;
-        pObj->pData = Aig_ObjCreatePi(pNew);
+        pObj->pData = Aig_ObjCreateCi(pNew);
         Vec_PtrPush( vecLos, pObj->pData );
         nodeName = Abc_UtilStrsav(Abc_ObjName( Abc_NtkCi( pNtk, Abc_NtkPiNum(pNtk) + i ) ));
         Vec_PtrPush( vecLoNames, nodeName );
@@ -551,7 +551,7 @@ static Aig_Man_t * LivenessToSafetyTransformationOneStepLoopSim( Abc_Ntk_t * pNt
 
 #if 0
     loCreated++;
-    pObjSavedLo = Aig_ObjCreatePi( pNew );
+    pObjSavedLo = Aig_ObjCreateCi( pNew );
     Vec_PtrPush( vecLos, pObjSavedLo );
     nodeName = "SAVED_LO";
     Vec_PtrPush( vecLoNames, nodeName );
@@ -579,7 +579,7 @@ static Aig_Man_t * LivenessToSafetyTransformationOneStepLoopSim( Abc_Ntk_t * pNt
     // of the whole circuit, discuss with Sat/Alan for an alternative implementation
     //********************************************************************
 
-    pObjSafetyPropertyOutput = Aig_ObjCreatePo( pNew, (Aig_Obj_t *)Aig_ObjFanin0(pObj)->pData );
+    pObjSafetyPropertyOutput = Aig_ObjCreateCo( pNew, (Aig_Obj_t *)Aig_ObjFanin0(pObj)->pData );
 
     // create register inputs for the original registers
     nRegCount = 0;
@@ -587,15 +587,15 @@ static Aig_Man_t * LivenessToSafetyTransformationOneStepLoopSim( Abc_Ntk_t * pNt
     Saig_ManForEachLo( p, pObj, i )
     {
         pMatch = Saig_ObjLoToLi( p, pObj );
-        //Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pMatch) );
-        Aig_ObjCreatePo( pNew, Aig_NotCond((Aig_Obj_t *)Aig_ObjFanin0(pMatch)->pData, Aig_ObjFaninC0( pMatch ) ) );
+        //Aig_ObjCreateCo( pNew, Aig_ObjChild0Copy(pMatch) );
+        Aig_ObjCreateCo( pNew, Aig_NotCond((Aig_Obj_t *)Aig_ObjFanin0(pMatch)->pData, Aig_ObjFaninC0( pMatch ) ) );
         nRegCount++;
         liCopied++;
     }
 
 #if 0
     // create register input corresponding to the register "saved"
-    pObjSavedLi = Aig_ObjCreatePo( pNew, pObjSaveOrSaved );
+    pObjSavedLi = Aig_ObjCreateCo( pNew, pObjSaveOrSaved );
     nRegCount++;
     liCreated++;
 #endif

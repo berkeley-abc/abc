@@ -63,19 +63,19 @@ Aig_Man_t * Ssw_FramesWithConstraints( Aig_Man_t * p, int nFrames )
         // map constants and PIs
         Aig_ObjSetCopy( Aig_ManConst1(p), Aig_ManConst1(pFrames) );
         Saig_ManForEachPi( p, pObj, i )
-            Aig_ObjSetCopy( pObj, Aig_ObjCreatePi(pFrames) );
+            Aig_ObjSetCopy( pObj, Aig_ObjCreateCi(pFrames) );
         // add internal nodes of this frame
         Aig_ManForEachNode( p, pObj, i )
             Aig_ObjSetCopy( pObj, Aig_And( pFrames, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) ) );
         // transfer to the primary output
-        Aig_ManForEachPo( p, pObj, i )
+        Aig_ManForEachCo( p, pObj, i )
             Aig_ObjSetCopy( pObj, Aig_ObjChild0Copy(pObj) );
         // create constraint outputs
         Saig_ManForEachPo( p, pObj, i )
         {
             if ( i < Saig_ManPoNum(p) - Saig_ManConstrNum(p) )
                 continue;
-            Aig_ObjCreatePo( pFrames, Aig_Not( Aig_ObjCopy(pObj) ) );
+            Aig_ObjCreateCo( pFrames, Aig_Not( Aig_ObjCopy(pObj) ) );
         }
         // transfer latch inputs to the latch outputs 
         Saig_ManForEachLiLo( p, pObjLi, pObjLo, i )
@@ -125,10 +125,10 @@ int Ssw_ManSetConstrPhases( Aig_Man_t * p, int nFrames, Vec_Int_t ** pvInits )
     if ( RetValue == l_True && pvInits )
     {
         *pvInits = Vec_IntAlloc( 1000 );
-        Aig_ManForEachPi( pFrames, pObj, i )
+        Aig_ManForEachCi( pFrames, pObj, i )
             Vec_IntPush( *pvInits, sat_solver_var_value(pSat, pCnf->pVarNums[Aig_ObjId(pObj)]) );
 
-//        Aig_ManForEachPi( pFrames, pObj, i )
+//        Aig_ManForEachCi( pFrames, pObj, i )
 //            printf( "%d", Vec_IntEntry(*pvInits, i) );
 //        printf( "\n" );
     }
@@ -268,7 +268,7 @@ void Ssw_ManRefineByConstrSim( Ssw_Man_t * p )
             pObj->fMarkB = ( Aig_ObjFanin0(pObj)->fMarkB ^ Aig_ObjFaninC0(pObj) )
                          & ( Aig_ObjFanin1(pObj)->fMarkB ^ Aig_ObjFaninC1(pObj) );
         // assign the COs
-        Aig_ManForEachPo( p->pAig, pObj, i )
+        Aig_ManForEachCo( p->pAig, pObj, i )
             pObj->fMarkB = ( Aig_ObjFanin0(pObj)->fMarkB ^ Aig_ObjFaninC0(pObj) );
         // check the outputs
         Saig_ManForEachPo( p->pAig, pObj, i )
@@ -424,7 +424,7 @@ clk = clock();
         Ssw_ObjSetFrame( p, Aig_ManConst1(p->pAig), f, Aig_ManConst1(p->pFrames) );
         Saig_ManForEachPi( p->pAig, pObj, i )
         {
-            pObjNew = Aig_ObjCreatePi(p->pFrames);
+            pObjNew = Aig_ObjCreateCi(p->pFrames);
             pObjNew->fPhase = Vec_IntEntry( p->vInits, iLits++ );
             Ssw_ObjSetFrame( p, pObj, f, pObjNew );
         }
@@ -464,7 +464,7 @@ clk = clock();
         if ( f == p->pPars->nFramesK - 1 )
             break;
         // transfer latch input to the latch outputs 
-        Aig_ManForEachPo( p->pAig, pObj, i )
+        Aig_ManForEachCo( p->pAig, pObj, i )
             Ssw_ObjSetFrame( p, pObj, f, Ssw_ObjChild0Fra(p, pObj, f) );
         // build logic cones for register outputs
         Saig_ManForEachLiLo( p->pAig, pObjLi, pObjLo, i )
@@ -514,7 +514,7 @@ clk = clock();
         Ssw_ObjSetFrame( p, Aig_ManConst1(p->pAig), f, Aig_ManConst1(p->pFrames) );
         Saig_ManForEachPi( p->pAig, pObj, i )
         {
-            pObjNew = Aig_ObjCreatePi(p->pFrames);
+            pObjNew = Aig_ObjCreateCi(p->pFrames);
             pObjNew->fPhase = Vec_IntEntry( p->vInits, iLits++ );
             Ssw_ObjSetFrame( p, pObj, f, pObjNew );
         }
@@ -544,7 +544,7 @@ clk = clock();
         if ( f == p->pPars->nFramesK - 1 )
             break;
         // transfer latch input to the latch outputs 
-        Aig_ManForEachPo( p->pAig, pObj, i )
+        Aig_ManForEachCo( p->pAig, pObj, i )
             Ssw_ObjSetFrame( p, pObj, f, Ssw_ObjChild0Fra(p, pObj, f) );
         // build logic cones for register outputs
         Saig_ManForEachLiLo( p->pAig, pObjLi, pObjLo, i )
@@ -648,7 +648,7 @@ clk = clock();
     Ssw_ObjSetFrame( p, Aig_ManConst1(p->pAig), f, Aig_ManConst1(p->pFrames) );
     Saig_ManForEachPi( p->pAig, pObj, i )
     {
-        pObjNew = Aig_ObjCreatePi(p->pFrames);
+        pObjNew = Aig_ObjCreateCi(p->pFrames);
         pObjNew->fPhase = (p->vInits != NULL) && Vec_IntEntry(p->vInits, iLits++);
         Ssw_ObjSetFrame( p, pObj, f, pObjNew );
     }

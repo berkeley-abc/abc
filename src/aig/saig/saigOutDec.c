@@ -165,14 +165,14 @@ Aig_Man_t * Saig_ManDecPropertyOutput( Aig_Man_t * pAig, int nLits, int fVerbose
     // map the constant node
     Aig_ManConst1(pAig)->pData = Aig_ManConst1( pAigNew );
     // create variables for PIs
-    Aig_ManForEachPi( pAig, pObj, i )
-        pObj->pData = Aig_ObjCreatePi( pAigNew );
+    Aig_ManForEachCi( pAig, pObj, i )
+        pObj->pData = Aig_ObjCreateCi( pAigNew );
     // add internal nodes of this frame
     Aig_ManForEachNode( pAig, pObj, i )
         pObj->pData = Aig_And( pAigNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
     // create original POs of the circuit
     Saig_ManForEachPo( pAig, pObj, i )
-        Aig_ObjCreatePo( pAigNew, Aig_ObjChild0Copy(pObj) );
+        Aig_ObjCreateCo( pAigNew, Aig_ObjChild0Copy(pObj) );
     // create prime POs of the circuit
     if ( vPrimes )
     Vec_PtrForEachEntry( Vec_Int_t *, vPrimes, vCube, k )
@@ -183,11 +183,11 @@ Aig_Man_t * Saig_ManDecPropertyOutput( Aig_Man_t * pAig, int nLits, int fVerbose
             pObj = Aig_NotCond( Aig_ObjCopy(Aig_ManObj(pAig, Abc_Lit2Var(Lit))), Abc_LitIsCompl(Lit) );
             pMiter = Aig_And( pAigNew, pMiter, pObj );
         }
-        Aig_ObjCreatePo( pAigNew, pMiter );
+        Aig_ObjCreateCo( pAigNew, pMiter );
     }
     // transfer to register outputs
     Saig_ManForEachLi( pAig, pObj, i )
-        Aig_ObjCreatePo( pAigNew, Aig_ObjChild0Copy(pObj) );
+        Aig_ObjCreateCo( pAigNew, Aig_ObjChild0Copy(pObj) );
     Aig_ManCleanup( pAigNew );
     Aig_ManSetRegNum( pAigNew, Aig_ManRegNum(pAig) );
 

@@ -306,11 +306,11 @@ void Cnf_DeriveFastMark( Aig_Man_t * p )
     vSupps  = Vec_IntStart( Aig_ManObjNumMax(p) );
 
     // mark CIs
-    Aig_ManForEachPi( p, pObj, i )
+    Aig_ManForEachCi( p, pObj, i )
         pObj->fMarkA = 1;
 
     // mark CO drivers
-    Aig_ManForEachPo( p, pObj, i )
+    Aig_ManForEachCo( p, pObj, i )
         Aig_ObjFanin0(pObj)->fMarkA = 1;
 
     // mark MUX/XOR nodes
@@ -403,7 +403,7 @@ void Cnf_DeriveFastMark( Aig_Man_t * p )
 
     // check CO drivers
     Counter = 0;
-    Aig_ManForEachPo( p, pObj, i )
+    Aig_ManForEachCo( p, pObj, i )
         Counter += !Aig_ObjFanin0(pObj)->fMarkA;
     if ( Counter )
     printf( "PO-driver rule is violated %d times.\n", Counter );
@@ -562,7 +562,7 @@ Cnf_Dat_t * Cnf_DeriveFastClauses( Aig_Man_t * p, int nOutputs )
         if ( Aig_ManRegNum(p) == 0 )
         {
             assert( nOutputs == Aig_ManPoNum(p) );
-            Aig_ManForEachPo( p, pObj, i )
+            Aig_ManForEachCo( p, pObj, i )
                 Vec_IntWriteEntry( vMap, Aig_ObjId(pObj), nVars++ );
         }
         else
@@ -577,7 +577,7 @@ Cnf_Dat_t * Cnf_DeriveFastClauses( Aig_Man_t * p, int nOutputs )
         if ( pObj->fMarkA )
             Vec_IntWriteEntry( vMap, Aig_ObjId(pObj), nVars++ );
     // assign variables to the PIs and constant node
-    Aig_ManForEachPi( p, pObj, i )
+    Aig_ManForEachCi( p, pObj, i )
         Vec_IntWriteEntry( vMap, Aig_ObjId(pObj), nVars++ );
     Vec_IntWriteEntry( vMap, Aig_ObjId(Aig_ManConst1(p)), nVars++ );
 
@@ -605,7 +605,7 @@ Cnf_Dat_t * Cnf_DeriveFastClauses( Aig_Man_t * p, int nOutputs )
     Vec_IntFree( vTemp );
 
     // create clauses for the outputs
-    Aig_ManForEachPo( p, pObj, i )
+    Aig_ManForEachCo( p, pObj, i )
     {
         DriLit = Cnf_ObjGetLit( vMap, Aig_ObjFanin0(pObj), Aig_ObjFaninC0(pObj) );
         if ( i < Aig_ManPoNum(p) - nOutputs )

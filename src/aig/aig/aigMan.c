@@ -96,9 +96,9 @@ Aig_Man_t * Aig_ManStartFrom( Aig_Man_t * p )
     pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     // create the PIs
     Aig_ManConst1(p)->pData = Aig_ManConst1(pNew);
-    Aig_ManForEachPi( p, pObj, i )
+    Aig_ManForEachCi( p, pObj, i )
     {
-        pObjNew = Aig_ObjCreatePi( pNew );
+        pObjNew = Aig_ObjCreateCi( pNew );
         pObjNew->Level = pObj->Level;
         pObjNew->pHaig = pObj->pHaig;
         pObj->pData = pObjNew;
@@ -154,8 +154,8 @@ Aig_Man_t * Aig_ManExtractMiter( Aig_Man_t * p, Aig_Obj_t * pNode1, Aig_Obj_t * 
     // create the PIs
     Aig_ManCleanData( p );
     Aig_ManConst1(p)->pData = Aig_ManConst1(pNew);
-    Aig_ManForEachPi( p, pObj, i )
-        pObj->pData = Aig_ObjCreatePi(pNew);
+    Aig_ManForEachCi( p, pObj, i )
+        pObj->pData = Aig_ObjCreateCi(pNew);
     // dump the nodes
     Aig_ManDup_rec( pNew, p, pNode1 );   
     Aig_ManDup_rec( pNew, p, pNode2 );   
@@ -163,7 +163,7 @@ Aig_Man_t * Aig_ManExtractMiter( Aig_Man_t * p, Aig_Obj_t * pNode1, Aig_Obj_t * 
     pObj = Aig_Exor( pNew, (Aig_Obj_t *)pNode1->pData, (Aig_Obj_t *)pNode2->pData ); 
     pObj = Aig_NotCond( pObj, Aig_Regular(pObj)->fPhase ^ Aig_IsComplement(pObj) );
     // add the PO
-    Aig_ObjCreatePo( pNew, pObj );
+    Aig_ObjCreateCo( pNew, pObj );
     // check the resulting network
     if ( !Aig_ManCheck(pNew) )
         printf( "Aig_ManExtractMiter(): The check has failed.\n" );
@@ -290,7 +290,7 @@ int Aig_ManAntiCleanup( Aig_Man_t * p )
     int i, nNodesOld = Aig_ManPoNum(p);
     Aig_ManForEachObj( p, pNode, i )
         if ( Aig_ObjIsNode(pNode) && Aig_ObjRefs(pNode) == 0 )
-            Aig_ObjCreatePo( p, pNode );
+            Aig_ObjCreateCo( p, pNode );
     return nNodesOld - Aig_ManPoNum(p);
 }
 

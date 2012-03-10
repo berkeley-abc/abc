@@ -503,7 +503,7 @@ Aig_Man_t * Dar_ManBalance( Aig_Man_t * p, int fUpdateLevel )
             if ( Aig_ObjIsPi(pObj) )
             {
                 // copy the PI
-                pObjNew = Aig_ObjCreatePi(pNew); 
+                pObjNew = Aig_ObjCreateCi(pNew); 
                 pObj->pData = pObjNew;
                 pObjNew->pHaig = pObj->pHaig;
                 // set the arrival time of the new PI
@@ -520,7 +520,7 @@ Aig_Man_t * Dar_ManBalance( Aig_Man_t * p, int fUpdateLevel )
                 arrTime = (float)Aig_Regular(pObjNew)->Level;
                 Tim_ManSetCoArrival( (Tim_Man_t *)p->pManTime, Aig_ObjPioNum(pObj), arrTime );
                 // create PO
-                pObjNew = Aig_ObjCreatePo( pNew, pObjNew );
+                pObjNew = Aig_ObjCreateCo( pNew, pObjNew );
                 pObjNew->pHaig = pObj->pHaig;
             }
             else
@@ -531,19 +531,19 @@ Aig_Man_t * Dar_ManBalance( Aig_Man_t * p, int fUpdateLevel )
     }
     else
     {
-        Aig_ManForEachPi( p, pObj, i )
+        Aig_ManForEachCi( p, pObj, i )
         {
-            pObjNew = Aig_ObjCreatePi(pNew); 
+            pObjNew = Aig_ObjCreateCi(pNew); 
             pObjNew->Level = pObj->Level;
             pObj->pData = pObjNew;
             pObjNew->pHaig = pObj->pHaig;
         }
-        Aig_ManForEachPo( p, pObj, i )
+        Aig_ManForEachCo( p, pObj, i )
         {
             pDriver = Aig_ObjReal_rec( Aig_ObjChild0(pObj) );
             pObjNew = Dar_Balance_rec( pNew, Aig_Regular(pDriver), vStore, 0, fUpdateLevel );
             pObjNew = Aig_NotCond( pObjNew, Aig_IsComplement(pDriver) );
-            pObjNew = Aig_ObjCreatePo( pNew, pObjNew );
+            pObjNew = Aig_ObjCreateCo( pNew, pObjNew );
             pObjNew->pHaig = pObj->pHaig;
         }
     }

@@ -341,7 +341,7 @@ void Amap_ManCreate( Amap_Man_t * p, Aig_Man_t * pAig )
     // create PIs and remember them in the old nodes
     Aig_ManCleanData(pAig);
     Aig_ManConst1(pAig)->pData = Amap_ManConst1( p );
-    Aig_ManForEachPi( pAig, pObj, i )
+    Aig_ManForEachCi( pAig, pObj, i )
         pObj->pData = Amap_ManCreatePi( p );
     // load the AIG into the mapper
     Vec_PtrForEachEntry( Aig_Obj_t *, vNodes, pObj, i )
@@ -383,7 +383,7 @@ void Amap_ManCreate( Amap_Man_t * p, Aig_Man_t * pAig )
     }
     Vec_PtrFree( vNodes );
     // set the primary outputs without copying the phase
-    Aig_ManForEachPo( pAig, pObj, i )
+    Aig_ManForEachCo( pAig, pObj, i )
         pObj->pData = Amap_ManCreatePo( p, (Amap_Obj_t *)Aig_ObjChild0Copy(pObj) );
     if ( p->pPars->fVerbose )
         printf( "Performing mapping with %d given and %d created choices.\n", 

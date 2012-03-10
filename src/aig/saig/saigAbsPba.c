@@ -103,10 +103,10 @@ Aig_Man_t * Saig_ManUnrollForPba( Aig_Man_t * pAig, int nStart, int nFrames, Vec
     pFrames->pSpec = Abc_UtilStrsav( pAig->pSpec );
     // create activation variables
     Saig_ManForEachLo( pAig, pObj, i )
-        Aig_ObjCreatePi( pFrames );
+        Aig_ObjCreateCi( pFrames );
     // initialize the flops 
     Saig_ManForEachLo( pAig, pObj, i )
-        pObj->pData = Aig_Mux( pFrames, Aig_ManPi(pFrames,i), Aig_ObjCreatePi(pFrames), Aig_ManConst0(pFrames) );
+        pObj->pData = Aig_Mux( pFrames, Aig_ManPi(pFrames,i), Aig_ObjCreateCi(pFrames), Aig_ManConst0(pFrames) );
     // iterate through the frames
     *pvPiVarMap = Vec_IntStartFull( nFrames * Saig_ManPiNum(pAig) );
     pObjNew = Aig_ManConst0(pFrames);
@@ -123,7 +123,7 @@ Aig_Man_t * Saig_ManUnrollForPba( Aig_Man_t * pAig, int nStart, int nFrames, Vec
             else if ( Saig_ObjIsPi(pAig, pObj) )
             {
                 Vec_IntWriteEntry( *pvPiVarMap, f * Saig_ManPiNum(pAig) + Aig_ObjPioNum(pObj), Aig_ManPiNum(pFrames) );
-                pObj->pData = Aig_ObjCreatePi( pFrames );
+                pObj->pData = Aig_ObjCreateCi( pFrames );
             }
             else if ( Aig_ObjIsConst1(pObj) )
                 pObj->pData = Aig_ManConst1(pFrames);
@@ -146,7 +146,7 @@ Aig_Man_t * Saig_ManUnrollForPba( Aig_Man_t * pAig, int nStart, int nFrames, Vec
             {
                 int iFlopNum = Aig_ObjPioNum(pObj) - Saig_ManPoNum(pAig);
                 assert( iFlopNum >= 0 && iFlopNum < Aig_ManRegNum(pAig) );
-                Saig_ObjLiToLo(pAig, pObj)->pData = Aig_Mux( pFrames, Aig_ManPi(pFrames,iFlopNum), Aig_ObjCreatePi(pFrames), (Aig_Obj_t *)pObj->pData );
+                Saig_ObjLiToLo(pAig, pObj)->pData = Aig_Mux( pFrames, Aig_ManPi(pFrames,iFlopNum), Aig_ObjCreateCi(pFrames), (Aig_Obj_t *)pObj->pData );
             }
         }
     }
@@ -154,7 +154,7 @@ Aig_Man_t * Saig_ManUnrollForPba( Aig_Man_t * pAig, int nStart, int nFrames, Vec
     Vec_VecFree( vFrameCos );
     Vec_VecFree( vFrameObjs );
     // create output
-    Aig_ObjCreatePo( pFrames, pObjNew );
+    Aig_ObjCreateCo( pFrames, pObjNew );
     Aig_ManSetRegNum( pFrames, 0 );
     // finallize
     Aig_ManCleanup( pFrames );
@@ -202,7 +202,7 @@ Abc_Cex_t * Saig_ManPbaDeriveCex( Aig_Man_t * pAig, sat_solver * pSat, Cnf_Dat_t
         Aig_ManForEachNode( pAig, pObj, i )
             pObj->fMarkB = (Aig_ObjFanin0(pObj)->fMarkB ^ Aig_ObjFaninC0(pObj)) & 
                            (Aig_ObjFanin1(pObj)->fMarkB ^ Aig_ObjFaninC1(pObj));
-        Aig_ManForEachPo( pAig, pObj, i )
+        Aig_ManForEachCo( pAig, pObj, i )
             pObj->fMarkB = Aig_ObjFanin0(pObj)->fMarkB ^ Aig_ObjFaninC0(pObj);
         Saig_ManForEachLiLo( pAig, pObjRi, pObjRo, i )
             pObjRo->fMarkB = pObjRi->fMarkB;
@@ -285,7 +285,7 @@ Abc_PrintTime( 1, "Preparing", clock() - clk );
     // map activation variables into flop numbers
     vAssumps = Vec_IntAlloc( Aig_ManRegNum(pAig) );
     vMapVar2FF = Vec_IntStartFull( pCnf->nVars );
-    Aig_ManForEachPi( pFrames, pObj, i )
+    Aig_ManForEachCi( pFrames, pObj, i )
     {
         if ( i >= Aig_ManRegNum(pAig) )
             break;

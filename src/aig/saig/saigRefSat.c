@@ -177,7 +177,7 @@ Vec_Int_t * Saig_RefManFindReason( Saig_RefMan_t * p )
     // set PI values according to CEX
     CountPrios = 0;
     Aig_ManConst1(p->pFrames)->fPhase = 1;
-    Aig_ManForEachPi( p->pFrames, pObj, i )
+    Aig_ManForEachCi( p->pFrames, pObj, i )
     {
         int iInput = Vec_IntEntry( p->vMapPiF2A, 2*i );
         int iFrame = Vec_IntEntry( p->vMapPiF2A, 2*i+1 );
@@ -323,7 +323,7 @@ Aig_Man_t * Saig_ManUnrollWithCex( Aig_Man_t * pAig, Abc_Cex_t * pCex, int nInpu
                 }
                 else
                 {
-                    pObj->pData = Aig_ObjCreatePi( pFrames );
+                    pObj->pData = Aig_ObjCreateCi( pFrames );
                     Vec_IntPush( *pvMapPiF2A, Aig_ObjPioNum(pObj) );
                     Vec_IntPush( *pvMapPiF2A, f );
                 }
@@ -338,7 +338,7 @@ Aig_Man_t * Saig_ManUnrollWithCex( Aig_Man_t * pAig, Abc_Cex_t * pCex, int nInpu
     }
     // create output
     pObj = Aig_ManPo( pAig, pCex->iPo );
-    Aig_ObjCreatePo( pFrames, Aig_Not((Aig_Obj_t *)pObj->pData) );
+    Aig_ObjCreateCo( pFrames, Aig_Not((Aig_Obj_t *)pObj->pData) );
     Aig_ManSetRegNum( pFrames, 0 );
     // cleanup
     Vec_VecFree( vFrameCos );
@@ -406,7 +406,7 @@ int Saig_RefManSetPhases( Saig_RefMan_t * p, Abc_Cex_t * pCare, int fValue1 )
     Aig_Obj_t * pObj;
     int i, iFrame, iInput;
     Aig_ManConst1( p->pFrames )->fPhase = 1;
-    Aig_ManForEachPi( p->pFrames, pObj, i )
+    Aig_ManForEachCi( p->pFrames, pObj, i )
     {
         iInput = Vec_IntEntry( p->vMapPiF2A, 2*i );
         iFrame = Vec_IntEntry( p->vMapPiF2A, 2*i+1 );
@@ -418,7 +418,7 @@ int Saig_RefManSetPhases( Saig_RefMan_t * p, Abc_Cex_t * pCare, int fValue1 )
     Aig_ManForEachNode( p->pFrames, pObj, i )
         pObj->fPhase = ( Aig_ObjFanin0(pObj)->fPhase ^ Aig_ObjFaninC0(pObj) )
                      & ( Aig_ObjFanin1(pObj)->fPhase ^ Aig_ObjFaninC1(pObj) );
-    Aig_ManForEachPo( p->pFrames, pObj, i )
+    Aig_ManForEachCo( p->pFrames, pObj, i )
         pObj->fPhase = ( Aig_ObjFanin0(pObj)->fPhase ^ Aig_ObjFaninC0(pObj) );
     pObj = Aig_ManPo( p->pFrames, 0 );
     return pObj->fPhase;
@@ -549,7 +549,7 @@ Abc_Cex_t * Saig_RefManRunSat( Saig_RefMan_t * p, int fNewOrder )
     // create assumptions
     vVar2PiId = Vec_IntStartFull( pCnf->nVars );
     vAssumps = Vec_IntAlloc( Aig_ManPiNum(p->pFrames) );
-    Aig_ManForEachPi( p->pFrames, pObj, i )
+    Aig_ManForEachCi( p->pFrames, pObj, i )
     {
 //        RetValue = Abc_InfoHasBit( p->pCex->pData, p->pCex->nRegs + p->pCex->nPis * iFrame + iInput );
 //        Vec_IntPush( vAssumps, toLitCond( pCnf->pVarNums[Aig_ObjId(pObj)], !RetValue ) );
@@ -733,7 +733,7 @@ Vec_Int_t * Saig_RefManRefineWithSat( Saig_RefMan_t * p, Vec_Int_t * vAigPis )
     // create assumptions
     vVar2PiId = Vec_IntStartFull( pCnf->nVars );
     vAssumps = Vec_IntAlloc( Aig_ManPiNum(p->pFrames) );
-    Aig_ManForEachPi( p->pFrames, pObj, i )
+    Aig_ManForEachCi( p->pFrames, pObj, i )
     {
         int iInput = Vec_IntEntry( p->vMapPiF2A, 2*i );
         int iFrame = Vec_IntEntry( p->vMapPiF2A, 2*i+1 );

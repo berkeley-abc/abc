@@ -107,7 +107,7 @@ Vec_Int_t * Cnf_DataCollectPiSatNums( Cnf_Dat_t * pCnf, Aig_Man_t * p )
     Aig_Obj_t * pObj;
     int i;
     vCiIds = Vec_IntAlloc( Aig_ManPiNum(p) );
-    Aig_ManForEachPi( p, pObj, i )
+    Aig_ManForEachCi( p, pObj, i )
         Vec_IntPush( vCiIds, pCnf->pVarNums[pObj->Id] );
     return vCiIds;
 }
@@ -541,7 +541,7 @@ int Cnf_DataWriteOrClause( void * p, Cnf_Dat_t * pCnf )
     Aig_Obj_t * pObj;
     int i, * pLits;
     pLits = ABC_ALLOC( int, Aig_ManPoNum(pCnf->pMan) );
-    Aig_ManForEachPo( pCnf->pMan, pObj, i )
+    Aig_ManForEachCo( pCnf->pMan, pObj, i )
         pLits[i] = toLitCond( pCnf->pVarNums[pObj->Id], 0 );
     if ( !sat_solver_addclause( pSat, pLits, pLits + Aig_ManPoNum(pCnf->pMan) ) )
     {
@@ -569,7 +569,7 @@ int Cnf_DataWriteOrClause2( void * p, Cnf_Dat_t * pCnf )
     Aig_Obj_t * pObj;
     int i, * pLits;
     pLits = ABC_ALLOC( int, Aig_ManPoNum(pCnf->pMan) );
-    Aig_ManForEachPo( pCnf->pMan, pObj, i )
+    Aig_ManForEachCo( pCnf->pMan, pObj, i )
         pLits[i] = toLitCond( pCnf->pVarNums[pObj->Id], 0 );
     if ( !sat_solver2_addclause( pSat, pLits, pLits + Aig_ManPoNum(pCnf->pMan) ) )
     {
@@ -596,7 +596,7 @@ int Cnf_DataWriteAndClauses( void * p, Cnf_Dat_t * pCnf )
     sat_solver * pSat = (sat_solver *)p;
     Aig_Obj_t * pObj;
     int i, Lit;
-    Aig_ManForEachPo( pCnf->pMan, pObj, i )
+    Aig_ManForEachCo( pCnf->pMan, pObj, i )
     {
         Lit = toLitCond( pCnf->pVarNums[pObj->Id], 0 );
         if ( !sat_solver_addclause( pSat, &Lit, &Lit+1 ) )

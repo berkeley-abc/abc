@@ -147,7 +147,7 @@ int Saig_ManSimDataInit2( Aig_Man_t * p, Abc_Cex_t * pCex, Vec_Ptr_t * vSimInfo 
             Saig_ManSimInfo2Set( vSimInfo, pObj, f, Abc_InfoHasBit(pCex->pData, iBit++)?SAIG_ONE_NEW:SAIG_ZER_NEW );
         Aig_ManForEachNode( p, pObj, i )
             Saig_ManExtendOneEval2( vSimInfo, pObj, f );
-        Aig_ManForEachPo( p, pObj, i )
+        Aig_ManForEachCo( p, pObj, i )
             Saig_ManExtendOneEval2( vSimInfo, pObj, f );
         if ( f == pCex->iFrame )
             break;

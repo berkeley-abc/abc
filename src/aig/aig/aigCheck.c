@@ -47,7 +47,7 @@ int Aig_ManCheck( Aig_Man_t * p )
     Aig_Obj_t * pObj, * pObj2;
     int i;
     // check primary inputs
-    Aig_ManForEachPi( p, pObj, i )
+    Aig_ManForEachCi( p, pObj, i )
     {
         if ( Aig_ObjFanin0(pObj) || Aig_ObjFanin1(pObj) )
         {
@@ -56,7 +56,7 @@ int Aig_ManCheck( Aig_Man_t * p )
         }
     }
     // check primary outputs
-    Aig_ManForEachPo( p, pObj, i )
+    Aig_ManForEachCo( p, pObj, i )
     {
         if ( !Aig_ObjFanin0(pObj) )
         {

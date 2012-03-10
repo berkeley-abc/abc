@@ -154,7 +154,7 @@ unsigned * Saig_ManBmcTerSimOne( Aig_Man_t * p, unsigned * pPrev )
             Val1 = Saig_ManBmcSimInfoNot( Val1 );
         Saig_ManBmcSimInfoSet( pInfo, pObj, Saig_ManBmcSimInfoAnd(Val0, Val1) );
     }
-    Aig_ManForEachPo( p, pObj, i )
+    Aig_ManForEachCo( p, pObj, i )
     {
         Val0 = Saig_ManBmcSimInfoGet( pInfo, Aig_ObjFanin0(pObj) );
         if ( Aig_ObjFaninC0(pObj) )
@@ -471,11 +471,11 @@ void Saig_ManBmcWriteBlif( Aig_Man_t * p, Vec_Int_t * vMapping, char * pFileName
     }
     fprintf( pFile, ".model test\n" );
     fprintf( pFile, ".inputs" );
-    Aig_ManForEachPi( p, pObj, i )
+    Aig_ManForEachCi( p, pObj, i )
         fprintf( pFile, " n%d", Aig_ObjId(pObj) );
     fprintf( pFile, "\n" );
     fprintf( pFile, ".outputs" );
-    Aig_ManForEachPo( p, pObj, i )
+    Aig_ManForEachCo( p, pObj, i )
         fprintf( pFile, " n%d", Aig_ObjId(pObj) );
     fprintf( pFile, "\n" );
     fprintf( pFile, ".names" );
@@ -519,7 +519,7 @@ void Saig_ManBmcWriteBlif( Aig_Man_t * p, Vec_Int_t * vMapping, char * pFileName
     free( pSops[1] );
     free( pSops );
 
-    Aig_ManForEachPo( p, pObj, i )
+    Aig_ManForEachCo( p, pObj, i )
     {
         fprintf( pFile, ".names" );
         fprintf( pFile, " n%d", Aig_ObjId(Aig_ObjFanin0(pObj)) );
@@ -578,12 +578,12 @@ Gia_ManBmc_t * Saig_Bmc3ManStart( Aig_Man_t * pAig )
     p->nObjNums = 0;
     p->vId2Num  = Vec_IntStartFull( Aig_ManObjNumMax(pAig) );
     Vec_IntWriteEntry( p->vId2Num,  Aig_ObjId(Aig_ManConst1(pAig)), p->nObjNums++ );
-    Aig_ManForEachPi( pAig, pObj, i )
+    Aig_ManForEachCi( pAig, pObj, i )
         Vec_IntWriteEntry( p->vId2Num,  Aig_ObjId(pObj), p->nObjNums++ );
     Aig_ManForEachNode( pAig, pObj, i )
         if ( Vec_IntEntry(p->vMapping, Aig_ObjId(pObj)) > 0 )
             Vec_IntWriteEntry( p->vId2Num,  Aig_ObjId(pObj), p->nObjNums++ );
-    Aig_ManForEachPo( pAig, pObj, i )
+    Aig_ManForEachCo( pAig, pObj, i )
         Vec_IntWriteEntry( p->vId2Num,  Aig_ObjId(pObj), p->nObjNums++ );
     p->vPiVars  = Vec_IntAlloc( 1000 );
     p->vId2Var  = Vec_PtrAlloc( 100 );

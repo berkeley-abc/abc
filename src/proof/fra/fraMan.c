@@ -187,8 +187,8 @@ Aig_Man_t * Fra_ManPrepareComb( Fra_Man_t * p )
     pManFraig->nAsserts = p->pManAig->nAsserts;
     // set the pointers to the available fraig nodes
     Fra_ObjSetFraig( Aig_ManConst1(p->pManAig), 0, Aig_ManConst1(pManFraig) );
-    Aig_ManForEachPi( p->pManAig, pObj, i )
-        Fra_ObjSetFraig( pObj, 0, Aig_ObjCreatePi(pManFraig) );
+    Aig_ManForEachCi( p->pManAig, pObj, i )
+        Fra_ObjSetFraig( pObj, 0, Aig_ObjCreateCi(pManFraig) );
     // set the pointers to the manager
     Aig_ManForEachObj( pManFraig, pObj, i )
         pObj->pData = p;
@@ -219,8 +219,8 @@ void Fra_ManFinalizeComb( Fra_Man_t * p )
     Aig_Obj_t * pObj;
     int i;
     // add the POs
-    Aig_ManForEachPo( p->pManAig, pObj, i )
-        Aig_ObjCreatePo( p->pManFraig, Fra_ObjChild0Fra(pObj,0) );
+    Aig_ManForEachCo( p->pManAig, pObj, i )
+        Aig_ObjCreateCo( p->pManFraig, Fra_ObjChild0Fra(pObj,0) );
     // postprocess
     Aig_ManCleanMarkB( p->pManFraig );
 }

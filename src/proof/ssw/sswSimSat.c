@@ -48,7 +48,7 @@ void Ssw_ManResimulateBit( Ssw_Man_t * p, Aig_Obj_t * pCand, Aig_Obj_t * pRepr )
     int i, RetValue1, RetValue2, clk = clock();
     // set the PI simulation information
     Aig_ManConst1(p->pAig)->fMarkB = 1;
-    Aig_ManForEachPi( p->pAig, pObj, i )
+    Aig_ManForEachCi( p->pAig, pObj, i )
         pObj->fMarkB = Abc_InfoHasBit( p->pPatWords, i );
     // simulate internal nodes
     Aig_ManForEachNode( p->pAig, pObj, i )

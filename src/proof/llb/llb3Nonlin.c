@@ -712,7 +712,7 @@ Llb_Mnn_t * Llb_MnnStart( Aig_Man_t * pInit, Aig_Man_t * pAig, Gia_ParLlb_t *  p
     p->vRings = Vec_PtrAlloc( 100 );
     // create leaves
     p->vLeaves = Vec_PtrAlloc( Aig_ManPiNum(pAig) );
-    Aig_ManForEachPi( pAig, pObj, i )
+    Aig_ManForEachCi( pAig, pObj, i )
         Vec_PtrPush( p->vLeaves, pObj );
     // create roots
     p->vRoots = Vec_PtrAlloc( Aig_ManPoNum(pAig) );
@@ -723,7 +723,7 @@ Llb_Mnn_t * Llb_MnnStart( Aig_Man_t * pInit, Aig_Man_t * pAig, Gia_ParLlb_t *  p
     p->pOrderL2= ABC_CALLOC( int, Aig_ManObjNumMax(pAig) );
     p->pOrderG = ABC_CALLOC( int, Aig_ManObjNumMax(pAig) );
     p->pVars2Q = ABC_CALLOC( int, Aig_ManObjNumMax(pAig) );
-    Aig_ManForEachPi( pAig, pObj, i )
+    Aig_ManForEachCi( pAig, pObj, i )
         p->pVars2Q[Aig_ObjId(pObj)] = 1;
     for ( i = 0; i < Aig_ManObjNumMax(pAig); i++ )
         p->pOrderL[i] = p->pOrderL2[i] = p->pOrderG[i] = i;

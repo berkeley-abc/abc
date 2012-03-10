@@ -279,9 +279,9 @@ Aig_Man_t * Aig_ManDupRepr( Aig_Man_t * p, int fOrdered )
     // map the const and primary inputs
     Aig_ManCleanData( p );
     Aig_ManConst1(p)->pData = Aig_ManConst1(pNew);
-    Aig_ManForEachPi( p, pObj, i )
-        pObj->pData = Aig_ObjCreatePi(pNew);
-//    Aig_ManForEachPi( p, pObj, i )
+    Aig_ManForEachCi( p, pObj, i )
+        pObj->pData = Aig_ObjCreateCi(pNew);
+//    Aig_ManForEachCi( p, pObj, i )
 //        pObj->pData = Aig_ObjGetRepr( p, pObj );
     // map the internal nodes
     if ( fOrdered )
@@ -295,12 +295,12 @@ Aig_Man_t * Aig_ManDupRepr( Aig_Man_t * p, int fOrdered )
 //            if ( p->pReprs[i] )
 //                printf( "Substituting %d for %d.\n", p->pReprs[i]->Id, pObj->Id );
 
-        Aig_ManForEachPo( p, pObj, i )
+        Aig_ManForEachCo( p, pObj, i )
             Aig_ManDupRepr_rec( pNew, p, Aig_ObjFanin0(pObj) );
     }
     // transfer the POs
-    Aig_ManForEachPo( p, pObj, i )
-        Aig_ObjCreatePo( pNew, Aig_ObjChild0Repr(p, pObj) );
+    Aig_ManForEachCo( p, pObj, i )
+        Aig_ObjCreateCo( pNew, Aig_ObjChild0Repr(p, pObj) );
     Aig_ManSetRegNum( pNew, Aig_ManRegNum(p) );
     // check the new manager
     if ( !Aig_ManCheck(pNew) )

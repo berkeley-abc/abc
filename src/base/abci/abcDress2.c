@@ -89,21 +89,21 @@ Aig_Man_t * Aig_ManCreateDualOutputMiter( Aig_Man_t * p1, Aig_Man_t * p2 )
     pNew = Aig_ManStart( Aig_ManObjNumMax(p1) + Aig_ManObjNumMax(p2) );
     // add first AIG
     Aig_ManConst1(p1)->pData = Aig_ManConst1(pNew);
-    Aig_ManForEachPi( p1, pObj, i )
-        pObj->pData = Aig_ObjCreatePi( pNew );
+    Aig_ManForEachCi( p1, pObj, i )
+        pObj->pData = Aig_ObjCreateCi( pNew );
     Aig_ManForEachNode( p1, pObj, i )
         pObj->pData = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
     // add second AIG
     Aig_ManConst1(p2)->pData = Aig_ManConst1(pNew);
-    Aig_ManForEachPi( p2, pObj, i )
+    Aig_ManForEachCi( p2, pObj, i )
         pObj->pData = Aig_ManPi( pNew, i );
     Aig_ManForEachNode( p2, pObj, i )
         pObj->pData = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
     // add the outputs
     for ( i = 0; i < Aig_ManPoNum(p1); i++ )
     {
-        Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(Aig_ManPo(p1, i)) );
-        Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(Aig_ManPo(p2, i)) );
+        Aig_ObjCreateCo( pNew, Aig_ObjChild0Copy(Aig_ManPo(p1, i)) );
+        Aig_ObjCreateCo( pNew, Aig_ObjChild0Copy(Aig_ManPo(p2, i)) );
     }
     Aig_ManCleanup( pNew );
     return pNew;

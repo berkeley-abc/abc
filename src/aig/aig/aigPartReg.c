@@ -252,7 +252,7 @@ Vec_Ptr_t * Aig_ManRegProjectOnehots( Aig_Man_t * pAig, Aig_Man_t * pPart, Vec_P
     Aig_Obj_t * pObj, * pObjNew;
     int nOffset, iReg, i, k;
     // set the PI numbers
-    Aig_ManForEachPi( pPart, pObj, i )
+    Aig_ManForEachCi( pPart, pObj, i )
         pObj->iData = i;
     // go through each group and check if registers are involved in this one
     nOffset = Aig_ManPiNum(pAig)-Aig_ManRegNum(pAig);
@@ -281,7 +281,7 @@ Vec_Ptr_t * Aig_ManRegProjectOnehots( Aig_Man_t * pAig, Aig_Man_t * pPart, Vec_P
             Vec_IntFree( vGroupNew );
     }
     // clear the PI numbers
-    Aig_ManForEachPi( pPart, pObj, i )
+    Aig_ManForEachCi( pPart, pObj, i )
         pObj->iData = 0;
     // print out
     if ( vOnehotsPart && fVerbose )
@@ -347,17 +347,17 @@ Aig_Man_t * Aig_ManRegCreatePart( Aig_Man_t * pAig, Vec_Int_t * vPart, int * pnC
     pNew = Aig_ManStart( Vec_PtrSize(vNodes) );
     Aig_ManConst1(pAig)->pData = Aig_ManConst1(pNew);
     // create the PIs
-    Aig_ManForEachPi( pAig, pObj, i )
+    Aig_ManForEachCi( pAig, pObj, i )
         if ( Aig_ObjIsTravIdCurrent(pAig, pObj) )
-            pObj->pData = Aig_ObjCreatePi(pNew);
+            pObj->pData = Aig_ObjCreateCi(pNew);
     // add variables for the register outputs
     // create fake POs to hold the register outputs
     nOffset = Aig_ManPiNum(pAig)-Aig_ManRegNum(pAig);
     Vec_IntForEachEntry( vPart, iOut, i )
     {
         pObj = Aig_ManPi(pAig, nOffset+iOut);
-        pObj->pData = Aig_ObjCreatePi(pNew);
-        Aig_ObjCreatePo( pNew, (Aig_Obj_t *)pObj->pData );
+        pObj->pData = Aig_ObjCreateCi(pNew);
+        Aig_ObjCreateCo( pNew, (Aig_Obj_t *)pObj->pData );
         Aig_ObjSetTravIdCurrent( pAig, pObj ); // added
     }
     // create the nodes
@@ -369,7 +369,7 @@ Aig_Man_t * Aig_ManRegCreatePart( Aig_Man_t * pAig, Vec_Int_t * vPart, int * pnC
     Vec_IntForEachEntry( vPart, iOut, i )
     {
         pObj = Aig_ManPo( pAig, nOffset+iOut );
-        Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
+        Aig_ObjCreateCo( pNew, Aig_ObjChild0Copy(pObj) );
     }
     pNew->nRegs = Vec_IntSize(vPart);
     // create map
@@ -581,7 +581,7 @@ Vec_Ptr_t * Aig_ManRegPartitionTraverse( Aig_Man_t * p )
     Aig_Obj_t * pObj;
     int i, nPrev, Counter;
     // mark the registers
-    Aig_ManForEachPi( p, pObj, i )
+    Aig_ManForEachCi( p, pObj, i )
        pObj->iData = i; 
     // collect registers
     vLos = Vec_PtrAlloc( Aig_ManRegNum(p) );

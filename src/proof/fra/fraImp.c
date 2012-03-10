@@ -717,7 +717,7 @@ void Fra_ImpRecordInManager( Fra_Man_t * p, Aig_Man_t * pNew )
         pMiter = Aig_Or( pNew, 
             Aig_NotCond((Aig_Obj_t *)pLeft->pData, !pLeft->fPhase), 
             Aig_NotCond((Aig_Obj_t *)pRight->pData, pRight->fPhase) ); 
-        Aig_ObjCreatePo( pNew, pMiter );
+        Aig_ObjCreateCo( pNew, pMiter );
     }
     pNew->nAsserts = Aig_ManPoNum(pNew) - nPosOld;
 }

@@ -193,12 +193,12 @@ void Fra_FraigVerifyCounterEx( Fra_Man_t * p, Vec_Int_t * vCex )
         assert( !pObj->fMarkB );
     // simulate the cex through the AIG
     Aig_ManConst1(p->pManAig)->fMarkB = 1;
-    Aig_ManForEachPi( p->pManAig, pObj, i )
+    Aig_ManForEachCi( p->pManAig, pObj, i )
         pObj->fMarkB = Vec_IntEntry(vCex, i);
     Aig_ManForEachNode( p->pManAig, pObj, i )
         pObj->fMarkB = (Aig_ObjFanin0(pObj)->fMarkB ^ Aig_ObjFaninC0(pObj)) & 
                        (Aig_ObjFanin1(pObj)->fMarkB ^ Aig_ObjFaninC1(pObj));
-    Aig_ManForEachPo( p->pManAig, pObj, i )
+    Aig_ManForEachCo( p->pManAig, pObj, i )
         pObj->fMarkB = Aig_ObjFanin0(pObj)->fMarkB ^ Aig_ObjFaninC0(pObj);
     // check if the classes hold
     Vec_PtrForEachEntry( Aig_Obj_t *, p->pCla->vClasses1, pObj, i )

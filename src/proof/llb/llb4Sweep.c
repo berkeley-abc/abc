@@ -92,12 +92,12 @@ Vec_Int_t * Llb_Nonlin4SweepOrder( Aig_Man_t * pAig, int * pCounter, int fSaveAl
     vOrder = Vec_IntStartFull( Aig_ManObjNumMax(pAig) );
     Aig_ManIncrementTravId( pAig );
     Aig_ObjSetTravIdCurrent( pAig, Aig_ManConst1(pAig) );
-    Aig_ManForEachPo( pAig, pObj, i )
+    Aig_ManForEachCo( pAig, pObj, i )
     {
         Vec_IntWriteEntry( vOrder, Aig_ObjId(pObj), Counter++ );
         Llb_Nonlin4SweepOrder_rec( pAig, Aig_ObjFanin0(pObj), vOrder, &Counter, fSaveAll );
     }
-    Aig_ManForEachPi( pAig, pObj, i )
+    Aig_ManForEachCi( pAig, pObj, i )
         if ( Llb_ObjBddVar(vOrder, pObj) < 0 )
             Vec_IntWriteEntry( vOrder, Aig_ObjId(pObj), Counter++ );
 //    assert( Counter == Aig_ManObjNum(pAig) - 1 ); // no dangling nodes
@@ -127,7 +127,7 @@ int Llb4_Nonlin4SweepCutpoints( Aig_Man_t * pAig, Vec_Int_t * vOrder, int nBddLi
     dd = Cudd_Init( Aig_ManObjNumMax(pAig), 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
     // assign elementary variables
     Aig_ManCleanData( pAig );
-    Aig_ManForEachPi( pAig, pObj, i )
+    Aig_ManForEachCi( pAig, pObj, i )
         pObj->pData = Cudd_bddIthVar( dd, Llb_ObjBddVar(vOrder, pObj) );
     // sweep internal nodes
     Aig_ManForEachNode( pAig, pObj, i )

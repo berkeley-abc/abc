@@ -637,7 +637,7 @@ Aig_ManCut_t * Aig_ComputeCuts( Aig_Man_t * pAig, int nCutsMax, int nLeafMax, in
     // start the manager
     p = Aig_ManCutStart( pAig, nCutsMax, nLeafMax, fTruth, fVerbose );
     // set elementary cuts at the PIs
-    Aig_ManForEachPi( pAig, pObj, i )
+    Aig_ManForEachCi( pAig, pObj, i )
         Aig_ObjPrepareCuts( p, pObj, 1 );
     // process the nodes
     Aig_ManForEachNode( pAig, pObj, i )

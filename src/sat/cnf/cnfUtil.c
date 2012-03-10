@@ -99,7 +99,7 @@ Vec_Ptr_t * Aig_ManScanMapping( Cnf_Man_t * p, int fCollect )
         vMapped = Vec_PtrAlloc( 1000 );
     // collect nodes reachable from POs in the DFS order through the best cuts
     p->aArea = 0;
-    Aig_ManForEachPo( p->pManAig, pObj, i )
+    Aig_ManForEachCo( p->pManAig, pObj, i )
         p->aArea += Aig_ManScanMapping_rec( p, Aig_ObjFanin0(pObj), vMapped );
 //    printf( "Variables = %6d. Clauses = %8d.\n", vMapped? Vec_PtrSize(vMapped) + Aig_ManPiNum(p->pManAig) + 1 : 0, p->aArea + 2 );
     return vMapped;
@@ -179,7 +179,7 @@ Vec_Ptr_t * Cnf_ManScanMapping( Cnf_Man_t * p, int fCollect, int fPreorder )
         vMapped = Vec_PtrAlloc( 1000 );
     // collect nodes reachable from POs in the DFS order through the best cuts
     p->aArea = 0;
-    Aig_ManForEachPo( p->pManAig, pObj, i )
+    Aig_ManForEachCo( p->pManAig, pObj, i )
         p->aArea += Cnf_ManScanMapping_rec( p, Aig_ObjFanin0(pObj), vMapped, fPreorder );
 //    printf( "Variables = %6d. Clauses = %8d.\n", vMapped? Vec_PtrSize(vMapped) + Aig_ManPiNum(p->pManAig) + 1 : 0, p->aArea + 2 );
     return vMapped;
@@ -202,7 +202,7 @@ Vec_Int_t * Cnf_DataCollectCiSatNums( Cnf_Dat_t * pCnf, Aig_Man_t * p )
     Aig_Obj_t * pObj;
     int i;
     vCiIds = Vec_IntAlloc( Aig_ManPiNum(p) );
-    Aig_ManForEachPi( p, pObj, i )
+    Aig_ManForEachCi( p, pObj, i )
         Vec_IntPush( vCiIds, pCnf->pVarNums[pObj->Id] );
     return vCiIds;
 }
@@ -224,7 +224,7 @@ Vec_Int_t * Cnf_DataCollectCoSatNums( Cnf_Dat_t * pCnf, Aig_Man_t * p )
     Aig_Obj_t * pObj;
     int i;
     vCoIds = Vec_IntAlloc( Aig_ManPoNum(p) );
-    Aig_ManForEachPo( p, pObj, i )
+    Aig_ManForEachCo( p, pObj, i )
         Vec_IntPush( vCoIds, pCnf->pVarNums[pObj->Id] );
     return vCoIds;
 }

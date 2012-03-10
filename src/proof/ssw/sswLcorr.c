@@ -49,7 +49,7 @@ void Ssw_ManSweepTransfer( Ssw_Man_t * p )
     unsigned * pInfo;
     int i;
     // transfer simulation information
-    Aig_ManForEachPi( p->pAig, pObj, i )
+    Aig_ManForEachCi( p->pAig, pObj, i )
     {
         pObjFraig = Ssw_ObjFrame( p, pObj, 0 );
         if ( pObjFraig == Aig_ManConst0(p->pFrames) )
@@ -245,7 +245,7 @@ int Ssw_ManSweepLatch( Ssw_Man_t * p )
     // map constants and PIs
     Ssw_ObjSetFrame( p, Aig_ManConst1(p->pAig), 0, Aig_ManConst1(p->pFrames) );
     Saig_ManForEachPi( p->pAig, pObj, i )
-        Ssw_ObjSetFrame( p, pObj, 0, Aig_ObjCreatePi(p->pFrames) );
+        Ssw_ObjSetFrame( p, pObj, 0, Aig_ObjCreateCi(p->pFrames) );
 
     // implement equivalence classes
     Saig_ManForEachLo( p->pAig, pObj, i )
@@ -253,7 +253,7 @@ int Ssw_ManSweepLatch( Ssw_Man_t * p )
         pRepr = Aig_ObjRepr( p->pAig, pObj );
         if ( pRepr == NULL )
         {
-            pTemp = Aig_ObjCreatePi(p->pFrames);
+            pTemp = Aig_ObjCreateCi(p->pFrames);
             pTemp->pData = pObj;
         }
         else

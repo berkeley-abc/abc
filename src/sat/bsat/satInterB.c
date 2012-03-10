@@ -1053,7 +1053,7 @@ p->timeTotal += clock() - clkTotal;
     }
 
     pObj = *Intb_ManAigRead( p, p->pCnf->pTail );
-    Aig_ObjCreatePo( pRes, pObj );
+    Aig_ObjCreateCo( pRes, pObj );
     Aig_ManCleanup( pRes );
 
     p->pAig = NULL;
@@ -1102,7 +1102,7 @@ Aig_Man_t * Intb_ManDeriveClauses( Intb_Man_t * pMan, Sto_Man_t * pCnf, int fCla
         }
         pMiter = Aig_And( p, pMiter, pSum );
     }
-    Aig_ObjCreatePo( p, pMiter );
+    Aig_ObjCreateCo( p, pMiter );
     return p;
 }
 

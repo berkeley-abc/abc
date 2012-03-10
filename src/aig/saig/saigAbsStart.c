@@ -51,7 +51,7 @@ int Saig_ManCexFirstFlopPi( Aig_Man_t * p, Aig_Man_t * pAbs )
     Aig_Obj_t * pObj;
     int i;
     assert( pAbs->vCiNumsOrig != NULL );
-    Aig_ManForEachPi( p, pObj, i )
+    Aig_ManForEachCi( p, pObj, i )
     {
         if ( Vec_IntEntry(pAbs->vCiNumsOrig, i) >= Saig_ManPiNum(p) )
             return i;

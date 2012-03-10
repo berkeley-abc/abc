@@ -93,7 +93,7 @@ void Aig_ManRetimeMark( Aig_Man_t * p )
     {
         fChange = 0;
         Aig_ManIncrementTravId( p );
-        Aig_ManForEachPo( p, pObj, i )
+        Aig_ManForEachCo( p, pObj, i )
         {
             if ( pObj->fMarkB )
                 continue;
@@ -168,9 +168,9 @@ Aig_Man_t * Aig_ManRetimeFrontier( Aig_Man_t * p, int nStepsMax )
             pObjNew = Aig_And( p, pObjLi0, pObjLi1 );
             pObjNew->fMarkB = 1;
             // create new register
-            pObjLo = Aig_ObjCreatePi(p);
+            pObjLo = Aig_ObjCreateCi(p);
             pObjLo->fMarkA = 1;
-            pObjLi = Aig_ObjCreatePo( p, Aig_NotCond(pObjNew, fCompl) );
+            pObjLi = Aig_ObjCreateCo( p, Aig_NotCond(pObjNew, fCompl) );
             p->nRegs++;
             pObjLo->pNext = pObjLi;
             pObjLi->pNext = pObjLo;

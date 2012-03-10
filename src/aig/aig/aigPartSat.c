@@ -147,7 +147,7 @@ void Aig_ManPartSplitOne_rec( Aig_Man_t * pNew, Aig_Man_t * p, Aig_Obj_t * pObj,
         else
 */
         {
-            pObj->pData = Aig_ObjCreatePi( pNew );
+            pObj->pData = Aig_ObjCreateCi( pNew );
             if ( pObj->fMarkA ) // const0
                 ((Aig_Obj_t *)pObj->pData)->fMarkA = 1;
             else if ( pObj->fMarkB ) // const1
@@ -197,7 +197,7 @@ Aig_Man_t * Aig_ManPartSplitOne( Aig_Man_t * p, Vec_Ptr_t * vNodes, Vec_Int_t **
         if ( Aig_ObjRefs((Aig_Obj_t *)pObj->pData) != Aig_ObjRefs(pObj) )
         {
             assert( Aig_ObjRefs((Aig_Obj_t *)pObj->pData) < Aig_ObjRefs(pObj) );
-            Aig_ObjCreatePo( pNew, (Aig_Obj_t *)pObj->pData );
+            Aig_ObjCreateCo( pNew, (Aig_Obj_t *)pObj->pData );
             Vec_IntPush( vPio2Id, Aig_ObjId(pObj) );
         }
     assert( Aig_ManNodeNum(pNew) == Vec_PtrSize(vNodes) );
@@ -244,7 +244,7 @@ Vec_Ptr_t * Aig_ManPartSplit( Aig_Man_t * p, Vec_Int_t * vNode2Part, Vec_Ptr_t *
     }
 
     // label PIs that should be restricted to some values
-    Aig_ManForEachPo( p, pObj, i )
+    Aig_ManForEachCo( p, pObj, i )
     {
         pDriver = Aig_ObjFanin0(pObj);
         if ( Aig_ObjIsPi(pDriver) )
@@ -272,7 +272,7 @@ Vec_Ptr_t * Aig_ManPartSplit( Aig_Man_t * p, Vec_Int_t * vNode2Part, Vec_Ptr_t *
 
     // divide POs according to their partitions
     vPart2Pos = Vec_VecStart( Vec_PtrSize(vAigs) );
-    Aig_ManForEachPo( p, pObj, i )
+    Aig_ManForEachCo( p, pObj, i )
     {
         pDriver = Aig_ObjFanin0(pObj);
         if ( Aig_ObjIsPi(pDriver) )
@@ -321,14 +321,14 @@ void Aig_ManPartSetNodePolarity( Aig_Man_t * p, Aig_Man_t * pPart, Vec_Int_t * v
     Aig_Obj_t * pObj, * pObjInit;
     int i;
     Aig_ManConst1(pPart)->fPhase = 1;
-    Aig_ManForEachPi( pPart, pObj, i )
+    Aig_ManForEachCi( pPart, pObj, i )
     {
         pObjInit = Aig_ManObj( p, Vec_IntEntry(vPio2Id, i) );
         pObj->fPhase = pObjInit->fPhase;
     }
     Aig_ManForEachNode( pPart, pObj, i )
         pObj->fPhase = (Aig_ObjFanin0(pObj)->fPhase ^ Aig_ObjFaninC0(pObj)) & (Aig_ObjFanin1(pObj)->fPhase ^ Aig_ObjFaninC1(pObj));
-    Aig_ManForEachPo( pPart, pObj, i )
+    Aig_ManForEachCo( pPart, pObj, i )
     {
         pObjInit = Aig_ManObj( p, Vec_IntEntry(vPio2Id, Aig_ManPiNum(pPart) + i) );
         pObj->fPhase = (Aig_ObjFanin0(pObj)->fPhase ^ Aig_ObjFaninC0(pObj));
@@ -355,7 +355,7 @@ void Aig_ManDeriveCounterExample( Aig_Man_t * p, Vec_Int_t * vNode2Var, sat_solv
     // collect IDs of PI variables
     // (fanoutless PIs have SAT var 0, which is an unused in the SAT solver -> has value 0)
     vPisIds = Vec_IntAlloc( Aig_ManPiNum(p) );
-    Aig_ManForEachPi( p, pObj, i )
+    Aig_ManForEachCi( p, pObj, i )
         Vec_IntPush( vPisIds, Vec_IntEntry(vNode2Var, Aig_ObjId(pObj)) );
     // derive the SAT assignment
     p->pData = Sat_SolverGetModel( pSat, vPisIds->pArray, vPisIds->nSize );
@@ -396,7 +396,7 @@ int Aig_ManAddNewCnfToSolver( sat_solver * pSat, Aig_Man_t * pAig, Vec_Int_t * v
             return 1;
         }
     // derive the connector clauses
-    Aig_ManForEachPi( pAig, pObj, i )
+    Aig_ManForEachCi( pAig, pObj, i )
     {
         iNodeIdOld = Vec_IntEntry( vPioIds, i );
         iSatVarOld = Vec_IntEntry( vNode2Var, iNodeIdOld );
@@ -417,7 +417,7 @@ int Aig_ManAddNewCnfToSolver( sat_solver * pSat, Aig_Man_t * pAig, Vec_Int_t * v
             assert( 0 );
     }
     // derive the connector clauses
-    Aig_ManForEachPo( pAig, pObj, i )
+    Aig_ManForEachCo( pAig, pObj, i )
     {
         iNodeIdOld = Vec_IntEntry( vPioIds, Aig_ManPiNum(pAig) + i );
         iSatVarOld = Vec_IntEntry( vNode2Var, iNodeIdOld );
@@ -460,7 +460,7 @@ int Aig_ManAddNewCnfToSolver( sat_solver * pSat, Aig_Man_t * pAig, Vec_Int_t * v
         }
     }
     // constrain some the primary inputs to constant values
-    Aig_ManForEachPi( pAig, pObj, i )
+    Aig_ManForEachCi( pAig, pObj, i )
     {
         if ( !pObj->fMarkA && !pObj->fMarkB )
             continue;

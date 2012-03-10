@@ -198,7 +198,7 @@ clk = clock();
         // map constants and PIs
         Ssw_ObjSetFrame( p, Aig_ManConst1(p->pAig), f, Aig_ManConst1(p->pFrames) );
         Saig_ManForEachPi( p->pAig, pObj, i )
-            Ssw_ObjSetFrame( p, pObj, f, Aig_ObjCreatePi(p->pFrames) );
+            Ssw_ObjSetFrame( p, pObj, f, Aig_ObjCreateCi(p->pFrames) );
         // sweep internal nodes
         Aig_ManForEachNode( p->pAig, pObj, i )
         {

@@ -136,7 +136,7 @@ int Aig_ManSizeOfGlobalBdds( Aig_Man_t * p )
     int RetValue, i;
     // complement the global functions
     vFuncsGlob = Vec_PtrAlloc( Aig_ManPoNum(p) );
-    Aig_ManForEachPo( p, pObj, i )
+    Aig_ManForEachCo( p, pObj, i )
         Vec_PtrPush( vFuncsGlob, Aig_ObjGlobalBdd(pObj) );
     RetValue = Cudd_SharingSize( (DdNode **)Vec_PtrArray(vFuncsGlob), Vec_PtrSize(vFuncsGlob) );
     Vec_PtrFree( vFuncsGlob );
@@ -171,7 +171,7 @@ DdManager * Aig_ManComputeGlobalBdds( Aig_Man_t * p, int nBddSizeMax, int fDropI
     // assign the constant node BDD
     Aig_ObjSetGlobalBdd( Aig_ManConst1(p), dd->one );   Cudd_Ref( dd->one );
     // set the elementary variables
-    Aig_ManForEachPi( p, pObj, i )
+    Aig_ManForEachCi( p, pObj, i )
     {
         Aig_ObjSetGlobalBdd( pObj, dd->vars[i] );  Cudd_Ref( dd->vars[i] );
     }
@@ -180,7 +180,7 @@ DdManager * Aig_ManComputeGlobalBdds( Aig_Man_t * p, int nBddSizeMax, int fDropI
     Counter = 0;
     // construct the BDDs
 //    pProgress = Extra_ProgressBarStart( stdout, Aig_ManNodeNum(p) );
-    Aig_ManForEachPo( p, pObj, i )
+    Aig_ManForEachCo( p, pObj, i )
     {
         bFunc = Bbr_NodeGlobalBdds_rec( dd, Aig_ObjFanin0(pObj), nBddSizeMax, fDropInternal, pProgress, &Counter, fVerbose );
         if ( bFunc == NULL )

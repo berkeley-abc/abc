@@ -258,7 +258,7 @@ void Aig_ManJustExperiment( Aig_Man_t * pAig )
     vSuppLits = Vec_IntAlloc( 100 );
     pPack = Aig_ManPackStart( pAig );
     vNodes = Aig_ManPackConstNodes( pPack );
-//    Aig_ManForEachPo( pAig, pObj, i )
+//    Aig_ManForEachCo( pAig, pObj, i )
     Aig_ManForEachObjVec( vNodes, pAig, pObj, i )
     {
         if ( pObj->fPhase ) // const 1

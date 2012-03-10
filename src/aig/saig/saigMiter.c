@@ -114,14 +114,14 @@ Aig_Man_t * Saig_ManCreateMiter( Aig_Man_t * p0, Aig_Man_t * p1, int Oper )
     Aig_ManConst1(p1)->pData = Aig_ManConst1(pNew);
     // map primary inputs
     Saig_ManForEachPi( p0, pObj, i )
-        pObj->pData = Aig_ObjCreatePi( pNew );
+        pObj->pData = Aig_ObjCreateCi( pNew );
     Saig_ManForEachPi( p1, pObj, i )
         pObj->pData = Aig_ManPi( pNew, i );
     // map register outputs
     Saig_ManForEachLo( p0, pObj, i )
-        pObj->pData = Aig_ObjCreatePi( pNew );
+        pObj->pData = Aig_ObjCreateCi( pNew );
     Saig_ManForEachLo( p1, pObj, i )
-        pObj->pData = Aig_ObjCreatePi( pNew );
+        pObj->pData = Aig_ObjCreateCi( pNew );
     // map internal nodes
     Aig_ManForEachNode( p0, pObj, i )
         pObj->pData = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
@@ -136,13 +136,13 @@ Aig_Man_t * Saig_ManCreateMiter( Aig_Man_t * p0, Aig_Man_t * p1, int Oper )
             pObj = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_Not(Aig_ObjChild0Copy(Aig_ManPo(p1,i))) );
         else
             assert( 0 );
-        Aig_ObjCreatePo( pNew, pObj );
+        Aig_ObjCreateCo( pNew, pObj );
     }
     // create register inputs
     Saig_ManForEachLi( p0, pObj, i )
-        pObj->pData = Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
+        pObj->pData = Aig_ObjCreateCo( pNew, Aig_ObjChild0Copy(pObj) );
     Saig_ManForEachLi( p1, pObj, i )
-        pObj->pData = Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
+        pObj->pData = Aig_ObjCreateCo( pNew, Aig_ObjChild0Copy(pObj) );
     // cleanup
     Aig_ManSetRegNum( pNew, Saig_ManRegNum(p0) + Saig_ManRegNum(p1) );
 //    Aig_ManCleanup( pNew );
@@ -173,9 +173,9 @@ Aig_Man_t * Saig_ManCreateMiterComb( Aig_Man_t * p0, Aig_Man_t * p1, int Oper )
     Aig_ManConst1(p0)->pData = Aig_ManConst1(pNew);
     Aig_ManConst1(p1)->pData = Aig_ManConst1(pNew);
     // map primary inputs and register outputs
-    Aig_ManForEachPi( p0, pObj, i )
-        pObj->pData = Aig_ObjCreatePi( pNew );
-    Aig_ManForEachPi( p1, pObj, i )
+    Aig_ManForEachCi( p0, pObj, i )
+        pObj->pData = Aig_ObjCreateCi( pNew );
+    Aig_ManForEachCi( p1, pObj, i )
         pObj->pData = Aig_ManPi( pNew, i );
     // map internal nodes
     Aig_ManForEachNode( p0, pObj, i )
@@ -183,7 +183,7 @@ Aig_Man_t * Saig_ManCreateMiterComb( Aig_Man_t * p0, Aig_Man_t * p1, int Oper )
     Aig_ManForEachNode( p1, pObj, i )
         pObj->pData = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
     // create primary outputs
-    Aig_ManForEachPo( p0, pObj, i )
+    Aig_ManForEachCo( p0, pObj, i )
     {
         if ( Oper == 0 ) // XOR
             pObj = Aig_Exor( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild0Copy(Aig_ManPo(p1,i)) );
@@ -191,7 +191,7 @@ Aig_Man_t * Saig_ManCreateMiterComb( Aig_Man_t * p0, Aig_Man_t * p1, int Oper )
             pObj = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_Not(Aig_ObjChild0Copy(Aig_ManPo(p1,i))) );
         else
             assert( 0 );
-        Aig_ObjCreatePo( pNew, pObj );
+        Aig_ObjCreateCo( pNew, pObj );
     }
     // cleanup
     Aig_ManSetRegNum( pNew, 0 );
@@ -251,10 +251,10 @@ Aig_Man_t * Saig_ManDualRail( Aig_Man_t * p, int fMiter )
     // create the PIs 
     Aig_ManConst1(p)->pData = Aig_ManConst0(pNew);
     Aig_ManConst1(p)->pNext = Aig_ManConst1(pNew);
-    Aig_ManForEachPi( p, pObj, i )
+    Aig_ManForEachCi( p, pObj, i )
     {
-        pObj->pData = Aig_ObjCreatePi( pNew );
-        pObj->pNext = Aig_ObjCreatePi( pNew );
+        pObj->pData = Aig_ObjCreateCi( pNew );
+        pObj->pNext = Aig_ObjCreateCi( pNew );
     }
     // duplicate internal nodes
     Aig_ManForEachNode( p, pObj, i )
@@ -268,34 +268,34 @@ Aig_Man_t * Saig_ManDualRail( Aig_Man_t * p, int fMiter )
             pMiter = Aig_And( pNew, pMiter, 
                 Aig_Or(pNew, (Aig_Obj_t *)pObj->pData, pObj->pNext) );
         } 
-        Aig_ObjCreatePo( pNew, pMiter );
+        Aig_ObjCreateCo( pNew, pMiter );
         Saig_ManForEachLi( p, pObj, i )
         {
             if ( !Aig_ObjFaninC0(pObj) )
             {
-                Aig_ObjCreatePo( pNew, (Aig_Obj_t *)Aig_ObjFanin0(pObj)->pData );
-                Aig_ObjCreatePo( pNew, Aig_ObjFanin0(pObj)->pNext );
+                Aig_ObjCreateCo( pNew, (Aig_Obj_t *)Aig_ObjFanin0(pObj)->pData );
+                Aig_ObjCreateCo( pNew, Aig_ObjFanin0(pObj)->pNext );
             }
             else
             {
-                Aig_ObjCreatePo( pNew, Aig_ObjFanin0(pObj)->pNext );
-                Aig_ObjCreatePo( pNew, (Aig_Obj_t *)Aig_ObjFanin0(pObj)->pData );
+                Aig_ObjCreateCo( pNew, Aig_ObjFanin0(pObj)->pNext );
+                Aig_ObjCreateCo( pNew, (Aig_Obj_t *)Aig_ObjFanin0(pObj)->pData );
             }
         }
     }
     else
     {
-        Aig_ManForEachPo( p, pObj, i )
+        Aig_ManForEachCo( p, pObj, i )
         {
             if ( !Aig_ObjFaninC0(pObj) )
             {
-                Aig_ObjCreatePo( pNew, (Aig_Obj_t *)Aig_ObjFanin0(pObj)->pData );
-                Aig_ObjCreatePo( pNew, Aig_ObjFanin0(pObj)->pNext );
+                Aig_ObjCreateCo( pNew, (Aig_Obj_t *)Aig_ObjFanin0(pObj)->pData );
+                Aig_ObjCreateCo( pNew, Aig_ObjFanin0(pObj)->pNext );
             }
             else
             {
-                Aig_ObjCreatePo( pNew, Aig_ObjFanin0(pObj)->pNext );
-                Aig_ObjCreatePo( pNew, (Aig_Obj_t *)Aig_ObjFanin0(pObj)->pData );
+                Aig_ObjCreateCo( pNew, Aig_ObjFanin0(pObj)->pNext );
+                Aig_ObjCreateCo( pNew, (Aig_Obj_t *)Aig_ObjFanin0(pObj)->pData );
             }
         }
     }
@@ -336,27 +336,27 @@ Aig_Man_t * Saig_ManUnrollTwo( Aig_Man_t * pBot, Aig_Man_t * pTop, int nFrames )
     // create variables for register outputs
     pAig = pBot;
     Saig_ManForEachLo( pAig, pObj, i )
-        pObj->pData = Aig_ObjCreatePi( p );
+        pObj->pData = Aig_ObjCreateCi( p );
     // add timeframes
     for ( f = 0; f < nFrames; f++ )
     {
         // create PI nodes for this frame
         Aig_ManConst1(pAig)->pData = Aig_ManConst1( p );
         Saig_ManForEachPi( pAig, pObj, i )
-            pObj->pData = Aig_ObjCreatePi( p );
+            pObj->pData = Aig_ObjCreateCi( p );
         // add internal nodes of this frame
         Aig_ManForEachNode( pAig, pObj, i )
             pObj->pData = Aig_And( p, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
         if ( f == nFrames - 1 )
         {
             // create POs for this frame
-            Aig_ManForEachPo( pAig, pObj, i )
-                Aig_ObjCreatePo( p, Aig_ObjChild0Copy(pObj) );
+            Aig_ManForEachCo( pAig, pObj, i )
+                Aig_ObjCreateCo( p, Aig_ObjChild0Copy(pObj) );
             break;
         }
         // create POs for this frame
         Saig_ManForEachPo( pAig, pObj, i )
-            Aig_ObjCreatePo( p, Aig_ObjChild0Copy(pObj) );
+            Aig_ObjCreateCo( p, Aig_ObjChild0Copy(pObj) );
         // save register inputs
         Saig_ManForEachLi( pAig, pObj, i )
             pObj->pData = Aig_ObjChild0Copy(pObj);
@@ -394,16 +394,16 @@ Aig_Man_t * Aig_ManDupNodesAll( Aig_Man_t * p, Vec_Ptr_t * vSet )
     pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
     Aig_ManConst1(p)->pData = Aig_ManConst1(pNew);
-    Aig_ManForEachPi( p, pObj, i )
-        pObj->pData = Aig_ObjCreatePi( pNew );
+    Aig_ManForEachCi( p, pObj, i )
+        pObj->pData = Aig_ObjCreateCi( pNew );
     Aig_ManForEachNode( p, pObj, i )
         pObj->pData = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
 //    Saig_ManForEachPo( p, pObj, i )
-//        pObj->pData = Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
+//        pObj->pData = Aig_ObjCreateCo( pNew, Aig_ObjChild0Copy(pObj) );
     Vec_PtrForEachEntry( Aig_Obj_t *, vSet, pObj, i )
-        Aig_ObjCreatePo( pNew, Aig_NotCond((Aig_Obj_t *)Aig_Regular(pObj)->pData, Aig_IsComplement(pObj)) );
+        Aig_ObjCreateCo( pNew, Aig_NotCond((Aig_Obj_t *)Aig_Regular(pObj)->pData, Aig_IsComplement(pObj)) );
     Saig_ManForEachLi( p, pObj, i )
-        pObj->pData = Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
+        pObj->pData = Aig_ObjCreateCo( pNew, Aig_ObjChild0Copy(pObj) );
     Aig_ManSetRegNum( pNew, Saig_ManRegNum(p) );
     // cleanup and return a copy
     Aig_ManSeqCleanup( pNew );
@@ -433,40 +433,40 @@ Aig_Man_t * Aig_ManDupNodesHalf( Aig_Man_t * p, Vec_Ptr_t * vSet, int iPart )
     pNew->pName = Abc_UtilStrsav( p->pName );
     Aig_ManConst1(p)->pData = Aig_ManConst1(pNew);
     Saig_ManForEachPi( p, pObj, i )
-        pObj->pData = Aig_ObjCreatePi( pNew );
+        pObj->pData = Aig_ObjCreateCi( pNew );
     if ( iPart == 0 )
     {
         Saig_ManForEachLo( p, pObj, i )
             if ( i < Saig_ManRegNum(p)/2 )
-                pObj->pData = Aig_ObjCreatePi( pNew );
+                pObj->pData = Aig_ObjCreateCi( pNew );
     }
     else
     {
         Saig_ManForEachLo( p, pObj, i )
             if ( i >= Saig_ManRegNum(p)/2 )
-                pObj->pData = Aig_ObjCreatePi( pNew );
+                pObj->pData = Aig_ObjCreateCi( pNew );
     }
     Aig_ManForEachNode( p, pObj, i )
         if ( Aig_ObjFanin0(pObj)->pData && Aig_ObjFanin1(pObj)->pData )
             pObj->pData = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
 //    Saig_ManForEachPo( p, pObj, i )
-//        pObj->pData = Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
+//        pObj->pData = Aig_ObjCreateCo( pNew, Aig_ObjChild0Copy(pObj) );
     Vec_PtrForEachEntry( Aig_Obj_t *, vSet, pObj, i )
     {
         assert( Aig_Regular(pObj)->pData != NULL );
-        Aig_ObjCreatePo( pNew, Aig_NotCond((Aig_Obj_t *)Aig_Regular(pObj)->pData, Aig_IsComplement(pObj)) );
+        Aig_ObjCreateCo( pNew, Aig_NotCond((Aig_Obj_t *)Aig_Regular(pObj)->pData, Aig_IsComplement(pObj)) );
     }
     if ( iPart == 0 )
     {
         Saig_ManForEachLi( p, pObj, i )
             if ( i < Saig_ManRegNum(p)/2 )
-                pObj->pData = Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
+                pObj->pData = Aig_ObjCreateCo( pNew, Aig_ObjChild0Copy(pObj) );
     }
     else
     {
         Saig_ManForEachLi( p, pObj, i )
             if ( i >= Saig_ManRegNum(p)/2 )
-                pObj->pData = Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
+                pObj->pData = Aig_ObjCreateCo( pNew, Aig_ObjChild0Copy(pObj) );
     }
     Aig_ManSetRegNum( pNew, Saig_ManRegNum(p)/2 );
     // cleanup and return a copy
@@ -1041,14 +1041,14 @@ int Ssw_SecCexResimulate( Aig_Man_t * p, int * pModel, int * pnOutputs )
     int i, RetValue = -1;
     *pnOutputs = 0;
     Aig_ManConst1(p)->fMarkA = 1;
-    Aig_ManForEachPi( p, pObj, i )
+    Aig_ManForEachCi( p, pObj, i )
         pObj->fMarkA = pModel[i];
     Aig_ManForEachNode( p, pObj, i )
         pObj->fMarkA = ( Aig_ObjFanin0(pObj)->fMarkA ^ Aig_ObjFaninC0(pObj) ) & 
                       ( Aig_ObjFanin1(pObj)->fMarkA ^ Aig_ObjFaninC1(pObj) );
-    Aig_ManForEachPo( p, pObj, i )
+    Aig_ManForEachCo( p, pObj, i )
         pObj->fMarkA = Aig_ObjFanin0(pObj)->fMarkA ^ Aig_ObjFaninC0(pObj);
-    Aig_ManForEachPo( p, pObj, i )
+    Aig_ManForEachCo( p, pObj, i )
         if ( pObj->fMarkA )
         {
             if ( RetValue == -1 )

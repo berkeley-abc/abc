@@ -199,14 +199,14 @@ Aig_Man_t * Ioa_ReadAigerFromMemory( char * pContents, int nFileSize, int fCheck
     // create the PIs
     for ( i = 0; i < nInputs + nLatches; i++ )
     {
-        pObj = Aig_ObjCreatePi(pNew);    
+        pObj = Aig_ObjCreateCi(pNew);    
         Vec_PtrPush( vNodes, pObj );
     }
 /*
     // create the POs
     for ( i = 0; i < nOutputs + nLatches; i++ )
     {
-        pObj = Aig_ObjCreatePo(pNew);   
+        pObj = Aig_ObjCreateCo(pNew);   
     }
 */
     // create the latches
@@ -302,9 +302,9 @@ Aig_Man_t * Ioa_ReadAigerFromMemory( char * pContents, int nFileSize, int fCheck
 
     // create the POs
     for ( i = 0; i < nOutputs; i++ )
-        Aig_ObjCreatePo( pNew, (Aig_Obj_t *)Vec_PtrEntry(vDrivers, nLatches + i) );
+        Aig_ObjCreateCo( pNew, (Aig_Obj_t *)Vec_PtrEntry(vDrivers, nLatches + i) );
     for ( i = 0; i < nLatches; i++ )
-        Aig_ObjCreatePo( pNew, (Aig_Obj_t *)Vec_PtrEntry(vDrivers, i) );
+        Aig_ObjCreateCo( pNew, (Aig_Obj_t *)Vec_PtrEntry(vDrivers, i) );
     Vec_PtrFree( vDrivers );
 
 /*
@@ -354,7 +354,7 @@ Aig_Man_t * Ioa_ReadAigerFromMemory( char * pContents, int nFileSize, int fCheck
         } 
 
         // assign the remaining names
-        Aig_ManForEachPi( pNew, pObj, i )
+        Aig_ManForEachCi( pNew, pObj, i )
         {
             if ( pObj->pCopy ) continue;
             Aig_ObjAssignName( pObj, Aig_ObjName(pObj), NULL );
@@ -368,7 +368,7 @@ Aig_Man_t * Ioa_ReadAigerFromMemory( char * pContents, int nFileSize, int fCheck
             Aig_ObjAssignName( Aig_ObjFanin0(Aig_ObjFanin0(pObj)), Aig_ObjName(pObj), "_in" );
             Counter++;
         }
-        Aig_ManForEachPo( pNew, pObj, i )
+        Aig_ManForEachCo( pNew, pObj, i )
         {
             if ( pObj->pCopy ) continue;
             Aig_ObjAssignName( pObj, Aig_ObjName(pObj), NULL );

@@ -407,7 +407,7 @@ Aig_Obj_t * Saig_BmcIntervalConstruct_rec( Saig_Bmc_t * p, Aig_Obj_t * pObj, int
     if ( pRes != NULL )
         return pRes;
     if ( Saig_ObjIsPi( p->pAig, pObj ) )
-        pRes = Aig_ObjCreatePi(p->pFrm);
+        pRes = Aig_ObjCreateCi(p->pFrm);
     else if ( Saig_ObjIsLo( p->pAig, pObj ) )
         pRes = Saig_BmcIntervalConstruct_rec( p, Saig_ObjLoToLi(p->pAig, pObj), i-1, vVisited );
     else if ( Aig_ObjIsPo( pObj ) )
@@ -466,7 +466,7 @@ void Saig_BmcInterval( Saig_Bmc_t * p )
             Vec_PtrClear( p->vVisited );
             pTarget = Saig_BmcIntervalConstruct_rec( p, Aig_ManPo(p->pAig, p->iOutputLast), p->iFrameLast, p->vVisited );
             Vec_PtrPush( p->vTargets, pTarget );
-            Aig_ObjCreatePo( p->pFrm, pTarget );
+            Aig_ObjCreateCo( p->pFrm, pTarget );
             Aig_ManCleanup( p->pFrm );
             // check if the node is gone
             Counter = 0;
@@ -504,7 +504,7 @@ Aig_Obj_t * Saig_BmcIntervalToAig_rec( Saig_Bmc_t * p, Aig_Man_t * pNew, Aig_Obj
     if ( Saig_BmcSatNum(p, pObj) || Aig_ObjIsPi(pObj) )
     {
         p->nStitchVars += !Aig_ObjIsPi(pObj);
-        return (Aig_Obj_t *)(pObj->pData = Aig_ObjCreatePi(pNew));
+        return (Aig_Obj_t *)(pObj->pData = Aig_ObjCreateCi(pNew));
     }
     Saig_BmcIntervalToAig_rec( p, pNew, Aig_ObjFanin0(pObj) );
     Saig_BmcIntervalToAig_rec( p, pNew, Aig_ObjFanin1(pObj) );
@@ -540,7 +540,7 @@ Aig_Man_t * Saig_BmcIntervalToAig( Saig_Bmc_t * p )
 //        assert( !Aig_ObjIsConst1(Aig_Regular(pObj)) );
         pObjNew = Saig_BmcIntervalToAig_rec( p, pNew, Aig_Regular(pObj) );
         assert( !Aig_IsComplement(pObjNew) );
-        Aig_ObjCreatePo( pNew, pObjNew );
+        Aig_ObjCreateCo( pNew, pObjNew );
     }
     return pNew;
 }
@@ -728,7 +728,7 @@ void Saig_BmcAddTargetsAsPos( Saig_Bmc_t * p )
     Aig_Obj_t * pObj;
     int i;
     Vec_PtrForEachEntry( Aig_Obj_t *, p->vTargets, pObj, i )
-        Aig_ObjCreatePo( p->pFrm, pObj );
+        Aig_ObjCreateCo( p->pFrm, pObj );
     Aig_ManPrintStats( p->pFrm );
     Aig_ManCleanup( p->pFrm );
     Aig_ManPrintStats( p->pFrm );

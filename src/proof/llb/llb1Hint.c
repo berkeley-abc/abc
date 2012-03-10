@@ -46,7 +46,7 @@ int Llb_ManMaxFanoutCi( Aig_Man_t * pAig )
 {
     Aig_Obj_t * pObj; 
     int i, WeightMax = -ABC_INFINITY, iInput = -1;
-    Aig_ManForEachPi( pAig, pObj, i )
+    Aig_ManForEachCi( pAig, pObj, i )
         if ( WeightMax < Aig_ObjRefs(pObj) )
         {
             WeightMax = Aig_ObjRefs(pObj);

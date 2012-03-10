@@ -119,7 +119,7 @@ char * retrieveTruePiName( Abc_Ntk_t *pNtkOld, Aig_Man_t *pAigOld, Aig_Man_t *pA
     int index;
 
     assert( Saig_ObjIsPi( pAigNew, pObjPivot ) );
-    Aig_ManForEachPi( pAigNew, pObj, index )
+    Aig_ManForEachCi( pAigNew, pObj, index )
         if( pObj == pObjPivot )
             break;
     assert( index < Aig_ManPiNum( pAigNew ) - Aig_ManRegNum( pAigNew ) );
@@ -287,7 +287,7 @@ Aig_Man_t * LivenessToSafetyTransformation( int mode, Abc_Ntk_t * pNtk, Aig_Man_
     Saig_ManForEachPi( p, pObj, i )
     {
         piCopied++;
-        pObj->pData = Aig_ObjCreatePi(pNew);
+        pObj->pData = Aig_ObjCreateCi(pNew);
         Vec_PtrPush( vecPis, pObj->pData );
         nodeName = Abc_UtilStrsav(Abc_ObjName( Abc_NtkPi( pNtk, i ) ));
         Vec_PtrPush( vecPiNames, nodeName );
@@ -298,7 +298,7 @@ Aig_Man_t * LivenessToSafetyTransformation( int mode, Abc_Ntk_t * pNtk, Aig_Man_
     //****************************************************************
     if( mode == FULL_BIERE_MODE || mode == IGNORE_SAFETY_KEEP_LIVENESS_MODE )
     {
-        pObjSavePi = Aig_ObjCreatePi( pNew );
+        pObjSavePi = Aig_ObjCreateCi( pNew );
         nodeName = "SAVE_BIERE",
         Vec_PtrPush( vecPiNames, nodeName );
     }
@@ -309,7 +309,7 @@ Aig_Man_t * LivenessToSafetyTransformation( int mode, Abc_Ntk_t * pNtk, Aig_Man_
     Saig_ManForEachLo( p, pObj, i )
     {
         loCopied++;
-        pObj->pData = Aig_ObjCreatePi(pNew);
+        pObj->pData = Aig_ObjCreateCi(pNew);
         Vec_PtrPush( vecLos, pObj->pData );
         nodeName = Abc_UtilStrsav(Abc_ObjName( Abc_NtkCi( pNtk, Abc_NtkPiNum(pNtk) + i ) ));
         Vec_PtrPush( vecLoNames, nodeName );
@@ -321,7 +321,7 @@ Aig_Man_t * LivenessToSafetyTransformation( int mode, Abc_Ntk_t * pNtk, Aig_Man_
     if( mode == FULL_BIERE_MODE || mode == IGNORE_SAFETY_KEEP_LIVENESS_MODE )
     {
         loCreated++;
-        pObjSavedLo = Aig_ObjCreatePi( pNew );
+        pObjSavedLo = Aig_ObjCreateCi( pNew );
         Vec_PtrPush( vecLos, pObjSavedLo );
         nodeName = "SAVED_LO";
         Vec_PtrPush( vecLoNames, nodeName );
@@ -360,7 +360,7 @@ Aig_Man_t * LivenessToSafetyTransformation( int mode, Abc_Ntk_t * pNtk, Aig_Man_
                 pArgument = Aig_NotCond( (Aig_Obj_t *)Aig_ObjFanin0(pObj)->pData, Aig_ObjFaninC0( pObj ) );
                 pObjAndAcc = Aig_And( pNew, pArgument, pObjAndAcc );
             }
-            pObjOriginalSafetyPropertyOutput = Aig_ObjCreatePo( pNew, Aig_Not(pObjAndAcc) );
+            pObjOriginalSafetyPropertyOutput = Aig_ObjCreateCo( pNew, Aig_Not(pObjAndAcc) );
         }
         else if( Vec_PtrSize( vAssertSafety ) != 0 && Vec_PtrSize( vAssumeSafety ) != 0 )
         {
@@ -379,12 +379,12 @@ Aig_Man_t * LivenessToSafetyTransformation( int mode, Abc_Ntk_t * pNtk, Aig_Man_
                 pObjAndAcc = Aig_And( pNew, pArgument, pObjAndAcc );
             }
             collectiveAssumeSafety = pObjAndAcc;
-            pObjOriginalSafetyPropertyOutput = Aig_ObjCreatePo( pNew, Aig_And( pNew, Aig_Not(collectiveAssertSafety), collectiveAssumeSafety ) );
+            pObjOriginalSafetyPropertyOutput = Aig_ObjCreateCo( pNew, Aig_And( pNew, Aig_Not(collectiveAssertSafety), collectiveAssumeSafety ) );
         }
         else
         {
             printf("WARNING!! No safety property is found, a new (negated) constant 1 output is created\n");
-            pObjOriginalSafetyPropertyOutput = Aig_ObjCreatePo( pNew, Aig_Not( Aig_ManConst1(pNew) ) );
+            pObjOriginalSafetyPropertyOutput = Aig_ObjCreateCo( pNew, Aig_Not( Aig_ManConst1(pNew) ) );
         }
     }
 
@@ -394,7 +394,7 @@ Aig_Man_t * LivenessToSafetyTransformation( int mode, Abc_Ntk_t * pNtk, Aig_Man_
     //********************************************************************
     if( mode == FULL_BIERE_MODE || mode == IGNORE_SAFETY_KEEP_LIVENESS_MODE )
     {
-        pObjSafetyPropertyOutput = Aig_ObjCreatePo( pNew, (Aig_Obj_t *)Aig_ObjFanin0(pObj)->pData );
+        pObjSafetyPropertyOutput = Aig_ObjCreateCo( pNew, (Aig_Obj_t *)Aig_ObjFanin0(pObj)->pData );
     }
 
     // create register inputs for the original registers
@@ -403,7 +403,7 @@ Aig_Man_t * LivenessToSafetyTransformation( int mode, Abc_Ntk_t * pNtk, Aig_Man_
     Saig_ManForEachLo( p, pObj, i )
     {
         pMatch = Saig_ObjLoToLi( p, pObj );
-        Aig_ObjCreatePo( pNew, Aig_NotCond((Aig_Obj_t *)Aig_ObjFanin0(pMatch)->pData, Aig_ObjFaninC0( pMatch ) ) );
+        Aig_ObjCreateCo( pNew, Aig_NotCond((Aig_Obj_t *)Aig_ObjFanin0(pMatch)->pData, Aig_ObjFaninC0( pMatch ) ) );
         nRegCount++;
         liCopied++;
     }
@@ -412,7 +412,7 @@ Aig_Man_t * LivenessToSafetyTransformation( int mode, Abc_Ntk_t * pNtk, Aig_Man_
     if( mode == FULL_BIERE_MODE || mode == IGNORE_SAFETY_KEEP_LIVENESS_MODE )
     {
         #ifndef DUPLICATE_CKT_DEBUG
-            pObjSavedLi = Aig_ObjCreatePo( pNew, pObjSaveOrSaved );
+            pObjSavedLi = Aig_ObjCreateCo( pNew, pObjSaveOrSaved );
             nRegCount++;
             liCreated++;
 
@@ -423,7 +423,7 @@ Aig_Man_t * LivenessToSafetyTransformation( int mode, Abc_Ntk_t * pNtk, Aig_Man_
     // create the family of shadow registers, then create the cascade of Xnor and And gates for the comparator 
             Saig_ManForEachLo( p, pObj, i )
             {
-                pObjShadowLo = Aig_ObjCreatePi( pNew );
+                pObjShadowLo = Aig_ObjCreateCi( pNew );
 
                 #ifdef PROPAGATE_NAMES
                     Vec_PtrPush( vecLos, pObjShadowLo );
@@ -434,7 +434,7 @@ Aig_Man_t * LivenessToSafetyTransformation( int mode, Abc_Ntk_t * pNtk, Aig_Man_
                 #endif
 
                 pObjShadowLiDriver = Aig_Mux( pNew, pObjSaveAndNotSaved, (Aig_Obj_t *)pObj->pData, pObjShadowLo );
-                pObjShadowLi = Aig_ObjCreatePo( pNew, pObjShadowLiDriver );
+                pObjShadowLi = Aig_ObjCreateCo( pNew, pObjShadowLiDriver );
                 nRegCount++;
                 loCreated++; liCreated++;
         
@@ -459,7 +459,7 @@ Aig_Man_t * LivenessToSafetyTransformation( int mode, Abc_Ntk_t * pNtk, Aig_Man_
                 {
                     liveLatch++;
                     pDriverImage = Aig_NotCond((Aig_Obj_t *)Aig_Regular(Aig_ObjChild0( pObj ))->pData, Aig_ObjFaninC0(pObj));
-                    pObjShadowLo = Aig_ObjCreatePi( pNew );
+                    pObjShadowLo = Aig_ObjCreateCi( pNew );
 
                     #ifdef PROPAGATE_NAMES
                         Vec_PtrPush( vecLos, pObjShadowLo );
@@ -469,7 +469,7 @@ Aig_Man_t * LivenessToSafetyTransformation( int mode, Abc_Ntk_t * pNtk, Aig_Man_
                     #endif
 
                     pObjShadowLiDriver = Aig_Or( pNew, pObjShadowLo, Aig_And( pNew, pDriverImage, pObjSaveOrSaved ) );
-                    pObjShadowLi = Aig_ObjCreatePo( pNew, pObjShadowLiDriver );
+                    pObjShadowLi = Aig_ObjCreateCo( pNew, pObjShadowLiDriver );
                     nRegCount++;
                     loCreated++; liCreated++;
             
@@ -488,7 +488,7 @@ Aig_Man_t * LivenessToSafetyTransformation( int mode, Abc_Ntk_t * pNtk, Aig_Man_
                 {
                     fairLatch++;
                     pDriverImage = Aig_NotCond((Aig_Obj_t *)Aig_Regular(Aig_ObjChild0( pObj ))->pData, Aig_ObjFaninC0(pObj));
-                    pObjShadowLo = Aig_ObjCreatePi( pNew );
+                    pObjShadowLo = Aig_ObjCreateCi( pNew );
 
                     #ifdef PROPAGATE_NAMES
                         Vec_PtrPush( vecLos, pObjShadowLo );
@@ -498,7 +498,7 @@ Aig_Man_t * LivenessToSafetyTransformation( int mode, Abc_Ntk_t * pNtk, Aig_Man_
                     #endif
 
                     pObjShadowLiDriver = Aig_Or( pNew, pObjShadowLo, Aig_And( pNew, pDriverImage, pObjSaveOrSaved ) );
-                    pObjShadowLi = Aig_ObjCreatePo( pNew, pObjShadowLiDriver );
+                    pObjShadowLi = Aig_ObjCreateCo( pNew, pObjShadowLiDriver );
                     nRegCount++;
                     loCreated++; liCreated++;
             
@@ -584,7 +584,7 @@ Aig_Man_t * LivenessToSafetyTransformationAbs( int mode, Abc_Ntk_t * pNtk, Aig_M
     Saig_ManForEachPi( p, pObj, i )
     {
         piCopied++;
-        pObj->pData = Aig_ObjCreatePi(pNew);
+        pObj->pData = Aig_ObjCreateCi(pNew);
         Vec_PtrPush( vecPis, pObj->pData );
         nodeName = Abc_UtilStrsav(Abc_ObjName( Abc_NtkPi( pNtk, i ) ));
         Vec_PtrPush( vecPiNames, nodeName );
@@ -595,7 +595,7 @@ Aig_Man_t * LivenessToSafetyTransformationAbs( int mode, Abc_Ntk_t * pNtk, Aig_M
     //****************************************************************
     if( mode == FULL_BIERE_MODE || mode == IGNORE_SAFETY_KEEP_LIVENESS_MODE )
     {
-        pObjSavePi = Aig_ObjCreatePi( pNew );
+        pObjSavePi = Aig_ObjCreateCi( pNew );
         nodeName = "SAVE_BIERE",
         Vec_PtrPush( vecPiNames, nodeName );
     }
@@ -606,7 +606,7 @@ Aig_Man_t * LivenessToSafetyTransformationAbs( int mode, Abc_Ntk_t * pNtk, Aig_M
     Saig_ManForEachLo( p, pObj, i )
     {
         loCopied++;
-        pObj->pData = Aig_ObjCreatePi(pNew);
+        pObj->pData = Aig_ObjCreateCi(pNew);
         Vec_PtrPush( vecLos, pObj->pData );
         nodeName = Abc_UtilStrsav(Abc_ObjName( Abc_NtkCi( pNtk, Abc_NtkPiNum(pNtk) + i ) ));
         Vec_PtrPush( vecLoNames, nodeName );
@@ -618,7 +618,7 @@ Aig_Man_t * LivenessToSafetyTransformationAbs( int mode, Abc_Ntk_t * pNtk, Aig_M
     if( mode == FULL_BIERE_MODE || mode == IGNORE_SAFETY_KEEP_LIVENESS_MODE )
     {
         loCreated++;
-        pObjSavedLo = Aig_ObjCreatePi( pNew );
+        pObjSavedLo = Aig_ObjCreateCi( pNew );
         Vec_PtrPush( vecLos, pObjSavedLo );
         nodeName = "SAVED_LO";
         Vec_PtrPush( vecLoNames, nodeName );
@@ -657,7 +657,7 @@ Aig_Man_t * LivenessToSafetyTransformationAbs( int mode, Abc_Ntk_t * pNtk, Aig_M
                 pArgument = Aig_NotCond( (Aig_Obj_t *)Aig_ObjFanin0(pObj)->pData, Aig_ObjFaninC0( pObj ) );
                 pObjAndAcc = Aig_And( pNew, pArgument, pObjAndAcc );
             }
-            Aig_ObjCreatePo( pNew, Aig_Not(pObjAndAcc) );
+            Aig_ObjCreateCo( pNew, Aig_Not(pObjAndAcc) );
         }
         else if( Vec_PtrSize( vAssertSafety ) != 0 && Vec_PtrSize( vAssumeSafety ) != 0 )
         {
@@ -676,12 +676,12 @@ Aig_Man_t * LivenessToSafetyTransformationAbs( int mode, Abc_Ntk_t * pNtk, Aig_M
                 pObjAndAcc = Aig_And( pNew, pArgument, pObjAndAcc );
             }
             collectiveAssumeSafety = pObjAndAcc;
-            Aig_ObjCreatePo( pNew, Aig_And( pNew, Aig_Not(collectiveAssertSafety), collectiveAssumeSafety ) );
+            Aig_ObjCreateCo( pNew, Aig_And( pNew, Aig_Not(collectiveAssertSafety), collectiveAssumeSafety ) );
         }
         else
         {
             printf("WARNING!! No safety property is found, a new (negated) constant 1 output is created\n");
-            Aig_ObjCreatePo( pNew, Aig_Not( Aig_ManConst1(pNew) ) );
+            Aig_ObjCreateCo( pNew, Aig_Not( Aig_ManConst1(pNew) ) );
         }
     }
 
@@ -691,7 +691,7 @@ Aig_Man_t * LivenessToSafetyTransformationAbs( int mode, Abc_Ntk_t * pNtk, Aig_M
     //********************************************************************
     if( mode == FULL_BIERE_MODE || mode == IGNORE_SAFETY_KEEP_LIVENESS_MODE )
     {
-        pObjSafetyPropertyOutput = Aig_ObjCreatePo( pNew, (Aig_Obj_t *)Aig_ObjFanin0(pObj)->pData );
+        pObjSafetyPropertyOutput = Aig_ObjCreateCo( pNew, (Aig_Obj_t *)Aig_ObjFanin0(pObj)->pData );
     }
 
     // create register inputs for the original registers
@@ -700,7 +700,7 @@ Aig_Man_t * LivenessToSafetyTransformationAbs( int mode, Abc_Ntk_t * pNtk, Aig_M
     Saig_ManForEachLo( p, pObj, i )
     {
         pMatch = Saig_ObjLoToLi( p, pObj );
-        Aig_ObjCreatePo( pNew, Aig_NotCond((Aig_Obj_t *)Aig_ObjFanin0(pMatch)->pData, Aig_ObjFaninC0( pMatch ) ) );
+        Aig_ObjCreateCo( pNew, Aig_NotCond((Aig_Obj_t *)Aig_ObjFanin0(pMatch)->pData, Aig_ObjFaninC0( pMatch ) ) );
         nRegCount++;
         liCopied++;
     }
@@ -709,7 +709,7 @@ Aig_Man_t * LivenessToSafetyTransformationAbs( int mode, Abc_Ntk_t * pNtk, Aig_M
     if( mode == FULL_BIERE_MODE || mode == IGNORE_SAFETY_KEEP_LIVENESS_MODE )
     {
         #ifndef DUPLICATE_CKT_DEBUG
-            pObjSavedLi = Aig_ObjCreatePo( pNew, pObjSaveOrSaved );
+            pObjSavedLi = Aig_ObjCreateCo( pNew, pObjSaveOrSaved );
             nRegCount++;
             liCreated++;
 
@@ -725,7 +725,7 @@ Aig_Man_t * LivenessToSafetyTransformationAbs( int mode, Abc_Ntk_t * pNtk, Aig_M
             }
             Vec_IntForEachEntry( vFlops, iEntry, i )
             {
-                pObjShadowLo = Aig_ObjCreatePi( pNew );
+                pObjShadowLo = Aig_ObjCreateCi( pNew );
                 pObj = Aig_ManLo( p, iEntry );
 
                 #ifdef PROPAGATE_NAMES
@@ -737,7 +737,7 @@ Aig_Man_t * LivenessToSafetyTransformationAbs( int mode, Abc_Ntk_t * pNtk, Aig_M
                 #endif
 
                 pObjShadowLiDriver = Aig_Mux( pNew, pObjSaveAndNotSaved, (Aig_Obj_t *)pObj->pData, pObjShadowLo );
-                pObjShadowLi = Aig_ObjCreatePo( pNew, pObjShadowLiDriver );
+                pObjShadowLi = Aig_ObjCreateCo( pNew, pObjShadowLiDriver );
                 nRegCount++;
                 loCreated++; liCreated++;
         
@@ -762,7 +762,7 @@ Aig_Man_t * LivenessToSafetyTransformationAbs( int mode, Abc_Ntk_t * pNtk, Aig_M
                 {
                     liveLatch++;
                     pDriverImage = Aig_NotCond((Aig_Obj_t *)Aig_Regular(Aig_ObjChild0( pObj ))->pData, Aig_ObjFaninC0(pObj));
-                    pObjShadowLo = Aig_ObjCreatePi( pNew );
+                    pObjShadowLo = Aig_ObjCreateCi( pNew );
 
                     #ifdef PROPAGATE_NAMES
                         Vec_PtrPush( vecLos, pObjShadowLo );
@@ -772,7 +772,7 @@ Aig_Man_t * LivenessToSafetyTransformationAbs( int mode, Abc_Ntk_t * pNtk, Aig_M
                     #endif
 
                     pObjShadowLiDriver = Aig_Or( pNew, pObjShadowLo, Aig_And( pNew, pDriverImage, pObjSaveOrSaved ) );
-                    pObjShadowLi = Aig_ObjCreatePo( pNew, pObjShadowLiDriver );
+                    pObjShadowLi = Aig_ObjCreateCo( pNew, pObjShadowLiDriver );
                     nRegCount++;
                     loCreated++; liCreated++;
             
@@ -791,7 +791,7 @@ Aig_Man_t * LivenessToSafetyTransformationAbs( int mode, Abc_Ntk_t * pNtk, Aig_M
                 {
                     fairLatch++;
                     pDriverImage = Aig_NotCond((Aig_Obj_t *)Aig_Regular(Aig_ObjChild0( pObj ))->pData, Aig_ObjFaninC0(pObj));
-                    pObjShadowLo = Aig_ObjCreatePi( pNew );
+                    pObjShadowLo = Aig_ObjCreateCi( pNew );
 
                     #ifdef PROPAGATE_NAMES
                         Vec_PtrPush( vecLos, pObjShadowLo );
@@ -801,7 +801,7 @@ Aig_Man_t * LivenessToSafetyTransformationAbs( int mode, Abc_Ntk_t * pNtk, Aig_M
                     #endif
 
                     pObjShadowLiDriver = Aig_Or( pNew, pObjShadowLo, Aig_And( pNew, pDriverImage, pObjSaveOrSaved ) );
-                    pObjShadowLi = Aig_ObjCreatePo( pNew, pObjShadowLiDriver );
+                    pObjShadowLi = Aig_ObjCreateCo( pNew, pObjShadowLiDriver );
                     nRegCount++;
                     loCreated++; liCreated++;
             
@@ -892,7 +892,7 @@ Aig_Man_t * LivenessToSafetyTransformationOneStepLoop( int mode, Abc_Ntk_t * pNt
     Saig_ManForEachPi( p, pObj, i )
     {
         piCopied++;
-        pObj->pData = Aig_ObjCreatePi(pNew);
+        pObj->pData = Aig_ObjCreateCi(pNew);
         Vec_PtrPush( vecPis, pObj->pData );
         nodeName = Abc_UtilStrsav(Abc_ObjName( Abc_NtkPi( pNtk, i ) ));
         Vec_PtrPush( vecPiNames, nodeName );
@@ -903,7 +903,7 @@ Aig_Man_t * LivenessToSafetyTransformationOneStepLoop( int mode, Abc_Ntk_t * pNt
     //****************************************************************
     if( mode == FULL_BIERE_ONE_LOOP_MODE || mode == IGNORE_SAFETY_KEEP_LIVENESS_ONE_LOOP_MODE )
     {
-        pObjSavePi = Aig_ObjCreatePi( pNew );
+        pObjSavePi = Aig_ObjCreateCi( pNew );
         nodeName = "SAVE_BIERE",
         Vec_PtrPush( vecPiNames, nodeName );
     }
@@ -914,7 +914,7 @@ Aig_Man_t * LivenessToSafetyTransformationOneStepLoop( int mode, Abc_Ntk_t * pNt
     Saig_ManForEachLo( p, pObj, i )
     {
         loCopied++;
-        pObj->pData = Aig_ObjCreatePi(pNew);
+        pObj->pData = Aig_ObjCreateCi(pNew);
         Vec_PtrPush( vecLos, pObj->pData );
         nodeName = Abc_UtilStrsav(Abc_ObjName( Abc_NtkCi( pNtk, Abc_NtkPiNum(pNtk) + i ) ));
         Vec_PtrPush( vecLoNames, nodeName );
@@ -926,7 +926,7 @@ Aig_Man_t * LivenessToSafetyTransformationOneStepLoop( int mode, Abc_Ntk_t * pNt
 
 #if 0
     loCreated++;
-    pObjSavedLo = Aig_ObjCreatePi( pNew );
+    pObjSavedLo = Aig_ObjCreateCi( pNew );
     Vec_PtrPush( vecLos, pObjSavedLo );
     nodeName = "SAVED_LO";
     Vec_PtrPush( vecLoNames, nodeName );
@@ -954,7 +954,7 @@ Aig_Man_t * LivenessToSafetyTransformationOneStepLoop( int mode, Abc_Ntk_t * pNt
     //********************************************************************
     Vec_PtrForEachEntry( Aig_Obj_t *, vAssertSafety, pObj, i )
     {
-        pObj->pData = Aig_ObjCreatePo( pNew, Aig_NotCond(Aig_ObjFanin0(pObj)->pData, Aig_ObjFaninC0( pObj ) ) );
+        pObj->pData = Aig_ObjCreateCo( pNew, Aig_NotCond(Aig_ObjFanin0(pObj)->pData, Aig_ObjFaninC0( pObj ) ) );
     }
 #endif
 
@@ -965,7 +965,7 @@ Aig_Man_t * LivenessToSafetyTransformationOneStepLoop( int mode, Abc_Ntk_t * pNt
             pObjAndAcc = NULL;
             Vec_PtrForEachEntry( Aig_Obj_t *, vAssertSafety, pObj, i )
             {
-                //pObj->pData = Aig_ObjCreatePo( pNew, Aig_NotCond(Aig_ObjFanin0(pObj)->pData, Aig_ObjFaninC0( pObj ) ) );
+                //pObj->pData = Aig_ObjCreateCo( pNew, Aig_NotCond(Aig_ObjFanin0(pObj)->pData, Aig_ObjFaninC0( pObj ) ) );
                 pArgument = Aig_NotCond( (Aig_Obj_t *)Aig_ObjFanin0(pObj)->pData, Aig_ObjFaninC0( pObj ) );
                 if( pObjAndAcc == NULL )
                     pObjAndAcc = pArgument;
@@ -975,14 +975,14 @@ Aig_Man_t * LivenessToSafetyTransformationOneStepLoop( int mode, Abc_Ntk_t * pNt
                     pObjAndAcc = Aig_And( pNew, pArgument, pObjAndAccDummy );
                 }
             }
-            Aig_ObjCreatePo( pNew, Aig_Not(pObjAndAcc) );
+            Aig_ObjCreateCo( pNew, Aig_Not(pObjAndAcc) );
         }
         else if( Vec_PtrSize( vAssertSafety ) != 0 && Vec_PtrSize( vAssumeSafety ) != 0 )
         {
             pObjAndAcc = NULL;
             Vec_PtrForEachEntry( Aig_Obj_t *, vAssertSafety, pObj, i )
             {
-                //pObj->pData = Aig_ObjCreatePo( pNew, Aig_NotCond(Aig_ObjFanin0(pObj)->pData, Aig_ObjFaninC0( pObj ) ) );
+                //pObj->pData = Aig_ObjCreateCo( pNew, Aig_NotCond(Aig_ObjFanin0(pObj)->pData, Aig_ObjFaninC0( pObj ) ) );
                 pArgument = Aig_NotCond( (Aig_Obj_t *)Aig_ObjFanin0(pObj)->pData, Aig_ObjFaninC0( pObj ) );
                 if( pObjAndAcc == NULL )
                     pObjAndAcc = pArgument;
@@ -996,7 +996,7 @@ Aig_Man_t * LivenessToSafetyTransformationOneStepLoop( int mode, Abc_Ntk_t * pNt
             pObjAndAcc = NULL;
             Vec_PtrForEachEntry( Aig_Obj_t *, vAssumeSafety, pObj, i )
             {
-                //pObj->pData = Aig_ObjCreatePo( pNew, Aig_NotCond(Aig_ObjFanin0(pObj)->pData, Aig_ObjFaninC0( pObj ) ) );
+                //pObj->pData = Aig_ObjCreateCo( pNew, Aig_NotCond(Aig_ObjFanin0(pObj)->pData, Aig_ObjFaninC0( pObj ) ) );
                 pArgument = Aig_NotCond( (Aig_Obj_t *)Aig_ObjFanin0(pObj)->pData, Aig_ObjFaninC0( pObj ) );
                 if( pObjAndAcc == NULL )
                     pObjAndAcc = pArgument;
@@ -1007,7 +1007,7 @@ Aig_Man_t * LivenessToSafetyTransformationOneStepLoop( int mode, Abc_Ntk_t * pNt
                 }
             }
             collectiveAssumeSafety = pObjAndAcc;
-            Aig_ObjCreatePo( pNew, Aig_And( pNew, Aig_Not(collectiveAssertSafety), collectiveAssumeSafety ) );
+            Aig_ObjCreateCo( pNew, Aig_And( pNew, Aig_Not(collectiveAssertSafety), collectiveAssumeSafety ) );
         }
         else
             printf("No safety property is specified, hence no safety gate is created\n");
@@ -1021,7 +1021,7 @@ Aig_Man_t * LivenessToSafetyTransformationOneStepLoop( int mode, Abc_Ntk_t * pNt
 
     if( mode == FULL_BIERE_ONE_LOOP_MODE || mode == IGNORE_SAFETY_KEEP_LIVENESS_ONE_LOOP_MODE )
     {
-        pObjSafetyPropertyOutput = Aig_ObjCreatePo( pNew, (Aig_Obj_t *)Aig_ObjFanin0(pObj)->pData );
+        pObjSafetyPropertyOutput = Aig_ObjCreateCo( pNew, (Aig_Obj_t *)Aig_ObjFanin0(pObj)->pData );
     }
 
     // create register inputs for the original registers
@@ -1030,15 +1030,15 @@ Aig_Man_t * LivenessToSafetyTransformationOneStepLoop( int mode, Abc_Ntk_t * pNt
     Saig_ManForEachLo( p, pObj, i )
     {
         pMatch = Saig_ObjLoToLi( p, pObj );
-        //Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pMatch) );
-        Aig_ObjCreatePo( pNew, Aig_NotCond((Aig_Obj_t *)Aig_ObjFanin0(pMatch)->pData, Aig_ObjFaninC0( pMatch ) ) );
+        //Aig_ObjCreateCo( pNew, Aig_ObjChild0Copy(pMatch) );
+        Aig_ObjCreateCo( pNew, Aig_NotCond((Aig_Obj_t *)Aig_ObjFanin0(pMatch)->pData, Aig_ObjFaninC0( pMatch ) ) );
         nRegCount++;
         liCopied++;
     }
 
 #if 0
     // create register input corresponding to the register "saved"
-    pObjSavedLi = Aig_ObjCreatePo( pNew, pObjSaveOrSaved );
+    pObjSavedLi = Aig_ObjCreateCo( pNew, pObjSaveOrSaved );
     nRegCount++;
     liCreated++;7
 #endif
@@ -1919,7 +1919,7 @@ Aig_Man_t * LivenessToSafetyTransformationWithLTL( int mode, Abc_Ntk_t * pNtk, A
         Saig_ManForEachPi( p, pObj, i )
         {
             piCopied++;
-            pObj->pData = Aig_ObjCreatePi(pNew);
+            pObj->pData = Aig_ObjCreateCi(pNew);
             Vec_PtrPush( vecPis, pObj->pData );
             nodeName = Abc_UtilStrsav(Abc_ObjName( Abc_NtkPi( pNtk, i ) ));
             Vec_PtrPush( vecPiNames, nodeName );
@@ -1930,7 +1930,7 @@ Aig_Man_t * LivenessToSafetyTransformationWithLTL( int mode, Abc_Ntk_t * pNtk, A
         //****************************************************************
         if( mode == FULL_BIERE_MODE || mode == IGNORE_SAFETY_KEEP_LIVENESS_MODE )
         {
-            pObjSavePi = Aig_ObjCreatePi( pNew );
+            pObjSavePi = Aig_ObjCreateCi( pNew );
             nodeName = "SAVE_BIERE",
             Vec_PtrPush( vecPiNames, nodeName );
         }
@@ -1941,7 +1941,7 @@ Aig_Man_t * LivenessToSafetyTransformationWithLTL( int mode, Abc_Ntk_t * pNtk, A
         Saig_ManForEachLo( p, pObj, i )
         {
             loCopied++;
-            pObj->pData = Aig_ObjCreatePi(pNew);
+            pObj->pData = Aig_ObjCreateCi(pNew);
             Vec_PtrPush( vecLos, pObj->pData );
             nodeName = Abc_UtilStrsav(Abc_ObjName( Abc_NtkCi( pNtk, Abc_NtkPiNum(pNtk) + i ) ));
             Vec_PtrPush( vecLoNames, nodeName );
@@ -1953,7 +1953,7 @@ Aig_Man_t * LivenessToSafetyTransformationWithLTL( int mode, Abc_Ntk_t * pNtk, A
         if( mode == FULL_BIERE_MODE || mode == IGNORE_SAFETY_KEEP_LIVENESS_MODE )
         {
             loCreated++;
-            pObjSavedLo = Aig_ObjCreatePi( pNew );
+            pObjSavedLo = Aig_ObjCreateCi( pNew );
             Vec_PtrPush( vecLos, pObjSavedLo );
             nodeName = "SAVED_LO";
             Vec_PtrPush( vecLoNames, nodeName );
@@ -1995,7 +1995,7 @@ Aig_Man_t * LivenessToSafetyTransformationWithLTL( int mode, Abc_Ntk_t * pNtk, A
                 }
                 pNegatedSafetyConjunction = Aig_Not(pObjAndAcc);
                 if( mode == FULL_BIERE_MODE || mode == IGNORE_LIVENESS_KEEP_SAFETY_MODE )
-                    pObjOriginalSafetyPropertyOutput = Aig_ObjCreatePo( pNew, Aig_Not(pObjAndAcc) );
+                    pObjOriginalSafetyPropertyOutput = Aig_ObjCreateCo( pNew, Aig_Not(pObjAndAcc) );
             }
             else if( Vec_PtrSize( vAssertSafety ) != 0 && Vec_PtrSize( vAssumeSafety ) != 0 )
             {
@@ -2016,14 +2016,14 @@ Aig_Man_t * LivenessToSafetyTransformationWithLTL( int mode, Abc_Ntk_t * pNtk, A
                 collectiveAssumeSafety = pObjAndAcc;
                 pNegatedSafetyConjunction =  Aig_And( pNew, Aig_Not(collectiveAssertSafety), collectiveAssumeSafety );
                 if( mode == FULL_BIERE_MODE || mode == IGNORE_LIVENESS_KEEP_SAFETY_MODE )
-                    pObjOriginalSafetyPropertyOutput = Aig_ObjCreatePo( pNew, Aig_And( pNew, Aig_Not(collectiveAssertSafety), collectiveAssumeSafety ) );
+                    pObjOriginalSafetyPropertyOutput = Aig_ObjCreateCo( pNew, Aig_And( pNew, Aig_Not(collectiveAssertSafety), collectiveAssumeSafety ) );
             }
             else
             {
                 printf("WARNING!! No safety property is found, a new (negated) constant 1 output is created\n");
                 pNegatedSafetyConjunction = Aig_Not( Aig_ManConst1(pNew) );
                 if( mode == FULL_BIERE_MODE || mode == IGNORE_LIVENESS_KEEP_SAFETY_MODE )
-                    pObjOriginalSafetyPropertyOutput = Aig_ObjCreatePo( pNew, Aig_Not( Aig_ManConst1(pNew) ) );
+                    pObjOriginalSafetyPropertyOutput = Aig_ObjCreateCo( pNew, Aig_Not( Aig_ManConst1(pNew) ) );
             }
         }
         assert( pNegatedSafetyConjunction != NULL );
@@ -2042,7 +2042,7 @@ Aig_Man_t * LivenessToSafetyTransformationWithLTL( int mode, Abc_Ntk_t * pNtk, A
             }
             for( i=0; i<Vec_PtrSize( vTopASTNodeArray ); i++ )
             {
-                pObjSafetyPropertyOutput = Aig_ObjCreatePo( pNew, (Aig_Obj_t *)Aig_ObjFanin0(pObj)->pData );
+                pObjSafetyPropertyOutput = Aig_ObjCreateCo( pNew, (Aig_Obj_t *)Aig_ObjFanin0(pObj)->pData );
                 Vec_PtrPush( vPoForLtlProps, pObjSafetyPropertyOutput );
             }
         }
@@ -2058,7 +2058,7 @@ Aig_Man_t * LivenessToSafetyTransformationWithLTL( int mode, Abc_Ntk_t * pNtk, A
         Saig_ManForEachLo( p, pObj, i )
         {
             pMatch = Saig_ObjLoToLi( p, pObj );
-            Aig_ObjCreatePo( pNew, Aig_NotCond((Aig_Obj_t *)Aig_ObjFanin0(pMatch)->pData, Aig_ObjFaninC0( pMatch ) ) );
+            Aig_ObjCreateCo( pNew, Aig_NotCond((Aig_Obj_t *)Aig_ObjFanin0(pMatch)->pData, Aig_ObjFaninC0( pMatch ) ) );
             nRegCount++;
             liCopied++;
         }
@@ -2069,7 +2069,7 @@ Aig_Man_t * LivenessToSafetyTransformationWithLTL( int mode, Abc_Ntk_t * pNtk, A
         if( mode == FULL_BIERE_MODE || mode == IGNORE_SAFETY_KEEP_LIVENESS_MODE )
         {
             #ifndef DUPLICATE_CKT_DEBUG
-                pObjSavedLi = Aig_ObjCreatePo( pNew, pObjSaveOrSaved );
+                pObjSavedLi = Aig_ObjCreateCo( pNew, pObjSaveOrSaved );
                 nRegCount++;
                 liCreated++;
 
@@ -2087,7 +2087,7 @@ Aig_Man_t * LivenessToSafetyTransformationWithLTL( int mode, Abc_Ntk_t * pNtk, A
                 //    if( strcmp(  Abc_ObjName( Abc_NtkCi( pNtk, Abc_NtkPiNum(pNtk) + i ) ), "top|route0_queue1_num[0]" ) == 0 
                 //            || strcmp(  Abc_ObjName( Abc_NtkCi( pNtk, Abc_NtkPiNum(pNtk) + i ) ), "top|route0_queue1_num[1]" ) == 0 || strcmp(  Abc_ObjName( Abc_NtkCi( pNtk, Abc_NtkPiNum(pNtk) + i ) ), "top|route0_queue1_num[2]" ) == 0 )
                     {        
-                        pObjShadowLo = Aig_ObjCreatePi( pNew );
+                        pObjShadowLo = Aig_ObjCreateCi( pNew );
 
                     #ifdef PROPAGATE_NAMES
                         Vec_PtrPush( vecLos, pObjShadowLo );
@@ -2098,7 +2098,7 @@ Aig_Man_t * LivenessToSafetyTransformationWithLTL( int mode, Abc_Ntk_t * pNtk, A
                     #endif
 
                         pObjShadowLiDriver = Aig_Mux( pNew, pObjSaveAndNotSaved, (Aig_Obj_t *)pObj->pData, pObjShadowLo );
-                        pObjShadowLi = Aig_ObjCreatePo( pNew, pObjShadowLiDriver );
+                        pObjShadowLi = Aig_ObjCreateCo( pNew, pObjShadowLiDriver );
                         nRegCount++;
                         loCreated++; liCreated++;
             
@@ -2175,9 +2175,9 @@ Aig_Man_t * LivenessToSafetyTransformationWithLTL( int mode, Abc_Ntk_t * pNtk, A
                                             liveLatch++;
 
                                             pDriverImage = pObj;
-                                            pObjShadowLo = Aig_ObjCreatePi( pNew );
+                                            pObjShadowLo = Aig_ObjCreateCi( pNew );
                                             pObjShadowLiDriver = Aig_Or( pNew, pObjShadowLo, Aig_And( pNew, pDriverImage, pObjSaveOrSaved ) );
-                                            pObjShadowLi = Aig_ObjCreatePo( pNew, pObjShadowLiDriver );
+                                            pObjShadowLi = Aig_ObjCreateCo( pNew, pObjShadowLiDriver );
 
                                             nRegCount++;
                                             loCreated++; liCreated++;

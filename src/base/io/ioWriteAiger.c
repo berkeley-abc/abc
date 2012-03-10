@@ -848,7 +848,7 @@ void Io_WriteAigerCex( Abc_Cex_t * pCex, Abc_Ntk_t * pNtk, void * pG, char * pFi
         Aig_ManForEachNode( pAig, pObj, k )
             pObj->fMarkA = (Aig_ObjFanin0(pObj)->fMarkA ^ Aig_ObjFaninC0(pObj)) &
                            (Aig_ObjFanin1(pObj)->fMarkA ^ Aig_ObjFaninC1(pObj));
-        Aig_ManForEachPo( pAig, pObj, k )
+        Aig_ManForEachCo( pAig, pObj, k )
             pObj->fMarkA = (Aig_ObjFanin0(pObj)->fMarkA ^ Aig_ObjFaninC0(pObj));
         Saig_ManForEachPo( pAig, pObj, k )
             fprintf( pFile, "%d", pObj->fMarkA );

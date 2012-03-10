@@ -2870,7 +2870,7 @@ Aig_Man_t * Ivy_FraigExtractCone( Ivy_Man_t * p, Ivy_Obj_t * pObj1, Ivy_Obj_t * 
     Ivy_ManConst1(p)->pEquiv = (Ivy_Obj_t *)Aig_ManConst1(pMan);
     Ivy_ManForEachNodeVec( p, vLeaves, pObjIvy, i )
     {
-        pObjIvy->pEquiv = (Ivy_Obj_t *)Aig_ObjCreatePi( pMan );
+        pObjIvy->pEquiv = (Ivy_Obj_t *)Aig_ObjCreateCi( pMan );
         pObjIvy->fMarkB = 0;
     }
     // duplicate internal nodes
@@ -2895,7 +2895,7 @@ printf( "Polarity = %d\n", pMiter->fPhase );
 printf( "***************\n" );
     }
 */
-    pMiter = Aig_ObjCreatePo( pMan, pMiter );
+    pMiter = Aig_ObjCreateCo( pMan, pMiter );
 //printf( "Polarity = %d\n", pMiter->fPhase );
     Aig_ManCleanup( pMan );
     Vec_IntFree( vNodes );
@@ -2927,7 +2927,7 @@ int Ivy_FraigCheckCone( Ivy_FraigMan_t * pGlo, Ivy_Man_t * p, Ivy_Obj_t * pObj1,
     {
         int Counter = 0;
         memset( pGlo->pPatWords, 0, sizeof(unsigned) * pGlo->nPatWords );
-        Aig_ManForEachPi( pMan, pObj, i )
+        Aig_ManForEachCi( pMan, pObj, i )
             if ( ((int *)pMan->pData)[i] )
             {
                 int iObjIvy = Vec_IntEntry( vLeaves, i );

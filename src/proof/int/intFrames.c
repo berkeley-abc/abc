@@ -63,14 +63,14 @@ Aig_Man_t * Inter_ManFramesInter( Aig_Man_t * pAig, int nFrames, int fAddRegOuts
     else
     {
         Saig_ManForEachLo( pAig, pObj, i )
-            pObj->pData = Aig_ObjCreatePi( pFrames );
+            pObj->pData = Aig_ObjCreateCi( pFrames );
     }
     // add timeframes
     for ( f = 0; f < nFrames; f++ )
     {
         // create PI nodes for this frame
         Saig_ManForEachPi( pAig, pObj, i )
-            pObj->pData = Aig_ObjCreatePi( pFrames );
+            pObj->pData = Aig_ObjCreateCi( pFrames );
         // add internal nodes of this frame
         Aig_ManForEachNode( pAig, pObj, i )
             pObj->pData = Aig_And( pFrames, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
@@ -79,7 +79,7 @@ Aig_Man_t * Inter_ManFramesInter( Aig_Man_t * pAig, int nFrames, int fAddRegOuts
         {
             if ( i < Saig_ManPoNum(pAig)-Saig_ManConstrNum(pAig) )
                 continue;
-            Aig_ObjCreatePo( pFrames, Aig_Not( Aig_ObjChild0Copy(pObj) ) );
+            Aig_ObjCreateCo( pFrames, Aig_Not( Aig_ObjChild0Copy(pObj) ) );
         }
         if ( f == nFrames - 1 )
             break;
@@ -94,13 +94,13 @@ Aig_Man_t * Inter_ManFramesInter( Aig_Man_t * pAig, int nFrames, int fAddRegOuts
     if ( fAddRegOuts )
     {
         Saig_ManForEachLi( pAig, pObj, i )
-            Aig_ObjCreatePo( pFrames, Aig_ObjChild0Copy(pObj) );
+            Aig_ObjCreateCo( pFrames, Aig_ObjChild0Copy(pObj) );
     }
     // create the only PO of the manager
     else
     {
         pObj = Aig_ManPo( pAig, 0 );
-        Aig_ObjCreatePo( pFrames, Aig_ObjChild0Copy(pObj) );
+        Aig_ObjCreateCo( pFrames, Aig_ObjChild0Copy(pObj) );
     }
     Aig_ManCleanup( pFrames );
     return pFrames;

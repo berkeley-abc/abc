@@ -784,15 +784,15 @@ Aig_Man_t * Rtm_ManToAig( Rtm_Man_t * pRtm )
     pObjRtm = (Rtm_Obj_t *)Vec_PtrEntry( pRtm->vObjs, 0 );
     pObjRtm->pCopy = Aig_ManConst1(pNew);
     Rtm_ManForEachPi( pRtm, pObjRtm, i )
-        pObjRtm->pCopy = Aig_ObjCreatePi(pNew);
+        pObjRtm->pCopy = Aig_ObjCreateCi(pNew);
     for ( i = 0; i < nLatches; i++ )
-        Aig_ObjCreatePi(pNew);
+        Aig_ObjCreateCi(pNew);
     // create internal nodes
     Rtm_ManForEachObj( pRtm, pObjRtm, i )
         Rtm_ManToAig_rec( pNew, pRtm, pObjRtm, pLatches );
     // create POs
     Rtm_ManForEachPo( pRtm, pObjRtm, i )
-        Aig_ObjCreatePo( pNew, (Aig_Obj_t *)pObjRtm->pCopy );
+        Aig_ObjCreateCo( pNew, (Aig_Obj_t *)pObjRtm->pCopy );
     // connect latches 
     Rtm_ManForEachObj( pRtm, pObjRtm, i )
     Rtm_ObjForEachFaninEdge( pObjRtm, pEdge, k )
@@ -805,7 +805,7 @@ Aig_Man_t * Rtm_ManToAig( Rtm_Man_t * pRtm )
             Val = Rtm_ObjGetOne( pRtm, pEdge, pEdge->nLats - 1 - m );
             assert( Val == RTM_VAL_ZERO || Val == RTM_VAL_ONE || Val == RTM_VAL_VOID );
             pObjNew = Aig_NotCond( pObjNew, Val == RTM_VAL_ONE );
-            Aig_ObjCreatePo( pNew, pObjNew );
+            Aig_ObjCreateCo( pNew, pObjNew );
             pObjNew = Aig_ManPi( pNew, pLatches[2*pObjRtm->Id + k] + m );
             pObjNew = Aig_NotCond( pObjNew, Val == RTM_VAL_ONE );
         }

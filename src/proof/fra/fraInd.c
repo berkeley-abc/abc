@@ -112,7 +112,7 @@ static inline void Fra_FramesConstrainNode( Aig_Man_t * pManFraig, Aig_Obj_t * p
     pMiter = Aig_Exor( pManFraig, pObjNew, pObjReprNew );
     pMiter = Aig_NotCond( pMiter, !Aig_ObjPhaseReal(pMiter) );
     assert( Aig_ObjPhaseReal(pMiter) == 1 );
-    Aig_ObjCreatePo( pManFraig, pMiter );
+    Aig_ObjCreateCo( pManFraig, pMiter );
 }
 
 /**Function*************************************************************
@@ -145,10 +145,10 @@ Aig_Man_t * Fra_FramesWithClasses( Fra_Man_t * p )
         Fra_ObjSetFraig( Aig_ManConst1(p->pManAig), f, Aig_ManConst1(pManFraig) );
     for ( f = 0; f < p->nFramesAll; f++ )
         Aig_ManForEachPiSeq( p->pManAig, pObj, i )
-            Fra_ObjSetFraig( pObj, f, Aig_ObjCreatePi(pManFraig) );
+            Fra_ObjSetFraig( pObj, f, Aig_ObjCreateCi(pManFraig) );
     // create latches for the first frame
     Aig_ManForEachLoSeq( p->pManAig, pObj, i )
-        Fra_ObjSetFraig( pObj, 0, Aig_ObjCreatePi(pManFraig) );
+        Fra_ObjSetFraig( pObj, 0, Aig_ObjCreateCi(pManFraig) );
 
     // add timeframes
 //    pManFraig->fAddStrash = 1;
@@ -173,7 +173,7 @@ Aig_Man_t * Fra_FramesWithClasses( Fra_Man_t * p )
     pManFraig->nAsserts = Aig_ManPoNum(pManFraig);
     // add the POs for the latch outputs of the last frame
     Aig_ManForEachLoSeq( p->pManAig, pObj, i )
-        Aig_ObjCreatePo( pManFraig, Fra_ObjFraig(pObj,p->nFramesAll-1) );
+        Aig_ObjCreateCo( pManFraig, Fra_ObjFraig(pObj,p->nFramesAll-1) );
 
     // remove dangling nodes
     Aig_ManCleanup( pManFraig );

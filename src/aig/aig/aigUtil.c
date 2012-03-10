@@ -103,7 +103,7 @@ int Aig_ManLevels( Aig_Man_t * p )
 {
     Aig_Obj_t * pObj;
     int i, LevelMax = 0;
-    Aig_ManForEachPo( p, pObj, i )
+    Aig_ManForEachCo( p, pObj, i )
         LevelMax = Abc_MaxInt( LevelMax, (int)Aig_ObjFanin0(pObj)->Level );
     return LevelMax;
 }
@@ -688,7 +688,7 @@ void Aig_ManPrintVerbose( Aig_Man_t * p, int fHaig )
     Aig_Obj_t * pObj;
     int i;
     printf( "PIs: " );
-    Aig_ManForEachPi( p, pObj, i )
+    Aig_ManForEachCi( p, pObj, i )
         printf( " %p", pObj );
     printf( "\n" );
     vNodes = Aig_ManDfs( p, 0 );
@@ -742,16 +742,16 @@ void Aig_ManDumpBlif( Aig_Man_t * p, char * pFileName, Vec_Ptr_t * vPiNames, Vec
         return;
     }
     // check if constant is used
-    Aig_ManForEachPo( p, pObj, i )
+    Aig_ManForEachCo( p, pObj, i )
         if ( Aig_ObjIsConst1(Aig_ObjFanin0(pObj)) )
             pConst1 = Aig_ManConst1(p);
     // collect nodes in the DFS order
     vNodes = Aig_ManDfs( p, 1 );
     // assign IDs to objects
     Aig_ManConst1(p)->iData = Counter++;
-    Aig_ManForEachPi( p, pObj, i )
+    Aig_ManForEachCi( p, pObj, i )
         pObj->iData = Counter++;
-    Aig_ManForEachPo( p, pObj, i )
+    Aig_ManForEachCo( p, pObj, i )
         pObj->iData = Counter++;
     Vec_PtrForEachEntry( Aig_Obj_t *, vNodes, pObj, i )
         pObj->iData = Counter++;
@@ -815,7 +815,7 @@ void Aig_ManDumpBlif( Aig_Man_t * p, char * pFileName, Vec_Ptr_t * vPiNames, Vec
         fprintf( pFile, "%d%d 1\n", !Aig_ObjFaninC0(pObj), !Aig_ObjFaninC1(pObj) );
     }
     // write POs
-    Aig_ManForEachPo( p, pObj, i )
+    Aig_ManForEachCo( p, pObj, i )
     {
         fprintf( pFile, ".names" );
         if ( vPiNames && Aig_ObjIsPi(Aig_ObjFanin0(pObj)) )
@@ -857,16 +857,16 @@ void Aig_ManDumpVerilog( Aig_Man_t * p, char * pFileName )
         return;
     }
     // check if constant is used
-    Aig_ManForEachPo( p, pObj, i )
+    Aig_ManForEachCo( p, pObj, i )
         if ( Aig_ObjIsConst1(Aig_ObjFanin0(pObj)) )
             pConst1 = Aig_ManConst1(p);
     // collect nodes in the DFS order
     vNodes = Aig_ManDfs( p, 1 );
     // assign IDs to objects
     Aig_ManConst1(p)->iData = Counter++;
-    Aig_ManForEachPi( p, pObj, i )
+    Aig_ManForEachCi( p, pObj, i )
         pObj->iData = Counter++;
-    Aig_ManForEachPo( p, pObj, i )
+    Aig_ManForEachCo( p, pObj, i )
         pObj->iData = Counter++;
     Vec_PtrForEachEntry( Aig_Obj_t *, vNodes, pObj, i )
         pObj->iData = Counter++;
@@ -966,9 +966,9 @@ void Aig_ManSetPioNumbers( Aig_Man_t * p )
 {
     Aig_Obj_t * pObj;
     int i;
-    Aig_ManForEachPi( p, pObj, i )
+    Aig_ManForEachCi( p, pObj, i )
         pObj->PioNum = i;
-    Aig_ManForEachPo( p, pObj, i )
+    Aig_ManForEachCo( p, pObj, i )
         pObj->PioNum = i;
 }
 
@@ -987,9 +987,9 @@ void Aig_ManCleanPioNumbers( Aig_Man_t * p )
 {
     Aig_Obj_t * pObj;
     int i;
-    Aig_ManForEachPi( p, pObj, i )
+    Aig_ManForEachCi( p, pObj, i )
         pObj->pNext = NULL;
-    Aig_ManForEachPo( p, pObj, i )
+    Aig_ManForEachCo( p, pObj, i )
         pObj->pNext = NULL;
 }
 
@@ -1340,7 +1340,7 @@ void Aig_ManCounterExampleValueStart( Aig_Man_t * pAig, Abc_Cex_t * pCex )
                 Abc_InfoSetBit( (unsigned *)pAig->pData2, nObjs * i + Aig_ObjId(pObj) );
         }
         // derive values for combinational outputs
-        Aig_ManForEachPo( pAig, pObj, k )
+        Aig_ManForEachCo( pAig, pObj, k )
         {
             Val0 = Abc_InfoHasBit( (unsigned *)pAig->pData2, nObjs * i + Aig_ObjFaninId0(pObj) );
             if ( Val0 ^ Aig_ObjFaninC0(pObj) )
@@ -1434,14 +1434,14 @@ void Aig_ManSetPhase( Aig_Man_t * pAig )
     int i;
     // set the PI simulation information
     Aig_ManConst1( pAig )->fPhase = 1;
-    Aig_ManForEachPi( pAig, pObj, i )
+    Aig_ManForEachCi( pAig, pObj, i )
         pObj->fPhase = 0;
     // simulate internal nodes
     Aig_ManForEachNode( pAig, pObj, i )
         pObj->fPhase = ( Aig_ObjFanin0(pObj)->fPhase ^ Aig_ObjFaninC0(pObj) )
                      & ( Aig_ObjFanin1(pObj)->fPhase ^ Aig_ObjFaninC1(pObj) );
     // simulate PO nodes
-    Aig_ManForEachPo( pAig, pObj, i )
+    Aig_ManForEachCo( pAig, pObj, i )
         pObj->fPhase = Aig_ObjFanin0(pObj)->fPhase ^ Aig_ObjFaninC0(pObj);
 }
 

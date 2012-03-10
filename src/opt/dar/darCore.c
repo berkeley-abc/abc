@@ -302,7 +302,7 @@ Aig_MmFixed_t * Dar_ManComputeCuts( Aig_Man_t * pAig, int nCutsMax, int fVerbose
 //    Dar_ManCutsStart( p );
     Aig_MmFixedRestart( p->pMemCuts );
     Dar_ObjPrepareCuts( p, Aig_ManConst1(p->pAig) );
-    Aig_ManForEachPi( pAig, pObj, i )
+    Aig_ManForEachCi( pAig, pObj, i )
         Dar_ObjPrepareCuts( p, pObj );
     // compute cuts for each nodes in the topological order
     Aig_ManForEachNode( pAig, pObj, i )

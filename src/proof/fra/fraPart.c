@@ -64,7 +64,7 @@ clk = clock();
     vSupps = (Vec_Vec_t *)Aig_ManSupports( p );
 ABC_PRT( "Supports", clock() - clk );
     // remove last entry
-    Aig_ManForEachPo( p, pObj, i )
+    Aig_ManForEachCo( p, pObj, i )
     {
         vSup = Vec_VecEntryInt( vSupps, i );
         Vec_IntPop( vSup );
@@ -75,7 +75,7 @@ ABC_PRT( "Supports", clock() - clk );
     // create reverse supports
 clk = clock();
     vSuppsIn = Vec_VecStart( Aig_ManPiNum(p) );
-    Aig_ManForEachPo( p, pObj, i )
+    Aig_ManForEachCo( p, pObj, i )
     {
         vSup = Vec_VecEntryInt( vSupps, i );
         Vec_IntForEachEntry( vSup, Entry, k )
@@ -90,7 +90,7 @@ clk = clock();
     vOverNew  = Vec_IntAlloc( Aig_ManPoNum(p) );
     vQuantNew = Vec_IntAlloc( Aig_ManPoNum(p) );
 //    pProgress = Bar_ProgressStart( stdout, Aig_ManPoNum(p) );
-    Aig_ManForEachPo( p, pObj, i )
+    Aig_ManForEachCo( p, pObj, i )
     {
 //        Bar_ProgressUpdate( pProgress, i, NULL );
         // get old supports
@@ -101,7 +101,7 @@ clk = clock();
         CountOver = CountQuant = 0;
         vSupNew = Vec_IntDup( vSup );
         // go through the nodes where the first var appears
-        Aig_ManForEachPo( p, pObj, k )
+        Aig_ManForEachCo( p, pObj, k )
 //        iVar = Vec_IntEntry( vSup, 0 );
 //        vSupIn = Vec_VecEntry( vSuppsIn, iVar );
 //        Vec_IntForEachEntry( vSupIn, Entry, k )
@@ -198,7 +198,7 @@ clk = clock();
     vSupps = (Vec_Vec_t *)Aig_ManSupports( p );
 ABC_PRT( "Supports", clock() - clk );
     // remove last entry
-    Aig_ManForEachPo( p, pObj, i )
+    Aig_ManForEachCo( p, pObj, i )
     {
         vSup = Vec_VecEntryInt( vSupps, i );
         Vec_IntPop( vSup );
@@ -209,7 +209,7 @@ ABC_PRT( "Supports", clock() - clk );
     // create reverse supports
 clk = clock();
     vSuppsIn = Vec_VecStart( Aig_ManPiNum(p) );
-    Aig_ManForEachPo( p, pObj, i )
+    Aig_ManForEachCo( p, pObj, i )
     {
         if ( i == p->nAsserts )
             break;
@@ -222,7 +222,7 @@ ABC_PRT( "Inverse ", clock() - clk );
     // create affective supports
 clk = clock();
     pSupp = ABC_ALLOC( char, Aig_ManPiNum(p) );
-    Aig_ManForEachPo( p, pObj, i )
+    Aig_ManForEachCo( p, pObj, i )
     {
         if ( i % 50 != 0 )
             continue;

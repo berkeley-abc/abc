@@ -62,8 +62,8 @@ Aig_Man_t * Aig_ManRemap( Aig_Man_t * p, Vec_Ptr_t * vMap )
     // create the PIs
     Aig_ManCleanData( p );
     Aig_ManConst1(p)->pData = Aig_ManConst1(pNew);
-    Aig_ManForEachPi( p, pObj, i )
-        pObj->pData = Aig_ObjCreatePi(pNew);
+    Aig_ManForEachCi( p, pObj, i )
+        pObj->pData = Aig_ObjCreateCi(pNew);
     // implement the mapping
     nTruePis = Aig_ManPiNum(p)-Aig_ManRegNum(p);
     if ( p->vFlopReprs )
@@ -71,7 +71,7 @@ Aig_Man_t * Aig_ManRemap( Aig_Man_t * p, Vec_Ptr_t * vMap )
         Aig_ManForEachLoSeq( p, pObj, i )
             pObj->pNext = (Aig_Obj_t *)(long)Vec_IntEntry( p->vFlopNums, i-nTruePis );
     }
-    Aig_ManForEachPi( p, pObj, i )
+    Aig_ManForEachCi( p, pObj, i )
     {
         pObjMapped = (Aig_Obj_t *)Vec_PtrEntry( vMap, i );
         pObj->pData = Aig_NotCond( (Aig_Obj_t *)Aig_Regular(pObjMapped)->pData, Aig_IsComplement(pObjMapped) );
@@ -101,8 +101,8 @@ Aig_Man_t * Aig_ManRemap( Aig_Man_t * p, Vec_Ptr_t * vMap )
         else if ( Aig_ObjIsNode(pObj) )
             pObj->pData = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
     // add the POs
-    Aig_ManForEachPo( p, pObj, i )
-        Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
+    Aig_ManForEachCo( p, pObj, i )
+        Aig_ObjCreateCo( pNew, Aig_ObjChild0Copy(pObj) );
     assert( Aig_ManNodeNum(p) >= Aig_ManNodeNum(pNew) );
     Aig_ManSetRegNum( pNew, Aig_ManRegNum(p) );
     // check the resulting network
@@ -190,7 +190,7 @@ int Aig_ManSeqCleanup( Aig_Man_t * p )
         {
             int nTruePos = Aig_ManPoNum(p)-Aig_ManRegNum(p);
             int iNum, k = 0;
-            Aig_ManForEachPo( p, pObj, i )
+            Aig_ManForEachCo( p, pObj, i )
                 if ( i >= nTruePos && Aig_ObjIsTravIdCurrent(p, pObj) )
                 {
                     iNum = Vec_IntEntry( p->vFlopNums, i - nTruePos );
@@ -201,7 +201,7 @@ int Aig_ManSeqCleanup( Aig_Man_t * p )
         }
         // collect new CIs/COs
         vCis = Vec_PtrAlloc( Aig_ManPiNum(p) );
-        Aig_ManForEachPi( p, pObj, i )
+        Aig_ManForEachCi( p, pObj, i )
             if ( Aig_ObjIsTravIdCurrent(p, pObj) )
                 Vec_PtrPush( vCis, pObj );
             else
@@ -210,7 +210,7 @@ int Aig_ManSeqCleanup( Aig_Man_t * p )
 //                Aig_ManRecycleMemory( p, pObj );
             }
         vCos = Vec_PtrAlloc( Aig_ManPoNum(p) );
-        Aig_ManForEachPo( p, pObj, i )
+        Aig_ManForEachCo( p, pObj, i )
             if ( Aig_ObjIsTravIdCurrent(p, pObj) )
                 Vec_PtrPush( vCos, pObj );
             else
@@ -286,7 +286,7 @@ int Aig_ManSeqCleanupBasic( Aig_Man_t * p )
     if ( Vec_PtrSize(vNodes) < Aig_ManPoNum(p) )
     {
         // add constant drivers to the dangling latches
-        Aig_ManForEachPo( p, pObj, i )
+        Aig_ManForEachCo( p, pObj, i )
             if ( !Aig_ObjIsTravIdCurrent(p, pObj) )
                 Aig_ObjPatchFanin0( p, pObj, Aig_ManConst0(p) );
     }

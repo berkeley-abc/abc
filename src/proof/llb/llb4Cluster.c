@@ -94,20 +94,20 @@ Vec_Int_t * Llb_Nonlin4FindOrder( Aig_Man_t * pAig, int * pCounter )
     Aig_ManForEachNode( pAig, pObj, i )
         if ( Aig_ObjLevel(pObj) > 3 )
             pObj->fMarkA = 1;
-    Aig_ManForEachPo( pAig, pObj, i )
+    Aig_ManForEachCo( pAig, pObj, i )
         Aig_ObjFanin0(pObj)->fMarkA = 0;
 
     // collect nodes in the order
     vOrder = Vec_IntStartFull( Aig_ManObjNumMax(pAig) );
     Aig_ManIncrementTravId( pAig );
     Aig_ObjSetTravIdCurrent( pAig, Aig_ManConst1(pAig) );
-//    Aig_ManForEachPo( pAig, pObj, i )
+//    Aig_ManForEachCo( pAig, pObj, i )
     Saig_ManForEachLi( pAig, pObj, i )
     {
         Vec_IntWriteEntry( vOrder, Aig_ObjId(pObj), Counter++ );
         Llb_Nonlin4FindOrder_rec( pAig, Aig_ObjFanin0(pObj), vOrder, &Counter );
     }
-    Aig_ManForEachPi( pAig, pObj, i )
+    Aig_ManForEachCi( pAig, pObj, i )
         if ( Llb_ObjBddVar(vOrder, pObj) < 0 )
             Vec_IntWriteEntry( vOrder, Aig_ObjId(pObj), Counter++ );
     Aig_ManCleanMarkA( pAig );
@@ -232,7 +232,7 @@ Vec_Int_t * Llb_Nonlin4FindVars2Q( DdManager * dd, Aig_Man_t * pAig, Vec_Int_t *
     Vec_IntFill( vVars2Q, Cudd_ReadSize(dd), 1 );
     Saig_ManForEachLo( pAig, pObj, i )
         Vec_IntWriteEntry( vVars2Q, Llb_ObjBddVar(vOrder, pObj), 0 );
-//    Aig_ManForEachPo( pAig, pObj, i )
+//    Aig_ManForEachCo( pAig, pObj, i )
     Saig_ManForEachLi( pAig, pObj, i )
         Vec_IntWriteEntry( vVars2Q, Llb_ObjBddVar(vOrder, pObj), 0 );
     return vVars2Q;

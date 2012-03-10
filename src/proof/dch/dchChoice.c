@@ -255,14 +255,14 @@ Aig_Man_t * Dch_DeriveChoiceAig_old( Aig_Man_t * pAig )
     // map constants and PIs
     Aig_ManCleanData( pAig );
     Aig_ManConst1(pAig)->pData = Aig_ManConst1(pChoices);
-    Aig_ManForEachPi( pAig, pObj, i )
-        pObj->pData = Aig_ObjCreatePi( pChoices );
+    Aig_ManForEachCi( pAig, pObj, i )
+        pObj->pData = Aig_ObjCreateCi( pChoices );
     // construct choices for the internal nodes
     assert( pAig->pReprs != NULL );
     Aig_ManForEachNode( pAig, pObj, i )
         Dch_DeriveChoiceAigNode( pChoices, pAig, pObj );
-    Aig_ManForEachPo( pAig, pObj, i )
-        Aig_ObjCreatePo( pChoices, Aig_ObjChild0CopyRepr(pChoices, pObj) );
+    Aig_ManForEachCo( pAig, pObj, i )
+        Aig_ObjCreateCo( pChoices, Aig_ObjChild0CopyRepr(pChoices, pObj) );
     Dch_DeriveChoiceCountEquivs( pChoices );
     // there is no need for cleanup
     ABC_FREE( pChoices->pReprs );
@@ -384,7 +384,7 @@ int Aig_ManCheckAcyclic( Aig_Man_t * p, int fVerbose )
     // pNode->TravId <  pNet->nTravIds - 1  means "pNode is not visited"
     // traverse the network to detect cycles
     fAcyclic = 1;
-    Aig_ManForEachPo( p, pNode, i )
+    Aig_ManForEachCo( p, pNode, i )
     {
         pNode = Aig_ObjFanin0(pNode);
         if ( Aig_ObjIsTravIdPrevious(p, pNode) )
@@ -454,14 +454,14 @@ Aig_Man_t * Dch_DeriveChoiceAigInt( Aig_Man_t * pAig )
     // map constants and PIs
     Aig_ManCleanData( pAig );
     Aig_ManConst1(pAig)->pData = Aig_ManConst1(pChoices);
-    Aig_ManForEachPi( pAig, pObj, i )
-        pObj->pData = Aig_ObjCreatePi( pChoices );
+    Aig_ManForEachCi( pAig, pObj, i )
+        pObj->pData = Aig_ObjCreateCi( pChoices );
     // construct choices for the internal nodes
     assert( pAig->pReprs != NULL );
     Aig_ManForEachNode( pAig, pObj, i )
         Dch_DeriveChoiceAigNode( pChoices, pAig, pObj );
-    Aig_ManForEachPo( pAig, pObj, i )
-        Aig_ObjCreatePo( pChoices, Aig_ObjChild0CopyRepr(pChoices, pObj) );
+    Aig_ManForEachCo( pAig, pObj, i )
+        Aig_ObjCreateCo( pChoices, Aig_ObjChild0CopyRepr(pChoices, pObj) );
     Dch_DeriveChoiceCountEquivs( pChoices );
     Aig_ManSetRegNum( pChoices, Aig_ManRegNum(pAig) );
     return pChoices;

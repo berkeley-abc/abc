@@ -94,7 +94,7 @@ Vec_Int_t * Saig_ManCbaFilterFlops( Aig_Man_t * pAig, Abc_Cex_t * pAbsCex, Vec_I
         Aig_ManForEachNode( pAig, pObj, k )
             pObj->fMarkB = (Aig_ObjFanin0(pObj)->fMarkB ^ Aig_ObjFaninC0(pObj)) & 
                            (Aig_ObjFanin1(pObj)->fMarkB ^ Aig_ObjFaninC1(pObj));
-        Aig_ManForEachPo( pAig, pObj, k )
+        Aig_ManForEachCo( pAig, pObj, k )
             pObj->fMarkB = Aig_ObjFanin0(pObj)->fMarkB ^ Aig_ObjFaninC0(pObj);
         // transfer
         Saig_ManForEachLiLo( pAig, pObjRi, pObjRo, k )
@@ -157,8 +157,8 @@ Aig_Man_t * Saig_ManDupWithCubes( Aig_Man_t * pAig, Vec_Vec_t * vReg2Value )
     // map the constant node
     Aig_ManConst1(pAig)->pData = Aig_ManConst1( pAigNew );
     // create variables for PIs
-    Aig_ManForEachPi( pAig, pObj, i )
-        pObj->pData = Aig_ObjCreatePi( pAigNew );
+    Aig_ManForEachCi( pAig, pObj, i )
+        pObj->pData = Aig_ObjCreateCi( pAigNew );
     // add internal nodes of this frame
     Aig_ManForEachNode( pAig, pObj, i )
         pObj->pData = Aig_And( pAigNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
@@ -171,11 +171,11 @@ Aig_Man_t * Saig_ManDupWithCubes( Aig_Man_t * pAig, Vec_Vec_t * vReg2Value )
             pObj = Saig_ManLi( pAig, Abc_Lit2Var(Lit) );
             pMiter = Aig_And( pAigNew, pMiter, Aig_NotCond(Aig_ObjChild0Copy(pObj), Abc_LitIsCompl(Lit)) );
         }
-        Aig_ObjCreatePo( pAigNew, pMiter );
+        Aig_ObjCreateCo( pAigNew, pMiter );
     }
     // transfer to register outputs
     Saig_ManForEachLi( pAig, pObj, i )
-        Aig_ObjCreatePo( pAigNew, Aig_ObjChild0Copy(pObj) );
+        Aig_ObjCreateCo( pAigNew, Aig_ObjChild0Copy(pObj) );
     // finalize
     Aig_ManCleanup( pAigNew );
     Aig_ManSetRegNum( pAigNew, Aig_ManRegNum(pAig) );
@@ -318,7 +318,7 @@ Vec_Int_t * Saig_ManCbaFindReason( Saig_ManCba_t * p )
     // set PI values according to CEX
     vPrios = Vec_IntStartFull( Aig_ManObjNumMax(p->pFrames) );
     Aig_ManConst1(p->pFrames)->fPhase = 1;
-    Aig_ManForEachPi( p->pFrames, pObj, i )
+    Aig_ManForEachCi( p->pFrames, pObj, i )
     {
         int iInput = Vec_IntEntry( p->vMapPiF2A, 2*i );
         int iFrame = Vec_IntEntry( p->vMapPiF2A, 2*i+1 );
@@ -467,7 +467,7 @@ Aig_Man_t * Saig_ManCbaUnrollWithCex( Aig_Man_t * pAig, Abc_Cex_t * pCex, int nI
                 }
                 else
                 {
-                    pObj->pData = Aig_ObjCreatePi( pFrames );
+                    pObj->pData = Aig_ObjCreateCi( pFrames );
                     Vec_IntPush( *pvMapPiF2A, Aig_ObjPioNum(pObj) );
                     Vec_IntPush( *pvMapPiF2A, f );
                 }
@@ -489,7 +489,7 @@ Aig_Man_t * Saig_ManCbaUnrollWithCex( Aig_Man_t * pAig, Abc_Cex_t * pCex, int nI
     }
     // create output
     pObj = Aig_ManPo( pAig, pCex->iPo );
-    Aig_ObjCreatePo( pFrames, Aig_Not((Aig_Obj_t *)pObj->pData) );
+    Aig_ObjCreateCo( pFrames, Aig_Not((Aig_Obj_t *)pObj->pData) );
     Aig_ManSetRegNum( pFrames, 0 );
     // cleanup
     Vec_VecFree( vFrameCos );
@@ -683,7 +683,7 @@ int Saig_ManCexVerifyUsingTernary( Aig_Man_t * pAig, Abc_Cex_t * pCex, Abc_Cex_t
         Aig_ManForEachNode( pAig, pObj, i )
             Saig_ObjCexMinSim( pObj );
         // simulate COs
-        Aig_ManForEachPo( pAig, pObj, i )
+        Aig_ManForEachCo( pAig, pObj, i )
             Saig_ObjCexMinSim( pObj );
 /*
         Aig_ManForEachObj( pAig, pObj, i )

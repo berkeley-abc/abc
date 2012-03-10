@@ -102,7 +102,7 @@ void Aig_ManInterFast( Aig_Man_t * pManOn, Aig_Man_t * pManOff, int fVerbose )
 
     // add PI clauses
     // collect the common variables
-    Aig_ManForEachPi( pManOn, pObj, i )
+    Aig_ManForEachCi( pManOn, pObj, i )
     {
         pObj2 = Aig_ManPi( pManOff, i );
 
@@ -119,7 +119,7 @@ void Aig_ManInterFast( Aig_Man_t * pManOn, Aig_Man_t * pManOff, int fVerbose )
     assert( status != 0 );
 
     // solve incremental SAT problems
-    Aig_ManForEachPo( pManOn, pObj, i )
+    Aig_ManForEachCo( pManOn, pObj, i )
     {
         pObj2 = Aig_ManPo( pManOff, i );
 
@@ -214,7 +214,7 @@ clk = clock();
     if ( fRelation )
         Vec_IntPush( vVarsAB, iLast );
 
-    Aig_ManForEachPi( pManOn, pObj, i )
+    Aig_ManForEachCi( pManOn, pObj, i )
     {
         Vec_IntPush( vVarsAB, pCnfOn->pVarNums[pObj->Id] );
         pObj2 = Aig_ManPi( pManOff, i );

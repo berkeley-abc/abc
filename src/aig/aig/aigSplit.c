@@ -85,13 +85,13 @@ Aig_Man_t * Aig_ManConvertBddsToAigs( Aig_Man_t * p, DdManager * dd, Vec_Ptr_t *
     pNew = Aig_ManStart( Aig_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
     Aig_ManConst1(p)->pData = Aig_ManConst1(pNew);
-    Aig_ManForEachPi( p, pObj, i )
-        pObj->pData = Aig_ObjCreatePi( pNew );
+    Aig_ManForEachCi( p, pObj, i )
+        pObj->pData = Aig_ObjCreateCi( pNew );
     // create the table mapping BDD nodes into the ABC nodes
     tBdd2Node = st_init_table( st_ptrcmp, st_ptrhash );
     // add the constant and the elementary vars
     st_insert( tBdd2Node, (char *)Cudd_ReadOne(dd), (char *)Aig_ManConst1(pNew) );
-    Aig_ManForEachPi( p, pObj, i )
+    Aig_ManForEachCi( p, pObj, i )
         st_insert( tBdd2Node, (char *)Cudd_bddIthVar(dd, i), (char *)pObj->pData );
     // build primary outputs for the cofactors
     Vec_PtrForEachEntry( DdNode *, vCofs, bFunc, i )
@@ -100,18 +100,18 @@ Aig_Man_t * Aig_ManConvertBddsToAigs( Aig_Man_t * p, DdManager * dd, Vec_Ptr_t *
             continue;
         pObj = Aig_NodeBddToMuxes_rec( dd, Cudd_Regular(bFunc), pNew, tBdd2Node );
         pObj = Aig_NotCond( pObj, Cudd_IsComplement(bFunc) );
-        Aig_ObjCreatePo( pNew, pObj );
+        Aig_ObjCreateCo( pNew, pObj );
     }
     st_free_table( tBdd2Node );
 
     // duplicate the rest of the AIG
     // add the POs
-    Aig_ManForEachPo( p, pObj, i )
+    Aig_ManForEachCo( p, pObj, i )
     {
         if ( i == 0 )
             continue;
         Aig_ManDupSimpleDfs_rec( pNew, p, Aig_ObjFanin0(pObj) );
-        pObj->pData = Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
+        pObj->pData = Aig_ObjCreateCo( pNew, Aig_ObjChild0Copy(pObj) );
     }
     Aig_ManCleanup( pNew );
     Aig_ManSetRegNum( pNew, Aig_ManRegNum(p) );
@@ -198,7 +198,7 @@ DdManager * Aig_ManBuildPoBdd( Aig_Man_t * p, DdNode ** pbFunc )
     Cudd_AutodynEnable( dd,  CUDD_REORDER_SYMM_SIFT );
     pObj = Aig_ManConst1(p);
     pObj->pData = Cudd_ReadOne(dd);  Cudd_Ref( (DdNode *)pObj->pData );
-    Aig_ManForEachPi( p, pObj, i )
+    Aig_ManForEachCi( p, pObj, i )
     {
         pObj->pData = Cudd_bddIthVar(dd, i);  Cudd_Ref( (DdNode *)pObj->pData );
     }

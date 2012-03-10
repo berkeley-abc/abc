@@ -162,7 +162,7 @@ Aig_Man_t * Abc_NtkToDarBmc( Abc_Ntk_t * pNtk, Vec_Int_t ** pvMap )
     // transfer the pointers to the basic nodes
     Abc_AigConst1(pNtk)->pCopy = (Abc_Obj_t *)Aig_ManConst1(pMan);
     Abc_NtkForEachCi( pNtk, pObj, i )
-        pObj->pCopy = (Abc_Obj_t *)Aig_ObjCreatePi(pMan);
+        pObj->pCopy = (Abc_Obj_t *)Aig_ObjCreateCi(pMan);
     // create flops
     Abc_NtkForEachLatch( pNtk, pObj, i )
         Abc_ObjFanout0(pObj)->pCopy = Abc_ObjNotCond( Abc_ObjFanout0(pObj)->pCopy, Abc_LatchIsInit1(pObj) );
@@ -171,11 +171,11 @@ Aig_Man_t * Abc_NtkToDarBmc( Abc_Ntk_t * pNtk, Vec_Int_t ** pvMap )
         pObj->pCopy = (Abc_Obj_t *)Aig_And( pMan, (Aig_Obj_t *)Abc_ObjChild0Copy(pObj), (Aig_Obj_t *)Abc_ObjChild1Copy(pObj) );
     // create the POs
     Vec_PtrForEachEntry( Abc_Obj_t *, vDrivers, pTemp, k )
-        Aig_ObjCreatePo( pMan, (Aig_Obj_t *)Abc_ObjNotCond(Abc_ObjRegular(pTemp)->pCopy, !Abc_ObjIsComplement(pTemp)) );
+        Aig_ObjCreateCo( pMan, (Aig_Obj_t *)Abc_ObjNotCond(Abc_ObjRegular(pTemp)->pCopy, !Abc_ObjIsComplement(pTemp)) );
     Vec_PtrFree( vDrivers );
     // create flops
     Abc_NtkForEachLatchInput( pNtk, pObj, i )
-        Aig_ObjCreatePo( pMan, (Aig_Obj_t *)Abc_ObjNotCond(Abc_ObjChild0Copy(pObj), Abc_LatchIsInit1(Abc_ObjFanout0(pObj))) );
+        Aig_ObjCreateCo( pMan, (Aig_Obj_t *)Abc_ObjNotCond(Abc_ObjChild0Copy(pObj), Abc_LatchIsInit1(Abc_ObjFanout0(pObj))) );
 
     // remove dangling nodes
     Aig_ManSetRegNum( pMan, Abc_NtkLatchNum(pNtk) );
@@ -254,7 +254,7 @@ Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters )
     // transfer the pointers to the basic nodes
     Abc_AigConst1(pNtk)->pCopy = (Abc_Obj_t *)Aig_ManConst1(pMan);
     Abc_NtkForEachCi( pNtk, pObj, i )
-        pObj->pCopy = (Abc_Obj_t *)Aig_ObjCreatePi(pMan);
+        pObj->pCopy = (Abc_Obj_t *)Aig_ObjCreateCi(pMan);
     // complement the 1-values registers
     if ( fRegisters ) {
         Abc_NtkForEachLatch( pNtk, pObj, i )
@@ -271,7 +271,7 @@ Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters )
     pMan->fAddStrash = 0;
     // create the POs
     Abc_NtkForEachCo( pNtk, pObj, i )
-        Aig_ObjCreatePo( pMan, (Aig_Obj_t *)Abc_ObjChild0Copy(pObj) );
+        Aig_ObjCreateCo( pMan, (Aig_Obj_t *)Abc_ObjChild0Copy(pObj) );
     // complement the 1-valued registers
     Aig_ManSetRegNum( pMan, Abc_NtkLatchNum(pNtk) );
     if ( fRegisters )
@@ -332,7 +332,7 @@ Aig_Man_t * Abc_NtkToDarChoices( Abc_Ntk_t * pNtk )
     // transfer the pointers to the basic nodes
     Abc_AigConst1(pNtk)->pCopy = (Abc_Obj_t *)Aig_ManConst1(pMan);
     Abc_NtkForEachCi( pNtk, pObj, i )
-        pObj->pCopy = (Abc_Obj_t *)Aig_ObjCreatePi(pMan);
+        pObj->pCopy = (Abc_Obj_t *)Aig_ObjCreateCi(pMan);
     // perform the conversion of the internal nodes (assumes DFS ordering)
     Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
     {
@@ -348,7 +348,7 @@ Aig_Man_t * Abc_NtkToDarChoices( Abc_Ntk_t * pNtk )
     Vec_PtrFree( vNodes );
     // create the POs
     Abc_NtkForEachCo( pNtk, pObj, i )
-        Aig_ObjCreatePo( pMan, (Aig_Obj_t *)Abc_ObjChild0Copy(pObj) );
+        Aig_ObjCreateCo( pMan, (Aig_Obj_t *)Abc_ObjChild0Copy(pObj) );
     // complement the 1-valued registers
     Aig_ManSetRegNum( pMan, 0 );
     if ( !Aig_ManCheck( pMan ) )
@@ -384,7 +384,7 @@ Abc_Ntk_t * Abc_NtkFromDar( Abc_Ntk_t * pNtkOld, Aig_Man_t * pMan )
     pNtkNew->nConstrs = pMan->nConstrs;
     // transfer the pointers to the basic nodes
     Aig_ManConst1(pMan)->pData = Abc_AigConst1(pNtkNew);
-    Aig_ManForEachPi( pMan, pObj, i )
+    Aig_ManForEachCi( pMan, pObj, i )
         pObj->pData = Abc_NtkCi(pNtkNew, i);
     // rebuild the AIG
     vNodes = Aig_ManDfs( pMan, 1 );
@@ -395,7 +395,7 @@ Abc_Ntk_t * Abc_NtkFromDar( Abc_Ntk_t * pNtkOld, Aig_Man_t * pMan )
             pObj->pData = Abc_AigAnd( (Abc_Aig_t *)pNtkNew->pManFunc, (Abc_Obj_t *)Aig_ObjChild0Copy(pObj), (Abc_Obj_t *)Aig_ObjChild1Copy(pObj) );
     Vec_PtrFree( vNodes );
     // connect the PO nodes
-    Aig_ManForEachPo( pMan, pObj, i )
+    Aig_ManForEachCo( pMan, pObj, i )
     {
         if ( pMan->nAsserts && i == Aig_ManPoNum(pMan) - pMan->nAsserts )
             break;
@@ -466,7 +466,7 @@ Abc_Ntk_t * Abc_NtkFromDarSeqSweep( Abc_Ntk_t * pNtkOld, Aig_Man_t * pMan )
             pObj->pData = Abc_AigAnd( (Abc_Aig_t *)pNtkNew->pManFunc, (Abc_Obj_t *)Aig_ObjChild0Copy(pObj), (Abc_Obj_t *)Aig_ObjChild1Copy(pObj) );
     Vec_PtrFree( vNodes );
     // connect the PO nodes
-    Aig_ManForEachPo( pMan, pObj, i )
+    Aig_ManForEachCo( pMan, pObj, i )
     {
 //        if ( pMan->nAsserts && i == Aig_ManPoNum(pMan) - pMan->nAsserts )
 //            break;
@@ -591,7 +591,7 @@ Abc_Ntk_t * Abc_NtkFromAigPhase( Aig_Man_t * pMan )
             pObj->pData = Abc_AigAnd( (Abc_Aig_t *)pNtkNew->pManFunc, (Abc_Obj_t *)Aig_ObjChild0Copy(pObj), (Abc_Obj_t *)Aig_ObjChild1Copy(pObj) );
     Vec_PtrFree( vNodes );
     // connect the PO nodes
-    Aig_ManForEachPo( pMan, pObj, i )
+    Aig_ManForEachCo( pMan, pObj, i )
     {
         pObjNew = (Abc_Obj_t *)Aig_ObjChild0Copy(pObj);
         Abc_ObjAddFanin( Abc_NtkCo(pNtkNew, i), pObjNew );
@@ -678,7 +678,7 @@ Abc_Ntk_t * Abc_NtkAfterTrim( Aig_Man_t * pMan, Abc_Ntk_t * pNtkOld )
             pObj->pData = Abc_AigAnd( (Abc_Aig_t *)pNtkNew->pManFunc, (Abc_Obj_t *)Aig_ObjChild0Copy(pObj), (Abc_Obj_t *)Aig_ObjChild1Copy(pObj) );
     Vec_PtrFree( vNodes );
     // connect the PO nodes
-    Aig_ManForEachPo( pMan, pObj, i )
+    Aig_ManForEachCo( pMan, pObj, i )
     {
         pObjNew = (Abc_Obj_t *)Aig_ObjChild0Copy(pObj);
         Abc_ObjAddFanin( Abc_NtkCo(pNtkNew, i), pObjNew );
@@ -713,7 +713,7 @@ Abc_Ntk_t * Abc_NtkFromDarChoices( Abc_Ntk_t * pNtkOld, Aig_Man_t * pMan )
     pNtkNew->nConstrs = pMan->nConstrs;
     // transfer the pointers to the basic nodes
     Aig_ManConst1(pMan)->pData = Abc_AigConst1(pNtkNew);
-    Aig_ManForEachPi( pMan, pObj, i )
+    Aig_ManForEachCi( pMan, pObj, i )
         pObj->pData = Abc_NtkCi(pNtkNew, i);
 
     // rebuild the AIG
@@ -734,7 +734,7 @@ Abc_Ntk_t * Abc_NtkFromDarChoices( Abc_Ntk_t * pNtkOld, Aig_Man_t * pMan )
 //Abc_Print( 1, "Total = %d.  Collected = %d.\n", Aig_ManNodeNum(pMan), Vec_PtrSize(vNodes) );
     Vec_PtrFree( vNodes );
     // connect the PO nodes
-    Aig_ManForEachPo( pMan, pObj, i )
+    Aig_ManForEachCo( pMan, pObj, i )
         Abc_ObjAddFanin( Abc_NtkCo(pNtkNew, i), (Abc_Obj_t *)Aig_ObjChild0Copy(pObj) );
     if ( !Abc_NtkCheck( pNtkNew ) )
         Abc_Print( 1, "Abc_NtkFromDar(): Network check has failed.\n" );
@@ -765,7 +765,7 @@ Abc_Ntk_t * Abc_NtkFromDarSeq( Abc_Ntk_t * pNtkOld, Aig_Man_t * pMan )
     pNtkNew->nConstrs = pMan->nConstrs;
     // transfer the pointers to the basic nodes
     Aig_ManConst1(pMan)->pData = Abc_AigConst1(pNtkNew);
-    Aig_ManForEachPi( pMan, pObj, i )
+    Aig_ManForEachCi( pMan, pObj, i )
         pObj->pData = Abc_NtkPi(pNtkNew, i);
     // create latches of the new network
     Aig_ManForEachObj( pMan, pObj, i )
@@ -797,7 +797,7 @@ Abc_Ntk_t * Abc_NtkFromDarSeq( Abc_Ntk_t * pNtkOld, Aig_Man_t * pMan )
     }
     Vec_PtrFree( vNodes );
     // connect the PO nodes
-    Aig_ManForEachPo( pMan, pObj, i )
+    Aig_ManForEachCo( pMan, pObj, i )
     {
         pFaninNew = (Abc_Obj_t *)Aig_ObjChild0Copy( pObj );
         Abc_ObjAddFanin( Abc_NtkPo(pNtkNew, i), pFaninNew );

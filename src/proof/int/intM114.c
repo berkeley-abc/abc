@@ -113,7 +113,7 @@ sat_solver * Inter_ManDeriveSatSolver(
     }
     else
     {
-        Aig_ManForEachPi( pInter, pObj, i )
+        Aig_ManForEachCi( pInter, pObj, i )
         {
             pObj2 = Saig_ManLo( pAig, i );
 
@@ -137,7 +137,7 @@ sat_solver * Inter_ManDeriveSatSolver(
     Vec_IntClear( vVarsAB );
     if ( fUseBackward )
     {
-        Aig_ManForEachPo( pFrames, pObj, i )
+        Aig_ManForEachCo( pFrames, pObj, i )
         {
             assert( pCnfFrames->pVarNums[pObj->Id] >= 0 );
             Vec_IntPush( vVarsAB, pCnfFrames->pVarNums[pObj->Id] );
@@ -155,7 +155,7 @@ sat_solver * Inter_ManDeriveSatSolver(
     }
     else
     {
-        Aig_ManForEachPi( pFrames, pObj, i )
+        Aig_ManForEachCi( pFrames, pObj, i )
         {
             if ( i == Aig_ManRegNum(pAig) )
                 break;

@@ -65,7 +65,7 @@ void Ssw_ManRefineByFilterSim( Ssw_Man_t * p, int nFrames )
             pObj->fMarkB = ( Aig_ObjFanin0(pObj)->fMarkB ^ Aig_ObjFaninC0(pObj) )
                          & ( Aig_ObjFanin1(pObj)->fMarkB ^ Aig_ObjFaninC1(pObj) );
         // assign the COs
-        Aig_ManForEachPo( p->pAig, pObj, i )
+        Aig_ManForEachCo( p->pAig, pObj, i )
             pObj->fMarkB = ( Aig_ObjFanin0(pObj)->fMarkB ^ Aig_ObjFaninC0(pObj) );
         // transfer
         if ( f == 0 )
@@ -115,7 +115,7 @@ void Ssw_ManRollForward( Ssw_Man_t * p, int nFrames )
             pObj->fMarkB = ( Aig_ObjFanin0(pObj)->fMarkB ^ Aig_ObjFaninC0(pObj) )
                          & ( Aig_ObjFanin1(pObj)->fMarkB ^ Aig_ObjFaninC1(pObj) );
         // assign the COs
-        Aig_ManForEachPo( p->pAig, pObj, i )
+        Aig_ManForEachCo( p->pAig, pObj, i )
             pObj->fMarkB = ( Aig_ObjFanin0(pObj)->fMarkB ^ Aig_ObjFaninC0(pObj) );
     }
     // record the new pattern
@@ -157,7 +157,7 @@ void Ssw_ManFindStartingState( Ssw_Man_t * p, Abc_Cex_t * pCex )
             pObj->fMarkB = ( Aig_ObjFanin0(pObj)->fMarkB ^ Aig_ObjFaninC0(pObj) )
                          & ( Aig_ObjFanin1(pObj)->fMarkB ^ Aig_ObjFaninC1(pObj) );
         // assign the COs
-        Aig_ManForEachPo( p->pAig, pObj, i )
+        Aig_ManForEachCo( p->pAig, pObj, i )
             pObj->fMarkB = ( Aig_ObjFanin0(pObj)->fMarkB ^ Aig_ObjFaninC0(pObj) );
     }
     assert( iBit == pCex->nBits );
@@ -317,7 +317,7 @@ int Ssw_ManSweepBmcFilter( Ssw_Man_t * p, int TimeLimit )
         Ssw_ObjSetFrame( p, Aig_ManConst1(p->pAig), f, Aig_ManConst1(p->pFrames) );
         Saig_ManForEachPi( p->pAig, pObj, i )
         {
-            pObjNew = Aig_ObjCreatePi(p->pFrames);
+            pObjNew = Aig_ObjCreateCi(p->pFrames);
             Ssw_ObjSetFrame( p, pObj, f, pObjNew );
         }
         // sweep internal nodes
@@ -351,7 +351,7 @@ int Ssw_ManSweepBmcFilter( Ssw_Man_t * p, int TimeLimit )
         if ( TimeLimit && ((float)TimeLimit <= (float)(clock()-clkTotal)/(float)(CLOCKS_PER_SEC)) )
             break;
         // transfer latch input to the latch outputs 
-        Aig_ManForEachPo( p->pAig, pObj, i )
+        Aig_ManForEachCo( p->pAig, pObj, i )
             Ssw_ObjSetFrame( p, pObj, f, Ssw_ObjChild0Fra(p, pObj, f) );
         // build logic cones for register outputs
         Saig_ManForEachLiLo( p->pAig, pObjLi, pObjLo, i )

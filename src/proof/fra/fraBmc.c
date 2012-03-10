@@ -250,7 +250,7 @@ Aig_Man_t * Fra_BmcFrames( Fra_Bmc_t * p, int fKeepPos )
         Bmc_ObjSetFrames( Aig_ManConst1(p->pAig), f, Aig_ManConst1(pAigFrames) );
     for ( f = 0; f < p->nFramesAll; f++ )
         Aig_ManForEachPiSeq( p->pAig, pObj, i )
-            Bmc_ObjSetFrames( pObj, f, Aig_ObjCreatePi(pAigFrames) );
+            Bmc_ObjSetFrames( pObj, f, Aig_ObjCreateCi(pAigFrames) );
     // set initial state for the latches
     Aig_ManForEachLoSeq( p->pAig, pObj, i )
         Bmc_ObjSetFrames( pObj, 0, Aig_ManConst0(pAigFrames) );
@@ -283,7 +283,7 @@ Aig_Man_t * Fra_BmcFrames( Fra_Bmc_t * p, int fKeepPos )
     {
         for ( f = 0; f < p->nFramesAll; f++ )
             Aig_ManForEachPoSeq( p->pAig, pObj, i )
-                Aig_ObjCreatePo( pAigFrames, Bmc_ObjChild0Frames(pObj,f) );
+                Aig_ObjCreateCo( pAigFrames, Bmc_ObjChild0Frames(pObj,f) );
         Aig_ManCleanup( pAigFrames );
     }
     else
@@ -291,7 +291,7 @@ Aig_Man_t * Fra_BmcFrames( Fra_Bmc_t * p, int fKeepPos )
         // add POs to all the dangling nodes
         Aig_ManForEachObj( pAigFrames, pObjNew, i )
             if ( Aig_ObjIsNode(pObjNew) && pObjNew->nRefs == 0 )
-                Aig_ObjCreatePo( pAigFrames, pObjNew );
+                Aig_ObjCreateCo( pAigFrames, pObjNew );
     }
     // return the new manager
     return pAigFrames;

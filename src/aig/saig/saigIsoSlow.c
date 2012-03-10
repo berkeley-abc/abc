@@ -1105,7 +1105,7 @@ Vec_Int_t * Iso_ManFinalize( Iso_Man_t * p )
     // assign unique IDs to the CIs
     Vec_PtrClear( p->vTemp1 );
     Vec_PtrClear( p->vTemp2 );
-    Aig_ManForEachPi( p->pAig, pObj, i )
+    Aig_ManForEachCi( p->pAig, pObj, i )
     {
         assert( pObj->iData > 0 );
         if ( Aig_ObjPioNum(pObj) >= Aig_ManPiNum(p->pAig) - Aig_ManRegNum(p->pAig) ) // flop

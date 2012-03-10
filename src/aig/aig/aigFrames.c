@@ -69,7 +69,7 @@ Aig_Man_t * Aig_ManFrames( Aig_Man_t * pAig, int nFs, int fInit, int fOuts, int 
     // create PI nodes for the frames
     for ( f = 0; f < nFs; f++ )
         Aig_ManForEachPiSeq( pAig, pObj, i )
-            Aig_ObjSetFrames( pObjMap, nFs, pObj, f, Aig_ObjCreatePi(pFrames) );
+            Aig_ObjSetFrames( pObjMap, nFs, pObj, f, Aig_ObjCreateCi(pFrames) );
     // set initial state for the latches
     if ( fInit )
     {
@@ -79,7 +79,7 @@ Aig_Man_t * Aig_ManFrames( Aig_Man_t * pAig, int nFs, int fInit, int fOuts, int 
     else 
     {
         Aig_ManForEachLoSeq( pAig, pObj, i )
-            Aig_ObjSetFrames( pObjMap, nFs, pObj, 0, Aig_ObjCreatePi(pFrames) );
+            Aig_ObjSetFrames( pObjMap, nFs, pObj, 0, Aig_ObjCreateCi(pFrames) );
     }
 
     // add timeframes
@@ -108,7 +108,7 @@ Aig_Man_t * Aig_ManFrames( Aig_Man_t * pAig, int nFs, int fInit, int fOuts, int 
         for ( f = fEnlarge?nFs-1:0; f < nFs; f++ )
             Aig_ManForEachPoSeq( pAig, pObj, i )
             {
-                pObjNew = Aig_ObjCreatePo( pFrames, Aig_ObjChild0Frames(pObjMap,nFs,pObj,f) );
+                pObjNew = Aig_ObjCreateCo( pFrames, Aig_ObjChild0Frames(pObjMap,nFs,pObj,f) );
                 Aig_ObjSetFrames( pObjMap, nFs, pObj, f, pObjNew );
             }
     }
@@ -117,7 +117,7 @@ Aig_Man_t * Aig_ManFrames( Aig_Man_t * pAig, int nFs, int fInit, int fOuts, int 
         pFrames->nRegs = pAig->nRegs;
         Aig_ManForEachLiSeq( pAig, pObj, i )
         {
-            pObjNew = Aig_ObjCreatePo( pFrames, Aig_ObjChild0Frames(pObjMap,nFs,pObj,fEnlarge?0:nFs-1) );
+            pObjNew = Aig_ObjCreateCo( pFrames, Aig_ObjChild0Frames(pObjMap,nFs,pObj,fEnlarge?0:nFs-1) );
             Aig_ObjSetFrames( pObjMap, nFs, pObj, nFs-1, pObjNew );
         }
         Aig_ManSetRegNum( pFrames, Aig_ManRegNum(pAig) );

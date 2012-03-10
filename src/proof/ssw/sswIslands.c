@@ -90,7 +90,7 @@ void Ssw_MatchingStart( Aig_Man_t * p0, Aig_Man_t * p1, Vec_Int_t * vPairs )
         assert( pObj1->pData == pObj0 );
     }
     // make sure the POs are not matched
-    Aig_ManForEachPo( p0, pObj0, i )
+    Aig_ManForEachCo( p0, pObj0, i )
     {
         pObj1 = Aig_ManPo( p1, i );
         assert( pObj0->pData == NULL );
@@ -295,7 +295,7 @@ void Ssw_MatchingComplete( Aig_Man_t * p0, Aig_Man_t * p1 )
     {
         if ( pObj0->pData != NULL )
             continue;
-        pObj1 = Aig_ObjCreatePi( p1 );
+        pObj1 = Aig_ObjCreateCi( p1 );
         pObj0->pData = pObj1;
         pObj1->pData = pObj0;
         Vec_PtrPush( vNewLis, pObj0Li );
@@ -311,7 +311,7 @@ void Ssw_MatchingComplete( Aig_Man_t * p0, Aig_Man_t * p1 )
     }
     // create register outputs in p0 that are absent in p1
     Vec_PtrForEachEntry( Aig_Obj_t *, vNewLis, pObj0Li, i )
-        Aig_ObjCreatePo( p1, Aig_ObjChild0Copy(pObj0Li) );
+        Aig_ObjCreateCo( p1, Aig_ObjChild0Copy(pObj0Li) );
     // increment the number of registers
     Aig_ManSetRegNum( p1, Aig_ManRegNum(p1) + Vec_PtrSize(vNewLis) );
     Vec_PtrFree( vNewLis );

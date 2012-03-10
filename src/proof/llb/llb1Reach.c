@@ -430,7 +430,7 @@ DdNode * Llb_ManCreateConstraints( Llb_Man_t * p, Vec_Int_t * vHints, int fUseNs
     // transfer them to the global AIG
     Aig_ManCleanData( p->pAigGlo );
     Aig_ManConst1( p->pAigGlo )->pData = Cudd_ReadOne( p->dd );
-    Aig_ManForEachPi( p->pAigGlo, pObj, i )
+    Aig_ManForEachCi( p->pAigGlo, pObj, i )
         pObj->pData = Aig_ManPi(p->pAig, i)->pData;
     // derive consraints
     bConstr = Cudd_ReadOne( p->dd );   Cudd_Ref( bConstr );

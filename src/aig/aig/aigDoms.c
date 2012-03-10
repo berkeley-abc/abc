@@ -636,7 +636,7 @@ Aig_Sto_t * Aig_ManComputeDomsFlops( Aig_Man_t * pAig, int Limit )
             Aig_ObjDomCompute( pSto, pObj );
     Vec_PtrFree( vNodes );
     // compute combinational inputs
-    Aig_ManForEachPi( pAig, pObj, i )
+    Aig_ManForEachCi( pAig, pObj, i )
         Aig_ObjDomCompute( pSto, pObj );
     // print statistics
     printf( "Nodes =%4d. Flops =%4d. Doms =%9d. Ave =%8.2f.   ", 
@@ -666,7 +666,7 @@ Aig_Sto_t * Aig_ManComputeDomsPis( Aig_Man_t * pAig, int Limit )
     int i, clk = clock();
     pSto = Aig_ManDomStart( pAig, Limit );
     // initialize flop inputs
-    Aig_ManForEachPo( pAig, pObj, i )
+    Aig_ManForEachCo( pAig, pObj, i )
         Aig_ObjAddTriv( pSto, pObj->Id, Vec_PtrAlloc(1) );
     // compute internal nodes
     vNodes = Aig_ManDfsReverse( pAig );
@@ -706,7 +706,7 @@ Aig_Sto_t * Aig_ManComputeDomsNodes( Aig_Man_t * pAig, int Limit )
     int i, clk = clock();
     pSto = Aig_ManDomStart( pAig, Limit );
     // initialize flop inputs
-    Aig_ManForEachPo( pAig, pObj, i )
+    Aig_ManForEachCo( pAig, pObj, i )
         Aig_ObjAddTriv( pSto, pObj->Id, Vec_PtrAlloc(1) );
     // compute internal nodes
     vNodes = Aig_ManDfsReverse( pAig );
@@ -714,7 +714,7 @@ Aig_Sto_t * Aig_ManComputeDomsNodes( Aig_Man_t * pAig, int Limit )
         Aig_ObjDomCompute( pSto, pObj );
     Vec_PtrFree( vNodes );
     // compute combinational inputs
-    Aig_ManForEachPi( pAig, pObj, i )
+    Aig_ManForEachCi( pAig, pObj, i )
         Aig_ObjDomCompute( pSto, pObj );
     // print statistics
     printf( "Nodes =%6d. Doms =%9d. Ave =%8.2f.   ", 

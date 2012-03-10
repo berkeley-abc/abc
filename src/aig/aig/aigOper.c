@@ -64,7 +64,7 @@ Aig_Obj_t * Aig_IthVar( Aig_Man_t * p, int i )
 {
     int v;
     for ( v = Aig_ManPiNum(p); v <= i; v++ )
-        Aig_ObjCreatePi( p );
+        Aig_ObjCreateCi( p );
     assert( i < Vec_PtrSize(p->vPis) );
     return Aig_ManPi( p, i );
 }
@@ -587,7 +587,7 @@ void Aig_MuxTest()
         Vec_PtrPush( vNodes, pObj );
     }
     Vec_PtrForEachEntry( Aig_Obj_t *, vNodes, pObj, i )
-        Aig_ObjCreatePo( p, pObj );
+        Aig_ObjCreateCo( p, pObj );
     Vec_PtrFree( vNodes );
 
     printf( "Number of nodes = %6d.\n", Aig_ManObjNum(p) );

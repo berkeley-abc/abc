@@ -71,11 +71,11 @@ void Aig_ManHaigSpeculate( Aig_Man_t * pFrames, Aig_Obj_t * pObj )
 //    pMiter = Aig_Exor( pFrames, pObjNew, pObjReprNew );
 //    pMiter = Aig_NotCond( pMiter, !Aig_ObjPhaseReal(pMiter) );
 //    assert( Aig_ObjPhaseReal(pMiter) == 1 );
-//    Aig_ObjCreatePo( pFrames, pMiter );
+//    Aig_ObjCreateCo( pFrames, pMiter );
     if ( Aig_ObjPhaseReal(pObjNew) != Aig_ObjPhaseReal(pObjReprNew) )
         pObjReprNew = Aig_Not(pObjReprNew);
-    pPo = Aig_ObjCreatePo( pFrames, pObjNew );
-    Aig_ObjCreatePo( pFrames, pObjReprNew );
+    pPo = Aig_ObjCreateCo( pFrames, pObjNew );
+    Aig_ObjCreateCo( pFrames, pObjReprNew );
 
     // remember the node corresponding to this PO
     pPo->pData = pObj;
@@ -107,14 +107,14 @@ Aig_Man_t * Aig_ManHaigFrames( Aig_Man_t * pHaig, int nFrames )
     Aig_ManConst1(pHaig)->pData = Aig_ManConst1( pFrames );
     // create variables for register outputs
     Saig_ManForEachLo( pHaig, pObj, i )
-        pObj->pData = Aig_ObjCreatePi( pFrames );
+        pObj->pData = Aig_ObjCreateCi( pFrames );
     // add timeframes
     Aig_ManSetPioNumbers( pHaig );
     for ( f = 0; f < nFrames; f++ )
     {
         // create primary inputs
         Saig_ManForEachPi( pHaig, pObj, i )
-            pObj->pData = Aig_ObjCreatePi( pFrames );
+            pObj->pData = Aig_ObjCreateCi( pFrames );
         // create internal nodes
         Aig_ManForEachNode( pHaig, pObj, i )
         {        
@@ -246,7 +246,7 @@ clk = clock();
     if ( nFrames == 2 )
     {
         // add clauses for the first frame
-        Aig_ManForEachPo( pFrames, pObj1, i )
+        Aig_ManForEachCo( pFrames, pObj1, i )
         {
             if ( i >= Aig_ManPoNum(pFrames) - pFrames->nAsserts )
                 break;
@@ -283,7 +283,7 @@ ABC_PRT( "Preparation", clock() - clk );
 clk = clock();
     Counter = 0;
     printf( "Started solving ...\r" );
-    Aig_ManForEachPo( pFrames, pObj1, i )
+    Aig_ManForEachCo( pFrames, pObj1, i )
     {
         if ( i < Aig_ManPoNum(pFrames) - pFrames->nAsserts )
             continue;
@@ -560,7 +560,7 @@ Aig_Man_t * Saig_ManHaigDump( Aig_Man_t * pHaig )
     // remove regular POs
     Aig_ManSetPioNumbers( pHaig );
     vTemp = Vec_PtrAlloc( Saig_ManRegNum(pHaig) );
-    Aig_ManForEachPo( pHaig, pObj, i )
+    Aig_ManForEachCo( pHaig, pObj, i )
     {
         if ( Saig_ObjIsPo(pHaig, pObj) )
         {
@@ -585,7 +585,7 @@ Aig_Man_t * Saig_ManHaigDump( Aig_Man_t * pHaig )
         pMiter = Aig_Exor( pHaig, pObj1, pObj2 );
         pMiter = Aig_NotCond( pMiter, Aig_ObjPhaseReal(pMiter) );
         assert( Aig_ObjPhaseReal(pMiter) == 0 );
-        Aig_ObjCreatePo( pHaig, pMiter );
+        Aig_ObjCreateCo( pHaig, pMiter );
     }
     printf( "Added %d property outputs.\n", Vec_IntSize(pHaig->vEquPairs)/2 );
     // add the registers

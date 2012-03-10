@@ -960,7 +960,7 @@ void Llb_ManFlowPrepareCut( Aig_Man_t * p, Vec_Ptr_t * vLower, Vec_Ptr_t * vUppe
     }
     // clean PIs and const
     Aig_ManConst1(p)->fMarkB = 0;
-    Aig_ManForEachPi( p, pObj, i )
+    Aig_ManForEachCi( p, pObj, i )
         pObj->fMarkB = 0;
     // clean upper cut
 //printf( "Upper: ");
@@ -1077,7 +1077,7 @@ Vec_Ptr_t * Llb_ManComputeCutLo( Aig_Man_t * p )
     Aig_Obj_t * pObj;
     int i;
     vMinCut = Vec_PtrAlloc( 100 );
-    Aig_ManForEachPi( p, pObj, i )
+    Aig_ManForEachCi( p, pObj, i )
         Vec_PtrPush( vMinCut, pObj );
     return vMinCut;
 }

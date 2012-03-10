@@ -59,17 +59,17 @@ Aig_Man_t * Saig_ManTemporFrames( Aig_Man_t * pAig, int nFrames )
     {
         Aig_ManConst1(pAig)->pData = Aig_ManConst1(pFrames);
         Saig_ManForEachPi( pAig, pObj, i )
-            pObj->pData = Aig_ObjCreatePi(pFrames);
+            pObj->pData = Aig_ObjCreateCi(pFrames);
         Aig_ManForEachNode( pAig, pObj, i )
             pObj->pData = Aig_And( pFrames, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
-        Aig_ManForEachPo( pAig, pObj, i )
+        Aig_ManForEachCo( pAig, pObj, i )
             pObj->pData = Aig_ObjChild0Copy(pObj);
         Saig_ManForEachLiLo( pAig, pObjLi, pObjLo, i )
             pObjLo->pData = pObjLi->pData;
     }
     // create POs for the flop inputs
     Saig_ManForEachLi( pAig, pObj, i )
-        Aig_ObjCreatePo( pFrames, (Aig_Obj_t *)pObj->pData );
+        Aig_ObjCreateCo( pFrames, (Aig_Obj_t *)pObj->pData );
     Aig_ManCleanup( pFrames );
     return pFrames;
 }
@@ -107,23 +107,23 @@ Aig_Man_t * Saig_ManTemporDecompose( Aig_Man_t * pAig, int nFrames )
     // map the constant node and primary inputs
     Aig_ManConst1(pAig)->pData = Aig_ManConst1( pAigNew );
     Saig_ManForEachPi( pAig, pObj, i )
-        pObj->pData = Aig_ObjCreatePi( pAigNew );
+        pObj->pData = Aig_ObjCreateCi( pAigNew );
 
     // insert initialization logic
     Aig_ManConst1(pFrames)->pData = Aig_ManConst1( pAigNew );
-    Aig_ManForEachPi( pFrames, pObj, i )
-        pObj->pData = Aig_ObjCreatePi( pAigNew );
+    Aig_ManForEachCi( pFrames, pObj, i )
+        pObj->pData = Aig_ObjCreateCi( pAigNew );
     Aig_ManForEachNode( pFrames, pObj, i )
         pObj->pData = Aig_And( pAigNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
-    Aig_ManForEachPo( pFrames, pObj, i )
+    Aig_ManForEachCo( pFrames, pObj, i )
         pObj->pData = Aig_ObjChild0Copy(pObj);
 
     // create reset latch (the first one among the latches)
-    pReset = Aig_ObjCreatePi( pAigNew );
+    pReset = Aig_ObjCreateCi( pAigNew );
 
     // create flop output values
     Saig_ManForEachLo( pAig, pObj, i )
-        pObj->pData = Aig_Mux( pAigNew, pReset, Aig_ObjCreatePi(pAigNew), (Aig_Obj_t *)Aig_ManPo(pFrames, i)->pData );
+        pObj->pData = Aig_Mux( pAigNew, pReset, Aig_ObjCreateCi(pAigNew), (Aig_Obj_t *)Aig_ManPo(pFrames, i)->pData );
     Aig_ManStop( pFrames );
 
     // add internal nodes of this frame
@@ -131,13 +131,13 @@ Aig_Man_t * Saig_ManTemporDecompose( Aig_Man_t * pAig, int nFrames )
         pObj->pData = Aig_And( pAigNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
     // create primary outputs
     Saig_ManForEachPo( pAig, pObj, i )
-        Aig_ObjCreatePo( pAigNew, Aig_ObjChild0Copy(pObj) );
+        Aig_ObjCreateCo( pAigNew, Aig_ObjChild0Copy(pObj) );
 
     // create reset latch (the first one among the latches)
-    Aig_ObjCreatePo( pAigNew, Aig_ManConst1(pAigNew) );
+    Aig_ObjCreateCo( pAigNew, Aig_ManConst1(pAigNew) );
     // create latch inputs
     Saig_ManForEachLi( pAig, pObj, i )
-        Aig_ObjCreatePo( pAigNew, Aig_ObjChild0Copy(pObj) );
+        Aig_ObjCreateCo( pAigNew, Aig_ObjChild0Copy(pObj) );
 
     // finalize
     Aig_ManCleanup( pAigNew );

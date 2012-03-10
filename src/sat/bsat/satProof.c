@@ -695,7 +695,7 @@ void * Sat_ProofInterpolant( sat_solver2 * s, void * pGloVars )
     pAig = Aig_ManStart( 10000 );
     pAig->pName = Abc_UtilStrsav( "interpol" );
     for ( i = 0; i < Vec_IntSize(vGlobVars); i++ )
-        Aig_ObjCreatePi( pAig );
+        Aig_ObjCreateCi( pAig );
 
     // copy the numbers out and derive interpol for clause
     vCoreNums = Vec_IntAlloc( Vec_IntSize(vCore) );
@@ -736,7 +736,7 @@ void * Sat_ProofInterpolant( sat_solver2 * s, void * pGloVars )
     }
     // save the result
 //    assert( Proof_NodeHandle(vProof, pNode) == hRoot );
-    Aig_ObjCreatePo( pAig, pObj );
+    Aig_ObjCreateCo( pAig, pObj );
     Aig_ManCleanup( pAig );
 
     // move the results back
@@ -844,7 +844,7 @@ word * Sat_ProofInterpolantTruth( sat_solver2 * s, void * pGloVars )
     }
     // save the result
 //    assert( Proof_NodeHandle(vProof, pNode) == hRoot );
-//    Aig_ObjCreatePo( pAig, pObj );
+//    Aig_ObjCreateCo( pAig, pObj );
 //    Aig_ManCleanup( pAig );
 
     // move the results back

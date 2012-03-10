@@ -134,7 +134,7 @@ void Lcr_ManFree( Fra_Lcr_t * p )
     int i;
     if ( p->fVerbose )
         Lcr_ManPrint( p );
-    Aig_ManForEachPi( p->pAig, pObj, i )
+    Aig_ManForEachCi( p->pAig, pObj, i )
         pObj->pNext = NULL;
     Vec_PtrFree( p->vFraigs );
     if ( p->pCla  )     Fra_ClassesStop( p->pCla );
@@ -162,7 +162,7 @@ Fra_Man_t * Fra_LcrAigPrepare( Aig_Man_t * pAig )
     int i;
     p = ABC_ALLOC( Fra_Man_t, 1 );
     memset( p, 0, sizeof(Fra_Man_t) );
-//    Aig_ManForEachPi( pAig, pObj, i )
+//    Aig_ManForEachCi( pAig, pObj, i )
     Aig_ManForEachObj( pAig, pObj, i )
         pObj->pData = p;
     return p;
@@ -183,7 +183,7 @@ void Fra_LcrAigPrepareTwo( Aig_Man_t * pAig, Fra_Man_t * p )
 {
     Aig_Obj_t * pObj;
     int i;
-    Aig_ManForEachPi( pAig, pObj, i )
+    Aig_ManForEachCi( pAig, pObj, i )
         pObj->pData = p;
 }
 
@@ -300,7 +300,7 @@ Aig_Man_t * Fra_LcrDeriveAigForPartitioning( Fra_Lcr_t * pLcr )
     Aig_Obj_t * pObj, * pObjPo, * pObjNew, ** ppClass, * pMiter;
     int i, c, Offset;
     // remember the numbers of the inputs of the original AIG
-    Aig_ManForEachPi( pLcr->pAig, pObj, i )
+    Aig_ManForEachCi( pLcr->pAig, pObj, i )
     {
         pObj->pData = pLcr;
         pObj->pNext = (Aig_Obj_t *)(long)i;
@@ -321,7 +321,7 @@ Aig_Man_t * Fra_LcrDeriveAigForPartitioning( Fra_Lcr_t * pLcr )
             pObjNew = Fra_LcrManDup_rec( pNew, pLcr->pAig, Aig_ObjFanin0(pObjPo) );
             pMiter  = Aig_Exor( pNew, pMiter, pObjNew );
         }
-        Aig_ObjCreatePo( pNew, pMiter );
+        Aig_ObjCreateCo( pNew, pMiter );
     }
     // go over the constant candidates
     Vec_PtrForEachEntry( Aig_Obj_t *, pLcr->pCla->vClasses1, pObj, i )
@@ -329,7 +329,7 @@ Aig_Man_t * Fra_LcrDeriveAigForPartitioning( Fra_Lcr_t * pLcr )
         assert( Aig_ObjIsPi(pObj) );
         pObjPo = Aig_ManPo( pLcr->pAig, Offset+(long)pObj->pNext );
         pMiter = Fra_LcrManDup_rec( pNew, pLcr->pAig, Aig_ObjFanin0(pObjPo) );
-        Aig_ObjCreatePo( pNew, pMiter );
+        Aig_ObjCreateCo( pNew, pMiter );
     }
     return pNew;
 }
@@ -403,7 +403,7 @@ Aig_Obj_t * Fra_LcrCreatePart_rec( Fra_Cla_t * pCla, Aig_Man_t * pNew, Aig_Man_t
 //        Aig_Obj_t * pRepr = Fra_ClassObjRepr(pObj);
         Aig_Obj_t * pRepr = pCla->pMemRepr[pObj->Id];
         if ( pRepr == NULL )
-            pObj->pData = Aig_ObjCreatePi( pNew );
+            pObj->pData = Aig_ObjCreateCi( pNew );
         else
         {
             pObj->pData = Fra_LcrCreatePart_rec( pCla, pNew, p, pRepr );
@@ -447,7 +447,7 @@ Aig_Man_t * Fra_LcrCreatePart( Fra_Lcr_t * p, Vec_Int_t * vPart )
         }
         else
             pObjNew = Aig_ManConst1( pNew );
-        Aig_ObjCreatePo( pNew, pObjNew ); 
+        Aig_ObjCreateCo( pNew, pObjNew ); 
     }
     return pNew;
 }

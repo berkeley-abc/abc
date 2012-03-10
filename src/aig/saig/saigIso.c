@@ -146,7 +146,7 @@ Aig_Man_t * Saig_ManDupIsoCanonical( Aig_Man_t * pAig, int fVerbose )
     Vec_IntForEachEntry( vPerm, Entry, i )
     {
         pObj = Aig_ManPi(pAig, Entry);
-        pObj->pData = Aig_ObjCreatePi(pNew);
+        pObj->pData = Aig_ObjCreateCi(pNew);
         Aig_ObjSetTravIdCurrent( pAig, pObj );
     }
     // traverse from the POs
@@ -159,7 +159,7 @@ Aig_Man_t * Saig_ManDupIsoCanonical( Aig_Man_t * pAig, int fVerbose )
     Vec_IntForEachEntry( vPermCo, Entry, i )
     {
         pObj = Aig_ManPo(pAig, Entry);
-        Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
+        Aig_ObjCreateCo( pNew, Aig_ObjChild0Copy(pObj) );
     }
     Aig_ManSetRegNum( pNew, Aig_ManRegNum(pAig) );
     Vec_IntFreeP( &vPerm );
@@ -194,7 +194,7 @@ int Iso_ManCheckMapping( Aig_Man_t * pAig1, Aig_Man_t * pAig2, Vec_Int_t * vMap2
     Aig_ManCleanData( pAig1 );
     // map const and PI nodes
     Aig_ManConst1(pAig2)->pData = Aig_ManConst1(pAig1);
-    Aig_ManForEachPi( pAig2, pObj, i )
+    Aig_ManForEachCi( pAig2, pObj, i )
         pObj->pData = Aig_ManPi( pAig1, Vec_IntEntry(vMap2to1, i) );
     // try internal nodes
     Aig_ManForEachNode( pAig2, pObj, i )

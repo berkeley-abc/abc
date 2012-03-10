@@ -55,8 +55,8 @@ Aig_Man_t * Pdr_ManRehashWithMap( Aig_Man_t * pAig, Vec_Int_t * vMap )
     // create CI mapping
     Aig_ManCleanData( pAig );
     Aig_ManConst1(pAig)->pData = Aig_ManConst1(pFrames);
-    Aig_ManForEachPi( pAig, pObj, i )
-        pObj->pData = Aig_ObjCreatePi(pFrames);
+    Aig_ManForEachCi( pAig, pObj, i )
+        pObj->pData = Aig_ObjCreateCi(pFrames);
     Saig_ManForEachLo( pAig, pObj, i )
     {
         iReg = Vec_IntEntry(vMap, i);
@@ -69,8 +69,8 @@ Aig_Man_t * Pdr_ManRehashWithMap( Aig_Man_t * pAig, Vec_Int_t * vMap )
     Aig_ManForEachNode( pAig, pObj, i )
         pObj->pData = Aig_And( pFrames, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
     // add output nodes
-    Aig_ManForEachPo( pAig, pObj, i )
-        pObj->pData = Aig_ObjCreatePo( pFrames, Aig_ObjChild0Copy(pObj) );
+    Aig_ManForEachCo( pAig, pObj, i )
+        pObj->pData = Aig_ObjCreateCo( pFrames, Aig_ObjChild0Copy(pObj) );
     // finish off
     Aig_ManCleanup( pFrames );
     Aig_ManSetRegNum( pFrames, Aig_ManRegNum(pAig) );

@@ -154,7 +154,7 @@ Faig_Man_t * Faig_ManCreate( Aig_Man_t * pAig )
         p->pObjs[iWord++] = (Aig_ObjFaninId0(pObj) << 1) | Aig_ObjFaninC0(pObj);
         p->pObjs[iWord++] = (Aig_ObjFaninId1(pObj) << 1) | Aig_ObjFaninC1(pObj);
     }
-    Aig_ManForEachPo( pAig, pObj, i )
+    Aig_ManForEachCo( pAig, pObj, i )
         p->pObjs[iWord++] = (Aig_ObjFaninId0(pObj) << 1) | Aig_ObjFaninC0(pObj);
     assert( iWord == p->nWords );
     return p;
@@ -380,11 +380,11 @@ clk = clock();
         int i, Counter = 0;
         pObj = Aig_ManConst1(p);
         pSwitching[pObj->Id] = Faig_ManComputeProbOne( pProbs[Counter++], (nFramesReal - nPref)/2 );
-        Aig_ManForEachPi( p, pObj, i )
+        Aig_ManForEachCi( p, pObj, i )
             pSwitching[pObj->Id] = Faig_ManComputeProbOne( pProbs[Counter++], (nFramesReal - nPref)/2 );
         Aig_ManForEachNode( p, pObj, i )
             pSwitching[pObj->Id] = Faig_ManComputeProbOne( pProbs[Counter++], (nFramesReal - nPref)/2 );
-        Aig_ManForEachPo( p, pObj, i )
+        Aig_ManForEachCo( p, pObj, i )
             pSwitching[pObj->Id] = Faig_ManComputeProbOne( pProbs[Counter++], (nFramesReal - nPref)/2 );
         assert( Counter == pAig->nObjs );
     }
@@ -394,11 +394,11 @@ clk = clock();
         int i, Counter = 0;
         pObj = Aig_ManConst1(p);
         pSwitching[pObj->Id] = Faig_ManComputeProbOne( pProbs[Counter++], nFramesReal - nPref );
-        Aig_ManForEachPi( p, pObj, i )
+        Aig_ManForEachCi( p, pObj, i )
             pSwitching[pObj->Id] = Faig_ManComputeProbOne( pProbs[Counter++], nFramesReal - nPref );
         Aig_ManForEachNode( p, pObj, i )
             pSwitching[pObj->Id] = Faig_ManComputeProbOne( pProbs[Counter++], nFramesReal - nPref );
-        Aig_ManForEachPo( p, pObj, i )
+        Aig_ManForEachCo( p, pObj, i )
             pSwitching[pObj->Id] = Faig_ManComputeProbOne( pProbs[Counter++], nFramesReal - nPref );
         assert( Counter == pAig->nObjs );
     }
@@ -408,11 +408,11 @@ clk = clock();
         int i, Counter = 0;
         pObj = Aig_ManConst1(p);
         pSwitching[pObj->Id] = Faig_ManComputeSwitching( pProbs[Counter++], nFramesReal - nPref );
-        Aig_ManForEachPi( p, pObj, i )
+        Aig_ManForEachCi( p, pObj, i )
             pSwitching[pObj->Id] = Faig_ManComputeSwitching( pProbs[Counter++], nFramesReal - nPref );
         Aig_ManForEachNode( p, pObj, i )
             pSwitching[pObj->Id] = Faig_ManComputeSwitching( pProbs[Counter++], nFramesReal - nPref );
-        Aig_ManForEachPo( p, pObj, i )
+        Aig_ManForEachCo( p, pObj, i )
             pSwitching[pObj->Id] = Faig_ManComputeSwitching( pProbs[Counter++], nFramesReal - nPref );
         assert( Counter == pAig->nObjs );
     }

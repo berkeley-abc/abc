@@ -62,13 +62,13 @@ Aig_Man_t * Saig_ManFramesBmc( Aig_Man_t * pAig, int nFrames )
     {
         // create PI nodes for this frame
         Saig_ManForEachPi( pAig, pObj, i )
-            pObj->pData = Aig_ObjCreatePi( pFrames );
+            pObj->pData = Aig_ObjCreateCi( pFrames );
         // add internal nodes of this frame
         Aig_ManForEachNode( pAig, pObj, i )
             pObj->pData = Aig_And( pFrames, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
         // create POs for this frame
         Saig_ManForEachPo( pAig, pObj, i )
-            Aig_ObjCreatePo( pFrames, Aig_ObjChild0Copy(pObj) );
+            Aig_ObjCreateCo( pFrames, Aig_ObjChild0Copy(pObj) );
         if ( f == nFrames - 1 )
             break;
         // save register inputs
@@ -137,14 +137,14 @@ Aig_Man_t * Saig_ManFramesBmcLimit( Aig_Man_t * pAig, int nFrames, int nSizeMax 
     {
         // create PI nodes for this frame
         Saig_ManForEachPi( pAig, pObj, i )
-            pObj->pData = Aig_ObjCreatePi( pFrames );
+            pObj->pData = Aig_ObjCreateCi( pFrames );
         // add internal nodes of this frame
         Aig_ManForEachNode( pAig, pObj, i )
             pObj->pData = Aig_And( pFrames, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
         // create POs for this frame
         Saig_ManForEachPo( pAig, pObj, i )
         {
-            pObjPo = Aig_ObjCreatePo( pFrames, Aig_ObjChild0Copy(pObj) );
+            pObjPo = Aig_ObjCreateCo( pFrames, Aig_ObjChild0Copy(pObj) );
             Counter += Saig_ManFramesCount_rec( pFrames, Aig_ObjFanin0(pObjPo) );
         }
         if ( Counter >= nSizeMax )
@@ -265,7 +265,7 @@ int Saig_ManBmcSimple( Aig_Man_t * pAig, int nFrames, int nSizeMax, int nConfLim
     else
     {
         int clkPart = clock();
-        Aig_ManForEachPo( pFrames, pObj, i )
+        Aig_ManForEachCo( pFrames, pObj, i )
         {
 //if ( s_fInterrupt )
 //return -1;

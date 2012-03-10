@@ -70,7 +70,7 @@ Vec_Int_t * Saig_ManRetimeInitState( Aig_Man_t * p )
     {
         // accumulate SAT variables of the CIs
         vCiIds = Vec_IntAlloc( Aig_ManPiNum(p) );
-        Aig_ManForEachPi( p, pObj, i )
+        Aig_ManForEachCi( p, pObj, i )
             Vec_IntPush( vCiIds, pCnf->pVarNums[pObj->Id] );
         // create the model
         pModel = Sat_SolverGetModel( pSat, vCiIds->pArray, vCiIds->nSize );
@@ -163,7 +163,7 @@ int Saig_ManRetimeUnsatCore( Aig_Man_t * p, int fVerbose )
     // pick the first PO in the list
     nPos = 0;
     iBadPo = -1;
-    Aig_ManForEachPo( p, pObj, i )
+    Aig_ManForEachCo( p, pObj, i )
         if ( pCnf->pVarNums[pObj->Id] >= 0 && pVars[ pCnf->pVarNums[pObj->Id] ] == 1 )
         {
             if ( iBadPo == -1 )
@@ -296,16 +296,16 @@ Aig_Man_t * Saig_ManRetimeDupForward( Aig_Man_t * p, Vec_Ptr_t * vCut )
     Aig_ManCleanData( p );
     Aig_ManConst1(p)->pData = Aig_ManConst1(pNew);
     Saig_ManForEachPi( p, pObj, i )
-        pObj->pData = Aig_ObjCreatePi( pNew );
+        pObj->pData = Aig_ObjCreateCi( pNew );
     // create the registers
     Vec_PtrForEachEntry( Aig_Obj_t *, vCut, pObj, i )
-        pObj->pData = Aig_NotCond( Aig_ObjCreatePi(pNew), pObj->fPhase );
+        pObj->pData = Aig_NotCond( Aig_ObjCreateCi(pNew), pObj->fPhase );
     // duplicate logic above the cut
-    Aig_ManForEachPo( p, pObj, i )
+    Aig_ManForEachCo( p, pObj, i )
         Saig_ManRetimeDup_rec( pNew, Aig_ObjFanin0(pObj) );
     // create the true POs
     Saig_ManForEachPo( p, pObj, i )
-        Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
+        Aig_ObjCreateCo( pNew, Aig_ObjChild0Copy(pObj) );
     // remember value in LI
     Saig_ManForEachLi( p, pObj, i )
         pObj->pData = Aig_ObjChild0Copy(pObj);
@@ -320,7 +320,7 @@ Aig_Man_t * Saig_ManRetimeDupForward( Aig_Man_t * p, Vec_Ptr_t * vCut )
     Vec_PtrForEachEntry( Aig_Obj_t *, vCut, pObj, i )
     {
         Saig_ManRetimeDup_rec( pNew, pObj );
-        Aig_ObjCreatePo( pNew, Aig_NotCond((Aig_Obj_t *)pObj->pData, pObj->fPhase) );
+        Aig_ObjCreateCo( pNew, Aig_NotCond((Aig_Obj_t *)pObj->pData, pObj->fPhase) );
     }
     Aig_ManCleanup( pNew );
     return pNew;
@@ -355,10 +355,10 @@ Aig_Man_t * Saig_ManRetimeDupBackward( Aig_Man_t * p, Vec_Ptr_t * vCut, Vec_Int_
     Aig_ManCleanData( p );
     Aig_ManConst1(p)->pData = Aig_ManConst1(pNew);
     Saig_ManForEachPi( p, pObj, i )
-        pObj->pData = Aig_ObjCreatePi( pNew );
+        pObj->pData = Aig_ObjCreateCi( pNew );
     // create the registers
     Vec_PtrForEachEntry( Aig_Obj_t *, vCut, pObj, i )
-        pObj->pData = Aig_NotCond( Aig_ObjCreatePi(pNew), vInit?Vec_IntEntry(vInit,i):0 );
+        pObj->pData = Aig_NotCond( Aig_ObjCreateCi(pNew), vInit?Vec_IntEntry(vInit,i):0 );
     // duplicate logic above the cut and remember values
     Saig_ManForEachLi( p, pObj, i )
     {
@@ -381,12 +381,12 @@ Aig_Man_t * Saig_ManRetimeDupBackward( Aig_Man_t * p, Vec_Ptr_t * vCut, Vec_Int_
     Saig_ManForEachPo( p, pObj, i )
     {
         Saig_ManRetimeDup_rec( pNew, Aig_ObjFanin0(pObj) );
-        Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
+        Aig_ObjCreateCo( pNew, Aig_ObjChild0Copy(pObj) );
     }
     Vec_PtrForEachEntry( Aig_Obj_t *, vCut, pObj, i )
     {
         Saig_ManRetimeDup_rec( pNew, pObj );
-        Aig_ObjCreatePo( pNew, Aig_NotCond((Aig_Obj_t *)pObj->pData, vInit?Vec_IntEntry(vInit,i):0) );
+        Aig_ObjCreateCo( pNew, Aig_NotCond((Aig_Obj_t *)pObj->pData, vInit?Vec_IntEntry(vInit,i):0) );
     }
     Aig_ManCleanup( pNew );
     return pNew;
@@ -417,12 +417,12 @@ Aig_Man_t * Saig_ManRetimeDupInitState( Aig_Man_t * p, Vec_Ptr_t * vCut )
     Aig_ManConst1(p)->pData = Aig_ManConst1(pNew);
     // create the registers
     Vec_PtrForEachEntry( Aig_Obj_t *, vCut, pObj, i )
-        pObj->pData = Aig_ObjCreatePi(pNew);
+        pObj->pData = Aig_ObjCreateCi(pNew);
     // duplicate logic above the cut and create POs
     Saig_ManForEachLi( p, pObj, i )
     {
         Saig_ManRetimeDup_rec( pNew, Aig_ObjFanin0(pObj) );
-        Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
+        Aig_ObjCreateCo( pNew, Aig_ObjChild0Copy(pObj) );
     }
     return pNew;
 }

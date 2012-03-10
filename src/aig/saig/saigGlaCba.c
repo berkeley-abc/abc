@@ -256,26 +256,26 @@ Aig_Man_t * Aig_Gla1DeriveAbs( Aig_Gla1Man_t * p )
     Aig_ManConst1(p->pAig)->pData = Aig_ManConst1(pNew);
     // create PIs
     Aig_ManForEachObjVec( p->vPis, p->pAig, pObj, i )
-        pObj->pData = Aig_ObjCreatePi(pNew);
+        pObj->pData = Aig_ObjCreateCi(pNew);
     // create additional PIs
     Aig_ManForEachObjVec( p->vPPis, p->pAig, pObj, i )
-        pObj->pData = Aig_ObjCreatePi(pNew);
+        pObj->pData = Aig_ObjCreateCi(pNew);
     // create ROs
     Aig_ManForEachObjVec( p->vFlops, p->pAig, pObj, i )
-        pObj->pData = Aig_ObjCreatePi(pNew);
+        pObj->pData = Aig_ObjCreateCi(pNew);
     // create internal nodes
     Aig_ManForEachObjVec( p->vNodes, p->pAig, pObj, i )
 //        pObj->pData = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
         Aig_Gla1DeriveAbs_rec( pNew, pObj );
     // create PO
     Saig_ManForEachPo( p->pAig, pObj, i )
-        pObj->pData = Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
+        pObj->pData = Aig_ObjCreateCo( pNew, Aig_ObjChild0Copy(pObj) );
     // create RIs
     Aig_ManForEachObjVec( p->vFlops, p->pAig, pObj, i )
     {
         assert( Saig_ObjIsLo(p->pAig, pObj) );
         pObj = Saig_ObjLoToLi( p->pAig, pObj );
-        pObj->pData = Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
+        pObj->pData = Aig_ObjCreateCo( pNew, Aig_ObjChild0Copy(pObj) );
     }
     Aig_ManSetRegNum( pNew, Vec_IntSize(p->vFlops) );
     // clean up

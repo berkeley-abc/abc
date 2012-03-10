@@ -81,7 +81,7 @@ DdNode * Llb_Nonlin4ComputeBad( DdManager * dd, Aig_Man_t * pAig, Vec_Int_t * vO
     Aig_ManCleanData( pAig );
     // assign elementary variables
     Aig_ManConst1(pAig)->pData = Cudd_ReadOne(dd); 
-    Aig_ManForEachPi( pAig, pObj, i )
+    Aig_ManForEachCi( pAig, pObj, i )
         pObj->pData = Cudd_bddIthVar( dd, Llb_ObjBddVar(vOrder, pObj) );
     // compute internal nodes
     vNodes = Aig_ManDfsNodes( pAig, (Aig_Obj_t **)Vec_PtrArray(pAig->vPos), Saig_ManPoNum(pAig) );
@@ -171,7 +171,7 @@ Vec_Ptr_t * Llb_Nonlin4DerivePartitions( DdManager * dd, Aig_Man_t * pAig, Vec_I
     Aig_ManCleanData( pAig );
     // assign elementary variables
     Aig_ManConst1(pAig)->pData = Cudd_ReadOne(dd); 
-    Aig_ManForEachPi( pAig, pObj, i )
+    Aig_ManForEachCi( pAig, pObj, i )
         pObj->pData = Cudd_bddIthVar( dd, Llb_ObjBddVar(vOrder, pObj) );
     Aig_ManForEachNode( pAig, pObj, i )
         if ( Llb_ObjBddVar(vOrder, pObj) >= 0 )
@@ -248,7 +248,7 @@ Vec_Int_t * Llb_Nonlin4CreateOrderSimple( Aig_Man_t * pAig )
     Aig_Obj_t * pObj;
     int i, Counter = 0;
     vOrder = Vec_IntStartFull( Aig_ManObjNumMax(pAig) );
-    Aig_ManForEachPi( pAig, pObj, i )
+    Aig_ManForEachCi( pAig, pObj, i )
         Vec_IntWriteEntry( vOrder, Aig_ObjId(pObj), Counter++ );
     Saig_ManForEachLi( pAig, pObj, i )
         Vec_IntWriteEntry( vOrder, Aig_ObjId(pObj), Counter++ );
@@ -364,7 +364,7 @@ printf( "Techmapping added %d pivots.\n", Vec_IntSize(vNodes) );
         Vec_IntWriteEntry( vOrder, Aig_ObjId(pObj), Counter++ );
         Llb_Nonlin4CreateOrder_rec( pAig, Aig_ObjFanin0(pObj), vOrder, &Counter );
     }
-    Aig_ManForEachPi( pAig, pObj, i )
+    Aig_ManForEachCi( pAig, pObj, i )
         if ( Llb_ObjBddVar(vOrder, pObj) < 0 )
         {
 //            if ( Saig_ObjIsLo(pAig, pObj) )

@@ -68,7 +68,7 @@ void Aig_WriteDotAig( Aig_Man_t * pMan, char * pFileName, int fHaig, Vec_Ptr_t *
     // compute levels
 //    LevelMax = 1 + Aig_ManSetLevels( pMan, fHaig );
     LevelMax = 1 + Aig_ManLevels( pMan );
-    Aig_ManForEachPo( pMan, pNode, i )
+    Aig_ManForEachCo( pMan, pNode, i )
         pNode->Level = LevelMax;
 
     // write the DOT header
@@ -160,7 +160,7 @@ void Aig_WriteDotAig( Aig_Man_t * pMan, char * pFileName, int fHaig, Vec_Ptr_t *
     // the labeling node of this level
     fprintf( pFile, "  Level%d;\n",  LevelMax );
     // generate the CO nodes
-    Aig_ManForEachPo( pMan, pNode, i )
+    Aig_ManForEachCo( pMan, pNode, i )
     {
 /*
         if ( fHaig || pNode->pEquiv == NULL )
@@ -227,7 +227,7 @@ void Aig_WriteDotAig( Aig_Man_t * pMan, char * pFileName, int fHaig, Vec_Ptr_t *
         fprintf( pFile, "];\n" );
     }
     // generate the CI nodes
-    Aig_ManForEachPi( pMan, pNode, i )
+    Aig_ManForEachCi( pMan, pNode, i )
     {
 /*
         if ( fHaig || pNode->pEquiv == NULL )
@@ -250,7 +250,7 @@ void Aig_WriteDotAig( Aig_Man_t * pMan, char * pFileName, int fHaig, Vec_Ptr_t *
 
     // generate invisible edges from the square down
     fprintf( pFile, "title1 -> title2 [style = invis];\n" );
-    Aig_ManForEachPo( pMan, pNode, i )
+    Aig_ManForEachCo( pMan, pNode, i )
         fprintf( pFile, "title2 -> Node%d [style = invis];\n", pNode->Id );
 
     // generate edges
@@ -314,7 +314,7 @@ void Aig_WriteDotAig( Aig_Man_t * pMan, char * pFileName, int fHaig, Vec_Ptr_t *
         Vec_PtrForEachEntry( Aig_Obj_t *, vBold, pNode, i )
             pNode->fMarkB = 0;
 
-    Aig_ManForEachPo( pMan, pNode, i )
+    Aig_ManForEachCo( pMan, pNode, i )
         pNode->Level = Aig_ObjFanin0(pNode)->Level;
 }
 

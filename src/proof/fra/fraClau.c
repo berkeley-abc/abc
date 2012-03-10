@@ -109,7 +109,7 @@ Vec_Int_t * Fra_ClauSaveOutputVars( Aig_Man_t * pMan, Cnf_Dat_t * pCnf )
     Aig_Obj_t * pObj;
     int i;
     vVars = Vec_IntAlloc( Aig_ManPoNum(pMan) );
-    Aig_ManForEachPo( pMan, pObj, i )
+    Aig_ManForEachCo( pMan, pObj, i )
         Vec_IntPush( vVars, pCnf->pVarNums[pObj->Id] );
     return vVars;
 }
@@ -131,7 +131,7 @@ Vec_Int_t * Fra_ClauSaveInputVars( Aig_Man_t * pMan, Cnf_Dat_t * pCnf, int nStar
     Aig_Obj_t * pObj;
     int i;
     vVars = Vec_IntAlloc( Aig_ManPiNum(pMan) - nStarting );
-    Aig_ManForEachPi( pMan, pObj, i )
+    Aig_ManForEachCi( pMan, pObj, i )
     {
         if ( i < nStarting )
             continue;

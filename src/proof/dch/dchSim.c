@@ -211,7 +211,7 @@ void Dch_PerformRandomSimulation( Aig_Man_t * pAig, Vec_Ptr_t * vSims )
     memset( pSim, 0xff, sizeof(unsigned) * nWords );
 
     // assign primary input random sim info
-    Aig_ManForEachPi( pAig, pObj, i )
+    Aig_ManForEachCi( pAig, pObj, i )
     {
         pSim = Dch_ObjSim( vSims, pObj );
         for ( k = 0; k < nWords; k++ )

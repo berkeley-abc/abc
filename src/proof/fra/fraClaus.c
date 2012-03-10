@@ -1565,7 +1565,7 @@ void Fra_ClausWriteIndClauses( Clu_Man_t * p )
             pLiteral = Fra_ClausGetLiteral( p, pVar2Id, pStart[k] );
             pClause = Aig_Or( pNew, pClause, pLiteral );
         }
-        Aig_ObjCreatePo( pNew, pClause );
+        Aig_ObjCreateCo( pNew, pClause );
         Beg = End;
     }
     ABC_FREE( pVar2Id );

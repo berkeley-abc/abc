@@ -75,7 +75,7 @@ Csw_Man_t * Csw_ManStart( Aig_Man_t * pMan, int nCutsMax, int nLeafMax, int fVer
     memset( p->pTable, 0, sizeof(Aig_Obj_t *) * p->nTableSize );
     // set the pointers to the available fraig nodes
     Csw_ObjSetEquiv( p, Aig_ManConst1(p->pManAig), Aig_ManConst1(p->pManRes) );
-    Aig_ManForEachPi( p->pManAig, pObj, i )
+    Aig_ManForEachCi( p->pManAig, pObj, i )
         Csw_ObjSetEquiv( p, pObj, Aig_ManPi(p->pManRes, i) );
     // room for temporary truth tables
     p->puTemp[0] = ABC_ALLOC( unsigned, 4 * p->nTruthWords );

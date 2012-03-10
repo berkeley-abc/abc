@@ -55,7 +55,7 @@ Nwk_Man_t * Nwk_ManDeriveFromAig( Aig_Man_t * p )
     pNtk->pSpec = Abc_UtilStrsav( p->pSpec );
     pObj = Aig_ManConst1(p);
     pObj->pData = Nwk_ManCreateNode( pNtk, 0, pObj->nRefs );
-    Aig_ManForEachPi( p, pObj, i )
+    Aig_ManForEachCi( p, pObj, i )
         pObj->pData = Nwk_ManCreateCi( pNtk, pObj->nRefs );
     Aig_ManForEachNode( p, pObj, i )
     {
@@ -63,7 +63,7 @@ Nwk_Man_t * Nwk_ManDeriveFromAig( Aig_Man_t * p )
         Nwk_ObjAddFanin( (Nwk_Obj_t *)pObj->pData, (Nwk_Obj_t *)Aig_ObjFanin0(pObj)->pData );
         Nwk_ObjAddFanin( (Nwk_Obj_t *)pObj->pData, (Nwk_Obj_t *)Aig_ObjFanin1(pObj)->pData );
     }
-    Aig_ManForEachPo( p, pObj, i )
+    Aig_ManForEachCo( p, pObj, i )
     {
         pObj->pData = Nwk_ManCreateCo( pNtk );
         Nwk_ObjAddFanin( (Nwk_Obj_t *)pObj->pData, (Nwk_Obj_t *)Aig_ObjFanin0(pObj)->pData );

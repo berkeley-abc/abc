@@ -68,8 +68,8 @@ Aig_Man_t * Saig_ManDupUnfoldConstrs( Aig_Man_t * pAig )
     // map the constant node
     Aig_ManConst1(pAig)->pData = Aig_ManConst1( pAigNew );
     // create variables for PIs
-    Aig_ManForEachPi( pAig, pObj, i )
-        pObj->pData = Aig_ObjCreatePi( pAigNew );
+    Aig_ManForEachCi( pAig, pObj, i )
+        pObj->pData = Aig_ObjCreateCi( pAigNew );
     // add internal nodes of this frame
     Aig_ManForEachNode( pAig, pObj, i )
         pObj->pData = Aig_And( pAigNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
@@ -77,14 +77,14 @@ Aig_Man_t * Saig_ManDupUnfoldConstrs( Aig_Man_t * pAig )
     pMiter = Aig_ManConst1( pAigNew );
     Vec_PtrForEachEntry( Aig_Obj_t *, vOuts, pObj, i )
         pMiter = Aig_And( pAigNew, pMiter, Aig_Not(Aig_ObjRealCopy(pObj)) );
-    Aig_ObjCreatePo( pAigNew, pMiter );
+    Aig_ObjCreateCo( pAigNew, pMiter );
     // add constraints
     pAigNew->nConstrs = Vec_PtrSize(vCons);
     Vec_PtrForEachEntry( Aig_Obj_t *, vCons, pObj, i )
-        Aig_ObjCreatePo( pAigNew, Aig_ObjRealCopy(pObj) );
+        Aig_ObjCreateCo( pAigNew, Aig_ObjRealCopy(pObj) );
     // transfer to register outputs
     Saig_ManForEachLi( pAig, pObj, i )
-        Aig_ObjCreatePo( pAigNew, Aig_ObjChild0Copy(pObj) );
+        Aig_ObjCreateCo( pAigNew, Aig_ObjChild0Copy(pObj) );
     Vec_PtrFreeP( &vOuts );
     Vec_PtrFreeP( &vCons );
 
@@ -117,8 +117,8 @@ Aig_Man_t * Saig_ManDupFoldConstrs( Aig_Man_t * pAig, Vec_Int_t * vConstrs )
     // map the constant node
     Aig_ManConst1(pAig)->pData = Aig_ManConst1( pAigNew );
     // create variables for PIs
-    Aig_ManForEachPi( pAig, pObj, i )
-        pObj->pData = Aig_ObjCreatePi( pAigNew );
+    Aig_ManForEachCi( pAig, pObj, i )
+        pObj->pData = Aig_ObjCreateCi( pAigNew );
     // add internal nodes of this frame
     Aig_ManForEachNode( pAig, pObj, i )
         pObj->pData = Aig_And( pAigNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
@@ -132,21 +132,21 @@ Aig_Man_t * Saig_ManDupFoldConstrs( Aig_Man_t * pAig, Vec_Int_t * vConstrs )
         pMiter = Aig_Or( pAigNew, pMiter, Aig_ObjChild0Copy(pObj) );
     }
     // create additional flop
-    pFlopOut = Aig_ObjCreatePi( pAigNew );
+    pFlopOut = Aig_ObjCreateCi( pAigNew );
     pFlopIn  = Aig_Or( pAigNew, pMiter, pFlopOut );
 
     // create primary output
     Saig_ManForEachPo( pAig, pObj, i )
     {
         pMiter = Aig_And( pAigNew, Aig_ObjChild0Copy(pObj), Aig_Not(pFlopIn) );
-        Aig_ObjCreatePo( pAigNew, pMiter );
+        Aig_ObjCreateCo( pAigNew, pMiter );
     }
 
     // transfer to register outputs
     Saig_ManForEachLi( pAig, pObj, i )
-        Aig_ObjCreatePo( pAigNew, Aig_ObjChild0Copy(pObj) );
+        Aig_ObjCreateCo( pAigNew, Aig_ObjChild0Copy(pObj) );
     // create additional flop 
-    Aig_ObjCreatePo( pAigNew, pFlopIn );
+    Aig_ObjCreateCo( pAigNew, pFlopIn );
 
     Aig_ManSetRegNum( pAigNew, Aig_ManRegNum(pAig)+1 );
     Aig_ManCleanup( pAigNew );

@@ -121,7 +121,7 @@ Aig_Man_t * Inter_ManFramesLatches( Aig_Man_t * pAig, int nFrames, Vec_Ptr_t ** 
     *pvMapReg = Vec_PtrAlloc( (nFrames+1) * Saig_ManRegNum(pAig) );
     Saig_ManForEachLo( pAig, pObj, i )
     {
-        pObj->pData = Aig_ObjCreatePi( pFrames );
+        pObj->pData = Aig_ObjCreateCi( pFrames );
         Vec_PtrPush( *pvMapReg, pObj->pData );
     }
     // add timeframes
@@ -129,7 +129,7 @@ Aig_Man_t * Inter_ManFramesLatches( Aig_Man_t * pAig, int nFrames, Vec_Ptr_t ** 
     {
         // create PI nodes for this frame
         Saig_ManForEachPi( pAig, pObj, i )
-            pObj->pData = Aig_ObjCreatePi( pFrames );
+            pObj->pData = Aig_ObjCreateCi( pFrames );
         // add internal nodes of this frame
         Aig_ManForEachNode( pAig, pObj, i )
             pObj->pData = Aig_And( pFrames, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
@@ -165,14 +165,14 @@ void Inter_ManAppendCone( Aig_Man_t * pOld, Aig_Man_t * pNew, Aig_Obj_t ** ppNew
     // create the PIs
     Aig_ManCleanData( pOld );
     Aig_ManConst1(pOld)->pData = Aig_ManConst1(pNew);
-    Aig_ManForEachPi( pOld, pObj, i )
+    Aig_ManForEachCi( pOld, pObj, i )
         pObj->pData = ppNewPis[i];
     // duplicate internal nodes
     Aig_ManForEachNode( pOld, pObj, i )
         pObj->pData = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
     // add one PO to new
     pObj = Aig_ManPo( pOld, 0 );
-    Aig_ObjCreatePo( pNew, Aig_NotCond( Aig_ObjChild0Copy(pObj), fCompl ) );
+    Aig_ObjCreateCo( pNew, Aig_NotCond( Aig_ObjChild0Copy(pObj), fCompl ) );
 }
 
 
@@ -287,7 +287,7 @@ int Inter_ManCheckUniqueness( Aig_Man_t * p, sat_solver * pSat, Cnf_Dat_t * pCnf
 
     // get the counter-example
     vPis = Vec_IntAlloc( 100 );
-    Aig_ManForEachPi( pCnf->pMan, pObj, k )
+    Aig_ManForEachCi( pCnf->pMan, pObj, k )
         Vec_IntPush( vPis, pCnf->pVarNums[Aig_ObjId(pObj)] );
     assert( Vec_IntSize(vPis) == Aig_ManRegNum(p) + nFrames * Saig_ManPiNum(p) );
     pCounterEx = Sat_SolverGetModel( pSat, vPis->pArray, vPis->nSize );

@@ -243,7 +243,7 @@ void Fra_SmlSavePattern( Fra_Man_t * p )
     Aig_Obj_t * pObj;
     int i;
     memset( p->pPatWords, 0, sizeof(unsigned) * p->nPatWords );
-    Aig_ManForEachPi( p->pManFraig, pObj, i )
+    Aig_ManForEachCi( p->pManFraig, pObj, i )
 //        if ( p->pSat->model.ptr[Fra_ObjSatNum(pObj)] == l_True )
         if ( sat_solver_var_value(p->pSat, Fra_ObjSatNum(pObj)) )
             Abc_InfoSetBit( p->pPatWords, i );
@@ -259,7 +259,7 @@ void Fra_SmlSavePattern( Fra_Man_t * p )
 
 /*
     printf( "Pattern: " );
-    Aig_ManForEachPi( p->pManFraig, pObj, i )
+    Aig_ManForEachCi( p->pManFraig, pObj, i )
         printf( "%d", Abc_InfoHasBit( p->pPatWords, i ) );
     printf( "\n" );
 */
@@ -299,7 +299,7 @@ void Fra_SmlCheckOutputSavePattern( Fra_Man_t * p, Aig_Obj_t * pObjPo )
     BestPat = i * 32 + k;
     // fill in the counter-example data
     pModel = ABC_ALLOC( int, Aig_ManPiNum(p->pManFraig)+1 );
-    Aig_ManForEachPi( p->pManAig, pObjPi, i )
+    Aig_ManForEachCi( p->pManAig, pObjPi, i )
     {
         pModel[i] = Abc_InfoHasBit(Fra_ObjSim(p->pSml, pObjPi->Id), BestPat);
 //        printf( "%d", pModel[i] );
@@ -330,7 +330,7 @@ int Fra_SmlCheckOutput( Fra_Man_t * p )
     // make sure the reference simulation pattern does not detect the bug
     pObj = Aig_ManPo( p->pManAig, 0 );
     assert( Aig_ObjFanin0(pObj)->fPhase == (unsigned)Aig_ObjFaninC0(pObj) ); 
-    Aig_ManForEachPo( p->pManAig, pObj, i )
+    Aig_ManForEachCo( p->pManAig, pObj, i )
     {
         if ( !Fra_SmlNodeIsConst( Aig_ObjFanin0(pObj) ) )
         {
@@ -414,7 +414,7 @@ void Fra_SmlInitialize( Fra_Sml_t * p, int fInit )
     }
     else
     {
-        Aig_ManForEachPi( p->pAig, pObj, i )
+        Aig_ManForEachCi( p->pAig, pObj, i )
             Fra_SmlAssignRandom( p, pObj );
     }
 }
@@ -438,7 +438,7 @@ void Fra_SmlAssignDist1( Fra_Sml_t * p, unsigned * pPat )
     if ( p->nFrames == 1 )
     {
         // copy the PI info 
-        Aig_ManForEachPi( p->pAig, pObj, i )
+        Aig_ManForEachCi( p->pAig, pObj, i )
             Fra_SmlAssignConst( p, pObj, Abc_InfoHasBit(pPat, i), 0 );
         // flip one bit
         Limit = Abc_MinInt( Aig_ManPiNum(p->pAig), p->nWordsTotal * 32 - 1 );
@@ -980,7 +980,7 @@ Abc_Cex_t * Fra_SmlCopyCounterExample( Aig_Man_t * pAig, Aig_Man_t * pFrames, in
     // find the PO that failed
     iPo = -1;
     iFrame = -1;
-    Aig_ManForEachPo( pFrames, pObj, i )
+    Aig_ManForEachCo( pFrames, pObj, i )
         if ( pObj->Id == pModel[Aig_ManPiNum(pFrames)] )
         {
             iPo = i % nTruePos;

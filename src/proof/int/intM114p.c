@@ -87,7 +87,7 @@ M114p_Solver_t Inter_ManDeriveSatSolverM114p(
             assert( 0 );
     }
     // connector clauses
-    Aig_ManForEachPi( pInter, pObj, i )
+    Aig_ManForEachCi( pInter, pObj, i )
     {
         pObj2 = Saig_ManLo( pAig, i );
         Lits[0] = toLitCond( pCnfInter->pVarNums[pObj->Id], 0 );
@@ -109,7 +109,7 @@ M114p_Solver_t Inter_ManDeriveSatSolverM114p(
             assert( 0 );
     }
     // connector clauses
-    Aig_ManForEachPi( pFrames, pObj, i )
+    Aig_ManForEachCi( pFrames, pObj, i )
     { 
         if ( i == Aig_ManRegNum(pAig) )
             break;
@@ -296,7 +296,7 @@ Aig_Man_t * Inter_ManInterpolateM114pPudlak( M114p_Solver_t s, Vec_Int_t * vMapR
     Vec_IntFree( vLiterals );
     Vec_IntFree( vClauses );
     Vec_IntFree( vResolvent );
-    Aig_ObjCreatePo( p, pInter );
+    Aig_ObjCreateCo( p, pInter );
     Aig_ManCleanup( p );
     return p;
 }
@@ -372,7 +372,7 @@ Aig_Man_t * Inter_ManpInterpolateM114( M114p_Solver_t s, Vec_Int_t * vMapRoots, 
 
     assert( Vec_PtrSize(vInters) == M114p_SolverProofClauseNum(s) );
     Vec_PtrFree( vInters );
-    Aig_ObjCreatePo( p, pInter );
+    Aig_ObjCreateCo( p, pInter );
     Aig_ManCleanup( p );
     assert( Aig_ManCheck(p) );
     return p;

@@ -52,9 +52,9 @@ Aig_Man_t * Inter_ManStartInitState( int nRegs )
     ppInputs = ABC_ALLOC( Aig_Obj_t *, nRegs );
     p = Aig_ManStart( nRegs );
     for ( i = 0; i < nRegs; i++ )
-        ppInputs[i] = Aig_Not( Aig_ObjCreatePi(p) );
+        ppInputs[i] = Aig_Not( Aig_ObjCreateCi(p) );
     pRes = Aig_Multi( p, ppInputs, nRegs, AIG_OBJ_AND );
-    Aig_ObjCreatePo( p, pRes );
+    Aig_ObjCreateCo( p, pRes );
     ABC_FREE( ppInputs );
     return p;
 }
@@ -83,8 +83,8 @@ Aig_Man_t * Inter_ManStartDuplicated( Aig_Man_t * p )
     // create the PIs
     Aig_ManCleanData( p );
     Aig_ManConst1(p)->pData = Aig_ManConst1(pNew);
-    Aig_ManForEachPi( p, pObj, i )
-        pObj->pData = Aig_ObjCreatePi( pNew );
+    Aig_ManForEachCi( p, pObj, i )
+        pObj->pData = Aig_ObjCreateCi( pNew );
     // set registers
     pNew->nTruePis = p->nTruePis;
     pNew->nTruePos = Saig_ManConstrNum(p);
@@ -98,12 +98,12 @@ Aig_Man_t * Inter_ManStartDuplicated( Aig_Man_t * p )
     {
         if ( i < Saig_ManPoNum(p)-Saig_ManConstrNum(p) )
             continue;
-        Aig_ObjCreatePo( pNew, Aig_Not( Aig_ObjChild0Copy(pObj) ) );
+        Aig_ObjCreateCo( pNew, Aig_Not( Aig_ObjChild0Copy(pObj) ) );
     }
 
     // create register inputs with MUXes
     Saig_ManForEachLi( p, pObj, i )
-        Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
+        Aig_ObjCreateCo( pNew, Aig_ObjChild0Copy(pObj) );
     Aig_ManCleanup( pNew );
     return pNew;
 }
@@ -133,11 +133,11 @@ Aig_Man_t * Inter_ManStartOneOutput( Aig_Man_t * p, int fAddFirstPo )
     // create the PIs
     Aig_ManCleanData( p );
     Aig_ManConst1(p)->pData = Aig_ManConst1(pNew);
-    Aig_ManForEachPi( p, pObj, i )
+    Aig_ManForEachCi( p, pObj, i )
     {
         if ( i == Saig_ManPiNum(p) )
-            pCtrl = Aig_ObjCreatePi( pNew );
-        pObj->pData = Aig_ObjCreatePi( pNew );
+            pCtrl = Aig_ObjCreateCi( pNew );
+        pObj->pData = Aig_ObjCreateCi( pNew );
     }
     // set registers
     pNew->nRegs    = fAddFirstPo? 0 : p->nRegs;
@@ -152,14 +152,14 @@ Aig_Man_t * Inter_ManStartOneOutput( Aig_Man_t * p, int fAddFirstPo )
     {
         if ( i < Saig_ManPoNum(p)-Saig_ManConstrNum(p) )
             continue;
-        Aig_ObjCreatePo( pNew, Aig_Not( Aig_ObjChild0Copy(pObj) ) );
+        Aig_ObjCreateCo( pNew, Aig_Not( Aig_ObjChild0Copy(pObj) ) );
     }
 
     // add the PO
     if ( fAddFirstPo )
     {
         pObj = Aig_ManPo( p, 0 );
-        Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
+        Aig_ObjCreateCo( pNew, Aig_ObjChild0Copy(pObj) );
     }
     else
     {
@@ -168,7 +168,7 @@ Aig_Man_t * Inter_ManStartOneOutput( Aig_Man_t * p, int fAddFirstPo )
         {
             pObj = Aig_Mux( pNew, pCtrl, (Aig_Obj_t *)pObjLo->pData, Aig_ObjChild0Copy(pObjLi) );
     //        pObj = Aig_Mux( pNew, pCtrl, Aig_ManConst0(pNew), Aig_ObjChild0Copy(pObjLi) );
-            Aig_ObjCreatePo( pNew, pObj );
+            Aig_ObjCreateCo( pNew, pObj );
         }
     }
     Aig_ManCleanup( pNew );

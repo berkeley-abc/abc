@@ -240,13 +240,13 @@ Aig_Man_t * Saig_ManWindowExtractNodes( Aig_Man_t * p, Vec_Ptr_t * vNodes )
     // create real PIs
     vNodesPi = Saig_ManWindowCollectPis( p, vNodes );
     Vec_PtrForEachEntry( Aig_Obj_t *, vNodesPi, pObj, i )
-        pObj->pData = Aig_ObjCreatePi(pNew);
+        pObj->pData = Aig_ObjCreateCi(pNew);
     Vec_PtrFree( vNodesPi );
     // create register outputs
     Vec_PtrForEachEntry( Aig_Obj_t *, vNodes, pObj, i )
     {
         if ( Saig_ObjIsLo(p, pObj) )
-            pObj->pData = Aig_ObjCreatePi(pNew);
+            pObj->pData = Aig_ObjCreateCi(pNew);
     }
     // create internal nodes
     Vec_PtrForEachEntry( Aig_Obj_t *, vNodes, pObj, i )
@@ -257,7 +257,7 @@ Aig_Man_t * Saig_ManWindowExtractNodes( Aig_Man_t * p, Vec_Ptr_t * vNodes )
     // create POs
     vNodesPo = Saig_ManWindowCollectPos( p, vNodes, NULL );
     Vec_PtrForEachEntry( Aig_Obj_t *, vNodesPo, pObj, i )
-        Aig_ObjCreatePo( pNew, (Aig_Obj_t *)pObj->pData );
+        Aig_ObjCreateCo( pNew, (Aig_Obj_t *)pObj->pData );
     Vec_PtrFree( vNodesPo );
     // create register inputs
     nRegCount = 0;
@@ -266,7 +266,7 @@ Aig_Man_t * Saig_ManWindowExtractNodes( Aig_Man_t * p, Vec_Ptr_t * vNodes )
         if ( Saig_ObjIsLo(p, pObj) )
         {
             pMatch = Saig_ObjLoToLi( p, pObj );
-            Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pMatch) );
+            Aig_ObjCreateCo( pNew, Aig_ObjChild0Copy(pMatch) );
             nRegCount++;
         }
     }
@@ -384,25 +384,25 @@ Aig_Man_t * Saig_ManWindowInsertNodes( Aig_Man_t * p, Vec_Ptr_t * vNodes, Aig_Ma
     pObj->pData = Aig_ManConst1( pNew );
 
     // create real PIs
-    Aig_ManForEachPi( p, pObj, i )
+    Aig_ManForEachCi( p, pObj, i )
         if ( Saig_ObjIsPi(p, pObj) || !Aig_ObjIsTravIdCurrent(p, pObj) )
-            pObj->pData = Aig_ObjCreatePi(pNew);
+            pObj->pData = Aig_ObjCreateCi(pNew);
     // create additional latch outputs
     Saig_ManForEachLo( pWnd, pObj, i )
-        pObj->pData = Aig_ObjCreatePi(pNew);
+        pObj->pData = Aig_ObjCreateCi(pNew);
 
     // create internal nodes starting from the big
-    Aig_ManForEachPo( p, pObj, i )
+    Aig_ManForEachCo( p, pObj, i )
         if ( Saig_ObjIsPo(p, pObj) || !Aig_ObjIsTravIdCurrent(p, pObj) )
         {
             Saig_ManWindowInsertBig_rec( pNew, Aig_ObjFanin0(pObj), vBigNode2SmallPo, vSmallPi2BigNode );
-            pObj->pData = Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
+            pObj->pData = Aig_ObjCreateCo( pNew, Aig_ObjChild0Copy(pObj) );
         }
     // create internal nodes starting from the small
     Saig_ManForEachLi( pWnd, pObj, i )
     {
         Saig_ManWindowInsertSmall_rec( pNew, Aig_ObjFanin0(pObj), vBigNode2SmallPo, vSmallPi2BigNode );
-        pObj->pData = Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
+        pObj->pData = Aig_ObjCreateCo( pNew, Aig_ObjChild0Copy(pObj) );
     }
     Vec_PtrFree( vBigNode2SmallPo );
     Vec_PtrFree( vSmallPi2BigNode );
@@ -600,7 +600,7 @@ void Saig_ManWindowCreatePis( Aig_Man_t * pNew, Aig_Man_t * p0, Aig_Man_t * p1, 
             pFanin = Aig_ObjFanin0(pMatch);
             if ( !Aig_ObjIsTravIdCurrent(p0, pFanin) && pFanin->pData == NULL )
             {
-                pFanin->pData = Aig_ObjCreatePi(pNew);
+                pFanin->pData = Aig_ObjCreateCi(pNew);
                 pMatch = Aig_ObjRepr( p0, pFanin );
                 assert( pFanin == Aig_ObjRepr( p1, pMatch ) );
                 assert( pMatch != NULL );
@@ -614,7 +614,7 @@ void Saig_ManWindowCreatePis( Aig_Man_t * pNew, Aig_Man_t * p0, Aig_Man_t * p1, 
             pFanin = Aig_ObjFanin0(pObj);
             if ( !Aig_ObjIsTravIdCurrent(p0, pFanin) && pFanin->pData == NULL )
             {
-                pFanin->pData = Aig_ObjCreatePi(pNew);
+                pFanin->pData = Aig_ObjCreateCi(pNew);
                 pMatch = Aig_ObjRepr( p0, pFanin );
                 assert( pFanin == Aig_ObjRepr( p1, pMatch ) );
                 assert( pMatch != NULL );
@@ -624,7 +624,7 @@ void Saig_ManWindowCreatePis( Aig_Man_t * pNew, Aig_Man_t * p0, Aig_Man_t * p1, 
             pFanin = Aig_ObjFanin1(pObj);
             if ( !Aig_ObjIsTravIdCurrent(p0, pFanin) && pFanin->pData == NULL )
             {
-                pFanin->pData = Aig_ObjCreatePi(pNew);
+                pFanin->pData = Aig_ObjCreateCi(pNew);
                 pMatch = Aig_ObjRepr( p0, pFanin );
                 assert( pFanin == Aig_ObjRepr( p1, pMatch ) );
                 assert( pMatch != NULL );
@@ -671,7 +671,7 @@ void Saig_ManWindowCreatePos( Aig_Man_t * pNew, Aig_Man_t * p0, Aig_Man_t * p1 )
             if ( Aig_ObjIsTravIdCurrent(p0, pFanin0) )
             {
                 pMiter = Aig_Exor( pNew, (Aig_Obj_t *)pFanin0->pData, (Aig_Obj_t *)pFanin1->pData );
-                Aig_ObjCreatePo( pNew, pMiter );
+                Aig_ObjCreateCo( pNew, pMiter );
             }
         }
         else
@@ -685,7 +685,7 @@ void Saig_ManWindowCreatePos( Aig_Man_t * pNew, Aig_Man_t * p0, Aig_Man_t * p1 )
             if ( Aig_ObjIsTravIdCurrent(p0, pFanin0) )
             {
                 pMiter = Aig_Exor( pNew, (Aig_Obj_t *)pFanin0->pData, (Aig_Obj_t *)pFanin1->pData );
-                Aig_ObjCreatePo( pNew, pMiter );
+                Aig_ObjCreateCo( pNew, pMiter );
             }
 
             pFanin0 = Aig_ObjFanin1(pObj0);
@@ -695,7 +695,7 @@ void Saig_ManWindowCreatePos( Aig_Man_t * pNew, Aig_Man_t * p0, Aig_Man_t * p1 )
             if ( Aig_ObjIsTravIdCurrent(p0, pFanin0) )
             {
                 pMiter = Aig_Exor( pNew, (Aig_Obj_t *)pFanin0->pData, (Aig_Obj_t *)pFanin1->pData );
-                Aig_ObjCreatePo( pNew, pMiter );
+                Aig_ObjCreateCo( pNew, pMiter );
             }
         }
     }
@@ -759,12 +759,12 @@ Aig_Man_t * Saig_ManWindowExtractMiter( Aig_Man_t * p0, Aig_Man_t * p1 )
     Vec_PtrForEachEntry( Aig_Obj_t *, vNodes0, pObj0, i )
     {
         if ( Saig_ObjIsLo(p0, pObj0) )
-            pObj0->pData = Aig_ObjCreatePi(pNew);
+            pObj0->pData = Aig_ObjCreateCi(pNew);
     }
     Vec_PtrForEachEntry( Aig_Obj_t *, vNodes1, pObj1, i )
     {
         if ( Saig_ObjIsLo(p1, pObj1) )
-            pObj1->pData = Aig_ObjCreatePi(pNew);
+            pObj1->pData = Aig_ObjCreateCi(pNew);
     }
     // create internal nodes
     Vec_PtrForEachEntry( Aig_Obj_t *, vNodes0, pObj0, i )
@@ -787,7 +787,7 @@ Aig_Man_t * Saig_ManWindowExtractMiter( Aig_Man_t * p0, Aig_Man_t * p1 )
         if ( Saig_ObjIsLo(p0, pObj0) )
         {
             pMatch0 = Saig_ObjLoToLi( p0, pObj0 );
-            Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pMatch0) );
+            Aig_ObjCreateCo( pNew, Aig_ObjChild0Copy(pMatch0) );
             nRegCount++;
         }
     }
@@ -796,7 +796,7 @@ Aig_Man_t * Saig_ManWindowExtractMiter( Aig_Man_t * p0, Aig_Man_t * p1 )
         if ( Saig_ObjIsLo(p1, pObj1) )
         {
             pMatch1 = Saig_ObjLoToLi( p1, pObj1 );
-            Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pMatch1) );
+            Aig_ObjCreateCo( pNew, Aig_ObjChild0Copy(pMatch1) );
             nRegCount++;
         }
     }

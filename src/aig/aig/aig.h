@@ -389,14 +389,14 @@ static inline void Aig_ManRecycleMemory( Aig_Man_t * p, Aig_Obj_t * pEntry )
 ////////////////////////////////////////////////////////////////////////
 
 // iterator over the primary inputs
-#define Aig_ManForEachPi( p, pObj, i )                                          \
+#define Aig_ManForEachCi( p, pObj, i )                                          \
     Vec_PtrForEachEntry( Aig_Obj_t *, p->vPis, pObj, i )
-#define Aig_ManForEachPiReverse( p, pObj, i )                                   \
+#define Aig_ManForEachCiReverse( p, pObj, i )                                   \
     Vec_PtrForEachEntryReverse( Aig_Obj_t *, p->vPis, pObj, i )
 // iterator over the primary outputs
-#define Aig_ManForEachPo( p, pObj, i )                                          \
+#define Aig_ManForEachCo( p, pObj, i )                                          \
     Vec_PtrForEachEntry( Aig_Obj_t *, p->vPos, pObj, i )
-#define Aig_ManForEachPoReverse( p, pObj, i )                                   \
+#define Aig_ManForEachCoReverse( p, pObj, i )                                   \
     Vec_PtrForEachEntryReverse( Aig_Obj_t *, p->vPos, pObj, i )
 // iterators over all objects, including those currently not used
 #define Aig_ManForEachObj( p, pObj, i )                                         \
@@ -538,8 +538,8 @@ extern int             Aig_NodeMffcLabel( Aig_Man_t * p, Aig_Obj_t * pNode, floa
 extern int             Aig_NodeMffcLabelCut( Aig_Man_t * p, Aig_Obj_t * pNode, Vec_Ptr_t * vLeaves );
 extern int             Aig_NodeMffcExtendCut( Aig_Man_t * p, Aig_Obj_t * pNode, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vResult );
 /*=== aigObj.c ==========================================================*/
-extern Aig_Obj_t *     Aig_ObjCreatePi( Aig_Man_t * p );
-extern Aig_Obj_t *     Aig_ObjCreatePo( Aig_Man_t * p, Aig_Obj_t * pDriver );
+extern Aig_Obj_t *     Aig_ObjCreateCi( Aig_Man_t * p );
+extern Aig_Obj_t *     Aig_ObjCreateCo( Aig_Man_t * p, Aig_Obj_t * pDriver );
 extern Aig_Obj_t *     Aig_ObjCreate( Aig_Man_t * p, Aig_Obj_t * pGhost );
 extern void            Aig_ObjConnect( Aig_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pFan0, Aig_Obj_t * pFan1 );
 extern void            Aig_ObjDisconnect( Aig_Man_t * p, Aig_Obj_t * pObj );

@@ -94,22 +94,22 @@ Aig_Man_t * Saig_ManDupDual( Aig_Man_t * pAig, int nDualPis, int fDualFfs, int f
     Saig_ObjSetDual( vCopies, 0, 0, Aig_ManConst0(pAigNew) );
     Saig_ObjSetDual( vCopies, 0, 1, Aig_ManConst1(pAigNew) );
     // create variables for PIs
-    Aig_ManForEachPi( pAig, pObj, i )
+    Aig_ManForEachCi( pAig, pObj, i )
     {
         if ( i < nDualPis )
         {
-            pTemp0 = Aig_ObjCreatePi( pAigNew );
-            pTemp1 = Aig_ObjCreatePi( pAigNew );
+            pTemp0 = Aig_ObjCreateCi( pAigNew );
+            pTemp1 = Aig_ObjCreateCi( pAigNew );
         }
         else if ( i < Saig_ManPiNum(pAig) )
         {
-            pTemp1 = Aig_ObjCreatePi( pAigNew );
+            pTemp1 = Aig_ObjCreateCi( pAigNew );
             pTemp0 = Aig_Not( pTemp1 );
         }
         else
         {
-            pTemp0 = Aig_ObjCreatePi( pAigNew );
-            pTemp1 = Aig_ObjCreatePi( pAigNew );
+            pTemp0 = Aig_ObjCreateCi( pAigNew );
+            pTemp1 = Aig_ObjCreateCi( pAigNew );
             pTemp0 = Aig_NotCond( pTemp0, !fDualFfs );
         }
         Saig_ObjSetDual( vCopies, Aig_ObjId(pObj), 0, Aig_And(pAigNew, pTemp0, Aig_Not(pTemp1)) );
@@ -145,14 +145,14 @@ Aig_Man_t * Saig_ManDupDual( Aig_Man_t * pAig, int nDualPis, int fDualFfs, int f
     }
     // create PO
     pMiter = Aig_NotCond( pMiter, fComplPo );
-    Aig_ObjCreatePo( pAigNew, pMiter );
+    Aig_ObjCreateCo( pAigNew, pMiter );
     // create flops
     Saig_ManForEachLi( pAig, pObj, i )
     {
         Saig_ObjDualFanin( pAigNew, vCopies, pObj, 0, &pTemp0, &pTemp1 );
         pTemp0 = Aig_NotCond( pTemp0, !fDualFfs );
-        Aig_ObjCreatePo( pAigNew, pTemp0 );
-        Aig_ObjCreatePo( pAigNew, pTemp1 );
+        Aig_ObjCreateCo( pAigNew, pTemp0 );
+        Aig_ObjCreateCo( pAigNew, pTemp1 );
     }
     // set the flops
     Aig_ManSetRegNum( pAigNew, 2 * Aig_ManRegNum(pAig) );
@@ -183,8 +183,8 @@ void Saig_ManBlockPo( Aig_Man_t * pAig, int nCycles )
     pCond = Aig_ManConst1(pAig);
     for ( i = 0; i < nCycles; i++ )
     {
-        Aig_ObjCreatePo( pAig, pPrev );
-        pPrev = Aig_ObjCreatePi( pAig );
+        Aig_ObjCreateCo( pAig, pPrev );
+        pPrev = Aig_ObjCreateCi( pAig );
         pCond = Aig_And( pAig, pCond, pPrev );
     }
     // update the POs

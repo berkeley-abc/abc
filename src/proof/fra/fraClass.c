@@ -779,7 +779,7 @@ static inline void Fra_ClassesDeriveNode( Aig_Man_t * pManFraig, Aig_Obj_t * pOb
     pMiter = Aig_Exor( pManFraig, Aig_Regular(pObjNew), Aig_Regular(pObjReprNew) );
     pMiter = Aig_NotCond( pMiter, Aig_Regular(pMiter)->fPhase ^ Aig_IsComplement(pMiter) );
     pMiter = Aig_Not( pMiter );
-    Aig_ObjCreatePo( pManFraig, pMiter );
+    Aig_ObjCreateCo( pManFraig, pMiter );
 }
 
 /**Function*************************************************************
@@ -811,14 +811,14 @@ Aig_Man_t * Fra_ClassesDeriveAig( Fra_Cla_t * p, int nFramesK )
     Fra_ObjSetEqu( ppEquivs, Aig_ManConst1(p->pAig), Aig_ManConst1(pManFraig) );
     // create latches for the first frame
     Aig_ManForEachLoSeq( p->pAig, pObj, i )
-        Fra_ObjSetEqu( ppEquivs, pObj, Aig_ObjCreatePi(pManFraig) );
+        Fra_ObjSetEqu( ppEquivs, pObj, Aig_ObjCreateCi(pManFraig) );
     // add timeframes
     pLatches = ABC_ALLOC( Aig_Obj_t *, Aig_ManRegNum(p->pAig) );
     for ( f = 0; f < nFramesAll; f++ )
     {
         // create PIs for this frame
         Aig_ManForEachPiSeq( p->pAig, pObj, i )
-            Fra_ObjSetEqu( ppEquivs, pObj, Aig_ObjCreatePi(pManFraig) );
+            Fra_ObjSetEqu( ppEquivs, pObj, Aig_ObjCreateCi(pManFraig) );
         // set the constraints on the latch outputs
         Aig_ManForEachLoSeq( p->pAig, pObj, i )
             Fra_ClassesDeriveNode( pManFraig, pObj, ppEquivs );

@@ -458,7 +458,7 @@ int * Ssw_SmlCheckOutputSavePattern( Ssw_Sml_t * p, Aig_Obj_t * pObjPo )
     BestPat = i * 32 + k;
     // fill in the counter-example data
     pModel = ABC_ALLOC( int, Aig_ManPiNum(p->pAig)+1 );
-    Aig_ManForEachPi( p->pAig, pObjPi, i )
+    Aig_ManForEachCi( p->pAig, pObjPi, i )
     {
         pModel[i] = Abc_InfoHasBit(Ssw_ObjSim(p, pObjPi->Id), BestPat);
 //        printf( "%d", pModel[i] );
@@ -486,7 +486,7 @@ int * Ssw_SmlCheckOutput( Ssw_Sml_t * p )
     // make sure the reference simulation pattern does not detect the bug
     pObj = Aig_ManPo( p->pAig, 0 );
     assert( Aig_ObjFanin0(pObj)->fPhase == (unsigned)Aig_ObjFaninC0(pObj) ); 
-    Aig_ManForEachPo( p->pAig, pObj, i )
+    Aig_ManForEachCo( p->pAig, pObj, i )
     {
         if ( !Ssw_SmlObjIsConstWord( p, Aig_ObjFanin0(pObj) ) )
         {
@@ -628,7 +628,7 @@ void Ssw_SmlAssignDist1( Ssw_Sml_t * p, unsigned * pPat )
     if ( p->nFrames == 1 )
     {
         // copy the PI info 
-        Aig_ManForEachPi( p->pAig, pObj, i )
+        Aig_ManForEachCi( p->pAig, pObj, i )
             Ssw_SmlObjAssignConst( p, pObj, Abc_InfoHasBit(pPat, i), 0 );
         // flip one bit
         Limit = Abc_MinInt( Aig_ManPiNum(p->pAig), p->nWordsTotal * 32 - 1 );
@@ -678,7 +678,7 @@ void Ssw_SmlAssignDist1Plus( Ssw_Sml_t * p, unsigned * pPat )
     assert( p->nFrames > 0 );
 
     // copy the pattern into the primary inputs
-    Aig_ManForEachPi( p->pAig, pObj, i )
+    Aig_ManForEachCi( p->pAig, pObj, i )
         Ssw_SmlObjAssignConst( p, pObj, Abc_InfoHasBit(pPat, i), 0 );
 
     // set distance one PIs for the first frame
@@ -909,7 +909,7 @@ void Ssw_SmlInitialize( Ssw_Sml_t * p, int fInit )
     }
     else
     {
-        Aig_ManForEachPi( p->pAig, pObj, i )
+        Aig_ManForEachCi( p->pAig, pObj, i )
             Ssw_SmlAssignRandom( p, pObj );
     }
 }

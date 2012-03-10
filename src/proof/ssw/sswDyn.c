@@ -215,7 +215,7 @@ void Ssw_ManSweepTransferDyn( Ssw_Man_t * p )
     int i, f, nFrames;
 
     // transfer simulation information
-    Aig_ManForEachPi( p->pAig, pObj, i )
+    Aig_ManForEachCi( p->pAig, pObj, i )
     {
         pObjFraig = Ssw_ObjFrame( p, pObj, 0 );
         if ( pObjFraig == Aig_ManConst0(p->pFrames) )
@@ -385,7 +385,7 @@ clk = clock();
     f = p->pPars->nFramesK;
     Ssw_ObjSetFrame( p, Aig_ManConst1(p->pAig), f, Aig_ManConst1(p->pFrames) );
     Saig_ManForEachPi( p->pAig, pObj, i )
-        Ssw_ObjSetFrame( p, pObj, f, Aig_ObjCreatePi(p->pFrames) );
+        Ssw_ObjSetFrame( p, pObj, f, Aig_ObjCreateCi(p->pFrames) );
     Aig_ManSetPioNumbers( p->pFrames );
     // label nodes corresponding to primary inputs
     Ssw_ManLabelPiNodes( p );

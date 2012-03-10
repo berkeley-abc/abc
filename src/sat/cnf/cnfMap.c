@@ -144,7 +144,7 @@ void Cnf_DeriveMapping( Cnf_Man_t * p )
 /*
     // compute the area of mapping
     AreaFlow = 0;
-    Aig_ManForEachPo( p->pManAig, pObj, i )
+    Aig_ManForEachCo( p->pManAig, pObj, i )
         AreaFlow += Dar_ObjBestCut(Aig_ObjFanin0(pObj))->uSign / 100 / Aig_ObjFanin0(pObj)->nRefs;
     printf( "Area of the network = %d.\n", AreaFlow );
 */

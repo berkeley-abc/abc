@@ -291,7 +291,7 @@ Vec_Str_t * Ioa_WriteAigerIntoMemoryStr( Aig_Man_t * pMan )
     // set the node numbers to be used in the output file
     nNodes = 0;
     Ioa_ObjSetAigerNum( Aig_ManConst1(pMan), nNodes++ );
-    Aig_ManForEachPi( pMan, pObj, i )
+    Aig_ManForEachCi( pMan, pObj, i )
         Ioa_ObjSetAigerNum( pObj, nNodes++ );
     Aig_ManForEachNode( pMan, pObj, i )
         Ioa_ObjSetAigerNum( pObj, nNodes++ );
@@ -477,7 +477,7 @@ void Ioa_WriteAiger( Aig_Man_t * pMan, char * pFileName, int fWriteSymbols, int 
     // set the node numbers to be used in the output file
     nNodes = 0;
     Ioa_ObjSetAigerNum( Aig_ManConst1(pMan), nNodes++ );
-    Aig_ManForEachPi( pMan, pObj, i )
+    Aig_ManForEachCi( pMan, pObj, i )
         Ioa_ObjSetAigerNum( pObj, nNodes++ );
     Aig_ManForEachNode( pMan, pObj, i )
         Ioa_ObjSetAigerNum( pObj, nNodes++ );
@@ -564,13 +564,13 @@ void Ioa_WriteAiger( Aig_Man_t * pMan, char * pFileName, int fWriteSymbols, int 
     if ( fWriteSymbols )
     {
         // write PIs
-        Aig_ManForEachPi( pMan, pObj, i )
+        Aig_ManForEachCi( pMan, pObj, i )
             fprintf( pFile, "i%d %s\n", i, Aig_ObjName(pObj) );
         // write latches
         Aig_ManForEachLatch( pMan, pObj, i )
             fprintf( pFile, "l%d %s\n", i, Aig_ObjName(Aig_ObjFanout0(pObj)) );
         // write POs
-        Aig_ManForEachPo( pMan, pObj, i )
+        Aig_ManForEachCo( pMan, pObj, i )
             fprintf( pFile, "o%d %s\n", i, Aig_ObjName(pObj) );
     }
 */

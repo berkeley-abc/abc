@@ -553,7 +553,7 @@ Aig_CMan_t * Aig_CManCreate( Aig_Man_t * p )
         Aig_CManAddNode( pCMan, 
             (Aig_ObjFaninId0(pObj) << 1) | Aig_ObjFaninC0(pObj), 
             (Aig_ObjFaninId1(pObj) << 1) | Aig_ObjFaninC1(pObj) );
-    Aig_ManForEachPo( p, pObj, i )
+    Aig_ManForEachCo( p, pObj, i )
         Aig_CManAddPo( pCMan, 
             (Aig_ObjFaninId0(pObj) << 1) | Aig_ObjFaninC0(pObj) ); 
     printf( "\nBytes alloc = %5d.  Bytes used = %7d.  Ave per node = %4.2f. \n", 

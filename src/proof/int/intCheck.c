@@ -67,13 +67,13 @@ Aig_Man_t * Inter_ManUnrollFrames( Aig_Man_t * pAig, int nFrames )
     Aig_ManConst1(pAig)->pData = Aig_ManConst1( pFrames );
     // create variables for register outputs
     Saig_ManForEachLo( pAig, pObj, i )
-        pObj->pData = Aig_ObjCreatePi( pFrames );
+        pObj->pData = Aig_ObjCreateCi( pFrames );
     // add timeframes
     for ( f = 0; f < nFrames; f++ )
     {
         // create PI nodes for this frame
         Saig_ManForEachPi( pAig, pObj, i )
-            pObj->pData = Aig_ObjCreatePi( pFrames );
+            pObj->pData = Aig_ObjCreateCi( pFrames );
         // add internal nodes of this frame
         Aig_ManForEachNode( pAig, pObj, i )
             pObj->pData = Aig_And( pFrames, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
@@ -84,7 +84,7 @@ Aig_Man_t * Inter_ManUnrollFrames( Aig_Man_t * pAig, int nFrames )
         Saig_ManForEachLiLo(  pAig, pObjLi, pObjLo, i )
         {
             pObjLo->pData = pObjLi->pData;
-            Aig_ObjCreatePo( pFrames, (Aig_Obj_t *)pObjLo->pData );
+            Aig_ObjCreateCo( pFrames, (Aig_Obj_t *)pObjLo->pData );
         }
     }
     Aig_ManCleanup( pFrames );
@@ -240,7 +240,7 @@ int Inter_CheckPerform( Inter_Check_t * p, Cnf_Dat_t * pCnfInt, int nTimeNewOut 
             assert( RetValue );
         }
         // add equality clauses for the flop variables
-        Aig_ManForEachPi( pCnfInt->pMan, pObj, i )
+        Aig_ManForEachCi( pCnfInt->pMan, pObj, i )
         {
             pObj2 = f ? Aig_ManPo(p->pFrames, i + (f-1) * nRegs) : Aig_ManPi(p->pFrames, i);
             Inter_CheckAddEqual( p, pCnfInt->pVarNums[pObj->Id], p->pCnf->pVarNums[pObj2->Id] );

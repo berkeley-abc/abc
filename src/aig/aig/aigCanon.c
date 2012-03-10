@@ -579,7 +579,7 @@ void Aig_RManSaveOne( Aig_RMan_t * p, unsigned * pTruth, int nVars )
             Bdc_FunCopyHop(Bdc_FuncFanin1(pFunc)) ) );
     }
     pTerm = Bdc_FunCopyHop( Bdc_ManRoot(p->pBidec) );
-    pTerm = Aig_ObjCreatePo( p->pAig, pTerm );
+    pTerm = Aig_ObjCreateCo( p->pAig, pTerm );
 //    assert( pTerm->fPhase == 0 );
 }
 

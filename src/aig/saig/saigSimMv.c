@@ -828,7 +828,7 @@ Vec_Ptr_t * Saig_MvManDeriveMap( Saig_MvMan_t * p, int fVerbose )
     int Counter1 = 0, Counter2 = 0;
     // prepare CI map
     vMap = Vec_PtrAlloc( Aig_ManPiNum(p->pAig) );
-    Aig_ManForEachPi( p->pAig, pObj, i )
+    Aig_ManForEachCi( p->pAig, pObj, i )
         Vec_PtrPush( vMap, pObj );
     // detect constant flops
     vConst0 = Saig_MvManFindConstBinaryFlops( p, &vBinValued );

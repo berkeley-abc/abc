@@ -206,19 +206,19 @@ Aig_Man_t * Saig_ManFramesNonInitial( Aig_Man_t * pAig, int nFrames )
     Aig_ManConst1(pAig)->pData = Aig_ManConst1( pFrames );
     // create variables for register outputs
     Saig_ManForEachLo( pAig, pObj, i )
-        pObj->pData = Aig_ObjCreatePi( pFrames );
+        pObj->pData = Aig_ObjCreateCi( pFrames );
     // add timeframes
     for ( f = 0; f < nFrames; f++ )
     {
         // create PI nodes for this frame
         Saig_ManForEachPi( pAig, pObj, i )
-            pObj->pData = Aig_ObjCreatePi( pFrames );
+            pObj->pData = Aig_ObjCreateCi( pFrames );
         // add internal nodes of this frame
         Aig_ManForEachNode( pAig, pObj, i )
             pObj->pData = Aig_And( pFrames, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
         // create POs for this frame
         Saig_ManForEachPo( pAig, pObj, i )
-            pObj->pData = Aig_ObjCreatePo( pFrames, Aig_ObjChild0Copy(pObj) );
+            pObj->pData = Aig_ObjCreateCo( pFrames, Aig_ObjChild0Copy(pObj) );
         // save register inputs
         Saig_ManForEachLi( pAig, pObj, i )
             pObj->pData = Aig_ObjChild0Copy(pObj);
@@ -237,7 +237,7 @@ Aig_Man_t * Saig_ManFramesNonInitial( Aig_Man_t * pAig, int nFrames )
     }
     // remember register outputs
     Saig_ManForEachLiLo( pAig, pObjLi, pObjLo, i )
-        Aig_ObjCreatePo( pFrames, (Aig_Obj_t *)pObjLi->pData );
+        Aig_ObjCreateCo( pFrames, (Aig_Obj_t *)pObjLi->pData );
     Aig_ManCleanup( pFrames );
     return pFrames;
 }
@@ -278,11 +278,11 @@ Aig_Man_t * Saig_ManFramesInitialMapped( Aig_Man_t * pAig, int nFrames, int nFra
         // create PIs first
         for ( f = 0; f < nFramesMax; f++ )
             Saig_ManForEachPi( pAig, pObj, i )
-                Aig_ObjCreatePi( pFrames );
+                Aig_ObjCreateCi( pFrames );
         // create registers second
         Saig_ManForEachLo( pAig, pObj, i )
         {
-            pObj->pData = Aig_ObjCreatePi( pFrames );
+            pObj->pData = Aig_ObjCreateCi( pFrames );
             Saig_ManSetMap1( pAig, pObj, 0, Aig_Regular((Aig_Obj_t *)pObj->pData) );
         }
     }
@@ -297,7 +297,7 @@ Aig_Man_t * Saig_ManFramesInitialMapped( Aig_Man_t * pAig, int nFrames, int nFra
         Saig_ManForEachPi( pAig, pObj, i )
         {
             if ( fInit )
-                pObj->pData = Aig_ObjCreatePi( pFrames );
+                pObj->pData = Aig_ObjCreateCi( pFrames );
             else
                 pObj->pData = Aig_ManPi( pFrames, f * Saig_ManPiNum(pAig) + i );
             Saig_ManSetMap1( pAig, pObj, f, Aig_Regular((Aig_Obj_t *)pObj->pData) );
@@ -331,7 +331,7 @@ Aig_Man_t * Saig_ManFramesInitialMapped( Aig_Man_t * pAig, int nFrames, int nFra
         // create POs for this frame
         Saig_ManForEachPo( pAig, pObj, i )
         {
-            pObj->pData = Aig_ObjCreatePo( pFrames, Aig_ObjChild0Copy(pObj) );
+            pObj->pData = Aig_ObjCreateCo( pFrames, Aig_ObjChild0Copy(pObj) );
             Saig_ManSetMap1( pAig, pObj, f, Aig_Regular((Aig_Obj_t *)pObj->pData) );
         }
         // save register inputs
@@ -355,7 +355,7 @@ Aig_Man_t * Saig_ManFramesInitialMapped( Aig_Man_t * pAig, int nFrames, int nFra
     {
         // create registers
         Saig_ManForEachLiLo( pAig, pObjLi, pObjLo, i )
-            Aig_ObjCreatePo( pFrames, (Aig_Obj_t *)pObjLi->pData );
+            Aig_ObjCreateCo( pFrames, (Aig_Obj_t *)pObjLi->pData );
         // set register number
         Aig_ManSetRegNum( pFrames, pAig->nRegs );
     }

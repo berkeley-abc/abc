@@ -130,7 +130,7 @@ void Saig_ManDumpBlif( Aig_Man_t * p, char * pFileName )
         fprintf( pFile, "\n%d%d 1\n", !Aig_ObjFaninC0(pObj), !Aig_ObjFaninC1(pObj) );
     }
     // write the POs
-    Aig_ManForEachPo( p, pObj, i )
+    Aig_ManForEachCo( p, pObj, i )
     {
         fprintf( pFile, ".names" );
         fprintf( pFile, " %s", Saig_ObjName(p, Aig_ObjFanin0(pObj)) );
@@ -299,7 +299,7 @@ Aig_Man_t * Saig_ManReadBlif( char * pFileName )
     }
     // create PIs and LOs
     for ( i = 0; i < nPis + nRegs; i++ )
-        Aig_ObjCreatePi( p );
+        Aig_ObjCreateCi( p );
     Aig_ManSetRegNum( p, nRegs );
     // create nodes
     for ( i = 0; strcmp( pToken, ".names" ) == 0; i++ )
@@ -334,7 +334,7 @@ Aig_Man_t * Saig_ManReadBlif( char * pFileName )
             pToken = Saig_ManReadToken( pFile );
             if ( pToken == NULL || strcmp( pToken, "1" ) ) 
                 { printf( "Saig_ManReadBlif(): Error 13.\n" ); Aig_ManStop(p); return NULL; }
-            Aig_ObjCreatePo( p, pFanin0 );
+            Aig_ObjCreateCo( p, pFanin0 );
             // read next
             pToken = Saig_ManReadToken( pFile );
             if ( pToken == NULL ) 
@@ -385,7 +385,7 @@ Aig_Man_t * Saig_ManReadBlif( char * pFileName )
     if ( nPos + nRegs != Aig_ManPoNum(p) ) 
         { printf( "Saig_ManReadBlif(): Error 20.\n" ); Aig_ManStop(p); return NULL; }
     // add non-node objects to the mapping
-    Aig_ManForEachPi( p, pNode, i )
+    Aig_ManForEachCi( p, pNode, i )
         pNum2Id[pNode->Id] = pNode->Id;
 //    ABC_FREE( pNum2Id );
     p->pData = pNum2Id;

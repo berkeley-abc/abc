@@ -402,9 +402,9 @@ Aig_Man_t * Fra_OneHotCreateExdc( Fra_Man_t * p, Vec_Int_t * vOneHots )
     int i, Out1, Out2, nTruePis;
     pNew = Aig_ManStart( Vec_IntSize(vOneHots)/2 );
 //    for ( i = 0; i < Aig_ManRegNum(p->pManAig); i++ )
-//        Aig_ObjCreatePi(pNew);
-    Aig_ManForEachPi( p->pManAig, pObj, i )
-        Aig_ObjCreatePi(pNew);
+//        Aig_ObjCreateCi(pNew);
+    Aig_ManForEachCi( p->pManAig, pObj, i )
+        Aig_ObjCreateCi(pNew);
     nTruePis = Aig_ManPiNum(p->pManAig) - Aig_ManRegNum(p->pManAig);
     for ( i = 0; i < Vec_IntSize(vOneHots); i += 2 )
     {
@@ -417,7 +417,7 @@ Aig_Man_t * Fra_OneHotCreateExdc( Fra_Man_t * p, Vec_Int_t * vOneHots )
         pObj1 = Aig_NotCond( pObj1, Fra_LitSign(Out1) );
         pObj2 = Aig_NotCond( pObj2, Fra_LitSign(Out2) );
         pObj  = Aig_Or( pNew, pObj1, pObj2 );
-        Aig_ObjCreatePo( pNew, pObj );
+        Aig_ObjCreateCo( pNew, pObj );
     }
     Aig_ManCleanup(pNew);
 //    printf( "Created AIG with %d nodes and %d outputs.\n", Aig_ManNodeNum(pNew), Aig_ManPoNum(pNew) );

@@ -117,7 +117,7 @@ void Ssw_SmlSavePatternAigPhase( Ssw_Man_t * p, int f )
     Aig_Obj_t * pObj;
     int i;
     memset( p->pPatWords, 0, sizeof(unsigned) * p->nPatWords );
-    Aig_ManForEachPi( p->pAig, pObj, i )
+    Aig_ManForEachCi( p->pAig, pObj, i )
         if ( Aig_ObjPhaseReal( Ssw_ObjFrame(p, pObj, f) ) )
             Abc_InfoSetBit( p->pPatWords, i );
 }
@@ -138,7 +138,7 @@ void Ssw_SmlSavePatternAig( Ssw_Man_t * p, int f )
     Aig_Obj_t * pObj;
     int i;
     memset( p->pPatWords, 0, sizeof(unsigned) * p->nPatWords );
-    Aig_ManForEachPi( p->pAig, pObj, i )
+    Aig_ManForEachCi( p->pAig, pObj, i )
         if ( Ssw_ManGetSatVarValue( p, pObj, f ) )
             Abc_InfoSetBit( p->pPatWords, i );
 }
@@ -284,7 +284,7 @@ clk = clock();
         // map constants and PIs
         Ssw_ObjSetFrame( p, Aig_ManConst1(p->pAig), f, Aig_ManConst1(p->pFrames) );
         Saig_ManForEachPi( p->pAig, pObj, i )
-            Ssw_ObjSetFrame( p, pObj, f, Aig_ObjCreatePi(p->pFrames) );
+            Ssw_ObjSetFrame( p, pObj, f, Aig_ObjCreateCi(p->pFrames) );
         // sweep internal nodes
         Aig_ManForEachNode( p->pAig, pObj, i )
         {
@@ -298,7 +298,7 @@ clk = clock();
         if ( f == p->pPars->nFramesK - 1 )
             break;
         // transfer latch input to the latch outputs 
-        Aig_ManForEachPo( p->pAig, pObj, i )
+        Aig_ManForEachCo( p->pAig, pObj, i )
             Ssw_ObjSetFrame( p, pObj, f, Ssw_ObjChild0Fra(p, pObj, f) );
         // build logic cones for register outputs
         Saig_ManForEachLiLo( p->pAig, pObjLi, pObjLo, i )
@@ -393,7 +393,7 @@ clk = clock();
     f = p->pPars->nFramesK;
     Ssw_ObjSetFrame( p, Aig_ManConst1(p->pAig), f, Aig_ManConst1(p->pFrames) );
     Saig_ManForEachPi( p->pAig, pObj, i )
-        Ssw_ObjSetFrame( p, pObj, f, Aig_ObjCreatePi(p->pFrames) );
+        Ssw_ObjSetFrame( p, pObj, f, Aig_ObjCreateCi(p->pFrames) );
 p->timeReduce += clock() - clk;
 
     // sweep internal nodes

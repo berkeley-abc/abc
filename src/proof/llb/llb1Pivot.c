@@ -154,7 +154,7 @@ void Llb_ManLabelLiCones( Aig_Man_t * p )
     int i;
     // mark const and PIs
     Aig_ManConst1(p)->fMarkB = 1;
-    Aig_ManForEachPi( p, pObj, i )
+    Aig_ManForEachCi( p, pObj, i )
         pObj->fMarkB = 1;
     // mark cones
     Saig_ManForEachLi( p, pObj, i )
@@ -223,7 +223,7 @@ Vec_Int_t * Llb_ManMarkPivotNodes( Aig_Man_t * p, int fUseInternal )
     Aig_Obj_t * pObj;
     int i;
     // mark inputs/outputs
-    Aig_ManForEachPi( p, pObj, i )
+    Aig_ManForEachCi( p, pObj, i )
         pObj->fMarkA = 1;
     Saig_ManForEachLi( p, pObj, i )
         pObj->fMarkA = 1;
@@ -235,7 +235,7 @@ Vec_Int_t * Llb_ManMarkPivotNodes( Aig_Man_t * p, int fUseInternal )
     // assign variable numbers
     Aig_ManConst1(p)->fMarkA = 0;
     vVar2Obj = Vec_IntAlloc( 100 );
-    Aig_ManForEachPi( p, pObj, i )
+    Aig_ManForEachCi( p, pObj, i )
         Vec_IntPush( vVar2Obj, Aig_ObjId(pObj) );
     Aig_ManForEachNode( p, pObj, i )
         if ( pObj->fMarkA )

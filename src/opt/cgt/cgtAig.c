@@ -223,13 +223,13 @@ Aig_Obj_t * Cgt_ManConstructCareCondition( Cgt_Man_t * p, Aig_Man_t * pNew, Aig_
         assert( Aig_ObjIsNode(pObj) );
         if ( Saig_ObjIsPi(p->pAig, Aig_ObjFanin0(pObj)) && Vec_PtrEntry(vCopy0, Aig_ObjFaninId0(pObj)) == NULL )
         {
-            pTemp = Aig_ObjCreatePi( pNew );
+            pTemp = Aig_ObjCreateCi( pNew );
             Vec_PtrWriteEntry( vCopy0, Aig_ObjFaninId0(pObj), pTemp );
             Vec_PtrWriteEntry( vCopy1, Aig_ObjFaninId0(pObj), pTemp );
         }
         if ( Saig_ObjIsPi(p->pAig, Aig_ObjFanin1(pObj)) && Vec_PtrEntry(vCopy0, Aig_ObjFaninId1(pObj)) == NULL )
         {
-            pTemp = Aig_ObjCreatePi( pNew );
+            pTemp = Aig_ObjCreateCi( pNew );
             Vec_PtrWriteEntry( vCopy0, Aig_ObjFaninId1(pObj), pTemp );
             Vec_PtrWriteEntry( vCopy1, Aig_ObjFaninId1(pObj), pTemp );
         }
@@ -274,12 +274,12 @@ Aig_Man_t * Cgt_ManDeriveAigForGating( Cgt_Man_t * p )
     pNew->pName = Abc_UtilStrsav( "CG_miter" );
     // build the first frame
     Aig_ManConst1(p->pAig)->pData = Aig_ManConst1(pNew);
-    Aig_ManForEachPi( p->pAig, pObj, i )
-        pObj->pData = Aig_ObjCreatePi( pNew );
+    Aig_ManForEachCi( p->pAig, pObj, i )
+        pObj->pData = Aig_ObjCreateCi( pNew );
     Aig_ManForEachNode( p->pAig, pObj, i )
         pObj->pData = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
 //    Saig_ManForEachPo( p->pAig, pObj, i )
-//        pObj->pData = Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
+//        pObj->pData = Aig_ObjCreateCo( pNew, Aig_ObjChild0Copy(pObj) );
     if ( p->pPars->nOdcMax > 0 )
     {
         // create storage for observability conditions
@@ -305,7 +305,7 @@ Aig_Man_t * Cgt_ManDeriveAigForGating( Cgt_Man_t * p )
             // compute the miter
             pMiter = Aig_Exor( pNew, (Aig_Obj_t *)pObjLo->pData, Aig_ObjChild0Copy(pObjLi) );
             pMiter = Aig_And( pNew, pMiter, pCare );
-            pObjLi->pData = Aig_ObjCreatePo( pNew, pMiter );
+            pObjLi->pData = Aig_ObjCreateCo( pNew, pMiter );
         }
         Vec_PtrFree( vCopy0 );
         Vec_PtrFree( vCopy1 );
@@ -316,7 +316,7 @@ Aig_Man_t * Cgt_ManDeriveAigForGating( Cgt_Man_t * p )
         Saig_ManForEachLiLo( p->pAig, pObjLi, pObjLo, i )
         {
             pMiter = Aig_Exor( pNew, (Aig_Obj_t *)pObjLo->pData, Aig_ObjChild0Copy(pObjLi) );
-            pObjLi->pData = Aig_ObjCreatePo( pNew, pMiter );
+            pObjLi->pData = Aig_ObjCreateCo( pNew, pMiter );
         }
     }
     Aig_ManCleanup( pNew );
@@ -395,7 +395,7 @@ void Cgt_ManConstructCare( Aig_Man_t * pNew, Aig_Man_t * pCare, Vec_Vec_t * vSup
             if ( pObjAig == NULL )
                 continue;
             pObjAig = Aig_NotCond( pObjAig, Aig_ObjFaninC0(pPo) );
-            Aig_ObjCreatePo( pNew, pObjAig );
+            Aig_ObjCreateCo( pNew, pObjAig );
         }
     }
 }
@@ -418,7 +418,7 @@ Aig_Obj_t * Cgt_ManDupPartition_rec( Aig_Man_t * pNew, Aig_Man_t * pAig, Aig_Obj
     Aig_ObjSetTravIdCurrent(pAig, pObj);
     if ( Aig_ObjIsPi(pObj) )
     {
-        pObj->pData = Aig_ObjCreatePi( pNew );
+        pObj->pData = Aig_ObjCreateCi( pNew );
         Vec_PtrPush( vLeaves, pObj );
         return (Aig_Obj_t *)pObj->pData;
     }
@@ -473,7 +473,7 @@ Aig_Man_t * Cgt_ManDupPartition( Aig_Man_t * pFrame, int nVarsMin, int nFlopsMin
         Cgt_ManConstructCare( pNew, pCare, vSuppsInv, vLeaves );
     // create POs
     Vec_PtrForEachEntry( Aig_Obj_t *, vPos, pObj, i )
-        pObj->pData = (Aig_Obj_t *)Aig_ObjCreatePo( pNew, (Aig_Obj_t *)Vec_PtrEntry(vRoots, i) );
+        pObj->pData = (Aig_Obj_t *)Aig_ObjCreateCo( pNew, (Aig_Obj_t *)Vec_PtrEntry(vRoots, i) );
     if ( pnOutputs != NULL )
         *pnOutputs = Vec_PtrSize( vPos );
     Vec_PtrFree( vRoots );
@@ -542,8 +542,8 @@ Aig_Man_t * Cgt_ManDeriveGatedAig( Aig_Man_t * pAig, Vec_Vec_t * vGates, int fRe
     pNew->pName = Abc_UtilStrsav( pAig->pName );
     pNew->pSpec = Abc_UtilStrsav( pAig->pSpec );
     Aig_ManConst1(pAig)->pData = Aig_ManConst1(pNew);
-    Aig_ManForEachPi( pAig, pObj, i )
-        pObj->pData = Aig_ObjCreatePi( pNew );
+    Aig_ManForEachCi( pAig, pObj, i )
+        pObj->pData = Aig_ObjCreateCi( pNew );
     if ( fReduce )
     {
         Aig_ManForEachNode( pAig, pObj, i )
@@ -570,7 +570,7 @@ Aig_Man_t * Cgt_ManDeriveGatedAig( Aig_Man_t * pAig, Vec_Vec_t * vGates, int fRe
     if ( pnUsedNodes != NULL )
         *pnUsedNodes = Aig_ManNodeNum(pNew);
     Saig_ManForEachPo( pAig, pObj, i )
-        pObj->pData = Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
+        pObj->pData = Aig_ObjCreateCo( pNew, Aig_ObjChild0Copy(pObj) );
     Saig_ManForEachLiLo( pAig, pObjLi, pObjLo, i )
     {
         vOne = Vec_VecEntry( vGates, i );
@@ -582,7 +582,7 @@ Aig_Man_t * Cgt_ManDeriveGatedAig( Aig_Man_t * pAig, Vec_Vec_t * vGates, int fRe
             pGateNew = Cgt_ManBuildClockGate( pNew, vOne );
             pObjNew = Aig_Mux( pNew, pGateNew, (Aig_Obj_t *)pObjLo->pData, Aig_ObjChild0Copy(pObjLi) );
         }
-        pObjLi->pData = Aig_ObjCreatePo( pNew, pObjNew );
+        pObjLi->pData = Aig_ObjCreateCo( pNew, pObjNew );
     }
     Aig_ManCleanup( pNew );
     Aig_ManSetRegNum( pNew, Aig_ManRegNum(pAig) );

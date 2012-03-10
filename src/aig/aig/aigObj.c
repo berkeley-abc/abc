@@ -42,7 +42,7 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Obj_t * Aig_ObjCreatePi( Aig_Man_t * p )
+Aig_Obj_t * Aig_ObjCreateCi( Aig_Man_t * p )
 {
     Aig_Obj_t * pObj;
     pObj = Aig_ManFetchMemory( p );
@@ -52,7 +52,7 @@ Aig_Obj_t * Aig_ObjCreatePi( Aig_Man_t * p )
     if ( p->pManHaig && p->fCreatePios )
     {
         p->pManHaig->nRegs++;
-        pObj->pHaig = Aig_ObjCreatePi( p->pManHaig );
+        pObj->pHaig = Aig_ObjCreateCi( p->pManHaig );
 //        printf( "Creating PI HAIG node %d equivalent to PI %d.\n", pObj->pHaig->Id, pObj->Id );
     }
     return pObj;
@@ -69,7 +69,7 @@ Aig_Obj_t * Aig_ObjCreatePi( Aig_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Obj_t * Aig_ObjCreatePo( Aig_Man_t * p, Aig_Obj_t * pDriver )
+Aig_Obj_t * Aig_ObjCreateCo( Aig_Man_t * p, Aig_Obj_t * pDriver )
 {
     Aig_Obj_t * pObj;
     pObj = Aig_ManFetchMemory( p );
@@ -79,7 +79,7 @@ Aig_Obj_t * Aig_ObjCreatePo( Aig_Man_t * p, Aig_Obj_t * pDriver )
     p->nObjs[AIG_OBJ_PO]++;
     if ( p->pManHaig && p->fCreatePios )
     {
-        pObj->pHaig = Aig_ObjCreatePo( p->pManHaig, Aig_ObjHaig( pDriver ) );
+        pObj->pHaig = Aig_ObjCreateCo( p->pManHaig, Aig_ObjHaig( pDriver ) );
 //        printf( "Creating PO HAIG node %d equivalent to PO %d.\n", pObj->pHaig->Id, pObj->Id );
     }
     return pObj;

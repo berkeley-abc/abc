@@ -128,7 +128,7 @@ int Ssw_ManProfileConstraints( Aig_Man_t * p, int nWords, int nFrames, int fVerb
         for ( w = 0; w < nWords; w++ )
             pInfoMask[w] = pInfoMask2[w] = 0;
         // simulate the primary outputs
-        Aig_ManForEachPo( p, pObj, i )
+        Aig_ManForEachCo( p, pObj, i )
         {
             pInfo  = (unsigned *)Vec_PtrEntry( vInfo, Aig_ObjId(pObj) );
             pInfo0 = (unsigned *)Vec_PtrEntry( vInfo, Aig_ObjFaninId0(pObj) );
@@ -252,10 +252,10 @@ Aig_Man_t * Saig_ManCreateIndMiter( Aig_Man_t * pAig, Vec_Vec_t * vCands )
     // create PI nodes for the frames
     for ( f = 0; f < nFrames; f++ )
         Aig_ManForEachPiSeq( pAig, pObj, i )
-            Aig_ObjSetFrames( pObjMap, nFrames, pObj, f, Aig_ObjCreatePi(pFrames) );
+            Aig_ObjSetFrames( pObjMap, nFrames, pObj, f, Aig_ObjCreateCi(pFrames) );
     // set initial state for the latches
     Aig_ManForEachLoSeq( pAig, pObj, i )
-        Aig_ObjSetFrames( pObjMap, nFrames, pObj, 0, Aig_ObjCreatePi(pFrames) );
+        Aig_ObjSetFrames( pObjMap, nFrames, pObj, 0, Aig_ObjCreateCi(pFrames) );
 
     // add timeframes
     for ( f = 0; f < nFrames; f++ )
@@ -286,7 +286,7 @@ Aig_Man_t * Saig_ManCreateIndMiter( Aig_Man_t * pAig, Vec_Vec_t * vCands )
             Aig_Obj_t * pFan0  = Aig_NotCond( pNode0,  Aig_IsComplement(pObj) );
             Aig_Obj_t * pFan1  = Aig_NotCond( pNode1, !Aig_IsComplement(pObj) );
             Aig_Obj_t * pMiter = Aig_And( pFrames, pFan0, pFan1 );
-            Aig_ObjCreatePo( pFrames, pMiter );
+            Aig_ObjCreateCo( pFrames, pMiter );
         }
     }
     Aig_ManCleanup( pFrames );
@@ -445,10 +445,10 @@ Aig_Man_t * Saig_ManUnrollCOI( Aig_Man_t * pAig, int nFrames )
     // create PI nodes for the frames
     for ( f = 0; f < nFrames; f++ )
         Aig_ManForEachPiSeq( pAig, pObj, i )
-            Aig_ObjSetFrames( pObjMap, nFrames, pObj, f, Aig_ObjCreatePi(pFrames) );
+            Aig_ObjSetFrames( pObjMap, nFrames, pObj, f, Aig_ObjCreateCi(pFrames) );
     // set initial state for the latches
     Aig_ManForEachLoSeq( pAig, pObj, i )
-        Aig_ObjSetFrames( pObjMap, nFrames, pObj, 0, Aig_ObjCreatePi(pFrames) );
+        Aig_ObjSetFrames( pObjMap, nFrames, pObj, 0, Aig_ObjCreateCi(pFrames) );
     // add timeframes
     for ( f = 0; f < nFrames; f++ )
     {
@@ -470,7 +470,7 @@ Aig_Man_t * Saig_ManUnrollCOI( Aig_Man_t * pAig, int nFrames )
     {
         Aig_ManForEachPoSeq( pAig, pObj, i )
         {
-            pObjNew = Aig_ObjCreatePo( pFrames, Aig_ObjChild0Frames(pObjMap,nFrames,pObj,f) );
+            pObjNew = Aig_ObjCreateCo( pFrames, Aig_ObjChild0Frames(pObjMap,nFrames,pObj,f) );
             Aig_ObjSetFrames( pObjMap, nFrames, pObj, f, pObjNew );
         }
     }
@@ -894,7 +894,7 @@ Aig_Man_t * Saig_ManDupUnfoldConstrsFunc( Aig_Man_t * pAig, int nFrames, int nCo
     pNew->nConstrs = pAig->nConstrs + Vec_VecSizeSize(vCands);
     // add normal POs
     Saig_ManForEachPo( pAig, pObj, i )
-        Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
+        Aig_ObjCreateCo( pNew, Aig_ObjChild0Copy(pObj) );
     // create constraint outputs
     vNewFlops = Vec_PtrAlloc( 100 );
     Vec_VecForEachLevel( vCands, vNodes, i )
@@ -903,13 +903,13 @@ Aig_Man_t * Saig_ManDupUnfoldConstrsFunc( Aig_Man_t * pAig, int nFrames, int nCo
         {
             Vec_PtrPush( vNewFlops, Aig_ObjRealCopy(pObj) );
             for ( j = 0; j < i; j++ )
-                Vec_PtrPush( vNewFlops, Aig_ObjCreatePi(pNew) );
-            Aig_ObjCreatePo( pNew, (Aig_Obj_t *)Vec_PtrPop(vNewFlops) );
+                Vec_PtrPush( vNewFlops, Aig_ObjCreateCi(pNew) );
+            Aig_ObjCreateCo( pNew, (Aig_Obj_t *)Vec_PtrPop(vNewFlops) );
         }
     }
     // add latch outputs
     Saig_ManForEachLi( pAig, pObj, i )
-        Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
+        Aig_ObjCreateCo( pNew, Aig_ObjChild0Copy(pObj) );
     // add new latch outputs
     nNewFlops = 0;
     Vec_VecForEachLevel( vCands, vNodes, i )
@@ -917,7 +917,7 @@ Aig_Man_t * Saig_ManDupUnfoldConstrsFunc( Aig_Man_t * pAig, int nFrames, int nCo
         Vec_PtrForEachEntry( Aig_Obj_t *, vNodes, pObj, k )
         {
             for ( j = 0; j < i; j++ )
-                Aig_ObjCreatePo( pNew, (Aig_Obj_t *)Vec_PtrEntry(vNewFlops, nNewFlops++) );
+                Aig_ObjCreateCo( pNew, (Aig_Obj_t *)Vec_PtrEntry(vNewFlops, nNewFlops++) );
         }
     }
     assert( nNewFlops == Vec_PtrSize(vNewFlops) );
@@ -954,8 +954,8 @@ Aig_Man_t * Saig_ManDupFoldConstrsFunc( Aig_Man_t * pAig, int fCompl, int fVerbo
     // map the constant node
     Aig_ManConst1(pAig)->pData = Aig_ManConst1( pAigNew );
     // create variables for PIs
-    Aig_ManForEachPi( pAig, pObj, i )
-        pObj->pData = Aig_ObjCreatePi( pAigNew );
+    Aig_ManForEachCi( pAig, pObj, i )
+        pObj->pData = Aig_ObjCreateCi( pAigNew );
     // add internal nodes of this frame
     Aig_ManForEachNode( pAig, pObj, i )
         pObj->pData = Aig_And( pAigNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
@@ -969,7 +969,7 @@ Aig_Man_t * Saig_ManDupFoldConstrsFunc( Aig_Man_t * pAig, int fCompl, int fVerbo
         pMiter = Aig_Or( pAigNew, pMiter, Aig_NotCond( Aig_ObjChild0Copy(pObj), fCompl ) );
     }
     // create additional flop
-    pFlopOut = Aig_ObjCreatePi( pAigNew );
+    pFlopOut = Aig_ObjCreateCi( pAigNew );
     pFlopIn  = Aig_Or( pAigNew, pMiter, pFlopOut );
 
     // create primary output
@@ -978,14 +978,14 @@ Aig_Man_t * Saig_ManDupFoldConstrsFunc( Aig_Man_t * pAig, int fCompl, int fVerbo
         if ( i >= Saig_ManPoNum(pAig)-Aig_ManConstrNum(pAig) )
             continue;
         pMiter = Aig_And( pAigNew, Aig_ObjChild0Copy(pObj), Aig_Not(pFlopIn) );
-        Aig_ObjCreatePo( pAigNew, pMiter );
+        Aig_ObjCreateCo( pAigNew, pMiter );
     }
 
     // transfer to register outputs
     Saig_ManForEachLi( pAig, pObj, i )
-        Aig_ObjCreatePo( pAigNew, Aig_ObjChild0Copy(pObj) );
+        Aig_ObjCreateCo( pAigNew, Aig_ObjChild0Copy(pObj) );
     // create additional flop 
-    Aig_ObjCreatePo( pAigNew, pFlopIn );
+    Aig_ObjCreateCo( pAigNew, pFlopIn );
 
     Aig_ManSetRegNum( pAigNew, Aig_ManRegNum(pAig)+1 );
     Aig_ManCleanup( pAigNew );

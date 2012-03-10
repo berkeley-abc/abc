@@ -153,12 +153,12 @@ Vec_Ptr_t * Aig_ManDfs( Aig_Man_t * p, int fNodesOnly )
     vNodes = Vec_PtrAlloc( Aig_ManObjNumMax(p) );
     // mark PIs if they should not be collected
     if ( fNodesOnly )
-        Aig_ManForEachPi( p, pObj, i )
+        Aig_ManForEachCi( p, pObj, i )
             Aig_ObjSetTravIdCurrent( p, pObj );
     else
         Vec_PtrPush( vNodes, Aig_ManConst1(p) );
     // collect nodes reachable in the DFS order
-    Aig_ManForEachPo( p, pObj, i )
+    Aig_ManForEachCo( p, pObj, i )
         Aig_ManDfs_rec( p, fNodesOnly? Aig_ObjFanin0(pObj): pObj, vNodes );
     if ( fNodesOnly )
         assert( Vec_PtrSize(vNodes) == Aig_ManNodeNum(p) );
@@ -222,9 +222,9 @@ Vec_Ptr_t * Aig_ManDfsAll( Aig_Man_t * p )
     Aig_ObjSetTravIdCurrent( p, Aig_ManConst1(p) );
     Vec_PtrPush( vNodes, Aig_ManConst1(p) );
     // collect nodes reachable in the DFS order
-    Aig_ManForEachPo( p, pObj, i )
+    Aig_ManForEachCo( p, pObj, i )
         Aig_ManDfsAll_rec( p, pObj, vNodes );
-    Aig_ManForEachPi( p, pObj, i )
+    Aig_ManForEachCi( p, pObj, i )
         if ( !Aig_ObjIsTravIdCurrent(p, pObj) )
             Vec_PtrPush( vNodes, pObj );
     assert( Vec_PtrSize(vNodes) == Aig_ManObjNum(p) );
@@ -279,12 +279,12 @@ Vec_Ptr_t * Aig_ManDfsPreorder( Aig_Man_t * p, int fNodesOnly )
     vNodes = Vec_PtrAlloc( Aig_ManObjNumMax(p) );
     // mark PIs if they should not be collected
     if ( fNodesOnly )
-        Aig_ManForEachPi( p, pObj, i )
+        Aig_ManForEachCi( p, pObj, i )
             Aig_ObjSetTravIdCurrent( p, pObj );
     else
         Vec_PtrPush( vNodes, Aig_ManConst1(p) );
     // collect nodes reachable in the DFS order
-    Aig_ManForEachPo( p, pObj, i )
+    Aig_ManForEachCo( p, pObj, i )
         Aig_ManDfsPreorder_rec( p, fNodesOnly? Aig_ObjFanin0(pObj): pObj, vNodes );
     if ( fNodesOnly )
         assert( Vec_PtrSize(vNodes) == Aig_ManNodeNum(p) );
@@ -338,7 +338,7 @@ Vec_Ptr_t * Aig_ManDfsNodes( Aig_Man_t * p, Aig_Obj_t ** ppNodes, int nNodes )
     Aig_ManIncrementTravId( p );
     // mark constant and PIs
     Aig_ObjSetTravIdCurrent( p, Aig_ManConst1(p) );
-//    Aig_ManForEachPi( p, pObj, i )
+//    Aig_ManForEachCi( p, pObj, i )
 //        Aig_ObjSetTravIdCurrent( p, pObj );
     // go through the nodes
     vNodes = Vec_PtrAlloc( Aig_ManNodeNum(p) );
@@ -397,11 +397,11 @@ Vec_Ptr_t * Aig_ManDfsChoices( Aig_Man_t * p )
     Aig_ManIncrementTravId( p );
     // mark constant and PIs
     Aig_ObjSetTravIdCurrent( p, Aig_ManConst1(p) );
-    Aig_ManForEachPi( p, pObj, i )
+    Aig_ManForEachCi( p, pObj, i )
         Aig_ObjSetTravIdCurrent( p, pObj );
     // go through the nodes
     vNodes = Vec_PtrAlloc( Aig_ManNodeNum(p) );
-    Aig_ManForEachPo( p, pObj, i )
+    Aig_ManForEachCo( p, pObj, i )
         Aig_ManDfsChoices_rec( p, Aig_ObjFanin0(pObj), vNodes );
     return vNodes;
 }
@@ -450,7 +450,7 @@ Vec_Ptr_t * Aig_ManDfsReverse( Aig_Man_t * p )
     int i;
     Aig_ManIncrementTravId( p );
     // mark POs
-    Aig_ManForEachPo( p, pObj, i )
+    Aig_ManForEachCo( p, pObj, i )
         Aig_ObjSetTravIdCurrent( p, pObj );
     // go through the nodes
     vNodes = Vec_PtrAlloc( Aig_ManNodeNum(p) );
@@ -476,7 +476,7 @@ int Aig_ManLevelNum( Aig_Man_t * p )
     Aig_Obj_t * pObj;
     int i, LevelsMax;
     LevelsMax = 0;
-    Aig_ManForEachPo( p, pObj, i )
+    Aig_ManForEachCo( p, pObj, i )
         LevelsMax = Abc_MaxInt( LevelsMax, (int)Aig_ObjFanin0(pObj)->Level );
     return LevelsMax;
 }
@@ -574,14 +574,14 @@ int Aig_ManChoiceLevel( Aig_Man_t * p )
         Aig_ObjSetLevel( pObj, 0 );
     Aig_ManSetPioNumbers( p );
     Aig_ManIncrementTravId( p );
-    Aig_ManForEachPo( p, pObj, i )
+    Aig_ManForEachCo( p, pObj, i )
     {
         Aig_ManChoiceLevel_rec( p, pObj );
         if ( LevelMax < Aig_ObjLevel(pObj) )
             LevelMax = Aig_ObjLevel(pObj);
     }
     // account for dangling boxes
-    Aig_ManForEachPi( p, pObj, i )
+    Aig_ManForEachCi( p, pObj, i )
     {
         Aig_ManChoiceLevel_rec( p, pObj );
         if ( LevelMax < Aig_ObjLevel(pObj) )
@@ -898,7 +898,7 @@ Aig_Obj_t * Aig_Transfer( Aig_Man_t * pSour, Aig_Man_t * pDest, Aig_Obj_t * pRoo
     if ( Aig_ObjIsConst1( Aig_Regular(pRoot) ) )
         return Aig_NotCond( Aig_ManConst1(pDest), Aig_IsComplement(pRoot) );
     // set the PI mapping
-    Aig_ManForEachPi( pSour, pObj, i )
+    Aig_ManForEachCi( pSour, pObj, i )
     {
         if ( i == nVars )
            break;

@@ -89,7 +89,7 @@ int Aig_ManPackCountCares( Aig_ManPack_t * p )
 {
     Aig_Obj_t * pObj;
     int i, Total = 0;
-    Aig_ManForEachPi( p->pAig, pObj, i )
+    Aig_ManForEachCi( p->pAig, pObj, i )
         Total += Aig_Word6CountOnes( Vec_WrdEntry(p->vPiCare, i) );
     return Total;
 }
@@ -110,7 +110,7 @@ void Aig_ManPackPrintCare( Aig_ManPack_t * p )
     Aig_Obj_t * pObj;
     word Sign;
     int i;
-    Aig_ManForEachPi( p->pAig, pObj, i )
+    Aig_ManForEachCi( p->pAig, pObj, i )
     {
         Sign = Vec_WrdEntry( p->vPiCare, i );
 //        Extra_PrintBinary( stdout, (unsigned *)&Sign, 64 );
@@ -161,7 +161,7 @@ void Aig_ManPackSetRandom( Aig_ManPack_t * p )
     Aig_Obj_t * pObj;
     word Sign;
     int i;
-    Aig_ManForEachPi( p->pAig, pObj, i )
+    Aig_ManForEachCi( p->pAig, pObj, i )
     {
         Sign = (((word)Aig_ManRandom(0)) << 32) | ((word)Aig_ManRandom(0));
         Vec_WrdWriteEntry( p->vPiPats, i, Sign << 1 );
@@ -187,7 +187,7 @@ void Aig_ManPackSimulate( Aig_ManPack_t * p )
     // set the constant
     Vec_WrdWriteEntry( p->vSigns, 0, (word)~0 );
     // transfer into the array
-    Aig_ManForEachPi( p->pAig, pObj, i )
+    Aig_ManForEachCi( p->pAig, pObj, i )
         Vec_WrdWriteEntry( p->vSigns, Aig_ObjId(pObj), Vec_WrdEntry(p->vPiPats, i) );
     // simulate internal nodes
     Aig_ManForEachNode( p->pAig, pObj, i )
@@ -205,7 +205,7 @@ void Aig_ManPackSimulate( Aig_ManPack_t * p )
         Vec_WrdWriteEntry( p->vSigns, Aig_ObjId(pObj), Sign );
     }
     // set the outputs
-    Aig_ManForEachPo( p->pAig, pObj, i )
+    Aig_ManForEachCo( p->pAig, pObj, i )
     {
         Sign0 = Vec_WrdEntry( p->vSigns, Aig_ObjFaninId0(pObj) );
         Sign  = Aig_ObjFaninC0(pObj) ? ~Sign0 : Sign0;

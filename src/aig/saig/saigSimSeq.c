@@ -167,10 +167,10 @@ Raig_Man_t * Raig_ManCreate( Aig_Man_t * pAig )
     p->nObjs = 2;
     pObj = Aig_ManConst1( pAig );
     pObj->iData = 1;
-    Aig_ManForEachPi( pAig, pObj, i )
+    Aig_ManForEachCi( pAig, pObj, i )
         if ( Aig_ObjRefs(pObj) == 0 )
             Raig_ManCreate_rec( p, pObj );
-    Aig_ManForEachPo( pAig, pObj, i )
+    Aig_ManForEachCo( pAig, pObj, i )
         Raig_ManCreate_rec( p, pObj );
     assert( Vec_IntSize(p->vCis2Ids) == Aig_ManPiNum(pAig) );
     assert( p->nObjs == nObjs );

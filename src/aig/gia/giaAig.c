@@ -97,12 +97,12 @@ Gia_Man_t * Gia_ManFromAig( Aig_Man_t * p )
     // create the PIs
     Aig_ManCleanData( p );
     Aig_ManConst1(p)->iData = 1;
-    Aig_ManForEachPi( p, pObj, i )
+    Aig_ManForEachCi( p, pObj, i )
         pObj->iData = Gia_ManAppendCi( pNew );
     // add logic for the POs
-    Aig_ManForEachPo( p, pObj, i )
+    Aig_ManForEachCo( p, pObj, i )
         Gia_ManFromAig_rec( pNew, p, Aig_ObjFanin0(pObj) );        
-    Aig_ManForEachPo( p, pObj, i )
+    Aig_ManForEachCo( p, pObj, i )
         Gia_ManAppendCo( pNew, Gia_ObjChild0Copy(pObj) );
     Gia_ManSetRegNum( pNew, Aig_ManRegNum(p) );
     if ( pNew->pNexts )
@@ -172,7 +172,7 @@ Gia_Man_t * Gia_ManFromAigSwitch( Aig_Man_t * p )
     // create the PIs
     Aig_ManCleanData( p );
     Aig_ManConst1(p)->iData = 1;
-    Aig_ManForEachPi( p, pObj, i )
+    Aig_ManForEachCi( p, pObj, i )
         pObj->iData = Gia_ManAppendCi( pNew );
     // add POs corresponding to the nodes with choices
     Aig_ManForEachNode( p, pObj, i )
@@ -182,9 +182,9 @@ Gia_Man_t * Gia_ManFromAigSwitch( Aig_Man_t * p )
             Gia_ManAppendCo( pNew, pObj->iData );
         }
     // add logic for the POs
-    Aig_ManForEachPo( p, pObj, i )
+    Aig_ManForEachCo( p, pObj, i )
         Gia_ManFromAig_rec( pNew, p, Aig_ObjFanin0(pObj) );        
-    Aig_ManForEachPo( p, pObj, i )
+    Aig_ManForEachCo( p, pObj, i )
         pObj->iData = Gia_ManAppendCo( pNew, Gia_ObjChild0Copy(pObj) );
     Gia_ManSetRegNum( pNew, Aig_ManRegNum(p) );
     return pNew;
@@ -207,7 +207,7 @@ void Gia_ManToAig_rec( Aig_Man_t * pNew, Aig_Obj_t ** ppNodes, Gia_Man_t * p, Gi
     if ( ppNodes[Gia_ObjId(p, pObj)] )
         return;
     if ( Gia_ObjIsCi(pObj) )
-        ppNodes[Gia_ObjId(p, pObj)] = Aig_ObjCreatePi( pNew );
+        ppNodes[Gia_ObjId(p, pObj)] = Aig_ObjCreateCi( pNew );
     else
     {
         assert( Gia_ObjIsAnd(pObj) );
@@ -256,7 +256,7 @@ Aig_Man_t * Gia_ManToAig( Gia_Man_t * p, int fChoices )
     ppNodes = ABC_CALLOC( Aig_Obj_t *, Gia_ManObjNum(p) );
     ppNodes[0] = Aig_ManConst0(pNew);
     Gia_ManForEachCi( p, pObj, i )
-        ppNodes[Gia_ObjId(p, pObj)] = Aig_ObjCreatePi( pNew );
+        ppNodes[Gia_ObjId(p, pObj)] = Aig_ObjCreateCi( pNew );
     // transfer level
     if ( p->vLevels )
     Gia_ManForEachCi( p, pObj, i )
@@ -265,7 +265,7 @@ Aig_Man_t * Gia_ManToAig( Gia_Man_t * p, int fChoices )
     Gia_ManForEachCo( p, pObj, i )
     {
         Gia_ManToAig_rec( pNew, ppNodes, p, Gia_ObjFanin0(pObj) );        
-        ppNodes[Gia_ObjId(p, pObj)] = Aig_ObjCreatePo( pNew, Gia_ObjChild0Copy2(ppNodes, pObj, Gia_ObjId(p, pObj)) );
+        ppNodes[Gia_ObjId(p, pObj)] = Aig_ObjCreateCo( pNew, Gia_ObjChild0Copy2(ppNodes, pObj, Gia_ObjId(p, pObj)) );
     }
     Aig_ManSetRegNum( pNew, Gia_ManRegNum(p) );
     ABC_FREE( ppNodes );
@@ -300,14 +300,14 @@ Aig_Man_t * Gia_ManToAigSkip( Gia_Man_t * p, int nOutDelta )
     ppNodes = ABC_CALLOC( Aig_Obj_t *, Gia_ManObjNum(p) );
     ppNodes[0] = Aig_ManConst0(pNew);
     Gia_ManForEachCi( p, pObj, i )
-        ppNodes[Gia_ObjId(p, pObj)] = Aig_ObjCreatePi( pNew );
+        ppNodes[Gia_ObjId(p, pObj)] = Aig_ObjCreateCi( pNew );
     // add logic for the POs
     Gia_ManForEachCo( p, pObj, i )
     {
         Gia_ManToAig_rec( pNew, ppNodes, p, Gia_ObjFanin0(pObj) );        
         if ( i % nOutDelta != 0 )
             continue;
-        ppNodes[Gia_ObjId(p, pObj)] = Aig_ObjCreatePo( pNew, Gia_ObjChild0Copy2(ppNodes, pObj, Gia_ObjId(p, pObj)) );
+        ppNodes[Gia_ObjId(p, pObj)] = Aig_ObjCreateCo( pNew, Gia_ObjChild0Copy2(ppNodes, pObj, Gia_ObjId(p, pObj)) );
     }
     Aig_ManSetRegNum( pNew, Gia_ManRegNum(p) );
     ABC_FREE( ppNodes );
@@ -342,9 +342,9 @@ Aig_Man_t * Gia_ManToAigSimple( Gia_Man_t * p )
         if ( Gia_ObjIsAnd(pObj) )
             ppNodes[i] = Aig_And( pNew, Gia_ObjChild0Copy2(ppNodes, pObj, Gia_ObjId(p, pObj)), Gia_ObjChild1Copy2(ppNodes, pObj, Gia_ObjId(p, pObj)) );
         else if ( Gia_ObjIsCi(pObj) )
-            ppNodes[i] = Aig_ObjCreatePi( pNew );
+            ppNodes[i] = Aig_ObjCreateCi( pNew );
         else if ( Gia_ObjIsCo(pObj) )
-            ppNodes[i] = Aig_ObjCreatePo( pNew, Gia_ObjChild0Copy2(ppNodes, pObj, Gia_ObjId(p, pObj)) );
+            ppNodes[i] = Aig_ObjCreateCo( pNew, Gia_ObjChild0Copy2(ppNodes, pObj, Gia_ObjId(p, pObj)) );
         else if ( Gia_ObjIsConst0(pObj) )
             ppNodes[i] = Aig_ManConst0(pNew);
         else

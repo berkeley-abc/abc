@@ -769,10 +769,10 @@ Aig_Man_t * Saig_ManPerformAbstraction( Saig_Tsim_t * pTsi, int nFrames, int fVe
     // create PI nodes for the frames
     for ( f = 0; f < nFrames; f++ )
         Aig_ManForEachPiSeq( pAig, pObj, i )
-            Saig_ObjSetFrames( pObjMap, nFrames, pObj, f, Aig_ObjCreatePi(pFrames) );
+            Saig_ObjSetFrames( pObjMap, nFrames, pObj, f, Aig_ObjCreateCi(pFrames) );
     // create the latches
     Aig_ManForEachLoSeq( pAig, pObj, i )
-        Saig_ObjSetFrames( pObjMap, nFrames, pObj, 0, Aig_ObjCreatePi(pFrames) );
+        Saig_ObjSetFrames( pObjMap, nFrames, pObj, 0, Aig_ObjCreateCi(pFrames) );
 
     // add timeframes
     for ( f = 0; f < nFrames; f++ )
@@ -805,7 +805,7 @@ Aig_Man_t * Saig_ManPerformAbstraction( Saig_Tsim_t * pTsi, int nFrames, int fVe
     {
         Aig_ManForEachPoSeq( pAig, pObj, i )
         {
-            pObjNew = Aig_ObjCreatePo( pFrames, Saig_ObjChild0Frames(pObjMap,nFrames,pObj,f) );
+            pObjNew = Aig_ObjCreateCo( pFrames, Saig_ObjChild0Frames(pObjMap,nFrames,pObj,f) );
             Saig_ObjSetFrames( pObjMap, nFrames, pObj, f, pObjNew );
         }
     }
@@ -814,7 +814,7 @@ Aig_Man_t * Saig_ManPerformAbstraction( Saig_Tsim_t * pTsi, int nFrames, int fVe
     pFrames->nTruePos = Aig_ManPoNum(pFrames) - Aig_ManRegNum(pFrames); 
     Aig_ManForEachLiSeq( pAig, pObj, i )
     {
-        pObjNew = Aig_ObjCreatePo( pFrames, Saig_ObjChild0Frames(pObjMap,nFrames,pObj,nFrames-1) );
+        pObjNew = Aig_ObjCreateCo( pFrames, Saig_ObjChild0Frames(pObjMap,nFrames,pObj,nFrames-1) );
         Saig_ObjSetFrames( pObjMap, nFrames, pObj, nFrames-1, pObjNew );
     }
 //Aig_ManPrintStats( pFrames );

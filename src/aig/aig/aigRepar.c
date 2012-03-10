@@ -163,7 +163,7 @@ void Aig_ManInterTest( Aig_Man_t * pMan, int fVerbose )
 
     // add PI equality clauses
     vVars = Vec_IntAlloc( Aig_ManPoNum(pMan)+1 );
-    Aig_ManForEachPi( pMan, pObj, i )
+    Aig_ManForEachCi( pMan, pObj, i )
     {
         if ( Aig_ObjRefs(pObj) == 0 )
             continue;
@@ -220,14 +220,14 @@ void Aig_ManAppend( Aig_Man_t * pBase, Aig_Man_t * pNew )
     // create the PIs
     Aig_ManCleanData( pNew );
     Aig_ManConst1(pNew)->pData = Aig_ManConst1(pBase);
-    Aig_ManForEachPi( pNew, pObj, i )
+    Aig_ManForEachCi( pNew, pObj, i )
         pObj->pData = Aig_IthVar(pBase, i);
     // duplicate internal nodes
     Aig_ManForEachNode( pNew, pObj, i )
         pObj->pData = Aig_And( pBase, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
     // add one PO to base
     pObj = Aig_ManPo( pNew, 0 );
-    Aig_ObjCreatePo( pBase, Aig_ObjChild0Copy(pObj) );
+    Aig_ObjCreateCo( pBase, Aig_ObjChild0Copy(pObj) );
 }
 
 /**Function*************************************************************
@@ -286,7 +286,7 @@ Aig_Man_t * Aig_ManInterRepar( Aig_Man_t * pMan, int fVerbose )
             clause_set_partA( pSat, Cid, k==0 );
         }
         // add equality p[k] == A1/B1
-        Aig_ManForEachPo( pMan, pObj, i )
+        Aig_ManForEachCo( pMan, pObj, i )
             Aig_ManInterAddBuffer( pSat, ShiftP[k] + i, pCnf->pVarNums[pObj->Id], k==1, k==0 );
         // copy A2
         Cnf_DataLift( pCnf, pCnf->nVars );
@@ -297,7 +297,7 @@ Aig_Man_t * Aig_ManInterRepar( Aig_Man_t * pMan, int fVerbose )
         }
         // add comparator (!p[k] ^ A2/B2) == or[k]
         Vec_IntClear( vVars );
-        Aig_ManForEachPo( pMan, pObj, i )
+        Aig_ManForEachCo( pMan, pObj, i )
         {
             Aig_ManInterAddXor( pSat, ShiftP[k] + i, pCnf->pVarNums[pObj->Id], ShiftOr[k] + i, k==1, k==0 );
             Vec_IntPush( vVars, toLitCond(ShiftOr[k] + i, 1) );
@@ -341,7 +341,7 @@ Aig_Man_t * Aig_ManInterRepar( Aig_Man_t * pMan, int fVerbose )
         pInter = (Aig_Man_t *)Sat_ProofInterpolant( pSat, vVars );
         Aig_ManPrintStats( pInter );
         // make sure interpolant does not depend on useless vars
-        Aig_ManForEachPi( pInter, pObj, i )
+        Aig_ManForEachCi( pInter, pObj, i )
             assert( i <= k || Aig_ObjRefs(pObj) == 0 );
 
         // simplify
@@ -365,7 +365,7 @@ Aig_Man_t * Aig_ManInterRepar( Aig_Man_t * pMan, int fVerbose )
                 clause_set_partA( pSat, Cid, c==0 );
             }
             // connect to the inputs
-            Aig_ManForEachPi( pInter, pObj, i )
+            Aig_ManForEachCi( pInter, pObj, i )
                 if ( i <= k )
                     Aig_ManInterAddBuffer( pSat, i, pCnf->pVarNums[pObj->Id], 0, c==0 );
             // connect to the outputs

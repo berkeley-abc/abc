@@ -474,15 +474,15 @@ Aig_Man_t * Saig_ManDupInitZero( Aig_Man_t * p )
     pNew->pName = Abc_UtilStrsav( p->pName );
     Aig_ManConst1(p)->pData = Aig_ManConst1(pNew);
     Saig_ManForEachPi( p, pObj, i )
-        pObj->pData = Aig_ObjCreatePi( pNew );
+        pObj->pData = Aig_ObjCreateCi( pNew );
     Saig_ManForEachLo( p, pObj, i )
-        pObj->pData = Aig_NotCond( Aig_ObjCreatePi( pNew ), pObj->fMarkA );
+        pObj->pData = Aig_NotCond( Aig_ObjCreateCi( pNew ), pObj->fMarkA );
     Aig_ManForEachNode( p, pObj, i )
         pObj->pData = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
     Saig_ManForEachPo( p, pObj, i )
-        pObj->pData = Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
+        pObj->pData = Aig_ObjCreateCo( pNew, Aig_ObjChild0Copy(pObj) );
     Saig_ManForEachLi( p, pObj, i )
-        pObj->pData = Aig_ObjCreatePo( pNew, Aig_NotCond( Aig_ObjChild0Copy(pObj), pObj->fMarkA ) );
+        pObj->pData = Aig_ObjCreateCo( pNew, Aig_NotCond( Aig_ObjChild0Copy(pObj), pObj->fMarkA ) );
     Aig_ManSetRegNum( pNew, Saig_ManRegNum(p) );
     assert( Aig_ManNodeNum(pNew) == Aig_ManNodeNum(p) );
     return pNew;

@@ -268,7 +268,7 @@ Cnf_Dat_t * Cnf_ManWriteCnf( Cnf_Man_t * p, Vec_Ptr_t * vMapped, int nOutputs )
             if ( Aig_ManRegNum(p->pManAig) == 0 )
             {
                 assert( nOutputs == Aig_ManPoNum(p->pManAig) );
-                Aig_ManForEachPo( p->pManAig, pObj, i )
+                Aig_ManForEachCo( p->pManAig, pObj, i )
                     pCnf->pVarNums[pObj->Id] = Number++;
             }
             else
@@ -282,7 +282,7 @@ Cnf_Dat_t * Cnf_ManWriteCnf( Cnf_Man_t * p, Vec_Ptr_t * vMapped, int nOutputs )
         Vec_PtrForEachEntry( Aig_Obj_t *, vMapped, pObj, i )
             pCnf->pVarNums[pObj->Id] = Number++;
         // assign variables to the PIs and constant node
-        Aig_ManForEachPi( p->pManAig, pObj, i )
+        Aig_ManForEachCi( p->pManAig, pObj, i )
             pCnf->pVarNums[pObj->Id] = Number++;
         pCnf->pVarNums[Aig_ManConst1(p->pManAig)->Id] = Number++;
         pCnf->nVars = Number;
@@ -297,7 +297,7 @@ Cnf_Dat_t * Cnf_ManWriteCnf( Cnf_Man_t * p, Vec_Ptr_t * vMapped, int nOutputs )
             if ( Aig_ManRegNum(p->pManAig) == 0 )
             {
                 assert( nOutputs == Aig_ManPoNum(p->pManAig) );
-                Aig_ManForEachPo( p->pManAig, pObj, i )
+                Aig_ManForEachCo( p->pManAig, pObj, i )
                     pCnf->pVarNums[pObj->Id] = Number--;
             }
             else
@@ -311,7 +311,7 @@ Cnf_Dat_t * Cnf_ManWriteCnf( Cnf_Man_t * p, Vec_Ptr_t * vMapped, int nOutputs )
         Vec_PtrForEachEntry( Aig_Obj_t *, vMapped, pObj, i )
             pCnf->pVarNums[pObj->Id] = Number--;
         // assign variables to the PIs and constant node
-        Aig_ManForEachPi( p->pManAig, pObj, i )
+        Aig_ManForEachCi( p->pManAig, pObj, i )
             pCnf->pVarNums[pObj->Id] = Number--;
         pCnf->pVarNums[Aig_ManConst1(p->pManAig)->Id] = Number--;
         assert( Number >= 0 );
@@ -374,7 +374,7 @@ Cnf_Dat_t * Cnf_ManWriteCnf( Cnf_Man_t * p, Vec_Ptr_t * vMapped, int nOutputs )
     *pLits++ = 2 * OutVar; 
 
     // write the output literals
-    Aig_ManForEachPo( p->pManAig, pObj, i )
+    Aig_ManForEachCo( p->pManAig, pObj, i )
     {
         OutVar = pCnf->pVarNums[ Aig_ObjFanin0(pObj)->Id ];
         if ( i < Aig_ManPoNum(p->pManAig) - nOutputs )
@@ -477,7 +477,7 @@ Cnf_Dat_t * Cnf_ManWriteCnfOther( Cnf_Man_t * p, Vec_Ptr_t * vMapped )
     pCnf->nVars = Aig_ManObjNumMax(p->pManAig);
 
     // clear the PI counters
-    Aig_ManForEachPi( p->pManAig, pObj, i )
+    Aig_ManForEachCi( p->pManAig, pObj, i )
         pCnf->pObj2Count[pObj->Id] = 0;
 
     // assign the clauses
@@ -537,7 +537,7 @@ Cnf_Dat_t * Cnf_ManWriteCnfOther( Cnf_Man_t * p, Vec_Ptr_t * vMapped )
     Vec_IntFree( vSopTemp );
 
     // write the output literals
-    Aig_ManForEachPo( p->pManAig, pObj, i )
+    Aig_ManForEachCo( p->pManAig, pObj, i )
     {
         // remember the starting clause
         pCnf->pObj2Clause[pObj->Id] = pClas - pCnf->pClauses;
@@ -617,14 +617,14 @@ Cnf_Dat_t * Cnf_DeriveSimple( Aig_Man_t * p, int nOutputs )
 //        assert( nOutputs == Aig_ManRegNum(p) );
 //        Aig_ManForEachLiSeq( p, pObj, i )
 //            pCnf->pVarNums[pObj->Id] = Number++;
-        Aig_ManForEachPo( p, pObj, i )
+        Aig_ManForEachCo( p, pObj, i )
             pCnf->pVarNums[pObj->Id] = Number++;
     }
     // assign variables to the internal nodes
     Aig_ManForEachNode( p, pObj, i )
         pCnf->pVarNums[pObj->Id] = Number++;
     // assign variables to the PIs and constant node
-    Aig_ManForEachPi( p, pObj, i )
+    Aig_ManForEachCi( p, pObj, i )
         pCnf->pVarNums[pObj->Id] = Number++;
     pCnf->pVarNums[Aig_ManConst1(p)->Id] = Number++;
     pCnf->nVars = Number;
@@ -665,7 +665,7 @@ Cnf_Dat_t * Cnf_DeriveSimple( Aig_Man_t * p, int nOutputs )
     *pLits++ = 2 * OutVar;  
 
     // write the output literals
-    Aig_ManForEachPo( p, pObj, i )
+    Aig_ManForEachCo( p, pObj, i )
     {
         OutVar = pCnf->pVarNums[ Aig_ObjFanin0(pObj)->Id ];
         if ( i < Aig_ManPoNum(p) - nOutputs )
@@ -734,13 +734,13 @@ Cnf_Dat_t * Cnf_DeriveSimpleForRetiming( Aig_Man_t * p )
         pCnf->pVarNums[i] = -1;
     // assign variables to the last (nOutputs) POs
     Number = 1;
-    Aig_ManForEachPo( p, pObj, i )
+    Aig_ManForEachCo( p, pObj, i )
         pCnf->pVarNums[pObj->Id] = Number++;
     // assign variables to the internal nodes
     Aig_ManForEachNode( p, pObj, i )
         pCnf->pVarNums[pObj->Id] = Number++;
     // assign variables to the PIs and constant node
-    Aig_ManForEachPi( p, pObj, i )
+    Aig_ManForEachCi( p, pObj, i )
         pCnf->pVarNums[pObj->Id] = Number++;
     pCnf->pVarNums[Aig_ManConst1(p)->Id] = Number++;
     pCnf->nVars = Number;
@@ -774,7 +774,7 @@ Cnf_Dat_t * Cnf_DeriveSimpleForRetiming( Aig_Man_t * p )
     *pLits++ = 2 * OutVar; 
 
     // write the output literals
-    Aig_ManForEachPo( p, pObj, i )
+    Aig_ManForEachCo( p, pObj, i )
     {
         OutVar = pCnf->pVarNums[ Aig_ObjFanin0(pObj)->Id ];
         PoVar  = pCnf->pVarNums[ pObj->Id ];

@@ -122,7 +122,7 @@ int Saig_ManSimDataInit( Aig_Man_t * p, Abc_Cex_t * pCex, Vec_Ptr_t * vSimInfo, 
             Saig_ManSimInfoSet( vSimInfo, Aig_ManPi(p, Entry), f, SAIG_UND );
         Aig_ManForEachNode( p, pObj, i )
             Saig_ManExtendOneEval( vSimInfo, pObj, f );
-        Aig_ManForEachPo( p, pObj, i )
+        Aig_ManForEachCo( p, pObj, i )
             Saig_ManExtendOneEval( vSimInfo, pObj, f );
         if ( f == pCex->iFrame )
             break;

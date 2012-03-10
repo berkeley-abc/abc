@@ -197,7 +197,7 @@ void Saig_ManCexMinVerifyPhase( Aig_Man_t * pAig, Abc_Cex_t * pCex, int f )
     Aig_ManForEachNode( pAig, pObj, i )
         pObj->fPhase = (Aig_ObjFaninC0(pObj) ^ Aig_ObjFanin0(pObj)->fPhase) & 
                        (Aig_ObjFaninC1(pObj) ^ Aig_ObjFanin1(pObj)->fPhase);
-    Aig_ManForEachPo( pAig, pObj, i )
+    Aig_ManForEachCo( pAig, pObj, i )
         pObj->fPhase = (Aig_ObjFaninC0(pObj) ^ Aig_ObjFanin0(pObj)->fPhase);
 }
 
@@ -504,8 +504,8 @@ Aig_Man_t * Saig_ManCexMinDupWithCubes( Aig_Man_t * pAig, Vec_Vec_t * vReg2Value
     // map the constant node
     Aig_ManConst1(pAig)->pData = Aig_ManConst1( pAigNew );
     // create variables for PIs
-    Aig_ManForEachPi( pAig, pObj, i )
-        pObj->pData = Aig_ObjCreatePi( pAigNew );
+    Aig_ManForEachCi( pAig, pObj, i )
+        pObj->pData = Aig_ObjCreateCi( pAigNew );
     // add internal nodes of this frame
     Aig_ManForEachNode( pAig, pObj, i )
         pObj->pData = Aig_And( pAigNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
@@ -521,11 +521,11 @@ Aig_Man_t * Saig_ManCexMinDupWithCubes( Aig_Man_t * pAig, Vec_Vec_t * vReg2Value
             pObj = Saig_ManLi( pAig, Abc_Lit2Var(Lit) );
             pMiter = Aig_And( pAigNew, pMiter, Aig_NotCond(Aig_ObjChild0Copy(pObj), Abc_LitIsCompl(Lit)) );
         }
-        Aig_ObjCreatePo( pAigNew, pMiter );
+        Aig_ObjCreateCo( pAigNew, pMiter );
     }
     // transfer to register outputs
     Saig_ManForEachLi( pAig, pObj, i )
-        Aig_ObjCreatePo( pAigNew, Aig_ObjChild0Copy(pObj) );
+        Aig_ObjCreateCo( pAigNew, Aig_ObjChild0Copy(pObj) );
     // finalize
     Aig_ManCleanup( pAigNew );
     Aig_ManSetRegNum( pAigNew, Aig_ManRegNum(pAig) );
