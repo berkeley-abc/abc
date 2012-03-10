@@ -49,13 +49,13 @@ char * Saig_ObjName( Aig_Man_t * p, Aig_Obj_t * pObj )
     if ( Aig_ObjIsNode(pObj) || Aig_ObjIsConst1(pObj) )
         sprintf( Buffer, "n%0*d", Abc_Base10Log(Aig_ManObjNumMax(p)), Aig_ObjId(pObj) );
     else if ( Saig_ObjIsPi(p, pObj) )
-        sprintf( Buffer, "pi%0*d", Abc_Base10Log(Saig_ManPiNum(p)), Aig_ObjPioNum(pObj) );
+        sprintf( Buffer, "pi%0*d", Abc_Base10Log(Saig_ManPiNum(p)), Aig_ObjCioId(pObj) );
     else if ( Saig_ObjIsPo(p, pObj) )
-        sprintf( Buffer, "po%0*d", Abc_Base10Log(Saig_ManPoNum(p)), Aig_ObjPioNum(pObj) );
+        sprintf( Buffer, "po%0*d", Abc_Base10Log(Saig_ManPoNum(p)), Aig_ObjCioId(pObj) );
     else if ( Saig_ObjIsLo(p, pObj) )
-        sprintf( Buffer, "lo%0*d", Abc_Base10Log(Saig_ManRegNum(p)), Aig_ObjPioNum(pObj) - Saig_ManPiNum(p) );
+        sprintf( Buffer, "lo%0*d", Abc_Base10Log(Saig_ManRegNum(p)), Aig_ObjCioId(pObj) - Saig_ManPiNum(p) );
     else if ( Saig_ObjIsLi(p, pObj) )
-        sprintf( Buffer, "li%0*d", Abc_Base10Log(Saig_ManRegNum(p)), Aig_ObjPioNum(pObj) - Saig_ManPoNum(p) );
+        sprintf( Buffer, "li%0*d", Abc_Base10Log(Saig_ManRegNum(p)), Aig_ObjCioId(pObj) - Saig_ManPoNum(p) );
     else 
         assert( 0 );
     return Buffer;
@@ -82,7 +82,7 @@ void Saig_ManDumpBlif( Aig_Man_t * p, char * pFileName )
         printf( "Aig_ManDumpBlif(): AIG manager does not have POs.\n" );
         return;
     }
-    Aig_ManSetPioNumbers( p );
+    Aig_ManSetCioIds( p );
     // write input file
     pFile = fopen( pFileName, "w" );
     if ( pFile == NULL )

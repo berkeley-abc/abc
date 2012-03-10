@@ -124,7 +124,7 @@ int Raig_ManCreate_rec( Raig_Man_t * p, Aig_Obj_t * pObj )
     else
     {
         iFan0 = iFan1 = 0;
-        Vec_IntPush( p->vCis2Ids, Aig_ObjPioNum(pObj) );
+        Vec_IntPush( p->vCis2Ids, Aig_ObjCioId(pObj) );
     }
     p->pFans0[p->nObjs] = iFan0;
     p->pFans1[p->nObjs] = iFan1;

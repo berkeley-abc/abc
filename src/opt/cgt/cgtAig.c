@@ -320,7 +320,7 @@ Aig_Man_t * Cgt_ManDeriveAigForGating( Cgt_Man_t * p )
         }
     }
     Aig_ManCleanup( pNew );
-    Aig_ManSetPioNumbers( pNew );
+    Aig_ManSetCioIds( pNew );
     return pNew;
 }
 
@@ -375,14 +375,14 @@ void Cgt_ManConstructCare( Aig_Man_t * pNew, Aig_Man_t * pCare, Vec_Vec_t * vSup
     Aig_ManIncrementTravId( pCare );
     Vec_PtrForEachEntry( Aig_Obj_t *, vLeaves, pLeaf, i )
     {
-        pPi = Aig_ManCi( pCare, Aig_ObjPioNum(pLeaf) );
+        pPi = Aig_ManCi( pCare, Aig_ObjCioId(pLeaf) );
         Aig_ObjSetTravIdCurrent( pCare, pPi );
         pPi->pData = pLeaf->pData;
     }
     // construct the constraints
     Vec_PtrForEachEntry( Aig_Obj_t *, vLeaves, pLeaf, i )
     {
-        vOuts = Vec_VecEntryInt( vSuppsInv, Aig_ObjPioNum(pLeaf) );
+        vOuts = Vec_VecEntryInt( vSuppsInv, Aig_ObjCioId(pLeaf) );
         Vec_IntForEachEntry( vOuts, iOut, k )
         {
             pPo = Aig_ManCo( pCare, iOut );

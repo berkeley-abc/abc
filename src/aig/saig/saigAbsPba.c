@@ -122,7 +122,7 @@ Aig_Man_t * Saig_ManUnrollForPba( Aig_Man_t * pAig, int nStart, int nFrames, Vec
                 pObj->pData = Aig_ObjChild0Copy(pObj);
             else if ( Saig_ObjIsPi(pAig, pObj) )
             {
-                Vec_IntWriteEntry( *pvPiVarMap, f * Saig_ManPiNum(pAig) + Aig_ObjPioNum(pObj), Aig_ManCiNum(pFrames) );
+                Vec_IntWriteEntry( *pvPiVarMap, f * Saig_ManPiNum(pAig) + Aig_ObjCioId(pObj), Aig_ManCiNum(pFrames) );
                 pObj->pData = Aig_ObjCreateCi( pFrames );
             }
             else if ( Aig_ObjIsConst1(pObj) )
@@ -144,7 +144,7 @@ Aig_Man_t * Saig_ManUnrollForPba( Aig_Man_t * pAig, int nStart, int nFrames, Vec
         {
             if ( Saig_ObjIsLi(pAig, pObj) )
             {
-                int iFlopNum = Aig_ObjPioNum(pObj) - Saig_ManPoNum(pAig);
+                int iFlopNum = Aig_ObjCioId(pObj) - Saig_ManPoNum(pAig);
                 assert( iFlopNum >= 0 && iFlopNum < Aig_ManRegNum(pAig) );
                 Saig_ObjLiToLo(pAig, pObj)->pData = Aig_Mux( pFrames, Aig_ManCi(pFrames,iFlopNum), Aig_ObjCreateCi(pFrames), (Aig_Obj_t *)pObj->pData );
             }

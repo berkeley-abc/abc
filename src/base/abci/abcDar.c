@@ -1630,7 +1630,7 @@ void Abc_NtkPrintLatchEquivClasses( Abc_Ntk_t * pNtk, Aig_Man_t * pAig )
     }
     i = 0;
     
-    Aig_ManSetPioNumbers( pAig );
+    Aig_ManSetCioIds( pAig );
     Saig_ManForEachLo( pAig, pFlop, i )
     {
         p_irrelevant[i] = false;
@@ -1661,7 +1661,7 @@ void Abc_NtkPrintLatchEquivClasses( Abc_Ntk_t * pNtk, Aig_Man_t * pAig )
         }
 
         assert( Saig_ObjIsLo( pAig, pRepr ) );
-        repr_idx = Aig_ObjPioNum(pRepr) - Saig_ManPiNum(pAig);
+        repr_idx = Aig_ObjCioId(pRepr) - Saig_ManPiNum(pAig);
         pReprName = pNames[repr_idx];
         Abc_Print( 1, "Original flop %s is proved equivalent to flop %s.\n",  pFlopName, pReprName );
         // Abc_Print( 1, "Original flop # %d is proved equivalent to flop # %d.\n",  i, repr_idx );

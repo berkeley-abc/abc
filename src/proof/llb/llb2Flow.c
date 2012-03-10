@@ -124,9 +124,9 @@ Vec_Ptr_t * Llb_ManCutMap( Aig_Man_t * p, Vec_Ptr_t * vResult, Vec_Ptr_t * vSupp
         {
             if ( !Saig_ObjIsPi(p, pObj) )
                 continue;
-            if ( piFirst[Aig_ObjPioNum(pObj)] == -1 )
-                 piFirst[Aig_ObjPioNum(pObj)] = i;
-            piLast[Aig_ObjPioNum(pObj)] = i;
+            if ( piFirst[Aig_ObjCioId(pObj)] == -1 )
+                 piFirst[Aig_ObjCioId(pObj)] = i;
+            piLast[Aig_ObjCioId(pObj)] = i;
         }
     }
     // PIs feeding into the flops should be extended to the last frame
@@ -134,7 +134,7 @@ Vec_Ptr_t * Llb_ManCutMap( Aig_Man_t * p, Vec_Ptr_t * vResult, Vec_Ptr_t * vSupp
     {
         if ( !Saig_ObjIsPi(p, Aig_ObjFanin0(pObj)) )
             continue;
-        piLast[Aig_ObjPioNum(Aig_ObjFanin0(pObj))] = Vec_PtrSize(vMaps)-1;
+        piLast[Aig_ObjCioId(Aig_ObjFanin0(pObj))] = Vec_PtrSize(vMaps)-1;
     }
 
     // set the PI map

@@ -799,16 +799,16 @@ void Aig_ManDumpBlif( Aig_Man_t * p, char * pFileName, Vec_Ptr_t * vPiNames, Vec
     // write nodes
     if ( pConst1 )
         fprintf( pFile, ".names n%0*d\n 1\n", nDigits, pConst1->iData );
-    Aig_ManSetPioNumbers( p );
+    Aig_ManSetCioIds( p );
     Vec_PtrForEachEntry( Aig_Obj_t *, vNodes, pObj, i )
     {
         fprintf( pFile, ".names" );
         if ( vPiNames && Aig_ObjIsCi(Aig_ObjFanin0(pObj)) )
-            fprintf( pFile, " %s", (char*)Vec_PtrEntry(vPiNames, Aig_ObjPioNum(Aig_ObjFanin0(pObj))) );
+            fprintf( pFile, " %s", (char*)Vec_PtrEntry(vPiNames, Aig_ObjCioId(Aig_ObjFanin0(pObj))) );
         else
             fprintf( pFile, " n%0*d", nDigits, Aig_ObjFanin0(pObj)->iData );
         if ( vPiNames && Aig_ObjIsCi(Aig_ObjFanin1(pObj)) )
-            fprintf( pFile, " %s", (char*)Vec_PtrEntry(vPiNames, Aig_ObjPioNum(Aig_ObjFanin1(pObj))) );
+            fprintf( pFile, " %s", (char*)Vec_PtrEntry(vPiNames, Aig_ObjCioId(Aig_ObjFanin1(pObj))) );
         else
             fprintf( pFile, " n%0*d", nDigits, Aig_ObjFanin1(pObj)->iData );
         fprintf( pFile, " n%0*d\n", nDigits, pObj->iData );
@@ -819,16 +819,16 @@ void Aig_ManDumpBlif( Aig_Man_t * p, char * pFileName, Vec_Ptr_t * vPiNames, Vec
     {
         fprintf( pFile, ".names" );
         if ( vPiNames && Aig_ObjIsCi(Aig_ObjFanin0(pObj)) )
-            fprintf( pFile, " %s", (char*)Vec_PtrEntry(vPiNames, Aig_ObjPioNum(Aig_ObjFanin0(pObj))) );
+            fprintf( pFile, " %s", (char*)Vec_PtrEntry(vPiNames, Aig_ObjCioId(Aig_ObjFanin0(pObj))) );
         else
             fprintf( pFile, " n%0*d", nDigits, Aig_ObjFanin0(pObj)->iData );
         if ( vPoNames )
-            fprintf( pFile, " %s\n", (char*)Vec_PtrEntry(vPoNames, Aig_ObjPioNum(pObj)) );
+            fprintf( pFile, " %s\n", (char*)Vec_PtrEntry(vPoNames, Aig_ObjCioId(pObj)) );
         else
             fprintf( pFile, " n%0*d\n", nDigits, pObj->iData );
         fprintf( pFile, "%d 1\n", !Aig_ObjFaninC0(pObj) );
     }
-    Aig_ManCleanPioNumbers( p );
+    Aig_ManCleanCioIds( p );
     fprintf( pFile, ".end\n\n" );
     fclose( pFile );
     Vec_PtrFree( vNodes );
@@ -962,14 +962,14 @@ void Aig_ManDumpVerilog( Aig_Man_t * p, char * pFileName )
   SeeAlso     []
 
 ***********************************************************************/
-void Aig_ManSetPioNumbers( Aig_Man_t * p )
+void Aig_ManSetCioIds( Aig_Man_t * p )
 {
     Aig_Obj_t * pObj;
     int i;
     Aig_ManForEachCi( p, pObj, i )
-        pObj->PioNum = i;
+        pObj->CioId = i;
     Aig_ManForEachCo( p, pObj, i )
-        pObj->PioNum = i;
+        pObj->CioId = i;
 }
 
 /**Function*************************************************************
@@ -983,7 +983,7 @@ void Aig_ManSetPioNumbers( Aig_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Aig_ManCleanPioNumbers( Aig_Man_t * p )
+void Aig_ManCleanCioIds( Aig_Man_t * p )
 {
     Aig_Obj_t * pObj;
     int i;

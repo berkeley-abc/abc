@@ -47,7 +47,7 @@ void Saig_ManReportUselessRegisters( Aig_Man_t * pAig )
     Aig_Obj_t * pObj, * pDriver;
     int i, Counter1, Counter2;
     // set PIO numbers
-    Aig_ManSetPioNumbers( pAig );
+    Aig_ManSetCioIds( pAig );
     // check how many POs are driven by a register whose ref count is 1
     Counter1 = 0;
     Saig_ManForEachPo( pAig, pObj, i )

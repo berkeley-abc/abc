@@ -563,7 +563,7 @@ int Aig_ManVerifyUsingBdds( Aig_Man_t * pInit, Saig_ParBbr_t * pPars )
     vInputMap = Vec_IntAlloc( Saig_ManPiNum(pInit) );
     Saig_ManForEachPi( pInit, pObj, i )
         if ( pObj->pData != NULL )
-            Vec_IntPush( vInputMap, Aig_ObjPioNum((Aig_Obj_t *)pObj->pData) );
+            Vec_IntPush( vInputMap, Aig_ObjCioId((Aig_Obj_t *)pObj->pData) );
         else
             Vec_IntPush( vInputMap, -1 );
     // create new pattern

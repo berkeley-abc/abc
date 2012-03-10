@@ -235,7 +235,7 @@ void Saig_ManExplorePaths_rec( Aig_Man_t * p, Aig_Obj_t * pObj, int f, int fMax,
     if ( Saig_ObjIsPi(p, pObj) )
     {
         // propagate implications of this assignment
-        int i, iPiNum = Aig_ObjPioNum(pObj);
+        int i, iPiNum = Aig_ObjCioId(pObj);
         for ( i = fMax; i >= 0; i-- )
             if ( i != f )
                 Saig_ManSetAndDriveImplications_rec( p, Aig_ManCi(p, iPiNum), i, fMax, vSimInfo );

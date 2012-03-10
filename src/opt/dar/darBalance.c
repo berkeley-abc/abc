@@ -495,7 +495,7 @@ Aig_Man_t * Dar_ManBalance( Aig_Man_t * p, int fUpdateLevel )
     {
         float arrTime;
         Tim_ManIncrementTravId( (Tim_Man_t *)p->pManTime );
-        Aig_ManSetPioNumbers( p );
+        Aig_ManSetCioIds( p );
         Aig_ManForEachObj( p, pObj, i )
         {
             if ( Aig_ObjIsNode(pObj) || Aig_ObjIsConst1(pObj) )
@@ -507,7 +507,7 @@ Aig_Man_t * Dar_ManBalance( Aig_Man_t * p, int fUpdateLevel )
                 pObj->pData = pObjNew;
                 pObjNew->pHaig = pObj->pHaig;
                 // set the arrival time of the new PI
-                arrTime = Tim_ManGetCiArrival( (Tim_Man_t *)p->pManTime, Aig_ObjPioNum(pObj) );
+                arrTime = Tim_ManGetCiArrival( (Tim_Man_t *)p->pManTime, Aig_ObjCioId(pObj) );
                 pObjNew->Level = (int)arrTime;
             }
             else if ( Aig_ObjIsCo(pObj) )
@@ -518,7 +518,7 @@ Aig_Man_t * Dar_ManBalance( Aig_Man_t * p, int fUpdateLevel )
                 pObjNew = Aig_NotCond( pObjNew, Aig_IsComplement(pDriver) );
                 // save arrival time of the output
                 arrTime = (float)Aig_Regular(pObjNew)->Level;
-                Tim_ManSetCoArrival( (Tim_Man_t *)p->pManTime, Aig_ObjPioNum(pObj), arrTime );
+                Tim_ManSetCoArrival( (Tim_Man_t *)p->pManTime, Aig_ObjCioId(pObj), arrTime );
                 // create PO
                 pObjNew = Aig_ObjCreateCo( pNew, pObjNew );
                 pObjNew->pHaig = pObj->pHaig;
@@ -526,7 +526,7 @@ Aig_Man_t * Dar_ManBalance( Aig_Man_t * p, int fUpdateLevel )
             else
                 assert( 0 );
         }
-        Aig_ManCleanPioNumbers( p );
+        Aig_ManCleanCioIds( p );
         pNew->pManTime = Tim_ManDup( (Tim_Man_t *)p->pManTime, 0 );
     }
     else

@@ -202,7 +202,7 @@ static inline int Pdr_ObjRegNum2( Pdr_Man_t * p, int k, int iSatVar )
         return -1;
     pObj = Aig_ManObj( p->pAig, ObjId );
     if ( Saig_ObjIsLi( p->pAig, pObj ) )
-        return Aig_ObjPioNum(pObj)-Saig_ManPoNum(p->pAig);
+        return Aig_ObjCioId(pObj)-Saig_ManPoNum(p->pAig);
     assert( 0 ); // should be called for register inputs only
     return -1;
 }

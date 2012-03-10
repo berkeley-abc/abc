@@ -929,7 +929,7 @@ void Iso_ManPrintClasses( Iso_Man_t * p, int fVerbose, int fVeryVerbose )
         for ( pTemp = pIso; pTemp; pTemp = Iso_ManObj(p, pTemp->iClass) )
         {
             if ( fOnlyCis )
-                printf( " %d", Aig_ObjPioNum( Iso_AigObj(p, pTemp) ) );
+                printf( " %d", Aig_ObjCioId( Iso_AigObj(p, pTemp) ) );
             else
             {
                 Aig_Obj_t * pObj = Iso_AigObj(p, pTemp);
@@ -1108,7 +1108,7 @@ Vec_Int_t * Iso_ManFinalize( Iso_Man_t * p )
     Aig_ManForEachCi( p->pAig, pObj, i )
     {
         assert( pObj->iData > 0 );
-        if ( Aig_ObjPioNum(pObj) >= Aig_ManCiNum(p->pAig) - Aig_ManRegNum(p->pAig) ) // flop
+        if ( Aig_ObjCioId(pObj) >= Aig_ManCiNum(p->pAig) - Aig_ManRegNum(p->pAig) ) // flop
             Vec_PtrPush( p->vTemp2, pObj );
         else // PI
             Vec_PtrPush( p->vTemp1, pObj );
@@ -1119,9 +1119,9 @@ Vec_Int_t * Iso_ManFinalize( Iso_Man_t * p )
     // create the result
     vRes = Vec_IntAlloc( Aig_ManCiNum(p->pAig) );
     Vec_PtrForEachEntry( Aig_Obj_t *, p->vTemp1, pObj, i )
-        Vec_IntPush( vRes, Aig_ObjPioNum(pObj) );
+        Vec_IntPush( vRes, Aig_ObjCioId(pObj) );
     Vec_PtrForEachEntry( Aig_Obj_t *, p->vTemp2, pObj, i )
-        Vec_IntPush( vRes, Aig_ObjPioNum(pObj) );
+        Vec_IntPush( vRes, Aig_ObjCioId(pObj) );
     return vRes;
 }
 

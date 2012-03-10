@@ -37,7 +37,7 @@ ABC_NAMESPACE_IMPL_START
 
   Description [Returns the pointer to the register output after retiming.]
                
-  SideEffects [Remember to run Aig_ManSetPioNumbers() in advance.]
+  SideEffects [Remember to run Aig_ManSetCioIds() in advance.]
 
   SeeAlso     []
 
@@ -62,16 +62,16 @@ Aig_Obj_t * Saig_ManRetimeNodeFwd( Aig_Man_t * p, Aig_Obj_t * pObj, int fMakeBug
     // skip of they are not register outputs
     if ( !Saig_ObjIsLo(p, pFanin0) || !Saig_ObjIsLo(p, pFanin1) )
         return NULL;
-    assert( Aig_ObjPioNum(pFanin0) > 0 );
-    assert( Aig_ObjPioNum(pFanin1) > 0 );
+    assert( Aig_ObjCioId(pFanin0) > 0 );
+    assert( Aig_ObjCioId(pFanin1) > 0 );
 
     // skip latch guns
     if ( !Aig_ObjIsTravIdCurrent(p, pFanin0) && !Aig_ObjIsTravIdCurrent(p, pFanin1) )
         return NULL;
 
     // get the inputs of these registers
-    pInput0 = Saig_ManLi( p, Aig_ObjPioNum(pFanin0) - Saig_ManPiNum(p) );
-    pInput1 = Saig_ManLi( p, Aig_ObjPioNum(pFanin1) - Saig_ManPiNum(p) );
+    pInput0 = Saig_ManLi( p, Aig_ObjCioId(pFanin0) - Saig_ManPiNum(p) );
+    pInput1 = Saig_ManLi( p, Aig_ObjCioId(pFanin1) - Saig_ManPiNum(p) );
     pInput0 = Aig_ObjChild0( pInput0 );
     pInput1 = Aig_ObjChild0( pInput1 );
     pInput0 = Aig_NotCond( pInput0, Aig_ObjFaninC0(pObj) );
@@ -90,11 +90,11 @@ Aig_Obj_t * Saig_ManRetimeNodeFwd( Aig_Man_t * p, Aig_Obj_t * pObj, int fMakeBug
 
     // create new register input
     pObjLi = Aig_ObjCreateCo( p, Aig_NotCond(pObjNew, fCompl) );
-    pObjLi->PioNum = Aig_ManCoNum(p) - 1;
+    pObjLi->CioId = Aig_ManCoNum(p) - 1;
 
     // create new register output
     pObjLo = Aig_ObjCreateCi( p );
-    pObjLo->PioNum = Aig_ManCiNum(p) - 1;
+    pObjLo->CioId = Aig_ManCiNum(p) - 1;
     p->nRegs++;
 
     // make sure the register is retimable.
@@ -113,7 +113,7 @@ Aig_Obj_t * Saig_ManRetimeNodeFwd( Aig_Man_t * p, Aig_Obj_t * pObj, int fMakeBug
 
   Description [Returns the pointer to node after retiming.]
                
-  SideEffects [Remember to run Aig_ManSetPioNumbers() in advance.]
+  SideEffects [Remember to run Aig_ManSetCioIds() in advance.]
 
   SeeAlso     []
 
@@ -127,11 +127,11 @@ Aig_Obj_t * Saig_ManRetimeNodeBwd( Aig_Man_t * p, Aig_Obj_t * pObjLo )
     int fCompl0, fCompl1;
 
     assert( Saig_ManRegNum(p) > 0 );
-    assert( Aig_ObjPioNum(pObjLo) > 0 );
+    assert( Aig_ObjCioId(pObjLo) > 0 );
     assert( Saig_ObjIsLo(p, pObjLo) );
 
     // get the corresponding latch input
-    pObjLi = Saig_ManLi( p, Aig_ObjPioNum(pObjLo) - Saig_ManPiNum(p) );
+    pObjLi = Saig_ManLi( p, Aig_ObjCioId(pObjLo) - Saig_ManPiNum(p) );
 
     // get the node
     pObj = Aig_ObjFanin0(pObjLi);
@@ -148,15 +148,15 @@ Aig_Obj_t * Saig_ManRetimeNodeBwd( Aig_Man_t * p, Aig_Obj_t * pObjLo )
 
     // create latch inputs
     pLi0New = Aig_ObjCreateCo( p, Aig_NotCond(pFanin0, fCompl0) );
-    pLi0New->PioNum = Aig_ManCoNum(p) - 1;
+    pLi0New->CioId = Aig_ManCoNum(p) - 1;
     pLi1New = Aig_ObjCreateCo( p, Aig_NotCond(pFanin1, fCompl1) );
-    pLi1New->PioNum = Aig_ManCoNum(p) - 1;
+    pLi1New->CioId = Aig_ManCoNum(p) - 1;
 
     // create latch outputs
     pLo0New = Aig_ObjCreateCi(p);
-    pLo0New->PioNum = Aig_ManCiNum(p) - 1;
+    pLo0New->CioId = Aig_ManCiNum(p) - 1;
     pLo1New = Aig_ObjCreateCi(p);
-    pLo1New->PioNum = Aig_ManCiNum(p) - 1;
+    pLo1New->CioId = Aig_ManCiNum(p) - 1;
     pLo0New = Aig_NotCond( pLo0New, fCompl0 );
     pLo1New = Aig_NotCond( pLo1New, fCompl1 );
     p->nRegs += 2;
@@ -173,7 +173,7 @@ Aig_Obj_t * Saig_ManRetimeNodeBwd( Aig_Man_t * p, Aig_Obj_t * pObjLo )
 
   Description [Returns the pointer to node after retiming.]
                
-  SideEffects [Remember to run Aig_ManSetPioNumbers() in advance.]
+  SideEffects [Remember to run Aig_ManSetCioIds() in advance.]
 
   SeeAlso     []
 
@@ -182,7 +182,7 @@ int Saig_ManRetimeSteps( Aig_Man_t * p, int nSteps, int fForward, int fAddBugs )
 {
     Aig_Obj_t * pObj, * pObjNew;
     int RetValue, s, i;
-    Aig_ManSetPioNumbers( p );
+    Aig_ManSetCioIds( p );
     Aig_ManFanoutStart( p );
     p->fCreatePios = 1;
     if ( fForward )

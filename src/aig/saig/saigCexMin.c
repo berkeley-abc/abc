@@ -279,7 +279,7 @@ Vec_Vec_t * Saig_ManCexMinCollectPhasePriority_( Aig_Man_t * pAig, Abc_Cex_t * p
         {
             assert( Aig_ObjIsCi(pObj) );
             if ( Saig_ObjIsPi(pAig, pObj) )
-                Vec_IntPush( vFramePPsOne, Abc_Var2Lit( (f+1) * pCex->nPis - nPiCount++, Abc_InfoHasBit(pCex->pData, pCex->nRegs + f * pCex->nPis + Aig_ObjPioNum(pObj)) ) );
+                Vec_IntPush( vFramePPsOne, Abc_Var2Lit( (f+1) * pCex->nPis - nPiCount++, Abc_InfoHasBit(pCex->pData, pCex->nRegs + f * pCex->nPis + Aig_ObjCioId(pObj)) ) );
             else if ( f == 0 )
                 Vec_IntPush( vFramePPsOne, Abc_Var2Lit( nPrioOffset + Saig_ObjRegId(pAig, pObj), 0 ) );
             else
@@ -333,7 +333,7 @@ Vec_Vec_t * Saig_ManCexMinCollectPhasePriority( Aig_Man_t * pAig, Abc_Cex_t * pC
         {
             assert( Aig_ObjIsCi(pObj) );
             if ( Saig_ObjIsPi(pAig, pObj) )
-                Vec_IntPush( vFramePPsOne, Abc_Var2Lit( nPrioOffset + (f+1) * pCex->nPis - 1 - nPiCount++, Abc_InfoHasBit(pCex->pData, pCex->nRegs + f * pCex->nPis + Aig_ObjPioNum(pObj)) ) );
+                Vec_IntPush( vFramePPsOne, Abc_Var2Lit( nPrioOffset + (f+1) * pCex->nPis - 1 - nPiCount++, Abc_InfoHasBit(pCex->pData, pCex->nRegs + f * pCex->nPis + Aig_ObjCioId(pObj)) ) );
             else if ( f == 0 )
                 Vec_IntPush( vFramePPsOne, Abc_Var2Lit( Saig_ObjRegId(pAig, pObj), 0 ) );
             else
@@ -369,7 +369,7 @@ void Saig_ManCexMinCollectReason_rec( Aig_Man_t * p, Aig_Obj_t * pObj, Vec_Int_t
     if ( Aig_ObjIsCi(pObj) )
     {
         if ( fPiReason && Saig_ObjIsPi(p, pObj) )
-            Vec_IntPush( vReason, Abc_Var2Lit( Aig_ObjPioNum(pObj), !Abc_LitIsCompl(pObj->iData) ) );
+            Vec_IntPush( vReason, Abc_Var2Lit( Aig_ObjCioId(pObj), !Abc_LitIsCompl(pObj->iData) ) );
         else if ( !fPiReason && Saig_ObjIsLo(p, pObj) )
             Vec_IntPush( vReason, Abc_Var2Lit( Saig_ObjRegId(p, pObj), !Abc_LitIsCompl(pObj->iData) ) );
         return;

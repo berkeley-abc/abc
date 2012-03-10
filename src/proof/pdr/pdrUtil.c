@@ -616,11 +616,11 @@ int Pdr_NtkFindSatAssign_rec( Aig_Man_t * pAig, Aig_Obj_t * pNode, int Value, Pd
     if ( Aig_ObjIsCi(pNode) )
     {
 //        if ( vSuppLits )
-//            Vec_IntPush( vSuppLits, Abc_Var2Lit( Aig_ObjPioNum(pNode), !Value ) );
+//            Vec_IntPush( vSuppLits, Abc_Var2Lit( Aig_ObjCioId(pNode), !Value ) );
         if ( Saig_ObjIsLo(pAig, pNode) )
         {
-//            pCube->Lits[pCube->nLits++] = Abc_Var2Lit( Aig_ObjPioNum(pNode) - Saig_ManPiNum(pAig), !Value );
-            pCube->Lits[pCube->nLits++] = Abc_Var2Lit( Aig_ObjPioNum(pNode) - Saig_ManPiNum(pAig), Value );
+//            pCube->Lits[pCube->nLits++] = Abc_Var2Lit( Aig_ObjCioId(pNode) - Saig_ManPiNum(pAig), !Value );
+            pCube->Lits[pCube->nLits++] = Abc_Var2Lit( Aig_ObjCioId(pNode) - Saig_ManPiNum(pAig), Value );
             pCube->Sign |= ((word)1 << (pCube->Lits[pCube->nLits-1] % 63));
         }
         return 1;

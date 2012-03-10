@@ -81,7 +81,7 @@ int Fra_FraigMiterStatus( Aig_Man_t * p )
             continue;
         }
         // check if the output is a primary input
-        if ( Aig_ObjIsCi(Aig_Regular(pChild)) && Aig_ObjPioNum(Aig_Regular(pChild)) < p->nTruePis )
+        if ( Aig_ObjIsCi(Aig_Regular(pChild)) && Aig_ObjCioId(Aig_Regular(pChild)) < p->nTruePis )
         {
             CountNonConst0++;
             continue;

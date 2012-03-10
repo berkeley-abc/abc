@@ -1133,7 +1133,7 @@ void Aig_ManSupportNodes_rec( Aig_Man_t * p, Aig_Obj_t * pObj, Vec_Int_t * vSupp
     Aig_ObjSetTravIdCurrent(p, pObj);
     if ( Aig_ObjIsCi(pObj) )
     {
-        Vec_IntPush( vSupport, Aig_ObjPioNum(pObj) );
+        Vec_IntPush( vSupport, Aig_ObjCioId(pObj) );
         return;
     }
     Aig_ManSupportNodes_rec( p, Aig_ObjFanin0(pObj), vSupport );
@@ -1156,7 +1156,7 @@ Vec_Ptr_t * Aig_ManSupportNodes( Aig_Man_t * p, Vec_Ptr_t * vParts )
     Vec_Ptr_t * vPartSupps;
     Vec_Int_t * vPart, * vSupport;
     int i, k, iOut;
-    Aig_ManSetPioNumbers( p );
+    Aig_ManSetCioIds( p );
     vPartSupps = Vec_PtrAlloc( Vec_PtrSize(vParts) );
     Vec_PtrForEachEntry( Vec_Int_t *, vParts, vPart, i )
     {
@@ -1168,7 +1168,7 @@ Vec_Ptr_t * Aig_ManSupportNodes( Aig_Man_t * p, Vec_Ptr_t * vParts )
 //        Vec_IntSort( vSupport, 0 );
         Vec_PtrPush( vPartSupps, vSupport );
     }
-    Aig_ManCleanPioNumbers( p );
+    Aig_ManCleanCioIds( p );
     return vPartSupps;
 }
 
@@ -1392,7 +1392,7 @@ Aig_Man_t * Aig_ManFraigPartitioned( Aig_Man_t * pAig, int nPartSize, int nConfM
     Aig_ManReprStart( pAig, Aig_ManObjNumMax(pAig) );
 
     // set the PI numbers
-    Aig_ManSetPioNumbers( pAig );
+    Aig_ManSetCioIds( pAig );
 
     // create the total fraiged AIG
     Vec_PtrForEachEntry( Vec_Int_t *, vParts, vPart, i )
@@ -1425,7 +1425,7 @@ Aig_Man_t * Aig_ManFraigPartitioned( Aig_Man_t * pAig, int nPartSize, int nConfM
     Vec_VecFree( (Vec_Vec_t *)vParts );
 
     // clear the PI numbers
-    Aig_ManCleanPioNumbers( pAig );
+    Aig_ManCleanCioIds( pAig );
 
     // derive the result of choicing
     return Aig_ManDupRepr( pAig, 0 );

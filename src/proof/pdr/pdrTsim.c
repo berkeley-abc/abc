@@ -289,14 +289,14 @@ void Pdr_ManDeriveResult( Aig_Man_t * pAig, Vec_Int_t * vCiObjs, Vec_Int_t * vCi
     {
         if ( Saig_ObjIsPi(pAig, pObj) )
         {
-            Lit = toLitCond( Aig_ObjPioNum(pObj), (Vec_IntEntry(vCiVals, i) == 0) );
+            Lit = toLitCond( Aig_ObjCioId(pObj), (Vec_IntEntry(vCiVals, i) == 0) );
             Vec_IntPush( vPiLits, Lit );
             continue;
         }
         assert( Saig_ObjIsLo(pAig, pObj) );
         if ( Aig_ObjIsTravIdCurrent(pAig, pObj) )
             continue;
-        Lit = toLitCond( Aig_ObjPioNum(pObj) - Saig_ManPiNum(pAig), (Vec_IntEntry(vCiVals, i) == 0) );
+        Lit = toLitCond( Aig_ObjCioId(pObj) - Saig_ManPiNum(pAig), (Vec_IntEntry(vCiVals, i) == 0) );
         Vec_IntPush( vRes, Lit );
     }
     if ( Vec_IntSize(vRes) == 0 )
@@ -323,10 +323,10 @@ void Pdr_ManPrintCex( Aig_Man_t * pAig, Vec_Int_t * vCiObjs, Vec_Int_t * vCiVals
         pBuff[i] = '-';
     pBuff[i] = 0;
     Aig_ManForEachObjVec( vCiObjs, pAig, pObj, i )
-        pBuff[Aig_ObjPioNum(pObj)] = (Vec_IntEntry(vCiVals, i)? '1':'0');
+        pBuff[Aig_ObjCioId(pObj)] = (Vec_IntEntry(vCiVals, i)? '1':'0');
     if ( vCi2Rem )
     Aig_ManForEachObjVec( vCi2Rem, pAig, pObj, i )
-        pBuff[Aig_ObjPioNum(pObj)] = 'x';
+        pBuff[Aig_ObjCioId(pObj)] = 'x';
     Abc_Print( 1, "%s\n", pBuff );
     ABC_FREE( pBuff );
 }
@@ -406,7 +406,7 @@ Pdr_ManPrintCex( p->pAig, vCiObjs, vCiVals, NULL );
     {
         if ( !Saig_ObjIsLo( p->pAig, pObj ) )
             continue;
-        Entry = Aig_ObjPioNum(pObj) - Saig_ManPiNum(p->pAig);
+        Entry = Aig_ObjCioId(pObj) - Saig_ManPiNum(p->pAig);
         if ( vPrio != NULL && Vec_IntEntry( vPrio, Entry ) != 0 )
             continue;
         Vec_IntClear( vUndo );
@@ -420,7 +420,7 @@ Pdr_ManPrintCex( p->pAig, vCiObjs, vCiVals, NULL );
     {
         if ( !Saig_ObjIsLo( p->pAig, pObj ) )
             continue;
-        Entry = Aig_ObjPioNum(pObj) - Saig_ManPiNum(p->pAig);
+        Entry = Aig_ObjCioId(pObj) - Saig_ManPiNum(p->pAig);
         if ( vPrio == NULL || Vec_IntEntry( vPrio, Entry ) == 0 )
             continue;
         Vec_IntClear( vUndo );

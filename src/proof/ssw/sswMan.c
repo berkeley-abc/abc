@@ -48,7 +48,7 @@ Ssw_Man_t * Ssw_ManCreate( Aig_Man_t * pAig, Ssw_Pars_t * pPars )
     // prepare the sequential AIG
     assert( Saig_ManRegNum(pAig) > 0 );
     Aig_ManFanoutStart( pAig );
-    Aig_ManSetPioNumbers( pAig );
+    Aig_ManSetCioIds( pAig );
     // create interpolation manager
     p = ABC_ALLOC( Ssw_Man_t, 1 ); 
     memset( p, 0, sizeof(Ssw_Man_t) );

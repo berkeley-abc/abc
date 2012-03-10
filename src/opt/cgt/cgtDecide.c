@@ -103,7 +103,7 @@ int Cgt_ManCheckGateComplete( Aig_Man_t * pAig, Vec_Vec_t * vGatesAll, Aig_Obj_t
     {
         if ( Saig_ObjIsPo(pAig, pObj) )
             return 0;
-        vGates = Vec_VecEntry( vGatesAll, Aig_ObjPioNum(pObj) - Saig_ManPoNum(pAig) );
+        vGates = Vec_VecEntry( vGatesAll, Aig_ObjCioId(pObj) - Saig_ManPoNum(pAig) );
         if ( Vec_PtrFind( vGates, pGate ) == -1 )
             return 0;            
     }

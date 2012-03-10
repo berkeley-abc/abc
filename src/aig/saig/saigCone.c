@@ -53,7 +53,7 @@ void Saig_ManSupport_rec( Aig_Man_t * p, Aig_Obj_t * pObj, Vec_Ptr_t * vSupp )
     {
         if ( Saig_ObjIsLo(p,pObj) )
         {
-            pObj = Saig_ManLi( p, Aig_ObjPioNum(pObj)-Saig_ManPiNum(p) );
+            pObj = Saig_ManLi( p, Aig_ObjCioId(pObj)-Saig_ManPiNum(p) );
             Vec_PtrPush( vSupp, pObj );
         }
         return;
@@ -111,7 +111,7 @@ void Saig_ManPrintConeOne( Aig_Man_t * p, Aig_Obj_t * pObj )
     // get the current support
     vCur = Saig_ManSupport( p, vPrev );  
     Vec_PtrClear( vPrev );
-    printf( "    PO %3d  ", Aig_ObjPioNum(pObj) );
+    printf( "    PO %3d  ", Aig_ObjCioId(pObj) );
     // continue computing supports as long as there are now nodes
     vTotal = Vec_PtrAlloc( 100 );
     for ( s = 0; ; s++ )
@@ -167,7 +167,7 @@ void Saig_ManPrintCones( Aig_Man_t * p )
     printf( "- c is the number of registers in b that are new (appear for the first time)\n" );
     printf( "- d is the number of registers in b in common with the previous time-frame\n" );
     printf( "- e is the number of registers in b in common with other time-frames\n" );
-    Aig_ManSetPioNumbers( p );
+    Aig_ManSetCioIds( p );
     Saig_ManForEachPo( p, pObj, i )
         Saig_ManPrintConeOne( p, pObj );
 }

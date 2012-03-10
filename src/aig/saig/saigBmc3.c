@@ -697,7 +697,7 @@ static inline int Saig_ManBmcSetLiteral( Gia_ManBmc_t * p, Aig_Obj_t * pObj, int
         Vec_IntPush( p->vVisited, iFrame );
     }
     else if ( iLit != ~0 && Saig_ObjIsPi(p->pAig, pObj) ) // save PI SAT var num
-        Vec_IntWriteEntry( p->vPiVars, iFrame*Saig_ManPiNum(p->pAig)+Aig_ObjPioNum(pObj), lit_var(iLit) );
+        Vec_IntWriteEntry( p->vPiVars, iFrame*Saig_ManPiNum(p->pAig)+Aig_ObjCioId(pObj), lit_var(iLit) );
     return iLit;
 }
 
@@ -1051,7 +1051,7 @@ void Saig_ManBmcMarkPis( Aig_Man_t * pAig, int nPisAbstract )
         if ( i < nPisAbstract )
         {
             pObj->fMarkA = 1;
-//            printf( "%d=%d ", Aig_ObjPioNum(pObj), Aig_ObjRefs(pObj) );
+//            printf( "%d=%d ", Aig_ObjCioId(pObj), Aig_ObjRefs(pObj) );
         }
     }
 //    printf( "\n" );

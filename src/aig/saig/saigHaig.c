@@ -109,7 +109,7 @@ Aig_Man_t * Aig_ManHaigFrames( Aig_Man_t * pHaig, int nFrames )
     Saig_ManForEachLo( pHaig, pObj, i )
         pObj->pData = Aig_ObjCreateCi( pFrames );
     // add timeframes
-    Aig_ManSetPioNumbers( pHaig );
+    Aig_ManSetCioIds( pHaig );
     for ( f = 0; f < nFrames; f++ )
     {
         // create primary inputs
@@ -558,7 +558,7 @@ Aig_Man_t * Saig_ManHaigDump( Aig_Man_t * pHaig )
     Aig_Obj_t * pObj, * pObj1, * pObj2, * pMiter;
     int Id1, Id2, i;
     // remove regular POs
-    Aig_ManSetPioNumbers( pHaig );
+    Aig_ManSetCioIds( pHaig );
     vTemp = Vec_PtrAlloc( Saig_ManRegNum(pHaig) );
     Aig_ManForEachCo( pHaig, pObj, i )
     {

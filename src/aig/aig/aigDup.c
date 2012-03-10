@@ -679,16 +679,16 @@ Vec_Ptr_t * Aig_ManOrderPios( Aig_Man_t * p, Aig_Man_t * pOrder )
     int i;
     assert( Aig_ManCiNum(p) == Aig_ManCiNum(pOrder) );
     assert( Aig_ManCoNum(p) == Aig_ManCoNum(pOrder) );
-    Aig_ManSetPioNumbers( pOrder );
+    Aig_ManSetCioIds( pOrder );
     vPios = Vec_PtrAlloc( Aig_ManCiNum(p) + Aig_ManCoNum(p) );
     Aig_ManForEachObj( pOrder, pObj, i )
     {
         if ( Aig_ObjIsCi(pObj) )
-            Vec_PtrPush( vPios, Aig_ManCi(p, Aig_ObjPioNum(pObj)) );
+            Vec_PtrPush( vPios, Aig_ManCi(p, Aig_ObjCioId(pObj)) );
         else if ( Aig_ObjIsCo(pObj) )
-            Vec_PtrPush( vPios, Aig_ManCo(p, Aig_ObjPioNum(pObj)) );
+            Vec_PtrPush( vPios, Aig_ManCo(p, Aig_ObjCioId(pObj)) );
     }
-    Aig_ManCleanPioNumbers( pOrder );
+    Aig_ManCleanCioIds( pOrder );
     return vPios;
 }
 

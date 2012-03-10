@@ -108,9 +108,9 @@ int Ssw_ManUniqueOne( Ssw_Man_t * p, Aig_Obj_t * pRepr, Aig_Obj_t * pObj, int fV
         assert( Aig_ObjIsCi(pTemp) );
         if ( !Saig_ObjIsLo(p->pAig, pTemp) )
             continue;
-        assert( Aig_ObjPioNum(pTemp) > 0 );
+        assert( Aig_ObjCioId(pTemp) > 0 );
         Vec_PtrWriteEntry( p->vCommon, k++, pTemp );
-        if ( Vec_IntEntry(p->vDiffPairs, Aig_ObjPioNum(pTemp) - Saig_ManPiNum(p->pAig)) )
+        if ( Vec_IntEntry(p->vDiffPairs, Aig_ObjCioId(pTemp) - Saig_ManPiNum(p->pAig)) )
             fFeasible = 1;
     }
     Vec_PtrShrink( p->vCommon, k );

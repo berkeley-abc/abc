@@ -114,7 +114,7 @@ int Aig_NtkFindSatAssign_rec( Aig_Man_t * pAig, Aig_Obj_t * pNode, int Value, Ve
 //        if ( Aig_ObjId(pNode) % 1000 == 0 )
 //            Value ^= 1;
         if ( vSuppLits )
-            Vec_IntPush( vSuppLits, Abc_Var2Lit( Aig_ObjPioNum(pNode), !Value ) );
+            Vec_IntPush( vSuppLits, Abc_Var2Lit( Aig_ObjCioId(pNode), !Value ) );
         return 1;
     }
     assert( Aig_ObjIsNode(pNode) );

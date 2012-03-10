@@ -47,7 +47,7 @@ int Aig_ManVerifyTopoOrder( Aig_Man_t * p )
 {
     Aig_Obj_t * pObj, * pNext;
     int i, k, iBox, iTerm1, nTerms;
-    Aig_ManSetPioNumbers( p );
+    Aig_ManSetCioIds( p );
     Aig_ManIncrementTravId( p );
     Aig_ManForEachObj( p, pObj, i )
     {
@@ -79,7 +79,7 @@ int Aig_ManVerifyTopoOrder( Aig_Man_t * p )
         {
             if ( p->pManTime )
             {
-                iBox = Tim_ManBoxForCi( (Tim_Man_t *)p->pManTime, Aig_ObjPioNum(pObj) );
+                iBox = Tim_ManBoxForCi( (Tim_Man_t *)p->pManTime, Aig_ObjCioId(pObj) );
                 if ( iBox >= 0 ) // this is not a true PI
                 {
                     iTerm1 = Tim_ManBoxInputFirst( (Tim_Man_t *)p->pManTime, iBox );
@@ -87,7 +87,7 @@ int Aig_ManVerifyTopoOrder( Aig_Man_t * p )
                     for ( k = 0; k < nTerms; k++ )
                     {
                         pNext = Aig_ManCo( p, iTerm1 + k );
-                        assert( Tim_ManBoxForCo( (Tim_Man_t *)p->pManTime, Aig_ObjPioNum(pNext) ) == iBox ); 
+                        assert( Tim_ManBoxForCo( (Tim_Man_t *)p->pManTime, Aig_ObjCioId(pNext) ) == iBox ); 
                         if ( !Aig_ObjIsTravIdCurrent(p,pNext) )
                         {
                             printf( "Box %d has input %d that is not in a topological order.\n", iBox, pNext->Id );
@@ -101,7 +101,7 @@ int Aig_ManVerifyTopoOrder( Aig_Man_t * p )
             assert( 0 );
         Aig_ObjSetTravIdCurrent( p, pObj );
     }
-    Aig_ManCleanPioNumbers( p );
+    Aig_ManCleanCioIds( p );
     return 1;
 }
 
@@ -505,7 +505,7 @@ void Aig_ManChoiceLevel_rec( Aig_Man_t * p, Aig_Obj_t * pObj )
     {
         if ( p->pManTime )
         {
-            iBox = Tim_ManBoxForCi( (Tim_Man_t *)p->pManTime, Aig_ObjPioNum(pObj) );
+            iBox = Tim_ManBoxForCi( (Tim_Man_t *)p->pManTime, Aig_ObjCioId(pObj) );
             if ( iBox >= 0 ) // this is not a true PI
             {
                 iTerm1 = Tim_ManBoxInputFirst( (Tim_Man_t *)p->pManTime, iBox );
@@ -572,7 +572,7 @@ int Aig_ManChoiceLevel( Aig_Man_t * p )
     int i, LevelMax = 0;
     Aig_ManForEachObj( p, pObj, i )
         Aig_ObjSetLevel( pObj, 0 );
-    Aig_ManSetPioNumbers( p );
+    Aig_ManSetCioIds( p );
     Aig_ManIncrementTravId( p );
     Aig_ManForEachCo( p, pObj, i )
     {
@@ -587,7 +587,7 @@ int Aig_ManChoiceLevel( Aig_Man_t * p )
         if ( LevelMax < Aig_ObjLevel(pObj) )
             LevelMax = Aig_ObjLevel(pObj);
     }
-    Aig_ManCleanPioNumbers( p );
+    Aig_ManCleanCioIds( p );
 //    Aig_ManForEachNode( p, pObj, i )
 //        assert( Aig_ObjLevel(pObj) > 0 );
     return LevelMax;

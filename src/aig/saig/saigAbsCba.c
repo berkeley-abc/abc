@@ -268,7 +268,7 @@ void Saig_ManCbaFindReason_rec( Aig_Man_t * p, Aig_Obj_t * pObj, Vec_Int_t * vPr
         return;
     if ( Aig_ObjIsCi(pObj) )
     {
-        Vec_IntPush( vReasons, Aig_ObjPioNum(pObj) );
+        Vec_IntPush( vReasons, Aig_ObjCioId(pObj) );
         return;
     }
     assert( Aig_ObjIsNode(pObj) );
@@ -460,15 +460,15 @@ Aig_Man_t * Saig_ManCbaUnrollWithCex( Aig_Man_t * pAig, Abc_Cex_t * pCex, int nI
                 pObj->pData = Aig_ManConst1(pFrames);
             else if ( Saig_ObjIsPi(pAig, pObj) )
             {
-                if ( Aig_ObjPioNum(pObj) < nInputs )
+                if ( Aig_ObjCioId(pObj) < nInputs )
                 {
-                    int iBit = pCex->nRegs + f * pCex->nPis + Aig_ObjPioNum(pObj);
+                    int iBit = pCex->nRegs + f * pCex->nPis + Aig_ObjCioId(pObj);
                     pObj->pData = Aig_NotCond( Aig_ManConst1(pFrames), !Abc_InfoHasBit(pCex->pData, iBit) );
                 }
                 else
                 {
                     pObj->pData = Aig_ObjCreateCi( pFrames );
-                    Vec_IntPush( *pvMapPiF2A, Aig_ObjPioNum(pObj) );
+                    Vec_IntPush( *pvMapPiF2A, Aig_ObjCioId(pObj) );
                     Vec_IntPush( *pvMapPiF2A, f );
                 }
             }
@@ -569,7 +569,7 @@ void Saig_ManCbaShrink( Saig_ManCba_t * p )
                 continue;
             pObjLi = Aig_ManObj( p->pAig, ObjId );
             assert( Saig_ObjIsLi(p->pAig, pObjLi) );
-            Vec_VecPushInt( p->vReg2Value, f, Abc_Var2Lit( Aig_ObjPioNum(pObjLi) - Saig_ManPoNum(p->pAig), Abc_LitIsCompl(Lit) ^ !pObjFrame->fPhase ) );
+            Vec_VecPushInt( p->vReg2Value, f, Abc_Var2Lit( Aig_ObjCioId(pObjLi) - Saig_ManPoNum(p->pAig), Abc_LitIsCompl(Lit) ^ !pObjFrame->fPhase ) );
         }
     }
     // print statistics

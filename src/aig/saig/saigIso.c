@@ -65,7 +65,7 @@ Vec_Int_t * Saig_ManFindIsoPermCos( Aig_Man_t * pAig, Vec_Int_t * vPermCis )
         }
         Vec_PtrSort( vRoots, (int (*)(void))Iso_ObjCompareByData );
         Vec_PtrForEachEntry( Aig_Obj_t *, vRoots, pObj, i )
-            Vec_IntPush( vPermCos, Aig_ObjPioNum(pObj) );
+            Vec_IntPush( vPermCos, Aig_ObjCioId(pObj) );
         Vec_PtrFree( vRoots );
     }
     // add flop outputs

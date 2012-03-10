@@ -48,7 +48,7 @@ Cgt_Man_t * Cgt_ManCreate( Aig_Man_t * pAig, Aig_Man_t * pCare, Cgt_Par_t * pPar
     // prepare the sequential AIG
     assert( Saig_ManRegNum(pAig) > 0 );
     Aig_ManFanoutStart( pAig );
-    Aig_ManSetPioNumbers( pAig );
+    Aig_ManSetCioIds( pAig );
     // create interpolation manager
     p = ABC_ALLOC( Cgt_Man_t, 1 ); 
     memset( p, 0, sizeof(Cgt_Man_t) );

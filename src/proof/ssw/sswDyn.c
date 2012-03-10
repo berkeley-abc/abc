@@ -113,10 +113,10 @@ void Ssw_ManCollectPos_rec( Ssw_Man_t * p, Aig_Obj_t * pObj, Vec_Int_t * vNewPos
     if ( Aig_ObjIsCo(pObj) )
     {
         // skip if it is a register input PO
-        if ( Aig_ObjPioNum(pObj) >= Aig_ManCoNum(p->pFrames)-Aig_ManRegNum(p->pAig) )
+        if ( Aig_ObjCioId(pObj) >= Aig_ManCoNum(p->pFrames)-Aig_ManRegNum(p->pAig) )
             return;
         // add the number of this constraint
-        Vec_IntPush( vNewPos, Aig_ObjPioNum(pObj)/2 );
+        Vec_IntPush( vNewPos, Aig_ObjCioId(pObj)/2 );
         return;
     }
     // visit the fanouts
@@ -225,7 +225,7 @@ void Ssw_ManSweepTransferDyn( Ssw_Man_t * p )
         }
         assert( !Aig_IsComplement(pObjFraig) );
         assert( Aig_ObjIsCi(pObjFraig) );
-        pInfo = (unsigned *)Vec_PtrEntry( p->vSimInfo, Aig_ObjPioNum(pObjFraig) );
+        pInfo = (unsigned *)Vec_PtrEntry( p->vSimInfo, Aig_ObjCioId(pObjFraig) );
         Ssw_SmlObjSetWord( p->pSml, pObj, pInfo[0], 0, 0 );
     }
     // set random simulation info for the second frame
@@ -236,7 +236,7 @@ void Ssw_ManSweepTransferDyn( Ssw_Man_t * p )
             pObjFraig = Ssw_ObjFrame( p, pObj, f );
             assert( !Aig_IsComplement(pObjFraig) );
             assert( Aig_ObjIsCi(pObjFraig) );
-            pInfo = (unsigned *)Vec_PtrEntry( p->vSimInfo, Aig_ObjPioNum(pObjFraig) );
+            pInfo = (unsigned *)Vec_PtrEntry( p->vSimInfo, Aig_ObjCioId(pObjFraig) );
             Ssw_SmlObjSetWord( p->pSml, pObj, pInfo[0], 0, f );
         }
     }
@@ -386,7 +386,7 @@ clk = clock();
     Ssw_ObjSetFrame( p, Aig_ManConst1(p->pAig), f, Aig_ManConst1(p->pFrames) );
     Saig_ManForEachPi( p->pAig, pObj, i )
         Ssw_ObjSetFrame( p, pObj, f, Aig_ObjCreateCi(p->pFrames) );
-    Aig_ManSetPioNumbers( p->pFrames );
+    Aig_ManSetCioIds( p->pFrames );
     // label nodes corresponding to primary inputs
     Ssw_ManLabelPiNodes( p );
 p->timeReduce += clock() - clk;

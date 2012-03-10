@@ -154,7 +154,7 @@ int Saig_ManInduction( Aig_Man_t * p, int nFramesMax, int nConfMax, int fUnique,
     int nOldSize, iReg, iLast, fAdded, nConstrs = 0, nClauses = 0;
     assert( fUnique == 0 || fUniqueAll == 0 );
     assert( Saig_ManPoNum(p) == 1 );
-    Aig_ManSetPioNumbers( p );
+    Aig_ManSetCioIds( p );
 
     // start the top by including the PO
     vBot = Vec_PtrAlloc( 100 );
@@ -201,9 +201,9 @@ int Saig_ManInduction( Aig_Man_t * p, int nFramesMax, int nConfMax, int fUnique,
                 pObjPiCopy = (Aig_Obj_t *)pObjPi->pData;
                 assert( Aig_ObjIsCi(pObjPiCopy) );
                 if ( Saig_ObjIsPi(p, pObjPi) )
-                    Vec_IntWriteEntry( vTopVarIds, Aig_ObjPioNum(pObjPi) + Saig_ManRegNum(p), pCnfPart->pVarNums[Aig_ObjId(pObjPiCopy)] );
+                    Vec_IntWriteEntry( vTopVarIds, Aig_ObjCioId(pObjPi) + Saig_ManRegNum(p), pCnfPart->pVarNums[Aig_ObjId(pObjPiCopy)] );
                 else if ( Saig_ObjIsLo(p, pObjPi) )
-                    Vec_IntWriteEntry( vTopVarIds, Aig_ObjPioNum(pObjPi) - Saig_ManPiNum(p), pCnfPart->pVarNums[Aig_ObjId(pObjPiCopy)] );
+                    Vec_IntWriteEntry( vTopVarIds, Aig_ObjCioId(pObjPi) - Saig_ManPiNum(p), pCnfPart->pVarNums[Aig_ObjId(pObjPiCopy)] );
                 else assert( 0 );
             }
         }
@@ -261,7 +261,7 @@ int Saig_ManInduction( Aig_Man_t * p, int nFramesMax, int nConfMax, int fUnique,
                 Vec_PtrPush( vTop, Saig_ObjLoToLi(p, pObjPi) );
                 Vec_IntPush( vTopVarNums, pCnfPart->pVarNums[pObjPiCopy->Id] );
 
-                iReg = pObjPi->PioNum - Saig_ManPiNum(p);
+                iReg = pObjPi->CioId - Saig_ManPiNum(p);
                 assert( iReg >= 0 && iReg < Aig_ManRegNum(p) );
                 Vec_IntWriteEntry( vState, nOldSize+iReg, pCnfPart->pVarNums[pObjPiCopy->Id] );
             }

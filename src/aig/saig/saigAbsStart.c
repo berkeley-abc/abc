@@ -250,7 +250,7 @@ Vec_Int_t * Saig_ManCexAbstractionFlops( Aig_Man_t * p, Gia_ParAbs_t * pPars )
     assert( Aig_ManRegNum(p) > 0 );
     if ( pPars->fVerbose )
         printf( "Performing counter-example-based refinement.\n" );
-    Aig_ManSetPioNumbers( p );
+    Aig_ManSetCioIds( p );
     vFlops = Vec_IntStartNatural( 1 );
 /*
     iFlop = Saig_ManFindFirstFlop( p );

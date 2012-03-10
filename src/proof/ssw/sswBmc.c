@@ -132,7 +132,7 @@ int Ssw_BmcDynamic( Aig_Man_t * pAig, int nFramesMax, int nConfLimit, int fVerbo
 
     // start managers
     assert( Saig_ManRegNum(pAig) > 0 );
-    Aig_ManSetPioNumbers( pAig );
+    Aig_ManSetCioIds( pAig );
     pSat = Ssw_SatStart( 0 );
     pFrm = Ssw_FrmStart( pAig );
     pFrm->pFrames = Aig_ManStart( Aig_ManObjNumMax(pAig) * 3 );

@@ -466,7 +466,7 @@ static Aig_Man_t * LivenessToSafetyTransformationSim( Abc_Ntk_t * pNtk, Aig_Man_
     assert( Aig_ManCheck( pNew ) );
     
 #ifndef DUPLICATE_CKT_DEBUG
-    assert((Aig_Obj_t *)Vec_PtrEntry(pNew->vCos, Saig_ManPoNum(pNew)+Aig_ObjPioNum(pObjSavedLo)-Saig_ManPiNum(p)-1) == pObjSavedLi);
+    assert((Aig_Obj_t *)Vec_PtrEntry(pNew->vCos, Saig_ManPoNum(pNew)+Aig_ObjCioId(pObjSavedLo)-Saig_ManPiNum(p)-1) == pObjSavedLi);
     assert( Saig_ManPoNum( pNew ) == 1 );
     assert( Saig_ManPiNum( p ) + 1 == Saig_ManPiNum( pNew ) );
     assert( Saig_ManRegNum( pNew ) == Saig_ManRegNum( p ) * 2 + 1 + liveLatch + fairLatch );

@@ -71,7 +71,7 @@ struct Aig_Obj_t_  // 9 words
 {
     union {                         
         Aig_Obj_t *  pNext;          // strashing table
-        int          PioNum;         // the number of PI/PO
+        int          CioId;          // 0-based number of CI/CO
     };
     Aig_Obj_t *      pFanin0;        // fanin
     Aig_Obj_t *      pFanin1;        // fanin
@@ -268,7 +268,6 @@ static inline Aig_Obj_t *  Aig_ManLi( Aig_Man_t * p, int i )      { return (Aig_
 static inline Aig_Obj_t *  Aig_ManObj( Aig_Man_t * p, int i )     { return p->vObjs ? (Aig_Obj_t *)Vec_PtrEntry(p->vObjs, i) : NULL;  }
 
 static inline Aig_Type_t   Aig_ObjType( Aig_Obj_t * pObj )        { return (Aig_Type_t)pObj->Type;       }
-static inline int          Aig_ObjId( Aig_Obj_t * pObj )          { return pObj->Id;                     }
 static inline int          Aig_ObjIsNone( Aig_Obj_t * pObj )      { return pObj->Type == AIG_OBJ_NONE;   }
 static inline int          Aig_ObjIsConst1( Aig_Obj_t * pObj )    { assert(!Aig_IsComplement(pObj)); return pObj->Type == AIG_OBJ_CONST1; }
 static inline int          Aig_ObjIsCi( Aig_Obj_t * pObj )        { return pObj->Type == AIG_OBJ_CI;     }
@@ -281,6 +280,8 @@ static inline int          Aig_ObjIsTerm( Aig_Obj_t * pObj )      { return pObj-
 static inline int          Aig_ObjIsHash( Aig_Obj_t * pObj )      { return pObj->Type == AIG_OBJ_AND || pObj->Type == AIG_OBJ_EXOR;                                 }
 static inline int          Aig_ObjIsChoice( Aig_Man_t * p, Aig_Obj_t * pObj )    { return p->pEquivs && p->pEquivs[pObj->Id] && pObj->nRefs > 0;                    }
 static inline int          Aig_ObjIsCand( Aig_Obj_t * pObj )      { return pObj->Type == AIG_OBJ_CI || pObj->Type == AIG_OBJ_AND || pObj->Type == AIG_OBJ_EXOR;     }
+static inline int          Aig_ObjCioId( Aig_Obj_t * pObj )       { assert( !Aig_ObjIsNode(pObj) ); return pObj->CioId;                                            }
+static inline int          Aig_ObjId( Aig_Obj_t * pObj )          { return pObj->Id;                     }
 
 static inline int          Aig_ObjIsMarkA( Aig_Obj_t * pObj )     { return pObj->fMarkA;  }
 static inline void         Aig_ObjSetMarkA( Aig_Obj_t * pObj )    { pObj->fMarkA = 1;     }
@@ -327,7 +328,6 @@ static inline void         Aig_ObjSetEquiv( Aig_Man_t * p, Aig_Obj_t * pObj, Aig
 static inline Aig_Obj_t *  Aig_ObjRepr( Aig_Man_t * p, Aig_Obj_t * pObj )     { return p->pReprs? p->pReprs[pObj->Id] : NULL;             } 
 static inline void         Aig_ObjSetRepr( Aig_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pRepr )     { assert(p->pReprs); p->pReprs[pObj->Id] = pRepr;                                } 
 static inline Aig_Obj_t *  Aig_ObjHaig( Aig_Obj_t * pObj )        { assert( Aig_Regular(pObj)->pHaig ); return Aig_NotCond( Aig_Regular(pObj)->pHaig, Aig_IsComplement(pObj) );      } 
-static inline int          Aig_ObjPioNum( Aig_Obj_t * pObj )      { assert( !Aig_ObjIsNode(pObj) ); return (int)(ABC_PTRINT_T)pObj->pNext;                                          }
 static inline int          Aig_ObjWhatFanin( Aig_Obj_t * pObj, Aig_Obj_t * pFanin )    
 { 
     if ( Aig_ObjFanin0(pObj) == pFanin ) return 0; 
@@ -658,8 +658,8 @@ extern void            Aig_ManPrintVerbose( Aig_Man_t * p, int fHaig );
 extern void            Aig_ManDump( Aig_Man_t * p );
 extern void            Aig_ManDumpBlif( Aig_Man_t * p, char * pFileName, Vec_Ptr_t * vPiNames, Vec_Ptr_t * vPoNames );
 extern void            Aig_ManDumpVerilog( Aig_Man_t * p, char * pFileName );
-extern void            Aig_ManSetPioNumbers( Aig_Man_t * p );
-extern void            Aig_ManCleanPioNumbers( Aig_Man_t * p );
+extern void            Aig_ManSetCioIds( Aig_Man_t * p );
+extern void            Aig_ManCleanCioIds( Aig_Man_t * p );
 extern int             Aig_ManChoiceNum( Aig_Man_t * p );
 extern char *          Aig_FileNameGenericAppend( char * pBase, char * pSuffix );
 extern unsigned        Aig_ManRandom( int fReset );

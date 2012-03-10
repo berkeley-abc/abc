@@ -124,7 +124,7 @@ void Saig_RefManFindReason_rec( Aig_Man_t * p, Aig_Obj_t * pObj, Vec_Int_t * vPr
     Aig_ObjSetTravIdCurrent(p, pObj);
     if ( Aig_ObjIsCi(pObj) )
     {
-        Vec_IntPush( vReasons, Aig_ObjPioNum(pObj) );
+        Vec_IntPush( vReasons, Aig_ObjCioId(pObj) );
         return;
     }
     assert( Aig_ObjIsNode(pObj) );
@@ -316,15 +316,15 @@ Aig_Man_t * Saig_ManUnrollWithCex( Aig_Man_t * pAig, Abc_Cex_t * pCex, int nInpu
                 pObj->pData = Aig_ManConst1(pFrames);
             else if ( Saig_ObjIsPi(pAig, pObj) )
             {
-                if ( Aig_ObjPioNum(pObj) < nInputs )
+                if ( Aig_ObjCioId(pObj) < nInputs )
                 {
-                    int iBit = pCex->nRegs + f * pCex->nPis + Aig_ObjPioNum(pObj);
+                    int iBit = pCex->nRegs + f * pCex->nPis + Aig_ObjCioId(pObj);
                     pObj->pData = Aig_NotCond( Aig_ManConst1(pFrames), !Abc_InfoHasBit(pCex->pData, iBit) );
                 }
                 else
                 {
                     pObj->pData = Aig_ObjCreateCi( pFrames );
-                    Vec_IntPush( *pvMapPiF2A, Aig_ObjPioNum(pObj) );
+                    Vec_IntPush( *pvMapPiF2A, Aig_ObjCioId(pObj) );
                     Vec_IntPush( *pvMapPiF2A, f );
                 }
             }

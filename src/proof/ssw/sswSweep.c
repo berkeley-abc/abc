@@ -167,7 +167,7 @@ void Ssw_SmlAddPatternDyn( Ssw_Man_t * p )
         assert( nVarNum > 0 );
         if ( sat_solver_var_value( p->pMSat->pSat, nVarNum ) )
         {
-            pInfo = (unsigned *)Vec_PtrEntry( p->vSimInfo, Aig_ObjPioNum(pObj) );
+            pInfo = (unsigned *)Vec_PtrEntry( p->vSimInfo, Aig_ObjCioId(pObj) );
             Abc_InfoSetBit( pInfo, p->nPatterns );
         }
     }

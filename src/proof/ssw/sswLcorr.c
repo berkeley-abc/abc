@@ -59,7 +59,7 @@ void Ssw_ManSweepTransfer( Ssw_Man_t * p )
         }
         assert( !Aig_IsComplement(pObjFraig) );
         assert( Aig_ObjIsCi(pObjFraig) );
-        pInfo = (unsigned *)Vec_PtrEntry( p->vSimInfo, Aig_ObjPioNum(pObjFraig) );
+        pInfo = (unsigned *)Vec_PtrEntry( p->vSimInfo, Aig_ObjCioId(pObjFraig) );
         Ssw_SmlObjSetWord( p->pSml, pObj, pInfo[0], 0, 0 );
     }
 }
@@ -116,7 +116,7 @@ void Ssw_SmlAddPattern( Ssw_Man_t * p, Aig_Obj_t * pRepr, Aig_Obj_t * pCand )
         Value = sat_solver_var_value( p->pMSat->pSat, nVarNum );
         if ( Value == 0 )
             continue;
-        pInfo = (unsigned *)Vec_PtrEntry( p->vSimInfo, Aig_ObjPioNum(pObj) );
+        pInfo = (unsigned *)Vec_PtrEntry( p->vSimInfo, Aig_ObjCioId(pObj) );
         Abc_InfoSetBit( pInfo, p->nPatterns );
     }
 }
@@ -260,7 +260,7 @@ int Ssw_ManSweepLatch( Ssw_Man_t * p )
             pTemp = Aig_NotCond( Ssw_ObjFrame(p, pRepr, 0), pRepr->fPhase ^ pObj->fPhase );
         Ssw_ObjSetFrame( p, pObj, 0, pTemp );
     }
-    Aig_ManSetPioNumbers( p->pFrames );
+    Aig_ManSetCioIds( p->pFrames );
 
     // prepare simulation info
     assert( p->vSimInfo == NULL );

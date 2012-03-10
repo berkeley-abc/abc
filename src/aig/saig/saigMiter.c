@@ -906,7 +906,7 @@ int Saig_ManDemiter( Aig_Man_t * p, Aig_Man_t ** ppAig0, Aig_Man_t ** ppAig1 )
     Aig_Obj_t * pObj, * pObj0, * pObj1, * pFlop0, * pFlop1;
     int i, Counter;
     assert( Saig_ManRegNum(p) > 0 );
-    Aig_ManSetPioNumbers( p );
+    Aig_ManSetCioIds( p );
     // check if demitering is possible
     vPairs = Vec_PtrAlloc( 2 * Saig_ManPoNum(p) );
     Saig_ManForEachPo( p, pObj, i )
@@ -1274,14 +1274,14 @@ int Saig_ManDemiterNew( Aig_Man_t * pMan )
                 vSupp0 = Aig_Support( pMan, Aig_Regular(pFan0) );
                 Vec_PtrForEachEntry( Aig_Obj_t *, vSupp0, pTemp, k )
                     if ( Saig_ObjIsLo(pMan, pTemp) )
-                        printf( " %d", Aig_ObjPioNum(pTemp) );
+                        printf( " %d", Aig_ObjCioId(pTemp) );
                 printf( "\n" );
                 Vec_PtrFree( vSupp0 );
 
                 vSupp1 = Aig_Support( pMan, Aig_Regular(pFan1) );
                 Vec_PtrForEachEntry( Aig_Obj_t *, vSupp1, pTemp, k )
                     if ( Saig_ObjIsLo(pMan, pTemp) )
-                        printf( " %d", Aig_ObjPioNum(pTemp) );
+                        printf( " %d", Aig_ObjCioId(pTemp) );
                 printf( "\n" );
                 Vec_PtrFree( vSupp1 );
             }

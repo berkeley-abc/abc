@@ -77,15 +77,15 @@ Aig_Man_t * Aig_ManRemap( Aig_Man_t * p, Vec_Ptr_t * vMap )
         pObj->pData = Aig_NotCond( (Aig_Obj_t *)Aig_Regular(pObjMapped)->pData, Aig_IsComplement(pObjMapped) );
         if ( pNew->vFlopReprs && i >= nTruePis && pObj != pObjMapped )
         {
-            Vec_IntPush( pNew->vFlopReprs, Aig_ObjPioNum(pObj) );
+            Vec_IntPush( pNew->vFlopReprs, Aig_ObjCioId(pObj) );
             if ( Aig_ObjIsConst1( Aig_Regular(pObjMapped) ) )
                 Vec_IntPush( pNew->vFlopReprs, -1 );
             else
             {
                 assert( !Aig_IsComplement(pObjMapped) );
                 assert( Aig_ObjIsCi(pObjMapped) );
-                assert( Aig_ObjPioNum(pObj) != Aig_ObjPioNum(pObjMapped) );
-                Vec_IntPush( pNew->vFlopReprs, Aig_ObjPioNum(pObjMapped) );
+                assert( Aig_ObjCioId(pObj) != Aig_ObjCioId(pObjMapped) );
+                Vec_IntPush( pNew->vFlopReprs, Aig_ObjCioId(pObjMapped) );
             }
         }
     }
@@ -236,7 +236,7 @@ int Aig_ManSeqCleanup( Aig_Man_t * p )
     Vec_PtrFree( vNodes );
     p->nTruePis = Aig_ManCiNum(p) - Aig_ManRegNum(p); 
     p->nTruePos = Aig_ManCoNum(p) - Aig_ManRegNum(p); 
-    Aig_ManSetPioNumbers( p );
+    Aig_ManSetCioIds( p );
     // remove dangling nodes
     return Aig_ManCleanup( p );
 }
