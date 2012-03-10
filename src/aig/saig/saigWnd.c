@@ -359,7 +359,7 @@ Aig_Man_t * Saig_ManWindowInsertNodes( Aig_Man_t * p, Vec_Ptr_t * vNodes, Aig_Ma
     vSmallPi2BigNode = Vec_PtrStart( Aig_ManObjNumMax(pWnd) ); 
     vNodesPi = Saig_ManWindowCollectPis( p, vNodes );
     Vec_PtrForEachEntry( Aig_Obj_t *, vNodesPi, pObj, i )
-        Vec_PtrWriteEntry( vSmallPi2BigNode, Aig_ManPi(pWnd, i)->Id, pObj );
+        Vec_PtrWriteEntry( vSmallPi2BigNode, Aig_ManCi(pWnd, i)->Id, pObj );
     assert( i == Saig_ManPiNum(pWnd) );
     Vec_PtrFree( vNodesPi );
 
@@ -367,7 +367,7 @@ Aig_Man_t * Saig_ManWindowInsertNodes( Aig_Man_t * p, Vec_Ptr_t * vNodes, Aig_Ma
     vBigNode2SmallPo = Vec_PtrStart( Aig_ManObjNumMax(p) ); 
     vNodesPo = Saig_ManWindowCollectPos( p, vNodes, NULL );
     Vec_PtrForEachEntry( Aig_Obj_t *, vNodesPo, pObj, i )
-        Vec_PtrWriteEntry( vBigNode2SmallPo, pObj->Id, Aig_ManPo(pWnd, i) );
+        Vec_PtrWriteEntry( vBigNode2SmallPo, pObj->Id, Aig_ManCo(pWnd, i) );
     assert( i == Saig_ManPoNum(pWnd) );
     Vec_PtrFree( vNodesPo );
 
@@ -407,8 +407,8 @@ Aig_Man_t * Saig_ManWindowInsertNodes( Aig_Man_t * p, Vec_Ptr_t * vNodes, Aig_Ma
     Vec_PtrFree( vBigNode2SmallPo );
     Vec_PtrFree( vSmallPi2BigNode );
     // set the new number of registers
-    assert( Aig_ManPiNum(pNew) - Aig_ManPiNum(p) == Aig_ManPoNum(pNew) - Aig_ManPoNum(p) );
-    Aig_ManSetRegNum( pNew, Aig_ManRegNum(p) + (Aig_ManPiNum(pNew) - Aig_ManPiNum(p)) );
+    assert( Aig_ManCiNum(pNew) - Aig_ManCiNum(p) == Aig_ManCoNum(pNew) - Aig_ManCoNum(p) );
+    Aig_ManSetRegNum( pNew, Aig_ManRegNum(p) + (Aig_ManCiNum(pNew) - Aig_ManCiNum(p)) );
     Aig_ManCleanup( pNew );
     return pNew;
 }
@@ -567,7 +567,7 @@ Vec_Ptr_t * Saig_ManCollectedDiffNodes( Aig_Man_t * p0, Aig_Man_t * p1 )
         }
         // mark and collect unmatched objects
         Aig_ObjSetTravIdCurrent( p0, pObj0 ); 
-        if ( Aig_ObjIsNode(pObj0) || Aig_ObjIsPi(pObj0) )
+        if ( Aig_ObjIsNode(pObj0) || Aig_ObjIsCi(pObj0) )
             Vec_PtrPush( vNodes, pObj0 );
     }
     // make sure LI/LO are labeled/unlabeled mutually
@@ -658,11 +658,11 @@ void Saig_ManWindowCreatePos( Aig_Man_t * pNew, Aig_Man_t * p0, Aig_Man_t * p1 )
             continue;
         if ( Aig_ObjIsConst1(pObj0) )
             continue;
-        if ( Aig_ObjIsPi(pObj0) )
+        if ( Aig_ObjIsCi(pObj0) )
             continue;
         pObj1 = Aig_ObjRepr( p0, pObj0 );
         assert( pObj0 == Aig_ObjRepr( p1, pObj1 ) );
-        if ( Aig_ObjIsPo(pObj0) )
+        if ( Aig_ObjIsCo(pObj0) )
         {
             pFanin0 = Aig_ObjFanin0(pObj0);
             pFanin1 = Aig_ObjFanin0(pObj1);
@@ -722,7 +722,7 @@ Aig_Man_t * Saig_ManWindowExtractMiter( Aig_Man_t * p0, Aig_Man_t * p1 )
     // add matching of POs and LIs
     Saig_ManForEachPo( p0, pObj0, i )
     {
-        pObj1 = Aig_ManPo( p1, i );
+        pObj1 = Aig_ManCo( p1, i );
         Aig_ObjSetRepr( p0, pObj0, pObj1 );
         Aig_ObjSetRepr( p1, pObj1, pObj0 );
     }

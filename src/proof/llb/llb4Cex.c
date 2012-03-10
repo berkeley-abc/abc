@@ -63,7 +63,7 @@ Abc_Cex_t * Llb4_Nonlin4TransformCex( Aig_Man_t * pAig, Vec_Ptr_t * vStates, int
 */
     // derive SAT solver
     nRegs = Aig_ManRegNum(pAig); pAig->nRegs = 0;
-    pCnf = Cnf_Derive( pAig, Aig_ManPoNum(pAig) );
+    pCnf = Cnf_Derive( pAig, Aig_ManCoNum(pAig) );
     pAig->nRegs = nRegs;
 //    Cnf_DataTranformPolarity( pCnf, 0 );
     // convert into SAT solver
@@ -249,11 +249,11 @@ Vec_Ptr_t * Llb4_Nonlin4VerifyCex( Aig_Man_t * pAig, Abc_Cex_t * p )
     }
 */
     assert( iBit == p->nBits );
-//    if ( Aig_ManPo(pAig, p->iPo)->fMarkB == 0 )
+//    if ( Aig_ManCo(pAig, p->iPo)->fMarkB == 0 )
 //        Vec_PtrFreeP( &vStates );
     for ( i = Saig_ManPoNum(pAig) - 1; i >= 0; i-- )
     {
-        if ( Aig_ManPo(pAig, i)->fMarkB )
+        if ( Aig_ManCo(pAig, i)->fMarkB )
         {
             p->iPo = i;
             break;

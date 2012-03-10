@@ -97,7 +97,7 @@ Abc_PrintTime( 1, "Time", clock() - clkTotal );
                 Abc_Print( 1, "Counter-example verification has failed.\n" );
             else 
             {
-//                Aig_Obj_t * pObj = Aig_ManPo(pMiterCec, iOut);
+//                Aig_Obj_t * pObj = Aig_ManCo(pMiterCec, iOut);
 //                Aig_Obj_t * pFan = Aig_ObjFanin0(pObj);
                 Abc_Print( 1, "Primary output %d has failed", iOut );
                 if ( nOuts-1 >= 0 )

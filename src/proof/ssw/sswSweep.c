@@ -48,7 +48,7 @@ int Ssw_ManGetSatVarValue( Ssw_Man_t * p, Aig_Obj_t * pObj, int f )
     int fUseNoBoundary = 0;
     Aig_Obj_t * pObjFraig;
     int Value;
-//    assert( Aig_ObjIsPi(pObj) );
+//    assert( Aig_ObjIsCi(pObj) );
     pObjFraig = Ssw_ObjFrame( p, pObj, f );
     if ( fUseNoBoundary )
     {
@@ -86,12 +86,12 @@ void Ssw_CheckConstraints( Ssw_Man_t * p )
     Aig_Obj_t * pObj, * pObj2;
     int nConstrPairs, i;
     int Counter = 0;
-    nConstrPairs = Aig_ManPoNum(p->pFrames)-Aig_ManRegNum(p->pAig);
+    nConstrPairs = Aig_ManCoNum(p->pFrames)-Aig_ManRegNum(p->pAig);
     assert( (nConstrPairs & 1) == 0 );
     for ( i = 0; i < nConstrPairs; i += 2 )
     {
-        pObj  = Aig_ManPo( p->pFrames, i   );
-        pObj2 = Aig_ManPo( p->pFrames, i+1 );
+        pObj  = Aig_ManCo( p->pFrames, i   );
+        pObj2 = Aig_ManCo( p->pFrames, i+1 );
         if ( Ssw_NodesAreEquiv( p, Aig_ObjFanin0(pObj), Aig_ObjFanin0(pObj2) ) != 1 )
         {
             Ssw_NodesAreConstrained( p, Aig_ObjChild0(pObj), Aig_ObjChild0(pObj2) );
@@ -162,7 +162,7 @@ void Ssw_SmlAddPatternDyn( Ssw_Man_t * p )
     // iterate through the PIs of the frames
     Vec_PtrForEachEntry( Aig_Obj_t *, p->pMSat->vUsedPis, pObj, i )
     {
-        assert( Aig_ObjIsPi(pObj) );
+        assert( Aig_ObjIsCi(pObj) );
         nVarNum = Ssw_ObjSatNum( p->pMSat, pObj );
         assert( nVarNum > 0 );
         if ( sat_solver_var_value( p->pMSat->pSat, nVarNum ) )
@@ -373,18 +373,18 @@ clk = clock();
     // create timeframes
     p->pFrames = Ssw_FramesWithClasses( p );
     // add constants
-    nConstrPairs = Aig_ManPoNum(p->pFrames)-Aig_ManRegNum(p->pAig);
+    nConstrPairs = Aig_ManCoNum(p->pFrames)-Aig_ManRegNum(p->pAig);
     assert( (nConstrPairs & 1) == 0 );
     for ( i = 0; i < nConstrPairs; i += 2 )
     {
-        pObj  = Aig_ManPo( p->pFrames, i   );
-        pObj2 = Aig_ManPo( p->pFrames, i+1 );
+        pObj  = Aig_ManCo( p->pFrames, i   );
+        pObj2 = Aig_ManCo( p->pFrames, i+1 );
         Ssw_NodesAreConstrained( p, Aig_ObjChild0(pObj), Aig_ObjChild0(pObj2) );
     }
     // build logic cones for register inputs
     for ( i = 0; i < Aig_ManRegNum(p->pAig); i++ )
     {
-        pObj  = Aig_ManPo( p->pFrames, nConstrPairs + i );
+        pObj  = Aig_ManCo( p->pFrames, nConstrPairs + i );
         Ssw_CnfNodeAddToSolver( p->pMSat, Aig_ObjFanin0(pObj) );//
     }
     sat_solver_simplify( p->pMSat->pSat );

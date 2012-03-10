@@ -54,7 +54,7 @@ void Ssw_ManLabelPiNodes( Ssw_Man_t * p )
         Saig_ManForEachPi( p->pAig, pObj, i )
         {
             pObjFrames = Ssw_ObjFrame( p, pObj, f );
-            assert( Aig_ObjIsPi(pObjFrames) );
+            assert( Aig_ObjIsCi(pObjFrames) );
             assert( pObjFrames->fMarkB == 0 );
             pObjFrames->fMarkA = 1;
             pObjFrames->fMarkB = 1;
@@ -79,7 +79,7 @@ void Ssw_ManCollectPis_rec( Aig_Obj_t * pObj, Vec_Ptr_t * vNewPis )
     if ( pObj->fMarkA )
         return;
     pObj->fMarkA = 1;
-    if ( Aig_ObjIsPi(pObj) )
+    if ( Aig_ObjIsCi(pObj) )
     {
         Vec_PtrPush( vNewPis, pObj );
         return;
@@ -110,10 +110,10 @@ void Ssw_ManCollectPos_rec( Ssw_Man_t * p, Aig_Obj_t * pObj, Vec_Int_t * vNewPos
     pObj->fMarkB = 1;
     if ( pObj->Id > p->nSRMiterMaxId )
         return;
-    if ( Aig_ObjIsPo(pObj) )
+    if ( Aig_ObjIsCo(pObj) )
     {
         // skip if it is a register input PO
-        if ( Aig_ObjPioNum(pObj) >= Aig_ManPoNum(p->pFrames)-Aig_ManRegNum(p->pAig) )
+        if ( Aig_ObjPioNum(pObj) >= Aig_ManCoNum(p->pFrames)-Aig_ManRegNum(p->pAig) )
             return;
         // add the number of this constraint
         Vec_IntPush( vNewPos, Aig_ObjPioNum(pObj)/2 );
@@ -180,8 +180,8 @@ void Ssw_ManLoadSolver( Ssw_Man_t * p, Aig_Obj_t * pRepr, Aig_Obj_t * pObj )
     // check if the corresponding pairs are added
     Vec_IntForEachEntry( p->vNewPos, iConstr, i )
     {
-        pObj0 = Aig_ManPo( p->pFrames, 2*iConstr   );
-        pObj1 = Aig_ManPo( p->pFrames, 2*iConstr+1 );
+        pObj0 = Aig_ManCo( p->pFrames, 2*iConstr   );
+        pObj1 = Aig_ManCo( p->pFrames, 2*iConstr+1 );
 //        if ( pObj0->fMarkB && pObj1->fMarkB )
         if ( pObj0->fMarkB || pObj1->fMarkB )
         {
@@ -224,7 +224,7 @@ void Ssw_ManSweepTransferDyn( Ssw_Man_t * p )
             continue;
         }
         assert( !Aig_IsComplement(pObjFraig) );
-        assert( Aig_ObjIsPi(pObjFraig) );
+        assert( Aig_ObjIsCi(pObjFraig) );
         pInfo = (unsigned *)Vec_PtrEntry( p->vSimInfo, Aig_ObjPioNum(pObjFraig) );
         Ssw_SmlObjSetWord( p->pSml, pObj, pInfo[0], 0, 0 );
     }
@@ -235,7 +235,7 @@ void Ssw_ManSweepTransferDyn( Ssw_Man_t * p )
         {
             pObjFraig = Ssw_ObjFrame( p, pObj, f );
             assert( !Aig_IsComplement(pObjFraig) );
-            assert( Aig_ObjIsPi(pObjFraig) );
+            assert( Aig_ObjIsCi(pObjFraig) );
             pInfo = (unsigned *)Vec_PtrEntry( p->vSimInfo, Aig_ObjPioNum(pObjFraig) );
             Ssw_SmlObjSetWord( p->pSml, pObj, pInfo[0], 0, f );
         }
@@ -393,7 +393,7 @@ p->timeReduce += clock() - clk;
 
     // prepare simulation info
     assert( p->vSimInfo == NULL );
-    p->vSimInfo = Vec_PtrAllocSimInfo( Aig_ManPiNum(p->pFrames), 1 );
+    p->vSimInfo = Vec_PtrAllocSimInfo( Aig_ManCiNum(p->pFrames), 1 );
     Vec_PtrCleanSimInfo( p->vSimInfo, 0, 1 );
 
     // sweep internal nodes

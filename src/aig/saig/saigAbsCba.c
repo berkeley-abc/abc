@@ -202,7 +202,7 @@ Vec_Int_t * Saig_ManCbaReason2Inputs( Saig_ManCba_t * p, Vec_Int_t * vReasons )
     Vec_IntForEachEntry( vReasons, Entry, i )
     {
         int iInput = Vec_IntEntry( p->vMapPiF2A, 2*Entry );
-        assert( iInput >= p->nInputs && iInput < Aig_ManPiNum(p->pAig) );
+        assert( iInput >= p->nInputs && iInput < Aig_ManCiNum(p->pAig) );
         if ( Vec_IntEntry(vVisited, iInput) == 0 )
             Vec_IntPush( vOriginal, iInput - p->nInputs );
         Vec_IntAddToEntry( vVisited, iInput, 1 );
@@ -230,7 +230,7 @@ Abc_Cex_t * Saig_ManCbaReason2Cex( Saig_ManCba_t * p, Vec_Int_t * vReasons )
     memset( pCare->pData, 0, sizeof(unsigned) * Abc_BitWordNum(pCare->nBits) );
     Vec_IntForEachEntry( vReasons, Entry, i )
     {
-        assert( Entry >= 0 && Entry < Aig_ManPiNum(p->pFrames) );
+        assert( Entry >= 0 && Entry < Aig_ManCiNum(p->pFrames) );
         iInput = Vec_IntEntry( p->vMapPiF2A, 2*Entry );
         iFrame = Vec_IntEntry( p->vMapPiF2A, 2*Entry+1 );
         Abc_InfoSetBit( pCare->pData, pCare->nRegs + pCare->nPis * iFrame + iInput );
@@ -266,7 +266,7 @@ void Saig_ManCbaFindReason_rec( Aig_Man_t * p, Aig_Obj_t * pObj, Vec_Int_t * vPr
     Aig_ObjSetTravIdCurrent(p, pObj);
     if ( Aig_ObjIsConst1(pObj) )
         return;
-    if ( Aig_ObjIsPi(pObj) )
+    if ( Aig_ObjIsCi(pObj) )
     {
         Vec_IntPush( vReasons, Aig_ObjPioNum(pObj) );
         return;
@@ -344,7 +344,7 @@ Vec_Int_t * Saig_ManCbaFindReason( Saig_ManCba_t * p )
             Vec_IntWriteEntry( vPrios, Aig_ObjId(pObj), Abc_MinInt(iPrio0, iPrio1) );
     }
     // check the property output
-    pObj = Aig_ManPo( p->pFrames, 0 );
+    pObj = Aig_ManCo( p->pFrames, 0 );
     pObj->fPhase = Aig_ObjFaninC0(pObj) ^ Aig_ObjFanin0(pObj)->fPhase;
     assert( !pObj->fPhase );
 
@@ -374,7 +374,7 @@ void Saig_ManCbaUnrollCollect_rec( Aig_Man_t * pAig, Aig_Obj_t * pObj, Vec_Int_t
     if ( Aig_ObjIsTravIdCurrent(pAig, pObj) )
         return;
     Aig_ObjSetTravIdCurrent(pAig, pObj);
-    if ( Aig_ObjIsPo(pObj) )
+    if ( Aig_ObjIsCo(pObj) )
         Saig_ManCbaUnrollCollect_rec( pAig, Aig_ObjFanin0(pObj), vObjs, vRoots );
     else if ( Aig_ObjIsNode(pObj) )
     {
@@ -417,7 +417,7 @@ Aig_Man_t * Saig_ManCbaUnrollWithCex( Aig_Man_t * pAig, Abc_Cex_t * pCex, int nI
     vFrameCos  = Vec_VecStart( pCex->iFrame+1 );
     vFrameObjs = Vec_VecStart( pCex->iFrame+1 );
     // initialized the topmost frame
-    pObj = Aig_ManPo( pAig, pCex->iPo );
+    pObj = Aig_ManCo( pAig, pCex->iPo );
     Vec_VecPushInt( vFrameCos, pCex->iFrame, Aig_ObjId(pObj) );
     for ( f = pCex->iFrame; f >= 0; f-- )
     {
@@ -454,7 +454,7 @@ Aig_Man_t * Saig_ManCbaUnrollWithCex( Aig_Man_t * pAig, Abc_Cex_t * pCex, int nI
         {
             if ( Aig_ObjIsNode(pObj) )
                 pObj->pData = Aig_And( pFrames, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
-            else if ( Aig_ObjIsPo(pObj) )
+            else if ( Aig_ObjIsCo(pObj) )
                 pObj->pData = Aig_ObjChild0Copy(pObj);
             else if ( Aig_ObjIsConst1(pObj) )
                 pObj->pData = Aig_ManConst1(pFrames);
@@ -488,7 +488,7 @@ Aig_Man_t * Saig_ManCbaUnrollWithCex( Aig_Man_t * pAig, Abc_Cex_t * pCex, int nI
         }
     }
     // create output
-    pObj = Aig_ManPo( pAig, pCex->iPo );
+    pObj = Aig_ManCo( pAig, pCex->iPo );
     Aig_ObjCreateCo( pFrames, Aig_Not((Aig_Obj_t *)pObj->pData) );
     Aig_ManSetRegNum( pFrames, 0 );
     // cleanup
@@ -611,7 +611,7 @@ static inline void Saig_ObjCexMinSim( Aig_Obj_t * pObj )
         else 
             Saig_ObjCexMinSetX( pObj );
     }
-    else if ( Aig_ObjIsPo(pObj) )
+    else if ( Aig_ObjIsCo(pObj) )
     {
         if ( Saig_ObjCexMinGet0Fanin0(pObj) )
             Saig_ObjCexMinSet0( pObj );
@@ -700,7 +700,7 @@ int Saig_ManCexVerifyUsingTernary( Aig_Man_t * pAig, Abc_Cex_t * pCex, Abc_Cex_t
             pObjRo->fMarkB = pObjRi->fMarkB;
     }
     assert( iBit == pCex->nBits );
-    return Saig_ObjCexMinGet1( Aig_ManPo( pAig, pCex->iPo ) );
+    return Saig_ObjCexMinGet1( Aig_ManCo( pAig, pCex->iPo ) );
 }
 
 /**Function*************************************************************
@@ -741,7 +741,7 @@ Abc_Cex_t * Saig_ManCbaFindCexCareBits( Aig_Man_t * pAig, Abc_Cex_t * pCex, int 
     {
         Vec_Int_t * vRes = Saig_ManCbaReason2Inputs( p, vReasons );
         printf( "Frame PIs = %4d (essential = %4d)   AIG PIs = %4d (essential = %4d)   ",
-            Aig_ManPiNum(p->pFrames), Vec_IntSize(vReasons), 
+            Aig_ManCiNum(p->pFrames), Vec_IntSize(vReasons), 
             Saig_ManPiNum(p->pAig) - p->nInputs, Vec_IntSize(vRes) );
         Vec_IntFree( vRes );
 ABC_PRT( "Time", clock() - clk );
@@ -789,7 +789,7 @@ Vec_Int_t * Saig_ManCbaFilterInputs( Aig_Man_t * pAig, int iFirstFlopPi, Abc_Cex
     if ( Saig_ManPiNum(pAig) != pCex->nPis )
     {
         printf( "Saig_ManCbaFilterInputs(): The PI count of AIG (%d) does not match that of cex (%d).\n", 
-            Aig_ManPiNum(pAig), pCex->nPis );
+            Aig_ManCiNum(pAig), pCex->nPis );
         return NULL;
     }
 
@@ -801,7 +801,7 @@ clk = clock();
     if ( fVerbose )
     {
         printf( "Frame PIs = %4d (essential = %4d)   AIG PIs = %4d (essential = %4d)   ",
-            Aig_ManPiNum(p->pFrames), Vec_IntSize(vReasons), 
+            Aig_ManCiNum(p->pFrames), Vec_IntSize(vReasons), 
             Saig_ManPiNum(p->pAig) - p->nInputs, Vec_IntSize(vRes) );
 ABC_PRT( "Time", clock() - clk );
     }

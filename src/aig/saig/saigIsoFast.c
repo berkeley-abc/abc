@@ -111,7 +111,7 @@ void Iso_StoStop( Iso_Sto_t * p )
 void Iso_StoCollectInfo_rec( Aig_Man_t * p, Aig_Obj_t * pObj, int fCompl, Vec_Int_t * vVisited, Iso_Dat_t * pData, Vec_Ptr_t * vRoots )
 {
     Iso_Dat_t * pThis = pData + Aig_ObjId(pObj);
-    assert( Aig_ObjIsPi(pObj) || Aig_ObjIsNode(pObj) );
+    assert( Aig_ObjIsCi(pObj) || Aig_ObjIsNode(pObj) );
     if ( pThis->fVisit )
     {
         if ( fCompl )
@@ -183,7 +183,7 @@ Vec_Int_t * Iso_StoCollectInfo( Iso_Sto_t * p, Aig_Obj_t * pPo )
     int i, Value, Entry, * pPerm;
 //    int clk = clock();
 
-    assert( Aig_ObjIsPo(pPo) );
+    assert( Aig_ObjIsCo(pPo) );
 
     // collect initial POs
     Vec_IntClear( p->vVisited );

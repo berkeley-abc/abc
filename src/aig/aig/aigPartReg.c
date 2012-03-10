@@ -255,13 +255,13 @@ Vec_Ptr_t * Aig_ManRegProjectOnehots( Aig_Man_t * pAig, Aig_Man_t * pPart, Vec_P
     Aig_ManForEachCi( pPart, pObj, i )
         pObj->iData = i;
     // go through each group and check if registers are involved in this one
-    nOffset = Aig_ManPiNum(pAig)-Aig_ManRegNum(pAig);
+    nOffset = Aig_ManCiNum(pAig)-Aig_ManRegNum(pAig);
     Vec_PtrForEachEntry( Vec_Int_t *, vOnehots, vGroup, i )
     {
         vGroupNew = NULL;
         Vec_IntForEachEntry( vGroup, iReg, k )
         {
-            pObj = Aig_ManPi( pAig, nOffset+iReg );
+            pObj = Aig_ManCi( pAig, nOffset+iReg );
             if ( !Aig_ObjIsTravIdCurrent(pAig, pObj) )
                 continue;
             if ( vGroupNew == NULL )
@@ -316,20 +316,20 @@ Aig_Man_t * Aig_ManRegCreatePart( Aig_Man_t * pAig, Vec_Int_t * vPart, int * pnC
     int * pMapBack;
     // collect roots
     vRoots = Vec_PtrAlloc( Vec_IntSize(vPart) );
-    nOffset = Aig_ManPoNum(pAig)-Aig_ManRegNum(pAig);
+    nOffset = Aig_ManCoNum(pAig)-Aig_ManRegNum(pAig);
     Vec_IntForEachEntry( vPart, iOut, i )
     {
-        pObj = Aig_ManPo(pAig, nOffset+iOut);
+        pObj = Aig_ManCo(pAig, nOffset+iOut);
         Vec_PtrPush( vRoots, Aig_ObjFanin0(pObj) );
     }
     // collect/mark nodes/PIs in the DFS order
     vNodes = Aig_ManDfsNodes( pAig, (Aig_Obj_t **)Vec_PtrArray(vRoots), Vec_PtrSize(vRoots) );
     Vec_PtrFree( vRoots );
     // unmark register outputs
-    nOffset = Aig_ManPiNum(pAig)-Aig_ManRegNum(pAig);
+    nOffset = Aig_ManCiNum(pAig)-Aig_ManRegNum(pAig);
     Vec_IntForEachEntry( vPart, iOut, i )
     {
-        pObj = Aig_ManPi(pAig, nOffset+iOut);
+        pObj = Aig_ManCi(pAig, nOffset+iOut);
         Aig_ObjSetTravIdPrevious( pAig, pObj );
     }
     // count pure PIs
@@ -352,10 +352,10 @@ Aig_Man_t * Aig_ManRegCreatePart( Aig_Man_t * pAig, Vec_Int_t * vPart, int * pnC
             pObj->pData = Aig_ObjCreateCi(pNew);
     // add variables for the register outputs
     // create fake POs to hold the register outputs
-    nOffset = Aig_ManPiNum(pAig)-Aig_ManRegNum(pAig);
+    nOffset = Aig_ManCiNum(pAig)-Aig_ManRegNum(pAig);
     Vec_IntForEachEntry( vPart, iOut, i )
     {
-        pObj = Aig_ManPi(pAig, nOffset+iOut);
+        pObj = Aig_ManCi(pAig, nOffset+iOut);
         pObj->pData = Aig_ObjCreateCi(pNew);
         Aig_ObjCreateCo( pNew, (Aig_Obj_t *)pObj->pData );
         Aig_ObjSetTravIdCurrent( pAig, pObj ); // added
@@ -365,10 +365,10 @@ Aig_Man_t * Aig_ManRegCreatePart( Aig_Man_t * pAig, Vec_Int_t * vPart, int * pnC
         if ( Aig_ObjIsNode(pObj) )
             pObj->pData = Aig_And(pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
     // add real POs for the registers
-    nOffset = Aig_ManPoNum(pAig)-Aig_ManRegNum(pAig);
+    nOffset = Aig_ManCoNum(pAig)-Aig_ManRegNum(pAig);
     Vec_IntForEachEntry( vPart, iOut, i )
     {
-        pObj = Aig_ManPo( pAig, nOffset+iOut );
+        pObj = Aig_ManCo( pAig, nOffset+iOut );
         Aig_ObjCreateCo( pNew, Aig_ObjChild0Copy(pObj) );
     }
     pNew->nRegs = Vec_IntSize(vPart);
@@ -386,10 +386,10 @@ Aig_Man_t * Aig_ManRegCreatePart( Aig_Man_t * pAig, Vec_Int_t * vPart, int * pnC
             pMapBack[pObjNew->Id] = pObj->Id;
         }
         // map register outputs
-        nOffset = Aig_ManPiNum(pAig)-Aig_ManRegNum(pAig);
+        nOffset = Aig_ManCiNum(pAig)-Aig_ManRegNum(pAig);
         Vec_IntForEachEntry( vPart, iOut, i )
         {
-            pObj = Aig_ManPi(pAig, nOffset+iOut);
+            pObj = Aig_ManCi(pAig, nOffset+iOut);
             pObjNew = (Aig_Obj_t *)pObj->pData;
             pMapBack[pObjNew->Id] = pObj->Id;
         }
@@ -551,12 +551,12 @@ void Aig_ManRegPartitionTraverse_rec( Aig_Man_t * p, Aig_Obj_t * pObj, Vec_Ptr_t
     if ( Aig_ObjIsTravIdCurrent(p, pObj) )
         return;
     Aig_ObjSetTravIdCurrent( p, pObj );
-    if ( Aig_ObjIsPi(pObj) )
+    if ( Aig_ObjIsCi(pObj) )
     {
-        if ( pObj->iData >= Aig_ManPiNum(p) - Aig_ManRegNum(p) )
+        if ( pObj->iData >= Aig_ManCiNum(p) - Aig_ManRegNum(p) )
         {
             Vec_PtrPush( vLos, pObj );
-            printf( "%d ", pObj->iData - (Aig_ManPiNum(p) - Aig_ManRegNum(p)) );
+            printf( "%d ", pObj->iData - (Aig_ManCiNum(p) - Aig_ManRegNum(p)) );
         }
         return;
     }

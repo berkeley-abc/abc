@@ -65,7 +65,7 @@ Aig_Man_t * Aig_ManRemap( Aig_Man_t * p, Vec_Ptr_t * vMap )
     Aig_ManForEachCi( p, pObj, i )
         pObj->pData = Aig_ObjCreateCi(pNew);
     // implement the mapping
-    nTruePis = Aig_ManPiNum(p)-Aig_ManRegNum(p);
+    nTruePis = Aig_ManCiNum(p)-Aig_ManRegNum(p);
     if ( p->vFlopReprs )
     {
         Aig_ManForEachLoSeq( p, pObj, i )
@@ -83,7 +83,7 @@ Aig_Man_t * Aig_ManRemap( Aig_Man_t * p, Vec_Ptr_t * vMap )
             else
             {
                 assert( !Aig_IsComplement(pObjMapped) );
-                assert( Aig_ObjIsPi(pObjMapped) );
+                assert( Aig_ObjIsCi(pObjMapped) );
                 assert( Aig_ObjPioNum(pObj) != Aig_ObjPioNum(pObjMapped) );
                 Vec_IntPush( pNew->vFlopReprs, Aig_ObjPioNum(pObjMapped) );
             }
@@ -128,12 +128,12 @@ void Aig_ManSeqCleanup_rec( Aig_Man_t * p, Aig_Obj_t * pObj, Vec_Ptr_t * vNodes 
         return;
     Aig_ObjSetTravIdCurrent(p, pObj);
     // collect latch input corresponding to unmarked PI (latch output)
-    if ( Aig_ObjIsPi(pObj) )
+    if ( Aig_ObjIsCi(pObj) )
     {
         Vec_PtrPush( vNodes, pObj->pNext );
         return;
     }
-    if ( Aig_ObjIsPo(pObj) || Aig_ObjIsBuf(pObj) )
+    if ( Aig_ObjIsCo(pObj) || Aig_ObjIsBuf(pObj) )
     {
         Aig_ManSeqCleanup_rec( p, Aig_ObjFanin0(pObj), vNodes );
         return;
@@ -178,17 +178,17 @@ int Aig_ManSeqCleanup( Aig_Man_t * p )
     // mark the nodes reachable from these nodes
     Vec_PtrForEachEntry( Aig_Obj_t *, vNodes, pObj, i )
         Aig_ManSeqCleanup_rec( p, pObj, vNodes );
-    assert( Vec_PtrSize(vNodes) <= Aig_ManPoNum(p) );
+    assert( Vec_PtrSize(vNodes) <= Aig_ManCoNum(p) );
     // clean latch output pointers
     Aig_ManForEachLiLoSeq( p, pObjLi, pObjLo, i )
         pObjLo->pNext = NULL;
 
     // if some latches are removed, update PIs/POs
-    if ( Vec_PtrSize(vNodes) < Aig_ManPoNum(p) )
+    if ( Vec_PtrSize(vNodes) < Aig_ManCoNum(p) )
     {
         if ( p->vFlopNums )
         {
-            int nTruePos = Aig_ManPoNum(p)-Aig_ManRegNum(p);
+            int nTruePos = Aig_ManCoNum(p)-Aig_ManRegNum(p);
             int iNum, k = 0;
             Aig_ManForEachCo( p, pObj, i )
                 if ( i >= nTruePos && Aig_ObjIsTravIdCurrent(p, pObj) )
@@ -200,7 +200,7 @@ int Aig_ManSeqCleanup( Aig_Man_t * p )
             Vec_IntShrink( p->vFlopNums, k );
         }
         // collect new CIs/COs
-        vCis = Vec_PtrAlloc( Aig_ManPiNum(p) );
+        vCis = Vec_PtrAlloc( Aig_ManCiNum(p) );
         Aig_ManForEachCi( p, pObj, i )
             if ( Aig_ObjIsTravIdCurrent(p, pObj) )
                 Vec_PtrPush( vCis, pObj );
@@ -209,7 +209,7 @@ int Aig_ManSeqCleanup( Aig_Man_t * p )
                 Vec_PtrWriteEntry( p->vObjs, pObj->Id, NULL );
 //                Aig_ManRecycleMemory( p, pObj );
             }
-        vCos = Vec_PtrAlloc( Aig_ManPoNum(p) );
+        vCos = Vec_PtrAlloc( Aig_ManCoNum(p) );
         Aig_ManForEachCo( p, pObj, i )
             if ( Aig_ObjIsTravIdCurrent(p, pObj) )
                 Vec_PtrPush( vCos, pObj );
@@ -220,22 +220,22 @@ int Aig_ManSeqCleanup( Aig_Man_t * p )
 //                Aig_ManRecycleMemory( p, pObj );
             }
         // remember the number of true PIs/POs
-        nTruePis = Aig_ManPiNum(p) - Aig_ManRegNum(p);
-        nTruePos = Aig_ManPoNum(p) - Aig_ManRegNum(p);
+        nTruePis = Aig_ManCiNum(p) - Aig_ManRegNum(p);
+        nTruePos = Aig_ManCoNum(p) - Aig_ManRegNum(p);
         // set the new number of registers
-        p->nRegs -= Aig_ManPoNum(p) - Vec_PtrSize(vNodes);
+        p->nRegs -= Aig_ManCoNum(p) - Vec_PtrSize(vNodes);
         // create new PIs/POs
         assert( Vec_PtrSize(vCis) == nTruePis + p->nRegs );
         assert( Vec_PtrSize(vCos) == nTruePos + p->nRegs );
-        Vec_PtrFree( p->vPis );    p->vPis = vCis;
-        Vec_PtrFree( p->vPos );    p->vPos = vCos;
-        p->nObjs[AIG_OBJ_PI] = Vec_PtrSize( p->vPis );
-        p->nObjs[AIG_OBJ_PO] = Vec_PtrSize( p->vPos );
+        Vec_PtrFree( p->vCis );    p->vCis = vCis;
+        Vec_PtrFree( p->vCos );    p->vCos = vCos;
+        p->nObjs[AIG_OBJ_CI] = Vec_PtrSize( p->vCis );
+        p->nObjs[AIG_OBJ_CO] = Vec_PtrSize( p->vCos );
                 
     }
     Vec_PtrFree( vNodes );
-    p->nTruePis = Aig_ManPiNum(p) - Aig_ManRegNum(p); 
-    p->nTruePos = Aig_ManPoNum(p) - Aig_ManRegNum(p); 
+    p->nTruePis = Aig_ManCiNum(p) - Aig_ManRegNum(p); 
+    p->nTruePos = Aig_ManCoNum(p) - Aig_ManRegNum(p); 
     Aig_ManSetPioNumbers( p );
     // remove dangling nodes
     return Aig_ManCleanup( p );
@@ -277,13 +277,13 @@ int Aig_ManSeqCleanupBasic( Aig_Man_t * p )
     // mark the nodes reachable from these nodes
     Vec_PtrForEachEntry( Aig_Obj_t *, vNodes, pObj, i )
         Aig_ManSeqCleanup_rec( p, pObj, vNodes );
-    assert( Vec_PtrSize(vNodes) <= Aig_ManPoNum(p) );
+    assert( Vec_PtrSize(vNodes) <= Aig_ManCoNum(p) );
     // clean latch output pointers
     Aig_ManForEachLiLoSeq( p, pObjLi, pObjLo, i )
         pObjLo->pNext = NULL;
 
     // if some latches are removed, update PIs/POs
-    if ( Vec_PtrSize(vNodes) < Aig_ManPoNum(p) )
+    if ( Vec_PtrSize(vNodes) < Aig_ManCoNum(p) )
     {
         // add constant drivers to the dangling latches
         Aig_ManForEachCo( p, pObj, i )
@@ -396,7 +396,7 @@ Vec_Ptr_t * Aig_ManReduceLachesOnce( Aig_Man_t * p )
     Aig_Obj_t * pObj, * pObjLi, * pObjLo, * pFanin;
     int * pMapping, i;
     // start mapping by adding the true PIs
-    vMap = Vec_PtrAlloc( Aig_ManPiNum(p) );
+    vMap = Vec_PtrAlloc( Aig_ManCiNum(p) );
     Aig_ManForEachPiSeq( p, pObj, i )
         Vec_PtrPush( vMap, pObj );
     // create mapping of fanin nodes into the corresponding latch outputs
@@ -504,14 +504,14 @@ void Aig_ManComputeSccs( Aig_Man_t * p )
     {
         // skip true POs
         iOut = Vec_IntPop( vSupp );
-        iOut -= Aig_ManPoNum(p) - Aig_ManRegNum(p);
+        iOut -= Aig_ManCoNum(p) - Aig_ManRegNum(p);
         if ( iOut < 0 )
             continue;
         // remove PIs
         m = 0;
         Vec_IntForEachEntry( vSupp, iIn, k )
         {
-            iIn -= Aig_ManPiNum(p) - Aig_ManRegNum(p);
+            iIn -= Aig_ManCiNum(p) - Aig_ManRegNum(p);
             if ( iIn < 0 )
                 continue;
             assert( iIn < Aig_ManRegNum(p) );
@@ -623,7 +623,7 @@ Aig_Man_t * Aig_ManSclPart( Aig_Man_t * pAig, int fLatchConst, int fLatchEqual, 
             nClasses = Aig_TransferMappedClasses( pAig, pTemp, pMapBack );
             if ( fVerbose )
                 printf( "%3d : Reg = %4d. PI = %4d. (True = %4d. Regs = %4d.) And = %5d. It = %3d. Cl = %5d\n",
-                        i, Vec_IntSize(vPart), Aig_ManPiNum(pTemp)-Vec_IntSize(vPart), nCountPis, nCountRegs, Aig_ManNodeNum(pTemp), 0, nClasses );
+                        i, Vec_IntSize(vPart), Aig_ManCiNum(pTemp)-Vec_IntSize(vPart), nCountPis, nCountRegs, Aig_ManNodeNum(pTemp), 0, nClasses );
             Aig_ManStop( pNew );
         }
         Aig_ManStop( pTemp );
@@ -671,13 +671,13 @@ Aig_Man_t * Aig_ManScl( Aig_Man_t * pAig, int fLatchConst, int fLatchEqual, int 
     if ( fLatchEqual && pAig->nRegs )
         pAig = Aig_ManReduceLaches( pAig, fVerbose );
     // translate pairs into reprs
-    nTruePis = Aig_ManPiNum(pAigInit)-Aig_ManRegNum(pAigInit);
+    nTruePis = Aig_ManCiNum(pAigInit)-Aig_ManRegNum(pAigInit);
     Aig_ManReprStart( pAigInit, Aig_ManObjNumMax(pAigInit) );
     Vec_IntForEachEntry( pAig->vFlopReprs, Entry1, i )
     {
         Entry2 = Vec_IntEntry( pAig->vFlopReprs, ++i ); 
-        pFlop1 = Aig_ManPi( pAigInit, nTruePis + Entry1 );
-        pFlop2 = (Entry2 == -1)? Aig_ManConst1(pAigInit) : Aig_ManPi( pAigInit, nTruePis + Entry2 );
+        pFlop1 = Aig_ManCi( pAigInit, nTruePis + Entry1 );
+        pFlop2 = (Entry2 == -1)? Aig_ManConst1(pAigInit) : Aig_ManCi( pAigInit, nTruePis + Entry2 );
         assert( pFlop1 != pFlop2 );
         if ( pFlop1->Id > pFlop2->Id )
             pAigInit->pReprs[pFlop1->Id] = pFlop2;

@@ -49,7 +49,7 @@ void Saig_ManUnrollForPba_rec( Aig_Man_t * pAig, Aig_Obj_t * pObj, Vec_Int_t * v
     if ( Aig_ObjIsTravIdCurrent(pAig, pObj) )
         return;
     Aig_ObjSetTravIdCurrent(pAig, pObj);
-    if ( Aig_ObjIsPo(pObj) )
+    if ( Aig_ObjIsCo(pObj) )
         Saig_ManUnrollForPba_rec( pAig, Aig_ObjFanin0(pObj), vObjs, vRoots );
     else if ( Aig_ObjIsNode(pObj) )
     {
@@ -106,7 +106,7 @@ Aig_Man_t * Saig_ManUnrollForPba( Aig_Man_t * pAig, int nStart, int nFrames, Vec
         Aig_ObjCreateCi( pFrames );
     // initialize the flops 
     Saig_ManForEachLo( pAig, pObj, i )
-        pObj->pData = Aig_Mux( pFrames, Aig_ManPi(pFrames,i), Aig_ObjCreateCi(pFrames), Aig_ManConst0(pFrames) );
+        pObj->pData = Aig_Mux( pFrames, Aig_ManCi(pFrames,i), Aig_ObjCreateCi(pFrames), Aig_ManConst0(pFrames) );
     // iterate through the frames
     *pvPiVarMap = Vec_IntStartFull( nFrames * Saig_ManPiNum(pAig) );
     pObjNew = Aig_ManConst0(pFrames);
@@ -118,11 +118,11 @@ Aig_Man_t * Saig_ManUnrollForPba( Aig_Man_t * pAig, int nStart, int nFrames, Vec
         {
             if ( Aig_ObjIsNode(pObj) )
                 pObj->pData = Aig_And( pFrames, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
-            else if ( Aig_ObjIsPo(pObj) )
+            else if ( Aig_ObjIsCo(pObj) )
                 pObj->pData = Aig_ObjChild0Copy(pObj);
             else if ( Saig_ObjIsPi(pAig, pObj) )
             {
-                Vec_IntWriteEntry( *pvPiVarMap, f * Saig_ManPiNum(pAig) + Aig_ObjPioNum(pObj), Aig_ManPiNum(pFrames) );
+                Vec_IntWriteEntry( *pvPiVarMap, f * Saig_ManPiNum(pAig) + Aig_ObjPioNum(pObj), Aig_ManCiNum(pFrames) );
                 pObj->pData = Aig_ObjCreateCi( pFrames );
             }
             else if ( Aig_ObjIsConst1(pObj) )
@@ -146,7 +146,7 @@ Aig_Man_t * Saig_ManUnrollForPba( Aig_Man_t * pAig, int nStart, int nFrames, Vec
             {
                 int iFlopNum = Aig_ObjPioNum(pObj) - Saig_ManPoNum(pAig);
                 assert( iFlopNum >= 0 && iFlopNum < Aig_ManRegNum(pAig) );
-                Saig_ObjLiToLo(pAig, pObj)->pData = Aig_Mux( pFrames, Aig_ManPi(pFrames,iFlopNum), Aig_ObjCreateCi(pFrames), (Aig_Obj_t *)pObj->pData );
+                Saig_ObjLiToLo(pAig, pObj)->pData = Aig_Mux( pFrames, Aig_ManCi(pFrames,iFlopNum), Aig_ObjCreateCi(pFrames), (Aig_Obj_t *)pObj->pData );
             }
         }
     }
@@ -184,7 +184,7 @@ Abc_Cex_t * Saig_ManPbaDeriveCex( Aig_Man_t * pAig, sat_solver * pSat, Cnf_Dat_t
     {
         if ( Entry >= 0 )
         {
-            int iSatVar = pCnf->pVarNums[ Aig_ObjId(Aig_ManPi(pCnf->pMan, Entry)) ];
+            int iSatVar = pCnf->pVarNums[ Aig_ObjId(Aig_ManCi(pCnf->pMan, Entry)) ];
             if ( sat_solver_var_value( pSat, iSatVar ) )
                 Abc_InfoSetBit( pCex->pData, Aig_ManRegNum(pAig) + i );
         }

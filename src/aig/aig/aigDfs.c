@@ -66,7 +66,7 @@ int Aig_ManVerifyTopoOrder( Aig_Man_t * p )
                 return 0;
             }
         }
-        else if ( Aig_ObjIsPo(pObj) || Aig_ObjIsBuf(pObj) )
+        else if ( Aig_ObjIsCo(pObj) || Aig_ObjIsBuf(pObj) )
         {
             pNext = Aig_ObjFanin0(pObj);
             if ( !Aig_ObjIsTravIdCurrent(p,pNext) )
@@ -75,7 +75,7 @@ int Aig_ManVerifyTopoOrder( Aig_Man_t * p )
                 return 0;
             }
         }
-        else if ( Aig_ObjIsPi(pObj) )
+        else if ( Aig_ObjIsCi(pObj) )
         {
             if ( p->pManTime )
             {
@@ -86,7 +86,7 @@ int Aig_ManVerifyTopoOrder( Aig_Man_t * p )
                     nTerms = Tim_ManBoxInputNum( (Tim_Man_t *)p->pManTime, iBox );
                     for ( k = 0; k < nTerms; k++ )
                     {
-                        pNext = Aig_ManPo( p, iTerm1 + k );
+                        pNext = Aig_ManCo( p, iTerm1 + k );
                         assert( Tim_ManBoxForCo( (Tim_Man_t *)p->pManTime, Aig_ObjPioNum(pNext) ) == iBox ); 
                         if ( !Aig_ObjIsTravIdCurrent(p,pNext) )
                         {
@@ -183,12 +183,12 @@ void Aig_ManDfsAll_rec( Aig_Man_t * p, Aig_Obj_t * pObj, Vec_Ptr_t * vNodes )
     if ( Aig_ObjIsTravIdCurrent(p, pObj) )
         return;
     Aig_ObjSetTravIdCurrent(p, pObj);
-    if ( Aig_ObjIsPi(pObj) )
+    if ( Aig_ObjIsCi(pObj) )
     {
         Vec_PtrPush( vNodes, pObj );
         return;
     }
-    if ( Aig_ObjIsPo(pObj) )
+    if ( Aig_ObjIsCo(pObj) )
     {
         Aig_ManDfsAll_rec( p, Aig_ObjFanin0(pObj), vNodes );
         Vec_PtrPush( vNodes, pObj );
@@ -343,7 +343,7 @@ Vec_Ptr_t * Aig_ManDfsNodes( Aig_Man_t * p, Aig_Obj_t ** ppNodes, int nNodes )
     // go through the nodes
     vNodes = Vec_PtrAlloc( Aig_ManNodeNum(p) );
     for ( i = 0; i < nNodes; i++ )
-        if ( Aig_ObjIsPo(ppNodes[i]) )
+        if ( Aig_ObjIsCo(ppNodes[i]) )
             Aig_ManDfs_rec( p, Aig_ObjFanin0(ppNodes[i]), vNodes );
         else
             Aig_ManDfs_rec( p, ppNodes[i], vNodes );
@@ -501,7 +501,7 @@ void Aig_ManChoiceLevel_rec( Aig_Man_t * p, Aig_Obj_t * pObj )
     if ( Aig_ObjIsTravIdCurrent( p, pObj ) )
         return;
     Aig_ObjSetTravIdCurrent( p, pObj );
-    if ( Aig_ObjIsPi(pObj) )
+    if ( Aig_ObjIsCi(pObj) )
     {
         if ( p->pManTime )
         {
@@ -512,7 +512,7 @@ void Aig_ManChoiceLevel_rec( Aig_Man_t * p, Aig_Obj_t * pObj )
                 nTerms = Tim_ManBoxInputNum( (Tim_Man_t *)p->pManTime, iBox );
                 for ( i = 0; i < nTerms; i++ )
                 {
-                    pNext = Aig_ManPo(p, iTerm1 + i);
+                    pNext = Aig_ManCo(p, iTerm1 + i);
                     Aig_ManChoiceLevel_rec( p, pNext );
                     if ( LevelMax < Aig_ObjLevel(pNext) )
                         LevelMax = Aig_ObjLevel(pNext);
@@ -522,7 +522,7 @@ void Aig_ManChoiceLevel_rec( Aig_Man_t * p, Aig_Obj_t * pObj )
         }
 //        printf( "%d ", pObj->Level );
     }
-    else if ( Aig_ObjIsPo(pObj) )
+    else if ( Aig_ObjIsCo(pObj) )
     {
         pNext = Aig_ObjFanin0(pObj);
         Aig_ManChoiceLevel_rec( p, pNext );
@@ -721,7 +721,7 @@ void Aig_SupportSize_rec( Aig_Man_t * p, Aig_Obj_t * pObj, int * pCounter )
     if ( Aig_ObjIsTravIdCurrent(p, pObj) )
         return;
     Aig_ObjSetTravIdCurrent(p, pObj);
-    if ( Aig_ObjIsPi(pObj) )
+    if ( Aig_ObjIsCi(pObj) )
     {
         (*pCounter)++;
         return;
@@ -747,7 +747,7 @@ int Aig_SupportSize( Aig_Man_t * p, Aig_Obj_t * pObj )
 {
     int Counter = 0;
     assert( !Aig_IsComplement(pObj) );
-    assert( !Aig_ObjIsPo(pObj) );
+    assert( !Aig_ObjIsCo(pObj) );
     Aig_ManIncrementTravId( p );
     Aig_SupportSize_rec( p, pObj, &Counter );
     return Counter;
@@ -794,7 +794,7 @@ void Aig_Support_rec( Aig_Man_t * p, Aig_Obj_t * pObj, Vec_Ptr_t * vSupp )
     Aig_ObjSetTravIdCurrent(p, pObj);
     if ( Aig_ObjIsConst1(pObj) )
         return;
-    if ( Aig_ObjIsPi(pObj) )
+    if ( Aig_ObjIsCi(pObj) )
     {
         Vec_PtrPush( vSupp, pObj );
         return;
@@ -820,7 +820,7 @@ Vec_Ptr_t * Aig_Support( Aig_Man_t * p, Aig_Obj_t * pObj )
 {
     Vec_Ptr_t * vSupp;
     assert( !Aig_IsComplement(pObj) );
-    assert( !Aig_ObjIsPo(pObj) );
+    assert( !Aig_ObjIsCo(pObj) );
     Aig_ManIncrementTravId( p );
     vSupp = Vec_PtrAlloc( 100 );
     Aig_Support_rec( p, pObj, vSupp );
@@ -847,7 +847,7 @@ void Aig_SupportNodes( Aig_Man_t * p, Aig_Obj_t ** ppObjs, int nObjs, Vec_Ptr_t 
     for ( i = 0; i < nObjs; i++ )
     {
         assert( !Aig_IsComplement(ppObjs[i]) );
-        if ( Aig_ObjIsPo(ppObjs[i]) )
+        if ( Aig_ObjIsCo(ppObjs[i]) )
             Aig_Support_rec( p, Aig_ObjFanin0(ppObjs[i]), vSupp );
         else
             Aig_Support_rec( p, ppObjs[i], vSupp );
@@ -927,7 +927,7 @@ void Aig_Compose_rec( Aig_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pFunc, Aig_Ob
     assert( !Aig_IsComplement(pObj) );
     if ( Aig_ObjIsMarkA(pObj) )
         return;
-    if ( Aig_ObjIsConst1(pObj) || Aig_ObjIsPi(pObj) )
+    if ( Aig_ObjIsConst1(pObj) || Aig_ObjIsCi(pObj) )
     {
         pObj->pData = pObj == pVar ? pFunc : pObj;
         return;
@@ -953,13 +953,13 @@ void Aig_Compose_rec( Aig_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pFunc, Aig_Ob
 Aig_Obj_t * Aig_Compose( Aig_Man_t * p, Aig_Obj_t * pRoot, Aig_Obj_t * pFunc, int iVar )
 {
     // quit if the PI variable is not defined
-    if ( iVar >= Aig_ManPiNum(p) )
+    if ( iVar >= Aig_ManCiNum(p) )
     {
         printf( "Aig_Compose(): The PI variable %d is not defined.\n", iVar );
         return NULL;
     }
     // recursively perform composition
-    Aig_Compose_rec( p, Aig_Regular(pRoot), pFunc, Aig_ManPi(p, iVar) );
+    Aig_Compose_rec( p, Aig_Regular(pRoot), pFunc, Aig_ManCi(p, iVar) );
     // clear the markings
     Aig_ConeUnmark_rec( Aig_Regular(pRoot) );
     return Aig_NotCond( (Aig_Obj_t *)Aig_Regular(pRoot)->pData, Aig_IsComplement(pRoot) );

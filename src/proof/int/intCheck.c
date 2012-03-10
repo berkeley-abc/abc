@@ -112,10 +112,10 @@ Inter_Check_t * Inter_CheckStart( Aig_Man_t * pTrans, int nFramesK )
     p->vAssLits = Vec_IntAlloc( 100 );
     // generate the timeframes 
     p->pFrames = Inter_ManUnrollFrames( pTrans, nFramesK );
-    assert( Aig_ManPiNum(p->pFrames) == nFramesK * Saig_ManPiNum(pTrans) + Saig_ManRegNum(pTrans) );
-    assert( Aig_ManPoNum(p->pFrames) == nFramesK * Saig_ManRegNum(pTrans) );
+    assert( Aig_ManCiNum(p->pFrames) == nFramesK * Saig_ManPiNum(pTrans) + Saig_ManRegNum(pTrans) );
+    assert( Aig_ManCoNum(p->pFrames) == nFramesK * Saig_ManRegNum(pTrans) );
     // convert to CNF
-    p->pCnf = Cnf_Derive( p->pFrames, Aig_ManPoNum(p->pFrames) ); 
+    p->pCnf = Cnf_Derive( p->pFrames, Aig_ManCoNum(p->pFrames) ); 
     p->pSat = (sat_solver *)Cnf_DataWriteIntoSolver( p->pCnf, 1, 0 );
     // assign parameters
     p->nFramesK = nFramesK;
@@ -221,9 +221,9 @@ int Inter_CheckPerform( Inter_Check_t * p, Cnf_Dat_t * pCnfInt, int nTimeNewOut 
 {
     Aig_Obj_t * pObj, * pObj2;
     int i, f, VarA, VarB, RetValue, Entry, status;
-    int nRegs = Aig_ManPiNum(pCnfInt->pMan);
-    assert( Aig_ManPoNum(p->pCnf->pMan) == p->nFramesK * nRegs );
-    assert( Aig_ManPoNum(pCnfInt->pMan) == 1 );
+    int nRegs = Aig_ManCiNum(pCnfInt->pMan);
+    assert( Aig_ManCoNum(p->pCnf->pMan) == p->nFramesK * nRegs );
+    assert( Aig_ManCoNum(pCnfInt->pMan) == 1 );
 
     // set runtime limit
     if ( nTimeNewOut )
@@ -242,7 +242,7 @@ int Inter_CheckPerform( Inter_Check_t * p, Cnf_Dat_t * pCnfInt, int nTimeNewOut 
         // add equality clauses for the flop variables
         Aig_ManForEachCi( pCnfInt->pMan, pObj, i )
         {
-            pObj2 = f ? Aig_ManPo(p->pFrames, i + (f-1) * nRegs) : Aig_ManPi(p->pFrames, i);
+            pObj2 = f ? Aig_ManCo(p->pFrames, i + (f-1) * nRegs) : Aig_ManCi(p->pFrames, i);
             Inter_CheckAddEqual( p, pCnfInt->pVarNums[pObj->Id], p->pCnf->pVarNums[pObj2->Id] );
         }
         // add final clauses
@@ -251,14 +251,14 @@ int Inter_CheckPerform( Inter_Check_t * p, Cnf_Dat_t * pCnfInt, int nTimeNewOut 
             if ( f == Vec_IntSize(p->vOrLits) ) // find time here
             {
                 // add literal to this frame
-                VarB = pCnfInt->pVarNums[ Aig_ManPo(pCnfInt->pMan, 0)->Id ];
+                VarB = pCnfInt->pVarNums[ Aig_ManCo(pCnfInt->pMan, 0)->Id ];
                 Vec_IntPush( p->vOrLits, VarB );
             }
             else
             {
                 // add OR gate for this frame
                 VarA = Vec_IntEntry( p->vOrLits, f );
-                VarB = pCnfInt->pVarNums[ Aig_ManPo(pCnfInt->pMan, 0)->Id ];
+                VarB = pCnfInt->pVarNums[ Aig_ManCo(pCnfInt->pMan, 0)->Id ];
                 Inter_CheckAddOrGate( p, VarA, VarB, p->nVars + pCnfInt->nVars );
                 Vec_IntWriteEntry( p->vOrLits, f, p->nVars + pCnfInt->nVars ); // using var ID!
             }
@@ -266,7 +266,7 @@ int Inter_CheckPerform( Inter_Check_t * p, Cnf_Dat_t * pCnfInt, int nTimeNewOut 
         else
         {
             // add AND gate for this frame
-            VarB = pCnfInt->pVarNums[ Aig_ManPo(pCnfInt->pMan, 0)->Id ];
+            VarB = pCnfInt->pVarNums[ Aig_ManCo(pCnfInt->pMan, 0)->Id ];
             Vec_IntPush( p->vAndLits, VarB );
         }
         // update variable IDs

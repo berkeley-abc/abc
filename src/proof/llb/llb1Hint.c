@@ -103,7 +103,7 @@ Vec_Int_t * Llb_ManCollectHighFanoutObjects( Aig_Man_t * pAig, int nCandMax, int
     vFanouts = Vec_IntAlloc( 100 );
     Aig_ManForEachObj( pAig, pObj, i )
     {
-//        if ( !Aig_ObjIsPi(pObj) && (fCisOnly || !Aig_ObjIsNode(pObj)) )
+//        if ( !Aig_ObjIsCi(pObj) && (fCisOnly || !Aig_ObjIsNode(pObj)) )
         if ( !Saig_ObjIsLo(pAig,pObj) && (fCisOnly || !Aig_ObjIsNode(pObj)) )
             continue;
         Vec_IntPush( vFanouts, Aig_ObjRefs(pObj) );
@@ -117,7 +117,7 @@ Vec_Int_t * Llb_ManCollectHighFanoutObjects( Aig_Man_t * pAig, int nCandMax, int
     vResult = Vec_IntAlloc( 100 );
     Aig_ManForEachObj( pAig, pObj, i )
     {
-//        if ( !Aig_ObjIsPi(pObj) && (fCisOnly || !Aig_ObjIsNode(pObj)) )
+//        if ( !Aig_ObjIsCi(pObj) && (fCisOnly || !Aig_ObjIsNode(pObj)) )
         if ( !Saig_ObjIsLo(pAig,pObj) && (fCisOnly || !Aig_ObjIsNode(pObj)) )
             continue;
         if ( Aig_ObjRefs(pObj) < PivotValue )

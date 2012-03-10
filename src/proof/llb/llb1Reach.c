@@ -69,7 +69,7 @@ DdNode * Llb_ManConstructOutBdd( Aig_Man_t * pAig, Aig_Obj_t * pNode, DdManager 
         Cudd_RecursiveDeref( dd, (DdNode *)pObj->pData );
     }
     Vec_PtrFree( vNodes );
-    if ( Aig_ObjIsPo(pNode) )
+    if ( Aig_ObjIsCo(pNode) )
         bFunc = Cudd_NotCond( bFunc, Aig_ObjFaninC0(pNode) );
     Cudd_Deref( bFunc );
     dd->TimeStop = TimeStop;
@@ -113,7 +113,7 @@ DdNode * Llb_ManConstructGroupBdd( Llb_Man_t * p, Llb_Grp_t * pGroup )
     bRes = Cudd_ReadOne( p->dd );   Cudd_Ref( bRes );
     Vec_PtrForEachEntry( Aig_Obj_t *, pGroup->vOuts, pObj, i )
     {
-        if ( Aig_ObjIsPo(pObj) )
+        if ( Aig_ObjIsCo(pObj) )
             bBdd0 = Cudd_NotCond( Aig_ObjFanin0(pObj)->pData, Aig_ObjFaninC0(pObj) );
         else
             bBdd0 = (DdNode *)pObj->pData;
@@ -413,7 +413,7 @@ DdNode * Llb_ManCreateConstraints( Llb_Man_t * p, Vec_Int_t * vHints, int fUseNs
     if ( vHints == NULL )
         return Cudd_ReadOne( p->dd );
     TimeStop = p->dd->TimeStop; p->dd->TimeStop = 0;
-    assert( Aig_ManPiNum(p->pAig) == Aig_ManPiNum(p->pAigGlo) );
+    assert( Aig_ManCiNum(p->pAig) == Aig_ManCiNum(p->pAigGlo) );
     // assign const and PI nodes to the original AIG
     Aig_ManCleanData( p->pAig );
     Aig_ManConst1( p->pAig )->pData = Cudd_ReadOne( p->dd );
@@ -431,7 +431,7 @@ DdNode * Llb_ManCreateConstraints( Llb_Man_t * p, Vec_Int_t * vHints, int fUseNs
     Aig_ManCleanData( p->pAigGlo );
     Aig_ManConst1( p->pAigGlo )->pData = Cudd_ReadOne( p->dd );
     Aig_ManForEachCi( p->pAigGlo, pObj, i )
-        pObj->pData = Aig_ManPi(p->pAig, i)->pData;
+        pObj->pData = Aig_ManCi(p->pAig, i)->pData;
     // derive consraints
     bConstr = Cudd_ReadOne( p->dd );   Cudd_Ref( bConstr );
     Vec_IntForEachEntry( vHints, Entry, i )
@@ -595,7 +595,7 @@ int Llb_ManReachability( Llb_Man_t * p, Vec_Int_t * vHints, DdManager ** pddGlo 
     assert( p->ddG == NULL );
     assert( p->ddR == NULL );
     p->dd  = Cudd_Init( Vec_IntSize(p->vVar2Obj), 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
-    p->ddR = Cudd_Init( Aig_ManPiNum(p->pAig),    0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
+    p->ddR = Cudd_Init( Aig_ManCiNum(p->pAig),    0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
     if ( pddGlo && *pddGlo )
         p->ddG = *pddGlo, *pddGlo = NULL; 
     else

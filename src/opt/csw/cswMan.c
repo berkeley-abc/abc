@@ -58,7 +58,7 @@ Csw_Man_t * Csw_ManStart( Aig_Man_t * pMan, int nCutsMax, int nLeafMax, int fVer
     p->pManAig  = pMan;
     // create the new manager
     p->pManRes  = Aig_ManStartFrom( pMan );
-    assert( Aig_ManPiNum(p->pManAig) == Aig_ManPiNum(p->pManRes) );
+    assert( Aig_ManCiNum(p->pManAig) == Aig_ManCiNum(p->pManRes) );
     // allocate room for cuts and equivalent nodes
     p->pnRefs   = ABC_ALLOC( int, Aig_ManObjNumMax(pMan) );
     p->pEquiv   = ABC_ALLOC( Aig_Obj_t *, Aig_ManObjNumMax(pMan) );
@@ -76,7 +76,7 @@ Csw_Man_t * Csw_ManStart( Aig_Man_t * pMan, int nCutsMax, int nLeafMax, int fVer
     // set the pointers to the available fraig nodes
     Csw_ObjSetEquiv( p, Aig_ManConst1(p->pManAig), Aig_ManConst1(p->pManRes) );
     Aig_ManForEachCi( p->pManAig, pObj, i )
-        Csw_ObjSetEquiv( p, pObj, Aig_ManPi(p->pManRes, i) );
+        Csw_ObjSetEquiv( p, pObj, Aig_ManCi(p->pManRes, i) );
     // room for temporary truth tables
     p->puTemp[0] = ABC_ALLOC( unsigned, 4 * p->nTruthWords );
     p->puTemp[1] = p->puTemp[0] + p->nTruthWords;

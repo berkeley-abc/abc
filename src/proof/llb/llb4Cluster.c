@@ -49,7 +49,7 @@ void Llb_Nonlin4FindOrder_rec( Aig_Man_t * pAig, Aig_Obj_t * pObj, Vec_Int_t * v
         return;
     Aig_ObjSetTravIdCurrent( pAig, pObj );
     assert( Llb_ObjBddVar(vOrder, pObj) < 0 );
-    if ( Aig_ObjIsPi(pObj) )
+    if ( Aig_ObjIsCi(pObj) )
     {
         Vec_IntWriteEntry( vOrder, Aig_ObjId(pObj), (*pCounter)++ );
         return;
@@ -152,11 +152,11 @@ DdNode * Llb_Nonlin4FindPartitions_rec( DdManager * dd, Aig_Obj_t * pObj, Vec_In
     DdNode * bBdd, * bBdd0, * bBdd1, * bPart, * vVar;
     if ( Aig_ObjIsConst1(pObj) )
         return Cudd_ReadOne(dd); 
-    if ( Aig_ObjIsPi(pObj) )
+    if ( Aig_ObjIsCi(pObj) )
         return Cudd_bddIthVar( dd, Llb_ObjBddVar(vOrder, pObj) );
     if ( pObj->pData )
         return (DdNode *)pObj->pData;
-    if ( Aig_ObjIsPo(pObj) )
+    if ( Aig_ObjIsCo(pObj) )
     {
         bBdd0 = Cudd_NotCond( Llb_Nonlin4FindPartitions_rec(dd, Aig_ObjFanin0(pObj), vOrder, vRoots), Aig_ObjFaninC0(pObj) );
         bPart = Cudd_bddXnor( dd, Cudd_bddIthVar( dd, Llb_ObjBddVar(vOrder, pObj) ), bBdd0 );  Cudd_Ref( bPart );

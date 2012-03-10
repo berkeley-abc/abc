@@ -264,7 +264,7 @@ int Gia_ManCbaPerform( Gia_Man_t * pGia, void * pPars )
     {
         assert( pAig->pSeqModel != NULL );
         printf( "Refinement did not happen. Discovered a true counter-example.\n" );
-        printf( "Remapping counter-example from %d to %d primary inputs.\n", Aig_ManPiNum(pAig), Gia_ManPiNum(pGia) );
+        printf( "Remapping counter-example from %d to %d primary inputs.\n", Aig_ManCiNum(pAig), Gia_ManPiNum(pGia) );
         // derive new counter-example
         pOrig = Gia_ManToAigSimple( pGia );
         pGia->pCexSeq = Saig_ManCexRemap( pOrig, pAig, pAig->pSeqModel );
@@ -347,7 +347,7 @@ int Gia_ManPbaPerform( Gia_Man_t * pGia, int nStart, int nFrames, int nConfLimit
         // found real counter-example
         assert( pAig->pSeqModel != NULL );
         printf( "Refinement did not happen. Discovered a true counter-example.\n" );
-        printf( "Remapping counter-example from %d to %d primary inputs.\n", Aig_ManPiNum(pAig), Gia_ManPiNum(pGia) );
+        printf( "Remapping counter-example from %d to %d primary inputs.\n", Aig_ManCiNum(pAig), Gia_ManPiNum(pGia) );
         // derive new counter-example
         pOrig = Gia_ManToAigSimple( pGia );
         pGia->pCexSeq = Saig_ManCexRemap( pOrig, pAig, pAig->pSeqModel );

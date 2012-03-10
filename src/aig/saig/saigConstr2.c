@@ -312,7 +312,7 @@ int Saig_ManFilterUsingIndOne_new( Aig_Man_t * p, Aig_Man_t * pFrame, sat_solver
 {
     Aig_Obj_t * pObj;
     int Lit, status;
-    pObj = Aig_ManPo( pFrame, Counter );
+    pObj = Aig_ManCo( pFrame, Counter );
     Lit  = toLitCond( pCnf->pVarNums[Aig_ObjId(pObj)], 0 );
     status = sat_solver_solve( pSat, &Lit, &Lit + 1, (ABC_INT64_T)nConfs, 0, 0, 0 );
     if ( status == l_False )
@@ -354,9 +354,9 @@ void Saig_ManFilterUsingInd( Aig_Man_t * p, Vec_Vec_t * vCands, int nConfs, int 
     // create timeframes
 //    pFrames = Saig_ManUnrollInd( p );
     pFrames = Saig_ManCreateIndMiter( p, vCands );
-    assert( Aig_ManPoNum(pFrames) == Vec_VecSizeSize(vCands) );
+    assert( Aig_ManCoNum(pFrames) == Vec_VecSizeSize(vCands) );
     // start the SAT solver
-    pCnf = Cnf_DeriveSimple( pFrames, Aig_ManPoNum(pFrames) );
+    pCnf = Cnf_DeriveSimple( pFrames, Aig_ManCoNum(pFrames) );
     pSat = (sat_solver *)Cnf_DataWriteIntoSolver( pCnf, 1, 0 );
     // check candidates
     if ( fVerbose )
@@ -500,7 +500,7 @@ void Saig_CollectSatValues( sat_solver * pSat, Cnf_Dat_t * pCnf, Vec_Ptr_t * vIn
     int i;
     Aig_ManForEachObj( pCnf->pMan, pObj, i )
     {
-        if ( !Aig_ObjIsNode(pObj) && !Aig_ObjIsPi(pObj) )
+        if ( !Aig_ObjIsNode(pObj) && !Aig_ObjIsCi(pObj) )
             continue;
         assert( pCnf->pVarNums[i] > 0 );
         pInfo = (unsigned *)Vec_PtrEntry( vInfo, i );
@@ -522,7 +522,7 @@ void Saig_CollectSatValues( sat_solver * pSat, Cnf_Dat_t * pCnf, Vec_Ptr_t * vIn
 ***********************************************************************/
 int Saig_DetectTryPolarity( sat_solver * pSat, int nConfs, int nProps, Cnf_Dat_t * pCnf, Aig_Obj_t * pObj, int iPol, Vec_Ptr_t * vInfo, int * piPat, int fVerbose )
 {
-    Aig_Obj_t * pOut = Aig_ManPo( pCnf->pMan, 0 );
+    Aig_Obj_t * pOut = Aig_ManCo( pCnf->pMan, 0 );
     int status, Lits[2];
 //    ABC_INT64_T nOldConfs = pSat->stats.conflicts;
 //    ABC_INT64_T nOldImps = pSat->stats.propagations;
@@ -576,7 +576,7 @@ Vec_Vec_t * Ssw_ManFindDirectImplications( Aig_Man_t * p, int nFrames, int nConf
 
     // perform unrolling
     pFrames = Saig_ManUnrollCOI( p, nFrames );
-    assert( Aig_ManPoNum(pFrames) == 1 );
+    assert( Aig_ManCoNum(pFrames) == 1 );
     // start the SAT solver
     pCnf = Cnf_DeriveSimple( pFrames, 0 );
     pSat = (sat_solver *)Cnf_DataWriteIntoSolver( pCnf, 1, 0 );
@@ -679,7 +679,7 @@ Vec_Vec_t * Saig_ManDetectConstrFunc( Aig_Man_t * p, int nFrames, int nConfs, in
 
     // perform unrolling
     pFrames = Saig_ManUnrollCOI( p, nFrames );
-    assert( Aig_ManPoNum(pFrames) == 1 );
+    assert( Aig_ManCoNum(pFrames) == 1 );
     if ( fVerbose )
     {
         printf( "Detecting constraints with %d frames, %d conflicts, and %d propagations.\n", nFrames, nConfs, nProps );
@@ -689,12 +689,12 @@ Vec_Vec_t * Saig_ManDetectConstrFunc( Aig_Man_t * p, int nFrames, int nConfs, in
 //    Aig_ManShow( pFrames, 0, NULL );
 
     // start the SAT solver
-    pCnf = Cnf_DeriveSimple( pFrames, Aig_ManPoNum(pFrames) );
+    pCnf = Cnf_DeriveSimple( pFrames, Aig_ManCoNum(pFrames) );
     pSat = (sat_solver *)Cnf_DataWriteIntoSolver( pCnf, 1, 0 );
 //printf( "Implications = %d.\n", pSat->qhead );
 
     // solve the original problem
-    Lit = toLitCond( pCnf->pVarNums[Aig_ObjId(Aig_ManPo(pFrames,0))], 0 );
+    Lit = toLitCond( pCnf->pVarNums[Aig_ObjId(Aig_ManCo(pFrames,0))], 0 );
     status = sat_solver_solve( pSat, &Lit, &Lit + 1, (ABC_INT64_T)nConfs, 0, 0, 0 );
     if ( status == l_False )
     {
@@ -732,7 +732,7 @@ Vec_Vec_t * Saig_ManDetectConstrFunc( Aig_Man_t * p, int nFrames, int nConfs, in
     Aig_ManCleanMarkAB( pFrames );
     Aig_ManForEachObj( pFrames, pObj, i )
     {
-        if ( !Aig_ObjIsNode(pObj) && !Aig_ObjIsPi(pObj) )
+        if ( !Aig_ObjIsNode(pObj) && !Aig_ObjIsCi(pObj) )
             continue;
         Bar_ProgressUpdate( pProgress, i, NULL );
         // check if the node is available in both polarities
@@ -774,7 +774,7 @@ Vec_Vec_t * Saig_ManDetectConstrFunc( Aig_Man_t * p, int nFrames, int nConfs, in
         {
             Aig_ManForEachObj( p, pObj, i )
             {
-                if ( !Aig_ObjIsNode(pObj) && !Aig_ObjIsPi(pObj) )
+                if ( !Aig_ObjIsNode(pObj) && !Aig_ObjIsCi(pObj) )
                     continue;
                 pRepr = p->pObjCopies[nFrames*i + nFrames-1-k];
 //                pRepr = p->pObjCopies[nFrames*i + k];

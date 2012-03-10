@@ -447,7 +447,7 @@ int Abc_NtkMfs( Abc_Ntk_t * pNtk, Mfs_Par_t * pPars )
         }
     }
     if ( p->pCare != NULL )
-        printf( "Performing optimization with %d external care clauses.\n", Aig_ManPoNum(p->pCare) );
+        printf( "Performing optimization with %d external care clauses.\n", Aig_ManCoNum(p->pCare) );
     // prepare the BDC manager
     if ( !pPars->fResub )
     {

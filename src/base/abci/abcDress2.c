@@ -84,8 +84,8 @@ Aig_Man_t * Aig_ManCreateDualOutputMiter( Aig_Man_t * p1, Aig_Man_t * p2 )
     Aig_Man_t * pNew;
     Aig_Obj_t * pObj;
     int i;
-    assert( Aig_ManPiNum(p1) == Aig_ManPiNum(p2) );
-    assert( Aig_ManPoNum(p1) == Aig_ManPoNum(p2) );
+    assert( Aig_ManCiNum(p1) == Aig_ManCiNum(p2) );
+    assert( Aig_ManCoNum(p1) == Aig_ManCoNum(p2) );
     pNew = Aig_ManStart( Aig_ManObjNumMax(p1) + Aig_ManObjNumMax(p2) );
     // add first AIG
     Aig_ManConst1(p1)->pData = Aig_ManConst1(pNew);
@@ -96,14 +96,14 @@ Aig_Man_t * Aig_ManCreateDualOutputMiter( Aig_Man_t * p1, Aig_Man_t * p2 )
     // add second AIG
     Aig_ManConst1(p2)->pData = Aig_ManConst1(pNew);
     Aig_ManForEachCi( p2, pObj, i )
-        pObj->pData = Aig_ManPi( pNew, i );
+        pObj->pData = Aig_ManCi( pNew, i );
     Aig_ManForEachNode( p2, pObj, i )
         pObj->pData = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
     // add the outputs
-    for ( i = 0; i < Aig_ManPoNum(p1); i++ )
+    for ( i = 0; i < Aig_ManCoNum(p1); i++ )
     {
-        Aig_ObjCreateCo( pNew, Aig_ObjChild0Copy(Aig_ManPo(p1, i)) );
-        Aig_ObjCreateCo( pNew, Aig_ObjChild0Copy(Aig_ManPo(p2, i)) );
+        Aig_ObjCreateCo( pNew, Aig_ObjChild0Copy(Aig_ManCo(p1, i)) );
+        Aig_ObjCreateCo( pNew, Aig_ObjChild0Copy(Aig_ManCo(p2, i)) );
     }
     Aig_ManCleanup( pNew );
     return pNew;

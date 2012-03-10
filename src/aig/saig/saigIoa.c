@@ -77,7 +77,7 @@ void Saig_ManDumpBlif( Aig_Man_t * p, char * pFileName )
     FILE * pFile;
     Aig_Obj_t * pObj, * pObjLi, * pObjLo;
     int i;
-    if ( Aig_ManPoNum(p) == 0 )
+    if ( Aig_ManCoNum(p) == 0 )
     {
         printf( "Aig_ManDumpBlif(): AIG manager does not have POs.\n" );
         return;
@@ -208,7 +208,7 @@ Aig_Obj_t * Saig_ManReadNode( Aig_Man_t * p, int * pNum2Id, char * pToken )
         if ( pToken[0] == 'i' )
         {
             Num = atoi( pToken + 1 );
-            return Aig_ManPi( p, Num );
+            return Aig_ManCi( p, Num );
         }
         if ( pToken[0] == 'o' )
             return NULL;
@@ -382,7 +382,7 @@ Aig_Man_t * Saig_ManReadBlif( char * pFileName )
     }
     if ( pToken == NULL || strcmp( pToken, ".end" ) ) 
         { printf( "Saig_ManReadBlif(): Error 19.\n" ); Aig_ManStop(p); return NULL; }
-    if ( nPos + nRegs != Aig_ManPoNum(p) ) 
+    if ( nPos + nRegs != Aig_ManCoNum(p) ) 
         { printf( "Saig_ManReadBlif(): Error 20.\n" ); Aig_ManStop(p); return NULL; }
     // add non-node objects to the mapping
     Aig_ManForEachCi( p, pNode, i )

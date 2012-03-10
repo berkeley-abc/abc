@@ -93,7 +93,7 @@ static inline int  Faig_ObjFanin( int iFan )                  { return iFan >> 1
 int Faig_ManIsCorrect( Aig_Man_t * pAig )
 {
     return Aig_ManObjNumMax(pAig) == 
-        1 + Aig_ManPiNum(pAig) + Aig_ManNodeNum(pAig) + Aig_ManPoNum(pAig);
+        1 + Aig_ManCiNum(pAig) + Aig_ManNodeNum(pAig) + Aig_ManCoNum(pAig);
 }
 
 /**Function*************************************************************
@@ -112,14 +112,14 @@ Faig_Man_t * Faig_ManAlloc( Aig_Man_t * pAig )
     Faig_Man_t * p;
     int nWords;
 //    assert( Faig_ManIsCorrect(pAig) );
-    nWords = 2 * Aig_ManNodeNum(pAig) + Aig_ManPoNum(pAig);
+    nWords = 2 * Aig_ManNodeNum(pAig) + Aig_ManCoNum(pAig);
     p = (Faig_Man_t *)ABC_ALLOC( char, sizeof(Faig_Man_t) + sizeof(int) * nWords );
 //printf( "Allocating %7.2f Mb.\n", 1.0 * (sizeof(Faig_Man_t) + sizeof(int) * nWords)/(1<<20) );
     memset( p, 0, sizeof(Faig_Man_t) );
-    p->nPis   = Aig_ManPiNum(pAig) - Aig_ManRegNum(pAig);
-    p->nPos   = Aig_ManPoNum(pAig) - Aig_ManRegNum(pAig);
-    p->nCis   = Aig_ManPiNum(pAig);
-    p->nCos   = Aig_ManPoNum(pAig);
+    p->nPis   = Aig_ManCiNum(pAig) - Aig_ManRegNum(pAig);
+    p->nPos   = Aig_ManCoNum(pAig) - Aig_ManRegNum(pAig);
+    p->nCis   = Aig_ManCiNum(pAig);
+    p->nCos   = Aig_ManCoNum(pAig);
     p->nFfs   = Aig_ManRegNum(pAig);
     p->nNos   = Aig_ManNodeNum(pAig);
     // offsets

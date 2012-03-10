@@ -85,12 +85,12 @@ static char * retrieveTruePiName( Abc_Ntk_t *pNtkOld, Aig_Man_t *pAigOld, Aig_Ma
     Aig_ManForEachCi( pAigNew, pObj, index )
         if( pObj == pObjPivot )
             break;
-    assert( index < Aig_ManPiNum( pAigNew ) - Aig_ManRegNum( pAigNew ) );
+    assert( index < Aig_ManCiNum( pAigNew ) - Aig_ManRegNum( pAigNew ) );
     if( index == Saig_ManPiNum( pAigNew ) - 1 )
         return "SAVE_BIERE";
     else
     {
-        pObjOld = Aig_ManPi( pAigOld, index );
+        pObjOld = Aig_ManCi( pAigOld, index );
         pNode = Abc_NtkPi( pNtkOld, index );
         assert( pObjOld->pData == pObjPivot );
         return Abc_ObjName( pNode );
@@ -111,7 +111,7 @@ static char * retrieveLOName( Abc_Ntk_t *pNtkOld, Aig_Man_t *pAigOld, Aig_Man_t 
     if( index < originalLatchNum )
     {
         oldIndex = Saig_ManPiNum( pAigOld ) + index;
-        pObjOld = Aig_ManPi( pAigOld, oldIndex );
+        pObjOld = Aig_ManCi( pAigOld, oldIndex );
         pNode = Abc_NtkCi( pNtkOld, oldIndex );
         assert( pObjOld->pData == pObjPivot );
         return Abc_ObjName( pNode );
@@ -121,7 +121,7 @@ static char * retrieveLOName( Abc_Ntk_t *pNtkOld, Aig_Man_t *pAigOld, Aig_Man_t 
     else if( index > originalLatchNum && index < 2 * originalLatchNum + 1 )
     {
         oldIndex = Saig_ManPiNum( pAigOld ) + index - originalLatchNum - 1;
-        pObjOld = Aig_ManPi( pAigOld, oldIndex );
+        pObjOld = Aig_ManCi( pAigOld, oldIndex );
         pNode = Abc_NtkCi( pNtkOld, oldIndex );
         sprintf( dummyStr, "%s__%s", Abc_ObjName( pNode ), "SHADOW");
         return dummyStr;
@@ -172,26 +172,26 @@ extern Vec_Ptr_t *vecPis, *vecPiNames;
 extern Vec_Ptr_t *vecLos, *vecLoNames;
 
 
-static int Aig_ManPiCleanupBiere( Aig_Man_t * p )
+static int Aig_ManCiCleanupBiere( Aig_Man_t * p )
 {
-    int nPisOld = Aig_ManPiNum(p);
+    int nPisOld = Aig_ManCiNum(p);
     
-    p->nObjs[AIG_OBJ_PI] = Vec_PtrSize( p->vPis );
+    p->nObjs[AIG_OBJ_CI] = Vec_PtrSize( p->vCis );
     if ( Aig_ManRegNum(p) )
-        p->nTruePis = Aig_ManPiNum(p) - Aig_ManRegNum(p);
+        p->nTruePis = Aig_ManCiNum(p) - Aig_ManRegNum(p);
     
-    return nPisOld - Aig_ManPiNum(p);
+    return nPisOld - Aig_ManCiNum(p);
 }
 
 
-static int Aig_ManPoCleanupBiere( Aig_Man_t * p )
+static int Aig_ManCoCleanupBiere( Aig_Man_t * p )
 {
-    int nPosOld = Aig_ManPoNum(p);
+    int nPosOld = Aig_ManCoNum(p);
 
-    p->nObjs[AIG_OBJ_PO] = Vec_PtrSize( p->vPos );
+    p->nObjs[AIG_OBJ_CO] = Vec_PtrSize( p->vCos );
     if ( Aig_ManRegNum(p) )
-        p->nTruePos = Aig_ManPoNum(p) - Aig_ManRegNum(p);
-    return nPosOld - Aig_ManPoNum(p);
+        p->nTruePos = Aig_ManCoNum(p) - Aig_ManRegNum(p);
+    return nPosOld - Aig_ManCoNum(p);
 }
 
 static Aig_Man_t * LivenessToSafetyTransformationSim( Abc_Ntk_t * pNtk, Aig_Man_t * p, Vec_Ptr_t *vLive, Vec_Ptr_t *vFair )
@@ -459,14 +459,14 @@ static Aig_Man_t * LivenessToSafetyTransformationSim( Abc_Ntk_t * pNtk, Aig_Man_
 
     Aig_ManSetRegNum( pNew, nRegCount );
 
-    Aig_ManPiCleanupBiere( pNew );
-    Aig_ManPoCleanupBiere( pNew );
+    Aig_ManCiCleanupBiere( pNew );
+    Aig_ManCoCleanupBiere( pNew );
     
     Aig_ManCleanup( pNew );
     assert( Aig_ManCheck( pNew ) );
     
 #ifndef DUPLICATE_CKT_DEBUG
-    assert((Aig_Obj_t *)Vec_PtrEntry(pNew->vPos, Saig_ManPoNum(pNew)+Aig_ObjPioNum(pObjSavedLo)-Saig_ManPiNum(p)-1) == pObjSavedLi);
+    assert((Aig_Obj_t *)Vec_PtrEntry(pNew->vCos, Saig_ManPoNum(pNew)+Aig_ObjPioNum(pObjSavedLo)-Saig_ManPiNum(p)-1) == pObjSavedLi);
     assert( Saig_ManPoNum( pNew ) == 1 );
     assert( Saig_ManPiNum( p ) + 1 == Saig_ManPiNum( pNew ) );
     assert( Saig_ManRegNum( pNew ) == Saig_ManRegNum( p ) * 2 + 1 + liveLatch + fairLatch );
@@ -680,10 +680,10 @@ static Aig_Man_t * LivenessToSafetyTransformationOneStepLoopSim( Abc_Ntk_t * pNt
 
     Aig_ManSetRegNum( pNew, nRegCount );
 
-    printf("\nSaig_ManPiNum = %d, Reg Num = %d, before everything, before Pi cleanup\n", Vec_PtrSize( pNew->vPis ), pNew->nRegs );
+    printf("\nSaig_ManPiNum = %d, Reg Num = %d, before everything, before Pi cleanup\n", Vec_PtrSize( pNew->vCis ), pNew->nRegs );
 
-    Aig_ManPiCleanupBiere( pNew );
-    Aig_ManPoCleanupBiere( pNew );
+    Aig_ManCiCleanupBiere( pNew );
+    Aig_ManCoCleanupBiere( pNew );
 
     Aig_ManCleanup( pNew );
     
@@ -704,7 +704,7 @@ static Vec_Ptr_t * populateLivenessVector( Abc_Ntk_t *pNtk, Aig_Man_t *pAig )
     Abc_NtkForEachPo( pNtk, pNode, i )
         if( strstr( Abc_ObjName( pNode ), "assert_fair") != NULL )
         {
-            Vec_PtrPush( vLive, Aig_ManPo( pAig, i ) );
+            Vec_PtrPush( vLive, Aig_ManCo( pAig, i ) );
             liveCounter++;
         }
     printf("\nNumber of liveness property found = %d\n", liveCounter);
@@ -721,7 +721,7 @@ static Vec_Ptr_t * populateFairnessVector( Abc_Ntk_t *pNtk, Aig_Man_t *pAig )
     Abc_NtkForEachPo( pNtk, pNode, i )
         if( strstr( Abc_ObjName( pNode ), "assume_fair") != NULL )
         {
-            Vec_PtrPush( vFair, Aig_ManPo( pAig, i ) );
+            Vec_PtrPush( vFair, Aig_ManCo( pAig, i ) );
             fairCounter++;
         }
     printf("\nNumber of fairness property found = %d\n", fairCounter);

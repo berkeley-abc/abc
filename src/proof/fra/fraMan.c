@@ -114,7 +114,7 @@ Fra_Man_t * Fra_ManStart( Aig_Man_t * pManAig, Fra_Par_t * pPars )
     p->nSizeAlloc = Aig_ManObjNumMax( pManAig );
     p->nFramesAll = pPars->nFramesK + 1;
     // allocate storage for sim pattern
-    p->nPatWords  = Abc_BitWordNum( (Aig_ManPiNum(pManAig) - Aig_ManRegNum(pManAig)) * p->nFramesAll + Aig_ManRegNum(pManAig) );
+    p->nPatWords  = Abc_BitWordNum( (Aig_ManCiNum(pManAig) - Aig_ManRegNum(pManAig)) * p->nFramesAll + Aig_ManRegNum(pManAig) );
     p->pPatWords  = ABC_ALLOC( unsigned, p->nPatWords ); 
     p->vPiVars    = Vec_PtrAlloc( 100 );
     // equivalence classes

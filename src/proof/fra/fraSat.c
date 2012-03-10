@@ -507,7 +507,7 @@ int Fra_SetActivityFactors_rec( Fra_Man_t * p, Aig_Obj_t * pObj, int LevelMin, i
         return 0;
     Aig_ObjSetTravIdCurrent(p->pManFraig, pObj);
     // add the PI to the list
-    if ( pObj->Level <= (unsigned)LevelMin || Aig_ObjIsPi(pObj) )
+    if ( pObj->Level <= (unsigned)LevelMin || Aig_ObjIsCi(pObj) )
         return 0;
     // set the factor of this variable
     // (LevelMax-LevelMin) / (pObj->Level-LevelMin) = p->pPars->dActConeBumpMax / ThisBump

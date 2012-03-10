@@ -97,7 +97,7 @@ int Fra_ClausRunBmc( Clu_Man_t * p )
     int Lits[2], nLitsTot, RetValue, i;
     // set the output literals
     nLitsTot = 2 * p->pCnf->nVars;
-    pObj = Aig_ManPo(p->pAig, 0);
+    pObj = Aig_ManCo(p->pAig, 0);
     for ( i = 0; i < p->nPref + p->nFrames; i++ )
     {
         Lits[0] = i * nLitsTot + toLitCond( p->pCnf->pVarNums[pObj->Id], 0 ); 
@@ -126,7 +126,7 @@ int Fra_ClausRunSat( Clu_Man_t * p )
     int i, RetValue;
     pLits = ABC_ALLOC( int, p->nFrames + 1 );
     // set the output literals
-    pObj = Aig_ManPo(p->pAig, 0);
+    pObj = Aig_ManCo(p->pAig, 0);
     for ( i = 0; i <= p->nFrames; i++ )
         pLits[i] = i * 2 * p->pCnf->nVars + toLitCond( p->pCnf->pVarNums[pObj->Id], i != p->nFrames ); 
     // try to solve the problem
@@ -154,7 +154,7 @@ int Fra_ClausRunSat0( Clu_Man_t * p )
 {
     Aig_Obj_t * pObj;
     int Lits[2], RetValue;
-    pObj = Aig_ManPo(p->pAig, 0);
+    pObj = Aig_ManCo(p->pAig, 0);
     Lits[0] = toLitCond( p->pCnf->pVarNums[pObj->Id], 0 ); 
     RetValue = sat_solver_solve( p->pSatMain, Lits, Lits + 1, (ABC_INT64_T)p->nBTLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
     if ( RetValue == l_False )
@@ -523,7 +523,7 @@ int Fra_ClausCollectLatchClauses( Clu_Man_t * p, Fra_Sml_t * pSeq )
     {
         Aig_Obj_t * pObj;
         int Lits[1];
-        pObj = Aig_ManPo( p->pAig, 0 );
+        pObj = Aig_ManCo( p->pAig, 0 );
         Lits[0] = toLitCond( p->pCnf->pVarNums[pObj->Id], 1 ); 
         Vec_IntPush( p->vLits, Lits[0] );
         Vec_IntPush( p->vClauses, Vec_IntSize(p->vLits) );
@@ -1242,7 +1242,7 @@ int Fra_ClausInductiveClauses( Clu_Man_t * p )
         Aig_Obj_t * pObj;
         int Lits[2];
         // set the output literals
-        pObj = Aig_ManPo(p->pAig, 0);
+        pObj = Aig_ManCo(p->pAig, 0);
         Lits[0] = i * nLitsTot + toLitCond( p->pCnf->pVarNums[pObj->Id], 1 ); 
         // add the clause
         RetValue = sat_solver_addclause( p->pSatMain, Lits, Lits + 1 );
@@ -1637,9 +1637,9 @@ void Fra_ClausEstimateCoverage( Clu_Man_t * p )
             pVar2Id[ p->pCnf->pVarNums[i] ] = i;
         }
     // get storage for one assignment and all assignments
-    assert( Aig_ManPoNum(p->pAig) > 2 );
-    pResultOne = Fra_ObjSim( pComb, Aig_ManPo(p->pAig, 0)->Id );
-    pResultTot = Fra_ObjSim( pComb, Aig_ManPo(p->pAig, 1)->Id );
+    assert( Aig_ManCoNum(p->pAig) > 2 );
+    pResultOne = Fra_ObjSim( pComb, Aig_ManCo(p->pAig, 0)->Id );
+    pResultTot = Fra_ObjSim( pComb, Aig_ManCo(p->pAig, 1)->Id );
     // start the OR of don't-cares
     for ( w = 0; w < nCombSimWords; w++ )
         pResultTot[w] = 0;
@@ -1693,13 +1693,13 @@ if ( p->fVerbose )
 //ABC_PRT( "Sim-seq", clock() - clk );
 }
 
-    assert( !p->fTarget || Aig_ManPoNum(pAig) - Aig_ManRegNum(pAig) == 1 );
+    assert( !p->fTarget || Aig_ManCoNum(pAig) - Aig_ManRegNum(pAig) == 1 );
 
 clk = clock();
     // derive CNF
 //    if ( p->fTarget )
 //        p->pAig->nRegs++;
-    p->pCnf = Cnf_DeriveSimple( p->pAig, Aig_ManPoNum(p->pAig) );
+    p->pCnf = Cnf_DeriveSimple( p->pAig, Aig_ManCoNum(p->pAig) );
 //    if ( p->fTarget )
 //        p->pAig->nRegs--;
 if ( fVerbose )
@@ -1846,8 +1846,8 @@ clk = clock();
         assert( p->nBatches == 1 );
         pTable = fopen( "stats.txt", "a+" );
         fprintf( pTable, "%s ",  pAig->pName );
-        fprintf( pTable, "%d ",  Aig_ManPiNum(pAig)-Aig_ManRegNum(pAig) );
-        fprintf( pTable, "%d ",  Aig_ManPoNum(pAig)-Aig_ManRegNum(pAig) );
+        fprintf( pTable, "%d ",  Aig_ManCiNum(pAig)-Aig_ManRegNum(pAig) );
+        fprintf( pTable, "%d ",  Aig_ManCoNum(pAig)-Aig_ManRegNum(pAig) );
         fprintf( pTable, "%d ",  Aig_ManRegNum(pAig) );
         fprintf( pTable, "%d ",  Aig_ManNodeNum(pAig) );
         fprintf( pTable, "%d ",  p->nCuts );

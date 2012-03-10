@@ -307,8 +307,8 @@ Rtm_Man_t * Rtm_ManAlloc( Aig_Man_t * p )
     memset( pRtm, 0, sizeof(Rtm_Man_t) );
     // perform initializations
     pRtm->vObjs = Vec_PtrAlloc( Aig_ManObjNum(p) );
-    pRtm->vPis  = Vec_PtrAlloc( Aig_ManPiNum(p) );
-    pRtm->vPos  = Vec_PtrAlloc( Aig_ManPoNum(p) );
+    pRtm->vPis  = Vec_PtrAlloc( Aig_ManCiNum(p) );
+    pRtm->vPos  = Vec_PtrAlloc( Aig_ManCoNum(p) );
     pRtm->pMem  = Aig_MmFlexStart();
     return pRtm;
 }
@@ -742,7 +742,7 @@ Aig_Obj_t * Rtm_ManToAig_rec( Aig_Man_t * pNew, Rtm_Man_t * pRtm, Rtm_Obj_t * pO
         else
         {
             Val = Rtm_ObjGetFirst( pRtm, pEdge );
-            pFanin = Aig_ManPi( pNew, pLatches[2*pObjRtm->Id + k] + pEdge->nLats - 1 );
+            pFanin = Aig_ManCi( pNew, pLatches[2*pObjRtm->Id + k] + pEdge->nLats - 1 );
             pFanin = Aig_NotCond( pFanin, Val == RTM_VAL_ONE );
         }
         pFanin = Aig_NotCond( pFanin, k ? pObjRtm->fCompl1 : pObjRtm->fCompl0 );
@@ -806,7 +806,7 @@ Aig_Man_t * Rtm_ManToAig( Rtm_Man_t * pRtm )
             assert( Val == RTM_VAL_ZERO || Val == RTM_VAL_ONE || Val == RTM_VAL_VOID );
             pObjNew = Aig_NotCond( pObjNew, Val == RTM_VAL_ONE );
             Aig_ObjCreateCo( pNew, pObjNew );
-            pObjNew = Aig_ManPi( pNew, pLatches[2*pObjRtm->Id + k] + m );
+            pObjNew = Aig_ManCi( pNew, pLatches[2*pObjRtm->Id + k] + m );
             pObjNew = Aig_NotCond( pObjNew, Val == RTM_VAL_ONE );
         }
 //        assert( Aig_Regular(pObjNew)->nRefs > 0 );

@@ -57,11 +57,11 @@ Vec_Ptr_t * Saig_ManFindPrimes( Aig_Man_t * pAig, int nLits, int fVerbose )
     assert( nLits < 10 );
 
     // create SAT solver
-    pCnf = Cnf_DeriveSimple( pAig, Aig_ManPoNum(pAig) ); 
+    pCnf = Cnf_DeriveSimple( pAig, Aig_ManCoNum(pAig) ); 
     pSat = (sat_solver *)Cnf_DataWriteIntoSolver( pCnf, 1, 0 );
 
     // collect nodes in the property output cone
-    pMiter = Aig_ManPo( pAig, 0 );
+    pMiter = Aig_ManCo( pAig, 0 );
     pRoot  = Aig_ObjFanin0( pMiter );
     vNodes = Aig_ManDfsNodes( pAig, &pRoot, 1 );
     // sort nodes by level and remove the last few

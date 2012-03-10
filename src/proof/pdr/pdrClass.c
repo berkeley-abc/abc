@@ -202,7 +202,7 @@ void Pdr_ManEquivClasses( Aig_Man_t * pAig )
         // report the result
         Abc_Print( 1, "F =%4d : Total = %6d. Nodes = %6d. RedRegs = %6d. Prop = %s\n", 
             f+1, Aig_ManNodeNum(pAig), Aig_ManNodeNum(pTemp), Pdr_ManCountMap(vMap), 
-            Aig_ObjChild0(Aig_ManPo(pTemp,0)) == Aig_ManConst0(pTemp) ? "proof" : "unknown" );
+            Aig_ObjChild0(Aig_ManCo(pTemp,0)) == Aig_ManConst0(pTemp) ? "proof" : "unknown" );
         // recreate the map
         Pdr_ManPrintMap( vMap );
         Vec_IntFree( vMap );

@@ -131,7 +131,7 @@ void Aig_ManInterTest( Aig_Man_t * pMan, int fVerbose )
     int Lit, Cid, Var, status, i;
     int clk = clock();
     assert( Aig_ManRegNum(pMan) == 0 );
-    assert( Aig_ManPoNum(pMan) == 1 );
+    assert( Aig_ManCoNum(pMan) == 1 );
 
     // derive CNFs
     pCnf = Cnf_Derive( pMan, 1 );
@@ -144,7 +144,7 @@ void Aig_ManInterTest( Aig_Man_t * pMan, int fVerbose )
     {
         if ( pCnf->pVarNums[pObj->Id] < 0 )
             continue;
-        if ( !Aig_ObjIsPi(pObj) && !Aig_ObjIsPo(pObj) )
+        if ( !Aig_ObjIsCi(pObj) && !Aig_ObjIsCo(pObj) )
             var_set_partA( pSat, pCnf->pVarNums[pObj->Id], 1 );
     }
 
@@ -162,7 +162,7 @@ void Aig_ManInterTest( Aig_Man_t * pMan, int fVerbose )
     Cnf_DataLift( pCnf, -pCnf->nVars );
 
     // add PI equality clauses
-    vVars = Vec_IntAlloc( Aig_ManPoNum(pMan)+1 );
+    vVars = Vec_IntAlloc( Aig_ManCoNum(pMan)+1 );
     Aig_ManForEachCi( pMan, pObj, i )
     {
         if ( Aig_ObjRefs(pObj) == 0 )
@@ -173,7 +173,7 @@ void Aig_ManInterTest( Aig_Man_t * pMan, int fVerbose )
     }
 
     // add an XOR clause in the end
-    Var = pCnf->pVarNums[Aig_ManPo(pMan,0)->Id];
+    Var = pCnf->pVarNums[Aig_ManCo(pMan,0)->Id];
     Aig_ManInterAddXor( pSat, Var, pCnf->nVars + Var, 2*pCnf->nVars, 0, 0 );
     Vec_IntPush( vVars, Var );
 
@@ -215,8 +215,8 @@ void Aig_ManAppend( Aig_Man_t * pBase, Aig_Man_t * pNew )
 {
     Aig_Obj_t * pObj;
     int i;
-    assert( Aig_ManPoNum(pNew) == 1 );
-    assert( Aig_ManPiNum(pNew) == Aig_ManPiNum(pBase) );
+    assert( Aig_ManCoNum(pNew) == 1 );
+    assert( Aig_ManCiNum(pNew) == Aig_ManCiNum(pBase) );
     // create the PIs
     Aig_ManCleanData( pNew );
     Aig_ManConst1(pNew)->pData = Aig_ManConst1(pBase);
@@ -226,7 +226,7 @@ void Aig_ManAppend( Aig_Man_t * pBase, Aig_Man_t * pNew )
     Aig_ManForEachNode( pNew, pObj, i )
         pObj->pData = Aig_And( pBase, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
     // add one PO to base
-    pObj = Aig_ManPo( pNew, 0 );
+    pObj = Aig_ManCo( pNew, 0 );
     Aig_ObjCreateCo( pBase, Aig_ObjChild0Copy(pObj) );
 }
 
@@ -248,7 +248,7 @@ Aig_Man_t * Aig_ManInterRepar( Aig_Man_t * pMan, int fVerbose )
     Vec_Int_t * vVars;
     Cnf_Dat_t * pCnf, * pCnfInter;
     Aig_Obj_t * pObj;
-    int nOuts = Aig_ManPoNum(pMan);
+    int nOuts = Aig_ManCoNum(pMan);
     int ShiftP[2], ShiftCnf[2], ShiftOr[2], ShiftAssume;
     int Cid, Lit, status, i, k, c;
     int clk = clock();
@@ -369,7 +369,7 @@ Aig_Man_t * Aig_ManInterRepar( Aig_Man_t * pMan, int fVerbose )
                 if ( i <= k )
                     Aig_ManInterAddBuffer( pSat, i, pCnf->pVarNums[pObj->Id], 0, c==0 );
             // connect to the outputs
-            pObj = Aig_ManPo(pInter, 0);
+            pObj = Aig_ManCo(pInter, 0);
             Aig_ManInterAddBuffer( pSat, ShiftP[c] + k, pCnf->pVarNums[pObj->Id], 0, c==0 );
             if ( c == 1 )
                 Cnf_DataLift( pCnfInter, -pCnfInter->nVars );

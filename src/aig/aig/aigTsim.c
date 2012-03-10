@@ -458,7 +458,7 @@ Aig_TsiStatePrint( pTsi, pState );
     }
 
     // start mapping by adding the true PIs
-    vMap = Vec_PtrAlloc( Aig_ManPiNum(p) );
+    vMap = Vec_PtrAlloc( Aig_ManCiNum(p) );
     Aig_ManForEachPiSeq( p, pObj, i )
         Vec_PtrPush( vMap, pObj );
     // find constant registers

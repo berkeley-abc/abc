@@ -59,14 +59,14 @@ int Fra_InvariantVerify( Aig_Man_t * pAig, int nFrames, Vec_Int_t * vClauses, Ve
     }
 
     // derive CNF
-    pCnf = Cnf_DeriveSimple( pAig, Aig_ManPoNum(pAig) );
+    pCnf = Cnf_DeriveSimple( pAig, Aig_ManCoNum(pAig) );
 /*
     // add the property
     {
         Aig_Obj_t * pObj;
         int Lits[1];
 
-        pObj = Aig_ManPo( pAig, 0 );
+        pObj = Aig_ManCo( pAig, 0 );
         Lits[0] = toLitCond( pCnf->pVarNums[pObj->Id], 1 ); 
 
         Vec_IntPush( vLits, Lits[0] );

@@ -395,10 +395,10 @@ void Fra_BmcPerformSimple( Aig_Man_t * pAig, int nFrames, int nBTLimit, int fRew
     if ( fVerbose )
     {
         printf( "AIG:  PI/PO/Reg = %d/%d/%d.  Node = %6d. Lev = %5d.\n", 
-            Aig_ManPiNum(pAig)-Aig_ManRegNum(pAig), Aig_ManPoNum(pAig)-Aig_ManRegNum(pAig), Aig_ManRegNum(pAig),
+            Aig_ManCiNum(pAig)-Aig_ManRegNum(pAig), Aig_ManCoNum(pAig)-Aig_ManRegNum(pAig), Aig_ManRegNum(pAig),
             Aig_ManNodeNum(pAig), Aig_ManLevelNum(pAig) );
         printf( "Time-frames (%d):  PI/PO = %d/%d.  Node = %6d. Lev = %5d.  ", 
-            nFrames, Aig_ManPiNum(pBmc->pAigFrames), Aig_ManPoNum(pBmc->pAigFrames), 
+            nFrames, Aig_ManCiNum(pBmc->pAigFrames), Aig_ManCoNum(pBmc->pAigFrames), 
             Aig_ManNodeNum(pBmc->pAigFrames), Aig_ManLevelNum(pBmc->pAigFrames) );
         ABC_PRT( "Time", clock() - clk );
     }
@@ -417,7 +417,7 @@ void Fra_BmcPerformSimple( Aig_Man_t * pAig, int nFrames, int nBTLimit, int fRew
     clk = clock();
     iOutput = Fra_FraigMiterAssertedOutput( pBmc->pAigFrames );
     if ( iOutput >= 0 )
-        pAig->pSeqModel = Abc_CexMakeTriv( Aig_ManRegNum(pAig), Aig_ManPiNum(pAig)-Aig_ManRegNum(pAig), Aig_ManPoNum(pAig)-Aig_ManRegNum(pAig), iOutput );
+        pAig->pSeqModel = Abc_CexMakeTriv( Aig_ManRegNum(pAig), Aig_ManCiNum(pAig)-Aig_ManRegNum(pAig), Aig_ManCoNum(pAig)-Aig_ManRegNum(pAig), iOutput );
     else
     {
         pBmc->pAigFraig = Fra_FraigEquivence( pBmc->pAigFrames, nBTLimit, 1 );
@@ -428,7 +428,7 @@ void Fra_BmcPerformSimple( Aig_Man_t * pAig, int nFrames, int nBTLimit, int fRew
             ABC_FREE( pBmc->pAigFraig->pData );
         }
         else if ( iOutput >= 0 )
-            pAig->pSeqModel = Abc_CexMakeTriv( Aig_ManRegNum(pAig), Aig_ManPiNum(pAig)-Aig_ManRegNum(pAig), Aig_ManPoNum(pAig)-Aig_ManRegNum(pAig), iOutput );
+            pAig->pSeqModel = Abc_CexMakeTriv( Aig_ManRegNum(pAig), Aig_ManCiNum(pAig)-Aig_ManRegNum(pAig), Aig_ManCoNum(pAig)-Aig_ManRegNum(pAig), iOutput );
     }
     if ( fVerbose )
     {

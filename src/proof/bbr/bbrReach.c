@@ -548,7 +548,7 @@ int Aig_ManVerifyUsingBdds( Aig_Man_t * pInit, Saig_ParBbr_t * pPars )
         return Aig_ManVerifyUsingBdds_int( pInit, pPars );
     // create new AIG
     p = Aig_ManDupTrim( pInit );
-    assert( Aig_ManPiNum(p) < Aig_ManPiNum(pInit) );
+    assert( Aig_ManCiNum(p) < Aig_ManCiNum(pInit) );
     assert( Aig_ManRegNum(p) == Aig_ManRegNum(pInit) );
     RetValue = Aig_ManVerifyUsingBdds_int( p, pPars );
     if ( RetValue != 0 )

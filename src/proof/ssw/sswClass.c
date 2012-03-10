@@ -642,7 +642,7 @@ clk = clock();
         }
         else
         {
-            if ( !Aig_ObjIsNode(pObj) && !Aig_ObjIsPi(pObj) )
+            if ( !Aig_ObjIsNode(pObj) && !Aig_ObjIsCi(pObj) )
                 continue;
             // skip the node with more that the given number of levels
             if ( nMaxLevs && (int)pObj->Level > nMaxLevs )

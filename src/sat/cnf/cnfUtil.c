@@ -47,7 +47,7 @@ int Aig_ManScanMapping_rec( Cnf_Man_t * p, Aig_Obj_t * pObj, Vec_Ptr_t * vMapped
     Aig_Obj_t * pLeaf;
     Dar_Cut_t * pCutBest;
     int aArea, i;
-    if ( pObj->nRefs++ || Aig_ObjIsPi(pObj) || Aig_ObjIsConst1(pObj) )
+    if ( pObj->nRefs++ || Aig_ObjIsCi(pObj) || Aig_ObjIsConst1(pObj) )
         return 0;
     assert( Aig_ObjIsAnd(pObj) );
     // collect the node first to derive pre-order
@@ -101,7 +101,7 @@ Vec_Ptr_t * Aig_ManScanMapping( Cnf_Man_t * p, int fCollect )
     p->aArea = 0;
     Aig_ManForEachCo( p->pManAig, pObj, i )
         p->aArea += Aig_ManScanMapping_rec( p, Aig_ObjFanin0(pObj), vMapped );
-//    printf( "Variables = %6d. Clauses = %8d.\n", vMapped? Vec_PtrSize(vMapped) + Aig_ManPiNum(p->pManAig) + 1 : 0, p->aArea + 2 );
+//    printf( "Variables = %6d. Clauses = %8d.\n", vMapped? Vec_PtrSize(vMapped) + Aig_ManCiNum(p->pManAig) + 1 : 0, p->aArea + 2 );
     return vMapped;
 }
 
@@ -121,7 +121,7 @@ int Cnf_ManScanMapping_rec( Cnf_Man_t * p, Aig_Obj_t * pObj, Vec_Ptr_t * vMapped
     Aig_Obj_t * pLeaf;
     Cnf_Cut_t * pCutBest;
     int aArea, i;
-    if ( pObj->nRefs++ || Aig_ObjIsPi(pObj) || Aig_ObjIsConst1(pObj) )
+    if ( pObj->nRefs++ || Aig_ObjIsCi(pObj) || Aig_ObjIsConst1(pObj) )
         return 0;
     assert( Aig_ObjIsAnd(pObj) );
     assert( pObj->pData != NULL );
@@ -181,7 +181,7 @@ Vec_Ptr_t * Cnf_ManScanMapping( Cnf_Man_t * p, int fCollect, int fPreorder )
     p->aArea = 0;
     Aig_ManForEachCo( p->pManAig, pObj, i )
         p->aArea += Cnf_ManScanMapping_rec( p, Aig_ObjFanin0(pObj), vMapped, fPreorder );
-//    printf( "Variables = %6d. Clauses = %8d.\n", vMapped? Vec_PtrSize(vMapped) + Aig_ManPiNum(p->pManAig) + 1 : 0, p->aArea + 2 );
+//    printf( "Variables = %6d. Clauses = %8d.\n", vMapped? Vec_PtrSize(vMapped) + Aig_ManCiNum(p->pManAig) + 1 : 0, p->aArea + 2 );
     return vMapped;
 }
 
@@ -201,7 +201,7 @@ Vec_Int_t * Cnf_DataCollectCiSatNums( Cnf_Dat_t * pCnf, Aig_Man_t * p )
     Vec_Int_t * vCiIds;
     Aig_Obj_t * pObj;
     int i;
-    vCiIds = Vec_IntAlloc( Aig_ManPiNum(p) );
+    vCiIds = Vec_IntAlloc( Aig_ManCiNum(p) );
     Aig_ManForEachCi( p, pObj, i )
         Vec_IntPush( vCiIds, pCnf->pVarNums[pObj->Id] );
     return vCiIds;
@@ -223,7 +223,7 @@ Vec_Int_t * Cnf_DataCollectCoSatNums( Cnf_Dat_t * pCnf, Aig_Man_t * p )
     Vec_Int_t * vCoIds;
     Aig_Obj_t * pObj;
     int i;
-    vCoIds = Vec_IntAlloc( Aig_ManPoNum(p) );
+    vCoIds = Vec_IntAlloc( Aig_ManCoNum(p) );
     Aig_ManForEachCo( p, pObj, i )
         Vec_IntPush( vCoIds, pCnf->pVarNums[pObj->Id] );
     return vCoIds;

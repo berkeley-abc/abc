@@ -92,12 +92,12 @@ sat_solver * Abc_MfsCreateSolverResub( Mfs_Man_t * p, int * pCands, int nCands, 
     int Lits[2], status, iVar, i, c;
 
     // get the literal for the output of F
-    pObjPo = Aig_ManPo( p->pAigWin, Aig_ManPoNum(p->pAigWin) - Vec_PtrSize(p->vDivs) - 1 );
+    pObjPo = Aig_ManCo( p->pAigWin, Aig_ManCoNum(p->pAigWin) - Vec_PtrSize(p->vDivs) - 1 );
     Lits[0] = toLitCond( p->pCnf->pVarNums[pObjPo->Id], fInvert );
 
     // collect the outputs of the divisors
     Vec_IntClear( p->vProjVarsCnf );
-    Vec_PtrForEachEntryStart( Aig_Obj_t *, p->pAigWin->vPos, pObjPo, i, Aig_ManPoNum(p->pAigWin) - Vec_PtrSize(p->vDivs) )
+    Vec_PtrForEachEntryStart( Aig_Obj_t *, p->pAigWin->vCos, pObjPo, i, Aig_ManCoNum(p->pAigWin) - Vec_PtrSize(p->vDivs) )
     {
         assert( p->pCnf->pVarNums[pObjPo->Id] >= 0 );
         Vec_IntPush( p->vProjVarsCnf, p->pCnf->pVarNums[pObjPo->Id] );

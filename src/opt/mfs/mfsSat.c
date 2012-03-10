@@ -98,7 +98,7 @@ int Abc_NtkMfsSolveSat( Mfs_Man_t * p, Abc_Obj_t * pNode )
     int RetValue, i;
     // collect projection variables
     Vec_IntClear( p->vProjVarsSat );
-    Vec_PtrForEachEntryStart( Aig_Obj_t *, p->pAigWin->vPos, pObjPo, i, Aig_ManPoNum(p->pAigWin) - Abc_ObjFaninNum(pNode) )
+    Vec_PtrForEachEntryStart( Aig_Obj_t *, p->pAigWin->vCos, pObjPo, i, Aig_ManCoNum(p->pAigWin) - Abc_ObjFaninNum(pNode) )
     {
         assert( p->pCnf->pVarNums[pObjPo->Id] >= 0 );
         Vec_IntPush( p->vProjVarsSat, p->pCnf->pVarNums[pObjPo->Id] );
@@ -156,11 +156,11 @@ int Abc_NtkAddOneHotness( Mfs_Man_t * p )
 {
     Aig_Obj_t * pObj1, * pObj2;
     int i, k, Lits[2];
-    for ( i = 0; i < Vec_PtrSize(p->pAigWin->vPis); i++ )
-    for ( k = i+1; k < Vec_PtrSize(p->pAigWin->vPis); k++ )
+    for ( i = 0; i < Vec_PtrSize(p->pAigWin->vCis); i++ )
+    for ( k = i+1; k < Vec_PtrSize(p->pAigWin->vCis); k++ )
     {
-        pObj1 = Aig_ManPi( p->pAigWin, i );
-        pObj2 = Aig_ManPi( p->pAigWin, k );
+        pObj1 = Aig_ManCi( p->pAigWin, i );
+        pObj2 = Aig_ManCi( p->pAigWin, k );
         Lits[0] = toLitCond( p->pCnf->pVarNums[pObj1->Id], 1 );
         Lits[1] = toLitCond( p->pCnf->pVarNums[pObj2->Id], 1 );
         if ( !sat_solver_addclause( p->pSat, Lits, Lits+2 ) )

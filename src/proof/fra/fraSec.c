@@ -142,8 +142,8 @@ clk = clock();
     if ( pParSec->fPhaseAbstract )
     {
         extern Aig_Man_t * Saig_ManPhaseAbstractAuto( Aig_Man_t * p, int fVerbose );
-        pNew->nTruePis = Aig_ManPiNum(pNew) - Aig_ManRegNum(pNew); 
-        pNew->nTruePos = Aig_ManPoNum(pNew) - Aig_ManRegNum(pNew); 
+        pNew->nTruePis = Aig_ManCiNum(pNew) - Aig_ManRegNum(pNew); 
+        pNew->nTruePos = Aig_ManCoNum(pNew) - Aig_ManRegNum(pNew); 
         pNew = Saig_ManPhaseAbstractAuto( pTemp = pNew, 0 );
         Aig_ManStop( pTemp );
         if ( pParSec->fVerbose )
@@ -301,8 +301,8 @@ ABC_PRT( "Time", clock() - clk );
     {
 //    extern Aig_Man_t * Saig_ManRetimeMinArea( Aig_Man_t * p, int nMaxIters, int fForwardOnly, int fBackwardOnly, int fInitial, int fVerbose );
 clk = clock();
-    pNew->nTruePis = Aig_ManPiNum(pNew) - Aig_ManRegNum(pNew); 
-    pNew->nTruePos = Aig_ManPoNum(pNew) - Aig_ManRegNum(pNew); 
+    pNew->nTruePis = Aig_ManCiNum(pNew) - Aig_ManRegNum(pNew); 
+    pNew->nTruePos = Aig_ManCoNum(pNew) - Aig_ManRegNum(pNew); 
 //        pNew = Rtm_ManRetime( pTemp = pNew, 1, 1000, 0 );
     pNew = Saig_ManRetimeMinArea( pTemp = pNew, 1000, 0, 0, 1, 0 );
     Aig_ManStop( pTemp );
@@ -391,8 +391,8 @@ ABC_PRT( "Time", clock() - clk );
         {
 //        extern Aig_Man_t * Saig_ManRetimeMinArea( Aig_Man_t * p, int nMaxIters, int fForwardOnly, int fBackwardOnly, int fInitial, int fVerbose );
 clk = clock();
-        pNew->nTruePis = Aig_ManPiNum(pNew) - Aig_ManRegNum(pNew); 
-        pNew->nTruePos = Aig_ManPoNum(pNew) - Aig_ManRegNum(pNew); 
+        pNew->nTruePis = Aig_ManCiNum(pNew) - Aig_ManRegNum(pNew); 
+        pNew->nTruePos = Aig_ManCoNum(pNew) - Aig_ManRegNum(pNew); 
 //        pNew = Rtm_ManRetime( pTemp = pNew, 1, 1000, 0 );
         pNew = Saig_ManRetimeMinArea( pTemp = pNew, 1000, 0, 0, 1, 0 );
         Aig_ManStop( pTemp );
@@ -580,8 +580,8 @@ ABC_PRT( "Time", clock() - clk );
         pPars->fReorderImage = 1;
         pPars->fVerbose      = 0;
         pPars->fSilent       = pParSec->fSilent;
-        pNew->nTruePis = Aig_ManPiNum(pNew) - Aig_ManRegNum(pNew); 
-        pNew->nTruePos = Aig_ManPoNum(pNew) - Aig_ManRegNum(pNew); 
+        pNew->nTruePis = Aig_ManCiNum(pNew) - Aig_ManRegNum(pNew); 
+        pNew->nTruePos = Aig_ManCoNum(pNew) - Aig_ManRegNum(pNew); 
         RetValue = Aig_ManVerifyUsingBdds( pNew, pPars );
     }
 

@@ -129,7 +129,7 @@ int Abs_ManExtendOneEval_rec( Vec_Ptr_t * vSimInfo, Aig_Man_t * p, Aig_Obj_t * p
     Value = Abs_ManSimInfoGet( vSimInfo, pObj, iFrame );
     if ( Value )
         return Value;
-    if ( Aig_ObjIsPi(pObj) )
+    if ( Aig_ObjIsCi(pObj) )
     {
         assert( Saig_ObjIsLo(p, pObj) );
         Value = Abs_ManExtendOneEval_rec( vSimInfo, p, Saig_ObjLoToLi(p, pObj), iFrame-1 );
@@ -139,7 +139,7 @@ int Abs_ManExtendOneEval_rec( Vec_Ptr_t * vSimInfo, Aig_Man_t * p, Aig_Obj_t * p
     Value0 = Abs_ManExtendOneEval_rec( vSimInfo, p, Aig_ObjFanin0(pObj), iFrame );
     if ( Aig_ObjFaninC0(pObj) )
         Value0 = Abs_ManSimInfoNot( Value0 );
-    if ( Aig_ObjIsPo(pObj) )
+    if ( Aig_ObjIsCo(pObj) )
     {
         Abs_ManSimInfoSet( vSimInfo, pObj, iFrame, Value0 );
         return Value0;
@@ -358,7 +358,7 @@ Aig_Obj_t * Saig_BmcIntervalExplore_rec( Saig_Bmc_t * p, Aig_Obj_t * pObj, int i
         pRes = AIG_VISITED;
     else if ( Saig_ObjIsLo( p->pAig, pObj ) )
         pRes = Saig_BmcIntervalExplore_rec( p, Saig_ObjLoToLi(p->pAig, pObj), i-1 );
-    else if ( Aig_ObjIsPo( pObj ) )
+    else if ( Aig_ObjIsCo( pObj ) )
     {
         pRes = Saig_BmcIntervalExplore_rec( p, Aig_ObjFanin0(pObj), i );
         if ( pRes != AIG_VISITED )
@@ -410,7 +410,7 @@ Aig_Obj_t * Saig_BmcIntervalConstruct_rec( Saig_Bmc_t * p, Aig_Obj_t * pObj, int
         pRes = Aig_ObjCreateCi(p->pFrm);
     else if ( Saig_ObjIsLo( p->pAig, pObj ) )
         pRes = Saig_BmcIntervalConstruct_rec( p, Saig_ObjLoToLi(p->pAig, pObj), i-1, vVisited );
-    else if ( Aig_ObjIsPo( pObj ) )
+    else if ( Aig_ObjIsCo( pObj ) )
     {
         Saig_BmcIntervalConstruct_rec( p, Aig_ObjFanin0(pObj), i, vVisited );
         pRes = Saig_BmcObjChild0( p, pObj, i );
@@ -462,9 +462,9 @@ void Saig_BmcInterval( Saig_Bmc_t * p )
         {
             if ( Aig_ManObjNum(p->pFrm) >= nNodes + p->nNodesMax )
                 return;
-//            Saig_BmcIntervalExplore_rec( p, Aig_ManPo(p->pAig, p->iOutputLast), p->iFrameLast );
+//            Saig_BmcIntervalExplore_rec( p, Aig_ManCo(p->pAig, p->iOutputLast), p->iFrameLast );
             Vec_PtrClear( p->vVisited );
-            pTarget = Saig_BmcIntervalConstruct_rec( p, Aig_ManPo(p->pAig, p->iOutputLast), p->iFrameLast, p->vVisited );
+            pTarget = Saig_BmcIntervalConstruct_rec( p, Aig_ManCo(p->pAig, p->iOutputLast), p->iFrameLast, p->vVisited );
             Vec_PtrPush( p->vTargets, pTarget );
             Aig_ObjCreateCo( p->pFrm, pTarget );
             Aig_ManCleanup( p->pFrm );
@@ -501,9 +501,9 @@ Aig_Obj_t * Saig_BmcIntervalToAig_rec( Saig_Bmc_t * p, Aig_Man_t * pNew, Aig_Obj
     if ( pObj->pData )
         return (Aig_Obj_t *)pObj->pData;
     Vec_PtrPush( p->vVisited, pObj );
-    if ( Saig_BmcSatNum(p, pObj) || Aig_ObjIsPi(pObj) )
+    if ( Saig_BmcSatNum(p, pObj) || Aig_ObjIsCi(pObj) )
     {
-        p->nStitchVars += !Aig_ObjIsPi(pObj);
+        p->nStitchVars += !Aig_ObjIsCi(pObj);
         return (Aig_Obj_t *)(pObj->pData = Aig_ObjCreateCi(pNew));
     }
     Saig_BmcIntervalToAig_rec( p, pNew, Aig_ObjFanin0(pObj) );
@@ -784,7 +784,7 @@ int Saig_BmcPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nNodesMax
         pNew = Saig_BmcIntervalToAig( p );
 //printf( "StitchVars = %d.\n", p->nStitchVars );
         // derive CNF for the new AIG
-        pCnf = Cnf_Derive( pNew, Aig_ManPoNum(pNew) );
+        pCnf = Cnf_Derive( pNew, Aig_ManCoNum(pNew) );
         Cnf_DataLift( pCnf, p->nSatVars );
         p->nSatVars += pCnf->nVars;
         // add this CNF to the solver

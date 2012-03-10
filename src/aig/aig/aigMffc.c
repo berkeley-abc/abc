@@ -49,7 +49,7 @@ int Aig_NodeDeref_rec( Aig_Obj_t * pNode, unsigned LevelMin, float * pPower, flo
     int Counter = 0;
     if ( pProbs )
         *pPower = 0.0;
-    if ( Aig_ObjIsPi(pNode) )
+    if ( Aig_ObjIsCi(pNode) )
         return 0;
     // consider the first fanin
     pFanin = Aig_ObjFanin0(pNode);
@@ -87,7 +87,7 @@ int Aig_NodeRef_rec( Aig_Obj_t * pNode, unsigned LevelMin )
 {
     Aig_Obj_t * pFanin;
     int Counter = 0;
-    if ( Aig_ObjIsPi(pNode) )
+    if ( Aig_ObjIsCi(pNode) )
         return 0;
     // consider the first fanin
     pFanin = Aig_ObjFanin0(pNode);
@@ -119,7 +119,7 @@ int Aig_NodeRefLabel_rec( Aig_Man_t * p, Aig_Obj_t * pNode, unsigned LevelMin )
 {
     Aig_Obj_t * pFanin;
     int Counter = 0;
-    if ( Aig_ObjIsPi(pNode) )
+    if ( Aig_ObjIsCi(pNode) )
         return 0;
     Aig_ObjSetTravIdCurrent( p, pNode );
     // consider the first fanin
@@ -154,7 +154,7 @@ void Aig_NodeMffcSupp_rec( Aig_Man_t * p, Aig_Obj_t * pNode, unsigned LevelMin, 
         return;
     Aig_ObjSetTravIdCurrent(p, pNode);
     // add to the new support nodes
-    if ( !fTopmost && pNode != pObjSkip && (Aig_ObjIsPi(pNode) || pNode->nRefs > 0 || pNode->Level <= LevelMin) )
+    if ( !fTopmost && pNode != pObjSkip && (Aig_ObjIsCi(pNode) || pNode->nRefs > 0 || pNode->Level <= LevelMin) )
     {
         if ( vSupp ) Vec_PtrPush( vSupp, pNode );
         return;
@@ -182,7 +182,7 @@ int Aig_NodeMffcSupp( Aig_Man_t * p, Aig_Obj_t * pNode, int LevelMin, Vec_Ptr_t 
     if ( vSupp ) Vec_PtrClear( vSupp );
     if ( !Aig_ObjIsNode(pNode) )
     {
-        if ( Aig_ObjIsPi(pNode) && vSupp )
+        if ( Aig_ObjIsCi(pNode) && vSupp )
             Vec_PtrPush( vSupp, pNode );
         return 0;
     }

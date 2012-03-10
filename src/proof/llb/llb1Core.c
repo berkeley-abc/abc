@@ -89,7 +89,7 @@ void Llb_ManPrintAig( Llb_Man_t * p )
     Abc_Print( 1, "pi =%3d  ",    Saig_ManPiNum(p->pAig) );
     Abc_Print( 1, "po =%3d  ",    Saig_ManPoNum(p->pAig) );
     Abc_Print( 1, "ff =%3d  ",    Saig_ManRegNum(p->pAig) );
-    Abc_Print( 1, "int =%5d  ",   Vec_IntSize(p->vVar2Obj)-Aig_ManPiNum(p->pAig)-Saig_ManRegNum(p->pAig) );
+    Abc_Print( 1, "int =%5d  ",   Vec_IntSize(p->vVar2Obj)-Aig_ManCiNum(p->pAig)-Saig_ManRegNum(p->pAig) );
     Abc_Print( 1, "var =%5d  ",   Vec_IntSize(p->vVar2Obj) );
     Abc_Print( 1, "part =%5d  ",  Vec_PtrSize(p->vGroups)-2 );
     Abc_Print( 1, "and =%5d  ",   Aig_ManNodeNum(p->pAig) );

@@ -85,7 +85,7 @@ char * Aig_TimeStamp()
 ***********************************************************************/
 int Aig_ManHasNoGaps( Aig_Man_t * p )
 {
-    return (int)(Aig_ManObjNum(p) == Aig_ManPiNum(p) + Aig_ManPoNum(p) + Aig_ManNodeNum(p) + 1);
+    return (int)(Aig_ManObjNum(p) == Aig_ManCiNum(p) + Aig_ManCoNum(p) + Aig_ManNodeNum(p) + 1);
 }
 
 /**Function*************************************************************
@@ -243,7 +243,7 @@ void Aig_ManCleanNext( Aig_Man_t * p )
 void Aig_ObjCleanData_rec( Aig_Obj_t * pObj )
 {
     assert( !Aig_IsComplement(pObj) );
-    assert( !Aig_ObjIsPo(pObj) );
+    assert( !Aig_ObjIsCo(pObj) );
     if ( Aig_ObjIsAnd(pObj) )
     {
         Aig_ObjCleanData_rec( Aig_ObjFanin0(pObj) );
@@ -266,7 +266,7 @@ void Aig_ObjCleanData_rec( Aig_Obj_t * pObj )
 ***********************************************************************/
 void Aig_ObjCollectMulti_rec( Aig_Obj_t * pRoot, Aig_Obj_t * pObj, Vec_Ptr_t * vSuper )
 {
-    if ( pRoot != pObj && (Aig_IsComplement(pObj) || Aig_ObjIsPi(pObj) || Aig_ObjType(pRoot) != Aig_ObjType(pObj)) )
+    if ( pRoot != pObj && (Aig_IsComplement(pObj) || Aig_ObjIsCi(pObj) || Aig_ObjType(pRoot) != Aig_ObjType(pObj)) )
     {
         Vec_PtrPushUnique(vSuper, pObj);
         return;
@@ -531,7 +531,7 @@ void Aig_ObjPrintEqn( FILE * pFile, Aig_Obj_t * pObj, Vec_Vec_t * vLevels, int L
         return;
     }
     // PI case
-    if ( Aig_ObjIsPi(pObj) )
+    if ( Aig_ObjIsCi(pObj) )
     {
         fprintf( pFile, "%s%s", fCompl? "!" : "", (char*)pObj->pData );
         return;
@@ -578,7 +578,7 @@ void Aig_ObjPrintVerilog( FILE * pFile, Aig_Obj_t * pObj, Vec_Vec_t * vLevels, i
         return;
     }
     // PI case
-    if ( Aig_ObjIsPi(pObj) )
+    if ( Aig_ObjIsCi(pObj) )
     {
         fprintf( pFile, "%s%s", fCompl? "~" : "", (char*)pObj->pData );
         return;
@@ -656,9 +656,9 @@ void Aig_ObjPrintVerbose( Aig_Obj_t * pObj, int fHaig )
     printf( "Node %p : ", pObj );
     if ( Aig_ObjIsConst1(pObj) )
         printf( "constant 1" );
-    else if ( Aig_ObjIsPi(pObj) )
+    else if ( Aig_ObjIsCi(pObj) )
         printf( "PI" );
-    else if ( Aig_ObjIsPo(pObj) )
+    else if ( Aig_ObjIsCo(pObj) )
     {
         printf( "PO" );
         printf( "%p%s", 
@@ -736,7 +736,7 @@ void Aig_ManDumpBlif( Aig_Man_t * p, char * pFileName, Vec_Ptr_t * vPiNames, Vec
     Vec_Ptr_t * vNodes;
     Aig_Obj_t * pObj, * pObjLi, * pObjLo, * pConst1 = NULL;
     int i, nDigits, Counter = 0;
-    if ( Aig_ManPoNum(p) == 0 )
+    if ( Aig_ManCoNum(p) == 0 )
     {
         printf( "Aig_ManDumpBlif(): AIG manager does not have POs.\n" );
         return;
@@ -785,11 +785,11 @@ void Aig_ManDumpBlif( Aig_Man_t * p, char * pFileName, Vec_Ptr_t * vPiNames, Vec
         {
             fprintf( pFile, ".latch" );
             if ( vPoNames )
-                fprintf( pFile, " %s", (char*)Vec_PtrEntry(vPoNames, Aig_ManPoNum(p)-Aig_ManRegNum(p)+i) );
+                fprintf( pFile, " %s", (char*)Vec_PtrEntry(vPoNames, Aig_ManCoNum(p)-Aig_ManRegNum(p)+i) );
             else
                 fprintf( pFile, " n%0*d", nDigits, pObjLi->iData );
             if ( vPiNames )
-                fprintf( pFile, " %s", (char*)Vec_PtrEntry(vPiNames, Aig_ManPiNum(p)-Aig_ManRegNum(p)+i) );
+                fprintf( pFile, " %s", (char*)Vec_PtrEntry(vPiNames, Aig_ManCiNum(p)-Aig_ManRegNum(p)+i) );
             else
                 fprintf( pFile, " n%0*d", nDigits, pObjLo->iData );
             fprintf( pFile, " 0\n" );
@@ -803,11 +803,11 @@ void Aig_ManDumpBlif( Aig_Man_t * p, char * pFileName, Vec_Ptr_t * vPiNames, Vec
     Vec_PtrForEachEntry( Aig_Obj_t *, vNodes, pObj, i )
     {
         fprintf( pFile, ".names" );
-        if ( vPiNames && Aig_ObjIsPi(Aig_ObjFanin0(pObj)) )
+        if ( vPiNames && Aig_ObjIsCi(Aig_ObjFanin0(pObj)) )
             fprintf( pFile, " %s", (char*)Vec_PtrEntry(vPiNames, Aig_ObjPioNum(Aig_ObjFanin0(pObj))) );
         else
             fprintf( pFile, " n%0*d", nDigits, Aig_ObjFanin0(pObj)->iData );
-        if ( vPiNames && Aig_ObjIsPi(Aig_ObjFanin1(pObj)) )
+        if ( vPiNames && Aig_ObjIsCi(Aig_ObjFanin1(pObj)) )
             fprintf( pFile, " %s", (char*)Vec_PtrEntry(vPiNames, Aig_ObjPioNum(Aig_ObjFanin1(pObj))) );
         else
             fprintf( pFile, " n%0*d", nDigits, Aig_ObjFanin1(pObj)->iData );
@@ -818,7 +818,7 @@ void Aig_ManDumpBlif( Aig_Man_t * p, char * pFileName, Vec_Ptr_t * vPiNames, Vec
     Aig_ManForEachCo( p, pObj, i )
     {
         fprintf( pFile, ".names" );
-        if ( vPiNames && Aig_ObjIsPi(Aig_ObjFanin0(pObj)) )
+        if ( vPiNames && Aig_ObjIsCi(Aig_ObjFanin0(pObj)) )
             fprintf( pFile, " %s", (char*)Vec_PtrEntry(vPiNames, Aig_ObjPioNum(Aig_ObjFanin0(pObj))) );
         else
             fprintf( pFile, " n%0*d", nDigits, Aig_ObjFanin0(pObj)->iData );
@@ -851,7 +851,7 @@ void Aig_ManDumpVerilog( Aig_Man_t * p, char * pFileName )
     Vec_Ptr_t * vNodes;
     Aig_Obj_t * pObj, * pObjLi, * pObjLo, * pConst1 = NULL;
     int i, nDigits, Counter = 0;
-    if ( Aig_ManPoNum(p) == 0 )
+    if ( Aig_ManCoNum(p) == 0 )
     {
         printf( "Aig_ManDumpBlif(): AIG manager does not have POs.\n" );
         return;
@@ -1029,7 +1029,7 @@ void Aig_ManPrintControlFanouts( Aig_Man_t * p )
     Aig_Obj_t * pObj, * pFanin0, * pFanin1, * pCtrl;
     int i;
 
-    pCtrl = Aig_ManPi( p, Aig_ManPiNum(p) - 1 );
+    pCtrl = Aig_ManCi( p, Aig_ManCiNum(p) - 1 );
 
     printf( "Control signal:\n" );
     Aig_ObjPrint( p, pCtrl ); printf( "\n\n" );
@@ -1041,13 +1041,13 @@ void Aig_ManPrintControlFanouts( Aig_Man_t * p )
         assert( pObj != pCtrl );
         pFanin0 = Aig_ObjFanin0(pObj);
         pFanin1 = Aig_ObjFanin1(pObj);
-        if ( pFanin0 == pCtrl && Aig_ObjIsPi(pFanin1) )
+        if ( pFanin0 == pCtrl && Aig_ObjIsCi(pFanin1) )
         {
             Aig_ObjPrint( p, pObj ); printf( "\n" );
             Aig_ObjPrint( p, pFanin1 ); printf( "\n" );
             printf( "\n" );
         }
-        if ( pFanin1 == pCtrl && Aig_ObjIsPi(pFanin0) )
+        if ( pFanin1 == pCtrl && Aig_ObjIsCi(pFanin0) )
         {
             Aig_ObjPrint( p, pObj ); printf( "\n" );
             Aig_ObjPrint( p, pFanin0 ); printf( "\n" );
@@ -1355,7 +1355,7 @@ void Aig_ManCounterExampleValueStart( Aig_Man_t * pAig, Abc_Cex_t * pCex )
     }
     assert( iBit == pCex->nBits );
     // check that the counter-example is correct, that is, the corresponding output is asserted
-    assert( Abc_InfoHasBit( (unsigned *)pAig->pData2, nObjs * pCex->iFrame + Aig_ObjId(Aig_ManPo(pAig, pCex->iPo)) ) );
+    assert( Abc_InfoHasBit( (unsigned *)pAig->pData2, nObjs * pCex->iFrame + Aig_ObjId(Aig_ManCo(pAig, pCex->iPo)) ) );
 }
 
 /**Function*************************************************************

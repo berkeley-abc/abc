@@ -46,9 +46,9 @@ Aig_Obj_t * Aig_ObjCreateCi( Aig_Man_t * p )
 {
     Aig_Obj_t * pObj;
     pObj = Aig_ManFetchMemory( p );
-    pObj->Type = AIG_OBJ_PI;
-    Vec_PtrPush( p->vPis, pObj );
-    p->nObjs[AIG_OBJ_PI]++;
+    pObj->Type = AIG_OBJ_CI;
+    Vec_PtrPush( p->vCis, pObj );
+    p->nObjs[AIG_OBJ_CI]++;
     if ( p->pManHaig && p->fCreatePios )
     {
         p->pManHaig->nRegs++;
@@ -73,10 +73,10 @@ Aig_Obj_t * Aig_ObjCreateCo( Aig_Man_t * p, Aig_Obj_t * pDriver )
 {
     Aig_Obj_t * pObj;
     pObj = Aig_ManFetchMemory( p );
-    pObj->Type = AIG_OBJ_PO;
-    Vec_PtrPush( p->vPos, pObj );
+    pObj->Type = AIG_OBJ_CO;
+    Vec_PtrPush( p->vCos, pObj );
     Aig_ObjConnect( p, pObj, pDriver, NULL );
-    p->nObjs[AIG_OBJ_PO]++;
+    p->nObjs[AIG_OBJ_CO]++;
     if ( p->pManHaig && p->fCreatePios )
     {
         pObj->pHaig = Aig_ObjCreateCo( p->pManHaig, Aig_ObjHaig( pDriver ) );
@@ -145,7 +145,7 @@ Aig_Obj_t * Aig_ObjCreate( Aig_Man_t * p, Aig_Obj_t * pGhost )
 void Aig_ObjConnect( Aig_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pFan0, Aig_Obj_t * pFan1 )
 {
     assert( !Aig_IsComplement(pObj) );
-    assert( !Aig_ObjIsPi(pObj) );
+    assert( !Aig_ObjIsCi(pObj) );
     // add the first fanin
     pObj->pFanin0 = pFan0;
     pObj->pFanin1 = pFan1;
@@ -252,9 +252,9 @@ void Aig_ObjDelete_rec( Aig_Man_t * p, Aig_Obj_t * pObj, int fFreeTop )
 {
     Aig_Obj_t * pFanin0, * pFanin1;
     assert( !Aig_IsComplement(pObj) );
-    if ( Aig_ObjIsConst1(pObj) || Aig_ObjIsPi(pObj) )
+    if ( Aig_ObjIsConst1(pObj) || Aig_ObjIsCi(pObj) )
         return;
-    assert( !Aig_ObjIsPo(pObj) );
+    assert( !Aig_ObjIsCo(pObj) );
     pFanin0 = Aig_ObjFanin0(pObj);
     pFanin1 = Aig_ObjFanin1(pObj);
     Aig_ObjDisconnect( p, pObj );
@@ -279,7 +279,7 @@ void Aig_ObjDelete_rec( Aig_Man_t * p, Aig_Obj_t * pObj, int fFreeTop )
 ***********************************************************************/
 void Aig_ObjDeletePo( Aig_Man_t * p, Aig_Obj_t * pObj )
 {
-    assert( Aig_ObjIsPo(pObj) );
+    assert( Aig_ObjIsCo(pObj) );
     Aig_ObjDeref(Aig_ObjFanin0(pObj));
     pObj->pFanin0 = NULL;
     p->nObjs[pObj->Type]--;
@@ -302,7 +302,7 @@ void Aig_ObjPatchFanin0( Aig_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pFaninNew 
 {
     Aig_Obj_t * pFaninOld;
     assert( !Aig_IsComplement(pObj) );
-    assert( Aig_ObjIsPo(pObj) );
+    assert( Aig_ObjIsCo(pObj) );
     pFaninOld = Aig_ObjFanin0(pObj);
     // decrement ref and remove fanout
     if ( p->pFanData )
@@ -317,7 +317,7 @@ void Aig_ObjPatchFanin0( Aig_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pFaninNew 
         Aig_ObjAddFanout( p, Aig_ObjFanin0(pObj), pObj );
     Aig_ObjRef( Aig_ObjFanin0(pObj) );
     // get rid of old fanin
-    if ( !Aig_ObjIsPi(pFaninOld) && !Aig_ObjIsConst1(pFaninOld) && Aig_ObjRefs(pFaninOld) == 0 )
+    if ( !Aig_ObjIsCi(pFaninOld) && !Aig_ObjIsConst1(pFaninOld) && Aig_ObjRefs(pFaninOld) == 0 )
         Aig_ObjDelete_rec( p, pFaninOld, 1 );
 }
 
@@ -351,9 +351,9 @@ void Aig_ObjPrint( Aig_Man_t * p, Aig_Obj_t * pObj )
     printf( "Node %4d : ", Aig_ObjId(pObj) );
     if ( Aig_ObjIsConst1(pObj) )
         printf( "constant 1" );
-    else if ( Aig_ObjIsPi(pObj) )
+    else if ( Aig_ObjIsCi(pObj) )
         printf( "PI" );
-    else if ( Aig_ObjIsPo(pObj) )
+    else if ( Aig_ObjIsCo(pObj) )
         printf( "PO( %4d%s )", Aig_ObjFanin0(pObj)->Id, (Aig_ObjFaninC0(pObj)? "\'" : " ") );
     else if ( Aig_ObjIsBuf(pObj) )
         printf( "BUF( %d%s )", Aig_ObjFanin0(pObj)->Id, (Aig_ObjFaninC0(pObj)? "\'" : " ") );
@@ -372,7 +372,7 @@ void Aig_ObjPrint( Aig_Man_t * p, Aig_Obj_t * pObj )
         {
             printf( "    " );
             printf( "Node %4d : ", Aig_ObjId(pFanout) );
-            if ( Aig_ObjIsPo(pFanout) )
+            if ( Aig_ObjIsCo(pFanout) )
                 printf( "PO( %4d%s )", Aig_ObjFanin0(pFanout)->Id, (Aig_ObjFaninC0(pFanout)? "\'" : " ") );
             else if ( Aig_ObjIsBuf(pFanout) )
                 printf( "BUF( %d%s )", Aig_ObjFanin0(pFanout)->Id, (Aig_ObjFaninC0(pFanout)? "\'" : " ") );
@@ -422,7 +422,7 @@ void Aig_NodeFixBufferFanins( Aig_Man_t * p, Aig_Obj_t * pObj, int fUpdateLevel 
 {
     Aig_Obj_t * pFanReal0, * pFanReal1, * pResult;
     p->nBufFixes++;
-    if ( Aig_ObjIsPo(pObj) )
+    if ( Aig_ObjIsCo(pObj) )
     {
         assert( Aig_ObjIsBuf(Aig_ObjFanin0(pObj)) );
         pFanReal0 = Aig_ObjReal_rec( Aig_ObjChild0(pObj) );
@@ -498,9 +498,9 @@ void Aig_ObjReplace( Aig_Man_t * p, Aig_Obj_t * pObjOld, Aig_Obj_t * pObjNew, in
     // the object to be replaced cannot be complemented
     assert( !Aig_IsComplement(pObjOld) );
     // the object to be replaced cannot be a terminal
-    assert( !Aig_ObjIsPi(pObjOld) && !Aig_ObjIsPo(pObjOld) );
+    assert( !Aig_ObjIsCi(pObjOld) && !Aig_ObjIsCo(pObjOld) );
     // the object to be used cannot be a buffer or a PO
-    assert( !Aig_ObjIsBuf(pObjNewR) && !Aig_ObjIsPo(pObjNewR) );
+    assert( !Aig_ObjIsBuf(pObjNewR) && !Aig_ObjIsCo(pObjNewR) );
     // the object cannot be the same
     assert( pObjOld != pObjNewR );
     // make sure object is not pointing to itself

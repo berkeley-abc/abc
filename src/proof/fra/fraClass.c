@@ -291,12 +291,12 @@ void Fra_ClassesPrepare( Fra_Cla_t * p, int fLatchCorr, int nMaxLevs )
     {
         if ( fLatchCorr )
         {
-            if ( !Aig_ObjIsPi(pObj) )
+            if ( !Aig_ObjIsCi(pObj) )
                 continue;
         }
         else
         {
-            if ( !Aig_ObjIsNode(pObj) && !Aig_ObjIsPi(pObj) )
+            if ( !Aig_ObjIsNode(pObj) && !Aig_ObjIsCi(pObj) )
                 continue;
             // skip the node with more that the given number of levels
             if ( nMaxLevs && (int)pObj->Level > nMaxLevs )
@@ -349,7 +349,7 @@ void Fra_ClassesPrepare( Fra_Cla_t * p, int fLatchCorr, int nMaxLevs )
     nEntries = 0;
     Aig_ManForEachObj( p->pAig, pObj, i )
     {
-        if ( !Aig_ObjIsNode(pObj) && !Aig_ObjIsPi(pObj) )
+        if ( !Aig_ObjIsNode(pObj) && !Aig_ObjIsCi(pObj) )
             continue;
         // skip the nodes that are not representatives of non-trivial classes
         if ( pObj->fMarkA == 0 )
@@ -800,7 +800,7 @@ Aig_Man_t * Fra_ClassesDeriveAig( Fra_Cla_t * p, int nFramesK )
     Aig_Obj_t ** pLatches, ** ppEquivs;
     int i, k, f, nFramesAll = nFramesK + 1;
     assert( Aig_ManRegNum(p->pAig) > 0 );
-    assert( Aig_ManRegNum(p->pAig) < Aig_ManPiNum(p->pAig) );
+    assert( Aig_ManRegNum(p->pAig) < Aig_ManCiNum(p->pAig) );
     assert( nFramesK > 0 );
     // start the fraig package
     pManFraig = Aig_ManStart( Aig_ManObjNumMax(p->pAig) * nFramesAll );
@@ -832,7 +832,7 @@ Aig_Man_t * Fra_ClassesDeriveAig( Fra_Cla_t * p, int nFramesK )
         if ( f == nFramesAll - 1 )
             break;
         if ( f == nFramesAll - 2 )
-            pManFraig->nAsserts = Aig_ManPoNum(pManFraig);
+            pManFraig->nAsserts = Aig_ManCoNum(pManFraig);
         // save the latch input values
         k = 0;
         Aig_ManForEachLiSeq( p->pAig, pObj, i )
@@ -845,9 +845,9 @@ Aig_Man_t * Fra_ClassesDeriveAig( Fra_Cla_t * p, int nFramesK )
     ABC_FREE( pLatches );
     ABC_FREE( ppEquivs );
     // mark the asserts
-    assert( Aig_ManPoNum(pManFraig) % nFramesAll == 0 );
+    assert( Aig_ManCoNum(pManFraig) % nFramesAll == 0 );
 printf( "Assert miters = %6d. Output miters = %6d.\n", 
-       pManFraig->nAsserts, Aig_ManPoNum(pManFraig) - pManFraig->nAsserts );
+       pManFraig->nAsserts, Aig_ManCoNum(pManFraig) - pManFraig->nAsserts );
     // remove dangling nodes
     Aig_ManCleanup( pManFraig );
     return pManFraig;

@@ -113,7 +113,7 @@ void Dch_ManResimulateSolved_rec( Dch_Man_t * p, Aig_Obj_t * pObj )
     if ( Aig_ObjIsTravIdCurrent(p->pAigTotal, pObj) )
         return;
     Aig_ObjSetTravIdCurrent(p->pAigTotal, pObj);
-    if ( Aig_ObjIsPi(pObj) )
+    if ( Aig_ObjIsCi(pObj) )
     {
         Aig_Obj_t * pObjFraig;
         int nVarNum;
@@ -151,7 +151,7 @@ void Dch_ManResimulateOther_rec( Dch_Man_t * p, Aig_Obj_t * pObj )
     if ( Aig_ObjIsTravIdCurrent(p->pAigTotal, pObj) )
         return;
     Aig_ObjSetTravIdCurrent(p->pAigTotal, pObj);
-    if ( Aig_ObjIsPi(pObj) )
+    if ( Aig_ObjIsCi(pObj) )
     {
         // set random value
         pObj->fMarkB = Aig_ManRandom(0) & 1;

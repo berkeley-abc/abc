@@ -68,8 +68,8 @@ Hop_Obj_t * Abc_MfsConvertAigToHop( Aig_Man_t * pMan, Hop_Man_t * pHop )
 {
     Aig_Obj_t * pRoot, * pObj;
     int i;
-    assert( Aig_ManPoNum(pMan) == 1 );
-    pRoot = Aig_ManPo( pMan, 0 );
+    assert( Aig_ManCoNum(pMan) == 1 );
+    pRoot = Aig_ManCo( pMan, 0 );
     // check the case of a constant
     if ( Aig_ObjIsConst1( Aig_ObjFanin0(pRoot) ) )
         return Hop_NotCond( Hop_ManConst1(pHop), Aig_ObjFaninC0(pRoot) );
@@ -206,7 +206,7 @@ Aig_Obj_t * Abc_NtkConstructCare_rec( Aig_Man_t * pCare, Aig_Obj_t * pObj, Aig_M
     if ( Aig_ObjIsTravIdCurrent( pCare, pObj ) )
         return (Aig_Obj_t *)pObj->pData;
     Aig_ObjSetTravIdCurrent( pCare, pObj );
-    if ( Aig_ObjIsPi(pObj) )
+    if ( Aig_ObjIsCi(pObj) )
         return (Aig_Obj_t *)(pObj->pData = NULL);
     pObj0 = Abc_NtkConstructCare_rec( pCare, Aig_ObjFanin0(pObj), pMan );
     if ( pObj0 == NULL )
@@ -249,7 +249,7 @@ Aig_Man_t * Abc_NtkConstructAig( Mfs_Man_t * p, Abc_Obj_t * pNode )
         Aig_ManIncrementTravId( p->pCare );
         Vec_PtrForEachEntry( Abc_Obj_t *, p->vSupp, pFanin, i )
         {
-            pPi = Aig_ManPi( p->pCare, (int)(ABC_PTRUINT_T)pFanin->pData );
+            pPi = Aig_ManCi( p->pCare, (int)(ABC_PTRUINT_T)pFanin->pData );
             Aig_ObjSetTravIdCurrent( p->pCare, pPi );
             pPi->pData = pFanin->pCopy;
         }
@@ -259,7 +259,7 @@ Aig_Man_t * Abc_NtkConstructAig( Mfs_Man_t * p, Abc_Obj_t * pNode )
             vOuts = (Vec_Int_t *)Vec_PtrEntry( p->vSuppsInv, (int)(ABC_PTRUINT_T)pFanin->pData );
             Vec_IntForEachEntry( vOuts, iOut, k )
             {
-                pPo = Aig_ManPo( p->pCare, iOut );
+                pPo = Aig_ManCo( p->pCare, iOut );
                 if ( Aig_ObjIsTravIdCurrent( p->pCare, pPo ) )
                     continue;
                 Aig_ObjSetTravIdCurrent( p->pCare, pPo );
@@ -336,7 +336,7 @@ Aig_Man_t * Abc_NtkAigForConstraints( Mfs_Man_t * p, Abc_Obj_t * pNode )
     Aig_ManIncrementTravId( p->pCare );
     Vec_PtrForEachEntry( Abc_Obj_t *, p->vSupp, pFanin, i )
     {
-        pPi = Aig_ManPi( p->pCare, (int)(ABC_PTRUINT_T)pFanin->pData );
+        pPi = Aig_ManCi( p->pCare, (int)(ABC_PTRUINT_T)pFanin->pData );
         Aig_ObjSetTravIdCurrent( p->pCare, pPi );
         pPi->pData = Aig_ObjCreateCi(pMan);
     }
@@ -347,7 +347,7 @@ Aig_Man_t * Abc_NtkAigForConstraints( Mfs_Man_t * p, Abc_Obj_t * pNode )
         vOuts = (Vec_Int_t *)Vec_PtrEntry( p->vSuppsInv, (int)(ABC_PTRUINT_T)pFanin->pData );
         Vec_IntForEachEntry( vOuts, iOut, k )
         {
-            pPo = Aig_ManPo( p->pCare, iOut );
+            pPo = Aig_ManCo( p->pCare, iOut );
             if ( Aig_ObjIsTravIdCurrent( p->pCare, pPo ) )
                 continue;
             Aig_ObjSetTravIdCurrent( p->pCare, pPo );
@@ -391,7 +391,7 @@ double Abc_NtkConstraintRatio( Mfs_Man_t * p, Abc_Obj_t * pNode )
     int Counter;
     pMan = Abc_NtkAigForConstraints( p, pNode );
     pSim = Fra_SmlSimulateComb( pMan, nSimWords );
-    Counter = Fra_SmlNodeCountOnes( pSim, Aig_ManPo(pMan, 0) );
+    Counter = Fra_SmlNodeCountOnes( pSim, Aig_ManCo(pMan, 0) );
     Aig_ManStop( pMan );
     Fra_SmlStop( pSim );
     return 1.0 * Counter / (32 * nSimWords);

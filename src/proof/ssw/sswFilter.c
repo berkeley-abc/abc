@@ -162,7 +162,7 @@ void Ssw_ManFindStartingState( Ssw_Man_t * p, Abc_Cex_t * pCex )
     }
     assert( iBit == pCex->nBits );
     // check that the output failed as expected -- cannot check because it is not an SRM!
-//    pObj = Aig_ManPo( p->pAig, pCex->iPo );
+//    pObj = Aig_ManCo( p->pAig, pCex->iPo );
 //    if ( pObj->fMarkB != 1 )
 //        printf( "The counter-example does not refine the output.\n" );
     // record the new pattern

@@ -85,14 +85,14 @@ void Ssw_MatchingStart( Aig_Man_t * p0, Aig_Man_t * p1, Vec_Int_t * vPairs )
     // make sure PIs are matched
     Saig_ManForEachPi( p0, pObj0, i )
     {
-        pObj1 = Aig_ManPi( p1, i );
+        pObj1 = Aig_ManCi( p1, i );
         assert( pObj0->pData == pObj1 );
         assert( pObj1->pData == pObj0 );
     }
     // make sure the POs are not matched
     Aig_ManForEachCo( p0, pObj0, i )
     {
-        pObj1 = Aig_ManPo( p1, i );
+        pObj1 = Aig_ManCo( p1, i );
         assert( pObj0->pData == NULL );
         assert( pObj1->pData == NULL );
     }
@@ -135,7 +135,7 @@ void Ssw_MatchingExtendOne( Aig_Man_t * p, Vec_Ptr_t * vNodes )
     Aig_ManIncrementTravId( p );
     Aig_ManForEachObj( p, pObj, i )
     {
-        if ( !Aig_ObjIsNode(pObj) && !Aig_ObjIsPi(pObj) )
+        if ( !Aig_ObjIsNode(pObj) && !Aig_ObjIsCi(pObj) )
             continue;
         if ( pObj->pData != NULL )
             continue;
@@ -196,7 +196,7 @@ int Ssw_MatchingCountUnmached( Aig_Man_t * p )
     int i, Counter = 0;
     Aig_ManForEachObj( p, pObj, i )
     {
-        if ( !Aig_ObjIsNode(pObj) && !Aig_ObjIsPi(pObj) )
+        if ( !Aig_ObjIsNode(pObj) && !Aig_ObjIsCi(pObj) )
             continue;
         if ( pObj->pData != NULL )
             continue;
@@ -230,8 +230,8 @@ void Ssw_MatchingExtend( Aig_Man_t * p0, Aig_Man_t * p1, int nDist, int fVerbose
         int nUnmached = Ssw_MatchingCountUnmached(p0);
         printf( "Extending islands by %d steps:\n", nDist );
         printf( "%2d : Total = %6d. Unmatched = %6d.  Ratio = %6.2f %%\n",
-            0, Aig_ManPiNum(p0) + Aig_ManNodeNum(p0), 
-            nUnmached, 100.0 * nUnmached/(Aig_ManPiNum(p0) + Aig_ManNodeNum(p0)) );
+            0, Aig_ManCiNum(p0) + Aig_ManNodeNum(p0), 
+            nUnmached, 100.0 * nUnmached/(Aig_ManCiNum(p0) + Aig_ManNodeNum(p0)) );
     }
     for ( d = 0; d < nDist; d++ )
     {
@@ -263,8 +263,8 @@ void Ssw_MatchingExtend( Aig_Man_t * p0, Aig_Man_t * p1, int nDist, int fVerbose
         {
             int nUnmached = Ssw_MatchingCountUnmached(p0);
             printf( "%2d : Total = %6d. Unmatched = %6d.  Ratio = %6.2f %%\n",
-                d+1, Aig_ManPiNum(p0) + Aig_ManNodeNum(p0), 
-                nUnmached, 100.0 * nUnmached/(Aig_ManPiNum(p0) + Aig_ManNodeNum(p0)) );
+                d+1, Aig_ManCiNum(p0) + Aig_ManNodeNum(p0), 
+                nUnmached, 100.0 * nUnmached/(Aig_ManCiNum(p0) + Aig_ManNodeNum(p0)) );
         }
     }
     Vec_PtrFree( vNodes0 );
@@ -335,15 +335,15 @@ Vec_Int_t * Ssw_MatchingPairs( Aig_Man_t * p0, Aig_Man_t * p1 )
     Aig_Obj_t * pObj0, * pObj1;
     int i;
     // check correctness
-    assert( Aig_ManPiNum(p0) == Aig_ManPiNum(p1) );
-    assert( Aig_ManPoNum(p0) == Aig_ManPoNum(p1) );
+    assert( Aig_ManCiNum(p0) == Aig_ManCiNum(p1) );
+    assert( Aig_ManCoNum(p0) == Aig_ManCoNum(p1) );
     assert( Aig_ManRegNum(p0) == Aig_ManRegNum(p1) );
     assert( Aig_ManObjNum(p0) == Aig_ManObjNum(p1) );
     // create complete pairs
     vPairsNew = Vec_IntAlloc( 2*Aig_ManObjNum(p0) );
     Aig_ManForEachObj( p0, pObj0, i )
     {
-        if ( Aig_ObjIsPo(pObj0) )
+        if ( Aig_ObjIsCo(pObj0) )
             continue;
         pObj1 = (Aig_Obj_t *)pObj0->pData;
         Vec_IntPush( vPairsNew, pObj0->Id );
@@ -390,7 +390,7 @@ Vec_Int_t * Ssw_MatchingMiter( Aig_Man_t * pMiter, Aig_Man_t * p0, Aig_Man_t * p
         assert( !Aig_IsComplement(pObj0) );
         assert( !Aig_IsComplement(pObj1) );
         assert( Aig_ObjType(pObj0) == Aig_ObjType(pObj1) );
-        if ( Aig_ObjIsPo(pObj0) )
+        if ( Aig_ObjIsCo(pObj0) )
             continue;
         assert( Aig_ObjIsNode(pObj0) || Saig_ObjIsLo(pMiter, pObj0) );
         assert( Aig_ObjIsNode(pObj1) || Saig_ObjIsLo(pMiter, pObj1) );
@@ -519,7 +519,7 @@ Vec_Int_t * Saig_StrSimPerformMatching_hack( Aig_Man_t * p0, Aig_Man_t * p1 )
     vPairs = Vec_IntAlloc( 100 );
     Aig_ManForEachObj( p0, pObj, i )
     {
-        if ( !Aig_ObjIsConst1(pObj) && !Aig_ObjIsPi(pObj) && !Aig_ObjIsNode(pObj) )
+        if ( !Aig_ObjIsConst1(pObj) && !Aig_ObjIsCi(pObj) && !Aig_ObjIsNode(pObj) )
             continue;
         Vec_IntPush( vPairs, i );
         Vec_IntPush( vPairs, i );

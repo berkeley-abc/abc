@@ -55,7 +55,7 @@ clk = clock();
     Aig_ManForEachCi( p->pManRes, pObj, i )
     {
         Csw_ObjPrepareCuts( p, pObj, 1 );
-        Csw_ObjAddRefs( p, pObj, Aig_ManPi(p->pManAig,i)->nRefs );
+        Csw_ObjAddRefs( p, pObj, Aig_ManCi(p->pManAig,i)->nRefs );
     }
     // process the nodes
     Aig_ManForEachNode( pAig, pObj, i )

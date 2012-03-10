@@ -138,7 +138,7 @@ Saig_MvObj_t * Saig_ManCreateReducedAig( Aig_Man_t * p, Vec_Ptr_t ** pvFlops )
     {
         pEntry = pAig + i;
         pEntry->Type = pObj->Type;
-        if ( Aig_ObjIsPi(pObj) || i == 0 )
+        if ( Aig_ObjIsCi(pObj) || i == 0 )
         {
             if ( Saig_ObjIsLo(p, pObj) )
             {
@@ -149,7 +149,7 @@ Saig_MvObj_t * Saig_ManCreateReducedAig( Aig_Man_t * p, Vec_Ptr_t ** pvFlops )
             continue;
         }
         pEntry->iFan0 = (Aig_ObjFaninId0(pObj) << 1) | Aig_ObjFaninC0(pObj);
-        if ( Aig_ObjIsPo(pObj) )
+        if ( Aig_ObjIsCo(pObj) )
             continue;
         assert( Aig_ObjIsNode(pObj) );
         pEntry->iFan1 = (Aig_ObjFaninId1(pObj) << 1) | Aig_ObjFaninC1(pObj);
@@ -442,9 +442,9 @@ void Saig_MvSimulateFrame( Saig_MvMan_t * p, int fFirst, int fVerbose )
                 Saig_MvSimulateValue0(p->pAigOld, pEntry),
                 Saig_MvSimulateValue1(p->pAigOld, pEntry), fFirst );
         }
-        else if ( pEntry->Type == AIG_OBJ_PO )
+        else if ( pEntry->Type == AIG_OBJ_CO )
             pEntry->Value = Saig_MvSimulateValue0(p->pAigOld, pEntry);
-        else if ( pEntry->Type == AIG_OBJ_PI )
+        else if ( pEntry->Type == AIG_OBJ_CI )
         {
             if ( pEntry->iFan1 == 0 ) // true PI
             {
@@ -827,7 +827,7 @@ Vec_Ptr_t * Saig_MvManDeriveMap( Saig_MvMan_t * p, int fVerbose )
     int i, k, j, FlopK, FlopJ;
     int Counter1 = 0, Counter2 = 0;
     // prepare CI map
-    vMap = Vec_PtrAlloc( Aig_ManPiNum(p->pAig) );
+    vMap = Vec_PtrAlloc( Aig_ManCiNum(p->pAig) );
     Aig_ManForEachCi( p->pAig, pObj, i )
         Vec_PtrPush( vMap, pObj );
     // detect constant flops

@@ -579,7 +579,7 @@ int Aig_ManMarkFlopTfi_rec( Aig_Man_t * p, Aig_Obj_t * pObj )
     if ( Aig_ObjIsTravIdCurrent(p, pObj) )
         return 0;
     Aig_ObjSetTravIdCurrent(p, pObj);
-    if ( Aig_ObjIsPi(pObj) || Aig_ObjIsConst1(pObj) )
+    if ( Aig_ObjIsCi(pObj) || Aig_ObjIsConst1(pObj) )
         return 1;
     Count = Aig_ManMarkFlopTfi_rec( p, Aig_ObjFanin0(pObj) );
     if ( Aig_ObjIsNode(pObj) )
@@ -773,8 +773,8 @@ int Aig_ObjDomVolume_rec( Aig_Man_t * p, Aig_Obj_t * pObj )
     Aig_ObjSetTravIdCurrent(p, pObj);
     if ( pObj->fMarkA )
         return 1;
-//    assert( !Aig_ObjIsPi(pObj) && !Aig_ObjIsConst1(pObj) );
-    if ( Aig_ObjIsPi(pObj) || Aig_ObjIsConst1(pObj) )
+//    assert( !Aig_ObjIsCi(pObj) && !Aig_ObjIsConst1(pObj) );
+    if ( Aig_ObjIsCi(pObj) || Aig_ObjIsConst1(pObj) )
         return 1;
     Count = Aig_ObjDomVolume_rec( p, Aig_ObjFanin0(pObj) );
     if ( Aig_ObjIsNode(pObj) )
@@ -826,7 +826,7 @@ int Aig_ObjDomDeref_rec( Aig_Obj_t * pNode )
     assert( pNode->nRefs == 0 );
     if ( pNode->fMarkA )
         return 1;
-    if ( Aig_ObjIsPi(pNode) )
+    if ( Aig_ObjIsCi(pNode) )
         return 0;
     Counter += Aig_ObjDomDeref_rec( Aig_ObjFanin0(pNode) );
     if ( Aig_ObjIsNode(pNode) )
@@ -854,7 +854,7 @@ int Aig_ObjDomRef_rec( Aig_Obj_t * pNode )
     assert( pNode->nRefs == 1 );
     if ( pNode->fMarkA )
         return 1;
-    if ( Aig_ObjIsPi(pNode) )
+    if ( Aig_ObjIsCi(pNode) )
         return 0;
     Counter += Aig_ObjDomRef_rec( Aig_ObjFanin0(pNode) );
     if ( Aig_ObjIsNode(pNode) )
@@ -880,7 +880,7 @@ int Aig_ObjDomDomed( Aig_Sto_t * pSto, Aig_Dom_t * pDom )
     Counter0 = 0;
     Aig_DomForEachNode( pSto->pAig, pDom, pObj, i )
     {
-        assert( !Aig_ObjIsPi(pObj) );
+        assert( !Aig_ObjIsCi(pObj) );
         Counter0 += Aig_ObjDomDeref_rec( Aig_ObjFanin0(pObj) );
         if ( Aig_ObjIsNode(pObj) )
         Counter0 += Aig_ObjDomDeref_rec( Aig_ObjFanin1(pObj) );
@@ -888,7 +888,7 @@ int Aig_ObjDomDomed( Aig_Sto_t * pSto, Aig_Dom_t * pDom )
     Counter1 = 0;
     Aig_DomForEachNode( pSto->pAig, pDom, pObj, i )
     {
-        assert( !Aig_ObjIsPi(pObj) );
+        assert( !Aig_ObjIsCi(pObj) );
         Counter1 += Aig_ObjDomRef_rec( Aig_ObjFanin0(pObj) );
         if ( Aig_ObjIsNode(pObj) )
         Counter1 += Aig_ObjDomRef_rec( Aig_ObjFanin1(pObj) );
@@ -1124,7 +1124,7 @@ void Aig_ManComputeDomsForCofactoring( Aig_Man_t * pAig )
     pSto = Aig_ManComputeDomsNodes( pAig, 1 );
     Aig_ManForEachObj( pAig, pObj, i )
     {
-        if ( !Aig_ObjIsPi(pObj) && !Aig_ObjIsNode(pObj) )
+        if ( !Aig_ObjIsCi(pObj) && !Aig_ObjIsNode(pObj) )
             continue;
         if ( Aig_ObjRefs(pObj) < 10 )
             continue;

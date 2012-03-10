@@ -61,10 +61,10 @@ Cgt_Man_t * Cgt_ManCreate( Aig_Man_t * pAig, Aig_Man_t * pCare, Cgt_Par_t * pPar
     if ( pCare == NULL )
         return p;
     // check out the constraints
-    if ( Aig_ManPiNum(pCare) != Aig_ManPiNum(pAig) )
+    if ( Aig_ManCiNum(pCare) != Aig_ManCiNum(pAig) )
     {
         printf( "The PI count of care (%d) and AIG (%d) differ. Careset is not used.\n", 
-            Aig_ManPiNum(pCare), Aig_ManPiNum(pAig) );
+            Aig_ManCiNum(pCare), Aig_ManCiNum(pAig) );
         return p;
     }
     p->pCare = pCare;

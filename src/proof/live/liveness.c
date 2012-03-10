@@ -122,12 +122,12 @@ char * retrieveTruePiName( Abc_Ntk_t *pNtkOld, Aig_Man_t *pAigOld, Aig_Man_t *pA
     Aig_ManForEachCi( pAigNew, pObj, index )
         if( pObj == pObjPivot )
             break;
-    assert( index < Aig_ManPiNum( pAigNew ) - Aig_ManRegNum( pAigNew ) );
+    assert( index < Aig_ManCiNum( pAigNew ) - Aig_ManRegNum( pAigNew ) );
     if( index == Saig_ManPiNum( pAigNew ) - 1 )
         return "SAVE_BIERE";
     else
     {
-        pObjOld = Aig_ManPi( pAigOld, index );
+        pObjOld = Aig_ManCi( pAigOld, index );
         pNode = Abc_NtkPi( pNtkOld, index );
         assert( pObjOld->pData == pObjPivot );
         return Abc_ObjName( pNode );
@@ -148,7 +148,7 @@ char * retrieveLOName( Abc_Ntk_t *pNtkOld, Aig_Man_t *pAigOld, Aig_Man_t *pAigNe
     if( index < originalLatchNum )
     {
         oldIndex = Saig_ManPiNum( pAigOld ) + index;
-        pObjOld = Aig_ManPi( pAigOld, oldIndex );
+        pObjOld = Aig_ManCi( pAigOld, oldIndex );
         pNode = Abc_NtkCi( pNtkOld, oldIndex );
         assert( pObjOld->pData == pObjPivot );
         return Abc_ObjName( pNode );
@@ -158,7 +158,7 @@ char * retrieveLOName( Abc_Ntk_t *pNtkOld, Aig_Man_t *pAigOld, Aig_Man_t *pAigNe
     else if( index > originalLatchNum && index < 2 * originalLatchNum + 1 )
     {
         oldIndex = Saig_ManPiNum( pAigOld ) + index - originalLatchNum - 1;
-        pObjOld = Aig_ManPi( pAigOld, oldIndex );
+        pObjOld = Aig_ManCi( pAigOld, oldIndex );
         pNode = Abc_NtkCi( pNtkOld, oldIndex );
         sprintf( dummyStr, "%s__%s", Abc_ObjName( pNode ), "SHADOW");
         return dummyStr;
@@ -219,26 +219,26 @@ Vec_Ptr_t *vecPis, *vecPiNames;
 Vec_Ptr_t *vecLos, *vecLoNames;
 
 
-int Aig_ManPiCleanupBiere( Aig_Man_t * p )
+int Aig_ManCiCleanupBiere( Aig_Man_t * p )
 {
-    int nPisOld = Aig_ManPiNum(p);
+    int nPisOld = Aig_ManCiNum(p);
     
-    p->nObjs[AIG_OBJ_PI] = Vec_PtrSize( p->vPis );
+    p->nObjs[AIG_OBJ_CI] = Vec_PtrSize( p->vCis );
     if ( Aig_ManRegNum(p) )
-        p->nTruePis = Aig_ManPiNum(p) - Aig_ManRegNum(p);
+        p->nTruePis = Aig_ManCiNum(p) - Aig_ManRegNum(p);
     
-    return nPisOld - Aig_ManPiNum(p);
+    return nPisOld - Aig_ManCiNum(p);
 }
 
 
-int Aig_ManPoCleanupBiere( Aig_Man_t * p )
+int Aig_ManCoCleanupBiere( Aig_Man_t * p )
 {
-    int nPosOld = Aig_ManPoNum(p);
+    int nPosOld = Aig_ManCoNum(p);
 
-    p->nObjs[AIG_OBJ_PO] = Vec_PtrSize( p->vPos );
+    p->nObjs[AIG_OBJ_CO] = Vec_PtrSize( p->vCos );
     if ( Aig_ManRegNum(p) )
-        p->nTruePos = Aig_ManPoNum(p) - Aig_ManRegNum(p);
-    return nPosOld - Aig_ManPoNum(p);
+        p->nTruePos = Aig_ManCoNum(p) - Aig_ManRegNum(p);
+    return nPosOld - Aig_ManCoNum(p);
 }
 
 Aig_Man_t * LivenessToSafetyTransformation( int mode, Abc_Ntk_t * pNtk, Aig_Man_t * p, 
@@ -518,8 +518,8 @@ Aig_Man_t * LivenessToSafetyTransformation( int mode, Abc_Ntk_t * pNtk, Aig_Man_
 
     Aig_ManSetRegNum( pNew, nRegCount );
 
-    Aig_ManPiCleanupBiere( pNew );
-    Aig_ManPoCleanupBiere( pNew );
+    Aig_ManCiCleanupBiere( pNew );
+    Aig_ManCoCleanupBiere( pNew );
     
     Aig_ManCleanup( pNew );
     
@@ -527,7 +527,7 @@ Aig_Man_t * LivenessToSafetyTransformation( int mode, Abc_Ntk_t * pNtk, Aig_Man_
     
     if( mode == FULL_BIERE_MODE || mode == IGNORE_SAFETY_KEEP_LIVENESS_MODE )
     {
-            assert((Aig_Obj_t *)Vec_PtrEntry(pNew->vPos, Saig_ManPoNum(pNew)+Aig_ObjPioNum(pObjSavedLo)-Saig_ManPiNum(p)-1) == pObjSavedLi);
+            assert((Aig_Obj_t *)Vec_PtrEntry(pNew->vCos, Saig_ManPoNum(pNew)+Aig_ObjPioNum(pObjSavedLo)-Saig_ManPiNum(p)-1) == pObjSavedLi);
             assert( Saig_ManPiNum( p ) + 1 == Saig_ManPiNum( pNew ) );
             assert( Saig_ManRegNum( pNew ) == Saig_ManRegNum( p ) * 2 + 1 + liveLatch + fairLatch );
     }
@@ -821,8 +821,8 @@ Aig_Man_t * LivenessToSafetyTransformationAbs( int mode, Abc_Ntk_t * pNtk, Aig_M
 
     Aig_ManSetRegNum( pNew, nRegCount );
 
-    Aig_ManPiCleanupBiere( pNew );
-    Aig_ManPoCleanupBiere( pNew );
+    Aig_ManCiCleanupBiere( pNew );
+    Aig_ManCoCleanupBiere( pNew );
     
     Aig_ManCleanup( pNew );
     
@@ -830,7 +830,7 @@ Aig_Man_t * LivenessToSafetyTransformationAbs( int mode, Abc_Ntk_t * pNtk, Aig_M
     
     if( mode == FULL_BIERE_MODE || mode == IGNORE_SAFETY_KEEP_LIVENESS_MODE )
     {
-            assert((Aig_Obj_t *)Vec_PtrEntry(pNew->vPos, Saig_ManPoNum(pNew)+Aig_ObjPioNum(pObjSavedLo)-Saig_ManPiNum(p)-1) == pObjSavedLi);
+            assert((Aig_Obj_t *)Vec_PtrEntry(pNew->vCos, Saig_ManPoNum(pNew)+Aig_ObjPioNum(pObjSavedLo)-Saig_ManPiNum(p)-1) == pObjSavedLi);
             assert( Saig_ManPiNum( p ) + 1 == Saig_ManPiNum( pNew ) );
             assert( Saig_ManRegNum( pNew ) == Saig_ManRegNum( p ) + Vec_IntSize( vFlops ) + 1 + liveLatch + fairLatch );
     }
@@ -1128,8 +1128,8 @@ Aig_Man_t * LivenessToSafetyTransformationOneStepLoop( int mode, Abc_Ntk_t * pNt
 
     //printf("\nSaig_ManPiNum = %d, Reg Num = %d, before everything, before Pi cleanup\n", Vec_PtrSize( pNew->vPis ), pNew->nRegs );
 
-    Aig_ManPiCleanupBiere( pNew );
-    Aig_ManPoCleanupBiere( pNew );
+    Aig_ManCiCleanupBiere( pNew );
+    Aig_ManCoCleanupBiere( pNew );
 
     Aig_ManCleanup( pNew );
     
@@ -1151,7 +1151,7 @@ Vec_Ptr_t * populateLivenessVector( Abc_Ntk_t *pNtk, Aig_Man_t *pAig )
         //if( strstr( Abc_ObjName( pNode ), "assert_fair") != NULL )
         if( nodeName_starts_with( pNode, "assert_fair" ) )
         {
-            Vec_PtrPush( vLive, Aig_ManPo( pAig, i ) );
+            Vec_PtrPush( vLive, Aig_ManCo( pAig, i ) );
             liveCounter++;
         }
     printf("Number of liveness property found = %d\n", liveCounter);
@@ -1169,7 +1169,7 @@ Vec_Ptr_t * populateFairnessVector( Abc_Ntk_t *pNtk, Aig_Man_t *pAig )
         //if( strstr( Abc_ObjName( pNode ), "assume_fair") != NULL )
         if( nodeName_starts_with( pNode, "assume_fair" ) )
         {
-            Vec_PtrPush( vFair, Aig_ManPo( pAig, i ) );
+            Vec_PtrPush( vFair, Aig_ManCo( pAig, i ) );
             fairCounter++;
         }
     printf("Number of fairness property found = %d\n", fairCounter);
@@ -1187,7 +1187,7 @@ Vec_Ptr_t * populateSafetyAssertionVector( Abc_Ntk_t *pNtk, Aig_Man_t *pAig )
         //if( strstr( Abc_ObjName( pNode ), "Assert") != NULL )
         if( nodeName_starts_with( pNode, "assert_safety" ) || nodeName_starts_with( pNode, "Assert" ))
         {
-            Vec_PtrPush( vAssertSafety, Aig_ManPo( pAig, i ) );
+            Vec_PtrPush( vAssertSafety, Aig_ManCo( pAig, i ) );
             assertSafetyCounter++;
         }
     printf("Number of safety property found = %d\n", assertSafetyCounter);
@@ -1205,7 +1205,7 @@ Vec_Ptr_t * populateSafetyAssumptionVector( Abc_Ntk_t *pNtk, Aig_Man_t *pAig )
         //if( strstr( Abc_ObjName( pNode ), "Assert") != NULL )
         if( nodeName_starts_with( pNode, "assume_safety" ) || nodeName_starts_with( pNode, "Assume" ))
         {
-            Vec_PtrPush( vAssumeSafety, Aig_ManPo( pAig, i ) );
+            Vec_PtrPush( vAssumeSafety, Aig_ManCo( pAig, i ) );
             assumeSafetyCounter++;
         }
     printf("Number of assume_safety property found = %d\n", assumeSafetyCounter);
@@ -2247,8 +2247,8 @@ Aig_Man_t * LivenessToSafetyTransformationWithLTL( int mode, Abc_Ntk_t * pNtk, A
 
     Aig_ManSetRegNum( pNew, nRegCount );
 
-    Aig_ManPiCleanupBiere( pNew );
-    Aig_ManPoCleanupBiere( pNew );
+    Aig_ManCiCleanupBiere( pNew );
+    Aig_ManCoCleanupBiere( pNew );
     
     Aig_ManCleanup( pNew );
     
@@ -2256,7 +2256,7 @@ Aig_Man_t * LivenessToSafetyTransformationWithLTL( int mode, Abc_Ntk_t * pNtk, A
     
     if( mode == FULL_BIERE_MODE || mode == IGNORE_SAFETY_KEEP_LIVENESS_MODE )
     {
-            assert((Aig_Obj_t *)Vec_PtrEntry(pNew->vPos, Saig_ManPoNum(pNew)+Aig_ObjPioNum(pObjSavedLo)-Saig_ManPiNum(p)-1) == pObjSavedLi);
+            assert((Aig_Obj_t *)Vec_PtrEntry(pNew->vCos, Saig_ManPoNum(pNew)+Aig_ObjPioNum(pObjSavedLo)-Saig_ManPiNum(p)-1) == pObjSavedLi);
             assert( Saig_ManPiNum( p ) + 1 == Saig_ManPiNum( pNew ) );
             //assert( Saig_ManRegNum( pNew ) == Saig_ManRegNum( p ) * 2 + 1 + liveLatch + fairLatch );
     }

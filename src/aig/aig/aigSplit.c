@@ -194,7 +194,7 @@ DdManager * Aig_ManBuildPoBdd( Aig_Man_t * p, DdNode ** pbFunc )
     int i;
     assert( Saig_ManPoNum(p) == 1 );
     Aig_ManCleanData( p );
-    dd = Cudd_Init( Aig_ManPiNum(p), 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
+    dd = Cudd_Init( Aig_ManCiNum(p), 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
     Cudd_AutodynEnable( dd,  CUDD_REORDER_SYMM_SIFT );
     pObj = Aig_ManConst1(p);
     pObj->pData = Cudd_ReadOne(dd);  Cudd_Ref( (DdNode *)pObj->pData );
@@ -202,7 +202,7 @@ DdManager * Aig_ManBuildPoBdd( Aig_Man_t * p, DdNode ** pbFunc )
     {
         pObj->pData = Cudd_bddIthVar(dd, i);  Cudd_Ref( (DdNode *)pObj->pData );
     }
-    pObj = Aig_ManPo( p, 0 );
+    pObj = Aig_ManCo( p, 0 );
     *pbFunc = Aig_ManBuildPoBdd_rec( p, Aig_ObjFanin0(pObj), dd );  Cudd_Ref( *pbFunc );
     *pbFunc = Cudd_NotCond( *pbFunc, Aig_ObjFaninC0(pObj) );
     Aig_ManForEachObj( p, pObj, i )
@@ -274,7 +274,7 @@ Aig_Man_t * Aig_ManSplit( Aig_Man_t * p, int nVars, int fVerbose )
         printf( "The number of cofactoring variables should be less than 17.\n" );
         return NULL;
     }
-    vSupp = Aig_Support( p, Aig_ObjFanin0(Aig_ManPo(p,0)) );
+    vSupp = Aig_Support( p, Aig_ObjFanin0(Aig_ManCo(p,0)) );
     if ( Vec_PtrSize(vSupp) == 0 )
     {
         printf( "Property output function is a constant.\n" );

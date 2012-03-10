@@ -730,7 +730,7 @@ Vec_Int_t * Aig_Gla1ManPerform( Aig_Man_t * pAig, Vec_Int_t * vGateClassesOld, i
             continue;
 
         // create output literal to represent property failure
-        pObj    = Aig_ManPo( pAig, 0 );
+        pObj    = Aig_ManCo( pAig, 0 );
         iSatVar = Aig_Gla1FetchVar( p, Aig_ObjFanin0(pObj), f );
         Lit     = toLitCond( iSatVar, Aig_ObjFaninC0(pObj) );
 

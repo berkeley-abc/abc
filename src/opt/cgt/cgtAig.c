@@ -91,7 +91,7 @@ void Cgt_ManDetectFanout_rec( Aig_Man_t * pAig, Aig_Obj_t * pObj, int nOdcMax, V
 {
     Aig_Obj_t * pFanout;
     int f, iFanout = -1;
-    if ( Aig_ObjIsPo(pObj) || Aig_ObjLevel(pObj) > nOdcMax )
+    if ( Aig_ObjIsCo(pObj) || Aig_ObjLevel(pObj) > nOdcMax )
         return;
     if ( Aig_ObjIsTravIdCurrent(pAig, pObj) )
         return;
@@ -150,7 +150,7 @@ void Cgt_ManDetectFanout( Aig_Man_t * pAig, Aig_Obj_t * pObj, int nOdcMax, Vec_P
 ***********************************************************************/
 void Cgt_ManCollectVisited_rec( Aig_Man_t * pAig, Aig_Obj_t * pObj, Vec_Ptr_t * vVisited )
 {
-    if ( Aig_ObjIsPi(pObj) )
+    if ( Aig_ObjIsCi(pObj) )
         return;
     if ( Aig_ObjIsTravIdCurrent(pAig, pObj) )
         return;
@@ -213,7 +213,7 @@ Aig_Obj_t * Cgt_ManConstructCareCondition( Cgt_Man_t * p, Aig_Man_t * pNew, Aig_
 {
     Aig_Obj_t * pMiter, * pObj, * pTemp;
     int i;
-    assert( Aig_ObjIsPi(pObjLo) );
+    assert( Aig_ObjIsCi(pObjLo) );
     // detect nodes and their cone
     Cgt_ManDetectFanout( p->pAig, pObjLo, p->pPars->nOdcMax, p->vFanout );
     Cgt_ManCollectVisited( p->pAig, p->vFanout, p->vVisited );
@@ -341,7 +341,7 @@ Aig_Obj_t * Cgt_ManConstructCare_rec( Aig_Man_t * pCare, Aig_Obj_t * pObj, Aig_M
     if ( Aig_ObjIsTravIdCurrent( pCare, pObj ) )
         return (Aig_Obj_t *)pObj->pData;
     Aig_ObjSetTravIdCurrent( pCare, pObj );
-    if ( Aig_ObjIsPi(pObj) )
+    if ( Aig_ObjIsCi(pObj) )
         return (Aig_Obj_t *)(pObj->pData = NULL);
     pObj0 = Cgt_ManConstructCare_rec( pCare, Aig_ObjFanin0(pObj), pNew );
     if ( pObj0 == NULL )
@@ -375,7 +375,7 @@ void Cgt_ManConstructCare( Aig_Man_t * pNew, Aig_Man_t * pCare, Vec_Vec_t * vSup
     Aig_ManIncrementTravId( pCare );
     Vec_PtrForEachEntry( Aig_Obj_t *, vLeaves, pLeaf, i )
     {
-        pPi = Aig_ManPi( pCare, Aig_ObjPioNum(pLeaf) );
+        pPi = Aig_ManCi( pCare, Aig_ObjPioNum(pLeaf) );
         Aig_ObjSetTravIdCurrent( pCare, pPi );
         pPi->pData = pLeaf->pData;
     }
@@ -385,7 +385,7 @@ void Cgt_ManConstructCare( Aig_Man_t * pNew, Aig_Man_t * pCare, Vec_Vec_t * vSup
         vOuts = Vec_VecEntryInt( vSuppsInv, Aig_ObjPioNum(pLeaf) );
         Vec_IntForEachEntry( vOuts, iOut, k )
         {
-            pPo = Aig_ManPo( pCare, iOut );
+            pPo = Aig_ManCo( pCare, iOut );
             if ( Aig_ObjIsTravIdCurrent( pCare, pPo ) )
                 continue;
             Aig_ObjSetTravIdCurrent( pCare, pPo );
@@ -416,7 +416,7 @@ Aig_Obj_t * Cgt_ManDupPartition_rec( Aig_Man_t * pNew, Aig_Man_t * pAig, Aig_Obj
     if ( Aig_ObjIsTravIdCurrent(pAig, pObj) )
         return (Aig_Obj_t *)pObj->pData;
     Aig_ObjSetTravIdCurrent(pAig, pObj);
-    if ( Aig_ObjIsPi(pObj) )
+    if ( Aig_ObjIsCi(pObj) )
     {
         pObj->pData = Aig_ObjCreateCi( pNew );
         Vec_PtrPush( vLeaves, pObj );
@@ -453,16 +453,16 @@ Aig_Man_t * Cgt_ManDupPartition( Aig_Man_t * pFrame, int nVarsMin, int nFlopsMin
     Aig_ManIncrementTravId( pFrame );
     Aig_ManConst1(pFrame)->pData = Aig_ManConst1(pNew);
     Aig_ObjSetTravIdCurrent( pFrame, Aig_ManConst1(pFrame) );
-    for ( i = iStart; i < iStart + nFlopsMin && i < Aig_ManPoNum(pFrame); i++ )
+    for ( i = iStart; i < iStart + nFlopsMin && i < Aig_ManCoNum(pFrame); i++ )
     {
-        pObj = Aig_ManPo( pFrame, i );
+        pObj = Aig_ManCo( pFrame, i );
         Cgt_ManDupPartition_rec( pNew, pFrame, Aig_ObjFanin0(pObj), vLeaves );
         Vec_PtrPush( vRoots, Aig_ObjChild0Copy(pObj) );
         Vec_PtrPush( vPos, pObj );
     }
-    for ( ; Aig_ManObjNum(pNew) < nVarsMin && i < Aig_ManPoNum(pFrame); i++ )
+    for ( ; Aig_ManObjNum(pNew) < nVarsMin && i < Aig_ManCoNum(pFrame); i++ )
     {
-        pObj = Aig_ManPo( pFrame, i );
+        pObj = Aig_ManCo( pFrame, i );
         Cgt_ManDupPartition_rec( pNew, pFrame, Aig_ObjFanin0(pObj), vLeaves );
         Vec_PtrPush( vRoots, Aig_ObjChild0Copy(pObj) );
         Vec_PtrPush( vPos, pObj );

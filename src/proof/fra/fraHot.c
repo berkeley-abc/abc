@@ -137,7 +137,7 @@ Vec_Int_t * Fra_OneHotCompute( Fra_Man_t * p, Fra_Sml_t * pSim )
     Vec_Int_t * vOneHots;
     Aig_Obj_t * pObj1, * pObj2;
     int i, k;
-    int nTruePis = Aig_ManPiNum(pSim->pAig) - Aig_ManRegNum(pSim->pAig);
+    int nTruePis = Aig_ManCiNum(pSim->pAig) - Aig_ManRegNum(pSim->pAig);
     assert( pSim->pAig == p->pManAig );
     vOneHots = Vec_IntAlloc( 100 );
     Aig_ManForEachLoSeq( pSim->pAig, pObj1, i )
@@ -146,8 +146,8 @@ Vec_Int_t * Fra_OneHotCompute( Fra_Man_t * p, Fra_Sml_t * pSim )
             continue;
         assert( i-nTruePis >= 0 );
 //        Aig_ManForEachLoSeq( pSim->pAig, pObj2, k )
-//        Vec_PtrForEachEntryStart( Aig_Obj_t *, pSim->pAig->vPis, pObj2, k, Aig_ManPiNum(p)-Aig_ManRegNum(p) )
-        Vec_PtrForEachEntryStart( Aig_Obj_t *, pSim->pAig->vPis, pObj2, k, i+1 )
+//        Vec_PtrForEachEntryStart( Aig_Obj_t *, pSim->pAig->vPis, pObj2, k, Aig_ManCiNum(p)-Aig_ManRegNum(p) )
+        Vec_PtrForEachEntryStart( Aig_Obj_t *, pSim->pAig->vCis, pObj2, k, i+1 )
         {
             if ( fSkipConstEqu && Fra_OneHotNodeIsConst(pSim, pObj2) )
                 continue;
@@ -192,7 +192,7 @@ void Fra_OneHotAssume( Fra_Man_t * p, Vec_Int_t * vOneHots )
 {
     Aig_Obj_t * pObj1, * pObj2;
     int i, Out1, Out2, pLits[2];
-    int nPiNum = Aig_ManPiNum(p->pManFraig) - Aig_ManRegNum(p->pManFraig);
+    int nPiNum = Aig_ManCiNum(p->pManFraig) - Aig_ManRegNum(p->pManFraig);
     assert( p->pPars->nFramesK == 1 ); // add to only one frame
     for ( i = 0; i < Vec_IntSize(vOneHots); i += 2 )
     {
@@ -200,8 +200,8 @@ void Fra_OneHotAssume( Fra_Man_t * p, Vec_Int_t * vOneHots )
         Out2 = Vec_IntEntry( vOneHots, i+1 );
         if ( Out1 == 0 && Out2 == 0 )
             continue;
-        pObj1 = Aig_ManPi( p->pManFraig, nPiNum + Fra_LitReg(Out1) );
-        pObj2 = Aig_ManPi( p->pManFraig, nPiNum + Fra_LitReg(Out2) );
+        pObj1 = Aig_ManCi( p->pManFraig, nPiNum + Fra_LitReg(Out1) );
+        pObj2 = Aig_ManCi( p->pManFraig, nPiNum + Fra_LitReg(Out2) );
         pLits[0] = toLitCond( Fra_ObjSatNum(pObj1), Fra_LitSign(Out1) );
         pLits[1] = toLitCond( Fra_ObjSatNum(pObj2), Fra_LitSign(Out2) );
         // add constraint to solver
@@ -230,15 +230,15 @@ void Fra_OneHotCheck( Fra_Man_t * p, Vec_Int_t * vOneHots )
 {
     Aig_Obj_t * pObj1, * pObj2;
     int RetValue, i, Out1, Out2;
-    int nTruePos = Aig_ManPoNum(p->pManFraig) - Aig_ManRegNum(p->pManFraig);
+    int nTruePos = Aig_ManCoNum(p->pManFraig) - Aig_ManRegNum(p->pManFraig);
     for ( i = 0; i < Vec_IntSize(vOneHots); i += 2 )
     {
         Out1 = Vec_IntEntry( vOneHots, i );
         Out2 = Vec_IntEntry( vOneHots, i+1 );
         if ( Out1 == 0 && Out2 == 0 )
             continue;
-        pObj1 = Aig_ManPo( p->pManFraig, nTruePos + Fra_LitReg(Out1) );
-        pObj2 = Aig_ManPo( p->pManFraig, nTruePos + Fra_LitReg(Out2) );
+        pObj1 = Aig_ManCo( p->pManFraig, nTruePos + Fra_LitReg(Out1) );
+        pObj2 = Aig_ManCo( p->pManFraig, nTruePos + Fra_LitReg(Out2) );
         RetValue = Fra_NodesAreClause( p, pObj1, pObj2, Fra_LitSign(Out1), Fra_LitSign(Out2) );
         if ( RetValue != 1 )
         {
@@ -267,7 +267,7 @@ int Fra_OneHotRefineUsingCex( Fra_Man_t * p, Vec_Int_t * vOneHots )
 {
     Aig_Obj_t * pObj1, * pObj2;
     int i, Out1, Out2, RetValue = 0;
-    int nPiNum = Aig_ManPiNum(p->pManAig) - Aig_ManRegNum(p->pManAig);
+    int nPiNum = Aig_ManCiNum(p->pManAig) - Aig_ManRegNum(p->pManAig);
     assert( p->pSml->pAig == p->pManAig );
     for ( i = 0; i < Vec_IntSize(vOneHots); i += 2 )
     {
@@ -276,8 +276,8 @@ int Fra_OneHotRefineUsingCex( Fra_Man_t * p, Vec_Int_t * vOneHots )
         if ( Out1 == 0 && Out2 == 0 )
             continue;
         // get the corresponding nodes
-        pObj1 = Aig_ManPi( p->pManAig, nPiNum + Fra_LitReg(Out1) );
-        pObj2 = Aig_ManPi( p->pManAig, nPiNum + Fra_LitReg(Out2) );
+        pObj1 = Aig_ManCi( p->pManAig, nPiNum + Fra_LitReg(Out1) );
+        pObj2 = Aig_ManCi( p->pManAig, nPiNum + Fra_LitReg(Out2) );
         // check if implication holds using this simulation info
         if ( !Fra_OneHotNodesAreClause( p->pSml, pObj1, pObj2, Fra_LitSign(Out1), Fra_LitSign(Out2) ) )
         {
@@ -405,22 +405,22 @@ Aig_Man_t * Fra_OneHotCreateExdc( Fra_Man_t * p, Vec_Int_t * vOneHots )
 //        Aig_ObjCreateCi(pNew);
     Aig_ManForEachCi( p->pManAig, pObj, i )
         Aig_ObjCreateCi(pNew);
-    nTruePis = Aig_ManPiNum(p->pManAig) - Aig_ManRegNum(p->pManAig);
+    nTruePis = Aig_ManCiNum(p->pManAig) - Aig_ManRegNum(p->pManAig);
     for ( i = 0; i < Vec_IntSize(vOneHots); i += 2 )
     {
         Out1 = Vec_IntEntry( vOneHots, i );
         Out2 = Vec_IntEntry( vOneHots, i+1 );
         if ( Out1 == 0 && Out2 == 0 )
             continue;
-        pObj1 = Aig_ManPi( pNew, nTruePis + Fra_LitReg(Out1) );
-        pObj2 = Aig_ManPi( pNew, nTruePis + Fra_LitReg(Out2) );
+        pObj1 = Aig_ManCi( pNew, nTruePis + Fra_LitReg(Out1) );
+        pObj2 = Aig_ManCi( pNew, nTruePis + Fra_LitReg(Out2) );
         pObj1 = Aig_NotCond( pObj1, Fra_LitSign(Out1) );
         pObj2 = Aig_NotCond( pObj2, Fra_LitSign(Out2) );
         pObj  = Aig_Or( pNew, pObj1, pObj2 );
         Aig_ObjCreateCo( pNew, pObj );
     }
     Aig_ManCleanup(pNew);
-//    printf( "Created AIG with %d nodes and %d outputs.\n", Aig_ManNodeNum(pNew), Aig_ManPoNum(pNew) );
+//    printf( "Created AIG with %d nodes and %d outputs.\n", Aig_ManNodeNum(pNew), Aig_ManCoNum(pNew) );
     return pNew;
 }
 
@@ -450,8 +450,8 @@ void Fra_OneHotAddKnownConstraint( Fra_Man_t * p, Vec_Ptr_t * vOnehots )
         Vec_IntForEachEntry( vGroup, Out1, i )
         Vec_IntForEachEntryStart( vGroup, Out2, j, i+1 )
         {
-            pObj1 = Aig_ManPi( p->pManFraig, Out1 );
-            pObj2 = Aig_ManPi( p->pManFraig, Out2 );
+            pObj1 = Aig_ManCi( p->pManFraig, Out1 );
+            pObj2 = Aig_ManCi( p->pManFraig, Out2 );
             pLits[0] = toLitCond( Fra_ObjSatNum(pObj1), 1 );
             pLits[1] = toLitCond( Fra_ObjSatNum(pObj2), 1 );
             // add constraint to solver

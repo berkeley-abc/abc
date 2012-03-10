@@ -222,7 +222,7 @@ Aig_Man_t * Aig_ManDupSimpleDfs( Aig_Man_t * p )
     }
     // duplicate internal nodes
     Aig_ManForEachObj( p, pObj, i )
-        if ( !Aig_ObjIsPo(pObj) )
+        if ( !Aig_ObjIsCo(pObj) )
         {
             Aig_ManDupSimpleDfs_rec( pNew, p, pObj );        
             assert( pObj->Level == ((Aig_Obj_t*)pObj->pData)->Level );
@@ -322,12 +322,12 @@ Aig_Man_t * Aig_ManDupOrdered( Aig_Man_t * p )
         {
             pObjNew = Aig_Oper( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj), Aig_ObjType(pObj) );
         }
-        else if ( Aig_ObjIsPi(pObj) )
+        else if ( Aig_ObjIsCi(pObj) )
         {
             pObjNew = Aig_ObjCreateCi( pNew );
             pObjNew->Level = pObj->Level;
         }
-        else if ( Aig_ObjIsPo(pObj) )
+        else if ( Aig_ObjIsCo(pObj) )
         {
             pObjNew = Aig_ObjCreateCo( pNew, Aig_ObjChild0Copy(pObj) );
         }
@@ -466,9 +466,9 @@ Aig_Man_t * Aig_ManDupTrim( Aig_Man_t * p )
     {
         if ( Aig_ObjIsNode(pObj) )
             pObjNew = Aig_Oper( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj), Aig_ObjType(pObj) );
-        else if ( Aig_ObjIsPi(pObj) )
+        else if ( Aig_ObjIsCi(pObj) )
             pObjNew = (Aig_ObjRefs(pObj) > 0 || Saig_ObjIsLo(p, pObj)) ? Aig_ObjCreateCi(pNew) : NULL;
-        else if ( Aig_ObjIsPo(pObj) )
+        else if ( Aig_ObjIsCo(pObj) )
             pObjNew = Aig_ObjCreateCo( pNew, Aig_ObjChild0Copy(pObj) );
         else if ( Aig_ObjIsConst1(pObj) )
             pObjNew = Aig_ManConst1(pNew);
@@ -524,12 +524,12 @@ Aig_Man_t * Aig_ManDupExor( Aig_Man_t * p )
         {
             pObjNew = Aig_Oper( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj), Aig_ObjType(pObj) );
         }
-        else if ( Aig_ObjIsPi(pObj) )
+        else if ( Aig_ObjIsCi(pObj) )
         {
             pObjNew = Aig_ObjCreateCi( pNew );
             pObjNew->Level = pObj->Level;
         }
-        else if ( Aig_ObjIsPo(pObj) )
+        else if ( Aig_ObjIsCo(pObj) )
         {
             pObjNew = Aig_ObjCreateCo( pNew, Aig_ObjChild0Copy(pObj) );
         }
@@ -626,14 +626,14 @@ Aig_Man_t * Aig_ManDupDfs( Aig_Man_t * p )
     Aig_ManConst1(pNew)->pHaig = Aig_ManConst1(p)->pHaig;
     Aig_ManForEachObj( p, pObj, i )
     {
-        if ( Aig_ObjIsPi(pObj) )
+        if ( Aig_ObjIsCi(pObj) )
         {
             pObjNew = Aig_ObjCreateCi( pNew );
             pObjNew->Level = pObj->Level;
             pObjNew->pHaig = pObj->pHaig;
             pObj->pData = pObjNew;
         }
-        else if ( Aig_ObjIsPo(pObj) )
+        else if ( Aig_ObjIsCo(pObj) )
         {
             Aig_ManDupDfs_rec( pNew, p, Aig_ObjFanin0(pObj) );        
 //            assert( pObj->Level == ((Aig_Obj_t*)pObj->pData)->Level );
@@ -677,16 +677,16 @@ Vec_Ptr_t * Aig_ManOrderPios( Aig_Man_t * p, Aig_Man_t * pOrder )
     Vec_Ptr_t * vPios;
     Aig_Obj_t * pObj;
     int i;
-    assert( Aig_ManPiNum(p) == Aig_ManPiNum(pOrder) );
-    assert( Aig_ManPoNum(p) == Aig_ManPoNum(pOrder) );
+    assert( Aig_ManCiNum(p) == Aig_ManCiNum(pOrder) );
+    assert( Aig_ManCoNum(p) == Aig_ManCoNum(pOrder) );
     Aig_ManSetPioNumbers( pOrder );
-    vPios = Vec_PtrAlloc( Aig_ManPiNum(p) + Aig_ManPoNum(p) );
+    vPios = Vec_PtrAlloc( Aig_ManCiNum(p) + Aig_ManCoNum(p) );
     Aig_ManForEachObj( pOrder, pObj, i )
     {
-        if ( Aig_ObjIsPi(pObj) )
-            Vec_PtrPush( vPios, Aig_ManPi(p, Aig_ObjPioNum(pObj)) );
-        else if ( Aig_ObjIsPo(pObj) )
-            Vec_PtrPush( vPios, Aig_ManPo(p, Aig_ObjPioNum(pObj)) );
+        if ( Aig_ObjIsCi(pObj) )
+            Vec_PtrPush( vPios, Aig_ManCi(p, Aig_ObjPioNum(pObj)) );
+        else if ( Aig_ObjIsCo(pObj) )
+            Vec_PtrPush( vPios, Aig_ManCo(p, Aig_ObjPioNum(pObj)) );
     }
     Aig_ManCleanPioNumbers( pOrder );
     return vPios;
@@ -708,7 +708,7 @@ Aig_Obj_t * Aig_ManDupDfsGuided_rec( Aig_Man_t * pNew, Aig_Man_t * p, Aig_Obj_t 
     Aig_Obj_t * pObjNew, * pEquivNew = NULL;
     if ( pObj->pData )
         return (Aig_Obj_t *)pObj->pData;
-    if ( Aig_ObjIsPi(pObj) )
+    if ( Aig_ObjIsCi(pObj) )
         return NULL;
     if ( p->pEquivs && Aig_ObjEquiv(p, pObj) )
         pEquivNew = Aig_ManDupDfsGuided_rec( pNew, p, Aig_ObjEquiv(p, pObj) );
@@ -773,14 +773,14 @@ Aig_Man_t * Aig_ManDupDfsGuided( Aig_Man_t * p, Vec_Ptr_t * vPios )
     Aig_ManConst1(pNew)->pHaig = Aig_ManConst1(p)->pHaig;
     Vec_PtrForEachEntry( Aig_Obj_t *, vPios, pObj, i )
     {
-        if ( Aig_ObjIsPi(pObj) )
+        if ( Aig_ObjIsCi(pObj) )
         {
             pObjNew = Aig_ObjCreateCi( pNew );
             pObjNew->Level = pObj->Level;
             Aig_Regular(pObjNew)->pHaig = pObj->pHaig;
             pObj->pData = pObjNew;
         }
-        else if ( Aig_ObjIsPo(pObj) )
+        else if ( Aig_ObjIsCo(pObj) )
         {
             Aig_ManDupDfsGuided_rec( pNew, p, Aig_ObjFanin0(pObj) );        
 //            assert( pObj->Level == ((Aig_Obj_t*)pObj->pData)->Level );
@@ -991,12 +991,12 @@ Aig_Man_t * Aig_ManDupRepres( Aig_Man_t * p )
     {
         if ( Aig_ObjIsNode(pObj) )
             pObj->pData = Aig_And( pNew, Aig_ObjChild0Repres(p, pObj), Aig_ObjChild1Repres(p, pObj) );
-        else if ( Aig_ObjIsPi(pObj) )
+        else if ( Aig_ObjIsCi(pObj) )
         {
             pObj->pData = Aig_ObjCreateCi(pNew);
             pObj->pData = Aig_ObjGetRepres( p, pObj );
         }
-        else if ( Aig_ObjIsPo(pObj) )
+        else if ( Aig_ObjIsCo(pObj) )
             pObj->pData = Aig_ObjCreateCo( pNew, Aig_ObjChild0Repres(p, pObj) );
         else if ( Aig_ObjIsConst1(pObj) )
             pObj->pData = Aig_ManConst1(pNew);
@@ -1065,9 +1065,9 @@ Aig_Man_t * Aig_ManDupRepresDfs( Aig_Man_t * p )
     {
         if ( Aig_ObjIsNode(pObj) )
             continue;
-        if ( Aig_ObjIsPi(pObj) )
+        if ( Aig_ObjIsCi(pObj) )
             pObj->pData = Aig_ObjCreateCi(pNew);
-        else if ( Aig_ObjIsPo(pObj) )
+        else if ( Aig_ObjIsCo(pObj) )
         {
             Aig_ManDupRepres_rec( pNew, p, Aig_ObjFanin0(pObj) );
             pObj->pData = Aig_ObjCreateCo( pNew, Aig_ObjChild0Repres(p, pObj) );
@@ -1107,9 +1107,9 @@ Aig_Man_t * Aig_ManCreateMiter( Aig_Man_t * p1, Aig_Man_t * p2, int Oper )
     int i;
     assert( Aig_ManRegNum(p1) == 0 );
     assert( Aig_ManRegNum(p2) == 0 );
-    assert( Aig_ManPoNum(p1) == 1 );
-    assert( Aig_ManPoNum(p2) == 1 );
-    assert( Aig_ManPiNum(p1) == Aig_ManPiNum(p2) );
+    assert( Aig_ManCoNum(p1) == 1 );
+    assert( Aig_ManCoNum(p2) == 1 );
+    assert( Aig_ManCiNum(p1) == Aig_ManCiNum(p2) );
     pNew = Aig_ManStart( Aig_ManObjNumMax(p1) + Aig_ManObjNumMax(p2) );
     // add first AIG
     Aig_ManConst1(p1)->pData = Aig_ManConst1(pNew);
@@ -1120,18 +1120,18 @@ Aig_Man_t * Aig_ManCreateMiter( Aig_Man_t * p1, Aig_Man_t * p2, int Oper )
     // add second AIG
     Aig_ManConst1(p2)->pData = Aig_ManConst1(pNew);
     Aig_ManForEachCi( p2, pObj, i )
-        pObj->pData = Aig_ManPi( pNew, i );
+        pObj->pData = Aig_ManCi( pNew, i );
     Aig_ManForEachNode( p2, pObj, i )
         pObj->pData = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
     // add the output
     if ( Oper == 0 ) // XOR
-        pObj = Aig_Exor( pNew, Aig_ObjChild0Copy(Aig_ManPo(p1,0)), Aig_ObjChild0Copy(Aig_ManPo(p2,0)) );
+        pObj = Aig_Exor( pNew, Aig_ObjChild0Copy(Aig_ManCo(p1,0)), Aig_ObjChild0Copy(Aig_ManCo(p2,0)) );
     else if ( Oper == 1 ) // implication is PO(p1) -> PO(p2)  ...  complement is PO(p1) & !PO(p2) 
-        pObj = Aig_And( pNew, Aig_ObjChild0Copy(Aig_ManPo(p1,0)), Aig_Not(Aig_ObjChild0Copy(Aig_ManPo(p2,0))) );
+        pObj = Aig_And( pNew, Aig_ObjChild0Copy(Aig_ManCo(p1,0)), Aig_Not(Aig_ObjChild0Copy(Aig_ManCo(p2,0))) );
     else if ( Oper == 2 ) // OR
-        pObj = Aig_Or( pNew, Aig_ObjChild0Copy(Aig_ManPo(p1,0)), Aig_ObjChild0Copy(Aig_ManPo(p2,0)) );
+        pObj = Aig_Or( pNew, Aig_ObjChild0Copy(Aig_ManCo(p1,0)), Aig_ObjChild0Copy(Aig_ManCo(p2,0)) );
     else if ( Oper == 3 ) // AND
-        pObj = Aig_And( pNew, Aig_ObjChild0Copy(Aig_ManPo(p1,0)), Aig_ObjChild0Copy(Aig_ManPo(p2,0)) );
+        pObj = Aig_And( pNew, Aig_ObjChild0Copy(Aig_ManCo(p1,0)), Aig_ObjChild0Copy(Aig_ManCo(p2,0)) );
     else
         assert( 0 );
     Aig_ObjCreateCo( pNew, pObj );
@@ -1209,7 +1209,7 @@ Aig_Man_t * Aig_ManDupOneOutput( Aig_Man_t * p, int iPoNum, int fAddRegs )
     Aig_Obj_t * pObj;
     int i;
     assert( Aig_ManRegNum(p) > 0 );
-    assert( iPoNum < Aig_ManPoNum(p)-Aig_ManRegNum(p) );
+    assert( iPoNum < Aig_ManCoNum(p)-Aig_ManRegNum(p) );
     // create the new manager
     pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
@@ -1227,7 +1227,7 @@ Aig_Man_t * Aig_ManDupOneOutput( Aig_Man_t * p, int iPoNum, int fAddRegs )
     Aig_ManForEachNode( p, pObj, i )
         pObj->pData = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
     // create the PO
-    pObj = Aig_ManPo( p, iPoNum );
+    pObj = Aig_ManCo( p, iPoNum );
     Aig_ObjCreateCo( pNew, Aig_ObjChild0Copy(pObj) );
     // create register inputs with MUXes
     if ( fAddRegs )
@@ -1317,7 +1317,7 @@ Aig_Man_t * Aig_ManDupArray( Vec_Ptr_t * vArray )
     Vec_PtrForEachEntry( Aig_Man_t *, vArray, pNew, k )
     {
         assert( Aig_ManRegNum(pNew) == 0 );
-        assert( Aig_ManPiNum(pNew) == Aig_ManPiNum(p) );
+        assert( Aig_ManCiNum(pNew) == Aig_ManCiNum(p) );
     }
     // create the new manager
     pNew = Aig_ManStart( 10000 );
@@ -1329,7 +1329,7 @@ Aig_Man_t * Aig_ManDupArray( Vec_Ptr_t * vArray )
     {
         Aig_ManConst1(p)->pData = Aig_ManConst1(pNew);
         Aig_ManForEachCi( p, pObj, i )
-            pObj->pData = Aig_ManPi( pNew, i );
+            pObj->pData = Aig_ManCi( pNew, i );
         Aig_ManForEachNode( p, pObj, i )
             pObj->pData = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
         Aig_ManForEachCo( p, pObj, i )
@@ -1367,7 +1367,7 @@ Aig_Man_t * Aig_ManDupNodes( Aig_Man_t * pMan, Vec_Ptr_t * vArray )
     pNew->pName = Abc_UtilStrsav( pMan->pName );
     Aig_ManConst1(pMan)->pData = Aig_ManConst1(pNew);
     Vec_PtrForEachEntry( Aig_Obj_t *, vObjs, pObj, i )
-        if ( Aig_ObjIsPi(pObj) )
+        if ( Aig_ObjIsCi(pObj) )
             pObj->pData = Aig_ObjCreateCi(pNew);
     Vec_PtrForEachEntry( Aig_Obj_t *, vObjs, pObj, i )
         if ( Aig_ObjIsNode(pObj) )

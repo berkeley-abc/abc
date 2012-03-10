@@ -208,8 +208,8 @@ Cnf_Dat_t * Cnf_ManWriteCnf( Cnf_Man_t * p, Vec_Ptr_t * vMapped, int nOutputs )
     int i, k, nLiterals, nClauses, Cube, Number;
 
     // count the number of literals and clauses
-    nLiterals = 1 + Aig_ManPoNum( p->pManAig ) + 3 * nOutputs;
-    nClauses = 1 + Aig_ManPoNum( p->pManAig ) + nOutputs;
+    nLiterals = 1 + Aig_ManCoNum( p->pManAig ) + 3 * nOutputs;
+    nClauses = 1 + Aig_ManCoNum( p->pManAig ) + nOutputs;
     Vec_PtrForEachEntry( Aig_Obj_t *, vMapped, pObj, i )
     {
         assert( Aig_ObjIsNode(pObj) );
@@ -241,7 +241,7 @@ Cnf_Dat_t * Cnf_ManWriteCnf( Cnf_Man_t * p, Vec_Ptr_t * vMapped, int nOutputs )
             nLiterals += Cnf_IsopCountLiterals( pCut->vIsop[0], pCut->nFanins ) + Vec_IntSize(pCut->vIsop[0]);
             nClauses += Vec_IntSize(pCut->vIsop[0]);
         }
-//printf( "%d ", nClauses-(1 + Aig_ManPoNum( p->pManAig )) );
+//printf( "%d ", nClauses-(1 + Aig_ManCoNum( p->pManAig )) );
     }
 //printf( "\n" );
 
@@ -267,7 +267,7 @@ Cnf_Dat_t * Cnf_ManWriteCnf( Cnf_Man_t * p, Vec_Ptr_t * vMapped, int nOutputs )
         {
             if ( Aig_ManRegNum(p->pManAig) == 0 )
             {
-                assert( nOutputs == Aig_ManPoNum(p->pManAig) );
+                assert( nOutputs == Aig_ManCoNum(p->pManAig) );
                 Aig_ManForEachCo( p->pManAig, pObj, i )
                     pCnf->pVarNums[pObj->Id] = Number++;
             }
@@ -296,7 +296,7 @@ Cnf_Dat_t * Cnf_ManWriteCnf( Cnf_Man_t * p, Vec_Ptr_t * vMapped, int nOutputs )
         {
             if ( Aig_ManRegNum(p->pManAig) == 0 )
             {
-                assert( nOutputs == Aig_ManPoNum(p->pManAig) );
+                assert( nOutputs == Aig_ManCoNum(p->pManAig) );
                 Aig_ManForEachCo( p->pManAig, pObj, i )
                     pCnf->pVarNums[pObj->Id] = Number--;
             }
@@ -377,7 +377,7 @@ Cnf_Dat_t * Cnf_ManWriteCnf( Cnf_Man_t * p, Vec_Ptr_t * vMapped, int nOutputs )
     Aig_ManForEachCo( p->pManAig, pObj, i )
     {
         OutVar = pCnf->pVarNums[ Aig_ObjFanin0(pObj)->Id ];
-        if ( i < Aig_ManPoNum(p->pManAig) - nOutputs )
+        if ( i < Aig_ManCoNum(p->pManAig) - nOutputs )
         {
             *pClas++ = pLits;
             *pLits++ = 2 * OutVar + Aig_ObjFaninC0(pObj); 
@@ -427,8 +427,8 @@ Cnf_Dat_t * Cnf_ManWriteCnfOther( Cnf_Man_t * p, Vec_Ptr_t * vMapped )
     int i, k, nLiterals, nClauses, Cube;
 
     // count the number of literals and clauses
-    nLiterals = 1 + 4 * Aig_ManPoNum( p->pManAig );
-    nClauses  = 1 + 2 * Aig_ManPoNum( p->pManAig );
+    nLiterals = 1 + 4 * Aig_ManCoNum( p->pManAig );
+    nClauses  = 1 + 2 * Aig_ManCoNum( p->pManAig );
     Vec_PtrForEachEntry( Aig_Obj_t *, vMapped, pObj, i )
     {
         assert( Aig_ObjIsNode(pObj) );
@@ -592,8 +592,8 @@ Cnf_Dat_t * Cnf_DeriveSimple( Aig_Man_t * p, int nOutputs )
     int i, nLiterals, nClauses, Number;
 
     // count the number of literals and clauses
-    nLiterals = 1 + 7 * Aig_ManNodeNum(p) + Aig_ManPoNum( p ) + 3 * nOutputs;
-    nClauses = 1 + 3 * Aig_ManNodeNum(p) + Aig_ManPoNum( p ) + nOutputs;
+    nLiterals = 1 + 7 * Aig_ManNodeNum(p) + Aig_ManCoNum( p ) + 3 * nOutputs;
+    nClauses = 1 + 3 * Aig_ManNodeNum(p) + Aig_ManCoNum( p ) + nOutputs;
 
     // allocate CNF
     pCnf = ABC_ALLOC( Cnf_Dat_t, 1 );
@@ -668,7 +668,7 @@ Cnf_Dat_t * Cnf_DeriveSimple( Aig_Man_t * p, int nOutputs )
     Aig_ManForEachCo( p, pObj, i )
     {
         OutVar = pCnf->pVarNums[ Aig_ObjFanin0(pObj)->Id ];
-        if ( i < Aig_ManPoNum(p) - nOutputs )
+        if ( i < Aig_ManCoNum(p) - nOutputs )
         {
             *pClas++ = pLits;
             *pLits++ = 2 * OutVar + Aig_ObjFaninC0(pObj); 
@@ -714,8 +714,8 @@ Cnf_Dat_t * Cnf_DeriveSimpleForRetiming( Aig_Man_t * p )
     int i, nLiterals, nClauses, Number;
 
     // count the number of literals and clauses
-    nLiterals = 1 + 7 * Aig_ManNodeNum(p) + 5 * Aig_ManPoNum(p);
-    nClauses = 1 + 3 * Aig_ManNodeNum(p) + 3 * Aig_ManPoNum(p);
+    nLiterals = 1 + 7 * Aig_ManNodeNum(p) + 5 * Aig_ManCoNum(p);
+    nClauses = 1 + 3 * Aig_ManNodeNum(p) + 3 * Aig_ManCoNum(p);
 
     // allocate CNF
     pCnf = ABC_ALLOC( Cnf_Dat_t, 1 );

@@ -367,12 +367,12 @@ void Cnf_DeriveFastMark( Aig_Man_t * p )
 //            if ( pObj0 == pObj1 )
 //                continue;
             nFans = 1 + (pObj0 == pObj1);
-            if ( !pObj0->fMarkB && !Aig_ObjIsPi(pObj0) && Aig_ObjRefs(pObj0) == nFans && Vec_IntEntry(vSupps, Aig_ObjId(pObj0)) < 3 )
+            if ( !pObj0->fMarkB && !Aig_ObjIsCi(pObj0) && Aig_ObjRefs(pObj0) == nFans && Vec_IntEntry(vSupps, Aig_ObjId(pObj0)) < 3 )
             {
                 pObj0->fMarkA = 0;
                 continue;
             }
-            if ( !pObj1->fMarkB && !Aig_ObjIsPi(pObj1) && Aig_ObjRefs(pObj1) == nFans && Vec_IntEntry(vSupps, Aig_ObjId(pObj1)) < 3 )
+            if ( !pObj1->fMarkB && !Aig_ObjIsCi(pObj1) && Aig_ObjRefs(pObj1) == nFans && Vec_IntEntry(vSupps, Aig_ObjId(pObj1)) < 3 )
             {
                 pObj1->fMarkA = 0;
                 continue;
@@ -388,7 +388,7 @@ void Cnf_DeriveFastMark( Aig_Man_t * p )
         {
             pTemp = Aig_Regular(pTemp);
             assert( pTemp->fMarkA );
-            if ( pTemp->fMarkB || Aig_ObjIsPi(pTemp) || Aig_ObjRefs(pTemp) > 1 )
+            if ( pTemp->fMarkB || Aig_ObjIsCi(pTemp) || Aig_ObjRefs(pTemp) > 1 )
                 continue;
             assert( Vec_IntEntry(vSupps, Aig_ObjId(pTemp)) > 0 );
             if ( Vec_PtrSize(vLeaves) - 1 + Vec_IntEntry(vSupps, Aig_ObjId(pTemp)) > 6 )
@@ -561,7 +561,7 @@ Cnf_Dat_t * Cnf_DeriveFastClauses( Aig_Man_t * p, int nOutputs )
     {
         if ( Aig_ManRegNum(p) == 0 )
         {
-            assert( nOutputs == Aig_ManPoNum(p) );
+            assert( nOutputs == Aig_ManCoNum(p) );
             Aig_ManForEachCo( p, pObj, i )
                 Vec_IntWriteEntry( vMap, Aig_ObjId(pObj), nVars++ );
         }
@@ -608,7 +608,7 @@ Cnf_Dat_t * Cnf_DeriveFastClauses( Aig_Man_t * p, int nOutputs )
     Aig_ManForEachCo( p, pObj, i )
     {
         DriLit = Cnf_ObjGetLit( vMap, Aig_ObjFanin0(pObj), Aig_ObjFaninC0(pObj) );
-        if ( i < Aig_ManPoNum(p) - nOutputs )
+        if ( i < Aig_ManCoNum(p) - nOutputs )
         {
             Vec_IntPush( vClas, Vec_IntSize(vLits) );
             Vec_IntPush( vLits, DriLit );

@@ -153,7 +153,7 @@ Aig_Man_t * Saig_ManTrimPis( Aig_Man_t * p )
     pNew->pName = Abc_UtilStrsav( p->pName );
     pNew->nConstrs = p->nConstrs;
     // start mapping of the CI numbers
-    pNew->vCiNumsOrig = Vec_IntAlloc( Aig_ManPiNum(p) );
+    pNew->vCiNumsOrig = Vec_IntAlloc( Aig_ManCiNum(p) );
     // map const and primary inputs
     Aig_ManCleanData( p );
     Aig_ManConst1(p)->pData = Aig_ManConst1(pNew);
@@ -225,7 +225,7 @@ Aig_Man_t * Saig_ManDupAbstraction( Aig_Man_t * p, Vec_Int_t * vFlops )
     }
     // create variables for PIs
     assert( p->vCiNumsOrig == NULL );
-    pNew->vCiNumsOrig = Vec_IntAlloc( Aig_ManPiNum(p) );
+    pNew->vCiNumsOrig = Vec_IntAlloc( Aig_ManCiNum(p) );
     Aig_ManForEachCi( p, pObj, i )
         if ( !pObj->fMarkA )
         {
@@ -299,7 +299,7 @@ int Saig_ManVerifyCex( Aig_Man_t * pAig, Abc_Cex_t * p )
             pObjRo->fMarkB = pObjRi->fMarkB;
     }
     assert( iBit == p->nBits );
-    RetValue = Aig_ManPo(pAig, p->iPo)->fMarkB;
+    RetValue = Aig_ManCo(pAig, p->iPo)->fMarkB;
     Aig_ManCleanMarkB(pAig);
     return RetValue;
 }
@@ -321,7 +321,7 @@ Abc_Cex_t * Saig_ManExtendCex( Aig_Man_t * pAig, Abc_Cex_t * p )
     Aig_Obj_t * pObj, * pObjRi, * pObjRo;
     int RetValue, i, k, iBit = 0;
     // create new counter-example
-    pNew = Abc_CexAlloc( 0, Aig_ManPiNum(pAig), p->iFrame + 1 );
+    pNew = Abc_CexAlloc( 0, Aig_ManCiNum(pAig), p->iFrame + 1 );
     pNew->iPo = p->iPo;
     pNew->iFrame = p->iFrame;
     // simulate the AIG
@@ -336,7 +336,7 @@ Abc_Cex_t * Saig_ManExtendCex( Aig_Man_t * pAig, Abc_Cex_t * p )
         ///////// write PI+LO values ////////////
         Aig_ManForEachCi( pAig, pObj, k )
             if ( pObj->fMarkB )
-                Abc_InfoSetBit(pNew->pData, Aig_ManPiNum(pAig)*i + k);
+                Abc_InfoSetBit(pNew->pData, Aig_ManCiNum(pAig)*i + k);
         /////////////////////////////////////////
         Aig_ManForEachNode( pAig, pObj, k )
             pObj->fMarkB = (Aig_ObjFanin0(pObj)->fMarkB ^ Aig_ObjFaninC0(pObj)) & 
@@ -349,7 +349,7 @@ Abc_Cex_t * Saig_ManExtendCex( Aig_Man_t * pAig, Abc_Cex_t * p )
             pObjRo->fMarkB = pObjRi->fMarkB;
     }
     assert( iBit == p->nBits );
-    RetValue = Aig_ManPo(pAig, p->iPo)->fMarkB;
+    RetValue = Aig_ManCo(pAig, p->iPo)->fMarkB;
     Aig_ManCleanMarkB(pAig);
     if ( RetValue == 0 )
         printf( "Saig_ManExtendCex(): The counter-example is invalid!!!\n" );
@@ -468,7 +468,7 @@ void Saig_ManDupCones_rec( Aig_Man_t * p, Aig_Obj_t * pObj, Vec_Ptr_t * vLeaves,
         Saig_ManDupCones_rec( p, Aig_ObjFanin1(pObj), vLeaves, vNodes, vRoots );
         Vec_PtrPush( vNodes, pObj );
     }
-    else if ( Aig_ObjIsPo(pObj) )
+    else if ( Aig_ObjIsCo(pObj) )
         Saig_ManDupCones_rec( p, Aig_ObjFanin0(pObj), vLeaves, vNodes, vRoots );
     else if ( Saig_ObjIsLo(p, pObj) )
         Vec_PtrPush( vRoots, Saig_ObjLoToLi(p, pObj) );
@@ -488,7 +488,7 @@ Aig_Man_t * Saig_ManDupCones( Aig_Man_t * pAig, int * pPos, int nPos )
     vNodes = Vec_PtrAlloc( 100 );
     vRoots = Vec_PtrAlloc( 100 );
     for ( i = 0; i < nPos; i++ )
-        Vec_PtrPush( vRoots, Aig_ManPo(pAig, pPos[i]) );
+        Vec_PtrPush( vRoots, Aig_ManCo(pAig, pPos[i]) );
 
     // mark internal nodes
     Aig_ManIncrementTravId( pAig );

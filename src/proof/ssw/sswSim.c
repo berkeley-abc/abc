@@ -457,13 +457,13 @@ int * Ssw_SmlCheckOutputSavePattern( Ssw_Sml_t * p, Aig_Obj_t * pObjPo )
     // determine the best pattern
     BestPat = i * 32 + k;
     // fill in the counter-example data
-    pModel = ABC_ALLOC( int, Aig_ManPiNum(p->pAig)+1 );
+    pModel = ABC_ALLOC( int, Aig_ManCiNum(p->pAig)+1 );
     Aig_ManForEachCi( p->pAig, pObjPi, i )
     {
         pModel[i] = Abc_InfoHasBit(Ssw_ObjSim(p, pObjPi->Id), BestPat);
 //        printf( "%d", pModel[i] );
     }
-    pModel[Aig_ManPiNum(p->pAig)] = pObjPo->Id;
+    pModel[Aig_ManCiNum(p->pAig)] = pObjPo->Id;
 //    printf( "\n" );
     return pModel;
 }
@@ -484,7 +484,7 @@ int * Ssw_SmlCheckOutput( Ssw_Sml_t * p )
     Aig_Obj_t * pObj;
     int i;
     // make sure the reference simulation pattern does not detect the bug
-    pObj = Aig_ManPo( p->pAig, 0 );
+    pObj = Aig_ManCo( p->pAig, 0 );
     assert( Aig_ObjFanin0(pObj)->fPhase == (unsigned)Aig_ObjFaninC0(pObj) ); 
     Aig_ManForEachCo( p->pAig, pObj, i )
     {
@@ -514,7 +514,7 @@ void Ssw_SmlAssignRandom( Ssw_Sml_t * p, Aig_Obj_t * pObj )
 {
     unsigned * pSims;
     int i, f;
-    assert( Aig_ObjIsPi(pObj) );
+    assert( Aig_ObjIsCi(pObj) );
     pSims = Ssw_ObjSim( p, pObj->Id );
     for ( i = 0; i < p->nWordsTotal; i++ )
         pSims[i] = Ssw_ObjRandomSim();
@@ -540,7 +540,7 @@ void Ssw_SmlAssignRandomFrame( Ssw_Sml_t * p, Aig_Obj_t * pObj, int iFrame )
     unsigned * pSims;
     int i;
     assert( iFrame < p->nFrames );
-    assert( Aig_ObjIsPi(pObj) );
+    assert( Aig_ObjIsCi(pObj) );
     pSims = Ssw_ObjSim( p, pObj->Id ) + p->nWordsFrame * iFrame;
     for ( i = 0; i < p->nWordsFrame; i++ )
         pSims[i] = Ssw_ObjRandomSim();
@@ -562,7 +562,7 @@ void Ssw_SmlObjAssignConst( Ssw_Sml_t * p, Aig_Obj_t * pObj, int fConst1, int iF
     unsigned * pSims;
     int i;
     assert( iFrame < p->nFrames );
-    assert( Aig_ObjIsPi(pObj) );
+    assert( Aig_ObjIsCi(pObj) );
     pSims = Ssw_ObjSim( p, pObj->Id ) + p->nWordsFrame * iFrame;
     for ( i = 0; i < p->nWordsFrame; i++ )
         pSims[i] = fConst1? ~(unsigned)0 : 0;
@@ -584,7 +584,7 @@ void Ssw_SmlObjAssignConstWord( Ssw_Sml_t * p, Aig_Obj_t * pObj, int fConst1, in
     unsigned * pSims;
     assert( iFrame < p->nFrames );
     assert( iWord < p->nWordsFrame );
-    assert( Aig_ObjIsPi(pObj) );
+    assert( Aig_ObjIsCi(pObj) );
     pSims = Ssw_ObjSim( p, pObj->Id ) + p->nWordsFrame * iFrame;
     pSims[iWord] = fConst1? ~(unsigned)0 : 0;
 } 
@@ -604,7 +604,7 @@ void Ssw_SmlObjSetWord( Ssw_Sml_t * p, Aig_Obj_t * pObj, unsigned Word, int iWor
 {
     unsigned * pSims;
     assert( iFrame < p->nFrames );
-    assert( Aig_ObjIsPi(pObj) );
+    assert( Aig_ObjIsCi(pObj) );
     pSims = Ssw_ObjSim( p, pObj->Id ) + p->nWordsFrame * iFrame;
     pSims[iWord] = Word;
 } 
@@ -631,16 +631,16 @@ void Ssw_SmlAssignDist1( Ssw_Sml_t * p, unsigned * pPat )
         Aig_ManForEachCi( p->pAig, pObj, i )
             Ssw_SmlObjAssignConst( p, pObj, Abc_InfoHasBit(pPat, i), 0 );
         // flip one bit
-        Limit = Abc_MinInt( Aig_ManPiNum(p->pAig), p->nWordsTotal * 32 - 1 );
+        Limit = Abc_MinInt( Aig_ManCiNum(p->pAig), p->nWordsTotal * 32 - 1 );
         for ( i = 0; i < Limit; i++ )
-            Abc_InfoXorBit( Ssw_ObjSim( p, Aig_ManPi(p->pAig,i)->Id ), i+1 );
+            Abc_InfoXorBit( Ssw_ObjSim( p, Aig_ManCi(p->pAig,i)->Id ), i+1 );
     }
     else
     {
         int fUseDist1 = 0;
 
         // copy the PI info for each frame
-        nTruePis = Aig_ManPiNum(p->pAig) - Aig_ManRegNum(p->pAig);
+        nTruePis = Aig_ManCiNum(p->pAig) - Aig_ManRegNum(p->pAig);
         for ( f = 0; f < p->nFrames; f++ )
             Saig_ManForEachPi( p->pAig, pObj, i )
                 Ssw_SmlObjAssignConst( p, pObj, Abc_InfoHasBit(pPat, nTruePis * f + i), f );
@@ -648,14 +648,14 @@ void Ssw_SmlAssignDist1( Ssw_Sml_t * p, unsigned * pPat )
         k = 0;
         Saig_ManForEachLo( p->pAig, pObj, i )
             Ssw_SmlObjAssignConst( p, pObj, Abc_InfoHasBit(pPat, nTruePis * p->nFrames + k++), 0 );
-//        assert( p->pFrames == NULL || nTruePis * p->nFrames + k == Aig_ManPiNum(p->pFrames) );
+//        assert( p->pFrames == NULL || nTruePis * p->nFrames + k == Aig_ManCiNum(p->pFrames) );
 
         // flip one bit of the last frame
         if ( fUseDist1 ) //&& p->nFrames == 2 )
         {
             Limit = Abc_MinInt( nTruePis, p->nWordsFrame * 32 - 1 );
             for ( i = 0; i < Limit; i++ )
-                Abc_InfoXorBit( Ssw_ObjSim( p, Aig_ManPi(p->pAig, i)->Id ) + p->nWordsFrame*(p->nFrames-1), i+1 );
+                Abc_InfoXorBit( Ssw_ObjSim( p, Aig_ManCi(p->pAig, i)->Id ) + p->nWordsFrame*(p->nFrames-1), i+1 );
         }
     }
 }
@@ -684,7 +684,7 @@ void Ssw_SmlAssignDist1Plus( Ssw_Sml_t * p, unsigned * pPat )
     // set distance one PIs for the first frame
     Limit = Abc_MinInt( Saig_ManPiNum(p->pAig), p->nWordsFrame * 32 - 1 );
     for ( i = 0; i < Limit; i++ )
-        Abc_InfoXorBit( Ssw_ObjSim( p, Aig_ManPi(p->pAig, i)->Id ), i+1 );
+        Abc_InfoXorBit( Ssw_ObjSim( p, Aig_ManCi(p->pAig, i)->Id ), i+1 );
 
     // create random info for the remaining timeframes
     for ( f = 1; f < p->nFrames; f++ )
@@ -806,7 +806,7 @@ void Ssw_SmlNodeCopyFanin( Ssw_Sml_t * p, Aig_Obj_t * pObj, int iFrame )
     int fCompl, fCompl0, i;
     assert( iFrame < p->nFrames );
     assert( !Aig_IsComplement(pObj) );
-    assert( Aig_ObjIsPo(pObj) );
+    assert( Aig_ObjIsCo(pObj) );
     assert( iFrame == 0 || p->nWordsFrame < p->nWordsTotal );
     // get hold of the simulation information
     pSims  = Ssw_ObjSim(p, pObj->Id) + p->nWordsFrame * iFrame;
@@ -841,8 +841,8 @@ void Ssw_SmlNodeTransferNext( Ssw_Sml_t * p, Aig_Obj_t * pOut, Aig_Obj_t * pIn, 
     assert( iFrame < p->nFrames );
     assert( !Aig_IsComplement(pOut) );
     assert( !Aig_IsComplement(pIn) );
-    assert( Aig_ObjIsPo(pOut) );
-    assert( Aig_ObjIsPi(pIn) );
+    assert( Aig_ObjIsCo(pOut) );
+    assert( Aig_ObjIsCi(pIn) );
     assert( iFrame == 0 || p->nWordsFrame < p->nWordsTotal );
     // get hold of the simulation information
     pSims0 = Ssw_ObjSim(p, pOut->Id) + p->nWordsFrame * iFrame;
@@ -869,8 +869,8 @@ void Ssw_SmlNodeTransferFirst( Ssw_Sml_t * p, Aig_Obj_t * pOut, Aig_Obj_t * pIn 
     int i;
     assert( !Aig_IsComplement(pOut) );
     assert( !Aig_IsComplement(pIn) );
-    assert( Aig_ObjIsPo(pOut) );
-    assert( Aig_ObjIsPi(pIn) );
+    assert( Aig_ObjIsCo(pOut) );
+    assert( Aig_ObjIsCi(pIn) );
     assert( p->nWordsFrame < p->nWordsTotal );
     // get hold of the simulation information
     pSims0 = Ssw_ObjSim(p, pOut->Id) + p->nWordsFrame * (p->nFrames-1);
@@ -899,7 +899,7 @@ void Ssw_SmlInitialize( Ssw_Sml_t * p, int fInit )
     if ( fInit )
     {
         assert( Aig_ManRegNum(p->pAig) > 0 );
-        assert( Aig_ManRegNum(p->pAig) <= Aig_ManPiNum(p->pAig) );
+        assert( Aig_ManRegNum(p->pAig) <= Aig_ManCiNum(p->pAig) );
         // assign random info for primary inputs
         Saig_ManForEachPi( p->pAig, pObj, i )
             Ssw_SmlAssignRandom( p, pObj );
@@ -931,7 +931,7 @@ void Ssw_SmlInitializeSpecial( Ssw_Sml_t * p, Vec_Int_t * vInit )
     int Entry, i, nRegs;
     nRegs = Aig_ManRegNum(p->pAig);
     assert( nRegs > 0 );
-    assert( nRegs <= Aig_ManPiNum(p->pAig) );
+    assert( nRegs <= Aig_ManCiNum(p->pAig) );
     assert( Vec_IntSize(vInit) == nRegs * p->nWordsFrame );
     // assign random info for primary inputs
     Saig_ManForEachPi( p->pAig, pObj, i )
@@ -957,7 +957,7 @@ void Ssw_SmlReinitialize( Ssw_Sml_t * p )
     Aig_Obj_t * pObj, * pObjLi, * pObjLo;
     int i;
     assert( Aig_ManRegNum(p->pAig) > 0 );
-    assert( Aig_ManRegNum(p->pAig) < Aig_ManPiNum(p->pAig) );
+    assert( Aig_ManRegNum(p->pAig) < Aig_ManCiNum(p->pAig) );
     // assign random info for primary inputs
     Saig_ManForEachPi( p->pAig, pObj, i )
         Ssw_SmlAssignRandom( p, pObj );
@@ -1361,12 +1361,12 @@ Abc_Cex_t * Ssw_SmlGetCounterExample( Ssw_Sml_t * p )
             }
         break;
     }
-    assert( iPo < Aig_ManPoNum(p->pAig)-Aig_ManRegNum(p->pAig) );
+    assert( iPo < Aig_ManCoNum(p->pAig)-Aig_ManRegNum(p->pAig) );
     assert( iFrame < p->nFrames );
     assert( iBit < 32 * p->nWordsFrame );
 
     // allocate the counter example
-    pCex = Abc_CexAlloc( Aig_ManRegNum(p->pAig), Aig_ManPiNum(p->pAig) - Aig_ManRegNum(p->pAig), iFrame + 1 );
+    pCex = Abc_CexAlloc( Aig_ManRegNum(p->pAig), Aig_ManCiNum(p->pAig) - Aig_ManRegNum(p->pAig), iFrame + 1 );
     pCex->iPo    = iPo;
     pCex->iFrame = iFrame;
 

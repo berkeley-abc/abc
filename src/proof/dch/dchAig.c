@@ -73,8 +73,8 @@ Aig_Man_t * Dch_DeriveTotalAig( Vec_Ptr_t * vAigs )
     pAig = (Aig_Man_t *)Vec_PtrEntry( vAigs, 0 );
     Vec_PtrForEachEntry( Aig_Man_t *, vAigs, pAig2, i )
     {
-        assert( Aig_ManPiNum(pAig) == Aig_ManPiNum(pAig2) );
-        assert( Aig_ManPoNum(pAig) == Aig_ManPoNum(pAig2) );
+        assert( Aig_ManCiNum(pAig) == Aig_ManCiNum(pAig2) );
+        assert( Aig_ManCoNum(pAig) == Aig_ManCoNum(pAig2) );
         nNodes += Aig_ManNodeNum(pAig2);
         Aig_ManCleanData( pAig2 );
     }
@@ -87,14 +87,14 @@ Aig_Man_t * Dch_DeriveTotalAig( Vec_Ptr_t * vAigs )
     {
         pObjPi = Aig_ObjCreateCi( pAigTotal );
         Vec_PtrForEachEntry( Aig_Man_t *, vAigs, pAig2, k )
-            Aig_ManPi( pAig2, i )->pData = pObjPi;
+            Aig_ManCi( pAig2, i )->pData = pObjPi;
     }
     // construct the AIG in the order of POs
     Aig_ManForEachCo( pAig, pObj, i )
     {
         Vec_PtrForEachEntry( Aig_Man_t *, vAigs, pAig2, k )
         {
-            pObjPo = Aig_ManPo( pAig2, i );
+            pObjPo = Aig_ManCo( pAig2, i );
             Dch_DeriveTotalAig_rec( pAigTotal, Aig_ObjFanin0(pObjPo) );
         }
         Aig_ObjCreateCo( pAigTotal, Aig_ObjChild0Copy(pObj) );

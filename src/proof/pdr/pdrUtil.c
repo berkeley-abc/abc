@@ -613,7 +613,7 @@ int Pdr_NtkFindSatAssign_rec( Aig_Man_t * pAig, Aig_Obj_t * pNode, int Value, Pd
         return ((int)pNode->fMarkA == Value);
     Aig_ObjSetTravIdCurrent(pAig, pNode);
     pNode->fMarkA = Value;
-    if ( Aig_ObjIsPi(pNode) )
+    if ( Aig_ObjIsCi(pNode) )
     {
 //        if ( vSuppLits )
 //            Vec_IntPush( vSuppLits, Abc_Var2Lit( Aig_ObjPioNum(pNode), !Value ) );

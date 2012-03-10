@@ -58,7 +58,7 @@ void Ssw_ManSweepTransfer( Ssw_Man_t * p )
             continue;
         }
         assert( !Aig_IsComplement(pObjFraig) );
-        assert( Aig_ObjIsPi(pObjFraig) );
+        assert( Aig_ObjIsCi(pObjFraig) );
         pInfo = (unsigned *)Vec_PtrEntry( p->vSimInfo, Aig_ObjPioNum(pObjFraig) );
         Ssw_SmlObjSetWord( p->pSml, pObj, pInfo[0], 0, 0 );
     }
@@ -160,8 +160,8 @@ void Ssw_ManSweepLatchOne( Ssw_Man_t * p, Aig_Obj_t * pObjRepr, Aig_Obj_t * pObj
 {
     Aig_Obj_t * pObjFraig, * pObjReprFraig, * pObjLi;
     int RetValue, clk;
-    assert( Aig_ObjIsPi(pObj) );
-    assert( Aig_ObjIsPi(pObjRepr) || Aig_ObjIsConst1(pObjRepr) );
+    assert( Aig_ObjIsCi(pObj) );
+    assert( Aig_ObjIsCi(pObjRepr) || Aig_ObjIsConst1(pObjRepr) );
     // check if it makes sense to skip some calls
     if ( p->nCallsCount > 100 && p->nCallsUnsat < p->nCallsSat )
     {
@@ -175,7 +175,7 @@ clk = clock();
     Ssw_ManBuildCone_rec( p, Aig_ObjFanin0(pObjLi) );
     pObjFraig = Ssw_ObjChild0Fra( p, pObjLi, 0 );
     // get the fraiged representative
-    if ( Aig_ObjIsPi(pObjRepr) )
+    if ( Aig_ObjIsCi(pObjRepr) )
     {
         pObjLi = Saig_ObjLoToLi( p->pAig, pObjRepr ); 
         Ssw_ManBuildCone_rec( p, Aig_ObjFanin0(pObjLi) );
@@ -264,7 +264,7 @@ int Ssw_ManSweepLatch( Ssw_Man_t * p )
 
     // prepare simulation info
     assert( p->vSimInfo == NULL );
-    p->vSimInfo = Vec_PtrAllocSimInfo( Aig_ManPiNum(p->pFrames), 1 );
+    p->vSimInfo = Vec_PtrAllocSimInfo( Aig_ManCiNum(p->pFrames), 1 );
     Vec_PtrCleanSimInfo( p->vSimInfo, 0, 1 );
 
     // go through the registers

@@ -622,7 +622,7 @@ Llb_Img_t * Llb_CoreStart( Aig_Man_t * pInit, Aig_Man_t * pAig, Gia_ParLlb_t *  
     p->pPars = pPars;
     p->dd    = Cudd_Init( Aig_ManObjNumMax(pAig), 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
     p->ddG   = Cudd_Init( Aig_ManRegNum(pAig),    0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
-    p->ddR   = Cudd_Init( Aig_ManPiNum(pAig),     0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
+    p->ddR   = Cudd_Init( Aig_ManCiNum(pAig),     0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
     Cudd_AutodynEnable( p->dd,  CUDD_REORDER_SYMM_SIFT );
     Cudd_AutodynEnable( p->ddG, CUDD_REORDER_SYMM_SIFT );
     Cudd_AutodynEnable( p->ddR, CUDD_REORDER_SYMM_SIFT );

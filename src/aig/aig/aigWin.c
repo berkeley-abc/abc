@@ -49,7 +49,7 @@ static inline int Aig_NodeGetLeafCostOne( Aig_Obj_t * pNode, int nFanoutLimit )
     // make sure the node is in the construction zone
     assert( pNode->fMarkA );  
     // cannot expand over the PI node
-    if ( Aig_ObjIsPi(pNode) )
+    if ( Aig_ObjIsCi(pNode) )
         return 999;
     // get the cost of the cone
     Cost = (!Aig_ObjFanin0(pNode)->fMarkA) + (!Aig_ObjFanin1(pNode)->fMarkA);

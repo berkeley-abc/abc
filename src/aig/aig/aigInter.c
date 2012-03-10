@@ -56,20 +56,20 @@ void Aig_ManInterFast( Aig_Man_t * pManOn, Aig_Man_t * pManOff, int fVerbose )
     int Lits[3], status, i;
 //    int clk = clock();
 
-    assert( Aig_ManPiNum(pManOn) == Aig_ManPiNum(pManOff) );
-    assert( Aig_ManPoNum(pManOn) == Aig_ManPoNum(pManOff) );
+    assert( Aig_ManCiNum(pManOn) == Aig_ManCiNum(pManOff) );
+    assert( Aig_ManCoNum(pManOn) == Aig_ManCoNum(pManOff) );
 
     // derive CNFs
-    pManOn->nRegs = Aig_ManPoNum(pManOn);
-    pCnfOn  = Cnf_Derive( pManOn, Aig_ManPoNum(pManOn) );
+    pManOn->nRegs = Aig_ManCoNum(pManOn);
+    pCnfOn  = Cnf_Derive( pManOn, Aig_ManCoNum(pManOn) );
     pManOn->nRegs = 0;
 
-    pManOff->nRegs = Aig_ManPoNum(pManOn);
-    pCnfOff = Cnf_Derive( pManOff, Aig_ManPoNum(pManOff) );
+    pManOff->nRegs = Aig_ManCoNum(pManOn);
+    pCnfOff = Cnf_Derive( pManOff, Aig_ManCoNum(pManOff) );
     pManOff->nRegs = 0;
 
-//    pCnfOn  = Cnf_DeriveSimple( pManOn, Aig_ManPoNum(pManOn) );
-//    pCnfOff = Cnf_DeriveSimple( pManOff, Aig_ManPoNum(pManOn) );
+//    pCnfOn  = Cnf_DeriveSimple( pManOn, Aig_ManCoNum(pManOn) );
+//    pCnfOff = Cnf_DeriveSimple( pManOff, Aig_ManCoNum(pManOn) );
     Cnf_DataLift( pCnfOff, pCnfOn->nVars );
 
     // start the solver
@@ -104,7 +104,7 @@ void Aig_ManInterFast( Aig_Man_t * pManOn, Aig_Man_t * pManOff, int fVerbose )
     // collect the common variables
     Aig_ManForEachCi( pManOn, pObj, i )
     {
-        pObj2 = Aig_ManPi( pManOff, i );
+        pObj2 = Aig_ManCi( pManOff, i );
 
         Lits[0] = toLitCond( pCnfOn->pVarNums[pObj->Id], 0 );
         Lits[1] = toLitCond( pCnfOff->pVarNums[pObj2->Id], 1 );
@@ -121,7 +121,7 @@ void Aig_ManInterFast( Aig_Man_t * pManOn, Aig_Man_t * pManOff, int fVerbose )
     // solve incremental SAT problems
     Aig_ManForEachCo( pManOn, pObj, i )
     {
-        pObj2 = Aig_ManPo( pManOff, i );
+        pObj2 = Aig_ManCo( pManOff, i );
 
         Lits[0] = toLitCond( pCnfOn->pVarNums[pObj->Id], 0 );
         Lits[1] = toLitCond( pCnfOff->pVarNums[pObj2->Id], 0 );
@@ -159,7 +159,7 @@ Aig_Man_t * Aig_ManInter( Aig_Man_t * pManOn, Aig_Man_t * pManOff, int fRelation
     int clk;
     int iLast = -1; // Suppress "might be used uninitialized"
 
-    assert( Aig_ManPiNum(pManOn) == Aig_ManPiNum(pManOff) );
+    assert( Aig_ManCiNum(pManOn) == Aig_ManCiNum(pManOff) );
 
 clk = clock();
     // derive CNFs
@@ -210,14 +210,14 @@ clk = clock();
 
     // add PI clauses
     // collect the common variables
-    vVarsAB = Vec_IntAlloc( Aig_ManPiNum(pManOn) );
+    vVarsAB = Vec_IntAlloc( Aig_ManCiNum(pManOn) );
     if ( fRelation )
         Vec_IntPush( vVarsAB, iLast );
 
     Aig_ManForEachCi( pManOn, pObj, i )
     {
         Vec_IntPush( vVarsAB, pCnfOn->pVarNums[pObj->Id] );
-        pObj2 = Aig_ManPi( pManOff, i );
+        pObj2 = Aig_ManCi( pManOff, i );
 
         Lits[0] = toLitCond( pCnfOn->pVarNums[pObj->Id], 0 );
         Lits[1] = toLitCond( pCnfOff->pVarNums[pObj2->Id], 1 );

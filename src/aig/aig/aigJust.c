@@ -109,7 +109,7 @@ int Aig_NtkFindSatAssign_rec( Aig_Man_t * pAig, Aig_Obj_t * pNode, int Value, Ve
         return ((int)pNode->fMarkA == Value);
     Aig_ObjSetTravIdCurrent(pAig, pNode);
     pNode->fMarkA = Value;
-    if ( Aig_ObjIsPi(pNode) )
+    if ( Aig_ObjIsCi(pNode) )
     {
 //        if ( Aig_ObjId(pNode) % 1000 == 0 )
 //            Value ^= 1;
@@ -162,7 +162,7 @@ int Aig_NtkFindSatAssign_rec( Aig_Man_t * pAig, Aig_Obj_t * pNode, int Value, Ve
 int Aig_ObjFindSatAssign( Aig_Man_t * pAig, Aig_Obj_t * pNode, int Value, Vec_Int_t * vSuppLits )
 {
     int i;
-    if ( Aig_ObjIsPo(pNode) )
+    if ( Aig_ObjIsCo(pNode) )
         return Aig_ObjFindSatAssign( pAig, Aig_ObjFanin0(pNode), Value ^ Aig_ObjFaninC0(pNode), vSuppLits );
     for ( i = 0; i < 8; i++ )
     {
@@ -193,10 +193,10 @@ int Aig_ObjTerSimulate_rec( Aig_Man_t * pAig, Aig_Obj_t * pNode )
     if ( Aig_ObjIsTravIdCurrent(pAig, pNode) )
         return Aig_ObjGetTerValue( pNode );
     Aig_ObjSetTravIdCurrent( pAig, pNode );
-    if ( Aig_ObjIsPi(pNode) )
+    if ( Aig_ObjIsCi(pNode) )
         return Aig_ObjSetTerValue( pNode, AIG_VALX );
     Value0 = Aig_ObjNotCondTerValue( Aig_ObjTerSimulate_rec(pAig, Aig_ObjFanin0(pNode)), Aig_ObjFaninC0(pNode) );
-    if ( Aig_ObjIsPo(pNode) || Value0 == AIG_VAL0 )
+    if ( Aig_ObjIsCo(pNode) || Value0 == AIG_VAL0 )
         return Aig_ObjSetTerValue( pNode, Value0 );
     assert( Aig_ObjIsNode(pNode) );
     Value1 = Aig_ObjNotCondTerValue( Aig_ObjTerSimulate_rec(pAig, Aig_ObjFanin1(pNode)), Aig_ObjFaninC1(pNode) );
@@ -221,7 +221,7 @@ int Aig_ObjTerSimulate( Aig_Man_t * pAig, Aig_Obj_t * pNode, Vec_Int_t * vSuppLi
     Aig_ManIncrementTravId( pAig );
     Vec_IntForEachEntry( vSuppLits, Entry, i )
     {
-        pObj = Aig_ManPi( pAig, Abc_Lit2Var(Entry) );
+        pObj = Aig_ManCi( pAig, Abc_Lit2Var(Entry) );
         Aig_ObjSetTerValue( pObj, Abc_LitIsCompl(Entry) ? AIG_VAL0 : AIG_VAL1 );
         Aig_ObjSetTravIdCurrent( pAig, pObj );
 //printf( "%d ", Entry );
@@ -292,7 +292,7 @@ void Aig_ManJustExperiment( Aig_Man_t * pAig )
     }
     Vec_IntFree( vSuppLits );
     printf( "PO =%6d. C0 =%6d. C0f =%6d. C1 =%6d. C1f =%6d. (%6.2f %%) Ave =%4.1f ", 
-        Aig_ManPoNum(pAig), Count0, Count0f, Count1, Count1f, 100.0*(Count0+Count1)/Aig_ManPoNum(pAig), 1.0*nTotalLits/(Count0+Count1) );
+        Aig_ManCoNum(pAig), Count0, Count0f, Count1, Count1f, 100.0*(Count0+Count1)/Aig_ManCoNum(pAig), 1.0*nTotalLits/(Count0+Count1) );
     Abc_PrintTime( 1, "T", clock() - clk );
     Aig_ManCleanMarkAB( pAig );
     Aig_ManPackStop( pPack );

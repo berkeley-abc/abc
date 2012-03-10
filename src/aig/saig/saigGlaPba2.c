@@ -198,7 +198,7 @@ void Aig_Gla3AssignVars_rec( Aig_Gla3Man_t * p, Aig_Obj_t * pObj, int f )
         Aig_Gla3AssignVars_rec( p, Aig_ObjFanin0(pObj), f );
         return;
     }
-    if ( Aig_ObjIsPi( pObj ) )
+    if ( Aig_ObjIsCi( pObj ) )
     {
         if ( Saig_ObjIsLo(p->pAig, pObj) && f > 0 )
             Aig_Gla3AssignVars_rec( p, Aig_ObjFanin0( Saig_ObjLoToLi(p->pAig, pObj) ), f-1 );
@@ -228,7 +228,7 @@ int Aig_Gla3CreateSatSolver( Aig_Gla3Man_t * p )
 
     // assign variables
     for ( f = p->nFramesMax - 1; f >= 0; f-- )
-        Aig_Gla3AssignVars_rec( p, Aig_ManPo(p->pAig, 0), f );
+        Aig_Gla3AssignVars_rec( p, Aig_ManCo(p->pAig, 0), f );
 
     // create SAT solver
     p->pSat = sat_solver2_new();
@@ -301,7 +301,7 @@ int Aig_Gla3CreateSatSolver( Aig_Gla3Man_t * p )
     // add output clause
     vPoLits = Vec_IntAlloc( p->nFramesMax );
     for ( f = p->nStart; f < p->nFramesMax; f++ )
-        Vec_IntPush( vPoLits, 2 * Aig_Gla3FetchVar(p, Aig_ManPo(p->pAig, 0), f) );
+        Vec_IntPush( vPoLits, 2 * Aig_Gla3FetchVar(p, Aig_ManCo(p->pAig, 0), f) );
     sat_solver2_addclause( p->pSat, Vec_IntArray(vPoLits), Vec_IntArray(vPoLits) + Vec_IntSize(vPoLits) );
     Vec_IntFree( vPoLits );
     Vec_IntPush( p->vCla2Obj, 0 );

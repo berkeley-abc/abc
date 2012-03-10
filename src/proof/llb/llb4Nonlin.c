@@ -84,7 +84,7 @@ DdNode * Llb_Nonlin4ComputeBad( DdManager * dd, Aig_Man_t * pAig, Vec_Int_t * vO
     Aig_ManForEachCi( pAig, pObj, i )
         pObj->pData = Cudd_bddIthVar( dd, Llb_ObjBddVar(vOrder, pObj) );
     // compute internal nodes
-    vNodes = Aig_ManDfsNodes( pAig, (Aig_Obj_t **)Vec_PtrArray(pAig->vPos), Saig_ManPoNum(pAig) );
+    vNodes = Aig_ManDfsNodes( pAig, (Aig_Obj_t **)Vec_PtrArray(pAig->vCos), Saig_ManPoNum(pAig) );
     Vec_PtrForEachEntry( Aig_Obj_t *, vNodes, pObj, i )
     {
         if ( !Aig_ObjIsNode(pObj) )
@@ -273,7 +273,7 @@ void Llb_Nonlin4CreateOrder_rec( Aig_Man_t * pAig, Aig_Obj_t * pObj, Vec_Int_t *
         return;
     Aig_ObjSetTravIdCurrent( pAig, pObj );
     assert( Llb_ObjBddVar(vOrder, pObj) < 0 );
-    if ( Aig_ObjIsPi(pObj) )
+    if ( Aig_ObjIsCi(pObj) )
     {
 //        if ( Saig_ObjIsLo(pAig, pObj) )
 //            Vec_IntWriteEntry( vOrder, Aig_ObjId(Saig_ObjLoToLi(pAig, pObj)), (*pCounter)++ );
@@ -371,7 +371,7 @@ printf( "Techmapping added %d pivots.\n", Vec_IntSize(vNodes) );
 //                Vec_IntWriteEntry( vOrder, Aig_ObjId(Saig_ObjLoToLi(pAig, pObj)), Counter++ );
             Vec_IntWriteEntry( vOrder, Aig_ObjId(pObj), Counter++ );
         }
-    assert( Counter <= Aig_ManPiNum(pAig) + Aig_ManRegNum(pAig) + (vNodes?Vec_IntSize(vNodes):0) );
+    assert( Counter <= Aig_ManCiNum(pAig) + Aig_ManRegNum(pAig) + (vNodes?Vec_IntSize(vNodes):0) );
     Aig_ManCleanMarkA( pAig );
     Vec_IntFreeP( &vNodes );
     return vOrder;

@@ -842,7 +842,7 @@ void Io_WriteAigerCex( Abc_Cex_t * pCex, Abc_Ntk_t * pNtk, void * pG, char * pFi
         for ( k = 0; k < pCex->nPis; k++ )
         {
             fprintf( pFile, "%d", Abc_InfoHasBit(pCex->pData, b) );
-            Aig_ManPi( pAig, k )->fMarkA = Abc_InfoHasBit(pCex->pData, b++);
+            Aig_ManCi( pAig, k )->fMarkA = Abc_InfoHasBit(pCex->pData, b++);
         }
         fprintf( pFile, " " );
         Aig_ManForEachNode( pAig, pObj, k )

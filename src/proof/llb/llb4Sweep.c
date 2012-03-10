@@ -49,7 +49,7 @@ void Llb_Nonlin4SweepOrder_rec( Aig_Man_t * pAig, Aig_Obj_t * pObj, Vec_Int_t * 
         return;
     Aig_ObjSetTravIdCurrent( pAig, pObj );
     assert( Llb_ObjBddVar(vOrder, pObj) < 0 );
-    if ( Aig_ObjIsPi(pObj) )
+    if ( Aig_ObjIsCi(pObj) )
     {
         Vec_IntWriteEntry( vOrder, Aig_ObjId(pObj), (*pCounter)++ );
         return;
@@ -102,7 +102,7 @@ Vec_Int_t * Llb_Nonlin4SweepOrder( Aig_Man_t * pAig, int * pCounter, int fSaveAl
             Vec_IntWriteEntry( vOrder, Aig_ObjId(pObj), Counter++ );
 //    assert( Counter == Aig_ManObjNum(pAig) - 1 ); // no dangling nodes
     if ( pCounter )
-        *pCounter = Counter - Aig_ManPiNum(pAig) - Aig_ManPoNum(pAig);
+        *pCounter = Counter - Aig_ManCiNum(pAig) - Aig_ManCoNum(pAig);
     return vOrder;
 }
 
@@ -211,11 +211,11 @@ DdNode * Llb_Nonlin4SweepPartitions_rec( DdManager * dd, Aig_Obj_t * pObj, Vec_I
     DdNode * bBdd, * bBdd0, * bBdd1, * bPart, * vVar;
     if ( Aig_ObjIsConst1(pObj) )
         return Cudd_ReadOne(dd); 
-    if ( Aig_ObjIsPi(pObj) )
+    if ( Aig_ObjIsCi(pObj) )
         return Cudd_bddIthVar( dd, Llb_ObjBddVar(vOrder, pObj) );
     if ( pObj->pData )
         return (DdNode *)pObj->pData;
-    if ( Aig_ObjIsPo(pObj) )
+    if ( Aig_ObjIsCo(pObj) )
     {
         bBdd0 = Cudd_NotCond( Llb_Nonlin4SweepPartitions_rec(dd, Aig_ObjFanin0(pObj), vOrder, vRoots), Aig_ObjFaninC0(pObj) );
         bPart = Cudd_bddXnor( dd, Cudd_bddIthVar( dd, Llb_ObjBddVar(vOrder, pObj) ), bBdd0 );  Cudd_Ref( bPart );
@@ -535,9 +535,9 @@ void Llb4_Nonlin4Sweep( Aig_Man_t * pAig, int nSweepMax, int nClusterMax, DdMana
     assert( Counter == nCutPoints );
     Aig_ManCleanMarkA( pAig );
     // compute the BAD states
-    ddBad = Llb4_Nonlin4SweepBadStates( pAig, vOrder, nCutPoints + Aig_ManPiNum(pAig) + Aig_ManPoNum(pAig) );
+    ddBad = Llb4_Nonlin4SweepBadStates( pAig, vOrder, nCutPoints + Aig_ManCiNum(pAig) + Aig_ManCoNum(pAig) );
     // compute the clusters
-    ddWork = Llb4_Nonlin4SweepGroups( pAig, vOrder, nCutPoints + Aig_ManPiNum(pAig) + Aig_ManPoNum(pAig), &vGroups, nClusterMax, fVerbose );
+    ddWork = Llb4_Nonlin4SweepGroups( pAig, vOrder, nCutPoints + Aig_ManCiNum(pAig) + Aig_ManCoNum(pAig), &vGroups, nClusterMax, fVerbose );
     // transfer the result from the Bad manager
 //printf( "Bad before = %d.\n", Cudd_DagSize(ddBad->bFunc) );
     ddWork->bFunc = Cudd_bddTransfer( ddBad, ddWork, ddBad->bFunc );   Cudd_Ref( ddWork->bFunc );

@@ -106,7 +106,7 @@ Vec_Int_t * Cnf_DataCollectPiSatNums( Cnf_Dat_t * pCnf, Aig_Man_t * p )
     Vec_Int_t * vCiIds;
     Aig_Obj_t * pObj;
     int i;
-    vCiIds = Vec_IntAlloc( Aig_ManPiNum(p) );
+    vCiIds = Vec_IntAlloc( Aig_ManCiNum(p) );
     Aig_ManForEachCi( p, pObj, i )
         Vec_IntPush( vCiIds, pCnf->pVarNums[pObj->Id] );
     return vCiIds;
@@ -540,10 +540,10 @@ int Cnf_DataWriteOrClause( void * p, Cnf_Dat_t * pCnf )
     sat_solver * pSat = (sat_solver *)p;
     Aig_Obj_t * pObj;
     int i, * pLits;
-    pLits = ABC_ALLOC( int, Aig_ManPoNum(pCnf->pMan) );
+    pLits = ABC_ALLOC( int, Aig_ManCoNum(pCnf->pMan) );
     Aig_ManForEachCo( pCnf->pMan, pObj, i )
         pLits[i] = toLitCond( pCnf->pVarNums[pObj->Id], 0 );
-    if ( !sat_solver_addclause( pSat, pLits, pLits + Aig_ManPoNum(pCnf->pMan) ) )
+    if ( !sat_solver_addclause( pSat, pLits, pLits + Aig_ManCoNum(pCnf->pMan) ) )
     {
         ABC_FREE( pLits );
         return 0;
@@ -568,10 +568,10 @@ int Cnf_DataWriteOrClause2( void * p, Cnf_Dat_t * pCnf )
     sat_solver2 * pSat = (sat_solver2 *)p;
     Aig_Obj_t * pObj;
     int i, * pLits;
-    pLits = ABC_ALLOC( int, Aig_ManPoNum(pCnf->pMan) );
+    pLits = ABC_ALLOC( int, Aig_ManCoNum(pCnf->pMan) );
     Aig_ManForEachCo( pCnf->pMan, pObj, i )
         pLits[i] = toLitCond( pCnf->pVarNums[pObj->Id], 0 );
-    if ( !sat_solver2_addclause( pSat, pLits, pLits + Aig_ManPoNum(pCnf->pMan) ) )
+    if ( !sat_solver2_addclause( pSat, pLits, pLits + Aig_ManCoNum(pCnf->pMan) ) )
     {
         ABC_FREE( pLits );
         return 0;
@@ -625,7 +625,7 @@ void Cnf_DataTranformPolarity( Cnf_Dat_t * pCnf, int fTransformPos )
     pVarToPol = ABC_CALLOC( int, pCnf->nVars );
     Aig_ManForEachObj( pCnf->pMan, pObj, i )
     {
-        if ( !fTransformPos && Aig_ObjIsPo(pObj) )
+        if ( !fTransformPos && Aig_ObjIsCo(pObj) )
             continue;
         if ( pCnf->pVarNums[pObj->Id] >= 0 )
             pVarToPol[ pCnf->pVarNums[pObj->Id] ] = pObj->fPhase;

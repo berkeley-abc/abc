@@ -117,7 +117,7 @@ int Dch_ObjCheckTfi_rec( Aig_Man_t * p, Aig_Obj_t * pObj )
     // check the trivial cases
     if ( pObj == NULL )
         return 0;
-    if ( Aig_ObjIsPi(pObj) )
+    if ( Aig_ObjIsCi(pObj) )
         return 0;
     if ( pObj->fMarkA )
         return 1;
@@ -289,7 +289,7 @@ int Aig_ManCheckAcyclic_rec( Aig_Man_t * p, Aig_Obj_t * pNode, int fVerbose )
 {
     Aig_Obj_t * pFanin;
     int fAcyclic;
-    if ( Aig_ObjIsPi(pNode) || Aig_ObjIsConst1(pNode) )
+    if ( Aig_ObjIsCi(pNode) || Aig_ObjIsConst1(pNode) )
         return 1;
     assert( Aig_ObjIsNode(pNode) );
     // make sure the node is not visited

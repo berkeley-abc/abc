@@ -135,7 +135,7 @@ If_Man_t * Nwk_ManToIf( Aig_Man_t * p, If_Par_t * pPars, Vec_Ptr_t * vAigToIf )
                 If_NotCond( (If_Obj_t *)Aig_ObjFanin1(pNode)->pData, Aig_ObjFaninC1(pNode) ) );
 //            printf( "no%d=%d\n ", If_ObjId(pIfObj), If_ObjLevel(pIfObj) );
         }
-        else if ( Aig_ObjIsPi(pNode) )
+        else if ( Aig_ObjIsCi(pNode) )
         {
             pIfObj = If_ManCreateCi( pIfMan );
             If_ObjSetLevel( pIfObj, Aig_ObjLevel(pNode) );
@@ -143,7 +143,7 @@ If_Man_t * Nwk_ManToIf( Aig_Man_t * p, If_Par_t * pPars, Vec_Ptr_t * vAigToIf )
             if ( pIfMan->nLevelMax < (int)pIfObj->Level )
                 pIfMan->nLevelMax = (int)pIfObj->Level;
         }
-        else if ( Aig_ObjIsPo(pNode) )
+        else if ( Aig_ObjIsCo(pNode) )
         {
             pIfObj = If_ManCreateCo( pIfMan, If_NotCond( (If_Obj_t *)Aig_ObjFanin0(pNode)->pData, Aig_ObjFaninC0(pNode) ) );
 //            printf( "po%d=%d\n ", If_ObjId(pIfObj), If_ObjLevel(pIfObj) );
@@ -281,8 +281,8 @@ Nwk_Man_t * Nwk_ManFromIf( If_Man_t * pIfMan, Aig_Man_t * p, Vec_Ptr_t * vAigToI
     If_Obj_t * pIfObj;
     If_Cut_t * pCutBest;
     int i, k, nLeaves, * ppLeaves;
-    assert( Aig_ManPiNum(p) == If_ManCiNum(pIfMan) );
-    assert( Aig_ManPoNum(p) == If_ManCoNum(pIfMan) );
+    assert( Aig_ManCiNum(p) == If_ManCiNum(pIfMan) );
+    assert( Aig_ManCoNum(p) == If_ManCoNum(pIfMan) );
     assert( Aig_ManNodeNum(p) == If_ManAndNum(pIfMan) );
     Aig_ManCleanData( p );
     If_ManCleanCutData( pIfMan );
@@ -320,9 +320,9 @@ Nwk_Man_t * Nwk_ManFromIf( If_Man_t * pIfMan, Aig_Man_t * p, Vec_Ptr_t * vAigToI
             // get the functionality
             pObjNew->pFunc = Nwk_NodeIfToHop( pNtk->pManHop, pIfMan, pIfObj );
         }
-        else if ( Aig_ObjIsPi(pObj) )
+        else if ( Aig_ObjIsCi(pObj) )
             pObjNew = Nwk_ManCreateCi( pNtk, pIfObj->nRefs );
-        else if ( Aig_ObjIsPo(pObj) )
+        else if ( Aig_ObjIsCo(pObj) )
         {
             pObjNew = Nwk_ManCreateCo( pNtk );
             pObjNew->fInvert = Aig_ObjFaninC0(pObj);
@@ -363,8 +363,8 @@ Nwk_Man_t * Nwk_MappingIf( Aig_Man_t * p, Tim_Man_t * pManTime, If_Par_t * pPars
     If_Man_t * pIfMan;
     Vec_Ptr_t * vAigToIf;
     // set the arrival times
-    pPars->pTimesArr = ABC_ALLOC( float, Aig_ManPiNum(p) );
-    memset( pPars->pTimesArr, 0, sizeof(float) * Aig_ManPiNum(p) );
+    pPars->pTimesArr = ABC_ALLOC( float, Aig_ManCiNum(p) );
+    memset( pPars->pTimesArr, 0, sizeof(float) * Aig_ManCiNum(p) );
     // translate into the mapper
     vAigToIf = Vec_PtrStart( Aig_ManObjNumMax(p) );
     pIfMan = Nwk_ManToIf( p, pPars, vAigToIf );    

@@ -45,7 +45,7 @@ ABC_NAMESPACE_IMPL_START
 ***********************************************************************/
 void Aig_ManFindImplications_rec( Aig_Obj_t * pObj, Vec_Ptr_t * vImplics )
 {
-    if ( Aig_IsComplement(pObj) || Aig_ObjIsPi(pObj) )
+    if ( Aig_IsComplement(pObj) || Aig_ObjIsCi(pObj) )
     {
         Vec_PtrPushUnique( vImplics, pObj );
         return;
@@ -93,7 +93,7 @@ int Aig_ManFindConeOverlap_rec( Aig_Man_t * p, Aig_Obj_t * pNode )
     if ( Aig_ObjIsTravIdCurrent( p, pNode ) )
         return 0;
     Aig_ObjSetTravIdCurrent( p, pNode );
-    if ( Aig_ObjIsPi(pNode) )
+    if ( Aig_ObjIsCi(pNode) )
         return 0;
     if ( Aig_ManFindConeOverlap_rec( p, Aig_ObjFanin0(pNode) ) )
         return 1;
@@ -142,7 +142,7 @@ Aig_Obj_t * Aig_ManDeriveNewCone_rec( Aig_Man_t * p, Aig_Obj_t * pNode )
     if ( Aig_ObjIsTravIdCurrent( p, pNode ) )
         return (Aig_Obj_t *)pNode->pData;
     Aig_ObjSetTravIdCurrent( p, pNode );
-    if ( Aig_ObjIsPi(pNode) )
+    if ( Aig_ObjIsCi(pNode) )
         return (Aig_Obj_t *)(pNode->pData = pNode);
     Aig_ManDeriveNewCone_rec( p, Aig_ObjFanin0(pNode) );
     Aig_ManDeriveNewCone_rec( p, Aig_ObjFanin1(pNode) );
@@ -194,7 +194,7 @@ Aig_Obj_t * Aig_ManFactorAlgebraic_int( Aig_Man_t * p, Aig_Obj_t * pPoA, Aig_Obj
     int RetValue;
     if ( Aig_ObjIsConst1(Aig_ObjFanin0(pPoA)) || Aig_ObjIsConst1(Aig_ObjFanin0(pPoB)) )
         return NULL;
-    if ( Aig_ObjIsPi(Aig_ObjFanin0(pPoB)) )
+    if ( Aig_ObjIsCi(Aig_ObjFanin0(pPoB)) )
         return NULL;
     // get the internal node representing function of A under assignment A = 'Value'
     pNodeA = Aig_ObjChild0( pPoA );
@@ -229,10 +229,10 @@ Aig_Obj_t * Aig_ManFactorAlgebraic_int( Aig_Man_t * p, Aig_Obj_t * pPoA, Aig_Obj
 ***********************************************************************/
 Aig_Obj_t * Aig_ManFactorAlgebraic( Aig_Man_t * p, int iPoA, int iPoB, int Value )
 {
-    assert( iPoA >= 0 && iPoA < Aig_ManPoNum(p) );
-    assert( iPoB >= 0 && iPoB < Aig_ManPoNum(p) );
+    assert( iPoA >= 0 && iPoA < Aig_ManCoNum(p) );
+    assert( iPoB >= 0 && iPoB < Aig_ManCoNum(p) );
     assert( Value == 0 || Value == 1 );
-    return Aig_ManFactorAlgebraic_int( p, Aig_ManPo(p, iPoA), Aig_ManPo(p, iPoB), Value ); 
+    return Aig_ManFactorAlgebraic_int( p, Aig_ManCo(p, iPoA), Aig_ManCo(p, iPoB), Value ); 
 }
 
 /**Function*************************************************************
@@ -501,7 +501,7 @@ int Aig_SuppMinHighlightCone_rec( Aig_Man_t * p, Aig_Obj_t * pObj )
     if ( Aig_ObjIsTravIdPrevious( p, pObj ) ) // visited, no marks there
         return 0;
     Aig_ObjSetTravIdPrevious( p, pObj );
-    if ( Aig_ObjIsPi(pObj) )
+    if ( Aig_ObjIsCi(pObj) )
         return 0;
     RetValue = Aig_SuppMinHighlightCone_rec( p, Aig_ObjFanin0(pObj) ) |
                Aig_SuppMinHighlightCone_rec( p, Aig_ObjFanin1(pObj) );
@@ -552,7 +552,7 @@ int Aig_SuppMinHighlightCone( Aig_Man_t * p, Aig_Obj_t * pRoot, Vec_Ptr_t * vOrG
 void Aig_SuppMinCollectSuper_rec( Aig_Obj_t * pObj, Vec_Ptr_t * vSuper )
 {
     // if the new node is complemented or a PI, another gate begins
-    if ( Aig_IsComplement(pObj) || Aig_ObjIsPi(pObj) ) // || (Aig_ObjRefs(pObj) > 1) )
+    if ( Aig_IsComplement(pObj) || Aig_ObjIsCi(pObj) ) // || (Aig_ObjRefs(pObj) > 1) )
     {
         Vec_PtrPushUnique( vSuper, Aig_Not(pObj) );
         return;
@@ -577,7 +577,7 @@ Vec_Ptr_t * Aig_SuppMinCollectSuper( Aig_Obj_t * pObj )
 {
     Vec_Ptr_t * vSuper;
     assert( !Aig_IsComplement(pObj) );
-    assert( !Aig_ObjIsPi(pObj) );
+    assert( !Aig_ObjIsCi(pObj) );
     vSuper = Vec_PtrAlloc( 4 );
     Aig_SuppMinCollectSuper_rec( Aig_ObjChild0(pObj), vSuper );
     Aig_SuppMinCollectSuper_rec( Aig_ObjChild1(pObj), vSuper );
@@ -607,7 +607,7 @@ Aig_Obj_t * Aig_ManSupportMinimization( Aig_Man_t * p, Aig_Obj_t * pCond, Aig_Ob
     int RetValue;
     *pStatus = 0;
     // if pCond is not OR
-    if ( !Aig_IsComplement(pCond) || Aig_ObjIsPi(Aig_Regular(pCond)) || Aig_ObjIsConst1(Aig_Regular(pCond)) )
+    if ( !Aig_IsComplement(pCond) || Aig_ObjIsCi(Aig_Regular(pCond)) || Aig_ObjIsConst1(Aig_Regular(pCond)) )
     {
         *pStatus = -1;
         return NULL;

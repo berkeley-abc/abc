@@ -81,13 +81,13 @@ void Pdr_ManCollectCone_rec( Aig_Man_t * pAig, Aig_Obj_t * pObj, Vec_Int_t * vCi
     if ( Aig_ObjIsTravIdCurrent(pAig, pObj) )
         return;
     Aig_ObjSetTravIdCurrent(pAig, pObj);
-    if ( Aig_ObjIsPi(pObj) )
+    if ( Aig_ObjIsCi(pObj) )
     {
         Vec_IntPush( vCiObjs, Aig_ObjId(pObj) );
         return;
     }
     Pdr_ManCollectCone_rec( pAig, Aig_ObjFanin0(pObj), vCiObjs, vNodes );
-    if ( Aig_ObjIsPo(pObj) )
+    if ( Aig_ObjIsCo(pObj) )
         return;
     Pdr_ManCollectCone_rec( pAig, Aig_ObjFanin1(pObj), vCiObjs, vNodes );
     Vec_IntPush( vNodes, Aig_ObjId(pObj) );
@@ -133,7 +133,7 @@ int Pdr_ManExtendOneEval( Aig_Man_t * pAig, Aig_Obj_t * pObj )
     Value0 = Pdr_ManSimInfoGet( pAig, Aig_ObjFanin0(pObj) );
     if ( Aig_ObjFaninC0(pObj) )
         Value0 = Pdr_ManSimInfoNot( Value0 );
-    if ( Aig_ObjIsPo(pObj) )
+    if ( Aig_ObjIsCo(pObj) )
     {
         Pdr_ManSimInfoSet( pAig, pObj, Value0 );
         return Value0;
@@ -228,7 +228,7 @@ int Pdr_ManExtendOne( Aig_Man_t * pAig, Aig_Obj_t * pObj, Vec_Int_t * vUndo, Vec
             assert( Value2 == PDR_UND );
             Vec_IntPush( vUndo, Aig_ObjId(pFanout) );
             Vec_IntPush( vUndo, Value );
-            if ( Aig_ObjIsPo(pFanout) )
+            if ( Aig_ObjIsCo(pFanout) )
                 return 0;
             assert( Aig_ObjIsNode(pFanout) );
             Vec_IntPushOrder( vVis, Aig_ObjId(pFanout) );
@@ -318,8 +318,8 @@ void Pdr_ManPrintCex( Aig_Man_t * pAig, Vec_Int_t * vCiObjs, Vec_Int_t * vCiVals
 {
     Aig_Obj_t * pObj;
     int i;
-    char * pBuff = ABC_ALLOC( char, Aig_ManPiNum(pAig)+1 );
-    for ( i = 0; i < Aig_ManPiNum(pAig); i++ )
+    char * pBuff = ABC_ALLOC( char, Aig_ManCiNum(pAig)+1 );
+    for ( i = 0; i < Aig_ManCiNum(pAig); i++ )
         pBuff[i] = '-';
     pBuff[i] = 0;
     Aig_ManForEachObjVec( vCiObjs, pAig, pObj, i )
@@ -368,7 +368,7 @@ Pdr_Set_t * Pdr_ManTernarySim( Pdr_Man_t * p, int k, Pdr_Set_t * pCube )
     // collect CO objects
     Vec_IntClear( vCoObjs );
     if ( pCube == NULL ) // the target is the property output
-        Vec_IntPush( vCoObjs, Aig_ObjId(Aig_ManPo(p->pAig, (p->pPars->iOutput==-1)?0:p->pPars->iOutput)) ); 
+        Vec_IntPush( vCoObjs, Aig_ObjId(Aig_ManCo(p->pAig, (p->pPars->iOutput==-1)?0:p->pPars->iOutput)) ); 
     else // the target is the cube
     {
         for ( i = 0; i < pCube->nLits; i++ )

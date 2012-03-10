@@ -122,7 +122,7 @@ Aig_Man_t * Aig_ManHaigFrames( Aig_Man_t * pHaig, int nFrames )
             Aig_ManHaigSpeculate( pFrames, pObj );
         }
         if ( f == nFrames - 2 )
-            nAssumptions = Aig_ManPoNum(pFrames);
+            nAssumptions = Aig_ManCoNum(pFrames);
         if ( f == nFrames - 1 )
             break;
         // save register inputs
@@ -133,7 +133,7 @@ Aig_Man_t * Aig_ManHaigFrames( Aig_Man_t * pHaig, int nFrames )
             pObjLo->pData = pObjLi->pData;
     }
     Aig_ManCleanup( pFrames );
-    pFrames->nAsserts = Aig_ManPoNum(pFrames) - nAssumptions;
+    pFrames->nAsserts = Aig_ManCoNum(pFrames) - nAssumptions;
     Aig_ManSetRegNum( pFrames, 0 );
     return pFrames;
 }
@@ -161,13 +161,13 @@ int Aig_ManMapHaigNodes( Aig_Man_t * pHaig )
         pObj1 = Aig_ManObj( pHaig, Id1 );
         pObj2 = Aig_ManObj( pHaig, Id2 );
         assert( pObj1 != pObj2 );
-        assert( !Aig_ObjIsPi(pObj1) || !Aig_ObjIsPi(pObj2) );
-        if ( Aig_ObjIsPi(pObj1) )
+        assert( !Aig_ObjIsCi(pObj1) || !Aig_ObjIsCi(pObj2) );
+        if ( Aig_ObjIsCi(pObj1) )
         {
             Counter += (int)(pObj2->pHaig != NULL);
             pObj2->pHaig = pObj1;
         }
-        else if ( Aig_ObjIsPi(pObj2) )
+        else if ( Aig_ObjIsCi(pObj2) )
         {
             Counter += (int)(pObj1->pHaig != NULL);
             pObj1->pHaig = pObj2;
@@ -225,13 +225,13 @@ clk = clock();
     Aig_ManPrintStats( pFrames );
 
     printf( "Additional frames stats: Assumptions = %d. Assertions = %d. Pairs = %d. Over = %d.\n", 
-        Aig_ManPoNum(pFrames)/2 - pFrames->nAsserts/2, pFrames->nAsserts/2, Vec_IntSize(pHaig->vEquPairs)/2, nOvers );
-//    pCnf = Cnf_DeriveSimple( pFrames, Aig_ManPoNum(pFrames) );
-    pCnf = Cnf_Derive( pFrames, Aig_ManPoNum(pFrames) );
+        Aig_ManCoNum(pFrames)/2 - pFrames->nAsserts/2, pFrames->nAsserts/2, Vec_IntSize(pHaig->vEquPairs)/2, nOvers );
+//    pCnf = Cnf_DeriveSimple( pFrames, Aig_ManCoNum(pFrames) );
+    pCnf = Cnf_Derive( pFrames, Aig_ManCoNum(pFrames) );
 
 
 
-//    pCnf = Cnf_Derive( pFrames, Aig_ManPoNum(pFrames) - pFrames->nAsserts );
+//    pCnf = Cnf_Derive( pFrames, Aig_ManCoNum(pFrames) - pFrames->nAsserts );
 //Cnf_DataWriteIntoFile( pCnf, "temp.cnf", 1 );
 //    Saig_ManDumpBlif( pHaig, "haig_temp.blif" );
 //    Saig_ManDumpBlif( pFrames, "haig_temp_frames.blif" );
@@ -248,10 +248,10 @@ clk = clock();
         // add clauses for the first frame
         Aig_ManForEachCo( pFrames, pObj1, i )
         {
-            if ( i >= Aig_ManPoNum(pFrames) - pFrames->nAsserts )
+            if ( i >= Aig_ManCoNum(pFrames) - pFrames->nAsserts )
                 break;
 
-            pObj2 = Aig_ManPo( pFrames, ++i );
+            pObj2 = Aig_ManCo( pFrames, ++i );
             assert( pObj1->fPhase == pObj2->fPhase );
 
             Lits[0] = toLitCond( pCnf->pVarNums[pObj1->Id], 0 );
@@ -285,10 +285,10 @@ clk = clock();
     printf( "Started solving ...\r" );
     Aig_ManForEachCo( pFrames, pObj1, i )
     {
-        if ( i < Aig_ManPoNum(pFrames) - pFrames->nAsserts )
+        if ( i < Aig_ManCoNum(pFrames) - pFrames->nAsserts )
             continue;
 
-        pObj2 = Aig_ManPo( pFrames, ++i );
+        pObj2 = Aig_ManCo( pFrames, ++i );
         assert( pObj1->fPhase == pObj2->fPhase );
 
         Lits[0] = toLitCond( pCnf->pVarNums[pObj1->Id], 0 );
@@ -320,7 +320,7 @@ clk = clock();
 
         if ( i % 50 == 1 )
             printf( "Solving assertion %6d out of %6d.\r", 
-                (i - (Aig_ManPoNum(pFrames) - pFrames->nAsserts))/2, 
+                (i - (Aig_ManCoNum(pFrames) - pFrames->nAsserts))/2, 
                 pFrames->nAsserts/2 );
 //        if ( nClasses == 1000 )
 //            break;
@@ -376,7 +376,7 @@ clkVerif = clock() - clk;
         fprintf( pTable, "%d ", pCnf->nClauses );
         fprintf( pTable, "%d ", pCnf->nLiterals );
 
-        fprintf( pTable, "%d ", Aig_ManPoNum(pFrames)/2 - pFrames->nAsserts/2 );
+        fprintf( pTable, "%d ", Aig_ManCoNum(pFrames)/2 - pFrames->nAsserts/2 );
         fprintf( pTable, "%d ", pFrames->nAsserts/2 );
         fprintf( pTable, "%d ", Vec_IntSize(pHaig->vEquPairs)/2 );
 
@@ -419,7 +419,7 @@ int Aig_ManHaigVerify2( Aig_Man_t * p, Aig_Man_t * pAig, Aig_Man_t * pHaig, int 
     assert( nFrames == 1 || nFrames == 2 );
 
 clk = clock();
-    pCnf = Cnf_DeriveSimple( pHaig, Aig_ManPoNum(pHaig) );
+    pCnf = Cnf_DeriveSimple( pHaig, Aig_ManCoNum(pHaig) );
 //    Aig_ManForEachObj( pHaig, pObj, i )
 //        printf( "%d=%d  ", pObj->Id, pCnf->pVarNums[pObj->Id] );
 //    printf( "\n" );
@@ -572,8 +572,8 @@ Aig_Man_t * Saig_ManHaigDump( Aig_Man_t * pHaig )
             Vec_PtrPush( vTemp, pObj );
         }
     }
-    Vec_PtrShrink( pHaig->vPos, 0 ); 
-    pHaig->nObjs[AIG_OBJ_PO] = Vec_PtrSize( vTemp );
+    Vec_PtrShrink( pHaig->vCos, 0 ); 
+    pHaig->nObjs[AIG_OBJ_CO] = Vec_PtrSize( vTemp );
     // add new POs
     Vec_IntForEachEntry( pHaig->vEquPairs, Id1, i )
     {
@@ -581,7 +581,7 @@ Aig_Man_t * Saig_ManHaigDump( Aig_Man_t * pHaig )
         pObj1 = Aig_ManObj( pHaig, Id1 );
         pObj2 = Aig_ManObj( pHaig, Id2 );
         assert( pObj1 != pObj2 );
-        assert( !Aig_ObjIsPi(pObj1) || !Aig_ObjIsPi(pObj2) );
+        assert( !Aig_ObjIsCi(pObj1) || !Aig_ObjIsCi(pObj2) );
         pMiter = Aig_Exor( pHaig, pObj1, pObj2 );
         pMiter = Aig_NotCond( pMiter, Aig_ObjPhaseReal(pMiter) );
         assert( Aig_ObjPhaseReal(pMiter) == 0 );
@@ -590,9 +590,9 @@ Aig_Man_t * Saig_ManHaigDump( Aig_Man_t * pHaig )
     printf( "Added %d property outputs.\n", Vec_IntSize(pHaig->vEquPairs)/2 );
     // add the registers
     Vec_PtrForEachEntry( Aig_Obj_t *, vTemp, pObj, i )
-        Vec_PtrPush( pHaig->vPos, pObj );
+        Vec_PtrPush( pHaig->vCos, pObj );
     Vec_PtrFree( vTemp );
-    assert( pHaig->nObjs[AIG_OBJ_PO] ==  Vec_PtrSize(pHaig->vPos) ); 
+    assert( pHaig->nObjs[AIG_OBJ_CO] ==  Vec_PtrSize(pHaig->vCos) ); 
     Aig_ManCleanup( pHaig );
     Aig_ManSetRegNum( pHaig, pHaig->nRegs );
 //    return pHaig;

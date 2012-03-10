@@ -50,7 +50,7 @@ void Saig_ManCexMinGetCos( Aig_Man_t * pAig, Abc_Cex_t * pCex, Vec_Int_t * vLeav
     Vec_IntClear( vRoots );
     if ( vLeaves == NULL )
     {
-        pObj = Aig_ManPo( pAig, pCex->iPo );
+        pObj = Aig_ManCo( pAig, pCex->iPo );
         Vec_IntPush( vRoots, Aig_ObjId(pObj) );
         return;
     }
@@ -75,14 +75,14 @@ void Saig_ManCexMinCollectFrameTerms_rec( Aig_Man_t * pAig, Aig_Obj_t * pObj, Ve
     if ( Aig_ObjIsTravIdCurrent(pAig, pObj) )
         return;
     Aig_ObjSetTravIdCurrent(pAig, pObj);
-    if ( Aig_ObjIsPo(pObj) )
+    if ( Aig_ObjIsCo(pObj) )
         Saig_ManCexMinCollectFrameTerms_rec( pAig, Aig_ObjFanin0(pObj), vFrameCisOne );
     else if ( Aig_ObjIsNode(pObj) )
     {
         Saig_ManCexMinCollectFrameTerms_rec( pAig, Aig_ObjFanin0(pObj), vFrameCisOne );
         Saig_ManCexMinCollectFrameTerms_rec( pAig, Aig_ObjFanin1(pObj), vFrameCisOne );
     }
-    else if ( Aig_ObjIsPi(pObj) )
+    else if ( Aig_ObjIsCi(pObj) )
         Vec_IntPush( vFrameCisOne, Aig_ObjId(pObj) );
 }
 
@@ -138,7 +138,7 @@ void Saig_ManCexMinDerivePhasePriority_rec( Aig_Man_t * pAig, Aig_Obj_t * pObj )
     if ( Aig_ObjIsTravIdCurrent(pAig, pObj) )
         return;
     Aig_ObjSetTravIdCurrent(pAig, pObj);
-    if ( Aig_ObjIsPo(pObj) )
+    if ( Aig_ObjIsCo(pObj) )
     {
         Saig_ManCexMinDerivePhasePriority_rec( pAig, Aig_ObjFanin0(pObj) );
         assert( Aig_ObjFanin0(pObj)->iData >= 0 );
@@ -277,7 +277,7 @@ Vec_Vec_t * Saig_ManCexMinCollectPhasePriority_( Aig_Man_t * pAig, Abc_Cex_t * p
         assert( Vec_IntSize(vFramePPsOne) == 0 );
         Aig_ManForEachObjVec( vFrameCisOne, pAig, pObj, i )
         {
-            assert( Aig_ObjIsPi(pObj) );
+            assert( Aig_ObjIsCi(pObj) );
             if ( Saig_ObjIsPi(pAig, pObj) )
                 Vec_IntPush( vFramePPsOne, Abc_Var2Lit( (f+1) * pCex->nPis - nPiCount++, Abc_InfoHasBit(pCex->pData, pCex->nRegs + f * pCex->nPis + Aig_ObjPioNum(pObj)) ) );
             else if ( f == 0 )
@@ -290,7 +290,7 @@ Vec_Vec_t * Saig_ManCexMinCollectPhasePriority_( Aig_Man_t * pAig, Abc_Cex_t * p
     }
     Vec_IntFree( vRoots );
     // check the output
-    pObj = Aig_ManPo( pAig, pCex->iPo );
+    pObj = Aig_ManCo( pAig, pCex->iPo );
     assert( Abc_LitIsCompl(pObj->iData) );
     return vFramePPs;
 }
@@ -331,7 +331,7 @@ Vec_Vec_t * Saig_ManCexMinCollectPhasePriority( Aig_Man_t * pAig, Abc_Cex_t * pC
         assert( Vec_IntSize(vFramePPsOne) == 0 );
         Aig_ManForEachObjVec( vFrameCisOne, pAig, pObj, i )
         {
-            assert( Aig_ObjIsPi(pObj) );
+            assert( Aig_ObjIsCi(pObj) );
             if ( Saig_ObjIsPi(pAig, pObj) )
                 Vec_IntPush( vFramePPsOne, Abc_Var2Lit( nPrioOffset + (f+1) * pCex->nPis - 1 - nPiCount++, Abc_InfoHasBit(pCex->pData, pCex->nRegs + f * pCex->nPis + Aig_ObjPioNum(pObj)) ) );
             else if ( f == 0 )
@@ -344,7 +344,7 @@ Vec_Vec_t * Saig_ManCexMinCollectPhasePriority( Aig_Man_t * pAig, Abc_Cex_t * pC
     }
     Vec_IntFree( vRoots );
     // check the output
-    pObj = Aig_ManPo( pAig, pCex->iPo );
+    pObj = Aig_ManCo( pAig, pCex->iPo );
     assert( Abc_LitIsCompl(pObj->iData) );
     return vFramePPs;
 }
@@ -366,7 +366,7 @@ void Saig_ManCexMinCollectReason_rec( Aig_Man_t * p, Aig_Obj_t * pObj, Vec_Int_t
     if ( Aig_ObjIsTravIdCurrent(p, pObj) )
         return;
     Aig_ObjSetTravIdCurrent(p, pObj);
-    if ( Aig_ObjIsPi(pObj) )
+    if ( Aig_ObjIsCi(pObj) )
     {
         if ( fPiReason && Saig_ObjIsPi(p, pObj) )
             Vec_IntPush( vReason, Abc_Var2Lit( Aig_ObjPioNum(pObj), !Abc_LitIsCompl(pObj->iData) ) );
@@ -374,7 +374,7 @@ void Saig_ManCexMinCollectReason_rec( Aig_Man_t * p, Aig_Obj_t * pObj, Vec_Int_t
             Vec_IntPush( vReason, Abc_Var2Lit( Saig_ObjRegId(p, pObj), !Abc_LitIsCompl(pObj->iData) ) );
         return;
     }
-    if ( Aig_ObjIsPo(pObj) )
+    if ( Aig_ObjIsCo(pObj) )
     {
         Saig_ManCexMinCollectReason_rec( p, Aig_ObjFanin0(pObj), vReason, fPiReason );
         return;

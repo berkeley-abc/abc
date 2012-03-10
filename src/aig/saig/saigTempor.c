@@ -98,7 +98,7 @@ Aig_Man_t * Saig_ManTemporDecompose( Aig_Man_t * pAig, int nFrames )
     }
     // create initialized timeframes
     pFrames = Saig_ManTemporFrames( pAig, nFrames );
-    assert( Aig_ManPoNum(pFrames) == Aig_ManRegNum(pAig) );
+    assert( Aig_ManCoNum(pFrames) == Aig_ManRegNum(pAig) );
 
     // start the new manager
     Aig_ManCleanData( pAig );
@@ -123,7 +123,7 @@ Aig_Man_t * Saig_ManTemporDecompose( Aig_Man_t * pAig, int nFrames )
 
     // create flop output values
     Saig_ManForEachLo( pAig, pObj, i )
-        pObj->pData = Aig_Mux( pAigNew, pReset, Aig_ObjCreateCi(pAigNew), (Aig_Obj_t *)Aig_ManPo(pFrames, i)->pData );
+        pObj->pData = Aig_Mux( pAigNew, pReset, Aig_ObjCreateCi(pAigNew), (Aig_Obj_t *)Aig_ManCo(pFrames, i)->pData );
     Aig_ManStop( pFrames );
 
     // add internal nodes of this frame

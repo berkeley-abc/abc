@@ -115,7 +115,7 @@ int Raig_ManCreate_rec( Raig_Man_t * p, Aig_Obj_t * pObj )
         iFan1 = Raig_ManCreate_rec( p, Aig_ObjFanin1(pObj) );
         iFan1 = (iFan1 << 1) | Aig_ObjFaninC1(pObj);
     }
-    else if ( Aig_ObjIsPo(pObj) )
+    else if ( Aig_ObjIsCo(pObj) )
     {
         iFan0 = Raig_ManCreate_rec( p, Aig_ObjFanin0(pObj) );
         iFan0 = (iFan0 << 1) | Aig_ObjFaninC0(pObj);
@@ -154,15 +154,15 @@ Raig_Man_t * Raig_ManCreate( Aig_Man_t * pAig )
     p->pAig = pAig;
     p->nPis = Saig_ManPiNum(pAig);
     p->nPos = Saig_ManPoNum(pAig);
-    p->nCis = Aig_ManPiNum(pAig);
-    p->nCos = Aig_ManPoNum(pAig);
+    p->nCis = Aig_ManCiNum(pAig);
+    p->nCos = Aig_ManCoNum(pAig);
     p->nNodes = Aig_ManNodeNum(pAig);
     nObjs = p->nCis + p->nCos + p->nNodes + 2;
     p->pFans0 = ABC_ALLOC( int, nObjs );
     p->pFans1 = ABC_ALLOC( int, nObjs );
     p->pRefs = ABC_ALLOC( int, nObjs );
     p->pSims = ABC_CALLOC( unsigned, nObjs );
-    p->vCis2Ids = Vec_IntAlloc( Aig_ManPiNum(pAig) );
+    p->vCis2Ids = Vec_IntAlloc( Aig_ManCiNum(pAig) );
     // add objects (0=unused; 1=const1)
     p->nObjs = 2;
     pObj = Aig_ManConst1( pAig );
@@ -172,7 +172,7 @@ Raig_Man_t * Raig_ManCreate( Aig_Man_t * pAig )
             Raig_ManCreate_rec( p, pObj );
     Aig_ManForEachCo( pAig, pObj, i )
         Raig_ManCreate_rec( p, pObj );
-    assert( Vec_IntSize(p->vCis2Ids) == Aig_ManPiNum(pAig) );
+    assert( Vec_IntSize(p->vCis2Ids) == Aig_ManCiNum(pAig) );
     assert( p->nObjs == nObjs );
     // collect flop outputs
     p->vLos = Vec_IntAlloc( Aig_ManRegNum(pAig) );
@@ -426,7 +426,7 @@ Abc_Cex_t * Raig_ManGenerateCounter( Aig_Man_t * pAig, int iFrame, int iOut, int
     Counter = p->nRegs;
     pData = ABC_ALLOC( unsigned, nWords );
     for ( f = 0; f <= iFrame; f++, Counter += p->nPis )
-    for ( i = 0; i < Aig_ManPiNum(pAig); i++ )
+    for ( i = 0; i < Aig_ManCiNum(pAig); i++ )
     {
         iPioId = Vec_IntEntry( vCis2Ids, i );
         if ( iPioId >= p->nPis )

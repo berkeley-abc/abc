@@ -167,7 +167,7 @@ void Fra_AddClausesSuper( Fra_Man_t * p, Aig_Obj_t * pNode, Vec_Ptr_t * vSuper )
 void Fra_CollectSuper_rec( Aig_Obj_t * pObj, Vec_Ptr_t * vSuper, int fFirst, int fUseMuxes )
 {
     // if the new node is complemented or a PI, another gate begins
-    if ( Aig_IsComplement(pObj) || Aig_ObjIsPi(pObj) || (!fFirst && Aig_ObjRefs(pObj) > 1) || 
+    if ( Aig_IsComplement(pObj) || Aig_ObjIsCi(pObj) || (!fFirst && Aig_ObjRefs(pObj) > 1) || 
          (fUseMuxes && Aig_ObjIsMuxType(pObj)) )
     {
         Vec_PtrPushUnique( vSuper, pObj );
@@ -193,7 +193,7 @@ Vec_Ptr_t * Fra_CollectSuper( Aig_Obj_t * pObj, int fUseMuxes )
 {
     Vec_Ptr_t * vSuper;
     assert( !Aig_IsComplement(pObj) );
-    assert( !Aig_ObjIsPi(pObj) );
+    assert( !Aig_ObjIsCi(pObj) );
     vSuper = Vec_PtrAlloc( 4 );
     Fra_CollectSuper_rec( pObj, vSuper, 1, fUseMuxes );
     return vSuper;

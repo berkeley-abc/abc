@@ -500,7 +500,7 @@ Aig_Man_t * Dar_ManBalance( Aig_Man_t * p, int fUpdateLevel )
         {
             if ( Aig_ObjIsNode(pObj) || Aig_ObjIsConst1(pObj) )
                 continue;
-            if ( Aig_ObjIsPi(pObj) )
+            if ( Aig_ObjIsCi(pObj) )
             {
                 // copy the PI
                 pObjNew = Aig_ObjCreateCi(pNew); 
@@ -510,7 +510,7 @@ Aig_Man_t * Dar_ManBalance( Aig_Man_t * p, int fUpdateLevel )
                 arrTime = Tim_ManGetCiArrival( (Tim_Man_t *)p->pManTime, Aig_ObjPioNum(pObj) );
                 pObjNew->Level = (int)arrTime;
             }
-            else if ( Aig_ObjIsPo(pObj) )
+            else if ( Aig_ObjIsCo(pObj) )
             {
                 // perform balancing
                 pDriver = Aig_ObjReal_rec( Aig_ObjChild0(pObj) );

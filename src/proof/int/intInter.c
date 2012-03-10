@@ -45,10 +45,10 @@ ABC_NAMESPACE_IMPL_START
 Aig_Man_t * Inter_ManDupExpand( Aig_Man_t * pInter, Aig_Man_t * pOther )
 {
     Aig_Man_t * pInterC;
-    assert( Aig_ManPiNum(pInter) <= Aig_ManPiNum(pOther) );
+    assert( Aig_ManCiNum(pInter) <= Aig_ManCiNum(pOther) );
     pInterC = Aig_ManDupSimple( pInter );
-    Aig_IthVar( pInterC, Aig_ManPiNum(pOther)-1 );
-    assert( Aig_ManPiNum(pInterC) == Aig_ManPiNum(pOther) );
+    Aig_IthVar( pInterC, Aig_ManCiNum(pOther)-1 );
+    assert( Aig_ManCiNum(pInterC) == Aig_ManCiNum(pOther) );
     return pInterC;
 }
 

@@ -56,7 +56,7 @@ void Cgt_ManCollectFanoutPos_rec( Aig_Man_t * pAig, Aig_Obj_t * pObj, Vec_Ptr_t 
     if ( Aig_ObjIsTravIdCurrent(pAig, pObj) )
         return;
     Aig_ObjSetTravIdCurrent(pAig, pObj);
-    if ( Aig_ObjIsPo(pObj) )
+    if ( Aig_ObjIsCo(pObj) )
     {
         Vec_PtrPush( vFanout, pObj );
         return;

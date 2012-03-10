@@ -108,7 +108,7 @@ Vec_Int_t * Fra_ClauSaveOutputVars( Aig_Man_t * pMan, Cnf_Dat_t * pCnf )
     Vec_Int_t * vVars;
     Aig_Obj_t * pObj;
     int i;
-    vVars = Vec_IntAlloc( Aig_ManPoNum(pMan) );
+    vVars = Vec_IntAlloc( Aig_ManCoNum(pMan) );
     Aig_ManForEachCo( pMan, pObj, i )
         Vec_IntPush( vVars, pCnf->pVarNums[pObj->Id] );
     return vVars;
@@ -130,7 +130,7 @@ Vec_Int_t * Fra_ClauSaveInputVars( Aig_Man_t * pMan, Cnf_Dat_t * pCnf, int nStar
     Vec_Int_t * vVars;
     Aig_Obj_t * pObj;
     int i;
-    vVars = Vec_IntAlloc( Aig_ManPiNum(pMan) - nStarting );
+    vVars = Vec_IntAlloc( Aig_ManCiNum(pMan) - nStarting );
     Aig_ManForEachCi( pMan, pObj, i )
     {
         if ( i < nStarting )
@@ -217,7 +217,7 @@ Cla_Man_t * Fra_ClauStart( Aig_Man_t * pMan )
     Aig_Man_t * pFramesMain;
     Aig_Man_t * pFramesTest;
     Aig_Man_t * pFramesBmc;
-    assert( Aig_ManPoNum(pMan) - Aig_ManRegNum(pMan) == 1 );
+    assert( Aig_ManCoNum(pMan) - Aig_ManRegNum(pMan) == 1 );
 
     // start the manager
     p = ABC_ALLOC( Cla_Man_t, 1 );
@@ -232,8 +232,8 @@ Cla_Man_t * Fra_ClauStart( Aig_Man_t * pMan )
     // derive two timeframes to be checked
     pFramesMain = Aig_ManFrames( pMan, 2, 0, 1, 0, 0, NULL ); // nFrames, fInit, fOuts, fRegs
 //Aig_ManShow( pFramesMain, 0, NULL );
-    assert( Aig_ManPoNum(pFramesMain) == 2 );
-    Aig_ObjChild0Flip( Aig_ManPo(pFramesMain, 0) ); // complement the first output
+    assert( Aig_ManCoNum(pFramesMain) == 2 );
+    Aig_ObjChild0Flip( Aig_ManCo(pFramesMain, 0) ); // complement the first output
     pCnfMain = Cnf_DeriveSimple( pFramesMain, 0 );
 //Cnf_DataWriteIntoFile( pCnfMain, "temp.cnf", 1 );
     p->pSatMain = (sat_solver *)Cnf_DataWriteIntoSolver( pCnfMain, 1, 0 );
@@ -249,7 +249,7 @@ Cla_Man_t * Fra_ClauStart( Aig_Man_t * pMan )
 
     // derive one timeframe to be checked
     pFramesTest = Aig_ManFrames( pMan, 1, 0, 0, 1, 0, NULL );
-    assert( Aig_ManPoNum(pFramesTest) == Aig_ManRegNum(pMan) );
+    assert( Aig_ManCoNum(pFramesTest) == Aig_ManRegNum(pMan) );
     pCnfTest = Cnf_DeriveSimple( pFramesTest, Aig_ManRegNum(pMan) );
     p->pSatTest = (sat_solver *)Cnf_DataWriteIntoSolver( pCnfTest, 1, 0 );
     p->nSatVarsTestBeg = p->nSatVarsTestCur = sat_solver_nvars( p->pSatTest );
@@ -257,12 +257,12 @@ Cla_Man_t * Fra_ClauStart( Aig_Man_t * pMan )
     // derive one timeframe to be checked for BMC
     pFramesBmc = Aig_ManFrames( pMan, 1, 1, 0, 1, 0, NULL );
 //Aig_ManShow( pFramesBmc, 0, NULL );
-    assert( Aig_ManPoNum(pFramesBmc) == Aig_ManRegNum(pMan) );
+    assert( Aig_ManCoNum(pFramesBmc) == Aig_ManRegNum(pMan) );
     pCnfBmc = Cnf_DeriveSimple( pFramesBmc, Aig_ManRegNum(pMan) );
     p->pSatBmc = (sat_solver *)Cnf_DataWriteIntoSolver( pCnfBmc, 1, 0 );
 
     // create variable sets
-    p->vSatVarsMainCs = Fra_ClauSaveInputVars( pFramesMain, pCnfMain, 2 * (Aig_ManPiNum(pMan)-Aig_ManRegNum(pMan)) );
+    p->vSatVarsMainCs = Fra_ClauSaveInputVars( pFramesMain, pCnfMain, 2 * (Aig_ManCiNum(pMan)-Aig_ManRegNum(pMan)) );
     p->vSatVarsTestCs = Fra_ClauSaveLatchVars( pFramesTest, pCnfTest, 1 );
     p->vSatVarsTestNs = Fra_ClauSaveLatchVars( pFramesTest, pCnfTest, 0 );
     p->vSatVarsBmcNs  = Fra_ClauSaveOutputVars( pFramesBmc, pCnfBmc );
@@ -638,7 +638,7 @@ int Fra_Clau( Aig_Man_t * pMan, int nIters, int fVerbose, int fVeryVerbose )
 {
     Cla_Man_t * p;
     int Iter, RetValue, fFailed, i;
-    assert( Aig_ManPoNum(pMan) - Aig_ManRegNum(pMan) == 1 );
+    assert( Aig_ManCoNum(pMan) - Aig_ManRegNum(pMan) == 1 );
     // create the manager
     p = Fra_ClauStart( pMan );
     if ( p == NULL )

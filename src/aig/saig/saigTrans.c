@@ -299,7 +299,7 @@ Aig_Man_t * Saig_ManFramesInitialMapped( Aig_Man_t * pAig, int nFrames, int nFra
             if ( fInit )
                 pObj->pData = Aig_ObjCreateCi( pFrames );
             else
-                pObj->pData = Aig_ManPi( pFrames, f * Saig_ManPiNum(pAig) + i );
+                pObj->pData = Aig_ManCi( pFrames, f * Saig_ManPiNum(pAig) + i );
             Saig_ManSetMap1( pAig, pObj, f, Aig_Regular((Aig_Obj_t *)pObj->pData) );
         }
         // add internal nodes of this frame

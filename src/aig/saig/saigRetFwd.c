@@ -53,7 +53,7 @@ Aig_Obj_t ** Aig_ManStaticFanoutStart( Aig_Man_t * p )
     Aig_Obj_t ** ppFanouts, * pObj;
     int i, nFanouts, nFanoutsAlloc;
     // allocate fanouts
-    nFanoutsAlloc = 2 * Aig_ManObjNumMax(p) - Aig_ManPiNum(p) - Aig_ManPoNum(p);
+    nFanoutsAlloc = 2 * Aig_ManObjNumMax(p) - Aig_ManCiNum(p) - Aig_ManCoNum(p);
     ppFanouts = ABC_ALLOC( Aig_Obj_t *, nFanoutsAlloc );
     // mark up storage
     nFanouts = 0;

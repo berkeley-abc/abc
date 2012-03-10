@@ -92,13 +92,13 @@ int Aig_ManCheck( Aig_Man_t * p )
         }
     }
     // count the total number of nodes
-    if ( Aig_ManObjNum(p) != 1 + Aig_ManPiNum(p) + Aig_ManPoNum(p) + 
+    if ( Aig_ManObjNum(p) != 1 + Aig_ManCiNum(p) + Aig_ManCoNum(p) + 
         Aig_ManBufNum(p) + Aig_ManAndNum(p) + Aig_ManExorNum(p) )
     {
         printf( "Aig_ManCheck: The number of created nodes is wrong.\n" );
         printf( "C1 = %d. Pi = %d. Po = %d. Buf = %d. And = %d. Xor = %d. Total = %d.\n",
-            1, Aig_ManPiNum(p), Aig_ManPoNum(p), Aig_ManBufNum(p), Aig_ManAndNum(p), Aig_ManExorNum(p), 
-            1 + Aig_ManPiNum(p) + Aig_ManPoNum(p) + Aig_ManBufNum(p) + Aig_ManAndNum(p) + Aig_ManExorNum(p) );
+            1, Aig_ManCiNum(p), Aig_ManCoNum(p), Aig_ManBufNum(p), Aig_ManAndNum(p), Aig_ManExorNum(p), 
+            1 + Aig_ManCiNum(p) + Aig_ManCoNum(p) + Aig_ManBufNum(p) + Aig_ManAndNum(p) + Aig_ManExorNum(p) );
         printf( "Created = %d. Deleted = %d. Existing = %d.\n",
             p->nCreated, p->nDeleted, p->nCreated - p->nDeleted );
         return 0;
@@ -153,7 +153,7 @@ void Aig_ManCheckPhase( Aig_Man_t * p )
     Aig_Obj_t * pObj;
     int i;
     Aig_ManForEachObj( p, pObj, i )
-        if ( Aig_ObjIsPi(pObj) )
+        if ( Aig_ObjIsCi(pObj) )
             assert( (int)pObj->fPhase == 0 );
         else
             assert( (int)pObj->fPhase == (Aig_ObjPhaseReal(Aig_ObjChild0(pObj)) & Aig_ObjPhaseReal(Aig_ObjChild1(pObj))) );

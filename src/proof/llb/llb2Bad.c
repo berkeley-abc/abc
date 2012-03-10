@@ -48,7 +48,7 @@ DdNode * Llb_BddComputeBad( Aig_Man_t * pInit, DdManager * dd, int TimeOut )
     DdNode * bBdd0, * bBdd1, * bTemp, * bResult;
     Aig_Obj_t * pObj;
     int i, k;
-    assert( Cudd_ReadSize(dd) == Aig_ManPiNum(pInit) );
+    assert( Cudd_ReadSize(dd) == Aig_ManCiNum(pInit) );
     // initialize elementary variables
     Aig_ManConst1(pInit)->pData = Cudd_ReadOne( dd );
     Saig_ManForEachLo( pInit, pObj, i )
@@ -56,7 +56,7 @@ DdNode * Llb_BddComputeBad( Aig_Man_t * pInit, DdManager * dd, int TimeOut )
     Saig_ManForEachPi( pInit, pObj, i )
         pObj->pData = Cudd_bddIthVar( dd, Aig_ManRegNum(pInit) + i );
     // compute internal nodes
-    vNodes = Aig_ManDfsNodes( pInit, (Aig_Obj_t **)Vec_PtrArray(pInit->vPos), Saig_ManPoNum(pInit) );
+    vNodes = Aig_ManDfsNodes( pInit, (Aig_Obj_t **)Vec_PtrArray(pInit->vCos), Saig_ManPoNum(pInit) );
     Vec_PtrForEachEntry( Aig_Obj_t *, vNodes, pObj, i )
     {
         if ( !Aig_ObjIsNode(pObj) )
@@ -111,7 +111,7 @@ DdNode * Llb_BddQuantifyPis( Aig_Man_t * pInit, DdManager * dd, DdNode * bFunc )
     DdNode * bVar, * bCube, * bTemp;
     Aig_Obj_t * pObj;
     int i, TimeStop;
-    assert( Cudd_ReadSize(dd) == Aig_ManPiNum(pInit) );
+    assert( Cudd_ReadSize(dd) == Aig_ManCiNum(pInit) );
     TimeStop = dd->TimeStop; dd->TimeStop = 0;
     // create PI cube
     bCube = Cudd_ReadOne( dd );  Cudd_Ref( bCube );

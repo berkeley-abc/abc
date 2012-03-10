@@ -135,7 +135,7 @@ int Aig_ManSizeOfGlobalBdds( Aig_Man_t * p )
     Aig_Obj_t * pObj;
     int RetValue, i;
     // complement the global functions
-    vFuncsGlob = Vec_PtrAlloc( Aig_ManPoNum(p) );
+    vFuncsGlob = Vec_PtrAlloc( Aig_ManCoNum(p) );
     Aig_ManForEachCo( p, pObj, i )
         Vec_PtrPush( vFuncsGlob, Aig_ObjGlobalBdd(pObj) );
     RetValue = Cudd_SharingSize( (DdNode **)Vec_PtrArray(vFuncsGlob), Vec_PtrSize(vFuncsGlob) );
@@ -162,7 +162,7 @@ DdManager * Aig_ManComputeGlobalBdds( Aig_Man_t * p, int nBddSizeMax, int fDropI
     DdNode * bFunc;
     int i, Counter;
     // start the manager
-    dd = Cudd_Init( Aig_ManPiNum(p), 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
+    dd = Cudd_Init( Aig_ManCiNum(p), 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
     // set reordering
     if ( fReorder )
         Cudd_AutodynEnable( dd, CUDD_REORDER_SYMM_SIFT );

@@ -282,7 +282,7 @@ static Vec_Int_t * Ssw_RarFindStartingState( Aig_Man_t * pAig, Abc_Cex_t * pCex 
     }
     assert( iBit == pCex->nBits );
     // check that the output failed as expected -- cannot check because it is not an SRM!
-//    pObj = Aig_ManPo( pAig, pCex->iPo );
+//    pObj = Aig_ManCo( pAig, pCex->iPo );
 //    if ( pObj->fMarkB != 1 )
 //        printf( "The counter-example does not refine the output.\n" );
     // record the new pattern

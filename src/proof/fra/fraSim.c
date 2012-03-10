@@ -221,7 +221,7 @@ void Fra_SmlSavePattern1( Fra_Man_t * p, int fInit )
     if ( !fInit )
         return;
     // clear the state bits to correspond to all-0 initial state
-    nTruePis = Aig_ManPiNum(p->pManAig) - Aig_ManRegNum(p->pManAig);
+    nTruePis = Aig_ManCiNum(p->pManAig) - Aig_ManRegNum(p->pManAig);
     k = 0;
     Aig_ManForEachLoSeq( p->pManAig, pObj, i )
         Abc_InfoXorBit( p->pPatWords, nTruePis * p->nFramesAll + k++ );
@@ -251,9 +251,9 @@ void Fra_SmlSavePattern( Fra_Man_t * p )
     if ( p->vCex )
     {
         Vec_IntClear( p->vCex );
-        for ( i = 0; i < Aig_ManPiNum(p->pManAig) - Aig_ManRegNum(p->pManAig); i++ )
+        for ( i = 0; i < Aig_ManCiNum(p->pManAig) - Aig_ManRegNum(p->pManAig); i++ )
             Vec_IntPush( p->vCex, Abc_InfoHasBit( p->pPatWords, i ) );
-        for ( i = Aig_ManPiNum(p->pManFraig) - Aig_ManRegNum(p->pManFraig); i < Aig_ManPiNum(p->pManFraig); i++ )
+        for ( i = Aig_ManCiNum(p->pManFraig) - Aig_ManRegNum(p->pManFraig); i < Aig_ManCiNum(p->pManFraig); i++ )
             Vec_IntPush( p->vCex, Abc_InfoHasBit( p->pPatWords, i ) );
     }
 
@@ -298,13 +298,13 @@ void Fra_SmlCheckOutputSavePattern( Fra_Man_t * p, Aig_Obj_t * pObjPo )
     // determine the best pattern
     BestPat = i * 32 + k;
     // fill in the counter-example data
-    pModel = ABC_ALLOC( int, Aig_ManPiNum(p->pManFraig)+1 );
+    pModel = ABC_ALLOC( int, Aig_ManCiNum(p->pManFraig)+1 );
     Aig_ManForEachCi( p->pManAig, pObjPi, i )
     {
         pModel[i] = Abc_InfoHasBit(Fra_ObjSim(p->pSml, pObjPi->Id), BestPat);
 //        printf( "%d", pModel[i] );
     }
-    pModel[Aig_ManPiNum(p->pManAig)] = pObjPo->Id;
+    pModel[Aig_ManCiNum(p->pManAig)] = pObjPo->Id;
 //    printf( "\n" );
     // set the model
     assert( p->pManFraig->pData == NULL );
@@ -328,7 +328,7 @@ int Fra_SmlCheckOutput( Fra_Man_t * p )
     Aig_Obj_t * pObj;
     int i;
     // make sure the reference simulation pattern does not detect the bug
-    pObj = Aig_ManPo( p->pManAig, 0 );
+    pObj = Aig_ManCo( p->pManAig, 0 );
     assert( Aig_ObjFanin0(pObj)->fPhase == (unsigned)Aig_ObjFaninC0(pObj) ); 
     Aig_ManForEachCo( p->pManAig, pObj, i )
     {
@@ -359,7 +359,7 @@ void Fra_SmlAssignRandom( Fra_Sml_t * p, Aig_Obj_t * pObj )
 {
     unsigned * pSims;
     int i;
-    assert( Aig_ObjIsPi(pObj) );
+    assert( Aig_ObjIsCi(pObj) );
     pSims = Fra_ObjSim( p, pObj->Id );
     for ( i = 0; i < p->nWordsTotal; i++ )
         pSims[i] = Fra_ObjRandomSim();
@@ -380,7 +380,7 @@ void Fra_SmlAssignConst( Fra_Sml_t * p, Aig_Obj_t * pObj, int fConst1, int iFram
 {
     unsigned * pSims;
     int i;
-    assert( Aig_ObjIsPi(pObj) );
+    assert( Aig_ObjIsCi(pObj) );
     pSims = Fra_ObjSim( p, pObj->Id ) + p->nWordsFrame * iFrame;
     for ( i = 0; i < p->nWordsFrame; i++ )
         pSims[i] = fConst1? ~(unsigned)0 : 0;
@@ -404,7 +404,7 @@ void Fra_SmlInitialize( Fra_Sml_t * p, int fInit )
     if ( fInit )
     {
         assert( Aig_ManRegNum(p->pAig) > 0 );
-        assert( Aig_ManRegNum(p->pAig) < Aig_ManPiNum(p->pAig) );
+        assert( Aig_ManRegNum(p->pAig) < Aig_ManCiNum(p->pAig) );
         // assign random info for primary inputs
         Aig_ManForEachPiSeq( p->pAig, pObj, i )
             Fra_SmlAssignRandom( p, pObj );
@@ -441,16 +441,16 @@ void Fra_SmlAssignDist1( Fra_Sml_t * p, unsigned * pPat )
         Aig_ManForEachCi( p->pAig, pObj, i )
             Fra_SmlAssignConst( p, pObj, Abc_InfoHasBit(pPat, i), 0 );
         // flip one bit
-        Limit = Abc_MinInt( Aig_ManPiNum(p->pAig), p->nWordsTotal * 32 - 1 );
+        Limit = Abc_MinInt( Aig_ManCiNum(p->pAig), p->nWordsTotal * 32 - 1 );
         for ( i = 0; i < Limit; i++ )
-            Abc_InfoXorBit( Fra_ObjSim( p, Aig_ManPi(p->pAig,i)->Id ), i+1 );
+            Abc_InfoXorBit( Fra_ObjSim( p, Aig_ManCi(p->pAig,i)->Id ), i+1 );
     }
     else
     {
         int fUseDist1 = 0;
 
         // copy the PI info for each frame
-        nTruePis = Aig_ManPiNum(p->pAig) - Aig_ManRegNum(p->pAig);
+        nTruePis = Aig_ManCiNum(p->pAig) - Aig_ManRegNum(p->pAig);
         for ( f = 0; f < p->nFrames; f++ )
             Aig_ManForEachPiSeq( p->pAig, pObj, i )
                 Fra_SmlAssignConst( p, pObj, Abc_InfoHasBit(pPat, nTruePis * f + i), f );
@@ -458,14 +458,14 @@ void Fra_SmlAssignDist1( Fra_Sml_t * p, unsigned * pPat )
         k = 0;
         Aig_ManForEachLoSeq( p->pAig, pObj, i )
             Fra_SmlAssignConst( p, pObj, Abc_InfoHasBit(pPat, nTruePis * p->nFrames + k++), 0 );
-//        assert( p->pManFraig == NULL || nTruePis * p->nFrames + k == Aig_ManPiNum(p->pManFraig) );
+//        assert( p->pManFraig == NULL || nTruePis * p->nFrames + k == Aig_ManCiNum(p->pManFraig) );
 
         // flip one bit of the last frame
         if ( fUseDist1 ) //&& p->nFrames == 2 )
         {
             Limit = Abc_MinInt( nTruePis, p->nWordsFrame * 32 - 1 );
             for ( i = 0; i < Limit; i++ )
-                Abc_InfoXorBit( Fra_ObjSim( p, Aig_ManPi(p->pAig, i)->Id ) + p->nWordsFrame*(p->nFrames-1), i+1 );
+                Abc_InfoXorBit( Fra_ObjSim( p, Aig_ManCi(p->pAig, i)->Id ) + p->nWordsFrame*(p->nFrames-1), i+1 );
         }
     }
 }
@@ -581,7 +581,7 @@ void Fra_SmlNodeCopyFanin( Fra_Sml_t * p, Aig_Obj_t * pObj, int iFrame )
     unsigned * pSims, * pSims0;
     int fCompl, fCompl0, i;
     assert( !Aig_IsComplement(pObj) );
-    assert( Aig_ObjIsPo(pObj) );
+    assert( Aig_ObjIsCo(pObj) );
     assert( iFrame == 0 || p->nWordsFrame < p->nWordsTotal );
     // get hold of the simulation information
     pSims  = Fra_ObjSim(p, pObj->Id) + p->nWordsFrame * iFrame;
@@ -615,8 +615,8 @@ void Fra_SmlNodeTransferNext( Fra_Sml_t * p, Aig_Obj_t * pOut, Aig_Obj_t * pIn, 
     int i;
     assert( !Aig_IsComplement(pOut) );
     assert( !Aig_IsComplement(pIn) );
-    assert( Aig_ObjIsPo(pOut) );
-    assert( Aig_ObjIsPi(pIn) );
+    assert( Aig_ObjIsCo(pOut) );
+    assert( Aig_ObjIsCi(pIn) );
     assert( iFrame == 0 || p->nWordsFrame < p->nWordsTotal );
     // get hold of the simulation information
     pSims0 = Fra_ObjSim(p, pOut->Id) + p->nWordsFrame * iFrame;
@@ -918,12 +918,12 @@ Abc_Cex_t * Fra_SmlGetCounterExample( Fra_Sml_t * p )
             }
         break;
     }
-    assert( iPo < Aig_ManPoNum(p->pAig)-Aig_ManRegNum(p->pAig) );
+    assert( iPo < Aig_ManCoNum(p->pAig)-Aig_ManRegNum(p->pAig) );
     assert( iFrame < p->nFrames );
     assert( iBit < 32 * p->nWordsFrame );
 
     // allocate the counter example
-    pCex = Abc_CexAlloc( Aig_ManRegNum(p->pAig), Aig_ManPiNum(p->pAig) - Aig_ManRegNum(p->pAig), iFrame + 1 );
+    pCex = Abc_CexAlloc( Aig_ManRegNum(p->pAig), Aig_ManCiNum(p->pAig) - Aig_ManRegNum(p->pAig), iFrame + 1 );
     pCex->iPo    = iPo;
     pCex->iFrame = iFrame;
 
@@ -972,16 +972,16 @@ Abc_Cex_t * Fra_SmlCopyCounterExample( Aig_Man_t * pAig, Aig_Man_t * pFrames, in
     // get the number of frames
     assert( Aig_ManRegNum(pAig) > 0 );
     assert( Aig_ManRegNum(pFrames) == 0 );
-    nTruePis = Aig_ManPiNum(pAig)-Aig_ManRegNum(pAig);
-    nTruePos = Aig_ManPoNum(pAig)-Aig_ManRegNum(pAig);
-    nFrames = Aig_ManPiNum(pFrames) / nTruePis;
-    assert( nTruePis * nFrames == Aig_ManPiNum(pFrames) );
-    assert( nTruePos * nFrames == Aig_ManPoNum(pFrames) );
+    nTruePis = Aig_ManCiNum(pAig)-Aig_ManRegNum(pAig);
+    nTruePos = Aig_ManCoNum(pAig)-Aig_ManRegNum(pAig);
+    nFrames = Aig_ManCiNum(pFrames) / nTruePis;
+    assert( nTruePis * nFrames == Aig_ManCiNum(pFrames) );
+    assert( nTruePos * nFrames == Aig_ManCoNum(pFrames) );
     // find the PO that failed
     iPo = -1;
     iFrame = -1;
     Aig_ManForEachCo( pFrames, pObj, i )
-        if ( pObj->Id == pModel[Aig_ManPiNum(pFrames)] )
+        if ( pObj->Id == pModel[Aig_ManCiNum(pFrames)] )
         {
             iPo = i % nTruePos;
             iFrame = i / nTruePos;
@@ -994,7 +994,7 @@ Abc_Cex_t * Fra_SmlCopyCounterExample( Aig_Man_t * pAig, Aig_Man_t * pFrames, in
     pCex->iFrame = iFrame;
 
     // copy the bit data
-    for ( i = 0; i < Aig_ManPiNum(pFrames); i++ )
+    for ( i = 0; i < Aig_ManCiNum(pFrames); i++ )
     {
         if ( pModel[i] )
             Abc_InfoSetBit( pCex->pData, pCex->nRegs + i );

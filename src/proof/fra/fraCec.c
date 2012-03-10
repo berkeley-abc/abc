@@ -60,8 +60,8 @@ int Fra_FraigSat( Aig_Man_t * pMan, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimi
         pMan->pData = NULL;
 
         // derive CNF
-        pCnf = Cnf_Derive( pMan, Aig_ManPoNum(pMan) );
-    //    pCnf = Cnf_DeriveSimple( pMan, Aig_ManPoNum(pMan) );
+        pCnf = Cnf_Derive( pMan, Aig_ManCoNum(pMan) );
+    //    pCnf = Cnf_DeriveSimple( pMan, Aig_ManCoNum(pMan) );
 
         if ( fFlipBits ) 
             Cnf_DataTranformPolarity( pCnf, 0 );
@@ -166,8 +166,8 @@ int Fra_FraigSat( Aig_Man_t * pMan, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimi
         pMan->pData = NULL;
 
         // derive CNF
-        pCnf = Cnf_Derive( pMan, Aig_ManPoNum(pMan) );
-    //    pCnf = Cnf_DeriveSimple( pMan, Aig_ManPoNum(pMan) );
+        pCnf = Cnf_Derive( pMan, Aig_ManCoNum(pMan) );
+    //    pCnf = Cnf_DeriveSimple( pMan, Aig_ManCoNum(pMan) );
 
         if ( fFlipBits ) 
             Cnf_DataTranformPolarity( pCnf, 0 );
@@ -293,8 +293,8 @@ int Fra_FraigCec( Aig_Man_t ** ppAig, int nConfLimit, int fVerbose )
 //    assert( RetValue == -1 );
     if ( RetValue == 0 )
     {
-        pAig->pData = ABC_ALLOC( int, Aig_ManPiNum(pAig) );
-        memset( pAig->pData, 0, sizeof(int) * Aig_ManPiNum(pAig) );
+        pAig->pData = ABC_ALLOC( int, Aig_ManCiNum(pAig) );
+        memset( pAig->pData, 0, sizeof(int) * Aig_ManCiNum(pAig) );
         return RetValue;
     }
 
@@ -406,7 +406,7 @@ int Fra_FraigCecPartitioned( Aig_Man_t * pMan1, Aig_Man_t * pMan2, int nConfLimi
         if ( fVerbose )
         {
             printf( "Verifying part %4d  (out of %4d)  PI = %5d. PO = %5d. And = %6d. Lev = %4d.\r", 
-                i+1, Vec_PtrSize(vParts), Aig_ManPiNum(pAig), Aig_ManPoNum(pAig), 
+                i+1, Vec_PtrSize(vParts), Aig_ManCiNum(pAig), Aig_ManCoNum(pAig), 
                 Aig_ManNodeNum(pAig), Aig_ManLevelNum(pAig) );
             fflush( stdout );
         }
@@ -459,18 +459,18 @@ int Fra_FraigCecTop( Aig_Man_t * pMan1, Aig_Man_t * pMan2, int nConfLimit, int n
     //Abc_NtkDarCec( pNtk1, pNtk2, fPartition, fVerbose );
     int RetValue, clkTotal = clock();
 
-    if ( Aig_ManPiNum(pMan1) != Aig_ManPiNum(pMan1) )
+    if ( Aig_ManCiNum(pMan1) != Aig_ManCiNum(pMan1) )
     {
         printf( "Abc_CommandAbc8Cec(): Miters have different number of PIs.\n" );
         return 0;
     }
-    if ( Aig_ManPoNum(pMan1) != Aig_ManPoNum(pMan1) )
+    if ( Aig_ManCoNum(pMan1) != Aig_ManCoNum(pMan1) )
     {
         printf( "Abc_CommandAbc8Cec(): Miters have different number of POs.\n" );
         return 0;
     }
-    assert( Aig_ManPiNum(pMan1) == Aig_ManPiNum(pMan1) );
-    assert( Aig_ManPoNum(pMan1) == Aig_ManPoNum(pMan1) );
+    assert( Aig_ManCiNum(pMan1) == Aig_ManCiNum(pMan1) );
+    assert( Aig_ManCoNum(pMan1) == Aig_ManCoNum(pMan1) );
 
     // make sure that the first miter has more nodes
     if ( Aig_ManNodeNum(pMan1) < Aig_ManNodeNum(pMan2) )
@@ -484,7 +484,7 @@ int Fra_FraigCecTop( Aig_Man_t * pMan1, Aig_Man_t * pMan2, int nConfLimit, int n
     if ( nPartSize )
         RetValue = Fra_FraigCecPartitioned( pMan1, pMan2, nConfLimit, nPartSize, fSmart, fVerbose );
     else // no partitioning
-        RetValue = Fra_FraigCecPartitioned( pMan1, pMan2, nConfLimit, Aig_ManPoNum(pMan1), 0, fVerbose );
+        RetValue = Fra_FraigCecPartitioned( pMan1, pMan2, nConfLimit, Aig_ManCoNum(pMan1), 0, fVerbose );
 
     // report the miter
     if ( RetValue == 1 )

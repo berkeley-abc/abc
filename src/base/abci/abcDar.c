@@ -397,7 +397,7 @@ Abc_Ntk_t * Abc_NtkFromDar( Abc_Ntk_t * pNtkOld, Aig_Man_t * pMan )
     // connect the PO nodes
     Aig_ManForEachCo( pMan, pObj, i )
     {
-        if ( pMan->nAsserts && i == Aig_ManPoNum(pMan) - pMan->nAsserts )
+        if ( pMan->nAsserts && i == Aig_ManCoNum(pMan) - pMan->nAsserts )
             break;
         Abc_ObjAddFanin( Abc_NtkCo(pNtkNew, i), (Abc_Obj_t *)Aig_ObjChild0Copy(pObj) );
     }
@@ -432,17 +432,17 @@ Abc_Ntk_t * Abc_NtkFromDarSeqSweep( Abc_Ntk_t * pNtkOld, Aig_Man_t * pMan )
     pNtkNew = Abc_NtkStartFromNoLatches( pNtkOld, ABC_NTK_STRASH, ABC_FUNC_AIG );
     pNtkNew->nConstrs = pMan->nConstrs;
     // consider the case of target enlargement
-    if ( Abc_NtkCiNum(pNtkNew) < Aig_ManPiNum(pMan) - Aig_ManRegNum(pMan) )
+    if ( Abc_NtkCiNum(pNtkNew) < Aig_ManCiNum(pMan) - Aig_ManRegNum(pMan) )
     {
-        for ( i = Aig_ManPiNum(pMan) - Aig_ManRegNum(pMan) - Abc_NtkCiNum(pNtkNew); i > 0; i-- )
+        for ( i = Aig_ManCiNum(pMan) - Aig_ManRegNum(pMan) - Abc_NtkCiNum(pNtkNew); i > 0; i-- )
         {
             pObjNew = Abc_NtkCreatePi( pNtkNew );
             Abc_ObjAssignName( pObjNew, Abc_ObjName(pObjNew), NULL );
         }
         Abc_NtkOrderCisCos( pNtkNew );
     }
-    assert( Abc_NtkCiNum(pNtkNew) == Aig_ManPiNum(pMan) - Aig_ManRegNum(pMan) );
-    assert( Abc_NtkCoNum(pNtkNew) == Aig_ManPoNum(pMan) - Aig_ManRegNum(pMan) );
+    assert( Abc_NtkCiNum(pNtkNew) == Aig_ManCiNum(pMan) - Aig_ManRegNum(pMan) );
+    assert( Abc_NtkCoNum(pNtkNew) == Aig_ManCoNum(pMan) - Aig_ManRegNum(pMan) );
     // transfer the pointers to the basic nodes
     Aig_ManConst1(pMan)->pData = Abc_AigConst1(pNtkNew);
     Aig_ManForEachPiSeq( pMan, pObj, i )
@@ -468,7 +468,7 @@ Abc_Ntk_t * Abc_NtkFromDarSeqSweep( Abc_Ntk_t * pNtkOld, Aig_Man_t * pMan )
     // connect the PO nodes
     Aig_ManForEachCo( pMan, pObj, i )
     {
-//        if ( pMan->nAsserts && i == Aig_ManPoNum(pMan) - pMan->nAsserts )
+//        if ( pMan->nAsserts && i == Aig_ManCoNum(pMan) - pMan->nAsserts )
 //            break;
         iNodeId = Nm_ManFindIdByNameTwoTypes( pNtkNew->pManName, Abc_ObjName(Abc_NtkCo(pNtkNew, i)), ABC_OBJ_PI, ABC_OBJ_BO );
         if ( iNodeId >= 0 )
@@ -568,8 +568,8 @@ Abc_Ntk_t * Abc_NtkFromAigPhase( Aig_Man_t * pMan )
         Abc_ObjAssignName( pObjNew, Abc_ObjName(pObjNew), NULL );
         pObj->pData = pObjNew;
     }
-    assert( Abc_NtkCiNum(pNtkNew) == Aig_ManPiNum(pMan) - Aig_ManRegNum(pMan) );
-    assert( Abc_NtkCoNum(pNtkNew) == Aig_ManPoNum(pMan) - Aig_ManRegNum(pMan) );
+    assert( Abc_NtkCiNum(pNtkNew) == Aig_ManCiNum(pMan) - Aig_ManRegNum(pMan) );
+    assert( Abc_NtkCoNum(pNtkNew) == Aig_ManCoNum(pMan) - Aig_ManRegNum(pMan) );
     // create as many latches as there are registers in the manager
     Aig_ManForEachLiLoSeq( pMan, pObjLi, pObjLo, i )
     {
@@ -651,8 +651,8 @@ Abc_Ntk_t * Abc_NtkAfterTrim( Aig_Man_t * pMan, Abc_Ntk_t * pNtkOld )
         pObjOld = Abc_NtkCo( pNtkOld, i );
         Abc_ObjAssignName( pObjNew, Abc_ObjName(pObjOld), NULL );
     }
-    assert( Abc_NtkCiNum(pNtkNew) == Aig_ManPiNum(pMan) - Aig_ManRegNum(pMan) );
-    assert( Abc_NtkCoNum(pNtkNew) == Aig_ManPoNum(pMan) - Aig_ManRegNum(pMan) );
+    assert( Abc_NtkCiNum(pNtkNew) == Aig_ManCiNum(pMan) - Aig_ManRegNum(pMan) );
+    assert( Abc_NtkCoNum(pNtkNew) == Aig_ManCoNum(pMan) - Aig_ManRegNum(pMan) );
     // create as many latches as there are registers in the manager
     Aig_ManForEachLiLoSeq( pMan, pObjLi, pObjLo, i )
     {
@@ -1259,7 +1259,7 @@ Abc_Ntk_t * Abc_NtkConstructFromCnf( Abc_Ntk_t * pNtk, Cnf_Man_t * p, Vec_Ptr_t 
     // make the mapper point to the new network
     Aig_ManConst1(p->pManAig)->pData = Abc_NtkCreateNodeConst1(pNtkNew);
     Abc_NtkForEachCi( pNtk, pNode, i )
-        Aig_ManPi(p->pManAig, i)->pData = pNode->pCopy;
+        Aig_ManCi(p->pManAig, i)->pData = pNode->pCopy;
     // process the nodes in topological order
     vCover = Vec_IntAlloc( 1 << 16 );
     Vec_PtrForEachEntry( Aig_Obj_t *, vMapped, pObj, i )
@@ -1286,7 +1286,7 @@ Abc_Ntk_t * Abc_NtkConstructFromCnf( Abc_Ntk_t * pNtk, Cnf_Man_t * p, Vec_Ptr_t 
     // add the CO drivers
     Abc_NtkForEachCo( pNtk, pNode, i )
     {
-        pObj = Aig_ManPo(p->pManAig, i);
+        pObj = Aig_ManCo(p->pManAig, i);
         pNodeNew = Abc_ObjNotCond( (Abc_Obj_t *)Aig_ObjFanin0(pObj)->pData, Aig_ObjFaninC0(pObj) );
         Abc_ObjAddFanin( pNode->pCopy, pNodeNew );
     }
@@ -3914,13 +3914,13 @@ Abc_Ntk_t * Abc_NtkDarCleanupAig( Abc_Ntk_t * pNtk, int fCleanupPis, int fCleanu
         return NULL;
     if ( fCleanupPis )
     {
-        int Temp = Aig_ManPiCleanup( pMan );
+        int Temp = Aig_ManCiCleanup( pMan );
         if ( fVerbose )
             Abc_Print( 1, "Cleanup removed %d primary inputs without fanout.\n", Temp );                                                                     
     }
     if ( fCleanupPos )
     {
-        int Temp = Aig_ManPoCleanup( pMan );
+        int Temp = Aig_ManCoCleanup( pMan );
         if ( fVerbose )
             Abc_Print( 1, "Cleanup removed %d primary outputs driven by const-0.\n", Temp );                                                                     
     }

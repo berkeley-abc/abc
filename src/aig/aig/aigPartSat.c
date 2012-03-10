@@ -247,7 +247,7 @@ Vec_Ptr_t * Aig_ManPartSplit( Aig_Man_t * p, Vec_Int_t * vNode2Part, Vec_Ptr_t *
     Aig_ManForEachCo( p, pObj, i )
     {
         pDriver = Aig_ObjFanin0(pObj);
-        if ( Aig_ObjIsPi(pDriver) )
+        if ( Aig_ObjIsCi(pDriver) )
         {
             if ( Aig_ObjFaninC0(pObj) )
                 pDriver->fMarkA = 1; // const0 PI
@@ -275,7 +275,7 @@ Vec_Ptr_t * Aig_ManPartSplit( Aig_Man_t * p, Vec_Int_t * vNode2Part, Vec_Ptr_t *
     Aig_ManForEachCo( p, pObj, i )
     {
         pDriver = Aig_ObjFanin0(pObj);
-        if ( Aig_ObjIsPi(pDriver) )
+        if ( Aig_ObjIsCi(pDriver) )
             pDriver->fMarkA = pDriver->fMarkB = 0;
         else
             Vec_VecPush( vPart2Pos, Vec_IntEntry(vNode2Part, Aig_ObjFaninId0(pObj)), pObj );
@@ -330,7 +330,7 @@ void Aig_ManPartSetNodePolarity( Aig_Man_t * p, Aig_Man_t * pPart, Vec_Int_t * v
         pObj->fPhase = (Aig_ObjFanin0(pObj)->fPhase ^ Aig_ObjFaninC0(pObj)) & (Aig_ObjFanin1(pObj)->fPhase ^ Aig_ObjFaninC1(pObj));
     Aig_ManForEachCo( pPart, pObj, i )
     {
-        pObjInit = Aig_ManObj( p, Vec_IntEntry(vPio2Id, Aig_ManPiNum(pPart) + i) );
+        pObjInit = Aig_ManObj( p, Vec_IntEntry(vPio2Id, Aig_ManCiNum(pPart) + i) );
         pObj->fPhase = (Aig_ObjFanin0(pObj)->fPhase ^ Aig_ObjFaninC0(pObj));
         assert( pObj->fPhase == pObjInit->fPhase );
     }
@@ -354,7 +354,7 @@ void Aig_ManDeriveCounterExample( Aig_Man_t * p, Vec_Int_t * vNode2Var, sat_solv
     int i;
     // collect IDs of PI variables
     // (fanoutless PIs have SAT var 0, which is an unused in the SAT solver -> has value 0)
-    vPisIds = Vec_IntAlloc( Aig_ManPiNum(p) );
+    vPisIds = Vec_IntAlloc( Aig_ManCiNum(p) );
     Aig_ManForEachCi( p, pObj, i )
         Vec_IntPush( vPisIds, Vec_IntEntry(vNode2Var, Aig_ObjId(pObj)) );
     // derive the SAT assignment
@@ -383,7 +383,7 @@ int Aig_ManAddNewCnfToSolver( sat_solver * pSat, Aig_Man_t * pAig, Vec_Int_t * v
     int * pBeg, * pEnd;
     int i, Lits[2], iSatVarOld, iNodeIdOld;
     // derive CNF and express it using new SAT variables
-    pCnf = Cnf_Derive( pAig, Aig_ManPoNum(pAig) );
+    pCnf = Cnf_Derive( pAig, Aig_ManCoNum(pAig) );
     Cnf_DataTranformPolarity( pCnf, 1 );
     Cnf_DataLift( pCnf, sat_solver_nvars(pSat) );
     // create new variables in the SAT solver
@@ -419,7 +419,7 @@ int Aig_ManAddNewCnfToSolver( sat_solver * pSat, Aig_Man_t * pAig, Vec_Int_t * v
     // derive the connector clauses
     Aig_ManForEachCo( pAig, pObj, i )
     {
-        iNodeIdOld = Vec_IntEntry( vPioIds, Aig_ManPiNum(pAig) + i );
+        iNodeIdOld = Vec_IntEntry( vPioIds, Aig_ManCiNum(pAig) + i );
         iSatVarOld = Vec_IntEntry( vNode2Var, iNodeIdOld );
         if ( iSatVarOld == 0 ) // iNodeIdOld in the original AIG has no SAT var
         { 

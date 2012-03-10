@@ -59,10 +59,10 @@ M114p_Solver_t Inter_ManDeriveSatSolverM114p(
     assert( Aig_ManRegNum(pInter) == 0 );
     assert( Aig_ManRegNum(pAig) > 0 );
     assert( Aig_ManRegNum(pFrames) == 0 );
-    assert( Aig_ManPoNum(pInter) == 1 );
-    assert( Aig_ManPoNum(pFrames) == 1 );
-    assert( Aig_ManPiNum(pInter) == Aig_ManRegNum(pAig) );
-//    assert( (Aig_ManPiNum(pFrames) - Aig_ManRegNum(pAig)) % Saig_ManPiNum(pAig) == 0 );
+    assert( Aig_ManCoNum(pInter) == 1 );
+    assert( Aig_ManCoNum(pFrames) == 1 );
+    assert( Aig_ManCiNum(pInter) == Aig_ManRegNum(pAig) );
+//    assert( (Aig_ManCiNum(pFrames) - Aig_ManRegNum(pAig)) % Saig_ManPiNum(pAig) == 0 );
 
     // prepare CNFs
     Cnf_DataLift( pCnfAig,   pCnfFrames->nVars );

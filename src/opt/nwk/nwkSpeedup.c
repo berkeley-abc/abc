@@ -46,7 +46,7 @@ int Aig_ManSpeedupNode_rec( Aig_Man_t * pAig, Aig_Obj_t * pNode, Vec_Ptr_t * vNo
 {
     if ( Aig_ObjIsTravIdCurrent(pAig, pNode) )
         return 1;
-    if ( Aig_ObjIsPi(pNode) )
+    if ( Aig_ObjIsCi(pNode) )
         return 0;
     assert( Aig_ObjIsNode(pNode) );
     Aig_ObjSetTravIdCurrent( pAig, pNode );

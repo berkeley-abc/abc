@@ -203,7 +203,7 @@ int Saig_ManBmcSimple( Aig_Man_t * pAig, int nFrames, int nSizeMax, int nConfLim
     else if ( nSizeMax > 0 )
     {
         pFrames = Saig_ManFramesBmcLimit( pAig, nFrames, nSizeMax );
-        nFrames = Aig_ManPoNum(pFrames) / Saig_ManPoNum(pAig) + ((Aig_ManPoNum(pFrames) % Saig_ManPoNum(pAig)) > 0);
+        nFrames = Aig_ManCoNum(pFrames) / Saig_ManPoNum(pAig) + ((Aig_ManCoNum(pFrames) % Saig_ManPoNum(pAig)) > 0);
     }
     else
         pFrames = Saig_ManFramesBmc( pAig, nFrames );
@@ -215,7 +215,7 @@ int Saig_ManBmcSimple( Aig_Man_t * pAig, int nFrames, int nSizeMax, int nConfLim
             Saig_ManPiNum(pAig), Saig_ManPoNum(pAig), Saig_ManRegNum(pAig),
             Aig_ManNodeNum(pAig), Aig_ManLevelNum(pAig) );
         printf( "Time-frames (%d):  PI/PO = %d/%d.  Node = %6d. Lev = %5d.  ", 
-            nFrames, Aig_ManPiNum(pFrames), Aig_ManPoNum(pFrames), 
+            nFrames, Aig_ManCiNum(pFrames), Aig_ManCoNum(pFrames), 
             Aig_ManNodeNum(pFrames), Aig_ManLevelNum(pFrames) );
         ABC_PRT( "Time", clock() - clk );
         fflush( stdout );
@@ -237,7 +237,7 @@ int Saig_ManBmcSimple( Aig_Man_t * pAig, int nFrames, int nSizeMax, int nConfLim
     }
     // create the SAT solver
     clk = clock();
-    pCnf = Cnf_Derive( pFrames, Aig_ManPoNum(pFrames) );  
+    pCnf = Cnf_Derive( pFrames, Aig_ManCoNum(pFrames) );  
 //if ( s_fInterrupt )
 //return -1;
     pSat = sat_solver_new();
@@ -303,7 +303,7 @@ int Saig_ManBmcSimple( Aig_Man_t * pAig, int nFrames, int nSizeMax, int nConfLim
             {
                 Vec_Int_t * vCiIds = Cnf_DataCollectPiSatNums( pCnf, pFrames );
                 int * pModel = Sat_SolverGetModel( pSat, vCiIds->pArray, vCiIds->nSize );
-                pModel[Aig_ManPiNum(pFrames)] = pObj->Id;
+                pModel[Aig_ManCiNum(pFrames)] = pObj->Id;
                 pAig->pSeqModel = Fra_SmlCopyCounterExample( pAig, pFrames, pModel );
                 ABC_FREE( pModel );
                 Vec_IntFree( vCiIds );

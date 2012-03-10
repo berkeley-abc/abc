@@ -150,7 +150,7 @@ void Llb_ManComputeIndCase( Aig_Man_t * p, DdManager * dd, Vec_Int_t * vNodes )
     Vec_PtrWriteEntry( vBdds, Aig_ObjId(Aig_ManConst1(p)), bFunc );
     Saig_ManForEachPi( p, pObj, i )
     {
-        bFunc = Cudd_bddIthVar( dd, Aig_ManPiNum(p) + i );  Cudd_Ref( bFunc );
+        bFunc = Cudd_bddIthVar( dd, Aig_ManCiNum(p) + i );  Cudd_Ref( bFunc );
         Vec_PtrWriteEntry( vBdds, Aig_ObjId(pObj), bFunc );
     }
     Saig_ManForEachLi( p, pObj, i )
@@ -201,11 +201,11 @@ Vec_Int_t * Llb_ManComputeBaseCase( Aig_Man_t * p, DdManager * dd )
     Vec_Int_t * vNodes;
     Aig_Obj_t * pObj, * pRoot;
     int i;
-    pRoot = Aig_ManPo( p, 0 );
+    pRoot = Aig_ManCo( p, 0 );
     vNodes = Vec_IntStartFull( Aig_ManObjNumMax(p) );
     Aig_ManForEachObj( p, pObj, i )
     {
-        if ( !Aig_ObjIsNode(pObj) && !Aig_ObjIsPi(pObj) )
+        if ( !Aig_ObjIsNode(pObj) && !Aig_ObjIsCi(pObj) )
             continue;
         if ( Cudd_bddLeq( dd, (DdNode *)pObj->pData, Cudd_Not(pRoot->pData) ) )
             Vec_IntWriteEntry( vNodes, i, 1 );
@@ -232,7 +232,7 @@ DdManager * Llb_ManConstructGlobalBdds( Aig_Man_t * p )
     DdNode * bBdd0, * bBdd1;
     Aig_Obj_t * pObj;
     int i;
-    dd = Cudd_Init( Aig_ManPiNum(p), 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
+    dd = Cudd_Init( Aig_ManCiNum(p), 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
     Cudd_AutodynEnable( dd,  CUDD_REORDER_SYMM_SIFT );
     pObj = Aig_ManConst1(p);
     pObj->pData = Cudd_ReadOne(dd);  Cudd_Ref( (DdNode *)pObj->pData );

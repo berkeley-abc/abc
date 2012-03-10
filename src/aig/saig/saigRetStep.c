@@ -56,7 +56,7 @@ Aig_Obj_t * Saig_ManRetimeNodeFwd( Aig_Man_t * p, Aig_Obj_t * pObj, int fMakeBug
     pFanin0 = Aig_ObjFanin0(pObj);
     pFanin1 = Aig_ObjFanin1(pObj);
     // skip of they are not primary inputs
-    if ( !Aig_ObjIsPi(pFanin0) || !Aig_ObjIsPi(pFanin1) )
+    if ( !Aig_ObjIsCi(pFanin0) || !Aig_ObjIsCi(pFanin1) )
         return NULL;
 
     // skip of they are not register outputs
@@ -90,11 +90,11 @@ Aig_Obj_t * Saig_ManRetimeNodeFwd( Aig_Man_t * p, Aig_Obj_t * pObj, int fMakeBug
 
     // create new register input
     pObjLi = Aig_ObjCreateCo( p, Aig_NotCond(pObjNew, fCompl) );
-    pObjLi->PioNum = Aig_ManPoNum(p) - 1;
+    pObjLi->PioNum = Aig_ManCoNum(p) - 1;
 
     // create new register output
     pObjLo = Aig_ObjCreateCi( p );
-    pObjLo->PioNum = Aig_ManPiNum(p) - 1;
+    pObjLo->PioNum = Aig_ManCiNum(p) - 1;
     p->nRegs++;
 
     // make sure the register is retimable.
@@ -148,15 +148,15 @@ Aig_Obj_t * Saig_ManRetimeNodeBwd( Aig_Man_t * p, Aig_Obj_t * pObjLo )
 
     // create latch inputs
     pLi0New = Aig_ObjCreateCo( p, Aig_NotCond(pFanin0, fCompl0) );
-    pLi0New->PioNum = Aig_ManPoNum(p) - 1;
+    pLi0New->PioNum = Aig_ManCoNum(p) - 1;
     pLi1New = Aig_ObjCreateCo( p, Aig_NotCond(pFanin1, fCompl1) );
-    pLi1New->PioNum = Aig_ManPoNum(p) - 1;
+    pLi1New->PioNum = Aig_ManCoNum(p) - 1;
 
     // create latch outputs
     pLo0New = Aig_ObjCreateCi(p);
-    pLo0New->PioNum = Aig_ManPiNum(p) - 1;
+    pLo0New->PioNum = Aig_ManCiNum(p) - 1;
     pLo1New = Aig_ObjCreateCi(p);
-    pLo1New->PioNum = Aig_ManPiNum(p) - 1;
+    pLo1New->PioNum = Aig_ManCiNum(p) - 1;
     pLo0New = Aig_NotCond( pLo0New, fCompl0 );
     pLo1New = Aig_NotCond( pLo1New, fCompl1 );
     p->nRegs += 2;

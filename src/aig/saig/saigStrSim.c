@@ -298,7 +298,7 @@ void Saig_StrSimulateRound( Aig_Man_t * p0, Aig_Man_t * p1 )
     // simulate the nodes
     Aig_ManForEachObj( p0, pObj0, i )
     {
-        if ( !Aig_ObjIsPi(pObj0) && !Aig_ObjIsNode(pObj0) )
+        if ( !Aig_ObjIsCi(pObj0) && !Aig_ObjIsNode(pObj0) )
            continue;
         pObj1 = Aig_ObjRepr(p0, pObj0);
         if ( pObj1 == NULL )
@@ -406,7 +406,7 @@ int Saig_StrSimDetectUnique( Aig_Man_t * p0, Aig_Man_t * p1 )
     // hash nodes of the first AIG 
     Aig_ManForEachObj( p0, pObj, i )
     {
-        if ( !Aig_ObjIsPi(pObj) && !Aig_ObjIsNode(pObj) )
+        if ( !Aig_ObjIsCi(pObj) && !Aig_ObjIsNode(pObj) )
             continue;
         if ( Aig_ObjRepr(p0, pObj) )
             continue;
@@ -423,7 +423,7 @@ int Saig_StrSimDetectUnique( Aig_Man_t * p0, Aig_Man_t * p1 )
     // hash nodes from the second AIG
     Aig_ManForEachObj( p1, pObj, i )
     {
-        if ( !Aig_ObjIsPi(pObj) && !Aig_ObjIsNode(pObj) )
+        if ( !Aig_ObjIsCi(pObj) && !Aig_ObjIsNode(pObj) )
             continue;
         if ( Aig_ObjRepr(p1, pObj) )
             continue;
@@ -551,7 +551,7 @@ void Saig_StrSimSetInitMatching( Aig_Man_t * p0, Aig_Man_t * p1 )
     Aig_ObjSetRepr( p1, pObj1, pObj0 );
     Saig_ManForEachPi( p0, pObj0, i )
     {
-        pObj1 = Aig_ManPi( p1, i );
+        pObj1 = Aig_ManCi( p1, i );
         Aig_ObjSetRepr( p0, pObj0, pObj1 );
         Aig_ObjSetRepr( p1, pObj1, pObj0 );
     }
@@ -650,14 +650,14 @@ void Saig_StrSimSetContiguousMatching_rec( Aig_Man_t * p, Aig_Obj_t * pObj )
         Saig_StrSimSetContiguousMatching_rec( p, Saig_ObjLiToLo(p, pObj) );
         return;
     }
-    assert( Aig_ObjIsPi(pObj) || Aig_ObjIsNode(pObj) );
+    assert( Aig_ObjIsCi(pObj) || Aig_ObjIsNode(pObj) );
     if ( Aig_ObjRepr(p, pObj) == NULL )
         return;
     // go through the fanouts
     Aig_ObjForEachFanout( p, pObj, pFanout, iFanout, i )
         Saig_StrSimSetContiguousMatching_rec( p, pFanout );
     // go through the fanins
-    if ( !Aig_ObjIsPi( pObj ) )
+    if ( !Aig_ObjIsCi( pObj ) )
     {
         Saig_StrSimSetContiguousMatching_rec( p, Aig_ObjFanin0(pObj) );
         Saig_StrSimSetContiguousMatching_rec( p, Aig_ObjFanin1(pObj) );
@@ -724,7 +724,7 @@ void Ssw_StrSimMatchingExtendOne( Aig_Man_t * p, Vec_Ptr_t * vNodes )
     Aig_ManIncrementTravId( p );
     Aig_ManForEachObj( p, pObj, i )
     {
-        if ( !Aig_ObjIsNode(pObj) && !Aig_ObjIsPi(pObj) )
+        if ( !Aig_ObjIsNode(pObj) && !Aig_ObjIsCi(pObj) )
             continue;
         if ( Aig_ObjRepr( p, pObj ) != NULL )
             continue;
@@ -785,7 +785,7 @@ int Ssw_StrSimMatchingCountUnmached( Aig_Man_t * p )
     int i, Counter = 0;
     Aig_ManForEachObj( p, pObj, i )
     {
-        if ( !Aig_ObjIsNode(pObj) && !Aig_ObjIsPi(pObj) )
+        if ( !Aig_ObjIsNode(pObj) && !Aig_ObjIsCi(pObj) )
             continue;
         if ( Aig_ObjRepr( p, pObj ) != NULL )
             continue;
@@ -817,8 +817,8 @@ void Ssw_StrSimMatchingExtend( Aig_Man_t * p0, Aig_Man_t * p1, int nDist, int fV
         int nUnmached = Ssw_StrSimMatchingCountUnmached(p0);
         printf( "Extending islands by %d steps:\n", nDist );
         printf( "%2d : Total = %6d. Unmatched = %6d.  Ratio = %6.2f %%\n",
-            0, Aig_ManPiNum(p0) + Aig_ManNodeNum(p0), 
-            nUnmached, 100.0 * nUnmached/(Aig_ManPiNum(p0) + Aig_ManNodeNum(p0)) );
+            0, Aig_ManCiNum(p0) + Aig_ManNodeNum(p0), 
+            nUnmached, 100.0 * nUnmached/(Aig_ManCiNum(p0) + Aig_ManNodeNum(p0)) );
     }
     for ( d = 0; d < nDist; d++ )
     {
@@ -850,8 +850,8 @@ void Ssw_StrSimMatchingExtend( Aig_Man_t * p0, Aig_Man_t * p1, int nDist, int fV
         {
             int nUnmached = Ssw_StrSimMatchingCountUnmached(p0);
             printf( "%2d : Total = %6d. Unmatched = %6d.  Ratio = %6.2f %%\n",
-                d+1, Aig_ManPiNum(p0) + Aig_ManNodeNum(p0), 
-                nUnmached, 100.0 * nUnmached/(Aig_ManPiNum(p0) + Aig_ManNodeNum(p0)) );
+                d+1, Aig_ManCiNum(p0) + Aig_ManNodeNum(p0), 
+                nUnmached, 100.0 * nUnmached/(Aig_ManCiNum(p0) + Aig_ManNodeNum(p0)) );
         }
     }
     Vec_PtrFree( vNodes0 );

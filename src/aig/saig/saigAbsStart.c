@@ -145,7 +145,7 @@ Aig_Man_t * Saig_ManCexRefine( Aig_Man_t * p, Aig_Man_t * pAbs, Vec_Int_t * vFlo
     {
         Entry = Vec_IntEntry(pAbs->vCiNumsOrig, Entry);
         assert( Entry >= Saig_ManPiNum(p) );
-        assert( Entry < Aig_ManPiNum(p) );
+        assert( Entry < Aig_ManCiNum(p) );
         Vec_IntPush( vFlops, Entry-Saig_ManPiNum(p) );
     }
     Vec_IntFree( vFlopsNew );
@@ -187,7 +187,7 @@ int Saig_ManCexRefineStep( Aig_Man_t * p, Vec_Int_t * vFlops, Vec_Int_t * vFlopC
     if ( Vec_IntSize(vFlopsNew) == 0 )
     {
         printf( "Refinement did not happen. Discovered a true counter-example.\n" );
-        printf( "Remapping counter-example from %d to %d primary inputs.\n", Aig_ManPiNum(pAbs), Aig_ManPiNum(p) );
+        printf( "Remapping counter-example from %d to %d primary inputs.\n", Aig_ManCiNum(pAbs), Aig_ManCiNum(p) );
         p->pSeqModel = Saig_ManCexRemap( p, pAbs, pCex );
         Vec_IntFree( vFlopsNew );
         Aig_ManStop( pAbs );
@@ -222,7 +222,7 @@ int Saig_ManCexRefineStep( Aig_Man_t * p, Vec_Int_t * vFlops, Vec_Int_t * vFlopC
     {
         Entry = Vec_IntEntry(pAbs->vCiNumsOrig, Entry);
         assert( Entry >= Saig_ManPiNum(p) );
-        assert( Entry < Aig_ManPiNum(p) );
+        assert( Entry < Aig_ManCiNum(p) );
         Vec_IntPush( vFlops, Entry-Saig_ManPiNum(p) );
     }
     Vec_IntFree( vFlopsNew );

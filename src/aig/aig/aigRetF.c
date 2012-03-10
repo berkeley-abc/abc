@@ -46,7 +46,7 @@ int Aig_ManRetimeMark_rec( Aig_Man_t * p, Aig_Obj_t * pObj )
 {
     if ( pObj->fMarkB )
         return 1;
-    if ( Aig_ObjIsPi(pObj) || Aig_ObjIsConst1(pObj) )
+    if ( Aig_ObjIsCi(pObj) || Aig_ObjIsConst1(pObj) )
         return 0;
     if ( Aig_ObjIsTravIdCurrent(p, pObj) )
         return pObj->fMarkB;

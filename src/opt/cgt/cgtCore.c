@@ -132,7 +132,7 @@ void Cgt_ClockGatingRangeCheck( Cgt_Man_t * p, int iStart, int nOutputs )
     Vec_Ptr_t * vNodes = p->vFanout;
     Aig_Obj_t * pMiter, * pCand, * pMiterFrame, * pCandFrame, * pMiterPart, * pCandPart;
     int i, k, RetValue, nCalls;
-    assert( Vec_VecSize(p->vGatesAll) == Aig_ManPoNum(p->pFrame) );
+    assert( Vec_VecSize(p->vGatesAll) == Aig_ManCoNum(p->pFrame) );
     // go through all the registers inputs of this range
     for ( i = iStart; i < iStart + nOutputs; i++ )
     {
@@ -218,7 +218,7 @@ p->timePrepare += clock() - clk;
     if ( p->pPars->fVeryVerbose )
     {
         printf( "%5d : D =%4d. C =%5d. Var =%6d. Pr =%5d. Cex =%5d. F =%4d. Saved =%6d. ",
-            iStart, iStop-iStart, Aig_ManPoNum(p->pPart)-nOutputs, p->pSat->size, 
+            iStart, iStop-iStart, Aig_ManCoNum(p->pPart)-nOutputs, p->pSat->size, 
             p->nCallsUnsat-nCallsUnsat, 
             p->nCallsSat  -nCallsSat, 
             p->nCallsUndec-nCallsUndec,
@@ -255,9 +255,9 @@ Vec_Vec_t * Cgt_ClockGatingCandidates( Aig_Man_t * pAig, Aig_Man_t * pCare, Cgt_
     p = Cgt_ManCreate( pAig, pCare, pPars );
     p->pFrame = Cgt_ManDeriveAigForGating( p );
 p->timeAig += clock() - clk;
-    assert( Aig_ManPoNum(p->pFrame) == Saig_ManRegNum(p->pAig) );
-    pProgress = Bar_ProgressStart( stdout, Aig_ManPoNum(p->pFrame) );
-    for ( iStart = 0; iStart < Aig_ManPoNum(p->pFrame); )
+    assert( Aig_ManCoNum(p->pFrame) == Saig_ManRegNum(p->pAig) );
+    pProgress = Bar_ProgressStart( stdout, Aig_ManCoNum(p->pFrame) );
+    for ( iStart = 0; iStart < Aig_ManCoNum(p->pFrame); )
     {
         Bar_ProgressUpdate( pProgress, iStart, NULL );
         iStart = Cgt_ClockGatingRange( p, iStart );

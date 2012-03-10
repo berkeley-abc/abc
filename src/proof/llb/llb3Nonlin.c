@@ -705,17 +705,17 @@ Llb_Mnn_t * Llb_MnnStart( Aig_Man_t * pInit, Aig_Man_t * pAig, Gia_ParLlb_t *  p
     p->pPars = pPars;
     p->dd    = Cudd_Init( Aig_ManObjNumMax(pAig), 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
     p->ddG   = Cudd_Init( Aig_ManRegNum(pAig),    0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
-    p->ddR   = Cudd_Init( Aig_ManPiNum(pAig),     0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
+    p->ddR   = Cudd_Init( Aig_ManCiNum(pAig),     0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
     Cudd_AutodynEnable( p->dd,  CUDD_REORDER_SYMM_SIFT );
     Cudd_AutodynEnable( p->ddG, CUDD_REORDER_SYMM_SIFT );
     Cudd_AutodynEnable( p->ddR, CUDD_REORDER_SYMM_SIFT );
     p->vRings = Vec_PtrAlloc( 100 );
     // create leaves
-    p->vLeaves = Vec_PtrAlloc( Aig_ManPiNum(pAig) );
+    p->vLeaves = Vec_PtrAlloc( Aig_ManCiNum(pAig) );
     Aig_ManForEachCi( pAig, pObj, i )
         Vec_PtrPush( p->vLeaves, pObj );
     // create roots
-    p->vRoots = Vec_PtrAlloc( Aig_ManPoNum(pAig) );
+    p->vRoots = Vec_PtrAlloc( Aig_ManCoNum(pAig) );
     Saig_ManForEachLi( pAig, pObj, i )
         Vec_PtrPush( p->vRoots, pObj );
     // variables to quantify

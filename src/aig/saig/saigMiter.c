@@ -116,7 +116,7 @@ Aig_Man_t * Saig_ManCreateMiter( Aig_Man_t * p0, Aig_Man_t * p1, int Oper )
     Saig_ManForEachPi( p0, pObj, i )
         pObj->pData = Aig_ObjCreateCi( pNew );
     Saig_ManForEachPi( p1, pObj, i )
-        pObj->pData = Aig_ManPi( pNew, i );
+        pObj->pData = Aig_ManCi( pNew, i );
     // map register outputs
     Saig_ManForEachLo( p0, pObj, i )
         pObj->pData = Aig_ObjCreateCi( pNew );
@@ -131,9 +131,9 @@ Aig_Man_t * Saig_ManCreateMiter( Aig_Man_t * p0, Aig_Man_t * p1, int Oper )
     Saig_ManForEachPo( p0, pObj, i )
     {
         if ( Oper == 0 ) // XOR
-            pObj = Aig_Exor( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild0Copy(Aig_ManPo(p1,i)) );
+            pObj = Aig_Exor( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild0Copy(Aig_ManCo(p1,i)) );
         else if ( Oper == 1 ) // implication is PO(p0) -> PO(p1)  ...  complement is PO(p0) & !PO(p1) 
-            pObj = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_Not(Aig_ObjChild0Copy(Aig_ManPo(p1,i))) );
+            pObj = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_Not(Aig_ObjChild0Copy(Aig_ManCo(p1,i))) );
         else
             assert( 0 );
         Aig_ObjCreateCo( pNew, pObj );
@@ -165,8 +165,8 @@ Aig_Man_t * Saig_ManCreateMiterComb( Aig_Man_t * p0, Aig_Man_t * p1, int Oper )
     Aig_Man_t * pNew;
     Aig_Obj_t * pObj;
     int i;
-    assert( Aig_ManPiNum(p0) == Aig_ManPiNum(p1) );
-    assert( Aig_ManPoNum(p0) == Aig_ManPoNum(p1) );
+    assert( Aig_ManCiNum(p0) == Aig_ManCiNum(p1) );
+    assert( Aig_ManCoNum(p0) == Aig_ManCoNum(p1) );
     pNew = Aig_ManStart( Aig_ManObjNumMax(p0) + Aig_ManObjNumMax(p1) );
     pNew->pName = Abc_UtilStrsav( "miter" );
     // map constant nodes
@@ -176,7 +176,7 @@ Aig_Man_t * Saig_ManCreateMiterComb( Aig_Man_t * p0, Aig_Man_t * p1, int Oper )
     Aig_ManForEachCi( p0, pObj, i )
         pObj->pData = Aig_ObjCreateCi( pNew );
     Aig_ManForEachCi( p1, pObj, i )
-        pObj->pData = Aig_ManPi( pNew, i );
+        pObj->pData = Aig_ManCi( pNew, i );
     // map internal nodes
     Aig_ManForEachNode( p0, pObj, i )
         pObj->pData = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
@@ -186,9 +186,9 @@ Aig_Man_t * Saig_ManCreateMiterComb( Aig_Man_t * p0, Aig_Man_t * p1, int Oper )
     Aig_ManForEachCo( p0, pObj, i )
     {
         if ( Oper == 0 ) // XOR
-            pObj = Aig_Exor( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild0Copy(Aig_ManPo(p1,i)) );
+            pObj = Aig_Exor( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild0Copy(Aig_ManCo(p1,i)) );
         else if ( Oper == 1 ) // implication is PO(p0) -> PO(p1)  ...  complement is PO(p0) & !PO(p1) 
-            pObj = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_Not(Aig_ObjChild0Copy(Aig_ManPo(p1,i))) );
+            pObj = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_Not(Aig_ObjChild0Copy(Aig_ManCo(p1,i))) );
         else
             assert( 0 );
         Aig_ObjCreateCo( pNew, pObj );
@@ -721,11 +721,11 @@ int Saig_ManDemiterDual( Aig_Man_t * p, Aig_Man_t ** ppAig0, Aig_Man_t ** ppAig1
         if ( i & 1 )
             Aig_ObjDeletePo( pTemp, pObj );
         else
-            Vec_PtrWriteEntry( pTemp->vPos, k++, pObj );
+            Vec_PtrWriteEntry( pTemp->vCos, k++, pObj );
     }
     Saig_ManForEachLi( pTemp, pObj, i )
-        Vec_PtrWriteEntry( pTemp->vPos, k++, pObj );
-    Vec_PtrShrink( pTemp->vPos, k );
+        Vec_PtrWriteEntry( pTemp->vCos, k++, pObj );
+    Vec_PtrShrink( pTemp->vCos, k );
     pTemp->nTruePos = k - Saig_ManRegNum(pTemp);
     Aig_ManSeqCleanup( pTemp );
     *ppAig0 = Aig_ManDupSimple( pTemp );
@@ -736,13 +736,13 @@ int Saig_ManDemiterDual( Aig_Man_t * p, Aig_Man_t ** ppAig0, Aig_Man_t ** ppAig1
     Saig_ManForEachPo( pTemp, pObj, i )
     {
         if ( i & 1 )
-            Vec_PtrWriteEntry( pTemp->vPos, k++, pObj );
+            Vec_PtrWriteEntry( pTemp->vCos, k++, pObj );
         else
             Aig_ObjDeletePo( pTemp, pObj );
     }
     Saig_ManForEachLi( pTemp, pObj, i )
-        Vec_PtrWriteEntry( pTemp->vPos, k++, pObj );
-    Vec_PtrShrink( pTemp->vPos, k );
+        Vec_PtrWriteEntry( pTemp->vCos, k++, pObj );
+    Vec_PtrShrink( pTemp->vCos, k );
     pTemp->nTruePos = k - Saig_ManRegNum(pTemp);
     Aig_ManSeqCleanup( pTemp );
     *ppAig1 = Aig_ManDupSimple( pTemp );

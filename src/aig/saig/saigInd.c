@@ -160,7 +160,7 @@ int Saig_ManInduction( Aig_Man_t * p, int nFramesMax, int nConfMax, int fUnique,
     vBot = Vec_PtrAlloc( 100 );
     vTop = Vec_PtrAlloc( 100 );
     vState = Vec_IntAlloc( 1000 );
-    Vec_PtrPush( vTop, Aig_ManPo(p, 0) );
+    Vec_PtrPush( vTop, Aig_ManCo(p, 0) );
     // start the array of CNF variables
     vTopVarNums = Vec_IntAlloc( 100 );
     // start the solver
@@ -185,7 +185,7 @@ int Saig_ManInduction( Aig_Man_t * p, int nFramesMax, int nConfMax, int fUnique,
         // derive AIG for the part between top and bottom
         pAigPart = Aig_ManDupSimpleDfsPart( p, vBot, vTop );
         // convert it into CNF
-        pCnfPart = Cnf_Derive( pAigPart, Aig_ManPoNum(pAigPart) );
+        pCnfPart = Cnf_Derive( pAigPart, Aig_ManCoNum(pAigPart) );
         Cnf_DataLift( pCnfPart, nSatVarNum );
         nSatVarNum += pCnfPart->nVars;
         nClauses   += pCnfPart->nClauses;
@@ -193,13 +193,13 @@ int Saig_ManInduction( Aig_Man_t * p, int nFramesMax, int nConfMax, int fUnique,
         // remember top frame var IDs
         if ( fGetCex && vTopVarIds == NULL )
         {
-            vTopVarIds = Vec_IntStartFull( Aig_ManPiNum(p) );
+            vTopVarIds = Vec_IntStartFull( Aig_ManCiNum(p) );
             Aig_ManForEachCi( p, pObjPi, i )
             {
                 if ( pObjPi->pData == NULL )
                     continue;
                 pObjPiCopy = (Aig_Obj_t *)pObjPi->pData;
-                assert( Aig_ObjIsPi(pObjPiCopy) );
+                assert( Aig_ObjIsCi(pObjPiCopy) );
                 if ( Saig_ObjIsPi(p, pObjPi) )
                     Vec_IntWriteEntry( vTopVarIds, Aig_ObjPioNum(pObjPi) + Saig_ManRegNum(p), pCnfPart->pVarNums[Aig_ObjId(pObjPiCopy)] );
                 else if ( Saig_ObjIsLo(p, pObjPi) )
@@ -209,7 +209,7 @@ int Saig_ManInduction( Aig_Man_t * p, int nFramesMax, int nConfMax, int fUnique,
         }
 
         // stitch variables of top and bot
-        assert( Aig_ManPoNum(pAigPart)-1 == Vec_IntSize(vTopVarNums) );
+        assert( Aig_ManCoNum(pAigPart)-1 == Vec_IntSize(vTopVarNums) );
         Aig_ManForEachCo( pAigPart, pObjPo, i )
         {
             if ( i == 0 )
@@ -247,13 +247,13 @@ int Saig_ManInduction( Aig_Man_t * p, int nFramesMax, int nConfMax, int fUnique,
 
         // create new set of POs to derive new top
         Vec_PtrClear( vTop );
-        Vec_PtrPush( vTop, Aig_ManPo(p, 0) );
+        Vec_PtrPush( vTop, Aig_ManCo(p, 0) );
         Vec_IntClear( vTopVarNums );
         nOldSize = Vec_IntSize(vState);
         Vec_IntFillExtra( vState, nOldSize + Aig_ManRegNum(p), -1 );
         Vec_PtrForEachEntry( Aig_Obj_t *, vBot, pObjPi, i )
         {
-            assert( Aig_ObjIsPi(pObjPi) );
+            assert( Aig_ObjIsCi(pObjPi) );
             if ( Saig_ObjIsLo(p, pObjPi) )
             {
                 pObjPiCopy = (Aig_Obj_t *)pObjPi->pData;
@@ -286,7 +286,7 @@ nextrun:
         if ( fVerbose )
         {
             printf( "%4d : PI =%5d. PO =%5d. AIG =%5d. Var =%7d. Clau =%7d. Conf =%7d. ",
-                f, Aig_ManPiNum(pAigPart), Aig_ManPoNum(pAigPart), Aig_ManNodeNum(pAigPart), 
+                f, Aig_ManCiNum(pAigPart), Aig_ManCoNum(pAigPart), Aig_ManNodeNum(pAigPart), 
                 nSatVarNum, nClauses, (int)pSat->stats.conflicts-nConfPrev );
             ABC_PRT( "Time", clock() - clk );
         }

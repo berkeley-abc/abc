@@ -95,7 +95,7 @@ void Llb_ManGroupCollect_rec( Aig_Man_t * pAig, Aig_Obj_t * pObj, Vec_Ptr_t * vN
     Aig_ObjSetTravIdCurrent(pAig, pObj);
     if ( Aig_ObjIsConst1(pObj) )
         return;
-    if ( Aig_ObjIsPo(pObj) )
+    if ( Aig_ObjIsCo(pObj) )
     {
         Llb_ManGroupCollect_rec( pAig, Aig_ObjFanin0(pObj), vNodes );
         return;
@@ -180,7 +180,7 @@ Llb_Grp_t * Llb_ManGroupCreate( Llb_Man_t * pMan, Aig_Obj_t * pObj )
     p = Llb_ManGroupAlloc( pMan );
     Vec_PtrPush( p->vOuts, pObj );
     Aig_ManIncrementTravId( pMan->pAig );
-    if ( Aig_ObjIsPo(pObj) )
+    if ( Aig_ObjIsCo(pObj) )
         Llb_ManGroupCreate_rec( pMan->pAig, Aig_ObjFanin0(pObj), p->vIns );
     else
     {

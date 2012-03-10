@@ -81,7 +81,7 @@ int Fra_FraigMiterStatus( Aig_Man_t * p )
             continue;
         }
         // check if the output is a primary input
-        if ( Aig_ObjIsPi(Aig_Regular(pChild)) && Aig_ObjPioNum(Aig_Regular(pChild)) < p->nTruePis )
+        if ( Aig_ObjIsCi(Aig_Regular(pChild)) && Aig_ObjPioNum(Aig_Regular(pChild)) < p->nTruePis )
         {
             CountNonConst0++;
             continue;
@@ -97,7 +97,7 @@ int Fra_FraigMiterStatus( Aig_Man_t * p )
 /*
     if ( p->pParams->fVerbose )
     {
-        printf( "Miter has %d outputs. ", Aig_ManPoNum(p->pManAig) );
+        printf( "Miter has %d outputs. ", Aig_ManCoNum(p->pManAig) );
         printf( "Const0 = %d.  ", CountConst0 );
         printf( "NonConst0 = %d.  ", CountNonConst0 );
         printf( "Undecided = %d.  ", CountUndecided );
@@ -187,7 +187,7 @@ void Fra_FraigVerifyCounterEx( Fra_Man_t * p, Vec_Int_t * vCex )
 {
     Aig_Obj_t * pObj, ** ppClass;
     int i, c;
-    assert( Aig_ManPiNum(p->pManAig) == Vec_IntSize(vCex) );
+    assert( Aig_ManCiNum(p->pManAig) == Vec_IntSize(vCex) );
     // make sure the input pattern is not used
     Aig_ManForEachObj( p->pManAig, pObj, i )
         assert( !pObj->fMarkB );

@@ -148,7 +148,7 @@ Aig_Man_t * Ssw_FramesWithClasses( Ssw_Man_t * p )
     int i, f, iLits;
     assert( p->pFrames == NULL );
     assert( Aig_ManRegNum(p->pAig) > 0 );
-    assert( Aig_ManRegNum(p->pAig) < Aig_ManPiNum(p->pAig) );
+    assert( Aig_ManRegNum(p->pAig) < Aig_ManCiNum(p->pAig) );
     p->nConstrTotal = p->nConstrReduced = 0;
 
     // start the fraig package
@@ -216,7 +216,7 @@ Aig_Man_t * Ssw_SpeculativeReduction( Ssw_Man_t * p )
     int i;
     assert( p->pFrames == NULL );
     assert( Aig_ManRegNum(p->pAig) > 0 );
-    assert( Aig_ManRegNum(p->pAig) < Aig_ManPiNum(p->pAig) );
+    assert( Aig_ManRegNum(p->pAig) < Aig_ManCiNum(p->pAig) );
     p->nConstrTotal = p->nConstrReduced = 0;
  
     // start the fraig package

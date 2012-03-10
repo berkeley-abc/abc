@@ -101,27 +101,27 @@ static inline int          Saig_ManCiNum( Aig_Man_t * p )                     { 
 static inline int          Saig_ManCoNum( Aig_Man_t * p )                     { return p->nTruePos + p->nRegs;          }
 static inline int          Saig_ManRegNum( Aig_Man_t * p )                    { return p->nRegs;                        }
 static inline int          Saig_ManConstrNum( Aig_Man_t * p )                 { return p->nConstrs;                     }
-static inline Aig_Obj_t *  Saig_ManLo( Aig_Man_t * p, int i )                 { return (Aig_Obj_t *)Vec_PtrEntry(p->vPis, Saig_ManPiNum(p)+i);   }
-static inline Aig_Obj_t *  Saig_ManLi( Aig_Man_t * p, int i )                 { return (Aig_Obj_t *)Vec_PtrEntry(p->vPos, Saig_ManPoNum(p)+i);   }
+static inline Aig_Obj_t *  Saig_ManLo( Aig_Man_t * p, int i )                 { return (Aig_Obj_t *)Vec_PtrEntry(p->vCis, Saig_ManPiNum(p)+i);   }
+static inline Aig_Obj_t *  Saig_ManLi( Aig_Man_t * p, int i )                 { return (Aig_Obj_t *)Vec_PtrEntry(p->vCos, Saig_ManPoNum(p)+i);   }
 
-static inline int          Saig_ObjIsPi( Aig_Man_t * p, Aig_Obj_t * pObj )    { return Aig_ObjIsPi(pObj) && Aig_ObjPioNum(pObj) < Saig_ManPiNum(p); }
-static inline int          Saig_ObjIsPo( Aig_Man_t * p, Aig_Obj_t * pObj )    { return Aig_ObjIsPo(pObj) && Aig_ObjPioNum(pObj) < Saig_ManPoNum(p); }
-static inline int          Saig_ObjIsLo( Aig_Man_t * p, Aig_Obj_t * pObj )    { return Aig_ObjIsPi(pObj) && Aig_ObjPioNum(pObj) >= Saig_ManPiNum(p); }
-static inline int          Saig_ObjIsLi( Aig_Man_t * p, Aig_Obj_t * pObj )    { return Aig_ObjIsPo(pObj) && Aig_ObjPioNum(pObj) >= Saig_ManPoNum(p); }
-static inline Aig_Obj_t *  Saig_ObjLoToLi( Aig_Man_t * p, Aig_Obj_t * pObj )  { assert(Saig_ObjIsLo(p, pObj)); return (Aig_Obj_t *)Vec_PtrEntry(p->vPos, Saig_ManPoNum(p)+Aig_ObjPioNum(pObj)-Saig_ManPiNum(p));   }
-static inline Aig_Obj_t *  Saig_ObjLiToLo( Aig_Man_t * p, Aig_Obj_t * pObj )  { assert(Saig_ObjIsLi(p, pObj)); return (Aig_Obj_t *)Vec_PtrEntry(p->vPis, Saig_ManPiNum(p)+Aig_ObjPioNum(pObj)-Saig_ManPoNum(p));   }
+static inline int          Saig_ObjIsPi( Aig_Man_t * p, Aig_Obj_t * pObj )    { return Aig_ObjIsCi(pObj) && Aig_ObjPioNum(pObj) < Saig_ManPiNum(p); }
+static inline int          Saig_ObjIsPo( Aig_Man_t * p, Aig_Obj_t * pObj )    { return Aig_ObjIsCo(pObj) && Aig_ObjPioNum(pObj) < Saig_ManPoNum(p); }
+static inline int          Saig_ObjIsLo( Aig_Man_t * p, Aig_Obj_t * pObj )    { return Aig_ObjIsCi(pObj) && Aig_ObjPioNum(pObj) >= Saig_ManPiNum(p); }
+static inline int          Saig_ObjIsLi( Aig_Man_t * p, Aig_Obj_t * pObj )    { return Aig_ObjIsCo(pObj) && Aig_ObjPioNum(pObj) >= Saig_ManPoNum(p); }
+static inline Aig_Obj_t *  Saig_ObjLoToLi( Aig_Man_t * p, Aig_Obj_t * pObj )  { assert(Saig_ObjIsLo(p, pObj)); return (Aig_Obj_t *)Vec_PtrEntry(p->vCos, Saig_ManPoNum(p)+Aig_ObjPioNum(pObj)-Saig_ManPiNum(p));   }
+static inline Aig_Obj_t *  Saig_ObjLiToLo( Aig_Man_t * p, Aig_Obj_t * pObj )  { assert(Saig_ObjIsLi(p, pObj)); return (Aig_Obj_t *)Vec_PtrEntry(p->vCis, Saig_ManPiNum(p)+Aig_ObjPioNum(pObj)-Saig_ManPoNum(p));   }
 static inline int          Saig_ObjRegId( Aig_Man_t * p, Aig_Obj_t * pObj )   { if ( Saig_ObjIsLo(p, pObj) ) return Aig_ObjPioNum(pObj)-Saig_ManPiNum(p); if ( Saig_ObjIsLi(p, pObj) ) return Aig_ObjPioNum(pObj)-Saig_ManPoNum(p); else assert(0);  return -1; }
 
 // iterator over the primary inputs/outputs
 #define Saig_ManForEachPi( p, pObj, i )                                           \
-    Vec_PtrForEachEntryStop( Aig_Obj_t *, p->vPis, pObj, i, Saig_ManPiNum(p) )
+    Vec_PtrForEachEntryStop( Aig_Obj_t *, p->vCis, pObj, i, Saig_ManPiNum(p) )
 #define Saig_ManForEachPo( p, pObj, i )                                           \
-    Vec_PtrForEachEntryStop( Aig_Obj_t *, p->vPos, pObj, i, Saig_ManPoNum(p) )
+    Vec_PtrForEachEntryStop( Aig_Obj_t *, p->vCos, pObj, i, Saig_ManPoNum(p) )
 // iterator over the latch inputs/outputs
 #define Saig_ManForEachLo( p, pObj, i )                                           \
-    for ( i = 0; (i < Saig_ManRegNum(p)) && (((pObj) = (Aig_Obj_t *)Vec_PtrEntry(p->vPis, i+Saig_ManPiNum(p))), 1); i++ )
+    for ( i = 0; (i < Saig_ManRegNum(p)) && (((pObj) = (Aig_Obj_t *)Vec_PtrEntry(p->vCis, i+Saig_ManPiNum(p))), 1); i++ )
 #define Saig_ManForEachLi( p, pObj, i )                                           \
-    for ( i = 0; (i < Saig_ManRegNum(p)) && (((pObj) = (Aig_Obj_t *)Vec_PtrEntry(p->vPos, i+Saig_ManPoNum(p))), 1); i++ )
+    for ( i = 0; (i < Saig_ManRegNum(p)) && (((pObj) = (Aig_Obj_t *)Vec_PtrEntry(p->vCos, i+Saig_ManPoNum(p))), 1); i++ )
 // iterator over the latch input and outputs
 #define Saig_ManForEachLiLo( p, pObjLi, pObjLo, i )                               \
     for ( i = 0; (i < Saig_ManRegNum(p)) && (((pObjLi) = Saig_ManLi(p, i)), 1)    \
@@ -185,7 +185,7 @@ extern Aig_Man_t *       Saig_ManReadBlif( char * pFileName );
 /*=== saigIso.c ==========================================================*/
 extern Vec_Int_t *       Saig_ManFindIsoPerm( Aig_Man_t * pAig, int fVerbose );
 extern Aig_Man_t *       Saig_ManDupIsoCanonical( Aig_Man_t * pAig, int fVerbose );
-extern Aig_Man_t *       Saig_ManIsoReduce( Aig_Man_t * pAig, Vec_Ptr_t ** pvPosEquivs, int fVerbose );
+extern Aig_Man_t *       Saig_ManIsoReduce( Aig_Man_t * pAig, Vec_Ptr_t ** pvCosEquivs, int fVerbose );
 /*=== saigIsoFast.c ==========================================================*/
 extern Vec_Vec_t *       Saig_IsoDetectFast( Aig_Man_t * pAig );
 /*=== saigMiter.c ==========================================================*/

@@ -74,7 +74,7 @@ Saig_SimObj_t * Saig_ManCreateMan( Aig_Man_t * p )
     {
         pEntry = pAig + i;
         pEntry->Type = pObj->Type;
-        if ( Aig_ObjIsPi(pObj) || i == 0 )
+        if ( Aig_ObjIsCi(pObj) || i == 0 )
         {
             if ( Saig_ObjIsLo(p, pObj) )
             {
@@ -84,7 +84,7 @@ Saig_SimObj_t * Saig_ManCreateMan( Aig_Man_t * p )
             continue;
         }
         pEntry->iFan0 = (Aig_ObjFaninId0(pObj) << 1) | Aig_ObjFaninC0(pObj);
-        if ( Aig_ObjIsPo(pObj) )
+        if ( Aig_ObjIsCo(pObj) )
             continue;
         assert( Aig_ObjIsNode(pObj) );
         pEntry->iFan1 = (Aig_ObjFaninId1(pObj) << 1) | Aig_ObjFaninC1(pObj);
@@ -179,9 +179,9 @@ void Saig_ManSimulateFrames( Saig_SimObj_t * pAig, int nFrames, int nPref )
         {
             if ( pEntry->Type == AIG_OBJ_AND )
                 Saig_ManSimulateNode( pAig, pEntry );
-            else if ( pEntry->Type == AIG_OBJ_PO )
+            else if ( pEntry->Type == AIG_OBJ_CO )
                 Saig_ManSimulateOneInput( pAig, pEntry );
-            else if ( pEntry->Type == AIG_OBJ_PI )
+            else if ( pEntry->Type == AIG_OBJ_CI )
             {
                 if ( pEntry->iFan0 == 0 ) // true PI
                     pEntry->pData[0] = Aig_ManRandom( 0 );
@@ -548,7 +548,7 @@ Aig_CMan_t * Aig_CManCreate( Aig_Man_t * p )
     Aig_CMan_t * pCMan;
     Aig_Obj_t * pObj;
     int i;
-    pCMan = Aig_CManStart( Aig_ManPiNum(p), Aig_ManNodeNum(p), Aig_ManPoNum(p) );
+    pCMan = Aig_CManStart( Aig_ManCiNum(p), Aig_ManNodeNum(p), Aig_ManCoNum(p) );
     Aig_ManForEachNode( p, pObj, i )
         Aig_CManAddNode( pCMan, 
             (Aig_ObjFaninId0(pObj) << 1) | Aig_ObjFaninC0(pObj), 

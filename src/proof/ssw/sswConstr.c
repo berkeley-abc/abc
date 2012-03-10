@@ -51,7 +51,7 @@ Aig_Man_t * Ssw_FramesWithConstraints( Aig_Man_t * p, int nFrames )
     int i, f;
     assert( Saig_ManConstrNum(p) > 0 );
     assert( Aig_ManRegNum(p) > 0 );
-    assert( Aig_ManRegNum(p) < Aig_ManPiNum(p) );
+    assert( Aig_ManRegNum(p) < Aig_ManCiNum(p) );
     // start the fraig package
     pFrames = Aig_ManStart( Aig_ManObjNumMax(p) * nFrames );
     // create latches for the first frame
@@ -165,7 +165,7 @@ int Ssw_ManSetConstrPhases_( Aig_Man_t * p, int nFrames, Vec_Int_t ** pvInits )
     assert( p->nConstrs > 0 );
     // create CNF
     nRegs = p->nRegs; p->nRegs = 0;
-    pCnf = Cnf_Derive( p, Aig_ManPoNum(p) );  
+    pCnf = Cnf_Derive( p, Aig_ManCoNum(p) );  
     p->nRegs = nRegs;  
     // create SAT solver
     pSat = (sat_solver *)Cnf_DataWriteIntoSolver( pCnf, nFrames, 0 );
@@ -626,18 +626,18 @@ clk = clock();
     // create timeframes
     p->pFrames = Ssw_FramesWithClasses( p );
     // add constants
-    nConstrPairs = Aig_ManPoNum(p->pFrames)-Aig_ManRegNum(p->pAig);
+    nConstrPairs = Aig_ManCoNum(p->pFrames)-Aig_ManRegNum(p->pAig);
     assert( (nConstrPairs & 1) == 0 );
     for ( i = 0; i < nConstrPairs; i += 2 )
     {
-        pObj  = Aig_ManPo( p->pFrames, i   );
-        pObj2 = Aig_ManPo( p->pFrames, i+1 );
+        pObj  = Aig_ManCo( p->pFrames, i   );
+        pObj2 = Aig_ManCo( p->pFrames, i+1 );
         Ssw_NodesAreConstrained( p, Aig_ObjChild0(pObj), Aig_ObjChild0(pObj2) );
     }
     // build logic cones for register inputs
     for ( i = 0; i < Aig_ManRegNum(p->pAig); i++ )
     {
-        pObj  = Aig_ManPo( p->pFrames, nConstrPairs + i );
+        pObj  = Aig_ManCo( p->pFrames, nConstrPairs + i );
         Ssw_CnfNodeAddToSolver( p->pMSat, Aig_ObjFanin0(pObj) );//
     }
 

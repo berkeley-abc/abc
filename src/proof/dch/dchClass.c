@@ -350,12 +350,12 @@ void Dch_ClassesPrepare( Dch_Cla_t * p, int fLatchCorr, int nMaxLevs )
     {
         if ( fLatchCorr )
         {
-            if ( !Aig_ObjIsPi(pObj) )
+            if ( !Aig_ObjIsCi(pObj) )
                 continue;
         }
         else
         {
-            if ( !Aig_ObjIsNode(pObj) && !Aig_ObjIsPi(pObj) )
+            if ( !Aig_ObjIsNode(pObj) && !Aig_ObjIsCi(pObj) )
                 continue;
             // skip the node with more that the given number of levels
             if ( nMaxLevs && (int)pObj->Level >= nMaxLevs )
@@ -400,7 +400,7 @@ void Dch_ClassesPrepare( Dch_Cla_t * p, int fLatchCorr, int nMaxLevs )
     nEntries2 = 0;
     Aig_ManForEachObj( p->pAig, pObj, i )
     {
-        if ( !Aig_ObjIsNode(pObj) && !Aig_ObjIsPi(pObj) )
+        if ( !Aig_ObjIsNode(pObj) && !Aig_ObjIsCi(pObj) )
             continue;
         nNodes = p->pClassSizes[pObj->Id];
         // skip the nodes that are not representatives of non-trivial classes

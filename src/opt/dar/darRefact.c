@@ -477,7 +477,7 @@ int Dar_ObjCutLevelAchieved( Vec_Ptr_t * vCut, int nLevelMin )
     Aig_Obj_t * pObj;
     int i;
     Vec_PtrForEachEntry( Aig_Obj_t *, vCut, pObj, i )
-        if ( !Aig_ObjIsPi(pObj) && (int)pObj->Level <= nLevelMin )
+        if ( !Aig_ObjIsCi(pObj) && (int)pObj->Level <= nLevelMin )
             return 1;
     return 0;
 }

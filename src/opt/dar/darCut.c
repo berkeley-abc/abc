@@ -734,7 +734,7 @@ Dar_Cut_t * Dar_ObjComputeCuts_rec( Dar_Man_t * p, Aig_Obj_t * pObj )
 {
     if ( Dar_ObjCuts(pObj) )
         return Dar_ObjCuts(pObj);
-    if ( Aig_ObjIsPi(pObj) )
+    if ( Aig_ObjIsCi(pObj) )
         return Dar_ObjPrepareCuts( p, pObj );
     if ( Aig_ObjIsBuf(pObj) )
         return Dar_ObjComputeCuts_rec( p, Aig_ObjFanin0(pObj) );

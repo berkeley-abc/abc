@@ -689,7 +689,7 @@ Vec_Int_t * Saig_ManComputeSwitchProbs( Aig_Man_t * pAig, int nFrames, int nPref
     vResult = Vec_IntStart( Aig_ManObjNumMax(pAig) );
     Aig_ManForEachObj( pAig, pObj, i )
     {
-//        if ( Aig_ObjIsPo(pObj) )
+//        if ( Aig_ObjIsCo(pObj) )
 //            printf( "%d=%f\n", i, Abc_Int2Float( Vec_IntEntry(vSwitching, Abc_Lit2Var(pObj->iData)) ) );
         Vec_IntWriteEntry( vResult, i, Vec_IntEntry(vSwitching, Abc_Lit2Var(pObj->iData)) );
     }

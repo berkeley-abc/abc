@@ -68,8 +68,8 @@ Aig_ManPack_t * Aig_ManPackAlloc( Aig_Man_t * pAig )
     p = ABC_CALLOC( Aig_ManPack_t, 1 );
     p->pAig    = pAig;
     p->vSigns  = Vec_WrdStart( Aig_ManObjNumMax(pAig) );
-    p->vPiPats = Vec_WrdStart( Aig_ManPiNum(pAig) );
-    p->vPiCare = Vec_WrdStart( Aig_ManPiNum(pAig) );
+    p->vPiPats = Vec_WrdStart( Aig_ManCiNum(pAig) );
+    p->vPiCare = Vec_WrdStart( Aig_ManCiNum(pAig) );
     p->iPatCur = 1;
     return p;
 }
@@ -137,7 +137,7 @@ void Aig_ManPackFree( Aig_ManPack_t * p )
     printf( "Patterns: " );
     printf( "Total = %6d. ",   p->nPatTotal );
     printf( "Skipped = %6d. ", p->nPatSkip );
-    printf( "Cares = %6.2f %%  ", 100.0*Aig_ManPackCountCares(p)/Aig_ManPiNum(p->pAig)/64 );
+    printf( "Cares = %6.2f %%  ", 100.0*Aig_ManPackCountCares(p)/Aig_ManCiNum(p->pAig)/64 );
     printf( "\n" );
     Vec_WrdFree( p->vSigns );
     Vec_WrdFree( p->vPiPats );

@@ -276,7 +276,7 @@ void Ssw_AddClausesSuper( Ssw_Sat_t * p, Aig_Obj_t * pNode, Vec_Ptr_t * vSuper )
 void Ssw_CollectSuper_rec( Aig_Obj_t * pObj, Vec_Ptr_t * vSuper, int fFirst, int fUseMuxes )
 {
     // if the new node is complemented or a PI, another gate begins
-    if ( Aig_IsComplement(pObj) || Aig_ObjIsPi(pObj) || 
+    if ( Aig_IsComplement(pObj) || Aig_ObjIsCi(pObj) || 
          (!fFirst && Aig_ObjRefs(pObj) > 1) || 
          (fUseMuxes && Aig_ObjIsMuxType(pObj)) )
     {
@@ -303,7 +303,7 @@ void Ssw_CollectSuper_rec( Aig_Obj_t * pObj, Vec_Ptr_t * vSuper, int fFirst, int
 void Ssw_CollectSuper( Aig_Obj_t * pObj, int fUseMuxes, Vec_Ptr_t * vSuper )
 {
     assert( !Aig_IsComplement(pObj) );
-    assert( !Aig_ObjIsPi(pObj) );
+    assert( !Aig_ObjIsCi(pObj) );
     Vec_PtrClear( vSuper );
     Ssw_CollectSuper_rec( pObj, vSuper, 1, fUseMuxes );
 }
@@ -329,7 +329,7 @@ void Ssw_ObjAddToFrontier( Ssw_Sat_t * p, Aig_Obj_t * pObj, Vec_Ptr_t * vFrontie
         return;
 //    pObj->fMarkA = 1;
     // save PIs (used by register correspondence)
-    if ( Aig_ObjIsPi(pObj) )
+    if ( Aig_ObjIsCi(pObj) )
         Vec_PtrPush( p->vUsedPis, pObj );
     Ssw_ObjSetSatNum( p, pObj, p->nSatVars++ );
     sat_solver_setnvars( p->pSat, 100 * (1 + p->nSatVars / 100) );
@@ -408,7 +408,7 @@ int Ssw_CnfGetNodeValue( Ssw_Sat_t * p, Aig_Obj_t * pObj )
         return sat_solver_var_value( p->pSat, nVarNum );
 //    if ( pObj->fMarkA == 1 )
 //        return 0;
-    if ( Aig_ObjIsPi(pObj) )
+    if ( Aig_ObjIsCi(pObj) )
         return 0;
     assert( Aig_ObjIsNode(pObj) );
     Value0 = Ssw_CnfGetNodeValue( p, Aig_ObjFanin0(pObj) );

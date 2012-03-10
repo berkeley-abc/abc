@@ -191,13 +191,13 @@ void Ssw_ManUpdateEquivs( Ssw_Man_t * p, Aig_Man_t * pAig, int fVerbose )
     Aig_Obj_t * pObj;
     int i, nTotal = 0, nRemoved = 0;
     // collect the nodes in the cone of constraints
-    pArray  = (Aig_Obj_t **)Vec_PtrArray(pAig->vPos);
+    pArray  = (Aig_Obj_t **)Vec_PtrArray(pAig->vCos);
     pArray += Saig_ManPoNum(pAig) - Saig_ManConstrNum(pAig);
     vCones  = Aig_ManDfsNodes( pAig, pArray, Saig_ManConstrNum(pAig) );
     // remove all the node that are equiv to something and are in the cones
     Aig_ManForEachObj( pAig, pObj, i )
     {
-        if ( !Aig_ObjIsPi(pObj) && !Aig_ObjIsNode(pObj) )
+        if ( !Aig_ObjIsCi(pObj) && !Aig_ObjIsNode(pObj) )
             continue;
         if ( pAig->pReprs[i] != NULL )
             nTotal++;
@@ -213,7 +213,7 @@ void Ssw_ManUpdateEquivs( Ssw_Man_t * p, Aig_Man_t * pAig, int fVerbose )
         }
     }
     // collect statistics    
-    p->nConesTotal   = Aig_ManPiNum(pAig) + Aig_ManNodeNum(pAig);
+    p->nConesTotal   = Aig_ManCiNum(pAig) + Aig_ManNodeNum(pAig);
     p->nConesConstr  = Vec_PtrSize(vCones);
     p->nEquivsTotal  = nTotal;
     p->nEquivsConstr = nRemoved;
@@ -341,7 +341,7 @@ clk = clock();
                     printf( "R =%4d. ",   p->nRecycles-nRecycles );
                 }
                 printf( "F =%5d. %s ", p->nSatFailsReal-nSatFailsReal, 
-                    (Saig_ManPoNum(p->pAig)==1 && Ssw_ObjIsConst1Cand(p->pAig,Aig_ObjFanin0(Aig_ManPo(p->pAig,0))))? "+" : "-" );
+                    (Saig_ManPoNum(p->pAig)==1 && Ssw_ObjIsConst1Cand(p->pAig,Aig_ObjFanin0(Aig_ManCo(p->pAig,0))))? "+" : "-" );
                 ABC_PRT( "T", clock() - clk );
             } 
 //            if ( p->pPars->fDynamic && p->nSatCallsSat-nSatCallsSat < 100 )

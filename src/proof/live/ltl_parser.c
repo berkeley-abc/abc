@@ -762,8 +762,8 @@ void populateBoolWithAigNodePtr( Abc_Ntk_t *pNtk, Aig_Man_t *pAigOld, Aig_Man_t 
             Abc_NtkForEachPo( pNtk, pNode, i )
                 if( strcmp( Abc_ObjName( pNode ), targetName ) == 0 )
                 {
-                    pObj = Aig_ManPo( pAigOld, i );
-                    assert( Aig_ObjIsPo( pObj ));
+                    pObj = Aig_ManCo( pAigOld, i );
+                    assert( Aig_ObjIsCo( pObj ));
                     pDriverImage = Aig_NotCond((Aig_Obj_t *)Aig_Regular(Aig_ObjChild0( pObj ))->pData, Aig_ObjFaninC0(pObj));
                     topASTNode->pObj = pDriverImage;
                     return;

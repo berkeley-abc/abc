@@ -352,7 +352,7 @@ void Saig_ManBmcSectionsTest( Aig_Man_t * p )
 void Saig_ManBmcSupergate_rec( Aig_Obj_t * pObj, Vec_Ptr_t * vSuper )
 {
     // if the new node is complemented or a PI, another gate begins
-    if ( Aig_IsComplement(pObj) || Aig_ObjIsPi(pObj) ) // || (Aig_ObjRefs(pObj) > 1) )
+    if ( Aig_IsComplement(pObj) || Aig_ObjIsCi(pObj) ) // || (Aig_ObjRefs(pObj) > 1) )
     {
         Vec_PtrPushUnique( vSuper, Aig_Regular(pObj) );
         return;
@@ -378,7 +378,7 @@ Vec_Ptr_t * Saig_ManBmcSupergate( Aig_Man_t * p, int iPo )
     Vec_Ptr_t * vSuper;
     Aig_Obj_t * pObj;
     vSuper = Vec_PtrAlloc( 10 );
-    pObj = Aig_ManPo( p, iPo );
+    pObj = Aig_ManCo( p, iPo );
     pObj = Aig_ObjChild0( pObj );
     if ( !Aig_IsComplement(pObj) )
     {
@@ -905,7 +905,7 @@ int Saig_ManBmcCreateCnf_rec( Gia_ManBmc_t * p, Aig_Obj_t * pObj, int iFrame, in
     if ( iLit != ~0 )
         return iLit;
     assert( iFrame >= 0 );
-    if ( Aig_ObjIsPi(pObj) )
+    if ( Aig_ObjIsCi(pObj) )
     {
         if ( Saig_ObjIsPi(p->pAig, pObj) )
             iLit = fAddClauses ? toLit( p->nSatVars++ ) : ABC_INFINITY;
@@ -913,7 +913,7 @@ int Saig_ManBmcCreateCnf_rec( Gia_ManBmc_t * p, Aig_Obj_t * pObj, int iFrame, in
             iLit = Saig_ManBmcCreateCnf_rec( p, Saig_ObjLoToLi(p->pAig, pObj), iFrame-1, fAddClauses );
         return Saig_ManBmcSetLiteral( p, pObj, iFrame, iLit );
     }
-    if ( Aig_ObjIsPo(pObj) )
+    if ( Aig_ObjIsCo(pObj) )
     {
         iLit = Saig_ManBmcCreateCnf_rec( p, Aig_ObjFanin0(pObj), iFrame, fAddClauses );
         if ( Aig_ObjFaninC0(pObj) )

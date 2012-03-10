@@ -49,8 +49,8 @@ Vec_Int_t * Saig_ManFindIsoPermCos( Aig_Man_t * pAig, Vec_Int_t * vPermCis )
     Vec_Int_t * vPermCos;
     Aig_Obj_t * pObj, * pFanin;
     int i, Entry, Diff;
-    assert( Vec_IntSize(vPermCis) == Aig_ManPiNum(pAig) );
-    vPermCos = Vec_IntAlloc( Aig_ManPoNum(pAig) );
+    assert( Vec_IntSize(vPermCis) == Aig_ManCiNum(pAig) );
+    vPermCos = Vec_IntAlloc( Aig_ManCoNum(pAig) );
     if ( Saig_ManPoNum(pAig) == 1 )
         Vec_IntPush( vPermCos, 0 );
     else
@@ -145,20 +145,20 @@ Aig_Man_t * Saig_ManDupIsoCanonical( Aig_Man_t * pAig, int fVerbose )
     // create PIs
     Vec_IntForEachEntry( vPerm, Entry, i )
     {
-        pObj = Aig_ManPi(pAig, Entry);
+        pObj = Aig_ManCi(pAig, Entry);
         pObj->pData = Aig_ObjCreateCi(pNew);
         Aig_ObjSetTravIdCurrent( pAig, pObj );
     }
     // traverse from the POs
     Vec_IntForEachEntry( vPermCo, Entry, i )
     {
-        pObj = Aig_ManPo(pAig, Entry);
+        pObj = Aig_ManCo(pAig, Entry);
         Saig_ManDupIsoCanonical_rec( pNew, pAig, Aig_ObjFanin0(pObj) );
     }
     // create POs
     Vec_IntForEachEntry( vPermCo, Entry, i )
     {
-        pObj = Aig_ManPo(pAig, Entry);
+        pObj = Aig_ManCo(pAig, Entry);
         Aig_ObjCreateCo( pNew, Aig_ObjChild0Copy(pObj) );
     }
     Aig_ManSetRegNum( pNew, Aig_ManRegNum(pAig) );
@@ -187,15 +187,15 @@ int Iso_ManCheckMapping( Aig_Man_t * pAig1, Aig_Man_t * pAig2, Vec_Int_t * vMap2
 {
     Aig_Obj_t * pObj, * pFanin0, * pFanin1;
     int i;
-    assert( Aig_ManPiNum(pAig1) == Aig_ManPiNum(pAig2) );
-    assert( Aig_ManPoNum(pAig1) == Aig_ManPoNum(pAig2) );
+    assert( Aig_ManCiNum(pAig1) == Aig_ManCiNum(pAig2) );
+    assert( Aig_ManCoNum(pAig1) == Aig_ManCoNum(pAig2) );
     assert( Aig_ManRegNum(pAig1) == Aig_ManRegNum(pAig2) );
     assert( Aig_ManNodeNum(pAig1) == Aig_ManNodeNum(pAig2) );
     Aig_ManCleanData( pAig1 );
     // map const and PI nodes
     Aig_ManConst1(pAig2)->pData = Aig_ManConst1(pAig1);
     Aig_ManForEachCi( pAig2, pObj, i )
-        pObj->pData = Aig_ManPi( pAig1, Vec_IntEntry(vMap2to1, i) );
+        pObj->pData = Aig_ManCi( pAig1, Vec_IntEntry(vMap2to1, i) );
     // try internal nodes
     Aig_ManForEachNode( pAig2, pObj, i )
     {
@@ -210,7 +210,7 @@ int Iso_ManCheckMapping( Aig_Man_t * pAig1, Aig_Man_t * pAig2, Vec_Int_t * vMap2
         }
     }
     // make sure the first PO points to the same node
-    if ( Aig_ManPoNum(pAig1)-Aig_ManRegNum(pAig1) == 1 && Aig_ObjChild0Copy(Aig_ManPo(pAig2, 0)) != Aig_ObjChild0(Aig_ManPo(pAig1, 0)) )
+    if ( Aig_ManCoNum(pAig1)-Aig_ManRegNum(pAig1) == 1 && Aig_ObjChild0Copy(Aig_ManCo(pAig2, 0)) != Aig_ObjChild0(Aig_ManCo(pAig1, 0)) )
     {
         if ( fVerbose )
             printf( "Structural equivalence failed at primary output 0.\n" );
@@ -244,7 +244,7 @@ int Iso_ManNegEdgeNum( Aig_Man_t * pAig )
             Counter += Aig_ObjFaninC0(pObj);
             Counter += Aig_ObjFaninC1(pObj);
         }
-        else if ( Aig_ObjIsPo(pObj) )
+        else if ( Aig_ObjIsCo(pObj) )
             Counter += Aig_ObjFaninC0(pObj);
     return (pAig->nComplEdges = Counter);
 }
@@ -265,9 +265,9 @@ Vec_Int_t * Iso_ManFindMapping( Aig_Man_t * pAig1, Aig_Man_t * pAig2, Vec_Int_t 
 {
     Vec_Int_t * vPerm1, * vPerm2, * vInvPerm2;
     int i, Entry;
-    if ( Aig_ManPiNum(pAig1) != Aig_ManPiNum(pAig2) )
+    if ( Aig_ManCiNum(pAig1) != Aig_ManCiNum(pAig2) )
         return NULL;
-    if ( Aig_ManPoNum(pAig1) != Aig_ManPoNum(pAig2) )
+    if ( Aig_ManCoNum(pAig1) != Aig_ManCoNum(pAig2) )
         return NULL;
     if ( Aig_ManRegNum(pAig1) != Aig_ManRegNum(pAig2) )
         return NULL;
@@ -286,15 +286,15 @@ Vec_Int_t * Iso_ManFindMapping( Aig_Man_t * pAig1, Aig_Man_t * pAig2, Vec_Int_t 
         printf( "AIG1:\n" );
     vPerm2 = vPerm2_ ? vPerm2_ : Saig_ManFindIsoPerm( pAig2, fVerbose );
     if ( vPerm1_ )
-        assert( Vec_IntSize(vPerm1_) == Aig_ManPiNum(pAig1) );
+        assert( Vec_IntSize(vPerm1_) == Aig_ManCiNum(pAig1) );
     if ( vPerm2_ )
-        assert( Vec_IntSize(vPerm2_) == Aig_ManPiNum(pAig2) );
+        assert( Vec_IntSize(vPerm2_) == Aig_ManCiNum(pAig2) );
     // find canonical permutation
     // vPerm1/vPerm2 give canonical order of CIs of AIG1/AIG2
     vInvPerm2 = Vec_IntInvert( vPerm2, -1 );
     Vec_IntForEachEntry( vInvPerm2, Entry, i )
     {
-        assert( Entry >= 0 && Entry < Aig_ManPiNum(pAig1) );
+        assert( Entry >= 0 && Entry < Aig_ManCiNum(pAig1) );
         Vec_IntWriteEntry( vInvPerm2, i, Vec_IntEntry(vPerm1, Entry) );
     }
     if ( vPerm1_ == NULL )
@@ -328,7 +328,7 @@ Aig_Man_t * Iso_ManFilterPos_old( Aig_Man_t * pAig, int fVerbose )
     int i, k, nPos;
 
     // derive AIG for each PO
-    nPos = Aig_ManPoNum(pAig) - Aig_ManRegNum(pAig);
+    nPos = Aig_ManCoNum(pAig) - Aig_ManRegNum(pAig);
     vParts = Vec_PtrAlloc( nPos );
     vPerms = Vec_PtrAlloc( nPos );
     for ( i = 0; i < nPos; i++ )
@@ -431,7 +431,7 @@ Aig_Man_t * Iso_ManFilterPos( Aig_Man_t * pAig, Vec_Ptr_t ** pvPosEquivs, int fV
     *pvPosEquivs = NULL;
 
     // derive AIG for each PO
-    nPos = Aig_ManPoNum(pAig) - Aig_ManRegNum(pAig);
+    nPos = Aig_ManCoNum(pAig) - Aig_ManRegNum(pAig);
     vBuffers = Vec_PtrAlloc( nPos );
     for ( i = 0; i < nPos; i++ )
     {

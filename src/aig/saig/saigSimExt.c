@@ -81,7 +81,7 @@ int Saig_ManExtendOneEval( Vec_Ptr_t * vSimInfo, Aig_Obj_t * pObj, int iFrame )
     Value0 = Saig_ManSimInfoGet( vSimInfo, Aig_ObjFanin0(pObj), iFrame );
     if ( Aig_ObjFaninC0(pObj) )
         Value0 = Saig_ManSimInfoNot( Value0 );
-    if ( Aig_ObjIsPo(pObj) )
+    if ( Aig_ObjIsCo(pObj) )
     {
         Saig_ManSimInfoSet( vSimInfo, pObj, iFrame, Value0 );
         return Value0;
@@ -119,7 +119,7 @@ int Saig_ManSimDataInit( Aig_Man_t * p, Abc_Cex_t * pCex, Vec_Ptr_t * vSimInfo, 
             Saig_ManSimInfoSet( vSimInfo, pObj, f, Abc_InfoHasBit(pCex->pData, iBit++)?SAIG_ONE:SAIG_ZER );
         if ( vRes )
         Vec_IntForEachEntry( vRes, Entry, i )
-            Saig_ManSimInfoSet( vSimInfo, Aig_ManPi(p, Entry), f, SAIG_UND );
+            Saig_ManSimInfoSet( vSimInfo, Aig_ManCi(p, Entry), f, SAIG_UND );
         Aig_ManForEachNode( p, pObj, i )
             Saig_ManExtendOneEval( vSimInfo, pObj, f );
         Aig_ManForEachCo( p, pObj, i )
@@ -130,7 +130,7 @@ int Saig_ManSimDataInit( Aig_Man_t * p, Abc_Cex_t * pCex, Vec_Ptr_t * vSimInfo, 
             Saig_ManSimInfoSet( vSimInfo, pObjLo, f+1, Saig_ManSimInfoGet(vSimInfo, pObjLi, f) );
     }
     // make sure the output of the property failed
-    pObj = Aig_ManPo( p, pCex->iPo );
+    pObj = Aig_ManCo( p, pCex->iPo );
     return Saig_ManSimInfoGet( vSimInfo, pObj, pCex->iFrame );
 }
 
@@ -148,7 +148,7 @@ int Saig_ManSimDataInit( Aig_Man_t * p, Abc_Cex_t * pCex, Vec_Ptr_t * vSimInfo, 
 int Saig_ManExtendOne( Aig_Man_t * p, Abc_Cex_t * pCex, Vec_Ptr_t * vSimInfo, 
     int iPi, int iFrame, Vec_Int_t * vUndo, Vec_Int_t * vVis, Vec_Int_t * vVis2 )
 {
-    Aig_Obj_t * pFanout, * pObj = Aig_ManPi(p, iPi);
+    Aig_Obj_t * pFanout, * pObj = Aig_ManCi(p, iPi);
     int i, k, f, iFanout = -1, Value, Value2, Entry;
     // save original value
     Value = Saig_ManSimInfoGet( vSimInfo, pObj, iFrame );
@@ -204,7 +204,7 @@ int Saig_ManExtendOne( Aig_Man_t * p, Abc_Cex_t * pCex, Vec_Ptr_t * vSimInfo,
         }
     }
     // check the output
-    pObj = Aig_ManPo( p, pCex->iPo );
+    pObj = Aig_ManCo( p, pCex->iPo );
     Value = Saig_ManSimInfoGet( vSimInfo, pObj, pCex->iFrame );
     assert( Value == SAIG_ONE || Value == SAIG_UND );
     return (int)(Value == SAIG_ONE);
@@ -525,7 +525,7 @@ Vec_Int_t * Saig_ManExtendCounterExampleTest( Aig_Man_t * p, int iFirstFlopPi, A
     if ( Saig_ManPiNum(p) != pCex->nPis )
     {
         printf( "Saig_ManExtendCounterExampleTest(): The PI count of AIG (%d) does not match that of cex (%d).\n", 
-            Aig_ManPiNum(p), pCex->nPis );
+            Aig_ManCiNum(p), pCex->nPis );
         return NULL;
     }
     Aig_ManFanoutStart( p );

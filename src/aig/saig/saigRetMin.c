@@ -69,12 +69,12 @@ Vec_Int_t * Saig_ManRetimeInitState( Aig_Man_t * p )
     if ( RetValue == l_True )
     {
         // accumulate SAT variables of the CIs
-        vCiIds = Vec_IntAlloc( Aig_ManPiNum(p) );
+        vCiIds = Vec_IntAlloc( Aig_ManCiNum(p) );
         Aig_ManForEachCi( p, pObj, i )
             Vec_IntPush( vCiIds, pCnf->pVarNums[pObj->Id] );
         // create the model
         pModel = Sat_SolverGetModel( pSat, vCiIds->pArray, vCiIds->nSize );
-        vInit = Vec_IntAllocArray( pModel, Aig_ManPiNum(p) );
+        vInit = Vec_IntAllocArray( pModel, Aig_ManCiNum(p) );
         Vec_IntFree( vCiIds );
     }
     sat_solver_delete( pSat );
@@ -376,7 +376,7 @@ Aig_Man_t * Saig_ManRetimeDupBackward( Aig_Man_t * p, Vec_Ptr_t * vCut, Vec_Int_
     pObj = Aig_ManConst1(p);
     pObj->pData = Aig_ManConst1(pNew);
     Saig_ManForEachPi( p, pObj, i )
-        pObj->pData = Aig_ManPi( pNew, i );
+        pObj->pData = Aig_ManCi( pNew, i );
     // duplicate logic below the cut
     Saig_ManForEachPo( p, pObj, i )
     {
@@ -499,10 +499,10 @@ int Saig_ManHideBadRegs( Aig_Man_t * p, Vec_Ptr_t * vBadRegs )
     Saig_ManForEachLiLo( p, pObjLi, pObjLo, i )
         pObjLi->pData = pObjLo;
     // reorder them by putting bad registers first
-    vPisNew = Vec_PtrDup( p->vPis );
-    vPosNew = Vec_PtrDup( p->vPos );
-    nTruePi = Aig_ManPiNum(p) - Aig_ManRegNum(p);
-    nTruePo = Aig_ManPoNum(p) - Aig_ManRegNum(p);
+    vPisNew = Vec_PtrDup( p->vCis );
+    vPosNew = Vec_PtrDup( p->vCos );
+    nTruePi = Aig_ManCiNum(p) - Aig_ManRegNum(p);
+    nTruePo = Aig_ManCoNum(p) - Aig_ManRegNum(p);
     assert( nTruePi == p->nTruePis );
     assert( nTruePo == p->nTruePos );
     Vec_PtrForEachEntry( Aig_Obj_t *, vBadRegs, pObjLi, i )
@@ -522,11 +522,11 @@ int Saig_ManHideBadRegs( Aig_Man_t * p, Vec_Ptr_t * vBadRegs )
         Vec_PtrWriteEntry( vPosNew, nTruePo++, pObjLi );
     }
     // check the sizes
-    assert( nTruePi == Aig_ManPiNum(p) );
-    assert( nTruePo == Aig_ManPoNum(p) );
+    assert( nTruePi == Aig_ManCiNum(p) );
+    assert( nTruePo == Aig_ManCoNum(p) );
     // transfer the arrays
-    Vec_PtrFree( p->vPis ); p->vPis = vPisNew;
-    Vec_PtrFree( p->vPos ); p->vPos = vPosNew;
+    Vec_PtrFree( p->vCis ); p->vCis = vPisNew;
+    Vec_PtrFree( p->vCos ); p->vCos = vPosNew;
     // update the PIs
     nBadRegs = Vec_PtrSize(vBadRegs);
     p->nRegs -= nBadRegs;
@@ -604,7 +604,7 @@ Aig_Man_t * Saig_ManRetimeMinAreaBackward( Aig_Man_t * pNew, int fVerbose )
             printf( "Excluding register %d.\n", iBadReg ); 
         // prepare to remove this output
         vBadRegs = Vec_PtrAlloc( 1 );
-        Vec_PtrPush( vBadRegs, Aig_ManPo( pNew, Saig_ManPoNum(pNew) + iBadReg ) );
+        Vec_PtrPush( vBadRegs, Aig_ManCo( pNew, Saig_ManPoNum(pNew) + iBadReg ) );
     }
     return NULL;
 }

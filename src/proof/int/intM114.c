@@ -61,10 +61,10 @@ sat_solver * Inter_ManDeriveSatSolver(
     assert( Aig_ManRegNum(pInter) == 0 );
     assert( Aig_ManRegNum(pAig) > 0 );
     assert( Aig_ManRegNum(pFrames) == 0 );
-    assert( Aig_ManPoNum(pInter) == 1 );
-    assert( Aig_ManPoNum(pFrames) == fUseBackward? Saig_ManRegNum(pAig) : 1 );
-    assert( fUseBackward || Aig_ManPiNum(pInter) == Aig_ManRegNum(pAig) );
-//    assert( (Aig_ManPiNum(pFrames) - Aig_ManRegNum(pAig)) % Saig_ManPiNum(pAig) == 0 );
+    assert( Aig_ManCoNum(pInter) == 1 );
+    assert( Aig_ManCoNum(pFrames) == fUseBackward? Saig_ManRegNum(pAig) : 1 );
+    assert( fUseBackward || Aig_ManCiNum(pInter) == Aig_ManRegNum(pAig) );
+//    assert( (Aig_ManCiNum(pFrames) - Aig_ManRegNum(pAig)) % Saig_ManPiNum(pAig) == 0 );
 
     // prepare CNFs
     Cnf_DataLift( pCnfAig,   pCnfFrames->nVars );
@@ -93,12 +93,12 @@ sat_solver * Inter_ManDeriveSatSolver(
     {
         Saig_ManForEachLi( pAig, pObj2, i )
         {
-            if ( Saig_ManRegNum(pAig) == Aig_ManPiNum(pInter) )
-                pObj = Aig_ManPi( pInter, i );
+            if ( Saig_ManRegNum(pAig) == Aig_ManCiNum(pInter) )
+                pObj = Aig_ManCi( pInter, i );
             else
             {
-                assert( Aig_ManPiNum(pAig) == Aig_ManPiNum(pInter) );
-                pObj = Aig_ManPi( pInter, Aig_ManPiNum(pAig)-Saig_ManRegNum(pAig) + i );
+                assert( Aig_ManCiNum(pAig) == Aig_ManCiNum(pInter) );
+                pObj = Aig_ManCi( pInter, Aig_ManCiNum(pAig)-Saig_ManRegNum(pAig) + i );
             }
 
             Lits[0] = toLitCond( pCnfInter->pVarNums[pObj->Id], 0 );

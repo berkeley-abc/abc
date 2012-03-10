@@ -183,11 +183,11 @@ int Abs_VfaManCreateFrame_rec( Abs_VfaMan_t * p, Aig_Obj_t * pObj, int f )
     if ( Aig_ObjIsConst1(pObj) )
         return -1;
     SatVar = Abs_VfaManAddVar( p, pObj, f, &fNew );
-    if ( (SatVar > 0 && !fNew) || Saig_ObjIsPi(p->pAig, pObj) || (Aig_ObjIsPi(pObj) && f==0) )
+    if ( (SatVar > 0 && !fNew) || Saig_ObjIsPi(p->pAig, pObj) || (Aig_ObjIsCi(pObj) && f==0) )
         return SatVar;
-    if ( Aig_ObjIsPo(pObj) )
+    if ( Aig_ObjIsCo(pObj) )
         return Abs_VfaManCreateFrame_rec( p, Aig_ObjFanin0(pObj), f );
-    if ( Aig_ObjIsPi(pObj) )
+    if ( Aig_ObjIsCi(pObj) )
         return Abs_VfaManCreateFrame_rec( p, Saig_ObjLoToLi(p->pAig, pObj), f-1 );
     assert( Aig_ObjIsAnd(pObj) );
     Abs_VfaManCreateFrame_rec( p, Aig_ObjFanin0(pObj), f );

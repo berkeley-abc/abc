@@ -139,7 +139,7 @@ clk2 = clock();
             p->pInter = Inter_ManStartOneOutput( pAig, 1 );
         else
             p->pInter = Inter_ManStartInitState( Aig_ManRegNum(pAig) );
-        assert( Aig_ManPoNum(p->pInter) == 1 );
+        assert( Aig_ManCoNum(p->pInter) == 1 );
 clk = clock();
         p->pCnfInter = Cnf_Derive( p->pInter, 0 );  
 p->timeCnf += clock() - clk;    
@@ -157,7 +157,7 @@ p->timeRwr += clock() - clk;
         // can also do SAT sweeping on the timeframes...
 clk = clock();
         if ( pPars->fUseBackward )
-            p->pCnfFrames = Cnf_Derive( p->pFrames, Aig_ManPoNum(p->pFrames) );  
+            p->pCnfFrames = Cnf_Derive( p->pFrames, Aig_ManCoNum(p->pFrames) );  
         else
 //            p->pCnfFrames = Cnf_Derive( p->pFrames, 0 );  
             p->pCnfFrames = Cnf_DeriveSimple( p->pFrames, 0 );  
@@ -285,7 +285,7 @@ clk = clock();
 p->timeRwr += clock() - clk;
 
             // check if interpolant is trivial
-            if ( p->pInterNew == NULL || Aig_ObjChild0(Aig_ManPo(p->pInterNew,0)) == Aig_ManConst0(p->pInterNew) )
+            if ( p->pInterNew == NULL || Aig_ObjChild0(Aig_ManCo(p->pInterNew,0)) == Aig_ManConst0(p->pInterNew) )
             { 
 //                printf( "interpolant is constant 0\n" );
                 if ( pPars->fVerbose )
@@ -300,7 +300,7 @@ p->timeRwr += clock() - clk;
 clk = clock();
             if ( pPars->fCheckKstep ) // k-step unique-state induction
             {
-                if ( Aig_ManPiNum(p->pInterNew) == Aig_ManPiNum(p->pInter) )
+                if ( Aig_ManCiNum(p->pInterNew) == Aig_ManCiNum(p->pInter) )
                 {
                     if ( pPars->fTransLoop || pPars->fUseBackward || pPars->nFramesK > 1 )
                     {
@@ -326,7 +326,7 @@ timeTemp = clock() - clk2;
             }
             else // combinational containment
             {
-                if ( Aig_ManPiNum(p->pInterNew) == Aig_ManPiNum(p->pInter) )
+                if ( Aig_ManCiNum(p->pInterNew) == Aig_ManCiNum(p->pInter) )
                     Status = Inter_ManCheckContainment( p->pInterNew, p->pInter );
                 else
                     Status = 0;

@@ -105,7 +105,7 @@ int Ssw_ManUniqueOne( Ssw_Man_t * p, Aig_Obj_t * pRepr, Aig_Obj_t * pObj, int fV
     k = 0;
     Vec_PtrForEachEntry( Aig_Obj_t *, p->vCommon, pTemp, i )
     {
-        assert( Aig_ObjIsPi(pTemp) );
+        assert( Aig_ObjIsCi(pTemp) );
         if ( !Saig_ObjIsLo(p->pAig, pTemp) )
             continue;
         assert( Aig_ObjPioNum(pTemp) > 0 );

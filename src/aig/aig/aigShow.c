@@ -256,7 +256,7 @@ void Aig_WriteDotAig( Aig_Man_t * pMan, char * pFileName, int fHaig, Vec_Ptr_t *
     // generate edges
     Aig_ManForEachObj( pMan, pNode, i )
     {
-        if ( !Aig_ObjIsNode(pNode) && !Aig_ObjIsPo(pNode) && !Aig_ObjIsBuf(pNode) )
+        if ( !Aig_ObjIsNode(pNode) && !Aig_ObjIsCo(pNode) && !Aig_ObjIsBuf(pNode) )
             continue;
         // generate the edge from this node to the next
         fprintf( pFile, "Node%d",  pNode->Id );

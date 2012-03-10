@@ -209,7 +209,7 @@ Vec_Int_t * Ioa_WriteAigerLiterals( Aig_Man_t * pMan )
     Vec_Int_t * vLits;
     Aig_Obj_t * pObj, * pDriver;
     int i;
-    vLits = Vec_IntAlloc( Aig_ManPoNum(pMan) );
+    vLits = Vec_IntAlloc( Aig_ManCoNum(pMan) );
     Aig_ManForEachLiSeq( pMan, pObj, i )
     {
         pDriver = Aig_ObjFanin0(pObj);
@@ -300,21 +300,21 @@ Vec_Str_t * Ioa_WriteAigerIntoMemoryStr( Aig_Man_t * pMan )
 /*
     fprintf( pFile, "aig%s %u %u %u %u %u\n", 
         fCompact? "2" : "",
-        Aig_ManPiNum(pMan) + Aig_ManNodeNum(pMan), 
-        Aig_ManPiNum(pMan) - Aig_ManRegNum(pMan),
+        Aig_ManCiNum(pMan) + Aig_ManNodeNum(pMan), 
+        Aig_ManCiNum(pMan) - Aig_ManRegNum(pMan),
         Aig_ManRegNum(pMan),
-        Aig_ManPoNum(pMan) - Aig_ManRegNum(pMan),
+        Aig_ManCoNum(pMan) - Aig_ManRegNum(pMan),
         Aig_ManNodeNum(pMan) );
 */
     vBuffer = Vec_StrAlloc( 3*Aig_ManObjNum(pMan) );
     Vec_StrPrintStr( vBuffer, "aig " );
-    Vec_StrPrintNum( vBuffer, Aig_ManPiNum(pMan) + Aig_ManNodeNum(pMan) );
+    Vec_StrPrintNum( vBuffer, Aig_ManCiNum(pMan) + Aig_ManNodeNum(pMan) );
     Vec_StrPrintStr( vBuffer, " " );
-    Vec_StrPrintNum( vBuffer, Aig_ManPiNum(pMan) - Aig_ManRegNum(pMan) );
+    Vec_StrPrintNum( vBuffer, Aig_ManCiNum(pMan) - Aig_ManRegNum(pMan) );
     Vec_StrPrintStr( vBuffer, " " );
     Vec_StrPrintNum( vBuffer, Aig_ManRegNum(pMan) );
     Vec_StrPrintStr( vBuffer, " " );
-    Vec_StrPrintNum( vBuffer, Aig_ManPoNum(pMan) - Aig_ManRegNum(pMan) );
+    Vec_StrPrintNum( vBuffer, Aig_ManCoNum(pMan) - Aig_ManRegNum(pMan) );
     Vec_StrPrintStr( vBuffer, " " );
     Vec_StrPrintNum( vBuffer, Aig_ManNodeNum(pMan) );
     Vec_StrPrintStr( vBuffer, "\n" );
@@ -407,7 +407,7 @@ void Ioa_WriteAigerBufferTest( Aig_Man_t * pMan, char * pFileName, int fWriteSym
     FILE * pFile;
     char * pBuffer;
     int nSize;
-    if ( Aig_ManPoNum(pMan) == 0 )
+    if ( Aig_ManCoNum(pMan) == 0 )
     {
         printf( "AIG cannot be written because it has no POs.\n" );
         return;
@@ -452,7 +452,7 @@ void Ioa_WriteAiger( Aig_Man_t * pMan, char * pFileName, int fWriteSymbols, int 
     unsigned char * pBuffer;
     unsigned uLit0, uLit1, uLit;
 
-    if ( Aig_ManPoNum(pMan) == 0 )
+    if ( Aig_ManCoNum(pMan) == 0 )
     {
         printf( "AIG cannot be written because it has no POs.\n" );
         return;
@@ -485,14 +485,14 @@ void Ioa_WriteAiger( Aig_Man_t * pMan, char * pFileName, int fWriteSymbols, int 
     // write the header "M I L O A" where M = I + L + A
     fprintf( pFile, "aig%s %u %u %u %u %u", 
         fCompact? "2" : "",
-        Aig_ManPiNum(pMan) + Aig_ManNodeNum(pMan), 
-        Aig_ManPiNum(pMan) - Aig_ManRegNum(pMan),
+        Aig_ManCiNum(pMan) + Aig_ManNodeNum(pMan), 
+        Aig_ManCiNum(pMan) - Aig_ManRegNum(pMan),
         Aig_ManRegNum(pMan),
-        Aig_ManConstrNum(pMan) ? 0 : Aig_ManPoNum(pMan) - Aig_ManRegNum(pMan),
+        Aig_ManConstrNum(pMan) ? 0 : Aig_ManCoNum(pMan) - Aig_ManRegNum(pMan),
         Aig_ManNodeNum(pMan) );
     // write the extended header "B C J F"
     if ( Aig_ManConstrNum(pMan) )
-        fprintf( pFile, " %u %u", Aig_ManPoNum(pMan) - Aig_ManRegNum(pMan) - Aig_ManConstrNum(pMan), Aig_ManConstrNum(pMan) );
+        fprintf( pFile, " %u %u", Aig_ManCoNum(pMan) - Aig_ManRegNum(pMan) - Aig_ManConstrNum(pMan), Aig_ManConstrNum(pMan) );
     fprintf( pFile, "\n" ); 
 
     // if the driver node is a constant, we need to complement the literal below

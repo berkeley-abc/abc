@@ -49,7 +49,7 @@ void Saig_ManSupport_rec( Aig_Man_t * p, Aig_Obj_t * pObj, Vec_Ptr_t * vSupp )
     Aig_ObjSetTravIdCurrent(p, pObj);
     if ( Aig_ObjIsConst1(pObj) )
         return;
-    if ( Aig_ObjIsPi(pObj) )
+    if ( Aig_ObjIsCi(pObj) )
     {
         if ( Saig_ObjIsLo(p,pObj) )
         {
@@ -83,7 +83,7 @@ Vec_Ptr_t * Saig_ManSupport( Aig_Man_t * p, Vec_Ptr_t * vNodes )
     Aig_ManIncrementTravId( p );
     Vec_PtrForEachEntry( Aig_Obj_t *, vNodes, pObj, i )
     {
-        assert( Aig_ObjIsPo(pObj) );
+        assert( Aig_ObjIsCo(pObj) );
         Saig_ManSupport_rec( p, Aig_ObjFanin0(pObj), vSupp );
     }
     return vSupp;

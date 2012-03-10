@@ -61,16 +61,16 @@ void Fra_FraigInductionRewrite( Fra_Man_t * p )
     // transfer PI/register pointers
     assert( p->pManFraig->nRegs == pTemp->nRegs );
     assert( p->pManFraig->nAsserts == pTemp->nAsserts );
-    nTruePis = Aig_ManPiNum(p->pManAig) - Aig_ManRegNum(p->pManAig);
+    nTruePis = Aig_ManCiNum(p->pManAig) - Aig_ManRegNum(p->pManAig);
     memset( p->pMemFraig, 0, sizeof(Aig_Obj_t *) * p->nSizeAlloc * p->nFramesAll );
     Fra_ObjSetFraig( Aig_ManConst1(p->pManAig), p->pPars->nFramesK, Aig_ManConst1(pTemp) );
     Aig_ManForEachPiSeq( p->pManAig, pObj, i )
-        Fra_ObjSetFraig( pObj, p->pPars->nFramesK, Aig_ManPi(pTemp,nTruePis*p->pPars->nFramesK+i) );
+        Fra_ObjSetFraig( pObj, p->pPars->nFramesK, Aig_ManCi(pTemp,nTruePis*p->pPars->nFramesK+i) );
     k = 0;
-    assert( Aig_ManRegNum(p->pManAig) == Aig_ManPoNum(pTemp) - pTemp->nAsserts );
+    assert( Aig_ManRegNum(p->pManAig) == Aig_ManCoNum(pTemp) - pTemp->nAsserts );
     Aig_ManForEachLoSeq( p->pManAig, pObj, i )
     {
-        pObjPo = Aig_ManPo(pTemp, pTemp->nAsserts + k++);
+        pObjPo = Aig_ManCo(pTemp, pTemp->nAsserts + k++);
         Fra_ObjSetFraig( pObj, p->pPars->nFramesK, Aig_ObjChild0(pObjPo) );
     }
     // exchange
@@ -133,7 +133,7 @@ Aig_Man_t * Fra_FramesWithClasses( Fra_Man_t * p )
     int i, k, f;
     assert( p->pManFraig == NULL );
     assert( Aig_ManRegNum(p->pManAig) > 0 );
-    assert( Aig_ManRegNum(p->pManAig) < Aig_ManPiNum(p->pManAig) );
+    assert( Aig_ManRegNum(p->pManAig) < Aig_ManCiNum(p->pManAig) );
 
     // start the fraig package
     pManFraig = Aig_ManStart( Aig_ManObjNumMax(p->pManAig) * p->nFramesAll );
@@ -170,7 +170,7 @@ Aig_Man_t * Fra_FramesWithClasses( Fra_Man_t * p )
     }
 //    pManFraig->fAddStrash = 0;
     // mark the asserts
-    pManFraig->nAsserts = Aig_ManPoNum(pManFraig);
+    pManFraig->nAsserts = Aig_ManCoNum(pManFraig);
     // add the POs for the latch outputs of the last frame
     Aig_ManForEachLoSeq( p->pManAig, pObj, i )
         Aig_ObjCreateCo( pManFraig, Fra_ObjFraig(pObj,p->nFramesAll-1) );
@@ -291,7 +291,7 @@ Aig_Man_t * Fra_FraigInductionPart( Aig_Man_t * pAig, Fra_Ssw_t * pPars )
             pTemp = Aig_ManRegCreatePart( pAig, vPart, &nCountPis, &nCountRegs, NULL );
             Ioa_WriteAiger( pTemp, Buffer, 0, 0 );
             printf( "part%03d.aig : Reg = %4d. PI = %4d. (True = %4d. Regs = %4d.) And = %5d.\n", 
-                i, Vec_IntSize(vPart), Aig_ManPiNum(pTemp)-Vec_IntSize(vPart), nCountPis, nCountRegs, Aig_ManNodeNum(pTemp) );
+                i, Vec_IntSize(vPart), Aig_ManCiNum(pTemp)-Vec_IntSize(vPart), nCountPis, nCountRegs, Aig_ManNodeNum(pTemp) );
             Aig_ManStop( pTemp );
         }
     }
@@ -309,7 +309,7 @@ Aig_Man_t * Fra_FraigInductionPart( Aig_Man_t * pAig, Fra_Ssw_t * pPars )
         nClasses = Aig_TransferMappedClasses( pAig, pTemp, pMapBack );
         if ( fVerbose )
             printf( "%3d : Reg = %4d. PI = %4d. (True = %4d. Regs = %4d.) And = %5d. It = %3d. Cl = %5d.\n", 
-                i, Vec_IntSize(vPart), Aig_ManPiNum(pTemp)-Vec_IntSize(vPart), nCountPis, nCountRegs, Aig_ManNodeNum(pTemp), pPars->nIters, nClasses );
+                i, Vec_IntSize(vPart), Aig_ManCiNum(pTemp)-Vec_IntSize(vPart), nCountPis, nCountRegs, Aig_ManNodeNum(pTemp), pPars->nIters, nClasses );
         Aig_ManStop( pNew );
         Aig_ManStop( pTemp );
         ABC_FREE( pMapBack );
@@ -637,8 +637,8 @@ p->timeTotal = clock() - clk;
 finish:
     Fra_ManStop( p );
     // check the output
-//    if ( Aig_ManPoNum(pManAigNew) - Aig_ManRegNum(pManAigNew) == 1 )
-//        if ( Aig_ObjChild0( Aig_ManPo(pManAigNew,0) ) == Aig_ManConst0(pManAigNew) )
+//    if ( Aig_ManCoNum(pManAigNew) - Aig_ManRegNum(pManAigNew) == 1 )
+//        if ( Aig_ObjChild0( Aig_ManCo(pManAigNew,0) ) == Aig_ManConst0(pManAigNew) )
 //            printf( "Proved output constant 0.\n" );
     pParams->nIters = nIter;
     return pManAigNew;

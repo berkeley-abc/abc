@@ -74,7 +74,7 @@ ABC_PRT( "Supports", clock() - clk );
 
     // create reverse supports
 clk = clock();
-    vSuppsIn = Vec_VecStart( Aig_ManPiNum(p) );
+    vSuppsIn = Vec_VecStart( Aig_ManCiNum(p) );
     Aig_ManForEachCo( p, pObj, i )
     {
         vSup = Vec_VecEntryInt( vSupps, i );
@@ -86,10 +86,10 @@ ABC_PRT( "Inverse ", clock() - clk );
 clk = clock();
     // compute extended supports
     Largest = 0;
-    vSuppsNew = Vec_PtrAlloc( Aig_ManPoNum(p) );
-    vOverNew  = Vec_IntAlloc( Aig_ManPoNum(p) );
-    vQuantNew = Vec_IntAlloc( Aig_ManPoNum(p) );
-//    pProgress = Bar_ProgressStart( stdout, Aig_ManPoNum(p) );
+    vSuppsNew = Vec_PtrAlloc( Aig_ManCoNum(p) );
+    vOverNew  = Vec_IntAlloc( Aig_ManCoNum(p) );
+    vQuantNew = Vec_IntAlloc( Aig_ManCoNum(p) );
+//    pProgress = Bar_ProgressStart( stdout, Aig_ManCoNum(p) );
     Aig_ManForEachCo( p, pObj, i )
     {
 //        Bar_ProgressUpdate( pProgress, i, NULL );
@@ -160,9 +160,9 @@ ABC_PRT( "Scanning", clock() - clk );
 
     // print cumulative statistics
     printf( "PIs = %6d. POs = %6d. Lim = %3d.   AveS = %3d. SN = %3d. R = %4.2f Max = %5d.\n",
-        Aig_ManPiNum(p), Aig_ManPoNum(p), nComLim,
-        nTotalSupp/Aig_ManPoNum(p), nTotalSupp2/Aig_ManPoNum(p),
-        Ratio/Aig_ManPoNum(p), Largest );
+        Aig_ManCiNum(p), Aig_ManCoNum(p), nComLim,
+        nTotalSupp/Aig_ManCoNum(p), nTotalSupp2/Aig_ManCoNum(p),
+        Ratio/Aig_ManCoNum(p), Largest );
 
     Vec_VecFree( vSupps );
     Vec_VecFree( vSuppsIn );
@@ -208,7 +208,7 @@ ABC_PRT( "Supports", clock() - clk );
 
     // create reverse supports
 clk = clock();
-    vSuppsIn = Vec_VecStart( Aig_ManPiNum(p) );
+    vSuppsIn = Vec_VecStart( Aig_ManCiNum(p) );
     Aig_ManForEachCo( p, pObj, i )
     {
         if ( i == p->nAsserts )
@@ -221,13 +221,13 @@ ABC_PRT( "Inverse ", clock() - clk );
 
     // create affective supports
 clk = clock();
-    pSupp = ABC_ALLOC( char, Aig_ManPiNum(p) );
+    pSupp = ABC_ALLOC( char, Aig_ManCiNum(p) );
     Aig_ManForEachCo( p, pObj, i )
     {
         if ( i % 50 != 0 )
             continue;
         vSup = Vec_VecEntryInt( vSupps, i );
-        memset( pSupp, 0, sizeof(char) * Aig_ManPiNum(p) );
+        memset( pSupp, 0, sizeof(char) * Aig_ManCiNum(p) );
         // go through each input of this output
         Vec_IntForEachEntry( vSup, Entry, k )
         {
@@ -246,7 +246,7 @@ clk = clock();
         }
         // count the entries
         Counter = 0;
-        for ( m = 0; m < Aig_ManPiNum(p); m++ )
+        for ( m = 0; m < Aig_ManCiNum(p); m++ )
             Counter += pSupp[m];
         printf( "%d(%d) ", Vec_IntSize(vSup), Counter );
     }

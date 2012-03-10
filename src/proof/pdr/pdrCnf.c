@@ -114,7 +114,7 @@ int Pdr_ObjSatVar2( Pdr_Man_t * p, int k, Aig_Obj_t * pObj )
     if ( nVarCount == Vec_IntSize(vVar2Ids) )
         return iVarThis;
     assert( nVarCount + 1 == Vec_IntSize(vVar2Ids) );
-    if ( Aig_ObjIsPi(pObj) )
+    if ( Aig_ObjIsCi(pObj) )
         return iVarThis;
     nClauses = p->pCnf2->pObj2Count[Aig_ObjId(pObj)];
     iFirstClause = p->pCnf2->pObj2Clause[Aig_ObjId(pObj)];
@@ -269,8 +269,8 @@ static inline sat_solver * Pdr_ManNewSolver1( sat_solver * pSat, Pdr_Man_t * p, 
     if ( p->pCnf1 == NULL )
     {
         int nRegs = p->pAig->nRegs;
-        p->pAig->nRegs = Aig_ManPoNum(p->pAig);
-        p->pCnf1 = Cnf_Derive( p->pAig, Aig_ManPoNum(p->pAig) );
+        p->pAig->nRegs = Aig_ManCoNum(p->pAig);
+        p->pCnf1 = Cnf_Derive( p->pAig, Aig_ManCoNum(p->pAig) );
         p->pAig->nRegs = nRegs;
         assert( p->vVar2Reg == NULL );
         p->vVar2Reg = Vec_IntStartFull( p->pCnf1->nVars );

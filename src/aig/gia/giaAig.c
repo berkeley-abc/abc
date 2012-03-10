@@ -136,9 +136,9 @@ Gia_Man_t * Gia_ManFromAigSimple( Aig_Man_t * p )
     {
         if ( Aig_ObjIsAnd(pObj) )
             pObj->iData = Gia_ManAppendAnd( pNew, Gia_ObjChild0Copy(pObj), Gia_ObjChild1Copy(pObj) );
-        else if ( Aig_ObjIsPi(pObj) )
+        else if ( Aig_ObjIsCi(pObj) )
             pObj->iData = Gia_ManAppendCi( pNew );
-        else if ( Aig_ObjIsPo(pObj) )
+        else if ( Aig_ObjIsCo(pObj) )
             pObj->iData = Gia_ManAppendCo( pNew, Gia_ObjChild0Copy(pObj) );
         else if ( Aig_ObjIsConst1(pObj) )
             pObj->iData = 1;
@@ -463,7 +463,7 @@ void Gia_ManReprFromAigRepr( Aig_Man_t * pAig, Gia_Man_t * pGia )
     int i;
     assert( pAig->pReprs != NULL );
     assert( pGia->pReprs == NULL );
-    assert( Gia_ManObjNum(pGia) - Gia_ManCoNum(pGia) == Aig_ManObjNum(pAig) - Aig_ManPoNum(pAig) );
+    assert( Gia_ManObjNum(pGia) - Gia_ManCoNum(pGia) == Aig_ManObjNum(pAig) - Aig_ManCoNum(pAig) );
     pGia->pReprs = ABC_CALLOC( Gia_Rpr_t, Gia_ManObjNum(pGia) );
     for ( i = 0; i < Gia_ManObjNum(pGia); i++ )
         Gia_ObjSetRepr( pGia, i, GIA_VOID );
@@ -478,7 +478,7 @@ void Gia_ManReprFromAigRepr( Aig_Man_t * pAig, Gia_Man_t * pGia )
     }
     Aig_ManForEachObj( pAig, pObjAig, i )
     {
-        if ( Aig_ObjIsPo(pObjAig) )
+        if ( Aig_ObjIsCo(pObjAig) )
             continue;
         if ( pAig->pReprs[i] == NULL )
             continue;

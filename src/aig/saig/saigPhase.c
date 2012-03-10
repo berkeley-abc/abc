@@ -810,8 +810,8 @@ Aig_Man_t * Saig_ManPerformAbstraction( Saig_Tsim_t * pTsi, int nFrames, int fVe
         }
     }
     pFrames->nRegs = pAig->nRegs;
-    pFrames->nTruePis = Aig_ManPiNum(pFrames) - Aig_ManRegNum(pFrames); 
-    pFrames->nTruePos = Aig_ManPoNum(pFrames) - Aig_ManRegNum(pFrames); 
+    pFrames->nTruePis = Aig_ManCiNum(pFrames) - Aig_ManRegNum(pFrames); 
+    pFrames->nTruePos = Aig_ManCoNum(pFrames) - Aig_ManRegNum(pFrames); 
     Aig_ManForEachLiSeq( pAig, pObj, i )
     {
         pObjNew = Aig_ObjCreateCo( pFrames, Saig_ObjChild0Frames(pObjMap,nFrames,pObj,nFrames-1) );
@@ -820,7 +820,7 @@ Aig_Man_t * Saig_ManPerformAbstraction( Saig_Tsim_t * pTsi, int nFrames, int fVe
 //Aig_ManPrintStats( pFrames );
     Aig_ManSeqCleanup( pFrames );
 //Aig_ManPrintStats( pFrames );
-//    Aig_ManPiCleanup( pFrames );
+//    Aig_ManCiCleanup( pFrames );
 //Aig_ManPrintStats( pFrames );
     ABC_FREE( pObjMap );
     return pFrames;
@@ -1021,7 +1021,7 @@ Aig_Man_t * Saig_ManPhaseAbstractAuto( Aig_Man_t * p, int fVerbose )
     Saig_TsiStop( pTsi );
     if ( pNew == NULL )
         pNew = Aig_ManDupSimple( p );
-    if ( Aig_ManPiNum(pNew) == Aig_ManRegNum(pNew) )
+    if ( Aig_ManCiNum(pNew) == Aig_ManRegNum(pNew) )
     {
         Aig_ManStop( pNew);
         pNew = Aig_ManDupSimple( p );

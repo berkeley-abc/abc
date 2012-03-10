@@ -99,7 +99,7 @@ Aig_Man_t * Inter_ManFramesInter( Aig_Man_t * pAig, int nFrames, int fAddRegOuts
     // create the only PO of the manager
     else
     {
-        pObj = Aig_ManPo( pAig, 0 );
+        pObj = Aig_ManCo( pAig, 0 );
         Aig_ObjCreateCo( pFrames, Aig_ObjChild0Copy(pObj) );
     }
     Aig_ManCleanup( pFrames );

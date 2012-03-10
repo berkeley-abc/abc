@@ -161,7 +161,7 @@ void Inter_ManAppendCone( Aig_Man_t * pOld, Aig_Man_t * pNew, Aig_Obj_t ** ppNew
 {
     Aig_Obj_t * pObj;
     int i;
-    assert( Aig_ManPoNum(pOld) == 1 );
+    assert( Aig_ManCoNum(pOld) == 1 );
     // create the PIs
     Aig_ManCleanData( pOld );
     Aig_ManConst1(pOld)->pData = Aig_ManConst1(pNew);
@@ -171,7 +171,7 @@ void Inter_ManAppendCone( Aig_Man_t * pOld, Aig_Man_t * pNew, Aig_Obj_t ** ppNew
     Aig_ManForEachNode( pOld, pObj, i )
         pObj->pData = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
     // add one PO to new
-    pObj = Aig_ManPo( pOld, 0 );
+    pObj = Aig_ManCo( pOld, 0 );
     Aig_ObjCreateCo( pNew, Aig_NotCond( Aig_ObjChild0Copy(pObj), fCompl ) );
 }
 
@@ -283,7 +283,7 @@ int Inter_ManCheckUniqueness( Aig_Man_t * p, sat_solver * pSat, Cnf_Dat_t * pCnf
         return 1;
 //    assert( Saig_ManPoNum(p) == 1 );
     assert( Aig_ManRegNum(p) > 0 );
-    assert( Aig_ManRegNum(p) < Aig_ManPiNum(p) );
+    assert( Aig_ManRegNum(p) < Aig_ManCiNum(p) );
 
     // get the counter-example
     vPis = Vec_IntAlloc( 100 );
@@ -303,12 +303,12 @@ int Inter_ManCheckUniqueness( Aig_Man_t * p, sat_solver * pSat, Cnf_Dat_t * pCnf
     for ( i = 0; i < nFrames; i++ )
         Aig_ManForEachPiSeq( p, pObj, k )
             Fra_SmlAssignConst( pSml, pObj, pCounterEx[iBit++], i );
-    assert( iBit == Aig_ManPiNum(pCnf->pMan) );
+    assert( iBit == Aig_ManCiNum(pCnf->pMan) );
     // run simulation
     Fra_SmlSimulateOne( pSml );
 
     // check if the given output has failed
-//    RetValue = !Fra_SmlNodeIsZero( pSml, Aig_ManPo(pAig, 0) );
+//    RetValue = !Fra_SmlNodeIsZero( pSml, Aig_ManCo(pAig, 0) );
 //    assert( RetValue );
 
     // check values at the internal nodes

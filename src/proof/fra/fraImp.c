@@ -170,12 +170,12 @@ Vec_Ptr_t * Fra_SmlSortUsingOnes( Fra_Sml_t * p, int fLatchCorr )
         // skip non-PI and non-internal nodes
         if ( fLatchCorr )
         {
-            if ( !Aig_ObjIsPi(pObj) )
+            if ( !Aig_ObjIsCi(pObj) )
                 continue;
         }
         else
         {
-            if ( !Aig_ObjIsNode(pObj) && !Aig_ObjIsPi(pObj) )
+            if ( !Aig_ObjIsNode(pObj) && !Aig_ObjIsCi(pObj) )
                 continue;
         }
         // skip nodes participating in the classes
@@ -203,12 +203,12 @@ Vec_Ptr_t * Fra_SmlSortUsingOnes( Fra_Sml_t * p, int fLatchCorr )
         // skip non-PI and non-internal nodes
         if ( fLatchCorr )
         {
-            if ( !Aig_ObjIsPi(pObj) )
+            if ( !Aig_ObjIsCi(pObj) )
                 continue;
         }
         else
         {
-            if ( !Aig_ObjIsNode(pObj) && !Aig_ObjIsPi(pObj) )
+            if ( !Aig_ObjIsNode(pObj) && !Aig_ObjIsCi(pObj) )
                 continue;
         }
         // skip nodes participating in the classes
@@ -708,7 +708,7 @@ void Fra_ImpRecordInManager( Fra_Man_t * p, Aig_Man_t * pNew )
     if ( p->pCla->vImps == NULL || Vec_IntSize(p->pCla->vImps) == 0 )
         return;
     // go through the implication
-    nPosOld = Aig_ManPoNum(pNew);
+    nPosOld = Aig_ManCoNum(pNew);
     Vec_IntForEachEntry( p->pCla->vImps, Imp, i )
     {
         pLeft = Aig_ManObj( p->pManAig, Fra_ImpLeft(Imp) );
@@ -719,7 +719,7 @@ void Fra_ImpRecordInManager( Fra_Man_t * p, Aig_Man_t * pNew )
             Aig_NotCond((Aig_Obj_t *)pRight->pData, pRight->fPhase) ); 
         Aig_ObjCreateCo( pNew, pMiter );
     }
-    pNew->nAsserts = Aig_ManPoNum(pNew) - nPosOld;
+    pNew->nAsserts = Aig_ManCoNum(pNew) - nPosOld;
 }
 
 ////////////////////////////////////////////////////////////////////////

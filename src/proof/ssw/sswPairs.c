@@ -64,7 +64,7 @@ int Ssw_MiterStatus( Aig_Man_t * p, int fVerbose )
             continue;
         }
         // check if the output is a primary input
-        if ( p->nRegs == 0 && Aig_ObjIsPi(Aig_Regular(pChild)) )
+        if ( p->nRegs == 0 && Aig_ObjIsCi(Aig_Regular(pChild)) )
         {
             CountNonConst0++;
             continue;

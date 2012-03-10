@@ -56,8 +56,8 @@ Aig_Man_t * Aig_ManStart( int nNodesMax )
     p->nTravIds = 1;
     p->fCatchExor = 0;
     // allocate arrays for nodes
-    p->vPis  = Vec_PtrAlloc( 100 );
-    p->vPos  = Vec_PtrAlloc( 100 );
+    p->vCis  = Vec_PtrAlloc( 100 );
+    p->vCos  = Vec_PtrAlloc( 100 );
     p->vObjs = Vec_PtrAlloc( 1000 );
     p->vBufs = Vec_PtrAlloc( 100 );
     // prepare the internal memory manager
@@ -198,8 +198,8 @@ void Aig_ManStop( Aig_Man_t * p )
         Aig_ManStop( p->pManExdc );
 //    Aig_TableProfile( p );
     Aig_MmFixedStop( p->pMemObjs, 0 );
-    Vec_PtrFreeP( &p->vPis );
-    Vec_PtrFreeP( &p->vPos );
+    Vec_PtrFreeP( &p->vCis );
+    Vec_PtrFreeP( &p->vCos );
     Vec_PtrFreeP( &p->vObjs );
     Vec_PtrFreeP( &p->vBufs );
     Vec_IntFreeP( &p->vLevelR );
@@ -287,11 +287,11 @@ int Aig_ManCleanup( Aig_Man_t * p )
 int Aig_ManAntiCleanup( Aig_Man_t * p )
 {
     Aig_Obj_t * pNode;
-    int i, nNodesOld = Aig_ManPoNum(p);
+    int i, nNodesOld = Aig_ManCoNum(p);
     Aig_ManForEachObj( p, pNode, i )
         if ( Aig_ObjIsNode(pNode) && Aig_ObjRefs(pNode) == 0 )
             Aig_ObjCreateCo( p, pNode );
-    return nNodesOld - Aig_ManPoNum(p);
+    return nNodesOld - Aig_ManCoNum(p);
 }
 
 /**Function*************************************************************
@@ -305,24 +305,24 @@ int Aig_ManAntiCleanup( Aig_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Aig_ManPiCleanup( Aig_Man_t * p )
+int Aig_ManCiCleanup( Aig_Man_t * p )
 {
     Aig_Obj_t * pObj;
-    int i, k = 0, nPisOld = Aig_ManPiNum(p);
-    Vec_PtrForEachEntry( Aig_Obj_t *, p->vPis, pObj, i )
+    int i, k = 0, nPisOld = Aig_ManCiNum(p);
+    Vec_PtrForEachEntry( Aig_Obj_t *, p->vCis, pObj, i )
     {
-        if ( i >= Aig_ManPiNum(p) - Aig_ManRegNum(p) )
-            Vec_PtrWriteEntry( p->vPis, k++, pObj );
+        if ( i >= Aig_ManCiNum(p) - Aig_ManRegNum(p) )
+            Vec_PtrWriteEntry( p->vCis, k++, pObj );
         else if ( Aig_ObjRefs(pObj) > 0 )
-            Vec_PtrWriteEntry( p->vPis, k++, pObj );
+            Vec_PtrWriteEntry( p->vCis, k++, pObj );
         else
             Vec_PtrWriteEntry( p->vObjs, pObj->Id, NULL );
     }
-    Vec_PtrShrink( p->vPis, k );
-    p->nObjs[AIG_OBJ_PI] = Vec_PtrSize( p->vPis );
+    Vec_PtrShrink( p->vCis, k );
+    p->nObjs[AIG_OBJ_CI] = Vec_PtrSize( p->vCis );
     if ( Aig_ManRegNum(p) )
-        p->nTruePis = Aig_ManPiNum(p) - Aig_ManRegNum(p);
-    return nPisOld - Aig_ManPiNum(p);
+        p->nTruePis = Aig_ManCiNum(p) - Aig_ManRegNum(p);
+    return nPisOld - Aig_ManCiNum(p);
 }
 
 /**Function*************************************************************
@@ -336,27 +336,27 @@ int Aig_ManPiCleanup( Aig_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Aig_ManPoCleanup( Aig_Man_t * p )
+int Aig_ManCoCleanup( Aig_Man_t * p )
 {
     Aig_Obj_t * pObj;
-    int i, k = 0, nPosOld = Aig_ManPoNum(p);
-    Vec_PtrForEachEntry( Aig_Obj_t *, p->vPos, pObj, i )
+    int i, k = 0, nPosOld = Aig_ManCoNum(p);
+    Vec_PtrForEachEntry( Aig_Obj_t *, p->vCos, pObj, i )
     {
-        if ( i >= Aig_ManPoNum(p) - Aig_ManRegNum(p) )
-            Vec_PtrWriteEntry( p->vPos, k++, pObj );
+        if ( i >= Aig_ManCoNum(p) - Aig_ManRegNum(p) )
+            Vec_PtrWriteEntry( p->vCos, k++, pObj );
         else if ( !Aig_ObjIsConst1(Aig_ObjFanin0(pObj)) || !Aig_ObjFaninC0(pObj) ) // non-const or const1
-            Vec_PtrWriteEntry( p->vPos, k++, pObj );
+            Vec_PtrWriteEntry( p->vCos, k++, pObj );
         else
         {
             Aig_ObjDisconnect( p, pObj );
             Vec_PtrWriteEntry( p->vObjs, pObj->Id, NULL );
         }
     }
-    Vec_PtrShrink( p->vPos, k );
-    p->nObjs[AIG_OBJ_PO] = Vec_PtrSize( p->vPos );
+    Vec_PtrShrink( p->vCos, k );
+    p->nObjs[AIG_OBJ_CO] = Vec_PtrSize( p->vCos );
     if ( Aig_ManRegNum(p) )
-        p->nTruePos = Aig_ManPoNum(p) - Aig_ManRegNum(p);
-    return nPosOld - Aig_ManPoNum(p);
+        p->nTruePos = Aig_ManCoNum(p) - Aig_ManRegNum(p);
+    return nPosOld - Aig_ManCoNum(p);
 }
 
 /**Function*************************************************************
@@ -395,8 +395,8 @@ void Aig_ManPrintStats( Aig_Man_t * p )
 {
     int nChoices = Aig_ManChoiceNum(p);
     printf( "%-15s : ",      p->pName );
-    printf( "pi = %5d  ",    Aig_ManPiNum(p)-Aig_ManRegNum(p) );
-    printf( "po = %5d  ",    Aig_ManPoNum(p)-Aig_ManRegNum(p) );
+    printf( "pi = %5d  ",    Aig_ManCiNum(p)-Aig_ManRegNum(p) );
+    printf( "po = %5d  ",    Aig_ManCoNum(p)-Aig_ManRegNum(p) );
     if ( Aig_ManRegNum(p) )
     printf( "lat = %5d  ", Aig_ManRegNum(p) );
     printf( "and = %7d  ",   Aig_ManAndNum(p) );
@@ -453,8 +453,8 @@ void Aig_ManReportImprovement( Aig_Man_t * p, Aig_Man_t * pNew )
 void Aig_ManSetRegNum( Aig_Man_t * p, int nRegs )
 {
     p->nRegs = nRegs;
-    p->nTruePis = Aig_ManPiNum(p) - nRegs;
-    p->nTruePos = Aig_ManPoNum(p) - nRegs;
+    p->nTruePis = Aig_ManCiNum(p) - nRegs;
+    p->nTruePos = Aig_ManCoNum(p) - nRegs;
     Aig_ManSetPioNumbers( p );
 }
 
@@ -471,7 +471,7 @@ void Aig_ManSetRegNum( Aig_Man_t * p, int nRegs )
 ***********************************************************************/
 void Aig_ManFlipFirstPo( Aig_Man_t * p )
 {
-    Aig_ObjChild0Flip( Aig_ManPo(p, 0) ); 
+    Aig_ObjChild0Flip( Aig_ManCo(p, 0) ); 
 }
 
 /**Function*************************************************************

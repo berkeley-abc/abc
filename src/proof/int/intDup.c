@@ -141,7 +141,7 @@ Aig_Man_t * Inter_ManStartOneOutput( Aig_Man_t * p, int fAddFirstPo )
     }
     // set registers
     pNew->nRegs    = fAddFirstPo? 0 : p->nRegs;
-    pNew->nTruePis = fAddFirstPo? Aig_ManPiNum(p) + 1 : p->nTruePis + 1;
+    pNew->nTruePis = fAddFirstPo? Aig_ManCiNum(p) + 1 : p->nTruePis + 1;
     pNew->nTruePos = fAddFirstPo + Saig_ManConstrNum(p);
     // duplicate internal nodes
     Aig_ManForEachNode( p, pObj, i )
@@ -158,7 +158,7 @@ Aig_Man_t * Inter_ManStartOneOutput( Aig_Man_t * p, int fAddFirstPo )
     // add the PO
     if ( fAddFirstPo )
     {
-        pObj = Aig_ManPo( p, 0 );
+        pObj = Aig_ManCo( p, 0 );
         Aig_ObjCreateCo( pNew, Aig_ObjChild0Copy(pObj) );
     }
     else

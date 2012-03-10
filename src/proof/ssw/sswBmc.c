@@ -51,7 +51,7 @@ Aig_Obj_t * Ssw_BmcUnroll_rec( Ssw_Frm_t * pFrm, Aig_Obj_t * pObj, int f )
         pRes = Aig_ManConst1( pFrm->pFrames );
     else if ( Saig_ObjIsPi(pFrm->pAig, pObj) )
         pRes = Aig_ObjCreateCi( pFrm->pFrames );
-    else if ( Aig_ObjIsPo(pObj) )
+    else if ( Aig_ObjIsCo(pObj) )
     {
         Ssw_BmcUnroll_rec( pFrm, Aig_ObjFanin0(pObj), f );
         pRes = Ssw_ObjChild0Fra_( pFrm, pObj, f );

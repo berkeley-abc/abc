@@ -63,10 +63,10 @@ static inline int Aig_ObjIsExorType( Aig_Obj_t * p0, Aig_Obj_t * p1, Aig_Obj_t *
 Aig_Obj_t * Aig_IthVar( Aig_Man_t * p, int i )
 {
     int v;
-    for ( v = Aig_ManPiNum(p); v <= i; v++ )
+    for ( v = Aig_ManCiNum(p); v <= i; v++ )
         Aig_ObjCreateCi( p );
-    assert( i < Vec_PtrSize(p->vPis) );
-    return Aig_ManPi( p, i );
+    assert( i < Vec_PtrSize(p->vCis) );
+    return Aig_ManCi( p, i );
 }
 
 /**Function*************************************************************

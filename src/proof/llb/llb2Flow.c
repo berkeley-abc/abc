@@ -194,7 +194,7 @@ Vec_Ptr_t * Llb_ManCutMap( Aig_Man_t * p, Vec_Ptr_t * vResult, Vec_Ptr_t * vSupp
     if ( fShowMatrix )
     Aig_ManForEachObj( p, pObj, i )
     {
-        if ( !Aig_ObjIsPi(pObj) && !Aig_ObjIsNode(pObj) )
+        if ( !Aig_ObjIsCi(pObj) && !Aig_ObjIsNode(pObj) )
             continue;
         Vec_PtrForEachEntry( Vec_Int_t *, vMaps, vMap, k )
             if ( Vec_IntEntry(vMap, i) )
@@ -276,7 +276,7 @@ int Llb_ManCutLiNum( Aig_Man_t * p, Vec_Ptr_t * vMinCut )
     int i, k, iFanout = -1, Counter = 0;
     Vec_PtrForEachEntry( Aig_Obj_t *, vMinCut, pObj, i )
     {
-        if ( Aig_ObjIsPi(pObj) )
+        if ( Aig_ObjIsCi(pObj) )
             continue;
         Aig_ObjForEachFanout( p, pObj, pFanout, iFanout, k )
         {
@@ -547,7 +547,7 @@ void Llb_ManResultPrint( Aig_Man_t * p, Vec_Ptr_t * vResult )
 int Llb_ManFlowBwdPath2_rec( Aig_Man_t * p, Aig_Obj_t * pObj )
 {
     Aig_Obj_t * pFanout;
-    assert( Aig_ObjIsNode(pObj) || Aig_ObjIsPi(pObj) || Aig_ObjIsConst1(pObj) );
+    assert( Aig_ObjIsNode(pObj) || Aig_ObjIsCi(pObj) || Aig_ObjIsConst1(pObj) );
     // skip visited nodes
     if ( Aig_ObjIsTravIdCurrent(p, pObj) )
         return 0;
@@ -607,7 +607,7 @@ void Llb_ManFlowLabelTfi_rec( Aig_Man_t * p, Aig_Obj_t * pObj )
     if ( Aig_ObjIsTravIdCurrent(p, pObj) )
         return;
     Aig_ObjSetTravIdCurrent(p, pObj);
-    if ( Aig_ObjIsPi(pObj) || Aig_ObjIsConst1(pObj) )
+    if ( Aig_ObjIsCi(pObj) || Aig_ObjIsConst1(pObj) )
         return;
     assert( Aig_ObjIsNode(pObj) );
     Llb_ManFlowLabelTfi_rec( p, Aig_ObjFanin0(pObj) );
@@ -638,7 +638,7 @@ void Llb_ManFlowUpdateCut( Aig_Man_t * p, Vec_Ptr_t * vMinCut )
     Aig_ManIncrementTravId(p);
     Aig_ManForEachObj( p, pObj, i )
     {
-        if ( !Aig_ObjIsPo(pObj) && !Aig_ObjIsNode(pObj) )
+        if ( !Aig_ObjIsCo(pObj) && !Aig_ObjIsNode(pObj) )
             continue;
         if ( Aig_ObjIsTravIdCurrent(p, pObj) || Aig_ObjIsTravIdPrevious(p, pObj) )
             continue;
@@ -708,7 +708,7 @@ int Llb_ManFlowVerifyCut_rec( Aig_Man_t * p, Aig_Obj_t * pObj )
     // visit the node
     if ( Aig_ObjIsConst1(pObj) )
         return 1;
-    if ( Aig_ObjIsPi(pObj) )
+    if ( Aig_ObjIsCi(pObj) )
         return 0;
     // explore the fanins
     assert( Aig_ObjIsNode(pObj) );
@@ -930,7 +930,7 @@ void Llb_ManFlowSetMarkA_rec( Aig_Obj_t * pObj )
     if ( pObj->fMarkA )
         return;
     pObj->fMarkA = 1;
-    if ( Aig_ObjIsPi(pObj) || Aig_ObjIsConst1(pObj) )
+    if ( Aig_ObjIsCi(pObj) || Aig_ObjIsConst1(pObj) )
         return;
     assert( Aig_ObjIsNode(pObj) );
     Llb_ManFlowSetMarkA_rec( Aig_ObjFanin0(pObj) );

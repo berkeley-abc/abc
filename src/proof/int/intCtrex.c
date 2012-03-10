@@ -75,7 +75,7 @@ Aig_Man_t * Inter_ManFramesBmc( Aig_Man_t * pAig, int nFrames )
             pObjLo->pData = pObjLi->pData;
     }
     // create POs for the output of the last frame
-    pObj = Aig_ManPo( pAig, 0 );
+    pObj = Aig_ManCo( pAig, 0 );
     Aig_ObjCreateCo( pFrames, Aig_ObjChild0Copy(pObj) );
     Aig_ManCleanup( pFrames );
     return pFrames;

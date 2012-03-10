@@ -128,7 +128,7 @@ Aig_Man_t * Saig_ManDupFoldConstrs( Aig_Man_t * pAig, Vec_Int_t * vConstrs )
     Vec_IntForEachEntry( vConstrs, Entry, i )
     {
         assert( Entry > 0 && Entry < Saig_ManPoNum(pAig) );
-        pObj = Aig_ManPo( pAig, Entry );
+        pObj = Aig_ManCo( pAig, Entry );
         pMiter = Aig_Or( pAigNew, pMiter, Aig_ObjChild0Copy(pObj) );
     }
     // create additional flop
@@ -283,7 +283,7 @@ int Saig_ManDetectConstr( Aig_Man_t * p, Vec_Ptr_t ** pvOuts, Vec_Ptr_t ** pvCon
         printf( "The number of POs is other than 1.\n" );
         return 0;
     }
-    pObj = Aig_ObjChild0( Aig_ManPo(p, 0) );
+    pObj = Aig_ObjChild0( Aig_ManCo(p, 0) );
     if ( Aig_IsComplement(pObj) || !Aig_ObjIsNode(pObj) )
     {
         printf( "The output is not an AND.\n" );
