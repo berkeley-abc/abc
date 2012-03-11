@@ -1064,7 +1064,7 @@ void Gia_IsoTest( Gia_Man_t * p, int fVerbose )
 {
     Vec_Ptr_t * vEquivs;
     int clk = clock(); 
-    vEquivs = Gia_IsoDeriveEquivPos( p, 1, fVerbose );
+    vEquivs = Gia_IsoDeriveEquivPos( p, 0, fVerbose );
     printf( "Reduced %d outputs to %d.  ", Gia_ManPoNum(p), vEquivs ? Vec_PtrSize(vEquivs) : 1 );
     Abc_PrintTime( 1, "Time", clock() - clk );
     if ( fVerbose && vEquivs && Gia_ManPoNum(p) != Vec_PtrSize(vEquivs) )
