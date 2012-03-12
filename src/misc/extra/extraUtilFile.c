@@ -203,11 +203,38 @@ char * Extra_FileNameGenericAppend( char * pBase, char * pSuffix )
   SeeAlso     []
 
 ***********************************************************************/
+int Extra_FileCheck( char * pFileName )
+{
+    FILE * pFile;
+    pFile = fopen( pFileName, "rb" );
+    if ( pFile == NULL )
+    {
+        printf( "Extra_FileCheck():  File \"%s\" does not exist.\n", pFileName );
+        return 0;
+    }
+    fseek( pFile, 0, SEEK_END );
+    if ( ftell( pFile ) == 0 )
+        printf( "Extra_FileCheck():  File \"%s\" is empty.\n", pFileName );
+    fclose( pFile );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the file size.]
+
+  Description [The file should be closed.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Extra_FileSize( char * pFileName )
 {
     FILE * pFile;
     int nFileSize;
-    pFile = fopen( pFileName, "r" );
+    pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
     {
         printf( "Extra_FileSize(): The file is unavailable (absent or open).\n" );
@@ -247,6 +274,28 @@ char * Extra_FileRead( FILE * pFile )
     // terminate the string with '\0'
     pBuffer[ nFileSize + 0] = '\n';
     pBuffer[ nFileSize + 1] = '\0';
+    return pBuffer;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Read the file into the internal buffer.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+char * Extra_FileReadContents( char * pFileName )
+{
+    FILE * pFile;
+    char * pBuffer;
+    pFile = fopen( pFileName, "rb" );
+    pBuffer = pFile ? Extra_FileRead( pFile ) : NULL;
+    if ( pFile )
+        fclose( pFile );
     return pBuffer;
 }
 
