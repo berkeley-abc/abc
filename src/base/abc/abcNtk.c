@@ -1784,6 +1784,50 @@ void Abc_NtkUnpermute( Abc_Ntk_t * pNtk )
     Vec_IntFreeP( &pNtk->vObjPerm );
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkNodeDup( Abc_Ntk_t * pNtkInit, int nLimit, int fVerbose )
+{
+    Vec_Ptr_t * vNodes, * vFanouts;
+    Abc_Ntk_t * pNtk;
+    Abc_Obj_t * pObj, * pObjNew, * pFanin, * pFanout;
+    int i, k;
+    pNtk = Abc_NtkDup( pNtkInit );
+    vNodes = Vec_PtrAlloc( 100 );
+    vFanouts = Vec_PtrAlloc( 100 );
+    do
+    {
+        Vec_PtrClear( vNodes );
+        Abc_NtkForEachNode( pNtk, pObj, i )
+            if ( Abc_ObjFanoutNum(pObj) >= nLimit )
+                Vec_PtrPush( vNodes, pObj );
+        Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
+        {
+            pObjNew = Abc_NtkDupObj( pNtk, pObj, 0 );
+            Abc_ObjForEachFanin( pObj, pFanin, k )
+                Abc_ObjAddFanin( pObjNew, pFanin );
+            Abc_NodeCollectFanouts( pObj, vFanouts );
+            Vec_PtrShrink( vFanouts, nLimit / 2 );
+            Vec_PtrForEachEntry( Abc_Obj_t *, vFanouts, pFanout, k )
+                Abc_ObjPatchFanin( pFanout, pObj, pObjNew );
+        }
+        if ( fVerbose )
+            printf( "Duplicated %d nodes.\n", Vec_PtrSize(vNodes) );
+    }
+    while ( Vec_PtrSize(vNodes) > 0 );
+    Vec_PtrFree( vFanouts );
+    Vec_PtrFree( vNodes );
+    return pNtk;
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

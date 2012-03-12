@@ -154,6 +154,7 @@ static int Abc_CommandDouble                 ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandInter                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandBb2Wb                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandOutdec                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandNodeDup                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandTest                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandQuaVar                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -596,6 +597,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Various",      "inter",         Abc_CommandInter,            1 );
     Cmd_CommandAdd( pAbc, "Various",      "bb2wb",         Abc_CommandBb2Wb,            0 );
     Cmd_CommandAdd( pAbc, "Various",      "outdec",        Abc_CommandOutdec,           1 );
+    Cmd_CommandAdd( pAbc, "Various",      "nodedup",       Abc_CommandNodeDup,          1 );
     Cmd_CommandAdd( pAbc, "Various",      "test",          Abc_CommandTest,             0 );
 //    Cmd_CommandAdd( pAbc, "Various",      "qbf_solve",     Abc_CommandTest,               0 );
 
@@ -8720,6 +8722,82 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
+int Abc_CommandNodeDup( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern Abc_Ntk_t * Abc_NtkNodeDup( Abc_Ntk_t * pNtk, int nLimit, int fVerbose );
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+    Abc_Ntk_t * pNtkRes;
+    int c, nLimit = 30;
+    int fVerbose = 0;
+
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Nvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-N\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nLimit = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pNtk == NULL )
+    {
+        Abc_Print( -1, "Empty network.\n" );
+        return 1;
+    }
+    if ( Abc_NtkIsStrash(pNtk) )
+    {
+        Abc_Print( -1, "Only works for logic networks.\n" );
+        return 1;
+    }
+    if ( nLimit < 2 )
+    {
+        Abc_Print( -1, "The fanout limit should be more than 1.\n" );
+        return 1;
+    }
+    pNtkRes = Abc_NtkNodeDup( pNtk, nLimit, fVerbose );
+    if ( pNtkRes == NULL )
+    {
+        Abc_Print( -1, "Command has failed.\n" );
+        return 0;
+    }
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: nodedup [-Nvh]\n" );
+    Abc_Print( -2, "\t         duplicates internal nodes with high fanout\n" );
+    Abc_Print( -2, "\t-N num : the number of fanouts to start duplication [default = %d]\n", nLimit );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
@@ -8845,6 +8923,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern Abc_Ntk_t * Abc_NtkFromAigPhase( Aig_Man_t * pMan );
     extern Vec_Vec_t * Saig_IsoDetectFast( Aig_Man_t * pAig );
     extern Aig_Man_t * Abc_NtkToDarBmc( Abc_Ntk_t * pNtk, Vec_Int_t ** pvMap );
+    extern void Abc2_NtkTestGia( char * pFileName, int fVerbose );
 
     if ( pNtk )
     {
@@ -8858,6 +8937,8 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
         Aig_ManStop( pAig );
     }
+
+//    Abc2_NtkTestGia( "", 1 );
 }
 
     return 0;
