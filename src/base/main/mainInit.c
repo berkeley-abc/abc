@@ -48,6 +48,8 @@ extern void Load_Init( Abc_Frame_t * pAbc );
 extern void Load_End( Abc_Frame_t * pAbc );
 extern void Test_Init( Abc_Frame_t * pAbc );
 extern void Test_End( Abc_Frame_t * pAbc );
+extern void Abc2_Init( Abc_Frame_t * pAbc );
+extern void Abc2_End ( Abc_Frame_t * pAbc );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -77,6 +79,7 @@ void Abc_FrameInit( Abc_Frame_t * pAbc )
     Libs_Init( pAbc );
     Load_Init( pAbc );
     Test_Init( pAbc );
+//    Abc2_Init( pAbc );
     EXT_ABC_INIT(pAbc) // plugin for external functionality
 }
 
@@ -104,6 +107,7 @@ void Abc_FrameEnd( Abc_Frame_t * pAbc )
     Libs_End( pAbc );
     Load_End( pAbc );
     Test_End( pAbc );
+//    Abc2_End( pAbc );
     EXT_ABC_END(pAbc) // plugin for external functionality
 }
 

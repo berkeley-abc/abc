@@ -231,7 +231,7 @@ void Gia_IsoPrepare( Gia_IsoMan_t * p )
     pLevBegins[0] = 1;
     for ( i = 0; i <= MaxLev; i++ )
     {
-        assert( pLevSizes[i] > 0 ); // we do not allow AIG has a const node and no PIs
+        assert( pLevSizes[i] > 0 ); // we do not allow AIG with a const node and no PIs
         Vec_IntPush( p->vClasses, pLevBegins[i] );
         Vec_IntPush( p->vClasses, pLevSizes[i] );
         pLevBegins[i+1] = pLevBegins[i] + pLevSizes[i];
@@ -445,6 +445,7 @@ static inline unsigned Gia_IsoUpdate( Gia_IsoMan_t * p, int Iter, int iObj, int 
 {
     if ( Iter == 0 )              return Gia_IsoUpdateValue( p->pLevels[iObj], fCompl );
     if ( p->pUniques[iObj] > 0 )  return Gia_IsoUpdateValue( p->pUniques[iObj], fCompl );
+//    if ( p->pUniques[iObj] > 0 )  return Gia_IsoUpdateValue( 11, fCompl );
     return 0;
 }
 void Gia_IsoSimulate( Gia_IsoMan_t * p, int Iter )
@@ -452,12 +453,12 @@ void Gia_IsoSimulate( Gia_IsoMan_t * p, int Iter )
     Gia_Obj_t * pObj, * pObjF;
     int i, iObj;
     // initialize constant, inputs, and flops in the first frame
-    Gia_ManConst0(p->pGia)->Value = s_256Primes[ISO_MASK];
+    Gia_ManConst0(p->pGia)->Value += s_256Primes[ISO_MASK];
     Gia_ManForEachPi( p->pGia, pObj, i )
-        pObj->Value = s_256Primes[ISO_MASK-1];
+        pObj->Value += s_256Primes[ISO_MASK-1];
     if ( Iter == 0 )
         Gia_ManForEachRo( p->pGia, pObj, i )
-            pObj->Value = s_256Primes[ISO_MASK-2];
+            pObj->Value += s_256Primes[ISO_MASK-2];
     // simulate nodes
     Gia_ManForEachAnd( p->pGia, pObj, i )
     {
@@ -545,7 +546,7 @@ void Gia_IsoAssignOneClass2( Gia_IsoMan_t * p )
     }
     Vec_IntShrink( p->vClasses, Vec_IntSize(p->vClasses) - 2 );
 
-    printf( "Assinged class %d of size %d at level %d.\n", i/2, nSize, p->pLevels[Gia_IsoGetItem(p, iBegin)] );
+    printf( "Broke ties in class %d of size %d at level %d.\n", i/2, nSize, p->pLevels[Gia_IsoGetItem(p, iBegin)] );
 }
 
 void Gia_IsoAssignOneClass3( Gia_IsoMan_t * p )
@@ -578,7 +579,7 @@ void Gia_IsoAssignOneClass3( Gia_IsoMan_t * p )
         p->nSingles++;
         p->nEntries--;
     }
-    printf( "Assinged last class of size %d at level %d.\n", nSize, p->pLevels[Gia_IsoGetItem(p, iBegin)] );
+    printf( "Broke ties in last class of size %d at level %d.\n", nSize, p->pLevels[Gia_IsoGetItem(p, iBegin)] );
 }
 
 void Gia_IsoAssignOneClass( Gia_IsoMan_t * p, int fVerbose )
@@ -604,13 +605,103 @@ void Gia_IsoAssignOneClass( Gia_IsoMan_t * p, int fVerbose )
         {
             assert( p->pUniques[Gia_IsoGetItem(p, iBegin+k)] == 0 );
             p->pUniques[Gia_IsoGetItem(p, iBegin+k)] = p->nUniques++;
+//            Gia_ManObj(p->pGia, Gia_IsoGetItem(p, iBegin+k))->Value += s_256Primes[0]; ///  new addition!!!
             p->nSingles++;
             p->nEntries--;
         }
         if ( fVerbose )
-            printf( "Assinged class of size %d at level %d.\n", nSize, p->pLevels[Gia_IsoGetItem(p, iBegin)] );
+            printf( "Broke ties in class of size %d at level %d.\n", nSize, p->pLevels[Gia_IsoGetItem(p, iBegin)] );
     }
     Vec_IntShrink( p->vClasses, Shrink );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Report topmost equiv nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_IsoReportTopmost( Gia_IsoMan_t * p )
+{
+    Gia_Obj_t * pObj;
+    int i, k, iBegin, nSize, Counter = 0;
+    // go through equivalence classes
+    Gia_ManIncrementTravId( p->pGia );
+    Vec_IntForEachEntryDouble( p->vClasses, iBegin, nSize, i )
+    {
+//        printf( "%d(%d) ", nSize, p->pLevels[Gia_IsoGetItem(p, iBegin)] );
+        for ( k = 0; k < nSize; k++ )
+        {
+            pObj = Gia_ManObj( p->pGia, Gia_IsoGetItem(p, iBegin+k) );
+            if ( Gia_ObjIsAnd(pObj) )
+            {
+                Gia_ObjSetTravIdCurrent( p->pGia, Gia_ObjFanin0(pObj) );
+                Gia_ObjSetTravIdCurrent( p->pGia, Gia_ObjFanin1(pObj) );
+            }
+            else if ( Gia_ObjIsRo(p->pGia, pObj) )
+                Gia_ObjSetTravIdCurrent( p->pGia, Gia_ObjFanin0(Gia_ObjRoToRi(p->pGia, pObj)) );
+        }
+    }
+//    printf( "\n" );
+
+    // report non-labeled nodes
+    Vec_IntForEachEntryDouble( p->vClasses, iBegin, nSize, i )
+    {
+        for ( k = 0; k < nSize; k++ )
+        {
+            pObj = Gia_ManObj( p->pGia, Gia_IsoGetItem(p, iBegin+k) );
+            if ( !Gia_ObjIsTravIdCurrent(p->pGia, pObj) )
+            {
+                printf( "%5d : ", ++Counter );
+                printf( "Obj %6d : Level = %4d.  iBegin = %4d.  Size = %4d.\n", 
+                    Gia_ObjId(p->pGia, pObj), p->pLevels[Gia_ObjId(p->pGia, pObj)], iBegin, nSize );
+                break;
+            }
+        }
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_IsoRecognizeMuxes( Gia_Man_t * pGia )
+{
+    Gia_Obj_t * pObj, * pObjC, * pObj1, * pObj0;
+    int i;
+    Gia_ManForEachAnd( pGia, pObj, i )
+    {
+        if ( !Gia_ObjIsMuxType(pObj) )
+            continue;
+        pObjC = Gia_ObjRecognizeMux( pObj, &pObj1, &pObj0 );
+        if ( Gia_Regular(pObj0) == Gia_Regular(pObj1) )
+        {
+            // this is XOR
+            Gia_Regular(pObj)->Value += s_256Primes[233];
+            Gia_Regular(pObjC)->Value += s_256Primes[234];
+            Gia_Regular(pObj0)->Value += s_256Primes[234];
+        }
+        else
+        {
+            // this is MUX
+            Gia_Regular(pObj)->Value += s_256Primes[235];
+            Gia_Regular(pObjC)->Value += s_256Primes[236];
+            Gia_Regular(pObj0)->Value += s_256Primes[237];
+            Gia_Regular(pObj1)->Value += s_256Primes[237];
+        }
+    }
 }
 
 /**Function*************************************************************
@@ -642,6 +733,8 @@ Vec_Ptr_t * Gia_IsoDeriveEquivPos( Gia_Man_t * pGia, int fForward, int fVerbose 
     p->timeStart = clock() - clk;
     if ( fVerbose )
         Gia_IsoPrint( p, 0, clock() - clkTotal );
+
+//    Gia_IsoRecognizeMuxes( pGia );
 
     i = 0;
     if ( fForward )
@@ -681,6 +774,9 @@ Vec_Ptr_t * Gia_IsoDeriveEquivPos( Gia_Man_t * pGia, int fForward, int fVerbose 
             if ( !fRefinedAll )
                 break;
         }
+
+        Gia_IsoReportTopmost( p );
+
         while ( Vec_IntSize(p->vClasses) > 0 )
         {
             Gia_IsoAssignOneClass( p, fVerbose );
@@ -707,6 +803,7 @@ Vec_Ptr_t * Gia_IsoDeriveEquivPos( Gia_Man_t * pGia, int fForward, int fVerbose 
                 }
             }
         }
+
         if ( fVerbose )
             Gia_IsoPrint( p, i+2, clock() - clkTotal );
     }

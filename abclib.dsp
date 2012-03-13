@@ -694,6 +694,10 @@ SOURCE=.\src\base\ver\verStream.c
 SOURCE=.\src\base\test\test.c
 # End Source File
 # End Group
+# Begin Group "abc2"
+
+# PROP Default_Filter ""
+# End Group
 # End Group
 # Begin Group "bdd"
 

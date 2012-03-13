@@ -18,6 +18,8 @@ src/aig/au/
 src/aig/ssm/
 src/aig/ddb/
 
+src/base/abc2/
+
 *~
 *.orig
 
