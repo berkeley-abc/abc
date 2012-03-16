@@ -34,6 +34,9 @@ static float s_ExtraDel[2][3] = { {1.0, 1.0, (float)0.1}, {1.0, 1.0, (float)0.1}
 
 static void If_CutSortInputPins( If_Man_t * p, If_Cut_t * pCut, int * pPinPerm, float * pPinDelays );
 
+int s_timeNew;
+int s_timeOld;
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -249,21 +252,25 @@ Vec_Wrd_t * If_CutDelaySopAnds( If_Man_t * p, If_Cut_t * pCut, Vec_Int_t * vCove
 ***********************************************************************/
 Vec_Wrd_t * If_CutDelaySopArray( If_Man_t * p, If_Cut_t * pCut )
 {
+    int clk;
     Vec_Wrd_t * vAnds;
     int RetValue;
     if ( p->vCover == NULL )
-    {
         p->vCover   = Vec_IntAlloc(0);
+    if ( p->vAnds == NULL )
         p->vAnds    = Vec_WrdAlloc(100);
+    if ( p->vAndGate == NULL )
         p->vAndGate = Vec_WrdAlloc(100);
+    if ( p->vOrGate == NULL )
         p->vOrGate  = Vec_WrdAlloc(100);
-
-    }
     RetValue = Kit_TruthIsop( If_CutTruth(pCut), If_CutLeaveNum(pCut), p->vCover, 1 );
     if ( RetValue == -1 )
         return NULL;
     assert( RetValue == 0 || RetValue == 1 );
+
+    clk = clock();
     vAnds = If_CutDelaySopAnds( p, pCut, p->vCover, RetValue ^ pCut->fCompl );
+    s_timeOld += clock() - clk;
 /*
     if ( pCut->nLeaves <= 5 )
     {
@@ -384,7 +391,9 @@ int If_CutDelaySopCost( If_Man_t * p, If_Cut_t * pCut )
     {
         Delay = If_CutDelayLeafDepth( vAnds, i );
         pCut->pPerm[i] = (char)(Delay == -IF_BIG_CHAR ? IF_BIG_CHAR : Delay);
+//printf( "%d ", pCut->pPerm[i] );
     }
+//printf( " (%d)\n", Leaf.Delay );
     // verify the delay
 //    Delay = If_CutDelay( p, pObj, pCut );
 //    assert( (int)Leaf.Delay == Delay );
@@ -392,7 +401,147 @@ int If_CutDelaySopCost( If_Man_t * p, If_Cut_t * pCut )
 }
 
 
+/**Function*************************************************************
 
+  Synopsis    [Alternative computation of delay.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+word If_CutDelayCountFormula( Vec_Int_t * vNums )
+{
+    word Count = 0;
+    int i, Entry;
+    Vec_IntForEachEntry( vNums, Entry, i )
+    {
+        if ( Entry < 0 )
+            continue;
+        assert( Entry < 60 );
+        Count += ((word)1) << Entry;
+    }
+    return Count;
+}
+int If_CutDelayUseFormula( Vec_Int_t * vNums )
+{
+    int i, k, fChanges = 1;
+//    word Count = If_CutDelayCountFormula( vNums );
+//    Vec_IntPrint( vNums );
+    while ( fChanges )
+    {
+        fChanges = 0;
+        for ( i = Vec_IntSize(vNums) - 1; i > 0; i-- )
+            if ( vNums->pArray[i] == vNums->pArray[i-1] )
+            {
+                vNums->pArray[i-1]++;
+                for ( k = i; k < Vec_IntSize(vNums) - 1; k++ )
+                    vNums->pArray[k] = vNums->pArray[k+1];
+                Vec_IntShrink( vNums, Vec_IntSize(vNums)-1 );
+                fChanges = 1;
+            }
+    }
+//    assert( Count == If_CutDelayCountFormula(vNums) );
+//    Vec_IntPrint( vNums );
+//    printf( "\n" );
+    if ( Vec_IntSize(vNums) == 1 )
+        return vNums->pArray[0];
+    return Vec_IntEntryLast(vNums) + 1;
+}
+int If_CutDelaySopAnds2( If_Man_t * p, If_Cut_t * pCut, Vec_Int_t * vCover, int fCompl, int * pArea )
+{
+    Vec_Int_t * vOrGate2  = (Vec_Int_t *)p->vOrGate;
+    Vec_Int_t * vAndGate2 = (Vec_Int_t *)p->vAndGate;
+    int Arrivals[16];
+    If_Obj_t * pLeaf;
+    int i, k, Entry, Literal;
+    *pArea = 0;
+    if ( Vec_IntSize(vCover) == 0 ) // const 0
+    {
+        assert( fCompl == 0 );
+        return 0; 
+    }
+    if ( Vec_IntSize(vCover) == 1 && Vec_IntEntry(vCover, 0) == 0 ) // const 1
+    {
+        assert( fCompl == 0 );
+        return 0; 
+    }
+    If_CutForEachLeaf( p, pCut, pLeaf, k )
+        Arrivals[k] = (int)If_ObjCutBest(pLeaf)->Delay;
+    // iterate through the cubes
+    Vec_IntClear( vOrGate2 );
+    Vec_IntForEachEntry( vCover, Entry, i )
+    { 
+        Vec_IntClear( vAndGate2 );
+        for ( k = 0; k < (int)pCut->nLeaves; k++ )
+        {
+            Literal = 3 & (Entry >> (k << 1));
+            if ( Literal == 1 ) // neg literal
+                Vec_IntPushOrder( vAndGate2, Arrivals[k] );
+            else if ( Literal == 2 ) // pos literal
+                Vec_IntPushOrder( vAndGate2, Arrivals[k] );
+            else if ( Literal != 0 ) 
+                assert( 0 );
+        }
+        *pArea += Vec_IntSize(vAndGate2) - 1;
+        Vec_IntPushOrder( vOrGate2, If_CutDelayUseFormula(vAndGate2) );
+    }
+    *pArea += Vec_IntSize(vOrGate2) - 1;
+    return If_CutDelayUseFormula(vOrGate2);
+}
+int If_CutDelaySopArray2( If_Man_t * p, If_Cut_t * pCut, int * pArea )
+{
+    int clk;
+    int RetValue;
+    if ( p->vCover == NULL )
+        p->vCover = Vec_IntAlloc(0);
+    if ( p->vAndGate == NULL )
+        p->vAndGate = Vec_WrdAlloc(100);
+    if ( p->vOrGate == NULL )
+        p->vOrGate = Vec_WrdAlloc(100);
+    RetValue = Kit_TruthIsop( If_CutTruth(pCut), If_CutLeaveNum(pCut), p->vCover, 1 );
+    if ( RetValue == -1 )
+        return -1;
+    assert( RetValue == 0 || RetValue == 1 );
+
+    clk = clock();
+    RetValue = If_CutDelaySopAnds2( p, pCut, p->vCover, RetValue ^ pCut->fCompl, pArea );
+//    RetValue = If_CutDelaySopAnds2_( p, pCut, p->vCover, RetValue ^ pCut->fCompl, pArea );
+    s_timeNew += clock() - clk;
+    return RetValue;
+}
+int If_CutDelaySopCost2( If_Man_t * p, If_Cut_t * pCut )
+{
+    If_Obj_t * pLeaf;
+    int i, DelayMax, Area;
+    // mark cut as a user cut
+    pCut->fUser = 1;
+    DelayMax = If_CutDelaySopArray2( p, pCut, &Area );
+    if ( DelayMax == -1 )
+    {
+        assert( 0 );
+        return ABC_INFINITY;
+    }
+    // get the cost
+    if ( pCut->nLeaves > 2 )
+        pCut->Cost = Area;
+    else
+        pCut->Cost = 1;
+    // get the permutation
+    If_CutForEachLeaf( p, pCut, pLeaf, i )
+    {
+        assert( DelayMax == 0 || DelayMax >= (int)If_ObjCutBest(pLeaf)->Delay );
+        pCut->pPerm[i] = (char)(DelayMax - (int)If_ObjCutBest(pLeaf)->Delay);
+//        printf( "%d ", pCut->pPerm[i] );
+    }
+//    printf( "(%d)     ", DelayMax );
+    // verify the delay
+//    Delay = If_CutDelay( p, pObj, pCut );
+//    assert( (int)Leaf.Delay == Delay );
+    return DelayMax;
+}
 
 
 

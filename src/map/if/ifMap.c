@@ -159,7 +159,11 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
         if ( p->pPars->fUserRecLib )
             pCut->Delay = If_CutDelayRecCost(p, pCut, pObj);
         else if(p->pPars->fDelayOpt)
+        {
+//            pCut->Delay = If_CutDelaySopCost(p,pCut);
+//            pCut->Delay = If_CutDelaySopCost2(p,pCut);
             pCut->Delay = If_CutDelaySopCost(p,pCut);
+        }
         else
             pCut->Delay = If_CutDelay( p, pObj, pCut );
 //        assert( pCut->Delay <= pObj->Required + p->fEpsilon );
@@ -230,7 +234,11 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
         if ( p->pPars->fUserRecLib )
             pCut->Delay = If_CutDelayRecCost(p, pCut, pObj);
         else if (p->pPars->fDelayOpt)
+        {
+//            pCut->Delay = If_CutDelaySopCost(p, pCut);  
+//            pCut->Delay = If_CutDelaySopCost2(p, pCut);  
             pCut->Delay = If_CutDelaySopCost(p, pCut);  
+        }
         else
             pCut->Delay = If_CutDelay( p, pObj, pCut );
         //if ( pCut->Cost == IF_COST_MAX )

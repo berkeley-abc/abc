@@ -486,6 +486,7 @@ extern void            If_ManImproveMapping( If_Man_t * p );
 extern int             If_ManPerformMappingSeq( If_Man_t * p );
 /*=== ifTime.c ============================================================*/
 extern int             If_CutDelaySopCost( If_Man_t * p, If_Cut_t * pCut );
+extern int             If_CutDelaySopCost2( If_Man_t * p, If_Cut_t * pCut );
 extern Vec_Wrd_t *     If_CutDelaySopArray( If_Man_t * p, If_Cut_t * pCut );
 extern float           If_CutDelay( If_Man_t * p, If_Obj_t * pObj, If_Cut_t * pCut );
 extern void            If_CutPropagateRequired( If_Man_t * p, If_Obj_t * pObj, If_Cut_t * pCut, float Required );
