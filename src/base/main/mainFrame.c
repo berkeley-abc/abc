@@ -78,8 +78,8 @@ void        Abc_FrameSetLibVer( void * pLib )                { s_GlobalFrame->pL
 void        Abc_FrameSetFlag( char * pFlag, char * pValue )  { Cmd_FlagUpdateValue( s_GlobalFrame, pFlag, pValue );         } 
 void        Abc_FrameSetCex( Abc_Cex_t * pCex )              { ABC_FREE( s_GlobalFrame->pCex ); s_GlobalFrame->pCex = pCex; }
 
-int         Abc_FrameIsBridgeMode()                          { return s_GlobalFrame->fBridgeMode;  } 
-void        Abc_FrameSetBridgeMode()                         { s_GlobalFrame->fBridgeMode = 1;     } 
+int         Abc_FrameIsBridgeMode()                          { return s_GlobalFrame ? s_GlobalFrame->fBridgeMode : 0;       } 
+void        Abc_FrameSetBridgeMode()                         { if ( s_GlobalFrame ) s_GlobalFrame->fBridgeMode = 1;         } 
 
 /**Function*************************************************************
 
