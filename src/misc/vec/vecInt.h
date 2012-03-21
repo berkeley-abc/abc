@@ -55,16 +55,18 @@ struct Vec_Int_t_
     for ( i = 0; (i < Vec_IntSize(vVec)) && (((Entry) = Vec_IntEntry(vVec, i)), 1); i++ )
 #define Vec_IntForEachEntryStart( vVec, Entry, i, Start )                                   \
     for ( i = Start; (i < Vec_IntSize(vVec)) && (((Entry) = Vec_IntEntry(vVec, i)), 1); i++ )
-#define Vec_IntForEachEntryStop( vVec, Entry, i, Stop )                                   \
+#define Vec_IntForEachEntryStop( vVec, Entry, i, Stop )                                     \
     for ( i = 0; (i < Stop) && (((Entry) = Vec_IntEntry(vVec, i)), 1); i++ )
 #define Vec_IntForEachEntryStartStop( vVec, Entry, i, Start, Stop )                         \
     for ( i = Start; (i < Stop) && (((Entry) = Vec_IntEntry(vVec, i)), 1); i++ )
 #define Vec_IntForEachEntryReverse( vVec, pEntry, i )                                       \
     for ( i = Vec_IntSize(vVec) - 1; (i >= 0) && (((pEntry) = Vec_IntEntry(vVec, i)), 1); i-- )
-#define Vec_IntForEachEntryTwo( vVec1, vVec2, Entry1, Entry2, i )                                               \
+#define Vec_IntForEachEntryTwo( vVec1, vVec2, Entry1, Entry2, i )                           \
     for ( i = 0; (i < Vec_IntSize(vVec1)) && (((Entry1) = Vec_IntEntry(vVec1, i)), 1) && (((Entry2) = Vec_IntEntry(vVec2, i)), 1); i++ )
-#define Vec_IntForEachEntryDouble( vVec, Entry1, Entry2, i )                                               \
+#define Vec_IntForEachEntryDouble( vVec, Entry1, Entry2, i )                                \
     for ( i = 0; (i+1 < Vec_IntSize(vVec)) && (((Entry1) = Vec_IntEntry(vVec, i)), 1) && (((Entry2) = Vec_IntEntry(vVec, i+1)), 1); i += 2 )
+#define Vec_IntForEachEntryThisNext( vVec, This, Next, i )                                  \
+    for ( i = 0, (This) = (Next) = (Vec_IntSize(vVec) ? Vec_IntEntry(vVec, 0) : -1); (i+1 < Vec_IntSize(vVec)) && (((Next) = Vec_IntEntry(vVec, i+1)), 1); i += 2, (This) = (Next) )
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
