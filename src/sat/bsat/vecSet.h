@@ -9,7 +9,7 @@
   Synopsis    [Multi-page dynamic array.]
 
   Author      [Alan Mishchenko]
-  
+
   Affiliation [UC Berkeley]
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
@@ -17,7 +17,7 @@
   Revision    [$Id: vecSet.h,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
- 
+
 #ifndef ABC__sat__bsat__vecSet_h
 #define ABC__sat__bsat__vecSet_h
 
@@ -35,7 +35,7 @@ ABC_NAMESPACE_HEADER_START
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
-#define VEC_SET_PAGE        20
+#define VEC_SET_PAGE        16
 #define VEC_SET_MASK   0xFFFFF
 
 ////////////////////////////////////////////////////////////////////////
@@ -49,7 +49,7 @@ ABC_NAMESPACE_HEADER_START
 // the second 'int' of the additional data stores the shadow word limit
 
 typedef struct Vec_Set_t_ Vec_Set_t;
-struct Vec_Set_t_ 
+struct Vec_Set_t_
 {
     int                nEntries;     // entry count
     int                iPage;        // current page
@@ -70,14 +70,14 @@ static inline word *  Vec_SetEntry( Vec_Set_t * p, int h )       { return p->pPa
 static inline int     Vec_SetEntryNum( Vec_Set_t * p )           { return p->nEntries;            }
 static inline void    Vec_SetWriteEntryNum( Vec_Set_t * p, int i){ p->nEntries = i;               }
 
-static inline int     Vec_SetLimit( word * p )                   { return ((int*)p)[0];           }
-static inline int     Vec_SetLimitS( word * p )                  { return ((int*)p)[1];           }
+static inline int     Vec_SetLimit( word * p )                   { return p[0];           }
+static inline int     Vec_SetLimitS( word * p )                  { return p[1];           }
 
-static inline int     Vec_SetIncLimit( word * p, int nWords )    { return ((int*)p)[0] += nWords; }
-static inline int     Vec_SetIncLimitS( word * p, int nWords )   { return ((int*)p)[1] += nWords; }
+static inline int     Vec_SetIncLimit( word * p, int nWords )    { return p[0] += nWords; }
+static inline int     Vec_SetIncLimitS( word * p, int nWords )   { return p[1] += nWords; }
 
-static inline void    Vec_SetWriteLimit( word * p, int nWords )  { ((int*)p)[0] = nWords;         }
-static inline void    Vec_SetWriteLimitS( word * p, int nWords ) { ((int*)p)[1] = nWords;         }
+static inline void    Vec_SetWriteLimit( word * p, int nWords )  { p[0] = nWords;         }
+static inline void    Vec_SetWriteLimitS( word * p, int nWords ) { p[1] = nWords;         }
 
 static inline int     Vec_SetHandCurrent( Vec_Set_t * p )        { return (p->iPage << VEC_SET_PAGE)  + Vec_SetLimit(p->pPages[p->iPage]);   }
 static inline int     Vec_SetHandCurrentS( Vec_Set_t * p )       { return (p->iPageS << VEC_SET_PAGE) + Vec_SetLimitS(p->pPages[p->iPageS]); }
@@ -94,7 +94,7 @@ static inline int     Vec_SetMemoryAll( Vec_Set_t * p )          { return (p->iP
 // p (page) and s (shift) are variables used here
 #define Vec_SetForEachEntry( Type, pVec, nSize, pSet, p, s )   \
     for ( p = 0; p <= pVec->iPage; p++ )                       \
-        for ( s = 1; s < Vec_SetLimit(pVec->pPages[p]) && ((pSet) = (Type)(pVec->pPages[p] + (s))); s += nSize )
+        for ( s = 2; s < Vec_SetLimit(pVec->pPages[p]) && ((pSet) = (Type)(pVec->pPages[p] + (s))); s += nSize )
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -105,7 +105,7 @@ static inline int     Vec_SetMemoryAll( Vec_Set_t * p )          { return (p->iP
   Synopsis    [Allocating vector.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -118,7 +118,7 @@ static inline void Vec_SetAlloc_( Vec_Set_t * p )
     p->pPages       = ABC_CALLOC( word *, p->nPagesAlloc );
     p->pPages[0]    = ABC_ALLOC( word, (1 << VEC_SET_PAGE) );
     p->pPages[0][0] = ~0;
-    Vec_SetWriteLimit( p->pPages[0], 1 );
+    Vec_SetWriteLimit( p->pPages[0], 2 );
 }
 static inline Vec_Set_t * Vec_SetAlloc()
 {
@@ -133,7 +133,7 @@ static inline Vec_Set_t * Vec_SetAlloc()
   Synopsis    [Resetting vector.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -145,7 +145,7 @@ static inline void Vec_SetRestart( Vec_Set_t * p )
     p->iPage        = 0;
     p->iPageS       = 0;
     p->pPages[0][0] = ~0;
-    Vec_SetWriteLimit( p->pPages[0], 1 );
+    Vec_SetWriteLimit( p->pPages[0], 2 );
 }
 
 /**Function*************************************************************
@@ -153,7 +153,7 @@ static inline void Vec_SetRestart( Vec_Set_t * p )
   Synopsis    [Freeing vector.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -177,7 +177,7 @@ static inline void Vec_SetFree( Vec_Set_t * p )
   Synopsis    [Appending entries to vector.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -198,8 +198,8 @@ static inline int Vec_SetAppend( Vec_Set_t * p, int * pArray, int nSize )
         }
         if ( p->pPages[p->iPage] == NULL )
             p->pPages[p->iPage] = ABC_ALLOC( word, (1 << VEC_SET_PAGE) );
-        p->pPages[p->iPage][0] = ~0;
-        Vec_SetWriteLimit( p->pPages[p->iPage], 1 );
+        Vec_SetWriteLimit( p->pPages[p->iPage], 2 );
+        Vec_SetWriteLimitS( p->pPages[p->iPage], 0 );
     }
     if ( pArray )
         memmove( p->pPages[p->iPage] + Vec_SetLimit(p->pPages[p->iPage]), pArray, sizeof(int) * nSize );
@@ -211,7 +211,7 @@ static inline int Vec_SetAppendS( Vec_Set_t * p, int nSize )
     int nWords = Vec_SetWordNum( nSize );
     assert( nWords < (1 << VEC_SET_PAGE) );
     if ( Vec_SetLimitS( p->pPages[p->iPageS] ) + nWords > (1 << VEC_SET_PAGE) )
-        Vec_SetWriteLimitS( p->pPages[++p->iPageS], 1 );
+        Vec_SetWriteLimitS( p->pPages[++p->iPageS], 2 );
     Vec_SetIncLimitS( p->pPages[p->iPageS], nWords );
     return Vec_SetHandCurrentS(p) - nWords;
 }
@@ -221,7 +221,7 @@ static inline int Vec_SetAppendS( Vec_Set_t * p, int nSize )
   Synopsis    [Shrinking vector size.]
 
   Description []
-               
+
   SideEffects [This procedure does not update the number of entries.]
 
   SeeAlso     []
@@ -233,11 +233,11 @@ static inline void Vec_SetShrink( Vec_Set_t * p, int h )
     p->iPage = Vec_SetHandPage(h);
     Vec_SetWriteLimit( p->pPages[p->iPage], Vec_SetHandShift(h) );
 }
-static inline void Vec_SetShrinkS( Vec_Set_t * p, int h ) 
-{ 
+static inline void Vec_SetShrinkS( Vec_Set_t * p, int h )
+{
     assert( h <= Vec_SetHandCurrent(p) );
-    p->iPageS = Vec_SetHandPage(h); 
-    Vec_SetWriteLimitS( p->pPages[p->iPageS], Vec_SetHandShift(h) );  
+    p->iPageS = Vec_SetHandPage(h);
+    Vec_SetWriteLimitS( p->pPages[p->iPageS], Vec_SetHandShift(h) );
 }
 
 static inline void Vec_SetShrinkLimits( Vec_Set_t * p )

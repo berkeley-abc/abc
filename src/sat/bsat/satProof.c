@@ -316,7 +316,7 @@ void Sat_ProofReduce2( sat_solver2 * s )
     vUsed = Proof_CollectUsedIter( vProof, vRoots, 1 );
 
     // relabel nodes to use smaller space
-    Vec_SetShrinkS( vProof, 1 );
+    Vec_SetShrinkS( vProof, 2 );
     Proof_ForeachNodeVec( vUsed, vProof, pNode, i )
     {
         pNode->Id = Vec_SetAppendS( vProof, 2+pNode->nEnts );
@@ -379,7 +379,7 @@ void Sat_ProofReduce( sat_solver2 * s )
     vUsed = Vec_PtrAlloc( nSize );
 
     // relabel nodes to use smaller space
-    Vec_SetShrinkS( vProof, 1 );
+    Vec_SetShrinkS( vProof, 2 );
     Vec_SetForEachEntry( satset *, vProof, nSize, pNode, i, j )
     {
         nSize = Vec_SetWordNum( 2 + pNode->nEnts );
