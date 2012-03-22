@@ -35,15 +35,12 @@ ABC_NAMESPACE_HEADER_START
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
-#define VEC_SET_PAGE        16
-#define VEC_SET_MASK   0xFFFFF
-
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
 ////////////////////////////////////////////////////////////////////////
 
 // data-structure for logging entries
-// memory is allocated in 2^VEC_SET_PAGE word-sized pages
+// memory is allocated in 2^p->nPageSize word-sized pages
 // the first 'word' of each page is used storing additional data
 // the first 'int' of additional data stores the word limit
 // the second 'int' of the additional data stores the shadow word limit
@@ -51,41 +48,44 @@ ABC_NAMESPACE_HEADER_START
 typedef struct Vec_Set_t_ Vec_Set_t;
 struct Vec_Set_t_
 {
+    int                nPageSize;    // page size
+    unsigned           uPageMask;    // page mask
     int                nEntries;     // entry count
     int                iPage;        // current page
     int                iPageS;       // shadow page
     int                nPagesAlloc;  // page count allocated
     word **            pPages;       // page pointers
-};
+}; 
 
 ////////////////////////////////////////////////////////////////////////
 ///                      MACRO DEFINITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
-static inline int     Vec_SetHandPage( int h )                   { return h >> VEC_SET_PAGE;      }
-static inline int     Vec_SetHandShift( int h )                  { return h & VEC_SET_MASK;       }
+static inline int     Vec_SetHandPage( Vec_Set_t * p, int h )    { return h >> p->nPageSize;      }
+static inline int     Vec_SetHandShift( Vec_Set_t * p, int h )   { return h & p->uPageMask;       }
 static inline int     Vec_SetWordNum( int nSize )                { return (nSize + 1) >> 1;       }
 
-static inline word *  Vec_SetEntry( Vec_Set_t * p, int h )       { return p->pPages[Vec_SetHandPage(h)] + Vec_SetHandShift(h);     }
+//static inline word *  Vec_SetEntry( Vec_Set_t * p, int h )       { assert(Vec_SetHandPage(p, h) >= 0 && Vec_SetHandPage(p, h) <= p->iPage); assert(Vec_SetHandShift(p, h) >= 2 && Vec_SetHandShift(p, h) < (1 << p->nPageSize)); return p->pPages[Vec_SetHandPage(p, h)] + Vec_SetHandShift(p, h);     }
+static inline word *  Vec_SetEntry( Vec_Set_t * p, int h )       { return p->pPages[Vec_SetHandPage(p, h)] + Vec_SetHandShift(p, h);                     }
 static inline int     Vec_SetEntryNum( Vec_Set_t * p )           { return p->nEntries;            }
 static inline void    Vec_SetWriteEntryNum( Vec_Set_t * p, int i){ p->nEntries = i;               }
 
-static inline int     Vec_SetLimit( word * p )                   { return p[0];           }
-static inline int     Vec_SetLimitS( word * p )                  { return p[1];           }
+static inline int     Vec_SetLimit( word * p )                   { return p[0];                   }
+static inline int     Vec_SetLimitS( word * p )                  { return p[1];                   }
 
-static inline int     Vec_SetIncLimit( word * p, int nWords )    { return p[0] += nWords; }
-static inline int     Vec_SetIncLimitS( word * p, int nWords )   { return p[1] += nWords; }
+static inline int     Vec_SetIncLimit( word * p, int nWords )    { return p[0] += nWords;         }
+static inline int     Vec_SetIncLimitS( word * p, int nWords )   { return p[1] += nWords;         }
 
-static inline void    Vec_SetWriteLimit( word * p, int nWords )  { p[0] = nWords;         }
-static inline void    Vec_SetWriteLimitS( word * p, int nWords ) { p[1] = nWords;         }
+static inline void    Vec_SetWriteLimit( word * p, int nWords )  { p[0] = nWords;                 }
+static inline void    Vec_SetWriteLimitS( word * p, int nWords ) { p[1] = nWords;                 }
 
-static inline int     Vec_SetHandCurrent( Vec_Set_t * p )        { return (p->iPage << VEC_SET_PAGE)  + Vec_SetLimit(p->pPages[p->iPage]);   }
-static inline int     Vec_SetHandCurrentS( Vec_Set_t * p )       { return (p->iPageS << VEC_SET_PAGE) + Vec_SetLimitS(p->pPages[p->iPageS]); }
+static inline int     Vec_SetHandCurrent( Vec_Set_t * p )        { return (p->iPage << p->nPageSize)  + Vec_SetLimit(p->pPages[p->iPage]);               }
+static inline int     Vec_SetHandCurrentS( Vec_Set_t * p )       { return (p->iPageS << p->nPageSize) + Vec_SetLimitS(p->pPages[p->iPageS]);             }
 
-static inline int     Vec_SetHandMemory( Vec_Set_t * p, int h )  { return Vec_SetHandPage(h) * (1 << (VEC_SET_PAGE+3)) + Vec_SetHandShift(h) * 8;  }
-static inline int     Vec_SetMemory( Vec_Set_t * p )             { return Vec_SetHandMemory(p, Vec_SetHandCurrent(p));             }
-static inline int     Vec_SetMemoryS( Vec_Set_t * p )            { return Vec_SetHandMemory(p, Vec_SetHandCurrentS(p));            }
-static inline int     Vec_SetMemoryAll( Vec_Set_t * p )          { return (p->iPage+1) * (1 << (VEC_SET_PAGE+3));                                  }
+static inline int     Vec_SetHandMemory( Vec_Set_t * p, int h )  { return Vec_SetHandPage(p, h) * (1 << (p->nPageSize+3)) + Vec_SetHandShift(p, h) * 8;  }
+static inline int     Vec_SetMemory( Vec_Set_t * p )             { return Vec_SetHandMemory(p, Vec_SetHandCurrent(p));                                   }
+static inline int     Vec_SetMemoryS( Vec_Set_t * p )            { return Vec_SetHandMemory(p, Vec_SetHandCurrentS(p));                                  }
+static inline int     Vec_SetMemoryAll( Vec_Set_t * p )          { return (p->iPage+1) * (1 << (p->nPageSize+3));                                        }
 
 // Type is the Set type
 // pVec is vector of set
@@ -111,20 +111,24 @@ static inline int     Vec_SetMemoryAll( Vec_Set_t * p )          { return (p->iP
   SeeAlso     []
 
 ***********************************************************************/
-static inline void Vec_SetAlloc_( Vec_Set_t * p )
+static inline void Vec_SetAlloc_( Vec_Set_t * p, int nPageSize )
 {
+    assert( nPageSize > 8 );
     memset( p, 0, sizeof(Vec_Set_t) );
+    p->nPageSize    = nPageSize;
+    p->uPageMask    = (unsigned)((1 << nPageSize) - 1);
     p->nPagesAlloc  = 256;
     p->pPages       = ABC_CALLOC( word *, p->nPagesAlloc );
-    p->pPages[0]    = ABC_ALLOC( word, (1 << VEC_SET_PAGE) );
+    p->pPages[0]    = ABC_ALLOC( word, (1 << p->nPageSize) );
     p->pPages[0][0] = ~0;
+    p->pPages[0][1] = ~0;
     Vec_SetWriteLimit( p->pPages[0], 2 );
 }
-static inline Vec_Set_t * Vec_SetAlloc()
+static inline Vec_Set_t * Vec_SetAlloc( int nPageSize )
 {
     Vec_Set_t * p;
     p = ABC_CALLOC( Vec_Set_t, 1 );
-    Vec_SetAlloc_( p );
+    Vec_SetAlloc_( p, nPageSize );
     return p;
 }
 
@@ -145,6 +149,7 @@ static inline void Vec_SetRestart( Vec_Set_t * p )
     p->iPage        = 0;
     p->iPageS       = 0;
     p->pPages[0][0] = ~0;
+    p->pPages[0][1] = ~0;
     Vec_SetWriteLimit( p->pPages[0], 2 );
 }
 
@@ -186,9 +191,9 @@ static inline void Vec_SetFree( Vec_Set_t * p )
 static inline int Vec_SetAppend( Vec_Set_t * p, int * pArray, int nSize )
 {
     int nWords = Vec_SetWordNum( nSize );
-    assert( nWords < (1 << VEC_SET_PAGE) );
+    assert( nWords < (1 << p->nPageSize) );
     p->nEntries++;
-    if ( Vec_SetLimit( p->pPages[p->iPage] ) + nWords > (1 << VEC_SET_PAGE) )
+    if ( Vec_SetLimit( p->pPages[p->iPage] ) + nWords > (1 << p->nPageSize) )
     {
         if ( ++p->iPage == p->nPagesAlloc )
         {
@@ -197,20 +202,20 @@ static inline int Vec_SetAppend( Vec_Set_t * p, int * pArray, int nSize )
             p->nPagesAlloc *= 2;
         }
         if ( p->pPages[p->iPage] == NULL )
-            p->pPages[p->iPage] = ABC_ALLOC( word, (1 << VEC_SET_PAGE) );
+            p->pPages[p->iPage] = ABC_ALLOC( word, (1 << p->nPageSize) );
         Vec_SetWriteLimit( p->pPages[p->iPage], 2 );
-        Vec_SetWriteLimitS( p->pPages[p->iPage], 0 );
+        p->pPages[p->iPage][1] = ~0;
     }
     if ( pArray )
-        memmove( p->pPages[p->iPage] + Vec_SetLimit(p->pPages[p->iPage]), pArray, sizeof(int) * nSize );
+        memcpy( p->pPages[p->iPage] + Vec_SetLimit(p->pPages[p->iPage]), pArray, sizeof(int) * nSize );
     Vec_SetIncLimit( p->pPages[p->iPage], nWords );
     return Vec_SetHandCurrent(p) - nWords;
 }
 static inline int Vec_SetAppendS( Vec_Set_t * p, int nSize )
 {
     int nWords = Vec_SetWordNum( nSize );
-    assert( nWords < (1 << VEC_SET_PAGE) );
-    if ( Vec_SetLimitS( p->pPages[p->iPageS] ) + nWords > (1 << VEC_SET_PAGE) )
+    assert( nWords < (1 << p->nPageSize) );
+    if ( Vec_SetLimitS( p->pPages[p->iPageS] ) + nWords > (1 << p->nPageSize) )
         Vec_SetWriteLimitS( p->pPages[++p->iPageS], 2 );
     Vec_SetIncLimitS( p->pPages[p->iPageS], nWords );
     return Vec_SetHandCurrentS(p) - nWords;
@@ -230,14 +235,14 @@ static inline int Vec_SetAppendS( Vec_Set_t * p, int nSize )
 static inline void Vec_SetShrink( Vec_Set_t * p, int h )
 {
     assert( h <= Vec_SetHandCurrent(p) );
-    p->iPage = Vec_SetHandPage(h);
-    Vec_SetWriteLimit( p->pPages[p->iPage], Vec_SetHandShift(h) );
+    p->iPage = Vec_SetHandPage(p, h);
+    Vec_SetWriteLimit( p->pPages[p->iPage], Vec_SetHandShift(p, h) );
 }
 static inline void Vec_SetShrinkS( Vec_Set_t * p, int h )
 {
     assert( h <= Vec_SetHandCurrent(p) );
-    p->iPageS = Vec_SetHandPage(h);
-    Vec_SetWriteLimitS( p->pPages[p->iPageS], Vec_SetHandShift(h) );
+    p->iPageS = Vec_SetHandPage(p, h);
+    Vec_SetWriteLimitS( p->pPages[p->iPageS], Vec_SetHandShift(p, h) );
 }
 
 static inline void Vec_SetShrinkLimits( Vec_Set_t * p )

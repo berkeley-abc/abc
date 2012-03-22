@@ -912,7 +912,7 @@ sat_solver* sat_solver_new(void)
 {
     sat_solver* s = (sat_solver*)ABC_CALLOC( char, sizeof(sat_solver));
 
-    Vec_SetAlloc_(&s->Mem);
+    Vec_SetAlloc_(&s->Mem, 15);
     s->hLearnts = -1;
     s->hBinary = Vec_SetAppend( &s->Mem, NULL, 3 ) << 1;
     s->binary = clause_read( s, s->hBinary );

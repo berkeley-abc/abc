@@ -534,7 +534,7 @@ void Sat_ProofCheck( sat_solver2 * s )
     Proof_CleanCollected( vProof, vUsed );
     // perform resolution steps
     vTemp = Vec_IntAlloc( 1000 );
-    vResolves = Vec_SetAlloc();
+    vResolves = Vec_SetAlloc( 20 );
     Proof_ForeachNodeVec( vUsed, vProof, pSet, i )
     {
         Handle = -1;

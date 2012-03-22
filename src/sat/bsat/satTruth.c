@@ -215,7 +215,7 @@ Tru_Man_t * Tru_ManAlloc( int nVars )
     p->nEntrySize = (sizeof(Tru_One_t) + p->nWords * sizeof(word))/sizeof(int);
     p->nTableSize = 8147;
     p->pTable     = ABC_CALLOC( int, p->nTableSize );
-    p->pMem       = Vec_SetAlloc();
+    p->pMem       = Vec_SetAlloc( 16 );
     // initialize truth tables
     p->pZero = ABC_ALLOC( word, p->nWords );
     for ( i = 0; i < nVars; i++ )

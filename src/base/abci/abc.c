@@ -802,66 +802,9 @@ void Abc_Init( Abc_Frame_t * pAbc )
 
     Cmd_CommandAdd( pAbc, "Various",      "testnew",       Abc_CommandAbcTestNew,       0 );
 
-//    Cmd_CommandAdd( pAbc, "Verification", "trace_start",   Abc_CommandTraceStart,       0 );
-//    Cmd_CommandAdd( pAbc, "Verification", "trace_check",   Abc_CommandTraceCheck,       0 );
-
-//    Rwt_Man4ExploreStart();
-//    Map_Var3Print();
-//    Map_Var4Test();
-
-//    Abc_NtkPrint256();
-//    Kit_TruthCountMintermsPrecomp();
-//    Kit_DsdPrecompute4Vars();
-
     {
         extern void Dar_LibStart();
         Dar_LibStart();
-    }
-    {
-//        extern void Bdc_ManDecomposeTest( unsigned uTruth, int nVars );
-//        Bdc_ManDecomposeTest( 0x0f0f0f0f, 3 );
-    }
-
-    {
-//        extern void Aig_ManRandomTest1();
-//        Aig_ManRandomTest1();
-    }
-    {
-        extern void Extra_MemTest();
-//       Extra_MemTest();
-    }
-
-    {
-        extern void Gia_SortTest();
-//        Gia_SortTest();
-    }
-    {
-        void For_ManFileExperiment();
-//        For_ManFileExperiment();
-    }
-/*
-    {
-        int i1, i2, i3, i4, i5, i6, N, Counter = 0;
-        for ( N = 20; N < 40; N++ )
-        {
-            Counter = 0;
-            for ( i1 = 0;    i1 < N; i1++ )
-            for ( i2 = i1+1; i2 < N; i2++ )
-            for ( i3 = i2; i3 < N; i3++ )
-            for ( i4 = i3; i4 < N; i4++ )
-//            for ( i5 = i4+1; i5 < N; i5++ )
-//            for ( i6 = i5+1; i6 < N; i6++ )
-                Counter++;
-            printf( "%d=%d  ", N, Counter );
-        }
-        printf( "\n" );
-    }
-*/
-    {
-//        extern void If_CluTest();
-//        If_CluTest();
-//        extern void Iso_QuickSortTest();
-//        Iso_QuickSortTest();
     }
 } 
 

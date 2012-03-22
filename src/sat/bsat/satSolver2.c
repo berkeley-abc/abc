@@ -1155,7 +1155,7 @@ sat_solver2* sat_solver2_new(void)
     veci_new(&s->claActs);    veci_push(&s->claActs,   -1);
     veci_new(&s->claProofs);  veci_push(&s->claProofs, -1);
     if ( s->fProofLogging )
-        Vec_SetAlloc_( &s->Proofs );
+        Vec_SetAlloc_( &s->Proofs, 20 );
 
     // prealloc clause
     assert( !s->clauses.ptr );
