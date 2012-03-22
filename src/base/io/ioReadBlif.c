@@ -67,6 +67,7 @@ static int Io_ReadBlifNetworkInputArrival( Io_ReadBlif_t * p, Vec_Ptr_t * vToken
 static int Io_ReadBlifNetworkOutputRequired( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens );
 static int Io_ReadBlifNetworkDefaultInputArrival( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens );
 static int Io_ReadBlifNetworkDefaultOutputRequired( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens );
+static int Io_ReadBlifNetworkAndGateDelay( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens );
 static int Io_ReadBlifNetworkConnectBoxes( Io_ReadBlif_t * p, Abc_Ntk_t * pNtkMaster );
 
 ////////////////////////////////////////////////////////////////////////
@@ -275,6 +276,8 @@ Abc_Ntk_t * Io_ReadBlifNetworkOne( Io_ReadBlif_t * p )
             fStatus = Io_ReadBlifNetworkDefaultInputArrival( p, p->vTokens );
         else if ( !strcmp( pDirective, ".default_output_required" ) )
             fStatus = Io_ReadBlifNetworkDefaultOutputRequired( p, p->vTokens );
+        else if ( !strcmp( pDirective, ".and_gate_delay" ) )
+            fStatus = Io_ReadBlifNetworkAndGateDelay( p, p->vTokens );
 //        else if ( !strcmp( pDirective, ".subckt" ) )
 //            fStatus = Io_ReadBlifNetworkSubcircuit( p, p->vTokens );
         else if ( !strcmp( pDirective, ".exdc" ) )
@@ -900,6 +903,44 @@ int Io_ReadBlifNetworkDefaultOutputRequired( Io_ReadBlif_t * p, Vec_Ptr_t * vTok
     }
     // set the arrival time
     Abc_NtkTimeSetDefaultRequired( p->pNtkCur, (float)TimeRise, (float)TimeFall );
+    return 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Io_ReadBlifNetworkAndGateDelay( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens )
+{
+    char * pFoo1;
+    double AndGateDelay;
+
+    // make sure this is indeed the .inputs line
+    assert( strncmp( (char *)vTokens->pArray[0], ".and_gate_delay", 25 ) == 0 );
+    if ( vTokens->nSize != 2 )
+    {
+        p->LineCur = Extra_FileReaderGetLineNumber(p->pReader, 0);
+        sprintf( p->sError, "Wrong number of arguments (%d) on .and_gate_delay line (should be 1).", vTokens->nSize-1 );
+        Io_ReadBlifPrintErrorMessage( p );
+        return 1;
+    }
+    AndGateDelay = strtod( (char *)vTokens->pArray[1], &pFoo1 );
+    if ( *pFoo1 != '\0' )
+    {
+        p->LineCur = Extra_FileReaderGetLineNumber(p->pReader, 0);
+        sprintf( p->sError, "Bad value (%s %s) for AND gate delay in on .and_gate_delay line line.", (char*)vTokens->pArray[1] );
+        Io_ReadBlifPrintErrorMessage( p );
+        return 1;
+    }
+    // set the arrival time
+    p->pNtkCur->AndGateDelay = (float)AndGateDelay;
     return 0;
 }
 

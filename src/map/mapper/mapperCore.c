@@ -49,7 +49,7 @@ ABC_NAMESPACE_IMPL_START
 ***********************************************************************/
 int Map_Mapping( Map_Man_t * p )
 {
-    int fShowSwitching         = 1;
+    int fShowSwitching         = 0;
     int fUseAreaFlow           = 1;
     int fUseExactArea          = !p->fSwitching;
     int fUseExactAreaWithPhase = !p->fSwitching;

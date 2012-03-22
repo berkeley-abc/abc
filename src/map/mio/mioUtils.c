@@ -613,6 +613,34 @@ Mio_Gate_t * Mio_GateCreatePseudo( int nInputs )
     return pGate;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Adds constant value to all delay values.]
+
+  Description [The pseudo-gate is a N-input gate with all info set to 0.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Mio_LibraryShift( Mio_Library_t * pLib, double Shift )
+{
+    Mio_Gate_t * pGate;
+    Mio_Pin_t * pPin;
+    Mio_LibraryForEachGate( pLib, pGate )
+    {
+        pGate->dDelayMax += Shift;
+        Mio_GateForEachPin( pGate, pPin )
+        {
+            pPin->dDelayBlockRise += Shift;
+            pPin->dDelayBlockFall += Shift;
+            pPin->dDelayBlockMax  += Shift;
+        }
+    }
+}
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

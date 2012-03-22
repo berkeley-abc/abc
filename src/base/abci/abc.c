@@ -82,6 +82,7 @@ static int Abc_CommandPrintDsd               ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandPrintCone              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPrintMiter             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPrintStatus            ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandPrintDelay             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandShow                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandShowBdd                ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -525,6 +526,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Printing",     "print_cone",    Abc_CommandPrintCone,        0 );
     Cmd_CommandAdd( pAbc, "Printing",     "print_miter",   Abc_CommandPrintMiter,       0 );
     Cmd_CommandAdd( pAbc, "Printing",     "print_status",  Abc_CommandPrintStatus,      0 );
+    Cmd_CommandAdd( pAbc, "Printing",     "print_delay",   Abc_CommandPrintDelay,       0 );
 
     Cmd_CommandAdd( pAbc, "Printing",     "show",          Abc_CommandShow,             0 );
     Cmd_CommandAdd( pAbc, "Printing",     "show_bdd",      Abc_CommandShowBdd,          0 );
@@ -2225,7 +2227,6 @@ usage:
 ***********************************************************************/
 int Abc_CommandPrintStatus( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-//    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     int c;
     // set defaults
     Extra_UtilGetoptReset();
@@ -2253,6 +2254,90 @@ usage:
     Abc_Print( -2, "usage: print_status [-h]\n" );
     Abc_Print( -2, "\t        prints verification status\n" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandPrintDelay( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+    Abc_Obj_t * pObjIn = NULL, * pObjOut = NULL;
+    int c;
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pNtk == NULL )
+    {
+        Abc_Print( -1, "Empty network.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkIsMappedLogic(pNtk) )
+    {
+        Abc_Print( -1, "Delay trace works only for network mapped into standard cells.\n" );
+        return 1;
+    }
+    if ( argc > globalUtilOptind + 2 )
+    {
+        Abc_Print( -1, "Wrong number of auguments.\n" );
+        goto usage;
+    }
+    // collect the first name (PO name)
+    if ( argc >= globalUtilOptind + 1 )
+    {
+        int Num = Nm_ManFindIdByName( pNtk->pManName, argv[globalUtilOptind], ABC_OBJ_PO );
+        if ( Num < 0 )
+            Num = Nm_ManFindIdByName( pNtk->pManName, argv[globalUtilOptind], ABC_OBJ_BI );
+        if ( Num >= 0 )
+            pObjOut = Abc_NtkObj( pNtk, Num );
+        if ( pObjOut == NULL )
+        {
+            Abc_Print( -1, "Cannot find combinational output \"%s\".\n", argv[globalUtilOptind] );
+            return 1;
+        }
+    }
+    // collect the second name (PI name)
+    if ( argc == globalUtilOptind + 2 )
+    {
+        int Num = Nm_ManFindIdByName( pNtk->pManName, argv[globalUtilOptind+1], ABC_OBJ_PI );
+        if ( Num < 0 )
+            Num = Nm_ManFindIdByName( pNtk->pManName, argv[globalUtilOptind+1], ABC_OBJ_BO );
+        if ( Num >= 0 )
+            pObjIn = Abc_NtkObj( pNtk, Num );
+        if ( pObjIn == NULL )
+        {
+            Abc_Print( -1, "Cannot find combinational input \"%s\".\n", argv[globalUtilOptind+1] );
+            return 1;
+        }
+    }
+    Abc_NtkDelayTrace( pNtk, pObjOut, pObjIn, 1 );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: print_delay [-h] <CO_name> <CI_name>\n" );
+    Abc_Print( -2, "\t            prints one critical path of the mapped network\n" );
+    Abc_Print( -2, "\t-h        : print the command usage\n");
+    Abc_Print( -2, "\t<CO_name> : (optional) the sink of the critical path (primary output or flop input)\n");
+    Abc_Print( -2, "\t<CI_name> : (optional) the source of the critical path (primary input or flop output)\n");
+    Abc_Print( -2, "\t            (if CO and/or CI are not given, uses the most critical ones)\n");
     return 1;
 }
 

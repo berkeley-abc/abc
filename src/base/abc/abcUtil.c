@@ -738,6 +738,27 @@ void Abc_NtkCleanMarkABC( Abc_Ntk_t * pNtk )
 
 /**Function*************************************************************
 
+  Synopsis    [Returns the index of the given fanin.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NodeFindFanin( Abc_Obj_t * pNode, Abc_Obj_t * pFanin )
+{
+    Abc_Obj_t * pThis;
+    int i;
+    Abc_ObjForEachFanin( pNode, pThis, i )
+        if ( pThis == pFanin )
+            return i;
+    return -1;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Checks if the internal node has CO fanout.]
 
   Description []
@@ -1960,6 +1981,27 @@ void Abc_NtkInvertConstraints( Abc_Ntk_t * pNtk )
         if ( i >= Abc_NtkPoNum(pNtk) - Abc_NtkConstrNum(pNtk) )
             Abc_ObjXorFaninC( pObj, 0 );
     }
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkPrintCiLevels( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pObj;
+    int i;
+    Abc_NtkForEachCi( pNtk, pObj, i )
+        printf( "%c=%d ", 'a'+i, pObj->Level );
+    printf( "\n" );
+
 }
 
 ////////////////////////////////////////////////////////////////////////

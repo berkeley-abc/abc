@@ -261,7 +261,7 @@ void Abc_NtkPrintStats( Abc_Ntk_t * pNtk, int fFactored, int fSaveBest, int fDum
     else if ( Abc_NtkHasMapping(pNtk) )
     {
         fprintf( pFile, "  area =%5.2f", Abc_NtkGetMappedArea(pNtk) );
-        fprintf( pFile, "  delay =%5.2f", Abc_NtkDelayTrace(pNtk) );
+        fprintf( pFile, "  delay =%5.2f", Abc_NtkDelayTrace(pNtk, NULL, NULL, 0) );
     }
     else if ( !Abc_NtkHasBlackbox(pNtk) )
     {
@@ -842,7 +842,7 @@ void Abc_NtkPrintLevel( FILE * pFile, Abc_Ntk_t * pNtk, int fProfile, int fListN
         int DelayInt, nOutsSum, nOutsTotal;
 
         // get the max delay and delta
-        DelayMax   = Abc_NtkDelayTrace( pNtk );
+        DelayMax   = Abc_NtkDelayTrace( pNtk, NULL, NULL, 0 );
         DelayDelta = DelayMax/nIntervals;
         // collect outputs by delay
         pLevelCounts = ABC_ALLOC( int, nIntervals );

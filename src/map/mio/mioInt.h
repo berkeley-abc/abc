@@ -72,7 +72,6 @@ struct  Mio_LibraryStruct_t_
     Mio_Gate_t *       pGateNand2;  // the NAND2 gate
     Mio_Gate_t *       pGateAnd2;   // the AND2 gate
     st_table *         tName2Gate;  // the mapping of gate names into their pointer
-//    DdManager *        dd;          // the nanager storing functions of gates
     Mem_Flex_t *       pMmFlex;     // the memory manaqer for SOPs
     Vec_Str_t *        vCube;       // temporary cube
 }; 
@@ -93,7 +92,6 @@ struct  Mio_GateStruct_t_
     // the derived information
     int                nInputs;     // the number of inputs
     double             dDelayMax;   // the maximum delay
-//    DdNode *           bFunc;       // the functionality
     char *             pSop;        // sum-of-products
     Vec_Int_t *        vExpr;       // boolean expression
     union { word       uTruth;      // truth table

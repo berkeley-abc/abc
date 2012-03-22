@@ -41,8 +41,6 @@ struct Abc_ManTime_t_
 static Abc_ManTime_t *     Abc_ManTimeStart();
 static void                Abc_ManTimeExpand( Abc_ManTime_t * p, int nSize, int fProgressive );
 
-void                       Abc_NodeDelayTraceArrival( Abc_Obj_t * pNode );
-
 // accessing the arrival and required times of a node
 static inline Abc_Time_t * Abc_NodeArrival( Abc_Obj_t * pNode )  {  return (Abc_Time_t *)pNode->pNtk->pManTime->vArrs->pArray[pNode->Id];  }
 static inline Abc_Time_t * Abc_NodeRequired( Abc_Obj_t * pNode ) {  return (Abc_Time_t *)pNode->pNtk->pManTime->vReqs->pArray[pNode->Id];  }
@@ -117,6 +115,38 @@ Abc_Time_t * Abc_NtkReadDefaultRequired( Abc_Ntk_t * pNtk )
 {
     assert( pNtk->pManTime );
     return &pNtk->pManTime->tReqDef;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Reads average arrival time of the node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+float Abc_NodeReadArrivalAve( Abc_Obj_t * pNode )
+{
+    return 0.5 * Abc_NodeArrival(pNode)->Rise + 0.5 * Abc_NodeArrival(pNode)->Fall;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Reads average required time of the node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+float Abc_NodeReadRequiredAve( Abc_Obj_t * pNode )
+{
+    return 0.5 * Abc_NodeReadRequired(pNode)->Rise + 0.5 * Abc_NodeReadRequired(pNode)->Fall;
 }
 
 /**Function*************************************************************
@@ -246,6 +276,7 @@ void Abc_NtkTimeInitialize( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkOld )
     {
         pNtk->pManTime->tArrDef = pNtkOld->pManTime->tArrDef;
         pNtk->pManTime->tReqDef = pNtkOld->pManTime->tReqDef;
+        pNtk->AndGateDelay = pNtkOld->AndGateDelay;
     }
     // set the default timing
     ppTimes = (Abc_Time_t **)pNtk->pManTime->vArrs->pArray;
@@ -492,7 +523,7 @@ void Abc_NtkSetNodeLevelsArrival( Abc_Ntk_t * pNtkOld )
     int i;
     if ( pNtkOld->pManTime == NULL )
         return;
-    if ( Mio_LibraryReadNand2((Mio_Library_t *)Abc_FrameReadLibGen()) == NULL )
+    if ( Abc_FrameReadLibGen() == NULL || Mio_LibraryReadNand2((Mio_Library_t *)Abc_FrameReadLibGen()) == NULL )
         return;
     tAndDelay = Mio_LibraryReadDelayNand2Max((Mio_Library_t *)Abc_FrameReadLibGen());
     Abc_NtkForEachPi( pNtkOld, pNodeOld, i )
@@ -590,32 +621,105 @@ float * Abc_NtkGetCiArrivalFloats( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-float Abc_NtkDelayTrace( Abc_Ntk_t * pNtk )
+Vec_Int_t * Abc_NtkDelayTraceSlackStart( Abc_Ntk_t * pNtk )
 {
-    Abc_Obj_t * pNode, * pDriver;
-    Vec_Ptr_t * vNodes;
-    Abc_Time_t * pTime;
-    float tArrivalMax;
-    int i;
-
-    assert( Abc_NtkIsMappedLogic(pNtk) );
-
-    Abc_NtkTimePrepare( pNtk );
-    vNodes = Abc_NtkDfs( pNtk, 1 );
-    for ( i = 0; i < vNodes->nSize; i++ )
-        Abc_NodeDelayTraceArrival( (Abc_Obj_t *)vNodes->pArray[i] );
-    Vec_PtrFree( vNodes );
-
-    // get the latest arrival times
-    tArrivalMax = -ABC_INFINITY;
-    Abc_NtkForEachCo( pNtk, pNode, i )
+    Vec_Int_t * vSlacks;
+    Abc_Obj_t * pObj;
+    int i, k;
+    vSlacks = Vec_IntAlloc( Abc_NtkObjNumMax(pNtk) + Abc_NtkGetTotalFanins(pNtk) );
+    Vec_IntFill( vSlacks, Abc_NtkObjNumMax(pNtk), -1 );
+    Abc_NtkForEachNode( pNtk, pObj, i )
     {
-        pDriver = Abc_ObjFanin0(pNode);
-        pTime   = Abc_NodeArrival(pDriver);
-        if ( tArrivalMax < pTime->Worst )
-            tArrivalMax = pTime->Worst;
+        Vec_IntWriteEntry( vSlacks, i, Vec_IntSize(vSlacks) );
+        for ( k = 0; k < Abc_ObjFaninNum(pObj); k++ )
+            Vec_IntPush( vSlacks, -1 );
     }
-    return tArrivalMax;
+    assert( Vec_IntSize(vSlacks) == Vec_IntCap(vSlacks) );
+    return vSlacks;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Read/write edge slacks.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline float Abc_NtkDelayTraceSlack( Vec_Int_t * vSlacks, Abc_Obj_t * pObj, int iFanin )
+{
+    return Abc_Int2Float( Vec_IntEntry( vSlacks, Vec_IntEntry(vSlacks, Abc_ObjId(pObj)) + iFanin ) );
+}
+static inline void Abc_NtkDelayTraceSetSlack( Vec_Int_t * vSlacks, Abc_Obj_t * pObj, int iFanin, float Num )
+{
+    Vec_IntWriteEntry( vSlacks, Vec_IntEntry(vSlacks, Abc_ObjId(pObj)) + iFanin, Abc_Float2Int(Num) );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Find most-critical path (the path with smallest slacks).]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkDelayTraceCritPath_rec( Vec_Int_t * vSlacks, Abc_Obj_t * pNode, Abc_Obj_t * pLeaf, Vec_Int_t * vBest )
+{
+    Abc_Obj_t * pFanin, * pFaninBest = NULL;
+    float SlackMin = ABC_INFINITY;
+    int i;
+    // check primary inputs
+    if ( Abc_ObjIsCi(pNode) )
+        return (pLeaf == NULL || pLeaf == pNode);
+    assert( Abc_ObjIsNode(pNode) );
+    // check visited
+    if ( Abc_NodeIsTravIdCurrent( pNode ) )
+        return Vec_IntEntry(vBest, Abc_ObjId(pNode)) >= 0;
+    Abc_NodeSetTravIdCurrent( pNode );
+    // check the node
+    assert( Abc_ObjIsNode(pNode) );
+    Abc_ObjForEachFanin( pNode, pFanin, i )
+    {
+        if ( !Abc_NtkDelayTraceCritPath_rec( vSlacks, pFanin, pLeaf, vBest ) )
+            continue;
+        if ( pFaninBest == NULL || SlackMin > Abc_NtkDelayTraceSlack(vSlacks, pNode, i) )
+        {
+            pFaninBest = pFanin;
+            SlackMin = Abc_NtkDelayTraceSlack(vSlacks, pNode, i);
+        }
+    }
+    if ( pFaninBest != NULL )
+        Vec_IntWriteEntry( vBest, Abc_ObjId(pNode), Abc_NodeFindFanin(pNode, pFaninBest) );
+    return (pFaninBest != NULL);
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Find most-critical path (the path with smallest slacks).]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkDelayTraceCritPathCollect_rec( Vec_Int_t * vSlacks, Abc_Obj_t * pNode, Vec_Int_t * vBest, Vec_Ptr_t * vPath )
+{
+    assert( Abc_ObjIsCi(pNode) || Abc_ObjIsNode(pNode) );
+    if ( Abc_ObjIsNode(pNode) )
+    {
+        int iFanin = Vec_IntEntry( vBest, Abc_ObjId(pNode) );
+        assert( iFanin >= 0 );
+        Abc_NtkDelayTraceCritPathCollect_rec( vSlacks, Abc_ObjFanin(pNode, iFanin), vBest, vPath );
+    }
+    Vec_PtrPush( vPath, pNode );
 }
 
 /**Function*************************************************************
@@ -629,7 +733,7 @@ float Abc_NtkDelayTrace( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NodeDelayTraceArrival( Abc_Obj_t * pNode )
+void Abc_NodeDelayTraceArrival( Abc_Obj_t * pNode, Vec_Int_t * vSlacks )
 {
     Abc_Obj_t * pFanin;
     Abc_Time_t * pTimeIn, * pTimeOut;
@@ -668,8 +772,155 @@ void Abc_NodeDelayTraceArrival( Abc_Obj_t * pNode )
         pPin = Mio_PinReadNext(pPin);
     }
     pTimeOut->Worst = Abc_MaxFloat( pTimeOut->Rise, pTimeOut->Fall );
+
+    // compute edge slacks
+    if ( vSlacks )
+    {
+        float Slack;
+        // go through the pins of the gate
+        pPin = Mio_GateReadPins((Mio_Gate_t *)pNode->pData);
+        Abc_ObjForEachFanin( pNode, pFanin, i )
+        {
+            pTimeIn = Abc_NodeArrival(pFanin);
+            // get the interesting parameters of this pin
+            PinPhase = Mio_PinReadPhase(pPin);
+            tDelayBlockRise = (float)Mio_PinReadDelayBlockRise( pPin );  
+            tDelayBlockFall = (float)Mio_PinReadDelayBlockFall( pPin );  
+            // compute the arrival times of the positive phase
+            Slack = ABC_INFINITY;
+            if ( PinPhase != MIO_PHASE_INV )  // NONINV phase is present
+            {
+//                if ( pTimeOut->Rise < pTimeIn->Rise + tDelayBlockRise )
+//                    pTimeOut->Rise = pTimeIn->Rise + tDelayBlockRise;
+//                if ( pTimeOut->Fall < pTimeIn->Fall + tDelayBlockFall )
+//                    pTimeOut->Fall = pTimeIn->Fall + tDelayBlockFall;
+                Slack = Abc_MinFloat( Slack, Abc_AbsFloat(pTimeIn->Rise + tDelayBlockRise - pTimeOut->Rise) );
+                Slack = Abc_MinFloat( Slack, Abc_AbsFloat(pTimeIn->Fall + tDelayBlockFall - pTimeOut->Fall) );
+            }
+            if ( PinPhase != MIO_PHASE_NONINV )  // INV phase is present
+            {
+//                if ( pTimeOut->Rise < pTimeIn->Fall + tDelayBlockRise )
+//                    pTimeOut->Rise = pTimeIn->Fall + tDelayBlockRise;
+//                if ( pTimeOut->Fall < pTimeIn->Rise + tDelayBlockFall )
+//                    pTimeOut->Fall = pTimeIn->Rise + tDelayBlockFall;
+                Slack = Abc_MinFloat( Slack, Abc_AbsFloat(pTimeIn->Fall + tDelayBlockRise - pTimeOut->Rise) );
+                Slack = Abc_MinFloat( Slack, Abc_AbsFloat(pTimeIn->Rise + tDelayBlockFall - pTimeOut->Fall) );
+            }
+            pPin = Mio_PinReadNext(pPin);
+            Abc_NtkDelayTraceSetSlack( vSlacks, pNode, i, Slack );
+        }
+    }
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Performs delay-trace of the network. If input (pIn) or 
+  output (pOut) are given, finds the most-timing-critical path between 
+  them and prints it to the standard output. If input and/or output are 
+  not given, finds the most-critical path in the network and prints it.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+float Abc_NtkDelayTrace( Abc_Ntk_t * pNtk, Abc_Obj_t * pOut, Abc_Obj_t * pIn, int fPrint )
+{
+    Vec_Int_t * vSlacks = NULL;
+    Abc_Obj_t * pNode, * pDriver;
+    Vec_Ptr_t * vNodes;
+    Abc_Time_t * pTime;
+    float tArrivalMax;
+    int i;
+
+    assert( Abc_NtkIsMappedLogic(pNtk) );
+    assert( pOut == NULL || Abc_ObjIsCo(pOut) );
+    assert( pIn == NULL || Abc_ObjIsCi(pIn) );
+
+    // create slacks (need slacks if printing is requested even if pIn/pOut are not given)
+    if ( pOut || pIn || fPrint )
+        vSlacks = Abc_NtkDelayTraceSlackStart( pNtk );
+
+    // compute the timing
+    Abc_NtkTimePrepare( pNtk );
+    vNodes = Abc_NtkDfs( pNtk, 1 );
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNode, i )
+        Abc_NodeDelayTraceArrival( pNode, vSlacks );
+    Vec_PtrFree( vNodes );
+
+    // get the latest arrival times
+    tArrivalMax = -ABC_INFINITY;
+    Abc_NtkForEachCo( pNtk, pNode, i )
+    {
+        pDriver = Abc_ObjFanin0(pNode);
+        pTime   = Abc_NodeArrival(pDriver);
+        if ( tArrivalMax < pTime->Worst )
+            tArrivalMax = pTime->Worst;
+    }
+
+    // determine the output to print
+    if ( fPrint && pOut == NULL )
+    {
+        Abc_NtkForEachCo( pNtk, pNode, i )
+        {
+            pDriver = Abc_ObjFanin0(pNode);
+            pTime   = Abc_NodeArrival(pDriver);
+            if ( tArrivalMax == pTime->Worst )
+                pOut = pNode;
+        }
+        assert( pOut != NULL );
+    }
+
+    if ( fPrint )
+    {
+        Vec_Ptr_t * vPath = Vec_PtrAlloc( 100 );
+        Vec_Int_t * vBest = Vec_IntStartFull( Abc_NtkObjNumMax(pNtk) );
+        // traverse to determine the critical path
+        Abc_NtkIncrementTravId( pNtk );
+        if ( !Abc_NtkDelayTraceCritPath_rec( vSlacks, Abc_ObjFanin0(pOut), pIn, vBest ) )
+            printf( "There is no combinational path between PO \"%s\" and PI \"%s\".\n", Abc_ObjName(pOut), Abc_ObjName(pIn) );
+        else
+        {
+            // collect the critical path
+            Abc_NtkDelayTraceCritPathCollect_rec( vSlacks, Abc_ObjFanin0(pOut), vBest, vPath );
+            if ( pIn == NULL )
+                pIn = (Abc_Obj_t *)Vec_PtrEntry( vPath, 0 );
+            // print critical path
+            printf( "Critical path to PO \"%s\" from PI \"%s\":\n", Abc_ObjName(pOut), Abc_ObjName(pIn) ); 
+            Vec_PtrForEachEntryReverse( Abc_Obj_t *, vPath, pNode, i )
+            {
+            
+                printf( "Obj =%7d.  ", Abc_ObjId(pNode) );
+                printf( "Lev =%4d.  ", Abc_ObjLevel(pNode) );
+                printf( "  " );
+                printf( "Rise =%6.1f. ", Abc_NodeReadArrival(pNode)->Rise );
+                printf( "Fall =%6.1f. ", Abc_NodeReadArrival(pNode)->Fall );
+                printf( "  " );
+                if ( Abc_ObjIsCi(pNode) )
+                    printf( "Primary input \"%s\".", Abc_ObjName(pNode) );
+                else if ( Abc_ObjIsCo(pNode) )
+                    printf( "Primary output \"%s\".", Abc_ObjName(pNode) );
+                else
+                {
+                    int iFanin;
+                    assert( Abc_ObjIsNode(pNode) );
+                    iFanin = Abc_NodeFindFanin( pNode, (Abc_Obj_t *)Vec_PtrEntry(vPath,i-1) );
+                    printf( "Slack =%6.1f.  ", Abc_NtkDelayTraceSlack(vSlacks, pNode, iFanin) );
+                    printf( "Mapping:  Pin = %d. Gate = %s. ", iFanin, Mio_GateReadName(pNode->pData) );
+                }
+                printf( "\n" );
+            }
+        }
+        Vec_PtrFree( vPath );
+        Vec_IntFree( vBest );
+    }
+
+    Vec_IntFreeP( &vSlacks );
+    return tArrivalMax;
+}
 
 
 

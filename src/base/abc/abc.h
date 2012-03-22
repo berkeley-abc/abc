@@ -204,6 +204,7 @@ struct Abc_Ntk_t_
 //    Abc_Lib_t *       pVerLib;       // for structural verilog designs
     Abc_ManTime_t *   pManTime;      // the timing manager (for mapped networks) stores arrival/required times for all nodes
     void *            pManCut;       // the cut manager (for AIGs) stores information about the cuts computed for the nodes
+    float             AndGateDelay;  // an average estimated delay of one AND gate
     int               LevelMax;      // maximum number of levels
     Vec_Int_t *       vLevelsR;      // level in the reverse topological order (for AIGs)
     Vec_Ptr_t *       vSupps;        // CO support information
@@ -863,6 +864,8 @@ extern ABC_DLL Abc_Time_t *       Abc_NodeReadArrival( Abc_Obj_t * pNode );
 extern ABC_DLL Abc_Time_t *       Abc_NodeReadRequired( Abc_Obj_t * pNode );
 extern ABC_DLL Abc_Time_t *       Abc_NtkReadDefaultArrival( Abc_Ntk_t * pNtk );
 extern ABC_DLL Abc_Time_t *       Abc_NtkReadDefaultRequired( Abc_Ntk_t * pNtk );
+extern ABC_DLL float              Abc_NodeReadArrivalAve( Abc_Obj_t * pNode );
+extern ABC_DLL float              Abc_NodeReadRequiredAve( Abc_Obj_t * pNode );
 extern ABC_DLL void               Abc_NtkTimeSetDefaultArrival( Abc_Ntk_t * pNtk, float Rise, float Fall );
 extern ABC_DLL void               Abc_NtkTimeSetDefaultRequired( Abc_Ntk_t * pNtk, float Rise, float Fall );
 extern ABC_DLL void               Abc_NtkTimeSetArrival( Abc_Ntk_t * pNtk, int ObjId, float Rise, float Fall );
@@ -874,7 +877,7 @@ extern ABC_DLL void               Abc_NtkSetNodeLevelsArrival( Abc_Ntk_t * pNtk 
 extern ABC_DLL float *            Abc_NtkGetCiArrivalFloats( Abc_Ntk_t * pNtk );
 extern ABC_DLL Abc_Time_t *       Abc_NtkGetCiArrivalTimes( Abc_Ntk_t * pNtk );
 extern ABC_DLL Abc_Time_t *       Abc_NtkGetCoRequiredTimes( Abc_Ntk_t * pNtk );
-extern ABC_DLL float              Abc_NtkDelayTrace( Abc_Ntk_t * pNtk );
+extern ABC_DLL float              Abc_NtkDelayTrace( Abc_Ntk_t * pNtk, Abc_Obj_t * pOut, Abc_Obj_t * pIn, int fPrint );
 extern ABC_DLL int                Abc_ObjLevelNew( Abc_Obj_t * pObj );
 extern ABC_DLL int                Abc_ObjReverseLevelNew( Abc_Obj_t * pObj );
 extern ABC_DLL int                Abc_ObjRequiredLevel( Abc_Obj_t * pObj );
@@ -915,6 +918,7 @@ extern ABC_DLL void               Abc_NtkCleanMarkB( Abc_Ntk_t * pNtk );
 extern ABC_DLL void               Abc_NtkCleanMarkC( Abc_Ntk_t * pNtk );
 extern ABC_DLL void               Abc_NtkCleanMarkAB( Abc_Ntk_t * pNtk );
 extern ABC_DLL void               Abc_NtkCleanMarkABC( Abc_Ntk_t * pNtk );
+extern ABC_DLL int                Abc_NodeFindFanin( Abc_Obj_t * pNode, Abc_Obj_t * pFanin );
 extern ABC_DLL Abc_Obj_t *        Abc_NodeFindCoFanout( Abc_Obj_t * pNode );
 extern ABC_DLL Abc_Obj_t *        Abc_NodeFindNonCoFanout( Abc_Obj_t * pNode );
 extern ABC_DLL Abc_Obj_t *        Abc_NodeHasUniqueCoFanout( Abc_Obj_t * pNode );
@@ -938,6 +942,7 @@ extern ABC_DLL void               Abc_NtkReassignIds( Abc_Ntk_t * pNtk );
 extern ABC_DLL int                Abc_ObjPointerCompare( void ** pp1, void ** pp2 );
 extern ABC_DLL void               Abc_NtkTransferCopy( Abc_Ntk_t * pNtk );
 extern ABC_DLL void               Abc_NtkInvertConstraints( Abc_Ntk_t * pNtk );
+extern ABC_DLL void               Abc_NtkPrintCiLevels( Abc_Ntk_t * pNtk );
 
 
 /*=== abcVerify.c ==========================================================*/

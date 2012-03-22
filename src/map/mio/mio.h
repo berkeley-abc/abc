@@ -84,7 +84,6 @@ extern char *            Mio_LibraryReadName       ( Mio_Library_t * pLib );
 extern int               Mio_LibraryReadGateNum    ( Mio_Library_t * pLib );
 extern Mio_Gate_t *      Mio_LibraryReadGates      ( Mio_Library_t * pLib );
 extern Mio_Gate_t **     Mio_LibraryReadGatesByName( Mio_Library_t * pLib );
-//extern DdManager *       Mio_LibraryReadDd         ( Mio_Library_t * pLib );
 extern Mio_Gate_t *      Mio_LibraryReadGateByName ( Mio_Library_t * pLib, char * pName );
 extern char *            Mio_LibraryReadSopByName  ( Mio_Library_t * pLib, char * pName );    
 extern Mio_Gate_t *      Mio_LibraryReadConst0     ( Mio_Library_t * pLib );
@@ -114,7 +113,6 @@ extern Mio_Gate_t *      Mio_GateReadNext          ( Mio_Gate_t * pGate );
 extern int               Mio_GateReadInputs        ( Mio_Gate_t * pGate );      
 extern double            Mio_GateReadDelayMax      ( Mio_Gate_t * pGate );      
 extern char *            Mio_GateReadSop           ( Mio_Gate_t * pGate );      
-//extern DdNode *          Mio_GateReadFunc          ( Mio_Gate_t * pGate );
 extern word              Mio_GateReadTruth         ( Mio_Gate_t * pGate );
 extern int               Mio_GateReadValue         ( Mio_Gate_t * pGate );
 extern void              Mio_GateSetValue          ( Mio_Gate_t * pGate, int Value );
@@ -150,8 +148,7 @@ extern void              Mio_DeriveGateDelays( Mio_Gate_t * pGate,
                             float ** ptPinDelays, int nPins, int nInputs, float tDelayZero, 
                             float * ptDelaysRes, float * ptPinDelayMax );
 extern Mio_Gate_t *      Mio_GateCreatePseudo( int nInputs );
-
-
+extern void              Mio_LibraryShift( Mio_Library_t * pLib, double Shift );
 
 ABC_NAMESPACE_HEADER_END
 

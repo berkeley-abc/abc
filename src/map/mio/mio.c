@@ -231,6 +231,7 @@ int Mio_CommandReadLibrary( Abc_Frame_t * pAbc, int argc, char **argv )
     Abc_Ntk_t * pNet;
     char * FileName;
     int fVerbose;
+    double WireDelay;
     int c;
 
     pNet = Abc_FrameReadNtk(pAbc);
@@ -238,12 +239,24 @@ int Mio_CommandReadLibrary( Abc_Frame_t * pAbc, int argc, char **argv )
     pErr = Abc_FrameReadErr(pAbc);
 
     // set the defaults
+    WireDelay   = 0.0;
     fVerbose = 1;
     Extra_UtilGetoptReset();
-    while ( (c = Extra_UtilGetopt(argc, argv, "vh")) != EOF ) 
+    while ( (c = Extra_UtilGetopt(argc, argv, "Wvh")) != EOF ) 
     {
         switch (c) 
         {
+            case 'W':
+                if ( globalUtilOptind >= argc )
+                {
+                    Abc_Print( -1, "Command line switch \"-W\" should be followed by a floating point number.\n" );
+                    goto usage;
+                }
+                WireDelay = (float)atof(argv[globalUtilOptind]);
+                globalUtilOptind++;
+                if ( WireDelay <= 0.0 ) 
+                    goto usage;
+                break;
             case 'v':
                 fVerbose ^= 1;
                 break;
@@ -280,6 +293,10 @@ int Mio_CommandReadLibrary( Abc_Frame_t * pAbc, int argc, char **argv )
         fprintf( pErr, "Reading GENLIB library has failed.\n" );
         return 1;
     }
+    // add the fixed number (wire delay) to all delays in the library
+    if ( WireDelay != 0.0 )
+        Mio_LibraryShift( pLib, WireDelay );
+
     // free the current superlib because it depends on the old Mio library
     if ( Abc_FrameReadLibSuper() )
     {
@@ -304,13 +321,14 @@ int Mio_CommandReadLibrary( Abc_Frame_t * pAbc, int argc, char **argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: read_library [-vh]\n");
-    fprintf( pErr, "\t         read the library from a genlib file\n" );  
-    fprintf( pErr, "\t         (if the library contains more than one gate\n" );  
-    fprintf( pErr, "\t         with the same Boolean function, only the gate\n" );  
-    fprintf( pErr, "\t         with the smallest area will be used)\n" );  
-    fprintf( pErr, "\t-v     : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
-    fprintf( pErr, "\t-h     : enable verbose output\n");
+    fprintf( pErr, "usage: read_library [-W float] [-vh]\n");
+    fprintf( pErr, "\t           read the library from a genlib file\n" );  
+    fprintf( pErr, "\t           (if the library contains more than one gate\n" );  
+    fprintf( pErr, "\t           with the same Boolean function, only the gate\n" );  
+    fprintf( pErr, "\t           with the smallest area will be used)\n" );  
+    Abc_Print( -2, "\t-W float : wire delay (added to pin-to-pin gate delays) [default = %g]\n", WireDelay );  
+    fprintf( pErr, "\t-v       : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( pErr, "\t-h       : enable verbose output\n");
     return 1;       /* error exit */
 }
 

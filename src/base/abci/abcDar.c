@@ -254,7 +254,11 @@ Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters )
     // transfer the pointers to the basic nodes
     Abc_AigConst1(pNtk)->pCopy = (Abc_Obj_t *)Aig_ManConst1(pMan);
     Abc_NtkForEachCi( pNtk, pObj, i )
+    {
         pObj->pCopy = (Abc_Obj_t *)Aig_ObjCreateCi(pMan);
+        // initialize logic level of the CIs
+        ((Aig_Obj_t *)pObj->pCopy)->Level = pObj->Level;
+    }
     // complement the 1-values registers
     if ( fRegisters ) {
         Abc_NtkForEachLatch( pNtk, pObj, i )
@@ -385,7 +389,11 @@ Abc_Ntk_t * Abc_NtkFromDar( Abc_Ntk_t * pNtkOld, Aig_Man_t * pMan )
     // transfer the pointers to the basic nodes
     Aig_ManConst1(pMan)->pData = Abc_AigConst1(pNtkNew);
     Aig_ManForEachCi( pMan, pObj, i )
+    {
         pObj->pData = Abc_NtkCi(pNtkNew, i);
+        // initialize logic level of the CIs
+        ((Abc_Obj_t *)pObj->pData)->Level = pObj->Level;
+    }
     // rebuild the AIG
     vNodes = Aig_ManDfs( pMan, 1 );
     Vec_PtrForEachEntry( Aig_Obj_t *, vNodes, pObj, i )
@@ -404,6 +412,7 @@ Abc_Ntk_t * Abc_NtkFromDar( Abc_Ntk_t * pNtkOld, Aig_Man_t * pMan )
     // if there are assertions, add them
     if ( !Abc_NtkCheck( pNtkNew ) )
         Abc_Print( 1, "Abc_NtkFromDar(): Network check has failed.\n" );
+//Abc_NtkPrintCiLevels( pNtkNew );
     return pNtkNew;
 }
 

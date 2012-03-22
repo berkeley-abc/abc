@@ -209,7 +209,8 @@ If_Man_t * Abc_NtkToIf( Abc_Ntk_t * pNtk, If_Par_t * pPars )
     Abc_NtkForEachCi( pNtk, pNode, i )
     {
         pNode->pCopy = (Abc_Obj_t *)If_ManCreateCi( pIfMan );
-//printf( "AIG CI %2d -> IF CI %2d\n", pNode->Id, ((If_Obj_t *)pNode->pCopy)->Id );
+        // transfer logic level information
+        ((If_Obj_t *)pNode->pCopy)->Level = pNode->Level;
     }
 
     // load the AIG into the mapper

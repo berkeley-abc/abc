@@ -84,6 +84,7 @@ Abc_Ntk_t * Abc_NtkBalance( Abc_Ntk_t * pNtk, int fDuplicate, int fSelective, in
         Abc_NtkDelete( pNtkAig );
         return NULL;
     }
+//Abc_NtkPrintCiLevels( pNtkAig );
     return pNtkAig;
 }
 
@@ -104,7 +105,9 @@ void Abc_NtkBalancePerform( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkAig, int fDuplicat
     Vec_Vec_t * vStorage;
     Abc_Obj_t * pNode, * pDriver;
     int i;
-
+    // transfer level
+    Abc_NtkForEachCi( pNtk, pNode, i )
+        pNode->pCopy->Level = pNode->Level;
     // set the level of PIs of AIG according to the arrival times of the old network
     Abc_NtkSetNodeLevelsArrival( pNtk );
     // allocate temporary storage for supergates

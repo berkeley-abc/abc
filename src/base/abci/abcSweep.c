@@ -282,7 +282,7 @@ void Abc_NtkFraigTransform( Abc_Ntk_t * pNtk, stmm_table * tEquiv, int fUseInv, 
     // merge nodes in the classes
     if ( Abc_NtkHasMapping( pNtk ) )
     {
-        Abc_NtkDelayTrace( pNtk );
+        Abc_NtkDelayTrace( pNtk, NULL, NULL, 0 );
         stmm_foreach_item( tEquiv, gen, (char **)&pList, NULL )
             Abc_NtkFraigMergeClassMapped( pNtk, pList, fUseInv, fVerbose );
     }

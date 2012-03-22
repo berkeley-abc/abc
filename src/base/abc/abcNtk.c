@@ -85,6 +85,8 @@ Abc_Ntk_t * Abc_NtkAlloc( Abc_NtkType_t Type, Abc_NtkFunc_t Func, int fUseMemMan
     pNtk->pManName = Nm_ManCreate( 200 );
     // attribute manager
     pNtk->vAttrs = Vec_PtrStart( VEC_ATTR_TOTAL_NUM );
+    // estimated AndGateDelay
+    pNtk->AndGateDelay = 0.0;
     return pNtk;
 }
 
@@ -131,6 +133,9 @@ Abc_Ntk_t * Abc_NtkStartFrom( Abc_Ntk_t * pNtk, Abc_NtkType_t Type, Abc_NtkFunc_
         Abc_NtkDupObj( pNtkNew, pObj, fCopyNames );
     Abc_NtkForEachBox( pNtk, pObj, i )
         Abc_NtkDupBox( pNtkNew, pObj, fCopyNames );
+    // transfer logic level
+    Abc_NtkForEachCi( pNtk, pObj, i )
+        pObj->pCopy->Level = pObj->Level;
     // transfer the names
 //    Abc_NtkTrasferNames( pNtk, pNtkNew );
     Abc_ManTimeDup( pNtk, pNtkNew );
@@ -140,6 +145,14 @@ Abc_Ntk_t * Abc_NtkStartFrom( Abc_Ntk_t * pNtk, Abc_NtkType_t Type, Abc_NtkFunc_
         pNtkNew->pSeqModel = Abc_CexDup( pNtk->pSeqModel, Abc_NtkLatchNum(pNtk) );
     if ( pNtk->vObjPerm )
         pNtkNew->vObjPerm = Vec_IntDup( pNtk->vObjPerm );
+    pNtkNew->AndGateDelay = pNtk->AndGateDelay;
+    // initialize logic level of the CIs
+    if ( pNtk->AndGateDelay != 0.0 && pNtk->ntkType != ABC_NTK_STRASH && Type == ABC_NTK_STRASH )
+    {
+        assert( pNtk->pManTime != NULL ); // timing info should be available
+        Abc_NtkForEachCi( pNtk, pObj, i )
+            pObj->pCopy->Level = (int)(Abc_NodeReadArrivalAve(pObj) / pNtk->AndGateDelay);
+    }
     // check that the CI/CO/latches are copied correctly
     assert( Abc_NtkCiNum(pNtk)    == Abc_NtkCiNum(pNtkNew) );
     assert( Abc_NtkCoNum(pNtk)    == Abc_NtkCoNum(pNtkNew) );
@@ -195,6 +208,7 @@ Abc_Ntk_t * Abc_NtkStartFromNoLatches( Abc_Ntk_t * pNtk, Abc_NtkType_t Type, Abc
     }
     if ( pNtk->vObjPerm )
         pNtkNew->vObjPerm = Vec_IntDup( pNtk->vObjPerm );
+    pNtkNew->AndGateDelay = pNtk->AndGateDelay;
     // transfer the names
 //    Abc_NtkTrasferNamesNoLatches( pNtk, pNtkNew );
     Abc_ManTimeDup( pNtk, pNtkNew );
@@ -337,6 +351,9 @@ Abc_Ntk_t * Abc_NtkDup( Abc_Ntk_t * pNtk )
         return NULL;
     // start the network
     pNtkNew = Abc_NtkStartFrom( pNtk, pNtk->ntkType, pNtk->ntkFunc );
+    // transfer level
+    Abc_NtkForEachCi( pNtk, pObj, i )
+        pObj->pCopy->Level = pObj->Level;
     // copy the internal nodes
     if ( Abc_NtkIsStrash(pNtk) )
     {
@@ -367,7 +384,7 @@ Abc_Ntk_t * Abc_NtkDup( Abc_Ntk_t * pNtk )
                 Abc_ObjForEachFanin( pObj, pFanin, k )
                     Abc_ObjAddFanin( pObj->pCopy, pFanin->pCopy );
     }
-    // remap the real nodess
+    // remap the real nodes
     if ( pNtk->vRealNodes )
     {
         assert( pNtkNew->vRealNodes == NULL );
