@@ -935,7 +935,7 @@ int Io_ReadBlifNetworkAndGateDelay( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens )
     if ( *pFoo1 != '\0' )
     {
         p->LineCur = Extra_FileReaderGetLineNumber(p->pReader, 0);
-        sprintf( p->sError, "Bad value (%s %s) for AND gate delay in on .and_gate_delay line line.", (char*)vTokens->pArray[1] );
+        sprintf( p->sError, "Bad value (%s) for AND gate delay in on .and_gate_delay line line.", (char*)vTokens->pArray[1] );
         Io_ReadBlifPrintErrorMessage( p );
         return 1;
     }
