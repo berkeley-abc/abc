@@ -5666,29 +5666,20 @@ usage:
 ***********************************************************************/
 int Abc_CommandDemiter( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);//, * pNtkRes;
-    int fDual, fSeq, fVerbose;
-    int c;
-    extern int Abc_NtkDemiter( Abc_Ntk_t * pNtk );
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+    int c, fDual, fVerbose;
     extern int Abc_NtkDarDemiter( Abc_Ntk_t * pNtk );
     extern int Abc_NtkDarDemiterDual( Abc_Ntk_t * pNtk, int fVerbose );
-
-    extern int Abc_NtkDarDemiterNew( Abc_Ntk_t * pNtk );
-
     // set defaults
     fDual = 0;
-    fSeq = 1;
     fVerbose = 1;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "dsvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "dvh" ) ) != EOF )
     {
         switch ( c )
         {
         case 'd':
             fDual ^= 1;
-            break;
-        case 's':
-            fSeq ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -5710,9 +5701,6 @@ int Abc_CommandDemiter( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
-//    Abc_NtkDarDemiterNew( pNtk );
-//    return 0;
-
     if ( fDual )
     {
         if ( (Abc_NtkPoNum(pNtk) & 1) )
@@ -5727,43 +5715,37 @@ int Abc_CommandDemiter( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
         return 0;
     }
-
-    // get the new network
-    if ( fSeq )
+/*
+    if ( Abc_NtkPoNum(pNtk) != 1 )
     {
-        if ( !Abc_NtkDarDemiter( pNtk ) )
-        {
-            Abc_Print( -1, "Demitering has failed.\n" );
-            return 1;
-        }
+        Abc_Print( -1, "The network is not a single-output miter.\n" );
+        return 1;
     }
-    else
+    if ( !Abc_NodeIsExorType(Abc_ObjFanin0(Abc_NtkPo(pNtk,0))) )
     {
-        if ( Abc_NtkPoNum(pNtk) != 1 )
-        {
-            Abc_Print( -1, "The network is not a single-output miter.\n" );
-            return 1;
-        }
-        if ( !Abc_NodeIsExorType(Abc_ObjFanin0(Abc_NtkPo(pNtk,0))) )
-        {
-            Abc_Print( -1, "The miter's PO is not an EXOR.\n" );
-            return 1;
-        }
-        if ( !Abc_NtkDemiter( pNtk ) )
-        {
-            Abc_Print( -1, "Demitering has failed.\n" );
-            return 1;
-        }
+        Abc_Print( -1, "The miter's PO is not an EXOR.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkDemiter( pNtk ) )
+    {
+        Abc_Print( -1, "Demitering has failed.\n" );
+        return 1;
+    }
+*/
+    // get the new network
+    if ( !Abc_NtkDarDemiter( pNtk ) )
+    {
+        Abc_Print( -1, "Demitering has failed.\n" );
+        return 1;
     }
     // replace the current network
 //    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: demiter [-dsvh]\n" );
-    Abc_Print( -2, "\t        removes topmost XOR from the miter to create two POs\n" );
-    Abc_Print( -2, "\t-d    : demiters a dual-output miter (without XORs) [default = %s]\n", fSeq? "yes": "no" );
-    Abc_Print( -2, "\t-s    : applies a multi-output algorithm [default = %s]\n", fSeq? "yes": "no" );
+    Abc_Print( -2, "usage: demiter [-dvh]\n" );
+    Abc_Print( -2, "\t        splits sequential miter into two circuits\n" );
+    Abc_Print( -2, "\t-d    : expects a dual-output miter (without XORs) [default = %s]\n", fDual? "yes": "no" );
     Abc_Print( -2, "\t-v    : toggles outputting verbose information [default = %s]\n", fVerbose? "yes": "no" );  
     Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;
@@ -24370,7 +24352,7 @@ int Abc_CommandAbc9Miter( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     Abc_Print( -2, "usage: &miter [-dstvh] <file>\n" );
     Abc_Print( -2, "\t         creates miter of two designs (current AIG vs. <file>)\n" );
-    Abc_Print( -2, "\t-d     : toggle creating dual output miter [default = %s]\n", fDualOut? "yes": "no" );
+    Abc_Print( -2, "\t-d     : toggle creating dual-output miter [default = %s]\n", fDualOut? "yes": "no" );
     Abc_Print( -2, "\t-s     : toggle creating sequential miter [default = %s]\n", fSeq? "yes": "no" );
     Abc_Print( -2, "\t-t     : toggle XORing pair-wise POs of the miter [default = %s]\n", fTrans? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
@@ -25034,7 +25016,7 @@ int Abc_CommandAbc9Srm( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     Abc_Print( -2, "usage: &srm [-drsfvh]\n" );
     Abc_Print( -2, "\t         writes speculatively reduced model into file \"%s\"\n", pFileName );
-    Abc_Print( -2, "\t-d     : toggle creating dual output miter [default = %s]\n", fDualOut? "yes": "no" );
+    Abc_Print( -2, "\t-d     : toggle creating dual-output miter [default = %s]\n", fDualOut? "yes": "no" );
     Abc_Print( -2, "\t-r     : toggle writing reduced network for synthesis [default = %s]\n", fSynthesis? "yes": "no" );
     Abc_Print( -2, "\t-s     : toggle using speculation at the internal nodes [default = %s]\n", fSpeculate? "yes": "no" );
     Abc_Print( -2, "\t-f     : toggle filtering to remove redundant equivalences [default = %s]\n", fSkipSome? "yes": "no" );

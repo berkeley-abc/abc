@@ -2186,7 +2186,7 @@ int Abc_NtkDarDemiter( Abc_Ntk_t * pNtk )
         return 0;
     }
     // create file names
-    pFileNameGeneric = Extra_FileNameGeneric( pNtk->pSpec );
+    pFileNameGeneric = Extra_FileNameGeneric( pNtk->pSpec ? pNtk->pSpec : pNtk->pName );
     sprintf( pFileName0,  "%s%s",  pFileNameGeneric, "_part0.aig" ); 
     sprintf( pFileName1,  "%s%s",  pFileNameGeneric, "_part1.aig" ); 
     ABC_FREE( pFileNameGeneric );

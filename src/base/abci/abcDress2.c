@@ -70,7 +70,7 @@ extern void         Dch_ComputeEquivalences( Aig_Man_t * pAig, Dch_Pars_t * pPar
 
 /**Function*************************************************************
 
-  Synopsis    [Creates the dual output miter.]
+  Synopsis    [Creates the dual-output miter.]
 
   Description []
                
