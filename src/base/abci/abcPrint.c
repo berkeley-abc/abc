@@ -1004,7 +1004,7 @@ void Abc_NtkPrintGates( Abc_Ntk_t * pNtk, int fUseLibrary )
     {
         Mio_Gate_t ** ppGates;
         double Area, AreaTotal;
-        int Counter, nGates, i;
+        int Counter, nGates, i, nGateNameLen;
 
         // clean value of all gates
         nGates = Mio_LibraryReadGateNum( (Mio_Library_t *)pNtk->pManFunc );
@@ -1020,6 +1020,17 @@ void Abc_NtkPrintGates( Abc_Ntk_t * pNtk, int fUseLibrary )
             Mio_GateSetValue( (Mio_Gate_t *)pObj->pData, 1 + Mio_GateReadValue((Mio_Gate_t *)pObj->pData) );
             CounterTotal++;
         }
+
+        // determine the longest gate name
+        nGateNameLen = 0;
+        for ( i = 0; i < nGates; i++ )
+        {
+            Counter = Mio_GateReadValue( ppGates[i] );
+            if ( Counter == 0 )
+                continue;
+            nGateNameLen = Abc_MaxInt( nGateNameLen, strlen(Mio_GateReadName(ppGates[i])) );
+        }
+
         // print the gates
         AreaTotal = Abc_NtkGetMappedArea(pNtk);
         for ( i = 0; i < nGates; i++ )
@@ -1028,12 +1039,13 @@ void Abc_NtkPrintGates( Abc_Ntk_t * pNtk, int fUseLibrary )
             if ( Counter == 0 )
                 continue;
             Area = Counter * Mio_GateReadArea( ppGates[i] );
-            printf( "%-12s   Fanin = %2d   Instance = %8d   Area = %10.2f   %6.2f %%\n", 
-                Mio_GateReadName( ppGates[i] ), 
+            printf( "%-*s   Fanin = %2d   Instance = %8d   Area = %10.2f   %6.2f %%\n", 
+                nGateNameLen, Mio_GateReadName( ppGates[i] ), 
                 Mio_GateReadInputs( ppGates[i] ), 
                 Counter, Area, 100.0 * Area / AreaTotal );
         }
-        printf( "%-12s                Instance = %8d   Area = %10.2f   %6.2f %%\n", "TOTAL", 
+        printf( "%-*s                Instance = %8d   Area = %10.2f   %6.2f %%\n", 
+            nGateNameLen, "TOTAL", 
             CounterTotal, AreaTotal, 100.0 );
         return;
     }
@@ -1150,11 +1162,11 @@ void Abc_NtkPrintSharing( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkPrintStrSupports( Abc_Ntk_t * pNtk )
+void Abc_NtkPrintStrSupports( Abc_Ntk_t * pNtk, int fMatrix )
 {
     Vec_Ptr_t * vSupp, * vNodes;
     Abc_Obj_t * pObj;
-    int i;
+    int i, k;
     printf( "Structural support info:\n" );
     Abc_NtkForEachCo( pNtk, pObj, i )
     {
@@ -1165,6 +1177,28 @@ void Abc_NtkPrintStrSupports( Abc_Ntk_t * pNtk )
         Vec_PtrFree( vNodes );
         Vec_PtrFree( vSupp );
     }
+    if ( !fMatrix )
+        return;
+
+    Abc_NtkForEachCi( pNtk, pObj, k )
+        pObj->fMarkA = 0;
+
+    printf( "Actual support info:\n" );
+    Abc_NtkForEachCo( pNtk, pObj, i )
+    {
+        vSupp  = Abc_NtkNodeSupport( pNtk, &pObj, 1 );
+        Vec_PtrForEachEntry( Abc_Obj_t *, vSupp, pObj, k )
+            pObj->fMarkA = 1;
+        Vec_PtrFree( vSupp );
+
+        Abc_NtkForEachCi( pNtk, pObj, k )
+            printf( "%d", pObj->fMarkA );
+        printf( "\n" );
+
+        Abc_NtkForEachCi( pNtk, pObj, k )
+            pObj->fMarkA = 0;
+    }
+
 }
 
 /**Function*************************************************************

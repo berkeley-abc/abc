@@ -1463,14 +1463,16 @@ int Abc_CommandPrintSupport( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     int fStruct;
     int fVerbose;
+    int fVeryVerbose;
     extern Vec_Ptr_t * Sim_ComputeFunSupp( Abc_Ntk_t * pNtk, int fVerbose );
-    extern void Abc_NtkPrintStrSupports( Abc_Ntk_t * pNtk );
+    extern void Abc_NtkPrintStrSupports( Abc_Ntk_t * pNtk, int fMatrix );
 
     // set defaults
     fStruct = 1;
     fVerbose = 0;
+    fVeryVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "svh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "svwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -1479,6 +1481,9 @@ int Abc_CommandPrintSupport( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'v':
             fVerbose ^= 1;
+            break;
+        case 'w':
+            fVeryVerbose ^= 1;
             break;
         case 'h':
             goto usage;
@@ -1496,7 +1501,7 @@ int Abc_CommandPrintSupport( Abc_Frame_t * pAbc, int argc, char ** argv )
     // print support information
     if ( fStruct )
     {
-        Abc_NtkPrintStrSupports( pNtk );
+        Abc_NtkPrintStrSupports( pNtk, fVeryVerbose );
         return 0;
     }
 
@@ -1516,10 +1521,11 @@ int Abc_CommandPrintSupport( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: print_supp [-svh]\n" );
+    Abc_Print( -2, "usage: print_supp [-svwh]\n" );
     Abc_Print( -2, "\t        prints the supports of the CO nodes\n" );
     Abc_Print( -2, "\t-s    : toggle printing structural support only [default = %s].\n", fStruct? "yes": "no" );  
     Abc_Print( -2, "\t-v    : enable verbose output [default = %s].\n", fVerbose? "yes": "no" );  
+    Abc_Print( -2, "\t-w    : enable printing CI/CO dependency matrix [default = %s].\n", fVeryVerbose? "yes": "no" );  
     Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;
 }
