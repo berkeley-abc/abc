@@ -215,11 +215,11 @@ Vec_Int_t * Amap_LibDeriveGatePerm_rec( Amap_Lib_t * pLib, Kit_DsdNtk_t * pNtk, 
             break;
         }
     }
-    Vec_IntFree( vNodFanin );
-    Vec_IntFree( vDsdLits );
 //    assert( iDsdLit == Vec_IntSize(vDsdLits) );
     if ( iDsdLit != Vec_IntSize(vDsdLits) )
         Vec_IntFreeP( &vPerm );
+    Vec_IntFree( vNodFanin );
+    Vec_IntFree( vDsdLits );
     return vPerm;
 }
 
