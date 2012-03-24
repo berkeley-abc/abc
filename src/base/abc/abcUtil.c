@@ -2001,8 +2001,65 @@ void Abc_NtkPrintCiLevels( Abc_Ntk_t * pNtk )
     Abc_NtkForEachCi( pNtk, pObj, i )
         printf( "%c=%d ", 'a'+i, pObj->Level );
     printf( "\n" );
-
 }
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Obj_t * Abc_NtkAddBuffsOne( Vec_Ptr_t * vBuffs, Abc_Obj_t * pFanin, int Level, int nLevelMax )
+{
+    Abc_Obj_t * pBuffer;
+    assert( Level - 1 >= Abc_ObjLevel(pFanin) );
+    pBuffer = (Abc_Obj_t *)Vec_PtrEntry( vBuffs, Abc_ObjId(pFanin) * nLevelMax + Level );
+    if ( pBuffer == NULL )
+    {
+        if ( Level - 1 == Abc_ObjLevel(pFanin) )
+            pBuffer = pFanin;
+        else
+            pBuffer = Abc_NtkAddBuffsOne( vBuffs, pFanin, Level - 1, nLevelMax );
+        pBuffer = Abc_NtkCreateNodeBuf( Abc_ObjNtk(pFanin), pBuffer ); 
+        Vec_PtrWriteEntry( vBuffs, Abc_ObjId(pFanin) * nLevelMax + Level, pBuffer );
+    }
+    return pBuffer;
+}
+Abc_Ntk_t * Abc_NtkAddBuffs( Abc_Ntk_t * pNtkInit, int fVerbose )
+{
+    Vec_Ptr_t * vBuffs;
+    Abc_Ntk_t * pNtk = Abc_NtkDup( pNtkInit );
+    Abc_Obj_t * pObj, * pFanin, * pBuffer;
+    int i, k, nLevelMax = Abc_NtkLevel( pNtk );
+    Abc_NtkForEachCo( pNtk, pObj, i )
+        pObj->Level = nLevelMax + 1;
+    vBuffs = Vec_PtrStart( Abc_NtkObjNumMax(pNtk) * nLevelMax );
+    Abc_NtkForEachObj( pNtk, pObj, i )
+    {
+        if ( i == Vec_PtrSize(vBuffs) / nLevelMax )
+            break;
+        if ( !Abc_ObjIsNode(pObj) && !Abc_ObjIsCo(pObj) )
+            continue;
+        Abc_ObjForEachFanin( pObj, pFanin, k )
+        {
+            assert( Abc_ObjLevel(pObj) - 1 >= Abc_ObjLevel(pFanin) );
+            if ( Abc_ObjLevel(pObj) - 1 == Abc_ObjLevel(pFanin) )
+                continue;
+            pBuffer = Abc_NtkAddBuffsOne( vBuffs, pFanin, Abc_ObjLevel(pObj) - 1, nLevelMax );
+            Abc_ObjPatchFanin( pObj, pFanin, pBuffer );
+        }
+    }
+    Vec_PtrFree( vBuffs );
+    Abc_NtkForEachCo( pNtk, pObj, i )
+        pObj->Level = 0;
+    return pNtk;
+}
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
