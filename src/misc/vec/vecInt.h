@@ -1251,6 +1251,38 @@ static inline Vec_Int_t * Vec_IntTwoMerge( Vec_Int_t * vArr1, Vec_Int_t * vArr2 
     return vArr;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Returns the result of merging the two vectors.]
+
+  Description [Assumes that the vectors are sorted in the increasing order.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Vec_IntTwoSplit( Vec_Int_t * vArr1, Vec_Int_t * vArr2, Vec_Int_t * vArr, Vec_Int_t * vArr1n, Vec_Int_t * vArr2n )
+{
+    int * pBeg1 = vArr1->pArray;
+    int * pBeg2 = vArr2->pArray;
+    int * pEnd1 = vArr1->pArray + vArr1->nSize;
+    int * pEnd2 = vArr2->pArray + vArr2->nSize;
+    while ( pBeg1 < pEnd1 && pBeg2 < pEnd2 )
+    {
+        if ( *pBeg1 == *pBeg2 )
+            Vec_IntPush( vArr, *pBeg1++ ), pBeg2++;
+        else if ( *pBeg1 < *pBeg2 )
+            Vec_IntPush( vArr1n, *pBeg1++ );
+        else 
+            Vec_IntPush( vArr2n, *pBeg2++ );
+    }
+    while ( pBeg1 < pEnd1 )
+        Vec_IntPush( vArr1n, *pBeg1++ );
+    while ( pBeg2 < pEnd2 )
+        Vec_IntPush( vArr2n, *pBeg2++ );
+}
+
 
 /**Function*************************************************************
 

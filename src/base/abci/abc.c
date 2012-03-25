@@ -9009,6 +9009,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     if ( pNtk )
     {
+/*
         Aig_Man_t * pAig = Abc_NtkToDar( pNtk, 0, 1 );
         if ( fNewAlgo )
             Saig_IsoDetectFast( pAig );
@@ -9018,6 +9019,9 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
             Aig_ManStopP( &pRes );
         }
         Aig_ManStop( pAig );
+*/
+        extern void Abc_NtkShareXor( Abc_Ntk_t * pNtk );
+        Abc_NtkShareXor( pNtk );
     }
 
 //    Abc2_NtkTestGia( "", 1 );
