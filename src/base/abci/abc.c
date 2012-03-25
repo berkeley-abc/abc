@@ -115,6 +115,7 @@ static int Abc_CommandRestructure            ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandResubstitute           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRr                     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandCascade                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandExtract                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandLogic                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandComb                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -560,6 +561,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Synthesis",    "resub",         Abc_CommandResubstitute,     1 );
 //    Cmd_CommandAdd( pAbc, "Synthesis",    "rr",            Abc_CommandRr,               1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "cascade",       Abc_CommandCascade,          1 );
+    Cmd_CommandAdd( pAbc, "Synthesis",    "extract",       Abc_CommandExtract,          1 );
 
     Cmd_CommandAdd( pAbc, "Various",      "logic",         Abc_CommandLogic,            1 );
     Cmd_CommandAdd( pAbc, "Various",      "comb",          Abc_CommandComb,             1 );
@@ -2805,7 +2807,6 @@ int Abc_CommandBalance( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fUpdateLevel;
     int fExor;
     int fVerbose;
-    extern Abc_Ntk_t * Abc_NtkBalanceExor( Abc_Ntk_t * pNtk, int fUpdateLevel, int fVerbose );
     pNtk = Abc_FrameReadNtk(pAbc);
 
     // set defaults
@@ -5377,6 +5378,88 @@ usage:
     Abc_Print( -2, "  Professor Tsutomu Sasao (sasao@cse.kyutech.ac.jp) at Kyushu Institute\n");
     Abc_Print( -2, "  of Technology. This work received Takeda Techno-Entrepreneurship Award:\n");
     Abc_Print( -2, "  http://www.lsi-cad.com/sasao/photo/takeda.html\n");
+    Abc_Print( -2, "\t         \n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandExtract( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern Abc_Ntk_t * Abc_NtkShareXor( Abc_Ntk_t * pNtk, int nMultiSize, int fAnd, int fVerbose );
+    Abc_Ntk_t * pNtk, * pNtkRes;
+    int c, nMultiSize, fAnd, fVerbose;
+    pNtk = Abc_FrameReadNtk(pAbc);
+
+    // set defaults
+    nMultiSize = 3;
+    fAnd       = 0;
+    fVerbose   = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Kavh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'K':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-K\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nMultiSize = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nMultiSize < 0 ) 
+                goto usage;
+            break;
+        case 'a':
+            fAnd ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pNtk == NULL )
+    {
+        Abc_Print( -1, "Empty network.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        Abc_Print( -1, "Can only collapse a logic network or an AIG.\n" );
+        return 1;
+    }
+    // get the new network
+    pNtkRes = Abc_NtkShareXor( pNtk, nMultiSize, fAnd, fVerbose );
+    if ( pNtkRes == NULL )
+    {
+        Abc_Print( -1, "Cascade synthesis has failed.\n" );
+        return 1;
+    }
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: extract [-K <num>] [-vh]\n" );
+    Abc_Print( -2, "\t           extracts logic sharing from multi-input XOR gates\n" );
+    Abc_Print( -2, "\t-K <num> : the min gate size to consider for extraction [default = %d]\n", nMultiSize );
+//    Abc_Print( -2, "\t-a       : toggle multi-input XOR vs multi-input AND [default = %s]\n", fAnd? "AND": "XOR" );
+    Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h       : print the command usage\n");
     Abc_Print( -2, "\t         \n");
     return 1;
 }
@@ -9020,8 +9103,14 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
         Aig_ManStop( pAig );
 */
-        extern void Abc_NtkShareXor( Abc_Ntk_t * pNtk );
-        Abc_NtkShareXor( pNtk );
+/*
+        extern Abc_Ntk_t * Abc_NtkShareXor( Abc_Ntk_t * pNtk );
+        Abc_Ntk_t * pNtkRes = Abc_NtkShareXor( pNtk );
+        if ( pNtkRes == NULL )
+            printf( "Transformation has failed.\n" );
+        else
+            Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+*/
     }
 
 //    Abc2_NtkTestGia( "", 1 );

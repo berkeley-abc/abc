@@ -423,10 +423,6 @@ SOURCE=.\src\base\abci\abcSense.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\base\abci\abcShare.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\src\base\abci\abcSpeedup.c
 # End Source File
 # Begin Source File

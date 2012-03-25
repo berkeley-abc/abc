@@ -49,6 +49,7 @@ static void Abc_NtkStrashPerform( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew, int fAl
 Abc_Ntk_t * Abc_NtkRestrash( Abc_Ntk_t * pNtk, int fCleanup )
 {
 //    extern int timeRetime;
+    Vec_Ptr_t * vNodes;
     Abc_Ntk_t * pNtkAig;
     Abc_Obj_t * pObj;
     int i, nNodes;//, RetValue;
@@ -60,8 +61,10 @@ Abc_Ntk_t * Abc_NtkRestrash( Abc_Ntk_t * pNtk, int fCleanup )
     // start the new network (constants and CIs of the old network will point to the their counterparts in the new network)
     pNtkAig = Abc_NtkStartFrom( pNtk, ABC_NTK_STRASH, ABC_FUNC_AIG );
     // restrash the nodes (assuming a topological order of the old network)
-    Abc_NtkForEachNode( pNtk, pObj, i )
+    vNodes = Abc_NtkDfs( pNtk, 0 );
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
         pObj->pCopy = Abc_AigAnd( (Abc_Aig_t *)pNtkAig->pManFunc, Abc_ObjChild0Copy(pObj), Abc_ObjChild1Copy(pObj) );
+    Vec_PtrFree( vNodes );
     // finalize the network
     Abc_NtkFinalize( pNtk, pNtkAig );
     // print warning about self-feed latches
@@ -69,7 +72,9 @@ Abc_Ntk_t * Abc_NtkRestrash( Abc_Ntk_t * pNtk, int fCleanup )
 //        printf( "Warning: The network has %d self-feeding latches.\n", Abc_NtkCountSelfFeedLatches(pNtkAig) );
     // perform cleanup if requested
     if ( fCleanup && (nNodes = Abc_AigCleanup((Abc_Aig_t *)pNtkAig->pManFunc)) ) 
-        printf( "Abc_NtkRestrash(): AIG cleanup removed %d nodes (this is a bug).\n", nNodes );
+    {
+//        printf( "Abc_NtkRestrash(): AIG cleanup removed %d nodes (this is a bug).\n", nNodes );
+    }
     // duplicate EXDC 
     if ( pNtk->pExdc )
         pNtkAig->pExdc = Abc_NtkDup( pNtk->pExdc );
