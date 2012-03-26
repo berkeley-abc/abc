@@ -203,6 +203,7 @@ Aig_Man_t * Abc_NtkToDarBmc( Abc_Ntk_t * pNtk, Vec_Int_t ** pvMap )
 ***********************************************************************/
 Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters )
 {
+    Vec_Ptr_t * vNodes;
     Aig_Man_t * pMan;
     Aig_Obj_t * pObjNew;
     Abc_Obj_t * pObj;
@@ -267,11 +268,14 @@ Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters )
     }
     // perform the conversion of the internal nodes (assumes DFS ordering)
 //    pMan->fAddStrash = 1;
-    Abc_NtkForEachNode( pNtk, pObj, i )
+    vNodes = Abc_NtkDfs( pNtk, 0 );
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
+//    Abc_NtkForEachNode( pNtk, pObj, i )
     {
         pObj->pCopy = (Abc_Obj_t *)Aig_And( pMan, (Aig_Obj_t *)Abc_ObjChild0Copy(pObj), (Aig_Obj_t *)Abc_ObjChild1Copy(pObj) );
 //        Abc_Print( 1, "%d->%d ", pObj->Id, ((Aig_Obj_t *)pObj->pCopy)->Id );
     }
+    Vec_PtrFree( vNodes );
     pMan->fAddStrash = 0;
     // create the POs
     Abc_NtkForEachCo( pNtk, pObj, i )
@@ -2188,8 +2192,10 @@ int Abc_NtkDarDemiter( Abc_Ntk_t * pNtk )
     }
     // create file names
     pFileNameGeneric = Extra_FileNameGeneric( pNtk->pSpec ? pNtk->pSpec : pNtk->pName );
-    sprintf( pFileName0,  "%s%s",  pFileNameGeneric, "_part0.aig" ); 
-    sprintf( pFileName1,  "%s%s",  pFileNameGeneric, "_part1.aig" ); 
+//    sprintf( pFileName0,  "%s%s",  pFileNameGeneric, "_part0.aig" ); 
+//    sprintf( pFileName1,  "%s%s",  pFileNameGeneric, "_part1.aig" ); 
+    sprintf( pFileName0,  "%s",  "part0.aig" ); 
+    sprintf( pFileName1,  "%s",  "part1.aig" ); 
     ABC_FREE( pFileNameGeneric );
     // dump files
     Ioa_WriteAiger( pPart0, pFileName0, 0, 0 );
@@ -2300,8 +2306,10 @@ int Abc_NtkDarDemiterDual( Abc_Ntk_t * pNtk, int fVerbose )
     pPart1->pName = Abc_UtilStrsav( "part1" );
     // create file names
     pFileNameGeneric = Extra_FileNameGeneric( pNtk->pSpec );
-    sprintf( pFileName0,  "%s%s",  pFileNameGeneric, "_part0.aig" ); 
-    sprintf( pFileName1,  "%s%s",  pFileNameGeneric, "_part1.aig" ); 
+//    sprintf( pFileName0,  "%s%s",  pFileNameGeneric, "_part0.aig" ); 
+//    sprintf( pFileName1,  "%s%s",  pFileNameGeneric, "_part1.aig" ); 
+    sprintf( pFileName0,  "%s",  "part0.aig" ); 
+    sprintf( pFileName1,  "%s",  "part1.aig" ); 
     ABC_FREE( pFileNameGeneric );
     Ioa_WriteAiger( pPart0, pFileName0, 0, 0 );
     Ioa_WriteAiger( pPart1, pFileName1, 0, 0 );
