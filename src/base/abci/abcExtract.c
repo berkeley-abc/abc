@@ -37,8 +37,8 @@ struct Abc_ShaMan_t_
     Vec_Ptr_t *     vBuckets;
     Vec_Int_t *     vObj2Lit;
     int             nStartCols;
-    int             nCountXors;
-    int             nFoundXors;
+    int             nCountGates;
+    int             nFoundGates;
 };
 
 static inline word  Abc_NtkSharePack( int Lev, int Id )  { return (((word)Lev) << 32) | Id; }
@@ -80,9 +80,10 @@ void Abc_ShaManStop( Abc_ShaMan_t * p )
     ABC_FREE( p );
 }
 
+
 /**Function*************************************************************
 
-  Synopsis    [Collects one multi-input XOR.]
+  Synopsis    [Collects one multi-input gate.]
 
   Description []
                
@@ -91,15 +92,14 @@ void Abc_ShaManStop( Abc_ShaMan_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Wrd_t * Abc_NtkShareSuperXor( Abc_Obj_t * pObjInit, int * pfCompl, int * pCounter )
+Vec_Wrd_t * Abc_NtkShareSuperXor( Abc_Obj_t * pObj, int * pfCompl, int * pCounter )
 {
-    int fCompl = Abc_ObjIsComplement(pObjInit);
-    Abc_Obj_t * pObj = Abc_ObjRegular(pObjInit);
     Abc_Ntk_t * pNtk = Abc_ObjNtk(pObj);
     Abc_Obj_t * pObjC, * pObj0, * pObj1, * pRoot;
     Vec_Wrd_t * vSuper;
     word Num, NumNext;
-    int i, k;
+    int i, k, fCompl = 0;
+    assert( !Abc_ObjIsComplement(pObj) );
     assert( Abc_NodeIsExorType(pObj) );
     // start iteration
     vSuper = Vec_WrdAlloc( 10 );
@@ -110,7 +110,7 @@ Vec_Wrd_t * Abc_NtkShareSuperXor( Abc_Obj_t * pObjInit, int * pfCompl, int * pCo
         Num = Vec_WrdEntry( vSuper, 0 );
         Vec_WrdForEachEntryStart( vSuper, NumNext, i, 1 )
         {
-            assert( Num != NumNext );
+            assert( Num < NumNext );
             Num = NumNext;
         }
         // extract XOR gate decomposable on the topmost level
@@ -155,6 +155,197 @@ Vec_Wrd_t * Abc_NtkShareSuperXor( Abc_Obj_t * pObjInit, int * pfCompl, int * pCo
     Vec_WrdForEachEntry( vSuper, Num, i )
         Vec_WrdWriteEntry( vSuper, i, Abc_NtkShareUnpackId(Num) );
     return vSuper;
+}
+Vec_Wrd_t * Abc_NtkShareSuperAnd( Abc_Obj_t * pObj, int * pCounter )
+{
+    Abc_Ntk_t * pNtk = Abc_ObjNtk(pObj);
+    Abc_Obj_t * pObj0, * pObj1, * pRoot;
+    Vec_Wrd_t * vSuper;
+    word Num, NumNext;
+    int i, k;
+    assert( !Abc_ObjIsComplement(pObj) );
+    // start iteration
+    vSuper = Vec_WrdAlloc( 10 );
+    Vec_WrdPush( vSuper, Abc_NtkSharePack(Abc_ObjLevel(pObj), Abc_ObjToLit(pObj)) );
+    while ( Vec_WrdSize(vSuper) > 0 )
+    {
+        // make sure there are no duplicates
+        Num = Vec_WrdEntry( vSuper, 0 );
+        Vec_WrdForEachEntryStart( vSuper, NumNext, i, 1 )
+        {
+            assert( Num < NumNext );
+            Num = NumNext;
+        }
+        // extract AND gate decomposable on the topmost level
+        Vec_WrdForEachEntryReverse( vSuper, Num, i )
+        {
+            pRoot = Abc_ObjFromLit( pNtk, Abc_NtkShareUnpackId(Num) );
+            if ( !Abc_ObjIsComplement(pRoot) && Abc_ObjIsNode(pRoot) )
+            {
+                Vec_WrdRemove( vSuper, Num );
+                break;
+            }
+        }
+        if ( i == -1 )
+            break;
+        // extract
+        pObj0 = Abc_ObjChild0(pRoot);
+        pObj1 = Abc_ObjChild1(pRoot);
+        Vec_WrdPushOrder( vSuper, Abc_NtkSharePack(Abc_ObjLevel(Abc_ObjRegular(pObj0)), Abc_ObjToLit(pObj0)) );
+        Vec_WrdPushOrder( vSuper, Abc_NtkSharePack(Abc_ObjLevel(Abc_ObjRegular(pObj1)), Abc_ObjToLit(pObj1)) );
+        (*pCounter)++;
+        // remove duplicates
+        k = 0;
+        Vec_WrdForEachEntry( vSuper, Num, i )
+        {
+            if ( i + 1 == Vec_WrdSize(vSuper) )
+            {
+                Vec_WrdWriteEntry( vSuper, k++, Num );
+                break;
+            }
+            NumNext = Vec_WrdEntry( vSuper, i+1 );
+            assert( Num <= NumNext );
+            if ( Num + 1 == NumNext && (NumNext & 1) ) // pos_lit & neg_lit = 0
+            {
+                Vec_WrdClear( vSuper );
+                return vSuper;
+            }
+            if ( Num < NumNext )
+                Vec_WrdWriteEntry( vSuper, k++, Num );
+        }
+        Vec_WrdShrink( vSuper, k );
+    }
+    Vec_WrdForEachEntry( vSuper, Num, i )
+        Vec_WrdWriteEntry( vSuper, i, Abc_NtkShareUnpackId(Num) );
+    return vSuper;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Creates multi-input XOR representation for the nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkTraverseSupersXor_rec( Abc_ShaMan_t * p, Abc_Obj_t * pObj, Vec_Ptr_t * vInputs )
+{
+    if ( Abc_NodeIsTravIdCurrent( pObj ) )
+        return;
+    Abc_NodeSetTravIdCurrent( pObj );
+    if ( Abc_ObjIsCi(pObj) )
+        return;
+    assert( Abc_ObjIsNode(pObj) );
+    if ( Abc_NodeIsExorType(pObj) )
+    {
+        Vec_Wrd_t * vSuper;
+        int k, fCompl;
+        word Num;
+        vSuper = Abc_NtkShareSuperXor( pObj, &fCompl, &p->nFoundGates );
+        if ( Vec_WrdSize(vSuper) >= p->nMultiSize )
+        {
+            Vec_WrdForEachEntry( vSuper, Num, k )
+            {
+                Vec_Int_t * vInput = (Vec_Int_t *)Vec_PtrEntry( vInputs, (int)Num );
+                if ( vInput == NULL )
+                {
+                    vInput = Vec_IntAlloc( 10 );
+                    Vec_IntPush( vInput, Abc_Var2Lit((int)Num, 0) );
+                    Vec_IntPush( vInput, Abc_ObjLevel(Abc_NtkObj(p->pNtk, (int)Num)) );
+                    assert( SHARE_NUM == Vec_IntSize(vInput) );
+                    Vec_PtrWriteEntry( vInputs, (int)Num, vInput );
+                }
+                Vec_IntPush( vInput, Vec_IntSize(p->vObj2Lit) );
+            }
+            Vec_IntPush( p->vObj2Lit, Abc_Var2Lit(Abc_ObjId(pObj), fCompl) );
+        }
+        // call recursively
+        Vec_WrdForEachEntry( vSuper, Num, k )
+            Abc_NtkTraverseSupersXor_rec( p, Abc_NtkObj(p->pNtk, (int)Num), vInputs );
+        Vec_WrdFree( vSuper );
+    }
+    else
+    {
+        Abc_NtkTraverseSupersXor_rec( p, Abc_ObjFanin0(pObj), vInputs );
+        Abc_NtkTraverseSupersXor_rec( p, Abc_ObjFanin1(pObj), vInputs );
+    }
+}
+void Abc_NtkTraverseSupersAnd_rec( Abc_ShaMan_t * p, Abc_Obj_t * pObj, Vec_Ptr_t * vInputs )
+{
+    Vec_Wrd_t * vSuper;
+    word Num;
+    int k;
+    if ( Abc_NodeIsTravIdCurrent( pObj ) )
+        return;
+    Abc_NodeSetTravIdCurrent( pObj );
+    if ( Abc_ObjIsCi(pObj) )
+        return;
+    assert( Abc_ObjIsNode(pObj) );
+    vSuper = Abc_NtkShareSuperAnd( pObj, &p->nFoundGates );
+    if ( Vec_WrdSize(vSuper) == 0 || Vec_WrdSize(vSuper) >= p->nMultiSize )
+    {
+        Vec_WrdForEachEntry( vSuper, Num, k )
+        {
+            Vec_Int_t * vInput = (Vec_Int_t *)Vec_PtrEntry( vInputs, (int)Num );
+            if ( vInput == NULL )
+            {
+                vInput = Vec_IntAlloc( 10 );
+                Vec_IntPush( vInput, (int)Num );
+                Vec_IntPush( vInput, Abc_ObjLevel(Abc_NtkObj(p->pNtk, Abc_Lit2Var((int)Num))) );
+                assert( SHARE_NUM == Vec_IntSize(vInput) );
+                Vec_PtrWriteEntry( vInputs, (int)Num, vInput );
+            }
+            Vec_IntPush( vInput, Vec_IntSize(p->vObj2Lit) );
+        }
+        Vec_IntPush( p->vObj2Lit, Abc_ObjToLit(pObj) );
+    }
+    // call recursively
+    Vec_WrdForEachEntry( vSuper, Num, k )
+        Abc_NtkTraverseSupersAnd_rec( p, Abc_NtkObj(p->pNtk, Abc_Lit2Var((int)Num)), vInputs );
+    Vec_WrdFree( vSuper );
+}
+void Abc_NtkTraverseSupers( Abc_ShaMan_t * p, int fAnd )
+{
+    Vec_Ptr_t * vInputs;
+    Vec_Int_t * vInput;
+    Abc_Obj_t * pObj;
+    int i, nOnesMax;
+
+    // create mapping of nodes into their column vectors
+    vInputs = Vec_PtrStart( Abc_NtkObjNumMax(p->pNtk) );
+    Abc_NtkIncrementTravId( p->pNtk );
+    if ( fAnd )
+    {
+        Abc_NtkForEachCo( p->pNtk, pObj, i )
+            Abc_NtkTraverseSupersAnd_rec( p, Abc_ObjFanin0(pObj), vInputs );
+    }
+    else
+    {
+        Abc_NtkForEachCo( p->pNtk, pObj, i )
+            Abc_NtkTraverseSupersXor_rec( p, Abc_ObjFanin0(pObj), vInputs );
+    }
+    p->nStartCols = Vec_IntSize(p->vObj2Lit);
+
+    // find the largest number of 1s
+    nOnesMax = 0;
+    Vec_PtrForEachEntry( Vec_Int_t *, vInputs, vInput, i )
+        if ( vInput )
+            nOnesMax = Abc_MaxInt( nOnesMax, Vec_IntSize(vInput)-SHARE_NUM );
+
+    // create buckets
+    assert( p->vBuckets == NULL );
+    p->vBuckets = Vec_PtrAlloc( nOnesMax + 1 );
+    for ( i = 0; i <= nOnesMax; i++ )
+        Vec_PtrPush( p->vBuckets, Vec_PtrAlloc(10) );
+
+    // load vectors into buckets
+    Vec_PtrForEachEntry( Vec_Int_t *, vInputs, vInput, i )
+        if ( vInput )
+            Vec_PtrPush( (Vec_Ptr_t *)Vec_PtrEntry(p->vBuckets, Vec_IntSize(vInput)-SHARE_NUM), vInput );
+    Vec_PtrFree( vInputs );
 }
 
 /**Function*************************************************************
@@ -201,7 +392,7 @@ void Abc_NtkSharePrint( Abc_ShaMan_t * p )
     for ( i = 0; i < p->nStartCols; i++ )
         nTotal += pCounters[i] - 1;
     printf( "Total = %d.  ", nTotal );
-    printf( "Xors = %d.\n", Vec_IntSize(p->vObj2Lit) - p->nStartCols + nTotal );
+    printf( "Gates = %d.\n", Vec_IntSize(p->vObj2Lit) - p->nStartCols + nTotal );
 
     ABC_FREE( pCounters );
     ABC_FREE( pBuffer );
@@ -210,6 +401,57 @@ void Abc_NtkSharePrint( Abc_ShaMan_t * p )
     Vec_PtrForEachEntry( Vec_Ptr_t *, p->vBuckets, vBucket, i )
         printf( "%d ", Vec_PtrSize(vBucket) );
     printf( "\n" );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkDumpBlif( Abc_Ntk_t * p )
+{
+    FILE * pFile;
+    Vec_Ptr_t * vSupp;
+    Abc_Obj_t * pObj;
+    int i, k;
+    pFile = fopen( "multi_and.blif", "wb" );
+    if ( pFile == NULL )
+    {
+        printf( "Cannot open output file.\n" );
+        return;
+    }
+    fprintf( pFile, ".model %s\n", "multi_and" );
+    fprintf( pFile, ".inputs" );
+    for ( i = 0; i < Abc_NtkCiNum(p); i++ )
+        fprintf( pFile, " i%d", i );
+    fprintf( pFile, "\n" );
+    fprintf( pFile, ".outputs" );
+    for ( i = 0; i < Abc_NtkCoNum(p); i++ )
+        fprintf( pFile, " o%d", i );
+    fprintf( pFile, "\n" );
+    Abc_NtkForEachCi( p, pObj, i )
+        pObj->iTemp = i;
+    for ( i = 0; i < Abc_NtkCoNum(p); i++ )
+    {
+        pObj = Abc_NtkCo( p, i );
+        vSupp = Abc_NtkNodeSupport( p, &pObj, 1 );
+        fprintf( pFile, ".names" );
+        Vec_PtrForEachEntry( Abc_Obj_t *, vSupp, pObj, k )
+            fprintf( pFile, " i%d", pObj->iTemp );
+        fprintf( pFile, " o%d\n", i );
+        Vec_PtrForEachEntry( Abc_Obj_t *, vSupp, pObj, k )
+            fprintf( pFile, "1" );
+        fprintf( pFile, " 1\n" );
+        Vec_PtrFree( vSupp );
+    }
+    fprintf( pFile, ".end\n\n" );
+    fclose( pFile );
 }
 
 
@@ -283,7 +525,7 @@ outside:
     Vec_PtrRemove( (Vec_Ptr_t *)Vec_PtrEntry(vBuckets, Vec_IntSize(vInputBest)-SHARE_NUM),  (Vec_Int_t *)vInputBest ); 
     Vec_PtrRemove( (Vec_Ptr_t *)Vec_PtrEntry(vBuckets, Vec_IntSize(vInputBest2)-SHARE_NUM), (Vec_Int_t *)vInputBest2 ); 
 }
-void Abc_NtkShareOptimize( Abc_ShaMan_t * p )
+void Abc_NtkShareOptimize( Abc_ShaMan_t * p, int fAnd )
 {
     Abc_Obj_t * pObj, * pObj0, * pObj1;
     Vec_Int_t * vInput, * vInput2;
@@ -298,8 +540,11 @@ void Abc_NtkShareOptimize( Abc_ShaMan_t * p )
         // create new node
         pObj0 = Abc_ObjFromLit( p->pNtk, Vec_IntEntry(vInput,  0) );
         pObj1 = Abc_ObjFromLit( p->pNtk, Vec_IntEntry(vInput2, 0) );
-        pObj  = Abc_AigXor( (Abc_Aig_t *)p->pNtk->pManFunc, pObj0, pObj1 );
-        p->nCountXors++;
+        if ( fAnd )
+            pObj  = Abc_AigAnd( (Abc_Aig_t *)p->pNtk->pManFunc, pObj0, pObj1 );
+        else
+            pObj  = Abc_AigXor( (Abc_Aig_t *)p->pNtk->pManFunc, pObj0, pObj1 );
+        p->nCountGates++;
 
         // save new node
         vOld1 = Vec_IntAlloc( 16 );  Vec_IntPush( vOld1, Vec_IntEntry(vInput,  0) );  Vec_IntPush( vOld1, Vec_IntEntry(vInput,  1) );
@@ -344,27 +589,33 @@ void Abc_NtkShareOptimize( Abc_ShaMan_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkUpdateNetwork( Abc_ShaMan_t * p )
+Abc_Ntk_t * Abc_NtkUpdateNetwork( Abc_ShaMan_t * p, int fAnd )
 {
     Abc_Ntk_t * pNtk;
     Vec_Int_t * vInput, * vMap2Repl;
     Vec_Ptr_t * vOrig, * vRepl, * vBucket;
     Abc_Obj_t * pObj, * pNew;
     int i, j, k, ObjId, iLit;
+    int iLitConst1 = Abc_ObjToLit( Abc_AigConst1(p->pNtk) );
 
     vOrig = Vec_PtrAlloc( p->nStartCols );
     vRepl = Vec_PtrAlloc( p->nStartCols );
     for ( i = 0; i < p->nStartCols; i++ )
     {
         iLit = Vec_IntEntry( p->vObj2Lit, i );
+        assert( !fAnd || !Abc_LitIsCompl(iLit) );
 
         pObj = Abc_NtkObj( p->pNtk, Abc_Lit2Var(iLit) );
-        pNew = Abc_ObjNotCond( Abc_AigConst1(p->pNtk), !Abc_LitIsCompl(iLit) );
+
+        if ( fAnd )
+            pNew = Abc_AigConst1(p->pNtk);
+        else
+            pNew = Abc_ObjNotCond( Abc_AigConst1(p->pNtk), !Abc_LitIsCompl(iLit) );
 
         Vec_PtrPush( vOrig, pObj );
         Vec_PtrPush( vRepl, pNew );
 
-        p->nCountXors--;
+        p->nCountGates--;
     }
 
     // go through the columns
@@ -380,14 +631,17 @@ Abc_Ntk_t * Abc_NtkUpdateNetwork( Abc_ShaMan_t * p )
             iLit = Vec_IntEntry( vInput, 0 );
 
             pNew = (Abc_Obj_t *)Vec_PtrEntry( vRepl, ObjId );
-            pNew = Abc_AigXor( (Abc_Aig_t *)p->pNtk->pManFunc, pNew, Abc_ObjFromLit(p->pNtk, iLit) );
+            if ( fAnd )
+                pNew = Abc_AigAnd( (Abc_Aig_t *)p->pNtk->pManFunc, pNew, Abc_ObjFromLit(p->pNtk, iLit) );
+            else
+                pNew = Abc_AigXor( (Abc_Aig_t *)p->pNtk->pManFunc, pNew, Abc_ObjFromLit(p->pNtk, iLit) );
             Vec_PtrWriteEntry( vRepl, ObjId, pNew );
-            p->nCountXors++;
+            p->nCountGates++;
         }
     }
 
     if ( p->fVerbose )
-        printf( "Total XORs collected = %d.  Total XORs constructed = %d.\n", p->nFoundXors, p->nCountXors );
+        printf( "Total gates collected = %d.  Total gates constructed = %d.\n", p->nFoundGates, p->nCountGates );
 
     // create map of originals
     vMap2Repl = Vec_IntStartFull( Abc_NtkObjNumMax(p->pNtk) );
@@ -404,8 +658,16 @@ Abc_Ntk_t * Abc_NtkUpdateNetwork( Abc_ShaMan_t * p )
             iLit = Vec_IntEntry( vMap2Repl, Abc_ObjFaninId0(pObj) );
             if ( iLit >= 0 )
             {
-                pObj->fCompl0 ^= Abc_LitIsCompl(iLit);
-                Vec_IntWriteEntry( &pObj->vFanins, 0, Abc_Lit2Var(iLit) );
+                if ( iLit == iLitConst1 && fAnd )
+                {
+                    pObj->fCompl0 = 1;
+                    Vec_IntWriteEntry( &pObj->vFanins, 0, Abc_Lit2Var(iLitConst1) );
+                }
+                else
+                {
+                    pObj->fCompl0 ^= Abc_LitIsCompl(iLit);
+                    Vec_IntWriteEntry( &pObj->vFanins, 0, Abc_Lit2Var(iLit) );
+                }
             }
         }
         if ( Abc_ObjIsNode(pObj) )
@@ -413,102 +675,27 @@ Abc_Ntk_t * Abc_NtkUpdateNetwork( Abc_ShaMan_t * p )
             iLit = Vec_IntEntry( vMap2Repl, Abc_ObjFaninId1(pObj) );
             if ( iLit >= 0 )
             {
-                pObj->fCompl1 ^= Abc_LitIsCompl(iLit);
-                Vec_IntWriteEntry( &pObj->vFanins, 1, Abc_Lit2Var(iLit) );
+                if ( iLit == iLitConst1 && fAnd )
+                {
+                    pObj->fCompl1 = 1;
+                    Vec_IntWriteEntry( &pObj->vFanins, 1, Abc_Lit2Var(iLitConst1) );
+                }
+                else
+                {
+                    pObj->fCompl1 ^= Abc_LitIsCompl(iLit);
+                    Vec_IntWriteEntry( &pObj->vFanins, 1, Abc_Lit2Var(iLit) );
+                }
             }
         }
     }
     Vec_IntFree( vMap2Repl );
 
 //    pNtk = Abc_NtkRestrash( p->pNtk, 1 );
-    pNtk = Abc_NtkBalanceExor( p->pNtk, 1, 0 );
-    return pNtk;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Creates multi-input XOR representation for the nodes.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Abc_NtkTraverseSupers_rec( Abc_ShaMan_t * p, Abc_Obj_t * pObj, Vec_Ptr_t * vInputs )
-{
-    if ( Abc_NodeIsTravIdCurrent( pObj ) )
-        return;
-    Abc_NodeSetTravIdCurrent( pObj );
-    if ( Abc_ObjIsCi(pObj) )
-        return;
-    assert( Abc_ObjIsNode(pObj) );
-    if ( Abc_NodeIsExorType(pObj) )
-    {
-        Vec_Wrd_t * vSuper;
-        int k, fCompl;
-        word Num;
-        vSuper = Abc_NtkShareSuperXor( pObj, &fCompl, &p->nFoundXors );
-        if ( Vec_WrdSize(vSuper) >= p->nMultiSize )
-        {
-            Vec_WrdForEachEntry( vSuper, Num, k )
-            {
-                Vec_Int_t * vInput = (Vec_Int_t *)Vec_PtrEntry( vInputs, (int)Num );
-                if ( vInput == NULL )
-                {
-                    vInput = Vec_IntAlloc( 10 );
-                    Vec_IntPush( vInput, Abc_Var2Lit((int)Num, 0) );
-                    Vec_IntPush( vInput, Abc_ObjLevel(Abc_NtkObj(p->pNtk, (int)Num)) );
-                    assert( SHARE_NUM == Vec_IntSize(vInput) );
-                    Vec_PtrWriteEntry( vInputs, (int)Num, vInput );
-                }
-                Vec_IntPush( vInput, Vec_IntSize(p->vObj2Lit) );
-            }
-            Vec_IntPush( p->vObj2Lit, Abc_Var2Lit(Abc_ObjId(pObj), fCompl) );
-        }
-        // call recursively
-        Vec_WrdForEachEntry( vSuper, Num, k )
-            Abc_NtkTraverseSupers_rec( p, Abc_NtkObj(p->pNtk, (int)Num), vInputs );
-        Vec_WrdFree( vSuper );
-    }
+    if ( fAnd )
+        pNtk = Abc_NtkBalance( p->pNtk, 0, 0, 1 );
     else
-    {
-        Abc_NtkTraverseSupers_rec( p, Abc_ObjFanin0(pObj), vInputs );
-        Abc_NtkTraverseSupers_rec( p, Abc_ObjFanin1(pObj), vInputs );
-    }
-}
-void Abc_NtkTraverseSupers( Abc_ShaMan_t * p )
-{
-    Vec_Ptr_t * vInputs;
-    Vec_Int_t * vInput;
-    Abc_Obj_t * pObj;
-    int i, nOnesMax;
-
-    // create mapping of nodes into their column vectors
-    vInputs = Vec_PtrStart( Abc_NtkObjNumMax(p->pNtk) );
-    Abc_NtkIncrementTravId( p->pNtk );
-    Abc_NtkForEachCo( p->pNtk, pObj, i )
-        Abc_NtkTraverseSupers_rec( p, Abc_ObjFanin0(pObj), vInputs );
-    p->nStartCols = Vec_IntSize(p->vObj2Lit);
-
-    // find the largest number of 1s
-    nOnesMax = 0;
-    Vec_PtrForEachEntry( Vec_Int_t *, vInputs, vInput, i )
-        if ( vInput )
-            nOnesMax = Abc_MaxInt( nOnesMax, Vec_IntSize(vInput)-SHARE_NUM );
-
-    // create buckets
-    assert( p->vBuckets == NULL );
-    p->vBuckets = Vec_PtrAlloc( nOnesMax + 1 );
-    for ( i = 0; i <= nOnesMax; i++ )
-        Vec_PtrPush( p->vBuckets, Vec_PtrAlloc(10) );
-
-    // load vectors into buckets
-    Vec_PtrForEachEntry( Vec_Int_t *, vInputs, vInput, i )
-        if ( vInput )
-            Vec_PtrPush( (Vec_Ptr_t *)Vec_PtrEntry(p->vBuckets, Vec_IntSize(vInput)-SHARE_NUM), vInput );
-    Vec_PtrFree( vInputs );
+        pNtk = Abc_NtkBalanceExor( p->pNtk, 1, 0 );
+    return pNtk;
 }
 
 /**Function*************************************************************
@@ -527,10 +714,11 @@ Abc_Ntk_t * Abc_NtkShareXor( Abc_Ntk_t * pNtk, int nMultiSize, int fAnd, int fVe
     Abc_Ntk_t * pNtkNew;
     Abc_ShaMan_t * p;
     assert( Abc_NtkIsStrash(pNtk) );
+//    Abc_NtkDumpBlif( pNtk );
     p = Abc_ShaManStart( pNtk );
     p->nMultiSize = nMultiSize;
     p->fVerbose   = fVerbose;
-    Abc_NtkTraverseSupers( p );
+    Abc_NtkTraverseSupers( p, fAnd );
     if ( p->nStartCols < 2 )
     {
         Abc_ShaManStop( p );
@@ -538,10 +726,10 @@ Abc_Ntk_t * Abc_NtkShareXor( Abc_Ntk_t * pNtk, int nMultiSize, int fAnd, int fVe
     }
     if ( fVerbose )
         Abc_NtkSharePrint( p );
-    Abc_NtkShareOptimize( p );
+    Abc_NtkShareOptimize( p, fAnd );
     if ( fVerbose )
         Abc_NtkSharePrint( p );
-    pNtkNew = Abc_NtkUpdateNetwork( p );
+    pNtkNew = Abc_NtkUpdateNetwork( p, fAnd );
     Abc_ShaManStop( p );
     return pNtkNew;
 }

@@ -2182,6 +2182,7 @@ int Abc_NtkDarDemiter( Abc_Ntk_t * pNtk )
 //    if ( !Saig_ManDemiterSimple( pMan, &pPart0, &pPart1 ) )
     if ( !Saig_ManDemiterSimpleDiff( pMan, &pPart0, &pPart1 ) )
     {
+        Aig_ManStop( pMan );
         Abc_Print( 1, "Demitering has failed.\n" );
         return 0;
     }

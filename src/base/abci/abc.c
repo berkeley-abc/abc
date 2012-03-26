@@ -5454,10 +5454,10 @@ int Abc_CommandExtract( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: extract [-K <num>] [-vh]\n" );
-    Abc_Print( -2, "\t           extracts logic sharing from multi-input XOR gates\n" );
-    Abc_Print( -2, "\t-K <num> : the min gate size to consider for extraction [default = %d]\n", nMultiSize );
-//    Abc_Print( -2, "\t-a       : toggle multi-input XOR vs multi-input AND [default = %s]\n", fAnd? "AND": "XOR" );
+    Abc_Print( -2, "usage: extract [-K <num>] [-avh]\n" );
+    Abc_Print( -2, "\t           extracts shared logic from multi-input gates\n" );
+    Abc_Print( -2, "\t-K <num> : the minimum gate size to consider for extraction [default = %d]\n", nMultiSize );
+    Abc_Print( -2, "\t-a       : toggle multi-input XOR vs multi-input AND [default = %s]\n", fAnd? "AND": "XOR" );
     Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
     Abc_Print( -2, "\t         \n");
