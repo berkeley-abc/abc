@@ -95,7 +95,7 @@ void Abc_ShaManStop( Abc_ShaMan_t * p )
 Vec_Wrd_t * Abc_NtkShareSuperXor( Abc_Obj_t * pObj, int * pfCompl, int * pCounter )
 {
     Abc_Ntk_t * pNtk = Abc_ObjNtk(pObj);
-    Abc_Obj_t * pObjC, * pObj0, * pObj1, * pRoot;
+    Abc_Obj_t * pObjC, * pObj0, * pObj1, * pRoot = NULL;
     Vec_Wrd_t * vSuper;
     word Num, NumNext;
     int i, k, fCompl = 0;
@@ -159,7 +159,7 @@ Vec_Wrd_t * Abc_NtkShareSuperXor( Abc_Obj_t * pObj, int * pfCompl, int * pCounte
 Vec_Wrd_t * Abc_NtkShareSuperAnd( Abc_Obj_t * pObj, int * pCounter )
 {
     Abc_Ntk_t * pNtk = Abc_ObjNtk(pObj);
-    Abc_Obj_t * pObj0, * pObj1, * pRoot;
+    Abc_Obj_t * pObj0, * pObj1, * pRoot = NULL;
     Vec_Wrd_t * vSuper;
     word Num, NumNext;
     int i, k;
@@ -245,7 +245,7 @@ void Abc_NtkTraverseSupersXor_rec( Abc_ShaMan_t * p, Abc_Obj_t * pObj, Vec_Ptr_t
         int k, fCompl;
         word Num;
         vSuper = Abc_NtkShareSuperXor( pObj, &fCompl, &p->nFoundGates );
-        if ( Vec_WrdSize(vSuper) >= p->nMultiSize )
+        if ( Vec_WrdSize(vSuper) <= 1 || Vec_WrdSize(vSuper) >= p->nMultiSize )
         {
             Vec_WrdForEachEntry( vSuper, Num, k )
             {
@@ -285,7 +285,7 @@ void Abc_NtkTraverseSupersAnd_rec( Abc_ShaMan_t * p, Abc_Obj_t * pObj, Vec_Ptr_t
         return;
     assert( Abc_ObjIsNode(pObj) );
     vSuper = Abc_NtkShareSuperAnd( pObj, &p->nFoundGates );
-    if ( Vec_WrdSize(vSuper) == 0 || Vec_WrdSize(vSuper) >= p->nMultiSize )
+    if ( Vec_WrdSize(vSuper) <= 1 || Vec_WrdSize(vSuper) >= p->nMultiSize )
     {
         Vec_WrdForEachEntry( vSuper, Num, k )
         {
