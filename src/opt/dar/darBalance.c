@@ -34,6 +34,150 @@ ABC_NAMESPACE_IMPL_START
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
+
+
+static inline word  Dar_BalPack( int Lev, int Id )  { return (((word)Lev) << 32) | Id; }
+static inline int   Dar_BalUnpackLev( word Num )    { return (Num >> 32);              }
+static inline int   Dar_BalUnpackId( word Num )     { return Num & 0xFFFF;             }
+
+/**Function*************************************************************
+
+  Synopsis    [Collects one multi-input gate.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Wrd_t * Dar_BalSuperXor( Aig_Man_t * p, Aig_Obj_t * pObj, int * pfCompl )
+{
+    Aig_Obj_t * pObj0, * pObj1, * pRoot = NULL;
+    Vec_Wrd_t * vSuper;
+    word Num, NumNext;
+    int i, k, fCompl = 0;
+    assert( !Aig_IsComplement(pObj) );
+    assert( Aig_ObjIsExor(pObj) );
+    // start iteration
+    vSuper = Vec_WrdAlloc( 10 );
+    Vec_WrdPush( vSuper, Dar_BalPack(Aig_ObjLevel(pObj), Aig_ObjId(pObj)) );
+    while ( Vec_WrdSize(vSuper) > 0 && Vec_WrdSize(vSuper) < 10000 )
+    {
+        // make sure there are no duplicates
+        Num = Vec_WrdEntry( vSuper, 0 );
+        Vec_WrdForEachEntryStart( vSuper, NumNext, i, 1 )
+        {
+            assert( Num < NumNext );
+            Num = NumNext;
+        }
+        // extract XOR gate decomposable on the topmost level
+        Vec_WrdForEachEntryReverse( vSuper, Num, i )
+        {
+            pRoot = Aig_ManObj( p, Dar_BalUnpackId(Num) );
+            if ( Aig_ObjIsExor(pRoot) && Aig_ObjRefs(pRoot) == 1 )
+            {
+                Vec_WrdRemove( vSuper, Num );
+                break;
+            }
+        }
+        if ( i == -1 )
+            break;
+        // extract
+        assert( !Aig_ObjFaninC0(pObj) && !Aig_ObjFaninC1(pObj) );
+        pObj0 = Aig_ObjChild0(pObj);
+        pObj1 = Aig_ObjChild1(pObj);
+        fCompl ^= Aig_IsComplement(pObj0);  pObj0 = Aig_Regular(pObj0);
+        fCompl ^= Aig_IsComplement(pObj1);  pObj1 = Aig_Regular(pObj1);
+        Vec_WrdPushOrder( vSuper, Dar_BalPack(Aig_ObjLevel(pObj0), Aig_ObjId(pObj0)) );
+        Vec_WrdPushOrder( vSuper, Dar_BalPack(Aig_ObjLevel(pObj1), Aig_ObjId(pObj1)) );
+        // remove duplicates
+        k = 0;
+        Vec_WrdForEachEntry( vSuper, Num, i )
+        {
+            if ( i + 1 == Vec_WrdSize(vSuper) )
+            {
+                Vec_WrdWriteEntry( vSuper, k++, Num );
+                break;
+            }
+            NumNext = Vec_WrdEntry( vSuper, i+1 );
+            assert( Num <= NumNext );
+            if ( Num == NumNext )
+                i++;
+            else
+                Vec_WrdWriteEntry( vSuper, k++, Num );
+        }
+        Vec_WrdShrink( vSuper, k );
+    }
+    *pfCompl = fCompl;
+    Vec_WrdForEachEntry( vSuper, Num, i )
+        Vec_WrdWriteEntry( vSuper, i, Dar_BalUnpackId(Num) );
+    return vSuper;
+}
+Vec_Wrd_t * Dar_BalSuperAnd( Aig_Man_t * p, Aig_Obj_t * pObj )
+{
+    Aig_Obj_t * pObj0, * pObj1, * pRoot = NULL;
+    Vec_Wrd_t * vSuper;
+    word Num, NumNext;
+    int i, k;
+    assert( !Aig_IsComplement(pObj) );
+    // start iteration
+    vSuper = Vec_WrdAlloc( 10 );
+    Vec_WrdPush( vSuper, Dar_BalPack(Aig_ObjLevel(pObj), Aig_ObjToLit(pObj)) );
+    while ( Vec_WrdSize(vSuper) > 0 && Vec_WrdSize(vSuper) < 10000 )
+    {
+        // make sure there are no duplicates
+        Num = Vec_WrdEntry( vSuper, 0 );
+        Vec_WrdForEachEntryStart( vSuper, NumNext, i, 1 )
+        {
+            assert( Num < NumNext );
+            Num = NumNext;
+        }
+        // extract AND gate decomposable on the topmost level
+        Vec_WrdForEachEntryReverse( vSuper, Num, i )
+        {
+            pRoot = Aig_ObjFromLit( p, Dar_BalUnpackId(Num) );
+            if ( !Aig_IsComplement(pRoot) && Aig_ObjIsNode(pRoot) && Aig_ObjRefs(pRoot) == 1 )
+            {
+                Vec_WrdRemove( vSuper, Num );
+                break;
+            }
+        }
+        if ( i == -1 )
+            break;
+        // extract
+        pObj0 = Aig_ObjChild0(pRoot);
+        pObj1 = Aig_ObjChild1(pRoot);
+        Vec_WrdPushOrder( vSuper, Dar_BalPack(Aig_ObjLevel(Aig_Regular(pObj0)), Aig_ObjToLit(pObj0)) );
+        Vec_WrdPushOrder( vSuper, Dar_BalPack(Aig_ObjLevel(Aig_Regular(pObj1)), Aig_ObjToLit(pObj1)) );
+        // remove duplicates
+        k = 0;
+        Vec_WrdForEachEntry( vSuper, Num, i )
+        {
+            if ( i + 1 == Vec_WrdSize(vSuper) )
+            {
+                Vec_WrdWriteEntry( vSuper, k++, Num );
+                break;
+            }
+            NumNext = Vec_WrdEntry( vSuper, i+1 );
+            assert( Num <= NumNext );
+            if ( Num + 1 == NumNext && (NumNext & 1) ) // pos_lit & neg_lit = 0
+            {
+                Vec_WrdClear( vSuper );
+                return vSuper;
+            }
+            if ( Num < NumNext )
+                Vec_WrdWriteEntry( vSuper, k++, Num );
+        }
+        Vec_WrdShrink( vSuper, k );
+    }
+    Vec_WrdForEachEntry( vSuper, Num, i )
+        Vec_WrdWriteEntry( vSuper, i, Dar_BalUnpackId(Num) );
+    return vSuper;
+}
+
+
+
 /**Function*************************************************************
 
   Synopsis    [Collects the nodes of the supergate.]
@@ -103,7 +247,7 @@ int Dar_BalanceCone_rec( Aig_Obj_t * pRoot, Aig_Obj_t * pObj, Vec_Ptr_t * vSuper
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Ptr_t * Dar_BalanceCone( Aig_Obj_t * pObj, Vec_Vec_t * vStore, int Level )
+Vec_Ptr_t * Dar_BalanceCone( Aig_Man_t * p, Aig_Obj_t * pObj, Vec_Vec_t * vStore, int Level )
 {
     Vec_Ptr_t * vNodes;
     int RetValue, i;
@@ -124,6 +268,50 @@ Vec_Ptr_t * Dar_BalanceCone( Aig_Obj_t * pObj, Vec_Vec_t * vStore, int Level )
     // return empty set of nodes (meaning that we should use constant-0 node)
     if ( RetValue == -1 )
         vNodes->nSize = 0;
+    return vNodes;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Collects the nodes of the supergate.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Dar_BalanceCone_( Aig_Man_t * p, Aig_Obj_t * pObj, Vec_Vec_t * vStore, int Level )
+{
+    Vec_Wrd_t * vSuper;
+    Vec_Ptr_t * vNodes;
+    word Num;
+    int i;
+    assert( !Aig_IsComplement(pObj) );
+    // extend the storage
+    if ( Vec_VecSize( vStore ) <= Level )
+        Vec_VecPush( vStore, Level, 0 );
+    // get the temporary array of nodes
+    vNodes = Vec_VecEntry( vStore, Level );
+    Vec_PtrClear( vNodes );
+    // collect the nodes in the implication supergate
+    // load the result into the output array
+    if ( Aig_ObjIsExor(pObj) )
+    {
+        int fCompl = 0;
+        vSuper = Dar_BalSuperXor( p, pObj, &fCompl ); 
+        Vec_WrdForEachEntry( vSuper, Num, i )
+            Vec_PtrPush( vNodes, Aig_ManObj(p, Dar_BalUnpackId(Num)) );
+        assert( fCompl == 0 );
+    }
+    else
+    {
+        vSuper = Dar_BalSuperAnd( p, pObj );
+        Vec_WrdForEachEntry( vSuper, Num, i )
+            Vec_PtrPush( vNodes, Aig_ObjFromLit(p, Dar_BalUnpackId(Num)) );
+    }
+    Vec_WrdFree( vSuper );
     return vNodes;
 }
 
@@ -404,7 +592,7 @@ Aig_Obj_t * Dar_BalanceBuildSuperTop( Aig_Man_t * p, Vec_Ptr_t * vSuper, Aig_Typ
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Obj_t * Dar_Balance_rec( Aig_Man_t * pNew, Aig_Obj_t * pObjOld, Vec_Vec_t * vStore, int Level, int fUpdateLevel )
+Aig_Obj_t * Dar_Balance_rec( Aig_Man_t * pNew, Aig_Man_t * p, Aig_Obj_t * pObjOld, Vec_Vec_t * vStore, int Level, int fUpdateLevel )
 {
     Aig_Obj_t * pObjNew;
     Vec_Ptr_t * vSuper;
@@ -416,7 +604,7 @@ Aig_Obj_t * Dar_Balance_rec( Aig_Man_t * pNew, Aig_Obj_t * pObjOld, Vec_Vec_t * 
         return (Aig_Obj_t *)pObjOld->pData;
     assert( Aig_ObjIsNode(pObjOld) );
     // get the implication supergate
-    vSuper = Dar_BalanceCone( pObjOld, vStore, Level );
+    vSuper = Dar_BalanceCone( p, pObjOld, vStore, Level );
     // check if supergate contains two nodes in the opposite polarity
     if ( vSuper->nSize == 0 )
         return (Aig_Obj_t *)(pObjOld->pData = Aig_ManConst0(pNew));
@@ -427,7 +615,7 @@ Aig_Obj_t * Dar_Balance_rec( Aig_Man_t * pNew, Aig_Obj_t * pObjOld, Vec_Vec_t * 
     // for each old node, derive the new well-balanced node
     for ( i = 0; i < Vec_PtrSize(vSuper); i++ )
     {
-        pObjNew = Dar_Balance_rec( pNew, Aig_Regular((Aig_Obj_t *)vSuper->pArray[i]), vStore, Level + 1, fUpdateLevel );
+        pObjNew = Dar_Balance_rec( pNew, p, Aig_Regular((Aig_Obj_t *)vSuper->pArray[i]), vStore, Level + 1, fUpdateLevel );
         vSuper->pArray[i] = Aig_NotCond( pObjNew, Aig_IsComplement((Aig_Obj_t *)vSuper->pArray[i]) );
     }
     // build the supergate
@@ -514,7 +702,7 @@ Aig_Man_t * Dar_ManBalance( Aig_Man_t * p, int fUpdateLevel )
             {
                 // perform balancing
                 pDriver = Aig_ObjReal_rec( Aig_ObjChild0(pObj) );
-                pObjNew = Dar_Balance_rec( pNew, Aig_Regular(pDriver), vStore, 0, fUpdateLevel );
+                pObjNew = Dar_Balance_rec( pNew, p, Aig_Regular(pDriver), vStore, 0, fUpdateLevel );
                 pObjNew = Aig_NotCond( pObjNew, Aig_IsComplement(pDriver) );
                 // save arrival time of the output
                 arrTime = (float)Aig_Regular(pObjNew)->Level;
@@ -541,7 +729,7 @@ Aig_Man_t * Dar_ManBalance( Aig_Man_t * p, int fUpdateLevel )
         Aig_ManForEachCo( p, pObj, i )
         {
             pDriver = Aig_ObjReal_rec( Aig_ObjChild0(pObj) );
-            pObjNew = Dar_Balance_rec( pNew, Aig_Regular(pDriver), vStore, 0, fUpdateLevel );
+            pObjNew = Dar_Balance_rec( pNew, p, Aig_Regular(pDriver), vStore, 0, fUpdateLevel );
             pObjNew = Aig_NotCond( pObjNew, Aig_IsComplement(pDriver) );
             pObjNew = Aig_ObjCreateCo( pNew, pObjNew );
             pObjNew->pHaig = pObj->pHaig;
@@ -639,7 +827,6 @@ void Dar_BalancePrintStats( Aig_Man_t * p )
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
-
 
 ABC_NAMESPACE_IMPL_END
 

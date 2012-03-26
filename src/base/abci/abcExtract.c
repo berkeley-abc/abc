@@ -315,17 +315,19 @@ void Abc_NtkTraverseSupers( Abc_ShaMan_t * p, int fAnd )
     int i, nOnesMax;
 
     // create mapping of nodes into their column vectors
-    vInputs = Vec_PtrStart( Abc_NtkObjNumMax(p->pNtk) );
+    vInputs = Vec_PtrStart( Abc_NtkObjNumMax(p->pNtk) * (1 + fAnd) );
     Abc_NtkIncrementTravId( p->pNtk );
     if ( fAnd )
     {
         Abc_NtkForEachCo( p->pNtk, pObj, i )
-            Abc_NtkTraverseSupersAnd_rec( p, Abc_ObjFanin0(pObj), vInputs );
+            if ( Abc_ObjIsNode(Abc_ObjFanin0(pObj)) )
+                Abc_NtkTraverseSupersAnd_rec( p, Abc_ObjFanin0(pObj), vInputs );
     }
     else
     {
         Abc_NtkForEachCo( p->pNtk, pObj, i )
-            Abc_NtkTraverseSupersXor_rec( p, Abc_ObjFanin0(pObj), vInputs );
+            if ( Abc_ObjIsNode(Abc_ObjFanin0(pObj)) )
+                Abc_NtkTraverseSupersXor_rec( p, Abc_ObjFanin0(pObj), vInputs );
     }
     p->nStartCols = Vec_IntSize(p->vObj2Lit);
 
@@ -646,7 +648,10 @@ Abc_Ntk_t * Abc_NtkUpdateNetwork( Abc_ShaMan_t * p, int fAnd )
     // create map of originals
     vMap2Repl = Vec_IntStartFull( Abc_NtkObjNumMax(p->pNtk) );
     Vec_PtrForEachEntry( Abc_Obj_t *, vOrig, pObj, i )
+    {
+//        printf( "Replacing %d by %d.\n", Abc_ObjId(pObj), Abc_ObjToLit((Abc_Obj_t *)Vec_PtrEntry(vRepl, i)) );
         Vec_IntWriteEntry( vMap2Repl, Abc_ObjId(pObj), Abc_ObjToLit((Abc_Obj_t *)Vec_PtrEntry(vRepl, i)) );
+    }
     Vec_PtrFree( vOrig );
     Vec_PtrFree( vRepl );
 
@@ -660,7 +665,7 @@ Abc_Ntk_t * Abc_NtkUpdateNetwork( Abc_ShaMan_t * p, int fAnd )
             {
                 if ( iLit == iLitConst1 && fAnd )
                 {
-                    pObj->fCompl0 = 1;
+                    pObj->fCompl0 ^= 1;
                     Vec_IntWriteEntry( &pObj->vFanins, 0, Abc_Lit2Var(iLitConst1) );
                 }
                 else
@@ -677,7 +682,7 @@ Abc_Ntk_t * Abc_NtkUpdateNetwork( Abc_ShaMan_t * p, int fAnd )
             {
                 if ( iLit == iLitConst1 && fAnd )
                 {
-                    pObj->fCompl1 = 1;
+                    pObj->fCompl1 ^= 1;
                     Vec_IntWriteEntry( &pObj->vFanins, 1, Abc_Lit2Var(iLitConst1) );
                 }
                 else
