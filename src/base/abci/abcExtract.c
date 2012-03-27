@@ -43,7 +43,7 @@ struct Abc_ShaMan_t_
 
 static inline word  Abc_NtkSharePack( int Lev, int Id )  { return (((word)Lev) << 32) | Id; }
 static inline int   Abc_NtkShareUnpackLev( word Num )    { return (Num >> 32);              }
-static inline int   Abc_NtkShareUnpackId( word Num )     { return Num & 0xFFFF;             }
+static inline int   Abc_NtkShareUnpackId( word Num )     { return Num & 0xFFFFFFFF;         }
 
 
 ////////////////////////////////////////////////////////////////////////
@@ -188,9 +188,12 @@ Vec_Wrd_t * Abc_NtkShareSuperAnd( Abc_Obj_t * pObj, int * pCounter )
         }
         if ( i == -1 )
             break;
+        assert( Abc_ObjIsNode(pRoot) );
         // extract
         pObj0 = Abc_ObjChild0(pRoot);
         pObj1 = Abc_ObjChild1(pRoot);
+        assert( Abc_ObjIsNode(Abc_ObjRegular(pObj0)) || Abc_ObjIsCi(Abc_ObjRegular(pObj0)) );
+        assert( Abc_ObjIsNode(Abc_ObjRegular(pObj1)) || Abc_ObjIsCi(Abc_ObjRegular(pObj1)) );
         Vec_WrdPushOrder( vSuper, Abc_NtkSharePack(Abc_ObjLevel(Abc_ObjRegular(pObj0)), Abc_ObjToLit(pObj0)) );
         Vec_WrdPushOrder( vSuper, Abc_NtkSharePack(Abc_ObjLevel(Abc_ObjRegular(pObj1)), Abc_ObjToLit(pObj1)) );
         (*pCounter)++;
@@ -217,6 +220,10 @@ Vec_Wrd_t * Abc_NtkShareSuperAnd( Abc_Obj_t * pObj, int * pCounter )
     }
     Vec_WrdForEachEntry( vSuper, Num, i )
         Vec_WrdWriteEntry( vSuper, i, Abc_NtkShareUnpackId(Num) );
+    if ( Vec_WrdSize(vSuper) == 1 )
+    {
+        int s = 0;
+    }
     return vSuper;
 }
 
