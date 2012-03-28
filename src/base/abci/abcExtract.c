@@ -220,10 +220,6 @@ Vec_Wrd_t * Abc_NtkShareSuperAnd( Abc_Obj_t * pObj, int * pCounter )
     }
     Vec_WrdForEachEntry( vSuper, Num, i )
         Vec_WrdWriteEntry( vSuper, i, Abc_NtkShareUnpackId(Num) );
-    if ( Vec_WrdSize(vSuper) == 1 )
-    {
-        int s = 0;
-    }
     return vSuper;
 }
 
