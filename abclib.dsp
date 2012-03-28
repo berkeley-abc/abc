@@ -1265,10 +1265,6 @@ SOURCE=.\src\sat\bsat\satUtil.c
 
 SOURCE=.\src\sat\bsat\satVec.h
 # End Source File
-# Begin Source File
-
-SOURCE=.\src\sat\bsat\vecSet.h
-# End Source File
 # End Group
 # Begin Group "proof"
 
@@ -2532,6 +2528,10 @@ SOURCE=.\src\misc\vec\vecInt.h
 # Begin Source File
 
 SOURCE=.\src\misc\vec\vecPtr.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\vec\vecSet.h
 # End Source File
 # Begin Source File
 
