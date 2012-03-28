@@ -137,6 +137,7 @@ static int Abc_CommandReorder                ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandBidec                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandOrder                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandMuxes                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandCubes                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandExtSeqDcs              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandReach                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandCone                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -583,6 +584,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Various",      "bidec",         Abc_CommandBidec,            1 );
     Cmd_CommandAdd( pAbc, "Various",      "order",         Abc_CommandOrder,            0 );
     Cmd_CommandAdd( pAbc, "Various",      "muxes",         Abc_CommandMuxes,            1 );
+    Cmd_CommandAdd( pAbc, "Various",      "cubes",         Abc_CommandCubes,            1 );
     Cmd_CommandAdd( pAbc, "Various",      "ext_seq_dcs",   Abc_CommandExtSeqDcs,        0 );
     Cmd_CommandAdd( pAbc, "Various",      "reach",         Abc_CommandReach,            0 );
     Cmd_CommandAdd( pAbc, "Various",      "cone",          Abc_CommandCone,             1 );
@@ -7000,6 +7002,68 @@ usage:
     return 1;
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandCubes( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern Abc_Ntk_t * Abc_NtkSopToCubes( Abc_Ntk_t * pNtk );
+    Abc_Ntk_t * pNtk, * pNtkRes;
+    int c;
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        Abc_Print( -1, "Empty network.\n" );
+        return 1;
+    }
+
+    if ( !Abc_NtkIsSopLogic(pNtk) )
+    {
+        Abc_Print( -1, "Only a SOP logic network can be transformed into cubes.\n" );
+        return 1;
+    }
+
+    // get the new network
+    pNtkRes = Abc_NtkSopToCubes( pNtk );
+    if ( pNtkRes == NULL )
+    {
+        Abc_Print( -1, "Converting to cubes has failed.\n" );
+        return 1;
+    }
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: cubes [-h]\n" );
+    Abc_Print( -2, "\t        converts the current network into a network derived by creating\n" );
+    Abc_Print( -2, "\t        a separate node for each product and sum in the local SOPs\n" );
+    Abc_Print( -2, "\t-h    : print the command usage\n");
+    return 1;
+}
+
 
 /**Function*************************************************************
 
@@ -13388,7 +13452,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     fLutMux = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KCFADEWSqaflepmrsdbugyojikcvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KCFAGDEWSqaflepmrsdbugyojikcvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -13436,6 +13500,17 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->nAreaIters = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( pPars->nAreaIters < 0 ) 
+                goto usage;
+            break;
+        case 'G':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-G\" should be followed by a positive integer no less than 3.\n" );
+                goto usage;
+            }
+            pPars->nGateSize = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nGateSize < 2 ) 
                 goto usage;
             break;
         case 'D':
@@ -13674,7 +13749,15 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
         pPars->fTruth = 1;
         pPars->fExpRed = 0;
     }
-
+    // modify the subgraph recording
+    if ( pPars->fUserRecLib )
+    {
+        pPars->fTruth      =  1;
+        pPars->fCutMin     =  1;
+        pPars->fExpRed     =  0;
+        pPars->fUsePerm    =  1;
+        pPars->pLutLib     =  NULL;
+    }
     // modify for global delay optimization
     if ( pPars->fDelayOpt )
     {
@@ -13684,15 +13767,15 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
         pPars->fUsePerm    =  1;
         pPars->pLutLib     =  NULL;
     }
-    // modify the subgraph recording
-    if ( pPars->fUserRecLib )
+    // modify for global delay optimization
+    if ( pPars->nGateSize > 0 )
     {
         pPars->fTruth      =  1;
         pPars->fCutMin     =  1;
         pPars->fExpRed     =  0;
         pPars->fUsePerm    =  1;
         pPars->pLutLib     =  NULL;
-        pPars->fCutMin       =  1;
+        pPars->nLutSize    =  pPars->nGateSize; 
     }
 
 /*
@@ -13772,12 +13855,13 @@ usage:
         sprintf( LutSize, "library" );
     else
         sprintf( LutSize, "%d", pPars->nLutSize );
-    Abc_Print( -2, "usage: if [-KCFA num] [-DEW float] [-S str] [-qarlepmsdbugyojikcvh]\n" );
+    Abc_Print( -2, "usage: if [-KCFAG num] [-DEW float] [-S str] [-qarlepmsdbugyojikcvh]\n" );
     Abc_Print( -2, "\t           performs FPGA technology mapping of the network\n" );
     Abc_Print( -2, "\t-K num   : the number of LUT inputs (2 < num < %d) [default = %s]\n", IF_MAX_LUTSIZE+1, LutSize );
     Abc_Print( -2, "\t-C num   : the max number of priority cuts (0 < num < 2^12) [default = %d]\n", pPars->nCutsMax );
     Abc_Print( -2, "\t-F num   : the number of area flow recovery iterations (num >= 0) [default = %d]\n", pPars->nFlowIters );
     Abc_Print( -2, "\t-A num   : the number of exact area recovery iterations (num >= 0) [default = %d]\n", pPars->nAreaIters );
+    Abc_Print( -2, "\t-G num   : the max AND/OR gate size for mapping (0 = unused) [default = %d]\n", pPars->nGateSize );
     Abc_Print( -2, "\t-D float : sets the delay constraint for the mapping [default = %s]\n", Buffer );  
     Abc_Print( -2, "\t-E float : sets epsilon used for tie-breaking [default = %f]\n", pPars->Epsilon );  
     Abc_Print( -2, "\t-W float : sets wire delay between adjects LUTs [default = %f]\n", pPars->WireDelay );  

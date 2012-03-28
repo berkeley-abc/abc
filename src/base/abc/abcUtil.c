@@ -2060,6 +2060,88 @@ Abc_Ntk_t * Abc_NtkAddBuffs( Abc_Ntk_t * pNtkInit, int fVerbose )
     return pNtk;
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NodeSopToCubes( Abc_Obj_t * pNodeOld, Abc_Ntk_t * pNtkNew )
+{
+    Abc_Obj_t * pNodeOr, * pNodeNew, * pFanin;
+    char * pCube, * pSop = (char *)pNodeOld->pData;
+    int v, Value, nVars = Abc_ObjFaninNum(pNodeOld), nFanins;
+    // create the root node
+    if ( Abc_SopGetCubeNum(pSop) < 2 )
+    {
+        pNodeNew = Abc_NtkDupObj( pNtkNew, pNodeOld, 0 );
+        Abc_ObjForEachFanin( pNodeOld, pFanin, v )
+            Abc_ObjAddFanin( pNodeNew, pFanin->pCopy );
+        assert( pNodeOld->pCopy == pNodeNew );
+        return;
+    }
+    // add the OR gate
+    pNodeOr = Abc_NtkCreateNode( pNtkNew );
+    pNodeOr->pData = Abc_SopCreateOr( (Mem_Flex_t *)pNtkNew->pManFunc, Abc_SopGetCubeNum(pSop), NULL );
+    // check the logic function of the node
+    Abc_SopForEachCube( pSop, nVars, pCube )
+    {
+        nFanins = 0;
+        Abc_CubeForEachVar( pCube, Value, v )
+            if ( Value == '0' || Value == '1' )
+                nFanins++;
+        assert( nFanins > 0 );
+        // create node
+        pNodeNew = Abc_NtkCreateNode( pNtkNew );
+        pNodeNew->pData = Abc_SopCreateAnd( (Mem_Flex_t *)pNtkNew->pManFunc, nFanins, NULL );
+        nFanins = 0;
+        Abc_CubeForEachVar( pCube, Value, v )
+        {
+            if ( Value != '0' && Value != '1' )
+                continue;
+            Abc_ObjAddFanin( pNodeNew, Abc_ObjFanin(pNodeOld, v)->pCopy );
+            if ( Value == '0' )
+                Abc_SopComplementVar( (char *)pNodeNew->pData, nFanins );
+            nFanins++;
+        }
+        Abc_ObjAddFanin( pNodeOr, pNodeNew );
+    }
+    // check the complement
+    if ( Abc_SopIsComplement(pSop) )
+        Abc_SopComplement( (char *)pNodeOr->pData );
+    // mark the old node with the new one
+    assert( pNodeOld->pCopy == NULL );
+    pNodeOld->pCopy = pNodeOr;
+}
+Abc_Ntk_t * Abc_NtkSopToCubes( Abc_Ntk_t * pNtk )
+{
+    Abc_Ntk_t * pNtkNew;
+    Abc_Obj_t * pNode;
+    Vec_Ptr_t * vNodes;
+    int i;
+    assert( Abc_NtkIsSopLogic(pNtk) );
+    Abc_NtkCleanCopy( pNtk );
+    pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, ABC_FUNC_SOP );
+    // perform conversion in the topological order
+    vNodes = Abc_NtkDfs( pNtk, 0 );
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNode, i )
+        Abc_NodeSopToCubes( pNode, pNtkNew );
+    Vec_PtrFree( vNodes );
+    // make sure everything is okay
+    Abc_NtkFinalize( pNtk, pNtkNew );
+    if ( !Abc_NtkCheck( pNtkNew ) )
+    {
+        printf( "Abc_NtkSopToCubes: The network check has failed.\n" );
+        Abc_NtkDelete( pNtkNew );
+        return NULL;
+    }
+    return pNtkNew;
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

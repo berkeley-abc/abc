@@ -139,12 +139,29 @@ int If_ManPerformMappingComb( If_Man_t * p )
 //    Abc_Print( 1, "Cross cut memory = %d.\n", Mem_FixedReadMaxEntriesUsed(p->pMemSet) );
     s_MappingTime = clock() - clkTotal;
 //    Abc_Print( 1, "Special POs = %d.\n", If_ManCountSpecialPos(p) );
+
+/*
     {
-    extern int If_CutGetCones( If_Man_t * p );
-    extern int If_CutCountTotalFanins( If_Man_t * p );
-//    If_CutGetCones( p );
-//    If_CutCountTotalFanins( p );
+        static char * pLastName = NULL;
+        FILE * pTable = fopen( "fpga/ucsb/stats.txt", "a+" );
+        if ( pLastName == NULL || strcmp(pLastName, p->pName) )
+        {
+            fprintf( pTable, "\n" );
+            fprintf( pTable, "%s ", p->pName );
+
+            fprintf( pTable, "%d ", If_ManCiNum(p) );
+            fprintf( pTable, "%d ", If_ManCoNum(p) );
+            fprintf( pTable, "%d ", If_ManAndNum(p) );
+
+            ABC_FREE( pLastName );
+            pLastName = Abc_UtilStrsav( p->pName );
+        }
+
+        fprintf( pTable, "%d ", (int)p->AreaGlo );
+        fprintf( pTable, "%d ", (int)p->RequiredGlo );
+        fclose( pTable );
     }
+*/
     return 1;
 }
 

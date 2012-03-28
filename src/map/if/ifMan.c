@@ -178,6 +178,7 @@ void If_ManStop( If_Man_t * p )
     ABC_FREE( p->pHashTable[1] );
     if ( p->pMemEntries )
         Mem_FixedStop( p->pMemEntries, 0 );
+    ABC_FREE( p->pName );
     ABC_FREE( p );
 }
 

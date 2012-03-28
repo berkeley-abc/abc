@@ -197,6 +197,7 @@ If_Man_t * Abc_NtkToIf( Abc_Ntk_t * pNtk, If_Par_t * pPars )
 
     // start the mapping manager and set its parameters
     pIfMan = If_ManStart( pPars );
+    pIfMan->pName = Abc_UtilStrsav( Abc_NtkName(pNtk) );
 
     // print warning about excessive memory usage
     if ( 1.0 * Abc_NtkObjNum(pNtk) * pIfMan->nObjBytes / (1<<30) > 1.0 )
@@ -294,7 +295,7 @@ Abc_Ntk_t * Abc_NtkFromIf( If_Man_t * pIfMan, Abc_Ntk_t * pNtk )
     // create the new network
     if ( pIfMan->pPars->fUseBdds || pIfMan->pPars->fUseCnfs || pIfMan->pPars->fUseMv )
         pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, ABC_FUNC_BDD );
-    else if ( pIfMan->pPars->fUseSops )
+    else if ( pIfMan->pPars->fUseSops || pIfMan->pPars->nGateSize > 0 )
         pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, ABC_FUNC_SOP );
     else
         pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, ABC_FUNC_AIG );
@@ -437,7 +438,7 @@ Abc_Obj_t * Abc_NodeFromIf_rec( Abc_Ntk_t * pNtkNew, If_Man_t * pIfMan, If_Obj_t
     pCutBest = If_ObjCutBest( pIfObj );
 //    printf( "%d 0x%02X %d\n", pCutBest->nLeaves, 0xff & *If_CutTruth(pCutBest), pIfMan->pPars->pFuncCost(pCutBest) );
 //    if ( pIfMan->pPars->pLutLib && pIfMan->pPars->pLutLib->fVarPinDelays )
-    if ( !pIfMan->pPars->fDelayOpt && !pIfMan->pPars->pLutStruct && !pIfMan->pPars->fUserRecLib )
+    if ( !pIfMan->pPars->fDelayOpt && !pIfMan->pPars->pLutStruct && !pIfMan->pPars->fUserRecLib && !pIfMan->pPars->nGateSize )
         If_CutRotatePins( pIfMan, pCutBest );
     if ( pIfMan->pPars->fUseCnfs || pIfMan->pPars->fUseMv )
     {
@@ -464,7 +465,7 @@ Abc_Obj_t * Abc_NodeFromIf_rec( Abc_Ntk_t * pNtkNew, If_Man_t * pIfMan, If_Obj_t
             // transform truth table into the BDD 
             pNodeNew->pData = Kit_TruthToBdd( (DdManager *)pNtkNew->pManFunc, If_CutTruth(pCutBest), If_CutLeaveNum(pCutBest), 1 );  Cudd_Ref((DdNode *)pNodeNew->pData); 
         }
-        else if ( pIfMan->pPars->fUseSops ) 
+        else if ( pIfMan->pPars->fUseSops || pIfMan->pPars->nGateSize > 0 ) 
         {
             // transform truth table into the SOP
             int RetValue = Kit_TruthIsop( If_CutTruth(pCutBest), If_CutLeaveNum(pCutBest), vCover, 1 );

@@ -155,15 +155,12 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
         // recompute the parameters of the best cut
 ///        if ( p->pPars->pLutStruct )
 ///            pCut->Delay = If_CutDelayLutStruct( p, pCut, p->pPars->pLutStruct, p->pPars->WireDelay );
-//        else if ( p->pPars->fDelayOpt )
         if ( p->pPars->fUserRecLib )
             pCut->Delay = If_CutDelayRecCost(p, pCut, pObj);
         else if(p->pPars->fDelayOpt)
-        {
-//            pCut->Delay = If_CutDelaySopCost(p,pCut);
-//            pCut->Delay = If_CutDelaySopCost2(p,pCut);
             pCut->Delay = If_CutDelaySopCost(p,pCut);
-        }
+        else if(p->pPars->nGateSize > 0)
+            pCut->Delay = If_CutDelaySop(p,pCut);
         else
             pCut->Delay = If_CutDelay( p, pObj, pCut );
 //        assert( pCut->Delay <= pObj->Required + p->fEpsilon );
@@ -230,15 +227,12 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
         // check if the cut satisfies the required times
 ///        if ( p->pPars->pLutStruct )
 ///            pCut->Delay = If_CutDelayLutStruct( p, pCut, p->pPars->pLutStruct, p->pPars->WireDelay );
-//        else if ( p->pPars->fDelayOpt )
         if ( p->pPars->fUserRecLib )
             pCut->Delay = If_CutDelayRecCost(p, pCut, pObj);
         else if (p->pPars->fDelayOpt)
-        {
-//            pCut->Delay = If_CutDelaySopCost(p, pCut);  
-//            pCut->Delay = If_CutDelaySopCost2(p, pCut);  
             pCut->Delay = If_CutDelaySopCost(p, pCut);  
-        }
+        else if(p->pPars->nGateSize > 0)
+            pCut->Delay = If_CutDelaySop(p,pCut);
         else
             pCut->Delay = If_CutDelay( p, pObj, pCut );
         //if ( pCut->Cost == IF_COST_MAX )

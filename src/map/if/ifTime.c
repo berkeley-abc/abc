@@ -547,6 +547,75 @@ int If_CutDelaySopCost2( If_Man_t * p, If_Cut_t * pCut )
 
 /**Function*************************************************************
 
+  Synopsis    [Computes the SOP delay using balanced AND decomposition.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int If_CutMaxCubeSize( Vec_Int_t * vCover, int nVars )
+{
+    int i, k, Entry, Literal, Count, CountMax = 0;
+    Vec_IntForEachEntry( vCover, Entry, i )
+    {
+        Count = 0;
+        for ( k = 0; k < nVars; k++ )
+        {
+            Literal = (3 & (Entry >> (k << 1)));
+            if ( Literal == 1 || Literal == 2 )
+                Count++;
+        }
+        CountMax = Abc_MaxInt( CountMax, Count );
+    }
+    return CountMax;
+}
+int If_CutDelaySop( If_Man_t * p, If_Cut_t * pCut )
+{
+    // delay is calculated using 1+log2(NumFanins)
+    static double GateDelays[20] = { 1.00, 1.00, 2.00, 2.58, 3.00, 3.32, 3.58, 3.81, 4.00, 4.17, 4.32, 4.46, 4.58, 4.70, 4.81, 4.91, 5.00, 5.09, 5.17, 5.25 };
+    If_Obj_t * pLeaf;
+    int Delay, DelayMax;
+    int i, nLitMax, RetValue;
+    // mark cut as a user cut
+    pCut->fUser = 1;
+    if ( p->vCover == NULL )
+        p->vCover = Vec_IntAlloc(0);
+    RetValue = Kit_TruthIsop( If_CutTruth(pCut), If_CutLeaveNum(pCut), p->vCover, 1 );
+    if ( RetValue == -1 )
+        return ABC_INFINITY;
+    assert( RetValue == 0 || RetValue == 1 );
+    // mark the output as complemented
+//    vAnds = If_CutDelaySopAnds( p, pCut, p->vCover, RetValue ^ pCut->fCompl );
+    if ( Vec_IntSize(p->vCover) > p->pPars->nGateSize )
+        return ABC_INFINITY;
+    // set the area cost
+    assert( If_CutLeaveNum(pCut) >= 0 && If_CutLeaveNum(pCut) <= 16 );
+    // compute the gate delay
+    nLitMax = If_CutMaxCubeSize( p->vCover, If_CutLeaveNum(pCut) );
+    if ( Vec_IntSize(p->vCover) < 2 )
+    {
+        pCut->Cost = Vec_IntSize(p->vCover);
+        Delay = (int)(GateDelays[If_CutLeaveNum(pCut)] + 0.5);
+        DelayMax = 0;
+        If_CutForEachLeaf( p, pCut, pLeaf, i )
+            DelayMax = Abc_MaxInt( DelayMax, If_ObjCutBest(pLeaf)->Delay + (pCut->pPerm[i] = (char)Delay) );
+    }
+    else
+    {
+        pCut->Cost = Vec_IntSize(p->vCover) + 1;
+        Delay = (int)(GateDelays[If_CutLeaveNum(pCut)] + GateDelays[nLitMax] + 0.5);
+        DelayMax = 0;
+        If_CutForEachLeaf( p, pCut, pLeaf, i )
+            DelayMax = Abc_MaxInt( DelayMax, If_ObjCutBest(pLeaf)->Delay + (pCut->pPerm[i] = (char)Delay) );
+    }
+    return DelayMax;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Computes delay.]
 
   Description []

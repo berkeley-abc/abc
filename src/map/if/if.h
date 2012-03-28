@@ -95,6 +95,7 @@ struct If_Par_t_
     int                nCutsMax;      // the max number of cuts
     int                nFlowIters;    // the number of iterations of area recovery
     int                nAreaIters;    // the number of iterations of area recovery
+    int                nGateSize;     // the max size of the AND/OR gate to map into
     float              DelayTarget;   // delay target
     float              Epsilon;       // value used in comparison floating point numbers
     int                fPreprocess;   // preprossing
@@ -153,6 +154,7 @@ struct If_Lib_t_
 // manager
 struct If_Man_t_
 {
+    char *             pName;
     // mapping parameters
     If_Par_t *         pPars;
     // mapping nodes
@@ -487,6 +489,7 @@ extern int             If_ManPerformMappingSeq( If_Man_t * p );
 /*=== ifTime.c ============================================================*/
 extern int             If_CutDelaySopCost( If_Man_t * p, If_Cut_t * pCut );
 extern int             If_CutDelaySopCost2( If_Man_t * p, If_Cut_t * pCut );
+extern int             If_CutDelaySop( If_Man_t * p, If_Cut_t * pCut );
 extern Vec_Wrd_t *     If_CutDelaySopArray( If_Man_t * p, If_Cut_t * pCut );
 extern float           If_CutDelay( If_Man_t * p, If_Obj_t * pObj, If_Cut_t * pCut );
 extern void            If_CutPropagateRequired( If_Man_t * p, If_Obj_t * pObj, If_Cut_t * pCut, float Required );
