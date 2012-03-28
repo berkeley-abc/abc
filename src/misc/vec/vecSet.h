@@ -40,21 +40,22 @@ ABC_NAMESPACE_HEADER_START
 ////////////////////////////////////////////////////////////////////////
 
 // data-structure for logging entries
-// memory is allocated in 2^p->nPageSize word-sized pages
-// the first 'word' of each page is used storing additional data
-// the first 'int' of additional data stores the word limit
-// the second 'int' of the additional data stores the shadow word limit
+// memory is allocated in 2^nPageSize word-sized pages
+// the first two 'words' of each page are used for bookkeeping
+// the first 'word' of bookkeeping data stores the word limit
+// the second 'word' of bookkeeping data stores the shadow word limit
+// (the shadow word limit is only used during garbage collection)
 
 typedef struct Vec_Set_t_ Vec_Set_t;
 struct Vec_Set_t_
 {
-    int                nPageSize;    // page size
-    unsigned           uPageMask;    // page mask
-    int                nEntries;     // entry count
-    int                iPage;        // current page
-    int                iPageS;       // shadow page
-    int                nPagesAlloc;  // page count allocated
-    word **            pPages;       // page pointers
+    int               nPageSize;    // page size
+    unsigned          uPageMask;    // page mask
+    int               nEntries;     // entry count
+    int               iPage;        // current page
+    int               iPageS;       // shadow page
+    int               nPagesAlloc;  // page count allocated
+    word **           pPages;       // page pointers
 }; 
 
 ////////////////////////////////////////////////////////////////////////
