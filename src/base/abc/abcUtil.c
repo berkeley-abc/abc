@@ -2038,10 +2038,10 @@ Abc_Ntk_t * Abc_NtkAddBuffs( Abc_Ntk_t * pNtkInit, int fVerbose )
     int i, k, nLevelMax = Abc_NtkLevel( pNtk );
     Abc_NtkForEachCo( pNtk, pObj, i )
         pObj->Level = nLevelMax + 1;
-    vBuffs = Vec_PtrStart( Abc_NtkObjNumMax(pNtk) * nLevelMax );
+    vBuffs = Vec_PtrStart( Abc_NtkObjNumMax(pNtk) * (nLevelMax + 1) );
     Abc_NtkForEachObj( pNtk, pObj, i )
     {
-        if ( i == Vec_PtrSize(vBuffs) / nLevelMax )
+        if ( i == Vec_PtrSize(vBuffs) / (nLevelMax + 1) )
             break;
         if ( !Abc_ObjIsNode(pObj) && !Abc_ObjIsCo(pObj) )
             continue;
