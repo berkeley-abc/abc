@@ -276,6 +276,28 @@ char * Extra_FileRead( FILE * pFile )
     pBuffer[ nFileSize + 1] = '\0';
     return pBuffer;
 }
+char * Extra_FileRead2( FILE * pFile, FILE * pFile2 )
+{
+    char * pBuffer;
+    int nSize, nSize2;
+    int RetValue;
+    // get the file size, in bytes
+    fseek( pFile, 0, SEEK_END );  
+    nSize = ftell( pFile );  
+    rewind( pFile ); 
+    // get the file size, in bytes
+    fseek( pFile2, 0, SEEK_END );  
+    nSize2 = ftell( pFile2 );  
+    rewind( pFile2 ); 
+    // load the contents of the file into memory
+    pBuffer = ABC_ALLOC( char, nSize + nSize2 + 3 );
+    RetValue = fread( pBuffer,         nSize,  1, pFile );
+    RetValue = fread( pBuffer + nSize, nSize2, 1, pFile2 );
+    // terminate the string with '\0'
+    pBuffer[ nSize + nSize2 + 0] = '\n';
+    pBuffer[ nSize + nSize2 + 1] = '\0';
+    return pBuffer;
+}
 
 /**Function*************************************************************
 
@@ -294,8 +316,18 @@ char * Extra_FileReadContents( char * pFileName )
     char * pBuffer;
     pFile = fopen( pFileName, "rb" );
     pBuffer = pFile ? Extra_FileRead( pFile ) : NULL;
-    if ( pFile )
-        fclose( pFile );
+    if ( pFile )  fclose( pFile );
+    return pBuffer;
+}
+char * Extra_FileReadContents2( char * pFileName, char * pFileName2 )
+{
+    FILE * pFile, * pFile2;
+    char * pBuffer;
+    pFile  = fopen( pFileName, "rb" );
+    pFile2 = fopen( pFileName2, "rb" );
+    pBuffer = (pFile && pFile2) ? Extra_FileRead2( pFile, pFile2 ) : NULL;
+    if ( pFile )  fclose( pFile );
+    if ( pFile2 ) fclose( pFile2 );
     return pBuffer;
 }
 

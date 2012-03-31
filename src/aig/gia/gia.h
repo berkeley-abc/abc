@@ -472,11 +472,19 @@ static inline int Gia_ManAppendCo( Gia_Man_t * p, int iLit0 )
         Gia_ObjAddFanout( p, Gia_ObjFanin0(pObj), pObj );
     return Gia_ObjId( p, pObj ) << 1;
 }
+static inline int Gia_ManAppendOr( Gia_Man_t * p, int iLit0, int iLit1 )
+{
+    return Abc_LitNot(Gia_ManAppendAnd( p, Abc_LitNot(iLit0), Abc_LitNot(iLit1) ));
+}
 static inline int Gia_ManAppendMux( Gia_Man_t * p, int iCtrl, int iData1, int iData0 )  
 { 
     int iTemp0 = Gia_ManAppendAnd( p, Abc_LitNot(iCtrl), iData0 );
     int iTemp1 = Gia_ManAppendAnd( p, iCtrl, iData1 );
     return Abc_LitNotCond( Gia_ManAppendAnd( p, Abc_LitNot(iTemp0), Abc_LitNot(iTemp1) ), 1 );
+}
+static inline int Gia_ManAppendXor( Gia_Man_t * p, int iLit0, int iLit1 )  
+{ 
+    return Gia_ManAppendMux( p, iLit0, Abc_LitNot(iLit1), iLit1 );
 }
 
 #define GIA_ZER 1
@@ -728,6 +736,7 @@ extern void                Gia_ManHashAlloc( Gia_Man_t * p );
 extern void                Gia_ManHashStart( Gia_Man_t * p ); 
 extern void                Gia_ManHashStop( Gia_Man_t * p );  
 extern int                 Gia_ManHashAnd( Gia_Man_t * p, int iLit0, int iLit1 ); 
+extern int                 Gia_ManHashOr( Gia_Man_t * p, int iLit0, int iLit1 ); 
 extern int                 Gia_ManHashXor( Gia_Man_t * p, int iLit0, int iLit1 ); 
 extern int                 Gia_ManHashMux( Gia_Man_t * p, int iCtrl, int iData1, int iData0 );
 extern int                 Gia_ManHashAndTry( Gia_Man_t * p, int iLit0, int iLit1 );

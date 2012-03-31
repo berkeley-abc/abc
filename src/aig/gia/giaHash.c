@@ -511,6 +511,10 @@ int Gia_ManHashAnd( Gia_Man_t * p, int iLit0, int iLit1 )
         }
     }
 }
+int Gia_ManHashOr( Gia_Man_t * p, int iLit0, int iLit1 )  
+{ 
+    return Abc_LitNot(Gia_ManHashAnd( p, Abc_LitNot(iLit0), Abc_LitNot(iLit1) ));
+}
 
 /**Function*************************************************************
 
