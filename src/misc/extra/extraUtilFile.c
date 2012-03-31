@@ -185,6 +185,7 @@ char * Extra_FileNameGenericAppend( char * pBase, char * pSuffix )
 {
     static char Buffer[1000];
     char * pDot;
+    assert( strlen(pBase) + strlen(pSuffix) < 1000 );
     strcpy( Buffer, pBase );
     if ( (pDot = strrchr( Buffer, '.' )) )
         *pDot = 0;
