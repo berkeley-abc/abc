@@ -173,6 +173,27 @@ double            Mio_PinReadDelayFanoutFall( Mio_Pin_t * pPin )      { return p
 double            Mio_PinReadDelayBlockMax  ( Mio_Pin_t * pPin )      { return pPin->dDelayBlockMax;          }
 Mio_Pin_t *       Mio_PinReadNext           ( Mio_Pin_t * pPin )      { return pPin->pNext;           }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+char * Mio_GateReadPinName( Mio_Gate_t * pGate, int iPin )
+{
+    Mio_Pin_t * pPin;
+    int i = 0;
+    Mio_GateForEachPin( pGate, pPin )
+        if ( i++ == iPin )
+            return Mio_PinReadName(pPin);
+    return NULL;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

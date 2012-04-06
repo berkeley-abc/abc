@@ -881,38 +881,68 @@ float Abc_NtkDelayTrace( Abc_Ntk_t * pNtk, Abc_Obj_t * pOut, Abc_Obj_t * pIn, in
         // traverse to determine the critical path
         Abc_NtkIncrementTravId( pNtk );
         if ( !Abc_NtkDelayTraceCritPath_rec( vSlacks, Abc_ObjFanin0(pOut), pIn, vBest ) )
-            printf( "There is no combinational path between PO \"%s\" and PI \"%s\".\n", Abc_ObjName(pOut), Abc_ObjName(pIn) );
+        {
+            if ( pIn == NULL )
+                printf( "The logic cone of PO \"%s\" has no primary inputs.\n", Abc_ObjName(pOut) );
+            else
+                printf( "There is no combinational path between PI \"%s\" and PO \"%s\".\n", Abc_ObjName(pIn), Abc_ObjName(pOut) );
+        }
         else
         {
+            float Slack = 0.0;
+            int k, iFanin, Length = 0;
+            Abc_Obj_t * pFanin;
             // collect the critical path
             Abc_NtkDelayTraceCritPathCollect_rec( vSlacks, Abc_ObjFanin0(pOut), vBest, vPath );
             if ( pIn == NULL )
                 pIn = (Abc_Obj_t *)Vec_PtrEntry( vPath, 0 );
+            // find the longest gate name
+            Vec_PtrForEachEntry( Abc_Obj_t *, vPath, pNode, i )
+                if ( Abc_ObjIsNode(pNode) )
+                    Length = Abc_MaxInt( Length, strlen(Mio_GateReadName((Mio_Gate_t *)pNode->pData)) );
             // print critical path
-            printf( "Critical path to PO \"%s\" from PI \"%s\":\n", Abc_ObjName(pOut), Abc_ObjName(pIn) ); 
-            Vec_PtrForEachEntryReverse( Abc_Obj_t *, vPath, pNode, i )
+            printf( "Critical path from PI \"%s\" to PO \"%s\":\n", Abc_ObjName(pIn), Abc_ObjName(pOut) ); 
+            Vec_PtrForEachEntry( Abc_Obj_t *, vPath, pNode, i )
             {
-            
-                printf( "Obj =%7d.  ", Abc_ObjId(pNode) );
-                printf( "Lev =%4d.  ", Abc_ObjLevel(pNode) );
-                printf( "  " );
-                printf( "Rise =%6.1f. ", Abc_NodeReadArrival(pNode)->Rise );
-                printf( "Fall =%6.1f. ", Abc_NodeReadArrival(pNode)->Fall );
-                printf( "  " );
+                printf( "Level %3d : ", Abc_ObjLevel(pNode) );
                 if ( Abc_ObjIsCi(pNode) )
-                    printf( "Primary input \"%s\".", Abc_ObjName(pNode) );
-                else if ( Abc_ObjIsCo(pNode) )
-                    printf( "Primary output \"%s\".", Abc_ObjName(pNode) );
+                {
+                    printf( "Primary input \"%s\".   ", Abc_ObjName(pNode) );
+                    printf( "Arrival time =%6.1f. ", Abc_NodeReadArrival(pNode)->Worst );
+                    printf( "\n" );
+                    continue;
+                }
+                if ( Abc_ObjIsCo(pNode) )
+                {
+                    printf( "Primary output \"%s\".   ", Abc_ObjName(pNode) );
+                    printf( "Arrival =%6.1f. ", Abc_NodeReadArrival(pNode)->Worst );
+                }
                 else
                 {
-                    int iFanin;
                     assert( Abc_ObjIsNode(pNode) );
                     iFanin = Abc_NodeFindFanin( pNode, (Abc_Obj_t *)Vec_PtrEntry(vPath,i-1) );
-                    printf( "Slack =%6.1f.  ", Abc_NtkDelayTraceSlack(vSlacks, pNode, iFanin) );
-                    printf( "Mapping:  Pin = %d. Gate = %s. ", iFanin, Mio_GateReadName(pNode->pData) );
+                    Slack = Abc_NtkDelayTraceSlack(vSlacks, pNode, iFanin);
+                    printf( "%10s/", Abc_ObjName(pNode) );
+                    printf( "%-4s", Mio_GateReadPinName((Mio_Gate_t *)pNode->pData, iFanin) );
+                    printf( " (%s)", Mio_GateReadName((Mio_Gate_t *)pNode->pData) );
+                    for ( k = strlen(Mio_GateReadName((Mio_Gate_t *)pNode->pData)); k < Length; k++ )
+                        printf( " " );
+                    printf( "   " );
+                    printf( "Arrival =%6.1f.   ", Abc_NodeReadArrival(pNode)->Worst );
+                    printf( "I/O time: (" );
+                    Abc_ObjForEachFanin( pNode, pFanin, k )
+                        printf( "%s%.1f", (k? ", ":""), Abc_NodeReadArrival(pFanin)->Worst );
+                    if ( Abc_NodeReadRequired(pNode)->Worst == -ABC_INFINITY )
+                        printf( " -> ?)" );
+                    else
+                        printf( " -> %.1f)", Abc_NodeReadRequired(pNode)->Worst );
                 }
                 printf( "\n" );
             }
+            printf( "Level %3d : ", Abc_ObjLevel(Abc_ObjFanin0(pOut)) + 1 );
+            printf( "Primary output \"%s\".   ", Abc_ObjName(pOut) );
+            printf( "Required time = %6.1f.  ", Abc_NodeRequired(pOut)->Worst );
+            printf( "Path slack = %6.1f.\n", Slack );
         }
         Vec_PtrFree( vPath );
         Vec_IntFree( vBest );

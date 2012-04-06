@@ -849,10 +849,15 @@ void Abc_NtkPrintLevel( FILE * pFile, Abc_Ntk_t * pNtk, int fProfile, int fListN
         memset( pLevelCounts, 0, sizeof(int) * nIntervals );
         Abc_NtkForEachCo( pNtk, pNode, i )
         {
-            DelayCur  = Abc_NodeReadArrival( Abc_ObjFanin0(pNode) )->Worst;
-            DelayInt  = (int)(DelayCur / DelayDelta);
-            if ( DelayInt >= nIntervals )
-                DelayInt = nIntervals - 1;
+            if ( Abc_ObjIsNode(Abc_ObjFanin0(pNode)) && Abc_ObjFaninNum(Abc_ObjFanin0(pNode)) == 0 )
+                DelayInt = 0;
+            else
+            {
+                DelayCur  = Abc_NodeReadArrival( Abc_ObjFanin0(pNode) )->Worst;
+                DelayInt  = (int)(DelayCur / DelayDelta);
+                if ( DelayInt >= nIntervals )
+                    DelayInt = nIntervals - 1;
+            }
             pLevelCounts[DelayInt]++;
         }
 

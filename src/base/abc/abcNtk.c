@@ -147,9 +147,8 @@ Abc_Ntk_t * Abc_NtkStartFrom( Abc_Ntk_t * pNtk, Abc_NtkType_t Type, Abc_NtkFunc_
         pNtkNew->vObjPerm = Vec_IntDup( pNtk->vObjPerm );
     pNtkNew->AndGateDelay = pNtk->AndGateDelay;
     // initialize logic level of the CIs
-    if ( pNtk->AndGateDelay != 0.0 && pNtk->ntkType != ABC_NTK_STRASH && Type == ABC_NTK_STRASH )
+    if ( pNtk->AndGateDelay != 0.0 && pNtk->pManTime != NULL && pNtk->ntkType != ABC_NTK_STRASH && Type == ABC_NTK_STRASH )
     {
-        assert( pNtk->pManTime != NULL ); // timing info should be available
         Abc_NtkForEachCi( pNtk, pObj, i )
             pObj->pCopy->Level = (int)(Abc_NodeReadArrivalAve(pObj) / pNtk->AndGateDelay);
     }
