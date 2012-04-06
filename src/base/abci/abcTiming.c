@@ -932,16 +932,16 @@ float Abc_NtkDelayTrace( Abc_Ntk_t * pNtk, Abc_Obj_t * pOut, Abc_Obj_t * pIn, in
                     printf( "I/O time: (" );
                     Abc_ObjForEachFanin( pNode, pFanin, k )
                         printf( "%s%.1f", (k? ", ":""), Abc_NodeReadArrival(pFanin)->Worst );
-                    if ( Abc_NodeReadRequired(pNode)->Worst == -ABC_INFINITY )
-                        printf( " -> ?)" );
-                    else
-                        printf( " -> %.1f)", Abc_NodeReadRequired(pNode)->Worst );
+                    printf( " -> %.1f)", Abc_NodeReadArrival(pNode)->Worst + Slack );
                 }
                 printf( "\n" );
             }
             printf( "Level %3d : ", Abc_ObjLevel(Abc_ObjFanin0(pOut)) + 1 );
             printf( "Primary output \"%s\".   ", Abc_ObjName(pOut) );
-            printf( "Required time = %6.1f.  ", Abc_NodeRequired(pOut)->Worst );
+            if ( Abc_NodeRequired(pOut)->Worst == 0.0 )
+                printf( "Required time = %6.1f.  ", Abc_NodeReadArrival(Abc_ObjFanin0(pOut))->Worst );
+            else
+                printf( "Required time = %6.1f.  ", Abc_NodeRequired(pOut)->Worst );
             printf( "Path slack = %6.1f.\n", Slack );
         }
         Vec_PtrFree( vPath );

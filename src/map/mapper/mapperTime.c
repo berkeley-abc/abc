@@ -253,7 +253,7 @@ void Map_TimeComputeRequired( Map_Man_t * p, float fRequired )
         ptTimeA =  Map_Regular(p->pOutputs[i])->tArrival + fPhase;
 
         // if external required time can be achieved, use it
-        if ( p->pOutputRequireds && p->pOutputRequireds[i].Worst > 0 && ptTimeA->Worst <= p->pOutputRequireds[i].Worst && p->pOutputRequireds[i].Worst <= fRequired )
+        if ( p->pOutputRequireds && p->pOutputRequireds[i].Worst > 0 && ptTimeA->Worst <= p->pOutputRequireds[i].Worst )//&& p->pOutputRequireds[i].Worst <= fRequired )
             ptTime->Rise = ptTime->Fall = ptTime->Worst = p->pOutputRequireds[i].Worst;
         // if external required cannot be achieved, set the earliest possible arrival time
         else if ( p->pOutputRequireds && p->pOutputRequireds[i].Worst > 0 && ptTimeA->Worst > p->pOutputRequireds[i].Worst )
