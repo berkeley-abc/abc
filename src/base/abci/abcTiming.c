@@ -889,9 +889,11 @@ float Abc_NtkDelayTrace( Abc_Ntk_t * pNtk, Abc_Obj_t * pOut, Abc_Obj_t * pIn, in
         }
         else
         {
-            float Slack = 0.0;
+            float Slack = 0.0, SlackAdd;
             int k, iFanin, Length = 0;
             Abc_Obj_t * pFanin;
+            // check the additional slack
+            SlackAdd = (Abc_NodeRequired(pOut)->Worst == 0.0) ? 0.0 : Abc_NodeRequired(pOut)->Worst - Abc_NodeArrival(Abc_ObjFanin0(pOut))->Worst;
             // collect the critical path
             Abc_NtkDelayTraceCritPathCollect_rec( vSlacks, Abc_ObjFanin0(pOut), vBest, vPath );
             if ( pIn == NULL )
@@ -901,6 +903,7 @@ float Abc_NtkDelayTrace( Abc_Ntk_t * pNtk, Abc_Obj_t * pOut, Abc_Obj_t * pIn, in
                 if ( Abc_ObjIsNode(pNode) )
                     Length = Abc_MaxInt( Length, strlen(Mio_GateReadName((Mio_Gate_t *)pNode->pData)) );
             // print critical path
+            Abc_NtkLevel( pNtk );
             printf( "Critical path from PI \"%s\" to PO \"%s\":\n", Abc_ObjName(pIn), Abc_ObjName(pOut) ); 
             Vec_PtrForEachEntry( Abc_Obj_t *, vPath, pNode, i )
             {
@@ -929,10 +932,10 @@ float Abc_NtkDelayTrace( Abc_Ntk_t * pNtk, Abc_Obj_t * pOut, Abc_Obj_t * pIn, in
                         printf( " " );
                     printf( "   " );
                     printf( "Arrival =%6.1f.   ", Abc_NodeReadArrival(pNode)->Worst );
-                    printf( "I/O time: (" );
+                    printf( "I/O times: (" );
                     Abc_ObjForEachFanin( pNode, pFanin, k )
                         printf( "%s%.1f", (k? ", ":""), Abc_NodeReadArrival(pFanin)->Worst );
-                    printf( " -> %.1f)", Abc_NodeReadArrival(pNode)->Worst + Slack );
+                    printf( " -> %.1f)", Abc_NodeReadArrival(pNode)->Worst + Slack + SlackAdd );
                 }
                 printf( "\n" );
             }
