@@ -23,6 +23,7 @@
 
 ABC_NAMESPACE_IMPL_START
 
+//#define USE_ABC2
  
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -79,7 +80,9 @@ void Abc_FrameInit( Abc_Frame_t * pAbc )
     Libs_Init( pAbc );
     Load_Init( pAbc );
     Test_Init( pAbc );
-//    Abc2_Init( pAbc );
+#ifdef USE_ABC2
+    Abc2_Init( pAbc );
+#endif
     EXT_ABC_INIT(pAbc) // plugin for external functionality
 }
 
@@ -107,7 +110,9 @@ void Abc_FrameEnd( Abc_Frame_t * pAbc )
     Libs_End( pAbc );
     Load_End( pAbc );
     Test_End( pAbc );
-//    Abc2_End( pAbc );
+#ifdef USE_ABC2
+    Abc2_End( pAbc );
+#endif
     EXT_ABC_END(pAbc) // plugin for external functionality
 }
 
