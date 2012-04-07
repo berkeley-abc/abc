@@ -27222,7 +27222,7 @@ int Abc_CommandAbc9Vta( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     Gia_VtaSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FSPCLTRtrvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FSPCLTRtrdvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -27309,6 +27309,9 @@ int Abc_CommandAbc9Vta( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'r':
             pPars->fUseRollback ^= 1;
             break;
+        case 'd':
+            pPars->fDumpVabs ^= 1;
+            break;
         case 'v':
             pPars->fVerbose ^= 1;
             break;
@@ -27354,7 +27357,7 @@ int Abc_CommandAbc9Vta( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &vta [-FSPCLTR num] [-trvh]\n" );
+    Abc_Print( -2, "usage: &vta [-FSPCLTR num] [-trdvh]\n" );
     Abc_Print( -2, "\t         refines abstracted object map with proof-based abstraction\n" );
     Abc_Print( -2, "\t-F num : the max number of timeframes to unroll [default = %d]\n", pPars->nFramesMax );
     Abc_Print( -2, "\t-S num : the starting time frame (0=unused) [default = %d]\n", pPars->nFramesStart );
@@ -27365,6 +27368,7 @@ usage:
     Abc_Print( -2, "\t-R num : minimum percentage of abstracted objects (0<=num<=100) [default = %d]\n", pPars->nRatioMin );
     Abc_Print( -2, "\t-t     : toggle using terminal variables [default = %s]\n", pPars->fUseTermVars? "yes": "no" );
     Abc_Print( -2, "\t-r     : toggle using rollback after the starting frames [default = %s]\n", pPars->fUseRollback? "yes": "no" );
+    Abc_Print( -2, "\t-d     : toggle dumping abstracted model into file \"vabs.aig\" [default = %s]\n", pPars->fDumpVabs? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;

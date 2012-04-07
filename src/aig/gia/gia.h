@@ -210,6 +210,7 @@ struct Gia_ParVta_t_
     int            nRatioMin;     // stop when less than this % of object is abstracted
     int            fUseTermVars;  // use terminal variables
     int            fUseRollback;  // use rollback to the starting number of frames
+    int            fDumpVabs;     // dumps the abstracted model
     int            fVerbose;      // verbose flag
     int            iFrame;        // the number of frames covered 
 };

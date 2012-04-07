@@ -1430,6 +1430,39 @@ void Gia_VtaSendCancel( Vta_Man_t * p, int fVerbose )
 
 /**Function*************************************************************
 
+  Synopsis    [Send abstracted model or send cancel.]
+
+  Description [Counter-example will be sent automatically when &vta terminates.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_VtaDumpAbsracted( Vta_Man_t * p, int fVerbose )
+{
+    Gia_Man_t * pAbs;
+    if ( fVerbose )
+        Abc_Print( 1, "Dumping abstracted model into file \"vabs.aig\"...\n" );
+    if ( !Abc_FrameIsBridgeMode() )
+        return;
+    // create obj classes
+    Vec_IntFreeP( &p->pGia->vObjClasses );
+    p->pGia->vObjClasses = Gia_VtaFramesToAbs( (Vec_Vec_t *)p->vCores );
+    // create gate classes
+    Vec_IntFreeP( &p->pGia->vGateClasses );
+    p->pGia->vGateClasses = Gia_VtaConvertToGla( p->pGia, p->pGia->vObjClasses );
+    Vec_IntFreeP( &p->pGia->vObjClasses );
+    // create abstrated model
+    pAbs = Gia_ManDupAbsGates( p->pGia, p->pGia->vGateClasses );
+    Vec_IntFreeP( &p->pGia->vGateClasses );
+    // send it out
+    Gia_WriteAiger( pAbs, "vabs.aig", 0, 0 );
+    Gia_ManStop( pAbs );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Collect nodes/flops involved in different timeframes.]
 
   Description []
@@ -1568,6 +1601,9 @@ int Gia_VtaPerformInt( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
             // send new one 
             Gia_VtaSendAbsracted( p, pPars->fVerbose );
             fOneIsSent = 1;
+            // dump the model
+            if ( p->pPars->fDumpVabs )
+                Gia_VtaDumpAbsracted( p, pPars->fVerbose );
         }
         // check if the number of objects is below limit
         if ( p->nSeenGla >= Gia_ManCandNum(pAig) * (100-pPars->nRatioMin) / 100 )
