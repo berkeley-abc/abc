@@ -1444,8 +1444,8 @@ void Gia_VtaDumpAbsracted( Vta_Man_t * p, int fVerbose )
     Gia_Man_t * pAbs;
     if ( fVerbose )
         Abc_Print( 1, "Dumping abstracted model into file \"vabs.aig\"...\n" );
-    if ( !Abc_FrameIsBridgeMode() )
-        return;
+//    if ( !Abc_FrameIsBridgeMode() )
+//        return;
     // create obj classes
     Vec_IntFreeP( &p->pGia->vObjClasses );
     p->pGia->vObjClasses = Gia_VtaFramesToAbs( (Vec_Vec_t *)p->vCores );
