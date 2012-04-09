@@ -595,7 +595,8 @@ void Io_WriteTimingInfo( FILE * pFile, Abc_Ntk_t * pNtk )
         fprintf( pFile, ".and_gate_delay %g\n", pNtk->AndGateDelay );
 
     pTimeDef = Abc_NtkReadDefaultArrival( pNtk );
-    fprintf( pFile, ".default_input_arrival %g %g\n", pTimeDef->Rise, pTimeDef->Fall );
+    if ( pTimeDef->Rise != 0.0 || pTimeDef->Fall != 0.0 )
+        fprintf( pFile, ".default_input_arrival %g %g\n", pTimeDef->Rise, pTimeDef->Fall );
     Abc_NtkForEachPi( pNtk, pNode, i )
     {
         pTime = Abc_NodeReadArrival(pNode);
@@ -605,7 +606,8 @@ void Io_WriteTimingInfo( FILE * pFile, Abc_Ntk_t * pNtk )
     }
 
     pTimeDef = Abc_NtkReadDefaultRequired( pNtk );
-    fprintf( pFile, ".default_output_required %g %g\n", pTimeDef->Rise, pTimeDef->Fall );
+    if ( pTimeDef->Rise != 0.0 || pTimeDef->Fall != 0.0 )
+        fprintf( pFile, ".default_output_required %g %g\n", pTimeDef->Rise, pTimeDef->Fall );
     Abc_NtkForEachPo( pNtk, pNode, i )
     {
         pTime = Abc_NodeReadRequired(pNode);
