@@ -2322,7 +2322,7 @@ int Abc_CommandPrintDelay( Abc_Frame_t * pAbc, int argc, char ** argv )
             pObjOut = Abc_NtkObj( pNtk, Num );
         if ( pObjOut == NULL )
         {
-            Abc_Print( -1, "Cannot find combinational output \"%s\".\n", argv[globalUtilOptind] );
+            Abc_Print( 1, "Cannot find combinational output \"%s\".\n", argv[globalUtilOptind] );
             return 1;
         }
     }
@@ -2336,7 +2336,7 @@ int Abc_CommandPrintDelay( Abc_Frame_t * pAbc, int argc, char ** argv )
             pObjIn = Abc_NtkObj( pNtk, Num );
         if ( pObjIn == NULL )
         {
-            Abc_Print( -1, "Cannot find combinational input \"%s\".\n", argv[globalUtilOptind+1] );
+            Abc_Print( 1, "Cannot find combinational input \"%s\".\n", argv[globalUtilOptind+1] );
             return 1;
         }
     }

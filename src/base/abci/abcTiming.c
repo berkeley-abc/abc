@@ -634,7 +634,7 @@ Vec_Int_t * Abc_NtkDelayTraceSlackStart( Abc_Ntk_t * pNtk )
         for ( k = 0; k < Abc_ObjFaninNum(pObj); k++ )
             Vec_IntPush( vSlacks, -1 );
     }
-    assert( Vec_IntSize(vSlacks) == Vec_IntCap(vSlacks) );
+//    assert( Abc_MaxInt(16, Vec_IntSize(vSlacks)) == Vec_IntCap(vSlacks) );
     return vSlacks;
 }
 
@@ -893,7 +893,7 @@ float Abc_NtkDelayTrace( Abc_Ntk_t * pNtk, Abc_Obj_t * pOut, Abc_Obj_t * pIn, in
             int k, iFanin, Length = 0;
             Abc_Obj_t * pFanin;
             // check the additional slack
-            SlackAdd = (Abc_NodeRequired(pOut)->Worst == 0.0) ? 0.0 : Abc_NodeRequired(pOut)->Worst - Abc_NodeArrival(Abc_ObjFanin0(pOut))->Worst;
+            SlackAdd = Abc_MaxFloat( 0.0, Abc_NodeRequired(pOut)->Worst - Abc_NodeArrival(Abc_ObjFanin0(pOut))->Worst );
             // collect the critical path
             Abc_NtkDelayTraceCritPathCollect_rec( vSlacks, Abc_ObjFanin0(pOut), vBest, vPath );
             if ( pIn == NULL )
@@ -941,7 +941,7 @@ float Abc_NtkDelayTrace( Abc_Ntk_t * pNtk, Abc_Obj_t * pOut, Abc_Obj_t * pIn, in
             }
             printf( "Level %3d : ", Abc_ObjLevel(Abc_ObjFanin0(pOut)) + 1 );
             printf( "Primary output \"%s\".   ", Abc_ObjName(pOut) );
-            if ( Abc_NodeRequired(pOut)->Worst == 0.0 )
+            if ( Abc_NodeRequired(pOut)->Worst - Abc_NodeArrival(Abc_ObjFanin0(pOut))->Worst <= 0.0 )
                 printf( "Required time = %6.1f.  ", Abc_NodeReadArrival(Abc_ObjFanin0(pOut))->Worst );
             else
                 printf( "Required time = %6.1f.  ", Abc_NodeRequired(pOut)->Worst );
