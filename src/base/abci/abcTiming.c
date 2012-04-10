@@ -935,7 +935,8 @@ float Abc_NtkDelayTrace( Abc_Ntk_t * pNtk, Abc_Obj_t * pOut, Abc_Obj_t * pIn, in
                     printf( "I/O times: (" );
                     Abc_ObjForEachFanin( pNode, pFanin, k )
                         printf( "%s%.1f", (k? ", ":""), Abc_NodeReadArrival(pFanin)->Worst );
-                    printf( " -> %.1f)", Abc_NodeReadArrival(pNode)->Worst + Slack + SlackAdd );
+//                    printf( " -> %.1f)", Abc_NodeReadArrival(pNode)->Worst + Slack + SlackAdd );
+                    printf( " -> %.1f)", Abc_NodeReadArrival(pNode)->Worst );
                 }
                 printf( "\n" );
             }
