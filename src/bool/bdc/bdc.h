@@ -78,6 +78,10 @@ extern int         Bdc_FuncCopyInt( Bdc_Fun_t * p );
 extern void        Bdc_FuncSetCopy( Bdc_Fun_t * p, void * pCopy );
 extern void        Bdc_FuncSetCopyInt( Bdc_Fun_t * p, int iCopy );
 
+/*=== working with saved copies ==========================================*/
+static inline int  Bdc_FunObjCopy( Bdc_Fun_t * pObj )     { return Abc_LitNotCond( Bdc_FuncCopyInt(Bdc_Regular(pObj)), Bdc_IsComplement(pObj) );  }
+static inline int  Bdc_FunFanin0Copy( Bdc_Fun_t * pObj )  { return Bdc_FunObjCopy( Bdc_FuncFanin0(pObj) );                                        }
+static inline int  Bdc_FunFanin1Copy( Bdc_Fun_t * pObj )  { return Bdc_FunObjCopy( Bdc_FuncFanin1(pObj) );                                        }
 
 
 ABC_NAMESPACE_HEADER_END

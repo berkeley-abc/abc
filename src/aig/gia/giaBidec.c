@@ -28,10 +28,6 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static inline int Bdc_FunObjCopy( Bdc_Fun_t * pObj )     { return Abc_LitNotCond( Bdc_FuncCopyInt(Bdc_Regular(pObj)), Bdc_IsComplement(pObj) );  }
-static inline int Bdc_FunFanin0Copy( Bdc_Fun_t * pObj )  { return Bdc_FunObjCopy( Bdc_FuncFanin0(pObj) );                                        }
-static inline int Bdc_FunFanin1Copy( Bdc_Fun_t * pObj )  { return Bdc_FunObjCopy( Bdc_FuncFanin1(pObj) );                                        }
-
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////

@@ -446,16 +446,9 @@ void Extra_PrintBinary( FILE * pFile, unsigned Sign[], int nBits )
   SeeAlso     []
 
 ***********************************************************************/
-int Extra_ReadHexadecimal( unsigned Sign[], char * pString, int nVars )
+int Extra_ReadHex( unsigned Sign[], char * pString, int nDigits )
 {
-    int nWords, nDigits, Digit, k, c;
-    nWords = Extra_TruthWordNum( nVars );
-    for ( k = 0; k < nWords; k++ )
-        Sign[k] = 0;
-    // read the number from the string
-    nDigits = (1 << nVars) / 4;
-    if ( nDigits == 0 )
-        nDigits = 1;
+    int Digit, k, c;
     for ( k = 0; k < nDigits; k++ )
     {
         c = nDigits-1-k;
@@ -468,6 +461,19 @@ int Extra_ReadHexadecimal( unsigned Sign[], char * pString, int nVars )
         else { assert( 0 ); return 0; }
         Sign[k/8] |= ( (Digit & 15) << ((k%8) * 4) );
     }
+    return 1;
+}
+int Extra_ReadHexadecimal( unsigned Sign[], char * pString, int nVars )
+{
+    int nWords, nDigits, k;
+    nWords = Extra_TruthWordNum( nVars );
+    for ( k = 0; k < nWords; k++ )
+        Sign[k] = 0;
+    // read the number from the string
+    nDigits = (1 << nVars) / 4;
+    if ( nDigits == 0 )
+        nDigits = 1;
+    Extra_ReadHex( Sign, pString, nDigits );
     return 1;
 }
 

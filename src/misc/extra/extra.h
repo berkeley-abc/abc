@@ -115,6 +115,7 @@ extern char *       Extra_TimeStamp();
 extern char *       Extra_StringAppend( char * pStrGiven, char * pStrAdd );
 extern unsigned     Extra_ReadBinary( char * Buffer );
 extern void         Extra_PrintBinary( FILE * pFile, unsigned Sign[], int nBits );
+extern int          Extra_ReadHex( unsigned Sign[], char * pString, int nDigits );
 extern int          Extra_ReadHexadecimal( unsigned Sign[], char * pString, int nVars );
 extern void         Extra_PrintHexadecimal( FILE * pFile, unsigned Sign[], int nVars );
 extern void         Extra_PrintHexadecimalString( char * pString, unsigned Sign[], int nVars );
