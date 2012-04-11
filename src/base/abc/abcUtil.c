@@ -2003,6 +2003,48 @@ void Abc_NtkPrintCiLevels( Abc_Ntk_t * pNtk )
     printf( "\n" );
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Returns 1 if all other fanouts of pFanin are below pNode.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkAddBuffsEval( Abc_Obj_t * pNode, Abc_Obj_t * pFanin )
+{
+    Abc_Obj_t * pFanout;
+    int i;
+    Abc_ObjForEachFanout( pFanin, pFanout, i )
+        if ( pFanout != pNode && pFanout->Level >= pNode->Level )
+            return 0;
+    return 1;
+}
+/**Function*************************************************************
+
+  Synopsis    [Returns 1 if there exist a fanout of pFanin higher than pNode.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkAddBuffsEval2( Abc_Obj_t * pNode, Abc_Obj_t * pFanin )
+{
+    Abc_Obj_t * pFanout;
+    int i;
+    Abc_ObjForEachFanout( pFanin, pFanout, i )
+        if ( pFanout != pNode && pFanout->Level > pNode->Level )
+            return 1;
+    return 0;
+}
+
 /**Function*************************************************************
 
   Synopsis    []
@@ -2030,12 +2072,12 @@ Abc_Obj_t * Abc_NtkAddBuffsOne( Vec_Ptr_t * vBuffs, Abc_Obj_t * pFanin, int Leve
     }
     return pBuffer;
 }
-Abc_Ntk_t * Abc_NtkAddBuffs( Abc_Ntk_t * pNtkInit, int fReverse, int fVerbose )
+Abc_Ntk_t * Abc_NtkAddBuffs( Abc_Ntk_t * pNtkInit, int fReverse, int nImprove, int fVerbose )
 {
     Vec_Ptr_t * vBuffs;
     Abc_Ntk_t * pNtk = Abc_NtkDup( pNtkInit );
     Abc_Obj_t * pObj, * pFanin, * pBuffer;
-    int i, k, nLevelMax = Abc_NtkLevel( pNtk );
+    int i, k, Iter, nLevelMax = Abc_NtkLevel( pNtk );
     Abc_NtkForEachCo( pNtk, pObj, i )
         pObj->Level = nLevelMax + 1;
     if ( fReverse )
@@ -2049,9 +2091,107 @@ Abc_Ntk_t * Abc_NtkAddBuffs( Abc_Ntk_t * pNtkInit, int fReverse, int fVerbose )
                 pObj->Level = Abc_MinInt( pFanin->Level - 1, pObj->Level );
             assert( pObj->Level > 0 );
         }
-        Vec_PtrFree( vNodes );
         Abc_NtkForEachCi( pNtk, pObj, i )
             pObj->Level = 0;
+
+        // move the nodes
+        for ( Iter = 0; Iter < nImprove; Iter++ )
+        {
+            int Counter = 0, TotalGain = 0;
+            Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
+            {
+                int CountGain = -1;
+                assert( pObj->Level > 0 );
+                Abc_ObjForEachFanin( pObj, pFanin, k )
+                {
+                    assert( pFanin->Level < pObj->Level );
+                    if ( pFanin->Level + 1 == pObj->Level )
+                        break;
+                }
+                if ( k < Abc_ObjFaninNum(pObj) ) // cannot move
+                    continue;
+                Abc_ObjForEachFanin( pObj, pFanin, k )
+                    CountGain += Abc_NtkAddBuffsEval( pObj, pFanin );
+                if ( CountGain >= 0 ) // can move
+                {
+                    pObj->Level--;
+                    Counter++;
+                    TotalGain += CountGain;
+                }
+            }
+            if ( fVerbose )
+                printf( "Shifted %d nodes down with total gain %d.\n", Counter, TotalGain );
+            if ( Counter == 0 )
+                break;
+        }
+        Vec_PtrFree( vNodes );
+    }
+    else
+    {
+        // move the nodes
+        Vec_Ptr_t * vNodes = Abc_NtkDfs( pNtk, 1 );
+        for ( Iter = 0; Iter < nImprove; Iter++ )
+        {
+            int Counter = 0, TotalGain = 0;
+            Vec_PtrForEachEntryReverse( Abc_Obj_t *, vNodes, pObj, i )
+            {
+                int CountGain = 1;
+                assert( pObj->Level <= (unsigned)nLevelMax );
+                Abc_ObjForEachFanout( pObj, pFanin, k )
+                {
+                    assert( pFanin->Level > pObj->Level );
+                    if ( pFanin->Level == pObj->Level + 1 )
+                        break;
+                }
+                if ( k < Abc_ObjFanoutNum(pObj) ) // cannot move
+                    continue;
+                Abc_ObjForEachFanin( pObj, pFanin, k )
+                    CountGain -= !Abc_NtkAddBuffsEval2( pObj, pFanin );
+                if ( CountGain >= 0 ) // can move
+                {
+                    pObj->Level++;
+                    Counter++;
+                    TotalGain += CountGain;
+                }
+            } 
+            if ( fVerbose )
+                printf( "Shifted %d nodes up with total gain %d.\n", Counter, TotalGain );
+            if ( Counter == 0 )
+                break;
+        }
+/*
+        // move the nodes
+        for ( Iter = 0; Iter < nImprove; Iter++ )
+        {
+            int Counter = 0, TotalGain = 0;
+            Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
+            {
+                int CountGain = -1;
+                assert( pObj->Level > 0 );
+                Abc_ObjForEachFanin( pObj, pFanin, k )
+                {
+                    assert( pFanin->Level < pObj->Level );
+                    if ( pFanin->Level + 1 == pObj->Level )
+                        break;
+                }
+                if ( k < Abc_ObjFaninNum(pObj) ) // cannot move
+                    continue;
+                Abc_ObjForEachFanin( pObj, pFanin, k )
+                    CountGain += Abc_NtkAddBuffsEval( pObj, pFanin );
+                if ( CountGain >= 0 ) // can move
+                {
+                    pObj->Level--;
+                    Counter++;
+                    TotalGain += CountGain;
+                }
+            }
+            if ( fVerbose )
+                printf( "Shifted %d nodes down with total gain %d.\n", Counter, TotalGain );
+            if ( Counter == 0 )
+                break;
+        }
+*/
+        Vec_PtrFree( vNodes );
     }
     vBuffs = Vec_PtrStart( Abc_NtkObjNumMax(pNtk) * (nLevelMax + 1) );
     Abc_NtkForEachObj( pNtk, pObj, i )

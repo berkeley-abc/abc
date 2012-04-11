@@ -4550,19 +4550,32 @@ usage:
 ***********************************************************************/
 int Abc_CommandAddBuffs( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Abc_Ntk_t * Abc_NtkAddBuffs( Abc_Ntk_t * pNtk, int fReverse, int fVerbose );
+    extern Abc_Ntk_t * Abc_NtkAddBuffs( Abc_Ntk_t * pNtk, int fReverse, int nImprove, int fVerbose );
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     Abc_Ntk_t * pNtkRes;
     int c, fVerbose;
     int fReverse;
+    int nImprove;
 
+    nImprove = 1000;
     fReverse = 0;
     fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "rvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Irvh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'I':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-I\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            nImprove = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nImprove < 0 ) 
+                goto usage;
+            break;
         case 'r':
             fReverse ^= 1;
             break;
@@ -4588,7 +4601,7 @@ int Abc_CommandAddBuffs( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // modify the current network
-    pNtkRes = Abc_NtkAddBuffs( pNtk, fReverse, fVerbose );
+    pNtkRes = Abc_NtkAddBuffs( pNtk, fReverse, nImprove, fVerbose );
     if ( pNtkRes == NULL )
     {
         Abc_Print( -1, "The command has failed.\n" );
@@ -4599,8 +4612,9 @@ int Abc_CommandAddBuffs( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: addbuffs [-rvh]\n" );
+    Abc_Print( -2, "usage: addbuffs [-I num] [-rvh]\n" );
     Abc_Print( -2, "\t           adds buffers to create balanced CI/CO paths\n" );
+    Abc_Print( -2, "\t-I <num> : the number of refinement iterations [default = %d]\n", nImprove );
     Abc_Print( -2, "\t-r       : toggle reversing the levelized order [default = %s]\n", fReverse? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggle printing optimization summary [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
