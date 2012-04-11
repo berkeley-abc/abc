@@ -2094,7 +2094,7 @@ Abc_Ntk_t * Abc_NtkAddBuffs( Abc_Ntk_t * pNtkInit, int fReverse, int nImprove, i
         Abc_NtkForEachCi( pNtk, pObj, i )
             pObj->Level = 0;
 
-        // move the nodes
+        // move the nodes down one step at a time
         for ( Iter = 0; Iter < nImprove; Iter++ )
         {
             int Counter = 0, TotalGain = 0;
@@ -2128,7 +2128,7 @@ Abc_Ntk_t * Abc_NtkAddBuffs( Abc_Ntk_t * pNtkInit, int fReverse, int nImprove, i
     }
     else
     {
-        // move the nodes
+        // move the nodes up one step at a time
         Vec_Ptr_t * vNodes = Abc_NtkDfs( pNtk, 1 );
         for ( Iter = 0; Iter < nImprove; Iter++ )
         {
@@ -2159,38 +2159,6 @@ Abc_Ntk_t * Abc_NtkAddBuffs( Abc_Ntk_t * pNtkInit, int fReverse, int nImprove, i
             if ( Counter == 0 )
                 break;
         }
-/*
-        // move the nodes
-        for ( Iter = 0; Iter < nImprove; Iter++ )
-        {
-            int Counter = 0, TotalGain = 0;
-            Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
-            {
-                int CountGain = -1;
-                assert( pObj->Level > 0 );
-                Abc_ObjForEachFanin( pObj, pFanin, k )
-                {
-                    assert( pFanin->Level < pObj->Level );
-                    if ( pFanin->Level + 1 == pObj->Level )
-                        break;
-                }
-                if ( k < Abc_ObjFaninNum(pObj) ) // cannot move
-                    continue;
-                Abc_ObjForEachFanin( pObj, pFanin, k )
-                    CountGain += Abc_NtkAddBuffsEval( pObj, pFanin );
-                if ( CountGain >= 0 ) // can move
-                {
-                    pObj->Level--;
-                    Counter++;
-                    TotalGain += CountGain;
-                }
-            }
-            if ( fVerbose )
-                printf( "Shifted %d nodes down with total gain %d.\n", Counter, TotalGain );
-            if ( Counter == 0 )
-                break;
-        }
-*/
         Vec_PtrFree( vNodes );
     }
     vBuffs = Vec_PtrStart( Abc_NtkObjNumMax(pNtk) * (nLevelMax + 1) );
