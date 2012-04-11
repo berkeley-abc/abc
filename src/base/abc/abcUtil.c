@@ -2030,7 +2030,7 @@ Abc_Obj_t * Abc_NtkAddBuffsOne( Vec_Ptr_t * vBuffs, Abc_Obj_t * pFanin, int Leve
     }
     return pBuffer;
 }
-Abc_Ntk_t * Abc_NtkAddBuffs( Abc_Ntk_t * pNtkInit, int fVerbose )
+Abc_Ntk_t * Abc_NtkAddBuffs( Abc_Ntk_t * pNtkInit, int fReverse, int fVerbose )
 {
     Vec_Ptr_t * vBuffs;
     Abc_Ntk_t * pNtk = Abc_NtkDup( pNtkInit );
@@ -2038,6 +2038,21 @@ Abc_Ntk_t * Abc_NtkAddBuffs( Abc_Ntk_t * pNtkInit, int fVerbose )
     int i, k, nLevelMax = Abc_NtkLevel( pNtk );
     Abc_NtkForEachCo( pNtk, pObj, i )
         pObj->Level = nLevelMax + 1;
+    if ( fReverse )
+    {
+        Vec_Ptr_t * vNodes = Abc_NtkDfs( pNtk, 1 );
+        assert( nLevelMax < (1<<18) );
+        Vec_PtrForEachEntryReverse( Abc_Obj_t *, vNodes, pObj, i )
+        {
+            pObj->Level = (1<<18);
+            Abc_ObjForEachFanout( pObj, pFanin, k )
+                pObj->Level = Abc_MinInt( pFanin->Level - 1, pObj->Level );
+            assert( pObj->Level > 0 );
+        }
+        Vec_PtrFree( vNodes );
+        Abc_NtkForEachCi( pNtk, pObj, i )
+            pObj->Level = 0;
+    }
     vBuffs = Vec_PtrStart( Abc_NtkObjNumMax(pNtk) * (nLevelMax + 1) );
     Abc_NtkForEachObj( pNtk, pObj, i )
     {
