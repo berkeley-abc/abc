@@ -27574,7 +27574,7 @@ int Abc_CommandAbc9BackReach( Abc_Frame_t * pAbc, int argc, char ** argv )
 
 usage:
     Abc_Print( -2, "usage: &back_reach [-FCT <num>] [-vh]\n" );
-    Abc_Print( -2, "\t         performs input trimming and reparameterization\n" );
+    Abc_Print( -2, "\t         performs backward reachability by circuit cofactoring\n" );
     Abc_Print( -2, "\t-F num : the limit on the depth of induction [default = %d]\n", nFrameMax );
     Abc_Print( -2, "\t-C num : the conflict limit at a node during induction [default = %d]\n", nConfMax );
     Abc_Print( -2, "\t-T num : the timeout for property directed reachability [default = %d]\n", nTimeMax );
