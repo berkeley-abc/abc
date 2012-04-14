@@ -2203,6 +2203,49 @@ Abc_Ntk_t * Abc_NtkAddBuffs( Abc_Ntk_t * pNtkInit, int fDirect, int fReverse, in
     }
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Computes max delay using log(n) delay model.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+float Abc_NtkComputeDelay( Abc_Ntk_t * pNtk )
+{
+    static double GateDelays[20] = { 1.00, 1.00, 2.00, 2.58, 3.00, 3.32, 3.58, 3.81, 4.00, 4.17, 4.32, 4.46, 4.58, 4.70, 4.81, 4.91, 5.00, 5.09, 5.17, 5.25 };
+    Vec_Ptr_t * vNodes;
+    Abc_Obj_t * pObj, * pFanin;
+    float DelayMax, Delays[15] = {0};
+    int nFaninMax, i, k;
+    // calculate relative gate delays
+    nFaninMax = Abc_NtkGetFaninMax( pNtk );
+    assert( nFaninMax > 1 && nFaninMax < 15 );
+    for ( i = 0; i <= nFaninMax; i++ )
+        Delays[i] = GateDelays[i]/GateDelays[nFaninMax];
+    // set max CI delay
+    Abc_NtkForEachCi( pNtk, pObj, i )
+        pObj->dTemp = 0.0;
+    // compute delays for each node
+    vNodes = Abc_NtkDfs( pNtk, 1 );
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
+    {
+        pObj->dTemp = 0.0;
+        Abc_ObjForEachFanin( pObj, pFanin, k )
+            pObj->dTemp = Abc_MaxFloat( pObj->dTemp, pFanin->dTemp );
+        pObj->dTemp += Delays[Abc_ObjFaninNum(pObj)];
+    }
+    Vec_PtrFree( vNodes );
+    DelayMax = 0.0;
+    // find max CO delay
+    Abc_NtkForEachCo( pNtk, pObj, i )
+        DelayMax = Abc_MaxFloat( DelayMax, Abc_ObjFanin0(pObj)->dTemp );
+    return DelayMax;
+}
+
 
 /**Function*************************************************************
 
