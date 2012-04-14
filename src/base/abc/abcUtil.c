@@ -2072,7 +2072,7 @@ Abc_Obj_t * Abc_NtkAddBuffsOne( Vec_Ptr_t * vBuffs, Abc_Obj_t * pFanin, int Leve
     }
     return pBuffer;
 }
-Abc_Ntk_t * Abc_NtkAddBuffs( Abc_Ntk_t * pNtkInit, int fReverse, int nImprove, int fVerbose )
+Abc_Ntk_t * Abc_NtkAddBuffsInt( Abc_Ntk_t * pNtkInit, int fReverse, int nImprove, int fVerbose )
 {
     Vec_Ptr_t * vBuffs;
     Abc_Ntk_t * pNtk = Abc_NtkDup( pNtkInit );
@@ -2120,7 +2120,7 @@ Abc_Ntk_t * Abc_NtkAddBuffs( Abc_Ntk_t * pNtkInit, int fReverse, int nImprove, i
                 }
             }
             if ( fVerbose )
-                printf( "Shifted %d nodes down with total gain %d.\n", Counter, TotalGain );
+                printf( "Shifted %5d nodes down with total gain %5d.\n", Counter, TotalGain );
             if ( Counter == 0 )
                 break;
         }
@@ -2155,7 +2155,7 @@ Abc_Ntk_t * Abc_NtkAddBuffs( Abc_Ntk_t * pNtkInit, int fReverse, int nImprove, i
                 }
             } 
             if ( fVerbose )
-                printf( "Shifted %d nodes up with total gain %d.\n", Counter, TotalGain );
+                printf( "Shifted %5d nodes up with total gain %5d.\n", Counter, TotalGain );
             if ( Counter == 0 )
                 break;
         }
@@ -2182,6 +2182,27 @@ Abc_Ntk_t * Abc_NtkAddBuffs( Abc_Ntk_t * pNtkInit, int fReverse, int nImprove, i
         pObj->Level = 0;
     return pNtk;
 }
+Abc_Ntk_t * Abc_NtkAddBuffs( Abc_Ntk_t * pNtkInit, int fDirect, int fReverse, int nImprove, int fVerbose )
+{
+    Abc_Ntk_t * pNtkD, * pNtkR;
+    if ( fDirect )
+        return Abc_NtkAddBuffsInt( pNtkInit, 0, nImprove, fVerbose );
+    if ( fReverse )
+        return Abc_NtkAddBuffsInt( pNtkInit, 1, nImprove, fVerbose );
+    pNtkD = Abc_NtkAddBuffsInt( pNtkInit, 0, nImprove, fVerbose );
+    pNtkR = Abc_NtkAddBuffsInt( pNtkInit, 1, nImprove, fVerbose );
+    if ( Abc_NtkNodeNum(pNtkD) < Abc_NtkNodeNum(pNtkR) )
+    {
+        Abc_NtkDelete( pNtkR );
+        return pNtkD;
+    }
+    else
+    {
+        Abc_NtkDelete( pNtkD );
+        return pNtkR;
+    }
+}
+
 
 /**Function*************************************************************
 
