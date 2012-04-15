@@ -1602,9 +1602,12 @@ int Gia_VtaPerformInt( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
             Gia_VtaSendAbsracted( p, pPars->fVerbose );
             fOneIsSent = 1;
             // dump the model
-            if ( p->pPars->fDumpVabs )
-                Gia_VtaDumpAbsracted( p, pPars->fVerbose );
+//            if ( p->pPars->fDumpVabs )
+//                Gia_VtaDumpAbsracted( p, pPars->fVerbose );
         }
+        // dump the model
+        if ( p->pPars->fDumpVabs && (f & 1) )
+            Gia_VtaDumpAbsracted( p, pPars->fVerbose );
         // check if the number of objects is below limit
         if ( p->nSeenGla >= Gia_ManCandNum(pAig) * (100-pPars->nRatioMin) / 100 )
         {
