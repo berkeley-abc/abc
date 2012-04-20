@@ -109,7 +109,7 @@ int n_levels()
 
     if ( pNtk )
     {        
-        return Abc_NtkLevelNum(pNtk);
+        return Abc_NtkLevel(pNtk);
     }
 
     return -1;
@@ -602,9 +602,11 @@ void _set_death_signal()
 %}
 
 int n_ands();
+int n_nodes();
 int n_pis();
 int n_pos();
 int n_latches();
+int n_levels();
 
 int run_command(char* cmd);
 
