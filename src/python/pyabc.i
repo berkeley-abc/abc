@@ -48,13 +48,26 @@ int n_ands()
 
     return -1;
 }
+    
+int n_nodes()
+{
+    Abc_Frame_t* pAbc = Abc_FrameGetGlobalFrame();
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+
+    if ( pNtk )
+    {        
+        return Abc_NtkNodeNum(pNtk);
+    }
+
+    return -1;
+}
 
 int n_pis()
 {
     Abc_Frame_t* pAbc = Abc_FrameGetGlobalFrame();
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
 
-    if ( pNtk && Abc_NtkIsStrash(pNtk) )
+    if ( pNtk )
     {        
         return Abc_NtkPiNum(pNtk);
     }
@@ -68,7 +81,7 @@ int n_pos()
     Abc_Frame_t* pAbc = Abc_FrameGetGlobalFrame();
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
 
-    if ( pNtk && Abc_NtkIsStrash(pNtk) )
+    if ( pNtk )
     {        
         return Abc_NtkPoNum(pNtk);
     }
@@ -81,9 +94,22 @@ int n_latches()
     Abc_Frame_t* pAbc = Abc_FrameGetGlobalFrame();
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
 
-    if ( pNtk && Abc_NtkIsStrash(pNtk) )
+    if ( pNtk )
     {        
         return Abc_NtkLatchNum(pNtk);
+    }
+
+    return -1;
+}
+
+int n_levels()
+{
+    Abc_Frame_t* pAbc = Abc_FrameGetGlobalFrame();
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+
+    if ( pNtk )
+    {        
+        return Abc_NtkLevelNum(pNtk);
     }
 
     return -1;
