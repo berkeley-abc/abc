@@ -60,6 +60,7 @@ extern int             Abc_NamStrFindOrAdd( Abc_Nam_t * p, char * pStr, int * pf
 extern char *          Abc_NamStr( Abc_Nam_t * p, int id );
 extern Vec_Int_t *     Abc_NamComputeIdMap( Abc_Nam_t * p1, Abc_Nam_t * p2 );
 extern int             Abc_NamReportCommon( Vec_Int_t * vNameIds1, Abc_Nam_t * p1, Abc_Nam_t * p2 );
+extern char *          Abc_NamReportUnique( Vec_Int_t * vNameIds1, Abc_Nam_t * p1, Abc_Nam_t * p2 );
 
 
 ABC_NAMESPACE_HEADER_END

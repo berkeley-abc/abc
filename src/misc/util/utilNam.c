@@ -360,7 +360,9 @@ int Abc_NamStrFind( Abc_Nam_t * p, char * pStr )
 int Abc_NamStrFindOrAdd( Abc_Nam_t * p, char * pStr, int * pfFound )
 {
     int iHandleNew;
-    int *piPlace = Abc_NamStrHashFind( p, pStr );
+    int *piPlace;
+    assert( pStr[0] != '\\' || pStr[strlen(pStr)-1] == ' ' );
+    piPlace = Abc_NamStrHashFind( p, pStr );
     if ( *piPlace )
     {
         if ( pfFound )
