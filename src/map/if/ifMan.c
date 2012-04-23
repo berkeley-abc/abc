@@ -71,8 +71,8 @@ If_Man_t * If_ManStart( If_Par_t * pPars )
 //    p->pMemSet     = Mem_FixedStart( p->nSetBytes );
     // report expected memory usage
     if ( p->pPars->fVerbose )
-        Abc_Print( 1, "K = %d. Memory (bytes): Truth = %4d. Cut = %4d. Obj = %4d. Set = %4d.\n", 
-            p->pPars->nLutSize, 4 * p->nTruthWords, p->nCutBytes, p->nObjBytes, p->nSetBytes );
+        Abc_Print( 1, "K = %d. Memory (bytes): Truth = %4d. Cut = %4d. Obj = %4d. Set = %4d. CutMin = %s\n", 
+            p->pPars->nLutSize, 4 * p->nTruthWords, p->nCutBytes, p->nObjBytes, p->nSetBytes, p->pPars->fCutMin? "yes":"no" );
     // room for temporary truth tables
     p->puTemp[0] = p->pPars->fTruth? ABC_ALLOC( unsigned, 4 * p->nTruthWords ) : NULL;
     p->puTemp[1] = p->puTemp[0] + p->nTruthWords;

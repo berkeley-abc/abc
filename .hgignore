@@ -19,6 +19,7 @@ src/aig/ssm/
 src/aig/ddb/
 
 src/base/abc2/
+src/base/abc2d/
 
 *~
 *.orig
