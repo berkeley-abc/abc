@@ -143,7 +143,7 @@ int Cec_ManHandleSpecialCases( Gia_Man_t * p, Cec_ParCec_t * pPars )
         // (for example, when they have the same driver but complemented)
         if ( Gia_ObjPhase(pObj1) != Gia_ObjPhase(pObj2) )
         {
-            Abc_Print( 1, "Networks are NOT EQUIVALENT. Outputs %d trivially differ.  ", i/2 );
+            Abc_Print( 1, "Networks are NOT EQUIVALENT. Outputs %d trivially differ (different phase).  ", i/2 );
             Abc_PrintTime( 1, "Time", clock() - clk );
             pPars->iOutFail = i/2;
             Cec_ManTransformPattern( p, i/2, NULL );
@@ -155,7 +155,7 @@ int Cec_ManHandleSpecialCases( Gia_Man_t * p, Cec_ParCec_t * pPars )
         // drivers are different PIs
         if ( Gia_ObjIsPi(p, pDri1) && Gia_ObjIsPi(p, pDri2) && pDri1 != pDri2 )
         {
-            Abc_Print( 1, "Networks are NOT EQUIVALENT. Outputs %d trivially differ.  ", i/2 );
+            Abc_Print( 1, "Networks are NOT EQUIVALENT. Outputs %d trivially differ (different PIs).  ", i/2 );
             Abc_PrintTime( 1, "Time", clock() - clk );
             pPars->iOutFail = i/2;
             Cec_ManTransformPattern( p, i/2, NULL );
@@ -168,7 +168,7 @@ int Cec_ManHandleSpecialCases( Gia_Man_t * p, Cec_ParCec_t * pPars )
         if ( (Gia_ObjIsPi(p, pDri1) && Gia_ObjIsConst0(pDri2)) || 
              (Gia_ObjIsPi(p, pDri2) && Gia_ObjIsConst0(pDri1)) )
         {
-            Abc_Print( 1, "Networks are NOT EQUIVALENT. Outputs %d trivially differ.  ", i/2 );
+            Abc_Print( 1, "Networks are NOT EQUIVALENT. Outputs %d trivially differ (PI vs. constant).  ", i/2 );
             Abc_PrintTime( 1, "Time", clock() - clk );
             pPars->iOutFail = i/2;
             Cec_ManTransformPattern( p, i/2, NULL );

@@ -439,6 +439,8 @@ static inline int Gia_ManAppendCi( Gia_Man_t * p )
 static inline int Gia_ManAppendAnd( Gia_Man_t * p, int iLit0, int iLit1 )  
 { 
     Gia_Obj_t * pObj = Gia_ManAppendObj( p );
+    assert( iLit0 >= 0 && Abc_Lit2Var(iLit0) < Gia_ManObjNum(p) );
+    assert( iLit1 >= 0 && Abc_Lit2Var(iLit1) < Gia_ManObjNum(p) );
     assert( iLit0 != iLit1 );
     if ( iLit0 < iLit1 )
     {
@@ -463,7 +465,9 @@ static inline int Gia_ManAppendAnd( Gia_Man_t * p, int iLit0, int iLit1 )
 }
 static inline int Gia_ManAppendCo( Gia_Man_t * p, int iLit0 )  
 { 
-    Gia_Obj_t * pObj = Gia_ManAppendObj( p );
+    Gia_Obj_t * pObj;
+    assert( iLit0 >= 0 && Abc_Lit2Var(iLit0) < Gia_ManObjNum(p) );
+    pObj = Gia_ManAppendObj( p );    
     pObj->fTerm = 1;
     pObj->iDiff0  = Gia_ObjId(p, pObj) - Abc_Lit2Var(iLit0);
     pObj->fCompl0 = Abc_LitIsCompl(iLit0);

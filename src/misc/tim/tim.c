@@ -582,6 +582,7 @@ void Tim_ManCreateBoxFirst( Tim_Man_t * p, int firstIn, int nIns, int firstOut, 
 {
     Tim_Box_t * pBox;
     int i;
+//    printf( "Creating %d x %d box with first inputs (%d and %d).\n", nIns, nOuts, firstIn, firstOut );
 
     pBox = (Tim_Box_t *)Mem_FlexEntryFetch( p->pMemObj, sizeof(Tim_Box_t) + sizeof(int) * (nIns+nOuts) );
     memset( pBox, 0, sizeof(Tim_Box_t) );
@@ -847,7 +848,7 @@ float Tim_ManGetCoRequired( Tim_Man_t * p, int iCo )
     if ( p->fUseTravId )
     Tim_ManBoxForEachOutput( p, pBox, pObj, i )
         if ( pObj->TravId != p->nTravIds )
-            printf( "Tim_ManGetCoRequired(): Output required times of the box are not up to date!\n" );
+            printf( "Tim_ManGetCoRequired(): Output required times of output %d the box %d are not up to date!\n", i, pBox->iBox );
     // compute the required times for each input of the box (POs)
     Tim_ManBoxForEachInput( p, pBox, pObjRes, i )
     {
@@ -855,7 +856,7 @@ float Tim_ManGetCoRequired( Tim_Man_t * p, int iCo )
         Tim_ManBoxForEachOutput( p, pBox, pObj, k )
         {
             pDelays = pBox->pDelayTable + k * pBox->nInputs;
-            DelayBest = Abc_MinInt( DelayBest, pObj->timeReq - pDelays[i] );
+            DelayBest = Abc_MinFloat( DelayBest, pObj->timeReq - pDelays[i] );
         }
         pObjRes->timeReq = DelayBest;
         pObjRes->TravId = p->nTravIds;
