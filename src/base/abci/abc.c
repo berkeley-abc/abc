@@ -28338,12 +28338,15 @@ int Abc_CommandAbc9Iso( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Gia_Man_t * pAig;
     Vec_Ptr_t * vPosEquivs;
-    int c, fVerbose = 0;
+    int c, fDualOut = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "dvh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'd':
+            fDualOut ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -28363,7 +28366,7 @@ int Abc_CommandAbc9Iso( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Iso(): The AIG has only one PO. Isomorphism detection is not performed.\n" );
         return 1;
     }
-    pAig = Gia_ManIsoReduce( pAbc->pGia, &vPosEquivs, fVerbose );
+    pAig = Gia_ManIsoReduce( pAbc->pGia, &vPosEquivs, fDualOut, fVerbose );
     if ( pAig == NULL )
     {
         Abc_Print( -1, "Abc_CommandAbc9Iso(): Transformation has failed.\n" );
@@ -28376,8 +28379,9 @@ int Abc_CommandAbc9Iso( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &iso [-vh]\n" );
+    Abc_Print( -2, "usage: &iso [-dvh]\n" );
     Abc_Print( -2, "\t         removes POs with isomorphic sequential COI\n" );
+    Abc_Print( -2, "\t-d     : treat the current AIG as a dual-output miter [default = %s]\n", fDualOut? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;

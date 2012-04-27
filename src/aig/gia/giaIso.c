@@ -775,7 +775,7 @@ Vec_Ptr_t * Gia_IsoDeriveEquivPos( Gia_Man_t * pGia, int fForward, int fVerbose 
                 break;
         }
 
-        Gia_IsoReportTopmost( p );
+//        Gia_IsoReportTopmost( p );
 
         while ( Vec_IntSize(p->vClasses) > 0 )
         {
@@ -1063,19 +1063,33 @@ Vec_Str_t * Gia_ManIsoFindString( Gia_Man_t * p, int iPo, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManIsoReduce( Gia_Man_t * p, Vec_Ptr_t ** pvPosEquivs, int fVerbose )
+Gia_Man_t * Gia_ManIsoReduce( Gia_Man_t * pInit, Vec_Ptr_t ** pvPosEquivs, int fDualOut, int fVerbose )
 { 
     int fVeryVerbose = 0;
-    Gia_Man_t * pPart;
+    Gia_Man_t * p, * pPart;
     Vec_Ptr_t * vEquivs, * vEquivs2, * vStrings;
     Vec_Int_t * vRemain, * vLevel, * vLevel2;
     Vec_Str_t * vStr, * vStr2;
     int i, k, s, sStart, Entry, Counter, clk = clock();
 
+    if ( fDualOut )
+    {
+        assert( (Gia_ManPoNum(pInit) & 1) == 0 );
+        p = Gia_ManTransformMiter( pInit );
+        p = Gia_ManSeqStructSweep( pPart = p, 1, 1, 0 );
+        Gia_ManStop( pPart );
+    }
+    else
+        p = pInit;
+
     // create preliminary equivalences
     vEquivs = Gia_IsoDeriveEquivPos( p, 1, fVeryVerbose );
     if ( vEquivs == NULL )
+    {
+        if ( fDualOut )
+            Gia_ManStop( p );
         return NULL;
+    }
 //    printf( "Reduced %d outputs to %d outputs.  ", Gia_ManPoNum(p), Vec_PtrSize(vEquivs) );
 //    Abc_PrintTime( 1, "Time", clock() - clk );
 
@@ -1126,11 +1140,32 @@ Gia_Man_t * Gia_ManIsoReduce( Gia_Man_t * p, Vec_Ptr_t ** pvPosEquivs, int fVerb
     Vec_PtrForEachEntry( Vec_Int_t *, vEquivs, vLevel, i )
         Vec_IntPush( vRemain, Vec_IntEntry(vLevel, 0) );
 
+    if ( fDualOut )
+    {
+        Vec_Int_t * vTemp = Vec_IntAlloc( Vec_IntSize(vRemain) );
+        int i, Entry;
+        Vec_IntForEachEntry( vRemain, Entry, i )
+        {
+            printf( "%d ", Entry );
+            Vec_IntPush( vTemp, 2*Entry );
+            Vec_IntPush( vTemp, 2*Entry+1 );
+        }
+        printf( "\n" );
+        Vec_IntFree( vRemain );
+        vRemain = vTemp;
+        Gia_ManStop( p );
+        p = pInit;
+    }
+
+
     // derive the resulting AIG
     pPart = Gia_ManDupCones( p, Vec_IntArray(vRemain), Vec_IntSize(vRemain) );
     Vec_IntFree( vRemain );
     // report the results
-    printf( "Reduced %d outputs to %d outputs.  ", Gia_ManPoNum(p), Gia_ManPoNum(pPart) );
+    if ( !fDualOut )
+        printf( "Reduced %d outputs to %d outputs.  ", Gia_ManPoNum(p), Gia_ManPoNum(pPart) );
+    else
+        printf( "Reduced %d dual outputs to %d dual outputs.  ", Gia_ManPoNum(p)/2, Gia_ManPoNum(pPart)/2 );
     Abc_PrintTime( 1, "Time", clock() - clk );
     if ( fVerbose )
     {
