@@ -151,7 +151,7 @@ Gia_Man_t * Gia_ManReparam( Gia_Man_t * p, int fVerbose )
     }
 
     // perform input trimming
-    pNew = Gia_ManDupTrimmed( p, 1, 0 );
+    pNew = Gia_ManDupTrimmed( p, 1, 0, 0 );
     if ( fVerbose )
     {
         printf( "After PI trimming:\n" );

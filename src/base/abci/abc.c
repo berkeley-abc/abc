@@ -22949,8 +22949,9 @@ int Abc_CommandAbc9Trim( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     int fTrimCis = 1;
     int fTrimCos = 1;
+    int fDualOut = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "ioh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "iodh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -22959,6 +22960,9 @@ int Abc_CommandAbc9Trim( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'o':
             fTrimCos ^= 1;
+            break;
+        case 'd':
+            fDualOut ^= 1;
             break;
         case 'h':
             goto usage;
@@ -22971,15 +22975,16 @@ int Abc_CommandAbc9Trim( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Trim(): There is no AIG.\n" );
         return 1;
     } 
-    pTemp = Gia_ManDupTrimmed( pAbc->pGia, fTrimCis, fTrimCos );
+    pTemp = Gia_ManDupTrimmed( pAbc->pGia, fTrimCis, fTrimCos, fDualOut );
     Abc_CommandUpdate9( pAbc, pTemp );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &trim [-ioh]\n" );
+    Abc_Print( -2, "usage: &trim [-iodh]\n" );
     Abc_Print( -2, "\t         removes PIs without fanout and PO driven by constants\n" );
     Abc_Print( -2, "\t-i     : toggle removing PIs [default = %s]\n", fTrimCis? "yes": "no" );
     Abc_Print( -2, "\t-o     : toggle removing POs [default = %s]\n", fTrimCos? "yes": "no" );
+    Abc_Print( -2, "\t-d     : toggle using dual-output miter [default = %s]\n", fDualOut? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }

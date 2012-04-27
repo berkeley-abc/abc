@@ -901,25 +901,66 @@ Gia_Man_t * Gia_ManDupNormalized( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManDupTrimmed( Gia_Man_t * p, int fTrimCis, int fTrimCos )
+Gia_Man_t * Gia_ManDupTrimmed( Gia_Man_t * p, int fTrimCis, int fTrimCos, int fDualOut )
 {
     Gia_Man_t * pNew;
     Gia_Obj_t * pObj;
     int i;
-    Gia_ManFillValue( p );
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
+    // check if there are PIs to be added
     Gia_ManSetRefs( p );
+    Gia_ManForEachPi( p, pObj, i )
+        if ( !fTrimCis || pObj->Value > 0 )
+            break;
+    if ( i == Gia_ManPiNum(p) ) // there is no PIs - add dummy PI
+        Gia_ManAppendCi(pNew);
+    // add the ROs
+    Gia_ManFillValue( p );
     Gia_ManConst0(p)->Value = 0;
     Gia_ManForEachCi( p, pObj, i )
         if ( !fTrimCis || pObj->Value > 0 || Gia_ObjIsRo(p, pObj) )
             pObj->Value = Gia_ManAppendCi(pNew);
     Gia_ManForEachAnd( p, pObj, i )
         pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
-    Gia_ManForEachCo( p, pObj, i )
-        if ( !fTrimCos || !Gia_ObjIsConst0(Gia_ObjFanin0(pObj)) || Gia_ObjIsRi(p, pObj) )
+    if ( fDualOut && fTrimCos )
+    {
+        Gia_Man_t * pNonDual, * pTemp;
+        Gia_Obj_t * pPo0, * pPo1;
+        // create non-dual miter
+        assert( (Gia_ManPoNum(p) & 1) == 0 );
+        pNonDual = Gia_ManTransformMiter( p );
+        pNonDual = Gia_ManSeqStructSweep( pTemp = pNonDual, 1, 1, 0 );
+        Gia_ManStop( pTemp );
+        assert( Gia_ManPiNum(pNonDual) > 0 );
+        assert( 2 * Gia_ManPoNum(pNonDual) == Gia_ManPoNum(p) );
+        // skip PO pairs corresponding to const0 POs of the non-dual miter
+        Gia_ManForEachPo( pNonDual, pObj, i )
+            if ( !Gia_ObjIsConst0(Gia_ObjFanin0(pObj)) )
+            {
+                pPo0 = Gia_ManPo( p, 2*i+0 );
+                pPo1 = Gia_ManPo( p, 2*i+1 );
+                pPo0->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pPo0) );
+                pPo1->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pPo1) );
+            }
+        Gia_ManStop( pNonDual );
+        Gia_ManForEachRi( p, pObj, i )
             pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
-    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+        Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+        // cleanup
+        pNew = Gia_ManSeqStructSweep( pTemp = pNew, 1, 1, 0 );
+        Gia_ManStop( pTemp );
+        // trim the PIs
+//        pNew = Gia_ManDupTrimmed( pTemp = pNew, 1, 0, 0 );
+//        Gia_ManStop( pTemp );
+    }
+    else
+    {
+        Gia_ManForEachCo( p, pObj, i )
+            if ( !fTrimCos || !Gia_ObjIsConst0(Gia_ObjFanin0(pObj)) || Gia_ObjIsRi(p, pObj) )
+                pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+        Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    }
     return pNew;
 }
 
