@@ -1607,7 +1607,10 @@ int Gia_VtaPerformInt( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
         }
         // dump the model
         if ( p->pPars->fDumpVabs && (f & 1) )
+        {
+            Abc_FrameSetNFrames( f );
             Gia_VtaDumpAbsracted( p, pPars->fVerbose );
+        }
         // check if the number of objects is below limit
         if ( p->nSeenGla >= Gia_ManCandNum(pAig) * (100-pPars->nRatioMin) / 100 )
         {
