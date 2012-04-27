@@ -19750,7 +19750,7 @@ int Abc_CommandBmc3( Abc_Frame_t * pAbc, int argc, char ** argv )
     Saig_ParBmc_t Pars, * pPars = &Pars;
     Abc_Ntk_t * pNtkRes, * pNtk = Abc_FrameReadNtk(pAbc);
     char * pLogFileName = NULL;
-    int fOrDecomp = 1;
+    int fOrDecomp = 0;
     int c;
     Saig_ParBmcSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
@@ -20095,6 +20095,12 @@ int Abc_CommandBmcInter( Abc_Frame_t * pAbc, int argc, char ** argv )
                 return 0;
             }
             pAbc->Status = Abc_NtkDarBmcInter( pNtkNew, pPars, NULL );
+            if ( pAbc->Status == 0 )
+            {
+                Aig_Man_t * pMan = Abc_NtkToDar( pNtk, 0, 1 );
+                pNtkNew->pSeqModel->iPo = Saig_ManFindFailedPoCex( pMan, pNtkNew->pSeqModel );
+                Aig_ManStop( pMan );
+            }
             Abc_FrameReplaceCex( pAbc, &pNtkNew->pSeqModel );
             Abc_NtkDelete( pNtkNew );
         }
