@@ -1146,11 +1146,11 @@ Gia_Man_t * Gia_ManIsoReduce( Gia_Man_t * pInit, Vec_Ptr_t ** pvPosEquivs, int f
         int i, Entry;
         Vec_IntForEachEntry( vRemain, Entry, i )
         {
-            printf( "%d ", Entry );
+//            printf( "%d ", Entry );
             Vec_IntPush( vTemp, 2*Entry );
             Vec_IntPush( vTemp, 2*Entry+1 );
         }
-        printf( "\n" );
+//        printf( "\n" );
         Vec_IntFree( vRemain );
         vRemain = vTemp;
         Gia_ManStop( p );
