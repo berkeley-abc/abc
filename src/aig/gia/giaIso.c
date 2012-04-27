@@ -1071,16 +1071,24 @@ Gia_Man_t * Gia_ManIsoReduce( Gia_Man_t * pInit, Vec_Ptr_t ** pvPosEquivs, int f
     Vec_Int_t * vRemain, * vLevel, * vLevel2;
     Vec_Str_t * vStr, * vStr2;
     int i, k, s, sStart, Entry, Counter, clk = clock();
+    if ( pvPosEquivs )
+        *pvPosEquivs = NULL;
 
     if ( fDualOut )
     {
         assert( (Gia_ManPoNum(pInit) & 1) == 0 );
+        if ( Gia_ManPoNum(pInit) == 2 )
+            return Gia_ManDup(pInit);
         p = Gia_ManTransformMiter( pInit );
         p = Gia_ManSeqStructSweep( pPart = p, 1, 1, 0 );
         Gia_ManStop( pPart );
     }
     else
+    {
+        if ( Gia_ManPoNum(pInit) == 1 )
+            return Gia_ManDup(pInit);
         p = pInit;
+    }
 
     // create preliminary equivalences
     vEquivs = Gia_IsoDeriveEquivPos( p, 1, fVeryVerbose );
