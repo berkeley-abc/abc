@@ -23,7 +23,8 @@
 
 ABC_NAMESPACE_IMPL_START
 
-//#define USE_ABC2
+#define USE_ABC2
+#define USE_ABC85
  
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -51,6 +52,8 @@ extern void Test_Init( Abc_Frame_t * pAbc );
 extern void Test_End( Abc_Frame_t * pAbc );
 extern void Abc2_Init( Abc_Frame_t * pAbc );
 extern void Abc2_End ( Abc_Frame_t * pAbc );
+extern void Abc85_Init( Abc_Frame_t * pAbc );
+extern void Abc85_End( Abc_Frame_t * pAbc );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -83,6 +86,9 @@ void Abc_FrameInit( Abc_Frame_t * pAbc )
 #ifdef USE_ABC2
     Abc2_Init( pAbc );
 #endif
+#ifdef USE_ABC85
+    Abc85_Init( pAbc );
+#endif
     EXT_ABC_INIT(pAbc) // plugin for external functionality
 }
 
@@ -112,6 +118,9 @@ void Abc_FrameEnd( Abc_Frame_t * pAbc )
     Test_End( pAbc );
 #ifdef USE_ABC2
     Abc2_End( pAbc );
+#endif
+#ifdef USE_ABC85
+    Abc85_End( pAbc );
 #endif
     EXT_ABC_END(pAbc) // plugin for external functionality
 }

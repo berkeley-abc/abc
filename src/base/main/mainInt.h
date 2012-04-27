@@ -57,63 +57,60 @@ ABC_NAMESPACE_HEADER_START
 struct Abc_Frame_t_
 {
     // general info
-    char *          sVersion;    // the name of the current version
+    char *          sVersion;      // the name of the current version
     // commands, aliases, etc
-    st_table *      tCommands;   // the command table
-    st_table *      tAliases;    // the alias table
-    st_table *      tFlags;      // the flag table
-    Vec_Ptr_t *     aHistory;    // the command history
+    st_table *      tCommands;     // the command table
+    st_table *      tAliases;      // the alias table
+    st_table *      tFlags;        // the flag table
+    Vec_Ptr_t *     aHistory;      // the command history
     // the functionality
     Abc_Ntk_t *     pNtkCur;       // the current network
     Abc_Ntk_t *     pNtkBestDelay; // the current network
     Abc_Ntk_t *     pNtkBestArea;  // the current network
-    int             nSteps;      // the counter of different network processed
-    int             fAutoexac;   // marks the autoexec mode
-    int                fBatchMode;     // are we invoked in batch mode?
-    int             fBridgeMode; // are we invoked in bridge mode?
+    int             nSteps;        // the counter of different network processed
+    int             fAutoexac;     // marks the autoexec mode
+    int                fBatchMode;       // are we invoked in batch mode?
+    int             fBridgeMode;   // are we invoked in bridge mode?
     // output streams
     FILE *          Out;
     FILE *          Err;
     FILE *          Hst;
     // used for runtime measurement
-    double          TimeCommand; // the runtime of the last command
-    double          TimeTotal;   // the total runtime of all commands
+    double          TimeCommand;   // the runtime of the last command
+    double          TimeTotal;     // the total runtime of all commands
     // temporary storage for structural choices
-    Vec_Ptr_t *     vStore;      // networks to be used by choice
+    Vec_Ptr_t *     vStore;        // networks to be used by choice
     // decomposition package
-    void *          pManDec;     // decomposition manager
-    DdManager *     dd;          // temporary BDD package
+    void *          pManDec;       // decomposition manager
+    DdManager *     dd;            // temporary BDD package
     // libraries for mapping
-    void *          pLibLut;     // the current LUT library
-    void *          pLibGen;     // the current genlib
-    void *          pLibGen2;    // the current genlib
-    void *          pLibSuper;   // the current supergate library
-    void *          pLibVer;     // the current Verilog library
+    void *          pLibLut;       // the current LUT library
+    void *          pLibGen;       // the current genlib
+    void *          pLibGen2;      // the current genlib
+    void *          pLibSuper;     // the current supergate library
+    void *          pLibVer;       // the current Verilog library
 
     // new code
-    Gia_Man_t *     pGia;        // alternative current network as a light-weight AIG
-    Gia_Man_t *     pGia2;       // copy of the above
-    Abc_Cex_t *     pCex;        // a counter-example to fail the current network
-    Vec_Ptr_t *     vCexVec;     // a vector of counter-examples if more than one PO fails
-    Vec_Ptr_t *     vPoEquivs;   // equivalence classes of isomorphic primary outputs
-
+    Gia_Man_t *     pGia;          // alternative current network as a light-weight AIG
+    Gia_Man_t *     pGia2;         // copy of the above
+    Abc_Cex_t *     pCex;          // a counter-example to fail the current network
+    Vec_Ptr_t *     vCexVec;       // a vector of counter-examples if more than one PO fails
+    Vec_Ptr_t *     vPoEquivs;     // equivalence classes of isomorphic primary outputs
+    int             Status;                // the status of verification problem (proved=1, disproved=0, undecided=-1)
+    int             nFrames;               // the number of time frames completed by BMC
+    Vec_Ptr_t *     vPlugInComBinPairs;    // pairs of command and its binary name
+    Vec_Ptr_t *     vLTLProperties_global; // related to LTL
     void *          pSave1; 
     void *          pSave2; 
     void *          pSave3; 
     void *          pSave4; 
+    void *          pAbc85Ntl;
+    void *          pAbc85Ntl2;
+    void *          pAbc85Best;
+    void *          pAbc85Delay;
+    If_Lib_t *      pAbc85Lib;
 
-    // related to LTL
-    Vec_Ptr_t *     vLTLProperties_global;
-
-    // the addition to keep the best Ntl that can be used to restore
-    void *            pAbc8NtlBestDelay;    // the best delay, Ntl
-    void *            pAbc8NtlBestArea;    // the best area
-    int             Status;             // the status of verification problem (proved=1, disproved=0, undecided=-1)
-    int             nFrames;            // the number of time frames completed by BMC
-
-    Vec_Ptr_t *     vPlugInComBinPairs; // pairs of command and its binary name
-
-    EXT_ABC_FRAME                // plugin for external functionality
+    EXT_ABC_FRAME   // plugin for external functionality
 };
 
 ////////////////////////////////////////////////////////////////////////
