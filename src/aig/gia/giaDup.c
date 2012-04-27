@@ -944,6 +944,13 @@ Gia_Man_t * Gia_ManDupTrimmed( Gia_Man_t * p, int fTrimCis, int fTrimCos, int fD
                 pPo1->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pPo1) );
             }
         Gia_ManStop( pNonDual );
+        if ( Gia_ManPoNum(pNew) == 0 ) // nothing - add dummy PO
+        {
+            pPo0 = Gia_ManPo( p, 0 );
+            pPo1 = Gia_ManPo( p, 1 );
+            pPo0->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pPo0) );
+            pPo1->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pPo1) );
+        }
         Gia_ManForEachRi( p, pObj, i )
             pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
         Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
@@ -956,6 +963,12 @@ Gia_Man_t * Gia_ManDupTrimmed( Gia_Man_t * p, int fTrimCis, int fTrimCos, int fD
     }
     else
     {
+        // check if there are POs to be added
+        Gia_ManForEachPo( p, pObj, i )
+            if ( !fTrimCos || !Gia_ObjIsConst0(Gia_ObjFanin0(pObj)) )
+                break;
+        if ( i == Gia_ManPoNum(p) ) // there is no POs - add dummy PO
+            Gia_ManAppendCo( pNew, 0 );
         Gia_ManForEachCo( p, pObj, i )
             if ( !fTrimCos || !Gia_ObjIsConst0(Gia_ObjFanin0(pObj)) || Gia_ObjIsRi(p, pObj) )
                 pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
