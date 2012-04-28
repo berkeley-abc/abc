@@ -2040,6 +2040,23 @@ int If_CutPerformCheck16( If_Man_t * p, unsigned * pTruth, int nVars, int nLeave
 {
     If_Grp_t G1 = {0};//, G3 = {0};
     int i, nLutLeaf, nLutLeaf2, nLutRoot, Length;
+    // if cutmin is disabled, minimize the cut
+    if ( !p->pPars->fCutMin && If_CluSupportSize((word *)pTruth, nVars) < nLeaves )
+    {
+        If_Cut_t * pCut = p->pCutTemp;
+        pCut->nLimit  = nVars;
+        pCut->nLeaves = nLeaves;
+        pCut->pLeaves = (int *)(pCut + 1);
+        for ( i = 0; i < nLeaves; i++ )
+            pCut->pLeaves[i] = i;
+        pCut->pTruth  = (unsigned *)pCut->pLeaves + pCut->nLimit + p->nPermWords;
+        If_CluCopy( (word *)If_CutTruth(pCut), (word *)pTruth, nVars );
+        if ( If_CutTruthMinimize( p, pCut ) >= 2 )
+            return 0;
+        nLeaves = pCut->nLeaves;
+        If_CluCopy( (word *)pTruth, (word *)If_CutTruth(pCut), nVars );
+    }
+
     // quit if parameters are wrong
     Length = strlen(pStr);
     if ( Length != 2 && Length != 3 )

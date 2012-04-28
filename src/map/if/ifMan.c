@@ -78,6 +78,8 @@ If_Man_t * If_ManStart( If_Par_t * pPars )
     p->puTemp[1] = p->puTemp[0] + p->nTruthWords;
     p->puTemp[2] = p->puTemp[1] + p->nTruthWords;
     p->puTemp[3] = p->puTemp[2] + p->nTruthWords;
+    p->pCutTemp  = (If_Cut_t *)ABC_ALLOC( char, p->nCutBytes );
+
     // create the constant node
     p->pConst1   = If_ManSetupObj( p );
     p->pConst1->Type   = IF_CONST1;
@@ -160,6 +162,7 @@ void If_ManStop( If_Man_t * p )
     ABC_FREE( p->pMemCi );
     ABC_FREE( p->pMemAnd );
     ABC_FREE( p->puTemp[0] );
+    ABC_FREE( p->pCutTemp );
     // free pars memory
     if ( p->pPars->pTimesArr )
         ABC_FREE( p->pPars->pTimesArr );
