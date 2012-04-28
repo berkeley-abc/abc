@@ -20097,6 +20097,7 @@ int Abc_CommandBmcInter( Abc_Frame_t * pAbc, int argc, char ** argv )
             pAbc->Status = Abc_NtkDarBmcInter( pNtkNew, pPars, NULL );
             if ( pAbc->Status == 0 )
             {
+                extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
                 Aig_Man_t * pMan = Abc_NtkToDar( pNtk, 0, 1 );
                 pNtkNew->pSeqModel->iPo = Saig_ManFindFailedPoCex( pMan, pNtkNew->pSeqModel );
                 Aig_ManStop( pMan );
