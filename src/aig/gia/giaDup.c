@@ -916,8 +916,6 @@ Gia_Man_t * Gia_ManDupTrimmed( Gia_Man_t * p, int fTrimCis, int fTrimCos, int fD
     if ( i == Gia_ManPiNum(p) ) // there is no PIs - add dummy PI
         Gia_ManAppendCi(pNew);
     // add the ROs
-    Gia_ManFillValue( p );
-    Gia_ManConst0(p)->Value = 0;
     Gia_ManForEachCi( p, pObj, i )
         if ( !fTrimCis || pObj->Value > 0 || Gia_ObjIsRo(p, pObj) )
             pObj->Value = Gia_ManAppendCi(pNew);
