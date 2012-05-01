@@ -240,7 +240,7 @@ Gia_Man_t * Gia_ManSeqStructSweep( Gia_Man_t * p, int fConst, int fEquiv, int fV
 {
     Gia_Man_t * pTemp;
     if ( Gia_ManRegNum(p) == 0 )
-        return Gia_ManDup( p );
+        return Gia_ManCleanup( p );
     if ( fVerbose )
         printf( "Performing sequential cleanup.\n" );
     p = Gia_ManSeqCleanup( pTemp = p );

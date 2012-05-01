@@ -892,6 +892,39 @@ Gia_Man_t * Gia_ManDupNormalized( Gia_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Returns the array of non-const-0 POs of the dual-output miter.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Gia_ManDupTrimmedNonZero( Gia_Man_t * p )
+{
+    Vec_Int_t * vNonZero;
+    Gia_Man_t * pTemp, * pNonDual;
+    Gia_Obj_t * pObj;
+    int i;
+    assert( (Gia_ManPoNum(p) & 1) == 0 );
+    pNonDual = Gia_ManTransformMiter( p );
+    pNonDual = Gia_ManSeqStructSweep( pTemp = pNonDual, 1, 1, 0 );
+    Gia_ManStop( pTemp );
+    assert( Gia_ManPiNum(pNonDual) > 0 );
+    assert( 2 * Gia_ManPoNum(pNonDual) == Gia_ManPoNum(p) );
+    // skip PO pairs corresponding to const0 POs of the non-dual miter
+    vNonZero = Vec_IntAlloc( 100 );
+    Gia_ManForEachPo( pNonDual, pObj, i )
+        if ( !Gia_ObjIsConst0(Gia_ObjFanin0(pObj)) )
+            Vec_IntPush( vNonZero, i );
+    Gia_ManStop( pNonDual );
+    return vNonZero;
+}
+
+
+/**Function*************************************************************
+
   Synopsis    [Duplicates AIG in the DFS order while putting CIs first.]
 
   Description []
@@ -903,54 +936,47 @@ Gia_Man_t * Gia_ManDupNormalized( Gia_Man_t * p )
 ***********************************************************************/
 Gia_Man_t * Gia_ManDupTrimmed( Gia_Man_t * p, int fTrimCis, int fTrimCos, int fDualOut )
 {
-    Gia_Man_t * pNew;
+    Vec_Int_t * vNonZero = NULL;
+    Gia_Man_t * pNew, * pTemp;
     Gia_Obj_t * pObj;
-    int i;
+    int i, Entry;
+    // collect non-zero
+    if ( fDualOut && fTrimCos )
+        vNonZero = Gia_ManDupTrimmedNonZero( p );
+    // start new manager
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
     // check if there are PIs to be added
-    Gia_ManSetRefs( p );
+    Gia_ManCreateRefs( p );
     Gia_ManForEachPi( p, pObj, i )
-        if ( !fTrimCis || pObj->Value > 0 )
+        if ( !fTrimCis || Gia_ObjRefs(p, pObj) )
             break;
     if ( i == Gia_ManPiNum(p) ) // there is no PIs - add dummy PI
         Gia_ManAppendCi(pNew);
     // add the ROs
+    Gia_ManFillValue( p );
+    Gia_ManConst0(p)->Value = 0;
     Gia_ManForEachCi( p, pObj, i )
-        if ( !fTrimCis || pObj->Value > 0 || Gia_ObjIsRo(p, pObj) )
+        if ( !fTrimCis || Gia_ObjRefs(p, pObj) || Gia_ObjIsRo(p, pObj) )
             pObj->Value = Gia_ManAppendCi(pNew);
     Gia_ManForEachAnd( p, pObj, i )
         pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
     if ( fDualOut && fTrimCos )
     {
-        Gia_Man_t * pNonDual, * pTemp;
-        Gia_Obj_t * pPo0, * pPo1;
-        // create non-dual miter
-        assert( (Gia_ManPoNum(p) & 1) == 0 );
-        pNonDual = Gia_ManTransformMiter( p );
-        pNonDual = Gia_ManSeqStructSweep( pTemp = pNonDual, 1, 1, 0 );
-        Gia_ManStop( pTemp );
-        assert( Gia_ManPiNum(pNonDual) > 0 );
-        assert( 2 * Gia_ManPoNum(pNonDual) == Gia_ManPoNum(p) );
-        // skip PO pairs corresponding to const0 POs of the non-dual miter
-        Gia_ManForEachPo( pNonDual, pObj, i )
-            if ( !Gia_ObjIsConst0(Gia_ObjFanin0(pObj)) )
-            {
-                pPo0 = Gia_ManPo( p, 2*i+0 );
-                pPo1 = Gia_ManPo( p, 2*i+1 );
-                pPo0->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pPo0) );
-                pPo1->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pPo1) );
-            }
-        Gia_ManStop( pNonDual );
+        Vec_IntForEachEntry( vNonZero, Entry, i )
+        {
+            Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(Gia_ManPo(p, 2*Entry+0)) );
+            Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(Gia_ManPo(p, 2*Entry+1)) );
+        }
         if ( Gia_ManPoNum(pNew) == 0 ) // nothing - add dummy PO
         {
-            pPo0 = Gia_ManPo( p, 0 );
-            pPo1 = Gia_ManPo( p, 1 );
-            pPo0->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pPo0) );
-            pPo1->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pPo1) );
+//            Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(Gia_ManPo(p, 0)) );
+//            Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(Gia_ManPo(p, 1)) );
+            Gia_ManAppendCo( pNew, 0 );
+            Gia_ManAppendCo( pNew, 0 );
         }
         Gia_ManForEachRi( p, pObj, i )
-            pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+            Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
         Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
         // cleanup
         pNew = Gia_ManSeqStructSweep( pTemp = pNew, 1, 1, 0 );
@@ -969,9 +995,11 @@ Gia_Man_t * Gia_ManDupTrimmed( Gia_Man_t * p, int fTrimCis, int fTrimCos, int fD
             Gia_ManAppendCo( pNew, 0 );
         Gia_ManForEachCo( p, pObj, i )
             if ( !fTrimCos || !Gia_ObjIsConst0(Gia_ObjFanin0(pObj)) || Gia_ObjIsRi(p, pObj) )
-                pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+                Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
         Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
     }
+    Vec_IntFreeP( &vNonZero );
+    assert( !Gia_ManHasDangling( pNew ) );
     return pNew;
 }
 

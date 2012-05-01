@@ -467,6 +467,7 @@ static inline int Gia_ManAppendCo( Gia_Man_t * p, int iLit0 )
 { 
     Gia_Obj_t * pObj;
     assert( iLit0 >= 0 && Abc_Lit2Var(iLit0) < Gia_ManObjNum(p) );
+    assert( !Gia_ObjIsCo(Gia_ManObj(p, Abc_Lit2Var(iLit0))) );
     pObj = Gia_ManAppendObj( p );    
     pObj->fTerm = 1;
     pObj->iDiff0  = Gia_ObjId(p, pObj) - Abc_Lit2Var(iLit0);
