@@ -23,8 +23,8 @@
 
 ABC_NAMESPACE_IMPL_START
 
-#define USE_ABC2
-#define USE_ABC85
+//#define USE_ABC2
+//#define USE_ABC85
  
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
