@@ -518,7 +518,8 @@ static inline Gia_Obj_t * Gia_ObjReprObj( Gia_Man_t * p, int Id )            { r
 static inline int         Gia_ObjRepr( Gia_Man_t * p, int Id )               { return p->pReprs[Id].iRepr;                                                }
 static inline void        Gia_ObjSetRepr( Gia_Man_t * p, int Id, int Num )   { assert( Num == GIA_VOID || Num < Id ); p->pReprs[Id].iRepr = Num;          }
 static inline void        Gia_ObjUnsetRepr( Gia_Man_t * p, int Id )          { p->pReprs[Id].iRepr = GIA_VOID;                                            }
-static inline int         Gia_ObjHasRepr( Gia_Man_t * p, int Id )             { return p->pReprs[Id].iRepr != GIA_VOID;                                   }
+static inline int         Gia_ObjHasRepr( Gia_Man_t * p, int Id )            { return p->pReprs[Id].iRepr != GIA_VOID;                                    }
+static inline int         Gia_ObjReprSelf( Gia_Man_t * p, int Id )           { return Gia_ObjHasRepr(p, Id) ? Gia_ObjRepr(p, Id) : Id;                    }
 
 static inline int         Gia_ObjProved( Gia_Man_t * p, int Id )             { return p->pReprs[Id].fProved;       }
 static inline void        Gia_ObjSetProved( Gia_Man_t * p, int Id )          { p->pReprs[Id].fProved = 1;          }
