@@ -1024,7 +1024,7 @@ Vec_Str_t * Gia_ManIsoFindString( Gia_Man_t * p, int iPo, int fVerbose )
     Vec_Int_t * vCis, * vAnds, * vCos;
     Vec_Str_t * vStr;
     // duplicate
-    pPart = Gia_ManDupCones( p, &iPo, 1 );
+    pPart = Gia_ManDupCones( p, &iPo, 1, 1 );
     assert( Gia_ManPoNum(pPart) == 1 );
     if ( Gia_ManCiNum(pPart) == 0 ) // const AIG
     {
@@ -1167,7 +1167,7 @@ Gia_Man_t * Gia_ManIsoReduce( Gia_Man_t * pInit, Vec_Ptr_t ** pvPosEquivs, int f
 
 
     // derive the resulting AIG
-    pPart = Gia_ManDupCones( p, Vec_IntArray(vRemain), Vec_IntSize(vRemain) );
+    pPart = Gia_ManDupCones( p, Vec_IntArray(vRemain), Vec_IntSize(vRemain), 0 );
     Vec_IntFree( vRemain );
     // report the results
     if ( !fDualOut )

@@ -1850,7 +1850,7 @@ void Gia_ManDupCones_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Ptr_t * vLeaves, 
         Vec_PtrPush( vLeaves, pObj );
     else assert( 0 );
 }
-Gia_Man_t * Gia_ManDupCones( Gia_Man_t * p, int * pPos, int nPos )
+Gia_Man_t * Gia_ManDupCones( Gia_Man_t * p, int * pPos, int nPos, int fTrimPis )
 {
     Gia_Man_t * pNew;
     Vec_Ptr_t * vLeaves, * vNodes, * vRoots;
@@ -1877,8 +1877,16 @@ Gia_Man_t * Gia_ManDupCones( Gia_Man_t * p, int * pPos, int nPos )
     // map the constant node
     Gia_ManConst0(p)->Value = 0;
     // create PIs
-    Vec_PtrForEachEntry( Gia_Obj_t *, vLeaves, pObj, i )
-        pObj->Value = Gia_ManAppendCi( pNew );
+    if ( fTrimPis )
+    {
+        Vec_PtrForEachEntry( Gia_Obj_t *, vLeaves, pObj, i )
+            pObj->Value = Gia_ManAppendCi( pNew );
+    }
+    else
+    {
+        Gia_ManForEachPi( p, pObj, i )
+            pObj->Value = Gia_ManAppendCi( pNew );
+    }
     // create LOs
     Vec_PtrForEachEntryStart( Gia_Obj_t *, vRoots, pObj, i, nPos )
         Gia_ObjRiToRo(p, pObj)->Value = Gia_ManAppendCi( pNew );
