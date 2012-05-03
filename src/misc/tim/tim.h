@@ -45,7 +45,7 @@ typedef struct Tim_Man_t_           Tim_Man_t;
 ///                      MACRO DEFINITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
-#define TIM_ETERNITY 10000
+#define TIM_ETERNITY 1000000000
 
 ////////////////////////////////////////////////////////////////////////
 ///                             ITERATORS                            ///

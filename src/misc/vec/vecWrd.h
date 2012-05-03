@@ -251,6 +251,12 @@ static inline Vec_Wrd_t * Vec_WrdDupArray( Vec_Wrd_t * pVec )
   SeeAlso     []
 
 ***********************************************************************/
+static inline void Vec_WrdErase( Vec_Wrd_t * p )
+{
+    ABC_FREE( p->pArray );
+    p->nSize = 0;
+    p->nCap = 0;
+}
 static inline void Vec_WrdFree( Vec_Wrd_t * p )
 {
     ABC_FREE( p->pArray );
