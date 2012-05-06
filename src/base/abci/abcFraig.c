@@ -712,9 +712,12 @@ Abc_Ntk_t * Abc_NtkFraigRestore()
 
     // swap the first and last network
     // this should lead to the primary choice being "better" because of synthesis
-    pNtk = (Abc_Ntk_t *)Vec_PtrPop( vStore );
-    Vec_PtrPush( vStore, Vec_PtrEntry(vStore,0) );
-    Vec_PtrWriteEntry( vStore, 0, pNtk );
+    if ( Vec_PtrSize(vStore) > 1 )
+    {
+        pNtk = (Abc_Ntk_t *)Vec_PtrPop( vStore );
+        Vec_PtrPush( vStore, Vec_PtrEntry(vStore,0) );
+        Vec_PtrWriteEntry( vStore, 0, pNtk );
+    }
 
     // to determine the number of simulation patterns
     // use the following strategy
