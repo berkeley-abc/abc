@@ -5731,6 +5731,16 @@ int Abc_CommandMiter( Abc_Frame_t * pAbc, int argc, char ** argv )
     
     if ( fIgnoreNames )
     {
+        if ( !fDelete1 )
+        {
+            pNtk1 = Abc_NtkStrash( pNtk1, 0, 1, 0 );
+            fDelete1 = 1;
+        }
+        if ( !fDelete2 )
+        {
+            pNtk2 = Abc_NtkStrash( pNtk2, 0, 1, 0 );
+            fDelete2 = 1;
+        }
         Abc_NtkShortNames( pNtk1 );
         Abc_NtkShortNames( pNtk2 );
     }
@@ -17561,6 +17571,16 @@ int Abc_CommandCec( Abc_Frame_t * pAbc, int argc, char ** argv )
     
     if ( fIgnoreNames )
     {
+        if ( !fDelete1 )
+        {
+            pNtk1 = Abc_NtkStrash( pNtk1, 0, 1, 0 );
+            fDelete1 = 1;
+        }
+        if ( !fDelete2 )
+        {
+            pNtk2 = Abc_NtkStrash( pNtk2, 0, 1, 0 );
+            fDelete2 = 1;
+        }
         Abc_NtkShortNames( pNtk1 );
         Abc_NtkShortNames( pNtk2 );
     }
@@ -18002,6 +18022,16 @@ int Abc_CommandDSec( Abc_Frame_t * pAbc, int argc, char ** argv )
     
     if ( fIgnoreNames )
     {
+        if ( !fDelete1 )
+        {
+            pNtk1 = Abc_NtkStrash( pNtk1, 0, 1, 0 );
+            fDelete1 = 1;
+        }
+        if ( !fDelete2 )
+        {
+            pNtk2 = Abc_NtkStrash( pNtk2, 0, 1, 0 );
+            fDelete2 = 1;
+        }
         Abc_NtkShortNames( pNtk1 );
         Abc_NtkShortNames( pNtk2 );
     }
