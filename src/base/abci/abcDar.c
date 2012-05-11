@@ -571,14 +571,14 @@ Abc_Ntk_t * Abc_NtkFromAigPhase( Aig_Man_t * pMan )
     Aig_ManForEachPiSeq( pMan, pObj, i )
     {
         pObjNew = Abc_NtkCreatePi( pNtkNew );
-        Abc_ObjAssignName( pObjNew, Abc_ObjName(pObjNew), NULL );
+//        Abc_ObjAssignName( pObjNew, Abc_ObjName(pObjNew), NULL );
         pObj->pData = pObjNew;
     }
     // create POs
     Aig_ManForEachPoSeq( pMan, pObj, i )
     {
         pObjNew = Abc_NtkCreatePo( pNtkNew );
-        Abc_ObjAssignName( pObjNew, Abc_ObjName(pObjNew), NULL );
+//        Abc_ObjAssignName( pObjNew, Abc_ObjName(pObjNew), NULL );
         pObj->pData = pObjNew;
     }
     assert( Abc_NtkCiNum(pNtkNew) == Aig_ManCiNum(pMan) - Aig_ManRegNum(pMan) );
@@ -592,8 +592,8 @@ Abc_Ntk_t * Abc_NtkFromAigPhase( Aig_Man_t * pMan )
         Abc_ObjAddFanin( pObjNew, (Abc_Obj_t *)pObjLi->pData );
         Abc_ObjAddFanin( (Abc_Obj_t *)pObjLo->pData, pObjNew );
         Abc_LatchSetInit0( pObjNew );
-        Abc_ObjAssignName( (Abc_Obj_t *)pObjLi->pData, Abc_ObjName((Abc_Obj_t *)pObjLi->pData), NULL );
-        Abc_ObjAssignName( (Abc_Obj_t *)pObjLo->pData, Abc_ObjName((Abc_Obj_t *)pObjLo->pData), NULL );
+//        Abc_ObjAssignName( (Abc_Obj_t *)pObjLi->pData, Abc_ObjName((Abc_Obj_t *)pObjLi->pData), NULL );
+//        Abc_ObjAssignName( (Abc_Obj_t *)pObjLo->pData, Abc_ObjName((Abc_Obj_t *)pObjLo->pData), NULL );
     }
     // rebuild the AIG
     vNodes = Aig_ManDfs( pMan, 1 );
@@ -609,6 +609,11 @@ Abc_Ntk_t * Abc_NtkFromAigPhase( Aig_Man_t * pMan )
         pObjNew = (Abc_Obj_t *)Aig_ObjChild0Copy(pObj);
         Abc_ObjAddFanin( Abc_NtkCo(pNtkNew, i), pObjNew );
     }
+
+    Abc_NtkAddDummyPiNames( pNtkNew );
+    Abc_NtkAddDummyPoNames( pNtkNew );
+    Abc_NtkAddDummyBoxNames( pNtkNew );
+
     // check the resulting AIG
     if ( !Abc_NtkCheck( pNtkNew ) )
         Abc_Print( 1, "Abc_NtkFromAigPhase(): Network check has failed.\n" );
