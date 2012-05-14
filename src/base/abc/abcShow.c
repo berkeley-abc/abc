@@ -179,25 +179,23 @@ void Abc_NodeShowCut( Abc_Obj_t * pNode, int nNodeSizeMax, int nConeSizeMax )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkShow( Abc_Ntk_t * pNtk, int fGateNames, int fSeq, int fUseReverse )
+void Abc_NtkShow( Abc_Ntk_t * pNtk0, int fGateNames, int fSeq, int fUseReverse )
 {
     FILE * pFile;
+    Abc_Ntk_t * pNtk;
     Abc_Obj_t * pNode;
     Vec_Ptr_t * vNodes;
     char FileNameDot[200];
     int i;
 
-    assert( Abc_NtkIsStrash(pNtk) || Abc_NtkIsLogic(pNtk) );
-    if ( Abc_NtkIsStrash(pNtk) && Abc_NtkGetChoiceNum(pNtk) )
+    assert( Abc_NtkIsStrash(pNtk0) || Abc_NtkIsLogic(pNtk0) );
+    if ( Abc_NtkIsStrash(pNtk0) && Abc_NtkGetChoiceNum(pNtk0) )
     {
         printf( "Temporarily visualization of AIGs with choice nodes is disabled.\n" );
         return;
     }
-    // convert to logic SOP
-    if ( Abc_NtkIsLogic(pNtk) )
-        Abc_NtkToSop( pNtk, 0 );
     // create the file name
-    Abc_ShowGetFileName( pNtk->pName, FileNameDot );
+    Abc_ShowGetFileName( pNtk0->pName, FileNameDot );
     // check that the file can be opened
     if ( (pFile = fopen( FileNameDot, "w" )) == NULL )
     {
@@ -205,6 +203,12 @@ void Abc_NtkShow( Abc_Ntk_t * pNtk, int fGateNames, int fSeq, int fUseReverse )
         return;
     }
     fclose( pFile );
+
+
+    // convert to logic SOP
+    pNtk = Abc_NtkDup( pNtk0 );
+    if ( Abc_NtkIsLogic(pNtk) && !Abc_NtkHasMapping(pNtk) )
+        Abc_NtkToSop( pNtk, 0 );
 
     // collect all nodes in the network
     vNodes = Vec_PtrAlloc( 100 );
@@ -219,6 +223,7 @@ void Abc_NtkShow( Abc_Ntk_t * pNtk, int fGateNames, int fSeq, int fUseReverse )
 
     // visualize the file 
     Abc_ShowFile( FileNameDot );
+    Abc_NtkDelete( pNtk );
 }
 
 
