@@ -8443,14 +8443,17 @@ int Abc_CommandGen( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fAdder;
     int fSorter;
     int fMesh;
+    int fMulti;
     int fFpga;
     int fOneHot;
     int fRandom;
     int fVerbose;
     char * FileName;
+    char Command[1000];
     extern void Abc_GenAdder( char * pFileName, int nVars );
     extern void Abc_GenSorter( char * pFileName, int nVars );
     extern void Abc_GenMesh( char * pFileName, int nVars );
+    extern void Abc_GenMulti( char * pFileName, int nVars );
     extern void Abc_GenFpga( char * pFileName, int nLutSize, int nLuts, int nVars );
     extern void Abc_GenOneHot( char * pFileName, int nVars );
     extern void Abc_GenRandom( char * pFileName, int nPis );
@@ -8460,12 +8463,13 @@ int Abc_CommandGen( Abc_Frame_t * pAbc, int argc, char ** argv )
     fAdder = 0;
     fSorter = 0;
     fMesh = 0;
+    fMulti = 0;
     fFpga = 0;
     fOneHot = 0;
     fRandom = 0;
     fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "NKLasmftrvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "NKLasemftrvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -8508,8 +8512,11 @@ int Abc_CommandGen( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 's':
             fSorter ^= 1;
             break;
-        case 'm':
+        case 'e':
             fMesh ^= 1;
+            break;
+        case 'm':
+            fMulti ^= 1;
             break;
         case 'f':
             fFpga ^= 1;
@@ -8534,7 +8541,11 @@ int Abc_CommandGen( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         goto usage;
     }
-
+    if ( nVars < 1 )
+    {
+        Abc_Print( -1, "The number of variables should be a positive integer.\n" );
+        return 0;
+    }
     // get the input file name
     FileName = argv[globalUtilOptind];
     if ( fAdder )
@@ -8543,6 +8554,8 @@ int Abc_CommandGen( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_GenSorter( FileName, nVars );
     else if ( fMesh )
         Abc_GenMesh( FileName, nVars );
+    else if ( fMulti )
+        Abc_GenMulti( FileName, nVars );
     else if ( fFpga )
         Abc_GenFpga( FileName, nLutSize, nLuts, nVars );
 //        Abc_GenFpga( FileName, 2, 2, 3 );
@@ -8552,18 +8565,25 @@ int Abc_CommandGen( Abc_Frame_t * pAbc, int argc, char ** argv )
     else if ( fRandom )
         Abc_GenRandom( FileName, nVars );
     else
+    {
         Abc_Print( -1, "Type of circuit is not specified.\n" );
+        return 0;
+    }
+    // read the file just produced
+    sprintf( Command, "read %s", FileName );
+    Cmd_CommandExecute( pAbc, Command );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: gen [-NKL num] [-asmftrvh] <file>\n" );
+    Abc_Print( -2, "usage: gen [-NKL num] [-asemftrvh] <file>\n" );
     Abc_Print( -2, "\t         generates simple circuits\n" );
     Abc_Print( -2, "\t-N num : the number of variables [default = %d]\n", nVars );  
     Abc_Print( -2, "\t-K num : the LUT size (to be used with switch -f) [default = %d]\n", nLutSize );  
     Abc_Print( -2, "\t-L num : the LUT count (to be used with switch -f) [default = %d]\n", nLuts );  
     Abc_Print( -2, "\t-a     : generate ripple-carry adder [default = %s]\n", fAdder? "yes": "no" );  
     Abc_Print( -2, "\t-s     : generate a sorter [default = %s]\n", fSorter? "yes": "no" );  
-    Abc_Print( -2, "\t-m     : generate a mesh [default = %s]\n", fMesh? "yes": "no" );  
+    Abc_Print( -2, "\t-e     : generate a mesh [default = %s]\n", fMesh? "yes": "no" );  
+    Abc_Print( -2, "\t-m     : generate a multiplier [default = %s]\n", fMulti? "yes": "no" );  
     Abc_Print( -2, "\t-f     : generate a LUT FPGA structure [default = %s]\n", fFpga? "yes": "no" );  
     Abc_Print( -2, "\t-t     : generate one-hotness conditions [default = %s]\n", fOneHot? "yes": "no" );  
     Abc_Print( -2, "\t-r     : generate random single-output function [default = %s]\n", fRandom? "yes": "no" );  
