@@ -1446,10 +1446,11 @@ int Abc_NtkPrepareTwoNtks( FILE * pErr, Abc_Ntk_t * pNtk, char ** argv, int argc
         }
         else
             fclose( pFile );
-        pNtk1 = pNtk;
+        pNtk1 = Abc_NtkDup(pNtk);
         pNtk2 = Io_Read( pNtk->pSpec, Io_ReadFileType(pNtk->pSpec), fCheck );
         if ( pNtk2 == NULL )
             return 0;
+        *pfDelete1 = 1;
         *pfDelete2 = 1;
     }
     else if ( argc == util_optind + 1 ) 
@@ -1459,10 +1460,11 @@ int Abc_NtkPrepareTwoNtks( FILE * pErr, Abc_Ntk_t * pNtk, char ** argv, int argc
             fprintf( pErr, "Empty current network.\n" );
             return 0;
         }
-        pNtk1 = pNtk;
+        pNtk1 = Abc_NtkDup(pNtk);
         pNtk2 = Io_Read( argv[util_optind], Io_ReadFileType(argv[util_optind]), fCheck );
         if ( pNtk2 == NULL )
             return 0;
+        *pfDelete1 = 1;
         *pfDelete2 = 1;
     }
     else if ( argc == util_optind + 2 ) 
