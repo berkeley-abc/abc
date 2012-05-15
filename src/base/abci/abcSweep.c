@@ -39,7 +39,6 @@ static int            Abc_NodeDroppingCost( Abc_Obj_t * pNode );
 static int            Abc_NtkReduceNodes( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes );
 static void           Abc_NodeSweep( Abc_Obj_t * pNode, int fVerbose );
 static void           Abc_NodeConstantInput( Abc_Obj_t * pNode, Abc_Obj_t * pFanin, int fConst0 );
-static void           Abc_NodeComplementInput( Abc_Obj_t * pNode, Abc_Obj_t * pFanin );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -683,39 +682,6 @@ void Abc_NodeConstantInput( Abc_Obj_t * pNode, Abc_Obj_t * pFanin, int fConst0 )
     pNode->pData = Cudd_Cofactor( dd, bTemp = (DdNode *)pNode->pData, bVar );   Cudd_Ref( (DdNode *)pNode->pData );
     Cudd_RecursiveDeref( dd, bTemp );
 }
-
-/**Function*************************************************************
-
-  Synopsis    [Changes the polarity of one fanin.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Abc_NodeComplementInput( Abc_Obj_t * pNode, Abc_Obj_t * pFanin )
-{
-    DdManager * dd = (DdManager *)pNode->pNtk->pManFunc;
-    DdNode * bVar, * bCof0, * bCof1;
-    int iFanin;
-    assert( Abc_NtkIsBddLogic(pNode->pNtk) ); 
-    if ( (iFanin = Vec_IntFind( &pNode->vFanins, pFanin->Id )) == -1 )
-    {
-        printf( "Node %s should be among", Abc_ObjName(pFanin) );
-        printf( " the fanins of node %s...\n", Abc_ObjName(pNode) );
-        return;
-    }
-    bVar = Cudd_bddIthVar( dd, iFanin );
-    bCof0 = Cudd_Cofactor( dd, (DdNode *)pNode->pData, Cudd_Not(bVar) );   Cudd_Ref( bCof0 );
-    bCof1 = Cudd_Cofactor( dd, (DdNode *)pNode->pData, bVar );             Cudd_Ref( bCof1 );
-    Cudd_RecursiveDeref( dd, (DdNode *)pNode->pData );
-    pNode->pData = Cudd_bddIte( dd, bVar, bCof0, bCof1 );        Cudd_Ref( (DdNode *)pNode->pData );
-    Cudd_RecursiveDeref( dd, bCof0 );
-    Cudd_RecursiveDeref( dd, bCof1 );
-}
-
 
 
 /**Function*************************************************************

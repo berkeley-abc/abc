@@ -282,6 +282,7 @@ extern int             Hop_DagSize( Hop_Obj_t * pObj );
 extern void            Hop_ConeUnmark_rec( Hop_Obj_t * pObj );
 extern Hop_Obj_t *     Hop_Transfer( Hop_Man_t * pSour, Hop_Man_t * pDest, Hop_Obj_t * pObj, int nVars );
 extern Hop_Obj_t *     Hop_Compose( Hop_Man_t * p, Hop_Obj_t * pRoot, Hop_Obj_t * pFunc, int iVar );
+extern Hop_Obj_t *     Hop_Complement( Hop_Man_t * p, Hop_Obj_t * pRoot, int iVar );
 extern Hop_Obj_t *     Hop_Remap( Hop_Man_t * p, Hop_Obj_t * pRoot, unsigned uSupp, int nVars );
 /*=== hopMan.c ==========================================================*/
 extern Hop_Man_t *     Hop_ManStart();

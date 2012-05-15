@@ -943,7 +943,7 @@ int Abc_NtkLogicHasSimpleCos( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkLogicMakeSimpleCos( Abc_Ntk_t * pNtk, int fDuplicate )
+int Abc_NtkLogicMakeSimpleCos2( Abc_Ntk_t * pNtk, int fDuplicate )
 {
     Abc_Obj_t * pNode, * pDriver;
     int i, nDupGates = 0;
@@ -983,6 +983,173 @@ int Abc_NtkLogicMakeSimpleCos( Abc_Ntk_t * pNtk, int fDuplicate )
     }
     assert( Abc_NtkLogicHasSimpleCos(pNtk) );
     return nDupGates;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Transforms the network to have simple COs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkLogicMakeSimpleCos( Abc_Ntk_t * pNtk, int fDuplicate )
+{
+    Vec_Ptr_t * vDrivers, * vCoTerms;
+    Abc_Obj_t * pNode, * pDriver, * pDriverNew, * pFanin;
+    int i, k, LevelMax, nTotal = 0;
+    assert( Abc_NtkIsLogic(pNtk) );
+    LevelMax = Abc_NtkLevel(pNtk);
+
+    // collect drivers pointed by complemented edges
+    vDrivers = Vec_PtrAlloc( 100 );
+    Abc_NtkIncrementTravId( pNtk );
+    Abc_NtkForEachCo( pNtk, pNode, i ) 
+    {
+        if ( !Abc_ObjFaninC0(pNode) )
+            continue;
+        pDriver = Abc_ObjFanin0(pNode);
+        if ( Abc_NodeIsTravIdCurrent(pDriver) )
+            continue;
+        Abc_NodeSetTravIdCurrent(pDriver);
+        Vec_PtrPush( vDrivers, pDriver );
+    }
+    // fix complemented drivers
+    if ( Vec_PtrSize(vDrivers) > 0 )
+    {
+        int nDupGates = 0, nDupInvs = 0, nDupChange = 0;
+        Vec_Ptr_t * vFanouts = Vec_PtrAlloc( 100 );
+        Vec_PtrForEachEntry( Abc_Obj_t *, vDrivers, pDriver, i )
+        {
+            int fHasDir = 0, fHasInv = 0, fHasOther = 0;
+            Abc_ObjForEachFanout( pDriver, pNode, k )
+            {
+                if ( !Abc_ObjIsCo(pNode) )
+                {
+                    assert( !Abc_ObjFaninC0(pNode) );
+                    fHasOther = 1;
+                    continue;
+                }
+                if ( Abc_ObjFaninC0(pNode) )
+                    fHasInv = 1;
+                else //if ( Abc_ObjFaninC0(pNode) )
+                    fHasDir = 1;
+            }
+            assert( fHasInv );
+            if ( Abc_ObjIsCi(pDriver) || fHasDir || (fHasOther && Abc_NtkHasMapping(pNtk)) ) // cannot change
+            {
+                // duplicate if critical
+                if ( fDuplicate && Abc_ObjIsNode(pDriver) && Abc_ObjLevel(pDriver) == LevelMax )
+                {
+                    pDriverNew = Abc_NtkDupObj( pNtk, pDriver, 0 ); 
+                    Abc_ObjForEachFanin( pDriver, pFanin, k )
+                        Abc_ObjAddFanin( pDriverNew, pFanin );
+                    Abc_NodeComplement( pDriverNew );
+                    nDupGates++;
+                }
+                else // add inverter
+                {
+                    pDriverNew = Abc_NtkCreateNodeInv( pNtk, pDriver );
+                    nDupInvs++;
+                }
+                // collect CO fanouts to be redirected to the new node
+                Vec_PtrClear( vFanouts );
+                Abc_ObjForEachFanout( pDriver, pNode, k )
+                    if ( Abc_ObjIsCo(pNode) && Abc_ObjFaninC0(pNode) )
+                        Vec_PtrPush( vFanouts, pNode );
+                assert( Vec_PtrSize(vFanouts) > 0 );
+                Vec_PtrForEachEntry( Abc_Obj_t *, vFanouts, pNode, k )
+                {
+                    Abc_ObjXorFaninC( pNode, 0 );
+                    Abc_ObjPatchFanin( pNode, pDriver, pDriverNew );
+                    assert( Abc_ObjIsCi(pDriver) || Abc_ObjFanoutNum(pDriver) > 0 );
+                }
+            }
+            else // can change
+            {
+                // change polarity of the driver
+                assert( Abc_ObjIsNode(pDriver) );
+                Abc_NodeComplement( pDriver );
+                Abc_ObjForEachFanout( pDriver, pNode, k )
+                {
+                    if ( Abc_ObjIsCo(pNode) )
+                    {
+                        assert( Abc_ObjFaninC0(pNode) );
+                        Abc_ObjXorFaninC( pNode, 0 );
+                    }
+                    else if ( Abc_ObjIsNode(pNode) )
+                        Abc_NodeComplementInput( pNode, pDriver );
+                    else assert( 0 );
+                }
+                nDupChange++;
+            }
+        }
+        Vec_PtrFree( vFanouts );
+//        printf( "Resolving inverted CO drivers: Invs = %d. Dups = %d. Changes = %d.\n",
+//            nDupInvs, nDupGates, nDupChange );
+        nTotal += nDupInvs + nDupGates;
+    }
+    Vec_PtrFree( vDrivers );
+
+    // collect COs that needs fixing by adding buffers or duplicating
+    vCoTerms = Vec_PtrAlloc( 100 );
+    Abc_NtkIncrementTravId( pNtk );
+    Abc_NtkForEachCo( pNtk, pNode, i )
+    {
+        // if the driver is a CI and has different name, this is an error
+        pDriver = Abc_ObjFanin0(pNode);
+        if ( Abc_ObjIsCi(pDriver) && strcmp(Abc_ObjName(pDriver), Abc_ObjName(pNode)) )
+        {
+            Vec_PtrPush( vCoTerms, pNode );
+            continue;
+        }
+        // if the driver is visited for the first time, remember the CO name
+        if ( !Abc_NodeIsTravIdCurrent(pDriver) )
+        {
+            pDriver->pNext = (Abc_Obj_t *)Abc_ObjName(pNode);
+            Abc_NodeSetTravIdCurrent(pDriver);
+            continue;
+        }
+        // the driver has second CO - if they have different name, this is an error
+        if ( strcmp((char *)pDriver->pNext, Abc_ObjName(pNode)) ) // diff names
+        {
+            Vec_PtrPush( vCoTerms, pNode );
+            continue;
+        }
+    }
+    // fix duplication problem
+    if ( Vec_PtrSize(vCoTerms) > 0 )
+    {
+        int nDupBufs = 0, nDupGates = 0;
+        Vec_PtrForEachEntry( Abc_Obj_t *, vCoTerms, pNode, i )
+        {
+            pDriver = Abc_ObjFanin0(pNode);
+            // duplicate if critical
+            if ( fDuplicate && Abc_ObjIsNode(pDriver) && Abc_ObjLevel(pDriver) == LevelMax )
+            {
+                pDriverNew = Abc_NtkDupObj( pNtk, pDriver, 0 ); 
+                Abc_ObjForEachFanin( pDriver, pFanin, k )
+                    Abc_ObjAddFanin( pDriverNew, pFanin );
+                nDupGates++;
+            }
+            else // add buffer
+            {
+                pDriverNew = Abc_NtkCreateNodeBuf( pNtk, pDriver );
+                nDupBufs++;
+            }
+            // swing the PO
+            Abc_ObjPatchFanin( pNode, pDriver, pDriverNew );
+            assert( Abc_ObjIsCi(pDriver) || Abc_ObjFanoutNum(pDriver) > 0 );
+        }
+//        printf( "Resolving shared CO drivers: Bufs = %d. Dups = %d.\n", nDupBufs, nDupGates );
+        nTotal += nDupBufs + nDupGates;
+    }
+    Vec_PtrFree( vCoTerms );
+    return nTotal;
 }
 
 /**Function*************************************************************

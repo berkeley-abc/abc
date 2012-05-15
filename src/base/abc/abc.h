@@ -746,6 +746,7 @@ extern ABC_DLL int                Abc_NodeIsConst1( Abc_Obj_t * pNode );
 extern ABC_DLL int                Abc_NodeIsBuf( Abc_Obj_t * pNode );    
 extern ABC_DLL int                Abc_NodeIsInv( Abc_Obj_t * pNode );    
 extern ABC_DLL void               Abc_NodeComplement( Abc_Obj_t * pNode );
+extern ABC_DLL void               Abc_NodeComplementInput( Abc_Obj_t * pNode, Abc_Obj_t * pFanin );
 /*=== abcOdc.c ==========================================================*/
 typedef struct Odc_Man_t_         Odc_Man_t;
 extern ABC_DLL Odc_Man_t *        Abc_NtkDontCareAlloc( int nVarsMax, int nLevels, int fVerbose, int fVeryVerbose );

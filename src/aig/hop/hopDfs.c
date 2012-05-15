@@ -397,6 +397,60 @@ Hop_Obj_t * Hop_Compose( Hop_Man_t * p, Hop_Obj_t * pRoot, Hop_Obj_t * pFunc, in
 
 /**Function*************************************************************
 
+  Synopsis    [Complements the AIG (pRoot) with the function (pFunc) using PI var (iVar).]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Hop_Complement_rec( Hop_Man_t * p, Hop_Obj_t * pObj, Hop_Obj_t * pVar )
+{
+    assert( !Hop_IsComplement(pObj) );
+    if ( Hop_ObjIsMarkA(pObj) )
+        return;
+    if ( Hop_ObjIsConst1(pObj) || Hop_ObjIsPi(pObj) )
+    {
+        pObj->pData = pObj == pVar ? Hop_Not(pObj) : pObj;
+        return;
+    }
+    Hop_Complement_rec( p, Hop_ObjFanin0(pObj), pVar ); 
+    Hop_Complement_rec( p, Hop_ObjFanin1(pObj), pVar );
+    pObj->pData = Hop_And( p, Hop_ObjChild0Copy(pObj), Hop_ObjChild1Copy(pObj) );
+    assert( !Hop_ObjIsMarkA(pObj) ); // loop detection
+    Hop_ObjSetMarkA( pObj );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Complements the AIG (pRoot) with the function (pFunc) using PI var (iVar).]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Hop_Obj_t * Hop_Complement( Hop_Man_t * p, Hop_Obj_t * pRoot, int iVar )
+{
+    // quit if the PI variable is not defined
+    if ( iVar >= Hop_ManPiNum(p) )
+    {
+        printf( "Hop_Complement(): The PI variable %d is not defined.\n", iVar );
+        return NULL;
+    }
+    // recursively perform composition
+    Hop_Complement_rec( p, Hop_Regular(pRoot), Hop_ManPi(p, iVar) );
+    // clear the markings
+    Hop_ConeUnmark_rec( Hop_Regular(pRoot) );
+    return Hop_NotCond( (Hop_Obj_t *)Hop_Regular(pRoot)->pData, Hop_IsComplement(pRoot) );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Remaps the AIG (pRoot) to have the given support (uSupp).]
 
   Description []
