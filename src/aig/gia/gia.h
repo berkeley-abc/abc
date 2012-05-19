@@ -853,7 +853,9 @@ extern int                 Gia_ObjRecognizeExor( Gia_Obj_t * pObj, Gia_Obj_t ** 
 extern Gia_Obj_t *         Gia_ObjRecognizeMux( Gia_Obj_t * pNode, Gia_Obj_t ** ppNodeT, Gia_Obj_t ** ppNodeE );
 extern int                 Gia_NodeMffcSize( Gia_Man_t * p, Gia_Obj_t * pNode );
 extern int                 Gia_ManHasChoices( Gia_Man_t * p );
+extern void                Gia_ManVerifyChoices( Gia_Man_t * p );
 extern int                 Gia_ManHasDangling( Gia_Man_t * p );
+extern int                 Gia_ManMarkDangling( Gia_Man_t * p );
 extern Vec_Int_t *         Gia_ManGetDangling( Gia_Man_t * p );
 extern void                Gia_ObjPrint( Gia_Man_t * p, Gia_Obj_t * pObj );
 extern int                 Gia_ManVerifyCex( Gia_Man_t * pAig, Abc_Cex_t * p, int fDualOut );

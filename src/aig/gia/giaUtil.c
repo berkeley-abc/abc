@@ -963,6 +963,41 @@ int Gia_ManHasChoices( Gia_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManVerifyChoices( Gia_Man_t * p )
+{
+    Gia_Obj_t * pObj;
+    int i, fProb = 0;
+    assert( p->pReprs );
+    Gia_ManForEachObj( p, pObj, i )
+    {
+        if ( Gia_ObjIsAnd(pObj) )
+        {
+            if ( Gia_ObjHasRepr(p, Gia_ObjFaninId0(pObj, i)) )
+                printf( "Fanin 0 of AND node %d has a repr.\n", i ), fProb = 1;
+            if ( Gia_ObjHasRepr(p, Gia_ObjFaninId1(pObj, i)) )
+                printf( "Fanin 1 of AND node %d has a repr.\n", i ), fProb = 1;
+        }
+        else if ( Gia_ObjIsCo(pObj) )
+        {
+            if ( Gia_ObjHasRepr(p, Gia_ObjFaninId0(pObj, i)) )
+                printf( "Fanin 0 of CO node %d has a repr.\n", i ), fProb = 1;
+        }
+    }
+    if ( !fProb )
+        printf( "GIA with choices is correct.\n" );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Returns 1 if AIG has dangling nodes.]
 
   Description []
@@ -990,6 +1025,37 @@ int Gia_ManHasDangling( Gia_Man_t * p )
     Gia_ManForEachAnd( p, pObj, i )
         Counter += !pObj->fMark0;
     Gia_ManCleanMark0( p );
+    return Counter;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns 1 if AIG has dangling nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManMarkDangling( Gia_Man_t * p )
+{
+    Gia_Obj_t * pObj;
+    int i, Counter = 0;
+    Gia_ManForEachObj( p, pObj, i )
+    {
+        pObj->fMark0 = 0;
+        if ( Gia_ObjIsAnd(pObj) )
+        {
+            Gia_ObjFanin0(pObj)->fMark0 = 1;
+            Gia_ObjFanin1(pObj)->fMark0 = 1;
+        }
+        else if ( Gia_ObjIsCo(pObj) )
+            Gia_ObjFanin0(pObj)->fMark0 = 1;
+    }
+    Gia_ManForEachAnd( p, pObj, i )
+        Counter += !pObj->fMark0;
     return Counter;
 }
 

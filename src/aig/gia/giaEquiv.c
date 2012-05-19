@@ -53,7 +53,7 @@ int Gia_ManCheckTopoOrder_rec( Gia_Man_t * p, Gia_Obj_t * pObj )
         return 0;
     if ( !Gia_ManCheckTopoOrder_rec( p, Gia_ObjFanin1(pObj) ) )
         return 0;
-    pRepr = Gia_ObjReprObj( p, Gia_ObjId(p,pObj) );
+    pRepr = p->pReprs ? Gia_ObjReprObj( p, Gia_ObjId(p,pObj) ) : NULL;
     return pRepr == NULL || pRepr->Value == 0;
 }
 
