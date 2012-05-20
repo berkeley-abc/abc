@@ -1130,7 +1130,7 @@ int Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars )
     for ( f = 0; f < pPars->nFramesMax; f++ )
     {
         // stop BMC after exploring all reachable states
-        if ( Aig_ManRegNum(pAig) < 30 && f == (1 << Aig_ManRegNum(pAig)) )
+        if ( !pPars->nFramesJump && Aig_ManRegNum(pAig) < 30 && f == (1 << Aig_ManRegNum(pAig)) )
         {
             Saig_Bmc3ManStop( p );
             return pPars->nFailOuts ? 0 : 1;
