@@ -279,11 +279,10 @@ void If_ManComputeRequired( If_Man_t * p )
         }
         else if ( p->pPars->fLatchPaths )
         {
-            assert( 0 );
             If_ManForEachPo( p, pObj, i )
-                Tim_ManSetCoRequired( p->pManTim, pObj->IdPio, IF_FLOAT_LARGE );
+                Tim_ManSetCoRequired( p->pManTim, i, IF_FLOAT_LARGE );
             If_ManForEachLatchInput( p, pObj, i )
-                Tim_ManSetCoRequired( p->pManTim, pObj->IdPio, p->RequiredGlo );
+                Tim_ManSetCoRequired( p->pManTim, i, p->RequiredGlo );
         }
         else  
         {

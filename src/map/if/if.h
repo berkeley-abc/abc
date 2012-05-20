@@ -129,8 +129,10 @@ struct If_Par_t_
     int                fUseCnfs;      // use local CNFs as a cost function
     int                fUseMv;        // use local MV-SOPs as a cost function
     int                fUseAdders;    // timing model for adders
-    int                nLatchesCi;    // the number of latches in seq mapping
-    int                nLatchesCo;    // the number of latches in seq mapping
+    int                nLatchesCi;    // the number of latches among the CIs
+    int                nLatchesCo;    // the number of latches among the COs
+    int                nLatchesCiBox; // the number of white box outputs among the CIs
+    int                nLatchesCoBox; // the number of white box inputs among the COs
     int                fLiftLeaves;   // shift the leaves for seq mapping
     int                fUseCoAttrs;   // use CO attributes
     If_Lib_t *         pLutLib;       // the LUT library
@@ -381,15 +383,15 @@ static inline void       If_AndClear( If_And_t * pNode )                     { *
     Vec_PtrForEachEntry( If_Obj_t *, p->vCos, pObj, i )
 // iterator over the primary inputs
 #define If_ManForEachPi( p, pObj, i )                                          \
-    Vec_PtrForEachEntryStop( If_Obj_t *, p->vCis, pObj, i, If_ManCiNum(p) - p->pPars->nLatchesCi )
+    Vec_PtrForEachEntryStop( If_Obj_t *, p->vCis, pObj, i, If_ManCiNum(p) - p->pPars->nLatchesCi - p->pPars->nLatchesCiBox )
 // iterator over the primary outputs
 #define If_ManForEachPo( p, pObj, i )                                          \
-    Vec_PtrForEachEntryStop( If_Obj_t *, p->vCos, pObj, i, If_ManCoNum(p) - p->pPars->nLatchesCo )
+    Vec_PtrForEachEntryStartStop( If_Obj_t *, p->vCos, pObj, i, p->pPars->nLatchesCoBox, If_ManCoNum(p) - p->pPars->nLatchesCo )
 // iterator over the latches 
 #define If_ManForEachLatchInput( p, pObj, i )                                  \
     Vec_PtrForEachEntryStart( If_Obj_t *, p->vCos, pObj, i, If_ManCoNum(p) - p->pPars->nLatchesCo )
 #define If_ManForEachLatchOutput( p, pObj, i )                                 \
-    Vec_PtrForEachEntryStart( If_Obj_t *, p->vCis, pObj, i, If_ManCiNum(p) - p->pPars->nLatchesCi )
+    Vec_PtrForEachEntryStartStop( If_Obj_t *, p->vCis, pObj, i, If_ManCiNum(p) - p->pPars->nLatchesCi - p->pPars->nLatchesCiBox, If_ManCiNum(p) - p->pPars->nLatchesCiBox )
 // iterator over all objects in topological order
 #define If_ManForEachObj( p, pObj, i )                                         \
     Vec_PtrForEachEntry( If_Obj_t *, p->vObjs, pObj, i )
