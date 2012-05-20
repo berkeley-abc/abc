@@ -68,7 +68,8 @@ void Lpk_IfManStart( Lpk_Man_t * p )
     // internal parameters
     pPars->fTruth      =  1;
     pPars->fUsePerm    =  0; 
-    pPars->nLatches    =  0;
+    pPars->nLatchesCi  =  0;
+    pPars->nLatchesCo  =  0;
     pPars->pLutLib     =  NULL; // Abc_FrameReadLibLut();
     pPars->pTimesArr   =  NULL; 
     pPars->pTimesArr   =  NULL;   

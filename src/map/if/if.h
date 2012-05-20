@@ -129,7 +129,8 @@ struct If_Par_t_
     int                fUseCnfs;      // use local CNFs as a cost function
     int                fUseMv;        // use local MV-SOPs as a cost function
     int                fUseAdders;    // timing model for adders
-    int                nLatches;      // the number of latches in seq mapping
+    int                nLatchesCi;    // the number of latches in seq mapping
+    int                nLatchesCo;    // the number of latches in seq mapping
     int                fLiftLeaves;   // shift the leaves for seq mapping
     int                fUseCoAttrs;   // use CO attributes
     If_Lib_t *         pLutLib;       // the LUT library
@@ -307,8 +308,8 @@ static inline int        If_ManObjNum( If_Man_t * p )                        { r
 static inline If_Obj_t * If_ManConst1( If_Man_t * p )                        { return p->pConst1;                              }
 static inline If_Obj_t * If_ManCi( If_Man_t * p, int i )                     { return (If_Obj_t *)Vec_PtrEntry( p->vCis, i );  }
 static inline If_Obj_t * If_ManCo( If_Man_t * p, int i )                     { return (If_Obj_t *)Vec_PtrEntry( p->vCos, i );  }
-static inline If_Obj_t * If_ManLi( If_Man_t * p, int i )                     { return (If_Obj_t *)Vec_PtrEntry( p->vCos, If_ManCoNum(p) - p->pPars->nLatches + i );  }
-static inline If_Obj_t * If_ManLo( If_Man_t * p, int i )                     { return (If_Obj_t *)Vec_PtrEntry( p->vCis, If_ManCiNum(p) - p->pPars->nLatches + i );  }
+static inline If_Obj_t * If_ManLi( If_Man_t * p, int i )                     { return (If_Obj_t *)Vec_PtrEntry( p->vCos, If_ManCoNum(p) - p->pPars->nLatchesCo + i );  }
+static inline If_Obj_t * If_ManLo( If_Man_t * p, int i )                     { return (If_Obj_t *)Vec_PtrEntry( p->vCis, If_ManCiNum(p) - p->pPars->nLatchesCi + i );  }
 static inline If_Obj_t * If_ManObj( If_Man_t * p, int i )                    { return (If_Obj_t *)Vec_PtrEntry( p->vObjs, i ); }
 
 static inline int        If_ObjIsConst1( If_Obj_t * pObj )                   { return pObj->Type == IF_CONST1;       }
@@ -380,15 +381,15 @@ static inline void       If_AndClear( If_And_t * pNode )                     { *
     Vec_PtrForEachEntry( If_Obj_t *, p->vCos, pObj, i )
 // iterator over the primary inputs
 #define If_ManForEachPi( p, pObj, i )                                          \
-    Vec_PtrForEachEntryStop( If_Obj_t *, p->vCis, pObj, i, If_ManCiNum(p) - p->pPars->nLatches )
+    Vec_PtrForEachEntryStop( If_Obj_t *, p->vCis, pObj, i, If_ManCiNum(p) - p->pPars->nLatchesCi )
 // iterator over the primary outputs
 #define If_ManForEachPo( p, pObj, i )                                          \
-    Vec_PtrForEachEntryStop( If_Obj_t *, p->vCos, pObj, i, If_ManCoNum(p) - p->pPars->nLatches )
+    Vec_PtrForEachEntryStop( If_Obj_t *, p->vCos, pObj, i, If_ManCoNum(p) - p->pPars->nLatchesCo )
 // iterator over the latches 
 #define If_ManForEachLatchInput( p, pObj, i )                                  \
-    Vec_PtrForEachEntryStart( If_Obj_t *, p->vCos, pObj, i, If_ManCoNum(p) - p->pPars->nLatches )
+    Vec_PtrForEachEntryStart( If_Obj_t *, p->vCos, pObj, i, If_ManCoNum(p) - p->pPars->nLatchesCo )
 #define If_ManForEachLatchOutput( p, pObj, i )                                 \
-    Vec_PtrForEachEntryStart( If_Obj_t *, p->vCis, pObj, i, If_ManCiNum(p) - p->pPars->nLatches )
+    Vec_PtrForEachEntryStart( If_Obj_t *, p->vCis, pObj, i, If_ManCiNum(p) - p->pPars->nLatchesCi )
 // iterator over all objects in topological order
 #define If_ManForEachObj( p, pObj, i )                                         \
     Vec_PtrForEachEntry( If_Obj_t *, p->vObjs, pObj, i )

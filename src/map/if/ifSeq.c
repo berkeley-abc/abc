@@ -50,7 +50,7 @@ void If_ManPrepareMappingSeq( If_Man_t * p )
     int i;
 
     // link the latch outputs (CIs) directly to the drivers of latch inputs (COs)
-    for ( i = 0; i < p->pPars->nLatches; i++ )
+    for ( i = 0; i < p->pPars->nLatchesCi; i++ )
     {
         pObjLi = If_ManLi( p, i );
         pObjLo = If_ManLo( p, i );
@@ -98,13 +98,13 @@ Vec_Ptr_t * If_ManCollectLatches( If_Man_t * p )
     If_Obj_t * pObj;
     int i;
     // collect latches 
-    vLatches = Vec_PtrAlloc( p->pPars->nLatches );
+    vLatches = Vec_PtrAlloc( p->pPars->nLatchesCi );
     If_ManForEachLatchOutput( p, pObj, i )
         If_ManCollectLatches_rec( pObj, vLatches );
     // clean marks
     Vec_PtrForEachEntry( If_Obj_t *, vLatches, pObj, i )
         pObj->fMark = 0;
-    assert( Vec_PtrSize(vLatches) == p->pPars->nLatches );
+    assert( Vec_PtrSize(vLatches) == p->pPars->nLatchesCi );
     return vLatches;
 }
 

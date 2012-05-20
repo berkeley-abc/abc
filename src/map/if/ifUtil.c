@@ -104,7 +104,7 @@ float If_ManDelayMax( If_Man_t * p, int fSeq )
     If_Obj_t * pObj;
     float DelayBest;
     int i;
-    if ( p->pPars->fLatchPaths && p->pPars->nLatches == 0 )
+    if ( p->pPars->fLatchPaths && (p->pPars->nLatchesCi == 0 || p->pPars->nLatchesCo == 0) )
     {
         Abc_Print( 0, "Delay optimization of latch path is not performed because there is no latches.\n" );
         p->pPars->fLatchPaths = 0;
@@ -112,7 +112,7 @@ float If_ManDelayMax( If_Man_t * p, int fSeq )
     DelayBest = -IF_FLOAT_LARGE;
     if ( fSeq )
     {
-        assert( p->pPars->nLatches > 0 );
+        assert( p->pPars->nLatchesCi > 0 );
         If_ManForEachPo( p, pObj, i )
             if ( DelayBest < If_ObjArrTime(If_ObjFanin0(pObj)) )
                  DelayBest = If_ObjArrTime(If_ObjFanin0(pObj));

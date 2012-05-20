@@ -68,7 +68,8 @@ void Nwk_ManSetIfParsDefault( If_Par_t * pPars )
     pPars->fVerbose    =  0;
     // internal parameters
     pPars->fTruth      =  0;
-    pPars->nLatches    =  0;
+    pPars->nLatchesCi  =  0;
+    pPars->nLatchesCo  =  0;
     pPars->fLiftLeaves =  0;
 //    pPars->pLutLib     =  Abc_FrameReadLibLut();
     pPars->pLutLib     =  NULL;

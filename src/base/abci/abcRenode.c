@@ -89,7 +89,8 @@ Abc_Ntk_t * Abc_NtkRenode( Abc_Ntk_t * pNtk, int nFaninMax, int nCubeMax, int nF
     // internal parameters
     pPars->fTruth      =  1;
     pPars->fUsePerm    =  1; 
-    pPars->nLatches    =  0;
+    pPars->nLatchesCi  =  0;
+    pPars->nLatchesCo  =  0;
     pPars->pLutLib     =  NULL; // Abc_FrameReadLibLut();
     pPars->pTimesArr   =  NULL; 
     pPars->pTimesArr   =  NULL;   

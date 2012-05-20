@@ -13499,7 +13499,8 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
     pPars->pLutStruct  =  NULL;
     // internal parameters
     pPars->fTruth      =  0;
-    pPars->nLatches    =  pNtk? Abc_NtkLatchNum(pNtk) : 0;
+    pPars->nLatchesCi  =  pNtk? Abc_NtkLatchNum(pNtk) : 0;
+    pPars->nLatchesCo  =  pNtk? Abc_NtkLatchNum(pNtk) : 0;
     pPars->fLiftLeaves =  0;
     pPars->pLutLib     =  (If_Lib_t *)Abc_FrameReadLibLut();
     pPars->pTimesArr   =  NULL; 
@@ -13695,7 +13696,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 */
 
-    if ( pPars->fSeqMap && pPars->nLatches == 0 )
+    if ( pPars->fSeqMap && (pPars->nLatchesCi == 0 || pPars->nLatchesCo == 0) )
     {
         Abc_Print( -1, "The network has no latches. Use combinational mapping instead of sequential.\n" );
         return 1;

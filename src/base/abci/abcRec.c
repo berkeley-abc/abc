@@ -1725,7 +1725,8 @@ void Abc_NtkRecAdd( Abc_Ntk_t * pNtk, int fUseSOPB)
         pPars->fUsePerm    =  0; 
         pPars->fDelayOpt   =  0;
     }
-    pPars->nLatches    =  0;
+    pPars->nLatchesCi  =  0;
+    pPars->nLatchesCo  =  0;
     pPars->pLutLib     =  NULL; // Abc_FrameReadLibLut();
     pPars->pTimesArr   =  NULL; 
     pPars->pTimesArr   =  NULL;   
