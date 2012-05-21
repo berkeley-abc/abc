@@ -992,8 +992,8 @@ void Gia_ManVerifyChoices( Gia_Man_t * p )
                 printf( "Fanin 0 of CO node %d has a repr.\n", i ), fProb = 1;
         }
     }
-    if ( !fProb )
-        printf( "GIA with choices is correct.\n" );
+//    if ( !fProb )
+//        printf( "GIA with choices is correct.\n" );
 }
 
 /**Function*************************************************************

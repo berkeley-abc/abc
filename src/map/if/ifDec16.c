@@ -2054,7 +2054,8 @@ int If_CutPerformCheck16( If_Man_t * p, unsigned * pTruth, int nVars, int nLeave
         if ( If_CutTruthMinimize( p, pCut ) >= 2 )
             return 0;
         nLeaves = pCut->nLeaves;
-        If_CluCopy( (word *)pTruth, (word *)If_CutTruth(pCut), nVars );
+//        If_CluCopy( (word *)pTruth, (word *)If_CutTruth(pCut), nVars );
+        pTruth = If_CutTruth(pCut);
     }
 
     // quit if parameters are wrong
