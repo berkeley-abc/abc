@@ -128,6 +128,8 @@ int CmdCommandDispatch( Abc_Frame_t * pAbc, int * pargc, char *** pargv )
         else
         {
             fprintf( pAbc->Err, "** cmd error: unknown command '%s'\n", argv[0] );
+            fprintf( pAbc->Err, "(this is likely caused by using an alias defined in \"abc.rc\"\n" );
+            fprintf( pAbc->Err, "without having this file in the current or parent directory)\n" );
             return 1;
         }
     }
