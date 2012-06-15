@@ -180,6 +180,25 @@ static inline void Vec_SetFree( Vec_Set_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Returns memory in bytes occupied by the vector.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Vec_ReportMemory( Vec_Set_t * p )
+{
+    int Mem = sizeof(Vec_Set_t);
+    Mem += p->nPagesAlloc * sizeof(void *);
+    Mem += sizeof(word) * (1 << p->nPageSize) * (1 + p->iPage);
+    return Mem;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Appending entries to vector.]
 
   Description []

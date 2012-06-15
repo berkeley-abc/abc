@@ -1117,6 +1117,41 @@ void sat_solver_rollback( sat_solver* s )
     s->stats.tot_literals     = 0;
 }
 
+// returns memory in bytes used by the SAT solver
+int sat_solver_memory( sat_solver* s )
+{
+    int i, Mem = sizeof(sat_solver);
+    for (i = 0; i < s->cap*2; i++)
+        Mem += s->wlists[i].cap * sizeof(int);
+    Mem += s->cap * sizeof(veci);     // ABC_FREE(s->wlists   );
+    Mem += s->cap * sizeof(int);      // ABC_FREE(s->levels   );
+    Mem += s->cap * sizeof(char);     // ABC_FREE(s->assigns  );
+    Mem += s->cap * sizeof(char);     // ABC_FREE(s->polarity );
+    Mem += s->cap * sizeof(char);     // ABC_FREE(s->tags     );
+#ifdef USE_FLOAT_ACTIVITY
+    Mem += s->cap * sizeof(double);   // ABC_FREE(s->activity );
+#else
+    Mem += s->cap * sizeof(unsigned); // ABC_FREE(s->activity );
+#endif
+    if ( s->factors )
+    Mem += s->cap * sizeof(double);   // ABC_FREE(s->factors  );
+    Mem += s->cap * sizeof(int);      // ABC_FREE(s->orderpos );
+    Mem += s->cap * sizeof(int);      // ABC_FREE(s->reasons  );
+    Mem += s->cap * sizeof(lit);      // ABC_FREE(s->trail    );
+    Mem += s->cap * sizeof(int);      // ABC_FREE(s->model    );
+
+    Mem += s->order.cap * sizeof(int);
+    Mem += s->trail_lim.cap * sizeof(int);
+    Mem += s->tagged.cap * sizeof(int);
+    Mem += s->stack.cap * sizeof(int);
+    Mem += s->act_vars.cap * sizeof(int);
+    Mem += s->temp_clause.cap * sizeof(int);
+    Mem += s->conf_final.cap * sizeof(int);
+    Mem += Vec_ReportMemory( &s->Mem );
+    return Mem;
+}
+
+
 /*
 static void clause_remove(sat_solver* s, clause* c)
 {
