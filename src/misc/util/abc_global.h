@@ -36,8 +36,13 @@
 #endif
 
 #ifdef WIN32
-#define ABC_DLLEXPORT __declspec(dllexport)
-#define ABC_DLLIMPORT __declspec(dllimport)
+  #ifdef WIN32_NO_DLL
+    #define ABC_DLLEXPORT
+    #define ABC_DLLIMPORT
+  #else
+    #define ABC_DLLEXPORT __declspec(dllexport)
+    #define ABC_DLLIMPORT __declspec(dllimport)
+  #endif
 #else  /* defined(WIN32) */
 #define ABC_DLLIMPORT
 #endif /* defined(WIN32) */
