@@ -86,6 +86,9 @@ def constraints():
             print("inductive constraints:")
             x('constr ')
 
+def help(s):
+    run_command('%s -h'%s)
+
 def strip():
     """Strip out each output of a multi-output example and write it
     into a separate file"""
@@ -99,6 +102,12 @@ def strip():
         abc('scl;rw;trm')
         abc('w p_%d.aig'%j)
         print_circuit_stats()
+
+def fn_def(f,n):
+    filename = f.__code__.co_filename
+    firstline = f.__code__.co_firstlineno
+    lines = open(filename, "r").readlines()
+    print "".join(lines[firstline : n+firstline])
 
 def lst(list,match):
     result = []
@@ -133,20 +142,54 @@ def blif2aig():
 def la():
     return list_aig('')
 
-def list_aig(s):
+def list_aig(s=''):
     """ prnts out the sizes of aig files"""
     #os.chdir('../ibm-web')
     list_all = os.listdir('.')
     dir = lst(list_all,'.aig')
     dir.sort()
+    result = []
     for j in range(len(dir)):
         name = dir[j][:-4]
-        if not s in name:
+        if not s_in_s(s,name):
             continue
         print '%s '%name,
         abc('r %s.aig'%name)
         ps()
-    return dir
+        result = result + [name]
+    return result
+
+def list_blif(s=''):
+    """ prnts out the sizes of aig files"""
+    #os.chdir('../ibm-web')
+    list_all = os.listdir('.')
+    dir = lst(list_all,'.blif')
+    dir.sort()
+    result = []
+    for j in range(len(dir)):
+        name = dir[j][:-5]
+        if not s_in_s(s,name):
+            continue
+        print '%s: '%name,
+        abc('read_blif %s.blif'%name)
+        run_command('ps')
+        abc('st;zero;w %s.aig'%name)
+        result = result + [name]
+    return result
+
+def s_in_s(s1,s2):
+    ls1 = len(s1)
+    l = 1+len(s2)- ls1
+    if l< 0:
+        return False
+    else:
+        for j in range(l):
+            if s1 == s2[j:j+ls1]:
+                return True
+            else:
+                continue
+        return False
+            
 
 def convert_ibm():
     """ converts blif files (with constraints?) into aig files"""
@@ -174,14 +217,16 @@ def cleanup():
     list = os.listdir('.') 
     for j in range(len(list)):
         name = list[j]
-        if (('_smp' in name) or ('_save' in name) or ('_backup' in name) or ('_osave' in name)
-            or ('_best' in name) or ('_gsrm' in name) or ('gore' in name) or 
-            ('_bip' in name) or ('sm0' in name) or ('gabs' in name) 
-            or ('temp' in name) or ('__' in name) or ('greg' in name) or ('tf2' in name)
-            or ('gsrm' in name) or ('_rpm' in name ) or ('gsyn' in name) or ('beforerpm' in name)
-            or ('afterrpm' in name) or ('initabs' in name) or ('.status' in name) or ('_init' in name)
-            or ('_osave' in name) or ('tt_' in name) or ('_before' in name) or ('_after' in name)
-            or ('_and' in name) or ('_final' in name) or ('_spec' in name) or ('temp.a' in name) or ('_sync' in name)
+        if ((s_in_s('_smp',name)) or (s_in_s('_save', name)) or (s_in_s('_backup', name)) or (s_in_s('_osave', name))
+            or (s_in_s('_best', name)) or (s_in_s('_gsrm', name)) or (s_in_s('gore', name)) or 
+            (s_in_s('_bip', name)) or (s_in_s('sm0', name)) or (s_in_s('gabs', name)) 
+            or (s_in_s('temp', name)) or (s_in_s('__', name)) or (s_in_s('greg', name)) or (s_in_s('tf2', name))
+            or (s_in_s('gsrm', name)) or (s_in_s('_rpm', name )) or (s_in_s('gsyn', name)) or (s_in_s('beforerpm', name))
+            or (s_in_s('afterrpm', name)) or (s_in_s('initabs', name)) or (s_in_s('.status', name)) or (s_in_s('_init', name))
+            or (s_in_s('_osave', name)) or (s_in_s('tt_', name)) or (s_in_s('_before', name)) or (s_in_s('_after', name))
+            or (s_in_s('_and', name)) or (s_in_s('_final', name)) or (s_in_s('_spec', name)) or (s_in_s('temp.a', name))
+            or (s_in_s('_sync', name)) or (s_in_s('_old', name)) or (s_in_s('_cone_', name)) or (s_in_s('_abs', name))
+            or (s_in_s('_vabs', name))
             ):
             os.remove(name)
         
@@ -214,6 +259,7 @@ def strip_names():
         scorr_comp()
         simplify()
         run_command('w %s_smp.aig'%name)
+
 
 def map_ibm():
     os.chdir('../ibmmike2')
