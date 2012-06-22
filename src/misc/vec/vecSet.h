@@ -189,9 +189,9 @@ static inline void Vec_SetFree( Vec_Set_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-static inline int Vec_ReportMemory( Vec_Set_t * p )
+static inline double Vec_ReportMemory( Vec_Set_t * p )
 {
-    int Mem = sizeof(Vec_Set_t);
+    double Mem = sizeof(Vec_Set_t);
     Mem += p->nPagesAlloc * sizeof(void *);
     Mem += sizeof(word) * (1 << p->nPageSize) * (1 + p->iPage);
     return Mem;

@@ -289,6 +289,22 @@ static inline int Vec_StrSize( Vec_Str_t * p )
   SeeAlso     []
 
 ***********************************************************************/
+static inline int Vec_StrCap( Vec_Str_t * p )
+{
+    return p->nCap;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 static inline char Vec_StrEntry( Vec_Str_t * p, int i )
 {
     assert( i >= 0 && i < p->nSize );

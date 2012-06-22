@@ -983,7 +983,7 @@ Vta_Man_t * Vga_ManStart( Gia_Man_t * pGia, Gia_ParVta_t * pPars )
     p->pGia        = pGia;
     p->pPars       = pPars;
     // internal data
-    p->nObjsAlloc  = (1 << 20);
+    p->nObjsAlloc  = (1 << 18);
     p->pObjs       = ABC_CALLOC( Vta_Obj_t, p->nObjsAlloc );
     p->nObjs       = 1;
     p->nBins       = Abc_PrimeCudd( 2*p->nObjsAlloc );
@@ -1656,11 +1656,34 @@ finish:
     Abc_PrintTime( 1, "Time", clock() - clk );
 
     p->timeOther = (clock() - clk) - p->timeUnsat - p->timeSat - p->timeCex;
-    ABC_PRTP( "Solver UNSAT", p->timeUnsat,  clock() - clk );
-    ABC_PRTP( "Solver SAT  ", p->timeSat,    clock() - clk );
-    ABC_PRTP( "Refinement  ", p->timeCex,    clock() - clk );
-    ABC_PRTP( "Other       ", p->timeOther,  clock() - clk );
-    ABC_PRTP( "TOTAL       ", clock() - clk, clock() - clk );
+    ABC_PRTP( "Runtime: Solver UNSAT", p->timeUnsat,  clock() - clk );
+    ABC_PRTP( "Runtime: Solver SAT  ", p->timeSat,    clock() - clk );
+    ABC_PRTP( "Runtime: Refinement  ", p->timeCex,    clock() - clk );
+    ABC_PRTP( "Runtime: Other       ", p->timeOther,  clock() - clk );
+    ABC_PRTP( "Runtime: TOTAL       ", clock() - clk, clock() - clk );
+
+    
+    { // memory report
+    double memTot = 0;
+    double memAig = Gia_ManObjNum(p->pGia) * sizeof(Gia_Obj_t);
+    double memSat = sat_solver2_memory( p->pSat );
+    double memPro = sat_solver2_memory_proof( p->pSat );
+    double memMap = p->nObjsAlloc * sizeof(Vta_Obj_t) + p->nBins * sizeof(int);
+    double memOth = sizeof(Vta_Man_t);
+    memOth += Vec_IntCap(p->vOrder) * sizeof(int);
+    memOth += Vec_VecMemoryInt( (Vec_Vec_t *)p->vFrames );
+    memOth += Vec_BitCap(p->vSeenGla) * sizeof(int);
+    memOth += Vec_IntCap(p->vCla2Var) * sizeof(int);
+    memOth += Vec_VecMemoryInt( (Vec_Vec_t *)p->vCores );
+    memOth += Vec_IntCap(p->vAddedNew) * sizeof(int);
+    memTot = memAig + memSat + memPro + memMap + memOth;
+    ABC_PRMP( "Memory: AIG  ", memAig, memTot );
+    ABC_PRMP( "Memory: SAT  ", memSat, memTot );
+    ABC_PRMP( "Memory: Proof", memPro, memTot );
+    ABC_PRMP( "Memory: Map  ", memMap, memTot );
+    ABC_PRMP( "Memory: Other", memOth, memTot );
+    ABC_PRMP( "Memory: TOTAL", memTot, memTot );
+    }
 
     Vga_ManStop( p );
     fflush( stdout );

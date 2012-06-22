@@ -1250,7 +1250,7 @@ void sat_solver2_delete(sat_solver2* s)
     }
 
     // report statistics
-    Abc_Print(1, "Used %6.2f Mb for proof-logging.   Unit clauses = %d.\n", 1.0 * Vec_SetMemory(&s->Proofs) / (1<<20), s->nUnits );
+//    Abc_Print(1, "Used %6.2f Mb for proof-logging.   Unit clauses = %d.\n", 1.0 * Vec_ReportMemory(&s->Proofs) / (1<<20), s->nUnits );
 
     // delete vectors
     veci_delete(&s->order);
@@ -1617,6 +1617,56 @@ void sat_solver2_rollback( sat_solver2* s )
         s->hProofPivot            =  1; // the pivot for proof records
     }
 }
+
+// returns memory in bytes used by the SAT solver
+double sat_solver2_memory( sat_solver2* s )
+{
+    int i;
+    double Mem = sizeof(sat_solver2);
+    for (i = 0; i < s->cap*2; i++)
+        Mem += s->wlists[i].cap * sizeof(int);
+    Mem += s->cap * sizeof(veci);     // ABC_FREE(s->wlists   );
+    Mem += s->clauses.cap * sizeof(int);
+    Mem += s->learnts.cap * sizeof(int);
+    Mem += s->claActs.cap * sizeof(int);
+    Mem += s->claProofs.cap * sizeof(int);
+//    Mem += s->cap * sizeof(char);     // ABC_FREE(s->polarity );
+//    Mem += s->cap * sizeof(char);     // ABC_FREE(s->tags     );
+    Mem += s->cap * sizeof(varinfo2); // ABC_FREE(s->vi       );
+    Mem += s->cap * sizeof(int);      // ABC_FREE(s->levels   );
+    Mem += s->cap * sizeof(char);     // ABC_FREE(s->assigns  );
+#ifdef USE_FLOAT_ACTIVITY
+    Mem += s->cap * sizeof(double);   // ABC_FREE(s->activity );
+#else
+    Mem += s->cap * sizeof(unsigned); // ABC_FREE(s->activity );
+#endif
+//    if ( s->factors )
+//    Mem += s->cap * sizeof(double);   // ABC_FREE(s->factors  );
+    Mem += s->cap * sizeof(lit);      // ABC_FREE(s->trail    );
+    Mem += s->cap * sizeof(int);      // ABC_FREE(s->orderpos );
+    Mem += s->cap * sizeof(int);      // ABC_FREE(s->reasons  );
+    Mem += s->cap * sizeof(int);      // ABC_FREE(s->units    );
+    Mem += s->cap * sizeof(int);      // ABC_FREE(s->model    );
+
+    Mem += s->tagged.cap * sizeof(int);
+    Mem += s->stack.cap * sizeof(int);
+    Mem += s->order.cap * sizeof(int);
+    Mem += s->trail_lim.cap * sizeof(int);
+    Mem += s->temp_clause.cap * sizeof(int);
+    Mem += s->conf_final.cap * sizeof(int);
+    Mem += s->mark_levels.cap * sizeof(int);
+    Mem += s->min_lit_order.cap * sizeof(int);
+    Mem += s->min_step_order.cap * sizeof(int);
+    Mem += s->learnt_live.cap * sizeof(int);
+    Mem += s->temp_proof.cap * sizeof(int);
+//    Mem += Vec_ReportMemory( &s->Mem );
+    return Mem;
+}
+double sat_solver2_memory_proof( sat_solver2* s )
+{
+    return Vec_ReportMemory( &s->Proofs );
+}
+
 
 // find the clause in the watcher lists
 int sat_solver2_find_clause( sat_solver2* s, int Hand, int fVerbose )

@@ -411,8 +411,8 @@ void Gia_ManSatExperiment( Gia_Man_t * p )
     Gia_ManSatStop( pMan );
     for ( i = 0; i < 2*GIA_LIMIT+2; i++ )
         printf( "%2d=%6d  %7.2f %%  %7.2f %%\n", i, nCount[i], 100.0*nCount[i]/nCountAll, 100.0*i*nCount[i]/Gia_ManAndNum(p) );
-    ABC_PRM( "MemoryEst", 4*nWords );
-    ABC_PRM( "MemoryReal", 4*nWords2 );
+    ABC_PRMn( "MemoryEst", 4*nWords );
+    ABC_PRMn( "MemoryReal", 4*nWords2 );
     printf( "%5.2f bpn  ", 4.0*nWords2/Gia_ManObjNum(p) );
     ABC_PRT( "Time", clock() - clk );
 }

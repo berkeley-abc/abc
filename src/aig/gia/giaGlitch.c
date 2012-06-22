@@ -772,7 +772,7 @@ void Gli_ManSwitchesAndGlitches( Gli_Man_t * p, int nPatterns, float PiTransProb
     if ( fVerbose )
     {
         printf( "\nSimulated %d patterns.  ", nPatterns );
-        ABC_PRM( "Memory", 4*p->nObjData );
+        ABC_PRMn( "Memory", 4*p->nObjData );
         ABC_PRT( "Time", clock() - clk );
     }
 }

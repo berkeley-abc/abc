@@ -205,12 +205,14 @@ typedef ABC_UINT64_T word;
 
 #define ABC_SWAP(Type, a, b)  { Type t = a; a = b; b = t; }
 
-#define ABC_PRT(a,t)    (Abc_Print(1, "%s = ", (a)), Abc_Print(1, "%7.2f sec\n", (float)(t)/(float)(CLOCKS_PER_SEC)))
-#define ABC_PRTr(a,t)   (Abc_Print(1, "%s = ", (a)), Abc_Print(1, "%7.2f sec\r", (float)(t)/(float)(CLOCKS_PER_SEC)))
-#define ABC_PRTn(a,t)   (Abc_Print(1, "%s = ", (a)), Abc_Print(1, "%6.2f sec  ", (float)(t)/(float)(CLOCKS_PER_SEC)))
-#define ABC_PRTP(a,t,T) (Abc_Print(1, "%s = ", (a)), Abc_Print(1, "%7.2f sec (%6.2f %%)\n", (float)(t)/(float)(CLOCKS_PER_SEC), (T)? 100.0*(t)/(T) : 0.0))
-#define ABC_PRM(a,f)    (Abc_Print(1, "%s = ", (a)), Abc_Print(1, "%7.3f Mb  ",    1.0*(f)/(1<<20)))
-#define ABC_PRMP(a,f,F) (Abc_Print(1, "%s = ", (a)), Abc_Print(1, "%7.3f Mb (%6.2f %%)  ",  (1.0*(f)/(1<<20)), ((F)? 100.0*(f)/(F) : 0.0) ) )
+#define ABC_PRT(a,t)    (Abc_Print(1, "%s =", (a)), Abc_Print(1, "%9.2f sec\n", (float)(t)/(float)(CLOCKS_PER_SEC)))
+#define ABC_PRTr(a,t)   (Abc_Print(1, "%s =", (a)), Abc_Print(1, "%9.2f sec\r", (float)(t)/(float)(CLOCKS_PER_SEC)))
+#define ABC_PRTn(a,t)   (Abc_Print(1, "%s =", (a)), Abc_Print(1, "%9.2f sec  ", (float)(t)/(float)(CLOCKS_PER_SEC)))
+#define ABC_PRTP(a,t,T) (Abc_Print(1, "%s =", (a)), Abc_Print(1, "%9.2f sec (%6.2f %%)\n", (float)(t)/(float)(CLOCKS_PER_SEC), (T)? 100.0*(t)/(T) : 0.0))
+#define ABC_PRM(a,f)    (Abc_Print(1, "%s =", (a)), Abc_Print(1, "%10.3f Mb\n",    1.0*(f)/(1<<20)))
+#define ABC_PRMr(a,f)   (Abc_Print(1, "%s =", (a)), Abc_Print(1, "%10.3f Mb\r",    1.0*(f)/(1<<20)))
+#define ABC_PRMn(a,f)   (Abc_Print(1, "%s =", (a)), Abc_Print(1, "%10.3f Mb  ",    1.0*(f)/(1<<20)))
+#define ABC_PRMP(a,f,F) (Abc_Print(1, "%s =", (a)), Abc_Print(1, "%10.3f Mb (%6.2f %%)\n",  (1.0*(f)/(1<<20)), ((F)? 100.0*(f)/(F) : 0.0) ) )
 
 #define ABC_ALLOC(type, num)     ((type *) malloc(sizeof(type) * (num)))
 #define ABC_CALLOC(type, num)    ((type *) calloc((num), sizeof(type)))

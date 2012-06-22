@@ -298,6 +298,22 @@ static inline int Vec_PtrSize( Vec_Ptr_t * p )
   SeeAlso     []
 
 ***********************************************************************/
+static inline int Vec_PtrCap( Vec_Ptr_t * p )
+{
+    return p->nCap;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 static inline int Vec_PtrCountZero( Vec_Ptr_t * p ) 
 {
     int i, Counter = 0;

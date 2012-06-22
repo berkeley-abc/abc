@@ -52,7 +52,7 @@ extern void        sat_solver_rollback( sat_solver* s );
 extern int         sat_solver_nvars(sat_solver* s);
 extern int         sat_solver_nclauses(sat_solver* s);
 extern int         sat_solver_nconflicts(sat_solver* s);
-extern int         sat_solver_memory(sat_solver* s);
+extern double      sat_solver_memory(sat_solver* s);
 
 extern void        sat_solver_setnvars(sat_solver* s,int n);
 extern int         sat_solver_get_var_value(sat_solver* s, int v);

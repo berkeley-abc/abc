@@ -247,6 +247,22 @@ static inline int Vec_VecSize( Vec_Vec_t * p )
   SeeAlso     []
 
 ***********************************************************************/
+static inline int Vec_VecCap( Vec_Vec_t * p )
+{
+    return p->nCap;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 static inline int Vec_VecLevelSize( Vec_Vec_t * p, int i )
 {
     return Vec_PtrSize( (Vec_Ptr_t *)p->pArray[i] );
@@ -673,6 +689,37 @@ static inline void Vec_VecPrintInt( Vec_Vec_t * p, int fSkipSingles )
     }
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Returns memory, in bytes, used by the vector.]
+
+  Description []
+  
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline double Vec_VecMemory( Vec_Vec_t * p )
+{
+    int i;
+    Vec_Ptr_t * vVec;
+    double Mem = sizeof(Vec_Vec_t);
+    Mem += Vec_VecCap(p) * sizeof(void *);
+    Vec_VecForEachLevel( p, vVec, i )
+        Mem += sizeof(Vec_Ptr_t) + Vec_PtrCap(vVec) * sizeof(void *);
+    return Mem;
+}
+static inline double Vec_VecMemoryInt( Vec_Vec_t * p )
+{
+    int i;
+    Vec_Int_t * vVec;
+    double Mem = sizeof(Vec_Vec_t);
+    Mem += Vec_VecCap(p) * sizeof(void *);
+    Vec_VecForEachLevelInt( p, vVec, i )
+        Mem += sizeof(Vec_Int_t) + Vec_IntCap(vVec) * sizeof(int);
+    return Mem;
+}
 
 ABC_NAMESPACE_HEADER_END
 

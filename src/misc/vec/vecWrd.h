@@ -345,6 +345,22 @@ static inline int Vec_WrdSize( Vec_Wrd_t * p )
   SeeAlso     []
 
 ***********************************************************************/
+static inline int Vec_WrdCap( Vec_Wrd_t * p )
+{
+    return p->nCap;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 static inline word Vec_WrdEntry( Vec_Wrd_t * p, int i )
 {
     assert( i >= 0 && i < p->nSize );

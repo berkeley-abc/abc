@@ -682,7 +682,7 @@ void Gia_ManPrintFanio( Gia_Man_t * pGia, int nNodes )
     Gia_ManHashStart( pGia );
     Cof_ManPrintHighFanout( p, nNodes );
     Gia_ManHashStop( pGia );
-ABC_PRM( "Memory for logic network", 4*p->nObjData );
+ABC_PRMn( "Memory for logic network", 4*p->nObjData );
 ABC_PRT( "Time", clock() - clk );
     Cof_ManStop( p );
 }
