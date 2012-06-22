@@ -1441,9 +1441,10 @@ void Gia_VtaSendCancel( Vta_Man_t * p, int fVerbose )
 ***********************************************************************/
 void Gia_VtaDumpAbsracted( Vta_Man_t * p, int fVerbose )
 {
+    char * pFileName = p->pPars->pFileVabs ? p->pPars->pFileVabs : "vabs.aig";
     Gia_Man_t * pAbs;
     if ( fVerbose )
-        Abc_Print( 1, "Dumping abstracted model into file \"vabs.aig\"...\n" );
+        Abc_Print( 1, "Dumping abstracted model into file \"%s\"...\n", pFileName );
 //    if ( !Abc_FrameIsBridgeMode() )
 //        return;
     // create obj classes
@@ -1457,7 +1458,7 @@ void Gia_VtaDumpAbsracted( Vta_Man_t * p, int fVerbose )
     pAbs = Gia_ManDupAbsGates( p->pGia, p->pGia->vGateClasses );
     Vec_IntFreeP( &p->pGia->vGateClasses );
     // send it out
-    Gia_WriteAiger( pAbs, "vabs.aig", 0, 0 );
+    Gia_WriteAiger( pAbs, pFileName, 0, 0 );
     Gia_ManStop( pAbs );
 }
 

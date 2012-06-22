@@ -211,6 +211,7 @@ struct Gia_ParVta_t_
     int            fUseTermVars;  // use terminal variables
     int            fUseRollback;  // use rollback to the starting number of frames
     int            fDumpVabs;     // dumps the abstracted model
+    char *         pFileVabs;     // dumps the abstracted model into this file
     int            fVerbose;      // verbose flag
     int            iFrame;        // the number of frames covered 
 };

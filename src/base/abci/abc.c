@@ -27311,7 +27311,7 @@ int Abc_CommandAbc9Vta( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     Gia_VtaSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FSPCLTRtrdvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FSPCLTRAtrdvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -27392,6 +27392,15 @@ int Abc_CommandAbc9Vta( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( pPars->nRatioMin < 0 ) 
                 goto usage;
             break;
+        case 'A':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-A\" should be followed by a file name.\n" );
+                goto usage;
+            }
+            pPars->pFileVabs = argv[globalUtilOptind];
+            globalUtilOptind++;
+            break;
         case 't':
             pPars->fUseTermVars ^= 1;
             break;
@@ -27440,26 +27449,29 @@ int Abc_CommandAbc9Vta( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( 1, "The starting frame should be 1 or larger.\n" );
         return 0;
     }
+//    if ( argc == globalUtilOptind + 1 )
+//        pPars->pFileVabs = argv[globalUtilOptind];
     pAbc->Status  = Gia_VtaPerform( pAbc->pGia, pPars );
     pAbc->nFrames = pPars->iFrame;
     Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexSeq );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &vta [-FSPCLTR num] [-trdvh]\n" );
-    Abc_Print( -2, "\t         refines abstracted object map with proof-based abstraction\n" );
-    Abc_Print( -2, "\t-F num : the max number of timeframes to unroll [default = %d]\n", pPars->nFramesMax );
-    Abc_Print( -2, "\t-S num : the starting time frame (0=unused) [default = %d]\n", pPars->nFramesStart );
-    Abc_Print( -2, "\t-P num : the number of previous frames for UNSAT core [default = %d]\n", pPars->nFramesPast );
-    Abc_Print( -2, "\t-C num : the max number of SAT solver conflicts (0=unused) [default = %d]\n", pPars->nConfLimit );
-    Abc_Print( -2, "\t-L num : the max number of learned clauses to keep (0=unused) [default = %d]\n", pPars->nLearntMax );
-    Abc_Print( -2, "\t-T num : an approximate timeout, in seconds [default = %d]\n", pPars->nTimeOut );
-    Abc_Print( -2, "\t-R num : minimum percentage of abstracted objects (0<=num<=100) [default = %d]\n", pPars->nRatioMin );
-    Abc_Print( -2, "\t-t     : toggle using terminal variables [default = %s]\n", pPars->fUseTermVars? "yes": "no" );
-    Abc_Print( -2, "\t-r     : toggle using rollback after the starting frames [default = %s]\n", pPars->fUseRollback? "yes": "no" );
-    Abc_Print( -2, "\t-d     : toggle dumping abstracted model into file \"vabs.aig\" [default = %s]\n", pPars->fDumpVabs? "yes": "no" );
-    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
-    Abc_Print( -2, "\t-h     : print the command usage\n");
+    Abc_Print( -2, "usage: &vta [-FSPCLTR num] [-A file] [-trdvh]\n" );
+    Abc_Print( -2, "\t          refines abstracted object map with proof-based abstraction\n" );
+    Abc_Print( -2, "\t-F num  : the max number of timeframes to unroll [default = %d]\n", pPars->nFramesMax );
+    Abc_Print( -2, "\t-S num  : the starting time frame (0=unused) [default = %d]\n", pPars->nFramesStart );
+    Abc_Print( -2, "\t-P num  : the number of previous frames for UNSAT core [default = %d]\n", pPars->nFramesPast );
+    Abc_Print( -2, "\t-C num  : the max number of SAT solver conflicts (0=unused) [default = %d]\n", pPars->nConfLimit );
+    Abc_Print( -2, "\t-L num  : the max number of learned clauses to keep (0=unused) [default = %d]\n", pPars->nLearntMax );
+    Abc_Print( -2, "\t-T num  : an approximate timeout, in seconds [default = %d]\n", pPars->nTimeOut );
+    Abc_Print( -2, "\t-R num  : minimum percentage of abstracted objects (0<=num<=100) [default = %d]\n", pPars->nRatioMin );
+    Abc_Print( -2, "\t-A file : file name for dumping abstrated model [default = \"vabs.aig\"]\n" );
+    Abc_Print( -2, "\t-t      : toggle using terminal variables [default = %s]\n", pPars->fUseTermVars? "yes": "no" );
+    Abc_Print( -2, "\t-r      : toggle using rollback after the starting frames [default = %s]\n", pPars->fUseRollback? "yes": "no" );
+    Abc_Print( -2, "\t-d      : toggle dumping abstracted model into a file [default = %s]\n", pPars->fDumpVabs? "yes": "no" );
+    Abc_Print( -2, "\t-v      : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h      : print the command usage\n");
     return 1;
 } 
 
