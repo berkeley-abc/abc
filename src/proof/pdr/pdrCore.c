@@ -706,6 +706,8 @@ int Pdr_ManSolve_( Aig_Man_t * pAig, Pdr_Par_t * pPars, Vec_Int_t ** pvPrioInit,
 ***********************************************************************/
 int Pdr_ManSolve( Aig_Man_t * pAig, Pdr_Par_t * pPars, Abc_Cex_t ** ppCex )
 {
+    if ( pPars->fVerbose )
+    {
 //    Abc_Print( 1, "Running PDR by Niklas Een (aka IC3 by Aaron Bradley) with these parameters:\n" );
     Abc_Print( 1, "VarMax = %d. FrameMax = %d. QueueMax = %d. TimeMax = %d. ", 
         pPars->nRecycle, pPars->nFrameMax, pPars->nRestLimit, pPars->nTimeOut );
@@ -713,6 +715,7 @@ int Pdr_ManSolve( Aig_Man_t * pAig, Pdr_Par_t * pPars, Abc_Cex_t ** ppCex )
         Abc_Print( 1, "Output = %d. ", pPars->iOutput );
     Abc_Print( 1, "MonoCNF = %s. SkipGen = %s.\n", 
         pPars->fMonoCnf ? "yes" : "no", pPars->fSkipGeneral ? "yes" : "no" );
+    }
 
 /*
     Vec_Int_t * vPrioInit = NULL;

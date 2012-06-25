@@ -761,11 +761,13 @@ if ( fVerbose )
 printf( "Care " );
 Abc_CexPrintStats( pCare );
 }
+/*
     // verify the reduced counter-example using ternary simulation
     if ( !Saig_ManCexVerifyUsingTernary( pAig, pCex, pCare ) )
         printf( "Saig_ManCbaFindCexCareBits(): Minimized counter-example verification has failed!!!\n" );
     else if ( fVerbose )
         printf( "Saig_ManCbaFindCexCareBits(): Minimized counter-example verification is successful.\n" );
+*/
     Aig_ManCleanMarkAB( pAig );
     return pCare;
 }

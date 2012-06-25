@@ -346,6 +346,7 @@ static int Abc_CommandAbc9AbsRefine          ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9AbsCba             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9AbsPba             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9GlaDerive          ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9GlaRefine          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9GlaCba             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9GlaPba             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Vta                ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -789,6 +790,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&abs_cba",      Abc_CommandAbc9AbsCba,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&abs_pba",      Abc_CommandAbc9AbsPba,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&gla_derive",   Abc_CommandAbc9GlaDerive,    0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&gla_refine",   Abc_CommandAbc9GlaRefine,    0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&gla_cba",      Abc_CommandAbc9GlaCba,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&gla_pba",      Abc_CommandAbc9GlaPba,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&vta",          Abc_CommandAbc9Vta,          0 );
@@ -27013,6 +27015,8 @@ int Abc_CommandAbc9GlaDerive( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
     pTemp = Gia_ManDupAbsGates( pAbc->pGia, pAbc->pGia->vGateClasses );
+    Gia_ManStop( pTemp );
+    pTemp = Gia_ManDupAbsGates( pAbc->pGia, pAbc->pGia->vGateClasses );
     Abc_CommandUpdate9( pAbc, pTemp );
 //    printf( "This command is currently not enabled.\n" );
     return 0;
@@ -27024,6 +27028,67 @@ usage:
     Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;
 }
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9GlaRefine( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern int Gia_ManGlaRefine( Gia_Man_t * p, Abc_Cex_t * pCex, int fMinCut, int fVerbose );
+    int fMinCut = 1;
+    int c, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "mvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'm':
+            fMinCut ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9GlaRefine(): There is no AIG.\n" );
+        return 1;
+    } 
+    if ( Gia_ManRegNum(pAbc->pGia) == 0 )
+    {
+        Abc_Print( -1, "The network is combinational.\n" );
+        return 0;
+    }
+    if ( pAbc->pCex == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9GlaRefine(): There is no counter-example.\n" );
+        return 1;
+    } 
+    pAbc->Status = Gia_ManGlaRefine( pAbc->pGia, pAbc->pCex, fMinCut, fVerbose );
+    Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexSeq );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &gla_refine [-mvh]\n" );
+    Abc_Print( -2, "\t         refines the pre-computed gate map using the counter-example\n" );
+    Abc_Print( -2, "\t-m     : toggle using min-cut to derive the refinements [default = %s]\n", fMinCut? "yes": "no" );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+} 
 
 /**Function*************************************************************
 

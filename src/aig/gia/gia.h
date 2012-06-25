@@ -691,6 +691,7 @@ extern Gia_Man_t *         Gia_ManDupWithConstraints( Gia_Man_t * p, Vec_Int_t *
 extern Gia_Man_t *         Gia_ManDupAbsFlops( Gia_Man_t * p, Vec_Int_t * vFlopClasses );
 extern Gia_Man_t *         Gia_ManDupAbsGates( Gia_Man_t * p, Vec_Int_t * vGateClasses );
 extern Vec_Int_t *         Gia_GlaCollectAssigned( Gia_Man_t * p, Vec_Int_t * vGateClasses );
+extern void                Gia_GlaCollectInputs( Gia_Man_t * p, Vec_Int_t * vGateClasses, Vec_Int_t ** pvPis, Vec_Int_t ** pvPPis );
 extern Gia_Man_t *         Gia_ManDupCones( Gia_Man_t * p, int * pPos, int nPos, int fTrimPis );
 /*=== giaEnable.c ==========================================================*/
 extern void                Gia_ManDetectSeqSignals( Gia_Man_t * p, int fSetReset, int fVerbose );

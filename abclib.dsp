@@ -3351,6 +3351,10 @@ SOURCE=.\src\aig\gia\giaAbs.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\gia\giaAbsGla.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\gia\giaAbsVta.c
 # End Source File
 # Begin Source File

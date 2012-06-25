@@ -1785,6 +1785,52 @@ Gia_Man_t * Gia_ManDupAbsGates( Gia_Man_t * p, Vec_Int_t * vGateClasses )
 
 /**Function*************************************************************
 
+  Synopsis    [Collects PIs and PPIs of the abstraction.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_GlaCollectInputs( Gia_Man_t * p, Vec_Int_t * vGateClasses, Vec_Int_t ** pvPis, Vec_Int_t ** pvPPis )
+{ 
+    Vec_Int_t * vAssigned, * vPis, * vPPis;
+    Gia_Obj_t * pObj;
+    int i;
+    assert( Gia_ManPoNum(p) == 1 );
+    assert( Vec_IntSize(vGateClasses) == Gia_ManObjNum(p) );
+    // create included objects and their fanins
+    vAssigned = Gia_GlaCollectAssigned( p, vGateClasses );
+    // create additional arrays
+    vPis   = Vec_IntAlloc( 1000 );
+    vPPis  = Vec_IntAlloc( 1000 );
+    Gia_ManForEachObjVec( vAssigned, p, pObj, i )
+    {
+        if ( Gia_ObjIsPi(p, pObj) )
+            Vec_IntPush( vPis, Gia_ObjId(p,pObj) );
+        else if ( !Vec_IntEntry(vGateClasses, Gia_ObjId(p,pObj)) )
+            Vec_IntPush( vPPis, Gia_ObjId(p,pObj) );
+        else if ( Gia_ObjIsAnd(pObj) )
+        {}
+        else if ( Gia_ObjIsRo(p, pObj) )
+        {}
+        else assert( Gia_ObjIsConst0(pObj) );
+    }
+    Vec_IntFree( vAssigned );
+    if ( pvPis )  
+        *pvPis  = vPis;
+    else
+        Vec_IntFree( vPis );
+    if ( pvPPis ) 
+        *pvPPis = vPPis;
+    else
+        Vec_IntFree( vPPis );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Returns the array of neighbors.]
 
   Description []
