@@ -352,6 +352,64 @@ void Gia_ManPrintPlacement( Gia_Man_t * p )
     printf( "Placement:  Objects = %8d.  Fixed = %8d.  Undef = %8d.\n", Gia_ManObjNum(p), nFixed, nUndef );
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Duplicates AIG for unrolling.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManPrintTents_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vObjs )  
+{
+    if ( Gia_ObjIsTravIdCurrent(p, pObj) )
+        return;
+    Gia_ObjSetTravIdCurrent(p, pObj);
+    Vec_IntPush( vObjs, Gia_ObjId(p, pObj) );
+    if ( Gia_ObjIsCi(pObj) )
+        return;
+    Gia_ManPrintTents_rec( p, Gia_ObjFanin0(pObj), vObjs );
+    if ( Gia_ObjIsAnd(pObj) )
+        Gia_ManPrintTents_rec( p, Gia_ObjFanin1(pObj), vObjs );
+}
+void Gia_ManPrintTents( Gia_Man_t * p )  
+{
+    Vec_Int_t * vObjs;
+    Gia_Obj_t * pObj;
+    int t, i, iObjId, nSizePrev, nSizeCurr;
+    assert( Gia_ManPoNum(p) > 0 );
+    vObjs = Vec_IntAlloc( 100 );
+    // save constant class
+    Gia_ManIncrementTravId( p );
+    Gia_ObjSetTravIdCurrent( p, Gia_ManConst0(p) );
+    Vec_IntPush( vObjs, 0 );
+    // create starting root
+    nSizePrev = Vec_IntSize(vObjs);
+    Gia_ManForEachPo( p, pObj, i )
+        Gia_ManPrintTents_rec( p, pObj, vObjs );
+    // build tents
+    printf( "Tents:  " );
+    for ( t = 1; nSizePrev < Vec_IntSize(vObjs); t++ )
+    {
+        nSizeCurr = Vec_IntSize(vObjs);
+        Vec_IntForEachEntryStartStop( vObjs, iObjId, i, nSizePrev, nSizeCurr )
+            if ( Gia_ObjIsRo(p, Gia_ManObj(p, iObjId)) )
+                Gia_ManPrintTents_rec( p, Gia_ObjRoToRi(p, Gia_ManObj(p, iObjId)), vObjs );
+        printf( "%d=%d  ", t, nSizeCurr - nSizePrev );
+        nSizePrev = nSizeCurr;
+    }
+    printf( " Unused=%d\n", Gia_ManObjNum(p) - Vec_IntSize(vObjs) );
+    Vec_IntFree( vObjs );
+    // the remaining objects are PIs without fanout
+//    Gia_ManForEachObj( p, pObj, i )
+//        if ( !Gia_ObjIsTravIdCurrent(p, pObj) )
+//            Gia_ObjPrint( p, pObj );
+}
+
 /**Function*************************************************************
 
   Synopsis    [Prints stats for the AIG.]
@@ -406,11 +464,12 @@ void Gia_ManPrintStats( Gia_Man_t * p, int fTents, int fSwitch )
         Gia_Man_t * pNew = Gia_ManUnrollDup( p, vLimit );
         printf( "Tents:  " );
         Vec_IntForEachEntryStart( vLimit, Entry, k, 1 )
-            printf( "%d = %d  ", k, Entry-Prev ), Prev = Entry;
-        printf( " Unused = %d.", Gia_ManObjNum(p) - Gia_ManObjNum(pNew) );
+            printf( "%d=%d  ", k, Entry-Prev ), Prev = Entry;
+        printf( " Unused=%d.", Gia_ManObjNum(p) - Gia_ManObjNum(pNew) );
         printf( "\n" );
         Vec_IntFree( vLimit );
         Gia_ManStop( pNew );
+        Gia_ManPrintTents( p );
     }
 }
 
