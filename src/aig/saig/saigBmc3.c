@@ -57,6 +57,7 @@ struct Gia_ManBmc_t_
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
+#define SAIG_TER_NON 0
 #define SAIG_TER_ZER 1
 #define SAIG_TER_ONE 2
 #define SAIG_TER_UND 3
@@ -89,6 +90,13 @@ static inline void Saig_ManBmcSimInfoSet( unsigned * pInfo, Aig_Obj_t * pObj, in
     assert( Value >= SAIG_TER_ZER && Value <= SAIG_TER_UND );
     Value ^= Saig_ManBmcSimInfoGet( pInfo, pObj );
     pInfo[Aig_ObjId(pObj) >> 4] ^= (Value << ((Aig_ObjId(pObj) & 15) << 1));
+}
+
+static inline int Saig_ManBmcSimInfoClear( unsigned * pInfo, Aig_Obj_t * pObj )
+{
+    int Value = Saig_ManBmcSimInfoGet( pInfo, pObj );
+    pInfo[Aig_ObjId(pObj) >> 4] ^= (Value << ((Aig_ObjId(pObj) & 15) << 1));
+    return Value;
 }
 
 /**Function*************************************************************
@@ -215,6 +223,97 @@ void Saig_ManBmcTerSimTest( Aig_Man_t * p )
     printf( "\n" );
     Vec_PtrFreeFree( vInfos );
 }
+
+
+
+/**Function*************************************************************
+
+  Synopsis    [Count the number of non-ternary per frame.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Saig_ManBmcCountNonternary_rec( Aig_Man_t * p, Aig_Obj_t * pObj, Vec_Ptr_t * vInfos, unsigned * pInfo, int f, int * pCounter )
+{ 
+    int Value = Saig_ManBmcSimInfoClear( pInfo, pObj );
+    if ( Value == SAIG_TER_NON )
+        return 0;
+    assert( f >= 0 );
+    pCounter[f] += (Value == SAIG_TER_UND);
+    if ( Saig_ObjIsPi(p, pObj) || (f == 0 && Saig_ObjIsLo(p, pObj)) || Aig_ObjIsConst1(pObj) )
+        return 0;
+    if ( Saig_ObjIsLi(p, pObj) )
+        return Saig_ManBmcCountNonternary_rec( p, Aig_ObjFanin0(pObj), vInfos, pInfo, f, pCounter );
+    if ( Saig_ObjIsLo(p, pObj) )
+        return Saig_ManBmcCountNonternary_rec( p, Saig_ObjLoToLi(p, pObj), vInfos, (unsigned *)Vec_PtrEntry(vInfos, f-1), f-1, pCounter );
+    assert( Aig_ObjIsNode(pObj) );
+    Saig_ManBmcCountNonternary_rec( p, Aig_ObjFanin0(pObj), vInfos, pInfo, f, pCounter );
+    Saig_ManBmcCountNonternary_rec( p, Aig_ObjFanin1(pObj), vInfos, pInfo, f, pCounter );
+    return 0;
+}
+void Saig_ManBmcCountNonternary( Aig_Man_t * p, Vec_Ptr_t * vInfos, int iFrame )
+{
+    int i, * pCounters = ABC_CALLOC( int, iFrame + 1 );
+    unsigned * pInfo = (unsigned *)Vec_PtrEntry(vInfos, iFrame);
+    assert( Saig_ManBmcSimInfoGet( pInfo, Aig_ManCo(p, 0) ) == SAIG_TER_UND );
+    Saig_ManBmcCountNonternary_rec( p, Aig_ObjFanin0(Aig_ManCo(p, 0)), vInfos, pInfo, iFrame, pCounters );
+    for ( i = 0; i <= iFrame; i++ )
+        printf( "%d=%d ", i, pCounters[i] );
+    printf( "\n" );
+    ABC_FREE( pCounters );
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the number of POs with binary ternary info.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Saig_ManBmcTerSimCount01Po( Aig_Man_t * p, unsigned * pInfo )
+{
+    Aig_Obj_t * pObj;
+    int i, Counter = 0;
+    Saig_ManForEachPo( p, pObj, i )
+        Counter += (Saig_ManBmcSimInfoGet(pInfo, pObj) != SAIG_TER_UND);
+    return Counter;
+}
+Vec_Ptr_t * Saig_ManBmcTerSimPo( Aig_Man_t * p )
+{
+    Vec_Ptr_t * vInfos;
+    unsigned * pInfo = NULL;
+    int i, nPoBin;
+    vInfos = Vec_PtrAlloc( 100 );
+    for ( i = 0; ; i++ )
+    {
+        if ( i % 100 == 0 )
+            printf( "Frame %5d\n", i );
+        pInfo = Saig_ManBmcTerSimOne( p, pInfo );
+        Vec_PtrPush( vInfos, pInfo );
+        nPoBin = Saig_ManBmcTerSimCount01Po( p, pInfo );
+        if ( nPoBin < Saig_ManPoNum(p) )
+            break;
+    }
+    printf( "Detected terminary PO in frame %d.\n", i );
+    Saig_ManBmcCountNonternary( p, vInfos, i );
+    return vInfos;
+}
+void Saig_ManBmcTerSimTestPo( Aig_Man_t * p )
+{
+    Vec_Ptr_t * vInfos;
+    vInfos = Saig_ManBmcTerSimPo( p );
+    Vec_PtrFreeFree( vInfos );
+}
+
 
 
 
