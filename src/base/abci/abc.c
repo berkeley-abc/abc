@@ -27372,6 +27372,7 @@ int Abc_CommandAbc9Gla( Abc_Frame_t * pAbc, int argc, char ** argv )
     Gia_ParVta_t Pars, * pPars = &Pars;
     int c;
     Gia_VtaSetDefaultParams( pPars );
+    pPars->nFramesStart = 20;
     pPars->nLearntMax = 100000;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "FSPCLTRAtrdvh" ) ) != EOF )
