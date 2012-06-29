@@ -1531,7 +1531,10 @@ int Gia_VtaPerformInt( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
                 vCore = Vta_ManUnsatCore( Vga_ManGetOutLit(p, f), p->vCla2Var, p->pSat, pPars->nConfLimit, pPars->fVerbose, &Status, &nConfls );
                 assert( (vCore != NULL) == (Status == 1) );
                 if ( Status == -1 ) // resource limit is reached
+                {
+                    Vga_ManRollBack( p, nObjOld );
                     goto finish;
+                }
                 if ( vCore != NULL )
                 {
                     p->timeUnsat += clock() - clk2;

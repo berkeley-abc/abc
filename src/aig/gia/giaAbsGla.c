@@ -57,6 +57,7 @@ struct Gla_Man_t_
     Gia_ParVta_t* pPars;           // parameters
     // internal data
     Vec_Int_t *   vAbs;            // abstracted objects
+    Gla_Obj_t *   pObjRoot;        // the primary output
     Gla_Obj_t *   pObjs;           // objects
     int           nObjs;           // the number of objects
     int           nAbsOld;         // previous abstraction
@@ -340,6 +341,7 @@ Gla_Man_t * Gla_ManStart( Gia_Man_t * pGia, Gia_ParVta_t * pPars )
         pGla->Fanins[0] = Gia_ObjFanin0( Gia_ObjRoToRi(p->pGia, pObj) )->Value;
         pGla->fCompl0   = Gia_ObjFaninC0( Gia_ObjRoToRi(p->pGia, pObj) );
     }
+    p->pObjRoot = Gla_ManObj( p, Gia_ManPo(p->pGia, 0)->Value );
     // abstraction 
     assert( pGia->vGateClasses != NULL );
     Gla_ManForEachObj( p, pGla )
@@ -667,12 +669,10 @@ void Gla_ManRollBack( Gla_Man_t * p )
 ***********************************************************************/
 int Gla_ManGetOutLit( Gla_Man_t * p, int f )
 {
-    Gia_Obj_t * pObj   = Gia_ManPo(p->pGia, 0);
-    Gia_Obj_t * pFanin = Gia_ObjFanin0(pObj);
-    Gla_Obj_t * pGla   = Gla_ManObj(p, pFanin->Value);
-    int iSat = Vec_IntEntry( &pGla->vFrames, f );
+    Gla_Obj_t * pFanin = Gla_ManObj( p, p->pObjRoot->Fanins[0] );
+    int iSat = Vec_IntEntry( &pFanin->vFrames, f );
     assert( iSat > 0 );
-    return Abc_Var2Lit( iSat, Gia_ObjFaninC0(pObj) );
+    return Abc_Var2Lit( iSat, p->pObjRoot->fCompl0 );
 }
 Vec_Int_t * Gla_ManUnsatCore( Gla_Man_t * p, int f, Vec_Int_t * vCla2Obj, sat_solver2 * pSat, int nConfMax, int fVerbose, int * piRetValue, int * pnConfls )
 {
@@ -799,17 +799,16 @@ void Gia_GlaDumpAbsracted( Gla_Man_t * p, int fVerbose )
 {
     char * pFileName = p->pPars->pFileVabs ? p->pPars->pFileVabs : "glabs.aig";
     Gia_Man_t * pAbs;
+    Vec_Int_t * vGateClasses;
     if ( fVerbose )
         Abc_Print( 1, "Dumping abstracted model into file \"%s\"...\n", pFileName );
 //    if ( !Abc_FrameIsBridgeMode() )
 //        return;
-    // create gate classes
-    Vec_IntFreeP( &p->pGia->vGateClasses );
-    p->pGia->vGateClasses = Gla_ManTranslate( p );
-    // create abstrated model
-    pAbs = Gia_ManDupAbsGates( p->pGia, p->pGia->vGateClasses );
-    Vec_IntFreeP( &p->pGia->vGateClasses );
-    // send it out
+    // create abstraction
+    vGateClasses = Gla_ManTranslate( p );
+    pAbs = Gia_ManDupAbsGates( p->pGia, vGateClasses );
+    Vec_IntFreeP( &vGateClasses );
+    // write into file
     Gia_WriteAiger( pAbs, pFileName, 0, 0 );
     Gia_ManStop( pAbs );
 }
@@ -843,19 +842,22 @@ int Gia_GlaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
         int nFramesMaxOld   = pPars->nFramesMax;
         int nFramesStartOld = pPars->nFramesStart;
         int nTimeOutOld     = pPars->nTimeOut;
+        int nDumpOld        = pPars->fDumpVabs;
         pPars->nFramesMax   = pPars->nFramesStart;
         pPars->nFramesStart = Abc_MinInt( pPars->nFramesStart/2 + 1, 3 );
-        pPars->nTimeOut     = 10;
+        pPars->nTimeOut     = 15;
+        pPars->fDumpVabs    = 0;
         RetValue = Gia_VtaPerformInt( pAig, pPars );
         pPars->nFramesMax   = nFramesMaxOld;
         pPars->nFramesStart = nFramesStartOld;
         pPars->nTimeOut     = nTimeOutOld;
+        pPars->fDumpVabs    = nDumpOld;
         // create gate classes
         Vec_IntFreeP( &pAig->vGateClasses );
         pAig->vGateClasses = Gia_VtaConvertToGla( pAig, pAig->vObjClasses );
         Vec_IntFreeP( &pAig->vObjClasses );
     }
-    if ( RetValue == 0 )
+    if ( RetValue == 0 || pAig->vGateClasses == NULL )
         return RetValue;
     // start the manager
     clk = clock();
@@ -893,7 +895,10 @@ int Gia_GlaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
             vCore = Gla_ManUnsatCore( p, f, p->vCla2Obj, p->pSat, pPars->nConfLimit, pPars->fVerbose, &Status, &nConfls );
             assert( (vCore != NULL) == (Status == 1) );
             if ( Status == -1 ) // resource limit is reached
+            {
+                Gla_ManRollBack( p );
                 goto finish;
+            }
             if ( vCore != NULL )
             {
                 p->timeUnsat += clock() - clk2;
