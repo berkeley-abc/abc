@@ -672,6 +672,8 @@ int Gla_ManGetOutLit( Gla_Man_t * p, int f )
     Gla_Obj_t * pFanin = Gla_ManObj( p, p->pObjRoot->Fanins[0] );
     int iSat = Vec_IntEntry( &pFanin->vFrames, f );
     assert( iSat > 0 );
+    if ( f == 0 && pFanin->fRo && !p->pObjRoot->fCompl0 )
+        return -1;
     return Abc_Var2Lit( iSat, p->pObjRoot->fCompl0 );
 }
 Vec_Int_t * Gla_ManUnsatCore( Gla_Man_t * p, int f, Vec_Int_t * vCla2Obj, sat_solver2 * pSat, int nConfMax, int fVerbose, int * piRetValue, int * pnConfls )
@@ -682,6 +684,14 @@ Vec_Int_t * Gla_ManUnsatCore( Gla_Man_t * p, int f, Vec_Int_t * vCla2Obj, sat_so
     int i, Entry, RetValue, clk = clock();
     if ( piRetValue )
         *piRetValue = 1;
+    // consider special case when PO points to the flop
+    // this leads to immediate conflict in the first timeframe
+    if ( iLit == -1 )
+    {
+        vCore = Vec_IntAlloc( 1 );
+        Vec_IntPush( vCore, p->pObjRoot->Fanins[0] );
+        return vCore;
+    }
     // solve the problem
     RetValue = sat_solver2_solve( pSat, &iLit, &iLit+1, (ABC_INT64_T)nConfMax, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
     if ( pnConfls )
