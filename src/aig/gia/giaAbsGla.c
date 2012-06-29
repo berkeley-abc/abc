@@ -950,7 +950,7 @@ int Gia_GlaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
             vCore = Gla_ManUnsatCore( p, f, p->vCla2Obj, p->pSat, pPars->nConfLimit, p->pPars->fVerbose, &Status, &nConfls );
             p->timeUnsat += clock() - clk2;
             assert( (vCore != NULL) == (Status == 1) );
-            Vec_IntFree( vCore );
+            Vec_IntFreeP( &vCore );
             if ( Status == -1 ) // resource limit is reached
                 break;
             if ( Status == 0 )
