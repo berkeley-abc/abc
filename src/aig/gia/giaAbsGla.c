@@ -855,7 +855,7 @@ int Gia_GlaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
         int nDumpOld        = pPars->fDumpVabs;
         pPars->nFramesMax   = pPars->nFramesStart;
         pPars->nFramesStart = Abc_MinInt( pPars->nFramesStart/2 + 1, 3 );
-        pPars->nTimeOut     = 15;
+        pPars->nTimeOut     = 20;
         pPars->fDumpVabs    = 0;
         RetValue = Gia_VtaPerformInt( pAig, pPars );
         pPars->nFramesMax   = nFramesMaxOld;

@@ -1056,6 +1056,27 @@ void Vga_ManStop( Vta_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Returns the output literal.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Vga_ManGetOutLit( Vta_Man_t * p, int f )
+{
+    Gia_Obj_t * pObj = Gia_ManPo(p->pGia, 0);
+    Vta_Obj_t * pThis = Vga_ManFind( p, Gia_ObjFaninId0p(p->pGia, pObj), f );
+    assert( pThis != NULL && pThis->fAdded );
+    if ( f == 0 && Gia_ObjIsRo(p->pGia, Gia_ObjFanin0(pObj)) && !Gia_ObjFaninC0(pObj) )
+        return -Vta_ObjId(p, pThis);
+    return Abc_Var2Lit( Vta_ObjId(p, pThis), Gia_ObjFaninC0(pObj) );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Finds the set of clauses involved in the UNSAT core.]
 
   Description []
@@ -1073,6 +1094,14 @@ Vec_Int_t * Vta_ManUnsatCore( int iLit, Vec_Int_t * vCla2Var, sat_solver2 * pSat
     int nConfPrev = pSat->stats.conflicts;
     if ( piRetValue )
         *piRetValue = 1;
+    // consider special case when PO points to the flop
+    // this leads to immediate conflict in the first timeframe
+    if ( iLit < 0 )
+    {
+        vCore = Vec_IntAlloc( 1 );
+        Vec_IntPush( vCore, -iLit );
+        return vCore;
+    }
     // solve the problem
     RetValue = sat_solver2_solve( pSat, &iLit, &iLit+1, (ABC_INT64_T)nConfMax, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
     if ( pnConfls )
@@ -1318,25 +1347,6 @@ void Vga_ManLoadSlice( Vta_Man_t * p, Vec_Int_t * vOne, int Lift )
 
 /**Function*************************************************************
 
-  Synopsis    [Returns the output literal.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-static inline int Vga_ManGetOutLit( Vta_Man_t * p, int f )
-{
-    Gia_Obj_t * pObj = Gia_ManPo(p->pGia, 0);
-    Vta_Obj_t * pThis = Vga_ManFind( p, Gia_ObjFaninId0p(p->pGia, pObj), f );
-    assert( pThis != NULL && pThis->fAdded );
-    return Abc_Var2Lit( Vta_ObjId(p, pThis), Gia_ObjFaninC0(pObj) );
-}
-
-/**Function*************************************************************
-
   Synopsis    []
 
   Description []
@@ -1463,6 +1473,42 @@ void Gia_VtaDumpAbsracted( Vta_Man_t * p, int fVerbose )
     Gia_WriteAiger( pAbs, pFileName, 0, 0 );
     Gia_ManStop( pAbs );
 }
+
+    
+/**Function*************************************************************
+
+  Synopsis    [Print memory report.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_VtaPrintMemory( Vta_Man_t * p )
+{
+    double memTot = 0;
+    double memAig = Gia_ManObjNum(p->pGia) * sizeof(Gia_Obj_t);
+    double memSat = sat_solver2_memory( p->pSat );
+    double memPro = sat_solver2_memory_proof( p->pSat );
+    double memMap = p->nObjsAlloc * sizeof(Vta_Obj_t) + p->nBins * sizeof(int);
+    double memOth = sizeof(Vta_Man_t);
+    memOth += Vec_IntCap(p->vOrder) * sizeof(int);
+    memOth += Vec_VecMemoryInt( (Vec_Vec_t *)p->vFrames );
+    memOth += Vec_BitCap(p->vSeenGla) * sizeof(int);
+    memOth += Vec_IntCap(p->vCla2Var) * sizeof(int);
+    memOth += Vec_VecMemoryInt( (Vec_Vec_t *)p->vCores );
+    memOth += Vec_IntCap(p->vAddedNew) * sizeof(int);
+    memTot = memAig + memSat + memPro + memMap + memOth;
+    ABC_PRMP( "Memory: AIG  ", memAig, memTot );
+    ABC_PRMP( "Memory: SAT  ", memSat, memTot );
+    ABC_PRMP( "Memory: Proof", memPro, memTot );
+    ABC_PRMP( "Memory: Map  ", memMap, memTot );
+    ABC_PRMP( "Memory: Other", memOth, memTot );
+    ABC_PRMP( "Memory: TOTAL", memTot, memTot );
+}
+
 
 /**Function*************************************************************
 
@@ -1671,29 +1717,7 @@ finish:
     ABC_PRTP( "Runtime: Refinement  ", p->timeCex,    clock() - clk );
     ABC_PRTP( "Runtime: Other       ", p->timeOther,  clock() - clk );
     ABC_PRTP( "Runtime: TOTAL       ", clock() - clk, clock() - clk );
-
-    
-    { // memory report
-    double memTot = 0;
-    double memAig = Gia_ManObjNum(p->pGia) * sizeof(Gia_Obj_t);
-    double memSat = sat_solver2_memory( p->pSat );
-    double memPro = sat_solver2_memory_proof( p->pSat );
-    double memMap = p->nObjsAlloc * sizeof(Vta_Obj_t) + p->nBins * sizeof(int);
-    double memOth = sizeof(Vta_Man_t);
-    memOth += Vec_IntCap(p->vOrder) * sizeof(int);
-    memOth += Vec_VecMemoryInt( (Vec_Vec_t *)p->vFrames );
-    memOth += Vec_BitCap(p->vSeenGla) * sizeof(int);
-    memOth += Vec_IntCap(p->vCla2Var) * sizeof(int);
-    memOth += Vec_VecMemoryInt( (Vec_Vec_t *)p->vCores );
-    memOth += Vec_IntCap(p->vAddedNew) * sizeof(int);
-    memTot = memAig + memSat + memPro + memMap + memOth;
-    ABC_PRMP( "Memory: AIG  ", memAig, memTot );
-    ABC_PRMP( "Memory: SAT  ", memSat, memTot );
-    ABC_PRMP( "Memory: Proof", memPro, memTot );
-    ABC_PRMP( "Memory: Map  ", memMap, memTot );
-    ABC_PRMP( "Memory: Other", memOth, memTot );
-    ABC_PRMP( "Memory: TOTAL", memTot, memTot );
-    }
+    Gia_VtaPrintMemory( p );
 
     Vga_ManStop( p );
     fflush( stdout );
