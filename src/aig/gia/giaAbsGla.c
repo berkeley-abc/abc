@@ -854,7 +854,8 @@ int Gia_GlaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
         pPars->fDumpVabs    = nDumpOld;
         // create gate classes
         Vec_IntFreeP( &pAig->vGateClasses );
-        pAig->vGateClasses = Gia_VtaConvertToGla( pAig, pAig->vObjClasses );
+        if ( pAig->vObjClasses )
+            pAig->vGateClasses = Gia_VtaConvertToGla( pAig, pAig->vObjClasses );
         Vec_IntFreeP( &pAig->vObjClasses );
     }
     if ( RetValue == 0 || pAig->vGateClasses == NULL )

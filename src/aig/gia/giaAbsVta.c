@@ -1630,24 +1630,29 @@ finish:
     // analize the results
     if ( pCex == NULL )
     {
-        assert( Vec_PtrSize(p->vCores) > 0 );
-        if ( pAig->vObjClasses != NULL )
-            Abc_Print( 1, "Replacing the old abstraction by a new one.\n" );
-        Vec_IntFreeP( &pAig->vObjClasses );
-        pAig->vObjClasses = Gia_VtaFramesToAbs( (Vec_Vec_t *)p->vCores );
-        if ( Status == -1 )
-        {
-            if ( p->pPars->nTimeOut && time(NULL) >= p->pSat->nRuntimeLimit ) 
-                Abc_Print( 1, "SAT solver ran out of time at %d sec in frame %d.  ", p->pPars->nTimeOut, f );
-            else if ( pPars->nConfLimit && sat_solver2_nconflicts(p->pSat) >= pPars->nConfLimit )
-                Abc_Print( 1, "SAT solver ran out of resources at %d conflicts in frame %d.  ", pPars->nConfLimit, f );
-            else if ( p->nSeenGla >= Gia_ManCandNum(pAig) * (100-pPars->nRatioMin) / 100 )
-                Abc_Print( 1, "The ratio of abstracted objects is less than %d %% in frame %d.  ", pPars->nRatioMin, f );
-            else
-                Abc_Print( 1, "Abstraction stopped for unknown reason in frame %d.  ", f );
-        }
+        if ( Vec_PtrSize(p->vCores) == 0 )
+            Abc_Print( 1, "Abstraction is not produced because first frame is not solved.  " );
         else
-            Abc_Print( 1, "SAT solver completed %d frames and produced an abstraction.  ", f );
+        {
+            assert( Vec_PtrSize(p->vCores) > 0 );
+            if ( pAig->vObjClasses != NULL )
+                Abc_Print( 1, "Replacing the old abstraction by a new one.\n" );
+            Vec_IntFreeP( &pAig->vObjClasses );
+            pAig->vObjClasses = Gia_VtaFramesToAbs( (Vec_Vec_t *)p->vCores );
+            if ( Status == -1 )
+            {
+                if ( p->pPars->nTimeOut && time(NULL) >= p->pSat->nRuntimeLimit ) 
+                    Abc_Print( 1, "SAT solver ran out of time at %d sec in frame %d.  ", p->pPars->nTimeOut, f );
+                else if ( pPars->nConfLimit && sat_solver2_nconflicts(p->pSat) >= pPars->nConfLimit )
+                    Abc_Print( 1, "SAT solver ran out of resources at %d conflicts in frame %d.  ", pPars->nConfLimit, f );
+                else if ( p->nSeenGla >= Gia_ManCandNum(pAig) * (100-pPars->nRatioMin) / 100 )
+                    Abc_Print( 1, "The ratio of abstracted objects is less than %d %% in frame %d.  ", pPars->nRatioMin, f );
+                else
+                    Abc_Print( 1, "Abstraction stopped for unknown reason in frame %d.  ", f );
+            }
+            else
+                Abc_Print( 1, "SAT solver completed %d frames and produced an abstraction.  ", f );
+        }
     }
     else
     {
