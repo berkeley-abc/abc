@@ -1181,6 +1181,7 @@ int Vta_ManAbsPrintFrame( Vta_Man_t * p, Vec_Int_t * vCore, int nFrames, int nCo
 
 //    Abc_Print( 1, "%5d%5d", pCountAll[0], pCountUni[0] ); 
     Abc_Print( 1, "%3d :", nFrames-1 );
+    Abc_Print( 1, "%4d", Abc_MinInt(100, 100 * p->nSeenGla / (Gia_ManRegNum(p->pGia) + Gia_ManAndNum(p->pGia) + 1)) ); 
     Abc_Print( 1, "%6d", p->nSeenGla ); 
     Abc_Print( 1, "%4d", Abc_MinInt(100, 100 * p->nSeenAll / (p->nSeenGla * nFrames)) ); 
     Abc_Print( 1, "%8d", nConfls );
@@ -1188,10 +1189,11 @@ int Vta_ManAbsPrintFrame( Vta_Man_t * p, Vec_Int_t * vCore, int nFrames, int nCo
         Abc_Print( 1, "%5c", '-' ); 
     else
         Abc_Print( 1, "%5d", nCexes ); 
+    Abc_Print( 1, " %9d", sat_solver2_nvars(p->pSat) ); 
     if ( vCore == NULL )
     {
         Abc_Print( 1, "    ..." ); 
-        for ( k = 0; k < 10; k++ )
+        for ( k = 0; k < 7; k++ )
             Abc_Print( 1, "     " );
         Abc_Print( 1, "%9.2f sec", (float)(Time)/(float)(CLOCKS_PER_SEC) );
         Abc_Print( 1, "\r" );
@@ -1199,19 +1201,19 @@ int Vta_ManAbsPrintFrame( Vta_Man_t * p, Vec_Int_t * vCore, int nFrames, int nCo
     else
     {
         Abc_Print( 1, "%7d", pCountAll[0] ); 
-        if ( nFrames > 10 )
+        if ( nFrames > 7 )
         {
-            for ( k = 0; k < 4; k++ )
+            for ( k = 0; k < 3; k++ )
                 Abc_Print( 1, "%5d", pCountAll[k+1] ); 
             Abc_Print( 1, "  ..." );
-            for ( k = nFrames-5; k < nFrames; k++ )
+            for ( k = nFrames-3; k < nFrames; k++ )
                 Abc_Print( 1, "%5d", pCountAll[k+1] ); 
         }
         else
         {
             for ( k = 0; k < nFrames; k++ )
                 Abc_Print( 1, "%5d", pCountAll[k+1] ); 
-            for ( k = nFrames; k < 10; k++ )
+            for ( k = nFrames; k < 7; k++ )
                 Abc_Print( 1, "     " );
         }
         Abc_Print( 1, "%9.2f sec", (float)(Time)/(float)(CLOCKS_PER_SEC) );
@@ -1497,7 +1499,7 @@ int Gia_VtaPerformInt( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
         Abc_Print( 1, "FrameStart = %d  FramePast = %d  FrameMax = %d  Conf = %d  Timeout = %d. RatioMin = %d %%.\n", 
             p->pPars->nFramesStart, p->pPars->nFramesPast, p->pPars->nFramesMax, 
             p->pPars->nConfLimit, p->pPars->nTimeOut, pPars->nRatioMin );
-        Abc_Print( 1, "Frame   Abs   %%   Confl  Cex   Core   F0   F1   F2   F3  ...\n" );
+        Abc_Print( 1, "Frame   %%   Abs   %%   Confl  Cex    SatVar   Core   F0   F1   F2  ...\n" );
     }
     for ( f = i = 0; !p->pPars->nFramesMax || f < p->pPars->nFramesMax; f++ )
     {

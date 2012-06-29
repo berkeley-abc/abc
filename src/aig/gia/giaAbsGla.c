@@ -370,6 +370,9 @@ Gla_Man_t * Gla_ManStart( Gia_Man_t * pGia, Gia_ParVta_t * pPars )
 void Gla_ManStop( Gla_Man_t * p )
 {
     Gla_Obj_t * pGla;
+//    if ( p->pPars->fVerbose )
+        Abc_Print( 1, "SAT solver:  Variables = %d. Clauses = %d. Conflicts = %d. Cexes = %d.\n", 
+            sat_solver2_nvars(p->pSat), sat_solver2_nclauses(p->pSat), sat_solver2_nconflicts(p->pSat), p->nCexes );
     Gla_ManForEachObj( p, pGla )
         ABC_FREE( pGla->vFrames.pArray );
     Cnf_DataFree( p->pCnf );
@@ -750,8 +753,8 @@ void Gla_ManAbsPrintFrame( Gla_Man_t * p, int nCoreSize, int nFrames, int nConfl
         Abc_Print( 1, "%5c", '-' ); 
     else
         Abc_Print( 1, "%5d", nCexes ); 
-    Abc_Print( 1, " %6d", nCoreSize > 0 ? nCoreSize : 0 ); 
     Abc_Print( 1, " %9d", sat_solver2_nvars(p->pSat) ); 
+    Abc_Print( 1, " %6d", nCoreSize > 0 ? nCoreSize : 0 ); 
     Abc_Print( 1, "%9.2f sec", (float)(Time)/(float)(CLOCKS_PER_SEC) );
     Abc_Print( 1, "%s", nCoreSize > 0 ? "\n" : "\r" );
     fflush( stdout );
@@ -866,10 +869,10 @@ int Gia_GlaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
     // perform initial abstraction
     if ( p->pPars->fVerbose )
     {
-        Abc_Print( 1, "Running variable-timeframe abstraction (VTA) with the following parameters:\n" );
+        Abc_Print( 1, "Running gate-level abstraction (GLA) with the following parameters:\n" );
         Abc_Print( 1, "FrameStart = %d  FrameMax = %d  Conf = %d  Timeout = %d. RatioMin = %d %%.\n", 
             p->pPars->nFramesStart, p->pPars->nFramesMax, p->pPars->nConfLimit, p->pPars->nTimeOut, pPars->nRatioMin );
-        Abc_Print( 1, "Frame   %%   Abs  PPI   FF   AND   Confl  Cex   Core    SatVar     Time\n" );
+        Abc_Print( 1, "Frame   %%   Abs  PPI   FF   AND   Confl  Cex    SatVar   Core     Time\n" );
     }
     for ( f = i = 0; !p->pPars->nFramesMax || f < p->pPars->nFramesMax; f++ )
     {
