@@ -403,22 +403,27 @@ int Gia_GlaAbsCount( Gla_Man_t * p, int fRo, int fAnd )
 
   Synopsis    [Derives new abstraction map.]
 
-  Description []
+  Description [Returns 1 if node contains abstracted leaf on the path.]
                
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
-void Gla_ManTranslate_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vMap )
+int Gla_ManTranslate_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vMap )
 {
+    int Value0, Value1;
     if ( Gia_ObjIsTravIdCurrent(p, pObj) )
-        return;
+        return 1;
     Gia_ObjSetTravIdCurrent(p, pObj);
+    if ( Gia_ObjIsCi(pObj) )
+        return 0;
     assert( Gia_ObjIsAnd(pObj) );
-    Gla_ManTranslate_rec( p, Gia_ObjFanin0(pObj), vMap );
-    Gla_ManTranslate_rec( p, Gia_ObjFanin1(pObj), vMap );
-    Vec_IntWriteEntry( vMap, Gia_ObjId(p, pObj), 1 );
+    Value0 = Gla_ManTranslate_rec( p, Gia_ObjFanin0(pObj), vMap );
+    Value1 = Gla_ManTranslate_rec( p, Gia_ObjFanin1(pObj), vMap );
+    if ( Value0 || Value1 )
+        Vec_IntWriteEntry( vMap, Gia_ObjId(p, pObj), 1 );
+    return Value0 || Value1;
 }
 Vec_Int_t * Gla_ManTranslate( Gla_Man_t * p )
 {
@@ -429,15 +434,15 @@ Vec_Int_t * Gla_ManTranslate( Gla_Man_t * p )
     vRes = Vec_IntStart( Gia_ManObjNum(p->pGia) );
     Gla_ManForEachObjAbs( p, pObj )
     {
-        pGiaObj = Gla_ManGiaObj( p, pObj );
         Vec_IntWriteEntry( vRes, pObj->iGiaObj, 1 );
+        pGiaObj = Gla_ManGiaObj( p, pObj );
         if ( Gia_ObjIsConst0(pGiaObj) || Gia_ObjIsRo(p->pGia, pGiaObj) )
             continue;
         assert( Gia_ObjIsAnd(pGiaObj) );
         Gia_ManIncrementTravId( p->pGia );
         Gla_ObjForEachFanin( p, pObj, pFanin, k )
             Gia_ObjSetTravIdCurrent( p->pGia, Gla_ManGiaObj(p, pFanin) );
-        Gla_ManTranslate_rec( p->pGia, Gla_ManGiaObj(p, pObj), vRes );
+        Gla_ManTranslate_rec( p->pGia, pGiaObj, vRes );
     }
     return vRes;
 }
