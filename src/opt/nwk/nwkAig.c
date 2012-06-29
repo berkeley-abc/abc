@@ -153,7 +153,7 @@ Nwk_Man_t * Nwk_ManCreateFromGia( Gia_Man_t * p, Vec_Int_t * vPPis, Vec_Int_t * 
     Gia_Obj_t * pObj;
     Vec_Int_t * vMaps;
     int i;
-    assert( Vec_IntSize(vLeaves) >= Vec_IntSize(vPPis) );
+//    assert( Vec_IntSize(vLeaves) >= Vec_IntSize(vPPis) );
     Gia_ManCreateRefs( p );
     pNtk = Nwk_ManAlloc();
     pNtk->pName = Abc_UtilStrsav( p->pName );
@@ -165,7 +165,8 @@ Nwk_Man_t * Nwk_ManCreateFromGia( Gia_Man_t * p, Vec_Int_t * vPPis, Vec_Int_t * 
     ppCopies = ABC_ALLOC( Nwk_Obj_t *, Gia_ManObjNum(p) );
     // copy objects
     pObj = Gia_ManConst0(p);
-    ppCopies[Gia_ObjId(p,pObj)] = Nwk_ManCreateNode( pNtk, 0, Gia_ObjRefs(p,pObj) );
+//    ppCopies[Gia_ObjId(p,pObj)] = Nwk_ManCreateNode( pNtk, 0, Gia_ObjRefs(p,pObj) );
+    ppCopies[Gia_ObjId(p,pObj)] = Nwk_ManCreateNode( pNtk, 0, Gia_ObjRefs(p,pObj) + (Vec_IntSize(vLeaves) > Vec_IntSize(vPPis) ? Vec_IntSize(vLeaves) - Vec_IntSize(vPPis) : 0) );
     Vec_IntPush( vMaps, Gia_ObjId(p,pObj) );
     Gia_ManForEachObjVec( vLeaves, p, pObj, i )
     {
@@ -173,13 +174,8 @@ Nwk_Man_t * Nwk_ManCreateFromGia( Gia_Man_t * p, Vec_Int_t * vPPis, Vec_Int_t * 
         assert( Vec_IntSize(vMaps) == Nwk_ObjId(ppCopies[Gia_ObjId(p,pObj)]) );
         Vec_IntPush( vMaps, Gia_ObjId(p,pObj) );
     }
-/*
     for ( i = Vec_IntSize(vLeaves); i < Vec_IntSize(vPPis); i++ )
-    {
-        pTemp = Nwk_ManCreateCi( pNtk, Gia_ObjRefs(p,pObj) );
-        Vec_IntPush( vMaps, 0 );// ???
-    }
-*/
+        Nwk_ManCreateCi( pNtk, 0 );
     Gia_ManForEachObjVec( vNodes, p, pObj, i )
     {
         ppCopies[Gia_ObjId(p,pObj)] = Nwk_ManCreateNode( pNtk, 2, Gia_ObjRefs(p,pObj) );
