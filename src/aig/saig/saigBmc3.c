@@ -983,11 +983,6 @@ static inline void Saig_ManBmcAddClauses( Gia_ManBmc_t * p, int uTruth, int Lits
                 }
                 CutLit = CutLit / 3;
             }
-
-//            for ( b = 0; b < nClaLits; b++ )
-//                printf( "%d ", ClaLits[b] );
-//            printf( "\n" );
-
             if ( !sat_solver_addclause( p->pSat, ClaLits, ClaLits+nClaLits ) )
                 assert( 0 );
         }
@@ -1008,7 +1003,7 @@ static inline void Saig_ManBmcAddClauses( Gia_ManBmc_t * p, int uTruth, int Lits
 ***********************************************************************/
 static inline unsigned Saig_ManBmcHashKey( unsigned * pArray )
 {
-    static s_Primes[5] = { 12582917, 25165843, 50331653, 100663319, 201326611 };
+    static int s_Primes[5] = { 12582917, 25165843, 50331653, 100663319, 201326611 };
     unsigned i, Key = 0;
     for ( i = 0; i < 5; i++ )
         Key += pArray[i] * s_Primes[i];
@@ -1017,12 +1012,6 @@ static inline unsigned Saig_ManBmcHashKey( unsigned * pArray )
 static inline int * Saig_ManBmcLookup( Gia_ManBmc_t * p, unsigned * pArray )
 {
     unsigned * pTable = p->pTable + 6 * (Saig_ManBmcHashKey(pArray) % p->nTable);
-/*
-int i;
-for ( i = 0; i < 5; i++ )
-printf( "%6d ", pArray[i] );
-printf( "\n" );
-*/
     if ( memcmp( pTable, pArray, 20 ) )
     {
         if ( pTable[0] == 0 )
@@ -1034,7 +1023,6 @@ printf( "\n" );
     }
     else
         p->nHashHit++;
-
     assert( pTable + 5 < pTable + 6 * p->nTable );
     return (int *)(pTable + 5);
 }
