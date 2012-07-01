@@ -430,6 +430,32 @@ static inline unsigned Dar_CutTruthSwapAdjacentVars( unsigned uTruth, int iVar )
 
 /**Function*************************************************************
 
+  Synopsis    [Swaps polarity of the variable.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline unsigned Dar_CutTruthSwapPolarity( unsigned uTruth, int iVar )
+{
+    assert( iVar >= 0 && iVar <= 3 );
+    if ( iVar == 0 )
+        return ((uTruth & 0xAAAA) >> 1) | ((uTruth & 0x5555) << 1);
+    if ( iVar == 1 )
+        return ((uTruth & 0xCCCC) >> 2) | ((uTruth & 0x3333) << 2);
+    if ( iVar == 2 )
+        return ((uTruth & 0xF0F0) >> 4) | ((uTruth & 0x0F0F) << 4);
+    if ( iVar == 3 )
+        return ((uTruth & 0xFF00) >> 8) | ((uTruth & 0x00FF) << 8);
+    assert( 0 );
+    return 0;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Expands the truth table according to the phase.]
 
   Description [The input and output truth tables are in pIn/pOut. The current number
@@ -480,6 +506,65 @@ static inline unsigned Dar_CutTruthShrink( unsigned uTruth, int nVars, unsigned 
         }
     return uTruth;
 }
+
+/**Function*************************************************************
+
+  Synopsis    [Sort variables by their ID.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+unsigned Dar_CutSortVars( unsigned uTruth, int * pVars )
+{
+    int i, Temp, fChange, Counter = 0;
+    // replace -1 by large number
+    for ( i = 0; i < 4; i++ )
+    {
+        if ( pVars[i] == -1 )
+            pVars[i] = 0x3FFFFFFF;
+        else
+            if ( Abc_LitIsCompl(pVars[i]) )
+        {
+            pVars[i] = Abc_LitNot( pVars[i] );
+            uTruth = Dar_CutTruthSwapPolarity( uTruth, i );
+        }
+    }
+
+    // permute variables
+    do {
+        fChange = 0;
+        for ( i = 0; i < 3; i++ )
+        {
+            if ( pVars[i] <= pVars[i+1] )
+                continue;
+            Counter++;
+            fChange = 1;
+
+            Temp = pVars[i];
+            pVars[i] = pVars[i+1];
+            pVars[i+1] = Temp;
+
+            uTruth = Dar_CutTruthSwapAdjacentVars( uTruth, i );
+        }
+    } while ( fChange );
+
+    // replace large number by -1
+    for ( i = 0; i < 4; i++ )
+    {
+        if ( pVars[i] == 0x3FFFFFFF )
+            pVars[i] = -1;
+//        printf( "%d ", pVars[i] );
+    }
+//    printf( "\n" );
+
+    return uTruth;
+}
+
+
 
 /**Function*************************************************************
 

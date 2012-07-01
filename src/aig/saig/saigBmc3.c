@@ -42,13 +42,19 @@ struct Gia_ManBmc_t_
     Vec_Int_t *       vId2Num;     // number of each node 
     Vec_Ptr_t *       vTerInfo;    // ternary information
     Vec_Ptr_t *       vId2Var;     // SAT vars for each object
+    // hash table
+    unsigned *        pTable;
+    int               nTable;
+    int               nHashHit;
+    int               nHashMiss;
+    int               nHashOver;
+    int               nBufNum;     // the number of simple nodes
+    int               nDupNum;     // the number of simple nodes
     // SAT solver
     sat_solver *      pSat;        // SAT solver
     int               nSatVars;    // SAT variables
     int               nObjNums;    // SAT objects
     int               nWordNum;    // unsigned words for ternary simulation
-    int               nBufNum;     // the number of simple nodes
-    int               nDupNum;     // the number of simple nodes
     char * pSopSizes, ** pSops;    // CNF representation
 };
 
@@ -692,6 +698,9 @@ Gia_ManBmc_t * Saig_Bmc3ManStart( Aig_Man_t * pAig )
     Cnf_ReadMsops( &p->pSopSizes, &p->pSops );
     // terminary simulation 
     p->nWordNum = Abc_BitWordNum( 2 * Aig_ManObjNumMax(pAig) );
+    // hash table
+    p->nTable = 1000003;
+    p->pTable = ABC_CALLOC( unsigned, 6 * p->nTable ); // 2.4 Mb
     return p;
 }
 
@@ -708,6 +717,9 @@ Gia_ManBmc_t * Saig_Bmc3ManStart( Aig_Man_t * pAig )
 ***********************************************************************/
 void Saig_Bmc3ManStop( Gia_ManBmc_t * p )
 {
+    if ( p->pPars->fVerbose )
+    printf( "Buffs = %d. Dups = %d.   Hash hits = %d.  Hash misses = %d.  Hash overs = %d.\n", 
+        p->nBufNum, p->nDupNum, p->nHashHit, p->nHashMiss, p->nHashOver );
 //    Aig_ManCleanMarkA( p->pAig );
     if ( p->vCexes )
     {
@@ -722,10 +734,11 @@ void Saig_Bmc3ManStop( Gia_ManBmc_t * p )
     Vec_VecFree( (Vec_Vec_t *)p->vId2Var );
     Vec_PtrFreeFree( p->vTerInfo );
     sat_solver_delete( p->pSat );
-    free( p->pSopSizes );
-    free( p->pSops[1] );
-    free( p->pSops );
-    free( p );
+    ABC_FREE( p->pTable );
+    ABC_FREE( p->pSopSizes );
+    ABC_FREE( p->pSops[1] );
+    ABC_FREE( p->pSops );
+    ABC_FREE( p );
 }
 
 
@@ -809,22 +822,23 @@ static inline int Saig_ManBmcCof0( int t, int v )
     static int s_Truth[4] = { 0xAAAA, 0xCCCC, 0xF0F0, 0xFF00 };
     return 0xffff & ((t & ~s_Truth[v]) | ((t & ~s_Truth[v]) << (1<<v)));
 }
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
 static inline int Saig_ManBmcCof1( int t, int v )
 {
     static int s_Truth[4] = { 0xAAAA, 0xCCCC, 0xF0F0, 0xFF00 };
     return 0xffff & ((t & s_Truth[v]) | ((t & s_Truth[v]) >> (1<<v)));
+}
+static inline int Saig_ManBmcCofEqual( int t, int v )
+{
+    assert( v >= 0 && v <= 3 );
+    if ( v == 0 )
+        return ((t & 0xAAAA) >> 1) == (t & 0x5555);
+    if ( v == 1 )
+        return ((t & 0xCCCC) >> 2) == (t & 0x3333);
+    if ( v == 2 )
+        return ((t & 0xF0F0) >> 4) == (t & 0x0F0F);
+    if ( v == 3 )
+        return ((t & 0xFF00) >> 8) == (t & 0x00FF);
+    return -1;
 }
 
 /**Function*************************************************************
@@ -838,7 +852,7 @@ static inline int Saig_ManBmcCof1( int t, int v )
   SeeAlso     []
 
 ***********************************************************************/
-static inline int Saig_ManBmcDeriveTruth( int uTruth, int Lits[] )
+static inline int Saig_ManBmcReduceTruth( int uTruth, int Lits[] )
 {
     int v;
     for ( v = 0; v < 4; v++ )
@@ -854,7 +868,9 @@ static inline int Saig_ManBmcDeriveTruth( int uTruth, int Lits[] )
         }
     for ( v = 0; v < 4; v++ )
         if ( Lits[v] == -1 )
-            assert( Saig_ManBmcCof0(uTruth, v) == Saig_ManBmcCof1(uTruth, v) );
+            assert( Saig_ManBmcCofEqual(uTruth, v) );
+        else if ( Saig_ManBmcCofEqual(uTruth, v) )
+            Lits[v] = -1;
     return uTruth;
 }
 
@@ -978,6 +994,51 @@ static inline void Saig_ManBmcAddClauses( Gia_ManBmc_t * p, int uTruth, int Lits
     }
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline unsigned Saig_ManBmcHashKey( unsigned * pArray )
+{
+    static s_Primes[5] = { 12582917, 25165843, 50331653, 100663319, 201326611 };
+    unsigned i, Key = 0;
+    for ( i = 0; i < 5; i++ )
+        Key += pArray[i] * s_Primes[i];
+    return Key;
+}
+static inline int * Saig_ManBmcLookup( Gia_ManBmc_t * p, unsigned * pArray )
+{
+    unsigned * pTable = p->pTable + 6 * (Saig_ManBmcHashKey(pArray) % p->nTable);
+/*
+int i;
+for ( i = 0; i < 5; i++ )
+printf( "%6d ", pArray[i] );
+printf( "\n" );
+*/
+    if ( memcmp( pTable, pArray, 20 ) )
+    {
+        if ( pTable[0] == 0 )
+            p->nHashMiss++;
+        else
+            p->nHashOver++;
+        memcpy( pTable, pArray, 20 );
+        pTable[5] = 0;
+    }
+    else
+        p->nHashHit++;
+
+    assert( pTable + 5 < pTable + 6 * p->nTable );
+    return (int *)(pTable + 5);
+}
+
 /**Function*************************************************************
 
   Synopsis    [Derives CNF for one node.]
@@ -989,10 +1050,10 @@ static inline void Saig_ManBmcAddClauses( Gia_ManBmc_t * p, int uTruth, int Lits
   SeeAlso     []
 
 ***********************************************************************/
-int Saig_ManBmcCreateCnf_rec( Gia_ManBmc_t * p, Aig_Obj_t * pObj, int iFrame, int fAddClauses )
+int Saig_ManBmcCreateCnf_rec( Gia_ManBmc_t * p, Aig_Obj_t * pObj, int iFrame )
 {
-    int * pMapping, i, iLit, Lits[4], uTruth;
-    assert( fAddClauses );
+    extern unsigned Dar_CutSortVars( unsigned uTruth, int * pVars );
+    int * pMapping, * pLookup, i, iLit, Lits[5], uTruth;
     iLit = Saig_ManBmcLiteral( p, pObj, iFrame );
     if ( iLit != ~0 )
         return iLit; 
@@ -1000,14 +1061,14 @@ int Saig_ManBmcCreateCnf_rec( Gia_ManBmc_t * p, Aig_Obj_t * pObj, int iFrame, in
     if ( Aig_ObjIsCi(pObj) )
     {
         if ( Saig_ObjIsPi(p->pAig, pObj) )
-            iLit = fAddClauses ? toLit( p->nSatVars++ ) : ABC_INFINITY;
+            iLit = toLit( p->nSatVars++ );
         else
-            iLit = Saig_ManBmcCreateCnf_rec( p, Saig_ObjLoToLi(p->pAig, pObj), iFrame-1, fAddClauses );
+            iLit = Saig_ManBmcCreateCnf_rec( p, Saig_ObjLoToLi(p->pAig, pObj), iFrame-1 );
         return Saig_ManBmcSetLiteral( p, pObj, iFrame, iLit );
     }
     if ( Aig_ObjIsCo(pObj) )
     {
-        iLit = Saig_ManBmcCreateCnf_rec( p, Aig_ObjFanin0(pObj), iFrame, fAddClauses );
+        iLit = Saig_ManBmcCreateCnf_rec( p, Aig_ObjFanin0(pObj), iFrame );
         if ( Aig_ObjFaninC0(pObj) )
             iLit = lit_neg(iLit);
         return Saig_ManBmcSetLiteral( p, pObj, iFrame, iLit );
@@ -1018,62 +1079,44 @@ int Saig_ManBmcCreateCnf_rec( Gia_ManBmc_t * p, Aig_Obj_t * pObj, int iFrame, in
         if ( pMapping[i+1] == -1 )
             Lits[i] = -1;
         else
-            Lits[i] = Saig_ManBmcCreateCnf_rec( p, Aig_ManObj(p->pAig, pMapping[i+1]), iFrame, fAddClauses );
-    // derive new truth table
-//uTruth = 0xffff & (unsigned)pMapping[0];
-//printf( "Truth : " );
-//Extra_PrintBinary( stdout, &uTruth, 16 ); printf( "\n" );
-    uTruth = Saig_ManBmcDeriveTruth( 0xffff & (unsigned)pMapping[0], Lits );
+            Lits[i] = Saig_ManBmcCreateCnf_rec( p, Aig_ManObj(p->pAig, pMapping[i+1]), iFrame );
+    uTruth = 0xffff & (unsigned)pMapping[0];
+    // propagate constants
+    uTruth = Saig_ManBmcReduceTruth( uTruth, Lits );
     if ( uTruth == 0 || uTruth == 0xffff )
     {
         iLit = (uTruth == 0xffff);
         return Saig_ManBmcSetLiteral( p, pObj, iFrame, iLit );
     }
-    // create CNF
-    if ( fAddClauses )
+    // canonicize inputs
+    uTruth = Dar_CutSortVars( uTruth, Lits );
+    assert( uTruth != 0 && uTruth != 0xffff );
+    if ( uTruth == 0xAAAA || uTruth == 0x5555 )
     {
-        if ( uTruth == 0xAAAA || (0xffff & ~uTruth) == 0xAAAA ||
-             uTruth == 0xCCCC || (0xffff & ~uTruth) == 0xCCCC ||
-             uTruth == 0xF0F0 || (0xffff & ~uTruth) == 0xF0F0 ||
-             uTruth == 0xFF00 || (0xffff & ~uTruth) == 0xFF00 )
-        {
-            p->nBufNum++;
+        iLit = Abc_LitNotCond( Lits[0], uTruth == 0x5555 );
+        p->nBufNum++;
+    }
+    else 
+    {
+        assert( !(uTruth == 0xAAAA || (0xffff & ~uTruth) == 0xAAAA ||
+                  uTruth == 0xCCCC || (0xffff & ~uTruth) == 0xCCCC ||
+                  uTruth == 0xF0F0 || (0xffff & ~uTruth) == 0xF0F0 ||
+                  uTruth == 0xFF00 || (0xffff & ~uTruth) == 0xFF00) );
 
-            if ( uTruth == 0xAAAA )
-                iLit = Lits[0];
-            else if ( uTruth == 0xCCCC )
-                iLit = Lits[1];
-            else if ( uTruth == 0xF0F0 )
-                iLit = Lits[2];
-            else if ( uTruth == 0xFF00 )
-                iLit = Lits[3];
-            else if ( (0xffff & ~uTruth) == 0xAAAA )
-                iLit = Abc_LitNot(Lits[0]);
-            else if ( (0xffff & ~uTruth) == 0xCCCC )
-                iLit = Abc_LitNot(Lits[1]);
-            else if ( (0xffff & ~uTruth) == 0xF0F0 )
-                iLit = Abc_LitNot(Lits[2]);
-            else if ( (0xffff & ~uTruth) == 0xFF00 )
-                iLit = Abc_LitNot(Lits[3]);
-
-        }
-        else
+        Lits[4] = uTruth;
+        pLookup = Saig_ManBmcLookup( p, Lits );
+        if ( *pLookup == 0 )
         {
-            iLit = toLit( p->nSatVars++ );
-            Saig_ManBmcAddClauses( p, uTruth, Lits, iLit );
+            *pLookup = toLit( p->nSatVars++ );
+            Saig_ManBmcAddClauses( p, uTruth, Lits, *pLookup );
 
             if ( (Lits[0] > 1 && (Lits[0] == Lits[1] || Lits[0] == Lits[2] || Lits[0] == Lits[3]))   ||
                  (Lits[1] > 1 && (Lits[1] == Lits[2] || Lits[1] == Lits[2]))                         ||
                  (Lits[2] > 1 && (Lits[2] == Lits[3]))    )
                        p->nDupNum++;
         }
-
+        iLit = *pLookup;
     }
-    else
-    {
-        iLit = ABC_INFINITY;
-    }
-//    assert( iLit != ABC_INFINITY );
     return Saig_ManBmcSetLiteral( p, pObj, iFrame, iLit );
 }
 
@@ -1142,7 +1185,7 @@ int Saig_ManBmcCreateCnf( Gia_ManBmc_t * p, Aig_Obj_t * pObj, int iFrame )
     if ( Value != SAIG_TER_UND )
         return (int)(Value == SAIG_TER_ONE);
     // construct CNF if value is ternary
-    return Saig_ManBmcCreateCnf_rec( p, pObj, iFrame, 1 );
+    return Saig_ManBmcCreateCnf_rec( p, pObj, iFrame );
 }
 
 
@@ -1358,8 +1401,8 @@ clkOther += clock() - clk2;
 //                        printf( "\n" );
 //                        ABC_PRMn( "Id2Var", (f+1)*p->nObjNums*4 );
 //                        ABC_PRMn( "SAT", 42 * p->pSat->size + 16 * (int)p->pSat->stats.clauses + 4 * (int)p->pSat->stats.clauses_literals );
-                        printf( "S =%6d. ", p->nBufNum );
-                        printf( "D =%6d. ", p->nDupNum );
+//                        printf( "S =%6d. ", p->nBufNum );
+//                        printf( "D =%6d. ", p->nDupNum );
                         printf( "\n" );
                         fflush( stdout );
                     }
@@ -1422,8 +1465,8 @@ clkOther += clock() - clk2;
 //            printf( "\n" );
 //            ABC_PRMn( "Id2Var", (f+1)*p->nObjNums*4 );
 //            ABC_PRMn( "SAT", 42 * p->pSat->size + 16 * (int)p->pSat->stats.clauses + 4 * (int)p->pSat->stats.clauses_literals );
-            printf( "Simples = %6d. ", p->nBufNum );
-            printf( "Dups = %6d. ", p->nDupNum );
+//            printf( "Simples = %6d. ", p->nBufNum );
+//            printf( "Dups = %6d. ", p->nDupNum );
             printf( "\n" );
             fflush( stdout );
         }
