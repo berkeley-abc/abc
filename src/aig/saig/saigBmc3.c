@@ -1330,7 +1330,7 @@ clkOther += clock() - clk2;
                         printf( "Conf =%7.0f. ", (double)p->pSat->stats.conflicts );
                         printf( "Imp =%10.0f. ", (double)p->pSat->stats.propagations );
 //                        ABC_PRT( "Time", clock() - clk );
-                        printf( "%4.0f Mb",     4.0*(f+1)*p->nObjNums /(1<<20) );
+                        printf( "%4.0f Mb",     4.25*(f+1)*p->nObjNums /(1<<20) );
                         printf( "%4.0f Mb",     1.0*sat_solver_memory(p->pSat)/(1<<20) );
                         printf( "%9.2f sec ",   (float)(clock() - clkTotal)/(float)(CLOCKS_PER_SEC) );
                         printf( "\n" );
