@@ -25,12 +25,11 @@
 
 ABC_NAMESPACE_IMPL_START
 
-
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-#define AIG_VISITED       ((Aig_Obj_t *)(ABC_PTRUINT_T)1)
+//#define AIG_VISITED       ((Aig_Obj_t *)(ABC_PTRUINT_T)1)
 
 typedef struct Saig_Bmc_t_ Saig_Bmc_t;
 struct Saig_Bmc_t_
@@ -44,11 +43,10 @@ struct Saig_Bmc_t_
     // AIG managers
     Aig_Man_t *           pAig;           // the user's AIG manager
     Aig_Man_t *           pFrm;           // Frames manager
-    Vec_Ptr_t *           vVisited;       // nodes visited in Frames
+    Vec_Int_t *           vVisited;       // nodes visited in Frames
     // node mapping
     int                   nObjs;          // the largest number of an AIG object
     Vec_Ptr_t *           vAig2Frm;       // mapping of AIG nodees into Frames nodes
-//    Vec_Str_t *           vAig2Frm2;      // mapping of AIG nodees into Frames nodes
     // SAT solver
     sat_solver *          pSat;           // SAT solver
     int                   nSatVars;       // the number of used SAT variables
@@ -63,14 +61,42 @@ struct Saig_Bmc_t_
     int                   iOutputFail;    // failed output
 };
 
-static inline int         Saig_BmcSatNum( Saig_Bmc_t * p, Aig_Obj_t * pObj )                                { return Vec_IntGetEntry( p->vObj2Var, pObj->Id );  }
-static inline void        Saig_BmcSetSatNum( Saig_Bmc_t * p, Aig_Obj_t * pObj, int Num )                    { Vec_IntSetEntry(p->vObj2Var, pObj->Id, Num);      }
-
-static inline Aig_Obj_t * Saig_BmcObjFrame( Saig_Bmc_t * p, Aig_Obj_t * pObj, int i )                       { return (Aig_Obj_t *)Vec_PtrGetEntry( p->vAig2Frm, p->nObjs*i+pObj->Id );     }
-static inline void        Saig_BmcObjSetFrame( Saig_Bmc_t * p, Aig_Obj_t * pObj, int i, Aig_Obj_t * pNode ) { Vec_PtrSetEntry( p->vAig2Frm, p->nObjs*i+pObj->Id, pNode );     }
+static inline Aig_Obj_t * Saig_BmcObjFrame( Saig_Bmc_t * p, Aig_Obj_t * pObj, int i )                       
+{ 
+//    return (Aig_Obj_t *)Vec_PtrGetEntry( p->vAig2Frm, p->nObjs*i+pObj->Id );     
+    Aig_Obj_t * pRes;
+    Vec_Int_t * vFrame = (Vec_Int_t *)Vec_PtrEntry( p->vAig2Frm, i );
+    int iObjLit = Vec_IntEntry( vFrame, Aig_ObjId(pObj) );
+    if ( iObjLit == -1 )
+        return NULL;
+    pRes = Aig_ManObj( p->pFrm, Abc_Lit2Var(iObjLit) );
+    if ( pRes == NULL )
+        Vec_IntWriteEntry( vFrame, Aig_ObjId(pObj), -1 );
+    else
+        pRes = Aig_NotCond( pRes, Abc_LitIsCompl(iObjLit) );
+    return pRes;
+}
+static inline void        Saig_BmcObjSetFrame( Saig_Bmc_t * p, Aig_Obj_t * pObj, int i, Aig_Obj_t * pNode ) 
+{
+//    Vec_PtrSetEntry( p->vAig2Frm, p->nObjs*i+pObj->Id, pNode );     
+    Vec_Int_t * vFrame;
+    int iObjLit;
+    if ( i == Vec_PtrSize(p->vAig2Frm) )
+        Vec_PtrPush( p->vAig2Frm, Vec_IntStartFull(p->nObjs) );
+    assert( i < Vec_PtrSize(p->vAig2Frm) );
+    vFrame = (Vec_Int_t *)Vec_PtrEntry( p->vAig2Frm, i );
+    if ( pNode == NULL )
+        iObjLit = -1;
+    else
+        iObjLit = Abc_Var2Lit( Aig_ObjId(Aig_Regular(pNode)), Aig_IsComplement(pNode) );
+    Vec_IntWriteEntry( vFrame, Aig_ObjId(pObj), iObjLit );
+}
 
 static inline Aig_Obj_t * Saig_BmcObjChild0( Saig_Bmc_t * p, Aig_Obj_t * pObj, int i )                   { assert( !Aig_IsComplement(pObj) ); return Aig_NotCond(Saig_BmcObjFrame(p, Aig_ObjFanin0(pObj), i), Aig_ObjFaninC0(pObj));  }
 static inline Aig_Obj_t * Saig_BmcObjChild1( Saig_Bmc_t * p, Aig_Obj_t * pObj, int i )                   { assert( !Aig_IsComplement(pObj) ); return Aig_NotCond(Saig_BmcObjFrame(p, Aig_ObjFanin1(pObj), i), Aig_ObjFaninC1(pObj));  }
+
+static inline int         Saig_BmcSatNum( Saig_Bmc_t * p, Aig_Obj_t * pObj )                             { return Vec_IntGetEntry( p->vObj2Var, pObj->Id );  }
+static inline void        Saig_BmcSetSatNum( Saig_Bmc_t * p, Aig_Obj_t * pObj, int Num )                 { Vec_IntSetEntry(p->vObj2Var, pObj->Id, Num);      }
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -268,12 +294,11 @@ Saig_Bmc_t * Saig_BmcManStart( Aig_Man_t * pAig, int nFramesMax, int nNodesMax, 
     p->pAig         = pAig;
     p->nObjs        = Aig_ManObjNumMax(pAig);
     // create node and variable mappings
-    p->vAig2Frm     = Vec_PtrAlloc( 0 );
-    Vec_PtrFill( p->vAig2Frm, 5 * p->nObjs, NULL );
+    p->vAig2Frm     = Vec_PtrAlloc( 100 );
     p->vObj2Var     = Vec_IntAlloc( 0 );
-    Vec_IntFill( p->vObj2Var, 5 * p->nObjs, 0 );
+    Vec_IntFill( p->vObj2Var, p->nObjs, 0 );
     // start the AIG manager and map primary inputs
-    p->pFrm         = Aig_ManStart( 5 * p->nObjs );
+    p->pFrm         = Aig_ManStart( p->nObjs );
     Saig_ManForEachLo( pAig, pObj, i )
         Saig_BmcObjSetFrame( p, pObj, 0, Aig_ManConst0(p->pFrm) ); 
     // create SAT solver
@@ -284,8 +309,8 @@ Saig_Bmc_t * Saig_BmcManStart( Aig_Man_t * pAig, int nFramesMax, int nNodesMax, 
     sat_solver_addclause( p->pSat, &Lit, &Lit + 1 );
     Saig_BmcSetSatNum( p, Aig_ManConst1(p->pFrm), p->nSatVars++ );
     // other data structures
-    p->vTargets     = Vec_PtrAlloc( 0 );
-    p->vVisited     = Vec_PtrAlloc( 0 );
+    p->vTargets     = Vec_PtrAlloc( 1000 );
+    p->vVisited     = Vec_IntAlloc( 1000 );
     p->iOutputFail  = -1;
     p->iFrameFail   = -1;
     return p;
@@ -304,36 +329,12 @@ Saig_Bmc_t * Saig_BmcManStart( Aig_Man_t * pAig, int nFramesMax, int nNodesMax, 
 ***********************************************************************/
 void Saig_BmcManStop( Saig_Bmc_t * p )
 {
-//    Aig_Obj_t * pObj;
-//    int i, f, Counter = 0;
-//    int i, Counter = 0;
-//    for ( i = 0; i < p->vAig2Frm2->nSize; i++ )
-//        Counter += (p->vAig2Frm2->pArray[i] != 0);
-//    for ( i = 0; i < p->vAig2Frm->nSize; i++ )
-//        Counter += (p->vAig2Frm->pArray[i] != NULL);
-//    printf( "Objs = %d.  Nodes = %d.  Frames = %d.  Used = %d.  Non-empty = %d.\n", 
-//        p->nObjs, Aig_ManNodeNum(p->pAig), p->iFrameLast, p->vAig2Frm->nSize, Counter );
-
-/*
-    Aig_ManForEachObj( p->pAig, pObj, i )
-    {
-        int Last = -1;
-        for ( f = 0; f <= p->iFrameLast; f++ )
-            if ( Saig_BmcObjFrame( p, pObj, f ) )
-                Last = f;
-        if ( i % 50 == 0 )
-            printf( "%d ", Last );
-    }
-    printf( "\n" );
-*/
-
     Aig_ManStop( p->pFrm  );
-    Vec_PtrFree( p->vAig2Frm );
-//    Vec_StrFree( p->vAig2Frm2 );
+    Vec_VecFree( (Vec_Vec_t *)p->vAig2Frm );
     Vec_IntFree( p->vObj2Var );
     sat_solver_delete( p->pSat );
     Vec_PtrFree( p->vTargets );
-    Vec_PtrFree( p->vVisited );
+    Vec_IntFree( p->vVisited );
     ABC_FREE( p );
 }
 
@@ -348,6 +349,7 @@ void Saig_BmcManStop( Saig_Bmc_t * p )
   SeeAlso     []
 
 ***********************************************************************/
+/*
 Aig_Obj_t * Saig_BmcIntervalExplore_rec( Saig_Bmc_t * p, Aig_Obj_t * pObj, int i )
 {
     Aig_Obj_t * pRes, * p0, * p1, * pConst1 = Aig_ManConst1(p->pAig);
@@ -388,6 +390,7 @@ Aig_Obj_t * Saig_BmcIntervalExplore_rec( Saig_Bmc_t * p, Aig_Obj_t * pObj, int i
     Saig_BmcObjSetFrame( p, pObj, i, pRes );
     return pRes;
 }
+*/
 
 /**Function*************************************************************
 
@@ -400,7 +403,7 @@ Aig_Obj_t * Saig_BmcIntervalExplore_rec( Saig_Bmc_t * p, Aig_Obj_t * pObj, int i
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Obj_t * Saig_BmcIntervalConstruct_rec( Saig_Bmc_t * p, Aig_Obj_t * pObj, int i, Vec_Ptr_t * vVisited )
+Aig_Obj_t * Saig_BmcIntervalConstruct_rec( Saig_Bmc_t * p, Aig_Obj_t * pObj, int i, Vec_Int_t * vVisited )
 {
     Aig_Obj_t * pRes;
     pRes = Saig_BmcObjFrame( p, pObj, i );
@@ -428,8 +431,8 @@ Aig_Obj_t * Saig_BmcIntervalConstruct_rec( Saig_Bmc_t * p, Aig_Obj_t * pObj, int
     }
     assert( pRes != NULL );
     Saig_BmcObjSetFrame( p, pObj, i, pRes );
-    Vec_PtrPush( vVisited, pObj );
-    Vec_PtrPush( vVisited, (void *)(ABC_PTRINT_T)i );
+    Vec_IntPush( vVisited, Aig_ObjId(pObj) );
+    Vec_IntPush( vVisited, i );
     return pRes;
 }
 
@@ -447,13 +450,12 @@ Aig_Obj_t * Saig_BmcIntervalConstruct_rec( Saig_Bmc_t * p, Aig_Obj_t * pObj, int
 void Saig_BmcInterval( Saig_Bmc_t * p )
 {
     Aig_Obj_t * pTarget;
-    Aig_Obj_t * pObj, * pRes;
-    int i, iFrame, Counter;
+    int i, iObj, iFrame;
     int nNodes = Aig_ManObjNum( p->pFrm );
     Vec_PtrClear( p->vTargets );
     p->iFramePrev = p->iFrameLast;
     for ( ; p->iFrameLast < p->nFramesMax; p->iFrameLast++, p->iOutputLast = 0 )
-    {
+    { 
         if ( p->iOutputLast == 0 )
         {
             Saig_BmcObjSetFrame( p, Aig_ManConst1(p->pAig), p->iFrameLast, Aig_ManConst1(p->pFrm) );
@@ -463,24 +465,14 @@ void Saig_BmcInterval( Saig_Bmc_t * p )
             if ( Aig_ManObjNum(p->pFrm) >= nNodes + p->nNodesMax )
                 return;
 //            Saig_BmcIntervalExplore_rec( p, Aig_ManCo(p->pAig, p->iOutputLast), p->iFrameLast );
-            Vec_PtrClear( p->vVisited );
+            Vec_IntClear( p->vVisited );
             pTarget = Saig_BmcIntervalConstruct_rec( p, Aig_ManCo(p->pAig, p->iOutputLast), p->iFrameLast, p->vVisited );
             Vec_PtrPush( p->vTargets, pTarget );
             Aig_ObjCreateCo( p->pFrm, pTarget );
             Aig_ManCleanup( p->pFrm );
             // check if the node is gone
-            Counter = 0;
-            Vec_PtrForEachEntry( Aig_Obj_t *, p->vVisited, pObj, i )
-            {
-                iFrame = (int)(ABC_PTRINT_T)Vec_PtrEntry( p->vVisited, 1+i++ );
-                pRes = Saig_BmcObjFrame( p, pObj, iFrame );
-                if ( Aig_ObjIsNone( Aig_Regular(pRes) ) )
-                {
-                    Saig_BmcObjSetFrame( p, pObj, iFrame, NULL );
-                    Counter++;
-                }
-            }
-//            printf( "%d ", Counter );
+            Vec_IntForEachEntryDouble( p->vVisited, iObj, iFrame, i )
+                Saig_BmcObjFrame( p, Aig_ManObj(p->pAig, iObj), iFrame );
         }
     }
 }
@@ -500,7 +492,7 @@ Aig_Obj_t * Saig_BmcIntervalToAig_rec( Saig_Bmc_t * p, Aig_Man_t * pNew, Aig_Obj
 {
     if ( pObj->pData )
         return (Aig_Obj_t *)pObj->pData;
-    Vec_PtrPush( p->vVisited, pObj );
+    Vec_IntPush( p->vVisited, Aig_ObjId(pObj) );
     if ( Saig_BmcSatNum(p, pObj) || Aig_ObjIsCi(pObj) )
     {
         p->nStitchVars += !Aig_ObjIsCi(pObj);
@@ -533,15 +525,15 @@ Aig_Man_t * Saig_BmcIntervalToAig( Saig_Bmc_t * p )
 
     pNew = Aig_ManStart( p->nNodesMax );
     Aig_ManConst1(p->pFrm)->pData = Aig_ManConst1(pNew);
-    Vec_PtrClear( p->vVisited );
-    Vec_PtrPush( p->vVisited, Aig_ManConst1(p->pFrm) );
+    Vec_IntClear( p->vVisited );
+    Vec_IntPush( p->vVisited, Aig_ObjId(Aig_ManConst1(p->pFrm)) );
     Vec_PtrForEachEntry( Aig_Obj_t *, p->vTargets, pObj, i )
     {
 //        assert( !Aig_ObjIsConst1(Aig_Regular(pObj)) );
         pObjNew = Saig_BmcIntervalToAig_rec( p, pNew, Aig_Regular(pObj) );
         assert( !Aig_IsComplement(pObjNew) );
         Aig_ObjCreateCo( pNew, pObjNew );
-    }
+    } 
     return pNew;
 }
 
@@ -560,7 +552,7 @@ void Saig_BmcLoadCnf( Saig_Bmc_t * p, Cnf_Dat_t * pCnf )
 {
     Aig_Obj_t * pObj, * pObjNew;
     int i, Lits[2], VarNumOld, VarNumNew;
-    Vec_PtrForEachEntry( Aig_Obj_t *, p->vVisited, pObj, i )
+    Aig_ManForEachObjVec( p->vVisited, p->pFrm, pObj, i )
     {
         // get the new variable of this node
         pObjNew     = (Aig_Obj_t *)pObj->pData;

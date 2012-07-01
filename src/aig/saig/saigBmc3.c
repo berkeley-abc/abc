@@ -40,14 +40,13 @@ struct Gia_ManBmc_t_
     Vec_Int_t *       vMapping;    // mapping
     Vec_Vec_t *       vSects;      // sections
     Vec_Int_t *       vId2Num;     // number of each node 
-    Vec_Int_t *       vVisited;    // visited nodes
-    // SAT variables
-    Vec_Int_t *       vPiVars;     // SAT vars for the PIs 
+    Vec_Ptr_t *       vTerInfo;    // ternary information
     Vec_Ptr_t *       vId2Var;     // SAT vars for each object
     // SAT solver
     sat_solver *      pSat;        // SAT solver
     int               nSatVars;    // SAT variables
     int               nObjNums;    // SAT objects
+    int               nWordNum;    // unsigned words for ternary simulation
     int               nBufNum;     // the number of simple nodes
     int               nDupNum;     // the number of simple nodes
     char * pSopSizes, ** pSops;    // CNF representation
@@ -684,14 +683,15 @@ Gia_ManBmc_t * Saig_Bmc3ManStart( Aig_Man_t * pAig )
             Vec_IntWriteEntry( p->vId2Num,  Aig_ObjId(pObj), p->nObjNums++ );
     Aig_ManForEachCo( pAig, pObj, i )
         Vec_IntWriteEntry( p->vId2Num,  Aig_ObjId(pObj), p->nObjNums++ );
-    p->vPiVars  = Vec_IntAlloc( 1000 );
     p->vId2Var  = Vec_PtrAlloc( 100 );
-    p->vVisited = Vec_IntAlloc( 1000 );
+    p->vTerInfo = Vec_PtrAlloc( 100 );
     // create solver
     p->nSatVars = 1;
     p->pSat     = sat_solver_new();
     sat_solver_setnvars( p->pSat, 1000 );
     Cnf_ReadMsops( &p->pSopSizes, &p->pSops );
+    // terminary simulation 
+    p->nWordNum = Abc_BitWordNum( 2 * Aig_ManObjNumMax(pAig) );
     return p;
 }
 
@@ -708,7 +708,7 @@ Gia_ManBmc_t * Saig_Bmc3ManStart( Aig_Man_t * pAig )
 ***********************************************************************/
 void Saig_Bmc3ManStop( Gia_ManBmc_t * p )
 {
-    Aig_ManCleanMarkA( p->pAig );
+//    Aig_ManCleanMarkA( p->pAig );
     if ( p->vCexes )
     {
         assert( p->pAig->vSeqModelVec == NULL );
@@ -719,9 +719,8 @@ void Saig_Bmc3ManStop( Gia_ManBmc_t * p )
     Vec_IntFree( p->vMapping );
     Vec_VecFree( p->vSects );
     Vec_IntFree( p->vId2Num );
-    Vec_IntFree( p->vPiVars );
-    Vec_IntFree( p->vVisited );
     Vec_VecFree( (Vec_Vec_t *)p->vId2Var );
+    Vec_PtrFreeFree( p->vTerInfo );
     sat_solver_delete( p->pSat );
     free( p->pSopSizes );
     free( p->pSops[1] );
@@ -790,13 +789,6 @@ static inline int Saig_ManBmcSetLiteral( Gia_ManBmc_t * p, Aig_Obj_t * pObj, int
     ObjNum  = Vec_IntEntry( p->vId2Num, Aig_ObjId(pObj) );
     vFrame  = (Vec_Int_t *)Vec_PtrEntry( p->vId2Var, iFrame );
     Vec_IntWriteEntry( vFrame, ObjNum, iLit );
-    if ( iLit == ABC_INFINITY || iLit == ABC_INFINITY+1 )
-    {
-        Vec_IntPush( p->vVisited, Aig_ObjId(pObj) );
-        Vec_IntPush( p->vVisited, iFrame );
-    }
-    else if ( iLit != ~0 && Saig_ObjIsPi(p->pAig, pObj) ) // save PI SAT var num
-        Vec_IntWriteEntry( p->vPiVars, iFrame*Saig_ManPiNum(p->pAig)+Aig_ObjCioId(pObj), lit_var(iLit) );
     return iLit;
 }
 
@@ -1058,7 +1050,55 @@ int Saig_ManBmcCreateCnf_rec( Gia_ManBmc_t * p, Aig_Obj_t * pObj, int iFrame, in
     {
         iLit = ABC_INFINITY;
     }
+    assert( iLit != ABC_INFINITY );
     return Saig_ManBmcSetLiteral( p, pObj, iFrame, iLit );
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Recursively performs terminary simulation.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Saig_ManBmcRunTerSim_rec( Gia_ManBmc_t * p, Aig_Obj_t * pObj, int iFrame )
+{
+    unsigned * pInfo = (unsigned *)Vec_PtrEntry( p->vTerInfo, iFrame );
+    int Val0, Val1, Value = Saig_ManBmcSimInfoGet( pInfo, pObj );
+    if ( Value != SAIG_TER_NON )
+        return Value;
+    if ( Aig_ObjIsCo(pObj) )
+    {
+        Value = Saig_ManBmcRunTerSim_rec( p, Aig_ObjFanin0(pObj), iFrame );
+        if ( Aig_ObjFaninC0(pObj) )
+            Value = Saig_ManBmcSimInfoNot( Value );
+    }
+    else if ( Saig_ObjIsLo(p->pAig, pObj) )
+    {
+        assert( iFrame > 0 );
+        Value = Saig_ManBmcRunTerSim_rec( p, Saig_ObjLoToLi(p->pAig, pObj), iFrame - 1 );
+    }
+    else if ( Aig_ObjIsNode(pObj) )
+    {
+        Val0 = Saig_ManBmcRunTerSim_rec( p, Aig_ObjFanin0(pObj), iFrame  );
+        Val1 = Saig_ManBmcRunTerSim_rec( p, Aig_ObjFanin1(pObj), iFrame  );
+        if ( Aig_ObjFaninC0(pObj) )
+            Val0 = Saig_ManBmcSimInfoNot( Val0 );
+        if ( Aig_ObjFaninC1(pObj) )
+            Val1 = Saig_ManBmcSimInfoNot( Val1 );
+        Value = Saig_ManBmcSimInfoAnd( Val0, Val1 );
+    }
+    else assert( 0 );
+    Saig_ManBmcSimInfoSet( pInfo, pObj, Value );
+    // transfer to the unrolling
+    if ( Saig_ManBmcMapping(p, pObj) && Value != SAIG_TER_UND )
+        Saig_ManBmcSetLiteral( p, pObj, iFrame, (int)(Value == SAIG_TER_ONE) );
+    return Value;
 }
 
 /**Function*************************************************************
@@ -1074,23 +1114,11 @@ int Saig_ManBmcCreateCnf_rec( Gia_ManBmc_t * p, Aig_Obj_t * pObj, int iFrame, in
 ***********************************************************************/
 int Saig_ManBmcCreateCnf( Gia_ManBmc_t * p, Aig_Obj_t * pObj, int iFrame )
 {
-    int i, iLit, Entry, iFrameOld, Value;
-    Vec_IntClear( p->vVisited );
-    iLit = Saig_ManBmcCreateCnf_rec( p, pObj, iFrame, 0 );
-    Vec_IntForEachEntry( p->vVisited, Entry, i )
-    {
-        iFrameOld = Vec_IntEntry( p->vVisited, ++i );
-        Value = Saig_ManBmcLiteral( p, Aig_ManObj(p->pAig, Entry), iFrameOld );
-//        assert( Value == 0 || Value == 1 || Value == ABC_INFINITY || Value == ABC_INFINITY+1 );
-        assert( Value == ABC_INFINITY || Value == ABC_INFINITY+1 );
-        if ( !(Value == ABC_INFINITY || Value == ABC_INFINITY+1) )
-            printf( "Internal error!\n" );
-//        if ( Value == 0 || Value == 1 )
-//            continue;
-        Saig_ManBmcSetLiteral( p, Aig_ManObj(p->pAig, Entry), iFrameOld, ~0 );
-    }
-    if ( iLit < 2 )
-        return iLit;
+    // perform terminary simulation
+    int Value = Saig_ManBmcRunTerSim_rec( p, pObj, iFrame );
+    if ( Value != SAIG_TER_UND )
+        return (int)(Value == SAIG_TER_ONE);
+    // construct CNF if value is ternary
     return Saig_ManBmcCreateCnf_rec( p, pObj, iFrame, 1 );
 }
 
@@ -1120,44 +1148,6 @@ int Aig_NodeCompareRefsIncrease( Aig_Obj_t ** pp1, Aig_Obj_t ** pp2 )
     if ( Diff > 0 ) 
         return 1;
     return 0; 
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Mark PIs to be skipped based on nPisAbstract.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Saig_ManBmcMarkPis( Aig_Man_t * pAig, int nPisAbstract )
-{
-    Vec_Ptr_t * vPis;
-    Aig_Obj_t * pObj;
-    int i;
-    if ( nPisAbstract < 1 )
-        return;
-    // sort PIs by the number of their fanouts
-    vPis = Vec_PtrAlloc( 100 );
-    Saig_ManForEachPi( pAig, pObj, i )
-        Vec_PtrPush( vPis, pObj );
-    Vec_PtrSort( vPis, (int (*)(void))Aig_NodeCompareRefsIncrease );
-    Vec_PtrForEachEntry( Aig_Obj_t *, vPis, pObj, i )
-    {
-        if ( i < nPisAbstract )
-        {
-            pObj->fMarkA = 1;
-//            printf( "%d=%d ", Aig_ObjCioId(pObj), Aig_ObjRefs(pObj) );
-        }
-    }
-//    printf( "\n" );
-    // print primary inputs
-//    Saig_ManForEachPi( pAig, pObj, i )
-//        printf( "%d=%d ", i, Aig_ObjRefs(pObj) );
-//    printf( "\n" );
 }
 
 /**Function*************************************************************
@@ -1203,19 +1193,18 @@ int Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars )
 {
     Gia_ManBmc_t * p;
     Aig_Obj_t * pObj;
+    unsigned * pInfo;
     int RetValue = -1, fFirst = 1, nJumpFrame = 0, fUnfinished = 0;
-    int nOutDigits = Abc_Base10Log( Saig_ManPoNum(pAig) - Saig_ManConstrNum(pAig) );
+    int nOutDigits = Abc_Base10Log( Saig_ManPoNum(pAig) );
     int i, f, Lit, status, clk, clk2, clkOther = 0, clkTotal = clock();
     int nTimeToStop = time(NULL) + pPars->nTimeOut;
-    if ( pPars->fVerbose && Aig_ManConstrNum(pAig) > 0 )
-        printf( "Performing BMC with constraints...\n" );
     p = Saig_Bmc3ManStart( pAig );
     p->pPars = pPars;
     if ( pPars->fVerbose )
     {
-        printf( "Running \"bmc3\". AIG:  PI/PO/Reg = %d/%d/%d.  Node = %6d. Lev = %5d.  Map = %6d. Sect =%3d.\n", 
+        printf( "Running \"bmc3\". PI/PO/Reg = %d/%d/%d. And =%7d. Lev =%6d. ObjNums =%6d. Sect =%3d.\n", 
             Saig_ManPiNum(pAig), Saig_ManPoNum(pAig), Saig_ManRegNum(pAig),
-            Aig_ManNodeNum(pAig), Aig_ManLevelNum(pAig), (Vec_IntSize(p->vMapping)-Aig_ManObjNumMax(pAig))/5, Vec_VecSize(p->vSects) );
+            Aig_ManNodeNum(pAig), Aig_ManLevelNum(pAig), p->nObjNums, Vec_VecSize(p->vSects) );
         printf( "Params: Start = %d. FramesMax = %d. ConfLimit = %d. TimeOut = %d. SolveAll = %d.\n", 
             pPars->nStart, pPars->nFramesMax, pPars->nConfLimit, pPars->nTimeOut, pPars->fSolveAll );
     } 
@@ -1225,7 +1214,6 @@ int Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars )
         sat_solver_set_runtime_limit( p->pSat, nTimeToStop );
     // perform frames
     Aig_ManRandom( 1 );
-    Saig_ManBmcMarkPis( pAig, pPars->nPisAbstract );
     for ( f = 0; f < pPars->nFramesMax; f++ )
     {
         // stop BMC after exploring all reachable states
@@ -1235,7 +1223,7 @@ int Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars )
             return pPars->nFailOuts ? 0 : 1;
         }
         // stop BMC if all targets are solved
-        if ( pPars->fSolveAll && pPars->nFailOuts == Saig_ManPoNum(pAig) - Saig_ManConstrNum(pAig) )
+        if ( pPars->fSolveAll && pPars->nFailOuts == Saig_ManPoNum(pAig) )
         {
             Saig_Bmc3ManStop( p );
             return 0;
@@ -1243,11 +1231,12 @@ int Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars )
         // consider the next timeframe
         if ( RetValue == -1 && pPars->nStart == 0 && !nJumpFrame )
             pPars->iFrame = f-1;
-        // resize the array
-        Vec_IntFillExtra( p->vPiVars, (f+1)*Saig_ManPiNum(p->pAig), 0 );
         // map nodes of this section
         Vec_PtrPush( p->vId2Var, Vec_IntStartFull(p->nObjNums) );
+        Vec_PtrPush( p->vTerInfo, (pInfo = ABC_CALLOC(unsigned, p->nWordNum)) );
 /*
+        // cannot remove mapping of frame values for any timeframes
+        // because with constant propagation they may be needed arbitrarily far
         if ( f > 2*Vec_VecSize(p->vSects) )
         {
             int iFrameOld = f - 2*Vec_VecSize( p->vSects );
@@ -1257,28 +1246,15 @@ int Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars )
 */
         // prepare some nodes
         Saig_ManBmcSetLiteral( p, Aig_ManConst1(pAig), f, 1 );
+        Saig_ManBmcSimInfoSet( pInfo, Aig_ManConst1(pAig), SAIG_TER_ONE );
+        Saig_ManForEachPi( pAig, pObj, i )
+            Saig_ManBmcSimInfoSet( pInfo, pObj, SAIG_TER_UND );
         if ( f == 0 )
-            Saig_ManForEachLo( p->pAig, pObj, i )
-                Saig_ManBmcSetLiteral( p, pObj, 0, 0 );
-        // set PIs to zero if they are marked
-        Saig_ManForEachPi( p->pAig, pObj, i )
-            if ( pObj->fMarkA )
-                Saig_ManBmcSetLiteral( p, pObj, f, Aig_ManRandom(0) & 1 );
-        // add the constraints for this frame
-        Saig_ManForEachPo( pAig, pObj, i )
         {
-            if ( i < Saig_ManPoNum(pAig) - Saig_ManConstrNum(pAig) )
-                continue;            
-clk2 = clock();
-            Lit = Saig_ManBmcCreateCnf( p, pObj, f );
-            Lit = lit_neg( Lit );
-clkOther += clock() - clk2;
-            status = sat_solver_addclause( p->pSat, &Lit, &Lit + 1 );
-            if ( status == 0 )
+            Saig_ManForEachLo( p->pAig, pObj, i )
             {
-                printf( "SAT problem became UNSAT after adding constraints in frame %d.\n", f );
-                Saig_Bmc3ManStop( p );
-                return 1;
+                Saig_ManBmcSetLiteral( p, pObj, 0, 0 );
+                Saig_ManBmcSimInfoSet( pInfo, pObj, SAIG_TER_ZER );
             }
         }
         if ( (pPars->nStart && f < pPars->nStart) || (nJumpFrame && f < nJumpFrame) )
@@ -1287,7 +1263,7 @@ clkOther += clock() - clk2;
         clk = clock(); 
         Saig_ManForEachPo( pAig, pObj, i )
         {
-            if ( i >= Saig_ManPoNum(pAig) - Saig_ManConstrNum(pAig) )
+            if ( i >= Saig_ManPoNum(pAig) )
                 break;
             // skip solved outputs
             if ( p->vCexes && Vec_PtrEntry(p->vCexes, i) )
@@ -1311,7 +1287,7 @@ clkOther += clock() - clk2;
                 }
                 pPars->nFailOuts++;
                 printf( "Output %*d was asserted in frame %2d (solved %*d out of %*d outputs).\n",  
-                    nOutDigits, i, f, nOutDigits, pPars->nFailOuts, nOutDigits, Saig_ManPoNum(pAig) - Saig_ManConstrNum(pAig) );
+                    nOutDigits, i, f, nOutDigits, pPars->nFailOuts, nOutDigits, Saig_ManPoNum(pAig) );
                 if ( p->vCexes == NULL )
                     p->vCexes = Vec_PtrStart( Saig_ManPoNum(pAig) );
                 Vec_PtrWriteEntry( p->vCexes, i, pCex );
@@ -1332,13 +1308,19 @@ clkOther += clock() - clk2;
             }
             else if ( status == l_True )
             {
-                int * pModel = Sat_SolverGetModel( p->pSat, Vec_IntArray(p->vPiVars), Vec_IntSize(p->vPiVars) );
-                Abc_Cex_t * pCex = Abc_CexCreate( Aig_ManRegNum(pAig), Saig_ManPiNum(pAig), pModel, f, i, 1 );
-                ABC_FREE( pModel );
+                Aig_Obj_t * pObjPi;
+                Abc_Cex_t * pCex = Abc_CexMakeTriv( Aig_ManRegNum(pAig), Saig_ManPiNum(pAig), Saig_ManPoNum(pAig), f*Saig_ManPoNum(pAig)+i );
+                int j, k, iBit = Saig_ManRegNum(pAig);
+                for ( j = 0; j <= f; j++, iBit += Saig_ManPiNum(pAig) )
+                    Saig_ManForEachPi( p->pAig, pObjPi, k )
+                    {
+                        int iLit = Saig_ManBmcLiteral( p, pObjPi, j );
+                        if ( iLit != ~0 && sat_solver_var_value(p->pSat, lit_var(iLit)) )
+                            Abc_InfoSetBit( pCex->pData, iBit + k );
+                    }
                 fFirst = 0;
                 if ( !pPars->fSolveAll )
                 {
-//ABC_PRT( "CNF generation runtime", clkOther );
                     if ( pPars->fVerbose )
                     {
                         printf( "%3d %s : ", f,  fUnfinished ? "-" : "+" );
@@ -1347,8 +1329,9 @@ clkOther += clock() - clk2;
                         printf( "Conf =%7.0f. ", (double)p->pSat->stats.conflicts );
                         printf( "Imp =%10.0f. ", (double)p->pSat->stats.propagations );
 //                        ABC_PRT( "Time", clock() - clk );
+                        printf( "%4.0f Mb",     4.0*(f+1)*p->nObjNums /(1<<20) );
+                        printf( "%4.0f Mb",     1.0*sat_solver_memory(p->pSat)/(1<<20) );
                         printf( "%9.2f sec ",   (float)(clock() - clkTotal)/(float)(CLOCKS_PER_SEC) );
-                        printf( "%5.0f Mb",      1.0+sat_solver_memory(p->pSat)/(1<<20) );
                         printf( "\n" );
 //                        ABC_PRMn( "Id2Var", (f+1)*p->nObjNums*4 );
 //                        ABC_PRMn( "SAT", 42 * p->pSat->size + 16 * (int)p->pSat->stats.clauses + 4 * (int)p->pSat->stats.clauses_literals );
@@ -1364,7 +1347,7 @@ clkOther += clock() - clk2;
                 }
                 pPars->nFailOuts++;
                 printf( "Output %*d was asserted in frame %2d (solved %*d out of %*d outputs).\n",  
-                    nOutDigits, i, f, nOutDigits, pPars->nFailOuts, nOutDigits, Saig_ManPoNum(pAig) - Saig_ManConstrNum(pAig) );
+                    nOutDigits, i, f, nOutDigits, pPars->nFailOuts, nOutDigits, Saig_ManPoNum(pAig) );
                 if ( p->vCexes == NULL )
                     p->vCexes = Vec_PtrStart( Saig_ManPoNum(pAig) );
                 Vec_PtrWriteEntry( p->vCexes, i, pCex );
@@ -1409,8 +1392,10 @@ clkOther += clock() - clk2;
             printf( "Conf =%7.0f. ",(double)p->pSat->stats.conflicts );
             printf( "Imp =%10.0f. ", (double)p->pSat->stats.propagations );
 //            ABC_PRT( "Time", clock() - clk );
+//            printf( "%4.0f Mb",     4.0*Vec_IntSize(p->vVisited) /(1<<20) );
+            printf( "%4.0f Mb",     4.0*(f+1)*p->nObjNums /(1<<20) );
+            printf( "%4.0f Mb",     1.0*sat_solver_memory(p->pSat)/(1<<20) );
             printf( "%9.2f sec ",  (float)(clock() - clkTotal)/(float)(CLOCKS_PER_SEC) );
-            printf( "%5.0f Mb",     1.0+sat_solver_memory(p->pSat)/(1<<20) );
             printf( "\n" );
 //            ABC_PRMn( "Id2Var", (f+1)*p->nObjNums*4 );
 //            ABC_PRMn( "SAT", 42 * p->pSat->size + 16 * (int)p->pSat->stats.clauses + 4 * (int)p->pSat->stats.clauses_literals );

@@ -739,6 +739,7 @@ extern void                Gia_ManUnrollStop( void * pMan );
 extern int                 Gia_ManUnrollLastLit( void * pMan );
 extern void                Gia_ManFraSetDefaultParams( Gia_ParFra_t * p );
 extern Gia_Man_t *         Gia_ManFrames( Gia_Man_t * pAig, Gia_ParFra_t * pPars );  
+extern Gia_Man_t *         Gia_ManFramesInitSpecial( Gia_Man_t * pAig, int nFrames, int fVerbose );
 /*=== giaFront.c ==========================================================*/
 extern Gia_Man_t *         Gia_ManFront( Gia_Man_t * p );
 extern void                Gia_ManFrontTest( Gia_Man_t * p );

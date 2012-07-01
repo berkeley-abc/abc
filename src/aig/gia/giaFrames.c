@@ -915,6 +915,66 @@ Gia_Man_t * Gia_ManFrames( Gia_Man_t * pAig, Gia_ParFra_t * pPars )
     return pFrames;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Perform init unrolling as long as PO(s) are constant 0.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManFramesInitSpecial( Gia_Man_t * pAig, int nFrames, int fVerbose )
+{
+    Gia_Man_t * pFrames, * pTemp;
+    Gia_Obj_t * pObj;
+    int i, f;
+    assert( Gia_ManRegNum(pAig) > 0 );
+    if ( nFrames > 0 )
+        printf( "Computing specialized unrolling with %d frames...\n", nFrames );
+    pFrames = Gia_ManStart( Gia_ManObjNum(pAig) );
+    pFrames->pName = Abc_UtilStrsav( pAig->pName );
+    Gia_ManHashAlloc( pFrames );
+    Gia_ManConst0(pAig)->Value = 0;
+    for ( f = 0; nFrames == 0 || f < nFrames; f++ )
+    {
+        if ( fVerbose && (f % 100 == 0) )
+        {
+            printf( "%6d : ", f );
+            Gia_ManPrintStats( pFrames, 0, 0 );
+        }
+        Gia_ManForEachRo( pAig, pObj, i )
+            pObj->Value = f ? Gia_ObjRoToRi( pAig, pObj )->Value : 0;
+        Gia_ManForEachPi( pAig, pObj, i )
+            pObj->Value = Gia_ManAppendCi( pFrames );
+        Gia_ManForEachAnd( pAig, pObj, i )
+            pObj->Value = Gia_ManHashAnd( pFrames, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        Gia_ManForEachPo( pAig, pObj, i )
+            if ( Gia_ObjFanin0Copy(pObj) != 0 )
+                break;
+        if ( i < Gia_ManPoNum(pAig) )
+            break;
+        Gia_ManForEachRi( pAig, pObj, i )
+            pObj->Value = Gia_ObjFanin0Copy(pObj);
+    }
+    if ( fVerbose )
+        printf( "Computed prefix of %d frames.\n", f );
+    Gia_ManForEachRi( pAig, pObj, i )
+        Gia_ManAppendCo( pFrames, pObj->Value );
+    Gia_ManHashStop( pFrames );
+    pFrames = Gia_ManCleanup( pTemp = pFrames );
+    if ( fVerbose )
+        printf( "Before cleanup = %d nodes. After cleanup = %d nodes.\n", 
+            Gia_ManAndNum(pTemp), Gia_ManAndNum(pFrames) );
+    Gia_ManStop( pTemp );
+    return pFrames;
+}
+
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
