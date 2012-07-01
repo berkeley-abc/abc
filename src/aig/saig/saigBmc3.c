@@ -43,7 +43,7 @@ struct Gia_ManBmc_t_
     Vec_Ptr_t *       vTerInfo;    // ternary information
     Vec_Ptr_t *       vId2Var;     // SAT vars for each object
     // hash table
-    unsigned *        pTable;
+    int *             pTable;
     int               nTable;
     int               nHashHit;
     int               nHashMiss;
@@ -1009,9 +1009,9 @@ static inline unsigned Saig_ManBmcHashKey( unsigned * pArray )
         Key += pArray[i] * s_Primes[i];
     return Key;
 }
-static inline int * Saig_ManBmcLookup( Gia_ManBmc_t * p, unsigned * pArray )
+static inline int * Saig_ManBmcLookup( Gia_ManBmc_t * p, int * pArray )
 {
-    unsigned * pTable = p->pTable + 6 * (Saig_ManBmcHashKey(pArray) % p->nTable);
+    int * pTable = p->pTable + 6 * (Saig_ManBmcHashKey(pArray) % p->nTable);
     if ( memcmp( pTable, pArray, 20 ) )
     {
         if ( pTable[0] == 0 )
@@ -1024,7 +1024,7 @@ static inline int * Saig_ManBmcLookup( Gia_ManBmc_t * p, unsigned * pArray )
     else
         p->nHashHit++;
     assert( pTable + 5 < pTable + 6 * p->nTable );
-    return (int *)(pTable + 5);
+    return pTable + 5;
 }
 
 /**Function*************************************************************
