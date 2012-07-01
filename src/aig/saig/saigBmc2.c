@@ -789,7 +789,7 @@ int Saig_BmcPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nNodesMax
         {
             printf( "%3d : F = %3d. O =%4d.  And = %7d. Var = %7d. Conf = %7d. ", 
                 Iter, p->iFrameLast, p->iOutputLast, Aig_ManNodeNum(p->pFrm), p->nSatVars, (int)p->pSat->stats.conflicts );   
-            printf( "%4.0f Mb",     4.0*(Iter+1)*p->nObjs/(1<<20) );
+            printf( "%4.0f Mb",     4.0*(p->iFrameLast+1)*p->nObjs/(1<<20) );
 //            ABC_PRT( "Time", clock() - clk2 );
             printf( "%9.2f sec", (float)(clock() - clkTotal)/(float)(CLOCKS_PER_SEC) );
             printf( "\n" );
