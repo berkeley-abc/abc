@@ -992,6 +992,7 @@ static inline void Saig_ManBmcAddClauses( Gia_ManBmc_t * p, int uTruth, int Lits
 int Saig_ManBmcCreateCnf_rec( Gia_ManBmc_t * p, Aig_Obj_t * pObj, int iFrame, int fAddClauses )
 {
     int * pMapping, i, iLit, Lits[4], uTruth;
+    assert( fAddClauses );
     iLit = Saig_ManBmcLiteral( p, pObj, iFrame );
     if ( iLit != ~0 )
         return iLit;
@@ -1050,7 +1051,7 @@ int Saig_ManBmcCreateCnf_rec( Gia_ManBmc_t * p, Aig_Obj_t * pObj, int iFrame, in
     {
         iLit = ABC_INFINITY;
     }
-    assert( iLit != ABC_INFINITY );
+//    assert( iLit != ABC_INFINITY );
     return Saig_ManBmcSetLiteral( p, pObj, iFrame, iLit );
 }
 
