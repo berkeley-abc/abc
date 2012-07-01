@@ -700,7 +700,7 @@ Gia_ManBmc_t * Saig_Bmc3ManStart( Aig_Man_t * pAig )
     p->nWordNum = Abc_BitWordNum( 2 * Aig_ManObjNumMax(pAig) );
     // hash table
     p->nTable = 1000003;
-    p->pTable = ABC_CALLOC( unsigned, 6 * p->nTable ); // 2.4 Mb
+    p->pTable = ABC_CALLOC( int, 6 * p->nTable ); // 2.4 Mb
     return p;
 }
 
@@ -1001,7 +1001,7 @@ static inline void Saig_ManBmcAddClauses( Gia_ManBmc_t * p, int uTruth, int Lits
   SeeAlso     []
 
 ***********************************************************************/
-static inline unsigned Saig_ManBmcHashKey( unsigned * pArray )
+static inline unsigned Saig_ManBmcHashKey( int * pArray )
 {
     static int s_Primes[5] = { 12582917, 25165843, 50331653, 100663319, 201326611 };
     unsigned i, Key = 0;
@@ -1097,11 +1097,12 @@ int Saig_ManBmcCreateCnf_rec( Gia_ManBmc_t * p, Aig_Obj_t * pObj, int iFrame )
         {
             *pLookup = toLit( p->nSatVars++ );
             Saig_ManBmcAddClauses( p, uTruth, Lits, *pLookup );
-
+/*
             if ( (Lits[0] > 1 && (Lits[0] == Lits[1] || Lits[0] == Lits[2] || Lits[0] == Lits[3]))   ||
                  (Lits[1] > 1 && (Lits[1] == Lits[2] || Lits[1] == Lits[2]))                         ||
                  (Lits[2] > 1 && (Lits[2] == Lits[3]))    )
                        p->nDupNum++;
+*/
         }
         iLit = *pLookup;
     }
