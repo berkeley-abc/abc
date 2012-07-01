@@ -787,7 +787,7 @@ int Saig_BmcPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nNodesMax
         RetValue = Saig_BmcSolveTargets( p, nStart, &nOutsSolved );
         if ( fVerbose )
         {
-            printf( "%3d : F =%5d. O =%4d.  And =%8d. Var =%8d. Conf =%7d. ", 
+            printf( "%4d : F =%5d. O =%4d.  And =%8d. Var =%8d. Conf =%7d. ", 
                 Iter, p->iFrameLast, p->iOutputLast, Aig_ManNodeNum(p->pFrm), p->nSatVars, (int)p->pSat->stats.conflicts );   
             printf( "%4.0f Mb",     4.0*(p->iFrameLast+1)*p->nObjs/(1<<20) );
             printf( "%9.2f sec", (float)(clock() - clkTotal)/(float)(CLOCKS_PER_SEC) );

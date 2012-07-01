@@ -995,7 +995,7 @@ int Saig_ManBmcCreateCnf_rec( Gia_ManBmc_t * p, Aig_Obj_t * pObj, int iFrame, in
     assert( fAddClauses );
     iLit = Saig_ManBmcLiteral( p, pObj, iFrame );
     if ( iLit != ~0 )
-        return iLit;
+        return iLit; 
     assert( iFrame >= 0 );
     if ( Aig_ObjIsCi(pObj) )
     {
@@ -1032,19 +1032,41 @@ int Saig_ManBmcCreateCnf_rec( Gia_ManBmc_t * p, Aig_Obj_t * pObj, int iFrame, in
     // create CNF
     if ( fAddClauses )
     {
-        iLit = toLit( p->nSatVars++ );
-        Saig_ManBmcAddClauses( p, uTruth, Lits, iLit );
-
         if ( uTruth == 0xAAAA || (0xffff & ~uTruth) == 0xAAAA ||
              uTruth == 0xCCCC || (0xffff & ~uTruth) == 0xCCCC ||
              uTruth == 0xF0F0 || (0xffff & ~uTruth) == 0xF0F0 ||
              uTruth == 0xFF00 || (0xffff & ~uTruth) == 0xFF00 )
-                   p->nBufNum++;
+        {
+            p->nBufNum++;
 
-        if ( (Lits[0] > 1 && (Lits[0] == Lits[1] || Lits[0] == Lits[2] || Lits[0] == Lits[3]))   ||
-             (Lits[1] > 1 && (Lits[1] == Lits[2] || Lits[1] == Lits[2]))                         ||
-             (Lits[2] > 1 && (Lits[2] == Lits[3]))    )
-                   p->nDupNum++;
+            if ( uTruth == 0xAAAA )
+                iLit = Lits[0];
+            else if ( uTruth == 0xCCCC )
+                iLit = Lits[1];
+            else if ( uTruth == 0xF0F0 )
+                iLit = Lits[2];
+            else if ( uTruth == 0xFF00 )
+                iLit = Lits[3];
+            else if ( (0xffff & ~uTruth) == 0xAAAA )
+                iLit = Abc_LitNot(Lits[0]);
+            else if ( (0xffff & ~uTruth) == 0xCCCC )
+                iLit = Abc_LitNot(Lits[1]);
+            else if ( (0xffff & ~uTruth) == 0xF0F0 )
+                iLit = Abc_LitNot(Lits[2]);
+            else if ( (0xffff & ~uTruth) == 0xFF00 )
+                iLit = Abc_LitNot(Lits[3]);
+
+        }
+        else
+        {
+            iLit = toLit( p->nSatVars++ );
+            Saig_ManBmcAddClauses( p, uTruth, Lits, iLit );
+
+            if ( (Lits[0] > 1 && (Lits[0] == Lits[1] || Lits[0] == Lits[2] || Lits[0] == Lits[3]))   ||
+                 (Lits[1] > 1 && (Lits[1] == Lits[2] || Lits[1] == Lits[2]))                         ||
+                 (Lits[2] > 1 && (Lits[2] == Lits[3]))    )
+                       p->nDupNum++;
+        }
 
     }
     else
@@ -1324,21 +1346,21 @@ clkOther += clock() - clk2;
                 {
                     if ( pPars->fVerbose )
                     {
-                        printf( "%3d %s : ", f,  fUnfinished ? "-" : "+" );
+                        printf( "%4d %s : ", f,  fUnfinished ? "-" : "+" );
                         printf( "Var =%8.0f. ",  (double)p->nSatVars );
                         printf( "Cla =%9.0f. ",  (double)p->pSat->stats.clauses );
                         printf( "Conf =%7.0f. ", (double)p->pSat->stats.conflicts );
                         printf( "Imp =%10.0f. ", (double)p->pSat->stats.propagations );
 //                        ABC_PRT( "Time", clock() - clk );
-                        printf( "%4.0f Mb",     4.25*(f+1)*p->nObjNums /(1<<20) );
-                        printf( "%4.0f Mb",     1.0*sat_solver_memory(p->pSat)/(1<<20) );
-                        printf( "%9.2f sec ",   (float)(clock() - clkTotal)/(float)(CLOCKS_PER_SEC) );
-                        printf( "\n" );
+                        printf( "%4.0f Mb",      4.25*(f+1)*p->nObjNums /(1<<20) );
+                        printf( "%4.0f Mb",      1.0*sat_solver_memory(p->pSat)/(1<<20) );
+                        printf( "%9.2f sec  ",   (float)(clock() - clkTotal)/(float)(CLOCKS_PER_SEC) );
+//                        printf( "\n" );
 //                        ABC_PRMn( "Id2Var", (f+1)*p->nObjNums*4 );
 //                        ABC_PRMn( "SAT", 42 * p->pSat->size + 16 * (int)p->pSat->stats.clauses + 4 * (int)p->pSat->stats.clauses_literals );
-//                        printf( "Simples = %6d. ", p->nBufNum );
-//                        printf( "Dups = %6d. ", p->nDupNum );
-//                        printf( "\n" );
+                        printf( "S =%6d. ", p->nBufNum );
+                        printf( "D =%6d. ", p->nDupNum );
+                        printf( "\n" );
                         fflush( stdout );
                     }
                     ABC_FREE( pAig->pSeqModel );
@@ -1387,7 +1409,7 @@ clkOther += clock() - clk2;
                 fFirst = 0;
 //                printf( "Outputs of frames up to %d are trivially UNSAT.\n", f );
             }
-            printf( "%3d %s : ", f, fUnfinished ? "-" : "+" );
+            printf( "%4d %s : ", f, fUnfinished ? "-" : "+" );
             printf( "Var =%8.0f. ", (double)p->nSatVars );
             printf( "Cla =%9.0f. ", (double)p->pSat->stats.clauses );
             printf( "Conf =%7.0f. ",(double)p->pSat->stats.conflicts );
@@ -1397,12 +1419,12 @@ clkOther += clock() - clk2;
             printf( "%4.0f Mb",     4.0*(f+1)*p->nObjNums /(1<<20) );
             printf( "%4.0f Mb",     1.0*sat_solver_memory(p->pSat)/(1<<20) );
             printf( "%9.2f sec ",  (float)(clock() - clkTotal)/(float)(CLOCKS_PER_SEC) );
-            printf( "\n" );
+//            printf( "\n" );
 //            ABC_PRMn( "Id2Var", (f+1)*p->nObjNums*4 );
 //            ABC_PRMn( "SAT", 42 * p->pSat->size + 16 * (int)p->pSat->stats.clauses + 4 * (int)p->pSat->stats.clauses_literals );
-//            printf( "Simples = %6d. ", p->nBufNum );
-//            printf( "Dups = %6d. ", p->nDupNum );
-//            printf( "\n" );
+            printf( "Simples = %6d. ", p->nBufNum );
+            printf( "Dups = %6d. ", p->nDupNum );
+            printf( "\n" );
             fflush( stdout );
         }
     }
