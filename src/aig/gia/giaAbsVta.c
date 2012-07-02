@@ -532,8 +532,8 @@ static inline void Vta_ObjPreds( Vta_Man_t * p, Vta_Obj_t * pThis, Gia_Obj_t * p
 {
     *ppThis0 = NULL;
     *ppThis1 = NULL;
-    if ( !pThis->fAdded )
-        return;
+//    if ( !pThis->fAdded )
+//        return;
     assert( !Gia_ObjIsPi(p->pGia, pObj) );
     if ( Gia_ObjIsConst0(pObj) || (Gia_ObjIsCi(pObj) && pThis->iFrame == 0) )
         return;
@@ -541,13 +541,13 @@ static inline void Vta_ObjPreds( Vta_Man_t * p, Vta_Obj_t * pThis, Gia_Obj_t * p
     {
         *ppThis0 = Vga_ManFind( p, Gia_ObjFaninId0p(p->pGia, pObj), pThis->iFrame );
         *ppThis1 = Vga_ManFind( p, Gia_ObjFaninId1p(p->pGia, pObj), pThis->iFrame );
-        assert( *ppThis0 && *ppThis1 );
+//        assert( *ppThis0 && *ppThis1 );
         return;
     }
     assert( Gia_ObjIsRo(p->pGia, pObj) && pThis->iFrame > 0 );
     pObj = Gia_ObjRoToRi( p->pGia, pObj );
     *ppThis0 = Vga_ManFind( p, Gia_ObjFaninId0p(p->pGia, pObj), pThis->iFrame-1 );
-    assert( *ppThis0 );
+//    assert( *ppThis0 );
 }
 
 /**Function*************************************************************
@@ -569,9 +569,12 @@ void Vta_ManCollectNodes_rec( Vta_Man_t * p, Vta_Obj_t * pThis, Vec_Int_t * vOrd
         return;
     pThis->fVisit = 1;
     pObj = Gia_ManObj( p->pGia, pThis->iObj );
-    Vta_ObjPreds( p, pThis, pObj, &pThis0, &pThis1 );
-    if ( pThis0 ) Vta_ManCollectNodes_rec( p, pThis0, vOrder );
-    if ( pThis1 ) Vta_ManCollectNodes_rec( p, pThis1, vOrder );
+    if ( pThis->fAdded )
+    {
+        Vta_ObjPreds( p, pThis, pObj, &pThis0, &pThis1 );
+        if ( pThis0 ) Vta_ManCollectNodes_rec( p, pThis0, vOrder );
+        if ( pThis1 ) Vta_ManCollectNodes_rec( p, pThis1, vOrder );
+    }
     Vec_IntPush( vOrder, Vta_ObjId(p, pThis) );
 }
 Vec_Int_t * Vta_ManCollectNodes( Vta_Man_t * p, int f )
@@ -728,6 +731,41 @@ Abc_Cex_t * Vta_ManRefineAbstraction( Vta_Man_t * p, int f )
         if ( pThis1 ) 
             pThis1->Prio = Abc_MinInt( pThis1->Prio, pThis->Prio + 1 );
     }
+
+/*
+    // update priorities according to reconvergest counters
+    Vec_PtrForEachEntry( Vta_Obj_t *, vTermsUsed, pThis, i )
+    {
+        Vta_Obj_t * pThis0, * pThis1;
+        Gia_Obj_t * pObj = Gia_ManObj( p->pGia, pThis->iObj );
+        Vta_ObjPreds( p, pThis, pObj, &pThis0, &pThis1 );
+        pThis->Prio += 10000000;
+        if ( pThis0 )
+            pThis->Prio -= 1000000 * pThis0->fAdded;
+        if ( pThis1 )
+            pThis->Prio -= 1000000 * pThis1->fAdded;
+    }
+    Vec_PtrForEachEntry( Vta_Obj_t *, vTermsUnused, pThis, i )
+    {
+        Vta_Obj_t * pThis0, * pThis1;
+        Gia_Obj_t * pObj = Gia_ManObj( p->pGia, pThis->iObj );
+        Vta_ObjPreds( p, pThis, pObj, &pThis0, &pThis1 );
+        pThis->Prio += 10000000;
+        if ( pThis0 )
+            pThis->Prio -= 1000000 * pThis0->fAdded;
+        if ( pThis1 )
+            pThis->Prio -= 1000000 * pThis1->fAdded;
+    }
+*/
+
+/*
+    // update priorities according to reconvergest counters
+    Vec_PtrForEachEntry( Vta_Obj_t *, vTermsUsed, pThis, i )
+        pThis->Prio = pThis->iObj;
+    Vec_PtrForEachEntry( Vta_Obj_t *, vTermsUnused, pThis, i )
+        pThis->Prio = pThis->iObj;
+*/
+
     // objects with equal distance should receive priority based on number
     // those objects whose prototypes have been added in other timeframes
     // should have higher priority than the current object
@@ -746,9 +784,6 @@ Abc_Cex_t * Vta_ManRefineAbstraction( Vta_Man_t * p, int f )
     Vec_PtrForEachEntry( Vta_Obj_t *, vTermsUnused, pThis, i )
         pThis->Prio = Counter++;
 //    Abc_Print( 1, "Used %d  Unused %d\n", Vec_PtrSize(vTermsUsed), Vec_PtrSize(vTermsUnused) );
-
-    Vec_PtrFree( vTermsUsed );
-    Vec_PtrFree( vTermsUnused );
 
 
     // propagate in the direct order
@@ -885,6 +920,33 @@ Abc_Cex_t * Vta_ManRefineAbstraction( Vta_Man_t * p, int f )
             assert( 0 );
     }
 
+    // mark those currently included
+    Vta_ManForEachObjVec( vTermsToAdd, p, pThis, i )
+    {
+        assert( pThis->fVisit == 0 );
+        pThis->fVisit = 1;
+    }
+    // add used terms, which have close relationship
+    Counter = Vec_IntSize(vTermsToAdd);
+    Vec_PtrForEachEntry( Vta_Obj_t *, vTermsUsed, pThis, i )
+    {
+        if ( pThis->fVisit )
+            continue;
+//        Vta_ObjPreds( p, pThis, Gia_ManObj(p->pGia, pThis->iObj), &pThis0, &pThis1 );
+//        if ( (pThis0 && (pThis0->fAdded || pThis0->fVisit)) || (pThis1 && (pThis1->fAdded || pThis1->fVisit)) )
+            Vec_IntPush( vTermsToAdd, Vta_ObjId(p, pThis) );
+    }
+    // remove those currenty included
+    Vta_ManForEachObjVec( vTermsToAdd, p, pThis, i )
+        pThis->fVisit = 0;
+//    printf( "\n%d -> %d\n", Counter, Vec_IntSize(vTermsToAdd) );
+//Vec_IntReverseOrder( vTermsToAdd );
+//Vec_IntSort( vTermsToAdd, 1 );
+
+    // cleanup
+    Vec_PtrFree( vTermsUsed );
+    Vec_PtrFree( vTermsUnused );
+
 
     if ( fVerify )
     {
@@ -955,7 +1017,6 @@ Abc_Cex_t * Vta_ManRefineAbstraction( Vta_Man_t * p, int f )
         pCex = Vga_ManDeriveCex( p );
     else
     {
-//        int nObjOld = p->nObjs;
         Vta_ManForEachObjObjVec( vTermsToAdd, p, pThis, pObj, i )
             if ( !Gia_ObjIsPi(p->pGia, pObj) )
                 Vga_ManAddClausesOne( p, pThis->iObj, pThis->iFrame );

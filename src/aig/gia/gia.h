@@ -515,6 +515,66 @@ static inline int Gia_XsimAndCond( int Value0, int fCompl0, int Value1, int fCom
     return GIA_ONE;
 }
 
+
+static inline void Gia_ObjTerSimSetC( Gia_Obj_t * pObj ) { pObj->fMark0 = 0; pObj->fMark1 = 0;    }
+static inline void Gia_ObjTerSimSet0( Gia_Obj_t * pObj ) { pObj->fMark0 = 1; pObj->fMark1 = 0;    }
+static inline void Gia_ObjTerSimSet1( Gia_Obj_t * pObj ) { pObj->fMark0 = 0; pObj->fMark1 = 1;    }
+static inline void Gia_ObjTerSimSetX( Gia_Obj_t * pObj ) { pObj->fMark0 = 1; pObj->fMark1 = 1;    }
+
+static inline int  Gia_ObjTerSimGetC( Gia_Obj_t * pObj ) { return !pObj->fMark0 && !pObj->fMark1; }
+static inline int  Gia_ObjTerSimGet0( Gia_Obj_t * pObj ) { return  pObj->fMark0 && !pObj->fMark1; }
+static inline int  Gia_ObjTerSimGet1( Gia_Obj_t * pObj ) { return !pObj->fMark0 &&  pObj->fMark1; }
+static inline int  Gia_ObjTerSimGetX( Gia_Obj_t * pObj ) { return  pObj->fMark0 &&  pObj->fMark1; }
+
+static inline int  Gia_ObjTerSimGet0Fanin0( Gia_Obj_t * pObj ) { return (Gia_ObjTerSimGet1(Gia_ObjFanin0(pObj)) && Gia_ObjFaninC0(pObj)) || (Gia_ObjTerSimGet0(Gia_ObjFanin0(pObj)) && !Gia_ObjFaninC0(pObj)); }
+static inline int  Gia_ObjTerSimGet1Fanin0( Gia_Obj_t * pObj ) { return (Gia_ObjTerSimGet0(Gia_ObjFanin0(pObj)) && Gia_ObjFaninC0(pObj)) || (Gia_ObjTerSimGet1(Gia_ObjFanin0(pObj)) && !Gia_ObjFaninC0(pObj)); }
+
+static inline int  Gia_ObjTerSimGet0Fanin1( Gia_Obj_t * pObj ) { return (Gia_ObjTerSimGet1(Gia_ObjFanin1(pObj)) && Gia_ObjFaninC1(pObj)) || (Gia_ObjTerSimGet0(Gia_ObjFanin1(pObj)) && !Gia_ObjFaninC1(pObj)); }
+static inline int  Gia_ObjTerSimGet1Fanin1( Gia_Obj_t * pObj ) { return (Gia_ObjTerSimGet0(Gia_ObjFanin1(pObj)) && Gia_ObjFaninC1(pObj)) || (Gia_ObjTerSimGet1(Gia_ObjFanin1(pObj)) && !Gia_ObjFaninC1(pObj)); }
+
+static inline void Gia_ObjTerSimAnd( Gia_Obj_t * pObj )
+{
+    assert( Gia_ObjIsAnd(pObj) );
+    assert( !Gia_ObjTerSimGetC( Gia_ObjFanin0(pObj) ) );
+    assert( !Gia_ObjTerSimGetC( Gia_ObjFanin1(pObj) ) );
+    if ( Gia_ObjTerSimGet0Fanin0(pObj) || Gia_ObjTerSimGet0Fanin1(pObj) )
+        Gia_ObjTerSimSet0( pObj );
+    else if ( Gia_ObjTerSimGet1Fanin0(pObj) && Gia_ObjTerSimGet1Fanin1(pObj) )
+        Gia_ObjTerSimSet1( pObj );
+    else 
+        Gia_ObjTerSimSetX( pObj );
+}
+static inline void Gia_ObjTerSimCo( Gia_Obj_t * pObj )
+{
+    assert( Gia_ObjIsCo(pObj) );
+    assert( !Gia_ObjTerSimGetC( Gia_ObjFanin0(pObj) ) );
+    if ( Gia_ObjTerSimGet0Fanin0(pObj) )
+        Gia_ObjTerSimSet0( pObj );
+    else if ( Gia_ObjTerSimGet1Fanin0(pObj) )
+        Gia_ObjTerSimSet1( pObj );
+    else 
+        Gia_ObjTerSimSetX( pObj );
+}
+static inline void Gia_ObjTerSimRo( Gia_Man_t * p, Gia_Obj_t * pObj )
+{
+    Gia_Obj_t * pTemp = Gia_ObjRoToRi(p, pObj);
+    assert( Gia_ObjIsRo(p, pObj) );
+    assert( !Gia_ObjTerSimGetC( pTemp ) );
+    pObj->fMark0 = pTemp->fMark0;
+    pObj->fMark1 = pTemp->fMark1;
+}
+
+static inline void Gia_ObjTerSimPrint( Gia_Obj_t * pObj )
+{
+    if ( Gia_ObjTerSimGet0(pObj) )
+        printf( "0" );
+    else if ( Gia_ObjTerSimGet1(pObj) )
+        printf( "1" );
+    else if ( Gia_ObjTerSimGetX(pObj) )
+        printf( "X" );
+}
+
+
 static inline Gia_Obj_t * Gia_ObjReprObj( Gia_Man_t * p, int Id )            { return p->pReprs[Id].iRepr == GIA_VOID ? NULL : Gia_ManObj( p, p->pReprs[Id].iRepr );                  }
 static inline int         Gia_ObjRepr( Gia_Man_t * p, int Id )               { return p->pReprs[Id].iRepr;                                                }
 static inline void        Gia_ObjSetRepr( Gia_Man_t * p, int Id, int Num )   { assert( Num == GIA_VOID || Num < Id ); p->pReprs[Id].iRepr = Num;          }
