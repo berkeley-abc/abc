@@ -255,8 +255,8 @@ int Gia_ManGlaRefine( Gia_Man_t * p, Abc_Cex_t * pCex, int fMinCut, int fVerbose
             pCexNew = Gia_ManCexRemap( p, pCex, vPis );
             printf( "Procedure &gla_refine found a real counter-example in frame %d.\n", pCexNew->iFrame );
         }
-        else
-            printf( "CEX is not real.\n" );
+//        else
+//            printf( "CEX is not real.\n" );
         Gia_ManForEachObj( pAbs, pObj, i )
             Gia_ObjTerSimSetC( pObj );
         if ( pCexNew == NULL )
