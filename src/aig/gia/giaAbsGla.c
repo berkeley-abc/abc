@@ -36,7 +36,8 @@ struct Rfn_Obj_t_
     unsigned       Value     :  1;  // value
     unsigned       fVisit    :  1;  // visited
     unsigned       fPPi      :  1;  // PPI
-    unsigned       Prio      : 28;  // priority
+    unsigned       Prio      : 18;  // priority
+    unsigned       Sign      : 10;  // priority
 };
 
 typedef struct Gla_Obj_t_ Gla_Obj_t; // abstraction object
@@ -117,6 +118,10 @@ static inline void        Gla_ObjClearRef( Rfn_Obj_t * p )                  {  *
 #define Gla_ObjForEachFanin( p, pObj, pFanin, i )          \
     for ( i = 0; (i < (int)pObj->nFanins) && ((pFanin = Gla_ManObj(p, pObj->Fanins[i])),1); i++ )
 
+// some lessons learned from debugging mismatches between GIA and mapped CNF
+// - inputs/output of AND-node maybe PPIs (have SAT vars), but the node is not included in the abstraction
+// - some logic node can be a PPI of one LUT and an internal node of another LUT
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -132,7 +137,7 @@ static inline void        Gla_ObjClearRef( Rfn_Obj_t * p )                  {  *
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Cex_t * Gia_ManCexRemap( Gia_Man_t * p, Gia_Man_t * pAbs, Abc_Cex_t * pCexAbs, Vec_Int_t * vPis )
+Abc_Cex_t * Gia_ManCexRemap( Gia_Man_t * p, Abc_Cex_t * pCexAbs, Vec_Int_t * vPis )
 {
     Abc_Cex_t * pCex;
     int i, f, iPiNum;
@@ -181,11 +186,14 @@ int Gia_ManGlaRefine( Gia_Man_t * p, Abc_Cex_t * pCex, int fMinCut, int fVerbose
 {
     extern void Nwk_ManDeriveMinCut( Gia_Man_t * p, int fVerbose );
     extern Abc_Cex_t * Saig_ManCbaFindCexCareBits( Aig_Man_t * pAig, Abc_Cex_t * pCex, int nInputs, int fVerbose );
+    int fAddOneLayer = 1;
+    Abc_Cex_t * pCexNew = NULL;
     Gia_Man_t * pAbs;
     Aig_Man_t * pAig;
     Abc_Cex_t * pCare;
     Vec_Int_t * vPis, * vPPis;
-    int f, i, iObjId, nOnes = 0, Counter = 0;
+    int f, i, iObjId, clk = clock();
+    int nOnes = 0, Counter = 0;
     if ( p->vGateClasses == NULL )
     {
         printf( "Gia_ManGlaRefine(): Abstraction gate map is missing.\n" );
@@ -210,49 +218,110 @@ int Gia_ManGlaRefine( Gia_Man_t * p, Abc_Cex_t * pCex, int fMinCut, int fVerbose
 //    else
 //        printf( "Gia_ManGlaRefine(): The initial counter-example is correct.\n" );
     // get inputs
-    Gia_GlaCollectInputs( p, p->vGateClasses, &vPis, &vPPis );
+    Gia_ManGlaCollect( p, p->vGateClasses, &vPis, &vPPis, NULL, NULL );
     assert( Vec_IntSize(vPis) + Vec_IntSize(vPPis) == Gia_ManPiNum(pAbs) );
-    // minimize the CEX
-    pAig = Gia_ManToAigSimple( pAbs );
-    pCare = Saig_ManCbaFindCexCareBits( pAig, pCex, Vec_IntSize(vPis), fVerbose );
-    Aig_ManStop( pAig );
-    if ( pCare == NULL )
-        printf( "Counter-example minimization has failed.\n" );
-    // add new objects to the map
-    iObjId = -1;
-    for ( f = 0; f <= pCare->iFrame; f++ )
-        for ( i = 0; i < pCare->nPis; i++ )
-            if ( Abc_InfoHasBit( pCare->pData, pCare->nRegs + f * pCare->nPis + i ) )
+    // add missing logic
+    if ( fAddOneLayer )
+    {
+        Gia_Obj_t * pObj;
+        // check if this is a real counter-example
+        Gia_ObjTerSimSet0( Gia_ManConst0(pAbs) );
+        for ( f = 0; f <= pCex->iFrame; f++ )
+        {
+            Gia_ManForEachPi( pAbs, pObj, i )
             {
-                nOnes++;
-                assert( i >= Vec_IntSize(vPis) );
-                iObjId = Vec_IntEntry( vPPis, i - Vec_IntSize(vPis) );
-                assert( iObjId > 0 && iObjId < Gia_ManObjNum(p) );
-                if ( Vec_IntEntry( p->vGateClasses, iObjId ) == 1 )
-                    continue;
+                if ( i >= Vec_IntSize(vPis) ) // PPIs
+                    Gia_ObjTerSimSetX( pObj );
+                else if ( Abc_InfoHasBit(pCex->pData, pCex->nRegs + pCex->nPis * f + i) )
+                    Gia_ObjTerSimSet1( pObj );
+                else
+                    Gia_ObjTerSimSet0( pObj );
+            }
+            Gia_ManForEachRo( pAbs, pObj, i )
+            {
+                if ( f == 0 )
+                    Gia_ObjTerSimSet0( pObj );
+                else
+                    Gia_ObjTerSimRo( pAbs, pObj );
+            }
+            Gia_ManForEachAnd( pAbs, pObj, i )
+                Gia_ObjTerSimAnd( pObj );
+            Gia_ManForEachCo( pAbs, pObj, i )
+                Gia_ObjTerSimCo( pObj );
+        }
+        pObj = Gia_ManPo( pAbs, 0 );
+        if ( Gia_ObjTerSimGet1(pObj) )
+        {
+            pCexNew = Gia_ManCexRemap( p, pCex, vPis );
+            printf( "Procedure &gla_refine found a real counter-example in frame %d.\n", pCexNew->iFrame );
+        }
+        else
+            printf( "CEX is not real.\n" );
+        Gia_ManForEachObj( pAbs, pObj, i )
+            Gia_ObjTerSimSetC( pObj );
+        if ( pCexNew == NULL )
+        {
+            // grow one layer
+            Vec_IntForEachEntry( vPPis, iObjId, i )
+            {
                 assert( Vec_IntEntry( p->vGateClasses, iObjId ) == 0 );
                 Vec_IntWriteEntry( p->vGateClasses, iObjId, 1 );
-//                printf( "Adding object %d.\n", iObjId );
-//                Gia_ObjPrint( p, Gia_ManObj(p, iObjId) );
-                Counter++;
             }
-    Abc_CexFree( pCare );
-    if ( fVerbose )
-        printf( "Essential bits = %d.  Additional objects = %d.\n", nOnes, Counter );
-    // consider the case of SAT
-    if ( iObjId == -1 )
+            if ( fVerbose )
+            {
+                printf( "Additional objects = %d.  ", Vec_IntSize(vPPis) );
+                Abc_PrintTime( 1, "Time", clock() - clk );
+            }
+        }
+    }
+    else
     {
-        ABC_FREE( p->pCexSeq );
-        p->pCexSeq = Gia_ManCexRemap( p, pAbs, pCex, vPis );
-        Vec_IntFree( vPis );
-        Vec_IntFree( vPPis );
-        Gia_ManStop( pAbs );
-        return 0;
+        // minimize the CEX
+        pAig = Gia_ManToAigSimple( pAbs );
+        pCare = Saig_ManCbaFindCexCareBits( pAig, pCex, Vec_IntSize(vPis), fVerbose );
+        Aig_ManStop( pAig );
+        if ( pCare == NULL )
+            printf( "Counter-example minimization has failed.\n" );
+        // add new objects to the map
+        iObjId = -1;
+        for ( f = 0; f <= pCare->iFrame; f++ )
+            for ( i = 0; i < pCare->nPis; i++ )
+                if ( Abc_InfoHasBit( pCare->pData, pCare->nRegs + f * pCare->nPis + i ) )
+                {
+                    nOnes++;
+                    assert( i >= Vec_IntSize(vPis) );
+                    iObjId = Vec_IntEntry( vPPis, i - Vec_IntSize(vPis) );
+                    assert( iObjId > 0 && iObjId < Gia_ManObjNum(p) );
+                    if ( Vec_IntEntry( p->vGateClasses, iObjId ) == 1 )
+                        continue;
+                    assert( Vec_IntEntry( p->vGateClasses, iObjId ) == 0 );
+                    Vec_IntWriteEntry( p->vGateClasses, iObjId, 1 );
+    //                printf( "Adding object %d.\n", iObjId );
+    //                Gia_ObjPrint( p, Gia_ManObj(p, iObjId) );
+                    Counter++;
+                }
+        Abc_CexFree( pCare );
+        if ( fVerbose )
+        {
+            printf( "Essential bits = %d.  Additional objects = %d.  ", nOnes, Counter );
+            Abc_PrintTime( 1, "Time", clock() - clk );
+        }
+        // consider the case of SAT
+        if ( iObjId == -1 )
+        {
+            pCexNew = Gia_ManCexRemap( p, pCex, vPis );
+            printf( "Procedure &gla_refine found a real counter-example in frame %d.\n", pCexNew->iFrame );
+        }
     }
     Vec_IntFree( vPis );
     Vec_IntFree( vPPis );
     Gia_ManStop( pAbs );
-
+    if ( pCexNew )
+    {
+        ABC_FREE( p->pCexSeq );
+        p->pCexSeq = pCexNew;
+        return 0;
+    }
     // extract abstraction to include min-cut
     if ( fMinCut )
         Nwk_ManDeriveMinCut( p, fVerbose );
@@ -294,7 +363,7 @@ Abc_Cex_t * Gla_ManDeriveCex( Gla_Man_t * p, Vec_Int_t * vPis )
 
 /**Function*************************************************************
 
-  Synopsis    [Collects internal objects in a topo order.]
+  Synopsis    [Collects GIA abstraction objects.]
 
   Description []
                
@@ -303,21 +372,66 @@ Abc_Cex_t * Gla_ManDeriveCex( Gla_Man_t * p, Vec_Int_t * vPis )
   SeeAlso     []
 
 ***********************************************************************/
-void Gla_ManRefCollect_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vRoAnds, Vec_Int_t * vCos )
+int Gla_ManCollectInternal_rec( Gia_Man_t * p, Gia_Obj_t * pGiaObj, Vec_Int_t * vRoAnds )
 {
-    if ( Gia_ObjIsTravIdCurrent(p, pObj) )
-        return;
-    Gia_ObjSetTravIdCurrent(p, pObj);
-    if ( Gia_ObjIsRo(p, pObj) )
+    int Value0, Value1;
+    if ( Gia_ObjIsTravIdCurrent(p, pGiaObj) )
+        return 1;
+    Gia_ObjSetTravIdCurrent(p, pGiaObj);
+    if ( Gia_ObjIsCi(pGiaObj) )
+        return 0;
+    assert( Gia_ObjIsAnd(pGiaObj) );
+    Value0 = Gla_ManCollectInternal_rec( p, Gia_ObjFanin0(pGiaObj), vRoAnds );
+    Value1 = Gla_ManCollectInternal_rec( p, Gia_ObjFanin1(pGiaObj), vRoAnds );
+    if ( Value0 || Value1 )
     {
-        Vec_IntPush( vRoAnds, Gia_ObjId(p, pObj) );
-        Vec_IntPush( vCos, Gia_ObjId(p, Gia_ObjRoToRi(p, pObj)) );
-        return;
+        assert( Gia_ObjIsAnd(pGiaObj) );
+        Vec_IntPush( vRoAnds, Gia_ObjId(p, pGiaObj) );
     }
-    assert( Gia_ObjIsAnd(pObj) );
-    Gla_ManRefCollect_rec( p, Gia_ObjFanin0(pObj), vRoAnds, vCos );
-    Gla_ManRefCollect_rec( p, Gia_ObjFanin1(pObj), vRoAnds, vCos );
-    Vec_IntPush( vRoAnds, Gia_ObjId(p, pObj) );
+    return Value0 || Value1;
+}
+void Gla_ManCollect( Gla_Man_t * p, Vec_Int_t * vPis, Vec_Int_t * vPPis, Vec_Int_t * vCos, Vec_Int_t * vRoAnds )
+{
+    Gla_Obj_t * pObj, * pFanin;
+    Gia_Obj_t * pGiaObj;
+    int i, k;
+
+    // collect COs
+    Vec_IntPush( vCos, Gia_ObjId(p->pGia, Gia_ManPo(p->pGia, 0)) );
+    // collect fanins of abstracted objects
+    Gla_ManForEachObjAbs( p, pObj, i )
+    {
+        assert( pObj->fConst || pObj->fRo || pObj->fAnd );
+        if ( pObj->fRo )
+        {
+            pGiaObj = Gia_ObjRoToRi( p->pGia, Gia_ManObj(p->pGia, pObj->iGiaObj) );
+            Vec_IntPush( vCos, Gia_ObjId(p->pGia, pGiaObj) );
+        }
+        Gla_ObjForEachFanin( p, pObj, pFanin, k )
+            if ( !pFanin->fAbs )
+                Vec_IntPush( (pFanin->fPi ? vPis : vPPis), pFanin->iGiaObj );
+    }
+    Vec_IntUniqify( vPis );
+    Vec_IntUniqify( vPPis );
+
+    // mark const/PIs/PPIs
+    Gia_ManIncrementTravId( p->pGia );
+    Gia_ObjSetTravIdCurrent( p->pGia, Gia_ManConst0(p->pGia) );
+    Gia_ManForEachObjVec( vPis, p->pGia, pGiaObj, i )
+        Gia_ObjSetTravIdCurrent( p->pGia, pGiaObj );
+    Gia_ManForEachObjVec( vPPis, p->pGia, pGiaObj, i )
+        Gia_ObjSetTravIdCurrent( p->pGia, pGiaObj );
+    // mark and add ROs first
+    Gia_ManForEachObjVec( vCos, p->pGia, pGiaObj, i )
+    {
+        if ( i == 0 ) continue;
+        pGiaObj = Gia_ObjRiToRo( p->pGia, pGiaObj );
+        Gia_ObjSetTravIdCurrent( p->pGia, pGiaObj );
+        Vec_IntPush( vRoAnds, Gia_ObjId(p->pGia, pGiaObj) );
+    }
+    // collect nodes between PIs/PPIs/ROs and COs
+    Gia_ManForEachObjVec( vCos, p->pGia, pGiaObj, i )
+        Gla_ManCollectInternal_rec( p->pGia, Gia_ObjFanin0(pGiaObj), vRoAnds );
 }
 
 /**Function*************************************************************
@@ -331,14 +445,16 @@ void Gla_ManRefCollect_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vRoAnds
   SeeAlso     []
 
 ***********************************************************************/
-void Gla_ManRefSelect_rec( Gla_Man_t * p, Gia_Obj_t * pObj, int f, Vec_Int_t * vRes )
+void Gla_ManRefSelect_rec( Gla_Man_t * p, Gia_Obj_t * pObj, int f, Vec_Int_t * vRes, int Sign )
 {
     Rfn_Obj_t * pRef = Gla_ObjRef( p, Gia_ObjId(p->pGia, pObj), f );
+    assert( (int)pRef->Sign == Sign );
     if ( pRef->fVisit )
         return;
     pRef->fVisit = 1;
     if ( pRef->fPPi )
     {
+        assert( (int)pRef->Prio > 0 );
         assert( (int)pRef->Prio < Vec_IntSize(p->vPrioSels) );
         if ( Vec_IntEntry( p->vPrioSels, pRef->Prio ) == 0 ) // not selected yet
         {
@@ -352,43 +468,48 @@ void Gla_ManRefSelect_rec( Gla_Man_t * p, Gia_Obj_t * pObj, int f, Vec_Int_t * v
     if ( Gia_ObjIsRo(p->pGia, pObj) )
     {
         if ( f > 0 )
-            Gla_ManRefSelect_rec( p, Gia_ObjFanin0(Gia_ObjRoToRi(p->pGia, pObj)), f-1, vRes );
+            Gla_ManRefSelect_rec( p, Gia_ObjFanin0(Gia_ObjRoToRi(p->pGia, pObj)), f-1, vRes, Sign );
         return;
     }
-    assert( Gia_ObjIsAnd(pObj) );
-    if ( pRef->Value == 1 )
-    {
-        Gla_ManRefSelect_rec( p, Gia_ObjFanin0(pObj), f, vRes );
-        Gla_ManRefSelect_rec( p, Gia_ObjFanin1(pObj), f, vRes );
-    }
-    else // select one value
+    if ( Gia_ObjIsAnd(pObj) )
     {
         Rfn_Obj_t * pRef0 = Gla_ObjRef( p, Gia_ObjFaninId0p(p->pGia, pObj), f );
         Rfn_Obj_t * pRef1 = Gla_ObjRef( p, Gia_ObjFaninId1p(p->pGia, pObj), f );
         int fSel0 = Vec_IntEntry( p->vPrioSels, pRef0->Prio );
         int fSel1 = Vec_IntEntry( p->vPrioSels, pRef1->Prio );
-
-        if ( (pRef0->Value ^ Gia_ObjFaninC0(pObj)) == 0 && (pRef1->Value ^ Gia_ObjFaninC1(pObj)) == 0 )
+        if ( pRef->Value == 1 )
         {
-            if ( !fSel0 && !fSel1 )
+//            if ( !fSel0 )
+                Gla_ManRefSelect_rec( p, Gia_ObjFanin0(pObj), f, vRes, Sign );
+//            if ( !fSel1 )
+                Gla_ManRefSelect_rec( p, Gia_ObjFanin1(pObj), f, vRes, Sign );
+        }
+        else // select one value
+        {
+            if ( (pRef0->Value ^ Gia_ObjFaninC0(pObj)) == 0 && (pRef1->Value ^ Gia_ObjFaninC1(pObj)) == 0 )
             {
-                if ( pRef0->Prio <= pRef1->Prio ) // choice
-                    Gla_ManRefSelect_rec( p, Gia_ObjFanin0(pObj), f, vRes );
-                else
-                    Gla_ManRefSelect_rec( p, Gia_ObjFanin1(pObj), f, vRes );
+//                if ( !fSel0 && !fSel1 )
+                {
+                    if ( pRef0->Prio <= pRef1->Prio ) // choice
+                        Gla_ManRefSelect_rec( p, Gia_ObjFanin0(pObj), f, vRes, Sign );
+                    else
+                        Gla_ManRefSelect_rec( p, Gia_ObjFanin1(pObj), f, vRes, Sign );
+                }
             }
-        }
-        else if ( (pRef0->Value ^ Gia_ObjFaninC0(pObj)) == 0 )
-        {
-            if ( !fSel0 )
-                Gla_ManRefSelect_rec( p, Gia_ObjFanin0(pObj), f, vRes );
-        }
-        else 
-        {
-            if ( !fSel1 )
-                Gla_ManRefSelect_rec( p, Gia_ObjFanin1(pObj), f, vRes );
+            else if ( (pRef0->Value ^ Gia_ObjFaninC0(pObj)) == 0 )
+            {
+//                if ( !fSel0 )
+                    Gla_ManRefSelect_rec( p, Gia_ObjFanin0(pObj), f, vRes, Sign );
+            }
+            else if ( (pRef1->Value ^ Gia_ObjFaninC1(pObj)) == 0 )
+            {
+//                if ( !fSel1 )
+                    Gla_ManRefSelect_rec( p, Gia_ObjFanin1(pObj), f, vRes, Sign );
+            }
+            else assert( 0 );
         }
     }
+    else assert( 0 );
 }
 
 /**Function*************************************************************
@@ -404,38 +525,40 @@ void Gla_ManRefSelect_rec( Gla_Man_t * p, Gia_Obj_t * pObj, int f, Vec_Int_t * v
 ***********************************************************************/
 Vec_Int_t * Gla_ManRefinement( Gla_Man_t * p )
 {
-    int fVerify = 0;
-    Vec_Int_t * vPis, * vPPis, * vRoAnds, * vCos, * vRes = NULL;
+    int fVerify = 1;
+    static int Sign = 0;
+    Vec_Int_t * vPis, * vPPis, * vCos, * vRoAnds, * vRes = NULL;
     Rfn_Obj_t * pRef, * pRef0, * pRef1;
     Gia_Obj_t * pObj;
-    Gla_Obj_t * pGla;
+//    Gla_Obj_t * pGla;
     int i, f;
+    Sign++;
 
     // compute PIs and pseudo-PIs
-    vPis = Vec_IntAlloc( 100 );
-    vPPis = Gla_ManCollectPPis( p, vPis );
-
-    // remap into GIA
+    vCos = Vec_IntAlloc( 1000 );
+    vPis = Vec_IntAlloc( 1000 );  
+    vPPis = Vec_IntAlloc( 1000 );
+    vRoAnds = Vec_IntAlloc( 1000 );  
+    Gla_ManCollect( p, vPis, vPPis, vCos, vRoAnds );
+/*
+    // check how many pseudo PIs have variables
     Gla_ManForEachObjAbsVec( vPis, p, pGla, i )
-        Vec_IntWriteEntry( vPis, i, pGla->iGiaObj );
+    {
+        printf( "  %5d : ", Gla_ObjId(p, pGla) );
+        for ( f = 0; f <= p->pPars->iFrame; f++ )
+            printf( "%d", Gla_ManCheckVar(p, Gla_ObjId(p, pGla), f) );
+        printf( "\n" );
+    }    
+
+    // check how many pseudo PIs have variables
     Gla_ManForEachObjAbsVec( vPPis, p, pGla, i )
-        Vec_IntWriteEntry( vPPis, i, pGla->iGiaObj );
-
-    // prepare boundary objects
-    Gia_ManIncrementTravId( p->pGia );
-    Gia_ObjSetTravIdCurrent( p->pGia, Gia_ManConst0(p->pGia) );
-    Gia_ManForEachObjVec( vPis, p->pGia, pObj, i )
-        Gia_ObjSetTravIdCurrent( p->pGia, pObj );
-    Gia_ManForEachObjVec( vPPis, p->pGia, pObj, i )
-        Gia_ObjSetTravIdCurrent( p->pGia, pObj );
-
-    // collect internal objects
-    vCos = Vec_IntAlloc( 1000 );  
-    vRoAnds = Vec_IntAlloc( 1000 );
-    Vec_IntPush( vCos, Gia_ObjId(p->pGia, Gia_ManPo(p->pGia, 0)) );
-    Gia_ManForEachObjVec( vCos, p->pGia, pObj, i )
-        Gla_ManRefCollect_rec( p->pGia, Gia_ObjFanin0(pObj), vRoAnds, vCos );
-
+    {
+        printf( "%5d : ", Gla_ObjId(p, pGla) );
+        for ( f = 0; f <= p->pPars->iFrame; f++ )
+            printf( "%d", Gla_ManCheckVar(p, Gla_ObjId(p, pGla), f) );
+        printf( "\n" );
+    }    
+*/
     // propagate values
     for ( f = 0; f <= p->pPars->iFrame; f++ )
     {
@@ -443,25 +566,43 @@ Vec_Int_t * Gla_ManRefinement( Gla_Man_t * p )
         pRef = Gla_ObjRef( p, 0, f );  Gla_ObjClearRef( pRef );
         pRef->Value  = 0;
         pRef->Prio   = 0;
+        pRef->Sign   = Sign;
         // primary input
         Gia_ManForEachObjVec( vPis, p->pGia, pObj, i )
         {
+            assert( f == p->pPars->iFrame || Gla_ManCheckVar(p, p->pObj2Obj[Gia_ObjId(p->pGia, pObj)], f) );
             pRef = Gla_ObjRef( p, Gia_ObjId(p->pGia, pObj), f );   Gla_ObjClearRef( pRef );
             pRef->Value = Gla_ObjSatValue( p, Gia_ObjId(p->pGia, pObj), f );
             pRef->Prio = 0;
+            pRef->Sign = Sign;
+            assert( pRef->fVisit == 0 );
         }
         // primary input
         Gia_ManForEachObjVec( vPPis, p->pGia, pObj, i )
         {
+            int ObjId = Gia_ObjId(p->pGia, pObj);
+            if ( 1308 == Gia_ObjId(p->pGia, pObj) )
+            {
+                int s = 0;
+            }
+            assert( f == p->pPars->iFrame || Gla_ManCheckVar(p, p->pObj2Obj[Gia_ObjId(p->pGia, pObj)], f) );
             assert( Gia_ObjIsAnd(pObj) || Gia_ObjIsRo(p->pGia, pObj) );
             pRef = Gla_ObjRef( p, Gia_ObjId(p->pGia, pObj), f );   Gla_ObjClearRef( pRef );
             pRef->Value = Gla_ObjSatValue( p, Gia_ObjId(p->pGia, pObj), f );
             pRef->Prio  = i+1;
             pRef->fPPi  = 1;
+            pRef->Sign  = Sign;
+            assert( pRef->fVisit == 0 );
         }
+
         // internal nodes
         Gia_ManForEachObjVec( vRoAnds, p->pGia, pObj, i )
         {
+            if ( 1598 == Gia_ObjId(p->pGia, pObj) )
+            {
+                int s = 0;
+            }
+            assert( Gia_ObjIsAnd(pObj) || Gia_ObjIsRo(p->pGia, pObj) );
             pRef = Gla_ObjRef( p, Gia_ObjId(p->pGia, pObj), f );   Gla_ObjClearRef( pRef );
             if ( Gia_ObjIsRo(p->pGia, pObj) )
             {
@@ -469,12 +610,21 @@ Vec_Int_t * Gla_ManRefinement( Gla_Man_t * p )
                 {
                     pRef->Value = 0;
                     pRef->Prio  = 0;
+                    pRef->Sign  = Sign;
                 }
                 else
                 {
                     pRef0 = Gla_ObjRef( p, Gia_ObjId(p->pGia, Gia_ObjRoToRi(p->pGia, pObj)), f-1 );
                     pRef->Value = pRef0->Value;
                     pRef->Prio  = pRef0->Prio;
+                    pRef->Sign  = Sign;
+
+                    if ( (int)pRef->Value != Gla_ObjSatValue( p, Gia_ObjId(p->pGia, pObj), f ) )
+                    {
+                        Gla_Obj_t * pGla = Gla_ManObj(p, p->pObj2Obj[Gia_ObjId(p->pGia, Gia_ObjRoToRi(p->pGia, pObj))]);
+                        int s = 0;
+                    }
+
                 }
                 continue;
             }
@@ -482,8 +632,54 @@ Vec_Int_t * Gla_ManRefinement( Gla_Man_t * p )
             pRef0 = Gla_ObjRef( p, Gia_ObjFaninId0p(p->pGia, pObj), f );
             pRef1 = Gla_ObjRef( p, Gia_ObjFaninId1p(p->pGia, pObj), f );
             pRef->Value = (pRef0->Value ^ Gia_ObjFaninC0(pObj)) & (pRef1->Value ^ Gia_ObjFaninC1(pObj));
-//                if ( p->pCnf->pObj2Count[Gia_ObjId(p->pGia, pObj)] >= 0 )
-//                    assert( (int)pRef->Value == Gla_ObjSatValue( p, Gia_ObjId(p->pGia, pObj), f ) );
+
+            if ( p->pObj2Obj[Gia_ObjId(p->pGia, pObj)] != ~0 && Gla_ManCheckVar(p, p->pObj2Obj[Gia_ObjId(p->pGia, pObj)], f) )
+            {
+                Gia_Obj_t * pFan0 = Gia_ObjFanin0(pObj);
+                Gia_Obj_t * pFan1 = Gia_ObjFanin1(pObj);
+                int iff = Gia_ObjId(p->pGia, pFan1);
+
+//                assert( (int)pRef->Value == Gla_ObjSatValue( p, Gia_ObjId(p->pGia, pObj), f ) );
+                if ( (int)pRef->Value != Gla_ObjSatValue( p, Gia_ObjId(p->pGia, pObj), f ) )
+                {
+                    Gia_Obj_t * pFanin0 = Gia_ObjFanin0(pObj);
+                    Gia_Obj_t * pFanin1 = Gia_ObjFanin1(pObj);
+
+                    int id = Gia_ObjId(p->pGia, pObj);
+
+                    int v  = p->pObj2Obj[Gia_ObjId(p->pGia, pObj)];
+                    int v1 = p->pObj2Obj[Gia_ObjId(p->pGia, Gia_ObjFanin0(pObj))];
+                    int v2 = p->pObj2Obj[Gia_ObjId(p->pGia, Gia_ObjFanin1(pObj))];
+
+                    int c  = Gla_ManCheckVar(p, p->pObj2Obj[Gia_ObjId(p->pGia, pObj)], f);
+//                    int c1 = Gla_ManCheckVar(p, p->pObj2Obj[Gia_ObjId(p->pGia, Gia_ObjFanin0(pObj))], f);
+//                    int c2 = Gla_ManCheckVar(p, p->pObj2Obj[Gia_ObjId(p->pGia, Gia_ObjFanin1(pObj))], f);
+
+                    int Value  = Gla_ObjSatValue( p, Gia_ObjId(p->pGia, pObj)               , f );
+//                    int Value1 = Gla_ObjSatValue( p, Gia_ObjId(p->pGia, Gia_ObjFanin0(pObj)), f );
+//                    int Value2 = Gla_ObjSatValue( p, Gia_ObjId(p->pGia, Gia_ObjFanin1(pObj)), f );
+
+                    Gla_Obj_t * pGla= Gla_ManObj( p, v );
+                    Gla_Obj_t * pFanin;
+                    int j;
+                    Gla_ObjForEachFanin( p, pGla, pFanin, j )
+                    {
+                        Rfn_Obj_t * pRef3 = Gla_ObjRef( p, pFanin->iGiaObj, f );
+                        int c  = Gla_ManCheckVar(p, p->pObj2Obj[pFanin->iGiaObj], f);
+
+                        Gia_ObjPrint( p->pGia, Gia_ManObj(p->pGia, pFanin->iGiaObj) );
+
+                        if ( (int)pRef3->Value != Gla_ObjSatValue( p, pFanin->iGiaObj, f ) )
+                        {
+                            int s = 0;
+                        }
+                    }
+
+                    printf( "Object has value mismatch    " );
+                    Gia_ObjPrint( p->pGia, pObj );
+                }
+            }
+
             if ( pRef->Value == 1 )
                 pRef->Prio  = Abc_MaxInt( pRef0->Prio, pRef1->Prio );
             else if ( (pRef0->Value ^ Gia_ObjFaninC0(pObj)) == 0 && (pRef1->Value ^ Gia_ObjFaninC1(pObj)) == 0 )
@@ -492,6 +688,8 @@ Vec_Int_t * Gla_ManRefinement( Gla_Man_t * p )
                 pRef->Prio  = pRef0->Prio;
             else 
                 pRef->Prio  = pRef1->Prio;
+            assert( pRef->fVisit == 0 );
+            pRef->Sign  = Sign;
         }
         // output nodes
         Gia_ManForEachObjVec( vCos, p->pGia, pObj, i )
@@ -500,6 +698,8 @@ Vec_Int_t * Gla_ManRefinement( Gla_Man_t * p )
             pRef0 = Gla_ObjRef( p, Gia_ObjFaninId0p(p->pGia, pObj), f ); 
             pRef->Value = (pRef0->Value ^ Gia_ObjFaninC0(pObj));
             pRef->Prio  = pRef0->Prio;
+            assert( pRef->fVisit == 0 );
+            pRef->Sign  = Sign;
         }
     }
     // make sure the output value is 1
@@ -521,7 +721,7 @@ Vec_Int_t * Gla_ManRefinement( Gla_Man_t * p )
     // select objects
     vRes = Vec_IntAlloc( 100 );
     Vec_IntFill( p->vPrioSels, Vec_IntSize(vPPis)+1, 0 );
-    Gla_ManRefSelect_rec( p, Gia_ObjFanin0(Gia_ManPo(p->pGia, 0)), p->pPars->iFrame, vRes );
+    Gla_ManRefSelect_rec( p, Gia_ObjFanin0(Gia_ManPo(p->pGia, 0)), p->pPars->iFrame, vRes, Sign );
 
     if ( fVerify )
     {
@@ -560,7 +760,7 @@ Vec_Int_t * Gla_ManRefinement( Gla_Man_t * p )
         }
         pObj = Gia_ManPo( p->pGia, 0 );
         if ( !Gia_ObjTerSimGet1(pObj) )
-            printf( "Refinement verification has failed!!!" );
+            printf( "Refinement verification has failed!!!\n" );
         // clear
         Gia_ObjTerSimSetC( Gia_ManConst0(p->pGia) );
         Gia_ManForEachObjVec( vPis, p->pGia, pObj, i )
@@ -1081,6 +1281,10 @@ void Gla_ManAddClauses( Gla_Man_t * p, int iObj, int iFrame, Vec_Int_t * vLits )
 {
     Gla_Obj_t * pGlaObj = Gla_ManObj( p, iObj );
     int iVar, iVar1, iVar2;
+    if ( 4786 == iObj && iFrame == 2 )
+    {
+        int s = 0;
+    }
     if ( pGlaObj->fConst )
     {
         iVar = Gla_ManGetVar( p, iObj, iFrame );

@@ -1664,6 +1664,83 @@ Gia_Man_t * Gia_ManDupAbsFlops( Gia_Man_t * p, Vec_Int_t * vFlopClasses )
 
 /**Function*************************************************************
 
+  Synopsis    [Returns the array of neighbors.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Gia_GlaCollectAssigned( Gia_Man_t * p, Vec_Int_t * vGateClasses )
+{
+    Vec_Int_t * vAssigned;
+    Gia_Obj_t * pObj;
+    int i, Entry;
+    vAssigned = Vec_IntAlloc( 1000 );
+    Vec_IntForEachEntry( vGateClasses, Entry, i )
+    {
+        if ( Entry == 0 )
+            continue;
+        assert( Entry == 1 );
+        pObj = Gia_ManObj( p, i );
+        Vec_IntPush( vAssigned, Gia_ObjId(p, pObj) );
+        if ( Gia_ObjIsAnd(pObj) )
+        {
+            Vec_IntPush( vAssigned, Gia_ObjFaninId0p(p, pObj) );
+            Vec_IntPush( vAssigned, Gia_ObjFaninId1p(p, pObj) );
+        }
+        else if ( Gia_ObjIsRo(p, pObj) )
+            Vec_IntPush( vAssigned, Gia_ObjFaninId0p(p, Gia_ObjRoToRi(p, pObj)) );
+        else assert( Gia_ObjIsConst0(pObj) );
+    }
+    Vec_IntUniqify( vAssigned );
+    return vAssigned;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Collects PIs and PPIs of the abstraction.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManGlaCollect( Gia_Man_t * p, Vec_Int_t * vGateClasses, Vec_Int_t ** pvPis, Vec_Int_t ** pvPPis, Vec_Int_t ** pvFlops, Vec_Int_t ** pvNodes )
+{ 
+    Vec_Int_t * vAssigned;
+    Gia_Obj_t * pObj;
+    int i;
+    assert( Gia_ManPoNum(p) == 1 );
+    assert( Vec_IntSize(vGateClasses) == Gia_ManObjNum(p) );
+    // create included objects and their fanins
+    vAssigned = Gia_GlaCollectAssigned( p, vGateClasses );
+    // create additional arrays
+    if ( pvPis )   *pvPis   = Vec_IntAlloc( 100 );
+    if ( pvPPis )  *pvPPis  = Vec_IntAlloc( 100 );
+    if ( pvFlops ) *pvFlops = Vec_IntAlloc( 100 );
+    if ( pvNodes ) *pvNodes = Vec_IntAlloc( 1000 );
+    Gia_ManForEachObjVec( vAssigned, p, pObj, i )
+    {
+        if ( Gia_ObjIsPi(p, pObj) )
+            { if ( pvPis )   Vec_IntPush( *pvPis, Gia_ObjId(p,pObj) );   }
+        else if ( !Vec_IntEntry(vGateClasses, Gia_ObjId(p,pObj)) )
+            { if ( pvPPis )  Vec_IntPush( *pvPPis, Gia_ObjId(p,pObj) );  }
+        else if ( Gia_ObjIsRo(p, pObj) )
+            { if ( pvFlops ) Vec_IntPush( *pvFlops, Gia_ObjId(p,pObj) ); }
+        else if ( Gia_ObjIsAnd(pObj) )
+            { if ( pvNodes ) Vec_IntPush( *pvNodes, Gia_ObjId(p,pObj) ); }
+        else assert( Gia_ObjIsConst0(pObj) );
+    }
+    Vec_IntFree( vAssigned );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Duplicates the AIG manager recursively.]
 
   Description []
@@ -1697,33 +1774,15 @@ void Gia_ManDupAbsGates_rec( Gia_Man_t * pNew, Gia_Obj_t * pObj )
 ***********************************************************************/
 Gia_Man_t * Gia_ManDupAbsGates( Gia_Man_t * p, Vec_Int_t * vGateClasses )
 { 
-    Vec_Int_t * vAssigned, * vPis, * vPPis, * vFlops, * vNodes;
+    Vec_Int_t * vPis, * vPPis, * vFlops, * vNodes;
     Gia_Man_t * pNew, * pTemp;
     Gia_Obj_t * pObj, * pCopy;
     int i;//, nFlops = 0;
     assert( Gia_ManPoNum(p) == 1 );
     assert( Vec_IntSize(vGateClasses) == Gia_ManObjNum(p) );
 
-    // create included objects and their fanins
-    vAssigned = Gia_GlaCollectAssigned( p, vGateClasses );
-
     // create additional arrays
-    vPis   = Vec_IntAlloc( 1000 );
-    vPPis  = Vec_IntAlloc( 1000 );
-    vFlops = Vec_IntAlloc( 1000 );
-    vNodes = Vec_IntAlloc( 1000 );
-    Gia_ManForEachObjVec( vAssigned, p, pObj, i )
-    {
-        if ( Gia_ObjIsPi(p, pObj) )
-            Vec_IntPush( vPis, Gia_ObjId(p,pObj) );
-        else if ( !Vec_IntEntry(vGateClasses, Gia_ObjId(p,pObj)) )
-            Vec_IntPush( vPPis, Gia_ObjId(p,pObj) );
-        else if ( Gia_ObjIsAnd(pObj) )
-            Vec_IntPush( vNodes, Gia_ObjId(p,pObj) );
-        else if ( Gia_ObjIsRo(p, pObj) )
-            Vec_IntPush( vFlops, Gia_ObjId(p,pObj) );
-        else assert( Gia_ObjIsConst0(pObj) );
-    }
+    Gia_ManGlaCollect( p, vGateClasses, &vPis, &vPPis, &vFlops, &vNodes );
 
     // start the new manager
     pNew = Gia_ManStart( 5000 );
@@ -1779,91 +1838,7 @@ Gia_Man_t * Gia_ManDupAbsGates( Gia_Man_t * p, Vec_Int_t * vGateClasses )
     Vec_IntFree( vPPis );
     Vec_IntFree( vFlops );
     Vec_IntFree( vNodes );
-    Vec_IntFree( vAssigned );
     return pNew;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Collects PIs and PPIs of the abstraction.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Gia_GlaCollectInputs( Gia_Man_t * p, Vec_Int_t * vGateClasses, Vec_Int_t ** pvPis, Vec_Int_t ** pvPPis )
-{ 
-    Vec_Int_t * vAssigned, * vPis, * vPPis;
-    Gia_Obj_t * pObj;
-    int i;
-    assert( Gia_ManPoNum(p) == 1 );
-    assert( Vec_IntSize(vGateClasses) == Gia_ManObjNum(p) );
-    // create included objects and their fanins
-    vAssigned = Gia_GlaCollectAssigned( p, vGateClasses );
-    // create additional arrays
-    vPis   = Vec_IntAlloc( 1000 );
-    vPPis  = Vec_IntAlloc( 1000 );
-    Gia_ManForEachObjVec( vAssigned, p, pObj, i )
-    {
-        if ( Gia_ObjIsPi(p, pObj) )
-            Vec_IntPush( vPis, Gia_ObjId(p,pObj) );
-        else if ( !Vec_IntEntry(vGateClasses, Gia_ObjId(p,pObj)) )
-            Vec_IntPush( vPPis, Gia_ObjId(p,pObj) );
-        else if ( Gia_ObjIsAnd(pObj) )
-        {}
-        else if ( Gia_ObjIsRo(p, pObj) )
-        {}
-        else assert( Gia_ObjIsConst0(pObj) );
-    }
-    Vec_IntFree( vAssigned );
-    if ( pvPis )  
-        *pvPis  = vPis;
-    else
-        Vec_IntFree( vPis );
-    if ( pvPPis ) 
-        *pvPPis = vPPis;
-    else
-        Vec_IntFree( vPPis );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Returns the array of neighbors.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Vec_Int_t * Gia_GlaCollectAssigned( Gia_Man_t * p, Vec_Int_t * vGateClasses )
-{
-    Vec_Int_t * vAssigned;
-    Gia_Obj_t * pObj;
-    int i, Entry;
-    vAssigned = Vec_IntAlloc( 1000 );
-    Vec_IntForEachEntry( vGateClasses, Entry, i )
-    {
-        if ( Entry == 0 )
-            continue;
-        assert( Entry == 1 );
-        pObj = Gia_ManObj( p, i );
-        Vec_IntPush( vAssigned, Gia_ObjId(p, pObj) );
-        if ( Gia_ObjIsAnd(pObj) )
-        {
-            Vec_IntPush( vAssigned, Gia_ObjFaninId0p(p, pObj) );
-            Vec_IntPush( vAssigned, Gia_ObjFaninId1p(p, pObj) );
-        }
-        else if ( Gia_ObjIsRo(p, pObj) )
-            Vec_IntPush( vAssigned, Gia_ObjFaninId0p(p, Gia_ObjRoToRi(p, pObj)) );
-        else assert( Gia_ObjIsConst0(pObj) );
-    }
-    Vec_IntUniqify( vAssigned );
-    return vAssigned;
 }
 
 /**Function*************************************************************

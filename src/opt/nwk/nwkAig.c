@@ -219,7 +219,7 @@ void Nwk_ManDeriveMinCut( Gia_Man_t * p, int fVerbose )
     Gia_Obj_t * pObj;
     int i, iObjId;
     // get inputs
-    Gia_GlaCollectInputs( p, p->vGateClasses, NULL, &vPPis );
+    Gia_ManGlaCollect( p, p->vGateClasses, NULL, &vPPis, NULL, NULL );
     // collect nodes rechable from PPIs
     vNodes = Vec_IntAlloc( 100 );
     vLeaves = Vec_IntAlloc( 100 );

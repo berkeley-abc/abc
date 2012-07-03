@@ -200,10 +200,7 @@ void Gia_ManPrintFlopClasses( Gia_Man_t * p )
 ***********************************************************************/
 void Gia_ManPrintGateClasses( Gia_Man_t * p )
 {
-    Vec_Int_t * vAssigned, * vPis, * vPPis, * vFlops, * vNodes;
-    Gia_Obj_t * pObj;
-    int i;
-
+    Vec_Int_t * vPis, * vPPis, * vFlops, * vNodes;
     if ( p->vGateClasses == NULL )
         return;
     if ( Vec_IntSize(p->vGateClasses) != Gia_ManObjNum(p) )
@@ -211,38 +208,16 @@ void Gia_ManPrintGateClasses( Gia_Man_t * p )
         printf( "Gia_ManPrintGateClasses(): The number of flop map entries differs from the number of flops.\n" );
         return;
     }
-
-    // create included objects and their fanins
-    vAssigned = Gia_GlaCollectAssigned( p, p->vGateClasses );
-
     // create additional arrays
-    vPis   = Vec_IntAlloc( 1000 );
-    vPPis  = Vec_IntAlloc( 1000 );
-    vFlops = Vec_IntAlloc( 1000 );
-    vNodes = Vec_IntAlloc( 1000 );
-    Gia_ManForEachObjVec( vAssigned, p, pObj, i )
-    {
-        if ( Gia_ObjIsPi(p, pObj) )
-            Vec_IntPush( vPis, Gia_ObjId(p,pObj) );
-        else if ( !Vec_IntEntry(p->vGateClasses, Gia_ObjId(p,pObj)) )
-            Vec_IntPush( vPPis, Gia_ObjId(p,pObj) );
-        else if ( Gia_ObjIsAnd(pObj) )
-            Vec_IntPush( vNodes, Gia_ObjId(p,pObj) );
-        else if ( Gia_ObjIsRo(p, pObj) )
-            Vec_IntPush( vFlops, Gia_ObjId(p,pObj) );
-        else assert( Gia_ObjIsConst0(pObj) );
-    }
-
+    Gia_ManGlaCollect( p, p->vGateClasses, &vPis, &vPPis, &vFlops, &vNodes );
     printf( "Gate-level abstraction:  PI = %d  PPI = %d  FF = %d  (%.2f %%)  AND = %d  (%.2f %%)\n", 
         Vec_IntSize(vPis), Vec_IntSize(vPPis), 
         Vec_IntSize(vFlops), 100.0*Vec_IntSize(vFlops)/(Gia_ManRegNum(p)+1), 
         Vec_IntSize(vNodes), 100.0*Vec_IntSize(vNodes)/(Gia_ManAndNum(p)+1) );
-
     Vec_IntFree( vPis );
     Vec_IntFree( vPPis );
     Vec_IntFree( vFlops );
     Vec_IntFree( vNodes );
-    Vec_IntFree( vAssigned );
 }
 
 /**Function*************************************************************
