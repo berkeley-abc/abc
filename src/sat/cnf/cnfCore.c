@@ -60,7 +60,7 @@ Vec_Int_t * Cnf_DeriveMappingArray( Aig_Man_t * pAig )
 
     // generate cuts for all nodes, assign cost, and find best cuts
 clk = clock();
-    pMemCuts = Dar_ManComputeCuts( pAig, 10, 0 );
+    pMemCuts = Dar_ManComputeCuts( pAig, 10, 0, 0 );
 p->timeCuts = clock() - clk;
 
     // find the mapping
@@ -113,7 +113,7 @@ Cnf_Dat_t * Cnf_Derive( Aig_Man_t * pAig, int nOutputs )
 
     // generate cuts for all nodes, assign cost, and find best cuts
 clk = clock();
-    pMemCuts = Dar_ManComputeCuts( pAig, 10, 0 );
+    pMemCuts = Dar_ManComputeCuts( pAig, 10, 0, 0 );
 p->timeCuts = clock() - clk;
 
     // find the mapping
@@ -150,7 +150,7 @@ p->timeSave = clock() - clk;
   SeeAlso     []
 
 ***********************************************************************/
-Cnf_Dat_t * Cnf_DeriveOther( Aig_Man_t * pAig )
+Cnf_Dat_t * Cnf_DeriveOther( Aig_Man_t * pAig, int fSkipTtMin )
 {
     Cnf_Man_t * p;
     Cnf_Dat_t * pCnf;
@@ -166,7 +166,7 @@ Cnf_Dat_t * Cnf_DeriveOther( Aig_Man_t * pAig )
 
     // generate cuts for all nodes, assign cost, and find best cuts
 clk = clock();
-    pMemCuts = Dar_ManComputeCuts( pAig, 10, 0 );
+    pMemCuts = Dar_ManComputeCuts( pAig, 10, fSkipTtMin, 0 );
 p->timeCuts = clock() - clk;
 
     // find the mapping

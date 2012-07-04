@@ -252,7 +252,7 @@ Abs_VfaMan_t * Abs_VfaManStart( Aig_Man_t * pAig )
         Vec_IntPush( p->vVec2Var, -1 );
 
     // transfer values from CNF
-    p->pCnf = Cnf_DeriveOther( pAig );
+    p->pCnf = Cnf_DeriveOther( pAig, 0 );
     for ( i = 0; i < Aig_ManObjNumMax(pAig); i++ )
         if ( p->pCnf->pObj2Clause[i] == -1 )
             Vec_IntWriteEntry( p->vObj2Vec, i, -1 );

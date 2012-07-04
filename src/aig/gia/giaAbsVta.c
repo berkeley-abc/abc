@@ -1674,6 +1674,12 @@ int Gia_VtaPerformInt( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
                     Vga_ManRollBack( p, nObjOld );
                     goto finish;
                 }
+                // check timeout
+                if ( p->pSat->nRuntimeLimit && time(NULL) > p->pSat->nRuntimeLimit )
+                {
+                    Vga_ManRollBack( p, nObjOld );
+                    goto finish;
+                }
                 if ( vCore != NULL )
                 {
                     p->timeUnsat += clock() - clk2;

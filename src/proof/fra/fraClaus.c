@@ -637,7 +637,7 @@ ABC_PRT( "Lat-cla", clock() - clk );
 
     // generate cuts for all nodes, assign cost, and find best cuts
 clk = clock();
-    pMemCuts = Dar_ManComputeCuts( p->pAig, 10, 1 );
+    pMemCuts = Dar_ManComputeCuts( p->pAig, 10, 0, 1 );
 //    pManCut = Aig_ComputeCuts( p->pAig, 10, 4, 0, 1 );
 if ( p->fVerbose )
 {
@@ -771,7 +771,7 @@ if ( p->fVerbose )
 
     // generate cuts for all nodes, assign cost, and find best cuts
 clk = clock();
-//    pMemCuts = Dar_ManComputeCuts( p->pAig, 10, 1 );
+//    pMemCuts = Dar_ManComputeCuts( p->pAig, 10, 0, 1 );
     pManCut = Aig_ComputeCuts( p->pAig, p->nCutsMax, p->nLutSize, 0, p->fVerbose );
 if ( p->fVerbose )
 {

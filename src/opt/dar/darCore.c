@@ -281,8 +281,8 @@ int Dar_ManCutCount( Aig_Man_t * pAig, int * pnCutsK )
   SeeAlso     []
 
 ***********************************************************************/
-Aig_MmFixed_t * Dar_ManComputeCuts( Aig_Man_t * pAig, int nCutsMax, int fVerbose )
-{
+Aig_MmFixed_t * Dar_ManComputeCuts( Aig_Man_t * pAig, int nCutsMax, int fSkipTtMin, int fVerbose )
+{ 
     Dar_Man_t * p;
     Dar_RwrPar_t Pars, * pPars = &Pars; 
     Aig_Obj_t * pObj;
@@ -306,7 +306,7 @@ Aig_MmFixed_t * Dar_ManComputeCuts( Aig_Man_t * pAig, int nCutsMax, int fVerbose
         Dar_ObjPrepareCuts( p, pObj );
     // compute cuts for each nodes in the topological order
     Aig_ManForEachNode( pAig, pObj, i )
-        Dar_ObjComputeCuts( p, pObj );
+        Dar_ObjComputeCuts( p, pObj, fSkipTtMin );
     // print verbose stats
     if ( fVerbose )
     {

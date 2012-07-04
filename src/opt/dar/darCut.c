@@ -735,14 +735,14 @@ void Dar_ManCutsRestart( Dar_Man_t * p, Aig_Obj_t * pRoot )
   SeeAlso     []
 
 ***********************************************************************/
-Dar_Cut_t * Dar_ObjComputeCuts( Dar_Man_t * p, Aig_Obj_t * pObj )
+Dar_Cut_t * Dar_ObjComputeCuts( Dar_Man_t * p, Aig_Obj_t * pObj, int fSkipTtMin )
 {
     Aig_Obj_t * pFanin0 = Aig_ObjReal_rec( Aig_ObjChild0(pObj) );
     Aig_Obj_t * pFanin1 = Aig_ObjReal_rec( Aig_ObjChild1(pObj) );
     Aig_Obj_t * pFaninR0 = Aig_Regular(pFanin0);
     Aig_Obj_t * pFaninR1 = Aig_Regular(pFanin1);
     Dar_Cut_t * pCutSet, * pCut0, * pCut1, * pCut;
-    int i, k, RetValue; 
+    int i, k; 
 
     assert( !Aig_IsComplement(pObj) );
     assert( Aig_ObjIsNode(pObj) );
@@ -779,9 +779,9 @@ Dar_Cut_t * Dar_ObjComputeCuts( Dar_Man_t * p, Aig_Obj_t * pObj )
         pCut->uTruth = 0xFFFF & Dar_CutTruth( pCut, pCut0, pCut1, Aig_IsComplement(pFanin0), Aig_IsComplement(pFanin1) );
 
         // minimize support of the cut
-        if ( Dar_CutSuppMinimize( pCut ) )
+        if ( !fSkipTtMin && Dar_CutSuppMinimize( pCut ) )
         {
-            RetValue = Dar_CutFilter( pObj, pCut );
+            int RetValue = Dar_CutFilter( pObj, pCut );
             assert( !RetValue );
         }
 
@@ -825,7 +825,7 @@ Dar_Cut_t * Dar_ObjComputeCuts_rec( Dar_Man_t * p, Aig_Obj_t * pObj )
         return Dar_ObjComputeCuts_rec( p, Aig_ObjFanin0(pObj) );
     Dar_ObjComputeCuts_rec( p, Aig_ObjFanin0(pObj) );
     Dar_ObjComputeCuts_rec( p, Aig_ObjFanin1(pObj) );
-    return Dar_ObjComputeCuts( p, pObj );
+    return Dar_ObjComputeCuts( p, pObj, 0 );
 }
 
 ////////////////////////////////////////////////////////////////////////

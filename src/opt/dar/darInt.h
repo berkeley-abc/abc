@@ -137,7 +137,7 @@ extern void            Dar_ManCutsRestart( Dar_Man_t * p, Aig_Obj_t * pRoot );
 extern void            Dar_ManCutsFree( Dar_Man_t * p );
 extern Dar_Cut_t *     Dar_ObjPrepareCuts( Dar_Man_t * p, Aig_Obj_t * pObj );
 extern Dar_Cut_t *     Dar_ObjComputeCuts_rec( Dar_Man_t * p, Aig_Obj_t * pObj );
-extern Dar_Cut_t *     Dar_ObjComputeCuts( Dar_Man_t * p, Aig_Obj_t * pObj );
+extern Dar_Cut_t *     Dar_ObjComputeCuts( Dar_Man_t * p, Aig_Obj_t * pObj, int fSkipTtMin );
 extern void            Dar_ObjCutPrint( Aig_Man_t * p, Aig_Obj_t * pObj );
 /*=== darData.c ===========================================================*/
 extern Vec_Int_t *     Dar_LibReadNodes();

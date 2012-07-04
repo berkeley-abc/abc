@@ -300,7 +300,7 @@ static inline sat_solver * Pdr_ManNewSolver2( sat_solver * pSat, Pdr_Man_t * p, 
     assert( pSat );
     if ( p->pCnf2 == NULL )
     {
-        p->pCnf2     = Cnf_DeriveOther( p->pAig );
+        p->pCnf2     = Cnf_DeriveOther( p->pAig, 0 );
         p->pvId2Vars = ABC_CALLOC( Vec_Int_t *, Aig_ManObjNumMax(p->pAig) );
         p->vVar2Ids  = Vec_PtrAlloc( 256 );
     }
