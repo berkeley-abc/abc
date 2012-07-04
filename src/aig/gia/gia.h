@@ -126,6 +126,8 @@ struct Gia_Man_t_
     int            nTerStates;    // the total number of ternary states
     int *          pFanData;      // the database to store fanout information
     int            nFansAlloc;    // the size of fanout representation
+    Vec_Int_t *    vFanoutNums;   // static fanout
+    Vec_Int_t *    vFanout;       // static fanout
     int *          pMapping;      // mapping for each node
     Vec_Int_t *    vLutConfigs;   // LUT configurations
     Abc_Cex_t *    pCexComb;      // combinational counter-example
@@ -624,6 +626,16 @@ static inline void        Gia_ClassUndoPair( Gia_Man_t * p, int i )          { a
     for ( assert(Gia_ObjIsHead(p, i)), iObj = Gia_ObjNext(p, i); iObj; iObj = Gia_ObjNext(p, iObj) )
 
 
+static inline int         Gia_ObjFoffset( Gia_Man_t * p, Gia_Obj_t * pObj )        { return Vec_IntEntry( p->vFanout, Gia_ObjId(p, pObj) );                 }
+static inline int         Gia_ObjFanoutNum( Gia_Man_t * p, Gia_Obj_t * pObj )      { return Vec_IntEntry( p->vFanoutNums, Gia_ObjId(p, pObj) );             }
+static inline int         Gia_ObjFanoutId( Gia_Man_t * p, Gia_Obj_t * pObj, int i ){ return Vec_IntEntry( p->vFanout, Gia_ObjFoffset(p, pObj) + i );        }
+static inline Gia_Obj_t * Gia_ObjFanout0( Gia_Man_t * p, Gia_Obj_t * pObj )        { return Gia_ManObj( p, Gia_ObjFanoutId(p, pObj, 0) );                   }
+static inline Gia_Obj_t * Gia_ObjFanout( Gia_Man_t * p, Gia_Obj_t * pObj, int i )  { return Gia_ManObj( p, Gia_ObjFanoutId(p, pObj, i) );                   }
+static inline void        Gia_ObjSetFanout( Gia_Man_t * p, Gia_Obj_t * pObj, int i, Gia_Obj_t * pFan )   { Vec_IntWriteEntry( p->vFanout, Gia_ObjFoffset(p, pObj) + i, Gia_ObjId(p, pFan) ); }
+
+#define Gia_ObjForEachFanoutStatic( p, pObj, pFanout, i )      \
+    for ( i = 0; (i < Gia_ObjFanoutNum(p, pObj))   && (((pFanout) = Gia_ObjFanout(p, pObj, i)), 1); i++ )
+
 static inline int         Gia_ObjIsLut( Gia_Man_t * p, int Id )             { return p->pMapping[Id] != 0;               }
 static inline int         Gia_ObjLutSize( Gia_Man_t * p, int Id )           { return p->pMapping[p->pMapping[Id]];       }
 static inline int *       Gia_ObjLutFanins( Gia_Man_t * p, int Id )         { return p->pMapping + p->pMapping[Id] + 1;  }
@@ -787,6 +799,8 @@ extern void                Gia_ObjAddFanout( Gia_Man_t * p, Gia_Obj_t * pObj, Gi
 extern void                Gia_ObjRemoveFanout( Gia_Man_t * p, Gia_Obj_t * pObj, Gia_Obj_t * pFanout );
 extern void                Gia_ManFanoutStart( Gia_Man_t * p );
 extern void                Gia_ManFanoutStop( Gia_Man_t * p );
+extern void                Gia_ManStaticFanoutStart( Gia_Man_t * p );
+extern void                Gia_ManStaticFanoutStop( Gia_Man_t * p );
 /*=== giaForce.c =========================================================*/
 extern void                For_ManExperiment( Gia_Man_t * pGia, int nIters, int fClustered, int fVerbose );
 /*=== giaFrames.c =========================================================*/
