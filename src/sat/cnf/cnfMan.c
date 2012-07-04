@@ -181,6 +181,7 @@ void Cnf_DataFree( Cnf_Dat_t * p )
 {
     if ( p == NULL )
         return;
+    Vec_IntFreeP( &p->vMapping );
     ABC_FREE( p->pObj2Clause );
     ABC_FREE( p->pObj2Count );
     ABC_FREE( p->pClauses[0] );

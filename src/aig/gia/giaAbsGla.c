@@ -62,7 +62,8 @@ typedef struct Gla_Man_t_ Gla_Man_t; // manager
 struct Gla_Man_t_
 {
     // user data
-    Gia_Man_t *    pGia;            // AIG manager
+    Gia_Man_t *    pGia0;           // starting AIG manager
+    Gia_Man_t *    pGia;            // working AIG manager
     Gia_ParVta_t*  pPars;           // parameters
     // internal data
     Vec_Int_t *    vAbs;            // abstracted objects
@@ -882,6 +883,226 @@ void Gla_ManCollectFanins( Gla_Man_t * p, Gla_Obj_t * pGla, int iObj, Vec_Int_t 
     Vec_IntSort( vFanins, 0 );
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Duplicates AIG while decoupling nodes duplicated in the mapping.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManDupMapped_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Gia_Man_t * pNew )
+{
+    if ( Gia_ObjIsTravIdCurrent(p, pObj) )
+        return;
+    Gia_ObjSetTravIdCurrent(p, pObj);
+    assert( Gia_ObjIsAnd(pObj) );
+    Gia_ManDupMapped_rec( p, Gia_ObjFanin0(pObj), pNew );
+    Gia_ManDupMapped_rec( p, Gia_ObjFanin1(pObj), pNew );
+    pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    Vec_IntPush( pNew->vLutConfigs, Gia_ObjId(p, pObj) );
+}
+Gia_Man_t * Gia_ManDupMapped( Gia_Man_t * p, Vec_Int_t * vMapping )
+{
+    Gia_Man_t * pNew;
+    Gia_Obj_t * pObj, * pFanin;
+    int i, k, * pMapping, * pObj2Obj;
+    // start new manager
+    pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    // start mapping
+    Gia_ManFillValue( p );
+    pObj2Obj = ABC_FALLOC( int, Gia_ManObjNum(p) );
+    pObj2Obj[0] = 0;
+    // create reverse mapping and attach it to the node
+    pNew->vLutConfigs = Vec_IntAlloc( Gia_ManObjNum(p) * 4 / 3 );
+    Vec_IntPush( pNew->vLutConfigs, 0 );
+    Gia_ManForEachObj1( p, pObj, i )
+    {
+        if ( Gia_ObjIsAnd(pObj) )
+        {
+            int Offset = Vec_IntEntry(vMapping, Gia_ObjId(p, pObj));
+            if ( Offset == 0 )
+                continue;
+            pMapping = Vec_IntEntryP( vMapping, Offset );
+            Gia_ManIncrementTravId( p );
+            for ( k = 1; k <= 4; k++ )
+            {
+                if ( pMapping[k] == -1 )
+                    continue;
+                pFanin = Gia_ManObj(p, pMapping[k]);
+                Gia_ObjSetTravIdCurrent( p, pFanin );
+                pFanin->Value = pObj2Obj[pMapping[k]];
+                assert( ~pFanin->Value );
+            }
+            assert( !Gia_ObjIsTravIdCurrent(p, pObj) );
+            assert( !~pObj->Value );
+            Gia_ManDupMapped_rec( p, pObj, pNew );
+            pObj2Obj[i] = pObj->Value;
+            assert( ~pObj->Value );
+        }
+        else if ( Gia_ObjIsCi(pObj) )
+        {
+            pObj2Obj[i] = Gia_ManAppendCi( pNew );
+            Vec_IntPush( pNew->vLutConfigs, i );
+        }
+        else if ( Gia_ObjIsCo(pObj) )
+        {
+            Gia_ObjFanin0(pObj)->Value = pObj2Obj[Gia_ObjFaninId0p(p, pObj)];
+            assert( Gia_ObjFanin0(pObj)->Value >= 0 );
+            pObj2Obj[i] = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+            Vec_IntPush( pNew->vLutConfigs, i );
+        }
+    }
+    assert( Vec_IntSize(pNew->vLutConfigs) == Gia_ManObjNum(pNew) );
+    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    // map original AIG into the new AIG
+    Gia_ManForEachObj( p, pObj, i )
+        pObj->Value = pObj2Obj[i];
+    ABC_FREE( pObj2Obj );
+    return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Creates a new manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gla_Man_t * Gla_ManStart2( Gia_Man_t * pGia0, Gia_ParVta_t * pPars )
+{
+    Gla_Man_t * p;
+    Aig_Man_t * pAig;
+    Gia_Obj_t * pObj;
+    Gla_Obj_t * pGla;
+    Vec_Int_t * vMappingNew;
+    int i, * pLits, * pObj2Count, * pObj2Clause;
+
+    // start
+    p = ABC_CALLOC( Gla_Man_t, 1 );
+    p->pGia0 = pGia0;
+    p->pPars = pPars;
+    p->vAbs  = Vec_IntAlloc( 100 );
+    p->vTemp = Vec_IntAlloc( 100 );
+    p->vAddedNew = Vec_IntAlloc( 100 );
+    p->vPrioSels = Vec_IntAlloc( 100 );
+
+    // internal data
+    pAig = Gia_ManToAigSimple( pGia0 );
+    p->pCnf = Cnf_DeriveOther( pAig );
+    Aig_ManStop( pAig );
+
+    // create working GIA
+    p->pGia = Gia_ManDupMapped( pGia0, p->pCnf->vMapping );
+//printf( "Old GIA = %d.  New GIA = %d.\n", Gia_ManObjNum(pGia0), Gia_ManObjNum(p->pGia) );
+
+    // derive new gate map
+    assert( pGia0->vGateClasses != 0 );
+    p->pGia->vGateClasses = Vec_IntStart( Gia_ManObjNum(p->pGia) );
+    // update p->pCnf->vMapping, p->pCnf->pObj2Count, p->pCnf->pObj2Clause 
+    vMappingNew = Vec_IntStart( Gia_ManObjNum(p->pGia) );
+    pObj2Count  = ABC_ALLOC( int, Gia_ManObjNum(p->pGia) );
+    pObj2Clause = ABC_ALLOC( int, Gia_ManObjNum(p->pGia) );
+    Gia_ManForEachObj( pGia0, pObj, i )
+    {
+        if ( !~pObj->Value )
+            continue;
+        // replace positive literal by variable
+        assert( !Abc_LitIsCompl(pObj->Value) );
+        pObj->Value = Abc_Lit2Var(pObj->Value);
+        assert( (int)pObj->Value < Gia_ManObjNum(p->pGia) );
+        // update mappings
+        Vec_IntWriteEntry( vMappingNew, pObj->Value, Vec_IntEntry(p->pCnf->vMapping, i) );
+        pObj2Count[pObj->Value] = p->pCnf->pObj2Count[i];
+        pObj2Clause[pObj->Value] = p->pCnf->pObj2Clause[i];
+        if ( Vec_IntEntry(pGia0->vGateClasses, i) )
+            Vec_IntWriteEntry( p->pGia->vGateClasses, pObj->Value, 1 );
+    }
+    Vec_IntFree( p->pCnf->vMapping );  p->pCnf->vMapping    = vMappingNew;
+    ABC_FREE( p->pCnf->pObj2Count );   p->pCnf->pObj2Count  = pObj2Count;
+    ABC_FREE( p->pCnf->pObj2Clause );  p->pCnf->pObj2Clause = pObj2Clause;
+
+
+    // count the number of variables
+    p->nObjs = 1;
+    Gia_ManForEachObj( p->pGia, pObj, i )
+        if ( p->pCnf->pObj2Count[i] >= 0 )
+            pObj->Value = p->nObjs++;
+        else
+            pObj->Value = ~0;
+
+    // re-express CNF using new variable IDs
+    pLits = p->pCnf->pClauses[0];
+    for ( i = 0; i < p->pCnf->nLiterals; i++ )
+    {
+        // find the original AIG object
+        pObj = Gia_ManObj( pGia0, lit_var(pLits[i]) );
+        assert( ~pObj->Value );
+        // find the working AIG object
+        pObj = Gia_ManObj( p->pGia, pObj->Value );
+        assert( ~pObj->Value );
+        // express literal in terms of LUT variables
+        pLits[i] = toLitCond( pObj->Value, lit_sign(pLits[i]) );
+    }
+
+    // create objects 
+    p->pObjs    = ABC_CALLOC( Gla_Obj_t, p->nObjs );
+    p->pObj2Obj = ABC_FALLOC( unsigned, Gia_ManObjNum(p->pGia) );
+    p->pvRefis  = ABC_CALLOC( Vec_Int_t, Gia_ManObjNum(p->pGia) );
+    Gia_ManForEachObj( p->pGia, pObj, i )
+    {
+        p->pObj2Obj[i] = pObj->Value;
+        if ( !~pObj->Value )
+            continue;
+        pGla = Gla_ManObj( p, pObj->Value );
+        pGla->iGiaObj = i;
+        pGla->fCompl0 = Gia_ObjFaninC0(pObj);
+        pGla->fConst  = Gia_ObjIsConst0(pObj);
+        pGla->fPi     = Gia_ObjIsPi(p->pGia, pObj);
+        pGla->fPo     = Gia_ObjIsPo(p->pGia, pObj);
+        pGla->fRi     = Gia_ObjIsRi(p->pGia, pObj);
+        pGla->fRo     = Gia_ObjIsRo(p->pGia, pObj);
+        pGla->fAnd    = Gia_ObjIsAnd(pObj);
+        if ( Gia_ObjIsConst0(pObj) || Gia_ObjIsPi(p->pGia, pObj) )
+            continue;
+        if ( Gia_ObjIsAnd(pObj) || Gia_ObjIsCo(pObj) )
+        {
+            Gla_ManCollectFanins( p, pGla, pObj->Value, p->vTemp );
+            pGla->nFanins = Vec_IntSize( p->vTemp );
+            memcpy( pGla->Fanins, Vec_IntArray(p->vTemp), sizeof(int) * Vec_IntSize(p->vTemp) );
+            continue;
+        }
+        assert( Gia_ObjIsRo(p->pGia, pObj) );
+        pGla->nFanins   = 1;
+        pGla->Fanins[0] = Gia_ObjFanin0( Gia_ObjRoToRi(p->pGia, pObj) )->Value;
+        pGla->fCompl0   = Gia_ObjFaninC0( Gia_ObjRoToRi(p->pGia, pObj) );
+    }
+    p->pObjRoot = Gla_ManObj( p, Gia_ManPo(p->pGia, 0)->Value );
+    // abstraction 
+    assert( p->pGia->vGateClasses != NULL );
+    Gla_ManForEachObj( p, pGla )
+    {
+        if ( Vec_IntEntry( p->pGia->vGateClasses, pGla->iGiaObj ) == 0 )
+            continue;
+        pGla->fAbs = 1;
+        Vec_IntPush( p->vAbs, Gla_ObjId(p, pGla) );
+    }
+    // other 
+    p->vCla2Obj  = Vec_IntAlloc( 1000 );  Vec_IntPush( p->vCla2Obj, -1 );
+    p->pSat      = sat_solver2_new();
+    p->nSatVars  = 1;
+    return p;
+}
+
 /**Function*************************************************************
 
   Synopsis    [Creates a new manager.]
@@ -996,6 +1217,8 @@ void Gla_ManStop( Gla_Man_t * p )
     Gla_ManForEachObj( p, pGla )
         ABC_FREE( pGla->vFrames.pArray );
     Cnf_DataFree( p->pCnf );
+    if ( p->pGia0 != NULL )
+        Gia_ManStop( p->pGia );
     sat_solver2_delete( p->pSat );
     Vec_IntFreeP( &p->vCla2Obj );
     Vec_IntFreeP( &p->vPrevCore );
@@ -1065,7 +1288,7 @@ int Gla_ManTranslate_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vMap )
 }
 Vec_Int_t * Gla_ManTranslate( Gla_Man_t * p )
 {
-    Vec_Int_t * vRes;
+    Vec_Int_t * vRes, * vRes2;
     Gla_Obj_t * pObj, * pFanin;
     Gia_Obj_t * pGiaObj;
     int i, k;
@@ -1081,6 +1304,15 @@ Vec_Int_t * Gla_ManTranslate( Gla_Man_t * p )
         Gla_ObjForEachFanin( p, pObj, pFanin, k )
             Gia_ObjSetTravIdCurrent( p->pGia, Gla_ManGiaObj(p, pFanin) );
         Gla_ManTranslate_rec( p->pGia, pGiaObj, vRes );
+    }
+    if ( p->pGia->vLutConfigs )
+    {
+        vRes2 = Vec_IntStart( Gia_ManObjNum(p->pGia0) );
+        for ( i = 0; i < Gia_ManObjNum(p->pGia); i++ )
+            if ( Vec_IntEntry(vRes, i) )
+                Vec_IntWriteEntry( vRes2, Vec_IntEntry(p->pGia->vLutConfigs, i), 1 );
+        Vec_IntFree( vRes );
+        return vRes2;
     }
     return vRes;
 }
@@ -1548,7 +1780,7 @@ void Gia_GlaDumpAbsracted( Gla_Man_t * p, int fVerbose )
 //        return;
     // create abstraction
     vGateClasses = Gla_ManTranslate( p );
-    pAbs = Gia_ManDupAbsGates( p->pGia, vGateClasses );
+    pAbs = Gia_ManDupAbsGates( p->pGia0, vGateClasses );
     Vec_IntFreeP( &vGateClasses );
     // write into file
     Gia_WriteAiger( pAbs, pFileName, 0, 0 );

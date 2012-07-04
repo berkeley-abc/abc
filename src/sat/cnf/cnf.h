@@ -64,6 +64,7 @@ struct Cnf_Dat_t_
     int *           pVarNums;        // the number of CNF variable for each node ID (-1 if unused)
     int *           pObj2Clause;     // the mapping of objects into clauses
     int *           pObj2Count;      // the mapping of objects into clause number
+    Vec_Int_t *     vMapping;        // mapping of internal nodes
 };
 
 // the cut used to represent node in the AIG

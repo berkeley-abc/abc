@@ -647,6 +647,30 @@ void Vta_ManSatVerify( Vta_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
+void Vta_ManProfileAddition( Vta_Man_t * p, Vec_Int_t * vTermsToAdd )
+{
+    Vta_Obj_t * pThis;
+    Gia_Obj_t * pObj;
+    // profile the added ones
+    int i, * pCounters = ABC_CALLOC( int, p->pPars->iFrame+1 );
+    Vta_ManForEachObjObjVec( vTermsToAdd, p, pThis, pObj, i )
+        pCounters[pThis->iFrame]++;
+    for ( i = 0; i <= p->pPars->iFrame; i++ )
+        printf( "%2d", pCounters[i] );
+    printf( "***\n" );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Refines abstraction.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 Abc_Cex_t * Vta_ManRefineAbstraction( Vta_Man_t * p, int f )
 {
     int fVerify = 0;
@@ -733,7 +757,12 @@ Abc_Cex_t * Vta_ManRefineAbstraction( Vta_Man_t * p, int f )
     }
 
 /*
-    // update priorities according to reconvergest counters
+    Vta_ManForEachObjObjVecReverse( vOrder, p, pThis, pObj, i )
+        if ( pThis->Prio > 0 )
+            pThis->Prio = 10;
+*/
+/*
+    // update priorities according to reconvergence counters
     Vec_PtrForEachEntry( Vta_Obj_t *, vTermsUsed, pThis, i )
     {
         Vta_Obj_t * pThis0, * pThis1;
@@ -758,13 +787,13 @@ Abc_Cex_t * Vta_ManRefineAbstraction( Vta_Man_t * p, int f )
     }
 */
 
-/*
-    // update priorities according to reconvergest counters
+
+    // update priorities according to reconvergence counters
     Vec_PtrForEachEntry( Vta_Obj_t *, vTermsUsed, pThis, i )
         pThis->Prio = pThis->iObj;
     Vec_PtrForEachEntry( Vta_Obj_t *, vTermsUnused, pThis, i )
         pThis->Prio = pThis->iObj;
-*/
+
 
     // objects with equal distance should receive priority based on number
     // those objects whose prototypes have been added in other timeframes
@@ -943,6 +972,7 @@ Abc_Cex_t * Vta_ManRefineAbstraction( Vta_Man_t * p, int f )
 //Vec_IntReverseOrder( vTermsToAdd );
 //Vec_IntSort( vTermsToAdd, 1 );
 
+
     // cleanup
     Vec_PtrFree( vTermsUsed );
     Vec_PtrFree( vTermsUnused );
@@ -1017,6 +1047,8 @@ Abc_Cex_t * Vta_ManRefineAbstraction( Vta_Man_t * p, int f )
         pCex = Vga_ManDeriveCex( p );
     else
     {
+//       Vta_ManProfileAddition( p, vTermsToAdd );
+
         Vta_ManForEachObjObjVec( vTermsToAdd, p, pThis, pObj, i )
             if ( !Gia_ObjIsPi(p->pGia, pObj) )
                 Vga_ManAddClausesOne( p, pThis->iObj, pThis->iFrame );

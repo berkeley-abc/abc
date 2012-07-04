@@ -180,6 +180,7 @@ clk = clock();
     Cnf_ManTransferCuts( p );
     vMapped = Cnf_ManScanMapping( p, 1, 1 );
     pCnf = Cnf_ManWriteCnfOther( p, vMapped );
+    pCnf->vMapping = Cnf_ManWriteCnfMapping( p, vMapped );
     Vec_PtrFree( vMapped );
     Aig_MmFixedStop( pMemCuts, 0 );
 p->timeSave = clock() - clk;
