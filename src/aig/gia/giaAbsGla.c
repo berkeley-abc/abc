@@ -1925,14 +1925,17 @@ finish:
         p->pPars->iFrame = pCex->iFrame - 1;
     }
     Abc_PrintTime( 1, "Time", clock() - clk );
-    p->timeOther = (clock() - clk) - p->timeUnsat - p->timeSat - p->timeCex - p->timeInit;
-    ABC_PRTP( "Runtime: Initializing", p->timeInit,   clock() - clk );
-    ABC_PRTP( "Runtime: Solver UNSAT", p->timeUnsat,  clock() - clk );
-    ABC_PRTP( "Runtime: Solver SAT  ", p->timeSat,    clock() - clk );
-    ABC_PRTP( "Runtime: Refinement  ", p->timeCex,    clock() - clk );
-    ABC_PRTP( "Runtime: Other       ", p->timeOther,  clock() - clk );
-    ABC_PRTP( "Runtime: TOTAL       ", clock() - clk, clock() - clk );
-    Gla_ManReportMemory( p );
+    if ( p->pPars->fVerbose )
+    {
+        p->timeOther = (clock() - clk) - p->timeUnsat - p->timeSat - p->timeCex - p->timeInit;
+        ABC_PRTP( "Runtime: Initializing", p->timeInit,   clock() - clk );
+        ABC_PRTP( "Runtime: Solver UNSAT", p->timeUnsat,  clock() - clk );
+        ABC_PRTP( "Runtime: Solver SAT  ", p->timeSat,    clock() - clk );
+        ABC_PRTP( "Runtime: Refinement  ", p->timeCex,    clock() - clk );
+        ABC_PRTP( "Runtime: Other       ", p->timeOther,  clock() - clk );
+        ABC_PRTP( "Runtime: TOTAL       ", clock() - clk, clock() - clk );
+        Gla_ManReportMemory( p );
+    }
     Gla_ManStop( p );
     fflush( stdout );
     return RetValue;

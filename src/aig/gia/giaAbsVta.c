@@ -1816,13 +1816,16 @@ finish:
     }
     Abc_PrintTime( 1, "Time", clock() - clk );
 
-    p->timeOther = (clock() - clk) - p->timeUnsat - p->timeSat - p->timeCex;
-    ABC_PRTP( "Runtime: Solver UNSAT", p->timeUnsat,  clock() - clk );
-    ABC_PRTP( "Runtime: Solver SAT  ", p->timeSat,    clock() - clk );
-    ABC_PRTP( "Runtime: Refinement  ", p->timeCex,    clock() - clk );
-    ABC_PRTP( "Runtime: Other       ", p->timeOther,  clock() - clk );
-    ABC_PRTP( "Runtime: TOTAL       ", clock() - clk, clock() - clk );
-    Gia_VtaPrintMemory( p );
+    if ( p->pPars->fVerbose )
+    {
+        p->timeOther = (clock() - clk) - p->timeUnsat - p->timeSat - p->timeCex;
+        ABC_PRTP( "Runtime: Solver UNSAT", p->timeUnsat,  clock() - clk );
+        ABC_PRTP( "Runtime: Solver SAT  ", p->timeSat,    clock() - clk );
+        ABC_PRTP( "Runtime: Refinement  ", p->timeCex,    clock() - clk );
+        ABC_PRTP( "Runtime: Other       ", p->timeOther,  clock() - clk );
+        ABC_PRTP( "Runtime: TOTAL       ", clock() - clk, clock() - clk );
+        Gia_VtaPrintMemory( p );
+    }
 
     Vga_ManStop( p );
     fflush( stdout );
