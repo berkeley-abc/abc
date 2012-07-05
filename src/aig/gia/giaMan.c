@@ -202,6 +202,7 @@ void Gia_ManPrintFlopClasses( Gia_Man_t * p )
 void Gia_ManPrintGateClasses( Gia_Man_t * p )
 {
     Vec_Int_t * vPis, * vPPis, * vFlops, * vNodes;
+    int nTotal;
     if ( p->vGateClasses == NULL )
         return;
     if ( Vec_IntSize(p->vGateClasses) != Gia_ManObjNum(p) )
@@ -211,10 +212,12 @@ void Gia_ManPrintGateClasses( Gia_Man_t * p )
     }
     // create additional arrays
     Gia_ManGlaCollect( p, p->vGateClasses, &vPis, &vPPis, &vFlops, &vNodes );
-    printf( "Gate-level abstraction:  PI = %d  PPI = %d  FF = %d  (%.2f %%)  AND = %d  (%.2f %%)\n", 
+    nTotal = 1 + Vec_IntSize(vFlops) + Vec_IntSize(vNodes);
+    printf( "Gate-level abstraction:  PI = %d  PPI = %d  FF = %d (%.2f %%)  AND = %d (%.2f %%)  Obj = %d (%.2f %%)\n", 
         Vec_IntSize(vPis), Vec_IntSize(vPPis), 
         Vec_IntSize(vFlops), 100.0*Vec_IntSize(vFlops)/(Gia_ManRegNum(p)+1), 
-        Vec_IntSize(vNodes), 100.0*Vec_IntSize(vNodes)/(Gia_ManAndNum(p)+1) );
+        Vec_IntSize(vNodes), 100.0*Vec_IntSize(vNodes)/(Gia_ManAndNum(p)+1), 
+        nTotal,              100.0*nTotal             /(Gia_ManRegNum(p)+Gia_ManAndNum(p)+1) );
     Vec_IntFree( vPis );
     Vec_IntFree( vPPis );
     Vec_IntFree( vFlops );

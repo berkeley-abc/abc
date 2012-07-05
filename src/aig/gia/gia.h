@@ -213,6 +213,7 @@ struct Gia_ParVta_t_
     int            fUseTermVars;  // use terminal variables
     int            fUseRollback;  // use rollback to the starting number of frames
     int            fPropFanout;   // propagate fanout implications
+    int            fAddLayer;     // refinement strategy by adding layers
     int            fDumpVabs;     // dumps the abstracted model
     char *         pFileVabs;     // dumps the abstracted model into this file
     int            fVerbose;      // verbose flag
@@ -704,7 +705,8 @@ extern int                 Gia_GlaPerform( Gia_Man_t * p, Gia_ParVta_t * pPars, 
 extern void                Gia_VtaSetDefaultParams( Gia_ParVta_t * p );
 extern Vec_Ptr_t *         Gia_VtaAbsToFrames( Vec_Int_t * vAbs );
 extern Vec_Int_t *         Gia_VtaFramesToAbs( Vec_Vec_t * vFrames );
-extern Vec_Int_t *         Gia_VtaConvertToGla( Gia_Man_t * p, Vec_Int_t * vAbs );
+extern Vec_Int_t *         Gia_VtaConvertToGla( Gia_Man_t * p, Vec_Int_t * vVta );
+extern Vec_Int_t *         Gia_VtaConvertFromGla( Gia_Man_t * p, Vec_Int_t * vGla, int nFrames );
 extern int                 Gia_VtaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars );
 /*=== giaAiger.c ===========================================================*/
 extern int                 Gia_FileSize( char * pFileName );

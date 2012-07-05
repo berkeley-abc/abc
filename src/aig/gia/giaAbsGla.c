@@ -445,7 +445,7 @@ void Gla_ManCollect( Gla_Man_t * p, Vec_Int_t * vPis, Vec_Int_t * vPPis, Vec_Int
 ***********************************************************************/
 void Gia_ManRefSetAndPropFanout_rec( Gla_Man_t * p, Gia_Obj_t * pObj, int f, Vec_Int_t * vSelect, int Sign )
 {
-    int i, Id = Gia_ObjId(p->pGia, pObj);
+    int i;//, Id = Gia_ObjId(p->pGia, pObj);
     Rfn_Obj_t * pRef0, * pRef1, * pRef = Gla_ObjRef( p, pObj, f );
     Gia_Obj_t * pFanout;
     int k;
@@ -506,7 +506,7 @@ void Gia_ManRefSetAndPropFanout_rec( Gla_Man_t * p, Gia_Obj_t * pObj, int f, Vec
 ***********************************************************************/
 void Gla_ManRefSelect_rec( Gla_Man_t * p, Gia_Obj_t * pObj, int f, Vec_Int_t * vSelect, int Sign )
 { 
-    int i, Id = Gia_ObjId(p->pGia, pObj);
+    int i;//, Id = Gia_ObjId(p->pGia, pObj);
     Rfn_Obj_t * pRef = Gla_ObjRef( p, pObj, f );
     assert( (int)pRef->Sign == Sign );
     if ( pRef->fVisit )
@@ -1100,6 +1100,8 @@ Gla_Man_t * Gla_ManStart( Gia_Man_t * pGia0, Gia_ParVta_t * pPars )
     // other 
     p->vCla2Obj  = Vec_IntAlloc( 1000 );  Vec_IntPush( p->vCla2Obj, -1 );
     p->pSat      = sat_solver2_new();
+//    p->pSat->fVerbose = p->pPars->fVerbose;
+    sat_solver2_set_learntmax( p->pSat, pPars->nLearntMax );
     p->nSatVars  = 1;
     return p;
 }
@@ -1214,7 +1216,7 @@ void Gla_ManStop( Gla_Man_t * p )
     Gla_Obj_t * pGla;
     int i;
 //    if ( p->pPars->fVerbose )
-        Abc_Print( 1, "SAT solver:  Vars = %d. Clauses = %d. Confs = %d. Cexes = %d. ObjAdded = %d\n", 
+        Abc_Print( 1, "SAT solver:  Vars = %d  Clauses = %d  Confs = %d  Cexes = %d  ObjsAdded = %d\n", 
             sat_solver2_nvars(p->pSat), sat_solver2_nclauses(p->pSat), sat_solver2_nconflicts(p->pSat), p->nCexes, p->nObjAdded );
     for ( i = 0; i < Gia_ManObjNum(p->pGia); i++ )
         ABC_FREE( p->pvRefis[i].pArray );
@@ -1754,8 +1756,6 @@ int Gia_GlaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars, int fStartVta )
     clk = clock();
     p = Gla_ManStart( pAig, pPars );
     p->timeInit = clock() - clk;
-    p->pSat->fVerbose = p->pPars->fVerbose;
-    sat_solver2_set_learntmax( p->pSat, pPars->nLearntMax );
     // set runtime limit
     if ( p->pPars->nTimeOut )
         sat_solver2_set_runtime_limit( p->pSat, time(NULL) + p->pPars->nTimeOut - 1 );
@@ -1763,21 +1763,23 @@ int Gia_GlaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars, int fStartVta )
     if ( p->pPars->fVerbose )
     {
         Abc_Print( 1, "Running gate-level abstraction (GLA) with the following parameters:\n" );
-        Abc_Print( 1, "FrameStart = %d  FrameMax = %d  Conf = %d  Timeout = %d. RatioMin = %d %%.\n", 
-            p->pPars->nFramesStart, p->pPars->nFramesMax, p->pPars->nConfLimit, p->pPars->nTimeOut, pPars->nRatioMin );
-        Abc_Print( 1, "Frame   %%   Abs  PPI   FF   AND   Confl  Cex    SatVar   Core     Time\n" );
+        Abc_Print( 1, "FrameMax = %d  ConfMax = %d  LearnMax = %d  Timeout = %d  RatioMin = %d %%.\n", 
+            pPars->nFramesMax, pPars->nConfLimit, pPars->nLearntMax, pPars->nTimeOut, pPars->nRatioMin );
+        Abc_Print( 1, "Frame   %%   Abs  PPI   FF   LUT   Confl  Cex    SatVar   Core     Time\n" );
     }
     for ( f = i = 0; !p->pPars->nFramesMax || f < p->pPars->nFramesMax; f++ )
     {
         int nConflsBeg = sat_solver2_nconflicts(p->pSat);
         p->pPars->iFrame = f;
+
         // load timeframe
         Gia_GlaAddTimeFrame( p, f );
+
         // create bookmark to be used for rollback
-//            sat_solver2_reducedb( p->pSat );
         sat_solver2_bookmark( p->pSat );
         Vec_IntClear( p->vAddedNew );
         p->nAbsOld = Vec_IntSize( p->vAbs );
+
         // iterate as long as there are counter-examples
         for ( i = 0; ; i++ )
         { 
@@ -1805,17 +1807,20 @@ int Gia_GlaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars, int fStartVta )
             p->nCexes++;
             // perform the refinement
             clk2 = clock();
-
-            vPPis = Gla_ManRefinement( p );
-            if ( vPPis == NULL )
+            if ( pPars->fAddLayer )
             {
-                pCex = p->pGia->pCexSeq; p->pGia->pCexSeq = NULL;
-                break;
+                vPPis = Gla_ManCollectPPis( p, NULL );
+//                Gla_ManExplorePPis( p, vPPis );
             }
-
-//            vPPis = Gla_ManCollectPPis( p, NULL );
-//            Gla_ManExplorePPis( p, vPPis );
-
+            else
+            {
+                vPPis = Gla_ManRefinement( p );
+                if ( vPPis == NULL )
+                {
+                    pCex = p->pGia->pCexSeq; p->pGia->pCexSeq = NULL;
+                    break;
+                }
+            }
             Gia_GlaAddToAbs( p, vPPis, 1 );
             Gia_GlaAddOneSlice( p, f, vPPis );
             Vec_IntFree( vPPis );
@@ -1905,7 +1910,10 @@ finish:
                 Abc_Print( 1, "Abstraction stopped for unknown reason in frame %d.  ", f );
         }
         else
+        {
+            p->pPars->iFrame++;
             Abc_Print( 1, "SAT solver completed %d frames and produced an abstraction.  ", f );
+        }
     }
     else
     {
