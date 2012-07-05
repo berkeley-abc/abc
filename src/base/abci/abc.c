@@ -19629,13 +19629,13 @@ int Abc_CommandBmc2( Abc_Frame_t * pAbc, int argc, char ** argv )
     nStart      =        0;
     nFrames     =        0;
     nSizeMax    =   200000;
-    nBTLimit    =     2000;
-    nBTLimitAll =  2000000;
+    nBTLimit    =        0;
+    nBTLimitAll =        0;
     nNodeDelta  =     2000;
     nTimeOut    =        0;
     fRewrite    =        0;
     fNewAlgo    =        0;
-    fOrDecomp   =        1;
+    fOrDecomp   =        0;
     fVerbose    =        0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "SFNTCGDLruvh" ) ) != EOF )

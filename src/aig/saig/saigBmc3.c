@@ -1221,7 +1221,7 @@ void Saig_ParBmcSetDefaultParams( Saig_ParBmc_t * p )
     memset( p, 0, sizeof(Saig_ParBmc_t) );
     p->nStart         =     0;    // maximum number of timeframes 
     p->nFramesMax     =     0;    // maximum number of timeframes 
-    p->nConfLimit     =  2000;    // maximum number of conflicts at a node
+    p->nConfLimit     =     0;    // maximum number of conflicts at a node
     p->nConfLimitJump =     0;    // maximum number of conflicts after jumping
     p->nFramesJump    =     0;    // the number of tiemframes to jump
     p->nTimeOut       =     0;    // approximate timeout in seconds
@@ -1260,8 +1260,8 @@ int Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars )
         printf( "Running \"bmc3\". PI/PO/Reg = %d/%d/%d. And =%7d. Lev =%6d. ObjNums =%6d. Sect =%3d.\n", 
             Saig_ManPiNum(pAig), Saig_ManPoNum(pAig), Saig_ManRegNum(pAig),
             Aig_ManNodeNum(pAig), Aig_ManLevelNum(pAig), p->nObjNums, Vec_VecSize(p->vSects) );
-        printf( "Params: Start = %d. FramesMax = %d. ConfLimit = %d. TimeOut = %d. SolveAll = %d.\n", 
-            pPars->nStart, pPars->nFramesMax, pPars->nConfLimit, pPars->nTimeOut, pPars->fSolveAll );
+        printf( "Params: FramesMax = %d. Start = %d. ConfLimit = %d. TimeOut = %d. SolveAll = %d.\n", 
+            pPars->nFramesMax, pPars->nStart, pPars->nConfLimit, pPars->nTimeOut, pPars->fSolveAll );
     } 
     pPars->nFramesMax = pPars->nFramesMax ? pPars->nFramesMax : ABC_INFINITY;
     // set runtime limit
