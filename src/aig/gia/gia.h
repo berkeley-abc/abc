@@ -212,6 +212,7 @@ struct Gia_ParVta_t_
     int            nRatioMin;     // stop when less than this % of object is abstracted
     int            fUseTermVars;  // use terminal variables
     int            fUseRollback;  // use rollback to the starting number of frames
+    int            fPropFanout;   // propagate fanout implications
     int            fDumpVabs;     // dumps the abstracted model
     char *         pFileVabs;     // dumps the abstracted model into this file
     int            fVerbose;      // verbose flag
@@ -698,7 +699,7 @@ extern int                 Gia_ManCbaPerform( Gia_Man_t * pGia, void * pPars );
 extern int                 Gia_ManGlaCbaPerform( Gia_Man_t * pGia, void * pPars, int fNaiveCnf );
 extern int                 Gia_ManGlaPbaPerform( Gia_Man_t * pGia, void * pPars, int fNewSolver );
 /*=== giaAbsGla.c ===========================================================*/
-extern int                 Gia_GlaPerform( Gia_Man_t * p, Gia_ParVta_t * pPars );
+extern int                 Gia_GlaPerform( Gia_Man_t * p, Gia_ParVta_t * pPars, int fStartVta );
 /*=== giaAbsVta.c ===========================================================*/
 extern void                Gia_VtaSetDefaultParams( Gia_ParVta_t * p );
 extern Vec_Ptr_t *         Gia_VtaAbsToFrames( Vec_Int_t * vAbs );

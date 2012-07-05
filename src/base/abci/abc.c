@@ -27382,12 +27382,12 @@ usage:
 int Abc_CommandAbc9Gla( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Gia_ParVta_t Pars, * pPars = &Pars;
-    int c;
+    int c, fStartVta = 0;
     Gia_VtaSetDefaultParams( pPars );
     pPars->nFramesStart = 30;
     pPars->nLearntMax   = 100000;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FSPCLTRAtrdvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FSPCLTRAtrfdavh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -27483,8 +27483,14 @@ int Abc_CommandAbc9Gla( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'r':
             pPars->fUseRollback ^= 1;
             break;
+        case 'f':
+            pPars->fPropFanout ^= 1;
+            break;
         case 'd':
             pPars->fDumpVabs ^= 1;
+            break;
+        case 'a':
+            fStartVta ^= 1;
             break;
         case 'v':
             pPars->fVerbose ^= 1;
@@ -27525,14 +27531,14 @@ int Abc_CommandAbc9Gla( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( 1, "The starting frame should be 1 or larger.\n" );
         return 0;
     }
-    pAbc->Status  = Gia_GlaPerform( pAbc->pGia, pPars );
+    pAbc->Status  = Gia_GlaPerform( pAbc->pGia, pPars, fStartVta );
     pAbc->nFrames = pPars->iFrame;
     Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexSeq );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &gla [-FSCLTR num] [-A file] [-dvh]\n" );
-    Abc_Print( -2, "\t          refines abstracted object map with proof-based abstraction\n" );
+    Abc_Print( -2, "usage: &gla [-FSCLTR num] [-A file] [-fdavh]\n" );
+    Abc_Print( -2, "\t          performs gate-level abstraction of a sequential miter\n" );
     Abc_Print( -2, "\t-F num  : the max number of timeframes to unroll [default = %d]\n", pPars->nFramesMax );
     Abc_Print( -2, "\t-S num  : the starting time frame (0=unused) [default = %d]\n", pPars->nFramesStart );
 //    Abc_Print( -2, "\t-P num  : the number of previous frames for UNSAT core [default = %d]\n", pPars->nFramesPast );
@@ -27543,7 +27549,9 @@ usage:
     Abc_Print( -2, "\t-A file : file name for dumping abstrated model [default = \"glabs.aig\"]\n" );
 //    Abc_Print( -2, "\t-t      : toggle using terminal variables [default = %s]\n", pPars->fUseTermVars? "yes": "no" );
 //    Abc_Print( -2, "\t-r      : toggle using rollback after the starting frames [default = %s]\n", pPars->fUseRollback? "yes": "no" );
+    Abc_Print( -2, "\t-f      : toggle propagating fanout implications [default = %s]\n", pPars->fPropFanout? "yes": "no" );
     Abc_Print( -2, "\t-d      : toggle dumping abstracted model into a file [default = %s]\n", pPars->fDumpVabs? "yes": "no" );
+    Abc_Print( -2, "\t-a      : toggle using VTA to kick start GLA [default = %s]\n", fStartVta? "yes": "no" );
     Abc_Print( -2, "\t-v      : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h      : print the command usage\n");
     return 1;

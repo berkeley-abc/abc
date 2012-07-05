@@ -74,6 +74,7 @@ struct Gla_Man_t_
     int            nAbsOld;         // previous abstraction
     // other data
     int            nCexes;          // the number of counter-examples
+    int            nObjAdded;       // total number of objects added
     int            nSatVars;        // the number of SAT variables
     Cnf_Dat_t *    pCnf;            // CNF derived for the nodes
     sat_solver2 *  pSat;            // incremental SAT solver
@@ -83,7 +84,7 @@ struct Gla_Man_t_
     Vec_Int_t *    vObjCounts;      // object counters
     // refinement
     Vec_Int_t *    pvRefis;         // vectors of each object
-    Vec_Int_t *    vPrioSels;       // selected priorities
+//    Vec_Int_t *    vPrioSels;       // selected priorities
     // statistics  
     int            timeInit;
     int            timeSat;
@@ -98,13 +99,13 @@ static int         Gla_ManCheckVar( Gla_Man_t * p, int iObj, int iFrame );
 static int         Gla_ManGetVar( Gla_Man_t * p, int iObj, int iFrame );
 
 // object procedures
-static inline int         Gla_ObjId( Gla_Man_t * p, Gla_Obj_t * pObj )      { assert( pObj > p->pObjs && pObj < p->pObjs + p->nObjs ); return pObj - p->pObjs;   }
-static inline Gla_Obj_t * Gla_ManObj( Gla_Man_t * p, int i )                { assert( i >= 0 && i < p->nObjs ); return i ? p->pObjs + i : NULL;                  }
-static inline Gia_Obj_t * Gla_ManGiaObj( Gla_Man_t * p, Gla_Obj_t * pObj )  { return Gia_ManObj( p->pGia, pObj->iGiaObj );                                       }
+static inline int         Gla_ObjId( Gla_Man_t * p, Gla_Obj_t * pObj )      { assert( pObj > p->pObjs && pObj < p->pObjs + p->nObjs ); return pObj - p->pObjs;    }
+static inline Gla_Obj_t * Gla_ManObj( Gla_Man_t * p, int i )                { assert( i >= 0 && i < p->nObjs ); return i ? p->pObjs + i : NULL;                   }
+static inline Gia_Obj_t * Gla_ManGiaObj( Gla_Man_t * p, Gla_Obj_t * pObj )  { return Gia_ManObj( p->pGia, pObj->iGiaObj );                                        }
 static inline int         Gla_ObjSatValue( Gla_Man_t * p, int iGia, int f ) { return Gla_ManCheckVar(p, p->pObj2Obj[iGia], f) ? sat_solver2_var_value( p->pSat, Gla_ManGetVar(p, p->pObj2Obj[iGia], f) ) : 0;  }
 
-static inline Rfn_Obj_t * Gla_ObjRef( Gla_Man_t * p, int iObj, int f )      {  return (Rfn_Obj_t *)Vec_IntGetEntryP( &(p->pvRefis[iObj]), f );                   }
-static inline void        Gla_ObjClearRef( Rfn_Obj_t * p )                  {  *((int *)p) = 0;                                                                  }
+static inline Rfn_Obj_t * Gla_ObjRef( Gla_Man_t * p, Gia_Obj_t * pObj, int f ) { return (Rfn_Obj_t *)Vec_IntGetEntryP( &(p->pvRefis[Gia_ObjId(p->pGia, pObj)]), f ); }
+static inline void        Gla_ObjClearRef( Rfn_Obj_t * p )                     { *((int *)p) = 0;                                                                    }
 
 
 // iterator through abstracted objects
@@ -387,7 +388,7 @@ void Gla_ManCollectInternal_rec( Gia_Man_t * p, Gia_Obj_t * pGiaObj, Vec_Int_t *
 }
 void Gla_ManCollect( Gla_Man_t * p, Vec_Int_t * vPis, Vec_Int_t * vPPis, Vec_Int_t * vCos, Vec_Int_t * vRoAnds )
 {
-    Gla_Obj_t * pObj, * pFanin;
+    Gla_Obj_t * pObj, * pFanin; 
     Gia_Obj_t * pGiaObj;
     int i, k;
 
@@ -409,6 +410,7 @@ void Gla_ManCollect( Gla_Man_t * p, Vec_Int_t * vPis, Vec_Int_t * vPPis, Vec_Int
     Vec_IntUniqify( vPis );
     Vec_IntUniqify( vPPis );
     Vec_IntSort( vCos, 0 );
+    // sorting PIs/PPIs/COs leads to refinements that are more "well-aligned"...
 
     // mark const/PIs/PPIs
     Gia_ManIncrementTravId( p->pGia );
@@ -432,6 +434,67 @@ void Gla_ManCollect( Gla_Man_t * p, Vec_Int_t * vPis, Vec_Int_t * vPPis, Vec_Int
 
 /**Function*************************************************************
 
+  Synopsis    [Drive implications of the given node towards primary outputs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManRefSetAndPropFanout_rec( Gla_Man_t * p, Gia_Obj_t * pObj, int f, Vec_Int_t * vSelect, int Sign )
+{
+    int i, Id = Gia_ObjId(p->pGia, pObj);
+    Rfn_Obj_t * pRef0, * pRef1, * pRef = Gla_ObjRef( p, pObj, f );
+    Gia_Obj_t * pFanout;
+    int k;
+    if ( (int)pRef->Sign != Sign )
+        return;
+    assert( pRef->fVisit == 0 );
+    pRef->fVisit = 1;
+    if ( pRef->fPPi )
+    {
+        assert( (int)pRef->Prio > 0 );
+        for ( i = p->pPars->iFrame; i >= 0; i-- )
+            if ( !Gla_ObjRef(p, pObj, i)->fVisit )
+                Gia_ManRefSetAndPropFanout_rec( p, pObj, i, vSelect, Sign );
+        Vec_IntPush( vSelect, Gia_ObjId(p->pGia, pObj) );
+        return;
+    }
+    if ( (Gia_ObjIsCo(pObj) && f == p->pPars->iFrame) || Gia_ObjIsPo(p->pGia, pObj) )
+        return;
+    if ( Gia_ObjIsRi(p->pGia, pObj) )
+    {
+        pFanout = Gia_ObjRiToRo(p->pGia, pObj);
+        if ( !Gla_ObjRef(p, pFanout, f+1)->fVisit )
+            Gia_ManRefSetAndPropFanout_rec( p, pFanout, f+1, vSelect, Sign );
+        return;
+    }
+    assert( Gia_ObjIsRo(p->pGia, pObj) || Gia_ObjIsAnd(pObj) );
+    Gia_ObjForEachFanoutStatic( p->pGia, pObj, pFanout, k )
+    {
+//        Rfn_Obj_t * pRefF = Gla_ObjRef(p, pFanout, f);
+        if ( Gla_ObjRef(p, pFanout, f)->fVisit )
+            continue;
+        if ( Gia_ObjIsCo(pFanout) )
+        {
+            Gia_ManRefSetAndPropFanout_rec( p, pFanout, f, vSelect, Sign );
+            continue;
+        } 
+        assert( Gia_ObjIsAnd(pFanout) );
+        pRef0 = Gla_ObjRef( p, Gia_ObjFanin0(pFanout), f );
+        pRef1 = Gla_ObjRef( p, Gia_ObjFanin1(pFanout), f );
+        if ( ((pRef0->Value ^ Gia_ObjFaninC0(pFanout)) == 0 && pRef0->fVisit) ||
+             ((pRef1->Value ^ Gia_ObjFaninC1(pFanout)) == 0 && pRef1->fVisit) || 
+           ( ((pRef0->Value ^ Gia_ObjFaninC0(pFanout)) == 1 && pRef0->fVisit) && 
+             ((pRef1->Value ^ Gia_ObjFaninC1(pFanout)) == 1 && pRef1->fVisit) ) )
+           Gia_ManRefSetAndPropFanout_rec( p, pFanout, f, vSelect, Sign );
+    }
+}
+ 
+/**Function*************************************************************
+
   Synopsis    [Selects assignments to be refined.]
 
   Description []
@@ -441,23 +504,30 @@ void Gla_ManCollect( Gla_Man_t * p, Vec_Int_t * vPis, Vec_Int_t * vPPis, Vec_Int
   SeeAlso     []
 
 ***********************************************************************/
-void Gla_ManRefSelect_rec( Gla_Man_t * p, Gia_Obj_t * pObj, int f, Vec_Int_t * vRes, int Sign )
+void Gla_ManRefSelect_rec( Gla_Man_t * p, Gia_Obj_t * pObj, int f, Vec_Int_t * vSelect, int Sign )
 { 
-    int Id = Gia_ObjId(p->pGia, pObj);
-    Rfn_Obj_t * pRef = Gla_ObjRef( p, Gia_ObjId(p->pGia, pObj), f );
+    int i, Id = Gia_ObjId(p->pGia, pObj);
+    Rfn_Obj_t * pRef = Gla_ObjRef( p, pObj, f );
     assert( (int)pRef->Sign == Sign );
     if ( pRef->fVisit )
         return;
-    pRef->fVisit = 1;
+    if ( p->pPars->fPropFanout )
+        Gia_ManRefSetAndPropFanout_rec( p, pObj, f, vSelect, Sign );
+    else
+        pRef->fVisit = 1;
     if ( pRef->fPPi )
     {
         assert( (int)pRef->Prio > 0 );
-        assert( (int)pRef->Prio < Vec_IntSize(p->vPrioSels) );
-        Vec_IntAddToEntry( p->vObjCounts, f, 1 );
-        if ( Vec_IntEntry( p->vPrioSels, pRef->Prio ) == 0 ) // not selected yet
+        if ( p->pPars->fPropFanout )
         {
-            Vec_IntWriteEntry( p->vPrioSels, pRef->Prio, 1 );
-            Vec_IntPush( vRes, Gia_ObjId(p->pGia, pObj) );
+            for ( i = p->pPars->iFrame; i >= 0; i-- )
+                if ( !Gla_ObjRef(p, pObj, i)->fVisit )
+                    Gia_ManRefSetAndPropFanout_rec( p, pObj, i, vSelect, Sign );
+        }
+        else
+        {
+            Vec_IntPush( vSelect, Gia_ObjId(p->pGia, pObj) );
+            Vec_IntAddToEntry( p->vObjCounts, f, 1 );
         }
         return;
     }
@@ -466,19 +536,19 @@ void Gla_ManRefSelect_rec( Gla_Man_t * p, Gia_Obj_t * pObj, int f, Vec_Int_t * v
     if ( Gia_ObjIsRo(p->pGia, pObj) )
     {
         if ( f > 0 )
-            Gla_ManRefSelect_rec( p, Gia_ObjFanin0(Gia_ObjRoToRi(p->pGia, pObj)), f-1, vRes, Sign );
+            Gla_ManRefSelect_rec( p, Gia_ObjFanin0(Gia_ObjRoToRi(p->pGia, pObj)), f-1, vSelect, Sign );
         return;
     }
     if ( Gia_ObjIsAnd(pObj) )
     {
-        Rfn_Obj_t * pRef0 = Gla_ObjRef( p, Gia_ObjFaninId0p(p->pGia, pObj), f );
-        Rfn_Obj_t * pRef1 = Gla_ObjRef( p, Gia_ObjFaninId1p(p->pGia, pObj), f );
+        Rfn_Obj_t * pRef0 = Gla_ObjRef( p, Gia_ObjFanin0(pObj), f );
+        Rfn_Obj_t * pRef1 = Gla_ObjRef( p, Gia_ObjFanin1(pObj), f );
         if ( pRef->Value == 1 )
         {
             if ( pRef0->Prio > 0 )
-                Gla_ManRefSelect_rec( p, Gia_ObjFanin0(pObj), f, vRes, Sign );
+                Gla_ManRefSelect_rec( p, Gia_ObjFanin0(pObj), f, vSelect, Sign );
             if ( pRef1->Prio > 0 )
-                Gla_ManRefSelect_rec( p, Gia_ObjFanin1(pObj), f, vRes, Sign );
+                Gla_ManRefSelect_rec( p, Gia_ObjFanin1(pObj), f, vSelect, Sign );
         }
         else // select one value
         {
@@ -487,23 +557,23 @@ void Gla_ManRefSelect_rec( Gla_Man_t * p, Gia_Obj_t * pObj, int f, Vec_Int_t * v
                 if ( pRef0->Prio <= pRef1->Prio ) // choice
                 {
                     if ( pRef0->Prio > 0 )
-                        Gla_ManRefSelect_rec( p, Gia_ObjFanin0(pObj), f, vRes, Sign );
+                        Gla_ManRefSelect_rec( p, Gia_ObjFanin0(pObj), f, vSelect, Sign );
                 }
                 else
                 {
                     if ( pRef1->Prio > 0 )
-                        Gla_ManRefSelect_rec( p, Gia_ObjFanin1(pObj), f, vRes, Sign );
+                        Gla_ManRefSelect_rec( p, Gia_ObjFanin1(pObj), f, vSelect, Sign );
                 }
             }
             else if ( (pRef0->Value ^ Gia_ObjFaninC0(pObj)) == 0 )
             {
                 if ( pRef0->Prio > 0 )
-                    Gla_ManRefSelect_rec( p, Gia_ObjFanin0(pObj), f, vRes, Sign );
+                    Gla_ManRefSelect_rec( p, Gia_ObjFanin0(pObj), f, vSelect, Sign );
             }
             else if ( (pRef1->Value ^ Gia_ObjFaninC1(pObj)) == 0 )
             {
                 if ( pRef1->Prio > 0 )
-                    Gla_ManRefSelect_rec( p, Gia_ObjFanin1(pObj), f, vRes, Sign );
+                    Gla_ManRefSelect_rec( p, Gia_ObjFanin1(pObj), f, vSelect, Sign );
             }
             else assert( 0 );
         }
@@ -540,14 +610,13 @@ void Gla_ManVerifyUsingTerSim( Gla_Man_t * p, Vec_Int_t * vPis, Vec_Int_t * vPPi
                 Gia_ObjTerSimSet0( pObj );
         }
         Gia_ManForEachObjVec( vPPis, p->pGia, pObj, i )
-        {
-            if ( Vec_IntEntry(p->vPrioSels, i+1) == 0 ) // not selected
-                Gia_ObjTerSimSetX( pObj );
-            else if ( Gla_ObjSatValue( p, Gia_ObjId(p->pGia, pObj), f ) )
+            Gia_ObjTerSimSetX( pObj );
+        Gia_ManForEachObjVec( vRes, p->pGia, pObj, i )
+            if ( Gla_ObjSatValue( p, Gia_ObjId(p->pGia, pObj), f ) )
                 Gia_ObjTerSimSet1( pObj );
             else
                 Gia_ObjTerSimSet0( pObj );
-        }
+
         Gia_ManForEachObjVec( vRoAnds, p->pGia, pObj, i )
         {
             if ( Gia_ObjIsAnd(pObj) )
@@ -575,6 +644,7 @@ void Gla_ManVerifyUsingTerSim( Gla_Man_t * p, Vec_Int_t * vPis, Vec_Int_t * vPPi
         Gia_ObjTerSimSetC( pObj );
 }
 
+
 /**Function*************************************************************
 
   Synopsis    [Performs refinement.]
@@ -590,7 +660,7 @@ Vec_Int_t * Gla_ManRefinement( Gla_Man_t * p )
 {
     int fVerify = 1;
     static int Sign = 0;
-    Vec_Int_t * vPis, * vPPis, * vCos, * vRoAnds, * vRes = NULL;
+    Vec_Int_t * vPis, * vPPis, * vCos, * vRoAnds, * vSelect = NULL;
     Rfn_Obj_t * pRef, * pRef0, * pRef1;
     Gia_Obj_t * pObj;
     int i, f;
@@ -626,7 +696,7 @@ Vec_Int_t * Gla_ManRefinement( Gla_Man_t * p )
     for ( f = 0; f <= p->pPars->iFrame; f++ )
     {
         // constant
-        pRef = Gla_ObjRef( p, 0, f );  Gla_ObjClearRef( pRef );
+        pRef = Gla_ObjRef( p, Gia_ManConst0(p->pGia), f );  Gla_ObjClearRef( pRef );
         pRef->Value  = 0;
         pRef->Prio   = 0;
         pRef->Sign   = Sign;
@@ -634,7 +704,7 @@ Vec_Int_t * Gla_ManRefinement( Gla_Man_t * p )
         Gia_ManForEachObjVec( vPis, p->pGia, pObj, i )
         {
 //            assert( f == p->pPars->iFrame || Gla_ManCheckVar(p, p->pObj2Obj[Gia_ObjId(p->pGia, pObj)], f) );
-            pRef = Gla_ObjRef( p, Gia_ObjId(p->pGia, pObj), f );   Gla_ObjClearRef( pRef );
+            pRef = Gla_ObjRef( p, pObj, f );   Gla_ObjClearRef( pRef );
             pRef->Value = Gla_ObjSatValue( p, Gia_ObjId(p->pGia, pObj), f );
             pRef->Prio  = 0;
             pRef->Sign  = Sign;
@@ -645,7 +715,7 @@ Vec_Int_t * Gla_ManRefinement( Gla_Man_t * p )
         {
 //            assert( f == p->pPars->iFrame || Gla_ManCheckVar(p, p->pObj2Obj[Gia_ObjId(p->pGia, pObj)], f) );
             assert( Gia_ObjIsAnd(pObj) || Gia_ObjIsRo(p->pGia, pObj) );
-            pRef = Gla_ObjRef( p, Gia_ObjId(p->pGia, pObj), f );   Gla_ObjClearRef( pRef );
+            pRef = Gla_ObjRef( p, pObj, f );   Gla_ObjClearRef( pRef );
             pRef->Value = Gla_ObjSatValue( p, Gia_ObjId(p->pGia, pObj), f );
             pRef->Prio  = i+1;
             pRef->fPPi  = 1;
@@ -656,7 +726,7 @@ Vec_Int_t * Gla_ManRefinement( Gla_Man_t * p )
         Gia_ManForEachObjVec( vRoAnds, p->pGia, pObj, i )
         {
             assert( Gia_ObjIsAnd(pObj) || Gia_ObjIsRo(p->pGia, pObj) );
-            pRef = Gla_ObjRef( p, Gia_ObjId(p->pGia, pObj), f );   Gla_ObjClearRef( pRef );
+            pRef = Gla_ObjRef( p, pObj, f );   Gla_ObjClearRef( pRef );
             if ( Gia_ObjIsRo(p->pGia, pObj) )
             {
                 if ( f == 0 )
@@ -667,7 +737,7 @@ Vec_Int_t * Gla_ManRefinement( Gla_Man_t * p )
                 }
                 else
                 {
-                    pRef0 = Gla_ObjRef( p, Gia_ObjId(p->pGia, Gia_ObjRoToRi(p->pGia, pObj)), f-1 );
+                    pRef0 = Gla_ObjRef( p, Gia_ObjRoToRi(p->pGia, pObj), f-1 );
                     pRef->Value = pRef0->Value;
                     pRef->Prio  = pRef0->Prio;
                     pRef->Sign  = Sign;
@@ -675,8 +745,8 @@ Vec_Int_t * Gla_ManRefinement( Gla_Man_t * p )
                 continue;
             }
             assert( Gia_ObjIsAnd(pObj) );
-            pRef0 = Gla_ObjRef( p, Gia_ObjFaninId0p(p->pGia, pObj), f );
-            pRef1 = Gla_ObjRef( p, Gia_ObjFaninId1p(p->pGia, pObj), f );
+            pRef0 = Gla_ObjRef( p, Gia_ObjFanin0(pObj), f );
+            pRef1 = Gla_ObjRef( p, Gia_ObjFanin1(pObj), f );
             pRef->Value = (pRef0->Value ^ Gia_ObjFaninC0(pObj)) & (pRef1->Value ^ Gia_ObjFaninC1(pObj));
 
             if ( p->pObj2Obj[Gia_ObjId(p->pGia, pObj)] != ~0 && 
@@ -701,8 +771,8 @@ Vec_Int_t * Gla_ManRefinement( Gla_Man_t * p )
         // output nodes
         Gia_ManForEachObjVec( vCos, p->pGia, pObj, i )
         {
-            pRef = Gla_ObjRef( p, Gia_ObjId(p->pGia, pObj), f );    Gla_ObjClearRef( pRef );
-            pRef0 = Gla_ObjRef( p, Gia_ObjFaninId0p(p->pGia, pObj), f ); 
+            pRef = Gla_ObjRef( p, pObj, f );    Gla_ObjClearRef( pRef );
+            pRef0 = Gla_ObjRef( p, Gia_ObjFanin0(pObj), f ); 
             pRef->Value = (pRef0->Value ^ Gia_ObjFaninC0(pObj));
             pRef->Prio  = pRef0->Prio;
             assert( pRef->fVisit == 0 );
@@ -712,7 +782,7 @@ Vec_Int_t * Gla_ManRefinement( Gla_Man_t * p )
 
     // make sure the output value is 1
     pObj = Gia_ManPo( p->pGia, 0 );
-    pRef = Gla_ObjRef( p, Gia_ObjId(p->pGia, pObj), p->pPars->iFrame );
+    pRef = Gla_ObjRef( p, pObj, p->pPars->iFrame );
     if ( pRef->Value != 1 )
         printf( "\nCounter-example verification has failed!!!\n" );
 
@@ -728,27 +798,33 @@ Vec_Int_t * Gla_ManRefinement( Gla_Man_t * p )
     }
 
     // select objects
-    vRes = Vec_IntAlloc( 100 );
-    Vec_IntFill( p->vPrioSels, Vec_IntSize(vPPis)+1, 0 );
+    vSelect = Vec_IntAlloc( 100 );
+//    Vec_IntFill( p->vPrioSels, Vec_IntSize(vPPis)+1, 0 );
     Vec_IntFill( p->vObjCounts, p->pPars->iFrame+1, 0 );
-    Gla_ManRefSelect_rec( p, Gia_ObjFanin0(Gia_ManPo(p->pGia, 0)), p->pPars->iFrame, vRes, Sign );
+    Gla_ManRefSelect_rec( p, Gia_ObjFanin0(Gia_ManPo(p->pGia, 0)), p->pPars->iFrame, vSelect, Sign );
+    Vec_IntUniqify( vSelect );
+
+//    printf( "\nSelected %d.\n", Vec_IntSize(vSelect) );
+
 /*
     for ( f = 0; f < p->pPars->iFrame; f++ )
         printf( "%2d", Vec_IntEntry(p->vObjCounts, f) );
     printf( "\n" );
 */
     if ( fVerify )
-        Gla_ManVerifyUsingTerSim( p, vPis, vPPis, vRoAnds, vCos, vRes );
+        Gla_ManVerifyUsingTerSim( p, vPis, vPPis, vRoAnds, vCos, vSelect );
 
     // remap them into GLA objects
-    Gia_ManForEachObjVec( vRes, p->pGia, pObj, i )
-        Vec_IntWriteEntry( vRes, i, p->pObj2Obj[Gia_ObjId(p->pGia, pObj)] );
+    Gia_ManForEachObjVec( vSelect, p->pGia, pObj, i )
+        Vec_IntWriteEntry( vSelect, i, p->pObj2Obj[Gia_ObjId(p->pGia, pObj)] );
 
     Vec_IntFree( vPis );
     Vec_IntFree( vPPis );
     Vec_IntFree( vRoAnds );
     Vec_IntFree( vCos );
-    return vRes;
+
+    p->nObjAdded += Vec_IntSize(vSelect);
+    return vSelect;
 }
 
 
@@ -888,7 +964,7 @@ Gla_Man_t * Gla_ManStart( Gia_Man_t * pGia0, Gia_ParVta_t * pPars )
     p->vAbs  = Vec_IntAlloc( 100 );
     p->vTemp = Vec_IntAlloc( 100 );
     p->vAddedNew = Vec_IntAlloc( 100 );
-    p->vPrioSels = Vec_IntAlloc( 100 );
+//    p->vPrioSels = Vec_IntAlloc( 100 );
     p->vObjCounts = Vec_IntAlloc( 100 );
 
     // internal data
@@ -897,6 +973,8 @@ Gla_Man_t * Gla_ManStart( Gia_Man_t * pGia0, Gia_ParVta_t * pPars )
     Aig_ManStop( pAig );
     // create working GIA
     p->pGia = Gia_ManDupMapped( pGia0, p->pCnf->vMapping );
+    if ( pPars->fPropFanout )
+        Gia_ManStaticFanoutStart( p->pGia );
 //printf( "Old GIA = %d.  New GIA = %d.\n", Gia_ManObjNum(pGia0), Gia_ManObjNum(p->pGia) );
 
     // derive new gate map
@@ -1051,7 +1129,7 @@ Gla_Man_t * Gla_ManStart2( Gia_Man_t * pGia, Gia_ParVta_t * pPars )
     p->vAbs = Vec_IntAlloc( 100 );
     p->vTemp = Vec_IntAlloc( 100 );
     p->vAddedNew = Vec_IntAlloc( 100 );
-    p->vPrioSels = Vec_IntAlloc( 100 );
+//    p->vPrioSels = Vec_IntAlloc( 100 );
     // internal data
     pAig = Gia_ManToAigSimple( p->pGia );
     p->pCnf  = Cnf_DeriveOther( pAig, 1 );
@@ -1136,8 +1214,8 @@ void Gla_ManStop( Gla_Man_t * p )
     Gla_Obj_t * pGla;
     int i;
 //    if ( p->pPars->fVerbose )
-        Abc_Print( 1, "SAT solver:  Variables = %d. Clauses = %d. Conflicts = %d. Cexes = %d.\n", 
-            sat_solver2_nvars(p->pSat), sat_solver2_nclauses(p->pSat), sat_solver2_nconflicts(p->pSat), p->nCexes );
+        Abc_Print( 1, "SAT solver:  Vars = %d. Clauses = %d. Confs = %d. Cexes = %d. ObjAdded = %d\n", 
+            sat_solver2_nvars(p->pSat), sat_solver2_nclauses(p->pSat), sat_solver2_nconflicts(p->pSat), p->nCexes, p->nObjAdded );
     for ( i = 0; i < Gia_ManObjNum(p->pGia); i++ )
         ABC_FREE( p->pvRefis[i].pArray );
     Gla_ManForEachObj( p, pGla )
@@ -1145,11 +1223,12 @@ void Gla_ManStop( Gla_Man_t * p )
     Cnf_DataFree( p->pCnf );
     if ( p->pGia0 != NULL )
         Gia_ManStop( p->pGia );
+//    Gia_ManStaticFanoutStart( p->pGia0 );
     sat_solver2_delete( p->pSat );
     Vec_IntFreeP( &p->vObjCounts );
     Vec_IntFreeP( &p->vCla2Obj );
     Vec_IntFreeP( &p->vAddedNew );
-    Vec_IntFreeP( &p->vPrioSels );
+//    Vec_IntFreeP( &p->vPrioSels );
     Vec_IntFreeP( &p->vTemp );
     Vec_IntFreeP( &p->vAbs );
     ABC_FREE( p->pvRefis );
@@ -1563,7 +1642,7 @@ void Gla_ManReportMemory( Gla_Man_t * p )
     double memSat = sat_solver2_memory( p->pSat );
     double memPro = sat_solver2_memory_proof( p->pSat );
     double memMap = p->nObjs * sizeof(Gla_Obj_t) + Gia_ManObjNum(p->pGia) * sizeof(int);
-    double memRef = Gia_ManObjNum(p->pGia) * sizeof(Vec_Int_t) + Vec_IntCap(p->vPrioSels) * sizeof(int);
+    double memRef = Gia_ManObjNum(p->pGia) * sizeof(Vec_Int_t);
     double memOth = sizeof(Gla_Man_t);
     for ( pGla = p->pObjs; pGla < p->pObjs + p->nObjs; pGla++ )
         memMap += Vec_IntCap(&pGla->vFrames) * sizeof(int);
@@ -1625,7 +1704,7 @@ void Gia_GlaDumpAbsracted( Gla_Man_t * p, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-int Gia_GlaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
+int Gia_GlaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars, int fStartVta )
 {
     extern int Gia_VtaPerformInt( Gia_Man_t * pAig, Gia_ParVta_t * pPars );
     Gla_Man_t * p;
@@ -1636,30 +1715,41 @@ int Gia_GlaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
     // preconditions
     assert( Gia_ManPoNum(pAig) == 1 );
     assert( pPars->nFramesMax == 0 || pPars->nFramesStart <= pPars->nFramesMax );
+
     // compute intial abstraction
     if ( pAig->vGateClasses == NULL )
     {
-        int nFramesMaxOld   = pPars->nFramesMax;
-        int nFramesStartOld = pPars->nFramesStart;
-        int nTimeOutOld     = pPars->nTimeOut;
-        int nDumpOld        = pPars->fDumpVabs;
-        pPars->nFramesMax   = pPars->nFramesStart;
-        pPars->nFramesStart = Abc_MinInt( pPars->nFramesStart/2 + 1, 3 );
-        pPars->nTimeOut     = 20;
-        pPars->fDumpVabs    = 0;
-        RetValue = Gia_VtaPerformInt( pAig, pPars );
-        pPars->nFramesMax   = nFramesMaxOld;
-        pPars->nFramesStart = nFramesStartOld;
-        pPars->nTimeOut     = nTimeOutOld;
-        pPars->fDumpVabs    = nDumpOld;
-        // create gate classes
-        Vec_IntFreeP( &pAig->vGateClasses );
-        if ( pAig->vObjClasses )
-            pAig->vGateClasses = Gia_VtaConvertToGla( pAig, pAig->vObjClasses );
-        Vec_IntFreeP( &pAig->vObjClasses );
+        if ( fStartVta )
+        {
+            int nFramesMaxOld   = pPars->nFramesMax;
+            int nFramesStartOld = pPars->nFramesStart;
+            int nTimeOutOld     = pPars->nTimeOut;
+            int nDumpOld        = pPars->fDumpVabs;
+            pPars->nFramesMax   = pPars->nFramesStart;
+            pPars->nFramesStart = Abc_MinInt( pPars->nFramesStart/2 + 1, 3 );
+            pPars->nTimeOut     = 20;
+            pPars->fDumpVabs    = 0;
+            RetValue = Gia_VtaPerformInt( pAig, pPars );
+            pPars->nFramesMax   = nFramesMaxOld;
+            pPars->nFramesStart = nFramesStartOld;
+            pPars->nTimeOut     = nTimeOutOld;
+            pPars->fDumpVabs    = nDumpOld;
+            // create gate classes
+            Vec_IntFreeP( &pAig->vGateClasses );
+            if ( pAig->vObjClasses )
+                pAig->vGateClasses = Gia_VtaConvertToGla( pAig, pAig->vObjClasses );
+            Vec_IntFreeP( &pAig->vObjClasses );
+            // return if VTA solve the problem if could not start
+            if ( RetValue == 0 || pAig->vGateClasses == NULL )
+                return RetValue;
+        }
+        else
+        {
+            pAig->vGateClasses = Vec_IntStart( Gia_ManObjNum(pAig) );
+            Vec_IntWriteEntry( pAig->vGateClasses, 0, 1 );
+            Vec_IntWriteEntry( pAig->vGateClasses, Gia_ObjFaninId0p(pAig, Gia_ManPo(pAig, 0)), 1 );
+        }
     }
-    if ( RetValue == 0 || pAig->vGateClasses == NULL )
-        return RetValue;
     // start the manager
     clk = clock();
     p = Gla_ManStart( pAig, pPars );

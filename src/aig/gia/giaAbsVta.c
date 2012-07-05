@@ -126,7 +126,7 @@ static inline int          Vta_ObjId( Vta_Man_t * p, Vta_Obj_t * pObj ) { assert
 // - the first entry is the number of timeframes (F)
 // - the next (F+1) entries give the beginning position of each timeframe
 // - the following entries give the object IDs
-// invariant:  assert( vec[vec[0]+2] == size(vec) );
+// invariant:  assert( vec[vec[0]+1] == size(vec) );
 
 extern void Vga_ManAddClausesOne( Vta_Man_t * p, int iObj, int iFrame );
 
@@ -1624,6 +1624,18 @@ int Gia_VtaPerformInt( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
     // preconditions
     assert( Gia_ManPoNum(pAig) == 1 );
     assert( pPars->nFramesMax == 0 || pPars->nFramesStart <= pPars->nFramesMax );
+
+/*
+    // compute intial abstraction
+    if ( pAig->vObjClasses == NULL )
+    {
+        pAig->vObjClasses = Vec_IntAlloc( 5 );
+        Vec_IntPush( pAig->vObjClasses, 1 );
+        Vec_IntPush( pAig->vObjClasses, 3 );
+        Vec_IntPush( pAig->vObjClasses, 4 );
+        Vec_IntPush( pAig->vObjClasses, Gia_ObjFaninId0p(pAig, Gia_ManPo(pAig, 0)) );
+    }
+*/
     // start the manager
     p = Vga_ManStart( pAig, pPars );
     p->pSat->fVerbose = p->pPars->fVerbose;
