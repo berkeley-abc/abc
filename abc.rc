@@ -21,7 +21,7 @@ set gnuplotwin wgnuplot.exe
 set gnuplotunix gnuplot
 
 # Niklas Een's commands
-load_plugin C:\_projects\abc\_TEST\bip\bip_2012-06-14.exe "BIP"
+load_plugin C:\_projects\abc\_TEST\bip\bip_win.exe "BIP"
 
 # standard aliases
 alias b balance
