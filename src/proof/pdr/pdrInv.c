@@ -44,7 +44,7 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
-void Pdr_ManPrintProgress( Pdr_Man_t * p, int fClose, int Time )
+void Pdr_ManPrintProgress( Pdr_Man_t * p, int fClose, clock_t Time )
 {
     Vec_Ptr_t * vVec;
     int i, ThisSize, Length, LengthStart;
