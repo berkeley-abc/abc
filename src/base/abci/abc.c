@@ -18796,7 +18796,7 @@ int Abc_CommandSat( Abc_Frame_t * pAbc, int argc, char ** argv )
     int clk;
     // set defaults
     fVerbose   = 0;
-    nConfLimit = 100000;   
+    nConfLimit = 0;   
     nInsLimit  = 0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "CIvh" ) ) != EOF )
@@ -18931,7 +18931,7 @@ int Abc_CommandDSat( Abc_Frame_t * pAbc, int argc, char ** argv )
     fAndOuts   = 0;
     fNewSolver = 0;
     fVerbose   = 0;
-    nConfLimit = 100000;   
+    nConfLimit = 0;   
     nInsLimit  = 0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "CIpanvh" ) ) != EOF )
@@ -19453,8 +19453,8 @@ int Abc_CommandBmc( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set defaults
     nFrames     =       20;
     nSizeMax    =   100000;
-    nBTLimit    =    10000;
-    nBTLimitAll = 10000000;
+    nBTLimit    =        0;
+    nBTLimitAll =        0;
     nNodeDelta  =     1000;
     fRewrite    =        0;
     fNewAlgo    =        1;

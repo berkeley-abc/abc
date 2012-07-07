@@ -45,8 +45,8 @@ ABC_NAMESPACE_IMPL_START
 void Inter_ManSetDefaultParams( Inter_ManParams_t * p )
 { 
     memset( p, 0, sizeof(Inter_ManParams_t) );
-    p->nBTLimit     = 10000; // limit on the number of conflicts
-    p->nFramesMax   = 40;    // the max number timeframes to unroll
+    p->nBTLimit     = 0;     // limit on the number of conflicts
+    p->nFramesMax   = 0;     // the max number timeframes to unroll
     p->nSecLimit    = 0;     // time limit in seconds
     p->nFramesK     = 1;     // the number of timeframes to use in induction
     p->fRewrite     = 0;     // use additional rewriting to simplify timeframes

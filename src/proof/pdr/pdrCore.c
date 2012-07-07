@@ -47,9 +47,9 @@ void Pdr_ManSetDefaultParams( Pdr_Par_t * pPars )
     memset( pPars, 0, sizeof(Pdr_Par_t) );
     pPars->iOutput       =      -1;  // zero-based output number
     pPars->nRecycle      =     300;  // limit on vars for recycling
-    pPars->nFrameMax     =    5000;  // limit on number of timeframes
+    pPars->nFrameMax     =   10000;  // limit on number of timeframes
     pPars->nTimeOut      =       0;  // timeout in seconds
-    pPars->nConfLimit    =  100000;  // limit on SAT solver conflicts
+    pPars->nConfLimit    =       0;  // limit on SAT solver conflicts
     pPars->nRestLimit    =       0;  // limit on the number of proof-obligations
     pPars->fTwoRounds    =       0;  // use two rounds for generalization
     pPars->fMonoCnf      =       0;  // monolythic CNF
