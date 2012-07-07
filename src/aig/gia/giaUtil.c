@@ -1431,6 +1431,198 @@ Vec_Int_t * Gia_GlaConvertToFla( Gia_Man_t * p, Vec_Int_t * vGla )
     return vFla;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Testing the speedup due to grouping POs into batches.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManCollectObjs_rec( Gia_Man_t * p, int iObjId, Vec_Int_t * vObjs, int Limit )
+{
+    Gia_Obj_t * pObj;
+    if ( Vec_IntSize(vObjs) == Limit )
+        return;
+    if ( Gia_ObjIsTravIdCurrentId(p, iObjId) )
+        return;
+    Gia_ObjSetTravIdCurrentId(p, iObjId);
+    pObj = Gia_ManObj( p, iObjId );
+    if ( Gia_ObjIsAnd(pObj) )
+    {
+        Gia_ManCollectObjs_rec( p, Gia_ObjFaninId0p(p, pObj), vObjs, Limit );
+        if ( Vec_IntSize(vObjs) == Limit )
+            return;
+        Gia_ManCollectObjs_rec( p, Gia_ObjFaninId1p(p, pObj), vObjs, Limit );
+        if ( Vec_IntSize(vObjs) == Limit )
+            return;
+    }
+    Vec_IntPush( vObjs, iObjId );
+}
+unsigned * Gia_ManComputePoTruthTables( Gia_Man_t * p, int nBytesMax )
+{
+    int nVars = Gia_ManPiNum(p);
+    int nTruthWords = Abc_TruthWordNum( nVars );
+    int nTruths = nBytesMax / (sizeof(unsigned) * nTruthWords);
+    int nTotalNodes = 0, nRounds = 0;
+    Vec_Int_t * vObjs;
+    Gia_Obj_t * pObj;
+    clock_t clk = clock();
+    int i;
+    printf( "Var = %d. Words = %d. Truths = %d.\n", nVars, nTruthWords, nTruths );
+    vObjs = Vec_IntAlloc( nTruths );
+    Gia_ManIncrementTravId( p );
+    Gia_ManForEachPo( p, pObj, i )
+    {
+        Gia_ManCollectObjs_rec( p, Gia_ObjFaninId0p(p, pObj), vObjs, nTruths );
+        if ( Vec_IntSize(vObjs) == nTruths )
+        {
+            nRounds++;
+//            printf( "%d ", i );
+            nTotalNodes += Vec_IntSize( vObjs );
+            Vec_IntClear( vObjs );
+            Gia_ManIncrementTravId( p );
+        }
+    }
+//    printf( "\n" );
+    nTotalNodes += Vec_IntSize( vObjs );
+    Vec_IntFree( vObjs );
+
+    printf( "Rounds = %d. Objects = %d. Total = %d.   ", nRounds, Gia_ManObjNum(p), nTotalNodes );
+    Abc_PrintTime( 1, "Time", clock() - clk );
+
+    return NULL;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Computing the truth table of one PO.]
+
+  Description [The truth table should be used (or saved into the user's
+  storage) before this procedure is called next time!]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManComputePoTt_rec( Gia_Man_t * p, Gia_Obj_t * pObj )
+{
+    word * pTruth0, * pTruth1, * pTruth, * pTruthL;
+    if ( Gia_ObjIsTravIdCurrent(p, pObj) )
+        return pObj->Value;
+    Gia_ObjSetTravIdCurrent(p, pObj);
+    assert( Gia_ObjIsAnd(pObj) );
+    pTruth0 = Vec_WrdArray(p->vTtMemory) + p->nTtWords * Gia_ManComputePoTt_rec( p, Gia_ObjFanin0(pObj) );
+    pTruth1 = Vec_WrdArray(p->vTtMemory) + p->nTtWords * Gia_ManComputePoTt_rec( p, Gia_ObjFanin1(pObj) );
+    assert( p->nTtWords * p->iTtNum < Vec_WrdSize(p->vTtMemory) );
+    pTruth  = Vec_WrdArray(p->vTtMemory) + p->nTtWords * p->iTtNum++;
+    pTruthL = Vec_WrdArray(p->vTtMemory) + p->nTtWords * p->iTtNum;
+    if ( Gia_ObjFaninC0(pObj) )
+    {
+        if ( Gia_ObjFaninC1(pObj) )
+            while ( pTruth < pTruthL )
+                *pTruth++ = ~*pTruth0++ & ~*pTruth1++;
+        else
+            while ( pTruth < pTruthL )
+                *pTruth++ = ~*pTruth0++ &  *pTruth1++;
+    }
+    else
+    {
+        if ( Gia_ObjFaninC1(pObj) )
+            while ( pTruth < pTruthL )
+                *pTruth++ =  *pTruth0++ & ~*pTruth1++;
+        else
+            while ( pTruth < pTruthL )
+                *pTruth++ =  *pTruth0++ &  *pTruth1++;
+    }
+    return p->iTtNum-1;
+}
+unsigned * Gia_ManComputePoTt( Gia_Man_t * p, Gia_Obj_t * pObj )
+{
+    Gia_Obj_t * pTemp;
+    word * pTruth;
+    int i, k;
+    // this procedure works only for primary outputs
+    assert( Gia_ObjIsCo(pObj) );
+    if ( p->vTtMemory == NULL )
+    {
+        word Truth6[7] = {
+            0x0000000000000000,
+            0xAAAAAAAAAAAAAAAA,
+            0xCCCCCCCCCCCCCCCC,
+            0xF0F0F0F0F0F0F0F0,
+            0xFF00FF00FF00FF00,
+            0xFFFF0000FFFF0000,
+            0xFFFFFFFF00000000
+        };
+        p->nTtVars   = Gia_ManPiNum( p );
+        p->nTtWords  = (p->nTtVars <= 6 ? 1 : (1 << (p->nTtVars - 6)));
+        p->vTtMemory = Vec_WrdStart( p->nTtWords * 256 );
+        for ( i = 0; i < 7; i++ )
+            for ( k = 0; k < p->nTtWords; k++ )
+                Vec_WrdWriteEntry( p->vTtMemory, i * p->nTtWords + k, Truth6[i] );
+    }
+    else
+    {
+        // make sure the number of primary inputs did not change 
+        // since the truth table computation storage was prepared
+        assert( p->nTtVars == Gia_ManPiNum(p) );
+    }
+    // mark const and PIs
+    Gia_ManIncrementTravId( p );
+    Gia_ObjSetTravIdCurrent( p, Gia_ManConst0(p) );
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManForEachPi( p, pTemp, i )
+    {
+        Gia_ObjSetTravIdCurrent( p, pTemp );
+        pTemp->Value = i+1;
+    }
+    p->iTtNum = 7;
+    // compute truth table for the fanin node
+    pTruth = Vec_WrdArray(p->vTtMemory) + p->nTtWords * Gia_ManComputePoTt_rec(p, Gia_ObjFanin0(pObj));
+    // complement if needed
+    if ( Gia_ObjFaninC0(pObj) )
+    {
+        word * pTemp = pTruth;
+        assert( p->nTtWords * p->iTtNum < Vec_WrdSize(p->vTtMemory) );
+        pTruth = Vec_WrdArray(p->vTtMemory) + p->nTtWords * p->iTtNum;
+        for ( k = 0; k < p->nTtWords; k++ )
+            pTruth[k] = ~pTemp[k];
+    }
+    return (unsigned *)pTruth;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Testing truth table computation.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManComputePoTtTest( Gia_Man_t * p )
+{
+    Gia_Obj_t * pObj;
+    unsigned * pTruth;
+    clock_t clk = clock();
+    int i;
+    Gia_ManForEachPo( p, pObj, i )
+    {
+        pTruth = Gia_ManComputePoTt( p, pObj );
+//        Extra_PrintHex( stdout, pTruth, Gia_ManPiNum(p) ); printf( "\n" );
+    }
+    Abc_PrintTime( 1, "Time", clock() - clk );
+}
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

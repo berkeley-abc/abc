@@ -155,6 +155,10 @@ struct Gia_Man_t_
     word           nHashHit;      // hash table hit
     word           nHashMiss;     // hash table miss
     int            fVerbose;      // verbose reports
+    Vec_Wrd_t *    vTtMemory;     // truth table memory
+    int            nTtVars;       // truth table variables
+    int            nTtWords;      // truth table words
+    int            iTtNum;        // truth table current number
 };
 
 
@@ -942,6 +946,7 @@ extern Vec_Int_t *         Gia_VtaConvertToGla( Gia_Man_t * p, Vec_Int_t * vVta 
 extern Vec_Int_t *         Gia_VtaConvertFromGla( Gia_Man_t * p, Vec_Int_t * vGla, int nFrames );
 extern Vec_Int_t *         Gia_FlaConvertToGla( Gia_Man_t * p, Vec_Int_t * vFla );
 extern Vec_Int_t *         Gia_GlaConvertToFla( Gia_Man_t * p, Vec_Int_t * vGla );
+extern unsigned *          Gia_ManComputePoTt( Gia_Man_t * p, Gia_Obj_t * pObj );
 
 /*=== giaCTas.c ===========================================================*/
 typedef struct Tas_Man_t_  Tas_Man_t;

@@ -28944,8 +28944,7 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    Gia_ManStopP( &pTemp );
 //    Gia_ManSuppSizeTest( pAbc->pGia );
 //    Gia_VtaTest( pAbc->pGia, 10, 100000, 0, 0, 1 );
-
-    Gia_IsoTest( pAbc->pGia, fVerbose );
+//    Gia_IsoTest( pAbc->pGia, fVerbose );
     return 0;
 usage:
     Abc_Print( -2, "usage: &test [-svh]\n" );
