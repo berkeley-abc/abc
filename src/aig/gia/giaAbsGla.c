@@ -1618,6 +1618,8 @@ Vec_Int_t * Gla_ManUnsatCore( Gla_Man_t * p, int f, Vec_Int_t * vCla2Obj, sat_so
 ***********************************************************************/
 void Gla_ManAbsPrintFrame( Gla_Man_t * p, int nCoreSize, int nFrames, int nConfls, int nCexes, int Time )
 {
+    if ( Abc_FrameIsBatchMode() && nCoreSize <= 0 )
+        return;
     Abc_Print( 1, "%3d :", nFrames-1 );
     Abc_Print( 1, "%4d", Abc_MinInt(100, 100 * Gia_GlaAbsCount(p, 0, 0) / (p->nObjs - Gia_ManPoNum(p->pGia) + Gia_ManCoNum(p->pGia) + 1)) ); 
     Abc_Print( 1, "%6d", Gia_GlaAbsCount(p, 0, 0) );
@@ -1820,7 +1822,7 @@ int Gia_GlaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars, int fStartVta )
                     pCex = p->pGia->pCexSeq; p->pGia->pCexSeq = NULL;
                     break;
                 }
-            }
+            } 
             Gia_GlaAddToAbs( p, vPPis, 1 );
             Gia_GlaAddOneSlice( p, f, vPPis );
             Vec_IntFree( vPPis );

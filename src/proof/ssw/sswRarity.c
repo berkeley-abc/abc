@@ -20,6 +20,7 @@
 
 #include "sswInt.h"
 #include "src/aig/gia/giaAig.h"
+#include "src/base/main/main.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -1074,7 +1075,7 @@ int Ssw_RarSignalFilter( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSize
             if ( fMiter && Ssw_RarManCheckNonConstOutputs(p) )
             {
                 if ( !fVerbose ) 
-                    printf( "\r" );
+                    printf( "%s", Abc_FrameIsBatchMode() ? "\n" : "\r" );
 //                printf( "Simulation asserted a PO in frame f: %d <= f < %d.\n", r * nFrames, (r+1) * nFrames );
                 Ssw_RarManPrepareRandom( nRandSeed );
                 Abc_CexFree( pAig->pSeqModel );
@@ -1108,7 +1109,7 @@ finish:
     if ( r == nRounds && f == nFrames )
     {
         if ( !fVerbose ) 
-            printf( "\r" );
+            printf( "%s", Abc_FrameIsBatchMode() ? "\n" : "\r" );
         printf( "Simulation did not assert POs in the first %d frames.         ", nRounds * nFrames );
         Abc_PrintTime( 1, "Time", clock() - clkTotal );
     }

@@ -144,7 +144,10 @@ void Bar_ProgressStop( Bar_Progress_t * p )
 void Bar_ProgressShow( Bar_Progress_t * p, char * pString )
 {
     int i;
-    if ( p == NULL ) return;
+    if ( p == NULL ) 
+        return;
+    if ( Abc_FrameIsBatchMode() )
+        return;
     if ( pString )
         fprintf( p->pFile, "%s ", pString );
     for ( i = (pString? strlen(pString) + 1 : 0); i < p->posCur; i++ )
@@ -171,7 +174,10 @@ void Bar_ProgressShow( Bar_Progress_t * p, char * pString )
 void Bar_ProgressClean( Bar_Progress_t * p )
 {
     int i;
-    if ( p == NULL ) return;
+    if ( p == NULL ) 
+        return;
+    if ( Abc_FrameIsBatchMode() )
+        return;
     for ( i = 0; i <= p->posTotal; i++ )
         fprintf( p->pFile, " " );
     fprintf( p->pFile, "\r" );

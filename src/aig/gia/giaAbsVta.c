@@ -1226,6 +1226,9 @@ int Vta_ManAbsPrintFrame( Vta_Man_t * p, Vec_Int_t * vCore, int nFrames, int nCo
         return fChanges;
     }
 
+    if ( Abc_FrameIsBatchMode() && !vCore )
+        return fChanges;
+
 //    Abc_Print( 1, "%5d%5d", pCountAll[0], pCountUni[0] ); 
     Abc_Print( 1, "%3d :", nFrames-1 );
     Abc_Print( 1, "%4d", Abc_MinInt(100, 100 * p->nSeenGla / (Gia_ManRegNum(p->pGia) + Gia_ManAndNum(p->pGia) + 1)) ); 

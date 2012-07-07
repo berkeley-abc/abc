@@ -69,8 +69,8 @@ struct Abc_Frame_t_
     Abc_Ntk_t *     pNtkBestArea;  // the current network
     int             nSteps;        // the counter of different network processed
     int             fAutoexac;     // marks the autoexec mode
-    int                fBatchMode;       // are we invoked in batch mode?
-    int             fBridgeMode;   // are we invoked in bridge mode?
+    int                fBatchMode;       // batch mode flag
+    int             fBridgeMode;   // bridge mode flag
     // output streams
     FILE *          Out;
     FILE *          Err;

@@ -136,7 +136,10 @@ void Extra_ProgressBarStop( ProgressBar * p )
 void Extra_ProgressBarShow( ProgressBar * p, char * pString )
 {
     int i;
-    if ( p == NULL ) return;
+    if ( p == NULL ) 
+        return;
+    if ( Abc_FrameIsBatchMode() )
+        return;
     if ( pString )
         fprintf( p->pFile, "%s ", pString );
     for ( i = (pString? strlen(pString) + 1 : 0); i < p->posCur; i++ )
@@ -163,7 +166,10 @@ void Extra_ProgressBarShow( ProgressBar * p, char * pString )
 void Extra_ProgressBarClean( ProgressBar * p )
 {
     int i;
-    if ( p == NULL ) return;
+    if ( p == NULL ) 
+        return;
+    if ( Abc_FrameIsBatchMode() )
+        return;
     for ( i = 0; i <= p->posTotal; i++ )
         fprintf( p->pFile, " " );
     fprintf( p->pFile, "\r" );

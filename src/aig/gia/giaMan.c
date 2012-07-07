@@ -412,7 +412,8 @@ void Gia_ManPrintStats( Gia_Man_t * p, int fTents, int fSwitch )
     printf( "  and =%8d", Gia_ManAndNum(p) );
     printf( "  lev =%5d", Gia_ManLevelNum(p) );
     printf( "  cut =%5d", Gia_ManCrossCut(p) );
-    printf( "  mem =%5.2f Mb", 12.0*Gia_ManObjNum(p)/(1<<20) );
+    printf( "  mem =%5.2f Mb", 1.0*(sizeof(Gia_Obj_t)*p->nObjs + sizeof(int)*(Vec_IntSize(p->vCis) + Vec_IntSize(p->vCos)))/(1<<20) );
+//    printf( "  mem =%5.2f Mb", 1.0*(sizeof(Gia_Obj_t)*p->nObjsAlloc + sizeof(int)*(Vec_IntCap(p->vCis) + Vec_IntCap(p->vCos)))/(1<<20) );
     if ( Gia_ManHasDangling(p) )
         printf( "  ch =%5d", Gia_ManEquivCountClasses(p) );
     if ( fSwitch )

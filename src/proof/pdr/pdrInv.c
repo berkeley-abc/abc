@@ -50,6 +50,8 @@ void Pdr_ManPrintProgress( Pdr_Man_t * p, int fClose, clock_t Time )
     int i, ThisSize, Length, LengthStart;
     if ( Vec_PtrSize(p->vSolvers) < 2 )
         return;
+    if ( Abc_FrameIsBatchMode() && !fClose )
+        return;
     // count the total length of the printout
     Length = 0;
     Vec_VecForEachLevel( p->vClauses, vVec, i )
@@ -78,7 +80,7 @@ void Pdr_ManPrintProgress( Pdr_Man_t * p, int fClose, clock_t Time )
     for ( i = ThisSize; i < 70; i++ )
         Abc_Print( 1, " " );
     Abc_Print( 1, "%6d", p->nQueMax );
-    Abc_Print( 1, " %8.2f sec", (float)(Time)/(float)(CLOCKS_PER_SEC) );
+    Abc_Print( 1, "%10.2f sec", 1.0*Time/CLOCKS_PER_SEC );
     Abc_Print( 1, "%s", fClose ? "\n":"\r" );
     if ( fClose )
         p->nQueMax = 0;
