@@ -140,7 +140,7 @@ Vec_Int_t * Pdr_ManCubeToLits( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, int fCom
 {
     Aig_Obj_t * pObj;
     int i, iVar, iVarMax = 0;
-    int clk = clock();
+    clock_t clk = clock();
     Vec_IntClear( p->vLits );
     for ( i = 0; i < pCube->nLits; i++ )
     {
@@ -272,7 +272,8 @@ int Pdr_ManCheckCube( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppPr
     int fLitUsed = 0;
     sat_solver * pSat;
     Vec_Int_t * vLits;
-    int Lit, RetValue, clk;
+    int Lit, RetValue;
+    clock_t clk;
     p->nCalls++;
     pSat = Pdr_ManFetchSolver( p, k );
     if ( pCube == NULL ) // solve the property

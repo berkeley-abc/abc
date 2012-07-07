@@ -72,7 +72,6 @@ Pdr_Man_t * Pdr_ManStart( Aig_Man_t * pAig, Pdr_Par_t * pPars, Vec_Int_t * vPrio
         Aig_ManFanoutStart( pAig );
     if ( pAig->pTerSimData == NULL )
         pAig->pTerSimData = ABC_CALLOC( unsigned, 1 + (Aig_ManObjNumMax(pAig) / 16) );
-    p->timeStart = clock();
     return p;
 }
 

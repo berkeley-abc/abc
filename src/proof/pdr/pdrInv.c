@@ -320,7 +320,8 @@ void Pdr_ManVerifyInvariant( Pdr_Man_t * p )
     Vec_Int_t * vLits;
     Vec_Ptr_t * vCubes;
     Pdr_Set_t * pCube;
-    int i, kStart, kThis, RetValue, Counter = 0, clk = clock();
+    int i, kStart, kThis, RetValue, Counter = 0;
+    clock_t clk = clock();
     // collect cubes used in the inductive invariant
     kStart = Pdr_ManFindInvariantStart( p );
     vCubes = Pdr_ManCollectCubes( p, kStart );

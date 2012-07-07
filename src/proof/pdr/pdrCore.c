@@ -130,7 +130,7 @@ int Pdr_ManPushClauses( Pdr_Man_t * p )
     Vec_Ptr_t * vArrayK, * vArrayK1;
     int i, j, k, m, RetValue = 0, RetValue2, kMax = Vec_PtrSize(p->vSolvers)-1;
     int Counter = 0;
-    int clk = clock();
+    clock_t clk = clock();
     Vec_VecForEachLevelStartStop( p->vClauses, vArrayK, k, 1, kMax )
     {
         Vec_PtrSort( vArrayK, (int (*)(void))Pdr_SetCompare );
@@ -294,7 +294,8 @@ int * Pdr_ManSortByPriority( Pdr_Man_t * p, Pdr_Set_t * pCube )
 int Pdr_ManGeneralize( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppPred, Pdr_Set_t ** ppCubeMin )
 {
     Pdr_Set_t * pCubeMin, * pCubeTmp = NULL;
-    int i, j, n, Lit, RetValue,  clk = clock();
+    int i, j, n, Lit, RetValue;
+    clock_t clk = clock();
     int * pOrder;
     // if there is no induction, return
     *ppCubeMin = NULL;
@@ -549,8 +550,7 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
     int fPrintClauses = 0;
     Pdr_Set_t * pCube;
     int k, RetValue = -1;
-//    int clkTotal = clock();
-    int clkStart = clock();
+    clock_t clkStart = clock();
     p->timeToStop = p->pPars->nTimeOut ? time(NULL) + p->pPars->nTimeOut : 0;
     assert( Vec_PtrSize(p->vSolvers) == 0 );
     // create the first timeframe
@@ -673,13 +673,12 @@ int Pdr_ManSolve_( Aig_Man_t * pAig, Pdr_Par_t * pPars, Vec_Int_t ** pvPrioInit,
 {
     Pdr_Man_t * p;
     int RetValue;
-    int clk = clock();
+    clock_t clk = clock();
     p = Pdr_ManStart( pAig, pPars, pvPrioInit? *pvPrioInit : NULL );
     RetValue = Pdr_ManSolveInt( p );
     *ppCex = RetValue ? NULL : Pdr_ManDeriveCex( p );
     if ( p->pPars->fDumpInv )
         Pdr_ManDumpClauses( p, (char *)"inv.pla", RetValue==1 );
-
 //    if ( *ppCex && pPars->fVerbose )
 //        Abc_Print( 1, "Found counter-example in frame %d after exploring %d frames.\n", 
 //            (*ppCex)->iFrame, p->nFrames );

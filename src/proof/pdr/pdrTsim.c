@@ -363,7 +363,7 @@ Pdr_Set_t * Pdr_ManTernarySim( Pdr_Man_t * p, int k, Pdr_Set_t * pCube )
     Vec_Int_t * vRes    = p->vRes;     // final result (flop literals)
     Aig_Obj_t * pObj;
     int i, Entry, RetValue;
-    int clk = clock();
+    clock_t clk = clock();
 
     // collect CO objects
     Vec_IntClear( vCoObjs );
