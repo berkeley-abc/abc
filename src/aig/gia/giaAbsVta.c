@@ -1246,6 +1246,7 @@ int Vta_ManAbsPrintFrame( Vta_Man_t * p, Vec_Int_t * vCore, int nFrames, int nCo
         for ( k = 0; k < 7; k++ )
             Abc_Print( 1, "     " );
         Abc_Print( 1, "%9.2f sec", (float)(Time)/(float)(CLOCKS_PER_SEC) );
+        Abc_Print( 1, "%5.1f Gb", sat_solver2_memory_proof( p->pSat ) / (1<<30) );
         Abc_Print( 1, "\r" );
     }
     else
@@ -1267,6 +1268,7 @@ int Vta_ManAbsPrintFrame( Vta_Man_t * p, Vec_Int_t * vCore, int nFrames, int nCo
                 Abc_Print( 1, "     " );
         }
         Abc_Print( 1, "%9.2f sec", (float)(Time)/(float)(CLOCKS_PER_SEC) );
+        Abc_Print( 1, "%5.1f Gb", sat_solver2_memory_proof( p->pSat ) / (1<<30) );
         Abc_Print( 1, "\n" );
     }
     fflush( stdout );
