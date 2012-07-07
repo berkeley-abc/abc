@@ -278,7 +278,7 @@ static inline sat_solver * Pdr_ManNewSolver1( sat_solver * pSat, Pdr_Man_t * p, 
             Vec_IntWriteEntry( p->vVar2Reg, Pdr_ObjSatVar(p, k, pObj), i );
     }
     pSat = (sat_solver *)Cnf_DataWriteIntoSolverInt( pSat, p->pCnf1, 1, fInit );
-    sat_solver_set_runtime_limit( pSat, p->timeToStop );
+    sat_solver_set_runtime_limit( pSat, (int)p->timeToStop );
     return pSat;
 }
 
@@ -323,7 +323,7 @@ static inline sat_solver * Pdr_ManNewSolver2( sat_solver * pSat, Pdr_Man_t * p, 
     // start the SAT solver
 //    pSat = sat_solver_new();
     sat_solver_setnvars( pSat, 500 );
-    sat_solver_set_runtime_limit( pSat, p->timeToStop );
+    sat_solver_set_runtime_limit( pSat, (int)p->timeToStop );
     return pSat;
 }
 

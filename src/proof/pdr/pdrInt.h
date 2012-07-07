@@ -111,18 +111,18 @@ struct Pdr_Man_t_
     int         nQueMax;
     int         nQueLim;
     // runtime
-    int         timeStart;
-    int         timeToStop;
+    ABC_INT64_T timeStart;
+    ABC_INT64_T timeToStop;
     // time stats
-    int         tSat;
-    int         tSatSat;
-    int         tSatUnsat;
-    int         tGeneral;
-    int         tPush;
-    int         tTsim;
-    int         tContain;
-    int         tCnf;
-    int         tTotal;
+    ABC_INT64_T tSat;
+    ABC_INT64_T tSatSat;
+    ABC_INT64_T tSatUnsat;
+    ABC_INT64_T tGeneral;
+    ABC_INT64_T tPush;
+    ABC_INT64_T tTsim;
+    ABC_INT64_T tContain;
+    ABC_INT64_T tCnf;
+    ABC_INT64_T tTotal;
 };
 
 ////////////////////////////////////////////////////////////////////////
