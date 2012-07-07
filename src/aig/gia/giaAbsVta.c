@@ -1433,10 +1433,9 @@ void Gia_VtaSendAbsracted( Vta_Man_t * p, int fVerbose )
 {
     extern int Gia_ManToBridgeAbsNetlist( FILE * pFile, Gia_Man_t * p );
     Gia_Man_t * pAbs;
+    assert( Abc_FrameIsBridgeMode() );
 //    if ( fVerbose )
 //        Abc_Print( 1, "Sending abstracted model...\n" );
-    if ( !Abc_FrameIsBridgeMode() )
-        return;
     // create obj classes
     Vec_IntFreeP( &p->pGia->vObjClasses );
     p->pGia->vObjClasses = Gia_VtaFramesToAbs( (Vec_Vec_t *)p->vCores );
@@ -1454,10 +1453,9 @@ void Gia_VtaSendAbsracted( Vta_Man_t * p, int fVerbose )
 void Gia_VtaSendCancel( Vta_Man_t * p, int fVerbose )
 {
     extern int Gia_ManToBridgeBadAbs( FILE * pFile );
+    assert( Abc_FrameIsBridgeMode() );
 //    if ( fVerbose )
 //        Abc_Print( 1, "Cancelling previously sent model...\n" );
-    if ( !Abc_FrameIsBridgeMode() )
-        return;
     Gia_ManToBridgeBadAbs( stdout );
 }
 
@@ -1478,8 +1476,6 @@ void Gia_VtaDumpAbsracted( Vta_Man_t * p, int fVerbose )
     Gia_Man_t * pAbs;
     if ( fVerbose )
         Abc_Print( 1, "Dumping abstracted model into file \"%s\"...\n", pFileName );
-//    if ( !Abc_FrameIsBridgeMode() )
-//        return;
     // create obj classes
     Vec_IntFreeP( &p->pGia->vObjClasses );
     p->pGia->vObjClasses = Gia_VtaFramesToAbs( (Vec_Vec_t *)p->vCores );
@@ -1674,22 +1670,18 @@ int Gia_VtaPerformInt( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
         {
             // reset the counter of frames without change
             nCountNoChange = 1;
-            // cancel old one if it was sent
-//            if ( fOneIsSent )
-//                Gia_VtaSendCancel( p, pPars->fVerbose );
-//            fOneIsSent = 0;
         }
         else if ( ++nCountNoChange == 2 ) // time to send
         {
-            // cancel old one if it was sent
-            if ( fOneIsSent )
-                Gia_VtaSendCancel( p, pPars->fVerbose );
-            // send new one 
-            Gia_VtaSendAbsracted( p, pPars->fVerbose );
-            fOneIsSent = 1;
-            // dump the model
-//            if ( p->pPars->fDumpVabs )
-//                Gia_VtaDumpAbsracted( p, pPars->fVerbose );
+            if ( Abc_FrameIsBridgeMode() )
+            {
+                // cancel old one if it was sent
+                if ( fOneIsSent )
+                    Gia_VtaSendCancel( p, pPars->fVerbose );
+                // send new one 
+                Gia_VtaSendAbsracted( p, pPars->fVerbose );
+                fOneIsSent = 1;
+            }
         }
         // dump the model
         if ( p->pPars->fDumpVabs && (f & 1) )

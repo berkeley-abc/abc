@@ -1678,6 +1678,42 @@ void Gla_ManReportMemory( Gla_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
+void Gia_GlaSendAbsracted( Gla_Man_t * p, int fVerbose )
+{
+    extern int Gia_ManToBridgeAbsNetlist( FILE * pFile, Gia_Man_t * p );
+    Gia_Man_t * pAbs;
+    Vec_Int_t * vGateClasses;
+    assert( Abc_FrameIsBridgeMode() );
+//    if ( fVerbose )
+//        Abc_Print( 1, "Sending abstracted model...\n" );
+    // create abstraction
+    vGateClasses = Gla_ManTranslate( p );
+    pAbs = Gia_ManDupAbsGates( p->pGia0, vGateClasses );
+    Vec_IntFreeP( &vGateClasses );
+    // send it out
+    Gia_ManToBridgeAbsNetlist( stdout, pAbs );
+    Gia_ManStop( pAbs );
+}
+void Gia_GlaSendCancel( Gla_Man_t * p, int fVerbose )
+{
+    extern int Gia_ManToBridgeBadAbs( FILE * pFile );
+    assert( Abc_FrameIsBridgeMode() );
+//    if ( fVerbose )
+//        Abc_Print( 1, "Cancelling previously sent model...\n" );
+    Gia_ManToBridgeBadAbs( stdout );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Send abstracted model or send cancel.]
+
+  Description [Counter-example will be sent automatically when &vta terminates.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 void Gia_GlaDumpAbsracted( Gla_Man_t * p, int fVerbose )
 {
     char * pFileName = p->pPars->pFileVabs ? p->pPars->pFileVabs : "glabs.aig";
@@ -1685,8 +1721,6 @@ void Gia_GlaDumpAbsracted( Gla_Man_t * p, int fVerbose )
     Vec_Int_t * vGateClasses;
     if ( fVerbose )
         Abc_Print( 1, "Dumping abstracted model into file \"%s\"...\n", pFileName );
-//    if ( !Abc_FrameIsBridgeMode() )
-//        return;
     // create abstraction
     vGateClasses = Gla_ManTranslate( p );
     pAbs = Gia_ManDupAbsGates( p->pGia0, vGateClasses );
@@ -1714,7 +1748,7 @@ int Gia_GlaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars, int fStartVta )
     Gla_Man_t * p;
     Vec_Int_t * vCore, * vPPis;
     Abc_Cex_t * pCex = NULL;
-    int i, f, nConfls, Status, nCoreSize, RetValue = -1;
+    int f, i, iPrev, nConfls, Status, nCoreSize, fOneIsSent = 0, RetValue = -1;
     int clk = clock(), clk2;
     // preconditions
     assert( Gia_ManPoNum(pAig) == 1 );
@@ -1769,7 +1803,7 @@ int Gia_GlaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars, int fStartVta )
             pPars->nFramesMax, pPars->nConfLimit, pPars->nLearntMax, pPars->nTimeOut, pPars->nRatioMin );
         Abc_Print( 1, "Frame   %%   Abs  PPI   FF   LUT   Confl  Cex    SatVar   Core     Time\n" );
     }
-    for ( f = i = 0; !p->pPars->nFramesMax || f < p->pPars->nFramesMax; f++ )
+    for ( f = i = iPrev = 0; !p->pPars->nFramesMax || f < p->pPars->nFramesMax; f++, iPrev = i )
     {
         int nConflsBeg = sat_solver2_nconflicts(p->pSat);
         p->pPars->iFrame = f;
@@ -1807,6 +1841,14 @@ int Gia_GlaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars, int fStartVta )
             p->timeSat += clock() - clk2;
             assert( Status == 0 );
             p->nCexes++;
+
+            // cancel old one if it was sent
+            if ( Abc_FrameIsBridgeMode() && fOneIsSent )
+            {
+                Gia_GlaSendCancel( p, pPars->fVerbose );
+                fOneIsSent = 0;
+            }
+
             // perform the refinement
             clk2 = clock();
             if ( pPars->fAddLayer )
@@ -1876,13 +1918,26 @@ int Gia_GlaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars, int fStartVta )
         if ( p->pPars->fVerbose )
         Gla_ManAbsPrintFrame( p, nCoreSize, f+1, sat_solver2_nconflicts(p->pSat)-nConflsBeg, i, clock() - clk );
 
-        // dump the model
-        if ( p->pPars->fDumpVabs && (f & 1) )
+        if ( f > 2 && iPrev > 0 && i == 0 ) // change has happened
         {
-            Abc_FrameSetCex( NULL );
-            Abc_FrameSetNFrames( f+1 );
-            Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "write_status gla.status" );
-            Gia_GlaDumpAbsracted( p, pPars->fVerbose );
+            if ( Abc_FrameIsBridgeMode() )
+            {
+                // cancel old one if it was sent
+                if ( fOneIsSent )
+                    Gia_GlaSendCancel( p, pPars->fVerbose );
+                // send new one 
+                Gia_GlaSendAbsracted( p, pPars->fVerbose );
+                fOneIsSent = 1;
+            }
+
+            // dump the model into file
+            if ( p->pPars->fDumpVabs )
+            {
+                Abc_FrameSetCex( NULL );
+                Abc_FrameSetNFrames( f+1 );
+                Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "write_status gla.status" );
+                Gia_GlaDumpAbsracted( p, pPars->fVerbose );
+            }
         }
 
         // check if the number of objects is below limit
