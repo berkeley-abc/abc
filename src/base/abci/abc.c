@@ -353,6 +353,8 @@ static int Abc_CommandAbc9Gla                ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9Vta                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Vta2Gla            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Gla2Vta            ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Fla2Gla            ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Gla2Fla            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Reparam            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9BackReach          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Posplit            ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -799,6 +801,8 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&vta",          Abc_CommandAbc9Vta,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&vta_gla",      Abc_CommandAbc9Vta2Gla,      0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&gla_vta",      Abc_CommandAbc9Gla2Vta,      0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&fla_gla",      Abc_CommandAbc9Fla2Gla,      0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&gla_fla",      Abc_CommandAbc9Gla2Fla,      0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&reparam",      Abc_CommandAbc9Reparam,      0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&back_reach",   Abc_CommandAbc9BackReach,    0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&posplit",      Abc_CommandAbc9Posplit,      0 );
@@ -27846,6 +27850,108 @@ usage:
     Abc_Print( -2, "usage: &gla_vta [-F num] [-vh]\n" );
     Abc_Print( -2, "\t          maps fixed- into variable-time-frame gate-level abstraction\n" );
     Abc_Print( -2, "\t-F num  : timeframes in the resulting variable-time-frame abstraction [default = %d]\n", nFrames );
+    Abc_Print( -2, "\t-v      : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h      : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Fla2Gla( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    int c, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Fla2Gla(): There is no AIG.\n" );
+        return 1;
+    }
+    if ( pAbc->pGia->vFlopClasses == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Fla2Gla(): There is no gate-level abstraction is defined.\n" );
+        return 1;
+    }
+    Vec_IntFreeP( &pAbc->pGia->vGateClasses );
+    pAbc->pGia->vGateClasses = Gia_FlaConvertToGla( pAbc->pGia, pAbc->pGia->vFlopClasses );
+    Vec_IntFreeP( &pAbc->pGia->vFlopClasses );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &fla_gla [-vh]\n" );
+    Abc_Print( -2, "\t          maps flop-level into gate-level abstraction\n" );
+    Abc_Print( -2, "\t-v      : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h      : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Gla2Fla( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    int c, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Gla2Fla(): There is no AIG.\n" );
+        return 1;
+    }
+    if ( pAbc->pGia->vGateClasses == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Gla2Fla(): There is no gate-level abstraction is defined.\n" );
+        return 1;
+    }
+    Vec_IntFreeP( &pAbc->pGia->vFlopClasses );
+    pAbc->pGia->vFlopClasses = Gia_GlaConvertToFla( pAbc->pGia, pAbc->pGia->vGateClasses );
+    Vec_IntFreeP( &pAbc->pGia->vGateClasses );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &gla_fla [-vh]\n" );
+    Abc_Print( -2, "\t          maps gate-level into flop-level abstraction\n" );
     Abc_Print( -2, "\t-v      : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h      : print the command usage\n");
     return 1;

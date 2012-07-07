@@ -703,10 +703,6 @@ extern int                 Gia_ManGlaPbaPerform( Gia_Man_t * pGia, void * pPars,
 extern int                 Gia_GlaPerform( Gia_Man_t * p, Gia_ParVta_t * pPars, int fStartVta );
 /*=== giaAbsVta.c ===========================================================*/
 extern void                Gia_VtaSetDefaultParams( Gia_ParVta_t * p );
-extern Vec_Ptr_t *         Gia_VtaAbsToFrames( Vec_Int_t * vAbs );
-extern Vec_Int_t *         Gia_VtaFramesToAbs( Vec_Vec_t * vFrames );
-extern Vec_Int_t *         Gia_VtaConvertToGla( Gia_Man_t * p, Vec_Int_t * vVta );
-extern Vec_Int_t *         Gia_VtaConvertFromGla( Gia_Man_t * p, Vec_Int_t * vGla, int nFrames );
 extern int                 Gia_VtaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars );
 /*=== giaAiger.c ===========================================================*/
 extern int                 Gia_FileSize( char * pFileName );
@@ -942,6 +938,10 @@ extern void                Gia_ObjPrint( Gia_Man_t * p, Gia_Obj_t * pObj );
 extern int                 Gia_ManVerifyCex( Gia_Man_t * pAig, Abc_Cex_t * p, int fDualOut );
 extern int                 Gia_ManFindFailedPoCex( Gia_Man_t * pAig, Abc_Cex_t * p, int nOutputs );
 extern void                Gia_ManInvertConstraints( Gia_Man_t * pAig );
+extern Vec_Int_t *         Gia_VtaConvertToGla( Gia_Man_t * p, Vec_Int_t * vVta );
+extern Vec_Int_t *         Gia_VtaConvertFromGla( Gia_Man_t * p, Vec_Int_t * vGla, int nFrames );
+extern Vec_Int_t *         Gia_FlaConvertToGla( Gia_Man_t * p, Vec_Int_t * vFla );
+extern Vec_Int_t *         Gia_GlaConvertToFla( Gia_Man_t * p, Vec_Int_t * vGla );
 
 /*=== giaCTas.c ===========================================================*/
 typedef struct Tas_Man_t_  Tas_Man_t;
