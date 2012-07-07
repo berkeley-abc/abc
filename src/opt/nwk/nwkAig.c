@@ -175,7 +175,10 @@ Nwk_Man_t * Nwk_ManCreateFromGia( Gia_Man_t * p, Vec_Int_t * vPPis, Vec_Int_t * 
         Vec_IntPush( vMaps, Gia_ObjId(p,pObj) );
     }
     for ( i = Vec_IntSize(vLeaves); i < Vec_IntSize(vPPis); i++ )
+    {
         Nwk_ManCreateCi( pNtk, 0 );
+        Vec_IntPush( vMaps, -1 );
+    }
     Gia_ManForEachObjVec( vNodes, p, pObj, i )
     {
         ppCopies[Gia_ObjId(p,pObj)] = Nwk_ManCreateNode( pNtk, 2, Gia_ObjRefs(p,pObj) );
