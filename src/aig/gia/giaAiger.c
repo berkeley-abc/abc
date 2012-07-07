@@ -1039,27 +1039,20 @@ Gia_Man_t * Gia_ReadAigerFromMemory( char * pContents, int nFileSize, int fCheck
         Vec_IntFreeP( &vPoTypes );
     }
 
+    if ( Gia_ManHasDangling(pNew) )
     {
         Vec_Int_t * vFlopMap, * vGateMap, * vObjMap;
         vFlopMap = pNew->vFlopClasses; pNew->vFlopClasses = NULL;
         vGateMap = pNew->vGateClasses; pNew->vGateClasses = NULL;
         vObjMap  = pNew->vObjClasses;  pNew->vObjClasses  = NULL;
         pNew = Gia_ManCleanup( pTemp = pNew );
+        if ( (vGateMap || vObjMap) && (Gia_ManObjNum(pNew) < Gia_ManObjNum(pTemp)) )
+            printf( "Cleanup removed objects after reading. Old gate/object abstraction maps are invalid!\n" );
         Gia_ManStop( pTemp );
         pNew->vFlopClasses = vFlopMap;
         pNew->vGateClasses = vGateMap;
         pNew->vObjClasses  = vObjMap;
     }
-/*
-    {
-        extern Vec_Int_t * Vta_ManFramesToAbs( Vec_Vec_t * vFrames );
-        extern Vec_Ptr_t * Vta_ManAbsToFrames( Vec_Int_t * vAbs );
-        Vec_Vec_t * vAbs = (Vec_Vec_t *)Gia_ManUnrollAbs( pNew );
-        assert( pNew->vObjClasses == NULL );
-        pNew->vObjClasses = Vta_ManFramesToAbs( vAbs );
-        Vec_VecFree( vAbs );
-    }
-*/
     return pNew;
 }
 
