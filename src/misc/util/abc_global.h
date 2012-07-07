@@ -285,19 +285,19 @@ static inline void Abc_Print( int level, const char * format, ... )
     va_end( args );
 }
 
-static inline void Abc_PrintTime( int level, const char * pStr, int time )
+static inline void Abc_PrintTime( int level, const char * pStr, clock_t time )
 {
     ABC_PRT( pStr, time );
 }
 
-static inline void Abc_PrintTimeP( int level, const char * pStr, int time, int Time )
+static inline void Abc_PrintTimeP( int level, const char * pStr, clock_t time, clock_t Time )
 {
     ABC_PRTP( pStr, time, Time );
 }
 
-static inline void Abc_PrintMemoryP( int level, const char * pStr, int time, int Time )
+static inline void Abc_PrintMemoryP( int level, const char * pStr, int mem, int Mem )
 {
-    ABC_PRMP( pStr, time, Time );
+    ABC_PRMP( pStr, mem, Mem );
 }
 
 // Returns the next prime >= p
