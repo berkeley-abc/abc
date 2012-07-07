@@ -156,7 +156,7 @@ void Gia_VtaSetDefaultParams( Gia_ParVta_t * p )
     p->nLearntMax    =   1000;   // max number of learned clauses
     p->nTimeOut      =      0;   // timeout in seconds
     p->nRatioMin     =     10;   // stop when less than this % of object is abstracted
-    p->fUseTermVars  =      1;   // use terminal variables
+    p->fUseTermVars  =      0;   // use terminal variables
     p->fUseRollback  =      0;   // use rollback to the starting number of frames
     p->fVerbose      =      0;   // verbose flag
     p->iFrame        =     -1;   // the number of frames covered 
