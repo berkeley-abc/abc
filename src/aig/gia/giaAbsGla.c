@@ -86,11 +86,11 @@ struct Gla_Man_t_
     Vec_Int_t *    pvRefis;         // vectors of each object
 //    Vec_Int_t *    vPrioSels;       // selected priorities
     // statistics  
-    int            timeInit;
-    int            timeSat;
-    int            timeUnsat;
-    int            timeCex;
-    int            timeOther;
+    clock_t        timeInit;
+    clock_t        timeSat;
+    clock_t        timeUnsat;
+    clock_t        timeCex;
+    clock_t        timeOther;
 };
 
 // declarations
@@ -194,7 +194,8 @@ int Gia_ManGlaRefine( Gia_Man_t * p, Abc_Cex_t * pCex, int fMinCut, int fVerbose
     Aig_Man_t * pAig;
     Abc_Cex_t * pCare;
     Vec_Int_t * vPis, * vPPis;
-    int f, i, iObjId, clk = clock();
+    int f, i, iObjId;
+    clock_t clk = clock();
     int nOnes = 0, Counter = 0;
     if ( p->vGateClasses == NULL )
     {
@@ -1547,7 +1548,8 @@ Vec_Int_t * Gla_ManUnsatCore( Gla_Man_t * p, int f, Vec_Int_t * vCla2Obj, sat_so
     Vec_Int_t * vCore;
     int iLit = Gla_ManGetOutLit( p, f );
     int nConfPrev = pSat->stats.conflicts;
-    int i, Entry, RetValue, clk = clock();
+    int i, Entry, RetValue;
+    clock_t clk = clock();
     if ( piRetValue )
         *piRetValue = 1;
     // consider special case when PO points to the flop
@@ -1616,7 +1618,7 @@ Vec_Int_t * Gla_ManUnsatCore( Gla_Man_t * p, int f, Vec_Int_t * vCla2Obj, sat_so
   SeeAlso     []
 
 ***********************************************************************/
-void Gla_ManAbsPrintFrame( Gla_Man_t * p, int nCoreSize, int nFrames, int nConfls, int nCexes, int Time )
+void Gla_ManAbsPrintFrame( Gla_Man_t * p, int nCoreSize, int nFrames, int nConfls, int nCexes, clock_t Time )
 {
     if ( Abc_FrameIsBatchMode() && nCoreSize <= 0 )
         return;
@@ -1633,7 +1635,7 @@ void Gla_ManAbsPrintFrame( Gla_Man_t * p, int nCoreSize, int nFrames, int nConfl
         Abc_Print( 1, "%5d", nCexes ); 
     Abc_Print( 1, " %9d", sat_solver2_nvars(p->pSat) ); 
     Abc_Print( 1, " %6d", nCoreSize > 0 ? nCoreSize : 0 ); 
-    Abc_Print( 1, "%9.2f sec", (float)(Time)/(float)(CLOCKS_PER_SEC) );
+    Abc_Print( 1, "%9.2f sec", 1.0*Time/CLOCKS_PER_SEC );
     Abc_Print( 1, "%5.1f Gb", sat_solver2_memory_proof( p->pSat ) / (1<<30) );
     Abc_Print( 1, "%s", nCoreSize > 0 ? "\n" : "\r" );
     fflush( stdout );
@@ -1750,7 +1752,7 @@ int Gia_GlaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars, int fStartVta )
     Vec_Int_t * vCore, * vPPis;
     Abc_Cex_t * pCex = NULL;
     int f, i, iPrev, nConfls, Status, nCoreSize, fOneIsSent = 0, RetValue = -1;
-    int clk = clock(), clk2;
+    clock_t clk = clock(), clk2;
     // preconditions
     assert( Gia_ManPoNum(pAig) == 1 );
     assert( pPars->nFramesMax == 0 || pPars->nFramesStart <= pPars->nFramesMax );

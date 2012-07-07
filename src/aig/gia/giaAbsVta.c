@@ -72,10 +72,10 @@ struct Vta_Man_t_
     sat_solver2 * pSat;         // incremental SAT solver
     Vec_Int_t *   vAddedNew;    // the IDs of variables added to the solver
     // statistics 
-    int           timeSat;
-    int           timeUnsat;
-    int           timeCex;
-    int           timeOther;
+    clock_t       timeSat;
+    clock_t       timeUnsat;
+    clock_t       timeCex;
+    clock_t       timeOther;
 };
 
 
@@ -1108,7 +1108,8 @@ Vec_Int_t * Vta_ManUnsatCore( int iLit, Vec_Int_t * vCla2Var, sat_solver2 * pSat
 {
     Vec_Int_t * vPres;
     Vec_Int_t * vCore;
-    int k, i, Entry, RetValue, clk = clock();
+    int k, i, Entry, RetValue;
+    clock_t clk = clock();
     int nConfPrev = pSat->stats.conflicts;
     if ( piRetValue )
         *piRetValue = 1;
@@ -1186,7 +1187,7 @@ Vec_Int_t * Vta_ManUnsatCore( int iLit, Vec_Int_t * vCla2Var, sat_solver2 * pSat
   SeeAlso     []
 
 ***********************************************************************/
-int Vta_ManAbsPrintFrame( Vta_Man_t * p, Vec_Int_t * vCore, int nFrames, int nConfls, int nCexes, int Time, int fVerbose )
+int Vta_ManAbsPrintFrame( Vta_Man_t * p, Vec_Int_t * vCore, int nFrames, int nConfls, int nCexes, clock_t Time, int fVerbose )
 {
     unsigned * pInfo;
     int * pCountAll = NULL, * pCountUni = NULL;
@@ -1245,7 +1246,7 @@ int Vta_ManAbsPrintFrame( Vta_Man_t * p, Vec_Int_t * vCore, int nFrames, int nCo
         Abc_Print( 1, "    ..." ); 
         for ( k = 0; k < 7; k++ )
             Abc_Print( 1, "     " );
-        Abc_Print( 1, "%9.2f sec", (float)(Time)/(float)(CLOCKS_PER_SEC) );
+        Abc_Print( 1, "%9.2f sec", 1.0*Time/CLOCKS_PER_SEC );
         Abc_Print( 1, "%5.1f Gb", sat_solver2_memory_proof( p->pSat ) / (1<<30) );
         Abc_Print( 1, "\r" );
     }
@@ -1267,7 +1268,7 @@ int Vta_ManAbsPrintFrame( Vta_Man_t * p, Vec_Int_t * vCore, int nFrames, int nCo
             for ( k = nFrames; k < 7; k++ )
                 Abc_Print( 1, "     " );
         }
-        Abc_Print( 1, "%9.2f sec", (float)(Time)/(float)(CLOCKS_PER_SEC) );
+        Abc_Print( 1, "%9.2f sec", 1.0*Time/CLOCKS_PER_SEC );
         Abc_Print( 1, "%5.1f Gb", sat_solver2_memory_proof( p->pSat ) / (1<<30) );
         Abc_Print( 1, "\n" );
     }
@@ -1546,7 +1547,7 @@ int Gia_VtaPerformInt( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
     Vec_Int_t * vCore;
     Abc_Cex_t * pCex = NULL;
     int i, f, nConfls, Status, nObjOld, RetValue = -1, nCountNoChange = 0, fOneIsSent = 0;
-    int clk = clock(), clk2;
+    clock_t clk = clock(), clk2;
     // preconditions
     assert( Gia_ManPoNum(pAig) == 1 );
     assert( pPars->nFramesMax == 0 || pPars->nFramesStart <= pPars->nFramesMax );
