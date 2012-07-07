@@ -1387,7 +1387,7 @@ int IoCommandWriteAiger( Abc_Frame_t * pAbc, int argc, char **argv )
     int c;
 
     fWriteSymbols = 0;
-    fCompact      = 1;
+    fCompact      = 0;
     fUnique       = 0;
     fVerbose      = 0;
     Extra_UtilGetoptReset();
