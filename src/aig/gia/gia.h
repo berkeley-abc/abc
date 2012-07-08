@@ -945,7 +945,7 @@ extern Vec_Int_t *         Gia_VtaConvertToGla( Gia_Man_t * p, Vec_Int_t * vVta 
 extern Vec_Int_t *         Gia_VtaConvertFromGla( Gia_Man_t * p, Vec_Int_t * vGla, int nFrames );
 extern Vec_Int_t *         Gia_FlaConvertToGla( Gia_Man_t * p, Vec_Int_t * vFla );
 extern Vec_Int_t *         Gia_GlaConvertToFla( Gia_Man_t * p, Vec_Int_t * vGla );
-extern unsigned *          Gia_ManComputePoTt( Gia_Man_t * p, Gia_Obj_t * pObj );
+extern unsigned *          Gia_ObjComputeTruthTable( Gia_Man_t * p, Gia_Obj_t * pObj );
 
 /*=== giaCTas.c ===========================================================*/
 typedef struct Tas_Man_t_  Tas_Man_t;
