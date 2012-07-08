@@ -341,7 +341,8 @@ Vec_Ptr_t * Fsim_ManTerSimulate( Aig_Man_t * pAig, int fVerbose )
     Fsim_Man_t * p;
     Vec_Ptr_t * vStates;
     unsigned ** pBins, * pState;
-    int i, nWords, nBins, clk, clkTotal = clock();
+    int i, nWords, nBins;
+    clock_t clk, clkTotal = clock();
     assert( Aig_ManRegNum(pAig) > 0 );
     // create manager
     clk = clock();

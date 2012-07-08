@@ -1407,7 +1407,7 @@ int If_CutCountTotalFanins( If_Man_t * p )
     If_Obj_t * pObj;
     Vec_Int_t * vLeaves;
     int i, nFaninsTotal = 0, Counter = 0;
-    int clk = clock();
+    clock_t clk = clock();
     vLeaves = Vec_IntAlloc( 100 );
     If_ManForEachObj( p, pObj, i )
     {

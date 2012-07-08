@@ -143,7 +143,8 @@ int Abc_NtkMfsSolveSatResub( Mfs_Man_t * p, Abc_Obj_t * pNode, int iFanin, int f
     int fVeryVerbose = p->pPars->fVeryVerbose && Vec_PtrSize(p->vDivs) < 80;
     unsigned * pData;
     int pCands[MFS_FANIN_MAX];
-    int RetValue, iVar, i, nCands, nWords, w, clk;
+    int RetValue, iVar, i, nCands, nWords, w;
+    clock_t clk;
     Abc_Obj_t * pFanin;
     Hop_Obj_t * pFunc;
     assert( iFanin >= 0 );
@@ -292,7 +293,8 @@ int Abc_NtkMfsSolveSatResub2( Mfs_Man_t * p, Abc_Obj_t * pNode, int iFanin, int 
     int fVeryVerbose = p->pPars->fVeryVerbose && Vec_PtrSize(p->vDivs) < 80;
     unsigned * pData, * pData2;
     int pCands[MFS_FANIN_MAX];
-    int RetValue, iVar, iVar2, i, w, nCands, clk, nWords, fBreak;
+    int RetValue, iVar, iVar2, i, w, nCands, nWords, fBreak;
+    clock_t clk;
     Abc_Obj_t * pFanin;
     Hop_Obj_t * pFunc;
     assert( iFanin >= 0 );

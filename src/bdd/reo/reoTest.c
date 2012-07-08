@@ -182,7 +182,7 @@ int Extra_bddReorderTest( DdManager * dd, DdNode * bF )
     static DdManager * s_ddmin;
     DdNode * bFmin;
     int  nNodes;
-//    int clk1;
+//    clock_t clk1;
 
     if ( s_ddmin == NULL )
         s_ddmin = Cudd_Init( dd->size, 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0);

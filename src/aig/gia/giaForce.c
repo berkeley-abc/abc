@@ -714,7 +714,7 @@ Vec_Int_t * Frc_ManCollectCos( Frc_Man_t * p )
 void Frc_ManCrossCutTest( Frc_Man_t * p, Vec_Int_t * vOrderInit )
 {
     Vec_Int_t * vOrder;
-//    int clk = clock();
+//    clock_t clk = clock();
     vOrder = vOrderInit? vOrderInit : Frc_ManCollectCos( p );
     printf( "CrossCut = %6d\n", Frc_ManCrossCut( p, vOrder, 0 ) );
     printf( "CrossCut = %6d\n", Frc_ManCrossCut( p, vOrder, 1 ) );

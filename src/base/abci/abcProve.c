@@ -35,7 +35,7 @@ extern int  Abc_NtkRefactor( Abc_Ntk_t * pNtk, int nNodeSizeMax, int nConeSizeMa
 extern Abc_Ntk_t * Abc_NtkFromFraig( Fraig_Man_t * pMan, Abc_Ntk_t * pNtk );
 
 static Abc_Ntk_t * Abc_NtkMiterFraig( Abc_Ntk_t * pNtk, int nBTLimit, ABC_INT64_T nInspLimit, int * pRetValue, int * pNumFails, ABC_INT64_T * pNumConfs, ABC_INT64_T * pNumInspects );
-static void Abc_NtkMiterPrint( Abc_Ntk_t * pNtk, char * pString, int clk, int fVerbose );
+static void Abc_NtkMiterPrint( Abc_Ntk_t * pNtk, char * pString, clock_t clk, int fVerbose );
 
 
 ////////////////////////////////////////////////////////////////////////
@@ -308,7 +308,7 @@ Abc_Ntk_t * Abc_NtkMiterFraig( Abc_Ntk_t * pNtk, int nBTLimit, ABC_INT64_T nInsp
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkMiterPrint( Abc_Ntk_t * pNtk, char * pString, int clk, int fVerbose )
+void Abc_NtkMiterPrint( Abc_Ntk_t * pNtk, char * pString, clock_t clk, int fVerbose )
 {
     if ( !fVerbose )
         return;

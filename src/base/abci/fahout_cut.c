@@ -285,7 +285,8 @@ Vec_Int_t * Abc_NtkLutMerge( Abc_Ntk_t * pNtk, Nwk_LMPars_t * pPars )
     Vec_Int_t * vResult;
     Vec_Ptr_t * vStart, * vNext, * vCands1, * vCands2;
     Abc_Obj_t * pLut, * pCand;
-    int i, k, nVertsMax, nCands, clk = clock();
+    int i, k, nVertsMax, nCands;
+    clock_t clk = clock();
     // count the number of vertices
     nVertsMax = 0;
     Abc_NtkForEachNode( pNtk, pLut, i )

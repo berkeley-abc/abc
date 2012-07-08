@@ -181,7 +181,7 @@ Vec_Int_t * Iso_StoCollectInfo( Iso_Sto_t * p, Aig_Obj_t * pPo )
     Aig_Man_t * pAig = p->pAig;
     Aig_Obj_t * pObj;
     int i, Value, Entry, * pPerm;
-//    int clk = clock();
+//    clock_t clk = clock();
 
     assert( Aig_ObjIsCo(pPo) );
 

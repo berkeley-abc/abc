@@ -175,7 +175,8 @@ void Aig_RManTableResize( Aig_RMan_t * p )
 {
     Aig_Tru_t * pEntry, * pNext;
     Aig_Tru_t ** pBinsOld, ** ppPlace;
-    int nBinsOld, Counter, i, clk;
+    int nBinsOld, Counter, i;
+    clock_t clk;
     assert( p->pBins != NULL );
 clk = clock();
     // save the old Bins

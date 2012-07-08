@@ -77,7 +77,7 @@ Cut_Man_t * Abc_NtkCuts( Abc_Ntk_t * pNtk, Cut_Params_t * pParams )
     Vec_Ptr_t * vNodes;
     Vec_Int_t * vChoices;
     int i;
-    int clk = clock();
+    clock_t clk = clock();
 
     extern void Abc_NtkBalanceAttach( Abc_Ntk_t * pNtk );
     extern void Abc_NtkBalanceDetach( Abc_Ntk_t * pNtk );
@@ -163,7 +163,8 @@ void Abc_NtkCutsOracle( Abc_Ntk_t * pNtk, Cut_Oracle_t * p )
 {
     Abc_Obj_t * pObj;
     Vec_Ptr_t * vNodes;
-    int i, clk = clock();
+    int i;
+    clock_t clk = clock();
     int fDrop = Cut_OracleReadDrop(p);
 
     assert( Abc_NtkIsStrash(pNtk) );
@@ -225,7 +226,7 @@ Cut_Man_t * Abc_NtkSeqCuts( Abc_Ntk_t * pNtk, Cut_Params_t * pParams )
     Abc_Obj_t * pObj, * pNode;
     int i, nIters, fStatus;
     Vec_Int_t * vChoices;
-    int clk = clock();
+    clock_t clk = clock();
 
     assert( Abc_NtkIsSeq(pNtk) );
     assert( pParams->fSeq );

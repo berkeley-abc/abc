@@ -590,7 +590,8 @@ clk2 = clock();
     // verify implications using simulation
     if ( p->pCla->vImps && Vec_IntSize(p->pCla->vImps) )
     {
-        int Temp, clk = clock();
+        int Temp;
+        clock_t clk = clock();
         if ( Temp = Fra_ImpVerifyUsingSimulation( p ) )
             printf( "Implications failing the simulation test = %d (out of %d).  ", Temp, Vec_IntSize(p->pCla->vImps) );
         else

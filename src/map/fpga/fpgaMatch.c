@@ -667,7 +667,8 @@ Fpga_Cut_t * Fpga_MappingAreaWithoutNode( Fpga_Man_t * p, Fpga_Node_t * pNode, F
 {
     Fpga_Cut_t * pCut, * pCutBestOld, * pCutRes;
     float aAreaCutBest;
-    int i, clk;
+    int i;
+    clock_t clk;
     // make sure that at least one cut other than the trivial is present
     if ( pNode->pCuts->pNext == NULL )
     {

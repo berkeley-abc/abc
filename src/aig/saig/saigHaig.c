@@ -198,7 +198,7 @@ int Aig_ManMapHaigNodes( Aig_Man_t * pHaig )
   SeeAlso     []
 
 ***********************************************************************/
-int Aig_ManHaigVerify( Aig_Man_t * p, Aig_Man_t * pAig, Aig_Man_t * pHaig, int nFrames, int clkSynth )
+int Aig_ManHaigVerify( Aig_Man_t * p, Aig_Man_t * pAig, Aig_Man_t * pHaig, int nFrames, clock_t clkSynth )
 {
     int nBTLimit = 0;
     Aig_Man_t * pFrames, * pTemp;

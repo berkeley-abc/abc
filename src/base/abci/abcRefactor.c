@@ -196,7 +196,8 @@ Dec_Graph_t * Abc_NodeRefactor( Abc_ManRef_t * p, Abc_Obj_t * pNode, Vec_Ptr_t *
     Abc_Obj_t * pFanin;
     Dec_Graph_t * pFForm;
     DdNode * bNodeFunc;
-    int nNodesSaved, nNodesAdded, i, clk;
+    int nNodesSaved, nNodesAdded, i;
+    clock_t clk;
     char * pSop;
     int Required;
 

@@ -543,7 +543,7 @@ int Abc_NtkIvyProve( Abc_Ntk_t ** ppNtk, void * pPars )
     // apply AIG rewriting
     if ( pParams->fUseRewriting && Abc_NtkNodeNum(pNtk) > 500 )
     {
-//        int clk = clock();
+//        clock_t clk = clock();
 //printf( "Before rwsat = %d. ", Abc_NtkNodeNum(pNtk) );
         pParams->fUseRewriting = 0;
         pNtk = Abc_NtkBalance( pNtkTemp = pNtk, 0, 0, 0 );          

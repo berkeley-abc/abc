@@ -294,7 +294,8 @@ static inline void act_var_rescale(sat_solver2* s)  {
 static inline void act_clause_rescale(sat_solver2* s) {
     static int Total = 0;
     float * claActs = (float *)veci_begin(&s->claActs);
-    int i, clk = clock();
+    int i;
+    clock_t clk = clock();
     for (i = 0; i < veci_size(&s->claActs); i++)
         claActs[i] *= (float)1e-20;
     s->cla_inc *= (float)1e-20;

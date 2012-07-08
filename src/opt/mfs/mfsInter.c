@@ -337,7 +337,7 @@ Hop_Obj_t * Abc_NtkMfsInterplate( Mfs_Man_t * p, int * pCands, int nCands )
     Hop_Obj_t * pFunc;
     int nFanins, status;
     int c, i, * pGloVars;
-//    int clk = clock();
+//    clock_t clk = clock();
 
 //    p->nDcMints += Abc_NtkMfsInterplateEval( p, pCands, nCands );
 

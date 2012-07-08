@@ -291,7 +291,7 @@ Cut_Man_t * Abc_NtkSeqCuts( Abc_Ntk_t * pNtk, Cut_Params_t * pParams )
     Abc_Obj_t * pObj, * pNode;
     int i, nIters, fStatus;
     Vec_Int_t * vChoices;
-    int clk = clock();
+    clock_t clk = clock();
 
     assert( Abc_NtkIsSeq(pNtk) );
     assert( pParams->fSeq );

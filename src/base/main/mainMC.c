@@ -65,7 +65,7 @@ int main( int argc, char * argv[] )
     int fRewrite = 0;
     int fNewAlgo = 1;
     int fVerbose = 0;
-    int clkTotal = clock();
+    clock_t clkTotal = clock();
 
     if ( argc != 2 )
     {

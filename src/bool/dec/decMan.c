@@ -45,7 +45,7 @@ ABC_NAMESPACE_IMPL_START
 Dec_Man_t * Dec_ManStart()
 {
     Dec_Man_t * p;
-//    int clk = clock();
+//    clock_t clk = clock();
     p = ABC_ALLOC( Dec_Man_t, 1 );
     p->pMvcMem = Mvc_ManagerStart();
     p->vCubes = Vec_IntAlloc( 8 );

@@ -428,7 +428,7 @@ Aig_Man_t * Iso_ManFilterPos( Aig_Man_t * pAig, Vec_Ptr_t ** pvPosEquivs, int fV
     Vec_Str_t * vStr, * vPrev;
     int i, nPos;
     clock_t clk = clock();
-    int clkDup = 0, clkAig = 0, clkIso = 0, clk2;
+    clock_t clkDup = 0, clkAig = 0, clkIso = 0, clk2;
     *pvPosEquivs = NULL;
 
     // derive AIG for each PO

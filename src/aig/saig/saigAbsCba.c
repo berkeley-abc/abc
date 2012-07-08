@@ -787,7 +787,7 @@ Vec_Int_t * Saig_ManCbaFilterInputs( Aig_Man_t * pAig, int iFirstFlopPi, Abc_Cex
 {
     Saig_ManCba_t * p;
     Vec_Int_t * vRes, * vReasons;
-    int clk;
+    clock_t clk;
     if ( Saig_ManPiNum(pAig) != pCex->nPis )
     {
         printf( "Saig_ManCbaFilterInputs(): The PI count of AIG (%d) does not match that of cex (%d).\n", 

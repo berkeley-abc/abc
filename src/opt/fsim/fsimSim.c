@@ -384,7 +384,8 @@ static inline void Fsim_ManSimulateRound( Fsim_Man_t * p )
 void Fsim_ManSimulateRoundTest( Fsim_Man_t * p )
 {
     Fsim_Obj_t * pObj;
-    int i, clk = clock();
+    int i;
+    clock_t clk = clock();
     Fsim_ManForEachObj( p, pObj, i )
     {
     }
@@ -471,7 +472,8 @@ int Fsim_ManSimulate( Aig_Man_t * pAig, Fsim_ParSim_t * pPars )
 {
     Fsim_Man_t * p;
     Sec_MtrStatus_t Status;
-    int i, iOut, iPat, clk, clkTotal = clock(), clk2, clk2Total = 0;
+    int i, iOut, iPat;
+    clock_t clk, clkTotal = clock(), clk2, clk2Total = 0;
     assert( Aig_ManRegNum(pAig) > 0 );
     if ( pPars->fCheckMiter )
     {

@@ -60,7 +60,7 @@ int Fxu_PreprocessCubePairs( Fxu_Matrix * p, Vec_Ptr_t * vCovers, int nPairsTota
     int nCubes, nBitsMax, nSum;
     int CutOffNum = -1, CutOffQuant = -1; // Suppress "might be used uninitialized"
     int iPair, iQuant, k, c;
-//    int clk = clock();
+//    clock_t clk = clock();
     char * pSopCover;
     int nFanins;
 

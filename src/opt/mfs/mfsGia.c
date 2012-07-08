@@ -205,7 +205,8 @@ int Abc_NtkMfsTryResubOnceGia( Mfs_Man_t * p, int * pCands, int nCands )
     int fVeryVerbose = 0;
     int fUseGia = 1;
     unsigned * pData;
-    int i, iVar, status, iOut, clk = clock();
+    int i, iVar, status, iOut;
+    clock_t clk = clock();
     p->nSatCalls++;
 //    return -1;
     assert( p->pGia != NULL );

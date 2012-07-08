@@ -592,7 +592,7 @@ Dar_Lib_t * Dar_LibRead()
 ***********************************************************************/
 void Dar_LibStart()
 {
-//    int clk = clock();
+//    clock_t clk = clock();
     assert( s_DarLib == NULL );
     s_DarLib = Dar_LibRead();
 //    printf( "The 4-input library started with %d nodes and %d subgraphs. ", s_DarLib->nObjs - 4, s_DarLib->nSubgrTotal );
@@ -1189,7 +1189,7 @@ int Dar2_LibEval( Gia_Man_t * p, Vec_Int_t * vCutLits, unsigned uTruth, int fKee
 //    int fTraining    =  0;
     Dar_LibObj_t * pObj;
     int Out, k, Class, nNodesSaved, nNodesAdded, nNodesGained;
-    clock_t clk = clock();
+//    clock_t clk = clock();
     assert( Vec_IntSize(vCutLits) == 4 );
     assert( (uTruth >> 16) == 0 );
     // check if the cut exits and assigns leaves and their levels

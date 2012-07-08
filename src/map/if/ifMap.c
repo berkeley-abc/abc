@@ -203,7 +203,7 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
         pCut->fCompl = 0;
         if ( p->pPars->fTruth )
         {
-//            int clk = clock();
+//            clock_t clk = clock();
             int RetValue = If_CutComputeTruth( p, pCut, pCut0, pCut1, pObj->fCompl0, pObj->fCompl1 );
 //            p->timeTruth += clock() - clk;
             pCut->fUseless = 0;

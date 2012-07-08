@@ -394,7 +394,8 @@ int Inter_ManPerformOneStepM114p( Inter_Man_t * p, int fUsePudlak, int fUseOther
 {
     M114p_Solver_t pSat;
     Vec_Int_t * vMapRoots, * vMapVars;
-    int clk, status, RetValue;
+    clock_t clk;
+    int status, RetValue;
     assert( p->pInterNew == NULL );
     // derive the SAT solver
     pSat = Inter_ManDeriveSatSolverM114p( p->pInter, p->pCnfInter, 

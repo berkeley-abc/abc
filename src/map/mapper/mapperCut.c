@@ -915,7 +915,7 @@ Map_Cut_t * Map_CutTableConsider( Map_Man_t * pMan, Map_CutTable_t * p, Map_Node
 {
     Map_Cut_t * pCut;
     int Place, i;
-//    int clk;
+//    clock_t clk;
     // check the cut
     Place = Map_CutTableLookup( p, ppNodes, nNodes );
     if ( Place == -1 )
@@ -996,7 +996,7 @@ Map_Cut_t * Map_CutSortCuts( Map_Man_t * pMan, Map_CutTable_t * p, Map_Cut_t * p
 {
     Map_Cut_t * pListNew;
     int nCuts, i;
-//    int clk;
+//    clock_t clk;
     // move the cuts from the list into the array
     nCuts = Map_CutList2Array( p->pCuts1, pList );
     assert( nCuts <= MAP_CUTS_MAX_COMPUTE );

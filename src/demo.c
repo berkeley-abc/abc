@@ -66,7 +66,7 @@ int main( int argc, char * argv[] )
     void * pAbc;
     char * pFileName;
     char Command[1000];
-    int clkRead, clkResyn, clkVer, clk;
+    clock_t clkRead, clkResyn, clkVer, clk;
 
     //////////////////////////////////////////////////////////////////////////
     // get the input file name

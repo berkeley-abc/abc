@@ -1791,7 +1791,8 @@ void Emb_ManDumpGnuplot( Emb_Man_t * p, char * pName, int fDumpLarge, int fShowI
 void Gia_ManSolveProblem( Gia_Man_t * pGia, Emb_Par_t * pPars )
 {
     Emb_Man_t * p;
-    int i, clkSetup;
+    int i;
+    clock_t clkSetup;
     clock_t clk;
 //   Gia_ManTestDistance( pGia );
 

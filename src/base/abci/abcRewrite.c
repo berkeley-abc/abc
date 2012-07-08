@@ -169,7 +169,7 @@ Rwr_ManAddTimeTotal( pManRwr, clock() - clkStart );
 
     // put the nodes into the DFS order and reassign their IDs
     {
-//        int clk = clock();
+//        clock_t clk = clock();
     Abc_NtkReassignIds( pNtk );
 //        ABC_PRT( "time", clock() - clk );
     }

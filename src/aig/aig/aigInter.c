@@ -54,7 +54,7 @@ void Aig_ManInterFast( Aig_Man_t * pManOn, Aig_Man_t * pManOff, int fVerbose )
     Cnf_Dat_t * pCnfOn, * pCnfOff;
     Aig_Obj_t * pObj, * pObj2;
     int Lits[3], status, i;
-//    int clk = clock();
+//    clock_t clk = clock();
 
     assert( Aig_ManCiNum(pManOn) == Aig_ManCiNum(pManOff) );
     assert( Aig_ManCoNum(pManOn) == Aig_ManCoNum(pManOff) );

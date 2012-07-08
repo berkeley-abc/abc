@@ -721,7 +721,8 @@ Aig_Man_t * Dar_ManChoiceNew( Aig_Man_t * pAig, Dch_Pars_t * pPars )
     int fConstruct = 0;
     Aig_Man_t * pMan, * pTemp;
     Vec_Ptr_t * vAigs;
-    int i, clk;
+    int i;
+    clock_t clk;
 
 clk = clock();
 //    vAigs = Dar_ManChoiceSynthesisExt();

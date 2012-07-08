@@ -2201,7 +2201,7 @@ int Abc_NtkRecAddCut( If_Man_t * pIfMan, If_Obj_t * pRoot, If_Cut_t * pCut )
     unsigned * pTruth;
     int i, RetValue, nNodes, nNodesBeg, nInputs = s_pMan->nVars, nLeaves = If_CutLeaveNum(pCut);
     unsigned uCanonPhase;
-    int clk, timeInsert, timeBuild;
+    clock_t clk, timeInsert, timeBuild;
     //int begin = clock();
     assert( nInputs <= 16 );
     assert( nInputs == (int)pCut->nLimit );

@@ -86,7 +86,7 @@ int Abc_NtkMfsEdgePower( Mfs_Man_t * p, Abc_Obj_t * pNode )
 
 int Abc_WinNode(Mfs_Man_t * p, Abc_Obj_t *pNode)
 {
-//    int clk;
+//    clock_t clk;
 //    Abc_Obj_t * pFanin;
 //    int i;
 
@@ -119,7 +119,7 @@ int Abc_WinNode(Mfs_Man_t * p, Abc_Obj_t *pNode)
 /*
 int Abc_NtkMfsPowerResubNode( Mfs_Man_t * p, Abc_Obj_t * pNode )
 {
-    int clk;
+    clock_t clk;
     Abc_Obj_t * pFanin;
     int i;
 

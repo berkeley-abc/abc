@@ -698,7 +698,7 @@ Abc_Ntk_t * Abc_NtkFraigRestore()
     Vec_Ptr_t * vStore;
     Abc_Ntk_t * pNtk, * pFraig;
     int nWords1, nWords2, nWordsMin;
-//    int clk = clock();
+//    clock_t clk = clock();
 
     // get the stored network
     vStore = Abc_FrameReadStore();

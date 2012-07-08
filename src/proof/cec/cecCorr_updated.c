@@ -830,9 +830,10 @@ int Cec_ManLSCorrespondenceClasses( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
     Cec_ManSim_t * pSim;
     Gia_Man_t * pSrm;
     unsigned * pInitState = NULL;
-    int r, RetValue, clkTotal = clock();
-    int clkSat = 0, clkSim = 0, clkSrm = 0;
-    int clk2, clk = clock();
+    int r, RetValue;
+    clock_t clkTotal = clock();
+    clock_t clkSat = 0, clkSim = 0, clkSrm = 0;
+    clock_t clk2, clk = clock();
     ABC_FREE( pAig->pReprs );
     ABC_FREE( pAig->pNexts );
     if ( Gia_ManRegNum(pAig) == 0 )
@@ -917,7 +918,7 @@ int Cec_ManLSCorrespondenceClasses( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
         int fChanges = 1;
         while ( fChanges )
         {
-            int clkBmc = clock();
+            clock_t clkBmc = clock();
             fChanges = 0;
             pSrm = Gia_ManCorrSpecReduceInit( pAig, pPars->nFrames, pPars->nPrefix, !pPars->fLatchCorr, &vOutputs, pPars->fUseRings );
             if ( Gia_ManPoNum(pSrm) == 0 )

@@ -317,7 +317,8 @@ static inline void act_var_rescale(sat_solver* s) {
 static inline void act_clause_rescale(sat_solver* s) {
     static int Total = 0;
     clause** cs = (clause**)vecp_begin(&s->learnts);
-    int i, clk = clock();
+    int i;
+    clock_t clk = clock();
     for (i = 0; i < vecp_size(&s->learnts); i++){
         unsigned a = clause_activity2(cs[i]);
         clause_setactivity2(cs[i], a >> 14);

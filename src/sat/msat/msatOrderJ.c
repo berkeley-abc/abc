@@ -264,7 +264,7 @@ int Msat_OrderVarSelect( Msat_Order_t * p )
     Msat_OrderVar_t * pVar, * pNext, * pVarBest;
     double * pdActs = p->pSat->pdActivity;
     double dfActBest;
-//    int clk = clock();
+//    clock_t clk = clock();
 
     pVarBest = NULL;
     dfActBest = -1.0;
