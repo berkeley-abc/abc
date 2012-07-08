@@ -116,8 +116,8 @@ extern int           Ssw_SecWithPairs( Aig_Man_t * pAig1, Aig_Man_t * pAig2, Vec
 extern int           Ssw_SecGeneral( Aig_Man_t * pAig1, Aig_Man_t * pAig2, Ssw_Pars_t * pPars );
 extern int           Ssw_SecGeneralMiter( Aig_Man_t * pMiter, Ssw_Pars_t * pPars );
 /*=== sswRarity.c ===================================================*/
-extern int           Ssw_RarSignalFilter( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSize, int nRounds, int nRandSeed, int TimeOut, int fMiter, Abc_Cex_t * pCex, int fLatchOnly, int fVerbose );
-extern int           Ssw_RarSimulate( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSize, int nRounds, int nRandSeed, int TimeOut, int fVerbose );
+extern int           Ssw_RarSignalFilter( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSize, int nRounds, int nRestart, int nRandSeed, int TimeOut, int fMiter, Abc_Cex_t * pCex, int fLatchOnly, int fVerbose );
+extern int           Ssw_RarSimulate( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSize, int nRounds, int nRestart, int nRandSeed, int TimeOut, int fVerbose );
 /*=== sswSim.c ===================================================*/
 extern Ssw_Sml_t *   Ssw_SmlSimulateComb( Aig_Man_t * pAig, int nWords );
 extern Ssw_Sml_t *   Ssw_SmlSimulateSeq( Aig_Man_t * pAig, int nPref, int nFrames, int nWords );
