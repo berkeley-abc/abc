@@ -1716,7 +1716,8 @@ void Gia_GlaSendCancel( Gla_Man_t * p, int fVerbose )
 ***********************************************************************/
 void Gia_GlaDumpAbsracted( Gla_Man_t * p, int fVerbose )
 {
-    char * pFileName = p->pPars->pFileVabs ? p->pPars->pFileVabs : "glabs.aig";
+    char * pFileNameDef = "glabs.aig";
+    char * pFileName = p->pPars->pFileVabs ? p->pPars->pFileVabs : pFileNameDef;
     Gia_Man_t * pAbs;
     Vec_Int_t * vGateClasses;
     if ( fVerbose )

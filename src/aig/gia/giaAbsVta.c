@@ -1475,7 +1475,8 @@ void Gia_VtaSendCancel( Vta_Man_t * p, int fVerbose )
 ***********************************************************************/
 void Gia_VtaDumpAbsracted( Vta_Man_t * p, int fVerbose )
 {
-    char * pFileName = p->pPars->pFileVabs ? p->pPars->pFileVabs : "vabs.aig";
+    char * pFileNameDef = "vabs.aig";
+    char * pFileName = p->pPars->pFileVabs ? p->pPars->pFileVabs : pFileNameDef;
     Gia_Man_t * pAbs;
     if ( fVerbose )
         Abc_Print( 1, "Dumping abstracted model into file \"%s\"...\n", pFileName );
