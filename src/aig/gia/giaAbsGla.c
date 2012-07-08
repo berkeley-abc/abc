@@ -1633,7 +1633,7 @@ void Gla_ManAbsPrintFrame( Gla_Man_t * p, int nCoreSize, int nFrames, int nConfl
     Abc_Print( 1, " %9d", sat_solver2_nvars(p->pSat) ); 
     Abc_Print( 1, " %6d", nCoreSize > 0 ? nCoreSize : 0 ); 
     Abc_Print( 1, "%9.2f sec", 1.0*Time/CLOCKS_PER_SEC );
-    Abc_Print( 1, "%5.1f Gb", sat_solver2_memory_proof( p->pSat ) / (1<<30) );
+    Abc_Print( 1, "%5.1f Gb", (sat_solver2_memory_proof(p->pSat) + sat_solver2_memory(p->pSat, 0)) / (1<<30) );
     Abc_Print( 1, "%s", nCoreSize > 0 ? "\n" : "\r" );
     fflush( stdout );
 }
@@ -1643,7 +1643,7 @@ void Gla_ManReportMemory( Gla_Man_t * p )
     int i;
     double memTot = 0;
     double memAig = Gia_ManObjNum(p->pGia) * sizeof(Gia_Obj_t);
-    double memSat = sat_solver2_memory( p->pSat );
+    double memSat = sat_solver2_memory( p->pSat, 1 );
     double memPro = sat_solver2_memory_proof( p->pSat );
     double memMap = p->nObjs * sizeof(Gla_Obj_t) + Gia_ManObjNum(p->pGia) * sizeof(int);
     double memRef = Gia_ManObjNum(p->pGia) * sizeof(Vec_Int_t);

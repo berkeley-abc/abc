@@ -1247,7 +1247,7 @@ int Vta_ManAbsPrintFrame( Vta_Man_t * p, Vec_Int_t * vCore, int nFrames, int nCo
         for ( k = 0; k < 7; k++ )
             Abc_Print( 1, "     " );
         Abc_Print( 1, "%9.2f sec", 1.0*Time/CLOCKS_PER_SEC );
-        Abc_Print( 1, "%5.1f Gb", sat_solver2_memory_proof( p->pSat ) / (1<<30) );
+        Abc_Print( 1, "%5.1f Gb", (sat_solver2_memory_proof(p->pSat) + sat_solver2_memory(p->pSat, 0)) / (1<<30) );
         Abc_Print( 1, "\r" );
     }
     else
@@ -1269,7 +1269,7 @@ int Vta_ManAbsPrintFrame( Vta_Man_t * p, Vec_Int_t * vCore, int nFrames, int nCo
                 Abc_Print( 1, "     " );
         }
         Abc_Print( 1, "%9.2f sec", 1.0*Time/CLOCKS_PER_SEC );
-        Abc_Print( 1, "%5.1f Gb", sat_solver2_memory_proof( p->pSat ) / (1<<30) );
+        Abc_Print( 1, "%5.1f Gb", (sat_solver2_memory_proof(p->pSat) + sat_solver2_memory(p->pSat, 0)) / (1<<30) );
         Abc_Print( 1, "\n" );
     }
     fflush( stdout );
@@ -1511,7 +1511,7 @@ void Gia_VtaPrintMemory( Vta_Man_t * p )
 {
     double memTot = 0;
     double memAig = Gia_ManObjNum(p->pGia) * sizeof(Gia_Obj_t);
-    double memSat = sat_solver2_memory( p->pSat );
+    double memSat = sat_solver2_memory( p->pSat, 1 );
     double memPro = sat_solver2_memory_proof( p->pSat );
     double memMap = p->nObjsAlloc * sizeof(Vta_Obj_t) + p->nBins * sizeof(int);
     double memOth = sizeof(Vta_Man_t);

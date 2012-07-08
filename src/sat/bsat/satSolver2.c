@@ -1621,12 +1621,13 @@ void sat_solver2_rollback( sat_solver2* s )
 }
 
 // returns memory in bytes used by the SAT solver
-double sat_solver2_memory( sat_solver2* s )
+double sat_solver2_memory( sat_solver2* s, int fAll )
 {
     int i;
     double Mem = sizeof(sat_solver2);
-    for (i = 0; i < s->cap*2; i++)
-        Mem += s->wlists[i].cap * sizeof(int);
+    if ( fAll )
+        for (i = 0; i < s->cap*2; i++)
+            Mem += s->wlists[i].cap * sizeof(int);
     Mem += s->cap * sizeof(veci);     // ABC_FREE(s->wlists   );
     Mem += s->clauses.cap * sizeof(int);
     Mem += s->learnts.cap * sizeof(int);

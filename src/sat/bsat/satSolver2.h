@@ -49,7 +49,7 @@ extern int          sat_solver2_simplify(sat_solver2* s);
 extern int          sat_solver2_solve(sat_solver2* s, lit* begin, lit* end, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimit, ABC_INT64_T nConfLimitGlobal, ABC_INT64_T nInsLimitGlobal);
 extern void         sat_solver2_rollback(sat_solver2* s);
 extern void         sat_solver2_reducedb(sat_solver2* s);
-extern double       sat_solver2_memory( sat_solver2* s );
+extern double       sat_solver2_memory( sat_solver2* s, int fAll );
 extern double       sat_solver2_memory_proof( sat_solver2* s );
 
 extern void         sat_solver2_setnvars(sat_solver2* s,int n);

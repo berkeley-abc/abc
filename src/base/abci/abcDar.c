@@ -3203,7 +3203,7 @@ int Abc_NtkDarSeqSim3( Abc_Ntk_t * pNtk, int nFrames, int nWords, int nBinSize, 
 {
     Aig_Man_t * pMan;
     int status, RetValue = -1;
-    clock_t clk = clock();
+//    clock_t clk = clock();
     if ( Abc_NtkGetChoiceNum(pNtk) )
     {
         Abc_Print( 1, "Removing %d choices from the AIG.\n", Abc_NtkGetChoiceNum(pNtk) );
