@@ -142,6 +142,7 @@ int Abc_RealMain( int argc, char * argv[] )
         switch(c) {
             case 'c':
                 strcpy( sCommandUsr, globalUtilOptarg );
+                printf( "ABC command line: \"%s\".\n", sCommandUsr );
                 fBatch = 1;
                 break;
                 
