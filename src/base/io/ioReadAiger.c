@@ -25,7 +25,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include <time.h>
 
 #include "src/misc/bzlib/bzlib.h"
 #include "src/misc/zlib/zlib.h"

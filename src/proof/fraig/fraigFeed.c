@@ -80,7 +80,8 @@ void Fraig_FeedBackInit( Fraig_Man_t * p )
 void Fraig_FeedBack( Fraig_Man_t * p, int * pModel, Msat_IntVec_t * vVars, Fraig_Node_t * pOld, Fraig_Node_t * pNew )
 {
     int nVarsPi, nWords;
-    int i, clk = clock();
+    int i;
+    clock_t clk = clock();
 
     // get the number of PI vars in the feedback (also sets the PI values)
     nVarsPi = Fraig_FeedBackPrepare( p, pModel, vVars );

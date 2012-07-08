@@ -30,7 +30,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include <time.h>
 
 #include "src/misc/vec/vec.h"
 #include "src/aig/aig/aig.h"
@@ -88,9 +87,9 @@ struct Cnf_Man_t_
     int             nMergeLimit;     // the limit on the size of merged cut
     unsigned *      pTruths[4];      // temporary truth tables
     Vec_Int_t *     vMemory;         // memory for intermediate ISOP representation
-    int             timeCuts; 
-    int             timeMap;
-    int             timeSave;
+    clock_t         timeCuts; 
+    clock_t         timeMap;
+    clock_t         timeSave;
 };
 
 

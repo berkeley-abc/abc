@@ -262,7 +262,8 @@ void Ssw_ManSweepTransferDyn( Ssw_Man_t * p )
 ***********************************************************************/
 int Ssw_ManSweepResimulateDyn( Ssw_Man_t * p, int f )
 {
-    int RetValue1, RetValue2, clk = clock();
+    int RetValue1, RetValue2;
+    clock_t clk = clock();
     // transfer PI simulation information from storage
 //    Ssw_SmlAssignDist1Plus( p->pSml, p->pPatWords );
     Ssw_ManSweepTransferDyn( p );
@@ -294,7 +295,8 @@ p->timeSimSat += clock() - clk;
 int Ssw_ManSweepResimulateDynLocal( Ssw_Man_t * p, int f )
 {
     Aig_Obj_t * pObj, * pRepr, ** ppClass;
-    int i, k, nSize, RetValue1, RetValue2, clk = clock();
+    int i, k, nSize, RetValue1, RetValue2;
+    clock_t clk = clock();
     p->nSimRounds++;
     // transfer PI simulation information from storage
 //    Ssw_SmlAssignDist1Plus( p->pSml, p->pPatWords );
@@ -372,7 +374,8 @@ int Ssw_ManSweepDyn( Ssw_Man_t * p )
 { 
     Bar_Progress_t * pProgress = NULL;
     Aig_Obj_t * pObj, * pObjNew;
-    int clk, i, f;
+    int i, f;
+    clock_t clk;
 
     // perform speculative reduction
 clk = clock();

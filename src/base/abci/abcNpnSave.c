@@ -392,7 +392,8 @@ void Npn_ManResize( Npn_Man_t * p )
 {
     Npn_Obj_t * pEntry, * pNext;
     int * pBinsOld, * ppPlace;
-    int nBinsOld, Counter, i, clk;
+    int nBinsOld, Counter, i;
+    clock_t clk;
     assert( p->pBins != NULL );
 clk = clock();
     // save the old Bins

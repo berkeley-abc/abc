@@ -22,7 +22,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include <time.h>
 
 #include "satStore.h"
 #include "src/misc/vec/vec.h"
@@ -70,9 +69,9 @@ struct Intp_Man_t_
     int             nResLits;     // the number of literals of the resolvent
     int             nResLitsAlloc;// the number of literals of the resolvent
     // runtime stats
-    int             timeBcp;      // the runtime for BCP
-    int             timeTrace;    // the runtime of trace construction
-    int             timeTotal;    // the total runtime of interpolation
+    clock_t         timeBcp;      // the runtime for BCP
+    clock_t         timeTrace;    // the runtime of trace construction
+    clock_t         timeTotal;    // the total runtime of interpolation
 };
 
 // reading/writing the proof for a clause
@@ -420,7 +419,7 @@ Sto_Cls_t * Intp_ManPropagate( Intp_Man_t * p, int Start )
 {
     Sto_Cls_t * pClause;
     int i;
-    int clk = clock();
+    clock_t clk = clock();
     for ( i = Start; i < p->nTrailSize; i++ )
     {
         pClause = Intp_ManPropagateOne( p, p->pTrail[i] );
@@ -476,7 +475,7 @@ int Intp_ManProofTraceOne( Intp_Man_t * p, Sto_Cls_t * pConflict, Sto_Cls_t * pF
     Sto_Cls_t * pReason;
     int i, v, Var, PrevId;
     int fPrint = 0;
-    int clk = clock();
+    clock_t clk = clock();
 
     // collect resolvent literals
     if ( p->fProofVerif )
@@ -864,7 +863,8 @@ void Intp_ManUnsatCoreVerify( Sto_Man_t * pCnf, Vec_Int_t * vCore )
     sat_solver * pSat;
     Sto_Cls_t * pClause;
     Vec_Ptr_t * vClauses;
-    int i, iClause, RetValue, clk = clock();
+    int i, iClause, RetValue;
+    clock_t clk = clock();
     // collect the clauses
     vClauses = Vec_PtrAlloc( 1000 );
     Sto_ManForEachClauseRoot( pCnf, pClause )
@@ -962,7 +962,7 @@ void * Intp_ManUnsatCore( Intp_Man_t * p, Sto_Man_t * pCnf, int fVerbose )
     Vec_Int_t * vVisited;
     Sto_Cls_t * pClause;
     int RetValue = 1;
-    int clkTotal = clock();
+    clock_t clkTotal = clock();
 
     // check that the CNF makes sense
     assert( pCnf->nVars > 0 && pCnf->nClauses > 0 );

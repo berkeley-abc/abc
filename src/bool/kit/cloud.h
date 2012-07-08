@@ -23,7 +23,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
-#include <time.h>
 
 #include "src/misc/util/abc_global.h"
 

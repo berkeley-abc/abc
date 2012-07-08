@@ -70,7 +70,8 @@ void Aig_TableResize( Aig_Man_t * p )
 {
     Aig_Obj_t * pEntry, * pNext;
     Aig_Obj_t ** pTableOld, ** ppPlace;
-    int nTableSizeOld, Counter, i, clk;
+    int nTableSizeOld, Counter, i;
+    clock_t clk;
     assert( p->pTable != NULL );
 clk = clock();
     // save the old table

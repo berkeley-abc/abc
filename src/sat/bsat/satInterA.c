@@ -22,7 +22,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include <time.h>
+
 #include "satStore.h"
 #include "src/aig/aig/aig.h"
 
@@ -70,9 +70,9 @@ struct Inta_Man_t_
     int             nResLits;     // the number of literals of the resolvent
     int             nResLitsAlloc;// the number of literals of the resolvent
     // runtime stats
-    int             timeBcp;      // the runtime for BCP
-    int             timeTrace;    // the runtime of trace construction
-    int             timeTotal;    // the total runtime of interpolation
+    clock_t         timeBcp;      // the runtime for BCP
+    clock_t         timeTrace;    // the runtime of trace construction
+    clock_t         timeTotal;    // the total runtime of interpolation
 };
 
 // procedure to get hold of the clauses' truth table 
@@ -491,7 +491,7 @@ Sto_Cls_t * Inta_ManPropagate( Inta_Man_t * p, int Start )
 {
     Sto_Cls_t * pClause;
     int i;
-    int clk = clock();
+    clock_t clk = clock();
     for ( i = Start; i < p->nTrailSize; i++ )
     {
         pClause = Inta_ManPropagateOne( p, p->pTrail[i] );
@@ -547,7 +547,7 @@ int Inta_ManProofTraceOne( Inta_Man_t * p, Sto_Cls_t * pConflict, Sto_Cls_t * pF
     Sto_Cls_t * pReason;
     int i, v, Var, PrevId;
     int fPrint = 0;
-    int clk = clock();
+    clock_t clk = clock();
 
     // collect resolvent literals
     if ( p->fProofVerif )
@@ -954,7 +954,7 @@ void * Inta_ManInterpolate( Inta_Man_t * p, Sto_Man_t * pCnf, void * vVarsAB, in
     Aig_Obj_t * pObj;
     Sto_Cls_t * pClause;
     int RetValue = 1;
-    int clkTotal = clock();
+    clock_t clkTotal = clock();
 
     // check that the CNF makes sense
     assert( pCnf->nVars > 0 && pCnf->nClauses > 0 );

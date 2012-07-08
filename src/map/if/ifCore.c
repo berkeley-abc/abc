@@ -80,7 +80,7 @@ int If_ManPerformMapping( If_Man_t * p )
 int If_ManPerformMappingComb( If_Man_t * p )
 {
     If_Obj_t * pObj;
-    int clkTotal = clock();
+    clock_t clkTotal = clock();
     int i;
 
     // set arrival times and fanout estimates

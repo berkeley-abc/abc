@@ -21,7 +21,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <time.h>
 
 #include "src/misc/extra/extraBdd.h"
 #include "cas.h"
@@ -129,7 +128,7 @@ int CreateDecomposedNetwork( DdManager * dd, DdNode * aFunc, char ** pNames, int
     int nLutOutputs = 0;
     int nLutOutputsOrig = 0;
 
-    long clk1;
+    clock_t clk1;
 
     s_LutSize = nLutSize;
 
@@ -285,7 +284,7 @@ int CreateDecomposedNetwork( DdManager * dd, DdNode * aFunc, char ** pNames, int
         }
         else
         {
-            long clk2 = clock();
+            clock_t clk2 = clock();
 //          p->bRelation = PerformTheEncoding( dd, p->pbCols, p->nCols, bVarsCube, bCVars, p->nMulti, &p->nSimple );  Cudd_Ref( p->bRelation );
             p->bRelation = Extra_bddEncodingNonStrict( dd, p->pbCols, p->nCols, bVarsCube, bCVars, p->nMulti, &p->nSimple );  Cudd_Ref( p->bRelation );
             s_EncodingTime += clock() - clk2;

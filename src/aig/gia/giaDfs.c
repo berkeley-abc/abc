@@ -209,7 +209,8 @@ void Gia_ManCollectTest( Gia_Man_t * p )
 {
     Vec_Int_t * vNodes;
     Gia_Obj_t * pObj;
-    int i, iNode, clk = clock();
+    int i, iNode;
+    clock_t clk = clock();
     vNodes = Vec_IntAlloc( 100 );
     Gia_ManIncrementTravId( p );
     Gia_ManForEachCo( p, pObj, i )
@@ -275,7 +276,8 @@ int Gia_ManSuppSizeOne( Gia_Man_t * p, Gia_Obj_t * pObj )
 int Gia_ManSuppSizeTest( Gia_Man_t * p )
 {
     Gia_Obj_t * pObj;
-    int i, Counter = 0, clk = clock();
+    int i, Counter = 0;
+    clock_t clk = clock();
     Gia_ManForEachObj( p, pObj, i )
         if ( Gia_ObjIsAnd(pObj) )
             Counter += (Gia_ManSuppSizeOne(p, pObj) <= 16);

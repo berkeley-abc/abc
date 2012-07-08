@@ -123,7 +123,8 @@ Vec_Ptr_t * If_ManCollectLatches( If_Man_t * p )
 int If_ManPerformMappingRoundSeq( If_Man_t * p, int nIter )
 {
     If_Obj_t * pObj;
-    int i, clk = clock();
+    int i;
+    clock_t clk = clock();
     int fVeryVerbose = 0;
     int fChange = 0;
 
@@ -337,7 +338,7 @@ void If_ManPerformMappingSeqPost( If_Man_t * p )
 ***********************************************************************/
 int If_ManPerformMappingSeq( If_Man_t * p )
 {
-    int clkTotal = clock();
+    clock_t clkTotal = clock();
     int PeriodBest;
 
     p->SortMode = 0;

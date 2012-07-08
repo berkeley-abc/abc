@@ -71,7 +71,7 @@ CloudManager * Cloud_Init( int nVars, int nBits )
 {
     CloudManager * dd;
     int i;
-    int clk1, clk2;
+    clock_t clk1, clk2;
 
     assert( nVars <= 100000 );
     assert( nBits < 32 );

@@ -44,7 +44,7 @@ ABC_NAMESPACE_IMPL_START
 ***********************************************************************/
 Ivy_Man_t * Ivy_ManResyn0( Ivy_Man_t * pMan, int fUpdateLevel, int fVerbose )
 {
-    int clk;
+    clock_t clk;
     Ivy_Man_t * pTemp;
 
 if ( fVerbose ) { printf( "Original:\n" ); }
@@ -85,7 +85,7 @@ if ( fVerbose ) Ivy_ManPrintStats( pMan );
 ***********************************************************************/
 Ivy_Man_t * Ivy_ManResyn( Ivy_Man_t * pMan, int fUpdateLevel, int fVerbose )
 {
-    int clk;
+    clock_t clk;
     Ivy_Man_t * pTemp;
 
 if ( fVerbose ) { printf( "Original:\n" ); }
@@ -154,7 +154,7 @@ if ( fVerbose ) Ivy_ManPrintStats( pMan );
 ***********************************************************************/
 Ivy_Man_t * Ivy_ManRwsat( Ivy_Man_t * pMan, int fVerbose )
 {
-    int clk;
+    clock_t clk;
     Ivy_Man_t * pTemp;
 
 if ( fVerbose ) { printf( "Original:\n" ); }

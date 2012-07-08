@@ -58,7 +58,7 @@ static void Msat_HeapIncrease( Msat_Order_t * p, int n );
 static void Msat_HeapPercolateUp( Msat_Order_t * p, int i );
 static void Msat_HeapPercolateDown( Msat_Order_t * p, int i );
 
-extern int timeSelect;
+extern clock_t timeSelect;
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -191,7 +191,7 @@ int Msat_OrderVarSelect( Msat_Order_t * p )
 //    return var_Undef;
 
     int Var;
-    int clk = clock();
+    clock_t clk = clock();
 
     while ( !HEMPTY(p) )
     {
@@ -237,7 +237,7 @@ void Msat_OrderVarUnassigned( Msat_Order_t * p, int Var )
 //    if (!heap.inHeap(x))
 //        heap.insert(x);
 
-    int clk = clock();
+    clock_t clk = clock();
     if ( !HINHEAP(p,Var) )
         Msat_HeapInsert( p, Var );
 timeSelect += clock() - clk;
@@ -259,7 +259,7 @@ void Msat_OrderUpdate( Msat_Order_t * p, int Var )
 //    if (heap.inHeap(x))
 //        heap.increase(x);
 
-    int clk = clock();
+    clock_t clk = clock();
     if ( HINHEAP(p,Var) )
         Msat_HeapIncrease( p, Var );
 timeSelect += clock() - clk;

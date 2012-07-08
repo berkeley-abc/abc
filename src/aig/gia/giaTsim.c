@@ -669,7 +669,8 @@ Gia_ManTer_t * Gia_ManTerSimulate( Gia_Man_t * pAig, int fVerbose )
 {
     Gia_ManTer_t * p;
     unsigned * pState, * pPrev, * pLoop;
-    int i, Counter, clk, clkTotal = clock();
+    int i, Counter;
+    clock_t clk, clkTotal = clock();
     assert( Gia_ManRegNum(pAig) > 0 );
     // create manager
     clk = clock();

@@ -161,7 +161,8 @@ void Extra_ShuffleTest( reo_man * pReo, DdManager * dd, DdNode * Func )
 //    extern int runtime1, runtime2;
 
     DdNode * Temp, * bRemap;
-    int nSuppSize, OffSet, Num, i, clk;
+    int nSuppSize, OffSet, Num, i;
+    clock_t clk;
     int pOrder[1000], pOrderInv[1000];
     assert( dd->size < 1000 );
 

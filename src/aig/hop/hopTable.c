@@ -167,7 +167,8 @@ void Hop_TableResize( Hop_Man_t * p )
 {
     Hop_Obj_t * pEntry, * pNext;
     Hop_Obj_t ** pTableOld, ** ppPlace;
-    int nTableSizeOld, Counter, nEntries, i, clk;
+    int nTableSizeOld, Counter, nEntries, i;
+    clock_t clk;
 clk = clock();
     // save the old table
     pTableOld = p->pTable;

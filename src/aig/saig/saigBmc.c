@@ -190,7 +190,8 @@ int Saig_ManBmcSimple( Aig_Man_t * pAig, int nFrames, int nSizeMax, int nConfLim
     Cnf_Dat_t * pCnf;
     Aig_Man_t * pFrames, * pAigTemp;
     Aig_Obj_t * pObj;
-    int status, clk, Lit, i, RetValue = -1;
+    int status, Lit, i, RetValue = -1;
+    clock_t clk;
 
     // derive the timeframes
     clk = clock();
@@ -264,7 +265,7 @@ int Saig_ManBmcSimple( Aig_Man_t * pAig, int nFrames, int nSizeMax, int nConfLim
     }
     else
     {
-        int clkPart = clock();
+        clock_t clkPart = clock();
         Aig_ManForEachCo( pFrames, pObj, i )
         {
 //if ( s_fInterrupt )

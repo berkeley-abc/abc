@@ -79,7 +79,7 @@ static inline Llb_Prt_t * Llb_MgrPart( Llb_Mgr_t * p, int i )  { return p->pPart
     for ( i = 0; (i < Vec_IntSize(pVar->vParts)) && (((pPart) = Llb_MgrPart(p, Vec_IntEntry(pVar->vParts,i))), 1); i++ )
 
 // statistics
-int timeBuild, timeAndEx, timeOther;
+clock_t timeBuild, timeAndEx, timeOther;
 int nSuppMax;
 
 ////////////////////////////////////////////////////////////////////////
@@ -140,7 +140,8 @@ DdNode * Llb_NonlinCreateCube1( Llb_Mgr_t * p, Llb_Prt_t * pPart )
 {
     DdNode * bCube, * bTemp;
     Llb_Var_t * pVar;
-    int i, TimeStop;
+    int i;
+    clock_t TimeStop;
     TimeStop = p->dd->TimeStop; p->dd->TimeStop = 0;
     bCube = Cudd_ReadOne(p->dd);   Cudd_Ref( bCube );
     Llb_PartForEachVar( p, pPart, pVar, i )
@@ -172,7 +173,8 @@ DdNode * Llb_NonlinCreateCube2( Llb_Mgr_t * p, Llb_Prt_t * pPart1, Llb_Prt_t * p
 {
     DdNode * bCube, * bTemp;
     Llb_Var_t * pVar;
-    int i, TimeStop;
+    int i;
+    clock_t TimeStop;
     TimeStop = p->dd->TimeStop; p->dd->TimeStop = 0;
     bCube = Cudd_ReadOne(p->dd);   Cudd_Ref( bCube );
     Llb_PartForEachVar( p, pPart1, pVar, i )
@@ -337,7 +339,7 @@ int Llb_NonlinQuantify1( Llb_Mgr_t * p, Llb_Prt_t * pPart, int fSubset )
   SeeAlso     []
 
 ***********************************************************************/
-int Llb_NonlinQuantify2( Llb_Mgr_t * p, Llb_Prt_t * pPart1, Llb_Prt_t * pPart2, int Limit, int TimeOut )
+int Llb_NonlinQuantify2( Llb_Mgr_t * p, Llb_Prt_t * pPart1, Llb_Prt_t * pPart2 )
 {
     int fVerbose = 0;
     Llb_Var_t * pVar;
@@ -373,7 +375,7 @@ Extra_bddPrintSupport( p->dd, bCube );  printf( "\n" );
             RetValue = Llb_NonlinQuantify1( p, pPart2, 1 );
         if ( RetValue )
             Limit = Limit + 1000;
-        Llb_NonlinQuantify2( p, pPart1, pPart2, Limit, TimeOut );
+        Llb_NonlinQuantify2( p, pPart1, pPart2 );
         return 0;
     }
     Cudd_Ref( bFunc );
@@ -537,7 +539,7 @@ Vec_Ptr_t * Llb_NonlinCutNodes( Aig_Man_t * p, Vec_Ptr_t * vLower, Vec_Ptr_t * v
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Ptr_t * Llb_NonlinBuildBdds( Aig_Man_t * p, Vec_Ptr_t * vLower, Vec_Ptr_t * vUpper, DdManager * dd, int TimeOut )
+Vec_Ptr_t * Llb_NonlinBuildBdds( Aig_Man_t * p, Vec_Ptr_t * vLower, Vec_Ptr_t * vUpper, DdManager * dd )
 {
     Vec_Ptr_t * vNodes, * vResult;
     Aig_Obj_t * pObj;
@@ -655,13 +657,13 @@ void Llb_NonlinAddPartition( Llb_Mgr_t * p, int i, DdNode * bFunc )
   SeeAlso     []
 
 ***********************************************************************/
-int Llb_NonlinStart( Llb_Mgr_t * p, int TimeOut )
+int Llb_NonlinStart( Llb_Mgr_t * p )
 {
     Vec_Ptr_t * vRootBdds;
     DdNode * bFunc;
     int i;
     // create and collect BDDs
-    vRootBdds = Llb_NonlinBuildBdds( p->pAig, p->vLeaves, p->vRoots, p->dd, TimeOut ); // come referenced
+    vRootBdds = Llb_NonlinBuildBdds( p->pAig, p->vLeaves, p->vRoots, p->dd ); // come referenced
     if ( vRootBdds == NULL )
         return 0;
     // add pairs (refs are consumed inside)
@@ -745,7 +747,7 @@ int Llb_NonlinNextPartitions( Llb_Mgr_t * p, Llb_Prt_t ** ppPart1, Llb_Prt_t ** 
 ***********************************************************************/
 void Llb_NonlinReorder( DdManager * dd, int fTwice, int fVerbose )
 {
-    int clk = clock();
+    clock_t clk = clock();
     if ( fVerbose )
         Abc_Print( 1, "Reordering... Before =%5d. ", Cudd_ReadKeys(dd) - Cudd_ReadDead(dd) );
     Cudd_ReduceHeap( dd, CUDD_REORDER_SYMM_SIFT, 100 );
@@ -880,17 +882,17 @@ void Llb_NonlinFree( Llb_Mgr_t * p )
 
 ***********************************************************************/
 DdNode * Llb_NonlinImage( Aig_Man_t * pAig, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vRoots, int * pVars2Q, 
-    DdManager * dd, DdNode * bCurrent, int fReorder, int fVerbose, int * pOrder, int Limit, int TimeOut )
+    DdManager * dd, DdNode * bCurrent, int fReorder, int fVerbose, int * pOrder )
 {
     Llb_Prt_t * pPart, * pPart1, * pPart2;
     Llb_Mgr_t * p;
     DdNode * bFunc, * bTemp;
     int i, nReorders, timeInside;
-    int clk = clock(), clk2;
+    clock_t clk = clock(), clk2;
     // start the manager
     clk2 = clock();
     p = Llb_NonlinAlloc( pAig, vLeaves, vRoots, pVars2Q, dd );
-    if ( !Llb_NonlinStart( p, TimeOut ) )
+    if ( !Llb_NonlinStart( p ) )
     {
         Llb_NonlinFree( p );
         return NULL;
@@ -913,7 +915,7 @@ DdNode * Llb_NonlinImage( Aig_Man_t * pAig, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vRo
     {
         clk2 = clock();
         nReorders = Cudd_ReadReorderings(dd);
-        if ( !Llb_NonlinQuantify2( p, pPart1, pPart2, Limit, TimeOut ) )
+        if ( !Llb_NonlinQuantify2( p, pPart1, pPart2 ) )
         {
             Llb_NonlinFree( p );
             return NULL;
@@ -958,10 +960,10 @@ static Llb_Mgr_t * p = NULL;
   SeeAlso     []
 
 ***********************************************************************/
-DdManager * Llb_NonlinImageStart( Aig_Man_t * pAig, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vRoots, int * pVars2Q, int * pOrder, int fFirst, int TimeTarget )
+DdManager * Llb_NonlinImageStart( Aig_Man_t * pAig, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vRoots, int * pVars2Q, int * pOrder, int fFirst, clock_t TimeTarget )
 {
     DdManager * dd;
-    int clk = clock();
+    clock_t clk = clock();
     assert( p == NULL );
     // start a new manager (disable reordering)
     dd = Cudd_Init( Aig_ManObjNumMax(pAig), 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
@@ -971,7 +973,7 @@ DdManager * Llb_NonlinImageStart( Aig_Man_t * pAig, Vec_Ptr_t * vLeaves, Vec_Ptr
         Cudd_AutodynEnable( dd,  CUDD_REORDER_SYMM_SIFT );
     // start the manager
     p = Llb_NonlinAlloc( pAig, vLeaves, vRoots, pVars2Q, dd );
-    if ( !Llb_NonlinStart( p, 0 ) )
+    if ( !Llb_NonlinStart( p ) )
     {
         Llb_NonlinFree( p );
         p = NULL;
@@ -999,7 +1001,7 @@ DdNode * Llb_NonlinImageCompute( DdNode * bCurrent, int fReorder, int fDrop, int
     Llb_Prt_t * pPart, * pPart1, * pPart2;
     DdNode * bFunc, * bTemp;
     int i, nReorders, timeInside = 0;
-    int clk = clock(), clk2;
+    clock_t clk = clock(), clk2;
 
     // add partition
     Llb_NonlinAddPartition( p, p->iPartFree++, bCurrent );
@@ -1020,7 +1022,7 @@ DdNode * Llb_NonlinImageCompute( DdNode * bCurrent, int fReorder, int fDrop, int
     {
         clk2 = clock();
         nReorders = Cudd_ReadReorderings(p->dd);
-        if ( !Llb_NonlinQuantify2( p, pPart1, pPart2, 0, 0 ) )
+        if ( !Llb_NonlinQuantify2( p, pPart1, pPart2 ) )
         {
             Llb_NonlinFree( p );
             return NULL;

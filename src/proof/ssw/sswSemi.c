@@ -179,7 +179,8 @@ int Ssw_ManFilterBmc( Ssw_Sem_t * pBmc, int iPat, int fCheckTargets )
     Ssw_Man_t * p = pBmc->pMan;
     Aig_Obj_t * pObj, * pObjNew, * pObjLi, * pObjLo;
     unsigned * pInfo;
-    int i, f, clk, RetValue, fFirst = 0;
+    int i, f, RetValue, fFirst = 0;
+    clock_t clk;
 clk = clock();
 
     // start initialized timeframes
@@ -260,7 +261,8 @@ p->timeBmc += clock() - clk;
 int Ssw_FilterUsingSemi( Ssw_Man_t * pMan, int fCheckTargets, int nConfMax, int fVerbose )
 {
     Ssw_Sem_t * p;
-    int RetValue, Frames, Iter, clk = clock();
+    int RetValue, Frames, Iter;
+    clock_t clk = clock();
     p = Ssw_SemManStart( pMan, nConfMax, fVerbose );
     if ( fCheckTargets && Ssw_SemCheckTargets( p ) )
     {

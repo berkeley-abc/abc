@@ -145,7 +145,7 @@ Vec_Int_t * Proof_CollectUsedIter( Vec_Set_t * vProof, Vec_Int_t * vRoots, int f
 {
     int fVerify = 0;
     Vec_Int_t * vUsed, * vStack;
-    int clk = clock();
+    clock_t clk = clock();
     int i, Entry, iPrev = 0;
     vUsed = Vec_IntAlloc( 1000 );
     vStack = Vec_IntAlloc( 1000 );
@@ -309,8 +309,9 @@ void Sat_ProofReduce2( sat_solver2 * s )
     int fVerbose = 0;
     Vec_Int_t * vUsed;
     satset * pNode, * pFanin, * pPivot;
-    int i, k, hTemp, clk = clock();
-    static int TimeTotal = 0;
+    int i, k, hTemp;
+    clock_t clk = clock();
+    static clock_t TimeTotal = 0;
 
     // collect visited nodes
     vUsed = Proof_CollectUsedIter( vProof, vRoots, 1 );
@@ -371,8 +372,9 @@ void Sat_ProofReduce( sat_solver2 * s )
     int fVerbose = 0;
     Vec_Ptr_t * vUsed;
     satset * pNode, * pFanin, * pPivot;
-    int i, j, k, hTemp, nSize, clk = clock();
-    static int TimeTotal = 0;
+    int i, j, k, hTemp, nSize;
+    clock_t clk = clock();
+    static clock_t TimeTotal = 0;
 
     // collect visited nodes
     nSize = Proof_MarkUsedRec( vProof, vRoots );
@@ -525,7 +527,8 @@ void Sat_ProofCheck( sat_solver2 * s )
     Vec_Set_t * vResolves;
     Vec_Int_t * vUsed, * vTemp;
     satset * pSet, * pSet0 = NULL, * pSet1;
-    int i, k, hRoot, Handle, Counter = 0, clk = clock(); 
+    int i, k, hRoot, Handle, Counter = 0;
+    clock_t clk = clock(); 
     hRoot = s->hProofLast;
     if ( hRoot == -1 )
         return;

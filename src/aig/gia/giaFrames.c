@@ -226,7 +226,7 @@ Gia_ManUnr_t * Gia_ManUnrStart( Gia_Man_t * pAig, Gia_ParFra_t * pPars )
     Gia_ManUnr_t * p;
     Gia_Obj_t * pObj;
     int i, k, iRank, iFanin, Degree, Shift;
-    int clk = clock();
+    clock_t clk = clock();
 
     p = ABC_CALLOC( Gia_ManUnr_t, 1 );
     p->pAig   = pAig;
@@ -605,7 +605,7 @@ Gia_Man_t * Gia_ManUnroll( Gia_ManUnr_t * p )
 Gia_Man_t * Gia_ManFrames2( Gia_Man_t * pAig, Gia_ParFra_t * pPars )
 {
     Gia_Man_t * pNew;
-    int clk = clock();
+    clock_t clk = clock();
     pNew = Gia_ManUnroll( pAig, pPars );
     if ( pPars->fVerbose )
         Abc_PrintTime( 1, "Time", clock() - clk );

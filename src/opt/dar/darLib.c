@@ -920,8 +920,8 @@ void Dar_LibEval( Dar_Man_t * p, Aig_Obj_t * pRoot, Dar_Cut_t * pCut, int Requir
     int fTraining = 0;
     float PowerSaved, PowerAdded;
     Dar_LibObj_t * pObj;
-    int Out, k, Class, nNodesSaved, nNodesAdded, nNodesGained, clk;
-    clk = clock();
+    int Out, k, Class, nNodesSaved, nNodesAdded, nNodesGained;
+    clock_t clk = clock();
     if ( pCut->nLeaves != 4 )
         return;
     // check if the cut exits and assigns leaves and their levels
@@ -1188,8 +1188,8 @@ int Dar2_LibEval( Gia_Man_t * p, Vec_Int_t * vCutLits, unsigned uTruth, int fKee
     int p_ClassBest  = -1;
 //    int fTraining    =  0;
     Dar_LibObj_t * pObj;
-    int Out, k, Class, nNodesSaved, nNodesAdded, nNodesGained, clk;
-    clk = clock();
+    int Out, k, Class, nNodesSaved, nNodesAdded, nNodesGained;
+    clock_t clk = clock();
     assert( Vec_IntSize(vCutLits) == 4 );
     assert( (uTruth >> 16) == 0 );
     // check if the cut exits and assigns leaves and their levels

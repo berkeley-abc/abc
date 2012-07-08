@@ -133,7 +133,7 @@ void Fpga_MappingCuts( Fpga_Man_t * p )
     Fpga_CutTable_t * pTable;
     Fpga_Node_t * pNode;
     int nCuts, nNodes, i;
-    int clk = clock();
+    clock_t clk = clock();
 
     // set the elementary cuts for the PI variables
     assert( p->nVarsMax > 1 && p->nVarsMax < 11 );

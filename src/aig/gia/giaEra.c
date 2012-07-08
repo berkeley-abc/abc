@@ -501,7 +501,8 @@ int Gia_ManCollectReachable( Gia_Man_t * pAig, int nStatesMax, int fMiter, int f
 { 
     Gia_ManEra_t * p;
     Gia_ObjEra_t * pState;
-    int Hash, clk = clock();
+    int Hash;
+    clock_t clk = clock();
     int RetValue = 1;
     assert( Gia_ManPiNum(pAig) <= 12 );
     assert( Gia_ManRegNum(pAig) > 0 );

@@ -117,7 +117,7 @@ void Map_MappingCuts( Map_Man_t * p )
     Map_Node_t * pNode;
     Map_Cut_t * pCut;
     int nCuts, nNodes, i;
-    int clk = clock();
+    clock_t clk = clock();
     // set the elementary cuts for the PI variables
     assert( p->nVarsMax > 1 && p->nVarsMax < 7 );
     for ( i = 0; i < p->nInputs; i++ )

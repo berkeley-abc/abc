@@ -47,7 +47,8 @@ static int Fra_SetActivityFactors( Fra_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * 
 ***********************************************************************/
 int Fra_NodesAreEquiv( Fra_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew )
 {
-    int pLits[4], RetValue, RetValue1, nBTLimit, clk;//, clk2 = clock();
+    int pLits[4], RetValue, RetValue1, nBTLimit;
+    clock_t clk;//, clk2 = clock();
     int status;
 
     // make sure the nodes are not complemented
@@ -207,7 +208,8 @@ p->timeSatFail += clock() - clk;
 ***********************************************************************/
 int Fra_NodesAreImp( Fra_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew, int fComplL, int fComplR )
 {
-    int pLits[4], RetValue, RetValue1, nBTLimit, clk;//, clk2 = clock();
+    int pLits[4], RetValue, RetValue1, nBTLimit;
+    clock_t clk;//, clk2 = clock();
     int status;
 
     // make sure the nodes are not complemented
@@ -314,7 +316,8 @@ p->timeSatFail += clock() - clk;
 ***********************************************************************/
 int Fra_NodesAreClause( Fra_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew, int fComplL, int fComplR )
 {
-    int pLits[4], RetValue, RetValue1, nBTLimit, clk;//, clk2 = clock();
+    int pLits[4], RetValue, RetValue1, nBTLimit;
+    clock_t clk;//, clk2 = clock();
     int status;
 
     // make sure the nodes are not complemented
@@ -421,7 +424,8 @@ p->timeSatFail += clock() - clk;
 ***********************************************************************/
 int Fra_NodeIsConst( Fra_Man_t * p, Aig_Obj_t * pNew )
 {
-    int pLits[2], RetValue1, RetValue, clk;
+    int pLits[2], RetValue1, RetValue;
+    clock_t clk;
 
     // make sure the nodes are not complemented
     assert( !Aig_IsComplement(pNew) );
@@ -535,7 +539,8 @@ int Fra_SetActivityFactors_rec( Fra_Man_t * p, Aig_Obj_t * pObj, int LevelMin, i
 ***********************************************************************/
 int Fra_SetActivityFactors( Fra_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew )
 {
-    int clk, LevelMin, LevelMax;
+    int LevelMin, LevelMax;
+    clock_t clk;
     assert( pOld || pNew );
 clk = clock(); 
     // reset the active variables

@@ -672,7 +672,7 @@ void Cof_ManPrintFanio( Cof_Man_t * p )
 void Gia_ManPrintFanio( Gia_Man_t * pGia, int nNodes )
 {
     Cof_Man_t * p;
-    int clk = clock();
+    clock_t clk = clock();
     p = Cof_ManCreateLogicSimple( pGia );
     p->nLevels = 1 + Gia_ManLevelNum( pGia );
     p->pLevels = ABC_CALLOC( int, p->nLevels );

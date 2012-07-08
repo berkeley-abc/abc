@@ -127,16 +127,16 @@ struct Ssw_Man_t_
     int              nRegsBegC;
     int              nRegsEndC;
     // runtime stats
-    int              timeBmc;        // bounded model checking
-    int              timeReduce;     // speculative reduction
-    int              timeMarkCones;  // marking the cones not to be refined
-    int              timeSimSat;     // simulation of the counter-examples
-    int              timeSat;        // solving SAT
-    int              timeSatSat;     // sat
-    int              timeSatUnsat;   // unsat
-    int              timeSatUndec;   // undecided
-    int              timeOther;      // other runtime
-    int              timeTotal;      // total runtime
+    clock_t          timeBmc;        // bounded model checking
+    clock_t          timeReduce;     // speculative reduction
+    clock_t          timeMarkCones;  // marking the cones not to be refined
+    clock_t          timeSimSat;     // simulation of the counter-examples
+    clock_t          timeSat;        // solving SAT
+    clock_t          timeSatSat;     // sat
+    clock_t          timeSatUnsat;   // unsat
+    clock_t          timeSatUndec;   // undecided
+    clock_t          timeOther;      // other runtime
+    clock_t          timeTotal;      // total runtime
 };
 
 // internal SAT manager

@@ -461,7 +461,7 @@ void Amap_LibParseTest( char * pFileName )
 {
     int fVerbose = 1;
     Amap_Lib_t * p;
-    int clk = clock();
+    clock_t clk = clock();
     p = Amap_LibReadFile( pFileName, fVerbose );
     if ( p == NULL )
         return;

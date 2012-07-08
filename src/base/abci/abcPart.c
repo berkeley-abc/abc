@@ -725,7 +725,8 @@ Vec_Ptr_t * Abc_NtkPartitionSmart( Abc_Ntk_t * pNtk, int nSuppSizeLimit, int fVe
     Vec_Ptr_t * vPartSuppsChar;
     Vec_Ptr_t * vSupps, * vPartsAll, * vPartsAll2, * vPartSuppsAll;
     Vec_Int_t * vOne, * vPart, * vPartSupp, * vTemp;
-    int i, iPart, iOut, clk, clk2, timeFind = 0;
+    int i, iPart, iOut, timeFind = 0;
+    clock_t clk, clk2;
 
     // compute the supports for all outputs
 clk = clock();
@@ -1163,7 +1164,7 @@ void Abc_NtkFraigPartitionedTime( Abc_Ntk_t * pNtk, void * pParams )
     Vec_Int_t * vOne;
     Abc_Ntk_t * pNtkAig, * pNtkFraig;
     int i;
-    int clk = clock();
+    clock_t clk = clock();
 
     // perform partitioning
     assert( Abc_NtkIsStrash(pNtk) );

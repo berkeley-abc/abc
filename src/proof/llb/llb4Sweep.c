@@ -286,7 +286,8 @@ DdNode * Llb4_Nonlin4SweepBadMonitor( Aig_Man_t * pAig, Vec_Int_t * vOrder, DdMa
 {
     Aig_Obj_t * pObj;
     DdNode * bRes, * bVar, * bTemp;
-    int i, TimeStop;
+    int i;
+    clock_t TimeStop;
     TimeStop = dd->TimeStop;  dd->TimeStop = 0;
     bRes = Cudd_ReadOne( dd );   Cudd_Ref( bRes );
     Saig_ManForEachPo( pAig, pObj, i )

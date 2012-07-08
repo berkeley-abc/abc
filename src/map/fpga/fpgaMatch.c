@@ -119,7 +119,7 @@ int Fpga_MappingMatches( Fpga_Man_t * p, int fDelayOriented )
 int Fpga_MatchNode( Fpga_Man_t * p, Fpga_Node_t * pNode, int fDelayOriented )
 {
     Fpga_Cut_t * pCut, * pCutBestOld;
-    int clk;
+    clock_t clk;
     // make sure that at least one cut other than the trivial is present
     if ( pNode->pCuts->pNext == NULL )
     {
@@ -269,7 +269,7 @@ int Fpga_MatchNodeArea( Fpga_Man_t * p, Fpga_Node_t * pNode )
 {
     Fpga_Cut_t * pCut, * pCutBestOld;
     float aAreaCutBest;
-    int clk;
+    clock_t clk;
     // make sure that at least one cut other than the trivial is present
     if ( pNode->pCuts->pNext == NULL )
     {
@@ -390,7 +390,7 @@ int Fpga_MatchNodeSwitch( Fpga_Man_t * p, Fpga_Node_t * pNode )
 {
     Fpga_Cut_t * pCut, * pCutBestOld;
     float aAreaCutBest = FPGA_FLOAT_LARGE;
-    int clk;
+    clock_t clk;
     // make sure that at least one cut other than the trivial is present
     if ( pNode->pCuts->pNext == NULL )
     {

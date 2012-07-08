@@ -497,7 +497,8 @@ int Aig_ManPartitionedSat( Aig_Man_t * p, int nAlgo, int nPartSize,
     Aig_Man_t * pAig, * pTemp;
     Vec_Int_t * vNode2Part, * vNode2Var;
     int nConfRemaining = nConfTotal, nNodes = 0;
-    int i, clk, status, RetValue = -1;
+    int i, status, RetValue = -1;
+    clock_t clk;
 
     // perform partitioning according to the selected algorithm
     clk = clock();

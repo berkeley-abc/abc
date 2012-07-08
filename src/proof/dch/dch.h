@@ -54,7 +54,7 @@ struct Dch_Pars_t_
     int              fUseCSat;      // uses circuit-based solver
     int              fLightSynth;   // uses lighter version of synthesis
     int              fVerbose;      // verbose stats
-    int              timeSynth;     // synthesis runtime
+    clock_t          timeSynth;     // synthesis runtime
     int              nNodesAhead;   // the lookahead in terms of nodes
     int              nCallsRecycle; // calls to perform before recycling SAT solver
 };

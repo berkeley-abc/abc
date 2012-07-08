@@ -208,8 +208,8 @@ int Cec_ManChoiceComputation_int( Gia_Man_t * pAig, Cec_ParChc_t * pPars )
     Cec_ManSim_t * pSim;
     Gia_Man_t * pSrm;
     int r, RetValue;
-    int clkSat = 0, clkSim = 0, clkSrm = 0, clkTotal = clock();
-    int clk2, clk = clock();
+    clock_t clkSat = 0, clkSim = 0, clkSrm = 0, clkTotal = clock();
+    clock_t clk2, clk = clock();
     ABC_FREE( pAig->pReprs );
     ABC_FREE( pAig->pNexts );
     Gia_ManRandom( 1 );

@@ -115,10 +115,10 @@ struct Tas_Man_t_
     int           nConfUndec;   // conflicts in undec problems
     int           nConfTotal;   // total conflicts
     // runtime stats
-    int           timeSatUnsat; // unsat
-    int           timeSatSat;   // sat
-    int           timeSatUndec; // undecided
-    int           timeTotal;    // total runtime
+    clock_t       timeSatUnsat; // unsat
+    clock_t       timeSatSat;   // sat
+    clock_t       timeSatUndec; // undecided
+    clock_t       timeTotal;    // total runtime
 };
 
 static inline int         Tas_VarIsAssigned( Tas_Var_t * pVar )        { return pVar->fAssign;                                      }

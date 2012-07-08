@@ -50,7 +50,7 @@ void Sim_SymmsSimulate( Sym_Man_t * p, unsigned * pPat, Vec_Ptr_t * vMatrsNonSym
 {
     Abc_Obj_t * pNode;
     int i, nPairsTotal, nPairsSym, nPairsNonSym;
-    int clk;
+    clock_t clk;
 
     // create the simulation matrix
     Sim_SymmsCreateSquare( p, pPat );

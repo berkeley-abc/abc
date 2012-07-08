@@ -73,7 +73,7 @@ void Cut_NodeComputeCutsSeq( Cut_Man_t * p, int Node, int Node0, int Node1, int 
 {
     Cut_List_t Super, * pSuper = &Super;
     Cut_Cut_t * pListNew;
-    int clk;
+    clock_t clk;
     
     // get the number of cuts at the node
     p->nNodeCuts = Cut_CutCountList( Cut_NodeReadCutsOld(p, Node) );

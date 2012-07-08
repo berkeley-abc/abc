@@ -258,7 +258,8 @@ void Abc_NtkVerifyUsingBdds( Abc_Ntk_t * pNtk, int nBddMax, int nIterMax, int fP
     DdManager * dd;
     DdNode ** pbParts;
     DdNode * bOutput, * bReached, * bInitial;
-    int i, clk = clock();
+    int i;
+    clock_t clk = clock();
 
     assert( Abc_NtkIsStrash(pNtk) );
     assert( Abc_NtkPoNum(pNtk) == 1 );

@@ -145,7 +145,7 @@ Vec_Ptr_t * Abc_NtkMaxFlow( Abc_Ntk_t * pNtk, int fForward, int fVerbose )
     Vec_Ptr_t * vMinCut;
     Abc_Obj_t * pLatch;
     int Flow, FlowCur, RetValue, i;
-    int clk = clock();
+    clock_t clk = clock();
     int fUseDirectedFlow = 1;
 
     // find the max-flow

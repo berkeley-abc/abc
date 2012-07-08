@@ -258,7 +258,8 @@ Aig_Man_t * Aig_ManSplit( Aig_Man_t * p, int nVars, int fVerbose )
     DdNode * bFunc;
     DdManager * dd;
     Vec_Ptr_t * vSupp, * vSubs, * vCofs;
-    int i, clk = clock();
+    int i;
+    clock_t clk = clock();
     if ( Saig_ManPoNum(p) != 1 )
     {
         printf( "Currently works only for one primary output.\n" );

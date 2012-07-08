@@ -82,12 +82,12 @@ struct Gia_IsoMan_t_
     Vec_Int_t *      vClasses;
     Vec_Int_t *      vClasses2;
     // statistics 
-    int              timeStart;
-    int              timeSim;
-    int              timeRefine;
-    int              timeSort;
-    int              timeOther;
-    int              timeTotal;
+    clock_t          timeStart;
+    clock_t          timeSim;
+    clock_t          timeRefine;
+    clock_t          timeSort;
+    clock_t          timeOther;
+    clock_t          timeTotal;
 };
 
 static inline unsigned  Gia_IsoGetValue( Gia_IsoMan_t * p, int i )             { return (unsigned)(p->pStoreW[i]);       }
@@ -178,7 +178,7 @@ void Gia_IsoPrintClasses( Gia_IsoMan_t * p )
         printf( "\n" );
     }
 }
-void Gia_IsoPrint( Gia_IsoMan_t * p, int Iter, int Time )
+void Gia_IsoPrint( Gia_IsoMan_t * p, int Iter, clock_t Time )
 {
     printf( "Iter %4d :  ", Iter );
     printf( "Entries =%8d.  ", p->nEntries );
@@ -298,8 +298,9 @@ void Gia_IsoAssignUnique( Gia_IsoMan_t * p )
 int Gia_IsoSort( Gia_IsoMan_t * p )
 {
     Gia_Obj_t * pObj, * pObj0;
-    int i, k, fSameValue, iBegin, iBeginOld, nSize, nSizeNew, clk;
+    int i, k, fSameValue, iBegin, iBeginOld, nSize, nSizeNew;
     int fRefined = 0;
+    clock_t clk;
 
     // go through the equiv classes
     p->nSingles = 0;
@@ -722,7 +723,8 @@ Vec_Ptr_t * Gia_IsoDeriveEquivPos( Gia_Man_t * pGia, int fForward, int fVerbose 
     Gia_IsoMan_t * p;
     Vec_Ptr_t * vEquivs = NULL;
     int fRefined, fRefinedAll;
-    int i, c, clk = clock(), clkTotal = clock();
+    int i, c;
+    clock_t clk = clock(), clkTotal = clock();
     assert( Gia_ManCiNum(pGia) > 0 );
     assert( Gia_ManPoNum(pGia) > 0 );
 
@@ -1070,7 +1072,8 @@ Gia_Man_t * Gia_ManIsoReduce( Gia_Man_t * pInit, Vec_Ptr_t ** pvPosEquivs, int f
     Vec_Ptr_t * vEquivs, * vEquivs2, * vStrings;
     Vec_Int_t * vRemain, * vLevel, * vLevel2;
     Vec_Str_t * vStr, * vStr2;
-    int i, k, s, sStart, Entry, Counter, clk = clock();
+    int i, k, s, sStart, Entry, Counter;
+    clock_t clk = clock();
     if ( pvPosEquivs )
         *pvPosEquivs = NULL;
 
@@ -1203,7 +1206,7 @@ Gia_Man_t * Gia_ManIsoReduce( Gia_Man_t * pInit, Vec_Ptr_t ** pvPosEquivs, int f
 void Gia_IsoTest( Gia_Man_t * p, int fVerbose )
 {
     Vec_Ptr_t * vEquivs;
-    int clk = clock(); 
+    clock_t clk = clock(); 
     vEquivs = Gia_IsoDeriveEquivPos( p, 0, fVerbose );
     printf( "Reduced %d outputs to %d.  ", Gia_ManPoNum(p), vEquivs ? Vec_PtrSize(vEquivs) : 1 );
     Abc_PrintTime( 1, "Time", clock() - clk );

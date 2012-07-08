@@ -721,7 +721,7 @@ Abc_Cex_t * Saig_ManCbaFindCexCareBits( Aig_Man_t * pAig, Abc_Cex_t * pCex, int 
     Saig_ManCba_t * p;
     Vec_Int_t * vReasons;
     Abc_Cex_t * pCare;
-    int clk = clock();
+    clock_t clk = clock();
 
     clk = clock();
     p = Saig_ManCbaStart( pAig, pCex, nInputs, fVerbose );
@@ -831,7 +831,8 @@ ABC_PRT( "Time", clock() - clk );
 Vec_Int_t * Saig_ManCbaPerform( Aig_Man_t * pAbs, int nInputs, Saig_ParBmc_t * pPars )
 {
     Vec_Int_t * vAbsFfsToAdd;
-    int RetValue, clk = clock();
+    int RetValue;
+    clock_t clk = clock();
 //    assert( pAbs->nRegs > 0 );
     // perform BMC
     RetValue = Saig_ManBmcScalable( pAbs, pPars );

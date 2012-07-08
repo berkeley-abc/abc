@@ -60,18 +60,18 @@ struct Res_Man_t_
     int           nTotalNets2;   // the total number of nets
     int           nTotalNodes2;  // the total number of nodess
     // runtime
-    int           timeWin;       // windowing
-    int           timeDiv;       // divisors
-    int           timeAig;       // strashing
-    int           timeSim;       // simulation
-    int           timeCand;      // resubstitution candidates
-    int           timeSatTotal;  // SAT solving total 
-    int           timeSatSat;    // SAT solving (sat calls)
-    int           timeSatUnsat;  // SAT solving (unsat calls)
-    int           timeSatSim;    // SAT solving (simulation)
-    int           timeInt;       // interpolation 
-    int           timeUpd;       // updating  
-    int           timeTotal;     // total runtime
+    clock_t       timeWin;       // windowing
+    clock_t       timeDiv;       // divisors
+    clock_t       timeAig;       // strashing
+    clock_t       timeSim;       // simulation
+    clock_t       timeCand;      // resubstitution candidates
+    clock_t       timeSatTotal;  // SAT solving total 
+    clock_t       timeSatSat;    // SAT solving (sat calls)
+    clock_t       timeSatUnsat;  // SAT solving (unsat calls)
+    clock_t       timeSatSim;    // SAT solving (simulation)
+    clock_t       timeInt;       // interpolation 
+    clock_t       timeUpd;       // updating  
+    clock_t       timeTotal;     // total runtime
 };
 
 extern Hop_Obj_t * Kit_GraphToHop( Hop_Man_t * pMan, Kit_Graph_t * pGraph );
@@ -220,7 +220,7 @@ int Abc_NtkResynthesize( Abc_Ntk_t * pNtk, Res_Par_t * pPars )
     Vec_Ptr_t * vFanins;
     unsigned * puTruth;
     int i, k, RetValue, nNodesOld, nFanins, nFaninsMax;
-    int clk, clkTotal = clock();
+    clock_t clk, clkTotal = clock();
 
     // start the manager
     p = Res_ManAlloc( pPars );

@@ -45,7 +45,8 @@ ABC_NAMESPACE_IMPL_START
 int Ssw_NodesAreEquiv( Ssw_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew )
 {
     int nBTLimit = p->pPars->nBTLimit;
-    int pLits[3], nLits, RetValue, RetValue1, clk;//, status;
+    int pLits[3], nLits, RetValue, RetValue1;
+    clock_t clk;//, status;
     p->nSatCalls++;
     p->pMSat->nSolverCalls++;
 

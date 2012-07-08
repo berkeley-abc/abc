@@ -86,14 +86,14 @@ struct Odc_Man_t_
     int                     nTotalDcs;   // total percentage of DCs
 
     // runtime
-    int                     timeClean;   // windowing
-    int                     timeWin;     // windowing
-    int                     timeMiter;   // computing the miter
-    int                     timeSim;     // simulation
-    int                     timeQuant;   // quantification
-    int                     timeTruth;   // truth table
-    int                     timeTotal;   // useful runtime
-    int                     timeAbort;   // aborted runtime
+    clock_t                 timeClean;   // windowing
+    clock_t                 timeWin;     // windowing
+    clock_t                 timeMiter;   // computing the miter
+    clock_t                 timeSim;     // simulation
+    clock_t                 timeQuant;   // quantification
+    clock_t                 timeTruth;   // truth table
+    clock_t                 timeTotal;   // useful runtime
+    clock_t                 timeAbort;   // aborted runtime
 };
 
 
@@ -241,7 +241,7 @@ Odc_Man_t * Abc_NtkDontCareAlloc( int nVarsMax, int nLevels, int fVerbose, int f
 ***********************************************************************/
 void Abc_NtkDontCareClear( Odc_Man_t * p )
 {
-    int clk = clock();
+    clock_t clk = clock();
     // clean the structural hashing table
     if ( Vec_IntSize(p->vUsedSpots) > p->nTableSize/3 ) // more than one third
         memset( p->pTable, 0, sizeof(Odc_Lit_t) * p->nTableSize );
@@ -1033,7 +1033,7 @@ int Abc_NtkDontCareSimulateBefore( Odc_Man_t * p, unsigned * puTruth )
 int Abc_NtkDontCareCompute( Odc_Man_t * p, Abc_Obj_t * pNode, Vec_Ptr_t * vLeaves, unsigned * puTruth )
 {
     int nMints, RetValue;
-    int clk, clkTotal = clock();
+    clock_t clk, clkTotal = clock();
 
     p->nWins++;
     

@@ -179,7 +179,7 @@ void Llb_ImgSchedule( Vec_Ptr_t * vSupps, Vec_Ptr_t ** pvQuant0, Vec_Ptr_t ** pv
   SeeAlso     []
 
 ***********************************************************************/
-DdManager * Llb_ImgPartition( Aig_Man_t * p, Vec_Ptr_t * vLower, Vec_Ptr_t * vUpper, int TimeTarget )
+DdManager * Llb_ImgPartition( Aig_Man_t * p, Vec_Ptr_t * vLower, Vec_Ptr_t * vUpper, clock_t TimeTarget )
 {
     Vec_Ptr_t * vNodes, * vRange;
     Aig_Obj_t * pObj;
@@ -259,7 +259,8 @@ DdNode * Llb_ImgComputeCube( Aig_Man_t * pAig, Vec_Int_t * vNodeIds, DdManager *
 {
     DdNode * bProd, * bTemp;
     Aig_Obj_t * pObj;
-    int i, TimeStop;
+    int i;
+    clock_t TimeStop;
     TimeStop = dd->TimeStop; dd->TimeStop = 0;
     bProd = Cudd_ReadOne(dd);   Cudd_Ref( bProd );
     Aig_ManForEachObjVec( vNodeIds, pAig, pObj, i )
@@ -287,7 +288,8 @@ void Llb_ImgQuantifyFirst( Aig_Man_t * pAig, Vec_Ptr_t * vDdMans, Vec_Ptr_t * vQ
 {
     DdManager * dd;
     DdNode * bProd, * bRes, * bTemp;
-    int i, clk = clock();
+    int i;
+    clock_t clk = clock();
     Vec_PtrForEachEntry( DdManager *, vDdMans, dd, i )
     {
         // remember unquantified ones
@@ -360,12 +362,13 @@ void Llb_ImgQuantifyReset( Vec_Ptr_t * vDdMans )
 ***********************************************************************/
 DdNode * Llb_ImgComputeImage( Aig_Man_t * pAig, Vec_Ptr_t * vDdMans, DdManager * dd, DdNode * bInit, 
     Vec_Ptr_t * vQuant0, Vec_Ptr_t * vQuant1, Vec_Int_t * vDriRefs, 
-    int TimeTarget, int fBackward, int fReorder, int fVerbose )
+    clock_t TimeTarget, int fBackward, int fReorder, int fVerbose )
 {
 //    int fCheckSupport = 0;
     DdManager * ddPart;
     DdNode * bImage, * bGroup, * bCube, * bTemp;
-    int i, clk, clk0 = clock();
+    int i;
+    clock_t clk, clk0 = clock();
 
     bImage = bInit;  Cudd_Ref( bImage );
     if ( fBackward )

@@ -347,7 +347,7 @@ void (*Extra_UtilMMoutOfMemory)( long size ) = (void (*)( long size ))Extra_Util
   SeeAlso     []
 
 ***********************************************************************/
-long Extra_CpuTime()
+clock_t Extra_CpuTime()
 {
     return clock();
 }
@@ -366,7 +366,7 @@ long Extra_CpuTime()
 #if defined(NT) || defined(NT64) || defined(WIN32)
 double Extra_CpuTimeDouble()
 {
-    return (double)clock()/CLOCKS_PER_SEC;
+    return 1.0*clock()/CLOCKS_PER_SEC;
 }
 #else
 

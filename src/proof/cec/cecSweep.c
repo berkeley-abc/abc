@@ -188,7 +188,8 @@ int Cec_ManFraClassesUpdate( Cec_ManFra_t * p, Cec_ManSim_t * pSim, Cec_ManPat_t
 {
     Vec_Ptr_t * vInfo;
     Gia_Obj_t * pObj, * pObjOld, * pReprOld;
-    int i, k, iRepr, iNode, clk;
+    int i, k, iRepr, iNode;
+    clock_t clk;
 clk = clock();
     vInfo = Cec_ManPatCollectPatterns( pPat, Gia_ManCiNum(p->pAig), pSim->nWords );
 p->timePat += clock() - clk;

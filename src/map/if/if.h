@@ -30,7 +30,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include <time.h>
+
 #include "src/misc/vec/vec.h"
 #include "src/misc/mem/mem.h"
 #include "src/misc/tim/tim.h"
@@ -223,7 +223,7 @@ struct If_Man_t_
     void **            pHashTable[2];    // hash table bins
     Mem_Fixed_t *      pMemEntries;      // memory manager for hash table entries
     // statistics 
-//    int                timeTruth;
+//    clock_t                timeTruth;
 };
 
 // priority cut

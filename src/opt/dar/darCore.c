@@ -83,7 +83,8 @@ int Dar_ManRewrite( Aig_Man_t * pAig, Dar_RwrPar_t * pPars )
     Dar_Cut_t * pCut;
     Aig_Obj_t * pObj, * pObjNew;
     int i, k, nNodesOld, nNodeBefore, nNodeAfter, Required;
-    int clk = 0, clkStart, Counter = 0;
+    clock_t clk = 0, clkStart;
+    int Counter = 0;
     int nMffcSize;//, nMffcGains[MAX_VAL+1][MAX_VAL+1] = {{0}};
     // prepare the library
     Dar_LibPrepare( pPars->nSubgMax ); 
@@ -287,7 +288,8 @@ Aig_MmFixed_t * Dar_ManComputeCuts( Aig_Man_t * pAig, int nCutsMax, int fSkipTtM
     Dar_RwrPar_t Pars, * pPars = &Pars; 
     Aig_Obj_t * pObj;
     Aig_MmFixed_t * pMemCuts;
-    int i, nNodes, clk = clock();
+    int i, nNodes;
+    clock_t clk = clock();
     // remove dangling nodes
     if ( (nNodes = Aig_ManCleanup( pAig )) )
     {

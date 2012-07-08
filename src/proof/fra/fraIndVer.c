@@ -50,7 +50,7 @@ int Fra_InvariantVerify( Aig_Man_t * pAig, int nFrames, Vec_Int_t * vClauses, Ve
     int * pStart;
     int RetValue, Beg, End, i, k;
     int CounterBase = 0, CounterInd = 0;
-    int clk = clock();
+    clock_t clk = clock();
 
     if ( nFrames != 1 )
     {

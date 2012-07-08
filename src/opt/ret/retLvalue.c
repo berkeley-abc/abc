@@ -93,7 +93,8 @@ Vec_Int_t * Abc_NtkRetimeGetLags( Abc_Ntk_t * pNtk, int nIterLimit, int fVerbose
     Vec_Int_t * vLags;
     Vec_Ptr_t * vNodes, * vLatches;
     Abc_Obj_t * pNode;
-    int i, FiMax, FiBest, RetValue, clk, clkIter;
+    int i, FiMax, FiBest, RetValue;
+    clock_t clk, clkIter;
     char NodeLag;
 
     // get the upper bound on the clock period

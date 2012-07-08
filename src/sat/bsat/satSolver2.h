@@ -160,7 +160,7 @@ struct sat_solver2_t
     stats_t         stats;
     ABC_INT64_T     nConfLimit;     // external limit on the number of conflicts
     ABC_INT64_T     nInsLimit;      // external limit on the number of implications
-    int             nRuntimeLimit;  // external limit on runtime
+    clock_t         nRuntimeLimit;  // external limit on runtime
 };
 
 typedef struct satset_t satset;
@@ -240,9 +240,9 @@ static inline int sat_solver2_final(sat_solver2* s, int ** ppArray)
     return s->conf_final.size;
 }
 
-static inline int sat_solver2_set_runtime_limit(sat_solver2* s, int Limit)
+static inline clock_t sat_solver2_set_runtime_limit(sat_solver2* s, clock_t Limit)
 {
-    int temp = s->nRuntimeLimit;
+    clock_t temp = s->nRuntimeLimit;
     s->nRuntimeLimit = Limit;
     return temp;
 }

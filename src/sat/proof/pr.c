@@ -22,9 +22,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include <time.h>
 
-//#include "vec.h"
 #include "src/misc/util/abc_global.h"
 #include "pr.h"
 
@@ -90,10 +88,10 @@ struct Pr_Man_t_
     int             nResLits;     // the number of literals of the resolvent
     int             nResLitsAlloc;// the number of literals of the resolvent
     // runtime stats
-    int             timeBcp;
-    int             timeTrace;
-    int             timeRead;
-    int             timeTotal;
+    clock_t         timeBcp;
+    clock_t         timeTrace;
+    clock_t         timeRead;
+    clock_t         timeTotal;
 };
 
 // variable assignments 
@@ -580,7 +578,7 @@ Pr_Cls_t * Pr_ManPropagate( Pr_Man_t * p, int Start )
 {
     Pr_Cls_t * pClause;
     int i;
-    int clk = clock();
+    clock_t clk = clock();
     for ( i = Start; i < p->nTrailSize; i++ )
     {
         pClause = Pr_ManPropagateOne( p, p->pTrail[i] );
@@ -676,7 +674,7 @@ int Pr_ManProofTraceOne( Pr_Man_t * p, Pr_Cls_t * pConflict, Pr_Cls_t * pFinal )
     Pr_Cls_t * pReason;
     int i, v, Var, PrevId;
     int fPrint = 0;
-    int clk = clock();
+    clock_t clk = clock();
 
     // collect resolvent literals
     if ( p->fProofVerif )
@@ -1228,7 +1226,7 @@ int Pr_ManProofCount_rec( Pr_Cls_t * pClause )
 int Pr_ManProofTest( char * pFileName )
 {
     Pr_Man_t * p;
-    int clk, clkTotal = clock();
+    clock_t clk, clkTotal = clock();
 
 clk = clock();
     p = Pr_ManProofRead( pFileName );

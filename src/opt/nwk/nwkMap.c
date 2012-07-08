@@ -109,7 +109,8 @@ If_Man_t * Nwk_ManToIf( Aig_Man_t * p, If_Par_t * pPars, Vec_Ptr_t * vAigToIf )
     If_Man_t * pIfMan;
     If_Obj_t * pIfObj;
     Aig_Obj_t * pNode, * pFanin, * pPrev;
-    int i, clk = clock();
+    int i;
+    clock_t clk = clock();
     // set the number of registers (switch activity will be combinational)
     Aig_ManSetRegNum( p, 0 );
     if ( pPars->fPower )

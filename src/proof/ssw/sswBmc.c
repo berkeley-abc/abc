@@ -128,7 +128,8 @@ int Ssw_BmcDynamic( Aig_Man_t * pAig, int nFramesMax, int nConfLimit, int fVerbo
     Ssw_Frm_t * pFrm;
     Ssw_Sat_t * pSat;
     Aig_Obj_t * pObj, * pObjFrame;
-    int status, clkPart, Lit, i, f, RetValue;
+    int status, Lit, i, f, RetValue;
+    clock_t clkPart;
 
     // start managers
     assert( Saig_ManRegNum(pAig) > 0 );

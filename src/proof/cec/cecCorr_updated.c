@@ -728,7 +728,7 @@ Gia_Man_t * Gia_ManCorrReduce( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Cec_ManRefinedClassPrintStats( Gia_Man_t * p, Vec_Str_t * vStatus, int iIter, int Time )
+void Cec_ManRefinedClassPrintStats( Gia_Man_t * p, Vec_Str_t * vStatus, int iIter, clock_t Time )
 { 
     int nLits, CounterX = 0, Counter0 = 0, Counter = 0;
     int i, Entry, nProve = 0, nDispr = 0, nFail = 0;

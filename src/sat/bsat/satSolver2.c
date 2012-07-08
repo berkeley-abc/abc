@@ -1398,12 +1398,13 @@ void luby2_test()
 // updates clauses, watches, units, and proof
 void sat_solver2_reducedb(sat_solver2* s)
 {
-    static int TimeTotal = 0;
+    static clock_t TimeTotal = 0;
     satset * c, * pivot;
     cla h,* pArray,* pArray2;
     int * pPerm, * pClaAct, nClaAct, ActCutOff;
     int i, j, k, hTemp, hHandle, LastSize = 0;
-    int Counter, CounterStart, clk = clock();
+    int Counter, CounterStart;
+    clock_t clk = clock();
 
     // check if it is time to reduce
     if ( s->nLearntMax == 0 || s->stats.learnts < (unsigned)s->nLearntMax )
@@ -1845,7 +1846,7 @@ int sat_solver2_solve(sat_solver2* s, lit* begin, lit* end, ABC_INT64_T nConfLim
                 s->progress_estimate*100);
             fflush(stdout);
         }
-        if ( s->nRuntimeLimit && time(NULL) > s->nRuntimeLimit )
+        if ( s->nRuntimeLimit && clock() > s->nRuntimeLimit )
             break;
         // reduce the set of learnt clauses:
         sat_solver2_reducedb(s);

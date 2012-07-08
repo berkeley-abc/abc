@@ -497,7 +497,8 @@ Aig_Obj_t * Csw_ObjSweep( Csw_Man_t * p, Aig_Obj_t * pObj, int fTriv )
     Aig_Obj_t * pFanin1 = Aig_ObjFanin1(pObj);
     Aig_Obj_t * pObjNew;
     unsigned * pTruth;
-    int i, k, nVars, nFanins, iVar, clk;
+    int i, k, nVars, nFanins, iVar;
+    clock_t clk;
 
     assert( !Aig_IsComplement(pObj) );
     if ( !Aig_ObjIsNode(pObj) )

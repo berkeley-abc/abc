@@ -128,7 +128,7 @@ Cut_Man_t * Abc_NtkCuts( Abc_Ntk_t * pNtk, Cut_Params_t * pParams )
     Vec_Ptr_t * vNodes;
     Vec_Int_t * vChoices;
     int i;
-    int clk = clock();
+    clock_t clk = clock();
 
     extern void Abc_NtkBalanceAttach( Abc_Ntk_t * pNtk );
     extern void Abc_NtkBalanceDetach( Abc_Ntk_t * pNtk );

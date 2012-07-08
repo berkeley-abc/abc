@@ -80,8 +80,9 @@ int Inter_ManPerformInterpolation( Aig_Man_t * pAig, Inter_ManParams_t * pPars, 
     Inter_Man_t * p;
     Inter_Check_t * pCheck = NULL;
     Aig_Man_t * pAigTemp;
-    int s, i, RetValue, Status, clk, clk2, clkTotal = clock(), timeTemp = 0;
-    int nTimeNewOut = pPars->nSecLimit ? time(NULL) + pPars->nSecLimit : 0;
+    int s, i, RetValue, Status;
+    clock_t clk, clk2, clkTotal = clock(), timeTemp = 0;
+    clock_t nTimeNewOut = pPars->nSecLimit ? pPars->nSecLimit * CLOCKS_PER_SEC + clock() : 0;
 
     // enable ORing of the interpolants, if containment check is performed inductively with K > 1
     if ( pPars->nFramesK > 1 )
@@ -256,7 +257,7 @@ p->timeEqu += clock() - clk;
             }
             else if ( RetValue == -1 ) 
             {
-                if ( pPars->nSecLimit && time(NULL) > nTimeNewOut ) // timed out
+                if ( pPars->nSecLimit && clock() > nTimeNewOut ) // timed out
                 {
                     if ( pPars->fVerbose )
                         printf( "Reached timeout (%d seconds).\n",  pPars->nSecLimit );
@@ -341,7 +342,7 @@ p->timeEqu += clock() - clk - timeTemp;
                 Inter_CheckStop( pCheck );
                 return 1;
             }
-            if ( pPars->nSecLimit && time(NULL) > nTimeNewOut )
+            if ( pPars->nSecLimit && clock() > nTimeNewOut )
             {
                 printf( "Reached timeout (%d seconds).\n",  pPars->nSecLimit );
                 p->timeTotal = clock() - clkTotal;

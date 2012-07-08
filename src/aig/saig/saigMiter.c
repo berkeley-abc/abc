@@ -1076,7 +1076,8 @@ int Ssw_SecSpecial( Aig_Man_t * pPart0, Aig_Man_t * pPart1, int nFrames, int fVe
 //    extern int Fra_FraigCec( Aig_Man_t ** ppAig, int nConfLimit, int fVerbose );
     int iOut, nOuts;
     Aig_Man_t * pMiterCec;
-    int RetValue, clkTotal = clock();
+    int RetValue;
+    clock_t clkTotal = clock();
     if ( fVerbose )
     {
         Aig_ManPrintStats( pPart0 );

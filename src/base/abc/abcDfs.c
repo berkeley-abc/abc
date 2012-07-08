@@ -835,7 +835,8 @@ int Abc_ObjSuppSize( Abc_Obj_t * pObj )
 int Abc_NtkSuppSizeTest( Abc_Ntk_t * p )
 {
     Abc_Obj_t * pObj;
-    int i, Counter = 0, clk = clock();
+    int i, Counter = 0;
+    clock_t clk = clock();
     Abc_NtkForEachObj( p, pObj, i )
         if ( Abc_ObjIsNode(pObj) )
             Counter += (Abc_ObjSuppSize(pObj) <= 16);

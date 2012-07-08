@@ -124,7 +124,7 @@ extern int              Cut_CutCountList( Cut_Cut_t * pList );
 extern Cut_Man_t *      Cut_ManStart( Cut_Params_t * pParams );
 extern void             Cut_ManStop( Cut_Man_t * p );
 extern void             Cut_ManPrintStats( Cut_Man_t * p );
-extern void             Cut_ManPrintStatsToFile( Cut_Man_t * p, char * pFileName, int TimeTotal );
+extern void             Cut_ManPrintStatsToFile( Cut_Man_t * p, char * pFileName, clock_t TimeTotal );
 extern void             Cut_ManSetFanoutCounts( Cut_Man_t * p, Vec_Int_t * vFanCounts );
 extern void             Cut_ManSetNodeAttrs( Cut_Man_t * p, Vec_Int_t * vFanCounts );
 extern int              Cut_ManReadVarsMax( Cut_Man_t * p );

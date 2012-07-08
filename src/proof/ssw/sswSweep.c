@@ -187,7 +187,8 @@ void Ssw_SmlAddPatternDyn( Ssw_Man_t * p )
 int Ssw_ManSweepNode( Ssw_Man_t * p, Aig_Obj_t * pObj, int f, int fBmc, Vec_Int_t * vPairs )
 { 
     Aig_Obj_t * pObjRepr, * pObjFraig, * pObjFraig2, * pObjReprFraig;
-    int RetValue, clk;
+    int RetValue;
+    clock_t clk;
     // get representative of this class
     pObjRepr = Aig_ObjRepr( p->pAig, pObj );
     if ( pObjRepr == NULL )
@@ -267,7 +268,8 @@ int Ssw_ManSweepBmc( Ssw_Man_t * p )
 {
     Bar_Progress_t * pProgress = NULL;
     Aig_Obj_t * pObj, * pObjNew, * pObjLi, * pObjLo;
-    int i, f, clk;
+    int i, f;
+    clock_t clk;
 clk = clock();
 
     // start initialized timeframes
@@ -365,7 +367,8 @@ int Ssw_ManSweep( Ssw_Man_t * p )
     static int Counter;
     Bar_Progress_t * pProgress = NULL;
     Aig_Obj_t * pObj, * pObj2, * pObjNew;
-    int nConstrPairs, clk, i, f;
+    int nConstrPairs, i, f;
+    clock_t clk;
     Vec_Int_t * vDisproved;
 
     // perform speculative reduction

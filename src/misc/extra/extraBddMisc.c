@@ -1348,9 +1348,9 @@ extraTransferPermuteRecur(
     if ( st_lookup( table, ( char * ) f, ( char ** ) &res ) )
         return ( Cudd_NotCond( res, comple ) );
 
-    if ( ddS->TimeStop && time(NULL) > ddS->TimeStop )
+    if ( ddS->TimeStop && clock() > ddS->TimeStop )
         return NULL;
-    if ( ddD->TimeStop && time(NULL) > ddD->TimeStop )
+    if ( ddD->TimeStop && clock() > ddD->TimeStop )
         return NULL;
 
     /* Recursive step. */
@@ -1909,9 +1909,9 @@ DdNode * extraBddAndPermute( DdHashTable * table, DdManager * ddF, DdNode * bF, 
         return bRes;
     Counter++;
 
-    if ( ddF->TimeStop && time(NULL) > ddF->TimeStop )
+    if ( ddF->TimeStop && clock() > ddF->TimeStop )
         return NULL;
-    if ( ddG->TimeStop && time(NULL) > ddG->TimeStop )
+    if ( ddG->TimeStop && clock() > ddG->TimeStop )
         return NULL;
 
     // find the topmost variable in F and G using var order of F
@@ -1982,7 +1982,7 @@ void Extra_TestAndPerm( DdManager * ddF, DdNode * bF, DdNode * bG )
 {
     DdManager * ddG;
     DdNode * bG2, * bRes1, * bRes2;
-    int clk;
+    clock_t clk;
     // disable variable ordering in ddF
     Cudd_AutodynDisable( ddF );
 

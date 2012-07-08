@@ -201,7 +201,7 @@ void Cut_ManPrintStats( Cut_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Cut_ManPrintStatsToFile( Cut_Man_t * p, char * pFileName, int TimeTotal )
+void Cut_ManPrintStatsToFile( Cut_Man_t * p, char * pFileName, clock_t TimeTotal )
 {
     FILE * pTable;
     pTable = fopen( "cut_stats.txt", "a+" );

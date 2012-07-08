@@ -278,7 +278,8 @@ Aig_Obj_t * Ssw_ManSweepBmcFilter_rec( Ssw_Man_t * p, Aig_Obj_t * pObj, int f )
 int Ssw_ManSweepBmcFilter( Ssw_Man_t * p, int TimeLimit )
 {
     Aig_Obj_t * pObj, * pObjNew, * pObjLi, * pObjLo;
-    int f, f1, i, clkTotal = clock();
+    int f, f1, i;
+    clock_t clkTotal = clock();
     // start initialized timeframes
     p->pFrames = Aig_ManStart( Aig_ManObjNumMax(p->pAig) * p->pPars->nFramesK );
     Saig_ManForEachLo( p->pAig, pObj, i )
@@ -383,7 +384,7 @@ void Ssw_SignalFilter( Aig_Man_t * pAig, int nFramesMax, int nConfMax, int nRoun
     Ssw_Pars_t Pars, * pPars = &Pars;
     Ssw_Man_t * p;
     int r, TimeLimitPart;//, clkTotal = clock();
-    int nTimeToStop = TimeLimit ? TimeLimit + time(NULL) : 0;
+    clock_t nTimeToStop = TimeLimit ? TimeLimit * CLOCKS_PER_SEC + clock(): 0;
     assert( Aig_ManRegNum(pAig) > 0 );
     assert( Aig_ManConstrNum(pAig) == 0 );
     // consider the case of empty AIG
@@ -429,7 +430,7 @@ void Ssw_SignalFilter( Aig_Man_t * pAig, int nFramesMax, int nConfMax, int nRoun
             Ssw_ClassesPrint( p->ppClasses, 0 );
         }
         p->pMSat = Ssw_SatStart( 0 );
-        TimeLimitPart = TimeLimit ? nTimeToStop - time(NULL) : 0;
+        TimeLimitPart = TimeLimit ? (nTimeToStop - clock()) / CLOCKS_PER_SEC : 0;
         if ( TimeLimit2 )
         {
             if ( TimeLimitPart )
@@ -444,7 +445,7 @@ void Ssw_SignalFilter( Aig_Man_t * pAig, int nFramesMax, int nConfMax, int nRoun
         // simulate pattern forward
         Ssw_ManRollForward( p, p->pPars->nFramesK );
         // check timeout
-        if ( TimeLimit && time(NULL) > nTimeToStop )
+        if ( TimeLimit && clock() > nTimeToStop )
         {
             printf( "Reached timeout (%d seconds).\n",  TimeLimit );
             break;

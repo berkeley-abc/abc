@@ -61,13 +61,13 @@ struct Cec_ManPat_t_
     int              nSeries;        // simulation series
     int              fVerbose;       // verbose stats
     // runtime statistics
-    int              timeFind;       // detecting the pattern  
-    int              timeShrink;     // minimizing the pattern
-    int              timeVerify;     // verifying the result of minimisation
-    int              timeSort;       // sorting literals 
-    int              timePack;       // packing into sim info structures 
-    int              timeTotal;      // total runtime  
-    int              timeTotalSave;  // total runtime for saving  
+    clock_t          timeFind;       // detecting the pattern  
+    clock_t          timeShrink;     // minimizing the pattern
+    clock_t          timeVerify;     // verifying the result of minimisation
+    clock_t          timeSort;       // sorting literals 
+    clock_t          timePack;       // packing into sim info structures 
+    clock_t          timeTotal;      // total runtime  
+    clock_t          timeTotalSave;  // total runtime for saving  
 };
 
 // SAT solving manager
@@ -154,10 +154,10 @@ struct Cec_ManFra_t_
     int              nAllDisproved;  // total number of disproved nodes
     int              nAllFailed;     // total number of failed nodes
     // runtime stats
-    int              timeSim;        // unsat
-    int              timePat;        // unsat
-    int              timeSat;        // sat
-    int              timeTotal;      // total runtime
+    clock_t          timeSim;        // unsat
+    clock_t          timePat;        // unsat
+    clock_t          timeSat;        // sat
+    clock_t          timeTotal;      // total runtime
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -169,7 +169,7 @@ struct Cec_ManFra_t_
 ////////////////////////////////////////////////////////////////////////
 
 /*=== cecCorr.c ============================================================*/
-extern void                 Cec_ManRefinedClassPrintStats( Gia_Man_t * p, Vec_Str_t * vStatus, int iIter, int Time );
+extern void                 Cec_ManRefinedClassPrintStats( Gia_Man_t * p, Vec_Str_t * vStatus, int iIter, clock_t Time );
 /*=== cecClass.c ============================================================*/
 extern int                  Cec_ManSimClassRemoveOne( Cec_ManSim_t * p, int i );
 extern int                  Cec_ManSimClassesPrepare( Cec_ManSim_t * p, int LevelMax );

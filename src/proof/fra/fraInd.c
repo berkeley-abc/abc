@@ -49,7 +49,8 @@ void Fra_FraigInductionRewrite( Fra_Man_t * p )
 {
     Aig_Man_t * pTemp;
     Aig_Obj_t * pObj, * pObjPo;
-    int nTruePis, k, i, clk = clock();
+    int nTruePis, k, i;
+    clock_t clk = clock();
     // perform AIG rewriting on the speculated frames
 //    pTemp = Dar_ManRwsat( pTemp, 1, 0 );
     pTemp = Dar_ManRewriteDefault( p->pManFraig );
@@ -259,7 +260,7 @@ Aig_Man_t * Fra_FraigInductionPart( Aig_Man_t * pAig, Fra_Ssw_t * pPars )
     int * pMapBack;
     int i, nCountPis, nCountRegs;
     int nClasses, nPartSize, fVerbose;
-    int clk = clock();
+    clock_t clk = clock();
 
     // save parameters
     nPartSize = pPars->nPartSize; pPars->nPartSize = 0;
@@ -357,8 +358,9 @@ Aig_Man_t * Fra_FraigInduction( Aig_Man_t * pManAig, Fra_Ssw_t * pParams )
     Aig_Man_t * pManAigNew = NULL;
     int nNodesBeg, nRegsBeg;
     int nIter = -1; // Suppress "might be used uninitialized"
-    int i, clk = clock(), clk2;
-    int TimeToStop = (pParams->TimeLimit == 0.0)? 0 : clock() + (int)(pParams->TimeLimit * CLOCKS_PER_SEC);
+    int i;
+    clock_t clk = clock(), clk2;
+    clock_t TimeToStop = pParams->TimeLimit ? pParams->TimeLimit * CLOCKS_PER_SEC + clock() : 0;
 
     if ( Aig_ManNodeNum(pManAig) == 0 )
     {
@@ -473,7 +475,7 @@ ABC_PRT( "Time", clock() - clk );
         int nLitsOld = Fra_ClassesCountLits(p->pCla);
         int nImpsOld = p->pCla->vImps? Vec_IntSize(p->pCla->vImps) : 0;
         int nHotsOld = p->vOneHots? Fra_OneHotCount(p, p->vOneHots) : 0;
-        int clk3 = clock();
+        clock_t clk3 = clock();
 
         if ( pParams->TimeLimit != 0.0 && clock() > TimeToStop )
         {

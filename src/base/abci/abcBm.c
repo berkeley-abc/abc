@@ -870,7 +870,8 @@ int Abc_NtkMiterSatBm( Abc_Ntk_t * pNtk, ABC_INT64_T nConfLimit, ABC_INT64_T nIn
 {
     static sat_solver * pSat = NULL;
     lbool   status;
-    int RetValue, clk;    
+    int RetValue;
+    clock_t clk;    
 
     extern int Abc_NodeAddClausesTop( sat_solver * pSat, Abc_Obj_t * pNode, Vec_Int_t * vVars );
     extern Vec_Int_t * Abc_NtkGetCiSatVarNums( Abc_Ntk_t * pNtk );    
@@ -1582,7 +1583,7 @@ float refineBySAT(Abc_Ntk_t * pNtk1, Vec_Int_t ** iMatch1, int * iGroup1, Vec_In
     Vec_Int_t * oMatchedGroups;
     FILE *result;    
     int matchFound;
-    int clk = clock();
+    clock_t clk = clock();
     float satTime = 0.0;
 
     /*matchFile = fopen("satmatch.txt", "w");*/
@@ -1787,7 +1788,7 @@ void bmGateWay( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int p_equivalence )
     
     char * vPiValues1, * vPiValues2;
     int * observability1, * observability2;
-    int clk = clock();
+    clock_t clk = clock();
     float initTime;
     float simulTime;
     float satTime;

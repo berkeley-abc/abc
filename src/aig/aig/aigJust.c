@@ -253,7 +253,9 @@ void Aig_ManJustExperiment( Aig_Man_t * pAig )
     Aig_ManPack_t * pPack;
     Vec_Int_t * vSuppLits, * vNodes;
     Aig_Obj_t * pObj;
-    int i, clk = clock(), Count0 = 0, Count0f = 0, Count1 = 0, Count1f = 0;
+    int i;
+    clock_t clk = clock();
+    int Count0 = 0, Count0f = 0, Count1 = 0, Count1f = 0;
     int nTotalLits = 0;
     vSuppLits = Vec_IntAlloc( 100 );
     pPack = Aig_ManPackStart( pAig );

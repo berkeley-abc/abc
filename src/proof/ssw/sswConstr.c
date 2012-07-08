@@ -408,7 +408,8 @@ int Ssw_ManSweepBmcConstr_old( Ssw_Man_t * p )
 {
     Bar_Progress_t * pProgress = NULL;
     Aig_Obj_t * pObj, * pObjNew, * pObjLi, * pObjLo;
-    int i, f, iLits, clk;
+    int i, f, iLits;
+    clock_t clk;
 clk = clock();
 
     // start initialized timeframes
@@ -497,7 +498,8 @@ p->timeBmc += clock() - clk;
 int Ssw_ManSweepBmcConstr( Ssw_Man_t * p )
 {
     Aig_Obj_t * pObj, * pObjNew, * pObjLi, * pObjLo;
-    int i, f, iLits, clk;
+    int i, f, iLits;
+    clock_t clk;
 clk = clock();
 
     // start initialized timeframes
@@ -618,7 +620,8 @@ int Ssw_ManSweepConstr( Ssw_Man_t * p )
 { 
     Bar_Progress_t * pProgress = NULL;
     Aig_Obj_t * pObj, * pObj2, * pObjNew;
-    int nConstrPairs, clk, i, f, iLits;
+    int nConstrPairs, i, f, iLits;
+    clock_t clk;
 //Ssw_ManPrintPolarity( p->pAig );
 
     // perform speculative reduction

@@ -592,7 +592,8 @@ void Rwt_ManLoadFromArray( Rwt_Man_t * p, int fVerbose )
     Rwt_Node_t * p0, * p1;
     unsigned Entry0, Entry1;
     int Level, Volume, nEntries, fExor;
-    int i, clk = clock();
+    int i;
+    clock_t clk = clock();
 
     // reconstruct the forest
     for ( i = 0; ; i++ )

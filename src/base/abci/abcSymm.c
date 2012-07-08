@@ -89,7 +89,7 @@ void Abc_NtkSymmetriesUsingSandS( Abc_Ntk_t * pNtk, int fVerbose )
 void Abc_NtkSymmetriesUsingBdds( Abc_Ntk_t * pNtk, int fNaive, int fReorder, int fVerbose )
 {
     DdManager * dd;
-    int clk, clkBdd, clkSym;
+    clock_t clk, clkBdd, clkSym;
     int fGarbCollect = 1;
 
     // compute the global functions

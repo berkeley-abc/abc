@@ -108,7 +108,8 @@ Abc_Ntk_t * Abc_NtkSopEsopCover( Abc_Ntk_t * pNtk, int nFaninMax, int fUseEsop, 
 void Abc_NtkCovCovers( Cov_Man_t * p, Abc_Ntk_t * pNtk, int fVerbose )
 {
     Abc_Obj_t * pObj;
-    int i, clk = clock();
+    int i;
+    clock_t clk = clock();
 
     // start the manager
     p->vFanCounts = Abc_NtkFanoutCounts(pNtk);
@@ -154,7 +155,8 @@ int Abc_NtkCovCoversOne( Cov_Man_t * p, Abc_Ntk_t * pNtk, int fVerbose )
     ProgressBar * pProgress;
     Abc_Obj_t * pObj;
     Vec_Ptr_t * vBoundary;
-    int i, clk = clock();
+    int i;
+    clock_t clk = clock();
     int Counter = 0;
     int fStop = 1;
 

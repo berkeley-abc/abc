@@ -662,7 +662,8 @@ int Fra_SmlCheckNonConstOutputs( Fra_Sml_t * p )
 void Fra_SmlSimulateOne( Fra_Sml_t * p )
 {
     Aig_Obj_t * pObj, * pObjLi, * pObjLo;
-    int f, i, clk;
+    int f, i;
+    clock_t clk;
 clk = clock();
     for ( f = 0; f < p->nFrames; f++ )
     {
@@ -700,7 +701,8 @@ p->nSimRounds++;
 ***********************************************************************/
 void Fra_SmlResimulate( Fra_Man_t * p )
 {
-    int nChanges, clk;
+    int nChanges;
+    clock_t clk;
     Fra_SmlAssignDist1( p->pSml, p->pPatWords );
     Fra_SmlSimulateOne( p->pSml );
 //    if ( p->pPars->fPatScores )
@@ -735,7 +737,8 @@ p->timeRef += clock() - clk;
 void Fra_SmlSimulate( Fra_Man_t * p, int fInit )
 {
     int fVerbose = 0;
-    int nChanges, nClasses, clk;
+    int nChanges, nClasses;
+    clock_t clk;
     assert( !fInit || Aig_ManRegNum(p->pManAig) );
     // start the classes
     Fra_SmlInitialize( p->pSml, fInit );

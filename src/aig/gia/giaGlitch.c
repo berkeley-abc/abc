@@ -740,7 +740,8 @@ void Gli_ManSetPiRandomSeq( Gli_Man_t * p, float PiTransProb )
 ***********************************************************************/
 void Gli_ManSwitchesAndGlitches( Gli_Man_t * p, int nPatterns, float PiTransProb, int fVerbose )
 {
-    int i, k, clk = clock();
+    int i, k;
+    clock_t clk = clock();
     Gia_ManRandom( 1 );
     Gli_ManFinalize( p );
     if ( p->nRegs == 0 )

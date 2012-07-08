@@ -58,15 +58,11 @@ int             Fpga_ManReadVerbose( Fpga_Man_t * p )                     { retu
 int             Fpga_ManReadVarMax( Fpga_Man_t * p )                      { return p->pLutLib->LutMax;     }
 float *         Fpga_ManReadLutAreas( Fpga_Man_t * p )                    { return p->pLutLib->pLutAreas;  }
 Fpga_NodeVec_t* Fpga_ManReadMapping( Fpga_Man_t * p )                     { return p->vMapping;   }
-void            Fpga_ManSetTimeToMap( Fpga_Man_t * p, int Time )          { p->timeToMap = Time;  }
-void            Fpga_ManSetTimeToNet( Fpga_Man_t * p, int Time )          { p->timeToNet = Time;  }
-void            Fpga_ManSetTimeTotal( Fpga_Man_t * p, int Time )          { p->timeTotal = Time;  }
 void            Fpga_ManSetOutputNames( Fpga_Man_t * p, char ** ppNames ) { p->ppOutputNames = ppNames; }
 void            Fpga_ManSetInputArrivals( Fpga_Man_t * p, float * pArrivals ) { p->pInputArrivals = pArrivals; }
 void            Fpga_ManSetAreaRecovery( Fpga_Man_t * p, int fAreaRecovery ) { p->fAreaRecovery = fAreaRecovery;}
 void            Fpga_ManSetDelayLimit( Fpga_Man_t * p, float DelayLimit )    { p->DelayLimit   = DelayLimit;    }
 void            Fpga_ManSetAreaLimit( Fpga_Man_t * p, float AreaLimit )      { p->AreaLimit    = AreaLimit;     }
-void            Fpga_ManSetTimeLimit( Fpga_Man_t * p, float TimeLimit )      { p->TimeLimit    = TimeLimit;     }
 void            Fpga_ManSetChoiceNodeNum( Fpga_Man_t * p, int nChoiceNodes ) { p->nChoiceNodes = nChoiceNodes;  }  
 void            Fpga_ManSetChoiceNum( Fpga_Man_t * p, int nChoices )         { p->nChoices = nChoices;          }   
 void            Fpga_ManSetVerbose( Fpga_Man_t * p, int fVerbose )           { p->fVerbose = fVerbose;          }   
@@ -425,7 +421,8 @@ void Fpga_TableResize( Fpga_Man_t * pMan )
 {
     Fpga_Node_t ** pBinsNew;
     Fpga_Node_t * pEnt, * pEnt2;
-    int nBinsNew, Counter, i, clk;
+    int nBinsNew, Counter, i;
+    clock_t clk;
     unsigned Key;
 
 clk = clock();

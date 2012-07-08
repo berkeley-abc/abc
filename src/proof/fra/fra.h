@@ -30,7 +30,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include <time.h>
 
 #include "src/misc/vec/vec.h"
 #include "src/aig/aig/aig.h"
@@ -238,17 +237,17 @@ struct Fra_Man_t_
     int              nSatCallsRecent;
     int              nSatCallsSkipped;
     // runtime
-    int              timeSim;
-    int              timeTrav;
-    int              timeRwr;
-    int              timeSat;
-    int              timeSatUnsat;
-    int              timeSatSat;
-    int              timeSatFail;
-    int              timeRef;
-    int              timeTotal;
-    int              time1;
-    int              time2;
+    clock_t          timeSim;
+    clock_t          timeTrav;
+    clock_t          timeRwr;
+    clock_t          timeSat;
+    clock_t          timeSatUnsat;
+    clock_t          timeSatSat;
+    clock_t          timeSatFail;
+    clock_t          timeRef;
+    clock_t          timeTotal;
+    clock_t          time1;
+    clock_t          time2;
 };
 
 ////////////////////////////////////////////////////////////////////////

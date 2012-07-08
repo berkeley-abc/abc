@@ -115,7 +115,7 @@ void Super2_Precompute( int nInputs, int nLevels, int fVerbose )
     Super2_Man_t * pMan;
     Super2_Lib_t * pLibCur, * pLibNext;
     int Level;
-    int clk;
+    clock_t clk;
 
     assert( nInputs < 6 );
 
@@ -463,7 +463,7 @@ void Super2_LibWrite( Super2_Lib_t * pLib )
     Super2_Gate_t * pGate;
     FILE * pFile;
     char FileName[100];
-    int clk;
+    clock_t clk;
 
     if ( pLib->nLevels > 5 )
     {

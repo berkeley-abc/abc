@@ -1605,7 +1605,7 @@ int sat_solver_solve(sat_solver* s, lit* begin, lit* end, ABC_INT64_T nConfLimit
     while (status == l_Undef){
         double Ratio = (s->stats.learnts == 0)? 0.0 :
             s->stats.learnts_literals / (double)s->stats.learnts;
-        if ( s->nRuntimeLimit && time(NULL) > s->nRuntimeLimit )
+        if ( s->nRuntimeLimit && clock() > s->nRuntimeLimit )
             break;
         if (s->verbosity >= 1)
         {
@@ -1629,7 +1629,7 @@ int sat_solver_solve(sat_solver* s, lit* begin, lit* end, ABC_INT64_T nConfLimit
             break;
         if ( s->nInsLimit  && s->stats.propagations > s->nInsLimit )
             break;
-        if ( s->nRuntimeLimit && time(NULL) > s->nRuntimeLimit )
+        if ( s->nRuntimeLimit && clock() > s->nRuntimeLimit )
             break;
     }
     if (s->verbosity >= 1)

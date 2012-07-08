@@ -27,8 +27,8 @@ ABC_NAMESPACE_IMPL_START
 
 static int  Fpga_MappingPostProcess( Fpga_Man_t * p );
 
-extern int s_MappingTime;
-extern int s_MappingMem;
+extern clock_t s_MappingTime;
+extern clock_t s_MappingMem;
 
 
 ////////////////////////////////////////////////////////////////////////
@@ -52,7 +52,7 @@ extern int s_MappingMem;
 ***********************************************************************/
 int Fpga_Mapping( Fpga_Man_t * p )
 {
-    int clk, clkTotal = clock();
+    clock_t clk, clkTotal = clock();
  
     // collect the nodes reachable from POs in the DFS order (including the choices)
     p->vAnds = Fpga_MappingDfs( p, 1 );
@@ -112,7 +112,8 @@ int Fpga_MappingPostProcess( Fpga_Man_t * p )
     int fRecoverAreaFlow  = 1;
     int fRecoverArea      = 1;
     float aAreaTotalCur, aAreaTotalCur2;
-    int Iter, clk;
+    int Iter;
+    clock_t clk;
 
 //if ( p->fVerbose )
 //    printf( "Best clock period = %5.2f\n", Fpga_TimeComputeArrivalMax(p) );

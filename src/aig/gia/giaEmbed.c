@@ -838,7 +838,8 @@ int Emb_ManComputeDistance_old( Emb_Man_t * p, Emb_Obj_t * pPivot )
 void Gia_ManTestDistanceInternal( Emb_Man_t * p )
 {
     int nAttempts = 20;
-    int i, iNode, Dist, clk;
+    int i, iNode, Dist;
+    clock_t clk;
     Emb_Obj_t * pPivot, * pNext;
     Gia_ManRandom( 1 );
     Emb_ManResetTravId( p );
@@ -903,7 +904,7 @@ void Gia_ManTestDistanceInternal( Emb_Man_t * p )
 void Gia_ManTestDistance( Gia_Man_t * pGia )
 {
     Emb_Man_t * p;
-    int clk = clock();
+    clock_t clk = clock();
     p = Emb_ManStart( pGia );
 //    Emb_ManPrintFanio( p );
     Emb_ManPrintStats( p );
@@ -1529,7 +1530,7 @@ void Emb_ManPlacementRefine( Emb_Man_t * p, int nIters, int fVerbose )
     float VertX, VertY;
     int * pPermX, * pPermY;
     int i, k, Iter, iMinX, iMaxX, iMinY, iMaxY;
-    int clk = clock();
+    clock_t clk = clock();
     if ( p->pPlacement == NULL )
         return;
     pEdgeX = ABC_ALLOC( float, p->nObjs );
@@ -1790,7 +1791,8 @@ void Emb_ManDumpGnuplot( Emb_Man_t * p, char * pName, int fDumpLarge, int fShowI
 void Gia_ManSolveProblem( Gia_Man_t * pGia, Emb_Par_t * pPars )
 {
     Emb_Man_t * p;
-    int i, clk, clkSetup;
+    int i, clkSetup;
+    clock_t clk;
 //   Gia_ManTestDistance( pGia );
 
     // transform AIG into internal data-structure

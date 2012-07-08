@@ -839,7 +839,7 @@ Aig_Man_t * Rtm_ManRetime( Aig_Man_t * p, int fForward, int nStepsMax, int fVerb
     Rtm_Obj_t * pObj, * pNext;
     Aig_Obj_t * pObjAig;
     int i, k, nAutos, Degree, DegreeMax = 0; 
-    int clk;
+    clock_t clk;
 
     // create the retiming manager
 clk = clock();

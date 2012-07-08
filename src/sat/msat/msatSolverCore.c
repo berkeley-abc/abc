@@ -140,7 +140,7 @@ int  Msat_SolverSolve( Msat_Solver_t * p, Msat_IntVec_t * vAssumps, int nBackTra
     Msat_SearchParams_t Params = { 0.95, 0.999 };
     double nConflictsLimit, nLearnedLimit;
     Msat_Type_t Status;
-    int timeStart = clock();
+    clock_t timeStart = clock();
 
 //    p->pFreq = ABC_ALLOC( int, p->nVarsAlloc );
 //    memset( p->pFreq, 0, sizeof(int) * p->nVarsAlloc );

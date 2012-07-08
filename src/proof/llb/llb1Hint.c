@@ -165,7 +165,7 @@ int Llb_ManModelCheckAigWithHints( Aig_Man_t * pAigGlo, Gia_ParLlb_t * pPars )
     Vec_Int_t * vHints;
     Vec_Int_t * vHFCands;
     int i, Entry, RetValue = -1;
-    int clk = clock();
+    clock_t clk = clock();
     assert( pPars->nHintDepth > 0 );
 /*
     // perform reachability without hints

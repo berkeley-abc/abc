@@ -47,7 +47,8 @@ Aig_Man_t * Csw_Sweep( Aig_Man_t * pAig, int nCutsMax, int nLeafMax, int fVerbos
     Csw_Man_t * p;
     Aig_Man_t * pRes;
     Aig_Obj_t * pObj, * pObjNew, * pObjRes;
-    int i, clk;
+    int i;
+    clock_t clk;
 clk = clock();
     // start the manager
     p = Csw_ManStart( pAig, nCutsMax, nLeafMax, fVerbose );

@@ -114,7 +114,7 @@ void Abc_NtkBidecResyn( Abc_Ntk_t * pNtk, int fVerbose )
     Abc_Obj_t * pObj;
     Vec_Int_t * vTruth;
     int i, nGainTotal = 0, nNodes1, nNodes2;
-    int clk = clock();
+    clock_t clk = clock();
     assert( Abc_NtkIsLogic(pNtk) );
     if ( !Abc_NtkToAig(pNtk) )
         return;

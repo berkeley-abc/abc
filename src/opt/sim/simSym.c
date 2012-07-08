@@ -48,7 +48,8 @@ int Sim_ComputeTwoVarSymms( Abc_Ntk_t * pNtk, int fVerbose )
     Sym_Man_t * p;
     Vec_Ptr_t * vResult;
     int Result;
-    int i, clk, clkTotal = clock();
+    int i;
+    clock_t clk, clkTotal = clock();
 
     srand( 0xABC );
 

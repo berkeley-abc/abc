@@ -370,7 +370,7 @@ Cut_Cut_t * Cut_NodeComputeCuts( Cut_Man_t * p, int Node, int Node0, int Node1, 
 {
     Cut_List_t Super, * pSuper = &Super;
     Cut_Cut_t * pList, * pCut;
-    int clk;
+    clock_t clk;
     // start the number of cuts at the node
     p->nNodes++;
     p->nNodeCuts = 0;
@@ -681,7 +681,7 @@ Cut_Cut_t * Cut_NodeUnionCuts( Cut_Man_t * p, Vec_Int_t * vNodes )
     Cut_Cut_t * pList, * pListStart, * pCut, * pCut2;
     Cut_Cut_t * pTop = NULL; // Suppress "might be used uninitialized"
     int i, k, Node, Root, Limit = p->pParams->nVarsMax;
-    int clk = clock();
+    clock_t clk = clock();
 
     // start the new list
     Cut_ListStart( pSuper );
@@ -797,7 +797,7 @@ Cut_Cut_t * Cut_NodeUnionCutsSeq( Cut_Man_t * p, Vec_Int_t * vNodes, int CutSetN
     Cut_List_t Super, * pSuper = &Super;
     Cut_Cut_t * pList, * pListStart, * pCut, * pCut2, * pTop;
     int i, k, Node, Root, Limit = p->pParams->nVarsMax;
-    int clk = clock();
+    clock_t clk = clock();
 
     // start the new list
     Cut_ListStart( pSuper );

@@ -1354,7 +1354,7 @@ int If_CutGetCones( If_Man_t * p )
 {
     If_Obj_t * pObj;
     int i, Counter = 0;
-    int clk = clock();
+    clock_t clk = clock();
     If_ManForEachObj( p, pObj, i )
     {
         if ( If_ObjIsAnd(pObj) && pObj->nRefs )

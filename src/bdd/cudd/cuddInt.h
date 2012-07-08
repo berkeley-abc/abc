@@ -481,7 +481,7 @@ struct DdManager {      /* specialized DD symbol table */
 #endif
     DdNode * bFunc;
     DdNode * bFunc2;
-    int TimeStop;           /* timeout for reordering */
+    clock_t TimeStop;           /* timeout for reordering */
 };
 
 typedef struct Move {

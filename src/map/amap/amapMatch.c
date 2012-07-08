@@ -484,7 +484,8 @@ void Amap_ManMatch( Amap_Man_t * p, int fFlow, int fRefs )
     Aig_MmFlex_t * pMemOld;
     Amap_Obj_t * pObj;
     float Area;
-    int i, nInvs, clk = clock();
+    int i, nInvs;
+    clock_t clk = clock();
     pMemOld = p->pMemCutBest;
     p->pMemCutBest = Aig_MmFlexStart();
     Amap_ManForEachNode( p, pObj, i )

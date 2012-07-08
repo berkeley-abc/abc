@@ -571,7 +571,8 @@ void Abc_NtkBddImplicationTest()
     DdNode * bImp, * bSum, * bTemp;
     int nVars = 200;
     int nImps = 200;
-    int i, clk;
+    int i;
+    clock_t clk;
 clk = clock();
     dd = Cudd_Init( nVars, 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
     Cudd_AutodynEnable( dd, CUDD_REORDER_SIFT );

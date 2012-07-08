@@ -456,7 +456,7 @@ int Raig_ManSimulate( Aig_Man_t * pAig, int nWords, int nIters, int TimeLimit, i
     Raig_Man_t * p;
     Sec_MtrStatus_t Status;
     int i, iPat, RetValue = 0;
-    int clk, clkTotal = clock();
+    clock_t clk, clkTotal = clock();
     assert( Aig_ManRegNum(pAig) > 0 );
     Status = Sec_MiterStatus( pAig );
     if ( Status.nSat > 0 )

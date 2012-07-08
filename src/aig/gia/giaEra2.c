@@ -1536,7 +1536,8 @@ int Gia_ManAreDeriveNexts_rec( Gia_ManAre_t * p, Gia_PtrAre_t Sta )
     Gia_Obj_t * pPivot;
     Vec_Int_t * vLits, * vTfos;
     Gia_Obj_t * pObj;
-    int i, clk;
+    int i;
+    clock_t clk;
     if ( ++p->nRecCalls == MAX_CALL_NUM )
         return 0;
     if ( (pPivot = Gia_ManAreMostUsedPi(p)) == NULL )
@@ -1611,7 +1612,8 @@ int Gia_ManAreDeriveNexts( Gia_ManAre_t * p, Gia_PtrAre_t Sta )
 {
     Gia_StaAre_t * pSta;
     Gia_Obj_t * pObj;
-    int i, RetValue, clk = clock();
+    int i, RetValue;
+    clock_t clk = clock();
     pSta = Gia_ManAreSta( p, Sta );
     if ( Gia_StaIsUnused(pSta) )
         return 0;
@@ -1671,7 +1673,7 @@ int Gia_ManAreDeriveNexts( Gia_ManAre_t * p, Gia_PtrAre_t Sta )
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManArePrintReport( Gia_ManAre_t * p, int Time, int fFinal )
+void Gia_ManArePrintReport( Gia_ManAre_t * p, clock_t Time, int fFinal )
 {
     printf( "States =%10d. Reached =%10d. R = %5.3f. Depth =%6d. Mem =%9.2f Mb.  ", 
         p->iStaCur, p->nStas, 1.0*p->iStaCur/p->nStas, Gia_ManAreDepth(p, p->iStaCur), 
@@ -1703,7 +1705,7 @@ int Gia_ManArePerform( Gia_Man_t * pAig, int nStatesMax, int fMiter, int fVerbos
 //    extern Gia_Man_t * Gia_ManCompress2( Gia_Man_t * p, int fUpdateLevel, int fVerbose );
     extern Abc_Cex_t * Gia_ManAreDeriveCex( Gia_ManAre_t * p, Gia_StaAre_t * pLast );
     Gia_ManAre_t * p;
-    int clk = clock();
+    clock_t clk = clock();
     int RetValue = 1;
     if ( Gia_ManRegNum(pAig) > MAX_VARS_NUM )
     {

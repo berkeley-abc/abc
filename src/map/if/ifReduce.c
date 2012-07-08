@@ -51,7 +51,7 @@ static void If_ManImproveNodeFaninCompact( If_Man_t * p, If_Obj_t * pObj, int nL
 ***********************************************************************/
 void If_ManImproveMapping( If_Man_t * p )
 {
-    int clk;
+    clock_t clk;
 
     clk = clock();
     If_ManImproveExpand( p, p->pPars->nLutSize );

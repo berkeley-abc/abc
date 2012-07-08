@@ -28,7 +28,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include <time.h>
 
 #include "src/misc/util/abc_global.h"
 #include "fraig.h"
@@ -189,18 +188,18 @@ struct Fraig_ManStruct_t_
     int                   nImplies1;
 
     // runtime statistics
-    int                   timeToAig;     // time to transfer to the mapping structure
-    int                   timeSims;      // time to compute k-feasible cuts
-    int                   timeTrav;      // time to traverse the network
-    int                   timeFeed;      // time for solver feedback (recording and resimulating)
-    int                   timeImply;     // time to analyze implications
-    int                   timeSat;       // time to compute the truth table for each cut
-    int                   timeToNet;     // time to transfer back to the network
-    int                   timeTotal;     // the total mapping time
-    int                   time1;         // time to perform one task
-    int                   time2;         // time to perform another task
-    int                   time3;         // time to perform another task
-    int                   time4;         // time to perform another task
+    clock_t               timeToAig;     // time to transfer to the mapping structure
+    clock_t               timeSims;      // time to compute k-feasible cuts
+    clock_t               timeTrav;      // time to traverse the network
+    clock_t               timeFeed;      // time for solver feedback (recording and resimulating)
+    clock_t               timeImply;     // time to analyze implications
+    clock_t               timeSat;       // time to compute the truth table for each cut
+    clock_t               timeToNet;     // time to transfer back to the network
+    clock_t               timeTotal;     // the total mapping time
+    clock_t               time1;         // time to perform one task
+    clock_t               time2;         // time to perform another task
+    clock_t               time3;         // time to perform another task
+    clock_t               time4;         // time to perform another task
 };
 
 // the mapping node

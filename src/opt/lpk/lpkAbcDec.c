@@ -148,7 +148,7 @@ int Lpk_Decompose_rec( Lpk_Man_t * pMan, Lpk_Fun_t * p )
 {
     Lpk_Res_t * pResMux, * pResDsd;
     Lpk_Fun_t * p2;
-    int clk;
+    clock_t clk;
 
     // is only called for non-trivial blocks
     assert( p->nLutK >= 3 && p->nLutK <= 6 );

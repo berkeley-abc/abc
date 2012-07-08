@@ -327,10 +327,11 @@ Abc_Ntk_t * Abc_NtkReachability( Abc_Ntk_t * pNtkRel, int nIters, int fVerbose )
 {
     Abc_Obj_t * pObj;
     Abc_Ntk_t * pNtkFront, * pNtkReached, * pNtkNext, * pNtkTemp;
-    int clk, i, v, nVars, nNodesOld, nNodesNew, nNodesPrev;
+    int i, v, nVars, nNodesOld, nNodesNew, nNodesPrev;
     int fFixedPoint = 0;
     int fSynthesis  = 1;
     int fMoreEffort = 1;
+    clock_t clk;
 
     assert( Abc_NtkIsStrash(pNtkRel) );
     assert( Abc_NtkLatchNum(pNtkRel) == 0 );

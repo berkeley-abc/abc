@@ -89,7 +89,7 @@ Aig_Man_t * Dch_ComputeChoices( Aig_Man_t * pAig, Dch_Pars_t * pPars )
 {
     Dch_Man_t * p;
     Aig_Man_t * pResult;
-    int clk, clkTotal = clock();
+    clock_t clk, clkTotal = clock();
     // reset random numbers
     Aig_ManRandom(1);
     // start the choicing manager
@@ -131,7 +131,7 @@ p->timeTotal = clock() - clkTotal;
 void Dch_ComputeEquivalences( Aig_Man_t * pAig, Dch_Pars_t * pPars )
 {
     Dch_Man_t * p;
-    int clk, clkTotal = clock();
+    clock_t clk, clkTotal = clock();
     // reset random numbers
     Aig_ManRandom(1);
     // start the choicing manager

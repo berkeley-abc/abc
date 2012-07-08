@@ -57,7 +57,7 @@ int Ivy_ManRewritePre( Ivy_Man_t * p, int fUpdateLevel, int fUseZeroCost, int fV
     Rwt_Man_t * pManRwt;
     Ivy_Obj_t * pNode;
     int i, nNodes, nGain;
-    int clk, clkStart = clock();
+    clock_t clk, clkStart = clock();
     // start the rewriting manager
     pManRwt = Rwt_ManStart( 0 );
     p->pData = pManRwt;
@@ -164,7 +164,7 @@ int Ivy_NodeRewrite( Ivy_Man_t * pMan, Rwt_Man_t * p, Ivy_Obj_t * pNode, int fUp
     int Required, nNodesSaved;
     int nNodesSaveCur = -1; // Suppress "might be used uninitialized"
     int i, c, GainCur, GainBest = -1;
-    int clk, clk2;
+    clock_t clk, clk2;
 
     p->nNodesConsidered++;
     // get the required times

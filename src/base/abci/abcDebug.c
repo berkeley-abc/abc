@@ -51,7 +51,8 @@ void Abc_NtkAutoDebug( Abc_Ntk_t * pNtk, int (*pFuncError) (Abc_Ntk_t *) )
 {
     Abc_Ntk_t * pNtkMod;
     char * pFileName = "bug_found.blif";
-    int i, nSteps, nIter, ModNum, RandNum = 1, clk, clkTotal = clock();
+    int i, nSteps, nIter, ModNum, RandNum = 1;
+    clock_t clk, clkTotal = clock();
     assert( Abc_NtkIsLogic(pNtk) );
     srand( 0x123123 );
     // create internal copy of the network

@@ -632,7 +632,8 @@ Aig_ManCut_t * Aig_ComputeCuts( Aig_Man_t * pAig, int nCutsMax, int nLeafMax, in
 {
     Aig_ManCut_t * p;
     Aig_Obj_t * pObj;
-    int i, clk = clock();
+    int i;
+    clock_t clk = clock();
     assert( pAig->pManCuts == NULL );
     // start the manager
     p = Aig_ManCutStart( pAig, nCutsMax, nLeafMax, fTruth, fVerbose );

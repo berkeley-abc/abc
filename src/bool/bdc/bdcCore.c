@@ -231,7 +231,7 @@ void Bdc_ManDecPrint( Bdc_Man_t * p )
 int Bdc_ManDecompose( Bdc_Man_t * p, unsigned * puFunc, unsigned * puCare, int nVars, Vec_Ptr_t * vDivs, int nNodesMax )
 {
     Bdc_Isf_t Isf, * pIsf = &Isf;
-    int clk = clock();
+    clock_t clk = clock();
     assert( nVars <= p->pPars->nVarsMax );
     // set current manager parameters
     p->nVars = nVars;

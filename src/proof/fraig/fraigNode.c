@@ -87,7 +87,8 @@ Fraig_Node_t * Fraig_NodeCreateConst( Fraig_Man_t * p )
 Fraig_Node_t * Fraig_NodeCreatePi( Fraig_Man_t * p )
 {
     Fraig_Node_t * pNode, * pNodeRes;
-    int i, clk;
+    int i;
+    clock_t clk;
 
     // create the node
     pNode = (Fraig_Node_t *)Fraig_MemFixedEntryFetch( p->mmNodes );
@@ -159,7 +160,7 @@ p->timeSims += clock() - clk;
 Fraig_Node_t * Fraig_NodeCreate( Fraig_Man_t * p, Fraig_Node_t * p1, Fraig_Node_t * p2 )
 {
     Fraig_Node_t * pNode;
-    int clk;
+    clock_t clk;
 
     // create the node
     pNode = (Fraig_Node_t *)Fraig_MemFixedEntryFetch( p->mmNodes );

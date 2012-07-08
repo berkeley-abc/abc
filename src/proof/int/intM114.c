@@ -200,15 +200,16 @@ sat_solver * Inter_ManDeriveSatSolver(
   SeeAlso     []
 
 ***********************************************************************/
-int Inter_ManPerformOneStep( Inter_Man_t * p, int fUseBias, int fUseBackward, int nTimeNewOut )
+int Inter_ManPerformOneStep( Inter_Man_t * p, int fUseBias, int fUseBackward, clock_t nTimeNewOut )
 {
     sat_solver * pSat;
     void * pSatCnf = NULL;
     Inta_Man_t * pManInterA; 
 //    Intb_Man_t * pManInterB; 
     int * pGlobalVars;
-    int clk, status, RetValue;
+    int status, RetValue;
     int i, Var;
+    clock_t clk;
 //    assert( p->pInterNew == NULL );
 
     // derive the SAT solver

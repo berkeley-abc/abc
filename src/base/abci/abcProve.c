@@ -60,7 +60,8 @@ int Abc_NtkMiterProve( Abc_Ntk_t ** ppNtk, void * pPars )
 {
     Prove_Params_t * pParams = (Prove_Params_t *)pPars;
     Abc_Ntk_t * pNtk, * pNtkTemp;
-    int RetValue = -1, nIter, nSatFails, Counter, clk; //, timeStart = clock();
+    int RetValue = -1, nIter, nSatFails, Counter;
+    clock_t clk; //, timeStart = clock();
     ABC_INT64_T nSatConfs, nSatInspects, nInspectLimit;
 
     // get the starting network

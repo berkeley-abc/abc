@@ -160,7 +160,7 @@ void Gia_SortTest()
 {
     int nSize = 100000000;
     int * pArray;
-    int clk = clock();
+    clock_t clk = clock();
 
     printf( "Sorting %d integers\n", nSize );
     pArray = Gia_SortGetTest( nSize );

@@ -358,7 +358,7 @@ void Abc_NtkDressPrintEquivs( Vec_Ptr_t * vRes )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkDressPrintStats( Vec_Ptr_t * vRes, int nNodes0, int nNodes1, int Time )
+void Abc_NtkDressPrintStats( Vec_Ptr_t * vRes, int nNodes0, int nNodes1, clock_t Time )
 {
     Vec_Int_t * vClass;
     int i, k, Entry;
@@ -419,7 +419,7 @@ void Abc_NtkDressPrintStats( Vec_Ptr_t * vRes, int nNodes0, int nNodes1, int Tim
 void Abc_NtkDress2( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nConflictLimit, int fVerbose )
 {
     Vec_Ptr_t * vRes;
-    int clk = clock();
+    clock_t clk = clock();
     vRes = Abc_NtkDressComputeEquivs( pNtk1, pNtk2, nConflictLimit, fVerbose );
 //    Abc_NtkDressPrintEquivs( vRes );
     Abc_NtkDressPrintStats( vRes, Abc_NtkNodeNum(pNtk1), Abc_NtkNodeNum(pNtk1), clock() - clk );

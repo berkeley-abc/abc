@@ -444,7 +444,7 @@ Vec_Ptr_t * Nwk_ManRetimeCutForward( Nwk_Man_t * pMan, int nLatches, int fVerbos
     Vec_Ptr_t * vNodes;
     Nwk_Obj_t * pObj;
     int i, RetValue, Counter = 0, Counter2 = 0;
-    int clk = clock();
+    clock_t clk = clock();
     // set the sequential parameters
     pMan->nLatches = nLatches;
     pMan->nTruePis = Nwk_ManCiNum(pMan) - nLatches;
@@ -525,7 +525,7 @@ Vec_Ptr_t * Nwk_ManRetimeCutBackward( Nwk_Man_t * pMan, int nLatches, int fVerbo
     Vec_Ptr_t * vNodes;
     Nwk_Obj_t * pObj;
     int i, RetValue, Counter = 0, Counter2 = 0;
-    int clk = clock();
+    clock_t clk = clock();
     // set the sequential parameters
     pMan->nLatches = nLatches;
     pMan->nTruePis = Nwk_ManCiNum(pMan) - nLatches;

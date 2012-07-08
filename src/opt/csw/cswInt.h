@@ -30,7 +30,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include <time.h>
 
 #include "src/aig/aig/aig.h"
 #include "src/opt/dar/dar.h"
@@ -94,10 +93,10 @@ struct Csw_Man_t_
     int             nNodesTriv2;     // the number of trivial nodes
     int             nNodesCuts;      // the number of rewritten nodes
     int             nNodesTried;     // the number of nodes tried
-    int             timeCuts;        // time to compute the cut and its truth table
-    int             timeHash;        // time for hashing cuts
-    int             timeOther;       // other time
-    int             timeTotal;       // total time
+    clock_t         timeCuts;        // time to compute the cut and its truth table
+    clock_t         timeHash;        // time for hashing cuts
+    clock_t         timeOther;       // other time
+    clock_t         timeTotal;       // total time
 };
 
 static inline int          Csw_CutLeaveNum( Csw_Cut_t * pCut )          { return pCut->nFanins;                                   }

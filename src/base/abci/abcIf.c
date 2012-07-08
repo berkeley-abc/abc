@@ -70,7 +70,8 @@ void Abc_NtkIfComputeSwitching( Abc_Ntk_t * pNtk, If_Man_t * pIfMan )
     Aig_Obj_t * pObjAig;
     Aig_Man_t * pAig;
     If_Obj_t * pObjIf;
-    int i, clk = clock();
+    int i;
+    clock_t clk = clock();
     // map IF objects into old network
     Abc_NtkForEachObj( pNtk, pObjAbc, i )
         if ( (pObjIf = (If_Obj_t *)pObjAbc->pTemp) )

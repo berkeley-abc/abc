@@ -74,15 +74,15 @@ struct Cgt_Man_t_
     int          nCallsUnsat;    // unsatisfiable calls  
     int          nCallsUndec;    // undecided calls
     int          nCallsFiltered; // filtered out calls
-    int          timeAig;        // constructing AIG
-    int          timePrepare;    // partitioning and SAT solving
-    int          timeSat;        // total runtime
-    int          timeSatSat;     // satisfiable runtime 
-    int          timeSatUnsat;   // unsatisfiable runtime 
-    int          timeSatUndec;   // undecided runtime
-    int          timeDecision;   // making decision about what gates to use
-    int          timeOther;      // other runtime
-    int          timeTotal;      // total runtime
+    clock_t      timeAig;        // constructing AIG
+    clock_t      timePrepare;    // partitioning and SAT solving
+    clock_t      timeSat;        // total runtime
+    clock_t      timeSatSat;     // satisfiable runtime 
+    clock_t      timeSatUnsat;   // unsatisfiable runtime 
+    clock_t      timeSatUndec;   // undecided runtime
+    clock_t      timeDecision;   // making decision about what gates to use
+    clock_t      timeOther;      // other runtime
+    clock_t      timeTotal;      // total runtime
 };
 
 ////////////////////////////////////////////////////////////////////////

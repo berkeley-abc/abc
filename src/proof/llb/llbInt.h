@@ -152,34 +152,34 @@ extern int             Llb_ManReachability( Llb_Man_t * p, Vec_Int_t * vHints, D
 extern void            Llb_MtrSchedule( Llb_Mtr_t * p );
 
 /*=== llb2Bad.c ======================================================*/
-extern DdNode *        Llb_BddComputeBad( Aig_Man_t * pInit, DdManager * dd, int TimeOut );
+extern DdNode *        Llb_BddComputeBad( Aig_Man_t * pInit, DdManager * dd, clock_t TimeOut );
 extern DdNode *        Llb_BddQuantifyPis( Aig_Man_t * pInit, DdManager * dd, DdNode * bFunc );
 /*=== llb2Core.c ======================================================*/
 extern DdNode *        Llb_CoreComputeCube( DdManager * dd, Vec_Int_t * vVars, int fUseVarIndex, char * pValues );
-extern int             Llb_CoreExperiment( Aig_Man_t * pInit, Aig_Man_t * pAig, Gia_ParLlb_t * pPars, Vec_Ptr_t * vResult, int TimeTarget ); 
+extern int             Llb_CoreExperiment( Aig_Man_t * pInit, Aig_Man_t * pAig, Gia_ParLlb_t * pPars, Vec_Ptr_t * vResult, clock_t TimeTarget ); 
 /*=== llb2Driver.c ======================================================*/
 extern Vec_Int_t *     Llb_DriverCountRefs( Aig_Man_t * p );
 extern Vec_Int_t *     Llb_DriverCollectNs( Aig_Man_t * pAig, Vec_Int_t * vDriRefs );
 extern Vec_Int_t *     Llb_DriverCollectCs( Aig_Man_t * pAig );
 extern DdNode *        Llb_DriverPhaseCube( Aig_Man_t * pAig, Vec_Int_t * vDriRefs, DdManager * dd );
-extern DdManager *     Llb_DriverLastPartition( Aig_Man_t * p, Vec_Int_t * vVarsNs, int TimeTarget );
+extern DdManager *     Llb_DriverLastPartition( Aig_Man_t * p, Vec_Int_t * vVarsNs, clock_t TimeTarget );
 /*=== llb2Image.c ======================================================*/
 extern Vec_Ptr_t *     Llb_ImgSupports( Aig_Man_t * p, Vec_Ptr_t * vDdMans, Vec_Int_t * vStart, Vec_Int_t * vStop, int fAddPis, int fVerbose );
 extern void            Llb_ImgSchedule( Vec_Ptr_t * vSupps, Vec_Ptr_t ** pvQuant0, Vec_Ptr_t ** pvQuant1, int fVerbose );
-extern DdManager *     Llb_ImgPartition( Aig_Man_t * p, Vec_Ptr_t * vLower, Vec_Ptr_t * vUpper, int TimeTarget );
+extern DdManager *     Llb_ImgPartition( Aig_Man_t * p, Vec_Ptr_t * vLower, Vec_Ptr_t * vUpper, clock_t TimeTarget );
 extern void            Llb_ImgQuantifyFirst( Aig_Man_t * pAig, Vec_Ptr_t * vDdMans, Vec_Ptr_t * vQuant0, int fVerbose );
 extern void            Llb_ImgQuantifyReset( Vec_Ptr_t * vDdMans );
 extern DdNode *        Llb_ImgComputeImage( Aig_Man_t * pAig, Vec_Ptr_t * vDdMans, DdManager * dd, DdNode * bInit, 
                            Vec_Ptr_t * vQuant0, Vec_Ptr_t * vQuant1, Vec_Int_t * vDriRefs, 
-                           int TimeTarget, int fBackward, int fReorder, int fVerbose );
+                           clock_t TimeTarget, int fBackward, int fReorder, int fVerbose );
 
-extern DdManager *     Llb_NonlinImageStart( Aig_Man_t * pAig, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vRoots, int * pVars2Q, int * pOrder, int fFirst, int TimeTarget );
+extern DdManager *     Llb_NonlinImageStart( Aig_Man_t * pAig, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vRoots, int * pVars2Q, int * pOrder, int fFirst, clock_t TimeTarget );
 extern DdNode *        Llb_NonlinImageCompute( DdNode * bCurrent, int fReorder, int fDrop, int fVerbose, int * pOrder );
 extern void            Llb_NonlinImageQuit();
 
 /*=== llb3Image.c =======================================================*/
 extern DdNode *        Llb_NonlinImage( Aig_Man_t * pAig, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vRoots, int * pVars2Q, 
-                           DdManager * dd, DdNode * bCurrent, int fReorder, int fVerbose, int * pOrder, int Limit, int TimeTarget );
+                           DdManager * dd, DdNode * bCurrent, int fReorder, int fVerbose, int * pOrder );
 /*=== llb3Nonlin.c ======================================================*/
 extern DdNode *        Llb_NonlinComputeInitState( Aig_Man_t * pAig, DdManager * dd );
 

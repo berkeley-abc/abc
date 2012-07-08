@@ -104,7 +104,8 @@ Vec_Ptr_t * Sim_ComputeFunSupp( Abc_Ntk_t * pNtk, int fVerbose )
 {
     Sim_Man_t * p;
     Vec_Ptr_t * vResult;
-    int nSolved, i, clk = clock();
+    int nSolved, i;
+    clock_t clk = clock();
 
     srand( 0xABC );
 
@@ -172,7 +173,7 @@ int Sim_ComputeSuppRound( Sim_Man_t * p, int  fUseTargets )
 {
     Vec_Int_t * vTargets;
     int i, Counter = 0;
-    int clk;
+    clock_t clk;
     // perform one round of random simulation
 clk = clock();
     Sim_UtilSimulate( p, 0 );
@@ -209,7 +210,7 @@ int Sim_ComputeSuppRoundNode( Sim_Man_t * p, int iNumCi, int  fUseTargets )
     int i, k, v, Output, LuckyPat, fType0, fType1;
     int Counter = 0;
     int fFirst = 1;
-    int clk;
+    clock_t clk;
     // collect nodes by level in the TFO of the CI 
     // this proceduredoes not collect the CIs and COs
     // but it increments TravId of the collected nodes and CIs/COs
@@ -456,7 +457,7 @@ void Sim_SolveTargetsUsingSat( Sim_Man_t * p, int Limit )
     int * pModel;
     int RetValue, Output, Input, k, v;
     int Counter = 0;
-    int clk;
+    clock_t clk;
 
     p->nSatRuns = 0;
     // put targets into one array

@@ -44,7 +44,7 @@ struct Hcd_Pars_t_
     int              fUseGia;       // uses GIA package 
     int              fUseCSat;      // uses circuit-based solver
     int              fVerbose;      // verbose stats
-    int              timeSynth;     // synthesis runtime
+    clock_t          timeSynth;     // synthesis runtime
     int              nNodesAhead;   // the lookahead in terms of nodes
     int              nCallsRecycle; // calls to perform before recycling SAT solver
 };
@@ -610,7 +610,8 @@ Aig_Man_t * Hcd_ComputeChoices( Aig_Man_t * pAig, int nBTLimit, int fSynthesis, 
     Vec_Ptr_t * vGias;
     Gia_Man_t * pGia, * pMiter;
     Aig_Man_t * pAigNew;
-    int i, clk = clock();
+    int i;
+    clock_t clk = clock();
     // perform synthesis
     if ( fSynthesis )
     {

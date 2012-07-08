@@ -1564,7 +1564,7 @@ int Gia_VtaPerformInt( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
     p = Vga_ManStart( pAig, pPars );
     // set runtime limit
     if ( p->pPars->nTimeOut )
-        sat_solver2_set_runtime_limit( p->pSat, time(NULL) + p->pPars->nTimeOut - 1 );
+        sat_solver2_set_runtime_limit( p->pSat, p->pPars->nTimeOut * CLOCKS_PER_SEC + clock() );
     // perform initial abstraction
     if ( p->pPars->fVerbose )
     {
@@ -1609,7 +1609,7 @@ int Gia_VtaPerformInt( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
                 goto finish;
             }
             // check timeout
-            if ( p->pSat->nRuntimeLimit && time(NULL) > p->pSat->nRuntimeLimit )
+            if ( p->pSat->nRuntimeLimit && clock() > p->pSat->nRuntimeLimit )
             {
                 Vga_ManRollBack( p, nObjOld );
                 goto finish;
@@ -1716,7 +1716,7 @@ finish:
             pAig->vObjClasses = Gia_VtaFramesToAbs( (Vec_Vec_t *)p->vCores );
             if ( Status == -1 )
             {
-                if ( p->pPars->nTimeOut && time(NULL) >= p->pSat->nRuntimeLimit ) 
+                if ( p->pPars->nTimeOut && clock() >= p->pSat->nRuntimeLimit ) 
                     Abc_Print( 1, "SAT solver ran out of time at %d sec in frame %d.  ", p->pPars->nTimeOut, f );
                 else if ( pPars->nConfLimit && sat_solver2_nconflicts(p->pSat) >= pPars->nConfLimit )
                     Abc_Print( 1, "SAT solver ran out of resources at %d conflicts in frame %d.  ", pPars->nConfLimit, f );

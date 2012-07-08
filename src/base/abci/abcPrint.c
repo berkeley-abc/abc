@@ -1294,7 +1294,8 @@ void Abc_ObjPrint( FILE * pFile, Abc_Obj_t * pObj )
 void Abc_NtkPrintMiter( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pObj, * pChild, * pConst1 = Abc_AigConst1(pNtk);
-    int i, iOut = -1, Time = clock();
+    int i, iOut = -1;
+    clock_t Time = clock();
     int nUnsat = 0;
     int nSat   = 0;
     int nUndec = 0;

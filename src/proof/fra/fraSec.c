@@ -98,7 +98,8 @@ int Fra_FraigSec( Aig_Man_t * p, Fra_Sec_t * pParSec, Aig_Man_t ** ppResult )
     Fra_Ssw_t Pars, * pPars = &Pars;
     Fra_Sml_t * pSml;
     Aig_Man_t * pNew, * pTemp;
-    int nFrames, RetValue, nIter, clk, clkTotal = clock();
+    int nFrames, RetValue, nIter;
+    clock_t clk, clkTotal = clock();
     int TimeOut = 0;
     int fLatchCorr = 0;
     float TimeLeft = 0.0;

@@ -30,9 +30,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include <time.h>
 
-//#include "bar.h"
 #include "src/misc/vec/vec.h"
 #include "src/aig/aig/aig.h"
 #include "dar.h"
@@ -98,12 +96,12 @@ struct Dar_Man_t_
     int              nCutsGood;      // good cuts
     int              nCutsSkipped;   // skipped bad cuts
     // timing statistics
-    int              timeCuts;
-    int              timeEval;
-    int              timeOther;
-    int              timeTotal;
-    int              time1;
-    int              time2;
+    clock_t          timeCuts;
+    clock_t          timeEval;
+    clock_t          timeOther;
+    clock_t          timeTotal;
+    clock_t          time1;
+    clock_t          time2;
 };
 
 static inline Dar_Cut_t *  Dar_ObjCuts( Aig_Obj_t * pObj )                         { return (Dar_Cut_t *)pObj->pData;    }

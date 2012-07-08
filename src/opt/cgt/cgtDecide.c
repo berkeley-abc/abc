@@ -192,7 +192,8 @@ Vec_Vec_t * Cgt_ManDecideSimple( Aig_Man_t * pAig, Vec_Vec_t * vGatesAll, int nO
     Vec_Vec_t * vGates;
     Vec_Ptr_t * vCands;
     Aig_Obj_t * pObjLi, * pObjLo, * pCand, * pCandBest;
-    int i, k, nHitsCur, nHitsMax, Counter = 0, clk = clock();
+    int i, k, nHitsCur, nHitsMax, Counter = 0;
+    clock_t clk = clock();
     int nTransTotal = 0, nTransSaved = 0;
     vGates = Vec_VecStart( Saig_ManRegNum(pAig) );
     pSml = Ssw_SmlSimulateSeq( pAig, 0, nFrames, nWords );
@@ -259,7 +260,8 @@ Vec_Vec_t * Cgt_ManDecideArea( Aig_Man_t * pAig, Vec_Vec_t * vGatesAll, int nOdc
     Vec_Vec_t * vGates;
     Vec_Ptr_t * vCompletes, * vOne;
     Aig_Obj_t * pGate;
-    int i, k, Counter = 0, clk = clock();
+    int i, k, Counter = 0;
+    clock_t clk = clock();
     // derive and label complete gates
     vCompletes = Cgt_ManCompleteGates( pAig, vGatesAll, nOdcMax, fVerbose );
     // label complete gates

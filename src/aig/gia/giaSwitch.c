@@ -559,7 +559,8 @@ Vec_Int_t * Gia_ManSwiSimulate( Gia_Man_t * pAig, Gia_ParSwi_t * pPars )
     Gia_Obj_t * pObj;
     Vec_Int_t * vSwitching;
     float * pSwitching;
-    int i, clk, clkTotal = clock();
+    int i;
+    clock_t clk, clkTotal = clock();
     if ( pPars->fProbOne && pPars->fProbTrans )
         printf( "Conflict of options: Can either compute probability of 1, or probability of switching by observing transitions.\n" );
     // create manager

@@ -332,7 +332,7 @@ void Fra_OneHotEstimateCoverage( Fra_Man_t * p, Vec_Int_t * vOneHots )
     Vec_Ptr_t * vSimInfo;
     unsigned * pSim1, * pSim2, * pSimTot;
     int i, w, Out1, Out2, nCovered, Counter = 0;
-    int clk = clock();
+    clock_t clk = clock();
 
     // generate random sim-info at register outputs
     vSimInfo = Vec_PtrAllocSimInfo( nRegs + 1, nSimWords );

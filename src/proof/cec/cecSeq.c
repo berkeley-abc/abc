@@ -215,7 +215,8 @@ int Cec_ManSeqResimulateInfo( Gia_Man_t * pAig, Vec_Ptr_t * vSimInfo, Abc_Cex_t 
 int Cec_ManSeqResimulateCounter( Gia_Man_t * pAig, Cec_ParSim_t * pPars, Abc_Cex_t * pCex )
 {
     Vec_Ptr_t * vSimInfo;
-    int RetValue, clkTotal = clock();
+    int RetValue;
+    clock_t clkTotal = clock();
     if ( pCex == NULL )
     {
         Abc_Print( 1, "Cec_ManSeqResimulateCounter(): Counter-example is not available.\n" );

@@ -177,7 +177,8 @@ void Dch_ManResimulateOther_rec( Dch_Man_t * p, Aig_Obj_t * pObj )
 void Dch_ManResimulateCex( Dch_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pRepr )
 {
     Aig_Obj_t * pRoot, ** ppClass;
-    int i, k, nSize, RetValue1, RetValue2, clk = clock();
+    int i, k, nSize, RetValue1, RetValue2;
+    clock_t clk = clock();
     // get the equivalence classes
     Dch_ManCollectTfoCands( p, pObj, pRepr );
     // resimulate the cone of influence of the solved nodes
@@ -224,7 +225,8 @@ p->timeSimSat += clock() - clk;
 void Dch_ManResimulateCex2( Dch_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pRepr )
 {
     Aig_Obj_t * pRoot;
-    int i, RetValue, clk = clock();
+    int i, RetValue;
+    clock_t clk = clock();
     // get the equivalence class
     if ( Dch_ObjIsConst1Cand(p->pAigTotal, pObj) )
         Dch_ClassesCollectConst1Group( p->ppClasses, pObj, 500, p->vSimRoots );

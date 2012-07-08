@@ -54,14 +54,14 @@ struct Llb_Mnn_t_
     int             ddLocReos;
     int             ddLocGrbs;
 
-    int             timeImage;
-    int             timeTran1;
-    int             timeTran2;
-    int             timeGloba;
-    int             timeOther;
-    int             timeTotal;
-    int             timeReo;
-    int             timeReoG;
+    clock_t         timeImage;
+    clock_t         timeTran1;
+    clock_t         timeTran2;
+    clock_t         timeGloba;
+    clock_t         timeOther;
+    clock_t         timeTotal;
+    clock_t         timeReo;
+    clock_t         timeReoG;
 
 };
 
@@ -90,7 +90,7 @@ int Llb_NonlinFindBestVar( DdManager * dd, DdNode * bFunc, Aig_Man_t * pAig )
     DdNode * bCof, * bVar;
     int i, iVar, iVarBest = -1, iValue, iValueBest = ABC_INFINITY, Size0Best = -1;
     int Size, Size0, Size1;
-    int clk = clock();
+    clock_t clk = clock();
     Size = Cudd_DagSize(bFunc);
 //    printf( "Original = %6d.  SuppSize = %3d. Vars = %3d.\n", 
 //        Size = Cudd_DagSize(bFunc), Cudd_SupportSize(dd, bFunc), Aig_ManRegNum(pAig) );
@@ -215,7 +215,8 @@ DdNode * Llb_NonlinComputeInitState( Aig_Man_t * pAig, DdManager * dd )
 {
     Aig_Obj_t * pObj;
     DdNode * bRes, * bVar, * bTemp;
-    int i, iVar, TimeStop;
+    int i, iVar;
+    clock_t TimeStop;
     TimeStop = dd->TimeStop;  dd->TimeStop = 0;
     bRes = Cudd_ReadOne( dd );   Cudd_Ref( bRes );
     Saig_ManForEachLo( pAig, pObj, i )
@@ -302,7 +303,7 @@ Abc_Cex_t * Llb_NonlinDeriveCex( Llb_Mnn_t * p )
 //Extra_bddPrintSupport( p->dd, bRing );   printf( "\n" );
         // compute the next states
         bImage = Llb_NonlinImage( p->pAig, p->vLeaves, p->vRoots, p->pVars2Q, p->dd, bState, 
-            p->pPars->fReorder, p->pPars->fVeryVerbose, NULL, ABC_INFINITY, ABC_INFINITY ); // consumed reference
+            p->pPars->fReorder, p->pPars->fVeryVerbose, NULL ); // consumed reference
         assert( bImage != NULL );
         Cudd_Ref( bImage );
 //Extra_bddPrintSupport( p->dd, bImage );  printf( "\n" );
@@ -429,11 +430,11 @@ int Llb_NonlinReachability( Llb_Mnn_t * p )
 { 
     DdNode * bTemp, * bNext;
     int nIters, nBddSize0, nBddSize = -1, NumCmp;//, Limit = p->pPars->nBddMax;
-    int clk2, clk3, clk = clock();
+    clock_t clk2, clk3, clk = clock();
     assert( Aig_ManRegNum(p->pAig) > 0 );
 
     // compute time to stop
-    p->pPars->TimeTarget = p->pPars->TimeLimit ? time(NULL) + p->pPars->TimeLimit : 0;
+    p->pPars->TimeTarget = p->pPars->TimeLimit ? p->pPars->TimeLimit * CLOCKS_PER_SEC + clock(): 0;
 
     // set the stop time parameter
     p->dd->TimeStop  = p->pPars->TimeTarget;
@@ -472,7 +473,7 @@ int Llb_NonlinReachability( Llb_Mnn_t * p )
     { 
         // check the runtime limit
         clk2 = clock();
-        if ( p->pPars->TimeLimit && time(NULL) > p->pPars->TimeTarget )
+        if ( p->pPars->TimeLimit && clock() > p->pPars->TimeTarget )
         {
             if ( !p->pPars->fSilent )
                 printf( "Reached timeout (%d seconds) during image computation.\n",  p->pPars->TimeLimit );
@@ -807,7 +808,7 @@ void Llb_NonlinExperiment( Aig_Man_t * pAig, int Num )
     Llb_Mnn_t * pMnn;
     Gia_ParLlb_t Pars, * pPars = &Pars;
     Aig_Man_t * p;
-    int clk = clock();
+    clock_t clk = clock();
 
     Llb_ManSetDefaultParams( pPars );
     pPars->fVerbose = 1;
@@ -851,7 +852,7 @@ int Llb_NonlinCoreReach( Aig_Man_t * pAig, Gia_ParLlb_t * pPars )
 
     if ( !pPars->fSkipReach )
     {
-        int clk = clock();
+        clock_t clk = clock();
         pMnn = Llb_MnnStart( pAig, p, pPars );
         RetValue = Llb_NonlinReachability( pMnn );
         pMnn->timeTotal = clock() - clk;

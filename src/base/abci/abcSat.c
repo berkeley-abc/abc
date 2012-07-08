@@ -54,7 +54,8 @@ int Abc_NtkMiterSat( Abc_Ntk_t * pNtk, ABC_INT64_T nConfLimit, ABC_INT64_T nInsL
 {
     sat_solver * pSat;
     lbool   status;
-    int RetValue, clk;
+    int RetValue;
+    clock_t clk;
  
     if ( pNumConfs )
         *pNumConfs = 0;

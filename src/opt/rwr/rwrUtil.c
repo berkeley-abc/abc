@@ -428,7 +428,8 @@ void Rwr_ManWriteToArray( Rwr_Man_t * p )
     FILE * pFile;
     Rwr_Node_t * pNode;
     unsigned Entry0, Entry1;
-    int i, nEntries, clk = clock();
+    int i, nEntries;
+    clock_t clk = clock();
     // prepare the buffer
     nEntries = p->vForest->nSize - 5;
     pFile = fopen( "npn4_aig_array.txt", "w" );
@@ -474,7 +475,8 @@ void Rwr_ManLoadFromArray( Rwr_Man_t * p, int fVerbose )
     Rwr_Node_t * p0, * p1;
     unsigned Entry0, Entry1;
     int Level, Volume, nEntries, fExor;
-    int i, clk = clock();
+    int i;
+    clock_t clk = clock();
 
     // reconstruct the forest
     for ( i = 0; ; i++ )
@@ -524,7 +526,8 @@ void Rwr_ManWriteToFile( Rwr_Man_t * p, char * pFileName )
     FILE * pFile;
     Rwr_Node_t * pNode;
     unsigned * pBuffer;
-    int i, nEntries, clk = clock();
+    int i, nEntries;
+    clock_t clk = clock();
     // prepare the buffer
     nEntries = p->vForest->nSize - 5;
     pBuffer = ABC_ALLOC( unsigned, nEntries * 2 );
@@ -562,7 +565,8 @@ void Rwr_ManLoadFromFile( Rwr_Man_t * p, char * pFileName )
     Rwr_Node_t * p0, * p1;
     unsigned * pBuffer;
     int Level, Volume, nEntries, fExor;
-    int i, clk = clock();
+    int i;
+    clock_t clk = clock();
     int RetValue;
 
     // load the data

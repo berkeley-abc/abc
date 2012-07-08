@@ -200,7 +200,8 @@ void Cgt_ClockGatingRangeCheck( Cgt_Man_t * p, int iStart, int nOutputs )
 ***********************************************************************/
 int Cgt_ClockGatingRange( Cgt_Man_t * p, int iStart )
 {
-    int nOutputs, iStop, clk, clkTotal = clock();
+    int nOutputs, iStop;
+    clock_t clk, clkTotal = clock();
     int nCallsUnsat    = p->nCallsUnsat;
     int nCallsSat      = p->nCallsSat;
     int nCallsUndec    = p->nCallsUndec;
@@ -247,7 +248,8 @@ Vec_Vec_t * Cgt_ClockGatingCandidates( Aig_Man_t * pAig, Aig_Man_t * pCare, Cgt_
     Cgt_Par_t Pars; 
     Cgt_Man_t * p;
     Vec_Vec_t * vGatesAll;
-    int iStart, clk = clock(), clkTotal = clock();
+    int iStart;
+    clock_t clk = clock(), clkTotal = clock();
     // reset random numbers
     Aig_ManRandom( 1 );
     if ( pPars == NULL )

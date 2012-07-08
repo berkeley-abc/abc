@@ -160,7 +160,7 @@ void Iso_StoCollectInfo_rec( Aig_Man_t * p, Aig_Obj_t * pObj, int fCompl, Vec_In
     Vec_IntPush( vVisited, Aig_ObjId(pObj) );
 }
 
-//static int time_Trav = 0;
+//static clock_t time_Trav = 0;
 
 /**Function*************************************************************
 
@@ -286,7 +286,8 @@ Vec_Vec_t * Saig_IsoDetectFast( Aig_Man_t * pAig )
     Aig_Obj_t * pObj;
     Vec_Ptr_t * vClasses, * vInfos;
     Vec_Int_t * vInfo, * vPrev, * vLevel;
-    int i, Number, nUnique = 0, clk = clock();
+    int i, Number, nUnique = 0;
+    clock_t clk = clock();
 
     // collect infos and remember their number
     pMan = Iso_StoStart( pAig );

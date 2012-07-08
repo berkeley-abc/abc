@@ -42,7 +42,7 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
-DdNode * Llb_BddComputeBad( Aig_Man_t * pInit, DdManager * dd, int TimeOut )
+DdNode * Llb_BddComputeBad( Aig_Man_t * pInit, DdManager * dd, clock_t TimeOut )
 {
     Vec_Ptr_t * vNodes;
     DdNode * bBdd0, * bBdd1, * bTemp, * bResult;
@@ -110,7 +110,8 @@ DdNode * Llb_BddQuantifyPis( Aig_Man_t * pInit, DdManager * dd, DdNode * bFunc )
 {
     DdNode * bVar, * bCube, * bTemp;
     Aig_Obj_t * pObj;
-    int i, TimeStop;
+    int i;
+    clock_t TimeStop;
     assert( Cudd_ReadSize(dd) == Aig_ManCiNum(pInit) );
     TimeStop = dd->TimeStop; dd->TimeStop = 0;
     // create PI cube

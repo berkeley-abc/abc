@@ -52,7 +52,8 @@ Gia_Man_t * Gia_ManPerformMapShrink( Gia_Man_t * p, int fKeepLevel, int fVerbose
     Gia_Man_t * pNew, * pTemp;
     Gia_Obj_t * pObj, * pFanin;
     unsigned * pTruth;
-    int i, k, iFan, clk = clock();
+    int i, k, iFan;
+    clock_t clk = clock();
 //    int ClassCounts[222] = {0};
     int * pLutClass, Counter = 0;
     assert( p->pMapping != NULL );

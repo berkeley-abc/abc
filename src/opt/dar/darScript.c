@@ -398,7 +398,8 @@ Aig_Man_t * Dar_ManChoice( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, int
 {
     Aig_Man_t * pMan, * pTemp;
     Vec_Ptr_t * vAigs;
-    int i, clk;
+    int i;
+    clock_t clk;
 
 clk = clock();
 //    vAigs = Dar_ManChoiceSynthesisExt();
@@ -802,7 +803,8 @@ Aig_Man_t * Dar_ManChoiceNewAig( Aig_Man_t * pAig, Dch_Pars_t * pPars )
     Vec_Ptr_t * vPios;
     void * pManTime;
     char * pName, * pSpec;
-    int i, clk;
+    int i;
+    clock_t clk;
 
 clk = clock();
     vAigs = Dar_ManChoiceSynthesis( pAig, 1, 1, pPars->fPower, fVerbose );
@@ -873,7 +875,7 @@ Aig_Man_t * Dar_ManChoiceNew( Aig_Man_t * pAig, Dch_Pars_t * pPars )
     Vec_Ptr_t * vPios;
     void * pManTime;
     char * pName, * pSpec;
-    int clk;
+    clock_t clk;
 
     // save useful things
     pManTime = pAig->pManTime; pAig->pManTime = NULL;

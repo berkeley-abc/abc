@@ -605,7 +605,8 @@ int Fra_ClausProcessClauses( Clu_Man_t * p, int fRefs )
     Fra_Sml_t * pComb, * pSeq;
     Aig_Obj_t * pObj;
     Dar_Cut_t * pCut;
-    int Scores[16], uScores, i, k, j, clk, nCuts = 0;
+    int Scores[16], uScores, i, k, j, nCuts = 0;
+    clock_t clk;
 
     // simulate the AIG
 clk = clock();
@@ -727,7 +728,8 @@ int Fra_ClausProcessClauses2( Clu_Man_t * p, int fRefs )
     Fra_Sml_t * pComb, * pSeq;
     Aig_Obj_t * pObj;
     Aig_Cut_t * pCut;
-    int i, k, j, clk, nCuts = 0;
+    int i, k, j, nCuts = 0;
+    clock_t clk;
     int ScoresSeq[1<<12], ScoresComb[1<<12];
     assert( p->nLutSize < 13 );
 
@@ -1622,7 +1624,7 @@ void Fra_ClausEstimateCoverage( Clu_Man_t * p )
     unsigned * pResultTot, * pResultOne;
     int nCovered, Beg, End, i, w;
     int * pStart, * pVar2Id; 
-    int clk = clock();
+    clock_t clk = clock();
     // simulate the circuit with nCombSimWords * 32 = 64K patterns
 //    srand( 0xAABBAABB );
     Aig_ManRandom(1);
@@ -1680,7 +1682,7 @@ void Fra_ClausEstimateCoverage( Clu_Man_t * p )
 int Fra_Claus( Aig_Man_t * pAig, int nFrames, int nPref, int nClausesMax, int nLutSize, int nLevels, int nCutsMax, int nBatches, int fStepUp, int fBmc, int fRefs, int fTarget, int fVerbose, int fVeryVerbose )
 {
     Clu_Man_t * p;
-    int clk, clkTotal = clock(), clkInd;
+    clock_t clk, clkTotal = clock(), clkInd;
     int b, Iter, Counter, nPrefOld;
     int nClausesBeg = 0;
 

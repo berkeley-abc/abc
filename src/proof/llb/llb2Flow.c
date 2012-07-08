@@ -1226,7 +1226,8 @@ Vec_Ptr_t * Llb_ManComputeCuts( Aig_Man_t * p, int Num, int fVerbose, int fVeryV
 {
     int nVolMax = Aig_ManNodeNum(p) / Num;
     Vec_Ptr_t * vResult, * vMinCut = NULL, * vLower, * vUpper;
-    int i, k, nVol, clk = clock();
+    int i, k, nVol;
+    clock_t clk = clock();
     vResult = Vec_PtrAlloc( 100 );
     Vec_PtrPush( vResult, Llb_ManComputeCutLo(p) );
     Vec_PtrPush( vResult, Llb_ManComputeCutLi(p) );

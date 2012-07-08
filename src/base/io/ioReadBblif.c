@@ -164,7 +164,8 @@ Abc_Ntk_t * Bbl_ManToAig( Bbl_Man_t * p )
     Bbl_Obj_t * pObj, * pFanin;
     Vec_Ptr_t * vCopy, * vNodes, * vFaninAigs;
     Dec_Graph_t ** pFForms;
-    int i, clk;
+    int i;
+    clock_t clk;
 clk = clock();
     // map SOP handles into factored forms
     pFForms = ABC_CALLOC( Dec_Graph_t *, Bbl_ManFncSize(p) );
@@ -270,7 +271,7 @@ void Bbl_ManTest( Abc_Ntk_t * pNtk )
     Abc_Ntk_t * pNtkNew;
     Bbl_Man_t * p, * pNew;
     char * pFileName = "test.bblif";
-    int clk, clk1, clk2, clk3, clk4, clk5;
+    clock_t clk, clk1, clk2, clk3, clk4, clk5;
 clk = clock();
     p = Bbl_ManFromAbc( pNtk );
     Bbl_ManPrintStats( p );

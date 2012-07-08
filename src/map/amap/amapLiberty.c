@@ -888,7 +888,7 @@ int Amap_LibertyParse( char * pFileName, char * pFileGenlib, int fVerbose )
 {
     Amap_Tree_t * p;
     char * pPos;
-    int clk = clock();
+    clock_t clk = clock();
     int RetValue;
     p = Amap_LibertyStart( pFileName );
     if ( p == NULL )

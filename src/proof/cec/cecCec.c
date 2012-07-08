@@ -72,7 +72,8 @@ int Cec_ManVerifyOld( Gia_Man_t * pMiter, int fVerbose, int * piOutFail )
     extern int Ssw_SecCexResimulate( Aig_Man_t * p, int * pModel, int * pnOutputs );
     Gia_Man_t * pTemp = Gia_ManTransformMiter( pMiter );
     Aig_Man_t * pMiterCec = Gia_ManToAig( pTemp, 0 );
-    int RetValue, iOut, nOuts, clkTotal = clock();
+    int RetValue, iOut, nOuts;
+    clock_t clkTotal = clock();
     if ( piOutFail )
         *piOutFail = -1;
     Gia_ManStop( pTemp );
@@ -134,7 +135,8 @@ int Cec_ManHandleSpecialCases( Gia_Man_t * p, Cec_ParCec_t * pPars )
 {
     Gia_Obj_t * pObj1, * pObj2;
     Gia_Obj_t * pDri1, * pDri2;
-    int i, clk = clock();
+    int i;
+    clock_t clk = clock();
     Gia_ManSetPhase( p );
     Gia_ManForEachPo( p, pObj1, i )
     {
@@ -206,8 +208,9 @@ int Cec_ManVerify( Gia_Man_t * pInit, Cec_ParCec_t * pPars )
     int fDumpUndecided = 0;
     Cec_ParFra_t ParsFra, * pParsFra = &ParsFra;
     Gia_Man_t * p, * pNew;
-    int RetValue, clk = clock();
-    double clkTotal = clock();
+    int RetValue;
+    clock_t clk = clock();
+    clock_t clkTotal = clock();
     // consider special cases:
     // 1) (SAT) a pair of POs have different value under all-0 pattern
     // 2) (SAT) a pair of POs has different PI/Const drivers
@@ -263,7 +266,7 @@ int Cec_ManVerify( Gia_Man_t * pInit, Cec_ParCec_t * pPars )
         Gia_WriteAiger( pNew, "gia_cec_undecided.aig", 0, 0 );
         Abc_Print( 1, "The result is written into file \"%s\".\n", "gia_cec_undecided.aig" );
     }
-    if ( pPars->TimeLimit && ((double)clock() - clkTotal)/CLOCKS_PER_SEC >= pPars->TimeLimit )
+    if ( pPars->TimeLimit && (clock() - clkTotal)/CLOCKS_PER_SEC >= pPars->TimeLimit )
     {
         Gia_ManStop( pNew );
         return -1;

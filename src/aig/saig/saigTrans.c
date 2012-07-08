@@ -379,7 +379,7 @@ Aig_Man_t * Saig_ManTimeframeSimplify( Aig_Man_t * pAig, int nFrames, int nFrame
 {
 //    extern Aig_Man_t * Fra_FraigEquivence( Aig_Man_t * pManAig, int nConfMax, int fProve );
     Aig_Man_t * pFrames, * pFraig, * pRes1, * pRes2;
-    int clk;
+    clock_t clk;
     // create uninitialized timeframes with map1
     pFrames = Saig_ManFramesNonInitial( pAig, nFrames );
     // perform fraiging for the unrolled timeframes

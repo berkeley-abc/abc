@@ -320,7 +320,8 @@ Aig_Man_t * Ssw_SignalCorrespondeceTestPairs( Aig_Man_t * pAig )
     Ssw_Pars_t Pars, * pPars = &Pars;
     Vec_Int_t * vIds1, * vIds2;
     Aig_Obj_t * pObj, * pRepr;
-    int RetValue, i, clk = clock();
+    int RetValue, i;
+    clock_t clk = clock();
     Ssw_ManSetDefaultParams( pPars );
     pPars->fVerbose = 1;
     pAigNew = Ssw_SignalCorrespondence( pAig, pPars );
@@ -379,7 +380,8 @@ Aig_Man_t * Ssw_SignalCorrespondeceTestPairs( Aig_Man_t * pAig )
 int Ssw_SecWithPairs( Aig_Man_t * pAig1, Aig_Man_t * pAig2, Vec_Int_t * vIds1, Vec_Int_t * vIds2, Ssw_Pars_t * pPars )
 {
     Aig_Man_t * pAigRes;
-    int RetValue, clk = clock();
+    int RetValue;
+    clock_t clk = clock();
     assert( vIds1 != NULL && vIds2 != NULL );
     // try the new AIGs
     printf( "Performing specialized verification with node pairs.\n" );
@@ -413,7 +415,8 @@ int Ssw_SecWithPairs( Aig_Man_t * pAig1, Aig_Man_t * pAig2, Vec_Int_t * vIds1, V
 int Ssw_SecGeneral( Aig_Man_t * pAig1, Aig_Man_t * pAig2, Ssw_Pars_t * pPars )
 {
     Aig_Man_t * pAigRes, * pMiter;
-    int RetValue, clk = clock();
+    int RetValue;
+    clock_t clk = clock();
     // try the new AIGs
     printf( "Performing general verification without node pairs.\n" );
     pMiter = Saig_ManCreateMiter( pAig1, pAig2, 0 );
@@ -449,7 +452,8 @@ int Ssw_SecGeneral( Aig_Man_t * pAig1, Aig_Man_t * pAig2, Ssw_Pars_t * pPars )
 int Ssw_SecGeneralMiter( Aig_Man_t * pMiter, Ssw_Pars_t * pPars )
 {
     Aig_Man_t * pAigRes;
-    int RetValue, clk = clock();
+    int RetValue;
+    clock_t clk = clock();
     // try the new AIGs
 //    printf( "Performing general verification without node pairs.\n" );
     pAigRes = Ssw_SignalCorrespondence( pMiter, pPars );

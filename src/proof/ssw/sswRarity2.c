@@ -308,8 +308,9 @@ int Ssw_RarSimulate2( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSize, i
 {
     int fMiter = 1;
     Ssw_RarMan_t * p;
-    int r, clk, clkTotal = clock();
-    int nTimeToStop = time(NULL) + TimeOut;
+    int r;
+    clock_t clk, clkTotal = clock();
+    clock_t nTimeToStop = TimeOut ? TimeOut * CLOCKS_PER_SEC + clock(): 0;
     int RetValue = -1;
     assert( Aig_ManRegNum(pAig) > 0 );
     assert( Aig_ManConstrNum(pAig) == 0 );
@@ -352,7 +353,7 @@ int Ssw_RarSimulate2( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSize, i
             printf( "." );
         }
         // check timeout
-        if ( TimeOut && time(NULL) > nTimeToStop )
+        if ( TimeOut && clock() > nTimeToStop )
         {
             if ( fVerbose ) printf( "\n" );
             printf( "Reached timeout (%d seconds).\n",  TimeOut );
@@ -386,8 +387,9 @@ int Ssw_RarSignalFilter2( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSiz
 {
     int fMiter = 0;
     Ssw_RarMan_t * p;
-    int r, i, k, clkTotal = clock();
-    int nTimeToStop = time(NULL) + TimeOut;
+    int r, i, k;
+    clock_t clkTotal = clock();
+    clock_t nTimeToStop = TimeOut ? TimeOut * CLOCKS_PER_SEC + clock(): 0;
     int RetValue = -1;
     assert( Aig_ManRegNum(pAig) > 0 );
     assert( Aig_ManConstrNum(pAig) == 0 );
@@ -460,7 +462,7 @@ int Ssw_RarSignalFilter2( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSiz
         Ssw_RarTransferPatterns( p, p->vInits );
         Ssw_SmlInitializeSpecial( p->pSml, p->vInits );
         // check timeout
-        if ( TimeOut && time(NULL) > nTimeToStop )
+        if ( TimeOut && clock() > nTimeToStop )
         {
             if ( fVerbose ) printf( "\n" );
             printf( "Reached timeout (%d seconds).\n",  TimeOut );

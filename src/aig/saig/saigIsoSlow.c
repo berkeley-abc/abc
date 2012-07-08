@@ -290,11 +290,11 @@ struct Iso_Man_t_
     Vec_Ptr_t *   vClasses;       // other classes
     Vec_Ptr_t *   vTemp1;         // other classes
     Vec_Ptr_t *   vTemp2;         // other classes
-    int           timeHash;
-    int           timeFout;
-    int           timeSort;
-    int           timeOther;
-    int           timeTotal;
+    clock_t       timeHash;
+    clock_t       timeFout;
+    clock_t       timeSort;
+    clock_t       timeOther;
+    clock_t       timeTotal;
 };
 
 static inline Iso_Obj_t *  Iso_ManObj( Iso_Man_t * p, int i )            { assert( i >= 0 && i < p->nObjs ); return i ? p->pObjs + i : NULL;                }
@@ -556,7 +556,8 @@ static inline int Iso_ObjHashAdd( Iso_Man_t * p, Iso_Obj_t * pIso )
 void Iso_ManCollectClasses( Iso_Man_t * p )
 {
     Iso_Obj_t * pIso;
-    int i, clk = clock();
+    int i;
+    clock_t clk = clock();
     Vec_PtrClear( p->vSingles );
     Vec_PtrClear( p->vClasses );
     for ( i = 0; i < p->nBins; i++ )
@@ -1171,8 +1172,7 @@ Vec_Int_t * Saig_ManFindIsoPerm( Aig_Man_t * pAig, int fVerbose )
     int fVeryVerbose = 0;
     Vec_Int_t * vRes;
     Iso_Man_t * p;
-    int clk, clk2 = clock();
-    clk = clock();
+    clock_t clk = clock(), clk2 = clock();
     p = Iso_ManCreate( pAig );
     p->timeFout += clock() - clk;
     Iso_ManPrintClasses( p, fVerbose, fVeryVerbose );

@@ -877,7 +877,8 @@ Vec_Int_t * Saig_StrSimPerformMatching( Aig_Man_t * p0, Aig_Man_t * p1, int nDis
     Vec_Int_t * vPairs;
     Aig_Man_t * pPart0, * pPart1;
     Aig_Obj_t * pObj0, * pObj1;
-    int i, nMatches, clk, clkTotal = clock();
+    int i, nMatches;
+    clock_t clk, clkTotal = clock();
     Aig_ManRandom( 1 );
     // consider the case when a miter is given
     if ( p1 == NULL )

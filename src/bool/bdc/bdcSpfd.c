@@ -181,7 +181,8 @@ void Bdc_SpfdDecompose( word Truth, int nVars, int nCands, int nGatesMax )
     Vec_Int_t * vBegs, * vWeight;
     Bdc_Nod_t * pNode, * pNode0, * pNode1, * pNode2;
     int Count0, Count1, * pPerm;
-    int i, j, k, c, n, clk;
+    int i, j, k, c, n;
+    clock_t clk;
     assert( nGatesMax < (1<<8) );
     assert( nCands < (1<<12) );
     assert( (1<<(nVars-1))*(1<<(nVars-1)) < (1<<12) ); // max SPFD
@@ -586,7 +587,8 @@ Vec_Wrd_t * Bdc_SpfdDecomposeTest__( Vec_Int_t ** pvWeights )
     int nSize  = 201326611; // the hash table size to use
     int Limit  = 6;
 
-    int * pPlace, i, n, m, k, s, fCompl, clk = clock(), clk2;
+    int * pPlace, i, n, m, k, s, fCompl;
+    clock_t clk = clock(), clk2;
     Vec_Int_t * vStops;
     Vec_Wrd_t * vTruths;
     Vec_Int_t * vWeights;
@@ -919,7 +921,7 @@ void Bdc_SpfdDecomposeTest44()
     Vec_Wrd_t * vDivs;
     word c0, c1, s, tt, tbest;
     int i, j, Cost, CostBest = 100000;
-    int clk = clock();
+    clock_t clk = clock();
 
     return;
 
@@ -1028,7 +1030,8 @@ void Bdc_SpfdDecomposeTest3()
     int nSizeK = (1 << 3);
     Vec_Wrd_t * v1M;
     Vec_Wrd_t * v1K;
-    int i, k, Counter, clk;
+    int i, k, Counter;
+    clock_t clk;
 //    int EntryM, EntryK;
     Aig_ManRandom64( 1 );
 
@@ -1083,7 +1086,8 @@ void Bdc_SpfdDecomposeTest8()
     Vec_Wrd_t * vDivs;
     word Func, FuncBest;
     int Cost, CostBest = ABC_INFINITY;
-    int i, clk = clock();
+    int i;
+    clock_t clk = clock();
 
 //    return;
 
@@ -1133,7 +1137,8 @@ void Bdc_SpfdDecomposeTest()
   int nSizeK = (1 << 3);   // small array size
   Vec_Wrd_t * v1M, * v1K;
   int EntryM, EntryK;
-  int i, k, Counter, clk;
+  int i, k, Counter;
+  clock_t clk;
 
   Aig_ManRandom64( 1 );
 

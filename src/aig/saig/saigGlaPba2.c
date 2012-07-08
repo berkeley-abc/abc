@@ -47,9 +47,9 @@ struct Aig_Gla3Man_t_
     // SAT solver
     sat_solver2 *  pSat;
     // statistics
-    int            timePre;
-    int            timeSat;
-    int            timeTotal;
+    clock_t        timePre;
+    clock_t        timeSat;
+    clock_t        timeTotal;
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -393,7 +393,8 @@ void Aig_Gla3ManStop( Aig_Gla3Man_t * p )
 Vec_Int_t * Aig_Gla3ManUnsatCore( sat_solver2 * pSat, int nConfMax, int fVerbose, int * piRetValue )
 {
     Vec_Int_t * vCore;
-    int RetValue, clk = clock();
+    int RetValue;
+    clock_t clk = clock();
     if ( piRetValue )
         *piRetValue = -1;
     // solve the problem
@@ -495,8 +496,7 @@ Vec_Int_t * Aig_Gla3ManPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, in
 {
     Aig_Gla3Man_t * p;
     Vec_Int_t * vCore, * vResult;
-    int nTimeToStop = time(NULL) + TimeLimit;
-    int clk, clk2 = clock();
+    clock_t clk, clk2 = clock();
     assert( Saig_ManPoNum(pAig) == 1 );
 
     if ( fVerbose )
@@ -521,7 +521,7 @@ Vec_Int_t * Aig_Gla3ManPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, in
 
     // set runtime limit
     if ( TimeLimit )
-        sat_solver2_set_runtime_limit( p->pSat, nTimeToStop );
+        sat_solver2_set_runtime_limit( p->pSat, TimeLimit * CLOCKS_PER_SEC + clock() );
 
     // compute UNSAT core
     clk = clock();

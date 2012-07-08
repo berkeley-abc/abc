@@ -59,9 +59,9 @@ struct Aig_Gla1Man_t_
     // SAT solver
     sat_solver *   pSat;
     // statistics
-    int            timeSat;
-    int            timeRef;
-    int            timeTotal;
+    clock_t        timeSat;
+    clock_t        timeRef;
+    clock_t        timeTotal;
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -687,8 +687,9 @@ Vec_Int_t * Aig_Gla1ManPerform( Aig_Man_t * pAig, Vec_Int_t * vGateClassesOld, i
     Abc_Cex_t * pCex;
     Vec_Int_t * vPPiRefine;
     int f, g, r, i, iSatVar, Lit, Entry, RetValue;
-    int nConfBef, nConfAft, clk, clkTotal = clock();
-    int nTimeToStop = time(NULL) + TimeLimit;
+    int nConfBef, nConfAft;
+    clock_t clk, clkTotal = clock();
+    clock_t nTimeToStop = TimeLimit ? TimeLimit * CLOCKS_PER_SEC + clock(): 0;
     assert( Saig_ManPoNum(pAig) == 1 );
 
     if ( nFramesMax == 0 )
@@ -753,7 +754,7 @@ Vec_Int_t * Aig_Gla1ManPerform( Aig_Man_t * pAig, Vec_Int_t * vGateClassesOld, i
                         printf( "== %3d ==", f );
                     else
                         printf( "         " );
-                    if ( TimeLimit && time(NULL) > nTimeToStop )
+                    if ( TimeLimit && clock() > nTimeToStop )
                         printf( "       SAT solver timed out after %d seconds.\n", TimeLimit );
                     else if ( RetValue != l_False )
                         printf( "       SAT solver returned UNDECIDED after %5d conflicts.\n", nConfAft - nConfBef );

@@ -58,10 +58,6 @@ Mio_Library_t * Map_ManReadGenLib ( Map_Man_t * p )                     { return
 int             Map_ManReadVerbose( Map_Man_t * p )                     { return p->fVerbose;   }
 float           Map_ManReadAreaFinal( Map_Man_t * p )                   { return p->AreaFinal;  }
 float           Map_ManReadRequiredGlo( Map_Man_t * p )                 { return p->fRequiredGlo; }
-void            Map_ManSetTimeToMap( Map_Man_t * p, int Time )          { p->timeToMap = Time;  }
-void            Map_ManSetTimeToNet( Map_Man_t * p, int Time )          { p->timeToNet = Time;  }
-void            Map_ManSetTimeSweep( Map_Man_t * p, int Time )          { p->timeSweep = Time;  }
-void            Map_ManSetTimeTotal( Map_Man_t * p, int Time )          { p->timeTotal = Time;  }
 void            Map_ManSetOutputNames( Map_Man_t * p, char ** ppNames ) { p->ppOutputNames = ppNames;}
 void            Map_ManSetAreaRecovery( Map_Man_t * p, int fAreaRecovery ) { p->fAreaRecovery = fAreaRecovery;}
 void            Map_ManSetDelayTarget( Map_Man_t * p, float DelayTarget ) { p->DelayTarget = DelayTarget;}
@@ -317,7 +313,7 @@ void Map_ManPrintTimeStats( Map_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Map_ManPrintStatsToFile( char * pName, float Area, float Delay, int Time )
+void Map_ManPrintStatsToFile( char * pName, float Area, float Delay, clock_t Time )
 {
     FILE * pTable;
     pTable = fopen( "map_stats.txt", "a+" );
@@ -472,7 +468,8 @@ void Map_TableResize( Map_Man_t * pMan )
 {
     Map_Node_t ** pBinsNew;
     Map_Node_t * pEnt, * pEnt2;
-    int nBinsNew, Counter, i, clk;
+    int nBinsNew, Counter, i;
+    clock_t clk;
     unsigned Key;
 
 clk = clock();

@@ -471,7 +471,8 @@ int Cec_ManSatCheckNode( Cec_ManSat_t * p, Gia_Obj_t * pObj )
 {
     Gia_Obj_t * pObjR = Gia_Regular(pObj);
     int nBTLimit = p->pPars->nBTLimit;
-    int Lit, RetValue, status, clk, clk2, nConflicts;
+    int Lit, RetValue, status, nConflicts;
+    clock_t clk, clk2;
 
     if ( pObj == Gia_ManConst0(p->pAig) )
         return 1;
@@ -570,7 +571,8 @@ int Cec_ManSatCheckNodeTwo( Cec_ManSat_t * p, Gia_Obj_t * pObj1, Gia_Obj_t * pOb
     Gia_Obj_t * pObjR1 = Gia_Regular(pObj1);
     Gia_Obj_t * pObjR2 = Gia_Regular(pObj2);
     int nBTLimit = p->pPars->nBTLimit;
-    int Lits[2], RetValue, status, clk, clk2, nConflicts;
+    int Lits[2], RetValue, status, nConflicts;
+    clock_t clk, clk2;
 
     if ( pObj1 == Gia_ManConst0(p->pAig) || pObj2 == Gia_ManConst0(p->pAig) || pObj1 == Gia_Not(pObj2) )
         return 1;
@@ -676,7 +678,8 @@ void Cec_ManSatSolve( Cec_ManPat_t * pPat, Gia_Man_t * pAig, Cec_ParSat_t * pPar
     Bar_Progress_t * pProgress = NULL;
     Cec_ManSat_t * p;
     Gia_Obj_t * pObj;
-    int i, status, clk = clock(), clk2;
+    int i, status;
+    clock_t clk = clock(), clk2;
     // reset the manager
     if ( pPat )
     {
@@ -717,7 +720,7 @@ clk2 = clock();
         // save the pattern
         if ( pPat )
         {
-            int clk3 = clock();
+            clock_t clk3 = clock();
             Cec_ManPatSavePattern( pPat, p, pObj );
             pPat->timeTotalSave += clock() - clk3;
         }
@@ -799,7 +802,8 @@ Vec_Str_t * Cec_ManSatSolveSeq( Vec_Ptr_t * vPatts, Gia_Man_t * pAig, Cec_ParSat
     Cec_ManSat_t * p;
     Gia_Obj_t * pObj;
     int iPat = 0, nPatsInit, nPats;
-    int i, status, clk = clock();
+    int i, status;
+    clock_t clk = clock();
     nPatsInit = nPats = 32 * Vec_PtrReadWordsSimInfo(vPatts);
     Gia_ManSetPhase( pAig );
     Gia_ManLevelNum( pAig );
@@ -957,7 +961,8 @@ Vec_Int_t * Cec_ManSatSolveMiter( Gia_Man_t * pAig, Cec_ParSat_t * pPars, Vec_St
     Vec_Str_t * vStatus;
     Cec_ManSat_t * p;
     Gia_Obj_t * pObj;
-    int i, status, clk = clock();
+    int i, status;
+    clock_t clk = clock();
     // prepare AIG
     Gia_ManSetPhase( pAig );
     Gia_ManLevelNum( pAig );

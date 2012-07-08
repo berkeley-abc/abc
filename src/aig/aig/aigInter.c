@@ -29,9 +29,9 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-extern int timeCnf;
-extern int timeSat;
-extern int timeInt;
+extern clock_t timeCnf;
+extern clock_t timeSat;
+extern clock_t timeInt;
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -156,7 +156,7 @@ Aig_Man_t * Aig_ManInter( Aig_Man_t * pManOn, Aig_Man_t * pManOff, int fRelation
     Vec_Int_t * vVarsAB;
     Aig_Obj_t * pObj, * pObj2;
     int Lits[3], status, i;
-    int clk;
+    clock_t clk;
     int iLast = -1; // Suppress "might be used uninitialized"
 
     assert( Aig_ManCiNum(pManOn) == Aig_ManCiNum(pManOff) );

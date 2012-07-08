@@ -22,7 +22,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include <time.h>
+
+#include "kit.h"
 
 #define inline __inline // compatible with MS VS 6.0
 
@@ -260,7 +261,7 @@ word Tf ( word f, int n)
 }
 
 
-#define ABC_PRT(a,t)    (printf("%s = ", (a)), printf("%7.2f sec\n", (float)(t)/(float)(CLOCKS_PER_SEC)))
+//#define ABC_PRT(a,t)    (printf("%s = ", (a)), printf("%7.2f sec\n", (float)(t)/(float)(CLOCKS_PER_SEC)))
 #define NFUNCS (1<<20)
 
 /**Function*************************************************************
@@ -278,7 +279,8 @@ void Kit_PermComputeTest()
 {
     word * T = (word *)malloc( 8 * NFUNCS );
     word i, o, w = 0;
-    int k, b, clk;
+    int k, b;
+    clock_t clk;
 
     srand( 0 );
 

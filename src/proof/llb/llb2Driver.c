@@ -129,7 +129,8 @@ DdNode * Llb_DriverPhaseCube( Aig_Man_t * pAig, Vec_Int_t * vDriRefs, DdManager 
 {
     DdNode * bCube, * bVar, * bTemp;
     Aig_Obj_t * pObj;
-    int i, TimeStop;
+    int i;
+    clock_t TimeStop;
     TimeStop = dd->TimeStop; dd->TimeStop = 0;
     bCube = Cudd_ReadOne( dd );  Cudd_Ref( bCube );
     Saig_ManForEachLi( pAig, pObj, i )
@@ -159,7 +160,7 @@ DdNode * Llb_DriverPhaseCube( Aig_Man_t * pAig, Vec_Int_t * vDriRefs, DdManager 
   SeeAlso     []
 
 ***********************************************************************/
-DdManager * Llb_DriverLastPartition( Aig_Man_t * p, Vec_Int_t * vVarsNs, int TimeTarget )
+DdManager * Llb_DriverLastPartition( Aig_Man_t * p, Vec_Int_t * vVarsNs, clock_t TimeTarget )
 {
 //    int fVerbose = 1;
     DdManager * dd;

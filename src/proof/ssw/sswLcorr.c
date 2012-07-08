@@ -77,7 +77,8 @@ void Ssw_ManSweepTransfer( Ssw_Man_t * p )
 ***********************************************************************/
 int Ssw_ManSweepResimulate( Ssw_Man_t * p )
 {
-    int RetValue1, RetValue2, clk = clock();
+    int RetValue1, RetValue2;
+    clock_t clk = clock();
     // transfer PI simulation information from storage
     Ssw_ManSweepTransfer( p );
     // simulate internal nodes
@@ -159,7 +160,8 @@ void Ssw_ManBuildCone_rec( Ssw_Man_t * p, Aig_Obj_t * pObj )
 void Ssw_ManSweepLatchOne( Ssw_Man_t * p, Aig_Obj_t * pObjRepr, Aig_Obj_t * pObj )
 {
     Aig_Obj_t * pObjFraig, * pObjReprFraig, * pObjLi;
-    int RetValue, clk;
+    int RetValue;
+    clock_t clk;
     assert( Aig_ObjIsCi(pObj) );
     assert( Aig_ObjIsCi(pObjRepr) || Aig_ObjIsConst1(pObjRepr) );
     // check if it makes sense to skip some calls

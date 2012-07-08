@@ -359,7 +359,8 @@ void Cec_ManPatCleanMark0( Gia_Man_t * p, Gia_Obj_t * pObj )
 void Cec_ManPatSavePattern( Cec_ManPat_t * pMan, Cec_ManSat_t *  p, Gia_Obj_t * pObj )
 {
     Vec_Int_t * vPat;
-    int nPatLits, clk, clkTotal = clock();
+    int nPatLits;
+    clock_t clk, clkTotal = clock();
     assert( Gia_ObjIsCo(pObj) );
     pMan->nPats++;
     pMan->nPatsAll++;
@@ -451,7 +452,7 @@ Vec_Ptr_t * Cec_ManPatCollectPatterns( Cec_ManPat_t *  pMan, int nInputs, int nW
     int iStartOld = pMan->iStart;
     int nWords = nWordsInit;
     int nBits = 32 * nWords;
-    int clk = clock();
+    clock_t clk = clock();
     vInfo = Vec_PtrAllocSimInfo( nInputs, nWords );
     Gia_ManRandomInfo( vInfo, 0, 0, nWords );
     vPres = Vec_PtrAllocSimInfo( nInputs, nWords );

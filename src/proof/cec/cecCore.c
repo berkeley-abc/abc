@@ -257,7 +257,8 @@ Gia_Man_t * Cec_ManSatSolving( Gia_Man_t * pAig, Cec_ParSat_t * pPars )
 int Cec_ManSimulationOne( Gia_Man_t * pAig, Cec_ParSim_t * pPars )
 {
     Cec_ManSim_t * pSim;
-    int RetValue = 0, clkTotal = clock();
+    int RetValue = 0;
+    clock_t clkTotal = clock();
     pSim = Cec_ManSimStart( pAig, pPars );
     if ( (pAig->pReprs == NULL && (RetValue = Cec_ManSimClassesPrepare( pSim, -1 ))) ||
          (RetValue == 0 &&        (RetValue = Cec_ManSimClassesRefine( pSim ))) )
@@ -342,8 +343,8 @@ Gia_Man_t * Cec_ManSatSweeping( Gia_Man_t * pAig, Cec_ParFra_t * pPars )
     Cec_ManFra_t * p;
     Cec_ManSim_t * pSim;
     Cec_ManPat_t * pPat;
-    int i, fTimeOut = 0, nMatches = 0, clk, clk2;
-    double clkTotal = clock();
+    int i, fTimeOut = 0, nMatches = 0;
+    clock_t clk, clk2, clkTotal = clock();
 
     // duplicate AIG and transfer equivalence classes
     Gia_ManRandom( 1 );
@@ -457,7 +458,7 @@ p->timeSat += clock() - clk;
             break;
         }
         // check resource limits
-        if ( p->pPars->TimeLimit && ((double)clock() - clkTotal)/CLOCKS_PER_SEC >= p->pPars->TimeLimit )
+        if ( p->pPars->TimeLimit && (clock() - clkTotal)/CLOCKS_PER_SEC >= p->pPars->TimeLimit )
         {
             fTimeOut = 1;
             break;

@@ -417,7 +417,8 @@ int Cmd_CommandAbcPlugIn( Abc_Frame_t * pAbc, int argc, char ** argv )
     Vec_Int_t * vCex;
     FILE * pFile;
     Gia_Man_t * pGia;
-    int i, fd, clk;
+    int i, fd;
+    clock_t clk;
     int fLeaveFiles;
 /*
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);

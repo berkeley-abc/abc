@@ -719,7 +719,7 @@ Gia_Man_t * Gia_ManCorrReduce( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Cec_ManRefinedClassPrintStats( Gia_Man_t * p, Vec_Str_t * vStatus, int iIter, int Time )
+void Cec_ManRefinedClassPrintStats( Gia_Man_t * p, Vec_Str_t * vStatus, int iIter, clock_t Time )
 { 
     int nLits, CounterX = 0, Counter0 = 0, Counter = 0;
     int i, Entry, nProve = 0, nDispr = 0, nFail = 0;
@@ -789,7 +789,7 @@ void Cec_ManLSCorrespondenceBmc( Gia_Man_t * pAig, Cec_ParCor_t * pPars, int nPr
     fChanges = 1;
     while ( fChanges )
     {
-        int clkBmc = clock();
+        clock_t clkBmc = clock();
         fChanges = 0;
         pSrm = Gia_ManCorrSpecReduceInit( pAig, pPars->nFrames, nPrefs, !pPars->fLatchCorr, &vOutputs, pPars->fUseRings );
         if ( Gia_ManPoNum(pSrm) == 0 )
@@ -844,9 +844,10 @@ int Cec_ManLSCorrespondenceClasses( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
     Cec_ParSat_t ParsSat, * pParsSat = &ParsSat;
     Cec_ManSim_t * pSim;
     Gia_Man_t * pSrm;
-    int r, RetValue, clkTotal = clock();
-    int clkSat = 0, clkSim = 0, clkSrm = 0;
-    int clk2, clk = clock();
+    int r, RetValue;
+    clock_t clkTotal = clock();
+    clock_t clkSat = 0, clkSim = 0, clkSrm = 0;
+    clock_t clk2, clk = clock();
     if ( Gia_ManRegNum(pAig) == 0 )
     {
         Abc_Print( 1, "Cec_ManLatchCorrespondence(): Not a sequential AIG.\n" );

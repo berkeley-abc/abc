@@ -479,7 +479,8 @@ int Ssw_SecWithSimilarityPairs( Aig_Man_t * p0, Aig_Man_t * p1, Vec_Int_t * vPai
 {
     Ssw_Pars_t Pars;
     Aig_Man_t * pAigRes;
-    int RetValue, clk = clock();
+    int RetValue;
+    clock_t clk = clock();
     // derive parameters if not given
     if ( pPars == NULL )
         Ssw_ManSetDefaultParams( pPars = &Pars );

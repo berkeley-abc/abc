@@ -73,8 +73,9 @@ void Abc_NtkPrintUnateBdd( Abc_Ntk_t * pNtk, int fUseNaive, int fVerbose )
 //    DdNode ** pbGlobal;     // temporary storage for global BDDs
     int TotalSupps = 0;
     int TotalUnate = 0;
-    int i, clk = clock();
-    int clkBdd, clkUnate;
+    int i;
+    clock_t clk = clock();
+    clock_t clkBdd, clkUnate;
 
     // compute the global BDDs
     dd = (DdManager *)Abc_NtkBuildGlobalBdds(pNtk, 10000000, 1, 1, fVerbose);

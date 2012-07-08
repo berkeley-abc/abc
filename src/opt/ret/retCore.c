@@ -27,7 +27,7 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-int timeRetime = 0;
+clock_t timeRetime = 0;
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -48,7 +48,8 @@ int Abc_NtkRetime( Abc_Ntk_t * pNtk, int Mode, int nDelayLim, int fForwardOnly, 
 {
     int nLatches = Abc_NtkLatchNum(pNtk);
     int nLevels  = Abc_NtkLevel(pNtk);
-    int RetValue = 0, clkTotal = clock();
+    int RetValue = 0;
+    clock_t clkTotal = clock();
     int nNodesOld, nLatchesOld;
     assert( Mode > 0 && Mode < 7 );
     assert( !fForwardOnly || !fBackwardOnly );

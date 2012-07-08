@@ -767,7 +767,8 @@ int Aig_SupportSize( Aig_Man_t * p, Aig_Obj_t * pObj )
 int Aig_SupportSizeTest( Aig_Man_t * p )
 {
     Aig_Obj_t * pObj;
-    int i, Counter = 0, clk = clock();
+    int i, Counter = 0;
+    clock_t clk = clock();
     Aig_ManForEachObj( p, pObj, i )
         if ( Aig_ObjIsNode(pObj) )
             Counter += (Aig_SupportSize(p, pObj) <= 16);

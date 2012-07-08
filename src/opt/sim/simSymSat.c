@@ -137,7 +137,8 @@ int Sim_SymmsSatProveOne( Sym_Man_t * p, int Out, int Var1, int Var2, unsigned *
     Fraig_Params_t Params;
     Fraig_Man_t * pMan;
     Abc_Ntk_t * pMiter;
-    int RetValue, i, clk;
+    int RetValue, i;
+    clock_t clk;
     int * pModel;
 
     // get the miter for this problem

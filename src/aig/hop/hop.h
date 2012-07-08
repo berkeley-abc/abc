@@ -30,7 +30,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include <time.h>
 
 #include "src/misc/vec/vec.h"
 
@@ -106,8 +105,8 @@ struct Hop_Man_t_
     Vec_Ptr_t *      vPages;         // memory pages used by nodes
     Hop_Obj_t *      pListFree;      // the list of free nodes 
     // timing statistics
-    int              time1;
-    int              time2;
+    clock_t          time1;
+    clock_t          time2;
 };
 
 ////////////////////////////////////////////////////////////////////////

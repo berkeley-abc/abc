@@ -129,7 +129,7 @@ void Aig_ManInterTest( Aig_Man_t * pMan, int fVerbose )
     Cnf_Dat_t * pCnf;
     Aig_Obj_t * pObj;
     int Lit, Cid, Var, status, i;
-    int clk = clock();
+    clock_t clk = clock();
     assert( Aig_ManRegNum(pMan) == 0 );
     assert( Aig_ManCoNum(pMan) == 1 );
 
@@ -251,7 +251,7 @@ Aig_Man_t * Aig_ManInterRepar( Aig_Man_t * pMan, int fVerbose )
     int nOuts = Aig_ManCoNum(pMan);
     int ShiftP[2], ShiftCnf[2], ShiftOr[2], ShiftAssume;
     int Cid, Lit, status, i, k, c;
-    int clk = clock();
+    clock_t clk = clock();
     assert( Aig_ManRegNum(pMan) == 0 );
 
     // derive CNFs

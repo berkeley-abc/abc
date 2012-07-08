@@ -252,7 +252,7 @@ Vec_Wrd_t * If_CutDelaySopAnds( If_Man_t * p, If_Cut_t * pCut, Vec_Int_t * vCove
 ***********************************************************************/
 Vec_Wrd_t * If_CutDelaySopArray( If_Man_t * p, If_Cut_t * pCut )
 {
-    int clk;
+    clock_t clk;
     Vec_Wrd_t * vAnds;
     int RetValue;
     if ( p->vCover == NULL )
@@ -493,7 +493,7 @@ int If_CutDelaySopAnds2( If_Man_t * p, If_Cut_t * pCut, Vec_Int_t * vCover, int 
 }
 int If_CutDelaySopArray2( If_Man_t * p, If_Cut_t * pCut, int * pArea )
 {
-    int clk;
+    clock_t clk;
     int RetValue;
     if ( p->vCover == NULL )
         p->vCover = Vec_IntAlloc(0);

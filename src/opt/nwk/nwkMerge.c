@@ -704,7 +704,7 @@ int Nwk_ManLutMergeGraphTest( char * pFileName )
 {
     int nPairs;
     Nwk_Grf_t * p;
-    int clk = clock();
+    clock_t clk = clock();
     p = Nwk_ManLutMergeReadGraph( pFileName );
     ABC_PRT( "Reading", clock() - clk );
     clk = clock();
@@ -974,7 +974,8 @@ Vec_Int_t * Nwk_ManLutMerge( Nwk_Man_t * pNtk, void * pParsInit )
     Vec_Int_t * vResult;
     Vec_Ptr_t * vStart, * vNext, * vCands1, * vCands2;
     Nwk_Obj_t * pLut, * pCand;
-    int i, k, nVertsMax, nCands, clk = clock();
+    int i, k, nVertsMax, nCands;
+    clock_t clk = clock();
     // count the number of vertices
     nVertsMax = 0;
     Nwk_ManForEachNode( pNtk, pLut, i )

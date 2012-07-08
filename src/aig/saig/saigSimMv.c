@@ -881,7 +881,8 @@ Vec_Ptr_t * Saig_MvManSimulate( Aig_Man_t * pAig, int nFramesSymb, int nFramesSa
     Vec_Ptr_t * vMap;
     Saig_MvMan_t * p;
     Saig_MvObj_t * pEntry;
-    int f, i, iState, clk = clock();
+    int f, i, iState;
+    clock_t clk = clock();
     assert( nFramesSymb >= 1 && nFramesSymb <= nFramesSatur );
 
     // start manager

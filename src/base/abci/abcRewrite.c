@@ -68,7 +68,7 @@ int Abc_NtkRewrite( Abc_Ntk_t * pNtk, int fUpdateLevel, int fUseZeros, int fVerb
 //    Vec_Ptr_t * vAddedCells = NULL, * vUpdatedNets = NULL;
     Dec_Graph_t * pGraph;
     int i, nNodes, nGain, fCompl;
-    int clk, clkStart = clock();
+    clock_t clk, clkStart = clock();
 
     assert( Abc_NtkIsStrash(pNtk) );
     // cleanup the AIG

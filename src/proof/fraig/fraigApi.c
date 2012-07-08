@@ -91,9 +91,6 @@ void            Fraig_ManSetDoSparse( Fraig_Man_t * p, int fDoSparse )      { p-
 void            Fraig_ManSetChoicing( Fraig_Man_t * p, int fChoicing )      { p->fChoicing = fChoicing; }
 void            Fraig_ManSetTryProve( Fraig_Man_t * p, int fTryProve )      { p->fTryProve = fTryProve; }
 void            Fraig_ManSetVerbose( Fraig_Man_t * p, int fVerbose )        { p->fVerbose  = fVerbose;  }
-void            Fraig_ManSetTimeToGraph( Fraig_Man_t * p, int Time )        { p->timeToAig = Time;      }
-void            Fraig_ManSetTimeToNet( Fraig_Man_t * p, int Time )          { p->timeToNet = Time;      }
-void            Fraig_ManSetTimeTotal( Fraig_Man_t * p, int Time )          { p->timeTotal = Time;      }
 void            Fraig_ManSetOutputNames( Fraig_Man_t * p, char ** ppNames ) { p->ppOutputNames = ppNames; }
 void            Fraig_ManSetInputNames( Fraig_Man_t * p, char ** ppNames )  { p->ppInputNames  = ppNames; }
 

@@ -56,7 +56,7 @@ ABC_NAMESPACE_IMPL_START
 Map_SuperLib_t * Map_SuperLibCreate( char * pFileName, char * pExcludeFile, int fAlgorithm, int fVerbose )
 {
     Map_SuperLib_t * p;
-    int clk;
+    clock_t clk;
 
     // start the supergate library
     p = ABC_ALLOC( Map_SuperLib_t, 1 );

@@ -439,7 +439,7 @@ void Ivy_ManTestCutsTravAll( Ivy_Man_t * p )
     Vec_Int_t * vStore;
     Vec_Vec_t * vBitCuts;
     int i, nCutsCut, nCutsTotal, nNodeTotal, nNodeOver;
-    int clk = clock();
+    clock_t clk = clock();
 
     vNodes = Vec_PtrAlloc( 100 );
     vFront = Vec_PtrAlloc( 100 );

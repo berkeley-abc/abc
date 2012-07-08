@@ -107,7 +107,7 @@ int Abc_NtkRestructure( Abc_Ntk_t * pNtk, int nCutMax, int fUpdateLevel, int fUs
     Cut_Cut_t * pCutList;
     Dec_Graph_t * pGraph;
     Abc_Obj_t * pNode;
-    int clk, clkStart = clock();
+    clock_t clk, clkStart = clock();
     int fMulti = 1;
     int fResub = 0;
     int i, nNodes;

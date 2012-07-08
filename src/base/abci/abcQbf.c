@@ -64,7 +64,7 @@ void Abc_NtkQbf( Abc_Ntk_t * pNtk, int nPars, int nItersMax, int fVerbose )
 {
     Abc_Ntk_t * pNtkVer, * pNtkSyn, * pNtkSyn2, * pNtkTemp;
     Vec_Int_t * vPiValues;
-    int clkTotal = clock(), clkS, clkV;
+    clock_t clkTotal = clock(), clkS, clkV;
     int nIters, nIterMax = 500, nInputs, RetValue, fFound = 0;
 
     assert( Abc_NtkIsStrash(pNtk) );

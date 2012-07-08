@@ -121,20 +121,20 @@ struct Lpk_Man_t_
     // counter of non-DSD blocks
     int          nBlocks[17];
     // runtime
-    int          timeCuts;
-    int          timeTruth;
-    int          timeSupps;
-    int          timeTruth2;
-    int          timeTruth3;
-    int          timeEval;
-    int          timeMap;
-    int          timeOther;
-    int          timeTotal;
+    clock_t      timeCuts;
+    clock_t      timeTruth;
+    clock_t      timeSupps;
+    clock_t      timeTruth2;
+    clock_t      timeTruth3;
+    clock_t      timeEval;
+    clock_t      timeMap;
+    clock_t      timeOther;
+    clock_t      timeTotal;
     // runtime of eval
-    int          timeEvalMuxAn;
-    int          timeEvalMuxSp;
-    int          timeEvalDsdAn;
-    int          timeEvalDsdSp;
+    clock_t      timeEvalMuxAn;
+    clock_t      timeEvalMuxSp;
+    clock_t      timeEvalDsdAn;
+    clock_t      timeEvalDsdSp;
  
 };
 

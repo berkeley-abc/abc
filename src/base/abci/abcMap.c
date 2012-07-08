@@ -64,7 +64,7 @@ Abc_Ntk_t * Abc_NtkMap( Abc_Ntk_t * pNtk, double DelayTarget, int fRecovery, int
     Map_Man_t * pMan;
     Vec_Int_t * vSwitching = NULL;
     float * pSwitching = NULL;
-    int clk, clkTotal = clock();
+    clock_t clk, clkTotal = clock();
 
     assert( Abc_NtkIsStrash(pNtk) );
 

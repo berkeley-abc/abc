@@ -107,23 +107,23 @@ struct Abc_ManRec_t_
     int               nFunsDelayComput;         // the times delay computed, just for statistics
     int               nNoBetter;                // the number of functions found but no better than the current structures.
     // rewriting runtime
-    int               timeIfTotal;              // time used on the whole process of rewriting a structure.
-    int               timeIfComputDelay;        // time used on the structure's delay computation.
-    int               timeIfCanonicize;         // time used on canonicize the function
-    int               timeIfDerive;             // time used on derive the final network;
-    int               timeIfCopmutCur;          // time used on compute the current structures info
-    int               timeIfOther;              // time used on other things
+    clock_t           timeIfTotal;              // time used on the whole process of rewriting a structure.
+    clock_t           timeIfComputDelay;        // time used on the structure's delay computation.
+    clock_t           timeIfCanonicize;         // time used on canonicize the function
+    clock_t           timeIfDerive;             // time used on derive the final network;
+    clock_t           timeIfCopmutCur;          // time used on compute the current structures info
+    clock_t           timeIfOther;              // time used on other things
     // record runtime
-    int               timeTrim;                 // the runtime to filter the library
-    int               timeCollect;              // the runtime to collect the node of a structure.
-    int               timeTruth;                // the runtime to compute truth table.
-    int               timeCanon;                // the runtime to canonicize
-    int               timeInsert;               // the runtime to insert a structure.
-    int               timeBuild;                // the runtime to build a new structure in the library.
-    int               timeMerge;                // the runtime to merge libraries;
-    int               timeReHash;                // the runtime to resize the hash table.
-    int               timeOther;                // the runtime of other
-    int               timeTotal;                // the runtime to total.
+    clock_t           timeTrim;                 // the runtime to filter the library
+    clock_t           timeCollect;              // the runtime to collect the node of a structure.
+    clock_t           timeTruth;                // the runtime to compute truth table.
+    clock_t           timeCanon;                // the runtime to canonicize
+    clock_t           timeInsert;               // the runtime to insert a structure.
+    clock_t           timeBuild;                // the runtime to build a new structure in the library.
+    clock_t           timeMerge;                // the runtime to merge libraries;
+    clock_t           timeReHash;                // the runtime to resize the hash table.
+    clock_t           timeOther;                // the runtime of other
+    clock_t           timeTotal;                // the runtime to total.
 };
 
 
@@ -860,7 +860,7 @@ Hop_Obj_t * Abc_RecToHop( Hop_Man_t * pMan, If_Man_t * pIfMan, If_Cut_t * pCut, 
     char pCanonPerm[16];
     unsigned *pInOut = s_pMan->pTemp1;
     unsigned *pTemp = s_pMan->pTemp2;
-    int time = clock();
+    clock_t time = clock();
     int fCompl;
     int * pCompl = &fCompl;
     nLeaves = If_CutLeaveNum(pCut);
@@ -1008,7 +1008,7 @@ void Abc_NtkRecFilter(int nLimit)
     Rec_Obj_t * previous = NULL, * entry = NULL, * pTemp;
     int i;
     Abc_Ntk_t * pNtk = s_pMan->pNtk;
-    int time = clock();
+    clock_t time = clock();
     if (nLimit > 0)
     {
         for ( i = 0; i < s_pMan->nBins; i++ )
@@ -1135,7 +1135,7 @@ void Abc_NtkRecLibMerge(Abc_Ntk_t* pNtk)
     int i;
     Abc_Obj_t * pObj;
     Abc_ManRec_t * p = s_pMan;
-    int clk = clock();
+    clock_t clk = clock();
     if ( Abc_NtkPiNum(pNtk) > s_pMan->nVars )
     {
         printf( "The library has more inputs than the record.\n");
@@ -1183,7 +1183,7 @@ void Abc_NtkRecRezieHash(Abc_ManRec_t* p)
     Rec_Obj_t ** pBinsNew, **ppSpot;
     Rec_Obj_t * pEntry, * pTemp;
     int nBinsNew, Counter, i;
-    int clk = clock();
+    clock_t clk = clock();
     // get the new table size
     nBinsNew = Cudd_Prime( 3 * p->nBins ); 
     printf("Hash table resize from %d to %d.\n", p->nBins, nBinsNew);
@@ -1232,7 +1232,7 @@ void Abc_NtkRecStart( Abc_Ntk_t * pNtk, int nVars, int nCuts, int fTrim )
     char Buffer[10];
     unsigned * pTruth;
     int i, RetValue;
-    int clkTotal = clock(), clk, timeInsert;
+    clock_t clkTotal = clock(), clk, timeInsert;
     //int testNum = 0;
 
     assert( s_pMan == NULL );
@@ -1690,7 +1690,7 @@ void Abc_NtkRecAdd( Abc_Ntk_t * pNtk, int fUseSOPB)
 
     If_Par_t Pars, * pPars = &Pars;
     Abc_Ntk_t * pNtkNew;
-    int clk = clock();
+    clock_t clk = clock();
 
     if ( Abc_NtkGetChoiceNum( pNtk ) )
         printf( "Performing renoding with choices.\n" );
@@ -2068,7 +2068,7 @@ void Abc_NtkRecAddSOPB( If_Man_t * pIfMan, If_Cut_t * pCut, unsigned* pInOut, ch
     If_And_t This;
     Rec_Obj_t ** ppSpot;
     char Buffer[40], Name[20], Truth[20];
-    int timeBuild = clock();
+    clock_t timeBuild = clock();
     unsigned * pTruth;
     vAnds = If_CutDelaySopArray( pIfMan, pCut );
     if(Vec_WrdSize(vAnds) > nLeaves + 3*(nLeaves-1) + s_MaxSize[nLeaves])
@@ -2778,7 +2778,7 @@ void SetUseCut(If_Cut_t* pCut, Rec_Obj_t * pRecObj, char * pCanonPerm)
 int If_CutDelayRecCost(If_Man_t* p, If_Cut_t* pCut, If_Obj_t * pObj)
 {
     //int fVerbose = 0;
-    int timeDelayComput, timeTotal = clock(), timeCanonicize;
+    clock_t timeDelayComput, timeTotal = clock(), timeCanonicize;
     int nLeaves, i, DelayMin = ABC_INFINITY , * pDelayBest = &DelayMin;
     char pCanonPerm[16];
     unsigned uCanonPhase;

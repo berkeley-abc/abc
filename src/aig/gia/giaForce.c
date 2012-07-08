@@ -892,7 +892,7 @@ void Frc_ManPlacementRefine( Frc_Man_t * p, int nIters, int fVerbose )
     float * pVertX, VertX;
     int * pPermX, * pHandles;
     int k, h, Iter, iMinX, iMaxX, Counter, nCutStart, nCutCur, nCutCur2, nCutPrev;
-    int clk = clock(), clk2, clk2Total = 0;
+    clock_t clk = clock(), clk2, clk2Total = 0;
     // create starting one-dimensional placement
     vCoOrder = Frc_ManCollectCos( p );
     if ( fRandomize )
@@ -1068,7 +1068,7 @@ void For_ManFileExperiment()
     FILE * pFile;
     int * pBuffer;
     int i, Size, Exp = 25;
-    int clk = clock();
+    clock_t clk = clock();
     int RetValue;
 
     Size = (1 << Exp);

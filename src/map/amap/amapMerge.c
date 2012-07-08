@@ -514,7 +514,8 @@ void Amap_ManMergeNodeCuts( Amap_Man_t * p, Amap_Obj_t * pNode )
 void Amap_ManMerge( Amap_Man_t * p )
 {
     Amap_Obj_t * pObj;
-    int i, clk = clock();
+    int i;
+    clock_t clk = clock();
     p->pCutsPi = Amap_ManSetupPis( p );
     Amap_ManForEachNode( p, pObj, i )
         Amap_ManMergeNodeCuts( p, pObj );

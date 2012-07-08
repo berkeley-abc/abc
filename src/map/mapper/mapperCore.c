@@ -53,7 +53,7 @@ int Map_Mapping( Map_Man_t * p )
     int fUseAreaFlow           = 1;
     int fUseExactArea          = !p->fSwitching;
     int fUseExactAreaWithPhase = !p->fSwitching;
-    int clk;
+    clock_t clk;
 
     //////////////////////////////////////////////////////////////////////
     // perform pre-mapping computations

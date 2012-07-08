@@ -48,46 +48,15 @@ struct Aig_Gla2Man_t_
     // SAT solver
     sat_solver *   pSat;
     // statistics
-    int            timePre;
-    int            timeSat;
-    int            timeTotal;
+    clock_t        timePre;
+    clock_t        timeSat;
+    clock_t        timeTotal;
 };
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
-#define ABC_CPS 1000
-
-/**Function*************************************************************
-
-  Synopsis    [Procedure returns miliseconds elapsed since the last reset.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Abc_Clock( int Timer, int fReset )
-{
-    static int Time[16], Clock[16];
-    int Clock2, Diff;
-    assert( Timer >= 0 && Timer < 16 );
-    if ( fReset )
-    {
-        Time[Timer] = time(NULL);
-        Clock[Timer] = clock();
-        return 0;
-    }
-    Clock2 = clock();
-    if ( Clock2 > Clock[Timer] )
-        Diff = (Clock2 - Clock[Timer]) % CLOCKS_PER_SEC;
-    else
-        Diff = CLOCKS_PER_SEC - (Clock[Timer] - Clock2) % CLOCKS_PER_SEC;
-    return (time(NULL) - Time[Timer]) * ABC_CPS + (Diff * ABC_CPS) / CLOCKS_PER_SEC;
-}
 
 /**Function*************************************************************
 
@@ -432,7 +401,8 @@ Vec_Int_t * Saig_AbsSolverUnsatCore( sat_solver * pSat, int nConfMax, int fVerbo
     Vec_Int_t * vCore;
     void * pSatCnf; 
     Intp_Man_t * pManProof;
-    int RetValue, clk = clock();
+    int RetValue;
+    clock_t clk = clock();
     if ( piRetValue )
         *piRetValue = -1;
     // solve the problem
@@ -556,8 +526,8 @@ Vec_Int_t * Aig_Gla2ManPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, in
 {
     Aig_Gla2Man_t * p;
     Vec_Int_t * vCore, * vResult;
-    int nTimeToStop = time(NULL) + TimeLimit;
-    int clk, clk2 = clock();
+    clock_t nTimeToStop = TimeLimit ? TimeLimit * CLOCKS_PER_SEC + clock(): 0;
+    clock_t clk, clk2 = clock();
     assert( Saig_ManPoNum(pAig) == 1 );
 
     if ( fVerbose )

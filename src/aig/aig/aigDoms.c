@@ -623,7 +623,8 @@ Aig_Sto_t * Aig_ManComputeDomsFlops( Aig_Man_t * pAig, int Limit )
     Aig_Sto_t * pSto;
     Vec_Ptr_t * vNodes;
     Aig_Obj_t * pObj;
-    int i, clk = clock();
+    int i;
+    clock_t clk = clock();
     pSto = Aig_ManDomStart( pAig, Limit );
     // initialize flop inputs
     Saig_ManForEachLi( pAig, pObj, i )
@@ -663,7 +664,8 @@ Aig_Sto_t * Aig_ManComputeDomsPis( Aig_Man_t * pAig, int Limit )
     Aig_Sto_t * pSto;
     Vec_Ptr_t * vNodes;
     Aig_Obj_t * pObj;
-    int i, clk = clock();
+    int i;
+    clock_t clk = clock();
     pSto = Aig_ManDomStart( pAig, Limit );
     // initialize flop inputs
     Aig_ManForEachCo( pAig, pObj, i )
@@ -703,7 +705,8 @@ Aig_Sto_t * Aig_ManComputeDomsNodes( Aig_Man_t * pAig, int Limit )
     Aig_Sto_t * pSto;
     Vec_Ptr_t * vNodes;
     Aig_Obj_t * pObj;
-    int i, clk = clock();
+    int i;
+    clock_t clk = clock();
     pSto = Aig_ManDomStart( pAig, Limit );
     // initialize flop inputs
     Aig_ManForEachCo( pAig, pObj, i )

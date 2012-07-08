@@ -266,7 +266,8 @@ Gia_Man_t * Gia_ManRetimeForwardOne( Gia_Man_t * p, int * pnRegFixed, int * pnRe
 Gia_Man_t * Gia_ManRetimeForward( Gia_Man_t * p, int nMaxIters, int fVerbose )
 {
     Gia_Man_t * pNew, * pTemp;
-    int i, clk, nRegFixed, nRegMoves = 1;
+    int i, nRegFixed, nRegMoves = 1;
+    clock_t clk;
     pNew = p;
     for ( i = 0; i < nMaxIters && nRegMoves > 0; i++ )
     {

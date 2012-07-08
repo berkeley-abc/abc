@@ -764,7 +764,7 @@ int Gia_ComputeEquivalencesLevel( Hcd_Man_t * p, Gia_Man_t * pGiaLev, Vec_Ptr_t 
     Gia_Obj_t * pRoot, * pMember, * pMemberPrev, * pRepr, * pTempRepr;
     int i, k, nIter, iRoot, iRootNew, iMember, iMemberPrev, status, fOneFailed;//, iRepr;//, fTwoMember;
     int nSaved = 0, nRecords = 0, nUndec = 0, nClassRefs = 0, nTsat = 0, nMiniSat = 0;
-    int clk, timeTsat = 0, timeMiniSat = 0, timeSim = 0, timeTotal = clock();
+    clock_t clk, timeTsat = 0, timeMiniSat = 0, timeSim = 0, timeTotal = clock();
     if ( Vec_PtrSize(vOldRoots) == 0 )
         return 0;
     // start SAT solvers
@@ -1031,7 +1031,8 @@ void Gia_ComputeEquivalences( Gia_Man_t * pGia, int nBTLimit, int fUseMiniSat, i
     Hcd_Man_t * p;
     Vec_Ptr_t * vRoots;
     Gia_Man_t * pGiaLev;
-    int i, Lev, nLevels, nIters, clk;
+    int i, Lev, nLevels, nIters;
+    clock_t clk;
     Gia_ManRandom( 1 );
     Gia_ManSetPhase( pGia );
     nLevels = Gia_ManLevelNum( pGia );

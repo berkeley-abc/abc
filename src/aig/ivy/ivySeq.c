@@ -65,7 +65,7 @@ int Ivy_ManRewriteSeq( Ivy_Man_t * p, int fUseZeroCost, int fVerbose )
     Rwt_Man_t * pManRwt;
     Ivy_Obj_t * pNode;
     int i, nNodes, nGain;
-    int clk, clkStart = clock();
+    clock_t clk, clkStart = clock();
 
     // set the DC latch values
     Ivy_ManForEachLatch( p, pNode, i )
@@ -157,7 +157,7 @@ int Ivy_NodeRewriteSeq( Ivy_Man_t * pMan, Rwt_Man_t * p, Ivy_Obj_t * pNode, int 
     int nNodesSaved;
     int nNodesSaveCur = -1; // Suppress "might be used uninitialized"
     int i, c, GainCur, GainBest = -1;
-    int clk, clk2;//, clk3;
+    clock_t clk, clk2;//, clk3;
 
     p->nNodesConsidered++;
     // get the node's cuts
@@ -1110,7 +1110,7 @@ void Ivy_CutComputeAll( Ivy_Man_t * p, int nInputs )
     Ivy_Store_t * pStore;
     Ivy_Obj_t * pObj;
     int i, nCutsTotal, nCutsTotalM, nNodeTotal, nNodeOver;
-    int clk = clock();
+    clock_t clk = clock();
     if ( nInputs > IVY_CUT_INPUT )
     {
         printf( "Cannot compute cuts for more than %d inputs.\n", IVY_CUT_INPUT );

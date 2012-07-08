@@ -99,7 +99,8 @@ void * Inter_ManGetCounterExample( Aig_Man_t * pAig, int nFrames, int fVerbose )
     Aig_Man_t * pFrames;
     sat_solver * pSat;
     Cnf_Dat_t * pCnf;
-    int status, clk = clock();
+    int status;
+    clock_t clk = clock();
     Vec_Int_t * vCiIds;
     // create timeframes
     assert( Saig_ManPoNum(pAig) == 1 );

@@ -800,12 +800,9 @@ Vec_Int_t * Gla_ManRefinement( Gla_Man_t * p )
 
     // select objects
     vSelect = Vec_IntAlloc( 100 );
-//    Vec_IntFill( p->vPrioSels, Vec_IntSize(vPPis)+1, 0 );
     Vec_IntFill( p->vObjCounts, p->pPars->iFrame+1, 0 );
     Gla_ManRefSelect_rec( p, Gia_ObjFanin0(Gia_ManPo(p->pGia, 0)), p->pPars->iFrame, vSelect, Sign );
     Vec_IntUniqify( vSelect );
-
-//    printf( "\nSelected %d.\n", Vec_IntSize(vSelect) );
 
 /*
     for ( f = 0; f < p->pPars->iFrame; f++ )
@@ -976,7 +973,6 @@ Gla_Man_t * Gla_ManStart( Gia_Man_t * pGia0, Gia_ParVta_t * pPars )
     p->pGia = Gia_ManDupMapped( pGia0, p->pCnf->vMapping );
     if ( pPars->fPropFanout )
         Gia_ManStaticFanoutStart( p->pGia );
-//printf( "Old GIA = %d.  New GIA = %d.\n", Gia_ManObjNum(pGia0), Gia_ManObjNum(p->pGia) );
 
     // derive new gate map
     assert( pGia0->vGateClasses != 0 );
@@ -1797,7 +1793,7 @@ int Gia_GlaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars, int fStartVta )
     p->timeInit = clock() - clk;
     // set runtime limit
     if ( p->pPars->nTimeOut )
-        sat_solver2_set_runtime_limit( p->pSat, time(NULL) + p->pPars->nTimeOut - 1 );
+        sat_solver2_set_runtime_limit( p->pSat, p->pPars->nTimeOut * CLOCKS_PER_SEC + clock() );
     // perform initial abstraction
     if ( p->pPars->fVerbose )
     {
@@ -1831,9 +1827,9 @@ int Gia_GlaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars, int fStartVta )
                 goto finish;
             }
             // check timeout
-            if ( p->pSat->nRuntimeLimit && time(NULL) > p->pSat->nRuntimeLimit )
+            if ( p->pSat->nRuntimeLimit && clock() > p->pSat->nRuntimeLimit )
             {
-                Gla_ManRollBack( p ); // 1155046
+                Gla_ManRollBack( p );
                 goto finish;
             }
             if ( vCore != NULL )
@@ -1960,7 +1956,7 @@ finish:
         pAig->vGateClasses = Gla_ManTranslate( p );
         if ( Status == -1 )
         {
-            if ( p->pPars->nTimeOut && time(NULL) >= p->pSat->nRuntimeLimit ) 
+            if ( p->pPars->nTimeOut && clock() >= p->pSat->nRuntimeLimit ) 
                 Abc_Print( 1, "SAT solver ran out of time at %d sec in frame %d.  ", p->pPars->nTimeOut, f );
             else if ( pPars->nConfLimit && sat_solver2_nconflicts(p->pSat) >= pPars->nConfLimit )
                 Abc_Print( 1, "SAT solver ran out of resources at %d conflicts in frame %d.  ", pPars->nConfLimit, f );

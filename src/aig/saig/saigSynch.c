@@ -504,7 +504,8 @@ Aig_Man_t * Saig_SynchSequenceApply( Aig_Man_t * pAig, int nWords, int fVerbose 
     Aig_Man_t * pAigZero;
     Vec_Str_t * vSequence;
     Vec_Ptr_t * vSimInfo;
-    int RetValue, clk;
+    int RetValue;
+    clock_t clk;
 
 clk = clock();
     // derive synchronization sequence
@@ -557,7 +558,8 @@ Aig_Man_t * Saig_Synchronize( Aig_Man_t * pAig1, Aig_Man_t * pAig2, int nWords, 
     Aig_Man_t * pAig1z, * pAig2z, * pMiter;
     Vec_Str_t * vSeq1, * vSeq2;
     Vec_Ptr_t * vSimInfo;
-    int RetValue, clk;
+    int RetValue;
+    clock_t clk;
 /*
     {
         unsigned u = Saig_SynchRandomTernary();

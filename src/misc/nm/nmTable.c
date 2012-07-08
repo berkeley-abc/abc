@@ -256,7 +256,8 @@ void Nm_ManProfile( Nm_Man_t * p )
 void Nm_ManResize( Nm_Man_t * p )
 {
     Nm_Entry_t ** pBinsNewI2N, ** pBinsNewN2I, * pEntry, * pEntry2, ** ppSpot;
-    int nBinsNew, Counter, e, clk;
+    int nBinsNew, Counter, e;
+    clock_t clk;
 
 clk = clock();
     // get the new table size

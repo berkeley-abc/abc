@@ -1251,8 +1251,9 @@ int Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars )
     unsigned * pInfo;
     int RetValue = -1, fFirst = 1, nJumpFrame = 0, fUnfinished = 0;
     int nOutDigits = Abc_Base10Log( Saig_ManPoNum(pAig) );
-    int i, f, Lit, status, clk, clk2, clkOther = 0, clkTotal = clock();
-    int nTimeToStop = time(NULL) + pPars->nTimeOut;
+    int i, f, Lit, status;
+    clock_t clk, clk2, clkOther = 0, clkTotal = clock();
+    clock_t nTimeToStop = pPars->nTimeOut ? pPars->nTimeOut * CLOCKS_PER_SEC + clock(): 0;
     p = Saig_Bmc3ManStart( pAig );
     p->pPars = pPars;
     if ( pPars->fVerbose )
@@ -1411,7 +1412,7 @@ clkOther += clock() - clk2;
             else 
             {
                 assert( status == l_Undef );
-                if ( pPars->nTimeOut && time(NULL) > nTimeToStop )
+                if ( pPars->nTimeOut && clock() > nTimeToStop )
                 {
                     printf( "Reached timeout (%d seconds).\n",  pPars->nTimeOut );
                     Saig_Bmc3ManStop( p );
@@ -1427,7 +1428,7 @@ clkOther += clock() - clk2;
                 Saig_Bmc3ManStop( p );
                 return RetValue;
             }
-            if ( pPars->nTimeOut && time(NULL) > nTimeToStop )
+            if ( pPars->nTimeOut && clock() > nTimeToStop )
             {
                 printf( "Reached timeout (%d seconds).\n",  pPars->nTimeOut );
                 Saig_Bmc3ManStop( p );
@@ -1450,7 +1451,7 @@ clkOther += clock() - clk2;
 //            printf( "%4.0f Mb",     4.0*Vec_IntSize(p->vVisited) /(1<<20) );
             printf( "%4.0f Mb",     4.0*(f+1)*p->nObjNums /(1<<20) );
             printf( "%4.0f Mb",     1.0*sat_solver_memory(p->pSat)/(1<<20) );
-            printf( "%9.2f sec ",  (float)(clock() - clkTotal)/(float)(CLOCKS_PER_SEC) );
+            printf( "%9.2f sec ",  1.0*(clock() - clkTotal)/CLOCKS_PER_SEC );
 //            printf( "\n" );
 //            ABC_PRMn( "Id2Var", (f+1)*p->nObjNums*4 );
 //            ABC_PRMn( "SAT", 42 * p->pSat->size + 16 * (int)p->pSat->stats.clauses + 4 * (int)p->pSat->stats.clauses_literals );

@@ -93,16 +93,16 @@ struct Ivy_FraigMan_t_
     int                 nSatFails;
     int                 nSatFailsReal;
     // runtime
-    int                 timeSim;
-    int                 timeTrav;
-    int                 timeSat;
-    int                 timeSatUnsat;
-    int                 timeSatSat;
-    int                 timeSatFail;
-    int                 timeRef;
-    int                 timeTotal;
-    int                 time1;
-    int                 time2;
+    clock_t             timeSim;
+    clock_t             timeTrav;
+    clock_t             timeSat;
+    clock_t             timeSatUnsat;
+    clock_t             timeSatSat;
+    clock_t             timeSatFail;
+    clock_t             timeRef;
+    clock_t             timeTotal;
+    clock_t             time1;
+    clock_t             time2;
 };
 
 typedef struct Prove_ParamsStruct_t_      Prove_Params_t;
@@ -198,7 +198,7 @@ static int           Ivy_FraigSetActivityFactors( Ivy_FraigMan_t * p, Ivy_Obj_t 
 static void          Ivy_FraigAddToPatScores( Ivy_FraigMan_t * p, Ivy_Obj_t * pClass, Ivy_Obj_t * pClassNew );
 static int           Ivy_FraigMiterStatus( Ivy_Man_t * pMan );
 static void          Ivy_FraigMiterProve( Ivy_FraigMan_t * p );
-static void          Ivy_FraigMiterPrint( Ivy_Man_t * pNtk, char * pString, int clk, int fVerbose );
+static void          Ivy_FraigMiterPrint( Ivy_Man_t * pNtk, char * pString, clock_t clk, int fVerbose );
 static int *         Ivy_FraigCreateModel( Ivy_FraigMan_t * p );
 
 static int Ivy_FraigNodesAreEquivBdd( Ivy_Obj_t * pObj1, Ivy_Obj_t * pObj2 );
@@ -257,7 +257,8 @@ int Ivy_FraigProve( Ivy_Man_t ** ppManAig, void * pPars )
     Prove_Params_t * pParams = (Prove_Params_t *)pPars;
     Ivy_FraigParams_t Params, * pIvyParams = &Params; 
     Ivy_Man_t * pManAig, * pManTemp;
-    int RetValue, nIter, clk;//, Counter;
+    int RetValue, nIter;
+    clock_t clk;//, Counter;
     ABC_INT64_T nSatConfs = 0, nSatInspects = 0;
 
     // start the network and parameters
@@ -414,7 +415,7 @@ Ivy_Man_t * Ivy_FraigPerform_int( Ivy_Man_t * pManAig, Ivy_FraigParams_t * pPara
 { 
     Ivy_FraigMan_t * p;
     Ivy_Man_t * pManAigNew;
-    int clk;
+    clock_t clk;
     if ( Ivy_ManNodeNum(pManAig) == 0 )
         return Ivy_ManDup(pManAig);
 clk = clock();
@@ -451,7 +452,7 @@ Ivy_Man_t * Ivy_FraigPerform( Ivy_Man_t * pManAig, Ivy_FraigParams_t * pParams )
 {
     Ivy_FraigMan_t * p;
     Ivy_Man_t * pManAigNew;
-    int clk;
+    clock_t clk;
     if ( Ivy_ManNodeNum(pManAig) == 0 )
         return Ivy_ManDup(pManAig);
 clk = clock();
@@ -481,7 +482,8 @@ Ivy_Man_t * Ivy_FraigMiter( Ivy_Man_t * pManAig, Ivy_FraigParams_t * pParams )
     Ivy_FraigMan_t * p;
     Ivy_Man_t * pManAigNew;
     Ivy_Obj_t * pObj;
-    int i, clk;
+    int i;
+    clock_t clk;
 clk = clock();
     assert( Ivy_ManLatchNum(pManAig) == 0 );
     p = Ivy_FraigStartSimple( pManAig, pParams );
@@ -988,7 +990,8 @@ unsigned Ivy_NodeHash( Ivy_FraigMan_t * p, Ivy_Obj_t * pObj )
 void Ivy_FraigSimulateOne( Ivy_FraigMan_t * p )
 {
     Ivy_Obj_t * pObj;
-    int i, clk;
+    int i;
+    clock_t clk;
 clk = clock();
     Ivy_ManForEachNode( p->pManAig, pObj, i )
     {
@@ -1020,7 +1023,7 @@ p->nSimRounds++;
 void Ivy_FraigSimulateOneSim( Ivy_FraigMan_t * p )
 {
     Ivy_FraigSim_t * pSims;
-    int clk;
+    clock_t clk;
 clk = clock();
     for ( pSims = p->pSimStart; pSims; pSims = pSims->pNext )
         Ivy_NodeSimulateSim( p, pSims );
@@ -1384,7 +1387,8 @@ int Ivy_FraigCheckOutputSims( Ivy_FraigMan_t * p )
 int Ivy_FraigRefineClasses( Ivy_FraigMan_t * p )
 {
     Ivy_Obj_t * pClass, * pClass2;
-    int clk, RetValue, Counter = 0;
+    int RetValue, Counter = 0;
+    clock_t clk;
     // check if some outputs already became non-constant
     // this is a special case when computation can be stopped!!!
     if ( p->pParams->fProve )
@@ -1789,7 +1793,7 @@ void Ivy_FraigResimulate( Ivy_FraigMan_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Ivy_FraigMiterPrint( Ivy_Man_t * pNtk, char * pString, int clk, int fVerbose )
+void Ivy_FraigMiterPrint( Ivy_Man_t * pNtk, char * pString, clock_t clk, int fVerbose )
 {
     if ( !fVerbose )
         return;
@@ -1876,7 +1880,8 @@ int Ivy_FraigMiterStatus( Ivy_Man_t * pMan )
 void Ivy_FraigMiterProve( Ivy_FraigMan_t * p )
 {
     Ivy_Obj_t * pObj, * pObjNew;
-    int i, RetValue, clk = clock();
+    int i, RetValue;
+    clock_t clk = clock();
     int fVerbose = 0;
     Ivy_ManForEachPo( p->pManAig, pObj, i )
     {
@@ -2093,7 +2098,8 @@ void Ivy_FraigPrintActivity( Ivy_FraigMan_t * p )
 ***********************************************************************/
 int Ivy_FraigNodesAreEquiv( Ivy_FraigMan_t * p, Ivy_Obj_t * pOld, Ivy_Obj_t * pNew )
 {
-    int pLits[4], RetValue, RetValue1, nBTLimit, clk; //, clk2 = clock();
+    int pLits[4], RetValue, RetValue1, nBTLimit;
+    clock_t clk; //, clk2 = clock();
 
     // make sure the nodes are not complemented
     assert( !Ivy_IsComplement(pNew) );
@@ -2259,7 +2265,8 @@ p->timeSatFail += clock() - clk;
 ***********************************************************************/
 int Ivy_FraigNodeIsConst( Ivy_FraigMan_t * p, Ivy_Obj_t * pNew )
 {
-    int pLits[2], RetValue1, clk;
+    int pLits[2], RetValue1;
+    clock_t clk;
     int RetValue;
 
     // make sure the nodes are not complemented
@@ -2628,7 +2635,8 @@ int Ivy_FraigSetActivityFactors_rec( Ivy_FraigMan_t * p, Ivy_Obj_t * pObj, int L
 ***********************************************************************/
 int Ivy_FraigSetActivityFactors( Ivy_FraigMan_t * p, Ivy_Obj_t * pOld, Ivy_Obj_t * pNew )
 {
-    int clk, LevelMin, LevelMax;
+    int LevelMin, LevelMax;
+    clock_t clk;
     assert( pOld || pNew );
 clk = clock(); 
     // reset the active variables

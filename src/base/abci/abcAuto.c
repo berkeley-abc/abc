@@ -128,7 +128,7 @@ void Abc_NtkAutoPrintAll( DdManager * dd, int nInputs, DdNode * pbOutputs[], int
     int nAutoSymsMaxSupp;
     int nAutoSymOuts;
     int nSuppSizeMax;
-    int clk;
+    clock_t clk;
     
     nAutoSymOuts = 0;
     nAutoSyms    = 0;

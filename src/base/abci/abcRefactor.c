@@ -50,15 +50,15 @@ struct Abc_ManRef_t_
     int              nNodesBeg;
     int              nNodesEnd;
     // runtime statistics
-    int              timeCut;
-    int              timeBdd;
-    int              timeDcs;
-    int              timeSop;
-    int              timeFact;
-    int              timeEval;
-    int              timeRes;
-    int              timeNtk;
-    int              timeTotal;
+    clock_t          timeCut;
+    clock_t          timeBdd;
+    clock_t          timeDcs;
+    clock_t          timeSop;
+    clock_t          timeFact;
+    clock_t          timeEval;
+    clock_t          timeRes;
+    clock_t          timeNtk;
+    clock_t          timeTotal;
 };
  
 static void           Abc_NtkManRefPrintStats( Abc_ManRef_t * p );
@@ -95,7 +95,7 @@ int Abc_NtkRefactor( Abc_Ntk_t * pNtk, int nNodeSizeMax, int nConeSizeMax, int f
     Dec_Graph_t * pFForm;
     Vec_Ptr_t * vFanins;
     Abc_Obj_t * pNode;
-    int clk, clkStart = clock();
+    clock_t clk, clkStart = clock();
     int i, nNodes;
 
     assert( Abc_NtkIsStrash(pNtk) );

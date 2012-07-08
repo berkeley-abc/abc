@@ -53,7 +53,7 @@ Aig_Man_t * Ssw_SignalCorrespondencePart( Aig_Man_t * pAig, Ssw_Pars_t * pPars )
     int * pMapBack;
     int i, nCountPis, nCountRegs;
     int nClasses, nPartSize, fVerbose;
-    int clk = clock();
+    clock_t clk = clock();
     if ( pPars->fConstrs )
     {
         printf( "Cannot use partitioned computation with constraints.\n" );

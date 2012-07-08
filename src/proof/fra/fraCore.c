@@ -376,7 +376,7 @@ Aig_Man_t * Fra_FraigPerform( Aig_Man_t * pManAig, Fra_Par_t * pPars )
 {
     Fra_Man_t * p;
     Aig_Man_t * pManAigNew;
-    int clk;
+    clock_t clk;
     if ( Aig_ManNodeNum(pManAig) == 0 )
         return Aig_ManDupOrdered(pManAig);
 clk = clock();
@@ -402,7 +402,7 @@ Fra_ClassesPrint( p->pCla, 1 );
     Fra_ManFinalizeComb( p );
     if ( p->pPars->fChoicing )
     { 
-int clk2 = clock();
+clock_t clk2 = clock();
         Fra_ClassesCopyReprs( p->pCla, p->vTimeouts );
         pManAigNew = Aig_ManDupRepr( p->pManAig, 1 );
         Aig_ManReprStart( pManAigNew, Aig_ManObjNumMax(pManAigNew) );

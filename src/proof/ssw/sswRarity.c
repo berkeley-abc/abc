@@ -286,7 +286,8 @@ void transpose64Simple( word A[64], word B[64] )
 void TransposeTest()
 {
     word M[64], N[64];
-    int i, clk;
+    int i;
+    clock_t clk;
     Aig_ManRandom64( 1 );
 //    for ( i = 0; i < 64; i++ )
 //        M[i] = Aig_ManRandom64( 0 );
@@ -896,8 +897,9 @@ int Ssw_RarSimulate( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSize, in
     int fTryBmc = 0;
     int fMiter = 1;
     Ssw_RarMan_t * p;
-    int r, f = -1, clk, clkTotal = clock();
-    int nTimeToStop = time(NULL) + TimeOut;
+    int r, f = -1;
+    clock_t clk, clkTotal = clock();
+    clock_t nTimeToStop = TimeOut ? TimeOut * CLOCKS_PER_SEC + clock(): 0;
     int RetValue = -1;
     int iFrameFail = -1;
     assert( Aig_ManRegNum(pAig) > 0 );
@@ -945,7 +947,7 @@ int Ssw_RarSimulate( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSize, in
                 goto finish;
             }
             // check timeout
-            if ( TimeOut && time(NULL) > nTimeToStop )
+            if ( TimeOut && clock() > nTimeToStop )
             {
                 if ( fVerbose ) printf( "\n" );
                 printf( "Reached timeout (%d seconds).\n",  TimeOut );
@@ -1013,8 +1015,9 @@ int Ssw_RarSimulateGia( Gia_Man_t * p, int nFrames, int nWords, int nBinSize, in
 int Ssw_RarSignalFilter( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSize, int nRounds, int nRandSeed, int TimeOut, int fMiter, Abc_Cex_t * pCex, int fLatchOnly, int fVerbose )
 {
     Ssw_RarMan_t * p;
-    int r, f = -1, i, k, clkTotal = clock();
-    int nTimeToStop = time(NULL) + TimeOut;
+    int r, f = -1, i, k;
+    clock_t clkTotal = clock();
+    clock_t nTimeToStop = TimeOut ? TimeOut * CLOCKS_PER_SEC + clock(): 0;
     int RetValue = -1;
     assert( Aig_ManRegNum(pAig) > 0 );
     assert( Aig_ManConstrNum(pAig) == 0 );
@@ -1084,7 +1087,7 @@ int Ssw_RarSignalFilter( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSize
                 goto finish;
             }
             // check timeout
-            if ( TimeOut && time(NULL) > nTimeToStop )
+            if ( TimeOut && clock() > nTimeToStop )
             {
                 if ( fVerbose ) printf( "\n" );
                 printf( "Reached timeout (%d seconds).\n",  TimeOut );

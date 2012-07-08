@@ -49,7 +49,7 @@ static Abc_Obj_t * Abc_NodeFromGlobalBdds( Abc_Ntk_t * pNtkNew, DdManager * dd, 
 Abc_Ntk_t * Abc_NtkCollapse( Abc_Ntk_t * pNtk, int fBddSizeMax, int fDualRail, int fReorder, int fVerbose )
 {
     Abc_Ntk_t * pNtkNew;
-    int clk = clock();
+    clock_t clk = clock();
 
     assert( Abc_NtkIsStrash(pNtk) );
     // compute the global BDDs

@@ -311,7 +311,8 @@ Aig_Man_t * Fra_BmcFrames( Fra_Bmc_t * p, int fKeepPos )
 void Fra_BmcPerform( Fra_Man_t * p, int nPref, int nDepth )
 {
     Aig_Obj_t * pObj;
-    int i, nImpsOld = 0, clk = clock();
+    int i, nImpsOld = 0;
+    clock_t clk = clock();
     assert( p->pBmc == NULL );
     // derive and fraig the frames
     p->pBmc = Fra_BmcStart( p->pManAig, nPref, nDepth );
@@ -385,7 +386,8 @@ void Fra_BmcPerformSimple( Aig_Man_t * pAig, int nFrames, int nBTLimit, int fRew
     Fra_Man_t * pTemp;
     Fra_Bmc_t * pBmc;
     Aig_Man_t * pAigTemp;
-    int clk, iOutput;
+    clock_t clk;
+    int iOutput;
     // derive and fraig the frames
     clk = clock();
     pBmc = Fra_BmcStart( pAig, 0, nFrames );

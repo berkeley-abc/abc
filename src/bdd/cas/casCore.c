@@ -21,7 +21,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
 
 #include "src/base/main/main.h"
 #include "src/base/cmd/cmd.h"
@@ -82,7 +81,7 @@ int Abc_CascadeExperiment( char * pFileGeneric, DdManager * dd, DdNode ** pOutpu
     int i;
     int nVars = nInputs;
     int nOuts = nOutputs;
-    long clk1;
+    clock_t clk1;
 
     int      nVarsEnc;              // the number of additional variables to encode outputs
     DdNode * pbVarsEnc[MAXOUTPUTS]; // the BDDs of the encoding vars
@@ -955,7 +954,7 @@ void WriteDDintoBLIFfileReorder( DdManager * dd, FILE * pFile, DdNode * Func, ch
 
     ///////////////////////////////////////////////////////////////
     DdNode * bFmin;
-    int clk1;
+    clock_t clk1;
 
     if ( s_ddmin == NULL )
         s_ddmin = Cudd_Init( dd->size, 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0);

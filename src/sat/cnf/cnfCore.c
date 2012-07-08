@@ -50,7 +50,7 @@ Vec_Int_t * Cnf_DeriveMappingArray( Aig_Man_t * pAig )
     Cnf_Man_t * p;
     Vec_Ptr_t * vMapped;
     Aig_MmFixed_t * pMemCuts;
-    int clk;
+    clock_t clk;
     // allocate the CNF manager
     if ( s_pManCnf == NULL )
         s_pManCnf = Cnf_ManStart();
@@ -103,7 +103,7 @@ Cnf_Dat_t * Cnf_Derive( Aig_Man_t * pAig, int nOutputs )
     Cnf_Dat_t * pCnf;
     Vec_Ptr_t * vMapped;
     Aig_MmFixed_t * pMemCuts;
-    int clk;
+    clock_t clk;
     // allocate the CNF manager
     if ( s_pManCnf == NULL )
         s_pManCnf = Cnf_ManStart();
@@ -156,7 +156,7 @@ Cnf_Dat_t * Cnf_DeriveOther( Aig_Man_t * pAig, int fSkipTtMin )
     Cnf_Dat_t * pCnf;
     Vec_Ptr_t * vMapped;
     Aig_MmFixed_t * pMemCuts;
-    int clk;
+    clock_t clk;
     // allocate the CNF manager
     if ( s_pManCnf == NULL )
         s_pManCnf = Cnf_ManStart();

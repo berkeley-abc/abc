@@ -25,7 +25,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include <time.h>
 #include <math.h>
 
 #include "abc_global.h"

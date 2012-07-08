@@ -22,7 +22,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include <time.h>
+
 #include "satStore.h"
 
 ABC_NAMESPACE_IMPL_START
@@ -71,9 +71,9 @@ struct Int_Man_t_
     int             nResLits;     // the number of literals of the resolvent
     int             nResLitsAlloc;// the number of literals of the resolvent
     // runtime stats
-    int             timeBcp;      // the runtime for BCP
-    int             timeTrace;    // the runtime of trace construction
-    int             timeTotal;    // the total runtime of interpolation
+    clock_t         timeBcp;      // the runtime for BCP
+    clock_t         timeTrace;    // the runtime of trace construction
+    clock_t         timeTotal;    // the total runtime of interpolation
 };
 
 // procedure to get hold of the clauses' truth table 
@@ -535,7 +535,7 @@ Sto_Cls_t * Int_ManPropagate( Int_Man_t * p, int Start )
 {
     Sto_Cls_t * pClause;
     int i;
-    int clk = clock();
+    clock_t clk = clock();
     for ( i = Start; i < p->nTrailSize; i++ )
     {
         pClause = Int_ManPropagateOne( p, p->pTrail[i] );
@@ -591,7 +591,7 @@ int Int_ManProofTraceOne( Int_Man_t * p, Sto_Cls_t * pConflict, Sto_Cls_t * pFin
     Sto_Cls_t * pReason;
     int i, v, Var, PrevId;
     int fPrint = 0;
-    int clk = clock();
+    clock_t clk = clock();
 
     // collect resolvent literals
     if ( p->fProofVerif )
@@ -1006,7 +1006,7 @@ int Int_ManInterpolate( Int_Man_t * p, Sto_Man_t * pCnf, int fVerbose, unsigned 
 {
     Sto_Cls_t * pClause;
     int RetValue = 1;
-    int clkTotal = clock();
+    clock_t clkTotal = clock();
 
     // check that the CNF makes sense
     assert( pCnf->nVars > 0 && pCnf->nClauses > 0 );

@@ -10986,7 +10986,8 @@ int Abc_CommandIProve( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Prove_Params_t Params, * pParams = &Params;
     Abc_Ntk_t * pNtk, * pNtkTemp;
-    int c, clk, RetValue, iOut = -1;
+    int c, RetValue, iOut = -1;
+    clock_t clk;
 
     extern int Abc_NtkIvyProve( Abc_Ntk_t ** ppNtk, void * pPars );
 
@@ -18797,7 +18798,7 @@ int Abc_CommandSat( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fVerbose;
     int nConfLimit;
     int nInsLimit;
-    int clk;
+    clock_t clk;
     // set defaults
     fVerbose   = 0;
     nConfLimit = 0;   
@@ -18927,7 +18928,7 @@ int Abc_CommandDSat( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fVerbose;
     int nConfLimit;
     int nInsLimit;
-    int clk;
+    clock_t clk;
 
     extern int Abc_NtkDSat( Abc_Ntk_t * pNtk, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimit, int fAlignPol, int fAndOuts, int fNewSolver, int fVerbose );
     // set defaults
@@ -19057,7 +19058,7 @@ int Abc_CommandPSat( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     int RetValue;
-    int c, clk;
+    int c;
     int nAlgo;
     int nPartSize;
     int nConfPart;
@@ -19065,6 +19066,7 @@ int Abc_CommandPSat( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fAlignPol;
     int fSynthesize;
     int fVerbose;
+    clock_t clk;
 
     extern int Abc_NtkPartitionedSat( Abc_Ntk_t * pNtk, int nAlgo, int nPartSize, int nConfPart, int nConfTotal, int fAlignPol, int fSynthesize, int fVerbose );
     // set defaults
@@ -19215,7 +19217,8 @@ int Abc_CommandProve( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk, * pNtkTemp;
     Prove_Params_t Params, * pParams = &Params;
-    int c, clk, RetValue;
+    int c, RetValue;
+    clock_t clk;
 
     pNtk = Abc_FrameReadNtk(pAbc);
     // set defaults

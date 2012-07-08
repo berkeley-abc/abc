@@ -22,7 +22,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include <time.h>
 
 #include "src/misc/vec/vec.h"
 #include "src/misc/util/utilNam.h"
@@ -1491,8 +1490,8 @@ Gia_Man_t * Au_ManDeriveTest( Abc_Ntk_t * pRoot )
     Abc_Ntk_t * pMod;
     Au_Man_t * pMan;
     Au_Ntk_t * pNtk = NULL;
-    int i, clk1, clk2 = 0, clk3 = 0, clk = clock();
-//    int clk4 = 0;
+    clock_t clk1, clk2 = 0, clk3 = 0, clk = clock();
+    int i;
 
     clk1 = clock();
     pMan = Au_ManAlloc( pRoot->pDesign ? pRoot->pDesign->pName : pRoot->pName );
@@ -1570,7 +1569,7 @@ Gia_Man_t * Abc_NtkHieCecTest2( char * pFileName, char * pModelName, int fVerbos
     int fSimulation = 0;
     Gia_Man_t * pGia = NULL;
     Au_Ntk_t * pNtk, * pNtkClp = NULL;
-    int clk1 = 0, clk = clock();
+    clock_t clk1 = 0, clk = clock();
 
     // read hierarchical netlist
     pNtk = Au_NtkParseCBlif( pFileName );

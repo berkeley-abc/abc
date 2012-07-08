@@ -192,7 +192,7 @@ Extra_bddEncodingNonStrict(
 {
     DdNode * bEncoded, * bResult;
     int nVarsCol = Cudd_SupportSize(dd,bVarsCol);
-    long clk;
+    clock_t clk;
 
     // cannot work with more that 32-bit codes
     assert( nMulti < 32 );

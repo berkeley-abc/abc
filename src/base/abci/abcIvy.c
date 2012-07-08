@@ -197,7 +197,7 @@ Abc_Ntk_t * Abc_NtkIvyHaig( Abc_Ntk_t * pNtk, int nIters, int fUseZeroCost, int 
 {
     Abc_Ntk_t * pNtkAig;
     Ivy_Man_t * pMan;
-    int clk;
+    clock_t clk;
 //    int i;
 /*
 extern int nMoves;

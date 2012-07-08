@@ -142,7 +142,7 @@ struct sat_solver_t
 
     ABC_INT64_T nConfLimit;    // external limit on the number of conflicts
     ABC_INT64_T nInsLimit;     // external limit on the number of implications
-    int         nRuntimeLimit; // external limit on runtime
+    clock_t     nRuntimeLimit; // external limit on runtime
 
     veci        act_vars;      // variables whose activity has changed
     double*     factors;       // the activity factors
@@ -198,9 +198,9 @@ static int sat_solver_final(sat_solver* s, int ** ppArray)
     return s->conf_final.size;
 }
 
-static int sat_solver_set_runtime_limit(sat_solver* s, int Limit)
+static clock_t sat_solver_set_runtime_limit(sat_solver* s, clock_t Limit)
 {
-    int nRuntimeLimit = s->nRuntimeLimit;
+    clock_t nRuntimeLimit = s->nRuntimeLimit;
     s->nRuntimeLimit = Limit;
     return nRuntimeLimit;
 }

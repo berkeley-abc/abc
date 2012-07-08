@@ -154,9 +154,6 @@ extern void                Fraig_ManSetDoSparse( Fraig_Man_t * p, int fDoSparse 
 extern void                Fraig_ManSetChoicing( Fraig_Man_t * p, int fChoicing ); 
 extern void                Fraig_ManSetTryProve( Fraig_Man_t * p, int fTryProve );
 extern void                Fraig_ManSetVerbose( Fraig_Man_t * p, int fVerbose );        
-extern void                Fraig_ManSetTimeToGraph( Fraig_Man_t * p, int Time );        
-extern void                Fraig_ManSetTimeToNet( Fraig_Man_t * p, int Time );          
-extern void                Fraig_ManSetTimeTotal( Fraig_Man_t * p, int Time );          
 extern void                Fraig_ManSetOutputNames( Fraig_Man_t * p, char ** ppNames ); 
 extern void                Fraig_ManSetInputNames( Fraig_Man_t * p, char ** ppNames );  
 extern void                Fraig_ManSetPo( Fraig_Man_t * p, Fraig_Node_t * pNode );

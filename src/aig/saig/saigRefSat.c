@@ -510,7 +510,7 @@ Abc_Cex_t * Saig_RefManRunSat( Saig_RefMan_t * p, int fNewOrder )
     Vec_Int_t * vAssumps, * vVar2PiId;
     int i, k, Entry, RetValue;//, f = 0, Counter = 0;
     int nCoreLits, * pCoreLits;
-    int clk = clock();
+    clock_t clk = clock();
     // create CNF
     assert( Aig_ManRegNum(p->pFrames) == 0 );
 //    pCnf = Cnf_Derive( p->pFrames, 0 ); // too slow
@@ -868,7 +868,7 @@ Abc_Cex_t * Saig_ManFindCexCareBits( Aig_Man_t * pAig, Abc_Cex_t * pCex, int nIn
     Saig_RefMan_t * p;
     Vec_Int_t * vReasons;
     Abc_Cex_t * pCare;
-    int clk = clock();
+    clock_t clk = clock();
 
     clk = clock();
     p = Saig_RefManStart( pAig, pCex, nInputs, fVerbose );
@@ -931,7 +931,7 @@ Vec_Int_t * Saig_ManExtendCounterExampleTest3( Aig_Man_t * pAig, int iFirstFlopP
 {
     Saig_RefMan_t * p;
     Vec_Int_t * vRes, * vReasons;
-    int clk;
+    clock_t clk;
     if ( Saig_ManPiNum(pAig) != pCex->nPis )
     {
         printf( "Saig_ManExtendCounterExampleTest3(): The PI count of AIG (%d) does not match that of cex (%d).\n", 

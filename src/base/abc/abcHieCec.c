@@ -667,7 +667,8 @@ Gia_Man_t * Abc_NtkHieCecTest( char * pFileName, int fVerbose )
     Vec_Ptr_t * vMods, * vOrder;
     Abc_Ntk_t * pNtk, * pModel;
     Gia_Man_t * pGia;
-    int i, clk = clock();
+    int i;
+    clock_t clk = clock();
 
     // read hierarchical netlist
     pNtk = Io_ReadBlifMv( pFileName, 0, fCheck );

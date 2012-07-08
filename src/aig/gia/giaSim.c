@@ -109,7 +109,7 @@ Vec_Int_t * Gia_ManSimDeriveResets( Gia_Man_t * pGia )
     int i, k, Lit, Count;
     int Counter0 = 0, Counter1 = 0;
     int CounterPi0 = 0, CounterPi1 = 0;
-    int clk = clock();
+    clock_t clk = clock();
 
     // create reset counters for each literal
     vCountLits = Vec_IntStart( 2 * Gia_ManObjNum(pGia) );
@@ -609,9 +609,9 @@ int Gia_ManSimSimulate( Gia_Man_t * pAig, Gia_ParSim_t * pPars )
 {
     extern int Gia_ManSimSimulateEquiv( Gia_Man_t * pAig, Gia_ParSim_t * pPars );
     Gia_ManSim_t * p;
-    int i, clkTotal = clock();
-    int iOut, iPat, RetValue = 0;
-//    int nTimeToStop = pPars->TimeLimit ? pPars->TimeLimit + time(NULL) : 0;
+    clock_t clkTotal = clock();
+    int i, iOut, iPat, RetValue = 0;
+    clock_t nTimeToStop = pPars->TimeLimit ? pPars->TimeLimit * CLOCKS_PER_SEC + clock(): 0;
     if ( pAig->pReprs && pAig->pNexts )
         return Gia_ManSimSimulateEquiv( pAig, pPars );
     ABC_FREE( pAig->pCexSeq );
@@ -648,7 +648,7 @@ int Gia_ManSimSimulate( Gia_Man_t * pAig, Gia_ParSim_t * pPars )
             RetValue = 1;
             break;
         }
-        if ( time(NULL) > pPars->TimeLimit )
+        if ( clock() > nTimeToStop )
         {
             i++;
             break;

@@ -206,7 +206,7 @@ int Aig_ManHaigVerify( Aig_Man_t * p, Aig_Man_t * pAig, Aig_Man_t * pHaig, int n
     sat_solver * pSat;
     Aig_Obj_t * pObj1, * pObj2;
     int i, RetValue1, RetValue2, Counter, Lits[2], nOvers;
-    int clk = clock(), clkVerif;
+    clock_t clk = clock(), clkVerif;
 
     nOvers = Aig_ManMapHaigNodes( pHaig );
 
@@ -412,7 +412,7 @@ int Aig_ManHaigVerify2( Aig_Man_t * p, Aig_Man_t * pAig, Aig_Man_t * pHaig, int 
     sat_solver * pSat;
     Aig_Obj_t * pObj1, * pObj2;
     int i, RetValue1, RetValue2, Counter, Lits[2];
-    int clk = clock();
+    clock_t clk = clock();
     int Delta;
     int Id1, Id2;
 
@@ -624,7 +624,8 @@ Aig_Man_t * Saig_ManHaigRecord( Aig_Man_t * p, int nIters, int nSteps, int fReti
     Dar_RwrPar_t ParsRwr, * pParsRwr = &ParsRwr;
     Aig_Man_t * pNew, * pTemp;
     Aig_Obj_t * pObj;
-    int i, k, nStepsReal, clk = clock(), clkSynth;
+    int i, k, nStepsReal;
+    clock_t clk = clock(), clkSynth;
     Dar_ManDefaultRwrParams( pParsRwr );
 
 clk = clock();

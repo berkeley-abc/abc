@@ -108,10 +108,10 @@ struct Tas_Man_t_
     int           nConfSat;     // conflicts in sat problems
     int           nConfUndec;   // conflicts in undec problems
     // runtime stats
-    int           timeSatUnsat; // unsat
-    int           timeSatSat;   // sat
-    int           timeSatUndec; // undecided
-    int           timeTotal;    // total runtime
+    clock_t       timeSatUnsat; // unsat
+    clock_t       timeSatSat;   // sat
+    clock_t       timeSatUndec; // undecided
+    clock_t       timeTotal;    // total runtime
 };
 
 static inline int   Tas_VarIsAssigned( Gia_Obj_t * pVar )      { return pVar->fMark0;                        }
@@ -1524,7 +1524,8 @@ Vec_Int_t * Tas_ManSolveMiterNc( Gia_Man_t * pAig, int nConfs, Vec_Str_t ** pvSt
     Gia_Obj_t * pRoot;//, * pRootCopy; 
 //    Gia_Man_t * pAigCopy = Gia_ManDup( pAig ), * pAigTemp;
 
-    int i, status, clk, clkTotal = clock();
+    int i, status;
+    clock_t clk, clkTotal = clock();
     assert( Gia_ManRegNum(pAig) == 0 );
 //    Gia_ManCollectTest( pAig );
     // prepare AIG
@@ -1703,7 +1704,8 @@ void Tas_ManSolveMiterNc2( Gia_Man_t * pAig, int nConfs, Gia_Man_t * pAigOld, Ve
     Vec_Int_t * vCex, * vVisit, * vCexStore;
     Vec_Str_t * vStatus;
     Gia_Obj_t * pRoot, * pOldRoot; 
-    int i, status, clk, clkTotal = clock();
+    int i, status;
+    clock_t clk, clkTotal = clock();
     int Tried = 0, Stored = 0, Step = Gia_ManCoNum(pAig) / nPatMax;
     assert( Gia_ManRegNum(pAig) == 0 );
 //    Gia_ManCollectTest( pAig );

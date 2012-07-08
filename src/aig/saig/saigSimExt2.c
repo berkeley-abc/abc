@@ -337,7 +337,7 @@ Vec_Int_t * Saig_ManExtendCounterExampleTest2( Aig_Man_t * p, int iFirstFlopPi, 
 {
     Vec_Int_t * vRes;
     Vec_Ptr_t * vSimInfo;
-    int clk;
+    clock_t clk;
     if ( Saig_ManPiNum(p) != pCex->nPis )
     {
         printf( "Saig_ManExtendCounterExampleTest2(): The PI count of AIG (%d) does not match that of cex (%d).\n", 
@@ -446,7 +446,7 @@ Abc_Cex_t * Saig_ManFindCexCareBitsSense( Aig_Man_t * p, Abc_Cex_t * pCex, int i
 {
     Abc_Cex_t * pCare;
     Vec_Ptr_t * vSimInfo;
-    int clk;
+    clock_t clk;
     if ( Saig_ManPiNum(p) != pCex->nPis )
     {
         printf( "Saig_ManExtendCounterExampleTest2(): The PI count of AIG (%d) does not match that of cex (%d).\n", 

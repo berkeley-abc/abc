@@ -222,7 +222,7 @@ int Extra_addReorderTest( DdManager * dd, DdNode * aF )
     DdNode * aFmin;
     int  nNodesBeg;
     int  nNodesEnd;
-    int clk1;
+    clock_t clk1;
 
     if ( s_ddmin == NULL )
         s_ddmin = Cudd_Init( dd->size, 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0);

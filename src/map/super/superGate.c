@@ -70,7 +70,7 @@ struct Super_ManStruct_t_
     int                 nAliases;     // the number of hash table lookups thrown away due to aliasing
 
     // runtime
-    int                 Time;         // the runtime of the generation procedure
+    clock_t             Time;         // the runtime of the generation procedure
     int                 TimeLimit;    // the runtime limit (in seconds)
     int                 TimeSec;      // the time passed (in seconds)
     double              TimeStop;     // the time to stop computation (in miliseconds)
@@ -144,7 +144,8 @@ void Super_Precompute( Mio_Library_t * pLibGen, int nVarsMax, int nLevels, int n
 {
     Super_Man_t * pMan;
     Mio_Gate_t ** ppGates;
-    int nGates, Level, clk, clockStart;
+    int nGates, Level;
+    clock_t clk, clockStart;
 
     assert( nVarsMax < 7 );
     if ( nGatesMax < nVarsMax )
@@ -705,7 +706,7 @@ done:
 ***********************************************************************/
 int Super_CheckTimeout( ProgressBar * pPro, Super_Man_t * pMan )
 {
-    int TimeNow = clock();
+    clock_t TimeNow = clock();
     if ( TimeNow > pMan->TimePrint )
     {
         Extra_ProgressBarUpdate( pPro, ++pMan->TimeSec, NULL );
@@ -949,7 +950,8 @@ void Super_Write( Super_Man_t * pMan )
 {
     Super_Gate_t * pGateRoot, * pGate;
     stmm_generator * gen;
-    int fZeroFound, clk, v;
+    int fZeroFound, v;
+    clock_t clk;
     ABC_PTRUINT_T Key;
 
     if ( pMan->nGates < 1 )

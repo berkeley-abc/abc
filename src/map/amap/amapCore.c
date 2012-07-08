@@ -72,7 +72,7 @@ Vec_Ptr_t * Amap_ManTest( Aig_Man_t * pAig, Amap_Par_t * pPars )
     Vec_Ptr_t * vRes;
     Amap_Man_t * p;
     Amap_Lib_t * pLib;
-    int clkTotal = clock();
+    clock_t clkTotal = clock();
     pLib = (Amap_Lib_t *)Abc_FrameReadLibGen2();
     if ( pLib == NULL )
     {

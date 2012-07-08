@@ -62,18 +62,18 @@ struct Abc_ManRes_t_
     // other data
     Vec_Ptr_t        * vTemp;      // temporary array of nodes
     // runtime statistics
-    int                timeCut;
-    int                timeTruth;
-    int                timeRes;
-    int                timeDiv;
-    int                timeMffc;
-    int                timeSim;
-    int                timeRes1;
-    int                timeResD;
-    int                timeRes2;
-    int                timeRes3;
-    int                timeNtk;
-    int                timeTotal;
+    clock_t            timeCut;
+    clock_t            timeTruth;
+    clock_t            timeRes;
+    clock_t            timeDiv;
+    clock_t            timeMffc;
+    clock_t            timeSim;
+    clock_t            timeRes1;
+    clock_t            timeResD;
+    clock_t            timeRes2;
+    clock_t            timeRes3;
+    clock_t            timeNtk;
+    clock_t            timeTotal;
     // improvement statistics
     int                nUsedNodeC;
     int                nUsedNode0;
@@ -144,7 +144,7 @@ int Abc_NtkResubstitute( Abc_Ntk_t * pNtk, int nCutMax, int nStepsMax, int nLeve
     Dec_Graph_t * pFForm;
     Vec_Ptr_t * vLeaves;
     Abc_Obj_t * pNode;
-    int clk, clkStart = clock();
+    clock_t clk, clkStart = clock();
     int i, nNodes;
 
     assert( Abc_NtkIsStrash(pNtk) );
@@ -1624,7 +1624,7 @@ Dec_Graph_t * Abc_ManResubEval( Abc_ManRes_t * p, Abc_Obj_t * pRoot, Vec_Ptr_t *
     extern int Abc_NodeMffcInside( Abc_Obj_t * pNode, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vInside );
     Dec_Graph_t * pGraph;
     int Required;
-    int clk;
+    clock_t clk;
 
     Required = fUpdateLevel? Abc_ObjRequiredLevel(pRoot) : ABC_INFINITY;
 

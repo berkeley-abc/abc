@@ -297,7 +297,8 @@ int Cec_SequentialSynthesisPart( Gia_Man_t * p, Cec_ParSeq_t * pPars )
     Vec_Int_t * vPart;
     int * pMapBack, * pReprs;
     int i, nCountPis, nCountRegs;
-    int nClasses, clk = clock();
+    int nClasses;
+    clock_t clk = clock();
 
     // save parameters
     if ( fPrintParts )

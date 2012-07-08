@@ -259,7 +259,7 @@ cuddBddAndAbstractRecur(
         }
     }
 
-    if ( manager->TimeStop && manager->TimeStop < time(NULL) )
+    if ( manager->TimeStop && clock() > manager->TimeStop )
         return NULL;
 
     if (topf == top) {

@@ -172,7 +172,8 @@ int Saig_ManCexRefineStep( Aig_Man_t * p, Vec_Int_t * vFlops, Vec_Int_t * vFlopC
 {
     Aig_Man_t * pAbs;
     Vec_Int_t * vFlopsNew;
-    int i, Entry, clk = clock();
+    int i, Entry;
+    clock_t clk = clock();
     pAbs = Saig_ManDupAbstraction( p, vFlops );
     if ( fSensePath )
         vFlopsNew = Saig_ManExtendCounterExampleTest2( pAbs, Saig_ManCexFirstFlopPi(p, pAbs), pCex, fVerbose );

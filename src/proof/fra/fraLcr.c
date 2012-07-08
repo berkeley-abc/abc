@@ -54,12 +54,12 @@ struct Fra_Lcr_t_
     int              nRegsBeg;
     int              nRegsEnd;
     // runtime
-    int              timeSim;
-    int              timePart;
-    int              timeTrav;
-    int              timeFraig;
-    int              timeUpdate;
-    int              timeTotal;
+    clock_t          timeSim;
+    clock_t          timePart;
+    clock_t          timeTrav;
+    clock_t          timeFraig;
+    clock_t          timeUpdate;
+    clock_t          timeTotal;
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -538,8 +538,9 @@ Aig_Man_t * Fra_FraigLatchCorrespondence( Aig_Man_t * pAig, int nFramesP, int nC
     Fra_Man_t * pTemp;
     Aig_Man_t * pAigPart, * pAigTemp, * pAigNew = NULL;
     Vec_Int_t * vPart;
-    int i, nIter, timeSim, clk2, clk3, clk = clock();
-    int TimeToStop = (TimeLimit == 0.0)? 0 : clock() + (int)(TimeLimit * CLOCKS_PER_SEC);
+    int i, nIter;
+    clock_t timeSim, clk2, clk3, clk = clock();
+    clock_t TimeToStop = TimeLimit ? TimeLimit * CLOCKS_PER_SEC + clock() : 0;
     if ( Aig_ManNodeNum(pAig) == 0 )
     {
         if ( pnIter ) *pnIter = 0;

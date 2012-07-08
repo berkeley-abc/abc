@@ -45,7 +45,8 @@ ABC_NAMESPACE_IMPL_START
 int Dch_NodesAreEquiv( Dch_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew )
 {
     int nBTLimit = p->pPars->nBTLimit;
-    int pLits[2], RetValue, RetValue1, status, clk;
+    int pLits[2], RetValue, RetValue1, status;
+    clock_t clk;
     p->nSatCalls++;
 
     // sanity checks

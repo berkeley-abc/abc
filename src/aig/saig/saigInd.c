@@ -150,8 +150,9 @@ int Saig_ManInduction( Aig_Man_t * p, int nFramesMax, int nConfMax, int fUnique,
     Vec_Int_t * vTopVarNums, * vState, * vTopVarIds = NULL;
     Vec_Ptr_t * vTop, * vBot;
     Aig_Obj_t * pObjPi, * pObjPiCopy, * pObjPo;
-    int i, k, f, clk, Lits[2], status = -1, RetValue, nSatVarNum, nConfPrev;
+    int i, k, f, Lits[2], status = -1, RetValue, nSatVarNum, nConfPrev;
     int nOldSize, iReg, iLast, fAdded, nConstrs = 0, nClauses = 0;
+    clock_t clk;
     assert( fUnique == 0 || fUniqueAll == 0 );
     assert( Saig_ManPoNum(p) == 1 );
     Aig_ManSetCioIds( p );

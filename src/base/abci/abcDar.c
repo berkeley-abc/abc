@@ -1047,7 +1047,7 @@ Abc_Ntk_t * Abc_NtkDRewrite( Abc_Ntk_t * pNtk, Dar_RwrPar_t * pPars )
 {
     Aig_Man_t * pMan, * pTemp;
     Abc_Ntk_t * pNtkAig;
-    int clk;
+    clock_t clk;
     assert( Abc_NtkIsStrash(pNtk) );
     pMan = Abc_NtkToDar( pNtk, 0, 0 );
     if ( pMan == NULL )
@@ -1091,7 +1091,7 @@ Abc_Ntk_t * Abc_NtkDRefactor( Abc_Ntk_t * pNtk, Dar_RefPar_t * pPars )
 {
     Aig_Man_t * pMan, * pTemp;
     Abc_Ntk_t * pNtkAig;
-    int clk;
+    clock_t clk;
     assert( Abc_NtkIsStrash(pNtk) );
     pMan = Abc_NtkToDar( pNtk, 0, 0 );
     if ( pMan == NULL )
@@ -1128,7 +1128,7 @@ Abc_Ntk_t * Abc_NtkDC2( Abc_Ntk_t * pNtk, int fBalance, int fUpdateLevel, int fF
 {
     Aig_Man_t * pMan, * pTemp;
     Abc_Ntk_t * pNtkAig;
-    int clk;
+    clock_t clk;
     assert( Abc_NtkIsStrash(pNtk) );
     pMan = Abc_NtkToDar( pNtk, 0, 0 );
     if ( pMan == NULL )
@@ -1191,7 +1191,7 @@ Abc_Ntk_t * Abc_NtkDch( Abc_Ntk_t * pNtk, Dch_Pars_t * pPars )
     Aig_Man_t * pMan, * pTemp;
     Abc_Ntk_t * pNtkAig;
     Gia_Man_t * pGia;
-    int clk;
+    clock_t clk;
     assert( Abc_NtkIsStrash(pNtk) );
     pMan = Abc_NtkToDar( pNtk, 0, 0 );
     if ( pMan == NULL )
@@ -1234,7 +1234,7 @@ Abc_Ntk_t * Abc_NtkDrwsat( Abc_Ntk_t * pNtk, int fBalance, int fVerbose )
 {
     Aig_Man_t * pMan, * pTemp;
     Abc_Ntk_t * pNtkAig;
-    int clk;
+    clock_t clk;
     assert( Abc_NtkIsStrash(pNtk) );
     pMan = Abc_NtkToDar( pNtk, 0, 0 );
     if ( pMan == NULL )
@@ -1342,7 +1342,7 @@ Abc_Ntk_t * Abc_NtkDarToCnf( Abc_Ntk_t * pNtk, char * pFileName, int fFastAlgo, 
 //    Cnf_Man_t * pManCnf = NULL;
     Cnf_Dat_t * pCnf;
     Abc_Ntk_t * pNtkNew = NULL;
-    int clk = clock();
+    clock_t clk = clock();
     assert( Abc_NtkIsStrash(pNtk) );
 
     // convert to the AIG manager
@@ -1457,7 +1457,8 @@ int Abc_NtkDarCec( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nConfLimit, int fPa
 {
     Aig_Man_t * pMan, * pMan1, * pMan2;
     Abc_Ntk_t * pMiter;
-    int RetValue, clkTotal = clock();
+    int RetValue;
+    clock_t clkTotal = clock();
 /*
     {
     extern void Cec_ManVerifyTwoAigs( Aig_Man_t * pAig0, Aig_Man_t * pAig1, int fVerbose );
@@ -1574,7 +1575,7 @@ Abc_Ntk_t * Abc_NtkDarSeqSweep( Abc_Ntk_t * pNtk, Fra_Ssw_t * pPars )
     Fraig_Params_t Params;
     Abc_Ntk_t * pNtkAig = NULL, * pNtkFraig;
     Aig_Man_t * pMan, * pTemp;
-    int clk = clock();
+    clock_t clk = clock();
 
     // preprocess the miter by fraiging it
     // (note that for each functional class, fraiging leaves one representative;
@@ -1857,8 +1858,9 @@ int Abc_NtkDarBmc( Abc_Ntk_t * pNtk, int nStart, int nFrames, int nSizeMax, int 
 {
     Aig_Man_t * pMan;
     Vec_Int_t * vMap = NULL;
-    int status, RetValue = -1, clk = clock();
-    int nTimeLimit = nTimeOut ? time(NULL) + nTimeOut : 0;
+    int status, RetValue = -1;
+    clock_t clk = clock();
+    clock_t nTimeLimit = nTimeOut ? nTimeOut * CLOCKS_PER_SEC + clock(): 0;
     // derive the AIG manager
     if ( fOrDecomp )
         pMan = Abc_NtkToDarBmc( pNtk, &vMap );
@@ -1889,7 +1891,7 @@ int Abc_NtkDarBmc( Abc_Ntk_t * pNtk, int nStart, int nFrames, int nSizeMax, int 
         else if ( RetValue == -1 )
         {
             Abc_Print( 1, "No output asserted in %d frames. Resource limit reached ", Abc_MaxInt(iFrame,0) );
-            if ( nTimeLimit && time(NULL) > nTimeLimit )
+            if ( nTimeLimit && clock() > nTimeLimit )
                 Abc_Print( 1, "(timeout %d sec). ", nTimeLimit );
             else
                 Abc_Print( 1, "(conf limit %d). ", nBTLimit );
@@ -1938,8 +1940,9 @@ int Abc_NtkDarBmc3( Abc_Ntk_t * pNtk, Saig_ParBmc_t * pPars, int fOrDecomp )
 {
     Aig_Man_t * pMan;
     Vec_Int_t * vMap = NULL;
-    int status, RetValue = -1, clk = clock();
-    int nTimeOut = pPars->nTimeOut ? time(NULL) + pPars->nTimeOut : 0;
+    int status, RetValue = -1;
+    clock_t clk = clock();
+    clock_t nTimeOut = pPars->nTimeOut ? pPars->nTimeOut * CLOCKS_PER_SEC + clock(): 0;
     if ( fOrDecomp && !pPars->fSolveAll )
         pMan = Abc_NtkToDarBmc( pNtk, &vMap );
     else
@@ -1966,7 +1969,7 @@ int Abc_NtkDarBmc3( Abc_Ntk_t * pNtk, Saig_ParBmc_t * pPars, int fOrDecomp )
         if ( pPars->nFailOuts == 0 )
         {
             Abc_Print( 1, "No output asserted in %d frames. Resource limit reached ", Abc_MaxInt(pPars->iFrame,0) );
-            if ( nTimeOut && time(NULL) > nTimeOut )
+            if ( nTimeOut && clock() > nTimeOut )
                 Abc_Print( 1, "(timeout %d sec). ", pPars->nTimeOut );
             else
                 Abc_Print( 1, "(conf limit %d). ", pPars->nConfLimit );
@@ -1974,7 +1977,7 @@ int Abc_NtkDarBmc3( Abc_Ntk_t * pNtk, Saig_ParBmc_t * pPars, int fOrDecomp )
         else
         {
             Abc_Print( 1, "The total of %d outputs asserted in %d frames. Resource limit reached ", pPars->nFailOuts, pPars->iFrame );
-            if ( time(NULL) > nTimeOut )
+            if ( clock() > nTimeOut )
                 Abc_Print( 1, "(timeout %d sec). ", pPars->nTimeOut );
             else
                 Abc_Print( 1, "(conf limit %d). ", pPars->nConfLimit );
@@ -2030,7 +2033,8 @@ int Abc_NtkDarBmc3( Abc_Ntk_t * pNtk, Saig_ParBmc_t * pPars, int fOrDecomp )
 ***********************************************************************/
 int Abc_NtkDarBmcInter_int( Aig_Man_t * pMan, Inter_ManParams_t * pPars, Aig_Man_t ** ppNtkRes )
 {
-    int RetValue = -1, iFrame, clk = clock();
+    int RetValue = -1, iFrame;
+    clock_t clk = clock();
     int nTotalProvedSat = 0;
     assert( pMan->nRegs > 0 );
     if ( ppNtkRes )
@@ -2354,12 +2358,14 @@ int Abc_NtkDarDemiterDual( Abc_Ntk_t * pNtk, int fVerbose )
 int Abc_NtkDarProve( Abc_Ntk_t * pNtk, Fra_Sec_t * pSecPar, int nBmcFramesMax, int nBmcConfMax )
 {
     Aig_Man_t * pMan;
-    int iFrame = -1, RetValue = -1, clkTotal = clock();
+    int iFrame = -1, RetValue = -1;
+    clock_t clkTotal = clock();
     if ( pSecPar->fTryComb || Abc_NtkLatchNum(pNtk) == 0 )
     {
         Prove_Params_t Params, * pParams = &Params;
         Abc_Ntk_t * pNtkComb;
-        int RetValue, clk = clock();
+        int RetValue;
+        clock_t clk = clock();
         if ( Abc_NtkLatchNum(pNtk) == 0 )
             Abc_Print( 1, "The network has no latches. Running CEC.\n" );
         // create combinational network
@@ -2549,7 +2555,8 @@ int Abc_NtkDarSec( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, Fra_Sec_t * pSecPar )
 ***********************************************************************/
 int Abc_NtkDarPdr( Abc_Ntk_t * pNtk, Pdr_Par_t * pPars, Abc_Cex_t ** ppCex )
 {
-    int RetValue = -1, clk = clock();
+    int RetValue = -1;
+    clock_t clk = clock();
     Aig_Man_t * pMan;
     *ppCex = NULL;
     pMan = Abc_NtkToDar( pNtk, 0, 1 );
@@ -3004,7 +3011,8 @@ int Abc_NtkDarSeqSim( Abc_Ntk_t * pNtk, int nFrames, int nWords, int TimeOut, in
     extern int Raig_ManSimulate( Aig_Man_t * pAig, int nWords, int nIters, int TimeLimit, int fMiter, int fVerbose );
     Aig_Man_t * pMan;
     Abc_Cex_t * pCex;
-    int status, RetValue = -1, clk = clock();
+    int status, RetValue = -1;
+    clock_t clk = clock();
     if ( Abc_NtkGetChoiceNum(pNtk) )
     {
         Abc_Print( 1, "Removing %d choices from the AIG.\n", Abc_NtkGetChoiceNum(pNtk) );
@@ -3194,7 +3202,8 @@ int Abc_NtkDarSeqSim( Abc_Ntk_t * pNtk, int nFrames, int nWords, int TimeOut, in
 int Abc_NtkDarSeqSim3( Abc_Ntk_t * pNtk, int nFrames, int nWords, int nBinSize, int nRounds, int nRandSeed, int TimeOut, int fVerbose )
 {
     Aig_Man_t * pMan;
-    int status, RetValue = -1, clk = clock();
+    int status, RetValue = -1;
+    clock_t clk = clock();
     if ( Abc_NtkGetChoiceNum(pNtk) )
     {
         Abc_Print( 1, "Removing %d choices from the AIG.\n", Abc_NtkGetChoiceNum(pNtk) );
@@ -3328,7 +3337,7 @@ Abc_Ntk_t * Abc_NtkDarTempor( Abc_Ntk_t * pNtk, int nFrames, int TimeOut, int nC
 int Abc_NtkDarInduction( Abc_Ntk_t * pNtk, int nFramesMax, int nConfMax, int fUnique, int fUniqueAll, int fGetCex, int fVerbose, int fVeryVerbose )
 { 
     Aig_Man_t * pMan;
-    int clkTotal = clock();
+    clock_t clkTotal = clock();
     int RetValue;
     pMan = Abc_NtkToDar( pNtk, 0, 1 );
     if ( pMan == NULL )
@@ -3442,9 +3451,9 @@ void Abc_NtkInterFast( Abc_Ntk_t * pNtkOn, Abc_Ntk_t * pNtkOff, int fVerbose )
     Aig_ManStop( pManOff );
 }
 
-int timeCnf;
-int timeSat;
-int timeInt;
+clock_t timeCnf;
+clock_t timeSat;
+clock_t timeInt;
 
 /**Function*************************************************************
 

@@ -202,7 +202,7 @@ Vec_Ptr_t * Abs_ManTernarySimulate( Aig_Man_t * p, int nFramesMax, int fVerbose 
     Vec_Ptr_t * vSimInfo;
     Aig_Obj_t * pObj;
     int i, f, nFramesLimit, nFrameWords;
-    int clk = clock();
+    clock_t clk = clock();
     assert( Aig_ManRegNum(p) > 0 );
     // the maximum number of frames will be determined to use at most 200Mb of RAM
     nFramesLimit = 1 + (200000000 * 4)/Aig_ManObjNum(p);
@@ -742,9 +742,10 @@ int Saig_BmcPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nNodesMax
     Saig_Bmc_t * p;
     Aig_Man_t * pNew;
     Cnf_Dat_t * pCnf;
-    int nTimeToStop = time(NULL) + nTimeOut;
     int nOutsSolved = 0;
-    int Iter, RetValue = -1, clk = clock(), clk2, clkTotal = clock();
+    int Iter, RetValue = -1;
+    clock_t nTimeToStop = nTimeOut ? nTimeOut * CLOCKS_PER_SEC + clock(): 0;
+    clock_t clk = clock(), clk2, clkTotal = clock();
     int Status = -1;
 /*
     Vec_Ptr_t * vSimInfo;
@@ -763,7 +764,7 @@ int Saig_BmcPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nNodesMax
     p = Saig_BmcManStart( pAig, nFramesMax, nNodesMax, nConfMaxOne, nConfMaxAll, fVerbose );
     // set runtime limit
     if ( nTimeOut )
-        sat_solver_set_runtime_limit( p->pSat, nTimeToStop );
+        sat_solver_set_runtime_limit( p->pSat, nTimeOut );
     for ( Iter = 0; ; Iter++ )
     {
         clk2 = clock();
@@ -796,7 +797,7 @@ int Saig_BmcPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nNodesMax
         if ( RetValue != l_False )
             break;
         // check the timeout
-        if ( nTimeOut && time(NULL) > nTimeToStop )
+        if ( nTimeOut && clock() > nTimeToStop )
         {
             printf( "Reached timeout (%d seconds).\n",  nTimeOut );
             if ( piFrames )
@@ -839,7 +840,7 @@ int Saig_BmcPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nNodesMax
             printf( "Reached limit on the number of timeframes (%d).\n", p->nFramesMax );
         else if ( p->nConfMaxAll && p->pSat->stats.conflicts > p->nConfMaxAll )
             printf( "Reached global conflict limit (%d).\n", p->nConfMaxAll );
-        else if ( nTimeOut && time(NULL) > nTimeToStop )
+        else if ( nTimeOut && clock() > nTimeToStop )
             printf( "Reached timeout (%d seconds).\n", nTimeOut );
         else
             printf( "Reached local conflict limit (%d).\n", p->nConfMaxOne );

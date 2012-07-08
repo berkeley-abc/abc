@@ -133,7 +133,7 @@ void Nwk_ManBidecResyn( Nwk_Man_t * pNtk, int fVerbose )
     Nwk_Obj_t * pObj;
     Vec_Int_t * vTruth;
     int i, nGainTotal = 0, nNodes1, nNodes2;
-    int clk = clock();
+    clock_t clk = clock();
     pPars->nVarsMax = Nwk_ManGetFaninMax( pNtk );
     pPars->fVerbose = fVerbose;
     if ( pPars->nVarsMax < 2 )

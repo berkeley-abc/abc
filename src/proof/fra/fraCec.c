@@ -53,7 +53,8 @@ int Fra_FraigSat( Aig_Man_t * pMan, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimi
 
         sat_solver2 * pSat;
         Cnf_Dat_t * pCnf;
-        int status, RetValue, clk = clock();
+        int status, RetValue;
+        clock_t clk = clock();
         Vec_Int_t * vCiIds;
 
         assert( Aig_ManRegNum(pMan) == 0 );
@@ -159,7 +160,8 @@ int Fra_FraigSat( Aig_Man_t * pMan, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimi
     {
         sat_solver * pSat;
         Cnf_Dat_t * pCnf;
-        int status, RetValue, clk = clock();
+        int status, RetValue;
+        clock_t clk = clock();
         Vec_Int_t * vCiIds;
 
         assert( Aig_ManRegNum(pMan) == 0 );
@@ -282,7 +284,8 @@ int Fra_FraigCec( Aig_Man_t ** ppAig, int nConfLimit, int fVerbose )
 
     Fra_Par_t Params, * pParams = &Params;
     Aig_Man_t * pAig = *ppAig, * pTemp;
-    int i, RetValue, clk;
+    int i, RetValue;
+    clock_t clk;
 
     // report the original miter
     if ( fVerbose )
@@ -457,7 +460,8 @@ int Fra_FraigCecTop( Aig_Man_t * pMan1, Aig_Man_t * pMan2, int nConfLimit, int n
 {
     Aig_Man_t * pTemp;
     //Abc_NtkDarCec( pNtk1, pNtk2, fPartition, fVerbose );
-    int RetValue, clkTotal = clock();
+    int RetValue;
+    clock_t clkTotal = clock();
 
     if ( Aig_ManCiNum(pMan1) != Aig_ManCiNum(pMan1) )
     {

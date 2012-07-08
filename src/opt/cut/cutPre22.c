@@ -69,9 +69,9 @@ struct Cut_CMan_t_
     int                nVarCounts[CUT_CELL_MVAR+1];
     int                nSymGroups[CUT_CELL_MVAR+1];
     int                nSymGroupsE[CUT_CELL_MVAR+1];
-    int                timeCanon;
-    int                timeSupp;
-    int                timeTable;
+    clock_t            timeCanon;
+    clock_t            timeSupp;
+    clock_t            timeTable;
     int                nCellFound;
     int                nCellNotFound;
 };
@@ -234,7 +234,8 @@ void Cut_CellPrecompute()
 {
     Cut_CMan_t * p;
     Cut_Cell_t * pCell, * pTemp;
-    int i1, i2, i3, i, j, k, c, clk = clock(); //, clk2 = clock();
+    int i1, i2, i3, i, j, k, c;
+    clock_t clk = clock(); //, clk2 = clock();
 
     p = Cut_CManStart();
 
@@ -840,7 +841,7 @@ void Cut_CellDumpToFile()
     int NumUsed[10][5] = {{0}};
     int BoxUsed[22][5] = {{0}};
     int i, k, Counter;
-    int clk = clock();
+    clock_t clk = clock();
 
     if ( p == NULL )
     {

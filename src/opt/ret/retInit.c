@@ -48,7 +48,8 @@ Vec_Int_t * Abc_NtkRetimeInitialValues( Abc_Ntk_t * pNtkCone, Vec_Int_t * vValue
 {
     Vec_Int_t * vSolution;
     Abc_Ntk_t * pNtkMiter, * pNtkLogic;
-    int RetValue, clk;
+    int RetValue;
+    clock_t clk;
     if ( pNtkCone == NULL )
         return Vec_IntDup( vValues );
     // convert the target network to AIG

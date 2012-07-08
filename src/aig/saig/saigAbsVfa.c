@@ -209,7 +209,8 @@ int Abs_VfaManCreateFrame_rec( Abs_VfaMan_t * p, Aig_Obj_t * pObj, int f )
 void Abs_VfaManCreateFrame( Abs_VfaMan_t * p, int f )
 {
     Aig_Obj_t * pObj;
-    int i, clk = clock();
+    int i;
+    clock_t clk = clock();
 
     Saig_ManForEachPo( p->pAig, pObj, i )
         Abs_VfaManCreateFrame_rec( p, pObj, f );

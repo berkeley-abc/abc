@@ -235,7 +235,7 @@ void Abc_NtkMfsPowerResub( Mfs_Man_t * p, Mfs_Par_t * pPars)
 ***********************************************************************/
 int Abc_NtkMfsResub( Mfs_Man_t * p, Abc_Obj_t * pNode )
 {
-    int clk;
+    clock_t clk;
     p->nNodesTried++;
     // prepare data structure for this node
     Mfs_ManClean( p );
@@ -307,7 +307,8 @@ int Abc_NtkMfsNode( Mfs_Man_t * p, Abc_Obj_t * pNode )
     float dProb;
     extern Hop_Obj_t * Abc_NodeIfNodeResyn( Bdc_Man_t * p, Hop_Man_t * pHop, Hop_Obj_t * pRoot, int nVars, Vec_Int_t * vTruth, unsigned * puCare, float dProb );
 
-    int nGain, clk;
+    int nGain;
+    clock_t clk;
     p->nNodesTried++;
     // prepare data structure for this node
     Mfs_ManClean( p );
@@ -380,7 +381,8 @@ int Abc_NtkMfs( Abc_Ntk_t * pNtk, Mfs_Par_t * pPars )
     Abc_Obj_t * pObj;
     Vec_Vec_t * vLevels;
     Vec_Ptr_t * vNodes;
-    int i, k, nNodes, nFaninMax, clk = clock(), clk2;
+    int i, k, nNodes, nFaninMax;
+    clock_t clk = clock(), clk2;
     int nTotalNodesBeg = Abc_NtkNodeNum(pNtk);
     int nTotalEdgesBeg = Abc_NtkGetTotalFanins(pNtk);
 

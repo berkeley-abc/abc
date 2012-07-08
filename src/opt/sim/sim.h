@@ -88,13 +88,13 @@ struct Sym_Man_t_
     int               nPairsRem;
     int               nPairsTotal;
     // runtime statistics
-    int               timeStruct;
-    int               timeCount;
-    int               timeMatr;
-    int               timeSim;
-    int               timeFraig;
-    int               timeSat;
-    int               timeTotal;
+    clock_t           timeStruct;
+    clock_t           timeCount;
+    clock_t           timeMatr;
+    clock_t           timeSim;
+    clock_t           timeFraig;
+    clock_t           timeSat;
+    clock_t           timeTotal;
 };
 
 typedef struct Sim_Man_t_ Sim_Man_t;
@@ -126,11 +126,11 @@ struct Sim_Man_t_
     int               nSatRunsSat;
     int               nSatRunsUnsat;
     // runtime statistics
-    int               timeSim;
-    int               timeTrav;
-    int               timeFraig;
-    int               timeSat;
-    int               timeTotal;
+    clock_t           timeSim;
+    clock_t           timeTrav;
+    clock_t           timeFraig;
+    clock_t           timeSat;
+    clock_t           timeTotal;
 };
 
 typedef struct Sim_Pat_t_ Sim_Pat_t;

@@ -969,7 +969,7 @@ void Ivy_ManTestCutsAll( Ivy_Man_t * p )
 {
     Ivy_Obj_t * pObj;
     int i, nCutsCut, nCutsTotal, nNodeTotal, nNodeOver;
-    int clk = clock();
+    clock_t clk = clock();
     nNodeTotal = nNodeOver = 0;
     nCutsTotal = -Ivy_ManNodeNum(p);
     Ivy_ManForEachObj( p, pObj, i )

@@ -56,11 +56,11 @@ struct Abc_RRMan_t_
     int              nLevelsOld;       // the old number of levels
     int              nEdgesTried;      // the number of nodes tried
     int              nEdgesRemoved;    // the number of nodes proved
-    int              timeWindow;       // the time to construct the window
-    int              timeMiter;        // the time to construct the miter
-    int              timeProve;        // the time to prove the miter
-    int              timeUpdate;       // the network update time
-    int              timeTotal;        // the total runtime
+    clock_t          timeWindow;       // the time to construct the window
+    clock_t          timeMiter;        // the time to construct the miter
+    clock_t          timeProve;        // the time to prove the miter
+    clock_t          timeUpdate;       // the network update time
+    clock_t          timeTotal;        // the total runtime
 };
 
 static Abc_RRMan_t * Abc_RRManStart();
@@ -100,7 +100,8 @@ int Abc_NtkRR( Abc_Ntk_t * pNtk, int nFaninLevels, int nFanoutLevels, int fUseFa
     ProgressBar * pProgress;
     Abc_RRMan_t * p;
     Abc_Obj_t * pNode, * pFanin, * pFanout;
-    int i, k, m, nNodes, RetValue, clk, clkTotal = clock();
+    int i, k, m, nNodes, RetValue;
+    clock_t clk, clkTotal = clock();
     // start the manager
     p = Abc_RRManStart();
     p->pNtk          = pNtk;
@@ -351,7 +352,8 @@ void Abc_RRManClean( Abc_RRMan_t * p )
 int Abc_NtkRRProve( Abc_RRMan_t * p )
 {
     Abc_Ntk_t * pWndCopy;
-    int RetValue, clk;
+    int RetValue;
+    clock_t clk;
 //    Abc_NtkShowAig( p->pWnd, 0 );
     pWndCopy = Abc_NtkDup( p->pWnd );
     Abc_NtkRRUpdate( pWndCopy, p->pNode->pCopy->pCopy, p->pFanin->pCopy->pCopy, p->pFanout? p->pFanout->pCopy->pCopy : NULL );

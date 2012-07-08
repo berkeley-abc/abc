@@ -589,7 +589,8 @@ void Abc_AigResize( Abc_Aig_t * pMan )
 {
     Abc_Obj_t ** pBinsNew;
     Abc_Obj_t * pEnt, * pEnt2;
-    int nBinsNew, Counter, i, clk;
+    int nBinsNew, Counter, i;
+    clock_t clk;
     unsigned Key;
 
 clk = clock();

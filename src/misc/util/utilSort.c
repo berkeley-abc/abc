@@ -398,9 +398,10 @@ int Abc_SortNumCompare( int * pNum1, int * pNum2 )
 void Abc_SortTest()
 {
     int fUseNew = 0;
-    int i, clk, nSize = 50000000;
+    int i, nSize = 50000000;
     int * pArray = (int *)malloc( sizeof(int) * nSize );
     int * pPerm;
+    clock_t clk;
     // generate numbers
     srand( 1000 );
     for ( i = 0; i < nSize; i++ )
@@ -743,7 +744,8 @@ void Abc_QuickSortTest()
     int nSize = 1000000;
     int fVerbose = 0;
     word * pData1, * pData2;
-    int i, clk = clock();
+    int i;
+    clock_t clk = clock();
     // generate numbers
     pData1 = ABC_ALLOC( word, nSize );
     pData2 = ABC_ALLOC( word, nSize );

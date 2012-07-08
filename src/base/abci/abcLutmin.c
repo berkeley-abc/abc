@@ -85,7 +85,8 @@ void Abc_NtkCheckAbsorb( Abc_Ntk_t * pNtk, int nLutSize )
     Vec_Int_t * vCounts;
     Vec_Ptr_t * vFanins;
     Abc_Obj_t * pObj, * pFanin;
-    int i, k, Counter = 0, Counter2 = 0, clk = clock();
+    int i, k, Counter = 0, Counter2 = 0;
+    clock_t clk = clock();
     vCounts = Vec_IntStart( Abc_NtkObjNumMax(pNtk) );
     vFanins = Vec_PtrAlloc( 100 );
     Abc_NtkForEachNode( pNtk, pObj, i )

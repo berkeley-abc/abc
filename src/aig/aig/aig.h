@@ -30,7 +30,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include <time.h>
 
 #include "src/misc/vec/vec.h"
 #include "src/misc/util/utilCex.h"
@@ -165,8 +164,8 @@ struct Aig_Man_t_
     Vec_Int_t *      vCiNumsOrig;    // original CI names
     int              nComplEdges;    // complemented edges
     // timing statistics
-    int              time1;
-    int              time2;
+    clock_t          time1;
+    clock_t          time2;
 };
 
 // cut computation

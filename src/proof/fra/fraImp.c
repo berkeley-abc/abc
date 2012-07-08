@@ -327,7 +327,8 @@ Vec_Int_t * Fra_ImpDerive( Fra_Man_t * p, int nImpMaxLimit, int nImpUseLimit, in
     int * pImpCosts, * pNodesI, * pNodesK;
     int nImpsTotal = 0, nImpsTried = 0, nImpsNonSeq = 0, nImpsComb = 0, nImpsCollected = 0;
     int CostMin = ABC_INFINITY, CostMax = 0;
-    int i, k, Imp, CostRange, clk = clock();
+    int i, k, Imp, CostRange;
+    clock_t clk = clock();
     assert( Aig_ManObjNumMax(p->pManAig) < (1 << 15) );
     assert( nImpMaxLimit > 0 && nImpUseLimit > 0 && nImpUseLimit <= nImpMaxLimit );
     // normalize both managers

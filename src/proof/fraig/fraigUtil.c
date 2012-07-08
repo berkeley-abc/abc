@@ -844,7 +844,7 @@ int Fraig_ManPrintRefs( Fraig_Man_t * pMan )
     Fraig_NodeVec_t * vPivots;
     Fraig_Node_t * pNode, * pNode2;
     int i, k, Counter, nProved;
-    int clk;
+    clock_t clk;
 
     vPivots = Fraig_NodeVecAlloc( 1000 );
     for ( i = 0; i < pMan->vNodes->nSize; i++ )

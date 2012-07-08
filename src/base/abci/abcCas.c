@@ -60,8 +60,8 @@ Abc_Ntk_t * Abc_NtkCascade( Abc_Ntk_t * pNtk, int nLutSize, int fCheck, int fVer
     Abc_Obj_t * pNode;
     char * pFileGeneric;
     int fBddSizeMax = 500000;
-    int fReorder = 1;
-    int i, clk = clock();
+    int i, fReorder = 1;
+    clock_t clk = clock();
 
     assert( Abc_NtkIsStrash(pNtk) );
     // compute the global BDDs

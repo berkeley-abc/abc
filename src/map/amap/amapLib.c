@@ -328,7 +328,7 @@ void Amap_LibPrintSelectedGates( Amap_Lib_t * p, int fAllGates )
 Amap_Lib_t * Amap_LibReadAndPrepare( char * pFileName, int fVerbose, int fVeryVerbose )
 {
     Amap_Lib_t * p;
-    int clk = clock();
+    clock_t clk = clock();
     p = Amap_LibReadFile( pFileName, fVerbose );
     if ( fVerbose )
         printf( "Read %d gates from file \"%s\".\n", Vec_PtrSize(p->vGates), pFileName );

@@ -114,7 +114,7 @@ int Llb_ManModelCheckAig( Aig_Man_t * pAigGlo, Gia_ParLlb_t * pPars, Vec_Int_t *
     Llb_Man_t * p = NULL; 
     Aig_Man_t * pAig;
     int RetValue = -1;
-    int clk = clock();
+    clock_t clk = clock();
 
     if ( pPars->fIndConstr )
     {

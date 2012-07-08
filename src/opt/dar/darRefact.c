@@ -61,10 +61,10 @@ struct Ref_Man_t_
     int              nCutsUsed;      // the number of rewriting steps
     int              nCutsTried;     // the number of cuts tries
     // timing statistics
-    int              timeCuts;
-    int              timeEval;
-    int              timeOther;
-    int              timeTotal;
+    clock_t          timeCuts;
+    clock_t          timeEval;
+    clock_t          timeOther;
+    clock_t          timeTotal;
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -500,7 +500,8 @@ int Dar_ManRefactor( Aig_Man_t * pAig, Dar_RefPar_t * pPars )
     Vec_Ptr_t * vCut, * vCut2;
     Aig_Obj_t * pObj, * pObjNew;
     int nNodesOld, nNodeBefore, nNodeAfter, nNodesSaved, nNodesSaved2;
-    int i, Required, nLevelMin, clkStart, clk;
+    int i, Required, nLevelMin;
+    clock_t clkStart, clk;
 
     // start the manager
     p = Dar_ManRefStart( pAig, pPars );

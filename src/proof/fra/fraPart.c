@@ -53,7 +53,7 @@ void Fra_ManPartitionTest( Aig_Man_t * p, int nComLim )
     int i, k, nCommon, CountOver, CountQuant;
     int nTotalSupp, nTotalSupp2, Entry, Largest;//, iVar;
     double Ratio, R;
-    int clk;
+    clock_t clk;
 
     nTotalSupp = 0;
     nTotalSupp2 = 0;
@@ -190,7 +190,8 @@ void Fra_ManPartitionTest2( Aig_Man_t * p )
     Vec_Int_t * vSup, * vSup2, * vSup3;
     Aig_Obj_t * pObj;
     int Entry, Entry2, Entry3, Counter;
-    int i, k, m, n, clk;
+    int i, k, m, n;
+    clock_t clk;
     char * pSupp;
  
     // compute supports

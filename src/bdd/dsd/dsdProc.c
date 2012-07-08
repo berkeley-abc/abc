@@ -114,7 +114,7 @@ void Dsd_Decompose( Dsd_Manager_t * pDsdMan, DdNode ** pbFuncs, int nFuncs )
 {
     DdManager * dd = pDsdMan->dd;
     int i;
-    long clk;
+    clock_t clk;
     Dsd_Node_t * pTemp;
     int SumMaxGateSize = 0;
     int nDecOutputs = 0;
@@ -156,7 +156,7 @@ s_Loops2Useless = 0;
         int nCascades;
         int MaxBlock;
         int nPrimeBlocks;
-        long clk;
+        clock_t clk;
 
         clk = clock();
         nLiteralsPrev     = s_nLiterals;

@@ -206,7 +206,8 @@ int Ivy_TableCountEntries( Ivy_Man_t * p )
 void Ivy_TableResize( Ivy_Man_t * p )
 {
     int * pTableOld, * pPlace;
-    int nTableSizeOld, Counter, nEntries, e, clk;
+    int nTableSizeOld, Counter, nEntries, e;
+    clock_t clk;
 clk = clock();
     // save the old table
     pTableOld = p->pTable;

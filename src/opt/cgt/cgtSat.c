@@ -46,7 +46,8 @@ ABC_NAMESPACE_IMPL_START
 int Cgt_CheckImplication( Cgt_Man_t * p, Aig_Obj_t * pGate, Aig_Obj_t * pMiter )
 {
     int nBTLimit = p->pPars->nConfMax;
-    int pLits[2], RetValue, clk;
+    int pLits[2], RetValue;
+    clock_t clk;
     p->nCalls++;
 
     // sanity checks

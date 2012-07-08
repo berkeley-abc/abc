@@ -688,7 +688,8 @@ Vec_Ptr_t * Aig_ManPartitionSmart( Aig_Man_t * p, int nSuppSizeLimit, int fVerbo
     Vec_Ptr_t * vPartSuppsBit;
     Vec_Ptr_t * vSupports, * vPartsAll, * vPartsAll2, * vPartSuppsAll;//, * vPartPtr;
     Vec_Int_t * vOne, * vPart, * vPartSupp, * vTemp;
-    int i, iPart, iOut, clk;
+    int i, iPart, iOut;
+    clock_t clk;
 
     // compute the supports for all outputs
 clk = clock();
@@ -812,7 +813,8 @@ Vec_Ptr_t * Aig_ManPartitionSmartRegisters( Aig_Man_t * pAig, int nSuppSizeLimit
     Vec_Ptr_t * vPartSuppsBit;
     Vec_Ptr_t * vSupports, * vPartsAll, * vPartsAll2, * vPartSuppsAll;
     Vec_Int_t * vOne, * vPart, * vPartSupp, * vTemp;
-    int i, iPart, iOut, clk;
+    int i, iPart, iOut;
+    clock_t clk;
 
     // add output number to each
 clk = clock();

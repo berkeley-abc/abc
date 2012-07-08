@@ -389,7 +389,8 @@ int If_ManPerformMappingRound( If_Man_t * p, int nCutsUsed, int Mode, int fPrepr
 {
 //    ProgressBar * pProgress;
     If_Obj_t * pObj;
-    int i, clk = clock();
+    int i;
+    clock_t clk = clock();
     float arrTime;
     assert( Mode >= 0 && Mode <= 2 );
     // set the sorting function

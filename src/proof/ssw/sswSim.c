@@ -38,7 +38,7 @@ struct Ssw_Sml_t_
     int              nWordsPref;        // the number of word in the prefix
     int              fNonConstOut;      // have seen a non-const-0 output during simulation
     int              nSimRounds;        // statistics
-    int              timeSim;           // statistics
+    clock_t          timeSim;           // statistics
     unsigned         pData[0];          // simulation data for the nodes
 };
 
@@ -1005,7 +1005,8 @@ int Ssw_SmlCheckNonConstOutputs( Ssw_Sml_t * p )
 void Ssw_SmlSimulateOne( Ssw_Sml_t * p )
 {
     Aig_Obj_t * pObj, * pObjLi, * pObjLo;
-    int f, i, clk;
+    int f, i;
+    clock_t clk;
 clk = clock();
     for ( f = 0; f < p->nFrames; f++ )
     {
@@ -1116,7 +1117,8 @@ void Ssw_SmlSimulateOneDyn_rec( Ssw_Sml_t * p, Aig_Obj_t * pObj, int f, int * pV
 void Ssw_SmlSimulateOneFrame( Ssw_Sml_t * p )
 {
     Aig_Obj_t * pObj, * pObjLi, * pObjLo;
-    int i, clk;
+    int i;
+    clock_t clk;
 clk = clock();
     // simulate the nodes
     Aig_ManForEachNode( p->pAig, pObj, i )

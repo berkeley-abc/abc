@@ -133,7 +133,8 @@ int Lpk_ExploreCut( Lpk_Man_t * p, Lpk_Cut_t * pCut, Kit_DsdNtk_t * pNtk )
     Kit_DsdObj_t * pRoot;
     If_Obj_t * pDriver, * ppLeaves[16];
     Abc_Obj_t * pLeaf, * pObjNew;
-    int nGain, i, clk;
+    int nGain, i;
+    clock_t clk;
     int nNodesBef;
 //    int nOldShared;
 
@@ -242,7 +243,8 @@ int Lpk_ResynthesizeNode( Lpk_Man_t * p )
     Kit_DsdNtk_t * pDsdNtk;
     Lpk_Cut_t * pCut;
     unsigned * pTruth;
-    int i, k, nSuppSize, nCutNodes, RetValue, clk;
+    int i, k, nSuppSize, nCutNodes, RetValue;
+    clock_t clk;
 
     // compute the cuts
 clk = clock();
@@ -371,7 +373,8 @@ int Lpk_ResynthesizeNodeNew( Lpk_Man_t * p )
     Lpk_Cut_t * pCut;
     unsigned * pTruth;
     int nNodesBef, nNodesAft, nCutNodes;
-    int i, k, clk;
+    int i, k;
+    clock_t clk;
     int Required = Abc_ObjRequiredLevel(p->pObj);
 //    CloudNode * pFun2;//, * pFun1;
 
@@ -507,7 +510,8 @@ int Lpk_Resynthesize( Abc_Ntk_t * pNtk, Lpk_Par_t * pPars )
     Abc_Obj_t * pObj;
     double Delta;
 //    int * pnFanouts, nObjMax;
-    int i, Iter, nNodes, nNodesPrev, clk = clock();
+    int i, Iter, nNodes, nNodesPrev;
+    clock_t clk = clock();
     assert( Abc_NtkIsLogic(pNtk) );
  
     // sweep dangling nodes as a preprocessing step

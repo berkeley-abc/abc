@@ -633,7 +633,8 @@ int Sim_UtilCountPairsOnePrint( Extra_BitMat_t * pMat, Vec_Int_t * vSupport )
 ***********************************************************************/
 void Sim_UtilCountPairsAllPrint( Sym_Man_t * p )
 {
-    int i, clk;
+    int i;
+    clock_t clk;
 clk = clock();
     for ( i = 0; i < p->nOutputs; i++ )
     {
@@ -657,7 +658,8 @@ p->timeCount += clock() - clk;
 ***********************************************************************/
 void Sim_UtilCountPairsAll( Sym_Man_t * p )
 {
-    int nPairsTotal, nPairsSym, nPairsNonSym, i, clk;
+    int nPairsTotal, nPairsSym, nPairsNonSym, i;
+    clock_t clk;
 clk = clock();
     p->nPairsSymm    = 0;
     p->nPairsNonSymm = 0;

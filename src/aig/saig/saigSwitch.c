@@ -268,7 +268,8 @@ Vec_Int_t * Saig_ManComputeSwitchProb4s( Aig_Man_t * p, int nFrames, int nPref, 
     Saig_SimObj_t * pAig, * pEntry;
     Vec_Int_t * vSwitching;
     float * pSwitching;
-    int nFramesReal, clk;//, clkTotal = clock();
+    int nFramesReal;
+    clock_t clk;//, clkTotal = clock();
     vSwitching = Vec_IntStart( Aig_ManObjNumMax(p) );
     pSwitching = (float *)vSwitching->pArray;
 clk = clock();

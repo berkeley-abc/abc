@@ -217,7 +217,7 @@ void Inter_CheckAddEqual( Inter_Check_t * p, int iVarA, int iVarB )
   SeeAlso     []
 
 ***********************************************************************/
-int Inter_CheckPerform( Inter_Check_t * p, Cnf_Dat_t * pCnfInt, int nTimeNewOut )
+int Inter_CheckPerform( Inter_Check_t * p, Cnf_Dat_t * pCnfInt, clock_t nTimeNewOut )
 {
     Aig_Obj_t * pObj, * pObj2;
     int i, f, VarA, VarB, RetValue, Entry, status;

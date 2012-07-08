@@ -226,7 +226,7 @@ void Rwt_Man5ExplorePrint()
     int * pDistrib;
     unsigned * pReprs;
     unsigned uTruth, uTruthC;
-    int clk = clock();
+    clock_t clk = clock();
     Vec_Int_t * vClassesNN, * vClassesNPN;
 
     // find the max number of occurences

@@ -418,7 +418,8 @@ int Pdr_ManBlockCube( Pdr_Man_t * p, Pdr_Set_t * pCube )
     Pdr_Obl_t * pThis;
     Pdr_Set_t * pPred, * pCubeMin;
     int i, k, RetValue, Prio = ABC_INFINITY, Counter = 0;
-    int kMax = Vec_PtrSize(p->vSolvers)-1, clk;
+    int kMax = Vec_PtrSize(p->vSolvers)-1;
+    clock_t clk;
     p->nBlocks++;
     // create first proof obligation
     assert( p->pQueue == NULL );
@@ -528,7 +529,7 @@ int Pdr_ManBlockCube( Pdr_Man_t * p, Pdr_Set_t * pCube )
         }
 
         // check the timeout
-        if ( p->timeToStop && time(NULL) > p->timeToStop )
+        if ( p->timeToStop && clock() > p->timeToStop )
             return -1;
     }
     return 1;
@@ -551,7 +552,7 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
     Pdr_Set_t * pCube;
     int k, RetValue = -1;
     clock_t clkStart = clock();
-    p->timeToStop = p->pPars->nTimeOut ? time(NULL) + p->pPars->nTimeOut : 0;
+    p->timeToStop = p->pPars->nTimeOut ? p->pPars->nTimeOut * CLOCKS_PER_SEC + clock(): 0;
     assert( Vec_PtrSize(p->vSolvers) == 0 );
     // create the first timeframe
     Pdr_ManCreateSolver( p, (k = 0) );
@@ -633,7 +634,7 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
         }
 
         // check the timeout
-        if ( p->timeToStop && time(NULL) > p->timeToStop )
+        if ( p->timeToStop && clock() > p->timeToStop )
         {
             if ( fPrintClauses )
             {

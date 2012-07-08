@@ -77,7 +77,7 @@ static inline Llb_Prt_t * Llb_MgrPart( Llb_Mgr_t * p, int i )  { return p->pPart
     for ( i = 0; (i < Vec_IntSize(pVar->vParts)) && (((pPart) = Llb_MgrPart(p, Vec_IntEntry(pVar->vParts,i))), 1); i++ )
 
 // statistics
-//int timeBuild, timeAndEx, timeOther;
+//clock_t timeBuild, timeAndEx, timeOther;
 //int nSuppMax;
 
 ////////////////////////////////////////////////////////////////////////
@@ -139,7 +139,8 @@ DdNode * Llb_Nonlin4CreateCube1( Llb_Mgr_t * p, Llb_Prt_t * pPart )
 {
     DdNode * bCube, * bTemp;
     Llb_Var_t * pVar;
-    int i, TimeStop;
+    int i;
+    clock_t TimeStop;
     TimeStop = p->dd->TimeStop; p->dd->TimeStop = 0;
     bCube = Cudd_ReadOne(p->dd);   Cudd_Ref( bCube );
     Llb_PartForEachVar( p, pPart, pVar, i )
@@ -171,7 +172,8 @@ DdNode * Llb_Nonlin4CreateCube2( Llb_Mgr_t * p, Llb_Prt_t * pPart1, Llb_Prt_t * 
 {
     DdNode * bCube, * bTemp;
     Llb_Var_t * pVar;
-    int i, TimeStop;
+    int i;
+    clock_t TimeStop;
     TimeStop = p->dd->TimeStop; p->dd->TimeStop = 0;
     bCube = Cudd_ReadOne(p->dd);   Cudd_Ref( bCube );
     Llb_PartForEachVar( p, pPart1, pVar, i )

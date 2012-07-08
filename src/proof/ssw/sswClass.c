@@ -610,7 +610,8 @@ Ssw_Cla_t * Ssw_ClassesPrepare( Aig_Man_t * pAig, int nFramesK, int fLatchCorr, 
     Ssw_Sml_t * pSml;
     Vec_Ptr_t * vCands;
     Aig_Obj_t * pObj;
-    int i, k, RetValue, clk;
+    int i, k, RetValue;
+    clock_t clk;
 
     // start the classes
     p = Ssw_ClassesStart( pAig );

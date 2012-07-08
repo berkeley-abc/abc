@@ -84,15 +84,15 @@ struct Dch_Man_t_
     int              nEquivs;        // the number of final equivalences
     int              nChoices;       // the number of final choice nodes
     // runtime stats
-    int              timeSimInit;    // simulation and class computation
-    int              timeSimSat;     // simulation of the counter-examples
-    int              timeSat;        // solving SAT
-    int              timeSatSat;     // sat
-    int              timeSatUnsat;   // unsat
-    int              timeSatUndec;   // undecided
-    int              timeChoice;     // choice computation
-    int              timeOther;      // other runtime
-    int              timeTotal;      // total runtime
+    clock_t          timeSimInit;    // simulation and class computation
+    clock_t          timeSimSat;     // simulation of the counter-examples
+    clock_t          timeSat;        // solving SAT
+    clock_t          timeSatSat;     // sat
+    clock_t          timeSatUnsat;   // unsat
+    clock_t          timeSatUndec;   // undecided
+    clock_t          timeChoice;     // choice computation
+    clock_t          timeOther;      // other runtime
+    clock_t          timeTotal;      // total runtime
 };
 
 ////////////////////////////////////////////////////////////////////////

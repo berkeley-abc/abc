@@ -47,11 +47,11 @@ struct Llb_Mnx_t_
     Vec_Int_t *     vOrder;         // for each object ID, its BDD variable number or -1
     Vec_Int_t *     vVars2Q;        // 1 if variable is quantifiable; 0 othervise
 
-    int             timeImage;
-    int             timeRemap;
-    int             timeReo;
-    int             timeOther;
-    int             timeTotal;
+    clock_t         timeImage;
+    clock_t         timeRemap;
+    clock_t         timeReo;
+    clock_t         timeOther;
+    clock_t         timeTotal;
 };
 
 //extern int timeBuild, timeAndEx, timeOther;
@@ -446,7 +446,8 @@ DdNode * Llb_Nonlin4ComputeInitState( DdManager * dd, Aig_Man_t * pAig, Vec_Int_
 {
     Aig_Obj_t * pObjLi, * pObjLo;
     DdNode * bRes, * bVar, * bTemp;
-    int i, TimeStop;
+    int i;
+    clock_t TimeStop;
     TimeStop = dd->TimeStop;  dd->TimeStop = 0;
     bRes = Cudd_ReadOne( dd );   Cudd_Ref( bRes );
     Saig_ManForEachLiLo( pAig, pObjLi, pObjLo, i )
@@ -475,7 +476,8 @@ DdNode * Llb_Nonlin4ComputeCube( DdManager * dd, Aig_Man_t * pAig, Vec_Int_t * v
 {
     Aig_Obj_t * pObjLo, * pObjLi, * pObjTemp;
     DdNode * bRes, * bVar, * bTemp;
-    int i, TimeStop;
+    int i;
+    clock_t TimeStop;
     TimeStop = dd->TimeStop;  dd->TimeStop = 0;
     bRes = Cudd_ReadOne( dd );   Cudd_Ref( bRes );
     Saig_ManForEachLiLo( pAig, pObjLi, pObjLo, i )
@@ -667,7 +669,7 @@ int Llb_Nonlin4Reachability( Llb_Mnx_t * p )
 { 
     DdNode * bAux;
     int nIters, nBddSizeFr = 0, nBddSizeTo = 0, nBddSizeTo2 = 0;
-    int clkTemp, clkIter, clk = clock();
+    clock_t clkTemp, clkIter, clk = clock();
     assert( Aig_ManRegNum(p->pAig) > 0 );
 
     if ( p->pPars->fBackward )
@@ -736,7 +738,7 @@ int Llb_Nonlin4Reachability( Llb_Mnx_t * p )
     { 
         clkIter = clock();
         // check the runtime limit
-        if ( p->pPars->TimeLimit && time(NULL) > p->pPars->TimeTarget )
+        if ( p->pPars->TimeLimit && clock() > p->pPars->TimeTarget )
         {
             if ( !p->pPars->fSilent )
                 printf( "Reached timeout (%d seconds) during image computation.\n",  p->pPars->TimeLimit );
@@ -904,7 +906,7 @@ printf( "Before = %d.  After = %d.\n", Cudd_DagSize(bAux), Cudd_DagSize(p->bCurr
 ***********************************************************************/
 void Llb_Nonlin4Reorder( DdManager * dd, int fTwice, int fVerbose )
 {
-    int clk = clock();
+    clock_t clk = clock();
     if ( fVerbose )
         Abc_Print( 1, "Reordering... Before =%5d. ", Cudd_ReadKeys(dd) - Cudd_ReadDead(dd) );
     Cudd_ReduceHeap( dd, CUDD_REORDER_SYMM_SIFT, 100 );
@@ -940,7 +942,7 @@ Llb_Mnx_t * Llb_MnxStart( Aig_Man_t * pAig, Gia_ParLlb_t * pPars )
     p->pPars   = pPars;
 
     // compute time to stop
-    p->pPars->TimeTarget = p->pPars->TimeLimit ? time(NULL) + p->pPars->TimeLimit : 0;
+    p->pPars->TimeTarget = p->pPars->TimeLimit ? p->pPars->TimeLimit * CLOCKS_PER_SEC + clock(): 0;
 
     if ( pPars->fCluster )
     {
@@ -1071,7 +1073,7 @@ int Llb_Nonlin4CoreReach( Aig_Man_t * pAig, Gia_ParLlb_t * pPars )
         return RetValue;
     }
     {
-        int clk = clock();
+        clock_t clk = clock();
         pMnn = Llb_MnxStart( pAig, pPars );
 //Llb_MnxCheckNextStateVars( pMnn );
         if ( !pPars->fSkipReach )

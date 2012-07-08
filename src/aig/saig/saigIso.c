@@ -426,7 +426,8 @@ Aig_Man_t * Iso_ManFilterPos( Aig_Man_t * pAig, Vec_Ptr_t ** pvPosEquivs, int fV
     Vec_Ptr_t * vBuffers, * vClasses;
     Vec_Int_t * vLevel, * vRemain;
     Vec_Str_t * vStr, * vPrev;
-    int i, nPos, clk = clock();
+    int i, nPos;
+    clock_t clk = clock();
     int clkDup = 0, clkAig = 0, clkIso = 0, clk2;
     *pvPosEquivs = NULL;
 
@@ -539,7 +540,7 @@ Aig_Man_t * Iso_ManFilterPos( Aig_Man_t * pAig, Vec_Ptr_t ** pvPosEquivs, int fV
 Aig_Man_t * Iso_ManTest( Aig_Man_t * pAig, int fVerbose )
 {
     Vec_Int_t * vPerm;
-    int clk = clock();
+    clock_t clk = clock();
     vPerm = Saig_ManFindIsoPerm( pAig, fVerbose );
     Vec_IntFree( vPerm );
     Abc_PrintTime( 1, "Time", clock() - clk );
@@ -560,7 +561,7 @@ Aig_Man_t * Iso_ManTest( Aig_Man_t * pAig, int fVerbose )
 Aig_Man_t * Saig_ManIsoReduce( Aig_Man_t * pAig, Vec_Ptr_t ** pvPosEquivs, int fVerbose )
 { 
     Aig_Man_t * pPart;
-    int clk = clock();
+    clock_t clk = clock();
     pPart = Iso_ManFilterPos( pAig, pvPosEquivs, fVerbose );
     printf( "Reduced %d outputs to %d outputs.  ", Saig_ManPoNum(pAig), Saig_ManPoNum(pPart) );
     Abc_PrintTime( 1, "Time", clock() - clk );

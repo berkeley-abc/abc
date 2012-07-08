@@ -260,7 +260,8 @@ void Fraig_TableResizeS( Fraig_HashTable_t * p )
 {
     Fraig_Node_t ** pBinsNew;
     Fraig_Node_t * pEnt, * pEnt2;
-    int nBinsNew, Counter, i, clk;
+    int nBinsNew, Counter, i;
+    clock_t clk;
     unsigned Key;
 
 clk = clock();
@@ -303,7 +304,8 @@ void Fraig_TableResizeF( Fraig_HashTable_t * p, int fUseSimR )
 {
     Fraig_Node_t ** pBinsNew;
     Fraig_Node_t * pEnt, * pEnt2;
-    int nBinsNew, Counter, i, clk;
+    int nBinsNew, Counter, i;
+    clock_t clk;
     unsigned Key;
 
 clk = clock();

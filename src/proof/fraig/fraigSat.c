@@ -85,7 +85,8 @@ int Fraig_NodesAreEqual( Fraig_Man_t * p, Fraig_Node_t * pNode1, Fraig_Node_t * 
 void Fraig_ManProveMiter( Fraig_Man_t * p )
 {
     Fraig_Node_t * pNode;
-    int i, clk;
+    int i;
+    clock_t clk;
 
     if ( !p->fTryProve )
         return;
@@ -300,7 +301,8 @@ void Fraig_VarsStudy( Fraig_Man_t * p, Fraig_Node_t * pOld, Fraig_Node_t * pNew 
 ***********************************************************************/
 int Fraig_NodeIsEquivalent( Fraig_Man_t * p, Fraig_Node_t * pOld, Fraig_Node_t * pNew, int nBTLimit, int nTimeLimit )
 {
-    int RetValue, RetValue1, i, fComp, clk;
+    int RetValue, RetValue1, i, fComp;
+    clock_t clk;
     int fVerbose = 0;
     int fSwitch = 0;
 
@@ -548,7 +550,8 @@ p->time3 += clock() - clk;
 ***********************************************************************/
 int Fraig_NodeIsImplication( Fraig_Man_t * p, Fraig_Node_t * pOld, Fraig_Node_t * pNew, int nBTLimit )
 {
-    int RetValue, RetValue1, i, fComp, clk;
+    int RetValue, RetValue1, i, fComp;
+    clock_t clk;
     int fVerbose = 0;
 
     // make sure the nodes are not complemented
@@ -650,7 +653,8 @@ p->time3 += clock() - clk;
 int Fraig_ManCheckClauseUsingSat( Fraig_Man_t * p, Fraig_Node_t * pNode1, Fraig_Node_t * pNode2, int nBTLimit )
 {
     Fraig_Node_t * pNode1R, * pNode2R;
-    int RetValue, RetValue1, i, clk;
+    int RetValue, RetValue1, i;
+    clock_t clk;
     int fVerbose = 0;
 
     pNode1R = Fraig_Regular(pNode1);

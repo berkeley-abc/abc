@@ -521,7 +521,7 @@ Vec_Int_t * Saig_ManExtendCounterExampleTest( Aig_Man_t * p, int iFirstFlopPi, A
 {
     Vec_Int_t * vRes;
     Vec_Ptr_t * vSimInfo;
-    int clk;
+    clock_t clk;
     if ( Saig_ManPiNum(p) != pCex->nPis )
     {
         printf( "Saig_ManExtendCounterExampleTest(): The PI count of AIG (%d) does not match that of cex (%d).\n", 

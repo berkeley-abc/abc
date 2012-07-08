@@ -219,8 +219,9 @@ int Gia_ManCofOneDerive( Ccf_Man_t * p, int LitProp )
 ***********************************************************************/
 int Gia_ManCofGetReachable( Ccf_Man_t * p, int Lit )
 {
-    int ObjPrev = 0, ConfPrev = 0, clk;
+    int ObjPrev = 0, ConfPrev = 0;
     int Count = 0, LitOut, RetValue;
+    clock_t clk;
     // try solving for the first time and quit if converged
     RetValue = sat_solver_solve( p->pSat, &Lit, &Lit + 1, p->nConfMax, 0, 0, 0 );
     if ( RetValue == l_False )
@@ -268,8 +269,8 @@ Gia_Man_t * Gia_ManCofTest( Gia_Man_t * pGia, int nFrameMax, int nConfMax, int n
     Ccf_Man_t * p;
     Gia_Obj_t * pObj;
     int f, i, Lit, RetValue = -1, fFailed = 0;
-    int nTimeToStop = time(NULL) + nTimeMax;
-    int clk = clock();
+    clock_t nTimeToStop = clock() + nTimeMax * CLOCKS_PER_SEC;
+    clock_t clk = clock();
     assert( Gia_ManPoNum(pGia) == 1 );
 
     // create reachability manager
@@ -309,7 +310,7 @@ Gia_Man_t * Gia_ManCofTest( Gia_Man_t * pGia, int nFrameMax, int nConfMax, int n
     }
 
     // report the result
-    if ( nTimeToStop && time(NULL) > nTimeToStop )
+    if ( nTimeToStop && clock() > nTimeToStop )
         printf( "Runtime limit (%d sec) is reached after %d frames.  ", nTimeMax, f );
     else if ( f == nFrameMax )
         printf( "Completed %d frames without converging.  ", f );

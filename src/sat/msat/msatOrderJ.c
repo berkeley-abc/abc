@@ -81,8 +81,8 @@ struct Msat_Order_t_
 static void Msat_OrderRingAddLast( Msat_OrderRing_t * pRing, Msat_OrderVar_t * pVar );
 static void Msat_OrderRingRemove( Msat_OrderRing_t * pRing, Msat_OrderVar_t * pVar );
 
-extern int timeSelect;
-extern int timeAssign;
+extern clock_t timeSelect;
+extern clock_t timeAssign;
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///

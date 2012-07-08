@@ -65,7 +65,7 @@ struct Gia_ParLlb_t_
     int         TimeLimit;     // time limit for one reachability run
     int         TimeLimitGlo;  // time limit for all reachability runs
     // internal parameters
-    int         TimeTarget;    // the time to stop
+    clock_t     TimeTarget;    // the time to stop
     int         iFrame;        // explored up to this frame
 };
 
