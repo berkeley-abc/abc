@@ -18,11 +18,11 @@
 
 ***********************************************************************/
 
-#include "src/base/abc/abc.h"
-#include "src/bdd/reo/reo.h"
-#include "src/map/if/if.h"
-#include "src/bool/kit/kit.h"
-#include "src/misc/extra/extraBdd.h"
+#include "base/abc/abc.h"
+#include "bdd/reo/reo.h"
+#include "map/if/if.h"
+#include "bool/kit/kit.h"
+#include "misc/extra/extraBdd.h"
 
 ABC_NAMESPACE_IMPL_START
 

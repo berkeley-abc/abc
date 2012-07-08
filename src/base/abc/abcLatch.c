@@ -19,7 +19,7 @@
 ***********************************************************************/
 
 #include "abc.h"
-#include "src/misc/extra/extraBdd.h"
+#include "misc/extra/extraBdd.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -486,7 +486,7 @@ Abc_Ntk_t * Abc_NtkConvertOnehot( Abc_Ntk_t * pNtk )
 
 ABC_NAMESPACE_IMPL_END
 
-#include "src/aig/gia/giaAig.h"
+#include "aig/gia/giaAig.h"
 
 ABC_NAMESPACE_IMPL_START
 

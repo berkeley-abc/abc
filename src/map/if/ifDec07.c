@@ -19,8 +19,8 @@
 ***********************************************************************/
 
 #include "if.h"
-#include "src/misc/extra/extra.h"
-#include "src/bool/kit/kit.h"
+#include "misc/extra/extra.h"
+#include "bool/kit/kit.h"
 
 ABC_NAMESPACE_IMPL_START
 

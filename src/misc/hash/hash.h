@@ -29,7 +29,7 @@
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
 
-#include "src/misc/util/abc_global.h"
+#include "misc/util/abc_global.h"
 
 #include "hashInt.h"
 #include "hashFlt.h"

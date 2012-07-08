@@ -19,13 +19,13 @@
 ***********************************************************************/
 
 #include <math.h>
-#include "src/base/abc/abc.h"
-#include "src/bool/dec/dec.h"
-#include "src/base/main/main.h"
-#include "src/map/mio/mio.h"
-#include "src/aig/aig/aig.h"
-#include "src/map/if/if.h"
-#include "src/misc/extra/extraBdd.h"
+#include "base/abc/abc.h"
+#include "bool/dec/dec.h"
+#include "base/main/main.h"
+#include "map/mio/mio.h"
+#include "aig/aig/aig.h"
+#include "map/if/if.h"
+#include "misc/extra/extraBdd.h"
 
 ABC_NAMESPACE_IMPL_START
 

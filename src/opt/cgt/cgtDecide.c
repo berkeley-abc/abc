@@ -19,7 +19,7 @@
 ***********************************************************************/
 
 #include "cgtInt.h"
-#include "src/proof/ssw/sswInt.h"
+#include "proof/ssw/sswInt.h"
 
 ABC_NAMESPACE_IMPL_START
 

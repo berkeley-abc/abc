@@ -26,8 +26,8 @@
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
 
-#include "src/aig/aig/aig.h"
-#include "src/sat/bsat/satSolver.h"
+#include "aig/aig/aig.h"
+#include "sat/bsat/satSolver.h"
 #include "dch.h"
 
 ////////////////////////////////////////////////////////////////////////

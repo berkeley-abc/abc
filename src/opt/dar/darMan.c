@@ -144,7 +144,7 @@ void Dar_ManPrintStats( Dar_Man_t * p )
 
 ABC_NAMESPACE_IMPL_END
 
-#include "src/bool/kit/kit.h"
+#include "bool/kit/kit.h"
 
 ABC_NAMESPACE_IMPL_START
 

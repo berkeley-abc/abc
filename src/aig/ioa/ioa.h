@@ -31,9 +31,9 @@
 #include <string.h>
 #include <assert.h>
 
-#include "src/misc/vec/vec.h"
+#include "misc/vec/vec.h"
 //#include "bar.h"
-#include "src/aig/aig/aig.h"
+#include "aig/aig/aig.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///

@@ -19,7 +19,7 @@
 ***********************************************************************/
 
 #include "gia.h"
-#include "src/proof/cec/cec.h"
+#include "proof/cec/cec.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -1654,9 +1654,9 @@ int Gia_ManCountChoices( Gia_Man_t * p )
 
 ABC_NAMESPACE_IMPL_END
 
-#include "src/aig/aig/aig.h"
-#include "src/aig/saig/saig.h"
-#include "src/proof/cec/cec.h"
+#include "aig/aig/aig.h"
+#include "aig/saig/saig.h"
+#include "proof/cec/cec.h"
 #include "giaAig.h"
 
 ABC_NAMESPACE_IMPL_START

@@ -15,7 +15,7 @@
 #define ABC__misc__st__st_h
 #define ST_INCLUDED
 
-#include "src/misc/util/abc_global.h"
+#include "misc/util/abc_global.h"
 
 ABC_NAMESPACE_HEADER_START
 

@@ -18,8 +18,8 @@
 
 ***********************************************************************/
 
-#include "src/base/abc/abc.h"
-#include "src/base/io/ioAbc.h"
+#include "base/abc/abc.h"
+#include "base/io/ioAbc.h"
 
 ABC_NAMESPACE_IMPL_START
 

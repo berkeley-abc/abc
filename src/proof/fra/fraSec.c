@@ -19,12 +19,12 @@
 ***********************************************************************/
 
 #include "fra.h"
-#include "src/aig/ioa/ioa.h"
-#include "src/proof/int/int.h"
-#include "src/proof/ssw/ssw.h"
-#include "src/aig/saig/saig.h"
-#include "src/proof/bbr/bbr.h"
-#include "src/proof/pdr/pdr.h"
+#include "aig/ioa/ioa.h"
+#include "proof/int/int.h"
+#include "proof/ssw/ssw.h"
+#include "aig/saig/saig.h"
+#include "proof/bbr/bbr.h"
+#include "proof/pdr/pdr.h"
 
 ABC_NAMESPACE_IMPL_START
 

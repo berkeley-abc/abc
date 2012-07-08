@@ -18,7 +18,7 @@
 
 #include <math.h>
 #include "fraigInt.h"
-#include "src/sat/msat/msatInt.h"
+#include "sat/msat/msatInt.h"
 
 ABC_NAMESPACE_IMPL_START
 

@@ -19,8 +19,8 @@
 ***********************************************************************/
 
 #include "aig.h"
-#include "src/sat/cnf/cnf.h"
-#include "src/sat/bsat/satSolver2.h"
+#include "sat/cnf/cnf.h"
+#include "sat/bsat/satSolver2.h"
 
 ABC_NAMESPACE_IMPL_START
 

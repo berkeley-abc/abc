@@ -19,8 +19,8 @@
 ***********************************************************************/
 
 #include "aig.h"
-#include "src/misc/tim/tim.h"
-#include "src/proof/fra/fra.h"
+#include "misc/tim/tim.h"
+#include "proof/fra/fra.h"
 
 ABC_NAMESPACE_IMPL_START
 

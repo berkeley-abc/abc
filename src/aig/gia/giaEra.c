@@ -19,7 +19,7 @@
 ***********************************************************************/
 
 #include "gia.h"
-#include "src/misc/mem/mem.h"
+#include "misc/mem/mem.h"
 
 ABC_NAMESPACE_IMPL_START
 

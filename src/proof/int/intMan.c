@@ -19,7 +19,7 @@
 ***********************************************************************/
 
 #include "intInt.h"
-#include "src/aig/ioa/ioa.h"
+#include "aig/ioa/ioa.h"
 
 ABC_NAMESPACE_IMPL_START
 

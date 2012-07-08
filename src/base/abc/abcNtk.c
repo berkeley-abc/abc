@@ -20,10 +20,10 @@
 
 #include "abc.h"
 #include "abcInt.h"
-#include "src/base/main/main.h"
-#include "src/map/mio/mio.h"
-#include "src/aig/gia/gia.h"
-#include "src/misc/extra/extraBdd.h"
+#include "base/main/main.h"
+#include "map/mio/mio.h"
+#include "aig/gia/gia.h"
+#include "misc/extra/extraBdd.h"
 
 ABC_NAMESPACE_IMPL_START
 

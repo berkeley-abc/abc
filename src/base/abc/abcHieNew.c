@@ -23,9 +23,9 @@
 #include <string.h>
 #include <assert.h>
 
-#include "src/misc/vec/vec.h"
-#include "src/misc/util/utilNam.h"
-#include "src/misc/extra/extra.h"
+#include "misc/vec/vec.h"
+#include "misc/util/utilNam.h"
+#include "misc/extra/extra.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -1108,7 +1108,7 @@ Au_Ntk_t * Au_NtkParseCBlif( char * pFileName )
 
 
 #include "abc.h"
-#include "src/aig/gia/gia.h"
+#include "aig/gia/gia.h"
 
 extern Vec_Ptr_t * Abc_NtkDfsBoxes( Abc_Ntk_t * pNtk );
 extern int Abc_NtkDeriveFlatGiaSop( Gia_Man_t * pGia, int * gFanins, char * pSop );

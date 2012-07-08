@@ -27,16 +27,16 @@
 ////////////////////////////////////////////////////////////////////////
 
 #include "main.h"
-#include "src/misc/tim/tim.h"
-#include "src/map/if/if.h"
-#include "src/aig/aig/aig.h"
-#include "src/aig/gia/gia.h"
-#include "src/proof/ssw/ssw.h"
-#include "src/proof/fra/fra.h"
-//#include "src/aig/nwk/nwkMerge.h"
-//#include "src/aig/ntl/ntlnwk.h"
-#include "src/misc/ext/ext.h"
-#include "src/misc/extra/extraBdd.h"
+#include "misc/tim/tim.h"
+#include "map/if/if.h"
+#include "aig/aig/aig.h"
+#include "aig/gia/gia.h"
+#include "proof/ssw/ssw.h"
+#include "proof/fra/fra.h"
+//#include "aig/nwk/nwkMerge.h"
+//#include "aig/ntl/ntlnwk.h"
+#include "misc/ext/ext.h"
+#include "misc/extra/extraBdd.h"
 
 ABC_NAMESPACE_HEADER_START
 

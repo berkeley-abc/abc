@@ -17,7 +17,7 @@
 ***********************************************************************/
 
 #include "fpgaInt.h"
-#include "src/base/main/main.h"
+#include "base/main/main.h"
 
 ABC_NAMESPACE_IMPL_START
 

@@ -19,7 +19,7 @@
 ***********************************************************************/
 
 #include "abc.h"
-#include "src/base/main/main.h"
+#include "base/main/main.h"
 //#include "seq.h"
 
 ABC_NAMESPACE_IMPL_START

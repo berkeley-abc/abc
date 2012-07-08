@@ -63,7 +63,7 @@
 
 ******************************************************************************/
 
-#include "src/misc/util/util_hack.h"
+#include "misc/util/util_hack.h"
 #include "cuddInt.h"
 
 ABC_NAMESPACE_IMPL_START

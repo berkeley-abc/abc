@@ -19,7 +19,7 @@
 ***********************************************************************/
 
 #include "fra.h"
-#include "src/sat/cnf/cnf.h"
+#include "sat/cnf/cnf.h"
 
 ABC_NAMESPACE_IMPL_START
 

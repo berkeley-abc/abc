@@ -26,8 +26,8 @@
 #include <string.h>
 #include <assert.h>
 
-#include "src/misc/bzlib/bzlib.h"
-#include "src/misc/zlib/zlib.h"
+#include "misc/bzlib/bzlib.h"
+#include "misc/zlib/zlib.h"
 #include "ioAbc.h"
 
 ABC_NAMESPACE_IMPL_START

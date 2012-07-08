@@ -19,9 +19,9 @@
 ***********************************************************************/
 
 #include "gia.h"
-#include "src/aig/aig/aig.h"
-#include "src/map/if/if.h"
-#include "src/opt/dar/dar.h"
+#include "aig/aig/aig.h"
+#include "map/if/if.h"
+#include "opt/dar/dar.h"
 
 ABC_NAMESPACE_IMPL_START
 

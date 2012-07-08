@@ -27,10 +27,10 @@
 
 ***********************************************************************/
 
-#include "src/base/abc/abc.h"
-#include "src/opt/sim/sim.h"
-#include "src/sat/bsat/satSolver.h"
-#include "src/misc/extra/extraBdd.h"
+#include "base/abc/abc.h"
+#include "opt/sim/sim.h"
+#include "sat/bsat/satSolver.h"
+#include "misc/extra/extraBdd.h"
 
 ABC_NAMESPACE_IMPL_START
 

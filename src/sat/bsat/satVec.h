@@ -22,7 +22,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #ifndef ABC__sat__bsat__satVec_h
 #define ABC__sat__bsat__satVec_h
 
-#include "src/misc/util/abc_global.h"
+#include "misc/util/abc_global.h"
 
 ABC_NAMESPACE_HEADER_START
 

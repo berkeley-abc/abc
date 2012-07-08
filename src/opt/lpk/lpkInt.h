@@ -26,9 +26,9 @@
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
 
-#include "src/base/abc/abc.h"
-#include "src/bool/kit/kit.h"
-#include "src/map/if/if.h"
+#include "base/abc/abc.h"
+#include "bool/kit/kit.h"
+#include "map/if/if.h"
 #include "lpk.h"
 
 ////////////////////////////////////////////////////////////////////////

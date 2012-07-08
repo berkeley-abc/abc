@@ -18,7 +18,7 @@
 
 ***********************************************************************/
 
-#include "src/aig/ioa/ioa.h"
+#include "aig/ioa/ioa.h"
 #include "saig.h"
 
 ABC_NAMESPACE_IMPL_START
@@ -575,7 +575,7 @@ Aig_Man_t * Saig_ManIsoReduce( Aig_Man_t * pAig, Vec_Ptr_t ** pvPosEquivs, int f
 }
 
 
-#include "src/base/abc/abc.h"
+#include "base/abc/abc.h"
 
 /**Function*************************************************************
 

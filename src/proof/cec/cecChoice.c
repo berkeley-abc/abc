@@ -19,8 +19,8 @@
 ***********************************************************************/
 
 #include "cecInt.h"
-#include "src/aig/gia/giaAig.h"
-#include "src/proof/dch/dch.h"
+#include "aig/gia/giaAig.h"
+#include "proof/dch/dch.h"
 
 ABC_NAMESPACE_IMPL_START
 

@@ -19,7 +19,7 @@
 ***********************************************************************/
 
 #include "cgtInt.h"
-#include "src/misc/bar/bar.h"
+#include "misc/bar/bar.h"
 
 ABC_NAMESPACE_IMPL_START
 

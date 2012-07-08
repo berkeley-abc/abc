@@ -24,7 +24,7 @@
 #include <assert.h>
 
 #include "satStore.h"
-#include "src/aig/aig/aig.h"
+#include "aig/aig/aig.h"
 
 ABC_NAMESPACE_IMPL_START
 

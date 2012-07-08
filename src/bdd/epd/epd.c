@@ -52,7 +52,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include "src/misc/util/util_hack.h"
+#include "misc/util/util_hack.h"
 #include "epd.h"
 
 ABC_NAMESPACE_IMPL_START

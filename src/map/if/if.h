@@ -31,9 +31,9 @@
 #include <string.h>
 #include <assert.h>
 
-#include "src/misc/vec/vec.h"
-#include "src/misc/mem/mem.h"
-#include "src/misc/tim/tim.h"
+#include "misc/vec/vec.h"
+#include "misc/mem/mem.h"
+#include "misc/tim/tim.h"
 
 
 

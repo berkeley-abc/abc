@@ -26,10 +26,10 @@
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
 
-#include "src/aig/saig/saig.h"
-#include "src/sat/bsat/satSolver.h"
+#include "aig/saig/saig.h"
+#include "sat/bsat/satSolver.h"
 #include "ssw.h"
-#include "src/aig/ioa/ioa.h"
+#include "aig/ioa/ioa.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///

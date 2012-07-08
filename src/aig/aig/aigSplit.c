@@ -19,8 +19,8 @@
 ***********************************************************************/
 
 #include "aig.h"
-#include "src/aig/saig/saig.h"
-#include "src/misc/extra/extraBdd.h"
+#include "aig/saig/saig.h"
+#include "misc/extra/extraBdd.h"
 
 ABC_NAMESPACE_IMPL_START
 

@@ -19,7 +19,7 @@
 ***********************************************************************/
 
 #include "kit.h"
-#include "src/aig/aig/aig.h"
+#include "aig/aig/aig.h"
 
 ABC_NAMESPACE_IMPL_START
 

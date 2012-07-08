@@ -62,8 +62,8 @@
 /* Nested includes                                                           */
 /*---------------------------------------------------------------------------*/
 
-#include "src/bdd/mtr/mtr.h"
-#include "src/bdd/epd/epd.h"
+#include "bdd/mtr/mtr.h"
+#include "bdd/epd/epd.h"
 
 ABC_NAMESPACE_HEADER_START
 

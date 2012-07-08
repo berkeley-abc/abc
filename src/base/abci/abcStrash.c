@@ -18,8 +18,8 @@
 
 ***********************************************************************/
 
-#include "src/base/abc/abc.h"
-#include "src/bool/dec/dec.h"
+#include "base/abc/abc.h"
+#include "bool/dec/dec.h"
 
 ABC_NAMESPACE_IMPL_START
 

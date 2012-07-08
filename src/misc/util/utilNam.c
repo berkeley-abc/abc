@@ -25,7 +25,7 @@
 #include <assert.h>
 
 #include "abc_global.h"
-#include "src/misc/vec/vec.h"
+#include "misc/vec/vec.h"
 #include "utilNam.h"
 
 ABC_NAMESPACE_IMPL_START

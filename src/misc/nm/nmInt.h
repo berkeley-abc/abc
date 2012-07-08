@@ -26,8 +26,8 @@
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
 
-#include "src/misc/extra/extra.h"
-#include "src/misc/vec/vec.h"
+#include "misc/extra/extra.h"
+#include "misc/vec/vec.h"
 #include "nm.h"
 
 ////////////////////////////////////////////////////////////////////////

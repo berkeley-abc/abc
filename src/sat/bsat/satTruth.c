@@ -19,7 +19,7 @@
 ***********************************************************************/
 
 #include "satTruth.h"
-#include "src/misc/vec/vecSet.h"
+#include "misc/vec/vecSet.h"
 
 ABC_NAMESPACE_IMPL_START
 

@@ -28,9 +28,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include "src/misc/vec/vec.h"
-#include "src/misc/mem/mem.h"
-#include "src/misc/st/st.h"
+#include "misc/vec/vec.h"
+#include "misc/mem/mem.h"
+#include "misc/st/st.h"
 #include "mio.h"
  
 ABC_NAMESPACE_HEADER_START

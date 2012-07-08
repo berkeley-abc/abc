@@ -27,7 +27,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "src/misc/extra/extra.h"
+#include "misc/extra/extra.h"
 #include "fpga.h"
 
 ABC_NAMESPACE_HEADER_START

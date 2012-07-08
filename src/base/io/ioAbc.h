@@ -26,8 +26,8 @@
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
 
-#include "src/base/abc/abc.h"
-#include "src/misc/extra/extra.h"
+#include "base/abc/abc.h"
+#include "misc/extra/extra.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///

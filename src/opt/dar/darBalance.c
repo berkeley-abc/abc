@@ -19,7 +19,7 @@
 ***********************************************************************/
 
 #include "darInt.h"
-#include "src/misc/tim/tim.h"
+#include "misc/tim/tim.h"
 
 ABC_NAMESPACE_IMPL_START
 

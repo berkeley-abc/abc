@@ -19,7 +19,7 @@
 ***********************************************************************/
 
 #include "mfsInt.h"
-#include "src/bool/kit/kit.h"
+#include "bool/kit/kit.h"
 
 ABC_NAMESPACE_IMPL_START
 

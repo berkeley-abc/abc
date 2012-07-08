@@ -20,10 +20,10 @@
 
 #include "gia.h"
 #include "giaAig.h"
-#include "src/sat/cnf/cnf.h"
-#include "src/sat/bsat/satSolver2.h"
-#include "src/base/main/main.h"
-#include "src/aig/saig/saig.h"
+#include "sat/cnf/cnf.h"
+#include "sat/bsat/satSolver2.h"
+#include "base/main/main.h"
+#include "aig/saig/saig.h"
 
 ABC_NAMESPACE_IMPL_START
 

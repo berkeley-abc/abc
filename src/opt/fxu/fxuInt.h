@@ -24,7 +24,7 @@
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
 
-#include "src/base/abc/abc.h"
+#include "base/abc/abc.h"
 
 ABC_NAMESPACE_HEADER_START
 

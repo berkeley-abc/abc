@@ -18,8 +18,8 @@
 
 ***********************************************************************/
 
-#include "src/base/abc/abc.h"
-#include "src/misc/vec/vecPtr.h"
+#include "base/abc/abc.h"
+#include "misc/vec/vecPtr.h"
 #include "ioAbc.h"
 
 ABC_NAMESPACE_IMPL_START
@@ -2029,8 +2029,8 @@ Io_MvVar_t * Abc_NtkMvVarDup( Abc_Ntk_t * pNtk, Io_MvVar_t * pVar )
 
 ABC_NAMESPACE_IMPL_END
 
-#include "src/map/mio/mio.h"
-#include "src/base/main/main.h"
+#include "map/mio/mio.h"
+#include "base/main/main.h"
 
 ABC_NAMESPACE_IMPL_START
 

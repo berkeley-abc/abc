@@ -19,7 +19,7 @@
 ***********************************************************************/
 
 #include "darInt.h"
-#include "src/aig/gia/gia.h"
+#include "aig/gia/gia.h"
 #include "dar.h"
 
 ABC_NAMESPACE_IMPL_START

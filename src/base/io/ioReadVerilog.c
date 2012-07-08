@@ -19,7 +19,7 @@
 ***********************************************************************/
 
 #include "ioAbc.h"
-#include "src/base/ver/ver.h"
+#include "base/ver/ver.h"
 
 ABC_NAMESPACE_IMPL_START
 

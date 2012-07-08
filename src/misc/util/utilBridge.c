@@ -23,7 +23,7 @@
 #include <stdlib.h>
 #include <assert.h>
 
-#include "src/aig/gia/gia.h"
+#include "aig/gia/gia.h"
 
 ABC_NAMESPACE_IMPL_START
 

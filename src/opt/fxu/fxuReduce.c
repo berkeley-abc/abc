@@ -16,7 +16,7 @@
 
 ***********************************************************************/
 
-#include "src/base/abc/abc.h"
+#include "base/abc/abc.h"
 #include "fxuInt.h"
 #include "fxu.h"
 

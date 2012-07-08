@@ -24,11 +24,11 @@
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
 
-#include "src/base/abc/abc.h"
-#include "src/base/main/mainInt.h"
-#include "src/misc/mvc/mvc.h"
-#include "src/map/mio/mio.h"
-#include "src/misc/st/stmm.h"
+#include "base/abc/abc.h"
+#include "base/main/mainInt.h"
+#include "misc/mvc/mvc.h"
+#include "map/mio/mio.h"
+#include "misc/st/stmm.h"
 #include "super.h"
 
 ABC_NAMESPACE_HEADER_START

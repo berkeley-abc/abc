@@ -18,22 +18,22 @@
 
 ***********************************************************************/
 
-#include "src/base/abc/abc.h"
-#include "src/base/main/main.h"
-#include "src/aig/gia/giaAig.h"
-#include "src/opt/dar/dar.h"
-#include "src/sat/cnf/cnf.h"
-#include "src/proof/fra/fra.h"
-#include "src/proof/fraig/fraig.h"
-#include "src/proof/int/int.h"
-#include "src/proof/dch/dch.h"
-#include "src/proof/ssw/ssw.h"
-#include "src/opt/cgt/cgt.h"
-#include "src/proof/bbr/bbr.h"
-#include "src/aig/gia/gia.h"
-#include "src/proof/cec/cec.h"
-#include "src/opt/csw/csw.h"
-#include "src/proof/pdr/pdr.h"
+#include "base/abc/abc.h"
+#include "base/main/main.h"
+#include "aig/gia/giaAig.h"
+#include "opt/dar/dar.h"
+#include "sat/cnf/cnf.h"
+#include "proof/fra/fra.h"
+#include "proof/fraig/fraig.h"
+#include "proof/int/int.h"
+#include "proof/dch/dch.h"
+#include "proof/ssw/ssw.h"
+#include "opt/cgt/cgt.h"
+#include "proof/bbr/bbr.h"
+#include "aig/gia/gia.h"
+#include "proof/cec/cec.h"
+#include "opt/csw/csw.h"
+#include "proof/pdr/pdr.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -1833,7 +1833,7 @@ Abc_Ntk_t * Abc_NtkDarLcorrNew( Abc_Ntk_t * pNtk, int nVarsMax, int nConfMax, in
 
 /*
 #include <signal.h>
-#include "src/misc/util/utilMem.h"
+#include "misc/util/utilMem.h"
 static void sigfunc( int signo ) 
 {
     if (signo == SIGINT) {
@@ -3991,8 +3991,8 @@ int Abc_NtkDarReach( Abc_Ntk_t * pNtk, Saig_ParBbr_t * pPars )
 
 ABC_NAMESPACE_IMPL_END
 
-#include "src/map/amap/amap.h"
-#include "src/map/mio/mio.h"
+#include "map/amap/amap.h"
+#include "map/mio/mio.h"
 
 ABC_NAMESPACE_IMPL_START
 

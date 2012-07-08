@@ -39,7 +39,7 @@
 #include <unistd.h>
 #endif
 
-#include "src/misc/util/abc_global.h"
+#include "misc/util/abc_global.h"
 
 #include "zconf.h"
 

@@ -22,9 +22,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "src/base/main/main.h"
-#include "src/base/cmd/cmd.h"
-#include "src/misc/extra/extraBdd.h"
+#include "base/main/main.h"
+#include "base/cmd/cmd.h"
+#include "misc/extra/extraBdd.h"
 #include "cas.h"
 
 ABC_NAMESPACE_IMPL_START

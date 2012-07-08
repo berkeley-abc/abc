@@ -27,10 +27,10 @@
 ////////////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
-#include "src/aig/aig/aig.h"
-#include "src/aig/saig/saig.h"
-#include "src/proof/ssw/ssw.h"
-#include "src/misc/extra/extraBdd.h"
+#include "aig/aig/aig.h"
+#include "aig/saig/saig.h"
+#include "proof/ssw/ssw.h"
+#include "misc/extra/extraBdd.h"
 #include "llb.h"
 
 ////////////////////////////////////////////////////////////////////////

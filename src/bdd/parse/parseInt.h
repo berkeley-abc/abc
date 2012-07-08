@@ -26,7 +26,7 @@
 
 
 #include <stdio.h>
-#include "src/misc/extra/extraBdd.h"
+#include "misc/extra/extraBdd.h"
 #include "parse.h"
 
 ABC_NAMESPACE_HEADER_START

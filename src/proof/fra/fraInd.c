@@ -19,9 +19,9 @@
 ***********************************************************************/
 
 #include "fra.h"
-#include "src/sat/cnf/cnf.h"
-#include "src/opt/dar/dar.h"
-#include "src/aig/saig/saig.h"
+#include "sat/cnf/cnf.h"
+#include "opt/dar/dar.h"
+#include "aig/saig/saig.h"
 
 ABC_NAMESPACE_IMPL_START
 

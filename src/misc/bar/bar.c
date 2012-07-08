@@ -22,8 +22,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "src/misc/util/abc_global.h"
-#include "src/base/main/main.h"
+#include "misc/util/abc_global.h"
+#include "base/main/main.h"
 #include "bar.h"
 
 ABC_NAMESPACE_IMPL_START

@@ -19,9 +19,9 @@
 ***********************************************************************/
 
 #include "aig.h"
-#include "src/bool/kit/kit.h"
-#include "src/bool/bdc/bdc.h"
-#include "src/aig/ioa/ioa.h"
+#include "bool/kit/kit.h"
+#include "bool/bdc/bdc.h"
+#include "aig/ioa/ioa.h"
 
 ABC_NAMESPACE_IMPL_START
 

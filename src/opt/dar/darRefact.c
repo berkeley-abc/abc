@@ -19,10 +19,10 @@
 ***********************************************************************/
 
 #include "darInt.h"
-#include "src/bool/kit/kit.h"
+#include "bool/kit/kit.h"
 
-#include "src/bool/bdc/bdc.h"
-#include "src/bool/bdc/bdcInt.h"
+#include "bool/bdc/bdc.h"
+#include "bool/bdc/bdcInt.h"
 
 ABC_NAMESPACE_IMPL_START
 

@@ -19,8 +19,8 @@
 ***********************************************************************/
 
 #include "rwr.h"
-#include "src/bool/dec/dec.h"
-#include "src/aig/ivy/ivy.h"
+#include "bool/dec/dec.h"
+#include "aig/ivy/ivy.h"
 
 ABC_NAMESPACE_IMPL_START
 

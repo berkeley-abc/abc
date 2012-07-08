@@ -18,13 +18,13 @@
 
 ***********************************************************************/
  
-#include "src/base/abc/abc.h"
-#include "src/base/io/ioAbc.h"
-#include "src/aig/saig/saig.h"
-#include "src/proof/ssw/ssw.h"
-#include "src/aig/gia/gia.h"
-#include "src/proof/cec/cec.h"
-#include "src/aig/gia/giaAig.h"
+#include "base/abc/abc.h"
+#include "base/io/ioAbc.h"
+#include "aig/saig/saig.h"
+#include "proof/ssw/ssw.h"
+#include "aig/gia/gia.h"
+#include "proof/cec/cec.h"
+#include "aig/gia/giaAig.h"
 
 ABC_NAMESPACE_IMPL_START
 

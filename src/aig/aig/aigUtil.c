@@ -1288,8 +1288,8 @@ void Aig_NodeIntersectLists( Vec_Ptr_t * vArr1, Vec_Ptr_t * vArr2, Vec_Ptr_t * v
 
 ABC_NAMESPACE_IMPL_END
 
-#include "src/proof/fra/fra.h"
-#include "src/aig/saig/saig.h"
+#include "proof/fra/fra.h"
+#include "aig/saig/saig.h"
 
 ABC_NAMESPACE_IMPL_START
 

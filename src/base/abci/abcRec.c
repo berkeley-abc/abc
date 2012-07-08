@@ -18,9 +18,9 @@
 
 ***********************************************************************/
 
-#include "src/base/abc/abc.h"
-#include "src/map/if/if.h"
-#include "src/bool/kit/kit.h"
+#include "base/abc/abc.h"
+#include "map/if/if.h"
+#include "bool/kit/kit.h"
 
 ABC_NAMESPACE_IMPL_START
 

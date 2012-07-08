@@ -737,7 +737,7 @@ void Gia_GiarfPrintClasses( Gia_Man_t * pGia )
 
 ABC_NAMESPACE_IMPL_END
 
-#include "src/proof/cec/cecInt.h"
+#include "proof/cec/cecInt.h"
 
 ABC_NAMESPACE_IMPL_START
 

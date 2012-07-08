@@ -31,8 +31,8 @@
 #include <string.h>
 #include <assert.h>
 
-#include "src/misc/vec/vec.h"
-#include "src/misc/util/utilCex.h"
+#include "misc/vec/vec.h"
+#include "misc/util/utilCex.h"
 #include "giaAbs.h"
 
 ////////////////////////////////////////////////////////////////////////

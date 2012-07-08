@@ -26,7 +26,7 @@
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
 
-#include "src/misc/util/abc_global.h"
+#include "misc/util/abc_global.h"
 
 #include "vecInt.h"
 #include "vecFlt.h"

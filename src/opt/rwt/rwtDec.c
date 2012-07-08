@@ -19,7 +19,7 @@
 ***********************************************************************/
 
 #include "rwt.h"
-#include "src/bool/deco/deco.h"
+#include "bool/deco/deco.h"
 
 ABC_NAMESPACE_IMPL_START
 

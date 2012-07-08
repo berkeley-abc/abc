@@ -16,8 +16,8 @@
 
 ***********************************************************************/
 
-#include "src/base/abc/abc.h"
-#include "src/misc/extra/extraBdd.h"
+#include "base/abc/abc.h"
+#include "misc/extra/extraBdd.h"
 #include "dec.h"
 
 ABC_NAMESPACE_IMPL_START

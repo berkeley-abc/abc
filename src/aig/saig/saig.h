@@ -26,8 +26,8 @@
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
 
-#include "src/aig/aig/aig.h"
-#include "src/aig/gia/giaAbs.h"
+#include "aig/aig/aig.h"
+#include "aig/gia/giaAbs.h"
 
 ABC_NAMESPACE_HEADER_START
 

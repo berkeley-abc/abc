@@ -26,14 +26,14 @@
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
 
-#include "src/base/abc/abc.h"
+#include "base/abc/abc.h"
 #include "mfs.h"
-#include "src/aig/aig/aig.h"
-#include "src/sat/cnf/cnf.h"
-#include "src/sat/bsat/satSolver.h"
-#include "src/sat/bsat/satStore.h"
-#include "src/bool/bdc/bdc.h"
-#include "src/aig/gia/gia.h"
+#include "aig/aig/aig.h"
+#include "sat/cnf/cnf.h"
+#include "sat/bsat/satSolver.h"
+#include "sat/bsat/satStore.h"
+#include "bool/bdc/bdc.h"
+#include "aig/gia/gia.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///

@@ -18,10 +18,10 @@
 
 ***********************************************************************/
 
-#include "src/base/abc/abc.h"
-#include "src/base/main/main.h"
-#include "src/proof/fraig/fraig.h"
-#include "src/misc/extra/extraBdd.h"
+#include "base/abc/abc.h"
+#include "base/main/main.h"
+#include "proof/fraig/fraig.h"
+#include "misc/extra/extraBdd.h"
 
 ABC_NAMESPACE_IMPL_START
 

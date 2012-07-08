@@ -19,7 +19,7 @@
 ***********************************************************************/
 
 #include "rwr.h"
-#include "src/bool/dec/dec.h"
+#include "bool/dec/dec.h"
 
 ABC_NAMESPACE_IMPL_START
 

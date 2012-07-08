@@ -19,9 +19,9 @@
 ***********************************************************************/
 
 #include "satSolver2.h"
-#include "src/misc/vec/vec.h"
-#include "src/misc/vec/vecSet.h"
-#include "src/aig/aig/aig.h"
+#include "misc/vec/vec.h"
+#include "misc/vec/vecSet.h"
+#include "aig/aig/aig.h"
 #include "satTruth.h"
 
 ABC_NAMESPACE_IMPL_START

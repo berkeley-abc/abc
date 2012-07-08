@@ -26,9 +26,9 @@
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
 
-#include "src/sat/bsat/satSolver.h"
-#include "src/misc/bar/bar.h"
-#include "src/aig/gia/gia.h"
+#include "sat/bsat/satSolver.h"
+#include "misc/bar/bar.h"
+#include "aig/gia/gia.h"
 #include "cec.h"
 
 ////////////////////////////////////////////////////////////////////////

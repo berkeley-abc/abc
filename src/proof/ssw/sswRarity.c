@@ -19,8 +19,8 @@
 ***********************************************************************/
 
 #include "sswInt.h"
-#include "src/aig/gia/giaAig.h"
-#include "src/base/main/main.h"
+#include "aig/gia/giaAig.h"
+#include "base/main/main.h"
 
 ABC_NAMESPACE_IMPL_START
 

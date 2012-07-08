@@ -16,10 +16,10 @@
 
 ***********************************************************************/
 
-#include "src/base/abc/abc.h"
-#include "src/base/main/main.h"
-#include "src/misc/mvc/mvc.h"
-#include "src/misc/extra/extraBdd.h"
+#include "base/abc/abc.h"
+#include "base/main/main.h"
+#include "misc/mvc/mvc.h"
+#include "misc/extra/extraBdd.h"
 #include "dec.h"
 
 ABC_NAMESPACE_IMPL_START

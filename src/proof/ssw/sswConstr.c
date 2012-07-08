@@ -19,8 +19,8 @@
 ***********************************************************************/
 
 #include "sswInt.h"
-#include "src/sat/cnf/cnf.h"
-#include "src/misc/bar/bar.h"
+#include "sat/cnf/cnf.h"
+#include "misc/bar/bar.h"
 
 ABC_NAMESPACE_IMPL_START
 

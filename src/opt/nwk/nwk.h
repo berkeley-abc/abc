@@ -26,14 +26,14 @@
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
 
-#include "src/aig/aig/aig.h"
-#include "src/aig/hop/hop.h"
-#include "src/misc/tim/tim.h"
-#include "src/map/if/if.h"
-#include "src/bool/bdc/bdc.h"
+#include "aig/aig/aig.h"
+#include "aig/hop/hop.h"
+#include "misc/tim/tim.h"
+#include "map/if/if.h"
+#include "bool/bdc/bdc.h"
 
-#include "src/proof/fra/fra.h"
-#include "src/proof/ssw/ssw.h"
+#include "proof/fra/fra.h"
+#include "proof/ssw/ssw.h"
 #include "ntlnwk.h"
 
 ////////////////////////////////////////////////////////////////////////

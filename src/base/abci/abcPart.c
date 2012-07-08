@@ -18,9 +18,9 @@
 
 ***********************************************************************/
 
-#include "src/base/abc/abc.h"
-#include "src/base/main/main.h"
-#include "src/base/cmd/cmd.h"
+#include "base/abc/abc.h"
+#include "base/main/main.h"
+#include "base/cmd/cmd.h"
 
 ABC_NAMESPACE_IMPL_START
 

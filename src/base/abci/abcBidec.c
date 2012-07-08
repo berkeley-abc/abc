@@ -18,9 +18,9 @@
 
 ***********************************************************************/
 
-#include "src/base/abc/abc.h"
-#include "src/bool/bdc/bdc.h"
-#include "src/bool/kit/kit.h"
+#include "base/abc/abc.h"
+#include "bool/bdc/bdc.h"
+#include "bool/kit/kit.h"
 
 ABC_NAMESPACE_IMPL_START
 

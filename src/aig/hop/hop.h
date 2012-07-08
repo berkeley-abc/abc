@@ -31,7 +31,7 @@
 #include <string.h>
 #include <assert.h>
 
-#include "src/misc/vec/vec.h"
+#include "misc/vec/vec.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///

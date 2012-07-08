@@ -17,8 +17,8 @@
 ***********************************************************************/
 
 #include "superInt.h"
-#include "src/base/main/mainInt.h"
-#include "src/map/mio/mio.h"
+#include "base/main/mainInt.h"
+#include "map/mio/mio.h"
 
 ABC_NAMESPACE_IMPL_START
 

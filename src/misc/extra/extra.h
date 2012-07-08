@@ -43,7 +43,7 @@
 #include <string.h>
 #include <assert.h>
 
-#include "src/misc/st/st.h"
+#include "misc/st/st.h"
 
 ABC_NAMESPACE_HEADER_START
 

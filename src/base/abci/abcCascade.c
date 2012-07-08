@@ -18,9 +18,9 @@
 
 ***********************************************************************/
 
-#include "src/base/abc/abc.h"
-#include "src/bdd/reo/reo.h"
-#include "src/misc/extra/extraBdd.h"
+#include "base/abc/abc.h"
+#include "bdd/reo/reo.h"
+#include "misc/extra/extraBdd.h"
 
 ABC_NAMESPACE_IMPL_START
 

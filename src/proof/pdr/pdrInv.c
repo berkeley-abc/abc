@@ -19,8 +19,8 @@
 ***********************************************************************/
 
 #include "pdrInt.h"
-#include "src/base/abc/abc.h"      // for Abc_NtkCollectCioNames()
-#include "src/base/main/main.h"    // for Abc_FrameReadGlobalFrame()
+#include "base/abc/abc.h"      // for Abc_NtkCollectCioNames()
+#include "base/main/main.h"    // for Abc_FrameReadGlobalFrame()
 
 ABC_NAMESPACE_IMPL_START
 

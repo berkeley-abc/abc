@@ -11145,7 +11145,7 @@ Vec_Int_t * Dar_LibReadPrios()
 
 #if 0
 
-#include "src/base/abc/abc.h"
+#include "base/abc/abc.h"
 
 ABC_NAMESPACE_IMPL_START
 

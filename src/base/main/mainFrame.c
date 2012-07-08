@@ -18,10 +18,10 @@
 
 ***********************************************************************/
 
-#include "src/base/abc/abc.h"
+#include "base/abc/abc.h"
 #include "mainInt.h"
-#include "src/bool/dec/dec.h"
-#include "src/misc/extra/extraBdd.h"
+#include "bool/dec/dec.h"
+#include "misc/extra/extraBdd.h"
 
 
 ABC_NAMESPACE_IMPL_START

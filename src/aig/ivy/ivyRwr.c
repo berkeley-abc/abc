@@ -19,8 +19,8 @@
 ***********************************************************************/
 
 #include "ivy.h"
-#include "src/bool/deco/deco.h"
-#include "src/opt/rwt/rwt.h"
+#include "bool/deco/deco.h"
+#include "opt/rwt/rwt.h"
 
 ABC_NAMESPACE_IMPL_START
 

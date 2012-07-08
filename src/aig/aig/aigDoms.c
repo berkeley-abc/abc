@@ -19,7 +19,7 @@
 ***********************************************************************/
 
 #include "aig.h"
-#include "src/aig/saig/saig.h"
+#include "aig/saig/saig.h"
 
 ABC_NAMESPACE_IMPL_START
 

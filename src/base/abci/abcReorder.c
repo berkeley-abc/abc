@@ -18,8 +18,8 @@
 
 ***********************************************************************/
 
-#include "src/base/abc/abc.h"
-#include "src/bdd/reo/reo.h"
+#include "base/abc/abc.h"
+#include "bdd/reo/reo.h"
 
 ABC_NAMESPACE_IMPL_START
 

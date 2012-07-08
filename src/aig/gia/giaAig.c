@@ -19,9 +19,9 @@
 ***********************************************************************/
 
 #include "giaAig.h"
-#include "src/proof/fra/fra.h"
-#include "src/proof/dch/dch.h"
-#include "src/opt/dar/dar.h"
+#include "proof/fra/fra.h"
+#include "proof/dch/dch.h"
+#include "opt/dar/dar.h"
 
 ABC_NAMESPACE_IMPL_START
 

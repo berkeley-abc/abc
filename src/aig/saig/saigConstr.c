@@ -19,10 +19,10 @@
 ***********************************************************************/
 
 #include "saig.h"
-#include "src/sat/cnf/cnf.h"
-#include "src/sat/bsat/satSolver.h"
-#include "src/bool/kit/kit.h"
-#include "src/aig/ioa/ioa.h"
+#include "sat/cnf/cnf.h"
+#include "sat/bsat/satSolver.h"
+#include "bool/kit/kit.h"
+#include "aig/ioa/ioa.h"
 
 ABC_NAMESPACE_IMPL_START
 

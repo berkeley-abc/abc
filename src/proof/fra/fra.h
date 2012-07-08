@@ -31,11 +31,11 @@
 #include <string.h>
 #include <assert.h>
 
-#include "src/misc/vec/vec.h"
-#include "src/aig/aig/aig.h"
-#include "src/opt/dar/dar.h"
-#include "src/sat/bsat/satSolver.h"
-#include "src/aig/ioa/ioa.h"
+#include "misc/vec/vec.h"
+#include "aig/aig/aig.h"
+#include "opt/dar/dar.h"
+#include "sat/bsat/satSolver.h"
+#include "aig/ioa/ioa.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///

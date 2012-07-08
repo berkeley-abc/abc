@@ -18,11 +18,11 @@
 
 ***********************************************************************/
 
-#include "src/base/abc/abc.h"
-#include "src/base/main/mainInt.h"
+#include "base/abc/abc.h"
+#include "base/main/mainInt.h"
 #include "cmd.h"
 #include "cmdInt.h"
-#include "src/misc/util/utilSignal.h"
+#include "misc/util/utilSignal.h"
 
 ABC_NAMESPACE_IMPL_START
 

@@ -18,7 +18,7 @@
 
 ***********************************************************************/
 
-#include "src/base/abc/abc.h"
+#include "base/abc/abc.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -660,7 +660,7 @@ void Abc_GenOneHotIntervals( char * pFileName, int nPis, int nRegs, Vec_Ptr_t * 
 
 ABC_NAMESPACE_IMPL_END
 
-#include "src/aig/aig/aig.h"
+#include "aig/aig/aig.h"
 
 ABC_NAMESPACE_IMPL_START
 

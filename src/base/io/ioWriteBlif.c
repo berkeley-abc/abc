@@ -19,10 +19,10 @@
 ***********************************************************************/
 
 #include "ioAbc.h"
-#include "src/base/main/main.h"
-#include "src/map/mio/mio.h"
-#include "src/bool/kit/kit.h"
-#include "src/map/if/if.h"
+#include "base/main/main.h"
+#include "map/mio/mio.h"
+#include "bool/kit/kit.h"
+#include "map/if/if.h"
 
 ABC_NAMESPACE_IMPL_START
 

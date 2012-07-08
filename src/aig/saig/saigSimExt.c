@@ -19,7 +19,7 @@
 ***********************************************************************/
 
 #include "saig.h"
-#include "src/proof/ssw/ssw.h"
+#include "proof/ssw/ssw.h"
 
 ABC_NAMESPACE_IMPL_START
 

@@ -19,7 +19,7 @@
 ***********************************************************************/
 
 #include "ioAbc.h"
-#include "src/misc/bbl/bblif.h"
+#include "misc/bbl/bblif.h"
 
 ABC_NAMESPACE_IMPL_START
 

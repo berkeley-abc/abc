@@ -31,8 +31,8 @@
 #include <string.h>
 #include <assert.h>
 
-#include "src/misc/vec/vec.h"
-#include "src/aig/aig/aig.h"
+#include "misc/vec/vec.h"
+#include "aig/aig/aig.h"
 #include "dar.h"
 
 ////////////////////////////////////////////////////////////////////////

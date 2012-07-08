@@ -18,11 +18,11 @@
 
 ***********************************************************************/
 
-#include "src/base/abc/abc.h"
-#include "src/base/main/main.h"
-#include "src/base/cmd/cmd.h"
-#include "src/sat/bsat/satSolver.h"
-#include "src/misc/extra/extraBdd.h"
+#include "base/abc/abc.h"
+#include "base/main/main.h"
+#include "base/cmd/cmd.h"
+#include "sat/bsat/satSolver.h"
+#include "misc/extra/extraBdd.h"
 
 ABC_NAMESPACE_IMPL_START
 

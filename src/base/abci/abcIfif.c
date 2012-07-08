@@ -18,8 +18,8 @@
 
 ***********************************************************************/
 
-#include "src/base/abc/abc.h"
-#include "src/map/if/if.h"
+#include "base/abc/abc.h"
+#include "map/if/if.h"
 
 ABC_NAMESPACE_IMPL_START
 

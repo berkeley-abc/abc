@@ -19,7 +19,7 @@
 ***********************************************************************/
 
 #include "gia.h"
-#include "src/bool/bdc/bdc.h"
+#include "bool/bdc/bdc.h"
 
 ABC_NAMESPACE_IMPL_START
 

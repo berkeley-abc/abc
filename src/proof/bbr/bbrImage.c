@@ -19,7 +19,7 @@
 ***********************************************************************/
 
 #include "bbr.h"
-#include "src/bdd/mtr/mtr.h"
+#include "bdd/mtr/mtr.h"
 
 ABC_NAMESPACE_IMPL_START
  

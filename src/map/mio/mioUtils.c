@@ -17,7 +17,7 @@
 ***********************************************************************/
 
 #include "mioInt.h"
-#include "src/base/main/main.h"
+#include "base/main/main.h"
 #include "exp.h"
 
 ABC_NAMESPACE_IMPL_START

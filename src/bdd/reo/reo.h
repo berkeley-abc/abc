@@ -22,7 +22,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "src/misc/extra/extraBdd.h"
+#include "misc/extra/extraBdd.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                     MACRO DEFINITIONS                            ///

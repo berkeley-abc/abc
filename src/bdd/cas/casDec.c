@@ -22,7 +22,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "src/misc/extra/extraBdd.h"
+#include "misc/extra/extraBdd.h"
 #include "cas.h"
 
 ABC_NAMESPACE_IMPL_START

@@ -19,8 +19,8 @@
 ***********************************************************************/
 
 #include "saig.h"
-#include "src/aig/gia/giaAig.h"
-#include "src/aig/ioa/ioa.h"
+#include "aig/gia/giaAig.h"
+#include "aig/ioa/ioa.h"
 
 ABC_NAMESPACE_IMPL_START
 

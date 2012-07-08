@@ -23,8 +23,8 @@
 #include <string.h>
 #include <assert.h>
 
-#include "src/misc/vec/vec.h"
-#include "src/misc/mem/mem.h"
+#include "misc/vec/vec.h"
+#include "misc/mem/mem.h"
 #include "tim.h"
 
 ABC_NAMESPACE_IMPL_START

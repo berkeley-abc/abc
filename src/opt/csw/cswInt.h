@@ -31,9 +31,9 @@
 #include <string.h>
 #include <assert.h>
 
-#include "src/aig/aig/aig.h"
-#include "src/opt/dar/dar.h"
-#include "src/bool/kit/kit.h"
+#include "aig/aig/aig.h"
+#include "opt/dar/dar.h"
+#include "bool/kit/kit.h"
 #include "csw.h"
 
 ////////////////////////////////////////////////////////////////////////

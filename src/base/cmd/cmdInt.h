@@ -26,7 +26,7 @@
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
 
-#include "src/base/main/mainInt.h"
+#include "base/main/mainInt.h"
 #include "cmd.h"
 
 ABC_NAMESPACE_HEADER_START

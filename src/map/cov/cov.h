@@ -21,7 +21,7 @@
 #ifndef ABC__map__cov__cov_h
 #define ABC__map__cov__cov_h
 
-#include "src/base/abc/abc.h"
+#include "base/abc/abc.h"
 #include "covInt.h"
 
 

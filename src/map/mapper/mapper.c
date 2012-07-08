@@ -16,9 +16,9 @@
 
 ***********************************************************************/
 
-#include "src/base/abc/abc.h"
-#include "src/base/main/mainInt.h"
-#include "src/map/mio/mio.h"
+#include "base/abc/abc.h"
+#include "base/main/mainInt.h"
+#include "map/mio/mio.h"
 #include "mapperInt.h"
 
 ABC_NAMESPACE_IMPL_START

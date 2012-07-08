@@ -19,7 +19,7 @@
 ***********************************************************************/
 
 #include "nwk.h"
-#include "src/map/if/if.h"
+#include "map/if/if.h"
 
 ABC_NAMESPACE_IMPL_START
 

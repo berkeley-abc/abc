@@ -43,9 +43,9 @@
 #include <string.h>
 #include <assert.h>
 
-#include "src/misc/st/st.h"
-#include "src/bdd/cudd/cuddInt.h"
-#include "src/misc/extra/extra.h"
+#include "misc/st/st.h"
+#include "bdd/cudd/cuddInt.h"
+#include "misc/extra/extra.h"
 
 
 ABC_NAMESPACE_HEADER_START

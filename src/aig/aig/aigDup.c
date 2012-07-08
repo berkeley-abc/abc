@@ -18,8 +18,8 @@
 
 ***********************************************************************/
 
-#include "src/aig/saig/saig.h"
-#include "src/misc/tim/tim.h"
+#include "aig/saig/saig.h"
+#include "misc/tim/tim.h"
 
 ABC_NAMESPACE_IMPL_START
 

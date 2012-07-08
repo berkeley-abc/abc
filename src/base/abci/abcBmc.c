@@ -18,8 +18,8 @@
 
 ***********************************************************************/
 
-#include "src/base/abc/abc.h"
-#include "src/aig/ivy/ivy.h"
+#include "base/abc/abc.h"
+#include "aig/ivy/ivy.h"
 
 ABC_NAMESPACE_IMPL_START
 

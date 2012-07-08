@@ -19,7 +19,7 @@
 ***********************************************************************/
 
 #include "kit.h"
-#include "src/aig/hop/hop.h"
+#include "aig/hop/hop.h"
 
 ABC_NAMESPACE_IMPL_START
 

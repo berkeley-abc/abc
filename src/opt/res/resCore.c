@@ -18,10 +18,10 @@
 
 ***********************************************************************/
 
-#include "src/base/abc/abc.h"
+#include "base/abc/abc.h"
 #include "resInt.h"
-#include "src/bool/kit/kit.h"
-#include "src/sat/bsat/satStore.h"
+#include "bool/kit/kit.h"
+#include "sat/bsat/satStore.h"
 
 ABC_NAMESPACE_IMPL_START
 

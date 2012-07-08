@@ -19,8 +19,8 @@
 ***********************************************************************/
  
 #include "lpkInt.h"
-#include "src/bool/kit/cloud.h"
-#include "src/base/main/main.h"
+#include "bool/kit/cloud.h"
+#include "base/main/main.h"
 
 ABC_NAMESPACE_IMPL_START
 

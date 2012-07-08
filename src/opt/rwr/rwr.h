@@ -26,8 +26,8 @@
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
 
-#include "src/base/abc/abc.h"
-#include "src/opt/cut/cut.h"
+#include "base/abc/abc.h"
+#include "opt/cut/cut.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///

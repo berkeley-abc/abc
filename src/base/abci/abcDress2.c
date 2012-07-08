@@ -18,9 +18,9 @@
 
 ***********************************************************************/
 
-#include "src/base/abc/abc.h"
-#include "src/aig/aig/aig.h"
-#include "src/proof/dch/dch.h"
+#include "base/abc/abc.h"
+#include "aig/aig/aig.h"
+#include "proof/dch/dch.h"
 
 ABC_NAMESPACE_IMPL_START
 

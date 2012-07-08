@@ -27,9 +27,9 @@
 ////////////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
-#include "src/aig/aig/aig.h"
-#include "src/aig/saig/saig.h"
-#include "src/bdd/cudd/cuddInt.h"
+#include "aig/aig/aig.h"
+#include "aig/saig/saig.h"
+#include "bdd/cudd/cuddInt.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///

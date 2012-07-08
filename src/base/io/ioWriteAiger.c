@@ -26,8 +26,8 @@
 #include <string.h>
 #include <assert.h>
 
-#include "src/misc/bzlib/bzlib.h"
-#include "src/misc/zlib/zlib.h"
+#include "misc/bzlib/bzlib.h"
+#include "misc/zlib/zlib.h"
 #include "ioAbc.h"
 
 
@@ -784,8 +784,8 @@ void Io_WriteAiger( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols, int f
 }
 
 
-#include "src/aig/gia/giaAig.h"
-#include "src/aig/saig/saig.h"
+#include "aig/gia/giaAig.h"
+#include "aig/saig/saig.h"
 
 /**Function*************************************************************
 

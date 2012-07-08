@@ -49,7 +49,7 @@ SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
 #include <Python.h>
 #endif /* ABC_PYTHON_EMBED */
 
-#include "src/base/abc/abc.h"
+#include "base/abc/abc.h"
 #include "mainInt.h"
 
 ABC_NAMESPACE_IMPL_START

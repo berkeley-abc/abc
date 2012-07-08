@@ -20,8 +20,8 @@
 
 #include "gia.h"
 #include "giaAig.h"
-#include "src/aig/aig/aig.h"
-#include "src/opt/dar/dar.h"
+#include "aig/aig/aig.h"
+#include "opt/dar/dar.h"
 
 ABC_NAMESPACE_IMPL_START
 

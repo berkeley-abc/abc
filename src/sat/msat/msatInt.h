@@ -32,7 +32,7 @@
 #include <assert.h>
 #include <math.h>
 
-#include "src/misc/util/abc_global.h"
+#include "misc/util/abc_global.h"
 #include "msat.h"
 
 ABC_NAMESPACE_HEADER_START

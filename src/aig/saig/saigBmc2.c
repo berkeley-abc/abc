@@ -19,9 +19,9 @@
 ***********************************************************************/
 
 #include "saig.h"
-#include "src/sat/cnf/cnf.h"
-#include "src/sat/bsat/satStore.h"
-#include "src/proof/ssw/ssw.h"
+#include "sat/cnf/cnf.h"
+#include "sat/bsat/satStore.h"
+#include "proof/ssw/ssw.h"
 
 ABC_NAMESPACE_IMPL_START
 

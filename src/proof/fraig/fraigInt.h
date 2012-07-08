@@ -29,9 +29,9 @@
 #include <string.h>
 #include <assert.h>
 
-#include "src/misc/util/abc_global.h"
+#include "misc/util/abc_global.h"
 #include "fraig.h"
-#include "src/sat/msat/msat.h"
+#include "sat/msat/msat.h"
 
 ABC_NAMESPACE_HEADER_START
 

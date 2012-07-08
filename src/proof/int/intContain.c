@@ -19,7 +19,7 @@
 ***********************************************************************/
 
 #include "intInt.h"
-#include "src/proof/fra/fra.h"
+#include "proof/fra/fra.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -245,7 +245,7 @@ int Inter_ManCheckInductiveContainment( Aig_Man_t * pTrans, Aig_Man_t * pInter, 
 }
 ABC_NAMESPACE_IMPL_END
 
-#include "src/proof/fra/fra.h"
+#include "proof/fra/fra.h"
 
 ABC_NAMESPACE_IMPL_START
 

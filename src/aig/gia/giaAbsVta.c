@@ -19,8 +19,8 @@
 ***********************************************************************/
 
 #include "gia.h"
-#include "src/sat/bsat/satSolver2.h"
-#include "src/base/main/main.h"
+#include "sat/bsat/satSolver2.h"
+#include "base/main/main.h"
 
 ABC_NAMESPACE_IMPL_START
 

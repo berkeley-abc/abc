@@ -19,8 +19,8 @@
 ***********************************************************************/
 
 #include "abc.h"
-#include "src/base/io/ioAbc.h"
-#include "src/aig/gia/gia.h"
+#include "base/io/ioAbc.h"
+#include "aig/gia/gia.h"
 
 ABC_NAMESPACE_IMPL_START
 

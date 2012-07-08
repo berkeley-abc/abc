@@ -19,11 +19,11 @@
 ***********************************************************************/
 
 #include <stdio.h>
-#include "src/base/main/main.h"
-#include "src/aig/aig/aig.h"
-#include "src/aig/saig/saig.h"
+#include "base/main/main.h"
+#include "aig/aig/aig.h"
+#include "aig/saig/saig.h"
 #include <string.h>
-#include "src/base/main/mainInt.h"
+#include "base/main/mainInt.h"
 
 ABC_NAMESPACE_IMPL_START
 

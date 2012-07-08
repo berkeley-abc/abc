@@ -19,7 +19,7 @@
 ***********************************************************************/
 
 #include "intInt.h"
-#include "src/sat/psat/m114p.h"
+#include "sat/psat/m114p.h"
 
 #ifdef ABC_USE_LIBRARIES
 

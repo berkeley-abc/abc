@@ -26,10 +26,10 @@
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
 
-#include "src/aig/saig/saig.h"
-#include "src/sat/cnf/cnf.h"
-#include "src/sat/bsat/satSolver.h"
-#include "src/sat/bsat/satStore.h"
+#include "aig/saig/saig.h"
+#include "sat/cnf/cnf.h"
+#include "sat/bsat/satSolver.h"
+#include "sat/bsat/satStore.h"
 #include "int.h"
 
 ////////////////////////////////////////////////////////////////////////

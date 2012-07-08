@@ -21,7 +21,7 @@
 #ifndef ABC__aig__mem__mem_h
 #define ABC__aig__mem__mem_h
 
-#include "src/misc/util/abc_global.h"
+#include "misc/util/abc_global.h"
 
 ABC_NAMESPACE_HEADER_START
 

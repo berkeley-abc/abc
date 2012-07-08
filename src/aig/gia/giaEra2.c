@@ -1772,8 +1772,8 @@ int Gia_ManArePerform( Gia_Man_t * pAig, int nStatesMax, int fMiter, int fVerbos
 ABC_NAMESPACE_IMPL_END
 
 #include "giaAig.h"
-#include "src/sat/cnf/cnf.h"
-#include "src/sat/bsat/satSolver.h"
+#include "sat/cnf/cnf.h"
+#include "sat/bsat/satSolver.h"
 
 ABC_NAMESPACE_IMPL_START
 

@@ -19,8 +19,8 @@
 ***********************************************************************/
 
 #include "rwr.h"
-#include "src/base/main/main.h"
-#include "src/bool/dec/dec.h"
+#include "base/main/main.h"
+#include "bool/dec/dec.h"
 
 ABC_NAMESPACE_IMPL_START
 

@@ -20,8 +20,8 @@
 
 #include <math.h>
 
-#include "src/sat/bsat/satSolver.h"
-#include "src/misc/extra/extra.h"
+#include "sat/bsat/satSolver.h"
+#include "misc/extra/extra.h"
 #include "ivy.h"
 
 ABC_NAMESPACE_IMPL_START
@@ -2659,7 +2659,7 @@ p->timeTrav += clock() - clk;
 
 ABC_NAMESPACE_IMPL_END
 
-#include "src/bdd/cudd/cuddInt.h"
+#include "bdd/cudd/cuddInt.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -2817,7 +2817,7 @@ int Ivy_FraigNodesAreEquivBdd( Ivy_Obj_t * pObj1, Ivy_Obj_t * pObj2 )
 
 ABC_NAMESPACE_IMPL_END
 
-#include "src/aig/aig/aig.h"
+#include "aig/aig/aig.h"
 
 ABC_NAMESPACE_IMPL_START
 

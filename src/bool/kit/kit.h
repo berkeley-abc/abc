@@ -31,8 +31,8 @@
 #include <string.h>
 #include <assert.h>
 
-#include "src/misc/vec/vec.h"
-#include "src/misc/extra/extraBdd.h"
+#include "misc/vec/vec.h"
+#include "misc/extra/extraBdd.h"
 #include "cloud.h"
 
 ////////////////////////////////////////////////////////////////////////

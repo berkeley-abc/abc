@@ -21,7 +21,7 @@
 #ifndef ABC__map__cov__covInt_h
 #define ABC__map__cov__covInt_h
 
-#include "src/base/abc/abc.h"
+#include "base/abc/abc.h"
 
 
 ABC_NAMESPACE_HEADER_START

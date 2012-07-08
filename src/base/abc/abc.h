@@ -31,14 +31,14 @@
 #include <string.h>
 #include <assert.h>
 
-#include "src/misc/vec/vec.h"
-#include "src/aig/hop/hop.h"
-#include "src/misc/st/st.h"
-#include "src/misc/st/stmm.h"
-#include "src/misc/nm/nm.h"
-#include "src/misc/mem/mem.h"
-#include "src/misc/util/utilCex.h"
-#include "src/misc/extra/extra.h"
+#include "misc/vec/vec.h"
+#include "aig/hop/hop.h"
+#include "misc/st/st.h"
+#include "misc/st/stmm.h"
+#include "misc/nm/nm.h"
+#include "misc/mem/mem.h"
+#include "misc/util/utilCex.h"
+#include "misc/extra/extra.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///

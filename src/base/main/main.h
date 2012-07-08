@@ -27,20 +27,20 @@
 ////////////////////////////////////////////////////////////////////////
 
 // core packages
-#include "src/base/abc/abc.h"
-#include "src/aig/gia/gia.h"
+#include "base/abc/abc.h"
+#include "aig/gia/gia.h"
 
 // data structure packages
-#include "src/misc/vec/vec.h"
-#include "src/misc/st/st.h"
+#include "misc/vec/vec.h"
+#include "misc/st/st.h"
 
 ABC_NAMESPACE_HEADER_START
 // the framework containing all data
 typedef struct Abc_Frame_t_      Abc_Frame_t;
 ABC_NAMESPACE_HEADER_END
 
-#include "src/base/cmd/cmd.h"
-#include "src/base/io/ioAbc.h"
+#include "base/cmd/cmd.h"
+#include "base/io/ioAbc.h"
 
 ABC_NAMESPACE_HEADER_START
 
