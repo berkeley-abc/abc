@@ -793,6 +793,7 @@ int Saig_BmcPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nNodesMax
             printf( "%4.0f Mb",     4.0*(p->iFrameLast+1)*p->nObjs/(1<<20) );
             printf( "%9.2f sec", (float)(clock() - clkTotal)/(float)(CLOCKS_PER_SEC) );
             printf( "\n" );
+            fflush( stdout );
         }
         if ( RetValue != l_False )
             break;
@@ -846,6 +847,7 @@ int Saig_BmcPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nNodesMax
             printf( "Reached local conflict limit (%d).\n", p->nConfMaxOne );
     }
     Saig_BmcManStop( p );
+    fflush( stdout );
     return Status;
 }
 

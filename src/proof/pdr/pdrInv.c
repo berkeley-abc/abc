@@ -84,6 +84,7 @@ void Pdr_ManPrintProgress( Pdr_Man_t * p, int fClose, clock_t Time )
     Abc_Print( 1, "%s", fClose ? "\n":"\r" );
     if ( fClose )
         p->nQueMax = 0;
+    fflush( stdout );
 }
 
 /**Function*************************************************************

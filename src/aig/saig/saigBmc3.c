@@ -1476,6 +1476,7 @@ clkOther += clock() - clk2;
 //    printf( "\n" );
     }
     Saig_Bmc3ManStop( p );
+    fflush( stdout );
     return RetValue;
 }
 

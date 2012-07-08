@@ -105,6 +105,7 @@ void Pdr_ManStop( Pdr_Man_t * p )
         ABC_PRTP( "Containment", p->tContain,   p->tTotal );
         ABC_PRTP( "CNF compute", p->tCnf,       p->tTotal );
         ABC_PRTP( "TOTAL      ", p->tTotal,     p->tTotal );
+        fflush( stdout );
     }
 //    Abc_Print( 1, "SS =%6d. SU =%6d. US =%6d. UU =%6d.\n", p->nCasesSS, p->nCasesSU, p->nCasesUS, p->nCasesUU );
     Vec_PtrForEachEntry( sat_solver *, p->vSolvers, pSat, i )
