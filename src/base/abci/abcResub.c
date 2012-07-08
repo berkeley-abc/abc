@@ -117,7 +117,7 @@ static Dec_Graph_t * Abc_ManResubDivs3( Abc_ManRes_t * p, int Required );
 static Vec_Ptr_t *   Abc_CutFactorLarge( Abc_Obj_t * pNode, int nLeavesMax );
 static int           Abc_CutVolumeCheck( Abc_Obj_t * pNode, Vec_Ptr_t * vLeaves );
 
-extern int s_ResubTime;
+extern clock_t s_ResubTime;
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///

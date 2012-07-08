@@ -37,10 +37,10 @@ ABC_NAMESPACE_IMPL_START
 //extern int s_TotalNodes = 0;
 //extern int s_TotalChanges = 0;
 
-int s_MappingTime = 0;
+clock_t s_MappingTime = 0;
 int s_MappingMem = 0;
-int s_ResubTime = 0;
-int s_ResynTime = 0;
+clock_t s_ResubTime = 0;
+clock_t s_ResynTime = 0;
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///

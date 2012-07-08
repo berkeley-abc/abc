@@ -76,7 +76,7 @@ struct Res_Man_t_
 
 extern Hop_Obj_t * Kit_GraphToHop( Hop_Man_t * pMan, Kit_Graph_t * pGraph );
 
-extern int s_ResynTime;
+extern clock_t s_ResynTime;
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///

@@ -65,7 +65,7 @@ struct Llb_Mnn_t_
 
 };
 
-extern int timeBuild, timeAndEx, timeOther;
+extern clock_t timeBuild, timeAndEx, timeOther;
 extern int nSuppMax;
 
 ////////////////////////////////////////////////////////////////////////

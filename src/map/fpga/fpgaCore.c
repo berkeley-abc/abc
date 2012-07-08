@@ -28,7 +28,7 @@ ABC_NAMESPACE_IMPL_START
 static int  Fpga_MappingPostProcess( Fpga_Man_t * p );
 
 extern clock_t s_MappingTime;
-extern clock_t s_MappingMem;
+extern int s_MappingMem;
 
 
 ////////////////////////////////////////////////////////////////////////

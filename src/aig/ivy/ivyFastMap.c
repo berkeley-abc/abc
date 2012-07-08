@@ -84,7 +84,7 @@ static int  Ivy_FastMapNodeDeref( Ivy_Man_t * pAig, Ivy_Obj_t * pObj );
 
 
 extern clock_t s_MappingTime;
-extern clock_t s_MappingMem;
+extern int s_MappingMem;
 
 
 ////////////////////////////////////////////////////////////////////////

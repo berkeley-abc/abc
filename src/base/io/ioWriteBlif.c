@@ -684,8 +684,9 @@ char * Io_NtkDeriveSop( Mem_Flex_t * pMem, word uTruth, int nVars, Vec_Int_t * v
     // check the case of constant cover
     if ( Vec_IntSize(vCover) == 0 || (Vec_IntSize(vCover) == 1 && Vec_IntEntry(vCover,0) == 0) )
     {
+        char * pStr0 = " 0\n", * pStr1 = " 1\n";
         assert( RetValue == 0 );
-        return Vec_IntSize(vCover) == 0 ? " 0\n" : " 1\n";
+        return Vec_IntSize(vCover) == 0 ? pStr0 : pStr1;
     }
     // derive the AIG for that tree
     pSop = Abc_SopCreateFromIsop( pMem, nVars, vCover );

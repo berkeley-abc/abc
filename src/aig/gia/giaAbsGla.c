@@ -23,6 +23,7 @@
 #include "src/sat/cnf/cnf.h"
 #include "src/sat/bsat/satSolver2.h"
 #include "src/base/main/main.h"
+#include "src/aig/saig/saig.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -187,7 +188,7 @@ Abc_Cex_t * Gia_ManCexRemap( Gia_Man_t * p, Abc_Cex_t * pCexAbs, Vec_Int_t * vPi
 int Gia_ManGlaRefine( Gia_Man_t * p, Abc_Cex_t * pCex, int fMinCut, int fVerbose )
 {
     extern void Nwk_ManDeriveMinCut( Gia_Man_t * p, int fVerbose );
-    extern Abc_Cex_t * Saig_ManCbaFindCexCareBits( Aig_Man_t * pAig, Abc_Cex_t * pCex, int nInputs, int fVerbose );
+//    extern Abc_Cex_t * Saig_ManCbaFindCexCareBits( Aig_Man_t * pAig, Abc_Cex_t * pCex, int nInputs, int fVerbose );
     int fAddOneLayer = 1;
     Abc_Cex_t * pCexNew = NULL;
     Gia_Man_t * pAbs;
