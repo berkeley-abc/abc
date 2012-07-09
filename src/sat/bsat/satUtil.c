@@ -30,14 +30,18 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
+/*
 struct clause_t
 {
-    int size_learnt;
+    unsigned   size  :  24;
+    unsigned   lbd   :   6;
+    unsigned   leant :   1;
+    unsigned   mark  :   1;
     lit lits[0];
 };
-
-static inline int  clause_size( clause* c )  { return c->size_learnt >> 1; }
+static inline int  clause_size( clause* c )  { return c->size;             }
 static inline lit* clause_begin( clause* c ) { return c->lits;             }
+*/
 
 static void Sat_SolverClauseWriteDimacs( FILE * pFile, clause * pC, int fIncrement );
 
@@ -127,6 +131,7 @@ void Sat_SolverWriteDimacs( sat_solver * p, char * pFileName, lit* assumptionsBe
 ***********************************************************************/
 void Sat_SolverClauseWriteDimacs( FILE * pFile, clause * pC, int fIncrement )
 {
+/*
     lit * pLits = clause_begin(pC);
     int nLits = clause_size(pC);
     int i;
@@ -136,6 +141,7 @@ void Sat_SolverClauseWriteDimacs( FILE * pFile, clause * pC, int fIncrement )
     if ( fIncrement )
         fprintf( pFile, "0" );
     fprintf( pFile, "\n" );
+*/
 }
 
 /**Function*************************************************************

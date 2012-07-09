@@ -1199,6 +1199,10 @@ SOURCE=.\src\sat\csat\csat_apis.h
 # PROP Default_Filter ""
 # Begin Source File
 
+SOURCE=.\src\sat\bsat\satClause.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\sat\bsat\satInter.c
 # End Source File
 # Begin Source File

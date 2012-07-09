@@ -28,6 +28,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include <string.h>
 #include <assert.h>
 
+#include "satClause.h"
 #include "satVec.h"
 #include "misc/vec/vecSet.h"
 
@@ -79,8 +80,8 @@ extern void *      sat_solver_store_release( sat_solver * s );
 //=================================================================================================
 // Solver representation:
 
-struct clause_t;
-typedef struct clause_t clause;
+//struct clause_t;
+//typedef struct clause_t clause;
 
 struct varinfo_t;
 typedef struct varinfo_t varinfo;
@@ -93,7 +94,7 @@ struct sat_solver_t
     int         qtail;         // Tail index of queue.
 
     // clauses
-    Vec_Set_t   Mem;
+    Sat_Mem_t   Mem;
     int         hLearnts;      // the first learnt clause
     int         hBinary;       // the special binary clause
     clause *    binary;
@@ -137,8 +138,13 @@ struct sat_solver_t
     double      random_seed;
     double      progress_estimate;
     int         verbosity;     // Verbosity level. 0=silent, 1=some progress report, 2=everything
+    int         fVerbose;
 
     stats_t     stats;
+    int         nLearntMax;    // max number of learned clauses
+    int         nDBreduces;    // number of DB reductions
+//    veci        learned;       // contain learnt clause handles
+    veci        act_clas;      // contain clause activities
 
     ABC_INT64_T nConfLimit;    // external limit on the number of conflicts
     ABC_INT64_T nInsLimit;     // external limit on the number of implications
@@ -165,6 +171,11 @@ struct sat_solver_t
 
     veci        temp_clause;    // temporary storage for a CNF clause
 };
+
+static inline clause * clause_read( sat_solver * s, cla h )          
+{ 
+    return Sat_MemClauseHand( &s->Mem, h );      
+}
 
 static int sat_solver_var_value( sat_solver* s, int v )
 {

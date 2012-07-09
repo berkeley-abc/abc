@@ -54,13 +54,13 @@ static inline void Aig_ManInterAddBuffer( sat_solver2 * pSat, int iVarA, int iVa
     Lits[1] = toLitCond( iVarB, !fCompl );
     Cid = sat_solver2_addclause( pSat, Lits, Lits + 2 );
     if ( fMark )
-        clause_set_partA( pSat, Cid, 1 );
+        clause2_set_partA( pSat, Cid, 1 );
 
     Lits[0] = toLitCond( iVarA, 1 );
     Lits[1] = toLitCond( iVarB, fCompl );
     Cid = sat_solver2_addclause( pSat, Lits, Lits + 2 );
     if ( fMark )
-        clause_set_partA( pSat, Cid, 1 );
+        clause2_set_partA( pSat, Cid, 1 );
 }
 
 /**Function*************************************************************
@@ -85,28 +85,28 @@ static inline void Aig_ManInterAddXor( sat_solver2 * pSat, int iVarA, int iVarB,
     Lits[2] = toLitCond( iVarC, 1 );
     Cid = sat_solver2_addclause( pSat, Lits, Lits + 3 );
     if ( fMark )
-        clause_set_partA( pSat, Cid, 1 );
+        clause2_set_partA( pSat, Cid, 1 );
 
     Lits[0] = toLitCond( iVarA, !fCompl );
     Lits[1] = toLitCond( iVarB, 0 );
     Lits[2] = toLitCond( iVarC, 0 );
     Cid = sat_solver2_addclause( pSat, Lits, Lits + 3 );
     if ( fMark )
-        clause_set_partA( pSat, Cid, 1 );
+        clause2_set_partA( pSat, Cid, 1 );
 
     Lits[0] = toLitCond( iVarA, fCompl );
     Lits[1] = toLitCond( iVarB, 1 );
     Lits[2] = toLitCond( iVarC, 0 );
     Cid = sat_solver2_addclause( pSat, Lits, Lits + 3 );
     if ( fMark )
-        clause_set_partA( pSat, Cid, 1 );
+        clause2_set_partA( pSat, Cid, 1 );
 
     Lits[0] = toLitCond( iVarA, fCompl );
     Lits[1] = toLitCond( iVarB, 0 );
     Lits[2] = toLitCond( iVarC, 1 );
     Cid = sat_solver2_addclause( pSat, Lits, Lits + 3 );
     if ( fMark )
-        clause_set_partA( pSat, Cid, 1 );
+        clause2_set_partA( pSat, Cid, 1 );
 }
 
 /**Function*************************************************************
@@ -152,7 +152,7 @@ void Aig_ManInterTest( Aig_Man_t * pMan, int fVerbose )
     for ( i = 0; i < pCnf->nClauses; i++ )
     {
         Cid = sat_solver2_addclause( pSat, pCnf->pClauses[i], pCnf->pClauses[i+1] );
-        clause_set_partA( pSat, Cid, 1 );
+        clause2_set_partA( pSat, Cid, 1 );
     }
 
     // add clauses of B
@@ -283,7 +283,7 @@ Aig_Man_t * Aig_ManInterRepar( Aig_Man_t * pMan, int fVerbose )
         for ( i = 0; i < pCnf->nClauses; i++ )
         {
             Cid = sat_solver2_addclause( pSat, pCnf->pClauses[i], pCnf->pClauses[i+1] );
-            clause_set_partA( pSat, Cid, k==0 );
+            clause2_set_partA( pSat, Cid, k==0 );
         }
         // add equality p[k] == A1/B1
         Aig_ManForEachCo( pMan, pObj, i )
@@ -293,7 +293,7 @@ Aig_Man_t * Aig_ManInterRepar( Aig_Man_t * pMan, int fVerbose )
         for ( i = 0; i < pCnf->nClauses; i++ )
         {
             Cid = sat_solver2_addclause( pSat, pCnf->pClauses[i], pCnf->pClauses[i+1] );
-            clause_set_partA( pSat, Cid, k==0 );
+            clause2_set_partA( pSat, Cid, k==0 );
         }
         // add comparator (!p[k] ^ A2/B2) == or[k]
         Vec_IntClear( vVars );
@@ -303,7 +303,7 @@ Aig_Man_t * Aig_ManInterRepar( Aig_Man_t * pMan, int fVerbose )
             Vec_IntPush( vVars, toLitCond(ShiftOr[k] + i, 1) );
         }
         Cid = sat_solver2_addclause( pSat, Vec_IntArray(vVars), Vec_IntArray(vVars) + Vec_IntSize(vVars) );
-        clause_set_partA( pSat, Cid, k==0 );
+        clause2_set_partA( pSat, Cid, k==0 );
         // return to normal
         Cnf_DataLift( pCnf, -ShiftCnf[k]-pCnf->nVars );
     }
@@ -362,7 +362,7 @@ Aig_Man_t * Aig_ManInterRepar( Aig_Man_t * pMan, int fVerbose )
             for ( i = 0; i < pCnfInter->nClauses; i++ )
             {
                 Cid = sat_solver2_addclause( pSat, pCnfInter->pClauses[i], pCnfInter->pClauses[i+1] );
-                clause_set_partA( pSat, Cid, c==0 );
+                clause2_set_partA( pSat, Cid, c==0 );
             }
             // connect to the inputs
             Aig_ManForEachCi( pInter, pObj, i )

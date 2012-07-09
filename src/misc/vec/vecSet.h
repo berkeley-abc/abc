@@ -210,10 +210,11 @@ static inline double Vec_ReportMemory( Vec_Set_t * p )
 ***********************************************************************/
 static inline int Vec_SetAppend( Vec_Set_t * p, int * pArray, int nSize )
 {
+    word * pPage = p->pPages[p->iPage];
     int nWords = Vec_SetWordNum( nSize );
-    assert( nWords < (1 << p->nPageSize) );
-    p->nEntries++;
-    if ( Vec_SetLimit( p->pPages[p->iPage] ) + nWords > (1 << p->nPageSize) )
+    assert( nWords + 3 < (1 << p->nPageSize) );
+    // need two extra at the begining of the page and one extra in the end
+    if ( Vec_SetLimit(pPage) + nWords >= (1 << p->nPageSize) )
     {
         if ( ++p->iPage == p->nPagesAlloc )
         {
@@ -223,12 +224,14 @@ static inline int Vec_SetAppend( Vec_Set_t * p, int * pArray, int nSize )
         }
         if ( p->pPages[p->iPage] == NULL )
             p->pPages[p->iPage] = ABC_ALLOC( word, (1 << p->nPageSize) );
-        Vec_SetWriteLimit( p->pPages[p->iPage], 2 );
-        p->pPages[p->iPage][1] = ~0;
+        pPage = p->pPages[p->iPage];
+        Vec_SetWriteLimit(pPage, 2);
+        pPage[1] = ~0;
     }
     if ( pArray )
-        memcpy( p->pPages[p->iPage] + Vec_SetLimit(p->pPages[p->iPage]), pArray, sizeof(int) * nSize );
-    Vec_SetIncLimit( p->pPages[p->iPage], nWords );
+        memcpy( pPage + Vec_SetLimit(pPage), pArray, sizeof(int) * nSize );
+    p->nEntries++;
+    Vec_SetIncLimit( pPage, nWords );
     return Vec_SetHandCurrent(p) - nWords;
 }
 static inline int Vec_SetAppendS( Vec_Set_t * p, int nSize )
