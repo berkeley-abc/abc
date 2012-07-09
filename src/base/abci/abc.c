@@ -347,6 +347,7 @@ static int Abc_CommandAbc9AbsRefine          ( Abc_Frame_t * pAbc, int argc, cha
 //static int Abc_CommandAbc9AbsPba             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9GlaDerive          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9GlaRefine          ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9GlaPurify          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 //static int Abc_CommandAbc9GlaCba             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 //static int Abc_CommandAbc9GlaPba             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Gla                ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -795,6 +796,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
 //    Cmd_CommandAdd( pAbc, "ABC9",         "&abs_pba",      Abc_CommandAbc9AbsPba,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&gla_derive",   Abc_CommandAbc9GlaDerive,    0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&gla_refine",   Abc_CommandAbc9GlaRefine,    0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&gla_purify",   Abc_CommandAbc9GlaPurify,    0 );
 //    Cmd_CommandAdd( pAbc, "ABC9",         "&gla_cba",      Abc_CommandAbc9GlaCba,       0 );
 //    Cmd_CommandAdd( pAbc, "ABC9",         "&gla_pba",      Abc_CommandAbc9GlaPba,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&gla",          Abc_CommandAbc9Gla,          0 );
@@ -27144,6 +27146,75 @@ usage:
     Abc_Print( -2, "usage: &gla_refine [-mvh]\n" );
     Abc_Print( -2, "\t         refines the pre-computed gate map using the counter-example\n" );
     Abc_Print( -2, "\t-m     : toggle using min-cut to derive the refinements [default = %s]\n", fMinCut? "yes": "no" );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+} 
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9GlaPurify( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Gia_ManGlaPurify( Gia_Man_t * p, int nPurifyRatio, int fVerbose );
+    int fMinCut = 0;
+    int nPurifyRatio = 0;
+    int c, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Rmvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'R':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-R\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nPurifyRatio = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nPurifyRatio < 0 ) 
+                goto usage;
+            break;
+        case 'm':
+            fMinCut ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9GlaPurify(): There is no AIG.\n" );
+        return 1;
+    } 
+    if ( pAbc->pGia->vGateClasses == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9GlaPurify(): There is no gate-level abstraction.\n" );
+        return 0;
+    }
+    Gia_ManGlaPurify( pAbc->pGia, nPurifyRatio, fVerbose );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &gla_purify [-R num] [-vh]\n" );
+    Abc_Print( -2, "\t         purifies gate-level abstraction by removing less frequent objects\n" );
+//    Abc_Print( -2, "\t-R num : the percetage of rare objects to remove [default = %d]\n", nPurifyRatio );
+    Abc_Print( -2, "\t-R num : remove objects with usage count less or equal than this [default = %d]\n", nPurifyRatio );
+//    Abc_Print( -2, "\t-m     : toggle using min-cut to derive the refinements [default = %s]\n", fMinCut? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;

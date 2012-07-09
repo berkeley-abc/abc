@@ -83,9 +83,9 @@ struct Gla_Man_t_
     Vec_Int_t *    vTemp;           // temporary array
     Vec_Int_t *    vAddedNew;       // temporary array
     Vec_Int_t *    vObjCounts;      // object counters
+    Vec_Int_t *    vCoreCounts;     // counts how many times each object appears in the core
     // refinement
     Vec_Int_t *    pvRefis;         // vectors of each object
-//    Vec_Int_t *    vPrioSels;       // selected priorities
     // statistics  
     clock_t        timeInit;
     clock_t        timeSat;
@@ -296,7 +296,7 @@ int Gia_ManGlaRefine( Gia_Man_t * p, Abc_Cex_t * pCex, int fMinCut, int fVerbose
                     assert( i >= Vec_IntSize(vPis) );
                     iObjId = Vec_IntEntry( vPPis, i - Vec_IntSize(vPis) );
                     assert( iObjId > 0 && iObjId < Gia_ManObjNum(p) );
-                    if ( Vec_IntEntry( p->vGateClasses, iObjId ) == 1 )
+                    if ( Vec_IntEntry( p->vGateClasses, iObjId ) > 0 )
                         continue;
                     assert( Vec_IntEntry( p->vGateClasses, iObjId ) == 0 );
                     Vec_IntWriteEntry( p->vGateClasses, iObjId, 1 );
@@ -963,7 +963,6 @@ Gla_Man_t * Gla_ManStart( Gia_Man_t * pGia0, Gia_ParVta_t * pPars )
     p->vAbs  = Vec_IntAlloc( 100 );
     p->vTemp = Vec_IntAlloc( 100 );
     p->vAddedNew = Vec_IntAlloc( 100 );
-//    p->vPrioSels = Vec_IntAlloc( 100 );
     p->vObjCounts = Vec_IntAlloc( 100 );
 
     // internal data
@@ -978,6 +977,7 @@ Gla_Man_t * Gla_ManStart( Gia_Man_t * pGia0, Gia_ParVta_t * pPars )
     // derive new gate map
     assert( pGia0->vGateClasses != 0 );
     p->pGia->vGateClasses = Vec_IntStart( Gia_ManObjNum(p->pGia) );
+    p->vCoreCounts = Vec_IntStart( Gia_ManObjNum(p->pGia) );
     // update p->pCnf->vMapping, p->pCnf->pObj2Count, p->pCnf->pObj2Clause 
     // (here are not updating p->pCnf->pVarNums because it is not needed)
     vMappingNew = Vec_IntStart( Gia_ManObjNum(p->pGia) );
@@ -1129,7 +1129,6 @@ Gla_Man_t * Gla_ManStart2( Gia_Man_t * pGia, Gia_ParVta_t * pPars )
     p->vAbs = Vec_IntAlloc( 100 );
     p->vTemp = Vec_IntAlloc( 100 );
     p->vAddedNew = Vec_IntAlloc( 100 );
-//    p->vPrioSels = Vec_IntAlloc( 100 );
     // internal data
     pAig = Gia_ManToAigSimple( p->pGia );
     p->pCnf  = Cnf_DeriveOther( pAig, 1 );
@@ -1228,7 +1227,7 @@ void Gla_ManStop( Gla_Man_t * p )
     Vec_IntFreeP( &p->vObjCounts );
     Vec_IntFreeP( &p->vCla2Obj );
     Vec_IntFreeP( &p->vAddedNew );
-//    Vec_IntFreeP( &p->vPrioSels );
+    Vec_IntFreeP( &p->vCoreCounts );
     Vec_IntFreeP( &p->vTemp );
     Vec_IntFreeP( &p->vAbs );
     ABC_FREE( p->pvRefis );
@@ -1276,7 +1275,7 @@ int Gia_GlaAbsCount( Gla_Man_t * p, int fRo, int fAnd )
   SeeAlso     []
 
 ***********************************************************************/
-int Gla_ManTranslate_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vMap )
+int Gla_ManTranslate_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vGla, int nUsageCount )
 {
     int Value0, Value1;
     if ( Gia_ObjIsTravIdCurrent(p, pObj) )
@@ -1285,41 +1284,46 @@ int Gla_ManTranslate_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vMap )
     if ( Gia_ObjIsCi(pObj) )
         return 0;
     assert( Gia_ObjIsAnd(pObj) );
-    Value0 = Gla_ManTranslate_rec( p, Gia_ObjFanin0(pObj), vMap );
-    Value1 = Gla_ManTranslate_rec( p, Gia_ObjFanin1(pObj), vMap );
+    Value0 = Gla_ManTranslate_rec( p, Gia_ObjFanin0(pObj), vGla, nUsageCount );
+    Value1 = Gla_ManTranslate_rec( p, Gia_ObjFanin1(pObj), vGla, nUsageCount );
     if ( Value0 || Value1 )
-        Vec_IntWriteEntry( vMap, Gia_ObjId(p, pObj), 1 );
+        Vec_IntAddToEntry( vGla, Gia_ObjId(p, pObj), nUsageCount );
     return Value0 || Value1;
 }
 Vec_Int_t * Gla_ManTranslate( Gla_Man_t * p )
 {
-    Vec_Int_t * vRes, * vRes2;
+    Vec_Int_t * vGla, * vGla2;
     Gla_Obj_t * pObj, * pFanin;
     Gia_Obj_t * pGiaObj;
-    int i, k;
-    vRes = Vec_IntStart( Gia_ManObjNum(p->pGia) );
+    int i, k, nUsageCount;
+    vGla = Vec_IntStart( Gia_ManObjNum(p->pGia) );
     Gla_ManForEachObjAbs( p, pObj, i )
     {
-        Vec_IntWriteEntry( vRes, pObj->iGiaObj, 1 );
+        nUsageCount = Vec_IntEntry(p->vCoreCounts, pObj->iGiaObj);
+        assert( nUsageCount >= 0 );
         pGiaObj = Gla_ManGiaObj( p, pObj );
         if ( Gia_ObjIsConst0(pGiaObj) || Gia_ObjIsRo(p->pGia, pGiaObj) )
+        {
+            Vec_IntWriteEntry( vGla, pObj->iGiaObj, nUsageCount );
             continue;
+        }
         assert( Gia_ObjIsAnd(pGiaObj) );
         Gia_ManIncrementTravId( p->pGia );
         Gla_ObjForEachFanin( p, pObj, pFanin, k )
             Gia_ObjSetTravIdCurrent( p->pGia, Gla_ManGiaObj(p, pFanin) );
-        Gla_ManTranslate_rec( p->pGia, pGiaObj, vRes );
+        Gla_ManTranslate_rec( p->pGia, pGiaObj, vGla, nUsageCount );
     }
-    if ( p->pGia->vLutConfigs )
+    Vec_IntWriteEntry( vGla, 0, p->pPars->iFrame+1 );
+    if ( p->pGia->vLutConfigs ) // use mapping from new to old
     {
-        vRes2 = Vec_IntStart( Gia_ManObjNum(p->pGia0) );
+        vGla2 = Vec_IntStart( Gia_ManObjNum(p->pGia0) );
         for ( i = 0; i < Gia_ManObjNum(p->pGia); i++ )
-            if ( Vec_IntEntry(vRes, i) )
-                Vec_IntWriteEntry( vRes2, Vec_IntEntry(p->pGia->vLutConfigs, i), 1 );
-        Vec_IntFree( vRes );
-        return vRes2;
+            if ( Vec_IntEntry(vGla, i) )
+                Vec_IntWriteEntry( vGla2, Vec_IntEntry(p->pGia->vLutConfigs, i), Vec_IntEntry(vGla, i) );
+        Vec_IntFree( vGla );
+        return vGla2;
     }
-    return vRes;
+    return vGla;
 }
 
 
@@ -1470,6 +1474,13 @@ void Gla_ManAddClauses( Gla_Man_t * p, int iObj, int iFrame, Vec_Int_t * vLits )
         }
     }
     else assert( 0 );
+}
+void Gia_GlaAddToCounters( Gla_Man_t * p, Vec_Int_t * vCore )
+{
+    Gla_Obj_t * pGla;
+    int i;
+    Gla_ManForEachObjAbsVec( vCore, p, pGla, i )
+        Vec_IntAddToEntry( p->vCoreCounts, pGla->iGiaObj, 1 );
 }
 void Gia_GlaAddToAbs( Gla_Man_t * p, Vec_Int_t * vAbsAdd, int fCheck )
 {
@@ -1882,7 +1893,8 @@ int Gia_GlaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars, int fStartVta )
         }
         assert( Status == 1 );
         // valid core is obtained
-        nCoreSize = Vec_IntSize(vCore);
+        nCoreSize = Vec_IntSize( vCore );
+        Gia_GlaAddToCounters( p, vCore );
         if ( i == 0 )
             Vec_IntFree( vCore );
         else

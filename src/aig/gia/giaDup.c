@@ -1683,7 +1683,7 @@ Vec_Int_t * Gia_GlaCollectAssigned( Gia_Man_t * p, Vec_Int_t * vGateClasses )
     {
         if ( Entry == 0 )
             continue;
-        assert( Entry == 1 );
+        assert( Entry > 0 );
         pObj = Gia_ManObj( p, i );
         Vec_IntPush( vAssigned, Gia_ObjId(p, pObj) );
         if ( Gia_ObjIsAnd(pObj) )

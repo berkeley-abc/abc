@@ -498,6 +498,216 @@ int Gia_ManGlaPbaPerform( Gia_Man_t * pGia, void * pPars, int fNewSolver )
     return 1;
 }
 
+
+
+/**Function*************************************************************
+
+  Synopsis    [Converting VTA vector to GLA vector.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Gia_VtaConvertToGla( Gia_Man_t * p, Vec_Int_t * vVta )
+{
+    Gia_Obj_t * pObj;
+    Vec_Int_t * vGla;
+    int nObjMask, nObjs = Gia_ManObjNum(p);
+    int i, Entry, nFrames = Vec_IntEntry( vVta, 0 );
+    assert( Vec_IntEntry(vVta, nFrames+1) == Vec_IntSize(vVta) );
+    // get the bitmask
+    nObjMask = (1 << Abc_Base2Log(nObjs)) - 1;
+    assert( nObjs <= nObjMask );
+    // go through objects
+    vGla = Vec_IntStart( nObjs );
+    Vec_IntForEachEntryStart( vVta, Entry, i, nFrames+2 )
+    {
+        pObj = Gia_ManObj( p, (Entry &  nObjMask) );
+        assert( Gia_ObjIsRo(p, pObj) || Gia_ObjIsAnd(pObj) || Gia_ObjIsConst0(pObj) );
+        Vec_IntAddToEntry( vGla, (Entry &  nObjMask), 1 );
+    }
+    Vec_IntWriteEntry( vGla, 0, nFrames );
+    return vGla;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Converting GLA vector to VTA vector.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Gia_VtaConvertFromGla( Gia_Man_t * p, Vec_Int_t * vGla, int nFrames )
+{
+    Vec_Int_t * vVta;
+    int nObjBits, nObjMask, nObjs = Gia_ManObjNum(p);
+    int i, k, j, Entry, Counter, nGlaSize;
+    //. get the GLA size
+    nGlaSize = Vec_IntSum(vGla);
+    // get the bitmask
+    nObjBits = Abc_Base2Log(nObjs);
+    nObjMask = (1 << Abc_Base2Log(nObjs)) - 1;
+    assert( nObjs <= nObjMask );
+    // go through objects
+    vVta = Vec_IntAlloc( 1000 );
+    Vec_IntPush( vVta, nFrames );
+    Counter = nFrames + 2;
+    for ( i = 0; i <= nFrames; i++, Counter += i * nGlaSize )
+        Vec_IntPush( vVta, Counter );
+    for ( i = 0; i < nFrames; i++ )
+        for ( k = 0; k <= i; k++ )
+            Vec_IntForEachEntry( vGla, Entry, j )
+                if ( Entry ) 
+                    Vec_IntPush( vVta, (k << nObjBits) | j );
+    Counter = Vec_IntEntry(vVta, nFrames+1);
+    assert( Vec_IntEntry(vVta, nFrames+1) == Vec_IntSize(vVta) );
+    return vVta;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Converting GLA vector to FLA vector.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_FlaConvertToGla_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vGla )
+{
+    if ( Gia_ObjIsTravIdCurrent(p, pObj) )
+        return;
+    Gia_ObjSetTravIdCurrent(p, pObj);
+    Vec_IntWriteEntry( vGla, Gia_ObjId(p, pObj), 1 );
+    if ( Gia_ObjIsRo(p, pObj) )
+        return;
+    assert( Gia_ObjIsAnd(pObj) );
+    Gia_FlaConvertToGla_rec( p, Gia_ObjFanin0(pObj), vGla );
+    Gia_FlaConvertToGla_rec( p, Gia_ObjFanin1(pObj), vGla );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Converting FLA vector to GLA vector.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Gia_FlaConvertToGla( Gia_Man_t * p, Vec_Int_t * vFla )
+{
+    Vec_Int_t * vGla;
+    Gia_Obj_t * pObj;
+    int i;
+    // mark const0 and relevant CI objects
+    Gia_ManIncrementTravId( p );
+    Gia_ObjSetTravIdCurrent(p, Gia_ManConst0(p));
+    Gia_ManForEachPi( p, pObj, i )
+        Gia_ObjSetTravIdCurrent(p, pObj);
+    Gia_ManForEachRo( p, pObj, i )
+        if ( !Vec_IntEntry(vFla, i) )
+            Gia_ObjSetTravIdCurrent(p, pObj);
+    // label all objects reachable from the PO and selected flops
+    vGla = Vec_IntStart( Gia_ManObjNum(p) );
+    Vec_IntWriteEntry( vGla, 0, 1 );
+    Gia_ManForEachPo( p, pObj, i )
+        Gia_FlaConvertToGla_rec( p, Gia_ObjFanin0(pObj), vGla );
+    Gia_ManForEachRi( p, pObj, i )
+        if ( Vec_IntEntry(vFla, i) )
+            Gia_FlaConvertToGla_rec( p, Gia_ObjFanin0(pObj), vGla );
+    return vGla;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Converting GLA vector to FLA vector.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Gia_GlaConvertToFla( Gia_Man_t * p, Vec_Int_t * vGla )
+{
+    Vec_Int_t * vFla;
+    Gia_Obj_t * pObj;
+    int i;
+    vFla = Vec_IntStart( Gia_ManRegNum(p) );
+    Gia_ManForEachRo( p, pObj, i )
+        if ( Vec_IntEntry(vGla, Gia_ObjId(p, pObj)) )
+            Vec_IntWriteEntry( vFla, i, 1 );
+    return vFla;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManGlaPurify( Gia_Man_t * p, int nPurifyRatio, int fVerbose )
+{
+    int i, Entry, CountUpTo, CountAll, CountRem, * pCounts;
+    int nFrames = Vec_IntEntry( p->vGateClasses, 0 );
+    if ( nFrames < 2 )
+    {
+        printf( "Gate-level abstraction is missing object count information.\n" );
+        return;
+    }
+    // collect info
+    CountAll = 0;
+    pCounts = ABC_CALLOC( int, nFrames + 1 );
+    assert( Vec_IntSize(p->vGateClasses) == Gia_ManObjNum(p) );
+    for ( i = 0; i < Gia_ManObjNum(p); i++ )
+    {
+        Entry = Vec_IntEntry( p->vGateClasses, i );
+        assert( Entry >= 0 && Entry <= nFrames );
+        if ( Entry == 0 )
+            continue;
+        CountAll++;
+        pCounts[Entry]++;
+    }
+    // print entries
+    CountUpTo = 0;
+    for ( i = 0; i <= nFrames; i++ )
+        printf( "%d=%d(%d) ", i, pCounts[i], CountUpTo += pCounts[i] );
+    printf( "\n" );
+    // removing entries appearing only ones
+    CountRem = 0;
+    for ( i = 0; i < Gia_ManObjNum(p); i++ )
+    {
+        if ( Vec_IntEntry( p->vGateClasses, i ) == 0 )
+            continue;
+        if ( Vec_IntEntry( p->vGateClasses, i ) <= nPurifyRatio )
+        {
+            CountRem++;
+            Vec_IntWriteEntry( p->vGateClasses, i, 0 );
+        }
+    }
+    printf( "Removed %d entries appearing less or equal than %d times (out of %d).\n", CountRem, nPurifyRatio, CountAll ); 
+    ABC_FREE( pCounts );
+}
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
