@@ -44,7 +44,7 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
-int Fra_FraigSat( Aig_Man_t * pMan, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimit, int fFlipBits, int fAndOuts, int fNewSolver, int fVerbose )
+int Fra_FraigSat( Aig_Man_t * pMan, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimit, int nStartLearned, int nDeltaLearned, int nRatioLearned, int fFlipBits, int fAndOuts, int fNewSolver, int fVerbose )
 {
     if ( fNewSolver )
     {
@@ -74,7 +74,6 @@ int Fra_FraigSat( Aig_Man_t * pMan, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimi
             Cnf_DataFree( pCnf );
             return 1;
         }
-
 
         if ( fAndOuts )
         {
@@ -182,6 +181,14 @@ int Fra_FraigSat( Aig_Man_t * pMan, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimi
             return 1;
         }
 
+        if ( nStartLearned )
+            pSat->nLearntStart = nStartLearned;
+        if ( nDeltaLearned )
+            pSat->nLearntDelta = nDeltaLearned;
+        if ( nRatioLearned )
+            pSat->nLearntRatio = nRatioLearned;
+        if ( fVerbose )
+            pSat->fVerbose = fVerbose;
 
         if ( fAndOuts )
         {
@@ -225,8 +232,8 @@ int Fra_FraigSat( Aig_Man_t * pMan, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimi
 
         // solve the miter
         clk = clock();
-        if ( fVerbose )
-            pSat->verbosity = 1;
+//        if ( fVerbose )
+//            pSat->verbosity = 1;
         status = sat_solver_solve( pSat, NULL, NULL, (ABC_INT64_T)nConfLimit, (ABC_INT64_T)nInsLimit, (ABC_INT64_T)0, (ABC_INT64_T)0 );
         if ( status == l_Undef )
         {
@@ -303,7 +310,7 @@ int Fra_FraigCec( Aig_Man_t ** ppAig, int nConfLimit, int fVerbose )
 
     // if SAT only, solve without iteration
 clk = clock();
-    RetValue = Fra_FraigSat( pAig, (ABC_INT64_T)2*nBTLimitStart, (ABC_INT64_T)0, 1, 0, 0, 0 );
+    RetValue = Fra_FraigSat( pAig, (ABC_INT64_T)2*nBTLimitStart, (ABC_INT64_T)0, 0, 0, 0, 1, 0, 0, 0 );
     if ( fVerbose )
     {
         printf( "Initial SAT:      Nodes = %6d.  ", Aig_ManNodeNum(pAig) );
@@ -371,7 +378,7 @@ ABC_PRT( "Time", clock() - clk );
     if ( RetValue == -1 )
     {
 clk = clock();
-        RetValue = Fra_FraigSat( pAig, (ABC_INT64_T)nBTLimitLast, (ABC_INT64_T)0, 1, 0, 0, 0 );
+        RetValue = Fra_FraigSat( pAig, (ABC_INT64_T)nBTLimitLast, (ABC_INT64_T)0, 0, 0, 0, 1, 0, 0, 0 );
         if ( fVerbose )
         {
             printf( "Final SAT:            Nodes = %6d.  ", Aig_ManNodeNum(pAig) );

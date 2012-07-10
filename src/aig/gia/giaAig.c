@@ -572,7 +572,7 @@ int Gia_ManSolveSat( Gia_Man_t * p )
     Aig_Man_t * pNew;
     int RetValue;//, clk = clock();
     pNew = Gia_ManToAig( p, 0 );
-    RetValue = Fra_FraigSat( pNew, 10000000, 0, 1, 1, 0, 0 );
+    RetValue = Fra_FraigSat( pNew, 10000000, 0, 0, 0, 0, 1, 1, 0, 0 );
     if ( RetValue == 0 )
     {
         Gia_Obj_t * pObj;

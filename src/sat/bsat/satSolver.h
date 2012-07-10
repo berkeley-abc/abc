@@ -141,6 +141,9 @@ struct sat_solver_t
     int         fVerbose;
 
     stats_t     stats;
+    int         nLearntStart;  // starting learned clause limit
+    int         nLearntDelta;  // delta of learned clause limit
+    int         nLearntRatio;  // ratio percentage of learned clauses
     int         nLearntMax;    // max number of learned clauses
     int         nDBreduces;    // number of DB reductions
 //    veci        learned;       // contain learnt clause handles

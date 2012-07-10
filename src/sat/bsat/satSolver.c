@@ -29,9 +29,10 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 ABC_NAMESPACE_IMPL_START
 
-//#define LEARNT_MAX_START  0
-#define LEARNT_MAX_START  20000
-#define LEARNT_MAX_INCRE   1000
+//#define LEARNT_MAX_START_DEFAULT  0
+#define LEARNT_MAX_START_DEFAULT  20000
+#define LEARNT_MAX_INCRE_DEFAULT   1000
+#define LEARNT_MAX_RATIO_DEFAULT     50
 
 #define SAT_USE_ANALYZE_FINAL
 
@@ -921,7 +922,11 @@ sat_solver* sat_solver_new(void)
     s->hBinary = Sat_MemAppend( &s->Mem, NULL, 2, 0 );
     s->binary = clause_read( s, s->hBinary );
 
-    s->nLearntMax = LEARNT_MAX_START;
+    s->nLearntStart = LEARNT_MAX_START_DEFAULT;  // starting learned clause limit
+    s->nLearntDelta = LEARNT_MAX_INCRE_DEFAULT;  // delta of learned clause limit
+    s->nLearntRatio = LEARNT_MAX_RATIO_DEFAULT;  // ratio of learned clause limit
+
+    s->nLearntMax   = s->nLearntStart;
 
     // initialize vectors
     veci_new(&s->order);
@@ -1188,7 +1193,7 @@ void sat_solver_reducedb(sat_solver* s)
     s->nDBreduces++;
 
 //    printf( "Calling reduceDB with %d learned clause limit.\n", s->nLearntMax );
-    s->nLearntMax = LEARNT_MAX_START + LEARNT_MAX_INCRE * s->nDBreduces;
+    s->nLearntMax = s->nLearntStart + s->nLearntDelta * s->nDBreduces;
 //    return;
 
     // create sorting values
@@ -1205,7 +1210,7 @@ void sat_solver_reducedb(sat_solver* s)
     CounterStart  = nLearnedOld - (s->nLearntMax / 20);
 
     // preserve 3/4 of most active clauses
-    nSelected = nLearnedOld*5/10;
+    nSelected = nLearnedOld*s->nLearntRatio/100;
 
     // find non-decreasing permutation
     pPerm = Abc_MergeSortCost( pSortValues, nLearnedOld );
@@ -1494,6 +1499,7 @@ int sat_solver_solve(sat_solver* s, lit* begin, lit* end, ABC_INT64_T nConfLimit
     lbool   status        = l_Undef;
     lit*    i;
 
+    printf( "Running SAT solver with parameters %d and %d and %d.\n", s->nLearntStart, s->nLearntDelta, s->nLearntRatio );
     ////////////////////////////////////////////////
     if ( s->fSolved )
     {

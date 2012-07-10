@@ -2923,14 +2923,14 @@ printf( "***************\n" );
 ***********************************************************************/
 int Ivy_FraigCheckCone( Ivy_FraigMan_t * pGlo, Ivy_Man_t * p, Ivy_Obj_t * pObj1, Ivy_Obj_t * pObj2, int nConfLimit )
 {
-    extern int Fra_FraigSat( Aig_Man_t * pMan, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimit, int fFlipBits, int fAndOuts, int fNewSolver, int fVerbose );
+    extern int Fra_FraigSat( Aig_Man_t * pMan, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimit, int nStartLearned, int nDeltaLearned, int nRatioLearned, int fFlipBits, int fAndOuts, int fNewSolver, int fVerbose );
     Vec_Int_t * vLeaves;
     Aig_Man_t * pMan;
     Aig_Obj_t * pObj;
     int i, RetValue;
     vLeaves  = Vec_IntAlloc( 100 );
     pMan     = Ivy_FraigExtractCone( p, pObj1, pObj2, vLeaves );
-    RetValue = Fra_FraigSat( pMan, nConfLimit, 0, 0, 0, 0, 1 ); 
+    RetValue = Fra_FraigSat( pMan, nConfLimit, 0, 0, 0, 0, 0, 0, 0, 1 ); 
     if ( RetValue == 0 )
     {
         int Counter = 0;

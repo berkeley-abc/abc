@@ -17692,7 +17692,7 @@ int Abc_CommandDCec( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fPartition;
     int fMiter;
 
-    extern int Abc_NtkDSat( Abc_Ntk_t * pNtk, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimit, int fAlignPol, int fAndOuts, int fNewSolver, int fVerbose );
+    extern int Abc_NtkDSat( Abc_Ntk_t * pNtk, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimit, int nStartLearned, int nDeltaLearned, int nRatioLearned, int fAlignPol, int fAndOuts, int fNewSolver, int fVerbose );
     extern int Abc_NtkDarCec( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nConfLimit, int fPartition, int fVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
@@ -17797,7 +17797,7 @@ int Abc_CommandDCec( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // perform equivalence checking
     if ( fSat && fMiter )
-        Abc_NtkDSat( pNtk1, nConfLimit, nInsLimit, 0, 0, 0, fVerbose );
+        Abc_NtkDSat( pNtk1, nConfLimit, nInsLimit, 0, 0, 0, 0, 0, 0, fVerbose );
     else
         Abc_NtkDarCec( pNtk1, pNtk2, nConfLimit, fPartition, fVerbose );
 
@@ -18943,10 +18943,13 @@ int Abc_CommandDSat( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fNewSolver;
     int fVerbose;
     int nConfLimit;
+    int nStartLearned;
+    int nDeltaLearned;
+    int nRatioLearned;
     int nInsLimit;
     clock_t clk;
 
-    extern int Abc_NtkDSat( Abc_Ntk_t * pNtk, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimit, int fAlignPol, int fAndOuts, int fNewSolver, int fVerbose );
+    extern int Abc_NtkDSat( Abc_Ntk_t * pNtk, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimit, int nStartLearned, int nDeltaLearned, int nRatioLearned, int fAlignPol, int fAndOuts, int fNewSolver, int fVerbose );
     // set defaults
     fAlignPol  = 0;
     fAndOuts   = 0;
@@ -18954,8 +18957,11 @@ int Abc_CommandDSat( Abc_Frame_t * pAbc, int argc, char ** argv )
     fVerbose   = 0;
     nConfLimit = 0;   
     nInsLimit  = 0;
+    nStartLearned = 0;
+    nDeltaLearned = 0;
+    nRatioLearned = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "CIpanvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "CISDRpanvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -18979,6 +18985,39 @@ int Abc_CommandDSat( Abc_Frame_t * pAbc, int argc, char ** argv )
             nInsLimit = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( nInsLimit < 0 ) 
+                goto usage;
+            break;
+        case 'S':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-S\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nStartLearned = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nStartLearned < 0 ) 
+                goto usage;
+            break;
+        case 'D':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-D\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nDeltaLearned = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nDeltaLearned < 0 ) 
+                goto usage;
+            break;
+        case 'R':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-R\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nRatioLearned = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nRatioLearned < 0 ) 
                 goto usage;
             break;
         case 'p':
@@ -19024,7 +19063,7 @@ int Abc_CommandDSat( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     clk = clock();
-    RetValue = Abc_NtkDSat( pNtk, (ABC_INT64_T)nConfLimit, (ABC_INT64_T)nInsLimit, fAlignPol, fAndOuts, fNewSolver, fVerbose );
+    RetValue = Abc_NtkDSat( pNtk, (ABC_INT64_T)nConfLimit, (ABC_INT64_T)nInsLimit, nStartLearned, nDeltaLearned, nRatioLearned, fAlignPol, fAndOuts, fNewSolver, fVerbose );
     // verify that the pattern is correct
     if ( RetValue == 0 && Abc_NtkPoNum(pNtk) == 1 )
     {
@@ -19046,11 +19085,14 @@ int Abc_CommandDSat( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: dsat [-C num] [-I num] [-panvh]\n" );
+    Abc_Print( -2, "usage: dsat [-CISDR num] [-panvh]\n" );
     Abc_Print( -2, "\t         solves the combinational miter using SAT solver MiniSat-1.14\n" );
     Abc_Print( -2, "\t         derives CNF from the current network and leave it unchanged\n" );
     Abc_Print( -2, "\t-C num : limit on the number of conflicts [default = %d]\n",    nConfLimit );
     Abc_Print( -2, "\t-I num : limit on the number of inspections [default = %d]\n", nInsLimit );
+    Abc_Print( -2, "\t-S num : starting value for learned clause removal [default = %d]\n", nStartLearned );
+    Abc_Print( -2, "\t-D num : delta value for learned clause removal [default = %d]\n", nDeltaLearned );
+    Abc_Print( -2, "\t-R num : ratio percentage for learned clause removal [default = %d]\n", nRatioLearned );
     Abc_Print( -2, "\t-p     : alighn polarity of SAT variables [default = %s]\n", fAlignPol? "yes": "no" );  
     Abc_Print( -2, "\t-a     : toggle ANDing/ORing of miter outputs [default = %s]\n", fAndOuts? "ANDing": "ORing" );  
     Abc_Print( -2, "\t-n     : toggle using new solver [default = %s]\n", fNewSolver? "yes": "no" );  
