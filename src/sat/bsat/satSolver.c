@@ -1092,10 +1092,13 @@ void sat_solver_rollback( sat_solver* s )
     s->hBinary = Sat_MemAppend( &s->Mem, NULL, 2, 0 );
     s->binary = clause_read( s, s->hBinary );
 
+    veci_resize(&s->act_clas, 0);
     veci_resize(&s->trail_lim, 0);
     veci_resize(&s->order, 0);
     for ( i = 0; i < s->size*2; i++ )
         s->wlists[i].size = 0;
+
+    s->nLearntMax   = s->nLearntStart;
 
     // initialize other vars
     s->size                   = 0;
