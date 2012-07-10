@@ -52,7 +52,7 @@ ext = Extension(
     '_pyabc',
     src_file,
     define_macros=define_macros,
-    include_dirs = ["../.."],
+    include_dirs = ["../../src"],
     library_dirs=library_dirs,
     libraries=libraries
     )
