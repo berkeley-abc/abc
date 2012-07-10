@@ -1760,7 +1760,7 @@ int Gia_GlaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars, int fStartVta )
     Gla_Man_t * p;
     Vec_Int_t * vCore, * vPPis;
     Abc_Cex_t * pCex = NULL;
-    int f, i, iPrev, nConfls, Status, nCoreSize, fOneIsSent = 0, RetValue = -1;
+    int f, i, iPrev, nConfls, Status, nVarsOld, nCoreSize, fOneIsSent = 0, RetValue = -1;
     clock_t clk = clock(), clk2;
     // preconditions
     assert( Gia_ManPoNum(pAig) == 1 );
@@ -1827,6 +1827,7 @@ int Gia_GlaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars, int fStartVta )
         sat_solver2_bookmark( p->pSat );
         Vec_IntClear( p->vAddedNew );
         p->nAbsOld = Vec_IntSize( p->vAbs );
+        nVarsOld = p->nSatVars;
 
         // iterate as long as there are counter-examples
         for ( i = 0; ; i++ )
@@ -1904,6 +1905,7 @@ int Gia_GlaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars, int fStartVta )
             // update storage
             Gla_ManRollBack( p );
             Vec_IntShrink( p->vCla2Obj, (int)p->pSat->stats.clauses+1 );
+            p->nSatVars = nVarsOld;
             // load this timeframe
             Gia_GlaAddToAbs( p, vCore, 0 );
             Gia_GlaAddOneSlice( p, f, vCore );
