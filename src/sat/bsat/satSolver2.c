@@ -1574,6 +1574,7 @@ void sat_solver2_rollback( sat_solver2* s )
     for ( i = 2*s->iVarPivot; i < 2*s->size; i++ )
         s->wlists[i].size = 0;
 
+
     // initialize other vars
     s->size = s->iVarPivot;
     if ( s->size == 0 )

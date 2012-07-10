@@ -1502,7 +1502,9 @@ int sat_solver_solve(sat_solver* s, lit* begin, lit* end, ABC_INT64_T nConfLimit
     lbool   status        = l_Undef;
     lit*    i;
 
-//    printf( "Running SAT solver with parameters %d and %d and %d.\n", s->nLearntStart, s->nLearntDelta, s->nLearntRatio );
+    if ( s->fVerbose )
+        printf( "Running SAT solver with parameters %d and %d and %d.\n", s->nLearntStart, s->nLearntDelta, s->nLearntRatio );
+
     ////////////////////////////////////////////////
     if ( s->fSolved )
     {

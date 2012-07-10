@@ -131,6 +131,27 @@ static inline void        Gla_ObjClearRef( Rfn_Obj_t * p )                     {
 
 /**Function*************************************************************
 
+  Synopsis    [Prints integer number using 6 characters.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Abc_PrintInt( int i )
+{
+    if ( i > -1000 && i < 1000 )
+        printf( "%6d", i );
+    else if ( i > -1000000 && i < 1000000 )
+        printf( "%5dk", i/1000 );
+    else if ( i > -1000000000 && i < 1000000000 )
+        printf( "%5dm", i/1000000 );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Derive a new counter-example.]
 
   Description []
@@ -1641,8 +1662,11 @@ void Gla_ManAbsPrintFrame( Gla_Man_t * p, int nCoreSize, int nFrames, int nConfl
         Abc_Print( 1, "%5c", '-' ); 
     else
         Abc_Print( 1, "%5d", nCexes ); 
-    Abc_Print( 1, " %9d", sat_solver2_nvars(p->pSat) ); 
-    Abc_Print( 1, " %6d", nCoreSize > 0 ? nCoreSize : 0 ); 
+//    Abc_Print( 1, " %9d", sat_solver2_nvars(p->pSat) ); 
+    Abc_PrintInt( sat_solver2_nvars(p->pSat) );
+    Abc_PrintInt( sat_solver2_nclauses(p->pSat) );
+    Abc_PrintInt( sat_solver2_nlearnts(p->pSat) );
+//    Abc_Print( 1, " %6d", nCoreSize > 0 ? nCoreSize : 0 ); 
     Abc_Print( 1, "%9.2f sec", 1.0*Time/CLOCKS_PER_SEC );
     Abc_Print( 1, "%5.1f GB", (sat_solver2_memory_proof(p->pSat) + sat_solver2_memory(p->pSat, 0)) / (1<<30) );
     Abc_Print( 1, "%s", nCoreSize > 0 ? "\n" : "\r" );
@@ -1813,7 +1837,7 @@ int Gia_GlaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars, int fStartVta )
         Abc_Print( 1, "Running gate-level abstraction (GLA) with the following parameters:\n" );
         Abc_Print( 1, "FrameMax = %d  ConfMax = %d  LearnMax = %d  Timeout = %d  RatioMin = %d %%.\n", 
             pPars->nFramesMax, pPars->nConfLimit, pPars->nLearntMax, pPars->nTimeOut, pPars->nRatioMin );
-        Abc_Print( 1, "Frame   %%   Abs  PPI   FF   LUT   Confl  Cex    SatVar   Core     Time\n" );
+        Abc_Print( 1, "Frame   %%   Abs  PPI   FF   LUT   Confl  Cex  Vars  Clas  Lrns     Time      Mem\n" );
     }
     for ( f = i = iPrev = 0; !p->pPars->nFramesMax || f < p->pPars->nFramesMax; f++, iPrev = i )
     {

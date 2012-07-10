@@ -137,6 +137,27 @@ extern void Vga_ManAddClausesOne( Vta_Man_t * p, int iObj, int iFrame );
 
 /**Function*************************************************************
 
+  Synopsis    [Prints integer number using 6 characters.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Abc_PrintInt( int i )
+{
+    if ( i > -1000 && i < 1000 )
+        printf( "%6d", i );
+    else if ( i > -1000000 && i < 1000000 )
+        printf( "%5dk", i/1000 );
+    else if ( i > -1000000000 && i < 1000000000 )
+        printf( "%5dm", i/1000000 );
+}
+
+/**Function*************************************************************
+
   Synopsis    [This procedure sets default parameters.]
 
   Description []
@@ -1191,7 +1212,7 @@ int Vta_ManAbsPrintFrame( Vta_Man_t * p, Vec_Int_t * vCore, int nFrames, int nCo
 {
     unsigned * pInfo;
     int * pCountAll = NULL, * pCountUni = NULL;
-    int i, k, iFrame, iObj, Entry, fChanges = 0;
+    int i, iFrame, iObj, Entry, fChanges = 0;
     // print info about frames
     if ( vCore )
     {
@@ -1240,12 +1261,15 @@ int Vta_ManAbsPrintFrame( Vta_Man_t * p, Vec_Int_t * vCore, int nFrames, int nCo
         Abc_Print( 1, "%5c", '-' ); 
     else
         Abc_Print( 1, "%5d", nCexes ); 
-    Abc_Print( 1, " %9d", sat_solver2_nvars(p->pSat) ); 
+//    Abc_Print( 1, " %9d", sat_solver2_nvars(p->pSat) ); 
+    Abc_PrintInt( sat_solver2_nvars(p->pSat) );
+    Abc_PrintInt( sat_solver2_nclauses(p->pSat) );
+    Abc_PrintInt( sat_solver2_nlearnts(p->pSat) );
     if ( vCore == NULL )
     {
         Abc_Print( 1, "    ..." ); 
-        for ( k = 0; k < 7; k++ )
-            Abc_Print( 1, "     " );
+//        for ( k = 0; k < 7; k++ )
+//            Abc_Print( 1, "     " );
         Abc_Print( 1, "%9.2f sec", 1.0*Time/CLOCKS_PER_SEC );
         Abc_Print( 1, "%5.1f GB", (sat_solver2_memory_proof(p->pSat) + sat_solver2_memory(p->pSat, 0)) / (1<<30) );
         Abc_Print( 1, "\r" );
@@ -1253,6 +1277,7 @@ int Vta_ManAbsPrintFrame( Vta_Man_t * p, Vec_Int_t * vCore, int nFrames, int nCo
     else
     {
         Abc_Print( 1, "%7d", pCountAll[0] ); 
+/*
         if ( nFrames > 7 )
         {
             for ( k = 0; k < 3; k++ )
@@ -1268,6 +1293,7 @@ int Vta_ManAbsPrintFrame( Vta_Man_t * p, Vec_Int_t * vCore, int nFrames, int nCo
             for ( k = nFrames; k < 7; k++ )
                 Abc_Print( 1, "     " );
         }
+*/
         Abc_Print( 1, "%9.2f sec", 1.0*Time/CLOCKS_PER_SEC );
         Abc_Print( 1, "%5.1f GB", (sat_solver2_memory_proof(p->pSat) + sat_solver2_memory(p->pSat, 0)) / (1<<30) );
         Abc_Print( 1, "\n" );
@@ -1572,7 +1598,8 @@ int Gia_VtaPerformInt( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
         Abc_Print( 1, "Running variable-timeframe abstraction (VTA) with the following parameters:\n" );
         Abc_Print( 1, "FramePast = %d  FrameMax = %d  ConfMax = %d  LearnMax = %d  Timeout = %d  RatioMin = %d %%\n", 
             pPars->nFramesPast, pPars->nFramesMax, pPars->nConfLimit, pPars->nLearntMax, pPars->nTimeOut, pPars->nRatioMin );
-        Abc_Print( 1, "Frame   %%   Abs   %%   Confl  Cex    SatVar   Core   F0   F1   F2  ...\n" );
+//        Abc_Print( 1, "Frame   %%   Abs   %%   Confl  Cex    SatVar   Core   F0   F1   F2  ...\n" );
+        Abc_Print( 1, "Frame   %%   Abs   %%   Confl  Cex  Vars  Clas  Lrns   Core     Time      Mem\n" );
     }
     assert( Vec_PtrSize(p->vFrames) > 0 );
     for ( f = i = 0; !p->pPars->nFramesMax || f < p->pPars->nFramesMax; f++ )

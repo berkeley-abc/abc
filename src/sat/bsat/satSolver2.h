@@ -212,6 +212,11 @@ static inline int sat_solver2_nclauses(sat_solver2* s)
     return (int)s->stats.clauses;
 }
 
+static inline int sat_solver2_nlearnts(sat_solver2* s)
+{
+    return (int)s->stats.learnts;
+}
+
 static inline int sat_solver2_nconflicts(sat_solver2* s)
 {
     return (int)s->stats.conflicts;
