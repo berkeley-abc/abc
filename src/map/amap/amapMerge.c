@@ -522,7 +522,7 @@ void Amap_ManMerge( Amap_Man_t * p )
     if ( p->pPars->fVerbose )
     {
         printf( "AIG object is %d bytes.  ", (int)sizeof(Amap_Obj_t) );
-        printf( "Internal AIG = %5.2f Mb.  Cuts = %5.2f Mb.\n", 
+        printf( "Internal AIG = %5.2f MB.  Cuts = %5.2f MB.\n", 
             1.0*Amap_ManObjNum(p)*sizeof(Amap_Obj_t)/(1<<20), 1.0*p->nBytesUsed/(1<<20) );
         printf( "Node =%6d. Try =%9d. Try3 =%10d. Used =%7d. R =%6.2f.  ", 
             Amap_ManNodeNum(p), p->nCutsTried, p->nCutsTried3, p->nCutsUsed, 

@@ -1186,7 +1186,7 @@ void Super_WriteLibrary( Super_Man_t * pMan )
 if ( pMan->fVerbose )
 {
     printf( "The supergates are written using old format \"%s\" ", FileName );
-    printf( "(%0.3f Mb).\n", ((double)Extra_FileSize(FileName))/(1<<20) );
+    printf( "(%0.3f MB).\n", ((double)Extra_FileSize(FileName))/(1<<20) );
 }
 
     ABC_FREE( FileName );
@@ -1324,7 +1324,7 @@ void Super_WriteLibraryTree( Super_Man_t * pMan )
 if ( pMan->fVerbose )
 {
     printf( "The supergates are written using new format \"%s\" ", FileName );
-    printf( "(%0.3f Mb).\n", ((double)Extra_FileSize(FileName))/(1<<20) );
+    printf( "(%0.3f MB).\n", ((double)Extra_FileSize(FileName))/(1<<20) );
 }
 
     ABC_FREE( FileName );

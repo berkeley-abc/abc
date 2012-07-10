@@ -645,7 +645,7 @@ void Ivy_FraigPrint( Ivy_FraigMan_t * p )
 {
     double nMemory;
     nMemory = (double)Ivy_ManObjNum(p->pManAig)*p->nSimWords*sizeof(unsigned)/(1<<20);
-    printf( "SimWords = %d. Rounds = %d. Mem = %0.2f Mb.  ", p->nSimWords, p->nSimRounds, nMemory );
+    printf( "SimWords = %d. Rounds = %d. Mem = %0.2f MB.  ", p->nSimWords, p->nSimRounds, nMemory );
     printf( "Classes: Beg = %d. End = %d.\n", p->nClassesBeg, p->nClassesEnd );
 //    printf( "Limits: BTNode = %d. BTMiter = %d.\n", p->pParams->nBTLimitNode, p->pParams->nBTLimitMiter );
     printf( "Proof = %d. Counter-example = %d. Fail = %d. FailReal = %d. Zero = %d.\n", 

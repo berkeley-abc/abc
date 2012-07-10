@@ -1644,7 +1644,7 @@ void Gla_ManAbsPrintFrame( Gla_Man_t * p, int nCoreSize, int nFrames, int nConfl
     Abc_Print( 1, " %9d", sat_solver2_nvars(p->pSat) ); 
     Abc_Print( 1, " %6d", nCoreSize > 0 ? nCoreSize : 0 ); 
     Abc_Print( 1, "%9.2f sec", 1.0*Time/CLOCKS_PER_SEC );
-    Abc_Print( 1, "%5.1f Gb", (sat_solver2_memory_proof(p->pSat) + sat_solver2_memory(p->pSat, 0)) / (1<<30) );
+    Abc_Print( 1, "%5.1f GB", (sat_solver2_memory_proof(p->pSat) + sat_solver2_memory(p->pSat, 0)) / (1<<30) );
     Abc_Print( 1, "%s", nCoreSize > 0 ? "\n" : "\r" );
     fflush( stdout );
 }

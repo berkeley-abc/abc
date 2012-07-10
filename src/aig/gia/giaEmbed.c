@@ -630,7 +630,7 @@ void Emb_ManPrintStats( Emb_Man_t * p )
     printf( "obj =%8d  ", Emb_ManObjNum(p) );
 //    printf( "lev =%5d  ", Emb_ManLevelNum(p) );
 //    printf( "cut =%5d  ", Emb_ManCrossCut(p) );
-    printf( "mem =%5.2f Mb", 4.0*p->nObjData/(1<<20) );
+    printf( "mem =%5.2f MB", 4.0*p->nObjData/(1<<20) );
 //    printf( "obj =%5d  ", Emb_ManObjNum(p) );
     printf( "\n" );
 

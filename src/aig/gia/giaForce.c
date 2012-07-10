@@ -565,7 +565,7 @@ void Frc_ManPrintStats( Frc_Man_t * p )
     printf( "obj =%8d  ", Frc_ManObjNum(p) );
 //    printf( "lev =%5d  ", Frc_ManLevelNum(p) );
 //    printf( "cut =%5d  ", Frc_ManCrossCut(p) );
-    printf( "mem =%5.2f Mb", 4.0*p->nObjData/(1<<20) );
+    printf( "mem =%5.2f MB", 4.0*p->nObjData/(1<<20) );
 //    printf( "obj =%5d  ", Frc_ManObjNum(p) );
     printf( "\n" );
 }

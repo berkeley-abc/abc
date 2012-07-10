@@ -1244,7 +1244,7 @@ p->timeRead = clock() - clk;
         1.0*(p->Counter-p->nRoots)/(p->nClauses-p->nRoots),
         nUsed, 1.0*nUsed/(p->nClauses-p->nRoots)  );
 */
-    printf( "Vars = %d. Roots = %d. Learned = %d. Resol steps = %d.  Ave = %.2f.  Mem = %.2f Mb\n", 
+    printf( "Vars = %d. Roots = %d. Learned = %d. Resol steps = %d.  Ave = %.2f.  Mem = %.2f MB\n", 
         p->nVars, p->nRoots, p->nClauses-p->nRoots, p->Counter,  
         1.0*(p->Counter-p->nRoots)/(p->nClauses-p->nRoots), 
         1.0*Pr_ManMemoryReport(p)/(1<<20) );

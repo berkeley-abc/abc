@@ -499,7 +499,7 @@ int Raig_ManSimulate( Aig_Man_t * pAig, int nWords, int nIters, int TimeLimit, i
     }
     if ( fVerbose )
     {
-        printf( "Maxcut = %8d.  AigMem = %7.2f Mb.  SimMem = %7.2f Mb.  ", 
+        printf( "Maxcut = %8d.  AigMem = %7.2f MB.  SimMem = %7.2f MB.  ", 
             p->nMemsMax, 
             1.0*(p->nObjs * 16)/(1<<20), 
             1.0*(p->nMemsMax * 4 * (nWords+1))/(1<<20) );

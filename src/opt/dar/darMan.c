@@ -97,7 +97,7 @@ void Dar_ManPrintStats( Dar_Man_t * p )
     extern void Kit_DsdPrintFromTruth( unsigned * pTruth, int nVars );
 
     Gain = p->nNodesInit - Aig_ManNodeNum(p->pAig);
-    printf( "Tried = %8d. Beg = %8d. End = %8d. Gain = %6d. (%6.2f %%).  Cut mem = %d Mb\n", 
+    printf( "Tried = %8d. Beg = %8d. End = %8d. Gain = %6d. (%6.2f %%).  Cut mem = %d MB\n", 
         p->nNodesTried, p->nNodesInit, Aig_ManNodeNum(p->pAig), Gain, 100.0*Gain/p->nNodesInit, p->nCutMemUsed );
     printf( "Cuts = %8d. Tried = %8d. Used = %8d. Bad = %5d. Skipped = %5d. Ave = %.2f.\n", 
         p->nCutsAll, p->nCutsTried, p->nCutsUsed, p->nCutsBad, p->nCutsSkipped,

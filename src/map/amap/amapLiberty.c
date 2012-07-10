@@ -913,7 +913,7 @@ int Amap_LibertyParse( char * pFileName, char * pFileGenlib, int fVerbose )
     }
     if ( fVerbose )
     {
-    printf( "Memory = %7.2f Mb. ", 1.0*(p->nContents+p->nItermAlloc*sizeof(Amap_Item_t))/(1<<20) );
+    printf( "Memory = %7.2f MB. ", 1.0*(p->nContents+p->nItermAlloc*sizeof(Amap_Item_t))/(1<<20) );
     ABC_PRT( "Time", clock() - clk );
     }
     Amap_LibertyStop( p );

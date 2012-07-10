@@ -373,7 +373,7 @@ void Abc_NtkPrintStats( Abc_Ntk_t * pNtk, int fFactored, int fSaveBest, int fDum
 
 
     s_TotalNodes += Abc_NtkNodeNum(pNtk);
-    printf( "Total nodes = %6d   %6.2f Mb   Changes = %6d.\n", 
+    printf( "Total nodes = %6d   %6.2f MB   Changes = %6d.\n", 
         s_TotalNodes, s_TotalNodes * 20.0 / (1<<20), s_TotalChanges );
 */
 

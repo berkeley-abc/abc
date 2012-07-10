@@ -317,7 +317,7 @@ Aig_MmFixed_t * Dar_ManComputeCuts( Aig_Man_t * pAig, int nCutsMax, int fSkipTtM
         nCuts = Dar_ManCutCount( pAig, &nCutsK );
         printf( "Nodes = %6d. Total cuts = %6d. 4-input cuts = %6d.\n",
             Aig_ManObjNum(pAig), nCuts, nCutsK );
-        printf( "Cut size = %2d. Truth size = %2d. Total mem = %5.2f Mb  ",
+        printf( "Cut size = %2d. Truth size = %2d. Total mem = %5.2f MB  ",
             (int)sizeof(Dar_Cut_t), (int)4, 1.0*Aig_MmFixedReadMemUsage(p->pMemCuts)/(1<<20) );
         ABC_PRT( "Runtime", clock() - clk );
 /*

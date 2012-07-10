@@ -352,7 +352,7 @@ void Fraig_ManPrintStats( Fraig_Man_t * p )
     double nMemory;
     nMemory = ((double)(p->vInputs->nSize + p->vNodes->nSize) * 
         (sizeof(Fraig_Node_t) + sizeof(unsigned)*(p->nWordsRand + p->nWordsDyna) /*+ p->nSuppWords*sizeof(unsigned)*/))/(1<<20);
-    printf( "Words: Random = %d. Dynamic = %d. Used = %d. Memory = %0.2f Mb.\n", 
+    printf( "Words: Random = %d. Dynamic = %d. Used = %d. Memory = %0.2f MB.\n", 
         p->nWordsRand, p->nWordsDyna, p->iWordPerm, nMemory );
     printf( "Proof = %d. Counter-example = %d. Fail = %d. FailReal = %d. Zero = %d.\n", 
         p->nSatProof, p->nSatCounter, p->nSatFails, p->nSatFailsReal, p->nSatZeros );

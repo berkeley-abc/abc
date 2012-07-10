@@ -604,7 +604,7 @@ void If_ManSetupSetAll( If_Man_t * p, int nCrossCut )
 
     if ( p->pPars->fVerbose )
     {
-        Abc_Print( 1, "Node = %7d.  Ch = %5d.  Total mem = %7.2f Mb. Peak cut mem = %7.2f Mb.\n", 
+        Abc_Print( 1, "Node = %7d.  Ch = %5d.  Total mem = %7.2f MB. Peak cut mem = %7.2f MB.\n", 
             If_ManAndNum(p), p->nChoices,
             1.0 * (p->nObjBytes + 2*sizeof(void *)) * If_ManObjNum(p) / (1<<20), 
             1.0 * p->nSetBytes * nCrossCut / (1<<20) );

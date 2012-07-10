@@ -32,7 +32,7 @@ ABC_NAMESPACE_IMPL_START
 typedef struct Supp_Man_t_     Supp_Man_t;
 struct Supp_Man_t_
 {
-    int              nChunkSize;    // the size of one chunk of memory (~1 Mb)
+    int              nChunkSize;    // the size of one chunk of memory (~1 MB)
     int              nStepSize;     // the step size in saving memory (~64 bytes)
     char *           pFreeBuf;      // the pointer to free memory
     int              nFreeSize;     // the size of remaining free memory
@@ -385,7 +385,7 @@ Vec_Ptr_t * Abc_NtkComputeSupportsSmart( Abc_Ntk_t * pNtk )
         assert( 0 );
     }
     Vec_PtrFree( vNodes );
-//printf( "Memory usage = %d Mb.\n", Vec_PtrSize(p->vMemory) * p->nChunkSize / (1<<20) );
+//printf( "Memory usage = %d MB.\n", Vec_PtrSize(p->vMemory) * p->nChunkSize / (1<<20) );
     Supp_ManStop( p );
     // sort supports by size
     Vec_VecSort( (Vec_Vec_t *)vSupports, 1 );

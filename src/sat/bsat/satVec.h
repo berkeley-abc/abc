@@ -58,7 +58,7 @@ static inline void   veci_push   (veci* v, int e)
         v->ptr = ABC_REALLOC( int, v->ptr, newsize );
         if ( v->ptr == NULL )
         {
-            printf( "Failed to realloc memory from %.1f Mb to %.1f Mb.\n", 
+            printf( "Failed to realloc memory from %.1f MB to %.1f MB.\n", 
                 1.0 * v->cap / (1<<20), 1.0 * newsize / (1<<20) );
             fflush( stdout );
         }

@@ -131,7 +131,7 @@ int If_ManPerformMappingComb( If_Man_t * p )
 
     if ( p->pPars->fVerbose )
     {
-//        Abc_Print( 1, "Total memory = %7.2f Mb. Peak cut memory = %7.2f Mb.  ", 
+//        Abc_Print( 1, "Total memory = %7.2f MB. Peak cut memory = %7.2f MB.  ", 
 //            1.0 * (p->nObjBytes + 2*sizeof(void *)) * If_ManObjNum(p) / (1<<20), 
 //            1.0 * p->nSetBytes * Mem_FixedReadMaxEntriesUsed(p->pMemSet) / (1<<20) );
         Abc_PrintTime( 1, "Total time", clock() - clkTotal );

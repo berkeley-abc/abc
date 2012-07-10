@@ -700,7 +700,7 @@ Gia_ManBmc_t * Saig_Bmc3ManStart( Aig_Man_t * pAig )
     p->nWordNum = Abc_BitWordNum( 2 * Aig_ManObjNumMax(pAig) );
     // hash table
     p->nTable = 1000003;
-    p->pTable = ABC_CALLOC( int, 6 * p->nTable ); // 2.4 Mb
+    p->pTable = ABC_CALLOC( int, 6 * p->nTable ); // 2.4 MB
     return p;
 }
 
@@ -1385,8 +1385,8 @@ clkOther += clock() - clk2;
                         printf( "Conf =%7.0f. ", (double)p->pSat->stats.conflicts );
                         printf( "Imp =%10.0f. ", (double)p->pSat->stats.propagations );
 //                        ABC_PRT( "Time", clock() - clk );
-                        printf( "%4.0f Mb",      4.25*(f+1)*p->nObjNums /(1<<20) );
-                        printf( "%4.0f Mb",      1.0*sat_solver_memory(p->pSat)/(1<<20) );
+                        printf( "%4.0f MB",      4.25*(f+1)*p->nObjNums /(1<<20) );
+                        printf( "%4.0f MB",      1.0*sat_solver_memory(p->pSat)/(1<<20) );
                         printf( "%9.2f sec  ",   (float)(clock() - clkTotal)/(float)(CLOCKS_PER_SEC) );
 //                        printf( "\n" );
 //                        ABC_PRMn( "Id2Var", (f+1)*p->nObjNums*4 );
@@ -1448,9 +1448,9 @@ clkOther += clock() - clk2;
             printf( "Conf =%7.0f. ",(double)p->pSat->stats.conflicts );
             printf( "Imp =%10.0f. ", (double)p->pSat->stats.propagations );
 //            ABC_PRT( "Time", clock() - clk );
-//            printf( "%4.0f Mb",     4.0*Vec_IntSize(p->vVisited) /(1<<20) );
-            printf( "%4.0f Mb",     4.0*(f+1)*p->nObjNums /(1<<20) );
-            printf( "%4.0f Mb",     1.0*sat_solver_memory(p->pSat)/(1<<20) );
+//            printf( "%4.0f MB",     4.0*Vec_IntSize(p->vVisited) /(1<<20) );
+            printf( "%4.0f MB",     4.0*(f+1)*p->nObjNums /(1<<20) );
+            printf( "%4.0f MB",     1.0*sat_solver_memory(p->pSat)/(1<<20) );
             printf( "%9.2f sec ",  1.0*(clock() - clkTotal)/CLOCKS_PER_SEC );
 //            printf( "\n" );
 //            ABC_PRMn( "Id2Var", (f+1)*p->nObjNums*4 );

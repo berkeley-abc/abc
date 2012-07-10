@@ -114,7 +114,7 @@ Faig_Man_t * Faig_ManAlloc( Aig_Man_t * pAig )
 //    assert( Faig_ManIsCorrect(pAig) );
     nWords = 2 * Aig_ManNodeNum(pAig) + Aig_ManCoNum(pAig);
     p = (Faig_Man_t *)ABC_ALLOC( char, sizeof(Faig_Man_t) + sizeof(int) * nWords );
-//printf( "Allocating %7.2f Mb.\n", 1.0 * (sizeof(Faig_Man_t) + sizeof(int) * nWords)/(1<<20) );
+//printf( "Allocating %7.2f MB.\n", 1.0 * (sizeof(Faig_Man_t) + sizeof(int) * nWords)/(1<<20) );
     memset( p, 0, sizeof(Faig_Man_t) );
     p->nPis   = Aig_ManCiNum(pAig) - Aig_ManRegNum(pAig);
     p->nPos   = Aig_ManCoNum(pAig) - Aig_ManRegNum(pAig);
@@ -255,8 +255,8 @@ int * Faig_ManSimulateFrames( Faig_Man_t * p, int nFrames, int nPref, int fTrans
     int * pNumOnes = ABC_CALLOC( int, p->nObjs );
     unsigned * pSimInfo = ABC_ALLOC( unsigned, p->nObjs );
     int f, i;
-//printf( "Allocating %7.2f Mb.\n", 1.0 * 4 * p->nObjs/(1<<20) );
-//printf( "Allocating %7.2f Mb.\n", 1.0 * 4 * p->nObjs/(1<<20) );
+//printf( "Allocating %7.2f MB.\n", 1.0 * 4 * p->nObjs/(1<<20) );
+//printf( "Allocating %7.2f MB.\n", 1.0 * 4 * p->nObjs/(1<<20) );
     // set constant 1
     pSimInfo[0] = ~0;
     for ( f = 0; f < nFrames; f++ )

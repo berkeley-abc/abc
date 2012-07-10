@@ -235,7 +235,7 @@ Gia_ManSim_t * Gia_ManSimCreate( Gia_Man_t * pAig, Gia_ParSim_t * pPars )
     p->pDataSimCos = ABC_ALLOC( unsigned, p->nWords * Gia_ManCoNum(p->pAig) );
     if ( !p->pDataSim || !p->pDataSimCis || !p->pDataSimCos )
     { 
-        Abc_Print( 1, "Simulator could not allocate %.2f Gb for simulation info.\n", 
+        Abc_Print( 1, "Simulator could not allocate %.2f GB for simulation info.\n", 
             4.0 * p->nWords * (p->pAig->nFront + Gia_ManCiNum(p->pAig) + Gia_ManCoNum(p->pAig)) / (1<<30) );
         Gia_ManSimDelete( p );
         return NULL;
@@ -244,7 +244,7 @@ Gia_ManSim_t * Gia_ManSimCreate( Gia_Man_t * pAig, Gia_ParSim_t * pPars )
     Vec_IntForEachEntry( pAig->vCis, Entry, i )
         Vec_IntPush( p->vCis2Ids, i );  //  do we need p->vCis2Ids?
     if ( pPars->fVerbose )
-    Abc_Print( 1, "AIG = %7.2f Mb.   Front mem = %7.2f Mb.  Other mem = %7.2f Mb.\n", 
+    Abc_Print( 1, "AIG = %7.2f MB.   Front mem = %7.2f MB.  Other mem = %7.2f MB.\n", 
         12.0*Gia_ManObjNum(p->pAig)/(1<<20), 
         4.0*p->nWords*p->pAig->nFront/(1<<20), 
         4.0*p->nWords*(Gia_ManCiNum(p->pAig) + Gia_ManCoNum(p->pAig))/(1<<20) );

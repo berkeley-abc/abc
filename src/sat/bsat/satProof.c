@@ -354,7 +354,7 @@ void Sat_ProofReduce2( sat_solver2 * s )
     if ( fVerbose )
     {
         printf( "\n" );
-        printf( "The proof was reduced from %6.2f Mb to %6.2f Mb (by %6.2f %%)  ", 
+        printf( "The proof was reduced from %6.2f MB to %6.2f MB (by %6.2f %%)  ", 
             1.0 * Vec_SetMemory(vProof) / (1<<20), 1.0 * Vec_SetMemoryS(vProof) / (1<<20), 
             100.0 * (Vec_SetMemory(vProof) - Vec_SetMemoryS(vProof)) / Vec_SetMemory(vProof) );
         TimeTotal += clock() - clk;
@@ -423,7 +423,7 @@ void Sat_ProofReduce( sat_solver2 * s )
     if ( fVerbose )
     {
         printf( "\n" );
-        printf( "The proof was reduced from %6.2f Mb to %6.2f Mb (by %6.2f %%)  ", 
+        printf( "The proof was reduced from %6.2f MB to %6.2f MB (by %6.2f %%)  ", 
             1.0 * Vec_SetMemory(vProof) / (1<<20), 1.0 * Vec_SetMemoryS(vProof) / (1<<20), 
             100.0 * (Vec_SetMemory(vProof) - Vec_SetMemoryS(vProof)) / Vec_SetMemory(vProof) );
         TimeTotal += clock() - clk;
@@ -555,7 +555,7 @@ void Sat_ProofCheck( sat_solver2 * s )
     // clean the proof
     Proof_CleanCollected( vProof, vUsed );
     // compare the final clause
-    printf( "Used %6.2f Mb for resolvents.\n", 1.0 * Vec_SetMemory(vResolves) / (1<<20) );
+    printf( "Used %6.2f MB for resolvents.\n", 1.0 * Vec_SetMemory(vResolves) / (1<<20) );
     if ( pSet0->nEnts > 0 )
         printf( "Derived clause with %d lits instead of the empty clause.  ", pSet0->nEnts );
     else

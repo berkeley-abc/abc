@@ -650,7 +650,7 @@ Aig_ManCut_t * Aig_ComputeCuts( Aig_Man_t * pAig, int nCutsMax, int nLeafMax, in
         nCuts = Aig_ManCutCount( p, &nCutsK );
         printf( "Nodes = %6d. Total cuts = %6d. %d-input cuts = %6d.\n",
             Aig_ManObjNum(pAig), nCuts, nLeafMax, nCutsK );
-        printf( "Cut size = %2d. Truth size = %2d. Total mem = %5.2f Mb  ",
+        printf( "Cut size = %2d. Truth size = %2d. Total mem = %5.2f MB  ",
             p->nCutSize, 4*p->nTruthWords, 1.0*Aig_MmFixedReadMemUsage(p->pMemCuts)/(1<<20) );
         ABC_PRT( "Runtime", clock() - clk );
 /*

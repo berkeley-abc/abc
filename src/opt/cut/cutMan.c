@@ -168,7 +168,7 @@ void Cut_ManPrintStats( Cut_Man_t * p )
     printf( "Nodes saturated   = %8d. (Max cuts = %d.)\n", p->nCutsLimit, p->pParams->nKeepMax );
     printf( "Cuts per node     = %8.1f\n", ((float)(p->nCutsCur-p->nCutsTriv))/p->nNodes );
     printf( "The cut size      = %8d bytes.\n", p->EntrySize );
-    printf( "Peak memory       = %8.2f Mb.\n", (float)p->nCutsPeak * p->EntrySize / (1<<20) );
+    printf( "Peak memory       = %8.2f MB.\n", (float)p->nCutsPeak * p->EntrySize / (1<<20) );
     printf( "Total nodes       = %8d.\n", p->nNodes );
     if ( p->pParams->fDag || p->pParams->fTree )
     {

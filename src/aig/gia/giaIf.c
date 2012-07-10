@@ -318,7 +318,7 @@ void Gia_ManPrintMappingStats( Gia_Man_t * p )
     Abc_Print( 1, "lut =%7d  ", nLuts );
     Abc_Print( 1, "edge =%8d  ", nFanins );
     Abc_Print( 1, "lev =%5d  ", LevelMax );
-    Abc_Print( 1, "mem =%5.2f Mb", 4.0*(Gia_ManObjNum(p) + 2*nLuts + nFanins)/(1<<20) );
+    Abc_Print( 1, "mem =%5.2f MB", 4.0*(Gia_ManObjNum(p) + 2*nLuts + nFanins)/(1<<20) );
     Abc_Print( 1, "\n" );
 }
 

@@ -540,7 +540,7 @@ int Gia_ManCollectReachable( Gia_Man_t * pAig, int nStatesMax, int fMiter, int f
         }
         if ( fVerbose && p->iCurState % 5000 == 0 )
         {
-            printf( "States =%10d. Reached =%10d. R = %5.3f. Depth =%6d. Mem =%9.2f Mb.  ", 
+            printf( "States =%10d. Reached =%10d. R = %5.3f. Depth =%6d. Mem =%9.2f MB.  ", 
                 p->iCurState, Vec_PtrSize(p->vStates), 1.0*p->iCurState/Vec_PtrSize(p->vStates), Gia_ManCountDepth(p), 
                 (1.0/(1<<20))*(1.0*Vec_PtrSize(p->vStates)*(sizeof(Gia_ObjEra_t) + sizeof(unsigned) * p->nWordsDat) + 
                    1.0*p->nBins*sizeof(unsigned) + 1.0*p->vStates->nCap * sizeof(void*)) );

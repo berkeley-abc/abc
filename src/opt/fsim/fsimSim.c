@@ -495,7 +495,7 @@ int Fsim_ManSimulate( Aig_Man_t * pAig, Fsim_ParSim_t * pPars )
     p->nWords = pPars->nWords;
     if ( pPars->fVerbose )
     {
-        printf( "Obj = %8d (%8d). Cut = %6d. Front = %6d.  FrtMem = %7.2f Mb. ", 
+        printf( "Obj = %8d (%8d). Cut = %6d. Front = %6d.  FrtMem = %7.2f MB. ", 
             p->nObjs, p->nCis + p->nNodes, p->nCrossCutMax, p->nFront, 
             4.0*p->nWords*(p->nFront)/(1<<20) );
         ABC_PRT( "Time", clock() - clk );
@@ -505,7 +505,7 @@ int Fsim_ManSimulate( Aig_Man_t * pAig, Fsim_ParSim_t * pPars )
     Fsim_ManFront( p, pPars->fCompressAig );
     if ( pPars->fVerbose )
     {
-        printf( "Max ID = %8d. Log max ID = %2d.  AigMem = %7.2f Mb (%5.2f byte/obj).  ", 
+        printf( "Max ID = %8d. Log max ID = %2d.  AigMem = %7.2f MB (%5.2f byte/obj).  ", 
             p->iNumber, Aig_Base2Log(p->iNumber), 
             1.0*(p->pDataCur-p->pDataAig)/(1<<20), 
             1.0*(p->pDataCur-p->pDataAig)/p->nObjs ); 
@@ -545,7 +545,7 @@ int Fsim_ManSimulate( Aig_Man_t * pAig, Fsim_ParSim_t * pPars )
         printf( "No bug detected after %d frames with time limit %d seconds.\n", i+1, pPars->TimeLimit );
     if ( pPars->fVerbose )
     {
-        printf( "Maxcut = %8d.  AigMem = %7.2f Mb.  SimMem = %7.2f Mb.  ", 
+        printf( "Maxcut = %8d.  AigMem = %7.2f MB.  SimMem = %7.2f MB.  ", 
             p->nCrossCutMax, 
             p->pDataAig2? 12.0*p->nObjs/(1<<20) : 1.0*(p->pDataCur-p->pDataAig)/(1<<20), 
             4.0*p->nWords*(p->nFront+p->nCis+p->nCos)/(1<<20) );

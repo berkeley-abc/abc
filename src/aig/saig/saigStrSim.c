@@ -910,9 +910,9 @@ Vec_Int_t * Saig_StrSimPerformMatching( Aig_Man_t * p0, Aig_Man_t * p1, int nDis
     Saig_StrSimSetInitMatching( pPart0, pPart1 );
     if ( fVerbose )
     {
-        printf( "Allocated %6.2f Mb to simulate the first AIG.\n", 
+        printf( "Allocated %6.2f MB to simulate the first AIG.\n", 
             1.0 * Aig_ManObjNumMax(pPart0) * SAIG_WORDS * sizeof(unsigned) / (1<<20) );
-        printf( "Allocated %6.2f Mb to simulate the second AIG.\n", 
+        printf( "Allocated %6.2f MB to simulate the second AIG.\n", 
             1.0 * Aig_ManObjNumMax(pPart1) * SAIG_WORDS * sizeof(unsigned) / (1<<20) );
     }
     // iterate matching

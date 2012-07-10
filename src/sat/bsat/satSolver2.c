@@ -1251,7 +1251,7 @@ void sat_solver2_delete(sat_solver2* s)
     }
 
     // report statistics
-//    Abc_Print(1, "Used %6.2f Mb for proof-logging.   Unit clauses = %d.\n", 1.0 * Vec_ReportMemory(&s->Proofs) / (1<<20), s->nUnits );
+//    Abc_Print(1, "Used %6.2f MB for proof-logging.   Unit clauses = %d.\n", 1.0 * Vec_ReportMemory(&s->Proofs) / (1<<20), s->nUnits );
 
     // delete vectors
     veci_delete(&s->order);

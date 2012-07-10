@@ -31,7 +31,7 @@ ABC_NAMESPACE_IMPL_START
 
 #define CLU_VAR_MAX  16
 #define CLU_WRD_MAX  (1 << ((CLU_VAR_MAX)-6))
-#define CLU_MEM_MAX  1000  // 1 Gb
+#define CLU_MEM_MAX  1000  // 1 GB
 #define CLU_UNUSED   0xff
 
 // decomposition

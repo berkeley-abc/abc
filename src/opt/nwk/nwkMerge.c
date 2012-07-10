@@ -100,7 +100,7 @@ void Nwk_ManGraphReportMemoryUsage( Nwk_Grf_t * p )
     p->nMemBytes2 = 
         sizeof(Nwk_Vrt_t) * p->nVerts + 
         sizeof(int) * 2 * p->nEdges;
-    printf( "Memory usage stats:  Preprocessing = %.2f Mb.  Solving = %.2f Mb.\n",
+    printf( "Memory usage stats:  Preprocessing = %.2f MB.  Solving = %.2f MB.\n",
         1.0 * p->nMemBytes1 / (1<<20), 1.0 * p->nMemBytes2 / (1<<20) );
 }
 

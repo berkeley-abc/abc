@@ -1675,7 +1675,7 @@ int Gia_ManAreDeriveNexts( Gia_ManAre_t * p, Gia_PtrAre_t Sta )
 ***********************************************************************/
 void Gia_ManArePrintReport( Gia_ManAre_t * p, clock_t Time, int fFinal )
 {
-    printf( "States =%10d. Reached =%10d. R = %5.3f. Depth =%6d. Mem =%9.2f Mb.  ", 
+    printf( "States =%10d. Reached =%10d. R = %5.3f. Depth =%6d. Mem =%9.2f MB.  ", 
         p->iStaCur, p->nStas, 1.0*p->iStaCur/p->nStas, Gia_ManAreDepth(p, p->iStaCur), 
         (sizeof(Gia_ManAre_t) + 4.0*Gia_ManRegNum(p->pAig) + 8.0*MAX_PAGE_NUM + 
          4.0*p->nStaPages*p->nSize*MAX_ITEM_NUM + 16.0*p->nObjPages*MAX_ITEM_NUM)/(1<<20) );

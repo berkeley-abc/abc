@@ -622,7 +622,7 @@ clk = clock();
     pSml = Ssw_SmlSimulateSeq( pAig, 0, nFrames, nWords );
 if ( fVerbose )
 {
-    printf( "Allocated %.2f Mb to store simulation information.\n", 
+    printf( "Allocated %.2f MB to store simulation information.\n", 
         1.0*(sizeof(unsigned) * Aig_ManObjNumMax(pAig) * nFrames * nWords)/(1<<20) );
     printf( "Initial simulation of %d frames with %d words.     ", nFrames, nWords );
     ABC_PRT( "Time", clock() - clk );

@@ -211,7 +211,7 @@ void Sat_Solver2PrintStats( FILE * pFile, sat_solver2 * s )
     printf( "propagations  : %10d\n", (int)s->stats.propagations );
 //    printf( "inspects      : %10d\n", (int)s->stats.inspects );
 //    printf( "inspects2     : %10d\n", (int)s->stats.inspects2 );
-    printf( "memory for variables %.1f Mb (free %6.2f %%) and clauses %.1f Mb (free %6.2f %%)\n", 
+    printf( "memory for variables %.1f MB (free %6.2f %%) and clauses %.1f MB (free %6.2f %%)\n", 
         1.0 * Sat_Solver2GetVarMem(s) * s->size / (1<<20),
         100.0 * (s->cap - s->size) / s->cap,
         4.0 * (s->clauses.cap + s->learnts.cap) / (1<<20),

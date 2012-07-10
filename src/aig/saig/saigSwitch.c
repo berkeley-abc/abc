@@ -69,7 +69,7 @@ Saig_SimObj_t * Saig_ManCreateMan( Aig_Man_t * p )
     Aig_Obj_t * pObj;
     int i;
     pAig = ABC_CALLOC( Saig_SimObj_t, Aig_ManObjNumMax(p)+1 );
-//    printf( "Allocating %7.2f Mb.\n", 1.0 * sizeof(Saig_SimObj_t) * (Aig_ManObjNumMax(p)+1)/(1<<20) );
+//    printf( "Allocating %7.2f MB.\n", 1.0 * sizeof(Saig_SimObj_t) * (Aig_ManObjNumMax(p)+1)/(1<<20) );
     Aig_ManForEachObj( p, pObj, i )
     {
         pEntry = pAig + i;

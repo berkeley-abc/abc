@@ -756,9 +756,9 @@ void Bbl_ManPrintStats( Bbl_Man_t * p )
     Bbl_ManForEachFnc_int( p->pFncs, pFnc, h )
         nFuncs++;
     printf( "Total objects = %7d.  Total nodes = %7d. Unique functions = %7d.\n", nObjs, nNodes, nFuncs );
-    printf( "Name manager = %5.2f Mb\n", 1.0*Vec_StrSize(p->pName)/(1 << 20) );
-    printf( "Objs manager = %5.2f Mb\n", 1.0*Vec_StrSize(p->pObjs)/(1 << 20) );
-    printf( "Fncs manager = %5.2f Mb\n", 1.0*Vec_StrSize(p->pFncs)/(1 << 20) );
+    printf( "Name manager = %5.2f MB\n", 1.0*Vec_StrSize(p->pName)/(1 << 20) );
+    printf( "Objs manager = %5.2f MB\n", 1.0*Vec_StrSize(p->pObjs)/(1 << 20) );
+    printf( "Fncs manager = %5.2f MB\n", 1.0*Vec_StrSize(p->pFncs)/(1 << 20) );
 }
 
 /**Fnction*************************************************************

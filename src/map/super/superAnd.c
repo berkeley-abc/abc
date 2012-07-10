@@ -499,7 +499,7 @@ ABC_PRT( "Sorting", clock() - clk );
     fclose( pFile );
 
     printf( "The supergates are written into file \"%s\" ", FileName );
-    printf( "(%0.2f Mb).\n", ((double)Extra_FileSize(FileName))/(1<<20) );
+    printf( "(%0.2f MB).\n", ((double)Extra_FileSize(FileName))/(1<<20) );
 }
 
 /**Function*************************************************************

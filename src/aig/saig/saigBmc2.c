@@ -229,7 +229,7 @@ Vec_Ptr_t * Abs_ManTernarySimulate( Aig_Man_t * p, int nFramesMax, int fVerbose 
             {
                 if ( fVerbose )
                 {
-                    printf( "Ternary sim found non-zero output in frame %d.  Used %5.2f Mb.  ", 
+                    printf( "Ternary sim found non-zero output in frame %d.  Used %5.2f MB.  ", 
                         f, 0.25 * (f+1) * Aig_ManObjNum(p) / (1<<20) );
                     ABC_PRT( "Time", clock() - clk );
                 }
@@ -238,7 +238,7 @@ Vec_Ptr_t * Abs_ManTernarySimulate( Aig_Man_t * p, int nFramesMax, int fVerbose 
     }
     if ( fVerbose )
     {
-        printf( "Ternary sim proved all outputs in the first %d frames.  Used %5.2f Mb.  ", 
+        printf( "Ternary sim proved all outputs in the first %d frames.  Used %5.2f MB.  ", 
             nFramesLimit, 0.25 * nFramesLimit * Aig_ManObjNum(p) / (1<<20) );
         ABC_PRT( "Time", clock() - clk );
     }
@@ -790,7 +790,7 @@ int Saig_BmcPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nNodesMax
         {
             printf( "%4d : F =%5d. O =%4d.  And =%8d. Var =%8d. Conf =%7d. ", 
                 Iter, p->iFrameLast, p->iOutputLast, Aig_ManNodeNum(p->pFrm), p->nSatVars, (int)p->pSat->stats.conflicts );   
-            printf( "%4.0f Mb",     4.0*(p->iFrameLast+1)*p->nObjs/(1<<20) );
+            printf( "%4.0f MB",     4.0*(p->iFrameLast+1)*p->nObjs/(1<<20) );
             printf( "%9.2f sec", (float)(clock() - clkTotal)/(float)(CLOCKS_PER_SEC) );
             printf( "\n" );
             fflush( stdout );

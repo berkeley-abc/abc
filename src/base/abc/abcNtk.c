@@ -1094,7 +1094,7 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
     TotalMemory  = 0;
     TotalMemory += pNtk->pMmObj? Mem_FixedReadMemUsage(pNtk->pMmObj)  : 0;
     TotalMemory += pNtk->pMmStep? Mem_StepReadMemUsage(pNtk->pMmStep) : 0;
-//    fprintf( stdout, "The total memory allocated internally by the network = %0.2f Mb.\n", ((double)TotalMemory)/(1<<20) );
+//    fprintf( stdout, "The total memory allocated internally by the network = %0.2f MB.\n", ((double)TotalMemory)/(1<<20) );
     // free the storage 
     if ( pNtk->pMmObj )
         Mem_FixedStop( pNtk->pMmObj, 0 );

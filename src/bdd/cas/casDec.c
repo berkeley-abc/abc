@@ -345,7 +345,7 @@ printf( "Stage %3d: In = %3d  InP = %3d  Cols = %5d  Multi = %2d  Simple = %2d  
     printf( "LUTs: Total = %5d. Final = %5d. Simple = %5d. (%6.2f %%)  ", 
         nLutsTotal, nLutOutputs, nLutsTotal-nLutOutputs, 100.0*(nLutsTotal-nLutOutputs)/nLutsTotal );
     if ( fVerbose )
-    printf( "Memory = %6.2f Mb\n", 1.0*nLutOutputs*(1<<nLutSize)/(1<<20) );
+    printf( "Memory = %6.2f MB\n", 1.0*nLutOutputs*(1<<nLutSize)/(1<<20) );
 //  printf( "\n" );
 
 //fprintf( pTable, "%d ", nLutOutputsOrig );

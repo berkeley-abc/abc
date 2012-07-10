@@ -290,7 +290,7 @@ void Au_NtkPrintStats( Au_Ntk_t * p )
 //    printf( "  max =%7d",    Au_NtkObjNumMax(p) );
 //    printf( "  use =%7d",    p->nObjsUsed );
     printf( " %5.1f %%",     100.0 * (Au_NtkObjNumMax(p) - Au_NtkObjNum(p)) / Au_NtkObjNumMax(p) );
-    printf( " %6.1f Mb",     1.0 * Au_NtkMemUsage(p) / (1 << 20) );
+    printf( " %6.1f MB",     1.0 * Au_NtkMemUsage(p) / (1 << 20) );
     printf( " %5.1f %%",     100.0 * (p->nObjsAlloc - p->nObjsUsed) / p->nObjsAlloc );
     printf( "\n" );
 }
@@ -399,7 +399,7 @@ void Au_ManPrintStats( Au_Man_t * p )
     Au_ManForEachNtk( p, pNtk, i )
         Au_NtkPrintStats( pNtk );
     printf( "Different functions = %d. ", p->pFuncs ? Abc_NamObjNumMax(p->pFuncs) : 0 );
-    printf( "Memory = %.1f Mb",  1.0 * Au_ManMemUsage(p) / (1 << 20) );
+    printf( "Memory = %.1f MB",  1.0 * Au_ManMemUsage(p) / (1 << 20) );
     printf( " %5.1f %%",       100.0 * (Au_ManMemUsage(p) - Au_ManMemUsageUseful(p)) / Au_ManMemUsage(p) );
     printf( "\n" );
 //    if ( p->pFuncs )

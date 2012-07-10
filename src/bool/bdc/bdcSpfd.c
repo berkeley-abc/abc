@@ -596,7 +596,7 @@ Vec_Wrd_t * Bdc_SpfdDecomposeTest__( Vec_Int_t ** pvWeights )
     word t0, t1, t;
     assert( nSize <= nFuncs );
 
-    printf( "Allocating %.2f Mb of internal memory.\n", 1.0*sizeof(Bdc_Ent_t)*nFuncs/(1<<20) );
+    printf( "Allocating %.2f MB of internal memory.\n", 1.0*sizeof(Bdc_Ent_t)*nFuncs/(1<<20) );
 
     p = (Bdc_Ent_t *)calloc( nFuncs, sizeof(Bdc_Ent_t) );
     memset( p, 255, sizeof(Bdc_Ent_t) );

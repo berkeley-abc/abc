@@ -149,10 +149,10 @@ Cec_ManPat_t * Cec_ManPatStart()
 ***********************************************************************/
 void Cec_ManPatPrintStats( Cec_ManPat_t * p )  
 { 
-    Abc_Print( 1, "Latest: P = %8d.  L = %10d.  Lm = %10d. Ave = %6.1f. MEM =%6.2f Mb\n", 
+    Abc_Print( 1, "Latest: P = %8d.  L = %10d.  Lm = %10d. Ave = %6.1f. MEM =%6.2f MB\n", 
         p->nPats, p->nPatLits, p->nPatLitsMin, 1.0 * p->nPatLitsMin/p->nPats, 
         1.0*(Vec_StrSize(p->vStorage)-p->iStart)/(1<<20) );
-    Abc_Print( 1, "Total:  P = %8d.  L = %10d.  Lm = %10d. Ave = %6.1f. MEM =%6.2f Mb\n", 
+    Abc_Print( 1, "Total:  P = %8d.  L = %10d.  Lm = %10d. Ave = %6.1f. MEM =%6.2f MB\n", 
         p->nPatsAll, p->nPatLitsAll, p->nPatLitsMinAll, 1.0 * p->nPatLitsMinAll/p->nPatsAll, 
         1.0*Vec_StrSize(p->vStorage)/(1<<20) );
     Abc_PrintTimeP( 1, "Finding  ", p->timeFind,   p->timeTotal );

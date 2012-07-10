@@ -88,7 +88,7 @@ Gia_Sim2_t * Gia_Sim2Create( Gia_Man_t * pAig, Gia_ParSim_t * pPars )
     p->pDataSim  = ABC_ALLOC( unsigned, p->nWords * Gia_ManObjNum(p->pAig) );
     if ( !p->pDataSim  )
     { 
-        Abc_Print( 1, "Simulator could not allocate %.2f Gb for simulation info.\n", 
+        Abc_Print( 1, "Simulator could not allocate %.2f GB for simulation info.\n", 
             4.0 * p->nWords * Gia_ManObjNum(p->pAig) / (1<<30) );
         Gia_Sim2Delete( p );
         return NULL;
@@ -96,7 +96,7 @@ Gia_Sim2_t * Gia_Sim2Create( Gia_Man_t * pAig, Gia_ParSim_t * pPars )
     p->vClassOld = Vec_IntAlloc( 100 );
     p->vClassNew = Vec_IntAlloc( 100 );
     if ( pPars->fVerbose )
-        Abc_Print( 1, "Memory: AIG = %7.2f Mb.  SimInfo = %7.2f Mb.\n", 
+        Abc_Print( 1, "Memory: AIG = %7.2f MB.  SimInfo = %7.2f MB.\n", 
             12.0*Gia_ManObjNum(p->pAig)/(1<<20), 4.0*p->nWords*Gia_ManObjNum(p->pAig)/(1<<20) );
     // prepare AIG
     Gia_ManSetPhase( pAig );

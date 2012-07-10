@@ -349,7 +349,7 @@ Vec_Ptr_t * Fsim_ManTerSimulate( Aig_Man_t * pAig, int fVerbose )
     p = Fsim_ManCreate( pAig );
     if ( fVerbose )
     {
-        printf( "Obj = %8d (%8d). Cut = %6d. Front = %6d.  FrtMem = %7.2f Mb. ", 
+        printf( "Obj = %8d (%8d). Cut = %6d. Front = %6d.  FrtMem = %7.2f MB. ", 
             p->nObjs, p->nCis + p->nNodes, p->nCrossCutMax, p->nFront, 
             4.0*Aig_BitWordNum(2 * p->nFront)/(1<<20) );
         ABC_PRT( "Time", clock() - clk );
@@ -359,7 +359,7 @@ Vec_Ptr_t * Fsim_ManTerSimulate( Aig_Man_t * pAig, int fVerbose )
     Fsim_ManFront( p, 0 );
     if ( fVerbose )
     {
-        printf( "Max ID = %8d. Log max ID = %2d.  AigMem = %7.2f Mb (%5.2f byte/obj).  ", 
+        printf( "Max ID = %8d. Log max ID = %2d.  AigMem = %7.2f MB (%5.2f byte/obj).  ", 
             p->iNumber, Aig_Base2Log(p->iNumber), 
             1.0*(p->pDataCur-p->pDataAig)/(1<<20), 
             1.0*(p->pDataCur-p->pDataAig)/p->nObjs ); 
@@ -395,7 +395,7 @@ Vec_Ptr_t * Fsim_ManTerSimulate( Aig_Man_t * pAig, int fVerbose )
     }
     if ( fVerbose )
     {
-        printf( "Maxcut = %8d.  AigMem = %7.2f Mb.  SimMem = %7.2f Mb.  ", 
+        printf( "Maxcut = %8d.  AigMem = %7.2f MB.  SimMem = %7.2f MB.  ", 
             p->nCrossCutMax, 
             p->pDataAig2? 12.0*p->nObjs/(1<<20) : 1.0*(p->pDataCur-p->pDataAig)/(1<<20), 
             4.0*(Aig_BitWordNum(2 * p->nFront)+Aig_BitWordNum(2 * p->nCis)+Aig_BitWordNum(2 * p->nCos))/(1<<20) );

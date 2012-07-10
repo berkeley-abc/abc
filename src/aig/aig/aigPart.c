@@ -32,7 +32,7 @@ ABC_NAMESPACE_IMPL_START
 typedef struct Part_Man_t_     Part_Man_t;
 struct Part_Man_t_
 {
-    int              nChunkSize;    // the size of one chunk of memory (~1 Mb)
+    int              nChunkSize;    // the size of one chunk of memory (~1 MB)
     int              nStepSize;     // the step size in saving memory (~64 bytes)
     char *           pFreeBuf;      // the pointer to free memory
     int              nFreeSize;     // the size of remaining free memory
@@ -334,7 +334,7 @@ Vec_Ptr_t * Aig_ManSupports( Aig_Man_t * pMan )
         }
         assert( 0 );
     }
-//printf( "Memory usage = %d Mb.\n", Vec_PtrSize(p->vMemory) * p->nChunkSize / (1<<20) );
+//printf( "Memory usage = %d MB.\n", Vec_PtrSize(p->vMemory) * p->nChunkSize / (1<<20) );
     Part_ManStop( p );
     // sort supports by size
     Vec_VecSort( (Vec_Vec_t *)vSupports, 1 );

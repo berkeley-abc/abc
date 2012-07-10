@@ -278,7 +278,7 @@ void Fra_ManStop( Fra_Man_t * p )
 void Fra_ManPrint( Fra_Man_t * p )
 {
     double nMemory = 1.0*Aig_ManObjNumMax(p->pManAig)*(p->pSml->nWordsTotal*sizeof(unsigned)+6*sizeof(void*))/(1<<20);
-    printf( "SimWord = %d. Round = %d.  Mem = %0.2f Mb.  LitBeg = %d.  LitEnd = %d. (%6.2f %%).\n", 
+    printf( "SimWord = %d. Round = %d.  Mem = %0.2f MB.  LitBeg = %d.  LitEnd = %d. (%6.2f %%).\n", 
         p->pPars->nSimWords, p->pSml->nSimRounds, nMemory, p->nLitsBeg, p->nLitsEnd, 100.0*p->nLitsEnd/(p->nLitsBeg?p->nLitsBeg:1) );
     printf( "Proof = %d. Cex = %d. Fail = %d. FailReal = %d. C-lim = %d. ImpRatio = %6.2f %%\n", 
         p->nSatProof, p->nSatCallsSat, p->nSatFails, p->nSatFailsReal, p->pPars->nBTLimitNode, Fra_ImpComputeStateSpaceRatio(p) );
