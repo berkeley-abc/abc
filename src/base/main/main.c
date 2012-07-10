@@ -85,7 +85,7 @@ static int TypeCheck( Abc_Frame_t * pAbc, const char * s);
 int Abc_RealMain( int argc, char * argv[] )
 {
     Abc_Frame_t * pAbc;
-    char sCommandUsr[500], sCommandTmp[100], sReadCmd[20], sWriteCmd[20];
+    char sCommandUsr[500] = {0}, sCommandTmp[100], sReadCmd[20], sWriteCmd[20];
     const char * sOutFile, * sInFile;
     char * sCommand;
     int  fStatus = 0;
@@ -142,7 +142,6 @@ int Abc_RealMain( int argc, char * argv[] )
         switch(c) {
             case 'c':
                 strcpy( sCommandUsr, globalUtilOptarg );
-                printf( "ABC command line: \"%s\".\n", sCommandUsr );
                 fBatch = 1;
                 break;
                 
@@ -219,10 +218,13 @@ int Abc_RealMain( int argc, char * argv[] )
         extern Gia_Man_t * Gia_ManFromBridge( FILE * pFile, Vec_Int_t ** pvInit );
         pAbc->pGia = Gia_ManFromBridge( stdin, NULL );
     }
+    else if ( fBatch && sCommandUsr[0] )
+        printf( "ABC command line: \"%s\".\n", sCommandUsr );
     
     if ( fBatch )
     {
         pAbc->fBatchMode = 1;
+
 
         if (argc - globalUtilOptind == 0)
         {
