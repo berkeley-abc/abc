@@ -142,12 +142,21 @@ static inline void        Gla_ObjClearRef( Rfn_Obj_t * p )                     {
 ***********************************************************************/
 static inline void Abc_PrintInt( int i )
 {
+    printf( "  " );
     if ( i > -1000 && i < 1000 )
-        printf( "%6d", i );
+        printf( " %4d", i );
+    else if ( i > -10000 && i < 10000 )
+        printf( "%4.2fk", (float)i/1000 );
+    else if ( i > -100000 && i < 100000 )
+        printf( "%4.1fk", (float)i/1000 );
     else if ( i > -1000000 && i < 1000000 )
-        printf( "%5dk", i/1000 );
+        printf( "%4.0fk", (float)i/1000 );
+    else if ( i > -10000000 && i < 10000000 )
+        printf( "%4.2fm", (float)i/1000000 );
+    else if ( i > -100000000 && i < 100000000 )
+        printf( "%4.1fm", (float)i/1000000 );
     else if ( i > -1000000000 && i < 1000000000 )
-        printf( "%5dm", i/1000000 );
+        printf( "%4.0fm", (float)i/1000000 );
 }
 
 /**Function*************************************************************
@@ -1837,7 +1846,7 @@ int Gia_GlaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars, int fStartVta )
         Abc_Print( 1, "Running gate-level abstraction (GLA) with the following parameters:\n" );
         Abc_Print( 1, "FrameMax = %d  ConfMax = %d  LearnMax = %d  Timeout = %d  RatioMin = %d %%.\n", 
             pPars->nFramesMax, pPars->nConfLimit, pPars->nLearntMax, pPars->nTimeOut, pPars->nRatioMin );
-        Abc_Print( 1, "Frame   %%   Abs  PPI   FF   LUT   Confl  Cex  Vars  Clas  Lrns     Time      Mem\n" );
+        Abc_Print( 1, "Frame   %%   Abs  PPI   FF   LUT   Confl  Cex   Vars   Clas   Lrns     Time      Mem\n" );
     }
     for ( f = i = iPrev = 0; !p->pPars->nFramesMax || f < p->pPars->nFramesMax; f++, iPrev = i )
     {
