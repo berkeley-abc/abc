@@ -1573,16 +1573,6 @@ void sat_solver2_rollback( sat_solver2* s )
     // reset watcher lists
     for ( i = 2*s->iVarPivot; i < 2*s->size; i++ )
         s->wlists[i].size = 0;
-    // clear variable activity
-#ifdef USE_FLOAT_ACTIVITY2
-    for ( i = s->iVarPivot; i < s->size; i++ )
-        s->activity[i] = 0;
-#else
-    for ( i = s->iVarPivot; i < s->size; i++ )
-        s->activity[i] = (1<<10);
-#endif
-
-    
 
     // initialize other vars
     s->size = s->iVarPivot;
