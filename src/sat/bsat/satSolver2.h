@@ -21,15 +21,15 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 #ifndef ABC__sat__bsat__satSolver2_h
 #define ABC__sat__bsat__satSolver2_h
-
+ 
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
 
-#include "satClause.h"
 #include "satVec.h"
+#include "satClause.h"
 #include "misc/vec/vecSet.h"
 
 ABC_NAMESPACE_HEADER_START
@@ -63,17 +63,12 @@ extern void         Sat_Solver2DoubleClauses( sat_solver2 * p, int iVar );
 // global variables
 extern int          var_is_partA (sat_solver2* s, int v);
 extern void         var_set_partA(sat_solver2* s, int v, int partA);
-// clause grouping (these two only work after creating a clause before the solver is called)
-extern int          clause2_is_partA (sat_solver2* s, int handle);
-extern void         clause2_set_partA(sat_solver2* s, int handle, int partA);
-// other clause functions
-extern int          clause2_id(sat_solver2* s, int h);
- 
+
 // proof-based APIs
 extern void *       Sat_ProofCore( sat_solver2 * s );
 extern void *       Sat_ProofInterpolant( sat_solver2 * s, void * pGloVars );
 extern word *       Sat_ProofInterpolantTruth( sat_solver2 * s, void * pGloVars );
-extern void         Sat_ProofReduce( sat_solver2 * s );
+extern int          Sat_ProofReduce( Vec_Set_t * vProof, void * pRoots, int hProofPivot );
 extern void         Sat_ProofCheck( sat_solver2 * s );
 
 //=================================================================================================
@@ -106,28 +101,27 @@ struct sat_solver2_t
     unsigned*       activity;       // A heuristic measurement of the activity of a variable.
 #endif
 
+    int             nUnits;         // the total number of unit clauses
+    int             nof_learnts;    // the number of clauses to trigger reduceDB
     int             nLearntMax;     // enables using reduce DB method
+    int             nLearntStart;   // starting learned clause limit
+    int             nLearntDelta;   // delta of learned clause limit
+    int             nLearntRatio;   // ratio percentage of learned clauses
+    int             nDBreduces;     // number of DB reductions
     int             fNotUseRandom;  // do not allow random decisions with a fixed probability
     int             fSkipSimplify;  // set to one to skip simplification of the clause database
     int             fProofLogging;  // enable proof-logging
     int             fVerbose;
 
     // clauses
-    veci            clauses;        // clause memory
-    veci            learnts;        // learnt memory
+    Sat_Mem_t       Mem;
     veci*           wlists;         // watcher lists (for each literal)
-    veci            claActs;        // clause activities
+    veci            act_clas;       // clause activities
     veci            claProofs;      // clause proofs
-    int             hLearntLast;    // in proof-logging mode, the ID of the final conflict clause (conf_final)
-    int             hProofLast;     // in proof-logging mode, the ID of the final conflict clause (conf_final)
-    int             nof_learnts;    // the number of clauses to trigger reduceDB
 
     // rollback
     int             iVarPivot;      // the pivot for variables
     int             iTrailPivot;    // the pivot for trail
-    int             iProofPivot;    // the pivot for proof records
-    int             hClausePivot;   // the pivot for problem clause
-    int             hLearntPivot;   // the pivot for learned clause
     int             hProofPivot;    // the pivot for proof records
 
     // internal state
@@ -155,7 +149,8 @@ struct sat_solver2_t
     // proof logging
     Vec_Set_t       Proofs;         // sequence of proof records
     veci            temp_proof;     // temporary place to store proofs
-    int             nUnits;         // the total number of unit clauses
+    int             hLearntLast;    // in proof-logging mode, the ID of the final conflict clause (conf_final)
+    int             hProofLast;     // in proof-logging mode, the ID of the final conflict clause (conf_final)
 
     // statistics
     stats_t         stats;
@@ -164,40 +159,13 @@ struct sat_solver2_t
     clock_t         nRuntimeLimit;  // external limit on runtime
 };
 
-typedef struct satset_t satset;
-struct satset_t 
-{
-    unsigned learnt :  1;
-    unsigned mark   :  1;
-    unsigned partA  :  1;
-    unsigned nEnts  : 29;
-    int      Id;
-    lit      pEnts[0];
-};
+static inline clause * clause2_read( sat_solver2 * s, cla h )                  { return Sat_MemClauseHand( &s->Mem, h );   }
+static inline int      clause2_proofid(sat_solver2* s, clause* c, int partA)   { return c->lrn ? (veci_begin(&s->claProofs)[clause_id(c)]<<2) | (partA<<1) : ((clause_id(c)+1)<<2) | (partA<<1) | 1; }
 
-static inline satset* satset_read   (veci* p, cla h )     { return h ? (satset*)(veci_begin(p) + h) : NULL;                           }
-static inline cla     satset_handle (veci* p, satset* c)  { return (cla)((int *)c - veci_begin(p));                                   }
-static inline int     satset_check  (veci* p, satset* c)  { return (int*)c > veci_begin(p) && (int*)c < veci_begin(p) + veci_size(p); }
-static inline int     satset_size   (int nLits)           { return sizeof(satset)/4 + nLits;                                          }
-static inline void    satset_print  (satset * c)          { 
-    int i;
-    printf( "{ " );
-    for ( i = 0; i < (int)c->nEnts; i++ )
-        printf( "%d ", (c->pEnts[i] & 1)? -(c->pEnts[i] >> 1) : c->pEnts[i] >> 1 );
-    printf( "}\n" );
-}
-
-#define satset_foreach_entry( p, c, h, s )            \
-    for ( h = s; (h < veci_size(p)) && (((c) = satset_read(p, h)), 1); h += satset_size(c->nEnts) )
-#define satset_foreach_entry_vec( pVec, p, c, i )     \
-    for ( i = 0; (i < veci_size(pVec)) && ((c) = satset_read(p, veci_begin(pVec)[i])); i++ )
-#define satset_foreach_var( p, var, i, start )        \
-    for ( i = start; (i < (int)(p)->nEnts) && ((var) = lit_var((p)->pEnts[i])); i++ )
-#define satset_foreach_lit( p, lit, i, start )        \
-    for ( i = start; (i < (int)(p)->nEnts) && ((lit) = (p)->pEnts[i]); i++ )
-
-#define sat_solver_foreach_clause( s, c, h )  satset_foreach_entry( &s->clauses, c, h, 1 )
-#define sat_solver_foreach_learnt( s, c, h )  satset_foreach_entry( &s->learnts, c, h, 1 )
+// these two only work after creating a clause before the solver is called
+static inline int   clause2_is_partA (sat_solver2* s, int h)                   { return clause2_read(s, h)->partA;         }
+static inline void  clause2_set_partA(sat_solver2* s, int h, int partA)        { clause2_read(s, h)->partA = partA;        }
+static inline int   clause2_id(sat_solver2* s, int h)                          { return clause_id(clause2_read(s, h));     }
 
 //=================================================================================================
 // Public APIs:
@@ -265,10 +233,8 @@ static inline void sat_solver2_bookmark(sat_solver2* s)
     assert( s->qhead == s->qtail );
     s->iVarPivot    = s->size;
     s->iTrailPivot  = s->qhead;
-    s->iProofPivot  = Vec_SetEntryNum(&s->Proofs);
-    s->hClausePivot = veci_size(&s->clauses);
-    s->hLearntPivot = veci_size(&s->learnts);
     s->hProofPivot  = Vec_SetHandCurrent(&s->Proofs);
+    Sat_MemBookMark( &s->Mem );
 }
 
 static inline int sat_solver2_add_const( sat_solver2 * pSat, int iVar, int fCompl, int fMark )

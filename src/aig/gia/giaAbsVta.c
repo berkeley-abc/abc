@@ -137,36 +137,6 @@ extern void Vga_ManAddClausesOne( Vta_Man_t * p, int iObj, int iFrame );
 
 /**Function*************************************************************
 
-  Synopsis    [Prints integer number using 6 characters.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-static inline void Abc_PrintInt( int i )
-{
-    Abc_Print( 1,  "  " );
-    if ( i > -1000 && i < 1000 )
-        Abc_Print( 1, " %4d", i );
-    else if ( i > -10000 && i < 10000 )
-        Abc_Print( 1, "%4.2fk", (float)i/1000 );
-    else if ( i > -100000 && i < 100000 )
-        Abc_Print( 1, "%4.1fk", (float)i/1000 );
-    else if ( i > -1000000 && i < 1000000 )
-        Abc_Print( 1, "%4.0fk", (float)i/1000 );
-    else if ( i > -10000000 && i < 10000000 )
-        Abc_Print( 1, "%4.2fm", (float)i/1000000 );
-    else if ( i > -100000000 && i < 100000000 )
-        Abc_Print( 1, "%4.1fm", (float)i/1000000 );
-    else if ( i > -1000000000 && i < 1000000000 )
-        Abc_Print( 1, "%4.0fm", (float)i/1000000 );
-}
-
-/**Function*************************************************************
-
   Synopsis    [This procedure sets default parameters.]
 
   Description []
@@ -183,7 +153,10 @@ void Gia_VtaSetDefaultParams( Gia_ParVta_t * p )
     p->nFramesStart  =      0;   // starting frame 
     p->nFramesPast   =      4;   // overlap frames
     p->nConfLimit    =      0;   // conflict limit
-    p->nLearntMax    =   1000;   // max number of learned clauses
+    p->nLearnedMax   =   1000;   // max number of learned clauses
+    p->nLearnedStart =   1000;   // max number of learned clauses
+    p->nLearnedDelta =    200;   // max number of learned clauses
+    p->nLearnedPerce =     40;   // max number of learned clauses
     p->nTimeOut      =      0;   // timeout in seconds
     p->nRatioMin     =     10;   // stop when less than this % of object is abstracted
     p->fUseTermVars  =      0;   // use terminal variables
@@ -1065,7 +1038,11 @@ Vta_Man_t * Vga_ManStart( Gia_Man_t * pGia, Gia_ParVta_t * pPars )
     p->vCores      = Vec_PtrAlloc( 100 );
     p->pSat        = sat_solver2_new();
 //    p->pSat->fVerbose = p->pPars->fVerbose;
-    sat_solver2_set_learntmax( p->pSat, pPars->nLearntMax );
+//    sat_solver2_set_learntmax( p->pSat, pPars->nLearnedMax );
+    p->pSat->nLearntStart = p->pPars->nLearnedStart;
+    p->pSat->nLearntDelta = p->pPars->nLearnedDelta;
+    p->pSat->nLearntRatio = p->pPars->nLearnedPerce;
+    p->pSat->nLearntMax   = p->pSat->nLearntStart;
     // start the abstraction
     assert( pGia->vObjClasses != NULL );
     p->vFrames = Gia_VtaAbsToFrames( pGia->vObjClasses );
@@ -1087,8 +1064,8 @@ Vta_Man_t * Vga_ManStart( Gia_Man_t * pGia, Gia_ParVta_t * pPars )
 void Vga_ManStop( Vta_Man_t * p )
 {
 //    if ( p->pPars->fVerbose )
-        Abc_Print( 1, "SAT solver:  Vars = %d  Clauses = %d  Confs = %d  Cexes = %d  ObjsAdded = %d\n", 
-            sat_solver2_nvars(p->pSat), sat_solver2_nclauses(p->pSat), sat_solver2_nconflicts(p->pSat), p->nCexes, p->nObjAdded );
+        Abc_Print( 1, "SAT solver:  Var = %d  Cla = %d  Conf = %d  Reduce = %d  Cex = %d  ObjsAdded = %d\n", 
+            sat_solver2_nvars(p->pSat), sat_solver2_nclauses(p->pSat), sat_solver2_nconflicts(p->pSat), p->pSat->nDBreduces, p->nCexes, p->nObjAdded );
     Vec_VecFreeP( (Vec_Vec_t **)&p->vCores );
     Vec_VecFreeP( (Vec_Vec_t **)&p->vFrames );
     Vec_BitFreeP( &p->vSeenGla );
@@ -1261,7 +1238,7 @@ int Vta_ManAbsPrintFrame( Vta_Man_t * p, Vec_Int_t * vCore, int nFrames, int nCo
         return fChanges;
 
 //    Abc_Print( 1, "%5d%5d", pCountAll[0], pCountUni[0] ); 
-    Abc_Print( 1, "%3d :", nFrames-1 );
+    Abc_Print( 1, "%4d :", nFrames-1 );
     Abc_Print( 1, "%4d", Abc_MinInt(100, 100 * p->nSeenGla / (Gia_ManRegNum(p->pGia) + Gia_ManAndNum(p->pGia) + 1)) ); 
     Abc_Print( 1, "%6d", p->nSeenGla ); 
     Abc_Print( 1, "%4d", Abc_MinInt(100, 100 * p->nSeenAll / (p->nSeenGla * nFrames)) ); 
@@ -1605,8 +1582,10 @@ int Gia_VtaPerformInt( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
     if ( p->pPars->fVerbose )
     {
         Abc_Print( 1, "Running variable-timeframe abstraction (VTA) with the following parameters:\n" );
-        Abc_Print( 1, "FramePast = %d  FrameMax = %d  ConfMax = %d  LearnMax = %d  Timeout = %d  RatioMin = %d %%\n", 
-            pPars->nFramesPast, pPars->nFramesMax, pPars->nConfLimit, pPars->nLearntMax, pPars->nTimeOut, pPars->nRatioMin );
+        Abc_Print( 1, "FramePast = %d  FrameMax = %d  ConfMax = %d  Timeout = %d  RatioMin = %d %%\n", 
+            pPars->nFramesPast, pPars->nFramesMax, pPars->nConfLimit, pPars->nTimeOut, pPars->nRatioMin );
+        Abc_Print( 1, "LearnStart = %d  LearnDelta = %d  LearnRatio = %d %%.\n", 
+            pPars->nLearnedStart, pPars->nLearnedDelta, pPars->nLearnedPerce );
 //        Abc_Print( 1, "Frame   %%   Abs   %%   Confl  Cex    SatVar   Core   F0   F1   F2  ...\n" );
         Abc_Print( 1, "Frame   %%   Abs   %%   Confl  Cex   Vars   Clas   Lrns   Core     Time      Mem\n" );
     }

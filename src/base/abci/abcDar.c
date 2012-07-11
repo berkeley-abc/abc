@@ -1403,7 +1403,7 @@ Abc_Ntk_t * Abc_NtkDarToCnf( Abc_Ntk_t * pNtk, char * pFileName, int fFastAlgo, 
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkDSat( Abc_Ntk_t * pNtk, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimit, int nStartLearned, int nDeltaLearned, int nRatioLearned, int fAlignPol, int fAndOuts, int fNewSolver, int fVerbose )
+int Abc_NtkDSat( Abc_Ntk_t * pNtk, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimit, int nLearnedStart, int nLearnedDelta, int nLearnedPerce, int fAlignPol, int fAndOuts, int fNewSolver, int fVerbose )
 {
     Aig_Man_t * pMan;
     int RetValue;//, clk = clock();
@@ -1411,7 +1411,7 @@ int Abc_NtkDSat( Abc_Ntk_t * pNtk, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimit
     assert( Abc_NtkLatchNum(pNtk) == 0 );
 //    assert( Abc_NtkPoNum(pNtk) == 1 );
     pMan = Abc_NtkToDar( pNtk, 0, 0 );
-    RetValue = Fra_FraigSat( pMan, nConfLimit, nInsLimit, nStartLearned, nDeltaLearned, nRatioLearned, fAlignPol, fAndOuts, fNewSolver, fVerbose ); 
+    RetValue = Fra_FraigSat( pMan, nConfLimit, nInsLimit, nLearnedStart, nLearnedDelta, nLearnedPerce, fAlignPol, fAndOuts, fNewSolver, fVerbose ); 
     pNtk->pModel = (int *)pMan->pData, pMan->pData = NULL;
     Aig_ManStop( pMan );
     return RetValue;

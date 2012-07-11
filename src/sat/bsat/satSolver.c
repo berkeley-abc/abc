@@ -29,11 +29,6 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 ABC_NAMESPACE_IMPL_START
 
-//#define LEARNT_MAX_START_DEFAULT  0
-#define LEARNT_MAX_START_DEFAULT  20000
-#define LEARNT_MAX_INCRE_DEFAULT   1000
-#define LEARNT_MAX_RATIO_DEFAULT     50
-
 #define SAT_USE_ANALYZE_FINAL
 
 //=================================================================================================
@@ -426,7 +421,7 @@ static int clause_create_new(sat_solver* s, lit* begin, lit* end, int learnt)
 
     // create new clause
 //    h = Vec_SetAppend( &s->Mem, NULL, size + learnt + 1 + 1 ) << 1;
-    h = Sat_MemAppend( &s->Mem, begin, size, learnt );
+    h = Sat_MemAppend( &s->Mem, begin, size, learnt, 0 );
     assert( !(h & 1) );
     if ( s->hLearnts == -1 && learnt )
         s->hLearnts = h;
@@ -919,13 +914,12 @@ sat_solver* sat_solver_new(void)
 //    Vec_SetAlloc_(&s->Mem, 15);
     Sat_MemAlloc_(&s->Mem, 14);
     s->hLearnts = -1;
-    s->hBinary = Sat_MemAppend( &s->Mem, NULL, 2, 0 );
+    s->hBinary = Sat_MemAppend( &s->Mem, NULL, 2, 0, 0 );
     s->binary = clause_read( s, s->hBinary );
 
     s->nLearntStart = LEARNT_MAX_START_DEFAULT;  // starting learned clause limit
     s->nLearntDelta = LEARNT_MAX_INCRE_DEFAULT;  // delta of learned clause limit
     s->nLearntRatio = LEARNT_MAX_RATIO_DEFAULT;  // ratio of learned clause limit
-
     s->nLearntMax   = s->nLearntStart;
 
     // initialize vectors
@@ -1089,7 +1083,7 @@ void sat_solver_rollback( sat_solver* s )
     int i;
     Sat_MemRestart( &s->Mem );
     s->hLearnts = -1;
-    s->hBinary = Sat_MemAppend( &s->Mem, NULL, 2, 0 );
+    s->hBinary = Sat_MemAppend( &s->Mem, NULL, 2, 0, 0 );
     s->binary = clause_read( s, s->hBinary );
 
     veci_resize(&s->act_clas, 0);
@@ -1098,7 +1092,7 @@ void sat_solver_rollback( sat_solver* s )
     for ( i = 0; i < s->size*2; i++ )
         s->wlists[i].size = 0;
 
-    s->nLearntMax   = s->nLearntStart;
+    s->nDBreduces = 0;
 
     // initialize other vars
     s->size                   = 0;

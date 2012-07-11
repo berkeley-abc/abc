@@ -30,9 +30,11 @@ ABC_NAMESPACE_IMPL_START
 
 #define SAT_USE_PROOF_LOGGING
 
+static int Time = 0;
+
 //=================================================================================================
 // Debug:
-
+ 
 //#define VERBOSEDEBUG
 
 // For derivation output (verbosity level 2)
@@ -136,28 +138,19 @@ static inline void    solver2_clear_marks(sat_solver2* s)              {
 //=================================================================================================
 // Clause datatype + minor functions:
 
-static inline satset* clause2_read   (sat_solver2* s, cla h)      { return (h & 1) ? satset_read(&s->learnts, h>>1)  : satset_read(&s->clauses, h>>1);          }
-static inline cla     clause2_handle (sat_solver2* s, satset* c)  { return c->learnt ? (satset_handle(&s->learnts, c)<<1)|1: satset_handle(&s->clauses, c)<<1;  }
-static inline int     clause2_check  (sat_solver2* s, satset* c)  { return c->learnt ? satset_check(&s->learnts, c)  : satset_check(&s->clauses, c);            }
-static inline int     clause2_proofid(sat_solver2* s, satset* c, int partA)  { return c->learnt ? (veci_begin(&s->claProofs)[c->Id]<<2) | (partA<<1) : (satset_handle(&s->clauses, c)<<2) | (partA<<1) | 1; }
-static inline int     clause2_is_used(sat_solver2* s, cla h)      { return (h & 1) ? ((h >> 1) < s->hLearntPivot) : ((h >> 1) < s->hClausePivot);               }
-
 //static inline int     var_reason    (sat_solver2* s, int v)      { return (s->reasons[v]&1) ? 0 : s->reasons[v] >> 1;                   }
 //static inline int     lit_reason    (sat_solver2* s, int l)      { return (s->reasons[lit_var(l)&1]) ? 0 : s->reasons[lit_var(l)] >> 1; }
-//static inline satset* var_unit_clause(sat_solver2* s, int v)           { return (s->reasons[v]&1) ? clause2_read(s, s->reasons[v] >> 1) : NULL;  }
+//static inline clause* var_unit_clause(sat_solver2* s, int v)           { return (s->reasons[v]&1) ? clause2_read(s, s->reasons[v] >> 1) : NULL;  }
 //static inline void    var_set_unit_clause(sat_solver2* s, int v, cla i){ assert(i && !s->reasons[v]); s->reasons[v] = (i << 1) | 1;             }
 static inline int     var_reason    (sat_solver2* s, int v)            { return s->reasons[v];           }
 static inline int     lit_reason    (sat_solver2* s, int l)            { return s->reasons[lit_var(l)];  }
-static inline satset* var_unit_clause(sat_solver2* s, int v)           { return clause2_read(s, s->units[v]);                                          }
+static inline clause* var_unit_clause(sat_solver2* s, int v)           { return clause2_read(s, s->units[v]);                                          }
 static inline void    var_set_unit_clause(sat_solver2* s, int v, cla i){ 
     assert(v >= 0 && v < s->size && !s->units[v]); s->units[v] = i; s->nUnits++; 
 }
-//static inline void    var_set_unit_clause(sat_solver2* s, int v, cla i){ assert(v >= 0 && v < s->size); s->units[v] = i; s->nUnits++; }
 
-// these two only work after creating a clause before the solver is called
-int    clause2_is_partA (sat_solver2* s, int h)                   { return clause2_read(s, h)->partA;         }
-void   clause2_set_partA(sat_solver2* s, int h, int partA)        { clause2_read(s, h)->partA = partA;        }
-int    clause2_id(sat_solver2* s, int h)                          { return clause2_read(s, h)->Id;            }
+#define clause_foreach_var( p, var, i, start )        \
+    for ( i = start; (i < (int)(p)->size) && ((var) = lit_var((p)->lits[i])); i++ )
 
 //=================================================================================================
 // Simple helpers:
@@ -168,7 +161,7 @@ static inline veci*   solver2_wlist(sat_solver2* s, lit l) { return &s->wlists[l
 //=================================================================================================
 // Proof logging:
 
-static inline void proof_chain_start( sat_solver2* s, satset* c )
+static inline void proof_chain_start( sat_solver2* s, clause* c )
 {
     if ( s->fProofLogging )
     {
@@ -181,11 +174,11 @@ static inline void proof_chain_start( sat_solver2* s, satset* c )
     }
 }
 
-static inline void proof_chain_resolve( sat_solver2* s, satset* cls, int Var )
+static inline void proof_chain_resolve( sat_solver2* s, clause* cls, int Var )
 {
     if ( s->fProofLogging )
     {
-        satset* c = cls ? cls : var_unit_clause( s, Var );
+        clause* c = cls ? cls : var_unit_clause( s, Var );
         int ProofId = clause2_proofid(s, c, var_is_partA(s,Var));
         assert( ProofId > 0 );
         veci_push( &s->temp_proof, ProofId );
@@ -196,9 +189,9 @@ static inline int proof_chain_stop( sat_solver2* s )
 {
     if ( s->fProofLogging )
     {
+        extern void Proof_ClauseSetEnts( Vec_Set_t* p, int h, int nEnts );
         int h = Vec_SetAppend( &s->Proofs, veci_begin(&s->temp_proof), veci_size(&s->temp_proof) );
-        satset * c = (satset *)Vec_SetEntry( &s->Proofs, h );
-        c->nEnts = veci_size(&s->temp_proof) - 2;
+        Proof_ClauseSetEnts( &s->Proofs, h, veci_size(&s->temp_proof) - 2 );
         return h;
     }
     return 0;
@@ -292,12 +285,12 @@ static inline void act_var_rescale(sat_solver2* s)  {
     s->var_inc *= 1e-100;
 }
 static inline void act_clause2_rescale(sat_solver2* s) {
-    static int Total = 0;
-    float * claActs = (float *)veci_begin(&s->claActs);
+    static clock_t Total = 0;
+    float * act_clas = (float *)veci_begin(&s->act_clas);
     int i;
     clock_t clk = clock();
-    for (i = 0; i < veci_size(&s->claActs); i++)
-        claActs[i] *= (float)1e-20;
+    for (i = 0; i < veci_size(&s->act_clas); i++)
+        act_clas[i] *= (float)1e-20;
     s->cla_inc *= (float)1e-20;
 
     Total += clock() - clk;
@@ -311,11 +304,11 @@ static inline void act_var_bump(sat_solver2* s, int v) {
     if (s->orderpos[v] != -1)
         order_update(s,v);
 }
-static inline void act_clause2_bump(sat_solver2* s, satset*c) {
-    float * claActs = (float *)veci_begin(&s->claActs);
-    assert( c->Id < veci_size(&s->claActs) );
-    claActs[c->Id] += s->cla_inc;
-    if (claActs[c->Id] > (float)1e20)
+static inline void act_clause2_bump(sat_solver2* s, clause*c) {
+    float * act_clas = (float *)veci_begin(&s->act_clas);
+    assert( c->Id < veci_size(&s->act_clas) );
+    act_clas[c->Id] += s->cla_inc;
+    if (act_clas[c->Id] > (float)1e20)
         act_clause2_rescale(s);
 }
 static inline void act_var_decay(sat_solver2* s)    { s->var_inc *= s->var_decay; }
@@ -332,14 +325,14 @@ static inline void act_var_rescale(sat_solver2* s) {
     s->var_inc = Abc_MaxInt( s->var_inc, (1<<4) );
 }
 static inline void act_clause2_rescale(sat_solver2* s) {
-//    static int Total = 0;
-    int i;//, clk = clock();
-    unsigned * claActs = (unsigned *)veci_begin(&s->claActs);
-    for (i = 1; i < veci_size(&s->claActs); i++)
-        claActs[i] >>= 14;
+//    static clock_t Total = 0;
+//    clock_t clk = clock();
+    int i;
+    unsigned * act_clas = (unsigned *)veci_begin(&s->act_clas);
+    for (i = 0; i < veci_size(&s->act_clas); i++)
+        act_clas[i] >>= 14;
     s->cla_inc >>= 14;
     s->cla_inc = Abc_MaxInt( s->cla_inc, (1<<10) );
-
 //    Total += clock() - clk;
 //    Abc_Print(1, "Rescaling...   Cla inc = %5d  Conf = %10d   ", s->cla_inc,  s->stats.conflicts );
 //    Abc_PrintTime( 1, "Time", Total );
@@ -351,11 +344,12 @@ static inline void act_var_bump(sat_solver2* s, int v) {
     if (s->orderpos[v] != -1)
         order_update(s,v);
 }
-static inline void act_clause2_bump(sat_solver2* s, satset*c) {
-    unsigned * claActs = (unsigned *)veci_begin(&s->claActs);
-    assert( c->Id > 0 && c->Id < veci_size(&s->claActs) );
-    claActs[c->Id] += s->cla_inc;
-    if (claActs[c->Id] & 0x80000000)
+static inline void act_clause2_bump(sat_solver2* s, clause*c) {
+    unsigned * act_clas = (unsigned *)veci_begin(&s->act_clas);
+    int Id = clause_id(c);
+    assert( Id >= 0 && Id < veci_size(&s->act_clas) );
+    act_clas[Id] += s->cla_inc;
+    if (act_clas[Id] & 0x80000000)
         act_clause2_rescale(s);
 }
 static inline void act_var_decay(sat_solver2* s)    { s->var_inc += (s->var_inc >>  4); }
@@ -366,89 +360,61 @@ static inline void act_clause2_decay(sat_solver2* s) { s->cla_inc += (s->cla_inc
 //=================================================================================================
 // Clause functions:
 
+static inline int sat_clause_compute_lbd( sat_solver2* s, clause* c )
+{
+    int i, lev, minl = 0, lbd = 0;
+    for (i = 0; i < (int)c->size; i++) {
+        lev = var_level(s, lit_var(c->lits[i]));
+        if ( !(minl & (1 << (lev & 31))) ) {
+            minl |= 1 << (lev & 31);
+            lbd++;
+        }
+    }
+    return lbd;
+}
+
 static int clause2_create_new(sat_solver2* s, lit* begin, lit* end, int learnt, int proof_id)
 {
-    satset* c;
-    int i, Cid, nLits = end - begin;
-    assert(nLits < 1 || begin[0] >= 0);
-    assert(nLits < 2 || begin[1] >= 0);
-    assert(nLits < 1 || lit_var(begin[0]) < s->size);
-    assert(nLits < 2 || lit_var(begin[1]) < s->size);
-    // add memory if needed
-
-    // assign clause ID
-    if ( learnt )
+    clause* c;
+    int h, size = end - begin;
+    assert(size < 1 || begin[0] >= 0);
+    assert(size < 2 || begin[1] >= 0);
+    assert(size < 1 || lit_var(begin[0]) < s->size);
+    assert(size < 2 || lit_var(begin[1]) < s->size);
+    // create new clause
+    h = Sat_MemAppend( &s->Mem, begin, size, learnt, 1 );
+    assert( !(h & 1) );
+    c = clause2_read( s, h );
+    if (learnt)
     {
-        if ( veci_size(&s->learnts) + satset_size(nLits) > s->learnts.cap )
-        {
-            int nMemAlloc = s->learnts.cap ? 2 * s->learnts.cap : (1 << 20);
-            s->learnts.ptr = ABC_REALLOC( int, veci_begin(&s->learnts), nMemAlloc );
-    //        Abc_Print(1, "Reallocing from %d to %d...\n", s->learnts.cap, nMemAlloc );
-            s->learnts.cap = nMemAlloc;
-            if ( veci_size(&s->learnts) == 0 )
-                veci_push( &s->learnts, -1 );
-        }
-        // create clause
-        c = (satset*)(veci_begin(&s->learnts) + veci_size(&s->learnts));
-        ((int*)c)[0] = 0;
-        c->learnt = learnt;
-        c->nEnts  = nLits;
-        for (i = 0; i < nLits; i++)
-            c->pEnts[i] = begin[i];
-        // count the clause
-        s->stats.learnts++;
-        s->stats.learnts_literals += nLits;
-        c->Id = s->stats.learnts;
-        assert( c->Id == veci_size(&s->claActs) );
-        veci_push(&s->claActs, 0);
+        if ( s->fProofLogging )
+            assert( proof_id );
+        c->lbd = sat_clause_compute_lbd( s, c );
+        assert( clause_id(c) == veci_size(&s->act_clas) );
         if ( proof_id )
             veci_push(&s->claProofs, proof_id);
-        if ( nLits > 2 )
+//        veci_push(&s->act_clas, (1<<10));
+        veci_push(&s->act_clas, 0);
+        if ( size > 2 )
             act_clause2_bump( s,c );
-        // extend storage
-        Cid = (veci_size(&s->learnts) << 1) | 1;
-        s->learnts.size += satset_size(nLits);
-        assert( veci_size(&s->learnts) <= s->learnts.cap );
-        assert(((ABC_PTRUINT_T)c & 3) == 0);
-//        Abc_Print(1, "Clause for proof %d: ", proof_id );
-//        satset_print( c );
+        s->stats.learnts++;
+        s->stats.learnts_literals += size;
         // remember the last one
-        s->hLearntLast = Cid;
+        s->hLearntLast = h;
     }
     else
     {
-        if ( veci_size(&s->clauses) + satset_size(nLits) > s->clauses.cap )
-        {
-            int nMemAlloc = s->clauses.cap ? 2 * s->clauses.cap : (1 << 20);
-            s->clauses.ptr = ABC_REALLOC( int, veci_begin(&s->clauses), nMemAlloc );
-    //        Abc_Print(1, "Reallocing from %d to %d...\n", s->clauses.cap, nMemAlloc );
-            s->clauses.cap = nMemAlloc;
-            if ( veci_size(&s->clauses) == 0 )
-                veci_push( &s->clauses, -1 );
-        }
-        // create clause
-        c = (satset*)(veci_begin(&s->clauses) + veci_size(&s->clauses));
-        ((int*)c)[0] = 0;
-        c->learnt = learnt;
-        c->nEnts  = nLits;
-        for (i = 0; i < nLits; i++)
-            c->pEnts[i] = begin[i];
-        // count the clause
+        assert( clause_id(c) == (int)s->stats.clauses );
         s->stats.clauses++;
-        s->stats.clauses_literals += nLits;
-        c->Id = s->stats.clauses;
-        // extend storage
-        Cid = (veci_size(&s->clauses) << 1);
-        s->clauses.size += satset_size(nLits);
-        assert( veci_size(&s->clauses) <= s->clauses.cap );
-        assert(((ABC_PTRUINT_T)c & 3) == 0);
+        s->stats.clauses_literals += size;
     }
     // watch the clause
-    if ( nLits > 1 ){
-        veci_push(solver2_wlist(s,lit_neg(begin[0])),Cid);
-        veci_push(solver2_wlist(s,lit_neg(begin[1])),Cid);
+    if ( size > 1 )
+    {
+        veci_push(solver2_wlist(s,lit_neg(begin[0])),h);
+        veci_push(solver2_wlist(s,lit_neg(begin[1])),h);
     }
-    return Cid;
+    return h;
 }
 
 //=================================================================================================
@@ -472,17 +438,6 @@ static inline int solver2_enqueue(sat_solver2* s, lit l, cla from)
         s->reasons[v] = from;  //  = from << 1;
         s->trail[s->qtail++] = l;
         order_assigned(s, v);
-/*
-        if ( solver2_dlevel(s) == 0 )
-        {
-            satset * c = from ? clause2_read( s, from ) : NULL;
-            Abc_Print(1, "Enqueing var %d on level %d with reason clause  ", v, solver2_dlevel(s) );
-            if ( c )
-                satset_print( c );
-            else
-                Abc_Print(1, "<none>\n" );           
-        }
-*/
         return true;
     }
 }
@@ -589,7 +544,7 @@ static double solver2_progress(sat_solver2* s)
 |    stores the result in 'out_conflict'.
 |________________________________________________________________________________________________@*/
 /*
-void Solver::analyzeFinal(satset* confl, bool skip_first)
+void Solver::analyzeFinal(clause* confl, bool skip_first)
 {
     // -- NOTE! This code is relatively untested. Please report bugs!
     conflict.clear();
@@ -628,7 +583,7 @@ void Solver::analyzeFinal(satset* confl, bool skip_first)
 }
 */
 
-static int solver2_analyze_final(sat_solver2* s, satset* conf, int skip_first)
+static int solver2_analyze_final(sat_solver2* s, clause* conf, int skip_first)
 {
     int i, j, x;//, start;
     veci_resize(&s->conf_final,0);
@@ -636,7 +591,7 @@ static int solver2_analyze_final(sat_solver2* s, satset* conf, int skip_first)
         return s->hProofLast;
     proof_chain_start( s, conf );
     assert( veci_size(&s->tagged) == 0 );
-    satset_foreach_var( conf, x, i, skip_first ){
+    clause_foreach_var( conf, x, i, skip_first ){
         if ( var_level(s,x) )
             var_set_tag(s, x, 1);
         else
@@ -647,10 +602,10 @@ static int solver2_analyze_final(sat_solver2* s, satset* conf, int skip_first)
     for (i = s->qtail-1; i >= (veci_begin(&s->trail_lim))[0]; i--){
         x = lit_var(s->trail[i]);
         if (var_tag(s,x)){
-            satset* c = clause2_read(s, var_reason(s,x));
+            clause* c = clause2_read(s, var_reason(s,x));
             if (c){
                 proof_chain_resolve( s, c, x );
-                satset_foreach_var( c, x, j, 1 ){
+                clause_foreach_var( c, x, j, 1 ){
                     if ( var_level(s,x) )
                         var_set_tag(s, x, 1);
                     else
@@ -672,7 +627,7 @@ static int solver2_lit_removable_rec(sat_solver2* s, int v)
     // tag[1]: Processed by this procedure
     // tag[2]: 0=non-removable, 1=removable
 
-    satset* c;
+    clause* c;
     int i, x;
 
     // skip visited
@@ -686,7 +641,7 @@ static int solver2_lit_removable_rec(sat_solver2* s, int v)
         return 0;
     }
 
-    satset_foreach_var( c, x, i, 1 ){
+    clause_foreach_var( c, x, i, 1 ){
         if (var_tag(s,x) & 1)
             solver2_lit_removable_rec(s, x);
         else{
@@ -706,7 +661,7 @@ static int solver2_lit_removable_rec(sat_solver2* s, int v)
 
 static int solver2_lit_removable(sat_solver2* s, int x)
 {
-    satset* c;
+    clause* c;
     int i, top;
     if ( !var_reason(s,x) )
         return 0;
@@ -731,7 +686,7 @@ static int solver2_lit_removable(sat_solver2* s, int x)
         }
         x >>= 1;
         c = clause2_read(s, var_reason(s,x));
-        satset_foreach_var( c, x, i, 1 ){
+        clause_foreach_var( c, x, i, 1 ){
             if (var_tag(s,x) || !var_level(s,x))
                 continue;
             if (!var_reason(s,x) || !var_lev_mark(s,x)){
@@ -747,7 +702,7 @@ static int solver2_lit_removable(sat_solver2* s, int x)
 
 static void solver2_logging_order(sat_solver2* s, int x)
 {
-    satset* c;
+    clause* c;
     int i;
     if ( (var_tag(s,x) & 4) )
         return;
@@ -766,7 +721,7 @@ static void solver2_logging_order(sat_solver2* s, int x)
         c = clause2_read(s, var_reason(s,x));
 //        if ( !c )
 //            Abc_Print(1, "solver2_logging_order(): Error in conflict analysis!!!\n" );
-        satset_foreach_var( c, x, i, 1 ){
+        clause_foreach_var( c, x, i, 1 ){
             if ( !var_level(s,x) || (var_tag(s,x) & 1) )
                 continue;
             veci_push(&s->stack, x << 1);
@@ -777,19 +732,19 @@ static void solver2_logging_order(sat_solver2* s, int x)
 
 static void solver2_logging_order_rec(sat_solver2* s, int x)
 {
-    satset* c;
+    clause* c;
     int i, y;
     if ( (var_tag(s,x) & 8) )
         return;
     c = clause2_read(s, var_reason(s,x));
-    satset_foreach_var( c, y, i, 1 )
+    clause_foreach_var( c, y, i, 1 )
         if ( var_level(s,y) && (var_tag(s,y) & 1) == 0 )
             solver2_logging_order_rec(s, y);
     var_add_tag(s, x, 8);
     veci_push(&s->min_step_order, x);
 }
 
-static int solver2_analyze(sat_solver2* s, satset* c, veci* learnt)
+static int solver2_analyze(sat_solver2* s, clause* c, veci* learnt)
 {
     int cnt      = 0;
     lit p        = 0;
@@ -805,9 +760,9 @@ static int solver2_analyze(sat_solver2* s, satset* c, veci* learnt)
     veci_push(learnt,lit_Undef);
     while ( 1 ){
         assert(c != 0);
-        if (c->learnt)
+        if (c->lrn)
             act_clause2_bump(s,c);
-        satset_foreach_var( c, x, j, (int)(p > 0) ){
+        clause_foreach_var( c, x, j, (int)(p > 0) ){
             assert(x >= 0 && x < s->size);
             if ( var_tag(s, x) )
                 continue;
@@ -821,7 +776,7 @@ static int solver2_analyze(sat_solver2* s, satset* c, veci* learnt)
             if (var_level(s,x) == solver2_dlevel(s))
                 cnt++;
             else
-                veci_push(learnt,c->pEnts[j]);
+                veci_push(learnt,c->lits[j]);
         }
 
         while (!var_tag(s, lit_var(s->trail[ind--])));
@@ -864,7 +819,7 @@ static int solver2_analyze(sat_solver2* s, satset* c, veci* learnt)
         for (i = veci_size(&s->min_step_order); i > 0; ) { i--;
             c = clause2_read(s, var_reason(s,vars[i]));
             proof_chain_resolve( s, c, vars[i] );
-            satset_foreach_var(c, x, k, 1)
+            clause_foreach_var(c, x, k, 1)
                 if ( var_level(s,x) == 0 )
                     proof_chain_resolve( s, NULL, x );
         }
@@ -913,9 +868,9 @@ static int solver2_analyze(sat_solver2* s, satset* c, veci* learnt)
     return proof_id;
 }
 
-satset* solver2_propagate(sat_solver2* s)
+clause* solver2_propagate(sat_solver2* s)
 {
-    satset* c, * confl  = NULL;
+    clause* c, * confl  = NULL;
     veci* ws;
     lit* lits, false_lit, p, * stop, * k;
     cla* begin,* end, *i, *j;
@@ -931,7 +886,7 @@ satset* solver2_propagate(sat_solver2* s)
         s->stats.propagations++;
         for (i = j = begin; i < end; ){
             c = clause2_read(s,*i);
-            lits = c->pEnts;
+            lits = c->lits;
 
             // Make sure the false literal is data[1]:
             false_lit = lit_neg(p);
@@ -946,7 +901,7 @@ satset* solver2_propagate(sat_solver2* s)
                 *j++ = *i;
             else{
                 // Look for new watch:
-                stop = lits + c->nEnts;
+                stop = lits + c->size;
                 for (k = lits + 2; k < stop; k++){
                     if (var_value(s, lit_var(*k)) != !lit_sign(*k)){
                         lits[1] = *k;
@@ -962,7 +917,7 @@ satset* solver2_propagate(sat_solver2* s)
                     int fLitIsFalse = (var_value(s, Var) == !lit_sign(Lit));
                     // Log production of top-level unit clause:
                     proof_chain_start( s, c );
-                    satset_foreach_var( c, x, k, 1 ){
+                    clause_foreach_var( c, x, k, 1 ){
                         assert( var_level(s, x) == 0 );
                         proof_chain_resolve( s, NULL, x );
                     }
@@ -986,6 +941,8 @@ satset* solver2_propagate(sat_solver2* s)
 
                 *j++ = *i;
                 // Clause is unit under assignment:
+                if ( c->lrn )
+                    c->lbd = sat_clause_compute_lbd(s, c);
                 if (!solver2_enqueue(s,Lit, *i)){
                     confl = clause2_read(s,*i++);
                     // Copy the remaining watches:
@@ -1024,7 +981,7 @@ static lbool solver2_search(sat_solver2* s, ABC_INT64_T nof_conflicts)
     veci_new(&learnt_clause);
 
     for (;;){
-        satset* confl = solver2_propagate(s);
+        clause* confl = solver2_propagate(s);
         if (confl != 0){
             // CONFLICT
             int blevel;
@@ -1138,8 +1095,12 @@ sat_solver2* sat_solver2_new(void)
 #endif
     s->fSkipSimplify  =  1;
     s->fNotUseRandom  =  0;
-    s->nLearntMax     =  0;
     s->fVerbose       =  0;
+
+    s->nLearntStart   = LEARNT_MAX_START_DEFAULT;  // starting learned clause limit
+    s->nLearntDelta   = LEARNT_MAX_INCRE_DEFAULT;  // delta of learned clause limit
+    s->nLearntRatio   = LEARNT_MAX_RATIO_DEFAULT;  // ratio of learned clause limit
+    s->nLearntMax     = s->nLearntStart;
 
     // initialize vectors
     veci_new(&s->order);
@@ -1152,22 +1113,13 @@ sat_solver2* sat_solver2_new(void)
     veci_new(&s->mark_levels);
     veci_new(&s->min_lit_order);
     veci_new(&s->min_step_order);
-    veci_new(&s->learnt_live);
-    veci_new(&s->claActs);    veci_push(&s->claActs,   -1);
-    veci_new(&s->claProofs);  veci_push(&s->claProofs, -1);
+//    veci_new(&s->learnt_live);
+
+    Sat_MemAlloc_( &s->Mem, 14 );
+    veci_new(&s->act_clas);  
+    veci_new(&s->claProofs);
     if ( s->fProofLogging )
         Vec_SetAlloc_( &s->Proofs, 20 );
-
-    // prealloc clause
-    assert( !s->clauses.ptr );
-    s->clauses.cap = (1 << 20);
-    s->clauses.ptr = ABC_ALLOC( int, s->clauses.cap );
-    veci_push(&s->clauses, -1);
-    // prealloc learnt
-    assert( !s->learnts.ptr );
-    s->learnts.cap = (1 << 20);
-    s->learnts.ptr = ABC_ALLOC( int, s->learnts.cap );
-    veci_push(&s->learnts, -1);
 
     // initialize clause pointers
     s->hLearntLast            = -1; // the last learnt clause 
@@ -1175,9 +1127,6 @@ sat_solver2* sat_solver2_new(void)
     // initialize rollback
     s->iVarPivot              =  0; // the pivot for variables
     s->iTrailPivot            =  0; // the pivot for trail
-    s->iProofPivot            =  0; // the pivot for proof records
-    s->hClausePivot           =  1; // the pivot for problem clause
-    s->hLearntPivot           =  1; // the pivot for learned clause
     s->hProofPivot            =  1; // the pivot for proof records
     return s;
 }
@@ -1243,11 +1192,11 @@ void sat_solver2_delete(sat_solver2* s)
     if ( fVerify )
     {
         veci * pCore = (veci *)Sat_ProofCore( s );
-        Abc_Print(1, "UNSAT core contains %d clauses (%6.2f %%).\n", veci_size(pCore), 100.0*veci_size(pCore)/veci_size(&s->clauses) );
+//        Abc_Print(1, "UNSAT core contains %d clauses (%6.2f %%).\n", veci_size(pCore), 100.0*veci_size(pCore)/veci_size(&s->clauses) );
         veci_delete( pCore );
         ABC_FREE( pCore );
-        if ( s->fProofLogging )
-            Sat_ProofCheck( s );
+//        if ( s->fProofLogging )
+//            Sat_ProofCheck( s );
     }
 
     // report statistics
@@ -1264,11 +1213,12 @@ void sat_solver2_delete(sat_solver2* s)
     veci_delete(&s->mark_levels);
     veci_delete(&s->min_lit_order);
     veci_delete(&s->min_step_order);
-    veci_delete(&s->learnt_live);
-    veci_delete(&s->claActs);
+//    veci_delete(&s->learnt_live);
+    veci_delete(&s->act_clas);
     veci_delete(&s->claProofs);
-    veci_delete(&s->clauses);
-    veci_delete(&s->learnts);
+//    veci_delete(&s->clauses);
+//    veci_delete(&s->lrns);
+    Sat_MemFree_( &s->Mem );
 //    veci_delete(&s->proofs);
     Vec_SetFree_( &s->Proofs );
 
@@ -1290,6 +1240,8 @@ void sat_solver2_delete(sat_solver2* s)
         ABC_FREE(s->model    );
     }
     ABC_FREE(s);
+
+//    Abc_PrintTime( 1, "Time", Time );
 }
 
 
@@ -1358,9 +1310,9 @@ int sat_solver2_addclause(sat_solver2* s, lit* begin, lit* end)
             {
                 // Log production of top-level unit clause:
                 int x, k, proof_id, CidNew;
-                satset* c = clause2_read(s, Cid);
+                clause* c = clause2_read(s, Cid);
                 proof_chain_start( s, c );
-                satset_foreach_var( c, x, k, 1 )
+                clause_foreach_var( c, x, k, 1 )
                     proof_chain_resolve( s, NULL, x );
                 proof_id = proof_chain_stop( s );
                 // generate a new clause
@@ -1400,127 +1352,178 @@ void luby2_test()
 void sat_solver2_reducedb(sat_solver2* s)
 {
     static clock_t TimeTotal = 0;
-    satset * c, * pivot;
-    cla h,* pArray,* pArray2;
-    int * pPerm, * pClaAct, nClaAct, ActCutOff;
-    int i, j, k, hTemp, hHandle, LastSize = 0;
+    Sat_Mem_t * pMem = &s->Mem;
+    clause * c;
+    int nLearnedOld = veci_size(&s->act_clas);
+    int * act_clas = veci_begin(&s->act_clas);
+    int * pPerm, * pSortValues, nCutoffValue, * pClaProofs;
+    int i, j, k, Id, nSelected, LastSize = 0;
     int Counter, CounterStart;
     clock_t clk = clock();
+    static int Count = 0;
+    Count++;
+    assert( s->nLearntMax );
+    s->nDBreduces++;
+//    printf( "Calling reduceDB with %d clause limit and parameters (%d %d %d).\n", s->nLearntMax, s->nLearntStart, s->nLearntDelta, s->nLearntRatio );
 
-    // check if it is time to reduce
-    if ( s->nLearntMax == 0 || s->stats.learnts < (unsigned)s->nLearntMax )
-        return;
+/*
+    // find the new limit
     s->nLearntMax = s->nLearntMax * 11 / 10;
-
     // preserve 1/10 of last clauses
     CounterStart  = s->stats.learnts - (s->nLearntMax / 10);
-
     // preserve 1/10 of most active clauses
-    pClaAct = veci_begin(&s->claActs) + 1;
-    nClaAct = veci_size(&s->claActs) - 1;
-    pPerm = Abc_MergeSortCost( pClaAct, nClaAct );
-    assert( pClaAct[pPerm[0]] <= pClaAct[pPerm[nClaAct-1]] );
-    ActCutOff = pClaAct[pPerm[nClaAct*9/10]];
+    pSortValues = veci_begin(&s->act_clas);
+    pPerm = Abc_MergeSortCost( pSortValues, nLearnedOld );
+    assert( pSortValues[pPerm[0]] <= pSortValues[pPerm[nLearnedOld-1]] );
+    nCutoffValue = pSortValues[pPerm[nLearnedOld*9/10]];
     ABC_FREE( pPerm );
-//    ActCutOff = ABC_INFINITY;
+//    nCutoffValue = ABC_INFINITY;
+*/
+
+
+    // find the new limit
+    s->nLearntMax = s->nLearntStart + s->nLearntDelta * s->nDBreduces;
+    // preserve 1/20 of last clauses
+    CounterStart  = nLearnedOld - (s->nLearntMax / 20);
+    // preserve 3/4 of most active clauses
+    nSelected = nLearnedOld*s->nLearntRatio/100;
+    // create sorting values
+    pSortValues = ABC_ALLOC( int, nLearnedOld );
+    Sat_MemForEachLearned( pMem, c, i, k )
+    {
+        Id = clause_id(c);
+        pSortValues[Id] = (((7 - Abc_MinInt(c->lbd, 7)) << 28) | (act_clas[Id] >> 4));
+//        pSortValues[Id] = act_clas[Id];
+        assert( pSortValues[Id] >= 0 );
+    }
+    // find non-decreasing permutation
+    pPerm = Abc_MergeSortCost( pSortValues, nLearnedOld );
+    assert( pSortValues[pPerm[0]] <= pSortValues[pPerm[nLearnedOld-1]] );
+    nCutoffValue = pSortValues[pPerm[nLearnedOld-nSelected]];
+    ABC_FREE( pPerm );
+//    nCutoffValue = ABC_INFINITY;
+
+    // count how many clauses satisfy the condition
+    Counter = j = 0;
+    Sat_MemForEachLearned( pMem, c, i, k )
+    {
+        assert( c->mark == 0 );
+        if ( Counter++ > CounterStart || clause_size(c) < 2 || pSortValues[clause_id(c)] >= nCutoffValue || s->reasons[lit_var(c->lits[0])] == Sat_MemHand(pMem, i, k) )
+        {
+        }
+        else
+            j++;
+        if ( j >= nLearnedOld / 6 )
+            break;
+    }
+    if ( j < nLearnedOld / 6 )
+        return;
 
     // mark learned clauses to remove
-    Counter = 0;
-    veci_resize( &s->learnt_live, 0 );
-    sat_solver_foreach_learnt( s, c, h )
+    Counter = j = 0;
+    pClaProofs = s->fProofLogging ? veci_begin(&s->claProofs) : NULL;
+    Sat_MemForEachLearned( pMem, c, i, k )
     {
-        if ( Counter++ > CounterStart || c->nEnts < 3 || pClaAct[c->Id-1] >= ActCutOff || s->reasons[lit_var(c->pEnts[0])] == (h<<1)+1 )
-            veci_push( &s->learnt_live, h );
-        else
-            c->mark = 1;
-    }
-    // report the results
-    if ( s->fVerbose )
-    Abc_Print(1, "reduceDB: Keeping %7d out of %7d clauses (%5.2f %%)  ",
-        veci_size(&s->learnt_live), s->stats.learnts, 100.0 * veci_size(&s->learnt_live) / s->stats.learnts );
-
-    // remap clause proofs and clauses
-    hHandle = 1;
-    pArray  = s->fProofLogging ? veci_begin(&s->claProofs) : NULL;
-    pArray2 = veci_begin(&s->claActs);
-    satset_foreach_entry_vec( &s->learnt_live, &s->learnts, c, i )
-    {
-        if ( pArray )
-        pArray[i+1]  = pArray[c->Id];
-        pArray2[i+1] = pArray2[c->Id];
-        c->Id = hHandle; hHandle += satset_size(c->nEnts);
-    }
-    if ( s->fProofLogging )
-    veci_resize(&s->claProofs,veci_size(&s->learnt_live)+1);
-    veci_resize(&s->claActs,veci_size(&s->learnt_live)+1);
-
-    // update reason clauses
-    for ( i = 0; i < s->size; i++ )
-        if ( s->reasons[i] && (s->reasons[i] & 1) )
+        assert( c->mark == 0 );
+        if ( Counter++ > CounterStart || clause_size(c) < 2 || pSortValues[clause_id(c)] >= nCutoffValue || s->reasons[lit_var(c->lits[0])] == Sat_MemHand(pMem, i, k) )
         {
-            c = clause2_read( s, s->reasons[i] );
-            assert( c->mark == 0 );
-            s->reasons[i] = (c->Id << 1) | 1;
+            pSortValues[j] = pSortValues[clause_id(c)];
+            if ( pClaProofs ) 
+            pClaProofs[j] = pClaProofs[clause_id(c)];
+            j++;
         }
+        else // delete
+        {
+            c->mark = 1;
+            s->stats.learnts_literals -= clause_size(c);
+            s->stats.learnts--;
+        }
+    }
+//    if ( j == nLearnedOld )
+//        return;
 
-    // compact watches
+    assert( s->stats.learnts == (unsigned)j );
+    assert( Counter == nLearnedOld );
+    veci_resize(&s->act_clas,j);
+    if ( s->fProofLogging )
+        veci_resize(&s->claProofs,j);
+
+    // update ID of each clause to be its new handle
+    Counter = Sat_MemCompactLearned( pMem, 0 );
+    assert( Counter == (int)s->stats.learnts );
+
+    // update reasons
+    for ( i = 0; i < s->size; i++ )
+    {
+        if ( !s->reasons[i] ) // no reason
+            continue;
+        if ( clause_is_lit(s->reasons[i]) ) // 2-lit clause
+            continue;
+        if ( !clause_learnt_h(pMem, s->reasons[i]) ) // problem clause
+            continue;
+        c = clause2_read( s, s->reasons[i] );
+        assert( c->mark == 0 );
+        s->reasons[i] = clause_id(c); // updating handle here!!!
+    }
+
+    // update watches
     for ( i = 0; i < s->size*2; i++ )
     {
-        pArray = veci_begin(&s->wlists[i]);
+        int * pArray = veci_begin(&s->wlists[i]);
         for ( j = k = 0; k < veci_size(&s->wlists[i]); k++ )
-            if ( !(pArray[k] & 1) ) // problem clause
+        {
+            if ( clause_is_lit(pArray[k]) ) // 2-lit clause
                 pArray[j++] = pArray[k];
-            else if ( !(c = clause2_read(s, pArray[k]))->mark ) // useful learned clause
-                pArray[j++] = (c->Id << 1) | 1;
+            else if ( !clause_learnt_h(pMem, pArray[k]) ) // problem clause
+                pArray[j++] = pArray[k];
+            else 
+            {
+                c = clause2_read(s, pArray[k]);
+                if ( !c->mark ) // useful learned clause
+                   pArray[j++] = clause_id(c); // updating handle here!!!
+            }
+        }
         veci_resize(&s->wlists[i],j);
     }
+
     // compact units
     if ( s->fProofLogging )
-    for ( i = 0; i < s->size; i++ )
-        if ( s->units[i] && (s->units[i] & 1) )
-        {
-            c = clause2_read( s, s->units[i] );
-            assert( c->mark == 0 );
-            s->units[i] = (c->Id << 1) | 1;
-        }
-    // compact clauses
-    pivot = satset_read( &s->learnts, s->hLearntPivot );
-    s->hLearntPivot = hTemp = hHandle;
-    satset_foreach_entry_vec( &s->learnt_live, &s->learnts, c, i )
-    {
-        hTemp = c->Id; c->Id = i + 1;
-        LastSize = satset_size(c->nEnts);
-        memmove( veci_begin(&s->learnts) + hTemp, c, sizeof(int)*LastSize );
-        if ( pivot && pivot <= c )
-        {
-            s->hLearntPivot = hTemp;
-            pivot = NULL;
-        }
-    }
-    assert( hHandle == hTemp + LastSize );
-    veci_resize(&s->learnts,hHandle);
-    s->stats.learnts = veci_size(&s->learnt_live);
-    assert( s->hLearntPivot <= veci_size(&s->learnts) );
-    assert( s->hClausePivot <= veci_size(&s->clauses) );
+        for ( i = 0; i < s->size; i++ )
+            if ( s->units[i] && clause_learnt_h(pMem, s->units[i]) )
+            {
+                c = clause2_read( s, s->units[i] );
+                assert( c->mark == 0 );
+                s->units[i] = clause_id(c);
+            }
+
+    // perform final move of the clauses
+    Counter = Sat_MemCompactLearned( pMem, 1 );
+    assert( Counter == (int)s->stats.learnts );
 
     // compact proof (compacts 'proofs' and update 'claProofs')
     if ( s->fProofLogging )
-        Sat_ProofReduce( s );
+        s->hProofPivot = Sat_ProofReduce( &s->Proofs, &s->claProofs, s->hProofPivot );
 
+
+    // report the results
     TimeTotal += clock() - clk;
     if ( s->fVerbose )
-    Abc_PrintTime( 1, "Time", TimeTotal );
+    {
+        Abc_Print(1, "reduceDB: Keeping %7d out of %7d clauses (%5.2f %%)  ",
+            s->stats.learnts, nLearnedOld, 100.0 * s->stats.learnts / nLearnedOld );
+        Abc_PrintTime( 1, "Time", TimeTotal );
+    }
 }
 
 // reverses to the previously bookmarked point
 void sat_solver2_rollback( sat_solver2* s )
 {
+    Sat_Mem_t * pMem = &s->Mem;
     int i, k, j;
+    static int Count = 0;
+    Count++;
     assert( s->iVarPivot >= 0 && s->iVarPivot <= s->size );
     assert( s->iTrailPivot >= 0 && s->iTrailPivot <= s->qtail );
-    assert( s->iProofPivot >= 0 && s->iProofPivot <= Vec_SetEntryNum(&s->Proofs) );
-    assert( s->hClausePivot >= 1 && s->hClausePivot <= veci_size(&s->clauses) );
-    assert( s->hLearntPivot >= 1 && s->hLearntPivot <= veci_size(&s->learnts) );
     assert( s->hProofPivot >= 1 && s->hProofPivot <= Vec_SetHandCurrent(&s->Proofs) );
     // reset implication queue
     solver2_canceluntil_rollback( s, s->iTrailPivot );
@@ -1538,42 +1541,32 @@ void sat_solver2_rollback( sat_solver2* s )
         }
     }
     // compact watches
-    if ( s->hClausePivot > 1 || s->hLearntPivot > 1 )
+    for ( i = 0; i < s->iVarPivot*2; i++ )
     {
-        for ( i = 0; i < s->size*2; i++ )
-        {
-            cla* pArray = veci_begin(&s->wlists[i]);
-            for ( j = k = 0; k < veci_size(&s->wlists[i]); k++ )
-                if ( clause2_is_used(s, pArray[k]) )
-                    pArray[j++] = pArray[k];
-            veci_resize(&s->wlists[i],j);
-        }
-    }
-    // reset problem clauses
-    if ( s->hClausePivot < veci_size(&s->clauses) )
-    {
-        satset* first = satset_read(&s->clauses, s->hClausePivot);
-        s->stats.clauses = first->Id-1;
-        veci_resize(&s->clauses, s->hClausePivot);
-    }
-    // resetn learned clauses
-    if ( s->hLearntPivot < veci_size(&s->learnts) )
-    { 
-        satset* first = satset_read(&s->learnts, s->hLearntPivot);
-        veci_resize(&s->claActs,   first->Id);
-        if ( s->fProofLogging ) {
-            veci_resize(&s->claProofs, first->Id);
-//            Vec_SetWriteEntryNum(&s->Proofs, s->iProofPivot); // <- some bug here
-//            Vec_SetShrink(&s->Proofs, s->hProofPivot);
-            Sat_ProofReduce( s );
-        }
-        s->stats.learnts = first->Id-1;
-        veci_resize(&s->learnts, s->hLearntPivot);
+        cla* pArray = veci_begin(&s->wlists[i]);
+        for ( j = k = 0; k < veci_size(&s->wlists[i]); k++ )
+            if ( Sat_MemClauseUsed(pMem, pArray[k]) )
+                pArray[j++] = pArray[k];
+        veci_resize(&s->wlists[i],j);
     }
     // reset watcher lists
     for ( i = 2*s->iVarPivot; i < 2*s->size; i++ )
         s->wlists[i].size = 0;
 
+    // reset clause counts
+    s->stats.clauses = pMem->BookMarkE[0];
+    s->stats.learnts = pMem->BookMarkE[1];
+    // rollback clauses
+    Sat_MemRollBack( pMem );
+
+    // resize learned arrays
+    veci_resize(&s->act_clas,  s->stats.learnts);
+    if ( s->fProofLogging ) 
+    {
+        veci_resize(&s->claProofs, s->stats.learnts);
+        Vec_SetShrink(&s->Proofs, s->hProofPivot); // past bug here
+//       Sat_ProofReduce( &s->Proofs, &s->claProofs, s->hProofPivot );
+    }
 
     // initialize other vars
     s->size = s->iVarPivot;
@@ -1614,9 +1607,6 @@ void sat_solver2_rollback( sat_solver2* s )
         // initialize rollback
         s->iVarPivot              =  0; // the pivot for variables
         s->iTrailPivot            =  0; // the pivot for trail
-        s->iProofPivot            =  0; // the pivot for proof records
-        s->hClausePivot           =  1; // the pivot for problem clause
-        s->hLearntPivot           =  1; // the pivot for learned clause
         s->hProofPivot            =  1; // the pivot for proof records
     }
 }
@@ -1630,9 +1620,7 @@ double sat_solver2_memory( sat_solver2* s, int fAll )
         for (i = 0; i < s->cap*2; i++)
             Mem += s->wlists[i].cap * sizeof(int);
     Mem += s->cap * sizeof(veci);     // ABC_FREE(s->wlists   );
-    Mem += s->clauses.cap * sizeof(int);
-    Mem += s->learnts.cap * sizeof(int);
-    Mem += s->claActs.cap * sizeof(int);
+    Mem += s->act_clas.cap * sizeof(int);
     Mem += s->claProofs.cap * sizeof(int);
 //    Mem += s->cap * sizeof(char);     // ABC_FREE(s->polarity );
 //    Mem += s->cap * sizeof(char);     // ABC_FREE(s->tags     );
@@ -1651,7 +1639,6 @@ double sat_solver2_memory( sat_solver2* s, int fAll )
     Mem += s->cap * sizeof(int);      // ABC_FREE(s->reasons  );
     Mem += s->cap * sizeof(int);      // ABC_FREE(s->units    );
     Mem += s->cap * sizeof(int);      // ABC_FREE(s->model    );
-
     Mem += s->tagged.cap * sizeof(int);
     Mem += s->stack.cap * sizeof(int);
     Mem += s->order.cap * sizeof(int);
@@ -1661,9 +1648,9 @@ double sat_solver2_memory( sat_solver2* s, int fAll )
     Mem += s->mark_levels.cap * sizeof(int);
     Mem += s->min_lit_order.cap * sizeof(int);
     Mem += s->min_step_order.cap * sizeof(int);
-    Mem += s->learnt_live.cap * sizeof(int);
     Mem += s->temp_proof.cap * sizeof(int);
-//    Mem += Vec_ReportMemory( &s->Mem );
+    Mem += Sat_MemMemoryAll( &s->Mem );
+//    Mem += Vec_ReportMemory( &s->Proofs );
     return Mem;
 }
 double sat_solver2_memory_proof( sat_solver2* s )
@@ -1673,6 +1660,7 @@ double sat_solver2_memory_proof( sat_solver2* s )
 
 
 // find the clause in the watcher lists
+/*
 int sat_solver2_find_clause( sat_solver2* s, int Hand, int fVerbose )
 {
     int i, k, Found = 0;
@@ -1697,25 +1685,26 @@ int sat_solver2_find_clause( sat_solver2* s, int Hand, int fVerbose )
     }
     return Found;
 }
-
+*/
+/*
 // verify that all problem clauses are satisfied
 void sat_solver2_verify( sat_solver2* s )
 {
-    satset * c;
+    clause * c;
     int i, k, v, Counter = 0;
-    satset_foreach_entry( &s->clauses, c, i, 1 )
+    clause_foreach_entry( &s->clauses, c, i, 1 )
     {
-        for ( k = 0; k < (int)c->nEnts; k++ )
+        for ( k = 0; k < (int)c->size; k++ )
         {
-            v = lit_var(c->pEnts[k]);
-            if ( sat_solver2_var_value(s, v) ^ lit_sign(c->pEnts[k]) )
+            v = lit_var(c->lits[k]);
+            if ( sat_solver2_var_value(s, v) ^ lit_sign(c->lits[k]) )
                 break;
         }
-        if ( k == (int)c->nEnts )
+        if ( k == (int)c->size )
         {
             Abc_Print(1, "Clause %d is not satisfied.   ", c->Id );
-            satset_print( c );
-            sat_solver2_find_clause( s, satset_handle(&s->clauses, c), 1 );
+            clause_print( c );
+            sat_solver2_find_clause( s, clause_handle(&s->clauses, c), 1 );
             Counter++;
         }
     }
@@ -1724,7 +1713,7 @@ void sat_solver2_verify( sat_solver2* s )
 //    else
 //        Abc_Print(1, "Verification passed.\n" );
 }
-
+*/
 
 int sat_solver2_solve(sat_solver2* s, lit* begin, lit* end, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimit, ABC_INT64_T nConfLimitGlobal, ABC_INT64_T nInsLimitGlobal)
 {
@@ -1761,7 +1750,7 @@ int sat_solver2_solve(sat_solver2* s, lit* begin, lit* end, ABC_INT64_T nConfLim
         if (!solver2_assume(p)){
             GClause r = reason[var(p)];
             if (r != Gclause2_NULL){
-                satset* confl;
+                clause* confl;
                 if (r.isLit()){
                     confl = propagate_tmpbin;
                     (*confl)[1] = ~p;
@@ -1775,7 +1764,7 @@ int sat_solver2_solve(sat_solver2* s, lit* begin, lit* end, ABC_INT64_T nConfLim
                 conflict.push(~p);
             cancelUntil(0);
             return false; }
-        satset* confl = propagate();
+        clause* confl = propagate();
         if (confl != NULL){
             analyzeFinal(confl), assert(conflict.size() > 0);
             cancelUntil(0);
@@ -1793,10 +1782,10 @@ int sat_solver2_solve(sat_solver2* s, lit* begin, lit* end, ABC_INT64_T nConfLim
         veci_push(&s->trail_lim,s->qtail);
         if (!solver2_enqueue(s,p,0))
         {
-            satset* r = clause2_read(s, lit_reason(s,p));
+            clause* r = clause2_read(s, lit_reason(s,p));
             if (r != NULL)
             {
-                satset* confl = r;
+                clause* confl = r;
                 proof_id = solver2_analyze_final(s, confl, 1);
                 veci_push(&s->conf_final, lit_neg(p));
             }
@@ -1816,7 +1805,7 @@ int sat_solver2_solve(sat_solver2* s, lit* begin, lit* end, ABC_INT64_T nConfLim
         }
         else
         {
-            satset* confl = solver2_propagate(s);
+            clause* confl = solver2_propagate(s);
             if (confl != NULL){
                 proof_id = solver2_analyze_final(s, confl, 0);
                 assert(s->conf_final.size > 0);
@@ -1851,8 +1840,9 @@ int sat_solver2_solve(sat_solver2* s, lit* begin, lit* end, ABC_INT64_T nConfLim
         }
         if ( s->nRuntimeLimit && clock() > s->nRuntimeLimit )
             break;
-        // reduce the set of learnt clauses:
-        sat_solver2_reducedb(s);
+        // reduce the set of learnt clauses
+        if ( s->nLearntMax && veci_size(&s->act_clas) >= s->nLearntMax )
+            sat_solver2_reducedb(s);
         // perform next run
         nof_conflicts = (ABC_INT64_T)( 100 * luby2(2, restart_iter++) );
         status = solver2_search(s, nof_conflicts);
@@ -1872,5 +1862,10 @@ int sat_solver2_solve(sat_solver2* s, lit* begin, lit* end, ABC_INT64_T nConfLim
     return status;
 }
 
+void * Sat_ProofCore( sat_solver2 * s )
+{
+    extern void * Proof_DeriveCore( Vec_Set_t * vProof, int hRoot );
+    return Proof_DeriveCore( &s->Proofs, s->hProofLast );
+}
 
 ABC_NAMESPACE_IMPL_END

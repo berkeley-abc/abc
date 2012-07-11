@@ -33,15 +33,17 @@ ABC_NAMESPACE_HEADER_START
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
+//#define LEARNT_MAX_START_DEFAULT  0
+#define LEARNT_MAX_START_DEFAULT  10000
+#define LEARNT_MAX_INCRE_DEFAULT   1000
+#define LEARNT_MAX_RATIO_DEFAULT     50
+
 ////////////////////////////////////////////////////////////////////////
 ///                    STRUCTURE DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
  
 //=================================================================================================
 // Clause datatype + minor functions:
-
-typedef int    lit;
-typedef int    cla;
 
 typedef struct clause_t clause;
 struct clause_t
@@ -90,13 +92,15 @@ static inline int       Sat_MemIntSize( int size, int lrn )          { return (s
 static inline int       Sat_MemClauseSize( clause * p )              { return Sat_MemIntSize(p->size, p->lrn);      }
 
 //static inline clause *  Sat_MemClause( Sat_Mem_t * p, int i, int k ) { assert(i <= p->iPage[i&1] && k <= Sat_MemLimit(p->pPages[i]));  return (clause *)(p->pPages[i] + k ); }
-static inline clause *  Sat_MemClause( Sat_Mem_t * p, int i, int k ) { return (clause *)(p->pPages[i] + k);         }
+static inline clause *  Sat_MemClause( Sat_Mem_t * p, int i, int k ) { assert( k ); return (clause *)(p->pPages[i] + k);         }
 //static inline clause *  Sat_MemClauseHand( Sat_Mem_t * p, cla h )    { assert(Sat_MemHandPage(p, h) <= p->iPage[(h & p->uLearnedMask) > 0]); assert(Sat_MemHandShift(p, h) >= 2 && Sat_MemHandShift(p, h) < (int)p->uLearnedMask); return Sat_MemClause( p, Sat_MemHandPage(p, h), Sat_MemHandShift(p, h) );     }
-static inline clause *  Sat_MemClauseHand( Sat_Mem_t * p, cla h )    { return Sat_MemClause( p, Sat_MemHandPage(p, h), Sat_MemHandShift(p, h) );                             }
+static inline clause *  Sat_MemClauseHand( Sat_Mem_t * p, cla h )    { return h ? Sat_MemClause( p, Sat_MemHandPage(p, h), Sat_MemHandShift(p, h) ) : NULL;                  }
 static inline int       Sat_MemEntryNum( Sat_Mem_t * p, int lrn )    { return p->nEntries[lrn];                                                                              }
 
 static inline cla       Sat_MemHand( Sat_Mem_t * p, int i, int k )   { return (i << p->nPageSize) | k;                                                                       }
 static inline cla       Sat_MemHandCurrent( Sat_Mem_t * p, int lrn ) { return (p->iPage[lrn] << p->nPageSize) | Sat_MemLimit( p->pPages[p->iPage[lrn]] );                    }
+
+static inline int       Sat_MemClauseUsed( Sat_Mem_t * p, cla h )    { return h < p->BookMarkH[(h & p->uLearnedMask) > 0];                                                   }
 
 static inline double    Sat_MemMemoryHand( Sat_Mem_t * p, cla h )    { return 1.0 * ((Sat_MemHandPage(p, h) + 2)/2 * (1 << (p->nPageSize+2)) + Sat_MemHandShift(p, h) * 4);  }
 static inline double    Sat_MemMemoryUsed( Sat_Mem_t * p, int lrn )  { return Sat_MemMemoryHand( p, Sat_MemHandCurrent(p, lrn) );                                            }
@@ -108,9 +112,10 @@ static inline double    Sat_MemMemoryAll( Sat_Mem_t * p )            { return 1.
 // i is page number
 // k is page offset
 
-#define Sat_MemForEachClause( p, c, i, k )      \
-    for ( i = 0; i <= p->iPage[0]; i += 2 )     \
-        for ( k = 2; k < Sat_MemLimit(p->pPages[i]) && ((c) = Sat_MemClause( p, i, k )); k += Sat_MemClauseSize(c) )
+// this macro has to be fixed (Sat_MemClauseSize does not work for problem clauses in proof mode)
+//#define Sat_MemForEachClause( p, c, i, k )      \
+//    for ( i = 0; i <= p->iPage[0]; i += 2 )     \
+//        for ( k = 2; k < Sat_MemLimit(p->pPages[i]) && ((c) = Sat_MemClause( p, i, k )); k += Sat_MemClauseSize(c) )
 
 #define Sat_MemForEachLearned( p, c, i, k )     \
     for ( i = 1; i <= p->iPage[1]; i += 2 )     \
@@ -130,7 +135,8 @@ static inline lit      clause_read_lit( cla h )                     { return (li
 
 static inline int      clause_learnt_h( Sat_Mem_t * p, cla h )      { return (h & p->uLearnedMask) > 0;            }
 static inline int      clause_learnt( clause * c )                  { return c->lrn;                               }
-static inline int      clause_id( clause * c )                      { assert(c->lrn); return c->lits[c->size];     }
+static inline int      clause_id( clause * c )                      { return c->lits[c->size];                     }
+static inline int      clause_set_id( clause * c, int id )          { c->lits[c->size] = id;                       }
 static inline int      clause_size( clause * c )                    { return c->size;                              }
 static inline lit *    clause_begin( clause * c )                   { return c->lits;                              }
 static inline lit *    clause_end( clause * c )                     { return c->lits + c->size;                    }
@@ -146,6 +152,26 @@ static inline void     clause_print( clause * c )
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DECLARATIONS                        ///
 ////////////////////////////////////////////////////////////////////////
+
+/**Function*************************************************************
+
+  Synopsis    [Allocating vector.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Sat_MemCountL( Sat_Mem_t * p )
+{
+    clause * c;
+    int i, k, Count = 0;
+    Sat_MemForEachLearned( p, c, i, k )
+        Count++;
+    return Count;
+}
 
 /**Function*************************************************************
 
@@ -216,10 +242,10 @@ static inline void Sat_MemRestart( Sat_Mem_t * p )
 ***********************************************************************/
 static inline void Sat_MemBookMark( Sat_Mem_t * p )
 {
-    p->BookMarkH[0] = Sat_MemHandCurrent( p, 0 );
-    p->BookMarkH[1] = Sat_MemHandCurrent( p, 1 );
     p->BookMarkE[0] = p->nEntries[0];
     p->BookMarkE[1] = p->nEntries[1];
+    p->BookMarkH[0] = Sat_MemHandCurrent( p, 0 );
+    p->BookMarkH[1] = Sat_MemHandCurrent( p, 1 );
 }
 static inline void Sat_MemRollBack( Sat_Mem_t * p )
 {
@@ -227,8 +253,8 @@ static inline void Sat_MemRollBack( Sat_Mem_t * p )
     p->nEntries[1]  = p->BookMarkE[1];
     p->iPage[0]     = Sat_MemHandPage( p, p->BookMarkH[0] );
     p->iPage[1]     = Sat_MemHandPage( p, p->BookMarkH[1] );
-    Sat_MemWriteLimit( p->pPages[0], Sat_MemHandShift( p, p->BookMarkH[0] ) );
-    Sat_MemWriteLimit( p->pPages[1], Sat_MemHandShift( p, p->BookMarkH[1] ) );
+    Sat_MemWriteLimit( p->pPages[p->iPage[0]], Sat_MemHandShift( p, p->BookMarkH[0] ) );
+    Sat_MemWriteLimit( p->pPages[p->iPage[1]], Sat_MemHandShift( p, p->BookMarkH[1] ) );
 }
 
 /**Function*************************************************************
@@ -266,15 +292,15 @@ static inline void Sat_MemFree( Sat_Mem_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-static inline int Sat_MemAppend( Sat_Mem_t * p, int * pArray, int nSize, int lrn )
+static inline int Sat_MemAppend( Sat_Mem_t * p, int * pArray, int nSize, int lrn, int fPlus1 )
 {
     clause * c;
     int * pPage = p->pPages[p->iPage[lrn]];
-    int nInts = Sat_MemIntSize( nSize, lrn );
+    int nInts = Sat_MemIntSize( nSize, lrn | fPlus1 );
     assert( nInts + 3 < (1 << p->nPageSize) );
     // need two extra at the begining of the page and one extra in the end
-    if ( Sat_MemLimit(pPage) + nInts >= (1 << p->nPageSize) )
-    {
+    if ( Sat_MemLimit(pPage) + nInts + 2 >= (1 << p->nPageSize) )
+    { 
         p->iPage[lrn] += 2;
         if ( p->iPage[lrn] >= p->nPagesAlloc )
         {
@@ -293,8 +319,8 @@ static inline int Sat_MemAppend( Sat_Mem_t * p, int * pArray, int nSize, int lrn
     c->lrn = lrn;
     if ( pArray )
         memcpy( c->lits, pArray, sizeof(int) * nSize );
-    if ( lrn )
-        c->lits[c->size] = p->nEntries[1];
+    if ( lrn | fPlus1 )
+        c->lits[c->size] = p->nEntries[lrn];
     p->nEntries[lrn]++;
     Sat_MemIncLimit( pPage, nInts );
     return Sat_MemHandCurrent(p, lrn) - nInts;
@@ -333,15 +359,46 @@ static inline void Sat_MemShrink( Sat_Mem_t * p, int h, int lrn )
 ***********************************************************************/
 static inline int Sat_MemCompactLearned( Sat_Mem_t * p, int fDoMove )
 {
-    clause * c;
-    int i, k, iNew = 1, kNew = 2, nInts, Counter = 0;
+    clause * c, * cPivot = NULL;
+    int i, k, iNew = 1, kNew = 2, nInts, fStartLooking, Counter = 0;
+    int hLimit = Sat_MemHandCurrent(p, 1);
+    if ( hLimit == Sat_MemHand(p, 1, 2) )
+        return 0;
+    if ( fDoMove && p->BookMarkH[1] )
+    {
+        // move the pivot
+        assert( p->BookMarkH[1] >= Sat_MemHand(p, 1, 2) && p->BookMarkH[1] <= hLimit );
+        // get the pivot and remember it may be pointed offlimit
+        cPivot = Sat_MemClauseHand( p, p->BookMarkH[1] );
+        if ( p->BookMarkH[1] < hLimit && !cPivot->mark )
+        {
+            p->BookMarkH[1] = cPivot->lits[cPivot->size];
+            cPivot = NULL;
+        }
+        // else find the next used clause after cPivot
+    }
     // iterate through the learned clauses
+    fStartLooking = 0;
     Sat_MemForEachLearned( p, c, i, k )
     {
         assert( c->lrn );
         // skip marked entry
         if ( c->mark )
+        {
+            // if pivot is a marked clause, start looking for the next non-marked one
+            if ( cPivot && cPivot == c )
+            {
+                fStartLooking = 1;
+                cPivot = NULL;
+            }
             continue;
+        }
+        // if we started looking before, we found it!
+        if ( fStartLooking )
+        {
+            fStartLooking = 0;
+            p->BookMarkH[1] = c->lits[c->size];
+        }
         // compute entry size
         nInts = Sat_MemClauseSize(c);
         assert( !(nInts & 1) );
@@ -380,12 +437,24 @@ static inline int Sat_MemCompactLearned( Sat_Mem_t * p, int fDoMove )
     }
     if ( fDoMove )
     {
+        // update the counter
+        p->nEntries[1] = Counter;
         // update the page count
         p->iPage[1] = iNew;
         // set the limit of the last page
         Sat_MemWriteLimit( p->pPages[iNew], kNew );
-        // update the counter
-        p->nEntries[1] = Counter;
+        // check if the pivot need to be updated
+        if ( p->BookMarkH[1] )
+        {
+            if ( cPivot )
+            {
+                p->BookMarkH[1] = Sat_MemHandCurrent(p, 1);
+                p->BookMarkE[1] = p->nEntries[1];
+            }
+            else
+                p->BookMarkE[1] = clause_id(Sat_MemClauseHand( p, p->BookMarkH[1] ));
+        }
+
     }
     return Counter;
 }

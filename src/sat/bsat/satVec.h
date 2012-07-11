@@ -127,6 +127,9 @@ static inline void   vecp_remove(vecp* v, void* e)
 #endif
 #endif
 
+typedef int    lit;
+typedef int    cla;
+
 typedef char               lbool;
 
 static const int   var_Undef = -1;

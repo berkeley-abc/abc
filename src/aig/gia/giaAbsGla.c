@@ -131,36 +131,6 @@ static inline void        Gla_ObjClearRef( Rfn_Obj_t * p )                     {
 
 /**Function*************************************************************
 
-  Synopsis    [Prints integer number using 6 characters.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-static inline void Abc_PrintInt( int i )
-{
-    Abc_Print( 1,  "  " );
-    if ( i > -1000 && i < 1000 )
-        Abc_Print( 1, " %4d", i );
-    else if ( i > -10000 && i < 10000 )
-        Abc_Print( 1, "%4.2fk", (float)i/1000 );
-    else if ( i > -100000 && i < 100000 )
-        Abc_Print( 1, "%4.1fk", (float)i/1000 );
-    else if ( i > -1000000 && i < 1000000 )
-        Abc_Print( 1, "%4.0fk", (float)i/1000 );
-    else if ( i > -10000000 && i < 10000000 )
-        Abc_Print( 1, "%4.2fm", (float)i/1000000 );
-    else if ( i > -100000000 && i < 100000000 )
-        Abc_Print( 1, "%4.1fm", (float)i/1000000 );
-    else if ( i > -1000000000 && i < 1000000000 )
-        Abc_Print( 1, "%4.0fm", (float)i/1000000 );
-}
-
-/**Function*************************************************************
-
   Synopsis    [Derive a new counter-example.]
 
   Description []
@@ -1129,7 +1099,11 @@ Gla_Man_t * Gla_ManStart( Gia_Man_t * pGia0, Gia_ParVta_t * pPars )
     p->vCla2Obj  = Vec_IntAlloc( 1000 );  Vec_IntPush( p->vCla2Obj, -1 );
     p->pSat      = sat_solver2_new();
 //    p->pSat->fVerbose = p->pPars->fVerbose;
-    sat_solver2_set_learntmax( p->pSat, pPars->nLearntMax );
+//    sat_solver2_set_learntmax( p->pSat, pPars->nLearnedMax );
+    p->pSat->nLearntStart = p->pPars->nLearnedStart;
+    p->pSat->nLearntDelta = p->pPars->nLearnedDelta;
+    p->pSat->nLearntRatio = p->pPars->nLearnedPerce;
+    p->pSat->nLearntMax   = p->pSat->nLearntStart;
     p->nSatVars  = 1;
     return p;
 }
@@ -1243,8 +1217,8 @@ void Gla_ManStop( Gla_Man_t * p )
     Gla_Obj_t * pGla;
     int i;
 //    if ( p->pPars->fVerbose )
-        Abc_Print( 1, "SAT solver:  Vars = %d  Clauses = %d  Confs = %d  Cexes = %d  ObjsAdded = %d\n", 
-            sat_solver2_nvars(p->pSat), sat_solver2_nclauses(p->pSat), sat_solver2_nconflicts(p->pSat), p->nCexes, p->nObjAdded );
+        Abc_Print( 1, "SAT solver:  Var = %d  Cla = %d  Conf = %d  Reduce = %d  Cex = %d  ObjsAdded = %d\n", 
+            sat_solver2_nvars(p->pSat), sat_solver2_nclauses(p->pSat), sat_solver2_nconflicts(p->pSat), p->pSat->nDBreduces, p->nCexes, p->nObjAdded );
     for ( i = 0; i < Gia_ManObjNum(p->pGia); i++ )
         ABC_FREE( p->pvRefis[i].pArray );
     Gla_ManForEachObj( p, pGla )
@@ -1660,7 +1634,7 @@ void Gla_ManAbsPrintFrame( Gla_Man_t * p, int nCoreSize, int nFrames, int nConfl
 {
     if ( Abc_FrameIsBatchMode() && nCoreSize <= 0 )
         return;
-    Abc_Print( 1, "%3d :", nFrames-1 );
+    Abc_Print( 1, "%4d :", nFrames-1 );
     Abc_Print( 1, "%4d", Abc_MinInt(100, 100 * Gia_GlaAbsCount(p, 0, 0) / (p->nObjs - Gia_ManPoNum(p->pGia) + Gia_ManCoNum(p->pGia) + 1)) ); 
     Abc_Print( 1, "%6d", Gia_GlaAbsCount(p, 0, 0) );
     Abc_Print( 1, "%5d", Gla_ManCountPPis(p) );
@@ -1794,7 +1768,7 @@ int Gia_GlaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars, int fStartVta )
     Vec_Int_t * vCore, * vPPis;
     Abc_Cex_t * pCex = NULL;
     int f, i, iPrev, nConfls, Status, nVarsOld, nCoreSize, fOneIsSent = 0, RetValue = -1;
-    clock_t clk = clock(), clk2;
+    clock_t clk2, clk = clock();
     // preconditions
     assert( Gia_ManPoNum(pAig) == 1 );
     assert( pPars->nFramesMax == 0 || pPars->nFramesStart <= pPars->nFramesMax );
@@ -1834,7 +1808,6 @@ int Gia_GlaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars, int fStartVta )
         }
     }
     // start the manager
-    clk = clock();
     p = Gla_ManStart( pAig, pPars );
     p->timeInit = clock() - clk;
     // set runtime limit
@@ -1844,8 +1817,10 @@ int Gia_GlaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars, int fStartVta )
     if ( p->pPars->fVerbose )
     {
         Abc_Print( 1, "Running gate-level abstraction (GLA) with the following parameters:\n" );
-        Abc_Print( 1, "FrameMax = %d  ConfMax = %d  LearnMax = %d  Timeout = %d  RatioMin = %d %%.\n", 
-            pPars->nFramesMax, pPars->nConfLimit, pPars->nLearntMax, pPars->nTimeOut, pPars->nRatioMin );
+        Abc_Print( 1, "FrameMax = %d  ConfMax = %d  Timeout = %d  RatioMin = %d %%.\n", 
+            pPars->nFramesMax, pPars->nConfLimit, pPars->nTimeOut, pPars->nRatioMin );
+        Abc_Print( 1, "LearnStart = %d  LearnDelta = %d  LearnRatio = %d %%.\n", 
+            pPars->nLearnedStart, pPars->nLearnedDelta, pPars->nLearnedPerce );
         Abc_Print( 1, "Frame   %%   Abs  PPI   FF   LUT   Confl  Cex   Vars   Clas   Lrns     Time      Mem\n" );
     }
     for ( f = i = iPrev = 0; !p->pPars->nFramesMax || f < p->pPars->nFramesMax; f++, iPrev = i )

@@ -2923,7 +2923,7 @@ printf( "***************\n" );
 ***********************************************************************/
 int Ivy_FraigCheckCone( Ivy_FraigMan_t * pGlo, Ivy_Man_t * p, Ivy_Obj_t * pObj1, Ivy_Obj_t * pObj2, int nConfLimit )
 {
-    extern int Fra_FraigSat( Aig_Man_t * pMan, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimit, int nStartLearned, int nDeltaLearned, int nRatioLearned, int fFlipBits, int fAndOuts, int fNewSolver, int fVerbose );
+    extern int Fra_FraigSat( Aig_Man_t * pMan, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimit, int nLearnedStart, int nLearnedDelta, int nLearnedPerce, int fFlipBits, int fAndOuts, int fNewSolver, int fVerbose );
     Vec_Int_t * vLeaves;
     Aig_Man_t * pMan;
     Aig_Obj_t * pObj;

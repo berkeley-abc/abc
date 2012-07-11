@@ -18,14 +18,17 @@
 
 ***********************************************************************/
 
-#include "satSolver2.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <assert.h>
+
 #include "misc/vec/vec.h"
 #include "misc/vec/vecSet.h"
 #include "aig/aig/aig.h"
 #include "satTruth.h"
 
 ABC_NAMESPACE_IMPL_START
-
 
 /*
     Proof is represented as a vector of records.
@@ -35,8 +38,6 @@ ABC_NAMESPACE_IMPL_START
     They are marked by bitshifting by 2 bits up and setting the LSB to 1
 */
 
-
-/*
 typedef struct satset_t satset;
 struct satset_t 
 {
@@ -45,20 +46,19 @@ struct satset_t
     unsigned partA  :  1;
     unsigned nEnts  : 29;
     int      Id;
-    lit      pEnts[0];
+    int      pEnts[0];
 };
-
-#define satset_foreach_entry( p, c, h, s )  \
-    for ( h = s; (h < veci_size(p)) && (((c) = satset_read(p, h)), 1); h += satset_size(c->nEnts) )
-*/
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static inline satset* Proof_ClauseRead  ( Vec_Int_t* p, cla h )     { assert( h > 0 );     return satset_read( (veci *)p, h );    }
-static inline satset* Proof_NodeRead    ( Vec_Set_t* p, cla h )     { assert( h > 0 );     return (satset*)Vec_SetEntry( p, h );  }
+//static inline satset* Proof_ClauseRead  ( Vec_Int_t* p, int h )     { assert( h > 0 );     return satset_read( (veci *)p, h );    }
+//static inline satset* Proof_ClauseRead  ( Vec_Int_t* p, int h )     { assert( h > 0 );     return (satset *)Vec_IntEntryP( p, h );}
+static inline satset* Proof_NodeRead    ( Vec_Set_t* p, int h )     { assert( h > 0 );     return (satset*)Vec_SetEntry( p, h );  }
 static inline int     Proof_NodeWordNum ( int nEnts )               { assert( nEnts > 0 ); return 1 + ((nEnts + 1) >> 1);         }
+
+void Proof_ClauseSetEnts( Vec_Set_t* p, int h, int nEnts )          { Proof_NodeRead(p, h)->nEnts = nEnts;             }
 
 // iterating through nodes in the proof
 #define Proof_ForeachClauseVec( pVec, p, pNode, i )          \
@@ -71,10 +71,10 @@ static inline int     Proof_NodeWordNum ( int nEnts )               { assert( nE
 // iterating through fanins of a proof node
 #define Proof_NodeForeachFanin( pProof, pNode, pFanin, i )        \
     for ( i = 0; (i < (int)pNode->nEnts) && (((pFanin) = (pNode->pEnts[i] & 1) ? NULL : Proof_NodeRead(pProof, pNode->pEnts[i] >> 2)), 1); i++ )
-#define Proof_NodeForeachLeaf( pClauses, pNode, pLeaf, i )   \
-    for ( i = 0; (i < (int)pNode->nEnts) && (((pLeaf) = (pNode->pEnts[i] & 1) ? Proof_ClauseRead(pClauses, pNode->pEnts[i] >> 2) : NULL), 1); i++ )
-#define Proof_NodeForeachFaninLeaf( pProof, pClauses, pNode, pFanin, i )    \
-    for ( i = 0; (i < (int)pNode->nEnts) && ((pFanin) = (pNode->pEnts[i] & 1) ? Proof_ClauseRead(pClauses, pNode->pEnts[i] >> 2) : Proof_NodeRead(pProof, pNode->pEnts[i] >> 2)); i++ )
+//#define Proof_NodeForeachLeaf( pClauses, pNode, pLeaf, i )   \
+//    for ( i = 0; (i < (int)pNode->nEnts) && (((pLeaf) = (pNode->pEnts[i] & 1) ? Proof_ClauseRead(pClauses, pNode->pEnts[i] >> 2) : NULL), 1); i++ )
+//#define Proof_NodeForeachFaninLeaf( pProof, pClauses, pNode, pFanin, i )    \
+//    for ( i = 0; (i < (int)pNode->nEnts) && ((pFanin) = (pNode->pEnts[i] & 1) ? Proof_ClauseRead(pClauses, pNode->pEnts[i] >> 2) : Proof_NodeRead(pProof, pNode->pEnts[i] >> 2)); i++ )
 
 
 ////////////////////////////////////////////////////////////////////////
@@ -252,6 +252,7 @@ int Proof_MarkUsedRec( Vec_Set_t * vProof, Vec_Int_t * vRoots )
   SeeAlso     []
 
 ***********************************************************************/
+/*
 void Sat_ProofReduceCheck_rec( Vec_Set_t * vProof, Vec_Int_t * vClauses, satset * pNode, int hClausePivot, Vec_Ptr_t * vVisited )
 {
     satset * pFanin;
@@ -288,6 +289,7 @@ void Sat_ProofReduceCheck( sat_solver2 * s )
         c->Id = 0;
     Vec_PtrFree( vVisited );
 }
+*/
 
 /**Function*************************************************************
 
@@ -300,6 +302,7 @@ void Sat_ProofReduceCheck( sat_solver2 * s )
   SeeAlso     []
 
 ***********************************************************************/
+/*
 void Sat_ProofReduce2( sat_solver2 * s )
 {
     Vec_Set_t * vProof   = (Vec_Set_t *)&s->Proofs;
@@ -361,20 +364,24 @@ void Sat_ProofReduce2( sat_solver2 * s )
         Abc_PrintTime( 1, "Time", TimeTotal );
     }
     Vec_SetShrink( vProof, Vec_SetHandCurrentS(vProof) );
-    Sat_ProofReduceCheck( s );
+//    Sat_ProofReduceCheck( s );
 } 
+*/
 
-void Sat_ProofReduce( sat_solver2 * s )
+
+int Sat_ProofReduce( Vec_Set_t * vProof, void * pRoots, int hProofPivot )
 {
-    Vec_Set_t * vProof   = (Vec_Set_t *)&s->Proofs;
-    Vec_Int_t * vRoots   = (Vec_Int_t *)&s->claProofs;
-    Vec_Int_t * vClauses = (Vec_Int_t *)&s->clauses;
+//    Vec_Set_t * vProof   = (Vec_Set_t *)&s->Proofs;
+//    Vec_Int_t * vRoots   = (Vec_Int_t *)&s->claProofs;
+    Vec_Int_t * vRoots   = (Vec_Int_t *)pRoots;
+//    Vec_Int_t * vClauses = (Vec_Int_t *)&s->clauses;
     int fVerbose = 0;
     Vec_Ptr_t * vUsed;
     satset * pNode, * pFanin, * pPivot;
     int i, j, k, hTemp, nSize;
     clock_t clk = clock();
     static clock_t TimeTotal = 0;
+    int RetValue;
 
     // collect visited nodes
     nSize = Proof_MarkUsedRec( vProof, vRoots );
@@ -390,20 +397,20 @@ void Sat_ProofReduce( sat_solver2 * s )
         pNode->Id = Vec_SetAppendS( vProof, 2 + pNode->nEnts );
         Vec_PtrPush( vUsed, pNode );
         // update fanins
-        Proof_NodeForeachFaninLeaf( vProof, vClauses, pNode, pFanin, k )
+        Proof_NodeForeachFanin( vProof, pNode, pFanin, k )
             if ( (pNode->pEnts[k] & 1) == 0 ) // proof node
                 pNode->pEnts[k] = (pFanin->Id << 2) | (pNode->pEnts[k] & 2);
-            else // problem clause
-                assert( (int*)pFanin >= Vec_IntArray(vClauses) && (int*)pFanin < Vec_IntArray(vClauses)+Vec_IntSize(vClauses) );
+//            else // problem clause
+//                assert( (int*)pFanin >= Vec_IntArray(vClauses) && (int*)pFanin < Vec_IntArray(vClauses)+Vec_IntSize(vClauses) );
     }
     // update roots
     Proof_ForeachNodeVec1( vRoots, vProof, pNode, i )
         Vec_IntWriteEntry( vRoots, i, pNode->Id );
     // determine new pivot
-    assert( s->hProofPivot >= 1 && s->hProofPivot <= Vec_SetHandCurrent(vProof) );
-    pPivot = Proof_NodeRead( vProof, s->hProofPivot );
-    s->hProofPivot = Vec_SetHandCurrentS(vProof);
-    s->iProofPivot = Vec_PtrSize(vUsed);
+    assert( hProofPivot >= 1 && hProofPivot <= Vec_SetHandCurrent(vProof) );
+    pPivot = Proof_NodeRead( vProof, hProofPivot );
+    RetValue = Vec_SetHandCurrentS(vProof);
+//    s->iProofPivot = Vec_PtrSize(vUsed);
     // compact the nodes
     Vec_PtrForEachEntry( satset *, vUsed, pNode, i )
     {
@@ -411,8 +418,8 @@ void Sat_ProofReduce( sat_solver2 * s )
         memmove( Vec_SetEntry(vProof, hTemp), pNode, sizeof(word)*Proof_NodeWordNum(pNode->nEnts) );
         if ( pPivot && pPivot <= pNode )
         {
-            s->hProofPivot = hTemp;
-            s->iProofPivot = i;
+            RetValue = hTemp;
+//            s->iProofPivot = i;
             pPivot = NULL;
         }
     }
@@ -432,8 +439,10 @@ void Sat_ProofReduce( sat_solver2 * s )
     Vec_SetShrink( vProof, Vec_SetHandCurrentS(vProof) );
     Vec_SetShrinkLimits( vProof );
 //    Sat_ProofReduceCheck( s );
+    return RetValue;
 }
 
+#if 0
 
 /**Function*************************************************************
 
@@ -565,7 +574,7 @@ void Sat_ProofCheck( sat_solver2 * s )
     Vec_SetFree( vResolves );
     Vec_IntFree( vUsed );
 }
-
+#endif
 
 /**Function*************************************************************
 
@@ -578,32 +587,37 @@ void Sat_ProofCheck( sat_solver2 * s )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Sat_ProofCollectCore( Vec_Int_t * vClauses, Vec_Set_t * vProof, Vec_Int_t * vUsed, int fUseIds )
+Vec_Int_t * Sat_ProofCollectCore( Vec_Set_t * vProof, Vec_Int_t * vUsed )
 {
     Vec_Int_t * vCore;
     satset * pNode, * pFanin;
-    int i, k;//, clk = clock();
+    unsigned * pBitMap;
+    int i, k, MaxCla = 0;
+    // find the largest number
+    Proof_ForeachNodeVec( vUsed, vProof, pNode, i )
+        Proof_NodeForeachFanin( vProof, pNode, pFanin, k )
+            if ( pFanin == NULL )
+                MaxCla = Abc_MaxInt( MaxCla, pNode->pEnts[k] >> 2 );
+    // allocate bitmap
+    pBitMap = ABC_CALLOC( unsigned, Abc_BitWordNum(MaxCla) + 1 );
+    // collect leaves
     vCore = Vec_IntAlloc( 1000 );
     Proof_ForeachNodeVec( vUsed, vProof, pNode, i )
-    {
-        pNode->Id = 0;
-        Proof_NodeForeachLeaf( vClauses, pNode, pFanin, k )
-            if ( pFanin && !pFanin->mark )
+        Proof_NodeForeachFanin( vProof, pNode, pFanin, k )
+            if ( pFanin == NULL )
             {
-                pFanin->mark = 1;
-                Vec_IntPush( vCore, pNode->pEnts[k] >> 2 );
+                int Entry = (pNode->pEnts[k] >> 2);
+                if ( Abc_InfoHasBit(pBitMap, Entry) )
+                    continue;
+                Abc_InfoSetBit(pBitMap, Entry);
+                Vec_IntPush( vCore, Entry );
             }
-    }
-    // clean core clauses and reexpress core in terms of clause IDs
-    Proof_ForeachClauseVec( vCore, vClauses, pNode, i )
-    {
-        assert( (int*)pNode < Vec_IntArray(vClauses)+Vec_IntSize(vClauses) );
-        pNode->mark = 0;
-        if ( fUseIds )
-            Vec_IntWriteEntry( vCore, i, pNode->Id );
-    }
+    ABC_FREE( pBitMap );
+//    Vec_IntUniqify( vCore );
     return vCore;
 }
+
+#if 0
 
 /**Function*************************************************************
 
@@ -687,7 +701,8 @@ void * Sat_ProofInterpolant( sat_solver2 * s, void * pGloVars )
     // collect visited nodes
     vUsed = Proof_CollectUsedIter( vProof, vRoots, 1 );
     // collect core clauses (cleans vUsed and vCore)
-    vCore = Sat_ProofCollectCore( vClauses, vProof, vUsed, 0 );
+    vCore = Sat_ProofCollectCore( vProof, vUsed ); 
+    // vCore arrived in terms of clause handles
 
     // map variables into their global numbers
     vVarMap = Vec_IntStartFull( s->size );
@@ -789,7 +804,8 @@ word * Sat_ProofInterpolantTruth( sat_solver2 * s, void * pGloVars )
     // collect visited nodes
     vUsed = Proof_CollectUsedIter( vProof, vRoots, 1 );
     // collect core clauses (cleans vUsed and vCore)
-    vCore = Sat_ProofCollectCore( vClauses, vProof, vUsed, 0 );
+    vCore = Sat_ProofCollectCore( vProof, vUsed, 0 );
+    // vCore arrived in terms of clause handles
 
     // map variables into their global numbers
     vVarMap = Vec_IntStartFull( s->size );
@@ -864,6 +880,8 @@ word * Sat_ProofInterpolantTruth( sat_solver2 * s, void * pGloVars )
     return pRes;
 }
 
+#endif
+
 /**Function*************************************************************
 
   Synopsis    [Computes UNSAT core.]
@@ -875,19 +893,16 @@ word * Sat_ProofInterpolantTruth( sat_solver2 * s, void * pGloVars )
   SeeAlso     []
 
 ***********************************************************************/
-void * Sat_ProofCore( sat_solver2 * s )
+void * Proof_DeriveCore( Vec_Set_t * vProof, int hRoot )
 {
-    Vec_Int_t * vClauses  = (Vec_Int_t *)&s->clauses;
-    Vec_Set_t * vProof    = (Vec_Set_t *)&s->Proofs;
-    Vec_Int_t Roots = { 1, 1, &s->hProofLast }, * vRoots = &Roots;
+    Vec_Int_t Roots = { 1, 1, &hRoot }, * vRoots = &Roots;
     Vec_Int_t * vCore, * vUsed;
-    int hRoot = s->hProofLast;
     if ( hRoot == -1 )
         return NULL;
     // collect visited clauses
     vUsed = Proof_CollectUsedIter( vProof, vRoots, 0 );
     // collect core clauses 
-    vCore = Sat_ProofCollectCore( vClauses, vProof, vUsed, 1 );
+    vCore = Sat_ProofCollectCore( vProof, vUsed );
     Vec_IntFree( vUsed );
     return vCore;
 }

@@ -28,8 +28,8 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include <string.h>
 #include <assert.h>
 
-#include "satClause.h"
 #include "satVec.h"
+#include "satClause.h"
 #include "misc/vec/vecSet.h"
 
 ABC_NAMESPACE_HEADER_START
@@ -98,6 +98,8 @@ struct sat_solver_t
     int         hLearnts;      // the first learnt clause
     int         hBinary;       // the special binary clause
     clause *    binary;
+    veci*       wlists;        // watcher lists
+    veci        act_clas;      // contain clause activities
 
     // activities
 #ifdef USE_FLOAT_ACTIVITY
@@ -112,7 +114,6 @@ struct sat_solver_t
     unsigned*   activity;      // A heuristic measurement of the activity of a variable.
 #endif
 
-    veci*       wlists;        // 
 //    varinfo *   vi;            // variable information
     int*        levels;        //
     char*       assigns;       // Current values of variables.
@@ -141,13 +142,11 @@ struct sat_solver_t
     int         fVerbose;
 
     stats_t     stats;
+    int         nLearntMax;    // max number of learned clauses
     int         nLearntStart;  // starting learned clause limit
     int         nLearntDelta;  // delta of learned clause limit
     int         nLearntRatio;  // ratio percentage of learned clauses
-    int         nLearntMax;    // max number of learned clauses
     int         nDBreduces;    // number of DB reductions
-//    veci        learned;       // contain learnt clause handles
-    veci        act_clas;      // contain clause activities
 
     ABC_INT64_T nConfLimit;    // external limit on the number of conflicts
     ABC_INT64_T nInsLimit;     // external limit on the number of implications

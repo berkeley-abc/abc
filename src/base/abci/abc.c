@@ -17692,7 +17692,7 @@ int Abc_CommandDCec( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fPartition;
     int fMiter;
 
-    extern int Abc_NtkDSat( Abc_Ntk_t * pNtk, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimit, int nStartLearned, int nDeltaLearned, int nRatioLearned, int fAlignPol, int fAndOuts, int fNewSolver, int fVerbose );
+    extern int Abc_NtkDSat( Abc_Ntk_t * pNtk, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimit, int nLearnedStart, int nLearnedDelta, int nLearnedPerce, int fAlignPol, int fAndOuts, int fNewSolver, int fVerbose );
     extern int Abc_NtkDarCec( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nConfLimit, int fPartition, int fVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
@@ -18943,13 +18943,13 @@ int Abc_CommandDSat( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fNewSolver;
     int fVerbose;
     int nConfLimit;
-    int nStartLearned;
-    int nDeltaLearned;
-    int nRatioLearned;
+    int nLearnedStart;
+    int nLearnedDelta;
+    int nLearnedPerce;
     int nInsLimit;
     clock_t clk;
 
-    extern int Abc_NtkDSat( Abc_Ntk_t * pNtk, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimit, int nStartLearned, int nDeltaLearned, int nRatioLearned, int fAlignPol, int fAndOuts, int fNewSolver, int fVerbose );
+    extern int Abc_NtkDSat( Abc_Ntk_t * pNtk, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimit, int nLearnedStart, int nLearnedDelta, int nLearnedPerce, int fAlignPol, int fAndOuts, int fNewSolver, int fVerbose );
     // set defaults
     fAlignPol  = 0;
     fAndOuts   = 0;
@@ -18957,11 +18957,11 @@ int Abc_CommandDSat( Abc_Frame_t * pAbc, int argc, char ** argv )
     fVerbose   = 0;
     nConfLimit = 0;   
     nInsLimit  = 0;
-    nStartLearned = 0;
-    nDeltaLearned = 0;
-    nRatioLearned = 0;
+    nLearnedStart = 0;
+    nLearnedDelta = 0;
+    nLearnedPerce = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "CISDRpanvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "CILDEpanvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -18987,15 +18987,15 @@ int Abc_CommandDSat( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( nInsLimit < 0 ) 
                 goto usage;
             break;
-        case 'S':
+        case 'L':
             if ( globalUtilOptind >= argc )
             {
-                Abc_Print( -1, "Command line switch \"-S\" should be followed by an integer.\n" );
+                Abc_Print( -1, "Command line switch \"-L\" should be followed by an integer.\n" );
                 goto usage;
             }
-            nStartLearned = atoi(argv[globalUtilOptind]);
+            nLearnedStart = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nStartLearned < 0 ) 
+            if ( nLearnedStart < 0 ) 
                 goto usage;
             break;
         case 'D':
@@ -19004,20 +19004,20 @@ int Abc_CommandDSat( Abc_Frame_t * pAbc, int argc, char ** argv )
                 Abc_Print( -1, "Command line switch \"-D\" should be followed by an integer.\n" );
                 goto usage;
             }
-            nDeltaLearned = atoi(argv[globalUtilOptind]);
+            nLearnedDelta = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nDeltaLearned < 0 ) 
+            if ( nLearnedDelta < 0 ) 
                 goto usage;
             break;
-        case 'R':
+        case 'E':
             if ( globalUtilOptind >= argc )
             {
-                Abc_Print( -1, "Command line switch \"-R\" should be followed by an integer.\n" );
+                Abc_Print( -1, "Command line switch \"-E\" should be followed by an integer.\n" );
                 goto usage;
             }
-            nRatioLearned = atoi(argv[globalUtilOptind]);
+            nLearnedPerce = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nRatioLearned < 0 ) 
+            if ( nLearnedPerce < 0 ) 
                 goto usage;
             break;
         case 'p':
@@ -19063,7 +19063,7 @@ int Abc_CommandDSat( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     clk = clock();
-    RetValue = Abc_NtkDSat( pNtk, (ABC_INT64_T)nConfLimit, (ABC_INT64_T)nInsLimit, nStartLearned, nDeltaLearned, nRatioLearned, fAlignPol, fAndOuts, fNewSolver, fVerbose );
+    RetValue = Abc_NtkDSat( pNtk, (ABC_INT64_T)nConfLimit, (ABC_INT64_T)nInsLimit, nLearnedStart, nLearnedDelta, nLearnedPerce, fAlignPol, fAndOuts, fNewSolver, fVerbose );
     // verify that the pattern is correct
     if ( RetValue == 0 && Abc_NtkPoNum(pNtk) == 1 )
     {
@@ -19085,14 +19085,14 @@ int Abc_CommandDSat( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: dsat [-CISDR num] [-panvh]\n" );
+    Abc_Print( -2, "usage: dsat [-CILDE num] [-panvh]\n" );
     Abc_Print( -2, "\t         solves the combinational miter using SAT solver MiniSat-1.14\n" );
     Abc_Print( -2, "\t         derives CNF from the current network and leave it unchanged\n" );
     Abc_Print( -2, "\t-C num : limit on the number of conflicts [default = %d]\n",    nConfLimit );
     Abc_Print( -2, "\t-I num : limit on the number of inspections [default = %d]\n", nInsLimit );
-    Abc_Print( -2, "\t-S num : starting value for learned clause removal [default = %d]\n", nStartLearned );
-    Abc_Print( -2, "\t-D num : delta value for learned clause removal [default = %d]\n", nDeltaLearned );
-    Abc_Print( -2, "\t-R num : ratio percentage for learned clause removal [default = %d]\n", nRatioLearned );
+    Abc_Print( -2, "\t-L num : starting value for learned clause removal [default = %d]\n", nLearnedStart );
+    Abc_Print( -2, "\t-D num : delta value for learned clause removal [default = %d]\n", nLearnedDelta );
+    Abc_Print( -2, "\t-E num : ratio percentage for learned clause removal [default = %d]\n", nLearnedPerce );
     Abc_Print( -2, "\t-p     : alighn polarity of SAT variables [default = %s]\n", fAlignPol? "yes": "no" );  
     Abc_Print( -2, "\t-a     : toggle ANDing/ORing of miter outputs [default = %s]\n", fAndOuts? "ANDing": "ORing" );  
     Abc_Print( -2, "\t-n     : toggle using new solver [default = %s]\n", fNewSolver? "yes": "no" );  
@@ -27548,7 +27548,7 @@ int Abc_CommandAbc9Gla( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c, fStartVta = 0;
     Gia_VtaSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FSPCLTRAtrfkadvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FSPCLDETRAtrfkadvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -27602,9 +27602,31 @@ int Abc_CommandAbc9Gla( Abc_Frame_t * pAbc, int argc, char ** argv )
                 Abc_Print( -1, "Command line switch \"-L\" should be followed by an integer.\n" );
                 goto usage;
             }
-            pPars->nLearntMax = atoi(argv[globalUtilOptind]);
+            pPars->nLearnedStart = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nLearntMax < 0 ) 
+            if ( pPars->nLearnedStart < 0 ) 
+                goto usage;
+            break;
+        case 'D':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-D\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nLearnedDelta = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nLearnedDelta < 0 ) 
+                goto usage;
+            break;
+        case 'E':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-P\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nLearnedPerce = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nLearnedPerce < 0 ) 
                 goto usage;
             break;
         case 'T':
@@ -27696,12 +27718,14 @@ int Abc_CommandAbc9Gla( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &gla [-FSCLTR num] [-A file] [-fkadvh]\n" );
+    Abc_Print( -2, "usage: &gla [-FSCLDETR num] [-A file] [-fkadvh]\n" );
     Abc_Print( -2, "\t          fixed-time-frame gate-level proof- and cex-based abstraction\n" );
     Abc_Print( -2, "\t-F num  : the max number of timeframes to unroll [default = %d]\n", pPars->nFramesMax );
     Abc_Print( -2, "\t-S num  : the starting time frame (0=unused) [default = %d]\n", pPars->nFramesStart );
     Abc_Print( -2, "\t-C num  : the max number of SAT solver conflicts (0=unused) [default = %d]\n", pPars->nConfLimit );
-    Abc_Print( -2, "\t-L num  : the max number of learned clauses to keep (0=unused) [default = %d]\n", pPars->nLearntMax );
+    Abc_Print( -2, "\t-L num  : the max number of learned clauses to keep (0=unused) [default = %d]\n", pPars->nLearnedStart );
+    Abc_Print( -2, "\t-D num  : delta value for learned clause removal [default = %d]\n", pPars->nLearnedDelta );
+    Abc_Print( -2, "\t-E num  : ratio percentage for learned clause removal [default = %d]\n", pPars->nLearnedPerce );
     Abc_Print( -2, "\t-T num  : an approximate timeout, in seconds [default = %d]\n", pPars->nTimeOut );
     Abc_Print( -2, "\t-R num  : minimum percentage of abstracted objects (0<=num<=100) [default = %d]\n", pPars->nRatioMin );
     Abc_Print( -2, "\t-A file : file name for dumping abstrated model [default = \"glabs.aig\"]\n" );
@@ -27731,7 +27755,7 @@ int Abc_CommandAbc9Vta( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     Gia_VtaSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FSPCLTRAtradvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FSPCLDETRAtradvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -27785,9 +27809,31 @@ int Abc_CommandAbc9Vta( Abc_Frame_t * pAbc, int argc, char ** argv )
                 Abc_Print( -1, "Command line switch \"-L\" should be followed by an integer.\n" );
                 goto usage;
             }
-            pPars->nLearntMax = atoi(argv[globalUtilOptind]);
+            pPars->nLearnedStart = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nLearntMax < 0 ) 
+            if ( pPars->nLearnedStart < 0 ) 
+                goto usage;
+            break;
+        case 'D':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-D\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nLearnedDelta = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nLearnedDelta < 0 ) 
+                goto usage;
+            break;
+        case 'E':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-E\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nLearnedPerce = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nLearnedPerce < 0 ) 
                 goto usage;
             break;
         case 'T':
@@ -27873,13 +27919,15 @@ int Abc_CommandAbc9Vta( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &vta [-FSPCLTR num] [-A file] [-tradvh]\n" );
+    Abc_Print( -2, "usage: &vta [-FSPCLDETR num] [-A file] [-tradvh]\n" );
     Abc_Print( -2, "\t          variable-time-frame gate-level proof- and cex-based abstraction\n" );
     Abc_Print( -2, "\t-F num  : the max number of timeframes to unroll [default = %d]\n", pPars->nFramesMax );
     Abc_Print( -2, "\t-S num  : the starting time frame (0=unused) [default = %d]\n", pPars->nFramesStart );
     Abc_Print( -2, "\t-P num  : the number of previous frames for UNSAT core [default = %d]\n", pPars->nFramesPast );
     Abc_Print( -2, "\t-C num  : the max number of SAT solver conflicts (0=unused) [default = %d]\n", pPars->nConfLimit );
-    Abc_Print( -2, "\t-L num  : the max number of learned clauses to keep (0=unused) [default = %d]\n", pPars->nLearntMax );
+    Abc_Print( -2, "\t-L num  : the max number of learned clauses to keep (0=unused) [default = %d]\n", pPars->nLearnedStart );
+    Abc_Print( -2, "\t-D num  : delta value for learned clause removal [default = %d]\n", pPars->nLearnedDelta );
+    Abc_Print( -2, "\t-E num  : ratio percentage for learned clause removal [default = %d]\n", pPars->nLearnedPerce );
     Abc_Print( -2, "\t-T num  : an approximate timeout, in seconds [default = %d]\n", pPars->nTimeOut );
     Abc_Print( -2, "\t-R num  : minimum percentage of abstracted objects (0<=num<=100) [default = %d]\n", pPars->nRatioMin );
     Abc_Print( -2, "\t-A file : file name for dumping abstrated model [default = \"vabs.aig\"]\n" );

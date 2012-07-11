@@ -285,6 +285,25 @@ static inline void Abc_Print( int level, const char * format, ... )
     va_end( args );
 }
 
+static inline void Abc_PrintInt( int i )
+{
+    Abc_Print( 1,  "  " );
+    if ( i > -1000 && i < 1000 )
+        Abc_Print( 1, " %4d", i );
+    else if ( i > -10000 && i < 10000 )
+        Abc_Print( 1, "%4.2fk", (double)i/1000 );
+    else if ( i > -100000 && i < 100000 )
+        Abc_Print( 1, "%4.1fk", (double)i/1000 );
+    else if ( i > -1000000 && i < 1000000 )
+        Abc_Print( 1, "%4.0fk", (double)i/1000 );
+    else if ( i > -10000000 && i < 10000000 )
+        Abc_Print( 1, "%4.2fm", (double)i/1000000 );
+    else if ( i > -100000000 && i < 100000000 )
+        Abc_Print( 1, "%4.1fm", (double)i/1000000 );
+    else if ( i > -1000000000 && i < 1000000000 )
+        Abc_Print( 1, "%4.0fm", (double)i/1000000 );
+}
+
 static inline void Abc_PrintTime( int level, const char * pStr, clock_t time )
 {
     ABC_PRT( pStr, time );

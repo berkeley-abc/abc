@@ -44,7 +44,7 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
-int Fra_FraigSat( Aig_Man_t * pMan, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimit, int nStartLearned, int nDeltaLearned, int nRatioLearned, int fFlipBits, int fAndOuts, int fNewSolver, int fVerbose )
+int Fra_FraigSat( Aig_Man_t * pMan, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimit, int nLearnedStart, int nLearnedDelta, int nLearnedPerce, int fFlipBits, int fAndOuts, int fNewSolver, int fVerbose )
 {
     if ( fNewSolver )
     {
@@ -181,12 +181,12 @@ int Fra_FraigSat( Aig_Man_t * pMan, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimi
             return 1;
         }
 
-        if ( nStartLearned )
-            pSat->nLearntStart = nStartLearned;
-        if ( nDeltaLearned )
-            pSat->nLearntDelta = nDeltaLearned;
-        if ( nRatioLearned )
-            pSat->nLearntRatio = nRatioLearned;
+        if ( nLearnedStart )
+            pSat->nLearntStart = nLearnedStart;
+        if ( nLearnedDelta )
+            pSat->nLearntDelta = nLearnedDelta;
+        if ( nLearnedPerce )
+            pSat->nLearntRatio = nLearnedPerce;
         if ( fVerbose )
             pSat->fVerbose = fVerbose;
 
