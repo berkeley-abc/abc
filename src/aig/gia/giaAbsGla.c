@@ -142,21 +142,21 @@ static inline void        Gla_ObjClearRef( Rfn_Obj_t * p )                     {
 ***********************************************************************/
 static inline void Abc_PrintInt( int i )
 {
-    printf( "  " );
+    Abc_Print( 1,  "  " );
     if ( i > -1000 && i < 1000 )
-        printf( " %4d", i );
+        Abc_Print( 1, " %4d", i );
     else if ( i > -10000 && i < 10000 )
-        printf( "%4.2fk", (float)i/1000 );
+        Abc_Print( 1, "%4.2fk", (float)i/1000 );
     else if ( i > -100000 && i < 100000 )
-        printf( "%4.1fk", (float)i/1000 );
+        Abc_Print( 1, "%4.1fk", (float)i/1000 );
     else if ( i > -1000000 && i < 1000000 )
-        printf( "%4.0fk", (float)i/1000 );
+        Abc_Print( 1, "%4.0fk", (float)i/1000 );
     else if ( i > -10000000 && i < 10000000 )
-        printf( "%4.2fm", (float)i/1000000 );
+        Abc_Print( 1, "%4.2fm", (float)i/1000000 );
     else if ( i > -100000000 && i < 100000000 )
-        printf( "%4.1fm", (float)i/1000000 );
+        Abc_Print( 1, "%4.1fm", (float)i/1000000 );
     else if ( i > -1000000000 && i < 1000000000 )
-        printf( "%4.0fm", (float)i/1000000 );
+        Abc_Print( 1, "%4.0fm", (float)i/1000000 );
 }
 
 /**Function*************************************************************
@@ -192,14 +192,14 @@ Abc_Cex_t * Gia_ManCexRemap( Gia_Man_t * p, Abc_Cex_t * pCexAbs, Vec_Int_t * vPi
     // verify the counter example
     if ( !Gia_ManVerifyCex( p, pCex, 0 ) )
     {
-        printf( "Gia_ManCexRemap(): Counter-example is invalid.\n" );
+        Abc_Print( 1, "Gia_ManCexRemap(): Counter-example is invalid.\n" );
         Abc_CexFree( pCex );
         pCex = NULL;
     }
     else
     {
-        printf( "Counter-example verification is successful.\n" );
-        printf( "Output %d was asserted in frame %d (use \"write_counter\" to dump a witness). \n", pCex->iPo, pCex->iFrame );
+        Abc_Print( 1, "Counter-example verification is successful.\n" );
+        Abc_Print( 1, "Output %d was asserted in frame %d (use \"write_counter\" to dump a witness). \n", pCex->iPo, pCex->iFrame );
     }
     return pCex;
 }
@@ -230,7 +230,7 @@ int Gia_ManGlaRefine( Gia_Man_t * p, Abc_Cex_t * pCex, int fMinCut, int fVerbose
     int nOnes = 0, Counter = 0;
     if ( p->vGateClasses == NULL )
     {
-        printf( "Gia_ManGlaRefine(): Abstraction gate map is missing.\n" );
+        Abc_Print( 1, "Gia_ManGlaRefine(): Abstraction gate map is missing.\n" );
         return -1;
     }
     // derive abstraction
@@ -239,18 +239,18 @@ int Gia_ManGlaRefine( Gia_Man_t * p, Abc_Cex_t * pCex, int fMinCut, int fVerbose
     pAbs = Gia_ManDupAbsGates( p, p->vGateClasses );
     if ( Gia_ManPiNum(pAbs) != pCex->nPis )
     {
-        printf( "Gia_ManGlaRefine(): The PI counts in GLA and in CEX do not match.\n" );
+        Abc_Print( 1, "Gia_ManGlaRefine(): The PI counts in GLA and in CEX do not match.\n" );
         Gia_ManStop( pAbs );
         return -1;
     }
     if ( !Gia_ManVerifyCex( pAbs, pCex, 0 ) )
     {
-        printf( "Gia_ManGlaRefine(): The initial counter-example is invalid.\n" );
+        Abc_Print( 1, "Gia_ManGlaRefine(): The initial counter-example is invalid.\n" );
         Gia_ManStop( pAbs );
         return -1;
     }
 //    else
-//        printf( "Gia_ManGlaRefine(): The initial counter-example is correct.\n" );
+//        Abc_Print( 1, "Gia_ManGlaRefine(): The initial counter-example is correct.\n" );
     // get inputs
     Gia_ManGlaCollect( p, p->vGateClasses, &vPis, &vPPis, NULL, NULL );
     assert( Vec_IntSize(vPis) + Vec_IntSize(vPPis) == Gia_ManPiNum(pAbs) );
@@ -287,10 +287,10 @@ int Gia_ManGlaRefine( Gia_Man_t * p, Abc_Cex_t * pCex, int fMinCut, int fVerbose
         if ( Gia_ObjTerSimGet1(pObj) )
         {
             pCexNew = Gia_ManCexRemap( p, pCex, vPis );
-            printf( "Procedure &gla_refine found a real counter-example in frame %d.\n", pCexNew->iFrame );
+            Abc_Print( 1, "Procedure &gla_refine found a real counter-example in frame %d.\n", pCexNew->iFrame );
         }
 //        else
-//            printf( "CEX is not real.\n" );
+//            Abc_Print( 1, "CEX is not real.\n" );
         Gia_ManForEachObj( pAbs, pObj, i )
             Gia_ObjTerSimSetC( pObj );
         if ( pCexNew == NULL )
@@ -303,7 +303,7 @@ int Gia_ManGlaRefine( Gia_Man_t * p, Abc_Cex_t * pCex, int fMinCut, int fVerbose
             }
             if ( fVerbose )
             {
-                printf( "Additional objects = %d.  ", Vec_IntSize(vPPis) );
+                Abc_Print( 1, "Additional objects = %d.  ", Vec_IntSize(vPPis) );
                 Abc_PrintTime( 1, "Time", clock() - clk );
             }
         }
@@ -315,7 +315,7 @@ int Gia_ManGlaRefine( Gia_Man_t * p, Abc_Cex_t * pCex, int fMinCut, int fVerbose
         pCare = Saig_ManCbaFindCexCareBits( pAig, pCex, Vec_IntSize(vPis), fVerbose );
         Aig_ManStop( pAig );
         if ( pCare == NULL )
-            printf( "Counter-example minimization has failed.\n" );
+            Abc_Print( 1, "Counter-example minimization has failed.\n" );
         // add new objects to the map
         iObjId = -1;
         for ( f = 0; f <= pCare->iFrame; f++ )
@@ -330,21 +330,21 @@ int Gia_ManGlaRefine( Gia_Man_t * p, Abc_Cex_t * pCex, int fMinCut, int fVerbose
                         continue;
                     assert( Vec_IntEntry( p->vGateClasses, iObjId ) == 0 );
                     Vec_IntWriteEntry( p->vGateClasses, iObjId, 1 );
-    //                printf( "Adding object %d.\n", iObjId );
+    //                Abc_Print( 1, "Adding object %d.\n", iObjId );
     //                Gia_ObjPrint( p, Gia_ManObj(p, iObjId) );
                     Counter++;
                 }
         Abc_CexFree( pCare );
         if ( fVerbose )
         {
-            printf( "Essential bits = %d.  Additional objects = %d.  ", nOnes, Counter );
+            Abc_Print( 1, "Essential bits = %d.  Additional objects = %d.  ", nOnes, Counter );
             Abc_PrintTime( 1, "Time", clock() - clk );
         }
         // consider the case of SAT
         if ( iObjId == -1 )
         {
             pCexNew = Gia_ManCexRemap( p, pCex, vPis );
-            printf( "Procedure &gla_refine found a real counter-example in frame %d.\n", pCexNew->iFrame );
+            Abc_Print( 1, "Procedure &gla_refine found a real counter-example in frame %d.\n", pCexNew->iFrame );
         }
     }
     Vec_IntFree( vPis );
@@ -663,7 +663,7 @@ void Gla_ManVerifyUsingTerSim( Gla_Man_t * p, Vec_Int_t * vPis, Vec_Int_t * vPPi
     }
     pObj = Gia_ManPo( p->pGia, 0 );
     if ( !Gia_ObjTerSimGet1(pObj) )
-        printf( "\nRefinement verification has failed!!!\n" );
+        Abc_Print( 1, "\nRefinement verification has failed!!!\n" );
     // clear
     Gia_ObjTerSimSetC( Gia_ManConst0(p->pGia) );
     Gia_ManForEachObjVec( vPis, p->pGia, pObj, i )
@@ -709,19 +709,19 @@ Vec_Int_t * Gla_ManRefinement( Gla_Man_t * p )
     // check how many pseudo PIs have variables
     Gla_ManForEachObjAbsVec( vPis, p, pGla, i )
     {
-        printf( "  %5d : ", Gla_ObjId(p, pGla) );
+        Abc_Print( 1, "  %5d : ", Gla_ObjId(p, pGla) );
         for ( f = 0; f <= p->pPars->iFrame; f++ )
-            printf( "%d", Gla_ManCheckVar(p, Gla_ObjId(p, pGla), f) );
-        printf( "\n" );
+            Abc_Print( 1, "%d", Gla_ManCheckVar(p, Gla_ObjId(p, pGla), f) );
+        Abc_Print( 1, "\n" );
     }    
 
     // check how many pseudo PIs have variables
     Gla_ManForEachObjAbsVec( vPPis, p, pGla, i )
     {
-        printf( "%5d : ", Gla_ObjId(p, pGla) );
+        Abc_Print( 1, "%5d : ", Gla_ObjId(p, pGla) );
         for ( f = 0; f <= p->pPars->iFrame; f++ )
-            printf( "%d", Gla_ManCheckVar(p, Gla_ObjId(p, pGla), f) );
-        printf( "\n" );
+            Abc_Print( 1, "%d", Gla_ManCheckVar(p, Gla_ObjId(p, pGla), f) );
+        Abc_Print( 1, "\n" );
     }    
 */
     // propagate values
@@ -785,7 +785,7 @@ Vec_Int_t * Gla_ManRefinement( Gla_Man_t * p )
                  Gla_ManCheckVar(p, p->pObj2Obj[Gia_ObjId(p->pGia, pObj)], f) &&
                  (int)pRef->Value != Gla_ObjSatValue(p, Gia_ObjId(p->pGia, pObj), f) )
             {
-                    printf( "Object has value mismatch    " );
+                    Abc_Print( 1, "Object has value mismatch    " );
                     Gia_ObjPrint( p->pGia, pObj );
             }
 
@@ -816,7 +816,7 @@ Vec_Int_t * Gla_ManRefinement( Gla_Man_t * p )
     pObj = Gia_ManPo( p->pGia, 0 );
     pRef = Gla_ObjRef( p, pObj, p->pPars->iFrame );
     if ( pRef->Value != 1 )
-        printf( "\nCounter-example verification has failed!!!\n" );
+        Abc_Print( 1, "\nCounter-example verification has failed!!!\n" );
 
     // check the CEX
     if ( pRef->Prio == 0 )

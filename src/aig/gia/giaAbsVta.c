@@ -148,21 +148,21 @@ extern void Vga_ManAddClausesOne( Vta_Man_t * p, int iObj, int iFrame );
 ***********************************************************************/
 static inline void Abc_PrintInt( int i )
 {
-    printf( "  " );
+    Abc_Print( 1,  "  " );
     if ( i > -1000 && i < 1000 )
-        printf( " %4d", i );
+        Abc_Print( 1, " %4d", i );
     else if ( i > -10000 && i < 10000 )
-        printf( "%4.2fk", (float)i/1000 );
+        Abc_Print( 1, "%4.2fk", (float)i/1000 );
     else if ( i > -100000 && i < 100000 )
-        printf( "%4.1fk", (float)i/1000 );
+        Abc_Print( 1, "%4.1fk", (float)i/1000 );
     else if ( i > -1000000 && i < 1000000 )
-        printf( "%4.0fk", (float)i/1000 );
+        Abc_Print( 1, "%4.0fk", (float)i/1000 );
     else if ( i > -10000000 && i < 10000000 )
-        printf( "%4.2fm", (float)i/1000000 );
+        Abc_Print( 1, "%4.2fm", (float)i/1000000 );
     else if ( i > -100000000 && i < 100000000 )
-        printf( "%4.1fm", (float)i/1000000 );
+        Abc_Print( 1, "%4.1fm", (float)i/1000000 );
     else if ( i > -1000000000 && i < 1000000000 )
-        printf( "%4.0fm", (float)i/1000000 );
+        Abc_Print( 1, "%4.0fm", (float)i/1000000 );
 }
 
 /**Function*************************************************************
@@ -621,8 +621,8 @@ void Vta_ManProfileAddition( Vta_Man_t * p, Vec_Int_t * vTermsToAdd )
     Vta_ManForEachObjObjVec( vTermsToAdd, p, pThis, pObj, i )
         pCounters[pThis->iFrame]++;
     for ( i = 0; i <= p->pPars->iFrame; i++ )
-        printf( "%2d", pCounters[i] );
-    printf( "***\n" );
+        Abc_Print( 1, "%2d", pCounters[i] );
+    Abc_Print( 1, "***\n" );
 }
 
 /**Function*************************************************************
