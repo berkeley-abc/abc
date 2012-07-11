@@ -113,10 +113,11 @@ static inline double    Sat_MemMemoryAll( Sat_Mem_t * p )            { return 1.
 // k is page offset
 
 // this macro has to be fixed (Sat_MemClauseSize does not work for problem clauses in proof mode)
-//#define Sat_MemForEachClause( p, c, i, k )      \
-//    for ( i = 0; i <= p->iPage[0]; i += 2 )     \
-//        for ( k = 2; k < Sat_MemLimit(p->pPages[i]) && ((c) = Sat_MemClause( p, i, k )); k += Sat_MemClauseSize(c) )
-
+/*
+#define Sat_MemForEachClause( p, c, i, k )      \
+    for ( i = 0; i <= p->iPage[0]; i += 2 )     \
+        for ( k = 2; k < Sat_MemLimit(p->pPages[i]) && ((c) = Sat_MemClause( p, i, k )); k += Sat_MemClauseSize(c) )
+*/
 #define Sat_MemForEachLearned( p, c, i, k )     \
     for ( i = 1; i <= p->iPage[1]; i += 2 )     \
         for ( k = 2; k < Sat_MemLimit(p->pPages[i]) && ((c) = Sat_MemClause( p, i, k )); k += Sat_MemClauseSize(c) )

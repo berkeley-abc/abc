@@ -30,8 +30,6 @@ ABC_NAMESPACE_IMPL_START
 
 #define SAT_USE_PROOF_LOGGING
 
-static int Time = 0;
-
 //=================================================================================================
 // Debug:
  
@@ -1359,7 +1357,7 @@ void sat_solver2_reducedb(sat_solver2* s)
     int nLearnedOld = veci_size(&s->act_clas);
     int * act_clas = veci_begin(&s->act_clas);
     int * pPerm, * pSortValues, nCutoffValue, * pClaProofs;
-    int i, j, k, Id, nSelected, LastSize = 0;
+    int i, j, k, Id, nSelected;//, LastSize = 0;
     int Counter, CounterStart;
     clock_t clk = clock();
     static int Count = 0;
