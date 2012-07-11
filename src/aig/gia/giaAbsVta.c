@@ -1528,6 +1528,19 @@ int Gia_VtaPerformInt( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
     // preconditions
     assert( Gia_ManPoNum(pAig) == 1 );
     assert( pPars->nFramesMax == 0 || pPars->nFramesStart <= pPars->nFramesMax );
+    if ( Gia_ObjIsConst0(Gia_ObjFanin0(Gia_ManPo(pAig,0))) )
+    {
+        if ( !Gia_ObjFaninC0(Gia_ManPo(pAig,0)) )
+        {
+            printf( "Sequential miter is trivially UNSAT.\n" );
+            return 1;
+        }
+        ABC_FREE( pAig->pCexSeq );
+        pAig->pCexSeq = Abc_CexMakeTriv( Gia_ManRegNum(pAig), Gia_ManPiNum(pAig), 1, 0 );
+        printf( "Sequential miter is trivially SAT.\n" );
+        return 0;
+    }
+
     // compute intial abstraction
     if ( pAig->vObjClasses == NULL )
     {
