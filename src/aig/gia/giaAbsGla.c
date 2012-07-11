@@ -246,8 +246,8 @@ int Gia_ManGlaRefine( Gia_Man_t * p, Abc_Cex_t * pCex, int fMinCut, int fVerbose
     if ( !Gia_ManVerifyCex( pAbs, pCex, 0 ) )
     {
         Abc_Print( 1, "Gia_ManGlaRefine(): The initial counter-example is invalid.\n" );
-        Gia_ManStop( pAbs );
-        return -1;
+//        Gia_ManStop( pAbs );
+//        return -1;
     }
 //    else
 //        Abc_Print( 1, "Gia_ManGlaRefine(): The initial counter-example is correct.\n" );
