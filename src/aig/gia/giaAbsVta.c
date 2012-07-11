@@ -1034,7 +1034,7 @@ Vta_Man_t * Vga_ManStart( Gia_Man_t * pGia, Gia_ParVta_t * pPars )
     p->nSeenGla    = 1;
     p->nSeenAll    = 1;
     // other data
-    p->vCla2Var    = Vec_IntAlloc( 1000 );  Vec_IntPush( p->vCla2Var, -1 );
+    p->vCla2Var    = Vec_IntAlloc( 1000 ); // Vec_IntPush( p->vCla2Var, -1 );
     p->vCores      = Vec_PtrAlloc( 100 );
     p->pSat        = sat_solver2_new();
 //    p->pSat->fVerbose = p->pPars->fVerbose;
@@ -1658,7 +1658,7 @@ int Gia_VtaPerformInt( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
         sat_solver2_rollback( p->pSat );
         // update storage
         Vga_ManRollBack( p, nObjOld );
-        Vec_IntShrink( p->vCla2Var, (int)p->pSat->stats.clauses+1 );
+        Vec_IntShrink( p->vCla2Var, (int)p->pSat->stats.clauses );
         // load this timeframe
         Vga_ManLoadSlice( p, vCore, 0 );
         Vec_IntFree( vCore );

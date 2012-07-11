@@ -160,7 +160,7 @@ struct sat_solver2_t
 };
 
 static inline clause * clause2_read( sat_solver2 * s, cla h )                  { return Sat_MemClauseHand( &s->Mem, h );   }
-static inline int      clause2_proofid(sat_solver2* s, clause* c, int partA)   { return c->lrn ? (veci_begin(&s->claProofs)[clause_id(c)]<<2) | (partA<<1) : ((clause_id(c)+1)<<2) | (partA<<1) | 1; }
+static inline int      clause2_proofid(sat_solver2* s, clause* c, int partA)   { return c->lrn ? (veci_begin(&s->claProofs)[clause_id(c)]<<2) | (partA<<1) : (clause_id(c)<<2) | (partA<<1) | 1; }
 
 // these two only work after creating a clause before the solver is called
 static inline int   clause2_is_partA (sat_solver2* s, int h)                   { return clause2_read(s, h)->partA;         }

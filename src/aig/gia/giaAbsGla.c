@@ -1096,7 +1096,7 @@ Gla_Man_t * Gla_ManStart( Gia_Man_t * pGia0, Gia_ParVta_t * pPars )
         Vec_IntPush( p->vAbs, Gla_ObjId(p, pGla) );
     }
     // other 
-    p->vCla2Obj  = Vec_IntAlloc( 1000 );  Vec_IntPush( p->vCla2Obj, -1 );
+    p->vCla2Obj  = Vec_IntAlloc( 1000 ); // Vec_IntPush( p->vCla2Obj, -1 );
     p->pSat      = sat_solver2_new();
 //    p->pSat->fVerbose = p->pPars->fVerbose;
 //    sat_solver2_set_learntmax( p->pSat, pPars->nLearnedMax );
@@ -1195,7 +1195,7 @@ Gla_Man_t * Gla_ManStart2( Gia_Man_t * pGia, Gia_ParVta_t * pPars )
         Vec_IntPush( p->vAbs, Gla_ObjId(p, pGla) );
     }
     // other 
-    p->vCla2Obj  = Vec_IntAlloc( 1000 );  Vec_IntPush( p->vCla2Obj, -1 );
+    p->vCla2Obj  = Vec_IntAlloc( 1000 ); // Vec_IntPush( p->vCla2Obj, -1 );
     p->pSat      = sat_solver2_new();
     p->nSatVars  = 1;
     return p;
@@ -1914,7 +1914,7 @@ int Gia_GlaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars, int fStartVta )
             sat_solver2_rollback( p->pSat );
             // update storage
             Gla_ManRollBack( p );
-            Vec_IntShrink( p->vCla2Obj, (int)p->pSat->stats.clauses+1 );
+            Vec_IntShrink( p->vCla2Obj, (int)p->pSat->stats.clauses );
             p->nSatVars = nVarsOld;
             // load this timeframe
             Gia_GlaAddToAbs( p, vCore, 0 );
