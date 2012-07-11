@@ -1777,6 +1777,7 @@ finish:
             Abc_Print( 1, "    Gia_VtaPerform(): CEX verification has failed!\n" );
         Abc_Print( 1, "Counter-example detected in frame %d.  ", f );
         p->pPars->iFrame = pCex->iFrame - 1;
+        Vec_IntFreeP( &pAig->vObjClasses );
     }
     Abc_PrintTime( 1, "Time", clock() - clk );
 

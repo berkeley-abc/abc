@@ -1925,6 +1925,8 @@ int Gia_GlaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars, int fStartVta )
             if ( p->pPars->fVerbose )
             Gla_ManAbsPrintFrame( p, -1, f+1, sat_solver2_nconflicts(p->pSat)-nConflsBeg, i, clock() - clk );
         }
+        if ( pCex != NULL )
+            break;
         assert( Status == 1 );
         // valid core is obtained
         nCoreSize = Vec_IntSize( vCore );
@@ -2022,12 +2024,13 @@ finish:
     }
     else
     {
-        ABC_FREE( p->pGia->pCexSeq );
-        p->pGia->pCexSeq = pCex;
-        if ( !Gia_ManVerifyCex( p->pGia, pCex, 0 ) )
+        ABC_FREE( pAig->pCexSeq );
+        pAig->pCexSeq = pCex;
+        if ( !Gia_ManVerifyCex( pAig, pCex, 0 ) )
             Abc_Print( 1, "    Gia_GlaPerform(): CEX verification has failed!\n" );
         Abc_Print( 1, "Counter-example detected in frame %d.  ", f );
         p->pPars->iFrame = pCex->iFrame - 1;
+        Vec_IntFreeP( &pAig->vGateClasses );
     }
     Abc_PrintTime( 1, "Time", clock() - clk );
     if ( p->pPars->fVerbose )
