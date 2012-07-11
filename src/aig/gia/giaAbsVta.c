@@ -67,7 +67,6 @@ struct Vta_Man_t_
     int           nSeenGla;     // seen objects in all frames
     int           nSeenAll;     // seen objects in all frames
     // other data
-    Vec_Int_t *   vCla2Var;     // map clauses into variables
     Vec_Ptr_t *   vCores;       // unsat core for each frame
     sat_solver2 * pSat;         // incremental SAT solver
     Vec_Int_t *   vAddedNew;    // the IDs of variables added to the solver
@@ -1034,7 +1033,6 @@ Vta_Man_t * Vga_ManStart( Gia_Man_t * pGia, Gia_ParVta_t * pPars )
     p->nSeenGla    = 1;
     p->nSeenAll    = 1;
     // other data
-    p->vCla2Var    = Vec_IntAlloc( 1000 ); // Vec_IntPush( p->vCla2Var, -1 );
     p->vCores      = Vec_PtrAlloc( 100 );
     p->pSat        = sat_solver2_new();
 //    p->pSat->fVerbose = p->pPars->fVerbose;
@@ -1071,7 +1069,6 @@ void Vga_ManStop( Vta_Man_t * p )
     Vec_BitFreeP( &p->vSeenGla );
     Vec_IntFreeP( &p->vSeens );
     Vec_IntFreeP( &p->vOrder );
-    Vec_IntFreeP( &p->vCla2Var );
     Vec_IntFreeP( &p->vAddedNew );
     sat_solver2_delete( p->pSat );
     ABC_FREE( p->pBins );
@@ -1098,7 +1095,7 @@ static inline int Vga_ManGetOutLit( Vta_Man_t * p, int f )
     if ( f == 0 && Gia_ObjIsRo(p->pGia, Gia_ObjFanin0(pObj)) && !Gia_ObjFaninC0(pObj) )
         return -Vta_ObjId(p, pThis);
     return Abc_Var2Lit( Vta_ObjId(p, pThis), Gia_ObjFaninC0(pObj) );
-}
+} 
 
 /**Function*************************************************************
 
@@ -1111,13 +1108,11 @@ static inline int Vga_ManGetOutLit( Vta_Man_t * p, int f )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Vta_ManUnsatCore( int iLit, Vec_Int_t * vCla2Var, sat_solver2 * pSat, int nConfMax, int fVerbose, int * piRetValue, int * pnConfls )
+Vec_Int_t * Vta_ManUnsatCore( int iLit, sat_solver2 * pSat, int nConfMax, int fVerbose, int * piRetValue, int * pnConfls )
 {
-    Vec_Int_t * vPres;
-    Vec_Int_t * vCore;
-    int k, i, Entry, RetValue;
     clock_t clk = clock();
-    int nConfPrev = pSat->stats.conflicts;
+    Vec_Int_t * vCore;
+    int RetValue, nConfPrev = pSat->stats.conflicts;
     if ( piRetValue )
         *piRetValue = 1;
     // consider special case when PO points to the flop
@@ -1151,30 +1146,9 @@ Vec_Int_t * Vta_ManUnsatCore( int iLit, Vec_Int_t * vCla2Var, sat_solver2 * pSat
 //        Abc_PrintTime( 1, "Time", clock() - clk );
     }
     assert( RetValue == l_False );
-
     // derive the UNSAT core
     clk = clock();
     vCore = (Vec_Int_t *)Sat_ProofCore( pSat );
-    if ( fVerbose )
-    {
-//        Abc_Print( 1, "Core is %8d clauses (out of %8d).   ", Vec_IntSize(vCore), sat_solver2_nclauses(pSat) );
-//        Abc_PrintTime( 1, "Time", clock() - clk );
-    }
-
-    // remap core into variables
-    clk = clock();
-    vPres = Vec_IntStart( sat_solver2_nvars(pSat) );
-    k = 0; 
-    Vec_IntForEachEntry( vCore, Entry, i )
-    {
-        Entry = Vec_IntEntry(vCla2Var, Entry);
-        if ( Vec_IntEntry(vPres, Entry) )
-            continue;
-        Vec_IntWriteEntry( vPres, Entry, 1 );
-        Vec_IntWriteEntry( vCore, k++, Entry );
-    }
-    Vec_IntShrink( vCore, k );
-    Vec_IntFree( vPres );
     if ( fVerbose )
     {
 //        Abc_Print( 1, "Core is %8d vars    (out of %8d).   ", Vec_IntSize(vCore), sat_solver2_nvars(pSat) );
@@ -1322,10 +1296,7 @@ void Vga_ManAddClausesOne( Vta_Man_t * p, int iObj, int iFrame )
         iThis0 = Vta_ObjId(p, pThis0);
         pThis1 = Vga_ManFindOrAdd( p, Gia_ObjFaninId1p(p->pGia, pObj), iFrame );
         sat_solver2_add_and( p->pSat, iMainVar, iThis0, Vta_ObjId(p, pThis1), 
-            Gia_ObjFaninC0(pObj), Gia_ObjFaninC1(pObj), 0 );
-        Vec_IntPush( p->vCla2Var, iMainVar );
-        Vec_IntPush( p->vCla2Var, iMainVar );
-        Vec_IntPush( p->vCla2Var, iMainVar );
+            Gia_ObjFaninC0(pObj), Gia_ObjFaninC1(pObj), 0, iMainVar );
     }
     else if ( Gia_ObjIsRo(p->pGia, pObj) )
     {
@@ -1334,29 +1305,23 @@ void Vga_ManAddClausesOne( Vta_Man_t * p, int iObj, int iFrame )
             if ( p->pPars->fUseTermVars )
             {
                 pThis0 = Vga_ManFindOrAdd( p, iObj, -1 );
-                sat_solver2_add_constraint( p->pSat, iMainVar, Vta_ObjId(p, pThis0), 1, 0 );
-                Vec_IntPush( p->vCla2Var, iMainVar );
-                Vec_IntPush( p->vCla2Var, iMainVar );
+                sat_solver2_add_constraint( p->pSat, iMainVar, Vta_ObjId(p, pThis0), 1, 0, iMainVar );
             }
             else
             {
-                sat_solver2_add_const( p->pSat, iMainVar, 1, 0 );
-                Vec_IntPush( p->vCla2Var, iMainVar );
+                sat_solver2_add_const( p->pSat, iMainVar, 1, 0, iMainVar );
             }
         }
         else
         {
             pObj = Gia_ObjRoToRi( p->pGia, pObj );
             pThis0 = Vga_ManFindOrAdd( p, Gia_ObjFaninId0p(p->pGia, pObj), iFrame-1 );
-            sat_solver2_add_buffer( p->pSat, iMainVar, Vta_ObjId(p, pThis0), Gia_ObjFaninC0(pObj), 0 );  
-            Vec_IntPush( p->vCla2Var, iMainVar );
-            Vec_IntPush( p->vCla2Var, iMainVar );
+            sat_solver2_add_buffer( p->pSat, iMainVar, Vta_ObjId(p, pThis0), Gia_ObjFaninC0(pObj), 0, iMainVar );  
         }
     }
     else if ( Gia_ObjIsConst0(pObj) )
     {
-        sat_solver2_add_const( p->pSat, iMainVar, 1, 0 );
-        Vec_IntPush( p->vCla2Var, iMainVar );
+        sat_solver2_add_const( p->pSat, iMainVar, 1, 0, iMainVar );
     }
     else //if ( !Gia_ObjIsPi(p->pGia, pObj) )
         assert( 0 );
@@ -1530,7 +1495,6 @@ void Gia_VtaPrintMemory( Vta_Man_t * p )
     memOth += Vec_IntCap(p->vOrder) * sizeof(int);
     memOth += Vec_VecMemoryInt( (Vec_Vec_t *)p->vFrames );
     memOth += Vec_BitCap(p->vSeenGla) * sizeof(int);
-    memOth += Vec_IntCap(p->vCla2Var) * sizeof(int);
     memOth += Vec_VecMemoryInt( (Vec_Vec_t *)p->vCores );
     memOth += Vec_IntCap(p->vAddedNew) * sizeof(int);
     memTot = memAig + memSat + memPro + memMap + memOth;
@@ -1617,7 +1581,7 @@ int Gia_VtaPerformInt( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
         for ( i = 0; ; i++ )
         { 
             clk2 = clock();
-            vCore = Vta_ManUnsatCore( Vga_ManGetOutLit(p, f), p->vCla2Var, p->pSat, pPars->nConfLimit, pPars->fVerbose, &Status, &nConfls );
+            vCore = Vta_ManUnsatCore( Vga_ManGetOutLit(p, f), p->pSat, pPars->nConfLimit, pPars->fVerbose, &Status, &nConfls );
             assert( (vCore != NULL) == (Status == 1) );
             if ( Status == -1 ) // resource limit is reached
             {
@@ -1658,14 +1622,13 @@ int Gia_VtaPerformInt( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
         sat_solver2_rollback( p->pSat );
         // update storage
         Vga_ManRollBack( p, nObjOld );
-        Vec_IntShrink( p->vCla2Var, (int)p->pSat->stats.clauses );
         // load this timeframe
         Vga_ManLoadSlice( p, vCore, 0 );
         Vec_IntFree( vCore );
 
         // run SAT solver
         clk2 = clock();
-        vCore = Vta_ManUnsatCore( Vga_ManGetOutLit(p, f), p->vCla2Var, p->pSat, pPars->nConfLimit, p->pPars->fVerbose, &Status, &nConfls );
+        vCore = Vta_ManUnsatCore( Vga_ManGetOutLit(p, f), p->pSat, pPars->nConfLimit, p->pPars->fVerbose, &Status, &nConfls );
         p->timeUnsat += clock() - clk2;
         assert( (vCore != NULL) == (Status == 1) );
         if ( Status == -1 ) // resource limit is reached

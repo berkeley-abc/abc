@@ -136,7 +136,7 @@ static inline lit      clause_read_lit( cla h )                     { return (li
 static inline int      clause_learnt_h( Sat_Mem_t * p, cla h )      { return (h & p->uLearnedMask) > 0;            }
 static inline int      clause_learnt( clause * c )                  { return c->lrn;                               }
 static inline int      clause_id( clause * c )                      { return c->lits[c->size];                     }
-static inline int      clause_set_id( clause * c, int id )          { c->lits[c->size] = id;                       }
+static inline void     clause_set_id( clause * c, int id )          { c->lits[c->size] = id;                       }
 static inline int      clause_size( clause * c )                    { return c->size;                              }
 static inline lit *    clause_begin( clause * c )                   { return c->lits;                              }
 static inline lit *    clause_end( clause * c )                     { return c->lits + c->size;                    }

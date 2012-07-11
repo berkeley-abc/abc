@@ -72,7 +72,7 @@ struct Aig_Gla3Man_t_
 static inline int Aig_Gla3AddConst( sat_solver2 * pSat, int iVar, int fCompl )
 {
     lit Lit = toLitCond( iVar, fCompl );
-    if ( !sat_solver2_addclause( pSat, &Lit, &Lit + 1 ) )
+    if ( !sat_solver2_addclause( pSat, &Lit, &Lit + 1, 0 ) )
         return 0;
     return 1;
 }
@@ -94,12 +94,12 @@ static inline int Aig_Gla3AddBuffer( sat_solver2 * pSat, int iVar0, int iVar1, i
 
     Lits[0] = toLitCond( iVar0, 0 );
     Lits[1] = toLitCond( iVar1, !fCompl );
-    if ( !sat_solver2_addclause( pSat, Lits, Lits + 2 ) )
+    if ( !sat_solver2_addclause( pSat, Lits, Lits + 2, 0 ) )
         return 0;
 
     Lits[0] = toLitCond( iVar0, 1 );
     Lits[1] = toLitCond( iVar1, fCompl );
-    if ( !sat_solver2_addclause( pSat, Lits, Lits + 2 ) )
+    if ( !sat_solver2_addclause( pSat, Lits, Lits + 2, 0 ) )
         return 0;
 
     return 1;
@@ -122,18 +122,18 @@ static inline int Aig_Gla3AddNode( sat_solver2 * pSat, int iVar, int iVar0, int 
 
     Lits[0] = toLitCond( iVar, 1 );
     Lits[1] = toLitCond( iVar0, fCompl0 );
-    if ( !sat_solver2_addclause( pSat, Lits, Lits + 2 ) )
+    if ( !sat_solver2_addclause( pSat, Lits, Lits + 2, 0 ) )
         return 0;
 
     Lits[0] = toLitCond( iVar, 1 );
     Lits[1] = toLitCond( iVar1, fCompl1 );
-    if ( !sat_solver2_addclause( pSat, Lits, Lits + 2 ) )
+    if ( !sat_solver2_addclause( pSat, Lits, Lits + 2, 0 ) )
         return 0;
 
     Lits[0] = toLitCond( iVar, 0 );
     Lits[1] = toLitCond( iVar0, !fCompl0 );
     Lits[2] = toLitCond( iVar1, !fCompl1 );
-    if ( !sat_solver2_addclause( pSat, Lits, Lits + 3 ) )
+    if ( !sat_solver2_addclause( pSat, Lits, Lits + 3, 0 ) )
         return 0;
 
     return 1;
@@ -302,7 +302,7 @@ int Aig_Gla3CreateSatSolver( Aig_Gla3Man_t * p )
     vPoLits = Vec_IntAlloc( p->nFramesMax );
     for ( f = p->nStart; f < p->nFramesMax; f++ )
         Vec_IntPush( vPoLits, 2 * Aig_Gla3FetchVar(p, Aig_ManCo(p->pAig, 0), f) );
-    sat_solver2_addclause( p->pSat, Vec_IntArray(vPoLits), Vec_IntArray(vPoLits) + Vec_IntSize(vPoLits) );
+    sat_solver2_addclause( p->pSat, Vec_IntArray(vPoLits), Vec_IntArray(vPoLits) + Vec_IntSize(vPoLits), 0 );
     Vec_IntFree( vPoLits );
     Vec_IntPush( p->vCla2Obj, 0 );
     Vec_IntPush( p->vCla2Fra, 0 );

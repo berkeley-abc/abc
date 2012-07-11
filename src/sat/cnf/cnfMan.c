@@ -453,7 +453,7 @@ void * Cnf_DataWriteIntoSolver2( Cnf_Dat_t * p, int nFrames, int fInit )
     sat_solver2_setnvars( pSat, p->nVars * nFrames );
     for ( i = 0; i < p->nClauses; i++ )
     {
-        if ( !sat_solver2_addclause( pSat, p->pClauses[i], p->pClauses[i+1] ) )
+        if ( !sat_solver2_addclause( pSat, p->pClauses[i], p->pClauses[i+1], 0 ) )
         {
             sat_solver2_delete( pSat );
             return NULL;
@@ -472,14 +472,14 @@ void * Cnf_DataWriteIntoSolver2( Cnf_Dat_t * p, int nFrames, int fInit )
             {
                 Lits[0] = (f-1)*nLitsAll + toLitCond( p->pVarNums[pObjLi->Id], 0 );
                 Lits[1] =  f   *nLitsAll + toLitCond( p->pVarNums[pObjLo->Id], 1 );
-                if ( !sat_solver2_addclause( pSat, Lits, Lits + 2 ) )
+                if ( !sat_solver2_addclause( pSat, Lits, Lits + 2, 0 ) )
                 {
                     sat_solver2_delete( pSat );
                     return NULL;
                 }
                 Lits[0]++;
                 Lits[1]--;
-                if ( !sat_solver2_addclause( pSat, Lits, Lits + 2 ) )
+                if ( !sat_solver2_addclause( pSat, Lits, Lits + 2, 0 ) )
                 {
                     sat_solver2_delete( pSat );
                     return NULL;
@@ -490,7 +490,7 @@ void * Cnf_DataWriteIntoSolver2( Cnf_Dat_t * p, int nFrames, int fInit )
                 pLits[i] += nLitsAll;
             for ( i = 0; i < p->nClauses; i++ )
             {
-                if ( !sat_solver2_addclause( pSat, p->pClauses[i], p->pClauses[i+1] ) )
+                if ( !sat_solver2_addclause( pSat, p->pClauses[i], p->pClauses[i+1], 0 ) )
                 {
                     sat_solver2_delete( pSat );
                     return NULL;
@@ -509,7 +509,7 @@ void * Cnf_DataWriteIntoSolver2( Cnf_Dat_t * p, int nFrames, int fInit )
         Aig_ManForEachLoSeq( p->pMan, pObjLo, i )
         {
             Lits[0] = toLitCond( p->pVarNums[pObjLo->Id], 1 );
-            if ( !sat_solver2_addclause( pSat, Lits, Lits + 1 ) )
+            if ( !sat_solver2_addclause( pSat, Lits, Lits + 1, 0 ) )
             {
                 sat_solver2_delete( pSat );
                 return NULL;
@@ -572,7 +572,7 @@ int Cnf_DataWriteOrClause2( void * p, Cnf_Dat_t * pCnf )
     pLits = ABC_ALLOC( int, Aig_ManCoNum(pCnf->pMan) );
     Aig_ManForEachCo( pCnf->pMan, pObj, i )
         pLits[i] = toLitCond( pCnf->pVarNums[pObj->Id], 0 );
-    if ( !sat_solver2_addclause( pSat, pLits, pLits + Aig_ManCoNum(pCnf->pMan) ) )
+    if ( !sat_solver2_addclause( pSat, pLits, pLits + Aig_ManCoNum(pCnf->pMan), 0 ) )
     {
         ABC_FREE( pLits );
         return 0;

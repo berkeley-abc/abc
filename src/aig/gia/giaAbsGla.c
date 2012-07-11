@@ -79,7 +79,6 @@ struct Gla_Man_t_
     int            nSatVars;        // the number of SAT variables
     Cnf_Dat_t *    pCnf;            // CNF derived for the nodes
     sat_solver2 *  pSat;            // incremental SAT solver
-    Vec_Int_t *    vCla2Obj;        // mapping of clauses into GLA objs
     Vec_Int_t *    vTemp;           // temporary array
     Vec_Int_t *    vAddedNew;       // temporary array
     Vec_Int_t *    vObjCounts;      // object counters
@@ -1096,7 +1095,6 @@ Gla_Man_t * Gla_ManStart( Gia_Man_t * pGia0, Gia_ParVta_t * pPars )
         Vec_IntPush( p->vAbs, Gla_ObjId(p, pGla) );
     }
     // other 
-    p->vCla2Obj  = Vec_IntAlloc( 1000 ); // Vec_IntPush( p->vCla2Obj, -1 );
     p->pSat      = sat_solver2_new();
 //    p->pSat->fVerbose = p->pPars->fVerbose;
 //    sat_solver2_set_learntmax( p->pSat, pPars->nLearnedMax );
@@ -1195,7 +1193,6 @@ Gla_Man_t * Gla_ManStart2( Gia_Man_t * pGia, Gia_ParVta_t * pPars )
         Vec_IntPush( p->vAbs, Gla_ObjId(p, pGla) );
     }
     // other 
-    p->vCla2Obj  = Vec_IntAlloc( 1000 ); // Vec_IntPush( p->vCla2Obj, -1 );
     p->pSat      = sat_solver2_new();
     p->nSatVars  = 1;
     return p;
@@ -1229,7 +1226,6 @@ void Gla_ManStop( Gla_Man_t * p )
 //    Gia_ManStaticFanoutStart( p->pGia0 );
     sat_solver2_delete( p->pSat );
     Vec_IntFreeP( &p->vObjCounts );
-    Vec_IntFreeP( &p->vCla2Obj );
     Vec_IntFreeP( &p->vAddedNew );
     Vec_IntFreeP( &p->vCoreCounts );
     Vec_IntFreeP( &p->vTemp );
@@ -1434,9 +1430,7 @@ void Gla_ManAddClauses( Gla_Man_t * p, int iObj, int iFrame, Vec_Int_t * vLits )
     if ( pGlaObj->fConst )
     {
         iVar = Gla_ManGetVar( p, iObj, iFrame );
-        sat_solver2_add_const( p->pSat, iVar, 1, 0 );
-        // remember the clause
-        Vec_IntPush( p->vCla2Obj, iObj );
+        sat_solver2_add_const( p->pSat, iVar, 1, 0, iObj );
     }
     else if ( pGlaObj->fRo )
     {
@@ -1444,18 +1438,13 @@ void Gla_ManAddClauses( Gla_Man_t * p, int iObj, int iFrame, Vec_Int_t * vLits )
         if ( iFrame == 0 )
         {
             iVar = Gla_ManGetVar( p, iObj, iFrame );
-            sat_solver2_add_const( p->pSat, iVar, 1, 0 );
-            // remember the clause
-            Vec_IntPush( p->vCla2Obj, iObj );
+            sat_solver2_add_const( p->pSat, iVar, 1, 0, iObj );
         }
         else
         {
             iVar1 = Gla_ManGetVar( p, iObj, iFrame );
             iVar2 = Gla_ManGetVar( p, pGlaObj->Fanins[0], iFrame-1 );
-            sat_solver2_add_buffer( p->pSat, iVar1, iVar2, pGlaObj->fCompl0, 0 );
-            // remember the clause
-            Vec_IntPush( p->vCla2Obj, iObj );
-            Vec_IntPush( p->vCla2Obj, iObj );
+            sat_solver2_add_buffer( p->pSat, iVar1, iVar2, pGlaObj->fCompl0, 0, iObj );
         }
     }
     else if ( pGlaObj->fAnd )
@@ -1471,10 +1460,7 @@ void Gla_ManAddClauses( Gla_Man_t * p, int iObj, int iFrame, Vec_Int_t * vLits )
                 iVar = Gla_ManGetVar( p, lit_var(*pLit), iFrame );
                 Vec_IntPush( vLits, toLitCond( iVar, lit_sign(*pLit) ) );
             }
-            RetValue = sat_solver2_addclause( p->pSat, Vec_IntArray(vLits), Vec_IntArray(vLits)+Vec_IntSize(vLits) );
-            assert( RetValue );
-            // remember the clause
-            Vec_IntPush( p->vCla2Obj, iObj );
+            RetValue = sat_solver2_addclause( p->pSat, Vec_IntArray(vLits), Vec_IntArray(vLits)+Vec_IntSize(vLits), iObj );
         }
     }
     else assert( 0 );
@@ -1555,12 +1541,11 @@ int Gla_ManGetOutLit( Gla_Man_t * p, int f )
         return -1;
     return Abc_Var2Lit( iSat, p->pObjRoot->fCompl0 );
 }
-Vec_Int_t * Gla_ManUnsatCore( Gla_Man_t * p, int f, Vec_Int_t * vCla2Obj, sat_solver2 * pSat, int nConfMax, int fVerbose, int * piRetValue, int * pnConfls )
+Vec_Int_t * Gla_ManUnsatCore( Gla_Man_t * p, int f, sat_solver2 * pSat, int nConfMax, int fVerbose, int * piRetValue, int * pnConfls )
 {
     Vec_Int_t * vCore;
-    int iLit = Gla_ManGetOutLit( p, f );
     int nConfPrev = pSat->stats.conflicts;
-    int i, Entry, RetValue;
+    int RetValue, iLit = Gla_ManGetOutLit( p, f );
     clock_t clk = clock();
     if ( piRetValue )
         *piRetValue = 1;
@@ -1595,21 +1580,9 @@ Vec_Int_t * Gla_ManUnsatCore( Gla_Man_t * p, int f, Vec_Int_t * vCla2Obj, sat_so
 //        Abc_PrintTime( 1, "Time", clock() - clk );
     }
     assert( RetValue == l_False );
-
     // derive the UNSAT core
     clk = clock();
     vCore = (Vec_Int_t *)Sat_ProofCore( pSat );
-    if ( fVerbose )
-    {
-//        Abc_Print( 1, "Core is %8d clauses (out of %8d).   ", Vec_IntSize(vCore), sat_solver2_nclauses(pSat) );
-//        Abc_PrintTime( 1, "Time", clock() - clk );
-    }
-
-    // remap core into original objects 
-    Vec_IntForEachEntry( vCore, Entry, i )
-        Vec_IntWriteEntry( vCore, i, Vec_IntEntry(p->vCla2Obj, Entry) );
-    Vec_IntUniqify( vCore );
-    Vec_IntReverseOrder( vCore );
     if ( fVerbose )
     {
 //        Abc_Print( 1, "Core is %8d vars    (out of %8d).   ", Vec_IntSize(vCore), sat_solver2_nvars(pSat) );
@@ -1670,7 +1643,6 @@ void Gla_ManReportMemory( Gla_Man_t * p )
         memMap += Vec_IntCap(&pGla->vFrames) * sizeof(int);
     for ( i = 0; i < Gia_ManObjNum(p->pGia); i++ )
         memRef += Vec_IntCap(&p->pvRefis[i]) * sizeof(int);
-    memOth += Vec_IntCap(p->vCla2Obj) * sizeof(int);
     memOth += Vec_IntCap(p->vAddedNew) * sizeof(int);
     memOth += Vec_IntCap(p->vTemp) * sizeof(int);
     memOth += Vec_IntCap(p->vAbs) * sizeof(int);
@@ -1841,7 +1813,7 @@ int Gia_GlaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars, int fStartVta )
         for ( i = 0; ; i++ )
         { 
             clk2 = clock();
-            vCore = Gla_ManUnsatCore( p, f, p->vCla2Obj, p->pSat, pPars->nConfLimit, pPars->fVerbose, &Status, &nConfls );
+            vCore = Gla_ManUnsatCore( p, f, p->pSat, pPars->nConfLimit, pPars->fVerbose, &Status, &nConfls );
             assert( (vCore != NULL) == (Status == 1) );
             if ( Status == -1 ) // resource limit is reached
             {
@@ -1914,15 +1886,15 @@ int Gia_GlaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars, int fStartVta )
             sat_solver2_rollback( p->pSat );
             // update storage
             Gla_ManRollBack( p );
-            Vec_IntShrink( p->vCla2Obj, (int)p->pSat->stats.clauses );
             p->nSatVars = nVarsOld;
             // load this timeframe
+            Vec_IntSort( vCore, 1 );
             Gia_GlaAddToAbs( p, vCore, 0 );
             Gia_GlaAddOneSlice( p, f, vCore );
             Vec_IntFree( vCore );
             // run SAT solver
             clk2 = clock();
-            vCore = Gla_ManUnsatCore( p, f, p->vCla2Obj, p->pSat, pPars->nConfLimit, p->pPars->fVerbose, &Status, &nConfls );
+            vCore = Gla_ManUnsatCore( p, f, p->pSat, pPars->nConfLimit, p->pPars->fVerbose, &Status, &nConfls );
             p->timeUnsat += clock() - clk2;
             assert( (vCore != NULL) == (Status == 1) );
             Vec_IntFreeP( &vCore );

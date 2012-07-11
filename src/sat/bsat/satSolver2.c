@@ -1245,7 +1245,7 @@ void sat_solver2_delete(sat_solver2* s)
 }
 
 
-int sat_solver2_addclause(sat_solver2* s, lit* begin, lit* end)
+int sat_solver2_addclause(sat_solver2* s, lit* begin, lit* end, int Id)
 {
     cla Cid;
     lit *i,*j,*iFree = NULL;
@@ -1294,6 +1294,8 @@ int sat_solver2_addclause(sat_solver2* s, lit* begin, lit* end)
 
     // create a new clause
     Cid = clause2_create_new( s, begin, end, 0, 0 );
+    if ( Id )
+        clause2_set_id( s, Cid, Id );
 
     // handle unit clause
     if ( count+1 == end-begin )
@@ -1461,6 +1463,7 @@ void sat_solver2_reducedb(sat_solver2* s)
             continue;
         if ( !clause_learnt_h(pMem, s->reasons[i]) ) // problem clause
             continue;
+        assert( c->lrn );
         c = clause2_read( s, s->reasons[i] );
         assert( c->mark == 0 );
         s->reasons[i] = clause_id(c); // updating handle here!!!
@@ -1478,6 +1481,7 @@ void sat_solver2_reducedb(sat_solver2* s)
                 pArray[j++] = pArray[k];
             else 
             {
+                assert( c->lrn );
                 c = clause2_read(s, pArray[k]);
                 if ( !c->mark ) // useful learned clause
                    pArray[j++] = clause_id(c); // updating handle here!!!
@@ -1491,6 +1495,7 @@ void sat_solver2_reducedb(sat_solver2* s)
         for ( i = 0; i < s->size; i++ )
             if ( s->units[i] && clause_learnt_h(pMem, s->units[i]) )
             {
+                assert( c->lrn );
                 c = clause2_read( s, s->units[i] );
                 assert( c->mark == 0 );
                 s->units[i] = clause_id(c);

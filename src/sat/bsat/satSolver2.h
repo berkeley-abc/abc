@@ -45,7 +45,7 @@ typedef struct sat_solver2_t sat_solver2;
 extern sat_solver2* sat_solver2_new(void);
 extern void         sat_solver2_delete(sat_solver2* s);
 
-extern int          sat_solver2_addclause(sat_solver2* s, lit* begin, lit* end);
+extern int          sat_solver2_addclause(sat_solver2* s, lit* begin, lit* end, int Id);
 extern int          sat_solver2_simplify(sat_solver2* s);
 extern int          sat_solver2_solve(sat_solver2* s, lit* begin, lit* end, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimit, ABC_INT64_T nConfLimitGlobal, ABC_INT64_T nInsLimitGlobal);
 extern void         sat_solver2_rollback(sat_solver2* s);
@@ -159,13 +159,14 @@ struct sat_solver2_t
     clock_t         nRuntimeLimit;  // external limit on runtime
 };
 
-static inline clause * clause2_read( sat_solver2 * s, cla h )                  { return Sat_MemClauseHand( &s->Mem, h );   }
+static inline clause * clause2_read( sat_solver2 * s, cla h )                  { return Sat_MemClauseHand( &s->Mem, h ); }
 static inline int      clause2_proofid(sat_solver2* s, clause* c, int partA)   { return c->lrn ? (veci_begin(&s->claProofs)[clause_id(c)]<<2) | (partA<<1) : (clause_id(c)<<2) | (partA<<1) | 1; }
 
 // these two only work after creating a clause before the solver is called
-static inline int   clause2_is_partA (sat_solver2* s, int h)                   { return clause2_read(s, h)->partA;         }
-static inline void  clause2_set_partA(sat_solver2* s, int h, int partA)        { clause2_read(s, h)->partA = partA;        }
-static inline int   clause2_id(sat_solver2* s, int h)                          { return clause_id(clause2_read(s, h));     }
+static inline int   clause2_is_partA (sat_solver2* s, int h)                   { return clause2_read(s, h)->partA;       }
+static inline void  clause2_set_partA(sat_solver2* s, int h, int partA)        { clause2_read(s, h)->partA = partA;      }
+static inline int   clause2_id(sat_solver2* s, int h)                          { return clause_id(clause2_read(s, h));   }
+static inline void  clause2_set_id(sat_solver2* s, int h, int id)              { clause_set_id(clause2_read(s, h), id);  }
 
 //=================================================================================================
 // Public APIs:
@@ -237,19 +238,19 @@ static inline void sat_solver2_bookmark(sat_solver2* s)
     Sat_MemBookMark( &s->Mem );
 }
 
-static inline int sat_solver2_add_const( sat_solver2 * pSat, int iVar, int fCompl, int fMark )
+static inline int sat_solver2_add_const( sat_solver2 * pSat, int iVar, int fCompl, int fMark, int Id )
 {
     lit Lits[1];
     int Cid;
     assert( iVar >= 0 );
 
     Lits[0] = toLitCond( iVar, fCompl );
-    Cid = sat_solver2_addclause( pSat, Lits, Lits + 1 );
+    Cid = sat_solver2_addclause( pSat, Lits, Lits + 1, Id );
     if ( fMark )
         clause2_set_partA( pSat, Cid, 1 );
     return 1;
 }
-static inline int sat_solver2_add_buffer( sat_solver2 * pSat, int iVarA, int iVarB, int fCompl, int fMark )
+static inline int sat_solver2_add_buffer( sat_solver2 * pSat, int iVarA, int iVarB, int fCompl, int fMark, int Id )
 {
     lit Lits[2];
     int Cid;
@@ -257,43 +258,43 @@ static inline int sat_solver2_add_buffer( sat_solver2 * pSat, int iVarA, int iVa
 
     Lits[0] = toLitCond( iVarA, 0 );
     Lits[1] = toLitCond( iVarB, !fCompl );
-    Cid = sat_solver2_addclause( pSat, Lits, Lits + 2 );
+    Cid = sat_solver2_addclause( pSat, Lits, Lits + 2, Id );
     if ( fMark )
         clause2_set_partA( pSat, Cid, 1 );
 
     Lits[0] = toLitCond( iVarA, 1 );
     Lits[1] = toLitCond( iVarB, fCompl );
-    Cid = sat_solver2_addclause( pSat, Lits, Lits + 2 );
+    Cid = sat_solver2_addclause( pSat, Lits, Lits + 2, Id );
     if ( fMark )
         clause2_set_partA( pSat, Cid, 1 );
     return 2;
 }
-static inline int sat_solver2_add_and( sat_solver2 * pSat, int iVar, int iVar0, int iVar1, int fCompl0, int fCompl1, int fMark )
+static inline int sat_solver2_add_and( sat_solver2 * pSat, int iVar, int iVar0, int iVar1, int fCompl0, int fCompl1, int fMark, int Id )
 {
     lit Lits[3];
     int Cid;
 
     Lits[0] = toLitCond( iVar, 1 );
     Lits[1] = toLitCond( iVar0, fCompl0 );
-    Cid = sat_solver2_addclause( pSat, Lits, Lits + 2 );
+    Cid = sat_solver2_addclause( pSat, Lits, Lits + 2, Id );
     if ( fMark )
         clause2_set_partA( pSat, Cid, 1 );
 
     Lits[0] = toLitCond( iVar, 1 );
     Lits[1] = toLitCond( iVar1, fCompl1 );
-    Cid = sat_solver2_addclause( pSat, Lits, Lits + 2 );
+    Cid = sat_solver2_addclause( pSat, Lits, Lits + 2, Id );
     if ( fMark )
         clause2_set_partA( pSat, Cid, 1 );
 
     Lits[0] = toLitCond( iVar, 0 );
     Lits[1] = toLitCond( iVar0, !fCompl0 );
     Lits[2] = toLitCond( iVar1, !fCompl1 );
-    Cid = sat_solver2_addclause( pSat, Lits, Lits + 3 );
+    Cid = sat_solver2_addclause( pSat, Lits, Lits + 3, Id );
     if ( fMark )
         clause2_set_partA( pSat, Cid, 1 );
     return 3;
 }
-static inline int sat_solver2_add_xor( sat_solver2 * pSat, int iVarA, int iVarB, int iVarC, int fCompl, int fMark )
+static inline int sat_solver2_add_xor( sat_solver2 * pSat, int iVarA, int iVarB, int iVarC, int fCompl, int fMark, int Id )
 {
     lit Lits[3];
     int Cid;
@@ -302,33 +303,33 @@ static inline int sat_solver2_add_xor( sat_solver2 * pSat, int iVarA, int iVarB,
     Lits[0] = toLitCond( iVarA, !fCompl );
     Lits[1] = toLitCond( iVarB, 1 );
     Lits[2] = toLitCond( iVarC, 1 );
-    Cid = sat_solver2_addclause( pSat, Lits, Lits + 3 );
+    Cid = sat_solver2_addclause( pSat, Lits, Lits + 3, Id );
     if ( fMark )
         clause2_set_partA( pSat, Cid, 1 );
 
     Lits[0] = toLitCond( iVarA, !fCompl );
     Lits[1] = toLitCond( iVarB, 0 );
     Lits[2] = toLitCond( iVarC, 0 );
-    Cid = sat_solver2_addclause( pSat, Lits, Lits + 3 );
+    Cid = sat_solver2_addclause( pSat, Lits, Lits + 3, Id );
     if ( fMark )
         clause2_set_partA( pSat, Cid, 1 );
 
     Lits[0] = toLitCond( iVarA, fCompl );
     Lits[1] = toLitCond( iVarB, 1 );
     Lits[2] = toLitCond( iVarC, 0 );
-    Cid = sat_solver2_addclause( pSat, Lits, Lits + 3 );
+    Cid = sat_solver2_addclause( pSat, Lits, Lits + 3, Id );
     if ( fMark )
         clause2_set_partA( pSat, Cid, 1 );
 
     Lits[0] = toLitCond( iVarA, fCompl );
     Lits[1] = toLitCond( iVarB, 0 );
     Lits[2] = toLitCond( iVarC, 1 );
-    Cid = sat_solver2_addclause( pSat, Lits, Lits + 3 );
+    Cid = sat_solver2_addclause( pSat, Lits, Lits + 3, Id );
     if ( fMark )
         clause2_set_partA( pSat, Cid, 1 );
     return 4;
 }
-static inline int sat_solver2_add_constraint( sat_solver2 * pSat, int iVar, int iVar2, int fCompl, int fMark )
+static inline int sat_solver2_add_constraint( sat_solver2 * pSat, int iVar, int iVar2, int fCompl, int fMark, int Id )
 {
     lit Lits[2];
     int Cid;
@@ -336,13 +337,13 @@ static inline int sat_solver2_add_constraint( sat_solver2 * pSat, int iVar, int 
 
     Lits[0] = toLitCond( iVar, fCompl );
     Lits[1] = toLitCond( iVar2, 0 );
-    Cid = sat_solver2_addclause( pSat, Lits, Lits + 2 );
+    Cid = sat_solver2_addclause( pSat, Lits, Lits + 2, Id );
     if ( fMark )
         clause2_set_partA( pSat, Cid, 1 );
 
     Lits[0] = toLitCond( iVar, fCompl );
     Lits[1] = toLitCond( iVar2, 1 );
-    Cid = sat_solver2_addclause( pSat, Lits, Lits + 2 );
+    Cid = sat_solver2_addclause( pSat, Lits, Lits + 2, Id );
     if ( fMark )
         clause2_set_partA( pSat, Cid, 1 );
     return 2;

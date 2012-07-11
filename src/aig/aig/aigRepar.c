@@ -52,13 +52,13 @@ static inline void Aig_ManInterAddBuffer( sat_solver2 * pSat, int iVarA, int iVa
 
     Lits[0] = toLitCond( iVarA, 0 );
     Lits[1] = toLitCond( iVarB, !fCompl );
-    Cid = sat_solver2_addclause( pSat, Lits, Lits + 2 );
+    Cid = sat_solver2_addclause( pSat, Lits, Lits + 2, 0 );
     if ( fMark )
         clause2_set_partA( pSat, Cid, 1 );
 
     Lits[0] = toLitCond( iVarA, 1 );
     Lits[1] = toLitCond( iVarB, fCompl );
-    Cid = sat_solver2_addclause( pSat, Lits, Lits + 2 );
+    Cid = sat_solver2_addclause( pSat, Lits, Lits + 2, 0 );
     if ( fMark )
         clause2_set_partA( pSat, Cid, 1 );
 }
@@ -83,28 +83,28 @@ static inline void Aig_ManInterAddXor( sat_solver2 * pSat, int iVarA, int iVarB,
     Lits[0] = toLitCond( iVarA, !fCompl );
     Lits[1] = toLitCond( iVarB, 1 );
     Lits[2] = toLitCond( iVarC, 1 );
-    Cid = sat_solver2_addclause( pSat, Lits, Lits + 3 );
+    Cid = sat_solver2_addclause( pSat, Lits, Lits + 3, 0 );
     if ( fMark )
         clause2_set_partA( pSat, Cid, 1 );
 
     Lits[0] = toLitCond( iVarA, !fCompl );
     Lits[1] = toLitCond( iVarB, 0 );
     Lits[2] = toLitCond( iVarC, 0 );
-    Cid = sat_solver2_addclause( pSat, Lits, Lits + 3 );
+    Cid = sat_solver2_addclause( pSat, Lits, Lits + 3, 0 );
     if ( fMark )
         clause2_set_partA( pSat, Cid, 1 );
 
     Lits[0] = toLitCond( iVarA, fCompl );
     Lits[1] = toLitCond( iVarB, 1 );
     Lits[2] = toLitCond( iVarC, 0 );
-    Cid = sat_solver2_addclause( pSat, Lits, Lits + 3 );
+    Cid = sat_solver2_addclause( pSat, Lits, Lits + 3, 0 );
     if ( fMark )
         clause2_set_partA( pSat, Cid, 1 );
 
     Lits[0] = toLitCond( iVarA, fCompl );
     Lits[1] = toLitCond( iVarB, 0 );
     Lits[2] = toLitCond( iVarC, 1 );
-    Cid = sat_solver2_addclause( pSat, Lits, Lits + 3 );
+    Cid = sat_solver2_addclause( pSat, Lits, Lits + 3, 0 );
     if ( fMark )
         clause2_set_partA( pSat, Cid, 1 );
 }
@@ -151,14 +151,14 @@ void Aig_ManInterTest( Aig_Man_t * pMan, int fVerbose )
     // add clauses of A
     for ( i = 0; i < pCnf->nClauses; i++ )
     {
-        Cid = sat_solver2_addclause( pSat, pCnf->pClauses[i], pCnf->pClauses[i+1] );
+        Cid = sat_solver2_addclause( pSat, pCnf->pClauses[i], pCnf->pClauses[i+1], 0 );
         clause2_set_partA( pSat, Cid, 1 );
     }
 
     // add clauses of B
     Cnf_DataLift( pCnf, pCnf->nVars );
     for ( i = 0; i < pCnf->nClauses; i++ )
-        sat_solver2_addclause( pSat, pCnf->pClauses[i], pCnf->pClauses[i+1] );
+        sat_solver2_addclause( pSat, pCnf->pClauses[i], pCnf->pClauses[i+1], 0 );
     Cnf_DataLift( pCnf, -pCnf->nVars );
 
     // add PI equality clauses
@@ -282,7 +282,7 @@ Aig_Man_t * Aig_ManInterRepar( Aig_Man_t * pMan, int fVerbose )
         Cnf_DataLift( pCnf, ShiftCnf[k] );
         for ( i = 0; i < pCnf->nClauses; i++ )
         {
-            Cid = sat_solver2_addclause( pSat, pCnf->pClauses[i], pCnf->pClauses[i+1] );
+            Cid = sat_solver2_addclause( pSat, pCnf->pClauses[i], pCnf->pClauses[i+1], 0 );
             clause2_set_partA( pSat, Cid, k==0 );
         }
         // add equality p[k] == A1/B1
@@ -292,7 +292,7 @@ Aig_Man_t * Aig_ManInterRepar( Aig_Man_t * pMan, int fVerbose )
         Cnf_DataLift( pCnf, pCnf->nVars );
         for ( i = 0; i < pCnf->nClauses; i++ )
         {
-            Cid = sat_solver2_addclause( pSat, pCnf->pClauses[i], pCnf->pClauses[i+1] );
+            Cid = sat_solver2_addclause( pSat, pCnf->pClauses[i], pCnf->pClauses[i+1], 0 );
             clause2_set_partA( pSat, Cid, k==0 );
         }
         // add comparator (!p[k] ^ A2/B2) == or[k]
@@ -302,7 +302,7 @@ Aig_Man_t * Aig_ManInterRepar( Aig_Man_t * pMan, int fVerbose )
             Aig_ManInterAddXor( pSat, ShiftP[k] + i, pCnf->pVarNums[pObj->Id], ShiftOr[k] + i, k==1, k==0 );
             Vec_IntPush( vVars, toLitCond(ShiftOr[k] + i, 1) );
         }
-        Cid = sat_solver2_addclause( pSat, Vec_IntArray(vVars), Vec_IntArray(vVars) + Vec_IntSize(vVars) );
+        Cid = sat_solver2_addclause( pSat, Vec_IntArray(vVars), Vec_IntArray(vVars) + Vec_IntSize(vVars), 0 );
         clause2_set_partA( pSat, Cid, k==0 );
         // return to normal
         Cnf_DataLift( pCnf, -ShiftCnf[k]-pCnf->nVars );
@@ -361,7 +361,7 @@ Aig_Man_t * Aig_ManInterRepar( Aig_Man_t * pMan, int fVerbose )
             // add to A
             for ( i = 0; i < pCnfInter->nClauses; i++ )
             {
-                Cid = sat_solver2_addclause( pSat, pCnfInter->pClauses[i], pCnfInter->pClauses[i+1] );
+                Cid = sat_solver2_addclause( pSat, pCnfInter->pClauses[i], pCnfInter->pClauses[i+1], 0 );
                 clause2_set_partA( pSat, Cid, c==0 );
             }
             // connect to the inputs
