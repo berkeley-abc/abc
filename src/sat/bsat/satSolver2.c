@@ -1353,7 +1353,7 @@ void sat_solver2_reducedb(sat_solver2* s)
 {
     static clock_t TimeTotal = 0;
     Sat_Mem_t * pMem = &s->Mem;
-    clause * c;
+    clause * c = NULL;
     int nLearnedOld = veci_size(&s->act_clas);
     int * act_clas = veci_begin(&s->act_clas);
     int * pPerm, * pSortValues, nCutoffValue, * pClaProofs;
