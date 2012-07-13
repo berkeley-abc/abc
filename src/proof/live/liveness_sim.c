@@ -166,6 +166,7 @@ static char * retrieveLOName( Abc_Ntk_t *pNtkOld, Aig_Man_t *pAigOld, Aig_Man_t 
     }
     else
         return "UNKNOWN";
+    return NULL;
 }
 
 extern Vec_Ptr_t *vecPis, *vecPiNames;
