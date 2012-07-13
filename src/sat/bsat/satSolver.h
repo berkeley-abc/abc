@@ -30,7 +30,6 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 #include "satVec.h"
 #include "satClause.h"
-#include "misc/vec/vecSet.h"
 
 ABC_NAMESPACE_HEADER_START
 

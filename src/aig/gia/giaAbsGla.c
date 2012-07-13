@@ -509,7 +509,7 @@ void Gla_ManRefSelect_rec( Gla_Man_t * p, Gia_Obj_t * pObj, int f, Vec_Int_t * v
 { 
     int i;//, Id = Gia_ObjId(p->pGia, pObj);
     Rfn_Obj_t * pRef = Gla_ObjRef( p, pObj, f );
-    assert( (int)pRef->Sign == Sign );
+//    assert( (int)pRef->Sign == Sign );
     if ( pRef->fVisit )
         return;
     if ( p->pPars->fPropFanout )
@@ -1214,8 +1214,9 @@ void Gla_ManStop( Gla_Man_t * p )
     Gla_Obj_t * pGla;
     int i;
 //    if ( p->pPars->fVerbose )
-        Abc_Print( 1, "SAT solver:  Var = %d  Cla = %d  Conf = %d  Reduce = %d  Cex = %d  ObjsAdded = %d\n", 
-            sat_solver2_nvars(p->pSat), sat_solver2_nclauses(p->pSat), sat_solver2_nconflicts(p->pSat), p->pSat->nDBreduces, p->nCexes, p->nObjAdded );
+        Abc_Print( 1, "SAT solver:  Var = %d  Cla = %d  Conf = %d  Lrn = %d  Reduce = %d  Cex = %d  Objs+ = %d\n", 
+            sat_solver2_nvars(p->pSat), sat_solver2_nclauses(p->pSat), sat_solver2_nconflicts(p->pSat), 
+            sat_solver2_nlearnts(p->pSat), p->pSat->nDBreduces, p->nCexes, p->nObjAdded );
     for ( i = 0; i < Gia_ManObjNum(p->pGia); i++ )
         ABC_FREE( p->pvRefis[i].pArray );
     Gla_ManForEachObj( p, pGla )
@@ -1805,7 +1806,7 @@ int Gia_GlaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars, int fStartVta )
             pPars->nFramesMax, pPars->nConfLimit, pPars->nTimeOut, pPars->nRatioMin );
         Abc_Print( 1, "LearnStart = %d  LearnDelta = %d  LearnRatio = %d %%.\n", 
             pPars->nLearnedStart, pPars->nLearnedDelta, pPars->nLearnedPerce );
-        Abc_Print( 1, "Frame   %%   Abs  PPI   FF   LUT   Confl  Cex   Vars   Clas   Lrns     Time      Mem\n" );
+        Abc_Print( 1, " Frame   %%   Abs  PPI   FF   LUT   Confl  Cex   Vars   Clas   Lrns     Time      Mem\n" );
     }
     for ( f = i = iPrev = 0; !p->pPars->nFramesMax || f < p->pPars->nFramesMax; f++, iPrev = i )
     {
@@ -1891,9 +1892,13 @@ int Gia_GlaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars, int fStartVta )
         nCoreSize = Vec_IntSize( vCore );
         Gia_GlaAddToCounters( p, vCore );
         if ( i == 0 )
+        {
+            p->pPars->nFramesNoChange++;
             Vec_IntFree( vCore );
+        }
         else
         {
+            p->pPars->nFramesNoChange = 0;
             // update the SAT solver
             sat_solver2_rollback( p->pSat );
             // update storage
@@ -1967,9 +1972,9 @@ finish:
         if ( Status == -1 )
         {
             if ( p->pPars->nTimeOut && clock() >= p->pSat->nRuntimeLimit ) 
-                Abc_Print( 1, "SAT solver ran out of time at %d sec in frame %d.  ", p->pPars->nTimeOut, f );
+                Abc_Print( 1, "Timeout %d sec in frame %d with a %d-stable abstraction.    ", p->pPars->nTimeOut, f, p->pPars->nFramesNoChange );
             else if ( pPars->nConfLimit && sat_solver2_nconflicts(p->pSat) >= pPars->nConfLimit )
-                Abc_Print( 1, "SAT solver ran out of resources at %d conflicts in frame %d.  ", pPars->nConfLimit, f );
+                Abc_Print( 1, "Exceeded %d conflicts in frame %d with a %d-stable abstraction.  ", pPars->nConfLimit, f, p->pPars->nFramesNoChange );
             else if ( Gia_GlaAbsCount(p,0,0) >= (p->nObjs - 1) * (100 - pPars->nRatioMin) / 100 )
                 Abc_Print( 1, "The ratio of abstracted objects is less than %d %% in frame %d.  ", pPars->nRatioMin, f );
             else
@@ -1978,7 +1983,7 @@ finish:
         else
         {
             p->pPars->iFrame++;
-            Abc_Print( 1, "SAT solver completed %d frames and produced an abstraction.  ", f );
+            Abc_Print( 1, "Completed %d frames with a %d-stable abstraction.  ", f, p->pPars->nFramesNoChange );
         }
     }
     else

@@ -1062,8 +1062,9 @@ Vta_Man_t * Vga_ManStart( Gia_Man_t * pGia, Gia_ParVta_t * pPars )
 void Vga_ManStop( Vta_Man_t * p )
 {
 //    if ( p->pPars->fVerbose )
-        Abc_Print( 1, "SAT solver:  Var = %d  Cla = %d  Conf = %d  Reduce = %d  Cex = %d  ObjsAdded = %d\n", 
-            sat_solver2_nvars(p->pSat), sat_solver2_nclauses(p->pSat), sat_solver2_nconflicts(p->pSat), p->pSat->nDBreduces, p->nCexes, p->nObjAdded );
+        Abc_Print( 1, "SAT solver:  Var = %d  Cla = %d  Conf = %d  Lrn = %d  Reduce = %d  Cex = %d  Objs+ = %d\n", 
+            sat_solver2_nvars(p->pSat), sat_solver2_nclauses(p->pSat), sat_solver2_nconflicts(p->pSat), 
+            sat_solver2_nlearnts(p->pSat), p->pSat->nDBreduces, p->nCexes, p->nObjAdded );
     Vec_VecFreeP( (Vec_Vec_t **)&p->vCores );
     Vec_VecFreeP( (Vec_Vec_t **)&p->vFrames );
     Vec_BitFreeP( &p->vSeenGla );
@@ -1534,7 +1535,7 @@ int Gia_VtaPerformInt( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
         {
             printf( "Sequential miter is trivially UNSAT.\n" );
             return 1;
-        }
+        } 
         ABC_FREE( pAig->pCexSeq );
         pAig->pCexSeq = Abc_CexMakeTriv( Gia_ManRegNum(pAig), Gia_ManPiNum(pAig), 1, 0 );
         printf( "Sequential miter is trivially SAT.\n" );
@@ -1564,7 +1565,7 @@ int Gia_VtaPerformInt( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
         Abc_Print( 1, "LearnStart = %d  LearnDelta = %d  LearnRatio = %d %%.\n", 
             pPars->nLearnedStart, pPars->nLearnedDelta, pPars->nLearnedPerce );
 //        Abc_Print( 1, "Frame   %%   Abs   %%   Confl  Cex    SatVar   Core   F0   F1   F2  ...\n" );
-        Abc_Print( 1, "Frame   %%   Abs   %%   Confl  Cex   Vars   Clas   Lrns   Core     Time      Mem\n" );
+        Abc_Print( 1, " Frame   %%   Abs   %%   Confl  Cex   Vars   Clas   Lrns   Core     Time      Mem\n" );
     }
     assert( Vec_PtrSize(p->vFrames) > 0 );
     for ( f = i = 0; !p->pPars->nFramesMax || f < p->pPars->nFramesMax; f++ )
@@ -1665,9 +1666,11 @@ int Gia_VtaPerformInt( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
         {
             // reset the counter of frames without change
             nCountNoChange = 1;
+            p->pPars->nFramesNoChange = 0;
         }
         else if ( ++nCountNoChange == 2 ) // time to send
         {
+            p->pPars->nFramesNoChange++;
             if ( Abc_FrameIsBridgeMode() )
             {
                 // cancel old one if it was sent
@@ -1709,9 +1712,9 @@ finish:
             if ( Status == -1 )
             {
                 if ( p->pPars->nTimeOut && clock() >= p->pSat->nRuntimeLimit ) 
-                    Abc_Print( 1, "SAT solver ran out of time at %d sec in frame %d.  ", p->pPars->nTimeOut, f );
+                    Abc_Print( 1, "Timeout %d sec in frame %d with a %d-stable abstraction.    ", p->pPars->nTimeOut, f, p->pPars->nFramesNoChange );
                 else if ( pPars->nConfLimit && sat_solver2_nconflicts(p->pSat) >= pPars->nConfLimit )
-                    Abc_Print( 1, "SAT solver ran out of resources at %d conflicts in frame %d.  ", pPars->nConfLimit, f );
+                    Abc_Print( 1, "Exceeded %d conflicts in frame %d with a %d-stable abstraction.  ", pPars->nConfLimit, f, p->pPars->nFramesNoChange );
                 else if ( p->nSeenGla >= Gia_ManCandNum(pAig) * (100-pPars->nRatioMin) / 100 )
                     Abc_Print( 1, "The ratio of abstracted objects is less than %d %% in frame %d.  ", pPars->nRatioMin, f );
                 else
@@ -1720,7 +1723,7 @@ finish:
             else
             {
                 p->pPars->iFrame++;
-                Abc_Print( 1, "SAT solver completed %d frames and produced an abstraction.  ", f );
+                Abc_Print( 1, "Completed %d frames with a %d-stable abstraction.  ", f, p->pPars->nFramesNoChange );
             }
         }
     }

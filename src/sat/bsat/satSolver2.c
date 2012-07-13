@@ -164,7 +164,7 @@ static inline void proof_chain_start( sat_solver2* s, clause* c )
     if ( s->fProofLogging )
     {
         int ProofId = clause2_proofid(s, c, 0);
-        assert( ProofId > 0 );
+        assert( (ProofId >> 2) > 0 );
         veci_resize( &s->temp_proof, 0 );
         veci_push( &s->temp_proof, 0 );
         veci_push( &s->temp_proof, 0 );
@@ -178,7 +178,7 @@ static inline void proof_chain_resolve( sat_solver2* s, clause* cls, int Var )
     {
         clause* c = cls ? cls : var_unit_clause( s, Var );
         int ProofId = clause2_proofid(s, c, var_is_partA(s,Var));
-        assert( ProofId > 0 );
+        assert( (ProofId >> 2) > 0 );
         veci_push( &s->temp_proof, ProofId );
     }
 }
@@ -1417,7 +1417,10 @@ void sat_solver2_reducedb(sat_solver2* s)
             break;
     }
     if ( j < nLearnedOld / 6 )
+    {
+        ABC_FREE( pSortValues );
         return;
+    }
 
     // mark learned clauses to remove
     Counter = j = 0;
@@ -1439,6 +1442,7 @@ void sat_solver2_reducedb(sat_solver2* s)
             s->stats.learnts--;
         }
     }
+    ABC_FREE( pSortValues );
 //    if ( j == nLearnedOld )
 //        return;
 
@@ -1717,6 +1721,7 @@ void sat_solver2_verify( sat_solver2* s )
 //        Abc_Print(1, "Verification passed.\n" );
 }
 */
+
 // checks how many watched clauses are satisfied by 0-level assignments
 // (this procedure may be called before setting up a new bookmark for rollback)
 int sat_solver2_check_watched( sat_solver2* s )
@@ -1753,7 +1758,6 @@ int sat_solver2_check_watched( sat_solver2* s )
 //        s->stats.clauses, claSat[0], s->stats.learnts, claSat[1] );
     return 0;
 }
-
 
 int sat_solver2_solve(sat_solver2* s, lit* begin, lit* end, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimit, ABC_INT64_T nConfLimitGlobal, ABC_INT64_T nInsLimitGlobal)
 {

@@ -223,7 +223,8 @@ struct Gia_ParVta_t_
     int            fDumpVabs;     // dumps the abstracted model
     char *         pFileVabs;     // dumps the abstracted model into this file
     int            fVerbose;      // verbose flag
-    int            iFrame;        // the number of frames covered 
+    int            iFrame;        // the number of frames covered
+    int            nFramesNoChange; // the number of last frames without changes
 };
 
 static inline unsigned     Gia_ObjCutSign( unsigned ObjId )       { return (1 << (ObjId & 31));                                 }

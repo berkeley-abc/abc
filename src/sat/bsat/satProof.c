@@ -396,11 +396,15 @@ int Sat_ProofReduce( Vec_Set_t * vProof, void * pRoots, int hProofPivot )
         if ( pNode->Id == 0 ) 
             continue;
         pNode->Id = Vec_SetAppendS( vProof, 2 + pNode->nEnts );
+        assert( pNode->Id > 0 );
         Vec_PtrPush( vUsed, pNode );
         // update fanins
         Proof_NodeForeachFanin( vProof, pNode, pFanin, k )
             if ( (pNode->pEnts[k] & 1) == 0 ) // proof node
+            {
+                assert( pFanin->Id > 0 );
                 pNode->pEnts[k] = (pFanin->Id << 2) | (pNode->pEnts[k] & 2);
+            }
 //            else // problem clause
 //                assert( (int*)pFanin >= Vec_IntArray(vClauses) && (int*)pFanin < Vec_IntArray(vClauses)+Vec_IntSize(vClauses) );
     }
@@ -420,7 +424,6 @@ int Sat_ProofReduce( Vec_Set_t * vProof, void * pRoots, int hProofPivot )
         if ( pPivot && pPivot <= pNode )
         {
             RetValue = hTemp;
-//            s->iProofPivot = i;
             pPivot = NULL;
         }
     }

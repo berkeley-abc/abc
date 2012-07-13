@@ -27891,7 +27891,7 @@ int Abc_CommandAbc9Vta( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( pAbc->pGia == NULL )
     {
         Abc_Print( -1, "There is no AIG.\n" );
-        return 1;
+        return 0;
     } 
     if ( Gia_ManRegNum(pAbc->pGia) == 0 )
     {
@@ -27971,12 +27971,12 @@ int Abc_CommandAbc9Vta2Gla( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( pAbc->pGia == NULL )
     {
         Abc_Print( -1, "Abc_CommandAbc9Vta2Gla(): There is no AIG.\n" );
-        return 1;
+        return 0;
     }
     if ( pAbc->pGia->vObjClasses == NULL )
     {
         Abc_Print( -1, "Abc_CommandAbc9Vta2Gla(): There is no variable-time-frame abstraction is defined.\n" );
-        return 1;
+        return 0;
     }
     Vec_IntFreeP( &pAbc->pGia->vGateClasses );
     pAbc->pGia->vGateClasses = Gia_VtaConvertToGla( pAbc->pGia, pAbc->pGia->vObjClasses );
@@ -28034,17 +28034,17 @@ int Abc_CommandAbc9Gla2Vta( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( pAbc->pGia == NULL )
     {
         Abc_Print( -1, "Abc_CommandAbc9Gla2Vta(): There is no AIG.\n" );
-        return 1;
+        return 0;
     }
     if ( pAbc->pGia->vGateClasses == NULL )
     {
         Abc_Print( -1, "Abc_CommandAbc9Gla2Vta(): There is no gate-level abstraction is defined.\n" );
-        return 1;
+        return 0;
     }
     if ( pAbc->nFrames < 1 )
     {
         Abc_Print( -1, "Abc_CommandAbc9Gla2Vta(): The number of timeframes (%d) should be a positive integer.\n", nFrames );
-        return 1;
+        return 0;
     }
     Vec_IntFreeP( &pAbc->pGia->vObjClasses );
     pAbc->pGia->vObjClasses = Gia_VtaConvertFromGla( pAbc->pGia, pAbc->pGia->vGateClasses, nFrames );
@@ -28091,12 +28091,12 @@ int Abc_CommandAbc9Fla2Gla( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( pAbc->pGia == NULL )
     {
         Abc_Print( -1, "Abc_CommandAbc9Fla2Gla(): There is no AIG.\n" );
-        return 1;
+        return 0;
     }
     if ( pAbc->pGia->vFlopClasses == NULL )
     {
         Abc_Print( -1, "Abc_CommandAbc9Fla2Gla(): There is no gate-level abstraction is defined.\n" );
-        return 1;
+        return 0;
     }
     Vec_IntFreeP( &pAbc->pGia->vGateClasses );
     pAbc->pGia->vGateClasses = Gia_FlaConvertToGla( pAbc->pGia, pAbc->pGia->vFlopClasses );
@@ -28142,12 +28142,12 @@ int Abc_CommandAbc9Gla2Fla( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( pAbc->pGia == NULL )
     {
         Abc_Print( -1, "Abc_CommandAbc9Gla2Fla(): There is no AIG.\n" );
-        return 1;
+        return 0;
     }
     if ( pAbc->pGia->vGateClasses == NULL )
     {
         Abc_Print( -1, "Abc_CommandAbc9Gla2Fla(): There is no gate-level abstraction is defined.\n" );
-        return 1;
+        return 0;
     }
     Vec_IntFreeP( &pAbc->pGia->vFlopClasses );
     pAbc->pGia->vFlopClasses = Gia_GlaConvertToFla( pAbc->pGia, pAbc->pGia->vGateClasses );
@@ -28194,7 +28194,7 @@ int Abc_CommandAbc9Reparam( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( pAbc->pGia == NULL )
     {
         Abc_Print( -1, "Abc_CommandAbc9Reparam(): There is no AIG.\n" );
-        return 1;
+        return 0;
     } 
     pTemp = Gia_ManReparam( pAbc->pGia, fVerbose );
     Abc_CommandUpdate9( pAbc, pTemp );
