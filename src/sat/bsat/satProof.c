@@ -396,13 +396,13 @@ int Sat_ProofReduce( Vec_Set_t * vProof, void * pRoots, int hProofPivot )
         if ( pNode->Id == 0 ) 
             continue;
         pNode->Id = Vec_SetAppendS( vProof, 2 + pNode->nEnts );
-        assert( pNode->Id > 0 );
+        assert( pNode->Id > 1 );
         Vec_PtrPush( vUsed, pNode );
         // update fanins
         Proof_NodeForeachFanin( vProof, pNode, pFanin, k )
             if ( (pNode->pEnts[k] & 1) == 0 ) // proof node
             {
-                assert( pFanin->Id > 0 );
+                assert( pFanin->Id > 1 );
                 pNode->pEnts[k] = (pFanin->Id << 2) | (pNode->pEnts[k] & 2);
             }
 //            else // problem clause
@@ -410,7 +410,10 @@ int Sat_ProofReduce( Vec_Set_t * vProof, void * pRoots, int hProofPivot )
     }
     // update roots
     Proof_ForeachNodeVec1( vRoots, vProof, pNode, i )
+    {
+        assert( pNode->Id > 1 );
         Vec_IntWriteEntry( vRoots, i, pNode->Id );
+    }
     // determine new pivot
     assert( hProofPivot >= 1 && hProofPivot <= Vec_SetHandCurrent(vProof) );
     pPivot = Proof_NodeRead( vProof, hProofPivot );
@@ -420,6 +423,7 @@ int Sat_ProofReduce( Vec_Set_t * vProof, void * pRoots, int hProofPivot )
     Vec_PtrForEachEntry( satset *, vUsed, pNode, i )
     {
         hTemp = pNode->Id; pNode->Id = 0;
+        assert( hTemp > 1 );
         memmove( Vec_SetEntry(vProof, hTemp), pNode, sizeof(word)*Proof_NodeWordNum(pNode->nEnts) );
         if ( pPivot && pPivot <= pNode )
         {
