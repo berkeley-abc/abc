@@ -961,7 +961,7 @@ int Ssw_RarSimulate( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSize, in
             }
         }
         // get initialization patterns
-        if ( r == nRestart )
+        if ( nRestart && r == nRestart )
         {
             r = -1;
             nSavedSeed = (nSavedSeed + 1) % 1000;
@@ -986,7 +986,7 @@ finish:
     if ( r == nRounds && f == nFrames )
     {
         if ( fVerbose ) printf( "\n" );
-        printf( "Simulation did not assert POs in the first %d frames.         ", nRounds * nFrames );
+        printf( "Simulation of %d frames for %d rounds with %d restarts did not assert POs.    ", nFrames, nNumRestart * nRestart + r, nNumRestart );
         Abc_PrintTime( 1, "Time", clock() - clkTotal );
     }
     // cleanup
@@ -1036,6 +1036,8 @@ int Ssw_RarSignalFilter( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSize
     int r, f = -1, i, k;
     clock_t clkTotal = clock();
     clock_t nTimeToStop = TimeOut ? TimeOut * CLOCKS_PER_SEC + clock(): 0;
+    int nNumRestart = 0;
+    int nSavedSeed = nRandSeed;
     int RetValue = -1;
     assert( Aig_ManRegNum(pAig) > 0 );
     assert( Aig_ManConstrNum(pAig) == 0 );
@@ -1049,7 +1051,7 @@ int Ssw_RarSignalFilter( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSize
         printf( "Rarity equiv filtering with %d words, %d frames, %d rounds, %d seed, and %d sec timeout.\n", 
             nWords, nFrames, nRounds, nRandSeed, TimeOut );
     // reset random numbers
-    Ssw_RarManPrepareRandom( nRandSeed );
+    Ssw_RarManPrepareRandom( nSavedSeed );
 
     // create manager
     p = Ssw_RarManStart( pAig, nWords, nFrames, nBinSize, fVerbose );
@@ -1081,7 +1083,7 @@ int Ssw_RarSignalFilter( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSize
         Ssw_ClassesPrint( p->ppClasses, 0 );
     }
     // refine classes using BMC
-    for ( r = 0; !nRounds || r < nRounds; r++ )
+    for ( r = 0; !nRounds || (nNumRestart * nRestart + r < nRounds); r++ )
     {
         // start filtering equivalence classes
         if ( Ssw_ClassesCand1Num(p->ppClasses) == 0 && Ssw_ClassesClassNum(p->ppClasses) == 0 )
@@ -1098,7 +1100,9 @@ int Ssw_RarSignalFilter( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSize
                 if ( !fVerbose ) 
                     printf( "%s", Abc_FrameIsBatchMode() ? "\n" : "\r" );
 //                printf( "Simulation asserted a PO in frame f: %d <= f < %d.\n", r * nFrames, (r+1) * nFrames );
-                Ssw_RarManPrepareRandom( nRandSeed );
+                if ( fVerbose )
+                    printf( "Simulated %d frames for %d rounds with %d restarts.\n", nFrames, nNumRestart * nRestart + r, nNumRestart );
+                Ssw_RarManPrepareRandom( nSavedSeed );
                 Abc_CexFree( pAig->pSeqModel );
                 pAig->pSeqModel = Ssw_RarDeriveCex( p, r * p->nFrames + f, p->iFailPo, p->iFailPat, 1 );
                 // print final report
@@ -1111,12 +1115,25 @@ int Ssw_RarSignalFilter( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSize
             if ( TimeOut && clock() > nTimeToStop )
             {
                 if ( fVerbose ) printf( "\n" );
+                printf( "Simulated %d frames for %d rounds with %d restarts.  ", nFrames, nNumRestart * nRestart + r, nNumRestart );
                 printf( "Reached timeout (%d sec).\n",  TimeOut );
                 goto finish;
             }
         }
         // get initialization patterns
-        Ssw_RarTransferPatterns( p, p->vInits );
+        if ( pCex == NULL && nRestart && r == nRestart )
+        {
+            r = -1;
+            nSavedSeed = (nSavedSeed + 1) % 1000;
+            Ssw_RarManPrepareRandom( nSavedSeed );
+            Vec_IntFill( p->vInits, Aig_ManRegNum(pAig) * nWords, 0 );
+            nNumRestart++;
+            Vec_IntClear( p->vPatBests );
+            // clean rarity info
+//            memset( p->pRarity, 0, sizeof(int) * (1 << nBinSize) * p->nGroups );
+        }
+        else
+            Ssw_RarTransferPatterns( p, p->vInits );
         // printout
         if ( fVerbose )
         {
@@ -1134,7 +1151,7 @@ finish:
     {
         if ( !fVerbose ) 
             printf( "%s", Abc_FrameIsBatchMode() ? "\n" : "\r" );
-        printf( "Simulation did not assert POs in the first %d frames.         ", nRounds * nFrames );
+        printf( "Simulation of %d frames for %d rounds with %d restarts did not assert POs.    ", nFrames, nNumRestart * nRestart + r, nNumRestart );
         Abc_PrintTime( 1, "Time", clock() - clkTotal );
     }
     // cleanup
