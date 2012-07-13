@@ -17,7 +17,6 @@ SRC +=    src/aig/aig/aigCheck.c \
     src/aig/aig/aigPart.c \
     src/aig/aig/aigPartReg.c \
     src/aig/aig/aigPartSat.c \
-    src/aig/aig/aigRepar.c \
     src/aig/aig/aigRepr.c \
     src/aig/aig/aigRet.c \
     src/aig/aig/aigRetF.c \

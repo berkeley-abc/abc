@@ -71,11 +71,12 @@ void Proof_ClauseSetEnts( Vec_Set_t* p, int h, int nEnts )          { Proof_Node
 // iterating through fanins of a proof node
 #define Proof_NodeForeachFanin( pProof, pNode, pFanin, i )        \
     for ( i = 0; (i < (int)pNode->nEnts) && (((pFanin) = (pNode->pEnts[i] & 1) ? NULL : Proof_NodeRead(pProof, pNode->pEnts[i] >> 2)), 1); i++ )
-//#define Proof_NodeForeachLeaf( pClauses, pNode, pLeaf, i )   \
-//    for ( i = 0; (i < (int)pNode->nEnts) && (((pLeaf) = (pNode->pEnts[i] & 1) ? Proof_ClauseRead(pClauses, pNode->pEnts[i] >> 2) : NULL), 1); i++ )
-//#define Proof_NodeForeachFaninLeaf( pProof, pClauses, pNode, pFanin, i )    \
-//    for ( i = 0; (i < (int)pNode->nEnts) && ((pFanin) = (pNode->pEnts[i] & 1) ? Proof_ClauseRead(pClauses, pNode->pEnts[i] >> 2) : Proof_NodeRead(pProof, pNode->pEnts[i] >> 2)); i++ )
-
+/*
+#define Proof_NodeForeachLeaf( pClauses, pNode, pLeaf, i )   \
+    for ( i = 0; (i < (int)pNode->nEnts) && (((pLeaf) = (pNode->pEnts[i] & 1) ? Proof_ClauseRead(pClauses, pNode->pEnts[i] >> 2) : NULL), 1); i++ )
+#define Proof_NodeForeachFaninLeaf( pProof, pClauses, pNode, pFanin, i )    \
+    for ( i = 0; (i < (int)pNode->nEnts) && ((pFanin) = (pNode->pEnts[i] & 1) ? Proof_ClauseRead(pClauses, pNode->pEnts[i] >> 2) : Proof_NodeRead(pProof, pNode->pEnts[i] >> 2)); i++ )
+*/
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
