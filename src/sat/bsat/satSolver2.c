@@ -1717,6 +1717,43 @@ void sat_solver2_verify( sat_solver2* s )
 //        Abc_Print(1, "Verification passed.\n" );
 }
 */
+// checks how many watched clauses are satisfied by 0-level assignments
+// (this procedure may be called before setting up a new bookmark for rollback)
+int sat_solver2_check_watched( sat_solver2* s )
+{
+    clause * c;
+    int i, k, j, m;
+    int claSat[2] = {0};
+    // update watches
+    for ( i = 0; i < s->size*2; i++ )
+    {
+        int * pArray = veci_begin(&s->wlists[i]);
+        for ( m = k = 0; k < veci_size(&s->wlists[i]); k++ )
+        {
+            c = clause2_read(s, pArray[k]);
+            for ( j = 0; j < (int)c->size; j++ )
+                if ( var_value(s, lit_var(c->lits[j])) == lit_sign(c->lits[j]) ) // true lit
+                    break;
+            if ( j == (int)c->size )
+            {
+                pArray[m++] = pArray[k];
+                continue;
+            }
+            claSat[c->lrn]++;
+        }
+        veci_resize(&s->wlists[i],m);
+        if ( m == 0 )
+        {
+//            s->wlists[i].cap = 0;
+//            s->wlists[i].size = 0;
+//            ABC_FREE( s->wlists[i].ptr );
+        }
+    }
+//    printf( "\nClauses = %d  (Sat = %d).  Learned = %d  (Sat = %d).\n",
+//        s->stats.clauses, claSat[0], s->stats.learnts, claSat[1] );
+    return 0;
+}
+
 
 int sat_solver2_solve(sat_solver2* s, lit* begin, lit* end, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimit, ABC_INT64_T nConfLimitGlobal, ABC_INT64_T nInsLimitGlobal)
 {
