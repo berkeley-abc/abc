@@ -237,8 +237,8 @@ static inline int Vec_SetAppend( Vec_Set_t * p, int * pArray, int nSize )
 static inline int Vec_SetAppendS( Vec_Set_t * p, int nSize )
 {
     int nWords = Vec_SetWordNum( nSize );
-    assert( nWords < (1 << p->nPageSize) );
-    if ( Vec_SetLimitS( p->pPages[p->iPageS] ) + nWords > (1 << p->nPageSize) )
+    assert( nWords + 3 < (1 << p->nPageSize) );
+    if ( Vec_SetLimitS( p->pPages[p->iPageS] ) + nWords >= (1 << p->nPageSize) )
         Vec_SetWriteLimitS( p->pPages[++p->iPageS], 2 );
     Vec_SetIncLimitS( p->pPages[p->iPageS], nWords );
     return Vec_SetHandCurrentS(p) - nWords;
