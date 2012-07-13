@@ -426,6 +426,9 @@ int Sat_ProofReduce( Vec_Set_t * vProof, void * pRoots, int hProofPivot )
             RetValue = hTemp;
             pPivot = NULL;
         }
+        pNode = (satset *)Vec_SetEntry(vProof, hTemp);
+        for ( k = 0; k < (int)pNode->nEnts; k++ )
+            assert( (pNode->pEnts[k] >> 2) );
     }
     Vec_SetWriteEntryNum( vProof, Vec_PtrSize(vUsed) );
     Vec_PtrFree( vUsed );
