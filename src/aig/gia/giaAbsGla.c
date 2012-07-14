@@ -20,6 +20,7 @@
 
 #include "gia.h"
 #include "giaAig.h"
+#include "giaAbsRef.h"
 #include "sat/cnf/cnf.h"
 #include "sat/bsat/satSolver2.h"
 #include "base/main/main.h"
@@ -85,6 +86,9 @@ struct Gla_Man_t_
     Vec_Int_t *    vCoreCounts;     // counts how many times each object appears in the core
     // refinement
     Vec_Int_t *    pvRefis;         // vectors of each object
+    // refinement manager
+    Gia_Man_t *    pGia2;
+    Rnm_Man_t *    pRnm;
     // statistics  
     clock_t        timeInit;
     clock_t        timeSat;
@@ -335,7 +339,44 @@ int Gia_ManGlaRefine( Gia_Man_t * p, Abc_Cex_t * pCex, int fMinCut, int fVerbose
 
 
 
+/**Function*************************************************************
 
+  Synopsis    [Prepares CEX and vMap for refinement.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_GlaPrepareCexAndMap( Gla_Man_t * p, Abc_Cex_t ** ppCex, Vec_Int_t ** pvMap )
+{
+    Abc_Cex_t * pCex;
+    Vec_Int_t * vMap;
+    Gla_Obj_t * pObj, * pFanin;
+    Gia_Obj_t * pGiaObj;
+    int f, i, k;
+    // find PIs and PPIs
+    vMap = Vec_IntAlloc( 1000 );
+    Gla_ManForEachObjAbs( p, pObj, i )
+    {
+        assert( pObj->fConst || pObj->fRo || pObj->fAnd );
+        Gla_ObjForEachFanin( p, pObj, pFanin, k )
+            if ( !pFanin->fAbs )
+                Vec_IntPush( vMap, pFanin->iGiaObj );
+    }
+    Vec_IntUniqify( vMap );
+    // derive counter-example
+    pCex = Abc_CexAlloc( 0, Vec_IntSize(vMap), p->pPars->iFrame+1 );
+    pCex->iFrame = p->pPars->iFrame;
+    for ( f = 0; f <= p->pPars->iFrame; f++ )
+        Gia_ManForEachObjVec( vMap, p->pGia, pGiaObj, k )
+            if ( Gla_ObjSatValue( p, Gia_ObjId(p->pGia, pGiaObj), f ) )
+                Abc_InfoSetBit( pCex->pData, f * Vec_IntSize(vMap) + k );
+    *pvMap = vMap;
+    *ppCex = pCex;
+}
 
 /**Function*************************************************************
 
@@ -358,6 +399,8 @@ Abc_Cex_t * Gla_ManDeriveCex( Gla_Man_t * p, Vec_Int_t * vPis )
     pCex->iFrame = p->pPars->iFrame;
     Gia_ManForEachObjVec( vPis, p->pGia, pObj, i )
     {
+        if ( !Gia_ObjIsPi(p->pGia, pObj) )
+            continue;
         assert( Gia_ObjIsPi(p->pGia, pObj) );
         for ( f = 0; f <= pCex->iFrame; f++ )
             if ( Gla_ObjSatValue( p, Gia_ObjId(p->pGia, pObj), f ) )
@@ -659,6 +702,42 @@ void Gla_ManVerifyUsingTerSim( Gla_Man_t * p, Vec_Int_t * vPis, Vec_Int_t * vPPi
 ***********************************************************************/
 Vec_Int_t * Gla_ManRefinement( Gla_Man_t * p )
 {
+    Abc_Cex_t * pCex;
+    Vec_Int_t * vMap, * vVec;
+    Gia_Obj_t * pObj;
+    int i;
+    Gia_GlaPrepareCexAndMap( p, &pCex, &vMap );
+    vVec = Rnm_ManRefine( p->pRnm, pCex, vMap, p->pPars->fPropFanout, 1 );
+    Abc_CexFree( pCex );
+    if ( Vec_IntSize(vVec) == 0 )
+    {
+        Vec_IntFree( vVec );
+        Abc_CexFreeP( &p->pGia->pCexSeq );
+        p->pGia->pCexSeq = Gla_ManDeriveCex( p, vMap );
+        Vec_IntFree( vMap );
+        return NULL;
+    }
+    Vec_IntFree( vMap );
+    // remap them into GLA objects
+    Gia_ManForEachObjVec( vVec, p->pGia, pObj, i )
+        Vec_IntWriteEntry( vVec, i, p->pObj2Obj[Gia_ObjId(p->pGia, pObj)] );
+    p->nObjAdded += Vec_IntSize(vVec);
+    return vVec;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs refinement.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Gla_ManRefinement2( Gla_Man_t * p )
+{
     int fVerify = 1;
     static int Sign = 0;
     Vec_Int_t * vPis, * vPPis, * vCos, * vRoAnds, * vSelect = NULL;
@@ -795,7 +874,7 @@ Vec_Int_t * Gla_ManRefinement( Gla_Man_t * p )
         Vec_IntFree( vPPis );
         Vec_IntFree( vRoAnds );
         Vec_IntFree( vCos );
-        return 0;
+        return NULL;
     }
 
     // select objects
@@ -1043,7 +1122,7 @@ Gla_Man_t * Gla_ManStart( Gia_Man_t * pGia0, Gia_ParVta_t * pPars )
     // create objects 
     p->pObjs    = ABC_CALLOC( Gla_Obj_t, p->nObjs );
     p->pObj2Obj = ABC_FALLOC( unsigned, Gia_ManObjNum(p->pGia) );
-    p->pvRefis  = ABC_CALLOC( Vec_Int_t, Gia_ManObjNum(p->pGia) );
+//    p->pvRefis  = ABC_CALLOC( Vec_Int_t, Gia_ManObjNum(p->pGia) );
     Gia_ManForEachObj( p->pGia, pObj, i )
     {
         p->pObj2Obj[i] = pObj->Value;
@@ -1103,6 +1182,9 @@ Gla_Man_t * Gla_ManStart( Gia_Man_t * pGia0, Gia_ParVta_t * pPars )
     p->pSat->nLearntRatio = p->pPars->nLearnedPerce;
     p->pSat->nLearntMax   = p->pSat->nLearntStart;
     p->nSatVars  = 1;
+    // start the refinement manager
+//    p->pGia2 = Gia_ManDup( p->pGia );
+    p->pRnm = Rnm_ManStart( p->pGia );
     return p;
 }
 
@@ -1153,7 +1235,7 @@ Gla_Man_t * Gla_ManStart2( Gia_Man_t * pGia, Gia_ParVta_t * pPars )
     // create objects 
     p->pObjs    = ABC_CALLOC( Gla_Obj_t, p->nObjs );
     p->pObj2Obj = ABC_FALLOC( unsigned, Gia_ManObjNum(p->pGia) );
-    p->pvRefis  = ABC_CALLOC( Vec_Int_t, Gia_ManObjNum(p->pGia) );
+//    p->pvRefis  = ABC_CALLOC( Vec_Int_t, Gia_ManObjNum(p->pGia) );
     Gia_ManForEachObj( p->pGia, pObj, i )
     {
         p->pObj2Obj[i] = pObj->Value;
@@ -1213,10 +1295,17 @@ void Gla_ManStop( Gla_Man_t * p )
 {
     Gla_Obj_t * pGla;
     int i;
+
 //    if ( p->pPars->fVerbose )
         Abc_Print( 1, "SAT solver:  Var = %d  Cla = %d  Conf = %d  Lrn = %d  Reduce = %d  Cex = %d  Objs+ = %d\n", 
             sat_solver2_nvars(p->pSat), sat_solver2_nclauses(p->pSat), sat_solver2_nconflicts(p->pSat), 
             sat_solver2_nlearnts(p->pSat), p->pSat->nDBreduces, p->nCexes, p->nObjAdded );
+
+    // stop the refinement manager
+//    Gia_ManStopP( &p->pGia2 );
+    Rnm_ManStop( p->pRnm, 1 );
+
+    if ( p->pvRefis )
     for ( i = 0; i < Gia_ManObjNum(p->pGia); i++ )
         ABC_FREE( p->pvRefis[i].pArray );
     Gla_ManForEachObj( p, pGla )
@@ -1632,18 +1721,19 @@ void Gla_ManAbsPrintFrame( Gla_Man_t * p, int nCoreSize, int nFrames, int nConfl
 void Gla_ManReportMemory( Gla_Man_t * p )
 {
     Gla_Obj_t * pGla;
-    int i;
+//    int i;
     double memTot = 0;
     double memAig = Gia_ManObjNum(p->pGia) * sizeof(Gia_Obj_t);
     double memSat = sat_solver2_memory( p->pSat, 1 );
     double memPro = sat_solver2_memory_proof( p->pSat );
     double memMap = p->nObjs * sizeof(Gla_Obj_t) + Gia_ManObjNum(p->pGia) * sizeof(int);
-    double memRef = Gia_ManObjNum(p->pGia) * sizeof(Vec_Int_t);
+//    double memRef = Gia_ManObjNum(p->pGia) * sizeof(Vec_Int_t);
+    double memRef = Rnm_ManMemoryUsage( p->pRnm );
     double memOth = sizeof(Gla_Man_t);
     for ( pGla = p->pObjs; pGla < p->pObjs + p->nObjs; pGla++ )
         memMap += Vec_IntCap(&pGla->vFrames) * sizeof(int);
-    for ( i = 0; i < Gia_ManObjNum(p->pGia); i++ )
-        memRef += Vec_IntCap(&p->pvRefis[i]) * sizeof(int);
+//    for ( i = 0; i < Gia_ManObjNum(p->pGia); i++ )
+//        memRef += Vec_IntCap(&p->pvRefis[i]) * sizeof(int);
     memOth += Vec_IntCap(p->vAddedNew) * sizeof(int);
     memOth += Vec_IntCap(p->vTemp) * sizeof(int);
     memOth += Vec_IntCap(p->vAbs) * sizeof(int);
@@ -1677,7 +1767,7 @@ void Gia_GlaSendAbsracted( Gla_Man_t * p, int fVerbose )
     assert( Abc_FrameIsBridgeMode() );
 //    if ( fVerbose )
 //        Abc_Print( 1, "Sending abstracted model...\n" );
-    // create abstraction
+    // create abstraction (value of p->pGia is not used here)
     vGateClasses = Gla_ManTranslate( p );
     pAbs = Gia_ManDupAbsGates( p->pGia0, vGateClasses );
     Vec_IntFreeP( &vGateClasses );
