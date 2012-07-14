@@ -394,7 +394,7 @@ int Sat_ProofReduce( Vec_Set_t * vProof, void * pRoots, int hProofPivot )
     clock_t clk = clock();
     static clock_t TimeTotal = 0;
     int RetValue;
-    static Count = 0;
+    static int Count = 0;
     Count++;
 
     Sat_ProofCheck0( vProof );
@@ -448,6 +448,8 @@ int Sat_ProofReduce( Vec_Set_t * vProof, void * pRoots, int hProofPivot )
             RetValue = hTemp;
             pPivot = NULL;
         }
+        pNode = (satset *)Vec_SetEntry(vProof, hTemp);
+        assert( pNode->partA == 0 );
     }
     Vec_SetWriteEntryNum( vProof, Vec_PtrSize(vUsed) );
     Vec_PtrFree( vUsed );
