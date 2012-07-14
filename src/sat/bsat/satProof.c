@@ -369,6 +369,7 @@ void Sat_ProofReduce2( sat_solver2 * s )
 } 
 */
 
+
 void Sat_ProofCheck0( Vec_Set_t * vProof )
 {
     satset * pNode, * pFanin;
@@ -380,6 +381,7 @@ void Sat_ProofCheck0( Vec_Set_t * vProof )
             assert( (pNode->pEnts[k] >> 2) );
     }
 }
+
 
 int Sat_ProofReduce( Vec_Set_t * vProof, void * pRoots, int hProofPivot )
 {
@@ -394,14 +396,12 @@ int Sat_ProofReduce( Vec_Set_t * vProof, void * pRoots, int hProofPivot )
     clock_t clk = clock();
     static clock_t TimeTotal = 0;
     int RetValue;
-    static int Count = 0;
-    Count++;
-
-    Sat_ProofCheck0( vProof );
 
     // collect visited nodes
     nSize = Proof_MarkUsedRec( vProof, vRoots );
     vUsed = Vec_PtrAlloc( nSize );
+
+Sat_ProofCheck0( vProof );
 
     // relabel nodes to use smaller space
     Vec_SetShrinkS( vProof, 2 );
@@ -411,15 +411,13 @@ int Sat_ProofReduce( Vec_Set_t * vProof, void * pRoots, int hProofPivot )
         if ( pNode->Id == 0 ) 
             continue;
         pNode->Id = Vec_SetAppendS( vProof, 2 + pNode->nEnts );
-        assert( pNode->Id > 1 );
-        assert( pNode->Id < (1<<vProof->nPageSize) );
-        assert( pNode->Id + nSize < (1<<vProof->nPageSize) );
+        assert( pNode->Id > 0 );
         Vec_PtrPush( vUsed, pNode );
         // update fanins
         Proof_NodeForeachFanin( vProof, pNode, pFanin, k )
             if ( (pNode->pEnts[k] & 1) == 0 ) // proof node
             {
-                assert( pFanin->Id > 1 );
+                assert( pFanin->Id > 0 );
                 pNode->pEnts[k] = (pFanin->Id << 2) | (pNode->pEnts[k] & 2);
             }
 //            else // problem clause
@@ -427,40 +425,26 @@ int Sat_ProofReduce( Vec_Set_t * vProof, void * pRoots, int hProofPivot )
     }
     // update roots
     Proof_ForeachNodeVec1( vRoots, vProof, pNode, i )
-    {
-        assert( pNode->Id > 1 );
         Vec_IntWriteEntry( vRoots, i, pNode->Id );
-    }
     // determine new pivot
     assert( hProofPivot >= 1 && hProofPivot <= Vec_SetHandCurrent(vProof) );
     pPivot = Proof_NodeRead( vProof, hProofPivot );
     RetValue = Vec_SetHandCurrentS(vProof);
 //    s->iProofPivot = Vec_PtrSize(vUsed);
-
-    Sat_ProofCheck0( vProof );
-
     // compact the nodes
     Vec_PtrForEachEntry( satset *, vUsed, pNode, i )
     {
-        int X = Proof_NodeWordNum(pNode->nEnts);
         hTemp = pNode->Id; pNode->Id = 0;
-        assert( hTemp > 1 );
-        assert( hTemp + Proof_NodeWordNum(pNode->nEnts) < (1<<vProof->nPageSize) );
         memmove( Vec_SetEntry(vProof, hTemp), pNode, sizeof(word)*Proof_NodeWordNum(pNode->nEnts) );
         if ( pPivot && pPivot <= pNode )
         {
             RetValue = hTemp;
             pPivot = NULL;
         }
-        {
-        satset * pTemp = (satset *)Vec_SetEntry(vProof, hTemp);
-        assert( pTemp->partA == 0 );
-        assert( X == Vec_SetWordNum( 2 + pTemp->nEnts ) );
-        }
     }
     Vec_SetWriteEntryNum( vProof, Vec_PtrSize(vUsed) );
     Vec_PtrFree( vUsed );
- 
+
     // report the result
     if ( fVerbose )
     {
@@ -475,7 +459,8 @@ int Sat_ProofReduce( Vec_Set_t * vProof, void * pRoots, int hProofPivot )
     Vec_SetShrinkLimits( vProof );
 //    Sat_ProofReduceCheck( s );
 
-    Sat_ProofCheck0( vProof );
+Sat_ProofCheck0( vProof );
+
     return RetValue;
 }
 
@@ -644,7 +629,6 @@ Vec_Int_t * Sat_ProofCollectCore( Vec_Set_t * vProof, Vec_Int_t * vUsed )
             if ( pFanin == NULL )
             {
                 int Entry = (pNode->pEnts[k] >> 2);
-                assert( Entry <= MaxCla );
                 if ( Abc_InfoHasBit(pBitMap, Entry) )
                     continue;
                 Abc_InfoSetBit(pBitMap, Entry);

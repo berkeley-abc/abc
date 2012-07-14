@@ -156,25 +156,6 @@ static inline void Vec_SetRestart( Vec_Set_t * p )
 
 /**Function*************************************************************
 
-  Synopsis    [Returns memory in bytes occupied by the vector.]
-
-  Description []
-
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-static inline double Vec_ReportMemory( Vec_Set_t * p )
-{
-    double Mem = sizeof(Vec_Set_t);
-    Mem += p->nPagesAlloc * sizeof(void *);
-    Mem += sizeof(word) * (1 << p->nPageSize) * (1 + p->iPage);
-    return Mem;
-}
-
-/**Function*************************************************************
-
   Synopsis    [Freeing vector.]
 
   Description []
@@ -195,6 +176,25 @@ static inline void Vec_SetFree( Vec_Set_t * p )
 {
     Vec_SetFree_( p );
     ABC_FREE( p );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns memory in bytes occupied by the vector.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline double Vec_ReportMemory( Vec_Set_t * p )
+{
+    double Mem = sizeof(Vec_Set_t);
+    Mem += p->nPagesAlloc * sizeof(void *);
+    Mem += sizeof(word) * (1 << p->nPageSize) * (1 + p->iPage);
+    return Mem;
 }
 
 /**Function*************************************************************
@@ -233,19 +233,11 @@ static inline int Vec_SetAppend( Vec_Set_t * p, int * pArray, int nSize )
 }
 static inline int Vec_SetAppendS( Vec_Set_t * p, int nSize )
 {
-    int Before1, Before2, After;
     int nWords = Vec_SetWordNum( nSize );
     assert( nWords < (1 << p->nPageSize) );
-    Before1 = Vec_SetLimitS( p->pPages[p->iPageS] );
-
     if ( Vec_SetLimitS( p->pPages[p->iPageS] ) + nWords >= (1 << p->nPageSize) )
         Vec_SetWriteLimitS( p->pPages[++p->iPageS], 2 );
-    Before2 = Vec_SetLimitS( p->pPages[p->iPageS] );
-
     Vec_SetIncLimitS( p->pPages[p->iPageS], nWords );
-    After = Vec_SetLimitS( p->pPages[p->iPageS] );
-
-    assert( Vec_SetHandCurrentS(p) - nWords < (1 << p->nPageSize) );
     return Vec_SetHandCurrentS(p) - nWords;
 }
 
