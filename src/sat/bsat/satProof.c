@@ -338,7 +338,6 @@ void Sat_ProofReduce2( sat_solver2 * s )
     assert( s->hProofPivot >= 1 && s->hProofPivot <= Vec_SetHandCurrent(vProof) );
     pPivot = Proof_NodeRead( vProof, s->hProofPivot );
     s->hProofPivot = Vec_SetHandCurrentS(vProof);
-    s->iProofPivot = Vec_IntSize(vUsed);
     // compact the nodes
     Proof_ForeachNodeVec( vUsed, vProof, pNode, i )
     {
@@ -347,7 +346,6 @@ void Sat_ProofReduce2( sat_solver2 * s )
         if ( pPivot && pPivot <= pNode )
         { 
             s->hProofPivot = hTemp;
-            s->iProofPivot = i;
             pPivot = NULL;
         }
     }
@@ -382,7 +380,6 @@ void Sat_ProofCheck0( Vec_Set_t * vProof )
     }
 }
 
-
 int Sat_ProofReduce( Vec_Set_t * vProof, void * pRoots, int hProofPivot )
 {
 //    Vec_Set_t * vProof   = (Vec_Set_t *)&s->Proofs;
@@ -396,14 +393,12 @@ int Sat_ProofReduce( Vec_Set_t * vProof, void * pRoots, int hProofPivot )
     clock_t clk = clock();
     static clock_t TimeTotal = 0;
     int RetValue;
-
-Sat_ProofCheck0( vProof );
+//Sat_ProofCheck0( vProof );
 
     // collect visited nodes
     nSize = Proof_MarkUsedRec( vProof, vRoots );
     vUsed = Vec_PtrAlloc( nSize );
-
-Sat_ProofCheck0( vProof );
+//Sat_ProofCheck0( vProof );
 
     // relabel nodes to use smaller space
     Vec_SetShrinkS( vProof, 2 );
@@ -432,7 +427,6 @@ Sat_ProofCheck0( vProof );
     assert( hProofPivot >= 1 && hProofPivot <= Vec_SetHandCurrent(vProof) );
     pPivot = Proof_NodeRead( vProof, hProofPivot );
     RetValue = Vec_SetHandCurrentS(vProof);
-//    s->iProofPivot = Vec_PtrSize(vUsed);
     // compact the nodes
     Vec_PtrForEachEntry( satset *, vUsed, pNode, i )
     {
@@ -460,8 +454,7 @@ Sat_ProofCheck0( vProof );
     Vec_SetShrink( vProof, Vec_SetHandCurrentS(vProof) );
     Vec_SetShrinkLimits( vProof );
 //    Sat_ProofReduceCheck( s );
-
-Sat_ProofCheck0( vProof );
+//Sat_ProofCheck0( vProof );
 
     return RetValue;
 }
