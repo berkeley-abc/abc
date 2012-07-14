@@ -1872,7 +1872,7 @@ int Abc_NtkDarBmc( Abc_Ntk_t * pNtk, int nStart, int nFrames, int nSizeMax, int 
         return RetValue;
     }
     assert( pMan->nRegs > 0 );
-    assert( Vec_IntSize(vMap) == Saig_ManPoNum(pMan) );
+    assert( vMap == NULL || Vec_IntSize(vMap) == Saig_ManPoNum(pMan) );
     if ( fVerbose && vMap && Abc_NtkPoNum(pNtk) != Saig_ManPoNum(pMan) ) 
         Abc_Print( 1, "Expanded %d outputs into %d outputs using OR decomposition.\n", Abc_NtkPoNum(pNtk), Saig_ManPoNum(pMan) );
 
