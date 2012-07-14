@@ -448,8 +448,11 @@ int Sat_ProofReduce( Vec_Set_t * vProof, void * pRoots, int hProofPivot )
             RetValue = hTemp;
             pPivot = NULL;
         }
-        pNode = (satset *)Vec_SetEntry(vProof, hTemp);
-        assert( pNode->partA == 0 );
+        {
+        satset * pTemp = (satset *)Vec_SetEntry(vProof, hTemp);
+        assert( pTemp->partA == 0 );
+        assert( Proof_NodeWordNum(pNode->nEnts) == Vec_SetWordNum( 2 + pTemp->nEnts ) );
+        }
     }
     Vec_SetWriteEntryNum( vProof, Vec_PtrSize(vUsed) );
     Vec_PtrFree( vUsed );
