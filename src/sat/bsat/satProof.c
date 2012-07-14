@@ -458,9 +458,7 @@ int Sat_ProofReduce( Vec_Set_t * vProof, void * pRoots, int hProofPivot )
     }
     Vec_SetWriteEntryNum( vProof, Vec_PtrSize(vUsed) );
     Vec_PtrFree( vUsed );
-
-    Sat_ProofCheck0( vProof );
-
+ 
     // report the result
     if ( fVerbose )
     {
@@ -474,6 +472,8 @@ int Sat_ProofReduce( Vec_Set_t * vProof, void * pRoots, int hProofPivot )
     Vec_SetShrink( vProof, Vec_SetHandCurrentS(vProof) );
     Vec_SetShrinkLimits( vProof );
 //    Sat_ProofReduceCheck( s );
+
+    Sat_ProofCheck0( vProof );
     return RetValue;
 }
 
