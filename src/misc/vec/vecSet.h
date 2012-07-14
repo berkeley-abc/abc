@@ -238,6 +238,7 @@ static inline int Vec_SetAppendS( Vec_Set_t * p, int nSize )
     if ( Vec_SetLimitS( p->pPages[p->iPageS] ) + nWords >= (1 << p->nPageSize) )
         Vec_SetWriteLimitS( p->pPages[++p->iPageS], 2 );
     Vec_SetIncLimitS( p->pPages[p->iPageS], nWords );
+    assert( Vec_SetHandCurrentS(p) - nWords < (1 << p->nPageSize) );
     return Vec_SetHandCurrentS(p) - nWords;
 }
 
