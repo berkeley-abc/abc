@@ -440,7 +440,7 @@ int Sat_ProofReduce( Vec_Set_t * vProof, void * pRoots, int hProofPivot )
     // compact the nodes
     Vec_PtrForEachEntry( satset *, vUsed, pNode, i )
     {
-        int X = sizeof(word)*Proof_NodeWordNum(pNode->nEnts);
+        int X = Proof_NodeWordNum(pNode->nEnts);
         hTemp = pNode->Id; pNode->Id = 0;
         assert( hTemp > 1 );
         memmove( Vec_SetEntry(vProof, hTemp), pNode, sizeof(word)*Proof_NodeWordNum(pNode->nEnts) );
