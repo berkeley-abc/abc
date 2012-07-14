@@ -287,21 +287,27 @@ static inline void Abc_Print( int level, const char * format, ... )
 
 static inline void Abc_PrintInt( int i )
 {
+    double v3 = (double)i/1000;
+    double v6 = (double)i/1000000;
+
     Abc_Print( 1,  "  " );
+
     if ( i > -1000 && i < 1000 )
         Abc_Print( 1, " %4d", i );
-    else if ( i > -10000 && i < 10000 )
-        Abc_Print( 1, "%4.2fk", (double)i/1000 );
-    else if ( i > -100000 && i < 100000 )
-        Abc_Print( 1, "%4.1fk", (double)i/1000 );
-    else if ( i > -1000000 && i < 1000000 )
-        Abc_Print( 1, "%4.0fk", (double)i/1000 );
-    else if ( i > -10000000 && i < 10000000 )
-        Abc_Print( 1, "%4.2fm", (double)i/1000000 );
-    else if ( i > -100000000 && i < 100000000 )
-        Abc_Print( 1, "%4.1fm", (double)i/1000000 );
-    else if ( i > -1000000000 && i < 1000000000 )
-        Abc_Print( 1, "%4.0fm", (double)i/1000000 );
+
+    else if ( v3 > -10.0 && v3 < 10.0 )
+        Abc_Print( 1, "%4.2fk", v3 );
+    else if ( v3 > -100.0 && v3 < 100.0 )
+        Abc_Print( 1, "%4.1fk", v3 );
+    else if ( v3 > -1000.0 && v3 < 1000.0 )
+        Abc_Print( 1, "%4.0fk", v3 );
+
+    else if ( v6 > -10.0 && v6 < 10.0 )
+        Abc_Print( 1, "%4.2fm", v6 );
+    else if ( v6 > -100.0 && v6 < 100.0 )
+        Abc_Print( 1, "%4.1fm", v6 );
+    else if ( v6 > -1000.0 && v6 < 1000.0 )
+        Abc_Print( 1, "%4.0fm", v6 );
 }
 
 static inline void Abc_PrintTime( int level, const char * pStr, clock_t time )
