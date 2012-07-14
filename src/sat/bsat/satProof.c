@@ -443,6 +443,7 @@ int Sat_ProofReduce( Vec_Set_t * vProof, void * pRoots, int hProofPivot )
         int X = Proof_NodeWordNum(pNode->nEnts);
         hTemp = pNode->Id; pNode->Id = 0;
         assert( hTemp > 1 );
+        assert( hTemp + Proof_NodeWordNum(pNode->nEnts) < (1<<vProof->nPageSize) );
         memmove( Vec_SetEntry(vProof, hTemp), pNode, sizeof(word)*Proof_NodeWordNum(pNode->nEnts) );
         if ( pPivot && pPivot <= pNode )
         {
