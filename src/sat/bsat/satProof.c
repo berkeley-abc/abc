@@ -397,6 +397,8 @@ int Sat_ProofReduce( Vec_Set_t * vProof, void * pRoots, int hProofPivot )
     static clock_t TimeTotal = 0;
     int RetValue;
 
+Sat_ProofCheck0( vProof );
+
     // collect visited nodes
     nSize = Proof_MarkUsedRec( vProof, vRoots );
     vUsed = Vec_PtrAlloc( nSize );
