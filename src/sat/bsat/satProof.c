@@ -369,6 +369,17 @@ void Sat_ProofReduce2( sat_solver2 * s )
 } 
 */
 
+void Sat_ProofCheck0( Vec_Set_t * vProof )
+{
+    satset * pNode, * pFanin;
+    int i, j, k, nSize;
+    Vec_SetForEachEntry( satset *, vProof, nSize, pNode, i, j )
+    {
+        nSize = Vec_SetWordNum( 2 + pNode->nEnts );
+        Proof_NodeForeachFanin( vProof, pNode, pFanin, k )
+            assert( (pNode->pEnts[k] >> 2) );
+    }
+}
 
 int Sat_ProofReduce( Vec_Set_t * vProof, void * pRoots, int hProofPivot )
 {
@@ -383,6 +394,10 @@ int Sat_ProofReduce( Vec_Set_t * vProof, void * pRoots, int hProofPivot )
     clock_t clk = clock();
     static clock_t TimeTotal = 0;
     int RetValue;
+    static Count = 0;
+    Count++;
+
+    Sat_ProofCheck0( vProof );
 
     // collect visited nodes
     nSize = Proof_MarkUsedRec( vProof, vRoots );
@@ -419,6 +434,9 @@ int Sat_ProofReduce( Vec_Set_t * vProof, void * pRoots, int hProofPivot )
     pPivot = Proof_NodeRead( vProof, hProofPivot );
     RetValue = Vec_SetHandCurrentS(vProof);
 //    s->iProofPivot = Vec_PtrSize(vUsed);
+
+    Sat_ProofCheck0( vProof );
+
     // compact the nodes
     Vec_PtrForEachEntry( satset *, vUsed, pNode, i )
     {
@@ -430,12 +448,11 @@ int Sat_ProofReduce( Vec_Set_t * vProof, void * pRoots, int hProofPivot )
             RetValue = hTemp;
             pPivot = NULL;
         }
-        pNode = (satset *)Vec_SetEntry(vProof, hTemp);
-        for ( k = 0; k < (int)pNode->nEnts; k++ )
-            assert( (pNode->pEnts[k] >> 2) );
     }
     Vec_SetWriteEntryNum( vProof, Vec_PtrSize(vUsed) );
     Vec_PtrFree( vUsed );
+
+    Sat_ProofCheck0( vProof );
 
     // report the result
     if ( fVerbose )
@@ -618,6 +635,7 @@ Vec_Int_t * Sat_ProofCollectCore( Vec_Set_t * vProof, Vec_Int_t * vUsed )
             if ( pFanin == NULL )
             {
                 int Entry = (pNode->pEnts[k] >> 2);
+                assert( Entry <= MaxCla );
                 if ( Abc_InfoHasBit(pBitMap, Entry) )
                     continue;
                 Abc_InfoSetBit(pBitMap, Entry);
