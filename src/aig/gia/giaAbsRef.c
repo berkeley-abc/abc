@@ -29,6 +29,7 @@ ABC_NAMESPACE_IMPL_START
     This refinement manager should be 
     * started by calling Rnm_ManStart()
        this procedure takes one argument, the user's seq miter as a GIA manager
+       - the manager should have only one property output
        - this manager should not change while the refinement manager is alive
        - it cannot be used by external applications for any purpose
        - when the refinement manager stop, GIA manager is the same as at the beginning
@@ -131,6 +132,7 @@ static inline Rnm_Obj_t * Rnm_ManObj( Rnm_Man_t * p, Gia_Obj_t * pObj, int f )
 Rnm_Man_t * Rnm_ManStart( Gia_Man_t * pGia )
 {
     Rnm_Man_t * p;
+    assert( Gia_ManPoNum(pGia) == 1 );
     p = ABC_CALLOC( Rnm_Man_t, 1 );
     p->pGia = pGia;
     p->vObjs = Vec_IntAlloc( 100 );
