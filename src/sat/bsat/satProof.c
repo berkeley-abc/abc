@@ -412,6 +412,8 @@ int Sat_ProofReduce( Vec_Set_t * vProof, void * pRoots, int hProofPivot )
             continue;
         pNode->Id = Vec_SetAppendS( vProof, 2 + pNode->nEnts );
         assert( pNode->Id > 1 );
+        assert( pNode->Id < (1<<vProof->nPageSize) );
+        assert( pNode->Id + nSize < (1<<vProof->nPageSize) );
         Vec_PtrPush( vUsed, pNode );
         // update fanins
         Proof_NodeForeachFanin( vProof, pNode, pFanin, k )
