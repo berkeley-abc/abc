@@ -1571,8 +1571,8 @@ void sat_solver2_rollback( sat_solver2* s )
     if ( s->fProofLogging ) 
     {
         veci_resize(&s->claProofs, s->stats.learnts);
-        Vec_SetShrink(&s->Proofs, s->hProofPivot); // past bug here
-//       Sat_ProofReduce( &s->Proofs, &s->claProofs, s->hProofPivot );
+//        Vec_SetShrink(&s->Proofs, s->hProofPivot); // past bug here
+       Sat_ProofReduce( &s->Proofs, &s->claProofs, s->hProofPivot );
     }
 
     // initialize other vars
