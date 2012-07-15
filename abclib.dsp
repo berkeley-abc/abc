@@ -379,6 +379,10 @@ SOURCE=.\src\base\abci\abcRec.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\abci\abcRec2.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\abci\abcReconv.c
 # End Source File
 # Begin Source File

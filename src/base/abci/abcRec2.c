@@ -1029,6 +1029,7 @@ void Abc_NtkRecInsertToLookUpTable2(Abc_ManRec_t2* p, int* ppSpot, Gia_Obj_t* pP
     unsigned char costFromStruct = Abc_NtkRecArea2(pObj);
     Abc_LookUpStatus_t2 result;
     Rec_Obj_t2 * pRecObj;
+    assert( nVars > 0 );
     for (i = 0; i < nVars; i++)
     {
         pLeaf = Gia_ManPi( p->pGia,  i);
