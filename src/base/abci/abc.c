@@ -212,6 +212,14 @@ static int Abc_CommandRecUse                 ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandRecFilter              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRecMerge               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
+static int Abc_CommandRecStart2              ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandRecPs2                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandRecAdd2                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandRecStop2               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandRecDump2               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandRecMerge2              ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandRecFilter2             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+
 static int Abc_CommandMap                    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAmap                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandUnmap                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -660,6 +668,14 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Choicing",     "rec_use",       Abc_CommandRecUse,           1 );
     Cmd_CommandAdd( pAbc, "Choicing",     "rec_filter",    Abc_CommandRecFilter,        1 );
     Cmd_CommandAdd( pAbc, "Choicing",     "rec_merge",     Abc_CommandRecMerge,         1 );
+
+    Cmd_CommandAdd( pAbc, "Choicing",     "rec_start2",     Abc_CommandRecStart2,         0 );
+    Cmd_CommandAdd( pAbc, "Choicing",     "rec_stop2",      Abc_CommandRecStop2,          0 );
+    Cmd_CommandAdd( pAbc, "Choicing",     "rec_add2",       Abc_CommandRecAdd2,           0 );
+    Cmd_CommandAdd( pAbc, "Choicing",     "rec_ps2",        Abc_CommandRecPs2,            0 );
+    Cmd_CommandAdd( pAbc, "Choicing",     "rec_dump2",       Abc_CommandRecDump2,         1 );
+    Cmd_CommandAdd( pAbc, "Choicing",     "rec_filter2",    Abc_CommandRecFilter2,        1 );
+    Cmd_CommandAdd( pAbc, "Choicing",     "rec_merge2",     Abc_CommandRecMerge2,         1 );
 
     Cmd_CommandAdd( pAbc, "SC mapping",   "map",           Abc_CommandMap,              1 );
     Cmd_CommandAdd( pAbc, "SC mapping",   "amap",          Abc_CommandAmap,             1 );
@@ -12600,6 +12616,473 @@ int Abc_CommandRecMerge( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
     Abc_NtkRecLibMerge(pNtk);
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: rec_merge [-h]\n" );
+    Abc_Print( -2, "\t        merge libraries\n" );
+    Abc_Print( -2, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandRecStart2( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    //Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+    char * FileName, * pTemp;
+    char ** pArgvNew;
+    int nArgcNew;
+    FILE * pFile;
+    Gia_Man_t * pGia = NULL;
+    int c;
+    int nVars;
+    int nCuts;
+    int fTrim;
+
+    //pNtk = Abc_FrameReadNtk(pAbc);
+    // set defaults
+    nVars = 6;
+    nCuts = 32;
+    fTrim = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KCth" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'K':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-K\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nVars = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nVars < 1 ) 
+                goto usage;
+            break;
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-C\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nCuts = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nCuts < 1 ) 
+                goto usage;
+            break;
+        case 't':
+            fTrim ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( !(nVars >= 3 && nVars <= 16) )
+    {
+        Abc_Print( -1, "The range of allowed values is 3 <= K <= 16.\n" );
+        return 0;
+    }
+    if ( Abc_NtkRecIsRunning() )
+    {
+        Abc_Print( -1, "The AIG subgraph recording is already started.\n" );
+        return 0;
+    }
+//     if ( pNtk && !Abc_NtkIsStrash(pNtk) )
+//     {
+//         Abc_Print( -1, "This command works only for AIGs; run strashing (\"st\").\n" );
+//         return 0;
+//     }
+    pArgvNew = argv + globalUtilOptind;
+    nArgcNew = argc - globalUtilOptind;
+    if ( nArgcNew != 1 )
+        Abc_Print( 1, "File name is not given on the command line. Start a new record.\n" );
+    else
+    {   
+        // get the input file name
+        FileName = pArgvNew[0];
+        // fix the wrong symbol
+        for ( pTemp = FileName; *pTemp; pTemp++ )
+            if ( *pTemp == '>' )
+                *pTemp = '\\';
+        if ( (pFile = fopen( FileName, "r" )) == NULL )
+        {
+            Abc_Print( -1, "Cannot open input file \"%s\". ", FileName );
+            if ( (FileName = Extra_FileGetSimilarName( FileName, ".aig", NULL, NULL, NULL, NULL )) )
+                Abc_Print( 1, "Did you mean \"%s\"?", FileName );
+            Abc_Print( 1, "\n" );
+            return 1;
+        }
+        fclose( pFile );
+        pGia = Gia_ReadAiger( FileName, 0 );
+        if ( pGia == NULL )
+        {
+            Abc_Print( -1, "Reading AIGER has failed.\n" );
+            return 0;
+        }
+    }
+    Abc_NtkRecStart2( pGia, nVars, nCuts, fTrim );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: rec_start [-K num] [-C num] [-th]\n" );
+    Abc_Print( -2, "\t         starts recording AIG subgraphs (should be called for\n" );
+    Abc_Print( -2, "\t         an empty network or after reading in a previous record)\n" );
+    Abc_Print( -2, "\t-K num : the largest number of inputs [default = %d]\n", nVars );
+    Abc_Print( -2, "\t-C num : the max number of cuts used at a node (0 < num < 2^12) [default = %d]\n", nCuts );
+    Abc_Print( -2, "\t-t     : toggles the use of trimming [default = %s]\n", fTrim? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandRecStop2( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+//    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+    int c;
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "dh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( !Abc_NtkRecIsRunning2() )
+    {
+        Abc_Print( -1, "This command works only after calling \"rec_start2\".\n" );
+        return 0;
+    }
+    Abc_NtkRecStop2();
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: rec_stop [-h]\n" );
+    Abc_Print( -2, "\t        cleans the internal storage for AIG subgraphs\n" );
+    Abc_Print( -2, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandRecAdd2( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+    int c;
+    int fUseSOPB = 0;
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "gh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'g':
+            fUseSOPB = 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        Abc_Print( -1, "This command works for AIGs.\n" );
+        return 0;
+    }
+    if ( !Abc_NtkRecIsRunning2() )
+    {
+        Abc_Print( -1, "This command works for AIGs after calling \"rec_start2\".\n" );
+        return 0;
+    }
+    Abc_NtkRecAdd2( pNtk, fUseSOPB);
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: rec_add [-h]\n" );
+    Abc_Print( -2, "\t        adds subgraphs from the current network to the set\n" );
+    Abc_Print( -2, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandRecPs2( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+//    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+    int c, fPrintLib = 0;
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "ph" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'p':
+            fPrintLib ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( !Abc_NtkRecIsRunning2() )
+    {
+        Abc_Print( -1, "This command works for AIGs only after calling \"rec_start2\".\n" );
+        return 0;
+    }
+    Abc_NtkRecPs2(fPrintLib);
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: rec_ps [-h]\n" );
+    Abc_Print( -2, "\t        prints statistics about the recorded AIG subgraphs\n" );
+    Abc_Print( -2, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandRecDump2( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    //Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+    char * FileName;
+    char ** pArgvNew;
+    int nArgcNew;
+    Gia_Man_t * pGia;
+    int c;
+
+    //pNtk = Abc_FrameReadNtk(pAbc);
+    // set defaults
+    Extra_UtilGetoptReset();
+    
+    if ( !Abc_NtkRecIsRunning2() )
+    {
+        Abc_Print( -1, "The AIG subgraph recording is not started.\n" );
+        return 1;
+    }
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    pGia = Abc_NtkRecGetGia();
+    pArgvNew = argv + globalUtilOptind;
+    nArgcNew = argc - globalUtilOptind;
+    if ( nArgcNew != 1 )
+    {
+        Abc_Print( -1, "File name is not given on the command line.\n" );
+        return 1;
+    }
+    else if(Gia_ManPoNum(pGia) == 0)
+    {
+        Abc_Print( 0, "No structure in the library.\n" );
+        return 1;
+    }
+    else
+    {   
+        // get the input file name
+        FileName = pArgvNew[0];
+        Gia_WriteAiger( pGia, FileName, 0, 0 );
+    }   
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: rec_dump [-h] <file>\n" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandRecFilter2( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+//    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+    int c, nLimit = 0;
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Fh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'F':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-F\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nLimit = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nLimit < 0 ) 
+                goto usage;
+        break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( !Abc_NtkRecIsRunning2() )
+    {
+        Abc_Print( -1, "This command works for AIGs only after calling \"rec_start2\".\n" );
+        return 0;
+    }
+    if (!Abc_NtkRecIsInTrimMode2())
+        Abc_Print( 0, "This command works fine only in trim mode. Please call \"rec_start2 -t\" first.\n" );
+    
+    Abc_NtkRecFilter2(nLimit);
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: rec_filter [-h]\n" );
+    Abc_Print( -2, "\t         filter the library of the recorder\n" );
+    Abc_Print( -2, "\t-F num : the limit number of function class [default = %d]\n", nLimit );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandRecMerge2( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    int c;
+    char * FileName, * pTemp;
+    char ** pArgvNew;
+    int nArgcNew;
+    FILE * pFile;
+    Gia_Man_t * pGia = NULL;
+
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "dh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( !Abc_NtkRecIsRunning2() )
+    {
+        Abc_Print( -1, "This command works for AIGs only after calling \"rec_start2\".\n" );
+        return 0;
+    }
+    pArgvNew = argv + globalUtilOptind;
+    nArgcNew = argc - globalUtilOptind;
+    if ( nArgcNew != 1 )
+    {
+        Abc_Print( -1, "File name is not given on the command line.\n" );
+        return 1;
+    }
+    else
+    {   
+        // get the input file name
+        FileName = pArgvNew[0];
+        // fix the wrong symbol
+        for ( pTemp = FileName; *pTemp; pTemp++ )
+            if ( *pTemp == '>' )
+                *pTemp = '\\';
+        if ( (pFile = fopen( FileName, "r" )) == NULL )
+        {
+            Abc_Print( -1, "Cannot open input file \"%s\". ", FileName );
+            if ( (FileName = Extra_FileGetSimilarName( FileName, ".aig", NULL, NULL, NULL, NULL )) )
+                Abc_Print( 1, "Did you mean \"%s\"?", FileName );
+            Abc_Print( 1, "\n" );
+            return 1;
+        }
+        fclose( pFile );
+        pGia = Gia_ReadAiger( FileName, 0 );
+        if ( pGia == NULL )
+        {
+            Abc_Print( -1, "Reading AIGER has failed.\n" );
+            return 0;
+        }
+    }
+    Abc_NtkRecLibMerge2(pGia);
     return 0;
 
 usage:

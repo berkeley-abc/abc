@@ -1360,12 +1360,17 @@ unsigned * Gia_ManComputePoTruthTables( Gia_Man_t * p, int nBytesMax )
 int Gia_ObjComputeTruthTable_rec( Gia_Man_t * p, Gia_Obj_t * pObj )
 {
     word * pTruth0, * pTruth1, * pTruth, * pTruthL;
+    int Value0, Value1;
     if ( Gia_ObjIsTravIdCurrent(p, pObj) )
         return pObj->Value;
     Gia_ObjSetTravIdCurrent(p, pObj);
     assert( Gia_ObjIsAnd(pObj) );
-    pTruth0 = Vec_WrdArray(p->vTtMemory) + p->nTtWords * Gia_ObjComputeTruthTable_rec( p, Gia_ObjFanin0(pObj) );
-    pTruth1 = Vec_WrdArray(p->vTtMemory) + p->nTtWords * Gia_ObjComputeTruthTable_rec( p, Gia_ObjFanin1(pObj) );
+    Value0 = Gia_ObjComputeTruthTable_rec( p, Gia_ObjFanin0(pObj) );
+    Value1 = Gia_ObjComputeTruthTable_rec( p, Gia_ObjFanin1(pObj) );
+    assert( Value0 < Vec_WrdSize(p->vTtMemory) );
+    assert( Value1 < Vec_WrdSize(p->vTtMemory) );
+    pTruth0 = Vec_WrdArray(p->vTtMemory) + p->nTtWords * Value0;
+    pTruth1 = Vec_WrdArray(p->vTtMemory) + p->nTtWords * Value1;
     assert( p->nTtWords * p->iTtNum < Vec_WrdSize(p->vTtMemory) );
     pTruth  = Vec_WrdArray(p->vTtMemory) + p->nTtWords * p->iTtNum++;
     pTruthL = Vec_WrdArray(p->vTtMemory) + p->nTtWords * p->iTtNum;
@@ -1387,7 +1392,7 @@ int Gia_ObjComputeTruthTable_rec( Gia_Man_t * p, Gia_Obj_t * pObj )
             while ( pTruth < pTruthL )
                 *pTruth++ =  *pTruth0++ &  *pTruth1++;
     }
-    return p->iTtNum-1;
+    return (pObj->Value = p->iTtNum-1);
 }
 unsigned * Gia_ObjComputeTruthTable( Gia_Man_t * p, Gia_Obj_t * pObj )
 {

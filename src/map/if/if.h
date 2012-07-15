@@ -525,9 +525,13 @@ extern int             If_ManCountSpecialPos( If_Man_t * p );
 
 /*=== abcRec.c ============================================================*/
 extern int             If_CutDelayRecCost(If_Man_t* p, If_Cut_t* pCut, If_Obj_t * pObj);
+extern int             If_CutDelayRecCost2(If_Man_t* p, If_Cut_t* pCut, If_Obj_t * pObj);
+/*=== abcRec2.c ============================================================*/
+extern int             Abc_NtkRecIsRunning();
+extern int             Abc_NtkRecIsRunning2();
 
 // othe packages
-extern int Bat_ManCellFuncLookup( unsigned * pTruth, int nVars, int nLeaves );
+extern int             Bat_ManCellFuncLookup( unsigned * pTruth, int nVars, int nLeaves );
 
 ABC_NAMESPACE_HEADER_END
 

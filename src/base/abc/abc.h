@@ -33,6 +33,7 @@
 
 #include "misc/vec/vec.h"
 #include "aig/hop/hop.h"
+#include "aig/gia/gia.h"
 #include "misc/st/st.h"
 #include "misc/st/stmm.h"
 #include "misc/nm/nm.h"
@@ -783,6 +784,16 @@ extern ABC_DLL int                Abc_NtkRecIsInTrimMode();
 extern ABC_DLL int                Abc_NtkRecVarNum();
 extern ABC_DLL Vec_Int_t *        Abc_NtkRecMemory();
 extern ABC_DLL int                Abc_NtkRecStrashNode( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj, unsigned * pTruth, int nVars );
+/*=== abcRec2.c ==========================================================*/
+extern ABC_DLL void               Abc_NtkRecStart2( Gia_Man_t *p, int nVars, int nCuts, int fTrim );
+extern ABC_DLL void               Abc_NtkRecStop2();
+extern ABC_DLL void               Abc_NtkRecAdd2( Abc_Ntk_t * pNtk, int fUseSOPB );
+extern ABC_DLL void               Abc_NtkRecPs2(int fPrintLib);
+extern ABC_DLL Gia_Man_t *        Abc_NtkRecGetGia();
+extern ABC_DLL void               Abc_NtkRecLibMerge2(Gia_Man_t * pGia);
+extern ABC_DLL int                Abc_NtkRecIsRunning2();
+extern ABC_DLL int                Abc_NtkRecIsInTrimMode2();
+extern ABC_DLL void               Abc_NtkRecFilter2(int nLimit);
 /*=== abcReconv.c ==========================================================*/
 extern ABC_DLL Abc_ManCut_t *     Abc_NtkManCutStart( int nNodeSizeMax, int nConeSizeMax, int nNodeFanStop, int nConeFanStop );
 extern ABC_DLL void               Abc_NtkManCutStop( Abc_ManCut_t * p );

@@ -156,7 +156,14 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
 ///        if ( p->pPars->pLutStruct )
 ///            pCut->Delay = If_CutDelayLutStruct( p, pCut, p->pPars->pLutStruct, p->pPars->WireDelay );
         if ( p->pPars->fUserRecLib )
-            pCut->Delay = If_CutDelayRecCost(p, pCut, pObj);
+        {
+            if((Abc_NtkRecIsRunning2()&& Abc_NtkRecIsRunning()) || (!Abc_NtkRecIsRunning2()&& !Abc_NtkRecIsRunning()))
+                assert(0);
+            else if(Abc_NtkRecIsRunning())
+                pCut->Delay = If_CutDelayRecCost(p, pCut, pObj); 
+            else
+                pCut->Delay = If_CutDelayRecCost2(p, pCut, pObj);
+        }
         else if(p->pPars->fDelayOpt)
             pCut->Delay = If_CutDelaySopCost(p,pCut);
         else if(p->pPars->nGateSize > 0)
@@ -228,7 +235,14 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
 ///        if ( p->pPars->pLutStruct )
 ///            pCut->Delay = If_CutDelayLutStruct( p, pCut, p->pPars->pLutStruct, p->pPars->WireDelay );
         if ( p->pPars->fUserRecLib )
-            pCut->Delay = If_CutDelayRecCost(p, pCut, pObj);
+        {
+            if((Abc_NtkRecIsRunning2()&& Abc_NtkRecIsRunning()) || (!Abc_NtkRecIsRunning2()&& !Abc_NtkRecIsRunning()))
+                assert(0);
+            else if(Abc_NtkRecIsRunning())
+                pCut->Delay = If_CutDelayRecCost(p, pCut, pObj); 
+            else
+                pCut->Delay = If_CutDelayRecCost2(p, pCut, pObj); 
+        }
         else if (p->pPars->fDelayOpt)
             pCut->Delay = If_CutDelaySopCost(p, pCut);  
         else if(p->pPars->nGateSize > 0)
