@@ -764,7 +764,7 @@ int Saig_BmcPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nNodesMax
     p = Saig_BmcManStart( pAig, nFramesMax, nNodesMax, nConfMaxOne, nConfMaxAll, fVerbose );
     // set runtime limit
     if ( nTimeOut )
-        sat_solver_set_runtime_limit( p->pSat, nTimeOut );
+        sat_solver_set_runtime_limit( p->pSat, nTimeToStop );
     for ( Iter = 0; ; Iter++ )
     {
         clk2 = clock();
