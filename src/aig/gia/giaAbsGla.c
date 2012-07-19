@@ -1391,6 +1391,8 @@ Vec_Int_t * Gla_ManTranslate( Gla_Man_t * p )
     {
         nUsageCount = Vec_IntEntry(p->vCoreCounts, pObj->iGiaObj);
         assert( nUsageCount >= 0 );
+        if ( nUsageCount == 0 )
+            nUsageCount++;
         pGiaObj = Gla_ManGiaObj( p, pObj );
         if ( Gia_ObjIsConst0(pGiaObj) || Gia_ObjIsRo(p->pGia, pGiaObj) )
         {
@@ -1918,15 +1920,10 @@ int Gia_GlaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars, int fStartVta )
             clk2 = clock();
             vCore = Gla_ManUnsatCore( p, f, p->pSat, pPars->nConfLimit, pPars->fVerbose, &Status, &nConfls );
             assert( (vCore != NULL) == (Status == 1) );
-            if ( Status == -1 ) // resource limit is reached
+            if ( Status == -1 || (p->pSat->nRuntimeLimit && clock() > p->pSat->nRuntimeLimit) ) // resource limit is reached
             {
-                Gla_ManRollBack( p );
-                goto finish;
-            }
-            // check timeout
-            if ( p->pSat->nRuntimeLimit && clock() > p->pSat->nRuntimeLimit )
-            {
-                Gla_ManRollBack( p );
+                if ( Gia_ManRegNum(p->pGia) > 1 ) // for comb cases, return the abstration
+                    Gla_ManRollBack( p );
                 goto finish;
             }
             if ( vCore != NULL )
@@ -2053,6 +2050,8 @@ int Gia_GlaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars, int fStartVta )
     }
 finish:
     // analize the results
+    if ( p->pPars->fVerbose )
+        printf( "\n" );
     if ( pCex == NULL )
     {
         if ( pAig->vGateClasses != NULL )

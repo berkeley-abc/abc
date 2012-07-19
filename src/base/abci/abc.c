@@ -27576,23 +27576,11 @@ int Abc_CommandAbc9GlaDerive( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9GlaDerive(): There is no AIG.\n" );
         return 1;
     } 
+/*
     if ( Gia_ManRegNum(pAbc->pGia) == 0 )
     {
         Abc_Print( -1, "The network is combinational.\n" );
         return 0;
-    }
-/*
-    {
-        int i;
-        assert( pAbc->pGia->vGateClasses == NULL );
-        pAbc->pGia->vGateClasses = Vec_IntStart( Gia_ManObjNum(pAbc->pGia) );
-        for ( i = 0; i < Gia_ManObjNum(pAbc->pGia); i++ )
-        {
-            if ( rand() % 3 == i % 3 )
-            {
-                Vec_IntWriteEntry( pAbc->pGia->vGateClasses, i, rand() % 5 );
-            }
-        }
     }
 */
     if ( pAbc->pGia->vGateClasses == NULL )
@@ -28174,12 +28162,14 @@ int Abc_CommandAbc9Gla( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Print( -1, "There is no AIG.\n" );
         return 0;
-    } 
+    }
+/*    
     if ( Gia_ManRegNum(pAbc->pGia) == 0 )
     {
         Abc_Print( -1, "The network is combinational.\n" );
         return 0;
     }
+*/
     if ( Gia_ManPoNum(pAbc->pGia) > 1 )
     {
         Abc_Print( 1, "The network is more than one PO (run \"orpos\").\n" );

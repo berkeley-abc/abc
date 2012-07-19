@@ -1698,6 +1698,8 @@ int Gia_VtaPerformInt( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
     }
 finish:
     // analize the results
+    if ( p->pPars->fVerbose )
+        printf( "\n" );
     if ( pCex == NULL )
     {
         if ( Vec_PtrSize(p->vCores) == 0 )
