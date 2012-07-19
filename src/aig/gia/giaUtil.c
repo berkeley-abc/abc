@@ -1358,11 +1358,11 @@ unsigned * Gia_ManComputePoTruthTables( Gia_Man_t * p, int nBytesMax )
 
 ***********************************************************************/
 int Gia_ObjComputeTruthTable_rec( Gia_Man_t * p, Gia_Obj_t * pObj )
-{
+{ 
     word * pTruth0, * pTruth1, * pTruth, * pTruthL;
     int Value0, Value1;
     if ( Gia_ObjIsTravIdCurrent(p, pObj) )
-        return pObj->Value;
+        return Vec_IntGetEntry(p->vObjNums, Gia_ObjId(p, pObj));
     Gia_ObjSetTravIdCurrent(p, pObj);
     assert( Gia_ObjIsAnd(pObj) );
     Value0 = Gia_ObjComputeTruthTable_rec( p, Gia_ObjFanin0(pObj) );
@@ -1392,14 +1392,14 @@ int Gia_ObjComputeTruthTable_rec( Gia_Man_t * p, Gia_Obj_t * pObj )
             while ( pTruth < pTruthL )
                 *pTruth++ =  *pTruth0++ &  *pTruth1++;
     }
-    return (pObj->Value = p->iTtNum-1);
+    Vec_IntSetEntry(p->vObjNums, Gia_ObjId(p, pObj), p->iTtNum-1);
+    return p->iTtNum-1;
 }
 unsigned * Gia_ObjComputeTruthTable( Gia_Man_t * p, Gia_Obj_t * pObj )
 {
     Gia_Obj_t * pTemp;
     word * pTruth;
     int i, k;
-    // this procedure works only for primary outputs
     if ( p->vTtMemory == NULL )
     {
         word Truth6[7] = {
@@ -1417,6 +1417,8 @@ unsigned * Gia_ObjComputeTruthTable( Gia_Man_t * p, Gia_Obj_t * pObj )
         for ( i = 0; i < 7; i++ )
             for ( k = 0; k < p->nTtWords; k++ )
                 Vec_WrdWriteEntry( p->vTtMemory, i * p->nTtWords + k, Truth6[i] );
+        assert( p->vObjNums == NULL );
+        p->vObjNums = Vec_IntAlloc( Gia_ManObjNum(p) + 1000 );
     }
     else
     {
@@ -1427,11 +1429,11 @@ unsigned * Gia_ObjComputeTruthTable( Gia_Man_t * p, Gia_Obj_t * pObj )
     // mark const and PIs
     Gia_ManIncrementTravId( p );
     Gia_ObjSetTravIdCurrent( p, Gia_ManConst0(p) );
-    Gia_ManConst0(p)->Value = 0;
+    Vec_IntSetEntry(p->vObjNums,0, 0);
     Gia_ManForEachPi( p, pTemp, i )
     {
         Gia_ObjSetTravIdCurrent( p, pTemp );
-        pTemp->Value = i+1;
+        Vec_IntSetEntry(p->vObjNums, Gia_ObjId(p, pTemp), i+1);
     }
     p->iTtNum = 7;
     // compute truth table for the fanin node

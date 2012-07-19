@@ -154,6 +154,7 @@ struct Gia_Man_t_
     word           nHashHit;      // hash table hit
     word           nHashMiss;     // hash table miss
     int            fVerbose;      // verbose reports
+    Vec_Int_t *    vObjNums;      // object numbers
     Vec_Wrd_t *    vTtMemory;     // truth table memory
     int            nTtVars;       // truth table variables
     int            nTtWords;      // truth table words
