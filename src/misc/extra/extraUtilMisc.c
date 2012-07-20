@@ -2330,12 +2330,14 @@ word * Extra_NpnRead( char * pFileName, int nFuncs )
     pFuncs = ABC_CALLOC( word, nFuncs );
     pFile = fopen( pFileName, "rb" );
     while ( fgets( pBuffer, 100, pFile ) )
-        Extra_ReadHex( (unsigned *)(pFuncs + i++), pBuffer+2, 16 );
-//        Extra_ReadHex( (unsigned *)(pFuncs + i++), pBuffer, 16 );
+        Extra_ReadHex( (unsigned *)(pFuncs + i++), (pBuffer[1] == 'x' ? pBuffer+2 : pBuffer), 16 );
     fclose( pFile );
     assert( i == nFuncs );
-    for ( i = 0; i < Abc_MinInt(nFuncs, 20); i++ )
+    for ( i = 0; i < Abc_MinInt(nFuncs, 10); i++ )
+    {
+        printf( "Line %d : ", i );
         Extra_PrintHex( stdout, (unsigned *)(pFuncs + i), 6 ), printf( "\n" );
+    }
     return pFuncs;
 }
 
@@ -2394,13 +2396,14 @@ void Extra_NpnTest2()
 }
 void Extra_NpnTest()
 {
-    int nFuncs = 5687661; 
+//    int nFuncs = 5687661; 
 //    int nFuncs = 400777;
-//    int nFuncs = 10;
+    int nFuncs = 10;
     clock_t clk = clock();
     word * pFuncs;
     int * pComp, * pPerm;
     int i, k, nUnique = 0;
+/*
     // read functions
     pFuncs = Extra_NpnRead( "C:\\_projects\\abc\\_TEST\\allan\\lib6var5M.txt", nFuncs );
 //    pFuncs = Extra_NpnRead( "C:\\_projects\\abc\\_TEST\\allan\\lib6var5M_out_Total_minimal.txt", nFuncs );
@@ -2413,9 +2416,9 @@ void Extra_NpnTest()
             pFuncs[k++] = pFuncs[i];
     nFuncs = k;
     printf( "Total number of unique functions = %d\n", nFuncs );
-
+*/
 //    pFuncs = Extra_NpnRead( "C:\\_projects\\abc\\_TEST\\allan\\lib6var5M_out_Total_minimal.txt", nFuncs );
-//    pFuncs = Extra_NpnRead( "C:\\_projects\\abc\\_TEST\\allan\\test.txt", nFuncs );
+    pFuncs = Extra_NpnRead( "C:\\_projects\\abc\\_TEST\\allan\\test.txt", nFuncs );
     pComp = Extra_GreyCodeSchedule( 6 );
     pPerm = Extra_PermSchedule( 6 );
     // compute minimum forms
@@ -2426,6 +2429,7 @@ void Extra_NpnTest()
             printf( "%d\n", i );
     }
     printf( "Finished deriving minimum form\n" );
+/*
     // sort them by value
     qsort( (void *)pFuncs, nFuncs, sizeof(word), (int(*)(const void *,const void *))CompareWords );
     // count unique
@@ -2434,8 +2438,12 @@ void Extra_NpnTest()
         if ( pFuncs[i] == pFuncs[i-1] )
             nUnique--;
     printf( "Total number of unique ones = %d\n", nUnique );
-    for ( i = 0; i < Abc_MinInt(nFuncs, 20); i++ )
+*/
+    for ( i = 0; i < Abc_MinInt(nFuncs, 10); i++ )
+    {
+        printf( "Line %d : ", i );
         Extra_PrintHex( stdout, (unsigned *)(pFuncs + i), 6 ), printf( "\n" );
+    }
     ABC_FREE( pPerm );
     ABC_FREE( pComp );
     ABC_FREE( pFuncs );
