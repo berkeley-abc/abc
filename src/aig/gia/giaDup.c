@@ -1005,6 +1005,58 @@ Gia_Man_t * Gia_ManDupTrimmed( Gia_Man_t * p, int fTrimCis, int fTrimCos, int fD
 
 /**Function*************************************************************
 
+  Synopsis    [Removes POs driven by PIs and PIs without fanout.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManDupTrimmed2( Gia_Man_t * p )
+{
+    Gia_Man_t * pNew;
+    Gia_Obj_t * pObj;
+    int i;
+    // start new manager
+    pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    // check if there are PIs to be added
+    Gia_ManCreateRefs( p );
+    // discount references of POs
+    Gia_ManForEachPo( p, pObj, i )
+        Gia_ObjRefFanin0Dec( p, pObj );
+    // check if PIs are left
+    Gia_ManForEachPi( p, pObj, i )
+        if ( Gia_ObjRefs(p, pObj) )
+            break;
+    if ( i == Gia_ManPiNum(p) ) // there is no PIs - add dummy PI
+        Gia_ManAppendCi(pNew);
+    // add the ROs
+    Gia_ManFillValue( p );
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManForEachCi( p, pObj, i )
+        if ( Gia_ObjRefs(p, pObj) || Gia_ObjIsRo(p, pObj) )
+            pObj->Value = Gia_ManAppendCi(pNew);
+    Gia_ManForEachAnd( p, pObj, i )
+        pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    // check if there are POs to be added
+    Gia_ManForEachPo( p, pObj, i )
+        if ( !Gia_ObjIsConst0(Gia_ObjFanin0(pObj)) && !Gia_ObjIsPi(p, Gia_ObjFanin0(pObj)) )
+            break;
+    if ( i == Gia_ManPoNum(p) ) // there is no POs - add dummy PO
+        Gia_ManAppendCo( pNew, 0 );
+    Gia_ManForEachCo( p, pObj, i )
+        if ( (!Gia_ObjIsConst0(Gia_ObjFanin0(pObj)) && !Gia_ObjIsPi(p, Gia_ObjFanin0(pObj))) || Gia_ObjIsRi(p, pObj) )
+            Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    assert( !Gia_ManHasDangling( pNew ) );
+    return pNew;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Duplicates AIG in the DFS order while putting CIs first.]
 
   Description []
