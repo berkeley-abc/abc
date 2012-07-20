@@ -360,8 +360,8 @@ static inline void Vec_StrGrow( Vec_Str_t * p, int nCapMin )
 {
     if ( p->nCap >= nCapMin )
         return;
-    p->pArray = ABC_REALLOC( char, p->pArray, 2 * nCapMin ); 
-    p->nCap   = 2 * nCapMin;
+    p->pArray = ABC_REALLOC( char, p->pArray, nCapMin ); 
+    p->nCap   = nCapMin;
 }
 
 /**Function*************************************************************

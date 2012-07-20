@@ -1122,7 +1122,7 @@ p->timeInsert += clock() - timeInsert;
     p->pTemp2 = ABC_ALLOC( unsigned, p->nWords );
     p->vNodes = Vec_PtrAlloc( 100 );
     p->vTtTemps = Vec_PtrAllocSimInfo( 1024, p->nWords );
-    p->vLabels = Vec_PtrStart( 1000);
+    p->vLabels = Vec_PtrStart( 1000 );
 
 
  p->timeTotal += clock() - clkTotal;  
@@ -1930,8 +1930,8 @@ Hop_Obj_t * Abc_NtkRecBuildUp_rec2(Hop_Man_t* pMan, Gia_Obj_t* pObj, Vec_Ptr_t *
 Hop_Obj_t * Abc_RecToHop2( Hop_Man_t * pMan, If_Man_t * pIfMan, If_Cut_t * pCut, If_Obj_t * pIfObj )
 {
     Rec_Obj_t2 * pCandMin;
-    Hop_Obj_t* pHopObj;
-    Gia_Obj_t* pGiaObj;
+    Hop_Obj_t* pHopObj, * pFan0, * pFan1;
+    Gia_Obj_t* pGiaObj, *pGiaTemp;
     Gia_Man_t * pAig = s_pMan->pGia;
     int nLeaves, i;// DelayMin = ABC_INFINITY , Delay = -ABC_INFINITY
     unsigned uCanonPhase;
@@ -1963,6 +1963,8 @@ Hop_Obj_t * Abc_RecToHop2( Hop_Man_t * pMan, If_Man_t * pIfMan, If_Cut_t * pCut,
     uCanonPhase = Kit_TruthSemiCanonicize(pInOut, pTemp, nLeaves, pCanonPerm, (short*)s_pMan->pMints);
     If_CutTruthStretch(pInOut, nLeaves, nVars);
     pCandMin = Abc_NtkRecLookUpBest(pIfMan, pCut, pInOut, pCanonPerm, pCompl,NULL);
+
+/*
     Vec_PtrGrow(s_pMan->vLabels, Gia_ManObjNum(pAig));
     s_pMan->vLabels->nSize = s_pMan->vLabels->nCap;
     for (i = 0; i < nLeaves; i++)
@@ -1976,8 +1978,54 @@ Hop_Obj_t * Abc_RecToHop2( Hop_Man_t * pMan, If_Man_t * pIfMan, If_Cut_t * pCut,
     Gia_ManIncrementTravId(pAig);
     //derive the best structure in the library.
     pHopObj = Abc_NtkRecBuildUp_rec2(pMan, Abc_NtkRecGetObj(Rec_ObjID(s_pMan, pCandMin)), s_pMan->vLabels);
+*/
+
+    // get the top-most GIA node
+    pGiaObj = Abc_NtkRecGetObj( Rec_ObjID(s_pMan, pCandMin) );
+    assert( Gia_ObjIsAnd(pGiaObj) || Gia_ObjIsPi(pAig, pGiaObj) );
+    // collect internal nodes into pAig->vTtNodes
+    if ( pAig->vTtNodes == NULL )
+        pAig->vTtNodes = Vec_IntAlloc( 256 );
+    Gia_ObjCollectInternal( pAig, pGiaObj );
+    // collect HOP nodes for leaves
+    Vec_PtrClear( s_pMan->vLabels );
+    for (i = 0; i < nLeaves; i++)
+    {
+        pHopObj = Hop_IthVar(pMan, pCanonPerm[i]);
+        pHopObj = Hop_NotCond(pHopObj, ((uCanonPhase & (1 << i)) > 0));
+        Vec_PtrPush(s_pMan->vLabels, pHopObj);
+    }
+    // compute HOP nodes for internal nodes
+    Gia_ManForEachObjVec( pAig->vTtNodes, pAig, pGiaTemp, i )
+    {
+        pGiaTemp->fMark0 = 0; // unmark node marked by Gia_ObjCollectInternal()
+
+        if ( Gia_ObjIsAnd(Gia_ObjFanin0(pGiaTemp)) )
+            pFan0 = (Hop_Obj_t *)Vec_PtrEntry(s_pMan->vLabels, Gia_ObjNum(pAig, Gia_ObjFanin0(pGiaTemp)) + nLeaves);
+        else
+            pFan0 = (Hop_Obj_t *)Vec_PtrEntry(s_pMan->vLabels, Gia_ObjCioId(Gia_ObjFanin0(pGiaTemp)));
+        pFan0 = Hop_NotCond(pFan0, Gia_ObjFaninC0(pGiaTemp));
+
+        if ( Gia_ObjIsAnd(Gia_ObjFanin1(pGiaTemp)) )
+            pFan1 = (Hop_Obj_t *)Vec_PtrEntry(s_pMan->vLabels, Gia_ObjNum(pAig, Gia_ObjFanin1(pGiaTemp)) + nLeaves);
+        else
+            pFan1 = (Hop_Obj_t *)Vec_PtrEntry(s_pMan->vLabels, Gia_ObjCioId(Gia_ObjFanin1(pGiaTemp)));
+        pFan1 = Hop_NotCond(pFan1, Gia_ObjFaninC1(pGiaTemp));
+
+        pHopObj = Hop_And(pMan, pFan0, pFan1);
+        Vec_PtrPush(s_pMan->vLabels, pHopObj);
+    }
+    // get the final result
+    if ( Gia_ObjIsAnd(pGiaObj) )
+        pHopObj = (Hop_Obj_t *)Vec_PtrEntry(s_pMan->vLabels, Gia_ObjNum(pAig, pGiaObj) + nLeaves);
+    else if ( Gia_ObjIsPi(pAig, pGiaObj) )
+        pHopObj = (Hop_Obj_t *)Vec_PtrEntry(s_pMan->vLabels, Gia_ObjCioId(pGiaObj));
+    else assert( 0 );
+
+    
     s_pMan->timeIfDerive += clock() - time;
     s_pMan->timeIfTotal += clock() - time;
+    // complement the result if needed
     return Hop_NotCond(pHopObj, (pCut->fCompl)^(((uCanonPhase & (1 << nLeaves)) > 0)) ^ fCompl);    
 }
 

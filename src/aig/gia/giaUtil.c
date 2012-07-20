@@ -1347,78 +1347,76 @@ unsigned * Gia_ManComputePoTruthTables( Gia_Man_t * p, int nBytesMax )
 
 /**Function*************************************************************
 
-  Synopsis    [Computing the truth table of one PO.]
+  Synopsis    [Collects internal nodes reachable from the given node.]
 
-  Description [The truth table should be used (or saved into the user's
-  storage) before this procedure is called next time!]
+  Description []
                
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
-int Gia_ObjComputeTruthTable_rec( Gia_Man_t * p, Gia_Obj_t * pObj )
-{ 
-    word * pTruth0, * pTruth1, * pTruth, * pTruthL;
-    int Value0, Value1;
-    if ( Gia_ObjIsTravIdCurrent(p, pObj) )
-        return Vec_IntGetEntry(p->vObjNums, Gia_ObjId(p, pObj));
-    Gia_ObjSetTravIdCurrent(p, pObj);
-    assert( Gia_ObjIsAnd(pObj) );
-    Value0 = Gia_ObjComputeTruthTable_rec( p, Gia_ObjFanin0(pObj) );
-    Value1 = Gia_ObjComputeTruthTable_rec( p, Gia_ObjFanin1(pObj) );
-    assert( Value0 < Vec_WrdSize(p->vTtMemory) );
-    assert( Value1 < Vec_WrdSize(p->vTtMemory) );
-    pTruth0 = Vec_WrdArray(p->vTtMemory) + p->nTtWords * Value0;
-    pTruth1 = Vec_WrdArray(p->vTtMemory) + p->nTtWords * Value1;
-    assert( p->nTtWords * p->iTtNum < Vec_WrdSize(p->vTtMemory) );
-    pTruth  = Vec_WrdArray(p->vTtMemory) + p->nTtWords * p->iTtNum++;
-    pTruthL = Vec_WrdArray(p->vTtMemory) + p->nTtWords * p->iTtNum;
-    if ( Gia_ObjFaninC0(pObj) )
-    {
-        if ( Gia_ObjFaninC1(pObj) )
-            while ( pTruth < pTruthL )
-                *pTruth++ = ~*pTruth0++ & ~*pTruth1++;
-        else
-            while ( pTruth < pTruthL )
-                *pTruth++ = ~*pTruth0++ &  *pTruth1++;
-    }
-    else
-    {
-        if ( Gia_ObjFaninC1(pObj) )
-            while ( pTruth < pTruthL )
-                *pTruth++ =  *pTruth0++ & ~*pTruth1++;
-        else
-            while ( pTruth < pTruthL )
-                *pTruth++ =  *pTruth0++ &  *pTruth1++;
-    }
-    Vec_IntSetEntry(p->vObjNums, Gia_ObjId(p, pObj), p->iTtNum-1);
-    return p->iTtNum-1;
+void Gia_ObjCollectInternal_rec( Gia_Man_t * p, Gia_Obj_t * pObj )
+{
+    if ( !Gia_ObjIsAnd(pObj) )
+        return;
+    if ( pObj->fMark0 )
+        return;
+    pObj->fMark0 = 1;
+    Gia_ObjCollectInternal_rec( p, Gia_ObjFanin0(pObj) );
+    Gia_ObjCollectInternal_rec( p, Gia_ObjFanin1(pObj) );
+    Gia_ObjSetNum( p, pObj, Vec_IntSize(p->vTtNodes) );
+    Vec_IntPush( p->vTtNodes, Gia_ObjId(p, pObj) );
 }
+void Gia_ObjCollectInternal( Gia_Man_t * p, Gia_Obj_t * pObj )
+{
+    Vec_IntClear( p->vTtNodes );
+    Gia_ObjCollectInternal_rec( p, pObj );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Truth table manipulation.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline word * Gla_ObjTruthElem( Gia_Man_t * p, int i )            { return (word *)Vec_PtrEntry( p->vTtInputs, i );                                           }
+static inline word * Gla_ObjTruthNode( Gia_Man_t * p, Gia_Obj_t * pObj ) { return Vec_WrdArray(p->vTtMemory) + p->nTtWords * Gia_ObjNum(p, pObj);                    }
+static inline word * Gla_ObjTruthFree1( Gia_Man_t * p )                  { return Vec_WrdArray(p->vTtMemory) + p->nTtWords * 254;                                    }
+static inline word * Gla_ObjTruthFree2( Gia_Man_t * p )                  { return Vec_WrdArray(p->vTtMemory) + p->nTtWords * 255;                                    }
+static inline word * Gla_ObjTruthConst0( Gia_Man_t * p, word * pDst )                   { int w; for ( w = 0; w < p->nTtWords; w++ ) pDst[w] = 0; return pDst;                      }
+static inline word * Gla_ObjTruthDup( Gia_Man_t * p, word * pDst, word * pSrc, int c )  { int w; for ( w = 0; w < p->nTtWords; w++ ) pDst[w] = c ? ~pSrc[w] : pSrc[w]; return pDst; }
+
+/**Function*************************************************************
+
+  Synopsis    [Computing the truth table for GIA object.]
+
+  Description [The truth table should be used by the calling application
+  (or saved into the user's storage) before this procedure is called again.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 unsigned * Gia_ObjComputeTruthTable( Gia_Man_t * p, Gia_Obj_t * pObj )
 {
-    Gia_Obj_t * pTemp;
-    word * pTruth;
-    int i, k;
+    Gia_Obj_t * pTemp, * pRoot;
+    word * pTruth, * pTruthL, * pTruth0, * pTruth1;
+    int i;
     if ( p->vTtMemory == NULL )
     {
-        word Truth6[7] = {
-            0x0000000000000000,
-            0xAAAAAAAAAAAAAAAA,
-            0xCCCCCCCCCCCCCCCC,
-            0xF0F0F0F0F0F0F0F0,
-            0xFF00FF00FF00FF00,
-            0xFFFF0000FFFF0000,
-            0xFFFFFFFF00000000
-        };
         p->nTtVars   = Gia_ManPiNum( p );
         p->nTtWords  = (p->nTtVars <= 6 ? 1 : (1 << (p->nTtVars - 6)));
+        p->vTtNums   = Vec_StrAlloc( Gia_ManObjNum(p) + 1000 );
+        p->vTtNodes  = Vec_IntAlloc( 256 );
+        p->vTtInputs = Vec_PtrAllocTruthTables( p->nTtVars );
         p->vTtMemory = Vec_WrdStart( p->nTtWords * 256 );
-        for ( i = 0; i < 7; i++ )
-            for ( k = 0; k < p->nTtWords; k++ )
-                Vec_WrdWriteEntry( p->vTtMemory, i * p->nTtWords + k, Truth6[i] );
-        assert( p->vObjNums == NULL );
-        p->vObjNums = Vec_IntAlloc( Gia_ManObjNum(p) + 1000 );
     }
     else
     {
@@ -1426,33 +1424,44 @@ unsigned * Gia_ObjComputeTruthTable( Gia_Man_t * p, Gia_Obj_t * pObj )
         // since the truth table computation storage was prepared
         assert( p->nTtVars == Gia_ManPiNum(p) );
     }
-    // mark const and PIs
-    Gia_ManIncrementTravId( p );
-    Gia_ObjSetTravIdCurrent( p, Gia_ManConst0(p) );
-    Vec_IntSetEntry(p->vObjNums,0, 0);
-    Gia_ManForEachPi( p, pTemp, i )
+    // collect internal nodes
+    pRoot = Gia_ObjIsCo(pObj) ? Gia_ObjFanin0(pObj) : pObj;
+    Gia_ObjCollectInternal( p, pRoot );
+    // compute the truth table for internal nodes
+    Gia_ManForEachObjVec( p->vTtNodes, p, pTemp, i )
     {
-        Gia_ObjSetTravIdCurrent( p, pTemp );
-        Vec_IntSetEntry(p->vObjNums, Gia_ObjId(p, pTemp), i+1);
-    }
-    p->iTtNum = 7;
-    // compute truth table for the fanin node
-    if ( Gia_ObjIsCo(pObj) )
-    {
-        pTruth = Vec_WrdArray(p->vTtMemory) + p->nTtWords * Gia_ObjComputeTruthTable_rec(p, Gia_ObjFanin0(pObj));
-        // complement if needed
-        if ( Gia_ObjFaninC0(pObj) )
+        pTemp->fMark0 = 0; // unmark node marked by Gia_ObjCollectInternal()
+        pTruth  = Gla_ObjTruthNode(p, pTemp);
+        pTruthL = pTruth + p->nTtWords;
+        pTruth0 = Gia_ObjIsAnd(Gia_ObjFanin0(pTemp)) ? Gla_ObjTruthNode(p, Gia_ObjFanin0(pTemp)) : Gla_ObjTruthElem(p, Gia_ObjCioId(Gia_ObjFanin0(pTemp)) );
+        pTruth1 = Gia_ObjIsAnd(Gia_ObjFanin1(pTemp)) ? Gla_ObjTruthNode(p, Gia_ObjFanin1(pTemp)) : Gla_ObjTruthElem(p, Gia_ObjCioId(Gia_ObjFanin1(pTemp)) );
+        if ( Gia_ObjFaninC0(pTemp) )
         {
-            word * pTemp = pTruth;
-            assert( p->nTtWords * p->iTtNum < Vec_WrdSize(p->vTtMemory) );
-            pTruth = Vec_WrdArray(p->vTtMemory) + p->nTtWords * p->iTtNum;
-            for ( k = 0; k < p->nTtWords; k++ )
-                pTruth[k] = ~pTemp[k];
+            if ( Gia_ObjFaninC1(pTemp) )
+                while ( pTruth < pTruthL )
+                    *pTruth++ = ~*pTruth0++ & ~*pTruth1++;
+            else
+                while ( pTruth < pTruthL )
+                    *pTruth++ = ~*pTruth0++ &  *pTruth1++;
+        }
+        else
+        {
+            if ( Gia_ObjFaninC1(pTemp) )
+                while ( pTruth < pTruthL )
+                    *pTruth++ =  *pTruth0++ & ~*pTruth1++;
+            else
+                while ( pTruth < pTruthL )
+                    *pTruth++ =  *pTruth0++ &  *pTruth1++;
         }
     }
-    else
-        pTruth = Vec_WrdArray(p->vTtMemory) + p->nTtWords * Gia_ObjComputeTruthTable_rec(p, pObj);
-    return (unsigned *)pTruth;
+    // compute the final table
+    if ( Gia_ObjIsConst0(pRoot) )
+        pTruth = Gla_ObjTruthConst0( p, Gla_ObjTruthFree1(p) );
+    else if ( Gia_ObjIsPi(p, pRoot) )
+        pTruth = Gla_ObjTruthElem( p, Gia_ObjCioId(pRoot) );
+    else if ( Gia_ObjIsAnd(pRoot) )
+        pTruth = Gla_ObjTruthNode( p, pRoot );
+    return (unsigned *)Gla_ObjTruthDup( p, Gla_ObjTruthFree2(p), pTruth, Gia_ObjIsCo(pObj) && Gia_ObjFaninC0(pObj) );
 }
 
 /**Function*************************************************************
