@@ -12742,7 +12742,7 @@ int Abc_CommandRecStart2( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: rec_start [-K num] [-C num] [-th]\n" );
+    Abc_Print( -2, "usage: rec_start2 [-K num] [-C num] [-th]\n" );
     Abc_Print( -2, "\t         starts recording AIG subgraphs (should be called for\n" );
     Abc_Print( -2, "\t         an empty network or after reading in a previous record)\n" );
     Abc_Print( -2, "\t-K num : the largest number of inputs [default = %d]\n", nVars );
@@ -12789,7 +12789,7 @@ int Abc_CommandRecStop2( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: rec_stop [-h]\n" );
+    Abc_Print( -2, "usage: rec_stop2 [-h]\n" );
     Abc_Print( -2, "\t        cleans the internal storage for AIG subgraphs\n" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;
@@ -12841,7 +12841,7 @@ int Abc_CommandRecAdd2( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: rec_add [-h]\n" );
+    Abc_Print( -2, "usage: rec_add2 [-h]\n" );
     Abc_Print( -2, "\t        adds subgraphs from the current network to the set\n" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;
@@ -12887,7 +12887,7 @@ int Abc_CommandRecPs2( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: rec_ps [-h]\n" );
+    Abc_Print( -2, "usage: rec_ps2 [-h]\n" );
     Abc_Print( -2, "\t        prints statistics about the recorded AIG subgraphs\n" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;
@@ -12955,7 +12955,7 @@ int Abc_CommandRecDump2( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: rec_dump [-h] <file>\n" );
+    Abc_Print( -2, "usage: rec_dump2 [-h] <file>\n" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
@@ -13010,7 +13010,7 @@ int Abc_CommandRecFilter2( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: rec_filter [-h]\n" );
+    Abc_Print( -2, "usage: rec_filter2 [-h]\n" );
     Abc_Print( -2, "\t         filter the library of the recorder\n" );
     Abc_Print( -2, "\t-F num : the limit number of function class [default = %d]\n", nLimit );
     Abc_Print( -2, "\t-h     : print the command usage\n");
@@ -13090,7 +13090,7 @@ int Abc_CommandRecMerge2( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: rec_merge [-h]\n" );
+    Abc_Print( -2, "usage: rec_merge2 [-h]\n" );
     Abc_Print( -2, "\t        merge libraries\n" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;

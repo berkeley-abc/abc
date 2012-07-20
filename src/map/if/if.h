@@ -280,7 +280,11 @@ struct If_Obj_t_
     float              EstRefs;       // estimated reference counter
     float              Required;      // required time of the onde
     float              LValue;        // sequential arrival time of the node
+    union{
     void *             pCopy;         // used for object duplication
+    int                iCopy;
+    };
+    
     If_Set_t *         pCutSet;       // the pointer to the cutset
     If_Cut_t           CutBest;       // the best cut selected 
 };

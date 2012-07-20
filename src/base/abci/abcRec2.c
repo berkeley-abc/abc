@@ -80,18 +80,10 @@ struct Abc_ManRec_t_2
     int *             pMints;                   // temporary storage for minterm counters
     unsigned *        pTemp1;                   // temporary truth table
     unsigned *        pTemp2;                   // temporary truth table
-    unsigned *        pTempTruth;               // temporary truth table
-    char *            pTempDepths;              // temporary depths
-    int  *            pTempleaves;              // temporary leaves
-    unsigned          tempUsign;
-    unsigned          tempNleaves;
-    unsigned          currentCost;
-    int               currentDelay;
+
     Vec_Ptr_t *       vNodes;                   // the temporary nodes
     Vec_Ptr_t *       vTtTemps;                 // the truth tables for the internal nodes of the cut
     Vec_Ptr_t *       vLabels;                  // temporary storage for AIG node labels
-    Vec_Str_t *       vCosts;                   // temporary storage for costs
-    Vec_Int_t *       vMemory;                  // temporary memory for truth tables
     Vec_Int_t *       vUselessPos;
     // statistics
     int               nTried;                   // the number of cuts tried
@@ -103,7 +95,6 @@ struct Abc_ManRec_t_2
     int               nFilterSame;              // the number of same structures
     int               nAdded;                   // the number of subgraphs added
     int               nAddedFuncs;              // the number of functions added
-    int               nIfMapTried;
     int               nIfMapError;
     int               nTrimed;                  // the number of structures filtered
     // rewriting
@@ -151,6 +142,7 @@ static inline Rec_Obj_t2 * Rec_Obj(Abc_ManRec_t2 *p, int v)
     return (Rec_Obj_t2 *)(p->pRecObjs + v * p->recObjSize);
 }
 
+
 /**Function*************************************************************
 
   Synopsis    [Alloc the Rec object from its manger.]
@@ -162,51 +154,24 @@ static inline Rec_Obj_t2 * Rec_Obj(Abc_ManRec_t2 *p, int v)
   SeeAlso     []
 
 ***********************************************************************/
-static inline Rec_Obj_t2 * Rec_AppendObj( Abc_ManRec_t2 * p )  
+static inline int Rec_AppendObj( Abc_ManRec_t2 * p, Rec_Obj_t2 ** pObj )  
 { 
-    Rec_Obj_t2 * pObj;
+    //Rec_Obj_t2 * pObj;
+    int hasRealloced = 0;
     if ( p->nRecObjs == p->nRecObjsAlloc )
     {
         assert( p->nRecObjs > 0 );
         p->pRecObjs = realloc(p->pRecObjs, 2 * p->nRecObjsAlloc * p->recObjSize );
         memset( p->pRecObjs + p->nRecObjsAlloc * p->recObjSize, 0, p->recObjSize * p->nRecObjsAlloc );
         p->nRecObjsAlloc *= 2;
+        hasRealloced = 1;
     }
-    pObj = Rec_Obj( p, p->nRecObjs++ );
-    pObj->pCopy = REC_EMPTY_ID;
-    pObj->pNext = REC_EMPTY_ID;
-    return Rec_Obj( p, p->nRecObjs++ );
+    *pObj = Rec_Obj( p, p->nRecObjs++ );
+    (*pObj)->pCopy = REC_EMPTY_ID;
+    (*pObj)->pNext = REC_EMPTY_ID;
+    return hasRealloced;
 }
 
-/**Function*************************************************************
-
-  Synopsis    [Alloc the Rec object from its manger.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-
-/*Rec_Obj_t2* Rec_ObjAlloc2(Abc_ManRec_t2* p, Gia_Obj_t* pObj, char* pinToPinDelay, char cost, int nVar)
-{
-    int i;
-    Rec_Obj_t2 * pRecObj;
-    
-    pRecObj = Rec_AppendObj(p);
-    //pRecObj->pinToPinDelay = (char*)(pRecObj + 1);
-    pRecObj->pNext = NULL;
-    pRecObj->pCopy = NULL;
-    //pRecObj->obj = pObj;
-    pRecObj->Id = Gia_ObjId(p->pGia, pObj);
-    for (i = 0; i < nVar; i++)
-        pRecObj->pinToPinDelay[i] = pinToPinDelay[i];
-    pRecObj->cost = cost;   
-    pRecObj->nFrequency = 0;
-    return pRecObj;
-}*/
 
 /**Function*************************************************************
 
@@ -436,32 +401,6 @@ void Abc_NtkRecDeleteSubGragh2(Gia_Obj_t* pObj)
 
 /**Function*************************************************************
 
-  Synopsis    [Filter the library.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-/*void Abc_RecUpdateHashTable2(Gia_Man_t * pOldGia, Gia_Man_t * pNewGia)
-{
-    Abc_ManRec_t2 * p = s_pMan;
-    int pEntry, pTemp;
-    Gia_Obj_t * pObj;
-    int i;
-    for ( i = 0; i < p->nBins; i++ )
-        for ( pEntry = p->pBins[i]; pEntry; pEntry = pEntry->pCopy )
-            for ( pTemp = pEntry; pTemp; pTemp = pTemp->pNext )
-            {
-                pObj = Gia_ManObj(pOldGia, pTemp->Id);
-                pTemp->Id = pObj->Value >> 1;
-            }
-}*/
-
-/**Function*************************************************************
-
   Synopsis    [Mark NonDangling nodes.]
 
   Description []
@@ -512,37 +451,6 @@ void Abc_NtkRecMarkCompl(Gia_Man_t * pGia)
     Gia_ManForEachObj1(pGia, pObj,i)
         pObj->fMark0 = !pObj->fMark0;
 }
-/*
-void Check_Network(Gia_Man_t * pGia)
-{
-    int i, j = 0;
-    Gia_Obj_t * pObj, *pFanin0, *pFanin1;
-    Gia_ManForEachObj1(pGia, pObj, i)
-    {
-        if(Gia_ObjIsPi(pGia, pObj))
-        {
-            assert(pObj->fMark0);
-            continue;
-        }
-        if (pObj->fMark0)
-        {
-            pFanin0 = Gia_ObjFanin0(pObj);
-            if (pFanin0->fMark0 == 0)
-            {
-                j++;
-            }
-            pFanin1 = Gia_ObjFanin1(pObj);
-            if (pFanin1->fMark0 == 0)
-            {
-                j++;
-            }
-            
-        }
-        
-    }
-}
-*/
-
 
 /**Function*************************************************************
 
@@ -588,51 +496,6 @@ void Abc_NtkRecMarkNonDanglingNodes(Gia_Man_t * pGia)
         }
     }
 
-//     Gia_ManForEachObjReverse(pGia, pObj,i)
-//     {
-//         if (pObj->fMark0)
-//         {
-//             if(Gia_ObjIsPo(pGia, pObj))
-//             {
-//                 pFanin0 = Gia_ObjFanin0(pObj);
-//                 pFanin0->fMark0 = 1;
-//                 continue;
-//             }
-//             if (Gia_ObjIsPi(pGia, pObj))
-//             {
-//                 //pObj->fMark0 = 1;
-//                 continue;
-//             }
-//             pFanin0 = Gia_ObjFanin0(pObj);
-//             pFanin0->fMark0 = 1;
-//             pFanin1 = Gia_ObjFanin1(pObj);
-//             pFanin1->fMark0 = 1;
-//         }
-//         
-//     }
-//     Vec_IntForEachEntry(s_pMan->vUselessPos, Id, i)
-//     {
-//         pObj = Gia_ManObj(pGia, Id);
-//         pObj->fMark1 = 1;
-//     }
-    
-//     Gia_ManForEachPo(pGia, pObj,i)
-//     {
-//         pFanin = Gia_ObjFanin0(pObj);      
-//         if ((pFanin->fMark1 && pFanin->fMark0 == 0) || (pFanin->fMark1 && pFanin->fMark0))
-//         {
-//             pFanin->fMark0 = 0;
-//             counter++;
-//         }
-//         else
-//         {
-//             pObj->fMark0 = 1;
-//             if(pFanin->fMark0 == 0)
-//                 Abc_NtkRecMarkNonDanglingNodes_Rec(pGia, pFanin);
-//             
-//         }   
-//     }
-    //Check_Network(pGia);
     Vec_IntClear(s_pMan->vUselessPos);
     Abc_NtkRecMarkCompl(pGia);
 }
@@ -651,18 +514,8 @@ void Abc_NtkRecMarkNonDanglingNodes(Gia_Man_t * pGia)
 Gia_Man_t * Abc_NtkDupWithoutDangling2( Gia_Man_t * pGia )
 {
     Gia_Man_t * pGiaNew; 
-    Gia_Obj_t * pObj;
-    int i;
     Abc_NtkRecMarkNonDanglingNodes(pGia);
     pGiaNew = Gia_ManDupMarked(pGia);
-    Gia_ManHashStart(pGiaNew);
-    Gia_ManForEachPo(pGiaNew, pObj, i)
-    {
-        pObj = Gia_ObjFanin0(pObj);
-        // mark the nodes with CO fanout.
-        assert(pObj->fMark1 == 0);
-        pObj->fMark1 = 1;
-    } 
     return pGiaNew;
 }
 
@@ -682,11 +535,11 @@ void Abc_NtkRecFilter2(int nLimit)
 {
     int  previous = REC_EMPTY_ID,  entry = REC_EMPTY_ID,  pTemp;
     int i;
-    Gia_Man_t * pGia = s_pMan->pGia;
-    int time = clock();
+    Gia_Man_t * pGia = s_pMan->pGia, *newPGia;
+    //int time = clock();
     Abc_ManRec_t2 *p = s_pMan;
-    Gia_Obj_t * pObj;
-    unsigned * pTruthSrc, *pTruthDst;
+//    Gia_Obj_t * pObj;
+    char fileName[256];
     if (nLimit > 0)
     {
         for ( i = 0; i < s_pMan->nBins; i++ )
@@ -724,23 +577,17 @@ void Abc_NtkRecFilter2(int nLimit)
     }
 
     // remove dangling nodes and POs driven by constants
-    s_pMan->pGia = Abc_NtkDupWithoutDangling2(pGia);
-
-    Gia_ManForEachPo( s_pMan->pGia, pObj, i )
-    {
-        //RetValue = Abc_NtkRecComputeTruth2( pObj, p->vTtNodes, p->nVars );
-        //assert( RetValue );
-        pTruthSrc = Gia_ObjComputeTruthTable(s_pMan->pGia, pObj);
-        pTruthDst = (unsigned *)Vec_PtrEntry( p->vTtNodes, Gia_ObjCioId(pObj) );
-        Kit_TruthCopy(pTruthDst, pTruthSrc, p->nVars);
-    }
-    //Abc_RecUpdateHashTable2(pGia, s_pMan->pGia);
-    Gia_ManHashStop(pGia);
-    Gia_ManStop(pGia);
-
+    newPGia = Abc_NtkDupWithoutDangling2(pGia);
+    sprintf( fileName, "RecLib%d_Filtered%d.aig", p->nVars, nLimit);
+    Gia_WriteAiger( newPGia, fileName, 0, 0 );
+    Abc_Print(1, "Library %s was written.");
+    //Gia_ManHashStop(newPGia);
+    Gia_ManStop(newPGia); 
+    Abc_NtkRecStop2();
+    Abc_Print(1, "Record stopped.");
     // collect runtime stats
-    s_pMan->timeTrim += clock() - time;
-    s_pMan->timeTotal += clock() - time;
+    //s_pMan->timeTrim += clock() - time;
+   //s_pMan->timeTotal += clock() - time;
 }
 
 
@@ -797,7 +644,7 @@ static int * Abc_NtkRecTableLookup2(Abc_ManRec_t2* p,  int * pBins, int nBins, u
   SeeAlso     []
 
 ***********************************************************************/
-static void Abc_NtkRecRezieHash2(Abc_ManRec_t2* p)
+static void Abc_NtkRecResizeHash2(Abc_ManRec_t2* p)
 {
     int * pBinsNew, *ppSpot;
     int pEntry, pTemp;
@@ -992,20 +839,21 @@ static void Abc_NtkRecSweepDominance(Abc_ManRec_t2* p, int previous, int current
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkRecReplaceCurrentEntry(int previous, int current, int entry, int * ppSpot)
+void Abc_NtkRecReplaceCurrentEntry(int previous, int * current, int entry, int * ppSpot)
 {
     Abc_ManRec_t2 * p = s_pMan;
-    Rec_Obj(p,entry)->pCopy =  Rec_Obj(p,current)->pCopy;
-    Rec_Obj(p,entry)->pNext = Rec_Obj(p,current)->pNext;
+    Rec_Obj(p,entry)->pCopy =  Rec_Obj(p, *current)->pCopy;
+    Rec_Obj(p,entry)->pNext = Rec_Obj(p, *current)->pNext;
     if (previous == REC_EMPTY_ID)
     {
         *ppSpot = entry;
-        Rec_Obj(p,entry)->nFrequency = Rec_Obj(p,current)->nFrequency;
+        Rec_Obj(p,entry)->nFrequency = Rec_Obj(p, *current)->nFrequency;
     }
     else
     {
         Rec_Obj(p,previous)->pNext = entry;
     }
+    *current = entry;
     
 }
 
@@ -1023,7 +871,7 @@ void Abc_NtkRecReplaceCurrentEntry(int previous, int current, int entry, int * p
 void Abc_NtkRecInsertToLookUpTable2(Abc_ManRec_t2* p, int* ppSpot, Gia_Obj_t* pPO, int nVars, int fTrim)
 {
     char delayFromStruct[16];
-    int i;  
+    int i, hasRealloced = 0;  
     Gia_Obj_t* pLeaf, *pObj = Gia_ObjFanin0(pPO);
     int entry, previous = REC_EMPTY_ID, current = * ppSpot;
     unsigned char costFromStruct = Abc_NtkRecArea2(pObj);
@@ -1036,7 +884,9 @@ void Abc_NtkRecInsertToLookUpTable2(Abc_ManRec_t2* p, int* ppSpot, Gia_Obj_t* pP
         pLeaf =Gia_Regular(pLeaf);
         delayFromStruct[i] = If_CutDepthRecComput_rec2(pObj, Gia_ObjId(p->pGia, pLeaf));
     }
-    pRecObj = Rec_AppendObj(p);
+    hasRealloced = Rec_AppendObj(p, &pRecObj);
+    if(hasRealloced)
+        ppSpot = Abc_NtkRecTableLookup2(p, p->pBins, p->nBins, (unsigned *)Vec_PtrEntry( p->vTtNodes, Gia_ObjCioId(pPO)), p->nVars );
     assert(Rec_ObjID(p, pRecObj) == Gia_ObjCioId(pPO));
     if(fTrim)
     {       
@@ -1064,11 +914,11 @@ void Abc_NtkRecInsertToLookUpTable2(Abc_ManRec_t2* p, int* ppSpot, Gia_Obj_t* pP
             if(result == REC_EQUAL)
             {
                 // when delay profile is equal, replace only if it has smaller cost.
-                if(costFromStruct < Rec_Obj(p, current)->cost)
+                if(costFromStruct < (Rec_Obj(p, current)->cost))
                 {   
                     Abc_NtkRecDeleteSubGragh2(Abc_NtkRecGetObj(current));
                     entry = Rec_ObjSet2(p, pRecObj, delayFromStruct, costFromStruct, nVars);
-                    Abc_NtkRecReplaceCurrentEntry(previous, current, entry, ppSpot);
+                    Abc_NtkRecReplaceCurrentEntry(previous, &current, entry, ppSpot);
 
                 }
                 else
@@ -1080,7 +930,7 @@ void Abc_NtkRecInsertToLookUpTable2(Abc_ManRec_t2* p, int* ppSpot, Gia_Obj_t* pP
             {
                 Abc_NtkRecDeleteSubGragh2(Abc_NtkRecGetObj(current));
                 entry = Rec_ObjSet2(p, pRecObj, delayFromStruct, costFromStruct, nVars);
-                Abc_NtkRecReplaceCurrentEntry(previous, current, entry, ppSpot);
+                Abc_NtkRecReplaceCurrentEntry(previous, &current, entry, ppSpot);
                 Abc_NtkRecSweepDominance(p,current,Rec_Obj(p, current)->pNext,delayFromStruct, nVars);       
                 break;
             }
@@ -1167,7 +1017,7 @@ void Abc_NtkRecStart2( Gia_Man_t * pGia, int nVars, int nCuts, int fTrim )
     Gia_Obj_t * pObj, *pFanin;
     int * ppSpot;
     unsigned * pTruthDst, *pTruthSrc, *pTruth;
-    int i;
+    int i, j = 0;
     int clkTotal = clock(), clk, timeInsert;
 
     assert( s_pMan == NULL );
@@ -1199,10 +1049,6 @@ void Abc_NtkRecStart2( Gia_Man_t * pGia, int nVars, int nCuts, int fTrim )
     for ( i = Gia_ManPiNum(pGia); i < nVars; i++ )
     {
         Gia_ManAppendCi(pGia);
-//      pObj = Gia_ManAppendCi(pGia);  
-//      Buffer[0] = 'a' + i;
-//      Buffer[1] = 0;
-//      Vec_PtrEntry( pGia->vNamesIn, Gia_ObjCioId(pObj)) = Extra_UtilStrsav(Buffer);
     }
 
     p = ABC_ALLOC( Abc_ManRec_t2, 1 );
@@ -1231,8 +1077,6 @@ void Abc_NtkRecStart2( Gia_Man_t * pGia, int nVars, int nCuts, int fTrim )
     p->vInputs = Vec_StrStart( 1 << 16 );
     p->pMmTruth = Mem_FixedStart( sizeof(unsigned)*p->nWords );
     p->vUselessPos = Vec_IntAlloc(1 << 16);
-//     for ( i = 0; i < Gia_ManObjNum(pGia); i++ )
-//         Vec_PtrPush( p->vTtNodes, Mem_FixedEntryFetch(p->pMmTruth) );
 
     for ( i = 0; i < Gia_ManPoNum(pGia); i++ )
         Vec_PtrPush( p->vTtNodes, Mem_FixedEntryFetch(p->pMmTruth) );
@@ -1241,17 +1085,11 @@ void Abc_NtkRecStart2( Gia_Man_t * pGia, int nVars, int nCuts, int fTrim )
     //p->nBins = 50011;
     p->nBins =500011;
     p->pBins = ABC_ALLOC( int, p->nBins );
-    memset( p->pBins, -1, sizeof(int *) * p->nBins );
-
-    //Kit_TruthFill( (unsigned *)Vec_PtrEntry(p->vTtNodes, 0), p->nVars );
-    //Gia_ManForEachPi( pGia, pObj, i )
-    //   Kit_TruthCopy( (unsigned *)Vec_PtrEntry(p->vTtNodes, Gia_ObjId(pGia, pObj)), (unsigned *)Vec_PtrEntry(p->vTtElems, i), p->nVars );
+    memset( p->pBins, -1, sizeof(int) * p->nBins );
 
 clk = clock();
     Gia_ManForEachPo( pGia, pObj, i )
     {
-        //RetValue = Abc_NtkRecComputeTruth2( pObj, p->vTtNodes, p->nVars );
-        //assert( RetValue );
         pTruthSrc = Gia_ObjComputeTruthTable(pGia, pObj);
         pTruthDst = (unsigned *)Vec_PtrEntry( p->vTtNodes, Gia_ObjCioId(pObj) );
         Kit_TruthCopy(pTruthDst, pTruthSrc, p->nVars);
@@ -1263,13 +1101,7 @@ timeInsert = clock();
     Abc_NtkRecMarkInputs(p, pGia);
     Gia_ManForEachPo( pGia, pObj, i )
     {
-        p->nTried++;
-        //if the PO's input is a constant, skip it.
-        //if (Gia_ObjChild0(pObj) == Gia_ManConst0(pGia))
-        //{
-        //    p->nTrimed++;
-        //    continue;
-        //}   
+        p->nTried++;       
         pFanin = Gia_ObjFanin0(pObj);
         // mark the nodes with CO fanout.
         assert(pFanin->fMark1 == 0);
@@ -1277,9 +1109,9 @@ timeInsert = clock();
         pTruth = (unsigned *)Vec_PtrEntry( p->vTtNodes, Gia_ObjCioId(pObj) );
         // add the resulting truth table to the hash table 
         if(p->nAddedFuncs > 2 * p->nBins)
-            Abc_NtkRecRezieHash2(p);
+            Abc_NtkRecResizeHash2(p);
         ppSpot = Abc_NtkRecTableLookup2(p, p->pBins, p->nBins, pTruth, p->nVars );
-        Abc_NtkRecInsertToLookUpTable2(p, ppSpot, pObj, Abc_ObjGetMax2(p->vInputs, pGia, pObj), p->fTrim);       
+        Abc_NtkRecInsertToLookUpTable2(p, ppSpot, pObj, Abc_ObjGetMax2(p->vInputs, pGia, pFanin), p->fTrim);       
     }
 p->timeInsert += clock() - timeInsert;
 
@@ -1288,12 +1120,8 @@ p->timeInsert += clock() - timeInsert;
     p->pMints = ABC_ALLOC( int, 2*p->nVars );
     p->pTemp1 = ABC_ALLOC( unsigned, p->nWords );
     p->pTemp2 = ABC_ALLOC( unsigned, p->nWords );
-    p->pTempTruth = ABC_ALLOC( unsigned, p->nWords );
-    p->pTempDepths = ABC_ALLOC( char, p->nVars );
-    p->pTempleaves = ABC_ALLOC( int, p->nVars );
     p->vNodes = Vec_PtrAlloc( 100 );
     p->vTtTemps = Vec_PtrAllocSimInfo( 1024, p->nWords );
-    p->vMemory = Vec_IntAlloc( Abc_TruthWordNum(p->nVars) * 1000 );
     p->vLabels = Vec_PtrStart( 1000);
 
 
@@ -1361,7 +1189,7 @@ for ( i = 0; i < p->nBins; i++ )
     // go through the table
     Counter = CounterS = 0;
     for ( i = 0; i < p->nBins; i++ )
-    for ( pEntry = p->pBins[i]; pEntry; pEntry = Rec_Obj(p, pEntry)->pCopy )
+    for ( pEntry = p->pBins[i]; pEntry != REC_EMPTY_ID; pEntry = Rec_Obj(p, pEntry)->pCopy )
     {
         assert(Abc_ObjGetMax2(s_pMan->vInputs, s_pMan->pGia, Abc_NtkRecGetObj(pEntry)) >= 2);    
         Counters[ Abc_ObjGetMax2(s_pMan->vInputs, s_pMan->pGia, Abc_NtkRecGetObj(pEntry))]++;
@@ -1496,22 +1324,6 @@ static int Abc_NtkRecCollectNodes( If_Man_t * pIfMan, If_Obj_t * pRoot, If_Cut_t
     // clean the mark
     Vec_PtrForEachEntry( If_Obj_t *, vNodes, pLeaf, i )
         pLeaf->fMark = 0;
-/*
-    if ( pRoot->Id == 2639 )
-    {
-        // print the cut
-        Vec_PtrForEachEntry( If_Obj_t *, vNodes, pLeaf, i )
-        {
-            if ( If_ObjIsAnd(pLeaf) )
-                printf( "%4d = %c%4d & %c%4d\n", pLeaf->Id, 
-                    (If_ObjFaninC0(pLeaf)? '-':'+'), If_ObjFanin0(pLeaf)->Id, 
-                    (If_ObjFaninC1(pLeaf)? '-':'+'), If_ObjFanin1(pLeaf)->Id ); 
-            else
-                printf( "%4d = pi\n", pLeaf->Id ); 
-        }
-        printf( "\n" );
-    }
-*/
     return RetValue;
 }
 
@@ -1629,15 +1441,16 @@ int Abc_NtkRecAddCut2( If_Man_t * pIfMan, If_Obj_t * pRoot, If_Cut_t * pCut )
 {
     static int s_MaxSize[16] = { 0 };
     char pCanonPerm[16];
-    Gia_Obj_t * pObj = NULL, * pFanin0, * pFanin1, *pPO;
-    int * ppSpot;
+    Gia_Obj_t * pObj = NULL,  *pPO;
+    int iFanin0, iFanin1, iRecObj;
+    int * ppSpot, lit;//, test;
     Gia_Man_t * pAig = s_pMan->pGia;
     If_Obj_t * pIfObj;
     Vec_Ptr_t * vNodes = s_pMan->vNodes;
     unsigned * pInOut = s_pMan->pTemp1;
     unsigned * pTemp = s_pMan->pTemp2;
     unsigned *pTruthSrc, *pTruthDst;
-    int objectID;
+    int objectID = 0;
     int i, RetValue, nNodes, nNodesBeg, nInputs = s_pMan->nVars, nLeaves = If_CutLeaveNum(pCut);
     unsigned uCanonPhase;
     int clk, timeInsert, timeBuild;
@@ -1670,6 +1483,7 @@ s_pMan->timeCollect += clock() - clk;
         s_pMan->nFilterVolume++;
         return 1;
     }
+   
 
     // compute truth table and skip the redundant structures
 clk = clock();
@@ -1705,26 +1519,28 @@ timeBuild = clock();
         pIfObj = If_ManObj( pIfMan, pCut->pLeaves[(int)pCanonPerm[i]] );
         // get hold of the corresponding new node
         pObj = Gia_ManPi( pAig, i );
-        pObj = Gia_NotCond( pObj, ((uCanonPhase & (1 << i)) != 0) );
+        lit = Gia_ObjId(pAig, pObj);
+        lit = Abc_Var2Lit( lit, ((uCanonPhase & (1 << i)) != 0) );
         // map them
-        pIfObj->pCopy = pObj;
+        pIfObj->iCopy = lit;
     }
 
     // build the node and compute its truth table
     nNodesBeg = Gia_ManObjNum( pAig );
     Vec_PtrForEachEntryStart( If_Obj_t *, vNodes, pIfObj, i, nLeaves )
     {
-        pFanin0 = Gia_NotCond( (Gia_Obj_t *)If_ObjFanin0(pIfObj)->pCopy, If_ObjFaninC0(pIfObj) );
-        pFanin1 = Gia_NotCond( (Gia_Obj_t *)If_ObjFanin1(pIfObj)->pCopy, If_ObjFaninC1(pIfObj) );
+        iFanin0 = Abc_LitNotCond( If_ObjFanin0(pIfObj)->iCopy, If_ObjFaninC0(pIfObj) );
+        iFanin1 = Abc_LitNotCond( If_ObjFanin1(pIfObj)->iCopy, If_ObjFaninC1(pIfObj) );
 
         nNodes = Gia_ManObjNum( pAig );
-        pObj = Gia_ObjFromLit(pAig, Gia_ManHashAnd(pAig, Gia_ObjToLit(pAig,pFanin0), Gia_ObjToLit(pAig,pFanin1) )) ;
+        iRecObj = Gia_ManHashAnd(pAig, iFanin0, iFanin1 );
         //assert( !Gia_IsComplement(pObj) );
-        pObj = Gia_Regular(pObj);
-        pIfObj->pCopy = pObj;
+        //pObj = Gia_Regular(pObj);
+        pIfObj->iCopy = iRecObj;
 
     }
-    assert(pObj);
+    //assert(pObj);
+    pObj = Gia_ManObj(pAig, Abc_Lit2Var(iRecObj));
     pTruthSrc = Gia_ObjComputeTruthTable(pAig, pObj);
 s_pMan->timeBuild += clock() - timeBuild;
     
@@ -1746,7 +1562,7 @@ s_pMan->timeBuild += clock() - timeBuild;
     
     // look up in the hash table and increase the hit number of the functional class
     if(s_pMan->nAddedFuncs > 2 * s_pMan->nBins)
-        Abc_NtkRecRezieHash2(s_pMan);
+        Abc_NtkRecResizeHash2(s_pMan);
     ppSpot = Abc_NtkRecTableLookup2(s_pMan, s_pMan->pBins,s_pMan->nBins , pTruthSrc, nInputs );
     Abc_NtkRecFrequencyInc(*ppSpot);   
     // if not new nodes were added and the node has a CO fanout
@@ -2061,39 +1877,7 @@ int If_CutDelayRecCost2(If_Man_t* p, If_Cut_t* pCut, If_Obj_t * pObj)
     }
     // mark as user cut.
     pCut->fUser = 1;
-    
-
-//     if ( fVerbose )
-//         Kit_DsdPrintFromTruth( pInOut, nLeaves ), printf( "   Subgraphs: " );
-
-    //find the best structure of the functional class.
-//     Counter = 0;
-//     for ( pCand = *ppSpot; pCand; pCand = pCand->pNext )
-//     {
-//         Counter++;
-//         if ( fVerbose )
-//         {
-//             printf( "%s(", Abc_ObjIsComplement(pCand->obj)? "!" : "" );
-//             Abc_RecPrint_rec( Abc_ObjRegular(pCand->obj) );
-//             printf( ")   " );
-//         }
-//         s_pMan->nFunsDelayComput++;
-//         Delay = If_CutComputDelay(p, pCand, pCut, pCanonPerm ,nLeaves);
-//         if ( DelayMin > Delay )
-//         {
-//             //            printf( "%d ", Cost );
-//             DelayMin = Delay;
-//             pCandMin = pCand;
-//         }
-//         else if(Delay == DelayMin)
-//         {
-//             if(pCand->cost < pCandMin->cost)
-//                 pCandMin = pCand;
-//         }
-//     }
-//     if ( fVerbose )
-//         printf( "Printed %d subgraphs.\n", Counter );
-    
+       
     //assert( pCandMin != NULL );
     for ( i = 0; i < nLeaves; i++ )
     {
@@ -2116,9 +1900,9 @@ int If_CutDelayRecCost2(If_Man_t* p, If_Cut_t* pCut, If_Obj_t * pObj)
   SeeAlso     []
 
 ***********************************************************************/
- Hop_Obj_t * Abc_NtkRecBuildUp_rec2(Hop_Man_t* pMan, Gia_Obj_t* pObj, Vec_Ptr_t * vNodes)
- {
-     Hop_Obj_t * pRes0, *pRes1, *pRes;
+Hop_Obj_t * Abc_NtkRecBuildUp_rec2(Hop_Man_t* pMan, Gia_Obj_t* pObj, Vec_Ptr_t * vNodes)
+{
+    Hop_Obj_t * pRes0, *pRes1, *pRes;
     Gia_Obj_t *pRegular = Gia_Regular(pObj);
     if (Gia_ObjIsTravIdCurrent(s_pMan->pGia, pRegular) || Gia_ObjIsPi(s_pMan->pGia, pRegular))
         return (Hop_Obj_t *)Vec_PtrEntry(vNodes, Gia_ObjId(s_pMan->pGia, pRegular));
@@ -2130,7 +1914,7 @@ int If_CutDelayRecCost2(If_Man_t* p, If_Cut_t* pCut, If_Obj_t * pObj)
     pRes = Hop_And(pMan, pRes0, pRes1);
     Vec_PtrWriteEntry(vNodes,Gia_ObjId(s_pMan->pGia, pRegular),pRes);
     return pRes;
- }
+}
 
 /**Function*************************************************************
 
@@ -2229,17 +2013,12 @@ void Abc_NtkRecStop2()
     ABC_FREE( s_pMan->pMints );
     ABC_FREE( s_pMan->pTemp1 );
     ABC_FREE( s_pMan->pTemp2 );
-    ABC_FREE( s_pMan->pTempTruth );
-    ABC_FREE( s_pMan->pTempDepths );
     Vec_PtrFree( s_pMan->vNodes );
     Vec_PtrFree( s_pMan->vTtTemps );
     if ( s_pMan->vLabels )
         Vec_PtrFree( s_pMan->vLabels );
-    if ( s_pMan->vCosts )
-        Vec_StrFree( s_pMan->vCosts );
     //if(s_pMan->pMemObj)
     //    Mem_FixedStop(s_pMan->pMemObj, 0);
-    Vec_IntFree( s_pMan->vMemory );
     Vec_IntFree( s_pMan->vUselessPos);
     ABC_FREE(s_pMan->pRecObjs);
 //  if(s_pMan->vFiltered)
@@ -2387,22 +2166,6 @@ void Abc_NtkRecAddFromLib2( Gia_Man_t * pGia2, Gia_Obj_t * pRoot, int nVars )
         //assert( !Gia_IsComplement(pObj) );
         pObj = Gia_Regular(pObj);
         Gia_ObjSetCopyF(pGia2, 0, pAbcObj, Gia_ObjId(pGia,pObj));
-        //pIfObj->pCopy = pObj;
-
-//         if ( Gia_ObjId(pGia, pObj) == nNodes )
-//         {
-//             while ( Vec_PtrSize(s_pMan->vTtNodes) <= Gia_ObjId(pGia, pObj) )
-//                 Vec_PtrPush( s_pMan->vTtNodes, Mem_FixedEntryFetch(s_pMan->pMmTruth) );
-// 
-//             // compute the truth table
-//             RetValue = Abc_NtkRecComputeTruth2( pObj, s_pMan->vTtNodes, nInputs );
-//             if ( RetValue == 0 )
-//             {
-//                 s_pMan->nFilterError++;
-//                 printf( "T" );
-//                 return;
-//             }
-//        }
     }
     assert(pObj);
     pTruthSrc = Gia_ObjComputeTruthTable(pGia, pObj);
@@ -2412,7 +2175,7 @@ void Abc_NtkRecAddFromLib2( Gia_Man_t * pGia2, Gia_Obj_t * pRoot, int nVars )
     assert (Kit_TruthIsEqual( pTruthSrc, pInOut, nInputs ) );
 
     if(s_pMan->nAddedFuncs > 2 * s_pMan->nBins)
-        Abc_NtkRecRezieHash2(s_pMan);
+        Abc_NtkRecResizeHash2(s_pMan);
     ppSpot = Abc_NtkRecTableLookup2(s_pMan, s_pMan->pBins,s_pMan->nBins , pTruthSrc, nInputs ); 
     // if not new nodes were added and the node has a CO fanout
 
