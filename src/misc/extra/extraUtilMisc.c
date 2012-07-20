@@ -2155,6 +2155,294 @@ void Extra_TruthExpandGeneratePermTable()
     printf( "};\n" );
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Computes complementation schedule for 2^n Grey codes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int * Extra_GreyCodeSchedule( int n )
+{
+    int * pRes = ABC_ALLOC( int, (1<<n) );
+    int i, k, b = 0;
+//    pRes[b++] = -1;
+    for ( k = 0; k < n; k++ )
+        for ( pRes[b++] = k, i = 1; i < (1<<k); i++ )
+            pRes[b++] = pRes[i-1]; // pRes[i];
+    pRes[b++] = n-1;
+    assert( b == (1<<n) );
+
+    if ( 0 )
+    {
+        unsigned uSign = 0;
+        for ( b = 0; b < (1<<n); b++ )
+        {
+            uSign ^= (1 << pRes[b]);
+            printf( "%3d %3d  ", b, pRes[b] );
+            Extra_PrintBinary( stdout, &uSign, n );
+            printf( "\n" );
+        }
+    }
+    return pRes;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes permutation schedule for n! permutations.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int * Extra_PermSchedule( int n )
+{
+    int nFact   = Extra_Factorial(n);
+    int nGroups = nFact / n / 2;
+    int * pRes = ABC_ALLOC( int, nFact );
+    int * pRes0, i, k, b = 0;
+    assert( n > 1 );
+    if ( n == 2 )
+    {
+        pRes[0] = pRes[1] = 0;
+        return pRes;
+    }
+    pRes0 = Extra_PermSchedule( n-1 );
+    for ( k = 0; k < nGroups; k++ )
+    {
+        for ( i = n-1; i > 0; i-- )
+            pRes[b++] = i-1;
+        pRes[b++] = pRes0[2*k]+1;
+        for ( i = 0; i < n-1; i++ )
+            pRes[b++] = i;
+        pRes[b++] = pRes0[2*k+1];
+    }
+    ABC_FREE( pRes0 );
+    assert( b == nFact );
+
+    if ( 0 )
+    {
+        int Perm[16];
+        for ( i = 0; i < n; i++ )
+            Perm[i] = i;
+        for ( b = 0; b < nFact; b++ )
+        {
+            ABC_SWAP( int, Perm[pRes[b]], Perm[pRes[b]+1] );
+            printf( "%3d %3d    ", b, pRes[b] );
+            for ( i = 0; i < n; i++ )
+                printf( "%d", Perm[i] );
+            printf( "\n" );
+        }
+    }
+    return pRes;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Finds minimum form of a 6-input function.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline word Extra_Truth6SwapAdjacent( word t, int v )
+{
+    // variable swapping code
+    static word PMasks[5][3] = {
+        { 0x9999999999999999, 0x2222222222222222, 0x4444444444444444 },
+        { 0xC3C3C3C3C3C3C3C3, 0x0C0C0C0C0C0C0C0C, 0x3030303030303030 },
+        { 0xF00FF00FF00FF00F, 0x00F000F000F000F0, 0x0F000F000F000F00 },
+        { 0xFF0000FFFF0000FF, 0x0000FF000000FF00, 0x00FF000000FF0000 },
+        { 0xFFFF00000000FFFF, 0x00000000FFFF0000, 0x0000FFFF00000000 }
+    };
+    assert( v < 5 );
+    return (t & PMasks[v][0]) | ((t & PMasks[v][1]) << (1 << v)) | ((t & PMasks[v][2]) >> (1 << v));
+}
+static inline word Extra_Truth6ChangePhase( word t, int v )
+{
+    // elementary truth tables
+    static word Truth6[6] = {
+        0xAAAAAAAAAAAAAAAA,
+        0xCCCCCCCCCCCCCCCC,
+        0xF0F0F0F0F0F0F0F0,
+        0xFF00FF00FF00FF00,
+        0xFFFF0000FFFF0000,
+        0xFFFFFFFF00000000
+    };
+    assert( v < 6 );
+    return ((t & ~Truth6[v]) << (1 << v)) | ((t & Truth6[v]) >> (1 << v));
+}
+static inline word Extra_Truth6Minimum( word t, int * pComp, int * pPerm )
+{
+    word tMin = ~(word)0;
+    word tCur, tTemp1, tTemp2;
+    int i, p, c;
+    for ( i = 0; i < 2; i++ )
+    {
+        tCur = i ? ~t : t;
+        tTemp1 = tCur;
+        for ( p = 0; p < 720; p++ )
+        {
+//            printf( "Trying perm %d:\n", p );
+//            Kit_DsdPrintFromTruth( &tCur, 6 ), printf( "\n" );;
+            tTemp2 = tCur;
+            for ( c = 0; c < 64; c++ )
+            {
+                tMin = Abc_MinWord( tMin, tCur );
+                tCur = Extra_Truth6ChangePhase( tCur, pComp[c] );
+            }
+            assert( tTemp2 == tCur );
+            tCur = Extra_Truth6SwapAdjacent( tCur, pPerm[p] );
+        }
+        assert( tTemp1 == tCur );
+    }
+    return tMin;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Reads functions from file.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+word * Extra_NpnRead( char * pFileName, int nFuncs )
+{
+    FILE * pFile;
+    word * pFuncs;
+    char pBuffer[100];
+    int i = 0;
+    pFuncs = ABC_CALLOC( word, nFuncs );
+    pFile = fopen( pFileName, "rb" );
+    while ( fgets( pBuffer, 100, pFile ) )
+        Extra_ReadHex( (unsigned *)(pFuncs + i++), pBuffer+2, 16 );
+//        Extra_ReadHex( (unsigned *)(pFuncs + i++), pBuffer, 16 );
+    fclose( pFile );
+    assert( i == nFuncs );
+    for ( i = 0; i < Abc_MinInt(nFuncs, 20); i++ )
+        Extra_PrintHex( stdout, (unsigned *)(pFuncs + i), 6 ), printf( "\n" );
+    return pFuncs;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Comparison for words.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int CompareWords( void * p1, void * p2 )
+{
+    word Word1 = *(word *)p1;
+    word Word2 = *(word *)p2;
+    if ( Word1 < Word2 )
+        return -1;
+    if ( Word1 > Word2 )
+        return 1;
+    return 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes the permutation table for 8 variables.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Extra_NpnTest1()
+{
+    int * pComp;
+    pComp = Extra_PermSchedule( 5 );
+//    pComp = Extra_GreyCodeSchedule( 5 );
+    ABC_FREE( pComp );
+}
+void Extra_NpnTest2()
+{
+    int * pComp, * pPerm;
+    word tMin, t = 0xa2222aaa08888000;
+    pComp = Extra_GreyCodeSchedule( 6 );
+    pPerm = Extra_PermSchedule( 6 );
+    tMin  = Extra_Truth6Minimum( t, pComp, pPerm );
+    ABC_FREE( pPerm );
+    ABC_FREE( pComp );
+
+    Extra_PrintHex( stdout, (unsigned *)&t,    6 ), printf( "\n" );
+    Extra_PrintHex( stdout, (unsigned *)&tMin, 6 ), printf( "\n" );
+}
+void Extra_NpnTest()
+{
+    int nFuncs = 5687661; 
+//    int nFuncs = 400777;
+//    int nFuncs = 10;
+    clock_t clk = clock();
+    word * pFuncs;
+    int * pComp, * pPerm;
+    int i, k, nUnique = 0;
+    // read functions
+    pFuncs = Extra_NpnRead( "C:\\_projects\\abc\\_TEST\\allan\\lib6var5M.txt", nFuncs );
+//    pFuncs = Extra_NpnRead( "C:\\_projects\\abc\\_TEST\\allan\\lib6var5M_out_Total_minimal.txt", nFuncs );
+    qsort( (void *)pFuncs, nFuncs, sizeof(word), (int(*)(const void *,const void *))CompareWords );
+
+    // count unique
+    k = 1;
+    for ( i = 1; i < nFuncs; i++ )
+        if ( pFuncs[i] != pFuncs[i-1] )
+            pFuncs[k++] = pFuncs[i];
+    nFuncs = k;
+    printf( "Total number of unique functions = %d\n", nFuncs );
+
+//    pFuncs = Extra_NpnRead( "C:\\_projects\\abc\\_TEST\\allan\\lib6var5M_out_Total_minimal.txt", nFuncs );
+//    pFuncs = Extra_NpnRead( "C:\\_projects\\abc\\_TEST\\allan\\test.txt", nFuncs );
+    pComp = Extra_GreyCodeSchedule( 6 );
+    pPerm = Extra_PermSchedule( 6 );
+    // compute minimum forms
+    for ( i = 0; i < nFuncs; i++ )
+    {
+        pFuncs[i] = Extra_Truth6Minimum( pFuncs[i], pComp, pPerm );
+        if ( i % 10000 == 0 )
+            printf( "%d\n", i );
+    }
+    printf( "Finished deriving minimum form\n" );
+    // sort them by value
+    qsort( (void *)pFuncs, nFuncs, sizeof(word), (int(*)(const void *,const void *))CompareWords );
+    // count unique
+    nUnique = nFuncs;
+    for ( i = 1; i < nFuncs; i++ )
+        if ( pFuncs[i] == pFuncs[i-1] )
+            nUnique--;
+    printf( "Total number of unique ones = %d\n", nUnique );
+    for ( i = 0; i < Abc_MinInt(nFuncs, 20); i++ )
+        Extra_PrintHex( stdout, (unsigned *)(pFuncs + i), 6 ), printf( "\n" );
+    ABC_FREE( pPerm );
+    ABC_FREE( pComp );
+    ABC_FREE( pFuncs );
+    Abc_PrintTime( 1, "Time", clock() - clk );
+}
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
