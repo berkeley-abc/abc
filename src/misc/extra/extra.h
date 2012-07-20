@@ -200,6 +200,9 @@ extern unsigned ** Extra_TruthPerm53();
 extern unsigned ** Extra_TruthPerm54();
 /* bubble sort for small number of entries */
 extern void        Extra_BubbleSort( int Order[], int Costs[], int nSize, int fIncreasing );
+/* complementation/permutation generation */
+extern int *       Extra_GreyCodeSchedule( int n );
+extern int *       Extra_PermSchedule( int n );
 
 /*=== extraUtilCanon.c ========================================================*/
 
