@@ -2539,6 +2539,10 @@ SOURCE=.\src\misc\vec\vecInt.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\misc\vec\vecMem.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\misc\vec\vecPtr.h
 # End Source File
 # Begin Source File

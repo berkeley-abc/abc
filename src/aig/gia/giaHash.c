@@ -109,7 +109,7 @@ int Gia_ManHashLookup( Gia_Man_t * p, Gia_Obj_t * p0, Gia_Obj_t * p1 )
 void Gia_ManHashAlloc( Gia_Man_t * p )  
 {
     assert( p->pHTable == NULL );
-    p->nHTable = Abc_PrimeCudd( p->nObjsAlloc );
+    p->nHTable = Abc_PrimeCudd( Gia_ManAndNum(p) ? Gia_ManAndNum(p) + 1000 : p->nObjsAlloc );
     p->pHTable = ABC_CALLOC( int, p->nHTable );
 }
 

@@ -22,16 +22,19 @@
 #include "map/if/if.h"
 #include "bool/kit/kit.h"
 #include "aig/gia/giaAig.h"
+#include "misc/vec/vecMem.h"
 
 ABC_NAMESPACE_IMPL_START
 
 //#define LibOut
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
 #define  IF_BIG_CHAR 120
 #define  REC_EMPTY_ID -1
+
 typedef struct Abc_ManRec_t_2 Abc_ManRec_t2;
 typedef struct Rec_Obj_t_2 Rec_Obj_t2;
 
@@ -54,14 +57,14 @@ struct Rec_Obj_t_2
     char pinToPinDelay[0];      // structure's pin-to-pin delay
 };
 
-
 struct Abc_ManRec_t_2
 {
     Gia_Man_t *       pGia;                     // the record
-    Vec_Ptr_t *       vTtElems;                 // the elementary truth tables
-    Vec_Ptr_t *       vTtNodes;                 // the node truth tables
     Vec_Str_t *       vInputs;                  // the input number of nodes
-    Mem_Fixed_t *     pMmTruth;                 // memory manager for truth tables
+    Vec_Ptr_t *       vTtElems;                 // the elementary truth tables
+//    Vec_Ptr_t *       vTtNodes;                 // the node truth tables
+//    Mem_Fixed_t *     pMmTruth;                 // memory manager for truth tables
+    Vec_Mem_t *       vTtMem;                   // memory for truth tables of primary outputs
     int *             pBins;                    // hash table mapping truth tables into nodes
     int               nBins;                    // the number of allocated bins
     int               nVars;                    // the number of variables
@@ -74,13 +77,11 @@ struct Abc_ManRec_t_2
     char *            pRecObjs;
     int               nRecObjs;
     int               nRecObjsAlloc;
-
     // temporaries
     int *             pBytes;                   // temporary storage for minterms
     int *             pMints;                   // temporary storage for minterm counters
     unsigned *        pTemp1;                   // temporary truth table
     unsigned *        pTemp2;                   // temporary truth table
-
     Vec_Ptr_t *       vNodes;                   // the temporary nodes
     Vec_Ptr_t *       vTtTemps;                 // the truth tables for the internal nodes of the cut
     Vec_Ptr_t *       vLabels;                  // temporary storage for AIG node labels
@@ -129,19 +130,19 @@ static Abc_ManRec_t2 * s_pMan = NULL;
 static inline void Abc_ObjSetMax2( Vec_Str_t * p, Gia_Man_t * pGia, Gia_Obj_t * pObj, char Value )  { Vec_StrWriteEntry(p, Gia_ObjId(pGia, pObj), Value); }
 //static inline void Abc_ObjClearMax( Gia_Obj_t * pObj )          { pObj->Value = (pObj->Value & 0xff); }
 static inline int  Abc_ObjGetMax2( Vec_Str_t * p, Gia_Man_t * pGia, Gia_Obj_t * pObj )              { return Vec_StrEntry(p, Gia_ObjId(pGia, pObj)); }
-
 static inline int   Rec_ObjID(Abc_ManRec_t2 *p, Rec_Obj_t2 * pRecObj)                                  
 {   char * pObj = (char *)pRecObj;
     assert(p->pRecObjs <= pObj && pObj < p->pRecObjs + p->nRecObjs * p->recObjSize); 
     return (pObj - p->pRecObjs)/p->recObjSize;
 }
-
 static inline Rec_Obj_t2 * Rec_Obj(Abc_ManRec_t2 *p, int v)
 {
     assert( v < p->nRecObjs ); 
     return (Rec_Obj_t2 *)(p->pRecObjs + v * p->recObjSize);
 }
 
+static inline unsigned * Rec_MemReadEntry( Abc_ManRec_t2 * p, int i )                    { return (unsigned *)Vec_MemReadEntry( p->vTtMem, i ); }
+static inline void       Rec_MemSetEntry( Abc_ManRec_t2 * p, int i, unsigned * pEntry )  { Vec_MemSetEntry( p->vTtMem, i, (word *)pEntry );     }
 
 /**Function*************************************************************
 
@@ -628,7 +629,8 @@ static int * Abc_NtkRecTableLookup2(Abc_ManRec_t2* p,  int * pBins, int nBins, u
     int * ppSpot,  pEntry;
     ppSpot = pBins + Abc_NtkRecTableHash( pTruth, nVars, nBins, s_Primes );
     for ( pEntry = *ppSpot; pEntry != REC_EMPTY_ID; ppSpot = &(Rec_Obj(p,pEntry)->pCopy), pEntry = Rec_Obj(p,pEntry)->pCopy )
-        if ( Kit_TruthIsEqualWithPhase((unsigned *)Vec_PtrEntry(p->vTtNodes, pEntry), pTruth, nVars) )
+//        if ( Kit_TruthIsEqualWithPhase((unsigned *)Vec_PtrEntry(p->vTtNodes, pEntry), pTruth, nVars) )
+        if ( Kit_TruthIsEqualWithPhase( Rec_MemReadEntry(p, pEntry), pTruth, nVars) )
             return ppSpot;
     return ppSpot;
 }
@@ -651,7 +653,7 @@ static void Abc_NtkRecResizeHash2(Abc_ManRec_t2* p)
     int nBinsNew, Counter, i;
     int clk = clock();
     // get the new table size
-    nBinsNew = Cudd_Prime( 3 * p->nBins ); 
+    nBinsNew = Cudd_Prime( 2 * p->nBins ); 
     printf("Hash table resize from %d to %d.\n", p->nBins, nBinsNew);
     // allocate a new array
     pBinsNew = ABC_ALLOC( int, nBinsNew );
@@ -662,7 +664,8 @@ static void Abc_NtkRecResizeHash2(Abc_ManRec_t2* p)
         for ( pEntry = p->pBins[i]; pEntry != REC_EMPTY_ID;)
         {          
             pTemp = Rec_Obj(p, pEntry)->pCopy;
-            ppSpot = Abc_NtkRecTableLookup2(p, pBinsNew, nBinsNew, (unsigned *)Vec_PtrEntry(p->vTtNodes, pEntry), p->nVars);
+//            ppSpot = Abc_NtkRecTableLookup2(p, pBinsNew, nBinsNew, (unsigned *)Vec_PtrEntry(p->vTtNodes, pEntry), p->nVars);
+            ppSpot = Abc_NtkRecTableLookup2(p, pBinsNew, nBinsNew, Rec_MemReadEntry(p, pEntry), p->nVars);
             assert(*ppSpot == REC_EMPTY_ID);
             *ppSpot = pEntry;
             Rec_Obj(p, pEntry)->pCopy = REC_EMPTY_ID;
@@ -886,7 +889,8 @@ void Abc_NtkRecInsertToLookUpTable2(Abc_ManRec_t2* p, int* ppSpot, Gia_Obj_t* pP
     }
     hasRealloced = Rec_AppendObj(p, &pRecObj);
     if(hasRealloced)
-        ppSpot = Abc_NtkRecTableLookup2(p, p->pBins, p->nBins, (unsigned *)Vec_PtrEntry( p->vTtNodes, Gia_ObjCioId(pPO)), p->nVars );
+//        ppSpot = Abc_NtkRecTableLookup2(p, p->pBins, p->nBins, (unsigned *)Vec_PtrEntry( p->vTtNodes, Gia_ObjCioId(pPO)), p->nVars );
+        ppSpot = Abc_NtkRecTableLookup2(p, p->pBins, p->nBins, Rec_MemReadEntry(p, Gia_ObjCioId(pPO)), p->nVars );
     assert(Rec_ObjID(p, pRecObj) == Gia_ObjCioId(pPO));
     if(fTrim)
     {       
@@ -992,7 +996,7 @@ void Abc_NtkRecInsertToLookUpTable2(Abc_ManRec_t2* p, int* ppSpot, Gia_Obj_t* pP
 }
 
 
-
+/*
 int Abc_NtkRecComputeTruth2( Gia_Obj_t * pObj, Vec_Ptr_t * vTtNodes, int nVars )
 {
     unsigned * pTruth, * pTruth0, * pTruth1;
@@ -1010,13 +1014,13 @@ int Abc_NtkRecComputeTruth2( Gia_Obj_t * pObj, Vec_Ptr_t * vTtNodes, int nVars )
     //RetValue = ((pTruth[0] & 1) == pObj->fPhase);
     return 1;
 }
-
+*/
 void Abc_NtkRecStart2( Gia_Man_t * pGia, int nVars, int nCuts, int fTrim )
 {
     Abc_ManRec_t2 * p;
     Gia_Obj_t * pObj, *pFanin;
     int * ppSpot;
-    unsigned * pTruthDst, *pTruthSrc, *pTruth;
+    unsigned * pTruthSrc, * pTruth;//, * pTruthDst;
     int i, j = 0;
     int clkTotal = clock(), clk, timeInsert;
 
@@ -1044,16 +1048,19 @@ void Abc_NtkRecStart2( Gia_Man_t * pGia, int nVars, int nCuts, int fTrim )
         if ( Gia_ManPiNum(pGia) > nVars )
             printf( "The starting record has %d inputs (warning only).\n", Gia_ManPiNum(pGia) );
     }
-     Gia_ManHashStart( pGia );
+//    Gia_ManHashStart( pGia );
+    // move this to rec_add2, because if the library is never used for adding new structures
+    // structural hashing is not needed
+    if ( pGia->pHTable != NULL )
+        Gia_ManHashStop( pGia );
+
     // create the primary inputs
     for ( i = Gia_ManPiNum(pGia); i < nVars; i++ )
-    {
         Gia_ManAppendCi(pGia);
-    }
 
-    p = ABC_ALLOC( Abc_ManRec_t2, 1 );
+    p = ABC_CALLOC( Abc_ManRec_t2, 1 );
     s_pMan = p;
-    memset( p, 0, sizeof(Abc_ManRec_t2) );
+//    memset( p, 0, sizeof(Abc_ManRec_t2) ); // no need for this if we use ABC_CALLOC
     p->pGia = pGia;
     p->nVars = Gia_ManPiNum(pGia);
     p->nWords = Kit_TruthWordNum( p->nVars );
@@ -1073,13 +1080,13 @@ void Abc_NtkRecStart2( Gia_Man_t * pGia, int nVars, int nCuts, int fTrim )
     p->vTtElems->nCap = p->nVars;
     p->vTtElems->pArray = (void **)Extra_TruthElementary( p->nVars );  
     
-    p->vTtNodes = Vec_PtrAlloc( 1000 );
     p->vInputs = Vec_StrStart( 1 << 16 );
-    p->pMmTruth = Mem_FixedStart( sizeof(unsigned)*p->nWords );
     p->vUselessPos = Vec_IntAlloc(1 << 16);
-
-    for ( i = 0; i < Gia_ManPoNum(pGia); i++ )
-        Vec_PtrPush( p->vTtNodes, Mem_FixedEntryFetch(p->pMmTruth) );
+//    p->vTtNodes = Vec_PtrAlloc( 1000 );
+//    p->pMmTruth = Mem_FixedStart( sizeof(unsigned)*p->nWords );
+//    for ( i = 0; i < Gia_ManPoNum(pGia); i++ )
+//        Vec_PtrPush( p->vTtNodes, Mem_FixedEntryFetch(p->pMmTruth) );
+    p->vTtMem = Vec_MemAlloc( p->nWords/2, 12 ); // 32 KB/page for 6-var functions
 
     // create hash table
     //p->nBins = 50011;
@@ -1091,8 +1098,9 @@ clk = clock();
     Gia_ManForEachPo( pGia, pObj, i )
     {
         pTruthSrc = Gia_ObjComputeTruthTable(pGia, pObj);
-        pTruthDst = (unsigned *)Vec_PtrEntry( p->vTtNodes, Gia_ObjCioId(pObj) );
-        Kit_TruthCopy(pTruthDst, pTruthSrc, p->nVars);
+//        pTruthDst = (unsigned *)Vec_PtrEntry( p->vTtNodes, Gia_ObjCioId(pObj) );
+//        Kit_TruthCopy(pTruthDst, pTruthSrc, p->nVars);
+        Rec_MemSetEntry( p, Gia_ObjCioId(pObj), pTruthSrc );
     }
 p->timeTruth += clock() - clk;  
 
@@ -1106,7 +1114,8 @@ timeInsert = clock();
         // mark the nodes with CO fanout.
         assert(pFanin->fMark1 == 0);
         pFanin->fMark1 = 1;
-        pTruth = (unsigned *)Vec_PtrEntry( p->vTtNodes, Gia_ObjCioId(pObj) );
+//        pTruth = (unsigned *)Vec_PtrEntry( p->vTtNodes, Gia_ObjCioId(pObj) );
+        pTruth = Rec_MemReadEntry( p, Gia_ObjCioId(pObj) );
         // add the resulting truth table to the hash table 
         if(p->nAddedFuncs > 2 * p->nBins)
             Abc_NtkRecResizeHash2(p);
@@ -1163,7 +1172,8 @@ for ( i = 0; i < p->nBins; i++ )
     for ( entry = p->pBins[i]; entry != REC_EMPTY_ID; entry = Rec_Obj(p, entry)->pCopy )
     {
         int tmp = 0;
-        pTruth = (unsigned*)Vec_PtrEntry(p->vTtNodes, entry);
+//        pTruth = (unsigned*)Vec_PtrEntry(p->vTtNodes, entry);
+        pTruth = Rec_MemReadEntry( p, entry );
         /*if ( (int)Kit_TruthSupport(pTruth, nVars) != (1<<nVars)-1 )
             continue;*/
         Extra_PrintHex( pFile, pTruth, nVars );
@@ -1449,7 +1459,7 @@ int Abc_NtkRecAddCut2( If_Man_t * pIfMan, If_Obj_t * pRoot, If_Cut_t * pCut )
     Vec_Ptr_t * vNodes = s_pMan->vNodes;
     unsigned * pInOut = s_pMan->pTemp1;
     unsigned * pTemp = s_pMan->pTemp2;
-    unsigned *pTruthSrc, *pTruthDst;
+    unsigned *pTruthSrc;//, *pTruthDst;
     int objectID = 0;
     int i, RetValue, nNodes, nNodesBeg, nInputs = s_pMan->nVars, nLeaves = If_CutLeaveNum(pCut);
     unsigned uCanonPhase;
@@ -1581,13 +1591,15 @@ s_pMan->timeBuild += clock() - timeBuild;
     assert(pObj->fMark1 == 0);
     pObj->fMark1 = 1;
 
-    if ( Vec_PtrSize(s_pMan->vTtNodes) <= Gia_ManPoNum(pAig) )
-    {
-        while ( Vec_PtrSize(s_pMan->vTtNodes) <= Gia_ObjCioId(pPO) )
-            Vec_PtrPush( s_pMan->vTtNodes, Mem_FixedEntryFetch(s_pMan->pMmTruth) );
-    }
-    pTruthDst = (unsigned *)Vec_PtrEntry( s_pMan->vTtNodes, Gia_ObjCioId(pPO));
-    Kit_TruthCopy(pTruthDst, pTruthSrc, s_pMan->nVars);
+//    if ( Vec_PtrSize(s_pMan->vTtNodes) <= Gia_ManPoNum(pAig) )
+//    {
+//        while ( Vec_PtrSize(s_pMan->vTtNodes) <= Gia_ObjCioId(pPO) )
+//            Vec_PtrPush( s_pMan->vTtNodes, Mem_FixedEntryFetch(s_pMan->pMmTruth) );
+//    }
+
+//    pTruthDst = (unsigned *)Vec_PtrEntry( s_pMan->vTtNodes, Gia_ObjCioId(pPO));
+//    Kit_TruthCopy(pTruthDst, pTruthSrc, s_pMan->nVars);
+    Rec_MemSetEntry( s_pMan, Gia_ObjCioId(pPO), pTruthSrc );
 
     // add the resulting truth table to the hash table 
     timeInsert = clock();
@@ -1619,7 +1631,11 @@ void Abc_NtkRecAdd2( Abc_Ntk_t * pNtk, int fUseSOPB)
     int clk = clock();
 
     if ( Abc_NtkGetChoiceNum( pNtk ) )
-        printf( "Performing renoding with choices.\n" );
+        printf( "Performing recoding structures with choices.\n" );
+
+    // create hash table if not available
+    if ( s_pMan->pGia->pHTable == NULL )
+        Gia_ManHashStart( s_pMan->pGia );
 
     // set defaults
     memset( pPars, 0, sizeof(If_Par_t) );
@@ -1868,7 +1884,8 @@ int If_CutDelayRecCost2(If_Man_t* p, If_Cut_t* pCut, If_Obj_t * pObj)
     }
     s_pMan->nFunsFound++; 
     // make sure the truth table is the same
-    pTruthRec = (unsigned*)Vec_PtrEntry( s_pMan->vTtNodes, Rec_ObjID(s_pMan, pCandMin) );
+//    pTruthRec = (unsigned*)Vec_PtrEntry( s_pMan->vTtNodes, Rec_ObjID(s_pMan, pCandMin) );
+    pTruthRec = Rec_MemReadEntry( s_pMan, Rec_ObjID(s_pMan, pCandMin) );
     if ( !Kit_TruthIsEqualWithPhase( pTruthRec, pInOut, nLeaves ) )
     {
         assert( 0 );
@@ -2045,13 +2062,13 @@ void Abc_NtkRecStop2()
     assert( s_pMan != NULL );
 //    Abc_NtkRecDumpTruthTables( s_pMan );
     if ( s_pMan->pGia )
-    {
-        Gia_ManHashStop(s_pMan->pGia);
         Gia_ManStop(s_pMan->pGia);
-    }
 //    Vec_PtrFreeFree( s_pMan->vTtNodes );
-    Mem_FixedStop( s_pMan->pMmTruth, 0 );
-    Vec_PtrFree( s_pMan->vTtNodes );
+
+//    Mem_FixedStop( s_pMan->pMmTruth, 0 );
+//    Vec_PtrFree( s_pMan->vTtNodes );
+    Vec_MemFreeP( &s_pMan->vTtMem );
+
     Vec_StrFree( s_pMan->vInputs );
     Vec_PtrFree( s_pMan->vTtElems );
     ABC_FREE( s_pMan->pBins );
@@ -2162,7 +2179,6 @@ void Abc_NtkRecCutTruthFromLib2( Gia_Man_t * pGia2, Vec_Ptr_t * vNodes, int nLea
     assert ( Kit_TruthSupport(pSims, nInputs) == Kit_BitMask(nLeaves) );
 }
 
-
 /**Function*************************************************************
 
   Synopsis    [Adds the cut function to the internal storage.]
@@ -2183,7 +2199,7 @@ void Abc_NtkRecAddFromLib2( Gia_Man_t * pGia2, Gia_Obj_t * pRoot, int nVars )
     Vec_Ptr_t * vNodes = s_pMan->vNodes;
     unsigned * pInOut = s_pMan->pTemp1;
     //unsigned * pTemp = s_pMan->pTemp2;
-    unsigned *pTruthSrc, *pTruthDst;
+    unsigned *pTruthSrc;//, *pTruthDst;
     int objectID;
     int i, nNodes, nNodesBeg, nInputs = s_pMan->nVars, nLeaves = nVars;
     assert( nInputs <= 16 );
@@ -2241,13 +2257,16 @@ void Abc_NtkRecAddFromLib2( Gia_Man_t * pGia2, Gia_Obj_t * pRoot, int nVars )
     assert(pObj->fMark1 == 0);
     pObj->fMark1 = 1;
 
-    if ( Vec_PtrSize(s_pMan->vTtNodes) <= Gia_ManPoNum(pGia) )
-    {
-        while ( Vec_PtrSize(s_pMan->vTtNodes) <= Gia_ObjCioId(pPO) )
-            Vec_PtrPush( s_pMan->vTtNodes, Mem_FixedEntryFetch(s_pMan->pMmTruth) );
-    }
-    pTruthDst = (unsigned *)Vec_PtrEntry( s_pMan->vTtNodes, Gia_ObjCioId(pPO));
-    Kit_TruthCopy(pTruthDst, pTruthSrc, s_pMan->nVars);
+//    if ( Vec_PtrSize(s_pMan->vTtNodes) <= Gia_ManPoNum(pGia) )
+//    {
+//        while ( Vec_PtrSize(s_pMan->vTtNodes) <= Gia_ObjCioId(pPO) )
+//            Vec_PtrPush( s_pMan->vTtNodes, Mem_FixedEntryFetch(s_pMan->pMmTruth) );
+//    }
+
+//    pTruthDst = (unsigned *)Vec_PtrEntry( s_pMan->vTtNodes, Gia_ObjCioId(pPO));
+//    Kit_TruthCopy(pTruthDst, pTruthSrc, s_pMan->nVars);
+    Rec_MemSetEntry( s_pMan, Gia_ObjCioId(pPO), pTruthSrc );
+
     // add the resulting truth table to the hash table 
     Abc_NtkRecInsertToLookUpTable2(s_pMan, ppSpot, pPO, nLeaves, s_pMan->fTrim);
     return;

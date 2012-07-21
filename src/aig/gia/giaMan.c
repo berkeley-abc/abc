@@ -52,8 +52,8 @@ Gia_Man_t * Gia_ManStart( int nObjsMax )
     p->pObjs = ABC_CALLOC( Gia_Obj_t, nObjsMax );
     p->pObjs->iDiff0 = p->pObjs->iDiff1 = GIA_NONE;
     p->nObjs = 1;
-    p->vCis  = Vec_IntAlloc( nObjsMax / 10 );
-    p->vCos  = Vec_IntAlloc( nObjsMax / 10 );
+    p->vCis  = Vec_IntAlloc( nObjsMax / 20 );
+    p->vCos  = Vec_IntAlloc( nObjsMax / 20 );
     return p;
 }
 
@@ -414,10 +414,10 @@ void Gia_ManPrintStats( Gia_Man_t * p, int fTents, int fSwitch )
     if ( Gia_ManRegNum(p) )
         printf( "  ff =%7d", Gia_ManRegNum(p) );
     printf( "  and =%8d", Gia_ManAndNum(p) );
-    printf( "  lev =%5d", Gia_ManLevelNum(p) );
+    printf( "  lev =%5d", Gia_ManLevelNum(p) ); Vec_IntFreeP( &p->vLevels );
     printf( "  cut =%5d", Gia_ManCrossCut(p) );
-    printf( "  mem =%5.2f MB", 1.0*(sizeof(Gia_Obj_t)*p->nObjs + sizeof(int)*(Vec_IntSize(p->vCis) + Vec_IntSize(p->vCos)))/(1<<20) );
-//    printf( "  mem =%5.2f MB", 1.0*(sizeof(Gia_Obj_t)*p->nObjsAlloc + sizeof(int)*(Vec_IntCap(p->vCis) + Vec_IntCap(p->vCos)))/(1<<20) );
+//    printf( "  mem =%5.2f MB", 1.0*(sizeof(Gia_Obj_t)*p->nObjs + sizeof(int)*(Vec_IntSize(p->vCis) + Vec_IntSize(p->vCos)))/(1<<20) );
+    printf( "  mem =%5.2f MB", 1.0*(sizeof(Gia_Obj_t)*p->nObjsAlloc + sizeof(int)*(Vec_IntCap(p->vCis) + Vec_IntCap(p->vCos)))/(1<<20) );
     if ( Gia_ManHasDangling(p) )
         printf( "  ch =%5d", Gia_ManEquivCountClasses(p) );
     if ( fSwitch )
