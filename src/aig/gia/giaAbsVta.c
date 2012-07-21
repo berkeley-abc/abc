@@ -1621,10 +1621,7 @@ int Gia_VtaPerformInt( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
             pCex = Vta_ManRefineAbstraction( p, f );
             p->timeCex += clock() - clk2;
             if ( pCex != NULL )
-            {
-                RetValue = 0;
                 goto finish;
-            }
             // print the result (do not count it towards change)
             Vta_ManAbsPrintFrame( p, NULL, f+1, sat_solver2_nconflicts(p->pSat)-nConflsBeg, i, clock() - clk, p->pPars->fVerbose );
         }
@@ -1653,7 +1650,6 @@ int Gia_VtaPerformInt( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
             // make sure, there was no initial abstraction (otherwise, it was invalid)
             assert( pAig->vObjClasses == NULL && f < p->pPars->nFramesStart );
             pCex = Vga_ManDeriveCex( p );
-            RetValue = 0;
             break;
         }
         // add the core
@@ -1738,6 +1734,7 @@ finish:
         Abc_Print( 1, "Counter-example detected in frame %d.  ", f );
         p->pPars->iFrame = pCex->iFrame - 1;
         Vec_IntFreeP( &pAig->vObjClasses );
+        RetValue = 0;
     }
     Abc_PrintTime( 1, "Time", clock() - clk );
 

@@ -1964,10 +1964,7 @@ int Gia_GlaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars, int fStartVta )
 
             p->timeCex += clock() - clk2;
             if ( pCex != NULL )
-            {
-                RetValue = 0;
                 goto finish;
-            }
             // print the result (do not count it towards change)
             if ( p->pPars->fVerbose )
             Gla_ManAbsPrintFrame( p, -1, f+1, sat_solver2_nconflicts(p->pSat)-nConflsBeg, i, clock() - clk );
@@ -2011,7 +2008,6 @@ int Gia_GlaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars, int fStartVta )
                 // make sure, there was no initial abstraction (otherwise, it was invalid)
                 assert( pAig->vObjClasses == NULL && f < p->pPars->nFramesStart );
     //            pCex = Vga_ManDeriveCex( p );
-                RetValue = 0;
                 break;
             }
         }
@@ -2084,6 +2080,7 @@ finish:
         Abc_Print( 1, "Counter-example detected in frame %d.  ", f );
         p->pPars->iFrame = pCex->iFrame - 1;
         Vec_IntFreeP( &pAig->vGateClasses );
+        RetValue = 0;
     }
     Abc_PrintTime( 1, "Time", clock() - clk );
     if ( p->pPars->fVerbose )
