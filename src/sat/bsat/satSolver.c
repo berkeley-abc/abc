@@ -505,6 +505,7 @@ static void sat_solver_canceluntil(sat_solver* s, int level) {
     if (sat_solver_dl(s) <= level)
         return;
 
+    assert( veci_size(&s->trail_lim) > 0 );
     bound   = (veci_begin(&s->trail_lim))[level];
     lastLev = (veci_begin(&s->trail_lim))[veci_size(&s->trail_lim)-1];
 
@@ -536,6 +537,8 @@ static void sat_solver_record(sat_solver* s, veci* cls)
     int     h     = (veci_size(cls) > 1) ? clause_create_new(s,begin,end,1) : 0;
     sat_solver_enqueue(s,*begin,h);
     assert(veci_size(cls) > 0);
+    if ( h == 0 )
+        veci_push( &s->unit_lits, *begin );
 
     ///////////////////////////////////
     // add clause to internal storage
@@ -554,6 +557,16 @@ static void sat_solver_record(sat_solver* s, veci* cls)
 */
 }
 
+int sat_solver_count_assigned(sat_solver* s)
+{
+    // count top-level assignments
+    int i, Count = 0;
+    assert(sat_solver_dl(s) == 0);
+    for ( i = 0; i < s->size; i++ )
+        if (var_value(s, i) != varX)
+            Count++;
+    return Count;
+}
 
 static double sat_solver_progress(sat_solver* s)
 {
@@ -931,6 +944,7 @@ sat_solver* sat_solver_new(void)
     veci_new(&s->stack);
 //    veci_new(&s->model);
     veci_new(&s->act_vars);
+    veci_new(&s->unit_lits);
     veci_new(&s->temp_clause);
     veci_new(&s->conf_final);
 
@@ -1052,6 +1066,7 @@ void sat_solver_delete(sat_solver* s)
     veci_delete(&s->stack);
 //    veci_delete(&s->model);
     veci_delete(&s->act_vars);
+    veci_delete(&s->unit_lits);
     veci_delete(&s->temp_clause);
     veci_delete(&s->conf_final);
 
@@ -1157,6 +1172,7 @@ double sat_solver_memory( sat_solver* s )
 //    Mem += s->learned.cap * sizeof(int);
     Mem += s->stack.cap * sizeof(int);
     Mem += s->act_vars.cap * sizeof(int);
+    Mem += s->unit_lits.cap * sizeof(int);
     Mem += s->act_clas.cap * sizeof(int);
     Mem += s->temp_clause.cap * sizeof(int);
     Mem += s->conf_final.cap * sizeof(int);

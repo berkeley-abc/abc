@@ -48,7 +48,7 @@ struct Ga2_Man_t_
     Vec_Int_t *    pvLeaves;        // leaves for each object
     Vec_Int_t *    pvCnfs0;          // positive CNF 
     Vec_Int_t *    pvCnfs1;          // negative CNF
-    Vec_Int_t *    pvMaps;           // mapping into SAT vars for each frame  
+    Vec_Int_t *    pvMaps;           // mapping into SAT vars for each frame  (these should be organized by frame, not by object!)
     // temporaries
     Vec_Int_t *    vCnf;
     Vec_Int_t *    vLits;

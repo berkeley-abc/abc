@@ -50,6 +50,7 @@ struct Gia_ManBmc_t_
     int               nHashOver;
     int               nBufNum;     // the number of simple nodes
     int               nDupNum;     // the number of simple nodes
+    int               nUniProps; // propagating learned clause values
     // SAT solver
     sat_solver *      pSat;        // SAT solver
     int               nSatVars;    // SAT variables
@@ -718,8 +719,8 @@ Gia_ManBmc_t * Saig_Bmc3ManStart( Aig_Man_t * pAig )
 void Saig_Bmc3ManStop( Gia_ManBmc_t * p )
 {
     if ( p->pPars->fVerbose )
-    printf( "Buffs = %d. Dups = %d.   Hash hits = %d.  Hash misses = %d.  Hash overs = %d.\n", 
-        p->nBufNum, p->nDupNum, p->nHashHit, p->nHashMiss, p->nHashOver );
+    printf( "Buffs = %d. Dups = %d.   Hash hits = %d.  Hash misses = %d.  Hash overs = %d.  UniProps = %d.\n", 
+        p->nBufNum, p->nDupNum, p->nHashHit, p->nHashMiss, p->nHashOver, p->nUniProps );
 //    Aig_ManCleanMarkA( p->pAig );
     if ( p->vCexes )
     {
@@ -1126,7 +1127,36 @@ int Saig_ManBmcRunTerSim_rec( Gia_ManBmc_t * p, Aig_Obj_t * pObj, int iFrame )
     unsigned * pInfo = (unsigned *)Vec_PtrEntry( p->vTerInfo, iFrame );
     int Val0, Val1, Value = Saig_ManBmcSimInfoGet( pInfo, pObj );
     if ( Value != SAIG_TER_NON )
+    {
+/*
+        // check the value of this literal in the SAT solver
+        if ( Value == SAIG_TER_UND && Saig_ManBmcMapping(p, pObj) )
+        {
+            int Lit = Saig_ManBmcLiteral( p, pObj, iFrame );
+            if ( Lit >= 0  )
+            {
+                assert( Lit >= 2 );
+                if ( p->pSat->assigns[Abc_Lit2Var(Lit)] < 2 )
+                {
+                    p->nUniProps++;
+                    if ( Abc_LitIsCompl(Lit) ^ (p->pSat->assigns[Abc_Lit2Var(Lit)] == 0) )
+                        Value = SAIG_TER_ONE;
+                    else
+                        Value = SAIG_TER_ZER;
+
+//                    Value = SAIG_TER_UND;  // disable!
+
+                    // use the new value
+                    Saig_ManBmcSimInfoSet( pInfo, pObj, Value );
+                    // transfer to the unrolling
+                    if ( Value != SAIG_TER_UND )
+                        Saig_ManBmcSetLiteral( p, pObj, iFrame, (int)(Value == SAIG_TER_ONE) );
+                }
+            }
+        }
+*/
         return Value;
+    }
     if ( Aig_ObjIsCo(pObj) )
     {
         Value = Saig_ManBmcRunTerSim_rec( p, Aig_ObjFanin0(pObj), iFrame );
@@ -1251,7 +1281,7 @@ int Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars )
     unsigned * pInfo;
     int RetValue = -1, fFirst = 1, nJumpFrame = 0, fUnfinished = 0;
     int nOutDigits = Abc_Base10Log( Saig_ManPoNum(pAig) );
-    int i, f, Lit, status;
+    int i, f, k, Lit, status;
     clock_t clk, clk2, clkOther = 0, clkTotal = clock();
     clock_t nTimeToStop = pPars->nTimeOut ? pPars->nTimeOut * CLOCKS_PER_SEC + clock(): 0;
     p = Saig_Bmc3ManStart( pAig );
@@ -1350,23 +1380,35 @@ clkOther += clock() - clk2;
                 RetValue = 0;
                 continue;
             }
-            // solve this output
+            // solve th is output
             fUnfinished = 0;
             sat_solver_compress( p->pSat );
             status = sat_solver_solve( p->pSat, &Lit, &Lit + 1, (ABC_INT64_T)pPars->nConfLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
             if ( status == l_False )
-            {/*
-                Lit = lit_neg( Lit );
-                status = sat_solver_addclause( p->pSat, &Lit, &Lit + 1 );
-                assert( status );
-                sat_solver_compress( p->pSat );
-              */
+            {
+                if ( 1 )
+                {
+                    // add final unit clause
+                    Lit = lit_neg( Lit );
+                    status = sat_solver_addclause( p->pSat, &Lit, &Lit + 1 );
+                    assert( status );
+                    // add learned units
+                    for ( k = 0; k < veci_size(&p->pSat->unit_lits); k++ )
+                    {
+                        Lit = veci_begin(&p->pSat->unit_lits)[k];
+                        status = sat_solver_addclause( p->pSat, &Lit, &Lit + 1 );
+                        assert( status );
+                    }
+                    veci_resize(&p->pSat->unit_lits, 0);
+                    // propagate units
+                    sat_solver_compress( p->pSat );
+                }
             }
             else if ( status == l_True )
             {
                 Aig_Obj_t * pObjPi;
                 Abc_Cex_t * pCex = Abc_CexMakeTriv( Aig_ManRegNum(pAig), Saig_ManPiNum(pAig), Saig_ManPoNum(pAig), f*Saig_ManPoNum(pAig)+i );
-                int j, k, iBit = Saig_ManRegNum(pAig);
+                int j, iBit = Saig_ManRegNum(pAig);
                 for ( j = 0; j <= f; j++, iBit += Saig_ManPiNum(pAig) )
                     Saig_ManForEachPi( p->pAig, pObjPi, k )
                     {
@@ -1383,7 +1425,8 @@ clkOther += clock() - clk2;
                         printf( "Var =%8.0f. ",  (double)p->nSatVars );
                         printf( "Cla =%9.0f. ",  (double)p->pSat->stats.clauses );
                         printf( "Conf =%7.0f. ", (double)p->pSat->stats.conflicts );
-                        printf( "Imp =%10.0f. ", (double)p->pSat->stats.propagations );
+//                        printf( "Imp =%10.0f. ", (double)p->pSat->stats.propagations );
+                        printf( "Units =%7.0f. ",(double)sat_solver_count_assigned(p->pSat) );
 //                        ABC_PRT( "Time", clock() - clk );
                         printf( "%4.0f MB",      4.25*(f+1)*p->nObjNums /(1<<20) );
                         printf( "%4.0f MB",      1.0*sat_solver_memory(p->pSat)/(1<<20) );
@@ -1446,7 +1489,8 @@ clkOther += clock() - clk2;
             printf( "Var =%8.0f. ", (double)p->nSatVars );
             printf( "Cla =%9.0f. ", (double)p->pSat->stats.clauses );
             printf( "Conf =%7.0f. ",(double)p->pSat->stats.conflicts );
-            printf( "Imp =%10.0f. ", (double)p->pSat->stats.propagations );
+//            printf( "Imp =%10.0f. ", (double)p->pSat->stats.propagations );
+            printf( "Units =%7.0f. ",(double)sat_solver_count_assigned(p->pSat) );
 //            ABC_PRT( "Time", clock() - clk );
 //            printf( "%4.0f MB",     4.0*Vec_IntSize(p->vVisited) /(1<<20) );
             printf( "%4.0f MB",     4.0*(f+1)*p->nObjNums /(1<<20) );

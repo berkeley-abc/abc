@@ -327,7 +327,7 @@ int Rnm_ManSensitize( Rnm_Man_t * p )
 void Rnm_ManJustifyPropFanout_rec( Rnm_Man_t * p, Gia_Obj_t * pObj, int f, Vec_Int_t * vSelect )
 {
     Rnm_Obj_t * pRnm0, * pRnm1, * pRnm = Rnm_ManObj( p, pObj, f );
-    Gia_Obj_t * pFanout;
+    Gia_Obj_t * pFanout = NULL;
     int i, k;//, Id = Gia_ObjId(p->pGia, pObj);
     assert( pRnm->fVisit == 0 );
     pRnm->fVisit = 1;

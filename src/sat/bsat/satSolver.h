@@ -53,6 +53,7 @@ extern int         sat_solver_nvars(sat_solver* s);
 extern int         sat_solver_nclauses(sat_solver* s);
 extern int         sat_solver_nconflicts(sat_solver* s);
 extern double      sat_solver_memory(sat_solver* s);
+extern int         sat_solver_count_assigned(sat_solver* s);
 
 extern void        sat_solver_setnvars(sat_solver* s,int n);
 extern int         sat_solver_get_var_value(sat_solver* s, int v);
@@ -155,7 +156,8 @@ struct sat_solver_t
     double*     factors;       // the activity factors
     int         nRestarts;     // the number of local restarts
     int         nCalls;        // the number of local restarts
-    int         nCalls2;        // the number of local restarts
+    int         nCalls2;       // the number of local restarts
+    veci        unit_lits;     // variables whose activity has changed
 
     int         fSkipSimplify; // set to one to skip simplification of the clause database
     int         fNotUseRandom; // do not allow random decisions with a fixed probability
