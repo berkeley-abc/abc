@@ -207,7 +207,7 @@ void Rnm_ManCollect_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vObjs, int
 }
 void Rnm_ManCollect( Rnm_Man_t * p )
 {
-    Gia_Obj_t * pObj;
+    Gia_Obj_t * pObj = NULL;
     int i;
     // mark const/PIs/PPIs
     Gia_ManIncrementTravId( p->pGia );

@@ -2402,7 +2402,7 @@ void Extra_NpnTest()
     clock_t clk = clock();
     word * pFuncs;
     int * pComp, * pPerm;
-    int i, k, nUnique = 0;
+    int i;//, k, nUnique = 0;
 /*
     // read functions
     pFuncs = Extra_NpnRead( "C:\\_projects\\abc\\_TEST\\allan\\lib6var5M.txt", nFuncs );

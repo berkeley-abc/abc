@@ -1526,6 +1526,7 @@ int sat_solver_solve(sat_solver* s, lit* begin, lit* end, ABC_INT64_T nConfLimit
         return l_False;
     }
     ////////////////////////////////////////////////
+    veci_resize(&s->unit_lits, 0);
 
     // set the external limits
     s->nCalls++;

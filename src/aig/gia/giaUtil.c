@@ -1461,6 +1461,8 @@ unsigned * Gia_ObjComputeTruthTable( Gia_Man_t * p, Gia_Obj_t * pObj )
         pTruth = Gla_ObjTruthElem( p, Gia_ObjCioId(pRoot) );
     else if ( Gia_ObjIsAnd(pRoot) )
         pTruth = Gla_ObjTruthNode( p, pRoot );
+    else
+        pTruth = NULL;
     return (unsigned *)Gla_ObjTruthDup( p, Gla_ObjTruthFree2(p), pTruth, Gia_ObjIsCo(pObj) && Gia_ObjFaninC0(pObj) );
 }
 

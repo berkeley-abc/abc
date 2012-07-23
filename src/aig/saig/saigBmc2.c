@@ -671,7 +671,7 @@ Abc_Cex_t * Saig_BmcGenerateCounterExample( Saig_Bmc_t * p )
 int Saig_BmcSolveTargets( Saig_Bmc_t * p, int nStart, int * pnOutsSolved )
 {
     Aig_Obj_t * pObj;
-    int i, VarNum, Lit, RetValue;
+    int i, k, VarNum, Lit, status, RetValue;
     assert( Vec_PtrSize(p->vTargets) > 0 );
     if ( p->pSat->qtail != p->pSat->qhead )
     {
@@ -688,7 +688,23 @@ int Saig_BmcSolveTargets( Saig_Bmc_t * p, int nStart, int * pnOutsSolved )
         Lit = toLitCond( VarNum, Aig_IsComplement(pObj) );
         RetValue = sat_solver_solve( p->pSat, &Lit, &Lit + 1, (ABC_INT64_T)p->nConfMaxOne, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
         if ( RetValue == l_False ) // unsat
+        {
+            // add final unit clause
+            Lit = lit_neg( Lit );
+            status = sat_solver_addclause( p->pSat, &Lit, &Lit + 1 );
+            assert( status );
+            // add learned units
+            for ( k = 0; k < veci_size(&p->pSat->unit_lits); k++ )
+            {
+                Lit = veci_begin(&p->pSat->unit_lits)[k];
+                status = sat_solver_addclause( p->pSat, &Lit, &Lit + 1 );
+                assert( status );
+            }
+            veci_resize(&p->pSat->unit_lits, 0);
+            // propagate units
+            sat_solver_compress( p->pSat );
             continue;
+        }
         if ( RetValue == l_Undef ) // undecided
             return l_Undef;
         // generate counter-example
