@@ -6,6 +6,5 @@ SRC +=    src/proof/int/intCheck.c \
     src/proof/int/intFrames.c \
     src/proof/int/intInter.c \
     src/proof/int/intM114.c \
-    src/proof/int/intM114p.c \
     src/proof/int/intMan.c \
     src/proof/int/intUtil.c

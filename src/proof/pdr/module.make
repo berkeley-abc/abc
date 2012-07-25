@@ -1,5 +1,4 @@
-SRC +=    src/proof/pdr/pdr.c \
-    src/proof/pdr/pdrCnf.c \
+SRC +=    src/proof/pdr/pdrCnf.c \
     src/proof/pdr/pdrCore.c \
     src/proof/pdr/pdrInv.c \
     src/proof/pdr/pdrMan.c \

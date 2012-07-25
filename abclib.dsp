@@ -1883,10 +1883,6 @@ SOURCE=.\src\opt\nwk\nwk.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\opt\nwk\nwk_.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\src\opt\nwk\nwkAig.c
 # End Source File
 # Begin Source File
@@ -2164,10 +2160,6 @@ SOURCE=.\src\map\super\superGate.c
 # Begin Source File
 
 SOURCE=.\src\map\super\superInt.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\map\super\superWrite.c
 # End Source File
 # End Group
 # Begin Group "if"
@@ -3715,10 +3707,6 @@ SOURCE=.\src\proof\bbr\bbrReach.c
 # PROP Default_Filter ""
 # Begin Source File
 
-SOURCE=.\src\proof\cec\cec.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\src\proof\cec\cec.h
 # End Source File
 # Begin Source File
@@ -3760,10 +3748,6 @@ SOURCE=.\src\proof\cec\cecPat.c
 # Begin Source File
 
 SOURCE=.\src\proof\cec\cecSeq.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\proof\cec\cecSim.c
 # End Source File
 # Begin Source File
 
@@ -3836,10 +3820,6 @@ SOURCE=.\src\proof\dch\dchSweep.c
 # Begin Source File
 
 SOURCE=.\src\proof\fra\fra.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\proof\fra\fra_.c
 # End Source File
 # Begin Source File
 
@@ -4019,10 +3999,6 @@ SOURCE=.\src\proof\int\intM114.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\proof\int\intM114p.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\src\proof\int\intMan.c
 # End Source File
 # Begin Source File
@@ -4161,10 +4137,6 @@ SOURCE=.\src\proof\llb\llbInt.h
 # Begin Group "pdr"
 
 # PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=.\src\proof\pdr\pdr.c
-# End Source File
 # Begin Source File
 
 SOURCE=.\src\proof\pdr\pdr.h
