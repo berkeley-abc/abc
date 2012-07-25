@@ -638,7 +638,7 @@ Gia_Man_t * Gia_ReadAiger2( char * pFileName, int fCheck )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ReadAigerFromMemory( char * pContents, int nFileSize, int fCheck )
+Gia_Man_t * Gia_ReadAigerFromMemory( char * pContents, int nFileSize, int fSkipStrash, int fCheck )
 {
     Gia_Man_t * pNew, * pTemp;
     Vec_Int_t * vLits = NULL, * vPoTypes = NULL;
@@ -747,7 +747,8 @@ Gia_Man_t * Gia_ReadAigerFromMemory( char * pContents, int nFileSize, int fCheck
     }
 
     // create the AND gates
-    Gia_ManHashAlloc( pNew );
+    if ( fSkipStrash )
+        Gia_ManHashAlloc( pNew );
     for ( i = 0; i < nAnds; i++ )
     {
         uLit = ((i + 1 + nInputs + nLatches) << 1);
@@ -757,10 +758,13 @@ Gia_Man_t * Gia_ReadAigerFromMemory( char * pContents, int nFileSize, int fCheck
         iNode0 = Abc_LitNotCond( Vec_IntEntry(vNodes, uLit0 >> 1), uLit0 & 1 );
         iNode1 = Abc_LitNotCond( Vec_IntEntry(vNodes, uLit1 >> 1), uLit1 & 1 );
         assert( Vec_IntSize(vNodes) == i + 1 + nInputs + nLatches );
-//        Vec_IntPush( vNodes, Gia_And(pNew, iNode0, iNode1) );
-        Vec_IntPush( vNodes, Gia_ManHashAnd(pNew, iNode0, iNode1) );
+        if ( fSkipStrash )
+            Vec_IntPush( vNodes, Gia_ManAppendAnd(pNew, iNode0, iNode1) );
+        else
+            Vec_IntPush( vNodes, Gia_ManHashAnd(pNew, iNode0, iNode1) );
     }
-    Gia_ManHashStop( pNew );
+    if ( fSkipStrash )
+        Gia_ManHashStop( pNew );
 
     // remember the place where symbols begin
     pSymbols = pCur;
@@ -1067,7 +1071,7 @@ Gia_Man_t * Gia_ReadAigerFromMemory( char * pContents, int nFileSize, int fCheck
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ReadAiger( char * pFileName, int fCheck )
+Gia_Man_t * Gia_ReadAiger( char * pFileName, int fSkipStrash, int fCheck )
 {
     FILE * pFile;
     Gia_Man_t * pNew;
@@ -1083,7 +1087,7 @@ Gia_Man_t * Gia_ReadAiger( char * pFileName, int fCheck )
     RetValue = fread( pContents, nFileSize, 1, pFile );
     fclose( pFile );
 
-    pNew = Gia_ReadAigerFromMemory( pContents, nFileSize, fCheck );
+    pNew = Gia_ReadAigerFromMemory( pContents, nFileSize, fSkipStrash, fCheck );
     ABC_FREE( pContents );
     if ( pNew )
     {

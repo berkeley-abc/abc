@@ -723,8 +723,8 @@ extern void                Gia_VtaSetDefaultParams( Gia_ParVta_t * p );
 extern int                 Gia_VtaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars );
 /*=== giaAiger.c ===========================================================*/
 extern int                 Gia_FileSize( char * pFileName );
-extern Gia_Man_t *         Gia_ReadAigerFromMemory( char * pContents, int nFileSize, int fCheck );
-extern Gia_Man_t *         Gia_ReadAiger( char * pFileName, int fCheck );
+extern Gia_Man_t *         Gia_ReadAigerFromMemory( char * pContents, int nFileSize, int fSkipStrash, int fCheck );
+extern Gia_Man_t *         Gia_ReadAiger( char * pFileName, int fSkipStrash, int fCheck );
 extern void                Gia_WriteAiger( Gia_Man_t * p, char * pFileName, int fWriteSymbols, int fCompact );
 extern void                Gia_DumpAiger( Gia_Man_t * p, char * pFilePrefix, int iFileNum, int nFileNumDigits );
 extern Vec_Str_t *         Gia_WriteAigerIntoMemoryStr( Gia_Man_t * p );

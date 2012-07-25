@@ -391,7 +391,7 @@ Gia_Man_t * Abc_ManReadAig( char * pFileName, char * pToken )
             fclose( pFile );
         }
         // derive AIG
-        pGia = Gia_ReadAigerFromMemory( pStr, nBinaryPart, 0 ); 
+        pGia = Gia_ReadAigerFromMemory( pStr, nBinaryPart, 0, 0 ); 
     }
     Vec_StrFree( vStr );
     return pGia;

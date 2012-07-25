@@ -840,6 +840,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
 
     {
         extern void Dar_LibStart();
+ //       char * pMem = malloc( (1<<30) * 3 / 2 );
         Dar_LibStart();
     }
     {
@@ -12731,7 +12732,7 @@ int Abc_CommandRecStart2( Abc_Frame_t * pAbc, int argc, char ** argv )
             return 1;
         }
         fclose( pFile );
-        pGia = Gia_ReadAiger( FileName, 0 );
+        pGia = Gia_ReadAiger( FileName, 1, 0 );
         if ( pGia == NULL )
         {
             Abc_Print( -1, "Reading AIGER has failed.\n" );
@@ -13079,7 +13080,7 @@ int Abc_CommandRecMerge2( Abc_Frame_t * pAbc, int argc, char ** argv )
             return 1;
         }
         fclose( pFile );
-        pGia = Gia_ReadAiger( FileName, 0 );
+        pGia = Gia_ReadAiger( FileName, 0, 0 );
         if ( pGia == NULL )
         {
             Abc_Print( -1, "Reading AIGER has failed.\n" );
@@ -22725,7 +22726,7 @@ int Abc_CommandAbc9Read( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     fclose( pFile );
 
-    pAig = Gia_ReadAiger( FileName, 0 );
+    pAig = Gia_ReadAiger( FileName, 0, 0 );
     Abc_CommandUpdate9( pAbc, pAig );
     return 0;
 
@@ -25212,7 +25213,7 @@ int Abc_CommandAbc9Miter( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     fclose( pFile );
-    pSecond = Gia_ReadAiger( FileName, 0 );
+    pSecond = Gia_ReadAiger( FileName, 0, 0 );
     if ( pSecond == NULL )
     {
         Abc_Print( -1, "Reading AIGER has failed.\n" );
@@ -26299,7 +26300,7 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     fclose( pFile );
-    pSecond = Gia_ReadAiger( FileName, 0 );
+    pSecond = Gia_ReadAiger( FileName, 0, 0 );
     if ( pSecond == NULL )
     {
         Abc_Print( -1, "Reading AIGER has failed.\n" );
