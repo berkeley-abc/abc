@@ -840,7 +840,6 @@ void Abc_Init( Abc_Frame_t * pAbc )
 
     {
         extern void Dar_LibStart();
- //       char * pMem = malloc( (1<<30) * 3 / 2 );
         Dar_LibStart();
     }
     {
@@ -22690,11 +22689,15 @@ int Abc_CommandAbc9Read( Abc_Frame_t * pAbc, int argc, char ** argv )
     char * FileName, * pTemp;
     int nArgcNew;
     int c, fVerbose = 0;
+    int fSkipStrash = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "svh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 's':
+            fSkipStrash ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -22726,13 +22729,14 @@ int Abc_CommandAbc9Read( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     fclose( pFile );
 
-    pAig = Gia_ReadAiger( FileName, 0, 0 );
+    pAig = Gia_ReadAiger( FileName, fSkipStrash, 0 );
     Abc_CommandUpdate9( pAbc, pAig );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &r [-vh] <file>\n" );
+    Abc_Print( -2, "usage: &r [-svh] <file>\n" );
     Abc_Print( -2, "\t         reads the current AIG from the AIGER file\n" );
+    Abc_Print( -2, "\t-s     : toggles structural hashing while reading [default = %s]\n", !fSkipStrash? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggles additional verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     Abc_Print( -2, "\t<file> : the file name\n");

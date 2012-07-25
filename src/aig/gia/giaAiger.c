@@ -747,7 +747,7 @@ Gia_Man_t * Gia_ReadAigerFromMemory( char * pContents, int nFileSize, int fSkipS
     }
 
     // create the AND gates
-    if ( fSkipStrash )
+    if ( !fSkipStrash )
         Gia_ManHashAlloc( pNew );
     for ( i = 0; i < nAnds; i++ )
     {
@@ -763,7 +763,7 @@ Gia_Man_t * Gia_ReadAigerFromMemory( char * pContents, int nFileSize, int fSkipS
         else
             Vec_IntPush( vNodes, Gia_ManHashAnd(pNew, iNode0, iNode1) );
     }
-    if ( fSkipStrash )
+    if ( !fSkipStrash )
         Gia_ManHashStop( pNew );
 
     // remember the place where symbols begin
