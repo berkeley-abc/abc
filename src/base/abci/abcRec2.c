@@ -1098,8 +1098,8 @@ void Abc_NtkRecStart2( Gia_Man_t * pGia, int nVars, int nCuts, int fTrim )
     p->vTtMem = Vec_MemAlloc( p->nWords/2, 12 ); // 32 KB/page for 6-var functions
 
     // create hash table
-    //p->nBins = 50011;
-    p->nBins =500011;
+    p->nBins = 20011;
+    //p->nBins =500011;
     p->pBins = ABC_ALLOC( int, p->nBins );
     memset( p->pBins, -1, sizeof(int) * p->nBins );
 

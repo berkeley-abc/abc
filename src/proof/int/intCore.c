@@ -194,7 +194,7 @@ p->timeEqu += clock() - clk;
         // iterate the interpolation procedure
         for ( i = 0; ; i++ )
         {
-            if ( p->nFrames + i >= pPars->nFramesMax )
+            if ( pPars->nFramesMax && p->nFrames + i >= pPars->nFramesMax )
             { 
                 if ( pPars->fVerbose )
                     printf( "Reached limit (%d) on the number of timeframes.\n", pPars->nFramesMax );
