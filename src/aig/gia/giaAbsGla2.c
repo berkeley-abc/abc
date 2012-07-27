@@ -37,29 +37,27 @@ struct Ga2_Man_t_
     // user data
     Gia_Man_t *    pGia;            // working AIG manager
     Gia_ParVta_t * pPars;           // parameters
-    // internal data
-    int            nObjs;           // the number of objects (abstracted and PPIs)
-    int            nObjsAlloc;      // the number of objects allocated
-    Vec_Int_t *    vAbs;            // array of abstracted objects
-    int            nAbs;            // starting extended abstraction
+    // markings 
     int            nMarked;         // total number of marked nodes and flops
-//    Vec_Int_t *    vExtra;          // additional objects 
-    // object structure
-    Vec_Int_t *    pvLeaves;        // leaves for each object
-    Vec_Int_t *    pvCnfs0;          // positive CNF 
-    Vec_Int_t *    pvCnfs1;          // negative CNF
-    Vec_Int_t *    pvMaps;           // mapping into SAT vars for each frame  (these should be organized by frame, not by object!)
+    // data storage
+    Vec_Int_t *    vId2Data;        // mapping of object ID into its data for each object
+    Vec_Ptr_t *    vDatas;          // for each object: leaves, CNF0, CNF1
+    // abstraction
+    Vec_Int_t *    vAbs;            // array of abstracted objects
+    int            nAbsStart;       // marker of the abstracted objects
+    // refinement
+    Rnm_Man_t *    pRnm;            // refinement manager
+    // SAT solver and variables
+    Vec_Ptr_t *    vId2Lit;         // mapping of object ID into SAT literal for each timeframe
+    sat_solver2 *  pSat;            // incremental SAT solver
+    int            nSatVars;        // the number of SAT variables
     // temporaries
     Vec_Int_t *    vCnf;
     Vec_Int_t *    vLits;
     Vec_Int_t *    vIsopMem;
-    // other data
-    Rnm_Man_t *    pRnm;            // refinement manager
-    sat_solver2 *  pSat;            // incremental SAT solver
-    int            nSatVars;        // the number of SAT variables
+    char * pSopSizes, ** pSops;     // CNF representation
     int            nCexes;          // the number of counter-examples
     int            nObjAdded;       // objs added during refinement
-    char * pSopSizes, ** pSops;     // CNF representation
     // statistics  
     clock_t        timeStart;
     clock_t        timeInit;
@@ -69,19 +67,19 @@ struct Ga2_Man_t_
     clock_t        timeOther;
 };
 
-// returns literal of this object, or -1 if the literal is not assigned
+// returns literal of this object, or -1 if SAT variable of the object is not assigned
 static inline int Ga2_ObjFindLit( Ga2_Man_t * p, Gia_Obj_t * pObj, int f )  
 { 
     Vec_Int_t * vMap;
     assert( pObj->fPhase );
     if ( pObj->Value == 0 )
         return -1;
-    vMap = &p->pvMaps[pObj->Value];
-    if ( f >= Vec_IntSize(vMap) )
+    vMap = (Vec_Int_t *)Vec_PtrEntry(p->vMaps, f);
+    if ( pObj->Value >= Vec_IntSize(vMap) )
         return -1;
-    return Vec_IntEntry( vMap, f );
+    return Vec_IntEntry( vMap, pObj->Value  );
 }
-// inserts the literal for this object
+// inserts literal of this object
 static inline void Ga2_ObjAddLit( Ga2_Man_t * p, Gia_Obj_t * pObj, int f, int Lit )  
 { 
     Vec_Int_t * vMap;
@@ -89,9 +87,12 @@ static inline void Ga2_ObjAddLit( Ga2_Man_t * p, Gia_Obj_t * pObj, int f, int Li
     assert( pObj->fPhase ); 
     assert( Ga2_ObjFindLit(p, pObj, f) == -1 );
     if ( pObj->Value == 0 )
-        pObj->Value = p->nObjs++;
-    vMap = &p->pvMaps[pObj->Value];
-    Vec_IntSetEntry( vMap, f, Lit );
+    {
+        pObj->Value = Vec_IntSize(p->vAbs);
+        Vec_IntEntry( p->vAbs, Gia_ObjId(p, pObj) );
+    }
+    vMap = (Vec_Int_t *)Vec_PtrEntry(p->vMaps, f);
+    Vec_IntSetEntry( vMap, pObj->Value, Lit );
 }
 // returns 
 static inline int Ga2_ObjFindOrAddLit( Ga2_Man_t * p, Gia_Obj_t * pObj, int f )  
@@ -265,25 +266,30 @@ Ga2_Man_t * Ga2_ManStart( Gia_Man_t * pGia, Gia_ParVta_t * pPars )
 {
     Ga2_Man_t * p;
     p = ABC_CALLOC( Ga2_Man_t, 1 );
+    p->timeStart = clock();
+    // user data
     p->pGia  = pGia;
     p->pPars = pPars;
-    // internal data
-    p->vAbs   = Vec_IntAlloc( 100 );
-//    p->vExtra = Vec_IntAlloc( 100 );
-    // object structure
-    p->nObjsAlloc = 256;
-    p->pvLeaves = ABC_CALLOC( Vec_Int_t, p->nObjsAlloc );
-    p->pvCnfs0   = ABC_CALLOC( Vec_Int_t, p->nObjsAlloc );
-    p->pvCnfs1   = ABC_CALLOC( Vec_Int_t, p->nObjsAlloc );
-    p->pvMaps    = ABC_CALLOC( Vec_Int_t, p->nObjsAlloc );
+    // markings 
+    p->nMarked = Gia_ManRegNum(p->pGia) + Ga2_ManMarkup( pGia, 5 );
+    // data storage
+    p->vId2Data = Vec_IntStart( Gia_ManObjNum(pGia) );
+    p->vDatas   = Vec_PtrAlloc( 1000 );
+    Vec_PtrPush( p->vDatas, Vec_IntAlloc(0) );
+    Vec_PtrPush( p->vDatas, Vec_IntAlloc(0) );
+    Vec_PtrPush( p->vDatas, Vec_IntAlloc(0) );
+    // abstraction
+    p->nAbsStart= 1;
+    p->vAbs     = Vec_IntAlloc( 1000 );
+    Vec_IntPush( p->vAbs, -1 );
+    // refinement
+    p->pRnm     = Rnm_ManStart( pGia );
+    // SAT solver and variables
+    p->vId2Lit  = Vec_PtrAlloc( 1000 );
     // temporaries
     p->vCnf     = Vec_IntAlloc( 100 );
     p->vLits    = Vec_IntAlloc( 100 );
     p->vIsopMem = Vec_IntAlloc( 100 );
-    // prepare AIG
-    p->timeStart = clock();
-    p->nMarked = Gia_ManRegNum(p->pGia) + Ga2_ManMarkup( pGia, 5 );
-    p->pRnm = Rnm_ManStart( pGia );
     Cnf_ReadMsops( &p->pSopSizes, &p->pSops );
     return p;
 }
@@ -305,24 +311,15 @@ void Ga2_ManStop( Ga2_Man_t * p )
 //    if ( p->pPars->fVerbose )
         Abc_Print( 1, "SAT solver:  Var = %d  Cla = %d  Conf = %d  Reduce = %d  Cex = %d  ObjsAdded = %d\n", 
             sat_solver2_nvars(p->pSat), sat_solver2_nclauses(p->pSat), sat_solver2_nconflicts(p->pSat), p->pSat->nDBreduces, p->nCexes, p->nObjAdded );
-    for ( i = 0; i < p->nObjsAlloc; i++ )
-    {
-        ABC_FREE( p->pvLeaves->pArray );
-        ABC_FREE( p->pvCnfs0->pArray );
-        ABC_FREE( p->pvCnfs1->pArray );
-        ABC_FREE( p->pvMaps->pArray );
-    }
-    ABC_FREE( p->pvLeaves );
-    ABC_FREE( p->pvCnfs0 );
-    ABC_FREE( p->pvCnfs1 );
-    ABC_FREE( p->pvMaps );
+    Vec_IntFree( p->vId2Data );
+    Vec_VecFree( (Vec_Vec_t *)p->vDatas );
+    Vec_IntFree( p->vAbs );
+    Vec_VecFree( (Vec_Vec_t *)p->vId2Lit );
     Vec_IntFree( p->vCnf );
     Vec_IntFree( p->vLits );
     Vec_IntFree( p->vIsopMem );
-    Vec_IntFree( p->vAbs );
-//    Vec_IntFree( p->vExtra );
-    sat_solver2_delete( p->pSat );
     Rnm_ManStop( p->pRnm, 1 );
+    sat_solver2_delete( p->pSat );
     ABC_FREE( p->pSopSizes );
     ABC_FREE( p->pSops[1] );
     ABC_FREE( p->pSops );
@@ -591,46 +588,41 @@ static inline void Ga2_ManCnfAddStatic( Ga2_Man_t * p, Vec_Int_t * vCnf0, Vec_In
 ***********************************************************************/
 void Ga2_ManSetupNode( Ga2_Man_t * p, Gia_Obj_t * pObj )
 {
-    int Id = p->nObjs++;
-    Vec_Int_t * vLeaves  = &p->pvLeaves[Id];
-    Vec_Int_t * vCnf0    = &p->pvCnfs0[Id];
-    Vec_Int_t * vCnf1    = &p->pvCnfs1[Id];
-    Vec_Int_t * vMap     = &p->pvMaps[Id];
+    Vec_Int_t * vLeaves, * vCnf0, * vCnf1;
     unsigned uTruth;
-    assert( pObj->Value == 0 );
-    assert( p->nObjs > 1 );
-    // prepare leaves
-    if ( Vec_IntSize(vLeaves) == 0 )
-    {
-        Vec_IntGrow( vLeaves, 5 );
-        Ga2_ManCollectLeaves_rec( p->pGia, pObj, vLeaves, 1 );
-        assert( Vec_IntSize(vLeaves) < 6 );
-        // compute truth table
-        uTruth = Ga2_ManComputeTruth( p->pGia, pObj, vLeaves );
-        // prepare CNF
-        Ga2_ManCnfCompute( uTruth, Vec_IntSize(vLeaves), vCnf0, p->vIsopMem );
-        uTruth = (~uTruth) & Abc_InfoMask( (1 << Vec_IntSize(vLeaves)) );
-        Ga2_ManCnfCompute( uTruth, Vec_IntSize(vLeaves), vCnf1, p->vIsopMem );
-        // prepare mapping
-        Vec_IntGrow( vMap, 100 );
-    }
-    else
-        Vec_IntClear( vMap );
-    // remember the number
-    pObj->Value = Id;
-    // realloc
-    if ( p->nObjs == p->nObjsAlloc )
-    {
-        p->pvLeaves = ABC_REALLOC( Vec_Int_t, p->pvLeaves, 2 * p->nObjsAlloc );
-        p->pvCnfs0  = ABC_REALLOC( Vec_Int_t, p->pvCnfs0,  2 * p->nObjsAlloc );
-        p->pvCnfs1  = ABC_REALLOC( Vec_Int_t, p->pvCnfs1,  2 * p->nObjsAlloc );
-        p->pvMaps   = ABC_REALLOC( Vec_Int_t, p->pvMaps,   2 * p->nObjsAlloc );
-        memset( p->pvLeaves + p->nObjsAlloc, 0, sizeof(Vec_Int_t) * p->nObjsAlloc );
-        memset( p->pvCnfs0  + p->nObjsAlloc, 0, sizeof(Vec_Int_t) * p->nObjsAlloc );
-        memset( p->pvCnfs1  + p->nObjsAlloc, 0, sizeof(Vec_Int_t) * p->nObjsAlloc );
-        memset( p->pvMaps   + p->nObjsAlloc, 0, sizeof(Vec_Int_t) * p->nObjsAlloc );
-        p->nObjsAlloc *= 2;
-    }
+    // create new data entry
+    assert( Vec_IntEntry( p->vId2Data, Gia_ObjId(p->pGia, pObj) ) == 0 );
+    Vec_IntWriteEntry( p->vId2Data, Gia_ObjId(p->pGia, pObj), Vec_IntSize(p->vDatas) );
+    Vec_IntPush( p->vDatas, (vLeaves = Vec_IntAlloc(5)) );
+    Vec_IntPush( p->vDatas, (vCnf0   = Vec_IntAlloc(8)) );
+    Vec_IntPush( p->vDatas, (vCnf1   = Vec_IntAlloc(8)) );
+    // derive leaves
+    Ga2_ManCollectLeaves_rec( p->pGia, pObj, vLeaves, 1 );
+    assert( Vec_IntSize(vLeaves) < 6 );
+    // compute truth table
+    uTruth = Ga2_ManComputeTruth( p->pGia, pObj, vLeaves );
+    // prepare CNF
+    Ga2_ManCnfCompute( uTruth, Vec_IntSize(vLeaves), vCnf0, p->vIsopMem );
+    uTruth = (~uTruth) & Abc_InfoMask( (1 << Vec_IntSize(vLeaves)) );
+    Ga2_ManCnfCompute( uTruth, Vec_IntSize(vLeaves), vCnf1, p->vIsopMem );
+}
+static inline Vec_Int_t * Ga2_ManNodeLeaves( Ga2_Man_t * p, Gia_Obj_t * pObj )
+{
+    if ( Vec_IntEntry( p->vId2Data, Gia_ObjId(p->pGia, pObj) ) == 0 )
+        Ga2_ManSetupNode( p, pObj );
+    return (Vec_Int_t *)Vec_PtrEntry( p->vDatas, Vec_IntEntry( p->vId2Data, Gia_ObjId(p->pGia, pObj) ) );
+}
+static inline Vec_Int_t * Ga2_ManNodeCnf0( Ga2_Man_t * p, Gia_Obj_t * pObj )
+{
+    int Num = Vec_IntEntry( p->vId2Data, Gia_ObjId(p->pGia, pObj) );
+    assert( Num > 0 );
+    return (Vec_Int_t *)Vec_PtrEntry( p->vDatas, Num + 1 );
+}
+static inline Vec_Int_t * Ga2_ManNodeCnf1( Ga2_Man_t * p, Gia_Obj_t * pObj )
+{
+    int Num = Vec_IntEntry( p->vId2Data, Gia_ObjId(p->pGia, pObj) );
+    assert( Num > 0 );
+    return (Vec_Int_t *)Vec_PtrEntry( p->vDatas, Num + 2 );
 }
 
 void Ga2_ManAddToAbs( Ga2_Man_t * p, Vec_Int_t * vToAdd )
@@ -649,7 +641,7 @@ void Ga2_ManAddToAbs( Ga2_Man_t * p, Vec_Int_t * vToAdd )
 void Ga2_ManRemoveFromAbs( Ga2_Man_t * p )
 {
     Gia_Obj_t * pObj;
-    int i;
+    int i, k;
     Gia_ManForEachObjVec( p->vAbs, p->pGia, pObj, i )
     {
         if ( i < p->nAbs )
@@ -657,6 +649,7 @@ void Ga2_ManRemoveFromAbs( Ga2_Man_t * p )
         assert( pObj->fMark0 == 1 );
         pObj->fMark0 = 0;
         pObj->Value = 0;
+
     }
     Vec_IntShrink( p->vAbs, p->nAbs );
 }
@@ -687,13 +680,17 @@ void Ga2_ManRestart( Ga2_Man_t * p )
         Vec_IntShrink( &p->pvLeaves[i], 0 );
         Vec_IntShrink( &p->pvCnfs0[i], 0 );
         Vec_IntShrink( &p->pvCnfs1[i], 0 );
-        Vec_IntShrink( &p->pvMaps[i], 0 );
     }
+    // clear abstraction
     Gia_ManForEachObjVec( p->vAbs, p->pGia, pObj, i )
     {
         assert( pObj->fMark0 );
         pObj->fMark0 = 0;
     }
+    // clear mapping into timeframes
+    Vec_VecFreeP( (Vec_Vec_t **)&p->vMaps );
+    p->vMaps = Vec_PtrAlloc( 1000 );
+    Vec_PtrPush( p->vMaps, Vec_IntAlloc(0) );
     // clear SAT variable numbers (begin with 1)
     if ( p->pSat ) sat_solver2_delete( p->pSat );
     p->pSat      = sat_solver2_new();
