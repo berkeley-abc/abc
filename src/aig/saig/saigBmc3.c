@@ -38,6 +38,7 @@ struct Gia_ManBmc_t_
     Vec_Ptr_t *       vCexes;      // counter-examples
     // intermediate data
     Vec_Int_t *       vMapping;    // mapping
+    Vec_Int_t *       vMapRefs;    // mapping references
     Vec_Vec_t *       vSects;      // sections
     Vec_Int_t *       vId2Num;     // number of each node 
     Vec_Ptr_t *       vTerInfo;    // ternary information
@@ -50,7 +51,9 @@ struct Gia_ManBmc_t_
     int               nHashOver;
     int               nBufNum;     // the number of simple nodes
     int               nDupNum;     // the number of simple nodes
-    int               nUniProps; // propagating learned clause values
+    int               nUniProps;   // propagating learned clause values
+    int               nLitUsed;    // used literals
+    int               nLitUseless; // useless literals
     // SAT solver
     sat_solver *      pSat;        // SAT solver
     int               nSatVars;    // SAT variables
@@ -655,6 +658,36 @@ void Saig_ManBmcMappingTest( Aig_Man_t * p )
 }
 
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Saig_ManBmcComputeMappingRefs( Aig_Man_t * p, Vec_Int_t * vMap )
+{
+    Vec_Int_t * vRefs;
+    Aig_Obj_t * pObj;
+    int i, iFan, * pData;
+    vRefs = Vec_IntStart( Aig_ManObjNumMax(p) );
+    Aig_ManForEachCo( p, pObj, i )
+        Vec_IntAddToEntry( vRefs, Aig_ObjFaninId0(pObj), 1 );
+    Aig_ManForEachNode( p, pObj, i )
+    {
+        if ( Vec_IntEntry(vMap, i) == 0 )
+            continue;
+        pData = Vec_IntEntryP( vMap, Vec_IntEntry(vMap, i) );
+        for ( iFan = 0; iFan < 4; iFan++ )
+            if ( pData[iFan+1] >= 0 )
+                Vec_IntAddToEntry( vRefs, pData[iFan+1], 1 );
+    }
+    return vRefs;
+}
 
 /**Function*************************************************************
 
@@ -677,6 +710,7 @@ Gia_ManBmc_t * Saig_Bmc3ManStart( Aig_Man_t * pAig )
     p->pAig = pAig;
     // create mapping
     p->vMapping = Cnf_DeriveMappingArray( pAig );
+    p->vMapRefs = Saig_ManBmcComputeMappingRefs( pAig, p->vMapping );
     // create sections
     p->vSects = Saig_ManBmcSections( pAig );
     // map object IDs into their numbers and section numbers
@@ -730,6 +764,7 @@ void Saig_Bmc3ManStop( Gia_ManBmc_t * p )
     }
 //    Vec_PtrFreeFree( p->vCexes );
     Vec_IntFree( p->vMapping );
+    Vec_IntFree( p->vMapRefs );
     Vec_VecFree( p->vSects );
     Vec_IntFree( p->vId2Num );
     Vec_VecFree( (Vec_Vec_t *)p->vId2Var );
@@ -803,6 +838,12 @@ static inline int Saig_ManBmcSetLiteral( Gia_ManBmc_t * p, Aig_Obj_t * pObj, int
     ObjNum  = Vec_IntEntry( p->vId2Num, Aig_ObjId(pObj) );
     vFrame  = (Vec_Int_t *)Vec_PtrEntry( p->vId2Var, iFrame );
     Vec_IntWriteEntry( vFrame, ObjNum, iLit );
+/*
+    if ( Vec_IntEntry( p->vMapRefs, Aig_ObjId(pObj) ) > 1 )
+        p->nLitUsed++;
+    else
+        p->nLitUseless++;
+*/
     return iLit;
 }
 
@@ -1478,7 +1519,7 @@ clkOther += clock() - clk2;
                 return RetValue;
             }
         }
-        if ( pPars->fVerbose )
+        if ( pPars->fVerbose ) 
         {
             if ( fFirst == 1 && f > 0 && p->pSat->stats.conflicts > 1 )
             {
@@ -1495,6 +1536,7 @@ clkOther += clock() - clk2;
 //            printf( "%4.0f MB",     4.0*Vec_IntSize(p->vVisited) /(1<<20) );
             printf( "%4.0f MB",     4.0*(f+1)*p->nObjNums /(1<<20) );
             printf( "%4.0f MB",     1.0*sat_solver_memory(p->pSat)/(1<<20) );
+//            printf( " %6d %6d ",   p->nLitUsed, p->nLitUseless );
             printf( "%9.2f sec ",  1.0*(clock() - clkTotal)/CLOCKS_PER_SEC );
 //            printf( "\n" );
 //            ABC_PRMn( "Id2Var", (f+1)*p->nObjNums*4 );

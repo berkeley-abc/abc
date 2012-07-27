@@ -469,10 +469,11 @@ void Saig_BmcInterval( Saig_Bmc_t * p )
             pTarget = Saig_BmcIntervalConstruct_rec( p, Aig_ManCo(p->pAig, p->iOutputLast), p->iFrameLast, p->vVisited );
             Vec_PtrPush( p->vTargets, pTarget );
             Aig_ObjCreateCo( p->pFrm, pTarget );
-            Aig_ManCleanup( p->pFrm );
+            Aig_ManCleanup( p->pFrm ); // it is not efficient to cleanup the whole manager!!!
             // check if the node is gone
             Vec_IntForEachEntryDouble( p->vVisited, iObj, iFrame, i )
                 Saig_BmcObjFrame( p, Aig_ManObj(p->pAig, iObj), iFrame );
+            // it is not efficient to remove nodes, which may be used later!!!
         }
     }
 }

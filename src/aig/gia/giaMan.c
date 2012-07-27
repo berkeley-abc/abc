@@ -443,6 +443,7 @@ void Gia_ManPrintStats( Gia_Man_t * p, int fTents, int fSwitch )
     Gia_ManPrintObjClasses( p );
     if ( fTents )
     {
+/*
         int k, Entry, Prev = 1;
         Vec_Int_t * vLimit = Vec_IntAlloc( 1000 );
         Gia_Man_t * pNew = Gia_ManUnrollDup( p, vLimit );
@@ -453,6 +454,7 @@ void Gia_ManPrintStats( Gia_Man_t * p, int fTents, int fSwitch )
         printf( "\n" );
         Vec_IntFree( vLimit );
         Gia_ManStop( pNew );
+*/
         Gia_ManPrintTents( p );
     }
 }
