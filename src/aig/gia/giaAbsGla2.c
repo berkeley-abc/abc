@@ -41,8 +41,8 @@ struct Ga2_Man_t_
     Gia_Man_t *    pGia;            // working AIG manager
     Gia_ParVta_t * pPars;           // parameters
     // markings 
-    Vec_Int_t *    vMapping;        // for each object: leaf count, leaves, truth table
     int            nMarked;         // total number of marked nodes and flops
+    Vec_Int_t *    vMapping;        // for each object: leaf count, leaves, truth table
     Vec_Ptr_t *    vDatas;          // for each object: leaves, CNF0, CNF1
     // abstraction
     Vec_Int_t *    vAbs;            // array of abstracted objects

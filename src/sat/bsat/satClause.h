@@ -90,6 +90,7 @@ static inline int       Sat_MemHandShift( Sat_Mem_t * p, cla h )     { return h 
 
 static inline int       Sat_MemIntSize( int size, int lrn )          { return (size + 2 + lrn) & ~01;               }
 static inline int       Sat_MemClauseSize( clause * p )              { return Sat_MemIntSize(p->size, p->lrn);      }
+static inline int       Sat_MemClauseSize2( clause * p )             { return Sat_MemIntSize(p->size, 1);           }
 
 //static inline clause *  Sat_MemClause( Sat_Mem_t * p, int i, int k ) { assert(i <= p->iPage[i&1] && k <= Sat_MemLimit(p->pPages[i]));  return (clause *)(p->pPages[i] + k ); }
 static inline clause *  Sat_MemClause( Sat_Mem_t * p, int i, int k ) { assert( k ); return (clause *)(p->pPages[i] + k);         }
@@ -112,12 +113,16 @@ static inline double    Sat_MemMemoryAll( Sat_Mem_t * p )            { return 1.
 // i is page number
 // k is page offset
 
-// this macro has to be fixed (Sat_MemClauseSize does not work for problem clauses in proof mode)
-/*
+// print problelm clauses NOT in proof mode
 #define Sat_MemForEachClause( p, c, i, k )      \
     for ( i = 0; i <= p->iPage[0]; i += 2 )     \
         for ( k = 2; k < Sat_MemLimit(p->pPages[i]) && ((c) = Sat_MemClause( p, i, k )); k += Sat_MemClauseSize(c) )
-*/
+
+// print problem clauses in proof model
+#define Sat_MemForEachClause2( p, c, i, k )      \
+    for ( i = 0; i <= p->iPage[0]; i += 2 )     \
+        for ( k = 2; k < Sat_MemLimit(p->pPages[i]) && ((c) = Sat_MemClause( p, i, k )); k += Sat_MemClauseSize2(c) )
+
 #define Sat_MemForEachLearned( p, c, i, k )     \
     for ( i = 1; i <= p->iPage[1]; i += 2 )     \
         for ( k = 2; k < Sat_MemLimit(p->pPages[i]) && ((c) = Sat_MemClause( p, i, k )); k += Sat_MemClauseSize(c) )
