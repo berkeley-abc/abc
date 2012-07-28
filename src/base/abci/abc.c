@@ -108,6 +108,7 @@ static int Abc_CommandSpeedup                ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandPowerdown              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAddBuffs               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 //static int Abc_CommandMerge                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandTestDec                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandRewrite                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRefactor               ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -569,6 +570,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Synthesis",    "powerdown",     Abc_CommandPowerdown,        1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "addbuffs",      Abc_CommandAddBuffs,         1 );
 //    Cmd_CommandAdd( pAbc, "Synthesis",    "merge",         Abc_CommandMerge,            1 );
+    Cmd_CommandAdd( pAbc, "Synthesis",    "testdec",       Abc_CommandTestDec,          0 );
 
     Cmd_CommandAdd( pAbc, "Synthesis",    "rewrite",       Abc_CommandRewrite,          1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "refactor",      Abc_CommandRefactor,         1 );
@@ -4793,6 +4795,77 @@ usage:
     return 1;
 }
 #endif
+
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandTestDec( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern int Abc_DecTest( char * pFileName, int DecType );
+    char * pFileName;
+    int c;
+    int fVerbose = 0;
+    int DecType = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Avh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'A':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-A\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            DecType = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( DecType < 0 ) 
+                goto usage;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( argc != globalUtilOptind + 1 )
+    {
+        printf( "Input file is not given.\n" );
+        goto usage;
+    }
+    // get the output file name
+    pFileName = argv[globalUtilOptind];
+    // call the testbench
+    Abc_DecTest( pFileName, DecType );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: testdec [-A <num>] [-vh] <file_name>\n" );
+    Abc_Print( -2, "\t           testbench for Boolean decomposition algorithms\n" );
+    Abc_Print( -2, "\t-A <num> : number of decomposition algorithm [default = %d]\n", DecType );
+    Abc_Print( -2, "\t      0  : none (just read the input file)\n" );
+    Abc_Print( -2, "\t      1  : algebraic factoring applied to ISOP\n" );
+    Abc_Print( -2, "\t      2  : bi-decomposition with cofactoring\n" );
+    Abc_Print( -2, "\t      3  : disjoint-support decomposition\n" );
+    Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h       : print the command usage\n");
+    return 1;
+} 
+
+
 /**Function*************************************************************
 
   Synopsis    []
