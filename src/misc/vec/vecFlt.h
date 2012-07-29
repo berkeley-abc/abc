@@ -311,6 +311,22 @@ static inline int Vec_FltCap( Vec_Flt_t * p )
   SeeAlso     []
 
 ***********************************************************************/
+static inline double Vec_FltMemory( Vec_Flt_t * p )
+{
+    return !p ? 0.0 : 1.0 * sizeof(float) * p->nCap + sizeof(Vec_Flt_t);
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 static inline float Vec_FltEntry( Vec_Flt_t * p, int i )
 {
     assert( i >= 0 && i < p->nSize );

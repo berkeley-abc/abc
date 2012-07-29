@@ -383,6 +383,22 @@ static inline int Vec_IntCap( Vec_Int_t * p )
   SeeAlso     []
 
 ***********************************************************************/
+static inline double Vec_IntMemory( Vec_Int_t * p )
+{
+    return !p ? 0.0 : 1.0 * sizeof(int) * p->nCap + sizeof(Vec_Int_t) ;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 static inline int Vec_IntEntry( Vec_Int_t * p, int i )
 {
     assert( i >= 0 && i < p->nSize );

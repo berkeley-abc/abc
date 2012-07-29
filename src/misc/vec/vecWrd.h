@@ -361,6 +361,22 @@ static inline int Vec_WrdCap( Vec_Wrd_t * p )
   SeeAlso     []
 
 ***********************************************************************/
+static inline double Vec_WrdMemory( Vec_Wrd_t * p )
+{
+    return !p ? 0.0 : 1.0 * sizeof(word) * p->nCap + sizeof(Vec_Wrd_t);
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 static inline word Vec_WrdEntry( Vec_Wrd_t * p, int i )
 {
     assert( i >= 0 && i < p->nSize );

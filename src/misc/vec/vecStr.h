@@ -305,6 +305,22 @@ static inline int Vec_StrCap( Vec_Str_t * p )
   SeeAlso     []
 
 ***********************************************************************/
+static inline double Vec_StrMemory( Vec_Str_t * p )
+{
+    return !p ? 0.0 : 1.0 * sizeof(char) * p->nCap + sizeof(Vec_Str_t);
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 static inline char Vec_StrEntry( Vec_Str_t * p, int i )
 {
     assert( i >= 0 && i < p->nSize );

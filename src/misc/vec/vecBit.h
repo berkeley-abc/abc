@@ -268,6 +268,22 @@ static inline int Vec_BitCap( Vec_Bit_t * p )
   SeeAlso     []
 
 ***********************************************************************/
+static inline double Vec_BitMemory( Vec_Bit_t * p )
+{
+    return !p ? 0.0 : 1.0 * sizeof(int) * p->nCap + sizeof(Vec_Bit_t);
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 static inline int Vec_BitEntry( Vec_Bit_t * p, int i )
 {
     assert( i >= 0 && i < p->nSize );

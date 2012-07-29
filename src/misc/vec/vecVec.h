@@ -197,18 +197,6 @@ static inline void Vec_VecExpand( Vec_Vec_t * p, int Level )
         p->pArray[i] = Vec_PtrAlloc( 0 );
     p->nSize = Level + 1;
 }
-
-/**Function*************************************************************
-
-  Synopsis    [Allocates a vector with the given capacity.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
 static inline void Vec_VecExpandInt( Vec_Vec_t * p, int Level )
 {
     int i;
@@ -284,18 +272,6 @@ static inline Vec_Ptr_t * Vec_VecEntry( Vec_Vec_t * p, int i )
     assert( i >= 0 && i < p->nSize );
     return (Vec_Ptr_t *)p->pArray[i];
 }
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
 static inline Vec_Int_t * Vec_VecEntryInt( Vec_Vec_t * p, int i )
 {
     assert( i >= 0 && i < p->nSize );
@@ -313,9 +289,27 @@ static inline Vec_Int_t * Vec_VecEntryInt( Vec_Vec_t * p, int i )
   SeeAlso     []
 
 ***********************************************************************/
-static inline void * Vec_VecEntryEntry( Vec_Vec_t * p, int i, int k )
+static inline double Vec_VecMemory( Vec_Vec_t * p )
 {
-    return Vec_PtrEntry( Vec_VecEntry(p, i), k );
+    int i;
+    double Mem;
+    if ( p == NULL )  return 0.0;
+    Mem = Vec_PtrMemory( (Vec_Ptr_t *)p );
+    for ( i = 0; i < p->nSize; i++ )
+        if ( Vec_VecEntry(p, i) )
+            Mem += Vec_PtrMemory( Vec_VecEntry(p, i) );
+    return Mem;
+}
+static inline double Vec_VecMemoryInt( Vec_Vec_t * p )
+{
+    int i;
+    double Mem;
+    if ( p == NULL )  return 0.0;
+    Mem = Vec_PtrMemory( (Vec_Ptr_t *)p );
+    for ( i = 0; i < p->nSize; i++ )
+        if ( Vec_VecEntry(p, i) )
+            Mem += Vec_IntMemory( Vec_VecEntryInt(p, i) );
+    return Mem;
 }
 
 /**Function*************************************************************
@@ -329,6 +323,10 @@ static inline void * Vec_VecEntryEntry( Vec_Vec_t * p, int i, int k )
   SeeAlso     []
 
 ***********************************************************************/
+static inline void * Vec_VecEntryEntry( Vec_Vec_t * p, int i, int k )
+{
+    return Vec_PtrEntry( Vec_VecEntry(p, i), k );
+}
 static inline int Vec_VecEntryEntryInt( Vec_Vec_t * p, int i, int k )
 {
     return Vec_IntEntry( Vec_VecEntryInt(p, i), k );
@@ -393,18 +391,6 @@ static inline Vec_Vec_t * Vec_VecDup( Vec_Vec_t * p )
         Vec_PtrPush( vNew, Vec_PtrDup(vVec) );
     return (Vec_Vec_t *)vNew;
 }
-
-/**Function*************************************************************
-
-  Synopsis    [Frees the vector.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
 static inline Vec_Vec_t * Vec_VecDupInt( Vec_Vec_t * p )
 {
     Vec_Ptr_t * vNew;
@@ -478,18 +464,6 @@ static inline void Vec_VecPush( Vec_Vec_t * p, int Level, void * Entry )
     }
     Vec_PtrPush( Vec_VecEntry(p, Level), Entry );
 }
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
 static inline void Vec_VecPushInt( Vec_Vec_t * p, int Level, int Entry )
 {
     if ( p->nSize < Level + 1 )
@@ -521,18 +495,6 @@ static inline void Vec_VecPushUnique( Vec_Vec_t * p, int Level, void * Entry )
     else
         Vec_PtrPushUnique( Vec_VecEntry(p, Level), Entry );
 }
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
 static inline void Vec_VecPushUniqueInt( Vec_Vec_t * p, int Level, int Entry )
 {
     if ( p->nSize < Level + 1 )
@@ -560,18 +522,6 @@ static int Vec_VecSortCompare1( Vec_Ptr_t ** pp1, Vec_Ptr_t ** pp2 )
         return 1;
     return 0; 
 }
-
-/**Function*************************************************************
-
-  Synopsis    [Comparison procedure for two integers.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
 static int Vec_VecSortCompare2( Vec_Ptr_t ** pp1, Vec_Ptr_t ** pp2 )
 {
     if ( Vec_PtrSize(*pp1) > Vec_PtrSize(*pp2) )
@@ -621,18 +571,6 @@ static int Vec_VecSortCompare3( Vec_Int_t ** pp1, Vec_Int_t ** pp2 )
         return 1;
     return 0; 
 }
-
-/**Function*************************************************************
-
-  Synopsis    [Comparison procedure for two integers.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
 static int Vec_VecSortCompare4( Vec_Int_t ** pp1, Vec_Int_t ** pp2 )
 {
     if ( Vec_IntEntry(*pp1,0) > Vec_IntEntry(*pp2,0) )
@@ -687,38 +625,6 @@ static inline void Vec_VecPrintInt( Vec_Vec_t * p, int fSkipSingles )
         if ( k == Vec_VecLevelSize(p, i) - 1 )
             printf( " }\n" );
     }
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Returns memory, in bytes, used by the vector.]
-
-  Description []
-  
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-static inline double Vec_VecMemory( Vec_Vec_t * p )
-{
-    int i;
-    Vec_Ptr_t * vVec;
-    double Mem = sizeof(Vec_Vec_t);
-    Mem += Vec_VecCap(p) * sizeof(void *);
-    Vec_VecForEachLevel( p, vVec, i )
-        Mem += sizeof(Vec_Ptr_t) + Vec_PtrCap(vVec) * sizeof(void *);
-    return Mem;
-}
-static inline double Vec_VecMemoryInt( Vec_Vec_t * p )
-{
-    int i;
-    Vec_Int_t * vVec;
-    double Mem = sizeof(Vec_Vec_t);
-    Mem += Vec_VecCap(p) * sizeof(void *);
-    Vec_VecForEachLevelInt( p, vVec, i )
-        Mem += sizeof(Vec_Int_t) + Vec_IntCap(vVec) * sizeof(int);
-    return Mem;
 }
 
 ABC_NAMESPACE_HEADER_END
