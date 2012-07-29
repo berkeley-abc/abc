@@ -1485,7 +1485,7 @@ Kit_DsdNtk_t * Kit_DsdExpand( Kit_DsdNtk_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Kit_DsdCompSort( int pPrios[], unsigned uSupps[], unsigned char * piLits, int nVars, unsigned piLitsRes[] )
+void Kit_DsdCompSort( int pPrios[], unsigned uSupps[], unsigned short * piLits, int nVars, unsigned piLitsRes[] )
 {
     int nSuppSizes[16], Priority[16], pOrder[16];
     int i, k, iVarBest, SuppMax, PrioMax;
@@ -1827,6 +1827,90 @@ int Kit_DsdFindLargeBox( Kit_DsdNtk_t * pNtk, int Size )
 
 /**Function*************************************************************
 
+  Synopsis    [Returns 1 if there is a component with more than 3 inputs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Kit_DsdCountAigNodes_rec( Kit_DsdNtk_t * pNtk, int Id )
+{
+    Kit_DsdObj_t * pObj;
+    unsigned iLit, i, RetValue;
+    pObj = Kit_DsdNtkObj( pNtk, Id );
+    if ( pObj == NULL )
+        return 0;
+    if ( pObj->Type == KIT_DSD_CONST1 || pObj->Type == KIT_DSD_VAR )
+        return 0;
+    if ( pObj->nFans < 2 ) // why this happens? - need to figure out
+        return 0; 
+    assert( pObj->nFans > 1 );
+    if ( pObj->Type == KIT_DSD_AND )
+        RetValue = ((int)pObj->nFans - 1);
+    else if ( pObj->Type == KIT_DSD_XOR )
+        RetValue = ((int)pObj->nFans - 1) * 3;
+    else if ( pObj->Type == KIT_DSD_PRIME )
+    {
+        // assuming MUX decomposition
+        assert( (int)pObj->nFans == 3 );
+        RetValue = 3;
+    }
+    else assert( 0 );
+    Kit_DsdObjForEachFanin( pNtk, pObj, iLit, i )
+        RetValue += Kit_DsdCountAigNodes_rec( pNtk, Abc_Lit2Var(iLit) );
+    return RetValue;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Returns 1 if there is a component with more than 3 inputs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Kit_DsdCountAigNodes2( Kit_DsdNtk_t * pNtk )
+{
+    return Kit_DsdCountAigNodes_rec( pNtk, Abc_Lit2Var(pNtk->Root) );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns 1 if there is a component with more than 3 inputs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Kit_DsdCountAigNodes( Kit_DsdNtk_t * pNtk )
+{
+    Kit_DsdObj_t * pObj;
+    int i, Counter = 0;
+    for ( i = 0; i < pNtk->nNodes; i++ )
+    {
+        pObj = pNtk->pNodes[i];
+        if ( pObj->Type == KIT_DSD_AND )
+            Counter += ((int)pObj->nFans - 1);
+        else if ( pObj->Type == KIT_DSD_XOR )
+            Counter += ((int)pObj->nFans - 1) * 3;
+        else if ( pObj->Type == KIT_DSD_PRIME ) // assuming MUX decomposition
+            Counter += 3;
+    }
+    return Counter;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Returns 1 if the non-DSD 4-var func is implementable with two 3-LUTs.]
 
   Description []
@@ -1883,7 +1967,7 @@ int Kit_DsdCheckVar4Dec2( Kit_DsdNtk_t * pNtk0, Kit_DsdNtk_t * pNtk1 )
   SeeAlso     []
 
 ***********************************************************************/
-void Kit_DsdDecompose_rec( Kit_DsdNtk_t * pNtk, Kit_DsdObj_t * pObj, unsigned uSupp, unsigned char * pPar, int nDecMux )
+void Kit_DsdDecompose_rec( Kit_DsdNtk_t * pNtk, Kit_DsdObj_t * pObj, unsigned uSupp, unsigned short * pPar, int nDecMux )
 {
     Kit_DsdObj_t * pRes, * pRes0, * pRes1;
     int nWords = Kit_TruthWordNum(pObj->nFans);

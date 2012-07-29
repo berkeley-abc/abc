@@ -67,10 +67,12 @@ static inline Bdc_Fun_t * Bdc_NotCond( Bdc_Fun_t * p, int c )    { return (Bdc_F
 /*=== bdcCore.c ==========================================================*/
 extern Bdc_Man_t * Bdc_ManAlloc( Bdc_Par_t * pPars );
 extern void        Bdc_ManFree( Bdc_Man_t * p );
+extern void        Bdc_ManDecPrint( Bdc_Man_t * p );
 extern int         Bdc_ManDecompose( Bdc_Man_t * p, unsigned * puFunc, unsigned * puCare, int nVars, Vec_Ptr_t * vDivs, int nNodesMax );
 extern Bdc_Fun_t * Bdc_ManFunc( Bdc_Man_t * p, int i );
 extern Bdc_Fun_t * Bdc_ManRoot( Bdc_Man_t * p );
 extern int         Bdc_ManNodeNum( Bdc_Man_t * p );
+extern int         Bdc_ManAndNum( Bdc_Man_t * p );
 extern Bdc_Fun_t * Bdc_FuncFanin0( Bdc_Fun_t * p );
 extern Bdc_Fun_t * Bdc_FuncFanin1( Bdc_Fun_t * p );
 extern void *      Bdc_FuncCopy( Bdc_Fun_t * p );

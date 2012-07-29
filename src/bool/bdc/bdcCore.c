@@ -46,6 +46,7 @@ ABC_NAMESPACE_IMPL_START
 Bdc_Fun_t *  Bdc_ManFunc( Bdc_Man_t * p, int i )               { return Bdc_FunWithId(p, i); }
 Bdc_Fun_t *  Bdc_ManRoot( Bdc_Man_t * p )                      { return p->pRoot;            }
 int          Bdc_ManNodeNum( Bdc_Man_t * p )                   { return p->nNodes;           }
+int          Bdc_ManAndNum( Bdc_Man_t * p )                    { return p->nNodes-p->nVars-1;}
 Bdc_Fun_t *  Bdc_FuncFanin0( Bdc_Fun_t * p )                   { return p->pFan0;            }
 Bdc_Fun_t *  Bdc_FuncFanin1( Bdc_Fun_t * p )                   { return p->pFan1;            }
 void *       Bdc_FuncCopy( Bdc_Fun_t * p )                     { return p->pCopy;            }
@@ -186,7 +187,7 @@ void Bdc_ManPrepare( Bdc_Man_t * p, Vec_Ptr_t * vDivs )
 
 /**Function*************************************************************
 
-  Synopsis    [Clears the manager.]
+  Synopsis    [Prints bi-decomposition in a simple format.]
 
   Description []
                
@@ -195,7 +196,7 @@ void Bdc_ManPrepare( Bdc_Man_t * p, Vec_Ptr_t * vDivs )
   SeeAlso     []
 
 ***********************************************************************/
-void Bdc_ManDecPrint( Bdc_Man_t * p )
+void Bdc_ManDecPrintSimple( Bdc_Man_t * p )
 {
     Bdc_Fun_t * pNode;
     int i;
@@ -211,10 +212,69 @@ void Bdc_ManDecPrint( Bdc_Man_t * p )
             printf( "%s%d &", Bdc_IsComplement(pNode->pFan0)? "-":"", Bdc_FunId(p,Bdc_Regular(pNode->pFan0)) );
             printf( " %s%d   ", Bdc_IsComplement(pNode->pFan1)? "-":"", Bdc_FunId(p,Bdc_Regular(pNode->pFan1)) );
         }
-        Extra_PrintBinary( stdout, pNode->puFunc, (1<<p->nVars) );
+//        Extra_PrintBinary( stdout, pNode->puFunc, (1<<p->nVars) );
         printf( "\n" );
     }
     printf( "Root = %s%d.\n", Bdc_IsComplement(p->pRoot)? "-":"", Bdc_FunId(p,Bdc_Regular(p->pRoot)) );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Prints bi-decomposition recursively.]
+
+  Description [This procedure prints bi-decomposition as a factored form.
+  In doing so, logic sharing, if present, will be replicated several times.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Bdc_ManDecPrint_rec( Bdc_Man_t * p, Bdc_Fun_t * pNode )
+{
+    if ( pNode->Type == BDC_TYPE_PI )
+        printf( "%c", 'a' + Bdc_FunId(p,pNode) - 1 );
+    else if ( pNode->Type == BDC_TYPE_AND )
+    {
+        Bdc_Fun_t * pNode0 = Bdc_FuncFanin0( pNode );
+        Bdc_Fun_t * pNode1 = Bdc_FuncFanin1( pNode );
+
+        if ( Bdc_IsComplement(pNode0) )
+            printf( "!" );
+        if ( Bdc_IsComplement(pNode0) && Bdc_Regular(pNode0)->Type != BDC_TYPE_PI )
+            printf( "(" );
+        Bdc_ManDecPrint_rec( p, Bdc_Regular(pNode0) );
+        if ( Bdc_IsComplement(pNode0) && Bdc_Regular(pNode0)->Type != BDC_TYPE_PI )
+            printf( ")" );
+
+        if ( Bdc_IsComplement(pNode1) )
+            printf( "!" );
+        if ( Bdc_IsComplement(pNode1) && Bdc_Regular(pNode1)->Type != BDC_TYPE_PI )
+            printf( "(" );
+        Bdc_ManDecPrint_rec( p, Bdc_Regular(pNode1) );
+        if ( Bdc_IsComplement(pNode1) && Bdc_Regular(pNode1)->Type != BDC_TYPE_PI )
+            printf( ")" );
+    }
+    else assert( 0 );
+}
+void Bdc_ManDecPrint( Bdc_Man_t * p )
+{
+    Bdc_Fun_t * pRoot = Bdc_Regular(p->pRoot);
+
+    printf( "F = " );
+    if ( pRoot->Type == BDC_TYPE_CONST1 ) // constant 0
+        printf( "Constant %d", !Bdc_IsComplement(p->pRoot) );
+    else if ( pRoot->Type == BDC_TYPE_PI ) // literal
+        printf( "%s%d", Bdc_IsComplement(p->pRoot) ? "!" : "", Bdc_FunId(p,pRoot)-1 );
+    else
+    {
+        if ( Bdc_IsComplement(p->pRoot) )
+            printf( "!(" );
+        Bdc_ManDecPrint_rec( p, pRoot );
+        if ( Bdc_IsComplement(p->pRoot) )
+            printf( ")" );
+    }
+    printf( "\n" );
 }
 
 /**Function*************************************************************

@@ -4811,7 +4811,7 @@ usage:
 ***********************************************************************/
 int Abc_CommandTestDec( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern int Abc_DecTest( char * pFileName, int DecType );
+    extern int Abc_DecTest( char * pFileName, int DecType, int fVerbose );
     char * pFileName;
     int c;
     int fVerbose = 0;
@@ -4849,17 +4849,17 @@ int Abc_CommandTestDec( Abc_Frame_t * pAbc, int argc, char ** argv )
     // get the output file name
     pFileName = argv[globalUtilOptind];
     // call the testbench
-    Abc_DecTest( pFileName, DecType );
+    Abc_DecTest( pFileName, DecType, fVerbose );
     return 0;
 
 usage:
     Abc_Print( -2, "usage: testdec [-A <num>] [-vh] <file_name>\n" );
     Abc_Print( -2, "\t           testbench for Boolean decomposition algorithms\n" );
-    Abc_Print( -2, "\t-A <num> : number of decomposition algorithm [default = %d]\n", DecType );
-    Abc_Print( -2, "\t      0  : none (just read the input file)\n" );
-    Abc_Print( -2, "\t      1  : algebraic factoring applied to ISOP\n" );
-    Abc_Print( -2, "\t      2  : bi-decomposition with cofactoring\n" );
-    Abc_Print( -2, "\t      3  : disjoint-support decomposition\n" );
+    Abc_Print( -2, "\t-A <num> : decomposition algorithm [default = %d]\n", DecType );
+    Abc_Print( -2, "\t               0: none (reading and writing the file)\n" );
+    Abc_Print( -2, "\t               1: algebraic factoring applied to ISOP\n" );
+    Abc_Print( -2, "\t               2: bi-decomposition with cofactoring\n" );
+    Abc_Print( -2, "\t               3: disjoint-support decomposition with cofactoring\n" );
     Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;

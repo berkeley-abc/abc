@@ -112,17 +112,17 @@ struct Kit_DsdObj_t_
     unsigned       Offset     : 8;  // offset to the truth table
     unsigned       nRefs      : 8;  // offset to the truth table
     unsigned       nFans      : 6;  // the number of fanins of this node
-    unsigned char  pFans[0];        // the fanin literals
+    unsigned short pFans[0];        // the fanin literals
 };
 
 // DSD network
 typedef struct Kit_DsdNtk_t_ Kit_DsdNtk_t;
 struct Kit_DsdNtk_t_
 {
-    unsigned char  nVars;           // at most 16 (perhaps 18?)
-    unsigned char  nNodesAlloc;     // the number of allocated nodes (at most nVars)
-    unsigned char  nNodes;          // the number of nodes
-    unsigned char  Root;            // the root of the tree
+    unsigned short nVars;           // at most 16 (perhaps 18?)
+    unsigned short nNodesAlloc;     // the number of allocated nodes (at most nVars)
+    unsigned short nNodes;          // the number of nodes
+    unsigned short Root;            // the root of the tree
     unsigned *     pMem;            // memory for the truth tables (memory manager?)
     unsigned *     pSupps;          // supports of the nodes
     Kit_DsdObj_t** pNodes;          // the nodes
@@ -142,7 +142,7 @@ struct Kit_DsdMan_t_
     Vec_Int_t *    vNodes;          // temporary array for BDD nodes
 };
  
-static inline unsigned        Kit_DsdObjOffset( int nFans )          { return (nFans >> 2) + ((nFans & 3) > 0);                    }
+static inline unsigned        Kit_DsdObjOffset( int nFans )          { return (nFans >> 1) + ((nFans & 1) > 0);                    }
 static inline unsigned *      Kit_DsdObjTruth( Kit_DsdObj_t * pObj ) { return pObj->Type == KIT_DSD_PRIME ? (unsigned *)pObj->pFans + pObj->Offset: NULL; }
 static inline int             Kit_DsdNtkObjNum( Kit_DsdNtk_t * pNtk ){ return pNtk->nVars + pNtk->nNodes; }
 static inline Kit_DsdObj_t *  Kit_DsdNtkObj( Kit_DsdNtk_t * pNtk, int Id )      { assert( Id >= 0 && Id < pNtk->nVars + pNtk->nNodes ); return Id < pNtk->nVars ? NULL : pNtk->pNodes[Id - pNtk->nVars]; }
@@ -538,6 +538,7 @@ extern void            Kit_DsdNtkFree( Kit_DsdNtk_t * pNtk );
 extern int             Kit_DsdNonDsdSizeMax( Kit_DsdNtk_t * pNtk );
 extern Kit_DsdObj_t *  Kit_DsdNonDsdPrimeMax( Kit_DsdNtk_t * pNtk );
 extern unsigned        Kit_DsdNonDsdSupports( Kit_DsdNtk_t * pNtk );
+extern int             Kit_DsdCountAigNodes( Kit_DsdNtk_t * pNtk );
 extern unsigned        Kit_DsdGetSupports( Kit_DsdNtk_t * p );
 extern Kit_DsdNtk_t *  Kit_DsdExpand( Kit_DsdNtk_t * p );
 extern Kit_DsdNtk_t *  Kit_DsdShrink( Kit_DsdNtk_t * p, int pPrios[] );
