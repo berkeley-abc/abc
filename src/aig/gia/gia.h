@@ -128,6 +128,7 @@ struct Gia_Man_t_
     Vec_Int_t *    vFanoutNums;   // static fanout
     Vec_Int_t *    vFanout;       // static fanout
     int *          pMapping;      // mapping for each node
+    Vec_Int_t *    vMapping;
     Vec_Int_t *    vLutConfigs;   // LUT configurations
     Abc_Cex_t *    pCexComb;      // combinational counter-example
     Abc_Cex_t *    pCexSeq;       // sequential counter-example
@@ -718,6 +719,7 @@ extern Vec_Int_t *         Gia_FlaConvertToGla( Gia_Man_t * p, Vec_Int_t * vFla 
 extern Vec_Int_t *         Gia_GlaConvertToFla( Gia_Man_t * p, Vec_Int_t * vGla );
 /*=== giaAbsGla.c ===========================================================*/
 extern int                 Gia_GlaPerform( Gia_Man_t * p, Gia_ParVta_t * pPars, int fStartVta );
+extern int                 Ga2_ManPerform( Gia_Man_t * p, Gia_ParVta_t * pPars );
 /*=== giaAbsVta.c ===========================================================*/
 extern void                Gia_VtaSetDefaultParams( Gia_ParVta_t * p );
 extern int                 Gia_VtaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars );

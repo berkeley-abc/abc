@@ -28109,10 +28109,10 @@ usage:
 int Abc_CommandAbc9Gla( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Gia_ParVta_t Pars, * pPars = &Pars;
-    int c, fStartVta = 0;
+    int c, fStartVta = 0, fNewAlgo = 0;
     Gia_VtaSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FSPCLDETRAtrfkadvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FSPCLDETRAtrfkadnvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -28242,6 +28242,9 @@ int Abc_CommandAbc9Gla( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'd':
             pPars->fDumpVabs ^= 1;
             break;
+        case 'n':
+            fNewAlgo ^= 1;
+            break;
         case 'v':
             pPars->fVerbose ^= 1;
             break;
@@ -28278,13 +28281,16 @@ int Abc_CommandAbc9Gla( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( 1, "The starting frame is larger than the max number of frames.\n" );
         return 0;
     }
-    pAbc->Status  = Gia_GlaPerform( pAbc->pGia, pPars, fStartVta );
+    if ( fNewAlgo )
+        pAbc->Status = Ga2_ManPerform( pAbc->pGia, pPars );
+    else
+        pAbc->Status  = Gia_GlaPerform( pAbc->pGia, pPars, fStartVta );
     pAbc->nFrames = pPars->iFrame;
     Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexSeq );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &gla [-FSCLDETR num] [-A file] [-fkadvh]\n" );
+    Abc_Print( -2, "usage: &gla [-FSCLDETR num] [-A file] [-fkadnvh]\n" );
     Abc_Print( -2, "\t          fixed-time-frame gate-level proof- and cex-based abstraction\n" );
     Abc_Print( -2, "\t-F num  : the max number of timeframes to unroll [default = %d]\n", pPars->nFramesMax );
     Abc_Print( -2, "\t-S num  : the starting time frame (0=unused) [default = %d]\n", pPars->nFramesStart );
@@ -28299,6 +28305,7 @@ usage:
     Abc_Print( -2, "\t-k      : toggle using VTA to kick start GLA for starting frames [default = %s]\n", fStartVta? "yes": "no" );
     Abc_Print( -2, "\t-a      : toggle refinement by adding one layers of gates [default = %s]\n", pPars->fAddLayer? "yes": "no" );
     Abc_Print( -2, "\t-d      : toggle dumping abstracted model into a file [default = %s]\n", pPars->fDumpVabs? "yes": "no" );
+    Abc_Print( -2, "\t-n      : toggle using new algorithms [default = %s]\n", fNewAlgo? "yes": "no" );
     Abc_Print( -2, "\t-v      : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h      : print the command usage\n");
     return 1;
@@ -29677,7 +29684,8 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    extern Gia_Man_t * Gia_VtaTest( Gia_Man_t * p );
 //    extern int Gia_ManSuppSizeTest( Gia_Man_t * p );
 //    extern void Gia_VtaTest( Gia_Man_t * p, int nFramesStart, int nFramesMax, int nConfMax, int nTimeMax, int fVerbose );
-    extern void Gia_IsoTest( Gia_Man_t * p, int fVerbose );
+//    extern void Gia_IsoTest( Gia_Man_t * p, int fVerbose );
+    extern void Ga2_ManComputeTest( Gia_Man_t * p );
 
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "svh" ) ) != EOF )
@@ -29716,6 +29724,7 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    Gia_ManSuppSizeTest( pAbc->pGia );
 //    Gia_VtaTest( pAbc->pGia, 10, 100000, 0, 0, 1 );
 //    Gia_IsoTest( pAbc->pGia, fVerbose );
+    Ga2_ManComputeTest( pAbc->pGia );
     return 0;
 usage:
     Abc_Print( -2, "usage: &test [-svh]\n" );

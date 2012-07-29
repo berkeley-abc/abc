@@ -38,31 +38,30 @@ typedef struct Ga2_Man_t_ Ga2_Man_t; // manager
 struct Ga2_Man_t_
 {
     // user data
-    Gia_Man_t *    pGia;            // working AIG manager
-    Gia_ParVta_t * pPars;           // parameters
+    Gia_Man_t *    pGia;         // working AIG manager
+    Gia_ParVta_t * pPars;        // parameters
     // markings 
-    int            nMarked;         // total number of marked nodes and flops
-    Vec_Int_t *    vMapping;        // for each object: leaf count, leaves, truth table
-    Vec_Ptr_t *    vDatas;          // for each object: leaves, CNF0, CNF1
+    int            nMarked;      // total number of marked nodes and flops
+    Vec_Ptr_t *    vCnfs;        // for each object: CNF0, CNF1
     // abstraction
-    Vec_Int_t *    vAbs;            // array of abstracted objects
-    Vec_Int_t *    vValues;         // array of objects with SAT numbers assigned
-    int            LimAbs;          // limit value for starting abstraction objects
-    int            LimPpi;          // limit value for starting PPI objects
+    Vec_Int_t *    vIds;         // abstraction ID for each object
+    Vec_Int_t *    vAbs;         // array of abstracted objects
+    Vec_Int_t *    vValues;      // array of objects with SAT numbers assigned
+    int            LimAbs;       // limit value for starting abstraction objects
+    int            LimPpi;       // limit value for starting PPI objects
     // refinement
-    Rnm_Man_t *    pRnm;            // refinement manager
+    Rnm_Man_t *    pRnm;         // refinement manager
     // SAT solver and variables
-    Vec_Ptr_t *    vId2Lit;         // mapping, for each timeframe, of object ID into SAT literal
-    sat_solver2 *  pSat;            // incremental SAT solver
-    int            nSatVars;        // the number of SAT variables
-    int            nProofIds;       // the counter of proof IDs
+    Vec_Ptr_t *    vId2Lit;      // mapping, for each timeframe, of object ID into SAT literal
+    sat_solver2 *  pSat;         // incremental SAT solver
+    int            nSatVars;     // the number of SAT variables
+    int            nProofIds;    // the counter of proof IDs
     // temporaries
-    Vec_Int_t *    vCnf;
     Vec_Int_t *    vLits;
     Vec_Int_t *    vIsopMem;
-    char * pSopSizes, ** pSops;     // CNF representation
-    int            nCexes;          // the number of counter-examples
-    int            nObjAdded;       // objs added during refinement
+    char * pSopSizes, ** pSops;  // CNF representation
+    int            nCexes;       // the number of counter-examples
+    int            nObjAdded;    // objs added during refinement
     // statistics  
     clock_t        timeStart;
     clock_t        timeInit;
@@ -72,38 +71,39 @@ struct Ga2_Man_t_
     clock_t        timeOther;
 };
 
-static inline int         Ga2_ObjOffset( Ga2_Man_t * p, Gia_Obj_t * pObj )   { assert(pObj->Value); return Vec_IntEntry(p->vMapping, Gia_ObjId(p->pGia, pObj));                                      }
-static inline int         Ga2_ObjLeaveNum( Ga2_Man_t * p, Gia_Obj_t * pObj ) { return Vec_IntEntry(p->vMapping, Ga2_ObjOffset(p, pObj));                                                             }
-static inline int *       Ga2_ObjLeavePtr( Ga2_Man_t * p, Gia_Obj_t * pObj ) { return Vec_IntEntryP(p->vMapping, Ga2_ObjOffset(p, pObj) + 1);                                                        }
-static inline unsigned    Ga2_ObjTruth( Ga2_Man_t * p, Gia_Obj_t * pObj )    { return (unsigned)Vec_IntEntry(p->vMapping, Ga2_ObjOffset(p, pObj) + Ga2_ObjLeaveNum(p, pObj) + 1);                    }
-static inline int         Ga2_ObjRefNum( Ga2_Man_t * p, Gia_Obj_t * pObj )   { return (unsigned)Vec_IntEntry(p->vMapping, Ga2_ObjOffset(p, pObj) + Ga2_ObjLeaveNum(p, pObj) + 2);                    }
-static inline Vec_Int_t * Ga2_ObjLeaves( Ga2_Man_t * p, Gia_Obj_t * pObj )   { static Vec_Int_t vVec; vVec.nSize = Ga2_ObjLeaveNum(p, pObj), vVec.pArray = Ga2_ObjLeavePtr(p, pObj); return &vVec; }
+static inline int         Ga2_ObjOffset( Gia_Man_t * p, Gia_Obj_t * pObj )       { return Vec_IntEntry(p->vMapping, Gia_ObjId(p, pObj));                                                    }
+static inline int         Ga2_ObjLeaveNum( Gia_Man_t * p, Gia_Obj_t * pObj )     { return Vec_IntEntry(p->vMapping, Ga2_ObjOffset(p, pObj));                                                }
+static inline int *       Ga2_ObjLeavePtr( Gia_Man_t * p, Gia_Obj_t * pObj )     { return Vec_IntEntryP(p->vMapping, Ga2_ObjOffset(p, pObj) + 1);                                           }
+static inline unsigned    Ga2_ObjTruth( Gia_Man_t * p, Gia_Obj_t * pObj )        { return (unsigned)Vec_IntEntry(p->vMapping, Ga2_ObjOffset(p, pObj) + Ga2_ObjLeaveNum(p, pObj) + 1);       }
+static inline int         Ga2_ObjRefNum( Gia_Man_t * p, Gia_Obj_t * pObj )       { return (unsigned)Vec_IntEntry(p->vMapping, Ga2_ObjOffset(p, pObj) + Ga2_ObjLeaveNum(p, pObj) + 2);       }
+static inline Vec_Int_t * Ga2_ObjLeaves( Gia_Man_t * p, Gia_Obj_t * pObj )       { static Vec_Int_t v; v.nSize = Ga2_ObjLeaveNum(p, pObj), v.pArray = Ga2_ObjLeavePtr(p, pObj); return &v;  }
 
-static inline Vec_Int_t * Ga2_ObjCnf0( Ga2_Man_t * p, Gia_Obj_t * pObj )     { assert(pObj->Value); return Vec_PtrEntry(p->vDatas, (pObj->Value << 1)  );  }
-static inline Vec_Int_t * Ga2_ObjCnf1( Ga2_Man_t * p, Gia_Obj_t * pObj )     { assert(pObj->Value); return Vec_PtrEntry(p->vDatas, (pObj->Value << 1)+1);  }
+static inline int         Ga2_ObjId( Ga2_Man_t * p, Gia_Obj_t * pObj )           { return Vec_IntEntry(p->vIds, Gia_ObjId(p->pGia, pObj));                                                  }
+static inline void        Ga2_ObjSetId( Ga2_Man_t * p, Gia_Obj_t * pObj, int i ) { Vec_IntWriteEntry(p->vIds, Gia_ObjId(p->pGia, pObj), i);                                                 }
 
-static inline int         Ga2_ObjIsAbs( Ga2_Man_t * p, Gia_Obj_t * pObj )    { assert( pObj->Value ); return (int)pObj->Value < p->LimAbs;                                    }
-static inline int         Ga2_ObjIsPPI( Ga2_Man_t * p, Gia_Obj_t * pObj )    { assert( pObj->Value ); return (int)pObj->Value >= p->LimAbs && (int)pObj->Value < p->LimPpi;   }
+static inline Vec_Int_t * Ga2_ObjCnf0( Ga2_Man_t * p, Gia_Obj_t * pObj )         { assert(Ga2_ObjId(p,pObj)); return Vec_PtrEntry(p->vCnfs, (Ga2_ObjId(p,pObj) << 1)  );                    }
+static inline Vec_Int_t * Ga2_ObjCnf1( Ga2_Man_t * p, Gia_Obj_t * pObj )         { assert(Ga2_ObjId(p,pObj)); return Vec_PtrEntry(p->vCnfs, (Ga2_ObjId(p,pObj) << 1)+1);                    }
 
-static inline Vec_Int_t * Ga2_MapFrameMap( Ga2_Man_t * p, int f )            { return (Vec_Int_t *)Vec_PtrEntry( p->vId2Lit, f );                          }
+static inline int         Ga2_ObjIsAbs( Ga2_Man_t * p, Gia_Obj_t * pObj )        { assert(Ga2_ObjId(p,pObj)); return Ga2_ObjId(p,pObj) <  p->LimAbs;                                        }
+static inline int         Ga2_ObjIsPpi( Ga2_Man_t * p, Gia_Obj_t * pObj )        { assert(Ga2_ObjId(p,pObj)); return Ga2_ObjId(p,pObj) >= p->LimAbs && Ga2_ObjId(p,pObj) < p->LimPpi;       }
 
+static inline Vec_Int_t * Ga2_MapFrameMap( Ga2_Man_t * p, int f )                { return (Vec_Int_t *)Vec_PtrEntry( p->vId2Lit, f );                                                       }
 
 // returns literal of this object, or -1 if SAT variable of the object is not assigned
 static inline int Ga2_ObjFindLit( Ga2_Man_t * p, Gia_Obj_t * pObj, int f )  
 { 
-    assert( pObj->fPhase );
-    assert( pObj->Value && pObj->Value < Vec_IntSize(p->vValues) );
+    assert( Ga2_ObjId(p,pObj) && Ga2_ObjId(p,pObj) < Vec_IntSize(p->vValues) );
     if ( f == Vec_PtrSize(p->vId2Lit) )
         Vec_PtrPush( p->vId2Lit, Vec_IntStartFull(Vec_IntSize(p->vValues)) );
     assert( f < Vec_PtrSize(p->vId2Lit) );
-    return Vec_IntEntry( Ga2_MapFrameMap(p, f), pObj->Value );
+    return Vec_IntEntry( Ga2_MapFrameMap(p, f), Ga2_ObjId(p,pObj) );
 }
 // inserts literal of this object
 static inline void Ga2_ObjAddLit( Ga2_Man_t * p, Gia_Obj_t * pObj, int f, int Lit )  
 { 
     assert( Lit > 1 );
     assert( Ga2_ObjFindLit(p, pObj, f) == -1 );
-    Vec_IntSetEntry( Ga2_MapFrameMap(p, f), pObj->Value, Lit );
+    Vec_IntSetEntry( Ga2_MapFrameMap(p, f), Ga2_ObjId(p,pObj), Lit );
 }
 // returns or inserts-and-returns literal of this object
 static inline int Ga2_ObjFindOrAddLit( Ga2_Man_t * p, Gia_Obj_t * pObj, int f )  
@@ -117,7 +117,6 @@ static inline int Ga2_ObjFindOrAddLit( Ga2_Man_t * p, Gia_Obj_t * pObj, int f )
     assert( Lit > 1 );
     return Lit;
 }
-
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -147,21 +146,11 @@ unsigned Ga2_ObjComputeTruth_rec( Gia_Man_t * p, Gia_Obj_t * pObj, int fFirst )
 unsigned Ga2_ManComputeTruth( Gia_Man_t * p, Gia_Obj_t * pRoot, Vec_Int_t * vLeaves )
 {
     static unsigned uTruth5[5] = { 0xAAAAAAAA, 0xCCCCCCCC, 0xF0F0F0F0, 0xFF00FF00, 0xFFFF0000 };
-    unsigned Res, Values[5];
     Gia_Obj_t * pObj;
     int i;
-    // assign elementary truth tables
     Gia_ManForEachObjVec( vLeaves, p, pObj, i )
-    {
-        assert( pObj->fPhase );
-        Values[i] = pObj->Value;
         pObj->Value = uTruth5[i];
-    }
-    Res = Ga2_ObjComputeTruth_rec( p, pRoot, 1 );
-    // return values
-    Gia_ManForEachObjVec( vLeaves, p, pObj, i )
-        pObj->Value = Values[i];
-    return Res;
+    return Ga2_ObjComputeTruth_rec( p, pRoot, 1 );
 }
 
 /**Function*************************************************************
@@ -243,11 +232,10 @@ void Ga2_ManCollectLeaves_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vLea
     Ga2_ManCollectLeaves_rec( p, Gia_ObjFanin0(pObj), vLeaves, 0 );
     Ga2_ManCollectLeaves_rec( p, Gia_ObjFanin1(pObj), vLeaves, 0 );
 }
-int Ga2_ManMarkup( Gia_Man_t * p, int N, Vec_Int_t ** pvMap )
+int Ga2_ManMarkup( Gia_Man_t * p, int N )
 {
     static unsigned uTruth5[5] = { 0xAAAAAAAA, 0xCCCCCCCC, 0xF0F0F0F0, 0xFF00FF00, 0xFFFF0000 };
     clock_t clk = clock();
-    Vec_Int_t * vMap;
     Vec_Int_t * vLeaves;
     Gia_Obj_t * pObj;
     int i, k, Leaf, CountMarks;
@@ -289,7 +277,8 @@ int Ga2_ManMarkup( Gia_Man_t * p, int N, Vec_Int_t ** pvMap )
     }
     // verify that the tree is split correctly
     CountMarks = 0;
-    vMap = Vec_IntStart( Gia_ManObjNum(p) );
+    Vec_IntFreeP( &p->vMapping );
+    p->vMapping = Vec_IntStart( Gia_ManObjNum(p) );
     Gia_ManForEachAnd( p, pObj, i )
     {
         if ( !pObj->fPhase )
@@ -299,18 +288,18 @@ int Ga2_ManMarkup( Gia_Man_t * p, int N, Vec_Int_t ** pvMap )
 //        printf( "%d ", Vec_IntSize(vLeaves) );
         assert( Vec_IntSize(vLeaves) <= N );
         // create map
-        Vec_IntWriteEntry( vMap, i, Vec_IntSize(vMap) );
-        Vec_IntPush( vMap, Vec_IntSize(vLeaves) );
+        Vec_IntWriteEntry( p->vMapping, i, Vec_IntSize(p->vMapping) );
+        Vec_IntPush( p->vMapping, Vec_IntSize(vLeaves) );
         Vec_IntForEachEntry( vLeaves, Leaf, k )
-        {
-            Vec_IntPush( vMap, Leaf );
+        {            
+            Vec_IntPush( p->vMapping, Leaf );
             Gia_ManObj(p, Leaf)->Value = uTruth5[k];
+            assert( Gia_ManObj(p, Leaf)->fPhase );
         }
-        Vec_IntPush( vMap,  (int)Ga2_ObjComputeTruth_rec( p, pObj, 1 ) );
-        Vec_IntPush( vMap, -1 );  // placeholder for ref counter
+        Vec_IntPush( p->vMapping,  (int)Ga2_ObjComputeTruth_rec( p, pObj, 1 ) );
+        Vec_IntPush( p->vMapping, -1 );  // placeholder for ref counter
         CountMarks++;
     }
-    *pvMap = vMap;
 //    printf( "Internal nodes = %d.   ", CountMarks );
     Abc_PrintTime( 1, "Time", clock() - clk );
     Vec_IntFree( vLeaves );
@@ -319,22 +308,23 @@ int Ga2_ManMarkup( Gia_Man_t * p, int N, Vec_Int_t ** pvMap )
 void Ga2_ManComputeTest( Gia_Man_t * p )
 {
     clock_t clk;
-    Vec_Int_t * vLeaves, * vMap;
+//    unsigned uTruth;
     Gia_Obj_t * pObj;
-    int i;
-    Ga2_ManMarkup( p, 5, &vMap );
+    int i, Counter = 0;
     clk = clock();
-    vLeaves = Vec_IntAlloc( 100 );
+    Ga2_ManMarkup( p, 5 );
+    Abc_PrintTime( 1, "Time", clock() - clk );
     Gia_ManForEachAnd( p, pObj, i )
     {
         if ( !pObj->fPhase )
             continue;
-        Vec_IntClear( vLeaves );
-        Ga2_ManCollectLeaves_rec( p, pObj, vLeaves, 1 );
-        Ga2_ManComputeTruth( p, pObj, vLeaves );
+//        uTruth = Ga2_ObjTruth( p, pObj );
+//        printf( "%6d : ", Counter );
+//        Kit_DsdPrintFromTruth( &uTruth, Ga2_ObjLeaveNum(p, pObj) ); 
+//        printf( "\n" );
+        Counter++;
     }
-    Vec_IntFree( vLeaves );
-    Vec_IntFree( vMap );
+    printf( "Marked AND nodes = %6d.  ", Counter );
     Abc_PrintTime( 1, "Time", clock() - clk );
 }
 
@@ -355,57 +345,69 @@ Ga2_Man_t * Ga2_ManStart( Gia_Man_t * pGia, Gia_ParVta_t * pPars )
     p = ABC_CALLOC( Ga2_Man_t, 1 );
     p->timeStart = clock();
     // user data
-    p->pGia  = pGia;
-    p->pPars = pPars;
+    p->pGia      = pGia;
+    p->pPars     = pPars;
     // markings 
-    p->nMarked  = Gia_ManRegNum(p->pGia) + Ga2_ManMarkup( pGia, 5, &p->vMapping );
-    p->vDatas   = Vec_PtrAlloc( 1000 );
-    Vec_PtrPush( p->vDatas, Vec_IntAlloc(0) );
-    Vec_PtrPush( p->vDatas, Vec_IntAlloc(0) );
+    p->nMarked   = Ga2_ManMarkup( pGia, 5 ) + Gia_ManRegNum( p->pGia );
+    p->vCnfs     = Vec_PtrAlloc( 1000 );
+    Vec_PtrPush( p->vCnfs, Vec_IntAlloc(0) );
+    Vec_PtrPush( p->vCnfs, Vec_IntAlloc(0) );
     // abstraction
-    p->vAbs     = Vec_IntAlloc( 1000 );
-    p->vValues  = Vec_IntAlloc( 1000 );
+    p->vIds      = Vec_IntStart( Gia_ManObjNum(pGia) );
+    p->vAbs      = Vec_IntAlloc( 1000 );
+    p->vValues   = Vec_IntAlloc( 1000 );
     Vec_IntPush( p->vValues, -1 );
     // refinement
-    p->pRnm     = Rnm_ManStart( pGia );
+    p->pRnm      = Rnm_ManStart( pGia );
     // SAT solver and variables
-    p->vId2Lit  = Vec_PtrAlloc( 1000 );
+    p->vId2Lit   = Vec_PtrAlloc( 1000 );
     // temporaries
-    p->vCnf     = Vec_IntAlloc( 100 );
-    p->vLits    = Vec_IntAlloc( 100 );
-    p->vIsopMem = Vec_IntAlloc( 100 );
+    p->vLits     = Vec_IntAlloc( 100 );
+    p->vIsopMem  = Vec_IntAlloc( 100 );
     Cnf_ReadMsops( &p->pSopSizes, &p->pSops );
-    // prepare
-    Gia_ManCleanValue( pGia );
     return p;
 }
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
+void Ga2_ManReportMemory( Ga2_Man_t * p )
+{
+    double memTot = 0;
+    double memAig = 1.0 * p->pGia->nObjsAlloc * sizeof(Gia_Obj_t) + Vec_IntMemory(p->pGia->vMapping);
+    double memSat = sat_solver2_memory( p->pSat, 1 );
+    double memPro = sat_solver2_memory_proof( p->pSat );
+    double memMap = Vec_VecMemoryInt( (Vec_Vec_t *)p->vId2Lit );
+    double memRef = Rnm_ManMemoryUsage( p->pRnm );
+    double memOth = sizeof(Ga2_Man_t);
+    memOth += Vec_VecMemoryInt( (Vec_Vec_t *)p->vCnfs );
+    memOth += Vec_IntMemory( p->vIds );
+    memOth += Vec_IntMemory( p->vAbs );
+    memOth += Vec_IntMemory( p->vValues );
+    memOth += Vec_IntMemory( p->vLits );
+    memOth += Vec_IntMemory( p->vIsopMem );
+    memOth += 336450 + (sizeof(char) + sizeof(char*)) * 65536;
+    memTot = memAig + memSat + memPro + memMap + memRef + memOth;
+    ABC_PRMP( "Memory: AIG   ", memAig, memTot );
+    ABC_PRMP( "Memory: SAT   ", memSat, memTot );
+    ABC_PRMP( "Memory: Proof ", memPro, memTot );
+    ABC_PRMP( "Memory: Map   ", memMap, memTot );
+    ABC_PRMP( "Memory: Refine", memRef, memTot );
+    ABC_PRMP( "Memory: Other ", memOth, memTot );
+    ABC_PRMP( "Memory: TOTAL ", memTot, memTot );
+}
 void Ga2_ManStop( Ga2_Man_t * p )
 {
+    Vec_IntFreeP( &p->pGia->vMapping );
+    Gia_ManSetPhase( p->pGia );
 //    if ( p->pPars->fVerbose )
         Abc_Print( 1, "SAT solver:  Var = %d  Cla = %d  Conf = %d  Reduce = %d  Cex = %d  ObjsAdded = %d\n", 
             sat_solver2_nvars(p->pSat), sat_solver2_nclauses(p->pSat), sat_solver2_nconflicts(p->pSat), p->pSat->nDBreduces, p->nCexes, p->nObjAdded );
-    Vec_IntFree( p->vMapping );
-    Vec_VecFree( (Vec_Vec_t *)p->vDatas );
+    if( p->pSat ) sat_solver2_delete( p->pSat );
+    Vec_VecFree( (Vec_Vec_t *)p->vCnfs );
+    Vec_VecFree( (Vec_Vec_t *)p->vId2Lit );
+    Vec_IntFree( p->vIds );
     Vec_IntFree( p->vAbs );
     Vec_IntFree( p->vValues );
-    Vec_VecFree( (Vec_Vec_t *)p->vId2Lit );
-    Vec_IntFree( p->vCnf );
     Vec_IntFree( p->vLits );
     Vec_IntFree( p->vIsopMem );
     Rnm_ManStop( p->pRnm, 1 );
-    sat_solver2_delete( p->pSat );
     ABC_FREE( p->pSopSizes );
     ABC_FREE( p->pSops[1] );
     ABC_FREE( p->pSops );
@@ -415,10 +417,12 @@ void Ga2_ManStop( Ga2_Man_t * p )
 
 /**Function*************************************************************
 
-  Synopsis    [Computes and minimizes the truth table.]
+  Synopsis    [Computes a minimized truth table.]
 
-  Description [Array of input literals may contain 0 (const0), 1 (const1)
-  or 2 (literal).  Upon exit, it contains the variables in the support.]
+  Description [Input literals can be 0/1 (const 0/1), non-trivial literals 
+  (integers that are more than 1) and unassigned literals (large integers).
+  This procedure computes the truth table that essentially depends on input
+  variables ordered in the increasing order of their positive literals.]
                
   SideEffects []
 
@@ -427,63 +431,65 @@ void Ga2_ManStop( Ga2_Man_t * p )
 ***********************************************************************/
 static inline unsigned Ga2_ObjTruthDepends( unsigned t, int v )
 {
+    static unsigned uInvTruth5[5] = { 0x55555555, 0x33333333, 0x0F0F0F0F, 0x00FF00FF, 0x0000FFFF };
     assert( v >= 0 && v <= 4 );
-    if ( v == 0 )
-        return ((t ^ (t >> 1)) & 0x55555555);
-    if ( v == 1 )
-        return ((t ^ (t >> 2)) & 0x33333333);
-    if ( v == 2 )
-        return ((t ^ (t >> 4)) & 0x0F0F0F0F);
-    if ( v == 3 )
-        return ((t ^ (t >> 8)) & 0x00FF00FF);
-    if ( v == 4 )
-        return ((t ^ (t >>16)) & 0x0000FFFF);
-    return -1;
+    return ((t ^ (t >> (1 << v))) & uInvTruth5[v]);
 }
 unsigned Ga2_ObjComputeTruthSpecial( Gia_Man_t * p, Gia_Obj_t * pRoot, Vec_Int_t * vLeaves, Vec_Int_t * vLits )
 {
     static unsigned uTruth5[5] = { 0xAAAAAAAA, 0xCCCCCCCC, 0xF0F0F0F0, 0xFF00FF00, 0xFFFF0000 };
-    unsigned Res, Values[5];
     Gia_Obj_t * pObj;
-    int i, k, Entry;
+    int i, Entry;
+    unsigned Res;
     // assign elementary truth tables
     Gia_ManForEachObjVec( vLeaves, p, pObj, i )
     {
-        assert( pObj->fPhase );
-        Values[i] = pObj->Value;
         Entry = Vec_IntEntry( vLits, i );
-        assert( Entry >= 0 && Entry <= 2 );
+        assert( Entry >= 0 );
         if ( Entry == 0 )
             pObj->Value = 0;
         else if ( Entry == 1 )
             pObj->Value = ~0;
-        else // if ( Entry == 2 )
+        else // non-trivial literal
             pObj->Value = uTruth5[i];
     }
+    // compute truth table
     Res = Ga2_ObjComputeTruth_rec( p, pRoot, 1 );
-    Vec_IntClear( vLits );
     if ( Res != 0 && Res != ~0 )
     {
-        // check if truth table depends on them
-        // and create a new array of literals with essential-support variables
-        k = 0;
-        Gia_ManForEachObjVec( vLeaves, p, pObj, i )
-        {
-            if ( Ga2_ObjTruthDepends( Res, i ) )
-            {
-                pObj->Value = uTruth5[k++];
-                Vec_IntPush( vLits, i );
-            }
-        }
-        // recompute the truth table
-        Res = Ga2_ObjComputeTruth_rec( p, pRoot, 1 );
-        // verify that the truthe table depends on them
+        // find essential variables
+        int nUsed = 0, pUsed[5];
         for ( i = 0; i < Vec_IntSize(vLeaves); i++ )
-            assert( (i < Vec_IntSize(vLits)) == (Ga2_ObjTruthDepends(Res, i) > 0) );
+            if ( Ga2_ObjTruthDepends( Res, i ) )
+                pUsed[nUsed++] = i;
+        assert( nUsed > 0 );
+        // order the by literal value
+        Vec_IntSelectSortCost( pUsed, nUsed, vLits );
+        assert( Vec_IntEntry(vLits, pUsed[0]) <= Vec_IntEntry(vLits, pUsed[nUsed-1]) );
+        // assign elementary truth tables to the leaves
+        Gia_ManForEachObjVec( vLeaves, p, pObj, i )
+            pObj->Value = 0;
+        for ( i = 0; i < nUsed; i++ )
+        {
+            Entry = Vec_IntEntry( vLits, pUsed[i] );
+            assert( Entry > 1 );
+            pObj = Gia_ManObj( p, Vec_IntEntry(vLeaves, pUsed[i]) );
+            pObj->Value = Abc_LitIsCompl(Entry) ? ~uTruth5[i] : uTruth5[i];
+            // remember this literal
+            pUsed[i] = Abc_LitRegular(Entry);
+        }
+        // compute truth table
+        Res = Ga2_ObjComputeTruth_rec( p, pRoot, 1 );
+        // reload the literals
+        Vec_IntClear( vLits );
+        for ( i = 0; i < nUsed; i++ )
+        {
+            Vec_IntPush( vLits, pUsed[i] );
+            assert( Ga2_ObjTruthDepends(Res, i) );
+        }
     }
-    // return values
-    Gia_ManForEachObjVec( vLeaves, p, pObj, i )
-        pObj->Value = Values[i];
+    else
+        Vec_IntClear( vLits );
     return Res;
 }
 
@@ -509,7 +515,6 @@ Vec_Int_t * Ga2_ManCnfCompute( unsigned uTruth, int nVars, Vec_Int_t * vCover )
     // check the case of constant cover
     return Vec_IntDup( vCover );
 }
-
 
 /**Function*************************************************************
 
@@ -539,20 +544,18 @@ static inline void Ga2_ManCnfAddDynamic( Ga2_Man_t * p, int uTruth, int Lits[], 
             Cube = p->pSops[uTruth][k];
             for ( b = 3; b >= 0; b-- )
             {
-                if ( Cube % 3 == 0 ) // value 0 --> write positive literal
+                if ( Cube % 3 == 0 ) // value 0 --> add positive literal
                 {
                     assert( Lits[b] > 1 );
                     ClaLits[nClaLits++] = Lits[b];
                 }
-                else if ( Cube % 3 == 1 ) // value 1 --> write negative literal
+                else if ( Cube % 3 == 1 ) // value 1 --> add negative literal
                 {
                     assert( Lits[b] > 1 );
                     ClaLits[nClaLits++] = lit_neg(Lits[b]);
                 }
                 Cube = Cube / 3;
             }
-//            if ( !sat_solver_addclause( p->pSat, ClaLits, ClaLits+nClaLits ) )
-//                assert( 0 );
             sat_solver2_addclause( p->pSat, ClaLits, ClaLits+nClaLits, ProofId );
         }
     }
@@ -575,13 +578,13 @@ static inline void Ga2_ManCnfAddStatic( Ga2_Man_t * p, Vec_Int_t * vCnf0, Vec_In
             for ( b = 0; b < 5; b++ )
             {
                 Literal = 3 & (Cube >> (b << 1));
-                if ( Literal == 1 ) // value 0 --> write positive literal
+                if ( Literal == 1 ) // value 0 --> add positive literal
                 {
 //                    pCube[b] = '0';
                     assert( Lits[b] > 1 );
                     ClaLits[nClaLits++] = Lits[b];
                 }
-                else if ( Literal == 2 ) // value 1 --> write negative literal
+                else if ( Literal == 2 ) // value 1 --> add negative literal
                 {
 //                    pCube[b] = '1';
                     assert( Lits[b] > 1 );
@@ -590,8 +593,6 @@ static inline void Ga2_ManCnfAddStatic( Ga2_Man_t * p, Vec_Int_t * vCnf0, Vec_In
                 else if ( Literal != 0 )
                     assert( 0 );
             }
-//            if ( !sat_solver_addclause( p->pSat, ClaLits, ClaLits+nClaLits ) )
-//                assert( 0 );
             sat_solver2_addclause( p->pSat, ClaLits, ClaLits+nClaLits, ProofId );
         }
     }
@@ -614,25 +615,25 @@ void Ga2_ManSetupNode( Ga2_Man_t * p, Gia_Obj_t * pObj, int fAbs )
     unsigned uTruth;
     int nLeaves;
     assert( pObj->fPhase );
-    assert( Vec_PtrSize(p->vDatas) == 2 * Vec_IntSize(p->vValues) );
-    // assign value to the node
-    if ( pObj->Value == 0 )
+    assert( Vec_PtrSize(p->vCnfs) == 2 * Vec_IntSize(p->vValues) );
+    // assign abstraction ID to the node
+    if ( Ga2_ObjId(p,pObj) == 0 )
     {
-        pObj->Value = Vec_IntSize(p->vValues);
+        Ga2_ObjSetId( p, pObj, Vec_IntSize(p->vValues) );
         Vec_IntPush( p->vValues, Gia_ObjId(p->pGia, pObj) );
-        Vec_PtrPush( p->vDatas, NULL );
-        Vec_PtrPush( p->vDatas, NULL );
+        Vec_PtrPush( p->vCnfs, NULL );
+        Vec_PtrPush( p->vCnfs, NULL );
     }
     assert( Ga2_ObjCnf0(p, pObj) == NULL );
     if ( !fAbs )
         return;
     // compute parameters
-    nLeaves = Ga2_ObjLeaveNum(p, pObj);
-    uTruth = Ga2_ObjTruth( p, pObj );
+    nLeaves = Ga2_ObjLeaveNum(p->pGia, pObj);
+    uTruth = Ga2_ObjTruth( p->pGia, pObj );
     // create CNF for pos/neg phases
-    Vec_PtrWriteEntry( p->vDatas, 2 * pObj->Value,     Ga2_ManCnfCompute(uTruth, nLeaves, p->vIsopMem) );    
+    Vec_PtrWriteEntry( p->vCnfs, 2 * Ga2_ObjId(p,pObj),     Ga2_ManCnfCompute(uTruth, nLeaves, p->vIsopMem) );    
     uTruth = (~uTruth) & Abc_InfoMask( (1 << nLeaves) );
-    Vec_PtrWriteEntry( p->vDatas, 2 * pObj->Value + 1, Ga2_ManCnfCompute(uTruth, nLeaves, p->vIsopMem) );
+    Vec_PtrWriteEntry( p->vCnfs, 2 * Ga2_ObjId(p,pObj) + 1, Ga2_ManCnfCompute(uTruth, nLeaves, p->vIsopMem) );
 }
 
 void Ga2_ManAddToAbs( Ga2_Man_t * p, Vec_Int_t * vToAdd )
@@ -649,8 +650,8 @@ void Ga2_ManAddToAbs( Ga2_Man_t * p, Vec_Int_t * vToAdd )
     // add PPI objects
     Gia_ManForEachObjVec( vToAdd, p->pGia, pObj, i )
     {
-        vLeaves = Ga2_ObjLeaves( p, pObj );
-        Gia_ManForEachObjVec( vLeaves, p->pGia, pFanin, k, )
+        vLeaves = Ga2_ObjLeaves( p->pGia, pObj );
+        Gia_ManForEachObjVec( vLeaves, p->pGia, pFanin, k )
             Ga2_ManSetupNode( p, pObj, 0 );
     }
     // clean mapping in the timeframes
@@ -661,9 +662,9 @@ void Ga2_ManAddToAbs( Ga2_Man_t * p, Vec_Int_t * vToAdd )
     Gia_ManForEachObjVec( vToAdd, p->pGia, pObj, i )
     {
         iLitOut =  Ga2_ObjFindOrAddLit( p, pObj, f );
-        vLeaves = Ga2_ObjLeaves( p, pObj );
+        vLeaves = Ga2_ObjLeaves( p->pGia, pObj );
         Vec_IntClear( p->vLits );
-        Gia_ManForEachObjVec( vLeaves, p->pGia, pFanin, k, )
+        Gia_ManForEachObjVec( vLeaves, p->pGia, pFanin, k )
             Vec_IntPush( p->vLits, Ga2_ObjFindOrAddLit( p, pFanin, f ) );
         Ga2_ManCnfAddStatic( p, Ga2_ObjCnf0(p, pObj), Ga2_ObjCnf1(p, pObj), Vec_IntArray(p->vLits), iLitOut, p->nProofIds + i );
     }
@@ -679,9 +680,9 @@ void Ga2_ManAddAbsClauses( Ga2_Man_t * p, int f )
         if ( i < p->LimAbs )
             continue;
         iLitOut =  Ga2_ObjFindOrAddLit( p, pObj, f );
-        vLeaves = Ga2_ObjLeaves( p, pObj );
+        vLeaves = Ga2_ObjLeaves( p->pGia, pObj );
         Vec_IntClear( p->vLits );
-        Gia_ManForEachObjVec( vLeaves, p->pGia, pFanin, k, )
+        Gia_ManForEachObjVec( vLeaves, p->pGia, pFanin, k )
             Vec_IntPush( p->vLits, Ga2_ObjFindOrAddLit( p, pFanin, f ) );
         Ga2_ManCnfAddStatic( p, Ga2_ObjCnf0(p, pObj), Ga2_ObjCnf1(p, pObj), Vec_IntArray(p->vLits), iLitOut, i - p->LimAbs );
     }
@@ -703,24 +704,24 @@ void Ga2_ManShrinkAbs( Ga2_Man_t * p, int nAbs, int nValues )
             continue;
         Vec_IntFree( Ga2_ObjCnf0(p, pObj) );
         Vec_IntFree( Ga2_ObjCnf1(p, pObj) );
-        Vec_PtrWriteEntry( p->vDatas, 2 * pObj->Value,     NULL );    
-        Vec_PtrWriteEntry( p->vDatas, 2 * pObj->Value + 1, NULL );
+        Vec_PtrWriteEntry( p->vCnfs, 2 * Ga2_ObjId(p,pObj),     NULL );    
+        Vec_PtrWriteEntry( p->vCnfs, 2 * Ga2_ObjId(p,pObj) + 1, NULL );
     }
     Vec_IntShrink( p->vAbs, nAbs );
     // shrink values
     Gia_ManForEachObjVec( p->vValues, p->pGia, pObj, i )
     {
-        assert( pObj->Value );
+        assert( Ga2_ObjId(p,pObj) );
         if ( i < nValues )
             continue;
-        pObj->Value = 0;
+        Ga2_ObjSetId( p, pObj, 0 );
     }
     Vec_IntShrink( p->vValues, nValues );
+    Vec_PtrShrink( p->vCnfs, 2 * nValues );
     // clean mapping into timeframes
     Vec_PtrForEachEntry( Vec_Int_t *, p->vId2Lit, vMap, i )
         Vec_IntShrink( vMap, nValues );
 }
-
 
 /**Function*************************************************************
 
@@ -742,6 +743,7 @@ void Ga2_ManAbsTranslate_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vClas
     Ga2_ManAbsTranslate_rec( p, Gia_ObjFanin1(pObj), vClasses, 0 );
     Vec_IntWriteEntry( vClasses, Gia_ObjId(p, pObj), 1 );
 }
+
 Vec_Int_t * Ga2_ManAbsTranslate( Ga2_Man_t * p )
 {
     Vec_Int_t * vGateClasses;
@@ -752,34 +754,26 @@ Vec_Int_t * Ga2_ManAbsTranslate( Ga2_Man_t * p )
         Ga2_ManAbsTranslate_rec( p->pGia, pObj, vGateClasses, 1 );
     return vGateClasses;
 }
+
 Vec_Int_t * Ga2_ManAbsDerive( Gia_Man_t * p )
 {
     Vec_Int_t * vToAdd;
     Gia_Obj_t * pObj;
     int i;
     vToAdd = Vec_IntAlloc( 1000 );
-    Gia_ManForEachObj( p, pObj, i )
+    Gia_ManForEachRo( p, pObj, i )
+        if ( pObj->fPhase && Vec_IntEntry(p->vGateClasses, i) )
+            Vec_IntPush( vToAdd, i );
+    Gia_ManForEachAnd( p, pObj, i )
         if ( pObj->fPhase && Vec_IntEntry(p->vGateClasses, i) )
             Vec_IntPush( vToAdd, i );
     return vToAdd;
 }
 
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
 void Ga2_ManRestart( Ga2_Man_t * p )
 {
     Vec_Int_t * vToAdd;
-    assert( p->pGia != NULL );
-    assert( p->pGia->vGateClasses != NULL );
+    assert( p->pGia != NULL && p->pGia->vGateClasses != NULL );
     assert( Gia_ManPi(p->pGia, 0)->fPhase ); // marks are set
     // clear mappings from objects
     Ga2_ManShrinkAbs( p, 0, 1 );
@@ -814,7 +808,6 @@ int Ga2_ManUnroll_rec( Ga2_Man_t * p, Gia_Obj_t * pObj, int f )
 {
     int fSimple = 1;
     unsigned uTruth;
-    Vec_Int_t * vLeaves;
     Gia_Obj_t * pLeaf;
     int nLeaves, * pLeaves;
     int i, Lit, pLits[5];
@@ -826,12 +819,13 @@ int Ga2_ManUnroll_rec( Ga2_Man_t * p, Gia_Obj_t * pObj, int f )
         {
             Lit = Ga2_ObjFindOrAddLit( p, pObj, f );
             Lit = Abc_LitNot(Lit);
-            sat_solver2_addclause( p->pSat, &Lit, &Lit + 1, -1 );
             assert( Lit > 1 );
+            sat_solver2_addclause( p->pSat, &Lit, &Lit + 1, -1 );
             return Lit;
         }
         return 0;
     }
+    assert( pObj->fPhase );
     Lit = Ga2_ObjFindLit( p, pObj, f );
     if ( Lit >= 0 )
         return Lit;
@@ -844,12 +838,16 @@ int Ga2_ManUnroll_rec( Ga2_Man_t * p, Gia_Obj_t * pObj, int f )
         Ga2_ObjAddLit( p, pObj, f, Lit );
         return Lit;
     }
+    nLeaves = Ga2_ObjLeaveNum( p->pGia, pObj );
+    pLeaves = Ga2_ObjLeavePtr( p->pGia, pObj );
     if ( fSimple )
     {
         // collect fanin literals
-        vLeaves = Ga2_ObjLeaves( p, pObj );
-        Gia_ManForEachObjVec( vLeaves, p->pGia, pLeaf, i )
+        for ( i = 0; i < nLeaves; i++ )
+        {
+            pLeaf = Gia_ManObj(p->pGia, pLeaves[i]);
             pLits[i] = Ga2_ManUnroll_rec( p, pLeaf, f );
+        }
         // create fanout literal
         Lit = Ga2_ObjFindOrAddLit( p, pObj, f );
         // create clauses
@@ -857,168 +855,44 @@ int Ga2_ManUnroll_rec( Ga2_Man_t * p, Gia_Obj_t * pObj, int f )
         return Lit;
     }
     // collect fanin literals
-    nLeaves = Ga2_ObjLeaveNum( p, pObj );
-    pLeaves = Ga2_ObjLeavePtr( p, pObj );
     for ( i = 0; i < nLeaves; i++ )
     {
         pLeaf = Gia_ManObj( p->pGia, pLeaves[i] );
         if ( Ga2_ObjIsAbs(p, pLeaf) )      // belongs to original abstraction
             pLits[i] = Ga2_ManUnroll_rec( p, pLeaf, f );
-        else if ( Ga2_ObjIsPPI(p, pLeaf) ) // belongs to original PPIs
+        else if ( Ga2_ObjIsPpi(p, pLeaf) ) // belongs to original PPIs
             pLits[i] = GA2_BIG_NUM + i;
-        else
-            assert( 0 );
+        else assert( 0 );
     }
     // collect literals
     Vec_IntClear( p->vLits );
     for ( i = 0; i < nLeaves; i++ )
         Vec_IntPush( p->vLits, pLits[i] );
     // minimize truth table
-    vLeaves = Ga2_ObjLeaves( p, pObj );
-    uTruth = Ga2_ObjComputeTruthSpecial( p->pGia, pObj, vLeaves, p->vLits );
-    if ( uTruth == 0 || uTruth == ~0 )
-        Ga2_ObjAddLit( p, pObj, f, uTruth == 0 ? 3 : 2 );     // const 0 / 1
+    uTruth = Ga2_ObjComputeTruthSpecial( p->pGia, pObj, Ga2_ObjLeaves(p->pGia, pObj), p->vLits );
+    if ( uTruth == 0 || uTruth == ~0 ) // const 0 / 1
+        Lit = (uTruth > 0);
     else if ( uTruth == 0xAAAAAAAA || uTruth == 0x55555555 )  // buffer / inverter
     {
         Lit = Vec_IntEntry( p->vLits, 0 );
-        pLeaf = Gia_ManObj( p->pGia, Vec_IntEntry(vLeaves, Lit) );
-        Lit = Ga2_ObjFindOrAddLit( p, pLeaf, f );
-        Ga2_ObjAddLit( p, pObj, f, Abc_LitNotCond(Lit, uTruth == 0x55555555) );
+        if ( Lit >= GA2_BIG_NUM )
+        {
+            pLeaf = Gia_ManObj( p->pGia, pLeaves[Lit-GA2_BIG_NUM] );
+            Lit = Ga2_ObjFindOrAddLit( p, pLeaf, f );
+        }
+        Lit = Abc_LitNotCond( Lit, uTruth == 0x55555555 );
     }
     else
     {
-        // replace numbers of literals by actual literals
-        Vec_IntForEachEntry( p->vLits, Lit, i )
-        {
-            pLeaf = Gia_ManObj( p->pGia, Vec_IntEntry(vLeaves, Lit) );
-            Lit = Ga2_ObjFindOrAddLit(p, pLeaf, f);
-            Vec_IntWriteEntry( p->vLits, i, Lit );        
-        }
-        // add CNF
+        // perform structural hashing here!!!
+
+        // add new node
         Lit = Ga2_ObjFindOrAddLit(p, pObj, f);
-        Ga2_ManCnfAddDynamic( p, uTruth, Vec_IntArray(p->vLits), Lit, 0 );
-        Ga2_ObjAddLit( p, pObj, f, Lit );
+        Ga2_ManCnfAddDynamic( p, uTruth, Vec_IntArray(p->vLits), Lit, -1 );
     }
+    Ga2_ObjAddLit( p, pObj, f, Lit );
     return Lit;
 }
-
-/**Function*************************************************************
-
-  Synopsis    [Unrolls one timeframe.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-/*
-void Ga2_ManUnroll2( Ga2_Man_t * p, int f )
-{
-    Gia_Obj_t * pObj, * pObjRi, * pLeaf;
-    Vec_Int_t * vLeaves;
-    unsigned uTruth;
-    int i, k, Lit, iLitOut, fFullTable;
-    // construct CNF for internal nodes
-    Gia_ManForEachObjVec( p->vAbs, p->pGia, pObj, i )
-    {
-        // assign RO literal values (no need to add clauses)
-        assert( pObj->fPhase && pObj->Value );
-        if ( Gia_ObjIsConst0(pObj) )
-        {
-            Ga2_ObjAddLit( p, pObj, f, 3 ); // const 0 
-            continue;
-        }
-        if ( Gia_ObjIsRo(p->pGia, pObj) )
-        {
-            pObjRi = Gia_ObjRoToRi(p->pGia, pObj);
-            Lit = f ? Ga2_ObjFindOrAddLit( p, pObjRi, f-1 ) : 3;  // const 0
-            Ga2_ObjAddLit( p, pObj, f, Lit ); 
-            continue;
-        }
-        assert( Gia_ObjIsAnd(pObj) );
-        assert( pObj->Value > 0 );
-        vLeaves = Ga2_ObjLeaves(p, pObj);
-        // for nodes recently added to abstraction, add CNF without const propagation
-        fFullTable = 1;
-        if ( i < p->nAbs )
-        {
-            Gia_ManForEachObjVec( vLeaves, p->pGia, pLeaf, k )
-            {
-                Lit = Ga2_ObjFindLit( p, pLeaf, f );
-                if ( Lit == 2 || Lit == 3 )
-                {
-                    fFullTable = 0;
-                    break;
-                }
-            }
-        }
-        if ( fFullTable )
-        {
-            Vec_IntClear( p->vLits );
-            Gia_ManForEachObjVec( vLeaves, p->pGia, pLeaf, k )
-                Vec_IntWriteEntry( p->vLits, k, Ga2_ObjFindOrAddLit(p, pLeaf, f) );        
-            iLitOut = Ga2_ObjFindOrAddLit(p, pObj, f);
-            Ga2_ManCnfAddStatic( p, &p->pvCnfs0[pObj->Value], &p->pvCnfs1[pObj->Value], 
-                Vec_IntArray(p->vLits), iLitOut, i < p->nAbs ? 0 : Gia_ObjId(p->pGia, pObj) );
-            continue;
-        }
-        assert( i < p->nAbs );
-        // collect literal types
-        Vec_IntClear( p->vLits );
-        Gia_ManForEachObjVec( vLeaves, p->pGia, pLeaf, k )
-        {
-            Lit = Ga2_ObjFindLit( p, pLeaf, f );
-            if ( Lit == 3 ) // const 0
-                Vec_IntPush( p->vLits, 0 );
-            else if ( Lit == 2 ) // const 1
-                Vec_IntPush( p->vLits, 1 );
-            else 
-                Vec_IntPush( p->vLits, 2 );
-        }
-        uTruth = Ga2_ObjComputeTruthSpecial( p->pGia, pObj, vLeaves, p->vLits );
-        if ( uTruth == 0 || uTruth == ~0 )
-            Ga2_ObjAddLit( p, pObj, f, uTruth == 0 ? 3 : 2 );     // const 0 / 1
-        else if ( uTruth == 0xAAAAAAAA || uTruth == 0x55555555 )  // buffer / inverter
-        {
-            Lit = Vec_IntEntry( p->vLits, 0 );
-            pLeaf = Gia_ManObj( p->pGia, Vec_IntEntry(vLeaves, Lit) );
-            Lit = Ga2_ObjFindOrAddLit( p, pLeaf, f );
-            Ga2_ObjAddLit( p, pObj, f, Abc_LitNotCond(Lit, uTruth == 0x55555555) );
-        }
-        else
-        {
-            // replace numbers of literals by actual literals
-            Vec_IntForEachEntry( p->vLits, Lit, i )
-            {
-                pLeaf = Gia_ManObj( p->pGia, Vec_IntEntry(vLeaves, Lit) );
-                Lit = Ga2_ObjFindOrAddLit(p, pLeaf, f);
-                Vec_IntWriteEntry( p->vLits, i, Lit );        
-            }
-            // add CNF
-            iLitOut = Ga2_ObjFindOrAddLit(p, pObj, f);
-            Ga2_ManCnfAddDynamic( p, uTruth, Vec_IntArray(p->vLits), iLitOut, 0 );
-        }
-    }
-    // propagate literals to the PO and flop outputs
-    pObjRi = Gia_ManPo( p->pGia, 0 );
-    Lit = Ga2_ObjFindLit( p, Gia_ObjFanin0(pObjRi), f );
-    assert( Lit > 1 );
-    Lit = Abc_LitNotCond( Lit, Gia_ObjFaninC0(pObjRi) );
-    Ga2_ObjAddLit( p, pObj, f, Lit ); 
-    Gia_ManForEachObjVec( p->vAbs, p->pGia, pObj, i )
-    {
-        if ( !Gia_ObjIsRo(p->pGia, pObj) )
-            continue;
-        pObjRi = Gia_ObjRoToRi(p->pGia, pObj);
-        Lit = Ga2_ObjFindLit( p, Gia_ObjFanin0(pObjRi), f );
-        assert( Lit > 1 );
-        Lit = Abc_LitNotCond( Lit, Gia_ObjFaninC0(pObjRi) );
-        Ga2_ObjAddLit( p, pObjRi, f, Lit ); 
-    }
-}
-*/
 
 /**Function*************************************************************
 
@@ -1040,7 +914,6 @@ int Vec_IntCheckUnique( Vec_Int_t * p )
     Vec_IntFree( pDup );
     return RetValue;
 }
-
 
 /**Function*************************************************************
 
@@ -1072,7 +945,7 @@ void Ga2_GlaPrepareCexAndMap( Ga2_Man_t * p, Abc_Cex_t ** ppCex, Vec_Int_t ** pv
     {
         if ( Ga2_ObjIsAbs(p, pObj) )
             continue;
-        assert( Ga2_ObjIsPPI(p, pObj) );
+        assert( Ga2_ObjIsPpi(p, pObj) );
         assert( Gia_ObjIsAnd(pObj) || Gia_ObjIsCi(pObj) );
         Vec_IntPush( vMap, Gia_ObjId(p->pGia, pObj) );
     }
@@ -1125,7 +998,7 @@ Vec_Int_t * Ga2_ManRefine( Ga2_Man_t * p )
     Vec_IntFree( vMap );
     // these objects should be PPIs that are not abstracted yet
     Gia_ManForEachObjVec( vVec, p->pGia, pObj, i )
-        assert( Ga2_ObjIsPPI(p, pObj) && !Ga2_ObjIsAbs(p, pObj) );
+        assert( Ga2_ObjIsPpi(p, pObj) && !Ga2_ObjIsAbs(p, pObj) );
     p->nObjAdded += Vec_IntSize(vVec);
     return vVec;
 }
@@ -1146,7 +1019,8 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
     Ga2_Man_t * p;
     Vec_Int_t * vCore, * vPPis;
     clock_t clk = clock();
-    int i, c, f, Lit, nAbs, nValues, Status, RetValue = -1;;
+    int nAbs, nValues, Status, RetValue = -1;
+    int i, c, f, Lit;
     // start the manager
     p = Ga2_ManStart( pAig, pPars );
     // check trivial case 
@@ -1203,10 +1077,14 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
             for ( c = 0; ; c++ )
             {
                 // perform SAT solving
+                clk = clock();
                 Status = sat_solver2_solve( p->pSat, &Lit, &Lit+1, (ABC_INT64_T)pPars->nConfLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
                 if ( Status == l_True ) // perform refinement
                 {
+                    p->timeSat += clock() - clk;
+                    clk = clock();
                     vPPis = Ga2_ManRefine( p );
+                    p->timeCex += clock() - clk;
                     if ( vPPis == NULL )
                         goto finish;
                     Ga2_ManAddToAbs( p, vPPis );
@@ -1216,6 +1094,7 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
                         printf( "Vector has %d duplicated entries.\n", Vec_IntCheckUnique(p->vAbs) );
                     continue;
                 }
+                p->timeUnsat += clock() - clk;
                 if ( p->pSat->nRuntimeLimit && clock() > p->pSat->nRuntimeLimit ) // timeout
                     goto finish;
                 if ( Status == l_Undef ) // ran out of resources
@@ -1292,7 +1171,7 @@ finish:
         ABC_PRTP( "Runtime: Refinement  ", p->timeCex,    clock() - clk );
         ABC_PRTP( "Runtime: Other       ", p->timeOther,  clock() - clk );
         ABC_PRTP( "Runtime: TOTAL       ", clock() - clk, clock() - clk );
-//        Ga2_ManReportMemory( p );
+        Ga2_ManReportMemory( p );
     }
     Ga2_ManStop( p );
     fflush( stdout );
