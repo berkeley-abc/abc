@@ -29,7 +29,7 @@ ABC_NAMESPACE_IMPL_START
 static void   Dec_GraphPrint_rec( FILE * pFile, Dec_Graph_t * pGraph, Dec_Node_t * pNode, int fCompl, char * pNamesIn[], int * pPos, int LitSizeMax );
 static int    Dec_GraphPrintGetLeafName( FILE * pFile, int iLeaf, int fCompl, char * pNamesIn[] );
 static void   Dec_GraphPrintUpdatePos( FILE * pFile, int * pPos, int LitSizeMax );
-static int    Dec_GraphPrintOutputName( FILE * pFile, char * pNameOut, int fCompl );
+static int    Dec_GraphPrintOutputName( FILE * pFile, char * pNameOut );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -74,18 +74,18 @@ void Dec_GraphPrint( FILE * pFile, Dec_Graph_t * pGraph, char * pNamesIn[], char
     // write the decomposition graph (factored form)
     if ( Dec_GraphIsConst(pGraph) ) // constant
     {
-        Pos = Dec_GraphPrintOutputName( pFile, pNameOut, 0 );
+        Pos = Dec_GraphPrintOutputName( pFile, pNameOut );
         fprintf( pFile, "Constant %d", !Dec_GraphIsComplement(pGraph) );
     }
     else if ( Dec_GraphIsVar(pGraph) ) // literal
     {
-        Pos = Dec_GraphPrintOutputName( pFile, pNameOut, 0 );
+        Pos = Dec_GraphPrintOutputName( pFile, pNameOut );
         Dec_GraphPrintGetLeafName( pFile, Dec_GraphVarInt(pGraph), Dec_GraphIsComplement(pGraph), pNamesIn );
     }
     else
     {
-        Pos = Dec_GraphPrintOutputName( pFile, pNameOut, Dec_GraphIsComplement(pGraph) );
-        Dec_GraphPrint_rec( pFile, pGraph, Dec_GraphNodeLast(pGraph), 0, pNamesIn, &Pos, LitSizeMax );
+        Pos = Dec_GraphPrintOutputName( pFile, pNameOut );
+        Dec_GraphPrint_rec( pFile, pGraph, Dec_GraphNodeLast(pGraph), Dec_GraphIsComplement(pGraph), pNamesIn, &Pos, LitSizeMax );
     }
     fprintf( pFile, "\n" );
 
@@ -202,10 +202,10 @@ void Dec_GraphPrint_rec( FILE * pFile, Dec_Graph_t * pGraph, Dec_Node_t * pNode,
     {
         fprintf( pFile, "(" );
         (*pPos)++;
-        Dec_GraphPrint_rec( pFile, pGraph, pNode0, !pNode->fCompl0, pNamesIn, pPos, LitSizeMax );
+        Dec_GraphPrint_rec( pFile, pGraph, pNode0, !pNode->eEdge0.fCompl, pNamesIn, pPos, LitSizeMax );
         fprintf( pFile, " + " );
         (*pPos) += 3;
-        Dec_GraphPrint_rec( pFile, pGraph, pNode1, !pNode->fCompl1, pNamesIn, pPos, LitSizeMax );
+        Dec_GraphPrint_rec( pFile, pGraph, pNode1, !pNode->eEdge1.fCompl, pNamesIn, pPos, LitSizeMax );
         fprintf( pFile, ")" );
         (*pPos)++;
     }
@@ -213,8 +213,8 @@ void Dec_GraphPrint_rec( FILE * pFile, Dec_Graph_t * pGraph, Dec_Node_t * pNode,
     {
         fprintf( pFile, "(" );
         (*pPos)++;
-        Dec_GraphPrint_rec( pFile, pGraph, pNode0, pNode->fCompl0, pNamesIn, pPos, LitSizeMax );
-        Dec_GraphPrint_rec( pFile, pGraph, pNode1, pNode->fCompl1, pNamesIn, pPos, LitSizeMax );
+        Dec_GraphPrint_rec( pFile, pGraph, pNode0, pNode->eEdge0.fCompl, pNamesIn, pPos, LitSizeMax );
+        Dec_GraphPrint_rec( pFile, pGraph, pNode1, pNode->eEdge1.fCompl, pNamesIn, pPos, LitSizeMax );
         fprintf( pFile, ")" );
         (*pPos)++;
     }
@@ -234,7 +234,7 @@ void Dec_GraphPrint_rec( FILE * pFile, Dec_Graph_t * pGraph, Dec_Node_t * pNode,
 int Dec_GraphPrintGetLeafName( FILE * pFile, int iLeaf, int fCompl, char * pNamesIn[] )
 {
     static char Buffer[100];
-    sprintf( Buffer, "%s%s", pNamesIn[iLeaf], fCompl? "\'" : "" );
+    sprintf( Buffer, "%s%s", fCompl? "!" : "", pNamesIn[iLeaf] );
     fprintf( pFile, "%s", Buffer );
     return strlen( Buffer );
 }
@@ -272,11 +272,11 @@ void Dec_GraphPrintUpdatePos( FILE * pFile, int * pPos, int LitSizeMax )
   SeeAlso     []
 
 ***********************************************************************/
-int Dec_GraphPrintOutputName( FILE * pFile, char * pNameOut, int fCompl )
+int Dec_GraphPrintOutputName( FILE * pFile, char * pNameOut )
 {
     if ( pNameOut == NULL )
         return 0;
-    fprintf( pFile, "%6s%s = ", pNameOut, fCompl? "\'" : " " );
+    fprintf( pFile, "%6s = ", pNameOut );
     return 10;
 }
 
