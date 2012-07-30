@@ -98,6 +98,7 @@ struct sat_solver2_t
     double*         activity;       // A heuristic measurement of the activity of a variable.
 #else
     int             var_inc;        // Amount to bump next variable with.
+    int             var_inc2;       // Amount to bump next variable with.
     int             cla_inc;        // Amount to bump next clause with.
     unsigned*       activity;       // A heuristic measurement of the activity of a variable
     unsigned*       activity2;      // backup variable activity
@@ -242,7 +243,10 @@ static inline void sat_solver2_bookmark(sat_solver2* s)
         s->hProofPivot  = Vec_SetHandCurrent(s->pPrf1);
     Sat_MemBookMark( &s->Mem );
     if ( s->activity2 )
+    {
+        s->var_inc2 = s->var_inc;
         memcpy( s->activity2, s->activity, sizeof(unsigned) * s->iVarPivot );
+    }
 }
 
 static inline int sat_solver2_add_const( sat_solver2 * pSat, int iVar, int fCompl, int fMark, int Id )

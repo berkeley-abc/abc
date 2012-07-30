@@ -1562,7 +1562,10 @@ void sat_solver2_rollback( sat_solver2* s )
     if ( s->iVarPivot < s->size )
     { 
         if ( s->activity2 )
+        {
+            s->var_inc = s->var_inc2;
             memcpy( s->activity, s->activity2, sizeof(unsigned) * s->iVarPivot );
+        }
         veci_resize(&s->order, 0);
         for ( i = 0; i < s->iVarPivot; i++ )
         {
