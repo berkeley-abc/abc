@@ -1180,7 +1180,8 @@ Gla_Man_t * Gla_ManStart( Gia_Man_t * pGia0, Gia_ParVta_t * pPars )
         Vec_IntPush( p->vAbs, Gla_ObjId(p, pGla) );
     }
     // other 
-    p->pSat      = sat_solver2_new();
+    p->pSat        = sat_solver2_new();
+//    p->pSat->pPrf1 = Vec_SetAlloc( 20 );
 //    p->pSat->fVerbose = p->pPars->fVerbose;
 //    sat_solver2_set_learntmax( p->pSat, pPars->nLearnedMax );
     p->pSat->nLearntStart = p->pPars->nLearnedStart;
@@ -1574,7 +1575,7 @@ void Gia_GlaAddToCounters( Gla_Man_t * p, Vec_Int_t * vCore )
 void Gia_GlaAddToAbs( Gla_Man_t * p, Vec_Int_t * vAbsAdd, int fCheck )
 {
     Gla_Obj_t * pGla;
-    int i, Counter = 0;
+    int i, k = 0;
     Gla_ManForEachObjAbsVec( vAbsAdd, p, pGla, i )
     {
         if ( fCheck )
@@ -1585,18 +1586,12 @@ void Gia_GlaAddToAbs( Gla_Man_t * p, Vec_Int_t * vAbsAdd, int fCheck )
         }
         if ( pGla->fAbs )
             continue;
-
-        if ( !fCheck )
-        {
-            Counter++;
-//            printf( "%d ", Gla_ObjId(p, pGla) );
-        }
-
         pGla->fAbs = 1;
         Vec_IntPush( p->vAbs, Gla_ObjId(p, pGla) );
+        // filter clauses to remove those contained in the abstraction
+        Vec_IntWriteEntry( vAbsAdd, k++, Gla_ObjId(p, pGla) );
     }
-//    if ( Counter )
-//    printf( "  Total = %d\n", Counter );
+    Vec_IntShrink( vAbsAdd, k );
 }
 void Gia_GlaAddTimeFrame( Gla_Man_t * p, int f )
 {
@@ -1951,16 +1946,14 @@ int Gia_GlaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars, int fStartVta )
 //            assert( (vCore != NULL) == (Status == 1) );
             if ( Status == -1 || (p->pSat->nRuntimeLimit && clock() > p->pSat->nRuntimeLimit) ) // resource limit is reached
             {
-                if ( p->pSat->pPrf2 )
-                    Prf_ManStopP( &p->pSat->pPrf2 );
+                Prf_ManStopP( &p->pSat->pPrf2 );
                 if ( Gia_ManRegNum(p->pGia) > 1 ) // for comb cases, return the abstration
                     Gla_ManRollBack( p );
                 goto finish;
             }
             if ( Status == 1 )
             {
-                if ( p->pSat->pPrf2 )
-                    Prf_ManStopP( &p->pSat->pPrf2 );
+                Prf_ManStopP( &p->pSat->pPrf2 );
                 p->timeUnsat += clock() - clk2;
                 break;
             } 
@@ -1987,8 +1980,7 @@ int Gia_GlaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars, int fStartVta )
                 vPPis = Gla_ManRefinement( p );
                 if ( vPPis == NULL )
                 {
-                    if ( p->pSat->pPrf2 )
-                        Prf_ManStopP( &p->pSat->pPrf2 );
+                    Prf_ManStopP( &p->pSat->pPrf2 );
                     pCex = p->pGia->pCexSeq; p->pGia->pCexSeq = NULL;
                     break;
                 }

@@ -921,6 +921,7 @@ void * Proof_DeriveCore( Vec_Set_t * vProof, int hRoot )
     // collect core clauses 
     vCore = Sat_ProofCollectCore( vProof, vUsed );
     Vec_IntFree( vUsed );
+    Vec_IntSort( vCore, 1 );
     return vCore;
 }
 
