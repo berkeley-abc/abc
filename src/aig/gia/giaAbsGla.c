@@ -74,9 +74,9 @@ struct Gla_Man_t_
     unsigned *     pObj2Obj;        // mapping of GIA obj into GLA obj
     int            nObjs;           // the number of objects
     int            nAbsOld;         // previous abstraction
-    int            nAbsNew;         // previous abstraction
-    int            nLrnOld;         // the number of bytes
-    int            nLrnNew;         // the number of bytes
+//    int            nAbsNew;         // previous abstraction
+//    int            nLrnOld;         // the number of bytes
+//    int            nLrnNew;         // the number of bytes
     // other data
     int            nCexes;          // the number of counter-examples
     int            nObjAdded;       // total number of objects added
@@ -1929,16 +1929,7 @@ int Gia_GlaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars, int fStartVta )
         // load timeframe
         Gia_GlaAddTimeFrame( p, f );
 
-        // create bookmark to be used for rollback
-        sat_solver2_bookmark( p->pSat );
-        Vec_IntClear( p->vAddedNew );
-        p->nAbsOld = Vec_IntSize( p->vAbs );
-        nVarsOld = p->nSatVars;
-        p->nLrnOld = sat_solver2_nlearnts( p->pSat );
-
         // iterate as long as there are counter-examples
-        p->nAbsNew = 0;
-        p->nLrnNew = 0;
         for ( i = 0; ; i++ )
         { 
             clk2 = clock();
@@ -1990,6 +1981,16 @@ int Gia_GlaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars, int fStartVta )
             // start proof logging
             if ( i == 0 )
             {
+                // create bookmark to be used for rollback
+                sat_solver2_bookmark( p->pSat );
+                Vec_IntClear( p->vAddedNew );
+                p->nAbsOld = Vec_IntSize( p->vAbs );
+                nVarsOld = p->nSatVars;
+//                p->nLrnOld = sat_solver2_nlearnts( p->pSat );
+//                p->nAbsNew = 0;
+//                p->nLrnNew = 0;
+
+                // start incremental proof manager
                 assert( p->pSat->pPrf2 == NULL );
                 p->pSat->pPrf2 = Prf_ManAlloc();
                 if ( p->pSat->pPrf2 )
@@ -2003,7 +2004,7 @@ int Gia_GlaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars, int fStartVta )
             {
                 // resize the proof logger
                 if ( p->pSat->pPrf2 )
-                    Prf_ManGrow( p->pSat->pPrf2, Vec_IntSize(p->vAbs) - p->nAbsOld + Vec_IntSize(vPPis) );
+                    Prf_ManGrow( p->pSat->pPrf2, p->nProofIds + Vec_IntSize(vPPis) );
             }
 
             Gia_GlaAddToAbs( p, vPPis, 1 );
@@ -2033,8 +2034,8 @@ int Gia_GlaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars, int fStartVta )
         else
         {
             p->pPars->nFramesNoChange = 0;
-            p->nAbsNew = Vec_IntSize( p->vAbs ) - p->nAbsOld;
-            p->nLrnNew = Abc_AbsInt( sat_solver2_nlearnts( p->pSat ) - p->nLrnOld );
+//            p->nAbsNew = Vec_IntSize( p->vAbs ) - p->nAbsOld;
+//            p->nLrnNew = Abc_AbsInt( sat_solver2_nlearnts( p->pSat ) - p->nLrnOld );
             // update the SAT solver
             sat_solver2_rollback( p->pSat );
             // update storage
@@ -2124,6 +2125,8 @@ finish:
     }
     else
     {
+        if ( p->pPars->fVerbose )
+            printf( "\n" );
         ABC_FREE( pAig->pCexSeq );
         pAig->pCexSeq = pCex;
         if ( !Gia_ManVerifyCex( pAig, pCex, 0 ) )

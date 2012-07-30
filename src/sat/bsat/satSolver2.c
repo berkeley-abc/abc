@@ -1913,7 +1913,7 @@ int sat_solver2_solve(sat_solver2* s, lit* begin, lit* end, ABC_INT64_T nConfLim
         if ( s->nRuntimeLimit && clock() > s->nRuntimeLimit )
             break;
         // reduce the set of learnt clauses
-        if ( s->nLearntMax && veci_size(&s->act_clas) >= s->nLearntMax )
+        if ( s->nLearntMax && veci_size(&s->act_clas) >= s->nLearntMax && s->pPrf2 == NULL )
             sat_solver2_reducedb(s);
         // perform next run
         nof_conflicts = (ABC_INT64_T)( 100 * luby2(2, restart_iter++) );

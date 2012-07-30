@@ -1728,6 +1728,8 @@ finish:
     }
     else
     {
+        if ( p->pPars->fVerbose )
+            printf( "\n" );
         ABC_FREE( p->pGia->pCexSeq );
         p->pGia->pCexSeq = pCex;
         if ( !Gia_ManVerifyCex( p->pGia, pCex, 0 ) )
