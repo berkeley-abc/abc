@@ -1168,6 +1168,7 @@ void sat_solver2_setnvars(sat_solver2* s,int n)
         s->activity  = ABC_REALLOC(double,   s->activity, s->cap);
 #else
         s->activity  = ABC_REALLOC(unsigned, s->activity, s->cap);
+        s->activity2 = ABC_REALLOC(unsigned, s->activity2,s->cap);
 #endif
         s->model     = ABC_REALLOC(int,      s->model,    s->cap);
         memset( s->wlists + 2*old_cap, 0, 2*(s->cap-old_cap)*sizeof(vecp) );
@@ -1253,6 +1254,7 @@ void sat_solver2_delete(sat_solver2* s)
         ABC_FREE(s->reasons  );
         ABC_FREE(s->units    );
         ABC_FREE(s->activity );
+        ABC_FREE(s->activity2);
         ABC_FREE(s->model    );
     }
     ABC_FREE(s);
@@ -1559,6 +1561,8 @@ void sat_solver2_rollback( sat_solver2* s )
     // update order 
     if ( s->iVarPivot < s->size )
     { 
+        if ( s->activity2 )
+            memcpy( s->activity, s->activity2, sizeof(unsigned) * s->iVarPivot );
         veci_resize(&s->order, 0);
         for ( i = 0; i < s->iVarPivot; i++ )
         {
@@ -1665,6 +1669,8 @@ double sat_solver2_memory( sat_solver2* s, int fAll )
     Mem += s->cap * sizeof(double);   // ABC_FREE(s->activity );
 #else
     Mem += s->cap * sizeof(unsigned); // ABC_FREE(s->activity );
+    if ( s->activity2 )
+    Mem += s->cap * sizeof(unsigned); // ABC_FREE(s->activity2);
 #endif
     Mem += s->cap * sizeof(lit);      // ABC_FREE(s->trail    );
     Mem += s->cap * sizeof(int);      // ABC_FREE(s->orderpos );
