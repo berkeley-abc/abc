@@ -41,21 +41,22 @@ struct Ga2_Man_t_
     Gia_Man_t *    pGia;         // working AIG manager
     Gia_ParVta_t * pPars;        // parameters
     // markings 
-    int            nMarked;      // total number of marked nodes and flops
     Vec_Ptr_t *    vCnfs;        // for each object: CNF0, CNF1
     // abstraction
-    Vec_Int_t *    vIds;         // abstraction ID for each object
+    Vec_Int_t *    vIds;         // abstraction ID for each GIA object
     Vec_Int_t *    vAbs;         // array of abstracted objects
-    Vec_Int_t *    vValues;      // array of objects with SAT numbers assigned
+    Vec_Int_t *    vValues;      // array of objects with abstraction ID assigned
+    Vec_Int_t *    vProofIds;    // proof IDs for these objects (1-to-1 with vValues)
+    int            nProofIds;    // the counter of proof IDs
     int            LimAbs;       // limit value for starting abstraction objects
     int            LimPpi;       // limit value for starting PPI objects
+    int            nMarked;      // total number of marked nodes and flops
     // refinement
     Rnm_Man_t *    pRnm;         // refinement manager
     // SAT solver and variables
     Vec_Ptr_t *    vId2Lit;      // mapping, for each timeframe, of object ID into SAT literal
     sat_solver2 *  pSat;         // incremental SAT solver
     int            nSatVars;     // the number of SAT variables
-    int            nProofIds;    // the counter of proof IDs
     // temporaries
     Vec_Int_t *    vLits;
     Vec_Int_t *    vIsopMem;
@@ -356,7 +357,9 @@ Ga2_Man_t * Ga2_ManStart( Gia_Man_t * pGia, Gia_ParVta_t * pPars )
     p->vIds      = Vec_IntStart( Gia_ManObjNum(pGia) );
     p->vAbs      = Vec_IntAlloc( 1000 );
     p->vValues   = Vec_IntAlloc( 1000 );
+    p->vProofIds = Vec_IntAlloc( 1000 );
     Vec_IntPush( p->vValues, -1 );
+    Vec_IntPush( p->vProofIds, -1 );
     // refinement
     p->pRnm      = Rnm_ManStart( pGia );
     // SAT solver and variables
@@ -380,17 +383,18 @@ void Ga2_ManReportMemory( Ga2_Man_t * p )
     memOth += Vec_IntMemory( p->vIds );
     memOth += Vec_IntMemory( p->vAbs );
     memOth += Vec_IntMemory( p->vValues );
+    memOth += Vec_IntMemory( p->vProofIds );
     memOth += Vec_IntMemory( p->vLits );
     memOth += Vec_IntMemory( p->vIsopMem );
     memOth += 336450 + (sizeof(char) + sizeof(char*)) * 65536;
     memTot = memAig + memSat + memPro + memMap + memRef + memOth;
-    ABC_PRMP( "Memory: AIG   ", memAig, memTot );
-    ABC_PRMP( "Memory: SAT   ", memSat, memTot );
-    ABC_PRMP( "Memory: Proof ", memPro, memTot );
-    ABC_PRMP( "Memory: Map   ", memMap, memTot );
-    ABC_PRMP( "Memory: Refine", memRef, memTot );
-    ABC_PRMP( "Memory: Other ", memOth, memTot );
-    ABC_PRMP( "Memory: TOTAL ", memTot, memTot );
+    ABC_PRMP( "Memory: AIG      ", memAig, memTot );
+    ABC_PRMP( "Memory: SAT      ", memSat, memTot );
+    ABC_PRMP( "Memory: Proof    ", memPro, memTot );
+    ABC_PRMP( "Memory: Map      ", memMap, memTot );
+    ABC_PRMP( "Memory: Refine   ", memRef, memTot );
+    ABC_PRMP( "Memory: Other    ", memOth, memTot );
+    ABC_PRMP( "Memory: TOTAL    ", memTot, memTot );
 }
 void Ga2_ManStop( Ga2_Man_t * p )
 {
@@ -404,6 +408,7 @@ void Ga2_ManStop( Ga2_Man_t * p )
     Vec_VecFree( (Vec_Vec_t *)p->vId2Lit );
     Vec_IntFree( p->vIds );
     Vec_IntFree( p->vAbs );
+    Vec_IntFree( p->vProofIds );
     Vec_IntFree( p->vValues );
     Vec_IntFree( p->vLits );
     Vec_IntFree( p->vIsopMem );
@@ -610,17 +615,19 @@ static inline void Ga2_ManCnfAddStatic( Ga2_Man_t * p, Vec_Int_t * vCnf0, Vec_In
   SeeAlso     []
 
 ***********************************************************************/
-void Ga2_ManSetupNode( Ga2_Man_t * p, Gia_Obj_t * pObj, int fAbs )
+void Ga2_ManSetupNode( Ga2_Man_t * p, Gia_Obj_t * pObj, int fAbs, int ProofId )
 {
     unsigned uTruth;
     int nLeaves;
     assert( pObj->fPhase );
     assert( Vec_PtrSize(p->vCnfs) == 2 * Vec_IntSize(p->vValues) );
+    assert( Vec_IntSize(p->vProofIds) == Vec_IntSize(p->vValues) );
     // assign abstraction ID to the node
     if ( Ga2_ObjId(p,pObj) == 0 )
     {
         Ga2_ObjSetId( p, pObj, Vec_IntSize(p->vValues) );
         Vec_IntPush( p->vValues, Gia_ObjId(p->pGia, pObj) );
+        Vec_IntPush( p->vProofIds, ProofId );
         Vec_PtrPush( p->vCnfs, NULL );
         Vec_PtrPush( p->vCnfs, NULL );
     }
@@ -629,14 +636,14 @@ void Ga2_ManSetupNode( Ga2_Man_t * p, Gia_Obj_t * pObj, int fAbs )
         return;
     // compute parameters
     nLeaves = Ga2_ObjLeaveNum(p->pGia, pObj);
-    uTruth = Ga2_ObjTruth( p->pGia, pObj );
     // create CNF for pos/neg phases
+    uTruth = Ga2_ObjTruth( p->pGia, pObj );
     Vec_PtrWriteEntry( p->vCnfs, 2 * Ga2_ObjId(p,pObj),     Ga2_ManCnfCompute(uTruth, nLeaves, p->vIsopMem) );    
     uTruth = (~uTruth) & Abc_InfoMask( (1 << nLeaves) );
     Vec_PtrWriteEntry( p->vCnfs, 2 * Ga2_ObjId(p,pObj) + 1, Ga2_ManCnfCompute(uTruth, nLeaves, p->vIsopMem) );
 }
 
-void Ga2_ManAddToAbs( Ga2_Man_t * p, Vec_Int_t * vToAdd )
+void Ga2_ManAddToAbs( Ga2_Man_t * p, Vec_Int_t * vToAdd, int ProofId )
 {
     Vec_Int_t * vLeaves, * vMap;
     Gia_Obj_t * pObj, * pFanin;
@@ -644,15 +651,16 @@ void Ga2_ManAddToAbs( Ga2_Man_t * p, Vec_Int_t * vToAdd )
     // add abstraction objects
     Gia_ManForEachObjVec( vToAdd, p->pGia, pObj, i )
     {
-        Ga2_ManSetupNode( p, pObj, 1 );
+        Ga2_ManSetupNode( p, pObj, 1, ProofId );
         Vec_IntPush( p->vAbs, Gia_ObjId(p->pGia, pObj) );
+        Vec_IntPush( p->vProofIds, ProofId );
     }
     // add PPI objects
     Gia_ManForEachObjVec( vToAdd, p->pGia, pObj, i )
     {
         vLeaves = Ga2_ObjLeaves( p->pGia, pObj );
         Gia_ManForEachObjVec( vLeaves, p->pGia, pFanin, k )
-            Ga2_ManSetupNode( p, pObj, 0 );
+            Ga2_ManSetupNode( p, pObj, 0, -1 );
     }
     // clean mapping in the timeframes
     Vec_PtrForEachEntry( Vec_Int_t *, p->vId2Lit, vMap, i )
@@ -666,8 +674,12 @@ void Ga2_ManAddToAbs( Ga2_Man_t * p, Vec_Int_t * vToAdd )
         Vec_IntClear( p->vLits );
         Gia_ManForEachObjVec( vLeaves, p->pGia, pFanin, k )
             Vec_IntPush( p->vLits, Ga2_ObjFindOrAddLit( p, pFanin, f ) );
-        Ga2_ManCnfAddStatic( p, Ga2_ObjCnf0(p, pObj), Ga2_ObjCnf1(p, pObj), Vec_IntArray(p->vLits), iLitOut, p->nProofIds + i );
+        Ga2_ManCnfAddStatic( p, Ga2_ObjCnf0(p, pObj), Ga2_ObjCnf1(p, pObj), Vec_IntArray(p->vLits), iLitOut, Vec_IntEntry(p->vProofIds, Ga2_ObjId(p, pObj)) );
     }
+    // verify -- if ProofId == -1, all proof IDs should be the same
+    if ( ProofId == -1 )
+        Vec_IntForEachEntry( p->vProofIds, k, i )
+            assert( k == -1 );
 }
 
 void Ga2_ManAddAbsClauses( Ga2_Man_t * p, int f )
@@ -679,11 +691,11 @@ void Ga2_ManAddAbsClauses( Ga2_Man_t * p, int f )
     {
         if ( i < p->LimAbs )
             continue;
-        iLitOut =  Ga2_ObjFindOrAddLit( p, pObj, f );
         vLeaves = Ga2_ObjLeaves( p->pGia, pObj );
         Vec_IntClear( p->vLits );
         Gia_ManForEachObjVec( vLeaves, p->pGia, pFanin, k )
             Vec_IntPush( p->vLits, Ga2_ObjFindOrAddLit( p, pFanin, f ) );
+        iLitOut =  Ga2_ObjFindOrAddLit( p, pObj, f );
         Ga2_ManCnfAddStatic( p, Ga2_ObjCnf0(p, pObj), Ga2_ObjCnf1(p, pObj), Vec_IntArray(p->vLits), iLitOut, i - p->LimAbs );
     }
 }
@@ -717,6 +729,7 @@ void Ga2_ManShrinkAbs( Ga2_Man_t * p, int nAbs, int nValues )
         Ga2_ObjSetId( p, pObj, 0 );
     }
     Vec_IntShrink( p->vValues, nValues );
+    Vec_IntShrink( p->vProofIds, nValues );
     Vec_PtrShrink( p->vCnfs, 2 * nValues );
     // clean mapping into timeframes
     Vec_PtrForEachEntry( Vec_Int_t *, p->vId2Lit, vMap, i )
@@ -775,6 +788,7 @@ void Ga2_ManRestart( Ga2_Man_t * p )
     Vec_Int_t * vToAdd;
     assert( p->pGia != NULL && p->pGia->vGateClasses != NULL );
     assert( Gia_ManPi(p->pGia, 0)->fPhase ); // marks are set
+    p->nProofIds = 0;
     // clear mappings from objects
     Ga2_ManShrinkAbs( p, 0, 1 );
     // clear SAT variable numbers (begin with 1)
@@ -783,11 +797,10 @@ void Ga2_ManRestart( Ga2_Man_t * p )
     p->nSatVars  = 1;
     // start abstraction
     vToAdd = Ga2_ManAbsDerive( p->pGia );
-    Ga2_ManAddToAbs( p, vToAdd );
+    Ga2_ManAddToAbs( p, vToAdd, -1 );
     Vec_IntFree( vToAdd );
     p->LimAbs = Vec_IntSize(p->vAbs) + 1;
     p->LimPpi = Vec_IntSize(p->vValues);
-    p->nProofIds = 0;
     // set runtime limit
     if ( p->pPars->nTimeOut )
         sat_solver2_set_runtime_limit( p->pSat, p->pPars->nTimeOut * CLOCKS_PER_SEC + p->timeStart );
@@ -1069,7 +1082,7 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
         for ( f = 0; !pPars->nFramesMax || f < pPars->nFramesMax; f++ )
         {
             p->pPars->iFrame = f;
-            // add abstraction clauses
+            // add static clauses to this timeframe
             Ga2_ManAddAbsClauses( p, f );
             // get the output literal
             Lit = Ga2_ManUnroll_rec( p, Gia_ManPo(pAig,0), f );
@@ -1087,7 +1100,7 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
                     p->timeCex += clock() - clk;
                     if ( vPPis == NULL )
                         goto finish;
-                    Ga2_ManAddToAbs( p, vPPis );
+                    Ga2_ManAddToAbs( p, vPPis, p->nProofIds++ );
                     Vec_IntFree( vPPis );
                     // verify
                     if ( Vec_IntCheckUnique(p->vAbs) )
@@ -1103,8 +1116,9 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
                 // derive UNSAT core
                 vCore = (Vec_Int_t *)Sat_ProofCore( p->pSat );
                 Ga2_ManShrinkAbs( p, nAbs, nValues );
-                Ga2_ManAddToAbs( p, vCore );
+                Ga2_ManAddToAbs( p, vCore, -1 );
                 Vec_IntFree( vCore );
+                p->nProofIds = 0;
                 // remember current limits
                 nAbs    = Vec_IntSize(p->vAbs);
                 nValues = Vec_IntSize(p->vValues);

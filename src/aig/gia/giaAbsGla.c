@@ -74,6 +74,9 @@ struct Gla_Man_t_
     unsigned *     pObj2Obj;        // mapping of GIA obj into GLA obj
     int            nObjs;           // the number of objects
     int            nAbsOld;         // previous abstraction
+    int            nAbsNew;         // previous abstraction
+    int            nLrnOld;         // the number of bytes
+    int            nLrnNew;         // the number of bytes
     // other data
     int            nCexes;          // the number of counter-examples
     int            nObjAdded;       // total number of objects added
@@ -84,6 +87,8 @@ struct Gla_Man_t_
     Vec_Int_t *    vAddedNew;       // temporary array
     Vec_Int_t *    vObjCounts;      // object counters
     Vec_Int_t *    vCoreCounts;     // counts how many times each object appears in the core
+    Vec_Int_t *    vProofIds;       // counts how many times each object appears in the core
+    int            nProofIds;       // proof ID counter
     // refinement
     Vec_Int_t *    pvRefis;         // vectors of each object
     // refinement manager
@@ -1056,6 +1061,7 @@ Gla_Man_t * Gla_ManStart( Gia_Man_t * pGia0, Gia_ParVta_t * pPars )
     assert( pGia0->vGateClasses != 0 );
     p->pGia->vGateClasses = Vec_IntStart( Gia_ManObjNum(p->pGia) );
     p->vCoreCounts = Vec_IntStart( Gia_ManObjNum(p->pGia) );
+    p->vProofIds = Vec_IntAlloc(0);
     // update p->pCnf->vMapping, p->pCnf->pObj2Count, p->pCnf->pObj2Clause 
     // (here are not updating p->pCnf->pVarNums because it is not needed)
     vMappingNew = Vec_IntStart( Gia_ManObjNum(p->pGia) );
@@ -1318,6 +1324,7 @@ void Gla_ManStop( Gla_Man_t * p )
     Vec_IntFreeP( &p->vObjCounts );
     Vec_IntFreeP( &p->vAddedNew );
     Vec_IntFreeP( &p->vCoreCounts );
+    Vec_IntFreeP( &p->vProofIds );
     Vec_IntFreeP( &p->vTemp );
     Vec_IntFreeP( &p->vAbs );
     ABC_FREE( p->pvRefis );
@@ -1567,15 +1574,29 @@ void Gia_GlaAddToCounters( Gla_Man_t * p, Vec_Int_t * vCore )
 void Gia_GlaAddToAbs( Gla_Man_t * p, Vec_Int_t * vAbsAdd, int fCheck )
 {
     Gla_Obj_t * pGla;
-    int i;
+    int i, Counter = 0;
     Gla_ManForEachObjAbsVec( vAbsAdd, p, pGla, i )
     {
-        assert( !fCheck || pGla->fAbs == 0 );
+        if ( fCheck )
+        {
+            assert( pGla->fAbs == 0 );
+            if ( p->pSat->pPrf2 )
+                Vec_IntWriteEntry( p->vProofIds, Gla_ObjId(p, pGla), p->nProofIds++ );
+        }
         if ( pGla->fAbs )
             continue;
+
+        if ( !fCheck )
+        {
+            Counter++;
+//            printf( "%d ", Gla_ObjId(p, pGla) );
+        }
+
         pGla->fAbs = 1;
         Vec_IntPush( p->vAbs, Gla_ObjId(p, pGla) );
     }
+//    if ( Counter )
+//    printf( "  Total = %d\n", Counter );
 }
 void Gia_GlaAddTimeFrame( Gla_Man_t * p, int f )
 {
@@ -1635,7 +1656,7 @@ int Gla_ManGetOutLit( Gla_Man_t * p, int f )
 }
 Vec_Int_t * Gla_ManUnsatCore( Gla_Man_t * p, int f, sat_solver2 * pSat, int nConfMax, int fVerbose, int * piRetValue, int * pnConfls )
 {
-    Vec_Int_t * vCore;
+    Vec_Int_t * vCore = NULL;
     int nConfPrev = pSat->stats.conflicts;
     int RetValue, iLit = Gla_ManGetOutLit( p, f );
     clock_t clk = clock();
@@ -1675,6 +1696,8 @@ Vec_Int_t * Gla_ManUnsatCore( Gla_Man_t * p, int f, sat_solver2 * pSat, int nCon
     // derive the UNSAT core
     clk = clock();
     vCore = (Vec_Int_t *)Sat_ProofCore( pSat );
+    if ( vCore )
+        Vec_IntSort( vCore, 1 );
     if ( fVerbose )
     {
 //        Abc_Print( 1, "Core is %8d vars    (out of %8d).   ", Vec_IntSize(vCore), sat_solver2_nvars(pSat) );
@@ -1717,6 +1740,9 @@ void Gla_ManAbsPrintFrame( Gla_Man_t * p, int nCoreSize, int nFrames, int nConfl
 //    Abc_Print( 1, " %6d", nCoreSize > 0 ? nCoreSize : 0 ); 
     Abc_Print( 1, "%9.2f sec", 1.0*Time/CLOCKS_PER_SEC );
     Abc_Print( 1, "%5.1f GB", (sat_solver2_memory_proof(p->pSat) + sat_solver2_memory(p->pSat, 0)) / (1<<30) );
+//    Abc_PrintInt( p->nAbsNew );
+//    Abc_PrintInt( p->nLrnNew );
+//    Abc_Print( 1, "%4.1f MB", 4.0 * p->nLrnNew * Abc_BitWordNum(p->nAbsNew) / (1<<20) );
     Abc_Print( 1, "%s", nCoreSize > 0 ? "\n" : "\r" );
     fflush( stdout );
 }
@@ -1740,13 +1766,13 @@ void Gla_ManReportMemory( Gla_Man_t * p )
     memOth += Vec_IntCap(p->vTemp) * sizeof(int);
     memOth += Vec_IntCap(p->vAbs) * sizeof(int);
     memTot = memAig + memSat + memPro + memMap + memRef + memOth;
-    ABC_PRMP( "Memory: AIG   ", memAig, memTot );
-    ABC_PRMP( "Memory: SAT   ", memSat, memTot );
-    ABC_PRMP( "Memory: Proof ", memPro, memTot );
-    ABC_PRMP( "Memory: Map   ", memMap, memTot );
-    ABC_PRMP( "Memory: Refine", memRef, memTot );
-    ABC_PRMP( "Memory: Other ", memOth, memTot );
-    ABC_PRMP( "Memory: TOTAL ", memTot, memTot );
+    ABC_PRMP( "Memory: AIG      ", memAig, memTot );
+    ABC_PRMP( "Memory: SAT      ", memSat, memTot );
+    ABC_PRMP( "Memory: Proof    ", memPro, memTot );
+    ABC_PRMP( "Memory: Map      ", memMap, memTot );
+    ABC_PRMP( "Memory: Refine   ", memRef, memTot );
+    ABC_PRMP( "Memory: Other    ", memOth, memTot );
+    ABC_PRMP( "Memory: TOTAL    ", memTot, memTot );
 }
 
 
@@ -1830,7 +1856,7 @@ int Gia_GlaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars, int fStartVta )
 {
     extern int Gia_VtaPerformInt( Gia_Man_t * pAig, Gia_ParVta_t * pPars );
     Gla_Man_t * p;
-    Vec_Int_t * vCore, * vPPis;
+    Vec_Int_t * vPPis, * vCore;//, * vCore2 = NULL;
     Abc_Cex_t * pCex = NULL;
     int f, i, iPrev, nConfls, Status, nVarsOld, nCoreSize, fOneIsSent = 0, RetValue = -1;
     clock_t clk2, clk = clock();
@@ -1913,24 +1939,31 @@ int Gia_GlaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars, int fStartVta )
         Vec_IntClear( p->vAddedNew );
         p->nAbsOld = Vec_IntSize( p->vAbs );
         nVarsOld = p->nSatVars;
+        p->nLrnOld = sat_solver2_nlearnts( p->pSat );
 
         // iterate as long as there are counter-examples
+        p->nAbsNew = 0;
+        p->nLrnNew = 0;
         for ( i = 0; ; i++ )
         { 
             clk2 = clock();
             vCore = Gla_ManUnsatCore( p, f, p->pSat, pPars->nConfLimit, pPars->fVerbose, &Status, &nConfls );
-            assert( (vCore != NULL) == (Status == 1) );
+//            assert( (vCore != NULL) == (Status == 1) );
             if ( Status == -1 || (p->pSat->nRuntimeLimit && clock() > p->pSat->nRuntimeLimit) ) // resource limit is reached
             {
+                if ( p->pSat->pPrf2 )
+                    Prf_ManStopP( &p->pSat->pPrf2 );
                 if ( Gia_ManRegNum(p->pGia) > 1 ) // for comb cases, return the abstration
                     Gla_ManRollBack( p );
                 goto finish;
             }
-            if ( vCore != NULL )
+            if ( Status == 1 )
             {
+                if ( p->pSat->pPrf2 )
+                    Prf_ManStopP( &p->pSat->pPrf2 );
                 p->timeUnsat += clock() - clk2;
                 break;
-            }
+            } 
             p->timeSat += clock() - clk2;
             assert( Status == 0 );
             p->nCexes++;
@@ -1954,17 +1987,37 @@ int Gia_GlaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars, int fStartVta )
                 vPPis = Gla_ManRefinement( p );
                 if ( vPPis == NULL )
                 {
+                    if ( p->pSat->pPrf2 )
+                        Prf_ManStopP( &p->pSat->pPrf2 );
                     pCex = p->pGia->pCexSeq; p->pGia->pCexSeq = NULL;
                     break;
                 }
             } 
+            assert( pCex == NULL );
+
+            // start proof logging
+            if ( i == 0 )
+            {
+                assert( p->pSat->pPrf2 == NULL );
+                p->pSat->pPrf2 = Prf_ManAlloc();
+                if ( p->pSat->pPrf2 )
+                {
+                    p->nProofIds = 0;
+                    Vec_IntFill( p->vProofIds, Gia_ManObjNum(p->pGia), -1 );
+                    Prf_ManRestart( p->pSat->pPrf2, p->vProofIds, sat_solver2_nlearnts(p->pSat), Vec_IntSize(vPPis) );
+                }
+            }
+            else
+            {
+                // resize the proof logger
+                if ( p->pSat->pPrf2 )
+                    Prf_ManGrow( p->pSat->pPrf2, Vec_IntSize(p->vAbs) - p->nAbsOld + Vec_IntSize(vPPis) );
+            }
+
             Gia_GlaAddToAbs( p, vPPis, 1 );
             Gia_GlaAddOneSlice( p, f, vPPis );
             Vec_IntFree( vPPis );
 
-            p->timeCex += clock() - clk2;
-            if ( pCex != NULL )
-                goto finish;
             // print the result (do not count it towards change)
             if ( p->pPars->fVerbose )
             Gla_ManAbsPrintFrame( p, -1, f+1, sat_solver2_nconflicts(p->pSat)-nConflsBeg, i, clock() - clk );
@@ -1972,24 +2025,30 @@ int Gia_GlaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars, int fStartVta )
         if ( pCex != NULL )
             break;
         assert( Status == 1 );
+
         // valid core is obtained
-        nCoreSize = Vec_IntSize( vCore );
-        Gia_GlaAddToCounters( p, vCore );
+        nCoreSize = 1;
+        if ( vCore )
+        {
+            nCoreSize += Vec_IntSize( vCore );
+            Gia_GlaAddToCounters( p, vCore );
+        }
         if ( i == 0 )
         {
             p->pPars->nFramesNoChange++;
-            Vec_IntFree( vCore );
+            Vec_IntFreeP( &vCore );
         }
         else
         {
             p->pPars->nFramesNoChange = 0;
+            p->nAbsNew = Vec_IntSize( p->vAbs ) - p->nAbsOld;
+            p->nLrnNew = Abc_AbsInt( sat_solver2_nlearnts( p->pSat ) - p->nLrnOld );
             // update the SAT solver
             sat_solver2_rollback( p->pSat );
             // update storage
             Gla_ManRollBack( p );
             p->nSatVars = nVarsOld;
             // load this timeframe
-            Vec_IntSort( vCore, 1 );
             Gia_GlaAddToAbs( p, vCore, 0 );
             Gia_GlaAddOneSlice( p, f, vCore );
             Vec_IntFree( vCore );
@@ -1997,7 +2056,7 @@ int Gia_GlaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars, int fStartVta )
             clk2 = clock();
             vCore = Gla_ManUnsatCore( p, f, p->pSat, pPars->nConfLimit, p->pPars->fVerbose, &Status, &nConfls );
             p->timeUnsat += clock() - clk2;
-            assert( (vCore != NULL) == (Status == 1) );
+//            assert( (vCore != NULL) == (Status == 1) );
             Vec_IntFreeP( &vCore );
             if ( Status == -1 ) // resource limit is reached
                 break;
@@ -2046,10 +2105,10 @@ int Gia_GlaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars, int fStartVta )
     }
 finish:
     // analize the results
-    if ( p->pPars->fVerbose )
-        printf( "\n" );
     if ( pCex == NULL )
     {
+        if ( p->pPars->fVerbose && Status == -1 )
+            printf( "\n" );
         if ( pAig->vGateClasses != NULL )
             Abc_Print( 1, "Replacing the old abstraction by a new one.\n" );
         Vec_IntFreeP( &pAig->vGateClasses );

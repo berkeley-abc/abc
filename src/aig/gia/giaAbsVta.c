@@ -1035,6 +1035,7 @@ Vta_Man_t * Vga_ManStart( Gia_Man_t * pGia, Gia_ParVta_t * pPars )
     // other data
     p->vCores      = Vec_PtrAlloc( 100 );
     p->pSat        = sat_solver2_new();
+    p->pSat->pPrf1 = Vec_SetAlloc( 20 );
 //    p->pSat->fVerbose = p->pPars->fVerbose;
 //    sat_solver2_set_learntmax( p->pSat, pPars->nLearnedMax );
     p->pSat->nLearntStart = p->pPars->nLearnedStart;
@@ -1499,12 +1500,12 @@ void Gia_VtaPrintMemory( Vta_Man_t * p )
     memOth += Vec_VecMemoryInt( (Vec_Vec_t *)p->vCores );
     memOth += Vec_IntCap(p->vAddedNew) * sizeof(int);
     memTot = memAig + memSat + memPro + memMap + memOth;
-    ABC_PRMP( "Memory: AIG  ", memAig, memTot );
-    ABC_PRMP( "Memory: SAT  ", memSat, memTot );
-    ABC_PRMP( "Memory: Proof", memPro, memTot );
-    ABC_PRMP( "Memory: Map  ", memMap, memTot );
-    ABC_PRMP( "Memory: Other", memOth, memTot );
-    ABC_PRMP( "Memory: TOTAL", memTot, memTot );
+    ABC_PRMP( "Memory: AIG     ", memAig, memTot );
+    ABC_PRMP( "Memory: SAT     ", memSat, memTot );
+    ABC_PRMP( "Memory: Proof   ", memPro, memTot );
+    ABC_PRMP( "Memory: Map     ", memMap, memTot );
+    ABC_PRMP( "Memory: Other   ", memOth, memTot );
+    ABC_PRMP( "Memory: TOTAL   ", memTot, memTot );
 }
 
 
@@ -1694,10 +1695,10 @@ int Gia_VtaPerformInt( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
     }
 finish:
     // analize the results
-    if ( p->pPars->fVerbose )
-        printf( "\n" );
     if ( pCex == NULL )
     {
+        if ( p->pPars->fVerbose && Status == -1 )
+            printf( "\n" );
         if ( Vec_PtrSize(p->vCores) == 0 )
             Abc_Print( 1, "Abstraction is not produced because first frame is not solved.  " );
         else

@@ -31,6 +31,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "satVec.h"
 #include "satClause.h"
 #include "misc/vec/vecSet.h"
+#include "satProof2.h"
 
 ABC_NAMESPACE_HEADER_START
 
@@ -147,10 +148,12 @@ struct sat_solver2_t
     veci            learnt_live;    // remaining clauses after reduce DB
 
     // proof logging
-    Vec_Set_t       Proofs;         // sequence of proof records
+    Vec_Set_t *     pPrf1;          // sequence of proof records
     veci            temp_proof;     // temporary place to store proofs
     int             hLearntLast;    // in proof-logging mode, the ID of the final conflict clause (conf_final)
     int             hProofLast;     // in proof-logging mode, the ID of the final conflict clause (conf_final)
+    Prf_Man_t *     pPrf2;          // another proof manager
+    double          dPrfMemory;     // memory used by the proof-logger
 
     // statistics
     stats_t         stats;
@@ -234,7 +237,8 @@ static inline void sat_solver2_bookmark(sat_solver2* s)
     assert( s->qhead == s->qtail );
     s->iVarPivot    = s->size;
     s->iTrailPivot  = s->qhead;
-    s->hProofPivot  = Vec_SetHandCurrent(&s->Proofs);
+    if ( s->pPrf1 )
+        s->hProofPivot  = Vec_SetHandCurrent(s->pPrf1);
     Sat_MemBookMark( &s->Mem );
 }
 

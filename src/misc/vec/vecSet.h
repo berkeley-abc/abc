@@ -168,12 +168,14 @@ static inline void Vec_SetRestart( Vec_Set_t * p )
 static inline void Vec_SetFree_( Vec_Set_t * p )
 {
     int i;
+    if ( p == NULL ) return;
     for ( i = 0; i < p->nPagesAlloc; i++ )
         ABC_FREE( p->pPages[i] );
     ABC_FREE( p->pPages );
 }
 static inline void Vec_SetFree( Vec_Set_t * p )
 {
+    if ( p == NULL ) return;
     Vec_SetFree_( p );
     ABC_FREE( p );
 }
