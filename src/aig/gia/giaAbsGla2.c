@@ -57,12 +57,12 @@ struct Ga2_Man_t_
     Vec_Ptr_t *    vId2Lit;      // mapping, for each timeframe, of object ID into SAT literal
     sat_solver2 *  pSat;         // incremental SAT solver
     int            nSatVars;     // the number of SAT variables
+    int            nCexes;       // the number of counter-examples
+    int            nObjAdded;    // objs added during refinement
     // temporaries
     Vec_Int_t *    vLits;
     Vec_Int_t *    vIsopMem;
     char * pSopSizes, ** pSops;  // CNF representation
-    int            nCexes;       // the number of counter-examples
-    int            nObjAdded;    // objs added during refinement
     // statistics  
     clock_t        timeStart;
     clock_t        timeInit;
@@ -97,15 +97,11 @@ static inline int Ga2_ObjFindLit( Ga2_Man_t * p, Gia_Obj_t * pObj, int f )
 { 
     int Id = Ga2_ObjId(p,pObj);
     assert( Ga2_ObjId(p,pObj) >= 0 && Ga2_ObjId(p,pObj) < Vec_IntSize(p->vValues) );
-    if ( f == Vec_PtrSize(p->vId2Lit) )
-        Vec_PtrPush( p->vId2Lit, Vec_IntStartFull(Vec_IntSize(p->vValues)) );
-    assert( f < Vec_PtrSize(p->vId2Lit) );
     return Vec_IntEntry( Ga2_MapFrameMap(p, f), Ga2_ObjId(p,pObj) );
 }
 // inserts literal of this object
 static inline void Ga2_ObjAddLit( Ga2_Man_t * p, Gia_Obj_t * pObj, int f, int Lit )  
 { 
-//    assert( Lit > 1 || Gia_ObjIsConst0(pObj) );
     assert( Lit > 1 );
     assert( Ga2_ObjFindLit(p, pObj, f) == -1 );
     Vec_IntSetEntry( Ga2_MapFrameMap(p, f), Ga2_ObjId(p,pObj), Lit );
@@ -119,7 +115,6 @@ static inline int Ga2_ObjFindOrAddLit( Ga2_Man_t * p, Gia_Obj_t * pObj, int f )
         Lit = toLitCond( p->nSatVars++, 0 );
         Ga2_ObjAddLit( p, pObj, f, Lit );
     }
-//    assert( Lit > 1 || Gia_ObjIsConst0(pObj)  );
     assert( Lit > 1 );
     return Lit;
 }
@@ -245,6 +240,9 @@ int Ga2_ManMarkup( Gia_Man_t * p, int N )
     Vec_Int_t * vLeaves;
     Gia_Obj_t * pObj;
     int i, k, Leaf, CountMarks;
+    vLeaves = Vec_IntAlloc( 100 );
+
+/*
     // label nodes with multiple fanouts and inputs MUXes
     Gia_ManForEachObj( p, pObj, i )
     {
@@ -271,7 +269,6 @@ int Ga2_ManMarkup( Gia_Man_t * p, int N )
             pObj->fPhase = 1;
     } 
     // add marks when needed
-    vLeaves = Vec_IntAlloc( 100 );
     Gia_ManForEachAnd( p, pObj, i )
     {
         if ( !pObj->fPhase )
@@ -281,6 +278,10 @@ int Ga2_ManMarkup( Gia_Man_t * p, int N )
         if ( Vec_IntSize(vLeaves) > N )
             Ga2_ManBreakTree_rec( p, pObj, 1, N );
     }
+*/
+    Gia_ManForEachObj( p, pObj, i )
+        pObj->fPhase = !Gia_ObjIsCo(pObj);
+
     // verify that the tree is split correctly
     Vec_IntFreeP( &p->vMapping );
     p->vMapping = Vec_IntStart( Gia_ManObjNum(p) );
@@ -372,12 +373,13 @@ Ga2_Man_t * Ga2_ManStart( Gia_Man_t * pGia, Gia_ParVta_t * pPars )
     Vec_PtrPush( p->vCnfs, Vec_IntAlloc(0) );
     // abstraction
     p->vIds      = Vec_IntStartFull( Gia_ManObjNum(pGia) );
-    p->vProofIds = Vec_IntAlloc(0);
+    p->vProofIds = Vec_IntAlloc( 0 );
     p->vAbs      = Vec_IntAlloc( 1000 );
     p->vValues   = Vec_IntAlloc( 1000 );
-    // add constant
+    // add constant node to abstraction
     Ga2_ObjSetId( p, Gia_ManConst0(pGia), 0 );
     Vec_IntPush( p->vValues, 0 );
+    Vec_IntPush( p->vAbs, 0 );
     // refinement
     p->pRnm      = Rnm_ManStart( pGia );
     // SAT solver and variables
@@ -618,9 +620,13 @@ static inline void Ga2_ManCnfAddStatic( Ga2_Man_t * p, Vec_Int_t * vCnf0, Vec_In
                 else if ( Literal != 0 )
                     assert( 0 );
             }
+//            for ( b = 0; b < nClaLits; b++ )
+//                printf( "%d ", ClaLits[b] );
+//            printf( "\n" );
             sat_solver2_addclause( p->pSat, ClaLits, ClaLits+nClaLits, ProofId );
         }
     }
+    b = 0;
 }
 
 
@@ -657,7 +663,7 @@ void Ga2_ManSetupNode( Ga2_Man_t * p, Gia_Obj_t * pObj, int fAbs )
     assert( Ga2_ObjCnf0(p, pObj) == NULL );
     if ( !fAbs )
         return;
-    assert( Vec_IntFind(p->vAbs, Gia_ObjId(p->pGia, pObj)) == -1 );
+//    assert( Vec_IntFind(p->vAbs, Gia_ObjId(p->pGia, pObj)) == -1 );
     Vec_IntPush( p->vAbs, Gia_ObjId(p->pGia, pObj) );
     assert( Gia_ObjIsAnd(pObj) || Gia_ObjIsRo(p->pGia, pObj) );
     // compute parameters
@@ -673,6 +679,7 @@ void Ga2_ManAddToAbsOneStatic( Ga2_Man_t * p, Gia_Obj_t * pObj, int f )
     Vec_Int_t * vLeaves;
     Gia_Obj_t * pFanin;
     int k, iLitOut = Ga2_ObjFindOrAddLit( p, pObj, f );
+    assert( !Gia_ObjIsConst0(pObj) );
     assert( iLitOut > 1 );
     assert( Gia_ObjIsAnd(pObj) || Gia_ObjIsRo(p->pGia, pObj) );
     if ( f == 0 && Gia_ObjIsRo(p->pGia, pObj) )
@@ -692,13 +699,23 @@ void Ga2_ManAddToAbsOneStatic( Ga2_Man_t * p, Gia_Obj_t * pObj, int f )
 
 void Ga2_ManAddAbsClauses( Ga2_Man_t * p, int f )
 {
+    int fSimple = 1;
     Gia_Obj_t * pObj;
-    int i;
+    int i, Lit;
+/*
+    Vec_Int_t * vMap = (f < Vec_PtrSize(p->vId2Lit) ? Ga2_MapFrameMap( p, f ) : NULL);
 //    Ga2_ObjAddLit( p, Gia_ManConst0(p->pGia), f, 0 );
-    int Lit = Ga2_ObjFindOrAddLit( p, Gia_ManConst0(p->pGia), f );
-    Lit = Abc_LitNot( Lit );
-    sat_solver2_addclause( p->pSat, &Lit, &Lit + 1, 0 );
-
+    if ( f == 5 )
+    {
+        int s = 0;
+    }
+*/
+    if ( fSimple )
+    {
+        Lit = Ga2_ObjFindOrAddLit( p, Gia_ManConst0(p->pGia), f );
+        Lit = Abc_LitNot( Lit );
+        sat_solver2_addclause( p->pSat, &Lit, &Lit + 1, 0 );
+    }
     Gia_ManForEachObjVec( p->vAbs, p->pGia, pObj, i )
         if ( i >= p->LimAbs )
             Ga2_ManAddToAbsOneStatic( p, pObj, f );
@@ -706,7 +723,7 @@ void Ga2_ManAddAbsClauses( Ga2_Man_t * p, int f )
 
 void Ga2_ManAddToAbs( Ga2_Man_t * p, Vec_Int_t * vToAdd )
 {
-    Vec_Int_t * vLeaves, * vMap;
+    Vec_Int_t * vLeaves;
     Gia_Obj_t * pObj, * pFanin;
     int f, i, k;
     // add abstraction objects
@@ -719,39 +736,32 @@ void Ga2_ManAddToAbs( Ga2_Man_t * p, Vec_Int_t * vToAdd )
     // add PPI objects
     Gia_ManForEachObjVec( vToAdd, p->pGia, pObj, i )
     {
-/*
-        if ( Gia_ObjIsRo(p->pGia, pObj) )
-        {
-            pFanin = Gia_ObjFanin0(Gia_ObjRoToRi(p->pGia, pObj));
-            if ( !Ga2_ObjId( p, pFanin ) )
-                Ga2_ManSetupNode( p, pFanin, 0 );
-            continue;
-        }
-*/
         vLeaves = Ga2_ObjLeaves( p->pGia, pObj );
         Gia_ManForEachObjVec( vLeaves, p->pGia, pFanin, k )
             if ( Ga2_ObjId( p, pFanin ) == -1 )
                 Ga2_ManSetupNode( p, pFanin, 0 );
     }
-    // clean mapping in the timeframes
-    Vec_PtrForEachEntry( Vec_Int_t *, p->vId2Lit, vMap, i )
-        Vec_IntFillExtra( vMap, Vec_IntSize(p->vValues), -1 );
     // add new clauses to the timeframes
     for ( f = 0; f <= p->pPars->iFrame; f++ )
+    {
+        Vec_IntFillExtra( Ga2_MapFrameMap(p, f), Vec_IntSize(p->vValues), -1 );
         Gia_ManForEachObjVec( vToAdd, p->pGia, pObj, i )
             Ga2_ManAddToAbsOneStatic( p, pObj, f );
+    }
 }
 
-void Ga2_ManShrinkAbs( Ga2_Man_t * p, int nAbs, int nValues )
+void Ga2_ManShrinkAbs( Ga2_Man_t * p, int nAbs, int nValues, int nSatVars )
 {
     Vec_Int_t * vMap;
     Gia_Obj_t * pObj;
     int i;
-    assert( nAbs >= 0 );
+    assert( nAbs > 0 );
     assert( nValues > 0 );
+    assert( nSatVars > 0 );
     // shrink abstraction
     Gia_ManForEachObjVec( p->vAbs, p->pGia, pObj, i )
     {
+        if ( !i ) continue;
         assert( Ga2_ObjCnf0(p, pObj) != NULL );
         assert( Ga2_ObjCnf1(p, pObj) != NULL );
         if ( i < nAbs )
@@ -774,7 +784,9 @@ void Ga2_ManShrinkAbs( Ga2_Man_t * p, int nAbs, int nValues )
     Vec_PtrShrink( p->vCnfs, 2 * nValues );
     // clean mapping for each timeframe
     Vec_PtrForEachEntry( Vec_Int_t *, p->vId2Lit, vMap, i )
-        Vec_IntShrink( vMap, nValues );
+        Vec_IntClear( vMap );
+    // shrink SAT variables
+    p->nSatVars = nSatVars;
 }
 
 /**Function*************************************************************
@@ -840,23 +852,23 @@ Vec_Int_t * Ga2_ManAbsDerive( Gia_Man_t * p )
 void Ga2_ManRestart( Ga2_Man_t * p )
 {
     Vec_Int_t * vToAdd;
-    int Lit;
+    int Lit = 1;
     assert( p->pGia != NULL && p->pGia->vGateClasses != NULL );
     assert( Gia_ManPi(p->pGia, 0)->fPhase ); // marks are set
-    // clear mappings from objects
-    Ga2_ManShrinkAbs( p, 0, 1 );
     // clear SAT variable numbers (begin with 1)
     if ( p->pSat ) sat_solver2_delete( p->pSat );
     p->pSat      = sat_solver2_new();
-    p->nSatVars  = 1;
     // add clause x0 = 0  (lit0 = 1; lit1 = 0)
-    Lit = 1;
     sat_solver2_addclause( p->pSat, &Lit, &Lit + 1, 0 );
-    // start abstraction
+    // remove previous abstraction
+    Ga2_ManShrinkAbs( p, 1, 1, 1 );
+    // start new abstraction
     vToAdd = Ga2_ManAbsDerive( p->pGia );
+    assert( p->pSat->pPrf2 == NULL );
+    assert( p->pPars->iFrame < 0 );
     Ga2_ManAddToAbs( p, vToAdd );
     Vec_IntFree( vToAdd );
-    p->LimAbs = Vec_IntSize(p->vAbs) + 1;
+    p->LimAbs = Vec_IntSize(p->vAbs);
     p->LimPpi = Vec_IntSize(p->vValues);
     // set runtime limit
     if ( p->pPars->nTimeOut )
@@ -1016,7 +1028,6 @@ void Ga2_GlaPrepareCexAndMap( Ga2_Man_t * p, Abc_Cex_t ** ppCex, Vec_Int_t ** pv
     vMap = Vec_IntAlloc( 1000 );
     Gia_ManForEachObjVec( p->vValues, p->pGia, pObj, i )
     {
-        pObj->Value = 0;
         if ( !i ) continue;
         Id = Ga2_ObjId(p, pObj);
         k = Gia_ObjId(p->pGia, pObj);
@@ -1157,7 +1168,7 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
     Ga2_Man_t * p;
     Vec_Int_t * vCore, * vPPis;
     clock_t clk2, clk = clock();
-    int nAbs, nValues, Status, RetValue = -1;
+    int Status, RetValue = -1;
     int i, c, f, Lit;
     // check trivial case 
     assert( Gia_ManPoNum(pAig) == 1 ); 
@@ -1196,21 +1207,30 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
     // iterate unrolling
     for ( i = f = 0; !pPars->nFramesMax || f < pPars->nFramesMax; i++ )
     {
+        // remember the timeframe
+        p->pPars->iFrame = -1;
         // create new SAT solver
         Ga2_ManRestart( p );
-        // remember current limits
-        nAbs    = Vec_IntSize(p->vAbs);
-        nValues = Vec_IntSize(p->vValues);
         // unroll the circuit
         for ( f = 0; !pPars->nFramesMax || f < pPars->nFramesMax; f++ )
         {
+            // remember current limits
             int nConflsBeg = sat_solver2_nconflicts(p->pSat);
+            int nAbs       = Vec_IntSize(p->vAbs);
+            int nValues    = Vec_IntSize(p->vValues);
+            int nVarsOld;
+            // extend and clear storage
+            if ( f == Vec_PtrSize(p->vId2Lit) )
+                Vec_PtrPush( p->vId2Lit, Vec_IntAlloc(0) );
+            Vec_IntFillExtra( Ga2_MapFrameMap(p, f), Vec_IntSize(p->vValues), -1 );
+            // remember the timeframe
             p->pPars->iFrame = f;
             // add static clauses to this timeframe
             Ga2_ManAddAbsClauses( p, f );
             // get the output literal
             Lit = Ga2_ManUnroll_rec( p, Gia_ManPo(pAig,0), f );
             // check for counter-examples
+            nVarsOld = p->nSatVars;
             for ( c = 0; ; c++ )
             {
                 // perform SAT solving
@@ -1224,10 +1244,17 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
                     vPPis = Ga2_ManRefine( p );
                     p->timeCex += clock() - clk2;
                     if ( vPPis == NULL )
+                    {
+                        if ( pPars->fVerbose )
+                            Ga2_ManAbsPrintFrame( p, f, sat_solver2_nconflicts(p->pSat)-nConflsBeg, c, clock() - clk, 1 );
                         goto finish;
+                    }
 
                     if ( c == 0 )
                     {
+                        // create bookmark to be used for rollback
+                        assert( nVarsOld == p->pSat->size );
+                        sat_solver2_bookmark( p->pSat );
                         // start incremental proof manager
                         assert( p->pSat->pPrf2 == NULL );
                         p->pSat->pPrf2 = Prf_ManAlloc();
@@ -1262,17 +1289,17 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
                 assert( RetValue == l_False );
                 if ( c == 0 )
                     break;
-                // reduce abstraction
-                Ga2_ManShrinkAbs( p, nAbs, nValues );
-                // derive UNSAT core
+
+                // derive the core
+                assert( p->pSat->pPrf2 != NULL );
                 vCore = (Vec_Int_t *)Sat_ProofCore( p->pSat );
                 Prf_ManStopP( &p->pSat->pPrf2 );
-                // use UNSAT core
+                // update the SAT solver
+                sat_solver2_rollback( p->pSat );
+                // reduce abstraction
+                Ga2_ManShrinkAbs( p, nAbs, nValues, nVarsOld );
                 Ga2_ManAddToAbs( p, vCore );
                 Vec_IntFree( vCore );
-                // remember current limits
-                nAbs    = Vec_IntSize(p->vAbs);
-                nValues = Vec_IntSize(p->vValues);
                 // verify
                 if ( Vec_IntCheckUnique(p->vAbs) )
                     printf( "Vector has %d duplicated entries.\n", Vec_IntCheckUnique(p->vAbs) );
@@ -1284,6 +1311,7 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
             {
                 Vec_IntFreeP( &pAig->vGateClasses );
                 pAig->vGateClasses = Ga2_ManAbsTranslate( p );
+                printf( "\n" );
                 break;  // temporary
             }
         }
