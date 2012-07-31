@@ -166,7 +166,7 @@ void Rnm_ManStop( Rnm_Man_t * p, int fProfile )
     Gia_ManCleanMark0(p->pGia);
     Gia_ManCleanMark1(p->pGia);
     Gia_ManStaticFanoutStop(p->pGia);
-    Gia_ManSetPhase(p->pGia);
+//    Gia_ManSetPhase(p->pGia);
     Vec_IntFree( p->vObjs );
     ABC_FREE( p->pObjs );
     ABC_FREE( p );
@@ -470,17 +470,17 @@ void Rnm_ManVerifyUsingTerSim( Gia_Man_t * p, Abc_Cex_t * pCex, Vec_Int_t * vMap
     {
         Gia_ManForEachObjVec( vMap, p, pObj, i )
         {
-            pObj->fPhase = Abc_InfoHasBit( pCex->pData, iBit + i );
+            pObj->Value = Abc_InfoHasBit( pCex->pData, iBit + i );
             if ( !Gia_ObjIsPi(p, pObj) )
                 Gia_ObjTerSimSetX( pObj );
-            else if ( pObj->fPhase )
+            else if ( pObj->Value )
                 Gia_ObjTerSimSet1( pObj );
             else
                 Gia_ObjTerSimSet0( pObj );
         }
-        Gia_ManForEachObjVec( vRes, p, pObj, i )
+        Gia_ManForEachObjVec( vRes, p, pObj, i ) // vRes is subset of vMap
         {
-            if ( pObj->fPhase )
+            if ( pObj->Value )
                 Gia_ObjTerSimSet1( pObj );
             else
                 Gia_ObjTerSimSet0( pObj );
