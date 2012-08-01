@@ -26,8 +26,6 @@
 
 ABC_NAMESPACE_IMPL_START
 
-//#if 0
-
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -325,7 +323,6 @@ int Ga2_ManMarkup( Gia_Man_t * p, int N )
         Vec_IntPush( p->vMapping, -1 );  // placeholder for ref counter
         CountMarks++;
     }
-//    printf( "Internal nodes = %d.   ", CountMarks );
     Abc_PrintTime( 1, "Time", clock() - clk );
     Vec_IntFree( vLeaves );
     return CountMarks;
@@ -477,10 +474,6 @@ unsigned Ga2_ObjComputeTruthSpecial( Gia_Man_t * p, Gia_Obj_t * pRoot, Vec_Int_t
     int i, k, Lit, Entry, pMap[5];
     int Id = Gia_ObjId(p, pRoot);
     assert( Gia_ObjIsAnd(pRoot) );
-    if ( 4948 == Id )
-    {
-        int s = 0;
-    }
 
     if ( fVerbose )
     printf( "Object %d.\n", Gia_ObjId(p, pRoot) );
@@ -519,7 +512,7 @@ unsigned Ga2_ObjComputeTruthSpecial( Gia_Man_t * p, Gia_Obj_t * pRoot, Vec_Int_t
     if ( fVerbose )
     {
     Res = Ga2_ObjTruth( p, pRoot );
-    Kit_DsdPrintFromTruth( &Res, Vec_IntSize(vLeaves) );
+//    Kit_DsdPrintFromTruth( &Res, Vec_IntSize(vLeaves) );
     printf( "\n" );
     }
 
@@ -580,7 +573,7 @@ unsigned Ga2_ObjComputeTruthSpecial( Gia_Man_t * p, Gia_Obj_t * pRoot, Vec_Int_t
 
 if ( fVerbose )
 {
-    Kit_DsdPrintFromTruth( &Res, nUsed );
+//    Kit_DsdPrintFromTruth( &Res, nUsed );
     printf( "\n" );
 }
 
@@ -636,11 +629,6 @@ static inline void Ga2_ManCnfAddDynamic( Ga2_Man_t * p, int uTruth, int Lits[], 
 {
     int i, k, b, Cube, nClaLits, ClaLits[6];
 //    assert( uTruth > 0 && uTruth < 0xffff );
-    if ( uTruth == 0 )
-    {
-        int s = 0;
-    }
-    // write positive/negative polarity
     for ( i = 0; i < 2; i++ )
     {
         if ( i )
@@ -673,38 +661,29 @@ static inline void Ga2_ManCnfAddStatic( Ga2_Man_t * p, Vec_Int_t * vCnf0, Vec_In
 {
     Vec_Int_t * vCnf;
     int i, k, b, Cube, Literal, nClaLits, ClaLits[6];
-    // write positive/negative polarity
     for ( i = 0; i < 2; i++ )
     {
         vCnf = i ? vCnf1 : vCnf0;
-//        for ( k = 0; k < p->pSopSizes[uTruth]; k++ )
         Vec_IntForEachEntry( vCnf, Cube, k )
         {
             nClaLits = 0;
             ClaLits[nClaLits++] = i ? lit_neg(iLitOut) : iLitOut;
-//            Cube = p->pSops[uTruth][k];
-//            for ( b = 3; b >= 0; b-- )
             for ( b = 0; b < 5; b++ )
             {
                 Literal = 3 & (Cube >> (b << 1));
                 if ( Literal == 1 ) // value 0 --> add positive literal
                 {
-//                    pCube[b] = '0';
 //                    assert( Lits[b] > 1 );
                     ClaLits[nClaLits++] = Lits[b];
                 }
                 else if ( Literal == 2 ) // value 1 --> add negative literal
                 {
-//                    pCube[b] = '1';
 //                    assert( Lits[b] > 1 );
                     ClaLits[nClaLits++] = lit_neg(Lits[b]);
                 }
                 else if ( Literal != 0 )
                     assert( 0 );
             }
-//            for ( b = 0; b < nClaLits; b++ )
-//                printf( "%d ", ClaLits[b] );
-//            printf( "\n" );
             sat_solver2_addclause( p->pSat, ClaLits, ClaLits+nClaLits, ProofId );
         }
     }
@@ -729,10 +708,6 @@ static inline void Ga2_ManSetupNode( Ga2_Man_t * p, Gia_Obj_t * pObj, int fAbs )
     int Id = Gia_ObjId(p->pGia, pObj);
     assert( pObj->fPhase );
     assert( Vec_PtrSize(p->vCnfs) == 2 * Vec_IntSize(p->vValues) );
-    if ( Gia_ObjId(p->pGia,pObj) == 4950 )
-    {
-        int s = 0;
-    }
     // assign abstraction ID to the node
     if ( Ga2_ObjId(p,pObj) == -1 )
     {
@@ -744,7 +719,6 @@ static inline void Ga2_ManSetupNode( Ga2_Man_t * p, Gia_Obj_t * pObj, int fAbs )
     assert( Ga2_ObjCnf0(p, pObj) == NULL );
     if ( !fAbs )
         return;
-//    assert( Vec_IntFind(p->vAbs, Gia_ObjId(p->pGia, pObj)) == -1 );
     Vec_IntPush( p->vAbs, Gia_ObjId(p->pGia, pObj) );
     assert( Gia_ObjIsAnd(pObj) || Gia_ObjIsRo(p->pGia, pObj) );
     // compute parameters
@@ -1022,7 +996,6 @@ Vec_Int_t * Ga2_ManAbsDerive( Gia_Man_t * p )
     Gia_Obj_t * pObj;
     int i;
     vToAdd = Vec_IntAlloc( 1000 );
-//    Vec_IntPush( vToAdd, 0 ); // const 0
     Gia_ManForEachRo( p, pObj, i )
         if ( pObj->fPhase && Vec_IntEntry(p->vGateClasses, Gia_ObjId(p, pObj)) )
             Vec_IntPush( vToAdd, Gia_ObjId(p, pObj) );
@@ -1575,9 +1548,6 @@ finish:
     fflush( stdout );
     return RetValue;
 }
-
-//#endif
-
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
