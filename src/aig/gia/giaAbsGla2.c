@@ -240,9 +240,9 @@ int Ga2_ManMarkup( Gia_Man_t * p, int N )
     Vec_Int_t * vLeaves;
     Gia_Obj_t * pObj;
     int i, k, Leaf, CountMarks;
+
     vLeaves = Vec_IntAlloc( 100 );
 
-/*
     // label nodes with multiple fanouts and inputs MUXes
     Gia_ManForEachObj( p, pObj, i )
     {
@@ -278,9 +278,9 @@ int Ga2_ManMarkup( Gia_Man_t * p, int N )
         if ( Vec_IntSize(vLeaves) > N )
             Ga2_ManBreakTree_rec( p, pObj, 1, N );
     }
-*/
-    Gia_ManForEachObj( p, pObj, i )
-        pObj->fPhase = !Gia_ObjIsCo(pObj);
+
+//    Gia_ManForEachObj( p, pObj, i )
+//        pObj->fPhase = !Gia_ObjIsCo(pObj);
 
     // verify that the tree is split correctly
     Vec_IntFreeP( &p->vMapping );
@@ -707,6 +707,14 @@ void Ga2_ManAddAbsClauses( Ga2_Man_t * p, int f )
         Lit = Ga2_ObjFindOrAddLit( p, Gia_ManConst0(p->pGia), f );
         Lit = Abc_LitNot( Lit );
         sat_solver2_addclause( p->pSat, &Lit, &Lit + 1, -1 );
+    }
+    // add variables for the leaves
+    Gia_ManForEachObjVec( p->vValues, p->pGia, pObj, i )
+    {
+        if ( !i ) continue;
+        if ( i == p->LimAbs )
+            break;
+        Ga2_ManAddToAbsOneStatic( p, pObj, f );
     }
     Gia_ManForEachObjVec( p->vAbs, p->pGia, pObj, i )
         if ( i >= p->LimAbs )
@@ -1225,7 +1233,10 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
             // add static clauses to this timeframe
             Ga2_ManAddAbsClauses( p, f );
             // get the output literal
-            Lit = Ga2_ManUnroll_rec( p, Gia_ManPo(pAig,0), f );
+//            Lit = Ga2_ManUnroll_rec( p, Gia_ManPo(pAig,0), f );
+            Lit = Ga2_ObjFindLit( p, Gia_ObjFanin0(Gia_ManPo(pAig,0)), f );
+            assert( Lit >= 0 );
+            Lit = Abc_LitNotCond( Lit, Gia_ObjFaninC0(Gia_ManPo(pAig,0)) );
             // check for counter-examples
             nVarsOld = p->nSatVars;
             for ( c = 0; ; c++ )
