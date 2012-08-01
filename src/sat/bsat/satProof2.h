@@ -239,7 +239,7 @@ static inline void Prf_ManChainResolve( Prf_Man_t * p, clause * c )
     }
     else // problem clause
     {  
-        if ( clause_id(c) ) // has proof ID
+        if ( clause_id(c) >= 0 ) // has proof ID
         {
             int Entry;
             if ( p->vId2Pr == NULL )

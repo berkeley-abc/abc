@@ -518,6 +518,7 @@ Vec_Int_t * Rnm_ManRefine( Rnm_Man_t * p, Abc_Cex_t * pCex, Vec_Int_t * vMap, in
     Vec_Int_t * vSelected = Vec_IntAlloc( 100 );
     clock_t clk, clk2 = clock();
     p->nCalls++;
+//    Gia_ManCleanValue( p->pGia );
     // initialize
     p->pCex = pCex;
     p->vMap = vMap;
@@ -542,7 +543,7 @@ Vec_Int_t * Rnm_ManRefine( Rnm_Man_t * p, Abc_Cex_t * pCex, Vec_Int_t * vMap, in
         p->timeBwd += clock() - clk;
     }
     // clean values
-    Rnm_ManCleanValues( p );
+//    Rnm_ManCleanValues( p );
     // verify (empty) refinement
     clk = clock();
     Rnm_ManVerifyUsingTerSim( p->pGia, p->pCex, p->vMap, p->vObjs, vSelected );
