@@ -233,7 +233,7 @@ void Ga2_ManCollectLeaves_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vLea
 }
 int Ga2_ManMarkup( Gia_Man_t * p, int N )
 {
-    int fSimple = 1;
+    int fSimple = 0;
     static unsigned uTruth5[5] = { 0xAAAAAAAA, 0xCCCCCCCC, 0xF0F0F0F0, 0xFF00FF00, 0xFFFF0000 };
     clock_t clk = clock();
     Vec_Int_t * vLeaves;
@@ -308,7 +308,6 @@ int Ga2_ManMarkup( Gia_Man_t * p, int N )
             continue;
         Vec_IntClear( vLeaves );
         Ga2_ManCollectLeaves_rec( p, pObj, vLeaves, 1 );
-//        printf( "%d ", Vec_IntSize(vLeaves) );
         assert( Vec_IntSize(vLeaves) <= N );
         // create map
         Vec_IntWriteEntry( p->vMapping, i, Vec_IntSize(p->vMapping) );
@@ -346,7 +345,7 @@ void Ga2_ManComputeTest( Gia_Man_t * p )
 //        printf( "\n" );
         Counter++;
     }
-    printf( "Marked AND nodes = %6d.  ", Counter );
+    Abc_Print( 1, "Marked AND nodes = %6d.  ", Counter );
     Abc_PrintTime( 1, "Time", clock() - clk );
 }
 
@@ -469,9 +468,9 @@ unsigned Ga2_ObjComputeTruthSpecial( Gia_Man_t * p, Gia_Obj_t * pRoot, Vec_Int_t
 {
     int fVerbose = 0;
     static unsigned uTruth5[5] = { 0xAAAAAAAA, 0xCCCCCCCC, 0xF0F0F0F0, 0xFF00FF00, 0xFFFF0000 };
-    unsigned Res, uLeaves[5];
+    unsigned Res;
     Gia_Obj_t * pObj;
-    int i, k, Lit, Entry, pMap[5];
+    int i, Entry;
     int Id = Gia_ObjId(p, pRoot);
     assert( Gia_ObjIsAnd(pRoot) );
 
@@ -481,30 +480,14 @@ unsigned Ga2_ObjComputeTruthSpecial( Gia_Man_t * p, Gia_Obj_t * pRoot, Vec_Int_t
     // assign elementary truth tables
     Gia_ManForEachObjVec( vLeaves, p, pObj, i )
     {
-        pMap[i] = i;
         Entry = Vec_IntEntry( vLits, i );
         assert( Entry >= 0 );
         if ( Entry == 0 )
-            pObj->Value = uLeaves[i] = 0;
+            pObj->Value = 0;
         else if ( Entry == 1 )
-            pObj->Value = uLeaves[i] = ~0;
+            pObj->Value = ~0;
         else // non-trivial literal
-        {
-            pObj->Value = uLeaves[i] = uTruth5[i];
-            // check if this literal already encountered
-            Vec_IntForEachEntryStop( vLits, Lit, k, i )
-                if ( Abc_Lit2Var(Lit) == Abc_Lit2Var(Entry) )
-                {
-                    if ( Lit == Entry )
-                        pObj->Value = uLeaves[i] = uLeaves[k];
-                    else if ( Lit == Abc_LitNot(Entry) )
-                        pObj->Value = uLeaves[i] = ~uLeaves[k];
-                    else assert( 0 );
-                    pMap[i] = k;
-                    break;
-                }
-        }
-
+            pObj->Value = uTruth5[i];
         if ( fVerbose )
         printf( "%d ", Entry );
     }
@@ -526,7 +509,7 @@ unsigned Ga2_ObjComputeTruthSpecial( Gia_Man_t * p, Gia_Obj_t * pRoot, Vec_Int_t
             if ( Ga2_ObjTruthDepends( Res, i ) )
                 pUsed[nUsed++] = i;
         assert( nUsed > 0 );
-        // order the by literal value
+        // order positions by literal value
         Vec_IntSelectSortCost( pUsed, nUsed, vLits );
         assert( Vec_IntEntry(vLits, pUsed[0]) <= Vec_IntEntry(vLits, pUsed[nUsed-1]) );
         // assign elementary truth tables to the leaves
@@ -552,11 +535,6 @@ unsigned Ga2_ObjComputeTruthSpecial( Gia_Man_t * p, Gia_Obj_t * pRoot, Vec_Int_t
             pUsed[i] = Abc_LitRegular(Entry);
 //            pUsed[i] = Entry;
         }
-        // update using the map
-        Gia_ManForEachObjVec( vLeaves, p, pObj, i )
-            if ( pMap[i] != i )
-                pObj->Value = Gia_ManObj( p, Vec_IntEntry(vLeaves, pMap[i]) )->Value;
-
         // compute truth table
         Res = Ga2_ObjComputeTruth_rec( p, pRoot, 1 );
         // reload the literals
@@ -1322,6 +1300,70 @@ void Ga2_ManAbsPrintFrame( Ga2_Man_t * p, int nFrames, int nConfls, int nCexes, 
 
 /**Function*************************************************************
 
+  Synopsis    [Send abstracted model or send cancel.]
+
+  Description [Counter-example will be sent automatically when &vta terminates.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ga2_GlaDumpAbsracted( Ga2_Man_t * p, int fVerbose )
+{
+    char * pFileNameDef = "glabs.aig";
+    char * pFileName = p->pPars->pFileVabs ? p->pPars->pFileVabs : pFileNameDef;
+    Gia_Man_t * pAbs;
+    Vec_Int_t * vGateClasses;
+    if ( fVerbose )
+        Abc_Print( 1, "Dumping abstracted model into file \"%s\"...\n", pFileName );
+    // create abstraction
+    vGateClasses = Ga2_ManAbsTranslate( p );
+    pAbs = Gia_ManDupAbsGates( p->pGia, vGateClasses );
+    Vec_IntFreeP( &vGateClasses );
+    // write into file
+    Gia_WriteAiger( pAbs, pFileName, 0, 0 );
+    Gia_ManStop( pAbs );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Send abstracted model or send cancel.]
+
+  Description [Counter-example will be sent automatically when &vta terminates.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_Ga2SendAbsracted( Ga2_Man_t * p, int fVerbose )
+{
+    extern int Gia_ManToBridgeAbsNetlist( FILE * pFile, Gia_Man_t * p );
+    Gia_Man_t * pAbs;
+    Vec_Int_t * vGateClasses;
+    assert( Abc_FrameIsBridgeMode() );
+//    if ( fVerbose )
+//        Abc_Print( 1, "Sending abstracted model...\n" );
+    // create abstraction (value of p->pGia is not used here)
+    vGateClasses = Ga2_ManAbsTranslate( p );
+    pAbs = Gia_ManDupAbsGates( p->pGia, vGateClasses );
+    Vec_IntFreeP( &vGateClasses );
+    // send it out
+    Gia_ManToBridgeAbsNetlist( stdout, pAbs );
+    Gia_ManStop( pAbs );
+}
+void Gia_Ga2SendCancel( Ga2_Man_t * p, int fVerbose )
+{
+    extern int Gia_ManToBridgeBadAbs( FILE * pFile );
+    assert( Abc_FrameIsBridgeMode() );
+//    if ( fVerbose )
+//        Abc_Print( 1, "Cancelling previously sent model...\n" );
+    Gia_ManToBridgeBadAbs( stdout );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Performs gate-level abstraction.]
 
   Description []
@@ -1336,7 +1378,7 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
     Ga2_Man_t * p;
     Vec_Int_t * vCore, * vPPis;
     clock_t clk2, clk = clock();
-    int Status, RetValue = -1;
+    int Status, RetValue = -1, fOneIsSent = 0;
     int i, c, f, Lit;
     // check trivial case 
     assert( Gia_ManPoNum(pAig) == 1 ); 
@@ -1345,11 +1387,11 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
     {
         if ( !Gia_ObjFaninC0(Gia_ManPo(pAig,0)) )
         {
-            printf( "Sequential miter is trivially UNSAT.\n" );
+            Abc_Print( 1, "Sequential miter is trivially UNSAT.\n" );
             return 1;
         }
         pAig->pCexSeq = Abc_CexMakeTriv( Gia_ManRegNum(pAig), Gia_ManPiNum(pAig), 1, 0 );
-        printf( "Sequential miter is trivially SAT.\n" );
+        Abc_Print( 1, "Sequential miter is trivially SAT.\n" );
         return 0;
     }
     // create gate classes if not given
@@ -1425,6 +1467,13 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
                         goto finish;
                     }
 
+                    // cancel old one if it was sent
+                    if ( Abc_FrameIsBridgeMode() && fOneIsSent )
+                    {
+                        Gia_Ga2SendCancel( p, pPars->fVerbose );
+                        fOneIsSent = 0;
+                    }
+
                     if ( c == 0 )
                     {
                         // create bookmark to be used for rollback
@@ -1452,8 +1501,8 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
                     if ( pPars->fVerbose )
                         Ga2_ManAbsPrintFrame( p, f, sat_solver2_nconflicts(p->pSat)-nConflsBeg, c+1, clock() - clk, 0 );
                     // verify
-                    if ( Vec_IntCheckUnique(p->vAbs) )
-                        printf( "Vector has %d duplicated entries.\n", Vec_IntCheckUnique(p->vAbs) );
+//                    if ( Vec_IntCheckUnique(p->vAbs) )
+//                        Abc_Print( 1, "Vector has %d duplicated entries.\n", Vec_IntCheckUnique(p->vAbs) );
                     continue;
                 }
                 p->timeUnsat += clock() - clk2;
@@ -1476,8 +1525,8 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
                 Ga2_ManAddToAbs( p, vCore );
                 Vec_IntFree( vCore );
                 // verify
-                if ( Vec_IntCheckUnique(p->vAbs) )
-                    printf( "Vector has %d duplicated entries.\n", Vec_IntCheckUnique(p->vAbs) );
+//                if ( Vec_IntCheckUnique(p->vAbs) )
+//                    Abc_Print( 1, "Vector has %d duplicated entries.\n", Vec_IntCheckUnique(p->vAbs) );
                 break;
             }
             if ( pPars->fVerbose )
@@ -1486,10 +1535,30 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
             {
                 Vec_IntFreeP( &pAig->vGateClasses );
                 pAig->vGateClasses = Ga2_ManAbsTranslate( p );
-//                printf( "\n" );
+
+                if ( Abc_FrameIsBridgeMode() )
+                {
+                    // cancel old one if it was sent
+                    if ( fOneIsSent )
+                        Gia_Ga2SendCancel( p, pPars->fVerbose );
+                    // send new one 
+                    Gia_Ga2SendAbsracted( p, pPars->fVerbose );
+                    fOneIsSent = 1;
+                }
+
+                // dump the model into file
+                if ( p->pPars->fDumpVabs )
+                {
+                    Abc_FrameSetCex( NULL );
+                    Abc_FrameSetNFrames( f+1 );
+                    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "write_status gla.status" );
+                    Ga2_GlaDumpAbsracted( p, pPars->fVerbose );
+                }
+
                 break;  // temporary
             }
         }
+
         // check if the number of objects is below limit
         if ( Vec_IntSize(p->vAbs) >= p->nMarked * (100 - pPars->nRatioMin) / 100 )
         {

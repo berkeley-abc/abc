@@ -1289,6 +1289,18 @@ int sat_solver2_addclause(sat_solver2* s, lit* begin, lit* end, int Id)
     }
     sat_solver2_setnvars(s,maxvar+1);
 
+
+    // delete duplicates
+    for (i = j = begin + 1; i < end; i++)
+    {
+        if ( *(i-1) == lit_neg(*i) ) // tautology
+            return clause2_create_new( s, begin, end, 0, 0 ); // add it anyway, to preserve proper clause count       
+        if ( *(i-1) != *i )
+            *j++ = *i;
+    }
+    end = j;
+    assert( begin < end );
+
     // coount the number of 0-literals
     count = 0;
     for ( i = begin; i < end; i++ )
