@@ -28112,7 +28112,7 @@ int Abc_CommandAbc9Gla( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c, fStartVta = 0, fNewAlgo = 0;
     Gia_VtaSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FSPCLDETRAtrfkadnvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FSPCLDETRAtrfkadnscbvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -28245,6 +28245,15 @@ int Abc_CommandAbc9Gla( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'n':
             fNewAlgo ^= 1;
             break;
+        case 's':
+            pPars->fUseSkip ^= 1;
+            break;
+        case 'c':
+            pPars->fUseSimple ^= 1;
+            break;
+        case 'b':
+            pPars->fUseHash ^= 1;
+            break;
         case 'v':
             pPars->fVerbose ^= 1;
             break;
@@ -28290,7 +28299,7 @@ int Abc_CommandAbc9Gla( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &gla [-FSCLDETR num] [-A file] [-fkadnvh]\n" );
+    Abc_Print( -2, "usage: &gla [-FSCLDETR num] [-A file] [-fkadnscbvh]\n" );
     Abc_Print( -2, "\t          fixed-time-frame gate-level proof- and cex-based abstraction\n" );
     Abc_Print( -2, "\t-F num  : the max number of timeframes to unroll [default = %d]\n", pPars->nFramesMax );
     Abc_Print( -2, "\t-S num  : the starting time frame (0=unused) [default = %d]\n", pPars->nFramesStart );
@@ -28306,10 +28315,14 @@ usage:
     Abc_Print( -2, "\t-a      : toggle refinement by adding one layers of gates [default = %s]\n", pPars->fAddLayer? "yes": "no" );
     Abc_Print( -2, "\t-d      : toggle dumping abstracted model into a file [default = %s]\n", pPars->fDumpVabs? "yes": "no" );
     Abc_Print( -2, "\t-n      : toggle using new algorithms [default = %s]\n", fNewAlgo? "yes": "no" );
+    Abc_Print( -2, "\t-s      : toggle skipping previously proved timeframes [default = %s]\n", pPars->fUseSkip? "yes": "no" );
+    Abc_Print( -2, "\t-c      : toggle using naive (2-input AND node) CNF encoding [default = %s]\n", pPars->fUseSimple? "yes": "no" );
+    Abc_Print( -2, "\t-b      : toggle using hashing during CNF construction [default = %s]\n", pPars->fUseHash? "yes": "no" );
     Abc_Print( -2, "\t-v      : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h      : print the command usage\n");
     return 1;
 } 
+
 
 /**Function*************************************************************
 

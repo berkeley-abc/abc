@@ -224,6 +224,9 @@ struct Gia_ParVta_t_
     int            fUseRollback;  // use rollback to the starting number of frames
     int            fPropFanout;   // propagate fanout implications
     int            fAddLayer;     // refinement strategy by adding layers
+    int            fUseSkip;
+    int            fUseSimple;
+    int            fUseHash;
     int            fDumpVabs;     // dumps the abstracted model
     char *         pFileVabs;     // dumps the abstracted model into this file
     int            fVerbose;      // verbose flag

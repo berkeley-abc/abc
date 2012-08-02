@@ -237,9 +237,8 @@ void Ga2_ManCollectLeaves_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vLea
     Ga2_ManCollectLeaves_rec( p, Gia_ObjFanin0(pObj), vLeaves, 0 );
     Ga2_ManCollectLeaves_rec( p, Gia_ObjFanin1(pObj), vLeaves, 0 );
 }
-int Ga2_ManMarkup( Gia_Man_t * p, int N )
+int Ga2_ManMarkup( Gia_Man_t * p, int N, int fSimple )
 {
-    int fSimple = 0;
     static unsigned uTruth5[5] = { 0xAAAAAAAA, 0xCCCCCCCC, 0xF0F0F0F0, 0xFF00FF00, 0xFFFF0000 };
     clock_t clk = clock();
     Vec_Int_t * vLeaves;
@@ -339,7 +338,7 @@ void Ga2_ManComputeTest( Gia_Man_t * p )
     Gia_Obj_t * pObj;
     int i, Counter = 0;
     clk = clock();
-    Ga2_ManMarkup( p, 5 );
+    Ga2_ManMarkup( p, 5, 0 );
     Abc_PrintTime( 1, "Time", clock() - clk );
     Gia_ManForEachAnd( p, pObj, i )
     {
@@ -375,7 +374,7 @@ Ga2_Man_t * Ga2_ManStart( Gia_Man_t * pGia, Gia_ParVta_t * pPars )
     p->pGia      = pGia;
     p->pPars     = pPars;
     // markings 
-    p->nMarked   = Ga2_ManMarkup( pGia, 5 );
+    p->nMarked   = Ga2_ManMarkup( pGia, 5, pPars->fUseSimple );
     p->vCnfs     = Vec_PtrAlloc( 1000 );
     Vec_PtrPush( p->vCnfs, Vec_IntAlloc(0) );
     Vec_PtrPush( p->vCnfs, Vec_IntAlloc(0) );
@@ -885,8 +884,8 @@ static inline void Ga2_ManAddToAbsOneDynamic( Ga2_Man_t * p, Gia_Obj_t * pObj, i
             }
             else
             {
-                int fUseHash = 0;
-                if ( fUseHash )
+//                int fUseHash = 1;
+                if ( p->pPars->fUseHash )
                 {
                     int * pLookup, nSize = Vec_IntSize(p->vLits);
                     assert( Vec_IntSize(p->vLits) < 5 );
@@ -1087,6 +1086,8 @@ void Ga2_ManRestart( Ga2_Man_t * p )
     // set runtime limit
     if ( p->pPars->nTimeOut )
         sat_solver2_set_runtime_limit( p->pSat, p->pPars->nTimeOut * CLOCKS_PER_SEC + p->timeStart );
+    // clean the hash table
+    memset( p->pTable, 0, 6 * sizeof(int) * p->nTable );
 }
 
 /**Function*************************************************************
@@ -1374,7 +1375,7 @@ void Ga2_ManAbsPrintFrame( Ga2_Man_t * p, int nFrames, int nConfls, int nCexes, 
     Abc_PrintInt( sat_solver2_nlearnts(p->pSat) );
     Abc_Print( 1, "%9.2f sec", 1.0*Time/CLOCKS_PER_SEC );
     Abc_Print( 1, "%5.1f GB", (sat_solver2_memory_proof(p->pSat) + sat_solver2_memory(p->pSat, 0)) / (1<<30) );
-    Abc_Print( 1, "%s", (fFinal && nCexes) ? "\n" : "\r" );
+    Abc_Print( 1, "%s", (fFinal && nCexes) ? "\n" : "\n" );
     fflush( stdout );
 }
 
@@ -1459,7 +1460,7 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
     Vec_Int_t * vCore, * vPPis;
     clock_t clk2, clk = clock();
     int Status, RetValue = -1, fOneIsSent = 0;
-    int i, c, f, Lit;
+    int i, c, f, Lit, iFrameProved = -1;
     // check trivial case 
     assert( Gia_ManPoNum(pAig) == 1 ); 
     ABC_FREE( pAig->pCexSeq );
@@ -1523,6 +1524,8 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
             assert( Lit >= 0 );
             Lit = Abc_LitNotCond( Lit, Gia_ObjFaninC0(Gia_ManPo(pAig,0)) );
             if ( Lit == 0 )
+                continue;
+            if ( p->pPars->fUseSkip && f <= iFrameProved )
                 continue;
             assert( Lit > 1 );
             // check for counter-examples
@@ -1635,6 +1638,8 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
                     Ga2_GlaDumpAbsracted( p, pPars->fVerbose );
                 }
 
+                iFrameProved = f;
+                printf( "\n" );
                 break;  // temporary
             }
         }
