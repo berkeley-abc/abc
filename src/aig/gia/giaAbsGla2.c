@@ -1375,7 +1375,7 @@ void Ga2_ManAbsPrintFrame( Ga2_Man_t * p, int nFrames, int nConfls, int nCexes, 
     Abc_PrintInt( sat_solver2_nlearnts(p->pSat) );
     Abc_Print( 1, "%9.2f sec", 1.0*Time/CLOCKS_PER_SEC );
     Abc_Print( 1, "%5.1f GB", (sat_solver2_memory_proof(p->pSat) + sat_solver2_memory(p->pSat, 0)) / (1<<30) );
-    Abc_Print( 1, "%s", (fFinal && nCexes) ? "\n" : "\n" );
+    Abc_Print( 1, "%s", (fFinal && nCexes) ? "\n" : "\r" );
     fflush( stdout );
 }
 
@@ -1639,7 +1639,7 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
                 }
 
                 iFrameProved = f;
-                printf( "\n" );
+//                printf( "\n" );
                 break;  // temporary
             }
         }
