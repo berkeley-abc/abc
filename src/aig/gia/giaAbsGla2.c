@@ -57,6 +57,12 @@ struct Ga2_Man_t_
     int            nSatVars;     // the number of SAT variables
     int            nCexes;       // the number of counter-examples
     int            nObjAdded;    // objs added during refinement
+    // hash table
+    int *          pTable;
+    int            nTable;
+    int            nHashHit;
+    int            nHashMiss;
+    int            nHashOver;
     // temporaries
     Vec_Int_t *    vLits;
     Vec_Int_t *    vIsopMem;
@@ -390,6 +396,9 @@ Ga2_Man_t * Ga2_ManStart( Gia_Man_t * pGia, Gia_ParVta_t * pPars )
     p->vLits     = Vec_IntAlloc( 100 );
     p->vIsopMem  = Vec_IntAlloc( 100 );
     Cnf_ReadMsops( &p->pSopSizes, &p->pSops );
+    // hash table
+    p->nTable = 1000003;
+    p->pTable = ABC_CALLOC( int, 6 * p->nTable ); // 2.4 MB
     return p;
 }
 void Ga2_ManReportMemory( Ga2_Man_t * p )
@@ -427,6 +436,9 @@ void Ga2_ManStop( Ga2_Man_t * p )
             sat_solver2_nvars(p->pSat), sat_solver2_nclauses(p->pSat), 
             sat_solver2_nconflicts(p->pSat), sat_solver2_nlearnts(p->pSat), 
             p->pSat->nDBreduces, p->nCexes, p->nObjAdded );
+    Abc_Print( 1, "Hash hits = %d.  Hash misses = %d.  Hash overs = %d.\n", 
+        p->nHashHit, p->nHashMiss, p->nHashOver );
+
     if( p->pSat ) sat_solver2_delete( p->pSat );
     Vec_VecFree( (Vec_Vec_t *)p->vCnfs );
     Vec_VecFree( (Vec_Vec_t *)p->vId2Lit );
@@ -437,6 +449,7 @@ void Ga2_ManStop( Ga2_Man_t * p )
     Vec_IntFree( p->vLits );
     Vec_IntFree( p->vIsopMem );
     Rnm_ManStop( p->pRnm, 1 );
+    ABC_FREE( p->pTable );
     ABC_FREE( p->pSopSizes );
     ABC_FREE( p->pSops[1] );
     ABC_FREE( p->pSops );
@@ -679,6 +692,43 @@ static inline void Ga2_ManCnfAddStatic( Ga2_Man_t * p, Vec_Int_t * vCnf0, Vec_In
   SeeAlso     []
 
 ***********************************************************************/
+static inline unsigned Saig_ManBmcHashKey( int * pArray )
+{
+    static int s_Primes[5] = { 12582917, 25165843, 50331653, 100663319, 201326611 };
+    unsigned i, Key = 0;
+    for ( i = 0; i < 5; i++ )
+        Key += pArray[i] * s_Primes[i];
+    return Key;
+}
+static inline int * Saig_ManBmcLookup( Ga2_Man_t * p, int * pArray )
+{
+    int * pTable = p->pTable + 6 * (Saig_ManBmcHashKey(pArray) % p->nTable);
+    if ( memcmp( pTable, pArray, 20 ) )
+    {
+        if ( pTable[0] == 0 )
+            p->nHashMiss++;
+        else
+            p->nHashOver++;
+        memcpy( pTable, pArray, 20 );
+        pTable[5] = 0;
+    }
+    else
+        p->nHashHit++;
+    assert( pTable + 5 < pTable + 6 * p->nTable );
+    return pTable + 5;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 static inline void Ga2_ManSetupNode( Ga2_Man_t * p, Gia_Obj_t * pObj, int fAbs )
 {
     unsigned uTruth;
@@ -826,15 +876,45 @@ static inline void Ga2_ManAddToAbsOneDynamic( Ga2_Man_t * p, Gia_Obj_t * pObj, i
                     Vec_IntWriteEntry( p->vLits, i, Lit );
                 }
             }
-            // perform structural hashing here!!!
-
 
             // add new nodes
-            Lit = Ga2_ObjFindOrAddLit(p, pObj, f);
             if ( Vec_IntSize(p->vLits) == 5 )
+            {
+                Lit = Ga2_ObjFindOrAddLit(p, pObj, f);
                 Ga2_ManCnfAddStatic( p, Ga2_ObjCnf0(p, pObj), Ga2_ObjCnf1(p, pObj), pLits, Lit, -1 );
+            }
             else
-                Ga2_ManCnfAddDynamic( p, uTruth & 0xFFFF, Vec_IntArray(p->vLits), Lit, -1 );
+            {
+                int fUseHash = 0;
+                if ( fUseHash )
+                {
+                    int * pLookup, nSize = Vec_IntSize(p->vLits);
+                    assert( Vec_IntSize(p->vLits) < 5 );
+                    assert( Vec_IntEntry(p->vLits, 0) < Vec_IntEntryLast(p->vLits) );
+                    assert( Ga2_ObjFindLit(p, pObj, f) == -1 );
+                    for ( i = Vec_IntSize(p->vLits); i < 4; i++ )
+                        Vec_IntPush( p->vLits, GA2_BIG_NUM );
+                    Vec_IntPush( p->vLits, (int)uTruth );
+                    assert( Vec_IntSize(p->vLits) == 5 );
+
+                    // perform structural hashing here!!!
+                    pLookup = Saig_ManBmcLookup( p, Vec_IntArray(p->vLits) );
+                    if ( *pLookup == 0 )
+                    {
+                        *pLookup = Ga2_ObjFindOrAddLit(p, pObj, f);
+                        Vec_IntShrink( p->vLits, nSize );
+                        Ga2_ManCnfAddDynamic( p, uTruth & 0xFFFF, Vec_IntArray(p->vLits), *pLookup, -1 );
+                    }
+                    else
+                        Ga2_ObjAddLit( p, pObj, f, *pLookup );
+
+                }
+                else
+                {
+                    Lit = Ga2_ObjFindOrAddLit(p, pObj, f);
+                    Ga2_ManCnfAddDynamic( p, uTruth & 0xFFFF, Vec_IntArray(p->vLits), Lit, -1 );
+                }
+            }
         }
     }
 }
