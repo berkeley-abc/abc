@@ -30,7 +30,7 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-#define GA2_BIG_NUM 0x3FFFFFFF
+#define GA2_BIG_NUM 0x3FFFFFF0
 
 typedef struct Ga2_Man_t_ Ga2_Man_t; // manager
 struct Ga2_Man_t_
@@ -796,6 +796,7 @@ static inline void Ga2_ManAddToAbsOneDynamic( Ga2_Man_t * p, Gia_Obj_t * pObj, i
     Gia_Obj_t * pLeaf;
     unsigned uTruth;
     int i, Lit;
+
     assert( Ga2_ObjIsAbs0(p, pObj) );
     assert( Gia_ObjIsConst0(pObj) || Gia_ObjIsRo(p->pGia, pObj) || Gia_ObjIsAnd(pObj) );
     if ( Gia_ObjIsConst0(pObj) || (f == 0 && Gia_ObjIsRo(p->pGia, pObj)) )
@@ -814,7 +815,6 @@ static inline void Ga2_ManAddToAbsOneDynamic( Ga2_Man_t * p, Gia_Obj_t * pObj, i
     }
     else
     {
-        int pLits[5];
         assert( Gia_ObjIsAnd(pObj) );
         Vec_IntClear( p->vLits );
         vLeaves = Ga2_ObjLeaves( p->pGia, pObj );
@@ -827,16 +827,16 @@ static inline void Ga2_ManAddToAbsOneDynamic( Ga2_Man_t * p, Gia_Obj_t * pObj, i
             }
             else if ( Ga2_ObjIsLeaf0(p, pLeaf) ) // belongs to original PPIs
             {
-//                Lit = Ga2_ObjFindLit( p, pLeaf, f );
-                Lit = Ga2_ObjFindOrAddLit( p, pLeaf, f );
+                Lit = Ga2_ObjFindLit( p, pLeaf, f );
+//                Lit = Ga2_ObjFindOrAddLit( p, pLeaf, f );
                 if ( Lit == -1 )
                 {
-                    Lit = GA2_BIG_NUM + i;
-                    assert( 0 );
+                    Lit = GA2_BIG_NUM + 2*i;
+//                    assert( 0 );
                 }
             }
             else assert( 0 );
-            Vec_IntPush( p->vLits, (pLits[i] = Lit) );
+            Vec_IntPush( p->vLits, Lit );
         }
 
         // minimize truth table
@@ -851,7 +851,7 @@ static inline void Ga2_ManAddToAbsOneDynamic( Ga2_Man_t * p, Gia_Obj_t * pObj, i
             Lit = Vec_IntEntry( p->vLits, 0 );
             if ( Lit >= GA2_BIG_NUM )
             {
-                pLeaf = Gia_ManObj( p->pGia, Vec_IntEntry(vLeaves, Lit-GA2_BIG_NUM) );
+                pLeaf = Gia_ManObj( p->pGia, Vec_IntEntry(vLeaves, (Lit-GA2_BIG_NUM)/2) );
                 Lit = Ga2_ObjFindLit( p, pLeaf, f );
                 assert( Lit == -1 );
                 Lit = Ga2_ObjFindOrAddLit( p, pLeaf, f );
@@ -859,6 +859,7 @@ static inline void Ga2_ManAddToAbsOneDynamic( Ga2_Man_t * p, Gia_Obj_t * pObj, i
             assert( Lit >= 0 );
             Lit = Abc_LitNotCond( Lit, uTruth == 0x55555555 );
             Ga2_ObjAddLit( p, pObj, f, Lit );
+            assert( Lit < 10000000 );
         }
         else
         {
@@ -868,24 +869,28 @@ static inline void Ga2_ManAddToAbsOneDynamic( Ga2_Man_t * p, Gia_Obj_t * pObj, i
             {
                 if ( Lit >= GA2_BIG_NUM )
                 {
-                    pLeaf = Gia_ManObj( p->pGia, Vec_IntEntry(vLeaves, Lit-GA2_BIG_NUM) );
+                    pLeaf = Gia_ManObj( p->pGia, Vec_IntEntry(vLeaves, (Lit-GA2_BIG_NUM)/2) );
                     Lit = Ga2_ObjFindLit( p, pLeaf, f );
                     assert( Lit == -1 );
                     Lit = Ga2_ObjFindOrAddLit( p, pLeaf, f );
                     Vec_IntWriteEntry( p->vLits, i, Lit );
                 }
+                assert( Lit < 10000000 );
             }
 
             // add new nodes
             if ( Vec_IntSize(p->vLits) == 5 )
             {
+                Vec_IntClear( p->vLits );
+                Gia_ManForEachObjVec( vLeaves, p->pGia, pLeaf, i )
+                    Vec_IntPush( p->vLits, Ga2_ObjFindOrAddLit( p, pLeaf, f ) );
                 Lit = Ga2_ObjFindOrAddLit(p, pObj, f);
-                Ga2_ManCnfAddStatic( p, Ga2_ObjCnf0(p, pObj), Ga2_ObjCnf1(p, pObj), pLits, Lit, -1 );
+                Ga2_ManCnfAddStatic( p, Ga2_ObjCnf0(p, pObj), Ga2_ObjCnf1(p, pObj), Vec_IntArray(p->vLits), Lit, -1 );
             }
             else
             {
 //                int fUseHash = 1;
-                if ( p->pPars->fUseHash )
+                if ( !p->pPars->fSkipHash )
                 {
                     int * pLookup, nSize = Vec_IntSize(p->vLits);
                     assert( Vec_IntSize(p->vLits) < 5 );
@@ -1374,7 +1379,7 @@ void Ga2_ManAbsPrintFrame( Ga2_Man_t * p, int nFrames, int nConfls, int nCexes, 
     Abc_PrintInt( sat_solver2_nclauses(p->pSat) );
     Abc_PrintInt( sat_solver2_nlearnts(p->pSat) );
     Abc_Print( 1, "%9.2f sec", 1.0*Time/CLOCKS_PER_SEC );
-    Abc_Print( 1, "%5.1f GB", (sat_solver2_memory_proof(p->pSat) + sat_solver2_memory(p->pSat, 0)) / (1<<30) );
+    Abc_Print( 1, "%5.0f MB", (sat_solver2_memory_proof(p->pSat) + sat_solver2_memory(p->pSat, 0)) / (1<<20) );
     Abc_Print( 1, "%s", ((fFinal && nCexes) || p->pPars->fVeryVerbose) ? "\n" : "\r" );
     fflush( stdout );
 }
@@ -1654,6 +1659,7 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
     }
 finish:
     Prf_ManStopP( &p->pSat->pPrf2 );
+    Abc_Print( 1, "\n" );
     // analize the results
     if ( pAig->pCexSeq == NULL )
     {

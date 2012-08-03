@@ -226,7 +226,7 @@ struct Gia_ParVta_t_
     int            fAddLayer;     // refinement strategy by adding layers
     int            fUseSkip;
     int            fUseSimple;
-    int            fUseHash;
+    int            fSkipHash;
     int            fDumpVabs;     // dumps the abstracted model
     char *         pFileVabs;     // dumps the abstracted model into this file
     int            fVerbose;      // verbose flag

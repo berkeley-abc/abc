@@ -28252,7 +28252,7 @@ int Abc_CommandAbc9Gla( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->fUseSimple ^= 1;
             break;
         case 'b':
-            pPars->fUseHash ^= 1;
+            pPars->fSkipHash ^= 1;
             break;
         case 'v':
             pPars->fVerbose ^= 1;
@@ -28320,7 +28320,7 @@ usage:
     Abc_Print( -2, "\t-n      : toggle using new algorithms [default = %s]\n", fNewAlgo? "yes": "no" );
     Abc_Print( -2, "\t-s      : toggle skipping previously proved timeframes [default = %s]\n", pPars->fUseSkip? "yes": "no" );
     Abc_Print( -2, "\t-c      : toggle using naive (2-input AND node) CNF encoding [default = %s]\n", pPars->fUseSimple? "yes": "no" );
-    Abc_Print( -2, "\t-b      : toggle using hashing during CNF construction [default = %s]\n", pPars->fUseHash? "yes": "no" );
+    Abc_Print( -2, "\t-b      : toggle CNF construction without hashing [default = %s]\n", pPars->fSkipHash? "yes": "no" );
     Abc_Print( -2, "\t-v      : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w      : toggle printing more verbose information [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h      : print the command usage\n");

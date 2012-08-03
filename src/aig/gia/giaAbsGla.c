@@ -1734,11 +1734,11 @@ void Gla_ManAbsPrintFrame( Gla_Man_t * p, int nCoreSize, int nFrames, int nConfl
     Abc_PrintInt( sat_solver2_nlearnts(p->pSat) );
 //    Abc_Print( 1, " %6d", nCoreSize > 0 ? nCoreSize : 0 ); 
     Abc_Print( 1, "%9.2f sec", 1.0*Time/CLOCKS_PER_SEC );
-    Abc_Print( 1, "%5.1f GB", (sat_solver2_memory_proof(p->pSat) + sat_solver2_memory(p->pSat, 0)) / (1<<30) );
+    Abc_Print( 1, "%5.0f MB", (sat_solver2_memory_proof(p->pSat) + sat_solver2_memory(p->pSat, 0)) / (1<<20) );
 //    Abc_PrintInt( p->nAbsNew );
 //    Abc_PrintInt( p->nLrnNew );
 //    Abc_Print( 1, "%4.1f MB", 4.0 * p->nLrnNew * Abc_BitWordNum(p->nAbsNew) / (1<<20) );
-    Abc_Print( 1, "%s", nCoreSize > 0 ? "\n" : "\r" );
+    Abc_Print( 1, "%s", (nCoreSize > 0 && nCexes > 0) ? "\n" : "\r" );
     fflush( stdout );
 }
 void Gla_ManReportMemory( Gla_Man_t * p )
