@@ -1015,7 +1015,7 @@ void Ga2_ManShrinkAbs( Ga2_Man_t * p, int nAbs, int nValues, int nSatVars )
     Vec_PtrForEachEntry( Vec_Int_t *, p->vId2Lit, vMap, i )
     {
         Vec_IntShrink( vMap, nValues );
-        Vec_IntForEachEntry( vMap, Entry, k )
+        Vec_IntForEachEntryStart( vMap, Entry, k, p->LimAbs )
             if ( Entry >= 2*nSatVars )
                 Vec_IntWriteEntry( vMap, k, -1 );
     }
@@ -1107,114 +1107,7 @@ void Ga2_ManRestart( Ga2_Man_t * p )
     memset( p->pTable, 0, 6 * sizeof(int) * p->nTable );
 }
 
-/**Function*************************************************************
 
-  Synopsis    [Unrolls one timeframe.]`
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-/*
-int Ga2_ManUnroll_rec( Ga2_Man_t * p, Gia_Obj_t * pObj, int f )
-{
-    int fSimple = 1;
-    int Id = Gia_ObjId(p->pGia, pObj);
-    unsigned uTruth;
-    Gia_Obj_t * pLeaf;
-    int nLeaves, * pLeaves;
-    int i, Lit, pLits[5];
-    if ( Gia_ObjIsConst0(pObj) || (f==0 && Gia_ObjIsRo(p->pGia, pObj)) )
-    {
-        if ( fSimple )
-        {
-            Lit = Ga2_ObjFindOrAddLit( p, pObj, f );
-            Lit = Abc_LitNot(Lit);
-            assert( Lit > 1 );
-            sat_solver2_addclause( p->pSat, &Lit, &Lit + 1, -1 );
-            return Abc_LitNot(Lit);
-        }
-        return 0;
-    }
-    if ( Gia_ObjIsCo(pObj) )
-        return Abc_LitNotCond( Ga2_ManUnroll_rec(p, Gia_ObjFanin0(pObj), f), Gia_ObjFaninC0(pObj) );
-    assert( pObj->fPhase );
-    if ( Ga2_ObjIsLeaf0(p, pObj) )
-        return Ga2_ObjFindOrAddLit( p, pObj, f );
-    assert( !Gia_ObjIsPi(p->pGia, pObj) );
-    Lit = Ga2_ObjFindLit( p, pObj, f );
-    if ( Lit >= 0 )
-        return Lit;
-    if ( Gia_ObjIsRo(p->pGia, pObj) )
-    {
-        assert( f > 0 );
-        Lit = Ga2_ManUnroll_rec( p, Gia_ObjRoToRi(p->pGia, pObj), f-1 );
-        Ga2_ObjAddLit( p, pObj, f, Lit );
-        return Lit;
-    }
-    assert( Gia_ObjIsAnd(pObj) );
-    nLeaves = Ga2_ObjLeaveNum( p->pGia, pObj );
-    pLeaves = Ga2_ObjLeavePtr( p->pGia, pObj );
-    if ( fSimple )
-    {
-        // collect fanin literals
-        for ( i = 0; i < nLeaves; i++ )
-        {
-            pLeaf = Gia_ManObj(p->pGia, pLeaves[i]);
-            pLits[i] = Ga2_ManUnroll_rec( p, pLeaf, f );
-        }
-        // create fanout literal
-        Lit = Ga2_ObjFindOrAddLit( p, pObj, f );
-        // create clauses
-        Ga2_ManCnfAddStatic( p, Ga2_ObjCnf0(p, pObj), Ga2_ObjCnf1(p, pObj), pLits, Lit, Gia_ObjId(p->pGia, pObj) );
-        return Lit;
-    }
-    // collect fanin literals
-    for ( i = 0; i < nLeaves; i++ )
-    {
-        pLeaf = Gia_ManObj( p->pGia, pLeaves[i] );
-        if ( Ga2_ObjIsAbs0(p, pLeaf) )      // belongs to original abstraction
-            pLits[i] = Ga2_ManUnroll_rec( p, pLeaf, f );
-        else if ( Ga2_ObjIsLeaf0(p, pLeaf) ) // belongs to original PPIs
-            pLits[i] = GA2_BIG_NUM + i;
-        else assert( 0 );
-    }
-    // collect literals
-    Vec_IntClear( p->vLits );
-    for ( i = 0; i < nLeaves; i++ )
-        Vec_IntPush( p->vLits, pLits[i] );
-    // minimize truth table
-    uTruth = Ga2_ObjComputeTruthSpecial( p->pGia, pObj, Ga2_ObjLeaves(p->pGia, pObj), p->vLits );
-    if ( uTruth == 0 || uTruth == ~0 ) // const 0 / 1
-    {
-        Lit = (uTruth > 0);
-        Ga2_ObjAddLit( p, pObj, f, Lit );
-    }
-    else if ( uTruth == 0xAAAAAAAA || uTruth == 0x55555555 )  // buffer / inverter
-    {
-        Lit = Vec_IntEntry( p->vLits, 0 );
-        if ( Lit >= GA2_BIG_NUM )
-        {
-            pLeaf = Gia_ManObj( p->pGia, pLeaves[Lit-GA2_BIG_NUM] );
-            Lit = Ga2_ObjFindOrAddLit( p, pLeaf, f );
-        }
-        Lit = Abc_LitNotCond( Lit, uTruth == 0x55555555 );
-        Ga2_ObjAddLit( p, pObj, f, Lit );
-    }
-    else
-    {
-        // perform structural hashing here!!!
-
-        // add new node
-        Lit = Ga2_ObjFindOrAddLit(p, pObj, f);
-        Ga2_ManCnfAddDynamic( p, uTruth, Vec_IntArray(p->vLits), Lit );
-    }
-    return Lit;
-}
-*/
 /**Function*************************************************************
 
   Synopsis    []
