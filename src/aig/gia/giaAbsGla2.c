@@ -327,7 +327,7 @@ int Ga2_ManMarkup( Gia_Man_t * p, int N, int fSimple )
         Vec_IntPush( p->vMapping, -1 );  // placeholder for ref counter
         CountMarks++;
     }
-    Abc_PrintTime( 1, "Time", clock() - clk );
+//    Abc_PrintTime( 1, "Time", clock() - clk );
     Vec_IntFree( vLeaves );
     return CountMarks;
 }
@@ -450,7 +450,7 @@ void Ga2_ManStop( Ga2_Man_t * p )
     Vec_IntFree( p->vValues );
     Vec_IntFree( p->vLits );
     Vec_IntFree( p->vIsopMem );
-    Rnm_ManStop( p->pRnm, 1 );
+    Rnm_ManStop( p->pRnm, p->pPars->fVerbose );
     ABC_FREE( p->pTable );
     ABC_FREE( p->pSopSizes );
     ABC_FREE( p->pSops[1] );
@@ -1685,6 +1685,7 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
     }
 finish:
     Prf_ManStopP( &p->pSat->pPrf2 );
+    if ( p->pPars->fVeryVerbose )
     Abc_Print( 1, "\n" );
     // analize the results
     if ( pAig->pCexSeq == NULL )
