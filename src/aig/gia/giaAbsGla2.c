@@ -396,8 +396,8 @@ Ga2_Man_t * Ga2_ManStart( Gia_Man_t * pGia, Gia_ParVta_t * pPars )
     p->vIsopMem  = Vec_IntAlloc( 100 );
     Cnf_ReadMsops( &p->pSopSizes, &p->pSops );
     // hash table
-    p->nTable = 1000003;
-    p->pTable = ABC_CALLOC( int, 6 * p->nTable ); // 2.4 MB
+    p->nTable = Abc_PrimeCudd(1<<18);
+    p->pTable = ABC_CALLOC( int, 6 * p->nTable ); 
     return p;
 }
 void Ga2_ManReportMemory( Ga2_Man_t * p )
@@ -408,6 +408,7 @@ void Ga2_ManReportMemory( Ga2_Man_t * p )
     double memPro = sat_solver2_memory_proof( p->pSat );
     double memMap = Vec_VecMemoryInt( (Vec_Vec_t *)p->vId2Lit );
     double memRef = Rnm_ManMemoryUsage( p->pRnm );
+    double memHash= sizeof(int) * 6 * p->nTable;
     double memOth = sizeof(Ga2_Man_t);
     memOth += Vec_VecMemoryInt( (Vec_Vec_t *)p->vCnfs );
     memOth += Vec_IntMemory( p->vIds );
@@ -417,12 +418,13 @@ void Ga2_ManReportMemory( Ga2_Man_t * p )
     memOth += Vec_IntMemory( p->vLits );
     memOth += Vec_IntMemory( p->vIsopMem );
     memOth += 336450 + (sizeof(char) + sizeof(char*)) * 65536;
-    memTot = memAig + memSat + memPro + memMap + memRef + memOth;
+    memTot = memAig + memSat + memPro + memMap + memRef + memHash + memOth;
     ABC_PRMP( "Memory: AIG      ", memAig, memTot );
     ABC_PRMP( "Memory: SAT      ", memSat, memTot );
     ABC_PRMP( "Memory: Proof    ", memPro, memTot );
     ABC_PRMP( "Memory: Map      ", memMap, memTot );
     ABC_PRMP( "Memory: Refine   ", memRef, memTot );
+    ABC_PRMP( "Memory: Hash     ", memHash,memTot );
     ABC_PRMP( "Memory: Other    ", memOth, memTot );
     ABC_PRMP( "Memory: TOTAL    ", memTot, memTot );
 }
@@ -435,6 +437,7 @@ void Ga2_ManStop( Ga2_Man_t * p )
             sat_solver2_nvars(p->pSat), sat_solver2_nclauses(p->pSat), 
             sat_solver2_nconflicts(p->pSat), sat_solver2_nlearnts(p->pSat), 
             p->pSat->nDBreduces, p->nCexes, p->nObjAdded );
+    if ( p->pPars->fVerbose )
     Abc_Print( 1, "Hash hits = %d.  Hash misses = %d.  Hash overs = %d.\n", 
         p->nHashHit, p->nHashMiss, p->nHashOver );
 
@@ -894,7 +897,7 @@ static inline void Ga2_ManAddToAbsOneDynamic( Ga2_Man_t * p, Gia_Obj_t * pObj, i
                 {
                     int * pLookup, nSize = Vec_IntSize(p->vLits);
                     assert( Vec_IntSize(p->vLits) < 5 );
-                    assert( Vec_IntEntry(p->vLits, 0) < Vec_IntEntryLast(p->vLits) );
+                    assert( Vec_IntEntry(p->vLits, 0) <= Vec_IntEntryLast(p->vLits) );
                     assert( Ga2_ObjFindLit(p, pObj, f) == -1 );
                     for ( i = Vec_IntSize(p->vLits); i < 4; i++ )
                         Vec_IntPush( p->vLits, GA2_BIG_NUM );
@@ -928,7 +931,6 @@ void Ga2_ManAddAbsClauses( Ga2_Man_t * p, int f )
     int fSimple = 0;
     Gia_Obj_t * pObj;
     int i;
-    // add variables for the leaves
     Gia_ManForEachObjVec( p->vValues, p->pGia, pObj, i )
     {
         if ( i == p->LimAbs )
@@ -941,6 +943,7 @@ void Ga2_ManAddAbsClauses( Ga2_Man_t * p, int f )
     Gia_ManForEachObjVec( p->vAbs, p->pGia, pObj, i )
         if ( i >= p->LimAbs )
             Ga2_ManAddToAbsOneStatic( p, pObj, f );
+//    sat_solver2_simplify( p->pSat );
 }
 
 void Ga2_ManAddToAbs( Ga2_Man_t * p, Vec_Int_t * vToAdd )
@@ -970,13 +973,14 @@ void Ga2_ManAddToAbs( Ga2_Man_t * p, Vec_Int_t * vToAdd )
         Gia_ManForEachObjVec( vToAdd, p->pGia, pObj, i )
             Ga2_ManAddToAbsOneStatic( p, pObj, f );
     }
+//    sat_solver2_simplify( p->pSat );
 }
 
 void Ga2_ManShrinkAbs( Ga2_Man_t * p, int nAbs, int nValues, int nSatVars )
 {
     Vec_Int_t * vMap;
     Gia_Obj_t * pObj;
-    int i;
+    int i, k, Entry;
     assert( nAbs > 0 );
     assert( nValues > 0 );
     assert( nSatVars > 0 );
@@ -1004,9 +1008,17 @@ void Ga2_ManShrinkAbs( Ga2_Man_t * p, int nAbs, int nValues, int nSatVars )
     }
     Vec_IntShrink( p->vValues, nValues );
     Vec_PtrShrink( p->vCnfs, 2 * nValues );
+    // hack to clear constant
+    if ( nValues == 1 )
+        nValues = 0;
     // clean mapping for each timeframe
     Vec_PtrForEachEntry( Vec_Int_t *, p->vId2Lit, vMap, i )
-        Vec_IntClear( vMap );
+    {
+        Vec_IntShrink( vMap, nValues );
+        Vec_IntForEachEntry( vMap, Entry, k )
+            if ( Entry >= 2*nSatVars )
+                Vec_IntWriteEntry( vMap, k, -1 );
+    }
     // shrink SAT variables
     p->nSatVars = nSatVars;
 }
@@ -1503,10 +1515,13 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
     // iterate unrolling
     for ( i = f = 0; !pPars->nFramesMax || f < pPars->nFramesMax; i++ )
     {
+        int nAbsOld;
         // remember the timeframe
         p->pPars->iFrame = -1;
         // create new SAT solver
         Ga2_ManRestart( p );
+        // remember abstraction size after the last restart
+        nAbsOld = Vec_IntSize(p->vAbs);
         // unroll the circuit
         for ( f = 0; !pPars->nFramesMax || f < pPars->nFramesMax; f++ )
         {
@@ -1534,7 +1549,8 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
                 continue;
             assert( Lit > 1 );
             // check for counter-examples
-            sat_solver2_setnvars( p->pSat, p->nSatVars );
+//            if ( p->nSatVars > sat_solver2_nvars(p->pSat) )
+//                sat_solver2_setnvars( p->pSat, p->nSatVars );
             nVarsOld = p->nSatVars;
             for ( c = 0; ; c++ )
             {
@@ -1646,7 +1662,17 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
                 iFrameProved = f;
                 if ( p->pPars->fVeryVerbose )
                     Abc_Print( 1, "\n" );
-                break;  // temporary
+
+                // if abstraction grew more than a certain percentage, force a restart
+                if ( pPars->nRatioMax == 0 )
+                    break;
+                if ( Vec_IntSize(p->vAbs) - nAbsOld >= nAbsOld * pPars->nRatioMax / 100 )
+                {
+                    if ( p->pPars->fVeryVerbose )
+                    Abc_Print( 1, "Forcing restart because abstraction grew from %d to %d (more than %d %%).\n", 
+                        nAbsOld, Vec_IntSize(p->vAbs), pPars->nRatioMax );
+                    break;
+                }
             }
         }
 

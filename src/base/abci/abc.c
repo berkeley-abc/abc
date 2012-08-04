@@ -28112,7 +28112,7 @@ int Abc_CommandAbc9Gla( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c, fStartVta = 0, fNewAlgo = 0;
     Gia_VtaSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FSPCLDETRAtrfkadnscbwvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FSCLDETRPAtrfkadnscbwvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -28136,17 +28136,6 @@ int Abc_CommandAbc9Gla( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->nFramesStart = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( pPars->nFramesStart < 0 ) 
-                goto usage;
-            break;
-        case 'P':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-P\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            pPars->nFramesPast = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( pPars->nFramesPast < 0 ) 
                 goto usage;
             break;
         case 'C':
@@ -28213,6 +28202,17 @@ int Abc_CommandAbc9Gla( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->nRatioMin = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( pPars->nRatioMin < 0 ) 
+                goto usage;
+            break;
+        case 'P':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-P\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nRatioMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nRatioMax < 0 ) 
                 goto usage;
             break;
         case 'A':
@@ -28302,7 +28302,7 @@ int Abc_CommandAbc9Gla( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &gla [-FSCLDETR num] [-A file] [-fkadnscbwvh]\n" );
+    Abc_Print( -2, "usage: &gla [-FSCLDETRP num] [-A file] [-fkadnscbwvh]\n" );
     Abc_Print( -2, "\t          fixed-time-frame gate-level proof- and cex-based abstraction\n" );
     Abc_Print( -2, "\t-F num  : the max number of timeframes to unroll [default = %d]\n", pPars->nFramesMax );
     Abc_Print( -2, "\t-S num  : the starting time frame (0=unused) [default = %d]\n", pPars->nFramesStart );
@@ -28312,6 +28312,7 @@ usage:
     Abc_Print( -2, "\t-E num  : ratio percentage for learned clause removal [default = %d]\n", pPars->nLearnedPerce );
     Abc_Print( -2, "\t-T num  : an approximate timeout, in seconds [default = %d]\n", pPars->nTimeOut );
     Abc_Print( -2, "\t-R num  : minimum percentage of abstracted objects (0<=num<=100) [default = %d]\n", pPars->nRatioMin );
+    Abc_Print( -2, "\t-P num  : maximum percentage of added objects before a restart (0<=num<=100) [default = %d]\n", pPars->nRatioMax );
     Abc_Print( -2, "\t-A file : file name for dumping abstrated model [default = \"glabs.aig\"]\n" );
     Abc_Print( -2, "\t-f      : toggle propagating fanout implications [default = %s]\n", pPars->fPropFanout? "yes": "no" );
     Abc_Print( -2, "\t-k      : toggle using VTA to kick start GLA for starting frames [default = %s]\n", fStartVta? "yes": "no" );
