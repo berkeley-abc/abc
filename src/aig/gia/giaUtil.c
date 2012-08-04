@@ -847,6 +847,24 @@ int Gia_NodeRef_rec( Gia_Man_t * p, Gia_Obj_t * pNode )
     return Counter + 1;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [References the node's MFFC.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManPoMffcSize( Gia_Man_t * p )
+{
+    Gia_ManCreateRefs( p );
+    return Gia_NodeDeref_rec( p, Gia_ObjFanin0(Gia_ManPo(p, 0)) );
+}
+
 /**Function*************************************************************
 
   Synopsis    [Returns the number of internal nodes in the MFFC.]

@@ -1549,8 +1549,8 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
                 continue;
             assert( Lit > 1 );
             // check for counter-examples
-//            if ( p->nSatVars > sat_solver2_nvars(p->pSat) )
-//                sat_solver2_setnvars( p->pSat, p->nSatVars );
+            if ( p->nSatVars > sat_solver2_nvars(p->pSat) )
+                sat_solver2_setnvars( p->pSat, p->nSatVars );
             nVarsOld = p->nSatVars;
             for ( c = 0; ; c++ )
             {
@@ -1666,9 +1666,9 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
                 // if abstraction grew more than a certain percentage, force a restart
                 if ( pPars->nRatioMax == 0 )
                     break;
-                if ( Vec_IntSize(p->vAbs) - nAbsOld >= nAbsOld * pPars->nRatioMax / 100 )
+                if ( (f > 20 || Vec_IntSize(p->vAbs) > 100) && Vec_IntSize(p->vAbs) - nAbsOld >= nAbsOld * pPars->nRatioMax / 100 )
                 {
-                    if ( p->pPars->fVeryVerbose )
+                    if ( p->pPars->fVerbose )
                     Abc_Print( 1, "Forcing restart because abstraction grew from %d to %d (more than %d %%).\n", 
                         nAbsOld, Vec_IntSize(p->vAbs), pPars->nRatioMax );
                     break;
@@ -1685,7 +1685,7 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
     }
 finish:
     Prf_ManStopP( &p->pSat->pPrf2 );
-    if ( p->pPars->fVeryVerbose )
+    if ( p->pPars->fVerbose )
     Abc_Print( 1, "\n" );
     // analize the results
     if ( pAig->pCexSeq == NULL )
