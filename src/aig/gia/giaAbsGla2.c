@@ -152,10 +152,14 @@ unsigned Ga2_ManComputeTruth( Gia_Man_t * p, Gia_Obj_t * pRoot, Vec_Int_t * vLea
 {
     static unsigned uTruth5[5] = { 0xAAAAAAAA, 0xCCCCCCCC, 0xF0F0F0F0, 0xFF00FF00, 0xFFFF0000 };
     Gia_Obj_t * pObj;
+    unsigned Res;
     int i;
     Gia_ManForEachObjVec( vLeaves, p, pObj, i )
         pObj->Value = uTruth5[i];
-    return Ga2_ObjComputeTruth_rec( p, pRoot, 1 );
+    Res = Ga2_ObjComputeTruth_rec( p, pRoot, 1 );
+    Gia_ManForEachObjVec( vLeaves, p, pObj, i )
+        pObj->Value = 0;
+    return Res;
 }
 
 /**Function*************************************************************
@@ -581,6 +585,8 @@ if ( fVerbose )
 }
 
     }
+    Gia_ManForEachObjVec( vLeaves, p, pObj, i )
+        pObj->Value = 0;
     return Res;
 }
 
@@ -1088,6 +1094,10 @@ void Ga2_ManRestart( Ga2_Man_t * p )
     // clear SAT variable numbers (begin with 1)
     if ( p->pSat ) sat_solver2_delete( p->pSat );
     p->pSat      = sat_solver2_new();
+    p->pSat->nLearntStart = p->pPars->nLearnedStart;
+    p->pSat->nLearntDelta = p->pPars->nLearnedDelta;
+    p->pSat->nLearntRatio = p->pPars->nLearnedPerce;
+    p->pSat->nLearntMax   = p->pSat->nLearntStart;
     // add clause x0 = 0  (lit0 = 1; lit1 = 0)
     sat_solver2_addclause( p->pSat, &Lit, &Lit + 1, -1 );
     // remove previous abstraction
@@ -1312,6 +1322,7 @@ void Ga2_GlaDumpAbsracted( Ga2_Man_t * p, int fVerbose )
     vGateClasses = Ga2_ManAbsTranslate( p );
     pAbs = Gia_ManDupAbsGates( p->pGia, vGateClasses );
     Vec_IntFreeP( &vGateClasses );
+    Gia_ManCleanValue( p->pGia );
     // write into file
     Gia_WriteAiger( pAbs, pFileName, 0, 0 );
     Gia_ManStop( pAbs );
@@ -1452,6 +1463,7 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
                 Status = sat_solver2_solve( p->pSat, &Lit, &Lit+1, (ABC_INT64_T)pPars->nConfLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
                 if ( Status == l_True ) // perform refinement
                 {
+                    p->nCexes++;
                     p->timeSat += clock() - clk2;
 
                     clk2 = clock();

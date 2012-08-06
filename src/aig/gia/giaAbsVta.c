@@ -161,6 +161,7 @@ void Gia_VtaSetDefaultParams( Gia_ParVta_t * p )
     p->nRatioMax     =     30;   // restart when more than this % of object is abstracted
     p->fUseTermVars  =      0;   // use terminal variables
     p->fUseRollback  =      0;   // use rollback to the starting number of frames
+    p->fPropFanout   =      1;   // propagate fanouts during refinement
     p->fVerbose      =      0;   // verbose flag
     p->iFrame        =     -1;   // the number of frames covered 
 }

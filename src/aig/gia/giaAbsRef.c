@@ -543,7 +543,7 @@ Vec_Int_t * Rnm_ManRefine( Rnm_Man_t * p, Abc_Cex_t * pCex, Vec_Int_t * vMap, in
         p->timeBwd += clock() - clk;
     }
     // clean values
-//    Rnm_ManCleanValues( p );
+    Rnm_ManCleanValues( p );
     // verify (empty) refinement
     clk = clock();
     Rnm_ManVerifyUsingTerSim( p->pGia, p->pCex, p->vMap, p->vObjs, vSelected );
