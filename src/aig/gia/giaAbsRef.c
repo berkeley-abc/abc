@@ -138,7 +138,8 @@ Rnm_Man_t * Rnm_ManStart( Gia_Man_t * pGia )
     p->vObjs = Vec_IntAlloc( 100 );
     p->nObjsAlloc = 10000;
     p->pObjs = ABC_ALLOC( Rnm_Obj_t, p->nObjsAlloc );
-    Gia_ManStaticFanoutStart( p->pGia );
+    if ( p->pGia->vFanout == NULL )
+        Gia_ManStaticFanoutStart( p->pGia );
     Gia_ManCleanValue(pGia);
     Gia_ManCleanMark0(pGia);
     Gia_ManCleanMark1(pGia);
