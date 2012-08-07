@@ -497,6 +497,8 @@ void Rnm_ManVerifyUsingTerSim( Gia_Man_t * p, Abc_Cex_t * pCex, Vec_Int_t * vMap
                 Gia_ObjTerSimRo( p, pObj );
         }
     }
+    Gia_ManForEachObjVec( vMap, p, pObj, i )
+        pObj->Value = 0;
     pObj = Gia_ManPo( p, 0 );
     if ( !Gia_ObjTerSimGet1(pObj) )
         Abc_Print( 1, "\nRefinement verification has failed!!!\n" );

@@ -20,6 +20,7 @@
 
 #include "gia.h"
 #include "giaAbsRef.h"
+#include "giaAbsRef2.h"
 #include "sat/cnf/cnf.h"
 #include "sat/bsat/satSolver2.h"
 #include "base/main/main.h"
@@ -51,6 +52,7 @@ struct Ga2_Man_t_
     int            nMarked;      // total number of marked nodes and flops
     // refinement
     Rnm_Man_t *    pRnm;         // refinement manager
+    Rf2_Man_t *    pRf2;         // refinement manager
     // SAT solver and variables
     Vec_Ptr_t *    vId2Lit;      // mapping, for each timeframe, of object ID into SAT literal
     sat_solver2 *  pSat;         // incremental SAT solver
@@ -333,6 +335,7 @@ int Ga2_ManMarkup( Gia_Man_t * p, int N, int fSimple )
     }
 //    Abc_PrintTime( 1, "Time", clock() - clk );
     Vec_IntFree( vLeaves );
+    Gia_ManCleanValue( p );
     return CountMarks;
 }
 void Ga2_ManComputeTest( Gia_Man_t * p )
@@ -393,6 +396,7 @@ Ga2_Man_t * Ga2_ManStart( Gia_Man_t * pGia, Gia_ParVta_t * pPars )
     Vec_IntPush( p->vAbs, 0 );
     // refinement
     p->pRnm      = Rnm_ManStart( pGia );
+//    p->pRf2      = Rf2_ManStart( pGia );
     // SAT solver and variables
     p->vId2Lit   = Vec_PtrAlloc( 1000 );
     // temporaries
@@ -455,6 +459,7 @@ void Ga2_ManStop( Ga2_Man_t * p )
     Vec_IntFree( p->vLits );
     Vec_IntFree( p->vIsopMem );
     Rnm_ManStop( p->pRnm, p->pPars->fVerbose );
+//    Rf2_ManStop( p->pRf2, p->pPars->fVerbose );
     ABC_FREE( p->pTable );
     ABC_FREE( p->pSopSizes );
     ABC_FREE( p->pSops[1] );
@@ -1222,6 +1227,7 @@ Vec_Int_t * Ga2_ManRefine( Ga2_Man_t * p )
     int i;
     Ga2_GlaPrepareCexAndMap( p, &pCex, &vMap );
     vVec = Rnm_ManRefine( p->pRnm, pCex, vMap, p->pPars->fPropFanout, 1 );
+//    Rf2_ManRefine( p->pRf2, pCex, vMap, p->pPars->fPropFanout, 1 );
     Abc_CexFree( pCex );
     if ( Vec_IntSize(vVec) == 0 )
     {
@@ -1351,6 +1357,7 @@ void Gia_Ga2SendAbsracted( Ga2_Man_t * p, int fVerbose )
     vGateClasses = Ga2_ManAbsTranslate( p );
     pAbs = Gia_ManDupAbsGates( p->pGia, vGateClasses );
     Vec_IntFreeP( &vGateClasses );
+    Gia_ManCleanValue( p->pGia );
     // send it out
     Gia_ManToBridgeAbsNetlist( stdout, pAbs );
     Gia_ManStop( pAbs );
