@@ -101,7 +101,7 @@ static inline Vec_Int_t * Ga2_MapFrameMap( Ga2_Man_t * p, int f )               
 // returns literal of this object, or -1 if SAT variable of the object is not assigned
 static inline int Ga2_ObjFindLit( Ga2_Man_t * p, Gia_Obj_t * pObj, int f )  
 { 
-    int Id = Ga2_ObjId(p,pObj);
+//    int Id = Ga2_ObjId(p,pObj);
     assert( Ga2_ObjId(p,pObj) >= 0 && Ga2_ObjId(p,pObj) < Vec_IntSize(p->vValues) );
     return Vec_IntEntry( Ga2_MapFrameMap(p, f), Ga2_ObjId(p,pObj) );
 }
@@ -495,7 +495,7 @@ unsigned Ga2_ObjComputeTruthSpecial( Gia_Man_t * p, Gia_Obj_t * pRoot, Vec_Int_t
     unsigned Res;
     Gia_Obj_t * pObj;
     int i, Entry;
-    int Id = Gia_ObjId(p, pRoot);
+//    int Id = Gia_ObjId(p, pRoot);
     assert( Gia_ObjIsAnd(pRoot) );
 
     if ( fVerbose )
@@ -746,7 +746,7 @@ static inline void Ga2_ManSetupNode( Ga2_Man_t * p, Gia_Obj_t * pObj, int fAbs )
 {
     unsigned uTruth;
     int nLeaves;
-    int Id = Gia_ObjId(p->pGia, pObj);
+//    int Id = Gia_ObjId(p->pGia, pObj);
     assert( pObj->fPhase );
     assert( Vec_PtrSize(p->vCnfs) == 2 * Vec_IntSize(p->vValues) );
     // assign abstraction ID to the node
@@ -805,7 +805,7 @@ static inline void Ga2_ManAddToAbsOneStatic( Ga2_Man_t * p, Gia_Obj_t * pObj, in
 }
 static inline void Ga2_ManAddToAbsOneDynamic( Ga2_Man_t * p, Gia_Obj_t * pObj, int f )
 {
-    int Id = Gia_ObjId(p->pGia, pObj);
+//    int Id = Gia_ObjId(p->pGia, pObj);
     Vec_Int_t * vLeaves;
     Gia_Obj_t * pLeaf;
     unsigned uTruth;
@@ -1170,7 +1170,7 @@ void Ga2_GlaPrepareCexAndMap( Ga2_Man_t * p, Abc_Cex_t ** ppCex, Vec_Int_t ** pv
     Abc_Cex_t * pCex;
     Vec_Int_t * vMap;
     Gia_Obj_t * pObj;
-    int f, i, k, Id;
+    int f, i, k;
 /*
     Gia_ManForEachObj( p->pGia, pObj, i )
         if ( Ga2_ObjId(p, pObj) >= 0 )
@@ -1181,8 +1181,6 @@ void Ga2_GlaPrepareCexAndMap( Ga2_Man_t * p, Abc_Cex_t ** ppCex, Vec_Int_t ** pv
     Gia_ManForEachObjVec( p->vValues, p->pGia, pObj, i )
     {
         if ( !i ) continue;
-        Id = Ga2_ObjId(p, pObj);
-        k = Gia_ObjId(p->pGia, pObj);
         if ( Ga2_ObjIsAbs(p, pObj) )
             continue;
         assert( pObj->fPhase );
@@ -1387,7 +1385,7 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
     Ga2_Man_t * p;
     Vec_Int_t * vCore, * vPPis;
     clock_t clk2, clk = clock();
-    int Status, RetValue = -1, fOneIsSent = 0;
+    int Status = l_Undef, RetValue = -1, fOneIsSent = 0;
     int i, c, f, Lit, iFrameProved = -1;
     // check trivial case 
     assert( Gia_ManPoNum(pAig) == 1 ); 
