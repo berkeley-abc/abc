@@ -3678,6 +3678,26 @@ SOURCE=.\src\bool\kit\kitSop.c
 SOURCE=.\src\bool\kit\kitTruth.c
 # End Source File
 # End Group
+# Begin Group "lucky"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\bool\lucky\lucky.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bool\lucky\luckyInt.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bool\lucky\luckyRead.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bool\lucky\luckySwap.c
+# End Source File
+# End Group
 # End Group
 # Begin Group "prove"
 
