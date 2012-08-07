@@ -1938,8 +1938,8 @@ int Gia_GlaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars, int fStartVta )
             if ( Status == -1 || (p->pSat->nRuntimeLimit && clock() > p->pSat->nRuntimeLimit) ) // resource limit is reached
             {
                 Prf_ManStopP( &p->pSat->pPrf2 );
-                if ( Gia_ManRegNum(p->pGia) > 1 ) // for comb cases, return the abstration
-                    Gla_ManRollBack( p );
+//                if ( Gia_ManRegNum(p->pGia) > 1 ) // for comb cases, return the abstraction
+//                    Vec_IntShrink( p->vAbs, p->nAbsOld );
                 goto finish;
             }
             if ( Status == 1 )
