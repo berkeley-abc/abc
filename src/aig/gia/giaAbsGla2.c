@@ -246,7 +246,7 @@ void Ga2_ManCollectLeaves_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vLea
 int Ga2_ManMarkup( Gia_Man_t * p, int N, int fSimple )
 {
     static unsigned uTruth5[5] = { 0xAAAAAAAA, 0xCCCCCCCC, 0xF0F0F0F0, 0xFF00FF00, 0xFFFF0000 };
-    clock_t clk = clock();
+//    clock_t clk = clock();
     Vec_Int_t * vLeaves;
     Gia_Obj_t * pObj;
     int i, k, Leaf, CountMarks;
