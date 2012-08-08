@@ -339,6 +339,10 @@ SOURCE=.\src\base\abci\abcMv.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\abci\abcNpn.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\abci\abcNpnSave.c
 # End Source File
 # Begin Source File
