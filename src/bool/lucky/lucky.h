@@ -20,7 +20,7 @@
 
 ABC_NAMESPACE_HEADER_START
 
-extern unsigned Kit_TruthSemiCanonicize_new( unsigned * pInOut, unsigned * pAux, int nVars, char * pCanonPerm, short * pStore );
+extern unsigned Kit_TruthSemiCanonicize_new( unsigned * pInOut, unsigned * pAux, int nVars, char * pCanonPerm );
 
 ABC_NAMESPACE_HEADER_END
 

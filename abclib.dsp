@@ -3695,6 +3695,10 @@ SOURCE=.\src\bool\lucky\lucky.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\bool\lucky\lucky.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\bool\lucky\luckyInt.h
 # End Source File
 # Begin Source File
