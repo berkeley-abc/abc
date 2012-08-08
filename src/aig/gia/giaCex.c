@@ -178,7 +178,7 @@ void Gia_ManCounterExampleValueStart( Gia_Man_t * pGia, Abc_Cex_t * pCex )
     }
     assert( iBit == pCex->nBits );
     // check that the counter-example is correct, that is, the corresponding output is asserted
-    assert( Abc_InfoHasBit( (unsigned *)pGia->pData2, nObjs * pCex->iFrame + Gia_ObjId(Gia_ManCo(pGia, pCex->iPo)) ) );
+    assert( Abc_InfoHasBit( (unsigned *)pGia->pData2, nObjs * pCex->iFrame + Gia_ObjId(pGia, Gia_ManCo(pGia, pCex->iPo)) ) );
 }
 
 /**Function*************************************************************
