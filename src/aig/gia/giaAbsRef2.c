@@ -385,8 +385,9 @@ void Rf2_ManGatherFanins_rec( Rf2_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vFani
         return;
     if ( Gia_ObjIsRo(p->pGia, pObj) )
     {
+        assert( pObj->fPhase );
         pObj = Gia_ObjRoToRi(p->pGia, pObj);
-        Rf2_ManGatherFanins_rec( p, Gia_ObjFanin0(pObj), vFanins, Depth, RootId, 0 );
+        Rf2_ManGatherFanins_rec( p, Gia_ObjFanin0(pObj), vFanins, Depth - 1, RootId, 0 );
     }
     else if ( Gia_ObjIsAnd(pObj) )
     {
@@ -397,9 +398,10 @@ void Rf2_ManGatherFanins_rec( Rf2_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vFani
 }
 void Rf2_ManGatherFanins( Rf2_Man_t * p, int Depth )
 {
+    Vec_Int_t * vUsed;
     Vec_Int_t * vVec;
     Gia_Obj_t * pObj;
-    int i;
+    int i, k, Entry;
     // mark PPIs
     Gia_ManForEachObjVec( p->vMap, p->pGia, pObj, i )
     {
@@ -416,24 +418,40 @@ void Rf2_ManGatherFanins( Rf2_Man_t * p, int Depth )
         Gia_ManIncrementTravId( p->pGia );
         Rf2_ManGatherFanins_rec( p, pObj, p->vFanins, Depth, i, 1 );
     }
+
+    vUsed = Vec_IntStart( Vec_IntSize(p->vMap) );
+
     // evaluate collected
-    printf( "\nMap: " );
+    printf( "\nMap (%d): ", Vec_IntSize(p->vMap) );
     Gia_ManForEachObjVec( p->vMap, p->pGia, pObj, i )
     {
         vVec = Rf2_ObjVec( p, pObj );
-        printf( "%d=%d ", i, Vec_IntSize(vVec) - 1 );
+        if ( Vec_IntSize(vVec) > 1 )
+            printf( "%d=%d ", i, Vec_IntSize(vVec) - 1 );
+        Vec_IntForEachEntryStart( vVec, Entry, k, 1 )
+            Vec_IntAddToEntry( vUsed, Entry, 1 );
         Vec_IntClear( vVec );
     }
     printf( "\n" );
     // evaluate internal
-    printf( "Int: " );
+    printf( "Int (%d): ", Vec_IntSize(p->vFanins) );
     Gia_ManForEachObjVec( p->vFanins, p->pGia, pObj, i )
     {
         vVec = Rf2_ObjVec( p, pObj );
-        printf( "%d=%d ", i, Vec_IntSize(vVec) );
+        if ( Vec_IntSize(vVec) > 1 )
+            printf( "%d=%d ", i, Vec_IntSize(vVec) );
+        if ( Vec_IntSize(vVec) > 1 )
+            Vec_IntForEachEntry( vVec, Entry, k )
+                Vec_IntAddToEntry( vUsed, Entry, 1 );
         Vec_IntClear( vVec );
     }
     printf( "\n" );
+    // evaluate PPIs    
+    Vec_IntForEachEntry( vUsed, Entry, k )
+        printf( "%d ", Entry );
+    printf( "\n" );
+
+    Vec_IntFree( vUsed );
 }
 
 
@@ -461,7 +479,7 @@ Vec_Int_t * Rf2_ManRefine( Rf2_Man_t * p, Abc_Cex_t * pCex, Vec_Int_t * vMap, in
     // collects used objects
     Rf2_ManCollect( p );
     // collect reconvergence points
-    Rf2_ManGatherFanins( p, 1 );
+    Rf2_ManGatherFanins( p, 2 );
     // propagate justification IDs
 
     // select the result

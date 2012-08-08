@@ -396,7 +396,7 @@ Ga2_Man_t * Ga2_ManStart( Gia_Man_t * pGia, Gia_ParVta_t * pPars )
     Vec_IntPush( p->vAbs, 0 );
     // refinement
     p->pRnm      = Rnm_ManStart( pGia );
-//    p->pRf2      = Rf2_ManStart( pGia );
+    p->pRf2      = Rf2_ManStart( pGia );
     // SAT solver and variables
     p->vId2Lit   = Vec_PtrAlloc( 1000 );
     // temporaries
@@ -459,7 +459,7 @@ void Ga2_ManStop( Ga2_Man_t * p )
     Vec_IntFree( p->vLits );
     Vec_IntFree( p->vIsopMem );
     Rnm_ManStop( p->pRnm, p->pPars->fVerbose );
-//    Rf2_ManStop( p->pRf2, p->pPars->fVerbose );
+    Rf2_ManStop( p->pRf2, p->pPars->fVerbose );
     ABC_FREE( p->pTable );
     ABC_FREE( p->pSopSizes );
     ABC_FREE( p->pSops[1] );
@@ -1216,7 +1216,7 @@ Abc_Cex_t * Ga2_ManDeriveCex( Ga2_Man_t * p, Vec_Int_t * vPis )
                 Abc_InfoSetBit( pCex->pData, pCex->nRegs + f * pCex->nPis + Gia_ObjCioId(pObj) );
     }
     return pCex;
-}
+} 
 Vec_Int_t * Ga2_ManRefine( Ga2_Man_t * p )
 {
     Abc_Cex_t * pCex;
@@ -1224,8 +1224,11 @@ Vec_Int_t * Ga2_ManRefine( Ga2_Man_t * p )
     Gia_Obj_t * pObj;
     int i;
     Ga2_GlaPrepareCexAndMap( p, &pCex, &vMap );
-    vVec = Rnm_ManRefine( p->pRnm, pCex, vMap, p->pPars->fPropFanout, 1 );
+ 
 //    Rf2_ManRefine( p->pRf2, pCex, vMap, p->pPars->fPropFanout, 1 );
+    vVec = Rnm_ManRefine( p->pRnm, pCex, vMap, p->pPars->fPropFanout, 1 );
+//    printf( "Refinement %d\n", Vec_IntSize(vVec) );
+
     Abc_CexFree( pCex );
     if ( Vec_IntSize(vVec) == 0 )
     {
