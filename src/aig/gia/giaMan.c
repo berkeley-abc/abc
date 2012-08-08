@@ -93,6 +93,7 @@ void Gia_ManStop( Gia_Man_t * p )
     Vec_IntFreeP( &p->vMapping );
     Vec_IntFree( p->vCis );
     Vec_IntFree( p->vCos );
+    ABC_FREE( p->pData2 );
     ABC_FREE( p->pTravIds );
     ABC_FREE( p->pPlacement );
     ABC_FREE( p->pSwitching );

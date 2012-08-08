@@ -154,6 +154,7 @@ struct Gia_Man_t_
     void *         pLutLib;       // LUT library
     word           nHashHit;      // hash table hit
     word           nHashMiss;     // hash table miss
+    unsigned *     pData2;        // storage for object values
     int            fVerbose;      // verbose reports
     // truth table computation for small functions
     int            nTtVars;       // truth table variables
@@ -740,6 +741,12 @@ extern void                Gia_WriteAigerSimple( Gia_Man_t * pInit, char * pFile
 /*=== giaBidec.c ===========================================================*/
 extern unsigned *          Gia_ManConvertAigToTruth( Gia_Man_t * p, Gia_Obj_t * pRoot, Vec_Int_t * vLeaves, Vec_Int_t * vTruth, Vec_Int_t * vVisited );
 extern Gia_Man_t *         Gia_ManPerformBidec( Gia_Man_t * p, int fVerbose );
+/*=== giaCex.c ============================================================*/
+extern int                 Gia_ManVerifyCex( Gia_Man_t * pAig, Abc_Cex_t * p, int fDualOut );
+extern int                 Gia_ManFindFailedPoCex( Gia_Man_t * pAig, Abc_Cex_t * p, int nOutputs );
+extern void                Gia_ManCounterExampleValueStart( Gia_Man_t * pGia, Abc_Cex_t * pCex );
+extern void                Gia_ManCounterExampleValueStop( Gia_Man_t * pGia );
+extern int                 Gia_ManCounterExampleValueLookup( Gia_Man_t * pGia, int Id, int iFrame );
 /*=== giaCsatOld.c ============================================================*/
 extern Vec_Int_t *         Cbs_ManSolveMiter( Gia_Man_t * pGia, int nConfs, Vec_Str_t ** pvStatus, int fVerbose );
 /*=== giaCsat.c ============================================================*/
@@ -959,8 +966,6 @@ extern int                 Gia_ManHasDangling( Gia_Man_t * p );
 extern int                 Gia_ManMarkDangling( Gia_Man_t * p );
 extern Vec_Int_t *         Gia_ManGetDangling( Gia_Man_t * p );
 extern void                Gia_ObjPrint( Gia_Man_t * p, Gia_Obj_t * pObj );
-extern int                 Gia_ManVerifyCex( Gia_Man_t * pAig, Abc_Cex_t * p, int fDualOut );
-extern int                 Gia_ManFindFailedPoCex( Gia_Man_t * pAig, Abc_Cex_t * p, int nOutputs );
 extern void                Gia_ManInvertConstraints( Gia_Man_t * pAig );
 extern void                Gia_ObjCollectInternal( Gia_Man_t * p, Gia_Obj_t * pObj );
 extern unsigned *          Gia_ObjComputeTruthTable( Gia_Man_t * p, Gia_Obj_t * pObj );
