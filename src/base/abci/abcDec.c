@@ -42,10 +42,10 @@ ABC_NAMESPACE_IMPL_START
 typedef struct Abc_TtStore_t_  Abc_TtStore_t;
 struct Abc_TtStore_t_ 
 {
-    int      nVars;
-    int      nwords;
-    int      nFuncs;
-    word **  pFuncs;
+    int               nVars;
+    int               nWords;
+    int               nFuncs;
+    word **           pFuncs;
 };
 
 // read/write/flip i-th bit of a bit string table:
@@ -88,8 +88,8 @@ static inline void Abc_TruthWriteHexDigit( FILE * pFile, int HexDigit )
 // read one truth table in hexadecimal
 void Abc_TruthReadHex( word * pTruth, char * pString, int nVars )
 {
-    int nwords = (nVars < 7)? 1 : (1 << (nVars-6));
-    int k, Digit, nDigits = (nwords << 4);
+    int nWords = (nVars < 7)? 1 : (1 << (nVars-6));
+    int k, Digit, nDigits = (nWords << 4);
     char EndSymbol;
     // skip the first 2 symbols if they are "0x"
     if ( pString[0] == '0' && pString[1] == 'x' )
@@ -143,15 +143,15 @@ Abc_TtStore_t * Abc_TruthStoreAlloc( int nVars, int nFuncs )
     int i;
     p = (Abc_TtStore_t *)malloc( sizeof(Abc_TtStore_t) );
     p->nVars  =  nVars;
-    p->nwords = (nVars < 7) ? 1 : (1 << (nVars-6));
+    p->nWords = (nVars < 7) ? 1 : (1 << (nVars-6));
     p->nFuncs =  nFuncs;
     // alloc array of 'nFuncs' pointers to truth tables
     p->pFuncs = (word **)malloc( sizeof(word *) * p->nFuncs );
     // alloc storage for 'nFuncs' truth tables as one chunk of memory
-    p->pFuncs[0] = (word *)calloc( sizeof(word), p->nFuncs * p->nwords );
+    p->pFuncs[0] = (word *)calloc( sizeof(word), p->nFuncs * p->nWords );
     // split it up into individual truth tables
     for ( i = 1; i < p->nFuncs; i++ )
-        p->pFuncs[i] = p->pFuncs[i-1] + p->nwords;
+        p->pFuncs[i] = p->pFuncs[i-1] + p->nWords;
     return p;
 }
 void Abc_TruthStoreFree( Abc_TtStore_t * p )
@@ -338,23 +338,46 @@ void Abc_TruthStoreWrite( char * pFileName, Abc_TtStore_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_TruthStoreTest( char * pFileName )
+Abc_TtStore_t * Abc_TruthStoreLoad( char * pFileName )
 { 
     Abc_TtStore_t * p;
     char * pFileInput  = pFileName;
-    char * pFileOutput = "out.txt";
     int nVars, nTruths;
 
     // figure out how many truth table and how many variables
     Abc_TruthGetParams( pFileInput, &nVars, &nTruths );
     if ( nVars < 2 || nVars > 16 || nTruths == 0 )
-        return;
+        return NULL;
 
     // allocate data-structure
     p = Abc_TruthStoreAlloc( nVars, nTruths );
 
     // read info from file
     Abc_TruthStoreRead( pFileInput, p );
+    return p;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Read truth tables from input file and write them into output file.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_TruthStoreTest( char * pFileName )
+{ 
+    Abc_TtStore_t * p;
+    char * pFileInput  = pFileName;
+    char * pFileOutput = "out.txt";
+
+    // read info from file
+    p = Abc_TruthStoreLoad( pFileInput );
+    if ( p == NULL )
+        return;
 
     // write into another file
     Abc_TruthStoreWrite( pFileOutput, p );

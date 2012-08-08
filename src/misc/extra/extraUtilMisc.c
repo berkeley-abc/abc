@@ -2283,7 +2283,7 @@ static inline word Extra_Truth6ChangePhase( word t, int v )
     assert( v < 6 );
     return ((t & ~Truth6[v]) << (1 << v)) | ((t & Truth6[v]) >> (1 << v));
 }
-static inline word Extra_Truth6Minimum( word t, int * pComp, int * pPerm )
+word Extra_Truth6Minimum( word t, int * pComp, int * pPerm )
 {
     word tMin = ~(word)0;
     word tCur, tTemp1, tTemp2;

@@ -203,6 +203,7 @@ extern void        Extra_BubbleSort( int Order[], int Costs[], int nSize, int fI
 /* complementation/permutation generation */
 extern int *       Extra_GreyCodeSchedule( int n );
 extern int *       Extra_PermSchedule( int n );
+extern word        Extra_Truth6Minimum( word t, int * pComp, int * pPerm );
 
 /*=== extraUtilCanon.c ========================================================*/
 
