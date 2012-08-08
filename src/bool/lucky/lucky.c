@@ -356,6 +356,129 @@ inline int minimalSwap1(word* pInOut, word* pMinimal, word* PDuplicat, int  nVar
     else
         return 1;
 }
+
+// if highest bit in F ( all ones min term ) is one => inverse 
+// returns: if pInOnt changed(minimized) by function return 1 if not 0
+inline int minimalInitialFlip(word* pInOut, int  nVars, unsigned* p_uCanonPhase)
+{
+    word oneWord=1;
+    if(  (pInOut[Kit_TruthWordNum_64bit( nVars ) -1]>>63) & oneWord )
+    {
+        Kit_TruthNot_64bit( pInOut, nVars );
+        *p_uCanonPhase ^= (1 << nVars);
+        return 1;
+    }
+    return 0;
+}
+
+// compare F with  F1 = (F with changed phase in one of the vars).
+// keeps smaller.
+// same for all vars in F.
+// returns: if pInOnt changed(minimized) by function return 1 if not 0
+inline int minimalFlip(word* pInOut, word* pMinimal, word* PDuplicat, int  nVars, unsigned* p_uCanonPhase)
+{
+    int i;
+    unsigned minTemp = *p_uCanonPhase;
+    int blockSize = Kit_TruthWordNum_64bit( nVars )*sizeof(word);
+    memcpy(pMinimal, pInOut, blockSize);
+    memcpy(PDuplicat, pInOut, blockSize);       //////////////need one more unsigned!!!!!!!!!!!!!
+    Kit_TruthChangePhase_64bit( pInOut, nVars, 0 );
+    *p_uCanonPhase ^= (unsigned)1;
+    for(i=1;i<nVars;i++)
+    {
+        if( memCompare(pMinimal,pInOut,nVars) == 1)
+        {
+            memcpy(pMinimal, pInOut, blockSize);
+            minTemp = *p_uCanonPhase;
+        }
+        else
+        {
+            memcpy(pInOut, pMinimal, blockSize);
+            *p_uCanonPhase = minTemp;
+        }
+        Kit_TruthChangePhase_64bit( pInOut, nVars, i );
+        *p_uCanonPhase ^= (1 << i);
+    }
+    if( memCompare(pMinimal,pInOut,nVars) == -1)
+    {
+        memcpy(pInOut, pMinimal, blockSize);
+        *p_uCanonPhase = minTemp;
+    }
+    if(memcmp(pInOut,PDuplicat,blockSize) == 0)    
+        return 0;
+    else
+        return 1;
+}
+
+// swaps iVar and iVar+1 elements in pCanonPerm ant p_uCanonPhase
+inline void swapInfoAdjacentVars(int iVar, char * pCanonPerm, unsigned* p_uCanonPhase)
+{
+    char Temp = pCanonPerm[iVar];
+    pCanonPerm[iVar] = pCanonPerm[iVar+1];
+    pCanonPerm[iVar+1] = Temp;
+    
+    // if the polarity of variables is different, swap them
+    if ( ((*p_uCanonPhase & (1 << iVar)) > 0) != ((*p_uCanonPhase & (1 << (iVar+1))) > 0) )
+    {
+        *p_uCanonPhase ^= (1 << iVar);
+        *p_uCanonPhase ^= (1 << (iVar+1));
+    }
+            
+}
+
+
+// compare F with  F1 = (F with swapped two adjacent vars).
+// keeps smaller.
+// same for all vars in F.
+// returns: if pInOnt changed(minimized) by function return 1 if not 0
+inline int minimalSwap(word* pInOut, word* pMinimal, word* PDuplicat, int  nVars, char * pCanonPerm, char * tempArray, unsigned* p_uCanonPhase) 
+{
+    int i;    
+    int blockSizeWord = Kit_TruthWordNum_64bit( nVars )*sizeof(word);
+    int blockSizeChar = nVars *sizeof(char);
+    memcpy(pMinimal, pInOut, blockSizeWord);
+    memcpy(PDuplicat, pInOut, blockSizeWord);
+    memcpy(tempArray, pCanonPerm, blockSizeChar);  
+    Kit_TruthSwapAdjacentVars_64bit( pInOut, nVars, 0 );
+    swapInfoAdjacentVars(0, pCanonPerm, p_uCanonPhase);
+    for(i=1;i<nVars-1;i++)
+    {
+        if( memCompare(pMinimal,pInOut,nVars) == 1)
+        {
+            memcpy(pMinimal, pInOut, blockSizeWord);
+            memcpy(tempArray, pCanonPerm, blockSizeChar);
+        }
+        else
+        {
+            memcpy(pInOut, pMinimal, blockSizeWord);
+            memcpy(pCanonPerm, tempArray, blockSizeChar);    
+        }
+        Kit_TruthSwapAdjacentVars_64bit( pInOut, nVars, i );
+        swapInfoAdjacentVars(i, pCanonPerm, p_uCanonPhase);
+    }
+    if( memCompare(pMinimal,pInOut,nVars) == -1)
+    {
+        memcpy(pInOut, pMinimal, blockSizeWord);
+        memcpy(pCanonPerm, tempArray, blockSizeChar);
+    }
+    if(memcmp(pInOut,PDuplicat,blockSizeWord) == 0)
+        return 0;
+    else
+        return 1;
+}
+
+inline void luckyCanonicizer(word* pInOut, word* pAux, word* pAux1, int  nVars, char * pCanonPerm, char * tempArray, unsigned* p_uCanonPhase)
+{
+    int counter=1;
+    assert( nVars <= 16 );
+    while(counter>0 )   //  && cycles < 10 if we wanna limit cycles
+    {
+        counter=0;
+        counter += minimalInitialFlip(pInOut, nVars, p_uCanonPhase);
+        counter += minimalFlip(pInOut, pAux, pAux1, nVars, p_uCanonPhase);
+        counter += minimalSwap(pInOut, pAux, pAux1, nVars, pCanonPerm, tempArray, p_uCanonPhase);    
+    }
+}
 // tries to find minimal F till F at the beginning of the loop is the same as at the end - irreducible 
 unsigned luckyCanonicizer1_simple(word* pInOut, word* pAux, word* pAux1, int  nVars, char * pCanonPerm, unsigned CanonPhase)
 {
@@ -382,10 +505,11 @@ void luckyCanonicizer_final(word* pInOut, word* pAux, word* pAux1, int  nVars)
 unsigned Kit_TruthSemiCanonicize_new_internal( word * pInOut, int nVars, char * pCanonPerm )
 {
     word pAux[1024], pAux1[1024];
+    char tempArray[16];
     unsigned CanonPhase;
     assert( nVars <= 16 );
-    CanonPhase = Kit_TruthSemiCanonicize_Yasha_simple( pInOut, nVars, pCanonPerm );
-    CanonPhase = luckyCanonicizer1_simple(pInOut, pAux, pAux1, nVars, pCanonPerm, CanonPhase);
+    CanonPhase = Kit_TruthSemiCanonicize_Yasha( pInOut, nVars, pCanonPerm );
+    luckyCanonicizer(pInOut, pAux, pAux1, nVars, pCanonPerm, tempArray, &CanonPhase);
     return CanonPhase;
 }
 

@@ -117,6 +117,7 @@ extern  void simpleMinimal(word* x, word* pAux,word* minimal, permInfo* pi, int 
 extern  permInfo* setPermInfoPtr(int var);
 extern  void freePermInfoPtr(permInfo* x);
 extern  inline unsigned  Kit_TruthSemiCanonicize_Yasha_simple( word* pInOut, int nVars, char * pCanonPerm  );
+extern  inline unsigned  Kit_TruthSemiCanonicize_Yasha( word* pInOut, int nVars, char * pCanonPerm );
 
 ABC_NAMESPACE_HEADER_END
 
