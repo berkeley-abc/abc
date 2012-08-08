@@ -93,6 +93,7 @@ struct Rf2_Man_t_
     Vec_Int_t *    vObjs;           // internal objects used in value propagation
     Vec_Int_t *    vFanins;         // fanins of the PPI nodes
     Vec_Int_t *    pvVecs;          // vectors of integers for each object
+    Vec_Vec_t *    vNod2Ppi;        // for each node, the set of PPIs to include
     // internal data
     Rf2_Obj_t *    pObjs;           // refinement objects
     int            nObjs;           // the number of used objects
@@ -145,6 +146,7 @@ Rf2_Man_t * Rf2_ManStart( Gia_Man_t * pGia )
     p->vObjs = Vec_IntAlloc( 1000 );
     p->vFanins = Vec_IntAlloc( 1000 );
     p->pvVecs = ABC_CALLOC( Vec_Int_t, Gia_ManObjNum(pGia) );
+    p->vNod2Ppi = Vec_VecStart( 100 );
     Gia_ManCleanMark0(pGia);
     Gia_ManCleanMark1(pGia);
     return p;
@@ -169,6 +171,7 @@ void Rf2_ManStop( Rf2_Man_t * p, int fProfile )
     }
     Vec_IntFree( p->vObjs );
     Vec_IntFree( p->vFanins );
+    Vec_VecFree( p->vNod2Ppi );
     ABC_FREE( p->pvVecs );
     ABC_FREE( p );
 }
@@ -299,6 +302,8 @@ int Rf2_ManSensitize( Rf2_Man_t * p )
         printf( "Output value is incorrect.\n" );
     return pRnm->Prio;
 }
+
+
 
 /**Function*************************************************************
 
@@ -457,6 +462,189 @@ void Rf2_ManGatherFanins( Rf2_Man_t * p, int Depth )
 
 /**Function*************************************************************
 
+  Synopsis    [Sort, make dup- and containment-free, and filter.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Rf2_ManCountPis( Rf2_Man_t * p )
+{
+    return 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Sort, make dup- and containment-free, and filter.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Rf2_ManProcessVector( Vec_Int_t * p, int Limit )
+{
+    int i, j, k, Entry, Entry2;
+    k = 0;
+    Vec_IntForEachEntry( p, Entry, i )
+        if ( Gia_WordCountOnes((unsigned)Entry) <= Limit )
+            Vec_IntWriteEntry( p, k++, Entry );
+    Vec_IntShrink( p, k );            
+    Vec_IntSort( p, 0 );
+    k = 0;
+    Vec_IntForEachEntry( p, Entry, i )
+    {
+        Vec_IntForEachEntryStop( p, Entry2, j, i )
+            if ( (Entry2 & Entry) == Entry2 ) // Entry2 is a subset of Entry
+                break; 
+        if ( j == i ) // Entry is not contained in any Entry2
+            Vec_IntWriteEntry( p, k++, Entry );
+    }
+    Vec_IntShrink( p, k );            
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Sort, make dup- and containment-free, and filter.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Rf2_ManPrintVector( Vec_Int_t * p, int Num )
+{
+    extern void Extra_PrintBinary( FILE * pFile, unsigned * p, int nBits );
+    int i, Entry;
+    printf( "Justification containing %d subsets.\n", Vec_IntSize(p) );
+    Vec_IntForEachEntry( p, Entry, i )
+        Extra_PrintBinary( stdout, (unsigned *)&Entry, Num ), printf( "\n" );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Assigns a unique justifification ID for each PPI.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Rf2_ManAssignJustIds( Rf2_Man_t * p )
+{
+    Gia_Obj_t * pObj;
+    int i, k = 0;
+    Vec_VecClear( p->vNod2Ppi );
+    Gia_ManForEachObjVec( p->vMap, p->pGia, pObj, i )
+        if ( !Gia_ObjIsPi(p->pGia, pObj) ) // this is PPI
+            Vec_VecPushInt( p->vNod2Ppi, k++, i );
+    printf( "Considering %d PPIs with unique justification IDs.\n", k );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs justification propagation.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Rf2_ManPropagate( Rf2_Man_t * p, int Limit )
+{
+    Vec_Int_t * vVec, * vVec0, * vVec1;
+    Gia_Obj_t * pObj;
+    int f, i, k, j, Entry, Entry2, iBit = p->pCex->nRegs;
+    // init constant
+    pObj = Gia_ManConst0(p->pGia);
+    pObj->fMark0 = 0;
+    Vec_IntFill( Rf2_ObjVec(p, pObj), 1, 0 );
+    // iterate through the timeframes
+    for ( f = 0; f <= p->pCex->iFrame; f++, iBit += p->pCex->nPis )
+    {
+        // initialize frontier values and init justification sets
+        Gia_ManForEachObjVec( p->vMap, p->pGia, pObj, i )
+        {
+            assert( Gia_ObjIsCi(pObj) || Gia_ObjIsAnd(pObj) );
+            pObj->fMark0 = Abc_InfoHasBit( p->pCex->pData, iBit + i );
+            Vec_IntFill( Rf2_ObjVec(p, pObj), 1, 0 );
+        }
+        // assign justification sets for PPis
+        Vec_VecForEachLevelInt( p->vNod2Ppi, vVec, i )
+            Vec_IntForEachEntry( vVec, Entry, k )
+            {
+                assert( i < 31 );
+                pObj = Gia_ManObj( p->pGia, Vec_IntEntry(p->vMap, Entry) );
+                assert( Vec_IntSize(Rf2_ObjVec(p, pObj)) == 1 );
+                Vec_IntAddToEntry( Rf2_ObjVec(p, pObj), 0, (1 << i) );
+            }
+        // propagate internal nodes
+        Gia_ManForEachObjVec( p->vObjs, p->pGia, pObj, i )
+        {
+            pObj->fMark0 = 0;
+            vVec = Rf2_ObjVec(p, pObj);
+            Vec_IntClear( vVec );
+            if ( Gia_ObjIsRo(p->pGia, pObj) )
+            {
+                if ( f == 0 )
+                {
+                    Vec_IntPush( vVec, 0 );
+                    continue;
+                }
+                pObj->fMark0 = Gia_ObjRoToRi(p->pGia, pObj)->fMark0;
+                vVec0 = Rf2_ObjVec( p, Gia_ObjRoToRi(p->pGia, pObj) );
+                Vec_IntAppend( vVec, vVec0 );
+                continue;
+            }
+            if ( Gia_ObjIsCo(pObj) )
+            {
+                pObj->fMark0 = (Gia_ObjFanin0(pObj)->fMark0 ^ Gia_ObjFaninC0(pObj));
+                vVec0 = Rf2_ObjVec( p, Gia_ObjFanin0(pObj) );
+                Vec_IntAppend( vVec, vVec0 );
+                continue;
+            }
+            assert( Gia_ObjIsAnd(pObj) );
+            pObj->fMark0 = (Gia_ObjFanin0(pObj)->fMark0 ^ Gia_ObjFaninC0(pObj)) & (Gia_ObjFanin1(pObj)->fMark0 ^ Gia_ObjFaninC1(pObj));
+            if ( pObj->fMark0 == 1 )
+            {
+                vVec0 = Rf2_ObjVec(p, Gia_ObjFanin0(pObj));
+                vVec1 = Rf2_ObjVec(p, Gia_ObjFanin1(pObj));
+                Vec_IntForEachEntry( vVec0, Entry, k )
+                    Vec_IntForEachEntry( vVec1, Entry2, j )
+                        Vec_IntPush( vVec, Entry | Entry2 );
+                Rf2_ManProcessVector( vVec, Limit );
+            }
+            else if ( (Gia_ObjFanin0(pObj)->fMark0 ^ Gia_ObjFaninC0(pObj)) == 0 && (Gia_ObjFanin1(pObj)->fMark0 ^ Gia_ObjFaninC1(pObj)) == 0 )
+            {
+                Vec_IntAppend( vVec, vVec0 );
+                Vec_IntAppend( vVec, vVec1 );
+                Rf2_ManProcessVector( vVec, Limit );
+            }
+            else if ( (Gia_ObjFanin0(pObj)->fMark0 ^ Gia_ObjFaninC0(pObj)) == 0 )
+                Vec_IntAppend( vVec, vVec0 );
+            else 
+                Vec_IntAppend( vVec, vVec1 );
+        }
+    }
+    assert( iBit == p->pCex->nBits );
+    if ( Gia_ManPo(p->pGia, 0)->fMark0 != 1 )
+        printf( "Output value is incorrect.\n" );
+    return Rf2_ObjVec(p, Gia_ManPo(p->pGia, 0));
+}
+
+/**Function*************************************************************
+
   Synopsis    [Computes the refinement for a given counter-example.]
 
   Description []
@@ -468,6 +656,7 @@ void Rf2_ManGatherFanins( Rf2_Man_t * p, int Depth )
 ***********************************************************************/
 Vec_Int_t * Rf2_ManRefine( Rf2_Man_t * p, Abc_Cex_t * pCex, Vec_Int_t * vMap, int fPropFanout, int fVerbose )
 {
+    Vec_Int_t * vJusts;
     Vec_Int_t * vSelected = Vec_IntAlloc( 100 );
     clock_t clk, clk2 = clock();
     p->nCalls++;
@@ -479,9 +668,16 @@ Vec_Int_t * Rf2_ManRefine( Rf2_Man_t * p, Abc_Cex_t * pCex, Vec_Int_t * vMap, in
     // collects used objects
     Rf2_ManCollect( p );
     // collect reconvergence points
-    Rf2_ManGatherFanins( p, 2 );
+//    Rf2_ManGatherFanins( p, 2 );
     // propagate justification IDs
-
+    Rf2_ManAssignJustIds( p );
+    vJusts = Rf2_ManPropagate( p, 100 );
+    Rf2_ManPrintVector( vJusts, Rf2_ManCountPis(p) );
+    if ( Vec_IntSize(vJusts) == 0 )
+    {
+        printf( "Empty set of justifying subsets.\n" );
+        return NULL;
+    }
     // select the result
 
     // verify (empty) refinement
