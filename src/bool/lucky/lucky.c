@@ -431,6 +431,10 @@ inline void swapInfoAdjacentVars(int iVar, char * pCanonPerm, unsigned* p_uCanon
 // keeps smaller.
 // same for all vars in F.
 // returns: if pInOnt changed(minimized) by function return 1 if not 0
+
+
+/*
+// this version is buggy and is fixed below
 inline int minimalSwap(word* pInOut, word* pMinimal, word* PDuplicat, int  nVars, char * pCanonPerm, char * tempArray, unsigned* p_uCanonPhase) 
 {
     int i;    
@@ -466,6 +470,96 @@ inline int minimalSwap(word* pInOut, word* pMinimal, word* PDuplicat, int  nVars
     else
         return 1;
 }
+*/
+
+inline int minimalSwap(word* pInOut, word* pMinimal, word* PDuplicat, int  nVars, char * pCanonPerm, char * tempArray, unsigned* p_uCanonPhase) 
+{
+    int i;    
+    int blockSizeWord = Kit_TruthWordNum_64bit( nVars )*sizeof(word);
+    int blockSizeChar = nVars *sizeof(char);
+    unsigned TempuCanonPhase = *p_uCanonPhase;
+    memcpy(pMinimal, pInOut, blockSizeWord);
+    memcpy(PDuplicat, pInOut, blockSizeWord);
+    memcpy(tempArray, pCanonPerm, blockSizeChar);  
+    Kit_TruthSwapAdjacentVars_64bit( pInOut, nVars, 0 );
+    swapInfoAdjacentVars(0, pCanonPerm, p_uCanonPhase);
+    for(i=1;i<nVars-1;i++)
+    {
+        if( memCompare(pMinimal,pInOut,nVars) == 1)
+        {
+            memcpy(pMinimal, pInOut, blockSizeWord);
+            memcpy(tempArray, pCanonPerm, blockSizeChar);
+            TempuCanonPhase = *p_uCanonPhase;
+            
+        }
+        else
+        {
+            memcpy(pInOut, pMinimal, blockSizeWord);
+            memcpy(pCanonPerm, tempArray, blockSizeChar);
+            *p_uCanonPhase = TempuCanonPhase;
+        }
+        Kit_TruthSwapAdjacentVars_64bit( pInOut, nVars, i );
+        swapInfoAdjacentVars(i, pCanonPerm, p_uCanonPhase);
+    }
+    if( memCompare(pMinimal,pInOut,nVars) == -1)
+    {
+        memcpy(pInOut, pMinimal, blockSizeWord);
+        memcpy(pCanonPerm, tempArray, blockSizeChar);
+        *p_uCanonPhase = TempuCanonPhase;
+    }
+    if(memcmp(pInOut,PDuplicat,blockSizeWord) == 0)
+        return 0;
+    else
+        return 1;
+}
+
+
+//////////////// functions below just for Alan if he want to double check my program//////////////////////////////////
+/////////////////You need swap_ij function or analogical one//////////////////////////////////////////////////////////
+/*
+void swapAndFlip(word* pAfter, int nVars, int iVarInPosition, int jVar, char * pCanonPerm, unsigned* pUCanonPhase)
+{
+    int Temp;
+    swap_ij(pAfter, nVars, iVarInPosition, jVar);
+    
+    Temp = pCanonPerm[iVarInPosition];
+    pCanonPerm[iVarInPosition] = pCanonPerm[jVar];
+    pCanonPerm[jVar] = Temp;
+    
+    if ( ((*pUCanonPhase & (1 << iVarInPosition)) > 0) != ((*pUCanonPhase & (1 << jVar)) > 0) )
+    {
+        *pUCanonPhase ^= (1 << iVarInPosition);
+        *pUCanonPhase ^= (1 << jVar);
+    }
+    if(*pUCanonPhase>>iVarInPosition & (unsigned)1 == 1)
+        Kit_TruthChangePhase_64bit( pAfter, nVars, iVarInPosition );
+    
+}
+int luckyCheck(word* pAfter, word* pBefore, int nVars, char * pCanonPerm, unsigned uCanonPhase)
+{
+    int i,j;
+    char tempChar;
+    for(j=0;j<nVars;j++)
+    {
+        tempChar = 'a'+ j;
+        for(i=j;i<nVars;i++)
+        {
+            if(tempChar != pCanonPerm[i])
+                continue;
+            swapAndFlip(pAfter , nVars, j, i, pCanonPerm, &uCanonPhase);
+            break;
+        }
+    }
+    if(uCanonPhase>>nVars & (unsigned)1 == 1)
+        Kit_TruthNot_64bit(pAfter, nVars );
+    if(memcmp(pAfter, pBefore, Kit_TruthWordNum_64bit( nVars )*sizeof(word)) == 0)
+        return 0;
+    else
+        return 1;
+}
+*/
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 
 inline void luckyCanonicizer(word* pInOut, word* pAux, word* pAux1, int  nVars, char * pCanonPerm, char * tempArray, unsigned* p_uCanonPhase)
 {
