@@ -440,7 +440,7 @@ void Ga2_ManStop( Ga2_Man_t * p )
 {
     Vec_IntFreeP( &p->pGia->vMapping );
     Gia_ManSetPhase( p->pGia );
-//    if ( p->pPars->fVerbose )
+    if ( p->pPars->fVerbose )
         Abc_Print( 1, "SAT solver:  Var = %d  Cla = %d  Conf = %d  Lrn = %d  Reduce = %d  Cex = %d  ObjsAdded = %d\n", 
             sat_solver2_nvars(p->pSat), sat_solver2_nclauses(p->pSat), 
             sat_solver2_nconflicts(p->pSat), sat_solver2_nlearnts(p->pSat), 
@@ -1527,7 +1527,11 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
                     goto finish;
                 assert( RetValue == l_False );
                 if ( c == 0 )
+                {
+                    p->pPars->nFramesNoChange++;
                     break;
+                }
+                p->pPars->nFramesNoChange = 0;
 
                 // derive the core
                 assert( p->pSat->pPrf2 != NULL );
@@ -1601,16 +1605,16 @@ finish:
     // analize the results
     if ( pAig->pCexSeq == NULL )
     {
-        if ( pAig->vGateClasses != NULL )
-            Abc_Print( 1, "Replacing the old abstraction by a new one.\n" );
+//        if ( pAig->vGateClasses != NULL )
+//            Abc_Print( 1, "Replacing the old abstraction by a new one.\n" );
         Vec_IntFreeP( &pAig->vGateClasses );
         pAig->vGateClasses = Ga2_ManAbsTranslate( p );
         if ( Status == l_Undef )
         {
             if ( p->pPars->nTimeOut && clock() >= p->pSat->nRuntimeLimit ) 
-                Abc_Print( 1, "SAT solver ran out of time at %d sec in frame %d.  ", p->pPars->nTimeOut, f );
+                Abc_Print( 1, "Timeout %d sec in frame %d with a %d-stable abstraction.    ", p->pPars->nTimeOut, f, p->pPars->nFramesNoChange );
             else if ( pPars->nConfLimit && sat_solver2_nconflicts(p->pSat) >= pPars->nConfLimit )
-                Abc_Print( 1, "SAT solver ran out of resources at %d conflicts in frame %d.  ", pPars->nConfLimit, f );
+                Abc_Print( 1, "Exceeded %d conflicts in frame %d with a %d-stable abstraction.  ", pPars->nConfLimit, f, p->pPars->nFramesNoChange );
             else if ( Vec_IntSize(p->vAbs) >= p->nMarked * (100 - pPars->nRatioMin) / 100 )
                 Abc_Print( 1, "The ratio of abstracted objects is less than %d %% in frame %d.  ", pPars->nRatioMin, f );
             else
@@ -1619,7 +1623,7 @@ finish:
         else
         {
             p->pPars->iFrame++;
-            Abc_Print( 1, "SAT solver completed %d frames and produced an abstraction.  ", f );
+            Abc_Print( 1, "SAT solver completed %d frames and produced a %d-stable abstraction.  ", f, p->pPars->nFramesNoChange );
         }
     }
     else

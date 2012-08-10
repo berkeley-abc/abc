@@ -1064,7 +1064,7 @@ Vta_Man_t * Vga_ManStart( Gia_Man_t * pGia, Gia_ParVta_t * pPars )
 ***********************************************************************/
 void Vga_ManStop( Vta_Man_t * p )
 {
-//    if ( p->pPars->fVerbose )
+    if ( p->pPars->fVerbose )
         Abc_Print( 1, "SAT solver:  Var = %d  Cla = %d  Conf = %d  Lrn = %d  Reduce = %d  Cex = %d  Objs+ = %d\n", 
             sat_solver2_nvars(p->pSat), sat_solver2_nclauses(p->pSat), sat_solver2_nconflicts(p->pSat), 
             sat_solver2_nlearnts(p->pSat), p->pSat->nDBreduces, p->nCexes, p->nObjAdded );
@@ -1706,8 +1706,8 @@ finish:
         else
         {
             assert( Vec_PtrSize(p->vCores) > 0 );
-            if ( pAig->vObjClasses != NULL )
-                Abc_Print( 1, "Replacing the old abstraction by a new one.\n" );
+//            if ( pAig->vObjClasses != NULL )
+//                Abc_Print( 1, "Replacing the old abstraction by a new one.\n" );
             Vec_IntFreeP( &pAig->vObjClasses );
             pAig->vObjClasses = Gia_VtaFramesToAbs( (Vec_Vec_t *)p->vCores );
             if ( Status == -1 )

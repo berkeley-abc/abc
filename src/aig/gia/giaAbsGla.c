@@ -1303,7 +1303,7 @@ void Gla_ManStop( Gla_Man_t * p )
     Gla_Obj_t * pGla;
     int i;
 
-//    if ( p->pPars->fVerbose )
+    if ( p->pPars->fVerbose )
         Abc_Print( 1, "SAT solver:  Var = %d  Cla = %d  Conf = %d  Lrn = %d  Reduce = %d  Cex = %d  Objs+ = %d\n", 
             sat_solver2_nvars(p->pSat), sat_solver2_nclauses(p->pSat), sat_solver2_nconflicts(p->pSat), 
             sat_solver2_nlearnts(p->pSat), p->pSat->nDBreduces, p->nCexes, p->nObjAdded );
@@ -2102,8 +2102,8 @@ finish:
     {
         if ( p->pPars->fVerbose && Status == -1 )
             printf( "\n" );
-        if ( pAig->vGateClasses != NULL )
-            Abc_Print( 1, "Replacing the old abstraction by a new one.\n" );
+//        if ( pAig->vGateClasses != NULL )
+//            Abc_Print( 1, "Replacing the old abstraction by a new one.\n" );
         Vec_IntFreeP( &pAig->vGateClasses );
         pAig->vGateClasses = Gla_ManTranslate( p );
         if ( Status == -1 )

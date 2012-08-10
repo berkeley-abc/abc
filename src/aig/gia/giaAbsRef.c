@@ -721,6 +721,7 @@ Vec_Int_t * Ga2_FilterSelected( Rnm_Man_t * p, Vec_Int_t * vSelect )
 Vec_Int_t * Rnm_ManRefine( Rnm_Man_t * p, Abc_Cex_t * pCex, Vec_Int_t * vMap, int fPropFanout, int fVerbose )
 {
     int fVerify = 0;
+    int fPostProcess = 1;
     Vec_Int_t * vSelected = Vec_IntAlloc( 100 );
     Vec_Int_t * vNew;
     clock_t clk, clk2 = clock();
@@ -754,16 +755,19 @@ Vec_Int_t * Rnm_ManRefine( Rnm_Man_t * p, Abc_Cex_t * pCex, Vec_Int_t * vMap, in
         p->timeBwd += clock() - clk;
     }
 
-    vNew = Ga2_FilterSelected( p, vSelected );
-    if ( Vec_IntSize(vNew) > 0 )
+    if ( fPostProcess )
     {
-        Vec_IntFree( vSelected );
-        vSelected = vNew;
-    }
-    else
-    {
-        Vec_IntFree( vNew );
-//        printf( "\nBig refinement.\n" );
+        vNew = Ga2_FilterSelected( p, vSelected );
+        if ( Vec_IntSize(vNew) > 0 )
+        {
+            Vec_IntFree( vSelected );
+            vSelected = vNew;
+        }
+        else
+        {
+            Vec_IntFree( vNew );
+    //        printf( "\nBig refinement.\n" );
+        }
     }
 
     // clean values
