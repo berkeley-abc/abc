@@ -93,7 +93,8 @@ struct Rf2_Man_t_
     Vec_Int_t *    vObjs;           // internal objects used in value propagation
     Vec_Int_t *    vFanins;         // fanins of the PPI nodes
     Vec_Int_t *    pvVecs;          // vectors of integers for each object
-    Vec_Vec_t *    vNod2Ppi;        // for each node, the set of PPIs to include
+    Vec_Vec_t *    vGrp2Ppi;        // for each node, the set of PPIs to include
+    int            nMapWords;
     // internal data
     Rf2_Obj_t *    pObjs;           // refinement objects
     int            nObjs;           // the number of used objects
@@ -122,6 +123,76 @@ static inline Vec_Int_t * Rf2_ObjVec( Rf2_Man_t * p, Gia_Obj_t * pObj )
     return p->pvVecs + Gia_ObjId(p->pGia, pObj);
 }
 
+
+static inline unsigned * Rf2_ObjA( Rf2_Man_t * p, Gia_Obj_t * pObj )  
+{
+    return (unsigned *)Vec_IntArray(Rf2_ObjVec(p, pObj));
+}
+static inline unsigned * Rf2_ObjN( Rf2_Man_t * p, Gia_Obj_t * pObj )  
+{
+    return (unsigned *)Vec_IntArray(Rf2_ObjVec(p, pObj)) + p->nMapWords;
+}
+static inline void Rf2_ObjClear( Rf2_Man_t * p, Gia_Obj_t * pObj )  
+{
+    Vec_IntFill( Rf2_ObjVec(p, pObj), 2*p->nMapWords, 0 );
+}
+static inline void Rf2_ObjStart( Rf2_Man_t * p, Gia_Obj_t * pObj, int i )  
+{
+    Vec_Int_t * vVec = Rf2_ObjVec(p, pObj);
+    int w;
+    Vec_IntClear( vVec );
+    for ( w = 0; w < p->nMapWords; w++ )
+        Vec_IntPush( vVec, 0 );
+    for ( w = 0; w < p->nMapWords; w++ )
+        Vec_IntPush( vVec, ~0 );
+    Abc_InfoSetBit( Rf2_ObjA(p, pObj), i );
+    Abc_InfoXorBit( Rf2_ObjN(p, pObj), i );
+}
+static inline void Rf2_ObjCopy( Rf2_Man_t * p, Gia_Obj_t * pObj, Gia_Obj_t * pFanin )  
+{
+    assert( Vec_IntSize(Rf2_ObjVec(p, pObj)) == 2*p->nMapWords );
+    memcpy( Rf2_ObjA(p, pObj), Rf2_ObjA(p, pFanin), sizeof(unsigned) * 2 * p->nMapWords );
+}
+static inline void Rf2_ObjDeriveAnd( Rf2_Man_t * p, Gia_Obj_t * pObj, int One )  
+{
+    unsigned * pInfo, * pInfo0, * pInfo1;
+    int i;
+    assert( Gia_ObjIsAnd(pObj) );
+    assert( One == (int)pObj->fMark0 );
+    assert( One == (int)(Gia_ObjFanin0(pObj)->fMark0 ^ Gia_ObjFaninC0(pObj)) );
+    assert( One == (int)(Gia_ObjFanin1(pObj)->fMark0 ^ Gia_ObjFaninC1(pObj)) );
+    assert( Vec_IntSize(Rf2_ObjVec(p, pObj)) == 2*p->nMapWords );
+
+    pInfo  = Rf2_ObjA( p, pObj );
+    pInfo0 = Rf2_ObjA( p, Gia_ObjFanin0(pObj) );
+    pInfo1 = Rf2_ObjA( p, Gia_ObjFanin1(pObj) );
+    for ( i = 0; i < p->nMapWords; i++ )
+        pInfo[i] = One ? (pInfo0[i] & pInfo1[i]) : (pInfo0[i] | pInfo1[i]);
+
+    pInfo  = Rf2_ObjN( p, pObj );
+    pInfo0 = Rf2_ObjN( p, Gia_ObjFanin0(pObj) );
+    pInfo1 = Rf2_ObjN( p, Gia_ObjFanin1(pObj) );
+    for ( i = 0; i < p->nMapWords; i++ )
+        pInfo[i] = One ? (pInfo0[i] | pInfo1[i]) : (pInfo0[i] & pInfo1[i]);
+}
+static inline void Rf2_ObjPrint( Rf2_Man_t * p, Gia_Obj_t * pRoot )  
+{
+    Gia_Obj_t * pObj;
+    unsigned * pInfo;
+    int i;
+    pInfo  = Rf2_ObjA( p, pRoot );
+    Gia_ManForEachObjVec( p->vMap, p->pGia, pObj, i )
+        if ( !Gia_ObjIsPi(p->pGia, pObj) )
+            printf( "%d", Abc_InfoHasBit(pInfo, i) );
+    printf( "\n" );
+    pInfo  = Rf2_ObjN( p, pRoot );
+    Gia_ManForEachObjVec( p->vMap, p->pGia, pObj, i )
+        if ( !Gia_ObjIsPi(p->pGia, pObj) )
+            printf( "%d", !Abc_InfoHasBit(pInfo, i) );
+    printf( "\n" );
+
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -146,7 +217,7 @@ Rf2_Man_t * Rf2_ManStart( Gia_Man_t * pGia )
     p->vObjs = Vec_IntAlloc( 1000 );
     p->vFanins = Vec_IntAlloc( 1000 );
     p->pvVecs = ABC_CALLOC( Vec_Int_t, Gia_ManObjNum(pGia) );
-    p->vNod2Ppi = Vec_VecStart( 100 );
+    p->vGrp2Ppi = Vec_VecStart( 100 );
     Gia_ManCleanMark0(pGia);
     Gia_ManCleanMark1(pGia);
     return p;
@@ -171,7 +242,7 @@ void Rf2_ManStop( Rf2_Man_t * p, int fProfile )
     }
     Vec_IntFree( p->vObjs );
     Vec_IntFree( p->vFanins );
-    Vec_VecFree( p->vNod2Ppi );
+    Vec_VecFree( p->vGrp2Ppi );
     ABC_FREE( p->pvVecs );
     ABC_FREE( p );
 }
@@ -471,9 +542,14 @@ void Rf2_ManGatherFanins( Rf2_Man_t * p, int Depth )
   SeeAlso     []
 
 ***********************************************************************/
-int Rf2_ManCountPis( Rf2_Man_t * p )
+static inline int Rf2_ManCountPpis( Rf2_Man_t * p )
 {
-    return 0;
+    Gia_Obj_t * pObj;
+    int i, Counter = 0;
+    Gia_ManForEachObjVec( p->vMap, p->pGia, pObj, i )
+        if ( !Gia_ObjIsPi(p->pGia, pObj) ) // this is PPI
+            Counter++;
+    return Counter;
 }
 
 /**Function*************************************************************
@@ -487,9 +563,40 @@ int Rf2_ManCountPis( Rf2_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Rf2_ManProcessVector( Vec_Int_t * p, int Limit )
+static inline void Rf2_ManPrintVector( Vec_Int_t * p, int Num )
 {
+    int i, k, Entry;
+    Vec_IntForEachEntry( p, Entry, i )
+    {
+        for ( k = 0; k < Num; k++ )
+            printf( "%c", '0' + ((Entry>>k) & 1) );
+        printf( "\n" );
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Sort, make dup- and containment-free, and filter.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Rf2_ManProcessVector( Vec_Int_t * p, int Limit )
+{
+//    int Start = Vec_IntSize(p);
+    int Start = 0;
     int i, j, k, Entry, Entry2;
+//    printf( "%d", Vec_IntSize(p) );
+    if ( Start > 5 )
+    {
+        printf( "Before: \n" );
+        Rf2_ManPrintVector( p, 31 );
+    }
+
     k = 0;
     Vec_IntForEachEntry( p, Entry, i )
         if ( Gia_WordCountOnes((unsigned)Entry) <= Limit )
@@ -506,26 +613,13 @@ void Rf2_ManProcessVector( Vec_Int_t * p, int Limit )
             Vec_IntWriteEntry( p, k++, Entry );
     }
     Vec_IntShrink( p, k );            
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Sort, make dup- and containment-free, and filter.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Rf2_ManPrintVector( Vec_Int_t * p, int Num )
-{
-    extern void Extra_PrintBinary( FILE * pFile, unsigned * p, int nBits );
-    int i, Entry;
-    printf( "Justification containing %d subsets.\n", Vec_IntSize(p) );
-    Vec_IntForEachEntry( p, Entry, i )
-        Extra_PrintBinary( stdout, (unsigned *)&Entry, Num ), printf( "\n" );
+//    printf( "->%d ", Vec_IntSize(p) );
+    if ( Start > 5 )
+    {
+        printf( "After: \n" );
+        Rf2_ManPrintVector( p, 31 );
+        k = 0;
+    }
 }
 
 /**Function*************************************************************
@@ -539,15 +633,56 @@ void Rf2_ManPrintVector( Vec_Int_t * p, int Num )
   SeeAlso     []
 
 ***********************************************************************/
-void Rf2_ManAssignJustIds( Rf2_Man_t * p )
+int Rf2_ManAssignJustIds( Rf2_Man_t * p )
 {
     Gia_Obj_t * pObj;
+    int nPpis = Rf2_ManCountPpis( p );
+    int nGroupSize = (nPpis / 30) + (nPpis % 30 > 0);
     int i, k = 0;
-    Vec_VecClear( p->vNod2Ppi );
+    Vec_VecClear( p->vGrp2Ppi );
     Gia_ManForEachObjVec( p->vMap, p->pGia, pObj, i )
         if ( !Gia_ObjIsPi(p->pGia, pObj) ) // this is PPI
-            Vec_VecPushInt( p->vNod2Ppi, k++, i );
-    printf( "Considering %d PPIs with unique justification IDs.\n", k );
+            Vec_VecPushInt( p->vGrp2Ppi, (k++ / nGroupSize), i );
+    printf( "Considering %d PPIs combined into %d groups of size %d.\n", k, (k-1)/nGroupSize+1, nGroupSize );
+    return (k-1)/nGroupSize+1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Sort, make dup- and containment-free, and filter.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Rf2_ManPrintVectorSpecial( Rf2_Man_t * p, Vec_Int_t * vVec )
+{
+    Gia_Obj_t * pObj;
+    int nPpis = Rf2_ManCountPpis( p );
+    int nGroupSize = (nPpis / 30) + (nPpis % 30 > 0);
+    int s, i, k, Entry, Counter;
+
+    Vec_IntForEachEntry( vVec, Entry, s )
+    {
+        k = 0;
+        Counter = 0;
+        Gia_ManForEachObjVec( p->vMap, p->pGia, pObj, i )
+        {
+            if ( !Gia_ObjIsPi(p->pGia, pObj) ) // this is PPI
+            {
+                if ( (Entry >> (k++ / nGroupSize)) & 1 )
+                    printf( "1" ), Counter++;
+                else
+                    printf( "0" );
+            }
+            else
+                printf( "-" );
+        }
+        printf( " %3d \n", Counter );
+    }
 }
 
 /**Function*************************************************************
@@ -581,7 +716,7 @@ Vec_Int_t * Rf2_ManPropagate( Rf2_Man_t * p, int Limit )
             Vec_IntFill( Rf2_ObjVec(p, pObj), 1, 0 );
         }
         // assign justification sets for PPis
-        Vec_VecForEachLevelInt( p->vNod2Ppi, vVec, i )
+        Vec_VecForEachLevelInt( p->vGrp2Ppi, vVec, i )
             Vec_IntForEachEntry( vVec, Entry, k )
             {
                 assert( i < 31 );
@@ -615,11 +750,11 @@ Vec_Int_t * Rf2_ManPropagate( Rf2_Man_t * p, int Limit )
                 continue;
             }
             assert( Gia_ObjIsAnd(pObj) );
+            vVec0 = Rf2_ObjVec(p, Gia_ObjFanin0(pObj));
+            vVec1 = Rf2_ObjVec(p, Gia_ObjFanin1(pObj));
             pObj->fMark0 = (Gia_ObjFanin0(pObj)->fMark0 ^ Gia_ObjFaninC0(pObj)) & (Gia_ObjFanin1(pObj)->fMark0 ^ Gia_ObjFaninC1(pObj));
             if ( pObj->fMark0 == 1 )
             {
-                vVec0 = Rf2_ObjVec(p, Gia_ObjFanin0(pObj));
-                vVec1 = Rf2_ObjVec(p, Gia_ObjFanin1(pObj));
                 Vec_IntForEachEntry( vVec0, Entry, k )
                     Vec_IntForEachEntry( vVec1, Entry2, j )
                         Vec_IntPush( vVec, Entry | Entry2 );
@@ -645,6 +780,77 @@ Vec_Int_t * Rf2_ManPropagate( Rf2_Man_t * p, int Limit )
 
 /**Function*************************************************************
 
+  Synopsis    [Performs justification propagation.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Rf2_ManBounds( Rf2_Man_t * p )
+{
+    Gia_Obj_t * pObj;
+    int f, i, iBit = p->pCex->nRegs;
+    // init constant
+    pObj = Gia_ManConst0(p->pGia);
+    pObj->fMark0 = 0;
+    Rf2_ObjStart( p, pObj, Vec_IntSize(p->vMap) + Vec_IntSize(p->vObjs) );
+    // iterate through the timeframes
+    for ( f = 0; f <= p->pCex->iFrame; f++, iBit += p->pCex->nPis )
+    {
+        // initialize frontier values and init justification sets
+        Gia_ManForEachObjVec( p->vMap, p->pGia, pObj, i )
+        {
+            assert( Gia_ObjIsCi(pObj) || Gia_ObjIsAnd(pObj) );
+            pObj->fMark0 = Abc_InfoHasBit( p->pCex->pData, iBit + i );
+            Rf2_ObjStart( p, pObj, i );
+        }
+        // propagate internal nodes
+        Gia_ManForEachObjVec( p->vObjs, p->pGia, pObj, i )
+        {
+            pObj->fMark0 = 0;
+            Rf2_ObjClear( p, pObj );
+            if ( Gia_ObjIsRo(p->pGia, pObj) )
+            {
+                if ( f == 0 )
+                {
+                    Rf2_ObjStart( p, pObj, Vec_IntSize(p->vMap) + i );
+                    continue;
+                }
+                pObj->fMark0 = Gia_ObjRoToRi(p->pGia, pObj)->fMark0;
+                Rf2_ObjCopy( p, pObj, Gia_ObjRoToRi(p->pGia, pObj) );
+                continue;
+            }
+            if ( Gia_ObjIsCo(pObj) )
+            {
+                pObj->fMark0 = (Gia_ObjFanin0(pObj)->fMark0 ^ Gia_ObjFaninC0(pObj));
+                Rf2_ObjCopy( p, pObj, Gia_ObjFanin0(pObj) );
+                continue;
+            }
+            assert( Gia_ObjIsAnd(pObj) );
+            pObj->fMark0 = (Gia_ObjFanin0(pObj)->fMark0 ^ Gia_ObjFaninC0(pObj)) & (Gia_ObjFanin1(pObj)->fMark0 ^ Gia_ObjFaninC1(pObj));
+            if ( pObj->fMark0 == 1 )
+                Rf2_ObjDeriveAnd( p, pObj, 1 );
+            else if ( (Gia_ObjFanin0(pObj)->fMark0 ^ Gia_ObjFaninC0(pObj)) == 0 && (Gia_ObjFanin1(pObj)->fMark0 ^ Gia_ObjFaninC1(pObj)) == 0 )
+                Rf2_ObjDeriveAnd( p, pObj, 0 );
+            else if ( (Gia_ObjFanin0(pObj)->fMark0 ^ Gia_ObjFaninC0(pObj)) == 0 )
+                Rf2_ObjCopy( p, pObj, Gia_ObjFanin0(pObj) );
+            else 
+                Rf2_ObjCopy( p, pObj, Gia_ObjFanin1(pObj) );
+        }
+    }
+    assert( iBit == p->pCex->nBits );
+    if ( Gia_ManPo(p->pGia, 0)->fMark0 != 1 )
+        printf( "Output value is incorrect.\n" );
+
+    printf( "Bounds: \n" );
+    Rf2_ObjPrint( p, Gia_ManPo(p->pGia, 0) );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Computes the refinement for a given counter-example.]
 
   Description []
@@ -657,8 +863,10 @@ Vec_Int_t * Rf2_ManPropagate( Rf2_Man_t * p, int Limit )
 Vec_Int_t * Rf2_ManRefine( Rf2_Man_t * p, Abc_Cex_t * pCex, Vec_Int_t * vMap, int fPropFanout, int fVerbose )
 {
     Vec_Int_t * vJusts;
-    Vec_Int_t * vSelected = Vec_IntAlloc( 100 );
+//    Vec_Int_t * vSelected = Vec_IntAlloc( 100 );
+    Vec_Int_t * vSelected = NULL;
     clock_t clk, clk2 = clock();
+    int nGroups;
     p->nCalls++;
     // initialize
     p->pCex = pCex;
@@ -670,15 +878,23 @@ Vec_Int_t * Rf2_ManRefine( Rf2_Man_t * p, Abc_Cex_t * pCex, Vec_Int_t * vMap, in
     // collect reconvergence points
 //    Rf2_ManGatherFanins( p, 2 );
     // propagate justification IDs
-    Rf2_ManAssignJustIds( p );
-    vJusts = Rf2_ManPropagate( p, 100 );
-    Rf2_ManPrintVector( vJusts, Rf2_ManCountPis(p) );
+    nGroups = Rf2_ManAssignJustIds( p );
+    vJusts = Rf2_ManPropagate( p, 32 );
+
+//    printf( "\n" );
+//    Rf2_ManPrintVector( vJusts, nGroups );
+    Rf2_ManPrintVectorSpecial( p, vJusts );
     if ( Vec_IntSize(vJusts) == 0 )
     {
         printf( "Empty set of justifying subsets.\n" );
         return NULL;
     }
+
+//    p->nMapWords = Abc_BitWordNum( Vec_IntSize(p->vMap) + Vec_IntSize(p->vObjs) + 1 ); // Map + Flops + Const
+//    Rf2_ManBounds( p );
+
     // select the result
+//    Abc_PrintTime( 1, "Time", clock() - clk2 );
 
     // verify (empty) refinement
     clk = clock();
@@ -687,7 +903,7 @@ Vec_Int_t * Rf2_ManRefine( Rf2_Man_t * p, Abc_Cex_t * pCex, Vec_Int_t * vMap, in
 //    Vec_IntReverseOrder( vSelected );
     p->timeVer += clock() - clk;
     p->timeTotal += clock() - clk2;
-    p->nRefines += Vec_IntSize(vSelected);
+//    p->nRefines += Vec_IntSize(vSelected);
     return vSelected;
 }
 

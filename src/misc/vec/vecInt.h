@@ -1170,23 +1170,25 @@ static inline void Vec_IntSort( Vec_Int_t * p, int fReverse )
 
   Synopsis    [Leaves only unique entries.]
 
-  Description []
+  Description [Returns the number of duplicated entried found.]
                
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
-static inline void Vec_IntUniqify( Vec_Int_t * p )
+static inline int Vec_IntUniqify( Vec_Int_t * p )
 {
-    int i, k;
+    int i, k, RetValue;
     if ( p->nSize < 2 )
-        return;
+        return 0;
     Vec_IntSort( p, 0 );
     for ( i = k = 1; i < p->nSize; i++ )
         if ( p->pArray[i] != p->pArray[i-1] )
             p->pArray[k++] = p->pArray[i];
+    RetValue = p->nSize - k;
     p->nSize = k;
+    return RetValue;
 }
 
 /**Function*************************************************************
