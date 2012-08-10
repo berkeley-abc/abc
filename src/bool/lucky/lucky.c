@@ -85,7 +85,7 @@ void sortAndUnique(word** a, Abc_TtStore_t* p)
 {
      int i, count=1, WordsPtrN = p->nFuncs;
      word* tempWordPtr;
-     qsort(a,WordsPtrN,sizeof(word*),compareWords3);
+     qsort(a,WordsPtrN,sizeof(word*),(int(*)(const void *,const void *))compareWords3);
      tempWordPtr = a[0];
      for(i=1;i<WordsPtrN;i++)    
          if(memcmp(a[i],tempWordPtr,sizeof(word)*(p->nWords)) != 0)
