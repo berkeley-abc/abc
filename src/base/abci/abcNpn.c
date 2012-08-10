@@ -101,7 +101,7 @@ void Abc_TruthNpnPerform( Abc_TtStore_t * p, int NpnType, int fVerbose )
     unsigned pAux[2048];
 
     clock_t clk = clock();
-    int i, nFuncs = 0;
+    int i;//, nFuncs = 0;
 
     char * pAlgoName = NULL;
     if ( NpnType == 1 )
