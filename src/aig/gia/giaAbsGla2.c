@@ -1433,6 +1433,7 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
         // remember abstraction size after the last restart
         nAbsOld = Vec_IntSize(p->vAbs);
         // unroll the circuit
+        p->pPars->nFramesNoChange = -1;
         for ( f = 0; !pPars->nFramesMax || f < pPars->nFramesMax; f++ )
         {
             // remember current limits
@@ -1528,7 +1529,8 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
                 assert( RetValue == l_False );
                 if ( c == 0 )
                 {
-                    p->pPars->nFramesNoChange++;
+                    if ( p->pPars->nFramesNoChange >= 0 )
+                        p->pPars->nFramesNoChange++;
                     break;
                 }
                 p->pPars->nFramesNoChange = 0;
@@ -1599,6 +1601,7 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
         }
     }
 finish:
+    p->pPars->nFramesNoChange = Abc_MaxInt( p->pPars->nFramesNoChange, 0 );
     Prf_ManStopP( &p->pSat->pPrf2 );
     if ( p->pPars->fVerbose )
     Abc_Print( 1, "\n" );
