@@ -1383,6 +1383,7 @@ void Gia_Ga2SendCancel( Ga2_Man_t * p, int fVerbose )
 ***********************************************************************/
 int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
 {
+    int fUseSecondCore = 1;
     Ga2_Man_t * p;
     Vec_Int_t * vCore, * vPPis;
     clock_t clk2, clk = clock();
@@ -1526,7 +1527,7 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
                     goto finish;
                 if ( p->pSat->nRuntimeLimit && clock() > p->pSat->nRuntimeLimit ) // timeout
                     goto finish;
-                assert( RetValue == l_False );
+//                assert( RetValue == l_False );
                 if ( c == 0 )
                 {
                     if ( p->pPars->nFramesNoChange >= 0 )
@@ -1543,6 +1544,47 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
                 sat_solver2_rollback( p->pSat );
                 // reduce abstraction
                 Ga2_ManShrinkAbs( p, nAbs, nValues, nVarsOld );
+
+                // purify UNSAT core
+                if ( fUseSecondCore )
+                {
+                    int nOldCore = Vec_IntSize(vCore);
+                    Vec_IntSort( vCore, 0 );
+//                    Vec_IntPrint( vCore );
+                    // create bookmark to be used for rollback
+                    assert( nVarsOld == p->pSat->size );
+                    sat_solver2_bookmark( p->pSat );
+                    // start incremental proof manager
+                    assert( p->pSat->pPrf2 == NULL );
+                    p->pSat->pPrf2 = Prf_ManAlloc();
+                    if ( p->pSat->pPrf2 )
+                    {
+                        p->nProofIds = 0;
+                        Vec_IntFill( p->vProofIds, Gia_ManObjNum(p->pGia), -1 );
+                        Prf_ManRestart( p->pSat->pPrf2, p->vProofIds, sat_solver2_nlearnts(p->pSat), Vec_IntSize(vCore) );
+
+                        Ga2_ManAddToAbs( p, vCore );
+                        Vec_IntFree( vCore );
+//                        if ( pPars->fVerbose )
+//                            Ga2_ManAbsPrintFrame( p, f, sat_solver2_nconflicts(p->pSat)-nConflsBeg, c+1, clock() - clk, 0 );
+                    }
+                    // run SAT solver
+                    clk2 = clock();
+                    Status = sat_solver2_solve( p->pSat, &Lit, &Lit+1, (ABC_INT64_T)pPars->nConfLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
+                    assert( Status == l_False );
+                    p->timeUnsat += clock() - clk2;
+
+                    // derive the core
+                    assert( p->pSat->pPrf2 != NULL );
+                    vCore = (Vec_Int_t *)Sat_ProofCore( p->pSat );
+                    Prf_ManStopP( &p->pSat->pPrf2 );
+                    // update the SAT solver
+                    sat_solver2_rollback( p->pSat );
+                    // reduce abstraction
+                    Ga2_ManShrinkAbs( p, nAbs, nValues, nVarsOld );
+//                    printf( "\n%4d -> %4d\n", nOldCore, Vec_IntSize(vCore) );
+                }
+
                 Ga2_ManAddToAbs( p, vCore );
                 Vec_IntFree( vCore );
                 // verify

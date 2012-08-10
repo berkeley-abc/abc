@@ -296,18 +296,18 @@ static inline void Abc_PrintInt( int i )
         Abc_Print( 1, " %4d", i );
 
     else if ( v3 > -9.995 && v3 < 9.995 )
-        Abc_Print( 1, "%4.2fk", v3, v3 );
+        Abc_Print( 1, "%4.2fk", v3 );
     else if ( v3 > -99.95 && v3 < 99.95 )
-        Abc_Print( 1, "%4.1fk", v3, v3 );
+        Abc_Print( 1, "%4.1fk", v3 );
     else if ( v3 > -999.5 && v3 < 999.5 )
-        Abc_Print( 1, "%4.0fk", v3, v3 );
+        Abc_Print( 1, "%4.0fk", v3 );
 
     else if ( v6 > -9.995 && v6 < 9.995 )
-        Abc_Print( 1, "%4.2fm", v6, v6 );
+        Abc_Print( 1, "%4.2fm", v6 );
     else if ( v6 > -99.95 && v6 < 99.95 )
-        Abc_Print( 1, "%4.1fm", v6, v6 );
+        Abc_Print( 1, "%4.1fm", v6 );
     else if ( v6 > -999.5 && v6 < 999.5 )
-        Abc_Print( 1, "%4.0fm", v6, v6 );
+        Abc_Print( 1, "%4.0fm", v6 );
 }
 
 static inline void Abc_PrintTime( int level, const char * pStr, clock_t time )
