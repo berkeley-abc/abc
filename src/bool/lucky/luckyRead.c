@@ -125,6 +125,7 @@ static char * Abc_FileRead( char * pFileName )
     FILE * pFile;
     char * pBuffer;
     int nFileSize;
+    int RetValue;
     pFile = fopen( pFileName, "r" );
     if ( pFile == NULL )
     {
@@ -138,7 +139,7 @@ static char * Abc_FileRead( char * pFileName )
     rewind( pFile ); 
     // load the contents of the file into memory
     pBuffer = (char *)malloc( nFileSize + 3 );
-    fread( pBuffer, nFileSize, 1, pFile );
+    RetValue = fread( pBuffer, nFileSize, 1, pFile );
     // add several empty lines at the end
     // (these will be used to signal the end of parsing)
     pBuffer[ nFileSize + 0] = '\n';
