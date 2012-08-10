@@ -34,15 +34,15 @@
 #define ABC_NAMESPACE_HEADER_END
 #define ABC_NAMESPACE_IMPL_START
 #define ABC_NAMESPACE_IMPL_END
+typedef unsigned __int64  word;
 #endif
 
 
 ABC_NAMESPACE_HEADER_START
 
-typedef unsigned __int64 ABC_UINT64_T;
+//typedef unsigned __int64 ABC_UINT64_T;
 //typedef ABC_UINT64_T word;
 
-typedef unsigned __int64  word;
 
 #define bool int
 #define false 0
