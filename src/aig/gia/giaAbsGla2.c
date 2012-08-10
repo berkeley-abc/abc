@@ -1417,10 +1417,10 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
     if ( p->pPars->fVerbose )
     {
         Abc_Print( 1, "Running gate-level abstraction (GLA) with the following parameters:\n" );
-        Abc_Print( 1, "FrameMax = %d  ConfMax = %d  Timeout = %d  RatioMin = %d %%.\n", 
-            pPars->nFramesMax, pPars->nConfLimit, pPars->nTimeOut, pPars->nRatioMin );
-        Abc_Print( 1, "LearnStart = %d  LearnDelta = %d  LearnRatio = %d %%.\n", 
-            pPars->nLearnedStart, pPars->nLearnedDelta, pPars->nLearnedPerce );
+        Abc_Print( 1, "FrameMax = %d  ConfMax = %d  Timeout = %d  RatioMin = %d %%  RatioMax = %d %%\n", 
+            pPars->nFramesMax, pPars->nConfLimit, pPars->nTimeOut, pPars->nRatioMin, pPars->nRatioMax );
+        Abc_Print( 1, "LrnStart = %d  LrnDelta = %d  LrnRatio = %d %%  Skip = %d  SimpleCNF = %d  Dump = %d\n", 
+            pPars->nLearnedStart, pPars->nLearnedDelta, pPars->nLearnedPerce, pPars->fUseSkip, pPars->fUseSimple, pPars->fDumpVabs );
         Abc_Print( 1, " Frame   %%   Abs  PPI   FF   LUT   Confl  Cex   Vars   Clas   Lrns     Time      Mem\n" );
     }
     // iterate unrolling
@@ -1517,9 +1517,6 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
                     Vec_IntFree( vPPis );
                     if ( pPars->fVerbose )
                         Ga2_ManAbsPrintFrame( p, f, sat_solver2_nconflicts(p->pSat)-nConflsBeg, c+1, clock() - clk, 0 );
-                    // verify
-//                    if ( Vec_IntCheckUnique(p->vAbs) )
-//                        Abc_Print( 1, "Vector has %d duplicated entries.\n", Vec_IntCheckUnique(p->vAbs) );
                     continue;
                 }
                 p->timeUnsat += clock() - clk2;
@@ -1527,7 +1524,6 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
                     goto finish;
                 if ( p->pSat->nRuntimeLimit && clock() > p->pSat->nRuntimeLimit ) // timeout
                     goto finish;
-//                assert( RetValue == l_False );
                 if ( c == 0 )
                 {
                     if ( p->pPars->nFramesNoChange >= 0 )
@@ -1548,8 +1544,9 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
                 // purify UNSAT core
                 if ( fUseSecondCore )
                 {
-                    int nOldCore = Vec_IntSize(vCore);
-                    Vec_IntSort( vCore, 0 );
+//                    int nOldCore = Vec_IntSize(vCore);
+                    // reverse the order of objects in the core
+//                    Vec_IntSort( vCore, 0 );
 //                    Vec_IntPrint( vCore );
                     // create bookmark to be used for rollback
                     assert( nVarsOld == p->pSat->size );
@@ -1565,8 +1562,6 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
 
                         Ga2_ManAddToAbs( p, vCore );
                         Vec_IntFree( vCore );
-//                        if ( pPars->fVerbose )
-//                            Ga2_ManAbsPrintFrame( p, f, sat_solver2_nconflicts(p->pSat)-nConflsBeg, c+1, clock() - clk, 0 );
                     }
                     // run SAT solver
                     clk2 = clock();
@@ -1587,17 +1582,22 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
 
                 Ga2_ManAddToAbs( p, vCore );
                 Vec_IntFree( vCore );
-                // verify
-//                if ( Vec_IntCheckUnique(p->vAbs) )
-//                    Abc_Print( 1, "Vector has %d duplicated entries.\n", Vec_IntCheckUnique(p->vAbs) );
                 break;
             }
             if ( pPars->fVerbose )
                 Ga2_ManAbsPrintFrame( p, f, sat_solver2_nconflicts(p->pSat)-nConflsBeg, c, clock() - clk, 1 );
+            // set model
             if ( c > 0 )
             {
                 Vec_IntFreeP( &pAig->vGateClasses );
                 pAig->vGateClasses = Ga2_ManAbsTranslate( p );
+
+                // check if the number of objects is below limit
+                if ( Vec_IntSize(p->vAbs) >= p->nMarked * (100 - pPars->nRatioMin) / 100 )
+                {
+                    Status = l_Undef;
+                    goto finish;
+                }
 
                 if ( Abc_FrameIsBridgeMode() )
                 {
@@ -1633,13 +1633,6 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
                     break;
                 }
             }
-        }
-
-        // check if the number of objects is below limit
-        if ( Vec_IntSize(p->vAbs) >= p->nMarked * (100 - pPars->nRatioMin) / 100 )
-        {
-            Status = l_Undef;
-            break;
         }
     }
 finish:
