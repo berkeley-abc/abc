@@ -47,9 +47,9 @@ struct Abc_TtStore_t_
     word **           pFuncs;
 };
 
-extern Abc_TtStore_t * Abc_TruthStoreLoad( char * pFileName );
-extern void            Abc_TruthStoreFree( Abc_TtStore_t * p );
-extern void            Abc_TruthStoreTest( char * pFileName );
+extern Abc_TtStore_t * Abc_TtStoreLoad( char * pFileName );
+extern void            Abc_TtStoreFree( Abc_TtStore_t * p );
+extern void            Abc_TtStoreTest( char * pFileName );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -183,7 +183,7 @@ void Abc_TruthNpnTest( char * pFileName, int NpnType, int fVerbose )
     Abc_TtStore_t * p;
 
     // read info from file
-    p = Abc_TruthStoreLoad( pFileName );
+    p = Abc_TtStoreLoad( pFileName );
     if ( p == NULL )
         return;
 
@@ -191,7 +191,7 @@ void Abc_TruthNpnTest( char * pFileName, int NpnType, int fVerbose )
     Abc_TruthNpnPerform( p, NpnType, fVerbose );
 
     // delete data-structure
-    Abc_TruthStoreFree( p );
+    Abc_TtStoreFree( p );
 //    printf( "Finished computing canonical forms for functions from file \"%s\".\n", pFileName );
 }
 
@@ -212,7 +212,7 @@ int Abc_NpnTest( char * pFileName, int NpnType, int fVerbose )
     if ( fVerbose )
         printf( "Using truth tables from file \"%s\"...\n", pFileName );
     if ( NpnType == 0 )
-        Abc_TruthStoreTest( pFileName );
+        Abc_TtStoreTest( pFileName );
     else if ( NpnType >= 1 && NpnType <= 3 )
         Abc_TruthNpnTest( pFileName, NpnType, fVerbose );
     else

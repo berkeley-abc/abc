@@ -154,7 +154,7 @@ Abc_TtStore_t * Abc_TruthStoreAlloc( int nVars, int nFuncs )
         p->pFuncs[i] = p->pFuncs[i-1] + p->nWords;
     return p;
 }
-void Abc_TruthStoreFree( Abc_TtStore_t * p )
+void Abc_TtStoreFree( Abc_TtStore_t * p )
 {
     free( p->pFuncs[0] );
     free( p->pFuncs );
@@ -338,7 +338,7 @@ void Abc_TruthStoreWrite( char * pFileName, Abc_TtStore_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_TtStore_t * Abc_TruthStoreLoad( char * pFileName )
+Abc_TtStore_t * Abc_TtStoreLoad( char * pFileName )
 { 
     Abc_TtStore_t * p;
     char * pFileInput  = pFileName;
@@ -368,14 +368,14 @@ Abc_TtStore_t * Abc_TruthStoreLoad( char * pFileName )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_TruthStoreTest( char * pFileName )
+void Abc_TtStoreTest( char * pFileName )
 { 
     Abc_TtStore_t * p;
     char * pFileInput  = pFileName;
     char * pFileOutput = "out.txt";
 
     // read info from file
-    p = Abc_TruthStoreLoad( pFileInput );
+    p = Abc_TtStoreLoad( pFileInput );
     if ( p == NULL )
         return;
 
@@ -383,7 +383,7 @@ void Abc_TruthStoreTest( char * pFileName )
     Abc_TruthStoreWrite( pFileOutput, p );
 
     // delete data-structure
-    Abc_TruthStoreFree( p );
+    Abc_TtStoreFree( p );
     printf( "Input file \"%s\" was copied into output file \"%s\".\n", pFileInput, pFileOutput );
 }
 
@@ -511,7 +511,7 @@ void Abc_TruthDecTest( char * pFileName, int DecType, int fVerbose )
     Abc_TruthDecPerform( p, DecType, fVerbose );
 
     // delete data-structure
-    Abc_TruthStoreFree( p );
+    Abc_TtStoreFree( p );
 //    printf( "Finished decomposing truth tables from file \"%s\".\n", pFileName );
 }
 
@@ -532,7 +532,7 @@ int Abc_DecTest( char * pFileName, int DecType, int fVerbose )
     if ( fVerbose )
         printf( "Using truth tables from file \"%s\"...\n", pFileName );
     if ( DecType == 0 )
-        Abc_TruthStoreTest( pFileName );
+        Abc_TtStoreTest( pFileName );
     else if ( DecType >= 1 && DecType <= 3 )
         Abc_TruthDecTest( pFileName, DecType, fVerbose );
     else

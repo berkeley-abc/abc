@@ -40,9 +40,6 @@ typedef unsigned __int64  word;
 
 ABC_NAMESPACE_HEADER_START
 
-//typedef unsigned __int64 ABC_UINT64_T;
-//typedef ABC_UINT64_T word;
-
 
 #define bool int
 #define false 0
@@ -107,7 +104,7 @@ static inline void TimePrint( char* Message )
 extern  inline int memCompare(word* x, word*  y, int nVars);
 extern  inline int Kit_TruthWordNum_64bit( int nVars );
 extern  Abc_TtStore_t * setTtStore(char * pFileInput);
-extern  void Abc_TruthStoreFree( Abc_TtStore_t * p );
+extern  inline void Abc_TruthStoreFree( Abc_TtStore_t * p );
 extern  inline void Kit_TruthChangePhase_64bit( word * pInOut, int nVars, int iVar );
 extern  inline void Kit_TruthNot_64bit(word * pIn, int nVars );
 extern  inline void Kit_TruthCopy_64bit( word * pOut, word * pIn, int nVars );
