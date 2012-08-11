@@ -1224,7 +1224,7 @@ Vec_Int_t * Ga2_ManRefine( Ga2_Man_t * p )
     int i, k;
     Ga2_GlaPrepareCexAndMap( p, &pCex, &vMap );
  //    Rf2_ManRefine( p->pRf2, pCex, vMap, p->pPars->fPropFanout, 1 );
-    vVec = Rnm_ManRefine( p->pRnm, pCex, vMap, p->pPars->fPropFanout, 1 );
+    vVec = Rnm_ManRefine( p->pRnm, pCex, vMap, p->pPars->fPropFanout, 1, 1 );
 //    printf( "Refinement %d\n", Vec_IntSize(vVec) );
     Abc_CexFree( pCex );
     if ( Vec_IntSize(vVec) == 0 )

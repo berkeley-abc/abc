@@ -51,7 +51,7 @@ typedef struct Rnm_Man_t_ Rnm_Man_t; // refinement manager
 extern Rnm_Man_t *  Rnm_ManStart( Gia_Man_t * pGia );
 extern void         Rnm_ManStop( Rnm_Man_t * p, int fProfile );
 extern double       Rnm_ManMemoryUsage( Rnm_Man_t * p );
-extern Vec_Int_t *  Rnm_ManRefine( Rnm_Man_t * p, Abc_Cex_t * pCex, Vec_Int_t * vMap, int fPropFanout, int fVerbose );
+extern Vec_Int_t *  Rnm_ManRefine( Rnm_Man_t * p, Abc_Cex_t * pCex, Vec_Int_t * vMap, int fPropFanout, int fPostProcess, int fVerbose );
 
 
 
