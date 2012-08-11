@@ -661,7 +661,7 @@ static inline void Ga2_ManCnfAddDynamic( Ga2_Man_t * p, int uTruth, int Lits[], 
         }
     }
 }
-static inline void Ga2_ManCnfAddStatic( Ga2_Man_t * p, Vec_Int_t * vCnf0, Vec_Int_t * vCnf1, int Lits[], int iLitOut, int ProofId )
+void Ga2_ManCnfAddStatic( sat_solver2 * pSat, Vec_Int_t * vCnf0, Vec_Int_t * vCnf1, int Lits[], int iLitOut, int ProofId )
 {
     Vec_Int_t * vCnf;
     int i, k, b, Cube, Literal, nClaLits, ClaLits[6];
@@ -688,11 +688,10 @@ static inline void Ga2_ManCnfAddStatic( Ga2_Man_t * p, Vec_Int_t * vCnf0, Vec_In
                 else if ( Literal != 0 )
                     assert( 0 );
             }
-            sat_solver2_addclause( p->pSat, ClaLits, ClaLits+nClaLits, ProofId );
+            sat_solver2_addclause( pSat, ClaLits, ClaLits+nClaLits, ProofId );
         }
     }
 }
-
 
 /**Function*************************************************************
 
@@ -795,7 +794,7 @@ static inline void Ga2_ManAddToAbsOneStatic( Ga2_Man_t * p, Gia_Obj_t * pObj, in
                 fUseStatic = 0;
         }
         if ( fUseStatic || Gia_ObjIsRo(p->pGia, pObj) )
-            Ga2_ManCnfAddStatic( p, Ga2_ObjCnf0(p, pObj), Ga2_ObjCnf1(p, pObj), Vec_IntArray(p->vLits), iLitOut, Gia_ObjId(p->pGia, pObj) );
+            Ga2_ManCnfAddStatic( p->pSat, Ga2_ObjCnf0(p, pObj), Ga2_ObjCnf1(p, pObj), Vec_IntArray(p->vLits), iLitOut, Gia_ObjId(p->pGia, pObj) );
         else
         {
             unsigned uTruth = Ga2_ObjComputeTruthSpecial( p->pGia, pObj, vLeaves, p->vLits );
@@ -899,7 +898,7 @@ static inline void Ga2_ManAddToAbsOneDynamic( Ga2_Man_t * p, Gia_Obj_t * pObj, i
                 Gia_ManForEachObjVec( vLeaves, p->pGia, pLeaf, i )
                     Vec_IntPush( p->vLits, Ga2_ObjFindOrAddLit( p, pLeaf, f ) );
                 Lit = Ga2_ObjFindOrAddLit(p, pObj, f);
-                Ga2_ManCnfAddStatic( p, Ga2_ObjCnf0(p, pObj), Ga2_ObjCnf1(p, pObj), Vec_IntArray(p->vLits), Lit, -1 );
+                Ga2_ManCnfAddStatic( p->pSat, Ga2_ObjCnf0(p, pObj), Ga2_ObjCnf1(p, pObj), Vec_IntArray(p->vLits), Lit, -1 );
             }
             else
             {
@@ -1222,7 +1221,7 @@ Vec_Int_t * Ga2_ManRefine( Ga2_Man_t * p )
     Abc_Cex_t * pCex;
     Vec_Int_t * vMap, * vVec;
     Gia_Obj_t * pObj;
-    int i;
+    int i, k;
     Ga2_GlaPrepareCexAndMap( p, &pCex, &vMap );
  //    Rf2_ManRefine( p->pRf2, pCex, vMap, p->pPars->fPropFanout, 1 );
     vVec = Rnm_ManRefine( p->pRnm, pCex, vMap, p->pPars->fPropFanout, 1 );
@@ -1237,9 +1236,16 @@ Vec_Int_t * Ga2_ManRefine( Ga2_Man_t * p )
         return NULL;
     }
     Vec_IntFree( vMap );
+    // remove those already added
+    k = 0;
+    Gia_ManForEachObjVec( vVec, p->pGia, pObj, i )
+        if ( !Ga2_ObjIsAbs(p, pObj) )
+            Vec_IntWriteEntry( vVec, k++, Gia_ObjId(p->pGia, pObj) );
+    Vec_IntShrink( vVec, k );
+
     // these objects should be PPIs that are not abstracted yet
     Gia_ManForEachObjVec( vVec, p->pGia, pObj, i )
-        assert( pObj->fPhase && Ga2_ObjIsLeaf(p, pObj) );
+        assert( pObj->fPhase );//&& Ga2_ObjIsLeaf(p, pObj) );
     p->nObjAdded += Vec_IntSize(vVec);
     return vVec;
 }
@@ -1450,14 +1456,18 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
             p->pPars->iFrame = f;
             // add static clauses to this timeframe
             Ga2_ManAddAbsClauses( p, f );
+            // skip checking if skipcheck is enabled (&gla -s)
+            if ( p->pPars->fUseSkip && f <= iFrameProved )
+                continue;
+            // skip checking if we need to skip several starting frames (&gla -S <num>)
+            if ( p->pPars->nFramesStart && f <= p->pPars->nFramesStart )
+                continue;
             // get the output literal
 //            Lit = Ga2_ManUnroll_rec( p, Gia_ManPo(pAig,0), f );
             Lit = Ga2_ObjFindLit( p, Gia_ObjFanin0(Gia_ManPo(pAig,0)), f );
             assert( Lit >= 0 );
             Lit = Abc_LitNotCond( Lit, Gia_ObjFaninC0(Gia_ManPo(pAig,0)) );
             if ( Lit == 0 )
-                continue;
-            if ( p->pPars->fUseSkip && f <= iFrameProved )
                 continue;
             assert( Lit > 1 );
             // check for counter-examples

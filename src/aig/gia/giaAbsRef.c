@@ -20,6 +20,7 @@
 
 #include "gia.h"
 #include "giaAbsRef.h"
+#include "sat/bsat/satSolver2.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -94,6 +95,11 @@ struct Rnm_Man_t_
     Vec_Int_t *    vObjs;           // internal objects used in value propagation
     Vec_Str_t *    vCounts;         // fanin counters
     Vec_Int_t *    vFanins;         // fanins
+    // SAT solver
+    sat_solver2 *  pSat;            // incremental SAT solver
+    Vec_Int_t *    vSatVars;        // SAT variables
+    Vec_Int_t *    vSat2Ids;        // mapping of SAT variables into object IDs
+    Vec_Int_t *    vIsopMem;        // memory for ISOP computation
     // internal data
     Rnm_Obj_t *    pObjs;           // refinement objects
     int            nObjs;           // the number of used objects
@@ -118,20 +124,190 @@ static inline Rnm_Obj_t * Rnm_ManObj( Rnm_Man_t * p, Gia_Obj_t * pObj, int f )
     return p->pObjs + f * p->nObjsFrame + pObj->Value;  
 }
 
-static inline int         Ga2_ObjOffset( Gia_Man_t * p, Gia_Obj_t * pObj )          { return Vec_IntEntry(p->vMapping, Gia_ObjId(p, pObj));                                                    }
-static inline int         Ga2_ObjLeaveNum( Gia_Man_t * p, Gia_Obj_t * pObj )        { return Vec_IntEntry(p->vMapping, Ga2_ObjOffset(p, pObj));                                                }
-static inline int *       Ga2_ObjLeavePtr( Gia_Man_t * p, Gia_Obj_t * pObj )        { return Vec_IntEntryP(p->vMapping, Ga2_ObjOffset(p, pObj) + 1);                                           }
-static inline unsigned    Ga2_ObjTruth( Gia_Man_t * p, Gia_Obj_t * pObj )           { return (unsigned)Vec_IntEntry(p->vMapping, Ga2_ObjOffset(p, pObj) + Ga2_ObjLeaveNum(p, pObj) + 1);       }
-static inline int         Ga2_ObjRefNum( Gia_Man_t * p, Gia_Obj_t * pObj )          { return (unsigned)Vec_IntEntry(p->vMapping, Ga2_ObjOffset(p, pObj) + Ga2_ObjLeaveNum(p, pObj) + 2);       }
-static inline Vec_Int_t * Ga2_ObjLeaves( Gia_Man_t * p, Gia_Obj_t * pObj )          { static Vec_Int_t v; v.nSize = Ga2_ObjLeaveNum(p, pObj), v.pArray = Ga2_ObjLeavePtr(p, pObj); return &v;  }
+static inline int         Ga2_ObjOffset( Gia_Man_t * p, Gia_Obj_t * pObj )          { return Vec_IntEntry(p->vMapping, Gia_ObjId(p, pObj));                                                         }
+static inline int         Ga2_ObjLeaveNum( Gia_Man_t * p, Gia_Obj_t * pObj )        { return Vec_IntEntry(p->vMapping, Ga2_ObjOffset(p, pObj));                                                     }
+static inline int *       Ga2_ObjLeavePtr( Gia_Man_t * p, Gia_Obj_t * pObj )        { return Vec_IntEntryP(p->vMapping, Ga2_ObjOffset(p, pObj) + 1);                                                }
+static inline unsigned    Ga2_ObjTruth( Gia_Man_t * p, Gia_Obj_t * pObj )           { return (unsigned)Vec_IntEntry(p->vMapping, Ga2_ObjOffset(p, pObj) + Ga2_ObjLeaveNum(p, pObj) + 1);            }
+static inline int         Ga2_ObjRefNum( Gia_Man_t * p, Gia_Obj_t * pObj )          { return (unsigned)Vec_IntEntry(p->vMapping, Ga2_ObjOffset(p, pObj) + Ga2_ObjLeaveNum(p, pObj) + 2);            }
+static inline Vec_Int_t * Ga2_ObjLeaves( Gia_Man_t * p, Gia_Obj_t * pObj )          { static Vec_Int_t v; v.nSize = Ga2_ObjLeaveNum(p, pObj), v.pArray = Ga2_ObjLeavePtr(p, pObj); return &v;       }
 
-static inline int         Rnm_ObjCount( Rnm_Man_t * p, Gia_Obj_t * pObj )           { return Vec_StrEntry( p->vCounts, Gia_ObjId(p->pGia, pObj) );                            }
-static inline void        Rnm_ObjSetCount( Rnm_Man_t * p, Gia_Obj_t * pObj, int c ) { Vec_StrWriteEntry( p->vCounts, Gia_ObjId(p->pGia, pObj), (char)c );                     }
-static inline int         Rnm_ObjAddToCount( Rnm_Man_t * p, Gia_Obj_t * pObj )      { int c = Rnm_ObjCount(p, pObj); if ( c < 16 )  Rnm_ObjSetCount(p, pObj, c+1); return c;  }
+static inline int         Rnm_ObjCount( Rnm_Man_t * p, Gia_Obj_t * pObj )           { return Vec_StrEntry( p->vCounts, Gia_ObjId(p->pGia, pObj) );                                                  }
+static inline void        Rnm_ObjSetCount( Rnm_Man_t * p, Gia_Obj_t * pObj, int c ) { Vec_StrWriteEntry( p->vCounts, Gia_ObjId(p->pGia, pObj), (char)c );                                           }
+static inline int         Rnm_ObjAddToCount( Rnm_Man_t * p, Gia_Obj_t * pObj )      { int c = Rnm_ObjCount(p, pObj); if ( c < 16 )  Rnm_ObjSetCount(p, pObj, c+1); return c;                        }
+
+static inline int         Rnm_ObjSatVar( Rnm_Man_t * p, Gia_Obj_t * pObj )          { return Vec_IntEntry( p->vSatVars, Gia_ObjId(p->pGia, pObj) );                                                 }
+static inline void        Rnm_ObjSetSatVar( Rnm_Man_t * p, Gia_Obj_t * pObj, int c) { Vec_IntWriteEntry( p->vSatVars, Gia_ObjId(p->pGia, pObj), c );                                                }
+static inline int         Rnm_ObjFindOrAddSatVar( Rnm_Man_t * p, Gia_Obj_t * pObj)  { if ( Rnm_ObjSatVar(p, pObj) == 0 ) { Rnm_ObjSetSatVar(p, pObj, Vec_IntSize(p->vSat2Ids)); Vec_IntPush(p->vSat2Ids, Gia_ObjId(p->pGia, pObj)); }; return 2*Rnm_ObjSatVar(p, pObj); }
+
+extern void               Ga2_ManCnfAddStatic( sat_solver2 * pSat, Vec_Int_t * vCnf0, Vec_Int_t * vCnf1, int * pLits, int iLitOut, int ProofId );
+
+extern Vec_Int_t *        Ga2_ManCnfCompute( unsigned uTruth, int nVars, Vec_Int_t * vCover );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
+
+/**Function*************************************************************
+
+  Synopsis    [Performs UNSAT-core-based refinement.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Rnm_ManRefineCollect_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vVisited, Vec_Int_t * vFlops )
+{
+    Vec_Int_t * vLeaves;
+    Gia_Obj_t * pFanin;
+    int k;
+    if ( Gia_ObjIsTravIdCurrent(p, pObj) )
+        return;
+    Gia_ObjSetTravIdCurrent(p, pObj);
+    if ( Gia_ObjIsCi(pObj) )
+    {
+        if ( Gia_ObjIsRo(p, pObj) )
+            Vec_IntPush( vFlops, Gia_ObjId(p, pObj) );
+        return;
+    }
+    assert( Gia_ObjIsAnd(pObj) );
+    vLeaves = Ga2_ObjLeaves( p, pObj );
+    Gia_ManForEachObjVec( vLeaves, p, pFanin, k )
+        Rnm_ManRefineCollect_rec( p, pFanin, vVisited, vFlops );
+    Vec_IntPush( vVisited, Gia_ObjId(p, pObj) );
+}
+
+Vec_Int_t * Rnm_ManRefineUnsatCore( Rnm_Man_t * p, Vec_Int_t * vPPIs )
+{
+    Vec_Int_t * vCnf0, * vCnf1;
+    Vec_Int_t * vLeaves, * vLits, * vPpi2Map;
+    Vec_Int_t * vVisited, * vFlops, * vCore, * vCoreFinal;
+    Gia_Obj_t * pObj, * pFanin;
+    int i, k, f, Status, Entry, pLits[5], iBit = p->pCex->nRegs;
+    // map PPIs into their positions in the map  // CAN BE MADE FASTER
+    vPpi2Map = Vec_IntAlloc( Vec_IntSize(vPPIs) );
+    Vec_IntForEachEntry( vPPIs, Entry, i )
+    {
+        Entry = Vec_IntFind( p->vMap, Entry );
+        assert( Entry >= 0 );
+        Vec_IntPush( vPpi2Map, Entry );
+    }
+    // collect nodes between selected PPIs and CIs
+    vFlops = Vec_IntAlloc( 100 );
+    vVisited = Vec_IntAlloc( 100 );
+    Gia_ManIncrementTravId( p->pGia );
+    Gia_ManForEachObjVec( vPPIs, p->pGia, pObj, i )
+//        if ( !Gia_ObjIsRo(p->pGia, pObj) ) // SKIP PPIs that are flops
+            Rnm_ManRefineCollect_rec( p->pGia, pObj, vVisited, vFlops );
+    // create SAT variables and SAT solver
+    Vec_IntFill( p->vSat2Ids, 1, -1 );
+    assert( p->pSat == NULL );
+    p->pSat = sat_solver2_new();
+    Vec_IntFill( p->vSatVars, Gia_ManObjNum(p->pGia), 0 ); // NO NEED TO CLEAN EACH TIME
+    // assign PPI variables
+    Gia_ManForEachObjVec( vFlops, p->pGia, pObj, i )
+        Rnm_ObjFindOrAddSatVar( p, pObj );
+    // assign other variables
+    Gia_ManForEachObjVec( vVisited, p->pGia, pObj, i )
+    {
+        vLeaves = Ga2_ObjLeaves( p->pGia, pObj );
+        Gia_ManForEachObjVec( vLeaves, p->pGia, pFanin, k )
+            pLits[k] = Rnm_ObjFindOrAddSatVar( p, pFanin );
+        vCnf0 = Ga2_ManCnfCompute(  Ga2_ObjTruth(p->pGia, pObj), Vec_IntSize(vLeaves), p->vIsopMem );
+        vCnf1 = Ga2_ManCnfCompute( ~Ga2_ObjTruth(p->pGia, pObj), Vec_IntSize(vLeaves), p->vIsopMem );
+        Ga2_ManCnfAddStatic( p->pSat, vCnf0, vCnf1, pLits, Rnm_ObjFindOrAddSatVar(p, pObj), Rnm_ObjFindOrAddSatVar(p, pObj)/2 );
+        Vec_IntFree( vCnf0 );
+        Vec_IntFree( vCnf1 );
+    }
+
+//    printf( "\n" );
+
+    p->pSat->pPrf2 = Prf_ManAlloc();
+    Prf_ManRestart( p->pSat->pPrf2, NULL, sat_solver2_nlearnts(p->pSat), Vec_IntSize(p->vSat2Ids) );
+
+    // iterate UNSAT core computation for each timeframe
+    vLits = Vec_IntAlloc( 100 );
+    vCoreFinal = Vec_IntAlloc( 100 );
+    for ( f = 0; f <= p->pCex->iFrame; f++, iBit += p->pCex->nPis )
+    {
+        // collect values of PPIs in this timeframe
+        Vec_IntClear( vLits );
+        Gia_ManForEachObjVec( vPPIs, p->pGia, pObj, i )
+        {
+            Entry = Abc_InfoHasBit( p->pCex->pData, iBit + Vec_IntEntry(vPpi2Map, i) );
+            Vec_IntPush( vLits, Abc_LitNotCond( Rnm_ObjFindOrAddSatVar(p, pObj), !Entry ) );
+        }
+
+        // handle the first timeframe in a special vay
+        if ( f == 0 )
+            Gia_ManForEachObjVec( vFlops, p->pGia, pObj, i )
+                if ( Vec_IntFind( vPPIs, Gia_ObjId(p->pGia, pObj) ) == -1 )
+                    Vec_IntPush( vLits, Abc_LitNotCond( Rnm_ObjFindOrAddSatVar(p, pObj), 1 ) );
+/* 
+        // uniqify literals and detect special conflicts
+        Vec_IntUniqify( vLits );
+        Vec_IntForEachEntryStart( vLits, Entry, i, 1 )
+            if ( Vec_IntEntry(vLits, i-1) == Abc_LitNot(Entry) )
+                break;
+        if ( i < Vec_IntSize(vLits) )
+            printf( "triv_unsat " );
+        else
+*/
+
+        Status = sat_solver2_solve( p->pSat, Vec_IntArray(vLits), Vec_IntLimit(vLits), (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
+        if ( Status != l_False )
+            continue;
+        vCore = (Vec_Int_t *)Sat_ProofCore( p->pSat );
+//        vCore = Vec_IntAlloc( 0 );
+        // add to the UNSAT core
+        Vec_IntAppend( vCoreFinal, vCore );
+
+//        printf( "Frame %d : ", f );
+//        Vec_IntPrint( vCore );
+        Vec_IntFree( vCore );
+    }
+    assert( iBit == p->pCex->nBits );
+    Vec_IntUniqify( vCoreFinal );
+    Vec_IntFree( vLits );
+    Prf_ManStopP( &p->pSat->pPrf2 );
+    sat_solver2_delete( p->pSat );
+    p->pSat = NULL;
+
+    // translate from entry into ID
+    Vec_IntForEachEntry( vCoreFinal, Entry, i )
+    {
+        assert( Vec_IntEntry(p->vSat2Ids, Entry) >= 0 );
+        assert( Vec_IntEntry(p->vSat2Ids, Entry) < Gia_ManObjNum(p->pGia) );
+        Vec_IntWriteEntry( vCoreFinal, i, Vec_IntEntry(p->vSat2Ids, Entry) );
+    }
+    // if there are flop outputs, add them
+    Gia_ManForEachObjVec( vPPIs, p->pGia, pObj, i )
+        if ( Gia_ObjIsRo(p->pGia, pObj) )
+            Vec_IntPush( vCoreFinal, Gia_ObjId(p->pGia, pObj) );
+    Vec_IntUniqify( vCoreFinal );
+
+//    printf( "\n" );
+//    Vec_IntPrint( vPPIs );
+//    Vec_IntPrint( vCoreFinal );
+
+//    printf( "\n" );
+
+    // clean SAT variable numbers
+    Gia_ManForEachObjVec( vVisited, p->pGia, pObj, i )
+    {
+        Rnm_ObjSetSatVar( p, pObj, 0 );
+        vLeaves = Ga2_ObjLeaves( p->pGia, pObj );
+        Gia_ManForEachObjVec( vLeaves, p->pGia, pFanin, k )
+            Rnm_ObjSetSatVar( p, pFanin, 0 );
+    }
+    Vec_IntFree( vFlops );
+    Vec_IntFree( vVisited );
+    Vec_IntFree( vPpi2Map );
+    return vCoreFinal;
+}
+
 
 /**Function*************************************************************
 
@@ -152,7 +328,10 @@ Rnm_Man_t * Rnm_ManStart( Gia_Man_t * pGia )
     p->pGia = pGia;
     p->vObjs = Vec_IntAlloc( 100 );
     p->vCounts = Vec_StrStart( Gia_ManObjNum(pGia) );
-    p->vFanins = Vec_IntAlloc( 100 );
+    p->vFanins = Vec_IntAlloc( 1000 );
+    p->vSatVars = Vec_IntAlloc( 0 );
+    p->vSat2Ids = Vec_IntAlloc( 1000 );
+    p->vIsopMem  = Vec_IntAlloc( 0 );
     p->nObjsAlloc = 10000;
     p->pObjs = ABC_ALLOC( Rnm_Obj_t, p->nObjsAlloc );
     if ( p->pGia->vFanout == NULL )
@@ -185,6 +364,9 @@ void Rnm_ManStop( Rnm_Man_t * p, int fProfile )
     Gia_ManCleanMark1(p->pGia);
     Gia_ManStaticFanoutStop(p->pGia);
 //    Gia_ManSetPhase(p->pGia);
+    Vec_IntFree( p->vIsopMem );
+    Vec_IntFree( p->vSatVars );
+    Vec_IntFree( p->vSat2Ids );
     Vec_StrFree( p->vCounts );
     Vec_IntFree( p->vFanins );
     Vec_IntFree( p->vObjs );
@@ -762,6 +944,21 @@ Vec_Int_t * Rnm_ManRefine( Rnm_Man_t * p, Abc_Cex_t * pCex, Vec_Int_t * vMap, in
         {
             Vec_IntFree( vSelected );
             vSelected = vNew;
+        }
+        else
+        {
+            Vec_IntFree( vNew );
+    //        printf( "\nBig refinement.\n" );
+        }
+    }
+    else
+    {
+        vNew = Rnm_ManRefineUnsatCore( p, vSelected );
+        if ( Vec_IntSize(vNew) > 0 )
+        {
+            Vec_IntFree( vSelected );
+            vSelected = vNew;
+//            Vec_IntFree( vNew );
         }
         else
         {
