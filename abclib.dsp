@@ -1243,6 +1243,10 @@ SOURCE=.\src\sat\bsat\satProof.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\sat\bsat\satProof2.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\sat\bsat\satSolver.c
 # End Source File
 # Begin Source File
