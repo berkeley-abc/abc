@@ -47,11 +47,25 @@ ABC_NAMESPACE_IMPL_START
 ***********************************************************************/
 void Cmd_HistoryAddCommand(    Abc_Frame_t * p, const char * command )
 {
-    static char Buffer[MAX_STR];
+    char Buffer[ABC_MAX_STR];
+    int Len = strlen(command);
     strcpy( Buffer, command );
-    if ( command[strlen(command)-1] != '\n' )
-        strcat( Buffer, "\n" );
-    Vec_PtrPush( p->aHistory, Extra_UtilStrsav(Buffer) );
+    if ( Buffer[Len-1] == '\n' )
+        Buffer[Len-1] = 0;
+    if ( strncmp(Buffer,"set",3) && 
+         strncmp(Buffer,"quit",4) && 
+         strncmp(Buffer,"source",6) && 
+         strncmp(Buffer,"history",7) && strncmp(Buffer,"hi ", 3) && strcmp(Buffer,"hi") )
+    {
+        char * pStr;
+        int i;
+        // do not enter if the same command appears among the last five commands
+        Vec_PtrForEachEntryStart( char *, p->aHistory, pStr, i, Abc_MaxInt(0, Vec_PtrSize(p->aHistory)-5) )
+            if ( !strcmp(pStr, Buffer) )
+                break;
+        if ( i == Vec_PtrSize(p->aHistory) )
+            Vec_PtrPush( p->aHistory, Extra_UtilStrsav(Buffer) );
+    }
 }
 
 /**Function*************************************************************
@@ -67,7 +81,7 @@ void Cmd_HistoryAddCommand(    Abc_Frame_t * p, const char * command )
 ***********************************************************************/
 void Cmd_HistoryRead( Abc_Frame_t * p )
 {
-    char Buffer[1000];
+    char Buffer[ABC_MAX_STR];
     FILE * pFile;
     assert( Vec_PtrSize(p->aHistory) == 0 );
     pFile = fopen( "abc.history", "rb" );
@@ -76,8 +90,13 @@ void Cmd_HistoryRead( Abc_Frame_t * p )
 //        Abc_Print( 0, "Cannot open file \"abc.history\" for reading.\n" );
         return;
     }
-    while ( fgets( Buffer, 1000, pFile ) != NULL )
+    while ( fgets( Buffer, ABC_MAX_STR, pFile ) != NULL )
+    {
+        int Len = strlen(Buffer);
+        if ( Buffer[Len-1] == '\n' )
+            Buffer[Len-1] = 0;
         Vec_PtrPush( p->aHistory, Extra_UtilStrsav(Buffer) );
+    }
     fclose( pFile );
 }
 
@@ -95,7 +114,7 @@ void Cmd_HistoryRead( Abc_Frame_t * p )
 void Cmd_HistoryWrite( Abc_Frame_t * p )
 {
     FILE * pFile;
-    char * pName; 
+    char * pStr; 
     int i;
     pFile = fopen( "abc.history", "wb" );
     if ( pFile == NULL )
@@ -103,8 +122,8 @@ void Cmd_HistoryWrite( Abc_Frame_t * p )
         Abc_Print( 0, "Cannot open file \"abc.history\" for writing.\n" );
         return;
     }
-    Vec_PtrForEachEntry( char *, p->aHistory, pName, i )
-        fputs( pName, pFile );
+    Vec_PtrForEachEntry( char *, p->aHistory, pStr, i )
+        fprintf( pFile, "%s\n", pStr );
     fclose( pFile );
 }
 

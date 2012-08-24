@@ -86,11 +86,7 @@ int Cmd_CommandExecute( Abc_Frame_t * pAbc, const char * sCommand )
     const char * sCommandNext;
     char **argv;
 
-    if ( !pAbc->fAutoexac && !pAbc->fSource && 
-        strncmp(sCommand,"set",3) && 
-        strncmp(sCommand,"quit",4) && 
-        strncmp(sCommand,"source",6) && 
-        strncmp(sCommand,"history",7) ) 
+    if ( !pAbc->fAutoexac && !pAbc->fSource ) 
         Cmd_HistoryAddCommand(pAbc, sCommand);
     sCommandNext = sCommand;
     do 

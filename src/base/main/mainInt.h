@@ -48,7 +48,7 @@ ABC_NAMESPACE_HEADER_START
 #define ABC_VERSION "UC Berkeley, ABC 1.01"
 
 // the maximum length of an input line 
-#define MAX_STR     32768
+#define ABC_MAX_STR     (1<<15)
 
 ////////////////////////////////////////////////////////////////////////
 ///                    STRUCTURE DEFINITIONS                         ///
