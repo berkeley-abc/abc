@@ -79,6 +79,9 @@ void Cmd_Init( Abc_Frame_t * pAbc )
     pAbc->tAliases  = st_init_table(strcmp, st_strhash);
     pAbc->tFlags    = st_init_table(strcmp, st_strhash);
     pAbc->aHistory  = Vec_PtrAlloc( 100 );
+#if defined(WIN32) 
+    Cmd_HistoryRead( pAbc );
+#endif
 
     Cmd_CommandAdd( pAbc, "Basic", "time",          CmdCommandTime,            0 );
     Cmd_CommandAdd( pAbc, "Basic", "echo",          CmdCommandEcho,            0 );
@@ -121,7 +124,9 @@ void Cmd_End( Abc_Frame_t * pAbc )
 {
     st_generator * gen;
     char * pKey, * pValue;
-    int i;
+#if defined(WIN32) 
+    Cmd_HistoryWrite( pAbc );
+#endif
 
 //    st_free_table( pAbc->tCommands, (void (*)()) 0, CmdCommandFree );
 //    st_free_table( pAbc->tAliases,  (void (*)()) 0, CmdCommandAliasFree );
@@ -139,9 +144,7 @@ void Cmd_End( Abc_Frame_t * pAbc )
         ABC_FREE( pKey ), ABC_FREE( pValue );
     st_free_table( pAbc->tFlags );
 
-    for ( i = 0; i < pAbc->aHistory->nSize; i++ )
-        ABC_FREE( pAbc->aHistory->pArray[i] );
-    Vec_PtrFree( pAbc->aHistory );
+    Vec_PtrFreeFree( pAbc->aHistory );
 }
 
 
@@ -333,9 +336,8 @@ int CmdCommandWhich( Abc_Frame_t * pAbc, int argc, char **argv )
 ******************************************************************************/
 int CmdCommandHistory( Abc_Frame_t * pAbc, int argc, char **argv )
 {
-    int i, c, num, size;
-
-    num = 20;
+    char * pName;
+    int i, c, num = 20;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
     {
@@ -349,15 +351,12 @@ int CmdCommandHistory( Abc_Frame_t * pAbc, int argc, char **argv )
     }
     if ( argc > 2 )
         goto usage;
-
     // get the number of commands to print
     if ( argc == globalUtilOptind + 1 )
         num = atoi(argv[globalUtilOptind]);
     // print the commands
-    size = pAbc->aHistory->nSize;
-    num = ( num < size ) ? num : size;
-    for ( i = size - num; i < size; i++ )
-        fprintf( pAbc->Out, "%s", (char*)pAbc->aHistory->pArray[i] );
+    Vec_PtrForEachEntryStart( char *, pAbc->aHistory, pName, i, Abc_MaxInt(0, Vec_PtrSize(pAbc->aHistory)-num) )
+        fprintf( pAbc->Out, "%2d : %s", Vec_PtrSize(pAbc->aHistory)-i, pName );
     return 0;
 
 usage:
@@ -587,6 +586,7 @@ int CmdCommandSource( Abc_Frame_t * pAbc, int argc, char **argv )
      * lp_count initialized to -1, and hence, any file sourced by SIS (if -l or
      * -t options on "source" were used in SIS) would actually be executed twice.
      */
+    pAbc->fSource = 1;
     do
     {
         char * pFileName, * pTemp;
@@ -603,6 +603,7 @@ int CmdCommandSource( Abc_Frame_t * pAbc, int argc, char **argv )
         fp = CmdFileOpen( pAbc, pFileName, "r", &real_filename, silent );
         if ( fp == NULL )
         {
+            pAbc->fSource = 0;
             ABC_FREE( real_filename );
             return !silent;     /* error return if not silent */
         }
@@ -626,9 +627,6 @@ int CmdCommandSource( Abc_Frame_t * pAbc, int argc, char **argv )
             clearerr( fp );
 
             /* read another command line */
-//      if (CmdFgetsFilec(line, MAX_STR, fp, prompt_string) == NULL) {
-//      Abc_UtilsPrintPrompt(prompt_string);
-//      fflush(stdout);
             if ( fgets( line, MAX_STR, fp ) == NULL )
             {
                 if ( interactive )
@@ -667,7 +665,7 @@ int CmdCommandSource( Abc_Frame_t * pAbc, int argc, char **argv )
             }
             if ( command != line )
             {
-                ( void ) strcpy( line, command );
+                strcpy( line, command );
             }
             if ( interactive && *line != '\0' )
             {
@@ -675,7 +673,7 @@ int CmdCommandSource( Abc_Frame_t * pAbc, int argc, char **argv )
                 if ( pAbc->Hst != NULL )
                 {
                     fprintf( pAbc->Hst, "%s\n", line );
-                    ( void ) fflush( pAbc->Hst );
+                    fflush( pAbc->Hst );
                 }
             }
 
@@ -692,13 +690,13 @@ int CmdCommandSource( Abc_Frame_t * pAbc, int argc, char **argv )
                                   "** cmd error: aborting 'source %s'\n",
                                   real_filename );
             }
-            ( void ) fclose( fp );
+            fclose( fp );
         }
         ABC_FREE( real_filename );
 
     }
     while ( ( status == 0 ) && ( lp_count <= 0 ) );
-
+    pAbc->fSource = 0;
     return status;
 
   usage:

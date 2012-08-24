@@ -54,6 +54,60 @@ void Cmd_HistoryAddCommand(    Abc_Frame_t * p, const char * command )
     Vec_PtrPush( p->aHistory, Extra_UtilStrsav(Buffer) );
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Cmd_HistoryRead( Abc_Frame_t * p )
+{
+    char Buffer[1000];
+    FILE * pFile;
+    assert( Vec_PtrSize(p->aHistory) == 0 );
+    pFile = fopen( "abc.history", "rb" );
+    if ( pFile == NULL )
+    {
+//        Abc_Print( 0, "Cannot open file \"abc.history\" for reading.\n" );
+        return;
+    }
+    while ( fgets( Buffer, 1000, pFile ) != NULL )
+        Vec_PtrPush( p->aHistory, Extra_UtilStrsav(Buffer) );
+    fclose( pFile );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Cmd_HistoryWrite( Abc_Frame_t * p )
+{
+    FILE * pFile;
+    char * pName; 
+    int i;
+    pFile = fopen( "abc.history", "wb" );
+    if ( pFile == NULL )
+    {
+        Abc_Print( 0, "Cannot open file \"abc.history\" for writing.\n" );
+        return;
+    }
+    Vec_PtrForEachEntry( char *, p->aHistory, pName, i )
+        fputs( pName, pFile );
+    fclose( pFile );
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

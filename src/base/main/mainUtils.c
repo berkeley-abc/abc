@@ -203,6 +203,7 @@ void Abc_UtilsSource( Abc_Frame_t * pAbc )
     }
     else
 #endif /* #ifdef ABC_PYTHON_EMBED */
+
     {
         char * sPath1, * sPath2;
         char * home;
@@ -252,14 +253,6 @@ void Abc_UtilsSource( Abc_Frame_t * pAbc )
     }
     
 #endif //WIN32
-    {
-        // reset command history
-        char * pName; 
-        int i;
-        Vec_PtrForEachEntry( char *, pAbc->aHistory, pName, i )
-            ABC_FREE( pName );
-        pAbc->aHistory->nSize = 0;
-    }
 }
 
 /**Function********************************************************************
