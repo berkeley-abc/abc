@@ -17156,7 +17156,7 @@ int Abc_CommandSim( Abc_Frame_t * pAbc, int argc, char ** argv )
     nFrames    = 32;
     nWords     =  8;
     TimeOut    = 30;
-    fMiter     =  0;
+    fMiter     =  1;
     fVerbose   =  0;
     pFileSim   = NULL;
     Extra_UtilGetoptReset();
