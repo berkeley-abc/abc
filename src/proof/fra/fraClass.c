@@ -645,7 +645,7 @@ void Fra_ClassesPostprocess( Fra_Cla_t * p )
     Aig_Obj_t * pObj, * pRepr, ** ppClass;
     int * pWeights, WeightMax = 0, i, k, c;
     // perform combinational simulation
-    pComb = Fra_SmlSimulateComb( p->pAig, 32 );
+    pComb = Fra_SmlSimulateComb( p->pAig, 32, 0 );
     // compute the weight of each node in the classes
     pWeights = ABC_ALLOC( int, Aig_ManObjNumMax(p->pAig) );
     memset( pWeights, 0, sizeof(int) * Aig_ManObjNumMax(p->pAig) );

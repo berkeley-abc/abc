@@ -380,7 +380,7 @@ void Fra_SmlAssignConst( Fra_Sml_t * p, Aig_Obj_t * pObj, int fConst1, int iFram
 {
     unsigned * pSims;
     int i;
-    assert( Aig_ObjIsCi(pObj) );
+    assert( Aig_ObjIsCi(pObj) || Aig_ObjIsConst1(pObj) );
     pSims = Fra_ObjSim( p, pObj->Id ) + p->nWordsFrame * iFrame;
     for ( i = 0; i < p->nWordsFrame; i++ )
         pSims[i] = fConst1? ~(unsigned)0 : 0;
@@ -590,6 +590,7 @@ void Fra_SmlNodeCopyFanin( Fra_Sml_t * p, Aig_Obj_t * pObj, int iFrame )
     fCompl  = pObj->fPhase;
     fCompl0 = Aig_ObjPhaseReal(Aig_ObjChild0(pObj));
     // copy information as it is
+//    if ( Aig_ObjFaninC0(pObj) )
     if ( fCompl0 )
         for ( i = 0; i < p->nWordsFrame; i++ )
             pSims[i] = ~pSims0[i];
@@ -820,6 +821,7 @@ Fra_Sml_t * Fra_SmlStart( Aig_Man_t * pAig, int nPref, int nFrames, int nWordsFr
     p->nWordsFrame = nWordsFrame;
     p->nWordsTotal = (nPref + nFrames) * nWordsFrame;
     p->nWordsPref  = nPref * nWordsFrame;
+    // constant 1 is initialized to 0 because we store values modulus phase (pObj->fPhase)
     return p;
 }
 
@@ -851,12 +853,157 @@ void Fra_SmlStop( Fra_Sml_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Fra_Sml_t * Fra_SmlSimulateComb( Aig_Man_t * pAig, int nWords )
+Fra_Sml_t * Fra_SmlSimulateComb( Aig_Man_t * pAig, int nWords, int fCheckMiter )
 {
     Fra_Sml_t * p;
     p = Fra_SmlStart( pAig, 0, 1, nWords );
     Fra_SmlInitialize( p, 0 );
     Fra_SmlSimulateOne( p );
+    if ( fCheckMiter )
+        p->fNonConstOut = Fra_SmlCheckNonConstOutputs( p );
+    return p;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Reads simulation patterns from file.]
+
+  Description [Each pattern contains the given number (nInputs) of binary digits.
+  No other symbols (except spaces and line endings) are allowed in the file.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Str_t * Fra_SmlSimulateReadFile( char * pFileName )
+{
+    Vec_Str_t * vRes;
+    FILE * pFile;
+    int c;
+    pFile = fopen( pFileName, "rb" );
+    if ( pFile == NULL )
+    {
+        printf( "Cannot open file \"%s\" with simulation patterns.\n", pFileName );
+        return NULL;
+    }
+    vRes = Vec_StrAlloc( 1000 );
+    while ( (c = fgetc(pFile)) != EOF )
+    {
+        if ( c == '0' || c == '1' )
+            Vec_StrPush( vRes, (char)(c - '0') );
+        else if ( c != ' ' && c != '\r' && c != '\n' && c != '\t' )
+        {
+            printf( "File \"%s\" contains symbol (%c) other than \'0\' or \'1\'.\n", c );
+            Vec_StrFreeP( &vRes );
+            break;
+        }
+    }
+    fclose( pFile );
+    return vRes;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Assigns simulation patters derived from file.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Fra_SmlInitializeGiven( Fra_Sml_t * p, Vec_Str_t * vSimInfo )
+{
+    Aig_Obj_t * pObj;
+    unsigned * pSims;
+    int i, k, nPats = Vec_StrSize(vSimInfo) / Aig_ManCiNum(p->pAig);
+    int nPatsPadded = p->nWordsTotal * 32;
+    assert( Aig_ManRegNum(p->pAig) == 0 );
+    assert( Vec_StrSize(vSimInfo) % Aig_ManCiNum(p->pAig) == 0 );
+    assert( nPats <= nPatsPadded );
+    Aig_ManForEachCi( p->pAig, pObj, i )
+    {
+        pSims = Fra_ObjSim( p, pObj->Id );
+        // clean data
+        for ( k = 0; k < p->nWordsTotal; k++ )
+            pSims[k] = 0;
+        // load patterns
+        for ( k = 0; k < nPats; k++ )
+            if ( Vec_StrEntry(vSimInfo, k * Aig_ManCiNum(p->pAig) + i) )
+                Abc_InfoSetBit( pSims, k );
+        // pad the remaining bits with the value of the last pattern
+        for ( ; k < nPatsPadded; k++ )
+            if ( Vec_StrEntry(vSimInfo, (nPats-1) * Aig_ManCiNum(p->pAig) + i) )
+                Abc_InfoSetBit( pSims, k );
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Prints output values.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Fra_SmlPrintOutputs( Fra_Sml_t * p, int nPatterns )
+{
+    Aig_Obj_t * pObj;
+    unsigned * pSims;
+    int i, k;
+    for ( k = 0; k < nPatterns; k++ )
+    {
+        Aig_ManForEachCo( p->pAig, pObj, i )
+        {
+            pSims = Fra_ObjSim( p, pObj->Id );
+            printf( "%d", Abc_InfoHasBit( pSims, k ) );
+        }
+        printf( "\n" );               ;
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Assigns simulation patters derived from file.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Fra_Sml_t * Fra_SmlSimulateCombGiven( Aig_Man_t * pAig, char * pFileName, int fCheckMiter, int fVerbose )
+{
+    Vec_Str_t * vSimInfo;
+    Fra_Sml_t * p;
+    int nPatterns;
+    assert( Aig_ManRegNum(pAig) == 0 );
+    // read comb patterns from file
+    vSimInfo = Fra_SmlSimulateReadFile( pFileName );
+    if ( vSimInfo == NULL )
+        return NULL;
+    if ( Vec_StrSize(vSimInfo) % Aig_ManCiNum(pAig) != 0 )
+    {
+        printf( "File \"%s\": The number of binary digits (%d) is not divisible by the number of primary inputs (%d).\n", 
+            pFileName, Vec_StrSize(vSimInfo), Aig_ManCiNum(pAig) );
+        Vec_StrFree( vSimInfo );
+        return NULL;
+    }
+    p = Fra_SmlStart( pAig, 0, 1, Abc_BitWordNum(Vec_StrSize(vSimInfo) / Aig_ManCiNum(pAig)) );
+    Fra_SmlInitializeGiven( p, vSimInfo );
+    nPatterns = Vec_StrSize(vSimInfo) / Aig_ManCiNum(pAig);
+    Vec_StrFree( vSimInfo );
+    Fra_SmlSimulateOne( p );
+    if ( fCheckMiter )
+        p->fNonConstOut = Fra_SmlCheckNonConstOutputs( p );
+    if ( fVerbose )
+        Fra_SmlPrintOutputs( p, nPatterns );
     return p;
 }
 
@@ -878,7 +1025,7 @@ Fra_Sml_t * Fra_SmlSimulateSeq( Aig_Man_t * pAig, int nPref, int nFrames, int nW
     Fra_SmlInitialize( p, 1 );
     Fra_SmlSimulateOne( p );
     if ( fCheckMiter )
-    p->fNonConstOut = Fra_SmlCheckNonConstOutputs( p );
+        p->fNonConstOut = Fra_SmlCheckNonConstOutputs( p );
     return p;
 }
 

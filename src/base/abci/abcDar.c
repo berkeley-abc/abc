@@ -3005,10 +3005,8 @@ Abc_Ntk_t * Abc_NtkDarHaigRecord( Abc_Ntk_t * pNtk, int nIters, int nSteps, int 
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkDarSeqSim( Abc_Ntk_t * pNtk, int nFrames, int nWords, int TimeOut, int fNew, int fComb, int fMiter, int fVerbose )
+int Abc_NtkDarSeqSim( Abc_Ntk_t * pNtk, int nFrames, int nWords, int TimeOut, int fNew, int fMiter, int fVerbose, char * pFileSim )
 {
-    extern int Cec_ManSimulate( Aig_Man_t * pAig, int nWords, int nIters, int TimeLimit, int fMiter, int fVerbose );
-    extern int Raig_ManSimulate( Aig_Man_t * pAig, int nWords, int nIters, int TimeLimit, int fMiter, int fVerbose );
     Aig_Man_t * pMan;
     Abc_Cex_t * pCex;
     int status, RetValue = -1;
@@ -3019,89 +3017,8 @@ int Abc_NtkDarSeqSim( Abc_Ntk_t * pNtk, int nFrames, int nWords, int TimeOut, in
         Abc_AigCleanup((Abc_Aig_t *)pNtk->pManFunc);
     }
     pMan = Abc_NtkToDar( pNtk, 0, 1 );
-    if ( fComb || Abc_NtkLatchNum(pNtk) == 0 )
+    if ( fNew )
     {
-/*
-        if ( Cec_ManSimulate( pMan, nWords, nFrames, TimeOut, fMiter, fVerbose ) )
-        {
-            pCex = pMan->pSeqModel;
-            if ( pCex )
-            {
-            Abc_Print( 1, "Simulation iterated %d times with %d words asserted output %d in frame %d. ", 
-                nFrames, nWords, pCex->iPo, pCex->iFrame );
-            status = Saig_ManVerifyCex( pMan, pCex );
-            if ( status == 0 )
-                Abc_Print( 1, "Abc_NtkDarSeqSim(): Counter-example verification has FAILED.\n" );
-            }
-            ABC_FREE( pNtk->pModel );
-            ABC_FREE( pNtk->pSeqModel );
-            pNtk->pSeqModel = pCex;
-            RetValue = 1;
-        } 
-        else
-        {
-            RetValue = 0;
-            Abc_Print( 1, "Simulation iterated %d times with %d words did not assert the outputs. ", 
-                nFrames, nWords );
-        }
-*/
-        Abc_Print( 1, "Comb simulation is temporarily disabled.\n" );
-    }
-    else if ( fNew )
-    {
-/*
-        if ( Raig_ManSimulate( pMan, nWords, nFrames, TimeOut, fVerbose ) )
-        {
-            if ( (pCex = pMan->pSeqModel) )
-            {
-                Abc_Print( 1, "Simulation of %d frames with %d words asserted output %d in frame %d. ", 
-                    nFrames, nWords, pCex->iPo, pCex->iFrame );
-                status = Saig_ManVerifyCex( pMan, pCex );
-                if ( status == 0 )
-                    Abc_Print( 1, "Abc_NtkDarSeqSim(): Counter-example verification has FAILED.\n" );
-            }
-            ABC_FREE( pNtk->pModel );
-            ABC_FREE( pNtk->pSeqModel );
-            pNtk->pSeqModel = pCex; pMan->pSeqModel = NULL;
-            RetValue = 1;
-        }
-        else
-        {
-            RetValue = 0;
-            Abc_Print( 1, "Simulation of %d frames with %d words did not assert the outputs. ", 
-                nFrames, nWords );
-        }
-*/
-/*
-        Fsim_ParSim_t Pars, * pPars = &Pars;
-        Fsim_ManSetDefaultParamsSim( pPars );
-        pPars->nWords = nWords;
-        pPars->nIters = nFrames;
-        pPars->TimeLimit = TimeOut;
-        pPars->fCheckMiter = fMiter;
-        pPars->fVerbose = fVerbose;
-        if ( Fsim_ManSimulate( pMan, pPars ) )
-        { 
-            if ( (pCex = pMan->pSeqModel) )
-            {
-                Abc_Print( 1, "Simulation of %d frames with %d words asserted output %d in frame %d. ", 
-                    nFrames, nWords, pCex->iPo, pCex->iFrame );
-                status = Saig_ManVerifyCex( pMan, pCex );
-                if ( status == 0 )
-                    Abc_Print( 1, "Abc_NtkDarSeqSim(): Counter-example verification has FAILED.\n" );
-            }
-            ABC_FREE( pNtk->pModel );
-            ABC_FREE( pNtk->pSeqModel );
-            pNtk->pSeqModel = pCex; pMan->pSeqModel = NULL;
-            RetValue = 1;
-        }
-        else
-        {
-            RetValue = 0;
-            Abc_Print( 1, "Simulation of %d frames with %d words did not assert the outputs. ", 
-                nFrames, nWords );
-        }
-*/ 
         Gia_Man_t * pGia;
         Gia_ParSim_t Pars, * pPars = &Pars;
         Gia_ManSimSetDefaultParams( pPars );
@@ -3133,17 +3050,27 @@ int Abc_NtkDarSeqSim( Abc_Ntk_t * pNtk, int nFrames, int nWords, int TimeOut, in
         }
         Gia_ManStop( pGia );
     }
-    else
+    else // comb/seq simulator
     {
         Fra_Sml_t * pSml;
-        pSml = Fra_SmlSimulateSeq( pMan, 0, nFrames, nWords, fMiter );
+        if ( pFileSim != NULL )
+        {
+            assert( Abc_NtkLatchNum(pNtk) == 0 );
+            pSml = Fra_SmlSimulateCombGiven( pMan, pFileSim, fMiter, fVerbose );
+        }
+        else if ( Abc_NtkLatchNum(pNtk) == 0 )
+            pSml = Fra_SmlSimulateComb( pMan, nWords, fMiter );
+        else
+            pSml = Fra_SmlSimulateSeq( pMan, 0, nFrames, nWords, fMiter );
         if ( pSml->fNonConstOut )
         {
             pCex = Fra_SmlGetCounterExample( pSml );
             if ( pCex )
             {
-                Abc_Print( 1, "Simulation of %d frames with %d words asserted output %d in frame %d. ", 
-                    nFrames, nWords, pCex->iPo, pCex->iFrame );
+                Abc_Print( 1, "Simulation of %d frame%s with %d word%s asserted output %d in frame %d. ", 
+                    pSml->nFrames, pSml->nFrames == 1 ? "": "s", 
+                    pSml->nWordsFrame, pSml->nWordsFrame == 1 ? "": "s", 
+                    pCex->iPo, pCex->iFrame );
                 status = Saig_ManVerifyCex( pMan, pCex );
                 if ( status == 0 )
                     Abc_Print( 1, "Abc_NtkDarSeqSim(): Counter-example verification has FAILED.\n" );
@@ -3159,29 +3086,6 @@ int Abc_NtkDarSeqSim( Abc_Ntk_t * pNtk, int nFrames, int nWords, int TimeOut, in
                 nFrames, nWords );
         }
         Fra_SmlStop( pSml );
-/*
-        if ( Raig_ManSimulate( pMan, nWords, nFrames, TimeOut, fMiter, fVerbose ) )
-        {
-            if ( (pCex = pMan->pSeqModel) )
-            {
-                Abc_Print( 1, "Simulation of %d frames with %d words asserted output %d in frame %d. ", 
-                    nFrames, nWords, pCex->iPo, pCex->iFrame );
-                status = Saig_ManVerifyCex( pMan, pCex );
-                if ( status == 0 )
-                    Abc_Print( 1, "Abc_NtkDarSeqSim(): Counter-example verification has FAILED.\n" );
-            }
-            ABC_FREE( pNtk->pModel );
-            ABC_FREE( pNtk->pSeqModel );
-            pNtk->pSeqModel = pCex; pMan->pSeqModel = NULL;
-            RetValue = 1;
-        }
-        else
-        {
-            RetValue = 0;
-            Abc_Print( 1, "Simulation of %d frames with %d words did not assert the outputs. ", 
-                nFrames, nWords );
-        }
-*/
     }
     ABC_PRT( "Time", clock() - clk );
     Aig_ManStop( pMan );

@@ -371,8 +371,9 @@ extern void                Fra_SmlSimulate( Fra_Man_t * p, int fInit );
 extern void                Fra_SmlResimulate( Fra_Man_t * p );
 extern Fra_Sml_t *         Fra_SmlStart( Aig_Man_t * pAig, int nPref, int nFrames, int nWordsFrame );
 extern void                Fra_SmlStop( Fra_Sml_t * p );
+extern Fra_Sml_t *         Fra_SmlSimulateComb( Aig_Man_t * pAig, int nWords, int fCheckMiter );
+extern Fra_Sml_t *         Fra_SmlSimulateCombGiven( Aig_Man_t * pAig, char * pFileName, int fCheckMiter, int fVerbose );
 extern Fra_Sml_t *         Fra_SmlSimulateSeq( Aig_Man_t * pAig, int nPref, int nFrames, int nWords, int fCheckMiter );
-extern Fra_Sml_t *         Fra_SmlSimulateComb( Aig_Man_t * pAig, int nWords );
 extern Abc_Cex_t *         Fra_SmlGetCounterExample( Fra_Sml_t * p );
 extern Abc_Cex_t *         Fra_SmlCopyCounterExample( Aig_Man_t * pAig, Aig_Man_t * pFrames, int * pModel );
 

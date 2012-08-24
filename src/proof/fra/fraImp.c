@@ -332,8 +332,8 @@ Vec_Int_t * Fra_ImpDerive( Fra_Man_t * p, int nImpMaxLimit, int nImpUseLimit, in
     assert( Aig_ManObjNumMax(p->pManAig) < (1 << 15) );
     assert( nImpMaxLimit > 0 && nImpUseLimit > 0 && nImpUseLimit <= nImpMaxLimit );
     // normalize both managers
-    pComb = Fra_SmlSimulateComb( p->pManAig, nSimWords );
-    pSeq = Fra_SmlSimulateSeq( p->pManAig, p->pPars->nFramesP, nSimWords, 1, 1  );
+    pComb = Fra_SmlSimulateComb( p->pManAig, nSimWords, 0 );
+    pSeq = Fra_SmlSimulateSeq( p->pManAig, p->pPars->nFramesP, nSimWords, 1, 1 );
     // get the nodes sorted by the number of 1s
     vNodes = Fra_SmlSortUsingOnes( pSeq, fLatchCorr );
     // count the total number of implications
@@ -635,7 +635,7 @@ double Fra_ImpComputeStateSpaceRatio( Fra_Man_t * p )
     if ( p->pCla->vImps == NULL || Vec_IntSize(p->pCla->vImps) == 0 )
         return Ratio;
     // simulate the AIG manager with combinational patterns
-    pComb = Fra_SmlSimulateComb( p->pManAig, nSimWords );
+    pComb = Fra_SmlSimulateComb( p->pManAig, nSimWords, 0 );
     // go through the implications and collect where they do not hold
     pResult = Fra_ObjSim( pComb, 0 );
     assert( pResult[0] == 0 );

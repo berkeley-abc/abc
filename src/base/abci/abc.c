@@ -17148,7 +17148,8 @@ int Abc_CommandSim( Abc_Frame_t * pAbc, int argc, char ** argv )
     int TimeOut;
     int fMiter;
     int fVerbose;
-    extern int Abc_NtkDarSeqSim( Abc_Ntk_t * pNtk, int nFrames, int nWords, int TimeOut, int fNew, int fComb, int fMiter, int fVerbose );
+    char * pFileSim;
+    extern int Abc_NtkDarSeqSim( Abc_Ntk_t * pNtk, int nFrames, int nWords, int TimeOut, int fNew, int fMiter, int fVerbose, char * pFileSim );
     // set defaults
     fNew       =  0;
     fComb      =  0;
@@ -17157,8 +17158,9 @@ int Abc_CommandSim( Abc_Frame_t * pAbc, int argc, char ** argv )
     TimeOut    = 30;
     fMiter     =  0;
     fVerbose   =  0;
+    pFileSim   = NULL;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FWTncmvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FWTAnmvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -17195,11 +17197,17 @@ int Abc_CommandSim( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( TimeOut < 0 ) 
                 goto usage;
             break;
+        case 'A':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-A\" should be followed by a file name.\n" );
+                goto usage;
+            }
+            pFileSim = argv[globalUtilOptind];
+            globalUtilOptind++;
+            break;
         case 'n':
             fNew ^= 1;
-            break;
-        case 'c':
-            fComb ^= 1;
             break;
         case 'm':
             fMiter ^= 1;
@@ -17223,22 +17231,28 @@ int Abc_CommandSim( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Only works for strashed networks.\n" );
         return 1;
     }
+    if ( pFileSim != NULL && Abc_NtkLatchNum(pNtk) )
+    {
+        Abc_Print( -1, "Currently simulation with user-specified patterns works only for comb miters.\n" );
+        return 1;
+    }
     ABC_FREE( pNtk->pSeqModel );
-    pAbc->Status = Abc_NtkDarSeqSim( pNtk, nFrames, nWords, TimeOut, fNew, fComb, fMiter, fVerbose );  
+    pAbc->Status = Abc_NtkDarSeqSim( pNtk, nFrames, nWords, TimeOut, fNew, fMiter, fVerbose, pFileSim );  
     Abc_FrameReplaceCex( pAbc, &pNtk->pSeqModel );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: sim [-FWT num] [-ncmvh]\n" );
-    Abc_Print( -2, "\t         performs random simulation of the sequential miter\n" );
-    Abc_Print( -2, "\t-F num : the number of frames to simulate [default = %d]\n", nFrames );
-    Abc_Print( -2, "\t-W num : the number of words to simulate [default = %d]\n", nWords );
-    Abc_Print( -2, "\t-T num : approximate runtime limit in seconds [default = %d]\n", TimeOut );
-    Abc_Print( -2, "\t-n     : toggle new vs. old implementation [default = %s]\n", fNew? "new": "old" );
-    Abc_Print( -2, "\t-c     : toggle comb vs. seq simulaton [default = %s]\n", fComb? "comb": "seq" );
-    Abc_Print( -2, "\t-m     : toggle miter vs. any circuit [default = %s]\n", fMiter? "miter": "circuit" );
-    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
-    Abc_Print( -2, "\t-h     : print the command usage\n");
+    Abc_Print( -2, "usage: sim [-FWT num] [-A file] [-nmvh]\n" );
+    Abc_Print( -2, "\t          performs random simulation of the sequential miter\n" );
+    Abc_Print( -2, "\t-F num  : the number of frames to simulate [default = %d]\n", nFrames );
+    Abc_Print( -2, "\t-W num  : the number of words to simulate [default = %d]\n", nWords );
+    Abc_Print( -2, "\t-T num  : approximate runtime limit in seconds [default = %d]\n", TimeOut );
+    Abc_Print( -2, "\t-A file : text file name with user's patterns [default = random simulation]\n" );
+    Abc_Print( -2, "\t          (patterns are listed, one per line, as sequences of 0s and 1s)\n" );
+    Abc_Print( -2, "\t-n      : toggle new vs. old implementation [default = %s]\n", fNew? "new": "old" );
+    Abc_Print( -2, "\t-m      : toggle miter vs. any circuit [default = %s]\n", fMiter? "miter": "circuit" );
+    Abc_Print( -2, "\t-v      : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h      : print the command usage\n");
     return 1;
 }
 

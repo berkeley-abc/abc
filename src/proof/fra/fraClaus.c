@@ -668,7 +668,7 @@ ABC_PRT( "Infoseq", clock() - clk );
 clk = clock();
 //    srand( 0xAABBAABB );
     Aig_ManRandom(1);
-    pComb = Fra_SmlSimulateComb( p->pAig, p->nSimWords + p->nSimWordsPref  );
+    pComb = Fra_SmlSimulateComb( p->pAig, p->nSimWords + p->nSimWordsPref, 0 );
 if ( p->fVerbose )
 {
 ABC_PRT( "Sim-cmb", clock() - clk );
@@ -753,7 +753,7 @@ if ( p->fVerbose )
 clk = clock();
 //    srand( 0xAABBAABB );
     Aig_ManRandom(1);
-    pComb = Fra_SmlSimulateComb( p->pAig, p->nSimWords + p->nSimWordsPref  );
+    pComb = Fra_SmlSimulateComb( p->pAig, p->nSimWords + p->nSimWordsPref, 0 );
 if ( p->fVerbose )
 {
 //ABC_PRT( "Sim-cmb", clock() - clk );
@@ -1628,7 +1628,7 @@ void Fra_ClausEstimateCoverage( Clu_Man_t * p )
     // simulate the circuit with nCombSimWords * 32 = 64K patterns
 //    srand( 0xAABBAABB );
     Aig_ManRandom(1);
-    pComb = Fra_SmlSimulateComb( p->pAig, nCombSimWords );
+    pComb = Fra_SmlSimulateComb( p->pAig, nCombSimWords, 0 );
     // create mapping from SAT vars to node IDs
     pVar2Id = ABC_ALLOC( int, p->pCnf->nVars );
     memset( pVar2Id, 0, sizeof(int) * p->pCnf->nVars );

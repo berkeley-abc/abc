@@ -390,7 +390,7 @@ double Abc_NtkConstraintRatio( Mfs_Man_t * p, Abc_Obj_t * pNode )
     Fra_Sml_t * pSim;
     int Counter;
     pMan = Abc_NtkAigForConstraints( p, pNode );
-    pSim = Fra_SmlSimulateComb( pMan, nSimWords );
+    pSim = Fra_SmlSimulateComb( pMan, nSimWords, 0 );
     Counter = Fra_SmlNodeCountOnes( pSim, Aig_ManCo(pMan, 0) );
     Aig_ManStop( pMan );
     Fra_SmlStop( pSim );
