@@ -1685,7 +1685,7 @@ unsigned Kit_TruthSemiCanonicize( unsigned * pInOut, unsigned * pAux, int nVars,
     // canonicize phase
     for ( i = 0; i < nVars; i++ )
     {
-        if ( pStore[2*i+0] <= pStore[2*i+1] )
+        if ( pStore[2*i+0] >= pStore[2*i+1] )
             continue;
         uCanonPhase |= (1 << i);
         Temp = pStore[2*i+0];
@@ -1703,7 +1703,7 @@ unsigned Kit_TruthSemiCanonicize( unsigned * pInOut, unsigned * pAux, int nVars,
         fChange = 0;
         for ( i = 0; i < nVars-1; i++ )
         {
-            if ( pStore[2*i] <= pStore[2*(i+1)] )
+            if ( pStore[2*i] >= pStore[2*(i+1)] )
                 continue;
             Counter++;
             fChange = 1;

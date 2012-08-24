@@ -2283,7 +2283,7 @@ static inline word Extra_Truth6ChangePhase( word t, int v )
     assert( v < 6 );
     return ((t & ~Truth6[v]) << (1 << v)) | ((t & Truth6[v]) >> (1 << v));
 }
-word Extra_Truth6Minimum( word t, int * pComp, int * pPerm )
+word Extra_Truth6MinimumExact( word t, int * pComp, int * pPerm )
 {
     word tMin = ~(word)0;
     word tCur, tTemp1, tTemp2;
@@ -2309,6 +2309,87 @@ word Extra_Truth6Minimum( word t, int * pComp, int * pPerm )
     }
     return tMin;
 }
+
+/**Function*************************************************************
+
+  Synopsis    [Perform heuristic TT minimization.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Extra_Truth6Ones( word t )
+{
+    t =    (t & 0x5555555555555555) + ((t>> 1) & 0x5555555555555555);
+    t =    (t & 0x3333333333333333) + ((t>> 2) & 0x3333333333333333);
+    t =    (t & 0x0F0F0F0F0F0F0F0F) + ((t>> 4) & 0x0F0F0F0F0F0F0F0F);
+    t =    (t & 0x00FF00FF00FF00FF) + ((t>> 8) & 0x00FF00FF00FF00FF);
+    t =    (t & 0x0000FFFF0000FFFF) + ((t>>16) & 0x0000FFFF0000FFFF);
+    return (t & 0x00000000FFFFFFFF) +  (t>>32);
+}
+static inline word Extra_Truth6MinimumRoundOne( word t, int v )
+{
+    word tCur, tMin = t; // ab 
+    assert( v >= 0 && v < 5 );
+
+    tCur = Extra_Truth6ChangePhase( t, v );    // !ab
+    tMin = Abc_MinWord( tMin, tCur );
+    tCur = Extra_Truth6ChangePhase( t, v+1 );  // a!b
+    tMin = Abc_MinWord( tMin, tCur );
+    tCur = Extra_Truth6ChangePhase( tCur, v ); // !a!b
+    tMin = Abc_MinWord( tMin, tCur );
+
+    t    = Extra_Truth6SwapAdjacent( t, v );   // ba
+    tMin = Abc_MinWord( tMin, t );
+
+    tCur = Extra_Truth6ChangePhase( t, v );    // !ba
+    tMin = Abc_MinWord( tMin, tCur );
+    tCur = Extra_Truth6ChangePhase( t, v+1 );  // b!a
+    tMin = Abc_MinWord( tMin, tCur );
+    tCur = Extra_Truth6ChangePhase( tCur, v ); // !b!a
+    tMin = Abc_MinWord( tMin, tCur );
+
+    return tMin;
+}
+static inline word Extra_Truth6MinimumRoundMany( word t )
+{
+    int i, k, Limit = 10;
+    word tCur, tMin = t;
+    for ( i = 0; i < Limit; i++ )
+    {
+        word tMin0 = tMin;
+        for ( k = 4; k >= 0; k-- )
+        {
+            tCur = Extra_Truth6MinimumRoundOne( tMin, k );
+            tMin = Abc_MinWord( tMin, tCur );
+        }
+        if ( tMin0 == tMin )
+            break;
+    }
+    return tMin;
+}
+word Extra_Truth6MinimumHeuristic( word t )
+{
+    word tMin1, tMin2;
+    int nOnes = Extra_Truth6Ones( t );
+    if ( nOnes < 32 )
+        return Extra_Truth6MinimumRoundMany( t );
+    if ( nOnes > 32 )
+        return Extra_Truth6MinimumRoundMany( ~t );
+    tMin1 = Extra_Truth6MinimumRoundMany(  t );
+    tMin2 = Extra_Truth6MinimumRoundMany( ~t );
+    return Abc_MinWord( tMin1, tMin2 );
+}
+void Extra_Truth6MinimumHeuristicTest()
+{
+    word t = 0x5555555555555555 & ~(0x3333333333333333 & 0x0F0F0F0F0F0F0F0F);
+    Extra_Truth6MinimumRoundMany( t );
+    t = 0;
+}
+
 
 /**Function*************************************************************
 
@@ -2387,7 +2468,7 @@ void Extra_NpnTest2()
     word tMin, t = 0xa2222aaa08888000;
     pComp = Extra_GreyCodeSchedule( 6 );
     pPerm = Extra_PermSchedule( 6 );
-    tMin  = Extra_Truth6Minimum( t, pComp, pPerm );
+    tMin  = Extra_Truth6MinimumExact( t, pComp, pPerm );
     ABC_FREE( pPerm );
     ABC_FREE( pComp );
 
@@ -2424,7 +2505,7 @@ void Extra_NpnTest()
     // compute minimum forms
     for ( i = 0; i < nFuncs; i++ )
     {
-        pFuncs[i] = Extra_Truth6Minimum( pFuncs[i], pComp, pPerm );
+        pFuncs[i] = Extra_Truth6MinimumExact( pFuncs[i], pComp, pPerm );
         if ( i % 10000 == 0 )
             printf( "%d\n", i );
     }

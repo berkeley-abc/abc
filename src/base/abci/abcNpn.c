@@ -110,6 +110,8 @@ void Abc_TruthNpnPerform( Abc_TtStore_t * p, int NpnType, int fVerbose )
         pAlgoName = "minimizing TT";
     else if ( NpnType == 3 )
         pAlgoName = "exact NPN    ";
+    else if ( NpnType == 4 )
+        pAlgoName = "heuristic NPN";
 
     assert( p->nVars <= 16 );
     if ( pAlgoName )
@@ -150,7 +152,7 @@ void Abc_TruthNpnPerform( Abc_TtStore_t * p, int NpnType, int fVerbose )
             {
                 if ( fVerbose )
                     printf( "%7d : ", i );
-                *((word *)p->pFuncs[i]) = Extra_Truth6Minimum( *((word *)p->pFuncs[i]), pComp, pPerm );
+                *((word *)p->pFuncs[i]) = Extra_Truth6MinimumExact( *((word *)p->pFuncs[i]), pComp, pPerm );
                 if ( fVerbose )
                     Extra_PrintHex( stdout, (unsigned *)p->pFuncs[i], p->nVars ), printf( "\n" );
             }
@@ -159,6 +161,23 @@ void Abc_TruthNpnPerform( Abc_TtStore_t * p, int NpnType, int fVerbose )
             printf( "This feature only works for 6-variable functions.\n" );
         ABC_FREE( pComp );
         ABC_FREE( pPerm );
+    }
+    else if ( NpnType == 4 )
+    {
+        if ( p->nVars == 6 )
+        {
+            for ( i = 0; i < p->nFuncs; i++ )
+            {
+                if ( fVerbose )
+                    printf( "%7d : ", i );
+                Kit_TruthSemiCanonicize( (unsigned *)p->pFuncs[i], pAux, p->nVars, pCanonPerm, pStore );
+                *((word *)p->pFuncs[i]) = Extra_Truth6MinimumHeuristic( *((word *)p->pFuncs[i]) );
+                if ( fVerbose )
+                    Extra_PrintHex( stdout, (unsigned *)p->pFuncs[i], p->nVars ), printf( "\n" );
+            }
+        }
+        else
+            printf( "This feature only works for 6-variable functions.\n" );
     }
     else assert( 0 );
 
@@ -213,7 +232,7 @@ int Abc_NpnTest( char * pFileName, int NpnType, int fVerbose )
         printf( "Using truth tables from file \"%s\"...\n", pFileName );
     if ( NpnType == 0 )
         Abc_TtStoreTest( pFileName );
-    else if ( NpnType >= 1 && NpnType <= 3 )
+    else if ( NpnType >= 1 && NpnType <= 4 )
         Abc_TruthNpnTest( pFileName, NpnType, fVerbose );
     else
         printf( "Unknown canonical form value (%d).\n", NpnType );
