@@ -90,6 +90,7 @@ struct Abc_Frame_t_
     void *          pLibGen2;      // the current genlib
     void *          pLibSuper;     // the current supergate library
     void *          pLibVer;       // the current Verilog library
+    void *          pLibScl;       // the current Liberty library
 
     // new code
     Gia_Man_t *     pGia;          // alternative current network as a light-weight AIG

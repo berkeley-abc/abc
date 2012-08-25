@@ -2342,6 +2342,34 @@ SOURCE=.\src\map\cov\covMinSop.c
 SOURCE=.\src\map\cov\covMinUtil.c
 # End Source File
 # End Group
+# Begin Group "scl"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\map\scl\scl.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\map\scl\scl.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\map\scl\sclFile.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\map\scl\sclInt.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\map\scl\sclSize.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\map\scl\sclTime.c
+# End Source File
+# End Group
 # End Group
 # Begin Group "misc"
 

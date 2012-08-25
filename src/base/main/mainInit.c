@@ -48,6 +48,8 @@ extern void Libs_Init( Abc_Frame_t * pAbc );
 extern void Libs_End( Abc_Frame_t * pAbc );
 extern void Load_Init( Abc_Frame_t * pAbc );
 extern void Load_End( Abc_Frame_t * pAbc );
+extern void Scl_Init( Abc_Frame_t * pAbc );
+extern void Scl_End( Abc_Frame_t * pAbc );
 extern void Test_Init( Abc_Frame_t * pAbc );
 extern void Test_End( Abc_Frame_t * pAbc );
 extern void Abc2_Init( Abc_Frame_t * pAbc );
@@ -82,6 +84,7 @@ void Abc_FrameInit( Abc_Frame_t * pAbc )
     Super_Init( pAbc );
     Libs_Init( pAbc );
     Load_Init( pAbc );
+    Scl_Init( pAbc );
     Test_Init( pAbc );
 #ifdef USE_ABC2
     Abc2_Init( pAbc );
@@ -115,6 +118,7 @@ void Abc_FrameEnd( Abc_Frame_t * pAbc )
     Super_End( pAbc );
     Libs_End( pAbc );
     Load_End( pAbc );
+    Scl_End( pAbc );
     Test_End( pAbc );
 #ifdef USE_ABC2
     Abc2_End( pAbc );

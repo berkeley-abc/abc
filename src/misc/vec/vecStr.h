@@ -338,6 +338,23 @@ static inline char Vec_StrEntry( Vec_Str_t * p, int i )
   SeeAlso     []
 
 ***********************************************************************/
+static inline char * Vec_StrEntryP( Vec_Str_t * p, int i )
+{
+    assert( i >= 0 && i < p->nSize );
+    return p->pArray + i;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 static inline void Vec_StrWriteEntry( Vec_Str_t * p, int i, char Entry )
 {
     assert( i >= 0 && i < p->nSize );
