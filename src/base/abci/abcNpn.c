@@ -49,7 +49,7 @@ struct Abc_TtStore_t_
 
 extern Abc_TtStore_t * Abc_TtStoreLoad( char * pFileName );
 extern void            Abc_TtStoreFree( Abc_TtStore_t * p );
-extern void            Abc_TtStoreTest( char * pFileName );
+extern void            Abc_TtStoreWrite( char * pFileName, Abc_TtStore_t * p );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -67,20 +67,19 @@ extern void            Abc_TtStoreTest( char * pFileName );
 
 ***********************************************************************/
 int nWords = 0; // unfortunate global variable
-int Abc_TruthCompare( word * p1, word * p2 ) { return memcmp(p1, p2, sizeof(word) * nWords); }
+int Abc_TruthCompare( word ** p1, word ** p2 ) { return memcmp(*p1, *p2, sizeof(word) * nWords); }
 int Abc_TruthNpnCountUnique( Abc_TtStore_t * p )
 {
-    int i, nUnique;
+    int i, k;
     // sort them by value
     nWords = p->nWords;
     assert( nWords > 0 );
-    qsort( (void *)p->pFuncs[0], p->nFuncs, nWords * sizeof(word), (int(*)(const void *,const void *))Abc_TruthCompare );
+    qsort( (void *)p->pFuncs, p->nFuncs, sizeof(word *), (int(*)(const void *,const void *))Abc_TruthCompare );
     // count the number of unqiue functions
-    nUnique = p->nFuncs;
-    for ( i = 1; i < p->nFuncs; i++ )
-        if ( !memcmp( p->pFuncs[i-1], p->pFuncs[i], sizeof(word) * nWords ) )
-            nUnique--;
-    return nUnique;
+    for ( i = k = 1; i < p->nFuncs; i++ )
+        if ( memcmp( p->pFuncs[i-1], p->pFuncs[i], sizeof(word) * nWords ) )
+            p->pFuncs[k++] = p->pFuncs[i];
+    return (p->nFuncs = k);
 }
 
 /**Function*************************************************************
@@ -104,14 +103,16 @@ void Abc_TruthNpnPerform( Abc_TtStore_t * p, int NpnType, int fVerbose )
     int i;//, nFuncs = 0;
 
     char * pAlgoName = NULL;
-    if ( NpnType == 1 )
-        pAlgoName = "counting 1s  ";
-    else if ( NpnType == 2 )
-        pAlgoName = "minimizing TT";
-    else if ( NpnType == 3 )
+    if ( NpnType == 0 )
+        pAlgoName = "uniqifying   ";
+    else if ( NpnType == 1 )
         pAlgoName = "exact NPN    ";
+    else if ( NpnType == 2 )
+        pAlgoName = "counting 1s  ";
+    else if ( NpnType == 3 )
+        pAlgoName = "minimizing TT";
     else if ( NpnType == 4 )
-        pAlgoName = "heuristic NPN";
+        pAlgoName = "hybrid NPN   ";
 
     assert( p->nVars <= 16 );
     if ( pAlgoName )
@@ -120,29 +121,17 @@ void Abc_TruthNpnPerform( Abc_TtStore_t * p, int NpnType, int fVerbose )
     if ( fVerbose )
         printf( "\n" );
 
-    if ( NpnType == 1 )
+    if ( NpnType == 0 )
     {
         for ( i = 0; i < p->nFuncs; i++ )
         {
             if ( fVerbose )
                 printf( "%7d : ", i );
-            Kit_TruthSemiCanonicize( (unsigned *)p->pFuncs[i], pAux, p->nVars, pCanonPerm, pStore );
             if ( fVerbose )
                 Extra_PrintHex( stdout, (unsigned *)p->pFuncs[i], p->nVars ), printf( "\n" );
         }
     }
-    else if ( NpnType == 2 )
-    {
-        for ( i = 0; i < p->nFuncs; i++ )
-        {
-            if ( fVerbose )
-                printf( "%7d : ", i );
-            Kit_TruthSemiCanonicize_new( (unsigned *)p->pFuncs[i], pAux, p->nVars, pCanonPerm );
-            if ( fVerbose )
-                Extra_PrintHex( stdout, (unsigned *)p->pFuncs[i], p->nVars ), printf( "\n" );
-        }
-    }
-    else if ( NpnType == 3 )
+    else if ( NpnType == 1 )
     {
         int * pComp = Extra_GreyCodeSchedule( p->nVars );
         int * pPerm = Extra_PermSchedule( p->nVars );
@@ -161,6 +150,28 @@ void Abc_TruthNpnPerform( Abc_TtStore_t * p, int NpnType, int fVerbose )
             printf( "This feature only works for 6-variable functions.\n" );
         ABC_FREE( pComp );
         ABC_FREE( pPerm );
+    }
+    else if ( NpnType == 2 )
+    {
+        for ( i = 0; i < p->nFuncs; i++ )
+        {
+            if ( fVerbose )
+                printf( "%7d : ", i );
+            Kit_TruthSemiCanonicize( (unsigned *)p->pFuncs[i], pAux, p->nVars, pCanonPerm, pStore );
+            if ( fVerbose )
+                Extra_PrintHex( stdout, (unsigned *)p->pFuncs[i], p->nVars ), printf( "\n" );
+        }
+    }
+    else if ( NpnType == 3 )
+    {
+        for ( i = 0; i < p->nFuncs; i++ )
+        {
+            if ( fVerbose )
+                printf( "%7d : ", i );
+            Kit_TruthSemiCanonicize_new( (unsigned *)p->pFuncs[i], pAux, p->nVars, pCanonPerm );
+            if ( fVerbose )
+                Extra_PrintHex( stdout, (unsigned *)p->pFuncs[i], p->nVars ), printf( "\n" );
+        }
     }
     else if ( NpnType == 4 )
     {
@@ -200,6 +211,7 @@ void Abc_TruthNpnPerform( Abc_TtStore_t * p, int NpnType, int fVerbose )
 void Abc_TruthNpnTest( char * pFileName, int NpnType, int fVerbose )
 {
     Abc_TtStore_t * p;
+    char * pFileNameOut;
 
     // read info from file
     p = Abc_TtStoreLoad( pFileName );
@@ -208,6 +220,12 @@ void Abc_TruthNpnTest( char * pFileName, int NpnType, int fVerbose )
 
     // consider functions from the file
     Abc_TruthNpnPerform( p, NpnType, fVerbose );
+
+    // write the result
+    pFileNameOut = Extra_FileNameGenericAppend( pFileName, "_out.txt" );
+    Abc_TtStoreWrite( pFileNameOut, p );
+    if ( fVerbose )
+        printf( "The resulting functions are written into file \"%s\".\n", pFileNameOut );
 
     // delete data-structure
     Abc_TtStoreFree( p );
@@ -230,9 +248,7 @@ int Abc_NpnTest( char * pFileName, int NpnType, int fVerbose )
 {
     if ( fVerbose )
         printf( "Using truth tables from file \"%s\"...\n", pFileName );
-    if ( NpnType == 0 )
-        Abc_TtStoreTest( pFileName );
-    else if ( NpnType >= 1 && NpnType <= 4 )
+    if ( NpnType >= 0 && NpnType <= 4 )
         Abc_TruthNpnTest( pFileName, NpnType, fVerbose );
     else
         printf( "Unknown canonical form value (%d).\n", NpnType );

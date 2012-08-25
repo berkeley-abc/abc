@@ -114,12 +114,10 @@ void Abc_TruthReadHex( word * pTruth, char * pString, int nVars )
 void Abc_TruthWriteHex( FILE * pFile, word * pTruth, int nVars )
 {
     int nDigits, Digit, k;
-    // write hexadecimal digits in the reverse order
-    // (the last symbol in the string is the least significant digit)
     nDigits = (1 << (nVars-2));
     for ( k = 0; k < nDigits; k++ )
     {
-        Digit = Abc_TruthGetHex( pTruth, nDigits - 1 - k );
+        Digit = Abc_TruthGetHex( pTruth, k );
         assert( Digit >= 0 && Digit < 16 );
         Abc_TruthWriteHexDigit( pFile, Digit );
     }
@@ -145,10 +143,11 @@ Abc_TtStore_t * Abc_TruthStoreAlloc( int nVars, int nFuncs )
     p->nVars  =  nVars;
     p->nWords = (nVars < 7) ? 1 : (1 << (nVars-6));
     p->nFuncs =  nFuncs;
-    // alloc array of 'nFuncs' pointers to truth tables
-    p->pFuncs = (word **)malloc( sizeof(word *) * p->nFuncs );
     // alloc storage for 'nFuncs' truth tables as one chunk of memory
-    p->pFuncs[0] = (word *)calloc( sizeof(word), p->nFuncs * p->nWords );
+    p->pFuncs = (word **)malloc( (sizeof(word *) + sizeof(word) * p->nWords) * p->nFuncs );
+    // assign and clean the truth table storage
+    p->pFuncs[0] = (word *)(p->pFuncs + p->nFuncs);
+    memset( p->pFuncs[0], 0, sizeof(word) * p->nWords * p->nFuncs );
     // split it up into individual truth tables
     for ( i = 1; i < p->nFuncs; i++ )
         p->pFuncs[i] = p->pFuncs[i-1] + p->nWords;
@@ -156,7 +155,6 @@ Abc_TtStore_t * Abc_TruthStoreAlloc( int nVars, int nFuncs )
 }
 void Abc_TtStoreFree( Abc_TtStore_t * p )
 {
-    free( p->pFuncs[0] );
     free( p->pFuncs );
     free( p );
 }
@@ -308,7 +306,7 @@ void Abc_TruthStoreRead( char * pFileName, Abc_TtStore_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_TruthStoreWrite( char * pFileName, Abc_TtStore_t * p )
+void Abc_TtStoreWrite( char * pFileName, Abc_TtStore_t * p )
 {
     FILE * pFile;
     int i;
@@ -380,7 +378,7 @@ void Abc_TtStoreTest( char * pFileName )
         return;
 
     // write into another file
-    Abc_TruthStoreWrite( pFileOutput, p );
+    Abc_TtStoreWrite( pFileOutput, p );
 
     // delete data-structure
     Abc_TtStoreFree( p );
