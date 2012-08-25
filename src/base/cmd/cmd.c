@@ -125,7 +125,7 @@ void Cmd_End( Abc_Frame_t * pAbc )
     st_generator * gen;
     char * pKey, * pValue;
 #if defined(WIN32) 
-    Cmd_HistoryWrite( pAbc );
+    Cmd_HistoryWrite( pAbc, ABC_INFINITY );
 #endif
 
 //    st_free_table( pAbc->tCommands, (void (*)()) 0, CmdCommandFree );

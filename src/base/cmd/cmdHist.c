@@ -47,6 +47,9 @@ ABC_NAMESPACE_IMPL_START
 ***********************************************************************/
 void Cmd_HistoryAddCommand(    Abc_Frame_t * p, const char * command )
 {
+    int nLastLooked = 10;   // defines how many entries back are looked
+    int nLastSaved  = 100;  // defines how many last entries are saved
+
     char Buffer[ABC_MAX_STR];
     int Len = strlen(command);
     strcpy( Buffer, command );
@@ -60,11 +63,14 @@ void Cmd_HistoryAddCommand(    Abc_Frame_t * p, const char * command )
         char * pStr;
         int i;
         // do not enter if the same command appears among the last five commands
-        Vec_PtrForEachEntryStart( char *, p->aHistory, pStr, i, Abc_MaxInt(0, Vec_PtrSize(p->aHistory)-5) )
+        Vec_PtrForEachEntryStart( char *, p->aHistory, pStr, i, Abc_MaxInt(0, Vec_PtrSize(p->aHistory)-nLastLooked) )
             if ( !strcmp(pStr, Buffer) )
                 break;
         if ( i == Vec_PtrSize(p->aHistory) )
+        {
             Vec_PtrPush( p->aHistory, Extra_UtilStrsav(Buffer) );
+            Cmd_HistoryWrite( p, nLastSaved );
+        }
     }
 }
 
@@ -111,7 +117,7 @@ void Cmd_HistoryRead( Abc_Frame_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Cmd_HistoryWrite( Abc_Frame_t * p )
+void Cmd_HistoryWrite( Abc_Frame_t * p, int Limit )
 {
     FILE * pFile;
     char * pStr; 
@@ -122,7 +128,8 @@ void Cmd_HistoryWrite( Abc_Frame_t * p )
         Abc_Print( 0, "Cannot open file \"abc.history\" for writing.\n" );
         return;
     }
-    Vec_PtrForEachEntry( char *, p->aHistory, pStr, i )
+    Limit = Abc_MaxInt( 0, Vec_PtrSize(p->aHistory)-Limit );
+    Vec_PtrForEachEntryStart( char *, p->aHistory, pStr, i, Limit )
         fprintf( pFile, "%s\n", pStr );
     fclose( pFile );
 }
