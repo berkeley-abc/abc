@@ -31,7 +31,7 @@ ABC_NAMESPACE_IMPL_START
 
 /**Function*************************************************************
 
-  Synopsis    [Binary IO for numbers (int, word, float) and string (char*).]
+  Synopsis    [Binary I/O for numbers (int, word, float) and strings (char *).]
 
   Description []
                
@@ -40,19 +40,34 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
-static inline void Abc_SclPutI( Vec_Str_t * vOut, word Val )
+static inline void Abc_SclPutI_no_enc( Vec_Str_t * vOut, int Val )
 {
     int i;
     for ( i = 0; i < 4; i++ )
         Vec_StrPush( vOut, (char)(Val >> (8*i)) );
 }
-static inline int Abc_SclGetI( Vec_Str_t * vOut, int * pPos )
+static inline int Abc_SclGetI_no_enc( Vec_Str_t * vOut, int * pPos )
 {
     int i;
     int Val = 0;
     for ( i = 0; i < 4; i++ )
-        Val |= (int)(unsigned char)Vec_StrEntry(vOut, *pPos++) << (8*i);
+        Val |= (int)(unsigned char)Vec_StrEntry(vOut, (*pPos)++) << (8*i);
     return Val;
+}
+
+static inline void Abc_SclPutI( Vec_Str_t * vOut, int Val )
+{
+    for ( ; Val >= 0x80; Val >>= 7 )
+        Vec_StrPush( vOut, (unsigned char)(Val | 0x80) );
+    Vec_StrPush( vOut, (unsigned char)Val );
+}
+static inline int Abc_SclGetI( Vec_Str_t * vOut, int * pPos )
+{
+    unsigned char ch;
+    int i = 0, Val = 0;
+    while ( (ch = Vec_StrEntry(vOut, (*pPos)++)) & 0x80 )
+        Val |= (ch & 0x7f) << (7 * i++);
+    return Val | (ch << (7 * i));
 }
 
 static inline void Abc_SclPutW( Vec_Str_t * vOut, word Val )
@@ -66,7 +81,7 @@ static inline word Abc_SclGetW( Vec_Str_t * vOut, int * pPos )
     int i;
     word Val = 0;
     for ( i = 0; i < 8; i++ )
-        Val |= (word)(unsigned char)Vec_StrEntry(vOut, *pPos++) << (8*i);
+        Val |= (word)(unsigned char)Vec_StrEntry(vOut, (*pPos)++) << (8*i);
     return Val;
 }
 
@@ -82,10 +97,27 @@ static inline void Abc_SclPutF( Vec_Str_t * vOut, float Val )
 static inline float Abc_SclGetF( Vec_Str_t * vOut, int * pPos )
 {
     union { float num; unsigned char data[4]; } tmp;
-    tmp.data[0] = Vec_StrEntry( vOut, *pPos++ );
-    tmp.data[1] = Vec_StrEntry( vOut, *pPos++ );
-    tmp.data[2] = Vec_StrEntry( vOut, *pPos++ );
-    tmp.data[3] = Vec_StrEntry( vOut, *pPos++ );
+    tmp.data[0] = Vec_StrEntry( vOut, (*pPos)++ );
+    tmp.data[1] = Vec_StrEntry( vOut, (*pPos)++ );
+    tmp.data[2] = Vec_StrEntry( vOut, (*pPos)++ );
+    tmp.data[3] = Vec_StrEntry( vOut, (*pPos)++ );
+    return tmp.num;
+}
+
+static inline void Abc_SclPutD( Vec_Str_t * vOut, double Val )
+{
+    union { double num; unsigned char data[8]; } tmp;
+    int i, Lim = sizeof(double);
+    tmp.num = Val;
+    for ( i = 0; i < Lim; i++ )
+        Vec_StrPush( vOut, tmp.data[i] );
+}
+static inline double Abc_SclGetD( Vec_Str_t * vOut, int * pPos )
+{
+    union { double num; unsigned char data[8]; } tmp;
+    int i, Lim = sizeof(double);
+    for ( i = 0; i < Lim; i++ )
+        tmp.data[i] = Vec_StrEntry( vOut, (*pPos)++ );
     return tmp.num;
 }
 
@@ -98,7 +130,7 @@ static inline void Abc_SclPutS( Vec_Str_t * vOut, char * pStr )
 static inline char * Abc_SclGetS( Vec_Str_t * vOut, int * pPos )
 {
     char * pStr = Vec_StrEntryP( vOut, *pPos );
-    while ( Vec_StrEntry(vOut, *pPos++) );
+    while ( Vec_StrEntry(vOut, (*pPos)++) );
     return Abc_UtilStrsav(pStr);
 }
 
@@ -117,8 +149,8 @@ static inline char * Abc_SclGetS( Vec_Str_t * vOut, int * pPos )
 static void Abc_SclWriteSurface( Vec_Str_t * vOut, SC_Surface * p )
 {
     Vec_Flt_t * vVec;
-    int i, k, Entry;
-    float EntryF;
+    float Entry;
+    int i, k;
 
     Abc_SclPutI( vOut, Vec_FltSize(p->vIndex0) );
     Vec_FltForEachEntry( p->vIndex0, Entry, i )
@@ -128,22 +160,23 @@ static void Abc_SclWriteSurface( Vec_Str_t * vOut, SC_Surface * p )
     Vec_FltForEachEntry( p->vIndex1, Entry, i )
         Abc_SclPutF( vOut, Entry );
 
-    Vec_PtrForEachEntry( Vec_Flt_t *, p->vData, vVec, k )
-        Vec_FltForEachEntry( vVec, EntryF, i )
-            Abc_SclPutF( vOut, EntryF );
+    Vec_PtrForEachEntry( Vec_Flt_t *, p->vData, vVec, i )
+        Vec_FltForEachEntry( vVec, Entry, k )
+            Abc_SclPutF( vOut, Entry );
 
     for ( i = 0; i < 3; i++ ) 
-        Abc_SclPutF( vOut, 0 );
+        Abc_SclPutF( vOut, p->approx[0][i] );
     for ( i = 0; i < 4; i++ ) 
-        Abc_SclPutF( vOut, 0 );
+        Abc_SclPutF( vOut, p->approx[1][i] );
     for ( i = 0; i < 6; i++ ) 
-        Abc_SclPutF( vOut, 0 );
+        Abc_SclPutF( vOut, p->approx[2][i] );
 }
 static void Abc_SclWriteLibrary( Vec_Str_t * vOut, SC_Lib * p )
 {
     SC_WireLoad * pWL;
     SC_WireLoadSel * pWLS;
     SC_Cell * pCell;
+    SC_Pin * pPin;
     int n_valid_cells;
     int i, j, k;
 
@@ -156,10 +189,10 @@ static void Abc_SclWriteLibrary( Vec_Str_t * vOut, SC_Lib * p )
     Abc_SclPutF( vOut, p->default_max_out_slew );
 
     assert( p->unit_time >= 0 );
-    assert( p->unit_cap_int >= 0 );
+    assert( p->unit_cap_snd >= 0 );
     Abc_SclPutI( vOut, p->unit_time );
-    Abc_SclPutF( vOut, p->unit_cap_float );
-    Abc_SclPutI( vOut, p->unit_cap_int );
+    Abc_SclPutF( vOut, p->unit_cap_fst );
+    Abc_SclPutI( vOut, p->unit_cap_snd );
 
     // Write 'wire_load' vector:
     Abc_SclPutI( vOut, Vec_PtrSize(p->vWireLoads) );
@@ -187,20 +220,19 @@ static void Abc_SclWriteLibrary( Vec_Str_t * vOut, SC_Lib * p )
         {
             Abc_SclPutF( vOut, Vec_FltEntry(pWLS->vAreaFrom, j) );
             Abc_SclPutF( vOut, Vec_FltEntry(pWLS->vAreaTo, j) );
-            Abc_SclPutS( vOut, Vec_PtrEntry(pWLS->vWireLoadModel, j) );
+            Abc_SclPutS( vOut, (char *)Vec_PtrEntry(pWLS->vWireLoadModel, j) );
         }
     }
 
     // Write 'cells' vector:
     n_valid_cells = 0;
     Vec_PtrForEachEntry( SC_Cell *, p->vCells, pCell, i )
-        if ( !pCell->seq && !pCell->unsupp )
+        if ( !(pCell->seq || pCell->unsupp) )
             n_valid_cells++;
 
     Abc_SclPutI( vOut, n_valid_cells );
     Vec_PtrForEachEntry( SC_Cell *, p->vCells, pCell, i )
     {
-        SC_Pin * pPin;
         if ( pCell->seq || pCell->unsupp )
             continue;
 
@@ -224,13 +256,15 @@ static void Abc_SclWriteLibrary( Vec_Str_t * vOut, SC_Lib * p )
         {
             SC_Timings * pRTime;
             word uWord;
-            assert(pPin->dir == sc_dir_Output);
 
+            assert(pPin->dir == sc_dir_Output);
             Abc_SclPutS( vOut, pPin->name );
             Abc_SclPutF( vOut, pPin->max_out_cap );
             Abc_SclPutF( vOut, pPin->max_out_slew );
 
-            Abc_SclPutI( vOut, Vec_WrdSize(pPin->vFunc) );
+            // write function
+            assert( Vec_WrdSize(pPin->vFunc) == Abc_Truth6WordNum(pCell->n_inputs) );
+            Abc_SclPutI( vOut, pCell->n_inputs );
             Vec_WrdForEachEntry( pPin->vFunc, uWord, k ) // -- 'size = 1u << (n_vars - 6)'
                 Abc_SclPutW( vOut, uWord );  // -- 64-bit number, written uncompressed (low-byte first)
 
@@ -268,9 +302,11 @@ void Abc_SclWrite( char * pFileName, SC_Lib * p )
     if ( Vec_StrSize(vOut) > 0 )
     {
         FILE * pFile = fopen( pFileName, "wb" );
-        if ( pFile != NULL )
+        if ( pFile == NULL )
+            printf( "Cannot open file \"%s\" for writing.\n", pFileName );
+        else
         {
-            fwrite( Vec_StrArray(vOut), Vec_StrSize(vOut), 1, pFile );
+            fwrite( Vec_StrArray(vOut), 1, Vec_StrSize(vOut), pFile );
             fclose( pFile );
         }
     }
@@ -309,22 +345,22 @@ static void Abc_SclReadSurface( Vec_Str_t * vOut, int * pPos, SC_Surface * p )
     {
         vVec = Vec_FltAlloc( Vec_FltSize(p->vIndex1) );
         Vec_PtrPush( p->vData, vVec );
-        for ( j = 0; j < Vec_FltSize(p->vIndex0); j++ )
+        for ( j = 0; j < Vec_FltSize(p->vIndex1); j++ )
             Vec_FltPush( vVec, Abc_SclGetF(vOut, pPos) );
     }
 
     for ( i = 0; i < 3; i++ ) 
-        Abc_SclGetF( vOut, pPos );
+        p->approx[0][i] = Abc_SclGetF( vOut, pPos );
     for ( i = 0; i < 4; i++ ) 
-        Abc_SclGetF( vOut, pPos );
+        p->approx[1][i] = Abc_SclGetF( vOut, pPos );
     for ( i = 0; i < 6; i++ ) 
-        Abc_SclGetF( vOut, pPos );
+        p->approx[2][i] = Abc_SclGetF( vOut, pPos );
 }
 static void Abc_SclReadLibrary( Vec_Str_t * vOut, int * pPos, SC_Lib * p )
 {
     int i, j, k, n;
     int version = Abc_SclGetI( vOut, pPos );
-    assert( version == ABC_SCL_CUR_VERSION );
+    assert( version == ABC_SCL_CUR_VERSION ); // wrong version of the file
 
     // Read non-composite fields:
     p->lib_name              = Abc_SclGetS(vOut, pPos);
@@ -332,9 +368,9 @@ static void Abc_SclReadLibrary( Vec_Str_t * vOut, int * pPos, SC_Lib * p )
     p->default_wire_load_sel = Abc_SclGetS(vOut, pPos);
     p->default_max_out_slew  = Abc_SclGetF(vOut, pPos);
 
-    p->unit_time      = Abc_SclGetI(vOut, pPos);
-    p->unit_cap_float = Abc_SclGetF(vOut, pPos);
-    p->unit_cap_int   = Abc_SclGetI(vOut, pPos);
+    p->unit_time             = Abc_SclGetI(vOut, pPos);
+    p->unit_cap_fst          = Abc_SclGetF(vOut, pPos);
+    p->unit_cap_snd          = Abc_SclGetI(vOut, pPos);
 
     // Read 'wire_load' vector:
     for ( i = Abc_SclGetI(vOut, pPos); i != 0; i-- )
@@ -373,20 +409,19 @@ static void Abc_SclReadLibrary( Vec_Str_t * vOut, int * pPos, SC_Lib * p )
         SC_Cell * pCell = Abc_SclCellAlloc();
         Vec_PtrPush( p->vCells, pCell );
 
-        pCell->name = Abc_SclGetS(vOut, pPos);     
-        pCell->area = Abc_SclGetF(vOut, pPos);
+        pCell->name           = Abc_SclGetS(vOut, pPos);     
+        pCell->area           = Abc_SclGetF(vOut, pPos);
         pCell->drive_strength = Abc_SclGetI(vOut, pPos);
 
-        pCell->n_inputs  = Abc_SclGetI(vOut, pPos);
-        pCell->n_outputs = Abc_SclGetI(vOut, pPos);
+        pCell->n_inputs       = Abc_SclGetI(vOut, pPos);
+        pCell->n_outputs      = Abc_SclGetI(vOut, pPos);
 
         for ( j = 0; j < pCell->n_inputs; j++ )
         {
             SC_Pin * pPin = Abc_SclPinAlloc();
             Vec_PtrPush( pCell->vPins, pPin );
 
-            pPin->dir = sc_dir_Input;
-
+            pPin->dir      = sc_dir_Input;
             pPin->name     = Abc_SclGetS(vOut, pPos); 
             pPin->rise_cap = Abc_SclGetF(vOut, pPos);
             pPin->fall_cap = Abc_SclGetF(vOut, pPos);
@@ -397,14 +432,18 @@ static void Abc_SclReadLibrary( Vec_Str_t * vOut, int * pPos, SC_Lib * p )
             SC_Pin * pPin = Abc_SclPinAlloc();
             Vec_PtrPush( pCell->vPins, pPin );
 
-            pPin->dir = sc_dir_Output;
-
+            pPin->dir          = sc_dir_Output;
             pPin->name         = Abc_SclGetS(vOut, pPos); 
             pPin->max_out_cap  = Abc_SclGetF(vOut, pPos);
             pPin->max_out_slew = Abc_SclGetF(vOut, pPos);
 
-            Vec_WrdGrow( pPin->vFunc, Abc_SclGetI(vOut, pPos) );
-            for ( k = 0; k < Vec_WrdSize(pPin->vFunc); k++ )
+            k = Abc_SclGetI(vOut, pPos);
+            assert( k == pCell->n_inputs );
+
+            // read functions
+            assert( Vec_WrdSize(pPin->vFunc) == 0 );
+            Vec_WrdGrow( pPin->vFunc, Abc_Truth6WordNum(pCell->n_inputs) );
+            for ( k = 0; k < Vec_WrdCap(pPin->vFunc); k++ )
                 Vec_WrdPush( pPin->vFunc, Abc_SclGetW(vOut, pPos) );
 
             // Read 'rtiming': (pin-to-pin timing tables for this particular output)
@@ -413,9 +452,8 @@ static void Abc_SclReadLibrary( Vec_Str_t * vOut, int * pPos, SC_Lib * p )
                 SC_Timings * pRTime = Abc_SclTimingsAlloc();
                 Vec_PtrPush( pPin->vRTimings, pRTime );
 
-                pRTime->name = Abc_SclGetS(vOut, pPos); 
-
-                n = Abc_SclGetI(vOut, pPos); assert(n <= 1);
+                pRTime->name = Abc_SclGetS(vOut, pPos);
+                n = Abc_SclGetI(vOut, pPos); assert( n <= 1 );
                 if ( n == 1 )
                 {
                     SC_Timing * pTime = Abc_SclTimingAlloc();
@@ -453,7 +491,8 @@ SC_Lib * Abc_SclRead( char * pFileName )
     // load the contents
     vOut = Vec_StrAlloc( nFileSize );
     vOut->nSize = vOut->nCap;
-    nFileSize = fread( Vec_StrArray(vOut), Vec_StrSize(vOut), 1, pFile );
+    assert( nFileSize == Vec_StrSize(vOut) );
+    nFileSize = fread( Vec_StrArray(vOut), 1, Vec_StrSize(vOut), pFile );
     assert( nFileSize == Vec_StrSize(vOut) );
     fclose( pFile );
     // read the library
@@ -468,7 +507,7 @@ void Abc_SclLoad( char * pFileName, void ** ppScl )
     if ( *ppScl )
     {
         Abc_SclLibFree( *(SC_Lib **)ppScl );
-        ppScl = NULL;
+        *ppScl = NULL;
     }
     assert( *ppScl == NULL );
     if ( pFileName )

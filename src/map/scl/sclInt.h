@@ -101,6 +101,7 @@ struct SC_Surface_
     Vec_Flt_t *    vIndex0;        // Vec<float>       -- correspondes to "index_1" in the liberty file (for timing: slew)
     Vec_Flt_t *    vIndex1;        // Vec<float>       -- correspondes to "index_2" in the liberty file (for timing: load)
     Vec_Ptr_t *    vData;          // Vec<Vec<float> > -- 'data[i0][i1]' gives value at '(index0[i0], index1[i1])' 
+    float          approx[3][6];
 };
 
 struct SC_Timing_ 
@@ -153,8 +154,8 @@ struct SC_Lib_
     char *         default_wire_load_sel;
     float          default_max_out_slew;   // -- 'default_max_transition'; this is copied to each output pin where 'max_transition' is not defined
     int            unit_time;      // -- Valid 9..12. Unit is '10^(-val)' seconds (e.g. 9=1ns, 10=100ps, 11=10ps, 12=1ps)
-    float          unit_cap_float; // -- First part is a multiplier, second either 12 or 15 for 'pf' or 'ff'.
-    int            unit_cap_int;
+    float          unit_cap_fst;   // -- First part is a multiplier, second either 12 or 15 for 'pf' or 'ff'.
+    int            unit_cap_snd;
     Vec_Ptr_t *    vWireLoads;     // NamedSet<SC_WireLoad>
     Vec_Ptr_t *    vWireLoadSels;  // NamedSet<SC_WireLoadSel>
     Vec_Ptr_t *    vTempls;        // NamedSet<SC_TableTempl>  
@@ -221,7 +222,7 @@ static inline SC_Timings * Abc_SclTimingsAlloc()
 {
     SC_Timings * p;
     p = ABC_CALLOC( SC_Timings, 1 );
-    p->vTimings = Vec_PtrAlloc( 0 );
+    p->vTimings   = Vec_PtrAlloc( 0 );
     return p;
 }
 static inline SC_Pin * Abc_SclPinAlloc()
@@ -229,8 +230,8 @@ static inline SC_Pin * Abc_SclPinAlloc()
     SC_Pin * p;
     p = ABC_CALLOC( SC_Pin, 1 );
     p->max_out_slew = -1;
-    p->vRTimings = Vec_PtrAlloc( 0 );
-    p->vFunc     = Vec_WrdAlloc( 0 );
+    p->vFunc        = Vec_WrdAlloc( 0 );
+    p->vRTimings    = Vec_PtrAlloc( 0 );
     return p;
 }
 static inline SC_Cell * Abc_SclCellAlloc()
@@ -246,8 +247,8 @@ static inline SC_Lib * Abc_SclLibAlloc()
     p = ABC_CALLOC( SC_Lib, 1 );
     p->default_max_out_slew = -1;
     p->unit_time      = 9;
-    p->unit_cap_float = 1;
-    p->unit_cap_int   = 12;
+    p->unit_cap_fst   = 1;
+    p->unit_cap_snd   = 12;
     p->vWireLoads     = Vec_PtrAlloc( 0 );
     p->vWireLoadSels  = Vec_PtrAlloc( 0 );
     p->vTempls        = Vec_PtrAlloc( 0 );

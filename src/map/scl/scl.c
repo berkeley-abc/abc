@@ -102,14 +102,14 @@ int Scl_CommandRead( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // get the input file name
     pFileName = argv[globalUtilOptind];
-    if ( (pFile = fopen( pFileName, "r" )) == NULL )
+    if ( (pFile = fopen( pFileName, "rb" )) == NULL )
     {
         fprintf( pAbc->Err, "Cannot open input file \"%s\". \n", pFileName );
         return 1;
     }
     fclose( pFile );
 
-    // set the new network
+    // read new library
     Abc_SclLoad( pFileName, &pAbc->pLibScl );
     return 0;
 
@@ -134,6 +134,7 @@ usage:
 ***********************************************************************/
 int Scl_CommandWrite( Abc_Frame_t * pAbc, int argc, char **argv )
 {
+    FILE * pFile;
     char * pFileName;
     int c;
 
@@ -157,6 +158,14 @@ int Scl_CommandWrite( Abc_Frame_t * pAbc, int argc, char **argv )
     }
     // get the input file name
     pFileName = argv[globalUtilOptind];
+    if ( (pFile = fopen( pFileName, "wb" )) == NULL )
+    {
+        fprintf( pAbc->Err, "Cannot open output file \"%s\". \n", pFileName );
+        return 1;
+    }
+    fclose( pFile );
+
+    // save current library
     Abc_SclSave( pFileName, pAbc->pLibScl );
     return 0;
 
