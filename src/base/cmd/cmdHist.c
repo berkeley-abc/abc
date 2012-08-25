@@ -47,8 +47,8 @@ ABC_NAMESPACE_IMPL_START
 ***********************************************************************/
 void Cmd_HistoryAddCommand(    Abc_Frame_t * p, const char * command )
 {
-    int nLastLooked = 10;   // defines how many entries back are looked
-    int nLastSaved  = 100;  // defines how many last entries are saved
+    int nLastLooked =  10;  // do not add history if the same entry appears among the last entries
+    int nLastSaved  = 100;  // when saving a file, save no more than this number of last entries
 
     char Buffer[ABC_MAX_STR];
     int Len = strlen(command);
@@ -61,9 +61,9 @@ void Cmd_HistoryAddCommand(    Abc_Frame_t * p, const char * command )
          strncmp(Buffer,"history",7) && strncmp(Buffer,"hi ", 3) && strcmp(Buffer,"hi") )
     {
         char * pStr;
-        int i;
-        // do not enter if the same command appears among the last five commands
-        Vec_PtrForEachEntryStart( char *, p->aHistory, pStr, i, Abc_MaxInt(0, Vec_PtrSize(p->aHistory)-nLastLooked) )
+        int i, Start = Abc_MaxInt( 0, Vec_PtrSize(p->aHistory) - nLastLooked );
+        // do not enter if the same command appears among nLastLooked commands
+        Vec_PtrForEachEntryStart( char *, p->aHistory, pStr, i, Start )
             if ( !strcmp(pStr, Buffer) )
                 break;
         if ( i == Vec_PtrSize(p->aHistory) )
@@ -87,15 +87,13 @@ void Cmd_HistoryAddCommand(    Abc_Frame_t * p, const char * command )
 ***********************************************************************/
 void Cmd_HistoryRead( Abc_Frame_t * p )
 {
+#if defined(WIN32) 
     char Buffer[ABC_MAX_STR];
     FILE * pFile;
     assert( Vec_PtrSize(p->aHistory) == 0 );
     pFile = fopen( "abc.history", "rb" );
     if ( pFile == NULL )
-    {
-//        Abc_Print( 0, "Cannot open file \"abc.history\" for reading.\n" );
         return;
-    }
     while ( fgets( Buffer, ABC_MAX_STR, pFile ) != NULL )
     {
         int Len = strlen(Buffer);
@@ -104,6 +102,7 @@ void Cmd_HistoryRead( Abc_Frame_t * p )
         Vec_PtrPush( p->aHistory, Extra_UtilStrsav(Buffer) );
     }
     fclose( pFile );
+#endif
 }
 
 /**Function*************************************************************
@@ -119,6 +118,7 @@ void Cmd_HistoryRead( Abc_Frame_t * p )
 ***********************************************************************/
 void Cmd_HistoryWrite( Abc_Frame_t * p, int Limit )
 {
+#if defined(WIN32) 
     FILE * pFile;
     char * pStr; 
     int i;
@@ -132,6 +132,7 @@ void Cmd_HistoryWrite( Abc_Frame_t * p, int Limit )
     Vec_PtrForEachEntryStart( char *, p->aHistory, pStr, i, Limit )
         fprintf( pFile, "%s\n", pStr );
     fclose( pFile );
+#endif
 }
 
 ////////////////////////////////////////////////////////////////////////

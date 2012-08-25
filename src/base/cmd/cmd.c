@@ -79,9 +79,7 @@ void Cmd_Init( Abc_Frame_t * pAbc )
     pAbc->tAliases  = st_init_table(strcmp, st_strhash);
     pAbc->tFlags    = st_init_table(strcmp, st_strhash);
     pAbc->aHistory  = Vec_PtrAlloc( 100 );
-#if defined(WIN32) 
     Cmd_HistoryRead( pAbc );
-#endif
 
     Cmd_CommandAdd( pAbc, "Basic", "time",          CmdCommandTime,            0 );
     Cmd_CommandAdd( pAbc, "Basic", "echo",          CmdCommandEcho,            0 );
@@ -124,9 +122,7 @@ void Cmd_End( Abc_Frame_t * pAbc )
 {
     st_generator * gen;
     char * pKey, * pValue;
-#if defined(WIN32) 
     Cmd_HistoryWrite( pAbc, ABC_INFINITY );
-#endif
 
 //    st_free_table( pAbc->tCommands, (void (*)()) 0, CmdCommandFree );
 //    st_free_table( pAbc->tAliases,  (void (*)()) 0, CmdCommandAliasFree );
