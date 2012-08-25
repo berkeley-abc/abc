@@ -370,7 +370,7 @@ int CmdCommandHistory( Abc_Frame_t * pAbc, int argc, char **argv )
 //        iRepeat = atoi(argv[globalUtilOptind]);
     // print the commands
     if ( iRepeat >= 0 && iRepeat < Vec_PtrSize(pAbc->aHistory) )
-        fprintf( pAbc->Out, "%s", Vec_PtrEntry(pAbc->aHistory, Vec_PtrSize(pAbc->aHistory)-1-iRepeat) );
+        fprintf( pAbc->Out, "%s", (char *)Vec_PtrEntry(pAbc->aHistory, Vec_PtrSize(pAbc->aHistory)-1-iRepeat) );
     else if ( nPrints > 0 )
         Vec_PtrForEachEntryStart( char *, pAbc->aHistory, pName, i, Abc_MaxInt(0, Vec_PtrSize(pAbc->aHistory)-nPrints) )
             fprintf( pAbc->Out, "%2d : %s\n", Vec_PtrSize(pAbc->aHistory)-i, pName );

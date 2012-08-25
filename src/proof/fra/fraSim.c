@@ -894,7 +894,7 @@ Vec_Str_t * Fra_SmlSimulateReadFile( char * pFileName )
             Vec_StrPush( vRes, (char)(c - '0') );
         else if ( c != ' ' && c != '\r' && c != '\n' && c != '\t' )
         {
-            printf( "File \"%s\" contains symbol (%c) other than \'0\' or \'1\'.\n", c );
+            printf( "File \"%s\" contains symbol (%c) other than \'0\' or \'1\'.\n", (char)c );
             Vec_StrFreeP( &vRes );
             break;
         }
