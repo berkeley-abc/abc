@@ -67,9 +67,14 @@ void Cmd_HistoryAddCommand(    Abc_Frame_t * p, const char * command )
             if ( !strcmp(pStr, Buffer) )
                 break;
         if ( i == Vec_PtrSize(p->aHistory) )
-        {
+        { // add new entry
             Vec_PtrPush( p->aHistory, Extra_UtilStrsav(Buffer) );
             Cmd_HistoryWrite( p, nLastSaved );
+        }
+        else
+        { // put at the end
+            Vec_PtrRemove( p->aHistory, pStr );
+            Vec_PtrPush( p->aHistory, pStr );
         }
     }
 }
