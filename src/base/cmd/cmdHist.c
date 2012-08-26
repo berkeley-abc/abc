@@ -60,7 +60,7 @@ void Cmd_HistoryAddCommand(    Abc_Frame_t * p, const char * command )
          strncmp(Buffer,"source",6) && 
          strncmp(Buffer,"history",7) && strncmp(Buffer,"hi ", 3) && strcmp(Buffer,"hi") )
     {
-        char * pStr;
+        char * pStr = NULL;
         int i, Start = Abc_MaxInt( 0, Vec_PtrSize(p->aHistory) - nLastLooked );
         // do not enter if the same command appears among nLastLooked commands
         Vec_PtrForEachEntryStart( char *, p->aHistory, pStr, i, Start )

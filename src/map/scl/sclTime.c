@@ -132,7 +132,7 @@ float Abc_SclTotalArea( SC_Man * p, Vec_Ptr_t * vNodes )
 Vec_Flt_t * Abc_SclFindWireCaps( SC_Man * p, Vec_Ptr_t * vNodes )
 {
     Vec_Flt_t * vCaps = NULL;
-    SC_WireLoad * pWL;
+    SC_WireLoad * pWL = NULL;
     int i, Entry, EntryPrev, EntryMax;
     p->pWireLoadUsed = NULL;
     if ( p->pLib->default_wire_load_sel )
