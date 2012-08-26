@@ -29,6 +29,7 @@ ABC_NAMESPACE_IMPL_START
 
 static int Scl_CommandRead ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Scl_CommandWrite( Abc_Frame_t * pAbc, int argc, char **argv );
+static int Scl_CommandStime( Abc_Frame_t * pAbc, int argc, char **argv );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -49,19 +50,8 @@ void Scl_Init( Abc_Frame_t * pAbc )
 {
     Cmd_CommandAdd( pAbc, "SC mapping",  "read_scl",   Scl_CommandRead,  0 ); 
     Cmd_CommandAdd( pAbc, "SC mapping",  "write_scl",  Scl_CommandWrite, 0 ); 
+    Cmd_CommandAdd( pAbc, "SC mapping",  "stime",      Scl_CommandStime, 0 ); 
 }
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
 void Scl_End( Abc_Frame_t * pAbc )
 {
     Abc_SclLoad( NULL, &pAbc->pLibScl );
@@ -111,6 +101,7 @@ int Scl_CommandRead( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // read new library
     Abc_SclLoad( pFileName, &pAbc->pLibScl );
+    Abc_SclWriteText( "sizing\\scl_out.txt", pAbc->pLibScl );
     return 0;
 
 usage:
@@ -174,6 +165,59 @@ usage:
     fprintf( pAbc->Err, "\t         write Liberty library into file\n" );
     fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
     fprintf( pAbc->Err, "\t<file> : the name of the file to write\n" );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Scl_CommandStime( Abc_Frame_t * pAbc, int argc, char **argv )
+{
+    int c;
+
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+            case 'h':
+                goto usage;
+            default:
+                goto usage;
+        }
+    }
+
+    if ( Abc_FrameReadNtk(pAbc) == NULL )
+    {
+        fprintf( pAbc->Err, "There is no current network.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkHasMapping(Abc_FrameReadNtk(pAbc)) )
+    {
+        fprintf( pAbc->Err, "The current network is not mapped.\n" );
+        return 1;
+    }
+    if ( pAbc->pLibScl == NULL )
+    {
+        fprintf( pAbc->Err, "There is no Liberty Library available.\n" );
+        return 1;
+    }
+
+    Abc_SclTimePerform( pAbc->pLibScl, Abc_FrameReadNtk(pAbc) );
+    return 0;
+
+usage:
+    fprintf( pAbc->Err, "usage: stime [-h]\n" );
+    fprintf( pAbc->Err, "\t         performs STA using Liberty library\n" );
+    fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
     return 1;
 }
 
