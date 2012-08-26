@@ -1325,18 +1325,26 @@ void Ga2_GlaDumpAbsracted( Ga2_Man_t * p, int fVerbose )
 {
     char * pFileNameDef = "glabs.aig";
     char * pFileName = p->pPars->pFileVabs ? p->pPars->pFileVabs : pFileNameDef;
-    Gia_Man_t * pAbs;
-    Vec_Int_t * vGateClasses;
     if ( fVerbose )
         Abc_Print( 1, "Dumping abstracted model into file \"%s\"...\n", pFileName );
-    // create abstraction
-    vGateClasses = Ga2_ManAbsTranslate( p );
-    pAbs = Gia_ManDupAbsGates( p->pGia, vGateClasses );
-    Vec_IntFreeP( &vGateClasses );
-    Gia_ManCleanValue( p->pGia );
-    // write into file
-    Gia_WriteAiger( pAbs, pFileName, 0, 0 );
-    Gia_ManStop( pAbs );
+    if ( p->pPars->fDumpVabs )
+    {
+        // dump absracted model
+        Vec_Int_t * vGateClasses = Ga2_ManAbsTranslate( p );
+        Gia_Man_t * pAbs = Gia_ManDupAbsGates( p->pGia, vGateClasses );
+        Gia_ManCleanValue( p->pGia );
+        Gia_WriteAiger( pAbs, pFileName, 0, 0 );
+        Gia_ManStop( pAbs );
+        Vec_IntFreeP( &vGateClasses );
+    }
+    else if ( p->pPars->fDumpMabs )
+    {
+        // dump abstraction map
+        Vec_IntFreeP( &p->pGia->vGateClasses );
+        p->pGia->vGateClasses = Ga2_ManAbsTranslate( p );
+        Gia_WriteAiger( p->pGia, pFileName, 0, 0 );
+    }
+    else assert( 0 );
 }
 
 /**Function*************************************************************
@@ -1426,7 +1434,7 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
         Abc_Print( 1, "FrameMax = %d  ConfMax = %d  Timeout = %d  RatioMin = %d %%  RatioMax = %d %%\n", 
             pPars->nFramesMax, pPars->nConfLimit, pPars->nTimeOut, pPars->nRatioMin, pPars->nRatioMax );
         Abc_Print( 1, "LrnStart = %d  LrnDelta = %d  LrnRatio = %d %%  Skip = %d  SimpleCNF = %d  Dump = %d\n", 
-            pPars->nLearnedStart, pPars->nLearnedDelta, pPars->nLearnedPerce, pPars->fUseSkip, pPars->fUseSimple, pPars->fDumpVabs );
+            pPars->nLearnedStart, pPars->nLearnedDelta, pPars->nLearnedPerce, pPars->fUseSkip, pPars->fUseSimple, pPars->fDumpVabs|pPars->fDumpMabs );
         Abc_Print( 1, " Frame   %%   Abs  PPI   FF   LUT   Confl  Cex   Vars   Clas   Lrns     Time      Mem\n" );
     }
     // iterate unrolling
@@ -1620,7 +1628,7 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
                 }
 
                 // dump the model into file
-                if ( p->pPars->fDumpVabs )
+                if ( p->pPars->fDumpVabs || p->pPars->fDumpMabs )
                 {
                     Abc_FrameSetCex( NULL );
                     Abc_FrameSetNFrames( f+1 );

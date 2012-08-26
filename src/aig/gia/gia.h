@@ -226,13 +226,14 @@ struct Gia_ParVta_t_
     int            fUseRollback;  // use rollback to the starting number of frames
     int            fPropFanout;   // propagate fanout implications
     int            fAddLayer;     // refinement strategy by adding layers
-    int            fUseSkip;
-    int            fUseSimple;
-    int            fSkipHash;
+    int            fUseSkip;      // skip proving intermediate timeframes
+    int            fUseSimple;    // use simple CNF construction
+    int            fSkipHash;     // skip hashing CNF while unrolling
     int            fDumpVabs;     // dumps the abstracted model
+    int            fDumpMabs;     // dumps the original AIG with abstraction map
     char *         pFileVabs;     // dumps the abstracted model into this file
     int            fVerbose;      // verbose flag
-    int            fVeryVerbose;
+    int            fVeryVerbose;  // print additional information
     int            iFrame;        // the number of frames covered
     int            nFramesNoChange; // the number of last frames without changes
 };

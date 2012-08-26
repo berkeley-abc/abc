@@ -28196,7 +28196,7 @@ int Abc_CommandAbc9Gla( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c, fStartVta = 0, fNewAlgo = 1;
     Gia_VtaSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FSCLDETRPAtrfkadnscbwvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FSCLDETRPAtrfkadmnscbwvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -28326,6 +28326,9 @@ int Abc_CommandAbc9Gla( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'd':
             pPars->fDumpVabs ^= 1;
             break;
+        case 'm':
+            pPars->fDumpMabs ^= 1;
+            break;
         case 'n':
             fNewAlgo ^= 1;
             break;
@@ -28386,7 +28389,7 @@ int Abc_CommandAbc9Gla( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &gla [-FSCLDETRP num] [-A file] [-fkadnscbwvh]\n" );
+    Abc_Print( -2, "usage: &gla [-FSCLDETRP num] [-A file] [-fkadmnscbwvh]\n" );
     Abc_Print( -2, "\t          fixed-time-frame gate-level proof- and cex-based abstraction\n" );
     Abc_Print( -2, "\t-F num  : the max number of timeframes to unroll [default = %d]\n", pPars->nFramesMax );
     Abc_Print( -2, "\t-S num  : the starting time frame (0=unused) [default = %d]\n", pPars->nFramesStart );
@@ -28402,6 +28405,7 @@ usage:
     Abc_Print( -2, "\t-k      : toggle using VTA to kick start GLA for starting frames [default = %s]\n", fStartVta? "yes": "no" );
     Abc_Print( -2, "\t-a      : toggle refinement by adding one layers of gates [default = %s]\n", pPars->fAddLayer? "yes": "no" );
     Abc_Print( -2, "\t-d      : toggle dumping abstracted model into a file [default = %s]\n", pPars->fDumpVabs? "yes": "no" );
+    Abc_Print( -2, "\t-m      : toggle dumping abstraction map into a file [default = %s]\n", pPars->fDumpMabs? "yes": "no" );
     Abc_Print( -2, "\t-n      : toggle using new algorithms [default = %s]\n", fNewAlgo? "yes": "no" );
     Abc_Print( -2, "\t-s      : toggle skipping previously proved timeframes [default = %s]\n", pPars->fUseSkip? "yes": "no" );
     Abc_Print( -2, "\t-c      : toggle using naive (2-input AND node) CNF encoding [default = %s]\n", pPars->fUseSimple? "yes": "no" );
