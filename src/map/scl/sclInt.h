@@ -74,8 +74,8 @@ typedef struct SC_Lib_         SC_Lib;
 struct SC_WireLoad_ 
 {
     char *         name;
-    float          res;            // }- multiply estimation in 'fanout_len[].snd' with this value
-    float          cap;            // 
+    float          res;            // (currently not used)
+    float          cap;            // }- multiply estimation in 'fanout_len[].snd' with this value
     Vec_Int_t *    vFanout;        // Vec<Pair<uint,float> > -- pairs '(#fanouts, est-wire-len)'
     Vec_Flt_t *    vLen;
 };
@@ -108,7 +108,7 @@ struct SC_Timing_
 {
     char *         related_pin;    // -- related pin
     SC_TSense      tsense;         // -- timing sense (positive_unate, negative_unate, non_unate)
-    char *         when_text;      // -- logic condition on inputs triggering this delay model for the output
+    char *         when_text;      // -- logic condition on inputs triggering this delay model for the output (currently not used)
     SC_Surface *   pCellRise;      // -- Used to compute pin-to-pin delay
     SC_Surface *   pCellFall;
     SC_Surface *   pRiseTrans;     // -- Used to compute output slew
@@ -125,11 +125,11 @@ struct SC_Pin_
 {
     char *         name;
     SC_Dir         dir;
-    float          cap;            // -- this value is used if 'rise_cap' and 'fall_cap' is missing (copied by 'postProcess()').
+    float          cap;            // -- this value is used if 'rise_cap' and 'fall_cap' is missing (copied by 'postProcess()'). (not used)
     float          rise_cap;       // }- used for input pins ('cap' too).
     float          fall_cap;       // }
-    float          max_out_cap;    // }
-    float          max_out_slew;   // }- used only for output pins (max values must not be exceeded or else mapping is illegal)
+    float          max_out_cap;    // } (not used)
+    float          max_out_slew;   // }- used only for output pins (max values must not be exceeded or else mapping is illegal) (not used)
     char *         func_text;      // }
     Vec_Wrd_t *    vFunc;          // }
     Vec_Ptr_t *    vRTimings;      // -- for output pins
@@ -141,7 +141,7 @@ struct SC_Cell_
     int            seq;            // -- set to TRUE by parser if a sequential element
     int            unsupp;         // -- set to TRUE by parser if cell contains information we cannot handle
     float          area;
-    int            drive_strength; // -- some library files provide this field (currently unused, but may be a good hint for sizing)
+    int            drive_strength; // -- some library files provide this field (currently unused, but may be a good hint for sizing) (not used)
     Vec_Ptr_t *    vPins;          // NamedSet<SC_Pin> 
     int            n_inputs;       // -- 'pins[0 .. n_inputs-1]' are input pins
     int            n_outputs;      // -- 'pins[n_inputs .. n_inputs+n_outputs-1]' are output pins
@@ -152,7 +152,7 @@ struct SC_Lib_
     char *         lib_name;
     char *         default_wire_load;
     char *         default_wire_load_sel;
-    float          default_max_out_slew;   // -- 'default_max_transition'; this is copied to each output pin where 'max_transition' is not defined
+    float          default_max_out_slew;   // -- 'default_max_transition'; this is copied to each output pin where 'max_transition' is not defined  (not used)
     int            unit_time;      // -- Valid 9..12. Unit is '10^(-val)' seconds (e.g. 9=1ns, 10=100ps, 11=10ps, 12=1ps)
     float          unit_cap_fst;   // -- First part is a multiplier, second either 12 or 15 for 'pf' or 'ff'.
     int            unit_cap_snd;
