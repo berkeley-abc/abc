@@ -30,6 +30,7 @@ ABC_NAMESPACE_IMPL_START
 static int Scl_CommandRead ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Scl_CommandWrite( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Scl_CommandStime( Abc_Frame_t * pAbc, int argc, char **argv );
+static int Scl_CommandGsize( Abc_Frame_t * pAbc, int argc, char **argv );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -51,6 +52,7 @@ void Scl_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "SC mapping",  "read_scl",   Scl_CommandRead,  0 ); 
     Cmd_CommandAdd( pAbc, "SC mapping",  "write_scl",  Scl_CommandWrite, 0 ); 
     Cmd_CommandAdd( pAbc, "SC mapping",  "stime",      Scl_CommandStime, 0 ); 
+    Cmd_CommandAdd( pAbc, "SC mapping",  "gsize",      Scl_CommandGsize, 1 ); 
 }
 void Scl_End( Abc_Frame_t * pAbc )
 {
@@ -144,7 +146,7 @@ int Scl_CommandWrite( Abc_Frame_t * pAbc, int argc, char **argv )
         goto usage;
     if ( pAbc->pLibScl == NULL )
     {
-        fprintf( pAbc->Err, "There is no Liberty Library available.\n" );
+        fprintf( pAbc->Err, "There is no Liberty library available.\n" );
         return 1;
     }
     // get the input file name
@@ -207,7 +209,7 @@ int Scl_CommandStime( Abc_Frame_t * pAbc, int argc, char **argv )
     }
     if ( pAbc->pLibScl == NULL )
     {
-        fprintf( pAbc->Err, "There is no Liberty Library available.\n" );
+        fprintf( pAbc->Err, "There is no Liberty library available.\n" );
         return 1;
     }
 
@@ -217,6 +219,59 @@ int Scl_CommandStime( Abc_Frame_t * pAbc, int argc, char **argv )
 usage:
     fprintf( pAbc->Err, "usage: stime [-h]\n" );
     fprintf( pAbc->Err, "\t         performs STA using Liberty library\n" );
+    fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Scl_CommandGsize( Abc_Frame_t * pAbc, int argc, char **argv )
+{
+    int c;
+
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+            case 'h':
+                goto usage;
+            default:
+                goto usage;
+        }
+    }
+
+    if ( Abc_FrameReadNtk(pAbc) == NULL )
+    {
+        fprintf( pAbc->Err, "There is no current network.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkHasMapping(Abc_FrameReadNtk(pAbc)) )
+    {
+        fprintf( pAbc->Err, "The current network is not mapped.\n" );
+        return 1;
+    }
+    if ( pAbc->pLibScl == NULL )
+    {
+        fprintf( pAbc->Err, "There is no Liberty library available.\n" );
+        return 1;
+    }
+
+    Abc_SclSizingPerform( pAbc->pLibScl, Abc_FrameReadNtk(pAbc) );
+    return 0;
+
+usage:
+    fprintf( pAbc->Err, "usage: gsize [-h]\n" );
+    fprintf( pAbc->Err, "\t         performs gate sizing using Liberty library\n" );
     fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
     return 1;
 }

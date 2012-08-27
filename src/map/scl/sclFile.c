@@ -592,36 +592,45 @@ static void Abc_SclWriteSurfaceText( FILE * s, SC_Surface * p )
     float Entry;
     int i, k;
 
-    fprintf( s, "Surface:\n" );
-
-    fprintf( s, "%d", Vec_FltSize(p->vIndex0) );  
-    fprintf( s, "\n" );
+    fprintf( s, "          index_1(\"" );  
     Vec_FltForEachEntry( p->vIndex0, Entry, i )
-        fprintf( s, "%f ", Entry );
-    fprintf( s, "\n" );
+        fprintf( s, "%f%s", Entry, i == Vec_FltSize(p->vIndex0)-1 ? "":", " );
+    fprintf( s, "\");\n" );
 
-    fprintf( s, "%d", Vec_FltSize(p->vIndex1) );
-    fprintf( s, "\n" );
+    fprintf( s, "          index_2(\"" );  
     Vec_FltForEachEntry( p->vIndex1, Entry, i )
-        fprintf( s, "%f ", Entry );
-    fprintf( s, "\n" );
+        fprintf( s, "%f%s", Entry, i == Vec_FltSize(p->vIndex1)-1 ? "":", " );
+    fprintf( s, "\");\n" );
 
+    fprintf( s, "          values (\"" );  
     Vec_PtrForEachEntry( Vec_Flt_t *, p->vData, vVec, i )
     {
         Vec_FltForEachEntry( vVec, Entry, k )
-            fprintf( s, "%f ", Entry );
-        fprintf( s, "\n" );
+            fprintf( s, "%f%s", Entry, i == Vec_PtrSize(p->vData)-1 && k == Vec_FltSize(vVec)-1 ? "\");":", " );
+        if ( i == Vec_PtrSize(p->vData)-1 )
+            fprintf( s, "\n" );
+        else
+        {
+            fprintf( s, "\\\n" );
+            fprintf( s, "                   " );  
+        }
     }
-
+/*
+    fprintf( s, "       approximations: \n" );
+    fprintf( s, "       " );
     for ( i = 0; i < 3; i++ ) 
         fprintf( s, "%f ", p->approx[0][i] );
     fprintf( s, "\n" );
+    fprintf( s, "       " );
     for ( i = 0; i < 4; i++ ) 
         fprintf( s, "%f ", p->approx[1][i] );
     fprintf( s, "\n" );
+    fprintf( s, "       " );
     for ( i = 0; i < 6; i++ ) 
         fprintf( s, "%f ", p->approx[2][i] );
     fprintf( s, "\n" );
+    fprintf( s, "       \n" );
+*/
 }
 static void Abc_SclWriteLibraryText( FILE * s, SC_Lib * p )
 {
@@ -633,71 +642,47 @@ static void Abc_SclWriteLibraryText( FILE * s, SC_Lib * p )
     int i, j, k;
 
 //    fprintf( s, "%d", ABC_SCL_CUR_VERSION );
-    fprintf( s, "Liberty:\n" );
-
-    // Write non-composite fields:
-    fprintf( s, "%s", p->lib_name );
-    fprintf( s, "\n" );
-    fprintf( s, "%s", p->default_wire_load );
-    fprintf( s, "\n" );
-    fprintf( s, "%s", p->default_wire_load_sel );
-    fprintf( s, "\n" );
-    fprintf( s, "%f", p->default_max_out_slew );
-    fprintf( s, "\n" );
-
-    assert( p->unit_time >= 0 );
-    assert( p->unit_cap_snd >= 0 );
-    fprintf( s, "%d", p->unit_time );
-    fprintf( s, "\n" );
-    fprintf( s, "%f", p->unit_cap_fst );
-    fprintf( s, "\n" );
-    fprintf( s, "%d", p->unit_cap_snd );
+    fprintf( s, "library(%s) {\n\n",                         p->lib_name );
+    if ( p->default_wire_load && strlen(p->default_wire_load) )
+    fprintf( s, "  default_wire_load : \"%s\";\n",           p->default_wire_load );
+    if ( p->default_wire_load_sel && strlen(p->default_wire_load_sel) )
+    fprintf( s, "  default_wire_load_selection : \"%s\";\n", p->default_wire_load_sel );
+    if ( p->default_max_out_slew != -1 )
+    fprintf( s, "  default_max_transition : %f;\n",          p->default_max_out_slew );
+    if ( p->unit_time == 9 )
+    fprintf( s, "  time_unit : \"1ns\";\n" );
+    else if ( p->unit_time == 10 )
+    fprintf( s, "  time_unit : \"100ps\";\n" );
+    else if ( p->unit_time == 11 )
+    fprintf( s, "  time_unit : \"10ps\";\n" );
+    else if ( p->unit_time == 12 )
+    fprintf( s, "  time_unit : \"1ps\";\n" );
+    else assert( 0 );
+    fprintf( s, "  capacitive_load_unit(%.1f,%s);\n",        p->unit_cap_fst, p->unit_cap_snd == 12 ? "pf" : "ff" );
     fprintf( s, "\n" );
 
     // Write 'wire_load' vector:
-    fprintf( s, "\n" );
-    fprintf( s, "%d", Vec_PtrSize(p->vWireLoads) );
-    fprintf( s, "\n" );
     Vec_PtrForEachEntry( SC_WireLoad *, p->vWireLoads, pWL, i )
     {
-        fprintf( s, "WireLoad:\n" );
-        fprintf( s, "%s ", pWL->name );
-        fprintf( s, "%f ", pWL->res );
-        fprintf( s, "%f", pWL->cap );
-        fprintf( s, "\n" );
-
-        fprintf( s, "%d", Vec_IntSize(pWL->vFanout) );
-        fprintf( s, "\n" );
+        fprintf( s, "  wire_load(\"%s\") {\n", pWL->name );
+        fprintf( s, "    capacitance : %f;\n", pWL->cap );
+        fprintf( s, "    resistance : %f;\n", pWL->res );
         for ( j = 0; j < Vec_IntSize(pWL->vFanout); j++ )
-        {
-            fprintf( s, "%d ", Vec_IntEntry(pWL->vFanout, j) );
-            fprintf( s, "%f  ", Vec_FltEntry(pWL->vLen, j) );
-        }
-        fprintf( s, "\n" );
+            fprintf( s, "    fanout_length( %d, %f );\n", Vec_IntEntry(pWL->vFanout, j), Vec_FltEntry(pWL->vLen, j) );
+        fprintf( s, "  }\n\n" );
     }
-    fprintf( s, "\n" );
 
     // Write 'wire_load_sel' vector:
-    fprintf( s, "%d", Vec_PtrSize(p->vWireLoadSels) );
-    fprintf( s, "\n" );
     Vec_PtrForEachEntry( SC_WireLoadSel *, p->vWireLoadSels, pWLS, i )
     {
-        fprintf( s, "WireLoadSel:\n" );
-        fprintf( s, "%s", pWLS->name );
-        fprintf( s, "\n" );
-        fprintf( s, "%d", Vec_FltSize(pWLS->vAreaFrom) );
-        fprintf( s, "\n" );
+        fprintf( s, "  wire_load_selection(\"%s\") {\n", pWLS->name );
         for ( j = 0; j < Vec_FltSize(pWLS->vAreaFrom); j++)
-        {
-            fprintf( s, "%f", Vec_FltEntry(pWLS->vAreaFrom, j) );
-            fprintf( s, " " );
-            fprintf( s, "%f", Vec_FltEntry(pWLS->vAreaTo, j) );
-            fprintf( s, " " );
-            fprintf( s, "%s", (char *)Vec_PtrEntry(pWLS->vWireLoadModel, j) );
-            fprintf( s, "\n" );
-        }
+            fprintf( s, "    wire_load_from_area( %f, %f, \"%s\" );\n", 
+                Vec_FltEntry(pWLS->vAreaFrom, j), 
+                Vec_FltEntry(pWLS->vAreaTo, j), 
+                (char *)Vec_PtrEntry(pWLS->vWireLoadModel, j) );
+        fprintf( s, "  }\n\n" );
     }
-    fprintf( s, "\n" );
 
     // Write 'cells' vector:
     n_valid_cells = 0;
@@ -705,32 +690,25 @@ static void Abc_SclWriteLibraryText( FILE * s, SC_Lib * p )
         if ( !(pCell->seq || pCell->unsupp) )
             n_valid_cells++;
 
-    fprintf( s, "%d", n_valid_cells );
-    fprintf( s, "\n" );
     Vec_PtrForEachEntry( SC_Cell *, p->vCells, pCell, i )
     {
         if ( pCell->seq || pCell->unsupp )
             continue;
 
-        fprintf( s, "\nCell:\n" );
-        fprintf( s, "%s ", pCell->name );
-        fprintf( s, "%f ", pCell->area );
-        fprintf( s, "%d", pCell->drive_strength );
-        fprintf( s, " " );
-
-        // Write 'pins': (sorted at this point; first inputs, then outputs)
-        fprintf( s, "%d ", pCell->n_inputs);
-        fprintf( s, "%d", pCell->n_outputs);
         fprintf( s, "\n" );
+        fprintf( s, "  cell(%s) {\n", pCell->name );
+        fprintf( s, "    /*  n_inputs = %d  n_outputs = %d */\n", pCell->n_inputs, pCell->n_outputs );
+        fprintf( s, "    area : %f;\n", pCell->area );
+        fprintf( s, "    drive_strength : %d;\n", pCell->drive_strength );
 
         Vec_PtrForEachEntryStop( SC_Pin *, pCell->vPins, pPin, j, pCell->n_inputs )
         {
             assert(pPin->dir == sc_dir_Input);
-            fprintf( s, "Pin:\n" );
-            fprintf( s, "%s ", pPin->name );
-            fprintf( s, "%f ", pPin->rise_cap );
-            fprintf( s, "%f", pPin->fall_cap );
-            fprintf( s, "\n" );
+            fprintf( s, "    pin(%s) {\n", pPin->name );
+            fprintf( s, "      direction : %s;\n", "input" );
+            fprintf( s, "      fall_capacitance : %f;\n", pPin->fall_cap );
+            fprintf( s, "      rise_capacitance : %f;\n", pPin->rise_cap );
+            fprintf( s, "    }\n" );
         }
 
         Vec_PtrForEachEntryStart( SC_Pin *, pCell->vPins, pPin, j, pCell->n_inputs )
@@ -738,50 +716,57 @@ static void Abc_SclWriteLibraryText( FILE * s, SC_Lib * p )
             SC_Timings * pRTime;
 //            word uWord;
             assert(pPin->dir == sc_dir_Output);
-
-            fprintf( s, "Pin:\n" );
-            fprintf( s, "%s ", pPin->name );
-            fprintf( s, "%f ", pPin->max_out_cap );
-            fprintf( s, "%f", pPin->max_out_slew );
-            fprintf( s, "\n" );
-/*
-            // write function
-            assert( Vec_WrdSize(pPin->vFunc) == Abc_Truth6WordNum(pCell->n_inputs) );
-            fprintf( s, "%d", pCell->n_inputs );
-            Vec_WrdForEachEntry( pPin->vFunc, uWord, k ) // -- 'size = 1u << (n_vars - 6)'
-                Vec_StrPutW( s, uWord );  // -- 64-bit number, written uncompressed (low-byte first)
-*/
+            fprintf( s, "    pin(%s) {\n", pPin->name );
+            fprintf( s, "      direction : %s;\n", "output" );
+            fprintf( s, "      max_capacitance : %f;\n", pPin->max_out_cap );
+            fprintf( s, "      max_transition : %f;\n", pPin->max_out_slew );
+            fprintf( s, "      function : \"%s\";\n", pPin->func_text ? pPin->func_text : "?" );
+            fprintf( s, "      /*  truth table = " );
             Extra_PrintHex( s, (unsigned *)Vec_WrdArray(pPin->vFunc), pCell->n_inputs );
-            fprintf( s, "\n" );
+            fprintf( s, "  */\n" );
 
             // Write 'rtiming': (pin-to-pin timing tables for this particular output)
             assert( Vec_PtrSize(pPin->vRTimings) == pCell->n_inputs );
             Vec_PtrForEachEntry( SC_Timings *, pPin->vRTimings, pRTime, k )
             {
-                fprintf( s, "%s ", pRTime->name );
-                fprintf( s, "%d", Vec_PtrSize(pRTime->vTimings) );
-                fprintf( s, "\n" );
-                    // -- NOTE! After post-processing, the size of the 'rtiming[k]' vector is either
-                    // 0 or 1 (in static timing, we have merged all tables to get the worst case).
-                    // The case with size 0 should only occur for multi-output gates.
                 if ( Vec_PtrSize(pRTime->vTimings) == 1 )
                 {
                     SC_Timing * pTime = (SC_Timing *)Vec_PtrEntry( pRTime->vTimings, 0 );
-                        // -- NOTE! We don't need to save 'related_pin' string because we have sorted 
-                        // the elements on input pins.
-                    fprintf( s, "%d", (int)pTime->tsense);
-                    fprintf( s, "\n" );
+                    fprintf( s, "      timing() {\n" );
+                    fprintf( s, "        related_pin : \"%s\"\n", pRTime->name );
+                    if ( pTime->tsense == sc_ts_Pos )
+                        fprintf( s, "        timing_sense : positive_unate;\n" );
+                    else if ( pTime->tsense == sc_ts_Neg )
+                        fprintf( s, "        timing_sense : negative_unate;\n" );
+                    else if ( pTime->tsense == sc_ts_Non )
+                        fprintf( s, "        timing_sense : non_unate;\n" );
+                    else assert( 0 );
+
+                    fprintf( s, "        cell_rise() {\n" );
                     Abc_SclWriteSurfaceText( s, pTime->pCellRise );
+                    fprintf( s, "        }\n" );
+
+                    fprintf( s, "        cell_fall() {\n" );
                     Abc_SclWriteSurfaceText( s, pTime->pCellFall );
+                    fprintf( s, "        }\n" );
+
+                    fprintf( s, "        rise_transition() {\n" );
                     Abc_SclWriteSurfaceText( s, pTime->pRiseTrans );
+                    fprintf( s, "        }\n" );
+
+                    fprintf( s, "        fall_transition() {\n" );
                     Abc_SclWriteSurfaceText( s, pTime->pFallTrans );
+                    fprintf( s, "        }\n" );
+                    fprintf( s, "      }\n" );
                 }
                 else
                     assert( Vec_PtrSize(pRTime->vTimings) == 0 );
             }
+            fprintf( s, "    }\n" );
         }
-        fprintf( s, "\n" );
+        fprintf( s, "  }\n" );
     }
+    fprintf( s, "}\n\n" );
 }
 void Abc_SclWriteText( char * pFileName, SC_Lib * p )
 {

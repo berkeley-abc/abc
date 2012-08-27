@@ -82,6 +82,7 @@ void Abc_SclManFindGates( SC_Man * p )
         gateId = Abc_SclCellFind( p->pLib, pName );
         assert( gateId >= 0 );
         Vec_IntWriteEntry( p->vGates, i, gateId );
+//printf( "Found gate %s\n", pName );
     }
 }
 SC_Man * Abc_SclManAlloc( SC_Lib * pLib, Abc_Ntk_t * pNtk )
@@ -133,9 +134,10 @@ Vec_Flt_t * Abc_SclFindWireCaps( SC_Man * p, Vec_Ptr_t * vNodes )
 {
     Vec_Flt_t * vCaps = NULL;
     SC_WireLoad * pWL = NULL;
-    int i, Entry, EntryPrev, EntryMax;
+    int i, Entry, EntryMax;
+    float EntryPrev, EntryCur;
     p->pWireLoadUsed = NULL;
-    if ( p->pLib->default_wire_load_sel )
+    if ( p->pLib->default_wire_load_sel && strlen(p->pLib->default_wire_load_sel) )
     {
         float Area;
         SC_WireLoadSel * pWLS = NULL;
@@ -157,7 +159,7 @@ Vec_Flt_t * Abc_SclFindWireCaps( SC_Man * p, Vec_Ptr_t * vNodes )
         if ( i == Vec_FltSize(pWLS->vAreaFrom) )
             p->pWireLoadUsed = (char *)Vec_PtrEntryLast(pWLS->vWireLoadModel);
     }
-    else if ( p->pLib->default_wire_load )
+    else if ( p->pLib->default_wire_load && strlen(p->pLib->default_wire_load) )
         p->pWireLoadUsed = p->pLib->default_wire_load;
     else
     {
@@ -184,14 +186,105 @@ Vec_Flt_t * Abc_SclFindWireCaps( SC_Man * p, Vec_Ptr_t * vNodes )
         Vec_FltWriteEntry( vCaps, Entry, Vec_FltEntry(pWL->vLen, i) * pWL->cap );
     // reformat
     EntryPrev = 0;
-    Vec_FltForEachEntry( vCaps, Entry, i )
+    Vec_FltForEachEntry( vCaps, EntryCur, i )
     {
-        if ( Entry )
-            EntryPrev = Entry;
+        if ( EntryCur )
+            EntryPrev = EntryCur;
         else
             Vec_FltWriteEntry( vCaps, i, EntryPrev );
     }
     return vCaps;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_SclComputeLoad( SC_Man * p, Vec_Ptr_t * vNodes, Vec_Flt_t * vWireCaps )
+{
+    Abc_Obj_t * pObj, * pFanin;
+    int i, k;
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
+    {
+        SC_Cell * pCell = Abc_SclObjCell( p, pObj );
+        Abc_ObjForEachFanin( pObj, pFanin, k )
+        {
+            SC_Pin * pPin = SC_CellPin( pCell, k );
+            SC_Pair * pLoad = Abc_SclObjLoad( p, pFanin );
+            pLoad->rise += pPin->rise_cap;
+            pLoad->fall += pPin->fall_cap;
+        }
+    }
+    if ( vWireCaps )
+    {
+        Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
+        {
+            SC_Pair * pLoad = Abc_SclObjLoad( p, pObj );
+            k = Abc_MinInt( Vec_FltSize(vWireCaps)-1, Abc_ObjFanoutNum(pObj) );
+            pLoad->rise += Vec_FltEntry(vWireCaps, k);
+            pLoad->fall += Vec_FltEntry(vWireCaps, k);
+        }
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Obj_t * Abc_SclFindMostCritical( SC_Man * p, int * pfRise, Vec_Ptr_t * vNodes )
+{
+    Abc_Obj_t * pObj, * pPivot = NULL;
+    float fMaxArr = 0;
+    int i;
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
+    {
+        SC_Pair * pArr = Abc_SclObjArr( p, pObj );
+        if ( fMaxArr < pArr->rise )  fMaxArr = pArr->rise, *pfRise = 1, pPivot = pObj;
+        if ( fMaxArr < pArr->fall )  fMaxArr = pArr->fall, *pfRise = 0, pPivot = pObj;
+    }
+    assert( pPivot != NULL );
+    return pPivot;
+}
+void Abc_SclTimeNtkPrint( SC_Man * p, Vec_Ptr_t * vNodes )
+{
+/*
+    int fRise = 0;
+    Abc_Obj_t * pPivot = Abc_SclFindMostCritical( p, &fRise, vNodes );    
+    printf( "Critical delay: ObjId = %d. ", Abc_ObjId(pPivot) );
+    printf( "Rise = %f. ", Abc_SclObjArr(p, pPivot)->rise );
+    printf( "Fall = %f. ", Abc_SclObjArr(p, pPivot)->fall );
+    printf( "\n" );
+*/
+
+    Abc_Obj_t * pObj;
+    int i;
+    printf( "WireLoad model = \"%s\".\n", p->pWireLoadUsed );
+    printf( "Area = %f.\n", Abc_SclTotalArea( p, vNodes ) );
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
+    {
+        printf( "Node %6d : ",  Abc_ObjId(pObj) );
+        printf( "TimeR = %f. ", Abc_SclObjArr(p, pObj)->rise );
+        printf( "RimeF = %f. ", Abc_SclObjArr(p, pObj)->fall );
+        printf( "SlewR = %f. ", Abc_SclObjSlew(p, pObj)->rise );
+        printf( "SlewF = %f. ", Abc_SclObjSlew(p, pObj)->fall );
+        printf( "LoadR = %f. ", Abc_SclObjLoad(p, pObj)->rise );
+        printf( "LoadF = %f. ", Abc_SclObjLoad(p, pObj)->fall );
+        printf( "\n" );
+    }
 }
 
 /**Function*************************************************************
@@ -238,51 +331,25 @@ static inline float Abc_SclLookup( SC_Surface * p, float slew, float load )
 }
 void Abc_SclTimeGate( SC_Man * p, SC_Timing * pTime, Abc_Obj_t * pObj, Abc_Obj_t * pFanin )
 {
-    SC_Pair * pArrIn   = Abc_SclObjLoad( p, pFanin );
-    SC_Pair * pSlewIn  = Abc_SclObjLoad( p, pFanin );
+    SC_Pair * pArrIn   = Abc_SclObjArr ( p, pFanin );
+    SC_Pair * pSlewIn  = Abc_SclObjSlew( p, pFanin );
     SC_Pair * pLoad    = Abc_SclObjLoad( p, pObj );
-    SC_Pair * pArrOut  = Abc_SclObjLoad( p, pObj ); // modified
-    SC_Pair * pSlewOut = Abc_SclObjLoad( p, pObj ); // modified
+    SC_Pair * pArrOut  = Abc_SclObjArr ( p, pObj ); // modified
+    SC_Pair * pSlewOut = Abc_SclObjSlew( p, pObj ); // modified
 
     if (pTime->tsense == sc_ts_Pos || pTime->tsense == sc_ts_Non)
     {
-        pArrOut->rise  = Abc_MaxInt( pArrOut->rise, pArrIn->rise + Abc_SclLookup(pTime->pCellRise,  pSlewIn->rise, pLoad->rise) );
-        pArrOut->fall  = Abc_MaxInt( pArrOut->fall, pArrIn->fall + Abc_SclLookup(pTime->pCellFall,  pSlewIn->fall, pLoad->fall) );
-        pSlewOut->rise = Abc_MaxInt( pSlewOut->rise,               Abc_SclLookup(pTime->pRiseTrans, pSlewIn->rise, pLoad->rise) );
-        pSlewOut->fall = Abc_MaxInt( pSlewOut->fall,               Abc_SclLookup(pTime->pFallTrans, pSlewIn->fall, pLoad->fall) );
+        pArrOut->rise  = Abc_MaxFloat( pArrOut->rise, pArrIn->rise + Abc_SclLookup(pTime->pCellRise,  pSlewIn->rise, pLoad->rise) );
+        pArrOut->fall  = Abc_MaxFloat( pArrOut->fall, pArrIn->fall + Abc_SclLookup(pTime->pCellFall,  pSlewIn->fall, pLoad->fall) );
+        pSlewOut->rise = Abc_MaxFloat( pSlewOut->rise,               Abc_SclLookup(pTime->pRiseTrans, pSlewIn->rise, pLoad->rise) );
+        pSlewOut->fall = Abc_MaxFloat( pSlewOut->fall,               Abc_SclLookup(pTime->pFallTrans, pSlewIn->fall, pLoad->fall) );
     }
     if (pTime->tsense == sc_ts_Neg || pTime->tsense == sc_ts_Non)
     {
-        pArrOut->rise  = Abc_MaxInt( pArrOut->rise, pArrIn->fall + Abc_SclLookup(pTime->pCellRise,  pSlewIn->fall, pLoad->rise) );
-        pArrOut->fall  = Abc_MaxInt( pArrOut->fall, pArrIn->rise + Abc_SclLookup(pTime->pCellFall,  pSlewIn->rise, pLoad->fall) );
-        pSlewOut->rise = Abc_MaxInt( pSlewOut->rise,               Abc_SclLookup(pTime->pRiseTrans, pSlewIn->fall, pLoad->rise) );
-        pSlewOut->fall = Abc_MaxInt( pSlewOut->fall,               Abc_SclLookup(pTime->pFallTrans, pSlewIn->rise, pLoad->fall) );
-    }
-}
-void Abc_SclComputeLoad( SC_Man * p, Vec_Ptr_t * vNodes, Vec_Flt_t * vWireCaps )
-{
-    Abc_Obj_t * pObj, * pFanin;
-    int i, k;
-    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
-    {
-        SC_Cell * pCell = Abc_SclObjCell( p, pObj );
-        Abc_ObjForEachFanin( pObj, pFanin, k )
-        {
-            SC_Pin * pPin = SC_CellPin( pCell, k );
-            SC_Pair * pLoad = Abc_SclObjLoad( p, pFanin );
-            pLoad->rise += pPin->rise_cap;
-            pLoad->fall += pPin->fall_cap;
-        }
-    }
-    if ( vWireCaps )
-    {
-        Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
-        {
-            SC_Pair * pLoad = Abc_SclObjLoad( p, pObj );
-            k = Abc_MinInt( Vec_FltSize(vWireCaps)-1, Abc_ObjFanoutNum(pObj) );
-            pLoad->rise += Vec_FltEntry(vWireCaps, k);
-            pLoad->fall += Vec_FltEntry(vWireCaps, k);
-        }
+        pArrOut->rise  = Abc_MaxFloat( pArrOut->rise, pArrIn->fall + Abc_SclLookup(pTime->pCellRise,  pSlewIn->fall, pLoad->rise) );
+        pArrOut->fall  = Abc_MaxFloat( pArrOut->fall, pArrIn->rise + Abc_SclLookup(pTime->pCellFall,  pSlewIn->rise, pLoad->fall) );
+        pSlewOut->rise = Abc_MaxFloat( pSlewOut->rise,               Abc_SclLookup(pTime->pRiseTrans, pSlewIn->fall, pLoad->rise) );
+        pSlewOut->fall = Abc_MaxFloat( pSlewOut->fall,               Abc_SclLookup(pTime->pFallTrans, pSlewIn->rise, pLoad->fall) );
     }
 }
 void Abc_SclTimeNtk( SC_Man * p )
@@ -313,22 +380,9 @@ void Abc_SclTimeNtk( SC_Man * p )
             Abc_SclTimeGate( p, pTime, pObj, Abc_ObjFanin(pObj, k) );
         }
     }
+    Abc_SclTimeNtkPrint( p, vNodes );
+    Vec_FltFree( vWireCaps );
     Vec_PtrFree( vNodes );
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Abc_SclTimeNtkPrint( SC_Man * p )
-{
 }
 
 /**Function*************************************************************
@@ -347,7 +401,6 @@ void Abc_SclTimePerform( SC_Lib * pLib, void * pNtk )
     SC_Man * p;
     p = Abc_SclManAlloc( pLib, (Abc_Ntk_t *)pNtk );
     Abc_SclTimeNtk( p );
-    Abc_SclTimeNtkPrint( p );
     Abc_SclManFree( p );
 }
 
