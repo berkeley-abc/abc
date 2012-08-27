@@ -62,8 +62,9 @@ extern int *        Sat_Solver2GetModel( sat_solver2 * p, int * pVars, int nVars
 extern void         Sat_Solver2DoubleClauses( sat_solver2 * p, int iVar );
 
 // global variables
-extern int          var_is_partA (sat_solver2* s, int v);
-extern void         var_set_partA(sat_solver2* s, int v, int partA);
+extern int          var_is_assigned(sat_solver2* s, int v);
+extern int          var_is_partA   (sat_solver2* s, int v);
+extern void         var_set_partA  (sat_solver2* s, int v, int partA);
 
 // proof-based APIs
 extern void *       Sat_ProofCore( sat_solver2 * s );

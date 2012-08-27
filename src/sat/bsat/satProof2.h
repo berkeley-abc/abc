@@ -290,6 +290,7 @@ static inline Vec_Int_t * Prf_ManUnsatCore( Prf_Man_t * p )
     int i, Entry;
     assert( p->iFirst >= 0 );
     assert( p->pInfo == NULL );
+    assert( Prf_ManSize(p) > 0 );
     vCore = Vec_IntAlloc( 64 * p->nWords );
     p->pInfo = Prf_ManClauseInfo( p, Prf_ManSize(p)-1 );
     if ( p->vId2Pr == NULL )

@@ -80,8 +80,9 @@ struct varinfo2_t
 //    unsigned lev    : 24;  // variable level
 };
 
-int    var_is_partA (sat_solver2* s, int v)              { return s->vi[v].partA;  }
-void   var_set_partA(sat_solver2* s, int v, int partA)   { s->vi[v].partA = partA; }
+int    var_is_assigned(sat_solver2* s, int v)            { return s->assigns[v] != varX; }
+int    var_is_partA (sat_solver2* s, int v)              { return s->vi[v].partA;        }
+void   var_set_partA(sat_solver2* s, int v, int partA)   { s->vi[v].partA = partA;       }
 
 //static inline int     var_level     (sat_solver2* s, int v)            { return s->vi[v].lev; }
 static inline int     var_level     (sat_solver2* s, int v)            { return s->levels[v];  }
@@ -94,6 +95,11 @@ static inline void    var_set_level (sat_solver2* s, int v, int lev)   { s->leve
 //static inline void    var_set_value (sat_solver2* s, int v, int val)   { s->vi[v].val = val;  }
 static inline void    var_set_value (sat_solver2* s, int v, int val)   { s->assigns[v] = val; }
 static inline void    var_set_polar (sat_solver2* s, int v, int pol)   { s->vi[v].pol = pol;  }
+
+// check if the literal is false under current assumptions
+static inline int     solver2_lit_is_false( sat_solver2* s, int Lit )  { return var_value(s, lit_var(Lit)) == !lit_sign(Lit); }
+
+
 
 // variable tags
 static inline int     var_tag       (sat_solver2* s, int v)            { return s->vi[v].tag; }
@@ -1884,7 +1890,10 @@ int sat_solver2_solve(sat_solver2* s, lit* begin, lit* end, ABC_INT64_T nConfLim
             }
             else
             {
-                assert( 0 );
+//                assert( 0 );
+//                r = var_unit_clause( s, lit_var(p) );
+//                assert( r != NULL );
+//                proof_id = clause2_proofid(s, r, 0);
                 proof_id = -1; // the only case when ProofId is not assigned (conflicting assumptions)
                 veci_resize(&s->conf_final,0);
                 veci_push(&s->conf_final, lit_neg(p));

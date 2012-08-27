@@ -1484,6 +1484,15 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
             nVarsOld = p->nSatVars;
             for ( c = 0; ; c++ )
             {
+                // consider the special case when the target literal is implied false
+                // by implications which happened as a result of previous refinements
+                // note that incremental UNSAT core cannot be computed because there is no learned clauses
+                // in this case, we will assume that UNSAT core cannot reduce the problem
+                if ( var_is_assigned(p->pSat, Abc_Lit2Var(Lit)) )
+                {
+                    Prf_ManStopP( &p->pSat->pPrf2 );
+                    break;
+                }
                 // perform SAT solving
                 clk2 = clock();
                 Status = sat_solver2_solve( p->pSat, &Lit, &Lit+1, (ABC_INT64_T)pPars->nConfLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
