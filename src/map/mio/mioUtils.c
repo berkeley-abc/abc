@@ -231,78 +231,45 @@ Mio_Gate_t ** Mio_CollectRoots( Mio_Library_t * pLib, int nInputs, float tDelay,
 {
     Mio_Gate_t * pGate;
     Mio_Gate_t ** ppGates;
-    /* st_table * tFuncs; */
-    /* st_generator * gen; */
-//    DdNode * bFunc;
-//    DdManager * dd;
-    int nGates, iGate;
-
-//    dd     = Mio_LibraryReadDd( pLib );
+    int i, nGates, iGate;
     nGates = Mio_LibraryReadGateNum( pLib );
-
-    /*
-
-    // for each functionality select one gate; skip constants and buffers
-    tFuncs = st_init_table( st_ptrcmp, st_ptrhash );
+    ppGates = ABC_ALLOC( Mio_Gate_t *, nGates );
+    iGate = 0;
+    // for each functionality, select gate with the smallest area
+    // if equal areas, select gate with lexicographically smaller name
     Mio_LibraryForEachGate( pLib, pGate )
     {
-        bFunc = Mio_GateReadFunc(pGate);
         if ( pGate->nInputs > nInputs )
             continue;
         if ( pGate->dDelayMax > (double)tDelay )
             continue;
-        if ( bFunc == b0 || bFunc == b1 )
-            continue;
-        if ( bFunc == dd->vars[0] )
-            continue;
-        if ( bFunc == Cudd_Not(dd->vars[0]) && fSkipInv )
-            continue;
-        if ( st_is_member( tFuncs, (char *)bFunc ) )
-            continue;
-        st_insert( tFuncs, (char *)bFunc, (char *)pGate );
-    }
-
-    // collect the gates into the array
-    ppGates = ABC_ALLOC( Mio_Gate_t *, nGates );
-    iGate = 0;
-    st_foreach_item( tFuncs, gen, (char **)&bFunc, (char **)&pGate )
-        ppGates[ iGate++ ] = pGate;
-    assert( iGate <= nGates );
-    st_free_table( tFuncs );
-
-    */
-
-    ppGates = ABC_ALLOC( Mio_Gate_t *, nGates );
-    iGate = 0;
-    Mio_LibraryForEachGate( pLib, pGate )
-    {
-//        bFunc = Mio_GateReadFunc(pGate);
-        if ( pGate->nInputs > nInputs )
-            continue;
-        if ( pGate->dDelayMax > (double)tDelay )
-            continue;
-//        if ( bFunc == b0 || bFunc == b1 )
         if ( pGate->uTruth == 0 || pGate->uTruth == ~0 )
             continue;
-//        if ( bFunc == dd->vars[0] )
         if ( pGate->uTruth == 0xAAAAAAAAAAAAAAAA )
             continue;
-//        if ( bFunc == Cudd_Not(dd->vars[0]) && fSkipInv )
         if ( pGate->uTruth == ~0xAAAAAAAAAAAAAAAA && fSkipInv )
             continue;
-
+        // check if the gate with this functionality already exists
+        for ( i = 0; i < iGate; i++ )
+            if ( ppGates[i]->uTruth == pGate->uTruth )
+            {
+                if ( ppGates[i]->dArea > pGate->dArea || 
+                    (ppGates[i]->dArea == pGate->dArea && strcmp(ppGates[i]->pName, pGate->pName) > 0) )
+                    ppGates[i] = pGate;
+                break;
+            }
+        if ( i < iGate )
+            continue;
         assert( iGate < nGates );
         ppGates[ iGate++ ] = pGate;
     }
-
-    if ( iGate > 0 )
+    // sort by delay
+    if ( iGate > 0 ) 
     {
-        // sort the gates by delay
         qsort( (void *)ppGates, iGate, sizeof(Mio_Gate_t *), 
                 (int (*)(const void *, const void *)) Mio_DelayCompare );
         assert( Mio_DelayCompare( ppGates, ppGates + iGate - 1 ) <= 0 );
     }
-
     if ( pnGates )
         *pnGates = iGate;
     return ppGates;
