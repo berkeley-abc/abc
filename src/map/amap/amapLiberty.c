@@ -345,7 +345,7 @@ char * Amap_LibertyGetStringFormula( Amap_Tree_t * p, Amap_Pair_t Pair )
   SeeAlso     []
 
 ***********************************************************************/
-int Amap_LibertyPrintGenlib( Amap_Tree_t * p, char * pFileName )
+int Amap_LibertyPrintGenlib( Amap_Tree_t * p, char * pFileName, int fVerbose )
 {
     FILE * pFile;
     Amap_Item_t * pCell, * pArea, * pFunc, * pPin, * pOutput;
@@ -390,24 +390,28 @@ int Amap_LibertyPrintGenlib( Amap_Tree_t * p, char * pFileName )
             continue;
         if ( Amap_LibertyCellIsFlop(p, pCell) )
         {
-            printf( "Amap_LibertyPrintGenlib() skipped sequential cell \"%s\".\n", Amap_LibertyGetString(p, pCell->Head) );
+            if ( fVerbose )
+                printf( "Amap_LibertyPrintGenlib() skipped sequential cell \"%s\".\n", Amap_LibertyGetString(p, pCell->Head) );
             continue;
         }
         Counter = Amap_LibertyCellCountOutputs( p, pCell );
         if ( Counter == 0 )
         {
-            printf( "Amap_LibertyPrintGenlib() skipped cell \"%s\" without logic function.\n", Amap_LibertyGetString(p, pCell->Head) );
+            if ( fVerbose )
+                printf( "Amap_LibertyPrintGenlib() skipped cell \"%s\" without logic function.\n", Amap_LibertyGetString(p, pCell->Head) );
             continue;
         }
         if ( Counter > 1 )
         {
-            printf( "Amap_LibertyPrintGenlib() skipped multi-output cell \"%s\".\n", Amap_LibertyGetString(p, pCell->Head) );
+            if ( fVerbose )
+                printf( "Amap_LibertyPrintGenlib() skipped multi-output cell \"%s\".\n", Amap_LibertyGetString(p, pCell->Head) );
             continue;
         }
         pArea = Amap_LibertyCellArea( p, pCell );
         if ( pArea == NULL )
         {
-            printf( "Amap_LibertyPrintGenlib() skipped cell \"%s\" with unspecified area.\n", Amap_LibertyGetString(p, pCell->Head) );
+            if ( fVerbose )
+                printf( "Amap_LibertyPrintGenlib() skipped cell \"%s\" with unspecified area.\n", Amap_LibertyGetString(p, pCell->Head) );
             continue;
         }
         pOutput = Amap_LibertyCellOutput( p, pCell );
@@ -415,7 +419,8 @@ int Amap_LibertyPrintGenlib( Amap_Tree_t * p, char * pFileName )
         pForm   = Amap_LibertyGetStringFormula( p, pFunc->Head );
         if ( !strcmp(pForm, "0") || !strcmp(pForm, "1") )
         {
-            printf( "Amap_LibertyPrintGenlib() skipped cell \"%s\" with constant formula \"%s\".\n", Amap_LibertyGetString(p, pCell->Head), pForm );
+            if ( fVerbose )
+                printf( "Amap_LibertyPrintGenlib() skipped cell \"%s\" with constant formula \"%s\".\n", Amap_LibertyGetString(p, pCell->Head), pForm );
             continue;
         }
 
@@ -900,7 +905,7 @@ int Amap_LibertyParse( char * pFileName, char * pFileGenlib, int fVerbose )
         if ( fVerbose )
         printf( "Parsing finished successfully.\n" );
 //        Amap_LibertyPrintLiberty( p, "temp_.lib" );
-        Amap_LibertyPrintGenlib( p, "temp.genlib" );
+        Amap_LibertyPrintGenlib( p, "temp.genlib", fVerbose );
         RetValue = 1;
     }
     else

@@ -161,7 +161,7 @@ int Mio_CommandReadLiberty( Abc_Frame_t * pAbc, int argc, char **argv )
     pErr = Abc_FrameReadErr(pAbc);
 
     // set the defaults
-    fVerbose = 1;
+    fVerbose = 0;
     Extra_UtilGetoptReset();
     while ( (c = Extra_UtilGetopt(argc, argv, "vh")) != EOF ) 
     {
@@ -295,7 +295,7 @@ int Mio_CommandReadLibrary( Abc_Frame_t * pAbc, int argc, char **argv )
     }
     // add the fixed number (wire delay) to all delays in the library
     if ( WireDelay != 0.0 )
-        Mio_LibraryShift( pLib, WireDelay );
+        Mio_LibraryShiftDelay( pLib, WireDelay );
 
     // free the current superlib because it depends on the old Mio library
     if ( Abc_FrameReadLibSuper() )
@@ -309,7 +309,7 @@ int Mio_CommandReadLibrary( Abc_Frame_t * pAbc, int argc, char **argv )
     Abc_FrameSetLibGen( pLib );
 
     // set the new network
-    pLib = (Mio_Library_t *)Amap_LibReadAndPrepare( FileName, 1, 0 );  
+    pLib = (Mio_Library_t *)Amap_LibReadAndPrepare( FileName, 0, 0 );  
     if ( pLib == NULL )
     {
         fprintf( pErr, "Reading GENLIB library has failed.\n" );

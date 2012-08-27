@@ -434,7 +434,8 @@ int Amap_LibParseEquations( Amap_Lib_t * p, int fVerbose )
         pTruth = Hop_ManConvertAigToTruth( pMan, pObj, pGate->nPins, vTruth, 0 );
         if ( Kit_TruthSupportSize(pTruth, pGate->nPins) < (int)pGate->nPins )
         {
-            printf( "Skipping gate \"%s\" because its output \"%s\" does not depend on all input variables.\n", pGate->pName, pGate->pForm );
+            if ( fVerbose )
+                printf( "Skipping gate \"%s\" because its output \"%s\" does not depend on all input variables.\n", pGate->pName, pGate->pForm );
             continue;
         }
         pGate->pFunc = (unsigned *)Aig_MmFlexEntryFetch( p->pMemGates, sizeof(unsigned)*Abc_TruthWordNum(pGate->nPins) );
@@ -459,7 +460,7 @@ int Amap_LibParseEquations( Amap_Lib_t * p, int fVerbose )
 ***********************************************************************/
 void Amap_LibParseTest( char * pFileName )
 {
-    int fVerbose = 1;
+    int fVerbose = 0;
     Amap_Lib_t * p;
     clock_t clk = clock();
     p = Amap_LibReadFile( pFileName, fVerbose );

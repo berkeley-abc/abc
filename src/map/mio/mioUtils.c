@@ -16,6 +16,7 @@
 
 ***********************************************************************/
 
+#include <math.h>
 #include "mioInt.h"
 #include "base/main/main.h"
 #include "exp.h"
@@ -591,7 +592,7 @@ Mio_Gate_t * Mio_GateCreatePseudo( int nInputs )
   SeeAlso     []
 
 ***********************************************************************/
-void Mio_LibraryShift( Mio_Library_t * pLib, double Shift )
+void Mio_LibraryShiftDelay( Mio_Library_t * pLib, double Shift )
 {
     Mio_Gate_t * pGate;
     Mio_Pin_t * pPin;
@@ -604,6 +605,28 @@ void Mio_LibraryShift( Mio_Library_t * pLib, double Shift )
             pPin->dDelayBlockFall += Shift;
             pPin->dDelayBlockMax  += Shift;
         }
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Multiply areas of all gates by values proportional to fanin count.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Mio_LibraryShiftArea( Mio_Library_t * pLib, double Shift )
+{
+    Mio_Gate_t * pGate;
+    Mio_LibraryForEachGate( pLib, pGate )
+    {
+//        printf( "Before %8.3f  ", pGate->dArea );
+        pGate->dArea *= pow( pGate->nInputs, Shift );
+//        printf( "After %8.3f  Inputs = %d. Factor = %8.3f\n", pGate->dArea, pGate->nInputs, pow( pGate->nInputs, Shift ) );
     }
 }
 

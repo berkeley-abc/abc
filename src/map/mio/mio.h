@@ -149,7 +149,8 @@ extern void              Mio_DeriveGateDelays( Mio_Gate_t * pGate,
                             float ** ptPinDelays, int nPins, int nInputs, float tDelayZero, 
                             float * ptDelaysRes, float * ptPinDelayMax );
 extern Mio_Gate_t *      Mio_GateCreatePseudo( int nInputs );
-extern void              Mio_LibraryShift( Mio_Library_t * pLib, double Shift );
+extern void              Mio_LibraryShiftDelay( Mio_Library_t * pLib, double Shift );
+extern void              Mio_LibraryShiftArea( Mio_Library_t * pLib, double Shift );
 
 ABC_NAMESPACE_HEADER_END
 

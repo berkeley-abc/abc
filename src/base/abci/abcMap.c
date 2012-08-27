@@ -57,7 +57,7 @@ static Abc_Obj_t *  Abc_NodeFromMapSuperChoice_rec( Abc_Ntk_t * pNtkNew, Map_Sup
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkMap( Abc_Ntk_t * pNtk, double DelayTarget, int fRecovery, int fSwitching, int fVerbose )
+Abc_Ntk_t * Abc_NtkMap( Abc_Ntk_t * pNtk, double DelayTarget, double AreaMulti, int fRecovery, int fSwitching, int fVerbose )
 {
     int fShowSwitching = 1;
     Abc_Ntk_t * pNtkNew;
@@ -65,22 +65,31 @@ Abc_Ntk_t * Abc_NtkMap( Abc_Ntk_t * pNtk, double DelayTarget, int fRecovery, int
     Vec_Int_t * vSwitching = NULL;
     float * pSwitching = NULL;
     clock_t clk, clkTotal = clock();
+    Mio_Library_t * pLib = Abc_FrameReadLibGen();
 
     assert( Abc_NtkIsStrash(pNtk) );
 
     // check that the library is available
-    if ( Abc_FrameReadLibGen() == NULL )
+    if ( pLib == NULL )
     {
         printf( "The current library is not available.\n" );
         return 0;
     }
 
     // derive the supergate library
-    if ( Abc_FrameReadLibSuper() == NULL && Abc_FrameReadLibGen() )
+    if ( Abc_FrameReadLibSuper() == NULL && pLib )
     {
 //        printf( "A simple supergate library is derived from gate library \"%s\".\n", 
 //            Mio_LibraryReadName((Mio_Library_t *)Abc_FrameReadLibGen()) );
-        Map_SuperLibDeriveFromGenlib( (Mio_Library_t *)Abc_FrameReadLibGen() );
+
+        // penalize large gates by increasing their area
+        Mio_LibraryShiftArea( pLib, AreaMulti );
+        // compute supergate library to be used for mapping
+        Map_SuperLibDeriveFromGenlib( pLib );
+        // return the library to normal
+        Mio_LibraryShiftArea( Abc_FrameReadLibGen(), -AreaMulti );
+        if ( AreaMulti != 0.0 )
+            printf( "The cell areas are multiplied by the factor: <num_fanins> ^ (%.2f).\n", AreaMulti );
     }
 
     // print a warning about choice nodes
