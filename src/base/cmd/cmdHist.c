@@ -55,7 +55,8 @@ void Cmd_HistoryAddCommand(    Abc_Frame_t * p, const char * command )
     strcpy( Buffer, command );
     if ( Buffer[Len-1] == '\n' )
         Buffer[Len-1] = 0;
-    if ( strncmp(Buffer,"set",3) && 
+    if ( strlen(Buffer) > 3 &&
+         strncmp(Buffer,"set",3) && 
          strncmp(Buffer,"quit",4) && 
          strncmp(Buffer,"source",6) && 
          strncmp(Buffer,"history",7) && strncmp(Buffer,"hi ", 3) && strcmp(Buffer,"hi") )
@@ -137,6 +138,30 @@ void Cmd_HistoryWrite( Abc_Frame_t * p, int Limit )
     Vec_PtrForEachEntryStart( char *, p->aHistory, pStr, i, Limit )
         fprintf( pFile, "%s\n", pStr );
     fclose( pFile );
+#endif
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Cmd_HistoryPrint( Abc_Frame_t * p, int Limit )
+{
+#if defined(WIN32) 
+    char * pStr; 
+    int i;
+    Limit = Abc_MaxInt( 0, Vec_PtrSize(p->aHistory)-Limit );
+    printf( "================== Command history ==================\n" );
+    Vec_PtrForEachEntryStart( char *, p->aHistory, pStr, i, Limit )
+        printf( "%s\n", pStr );
+    printf( "=====================================================\n" );
 #endif
 }
 

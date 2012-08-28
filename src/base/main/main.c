@@ -268,8 +268,11 @@ int Abc_RealMain( int argc, char * argv[] )
     else 
     {
         // start interactive mode
+
         // print the hello line
         Abc_UtilsPrintHello( pAbc );
+        // print history of the recent commands
+        Cmd_HistoryPrint( pAbc, 10 );
         
         // source the resource file
         if ( fInitSource )

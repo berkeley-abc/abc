@@ -62,6 +62,7 @@ extern void        Cmd_FlagUpdateValue( Abc_Frame_t * pAbc, const char * key, ch
 extern void          Cmd_HistoryAddCommand( Abc_Frame_t * pAbc, const char * command );
 extern void        Cmd_HistoryRead( Abc_Frame_t * p );
 extern void        Cmd_HistoryWrite( Abc_Frame_t * p, int Limit );
+extern void        Cmd_HistoryPrint( Abc_Frame_t * p, int Limit );
 /*=== cmdLoad.c ========================================================*/
 extern int         CmdCommandLoad( Abc_Frame_t * pAbc, int argc, char ** argv );
 
