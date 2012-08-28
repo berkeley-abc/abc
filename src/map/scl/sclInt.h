@@ -145,6 +145,8 @@ struct SC_Cell_
     Vec_Ptr_t *    vPins;          // NamedSet<SC_Pin> 
     int            n_inputs;       // -- 'pins[0 .. n_inputs-1]' are input pins
     int            n_outputs;      // -- 'pins[n_inputs .. n_inputs+n_outputs-1]' are output pins
+    SC_Cell *      pNext;          // same-functionality cells linked into a ring by area
+    SC_Cell *      pPrev;          // same-functionality cells linked into a ring by area
 };
 
 struct SC_Lib_ 
@@ -160,6 +162,7 @@ struct SC_Lib_
     Vec_Ptr_t *    vWireLoadSels;  // NamedSet<SC_WireLoadSel>
     Vec_Ptr_t *    vTempls;        // NamedSet<SC_TableTempl>  
     Vec_Ptr_t *    vCells;         // NamedSet<SC_Cell>
+    Vec_Ptr_t *    vCellOrder;     // NamedSet<SC_Cell>
     int *          pBins;          // hashing gateName -> gateId
     int            nBins;
 };
@@ -172,8 +175,16 @@ struct SC_Lib_
 ///                       MACRO DEFINITIONS                          ///
 ////////////////////////////////////////////////////////////////////////
 
-static inline SC_Cell * SC_LibCell( SC_Lib * p, int i )  { return (SC_Cell *)Vec_PtrEntry(p->vCells, i); }
-static inline SC_Pin  * SC_CellPin( SC_Cell * p, int i ) { return (SC_Pin *)Vec_PtrEntry(p->vPins, i);   }
+static inline SC_Cell *   SC_LibCell( SC_Lib * p, int i )  { return (SC_Cell *)Vec_PtrEntry(p->vCells, i);  }
+static inline SC_Pin  *   SC_CellPin( SC_Cell * p, int i ) { return (SC_Pin *)Vec_PtrEntry(p->vPins, i);    }
+static inline Vec_Wrd_t * SC_CellFunc( SC_Cell * p )       { return SC_CellPin(p, p->n_inputs)->vFunc;      }
+
+#define SC_LitForEachCell( p, pCell, i )      Vec_PtrForEachEntry( SC_Cell *, p->vCells, pCell, i )
+#define SC_CellForEachPin( p, pPin, i )       Vec_PtrForEachEntry( SC_Pin *, pCell->vPins, pPin, i )
+#define SC_CellForEachPinIn( p, pPin, i )     Vec_PtrForEachEntryStop( SC_Pin *, pCell->vPins, pPin, i, pCell->n_inputs )
+#define SC_CellForEachPinOut( p, pPin, i )    Vec_PtrForEachEntryStart( SC_Pin *, pCell->vPins, pPin, i, pCell->n_inputs )
+
+#define SC_RingForEachCell( pRing, pCell, i ) for ( i = 0, pCell = pRing; i == 0 || pCell != pRing; pCell = pCell->pNext, i++ )
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -258,6 +269,7 @@ static inline SC_Lib * Abc_SclLibAlloc()
     p->vWireLoadSels  = Vec_PtrAlloc( 0 );
     p->vTempls        = Vec_PtrAlloc( 0 );
     p->vCells         = Vec_PtrAlloc( 0 );
+    p->vCellOrder     = Vec_PtrAlloc( 0 );
     return p;
 }
 
@@ -350,9 +362,10 @@ static inline void Abc_SclLibFree( SC_Lib * p )
     Vec_PtrForEachEntry( SC_TableTempl *, p->vTempls, pTemp3, i )
         Abc_SclTableTemplFree( pTemp3 );
     Vec_PtrFree( p->vTempls );
-    Vec_PtrForEachEntry( SC_Cell *, p->vCells, pTemp4, i )
+    SC_LitForEachCell( p, pTemp4, i )
         Abc_SclCellFree( pTemp4 );
     Vec_PtrFree( p->vCells );
+    Vec_PtrFree( p->vCellOrder );
     ABC_FREE( p->lib_name );
     ABC_FREE( p->default_wire_load );
     ABC_FREE( p->default_wire_load_sel );
@@ -366,8 +379,11 @@ extern SC_Lib * Abc_SclRead( char * pFileName );
 extern void     Abc_SclWrite( char * pFileName, SC_Lib * p );
 extern void     Abc_SclWriteText( char * pFileName, SC_Lib * p );
 
+/*=== sclUtil.c =============================================================*/
+extern void     Abc_SclHashCells( SC_Lib * p );
 extern int      Abc_SclCellFind( SC_Lib * p, char * pName );
-
+extern void     Abc_SclLinkCells( SC_Lib * p );
+extern void     Abc_SclPrintCells( SC_Lib * p );
 
 
 ABC_NAMESPACE_HEADER_END

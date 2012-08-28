@@ -2369,6 +2369,10 @@ SOURCE=.\src\map\scl\sclSize.c
 
 SOURCE=.\src\map\scl\sclTime.c
 # End Source File
+# Begin Source File
+
+SOURCE=.\src\map\scl\sclUtil.c
+# End Source File
 # End Group
 # End Group
 # Begin Group "misc"

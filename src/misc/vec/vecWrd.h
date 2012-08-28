@@ -947,6 +947,28 @@ static inline word Vec_WrdSum( Vec_Wrd_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Checks if two vectors are equal.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Vec_WrdEqual( Vec_Wrd_t * p1, Vec_Wrd_t * p2 ) 
+{
+    int i;
+    if ( p1->nSize != p2->nSize )
+        return 0;
+    for ( i = 0; i < p1->nSize; i++ )
+        if ( p1->pArray[i] != p2->pArray[i] )
+            return 0;
+    return 1;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Counts the number of common entries.]
 
   Description [Assumes that the entries are non-negative integers that

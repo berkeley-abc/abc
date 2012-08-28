@@ -29,6 +29,7 @@ ABC_NAMESPACE_IMPL_START
 
 static int Scl_CommandRead ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Scl_CommandWrite( Abc_Frame_t * pAbc, int argc, char **argv );
+static int Scl_CommandPrint( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Scl_CommandStime( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Scl_CommandGsize( Abc_Frame_t * pAbc, int argc, char **argv );
 
@@ -51,6 +52,7 @@ void Scl_Init( Abc_Frame_t * pAbc )
 {
     Cmd_CommandAdd( pAbc, "SC mapping",  "read_scl",   Scl_CommandRead,  0 ); 
     Cmd_CommandAdd( pAbc, "SC mapping",  "write_scl",  Scl_CommandWrite, 0 ); 
+    Cmd_CommandAdd( pAbc, "SC mapping",  "print_scl",  Scl_CommandPrint, 0 ); 
     Cmd_CommandAdd( pAbc, "SC mapping",  "stime",      Scl_CommandStime, 0 ); 
     Cmd_CommandAdd( pAbc, "SC mapping",  "gsize",      Scl_CommandGsize, 1 ); 
 }
@@ -167,6 +169,49 @@ usage:
     fprintf( pAbc->Err, "\t         write Liberty library into file\n" );
     fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
     fprintf( pAbc->Err, "\t<file> : the name of the file to write\n" );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Scl_CommandPrint( Abc_Frame_t * pAbc, int argc, char **argv )
+{
+    int c;
+
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+            case 'h':
+                goto usage;
+            default:
+                goto usage;
+        }
+    }
+    if ( pAbc->pLibScl == NULL )
+    {
+        fprintf( pAbc->Err, "There is no Liberty library available.\n" );
+        return 1;
+    }
+
+    // save current library
+    Abc_SclPrintCells( pAbc->pLibScl );
+    return 0;
+
+usage:
+    fprintf( pAbc->Err, "usage: print_scl [-h]\n" );
+    fprintf( pAbc->Err, "\t         prints statistics of Liberty library\n" );
+    fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
     return 1;
 }
 

@@ -157,53 +157,6 @@ static inline char Vec_StrGetC( Vec_Str_t * vOut, int * pPos )
   SeeAlso     []
 
 ***********************************************************************/
-static unsigned Abc_SclHashString( char * pName, int TableSize ) 
-{
-    static int s_Primes[10] = { 1291, 1699, 2357, 4177, 5147, 5647, 6343, 7103, 7873, 8147 };
-    unsigned i, Key = 0;
-    for ( i = 0; pName[i] != '\0'; i++ )
-        Key += s_Primes[i%10]*pName[i]*pName[i];
-    return Key % TableSize;
-}
-int * Abc_SclHashLookup( SC_Lib * p, char * pName )
-{
-    int i;
-    for ( i = Abc_SclHashString(pName, p->nBins); i < p->nBins; i = (i + 1) % p->nBins )
-        if ( p->pBins[i] == -1 || !strcmp(pName, SC_LibCell(p, p->pBins[i])->name) )
-            return p->pBins + i;
-    assert( 0 );
-    return NULL;
-}
-void Abc_SclHashGates( SC_Lib * p )
-{
-    SC_Cell * pCell;
-    int i, * pPlace;
-    assert( p->nBins == 0 );
-    p->nBins = Abc_PrimeCudd( 5 * Vec_PtrSize(p->vCells) );
-    p->pBins = ABC_FALLOC( int, p->nBins );
-    Vec_PtrForEachEntry( SC_Cell *, p->vCells, pCell, i )
-    {
-        pPlace = Abc_SclHashLookup( p, pCell->name );
-        assert( *pPlace == -1 );
-        *pPlace = i;
-    }
-}
-int Abc_SclCellFind( SC_Lib * p, char * pName )
-{
-    return *Abc_SclHashLookup( p, pName );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Reading library from file.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
 static void Abc_SclReadSurface( Vec_Str_t * vOut, int * pPos, SC_Surface * p )
 {
     Vec_Flt_t * vVec;
@@ -375,7 +328,8 @@ SC_Lib * Abc_SclRead( char * pFileName )
     assert( Pos == Vec_StrSize(vOut) );
     Vec_StrFree( vOut );
     // hash gates by name
-    Abc_SclHashGates( p );
+    Abc_SclHashCells( p );
+    Abc_SclLinkCells( p );
     return p;
 }
 void Abc_SclLoad( char * pFileName, void ** ppScl )
@@ -482,12 +436,12 @@ static void Abc_SclWriteLibrary( Vec_Str_t * vOut, SC_Lib * p )
 
     // Write 'cells' vector:
     n_valid_cells = 0;
-    Vec_PtrForEachEntry( SC_Cell *, p->vCells, pCell, i )
+    SC_LitForEachCell( p, pCell, i )
         if ( !(pCell->seq || pCell->unsupp) )
             n_valid_cells++;
 
     Vec_StrPutI( vOut, n_valid_cells );
-    Vec_PtrForEachEntry( SC_Cell *, p->vCells, pCell, i )
+    SC_LitForEachCell( p, pCell, i )
     {
         if ( pCell->seq || pCell->unsupp )
             continue;
@@ -686,11 +640,11 @@ static void Abc_SclWriteLibraryText( FILE * s, SC_Lib * p )
 
     // Write 'cells' vector:
     n_valid_cells = 0;
-    Vec_PtrForEachEntry( SC_Cell *, p->vCells, pCell, i )
+    SC_LitForEachCell( p, pCell, i )
         if ( !(pCell->seq || pCell->unsupp) )
             n_valid_cells++;
 
-    Vec_PtrForEachEntry( SC_Cell *, p->vCells, pCell, i )
+    SC_LitForEachCell( p, pCell, i )
     {
         if ( pCell->seq || pCell->unsupp )
             continue;
