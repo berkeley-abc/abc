@@ -221,6 +221,7 @@ struct Abc_Ntk_t_
     Vec_Int_t *       vObjPerm;      // permutation saved
     Vec_Vec_t *       vRealPos;      // additional PO info
     Vec_Int_t *       vRealNodes;    // additional PO info
+    Vec_Int_t *       vTopo;
     // node attributes
     Vec_Ptr_t *       vAttrs;        // managers of various node attributes (node functionality, global BDDs, etc)
 };
@@ -959,6 +960,8 @@ extern ABC_DLL int                Abc_ObjPointerCompare( void ** pp1, void ** pp
 extern ABC_DLL void               Abc_NtkTransferCopy( Abc_Ntk_t * pNtk );
 extern ABC_DLL void               Abc_NtkInvertConstraints( Abc_Ntk_t * pNtk );
 extern ABC_DLL void               Abc_NtkPrintCiLevels( Abc_Ntk_t * pNtk );
+extern ABC_DLL void               Abc_NtkReverseTopoOrder( Abc_Ntk_t * pNtk );
+
 
 
 /*=== abcVerify.c ==========================================================*/

@@ -2499,6 +2499,120 @@ Abc_Ntk_t * Abc_NtkSopToCubes( Abc_Ntk_t * pNtk )
     return pNtkNew;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Creates precomputed reverse topological order for each node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int  Abc_NtkTopoHasBeg( Abc_Obj_t * p )  { return Vec_IntEntry(p->pNtk->vTopo, 2*Abc_ObjId(p)  );       }
+static inline int  Abc_NtkTopoHasEnd( Abc_Obj_t * p )  { return Vec_IntEntry(p->pNtk->vTopo, 2*Abc_ObjId(p)+1);       }
+
+static inline void Abc_NtkTopoSetBeg( Abc_Obj_t * p )  { Vec_IntWriteEntry(p->pNtk->vTopo, 2*Abc_ObjId(p)  , Vec_IntSize(p->pNtk->vTopo));  }
+static inline void Abc_NtkTopoSetEnd( Abc_Obj_t * p )  { Vec_IntWriteEntry(p->pNtk->vTopo, 2*Abc_ObjId(p)+1, Vec_IntSize(p->pNtk->vTopo));  }
+
+void Abc_NtkReverseTopoOrder_rec( Abc_Obj_t * pObj, int fThisIsPivot )
+{
+    Abc_Obj_t * pNext, * pPivot = NULL;
+    int i;
+    if ( Abc_NodeIsTravIdCurrent( pObj ) )
+        return;
+    Abc_NodeSetTravIdCurrent( pObj );
+    if ( Abc_ObjIsPo(pObj) )
+    {
+        Vec_IntPush( pObj->pNtk->vTopo, Abc_ObjId(pObj) );
+        return;
+    }
+    assert( Abc_ObjIsNode(pObj) );
+    // mark begining
+    if ( fThisIsPivot )
+        Abc_NtkTopoSetBeg( pObj );        
+    // find fanout without topo
+    Abc_ObjForEachFanout( pObj, pNext, i )
+        if ( !Abc_NtkTopoHasBeg(pNext) )
+        { 
+            assert( !Abc_NtkTopoHasEnd(pNext) );
+            Abc_NtkReverseTopoOrder_rec( pNext, 1 );
+            pPivot = pNext;
+            break;
+        }
+    Abc_ObjForEachFanout( pObj, pNext, i )
+        if ( pNext != pPivot )
+            Abc_NtkReverseTopoOrder_rec( pNext, 0 );
+    // mark end
+    if ( fThisIsPivot )
+        Abc_NtkTopoSetEnd( pObj );
+    // save current node        
+    Vec_IntPush( pObj->pNtk->vTopo, Abc_ObjId(pObj) );
+}
+void Abc_NtkReverseTopoOrder( Abc_Ntk_t * p )
+{
+    Abc_Obj_t * pObj;
+    int i;
+    assert( p->vTopo == NULL );
+    p->vTopo = Vec_IntAlloc( 10 * Abc_NtkObjNumMax(p) );
+    Vec_IntFill( p->vTopo, 2 * Abc_NtkObjNumMax(p), 0 );
+    Abc_NtkForEachNode( p, pObj, i )
+    {
+        if ( Abc_NtkTopoHasBeg(pObj) )
+            continue;
+        Abc_NtkIncrementTravId( p );        
+        Abc_NtkReverseTopoOrder_rec( pObj, 1 );
+    }
+    printf( "Nodes = %d.   Size = %d.  Ratio = %f.\n", 
+        Abc_NtkNodeNum(p), Vec_IntSize(p->vTopo), 1.0*Vec_IntSize(p->vTopo)/Abc_NtkNodeNum(p) );
+}
+
+void Abc_NtkReverse_rec( Abc_Obj_t * pObj, Vec_Int_t * vVisited )
+{
+    Abc_Obj_t * pNext;
+    int i;
+    if ( Abc_NodeIsTravIdCurrent( pObj ) )
+        return;
+    Abc_NodeSetTravIdCurrent( pObj );
+    Abc_ObjForEachFanout( pObj, pNext, i )
+        Abc_NtkReverse_rec( pNext, vVisited );
+    Vec_IntPush( vVisited, Abc_ObjId(pObj) );
+}
+void Abc_NtkReverseTopoOrderTest( Abc_Ntk_t * p )
+{
+    Vec_Int_t * vVisited;
+    Abc_Obj_t * pObj;
+    int i;//, k, iBeg, iEnd;
+    clock_t clk = clock();
+    Abc_NtkReverseTopoOrder( p );
+/*
+    printf( "Reverse topological order for nodes:\n" );
+    Abc_NtkForEachNode( p, pObj, i )
+    {
+        iBeg = Abc_NtkTopoHasBeg( pObj );
+        iEnd = Abc_NtkTopoHasEnd( pObj );
+        printf( "Node %4d : ", Abc_ObjId(pObj) );
+        for ( k = iEnd - 1; k >= iBeg; k-- )
+            printf( "%d ", Vec_IntEntry(p->vTopo, k) );
+        printf( "\n" );
+    }
+*/
+    Vec_IntFreeP( &p->vTopo );
+    Abc_PrintTime( 1, "Time", clock() - clk );
+    // compute regular fanout orders
+    clk = clock();
+    vVisited = Vec_IntAlloc( 1000 );
+    Abc_NtkForEachNode( p, pObj, i )
+    {
+        Vec_IntClear( vVisited );
+        Abc_NtkIncrementTravId( p ); 
+        Abc_NtkReverse_rec( pObj, vVisited );
+    }
+    Vec_IntFree( vVisited );
+    Abc_PrintTime( 1, "Time", clock() - clk );
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
