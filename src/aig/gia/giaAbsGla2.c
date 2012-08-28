@@ -1639,6 +1639,7 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
                 // dump the model into file
                 if ( p->pPars->fDumpVabs || p->pPars->fDumpMabs )
                 {
+                    Abc_FrameSetStatus( -1 );
                     Abc_FrameSetCex( NULL );
                     Abc_FrameSetNFrames( f+1 );
                     Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "write_status gla.status" );

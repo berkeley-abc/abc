@@ -90,7 +90,7 @@ void Abc_NtkWriteLogFile( char * pFileName, Abc_Cex_t * pCex, int Status, int nF
     fprintf( pFile, " " );
     // write <engine_name>
     fprintf( pFile, "%s", pCommand ? pCommand : "unknown" );
-    if ( Status == 0 )
+    if ( pCex && Status == 0 )
         fprintf( pFile, " %d", pCex->iPo );
     // write <cyc>
     if ( pCex && pCex->iFrame != nFrames )

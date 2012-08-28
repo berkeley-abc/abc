@@ -129,8 +129,7 @@ extern ABC_DLL void            Abc_FrameSetLibVer( void * pLib );
 extern ABC_DLL void            Abc_FrameSetFlag( char * pFlag, char * pValue );
 extern ABC_DLL void            Abc_FrameSetCex( Abc_Cex_t * pCex );
 extern ABC_DLL void            Abc_FrameSetNFrames( int nFrames );
-
-
+extern ABC_DLL void            Abc_FrameSetStatus( int Status );
 
 
 ABC_NAMESPACE_HEADER_END
