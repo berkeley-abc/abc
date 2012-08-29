@@ -526,6 +526,16 @@ void Mio_LibrarySortGates( Mio_Library_t * pLib )
   SeeAlso     []
 
 ***********************************************************************/
+static inline Mio_Gate_t * Mio_GateCompare( Mio_Gate_t * pThis, Mio_Gate_t * pNew, word uTruth )
+{
+    if ( pNew->uTruth != uTruth )
+        return pThis;
+    if ( pThis == NULL )
+        return pNew;
+    if ( pThis->dArea > pNew->dArea || (pThis->dArea == pNew->dArea && strcmp(pThis->pName, pNew->pName) > 0) )
+        return pNew;
+    return pThis;
+}
 void Mio_LibraryDetectSpecialGates( Mio_Library_t * pLib )
 {
     Mio_Gate_t * pGate;
@@ -538,45 +548,29 @@ void Mio_LibraryDetectSpecialGates( Mio_Library_t * pLib )
     uFuncInv   = ~uFuncBuf;
     uFuncNand2 = ~uFuncAnd2;
 
-    // get buffer
+    // get smallest-area buffer
     Mio_LibraryForEachGate( pLib, pGate )
-        if ( pLib->pGateBuf == NULL && pGate->uTruth == uFuncBuf )
-        {
-            pLib->pGateBuf = pGate;
-            break;
-        }
+        pLib->pGateBuf = Mio_GateCompare( pLib->pGateBuf, pGate, uFuncBuf );
     if ( pLib->pGateBuf == NULL )
     {
         printf( "Warnings: GENLIB library reader cannot detect the buffer gate.\n" );
         printf( "Some parts of the supergate-based technology mapper may not work correctly.\n" );
     }
  
-    // get inverter
+    // get smallest-area inverter
     Mio_LibraryForEachGate( pLib, pGate )
-        if ( pLib->pGateInv == NULL && pGate->uTruth == uFuncInv )
-        {
-            pLib->pGateInv = pGate;
-            break;
-        }
+        pLib->pGateInv = Mio_GateCompare( pLib->pGateInv, pGate, uFuncInv );
     if ( pLib->pGateInv == NULL )
     {
         printf( "Warnings: GENLIB library reader cannot detect the invertor gate.\n" );
         printf( "Some parts of the supergate-based technology mapper may not work correctly.\n" );
     }
 
-    // get the NAND2 and AND2 gates
+    // get smallest-area NAND2/AND2 gates
     Mio_LibraryForEachGate( pLib, pGate )
-        if ( pLib->pGateNand2 == NULL && pGate->uTruth == uFuncNand2 )
-        {
-            pLib->pGateNand2 = pGate;
-            break;
-        }
+        pLib->pGateNand2 = Mio_GateCompare( pLib->pGateNand2, pGate, uFuncNand2 );
     Mio_LibraryForEachGate( pLib, pGate )
-        if ( pLib->pGateAnd2 == NULL && pGate->uTruth == uFuncAnd2 )
-        {
-            pLib->pGateAnd2 = pGate;
-            break;
-        }
+        pLib->pGateAnd2 = Mio_GateCompare( pLib->pGateAnd2, pGate, uFuncAnd2 );
     if ( pLib->pGateAnd2 == NULL && pLib->pGateNand2 == NULL )
     {
         printf( "Warnings: GENLIB library reader cannot detect the AND2 or NAND2 gate.\n" );

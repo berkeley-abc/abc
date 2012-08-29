@@ -63,7 +63,7 @@ void Scl_Init( Abc_Frame_t * pAbc )
 }
 void Scl_End( Abc_Frame_t * pAbc )
 {
-    Abc_SclLoad( NULL, &pAbc->pLibScl );
+    Abc_SclLoad( NULL, (SC_Lib **)&pAbc->pLibScl );
 }
 
 
@@ -109,7 +109,7 @@ int Scl_CommandRead( Abc_Frame_t * pAbc, int argc, char ** argv )
     fclose( pFile );
 
     // read new library
-    Abc_SclLoad( pFileName, &pAbc->pLibScl );
+    Abc_SclLoad( pFileName, (SC_Lib **)&pAbc->pLibScl );
     Abc_SclWriteText( "sizing\\scl_out.txt", pAbc->pLibScl );
     return 0;
 
@@ -166,7 +166,7 @@ int Scl_CommandWrite( Abc_Frame_t * pAbc, int argc, char **argv )
     fclose( pFile );
 
     // save current library
-    Abc_SclSave( pFileName, pAbc->pLibScl );
+    Abc_SclSave( pFileName, (SC_Lib *)pAbc->pLibScl );
     return 0;
 
 usage:
@@ -292,12 +292,24 @@ usage:
 int Scl_CommandGsize( Abc_Frame_t * pAbc, int argc, char **argv )
 {
     int c;
+    int nSteps = 100;
 
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Nh" ) ) != EOF )
     {
         switch ( c )
         {
+            case 'N':
+                if ( globalUtilOptind >= argc )
+                {
+                    Abc_Print( -1, "Command line switch \"-N\" should be followed by a positive integer.\n" );
+                    goto usage;
+                }
+                nSteps = atoi(argv[globalUtilOptind]);
+                globalUtilOptind++;
+                if ( nSteps <= 0 ) 
+                    goto usage;
+                break;
             case 'h':
                 goto usage;
             default:
@@ -326,13 +338,14 @@ int Scl_CommandGsize( Abc_Frame_t * pAbc, int argc, char **argv )
         return 1;
     }
 
-//    Abc_SclSizingPerform( pAbc->pLibScl, Abc_FrameReadNtk(pAbc) );
+//    Abc_SclSizingPerform( pAbc->pLibScl, Abc_FrameReadNtk(pAbc), nSteps );
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: gsize [-h]\n" );
-    fprintf( pAbc->Err, "\t         performs gate sizing using Liberty library\n" );
-    fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
+    fprintf( pAbc->Err, "usage: gsize [-N num] [-h]\n" );
+    fprintf( pAbc->Err, "\t           performs gate sizing using Liberty library\n" );
+    fprintf( pAbc->Err, "\t-N <num> : the number of refinement iterations [default = %d]\n", nSteps );
+    fprintf( pAbc->Err, "\t-h       : print the help massage\n" );
     return 1;
 }
 
@@ -404,11 +417,11 @@ int Scl_CommandBuffer( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: buffer [-N num] [-vh]\n" );
-    Abc_Print( -2, "\t           performs buffering of the mapped network\n" );
-    Abc_Print( -2, "\t-N <num> : the number of refinement iterations [default = %d]\n", Degree );
-    Abc_Print( -2, "\t-v       : toggle printing optimization summary [default = %s]\n", fVerbose? "yes": "no" );
-    Abc_Print( -2, "\t-h       : print the command usage\n");
+    fprintf( pAbc->Err, "usage: buffer [-N num] [-vh]\n" );
+    fprintf( pAbc->Err, "\t           performs buffering of the mapped network\n" );
+    fprintf( pAbc->Err, "\t-N <num> : the number of refinement iterations [default = %d]\n", Degree );
+    fprintf( pAbc->Err, "\t-v       : toggle printing optimization summary [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( pAbc->Err, "\t-h       : print the command usage\n");
     return 1;
 } 
 

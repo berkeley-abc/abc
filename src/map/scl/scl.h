@@ -47,12 +47,12 @@ ABC_NAMESPACE_HEADER_START
 ////////////////////////////////////////////////////////////////////////
 
 /*=== sclFile.c =============================================================*/
-extern void     Abc_SclLoad( char * pFileName, void ** ppScl );
-extern void     Abc_SclSave( char * pFileName, void * pScl );
+extern void     Abc_SclLoad( char * pFileName, SC_Lib ** ppScl );
+extern void     Abc_SclSave( char * pFileName, SC_Lib * pScl );
 /*=== sclTime.c =============================================================*/
 extern void     Abc_SclTimePerform( SC_Lib * pLib, void * pNtk );
 /*=== sclSize.c =============================================================*/
-extern void     Abc_SclSizingPerform( SC_Lib * pLib, void * pNtk );
+extern void     Abc_SclSizingPerform( SC_Lib * pLib, void * pNtk, int nSteps );
 
 ABC_NAMESPACE_HEADER_END
 

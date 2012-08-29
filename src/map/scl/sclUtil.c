@@ -16,6 +16,8 @@
 
 ***********************************************************************/
 
+#include "base/abc/abc.h"
+#include "map/mio/mio.h"
 #include "sclInt.h"
 
 ABC_NAMESPACE_IMPL_START
@@ -28,7 +30,6 @@ ABC_NAMESPACE_IMPL_START
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
-
 
 /**Function*************************************************************
 
@@ -175,6 +176,34 @@ void Abc_SclPrintCells( SC_Lib * p )
             printf( "\n" );
         }
     }
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Abc_SclManFindGates( SC_Lib * pLib, Abc_Ntk_t * p )
+{
+    Vec_Int_t * vVec;
+    Abc_Obj_t * pObj;
+    int i;
+    vVec = Vec_IntStartFull( Abc_NtkObjNumMax(p) );
+    Abc_NtkForEachNode( p, pObj, i )
+    {
+        char * pName = Mio_GateReadName((Mio_Gate_t *)pObj->pData);
+        int gateId = Abc_SclCellFind( pLib, pName );
+        assert( gateId >= 0 );
+        Vec_IntWriteEntry( vVec, i, gateId );
+//printf( "Found gate %s\n", pName );
+    }
+    return vVec;
 }
 
 

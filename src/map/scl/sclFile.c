@@ -332,11 +332,11 @@ SC_Lib * Abc_SclRead( char * pFileName )
     Abc_SclLinkCells( p );
     return p;
 }
-void Abc_SclLoad( char * pFileName, void ** ppScl )
+void Abc_SclLoad( char * pFileName, SC_Lib ** ppScl )
 {
     if ( *ppScl )
     {
-        Abc_SclLibFree( *(SC_Lib **)ppScl );
+        Abc_SclLibFree( *ppScl );
         *ppScl = NULL;
     }
     assert( *ppScl == NULL );
@@ -522,10 +522,10 @@ void Abc_SclWrite( char * pFileName, SC_Lib * p )
     }
     Vec_StrFree( vOut );    
 }
-void Abc_SclSave( char * pFileName, void * pScl )
+void Abc_SclSave( char * pFileName, SC_Lib * pScl )
 {
     if ( pScl == NULL ) return;
-    Abc_SclWrite( pFileName, (SC_Lib *)pScl );
+    Abc_SclWrite( pFileName, pScl );
 }
 
 
