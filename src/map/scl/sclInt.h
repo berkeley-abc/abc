@@ -385,7 +385,6 @@ extern int      Abc_SclCellFind( SC_Lib * p, char * pName );
 extern void     Abc_SclLinkCells( SC_Lib * p );
 extern void     Abc_SclPrintCells( SC_Lib * p );
 
-
 ABC_NAMESPACE_HEADER_END
 
 #endif

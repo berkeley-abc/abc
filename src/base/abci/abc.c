@@ -9385,14 +9385,17 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern Aig_Man_t * Abc_NtkToDarBmc( Abc_Ntk_t * pNtk, Vec_Int_t ** pvMap );
     extern void Abc2_NtkTestGia( char * pFileName, int fVerbose );
     extern void Saig_ManBmcTerSimTestPo( Aig_Man_t * p );
+    extern int Abc_SclCheckNtk( Abc_Ntk_t * p );
+    extern void Abc_SclPerformBuffering( Abc_Ntk_t * p, int Degree );
 
     if ( pNtk )
     {
-
+/*
         Aig_Man_t * pAig = Abc_NtkToDar( pNtk, 0, 1 );
         Saig_ManBmcTerSimTestPo( pAig );
         Aig_ManStop( pAig );
-
+*/
+        Abc_SclPerformBuffering( pNtk, nDecMax );
 /*
         extern Abc_Ntk_t * Abc_NtkShareXor( Abc_Ntk_t * pNtk );
         Abc_Ntk_t * pNtkRes = Abc_NtkShareXor( pNtk );

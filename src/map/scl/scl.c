@@ -27,11 +27,12 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static int Scl_CommandRead ( Abc_Frame_t * pAbc, int argc, char **argv );
-static int Scl_CommandWrite( Abc_Frame_t * pAbc, int argc, char **argv );
-static int Scl_CommandPrint( Abc_Frame_t * pAbc, int argc, char **argv );
-static int Scl_CommandStime( Abc_Frame_t * pAbc, int argc, char **argv );
-static int Scl_CommandGsize( Abc_Frame_t * pAbc, int argc, char **argv );
+static int Scl_CommandRead  ( Abc_Frame_t * pAbc, int argc, char **argv );
+static int Scl_CommandWrite ( Abc_Frame_t * pAbc, int argc, char **argv );
+static int Scl_CommandPrint ( Abc_Frame_t * pAbc, int argc, char **argv );
+static int Scl_CommandStime ( Abc_Frame_t * pAbc, int argc, char **argv );
+static int Scl_CommandGsize ( Abc_Frame_t * pAbc, int argc, char **argv );
+static int Scl_CommandBuffer( Abc_Frame_t * pAbc, int argc, char **argv );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -50,11 +51,12 @@ static int Scl_CommandGsize( Abc_Frame_t * pAbc, int argc, char **argv );
 ***********************************************************************/
 void Scl_Init( Abc_Frame_t * pAbc )
 {
-    Cmd_CommandAdd( pAbc, "SC mapping",  "read_scl",   Scl_CommandRead,  0 ); 
-    Cmd_CommandAdd( pAbc, "SC mapping",  "write_scl",  Scl_CommandWrite, 0 ); 
-    Cmd_CommandAdd( pAbc, "SC mapping",  "print_scl",  Scl_CommandPrint, 0 ); 
-    Cmd_CommandAdd( pAbc, "SC mapping",  "stime",      Scl_CommandStime, 0 ); 
-    Cmd_CommandAdd( pAbc, "SC mapping",  "gsize",      Scl_CommandGsize, 1 ); 
+    Cmd_CommandAdd( pAbc, "SC mapping",  "read_scl",   Scl_CommandRead,   0 ); 
+    Cmd_CommandAdd( pAbc, "SC mapping",  "write_scl",  Scl_CommandWrite,  0 ); 
+    Cmd_CommandAdd( pAbc, "SC mapping",  "print_scl",  Scl_CommandPrint,  0 ); 
+    Cmd_CommandAdd( pAbc, "SC mapping",  "stime",      Scl_CommandStime,  0 ); 
+    Cmd_CommandAdd( pAbc, "SC mapping",  "gsize",      Scl_CommandGsize,  1 ); 
+    Cmd_CommandAdd( pAbc, "SC mapping",  "buffer",     Scl_CommandBuffer, 1 ); 
 }
 void Scl_End( Abc_Frame_t * pAbc )
 {
@@ -320,6 +322,83 @@ usage:
     fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
     return 1;
 }
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Scl_CommandBuffer( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern Abc_Ntk_t * Abc_SclPerformBuffering( Abc_Ntk_t * p, int Degree, int fVerbose );
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+    Abc_Ntk_t * pNtkRes;
+    int Degree;
+    int c, fVerbose;
+    Degree   = 3;
+    fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Nvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-N\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            Degree = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( Degree < 0 ) 
+                goto usage;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        Abc_Print( -1, "Empty network.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkIsLogic(pNtk) )
+    {
+        Abc_Print( -1, "This command can only be applied to a logic network.\n" );
+        return 1;
+    }
+
+    // modify the current network
+    pNtkRes = Abc_SclPerformBuffering( pNtk, Degree, fVerbose );
+    if ( pNtkRes == NULL )
+    {
+        Abc_Print( -1, "The command has failed.\n" );
+        return 1;
+    }
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: buffer [-N num] [-vh]\n" );
+    Abc_Print( -2, "\t           performs buffering of the mapped network\n" );
+    Abc_Print( -2, "\t-N <num> : the number of refinement iterations [default = %d]\n", Degree );
+    Abc_Print( -2, "\t-v       : toggle printing optimization summary [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h       : print the command usage\n");
+    return 1;
+} 
 
 
 ////////////////////////////////////////////////////////////////////////

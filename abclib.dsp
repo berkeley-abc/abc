@@ -2355,6 +2355,10 @@ SOURCE=.\src\map\scl\scl.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\map\scl\sclBuff.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\map\scl\sclFile.c
 # End Source File
 # Begin Source File

@@ -350,9 +350,6 @@ Abc_Ntk_t * Abc_NtkDup( Abc_Ntk_t * pNtk )
         return NULL;
     // start the network
     pNtkNew = Abc_NtkStartFrom( pNtk, pNtk->ntkType, pNtk->ntkFunc );
-    // transfer level
-    Abc_NtkForEachCi( pNtk, pObj, i )
-        pObj->pCopy->Level = pObj->Level;
     // copy the internal nodes
     if ( Abc_NtkIsStrash(pNtk) )
     {
@@ -392,6 +389,42 @@ Abc_Ntk_t * Abc_NtkDup( Abc_Ntk_t * pNtk )
             Vec_IntPush( pNtkNew->vRealNodes, Abc_ObjId(pObj->pCopy) );
         assert( Vec_IntSize(pNtk->vRealNodes) == Vec_IntSize(pNtkNew->vRealNodes) );
     }
+    // duplicate the EXDC Ntk
+    if ( pNtk->pExdc )
+        pNtkNew->pExdc = Abc_NtkDup( pNtk->pExdc );
+    if ( pNtk->pExcare )
+        pNtkNew->pExcare = Abc_NtkDup( (Abc_Ntk_t *)pNtk->pExcare );
+    // duplicate timing manager
+    if ( pNtk->pManTime )
+        Abc_NtkTimeInitialize( pNtkNew, pNtk );
+    // check correctness
+    if ( !Abc_NtkCheck( pNtkNew ) )
+        fprintf( stdout, "Abc_NtkDup(): Network check has failed.\n" );
+    pNtk->pCopy = pNtkNew;
+    return pNtkNew;
+}
+Abc_Ntk_t * Abc_NtkDupDfs( Abc_Ntk_t * pNtk )
+{
+    Vec_Ptr_t * vNodes;
+    Abc_Ntk_t * pNtkNew; 
+    Abc_Obj_t * pObj, * pFanin;
+    int i, k;
+    if ( pNtk == NULL )
+        return NULL;
+    assert( !Abc_NtkIsStrash(pNtk) && !Abc_NtkIsNetlist(pNtk) );
+    // start the network
+    pNtkNew = Abc_NtkStartFrom( pNtk, pNtk->ntkType, pNtk->ntkFunc );
+    // copy the internal nodes
+    vNodes = Abc_NtkDfs( pNtk, 0 );
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
+        Abc_NtkDupObj( pNtkNew, pObj, 0 );
+    Vec_PtrFree( vNodes );
+    // reconnect all objects (no need to transfer attributes on edges)
+    Abc_NtkForEachObj( pNtk, pObj, i )
+        if ( !Abc_ObjIsBox(pObj) && !Abc_ObjIsBo(pObj) )
+            Abc_ObjForEachFanin( pObj, pFanin, k )
+                if ( pObj->pCopy && pFanin->pCopy )
+                    Abc_ObjAddFanin( pObj->pCopy, pFanin->pCopy );
     // duplicate the EXDC Ntk
     if ( pNtk->pExdc )
         pNtkNew->pExdc = Abc_NtkDup( pNtk->pExdc );

@@ -259,6 +259,23 @@ Abc_Obj_t * Abc_SclFindMostCritical( SC_Man * p, int * pfRise, Vec_Ptr_t * vNode
     assert( pPivot != NULL );
     return pPivot;
 }
+Abc_Obj_t * Abc_SclFindMostCriticalFanin( SC_Man * p, int * pfRise, Abc_Obj_t * pNode )
+{
+    Abc_Obj_t * pObj, * pPivot = NULL;
+    float fMaxArr = 0;
+    int i;
+    Abc_ObjForEachFanin( pNode, pObj, i )
+    {
+        SC_Pair * pArr = Abc_SclObjArr( p, pObj );
+        if ( fMaxArr < pArr->rise )  fMaxArr = pArr->rise, *pfRise = 1, pPivot = pObj;
+        if ( fMaxArr < pArr->fall )  fMaxArr = pArr->fall, *pfRise = 0, pPivot = pObj;
+    }
+    assert( pPivot != NULL );
+    return pPivot;
+}
+void Abc_SclCriticalPathPrint( SC_Man * p, Vec_Ptr_t * vNodes )
+{
+}
 void Abc_SclTimeNtkPrint( SC_Man * p, Vec_Ptr_t * vNodes )
 {
 /*
@@ -385,6 +402,7 @@ void Abc_SclTimeNtk( SC_Man * p )
     Vec_PtrFree( vNodes );
 }
 
+
 /**Function*************************************************************
 
   Synopsis    []
@@ -399,6 +417,7 @@ void Abc_SclTimeNtk( SC_Man * p )
 void Abc_SclTimePerform( SC_Lib * pLib, void * pNtk )
 {
     SC_Man * p;
+
     p = Abc_SclManAlloc( pLib, (Abc_Ntk_t *)pNtk );
     Abc_SclTimeNtk( p );
     Abc_SclManFree( p );

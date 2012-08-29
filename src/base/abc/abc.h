@@ -705,6 +705,7 @@ extern ABC_DLL void               Abc_NtkFinalize( Abc_Ntk_t * pNtk, Abc_Ntk_t *
 extern ABC_DLL Abc_Ntk_t *        Abc_NtkStartRead( char * pName );
 extern ABC_DLL void               Abc_NtkFinalizeRead( Abc_Ntk_t * pNtk );
 extern ABC_DLL Abc_Ntk_t *        Abc_NtkDup( Abc_Ntk_t * pNtk );
+extern ABC_DLL Abc_Ntk_t *        Abc_NtkDupDfs( Abc_Ntk_t * pNtk );
 extern ABC_DLL Abc_Ntk_t *        Abc_NtkDupTransformMiter( Abc_Ntk_t * pNtk );
 extern ABC_DLL Abc_Ntk_t *        Abc_NtkCreateCone( Abc_Ntk_t * pNtk, Abc_Obj_t * pNode, char * pNodeName, int fUseAllCis );
 extern ABC_DLL Abc_Ntk_t *        Abc_NtkCreateConeArray( Abc_Ntk_t * pNtk, Vec_Ptr_t * vRoots, int fUseAllCis );

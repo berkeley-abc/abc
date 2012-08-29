@@ -1,6 +1,6 @@
 /**CFile****************************************************************
 
-  FileName    [sclIo.c]
+  FileName    [sclSize.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
@@ -12,7 +12,7 @@
 
   Date        [Ver. 1.0. Started - August 24, 2012.]
 
-  Revision    [$Id: sclIo.c,v 1.0 2012/08/24 00:00:00 alanmi Exp $]
+  Revision    [$Id: sclSize.c,v 1.0 2012/08/24 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
