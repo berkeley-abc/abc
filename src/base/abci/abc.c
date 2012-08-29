@@ -3447,23 +3447,10 @@ usage:
 int Abc_CommandFastExtract( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
-    Fxu_Data_t * p = NULL;
+    Fxu_Data_t Params, * p = &Params;
     int c;
-    extern int Abc_NtkFastExtract( Abc_Ntk_t * pNtk, Fxu_Data_t * p );
-    extern void Abc_NtkFxuFreeInfo( Fxu_Data_t * p );
-
-    // allocate the structure
-    p = ABC_CALLOC( Fxu_Data_t, 1 );
     // set the defaults
-    p->nSingleMax = 20000;
-    p->nPairsMax  = 30000;
-    p->nNodesExt  = 10000;
-    p->WeightMax  = 0;
-    p->fOnlyS     = 0;
-    p->fOnlyD     = 0;
-    p->fUse0      = 0;
-    p->fUseCompl  = 1;
-    p->fVerbose   = 0;
+    Abc_NtkSetDefaultParams( p );
     Extra_UtilGetoptReset();
     while ( (c = Extra_UtilGetopt(argc, argv, "SDNWsdzcvh")) != EOF ) 
     {
@@ -3535,28 +3522,21 @@ int Abc_CommandFastExtract( Abc_Frame_t * pAbc, int argc, char ** argv )
                 goto usage;
         }
     } 
-
     if ( pNtk == NULL )
     {
         Abc_Print( -1, "Empty network.\n" );
-        Abc_NtkFxuFreeInfo( p );
         return 1;
     }
-
     if ( Abc_NtkNodeNum(pNtk) == 0 )
     {
         Abc_Print( -1, "The network does not have internal nodes.\n" );
-        Abc_NtkFxuFreeInfo( p );
         return 1;
     }
-
     if ( !Abc_NtkIsLogic(pNtk) )
     {
         Abc_Print( -1, "Fast extract can only be applied to a logic network (run \"renode\").\n" );
-        Abc_NtkFxuFreeInfo( p );
         return 1;
     }
-
 
     // the nodes to be merged are linked into the special linked list
     Abc_NtkFastExtract( pNtk, p );
@@ -3576,7 +3556,6 @@ usage:
     Abc_Print( -2, "\t-c       : use complement in the binary case [default = %s]\n", p->fUseCompl? "yes": "no" );  
     Abc_Print( -2, "\t-v       : print verbose information [default = %s]\n", p->fVerbose? "yes": "no" ); 
     Abc_Print( -2, "\t-h       : print the command usage\n");
-    Abc_NtkFxuFreeInfo( p );
     return 1;       
 }
 

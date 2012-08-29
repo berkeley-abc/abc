@@ -23,6 +23,7 @@
 #include "map/mio/mio.h"
 #include "bool/dec/dec.h"
 #include "misc/extra/extraBdd.h"
+#include "opt/fxu/fxu.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -2611,6 +2612,82 @@ void Abc_NtkReverseTopoOrderTest( Abc_Ntk_t * p )
     }
     Vec_IntFree( vVisited );
     Abc_PrintTime( 1, "Time", clock() - clk );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Converts multi-output PLA into an AIG with logic sharing.]
+
+  Description [The first argument is an array of char*-strings representing
+  individual output of a multi-output PLA. The number of inputs (nInputs) 
+  and the number of outputs (nOutputs) are the second and third arguments. 
+  This procedure returns the AIG manager with the given number of inputs 
+  and outputs representing the PLA as a logic network with sharing.
+  
+  For example, if the original PLA is 
+    1000 10
+    0110 01
+    0011 01
+  the individual PLA for each the two outputs should be
+    1000 1
+  and
+    0110 1
+    0011 1
+
+  Reprsentation in terms of two char*-strings will be:
+    char * pPlas[2] = { "1000 1\n", "0110 1\n0011 1\n" };              
+  The call to the procedure may look as follows:
+    Abc_Ntk_t * pNtkAig = Abc_NtkFromPla( pPlas, 4, 2 );]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkFromPla( char ** pPlas, int nInputs, int nOutputs )
+{
+    Fxu_Data_t Params, * p = &Params;
+    Abc_Ntk_t * pNtkSop, * pNtkAig; 
+    Abc_Obj_t * pNode, * pFanin;
+    int i, k;
+    // allocate logic network with SOP local functions
+    pNtkSop = Abc_NtkAlloc( ABC_NTK_LOGIC, ABC_FUNC_SOP, 1 );
+    pNtkSop->pName = Extra_FileNameGeneric("pla");
+    // create primary inputs/outputs
+    for ( i = 0; i < nInputs; i++ )
+        Abc_NtkCreatePi( pNtkSop );
+    for ( i = 0; i < nOutputs; i++ )
+        Abc_NtkCreatePo( pNtkSop );
+    Abc_NtkAddDummyPiNames( pNtkSop );
+    Abc_NtkAddDummyPoNames( pNtkSop );
+    // create internal nodes
+    for ( i = 0; i < nOutputs; i++ )
+    {
+        pNode = Abc_NtkCreateNode( pNtkSop );
+        Abc_NtkForEachPi( pNtkSop, pFanin, k )
+            Abc_ObjAddFanin( pNode, pFanin );
+        pNode->pData = Abc_SopRegister( (Mem_Flex_t *)pNtkSop->pManFunc, pPlas[i] );
+        Abc_ObjAddFanin( Abc_NtkPo(pNtkSop, i), pNode );
+        // check that the number of inputs is the same
+        assert( Abc_SopGetVarNum((char*)pNode->pData) == nInputs );
+    }
+    if ( !Abc_NtkCheck( pNtkSop ) )
+        fprintf( stdout, "Abc_NtkFromPla(): Network check has failed.\n" );
+    // perform fast_extract
+    Abc_NtkSetDefaultParams( p );
+    Abc_NtkFastExtract( pNtkSop, p );
+    Abc_NtkFxuFreeInfo( p );
+    // convert to an AIG
+    pNtkAig = Abc_NtkStrash( pNtkSop, 0, 1, 0 );
+    Abc_NtkDelete( pNtkSop );
+    return pNtkAig;
+}
+void Abc_NtkFromPlaTest()
+{
+    char * pPlas[2] = { "1000 1\n", "0110 1\n0011 1\n" };
+    Abc_Ntk_t * pNtkAig = Abc_NtkFromPla( pPlas, 4, 2 );
+    Io_WriteBlifLogic( pNtkAig, "temp.blif", 0 );
+    Abc_NtkDelete( pNtkAig );
 }
 
 ////////////////////////////////////////////////////////////////////////

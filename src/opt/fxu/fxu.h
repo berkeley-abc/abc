@@ -76,7 +76,9 @@ struct FxuDataStruct
 ////////////////////////////////////////////////////////////////////////
 
 /*===== fxu.c ==========================================================*/
-extern int          Fxu_FastExtract( Fxu_Data_t * pData );
+extern void   Abc_NtkSetDefaultParams( Fxu_Data_t * p );
+extern int    Abc_NtkFastExtract( Abc_Ntk_t * pNtk, Fxu_Data_t * p );
+extern void   Abc_NtkFxuFreeInfo( Fxu_Data_t * p );
 
 
 

@@ -28,14 +28,40 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
  
-static int Abc_NtkFxuCheck( Abc_Ntk_t * pNtk );
+static int  Abc_NtkFxuCheck( Abc_Ntk_t * pNtk );
 static void Abc_NtkFxuCollectInfo( Abc_Ntk_t * pNtk, Fxu_Data_t * p );
 static void Abc_NtkFxuReconstruct( Abc_Ntk_t * pNtk, Fxu_Data_t * p );
+
+extern int  Fxu_FastExtract( Fxu_Data_t * pData );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
+/**Function*************************************************************
+
+  Synopsis    [Sets default values of the FXU parameters.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkSetDefaultParams( Fxu_Data_t * p )
+{
+    memset( p, 0, sizeof(Fxu_Data_t) );
+    p->nSingleMax = 20000;
+    p->nPairsMax  = 30000;
+    p->nNodesExt  = 10000;
+    p->WeightMax  = 0;
+    p->fOnlyS     = 0;
+    p->fOnlyD     = 0;
+    p->fUse0      = 0;
+    p->fUseCompl  = 1;
+    p->fVerbose   = 0;
+}
 
 /**Function*************************************************************
 
@@ -190,7 +216,7 @@ void Abc_NtkFxuFreeInfo( Fxu_Data_t * p )
     if ( p->vSopsNew   ) Vec_PtrFree( p->vSopsNew   );
     if ( p->vFanins    ) Vec_PtrFree( p->vFanins    );
     if ( p->vFaninsNew ) Vec_PtrFree( p->vFaninsNew );
-    ABC_FREE( p );
+//    ABC_FREE( p );
 }
 
 /**Function*************************************************************
