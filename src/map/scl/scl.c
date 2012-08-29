@@ -34,6 +34,9 @@ static int Scl_CommandStime ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Scl_CommandGsize ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Scl_CommandBuffer( Abc_Frame_t * pAbc, int argc, char **argv );
 
+extern int         Abc_SclCheckNtk( Abc_Ntk_t * p, int fVerbose );
+extern Abc_Ntk_t * Abc_SclPerformBuffering( Abc_Ntk_t * p, int Degree, int fVerbose );
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -254,6 +257,11 @@ int Scl_CommandStime( Abc_Frame_t * pAbc, int argc, char **argv )
         fprintf( pAbc->Err, "The current network is not mapped.\n" );
         return 1;
     }
+    if ( !Abc_SclCheckNtk(Abc_FrameReadNtk(pAbc), 0) )
+    {
+        fprintf( pAbc->Err, "The current networks is not in a topo order (run \"buffer -N 1000\").\n" );
+        return 1;
+    }
     if ( pAbc->pLibScl == NULL )
     {
         fprintf( pAbc->Err, "There is no Liberty library available.\n" );
@@ -307,13 +315,18 @@ int Scl_CommandGsize( Abc_Frame_t * pAbc, int argc, char **argv )
         fprintf( pAbc->Err, "The current network is not mapped.\n" );
         return 1;
     }
+    if ( !Abc_SclCheckNtk(Abc_FrameReadNtk(pAbc), 0) )
+    {
+        fprintf( pAbc->Err, "The current networks is not in a topo order (run \"buffer -N 1000\").\n" );
+        return 1;
+    }
     if ( pAbc->pLibScl == NULL )
     {
         fprintf( pAbc->Err, "There is no Liberty library available.\n" );
         return 1;
     }
 
-    Abc_SclSizingPerform( pAbc->pLibScl, Abc_FrameReadNtk(pAbc) );
+//    Abc_SclSizingPerform( pAbc->pLibScl, Abc_FrameReadNtk(pAbc) );
     return 0;
 
 usage:
@@ -336,7 +349,6 @@ usage:
 ***********************************************************************/
 int Scl_CommandBuffer( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Abc_Ntk_t * Abc_SclPerformBuffering( Abc_Ntk_t * p, int Degree, int fVerbose );
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     Abc_Ntk_t * pNtkRes;
     int Degree;

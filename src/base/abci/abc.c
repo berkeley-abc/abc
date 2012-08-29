@@ -13374,7 +13374,14 @@ int Abc_CommandMap( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     if ( fSweep )
+    {
         Abc_NtkFraigSweep( pNtkRes, 0, 0, 0, 0 );
+        if ( Abc_NtkHasMapping(pNtkRes) )
+        {
+            pNtkRes = Abc_NtkDupDfs( pNtk = pNtkRes );
+            Abc_NtkDelete( pNtk );
+        }
+    }
 
     // replace the current network
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
@@ -13526,8 +13533,14 @@ int Abc_CommandAmap( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     if ( fSweep )
+    {
         Abc_NtkFraigSweep( pNtkRes, 0, 0, 0, 0 );
-
+        if ( Abc_NtkHasMapping(pNtkRes) )
+        {
+            pNtkRes = Abc_NtkDupDfs( pNtk = pNtkRes );
+            Abc_NtkDelete( pNtk );
+        }
+    }
     // replace the current network
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
     return 0;

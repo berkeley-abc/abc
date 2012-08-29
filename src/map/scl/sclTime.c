@@ -121,16 +121,16 @@ void Abc_SclManFree( SC_Man * p )
   SeeAlso     []
 
 ***********************************************************************/
-float Abc_SclTotalArea( SC_Man * p, Vec_Ptr_t * vNodes )
+float Abc_SclTotalArea( SC_Man * p )
 {
     double Area = 0;
     Abc_Obj_t * pObj;
     int i;
-    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
+    Abc_NtkForEachNode( p->pNtk, pObj, i )
         Area += Abc_SclObjCell( p, pObj )->area;
     return Area;
 }
-Vec_Flt_t * Abc_SclFindWireCaps( SC_Man * p, Vec_Ptr_t * vNodes )
+Vec_Flt_t * Abc_SclFindWireCaps( SC_Man * p )
 {
     Vec_Flt_t * vCaps = NULL;
     SC_WireLoad * pWL = NULL;
@@ -149,7 +149,7 @@ Vec_Flt_t * Abc_SclFindWireCaps( SC_Man * p, Vec_Ptr_t * vNodes )
             Abc_Print( -1, "Cannot find wire load selection model \"%s\".\n", p->pLib->default_wire_load_sel );
             exit(1);
         }
-        Area = (float)Abc_SclTotalArea( p, vNodes );
+        Area = (float)Abc_SclTotalArea( p );
         for ( i = 0; i < Vec_FltSize(pWLS->vAreaFrom); i++)
             if ( Area >= Vec_FltEntry(pWLS->vAreaFrom, i) && Area <  Vec_FltEntry(pWLS->vAreaTo, i) )
             {
@@ -207,11 +207,11 @@ Vec_Flt_t * Abc_SclFindWireCaps( SC_Man * p, Vec_Ptr_t * vNodes )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_SclComputeLoad( SC_Man * p, Vec_Ptr_t * vNodes, Vec_Flt_t * vWireCaps )
+void Abc_SclComputeLoad( SC_Man * p, Vec_Flt_t * vWireCaps )
 {
     Abc_Obj_t * pObj, * pFanin;
     int i, k;
-    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
+    Abc_NtkForEachNode( p->pNtk, pObj, i )
     {
         SC_Cell * pCell = Abc_SclObjCell( p, pObj );
         Abc_ObjForEachFanin( pObj, pFanin, k )
@@ -224,7 +224,7 @@ void Abc_SclComputeLoad( SC_Man * p, Vec_Ptr_t * vNodes, Vec_Flt_t * vWireCaps )
     }
     if ( vWireCaps )
     {
-        Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
+        Abc_NtkForEachNode( p->pNtk, pObj, i )
         {
             SC_Pair * pLoad = Abc_SclObjLoad( p, pObj );
             k = Abc_MinInt( Vec_FltSize(vWireCaps)-1, Abc_ObjFanoutNum(pObj) );
@@ -245,12 +245,12 @@ void Abc_SclComputeLoad( SC_Man * p, Vec_Ptr_t * vNodes, Vec_Flt_t * vWireCaps )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Obj_t * Abc_SclFindMostCritical( SC_Man * p, int * pfRise, Vec_Ptr_t * vNodes )
+Abc_Obj_t * Abc_SclFindMostCritical( SC_Man * p, int * pfRise )
 {
     Abc_Obj_t * pObj, * pPivot = NULL;
     float fMaxArr = 0;
     int i;
-    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
+    Abc_NtkForEachNode( p->pNtk, pObj, i )
     {
         SC_Pair * pArr = Abc_SclObjArr( p, pObj );
         if ( fMaxArr < pArr->rise )  fMaxArr = pArr->rise, *pfRise = 1, pPivot = pObj;
@@ -276,7 +276,7 @@ Abc_Obj_t * Abc_SclFindMostCriticalFanin( SC_Man * p, int * pfRise, Abc_Obj_t * 
 void Abc_SclCriticalPathPrint( SC_Man * p, Vec_Ptr_t * vNodes )
 {
 }
-void Abc_SclTimeNtkPrint( SC_Man * p, Vec_Ptr_t * vNodes )
+void Abc_SclTimeNtkPrint( SC_Man * p )
 {
 /*
     int fRise = 0;
@@ -290,8 +290,8 @@ void Abc_SclTimeNtkPrint( SC_Man * p, Vec_Ptr_t * vNodes )
     Abc_Obj_t * pObj;
     int i;
     printf( "WireLoad model = \"%s\".\n", p->pWireLoadUsed );
-    printf( "Area = %f.\n", Abc_SclTotalArea( p, vNodes ) );
-    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
+    printf( "Area = %f.\n", Abc_SclTotalArea( p ) );
+    Abc_NtkForEachNode( p->pNtk, pObj, i )
     {
         printf( "Node %6d : ",  Abc_ObjId(pObj) );
         printf( "TimeR = %f. ", Abc_SclObjArr(p, pObj)->rise );
@@ -372,13 +372,11 @@ void Abc_SclTimeGate( SC_Man * p, SC_Timing * pTime, Abc_Obj_t * pObj, Abc_Obj_t
 void Abc_SclTimeNtk( SC_Man * p )
 {
     Vec_Flt_t * vWireCaps;
-    Vec_Ptr_t * vNodes;
     Abc_Obj_t * pObj;
     int i, k;
-    vNodes = Abc_NtkDfs( p->pNtk, 0 );
-    vWireCaps = Abc_SclFindWireCaps( p, vNodes );
-    Abc_SclComputeLoad( p, vNodes, vWireCaps );
-    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
+    vWireCaps = Abc_SclFindWireCaps( p );
+    Abc_SclComputeLoad( p, vWireCaps );
+    Abc_NtkForEachNode( p->pNtk, pObj, i )
     {
         SC_Timings * pRTime;
         SC_Timing * pTime;
@@ -397,9 +395,8 @@ void Abc_SclTimeNtk( SC_Man * p )
             Abc_SclTimeGate( p, pTime, pObj, Abc_ObjFanin(pObj, k) );
         }
     }
-    Abc_SclTimeNtkPrint( p, vNodes );
+    Abc_SclTimeNtkPrint( p );
     Vec_FltFree( vWireCaps );
-    Vec_PtrFree( vNodes );
 }
 
 
@@ -417,7 +414,6 @@ void Abc_SclTimeNtk( SC_Man * p )
 void Abc_SclTimePerform( SC_Lib * pLib, void * pNtk )
 {
     SC_Man * p;
-
     p = Abc_SclManAlloc( pLib, (Abc_Ntk_t *)pNtk );
     Abc_SclTimeNtk( p );
     Abc_SclManFree( p );
