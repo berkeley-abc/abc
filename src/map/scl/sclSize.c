@@ -4,7 +4,9 @@
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
-  Synopsis    [Standard-cell library representation.]
+  PackageName [Standard-cell library representation.]
+
+  Synopsis    [Gate sizing algorithms.]
 
   Author      [Alan Mishchenko, Niklas Een]
   
@@ -16,8 +18,6 @@
 
 ***********************************************************************/
 
-#include "base/abc/abc.h"
-#include "map/mio/mio.h"
 #include "sclInt.h"
 #include "sclMan.h"
 
@@ -96,6 +96,7 @@ float Abc_SclSizingGain( SC_Man * p, Abc_Obj_t * pPivot )
     vCone = Abc_SclCollectTfo( p->pNtk, pPivot );
     Abc_SclConeStore( p, vCone );
     Abc_SclTimeCone( p, vCone );
+//Abc_SclTimeNtkPrint( p, 1 );
     Abc_NtkForEachObjVec( vCone, p->pNtk, pObj, i )
         if ( Abc_ObjIsCo(pObj) )
             dGain += Abc_SclObjGain( p, pObj );
@@ -117,18 +118,16 @@ Abc_Obj_t * Abc_SclChooseBiggestGain( SC_Man * p, Vec_Int_t * vPath )
         pNew = Abc_SclObjResiable( p, pObj );
         if ( pNew == NULL )
             continue;
-printf( "changing %s for %s\n", pOld->name, pNew->name );
-
+//printf( "changing %s for %s at node %d   ", pOld->pName, pNew->pName, Abc_ObjId(pObj) );
         gateId = Vec_IntEntry(p->vGates, Abc_ObjId(pObj));
-        Vec_IntWriteEntry( p->vGates, Abc_ObjId(pObj), Abc_SclCellFind(p->pLib, pNew->name) );
+        Vec_IntWriteEntry( p->vGates, Abc_ObjId(pObj), Abc_SclCellFind(p->pLib, pNew->pName) );
         
         Abc_SclUpdateLoad( p, pObj, pOld, pNew );
         dGain = Abc_SclSizingGain( p, pObj );
         Abc_SclUpdateLoad( p, pObj, pNew, pOld );
-
-        Vec_IntWriteEntry( p->vGates, Abc_ObjId(pObj), Abc_SclCellFind(p->pLib, pOld->name) );
+//printf( "gain is %f\n", dGain );
+        Vec_IntWriteEntry( p->vGates, Abc_ObjId(pObj), Abc_SclCellFind(p->pLib, pOld->pName) );
         assert( gateId == Vec_IntEntry(p->vGates, Abc_ObjId(pObj)) );
-
         if ( dGainBest < dGain )
         {
             dGainBest = dGain;
@@ -137,7 +136,7 @@ printf( "changing %s for %s\n", pOld->name, pNew->name );
     }
     return pPivot;
 }
-void Abc_SclUpdateNetwork( SC_Man * p, Abc_Obj_t * pObj )
+void Abc_SclUpdateNetwork( SC_Man * p, Abc_Obj_t * pObj, int iStep, int fVerbose )
 {
     Vec_Int_t * vCone;
     SC_Cell * pOld, * pNew;
@@ -146,39 +145,24 @@ void Abc_SclUpdateNetwork( SC_Man * p, Abc_Obj_t * pObj )
     pNew = Abc_SclObjResiable( p, pObj );
     assert( pNew != NULL );
     // update gate
-    Vec_IntWriteEntry( p->vGates, Abc_ObjId(pObj), Abc_SclCellFind(p->pLib, pNew->name) );
-    pObj->pData = Mio_LibraryReadGateByName( (Mio_Library_t *)p->pNtk->pManFunc, pNew->name );
     Abc_SclUpdateLoad( p, pObj, pOld, pNew );
     p->SumArea += pNew->area - pOld->area;
+    Vec_IntWriteEntry( p->vGates, Abc_ObjId(pObj), Abc_SclCellFind(p->pLib, pNew->pName) );
     // update info
     vCone = Abc_SclCollectTfo( p->pNtk, pObj );
+    Abc_SclConeStore( p, vCone );
     Abc_SclTimeCone( p, vCone );
     Vec_IntFree( vCone );
-}
-
-float Abc_SclFindMaxDelay( SC_Man * p )
-{
-    float fMaxArr = 0;
-    Abc_Obj_t * pObj;
-    SC_Pair * pArr;
-    int i;
-    Abc_NtkForEachCo( p->pNtk, pObj, i )
+    // print output
+    if ( fVerbose )
     {
-        pArr = Abc_SclObjTime( p, pObj );
-        if ( fMaxArr < pArr->rise )  fMaxArr = pArr->rise;
-        if ( fMaxArr < pArr->fall )  fMaxArr = pArr->fall;
+        printf( "%5d : ",              iStep );
+        printf( "%5d  ",               Abc_ObjId(pObj) );
+        printf( "%-12s->  %-12s  ",    pOld->pName, pNew->pName );
+        printf( "delay =%8.2f ps    ", SC_LibTimePs(p->pLib, Abc_SclGetMaxDelay(p)) );
+        printf( "area =%10.2f   ",     p->SumArea );
+        Abc_PrintTime( 1, "Time",      clock() - p->clkStart );
     }
-    return fMaxArr;
-}
-
-void Abc_SclPrintResult( SC_Man * p, int i )
-{
-    int fRise = 0;
-    Abc_Obj_t * pPivot = Abc_SclFindMostCritical( p, &fRise );
-    printf( "%5d : ",             i );
-    printf( "area =%10.2f   ",    p->SumArea );
-    printf( "delay =%8.2f ps   ", Abc_SclObjTimePs(p, pPivot, fRise) );
-    Abc_PrintTime( 1, "time",     clock() - p->clkStart );
 }
 
 /**Function*************************************************************
@@ -192,26 +176,50 @@ void Abc_SclPrintResult( SC_Man * p, int i )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_SclSizingPerform( SC_Lib * pLib, void * pNt, int nSteps )
+void Abc_SclSizingPerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int nSteps, int fVerbose )
 {
     SC_Man * p;
-    Abc_Ntk_t * pNtk = (Abc_Ntk_t *)pNt;
     Vec_Int_t * vPath;
     Abc_Obj_t * pBest;
     int i;
-    p = Abc_SclManStart( pLib, pNtk );   
-    Abc_SclCriticalPathPrint( p );
+    p = Abc_SclManStart( pLib, pNtk );
+    if ( fVerbose )
+        Abc_SclTimeNtkPrint( p, 0 );
+    if ( fVerbose )
+        printf( "Iterating gate sizing of network \"%s\" with library \"%s\":\n", Abc_NtkName(pNtk), pLib->pName );
+    if ( fVerbose )
+    {
+        printf( "%5d :                                      ", 0 );
+        printf( "delay =%8.2f ps    ", SC_LibTimePs(p->pLib, Abc_SclGetMaxDelay(p)) );
+        printf( "area =%10.2f   ",     p->SumArea );
+        Abc_PrintTime( 1, "Time",      clock() - p->clkStart );
+    }
     for ( i = 0; i < nSteps; i++ )
     {
-        vPath = Abc_SclCriticalPathFind( p );
+        vPath = Abc_SclFindCriticalPath( p );
         pBest = Abc_SclChooseBiggestGain( p, vPath );
         Vec_IntFree( vPath );
         if ( pBest == NULL )
             break;
-        Abc_SclUpdateNetwork( p, pBest );
-        Abc_SclPrintResult( p, i );
+        Abc_SclUpdateNetwork( p, pBest, i+1, fVerbose );
+        // recompute loads every 100 steps
+        if ( i && i % 100 == 0 )
+            Abc_SclComputeLoad( p );
     }
-    Abc_SclCriticalPathPrint( p );
+    p->MaxDelay = Abc_SclGetMaxDelay(p);
+    if ( fVerbose )
+        Abc_SclTimeNtkPrint( p, 0 );
+    // print cumulative statistics
+    printf( "Resized: %d.  ",    i );
+    printf( "Delay: " );
+    printf( "%.2f -> %.2f ps ",  SC_LibTimePs(p->pLib, p->MaxDelay0), SC_LibTimePs(p->pLib, p->MaxDelay) );
+    printf( "(%+.1f %%).  ",     100.0 * (p->MaxDelay - p->MaxDelay0)/ p->MaxDelay0 );
+    printf( "Area: " );
+    printf( "%.2f -> %.2f ",     p->SumArea0, p->SumArea );
+    printf( "(%+.1f %%).  ",     100.0 * (p->SumArea - p->SumArea0)/ p->SumArea0 );
+    Abc_PrintTime( 1, "Time",    clock() - p->clkStart );
+    // save the result and quit
+    Abc_SclManSetGates( pLib, pNtk, p->vGates ); // updates gate pointers
     Abc_SclManFree( p );
 }
 

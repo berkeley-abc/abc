@@ -4,7 +4,9 @@
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
-  Synopsis    [Standard-cell library representation.]
+  PackageName [Standard-cell library representation.]
+
+  Synopsis    [Various utilities.]
 
   Author      [Alan Mishchenko, Niklas Een]
   
@@ -16,9 +18,8 @@
 
 ***********************************************************************/
 
-#include "base/abc/abc.h"
-#include "map/mio/mio.h"
 #include "sclInt.h"
+#include "map/mio/mio.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -54,7 +55,7 @@ int * Abc_SclHashLookup( SC_Lib * p, char * pName )
 {
     int i;
     for ( i = Abc_SclHashString(pName, p->nBins); i < p->nBins; i = (i + 1) % p->nBins )
-        if ( p->pBins[i] == -1 || !strcmp(pName, SC_LibCell(p, p->pBins[i])->name) )
+        if ( p->pBins[i] == -1 || !strcmp(pName, SC_LibCell(p, p->pBins[i])->pName) )
             return p->pBins + i;
     assert( 0 );
     return NULL;
@@ -68,7 +69,7 @@ void Abc_SclHashCells( SC_Lib * p )
     p->pBins = ABC_FALLOC( int, p->nBins );
     SC_LitForEachCell( p, pCell, i )
     {
-        pPlace = Abc_SclHashLookup( p, pCell->name );
+        pPlace = Abc_SclHashLookup( p, pCell->pName );
         assert( *pPlace == -1 );
         *pPlace = i;
     }
@@ -99,7 +100,7 @@ static int Abc_SclCompareCells( SC_Cell ** pp1, SC_Cell ** pp2 )
         return -1;
     if ( (*pp1)->area > (*pp2)->area )
         return 1;
-    return strcmp( (*pp1)->name, (*pp2)->name );
+    return strcmp( (*pp1)->pName, (*pp2)->pName );
 }
 void Abc_SclLinkCells( SC_Lib * p )
 {
@@ -153,7 +154,7 @@ void Abc_SclPrintCells( SC_Lib * p )
     SC_Cell * pCell, * pRepr;
     int i, k;
     assert( Vec_PtrSize(p->vCellOrder) > 0 );
-    printf( "Library \"%s\" ", p->lib_name );
+    printf( "Library \"%s\" ", p->pName );
     printf( "containing %d cells in %d classes.\n", 
         Vec_PtrSize(p->vCells), Vec_PtrSize(p->vCellOrder) );
     Vec_PtrForEachEntry( SC_Cell *, p->vCellOrder, pRepr, k )
@@ -170,7 +171,7 @@ void Abc_SclPrintCells( SC_Lib * p )
         SC_RingForEachCell( pRepr, pCell, i )
         {
             printf( "           %3d : ",  i+1 );
-            printf( "%-12s  ",            pCell->name );
+            printf( "%-12s  ",            pCell->pName );
             printf( "%2d   ",             pCell->drive_strength );
             printf( "A =%8.3f",           pCell->area );
             printf( "\n" );
@@ -180,7 +181,7 @@ void Abc_SclPrintCells( SC_Lib * p )
 
 /**Function*************************************************************
 
-  Synopsis    []
+  Synopsis    [Converts pNode->pData gates into array of SC_Lit gate IDs and back.]
 
   Description []
                
@@ -204,6 +205,18 @@ Vec_Int_t * Abc_SclManFindGates( SC_Lib * pLib, Abc_Ntk_t * p )
 //printf( "Found gate %s\n", pName );
     }
     return vVec;
+}
+void Abc_SclManSetGates( SC_Lib * pLib, Abc_Ntk_t * p, Vec_Int_t * vGates )
+{
+    Abc_Obj_t * pObj;
+    int i;
+    Abc_NtkForEachNode( p, pObj, i )
+    {
+        SC_Cell * pCell = SC_LibCell( pLib, Vec_IntEntry(vGates, Abc_ObjId(pObj)) );
+        assert( pCell->n_inputs == Abc_ObjFaninNum(pObj) );
+        pObj->pData = Mio_LibraryReadGateByName( (Mio_Library_t *)p->pManFunc, pCell->pName );
+//printf( "Found gate %s\n", pCell->name );
+    }
 }
 
 

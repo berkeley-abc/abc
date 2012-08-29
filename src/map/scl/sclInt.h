@@ -4,7 +4,9 @@
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
-  Synopsis    [Standard-cell library representation.]
+  PackageName [Standard-cell library representation.]
+
+  Synopsis    [Simplified library representation for STA.]
 
   Author      [Alan Mishchenko, Niklas Een]
   
@@ -30,7 +32,7 @@
 #include <assert.h>
 #include <math.h>
 
-#include "misc/vec/vec.h"
+#include "base/abc/abc.h"
 
 ABC_NAMESPACE_HEADER_START
 
@@ -74,7 +76,7 @@ typedef struct SC_Lib_         SC_Lib;
 
 struct SC_WireLoad_ 
 {
-    char *         name;
+    char *         pName;
     float          res;            // (currently not used)
     float          cap;            // }- multiply estimation in 'fanout_len[].snd' with this value
     Vec_Int_t *    vFanout;        // Vec<Pair<uint,float> > -- pairs '(#fanouts, est-wire-len)'
@@ -83,7 +85,7 @@ struct SC_WireLoad_
 
 struct SC_WireLoadSel_
 {
-    char *         name;
+    char *         pName;
     Vec_Flt_t *    vAreaFrom;      // Vec<Trip<float,float,Str> > -- triplets '(from-area, upto-area, wire-load-model)'; range is [from, upto[
     Vec_Flt_t *    vAreaTo;
     Vec_Ptr_t *    vWireLoadModel;
@@ -91,14 +93,14 @@ struct SC_WireLoadSel_
 
 struct SC_TableTempl_ 
 {
-    char *         name;
+    char *         pName;
     Vec_Ptr_t *    vVars;          // Vec<Str>         -- name of variable (numbered from 0, not 1 as in the Liberty file) 
     Vec_Ptr_t *    vIndex;         // Vec<Vec<float> > -- this is the point of measurement in table for the given variable 
 };
 
 struct SC_Surface_ 
 {
-    char *         templ_name;
+    char *         pName;
     Vec_Flt_t *    vIndex0;        // Vec<float>       -- correspondes to "index_1" in the liberty file (for timing: slew)
     Vec_Flt_t *    vIndex1;        // Vec<float>       -- correspondes to "index_2" in the liberty file (for timing: load)
     Vec_Ptr_t *    vData;          // Vec<Vec<float> > -- 'data[i0][i1]' gives value at '(index0[i0], index1[i1])' 
@@ -118,13 +120,13 @@ struct SC_Timing_
 
 struct SC_Timings_ 
 {
-    char *         name;           // -- the 'related_pin' field
+    char *         pName;          // -- the 'related_pin' field
     Vec_Ptr_t *    vTimings;       // structures of type SC_Timing
 };
 
 struct SC_Pin_ 
 {
-    char *         name;
+    char *         pName;
     SC_Dir         dir;
     float          cap;            // -- this value is used if 'rise_cap' and 'fall_cap' is missing (copied by 'postProcess()'). (not used)
     float          rise_cap;       // }- used for input pins ('cap' too).
@@ -138,7 +140,7 @@ struct SC_Pin_
 
 struct SC_Cell_ 
 {
-    char *         name;
+    char *         pName;
     int            seq;            // -- set to TRUE by parser if a sequential element
     int            unsupp;         // -- set to TRUE by parser if cell contains information we cannot handle
     float          area;
@@ -152,7 +154,7 @@ struct SC_Cell_
 
 struct SC_Lib_ 
 {
-    char *         lib_name;
+    char *         pName;
     char *         default_wire_load;
     char *         default_wire_load_sel;
     float          default_max_out_slew;   // -- 'default_max_transition'; this is copied to each output pin where 'max_transition' is not defined  (not used)
@@ -194,6 +196,17 @@ static inline double      SC_LibTimePs( SC_Lib * p, double time )  { return time
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
+/**Function*************************************************************
+
+  Synopsis    [Constructors of the library data-structures.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 static inline SC_WireLoad * Abc_SclWireLoadAlloc()
 {
     SC_WireLoad * p;
@@ -278,11 +291,22 @@ static inline SC_Lib * Abc_SclLibAlloc()
 }
 
 
+/**Function*************************************************************
+
+  Synopsis    [Destructors of the library data-structures.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 static inline void Abc_SclWireLoadFree( SC_WireLoad * p )
 {
     Vec_IntFree( p->vFanout );
     Vec_FltFree( p->vLen );
-    ABC_FREE( p->name );
+    ABC_FREE( p->pName );
     ABC_FREE( p );
 }
 static inline void Abc_SclWireLoadSelFree( SC_WireLoadSel * p )
@@ -290,14 +314,14 @@ static inline void Abc_SclWireLoadSelFree( SC_WireLoadSel * p )
     Vec_FltFree( p->vAreaFrom );
     Vec_FltFree( p->vAreaTo );
     Vec_PtrFreeFree( p->vWireLoadModel );
-    ABC_FREE( p->name );
+    ABC_FREE( p->pName );
     ABC_FREE( p );
 }
 static inline void Abc_SclTableTemplFree( SC_TableTempl * p )
 {
     Vec_PtrFreeFree( p->vVars );
     Vec_VecFree( (Vec_Vec_t *)p->vIndex );
-    ABC_FREE( p->name );
+    ABC_FREE( p->pName );
     ABC_FREE( p );
 }
 static inline void Abc_SclSurfaceFree( SC_Surface * p )
@@ -305,7 +329,7 @@ static inline void Abc_SclSurfaceFree( SC_Surface * p )
     Vec_FltFree( p->vIndex0 );
     Vec_FltFree( p->vIndex1 );
     Vec_VecFree( (Vec_Vec_t *)p->vData );
-    ABC_FREE( p->templ_name );
+    ABC_FREE( p->pName );
     ABC_FREE( p );
 }
 static inline void Abc_SclTimingFree( SC_Timing * p )
@@ -325,7 +349,7 @@ static inline void Abc_SclTimingsFree( SC_Timings * p )
     Vec_PtrForEachEntry( SC_Timing *, p->vTimings, pTemp, i )
         Abc_SclTimingFree( pTemp );
     Vec_PtrFree( p->vTimings );
-    ABC_FREE( p->name );
+    ABC_FREE( p->pName );
     ABC_FREE( p );
 }
 static inline void Abc_SclPinFree( SC_Pin * p )
@@ -337,7 +361,7 @@ static inline void Abc_SclPinFree( SC_Pin * p )
     Vec_PtrFree( p->vRTimings );
     Vec_WrdFree( p->vFunc );
     ABC_FREE( p->func_text );
-    ABC_FREE( p->name );
+    ABC_FREE( p->pName );
     ABC_FREE( p );
 }
 static inline void Abc_SclCellFree( SC_Cell * p )
@@ -347,30 +371,30 @@ static inline void Abc_SclCellFree( SC_Cell * p )
     Vec_PtrForEachEntry( SC_Pin *, p->vPins, pTemp, i )
         Abc_SclPinFree( pTemp );
     Vec_PtrFree( p->vPins );
-    ABC_FREE( p->name );
+    ABC_FREE( p->pName );
     ABC_FREE( p );
 }
 static inline void Abc_SclLibFree( SC_Lib * p )
 {
-    SC_WireLoad * pTemp1;
-    SC_WireLoadSel * pTemp2;
-    SC_TableTempl * pTemp3;
-    SC_Cell * pTemp4;
+    SC_WireLoad * pWL;
+    SC_WireLoadSel * pWLS;
+    SC_TableTempl * pTempl;
+    SC_Cell * pCell;
     int i;
-    Vec_PtrForEachEntry( SC_WireLoad *, p->vWireLoads, pTemp1, i )
-        Abc_SclWireLoadFree( pTemp1 );
+    Vec_PtrForEachEntry( SC_WireLoad *, p->vWireLoads, pWL, i )
+        Abc_SclWireLoadFree( pWL );
     Vec_PtrFree( p->vWireLoads );
-    Vec_PtrForEachEntry( SC_WireLoadSel *, p->vWireLoadSels, pTemp2, i )
-        Abc_SclWireLoadSelFree( pTemp2 );
+    Vec_PtrForEachEntry( SC_WireLoadSel *, p->vWireLoadSels, pWLS, i )
+        Abc_SclWireLoadSelFree( pWLS );
     Vec_PtrFree( p->vWireLoadSels );
-    Vec_PtrForEachEntry( SC_TableTempl *, p->vTempls, pTemp3, i )
-        Abc_SclTableTemplFree( pTemp3 );
+    Vec_PtrForEachEntry( SC_TableTempl *, p->vTempls, pTempl, i )
+        Abc_SclTableTemplFree( pTempl );
     Vec_PtrFree( p->vTempls );
-    SC_LitForEachCell( p, pTemp4, i )
-        Abc_SclCellFree( pTemp4 );
+    SC_LitForEachCell( p, pCell, i )
+        Abc_SclCellFree( pCell );
     Vec_PtrFree( p->vCells );
     Vec_PtrFree( p->vCellOrder );
-    ABC_FREE( p->lib_name );
+    ABC_FREE( p->pName );
     ABC_FREE( p->default_wire_load );
     ABC_FREE( p->default_wire_load_sel );
     ABC_FREE( p->pBins );
@@ -378,16 +402,28 @@ static inline void Abc_SclLibFree( SC_Lib * p )
 }
 
 
+/*=== sclBuff.c =============================================================*/
+extern int         Abc_SclCheckNtk( Abc_Ntk_t * p, int fVerbose );
+extern Abc_Ntk_t * Abc_SclPerformBuffering( Abc_Ntk_t * p, int Degree, int fVerbose );
 /*=== sclFile.c =============================================================*/
-extern SC_Lib * Abc_SclRead( char * pFileName );
-extern void     Abc_SclWrite( char * pFileName, SC_Lib * p );
-extern void     Abc_SclWriteText( char * pFileName, SC_Lib * p );
-
+extern SC_Lib *    Abc_SclRead( char * pFileName );
+extern void        Abc_SclWrite( char * pFileName, SC_Lib * p );
+extern void        Abc_SclWriteText( char * pFileName, SC_Lib * p );
+extern void        Abc_SclLoad( char * pFileName, SC_Lib ** ppScl );
+extern void        Abc_SclSave( char * pFileName, SC_Lib * pScl );
+/*=== sclTime.c =============================================================*/
+extern void        Abc_SclTimePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int fShowAll );
+/*=== sclSize.c =============================================================*/
+extern void        Abc_SclSizingPerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int nSteps, int fVerbose );
 /*=== sclUtil.c =============================================================*/
-extern void     Abc_SclHashCells( SC_Lib * p );
-extern int      Abc_SclCellFind( SC_Lib * p, char * pName );
-extern void     Abc_SclLinkCells( SC_Lib * p );
-extern void     Abc_SclPrintCells( SC_Lib * p );
+extern void        Abc_SclHashCells( SC_Lib * p );
+extern int         Abc_SclCellFind( SC_Lib * p, char * pName );
+extern void        Abc_SclLinkCells( SC_Lib * p );
+extern void        Abc_SclPrintCells( SC_Lib * p );
+extern Vec_Int_t * Abc_SclManFindGates( SC_Lib * pLib, Abc_Ntk_t * p );
+extern void        Abc_SclManSetGates( SC_Lib * pLib, Abc_Ntk_t * p, Vec_Int_t * vGates );
+
+
 
 ABC_NAMESPACE_HEADER_END
 

@@ -4,7 +4,9 @@
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
-  Synopsis    [Standard-cell library representation.]
+  PackageName [Standard-cell library representation.]
+
+  Synopsis    [Buffering algorithms.]
 
   Author      [Alan Mishchenko, Niklas Een]
   
@@ -16,9 +18,8 @@
 
 ***********************************************************************/
 
-#include "base/abc/abc.h"
-#include "map/mio/mio.h"
 #include "sclInt.h"
+#include "map/mio/mio.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -33,7 +34,7 @@ ABC_NAMESPACE_IMPL_START
 
 /**Function*************************************************************
 
-  Synopsis    [Make sure the network has no dangling nodes.]
+  Synopsis    [Make sure the network is in topo order without dangling nodes.]
 
   Description [Returns 1 iff the network is fine.]
                
@@ -65,7 +66,7 @@ int Abc_SclCheckNtk( Abc_Ntk_t * p, int fVerbose )
 
 /**Function*************************************************************
 
-  Synopsis    [Make sure the network has no dangling nodes.]
+  Synopsis    []
 
   Description []
                
@@ -109,7 +110,7 @@ int Abc_NodeCompareLevels( Abc_Obj_t ** pp1, Abc_Obj_t ** pp2 )
         return -1;
     if ( Diff > 0 ) 
         return 1;
-    Diff = (*pp1)->Id - (*pp2)->Id;
+    Diff = (*pp1)->Id - (*pp2)->Id; // needed to make qsort() platform-infependent
     if ( Diff < 0 )
         return -1;
     if ( Diff > 0 ) 
@@ -195,14 +196,25 @@ void Abc_SclPerformBuffering_rec( Abc_Obj_t * pObj, int Degree, int fVerbose )
 }
 Abc_Ntk_t * Abc_SclPerformBuffering( Abc_Ntk_t * p, int Degree, int fVerbose )
 {
+    Vec_Int_t * vCiLevs;
     Abc_Ntk_t * pNew;
     Abc_Obj_t * pObj;
     int i;
     assert( Abc_NtkHasMapping(p) );
+    // remember CI levels
+    vCiLevs = Vec_IntAlloc( Abc_NtkCiNum(p) );
+    Abc_NtkForEachCi( p, pObj, i )
+        Vec_IntPush( vCiLevs, Abc_ObjLevel(pObj) );
+    // perform buffering
     Abc_NtkIncrementTravId( p );        
     Abc_NtkForEachCi( p, pObj, i )
         Abc_SclPerformBuffering_rec( pObj, Degree, fVerbose );
-    Abc_NtkLevel( p );
+    // recompute logic levels
+    Abc_NtkForEachCi( p, pObj, i )
+        pObj->Level = Vec_IntEntry( vCiLevs, i );
+    Abc_NtkForEachNode( p, pObj, i )
+        Abc_ObjLevelNew( pObj );
+    Vec_IntFree( vCiLevs );
     // duplication in topo order
     pNew = Abc_NtkDupDfs( p );
     Abc_SclCheckNtk( pNew, fVerbose );

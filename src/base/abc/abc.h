@@ -463,6 +463,9 @@ static inline void        Abc_ObjSetMvVar( Abc_Obj_t * pObj, void * pV) { Vec_At
 #define Abc_NtkForEachNode( pNtk, pNode, i )                                                       \
     for ( i = 0; (i < Vec_PtrSize((pNtk)->vObjs)) && (((pNode) = Abc_NtkObj(pNtk, i)), 1); i++ )   \
         if ( (pNode) == NULL || !Abc_ObjIsNode(pNode) ) {} else
+#define Abc_NtkForEachNodeReverse( pNtk, pNode, i )                                                \
+    for ( i = Vec_PtrSize((pNtk)->vObjs) - 1; (i >= 0) && (((pNode) = Abc_NtkObj(pNtk, i)), 1); i-- ) \
+        if ( (pNode) == NULL || !Abc_ObjIsNode(pNode) ) {} else
 #define Abc_NtkForEachGate( pNtk, pNode, i )                                                       \
     for ( i = 0; (i < Vec_PtrSize((pNtk)->vObjs)) && (((pNode) = Abc_NtkObj(pNtk, i)), 1); i++ )   \
         if ( (pNode) == NULL || !Abc_ObjIsGate(pNode) ) {} else

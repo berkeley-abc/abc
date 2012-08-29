@@ -4,7 +4,9 @@
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
-  Synopsis    [Standard-cell library representation.]
+  PackageName [Standard-cell library representation.]
+
+  Synopsis    [External declarations.]
 
   Author      [Alan Mishchenko, Niklas Een]
   
@@ -45,14 +47,6 @@ ABC_NAMESPACE_HEADER_START
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
-
-/*=== sclFile.c =============================================================*/
-extern void     Abc_SclLoad( char * pFileName, SC_Lib ** ppScl );
-extern void     Abc_SclSave( char * pFileName, SC_Lib * pScl );
-/*=== sclTime.c =============================================================*/
-extern void     Abc_SclTimePerform( SC_Lib * pLib, void * pNtk );
-/*=== sclSize.c =============================================================*/
-extern void     Abc_SclSizingPerform( SC_Lib * pLib, void * pNtk, int nSteps );
 
 ABC_NAMESPACE_HEADER_END
 
