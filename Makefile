@@ -35,7 +35,7 @@ arch_flags : arch_flags.c
 ARCHFLAGS := $(shell $(CC) arch_flags.c -o arch_flags && ./arch_flags)
 OPTFLAGS  := -g -O #-DABC_NAMESPACE=xxx
 
-CFLAGS   += -Wall -Wno-unused-function $(OPTFLAGS) $(ARCHFLAGS) -I$(PWD)/src
+CFLAGS   += -Wall -Wno-unused-function -Wno-unused-but-set-variable $(OPTFLAGS) $(ARCHFLAGS) -I$(PWD)/src
 CXXFLAGS += $(CFLAGS) 
 
 #LIBS := -m32 -ldl -rdynamic -lreadline -ltermcap
