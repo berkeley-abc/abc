@@ -137,11 +137,13 @@ void Abc_SclLinkCells( SC_Lib * p )
         // create new representative
         pRepr = Vec_PtrEntry( vList, 0 );
         pRepr->pNext = pRepr->pPrev = pRepr;
+        pRepr->Order = 0;
         // relink cells
         Vec_PtrForEachEntryStart( SC_Cell *, vList, pCell, i, 1 )
         {
             pRepr->pPrev->pNext = pCell; pCell->pNext = pRepr;
             pCell->pPrev = pRepr->pPrev; pRepr->pPrev = pCell;
+            pCell->Order = i;
         }
         // update list
         Vec_PtrWriteEntry( p->vCellOrder, k, pRepr );

@@ -150,6 +150,7 @@ struct SC_Cell_
     int            n_outputs;      // -- 'pins[n_inputs .. n_inputs+n_outputs-1]' are output pins
     SC_Cell *      pNext;          // same-functionality cells linked into a ring by area
     SC_Cell *      pPrev;          // same-functionality cells linked into a ring by area
+    int            Order;          // order of the gate in the list
 };
 
 struct SC_Lib_ 
@@ -414,7 +415,7 @@ extern void        Abc_SclSave( char * pFileName, SC_Lib * pScl );
 /*=== sclTime.c =============================================================*/
 extern void        Abc_SclTimePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int fShowAll );
 /*=== sclSize.c =============================================================*/
-extern void        Abc_SclSizingPerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int nSteps, int nRange, int fTryAll, int fPrintCP, int fVerbose );
+extern void        Abc_SclSizingPerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int nSteps, int nRange, int fTryAll, int fPrintCP, int fVerbose, int fVeryVerbose );
 /*=== sclUtil.c =============================================================*/
 extern void        Abc_SclHashCells( SC_Lib * p );
 extern int         Abc_SclCellFind( SC_Lib * p, char * pName );

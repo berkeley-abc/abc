@@ -370,14 +370,16 @@ usage:
 ***********************************************************************/
 int Scl_CommandGsize( Abc_Frame_t * pAbc, int argc, char **argv )
 {
-    int c, fVerbose = 0;
-    int fPrintCP = 0;
+    int c;
     int nSteps = 100000;
     int nRange = 0;
     int fTryAll = 0;
+    int fPrintCP = 0;
+    int fVerbose = 0;
+    int fVeryVerbose = 0;
 
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "NWvaph" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "NWapvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -412,6 +414,9 @@ int Scl_CommandGsize( Abc_Frame_t * pAbc, int argc, char **argv )
             case 'v':
                 fVerbose ^= 1;
                 break;
+            case 'w':
+                fVeryVerbose ^= 1;
+                break;
             case 'h':
                 goto usage;
             default:
@@ -440,17 +445,18 @@ int Scl_CommandGsize( Abc_Frame_t * pAbc, int argc, char **argv )
         return 1;
     }
 
-    Abc_SclSizingPerform( pAbc->pLibScl, Abc_FrameReadNtk(pAbc), nSteps, nRange, fTryAll, fPrintCP, fVerbose );
+    Abc_SclSizingPerform( pAbc->pLibScl, Abc_FrameReadNtk(pAbc), nSteps, nRange, fTryAll, fPrintCP, fVerbose, fVeryVerbose );
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: gsize [-NW num] [-apvh]\n" );
+    fprintf( pAbc->Err, "usage: gsize [-NW num] [-apvwh]\n" );
     fprintf( pAbc->Err, "\t           performs gate sizing using Liberty library\n" );
     fprintf( pAbc->Err, "\t-N <num> : the number of gate-sizing steps performed [default = %d]\n", nSteps );
     fprintf( pAbc->Err, "\t-W <num> : delay window (in percents) of near-critical COs [default = %d]\n", nRange );
     fprintf( pAbc->Err, "\t-a       : try resizing all gates (not only critical) [default = %s]\n", fTryAll? "yes": "no" );
     fprintf( pAbc->Err, "\t-p       : toggle printing critical path before and after sizing [default = %s]\n", fPrintCP? "yes": "no" );
     fprintf( pAbc->Err, "\t-v       : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( pAbc->Err, "\t-w       : toggle printing even more information [default = %s]\n", fVeryVerbose? "yes": "no" );
     fprintf( pAbc->Err, "\t-h       : print the help massage\n" );
     return 1;
 }
