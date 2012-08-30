@@ -373,7 +373,7 @@ int Scl_CommandGsize( Abc_Frame_t * pAbc, int argc, char **argv )
     int c;
     int nSteps = 100000;
     int nRange = 0;
-    int fTryAll = 0;
+    int fTryAll = 1;
     int fPrintCP = 0;
     int fVerbose = 0;
     int fVeryVerbose = 0;

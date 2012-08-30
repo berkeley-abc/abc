@@ -307,7 +307,7 @@ Abc_Obj_t * Abc_SclChooseBiggestGain( SC_Man * p, Vec_Int_t * vPath, Vec_Int_t *
 //printf( "thresh = %8.2f ps    best gain = %8.2f ps  \n", SC_LibTimePs(p->pLib, GainThresh), SC_LibTimePs(p->pLib, dGainBest) );
     return pPivot;
 }
-void Abc_SclUpdateNetwork( SC_Man * p, Abc_Obj_t * pObj, int fUpsize, int iStep, int fVerbose, int fVeryVerbose )
+void Abc_SclUpdateNetwork( SC_Man * p, Abc_Obj_t * pObj, int nCone, int fUpsize, int iStep, int fVerbose, int fVeryVerbose )
 {
     Vec_Int_t * vCone;
     SC_Cell * pOld, * pNew;
@@ -330,8 +330,9 @@ void Abc_SclUpdateNetwork( SC_Man * p, Abc_Obj_t * pObj, int fUpsize, int iStep,
         printf( "%5d :",               iStep );
         printf( "%7d  ",               Abc_ObjId(pObj) );
         printf( "%-12s->  %-12s  ",    pOld->pName, pNew->pName );
-        printf( "delay =%8.2f ps    ", SC_LibTimePs(p->pLib, Abc_SclGetMaxDelay(p)) );
-        printf( "area =%10.2f   ",     p->SumArea );
+        printf( "d =%8.2f ps    ",     SC_LibTimePs(p->pLib, Abc_SclGetMaxDelay(p)) );
+        printf( "a =%10.2f   ",        p->SumArea );
+        printf( "n =%5d   ",           nCone );
 //        Abc_PrintTime( 1, "Time",      clock() - p->clkStart );
 //        ABC_PRTr( "Time", clock() - p->clkStart );
         if ( fVeryVerbose )
@@ -354,11 +355,11 @@ void Abc_SclUpdateNetwork( SC_Man * p, Abc_Obj_t * pObj, int fUpsize, int iStep,
 ***********************************************************************/
 void Abc_SclSizingPerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int nSteps, int nRange, int fTryAll, int fPrintCP, int fVerbose, int fVeryVerbose )
 {
-    int nIters = 3;
+    int nIters = 1;
     SC_Man * p;
     Vec_Int_t * vPath, * vPivots;
     Abc_Obj_t * pBest;
-    int r, i, nCones = 0, nDownSize = 0;
+    int r, i, nNodes, nCones = 0, nDownSize = 0;
     p = Abc_SclManStart( pLib, pNtk );
     if ( fPrintCP )
         Abc_SclTimeNtkPrint( p, 0 );
@@ -368,8 +369,9 @@ void Abc_SclSizingPerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int nSteps, int nRan
     {
 //        printf( "%5d :                                       ", 0 );
         printf( "Starting parameters of current mapping:       " );
-        printf( "delay =%8.2f ps    ", SC_LibTimePs(p->pLib, Abc_SclGetMaxDelay(p)) );
-        printf( "area =%10.2f   ",     p->SumArea );
+        printf( "d =%8.2f ps    ", SC_LibTimePs(p->pLib, Abc_SclGetMaxDelay(p)) );
+        printf( "a =%10.2f   ",     p->SumArea );
+        printf( "           " );
         Abc_PrintTime( 1, "Time",      clock() - p->clkStart );
     }
     for ( r = i = 0; r < nIters; r++ )
@@ -381,6 +383,7 @@ void Abc_SclSizingPerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int nSteps, int nRan
         {
             vPath = Abc_SclFindCriticalPath( p, nRange, &vPivots );
             pBest = Abc_SclChooseBiggestGain( p, vPath, vPivots, 1, nThresh1 );
+            nNodes = Vec_IntSize(vPath);
             Vec_IntFree( vPath );
             Vec_IntFree( vPivots );
             if ( pBest == NULL )
@@ -389,6 +392,7 @@ void Abc_SclSizingPerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int nSteps, int nRan
                 {
                     vPath = Abc_SclFindCriticalCone( p, nRange, &vPivots );
                     pBest = Abc_SclChooseBiggestGain( p, vPath, vPivots, 1, nThresh1 );
+                    nNodes = Vec_IntSize(vPath);
                     Vec_IntFree( vPath );
                     Vec_IntFree( vPivots );
                     nCones++;
@@ -396,7 +400,7 @@ void Abc_SclSizingPerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int nSteps, int nRan
                 if ( pBest == NULL )
                     break;
             }
-            Abc_SclUpdateNetwork( p, pBest, 1, i+1, fVerbose, fVeryVerbose );
+            Abc_SclUpdateNetwork( p, pBest, nNodes, 1, i+1, fVerbose, fVeryVerbose );
             // recompute loads every 100 steps
             if ( i && i % 100 == 0 )
                 Abc_SclComputeLoad( p );
@@ -411,6 +415,7 @@ void Abc_SclSizingPerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int nSteps, int nRan
             vPath = Abc_SclFindCriticalPath( p, nRange, &vPivots );
 //            pBest = Abc_SclChooseBiggestGain( p, vPath, vPivots, 0, -p->MaxDelay0/100000 );
             pBest = Abc_SclChooseBiggestGain( p, vPath, NULL, 0, nThresh2 );
+            nNodes = Vec_IntSize(vPath);
             Vec_IntFree( vPath );
             Vec_IntFree( vPivots );
             if ( pBest == NULL )
@@ -421,6 +426,7 @@ void Abc_SclSizingPerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int nSteps, int nRan
                     vPath = Abc_SclFindCriticalCone( p, nRange, &vPivots );
 //                    pBest = Abc_SclChooseBiggestGain( p, vPath, vPivots, 0, -p->MaxDelay0/100000 );
                     pBest = Abc_SclChooseBiggestGain( p, vPath, NULL, 0, nThresh2 );
+                    nNodes = Vec_IntSize(vPath);
                     Vec_IntFree( vPath );
                     Vec_IntFree( vPivots );
                     nCones++;
@@ -428,7 +434,7 @@ void Abc_SclSizingPerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int nSteps, int nRan
                 if ( pBest == NULL )
                     break;
             }
-            Abc_SclUpdateNetwork( p, pBest, 0, i+1, fVerbose, fVeryVerbose );
+            Abc_SclUpdateNetwork( p, pBest, nNodes, 0, i+1, fVerbose, fVeryVerbose );
             // recompute loads every 100 steps
             if ( i && i % 100 == 0 )
                 Abc_SclComputeLoad( p );
