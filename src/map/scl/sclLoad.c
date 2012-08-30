@@ -132,7 +132,7 @@ void Abc_SclComputeLoad( SC_Man * p )
         pLoad->rise = pLoad->fall = 0.0;
     }
     // add cell load
-    Abc_NtkForEachNode( p->pNtk, pObj, i )
+    Abc_NtkForEachNode1( p->pNtk, pObj, i )
     {
         SC_Cell * pCell = Abc_SclObjCell( p, pObj );
         Abc_ObjForEachFanin( pObj, pFanin, k )
@@ -147,7 +147,7 @@ void Abc_SclComputeLoad( SC_Man * p )
     vWireCaps = Abc_SclFindWireCaps( p );
     if ( vWireCaps )
     {
-        Abc_NtkForEachNode( p->pNtk, pObj, i )
+        Abc_NtkForEachNode1( p->pNtk, pObj, i )
         {
             SC_Pair * pLoad = Abc_SclObjLoad( p, pObj );
             k = Abc_MinInt( Vec_FltSize(vWireCaps)-1, Abc_ObjFanoutNum(pObj) );

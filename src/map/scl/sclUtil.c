@@ -198,7 +198,7 @@ Vec_Int_t * Abc_SclManFindGates( SC_Lib * pLib, Abc_Ntk_t * p )
     Abc_Obj_t * pObj;
     int i;
     vVec = Vec_IntStartFull( Abc_NtkObjNumMax(p) );
-    Abc_NtkForEachNode( p, pObj, i )
+    Abc_NtkForEachNode1( p, pObj, i )
     {
         char * pName = Mio_GateReadName((Mio_Gate_t *)pObj->pData);
         int gateId = Abc_SclCellFind( pLib, pName );
@@ -212,7 +212,7 @@ void Abc_SclManSetGates( SC_Lib * pLib, Abc_Ntk_t * p, Vec_Int_t * vGates )
 {
     Abc_Obj_t * pObj;
     int i;
-    Abc_NtkForEachNode( p, pObj, i )
+    Abc_NtkForEachNode1( p, pObj, i )
     {
         SC_Cell * pCell = SC_LibCell( pLib, Vec_IntEntry(vGates, Abc_ObjId(pObj)) );
         assert( pCell->n_inputs == Abc_ObjFaninNum(pObj) );

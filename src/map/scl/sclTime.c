@@ -108,7 +108,8 @@ void Abc_SclTimeNtkPrint( SC_Man * p, int fShowAll )
     {
 //        printf( "Timing information for all nodes: \n" );
         Abc_NtkForEachNodeReverse( p->pNtk, pObj, i )
-            Abc_SclTimeGatePrint( p, pObj, -1 );
+            if ( Abc_ObjFaninNum(pObj) > 0 )
+                Abc_SclTimeGatePrint( p, pObj, -1 );
     }
     else
     {
@@ -238,7 +239,7 @@ void Abc_SclTimeNtk( SC_Man * p )
 {
     Abc_Obj_t * pObj;
     int i;
-    Abc_NtkForEachNode( p->pNtk, pObj, i )
+    Abc_NtkForEachNode1( p->pNtk, pObj, i )
         Abc_SclTimeGate( p, pObj );
     Abc_NtkForEachCo( p->pNtk, pObj, i )
         Abc_SclObjDupFanin( p, pObj );

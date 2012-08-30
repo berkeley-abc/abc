@@ -49,7 +49,7 @@ Vec_Int_t * Abc_SclCollectNodes( Abc_Ntk_t * p )
     Abc_Obj_t * pObj;
     int i;
     vRes = Vec_IntAlloc( Abc_NtkNodeNum(p) );
-    Abc_NtkForEachNode( p, pObj, i )
+    Abc_NtkForEachNode1( p, pObj, i )
         Vec_IntPush( vRes, i );
     return vRes;
 }

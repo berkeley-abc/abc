@@ -181,7 +181,7 @@ static inline float Abc_SclGetTotalArea( SC_Man * p )
     double Area = 0;
     Abc_Obj_t * pObj;
     int i;
-    Abc_NtkForEachNode( p->pNtk, pObj, i )
+    Abc_NtkForEachNode1( p->pNtk, pObj, i )
         Area += Abc_SclObjCell( p, pObj )->area;
     return Area;
 }
