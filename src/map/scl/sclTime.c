@@ -84,8 +84,9 @@ Abc_Obj_t * Abc_SclFindMostCriticalFanin( SC_Man * p, int * pfRise, Abc_Obj_t * 
 ***********************************************************************/
 static inline void Abc_SclTimeGatePrint( SC_Man * p, Abc_Obj_t * pObj, int fRise )
 {
-    printf( "%5d : ",             Abc_ObjId(pObj) );
-    printf( "%-10s ",             Abc_SclObjCell(p, pObj)->pName );
+    printf( "%7d : ",             Abc_ObjId(pObj) );
+    printf( "%d ",                Abc_ObjFaninNum(pObj) );
+    printf( "%-12s ",             Abc_SclObjCell(p, pObj)->pName );
     if ( fRise >= 0 )
     printf( "(%s)   ",            fRise ? "rise" : "fall" );
     printf( "delay = (" );
