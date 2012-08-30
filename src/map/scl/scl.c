@@ -108,7 +108,7 @@ int Scl_CommandRead( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // read new library
     Abc_SclLoad( pFileName, (SC_Lib **)&pAbc->pLibScl );
-    Abc_SclWriteText( "sizing\\scl_out.txt", pAbc->pLibScl );
+//    Abc_SclWriteText( "sizing\\scl_out.txt", pAbc->pLibScl );
     return 0;
 
 usage:
