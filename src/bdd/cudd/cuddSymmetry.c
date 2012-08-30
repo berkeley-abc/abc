@@ -1630,7 +1630,7 @@ ddSymmSiftingBackward(
   int  size)
 {
     Move *move;
-    int  res;
+    int  res = -1;
 
     for (move = moves; move != NULL; move = move->next) {
         if (move->size < size) {

@@ -302,7 +302,7 @@ addWalshInt(
   int  n)
 {
     DdNode *one, *minusone;
-    DdNode *t, *u, *t1, *u1, *v, *w;
+    DdNode *t = NULL, *u = NULL, *t1, *u1, *v, *w;
     int     i;
 
     one = DD_ONE(dd);

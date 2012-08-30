@@ -1434,7 +1434,7 @@ cuddZddSymmSiftingBackward(
     int         i;
     int         i_best;
     Move        *move;
-    int         res;
+    int         res = -1;
 
     i_best = -1;
     for (move = moves, i = 0; move != NULL; move = move->next, i++) {

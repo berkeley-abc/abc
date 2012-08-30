@@ -80,7 +80,7 @@ int Map_LibraryRead( Map_SuperLib_t * pLib, char * pFileName )
 int Map_LibraryReadFile( Map_SuperLib_t * pLib, FILE * pFile )
 {
     ProgressBar * pProgress;
-    char pBuffer[2000];
+    char pBuffer[5000];
     FILE * pFileGen;
     Map_Super_t * pGate;
     char * pTemp = NULL; // Suppress "might be used uninitialized"

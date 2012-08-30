@@ -104,7 +104,7 @@ static int Abc_SclCompareCells( SC_Cell ** pp1, SC_Cell ** pp2 )
 }
 void Abc_SclLinkCells( SC_Lib * p )
 {
-    SC_Cell * pCell, * pRepr;
+    SC_Cell * pCell, * pRepr = NULL;
     int i, k;
     assert( Vec_PtrSize(p->vCellOrder) == 0 );
     SC_LitForEachCell( p, pCell, i )

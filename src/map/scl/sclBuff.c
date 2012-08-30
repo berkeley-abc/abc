@@ -78,7 +78,7 @@ int Abc_SclCheckNtk( Abc_Ntk_t * p, int fVerbose )
 int Abc_SclCheckNtk2( Abc_Ntk_t * p )
 {
     Abc_Obj_t * pObj, * pFanout;
-    int i, k, fFlag = 0;
+    int i, k;
     Abc_NtkStartReverseLevels( p, 0 );
     Abc_NtkForEachNode( p, pObj, i )
     {
