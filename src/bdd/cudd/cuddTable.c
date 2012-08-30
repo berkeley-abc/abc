@@ -2531,7 +2531,7 @@ ddResizeTable(
     int oldsize,newsize;
     int i,j,reorderSave;
     int numSlots = unique->initSlots;
-    int *newperm, *newinvperm, *newmap;
+    int *newperm, *newinvperm, *newmap = NULL;
     DdNode *one, *zero;
 
     oldsize = unique->size;
