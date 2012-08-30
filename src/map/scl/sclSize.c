@@ -327,8 +327,8 @@ void Abc_SclUpdateNetwork( SC_Man * p, Abc_Obj_t * pObj, int fUpsize, int iStep,
     // print output
     if ( fVerbose )
     {
-        printf( "%5d : ",              iStep );
-        printf( "%5d  ",               Abc_ObjId(pObj) );
+        printf( "%5d :",               iStep );
+        printf( "%7d  ",               Abc_ObjId(pObj) );
         printf( "%-12s->  %-12s  ",    pOld->pName, pNew->pName );
         printf( "delay =%8.2f ps    ", SC_LibTimePs(p->pLib, Abc_SclGetMaxDelay(p)) );
         printf( "area =%10.2f   ",     p->SumArea );
@@ -366,8 +366,8 @@ void Abc_SclSizingPerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int nSteps, int nRan
         printf( "Iterative gate-sizing of network \"%s\" with library \"%s\":\n", Abc_NtkName(pNtk), pLib->pName );
     if ( fVerbose )
     {
-//        printf( "%5d :                                      ", 0 );
-        printf( "Starting parameters of current mapping:      " );
+//        printf( "%5d :                                       ", 0 );
+        printf( "Starting parameters of current mapping:       " );
         printf( "delay =%8.2f ps    ", SC_LibTimePs(p->pLib, Abc_SclGetMaxDelay(p)) );
         printf( "area =%10.2f   ",     p->SumArea );
         Abc_PrintTime( 1, "Time",      clock() - p->clkStart );
