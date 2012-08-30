@@ -70,21 +70,6 @@ Abc_Obj_t * Abc_SclFindMostCriticalFanin( SC_Man * p, int * pfRise, Abc_Obj_t * 
     }
     return pPivot;
 }
-Vec_Int_t * Abc_SclFindCriticalPath( SC_Man * p )
-{
-    int fRise = 0;
-    Abc_Obj_t * pPivot = Abc_SclFindCriticalCo( p, &fRise );
-    Vec_Int_t * vPath = Vec_IntAlloc( 100 );
-    Vec_IntPush( vPath, Abc_ObjId(pPivot) );
-    pPivot = Abc_ObjFanin0(pPivot);
-    while ( pPivot && Abc_ObjIsNode(pPivot) )
-    {
-        Vec_IntPush( vPath, Abc_ObjId(pPivot) );
-        pPivot = Abc_SclFindMostCriticalFanin( p, &fRise, pPivot );
-    }
-    Vec_IntReverseOrder( vPath );
-    return vPath;  
-}
 
 /**Function*************************************************************
 

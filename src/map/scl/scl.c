@@ -32,8 +32,8 @@ static int Scl_CommandRead   ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Scl_CommandWrite  ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Scl_CommandPrint  ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Scl_CommandStime  ( Abc_Frame_t * pAbc, int argc, char **argv );
-static int Scl_CommandGsize  ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Scl_CommandBuffer ( Abc_Frame_t * pAbc, int argc, char **argv );
+static int Scl_CommandGsize  ( Abc_Frame_t * pAbc, int argc, char **argv );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -56,8 +56,8 @@ void Scl_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "SCL mapping",  "write_scl",  Scl_CommandWrite,  0 ); 
     Cmd_CommandAdd( pAbc, "SCL mapping",  "print_scl",  Scl_CommandPrint,  0 ); 
     Cmd_CommandAdd( pAbc, "SCL mapping",  "stime",      Scl_CommandStime,  0 ); 
-    Cmd_CommandAdd( pAbc, "SCL mapping",  "gsize",      Scl_CommandGsize,  1 ); 
     Cmd_CommandAdd( pAbc, "SCL mapping",  "buffer",     Scl_CommandBuffer, 1 ); 
+    Cmd_CommandAdd( pAbc, "SCL mapping",  "gsize",      Scl_CommandGsize,  1 ); 
 }
 void Scl_End( Abc_Frame_t * pAbc )
 {
@@ -292,81 +292,6 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
-int Scl_CommandGsize( Abc_Frame_t * pAbc, int argc, char **argv )
-{
-    int c, fVerbose = 0;
-    int nSteps = 100000;
-
-    Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Nvh" ) ) != EOF )
-    {
-        switch ( c )
-        {
-            case 'N':
-                if ( globalUtilOptind >= argc )
-                {
-                    Abc_Print( -1, "Command line switch \"-N\" should be followed by a positive integer.\n" );
-                    goto usage;
-                }
-                nSteps = atoi(argv[globalUtilOptind]);
-                globalUtilOptind++;
-                if ( nSteps <= 0 ) 
-                    goto usage;
-                break;
-            case 'v':
-                fVerbose ^= 1;
-                break;
-            case 'h':
-                goto usage;
-            default:
-                goto usage;
-        }
-    }
-
-    if ( Abc_FrameReadNtk(pAbc) == NULL )
-    {
-        fprintf( pAbc->Err, "There is no current network.\n" );
-        return 1;
-    }
-    if ( !Abc_NtkHasMapping(Abc_FrameReadNtk(pAbc)) )
-    {
-        fprintf( pAbc->Err, "The current network is not mapped.\n" );
-        return 1;
-    }
-    if ( !Abc_SclCheckNtk(Abc_FrameReadNtk(pAbc), 0) )
-    {
-        fprintf( pAbc->Err, "The current networks is not in a topo order (run \"buffer -N 1000\").\n" );
-        return 1;
-    }
-    if ( pAbc->pLibScl == NULL )
-    {
-        fprintf( pAbc->Err, "There is no Liberty library available.\n" );
-        return 1;
-    }
-
-    Abc_SclSizingPerform( pAbc->pLibScl, Abc_FrameReadNtk(pAbc), nSteps, fVerbose );
-    return 0;
-
-usage:
-    fprintf( pAbc->Err, "usage: gsize [-N num] [-vh]\n" );
-    fprintf( pAbc->Err, "\t           performs gate sizing using Liberty library\n" );
-    fprintf( pAbc->Err, "\t-N <num> : the number of gate-sizing steps performed [default = %d]\n", nSteps );
-    fprintf( pAbc->Err, "\t-v       : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
-    fprintf( pAbc->Err, "\t-h       : print the help massage\n" );
-    return 1;
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
 int Scl_CommandBuffer( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
@@ -431,6 +356,104 @@ usage:
     fprintf( pAbc->Err, "\t-h       : print the command usage\n");
     return 1;
 } 
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Scl_CommandGsize( Abc_Frame_t * pAbc, int argc, char **argv )
+{
+    int c, fVerbose = 0;
+    int fPrintCP = 0;
+    int nSteps = 100000;
+    int nRange = 0;
+    int fTryAll = 0;
+
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "NWvaph" ) ) != EOF )
+    {
+        switch ( c )
+        {
+            case 'N':
+                if ( globalUtilOptind >= argc )
+                {
+                    Abc_Print( -1, "Command line switch \"-N\" should be followed by a positive integer.\n" );
+                    goto usage;
+                }
+                nSteps = atoi(argv[globalUtilOptind]);
+                globalUtilOptind++;
+                if ( nSteps <= 0 ) 
+                    goto usage;
+                break;
+            case 'W':
+                if ( globalUtilOptind >= argc )
+                {
+                    Abc_Print( -1, "Command line switch \"-W\" should be followed by a positive integer.\n" );
+                    goto usage;
+                }
+                nRange = atoi(argv[globalUtilOptind]);
+                globalUtilOptind++;
+                if ( nRange < 0 ) 
+                    goto usage;
+                break;
+            case 'a':
+                fTryAll ^= 1;
+                break;
+            case 'p':
+                fPrintCP ^= 1;
+                break;
+            case 'v':
+                fVerbose ^= 1;
+                break;
+            case 'h':
+                goto usage;
+            default:
+                goto usage;
+        }
+    }
+
+    if ( Abc_FrameReadNtk(pAbc) == NULL )
+    {
+        fprintf( pAbc->Err, "There is no current network.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkHasMapping(Abc_FrameReadNtk(pAbc)) )
+    {
+        fprintf( pAbc->Err, "The current network is not mapped.\n" );
+        return 1;
+    }
+    if ( !Abc_SclCheckNtk(Abc_FrameReadNtk(pAbc), 0) )
+    {
+        fprintf( pAbc->Err, "The current networks is not in a topo order (run \"buffer -N 1000\").\n" );
+        return 1;
+    }
+    if ( pAbc->pLibScl == NULL )
+    {
+        fprintf( pAbc->Err, "There is no Liberty library available.\n" );
+        return 1;
+    }
+
+    Abc_SclSizingPerform( pAbc->pLibScl, Abc_FrameReadNtk(pAbc), nSteps, nRange, fTryAll, fPrintCP, fVerbose );
+    return 0;
+
+usage:
+    fprintf( pAbc->Err, "usage: gsize [-NW num] [-apvh]\n" );
+    fprintf( pAbc->Err, "\t           performs gate sizing using Liberty library\n" );
+    fprintf( pAbc->Err, "\t-N <num> : the number of gate-sizing steps performed [default = %d]\n", nSteps );
+    fprintf( pAbc->Err, "\t-W <num> : delay window (in percents) of near-critical COs [default = %d]\n", nRange );
+    fprintf( pAbc->Err, "\t-a       : try resizing all gates (not only critical) [default = %s]\n", fTryAll? "yes": "no" );
+    fprintf( pAbc->Err, "\t-p       : toggle printing critical path before and after sizing [default = %s]\n", fPrintCP? "yes": "no" );
+    fprintf( pAbc->Err, "\t-v       : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( pAbc->Err, "\t-h       : print the help massage\n" );
+    return 1;
+}
 
 
 ////////////////////////////////////////////////////////////////////////

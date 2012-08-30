@@ -80,6 +80,8 @@ static inline SC_Pair * Abc_SclObjSlew( SC_Man * p, Abc_Obj_t * pObj )      { re
 static inline SC_Pair * Abc_SclObjTime2( SC_Man * p, Abc_Obj_t * pObj )     { return p->pTimes2 + Abc_ObjId(pObj); }
 static inline SC_Pair * Abc_SclObjSlew2( SC_Man * p, Abc_Obj_t * pObj )     { return p->pSlews2 + Abc_ObjId(pObj); }
 
+static inline float     Abc_SclObjTimeMax( SC_Man * p, Abc_Obj_t * pObj )   { return Abc_MaxFloat(Abc_SclObjTime(p, pObj)->rise, Abc_SclObjTime(p, pObj)->fall);  }
+
 static inline void      Abc_SclObjDupFanin( SC_Man * p, Abc_Obj_t * pObj )  { assert( Abc_ObjIsCo(pObj) ); *Abc_SclObjTime(p, pObj) = *Abc_SclObjTime(p, Abc_ObjFanin0(pObj));  }
 static inline float     Abc_SclObjGain( SC_Man * p, Abc_Obj_t * pObj )      { return (Abc_SclObjTime2(p, pObj)->rise - Abc_SclObjTime(p, pObj)->rise) + (Abc_SclObjTime2(p, pObj)->fall - Abc_SclObjTime(p, pObj)->fall); }
 
@@ -200,8 +202,8 @@ static inline float Abc_SclGetMaxDelay( SC_Man * p )
 
 
 /*=== sclTime.c =============================================================*/
-extern Vec_Int_t * Abc_SclFindCriticalPath( SC_Man * p );
 extern Abc_Obj_t * Abc_SclFindCriticalCo( SC_Man * p, int * pfRise );
+extern Abc_Obj_t * Abc_SclFindMostCriticalFanin( SC_Man * p, int * pfRise, Abc_Obj_t * pNode );
 extern void        Abc_SclTimeNtkPrint( SC_Man * p, int fShowAll );
 extern SC_Man *    Abc_SclManStart( SC_Lib * pLib, Abc_Ntk_t * pNtk );
 extern void        Abc_SclTimeCone( SC_Man * p, Vec_Int_t * vCone );

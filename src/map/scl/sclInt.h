@@ -414,7 +414,7 @@ extern void        Abc_SclSave( char * pFileName, SC_Lib * pScl );
 /*=== sclTime.c =============================================================*/
 extern void        Abc_SclTimePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int fShowAll );
 /*=== sclSize.c =============================================================*/
-extern void        Abc_SclSizingPerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int nSteps, int fVerbose );
+extern void        Abc_SclSizingPerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int nSteps, int nRange, int fTryAll, int fPrintCP, int fVerbose );
 /*=== sclUtil.c =============================================================*/
 extern void        Abc_SclHashCells( SC_Lib * p );
 extern int         Abc_SclCellFind( SC_Lib * p, char * pName );
