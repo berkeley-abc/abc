@@ -27,6 +27,8 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
+#define ABC_MAX_LIB_STR_LEN 5000
+
 // entry types
 typedef enum { 
     AMAP_LIBERTY_NONE = 0,        // 0:  unknown
@@ -310,8 +312,8 @@ int Amap_LibertyCellCountOutputs( Amap_Tree_t * p, Amap_Item_t * pCell )
 ***********************************************************************/
 char * Amap_LibertyGetString( Amap_Tree_t * p, Amap_Pair_t Pair )   
 { 
-    static char Buffer[256]; 
-    assert( Pair.End-Pair.Beg < 256 );
+    static char Buffer[ABC_MAX_LIB_STR_LEN]; 
+    assert( Pair.End-Pair.Beg < ABC_MAX_LIB_STR_LEN );
     strncpy( Buffer, p->pContents+Pair.Beg, Pair.End-Pair.Beg ); 
     Buffer[Pair.End-Pair.Beg] = 0;
     return Buffer;
@@ -330,8 +332,8 @@ char * Amap_LibertyGetString( Amap_Tree_t * p, Amap_Pair_t Pair )
 ***********************************************************************/
 char * Amap_LibertyGetStringFormula( Amap_Tree_t * p, Amap_Pair_t Pair )   
 { 
-    static char Buffer[256]; 
-    assert( Pair.End-Pair.Beg-2 < 256 );
+    static char Buffer[ABC_MAX_LIB_STR_LEN]; 
+    assert( Pair.End-Pair.Beg-2 < ABC_MAX_LIB_STR_LEN );
     strncpy( Buffer, p->pContents+Pair.Beg+1, Pair.End-Pair.Beg-2 ); 
     Buffer[Pair.End-Pair.Beg-2] = 0;
     return Buffer;
