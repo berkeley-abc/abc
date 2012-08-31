@@ -146,6 +146,7 @@ Vec_Int_t * Abc_SclFindCriticalPath( SC_Man * p, int Range, Vec_Int_t ** pvPivot
             pObj = Abc_SclFindMostCriticalFanin( p, &fRise, pObj );
         }
     }
+    Vec_IntUniqify( vPath );
     if ( pvPivots ) 
         *pvPivots = vPivots;
     else
