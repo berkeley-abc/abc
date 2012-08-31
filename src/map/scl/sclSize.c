@@ -67,17 +67,18 @@ Vec_Int_t * Abc_SclCollectNodes( Abc_Ntk_t * p )
 ***********************************************************************/
 Vec_Int_t * Abc_SclFindCriticalCoRange( SC_Man * p, int Range )
 {
-    float fMaxArr = Abc_SclGetMaxDelay( p );
+    float fMaxArr = Abc_SclGetMaxDelay( p ) * (100.0 - Range) / 100.0;
     Vec_Int_t * vPivots;
     Abc_Obj_t * pObj;
     int i;
     vPivots = Vec_IntAlloc( 100 );
     Abc_NtkForEachCo( p->pNtk, pObj, i )
-        if ( Abc_SclObjTimeMax(p, pObj) >= fMaxArr * (100 - Range) / 100 )
+        if ( Abc_SclObjTimeMax(p, pObj) >= fMaxArr )
             Vec_IntPush( vPivots, Abc_ObjId(pObj) );
     assert( Vec_IntSize(vPivots) > 0 );
     return vPivots;
 }
+
 
 /**Function*************************************************************
 
@@ -90,9 +91,10 @@ Vec_Int_t * Abc_SclFindCriticalCoRange( SC_Man * p, int Range )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_SclFindCriticalCone_rec( Abc_Obj_t * pObj, Vec_Int_t * vVisited )
+void Abc_SclFindCriticalCone_rec( SC_Man * p, Abc_Obj_t * pObj, Vec_Int_t * vVisited, int RangeF )
 {
     Abc_Obj_t * pNext;
+    float fArrMax;
     int i;
     if ( Abc_ObjIsCi(pObj) )
         return;
@@ -100,11 +102,15 @@ void Abc_SclFindCriticalCone_rec( Abc_Obj_t * pObj, Vec_Int_t * vVisited )
         return;
     Abc_NodeSetTravIdCurrent( pObj );
     assert( Abc_ObjIsNode(pObj) );
+    // compute timing critical fanin
+    fArrMax = Abc_SclGetMaxDelayNode( p, pObj ) * (100.0 - RangeF) / 100.0;
+    // traverse all fanins whose arrival times are within a window
     Abc_ObjForEachFanin( pObj, pNext, i )
-        Abc_SclFindCriticalCone_rec( pNext, vVisited );
+        if ( Abc_SclObjTimeMax(p, pNext) >= fArrMax )
+            Abc_SclFindCriticalCone_rec( p, pNext, vVisited, RangeF );
     Vec_IntPush( vVisited, Abc_ObjId(pObj) );
 }
-Vec_Int_t * Abc_SclFindCriticalCone( SC_Man * p, int Range, Vec_Int_t ** pvPivots )
+Vec_Int_t * Abc_SclFindCriticalCone( SC_Man * p, int Range, int RangeF, Vec_Int_t ** pvPivots )
 {
     Vec_Int_t * vPivots = Abc_SclFindCriticalCoRange( p, Range );
     Vec_Int_t * vPath = Vec_IntAlloc( 100 );
@@ -112,7 +118,7 @@ Vec_Int_t * Abc_SclFindCriticalCone( SC_Man * p, int Range, Vec_Int_t ** pvPivot
     int i;
     Abc_NtkIncrementTravId( p->pNtk ); 
     Abc_NtkForEachObjVec( vPivots, p->pNtk, pObj, i )
-        Abc_SclFindCriticalCone_rec( Abc_ObjFanin0(pObj), vPath );
+        Abc_SclFindCriticalCone_rec( p, Abc_ObjFanin0(pObj), vPath, RangeF );
     if ( pvPivots ) 
         *pvPivots = vPivots;
     else
@@ -131,12 +137,13 @@ Vec_Int_t * Abc_SclFindCriticalCone( SC_Man * p, int Range, Vec_Int_t ** pvPivot
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Abc_SclFindCriticalPath( SC_Man * p, int Range, Vec_Int_t ** pvPivots )
+Vec_Int_t * Abc_SclFindCriticalPath2( SC_Man * p, int Range, Vec_Int_t ** pvPivots )
 {
     Vec_Int_t * vPivots = Abc_SclFindCriticalCoRange( p, Range );
     Vec_Int_t * vPath = Vec_IntAlloc( 100 );
     Abc_Obj_t * pObj;
     int i, fRise = 0;
+    //Vec_IntShrink( vPivots, 1 );
     Abc_NtkForEachObjVec( vPivots, p->pNtk, pObj, i )
     {
         pObj = Abc_ObjFanin0(pObj);
@@ -152,6 +159,10 @@ Vec_Int_t * Abc_SclFindCriticalPath( SC_Man * p, int Range, Vec_Int_t ** pvPivot
     else
         Vec_IntFree( vPivots );
     return vPath;  
+}
+Vec_Int_t * Abc_SclFindCriticalPath( SC_Man * p, int Range, Vec_Int_t ** pvPivots )
+{
+    return Abc_SclFindCriticalCone( p, Range, 1, pvPivots );
 }
 
 /**Function*************************************************************
@@ -289,10 +300,9 @@ Abc_Obj_t * Abc_SclChooseBiggestGain( SC_Man * p, Vec_Int_t * vPath, Vec_Int_t *
         pNew = Abc_SclObjResiable( p, pObj, fUpsize );
         if ( pNew == NULL )
             continue;
-//printf( "changing %s for %s at node %d   ", pOld->pName, pNew->pName, Abc_ObjId(pObj) );
         gateId = Vec_IntEntry(p->vGates, Abc_ObjId(pObj));
         Vec_IntWriteEntry( p->vGates, Abc_ObjId(pObj), Abc_SclCellFind(p->pLib, pNew->pName) );
-        
+//printf( "changing %s for %s at node %d   ", pOld->pName, pNew->pName, Abc_ObjId(pObj) );
         Abc_SclUpdateLoad( p, pObj, pOld, pNew );
         dGain = Abc_SclSizingGain( p, pObj, vPivots, fUpsize );
         Abc_SclUpdateLoad( p, pObj, pNew, pOld );
@@ -354,12 +364,13 @@ void Abc_SclUpdateNetwork( SC_Man * p, Abc_Obj_t * pObj, int nCone, int fUpsize,
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_SclSizingPerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int nSteps, int nRange, int fTryAll, int fPrintCP, int fVerbose, int fVeryVerbose )
+void Abc_SclSizingPerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int nSteps, int nRange, int nRangeF, int nTimeOut, int fTryAll, int fPrintCP, int fVerbose, int fVeryVerbose )
 {
     int nIters = 1;
     SC_Man * p;
     Vec_Int_t * vPath, * vPivots;
     Abc_Obj_t * pBest;
+    clock_t nRuntimeLimit = nTimeOut ? nTimeOut * CLOCKS_PER_SEC + clock() : 0;
     int r, i, nNodes, nCones = 0, nDownSize = 0;
     p = Abc_SclManStart( pLib, pNtk );
     if ( fPrintCP )
@@ -391,7 +402,7 @@ void Abc_SclSizingPerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int nSteps, int nRan
             {
                 if ( fTryAll )
                 {
-                    vPath = Abc_SclFindCriticalCone( p, nRange, &vPivots );
+                    vPath = Abc_SclFindCriticalCone( p, nRange, nRangeF, &vPivots );
                     pBest = Abc_SclChooseBiggestGain( p, vPath, vPivots, 1, nThresh1 );
                     nNodes = Vec_IntSize(vPath);
                     Vec_IntFree( vPath );
@@ -405,11 +416,15 @@ void Abc_SclSizingPerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int nSteps, int nRan
             // recompute loads every 100 steps
             if ( i && i % 100 == 0 )
                 Abc_SclComputeLoad( p );
+            if ( (i & 15) == 0 && nRuntimeLimit && clock() > nRuntimeLimit ) // timeout
+                break;
         }
-        if ( fVeryVerbose )
-            printf( "\n" );
         if ( r == nIters - 1 )
             break;
+        if ( nRuntimeLimit && clock() > nRuntimeLimit ) // timeout
+            break;
+        if ( fVeryVerbose )
+            printf( "\n" );
         // try downsizing
         for ( ; i < nSteps; i++ )
         {
@@ -424,7 +439,7 @@ void Abc_SclSizingPerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int nSteps, int nRan
 
                 if ( fTryAll )
                 {
-                    vPath = Abc_SclFindCriticalCone( p, nRange, &vPivots );
+                    vPath = Abc_SclFindCriticalCone( p, nRange, nRangeF, &vPivots );
 //                    pBest = Abc_SclChooseBiggestGain( p, vPath, vPivots, 0, -p->MaxDelay0/100000 );
                     pBest = Abc_SclChooseBiggestGain( p, vPath, NULL, 0, nThresh2 );
                     nNodes = Vec_IntSize(vPath);
@@ -439,8 +454,12 @@ void Abc_SclSizingPerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int nSteps, int nRan
             // recompute loads every 100 steps
             if ( i && i % 100 == 0 )
                 Abc_SclComputeLoad( p );
+            if ( (i & 15) == 0 && nRuntimeLimit && clock() > nRuntimeLimit ) // timeout
+                break;
             nDownSize++;
         }
+        if ( nRuntimeLimit && clock() > nRuntimeLimit ) // timeout
+            break;
         if ( fVeryVerbose )
             printf( "\n" );
     }
@@ -448,6 +467,8 @@ void Abc_SclSizingPerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int nSteps, int nRan
     p->MaxDelay = Abc_SclGetMaxDelay(p);
     if ( fPrintCP )
         Abc_SclTimeNtkPrint( p, 0 );
+    if ( nRuntimeLimit && clock() > nRuntimeLimit )
+        printf( "Timeout was reached after %d seconds.\n", nTimeOut );
     // print cumulative statistics
     printf( "Cones: %d. ",       nCones );
     printf( "Resized: %d(%d). ",     i, nDownSize );

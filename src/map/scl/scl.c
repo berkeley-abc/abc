@@ -371,15 +371,17 @@ usage:
 int Scl_CommandGsize( Abc_Frame_t * pAbc, int argc, char **argv )
 {
     int c;
-    int nSteps = 100000;
-    int nRange = 0;
-    int fTryAll = 1;
+    int nSteps   = 1000000;
+    int nRange   = 0;
+    int nRangeF  = 10;
+    int nTimeOut = 300;
+    int fTryAll  = 1;
     int fPrintCP = 0;
     int fVerbose = 0;
     int fVeryVerbose = 0;
 
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "NWapvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "NWUTapvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -403,6 +405,28 @@ int Scl_CommandGsize( Abc_Frame_t * pAbc, int argc, char **argv )
                 nRange = atoi(argv[globalUtilOptind]);
                 globalUtilOptind++;
                 if ( nRange < 0 ) 
+                    goto usage;
+                break;
+            case 'U':
+                if ( globalUtilOptind >= argc )
+                {
+                    Abc_Print( -1, "Command line switch \"-U\" should be followed by a positive integer.\n" );
+                    goto usage;
+                }
+                nRangeF = atoi(argv[globalUtilOptind]);
+                globalUtilOptind++;
+                if ( nRangeF < 0 ) 
+                    goto usage;
+                break;
+            case 'T':
+                if ( globalUtilOptind >= argc )
+                {
+                    Abc_Print( -1, "Command line switch \"-T\" should be followed by a positive integer.\n" );
+                    goto usage;
+                }
+                nTimeOut = atoi(argv[globalUtilOptind]);
+                globalUtilOptind++;
+                if ( nTimeOut < 0 ) 
                     goto usage;
                 break;
             case 'a':
@@ -445,14 +469,16 @@ int Scl_CommandGsize( Abc_Frame_t * pAbc, int argc, char **argv )
         return 1;
     }
 
-    Abc_SclSizingPerform( pAbc->pLibScl, Abc_FrameReadNtk(pAbc), nSteps, nRange, fTryAll, fPrintCP, fVerbose, fVeryVerbose );
+    Abc_SclSizingPerform( pAbc->pLibScl, Abc_FrameReadNtk(pAbc), nSteps, nRange, nRangeF, nTimeOut, fTryAll, fPrintCP, fVerbose, fVeryVerbose );
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: gsize [-NW num] [-apvwh]\n" );
+    fprintf( pAbc->Err, "usage: gsize [-NWUT num] [-apvwh]\n" );
     fprintf( pAbc->Err, "\t           performs gate sizing using Liberty library\n" );
     fprintf( pAbc->Err, "\t-N <num> : the number of gate-sizing steps performed [default = %d]\n", nSteps );
     fprintf( pAbc->Err, "\t-W <num> : delay window (in percents) of near-critical COs [default = %d]\n", nRange );
+    fprintf( pAbc->Err, "\t-U <num> : delay window (in percents) of near-critical fanins [default = %d]\n", nRangeF );
+    fprintf( pAbc->Err, "\t-T <num> : an approximate timeout, in seconds [default = %d]\n", nTimeOut );
     fprintf( pAbc->Err, "\t-a       : try resizing all gates (not only critical) [default = %s]\n", fTryAll? "yes": "no" );
     fprintf( pAbc->Err, "\t-p       : toggle printing critical path before and after sizing [default = %s]\n", fPrintCP? "yes": "no" );
     fprintf( pAbc->Err, "\t-v       : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );

@@ -189,14 +189,19 @@ static inline float Abc_SclGetMaxDelay( SC_Man * p )
 {
     float fMaxArr = 0;
     Abc_Obj_t * pObj;
-    SC_Pair * pArr;
     int i;
     Abc_NtkForEachCo( p->pNtk, pObj, i )
-    {
-        pArr = Abc_SclObjTime( p, pObj );
-        if ( fMaxArr < pArr->rise )  fMaxArr = pArr->rise;
-        if ( fMaxArr < pArr->fall )  fMaxArr = pArr->fall;
-    }
+        fMaxArr = Abc_MaxFloat( fMaxArr, Abc_SclObjTimeMax(p, pObj) );
+    return fMaxArr;
+}
+static inline float Abc_SclGetMaxDelayNode( SC_Man * p, Abc_Obj_t * pNode )
+{
+    float fMaxArr = 0;
+    Abc_Obj_t * pObj;
+    int i;
+    assert( Abc_ObjIsNode(pNode) );
+    Abc_ObjForEachFanin( pNode, pObj, i )
+        fMaxArr = Abc_MaxFloat( fMaxArr, Abc_SclObjTimeMax(p, pObj) );
     return fMaxArr;
 }
 
