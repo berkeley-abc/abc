@@ -1593,6 +1593,8 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
                     // run SAT solver
                     clk2 = clock();
                     Status = sat_solver2_solve( p->pSat, &Lit, &Lit+1, (ABC_INT64_T)pPars->nConfLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
+                    if ( Status == l_Undef )
+                        goto finish;
                     assert( Status == l_False );
                     p->timeUnsat += clock() - clk2;
 
