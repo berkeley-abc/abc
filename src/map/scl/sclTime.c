@@ -262,6 +262,7 @@ SC_Man * Abc_SclManStart( SC_Lib * pLib, Abc_Ntk_t * pNtk )
     SC_Man * p = Abc_SclManAlloc( pLib, pNtk );
     assert( p->vGates == NULL );
     p->vGates = Abc_SclManFindGates( pLib, pNtk );
+//    Abc_SclManUpsize( p );
     Abc_SclComputeLoad( p );
     Abc_SclTimeNtk( p );
     p->SumArea = p->SumArea0 = Abc_SclGetTotalArea( p );

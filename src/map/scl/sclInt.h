@@ -423,6 +423,7 @@ extern void        Abc_SclLinkCells( SC_Lib * p );
 extern void        Abc_SclPrintCells( SC_Lib * p );
 extern Vec_Int_t * Abc_SclManFindGates( SC_Lib * pLib, Abc_Ntk_t * p );
 extern void        Abc_SclManSetGates( SC_Lib * pLib, Abc_Ntk_t * p, Vec_Int_t * vGates );
+extern void        Abc_SclPrintGateSizes( SC_Lib * pLib, Abc_Ntk_t * p );
 
 
 

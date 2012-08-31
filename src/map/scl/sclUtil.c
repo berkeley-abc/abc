@@ -221,6 +221,52 @@ void Abc_SclManSetGates( SC_Lib * pLib, Abc_Ntk_t * p, Vec_Int_t * vGates )
     }
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Reports percentage of gates of each size.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+#define ABC_SCL_MAX_SIZE 64
+void Abc_SclManPrintGateSizes( SC_Lib * pLib, Abc_Ntk_t * p, Vec_Int_t * vGates )
+{
+    Abc_Obj_t * pObj;
+    int i, nGates = 0, Counters[ABC_SCL_MAX_SIZE] = {0};
+    double TotArea = 0, Areas[ABC_SCL_MAX_SIZE] = {0};
+    Abc_NtkForEachNode1( p, pObj, i )
+    {
+        SC_Cell * pCell = SC_LibCell( pLib, Vec_IntEntry(vGates, Abc_ObjId(pObj)) );
+        assert( pCell->Order < ABC_SCL_MAX_SIZE );
+        Counters[pCell->Order]++;
+        Areas[pCell->Order] += pCell->area;
+        TotArea += pCell->area;
+        nGates++;
+    }
+    printf( "Total gates = %d.  Total area = %.1f\n", nGates, TotArea );
+    for ( i = 0; i < ABC_SCL_MAX_SIZE; i++ )
+    {
+        if ( Counters[i] == 0 )
+            continue;
+        printf( "Cell size = %d.  ", i );
+        printf( "Count = %6d  ",     Counters[i] );
+        printf( "(%5.1f %%)   ",     100.0 * Counters[i] / nGates );
+        printf( "Area = %12.1f  ",   Areas[i] );
+        printf( "(%5.1f %%)  ",      100.0 * Areas[i] / TotArea );
+        printf( "\n" );
+    }
+}
+void Abc_SclPrintGateSizes( SC_Lib * pLib, Abc_Ntk_t * p )
+{
+    Vec_Int_t * vGates;
+    vGates = Abc_SclManFindGates( pLib, p );
+    Abc_SclManPrintGateSizes( pLib, p, vGates );
+    Vec_IntFree( vGates );
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

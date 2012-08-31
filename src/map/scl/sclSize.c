@@ -246,7 +246,7 @@ Vec_Int_t * Abc_SclCollectTfo( Abc_Ntk_t * p, Abc_Obj_t * pObj, Vec_Int_t * vPiv
   SeeAlso     []
 
 ***********************************************************************/
-SC_Cell * Abc_SclObjResiable( SC_Man * p, Abc_Obj_t * pObj, int fUpsize )
+static inline SC_Cell * Abc_SclObjResiable( SC_Man * p, Abc_Obj_t * pObj, int fUpsize )
 {
     SC_Cell * pOld = Abc_SclObjCell( p, pObj );
     if ( fUpsize )
@@ -353,6 +353,37 @@ void Abc_SclUpdateNetwork( SC_Man * p, Abc_Obj_t * pObj, int nCone, int fUpsize,
     }
 }
  
+
+/**Function*************************************************************
+
+  Synopsis    [Begin by upsizing gates will many fanouts.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_SclManUpsize( SC_Man * p )
+{
+    SC_Cell * pOld, * pNew;
+    Abc_Obj_t * pObj;
+    int i;
+    Abc_NtkForEachNode1( p->pNtk, pObj, i )
+    {
+        if ( Abc_ObjFanoutNum(pObj) <= 2 )
+            continue;
+        // find new gate
+        pOld = Abc_SclObjCell( p, pObj );
+        pNew = Abc_SclObjResiable( p, pObj, 1 );
+        if ( pNew == NULL )
+            continue;
+        Vec_IntWriteEntry( p->vGates, Abc_ObjId(pObj), Abc_SclCellFind(p->pLib, pNew->pName) );
+    }
+}
+
+
 /**Function*************************************************************
 
   Synopsis    []

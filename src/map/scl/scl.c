@@ -31,6 +31,7 @@ ABC_NAMESPACE_IMPL_START
 static int Scl_CommandRead   ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Scl_CommandWrite  ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Scl_CommandPrint  ( Abc_Frame_t * pAbc, int argc, char **argv );
+static int Scl_CommandPrintGS( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Scl_CommandStime  ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Scl_CommandBuffer ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Scl_CommandGsize  ( Abc_Frame_t * pAbc, int argc, char **argv );
@@ -52,12 +53,13 @@ static int Scl_CommandGsize  ( Abc_Frame_t * pAbc, int argc, char **argv );
 ***********************************************************************/
 void Scl_Init( Abc_Frame_t * pAbc )
 {
-    Cmd_CommandAdd( pAbc, "SCL mapping",  "read_scl",   Scl_CommandRead,   0 ); 
-    Cmd_CommandAdd( pAbc, "SCL mapping",  "write_scl",  Scl_CommandWrite,  0 ); 
-    Cmd_CommandAdd( pAbc, "SCL mapping",  "print_scl",  Scl_CommandPrint,  0 ); 
-    Cmd_CommandAdd( pAbc, "SCL mapping",  "stime",      Scl_CommandStime,  0 ); 
-    Cmd_CommandAdd( pAbc, "SCL mapping",  "buffer",     Scl_CommandBuffer, 1 ); 
-    Cmd_CommandAdd( pAbc, "SCL mapping",  "gsize",      Scl_CommandGsize,  1 ); 
+    Cmd_CommandAdd( pAbc, "SCL mapping",  "read_scl",   Scl_CommandRead,    0 ); 
+    Cmd_CommandAdd( pAbc, "SCL mapping",  "write_scl",  Scl_CommandWrite,   0 ); 
+    Cmd_CommandAdd( pAbc, "SCL mapping",  "print_scl",  Scl_CommandPrint,   0 ); 
+    Cmd_CommandAdd( pAbc, "SCL mapping",  "print_gs",   Scl_CommandPrintGS, 0 ); 
+    Cmd_CommandAdd( pAbc, "SCL mapping",  "stime",      Scl_CommandStime,   0 ); 
+    Cmd_CommandAdd( pAbc, "SCL mapping",  "buffer",     Scl_CommandBuffer,  1 ); 
+    Cmd_CommandAdd( pAbc, "SCL mapping",  "gsize",      Scl_CommandGsize,   1 ); 
 }
 void Scl_End( Abc_Frame_t * pAbc )
 {
@@ -214,6 +216,59 @@ int Scl_CommandPrint( Abc_Frame_t * pAbc, int argc, char **argv )
 usage:
     fprintf( pAbc->Err, "usage: print_scl [-h]\n" );
     fprintf( pAbc->Err, "\t         prints statistics of Liberty library\n" );
+    fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Scl_CommandPrintGS( Abc_Frame_t * pAbc, int argc, char **argv )
+{
+    int c;
+
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+            case 'h':
+                goto usage;
+            default:
+                goto usage;
+        }
+    }
+    if ( Abc_FrameReadNtk(pAbc) == NULL )
+    {
+        fprintf( pAbc->Err, "There is no current network.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkHasMapping(Abc_FrameReadNtk(pAbc)) )
+    {
+        fprintf( pAbc->Err, "The current network is not mapped.\n" );
+        return 1;
+    }
+    if ( pAbc->pLibScl == NULL )
+    {
+        fprintf( pAbc->Err, "There is no Liberty library available.\n" );
+        return 1;
+    }
+
+    // save current library
+    Abc_SclPrintGateSizes( pAbc->pLibScl, Abc_FrameReadNtk(pAbc) );
+    return 0;
+
+usage:
+    fprintf( pAbc->Err, "usage: print_gs [-h]\n" );
+    fprintf( pAbc->Err, "\t         prints gate sizes in the current mapping\n" );
     fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
     return 1;
 }
