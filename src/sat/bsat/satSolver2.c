@@ -1276,6 +1276,7 @@ int sat_solver2_addclause(sat_solver2* s, lit* begin, lit* end, int Id)
     int maxvar, count, temp;
     assert( solver2_dlevel(s) == 0 );
     assert( begin < end );
+    assert( Id != 0 );
 
     // copy clause into storage
     veci_resize( &s->temp_clause, 0 );

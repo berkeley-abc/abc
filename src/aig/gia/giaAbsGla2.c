@@ -769,7 +769,7 @@ static inline void Ga2_ManSetupNode( Ga2_Man_t * p, Gia_Obj_t * pObj, int fAbs )
     Vec_PtrWriteEntry( p->vCnfs, 2 * Ga2_ObjId(p,pObj) + 1, Ga2_ManCnfCompute(~uTruth, nLeaves, p->vIsopMem) );
 }
 
-static inline void Ga2_ManAddToAbsOneStatic( Ga2_Man_t * p, Gia_Obj_t * pObj, int f )
+static inline void Ga2_ManAddToAbsOneStatic( Ga2_Man_t * p, Gia_Obj_t * pObj, int f, int fUseId )
 {
     Vec_Int_t * vLeaves;
     Gia_Obj_t * pLeaf;
@@ -779,7 +779,7 @@ static inline void Ga2_ManAddToAbsOneStatic( Ga2_Man_t * p, Gia_Obj_t * pObj, in
     if ( Gia_ObjIsConst0(pObj) || (f == 0 && Gia_ObjIsRo(p->pGia, pObj)) )
     {
         iLitOut = Abc_LitNot( iLitOut );
-        sat_solver2_addclause( p->pSat, &iLitOut, &iLitOut + 1, Gia_ObjId(p->pGia, pObj) );
+        sat_solver2_addclause( p->pSat, &iLitOut, &iLitOut + 1, fUseId ? Gia_ObjId(p->pGia, pObj) : -1 );
     }
     else
     {
@@ -794,7 +794,7 @@ static inline void Ga2_ManAddToAbsOneStatic( Ga2_Man_t * p, Gia_Obj_t * pObj, in
                 fUseStatic = 0;
         }
         if ( fUseStatic || Gia_ObjIsRo(p->pGia, pObj) )
-            Ga2_ManCnfAddStatic( p->pSat, Ga2_ObjCnf0(p, pObj), Ga2_ObjCnf1(p, pObj), Vec_IntArray(p->vLits), iLitOut, Gia_ObjId(p->pGia, pObj) );
+            Ga2_ManCnfAddStatic( p->pSat, Ga2_ObjCnf0(p, pObj), Ga2_ObjCnf1(p, pObj), Vec_IntArray(p->vLits), iLitOut, fUseId ? Gia_ObjId(p->pGia, pObj) : -1 );
         else
         {
             unsigned uTruth = Ga2_ObjComputeTruthSpecial( p->pGia, pObj, vLeaves, p->vLits );
@@ -946,13 +946,13 @@ void Ga2_ManAddAbsClauses( Ga2_Man_t * p, int f )
         if ( i == p->LimAbs )
             break;
         if ( fSimple )
-            Ga2_ManAddToAbsOneStatic( p, pObj, f );
+            Ga2_ManAddToAbsOneStatic( p, pObj, f, 0 );
         else
             Ga2_ManAddToAbsOneDynamic( p, pObj, f );
     }
     Gia_ManForEachObjVec( p->vAbs, p->pGia, pObj, i )
         if ( i >= p->LimAbs )
-            Ga2_ManAddToAbsOneStatic( p, pObj, f );
+            Ga2_ManAddToAbsOneStatic( p, pObj, f, 1 );
 //    sat_solver2_simplify( p->pSat );
 }
 
@@ -981,7 +981,7 @@ void Ga2_ManAddToAbs( Ga2_Man_t * p, Vec_Int_t * vToAdd )
     {
         Vec_IntFillExtra( Ga2_MapFrameMap(p, f), Vec_IntSize(p->vValues), -1 );
         Gia_ManForEachObjVec( vToAdd, p->pGia, pObj, i )
-            Ga2_ManAddToAbsOneStatic( p, pObj, f );
+            Ga2_ManAddToAbsOneStatic( p, pObj, f, 1 );
     }
 //    sat_solver2_simplify( p->pSat );
 }
