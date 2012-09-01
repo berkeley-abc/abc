@@ -166,7 +166,7 @@ struct SC_Lib_
     Vec_Ptr_t *    vWireLoadSels;  // NamedSet<SC_WireLoadSel>
     Vec_Ptr_t *    vTempls;        // NamedSet<SC_TableTempl>  
     Vec_Ptr_t *    vCells;         // NamedSet<SC_Cell>
-    Vec_Ptr_t *    vCellOrder;     // NamedSet<SC_Cell>
+    Vec_Ptr_t *    vCellClasses;   // NamedSet<SC_Cell>
     int *          pBins;          // hashing gateName -> gateId
     int            nBins;
 };
@@ -186,12 +186,17 @@ static inline Vec_Wrd_t * SC_CellFunc( SC_Cell * p )               { return SC_C
 static inline double      SC_LibCapFf( SC_Lib * p, double cap )    { return cap * p->unit_cap_fst * pow(10, 15 - p->unit_cap_snd); }
 static inline double      SC_LibTimePs( SC_Lib * p, double time )  { return time * pow(10, 12 - p->unit_time);                     }
 
-#define SC_LitForEachCell( p, pCell, i )      Vec_PtrForEachEntry( SC_Cell *, p->vCells, pCell, i )
-#define SC_CellForEachPin( p, pPin, i )       Vec_PtrForEachEntry( SC_Pin *, pCell->vPins, pPin, i )
-#define SC_CellForEachPinIn( p, pPin, i )     Vec_PtrForEachEntryStop( SC_Pin *, pCell->vPins, pPin, i, pCell->n_inputs )
-#define SC_CellForEachPinOut( p, pPin, i )    Vec_PtrForEachEntryStart( SC_Pin *, pCell->vPins, pPin, i, pCell->n_inputs )
+#define SC_LibForEachCell( p, pCell, i )         Vec_PtrForEachEntry( SC_Cell *, p->vCells, pCell, i )
+#define SC_LibForEachCellClass( p, pCell, i )    Vec_PtrForEachEntry( SC_Cell *, p->vCellClasses, pCell, i )
+#define SC_LibForEachWireLoad( p, pWL, i )       Vec_PtrForEachEntry( SC_WireLoad *, p->vWireLoads, pWL, i )
+#define SC_LibForEachWireLoadSel( p, pWLS, i )   Vec_PtrForEachEntry( SC_WireLoadSel *, p->vWireLoadSels, pWLS, i )
+#define SC_LibForEachTempl( p, pTempl, i )       Vec_PtrForEachEntry( SC_TableTempl *, p->vTempls, pTempl, i )
+#define SC_CellForEachPin( p, pPin, i )          Vec_PtrForEachEntry( SC_Pin *, p->vPins, pPin, i )
+#define SC_CellForEachPinIn( p, pPin, i )        Vec_PtrForEachEntryStop( SC_Pin *, p->vPins, pPin, i, p->n_inputs )
+#define SC_CellForEachPinOut( p, pPin, i )       Vec_PtrForEachEntryStart( SC_Pin *, p->vPins, pPin, i, p->n_inputs )
+#define SC_RingForEachCell( pRing, pCell, i )    for ( i = 0, pCell = pRing; i == 0 || pCell != pRing; pCell = pCell->pNext, i++ )
+#define SC_PinForEachRTiming( p, pRTime, i )     Vec_PtrForEachEntry( SC_Timings *, p->vRTimings, pRTime, i )
 
-#define SC_RingForEachCell( pRing, pCell, i ) for ( i = 0, pCell = pRing; i == 0 || pCell != pRing; pCell = pCell->pNext, i++ )
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -287,7 +292,7 @@ static inline SC_Lib * Abc_SclLibAlloc()
     p->vWireLoadSels  = Vec_PtrAlloc( 0 );
     p->vTempls        = Vec_PtrAlloc( 0 );
     p->vCells         = Vec_PtrAlloc( 0 );
-    p->vCellOrder     = Vec_PtrAlloc( 0 );
+    p->vCellClasses   = Vec_PtrAlloc( 0 );
     return p;
 }
 
@@ -357,7 +362,7 @@ static inline void Abc_SclPinFree( SC_Pin * p )
 {
     SC_Timings * pTemp;
     int i;
-    Vec_PtrForEachEntry( SC_Timings *, p->vRTimings, pTemp, i )
+    SC_PinForEachRTiming( p, pTemp, i )
         Abc_SclTimingsFree( pTemp );
     Vec_PtrFree( p->vRTimings );
     Vec_WrdFree( p->vFunc );
@@ -369,7 +374,7 @@ static inline void Abc_SclCellFree( SC_Cell * p )
 {
     SC_Pin * pTemp;
     int i;
-    Vec_PtrForEachEntry( SC_Pin *, p->vPins, pTemp, i )
+    SC_CellForEachPin( p, pTemp, i )
         Abc_SclPinFree( pTemp );
     Vec_PtrFree( p->vPins );
     ABC_FREE( p->pName );
@@ -382,19 +387,19 @@ static inline void Abc_SclLibFree( SC_Lib * p )
     SC_TableTempl * pTempl;
     SC_Cell * pCell;
     int i;
-    Vec_PtrForEachEntry( SC_WireLoad *, p->vWireLoads, pWL, i )
+    SC_LibForEachWireLoad( p, pWL, i )
         Abc_SclWireLoadFree( pWL );
     Vec_PtrFree( p->vWireLoads );
-    Vec_PtrForEachEntry( SC_WireLoadSel *, p->vWireLoadSels, pWLS, i )
+    SC_LibForEachWireLoadSel( p, pWLS, i )
         Abc_SclWireLoadSelFree( pWLS );
     Vec_PtrFree( p->vWireLoadSels );
-    Vec_PtrForEachEntry( SC_TableTempl *, p->vTempls, pTempl, i )
+    SC_LibForEachTempl( p, pTempl, i )
         Abc_SclTableTemplFree( pTempl );
     Vec_PtrFree( p->vTempls );
-    SC_LitForEachCell( p, pCell, i )
+    SC_LibForEachCell( p, pCell, i )
         Abc_SclCellFree( pCell );
     Vec_PtrFree( p->vCells );
-    Vec_PtrFree( p->vCellOrder );
+    Vec_PtrFree( p->vCellClasses );
     ABC_FREE( p->pName );
     ABC_FREE( p->default_wire_load );
     ABC_FREE( p->default_wire_load_sel );

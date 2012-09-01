@@ -54,7 +54,7 @@ Vec_Flt_t * Abc_SclFindWireCaps( SC_Man * p )
     {
         float Area;
         SC_WireLoadSel * pWLS = NULL;
-        Vec_PtrForEachEntry( SC_WireLoadSel *, p->pLib->vWireLoadSels, pWLS, i )
+        SC_LibForEachWireLoadSel( p->pLib, pWLS, i )
             if ( !strcmp(pWLS->pName, p->pLib->default_wire_load_sel) )
                 break;
         if ( i == Vec_PtrSize(p->pLib->vWireLoadSels) )
@@ -81,7 +81,7 @@ Vec_Flt_t * Abc_SclFindWireCaps( SC_Man * p )
     }
     // Get the actual table and reformat it for 'wire_cap' output:
     assert( p->pWLoadUsed != NULL );
-    Vec_PtrForEachEntry( SC_WireLoad *, p->pLib->vWireLoads, pWL, i )
+    SC_LibForEachWireLoad( p->pLib, pWL, i )
         if ( !strcmp(pWL->pName, p->pWLoadUsed) )
             break;
     if ( i == Vec_PtrSize(p->pLib->vWireLoadSels) )

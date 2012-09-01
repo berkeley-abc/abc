@@ -408,7 +408,7 @@ static void Abc_SclWriteLibrary( Vec_Str_t * vOut, SC_Lib * p )
 
     // Write 'wire_load' vector:
     Vec_StrPutI( vOut, Vec_PtrSize(p->vWireLoads) );
-    Vec_PtrForEachEntry( SC_WireLoad *, p->vWireLoads, pWL, i )
+    SC_LibForEachWireLoad( p, pWL, i )
     {
         Vec_StrPutS( vOut, pWL->pName );
         Vec_StrPutF( vOut, pWL->res );
@@ -424,7 +424,7 @@ static void Abc_SclWriteLibrary( Vec_Str_t * vOut, SC_Lib * p )
 
     // Write 'wire_load_sel' vector:
     Vec_StrPutI( vOut, Vec_PtrSize(p->vWireLoadSels) );
-    Vec_PtrForEachEntry( SC_WireLoadSel *, p->vWireLoadSels, pWLS, i )
+    SC_LibForEachWireLoadSel( p, pWLS, i )
     {
         Vec_StrPutS( vOut, pWLS->pName );
         Vec_StrPutI( vOut, Vec_FltSize(pWLS->vAreaFrom) );
@@ -438,12 +438,12 @@ static void Abc_SclWriteLibrary( Vec_Str_t * vOut, SC_Lib * p )
 
     // Write 'cells' vector:
     n_valid_cells = 0;
-    SC_LitForEachCell( p, pCell, i )
+    SC_LibForEachCell( p, pCell, i )
         if ( !(pCell->seq || pCell->unsupp) )
             n_valid_cells++;
 
     Vec_StrPutI( vOut, n_valid_cells );
-    SC_LitForEachCell( p, pCell, i )
+    SC_LibForEachCell( p, pCell, i )
     {
         if ( pCell->seq || pCell->unsupp )
             continue;
@@ -456,7 +456,7 @@ static void Abc_SclWriteLibrary( Vec_Str_t * vOut, SC_Lib * p )
         Vec_StrPutI( vOut, pCell->n_inputs);
         Vec_StrPutI( vOut, pCell->n_outputs);
 
-        Vec_PtrForEachEntryStop( SC_Pin *, pCell->vPins, pPin, j, pCell->n_inputs )
+        SC_CellForEachPinIn( pCell, pPin, j )
         {
             assert(pPin->dir == sc_dir_Input);
             Vec_StrPutS( vOut, pPin->pName );
@@ -464,7 +464,7 @@ static void Abc_SclWriteLibrary( Vec_Str_t * vOut, SC_Lib * p )
             Vec_StrPutF( vOut, pPin->fall_cap );
         }
 
-        Vec_PtrForEachEntryStart( SC_Pin *, pCell->vPins, pPin, j, pCell->n_inputs )
+        SC_CellForEachPinOut( pCell, pPin, j )
         {
             SC_Timings * pRTime;
             word uWord;
@@ -482,7 +482,7 @@ static void Abc_SclWriteLibrary( Vec_Str_t * vOut, SC_Lib * p )
 
             // Write 'rtiming': (pin-to-pin timing tables for this particular output)
             assert( Vec_PtrSize(pPin->vRTimings) == pCell->n_inputs );
-            Vec_PtrForEachEntry( SC_Timings *, pPin->vRTimings, pRTime, k )
+            SC_PinForEachRTiming( pPin, pRTime, k )
             {
                 Vec_StrPutS( vOut, pRTime->pName );
                 Vec_StrPutI( vOut, Vec_PtrSize(pRTime->vTimings) );
@@ -618,7 +618,7 @@ static void Abc_SclWriteLibraryText( FILE * s, SC_Lib * p )
     fprintf( s, "\n" );
 
     // Write 'wire_load' vector:
-    Vec_PtrForEachEntry( SC_WireLoad *, p->vWireLoads, pWL, i )
+    SC_LibForEachWireLoad( p, pWL, i )
     {
         fprintf( s, "  wire_load(\"%s\") {\n", pWL->pName );
         fprintf( s, "    capacitance : %f;\n", pWL->cap );
@@ -629,7 +629,7 @@ static void Abc_SclWriteLibraryText( FILE * s, SC_Lib * p )
     }
 
     // Write 'wire_load_sel' vector:
-    Vec_PtrForEachEntry( SC_WireLoadSel *, p->vWireLoadSels, pWLS, i )
+    SC_LibForEachWireLoadSel( p, pWLS, i )
     {
         fprintf( s, "  wire_load_selection(\"%s\") {\n", pWLS->pName );
         for ( j = 0; j < Vec_FltSize(pWLS->vAreaFrom); j++)
@@ -642,11 +642,11 @@ static void Abc_SclWriteLibraryText( FILE * s, SC_Lib * p )
 
     // Write 'cells' vector:
     n_valid_cells = 0;
-    SC_LitForEachCell( p, pCell, i )
+    SC_LibForEachCell( p, pCell, i )
         if ( !(pCell->seq || pCell->unsupp) )
             n_valid_cells++;
 
-    SC_LitForEachCell( p, pCell, i )
+    SC_LibForEachCell( p, pCell, i )
     {
         if ( pCell->seq || pCell->unsupp )
             continue;
@@ -657,7 +657,7 @@ static void Abc_SclWriteLibraryText( FILE * s, SC_Lib * p )
         fprintf( s, "    area : %f;\n", pCell->area );
         fprintf( s, "    drive_strength : %d;\n", pCell->drive_strength );
 
-        Vec_PtrForEachEntryStop( SC_Pin *, pCell->vPins, pPin, j, pCell->n_inputs )
+        SC_CellForEachPinIn( pCell, pPin, j )
         {
             assert(pPin->dir == sc_dir_Input);
             fprintf( s, "    pin(%s) {\n", pPin->pName );
@@ -667,7 +667,7 @@ static void Abc_SclWriteLibraryText( FILE * s, SC_Lib * p )
             fprintf( s, "    }\n" );
         }
 
-        Vec_PtrForEachEntryStart( SC_Pin *, pCell->vPins, pPin, j, pCell->n_inputs )
+        SC_CellForEachPinOut( pCell, pPin, j )
         {
             SC_Timings * pRTime;
 //            word uWord;
@@ -683,7 +683,7 @@ static void Abc_SclWriteLibraryText( FILE * s, SC_Lib * p )
 
             // Write 'rtiming': (pin-to-pin timing tables for this particular output)
             assert( Vec_PtrSize(pPin->vRTimings) == pCell->n_inputs );
-            Vec_PtrForEachEntry( SC_Timings *, pPin->vRTimings, pRTime, k )
+            SC_PinForEachRTiming( pPin, pRTime, k )
             {
                 if ( Vec_PtrSize(pRTime->vTimings) == 1 )
                 {

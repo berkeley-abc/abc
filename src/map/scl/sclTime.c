@@ -210,7 +210,7 @@ void Abc_SclTimeGate( SC_Man * p, Abc_Obj_t * pObj )
     pPin = SC_CellPin( pCell, pCell->n_inputs );
     // compute timing using each fanin
     assert( Vec_PtrSize(pPin->vRTimings) == pCell->n_inputs );
-    Vec_PtrForEachEntry( SC_Timings *, pPin->vRTimings, pRTime, k )
+    SC_PinForEachRTiming( pPin, pRTime, k )
     {
         assert( Vec_PtrSize(pRTime->vTimings) == 1 );
         pTime = (SC_Timing *)Vec_PtrEntry( pRTime->vTimings, 0 );

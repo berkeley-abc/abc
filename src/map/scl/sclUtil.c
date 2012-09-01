@@ -67,7 +67,7 @@ void Abc_SclHashCells( SC_Lib * p )
     assert( p->nBins == 0 );
     p->nBins = Abc_PrimeCudd( 5 * Vec_PtrSize(p->vCells) );
     p->pBins = ABC_FALLOC( int, p->nBins );
-    SC_LitForEachCell( p, pCell, i )
+    SC_LibForEachCell( p, pCell, i )
     {
         pPlace = Abc_SclHashLookup( p, pCell->pName );
         assert( *pPlace == -1 );
@@ -106,18 +106,18 @@ void Abc_SclLinkCells( SC_Lib * p )
 {
     SC_Cell * pCell, * pRepr = NULL;
     int i, k;
-    assert( Vec_PtrSize(p->vCellOrder) == 0 );
-    SC_LitForEachCell( p, pCell, i )
+    assert( Vec_PtrSize(p->vCellClasses) == 0 );
+    SC_LibForEachCell( p, pCell, i )
     {
         // find gate with the same function
-        Vec_PtrForEachEntry( SC_Cell *, p->vCellOrder, pRepr, k )
+        SC_LibForEachCellClass( p, pRepr, k )
             if ( pCell->n_inputs  == pRepr->n_inputs && 
                  pCell->n_outputs == pRepr->n_outputs && 
                  Vec_WrdEqual(SC_CellFunc(pCell), SC_CellFunc(pRepr)) )
                 break;
-        if ( k == Vec_PtrSize(p->vCellOrder) )
+        if ( k == Vec_PtrSize(p->vCellClasses) )
         {
-            Vec_PtrPush( p->vCellOrder, pCell );
+            Vec_PtrPush( p->vCellClasses, pCell );
             pCell->pNext = pCell->pPrev = pCell;
             continue;
         }
@@ -126,9 +126,9 @@ void Abc_SclLinkCells( SC_Lib * p )
         pCell->pPrev = pRepr->pPrev; pRepr->pPrev = pCell;
     }
     // sort cells by size the then by name
-    qsort( (void *)Vec_PtrArray(p->vCellOrder), Vec_PtrSize(p->vCellOrder), sizeof(void *), (int(*)(const void *,const void *))Abc_SclCompareCells );
+    qsort( (void *)Vec_PtrArray(p->vCellClasses), Vec_PtrSize(p->vCellClasses), sizeof(void *), (int(*)(const void *,const void *))Abc_SclCompareCells );
     // sort cell lists
-    Vec_PtrForEachEntry( SC_Cell *, p->vCellOrder, pRepr, k )
+    SC_LibForEachCellClass( p, pRepr, k )
     {
         Vec_Ptr_t * vList = Vec_PtrAlloc( 100 );
         SC_RingForEachCell( pRepr, pCell, i )
@@ -146,7 +146,7 @@ void Abc_SclLinkCells( SC_Lib * p )
             pCell->Order = i;
         }
         // update list
-        Vec_PtrWriteEntry( p->vCellOrder, k, pRepr );
+        Vec_PtrWriteEntry( p->vCellClasses, k, pRepr );
         Vec_PtrFree( vList );
     }
 }
@@ -154,16 +154,21 @@ void Abc_SclPrintCells( SC_Lib * p )
 {
     extern void Kit_DsdPrintFromTruth( unsigned * pTruth, int nVars );
     SC_Cell * pCell, * pRepr;
-    int i, k;
-    assert( Vec_PtrSize(p->vCellOrder) > 0 );
+    int i, k, j, nLength = 0;
+    assert( Vec_PtrSize(p->vCellClasses) > 0 );
     printf( "Library \"%s\" ", p->pName );
     printf( "containing %d cells in %d classes.\n", 
-        Vec_PtrSize(p->vCells), Vec_PtrSize(p->vCellOrder) );
-    Vec_PtrForEachEntry( SC_Cell *, p->vCellOrder, pRepr, k )
+        Vec_PtrSize(p->vCells), Vec_PtrSize(p->vCellClasses) );
+    // find the longest name
+    SC_LibForEachCellClass( p, pRepr, k )
+        SC_RingForEachCell( pRepr, pCell, i )
+            nLength = Abc_MaxInt( nLength, strlen(pRepr->pName) );
+    // print cells
+    SC_LibForEachCellClass( p, pRepr, k )
     {
         printf( "Class%3d : ", k );
         printf( "Ins = %d  ",  pRepr->n_inputs );
-        printf( "Outs = %d", pRepr->n_outputs );
+        printf( "Outs = %d",   pRepr->n_outputs );
         for ( i = 0; i < pRepr->n_outputs; i++ )
         {
             printf( "   "  );
@@ -172,10 +177,21 @@ void Abc_SclPrintCells( SC_Lib * p )
         printf( "\n" );
         SC_RingForEachCell( pRepr, pCell, i )
         {
-            printf( "           %3d : ",  i+1 );
-            printf( "%-12s  ",            pCell->pName );
-            printf( "%2d   ",             pCell->drive_strength );
-            printf( "A =%8.3f",           pCell->area );
+            printf( "  %3d : ",       i+1 );
+            printf( "%-*s  ",         nLength, pCell->pName );
+            printf( "%2d   ",         pCell->drive_strength );
+            printf( "A =%8.3f   D =", pCell->area );
+            // print linear approximation
+            for ( j = 0; j < 3; j++ )
+            {
+                SC_Pin * pPin = SC_CellPin( pCell, pCell->n_inputs );
+                if ( Vec_PtrSize(pPin->vRTimings) > 0 )
+                {
+                    SC_Timings * pRTime = (SC_Timings *)Vec_PtrEntry( pPin->vRTimings, 0 );
+                    SC_Timing * pTime = (SC_Timing *)Vec_PtrEntry( pRTime->vTimings, 0 );
+                    printf( "%7.3f ", pTime->pCellRise->approx[0][j] );
+                }
+            }
             printf( "\n" );
         }
     }
