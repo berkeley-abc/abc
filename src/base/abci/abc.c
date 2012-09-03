@@ -25990,6 +25990,7 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Srm( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
+    char * pFileNameIn = NULL;
     char pFileName[10] = "gsrm.aig", pFileName2[10] = "gsyn.aig";
     Gia_Man_t * pTemp, * pAux;
     int c, fVerbose = 0;
@@ -25998,10 +25999,19 @@ int Abc_CommandAbc9Srm( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fSkipSome = 0;
     int fDualOut = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "drsfvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Adrsfvh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'A':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-A\" should be followed by a file name.\n" );
+                goto usage;
+            }
+            pFileNameIn = argv[globalUtilOptind];
+            globalUtilOptind++;
+            break;
         case 'd':
             fDualOut ^= 1;
             break;
@@ -26038,7 +26048,7 @@ int Abc_CommandAbc9Srm( Abc_Frame_t * pAbc, int argc, char ** argv )
             pTemp = Gia_ManSeqStructSweep( pAux = pTemp, 1, 1, 0 );
             Gia_ManStop( pAux );
         }
-        Gia_WriteAiger( pTemp, pFileName, 0, 0 );
+        Gia_WriteAiger( pTemp, pFileNameIn ? pFileNameIn : pFileName, 0, 0 );
         Abc_Print( 1, "Speculatively reduced model was written into file \"%s\".\n", pFileName );
         Gia_ManPrintStatsShort( pTemp );
         Gia_ManStop( pTemp );
@@ -26060,14 +26070,15 @@ int Abc_CommandAbc9Srm( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &srm [-drsfvh]\n" );
-    Abc_Print( -2, "\t         writes speculatively reduced model into file \"%s\"\n", pFileName );
-    Abc_Print( -2, "\t-d     : toggle creating dual-output miter [default = %s]\n", fDualOut? "yes": "no" );
-    Abc_Print( -2, "\t-r     : toggle writing reduced network for synthesis [default = %s]\n", fSynthesis? "yes": "no" );
-    Abc_Print( -2, "\t-s     : toggle using speculation at the internal nodes [default = %s]\n", fSpeculate? "yes": "no" );
-    Abc_Print( -2, "\t-f     : toggle filtering to remove redundant equivalences [default = %s]\n", fSkipSome? "yes": "no" );
-    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
-    Abc_Print( -2, "\t-h     : print the command usage\n");
+    Abc_Print( -2, "usage: &srm [-A file] [-drsfvh]\n" );
+    Abc_Print( -2, "\t          writes speculatively reduced model into file \"%s\"\n", pFileName );
+    Abc_Print( -2, "\t-A file : file name for dumping speculative-reduced model [default = \"gsrm.aig\"]\n" );
+    Abc_Print( -2, "\t-d      : toggle creating dual-output miter [default = %s]\n", fDualOut? "yes": "no" );
+    Abc_Print( -2, "\t-r      : toggle writing reduced network for synthesis [default = %s]\n", fSynthesis? "yes": "no" );
+    Abc_Print( -2, "\t-s      : toggle using speculation at the internal nodes [default = %s]\n", fSpeculate? "yes": "no" );
+    Abc_Print( -2, "\t-f      : toggle filtering to remove redundant equivalences [default = %s]\n", fSkipSome? "yes": "no" );
+    Abc_Print( -2, "\t-v      : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h      : print the command usage\n");
     return 1;
 }
 
