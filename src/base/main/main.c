@@ -219,7 +219,7 @@ int Abc_RealMain( int argc, char * argv[] )
         pAbc->pGia = Gia_ManFromBridge( stdin, NULL );
     }
     else if ( fBatch && sCommandUsr[0] )
-        Abc_Print( 1, "ABC command line: \"%s\".\n", sCommandUsr );
+        Abc_Print( 1, "ABC command line: \"%s\".\n\n", sCommandUsr );
     
     if ( fBatch )
     {
