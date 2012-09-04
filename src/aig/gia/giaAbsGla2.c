@@ -1685,8 +1685,6 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
     }
 finish:
     Prf_ManStopP( &p->pSat->pPrf2 );
-    if ( p->pPars->fVerbose )
-    Abc_Print( 1, "\n" );
     // analize the results
     if ( pAig->pCexSeq == NULL )
     {
@@ -1696,6 +1694,8 @@ finish:
         pAig->vGateClasses = Ga2_ManAbsTranslate( p );
         if ( Status == l_Undef )
         {
+            if ( p->pPars->fVerbose )
+                Abc_Print( 1, "\n" );
             if ( p->pPars->nTimeOut && clock() >= p->pSat->nRuntimeLimit ) 
                 Abc_Print( 1, "Timeout %d sec in frame %d with a %d-stable abstraction.    ", p->pPars->nTimeOut, iFrameProved+1, p->pPars->nFramesNoChange );
             else if ( pPars->nConfLimit && sat_solver2_nconflicts(p->pSat) >= pPars->nConfLimit )
@@ -1713,6 +1713,8 @@ finish:
     }
     else
     {
+        if ( p->pPars->fVerbose )
+            Abc_Print( 1, "\n" );
         if ( !Gia_ManVerifyCex( pAig, pAig->pCexSeq, 0 ) )
             Abc_Print( 1, "    Gia_GlaPerform(): CEX verification has failed!\n" );
         Abc_Print( 1, "Counter-example detected in frame %d.  ", f );
