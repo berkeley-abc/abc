@@ -1697,18 +1697,18 @@ finish:
         if ( Status == l_Undef )
         {
             if ( p->pPars->nTimeOut && clock() >= p->pSat->nRuntimeLimit ) 
-                Abc_Print( 1, "Timeout %d sec in frame %d with a %d-stable abstraction.    ", p->pPars->nTimeOut, iFrameProved, p->pPars->nFramesNoChange );
+                Abc_Print( 1, "Timeout %d sec in frame %d with a %d-stable abstraction.    ", p->pPars->nTimeOut, iFrameProved+1, p->pPars->nFramesNoChange );
             else if ( pPars->nConfLimit && sat_solver2_nconflicts(p->pSat) >= pPars->nConfLimit )
-                Abc_Print( 1, "Exceeded %d conflicts in frame %d with a %d-stable abstraction.  ", pPars->nConfLimit, iFrameProved, p->pPars->nFramesNoChange );
+                Abc_Print( 1, "Exceeded %d conflicts in frame %d with a %d-stable abstraction.  ", pPars->nConfLimit, iFrameProved+1, p->pPars->nFramesNoChange );
             else if ( Vec_IntSize(p->vAbs) >= p->nMarked * (100 - pPars->nRatioMin) / 100 )
-                Abc_Print( 1, "The ratio of abstracted objects is less than %d %% in frame %d.  ", pPars->nRatioMin, iFrameProved );
+                Abc_Print( 1, "The ratio of abstracted objects is less than %d %% in frame %d.  ", pPars->nRatioMin, iFrameProved+1 );
             else
-                Abc_Print( 1, "Abstraction stopped for unknown reason in frame %d.  ", iFrameProved );
+                Abc_Print( 1, "Abstraction stopped for unknown reason in frame %d.  ", iFrameProved+1 );
         }
         else
         {
             p->pPars->iFrame = iFrameProved;
-            Abc_Print( 1, "GLA completed %d frames and produced a %d-stable abstraction.  ", iFrameProved, p->pPars->nFramesNoChange );
+            Abc_Print( 1, "GLA completed %d frames and produced a %d-stable abstraction.  ", iFrameProved+1, p->pPars->nFramesNoChange );
         }
     }
     else
