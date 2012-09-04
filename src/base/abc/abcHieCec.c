@@ -268,6 +268,7 @@ Gia_Man_t * Abc_NtkDeriveFlatGia( Abc_Ntk_t * pNtk )
     // start the network
     pGia = Gia_ManStart( (1<<16) );
     pGia->pName = Abc_UtilStrsav( Abc_NtkName(pNtk) );
+    pGia->pSpec = Abc_UtilStrsav( Abc_NtkSpec(pNtk) );
     Gia_ManHashAlloc( pGia );
     // create PIs
     Abc_NtkForEachPi( pNtk, pTerm, i )
@@ -344,6 +345,7 @@ Gia_Man_t * Abc_NtkDeriveFlatGia2Derive( Abc_Ntk_t * pNtk, Vec_Ptr_t * vOrder )
     // start the network
     pGia = Gia_ManStart( (1<<15) );
     pGia->pName = Abc_UtilStrsav( Abc_NtkName(pNtk) );
+    pGia->pSpec = Abc_UtilStrsav( Abc_NtkSpec(pNtk) );
     Gia_ManHashAlloc( pGia );
     // create PIs
     Abc_NtkForEachPi( pNtk, pTerm, i )

@@ -59,6 +59,7 @@ Gia_Man_t * Gia_ManCreateResubMiter( Aig_Man_t * p )
     // create the new manager
     pNew = Gia_ManStart( Aig_ManObjNum(p) );
     pNew->pName = Gia_UtilStrsav( p->pName );
+    pNew->pSpec = Gia_UtilStrsav( p->pSpec );
     Gia_ManHashAlloc( pNew );
     // create the objects
     pOuts0 = ABC_ALLOC( int, Aig_ManPoNum(p) );

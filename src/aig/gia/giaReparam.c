@@ -53,6 +53,7 @@ Gia_Man_t * Gia_ManDupIn2Ff( Gia_Man_t * p )
     vPiOuts = Vec_IntAlloc( Gia_ManPiNum(p) );
     pNew = Gia_ManStart( Gia_ManObjNum(p) + 2 * Gia_ManPiNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     Gia_ManFillValue( p );
     Gia_ManConst0(p)->Value = 0;
     Gia_ManForEachPi( p, pObj, i )
@@ -113,6 +114,7 @@ Gia_Man_t * Gia_ManDupFf2In( Gia_Man_t * p, int nFlopsOld )
     int i;
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     Gia_ManFillValue( p );
     Gia_ManConst0(p)->Value = 0;
     Gia_ManForEachRo( p, pObj, i )

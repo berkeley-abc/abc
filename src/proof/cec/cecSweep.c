@@ -54,6 +54,7 @@ Gia_Man_t * Cec_ManFraSpecReduction( Cec_ManFra_t * p )
         Gia_ManLevelNum( p->pAig );
     pNew = Gia_ManStart( Gia_ManObjNum(p->pAig) );
     pNew->pName = Abc_UtilStrsav( p->pAig->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pAig->pName );
     Gia_ManHashAlloc( pNew );
     piCopies = ABC_FALLOC( int, Gia_ManObjNum(p->pAig) );
     pDepths  = ABC_CALLOC( int, Gia_ManObjNum(p->pAig) );

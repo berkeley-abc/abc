@@ -447,6 +447,7 @@ Gia_Man_t * Gia_ReadAiger2( char * pFileName, int fCheck )
     pNew = Gia_ManStart( nTotal + nLatches + nOutputs + 1 );
     pName = Gia_FileNameGeneric( pFileName );
     pNew->pName = Abc_UtilStrsav( pName );
+    pNew->pSpec = Abc_UtilStrsav( pFileName );
 //    pNew->pSpec = Abc_UtilStrsav( pFileName );
     ABC_FREE( pName );
     pNew->nConstrs = nConstr;
@@ -1097,6 +1098,8 @@ Gia_Man_t * Gia_ReadAiger( char * pFileName, int fSkipStrash, int fCheck )
 //        pNew->pSpec = Ioa_UtilStrsav( pFileName );
         ABC_FREE( pName );
     }
+    assert( pNew->pSpec == NULL );
+    pNew->pSpec = Abc_UtilStrsav( pFileName );
     return pNew;
 }
 

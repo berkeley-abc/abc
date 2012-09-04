@@ -104,6 +104,7 @@ Gia_Man_t * Cec_ManCombSpecReduce( Gia_Man_t * p, Vec_Int_t ** pvOutputs, int fR
     Gia_ManFillValue( p );
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     Gia_ManHashAlloc( pNew );
     Gia_ManConst0(p)->Value = 0;
     Gia_ManForEachCi( p, pObj, i )

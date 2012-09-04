@@ -116,6 +116,7 @@ Gia_Man_t * Gia_ManCorrSpecReduce( Gia_Man_t * p, int nFrames, int fScorr, Vec_I
     Gia_ManSetPhase( p );
     pNew = Gia_ManStart( nFrames * Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     Gia_ManHashAlloc( pNew );
     Gia_ObjSetCopyF( p, 0, Gia_ManConst0(p), 0 );
     Gia_ManForEachRo( p, pObj, i )
@@ -232,6 +233,7 @@ Gia_Man_t * Gia_ManCorrSpecReduceInit( Gia_Man_t * p, int nFrames, int nPrefix, 
     Gia_ManSetPhase( p );
     pNew = Gia_ManStart( (nFrames+nPrefix) * Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     Gia_ManHashAlloc( pNew );
     Gia_ManForEachRo( p, pObj, i )
     {
@@ -693,6 +695,7 @@ Gia_Man_t * Gia_ManCorrReduce( Gia_Man_t * p )
     Gia_ManSetPhase( p );
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     Gia_ManFillValue( p );
     Gia_ManConst0(p)->Value = 0;
     Gia_ManForEachCi( p, pObj, i )

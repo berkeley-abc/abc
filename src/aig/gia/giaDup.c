@@ -174,6 +174,7 @@ Gia_Man_t * Gia_ManDupOrderDfs( Gia_Man_t * p )
     Gia_ManFillValue( p );
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     Gia_ManConst0(p)->Value = 0;
     Gia_ManForEachCo( p, pObj, i )
         Gia_ManDupOrderDfs_rec( pNew, p, pObj );
@@ -206,6 +207,7 @@ Gia_Man_t * Gia_ManDupOutputGroup( Gia_Man_t * p, int iOutStart, int iOutStop )
     Gia_ManFillValue( p );
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     Gia_ManConst0(p)->Value = 0;
     for ( i = iOutStart; i < iOutStop; i++ )
     {
@@ -265,6 +267,7 @@ Gia_Man_t * Gia_ManDupOrderDfsChoices( Gia_Man_t * p )
     Gia_ManFillValue( p );
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     pNew->pNexts = ABC_CALLOC( int, Gia_ManObjNum(p) );
     Gia_ManConst0(p)->Value = 0;
     Gia_ManForEachCi( p, pObj, i )
@@ -298,6 +301,7 @@ Gia_Man_t * Gia_ManDupOrderDfsReverse( Gia_Man_t * p )
     Gia_ManFillValue( p );
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     Gia_ManConst0(p)->Value = 0;
     Gia_ManForEachCoReverse( p, pObj, i )
         Gia_ManDupOrderDfs_rec( pNew, p, pObj );
@@ -330,6 +334,7 @@ Gia_Man_t * Gia_ManDupOrderAiger( Gia_Man_t * p )
     int i;
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     Gia_ManConst0(p)->Value = 0;
     Gia_ManForEachCi( p, pObj, i )
         pObj->Value = Gia_ManAppendCi(pNew);
@@ -362,6 +367,7 @@ Gia_Man_t * Gia_ManDupFlip( Gia_Man_t * p, int * pInitState )
     int i;
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     Gia_ManConst0(p)->Value = 0;
     Gia_ManForEachObj1( p, pObj, i )
     {
@@ -404,6 +410,7 @@ Gia_Man_t * Gia_ManDup( Gia_Man_t * p )
     int i;
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     Gia_ManConst0(p)->Value = 0;
     Gia_ManForEachObj1( p, pObj, i )
     {
@@ -438,6 +445,7 @@ Gia_Man_t * Gia_ManDupSelf( Gia_Man_t * p )
     int i, iCtrl;
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     Gia_ManHashAlloc( pNew );
     Gia_ManFillValue( p );
     Gia_ManConst0(p)->Value = 0;
@@ -478,6 +486,7 @@ Gia_Man_t * Gia_ManDupFlopClass( Gia_Man_t * p, int iClass )
     assert( p->vFlopClasses != NULL );
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     Gia_ManFillValue( p );
     Gia_ManConst0(p)->Value = 0;
     Gia_ManForEachPi( p, pObj, i )
@@ -523,6 +532,7 @@ Gia_Man_t * Gia_ManDupMarked( Gia_Man_t * p )
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
     pNew->nConstrs = p->nConstrs;
     pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     Gia_ManConst0(p)->Value = 0;
     Gia_ManForEachObj1( p, pObj, i )
     {
@@ -589,6 +599,7 @@ Gia_Man_t * Gia_ManDupTimes( Gia_Man_t * p, int nTimes )
     assert( nTimes > 0 );
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     Gia_ManConst0(p)->Value = 0;
     vPis = Vec_IntAlloc( Gia_ManPiNum(p) * nTimes );
     vPos = Vec_IntAlloc( Gia_ManPoNum(p) * nTimes );
@@ -699,6 +710,7 @@ Gia_Man_t * Gia_ManDupDfs2( Gia_Man_t * p )
     Gia_ManFillValue( p );
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     Gia_ManConst0(p)->Value = 0;
     Gia_ManForEachCo( p, pObj, i )
         Gia_ManDupDfs2_rec( pNew, p, pObj );
@@ -757,6 +769,7 @@ Gia_Man_t * Gia_ManDupDfs( Gia_Man_t * p )
     int i;
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     Gia_ManFillValue( p );
     Gia_ManConst0(p)->Value = 0;
     Gia_ManForEachCi( p, pObj, i )
@@ -790,6 +803,7 @@ Gia_Man_t * Gia_ManDupDfsSkip( Gia_Man_t * p )
     Gia_ManFillValue( p );
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     Gia_ManConst0(p)->Value = 0;
     Gia_ManForEachCi( p, pObj, i )
         pObj->Value = Gia_ManAppendCi(pNew);
@@ -820,6 +834,7 @@ Gia_Man_t * Gia_ManDupDfsCone( Gia_Man_t * p, Gia_Obj_t * pRoot )
     Gia_ManFillValue( p );
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     Gia_ManConst0(p)->Value = 0;
     Gia_ManForEachCi( p, pObj, i )
         pObj->Value = Gia_ManAppendCi(pNew);
@@ -848,6 +863,7 @@ Gia_Man_t * Gia_ManDupDfsLitArray( Gia_Man_t * p, Vec_Int_t * vLits )
     Gia_ManFillValue( p );
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     Gia_ManConst0(p)->Value = 0;
     Gia_ManForEachCi( p, pObj, i )
         pObj->Value = Gia_ManAppendCi(pNew);
@@ -878,6 +894,7 @@ Gia_Man_t * Gia_ManDupNormalized( Gia_Man_t * p )
     int i;
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     Gia_ManConst0(p)->Value = 0;
     Gia_ManForEachCi( p, pObj, i )
         pObj->Value = Gia_ManAppendCi(pNew);
@@ -946,6 +963,7 @@ Gia_Man_t * Gia_ManDupTrimmed( Gia_Man_t * p, int fTrimCis, int fTrimCos, int fD
     // start new manager
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     // check if there are PIs to be added
     Gia_ManCreateRefs( p );
     Gia_ManForEachPi( p, pObj, i )
@@ -1022,6 +1040,7 @@ Gia_Man_t * Gia_ManDupTrimmed2( Gia_Man_t * p )
     // start new manager
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     // check if there are PIs to be added
     Gia_ManCreateRefs( p );
     // discount references of POs
@@ -1076,6 +1095,7 @@ Gia_Man_t * Gia_ManDupOntop( Gia_Man_t * p, Gia_Man_t * p2 )
     assert( Gia_ManRegNum(p2) == 0 );
     pNew = Gia_ManStart( Gia_ManObjNum(p)+Gia_ManObjNum(p2) );
     pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     Gia_ManHashAlloc( pNew );
     // dup first AIG
     Gia_ManConst0(p)->Value = 0;
@@ -1138,6 +1158,7 @@ Gia_Man_t * Gia_ManDupDfsCiMap( Gia_Man_t * p, int * pCi2Lit, Vec_Int_t * vLits 
     Gia_ManFillValue( p );
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     Gia_ManConst0(p)->Value = 0;
     Gia_ManForEachCi( p, pObj, i )
     {
@@ -1188,6 +1209,7 @@ Gia_Man_t * Gia_ManDupDfsClasses( Gia_Man_t * p )
     Gia_ManFillValue( p );
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     Gia_ManConst0(p)->Value = 0;
     Gia_ManForEachCi( p, pObj, i )
         pObj->Value = Gia_ManAppendCi(pNew);
@@ -1505,6 +1527,7 @@ Gia_Man_t * Gia_ManTransformMiter( Gia_Man_t * p )
     assert( (Gia_ManPoNum(p) & 1) == 0 );
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     Gia_ManConst0(p)->Value = 0;
     Gia_ManHashAlloc( pNew );
     Gia_ManForEachCi( p, pObj, i )
@@ -1577,6 +1600,7 @@ Gia_Man_t * Gia_ManChoiceMiter( Vec_Ptr_t * vGias )
     // start the new manager
     pNew = Gia_ManStart( Vec_PtrSize(vGias) * Gia_ManObjNum(pGia0) );
     pNew->pName = Abc_UtilStrsav( pGia0->pName );
+    pNew->pSpec = Abc_UtilStrsav( pGia0->pSpec );
     // create new CIs and assign them to the old manager CIs
     for ( k = 0; k < Gia_ManCiNum(pGia0); k++ )
     {
@@ -1618,6 +1642,7 @@ Gia_Man_t * Gia_ManDupWithConstraints( Gia_Man_t * p, Vec_Int_t * vPoTypes )
     int i, nConstr = 0;
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     Gia_ManConst0(p)->Value = 0;
     Gia_ManForEachCi( p, pObj, i )
         pObj->Value = Gia_ManAppendCi(pNew);
@@ -1679,6 +1704,7 @@ Gia_Man_t * Gia_ManDupAbsFlops( Gia_Man_t * p, Vec_Int_t * vFlopClasses )
     // start the new manager
     pNew = Gia_ManStart( 5000 );
     pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     // create PIs
     Gia_ManConst0(p)->Value = 0;
     Gia_ManForEachPi( p, pObj, i )
@@ -1839,6 +1865,7 @@ Gia_Man_t * Gia_ManDupAbsGates( Gia_Man_t * p, Vec_Int_t * vGateClasses )
     // start the new manager
     pNew = Gia_ManStart( 5000 );
     pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     // create constant
     Gia_ManFillValue( p );
     Gia_ManConst0(p)->Value = 0;
@@ -1947,6 +1974,7 @@ Gia_Man_t * Gia_ManDupCones( Gia_Man_t * p, int * pPos, int nPos, int fTrimPis )
 //    Gia_ManFillValue( p );
     pNew = Gia_ManStart( Vec_PtrSize(vLeaves) + Vec_PtrSize(vNodes) + Vec_PtrSize(vRoots) + 1);
     pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     // map the constant node
     Gia_ManConst0(p)->Value = 0;
     // create PIs

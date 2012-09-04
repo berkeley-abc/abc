@@ -953,6 +953,7 @@ Gia_Man_t * Gia_ManDupFromVecs( Gia_Man_t * p, Vec_Int_t * vCis, Vec_Int_t * vAn
     // start the new manager
     pNew = Gia_ManStart( 5000 );
     pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     // create constant
     Gia_ManConst0(p)->Value = 0;
     // create PIs

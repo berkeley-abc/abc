@@ -112,6 +112,7 @@ Gia_Man_t * Gia_ManUnrollDup( Gia_Man_t * p, Vec_Int_t * vLimit )
     assert( Vec_IntSize(vLimit) == 0 );
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
 
     // save constant class
     Gia_ManFillValue( p );
@@ -408,6 +409,7 @@ void * Gia_ManUnrollStart( Gia_Man_t * pAig, Gia_ParFra_t * pPars )
     assert( p->pNew == NULL );
     p->pNew = Gia_ManStart( 10000 );
     p->pNew->pName = Abc_UtilStrsav( p->pAig->pName );
+    p->pNew->pSpec = Abc_UtilStrsav( p->pAig->pSpec );
     Gia_ManHashAlloc( p->pNew );
     // create combinational inputs
     if ( !p->pPars->fSaveLastLit ) // only in the case when unrolling depth is known
@@ -544,6 +546,7 @@ Gia_Man_t * Gia_ManUnroll( Gia_ManUnr_t * p )
     // start timeframes
     pNew = Gia_ManStart( 10000 );
     pNew->pName = Abc_UtilStrsav( p->pAig->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pAig->pSpec );
     Gia_ManHashAlloc( pNew );
     // create combinational inputs
     for ( f = 0; f < p->pPars->nFrames; f++ )
@@ -757,6 +760,7 @@ Gia_Man_t * Gia_ManFramesInit( Gia_Man_t * pAig, Gia_ParFra_t * pPars )
     pFrames = Gia_ManStart( Vec_VecSizeSize((Vec_Vec_t*)p->vIns)+
         Vec_VecSizeSize((Vec_Vec_t*)p->vAnds)+Vec_VecSizeSize((Vec_Vec_t*)p->vOuts) );
     pFrames->pName = Abc_UtilStrsav( pAig->pName );
+    pFrames->pSpec = Abc_UtilStrsav( pAig->pSpec );
     Gia_ManHashAlloc( pFrames );
     Gia_ManConst0(pAig)->Value = 0;
     for ( f = 0; f < pPars->nFrames; f++ )
@@ -867,6 +871,7 @@ Gia_Man_t * Gia_ManFrames( Gia_Man_t * pAig, Gia_ParFra_t * pPars )
         return Gia_ManFramesInit( pAig, pPars );
     pFrames = Gia_ManStart( pPars->nFrames * Gia_ManObjNum(pAig) );
     pFrames->pName = Abc_UtilStrsav( pAig->pName );
+    pFrames->pSpec = Abc_UtilStrsav( pAig->pSpec );
     Gia_ManHashAlloc( pFrames );
     Gia_ManConst0(pAig)->Value = 0;
     for ( f = 0; f < pPars->nFrames; f++ )
@@ -937,6 +942,7 @@ Gia_Man_t * Gia_ManFramesInitSpecial( Gia_Man_t * pAig, int nFrames, int fVerbos
         printf( "Computing specialized unrolling with %d frames...\n", nFrames );
     pFrames = Gia_ManStart( Gia_ManObjNum(pAig) );
     pFrames->pName = Abc_UtilStrsav( pAig->pName );
+    pFrames->pSpec = Abc_UtilStrsav( pAig->pSpec );
     Gia_ManHashAlloc( pFrames );
     Gia_ManConst0(pAig)->Value = 0;
     for ( f = 0; nFrames == 0 || f < nFrames; f++ )

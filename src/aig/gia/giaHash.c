@@ -602,6 +602,7 @@ Gia_Man_t * Gia_ManRehash( Gia_Man_t * p, int fAddStrash )
     int i;
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     pNew->fAddStrash = fAddStrash;
     Gia_ManHashAlloc( pNew );
     Gia_ManConst0(p)->Value = 0;

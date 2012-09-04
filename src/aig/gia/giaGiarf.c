@@ -539,6 +539,7 @@ Gia_Man_t * Gia_GenerateReducedLevel( Gia_Man_t * p, int Level, Vec_Ptr_t ** pvR
     // copy unmarked nodes
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     Gia_ManConst0(p)->Value = 0;
     Gia_ManForEachCi( p, pObj, i )
         pObj->Value = Gia_ManAppendCi(pNew);

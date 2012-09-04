@@ -1226,6 +1226,7 @@ Gia_Man_t * Au_NtkDeriveFlatGia( Au_Ntk_t * p )
     // start the network
     pGia = Gia_ManStart( (1<<16) );
     pGia->pName = Abc_UtilStrsav( Au_NtkName(p) );
+//    pGia->pSpec = Abc_UtilStrsav( Au_NtkSpec(p) );
     Gia_ManHashAlloc( pGia );
     Gia_ManFlipVerbose( pGia );
     // create PIs

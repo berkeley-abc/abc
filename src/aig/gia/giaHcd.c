@@ -333,6 +333,7 @@ Gia_Man_t * Hcd_ManChoiceMiter( Vec_Ptr_t * vGias )
     // start the new manager
     pNew = Gia_ManStart( Vec_PtrSize(vGias) * Gia_ManObjNum(pGia0) );
     pNew->pName = Abc_UtilStrsav( pGia0->pName );
+    pNew->pSpec = Abc_UtilStrsav( pGia0->pSpec );
     // create new CIs and assign them to the old manager CIs
     for ( k = 0; k < Gia_ManCiNum(pGia0); k++ )
     {
@@ -564,6 +565,7 @@ Gia_Man_t * Hcd_ManEquivToChoices( Gia_Man_t * p, int nSnapshots )
     Gia_ManSetPhase( p );
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     pNew->pReprs = ABC_CALLOC( Gia_Rpr_t, Gia_ManObjNum(p) );
     pNew->pNexts = ABC_CALLOC( int, Gia_ManObjNum(p) );
     for ( i = 0; i < Gia_ManObjNum(p); i++ )

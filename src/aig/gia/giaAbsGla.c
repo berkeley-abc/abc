@@ -966,6 +966,7 @@ Gia_Man_t * Gia_ManDupMapped( Gia_Man_t * p, Vec_Int_t * vMapping )
     // start new manager
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     // start mapping
     Gia_ManFillValue( p );
     pObj2Obj = ABC_FALLOC( int, Gia_ManObjNum(p) );

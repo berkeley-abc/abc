@@ -90,6 +90,7 @@ Gia_Man_t * Gia_ManFromAig( Aig_Man_t * p )
     // create the new manager
     pNew = Gia_ManStart( Aig_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     pNew->nConstrs = p->nConstrs;
     // create room to store equivalences
     if ( p->pEquivs )
@@ -129,6 +130,7 @@ Gia_Man_t * Gia_ManFromAigSimple( Aig_Man_t * p )
     // create the new manager
     pNew = Gia_ManStart( Aig_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     pNew->nConstrs = p->nConstrs;
     // create the PIs
     Aig_ManCleanData( p );
@@ -168,6 +170,7 @@ Gia_Man_t * Gia_ManFromAigSwitch( Aig_Man_t * p )
     // create the new manager
     pNew = Gia_ManStart( Aig_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     pNew->nConstrs = p->nConstrs;
     // create the PIs
     Aig_ManCleanData( p );

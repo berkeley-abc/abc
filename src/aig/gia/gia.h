@@ -100,6 +100,7 @@ typedef struct Gia_Man_t_ Gia_Man_t;
 struct Gia_Man_t_
 {
     char *         pName;         // name of the AIG
+    char *         pSpec;         // name of the input file
     int            nRegs;         // number of registers
     int            nRegsAlloc;    // number of allocated registers
     int            nObjs;         // number of objects
