@@ -2082,10 +2082,12 @@ int Gia_GlaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars, int fStartVta )
             // dump the model into file
             if ( p->pPars->fDumpVabs )
             {
+                char Command[1000];
                 Abc_FrameSetStatus( -1 );
                 Abc_FrameSetCex( NULL );
                 Abc_FrameSetNFrames( f+1 );
-                Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "write_status gla.status" );
+                sprintf( Command, "write_status %s", Extra_FileNameGenericAppend((p->pPars->pFileVabs ? p->pPars->pFileVabs : "glabs.aig"), ".status") );
+                Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Command );
                 Gia_GlaDumpAbsracted( p, pPars->fVerbose );
             }
         }
