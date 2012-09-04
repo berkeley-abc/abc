@@ -1325,8 +1325,8 @@ void Ga2_GlaDumpAbsracted( Ga2_Man_t * p, int fVerbose )
 {
     char * pFileNameDef = "glabs.aig";
     char * pFileName = p->pPars->pFileVabs ? p->pPars->pFileVabs : pFileNameDef;
-    if ( fVerbose )
-        Abc_Print( 1, "Dumping abstracted model into file \"%s\"...\n", pFileName );
+//    if ( fVerbose )
+//        Abc_Print( 1, "Dumping abstracted model into file \"%s\"...\n", pFileName );
     if ( p->pPars->fDumpVabs )
     {
         // dump absracted model
@@ -1435,7 +1435,11 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
             pPars->nFramesMax, pPars->nConfLimit, pPars->nTimeOut, pPars->nRatioMin, pPars->nRatioMax );
         Abc_Print( 1, "LrnStart = %d  LrnDelta = %d  LrnRatio = %d %%  Skip = %d  SimpleCNF = %d  Dump = %d\n", 
             pPars->nLearnedStart, pPars->nLearnedDelta, pPars->nLearnedPerce, pPars->fUseSkip, pPars->fUseSimple, pPars->fDumpVabs|pPars->fDumpMabs );
-        Abc_Print( 1, " Frame   %%   Abs  PPI   FF   LUT   Confl  Cex   Vars   Clas   Lrns     Time      Mem\n" );
+        if ( pPars->fDumpVabs )
+            Abc_Print( 1, "Abstracted model will be dumped into file \"%s\".\n", p->pPars->pFileVabs ? p->pPars->pFileVabs : "glabs.aig" );
+        else if ( pPars->fDumpMabs )
+            Abc_Print( 1, "Miter with abstraction map will be dumped into file \"%s\".\n", p->pPars->pFileVabs ? p->pPars->pFileVabs : "glabs.aig" );
+        Abc_Print( 1, " Frame   %%   Abs  PPI   FF   LUT   Confl  Cex   Vars   Clas   Lrns     Time        Mem\n" );
     }
     // iterate unrolling
     for ( i = f = 0; !pPars->nFramesMax || f < pPars->nFramesMax; i++ )
@@ -1448,7 +1452,6 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
         // remember abstraction size after the last restart
         nAbsOld = Vec_IntSize(p->vAbs);
         // unroll the circuit
-        p->pPars->nFramesNoChange = -1;
         for ( f = 0; !pPars->nFramesMax || f < pPars->nFramesMax; f++ )
         {
             // remember current limits
@@ -1456,12 +1459,12 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
             int nAbs       = Vec_IntSize(p->vAbs);
             int nValues    = Vec_IntSize(p->vValues);
             int nVarsOld;
+            // remember the timeframe
+            p->pPars->iFrame = f;
             // extend and clear storage
             if ( f == Vec_PtrSize(p->vId2Lit) )
                 Vec_PtrPush( p->vId2Lit, Vec_IntAlloc(0) );
             Vec_IntFillExtra( Ga2_MapFrameMap(p, f), Vec_IntSize(p->vValues), -1 );
-            // remember the timeframe
-            p->pPars->iFrame = f;
             // add static clauses to this timeframe
             Ga2_ManAddAbsClauses( p, f );
             // skip checking if skipcheck is enabled (&gla -s)
@@ -1553,11 +1556,12 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
                     goto finish;
                 if ( c == 0 )
                 {
-                    if ( p->pPars->nFramesNoChange >= 0 )
+                    if ( f > iFrameProved )
                         p->pPars->nFramesNoChange++;
                     break;
                 }
-                p->pPars->nFramesNoChange = 0;
+                if ( f > iFrameProved )
+                    p->pPars->nFramesNoChange = 0;
 
                 // derive the core
                 assert( p->pSat->pPrf2 != NULL );
@@ -1613,21 +1617,24 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
                 Vec_IntFree( vCore );
                 break;
             }
+            // remember the last proved frame
+            if ( iFrameProved < f )
+                iFrameProved = f;
+            // print statistics
             if ( pPars->fVerbose )
                 Ga2_ManAbsPrintFrame( p, f, sat_solver2_nconflicts(p->pSat)-nConflsBeg, c, clock() - clk, 1 );
-            // set model
             if ( c > 0 )
             {
+                // recompute the abstraction
                 Vec_IntFreeP( &pAig->vGateClasses );
                 pAig->vGateClasses = Ga2_ManAbsTranslate( p );
-
                 // check if the number of objects is below limit
                 if ( Vec_IntSize(p->vAbs) >= p->nMarked * (100 - pPars->nRatioMin) / 100 )
                 {
                     Status = l_Undef;
                     goto finish;
                 }
-
+                // speak to the bridge
                 if ( Abc_FrameIsBridgeMode() )
                 {
                     // cancel old one if it was sent
@@ -1637,7 +1644,6 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
                     Gia_Ga2SendAbsracted( p, pPars->fVerbose );
                     fOneIsSent = 1;
                 }
-
                 // dump the model into file
                 if ( p->pPars->fDumpVabs || p->pPars->fDumpMabs )
                 {
@@ -1649,11 +1655,8 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
                     Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Command );
                     Ga2_GlaDumpAbsracted( p, pPars->fVerbose );
                 }
-
-                iFrameProved = f;
                 if ( p->pPars->fVeryVerbose )
                     Abc_Print( 1, "\n" );
-
                 // if abstraction grew more than a certain percentage, force a restart
                 if ( pPars->nRatioMax == 0 )
                     break;
@@ -1668,7 +1671,6 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
         }
     }
 finish:
-    p->pPars->nFramesNoChange = Abc_MaxInt( p->pPars->nFramesNoChange, 0 );
     Prf_ManStopP( &p->pSat->pPrf2 );
     if ( p->pPars->fVerbose )
     Abc_Print( 1, "\n" );
@@ -1682,18 +1684,18 @@ finish:
         if ( Status == l_Undef )
         {
             if ( p->pPars->nTimeOut && clock() >= p->pSat->nRuntimeLimit ) 
-                Abc_Print( 1, "Timeout %d sec in frame %d with a %d-stable abstraction.    ", p->pPars->nTimeOut, f, p->pPars->nFramesNoChange );
+                Abc_Print( 1, "Timeout %d sec in frame %d with a %d-stable abstraction.    ", p->pPars->nTimeOut, iFrameProved, p->pPars->nFramesNoChange );
             else if ( pPars->nConfLimit && sat_solver2_nconflicts(p->pSat) >= pPars->nConfLimit )
-                Abc_Print( 1, "Exceeded %d conflicts in frame %d with a %d-stable abstraction.  ", pPars->nConfLimit, f, p->pPars->nFramesNoChange );
+                Abc_Print( 1, "Exceeded %d conflicts in frame %d with a %d-stable abstraction.  ", pPars->nConfLimit, iFrameProved, p->pPars->nFramesNoChange );
             else if ( Vec_IntSize(p->vAbs) >= p->nMarked * (100 - pPars->nRatioMin) / 100 )
-                Abc_Print( 1, "The ratio of abstracted objects is less than %d %% in frame %d.  ", pPars->nRatioMin, f );
+                Abc_Print( 1, "The ratio of abstracted objects is less than %d %% in frame %d.  ", pPars->nRatioMin, iFrameProved );
             else
-                Abc_Print( 1, "Abstraction stopped for unknown reason in frame %d.  ", f );
+                Abc_Print( 1, "Abstraction stopped for unknown reason in frame %d.  ", iFrameProved );
         }
         else
         {
-            p->pPars->iFrame++;
-            Abc_Print( 1, "SAT solver completed %d frames and produced a %d-stable abstraction.  ", f, p->pPars->nFramesNoChange );
+            p->pPars->iFrame = iFrameProved;
+            Abc_Print( 1, "GLA completed %d frames and produced a %d-stable abstraction.  ", iFrameProved, p->pPars->nFramesNoChange );
         }
     }
     else
@@ -1701,7 +1703,7 @@ finish:
         if ( !Gia_ManVerifyCex( pAig, pAig->pCexSeq, 0 ) )
             Abc_Print( 1, "    Gia_GlaPerform(): CEX verification has failed!\n" );
         Abc_Print( 1, "Counter-example detected in frame %d.  ", f );
-        p->pPars->iFrame = pAig->pCexSeq->iFrame - 1;
+        p->pPars->iFrame = f - 1;
         Vec_IntFreeP( &pAig->vGateClasses );
         RetValue = 0;
     }

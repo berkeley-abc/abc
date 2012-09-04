@@ -1919,7 +1919,7 @@ int Gia_GlaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars, int fStartVta )
             pPars->nFramesMax, pPars->nConfLimit, pPars->nTimeOut, pPars->nRatioMin );
         Abc_Print( 1, "LearnStart = %d  LearnDelta = %d  LearnRatio = %d %%.\n", 
             pPars->nLearnedStart, pPars->nLearnedDelta, pPars->nLearnedPerce );
-        Abc_Print( 1, " Frame   %%   Abs  PPI   FF   LUT   Confl  Cex   Vars   Clas   Lrns     Time      Mem\n" );
+        Abc_Print( 1, " Frame   %%   Abs  PPI   FF   LUT   Confl  Cex   Vars   Clas   Lrns     Time        Mem\n" );
     }
     for ( f = i = iPrev = 0; !p->pPars->nFramesMax || f < p->pPars->nFramesMax; f++, iPrev = i )
     {
@@ -2123,7 +2123,7 @@ finish:
         else
         {
             p->pPars->iFrame++;
-            Abc_Print( 1, "Completed %d frames with a %d-stable abstraction.  ", f, p->pPars->nFramesNoChange );
+            Abc_Print( 1, "GLA completed %d frames with a %d-stable abstraction.  ", f, p->pPars->nFramesNoChange );
         }
     }
     else

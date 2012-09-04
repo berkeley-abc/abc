@@ -1727,7 +1727,7 @@ finish:
             else
             {
                 p->pPars->iFrame++;
-                Abc_Print( 1, "Completed %d frames with a %d-stable abstraction.  ", f, p->pPars->nFramesNoChange );
+                Abc_Print( 1, "VTA completed %d frames with a %d-stable abstraction.  ", f, p->pPars->nFramesNoChange );
             }
         }
     }
