@@ -1321,10 +1321,23 @@ void Ga2_ManAbsPrintFrame( Ga2_Man_t * p, int nFrames, int nConfls, int nCexes, 
   SeeAlso     []
 
 ***********************************************************************/
+char * Ga2_GlaGetFileName( Ga2_Man_t * p, int fAbs )
+{
+    static char * pFileNameDef = "glabs.aig";
+    if ( p->pPars->pFileVabs )
+        return p->pPars->pFileVabs;
+    if ( p->pGia->pSpec )
+    {
+        if ( fAbs )
+            return Extra_FileNameGenericAppend( p->pGia->pSpec, "_abs.aig");
+        else
+            return Extra_FileNameGenericAppend( p->pGia->pSpec, "_gla.aig");
+    }
+    return pFileNameDef;
+}
+
 void Ga2_GlaDumpAbsracted( Ga2_Man_t * p, int fVerbose )
 {
-    char * pFileNameDef = "glabs.aig";
-    char * pFileName = p->pPars->pFileVabs ? p->pPars->pFileVabs : pFileNameDef;
 //    if ( fVerbose )
 //        Abc_Print( 1, "Dumping abstracted model into file \"%s\"...\n", pFileName );
     if ( p->pPars->fDumpVabs )
@@ -1333,7 +1346,7 @@ void Ga2_GlaDumpAbsracted( Ga2_Man_t * p, int fVerbose )
         Vec_Int_t * vGateClasses = Ga2_ManAbsTranslate( p );
         Gia_Man_t * pAbs = Gia_ManDupAbsGates( p->pGia, vGateClasses );
         Gia_ManCleanValue( p->pGia );
-        Gia_WriteAiger( pAbs, pFileName, 0, 0 );
+        Gia_WriteAiger( pAbs, Ga2_GlaGetFileName(p, 1), 0, 0 );
         Gia_ManStop( pAbs );
         Vec_IntFreeP( &vGateClasses );
     }
@@ -1342,7 +1355,7 @@ void Ga2_GlaDumpAbsracted( Ga2_Man_t * p, int fVerbose )
         // dump abstraction map
         Vec_IntFreeP( &p->pGia->vGateClasses );
         p->pGia->vGateClasses = Ga2_ManAbsTranslate( p );
-        Gia_WriteAiger( p->pGia, pFileName, 0, 0 );
+        Gia_WriteAiger( p->pGia, Ga2_GlaGetFileName(p, 0), 0, 0 );
     }
     else assert( 0 );
 }
@@ -1435,10 +1448,10 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
             pPars->nFramesMax, pPars->nConfLimit, pPars->nTimeOut, pPars->nRatioMin, pPars->nRatioMax );
         Abc_Print( 1, "LrnStart = %d  LrnDelta = %d  LrnRatio = %d %%  Skip = %d  SimpleCNF = %d  Dump = %d\n", 
             pPars->nLearnedStart, pPars->nLearnedDelta, pPars->nLearnedPerce, pPars->fUseSkip, pPars->fUseSimple, pPars->fDumpVabs|pPars->fDumpMabs );
-        if ( pPars->fDumpVabs )
-            Abc_Print( 1, "Abstracted model will be dumped into file \"%s\".\n", p->pPars->pFileVabs ? p->pPars->pFileVabs : "glabs.aig" );
-        else if ( pPars->fDumpMabs )
-            Abc_Print( 1, "Miter with abstraction map will be dumped into file \"%s\".\n", p->pPars->pFileVabs ? p->pPars->pFileVabs : "glabs.aig" );
+        if ( pPars->fDumpVabs || pPars->fDumpMabs )
+            Abc_Print( 1, "%s will be dumped into file \"%s\".\n", 
+                pPars->fDumpVabs ? "Abstracted model" : "Miter with abstraction map",
+                Ga2_GlaGetFileName(p, pPars->fDumpVabs) );
         Abc_Print( 1, " Frame   %%   Abs  PPI   FF   LUT   Confl  Cex   Vars   Clas   Lrns     Time        Mem\n" );
     }
     // iterate unrolling
