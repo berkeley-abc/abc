@@ -236,7 +236,7 @@ int Mio_LibraryReadInternal( Mio_Library_t * pLib, char * pBuffer, int fExtended
         }
     }
     if ( fVerbose )
-    printf( "The number of gates read = %d.\n", nGates );
+    printf( "Entered GENLIB library with %d gates from file \"%s\".\n", nGates, pLib->pName );
 
     if ( nGates == 0 )
     {

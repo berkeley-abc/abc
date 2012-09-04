@@ -47,21 +47,22 @@ struct SC_Pair_
 
 struct SC_Man_ 
 {
-    SC_Lib *       pLib;       // library
-    Abc_Ntk_t *    pNtk;       // network
-    Vec_Int_t *    vGates;     // mapping of objId into gateId
-    int            nObjs;      // allocated size
-    SC_Pair *      pLoads;     // loads for each gate
-    SC_Pair *      pTimes;     // arrivals for each gate
-    SC_Pair *      pSlews;     // slews for each gate
-    SC_Pair *      pTimes2;    // arrivals for each gate
-    SC_Pair *      pSlews2;    // slews for each gate
-    char *         pWLoadUsed; // name of the used WireLoad model
-    clock_t        clkStart;   // starting time
-    float          SumArea;    // total area
-    float          MaxDelay;   // max delay
-    float          SumArea0;   // total area at the begining 
-    float          MaxDelay0;  // max delay at the begining
+    SC_Lib *       pLib;          // library
+    Abc_Ntk_t *    pNtk;          // network
+    int            fUseWireLoads; // set to 1 if wireloads are used
+    int            nObjs;         // allocated size
+    Vec_Int_t *    vGates;        // mapping of objId into gateId
+    SC_Pair *      pLoads;        // loads for each gate
+    SC_Pair *      pTimes;        // arrivals for each gate
+    SC_Pair *      pSlews;        // slews for each gate
+    SC_Pair *      pTimes2;       // arrivals for each gate
+    SC_Pair *      pSlews2;       // slews for each gate
+    char *         pWLoadUsed;    // name of the used WireLoad model
+    clock_t        clkStart;      // starting time
+    float          SumArea;       // total area
+    float          MaxDelay;      // max delay
+    float          SumArea0;      // total area at the begining 
+    float          MaxDelay0;     // max delay at the begining
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -210,7 +211,7 @@ static inline float Abc_SclGetMaxDelayNode( SC_Man * p, Abc_Obj_t * pNode )
 extern Abc_Obj_t * Abc_SclFindCriticalCo( SC_Man * p, int * pfRise );
 extern Abc_Obj_t * Abc_SclFindMostCriticalFanin( SC_Man * p, int * pfRise, Abc_Obj_t * pNode );
 extern void        Abc_SclTimeNtkPrint( SC_Man * p, int fShowAll );
-extern SC_Man *    Abc_SclManStart( SC_Lib * pLib, Abc_Ntk_t * pNtk );
+extern SC_Man *    Abc_SclManStart( SC_Lib * pLib, Abc_Ntk_t * pNtk, int fUseWireLoads );
 extern void        Abc_SclTimeCone( SC_Man * p, Vec_Int_t * vCone );
 /*=== sclTime.c =============================================================*/
 extern void        Abc_SclComputeLoad( SC_Man * p );

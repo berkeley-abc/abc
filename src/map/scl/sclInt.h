@@ -60,6 +60,20 @@ typedef enum      // -- timing sense, positive-, negative- or non-unate
     sc_ts_Non,
 } SC_TSense;
 
+typedef struct SC_SizePars_    SC_SizePars;
+struct SC_SizePars_
+{
+    int        nSteps;
+    int        nRange;
+    int        nRangeF;
+    int        nTimeOut;
+    int        fTryAll;
+    int        fUseWireLoads;
+    int        fPrintCP;
+    int        fVerbose;
+    int        fVeryVerbose;
+};
+
 ////////////////////////////////////////////////////////////////////////
 ///                    STRUCTURE DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -418,9 +432,9 @@ extern void        Abc_SclWriteText( char * pFileName, SC_Lib * p );
 extern void        Abc_SclLoad( char * pFileName, SC_Lib ** ppScl );
 extern void        Abc_SclSave( char * pFileName, SC_Lib * pScl );
 /*=== sclTime.c =============================================================*/
-extern void        Abc_SclTimePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int fShowAll );
+extern void        Abc_SclTimePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int fShowAll, int fUseWireLoads );
 /*=== sclSize.c =============================================================*/
-extern void        Abc_SclSizingPerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int nSteps, int nRange, int nRangeF, int nTimeOut, int fTryAll, int fPrintCP, int fVerbose, int fVeryVerbose );
+extern void        Abc_SclSizingPerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * p );
 /*=== sclUtil.c =============================================================*/
 extern void        Abc_SclHashCells( SC_Lib * p );
 extern int         Abc_SclCellFind( SC_Lib * p, char * pName );

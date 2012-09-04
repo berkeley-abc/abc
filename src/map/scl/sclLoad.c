@@ -84,7 +84,7 @@ Vec_Flt_t * Abc_SclFindWireCaps( SC_Man * p )
     SC_LibForEachWireLoad( p->pLib, pWL, i )
         if ( !strcmp(pWL->pName, p->pWLoadUsed) )
             break;
-    if ( i == Vec_PtrSize(p->pLib->vWireLoadSels) )
+    if ( i == Vec_PtrSize(p->pLib->vWireLoads) )
     {
         Abc_Print( -1, "Cannot find wire load model \"%s\".\n", p->pWLoadUsed );
         exit(1);
@@ -143,6 +143,8 @@ void Abc_SclComputeLoad( SC_Man * p )
             pLoad->fall += pPin->fall_cap;
         }
     }
+    if ( !p->fUseWireLoads )
+        return;
     // add wire load
     vWireCaps = Abc_SclFindWireCaps( p );
     if ( vWireCaps )

@@ -82,11 +82,11 @@ Abc_Obj_t * Abc_SclFindMostCriticalFanin( SC_Man * p, int * pfRise, Abc_Obj_t * 
   SeeAlso     []
 
 ***********************************************************************/
-static inline void Abc_SclTimeGatePrint( SC_Man * p, Abc_Obj_t * pObj, int fRise )
+static inline void Abc_SclTimeGatePrint( SC_Man * p, Abc_Obj_t * pObj, int fRise, int Length )
 {
     printf( "%7d : ",             Abc_ObjId(pObj) );
     printf( "%d ",                Abc_ObjFaninNum(pObj) );
-    printf( "%-12s ",             Abc_SclObjCell(p, pObj)->pName );
+    printf( "%-*s ",              Length, Abc_SclObjCell(p, pObj)->pName );
     if ( fRise >= 0 )
     printf( "(%s)   ",            fRise ? "rise" : "fall" );
     printf( "delay = (" );
@@ -98,28 +98,42 @@ static inline void Abc_SclTimeGatePrint( SC_Man * p, Abc_Obj_t * pObj, int fRise
 }
 void Abc_SclTimeNtkPrint( SC_Man * p, int fShowAll )
 {
-    int i, fRise = 0;
-    Abc_Obj_t * pObj = Abc_SclFindCriticalCo( p, &fRise );    
+    int i, nLength = 0, fRise = 0;
+    Abc_Obj_t * pObj, * pPivot = Abc_SclFindCriticalCo( p, &fRise );    
 
-    printf( "WireLoad model = \"%s\".  ", p->pWLoadUsed );
-    printf( "Total area = %10.2f.  ",     Abc_SclGetTotalArea( p ) );
-    printf( "Critical delay = %.1f ps\n", Abc_SclObjTimePs(p, pObj, fRise) );
+    printf( "WireLoad model = \"%s\".  ", p->pWLoadUsed ? p->pWLoadUsed : "none" );
+    printf( "Gates = %d.  ",              Abc_NtkNodeNum(p->pNtk) );
+    printf( "Area = %.2f.  ",             Abc_SclGetTotalArea( p ) );
+    printf( "Critical delay = %.1f ps\n", Abc_SclObjTimePs(p, pPivot, fRise) );
 
     if ( fShowAll )
     {
 //        printf( "Timing information for all nodes: \n" );
+        // find the longest cell name
         Abc_NtkForEachNodeReverse( p->pNtk, pObj, i )
             if ( Abc_ObjFaninNum(pObj) > 0 )
-                Abc_SclTimeGatePrint( p, pObj, -1 );
+                nLength = Abc_MaxInt( nLength, strlen(Abc_SclObjCell(p, pObj)->pName) );
+        // print timing
+        Abc_NtkForEachNodeReverse( p->pNtk, pObj, i )
+            if ( Abc_ObjFaninNum(pObj) > 0 )
+                Abc_SclTimeGatePrint( p, pObj, -1, nLength );
     }
     else
     {
 //        printf( "Critical path: \n" );
-        pObj = Abc_ObjFanin0(pObj);
+        // find the longest cell name
+        pObj = Abc_ObjFanin0(pPivot);
+        while ( pObj && Abc_ObjIsNode(pObj) )
+        {
+            nLength = Abc_MaxInt( nLength, strlen(Abc_SclObjCell(p, pObj)->pName) );
+            pObj = Abc_SclFindMostCriticalFanin( p, &fRise, pObj );
+        }
+        // print timing
+        pObj = Abc_ObjFanin0(pPivot);
         while ( pObj && Abc_ObjIsNode(pObj) )
         {
             printf( "Critical path -- " );
-            Abc_SclTimeGatePrint( p, pObj, fRise );
+            Abc_SclTimeGatePrint( p, pObj, fRise, nLength );
             pObj = Abc_SclFindMostCriticalFanin( p, &fRise, pObj );
         }
     }
@@ -257,9 +271,10 @@ void Abc_SclTimeNtk( SC_Man * p )
   SeeAlso     []
 
 ***********************************************************************/
-SC_Man * Abc_SclManStart( SC_Lib * pLib, Abc_Ntk_t * pNtk )
+SC_Man * Abc_SclManStart( SC_Lib * pLib, Abc_Ntk_t * pNtk, int fUseWireLoads )
 {
     SC_Man * p = Abc_SclManAlloc( pLib, pNtk );
+    p->fUseWireLoads = fUseWireLoads;
     assert( p->vGates == NULL );
     p->vGates = Abc_SclManFindGates( pLib, pNtk );
 //    Abc_SclManUpsize( p );
@@ -281,10 +296,10 @@ SC_Man * Abc_SclManStart( SC_Lib * pLib, Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_SclTimePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int fShowAll )
+void Abc_SclTimePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int fShowAll, int fUseWireLoads )
 {
     SC_Man * p;
-    p = Abc_SclManStart( pLib, pNtk );   
+    p = Abc_SclManStart( pLib, pNtk, fUseWireLoads );   
     Abc_SclTimeNtkPrint( p, fShowAll );
     Abc_SclManFree( p );
 }

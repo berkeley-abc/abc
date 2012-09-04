@@ -395,25 +395,25 @@ void Abc_SclManUpsize( SC_Man * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_SclSizingPerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int nSteps, int nRange, int nRangeF, int nTimeOut, int fTryAll, int fPrintCP, int fVerbose, int fVeryVerbose )
+void Abc_SclSizingPerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPars )
 {
     int nIters = 1;
     SC_Man * p;
     Vec_Int_t * vPath, * vPivots;
     Abc_Obj_t * pBest;
-    clock_t nRuntimeLimit = nTimeOut ? nTimeOut * CLOCKS_PER_SEC + clock() : 0;
+    clock_t nRuntimeLimit = pPars->nTimeOut ? pPars->nTimeOut * CLOCKS_PER_SEC + clock() : 0;
     int r, i, nNodes, nCones = 0, nDownSize = 0;
-    p = Abc_SclManStart( pLib, pNtk );
-    if ( fPrintCP )
+    p = Abc_SclManStart( pLib, pNtk, pPars->fUseWireLoads );
+    if ( pPars->fPrintCP )
         Abc_SclTimeNtkPrint( p, 0 );
-    if ( fVerbose )
+    if ( pPars->fVerbose )
         printf( "Iterative gate-sizing of network \"%s\" with library \"%s\":\n", Abc_NtkName(pNtk), pLib->pName );
-    if ( fVerbose )
+    if ( pPars->fVerbose )
     {
 //        printf( "%5d :                                       ", 0 );
         printf( "Starting parameters of current mapping:       " );
         printf( "d =%8.2f ps    ", SC_LibTimePs(p->pLib, Abc_SclGetMaxDelay(p)) );
-        printf( "a =%10.2f   ",     p->SumArea );
+        printf( "a =%10.2f   ",    p->SumArea );
         printf( "           " );
         Abc_PrintTime( 1, "Time",      clock() - p->clkStart );
     }
@@ -422,18 +422,18 @@ void Abc_SclSizingPerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int nSteps, int nRan
         float nThresh1 = p->MaxDelay0/100000;
         float nThresh2 = p->MaxDelay0/1000;
         // try upsizing
-        for ( ; i < nSteps; i++ )
+        for ( ; i < pPars->nSteps; i++ )
         {
-            vPath = Abc_SclFindCriticalPath( p, nRange, &vPivots );
+            vPath = Abc_SclFindCriticalPath( p, pPars->nRange, &vPivots );
             pBest = Abc_SclChooseBiggestGain( p, vPath, vPivots, 1, nThresh1 );
             nNodes = Vec_IntSize(vPath);
             Vec_IntFree( vPath );
             Vec_IntFree( vPivots );
             if ( pBest == NULL )
             {
-                if ( fTryAll )
+                if ( pPars->fTryAll )
                 {
-                    vPath = Abc_SclFindCriticalCone( p, nRange, nRangeF, &vPivots );
+                    vPath = Abc_SclFindCriticalCone( p, pPars->nRange, pPars->nRangeF, &vPivots );
                     pBest = Abc_SclChooseBiggestGain( p, vPath, vPivots, 1, nThresh1 );
                     nNodes = Vec_IntSize(vPath);
                     Vec_IntFree( vPath );
@@ -443,7 +443,7 @@ void Abc_SclSizingPerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int nSteps, int nRan
                 if ( pBest == NULL )
                     break;
             }
-            Abc_SclUpdateNetwork( p, pBest, nNodes, 1, i+1, fVerbose, fVeryVerbose );
+            Abc_SclUpdateNetwork( p, pBest, nNodes, 1, i+1, pPars->fVerbose, pPars->fVeryVerbose );
             // recompute loads every 100 steps
             if ( i && i % 100 == 0 )
                 Abc_SclComputeLoad( p );
@@ -454,12 +454,12 @@ void Abc_SclSizingPerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int nSteps, int nRan
             break;
         if ( nRuntimeLimit && clock() > nRuntimeLimit ) // timeout
             break;
-        if ( fVeryVerbose )
+        if ( pPars->fVeryVerbose )
             printf( "\n" );
         // try downsizing
-        for ( ; i < nSteps; i++ )
+        for ( ; i < pPars->nSteps; i++ )
         {
-            vPath = Abc_SclFindCriticalPath( p, nRange, &vPivots );
+            vPath = Abc_SclFindCriticalPath( p, pPars->nRange, &vPivots );
 //            pBest = Abc_SclChooseBiggestGain( p, vPath, vPivots, 0, -p->MaxDelay0/100000 );
             pBest = Abc_SclChooseBiggestGain( p, vPath, NULL, 0, nThresh2 );
             nNodes = Vec_IntSize(vPath);
@@ -468,9 +468,9 @@ void Abc_SclSizingPerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int nSteps, int nRan
             if ( pBest == NULL )
             {
 
-                if ( fTryAll )
+                if ( pPars->fTryAll )
                 {
-                    vPath = Abc_SclFindCriticalCone( p, nRange, nRangeF, &vPivots );
+                    vPath = Abc_SclFindCriticalCone( p, pPars->nRange, pPars->nRangeF, &vPivots );
 //                    pBest = Abc_SclChooseBiggestGain( p, vPath, vPivots, 0, -p->MaxDelay0/100000 );
                     pBest = Abc_SclChooseBiggestGain( p, vPath, NULL, 0, nThresh2 );
                     nNodes = Vec_IntSize(vPath);
@@ -481,7 +481,7 @@ void Abc_SclSizingPerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int nSteps, int nRan
                 if ( pBest == NULL )
                     break;
             }
-            Abc_SclUpdateNetwork( p, pBest, nNodes, 0, i+1, fVerbose, fVeryVerbose );
+            Abc_SclUpdateNetwork( p, pBest, nNodes, 0, i+1, pPars->fVerbose, pPars->fVeryVerbose );
             // recompute loads every 100 steps
             if ( i && i % 100 == 0 )
                 Abc_SclComputeLoad( p );
@@ -491,18 +491,18 @@ void Abc_SclSizingPerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int nSteps, int nRan
         }
         if ( nRuntimeLimit && clock() > nRuntimeLimit ) // timeout
             break;
-        if ( fVeryVerbose )
+        if ( pPars->fVeryVerbose )
             printf( "\n" );
     }
 
     p->MaxDelay = Abc_SclGetMaxDelay(p);
-    if ( fPrintCP )
+    if ( pPars->fPrintCP )
         Abc_SclTimeNtkPrint( p, 0 );
     if ( nRuntimeLimit && clock() > nRuntimeLimit )
-        printf( "Timeout was reached after %d seconds.\n", nTimeOut );
+        printf( "Timeout was reached after %d seconds.\n", pPars->nTimeOut );
     // print cumulative statistics
     printf( "Cones: %d. ",       nCones );
-    printf( "Resized: %d(%d). ",     i, nDownSize );
+    printf( "Resized: %d(%d). ", i, nDownSize );
     printf( "Delay: " );
     printf( "%.2f -> %.2f ps ",  SC_LibTimePs(p->pLib, p->MaxDelay0), SC_LibTimePs(p->pLib, p->MaxDelay) );
     printf( "(%+.1f %%).  ",     100.0 * (p->MaxDelay - p->MaxDelay0)/ p->MaxDelay0 );
