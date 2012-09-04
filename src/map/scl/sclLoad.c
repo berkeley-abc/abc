@@ -154,8 +154,8 @@ void Abc_SclComputeLoad( SC_Man * p )
             pLoad->rise += Vec_FltEntry(vWireCaps, k);
             pLoad->fall += Vec_FltEntry(vWireCaps, k);
         }
+        Vec_FltFree( vWireCaps );
     }
-    Vec_FltFree( vWireCaps );
 }
 void Abc_SclUpdateLoad( SC_Man * p, Abc_Obj_t * pObj, SC_Cell * pOld, SC_Cell * pNew )
 {

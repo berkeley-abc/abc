@@ -1288,7 +1288,7 @@ int Ga2_GlaAbsCount( Ga2_Man_t * p, int fRo, int fAnd )
 ***********************************************************************/
 void Ga2_ManAbsPrintFrame( Ga2_Man_t * p, int nFrames, int nConfls, int nCexes, clock_t Time, int fFinal )
 {
-    if ( Abc_FrameIsBatchMode() && !fFinal )
+    if ( Abc_FrameIsBatchMode() && !(((fFinal && nCexes) || p->pPars->fVeryVerbose)) )
         return;
     Abc_Print( 1, "%4d :", nFrames );
     Abc_Print( 1, "%4d", Abc_MinInt(100, 100 * Vec_IntSize(p->vAbs) / p->nMarked) ); 

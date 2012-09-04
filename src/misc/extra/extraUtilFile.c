@@ -686,6 +686,47 @@ void Extra_FileSort( char * pFileName, char * pFileNameOut )
 
 /**Function*************************************************************
 
+  Synopsis    [Appends line number in the end.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Extra_FileLineNumAdd( char * pFileName, char * pFileNameOut )
+{
+    char Buffer[1000];
+    FILE * pFile;
+    FILE * pFile2;
+    int iLine;
+    pFile = fopen( pFileName, "rb" );
+    if ( pFile == NULL )
+    {
+        printf( "Extra_FileLineNumAdd(): Cannot open file \"%s\".\n", pFileName );
+        return;
+    }
+    pFile2 = fopen( pFileNameOut, "wb" );
+    if ( pFile2 == NULL )
+    {
+        fclose( pFile );
+        printf( "Extra_FileLineNumAdd(): Cannot open file \"%s\".\n", pFileNameOut );
+        return;
+    }
+    for ( iLine = 0; fgets( Buffer, 1000, pFile ); iLine++ )
+    {
+        sprintf( Buffer + strlen(Buffer) - 2, "%03d\n%c", iLine, 0 );
+        fputs( Buffer, pFile2 );
+    }
+    fclose( pFile );
+    fclose( pFile2 );
+    // report the result
+    printf( "The resulting file is \"%s\".\n", pFileNameOut );
+}
+
+/**Function*************************************************************
+
   Synopsis    []
 
   Description []
