@@ -1216,6 +1216,68 @@ Abc_Cex_t * Ga2_ManDeriveCex( Ga2_Man_t * p, Vec_Int_t * vPis )
     }
     return pCex;
 } 
+void Ga2_ManRefinePrint( Ga2_Man_t * p, Vec_Int_t * vVec )
+{
+    Gia_Obj_t * pObj, * pFanin;
+    int i, k;
+    printf( "\n         Unsat core: \n" );
+    Gia_ManForEachObjVec( vVec, p->pGia, pObj, i )
+    {
+        Vec_Int_t * vLeaves = Ga2_ObjLeaves( p->pGia, pObj );
+        printf( "%12d : ", i );
+        printf( "Obj =%6d ", Gia_ObjId(p->pGia, pObj) );
+        if ( Gia_ObjIsRo(p->pGia, pObj) )
+            printf( "ff " );
+        else
+            printf( "   " );
+        if ( Ga2_ObjIsAbs0(p, pObj) )
+            printf( "a " );
+        else if ( Ga2_ObjIsLeaf0(p, pObj) )
+            printf( "l " );
+        else 
+            printf( "  " );
+        printf( "Fanins: " );
+        Gia_ManForEachObjVec( vLeaves, p->pGia, pFanin, k )
+        {
+            printf( "%6d ", Gia_ObjId(p->pGia, pFanin) );
+            if ( Gia_ObjIsRo(p->pGia, pFanin) )
+                printf( "ff " );
+            else
+                printf( "   " );
+            if ( Ga2_ObjIsAbs0(p, pFanin) )
+                printf( "a " );
+            else if ( Ga2_ObjIsLeaf0(p, pFanin) )
+                printf( "l " );
+            else
+                printf( "  " );
+        }
+        printf( "\n" );
+    }
+}
+void Ga2_ManRefinePrintPPis( Ga2_Man_t * p )
+{
+    Vec_Int_t * vVec = Vec_IntAlloc( 100 );
+    Gia_Obj_t * pObj;
+    int i;
+    Gia_ManForEachObjVec( p->vValues, p->pGia, pObj, i )
+    {
+        if ( !i ) continue;
+        if ( Ga2_ObjIsAbs(p, pObj) )
+            continue;
+        assert( pObj->fPhase );
+        assert( Ga2_ObjIsLeaf(p, pObj) );
+        assert( Gia_ObjIsAnd(pObj) || Gia_ObjIsCi(pObj) );
+        Vec_IntPush( vVec, Gia_ObjId(p->pGia, pObj) );
+    }
+    printf( "        Current PPIs (%d): ", Vec_IntSize(vVec) );
+    Vec_IntSort( vVec, 1 );
+    Gia_ManForEachObjVec( vVec, p->pGia, pObj, i )
+        printf( "%d ", Gia_ObjId(p->pGia, pObj) );
+    printf( "\n" );
+    Vec_IntFree( vVec );
+}
+
+
 Vec_Int_t * Ga2_ManRefine( Ga2_Man_t * p )
 {
     Abc_Cex_t * pCex;
@@ -1536,6 +1598,7 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
 
                     if ( c == 0 )
                     {
+//                        Ga2_ManRefinePrintPPis( p );
                         // create bookmark to be used for rollback
                         assert( nVarsOld == p->pSat->size );
                         sat_solver2_bookmark( p->pSat );
@@ -1627,6 +1690,7 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
                 }
 
                 Ga2_ManAddToAbs( p, vCore );
+//                Ga2_ManRefinePrint( p, vCore );
                 Vec_IntFree( vCore );
                 break;
             }
