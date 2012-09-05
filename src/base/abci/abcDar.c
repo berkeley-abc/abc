@@ -1905,7 +1905,7 @@ ABC_PRT( "Time", clock() - clk );
     }
     else
     { 
-        RetValue = Saig_BmcPerform( pMan, nStart, nFrames, nNodeDelta, nTimeOut, nBTLimit, nBTLimitAll, fVerbose, 0, piFrames );
+        RetValue = Saig_BmcPerform( pMan, nStart, nFrames, nNodeDelta, nTimeOut, nBTLimit, nBTLimitAll, fVerbose, 0, piFrames, 0 );
         ABC_FREE( pNtk->pModel );
         ABC_FREE( pNtk->pSeqModel );
         pNtk->pSeqModel = pMan->pSeqModel; pMan->pSeqModel = NULL;
@@ -2414,7 +2414,7 @@ int Abc_NtkDarProve( Abc_Ntk_t * pNtk, Fra_Sec_t * pSecPar, int nBmcFramesMax, i
 
     if ( pSecPar->fTryBmc )
     {
-        RetValue = Saig_BmcPerform( pMan, 0, nBmcFramesMax, 2000, 0, nBmcConfMax, 0, pSecPar->fVerbose, 0, &iFrame );
+        RetValue = Saig_BmcPerform( pMan, 0, nBmcFramesMax, 2000, 0, nBmcConfMax, 0, pSecPar->fVerbose, 0, &iFrame, 0 );
         if ( RetValue == 0 )
         {
             Abc_Print( 1, "Networks are not equivalent.\n" );

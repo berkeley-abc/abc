@@ -754,7 +754,7 @@ void Saig_BmcAddTargetsAsPos( Saig_Bmc_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Saig_BmcPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nNodesMax, int nTimeOut, int nConfMaxOne, int nConfMaxAll, int fVerbose, int fVerbOverwrite, int * piFrames )
+int Saig_BmcPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nNodesMax, int nTimeOut, int nConfMaxOne, int nConfMaxAll, int fVerbose, int fVerbOverwrite, int * piFrames, int fSilent )
 {
     Saig_Bmc_t * p;
     Aig_Man_t * pNew;
@@ -817,7 +817,8 @@ int Saig_BmcPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nNodesMax
         // check the timeout
         if ( nTimeOut && clock() > nTimeToStop )
         {
-            printf( "Reached timeout (%d seconds).\n",  nTimeOut );
+            if ( !fSilent )
+                printf( "Reached timeout (%d seconds).\n",  nTimeOut );
             if ( piFrames )
                 *piFrames = p->iFrameLast-1;
             Saig_BmcManStop( p );
@@ -827,15 +828,17 @@ int Saig_BmcPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nNodesMax
     if ( RetValue == l_True )
     {
         assert( p->iFrameFail * Saig_ManPoNum(p->pAig) + p->iOutputFail + 1 == nOutsSolved );
-        printf( "Output %d was asserted in frame %d (use \"write_counter\" to dump a witness). ", 
-            p->iOutputFail, p->iFrameFail );
+        if ( !fSilent )
+            printf( "Output %d was asserted in frame %d (use \"write_counter\" to dump a witness). ", 
+                p->iOutputFail, p->iFrameFail );
         Status = 0;
         if ( piFrames )
             *piFrames = p->iFrameFail;
     }
     else // if ( RetValue == l_False || RetValue == l_Undef )
     {
-        printf( "No output was asserted in %d frames.  ", Abc_MaxInt(p->iFramePrev-1, 0) );
+        if ( !fSilent )
+            printf( "No output was asserted in %d frames.  ", Abc_MaxInt(p->iFramePrev-1, 0) );
         if ( piFrames )
         {
             if ( p->iOutputLast > 0 )
@@ -844,24 +847,27 @@ int Saig_BmcPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nNodesMax
                 *piFrames = p->iFramePrev;
         }
     }
-    if ( fVerbOverwrite )
+    if ( !fSilent )
     {
-        ABC_PRTr( "Time", clock() - clk );
-    }
-    else
-    {
-        ABC_PRT( "Time", clock() - clk );
-    }
-    if ( RetValue != l_True )
-    {
-        if ( p->iFrameLast >= p->nFramesMax )
-            printf( "Reached limit on the number of timeframes (%d).\n", p->nFramesMax );
-        else if ( p->nConfMaxAll && p->pSat->stats.conflicts > p->nConfMaxAll )
-            printf( "Reached global conflict limit (%d).\n", p->nConfMaxAll );
-        else if ( nTimeOut && clock() > nTimeToStop )
-            printf( "Reached timeout (%d seconds).\n", nTimeOut );
+        if ( fVerbOverwrite )
+        {
+            ABC_PRTr( "Time", clock() - clk );
+        }
         else
-            printf( "Reached local conflict limit (%d).\n", p->nConfMaxOne );
+        {
+            ABC_PRT( "Time", clock() - clk );
+        }
+        if ( RetValue != l_True )
+        {
+            if ( p->iFrameLast >= p->nFramesMax )
+                printf( "Reached limit on the number of timeframes (%d).\n", p->nFramesMax );
+            else if ( p->nConfMaxAll && p->pSat->stats.conflicts > p->nConfMaxAll )
+                printf( "Reached global conflict limit (%d).\n", p->nConfMaxAll );
+            else if ( nTimeOut && clock() > nTimeToStop )
+                printf( "Reached timeout (%d seconds).\n", nTimeOut );
+            else
+                printf( "Reached local conflict limit (%d).\n", p->nConfMaxOne );
+        }
     }
     Saig_BmcManStop( p );
     fflush( stdout );

@@ -1723,7 +1723,7 @@ int Gia_CommandSpecI( Gia_Man_t * pGia, int nFramesInit, int nBTLimitInit, int f
             pTemp = Gia_ManToAig( pSrm, 0 );
 //            Aig_ManPrintStats( pTemp );
             Gia_ManStop( pSrm );
-            Saig_BmcPerform( pTemp, nStart, nFrames, nNodeDelta, 0, nBTLimit, nBTLimitAll, fVerbose, 0, NULL );
+            Saig_BmcPerform( pTemp, nStart, nFrames, nNodeDelta, 0, nBTLimit, nBTLimitAll, fVerbose, 0, NULL, 0 );
             pCex = pTemp->pSeqModel; pTemp->pSeqModel = NULL;
             Aig_ManStop( pTemp );
             if ( pCex == NULL )

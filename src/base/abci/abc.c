@@ -358,6 +358,7 @@ static int Abc_CommandAbc9AbsRefine          ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9GlaDerive          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9GlaRefine          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9GlaPurify          ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9GlaShrink          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 //static int Abc_CommandAbc9GlaCba             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 //static int Abc_CommandAbc9GlaPba             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Gla                ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -817,6 +818,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&gla_derive",   Abc_CommandAbc9GlaDerive,    0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&gla_refine",   Abc_CommandAbc9GlaRefine,    0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&gla_purify",   Abc_CommandAbc9GlaPurify,    0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&gla_shrink",   Abc_CommandAbc9GlaShrink,    0 );
 //    Cmd_CommandAdd( pAbc, "ABC9",         "&gla_cba",      Abc_CommandAbc9GlaCba,       0 );
 //    Cmd_CommandAdd( pAbc, "ABC9",         "&gla_pba",      Abc_CommandAbc9GlaPba,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&gla",          Abc_CommandAbc9Gla,          0 );
@@ -27925,6 +27927,97 @@ usage:
 //    Abc_Print( -2, "\t-R num : the percetage of rare objects to remove [default = %d]\n", nPurifyRatio );
     Abc_Print( -2, "\t-R num : remove objects with usage count less or equal than this [default = %d]\n", nPurifyRatio );
 //    Abc_Print( -2, "\t-m     : toggle using min-cut to derive the refinements [default = %s]\n", fMinCut? "yes": "no" );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+} 
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9GlaShrink( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern Gia_Man_t * Gia_IterImprove( Gia_Man_t * p, int nFrameMax, int nTimeOut, int fUsePdr, int fUseSat, int fUseBdd, int fVerbose );
+    int fUsePdr = 0;
+    int fUseSat = 1;
+    int fUseBdd = 0;
+    int nFrameMax = 0;
+    int nTimeOut = 0;
+    int c, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FTpsbvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'F':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-F\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nFrameMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nFrameMax < 0 ) 
+                goto usage;
+            break;
+        case 'T':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-T\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nTimeOut = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nTimeOut < 0 ) 
+                goto usage;
+            break;
+        case 'p':
+            fUsePdr ^= 1;
+            break;
+        case 's':
+            fUseSat ^= 1;
+            break;
+        case 'b':
+            fUseBdd ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9GlaShrink(): There is no AIG.\n" );
+        return 1;
+    } 
+    if ( pAbc->pGia->vGateClasses == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9GlaShrink(): There is no gate-level abstraction.\n" );
+        return 0;
+    }
+    Gia_IterImprove( pAbc->pGia, nFrameMax, nTimeOut, fUsePdr, fUseSat, fUseBdd, fVerbose );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &gla_shrink [-FT num] [-psbvh]\n" );
+    Abc_Print( -2, "\t         shrinks the abstraction by removing redundant objects\n" );
+    Abc_Print( -2, "\t-F num : the maximum timeframe to check to [default = %d]\n", nFrameMax );
+    Abc_Print( -2, "\t-T num : the timeout per call, in seconds [default = %d]\n", nTimeOut );
+    Abc_Print( -2, "\t-p     : toggle using PDR for checking [default = %s]\n", fUsePdr? "yes": "no" );
+    Abc_Print( -2, "\t-s     : toggle using BMC for checking [default = %s]\n", fUseSat? "yes": "no" );
+    Abc_Print( -2, "\t-b     : toggle using BDDs for checking [default = %s]\n", fUseBdd? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;

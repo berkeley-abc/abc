@@ -147,7 +147,7 @@ extern int               Saig_ManCexRefineStep( Aig_Man_t * p, Vec_Int_t * vFlop
 extern Vec_Int_t *       Saig_ManCexAbstractionFlops( Aig_Man_t * p, Gia_ParAbs_t * pPars );
 /*=== saigBmc.c ==========================================================*/
 extern int               Saig_ManBmcSimple( Aig_Man_t * pAig, int nFrames, int nSizeMax, int nBTLimit, int fRewrite, int fVerbose, int * piFrame, int nCofFanLit );
-extern int               Saig_BmcPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nNodesMax, int nTimeOut, int nConfMaxOne, int nConfMaxAll, int fVerbose, int fVerbOverwrite, int * piFrames );
+extern int               Saig_BmcPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nNodesMax, int nTimeOut, int nConfMaxOne, int nConfMaxAll, int fVerbose, int fVerbOverwrite, int * piFrames, int fSilent );
 /*=== saigBmc3.c ==========================================================*/
 extern void              Saig_ParBmcSetDefaultParams( Saig_ParBmc_t * p );
 extern int               Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars );

@@ -72,7 +72,7 @@ int Saig_ManCexFirstFlopPi( Aig_Man_t * p, Aig_Man_t * pAbs )
 ***********************************************************************/
 Aig_Man_t * Saig_ManCexRefine( Aig_Man_t * p, Aig_Man_t * pAbs, Vec_Int_t * vFlops, int nFrames, int nConfMaxOne, int fUseBdds, int fUseDprove, int fVerbose, int * pnUseStart, int * piRetValue, int * pnFrames )
 { 
-    extern int Saig_BmcPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nNodesMax, int nTimeOut, int nConfMaxOne, int nConfMaxAll, int fVerbose, int fVerbOverwrite, int * piFrames );
+    extern int Saig_BmcPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nNodesMax, int nTimeOut, int nConfMaxOne, int nConfMaxAll, int fVerbose, int fVerbOverwrite, int * piFrames, int fSilent );
     Vec_Int_t * vFlopsNew;
     int i, Entry, RetValue;
     *piRetValue = -1;
@@ -119,7 +119,7 @@ Aig_Man_t * Saig_ManCexRefine( Aig_Man_t * p, Aig_Man_t * pAbs, Vec_Int_t * vFlo
     }
     else 
     {
-        Saig_BmcPerform( pAbs, pnUseStart? *pnUseStart: 0, nFrames, 2000, 0, nConfMaxOne, 0, fVerbose, 0, pnFrames );
+        Saig_BmcPerform( pAbs, pnUseStart? *pnUseStart: 0, nFrames, 2000, 0, nConfMaxOne, 0, fVerbose, 0, pnFrames, 0 );
     }
     if ( pAbs->pSeqModel == NULL )
         return NULL;
