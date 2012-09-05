@@ -97,7 +97,7 @@ Gia_Man_t * Gia_IterImprove( Gia_Man_t * p, int nFrameMax, int nTimeOut, int fUs
             }
             if ( Gia_ObjIsRo(p, pObj) )
             {
-                if ( Gia_ObjIsInGla(p, Gia_ObjRoToRi(p, pObj)) )
+                if ( Gia_ObjIsInGla(p, Gia_ObjFanin0(Gia_ObjRoToRi(p, pObj))) )
                     continue;
             }        
             clk = clock();
