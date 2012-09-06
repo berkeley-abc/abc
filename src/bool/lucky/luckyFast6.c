@@ -49,7 +49,7 @@ void swapAndFlip(word* pAfter, int nVars, int iVarInPosition, int jVar, char * p
         *pUCanonPhase ^= (1 << iVarInPosition);
         *pUCanonPhase ^= (1 << jVar);
     }
-    if(*pUCanonPhase>>iVarInPosition & (unsigned)1 == 1)
+    if((*pUCanonPhase>>iVarInPosition) & 1)
         Kit_TruthChangePhase_64bit( pAfter, nVars, iVarInPosition );
     
 }
@@ -68,7 +68,7 @@ int luckyCheck(word* pAfter, word* pBefore, int nVars, char * pCanonPerm, unsign
             break;
         }
     }
-    if(uCanonPhase>>nVars & (unsigned)1 == 1)
+    if((uCanonPhase>>nVars) & 1)
         Kit_TruthNot_64bit(pAfter, nVars );
     if(memcmp(pAfter, pBefore, Kit_TruthWordNum_64bit( nVars )*sizeof(word)) == 0)
         return 0;

@@ -175,8 +175,6 @@ inline void minimalSwapAndFlipIVar_superFast_lessThen5(word* pInOut, int iVar, i
 {
     int min1, min2, DifStart0, DifStart1, DifStartMin;
     int M[2];   
-    int  blockSize = 1<<iVar;
-//  int  shiftSize = blockSize*4;
 
     M[0] = minTemp0_fast(pInOut, iVar, nWords, &DifStart0); // 0, 3
     M[1] = minTemp1_fast(pInOut, iVar, nWords, &DifStart1); // 1, 2
@@ -512,8 +510,6 @@ inline void minimalSwapAndFlipIVar_superFast_moreThen5(word* pInOut, int iVar, i
     int min1, min2, DifStart0, DifStart1, DifStartMin;
     int M[2];
     word temp[1024];
-    int  blockSize = 1<<(iVar-6);
-//  int  shiftSize = blockSize*4;
 
     M[0] = minTemp0_fast_moreThen5(pInOut, iVar, nWords, &DifStart0); // 0, 3
     M[1] = minTemp1_fast_moreThen5(pInOut, iVar, nWords, &DifStart1); // 1, 2
