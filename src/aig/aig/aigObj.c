@@ -130,7 +130,7 @@ Aig_Obj_t * Aig_ObjCreate( Aig_Man_t * p, Aig_Obj_t * pGhost )
     }
     return pObj;
 }
-
+ 
 /**Function*************************************************************
 
   Synopsis    [Connect the object to the fanin.]

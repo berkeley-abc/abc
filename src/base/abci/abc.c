@@ -19704,13 +19704,13 @@ int Abc_CommandDSat( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Currently can only solve the miter for combinational circuits.\n" );
         return 0;
     } 
-/*
+
     if ( Abc_NtkPoNum(pNtk) != 1 )
     {
         Abc_Print( -1, "Currently expects a single-output miter.\n" );
         return 0;
     } 
-*/
+
     if ( !Abc_NtkIsStrash(pNtk) )
     {
         Abc_Print( -1, "Currently only works for structurally hashed circuits.\n" );
