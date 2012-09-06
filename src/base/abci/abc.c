@@ -10408,7 +10408,7 @@ int Abc_CommandDch( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set defaults
     Dch_ManSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "WCSsptgcfvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "WCSsptgcfrvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -10463,6 +10463,9 @@ int Abc_CommandDch( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'f':
             pPars->fLightSynth ^= 1;
             break;
+        case 'r':
+            pPars->fSkipRedSupp ^= 1;
+            break;
         case 'v':
             pPars->fVerbose ^= 1;
             break;
@@ -10493,7 +10496,7 @@ int Abc_CommandDch( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: dch [-WCS num] [-sptgcfvh]\n" );
+    Abc_Print( -2, "usage: dch [-WCS num] [-sptgcfrvh]\n" );
     Abc_Print( -2, "\t         computes structural choices using a new approach\n" );
     Abc_Print( -2, "\t-W num : the max number of simulation words [default = %d]\n", pPars->nWords );
     Abc_Print( -2, "\t-C num : the max number of conflicts at a node [default = %d]\n", pPars->nBTLimit );
@@ -10504,6 +10507,7 @@ usage:
     Abc_Print( -2, "\t-g     : toggle using GIA to prove equivalences [default = %s]\n", pPars->fUseGia? "yes": "no" );
     Abc_Print( -2, "\t-c     : toggle using circuit-based SAT vs. MiniSat [default = %s]\n", pPars->fUseCSat? "yes": "no" );
     Abc_Print( -2, "\t-f     : toggle using faster logic synthesis [default = %s]\n", pPars->fLightSynth? "yes": "no" );
+    Abc_Print( -2, "\t-r     : toggle skipping choices with redundant support [default = %s]\n", pPars->fSkipRedSupp? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle verbose printout [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;

@@ -53,6 +53,7 @@ void Dch_ManSetDefaultParams( Dch_Pars_t * p )
     p->fSimulateTfo   =     1;  // simulate TFO
     p->fPower         =     0;  // power-aware rewriting
     p->fLightSynth    =     0;  // uses lighter version of synthesis
+    p->fSkipRedSupp   =     0;  // skips choices with redundant structural support
     p->fVerbose       =     0;  // verbose stats
     p->nNodesAhead    =  1000;  // the lookahead in terms of nodes
     p->nCallsRecycle  =   100;  // calls to perform before recycling SAT solver
@@ -107,7 +108,7 @@ p->timeTotal = clock() - clkTotal;
     Dch_ManStop( p );
     // create choices
     ABC_FREE( pAig->pTable );
-    pResult = Dch_DeriveChoiceAig( pAig );
+    pResult = Dch_DeriveChoiceAig( pAig, pPars->fSkipRedSupp );
     // count the number of representatives
     if ( pPars->fVerbose ) 
         Abc_Print( 1, "STATS:  Reprs = %6d.  Equivs = %6d.  Choices = %6d.\n", 

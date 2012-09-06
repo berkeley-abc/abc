@@ -53,6 +53,7 @@ struct Dch_Pars_t_
     int              fUseGia;       // uses GIA package 
     int              fUseCSat;      // uses circuit-based solver
     int              fLightSynth;   // uses lighter version of synthesis
+    int              fSkipRedSupp;  // skip choices with redundant support vars
     int              fVerbose;      // verbose stats
     clock_t          timeSynth;     // synthesis runtime
     int              nNodesAhead;   // the lookahead in terms of nodes

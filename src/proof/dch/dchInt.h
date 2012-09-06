@@ -123,7 +123,7 @@ static inline void Dch_ObjSetConst1Cand( Aig_Man_t * pAig, Aig_Obj_t * pObj )
 /*=== dchChoice.c ===================================================*/
 extern int           Dch_DeriveChoiceCountReprs( Aig_Man_t * pAig );
 extern int           Dch_DeriveChoiceCountEquivs( Aig_Man_t * pAig );
-extern Aig_Man_t *   Dch_DeriveChoiceAig( Aig_Man_t * pAig );
+extern Aig_Man_t *   Dch_DeriveChoiceAig( Aig_Man_t * pAig, int fSkipRedSupps );
 /*=== dchClass.c =================================================*/
 extern Dch_Cla_t *   Dch_ClassesStart( Aig_Man_t * pAig );
 extern void          Dch_ClassesSetData( Dch_Cla_t * p, void * pManData,
