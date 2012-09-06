@@ -557,6 +557,7 @@ inline int minimalSwapAndFlipIVar_superFast_all(word* pInOut, int nVars, int nWo
     int i;
     word pDuplicate[1024];  
     int bitInfoTemp = pStore[0];
+printf("visit\n" );
     memcpy(pDuplicate,pInOut,nWords*sizeof(word));
     for(i=0;i<5;i++)
     {
