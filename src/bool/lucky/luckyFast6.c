@@ -89,7 +89,7 @@ inline word Abc_allFlip(word x, unsigned* pCanonPhase)
 }
 
 inline unsigned adjustInfoAfterSwap(char* pCanonPerm, unsigned uCanonPhase, int iVar, unsigned info)
-{    
+{   
     if(info<4)
         return (uCanonPhase ^= (info << iVar));
     else
@@ -104,7 +104,7 @@ inline unsigned adjustInfoAfterSwap(char* pCanonPerm, unsigned uCanonPhase, int 
             uCanonPhase ^= (1 << iVar);
             uCanonPhase ^= (1 << (iVar+1));
         }
-        return uCanonPhase;    
+        return uCanonPhase; 
     }
 
 
@@ -207,8 +207,8 @@ inline word Extra_Truth6MinimumRoundMany( word t, int* pStore, char* pCanonPerm,
         tMin0 = tMin;
         for ( i = 0; i < 5; i++ )
         {
-            if(bitInfoTemp == pStore[i+1])            
-                tMin = Extra_Truth6MinimumRoundOne( tMin, i, pCanonPerm, pCanonPhase );            
+            if(bitInfoTemp == pStore[i+1])          
+                tMin = Extra_Truth6MinimumRoundOne( tMin, i, pCanonPerm, pCanonPhase );         
             else
                 bitInfoTemp = pStore[i+1];
         } 
@@ -220,9 +220,9 @@ inline word Extra_Truth6MinimumRoundMany( word t, int* pStore, char* pCanonPerm,
 
 inline word luckyCanonicizer_final_fast_6Vars(word InOut, int* pStore, char* pCanonPerm, unsigned* pCanonPhase )
 {
-//    word temp, duplicat = InOut;
+//  word temp, duplicat = InOut;
     (* pCanonPhase) = Kit_TruthSemiCanonicize_Yasha1( &InOut, 6, pCanonPerm, pStore);
-//     InOut = Extra_Truth6MinimumRoundMany(InOut, pStore, pCanonPhase, pCanonPerm );
+//  InOut = Extra_Truth6MinimumRoundMany(InOut, pStore, pCanonPhase, pCanonPerm );
 //      temp = InOut;
 //      assert(!luckyCheck(&temp, &duplicat, 6, pCanonPerm, * pCanonPhase));
 //      return(InOut); 

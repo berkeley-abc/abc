@@ -1619,8 +1619,8 @@ s_pMan->timeBuild += clock() - timeBuild;
     timeInsert = clock();
     Abc_NtkRecInsertToLookUpTable2(s_pMan, ppSpot, pPO, nLeaves, pTruth, s_pMan->fTrim);
     s_pMan->timeInsert += clock() - timeInsert;
-//     if (pIfMan->pPars->fDelayOpt)
-//         Abc_NtkRecAddSOPB(pIfMan, pCut, pTruth, pCanonPerm, uCanonPhase );
+//  if (pIfMan->pPars->fDelayOpt)
+//      Abc_NtkRecAddSOPB(pIfMan, pCut, pTruth, pCanonPerm, uCanonPhase );
     return 1;
 }
 

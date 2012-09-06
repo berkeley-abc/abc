@@ -78,7 +78,7 @@ typedef struct
     int totalSwaps;
     int* flipArray;
     int flipCtr;
-    int totalFlips;    
+    int totalFlips; 
 }permInfo;
 
 

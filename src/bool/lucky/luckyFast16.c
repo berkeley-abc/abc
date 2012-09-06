@@ -24,7 +24,7 @@ static word SFmask[5][4] = {
     {0xC0C0C0C0C0C0C0C0,0x3030303030303030,0x0C0C0C0C0C0C0C0C,0x0303030303030303},
     {0xF000F000F000F000,0x0F000F000F000F00,0x00F000F000F000F0,0x000F000F000F000F},
     {0xFF000000FF000000,0x00FF000000FF0000,0x0000FF000000FF00,0x000000FF000000FF},
-    {0xFFFF000000000000,0x0000FFFF00000000,0x00000000FFFF0000,0x000000000000FFFF}    
+    {0xFFFF000000000000,0x0000FFFF00000000,0x00000000FFFF0000,0x000000000000FFFF}   
 };
 
 
@@ -44,7 +44,7 @@ inline void arrangeQuoters_superFast_lessThen5(word* pInOut, int start, int iQ, 
     int i;
     int  blockSize = 1<<iVar;
     for(i=start;i>=0;i--)
-    {    
+    {   
         pInOut[i] = (pInOut[i] & SFmask[iVar][iQ])<<(iQ*blockSize) |
             (((pInOut[i] & SFmask[iVar][jQ])<<(jQ*blockSize))>>blockSize) |
             (((pInOut[i] & SFmask[iVar][kQ])<<(kQ*blockSize))>>2*blockSize) |
@@ -174,15 +174,15 @@ inline int minTemp3_fast(word* pInOut, int iVar, int start, int finish, int iQ, 
 inline void minimalSwapAndFlipIVar_superFast_lessThen5(word* pInOut, int iVar, int nWords, char * pCanonPerm, unsigned* pCanonPhase)
 {
     int min1, min2, DifStart0, DifStart1, DifStartMin;
-    int M[2];    
+    int M[2];   
     int  blockSize = 1<<iVar;
-    int  shiftSize = blockSize*4;
+//  int  shiftSize = blockSize*4;
 
     M[0] = minTemp0_fast(pInOut, iVar, nWords, &DifStart0); // 0, 3
     M[1] = minTemp1_fast(pInOut, iVar, nWords, &DifStart1); // 1, 2
     min1 = minTemp2_fast(pInOut, iVar, M[0], M[1], nWords, &DifStartMin);
     if(DifStart0 != DifStart1)
-    {    
+    {   
         if( DifStartMin>=DifStart1 && DifStartMin>=DifStart0 )
             arrangeQuoters_superFast_lessThen5(pInOut, DifStartMin/100, M[min1], M[(min1+1)%2], 3 - M[(min1+1)%2], 3 - M[min1], iVar, nWords, pCanonPerm, pCanonPhase);
         else if( DifStart0 > DifStart1)
@@ -213,12 +213,12 @@ inline void arrangeQuoters_superFast_iVar5(unsigned* pInOut, unsigned* temp, int
     int i,blockSize,shiftSize;
     unsigned* tempPtr = temp+start;
     if(iQ == 0 && jQ == 1)
-        return;    
+        return; 
     blockSize = sizeof(unsigned);
     shiftSize = 4;
     for(i=start-1;i>0;i-=shiftSize)
-    {        
-        tempPtr -= 1;        
+    {       
+        tempPtr -= 1;       
         memcpy(tempPtr, pInOut+i-iQ, blockSize);
         tempPtr -= 1;
         memcpy(tempPtr, pInOut+i-jQ, blockSize);
@@ -227,7 +227,7 @@ inline void arrangeQuoters_superFast_iVar5(unsigned* pInOut, unsigned* temp, int
         tempPtr -= 1;
         memcpy(tempPtr, pInOut+i-lQ, blockSize);        
         
-    }    
+    }   
     memcpy(pInOut, temp, start*sizeof(unsigned));
     updataInfo(iQ, jQ, 5, pCanonPerm, pCanonPhase);
 }
@@ -237,7 +237,7 @@ inline void arrangeQuoters_superFast_iVar5(unsigned* pInOut, unsigned* temp, int
 inline int minTemp0_fast_iVar5(unsigned* pInOut, int nWords, int* pDifStart)
 {
     int i, temp;
-    for(i=(nWords)*2 - 1; i>=0; i-=4)    
+    for(i=(nWords)*2 - 1; i>=0; i-=4)   
     {
         temp = CompareWords(pInOut[i],pInOut[i-3]);
         if(temp == 0)
@@ -262,7 +262,7 @@ inline int minTemp0_fast_iVar5(unsigned* pInOut, int nWords, int* pDifStart)
 inline int minTemp1_fast_iVar5(unsigned* pInOut, int nWords, int* pDifStart)
 {
     int i, temp;
-    for(i=(nWords)*2 - 2; i>=0; i-=4)    
+    for(i=(nWords)*2 - 2; i>=0; i-=4)   
     {
         temp = CompareWords(pInOut[i],pInOut[i-1]);
         if(temp == 0)
@@ -287,7 +287,7 @@ inline int minTemp1_fast_iVar5(unsigned* pInOut, int nWords, int* pDifStart)
 inline int minTemp2_fast_iVar5(unsigned* pInOut, int iQ, int jQ, int nWords, int* pDifStart)
 {
     int i, temp;
-    for(i=(nWords)*2 - 1; i>=0; i-=4)    
+    for(i=(nWords)*2 - 1; i>=0; i-=4)   
     {
         temp = CompareWords(pInOut[i-iQ],pInOut[i-jQ]);
         if(temp == 0)
@@ -311,7 +311,7 @@ inline int minTemp2_fast_iVar5(unsigned* pInOut, int iQ, int jQ, int nWords, int
 inline int minTemp3_fast_iVar5(unsigned* pInOut, int start, int finish, int iQ, int jQ, int* pDifStart)
 {
     int i, temp;
-    for(i=start-1; i>=finish; i-=4)    
+    for(i=start-1; i>=finish; i-=4) 
     {
         temp = CompareWords(pInOut[i-iQ],pInOut[i-jQ]);
         if(temp == 0)
@@ -342,7 +342,7 @@ inline void minimalSwapAndFlipIVar_superFast_iVar5(unsigned* pInOut, int nWords,
     M[1] = minTemp1_fast_iVar5(pInOut, nWords, &DifStart1); // 1, 2
     min1 = minTemp2_fast_iVar5(pInOut, M[0], M[1], nWords, &DifStartMin);
     if(DifStart0 != DifStart1)
-    {    
+    {   
         if( DifStartMin>=DifStart1 && DifStartMin>=DifStart0 )
             arrangeQuoters_superFast_iVar5(pInOut, temp, DifStartMin, M[min1], M[(min1+1)%2], 3 - M[(min1+1)%2], 3 - M[min1], pCanonPerm, pCanonPhase);
         else if( DifStart0 > DifStart1)
@@ -379,17 +379,17 @@ inline void arrangeQuoters_superFast_moreThen5(word* pInOut, word* temp, int sta
     blockSize = wordBlock*sizeof(word);
     shiftSize = wordBlock*4;
     for(i=start-wordBlock;i>0;i-=shiftSize)
-    {        
-        tempPtr -= wordBlock;        
+    {       
+        tempPtr -= wordBlock;       
         memcpy(tempPtr, pInOut+i-iQ*wordBlock, blockSize);
         tempPtr -= wordBlock;
         memcpy(tempPtr, pInOut+i-jQ*wordBlock, blockSize);
         tempPtr -= wordBlock;
         memcpy(tempPtr, pInOut+i-kQ*wordBlock, blockSize);
         tempPtr -= wordBlock;
-        memcpy(tempPtr, pInOut+i-lQ*wordBlock, blockSize);        
+        memcpy(tempPtr, pInOut+i-lQ*wordBlock, blockSize);      
         
-    }    
+    }   
     memcpy(pInOut, temp, start*sizeof(word));
     updataInfo(iQ, jQ, iVar, pCanonPerm, pCanonPhase);
 }
@@ -513,13 +513,13 @@ inline void minimalSwapAndFlipIVar_superFast_moreThen5(word* pInOut, int iVar, i
     int M[2];
     word temp[1024];
     int  blockSize = 1<<(iVar-6);
-    int  shiftSize = blockSize*4;
+//  int  shiftSize = blockSize*4;
 
     M[0] = minTemp0_fast_moreThen5(pInOut, iVar, nWords, &DifStart0); // 0, 3
     M[1] = minTemp1_fast_moreThen5(pInOut, iVar, nWords, &DifStart1); // 1, 2
     min1 = minTemp2_fast_moreThen5(pInOut, iVar, M[0], M[1], nWords, &DifStartMin);
     if(DifStart0 != DifStart1)
-    {    
+    {   
         if( DifStartMin>=DifStart1 && DifStartMin>=DifStart0 )
             arrangeQuoters_superFast_moreThen5(pInOut, temp, DifStartMin, M[min1], M[(min1+1)%2], 3 - M[(min1+1)%2], 3 - M[min1], iVar, pCanonPerm, pCanonPhase);
         else if( DifStart0 > DifStart1)
@@ -549,7 +549,7 @@ inline void minimalInitialFlip_fast_16Vars(word* pInOut, int  nVars, unsigned* p
     if(  (pInOut[Kit_TruthWordNum_64bit( nVars ) -1]>>63) & oneWord )
     {
         Kit_TruthNot_64bit( pInOut, nVars );
-        (* pCanonPhase) ^=(1<<nVars);        
+        (* pCanonPhase) ^=(1<<nVars);       
     }
 
 }
@@ -559,7 +559,7 @@ inline void minimalInitialFlip_fast_16Vars(word* pInOut, int  nVars, unsigned* p
 inline int minimalSwapAndFlipIVar_superFast_all(word* pInOut, int nVars, int nWords, int * pStore, char * pCanonPerm, unsigned* pCanonPhase)
 {
     int i;
-    word pDuplicate[1024];    
+    word pDuplicate[1024];  
     int bitInfoTemp = pStore[0];
     memcpy(pDuplicate,pInOut,nWords*sizeof(word));
     for(i=0;i<5;i++)
@@ -602,21 +602,21 @@ inline void luckyCanonicizerS_F_first_16Vars(word* pInOut, int  nVars, int nWord
 
 inline void luckyCanonicizer_final_fast_16Vars(word* pInOut, int  nVars, int nWords, int * pStore, char * pCanonPerm, unsigned* pCanonPhase)
 {
-//     word pDuplicateLocal[1024]={0};
-//     memcpy(pDuplicateLocal,pInOut,nWords*sizeof(word));
+//  word pDuplicateLocal[1024]={0};
+//  memcpy(pDuplicateLocal,pInOut,nWords*sizeof(word));
     assert( nVars <= 16 );
     assert( nVars > 6 );
     (* pCanonPhase) = Kit_TruthSemiCanonicize_Yasha1( pInOut, nVars, pCanonPerm, pStore );
     luckyCanonicizerS_F_first_16Vars(pInOut, nVars, nWords, pStore, pCanonPerm, pCanonPhase );
-//     memcpy(pDuplicate,pInOut,nWords*sizeof(word));
-//     assert(!luckyCheck(pDuplicate, pDuplicateLocal, nVars, pCanonPerm, * pCanonPhase));
+//  memcpy(pDuplicate,pInOut,nWords*sizeof(word));
+//  assert(!luckyCheck(pDuplicate, pDuplicateLocal, nVars, pCanonPerm, * pCanonPhase));
 }
 
 // top-level procedure calling two special cases (nVars <= 6 and nVars <= 16)
 int luckyCanonicizer_final_fast( word * pInOut, int nVars, char * pCanonPerm )
 {
     int pStore[16];
-    int uCanonPhase = 0;
+    unsigned uCanonPhase = 0;
     int nWords = (nVars <= 6) ? 1 : (1 << (nVars - 6));
     if ( nVars <= 6 )
         pInOut[0] = luckyCanonicizer_final_fast_6Vars( pInOut[0], pStore, pCanonPerm, &uCanonPhase );

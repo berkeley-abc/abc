@@ -49,7 +49,7 @@ inline int memCompare(word* x, word*  y, int nVars)
      word tempWord;
      qsort(a,WordsN,sizeof(word),compareWords1);
      tempWord = a[0];
-     for(i=1;i<WordsN;i++)    
+     for(i=1;i<WordsN;i++)  
          if(tempWord != a[i])
          {
              a[count] = a[i];
@@ -67,7 +67,7 @@ int compareWords2 (const void ** x, const void ** y)
     else if(**(word**)x < **(word**)y)
         return -1;
     else
-        return 0;    
+        return 0;   
     
 }
 int compareWords (const void ** a, const void ** b)
@@ -75,11 +75,11 @@ int compareWords (const void ** a, const void ** b)
      if( memcmp(*(word**)a,*(word**)b,sizeof(word)*1) > 0 )
          return 1;
      else
-         return ( memcmp(*(word**)a,*(word**)b,sizeof(word)*1) < 0 ) ? -1: 0;        
+         return ( memcmp(*(word**)a,*(word**)b,sizeof(word)*1) < 0 ) ? -1: 0;       
 }
 int compareWords3 (const void ** x, const void ** y)
 {
-    return memCompare(*(word**)x, *(word**)y, 16);     
+    return memCompare(*(word**)x, *(word**)y, 16);   
 } 
 void sortAndUnique(word** a, Abc_TtStore_t* p)
 {
@@ -87,7 +87,7 @@ void sortAndUnique(word** a, Abc_TtStore_t* p)
      word* tempWordPtr;
      qsort(a,WordsPtrN,sizeof(word*),(int(*)(const void *,const void *))compareWords3);
      tempWordPtr = a[0];
-     for(i=1;i<WordsPtrN;i++)    
+     for(i=1;i<WordsPtrN;i++)   
          if(memcmp(a[i],tempWordPtr,sizeof(word)*(p->nWords)) != 0)
          {
              a[count] = a[i];
@@ -159,117 +159,117 @@ void freeArrayB(word* b)
 // if pInOnt changed(minimized) by function return 1 if not 0
 // inline int minimalInitialFlip_propper(word* pInOut, word* pDuplicat, int  nVars)
 // {
-//     word oneWord=1;
-//     Kit_TruthCopy_64bit( pDuplicat, pInOut, nVars );
-//     Kit_TruthNot_64bit( pDuplicat, nVars );
-//     if( memCompare(pDuplicat,pInOut,nVars) == -1)
-//     {
-//         Kit_TruthCopy_64bit(pInOut, pDuplicat, nVars );
-//         return 1;
-//     }
-//     return 0;
+//  word oneWord=1;
+//  Kit_TruthCopy_64bit( pDuplicat, pInOut, nVars );
+//  Kit_TruthNot_64bit( pDuplicat, nVars );
+//  if( memCompare(pDuplicat,pInOut,nVars) == -1)
+//  {
+//      Kit_TruthCopy_64bit(pInOut, pDuplicat, nVars );
+//      return 1;
+//  }
+//  return 0;
 // }
 // inline int minimalFlip(word* pInOut, word* pMinimal, word* PDuplicat, int  nVars) 
 // {
-//     int i;
-//     int blockSize = Kit_TruthWordNum_64bit( nVars )*sizeof(word);
-//     memcpy(pMinimal, pInOut, blockSize);
-//     memcpy(PDuplicat, pInOut, blockSize);
-//     for(i=0;i<nVars;i++)
-//     {
-//         Kit_TruthChangePhase_64bit( pInOut, nVars, i );
-//         if( memCompare(pMinimal,pInOut,nVars) == 1)
-//             memcpy(pMinimal, pInOut, blockSize);
-//         memcpy(pInOut,PDuplicat,blockSize);
-//     }
-//     memcpy(pInOut,pMinimal,blockSize);
-//     if(memCompare(pMinimal,PDuplicat,nVars) == 0)
-//         return 0;
-//     else
-//         return 1;
+//  int i;
+//  int blockSize = Kit_TruthWordNum_64bit( nVars )*sizeof(word);
+//  memcpy(pMinimal, pInOut, blockSize);
+//  memcpy(PDuplicat, pInOut, blockSize);
+//  for(i=0;i<nVars;i++)
+//  {
+//      Kit_TruthChangePhase_64bit( pInOut, nVars, i );
+//      if( memCompare(pMinimal,pInOut,nVars) == 1)
+//          memcpy(pMinimal, pInOut, blockSize);
+//      memcpy(pInOut,PDuplicat,blockSize);
+//  }
+//  memcpy(pInOut,pMinimal,blockSize);
+//  if(memCompare(pMinimal,PDuplicat,nVars) == 0)
+//      return 0;
+//  else
+//      return 1;
 // }
 // inline int minimalSwap(word* pInOut, word* pMinimal, word* PDuplicat, int  nVars) 
 // {
-//     int i;    
-//     int blockSize = Kit_TruthWordNum_64bit( nVars )*sizeof(word);
-//     memcpy(pMinimal, pInOut, blockSize);
-//     memcpy(PDuplicat, pInOut, blockSize);
-//     for(i=0;i<nVars-1;i++)
-//     {
-//         Kit_TruthSwapAdjacentVars_64bit( pInOut, nVars, i );
-//         if(memCompare(pMinimal,pInOut,nVars) == 1)
-//             memcpy(pMinimal, pInOut, blockSize);
-//         memcpy(pInOut,PDuplicat,blockSize);
-//     }
-//     memcpy(pInOut,pMinimal,blockSize);
-//     if(memCompare(pMinimal,PDuplicat,nVars) == 0)
-//         return 0;
-//     else
-//         return 1;
+//  int i;  
+//  int blockSize = Kit_TruthWordNum_64bit( nVars )*sizeof(word);
+//  memcpy(pMinimal, pInOut, blockSize);
+//  memcpy(PDuplicat, pInOut, blockSize);
+//  for(i=0;i<nVars-1;i++)
+//  {
+//      Kit_TruthSwapAdjacentVars_64bit( pInOut, nVars, i );
+//      if(memCompare(pMinimal,pInOut,nVars) == 1)
+//          memcpy(pMinimal, pInOut, blockSize);
+//      memcpy(pInOut,PDuplicat,blockSize);
+//  }
+//  memcpy(pInOut,pMinimal,blockSize);
+//  if(memCompare(pMinimal,PDuplicat,nVars) == 0)
+//      return 0;
+//  else
+//      return 1;
 // }
 // 
 // void luckyCanonicizer(word* pInOut, word* pAux, word* pAux1, int  nVars, cycleCtr* cCtr)
 // {
-//     int counter=1, cycles=0;   
-//     assert( nVars <= 16 );
-//     while(counter>0 )   //  && cycles < 10 if we wanna limit cycles
-//     {
-//         counter=0;
-//         counter += minimalInitialFlip(pInOut, nVars);
-//         counter += minimalFlip(pInOut, pAux, pAux1, nVars);
-//         counter += minimalSwap(pInOut, pAux, pAux1, nVars);
-//         cCtr->totalCycles++;
-//         cycles++;
-//     }
-//     if(cycles < cCtr->minNCycles)
-//         cCtr->minNCycles = cycles;
-//     else if(cycles > cCtr->maxNCycles)
-//         cCtr->maxNCycles = cycles;
+//  int counter=1, cycles=0;   
+//  assert( nVars <= 16 );
+//  while(counter>0 )   //  && cycles < 10 if we wanna limit cycles
+//  {
+//      counter=0;
+//      counter += minimalInitialFlip(pInOut, nVars);
+//      counter += minimalFlip(pInOut, pAux, pAux1, nVars);
+//      counter += minimalSwap(pInOut, pAux, pAux1, nVars);
+//      cCtr->totalCycles++;
+//      cycles++;
+//  }
+//  if(cycles < cCtr->minNCycles)
+//      cCtr->minNCycles = cycles;
+//  else if(cycles > cCtr->maxNCycles)
+//      cCtr->maxNCycles = cycles;
 // }
 //  runs paralel F and ~F in luckyCanonicizer
 // void luckyCanonicizer2(word* pInOut, word* pAux, word* pAux1, word* temp, int  nVars)
 // {
-//     int nWords = Kit_TruthWordNum_64bit( nVars );
-//     int counter=1, nOnes;   
-//     assert( nVars <= 16 );
-//     nOnes = Kit_TruthCountOnes_64bit(pInOut, nVars);
-//     
+//  int nWords = Kit_TruthWordNum_64bit( nVars );
+//  int counter=1, nOnes;   
+//  assert( nVars <= 16 );
+//  nOnes = Kit_TruthCountOnes_64bit(pInOut, nVars);
+//  
 //     if ( (nOnes*2 == nWords * 32) )
 //     { 
-//         Kit_TruthCopy_64bit( temp, pInOut, nVars );
-//         Kit_TruthNot_64bit( temp, nVars );
+//      Kit_TruthCopy_64bit( temp, pInOut, nVars );
+//      Kit_TruthNot_64bit( temp, nVars );
 //         luckyCanonicizer1_simple(pInOut, pAux, pAux1, nVars);
-//         luckyCanonicizer1_simple(temp, pAux, pAux1, nVars);
-//         if( memCompare(temp,pInOut,nVars) == -1)        
-//             Kit_TruthCopy_64bit(pInOut, temp, nVars );    
-//         return;        
+//      luckyCanonicizer1_simple(temp, pAux, pAux1, nVars);
+//      if( memCompare(temp,pInOut,nVars) == -1)        
+//          Kit_TruthCopy_64bit(pInOut, temp, nVars );  
+//      return;     
 //     }
-//     while(counter>0 )   //  && cycles < 10 if we wanna limit cycles
-//     {
-//         counter=0;
-//         counter += minimalInitialFlip_propper(pInOut, pAux, nVars);
-//         counter += minimalFlip1(pInOut, pAux, pAux1, nVars);
-//         counter += minimalSwap1(pInOut, pAux, pAux1, nVars);
-//     }
+//  while(counter>0 )   //  && cycles < 10 if we wanna limit cycles
+//  {
+//      counter=0;
+//      counter += minimalInitialFlip_propper(pInOut, pAux, nVars);
+//      counter += minimalFlip1(pInOut, pAux, pAux1, nVars);
+//      counter += minimalSwap1(pInOut, pAux, pAux1, nVars);
+//  }
 // }
 // same as luckyCanonicizer + cycleCtr stutistics 
 // void luckyCanonicizer1(word* pInOut, word* pAux, word* pAux1, int  nVars, cycleCtr* cCtr)
 // {
-//     int counter=1, cycles=0;   
-//     assert( nVars <= 16 );
-//     while(counter>0 )   //  && cycles < 10 if we wanna limit cycles
-//     {
-//         counter=0;
-//         counter += minimalInitialFlip1(pInOut, nVars);
-//         counter += minimalFlip1(pInOut, pAux, pAux1, nVars);
-//         counter += minimalSwap1(pInOut, pAux, pAux1, nVars);
-//         cCtr->totalCycles++;
-//         cycles++;
-//     }
-//     if(cycles < cCtr->minNCycles)
-//         cCtr->minNCycles = cycles;
-//     else if(cycles > cCtr->maxNCycles)
-//         cCtr->maxNCycles = cycles;
+//  int counter=1, cycles=0;   
+//  assert( nVars <= 16 );
+//  while(counter>0 )   //  && cycles < 10 if we wanna limit cycles
+//  {
+//      counter=0;
+//      counter += minimalInitialFlip1(pInOut, nVars);
+//      counter += minimalFlip1(pInOut, pAux, pAux1, nVars);
+//      counter += minimalSwap1(pInOut, pAux, pAux1, nVars);
+//      cCtr->totalCycles++;
+//      cycles++;
+//  }
+//  if(cycles < cCtr->minNCycles)
+//      cCtr->minNCycles = cycles;
+//  else if(cycles > cCtr->maxNCycles)
+//      cCtr->maxNCycles = cycles;
 // }
 // luckyCanonicizer 
 
@@ -404,7 +404,7 @@ inline int minimalFlip(word* pInOut, word* pMinimal, word* PDuplicat, int  nVars
         memcpy(pInOut, pMinimal, blockSize);
         *p_uCanonPhase = minTemp;
     }
-    if(memcmp(pInOut,PDuplicat,blockSize) == 0)    
+    if(memcmp(pInOut,PDuplicat,blockSize) == 0) 
         return 0;
     else
         return 1;
@@ -437,7 +437,7 @@ inline void swapInfoAdjacentVars(int iVar, char * pCanonPerm, unsigned* p_uCanon
 // this version is buggy and is fixed below
 inline int minimalSwap(word* pInOut, word* pMinimal, word* PDuplicat, int  nVars, char * pCanonPerm, char * tempArray, unsigned* p_uCanonPhase) 
 {
-    int i;    
+    int i;  
     int blockSizeWord = Kit_TruthWordNum_64bit( nVars )*sizeof(word);
     int blockSizeChar = nVars *sizeof(char);
     memcpy(pMinimal, pInOut, blockSizeWord);
@@ -455,7 +455,7 @@ inline int minimalSwap(word* pInOut, word* pMinimal, word* PDuplicat, int  nVars
         else
         {
             memcpy(pInOut, pMinimal, blockSizeWord);
-            memcpy(pCanonPerm, tempArray, blockSizeChar);    
+            memcpy(pCanonPerm, tempArray, blockSizeChar);   
         }
         Kit_TruthSwapAdjacentVars_64bit( pInOut, nVars, i );
         swapInfoAdjacentVars(i, pCanonPerm, p_uCanonPhase);
@@ -474,7 +474,7 @@ inline int minimalSwap(word* pInOut, word* pMinimal, word* PDuplicat, int  nVars
 
 inline int minimalSwap(word* pInOut, word* pMinimal, word* PDuplicat, int  nVars, char * pCanonPerm, char * tempArray, unsigned* p_uCanonPhase) 
 {
-    int i;    
+    int i;  
     int blockSizeWord = Kit_TruthWordNum_64bit( nVars )*sizeof(word);
     int blockSizeChar = nVars *sizeof(char);
     unsigned TempuCanonPhase = *p_uCanonPhase;
@@ -570,7 +570,7 @@ inline void luckyCanonicizer(word* pInOut, word* pAux, word* pAux1, int  nVars, 
         counter=0;
         counter += minimalInitialFlip(pInOut, nVars, p_uCanonPhase);
         counter += minimalFlip(pInOut, pAux, pAux1, nVars, p_uCanonPhase);
-        counter += minimalSwap(pInOut, pAux, pAux1, nVars, pCanonPerm, tempArray, p_uCanonPhase);    
+        counter += minimalSwap(pInOut, pAux, pAux1, nVars, pCanonPerm, tempArray, p_uCanonPhase);   
     }
 }
 // tries to find minimal F till F at the beginning of the loop is the same as at the end - irreducible 
@@ -629,22 +629,22 @@ unsigned Kit_TruthSemiCanonicize_new( unsigned * pInOut, unsigned * pAux, int nV
 
 int main () 
 {
-//     char * pFileInput  = "nonDSDfunc06var1M.txt";
-//     char * pFileInput1 = "partDSDfunc06var1M.txt";
-//     char * pFileInput2 = "fullDSDfunc06var1M.txt";
+//  char * pFileInput  = "nonDSDfunc06var1M.txt";
+//  char * pFileInput1 = "partDSDfunc06var1M.txt";
+//  char * pFileInput2 = "fullDSDfunc06var1M.txt";
 
-//     char * pFileInput  = "nonDSDfunc10var100K.txt";
-//     char * pFileInput1 = "partDSDfunc10var100K.txt";
-//     char * pFileInput2 = "fullDSDfunc10var100K.txt";
+//  char * pFileInput  = "nonDSDfunc10var100K.txt";
+//  char * pFileInput1 = "partDSDfunc10var100K.txt";
+//  char * pFileInput2 = "fullDSDfunc10var100K.txt";
 
-//    char * pFileInput = "partDSDfunc12var100K.txt";
-//    char * pFileInput  = "nonDSDfunc12var100K.txt";
-//     char * pFileInput1 = "partDSDfunc12var100K.txt";
-//     char * pFileInput2 = "fullDSDfunc12var100K.txt";
+//  char * pFileInput = "partDSDfunc12var100K.txt";
+//  char * pFileInput  = "nonDSDfunc12var100K.txt";
+//  char * pFileInput1 = "partDSDfunc12var100K.txt";
+//  char * pFileInput2 = "fullDSDfunc12var100K.txt";
 
-//     char * pFileInput  = "nonDSDfunc14var10K.txt";
-//     char * pFileInput1 = "partDSDfunc14var10K.txt";
-//     char * pFileInput2 = "fullDSDfunc14var10K.txt";
+//  char * pFileInput  = "nonDSDfunc14var10K.txt";
+//  char * pFileInput1 = "partDSDfunc14var10K.txt";
+//  char * pFileInput2 = "fullDSDfunc14var10K.txt";
 
     char * pFileInput  = "nonDSDfunc16var10K.txt";
     char * pFileInput1 = "partDSDfunc16var10K.txt";
@@ -656,7 +656,7 @@ int main ()
     Abc_TtStore_t* p;
     word * pAux, * pAux1;
     int * pStore;
-//    cycleCtr* cCtr;
+//  cycleCtr* cCtr;
     charArray = (char**)malloc(sizeof(char*)*3);
 
     charArray[0] = pFileInput;
@@ -664,35 +664,35 @@ int main ()
     charArray[2] = pFileInput2;
     for(j=0;j<3;j++)
     {
-        p = setTtStore(charArray[j]);    
-//        p = setTtStore(pFileInput);    
+        p = setTtStore(charArray[j]);   
+//      p = setTtStore(pFileInput); 
         a = makeArray(p);
-        b = makeArray(p);    
-//        cCtr = setCycleCtrPtr();
+        b = makeArray(p);   
+//      cCtr = setCycleCtrPtr();
 
-         pAux = (word*)malloc(sizeof(word)*(p->nWords));
-         pAux1 = (word*)malloc(sizeof(word)*(p->nWords));    
+        pAux = (word*)malloc(sizeof(word)*(p->nWords));
+        pAux1 = (word*)malloc(sizeof(word)*(p->nWords));    
         pStore = (int*)malloc(sizeof(int)*(p->nVars));
         printf("In %s Fs at start = %d\n",charArray[j],p->nFuncs);
         
-         tempNF = p->nFuncs;
+        tempNF = p->nFuncs;
 
-        TimePrint("start");        
+        TimePrint("start");     
         for(i=0;i<p->nFuncs;i++)        
             luckyCanonicizer_final(a[i], pAux, pAux1, p->nVars, pStore);        
-         TimePrint("done with A");
+        TimePrint("done with A");
 
         sortAndUnique(a, p);
         printf("F left in A final = %d\n",p->nFuncs);
         freeArray(a,p);
-         TimePrint("Done with sort");
+        TimePrint("Done with sort");
         
 
-// delete data-structures    
+// delete data-structures   
         free(pAux);
         free(pAux1);    
         free(pStore);
-//        freeCycleCtr(cCtr);
+//      freeCycleCtr(cCtr);
         Abc_TruthStoreFree( p );
     }
     return 0;
