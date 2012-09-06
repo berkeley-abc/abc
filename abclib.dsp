@@ -3759,6 +3759,14 @@ SOURCE=.\src\bool\lucky\lucky.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\bool\lucky\luckyFast16.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bool\lucky\luckyFast6.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\bool\lucky\luckyInt.h
 # End Source File
 # Begin Source File
@@ -3768,6 +3776,10 @@ SOURCE=.\src\bool\lucky\luckyRead.c
 # Begin Source File
 
 SOURCE=.\src\bool\lucky\luckySwap.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bool\lucky\luckySwapIJ.c
 # End Source File
 # End Group
 # End Group

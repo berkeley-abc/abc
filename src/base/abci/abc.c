@@ -4907,10 +4907,11 @@ usage:
     Abc_Print( -2, "\t           testbench for computing semi-canonical forms of Boolean functions\n" );
     Abc_Print( -2, "\t-A <num> : semi-caninical form computation algorithm [default = %d]\n", NpnType );
     Abc_Print( -2, "\t               0: none (reading and writing the file)\n" );
-    Abc_Print( -2, "\t               1: exact canonical form (work only for 6 variables)\n" );
+    Abc_Print( -2, "\t               1: exact canonical form (works only for 6 variables)\n" );
     Abc_Print( -2, "\t               2: semi-canonical form by counting 1s in cofactors\n" );
     Abc_Print( -2, "\t               3: semi-canonical form by minimizing truth table value\n" );
-    Abc_Print( -2, "\t               4: hybrid semi-canonical form (work only for 6 variables)\n" );
+    Abc_Print( -2, "\t               4: hybrid semi-canonical form (works only for 6 variables)\n" );
+    Abc_Print( -2, "\t               5: Jake's hybrid semi-canonical form (works up to 16 variables)\n" );
     Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;

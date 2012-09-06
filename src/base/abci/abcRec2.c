@@ -1183,6 +1183,11 @@ for ( i = 0; i < p->nBins; i++ )
     for ( entry = p->pBins[i]; entry != REC_EMPTY_ID; entry = Rec_Obj(p, entry)->pCopy )
     {
         int tmp = 0;
+
+        assert( 0 );
+        // added the next line to silence the warning that 'pEntry' is not initialized
+        pEntry = -1;
+
 //        pTruth = (unsigned*)Vec_PtrEntry(p->vTtNodes, entry);
         pTruth = Rec_MemReadEntry( p, Rec_Obj(p, pEntry)->truthID );
         /*if ( (int)Kit_TruthSupport(pTruth, nVars) != (1<<nVars)-1 )
@@ -1525,7 +1530,7 @@ clk = clock();
 
     // semi-canonicize the truth table
 clk = clock();
-    uCanonPhase = Kit_TruthSemiCanonicize( pInOut, pTemp, nLeaves, pCanonPerm, (short *)s_pMan->pMints );
+    uCanonPhase = Kit_TruthSemiCanonicize( pInOut, pTemp, nLeaves, pCanonPerm );
     If_CutTruthStretch(pInOut, nLeaves, s_pMan->nVars);
     s_pMan->timeCanon += clock() - clk;
     // pCanonPerm and uCanonPhase show what was the variable corresponding to each var in the current truth
@@ -1875,7 +1880,7 @@ int If_CutDelayRecCost2(If_Man_t* p, If_Cut_t* pCut, If_Obj_t * pObj)
     //canonicize
     for (i = 0; i < nLeaves; i++)
         pCanonPerm[i] = i;
-    uCanonPhase = Kit_TruthSemiCanonicize(pInOut, pTemp, nLeaves, pCanonPerm, (short*)s_pMan->pMints);
+    uCanonPhase = Kit_TruthSemiCanonicize(pInOut, pTemp, nLeaves, pCanonPerm);
     If_CutTruthStretch(pInOut, nLeaves, nVars);
     s_pMan->timeIfCanonicize += clock() - timeCanonicize;   
     timeDelayComput = clock();
@@ -1986,7 +1991,7 @@ Hop_Obj_t * Abc_RecToHop2( Hop_Man_t * pMan, If_Man_t * pIfMan, If_Cut_t * pCut,
     
     for (i = 0; i < nLeaves; i++)
         pCanonPerm[i] = i;
-    uCanonPhase = Kit_TruthSemiCanonicize(pInOut, pTemp, nLeaves, pCanonPerm, (short*)s_pMan->pMints);
+    uCanonPhase = Kit_TruthSemiCanonicize(pInOut, pTemp, nLeaves, pCanonPerm);
     If_CutTruthStretch(pInOut, nLeaves, nVars);
     pCandMin = Abc_NtkRecLookUpBest(pIfMan, pCut, pInOut, pCanonPerm, pCompl,NULL);
 

@@ -881,7 +881,7 @@ Hop_Obj_t * Abc_RecToHop( Hop_Man_t * pMan, If_Man_t * pIfMan, If_Cut_t * pCut, 
     
     for (i = 0; i < nLeaves; i++)
         pCanonPerm[i] = i;
-    uCanonPhase = Kit_TruthSemiCanonicize(pInOut, pTemp, nLeaves, pCanonPerm, (short*)s_pMan->pMints);
+    uCanonPhase = Kit_TruthSemiCanonicize(pInOut, pTemp, nLeaves, pCanonPerm);
     If_CutTruthStretch(pInOut, nLeaves, nVars);
     pCandMin = Abc_NtkRecLookUpBest(pIfMan, pCut, pInOut, pCanonPerm, pCompl,NULL);
     Vec_PtrGrow(s_pMan->vLabels, Abc_NtkObjNumMax(pAig));
@@ -2252,7 +2252,7 @@ clk = clock();
 
     // semi-canonicize the truth table
 clk = clock();
-    uCanonPhase = Kit_TruthSemiCanonicize( pInOut, pTemp, nLeaves, pCanonPerm, (short *)s_pMan->pMints );
+    uCanonPhase = Kit_TruthSemiCanonicize( pInOut, pTemp, nLeaves, pCanonPerm );
     If_CutTruthStretch(pInOut, nLeaves, s_pMan->nVars);
     s_pMan->timeCanon += clock() - clk;
     // pCanonPerm and uCanonPhase show what was the variable corresponding to each var in the current truth
@@ -2819,7 +2819,7 @@ int If_CutDelayRecCost(If_Man_t* p, If_Cut_t* pCut, If_Obj_t * pObj)
     //canonicize
     for (i = 0; i < nLeaves; i++)
         pCanonPerm[i] = i;
-    uCanonPhase = Kit_TruthSemiCanonicize(pInOut, pTemp, nLeaves, pCanonPerm, (short*)s_pMan->pMints);
+    uCanonPhase = Kit_TruthSemiCanonicize(pInOut, pTemp, nLeaves, pCanonPerm);
     If_CutTruthStretch(pInOut, nLeaves, nVars);
     s_pMan->timeIfCanonicize += clock() - timeCanonicize;   
     timeDelayComput = clock();
@@ -2997,7 +2997,7 @@ int If_CutDelayRecCost(If_Man_t* p, If_Cut_t* pCut, If_Obj_t * pObj)
         pCanonPerm[i] = i;
 
     // canonicize the truth table
-    uCanonPhase = Kit_TruthSemiCanonicize( pInOut, pTemp, nVars, pCanonPerm, (short *)s_pMan->pMints );
+    uCanonPhase = Kit_TruthSemiCanonicize( pInOut, pTemp, nVars, pCanonPerm );
 
     // get hold of the curresponding class
     ppSpot = Abc_NtkRecTableLookup( s_pMan, pInOut, nVars );

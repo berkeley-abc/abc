@@ -1585,7 +1585,7 @@ If_Grp_t If_CluCheck( If_Man_t * p, word * pTruth0, int nVars, int iVarStart, in
         short pStore[32];
         unsigned uCanonPhase;
         If_CluCopy( pF, pTruth, nVars );
-        uCanonPhase = Kit_TruthSemiCanonicize( pF, pG, nVars, pCanonPerm, pStore );
+        uCanonPhase = Kit_TruthSemiCanonicize( pF, pG, nVars, pCanonPerm );
         G1.nVars = 1;
         return G1;
     }

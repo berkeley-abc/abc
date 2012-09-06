@@ -37,7 +37,7 @@ typedef struct Aig_VSig_t_ Aig_VSig_t;
 struct Aig_VSig_t_
 {
     int           nOnes;
-    short         nCofOnes[RMAN_MAXVARS];
+    int           nCofOnes[RMAN_MAXVARS];
 };
 
 typedef struct Aig_Tru_t_ Aig_Tru_t;
@@ -307,7 +307,7 @@ void Aig_RManQuit()
 ***********************************************************************/
 void Aig_RManPrintVarProfile( unsigned * pTruth, int nVars,  unsigned * pTruthAux )
 {
-    short pStore2[32];
+    int pStore2[32];
     int i;
     Kit_TruthCountOnesInCofsSlow( pTruth, nVars, pStore2, pTruthAux );
     for ( i = 0; i < nVars; i++ )
@@ -326,7 +326,7 @@ void Aig_RManPrintVarProfile( unsigned * pTruth, int nVars,  unsigned * pTruthAu
   SeeAlso     []
 
 ***********************************************************************/
-void Aig_RManSortNums( short * pArray, int nVars )
+void Aig_RManSortNums( int * pArray, int nVars )
 {
     int i, j, best_i, tmp;
     for ( i = 0; i < nVars-1; i++ )
@@ -409,7 +409,7 @@ void Aig_RManComputeVSigs( unsigned * pTruth, int nVars, Aig_VSig_t * pSigs, uns
 ***********************************************************************/
 static inline int Aig_RManCompareSigs( Aig_VSig_t * p0, Aig_VSig_t * p1, int nVars )
 {
-//    return memcmp( p0, p1, sizeof(int) + sizeof(short) * nVars );
+//    return memcmp( p0, p1, sizeof(int) + sizeof(int) * nVars );
     return memcmp( p0, p1, sizeof(int) );
 }
 

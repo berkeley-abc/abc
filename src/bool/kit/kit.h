@@ -623,11 +623,11 @@ extern int             Kit_TruthVarsSymm( unsigned * pTruth, int nVars, int iVar
 extern int             Kit_TruthVarsAntiSymm( unsigned * pTruth, int nVars, int iVar0, int iVar1, unsigned * pCof0, unsigned * pCof1 );
 extern int             Kit_TruthMinCofSuppOverlap( unsigned * pTruth, int nVars, int * pVarMin );
 extern int             Kit_TruthBestCofVar( unsigned * pTruth, int nVars, unsigned * pCof0, unsigned * pCof1 );
-extern void            Kit_TruthCountOnesInCofs( unsigned * pTruth, int nVars, short * pStore );
-extern void            Kit_TruthCountOnesInCofs0( unsigned * pTruth, int nVars, short * pStore );
-extern void            Kit_TruthCountOnesInCofsSlow( unsigned * pTruth, int nVars, short * pStore, unsigned * pAux );
+extern void            Kit_TruthCountOnesInCofs( unsigned * pTruth, int nVars, int * pStore );
+extern void            Kit_TruthCountOnesInCofs0( unsigned * pTruth, int nVars, int * pStore );
+extern void            Kit_TruthCountOnesInCofsSlow( unsigned * pTruth, int nVars, int * pStore, unsigned * pAux );
 extern unsigned        Kit_TruthHash( unsigned * pIn, int nWords );
-extern unsigned        Kit_TruthSemiCanonicize( unsigned * pInOut, unsigned * pAux, int nVars, char * pCanonPerm, short * pStore );
+extern unsigned        Kit_TruthSemiCanonicize( unsigned * pInOut, unsigned * pAux, int nVars, char * pCanonPerm );
 extern char *          Kit_TruthDumpToFile( unsigned * pTruth, int nVars, int nFile );
 extern void            Kit_TruthPrintProfile( unsigned * pTruth, int nVars );
 

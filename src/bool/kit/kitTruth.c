@@ -1397,7 +1397,7 @@ int Kit_TruthBestCofVar( unsigned * pTruth, int nVars, unsigned * pCof0, unsigne
 
   Synopsis    [Counts the number of 1's in each cofactor.]
 
-  Description [The resulting numbers are stored in the array of shorts, 
+  Description [The resulting numbers are stored in the array of ints, 
   whose length is 2*nVars. The number of 1's is counted in a different
   space than the original function. For example, if the function depends 
   on k variables, the cofactors are assumed to depend on k-1 variables.]
@@ -1407,11 +1407,11 @@ int Kit_TruthBestCofVar( unsigned * pTruth, int nVars, unsigned * pCof0, unsigne
   SeeAlso     []
 
 ***********************************************************************/
-void Kit_TruthCountOnesInCofs( unsigned * pTruth, int nVars, short * pStore )
+void Kit_TruthCountOnesInCofs( unsigned * pTruth, int nVars, int * pStore )
 {
     int nWords = Kit_TruthWordNum( nVars );
     int i, k, Counter;
-    memset( pStore, 0, sizeof(short) * 2 * nVars );
+    memset( pStore, 0, sizeof(int) * 2 * nVars );
     if ( nVars <= 5 )
     {
         if ( nVars > 0 )
@@ -1473,7 +1473,7 @@ void Kit_TruthCountOnesInCofs( unsigned * pTruth, int nVars, short * pStore )
 
   Synopsis    [Counts the number of 1's in each negative cofactor.]
 
-  Description [The resulting numbers are stored in the array of shorts, 
+  Description [The resulting numbers are stored in the array of ints, 
   whose length is nVars. The number of 1's is counted in a different
   space than the original function. For example, if the function depends 
   on k variables, the cofactors are assumed to depend on k-1 variables.]
@@ -1483,11 +1483,11 @@ void Kit_TruthCountOnesInCofs( unsigned * pTruth, int nVars, short * pStore )
   SeeAlso     []
 
 ***********************************************************************/
-void Kit_TruthCountOnesInCofs0( unsigned * pTruth, int nVars, short * pStore )
+void Kit_TruthCountOnesInCofs0( unsigned * pTruth, int nVars, int * pStore )
 {
     int nWords = Kit_TruthWordNum( nVars );
     int i, k, Counter;
-    memset( pStore, 0, sizeof(short) * nVars );
+    memset( pStore, 0, sizeof(int) * nVars );
     if ( nVars <= 5 )
     {
         if ( nVars > 0 )
@@ -1534,7 +1534,7 @@ void Kit_TruthCountOnesInCofs0( unsigned * pTruth, int nVars, short * pStore )
   SeeAlso     []
 
 ***********************************************************************/
-void Kit_TruthCountOnesInCofsSlow( unsigned * pTruth, int nVars, short * pStore, unsigned * pAux )
+void Kit_TruthCountOnesInCofsSlow( unsigned * pTruth, int nVars, int * pStore, unsigned * pAux )
 {
     int i;
     for ( i = 0; i < nVars; i++ )
@@ -1654,9 +1654,9 @@ unsigned Kit_TruthHash( unsigned * pIn, int nWords )
   SeeAlso     []
 
 ***********************************************************************/
-unsigned Kit_TruthSemiCanonicize( unsigned * pInOut, unsigned * pAux, int nVars, char * pCanonPerm, short * pStore )
+unsigned Kit_TruthSemiCanonicize( unsigned * pInOut, unsigned * pAux, int nVars, char * pCanonPerm )
 {
-//    short pStore2[32];
+    int pStore[32];
     unsigned * pIn = pInOut, * pOut = pAux, * pTemp;
     int nWords = Kit_TruthWordNum( nVars );
     int i, Temp, fChange, Counter, nOnes;//, k, j, w, Limit;

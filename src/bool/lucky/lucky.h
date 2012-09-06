@@ -6,7 +6,7 @@
 
   PackageName [Semi-canonical form computation package.]
 
-  Synopsis    [Internal declarations.]
+  Synopsis    [External declarations.]
 
   Author      [Jake]
 
@@ -21,6 +21,8 @@
 ABC_NAMESPACE_HEADER_START
 
 extern unsigned Kit_TruthSemiCanonicize_new( unsigned * pInOut, unsigned * pAux, int nVars, char * pCanonPerm );
+extern int      luckyCanonicizer_final_fast( word * pInOut, int nVars, char * pCanonPerm );
+extern void     resetPCanonPermArray(char* x, int nVars); 
 
 ABC_NAMESPACE_HEADER_END
 

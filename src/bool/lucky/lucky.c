@@ -655,7 +655,7 @@ int main ()
     word** a, ** b;
     Abc_TtStore_t* p;
     word * pAux, * pAux1;
-    short * pStore;
+    int * pStore;
 //    cycleCtr* cCtr;
     charArray = (char**)malloc(sizeof(char*)*3);
 
@@ -672,7 +672,7 @@ int main ()
 
          pAux = (word*)malloc(sizeof(word)*(p->nWords));
          pAux1 = (word*)malloc(sizeof(word)*(p->nWords));    
-        pStore = (short*)malloc(sizeof(short)*(p->nVars));
+        pStore = (int*)malloc(sizeof(int)*(p->nVars));
         printf("In %s Fs at start = %d\n",charArray[j],p->nFuncs);
         
          tempNF = p->nFuncs;
