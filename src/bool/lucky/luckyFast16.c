@@ -19,6 +19,15 @@
 
 ABC_NAMESPACE_IMPL_START
 
+static word SFmask[5][4] = {
+    {0x8888888888888888,0x4444444444444444,0x2222222222222222,0x1111111111111111},
+    {0xC0C0C0C0C0C0C0C0,0x3030303030303030,0x0C0C0C0C0C0C0C0C,0x0303030303030303},
+    {0xF000F000F000F000,0x0F000F000F000F00,0x00F000F000F000F0,0x000F000F000F000F},
+    {0xFF000000FF000000,0x00FF000000FF0000,0x0000FF000000FF00,0x000000FF000000FF},
+    {0xFFFF000000000000,0x0000FFFF00000000,0x00000000FFFF0000,0x000000000000FFFF}    
+};
+
+
 ////////////////////////////////////lessThen5/////////////////////////////////////////////////////////////////////////////////////////////
 
 // there are 4 parts in every block to compare and rearrange - quoters(0Q,1Q,2Q,3Q)
@@ -177,9 +186,9 @@ inline void minimalSwapAndFlipIVar_superFast_lessThen5(word* pInOut, int iVar, i
         if( DifStartMin>=DifStart1 && DifStartMin>=DifStart0 )
             arrangeQuoters_superFast_lessThen5(pInOut, DifStartMin/100, M[min1], M[(min1+1)%2], 3 - M[(min1+1)%2], 3 - M[min1], iVar, nWords, pCanonPerm, pCanonPhase);
         else if( DifStart0 > DifStart1)
-            arrangeQuoters_superFast_lessThen5(pInOut,max(DifStartMin/100, DifStart0/100), M[0], M[1], 3 - M[1], 3 - M[0], iVar, nWords, pCanonPerm, pCanonPhase);
+            arrangeQuoters_superFast_lessThen5(pInOut,luckyMax(DifStartMin/100, DifStart0/100), M[0], M[1], 3 - M[1], 3 - M[0], iVar, nWords, pCanonPerm, pCanonPhase);
         else
-            arrangeQuoters_superFast_lessThen5(pInOut,max(DifStartMin/100, DifStart1/100), M[1], M[0], 3 - M[0], 3 - M[1], iVar, nWords, pCanonPerm, pCanonPhase);
+            arrangeQuoters_superFast_lessThen5(pInOut,luckyMax(DifStartMin/100, DifStart1/100), M[1], M[0], 3 - M[0], 3 - M[1], iVar, nWords, pCanonPerm, pCanonPhase);
     }
     else
     {
@@ -337,9 +346,9 @@ inline void minimalSwapAndFlipIVar_superFast_iVar5(unsigned* pInOut, int nWords,
         if( DifStartMin>=DifStart1 && DifStartMin>=DifStart0 )
             arrangeQuoters_superFast_iVar5(pInOut, temp, DifStartMin, M[min1], M[(min1+1)%2], 3 - M[(min1+1)%2], 3 - M[min1], pCanonPerm, pCanonPhase);
         else if( DifStart0 > DifStart1)
-            arrangeQuoters_superFast_iVar5(pInOut, temp, max(DifStartMin,DifStart0), M[0], M[1], 3 - M[1], 3 - M[0], pCanonPerm, pCanonPhase);
+            arrangeQuoters_superFast_iVar5(pInOut, temp, luckyMax(DifStartMin,DifStart0), M[0], M[1], 3 - M[1], 3 - M[0], pCanonPerm, pCanonPhase);
         else
-            arrangeQuoters_superFast_iVar5(pInOut, temp, max(DifStartMin,DifStart1), M[1], M[0], 3 - M[0], 3 - M[1], pCanonPerm, pCanonPhase);
+            arrangeQuoters_superFast_iVar5(pInOut, temp, luckyMax(DifStartMin,DifStart1), M[1], M[0], 3 - M[0], 3 - M[1], pCanonPerm, pCanonPhase);
     }
     else
     {
@@ -514,9 +523,9 @@ inline void minimalSwapAndFlipIVar_superFast_moreThen5(word* pInOut, int iVar, i
         if( DifStartMin>=DifStart1 && DifStartMin>=DifStart0 )
             arrangeQuoters_superFast_moreThen5(pInOut, temp, DifStartMin, M[min1], M[(min1+1)%2], 3 - M[(min1+1)%2], 3 - M[min1], iVar, pCanonPerm, pCanonPhase);
         else if( DifStart0 > DifStart1)
-            arrangeQuoters_superFast_moreThen5(pInOut, temp, max(DifStartMin,DifStart0), M[0], M[1], 3 - M[1], 3 - M[0], iVar, pCanonPerm, pCanonPhase);
+            arrangeQuoters_superFast_moreThen5(pInOut, temp, luckyMax(DifStartMin,DifStart0), M[0], M[1], 3 - M[1], 3 - M[0], iVar, pCanonPerm, pCanonPhase);
         else
-            arrangeQuoters_superFast_moreThen5(pInOut, temp, max(DifStartMin,DifStart1), M[1], M[0], 3 - M[0], 3 - M[1], iVar, pCanonPerm, pCanonPhase);
+            arrangeQuoters_superFast_moreThen5(pInOut, temp, luckyMax(DifStartMin,DifStart1), M[1], M[0], 3 - M[0], 3 - M[1], iVar, pCanonPerm, pCanonPhase);
     }
     else
     {
