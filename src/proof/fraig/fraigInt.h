@@ -72,7 +72,8 @@ ABC_NAMESPACE_HEADER_START
 #define FRAIG_NUM_WORDS(n)         (((n)>>5) + (((n)&31) > 0))
 
 // generating random unsigned (#define RAND_MAX 0x7fff)
-#define FRAIG_RANDOM_UNSIGNED   ((((unsigned)rand()) << 24) ^ (((unsigned)rand()) << 12) ^ ((unsigned)rand()))
+//#define FRAIG_RANDOM_UNSIGNED   ((((unsigned)rand()) << 24) ^ (((unsigned)rand()) << 12) ^ ((unsigned)rand()))
+#define FRAIG_RANDOM_UNSIGNED  Aig_ManRandom(0)
 
 // macros to get hold of the bits in a bit string
 #define Fraig_BitStringSetBit(p,i)  ((p)[(i)>>5] |= (1<<((i) & 31)))
@@ -344,6 +345,9 @@ struct Fraig_HashTableStruct_t_
 ////////////////////////////////////////////////////////////////////////
 ///                       GLOBAL VARIABLES                           ///
 ////////////////////////////////////////////////////////////////////////
+
+// random number generator imported from another package
+extern unsigned            Aig_ManRandom( int fReset );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///

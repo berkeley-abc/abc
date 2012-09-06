@@ -188,7 +188,8 @@ Fraig_Man_t * Fraig_ManCreate( Fraig_Params_t * pParams )
 
     // set the random seed for simulation
 //    srand( 0xFEEDDEAF );
-    srand( 0xDEADCAFE );
+//    srand( 0xDEADCAFE );
+    Aig_ManRandom( 1 );
 
     // set parameters for equivalence checking
     if ( pParams == NULL )
