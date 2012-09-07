@@ -216,7 +216,7 @@ int Dch_ObjMarkTfi_rec( Aig_Man_t * p, Aig_Obj_t * pObj )
     Aig_ObjSetTravIdCurrent( p, pObj );
     RetValue  = Dch_ObjMarkTfi_rec( p, Aig_ObjFanin0(pObj) );
     RetValue += Dch_ObjMarkTfi_rec( p, Aig_ObjFanin1(pObj) );
-    RetValue += Dch_ObjMarkTfi_rec( p, Aig_ObjEquiv(p, pObj) );
+//    RetValue += Dch_ObjMarkTfi_rec( p, Aig_ObjEquiv(p, pObj) );
     return (RetValue > 0);
 }
 
