@@ -71,10 +71,7 @@ inline int minTemp0_fast(word* pInOut, int iVar, int nWords, int* pDifStart)
         {
             *pDifStart = i*100;
             while(temp == (temp & luckyMask(shiftSize*j)))
-            {
                 j++;
-                assert( j < 100 );
-            }
             *pDifStart += 21 - j;
 
             if( ((pInOut[i] & SFmask[iVar][0])) < ((pInOut[i] & SFmask[iVar][3])<<(3*blockSize)) )
@@ -105,10 +102,7 @@ inline int minTemp1_fast(word* pInOut, int iVar, int nWords, int* pDifStart)
         {
             *pDifStart = i*100;
             while(temp == (temp & luckyMask(shiftSize*j)))
-            {
                 j++;
-                assert( j < 100 );
-            }
             *pDifStart += 21 - j;
             if( ((pInOut[i] & SFmask[iVar][1])<<(blockSize)) < ((pInOut[i] & SFmask[iVar][2])<<(2*blockSize)) )
                 return 1;
@@ -139,10 +133,7 @@ inline int minTemp2_fast(word* pInOut, int iVar, int iQ, int jQ, int nWords, int
         {
             *pDifStart = i*100;
             while(temp == (temp & luckyMask(shiftSize*j)))
-            {
                 j++;
-                assert( j < 100 );
-            }
             *pDifStart += 21 - j;
             if( ((pInOut[i] & SFmask[iVar][iQ])<<(iQ*blockSize)) <= ((pInOut[i] & SFmask[iVar][jQ])<<(jQ*blockSize)) )
                 return 0;
@@ -169,10 +160,7 @@ inline int minTemp3_fast(word* pInOut, int iVar, int start, int finish, int iQ, 
         {
             *pDifStart = i*100;
             while(temp == (temp & luckyMask(shiftSize*j)))
-            {
                 j++;
-                assert( j < 100 );
-            }
             *pDifStart += 21 - j;
 
             if( ((pInOut[i] & SFmask[iVar][iQ])<<(iQ*blockSize)) <= ((pInOut[i] & SFmask[iVar][jQ])<<(jQ*blockSize)) )
