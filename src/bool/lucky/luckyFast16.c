@@ -69,6 +69,8 @@ inline int minTemp0_fast(word* pInOut, int iVar, int nWords, int* pDifStart)
         else
         {
             *pDifStart = i*100;
+            assert( shiftSize >= 0 && shiftSize <= 64 );
+            if ( shiftSize < 64 )
             while(temp == (temp<<(shiftSize*j))>>shiftSize*j)
                 j++;
             *pDifStart += 21 - j;
@@ -100,6 +102,8 @@ inline int minTemp1_fast(word* pInOut, int iVar, int nWords, int* pDifStart)
         else
         {
             *pDifStart = i*100;
+            assert( shiftSize >= 0 && shiftSize <= 64 );
+            if ( shiftSize < 64 )
             while(temp == (temp<<(shiftSize*j))>>shiftSize*j)
                 j++;
             *pDifStart += 21 - j;
@@ -122,29 +126,19 @@ inline int minTemp2_fast(word* pInOut, int iVar, int iQ, int jQ, int nWords, int
     int  shiftSize = blockSize*4;
     word temp;
 
-printf( "iVar = %d  iQ = %d  jQ = %d  blockSize = %d  shiftSize = %d  nWords = %d\n", 
-       iVar, iQ, jQ, blockSize, shiftSize, nWords );
-
     for(i=nWords - 1; i>=0; i--)
     {
         temp = ((pInOut[i] & SFmask[iVar][iQ])<<(iQ*blockSize)) ^ ((pInOut[i] & SFmask[iVar][jQ])<<(jQ*blockSize));
-printf( "i = %d  temp = %lxu \n", i, temp );
 
         if( temp == 0)
             continue;
         else
         {
             *pDifStart = i*100;
+            assert( shiftSize >= 0 && shiftSize <= 64 );
+            if ( shiftSize < 64 )
             while(temp == (temp<<(shiftSize*j))>>shiftSize*j)
-            {
-printf( "inside  shiftSize = %d  j = %d    temp = %lxu  RHS = %lxu  exp = %d\n", 
-       shiftSize, j, temp, (temp<<(shiftSize*j))>>shiftSize*j,  temp == (temp<<(shiftSize*j))>>shiftSize*j );
-
                 j++;
-
-                if ( j == 100 )
-                    exit(1);
-            }
             *pDifStart += 21 - j;
             if( ((pInOut[i] & SFmask[iVar][iQ])<<(iQ*blockSize)) <= ((pInOut[i] & SFmask[iVar][jQ])<<(jQ*blockSize)) )
                 return 0;
@@ -170,6 +164,8 @@ inline int minTemp3_fast(word* pInOut, int iVar, int start, int finish, int iQ, 
         else
         {
             *pDifStart = i*100;
+            assert( shiftSize >= 0 && shiftSize <= 64 );
+            if ( shiftSize < 64 )
             while(temp == (temp<<(shiftSize*j))>>shiftSize*j)
                 j++;
             *pDifStart += 21 - j;
@@ -190,13 +186,9 @@ inline void minimalSwapAndFlipIVar_superFast_lessThen5(word* pInOut, int iVar, i
     int min1, min2, DifStart0, DifStart1, DifStartMin;
     int M[2];   
 
-printf("visit5\n" ), fflush(stdout);
     M[0] = minTemp0_fast(pInOut, iVar, nWords, &DifStart0); // 0, 3
-printf("visit6\n" ), fflush(stdout);
     M[1] = minTemp1_fast(pInOut, iVar, nWords, &DifStart1); // 1, 2
-printf("visit7\n" ), fflush(stdout);
     min1 = minTemp2_fast(pInOut, iVar, M[0], M[1], nWords, &DifStartMin);
-printf("visit8\n" ), fflush(stdout);
     if(DifStart0 != DifStart1)
     {   
         if( DifStartMin>=DifStart1 && DifStartMin>=DifStart0 )
@@ -219,7 +211,6 @@ printf("visit8\n" ), fflush(stdout);
                 arrangeQuoters_superFast_lessThen5(pInOut, DifStart0/100, M[min1], M[(min1+1)%2], 3 - M[(min1+1)%2], 3 - M[min1], iVar, nWords, pCanonPerm, pCanonPhase);
         }
     }
-printf("visit9\n" ), fflush(stdout);
 }
 ////////////////////////////////////iVar = 5/////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -576,7 +567,6 @@ inline int minimalSwapAndFlipIVar_superFast_all(word* pInOut, int nVars, int nWo
     int i;
     word pDuplicate[1024];  
     int bitInfoTemp = pStore[0];
-printf("visit1\n" ), fflush(stdout);
     memcpy(pDuplicate,pInOut,nWords*sizeof(word));
     for(i=0;i<5;i++)
     {
@@ -588,13 +578,11 @@ printf("visit1\n" ), fflush(stdout);
             continue;
         }
     }
-printf("visit2\n" ), fflush(stdout);
     if(bitInfoTemp == pStore[i+1])
         minimalSwapAndFlipIVar_superFast_iVar5((unsigned*) pInOut, nWords, pCanonPerm, pCanonPhase);
     else    
         bitInfoTemp = pStore[i+1];
     
-printf("visit3\n" ), fflush(stdout);
     for(i=6;i<nVars-1;i++)
     {
         if(bitInfoTemp == pStore[i+1])
@@ -605,7 +593,6 @@ printf("visit3\n" ), fflush(stdout);
             continue;
         }
     }
-printf("visit4\n" ), fflush(stdout);
     if(memcmp(pInOut,pDuplicate , nWords*sizeof(word)) == 0)
         return 0;
     else
