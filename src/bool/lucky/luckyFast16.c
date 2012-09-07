@@ -57,8 +57,7 @@ inline int firstShiftWithOneBit(word x, int blockSize)
 // It updates Info at the end
 inline void arrangeQuoters_superFast_lessThen5(word* pInOut, int start, int iQ, int jQ, int kQ, int lQ, int iVar, int nWords, char * pCanonPerm, unsigned* pCanonPhase)
 {
-    int i;
-    int  blockSize = 1<<iVar;
+    int i, blockSize = 1<<iVar;
     for(i=start;i>=0;i--)
     {   
         assert( iQ*blockSize < 64 );
@@ -78,9 +77,7 @@ inline void arrangeQuoters_superFast_lessThen5(word* pInOut, int start, int iQ, 
 // DifStart contains the information about the first different bit in 0Q and 3Q
 inline int minTemp0_fast(word* pInOut, int iVar, int nWords, int* pDifStart)
 {
-    int i, j=1;
-    int  blockSize = 1<<iVar;
-    int  shiftSize = blockSize*4;
+    int i, blockSize = 1<<iVar;
     word temp;
     for(i=nWords - 1; i>=0; i--)
     {
@@ -106,9 +103,7 @@ inline int minTemp0_fast(word* pInOut, int iVar, int nWords, int* pDifStart)
 // DifStart contains the information about the first different bit in 1Q and 2Q
 inline int minTemp1_fast(word* pInOut, int iVar, int nWords, int* pDifStart)
 {
-    int i, j=1;
-    int  blockSize = 1<<iVar;
-    int  shiftSize = blockSize*4;
+    int i, blockSize = 1<<iVar;
     word temp;
     for(i=nWords - 1; i>=0; i--)
     {
@@ -133,11 +128,8 @@ inline int minTemp1_fast(word* pInOut, int iVar, int nWords, int* pDifStart)
 // DifStart contains the information about the first different bit in iQ and jQ
 inline int minTemp2_fast(word* pInOut, int iVar, int iQ, int jQ, int nWords, int* pDifStart)
 {
-    int i, j=1;
-    int  blockSize = 1<<iVar;
-    int  shiftSize = blockSize*4;
+    int i, blockSize = 1<<iVar;
     word temp;
-
     for(i=nWords - 1; i>=0; i--)
     {
         assert( jQ*blockSize < 64 );
@@ -159,9 +151,7 @@ inline int minTemp2_fast(word* pInOut, int iVar, int iQ, int jQ, int nWords, int
 // same as minTemp2_fast but this one has a start position
 inline int minTemp3_fast(word* pInOut, int iVar, int start, int finish, int iQ, int jQ, int* pDifStart)
 {
-    int i, j=1;
-    int  blockSize = 1<<iVar;
-    int  shiftSize = blockSize*4;
+    int i, blockSize = 1<<iVar;
     word temp;
     for(i=start; i>=finish; i--)
     {
@@ -187,7 +177,6 @@ inline void minimalSwapAndFlipIVar_superFast_lessThen5(word* pInOut, int iVar, i
 {
     int min1, min2, DifStart0, DifStart1, DifStartMin;
     int M[2];   
-
     M[0] = minTemp0_fast(pInOut, iVar, nWords, &DifStart0); // 0, 3
     M[1] = minTemp1_fast(pInOut, iVar, nWords, &DifStart1); // 1, 2
     min1 = minTemp2_fast(pInOut, iVar, M[0], M[1], nWords, &DifStartMin);
@@ -236,7 +225,6 @@ inline void arrangeQuoters_superFast_iVar5(unsigned* pInOut, unsigned* temp, int
         memcpy(tempPtr, pInOut+i-kQ, blockSize);
         tempPtr -= 1;
         memcpy(tempPtr, pInOut+i-lQ, blockSize);        
-        
     }   
     memcpy(pInOut, temp, start*sizeof(unsigned));
     updataInfo(iQ, jQ, 5, pCanonPerm, pCanonPhase);
@@ -347,7 +335,6 @@ inline void minimalSwapAndFlipIVar_superFast_iVar5(unsigned* pInOut, int nWords,
     int min1, min2, DifStart0, DifStart1, DifStartMin;
     int M[2];
     unsigned temp[2048];
-
     M[0] = minTemp0_fast_iVar5(pInOut, nWords, &DifStart0); // 0, 3
     M[1] = minTemp1_fast_iVar5(pInOut, nWords, &DifStart1); // 1, 2
     min1 = minTemp2_fast_iVar5(pInOut, M[0], M[1], nWords, &DifStartMin);
@@ -398,7 +385,6 @@ inline void arrangeQuoters_superFast_moreThen5(word* pInOut, word* temp, int sta
         memcpy(tempPtr, pInOut+i-kQ*wordBlock, blockSize);
         tempPtr -= wordBlock;
         memcpy(tempPtr, pInOut+i-lQ*wordBlock, blockSize);      
-        
     }   
     memcpy(pInOut, temp, start*sizeof(word));
     updataInfo(iQ, jQ, iVar, pCanonPerm, pCanonPhase);
