@@ -176,9 +176,13 @@ inline void minimalSwapAndFlipIVar_superFast_lessThen5(word* pInOut, int iVar, i
     int min1, min2, DifStart0, DifStart1, DifStartMin;
     int M[2];   
 
+printf("visit5\n" ), fflush(stdout);
     M[0] = minTemp0_fast(pInOut, iVar, nWords, &DifStart0); // 0, 3
+printf("visit6\n" ), fflush(stdout);
     M[1] = minTemp1_fast(pInOut, iVar, nWords, &DifStart1); // 1, 2
+printf("visit7\n" ), fflush(stdout);
     min1 = minTemp2_fast(pInOut, iVar, M[0], M[1], nWords, &DifStartMin);
+printf("visit8\n" ), fflush(stdout);
     if(DifStart0 != DifStart1)
     {   
         if( DifStartMin>=DifStart1 && DifStartMin>=DifStart0 )
@@ -201,6 +205,7 @@ inline void minimalSwapAndFlipIVar_superFast_lessThen5(word* pInOut, int iVar, i
                 arrangeQuoters_superFast_lessThen5(pInOut, DifStart0/100, M[min1], M[(min1+1)%2], 3 - M[(min1+1)%2], 3 - M[min1], iVar, nWords, pCanonPerm, pCanonPhase);
         }
     }
+printf("visit9\n" ), fflush(stdout);
 }
 ////////////////////////////////////iVar = 5/////////////////////////////////////////////////////////////////////////////////////////////
 
