@@ -121,6 +121,10 @@ inline int minTemp2_fast(word* pInOut, int iVar, int iQ, int jQ, int nWords, int
     int  blockSize = 1<<iVar;
     int  shiftSize = blockSize*4;
     word temp;
+
+printf( "iVar = %d  iQ = %d  jQ = %d  blockSize = %d  shiftSize = %d  nWords = %d\n", 
+       iVar, iQ, jQ, blockSize, shiftSize, nWords );
+
     for(i=nWords - 1; i>=0; i--)
     {
         temp = ((pInOut[i] & SFmask[iVar][iQ])<<(iQ*blockSize)) ^ ((pInOut[i] & SFmask[iVar][jQ])<<(jQ*blockSize));
