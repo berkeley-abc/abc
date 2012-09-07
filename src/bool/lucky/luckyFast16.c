@@ -557,7 +557,7 @@ inline int minimalSwapAndFlipIVar_superFast_all(word* pInOut, int nVars, int nWo
     int i;
     word pDuplicate[1024];  
     int bitInfoTemp = pStore[0];
-printf("visit\n" );
+printf("visit1\n" ), fflush(stdout);
     memcpy(pDuplicate,pInOut,nWords*sizeof(word));
     for(i=0;i<5;i++)
     {
@@ -569,11 +569,13 @@ printf("visit\n" );
             continue;
         }
     }
+printf("visit2\n" ), fflush(stdout);
     if(bitInfoTemp == pStore[i+1])
         minimalSwapAndFlipIVar_superFast_iVar5((unsigned*) pInOut, nWords, pCanonPerm, pCanonPhase);
     else    
         bitInfoTemp = pStore[i+1];
     
+printf("visit3\n" ), fflush(stdout);
     for(i=6;i<nVars-1;i++)
     {
         if(bitInfoTemp == pStore[i+1])
@@ -584,6 +586,7 @@ printf("visit\n" );
             continue;
         }
     }
+printf("visit4\n" ), fflush(stdout);
     if(memcmp(pInOut,pDuplicate , nWords*sizeof(word)) == 0)
         return 0;
     else
