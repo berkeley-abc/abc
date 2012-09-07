@@ -128,7 +128,7 @@ printf( "iVar = %d  iQ = %d  jQ = %d  blockSize = %d  shiftSize = %d  nWords = %
     for(i=nWords - 1; i>=0; i--)
     {
         temp = ((pInOut[i] & SFmask[iVar][iQ])<<(iQ*blockSize)) ^ ((pInOut[i] & SFmask[iVar][jQ])<<(jQ*blockSize));
-printf( "i = %d  temp = %ld \n", i, temp );
+printf( "i = %d  temp = %lxu \n", i, temp );
 
         if( temp == 0)
             continue;
@@ -137,8 +137,13 @@ printf( "i = %d  temp = %ld \n", i, temp );
             *pDifStart = i*100;
             while(temp == (temp<<(shiftSize*j))>>shiftSize*j)
             {
-printf( "inside  temp = %ld  shiftSize = %d  j = %d\n", temp, shiftSize, j );
+printf( "inside  shiftSize = %d  j = %d    temp = %lxu  RHS = %lxu  exp = %d\n", 
+       shiftSize, j, temp, (temp<<(shiftSize*j))>>shiftSize*j,  temp == (temp<<(shiftSize*j))>>shiftSize*j );
+
                 j++;
+
+                if ( j == 100 )
+                    exit(1);
             }
             *pDifStart += 21 - j;
             if( ((pInOut[i] & SFmask[iVar][iQ])<<(iQ*blockSize)) <= ((pInOut[i] & SFmask[iVar][jQ])<<(jQ*blockSize)) )
