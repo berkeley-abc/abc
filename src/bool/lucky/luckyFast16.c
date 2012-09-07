@@ -27,6 +27,7 @@ static word SFmask[5][4] = {
     {0xFFFF000000000000,0x0000FFFF00000000,0x00000000FFFF0000,0x000000000000FFFF}   
 };
 
+static inline word luckyMask(int nBits) { assert(nBits >= 0 && nBits <= 64); return nBits == 64 ? 0 : (~(word)0) >> (64-nBits); }
 
 ////////////////////////////////////lessThen5/////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -69,9 +70,7 @@ inline int minTemp0_fast(word* pInOut, int iVar, int nWords, int* pDifStart)
         else
         {
             *pDifStart = i*100;
-            assert( shiftSize >= 0 && shiftSize <= 64 );
-            if ( shiftSize < 64 )
-            while(temp == (temp<<(shiftSize*j))>>shiftSize*j)
+            while(temp == (temp & luckyMask(shiftSize*j)))
                 j++;
             *pDifStart += 21 - j;
 
@@ -102,9 +101,7 @@ inline int minTemp1_fast(word* pInOut, int iVar, int nWords, int* pDifStart)
         else
         {
             *pDifStart = i*100;
-            assert( shiftSize >= 0 && shiftSize <= 64 );
-            if ( shiftSize < 64 )
-            while(temp == (temp<<(shiftSize*j))>>shiftSize*j)
+            while(temp == (temp & luckyMask(shiftSize*j)))
                 j++;
             *pDifStart += 21 - j;
             if( ((pInOut[i] & SFmask[iVar][1])<<(blockSize)) < ((pInOut[i] & SFmask[iVar][2])<<(2*blockSize)) )
@@ -135,9 +132,7 @@ inline int minTemp2_fast(word* pInOut, int iVar, int iQ, int jQ, int nWords, int
         else
         {
             *pDifStart = i*100;
-            assert( shiftSize >= 0 && shiftSize <= 64 );
-            if ( shiftSize < 64 )
-            while(temp == (temp<<(shiftSize*j))>>shiftSize*j)
+            while(temp == (temp & luckyMask(shiftSize*j)))
                 j++;
             *pDifStart += 21 - j;
             if( ((pInOut[i] & SFmask[iVar][iQ])<<(iQ*blockSize)) <= ((pInOut[i] & SFmask[iVar][jQ])<<(jQ*blockSize)) )
@@ -164,9 +159,7 @@ inline int minTemp3_fast(word* pInOut, int iVar, int start, int finish, int iQ, 
         else
         {
             *pDifStart = i*100;
-            assert( shiftSize >= 0 && shiftSize <= 64 );
-            if ( shiftSize < 64 )
-            while(temp == (temp<<(shiftSize*j))>>shiftSize*j)
+            while(temp == (temp & luckyMask(shiftSize*j)))
                 j++;
             *pDifStart += 21 - j;
 
