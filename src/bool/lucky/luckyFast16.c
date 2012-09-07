@@ -35,9 +35,28 @@ static inline word luckyMask(int nBits) { assert(nBits >= 0 && nBits <= 64); ret
 //updataInfo updates CanonPerm and CanonPhase based on what quoter in position iQ and jQ
 inline void updataInfo(int iQ, int jQ, int iVar,  char * pCanonPerm, unsigned* pCanonPhase)
 {
-    *pCanonPhase = adjustInfoAfterSwap(pCanonPerm, *pCanonPhase, iVar, ((abs(iQ-jQ)-1)<<2) + iQ );
+//    *pCanonPhase = adjustInfoAfterSwap(pCanonPerm, *pCanonPhase, iVar, ((abs(iQ-jQ)-1)<<2) + iQ ); // !!!
+      *pCanonPhase = adjustInfoAfterSwap(pCanonPerm, *pCanonPhase, iVar, (abs(iQ-jQ)-1)*4 + iQ ); // !!!*4
 
 }
+
+// returns the first shift from the left in word x that has One bit in it.
+// blockSize = ShiftSize/4
+inline int firstShiftWithOneBit(word x, int blockSize)
+{
+    int n = 0;
+    if(blockSize == 16){ return 0;}        
+    if (x >= 0x0000000100000000) {n = n + 32; x = x >> 32;} 
+    if(blockSize == 8){ return (64-n)/32;}    
+    if (x >= 0x0000000000010000) {n = n + 16; x = x >> 16;} 
+    if(blockSize == 4){ return (64-n)/16;}
+    if (x >= 0x0000000000000100) {n = n + 8; x = x >> 8;}
+    if(blockSize == 2){ return (64-n)/8;}
+    if (x >= 0x0000000000000010) {n = n + 4; x = x >> 4;} 
+    return (64-n)/4;    
+    
+}
+
 // It rearranges InOut (swaps and flips through rearrangement of quoters)
 // It updates Info at the end
 inline void arrangeQuoters_superFast_lessThen5(word* pInOut, int start, int iQ, int jQ, int kQ, int lQ, int iVar, int nWords, char * pCanonPerm, unsigned* pCanonPhase)
@@ -46,6 +65,15 @@ inline void arrangeQuoters_superFast_lessThen5(word* pInOut, int start, int iQ, 
     int  blockSize = 1<<iVar;
     for(i=start;i>=0;i--)
     {   
+        assert( (iQ*blockSize) < 64 );
+        assert( (jQ*blockSize) < 64 );
+        assert( (kQ*blockSize) < 64 );
+        assert( (lQ*blockSize) < 64 );
+
+        assert( (blockSize) < 64 );
+        assert( (2*blockSize) < 64 );
+        assert( (3*blockSize) < 64 );
+
         pInOut[i] = (pInOut[i] & SFmask[iVar][iQ])<<(iQ*blockSize) |
             (((pInOut[i] & SFmask[iVar][jQ])<<(jQ*blockSize))>>blockSize) |
             (((pInOut[i] & SFmask[iVar][kQ])<<(kQ*blockSize))>>2*blockSize) |
@@ -69,10 +97,11 @@ inline int minTemp0_fast(word* pInOut, int iVar, int nWords, int* pDifStart)
             continue;
         else
         {
-            *pDifStart = i*100;
-            while(temp == (temp & luckyMask(shiftSize*j)))
-                j++;
-            *pDifStart += 21 - j;
+            *pDifStart = i*100 + 20 - firstShiftWithOneBit(temp, blockSize);
+//             *pDifStart = i*100;
+//             while(temp == (temp & luckyMask(shiftSize*j)))
+//                 j++;
+//             *pDifStart += 21 - j;
 
             if( ((pInOut[i] & SFmask[iVar][0])) < ((pInOut[i] & SFmask[iVar][3])<<(3*blockSize)) )
                 return 0;
@@ -100,10 +129,11 @@ inline int minTemp1_fast(word* pInOut, int iVar, int nWords, int* pDifStart)
             continue;
         else
         {
-            *pDifStart = i*100;
-            while(temp == (temp & luckyMask(shiftSize*j)))
-                j++;
-            *pDifStart += 21 - j;
+            *pDifStart = i*100 + 20 - firstShiftWithOneBit(temp, blockSize);
+//             *pDifStart = i*100;
+//             while(temp == (temp & luckyMask(shiftSize*j)))
+//                 j++;
+//             *pDifStart += 21 - j;
             if( ((pInOut[i] & SFmask[iVar][1])<<(blockSize)) < ((pInOut[i] & SFmask[iVar][2])<<(2*blockSize)) )
                 return 1;
             else
@@ -131,10 +161,11 @@ inline int minTemp2_fast(word* pInOut, int iVar, int iQ, int jQ, int nWords, int
             continue;
         else
         {
-            *pDifStart = i*100;
-            while(temp == (temp & luckyMask(shiftSize*j)))
-                j++;
-            *pDifStart += 21 - j;
+            *pDifStart = i*100 + 20 - firstShiftWithOneBit(temp, blockSize);
+//             *pDifStart = i*100;
+//             while(temp == (temp & luckyMask(shiftSize*j)))
+//                 j++;
+//             *pDifStart += 21 - j;
             if( ((pInOut[i] & SFmask[iVar][iQ])<<(iQ*blockSize)) <= ((pInOut[i] & SFmask[iVar][jQ])<<(jQ*blockSize)) )
                 return 0;
             else
@@ -158,10 +189,11 @@ inline int minTemp3_fast(word* pInOut, int iVar, int start, int finish, int iQ, 
             continue;
         else
         {
-            *pDifStart = i*100;
-            while(temp == (temp & luckyMask(shiftSize*j)))
-                j++;
-            *pDifStart += 21 - j;
+            *pDifStart = i*100 + 20 - firstShiftWithOneBit(temp, blockSize);
+//             *pDifStart = i*100;
+//             while(temp == (temp & luckyMask(shiftSize*j)))
+//                 j++;
+//             *pDifStart += 21 - j;
 
             if( ((pInOut[i] & SFmask[iVar][iQ])<<(iQ*blockSize)) <= ((pInOut[i] & SFmask[iVar][jQ])<<(jQ*blockSize)) )
                 return 0;
