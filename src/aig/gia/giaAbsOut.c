@@ -289,6 +289,48 @@ Vec_Int_t * Gia_ManGetStateAndCheckCex( Gia_Man_t * pAig, Abc_Cex_t * p, int iFr
 
 /**Function*************************************************************
 
+  Synopsis    [Verify counter-example starting in the given timeframe.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManCheckCex( Gia_Man_t * pAig, Abc_Cex_t * p, int iFrame )
+{
+    Gia_Obj_t * pObj, * pObjRi, * pObjRo;
+    int RetValue, i, k, iBit = 0;
+    assert( iFrame >= 0 && iFrame <= p->iFrame );
+    Gia_ManCleanMark0(pAig);
+    Gia_ManForEachRo( pAig, pObj, i )
+        pObj->fMark0 = Abc_InfoHasBit(p->pData, iBit++);
+    for ( i = iFrame, iBit += Gia_ManPiNum(pAig) * iFrame; i <= p->iFrame; i++ )
+    {
+        Gia_ManForEachPi( pAig, pObj, k )
+            pObj->fMark0 = Abc_InfoHasBit(p->pData, iBit++);
+        Gia_ManForEachAnd( pAig, pObj, k )
+            pObj->fMark0 = (Gia_ObjFanin0(pObj)->fMark0 ^ Gia_ObjFaninC0(pObj)) & 
+                           (Gia_ObjFanin1(pObj)->fMark0 ^ Gia_ObjFaninC1(pObj));
+        Gia_ManForEachCo( pAig, pObj, k )
+            pObj->fMark0 = Gia_ObjFanin0(pObj)->fMark0 ^ Gia_ObjFaninC0(pObj);
+        if ( i == p->iFrame )
+            break;
+        Gia_ManForEachRiRo( pAig, pObjRi, pObjRo, k )
+            pObjRo->fMark0 = pObjRi->fMark0;
+    }
+    assert( iBit == p->nBits );
+    RetValue = Gia_ManPo(pAig, p->iPo)->fMark0;
+    Gia_ManCleanMark0(pAig);
+    if ( RetValue == 1 )
+        printf( "CEX holds for the transformed model.\n" );
+    else
+        printf( "CEX does not hold for the transformed model.\n" );
+}
+
+/**Function*************************************************************
+
   Synopsis    []
 
   Description []
@@ -300,11 +342,12 @@ Vec_Int_t * Gia_ManGetStateAndCheckCex( Gia_Man_t * pAig, Abc_Cex_t * p, int iFr
 ***********************************************************************/
 Gia_Man_t * Gia_ManTransformFlops( Gia_Man_t * p, Vec_Int_t * vFlops, Vec_Int_t * vInit )
 {
-    Vec_Int_t * vInitNew;
+    Vec_Bit_t * vInitNew;
     Gia_Man_t * pNew;
     Gia_Obj_t * pObj;
     int i, iFlopId;
-    vInitNew = Vec_IntStart( Gia_ManRegNum(p) );
+    assert( Vec_IntSize(vInit) == Vec_IntSize(vFlops) );
+    vInitNew = Vec_BitStart( Gia_ManRegNum(p) );
     Gia_ManForEachObjVec( vFlops, p, pObj, i )
     {
         assert( Gia_ObjIsRo(p, pObj) );
@@ -312,10 +355,10 @@ Gia_Man_t * Gia_ManTransformFlops( Gia_Man_t * p, Vec_Int_t * vFlops, Vec_Int_t 
             continue;
         iFlopId = Gia_ObjCioId(pObj) - Gia_ManPiNum(p);
         assert( iFlopId >= 0 && iFlopId < Gia_ManRegNum(p) );
-        Vec_IntWriteEntry( vInitNew, iFlopId, 1 );
+        Vec_BitWriteEntry( vInitNew, iFlopId, 1 );
     }
-    pNew = Gia_ManDupFlip( p, Vec_IntArray(vInitNew) );
-    Vec_IntFree( vInitNew );
+    pNew = Gia_ManDupFlip( p, Vec_BitArray(vInitNew) );
+    Vec_BitFree( vInitNew );
     return pNew;
 }
 
@@ -330,7 +373,7 @@ Gia_Man_t * Gia_ManTransformFlops( Gia_Man_t * p, Vec_Int_t * vFlops, Vec_Int_t 
   SeeAlso     []
 
 ***********************************************************************/
-int Gia_ManNewRefine( Gia_Man_t * p, Abc_Cex_t * pCex, int iFrameStart, int fVerbose )
+int Gia_ManNewRefine( Gia_Man_t * p, Abc_Cex_t * pCex, int iFrameStart, int iFrameExtra, int fVerbose )
 {
     Gia_Man_t * pAbs, * pNew;
     Vec_Int_t * vPis, * vPPis, * vFlops, * vInit;
@@ -342,6 +385,7 @@ int Gia_ManNewRefine( Gia_Man_t * p, Abc_Cex_t * pCex, int iFrameStart, int fVer
         Abc_Print( 1, "Gia_ManNewRefine(): Abstraction gate map is missing.\n" );
         return -1;
     }
+    Abc_Print( 1, "Refining with %d-frame CEX, starting in frame %d, with %d extra frames.\n", pCex->iFrame, iFrameStart, iFrameExtra );
     // derive abstraction
     pAbs = Gia_ManDupAbsGates( p, p->vGateClasses );
     Gia_ManStop( pAbs );
@@ -365,19 +409,31 @@ int Gia_ManNewRefine( Gia_Man_t * p, Abc_Cex_t * pCex, int iFrameStart, int fVer
     // get inputs
     Gia_ManGlaCollect( p, p->vGateClasses, &vPis, &vPPis, &vFlops, NULL );
     assert( Vec_IntSize(vPis) + Vec_IntSize(vPPis) == Gia_ManPiNum(pAbs) );
+    Gia_ManStop( pAbs );
+//Vec_IntPrint( vFlops );
+//Vec_IntPrint( vInit );
     // transform the manager to have new init state
     pNew = Gia_ManTransformFlops( p, vFlops, vInit );
-    assert( pNew->vGateClasses == NULL );
-    pNew->vGateClasses = Vec_IntDup( p->vGateClasses );
     Vec_IntFree( vPis );
     Vec_IntFree( vPPis );
     Vec_IntFree( vFlops );
     Vec_IntFree( vInit );
+    // verify abstraction
+/*
+    {
+        Gia_Man_t * pAbs = Gia_ManDupAbsGates( pNew, p->vGateClasses );
+        Gia_ManCheckCex( pAbs, pCex, iFrameStart );
+        Gia_ManStop( pAbs );
+    }
+*/
+    // transfer abstraction
+    assert( pNew->vGateClasses == NULL );
+    pNew->vGateClasses = Vec_IntDup( p->vGateClasses );
     // perform abstraction for the new AIG
     {
         Gia_ParVta_t Pars, * pPars = &Pars;
         Gia_VtaSetDefaultParams( pPars );
-        pPars->nFramesMax = pCex->iFrame - iFrameStart + 1;
+        pPars->nFramesMax = pCex->iFrame - iFrameStart + 1 + iFrameExtra;
         pPars->fVerbose = fVerbose;
         RetValue = Ga2_ManPerform( pNew, pPars );
     }
@@ -387,7 +443,6 @@ int Gia_ManNewRefine( Gia_Man_t * p, Abc_Cex_t * pCex, int iFrameStart, int fVer
     pNew->vGateClasses = NULL;
     // cleanup
     Gia_ManStop( pNew );
-    Gia_ManStop( pAbs );
     return -1;
 }
 
