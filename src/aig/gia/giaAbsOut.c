@@ -259,8 +259,8 @@ Vec_Int_t * Gia_ManGetStateAndCheckCex( Gia_Man_t * pAig, Abc_Cex_t * p, int iFr
     assert( iFrame >= 0 && iFrame <= p->iFrame );
     Gia_ManCleanMark0(pAig);
     Gia_ManForEachRo( pAig, pObj, i )
-        pObj->fMark0 = Abc_InfoHasBit(p->pData, iBit++);
-    for ( i = 0; i <= p->iFrame; i++ )
+        pObj->fMark0 = 0;//Abc_InfoHasBit(p->pData, iBit++);
+    for ( i = 0, iBit = p->nRegs; i <= p->iFrame; i++ )
     {
         if ( i == iFrame )
         {
@@ -305,8 +305,8 @@ void Gia_ManCheckCex( Gia_Man_t * pAig, Abc_Cex_t * p, int iFrame )
     assert( iFrame >= 0 && iFrame <= p->iFrame );
     Gia_ManCleanMark0(pAig);
     Gia_ManForEachRo( pAig, pObj, i )
-        pObj->fMark0 = Abc_InfoHasBit(p->pData, iBit++);
-    for ( i = iFrame, iBit += Gia_ManPiNum(pAig) * iFrame; i <= p->iFrame; i++ )
+        pObj->fMark0 = 0;//Abc_InfoHasBit(p->pData, iBit++);
+    for ( i = iFrame, iBit += p->nRegs + Gia_ManPiNum(pAig) * iFrame; i <= p->iFrame; i++ )
     {
         Gia_ManForEachPi( pAig, pObj, k )
             pObj->fMark0 = Abc_InfoHasBit(p->pData, iBit++);
@@ -388,8 +388,8 @@ int Gia_ManNewRefine( Gia_Man_t * p, Abc_Cex_t * pCex, int iFrameStart, int iFra
     Abc_Print( 1, "Refining with %d-frame CEX, starting in frame %d, with %d extra frames.\n", pCex->iFrame, iFrameStart, iFrameExtra );
     // derive abstraction
     pAbs = Gia_ManDupAbsGates( p, p->vGateClasses );
-//    Gia_ManStop( pAbs );
-//    pAbs = Gia_ManDupAbsGates( p, p->vGateClasses );
+    Gia_ManStop( pAbs );
+    pAbs = Gia_ManDupAbsGates( p, p->vGateClasses );
     if ( Gia_ManPiNum(pAbs) != pCex->nPis )
     {
         Abc_Print( 1, "Gia_ManNewRefine(): The PI counts in GLA and in CEX do not match.\n" );
