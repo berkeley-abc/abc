@@ -3,6 +3,7 @@ SRC +=    src/aig/gia/gia.c \
     src/aig/gia/giaAbsGla.c \
     src/aig/gia/giaAbsGla2.c \
     src/aig/gia/giaAbsIter.c \
+    src/aig/gia/giaAbsOut.c \
     src/aig/gia/giaAbsRef.c \
     src/aig/gia/giaAbsRef2.c \
     src/aig/gia/giaAbsVta.c \
