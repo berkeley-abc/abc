@@ -412,7 +412,7 @@ int Gia_ManNewRefine( Gia_Man_t * p, Abc_Cex_t * pCex, int iFrameStart, int iFra
         Abc_Print( 1, "Gia_ManNewRefine(): The initial counter-example is correct.\n" );
     // get inputs
     Gia_ManGlaCollect( p, p->vGateClasses, NULL, NULL, &vFlops, NULL );
-    assert( Vec_IntSize(vPis) + Vec_IntSize(vPPis) == Gia_ManPiNum(pAbs) );
+//    assert( Vec_IntSize(vPis) + Vec_IntSize(vPPis) == Gia_ManPiNum(pAbs) );
     Gia_ManStop( pAbs );
 //Vec_IntPrint( vFlops );
 //Vec_IntPrint( vInit );
