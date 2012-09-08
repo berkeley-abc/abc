@@ -324,9 +324,9 @@ void Gia_ManCheckCex( Gia_Man_t * pAig, Abc_Cex_t * p, int iFrame )
     RetValue = Gia_ManPo(pAig, p->iPo)->fMark0;
     Gia_ManCleanMark0(pAig);
     if ( RetValue == 1 )
-        printf( "CEX holds for the transformed model.\n" );
+        printf( "Shortened CEX holds for the abstraction of the fast-forwarded model.\n" );
     else
-        printf( "CEX does not hold for the transformed model.\n" );
+        printf( "Shortened CEX does not hold for the abstraction of the fast-forwarded model.\n" );
 }
 
 /**Function*************************************************************
@@ -376,7 +376,8 @@ Gia_Man_t * Gia_ManTransformFlops( Gia_Man_t * p, Vec_Int_t * vFlops, Vec_Int_t 
 int Gia_ManNewRefine( Gia_Man_t * p, Abc_Cex_t * pCex, int iFrameStart, int iFrameExtra, int fVerbose )
 {
     Gia_Man_t * pAbs, * pNew;
-    Vec_Int_t * vPis, * vPPis, * vFlops, * vInit;
+    Vec_Int_t * vFlops, * vInit;
+    Vec_Int_t * vCopy;
     clock_t clk = clock();
     int RetValue;
     ABC_FREE( p->pCexSeq );
@@ -385,6 +386,7 @@ int Gia_ManNewRefine( Gia_Man_t * p, Abc_Cex_t * pCex, int iFrameStart, int iFra
         Abc_Print( 1, "Gia_ManNewRefine(): Abstraction gate map is missing.\n" );
         return -1;
     }
+    vCopy = Vec_IntDup( p->vGateClasses );
     Abc_Print( 1, "Refining with %d-frame CEX, starting in frame %d, with %d extra frames.\n", pCex->iFrame, iFrameStart, iFrameExtra );
     // derive abstraction
     pAbs = Gia_ManDupAbsGates( p, p->vGateClasses );
@@ -394,6 +396,7 @@ int Gia_ManNewRefine( Gia_Man_t * p, Abc_Cex_t * pCex, int iFrameStart, int iFra
     {
         Abc_Print( 1, "Gia_ManNewRefine(): The PI counts in GLA and in CEX do not match.\n" );
         Gia_ManStop( pAbs );
+        Vec_IntFree( vCopy );
         return -1;
     }
     // get the state in frame iFrameStart
@@ -402,30 +405,27 @@ int Gia_ManNewRefine( Gia_Man_t * p, Abc_Cex_t * pCex, int iFrameStart, int iFra
     {
         Abc_Print( 1, "Gia_ManNewRefine(): The initial counter-example is invalid.\n" );
         Gia_ManStop( pAbs );
+        Vec_IntFree( vCopy );
         return -1;
     }
     if ( fVerbose )
         Abc_Print( 1, "Gia_ManNewRefine(): The initial counter-example is correct.\n" );
     // get inputs
-    Gia_ManGlaCollect( p, p->vGateClasses, &vPis, &vPPis, &vFlops, NULL );
+    Gia_ManGlaCollect( p, p->vGateClasses, NULL, NULL, &vFlops, NULL );
     assert( Vec_IntSize(vPis) + Vec_IntSize(vPPis) == Gia_ManPiNum(pAbs) );
     Gia_ManStop( pAbs );
 //Vec_IntPrint( vFlops );
 //Vec_IntPrint( vInit );
     // transform the manager to have new init state
     pNew = Gia_ManTransformFlops( p, vFlops, vInit );
-    Vec_IntFree( vPis );
-    Vec_IntFree( vPPis );
     Vec_IntFree( vFlops );
     Vec_IntFree( vInit );
     // verify abstraction
-/*
     {
         Gia_Man_t * pAbs = Gia_ManDupAbsGates( pNew, p->vGateClasses );
         Gia_ManCheckCex( pAbs, pCex, iFrameStart );
         Gia_ManStop( pAbs );
     }
-*/
     // transfer abstraction
     assert( pNew->vGateClasses == NULL );
     pNew->vGateClasses = Vec_IntDup( p->vGateClasses );
@@ -436,6 +436,11 @@ int Gia_ManNewRefine( Gia_Man_t * p, Abc_Cex_t * pCex, int iFrameStart, int iFra
         pPars->nFramesMax = pCex->iFrame - iFrameStart + 1 + iFrameExtra;
         pPars->fVerbose = fVerbose;
         RetValue = Ga2_ManPerform( pNew, pPars );
+        if ( RetValue == 0 ) // spurious SAT
+        {
+            Vec_IntFreeP( &pNew->vGateClasses );
+            pNew->vGateClasses = Vec_IntDup( vCopy );
+        }
     }
     // move the abstraction map
     Vec_IntFreeP( &p->vGateClasses );
@@ -443,6 +448,7 @@ int Gia_ManNewRefine( Gia_Man_t * p, Abc_Cex_t * pCex, int iFrameStart, int iFra
     pNew->vGateClasses = NULL;
     // cleanup
     Gia_ManStop( pNew );
+    Vec_IntFree( vCopy );
     return -1;
 }
 

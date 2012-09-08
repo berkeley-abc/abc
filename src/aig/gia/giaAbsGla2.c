@@ -1781,7 +1781,7 @@ finish:
             Abc_Print( 1, "\n" );
         if ( !Gia_ManVerifyCex( pAig, pAig->pCexSeq, 0 ) )
             Abc_Print( 1, "    Gia_GlaPerform(): CEX verification has failed!\n" );
-        Abc_Print( 1, "Counter-example detected in frame %d.  ", f );
+        Abc_Print( 1, "True counter-example detected in frame %d.  ", f );
         p->pPars->iFrame = f - 1;
         Vec_IntFreeP( &pAig->vGateClasses );
         RetValue = 0;
