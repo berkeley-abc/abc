@@ -388,8 +388,8 @@ int Gia_ManNewRefine( Gia_Man_t * p, Abc_Cex_t * pCex, int iFrameStart, int iFra
     Abc_Print( 1, "Refining with %d-frame CEX, starting in frame %d, with %d extra frames.\n", pCex->iFrame, iFrameStart, iFrameExtra );
     // derive abstraction
     pAbs = Gia_ManDupAbsGates( p, p->vGateClasses );
-    Gia_ManStop( pAbs );
-    pAbs = Gia_ManDupAbsGates( p, p->vGateClasses );
+//    Gia_ManStop( pAbs );
+//    pAbs = Gia_ManDupAbsGates( p, p->vGateClasses );
     if ( Gia_ManPiNum(pAbs) != pCex->nPis )
     {
         Abc_Print( 1, "Gia_ManNewRefine(): The PI counts in GLA and in CEX do not match.\n" );
