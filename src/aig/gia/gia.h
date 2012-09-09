@@ -230,6 +230,7 @@ struct Gia_ParVta_t_
     int            fUseSkip;      // skip proving intermediate timeframes
     int            fUseSimple;    // use simple CNF construction
     int            fSkipHash;     // skip hashing CNF while unrolling
+    int            fUseFullProof; // use full proof for UNSAT cores
     int            fDumpVabs;     // dumps the abstracted model
     int            fDumpMabs;     // dumps the original AIG with abstraction map
     char *         pFileVabs;     // dumps the abstracted model into this file

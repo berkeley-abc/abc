@@ -974,7 +974,8 @@ Gla_Man_t * Gla_ManStart( Gia_Man_t * pGia0, Gia_ParVta_t * pPars )
     }
     // other 
     p->pSat        = sat_solver2_new();
-//    p->pSat->pPrf1 = Vec_SetAlloc( 20 );
+    if ( pPars->fUseFullProof )
+        p->pSat->pPrf1 = Vec_SetAlloc( 20 );
 //    p->pSat->fVerbose = p->pPars->fVerbose;
 //    sat_solver2_set_learntmax( p->pSat, pPars->nLearnedMax );
     p->pSat->nLearntStart = p->pPars->nLearnedStart;
@@ -1785,7 +1786,8 @@ int Gia_GlaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars, int fStartVta )
 
                 // start incremental proof manager
                 assert( p->pSat->pPrf2 == NULL );
-                p->pSat->pPrf2 = Prf_ManAlloc();
+                if ( p->pSat->pPrf1 == NULL )
+                    p->pSat->pPrf2 = Prf_ManAlloc();
                 if ( p->pSat->pPrf2 )
                 {
                     p->nProofIds = 0;
