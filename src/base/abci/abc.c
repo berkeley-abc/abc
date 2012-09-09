@@ -376,6 +376,7 @@ static int Abc_CommandAbc9ReachN             ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9ReachY             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Undo               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Iso                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9CexMin             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Test               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandAbcTestNew             ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -836,6 +837,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&reachy",       Abc_CommandAbc9ReachY,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&undo",         Abc_CommandAbc9Undo,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&iso",          Abc_CommandAbc9Iso,          0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&cexmin",       Abc_CommandAbc9CexMin,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&test",         Abc_CommandAbc9Test,         0 );
 
     Cmd_CommandAdd( pAbc, "Liveness",     "l2s",           Abc_CommandAbcLivenessToSafety,    0 );
@@ -29914,6 +29916,100 @@ usage:
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9CexMin( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern Abc_Cex_t * Gia_ManCexMin( Gia_Man_t * p, Abc_Cex_t * pCex, int iFrameStart, int nRealPis, int fJustMax, int fUseAll, int fVerbose );
+    Abc_Cex_t * pCexNew;
+    int iFrameStart = 0;
+    int nRealPis = -1;
+    int fJustMax = 1;
+    int fUseAll = 0;
+    int c, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FNjavh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'F':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-F\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            iFrameStart = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( iFrameStart < 0 ) 
+                goto usage;
+            break;
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-N\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nRealPis = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nRealPis < 0 ) 
+                goto usage;
+            break;
+        case 'j':
+            fJustMax ^= 1;
+            break;
+        case 'a':
+            fUseAll ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9CexMin(): There is no AIG.\n" );
+        return 1;
+    } 
+    if ( Gia_ManRegNum(pAbc->pGia) == 0 )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9CexMin(): The network is combinational.\n" );
+        return 0;
+    }
+    if ( pAbc->pCex == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9CexMin(): There is no counter-example.\n" );
+        return 1;
+    } 
+    pCexNew = Gia_ManCexMin( pAbc->pGia, pAbc->pCex, iFrameStart, nRealPis, fJustMax, fUseAll, fVerbose );
+    if ( pCexNew )
+        Abc_FrameReplaceCex( pAbc, &pCexNew );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &cexmin [-FN num] [-javh]\n" );
+    Abc_Print( -2, "\t         minimizes a deep counter-example\n" );
+    Abc_Print( -2, "\t-F num : starting timeframe for minimization [default = %d]\n", iFrameStart );
+    Abc_Print( -2, "\t-N num : the number of real primary inputs [default = %d]\n", nRealPis );
+    Abc_Print( -2, "\t-j     : toggle computing all justifying assignments [default = %s]\n", fJustMax? "yes": "no" );
+    Abc_Print( -2, "\t-a     : toggle using all terminal objects [default = %s]\n", fUseAll? "yes": "no" );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+} 
 
 /**Function*************************************************************
 
