@@ -353,15 +353,15 @@ void Map_TimePropagateRequired( Map_Man_t * p, Map_NodeVec_t * vNodes )
         if ( pNode->pCutBest[0] && pNode->tRequired[0].Worst < MAP_FLOAT_LARGE/2 )
         {
             Map_MatchComputeReqTimes( pNode->pCutBest[0], 0, ptReqOutTest );
-            assert( ptReqOutTest->Rise < pNode->tRequired[0].Rise + p->fEpsilon );
-            assert( ptReqOutTest->Fall < pNode->tRequired[0].Fall + p->fEpsilon );
+//            assert( ptReqOutTest->Rise < pNode->tRequired[0].Rise + p->fEpsilon );
+//            assert( ptReqOutTest->Fall < pNode->tRequired[0].Fall + p->fEpsilon );
         }
 //        if ( pNode->pCutBest[1] && (pNode->nRefAct[1] > 0 || pNode->pCutBest[0] == NULL) )
         if ( pNode->pCutBest[1] && pNode->tRequired[1].Worst < MAP_FLOAT_LARGE/2 )
         {
             Map_MatchComputeReqTimes( pNode->pCutBest[1], 1, ptReqOutTest );
-            assert( ptReqOutTest->Rise < pNode->tRequired[1].Rise + p->fEpsilon );
-            assert( ptReqOutTest->Fall < pNode->tRequired[1].Fall + p->fEpsilon );
+//            assert( ptReqOutTest->Rise < pNode->tRequired[1].Rise + p->fEpsilon );
+//            assert( ptReqOutTest->Fall < pNode->tRequired[1].Fall + p->fEpsilon );
         }
     }
 
