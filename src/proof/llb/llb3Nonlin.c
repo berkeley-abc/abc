@@ -504,9 +504,9 @@ int Llb_NonlinReachability( Llb_Mnn_t * p )
             if ( !p->pPars->fSilent )
             {
                 if ( !p->pPars->fBackward )
-                    printf( "Output %d was asserted in frame %d (use \"write_counter\" to dump a witness).  ", p->pInit->pSeqModel->iPo, nIters );
+                    Abc_Print( 1, "Output %d of miter \"%s\" was asserted in frame %d.  ", p->pInit->pSeqModel->iPo, nIters );
                 else
-                    printf( "Output ??? was asserted in frame %d (counter-example is not produced).  ", nIters );
+                    Abc_Print( 1, "Output ??? was asserted in frame %d (counter-example is not produced).  ", nIters );
                 Abc_PrintTime( 1, "Time", clock() - clk );
             }
             p->pPars->iFrame = nIters - 1;

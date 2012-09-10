@@ -336,7 +336,7 @@ int Aig_ManComputeReachable( DdManager * dd, Aig_Man_t * p, DdNode ** pbParts, D
                     vOnionRings, bIntersect, i, pPars->fVerbose, pPars->fSilent ); 
                 Cudd_RecursiveDeref( dd, bIntersect );
                 if ( !pPars->fSilent )
-                    printf( "Output %d was asserted in frame %d (use \"write_counter\" to dump a witness). ", i, Vec_PtrSize(vOnionRings) );
+                    Abc_Print( 1, "Output %d of miter \"%s\" was asserted in frame %d. ", i, p->pName, Vec_PtrSize(vOnionRings) );
                 Cudd_RecursiveDeref( dd, bReached );
                 bReached = NULL;
                 pPars->iFrame = nIters;
@@ -488,7 +488,7 @@ int Aig_ManVerifyUsingBdds_int( Aig_Man_t * p, Saig_ParBbr_t * pPars )
                 vOnionRings, bIntersect, i, pPars->fVerbose, pPars->fSilent ); 
             Cudd_RecursiveDeref( dd, bIntersect );
             if ( !pPars->fSilent )
-                printf( "The miter output %d is proved REACHABLE in the initial state (use \"write_counter\" to dump a witness). ", i );
+                Abc_Print( 1, "Output %d of miter \"%s\" was asserted in frame %d. ", i, p->pName, -1 );
             RetValue = 0;
             break;
         }

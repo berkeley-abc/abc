@@ -631,7 +631,7 @@ int Gia_ManSimSimulate( Gia_Man_t * pAig, Gia_ParSim_t * pPars )
             Gia_ManResetRandom( pPars );
             pPars->iOutFail = iOut;
             pAig->pCexSeq = Gia_ManGenerateCounter( pAig, i, iOut, p->nWords, iPat, p->vCis2Ids );
-            Abc_Print( 1, "Networks are NOT EQUIVALENT.   Output %d was asserted in frame %d.  ", iOut, i );
+            Abc_Print( 1, "Output %d of miter \"%s\" was asserted in frame %d.  ", iOut, pAig->pName, i );
             if ( !Gia_ManVerifyCex( pAig, pAig->pCexSeq, 0 ) )
             {
 //                Abc_Print( 1, "\n" );

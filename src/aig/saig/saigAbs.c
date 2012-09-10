@@ -118,8 +118,8 @@ Abc_Cex_t * Saig_ManCexRemap( Aig_Man_t * p, Aig_Man_t * pAbs, Abc_Cex_t * pCexA
     }
     else
     {
-        printf( "Counter-example verification is successful.\n" );
-        printf( "Output %d was asserted in frame %d (use \"write_counter\" to dump a witness). \n", pCex->iPo, pCex->iFrame );
+        Abc_Print( 1, "Counter-example verification is successful.\n" );
+        Abc_Print( 1, "Output %d of miter \"%s\" was asserted in frame %d. \n", pCex->iPo, p->pName, pCex->iFrame );
     }
     return pCex;
 }

@@ -1899,7 +1899,7 @@ int Abc_NtkDarBmc( Abc_Ntk_t * pNtk, int nStart, int nFrames, int nSizeMax, int 
         else // if ( RetValue == 0 )
         {
             Abc_Cex_t * pCex = pNtk->pSeqModel;
-            Abc_Print( 1, "Output %d asserted in frame %d (use \"write_counter\" to dump a witness). ", pCex->iPo, pCex->iFrame );
+            Abc_Print( 1, "Output %d of miter \"%s\" was asserted in frame %d. ", pCex->iPo, pNtk->pName, pCex->iFrame );
         }
 ABC_PRT( "Time", clock() - clk );
     }
@@ -1988,7 +1988,7 @@ int Abc_NtkDarBmc3( Abc_Ntk_t * pNtk, Saig_ParBmc_t * pPars, int fOrDecomp )
         if ( !pPars->fSolveAll )
         {
             Abc_Cex_t * pCex = pNtk->pSeqModel;
-            Abc_Print( 1, "Output %d asserted in frame %d (use \"write_counter\" to dump a witness). ", pCex->iPo, pCex->iFrame );
+            Abc_Print( 1, "Output %d of miter \"%s\" was asserted in frame %d. ", pCex->iPo, pNtk->pName, pCex->iFrame );
         }
         else
         {
@@ -2120,7 +2120,7 @@ int Abc_NtkDarBmcInter_int( Aig_Man_t * pMan, Inter_ManParams_t * pPars, Aig_Man
     if ( RetValue == 1 )
         Abc_Print( 1, "Property proved.  " );
     else if ( RetValue == 0 )
-        Abc_Print( 1, "Property DISPROVED in frame %d (use \"write_counter\" to dump a witness).  ", iFrame );
+        Abc_Print( 1, "Output %d of miter \"%s\" was asserted in frame %d.  ", pMan->pSeqModel ? pMan->pSeqModel->iPo : -1, pMan->pName, iFrame );
     else if ( RetValue == -1 )
         Abc_Print( 1, "Property UNDECIDED.  " );
     else
@@ -2445,7 +2445,7 @@ int Abc_NtkDarProve( Abc_Ntk_t * pNtk, Fra_Sec_t * pSecPar, int nBmcFramesMax, i
         if ( pNtk->pSeqModel )
         {
             Abc_Cex_t * pCex = pNtk->pSeqModel;
-            Abc_Print( 1, "Output %d asserted in frame %d (use \"write_counter\" to dump a witness).\n", pCex->iPo, pCex->iFrame );
+            Abc_Print( 1, "Output %d of miter \"%s\" was asserted in frame %d.\n", pCex->iPo, pNtk->pName, pCex->iFrame );
             if ( !Saig_ManVerifyCex( pMan, pNtk->pSeqModel ) )
                 Abc_Print( 1, "Abc_NtkDarProve(): Counter-example verification has FAILED.\n" );
         }
@@ -2580,7 +2580,7 @@ int Abc_NtkDarPdr( Abc_Ntk_t * pNtk, Pdr_Par_t * pPars, Abc_Cex_t ** ppCex )
     if ( RetValue == 1 )
         Abc_Print( 1, "Property proved.  " );
     else if ( RetValue == 0 )
-        Abc_Print( 1, "Property DISPROVED in frame %d (use \"write_counter\" to dump a witness).  ", ppCex? (*ppCex)->iFrame : -1 );
+        Abc_Print( 1, "Output %d of miter \"%s\" was asserted in frame %d.  ", (*ppCex)->iPo, pNtk->pName, ppCex? (*ppCex)->iFrame : -1 );
     else if ( RetValue == -1 )
         Abc_Print( 1, "Property UNDECIDED.  " );
     else

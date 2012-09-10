@@ -759,7 +759,7 @@ int Llb_Nonlin4Reachability( Llb_Mnx_t * p )
             Vec_PtrFreeP( &vStates );
             if ( !p->pPars->fSilent )
             {
-                printf( "Output %d was asserted in frame %d (use \"write_counter\" to dump a witness).  ", p->pAig->pSeqModel->iPo, nIters );
+                Abc_Print( 1, "Output %d of miter \"%s\" was asserted in frame %d.  ", p->pAig->pSeqModel->iPo, p->pAig->pName, nIters );
                 Abc_PrintTime( 1, "Time", clock() - clk );
             }
             p->pPars->iFrame = nIters - 1;

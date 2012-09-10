@@ -946,7 +946,7 @@ int Ssw_RarSimulate( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSize, in
                     printf( "Simulated %d frames for %d rounds with %d restarts.\n", nFrames, nNumRestart * nRestart + r, nNumRestart );
                 pAig->pSeqModel = Ssw_RarDeriveCex( p, r * p->nFrames + f, p->iFailPo, p->iFailPat, fVerbose );
                 // print final report
-                printf( "Output %d was asserted in frame %d (use \"write_counter\" to dump a witness).  ", pAig->pSeqModel->iPo, pAig->pSeqModel->iFrame );
+                Abc_Print( 1, "Output %d of miter \"%s\" was asserted in frame %d.  ", pAig->pSeqModel->iPo, pAig->pName, pAig->pSeqModel->iFrame );
                 Abc_PrintTime( 1, "Time", clock() - clkTotal );
                 RetValue = 0;
                 goto finish;
@@ -1106,7 +1106,7 @@ int Ssw_RarSignalFilter( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSize
                 Abc_CexFree( pAig->pSeqModel );
                 pAig->pSeqModel = Ssw_RarDeriveCex( p, r * p->nFrames + f, p->iFailPo, p->iFailPat, 1 );
                 // print final report
-                printf( "Output %d was asserted in frame %d (use \"write_counter\" to dump a witness).  ", pAig->pSeqModel->iPo, pAig->pSeqModel->iFrame );
+                Abc_Print( 1, "Output %d of miter \"%s\" was asserted in frame %d.  ", pAig->pSeqModel->iPo, pAig->pName, pAig->pSeqModel->iFrame );
                 Abc_PrintTime( 1, "Time", clock() - clkTotal );
                 RetValue = 0;
                 goto finish;

@@ -73,7 +73,7 @@ Abc_Cex_t * Gia_ManCexRemap( Gia_Man_t * p, Abc_Cex_t * pCexAbs, Vec_Int_t * vPi
     else
     {
         Abc_Print( 1, "Counter-example verification is successful.\n" );
-        Abc_Print( 1, "Output %d was asserted in frame %d (use \"write_counter\" to dump a witness). \n", pCex->iPo, pCex->iFrame );
+        Abc_Print( 1, "Output %d of miter \"%s\" was asserted in frame %d. \n", pCex->iPo, p->pName, pCex->iFrame );
     }
     return pCex;
 }

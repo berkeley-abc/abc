@@ -1413,7 +1413,7 @@ clkOther += clock() - clk2;
                     return 0;
                 }
                 pPars->nFailOuts++;
-                printf( "Output %*d was asserted in frame %2d (solved %*d out of %*d outputs).\n",  
+                Abc_Print( 1, "Output %*d was asserted in frame %2d (solved %*d out of %*d outputs).\n",  
                     nOutDigits, i, f, nOutDigits, pPars->nFailOuts, nOutDigits, Saig_ManPoNum(pAig) );
                 if ( p->vCexes == NULL )
                     p->vCexes = Vec_PtrStart( Saig_ManPoNum(pAig) );
@@ -1486,7 +1486,7 @@ clkOther += clock() - clk2;
                     return 0;
                 }
                 pPars->nFailOuts++;
-                printf( "Output %*d was asserted in frame %2d (solved %*d out of %*d outputs).\n",  
+                Abc_Print( 1, "Output %*d was asserted in frame %2d (solved %*d out of %*d outputs).\n",  
                     nOutDigits, i, f, nOutDigits, pPars->nFailOuts, nOutDigits, Saig_ManPoNum(pAig) );
                 if ( p->vCexes == NULL )
                     p->vCexes = Vec_PtrStart( Saig_ManPoNum(pAig) );

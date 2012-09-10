@@ -829,8 +829,8 @@ int Saig_BmcPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nNodesMax
     {
         assert( p->iFrameFail * Saig_ManPoNum(p->pAig) + p->iOutputFail + 1 == nOutsSolved );
         if ( !fSilent )
-            printf( "Output %d was asserted in frame %d (use \"write_counter\" to dump a witness). ", 
-                p->iOutputFail, p->iFrameFail );
+            Abc_Print( 1, "Output %d of miter \"%s\" was asserted in frame %d. ", 
+                p->iOutputFail, p->pAig->pName, p->iFrameFail );
         Status = 0;
         if ( piFrames )
             *piFrames = p->iFrameFail;
@@ -838,7 +838,7 @@ int Saig_BmcPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nNodesMax
     else // if ( RetValue == l_False || RetValue == l_Undef )
     {
         if ( !fSilent )
-            printf( "No output was asserted in %d frames.  ", Abc_MaxInt(p->iFramePrev-1, 0) );
+            Abc_Print( 1, "No output failed in %d frames.  ", Abc_MaxInt(p->iFramePrev-1, 0) );
         if ( piFrames )
         {
             if ( p->iOutputLast > 0 )

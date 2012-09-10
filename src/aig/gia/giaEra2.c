@@ -1736,9 +1736,8 @@ int Gia_ManArePerform( Gia_Man_t * pAig, int nStatesMax, int fMiter, int fVerbos
         Gia_ManAreDepth(p, p->iStaCur-1) );
     ABC_PRT( "Time", clock() - clk );
     if ( pAig->pCexSeq != NULL )
-//        printf( "Miter FAILED in state %d at frame %d (use \"&write_counter\" to dump a witness)\n", 
-        printf( "Miter FAILED in state %d at frame %d (the cex is available for refinement)\n", 
-            p->iStaCur, Gia_ManAreDepth(p, p->iStaCur)-1 );
+        Abc_Print( 1, "Output %d of miter \"%s\" was asserted in frame %d.\n", 
+            p->iStaCur, pAig->pName, Gia_ManAreDepth(p, p->iStaCur)-1 );
     if ( fVerbose )
     {
         ABC_PRTP( "Cofactoring", p->timeAig - p->timeCube,    clock() - clk );
