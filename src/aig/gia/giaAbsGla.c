@@ -1104,7 +1104,7 @@ void Gla_ManStop( Gla_Man_t * p )
 
     // stop the refinement manager
 //    Gia_ManStopP( &p->pGia2 );
-    Rnm_ManStop( p->pRnm, 1 );
+    Rnm_ManStop( p->pRnm, 0 );
 
     if ( p->pvRefis )
     for ( i = 0; i < Gia_ManObjNum(p->pGia); i++ )

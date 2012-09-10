@@ -458,7 +458,7 @@ void Ga2_ManStop( Ga2_Man_t * p )
     Vec_IntFree( p->vValues );
     Vec_IntFree( p->vLits );
     Vec_IntFree( p->vIsopMem );
-    Rnm_ManStop( p->pRnm, p->pPars->fVerbose );
+    Rnm_ManStop( p->pRnm, 0 );
 //    Rf2_ManStop( p->pRf2, p->pPars->fVerbose );
     ABC_FREE( p->pTable );
     ABC_FREE( p->pSopSizes );
