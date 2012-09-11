@@ -458,7 +458,7 @@ void Ga2_ManReportMemory( Ga2_Man_t * p )
     ABC_PRMP( "Memory: Hash     ", memHash,memTot );
     ABC_PRMP( "Memory: Other    ", memOth, memTot );
     ABC_PRMP( "Memory: TOTAL    ", memTot, memTot );
-    Ga2_ManDumpStats( p->pGia, p->pPars, p->pSat, p->pPars->iFrameProved, 0 );
+//    Ga2_ManDumpStats( p->pGia, p->pPars, p->pSat, p->pPars->iFrameProved, 0 );
 }
 void Ga2_ManStop( Ga2_Man_t * p )
 {

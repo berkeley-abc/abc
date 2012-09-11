@@ -1559,7 +1559,7 @@ void Gla_ManReportMemory( Gla_Man_t * p )
     ABC_PRMP( "Memory: Refine   ", memRef, memTot );
     ABC_PRMP( "Memory: Other    ", memOth, memTot );
     ABC_PRMP( "Memory: TOTAL    ", memTot, memTot );
-    Ga2_ManDumpStats( p->pGia, p->pPars, p->pSat, p->pPars->iFrame, 1 );
+//    Ga2_ManDumpStats( p->pGia, p->pPars, p->pSat, p->pPars->iFrame, 1 );
 }
 
 
