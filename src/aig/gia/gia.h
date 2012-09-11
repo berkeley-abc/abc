@@ -237,6 +237,7 @@ struct Gia_ParVta_t_
     int            fVerbose;      // verbose flag
     int            fVeryVerbose;  // print additional information
     int            iFrame;        // the number of frames covered
+    int            iFrameProved;  // the number of frames proved
     int            nFramesNoChange; // the number of last frames without changes
 };
 
@@ -726,6 +727,8 @@ extern Vec_Int_t *         Gia_VtaConvertToGla( Gia_Man_t * p, Vec_Int_t * vVta 
 extern Vec_Int_t *         Gia_VtaConvertFromGla( Gia_Man_t * p, Vec_Int_t * vGla, int nFrames );
 extern Vec_Int_t *         Gia_FlaConvertToGla( Gia_Man_t * p, Vec_Int_t * vFla );
 extern Vec_Int_t *         Gia_GlaConvertToFla( Gia_Man_t * p, Vec_Int_t * vGla );
+extern int                 Gia_GlaCountFlops( Gia_Man_t * p, Vec_Int_t * vGla );
+extern int                 Gia_GlaCountNodes( Gia_Man_t * p, Vec_Int_t * vGla );
 /*=== giaAbsGla.c ===========================================================*/
 extern int                 Gia_GlaPerform( Gia_Man_t * p, Gia_ParVta_t * pPars, int fStartVta );
 extern int                 Ga2_ManPerform( Gia_Man_t * p, Gia_ParVta_t * pPars );

@@ -707,6 +707,35 @@ void Gia_ManGlaPurify( Gia_Man_t * p, int nPurifyRatio, int fVerbose )
     ABC_FREE( pCounts );
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_GlaCountFlops( Gia_Man_t * p, Vec_Int_t * vGla )
+{
+    Gia_Obj_t * pObj;
+    int i, Count = 0;
+    Gia_ManForEachRo( p, pObj, i )
+        if ( Vec_IntEntry(vGla, Gia_ObjId(p, pObj)) )
+            Count++;
+    return Count;
+}
+int Gia_GlaCountNodes( Gia_Man_t * p, Vec_Int_t * vGla )
+{
+    Gia_Obj_t * pObj;
+    int i, Count = 0;
+    Gia_ManForEachAnd( p, pObj, i )
+        if ( Vec_IntEntry(vGla, Gia_ObjId(p, pObj)) )
+            Count++;
+    return Count;
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

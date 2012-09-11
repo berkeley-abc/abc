@@ -408,6 +408,29 @@ Ga2_Man_t * Ga2_ManStart( Gia_Man_t * pGia, Gia_ParVta_t * pPars )
     p->pTable = ABC_CALLOC( int, 6 * p->nTable ); 
     return p;
 }
+
+void Ga2_ManDumpStats( Gia_Man_t * pGia, Gia_ParVta_t * pPars, sat_solver2 * pSat, int iFrame, int fUseN )
+{
+    FILE * pFile;
+    char pFileName[32];
+    sprintf( pFileName, "stats_gla%s%s.txt", fUseN ? "n":"", pPars->fUseFullProof ? "p":"" ); 
+
+    pFile = fopen( pFileName, "wb+" );
+
+    fprintf( pFile, "%s pi=%d ff=%d and=%d mem=%d bmc=%d", 
+        pGia->pName, 
+        Gia_ManPiNum(pGia), Gia_ManRegNum(pGia), Gia_ManAndNum(pGia), 
+        (int)(1 + sat_solver2_memory_proof(pSat)/(1<<20)),
+        iFrame );
+
+    if ( pGia->vGateClasses )
+    fprintf( pFile, " ff=%d and=%d",                 
+        Gia_GlaCountFlops( pGia, pGia->vGateClasses ),
+        Gia_GlaCountNodes( pGia, pGia->vGateClasses )  );
+
+    fprintf( pFile, "\n" );
+    fclose( pFile );
+}
 void Ga2_ManReportMemory( Ga2_Man_t * p )
 {
     double memTot = 0;
@@ -435,6 +458,7 @@ void Ga2_ManReportMemory( Ga2_Man_t * p )
     ABC_PRMP( "Memory: Hash     ", memHash,memTot );
     ABC_PRMP( "Memory: Other    ", memOth, memTot );
     ABC_PRMP( "Memory: TOTAL    ", memTot, memTot );
+    Ga2_ManDumpStats( p->pGia, p->pPars, p->pSat, p->pPars->iFrameProved, 0 );
 }
 void Ga2_ManStop( Ga2_Man_t * p )
 {
@@ -1477,7 +1501,7 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
     Vec_Int_t * vCore, * vPPis;
     clock_t clk2, clk = clock();
     int Status = l_Undef, RetValue = -1, fOneIsSent = 0;
-    int i, c, f, Lit, iFrameProved = -1;
+    int i, c, f, Lit;
     // check trivial case 
     assert( Gia_ManPoNum(pAig) == 1 ); 
     ABC_FREE( pAig->pCexSeq );
@@ -1543,7 +1567,7 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
             // add static clauses to this timeframe
             Ga2_ManAddAbsClauses( p, f );
             // skip checking if skipcheck is enabled (&gla -s)
-            if ( p->pPars->fUseSkip && f <= iFrameProved )
+            if ( p->pPars->fUseSkip && f <= p->pPars->iFrameProved )
                 continue;
             // skip checking if we need to skip several starting frames (&gla -S <num>)
             if ( p->pPars->nFramesStart && f <= p->pPars->nFramesStart )
@@ -1632,11 +1656,11 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
                     goto finish;
                 if ( c == 0 )
                 {
-                    if ( f > iFrameProved )
+                    if ( f > p->pPars->iFrameProved )
                         p->pPars->nFramesNoChange++;
                     break;
                 }
-                if ( f > iFrameProved )
+                if ( f > p->pPars->iFrameProved )
                     p->pPars->nFramesNoChange = 0;
 
                 // derive the core
@@ -1695,8 +1719,8 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
                 break;
             }
             // remember the last proved frame
-            if ( iFrameProved < f )
-                iFrameProved = f;
+            if ( p->pPars->iFrameProved < f )
+                p->pPars->iFrameProved = f;
             // print statistics
             if ( pPars->fVerbose )
                 Ga2_ManAbsPrintFrame( p, f, sat_solver2_nconflicts(p->pSat)-nConflsBeg, c, clock() - clk, 1 );
@@ -1761,18 +1785,18 @@ finish:
             if ( p->pPars->fVerbose )
                 Abc_Print( 1, "\n" );
             if ( p->pPars->nTimeOut && clock() >= p->pSat->nRuntimeLimit ) 
-                Abc_Print( 1, "Timeout %d sec in frame %d with a %d-stable abstraction.    ", p->pPars->nTimeOut, iFrameProved+1, p->pPars->nFramesNoChange );
+                Abc_Print( 1, "Timeout %d sec in frame %d with a %d-stable abstraction.    ", p->pPars->nTimeOut, p->pPars->iFrameProved+1, p->pPars->nFramesNoChange );
             else if ( pPars->nConfLimit && sat_solver2_nconflicts(p->pSat) >= pPars->nConfLimit )
-                Abc_Print( 1, "Exceeded %d conflicts in frame %d with a %d-stable abstraction.  ", pPars->nConfLimit, iFrameProved+1, p->pPars->nFramesNoChange );
+                Abc_Print( 1, "Exceeded %d conflicts in frame %d with a %d-stable abstraction.  ", pPars->nConfLimit, p->pPars->iFrameProved+1, p->pPars->nFramesNoChange );
             else if ( Vec_IntSize(p->vAbs) >= p->nMarked * (100 - pPars->nRatioMin) / 100 )
-                Abc_Print( 1, "The ratio of abstracted objects is less than %d %% in frame %d.  ", pPars->nRatioMin, iFrameProved+1 );
+                Abc_Print( 1, "The ratio of abstracted objects is less than %d %% in frame %d.  ", pPars->nRatioMin, p->pPars->iFrameProved+1 );
             else
-                Abc_Print( 1, "Abstraction stopped for unknown reason in frame %d.  ", iFrameProved+1 );
+                Abc_Print( 1, "Abstraction stopped for unknown reason in frame %d.  ", p->pPars->iFrameProved+1 );
         }
         else
         {
-            p->pPars->iFrame = iFrameProved;
-            Abc_Print( 1, "GLA completed %d frames and produced a %d-stable abstraction.  ", iFrameProved+1, p->pPars->nFramesNoChange );
+            p->pPars->iFrame = p->pPars->iFrameProved;
+            Abc_Print( 1, "GLA completed %d frames and produced a %d-stable abstraction.  ", p->pPars->iFrameProved+1, p->pPars->nFramesNoChange );
         }
     }
     else

@@ -1537,20 +1537,17 @@ void Gla_ManAbsPrintFrame( Gla_Man_t * p, int nCoreSize, int nFrames, int nConfl
 }
 void Gla_ManReportMemory( Gla_Man_t * p )
 {
+    extern void Ga2_ManDumpStats( Gia_Man_t * pGia, Gia_ParVta_t * pPars, sat_solver2 * pSat, int iFrame, int fUseN );
     Gla_Obj_t * pGla;
-//    int i;
     double memTot = 0;
     double memAig = Gia_ManObjNum(p->pGia) * sizeof(Gia_Obj_t);
     double memSat = sat_solver2_memory( p->pSat, 1 );
     double memPro = sat_solver2_memory_proof( p->pSat );
     double memMap = p->nObjs * sizeof(Gla_Obj_t) + Gia_ManObjNum(p->pGia) * sizeof(int);
-//    double memRef = Gia_ManObjNum(p->pGia) * sizeof(Vec_Int_t);
     double memRef = Rnm_ManMemoryUsage( p->pRnm );
     double memOth = sizeof(Gla_Man_t);
     for ( pGla = p->pObjs; pGla < p->pObjs + p->nObjs; pGla++ )
         memMap += Vec_IntCap(&pGla->vFrames) * sizeof(int);
-//    for ( i = 0; i < Gia_ManObjNum(p->pGia); i++ )
-//        memRef += Vec_IntCap(&p->pvRefis[i]) * sizeof(int);
     memOth += Vec_IntCap(p->vAddedNew) * sizeof(int);
     memOth += Vec_IntCap(p->vTemp) * sizeof(int);
     memOth += Vec_IntCap(p->vAbs) * sizeof(int);
@@ -1562,6 +1559,7 @@ void Gla_ManReportMemory( Gla_Man_t * p )
     ABC_PRMP( "Memory: Refine   ", memRef, memTot );
     ABC_PRMP( "Memory: Other    ", memOth, memTot );
     ABC_PRMP( "Memory: TOTAL    ", memTot, memTot );
+    Ga2_ManDumpStats( p->pGia, p->pPars, p->pSat, p->pPars->iFrame, 1 );
 }
 
 
