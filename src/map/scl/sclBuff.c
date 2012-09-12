@@ -58,6 +58,8 @@ int Abc_SclCheckNtk( Abc_Ntk_t * p, int fVerbose )
         Abc_NodeSetTravIdCurrent( pObj );
         if ( Abc_ObjFanoutNum(pObj) == 0 )
             printf( "node %d has no fanout\n", Abc_ObjId(pObj) ), fFlag = 0;
+        if ( !fFlag )
+            break;
     }
     if ( fFlag && fVerbose )
         printf( "The network is in topo order and no dangling nodes.\n" );
