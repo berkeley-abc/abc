@@ -1943,7 +1943,7 @@ finish:
         ABC_PRTP( "Runtime: TOTAL       ", clock() - clk, clock() - clk );
         Gla_ManReportMemory( p );
     }
-    Ga2_ManDumpStats( pAig, p->pPars, p->pSat, p->pPars->iFrame, 1 );
+//    Ga2_ManDumpStats( pAig, p->pPars, p->pSat, p->pPars->iFrame, 1 );
     Gla_ManStop( p );
     fflush( stdout );
     return RetValue;
