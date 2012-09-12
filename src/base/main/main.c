@@ -90,14 +90,14 @@ int Abc_RealMain( int argc, char * argv[] )
     char * sCommand;
     int  fStatus = 0;
     int c, fBatch, fInitSource, fInitRead, fFinalWrite;
- 
+
     // added to detect memory leaks
     // watch for {,,msvcrtd.dll}*__p__crtBreakAlloc()
     // (http://support.microsoft.com/kb/151585)
-#if defined(_DEBUG) && defined(_MSC_VER) 
+#if defined(_DEBUG) && defined(_MSC_VER)
     _CrtSetDbgFlag( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
 #endif
-     
+
 //    Npn_Experiment();
 //    Npn_Generate();
 
@@ -136,15 +136,20 @@ int Abc_RealMain( int argc, char * argv[] )
     sInFile = sOutFile = NULL;
     sprintf( sReadCmd,  "read"  );
     sprintf( sWriteCmd, "write" );
-    
+
     Extra_UtilGetoptReset();
-    while ((c = Extra_UtilGetopt(argc, argv, "c:hf:F:o:st:T:xb")) != EOF) {
+    while ((c = Extra_UtilGetopt(argc, argv, "c:C:hf:F:o:st:T:xb")) != EOF) {
         switch(c) {
             case 'c':
                 strcpy( sCommandUsr, globalUtilOptarg );
                 fBatch = 1;
                 break;
-                
+
+            case 'C':
+                strcpy( sCommandUsr, globalUtilOptarg );
+                fBatch = 2;
+                break;
+
             case 'f':
                 sprintf(sCommandUsr, "source %s", globalUtilOptarg);
                 fBatch = 1;
@@ -154,20 +159,20 @@ int Abc_RealMain( int argc, char * argv[] )
                 sprintf(sCommandUsr, "source -x %s", globalUtilOptarg);
                 fBatch = 1;
                 break;
-                
+
             case 'h':
                 goto usage;
                 break;
-                
+
             case 'o':
                 sOutFile = globalUtilOptarg;
                 fFinalWrite = 1;
                 break;
-                
+
             case 's':
                 fInitSource = 0;
                 break;
-                
+
             case 't':
                 if ( TypeCheck( pAbc, globalUtilOptarg ) )
                 {
@@ -182,7 +187,7 @@ int Abc_RealMain( int argc, char * argv[] )
                 }
                 fBatch = 1;
                 break;
-                
+
             case 'T':
                 if ( TypeCheck( pAbc, globalUtilOptarg ) )
                 {
@@ -197,17 +202,17 @@ int Abc_RealMain( int argc, char * argv[] )
                 }
                 fBatch = 1;
                 break;
-                
+
             case 'x':
                 fFinalWrite = 0;
                 fInitRead   = 0;
                 fBatch = 1;
                 break;
-                
+
             case 'b':
                 Abc_FrameSetBridgeMode();
                 break;
-                
+
             default:
                 goto usage;
         }
@@ -220,7 +225,7 @@ int Abc_RealMain( int argc, char * argv[] )
     }
     else if ( fBatch && sCommandUsr[0] )
         Abc_Print( 1, "ABC command line: \"%s\".\n\n", sCommandUsr );
-    
+
     if ( fBatch )
     {
         pAbc->fBatchMode = 1;
@@ -239,20 +244,20 @@ int Abc_RealMain( int argc, char * argv[] )
         {
             Abc_UtilsPrintUsage( pAbc, argv[0] );
         }
-        
+
         // source the resource file
         if ( fInitSource )
         {
             Abc_UtilsSource( pAbc );
         }
-        
+
         fStatus = 0;
         if ( fInitRead && sInFile )
         {
             sprintf( sCommandTmp, "%s %s", sReadCmd, sInFile );
             fStatus = Cmd_CommandExecute( pAbc, sCommandTmp );
         }
-        
+
         if ( fStatus == 0 )
         {
             /* cmd line contains `source <file>' */
@@ -263,9 +268,15 @@ int Abc_RealMain( int argc, char * argv[] )
                 fStatus = Cmd_CommandExecute( pAbc, sCommandTmp );
             }
         }
-        
+
+        if (fBatch == 2){
+            fBatch = 0;
+            pAbc->fBatchMode = 0;
+        }
+
     }
-    else 
+
+    if ( !fBatch )
     {
         // start interactive mode
 
@@ -273,28 +284,28 @@ int Abc_RealMain( int argc, char * argv[] )
         Abc_UtilsPrintHello( pAbc );
         // print history of the recent commands
         Cmd_HistoryPrint( pAbc, 10 );
-        
+
         // source the resource file
         if ( fInitSource )
         {
             Abc_UtilsSource( pAbc );
         }
-                
+
         // execute commands given by the user
         while ( !feof(stdin) )
         {
             // print command line prompt and
             // get the command from the user
             sCommand = Abc_UtilsGetUsersInput( pAbc );
-            
+
             // execute the user's command
             fStatus = Cmd_CommandExecute( pAbc, sCommand );
-            
+
             // stop if the user quitted or an error occurred
             if ( fStatus == -1 || fStatus == -2 )
                 break;
         }
-    } 
+    }
 
 #ifdef ABC_PYTHON_EMBED
     {
@@ -305,9 +316,9 @@ int Abc_RealMain( int argc, char * argv[] )
     // if the memory should be freed, quit packages
 //    if ( fStatus < 0 ) 
     {
-        Abc_Stop(); 
-    }    
-    return 0;  
+        Abc_Stop();
+    }
+    return 0;
 
 usage:
     Abc_UtilsPrintHello( pAbc );
