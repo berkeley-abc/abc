@@ -1821,7 +1821,7 @@ finish:
         ABC_PRTP( "Runtime: TOTAL       ", clock() - clk, clock() - clk );
         Ga2_ManReportMemory( p );
     }
-//    Ga2_ManDumpStats( p->pGia, p->pPars, p->pSat, p->pPars->iFrameProved, 0 );
+    Ga2_ManDumpStats( p->pGia, p->pPars, p->pSat, p->pPars->iFrameProved, 0 );
     Ga2_ManStop( p );
     fflush( stdout );
     return RetValue;
