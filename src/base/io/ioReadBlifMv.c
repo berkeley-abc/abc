@@ -1954,6 +1954,14 @@ static int Io_MvParseLineNamesBlif( Io_MvMod_t * p, char * pLine )
     return 1;
 }
 
+ABC_NAMESPACE_IMPL_END
+
+#include "map/mio/mio.h"
+#include "base/main/main.h"
+
+ABC_NAMESPACE_IMPL_START
+
+
 /**Function*************************************************************
 
   Synopsis    [Parses the nodes line.]
@@ -1989,7 +1997,28 @@ static int Io_MvParseLineShortBlif( Io_MvMod_t * p, char * pLine )
     // create fanins
     pNode = Io_ReadCreateNode( p->pNtk, pName, (char **)(vTokens->pArray + 1), 1 );
     // parse the table of this node
-    pNode->pData = Abc_SopRegister( (Mem_Flex_t *)p->pNtk->pManFunc, "1 1\n" );
+    if ( p->pNtk->ntkFunc == ABC_FUNC_MAP )
+    {
+        Mio_Library_t * pGenlib; 
+        Mio_Gate_t * pGate;
+        // check that the library is available
+        pGenlib = (Mio_Library_t *)Abc_FrameReadLibGen();
+        if ( pGenlib == NULL )
+        {
+            sprintf( p->pMan->sError, "Line %d: The current library is not available.", Io_MvGetLine(p->pMan, pName) );
+            return 0;
+        }
+        // get the gate
+        pGate = Mio_LibraryReadBuf( pGenlib );
+        if ( pGate == NULL )
+        {
+            sprintf( p->pMan->sError, "Line %d: Cannot find buffer gate in the library.", Io_MvGetLine(p->pMan, pName) );
+            return 0;
+        }
+        Abc_ObjSetData( pNode, pGate );
+    }
+    else
+        pNode->pData = Abc_SopRegister( (Mem_Flex_t *)p->pNtk->pManFunc, "1 1\n" );
     return 1;
 }
 
@@ -2026,14 +2055,6 @@ Io_MvVar_t * Abc_NtkMvVarDup( Abc_Ntk_t * pNtk, Io_MvVar_t * pVar )
     }
     return pVarDup;
 }
-
-ABC_NAMESPACE_IMPL_END
-
-#include "map/mio/mio.h"
-#include "base/main/main.h"
-
-ABC_NAMESPACE_IMPL_START
-
 
 /**Function*************************************************************
 
