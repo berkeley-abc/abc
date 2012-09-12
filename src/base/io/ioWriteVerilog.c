@@ -116,7 +116,7 @@ void Io_WriteVerilogInt( FILE * pFile, Abc_Ntk_t * pNtk )
 {
     // write inputs and outputs
 //    fprintf( pFile, "module %s ( gclk,\n   ", Abc_NtkName(pNtk) );
-    fprintf( pFile, "module %s ( ", Abc_NtkName(pNtk) );
+    fprintf( pFile, "module %s ( ", Io_WriteVerilogGetName(Abc_NtkName(pNtk)) );
     // add the clock signal if it does not exist
     if ( Abc_NtkLatchNum(pNtk) > 0 && Nm_ManFindIdByName(pNtk->pManName, "clock", ABC_OBJ_PI) == -1 )
         fprintf( pFile, "clock, " );
