@@ -1619,10 +1619,10 @@ void sat_solver2_rollback( sat_solver2* s )
     if ( s->pPrf1 ) 
     {
         veci_resize(&s->claProofs, s->stats.learnts);
-//        Vec_SetShrink(&s->Proofs, s->hProofPivot); 
+        Vec_SetShrink(s->pPrf1, s->hProofPivot); 
         // some weird bug here, which shows only on 64-bits!
         // temporarily, perform more general proof reduction
-        Sat_ProofReduce( s->pPrf1, &s->claProofs, s->hProofPivot );
+//        Sat_ProofReduce( s->pPrf1, &s->claProofs, s->hProofPivot );
     }
     assert( s->pPrf2 == NULL );
 //    if ( s->pPrf2 )
