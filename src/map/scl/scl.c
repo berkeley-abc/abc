@@ -36,6 +36,7 @@ static int Scl_CommandStime  ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Scl_CommandTopo   ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Scl_CommandBuffer ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Scl_CommandGsize  ( Abc_Frame_t * pAbc, int argc, char **argv );
+static int Scl_CommandUpsize ( Abc_Frame_t * pAbc, int argc, char **argv );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -62,6 +63,7 @@ void Scl_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "SCL mapping",  "topo",       Scl_CommandTopo,    1 ); 
     Cmd_CommandAdd( pAbc, "SCL mapping",  "buffer",     Scl_CommandBuffer,  1 ); 
     Cmd_CommandAdd( pAbc, "SCL mapping",  "gsize",      Scl_CommandGsize,   1 ); 
+    Cmd_CommandAdd( pAbc, "SCL mapping",  "upsize",     Scl_CommandUpsize,  1 ); 
 }
 void Scl_End( Abc_Frame_t * pAbc )
 {
@@ -621,6 +623,93 @@ usage:
     return 1;
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Scl_CommandUpsize( Abc_Frame_t * pAbc, int argc, char **argv )
+{
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+    int Degree = 2;
+    int nRange = 5;
+    int c, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "NWvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-N\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            Degree = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( Degree < 0 ) 
+                goto usage;
+            break;
+        case 'W':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-W\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            nRange = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nRange < 0 ) 
+                goto usage;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( Abc_FrameReadNtk(pAbc) == NULL )
+    {
+        fprintf( pAbc->Err, "There is no current network.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkHasMapping(Abc_FrameReadNtk(pAbc)) )
+    {
+        fprintf( pAbc->Err, "The current network is not mapped.\n" );
+        return 1;
+    }
+    if ( !Abc_SclCheckNtk(Abc_FrameReadNtk(pAbc), 0) )
+    {
+        fprintf( pAbc->Err, "The current networks is not in a topo order (run \"topo\").\n" );
+        return 1;
+    }
+    if ( pAbc->pLibScl == NULL )
+    {
+        fprintf( pAbc->Err, "There is no Liberty library available.\n" );
+        return 1;
+    }
+
+    Abc_SclUpsizingPerform( pAbc->pLibScl, pNtk, Degree, nRange, fVerbose );
+    return 0;
+
+usage:
+    fprintf( pAbc->Err, "usage: upsize [-NW num] [-vh]\n" );
+    fprintf( pAbc->Err, "\t           selectively increases gate sizes in timing-critical regions\n" );
+    fprintf( pAbc->Err, "\t-N <num> : the max fanout count of gates to upsize [default = %d]\n", Degree );
+    fprintf( pAbc->Err, "\t-W <num> : delay window (in percents) of near-critical COs [default = %d]\n", nRange );
+    fprintf( pAbc->Err, "\t-v       : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( pAbc->Err, "\t-h       : print the command usage\n");
+    return 1;
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

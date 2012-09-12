@@ -246,14 +246,6 @@ Vec_Int_t * Abc_SclCollectTfo( Abc_Ntk_t * p, Abc_Obj_t * pObj, Vec_Int_t * vPiv
   SeeAlso     []
 
 ***********************************************************************/
-static inline SC_Cell * Abc_SclObjResiable( SC_Man * p, Abc_Obj_t * pObj, int fUpsize )
-{
-    SC_Cell * pOld = Abc_SclObjCell( p, pObj );
-    if ( fUpsize )
-        return pOld->pNext->Order > pOld->Order ? pOld->pNext : NULL;
-    else
-        return pOld->pPrev->Order < pOld->Order ? pOld->pPrev : NULL;
-}
 float Abc_SclSizingGain( SC_Man * p, Abc_Obj_t * pPivot, Vec_Int_t * vPivots, int fUpsize )
 {
     double dGain = 0;
@@ -353,36 +345,6 @@ void Abc_SclUpdateNetwork( SC_Man * p, Abc_Obj_t * pObj, int nCone, int fUpsize,
     }
 }
  
-
-/**Function*************************************************************
-
-  Synopsis    [Begin by upsizing gates will many fanouts.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Abc_SclManUpsize( SC_Man * p )
-{
-    SC_Cell * pOld, * pNew;
-    Abc_Obj_t * pObj;
-    int i;
-    Abc_NtkForEachNode1( p->pNtk, pObj, i )
-    {
-        if ( Abc_ObjFanoutNum(pObj) <= 2 )
-            continue;
-        // find new gate
-        pOld = Abc_SclObjCell( p, pObj );
-        pNew = Abc_SclObjResiable( p, pObj, 1 );
-        if ( pNew == NULL )
-            continue;
-        Vec_IntWriteEntry( p->vGates, Abc_ObjId(pObj), Abc_SclCellFind(p->pLib, pNew->pName) );
-    }
-}
-
 
 /**Function*************************************************************
 

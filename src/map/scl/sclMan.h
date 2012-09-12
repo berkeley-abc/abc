@@ -131,6 +131,11 @@ static inline void Abc_SclManFree( SC_Man * p )
     ABC_FREE( p->pSlews2 );
     ABC_FREE( p );
 }
+static inline void Abc_SclManCleanTime( SC_Man * p )
+{
+    memset( p->pTimes, 0, sizeof(SC_Pair) * p->nObjs );
+    memset( p->pSlews, 0, sizeof(SC_Pair) * p->nObjs );
+}
 
 
 /**Function*************************************************************
@@ -206,6 +211,26 @@ static inline float Abc_SclGetMaxDelayNode( SC_Man * p, Abc_Obj_t * pNode )
     return fMaxArr;
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline SC_Cell * Abc_SclObjResiable( SC_Man * p, Abc_Obj_t * pObj, int fUpsize )
+{
+    SC_Cell * pOld = Abc_SclObjCell( p, pObj );
+    if ( fUpsize )
+        return pOld->pNext->Order > pOld->Order ? pOld->pNext : NULL;
+    else
+        return pOld->pPrev->Order < pOld->Order ? pOld->pPrev : NULL;
+}
+
 
 /*=== sclTime.c =============================================================*/
 extern Abc_Obj_t * Abc_SclFindCriticalCo( SC_Man * p, int * pfRise );
@@ -213,6 +238,7 @@ extern Abc_Obj_t * Abc_SclFindMostCriticalFanin( SC_Man * p, int * pfRise, Abc_O
 extern void        Abc_SclTimeNtkPrint( SC_Man * p, int fShowAll );
 extern SC_Man *    Abc_SclManStart( SC_Lib * pLib, Abc_Ntk_t * pNtk, int fUseWireLoads );
 extern void        Abc_SclTimeCone( SC_Man * p, Vec_Int_t * vCone );
+extern void        Abc_SclTimeNtkRecompute( SC_Man * p, float * pArea, float * pDelay );
 /*=== sclTime.c =============================================================*/
 extern void        Abc_SclComputeLoad( SC_Man * p );
 extern void        Abc_SclUpdateLoad( SC_Man * p, Abc_Obj_t * pObj, SC_Cell * pOld, SC_Cell * pNew );

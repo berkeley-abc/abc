@@ -250,14 +250,20 @@ void Abc_SclTimeCone( SC_Man * p, Vec_Int_t * vCone )
         printf( "after (%6.1f ps  %6.1f ps)\n", Abc_SclObjTimePs(p, pObj, 1), Abc_SclObjTimePs(p, pObj, 0) );
     }
 }
-void Abc_SclTimeNtk( SC_Man * p )
+void Abc_SclTimeNtkRecompute( SC_Man * p, float * pArea, float * pDelay )
 {
     Abc_Obj_t * pObj;
     int i;
+    Abc_SclComputeLoad( p );
+    Abc_SclManCleanTime( p );
     Abc_NtkForEachNode1( p->pNtk, pObj, i )
         Abc_SclTimeGate( p, pObj );
     Abc_NtkForEachCo( p->pNtk, pObj, i )
         Abc_SclObjDupFanin( p, pObj );
+    if ( pArea )
+        *pArea = Abc_SclGetTotalArea( p );
+    if ( pDelay )
+        *pDelay = Abc_SclGetMaxDelay( p );
 }
 
 /**Function*************************************************************
@@ -277,11 +283,8 @@ SC_Man * Abc_SclManStart( SC_Lib * pLib, Abc_Ntk_t * pNtk, int fUseWireLoads )
     p->fUseWireLoads = fUseWireLoads;
     assert( p->vGates == NULL );
     p->vGates = Abc_SclManFindGates( pLib, pNtk );
-//    Abc_SclManUpsize( p );
-    Abc_SclComputeLoad( p );
-    Abc_SclTimeNtk( p );
-    p->SumArea = p->SumArea0 = Abc_SclGetTotalArea( p );
-    p->MaxDelay0 = Abc_SclGetMaxDelay( p );
+    Abc_SclTimeNtkRecompute( p, &p->SumArea0, &p->MaxDelay0 );
+    p->SumArea = p->SumArea0;
     return p;
 }
 

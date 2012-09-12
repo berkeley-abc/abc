@@ -435,6 +435,8 @@ extern void        Abc_SclSave( char * pFileName, SC_Lib * pScl );
 extern void        Abc_SclTimePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int fShowAll, int fUseWireLoads );
 /*=== sclSize.c =============================================================*/
 extern void        Abc_SclSizingPerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * p );
+/*=== sclUpsize.c =============================================================*/
+extern void        Abc_SclUpsizingPerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int Degree, int nRange, int fVerbose );
 /*=== sclUtil.c =============================================================*/
 extern void        Abc_SclHashCells( SC_Lib * p );
 extern int         Abc_SclCellFind( SC_Lib * p, char * pName );
