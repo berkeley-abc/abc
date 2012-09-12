@@ -1537,7 +1537,6 @@ void Gla_ManAbsPrintFrame( Gla_Man_t * p, int nCoreSize, int nFrames, int nConfl
 }
 void Gla_ManReportMemory( Gla_Man_t * p )
 {
-    extern void Ga2_ManDumpStats( Gia_Man_t * pGia, Gia_ParVta_t * pPars, sat_solver2 * pSat, int iFrame, int fUseN );
     Gla_Obj_t * pGla;
     double memTot = 0;
     double memAig = Gia_ManObjNum(p->pGia) * sizeof(Gia_Obj_t);
@@ -1559,7 +1558,6 @@ void Gla_ManReportMemory( Gla_Man_t * p )
     ABC_PRMP( "Memory: Refine   ", memRef, memTot );
     ABC_PRMP( "Memory: Other    ", memOth, memTot );
     ABC_PRMP( "Memory: TOTAL    ", memTot, memTot );
-//    Ga2_ManDumpStats( p->pGia, p->pPars, p->pSat, p->pPars->iFrame, 1 );
 }
 
 
@@ -1642,6 +1640,7 @@ void Gia_GlaDumpAbsracted( Gla_Man_t * p, int fVerbose )
 int Gia_GlaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars, int fStartVta )
 {
     extern int Gia_VtaPerformInt( Gia_Man_t * pAig, Gia_ParVta_t * pPars );
+    extern void Ga2_ManDumpStats( Gia_Man_t * pGia, Gia_ParVta_t * pPars, sat_solver2 * pSat, int iFrame, int fUseN );
     Gla_Man_t * p;
     Vec_Int_t * vPPis, * vCore;//, * vCore2 = NULL;
     Abc_Cex_t * pCex = NULL;
@@ -1944,6 +1943,7 @@ finish:
         ABC_PRTP( "Runtime: TOTAL       ", clock() - clk, clock() - clk );
         Gla_ManReportMemory( p );
     }
+    Ga2_ManDumpStats( pAig, p->pPars, p->pSat, p->pPars->iFrame, 1 );
     Gla_ManStop( p );
     fflush( stdout );
     return RetValue;

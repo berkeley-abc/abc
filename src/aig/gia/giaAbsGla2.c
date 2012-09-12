@@ -415,7 +415,7 @@ void Ga2_ManDumpStats( Gia_Man_t * pGia, Gia_ParVta_t * pPars, sat_solver2 * pSa
     char pFileName[32];
     sprintf( pFileName, "stats_gla%s%s.txt", fUseN ? "n":"", pPars->fUseFullProof ? "p":"" ); 
 
-    pFile = fopen( pFileName, "wb+" );
+    pFile = fopen( pFileName, "a+" );
 
     fprintf( pFile, "%s pi=%d ff=%d and=%d mem=%d bmc=%d", 
         pGia->pName, 
@@ -458,7 +458,6 @@ void Ga2_ManReportMemory( Ga2_Man_t * p )
     ABC_PRMP( "Memory: Hash     ", memHash,memTot );
     ABC_PRMP( "Memory: Other    ", memOth, memTot );
     ABC_PRMP( "Memory: TOTAL    ", memTot, memTot );
-//    Ga2_ManDumpStats( p->pGia, p->pPars, p->pSat, p->pPars->iFrameProved, 0 );
 }
 void Ga2_ManStop( Ga2_Man_t * p )
 {
@@ -1822,6 +1821,7 @@ finish:
         ABC_PRTP( "Runtime: TOTAL       ", clock() - clk, clock() - clk );
         Ga2_ManReportMemory( p );
     }
+    Ga2_ManDumpStats( p->pGia, p->pPars, p->pSat, p->pPars->iFrameProved, 0 );
     Ga2_ManStop( p );
     fflush( stdout );
     return RetValue;
