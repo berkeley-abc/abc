@@ -22,7 +22,7 @@
 #include "proof/pdr/pdr.h"
 
 // comment this out to disable pthreads
-#define ABC_USE_PTHREADS
+//#define ABC_USE_PTHREADS
 
 #ifdef ABC_USE_PTHREADS
 
