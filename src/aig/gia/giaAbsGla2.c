@@ -125,6 +125,12 @@ static inline int Ga2_ObjFindOrAddLit( Ga2_Man_t * p, Gia_Obj_t * pObj, int f )
     return Lit;
 }
 
+
+// calling pthreads
+extern void Gia_Ga2ProveAbsracted( char * pFileName, int fVerbose );
+extern void Gia_Ga2ProveCancel( int fVerbose );
+extern int  Gia_Ga2ProveCheck( int fVerbose );
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -1423,26 +1429,33 @@ char * Ga2_GlaGetFileName( Ga2_Man_t * p, int fAbs )
 
 void Ga2_GlaDumpAbsracted( Ga2_Man_t * p, int fVerbose )
 {
-//    if ( fVerbose )
-//        Abc_Print( 1, "Dumping abstracted model into file \"%s\"...\n", pFileName );
-    if ( p->pPars->fDumpVabs )
+    char * pFileName;
+    assert( p->pPars->fDumpMabs || p->pPars->fDumpVabs || p->pPars->fCallProver );
+    if ( p->pPars->fDumpMabs )
     {
-        // dump absracted model
-        Vec_Int_t * vGateClasses = Ga2_ManAbsTranslate( p );
-        Gia_Man_t * pAbs = Gia_ManDupAbsGates( p->pGia, vGateClasses );
-        Gia_ManCleanValue( p->pGia );
-        Gia_WriteAiger( pAbs, Ga2_GlaGetFileName(p, 1), 0, 0 );
-        Gia_ManStop( pAbs );
-        Vec_IntFreeP( &vGateClasses );
-    }
-    else if ( p->pPars->fDumpMabs )
-    {
+        pFileName = Ga2_GlaGetFileName(p, 0);
+        if ( fVerbose )
+            Abc_Print( 1, "Dumping miter with abstraction map into file \"%s\"...\n", pFileName );
         // dump abstraction map
         Vec_IntFreeP( &p->pGia->vGateClasses );
         p->pGia->vGateClasses = Ga2_ManAbsTranslate( p );
-        Gia_WriteAiger( p->pGia, Ga2_GlaGetFileName(p, 0), 0, 0 );
+        Gia_WriteAiger( p->pGia, pFileName, 0, 0 );
     }
-    else assert( 0 );
+    if ( p->pPars->fDumpVabs || p->pPars->fCallProver )
+    {
+        Vec_Int_t * vGateClasses;
+        Gia_Man_t * pAbs;
+        pFileName = Ga2_GlaGetFileName(p, 1);
+        if ( fVerbose )
+            Abc_Print( 1, "Dumping abstracted model into file \"%s\"...\n", pFileName );
+        // dump absracted model
+        vGateClasses = Ga2_ManAbsTranslate( p );
+        pAbs = Gia_ManDupAbsGates( p->pGia, vGateClasses );
+        Gia_ManCleanValue( p->pGia );
+        Gia_WriteAiger( pAbs, pFileName, 0, 0 );
+        Gia_ManStop( pAbs );
+        Vec_IntFreeP( &vGateClasses );
+    }
 }
 
 /**Function*************************************************************
@@ -1499,7 +1512,7 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
     Ga2_Man_t * p;
     Vec_Int_t * vCore, * vPPis;
     clock_t clk2, clk = clock();
-    int Status = l_Undef, RetValue = -1, fOneIsSent = 0;
+    int Status = l_Undef, RetValue = -1, iFrameTryProve = -1, fOneIsSent = 0;
     int i, c, f, Lit;
     // check trivial case 
     assert( Gia_ManPoNum(pAig) == 1 ); 
@@ -1618,6 +1631,11 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
                         Gia_Ga2SendCancel( p, pPars->fVerbose );
                         fOneIsSent = 0;
                     }
+                    if ( iFrameTryProve >= 0 )
+                    {
+                        Gia_Ga2ProveCancel( pPars->fVerbose );
+                        iFrameTryProve = -1;
+                    }
 
                     if ( c == 0 )
                     {
@@ -1723,8 +1741,16 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
             // print statistics
             if ( pPars->fVerbose )
                 Ga2_ManAbsPrintFrame( p, f, sat_solver2_nconflicts(p->pSat)-nConflsBeg, c, clock() - clk, 1 );
-            if ( c > 0 )
+            // check if abstraction was proved
+            if ( Gia_Ga2ProveCheck( pPars->fVerbose ) )
             {
+                RetValue = 1;
+                goto finish;
+            }
+            if ( c > 0 ) 
+            {
+                if ( p->pPars->fVeryVerbose )
+                    Abc_Print( 1, "\n" );
                 // recompute the abstraction
                 Vec_IntFreeP( &pAig->vGateClasses );
                 pAig->vGateClasses = Ga2_ManAbsTranslate( p );
@@ -1733,6 +1759,31 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
                 {
                     Status = l_Undef;
                     goto finish;
+                }
+            }
+            // check the number of stable frames
+            if ( p->pPars->nFramesNoChange == p->pPars->nFramesNoChangeLim )
+            {
+                // dump the model into file
+                if ( p->pPars->fDumpVabs || p->pPars->fDumpMabs || p->pPars->fCallProver )
+                {
+                    char Command[1000];
+                    Abc_FrameSetStatus( -1 );
+                    Abc_FrameSetCex( NULL );
+                    Abc_FrameSetNFrames( f+1 );
+                    sprintf( Command, "write_status %s", Extra_FileNameGenericAppend((p->pPars->pFileVabs ? p->pPars->pFileVabs : "glabs.aig"), ".status") );
+                    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Command );
+                    Ga2_GlaDumpAbsracted( p, pPars->fVerbose );
+                }
+                // call the prover
+                if ( p->pPars->fCallProver )
+                {
+                    // cancel old one if it is proving
+                    if ( iFrameTryProve >= 0 )
+                        Gia_Ga2ProveCancel( pPars->fVerbose );
+                    // prove new one
+                    Gia_Ga2ProveAbsracted( Ga2_GlaGetFileName(p, 1), pPars->fVerbose );
+                    iFrameTryProve = f;
                 }
                 // speak to the bridge
                 if ( Abc_FrameIsBridgeMode() )
@@ -1744,36 +1795,25 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
                     Gia_Ga2SendAbsracted( p, pPars->fVerbose );
                     fOneIsSent = 1;
                 }
-                // dump the model into file
-                if ( p->pPars->fDumpVabs || p->pPars->fDumpMabs )
-                {
-                    char Command[1000];
-                    Abc_FrameSetStatus( -1 );
-                    Abc_FrameSetCex( NULL );
-                    Abc_FrameSetNFrames( f+1 );
-                    sprintf( Command, "write_status %s", Extra_FileNameGenericAppend((p->pPars->pFileVabs ? p->pPars->pFileVabs : "glabs.aig"), ".status") );
-                    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Command );
-                    Ga2_GlaDumpAbsracted( p, pPars->fVerbose );
-                }
-                if ( p->pPars->fVeryVerbose )
-                    Abc_Print( 1, "\n" );
-                // if abstraction grew more than a certain percentage, force a restart
-                if ( pPars->nRatioMax == 0 )
-                    break;
-                if ( (f > 20 || Vec_IntSize(p->vAbs) > 100) && Vec_IntSize(p->vAbs) - nAbsOld >= nAbsOld * pPars->nRatioMax / 100 )
-                {
-                    if ( p->pPars->fVerbose )
-                    Abc_Print( 1, "Forcing restart because abstraction grew from %d to %d (more than %d %%).\n", 
-                        nAbsOld, Vec_IntSize(p->vAbs), pPars->nRatioMax );
-                    break;
-                }
+            }
+            // if abstraction grew more than a certain percentage, force a restart
+            if ( pPars->nRatioMax == 0 )
+                break;
+            if ( c > 0 && (f > 20 || Vec_IntSize(p->vAbs) > 100) && Vec_IntSize(p->vAbs) - nAbsOld >= nAbsOld * pPars->nRatioMax / 100 )
+            {
+                if ( p->pPars->fVerbose )
+                Abc_Print( 1, "Forcing restart because abstraction grew from %d to %d (more than %d %%).\n", 
+                    nAbsOld, Vec_IntSize(p->vAbs), pPars->nRatioMax );
+                break;
             }
         }
     }
 finish:
     Prf_ManStopP( &p->pSat->pPrf2 );
     // analize the results
-    if ( pAig->pCexSeq == NULL )
+    if ( RetValue == 1 )
+        Abc_Print( 1, "GLA completed %d frames and proved abstraction derived in frame %d.  ", p->pPars->iFrameProved+1, iFrameTryProve );
+    else if ( pAig->pCexSeq == NULL )
     {
 //        if ( pAig->vGateClasses != NULL )
 //            Abc_Print( 1, "Replacing the old abstraction by a new one.\n" );

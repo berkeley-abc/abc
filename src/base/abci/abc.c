@@ -28342,7 +28342,7 @@ int Abc_CommandAbc9Gla( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c, fStartVta = 0, fNewAlgo = 1;
     Gia_VtaSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FSCLDETRPAtrfkadmnscbpwvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FSCLDETRPBAtrfkadmnscbpqwvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -28445,6 +28445,17 @@ int Abc_CommandAbc9Gla( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( pPars->nRatioMax < 0 ) 
                 goto usage;
             break;
+        case 'B':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-B\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nFramesNoChangeLim = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nFramesNoChangeLim < 0 ) 
+                goto usage;
+            break;
         case 'A':
             if ( globalUtilOptind >= argc )
             {
@@ -28489,6 +28500,9 @@ int Abc_CommandAbc9Gla( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'p':
             pPars->fUseFullProof ^= 1;
+            break;
+        case 'q':
+            pPars->fCallProver ^= 1;
             break;
         case 'v':
             pPars->fVerbose ^= 1;
@@ -28538,7 +28552,7 @@ int Abc_CommandAbc9Gla( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &gla [-FSCLDETRP num] [-A file] [-fkadmnscbpwvh]\n" );
+    Abc_Print( -2, "usage: &gla [-FSCLDETRPB num] [-A file] [-fkadmnscbpqwvh]\n" );
     Abc_Print( -2, "\t          fixed-time-frame gate-level proof- and cex-based abstraction\n" );
     Abc_Print( -2, "\t-F num  : the max number of timeframes to unroll [default = %d]\n", pPars->nFramesMax );
     Abc_Print( -2, "\t-S num  : the starting time frame (0=unused) [default = %d]\n", pPars->nFramesStart );
@@ -28549,6 +28563,7 @@ usage:
     Abc_Print( -2, "\t-T num  : an approximate timeout, in seconds [default = %d]\n", pPars->nTimeOut );
     Abc_Print( -2, "\t-R num  : minimum percentage of abstracted objects (0<=num<=100) [default = %d]\n", pPars->nRatioMin );
     Abc_Print( -2, "\t-P num  : maximum percentage of added objects before a restart (0<=num<=100) [default = %d]\n", pPars->nRatioMax );
+    Abc_Print( -2, "\t-B num  : the number of stable frames to dump abstraction or call prover (0<=num<=100) [default = %d]\n", pPars->nFramesNoChangeLim );
     Abc_Print( -2, "\t-A file : file name for dumping abstrated model [default = \"glabs.aig\"]\n" );
     Abc_Print( -2, "\t-f      : toggle propagating fanout implications [default = %s]\n", pPars->fPropFanout? "yes": "no" );
     Abc_Print( -2, "\t-k      : toggle using VTA to kick start GLA for starting frames [default = %s]\n", fStartVta? "yes": "no" );
@@ -28560,6 +28575,7 @@ usage:
     Abc_Print( -2, "\t-c      : toggle using naive (2-input AND node) CNF encoding [default = %s]\n", pPars->fUseSimple? "yes": "no" );
     Abc_Print( -2, "\t-b      : toggle CNF construction without hashing [default = %s]\n", pPars->fSkipHash? "yes": "no" );
     Abc_Print( -2, "\t-p      : toggle using full-proof for UNSAT cores [default = %s]\n", pPars->fUseFullProof? "yes": "no" );
+    Abc_Print( -2, "\t-q      : toggle calling the prover [default = %s]\n", pPars->fCallProver? "yes": "no" );
     Abc_Print( -2, "\t-v      : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w      : toggle printing more verbose information [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h      : print the command usage\n");

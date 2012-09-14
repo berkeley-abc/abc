@@ -148,23 +148,24 @@ extern void Vga_ManAddClausesOne( Vta_Man_t * p, int iObj, int iFrame );
 void Gia_VtaSetDefaultParams( Gia_ParVta_t * p )
 {
     memset( p, 0, sizeof(Gia_ParVta_t) );
-    p->nFramesMax    =      0;   // maximum frames
-    p->nFramesStart  =      0;   // starting frame 
-    p->nFramesPast   =      4;   // overlap frames
-    p->nConfLimit    =      0;   // conflict limit
-    p->nLearnedMax   =   1000;   // max number of learned clauses
-    p->nLearnedStart =   1000;   // max number of learned clauses
-    p->nLearnedDelta =    200;   // max number of learned clauses
-    p->nLearnedPerce =     70;   // max number of learned clauses
-    p->nTimeOut      =      0;   // timeout in seconds
-    p->nRatioMin     =     20;   // stop when less than this % of object is abstracted
-    p->nRatioMax     =     30;   // restart when more than this % of object is abstracted
-    p->fUseTermVars  =      0;   // use terminal variables
-    p->fUseRollback  =      0;   // use rollback to the starting number of frames
-    p->fPropFanout   =      1;   // propagate fanouts during refinement
-    p->fVerbose      =      0;   // verbose flag
-    p->iFrame        =     -1;   // the number of frames covered 
-    p->iFrameProved  =     -1;   // the number of frames proved
+    p->nFramesMax         =      0;   // maximum frames
+    p->nFramesStart       =      0;   // starting frame 
+    p->nFramesPast        =      4;   // overlap frames
+    p->nConfLimit         =      0;   // conflict limit
+    p->nLearnedMax        =   1000;   // max number of learned clauses
+    p->nLearnedStart      =   1000;   // max number of learned clauses
+    p->nLearnedDelta      =    200;   // max number of learned clauses
+    p->nLearnedPerce      =     70;   // max number of learned clauses
+    p->nTimeOut           =      0;   // timeout in seconds
+    p->nRatioMin          =      0;   // stop when less than this % of object is abstracted
+    p->nRatioMax          =     30;   // restart when more than this % of object is abstracted
+    p->fUseTermVars       =      0;   // use terminal variables
+    p->fUseRollback       =      0;   // use rollback to the starting number of frames
+    p->fPropFanout        =      1;   // propagate fanouts during refinement
+    p->fVerbose           =      0;   // verbose flag
+    p->iFrame             =     -1;   // the number of frames covered 
+    p->iFrameProved       =     -1;   // the number of frames proved
+    p->nFramesNoChangeLim =      1;   // the number of frames without change to dump abstraction
 }
 
 /**Function*************************************************************

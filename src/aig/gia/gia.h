@@ -233,12 +233,14 @@ struct Gia_ParVta_t_
     int            fUseFullProof; // use full proof for UNSAT cores
     int            fDumpVabs;     // dumps the abstracted model
     int            fDumpMabs;     // dumps the original AIG with abstraction map
+    int            fCallProver;   // calls the prover
     char *         pFileVabs;     // dumps the abstracted model into this file
     int            fVerbose;      // verbose flag
     int            fVeryVerbose;  // print additional information
     int            iFrame;        // the number of frames covered
     int            iFrameProved;  // the number of frames proved
     int            nFramesNoChange; // the number of last frames without changes
+    int            nFramesNoChangeLim; // the number of last frames without changes to dump abstraction
 };
 
 static inline unsigned     Gia_ObjCutSign( unsigned ObjId )       { return (1 << (ObjId & 31));                                 }

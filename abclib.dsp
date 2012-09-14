@@ -2383,6 +2383,10 @@ SOURCE=.\src\map\scl\sclTime.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\map\scl\sclUpsize.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\map\scl\sclUtil.c
 # End Source File
 # End Group
@@ -3420,6 +3424,10 @@ SOURCE=.\src\aig\gia\giaAbsIter.c
 # Begin Source File
 
 SOURCE=.\src\aig\gia\giaAbsOut.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\gia\giaAbsPth.c
 # End Source File
 # Begin Source File
 
