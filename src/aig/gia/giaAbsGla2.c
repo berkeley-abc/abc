@@ -129,6 +129,7 @@ static inline int Ga2_ObjFindOrAddLit( Ga2_Man_t * p, Gia_Obj_t * pObj, int f )
 // calling pthreads
 extern void Gia_Ga2ProveAbsracted( char * pFileName, int fVerbose );
 extern void Gia_Ga2ProveCancel( int fVerbose );
+extern void Gia_Ga2ProveFinish( int fVerbose );
 extern int  Gia_Ga2ProveCheck( int fVerbose );
 
 ////////////////////////////////////////////////////////////////////////
@@ -1434,8 +1435,8 @@ void Ga2_GlaDumpAbsracted( Ga2_Man_t * p, int fVerbose )
     if ( p->pPars->fDumpMabs )
     {
         pFileName = Ga2_GlaGetFileName(p, 0);
-        if ( fVerbose )
-            Abc_Print( 1, "Dumping miter with abstraction map into file \"%s\"...\n", pFileName );
+//        if ( fVerbose )
+//            Abc_Print( 1, "Dumping miter with abstraction map into file \"%s\"...\n", pFileName );
         // dump abstraction map
         Vec_IntFreeP( &p->pGia->vGateClasses );
         p->pGia->vGateClasses = Ga2_ManAbsTranslate( p );
@@ -1446,8 +1447,8 @@ void Ga2_GlaDumpAbsracted( Ga2_Man_t * p, int fVerbose )
         Vec_Int_t * vGateClasses;
         Gia_Man_t * pAbs;
         pFileName = Ga2_GlaGetFileName(p, 1);
-        if ( fVerbose )
-            Abc_Print( 1, "Dumping abstracted model into file \"%s\"...\n", pFileName );
+//        if ( fVerbose )
+//            Abc_Print( 1, "Dumping abstracted model into file \"%s\"...\n", pFileName );
         // dump absracted model
         vGateClasses = Ga2_ManAbsTranslate( p );
         pAbs = Gia_ManDupAbsGates( p->pGia, vGateClasses );
@@ -1545,7 +1546,7 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
         Abc_Print( 1, "FrameMax = %d  ConfMax = %d  Timeout = %d  RatioMin = %d %%  RatioMax = %d %%\n", 
             pPars->nFramesMax, pPars->nConfLimit, pPars->nTimeOut, pPars->nRatioMin, pPars->nRatioMax );
         Abc_Print( 1, "LrnStart = %d  LrnDelta = %d  LrnRatio = %d %%  Skip = %d  SimpleCNF = %d  Dump = %d\n", 
-            pPars->nLearnedStart, pPars->nLearnedDelta, pPars->nLearnedPerce, pPars->fUseSkip, pPars->fUseSimple, pPars->fDumpVabs|pPars->fDumpMabs );
+            pPars->nLearnedStart, pPars->nLearnedDelta, pPars->nLearnedPerce, pPars->fUseSkip, pPars->fUseSimple, pPars->fDumpVabs|pPars->fDumpMabs|pPars->fCallProver );
         if ( pPars->fDumpVabs || pPars->fDumpMabs )
             Abc_Print( 1, "%s will be dumped into file \"%s\".\n", 
                 pPars->fDumpVabs ? "Abstracted model" : "Miter with abstraction map",
@@ -1810,6 +1811,10 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
     }
 finish:
     Prf_ManStopP( &p->pSat->pPrf2 );
+    // cancel old one if it is proving
+    if ( iFrameTryProve >= 0 )
+        Gia_Ga2ProveCancel( pPars->fVerbose );
+    Gia_Ga2ProveFinish( pPars->fVerbose );
     // analize the results
     if ( RetValue == 1 )
         Abc_Print( 1, "GLA completed %d frames and proved abstraction derived in frame %d.  ", p->pPars->iFrameProved+1, iFrameTryProve );

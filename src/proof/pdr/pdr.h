@@ -40,20 +40,23 @@ ABC_NAMESPACE_HEADER_START
 typedef struct Pdr_Par_t_ Pdr_Par_t;
 struct Pdr_Par_t_
 {
-    int iOutput;      // zero-based number of primary output to solve
-    int nRecycle;     // limit on vars for recycling
-    int nFrameMax;    // limit on frame count
-    int nConfLimit;   // limit on SAT solver conflicts
-    int nRestLimit;   // limit on the number of proof-obligations
-    int nTimeOut;     // timeout in seconds
-    int fTwoRounds;   // use two rounds for generalization
-    int fMonoCnf;     // monolythic CNF
-    int fDumpInv;     // dump inductive invariant
-    int fShortest;    // forces bug traces to be shortest
-    int fSkipGeneral; // skips expensive generalization step
-    int fVerbose;     // verbose output
-    int fVeryVerbose; // very verbose output
-    int iFrame;       // explored up to this frame
+    int iOutput;          // zero-based number of primary output to solve
+    int nRecycle;         // limit on vars for recycling
+    int nFrameMax;        // limit on frame count
+    int nConfLimit;       // limit on SAT solver conflicts
+    int nRestLimit;       // limit on the number of proof-obligations
+    int nTimeOut;         // timeout in seconds
+    int fTwoRounds;       // use two rounds for generalization
+    int fMonoCnf;         // monolythic CNF
+    int fDumpInv;         // dump inductive invariant
+    int fShortest;        // forces bug traces to be shortest
+    int fSkipGeneral;     // skips expensive generalization step
+    int fVerbose;         // verbose output`
+    int fVeryVerbose;     // very verbose output
+    int fSilent;          // totally silent execution
+    int iFrame;           // explored up to this frame
+    int RunId;            // PDR id in this run 
+    int(*pFuncStop)(int); // callback to terminate
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -65,8 +68,8 @@ struct Pdr_Par_t_
 ////////////////////////////////////////////////////////////////////////
 
 /*=== pdrCore.c ==========================================================*/
-extern void            Pdr_ManSetDefaultParams( Pdr_Par_t * pPars );
-extern int             Pdr_ManSolve( Aig_Man_t * p, Pdr_Par_t * pPars, Abc_Cex_t ** ppCex );
+extern void               Pdr_ManSetDefaultParams( Pdr_Par_t * pPars );
+extern int                Pdr_ManSolve( Aig_Man_t * p, Pdr_Par_t * pPars, Abc_Cex_t ** ppCex );
 
 
 ABC_NAMESPACE_HEADER_END
