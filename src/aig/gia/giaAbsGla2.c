@@ -1799,7 +1799,7 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
             }
             // if abstraction grew more than a certain percentage, force a restart
             if ( pPars->nRatioMax == 0 )
-                break;
+                continue;
             if ( c > 0 && (f > 20 || Vec_IntSize(p->vAbs) > 100) && Vec_IntSize(p->vAbs) - nAbsOld >= nAbsOld * pPars->nRatioMax / 100 )
             {
                 if ( p->pPars->fVerbose )

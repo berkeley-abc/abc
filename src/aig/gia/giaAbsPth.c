@@ -21,8 +21,12 @@
 #include "aig/ioa/ioa.h"
 #include "proof/pdr/pdr.h"
 
-// comment this out to disable pthreads
+// uncomment this line to enable pthreads
 //#define ABC_USE_PTHREADS
+
+// to compile on Linux, modify Makefile as follows:
+// add -pthread to OPTFLAGS
+// add -lpthread to LIBS
 
 #ifdef ABC_USE_PTHREADS
 

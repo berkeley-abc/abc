@@ -378,7 +378,7 @@ int Gia_ManNewRefine( Gia_Man_t * p, Abc_Cex_t * pCex, int iFrameStart, int iFra
     Gia_Man_t * pAbs, * pNew;
     Vec_Int_t * vFlops, * vInit;
     Vec_Int_t * vCopy;
-    clock_t clk = clock();
+//    clock_t clk = clock();
     int RetValue;
     ABC_FREE( p->pCexSeq );
     if ( p->vGateClasses == NULL )
