@@ -129,7 +129,6 @@ static inline int Ga2_ObjFindOrAddLit( Ga2_Man_t * p, Gia_Obj_t * pObj, int f )
 // calling pthreads
 extern void Gia_Ga2ProveAbsracted( char * pFileName, int fVerbose );
 extern void Gia_Ga2ProveCancel( int fVerbose );
-extern void Gia_Ga2ProveFinish( int fVerbose );
 extern int  Gia_Ga2ProveCheck( int fVerbose );
 
 ////////////////////////////////////////////////////////////////////////
@@ -1513,7 +1512,7 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
     Ga2_Man_t * p;
     Vec_Int_t * vCore, * vPPis;
     clock_t clk2, clk = clock();
-    int Status = l_Undef, RetValue = -1, iFrameTryProve = -1, fOneIsSent = 0;
+    int Status = l_Undef, RetValue = -1, iFrameTryToProve = -1, fOneIsSent = 0;
     int i, c, f, Lit;
     // check trivial case 
     assert( Gia_ManPoNum(pAig) == 1 ); 
@@ -1616,6 +1615,19 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
                     p->nCexes++;
                     p->timeSat += clock() - clk2;
 
+                    // cancel old one if it was sent
+                    if ( Abc_FrameIsBridgeMode() && fOneIsSent )
+                    {
+                        Gia_Ga2SendCancel( p, pPars->fVerbose );
+                        fOneIsSent = 0;
+                    }
+                    if ( iFrameTryToProve >= 0 )
+                    {
+                        Gia_Ga2ProveCancel( pPars->fVerbose );
+                        iFrameTryToProve = -1;
+                    }
+
+                    // perform refinement
                     clk2 = clock();
                     vPPis = Ga2_ManRefine( p );
                     p->timeCex += clock() - clk2;
@@ -1624,18 +1636,6 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
                         if ( pPars->fVerbose )
                             Ga2_ManAbsPrintFrame( p, f, sat_solver2_nconflicts(p->pSat)-nConflsBeg, c, clock() - clk, 1 );
                         goto finish;
-                    }
-
-                    // cancel old one if it was sent
-                    if ( Abc_FrameIsBridgeMode() && fOneIsSent )
-                    {
-                        Gia_Ga2SendCancel( p, pPars->fVerbose );
-                        fOneIsSent = 0;
-                    }
-                    if ( iFrameTryProve >= 0 )
-                    {
-                        Gia_Ga2ProveCancel( pPars->fVerbose );
-                        iFrameTryProve = -1;
                     }
 
                     if ( c == 0 )
@@ -1780,11 +1780,11 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
                 if ( p->pPars->fCallProver )
                 {
                     // cancel old one if it is proving
-                    if ( iFrameTryProve >= 0 )
+                    if ( iFrameTryToProve >= 0 )
                         Gia_Ga2ProveCancel( pPars->fVerbose );
                     // prove new one
                     Gia_Ga2ProveAbsracted( Ga2_GlaGetFileName(p, 1), pPars->fVerbose );
-                    iFrameTryProve = f;
+                    iFrameTryToProve = f;
                 }
                 // speak to the bridge
                 if ( Abc_FrameIsBridgeMode() )
@@ -1812,12 +1812,11 @@ int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
 finish:
     Prf_ManStopP( &p->pSat->pPrf2 );
     // cancel old one if it is proving
-    if ( iFrameTryProve >= 0 )
+    if ( iFrameTryToProve >= 0 )
         Gia_Ga2ProveCancel( pPars->fVerbose );
-    Gia_Ga2ProveFinish( pPars->fVerbose );
     // analize the results
     if ( RetValue == 1 )
-        Abc_Print( 1, "GLA completed %d frames and proved abstraction derived in frame %d.  ", p->pPars->iFrameProved+1, iFrameTryProve );
+        Abc_Print( 1, "GLA completed %d frames and proved abstraction derived in frame %d.  ", p->pPars->iFrameProved+1, iFrameTryToProve );
     else if ( pAig->pCexSeq == NULL )
     {
 //        if ( pAig->vGateClasses != NULL )

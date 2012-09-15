@@ -270,7 +270,7 @@ static inline sat_solver * Pdr_ManNewSolver1( sat_solver * pSat, Pdr_Man_t * p, 
     {
         int nRegs = p->pAig->nRegs;
         p->pAig->nRegs = Aig_ManCoNum(p->pAig);
-        p->pCnf1 = Cnf_Derive( p->pAig, Aig_ManCoNum(p->pAig) );
+        p->pCnf1 = Cnf_DeriveWithMan( p->pCnfMan, p->pAig, Aig_ManCoNum(p->pAig) );
         p->pAig->nRegs = nRegs;
         assert( p->vVar2Reg == NULL );
         p->vVar2Reg = Vec_IntStartFull( p->pCnf1->nVars );
@@ -300,7 +300,7 @@ static inline sat_solver * Pdr_ManNewSolver2( sat_solver * pSat, Pdr_Man_t * p, 
     assert( pSat );
     if ( p->pCnf2 == NULL )
     {
-        p->pCnf2     = Cnf_DeriveOther( p->pAig, 0 );
+        p->pCnf2     = Cnf_DeriveOtherWithMan( p->pCnfMan, p->pAig, 0 );
         p->pvId2Vars = ABC_CALLOC( Vec_Int_t *, Aig_ManObjNumMax(p->pAig) );
         p->vVar2Ids  = Vec_PtrAlloc( 256 );
     }

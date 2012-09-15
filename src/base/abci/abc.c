@@ -871,21 +871,10 @@ void Abc_End( Abc_Frame_t * pAbc )
 {
     extern Abc_Frame_t * Abc_FrameGetGlobalFrame();
     Abc_FrameClearDesign(); 
-
-    {
-//        extern void Au_TabManPrint();
-//        Au_TabManPrint();
-    }
-
-//    Dar_LibDumpPriorities();
+    Cnf_ManFree();
     {
         extern int Abc_NtkCompareAndSaveBest( Abc_Ntk_t * pNtk );
         Abc_NtkCompareAndSaveBest( NULL );
-    }
-
-    {
-//        extern void Cnf_ClearMemory();
-        Cnf_ClearMemory();
     }
     {
         extern void Dar_LibStop();

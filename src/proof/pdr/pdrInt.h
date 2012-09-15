@@ -68,6 +68,7 @@ struct Pdr_Man_t_
     Pdr_Par_t * pPars;     // parameters
     Aig_Man_t * pAig;      // user's AIG
     // static CNF representation
+    Cnf_Man_t * pCnfMan;   // CNF manager
     Cnf_Dat_t * pCnf1;     // CNF for this AIG
     Vec_Int_t * vVar2Reg;  // mapping of SAT var into registers
     // dynamic CNF representation

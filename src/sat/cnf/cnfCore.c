@@ -32,6 +32,37 @@ static Cnf_Man_t * s_pManCnf = NULL;
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Cnf_ManPrepare()
+{
+    if ( s_pManCnf == NULL )
+    {
+        printf( "\n\nCreating CNF manager!!!!!\n\n" );
+        s_pManCnf = Cnf_ManStart();
+    }
+}
+Cnf_Man_t * Cnf_ManRead()
+{
+    return s_pManCnf;
+}
+void Cnf_ManFree()
+{
+    if ( s_pManCnf == NULL )
+        return;
+    Cnf_ManStop( s_pManCnf );
+    s_pManCnf = NULL;
+}
+
 
 /**Function*************************************************************
 
@@ -52,10 +83,7 @@ Vec_Int_t * Cnf_DeriveMappingArray( Aig_Man_t * pAig )
     Aig_MmFixed_t * pMemCuts;
     clock_t clk;
     // allocate the CNF manager
-    if ( s_pManCnf == NULL )
-        s_pManCnf = Cnf_ManStart();
-    // connect the managers
-    p = s_pManCnf;
+    p = Cnf_ManStart();
     p->pManAig = pAig;
 
     // generate cuts for all nodes, assign cost, and find best cuts
@@ -83,6 +111,7 @@ p->timeSave = clock() - clk;
 //ABC_PRT( "Cuts   ", p->timeCuts );
 //ABC_PRT( "Map    ", p->timeMap  );
 //ABC_PRT( "Saving ", p->timeSave );
+    Cnf_ManStop( p );
     return vResult;
 }
  
@@ -97,18 +126,13 @@ p->timeSave = clock() - clk;
   SeeAlso     []
 
 ***********************************************************************/
-Cnf_Dat_t * Cnf_Derive( Aig_Man_t * pAig, int nOutputs )
+Cnf_Dat_t * Cnf_DeriveWithMan( Cnf_Man_t * p, Aig_Man_t * pAig, int nOutputs )
 {
-    Cnf_Man_t * p;
     Cnf_Dat_t * pCnf;
     Vec_Ptr_t * vMapped;
     Aig_MmFixed_t * pMemCuts;
     clock_t clk;
-    // allocate the CNF manager
-    if ( s_pManCnf == NULL )
-        s_pManCnf = Cnf_ManStart();
     // connect the managers
-    p = s_pManCnf;
     p->pManAig = pAig;
 
     // generate cuts for all nodes, assign cost, and find best cuts
@@ -138,6 +162,11 @@ p->timeSave = clock() - clk;
 //ABC_PRT( "Saving ", p->timeSave );
     return pCnf;
 }
+Cnf_Dat_t * Cnf_Derive( Aig_Man_t * pAig, int nOutputs )
+{
+    Cnf_ManPrepare();
+    return Cnf_DeriveWithMan( s_pManCnf, pAig, nOutputs );
+}
  
 /**Function*************************************************************
 
@@ -150,18 +179,13 @@ p->timeSave = clock() - clk;
   SeeAlso     []
 
 ***********************************************************************/
-Cnf_Dat_t * Cnf_DeriveOther( Aig_Man_t * pAig, int fSkipTtMin )
+Cnf_Dat_t * Cnf_DeriveOtherWithMan( Cnf_Man_t * p, Aig_Man_t * pAig, int fSkipTtMin )
 {
-    Cnf_Man_t * p;
     Cnf_Dat_t * pCnf;
     Vec_Ptr_t * vMapped;
     Aig_MmFixed_t * pMemCuts;
     clock_t clk;
-    // allocate the CNF manager
-    if ( s_pManCnf == NULL )
-        s_pManCnf = Cnf_ManStart();
     // connect the managers
-    p = s_pManCnf;
     p->pManAig = pAig;
 
     // generate cuts for all nodes, assign cost, and find best cuts
@@ -192,42 +216,11 @@ p->timeSave = clock() - clk;
 //ABC_PRT( "Saving ", p->timeSave );
     return pCnf;
 }
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Cnf_Man_t * Cnf_ManRead()
+Cnf_Dat_t * Cnf_DeriveOther( Aig_Man_t * pAig, int fSkipTtMin )
 {
-    return s_pManCnf;
+    Cnf_ManPrepare();
+    return Cnf_DeriveOtherWithMan( s_pManCnf, pAig, fSkipTtMin );
 }
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Cnf_ClearMemory()
-{
-    if ( s_pManCnf == NULL )
-        return;
-    Cnf_ManStop( s_pManCnf );
-    s_pManCnf = NULL;
-}
-
 
 #if 0
 

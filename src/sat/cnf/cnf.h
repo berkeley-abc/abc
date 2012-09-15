@@ -127,9 +127,12 @@ static inline void         Cnf_ObjSetBestCut( Aig_Obj_t * pObj, Cnf_Cut_t * pCut
 /*=== cnfCore.c ========================================================*/
 extern Vec_Int_t *     Cnf_DeriveMappingArray( Aig_Man_t * pAig );
 extern Cnf_Dat_t *     Cnf_Derive( Aig_Man_t * pAig, int nOutputs );
+extern Cnf_Dat_t *     Cnf_DeriveWithMan( Cnf_Man_t * p, Aig_Man_t * pAig, int nOutputs );
 extern Cnf_Dat_t *     Cnf_DeriveOther( Aig_Man_t * pAig, int fSkipTtMin );
+extern Cnf_Dat_t *     Cnf_DeriveOtherWithMan( Cnf_Man_t * p, Aig_Man_t * pAig, int fSkipTtMin );
+extern void            Cnf_ManPrepare();
 extern Cnf_Man_t *     Cnf_ManRead();
-extern void            Cnf_ClearMemory();
+extern void            Cnf_ManFree();
 /*=== cnfCut.c ========================================================*/
 extern Cnf_Cut_t *     Cnf_CutCreate( Cnf_Man_t * p, Aig_Obj_t * pObj );
 extern void            Cnf_CutPrint( Cnf_Cut_t * pCut );

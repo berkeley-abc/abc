@@ -1386,7 +1386,7 @@ Abc_Ntk_t * Abc_NtkDarToCnf( Abc_Ntk_t * pNtk, char * pFileName, int fFastAlgo, 
     // write CNF into a file
     Cnf_DataWriteIntoFile( pCnf, pFileName, 0 );
     Cnf_DataFree( pCnf );
-    Cnf_ClearMemory();
+    Cnf_ManFree();
     Aig_ManStop( pMan );
     return pNtkNew;
 }

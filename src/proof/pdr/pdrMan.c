@@ -67,6 +67,7 @@ Pdr_Man_t * Pdr_ManStart( Aig_Man_t * pAig, Pdr_Par_t * pPars, Vec_Int_t * vPrio
     p->vRes     = Vec_IntAlloc( 100 );  // final result
     p->vSuppLits= Vec_IntAlloc( 100 );  // support literals
     p->pCubeJust= Pdr_SetAlloc( Saig_ManRegNum(pAig) );
+    p->pCnfMan  = Cnf_ManStart();
     // additional AIG data-members
     if ( pAig->pFanData == NULL )
         Aig_ManFanoutStart( pAig );
@@ -127,6 +128,8 @@ void Pdr_ManStop( Pdr_Man_t * p )
         Vec_IntFreeP( &p->pvId2Vars[i] );
     ABC_FREE( p->pvId2Vars );
     Vec_VecFreeP( (Vec_Vec_t **)&p->vVar2Ids );
+    // CNF manager
+    Cnf_ManStop( p->pCnfMan );
     // internal use
     Vec_IntFreeP( &p->vPrio   );  // priority flops
     Vec_IntFree( p->vLits     );  // array of literals

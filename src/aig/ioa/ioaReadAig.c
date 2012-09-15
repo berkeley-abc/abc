@@ -447,8 +447,9 @@ Aig_Man_t * Ioa_ReadAiger( char * pFileName, int fCheck )
     if ( pNew )
     {
         pName = Ioa_FileNameGeneric( pFileName );
+        ABC_FREE( pNew->pName );
         pNew->pName = Abc_UtilStrsav( pName );
-//        pNew->pSpec = Ioa_UtilStrsav( pFileName );
+        pNew->pSpec = Abc_UtilStrsav( pFileName );
         ABC_FREE( pName );
     }
     return pNew;
