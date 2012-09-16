@@ -99,6 +99,10 @@ extern int               Gia_ManPerformGla( Gia_Man_t * p, Abs_Par_t * pPars );
 extern int               Gia_ManPerformGlaOld( Gia_Man_t * p, Abs_Par_t * pPars, int fStartVta );
 /*=== absIter.c =========================================================*/
 extern Gia_Man_t *       Gia_ManShrinkGla( Gia_Man_t * p, int nFrameMax, int nTimeOut, int fUsePdr, int fUseSat, int fUseBdd, int fVerbose );
+/*=== absPth.c =========================================================*/
+extern void              Gia_GlaProveAbsracted( Gia_Man_t * p, int fVerbose );
+extern void              Gia_GlaProveCancel( int fVerbose );
+extern int               Gia_GlaProveCheck( int fVerbose );
 /*=== absVta.c =========================================================*/
 extern int               Gia_VtaPerform( Gia_Man_t * pAig, Abs_Par_t * pPars );
 /*=== absUtil.c =========================================================*/

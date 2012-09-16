@@ -126,11 +126,6 @@ static inline int Ga2_ObjFindOrAddLit( Ga2_Man_t * p, Gia_Obj_t * pObj, int f )
 }
 
 
-// calling pthreads
-extern void Gia_Ga2ProveAbsracted( char * pFileName, int fVerbose );
-extern void Gia_Ga2ProveCancel( int fVerbose );
-extern int  Gia_Ga2ProveCheck( int fVerbose );
-
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -1449,7 +1444,7 @@ char * Ga2_GlaGetFileName( Ga2_Man_t * p, int fAbs )
 void Ga2_GlaDumpAbsracted( Ga2_Man_t * p, int fVerbose )
 {
     char * pFileName;
-    assert( p->pPars->fDumpMabs || p->pPars->fDumpVabs || p->pPars->fCallProver );
+    assert( p->pPars->fDumpMabs || p->pPars->fDumpVabs );
     if ( p->pPars->fDumpMabs )
     {
         pFileName = Ga2_GlaGetFileName(p, 0);
@@ -1460,7 +1455,7 @@ void Ga2_GlaDumpAbsracted( Ga2_Man_t * p, int fVerbose )
         p->pGia->vGateClasses = Ga2_ManAbsTranslate( p );
         Gia_WriteAiger( p->pGia, pFileName, 0, 0 );
     }
-    if ( p->pPars->fDumpVabs || p->pPars->fCallProver )
+    else if ( p->pPars->fDumpVabs )
     {
         Vec_Int_t * vGateClasses;
         Gia_Man_t * pAbs;
@@ -1475,6 +1470,7 @@ void Ga2_GlaDumpAbsracted( Ga2_Man_t * p, int fVerbose )
         Gia_ManStop( pAbs );
         Vec_IntFreeP( &vGateClasses );
     }
+    else assert( 0 );
 }
 
 /**Function*************************************************************
@@ -1564,7 +1560,7 @@ int Gia_ManPerformGla( Gia_Man_t * pAig, Abs_Par_t * pPars )
         Abc_Print( 1, "FrameMax = %d  ConfMax = %d  Timeout = %d  RatioMin = %d %%  RatioMax = %d %%\n", 
             pPars->nFramesMax, pPars->nConfLimit, pPars->nTimeOut, pPars->nRatioMin, pPars->nRatioMax );
         Abc_Print( 1, "LrnStart = %d  LrnDelta = %d  LrnRatio = %d %%  Skip = %d  SimpleCNF = %d  Dump = %d\n", 
-            pPars->nLearnedStart, pPars->nLearnedDelta, pPars->nLearnedPerce, pPars->fUseSkip, pPars->fUseSimple, pPars->fDumpVabs|pPars->fDumpMabs|pPars->fCallProver );
+            pPars->nLearnedStart, pPars->nLearnedDelta, pPars->nLearnedPerce, pPars->fUseSkip, pPars->fUseSimple, pPars->fDumpVabs|pPars->fDumpMabs );
         if ( pPars->fDumpVabs || pPars->fDumpMabs )
             Abc_Print( 1, "%s will be dumped into file \"%s\".\n", 
                 pPars->fDumpVabs ? "Abstracted model" : "Miter with abstraction map",
@@ -1642,7 +1638,7 @@ int Gia_ManPerformGla( Gia_Man_t * pAig, Abs_Par_t * pPars )
                     }
                     if ( iFrameTryToProve >= 0 )
                     {
-                        Gia_Ga2ProveCancel( pPars->fVerbose );
+                        Gia_GlaProveCancel( pPars->fVerbose );
                         iFrameTryToProve = -1;
                     }
 
@@ -1762,7 +1758,7 @@ int Gia_ManPerformGla( Gia_Man_t * pAig, Abs_Par_t * pPars )
             if ( pPars->fVerbose )
                 Ga2_ManAbsPrintFrame( p, f, sat_solver2_nconflicts(p->pSat)-nConflsBeg, c, clock() - clk, 1 );
             // check if abstraction was proved
-            if ( Gia_Ga2ProveCheck( pPars->fVerbose ) )
+            if ( Gia_GlaProveCheck( pPars->fVerbose ) )
             {
                 RetValue = 1;
                 goto finish;
@@ -1785,7 +1781,7 @@ int Gia_ManPerformGla( Gia_Man_t * pAig, Abs_Par_t * pPars )
             if ( p->pPars->nFramesNoChange == p->pPars->nFramesNoChangeLim )
             {
                 // dump the model into file
-                if ( p->pPars->fDumpVabs || p->pPars->fDumpMabs || p->pPars->fCallProver )
+                if ( p->pPars->fDumpVabs || p->pPars->fDumpMabs )
                 {
                     char Command[1000];
                     Abc_FrameSetStatus( -1 );
@@ -1800,9 +1796,9 @@ int Gia_ManPerformGla( Gia_Man_t * pAig, Abs_Par_t * pPars )
                 {
                     // cancel old one if it is proving
                     if ( iFrameTryToProve >= 0 )
-                        Gia_Ga2ProveCancel( pPars->fVerbose );
+                        Gia_GlaProveCancel( pPars->fVerbose );
                     // prove new one
-                    Gia_Ga2ProveAbsracted( Ga2_GlaGetFileName(p, 1), pPars->fVerbose );
+                    Gia_GlaProveAbsracted( pAig, pPars->fVerbose );
                     iFrameTryToProve = f;
                 }
                 // speak to the bridge
@@ -1832,7 +1828,7 @@ finish:
     Prf_ManStopP( &p->pSat->pPrf2 );
     // cancel old one if it is proving
     if ( iFrameTryToProve >= 0 )
-        Gia_Ga2ProveCancel( pPars->fVerbose );
+        Gia_GlaProveCancel( pPars->fVerbose );
     // analize the results
     if ( RetValue == 1 )
         Abc_Print( 1, "GLA completed %d frames and proved abstraction derived in frame %d.  ", p->pPars->iFrameProved+1, iFrameTryToProve );
