@@ -51,9 +51,7 @@
 #include "base/cmd/cmd.h"
 #include "proof/abs/abs.h"
 
-#ifdef _WIN32
-//#include <io.h>
-#else
+#ifndef _WIN32
 #include <unistd.h>
 #endif
 
@@ -187,12 +185,10 @@ static int Abc_CommandIFraig                 ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandDFraig                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandCSweep                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandDProve                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
-//static int Abc_CommandDProve2                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbSec                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandSimSec                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandMatch                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 //static int Abc_CommandHaig                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
-//static int Abc_CommandMini                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandQbf                    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandFraig                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -202,10 +198,6 @@ static int Abc_CommandFraigRestore           ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandFraigClean             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandFraigSweep             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandFraigDress             ( Abc_Frame_t * pAbc, int argc, char ** argv );
-
-//static int Abc_CommandHaigStart              ( Abc_Frame_t * pAbc, int argc, char ** argv );
-//static int Abc_CommandHaigStop               ( Abc_Frame_t * pAbc, int argc, char ** argv );
-//static int Abc_CommandHaigUse                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandRecStart               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRecStop                ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -269,7 +261,6 @@ static int Abc_CommandUnpermute              ( Abc_Frame_t * pAbc, int argc, cha
 
 static int Abc_CommandCec                    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandDCec                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandSec                    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandDSec                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandSat                    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandDSat                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -351,21 +342,6 @@ static int Abc_CommandAbc9Trace              ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9Speedup            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Era                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Dch                ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc9AbsDerive          ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc9AbsRefine          ( Abc_Frame_t * pAbc, int argc, char ** argv );
-//static int Abc_CommandAbc9AbsCba             ( Abc_Frame_t * pAbc, int argc, char ** argv );
-//static int Abc_CommandAbc9AbsPba             ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc9GlaDerive          ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc9GlaRefine          ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc9GlaShrink          ( Abc_Frame_t * pAbc, int argc, char ** argv );
-//static int Abc_CommandAbc9GlaCba             ( Abc_Frame_t * pAbc, int argc, char ** argv );
-//static int Abc_CommandAbc9GlaPba             ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc9Gla                ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc9Vta                ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc9Vta2Gla            ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc9Gla2Vta            ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc9Fla2Gla            ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc9Gla2Fla            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Reparam            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9BackReach          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Posplit            ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -376,9 +352,20 @@ static int Abc_CommandAbc9ReachY             ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9Undo               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Iso                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9CexMin             ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc9Test               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
-static int Abc_CommandAbcTestNew             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9AbsDerive          ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9AbsRefine          ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9GlaDerive          ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9GlaRefine          ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9GlaShrink          ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Gla                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Vta                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Vta2Gla            ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Gla2Vta            ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Fla2Gla            ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Gla2Fla            ( Abc_Frame_t * pAbc, int argc, char ** argv );
+
+static int Abc_CommandAbc9Test               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 extern int Abc_CommandAbcLivenessToSafety    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 extern int Abc_CommandAbcLivenessToSafetySim ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -651,7 +638,6 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "New AIG",      "dfraig",        Abc_CommandDFraig,           1 );
     Cmd_CommandAdd( pAbc, "New AIG",      "csweep",        Abc_CommandCSweep,           1 );
 //    Cmd_CommandAdd( pAbc, "New AIG",      "haig",          Abc_CommandHaig,             1 );
-//    Cmd_CommandAdd( pAbc, "New AIG",      "mini",          Abc_CommandMini,             1 );
     Cmd_CommandAdd( pAbc, "New AIG",      "qbf",           Abc_CommandQbf,              0 );
 
     Cmd_CommandAdd( pAbc, "Fraiging",     "fraig",         Abc_CommandFraig,            1 );
@@ -661,10 +647,6 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Fraiging",     "fraig_clean",   Abc_CommandFraigClean,       0 );
     Cmd_CommandAdd( pAbc, "Fraiging",     "fraig_sweep",   Abc_CommandFraigSweep,       1 );
     Cmd_CommandAdd( pAbc, "Fraiging",     "dress",         Abc_CommandFraigDress,       1 );
-
-//    Cmd_CommandAdd( pAbc, "Choicing",     "haig_start",    Abc_CommandHaigStart,        0 );
-//    Cmd_CommandAdd( pAbc, "Choicing",     "haig_stop",     Abc_CommandHaigStop,         0 );
-//    Cmd_CommandAdd( pAbc, "Choicing",     "haig_use",      Abc_CommandHaigUse,          1 );
 
     Cmd_CommandAdd( pAbc, "Choicing",     "rec_start",     Abc_CommandRecStart,         0 );
     Cmd_CommandAdd( pAbc, "Choicing",     "rec_stop",      Abc_CommandRecStop,          0 );
@@ -686,8 +668,8 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "SC mapping",   "amap",          Abc_CommandAmap,             1 );
     Cmd_CommandAdd( pAbc, "SC mapping",   "unmap",         Abc_CommandUnmap,            1 );
     Cmd_CommandAdd( pAbc, "SC mapping",   "attach",        Abc_CommandAttach,           1 );
-    Cmd_CommandAdd( pAbc, "SC mapping",   "sc",            Abc_CommandSuperChoice,      1 );
-    Cmd_CommandAdd( pAbc, "SC mapping",   "scl",           Abc_CommandSuperChoiceLut,   1 );
+    Cmd_CommandAdd( pAbc, "SC mapping",   "superc",        Abc_CommandSuperChoice,      1 );
+    Cmd_CommandAdd( pAbc, "SC mapping",   "supercl",       Abc_CommandSuperChoiceLut,   1 );
 
     Cmd_CommandAdd( pAbc, "FPGA mapping", "fpga",          Abc_CommandFpga,             1 );
     Cmd_CommandAdd( pAbc, "FPGA mapping", "ffpga",         Abc_CommandFpgaFast,         1 );
@@ -726,10 +708,8 @@ void Abc_Init( Abc_Frame_t * pAbc )
 
     Cmd_CommandAdd( pAbc, "Verification", "cec",           Abc_CommandCec,              0 );
     Cmd_CommandAdd( pAbc, "Verification", "dcec",          Abc_CommandDCec,             0 );
-//    Cmd_CommandAdd( pAbc, "Verification", "sec",           Abc_CommandSec,              0 );
     Cmd_CommandAdd( pAbc, "Verification", "dsec",          Abc_CommandDSec,             0 );
     Cmd_CommandAdd( pAbc, "Verification", "dprove",        Abc_CommandDProve,           0 );
-//    Cmd_CommandAdd( pAbc, "Verification", "dprove2",       Abc_CommandDProve2,          0 );
     Cmd_CommandAdd( pAbc, "Verification", "absec",         Abc_CommandAbSec,            0 );
     Cmd_CommandAdd( pAbc, "Verification", "simsec",        Abc_CommandSimSec,           0 );
     Cmd_CommandAdd( pAbc, "Verification", "match",         Abc_CommandMatch,            0 );
@@ -810,21 +790,6 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&speedup",      Abc_CommandAbc9Speedup,      0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&era",          Abc_CommandAbc9Era,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&dch",          Abc_CommandAbc9Dch,          0 );
-    Cmd_CommandAdd( pAbc, "ABC9",         "&abs_derive",   Abc_CommandAbc9AbsDerive,    0 );
-    Cmd_CommandAdd( pAbc, "ABC9",         "&abs_refine",   Abc_CommandAbc9AbsRefine,    0 );
-//    Cmd_CommandAdd( pAbc, "ABC9",         "&abs_cba",      Abc_CommandAbc9AbsCba,       0 );
-//    Cmd_CommandAdd( pAbc, "ABC9",         "&abs_pba",      Abc_CommandAbc9AbsPba,       0 );
-    Cmd_CommandAdd( pAbc, "ABC9",         "&gla_derive",   Abc_CommandAbc9GlaDerive,    0 );
-    Cmd_CommandAdd( pAbc, "ABC9",         "&gla_refine",   Abc_CommandAbc9GlaRefine,    0 );
-    Cmd_CommandAdd( pAbc, "ABC9",         "&gla_shrink",   Abc_CommandAbc9GlaShrink,    0 );
-//    Cmd_CommandAdd( pAbc, "ABC9",         "&gla_cba",      Abc_CommandAbc9GlaCba,       0 );
-//    Cmd_CommandAdd( pAbc, "ABC9",         "&gla_pba",      Abc_CommandAbc9GlaPba,       0 );
-    Cmd_CommandAdd( pAbc, "ABC9",         "&gla",          Abc_CommandAbc9Gla,          0 );
-    Cmd_CommandAdd( pAbc, "ABC9",         "&vta",          Abc_CommandAbc9Vta,          0 );
-    Cmd_CommandAdd( pAbc, "ABC9",         "&vta_gla",      Abc_CommandAbc9Vta2Gla,      0 );
-    Cmd_CommandAdd( pAbc, "ABC9",         "&gla_vta",      Abc_CommandAbc9Gla2Vta,      0 );
-    Cmd_CommandAdd( pAbc, "ABC9",         "&fla_gla",      Abc_CommandAbc9Fla2Gla,      0 );
-    Cmd_CommandAdd( pAbc, "ABC9",         "&gla_fla",      Abc_CommandAbc9Gla2Fla,      0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&reparam",      Abc_CommandAbc9Reparam,      0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&back_reach",   Abc_CommandAbc9BackReach,    0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&posplit",      Abc_CommandAbc9Posplit,      0 );
@@ -835,21 +800,27 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&undo",         Abc_CommandAbc9Undo,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&iso",          Abc_CommandAbc9Iso,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&cexmin",       Abc_CommandAbc9CexMin,       0 );
-    Cmd_CommandAdd( pAbc, "ABC9",         "&test",         Abc_CommandAbc9Test,         0 );
 
-    Cmd_CommandAdd( pAbc, "Liveness",     "l2s",           Abc_CommandAbcLivenessToSafety,    0 );
-    Cmd_CommandAdd( pAbc, "Liveness",     "l2ssim",        Abc_CommandAbcLivenessToSafetySim, 0 );
+    Cmd_CommandAdd( pAbc, "Abstraction",  "&abs_derive",   Abc_CommandAbc9AbsDerive,    0 );
+    Cmd_CommandAdd( pAbc, "Abstraction",  "&abs_refine",   Abc_CommandAbc9AbsRefine,    0 );
+    Cmd_CommandAdd( pAbc, "Abstraction",  "&gla_derive",   Abc_CommandAbc9GlaDerive,    0 );
+    Cmd_CommandAdd( pAbc, "Abstraction",  "&gla_refine",   Abc_CommandAbc9GlaRefine,    0 );
+    Cmd_CommandAdd( pAbc, "Abstraction",  "&gla_shrink",   Abc_CommandAbc9GlaShrink,    0 );
+    Cmd_CommandAdd( pAbc, "Abstraction",  "&gla",          Abc_CommandAbc9Gla,          0 );
+    Cmd_CommandAdd( pAbc, "Abstraction",  "&vta",          Abc_CommandAbc9Vta,          0 );
+    Cmd_CommandAdd( pAbc, "Abstraction",  "&vta_gla",      Abc_CommandAbc9Vta2Gla,      0 );
+    Cmd_CommandAdd( pAbc, "Abstraction",  "&gla_vta",      Abc_CommandAbc9Gla2Vta,      0 );
+    Cmd_CommandAdd( pAbc, "Abstraction",  "&fla_gla",      Abc_CommandAbc9Fla2Gla,      0 );
+    Cmd_CommandAdd( pAbc, "Abstraction",  "&gla_fla",      Abc_CommandAbc9Gla2Fla,      0 );
+
+    Cmd_CommandAdd( pAbc, "Liveness",     "l2s",           Abc_CommandAbcLivenessToSafety,           0 );
+    Cmd_CommandAdd( pAbc, "Liveness",     "l2ssim",        Abc_CommandAbcLivenessToSafetySim,        0 );
     Cmd_CommandAdd( pAbc, "Liveness",     "l3s",           Abc_CommandAbcLivenessToSafetyWithLTL,    0 );
 
-    Cmd_CommandAdd( pAbc, "Various",      "testnew",       Abc_CommandAbcTestNew,       0 );
-
+    Cmd_CommandAdd( pAbc, "ABC9",         "&test",         Abc_CommandAbc9Test,         0 );
     {
         extern void Dar_LibStart();
         Dar_LibStart();
-    }
-    {
-//        extern void Extra_NpnTest();
-//        Extra_NpnTest();
     }
 } 
 
@@ -11421,65 +11392,6 @@ usage:
     return 1;
 }
 */
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Abc_CommandMini( Abc_Frame_t * pAbc, int argc, char ** argv )
-{
-    Abc_Ntk_t * pNtk, * pNtkRes;
-    int c;
-    extern Abc_Ntk_t * Abc_NtkMiniBalance( Abc_Ntk_t * pNtk );
-
-    pNtk = Abc_FrameReadNtk(pAbc);
-
-    // set defaults
-    Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
-    {
-        switch ( c )
-        {
-        case 'h':
-            goto usage;
-        default:
-            goto usage;
-        }
-    }
-    if ( pNtk == NULL )
-    {
-        Abc_Print( -1, "Empty network.\n" );
-        return 1;
-    }
-    if ( !Abc_NtkIsStrash(pNtk) )
-    {
-        Abc_Print( -1, "Only works for combinatinally strashed AIG networks.\n" );
-        return 1;
-    }
-
-    pNtkRes = Abc_NtkMiniBalance( pNtk );
-    if ( pNtkRes == NULL )
-    {
-        Abc_Print( -1, "Command has failed.\n" );
-        return 0;
-    }
-    // replace the current network
-    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
-    return 0;
-
-usage:
-    Abc_Print( -2, "usage: mini [-h]\n" );
-    Abc_Print( -2, "\t         perform balancing using new package\n" );
-    Abc_Print( -2, "\t-h     : print the command usage\n");
-    return 1;
-}
  
 /**Function*************************************************************
 
@@ -12227,146 +12139,6 @@ usage:
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
-
-#if 0
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Abc_CommandHaigStart( Abc_Frame_t * pAbc, int argc, char ** argv )
-{
-    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
-    int c;
-    // set defaults
-    Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "dh" ) ) != EOF )
-    {
-        switch ( c )
-        {
-        case 'h':
-            goto usage;
-        default:
-            goto usage;
-        }
-    }
-    if ( !Abc_NtkIsStrash(pNtk) )
-    {
-        Abc_Print( -1, "This command works only for AIGs; run strashing (\"st\").\n" );
-        return 0;
-    }
-    Abc_NtkHaigStart( pNtk );
-    return 0;
-
-usage:
-    Abc_Print( -2, "usage: haig_start [-h]\n" );
-    Abc_Print( -2, "\t        starts constructive accumulation of combinational choices\n" );
-    Abc_Print( -2, "\t-h    : print the command usage\n");
-    return 1;
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Abc_CommandHaigStop( Abc_Frame_t * pAbc, int argc, char ** argv )
-{
-    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
-    int c;
-    // set defaults
-    Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "dh" ) ) != EOF )
-    {
-        switch ( c )
-        {
-        case 'h':
-            goto usage;
-        default:
-            goto usage;
-        }
-    }
-    if ( !Abc_NtkIsStrash(pNtk) )
-    {
-        Abc_Print( -1, "This command works only for AIGs; run strashing (\"st\").\n" );
-        return 0;
-    }
-    Abc_NtkHaigStop( pNtk );
-    return 0;
-
-usage:
-    Abc_Print( -2, "usage: haig_stop [-h]\n" );
-    Abc_Print( -2, "\t        cleans the internal storage for combinational choices\n" );
-    Abc_Print( -2, "\t-h    : print the command usage\n");
-    return 1;
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Abc_CommandHaigUse( Abc_Frame_t * pAbc, int argc, char ** argv )
-{
-    Abc_Ntk_t * pNtk, * pNtkRes;
-    int c;
-
-    pNtk = Abc_FrameReadNtk(pAbc);
-    // set defaults
-    Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "dh" ) ) != EOF )
-    {
-        switch ( c )
-        {
-        case 'h':
-            goto usage;
-        default:
-            goto usage;
-        }
-    }
-    if ( !Abc_NtkIsStrash(pNtk) )
-    {
-        Abc_Print( -1, "This command works only for AIGs; run strashing (\"st\").\n" );
-        return 0;
-    }
-    // get the new network
-    pNtkRes = Abc_NtkHaigUse( pNtk );
-    if ( pNtkRes == NULL )
-    {
-        Abc_Print( -1, "Transforming internal storage into AIG with choices has failed.\n" );
-        return 1;
-    }
-    // replace the current network
-    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
-    return 0;
-
-usage:
-    Abc_Print( -2, "usage: haig_use [-h]\n" );
-    Abc_Print( -2, "\t        transforms internal storage into an AIG with choices\n" );
-    Abc_Print( -2, "\t-h    : print the command usage\n");
-    return 1;
-}
-
-#endif
 
 
 /**Function*************************************************************
@@ -13700,7 +13472,7 @@ int Abc_CommandSuperChoice( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: sc [-h]\n" );
+    Abc_Print( -2, "usage: superc [-h]\n" );
     Abc_Print( -2, "\t      performs superchoicing\n" );
     Abc_Print( -2, "\t      (accumulate: \"r file.blif; rsup; b; sc; f -ac; wb file_sc.blif\")\n" );
     Abc_Print( -2, "\t      (map without supergate library: \"r file_sc.blif; ft; map\")\n" );
@@ -13797,7 +13569,7 @@ int Abc_CommandSuperChoiceLut( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: scl [-K num] [-N num] [-vh]\n" );
+    Abc_Print( -2, "usage: supercl [-K num] [-N num] [-vh]\n" );
     Abc_Print( -2, "\t        performs superchoicing for K-LUTs\n" );
     Abc_Print( -2, "\t        (accumulate: \"r file.blif; b; scl; f -ac; wb file_sc.blif\")\n" );
     Abc_Print( -2, "\t        (FPGA map: \"r file_sc.blif; ft; read_lut lutlibK; fpga\")\n" );
@@ -18482,152 +18254,6 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_CommandSec( Abc_Frame_t * pAbc, int argc, char ** argv )
-{
-    Abc_Ntk_t * pNtk, * pNtk1, * pNtk2;
-    int fDelete1, fDelete2;
-    char ** pArgvNew;
-    int nArgcNew;
-    int c;
-    int fRetime;
-    int fSat;
-    int fVerbose;
-    int nFrames;
-    int nSeconds;
-    int nConfLimit;
-    int nInsLimit;
-
-    extern void Abc_NtkSecSat( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nConfLimit, int nInsLimit, int nFrames );
-    extern int Abc_NtkSecFraig( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, int nFrames, int fVerbose );
-
-    Abc_Print( 0, "This command is no longer used.\n" );
-    return 0;
-
-    pNtk = Abc_FrameReadNtk(pAbc);
-    // set defaults
-    fRetime  =  0; // verification after retiming
-    fSat     =  0;
-    fVerbose =  0;
-    nFrames  =  5;
-    nSeconds = 20;
-    nConfLimit = 10000;   
-    nInsLimit  = 0;
-    Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FTCIsrvh" ) ) != EOF )
-    {
-        switch ( c )
-        {
-        case 'F':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-F\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            nFrames = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( nFrames <= 0 ) 
-                goto usage;
-            break;
-        case 'T':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-T\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            nSeconds = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( nSeconds < 0 ) 
-                goto usage;
-            break;
-        case 'C':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-C\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            nConfLimit = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( nConfLimit < 0 ) 
-                goto usage;
-            break;
-        case 'I':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-I\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            nInsLimit = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( nInsLimit < 0 ) 
-                goto usage;
-            break;
-        case 'r':
-            fRetime ^= 1;
-            break;
-        case 'v':
-            fVerbose ^= 1;
-            break;
-        case 's':
-            fSat ^= 1;
-            break;
-        default:
-            goto usage;
-        }
-    }
-
-    pArgvNew = argv + globalUtilOptind;
-    nArgcNew = argc - globalUtilOptind;
-    if ( !Abc_NtkPrepareTwoNtks( stdout, pNtk, pArgvNew, nArgcNew, &pNtk1, &pNtk2, &fDelete1, &fDelete2 ) )
-        return 1;
-
-    if ( Abc_NtkLatchNum(pNtk1) == 0 || Abc_NtkLatchNum(pNtk2) == 0 )
-    {
-        if ( fDelete1 ) Abc_NtkDelete( pNtk1 );
-        if ( fDelete2 ) Abc_NtkDelete( pNtk2 );
-        Abc_Print( -1, "The network has no latches. Used combinational command \"cec\".\n" );
-        return 0;
-    }
-
-    // perform equivalence checking
-    if ( fSat )
-        Abc_NtkSecSat( pNtk1, pNtk2, nConfLimit, nInsLimit, nFrames );
-    else
-        Abc_NtkSecFraig( pNtk1, pNtk2, nSeconds, nFrames, fVerbose );
-
-    if ( fDelete1 ) Abc_NtkDelete( pNtk1 );
-    if ( fDelete2 ) Abc_NtkDelete( pNtk2 );
-    return 0;
-
-usage:
-    Abc_Print( -2, "usage: sec [-F num] [-T num] [-C num] [-I num] [-srvh] <file1> <file2>\n" );
-    Abc_Print( -2, "\t         performs bounded sequential equivalence checking\n" );
-    Abc_Print( -2, "\t         (there is also an unbounded SEC commands, \"dsec\" and \"dprove\")\n" );
-    Abc_Print( -2, "\t-s     : toggle \"SAT only\" and \"FRAIG + SAT\" [default = %s]\n", fSat? "SAT only": "FRAIG + SAT" );
-    Abc_Print( -2, "\t-r     : toggles retiming verification [default = %s]\n", fVerbose? "yes": "no" );
-    Abc_Print( -2, "\t-v     : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
-    Abc_Print( -2, "\t-h     : print the command usage\n");
-    Abc_Print( -2, "\t-F num : the number of time frames to use [default = %d]\n", nFrames );
-    Abc_Print( -2, "\t-T num : approximate runtime limit in seconds [default = %d]\n", nSeconds );
-    Abc_Print( -2, "\t-C num : limit on the number of conflicts [default = %d]\n",    nConfLimit );
-    Abc_Print( -2, "\t-I num : limit on the number of inspections [default = %d]\n", nInsLimit );
-    Abc_Print( -2, "\tfile1  : (optional) the file with the first network\n");
-    Abc_Print( -2, "\tfile2  : (optional) the file with the second network\n");
-    Abc_Print( -2, "\t         if no files are given, uses the current network and its spec\n");
-    Abc_Print( -2, "\t         if one file is given, uses the current network and the file\n");
-    return 1;
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
 int Abc_CommandDSec( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Fra_Sec_t SecPar, * pSecPar = &SecPar;
@@ -19012,91 +18638,6 @@ usage:
     return 1;
 } 
 
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Abc_CommandDProve2( Abc_Frame_t * pAbc, int argc, char ** argv )
-{
-    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
-    int nConfLast;
-    int fSeparate;
-    int fVeryVerbose;
-    int fVerbose;
-    int c;
-
-//    extern int Abc_NtkDProve2( Abc_Ntk_t * pNtk, int nConfLast, int fSeparate, int fVeryVerbose, int fVerbose );
-    // set defaults
-    nConfLast    = 75000;
-    fSeparate    = 0;
-    fVeryVerbose = 0;
-    fVerbose     = 1;
-    Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Ckwvh" ) ) != EOF )
-    {
-        switch ( c )
-        {
-        case 'C':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-C\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            nConfLast = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( nConfLast < 0 ) 
-                goto usage;
-            break;
-        case 'k':
-            fSeparate ^= 1;
-            break;
-        case 'w':
-            fVeryVerbose ^= 1;
-            break;
-        case 'v':
-            fVerbose ^= 1;
-            break;
-        default:
-            goto usage;
-        }
-    }
-    if ( pNtk == NULL )
-    {
-        Abc_Print( -1, "Empty network.\n" );
-        return 1;
-    }
-    if ( !Abc_NtkIsStrash(pNtk) )
-    {
-        Abc_Print( -1, "This command works only for structrally hashed networks. Run \"st\".\n" );
-        return 0;
-    }
-    if ( Abc_NtkLatchNum(pNtk) == 0 )
-    {
-        Abc_Print( -1, "This command works only for sequential networks.\n" );
-        return 0;
-    }
-    // perform verification
-//    Abc_NtkDProve2( pNtk, nConfLast, fSeparate, fVeryVerbose, fVerbose );
-    return 0;
-
-usage:
-    Abc_Print( -2, "usage: dprove2 [-C num] [-kwvh]\n" );
-    Abc_Print( -2, "\t         improved integrated solver of sequential miters\n" );
-    Abc_Print( -2, "\t-C num : the conflict limit during final BMC [default = %d]\n", nConfLast );
-    Abc_Print( -2, "\t-k     : toggles solving each output separately [default = %s]\n", fSeparate? "yes": "no" );
-    Abc_Print( -2, "\t-w     : toggles very verbose output [default = %s]\n", fVeryVerbose? "yes": "no" );
-    Abc_Print( -2, "\t-v     : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
-    Abc_Print( -2, "\t-h     : print the command usage\n");
-    return 1;
-}
 
 /**Function*************************************************************
 
@@ -22769,63 +22310,6 @@ int Abc_CommandTraceCheck( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     Abc_Print( -2, "usage: trace_check [-h]\n" );
     Abc_Print( -2, "\t        checks the current network using verification trace\n" );
-    Abc_Print( -2, "\t-h    : print the command usage\n");
-    return 1;
-}
-
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Abc_CommandAbcTestNew( Abc_Frame_t * pAbc, int argc, char ** argv )
-{
-    extern int Abc_NtkTestProcedure( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2 );
-
-    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
-    int c;
-
-    pNtk = Abc_FrameReadNtk(pAbc);
-
-    // set defaults
-    Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
-    {
-        switch ( c )
-        {
-        case 'h':
-            goto usage;
-        default:
-            goto usage;
-        }
-    }
-
-    if ( pNtk == NULL )
-    {
-        Abc_Print( -1, "Empty network.\n" );
-        return 1;
-    }
-
-    if ( !Abc_NtkIsStrash( pNtk) )
-    {
-        Abc_Print( -1, "The current network is not an AIG. Cannot continue.\n" );
-        return 1;
-    }
-
-//    Abc_NtkTestProcedure( pNtk, NULL );
-
-    return 0;
-
-usage:
-    Abc_Print( -2, "usage: testnew [-h]\n" );
-    Abc_Print( -2, "\t        new testing procedure\n" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;
 }
@@ -27220,7 +26704,7 @@ int Abc_CommandAbc9Dch( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( pAbc->pGia == NULL )
     {
-        Abc_Print( -1, "Abc_CommandAbc9Test(): There is no AIG.\n" );
+        Abc_Print( -1, "Abc_CommandAbc9Dch(): There is no AIG.\n" );
         return 1;
     } 
     pTemp = Gia_ManPerformDch( pAbc->pGia, pPars );
@@ -27242,1301 +26726,6 @@ usage:
     return 1;
 }
 
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Abc_CommandAbc9AbsDerive( Abc_Frame_t * pAbc, int argc, char ** argv )
-{
-    Gia_Man_t * pTemp = NULL;
-    int c, fVerbose = 0;
-    Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
-    {
-        switch ( c )
-        {
-        case 'v':
-            fVerbose ^= 1;
-            break;
-        case 'h':
-            goto usage;
-        default:
-            goto usage;
-        }
-    }
-    if ( pAbc->pGia == NULL )
-    {
-        Abc_Print( -1, "Abc_CommandAbc9AbsDerive(): There is no AIG.\n" );
-        return 1;
-    } 
-    if ( Gia_ManRegNum(pAbc->pGia) == 0 )
-    {
-        Abc_Print( -1, "The network is combinational.\n" );
-        return 0;
-    }
-    if ( pAbc->pGia->vFlopClasses == NULL )
-    {
-        Abc_Print( -1, "Abstraction flop map is missing.\n" );
-        return 0;
-    }
-    pTemp = Gia_ManDupAbsFlops( pAbc->pGia, pAbc->pGia->vFlopClasses );
-    Abc_CommandUpdate9( pAbc, pTemp );
-    return 0;
-
-usage:
-    Abc_Print( -2, "usage: &abs_derive [-vh]\n" );
-    Abc_Print( -2, "\t        derives abstracted model using the pre-computed flop map\n" );
-    Abc_Print( -2, "\t-v    : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
-    Abc_Print( -2, "\t-h    : print the command usage\n");
-    return 1;
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Abc_CommandAbc9AbsRefine( Abc_Frame_t * pAbc, int argc, char ** argv )
-{
-//    Gia_Man_t * pTemp = NULL;
-    int c;
-    int nFfToAddMax = 0;
-    int fTryFour    = 1;
-    int fSensePath  = 0;
-    int fVerbose    = 0;
-
-    Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Mtsvh" ) ) != EOF )
-    {
-        switch ( c )
-        {
-        case 'M':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-M\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            nFfToAddMax = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( nFfToAddMax < 0 ) 
-                goto usage;
-            break;
-        case 't':
-            fTryFour ^= 1;
-            break;
-        case 's':
-            fSensePath ^= 1;
-            break;
-        case 'v':
-            fVerbose ^= 1;
-            break;
-        case 'h':
-            goto usage;
-        default:
-            goto usage;
-        }
-    }
-    if ( pAbc->pGia == NULL )
-    {
-        Abc_Print( -1, "Abc_CommandAbc9AbsRefine(): There is no AIG.\n" );
-        return 1;
-    } 
-    if ( Gia_ManRegNum(pAbc->pGia) == 0 )
-    {
-        Abc_Print( -1, "The network is combinational.\n" );
-        return 0;
-    }
-    if ( pAbc->pCex == NULL )
-    {
-        Abc_Print( -1, "Abc_CommandAbc9AbsRefine(): There is no counter-example.\n" );
-        return 1;
-    } 
-    pAbc->Status = Gia_ManCexAbstractionRefine( pAbc->pGia, pAbc->pCex, nFfToAddMax, fTryFour, fSensePath, fVerbose );
-    Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexSeq );
-    return 0;
-
-usage:
-    Abc_Print( -2, "usage: &abs_refine [-M <num>] [-tsvh]\n" );
-    Abc_Print( -2, "\t         refines the pre-computed flop map using the counter-example\n" );
-    Abc_Print( -2, "\t-M num : the max number of flops to add (0 = not used) [default = %d]\n", nFfToAddMax );
-    Abc_Print( -2, "\t-t     : toggle trying four abstractions instead of one [default = %s]\n", fTryFour? "yes": "no" );
-    Abc_Print( -2, "\t-s     : toggle using the path sensitization algorithm [default = %s]\n", fSensePath? "yes": "no" );
-    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
-    Abc_Print( -2, "\t-h     : print the command usage\n");
-    return 1;
-} 
-
-#if 0
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Abc_CommandAbc9AbsCba( Abc_Frame_t * pAbc, int argc, char ** argv )
-{
-    Saig_ParBmc_t Pars, * pPars = &Pars;
-    int c;
-    Saig_ParBmcSetDefaultParams( pPars );
-    pPars->nStart     = (pAbc->nFrames >= 0) ? pAbc->nFrames : 0;
-    pPars->nFramesMax = pPars->nStart + 10;
-    Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "SFCMTvh" ) ) != EOF )
-    {
-        switch ( c )
-        {
-        case 'S':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-S\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            pPars->nStart = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( pPars->nStart < 0 ) 
-                goto usage;
-            break;
-        case 'F':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-F\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            pPars->nFramesMax = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( pPars->nFramesMax < 0 ) 
-                goto usage;
-            break;
-        case 'C':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-C\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            pPars->nConfLimit = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( pPars->nConfLimit < 0 ) 
-                goto usage;
-            break;
-        case 'M':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-M\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            pPars->nFfToAddMax = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( pPars->nFfToAddMax < 0 ) 
-                goto usage;
-            break;
-        case 'T':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-T\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            pPars->nTimeOut = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( pPars->nTimeOut < 0 ) 
-                goto usage;
-            break;
-        case 'v':
-            pPars->fVerbose ^= 1;
-            break;
-        case 'h':
-            goto usage;
-        default:
-            goto usage;
-        }
-    }
-    if ( pAbc->pGia == NULL )
-    {
-        Abc_Print( -1, "Abc_CommandAbc9AbsCba(): There is no AIG.\n" );
-        return 1;
-    } 
-    if ( Gia_ManRegNum(pAbc->pGia) == 0 )
-    {
-        Abc_Print( -1, "The network is combinational.\n" );
-        return 0;
-    }
-    pAbc->Status = Gia_ManCbaPerform( pAbc->pGia, pPars );
-    if ( pPars->nStart == 0 )
-        pAbc->nFrames = pPars->iFrame;
-    Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexSeq );
-    return 0;
-
-usage:
-    Abc_Print( -2, "usage: &abs_cba [-SFCT num] [-vh]\n" );
-    Abc_Print( -2, "\t         refines abstracted flop map with CEX-based abstraction\n" );
-    Abc_Print( -2, "\t-S num : the starting time frame [default = %d]\n", pPars->nStart );
-    Abc_Print( -2, "\t-F num : the max number of timeframes to unroll [default = %d]\n", pPars->nFramesMax );
-    Abc_Print( -2, "\t-C num : the max number of SAT solver conflicts [default = %d]\n", pPars->nConfLimit );
-//    Abc_Print( -2, "\t-M num : the max number of flops to add (0 = not used) [default = %d]\n", pPars->nFfToAddMax );
-    Abc_Print( -2, "\t-T num : an approximate timeout, in seconds [default = %d]\n", pPars->nTimeOut );
-    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
-    Abc_Print( -2, "\t-h     : print the command usage\n");
-    return 1;
-} 
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Abc_CommandAbc9AbsPba( Abc_Frame_t * pAbc, int argc, char ** argv )
-{
-    int nStart     =        0;
-    int nFramesMax = (pAbc->nFrames >= 0) ? pAbc->nFrames : 20;
-    int nConfMax   = 10000000;
-    int nTimeLimit =        0;
-    int fVerbose   =        0;
-    int iFrame     =       -1;
-    int c;
-
-    Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "SFCTvh" ) ) != EOF )
-    {
-        switch ( c )
-        {
-        case 'S':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-S\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            nStart = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( nStart < 0 ) 
-                goto usage;
-            break;
-        case 'F':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-F\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            nFramesMax = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( nFramesMax < 0 ) 
-                goto usage;
-            break;
-        case 'C':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-C\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            nConfMax = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( nConfMax < 0 ) 
-                goto usage;
-            break;
-        case 'T':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-T\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            nTimeLimit = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( nTimeLimit < 0 ) 
-                goto usage;
-            break;
-        case 'v':
-            fVerbose ^= 1;
-            break;
-        case 'h':
-            goto usage;
-        default:
-            goto usage;
-        }
-    }
-    if ( pAbc->pGia == NULL )
-    {
-        Abc_Print( -1, "Abc_CommandAbc9AbsRefine(): There is no AIG.\n" );
-        return 1;
-    } 
-    if ( Gia_ManRegNum(pAbc->pGia) == 0 )
-    {
-        Abc_Print( -1, "The network is combinational.\n" );
-        return 0;
-    }
-    if ( pAbc->pGia->vFlopClasses == NULL )
-    {
-        Abc_Print( -1, "The flop map is not given.\n" );
-        return 0;
-    }
-    if ( nStart >= nFramesMax )
-    {
-        Abc_Print( -1, "The starting frame (%d) should be less than the total number of frames (%d).\n", nStart, nFramesMax );
-        return 0;
-    }
-    Gia_ManPbaPerform( pAbc->pGia, nStart, nFramesMax, nConfMax, nTimeLimit, fVerbose, &iFrame );
-    if ( iFrame >= 0 )
-        pAbc->nFrames = iFrame;
-    Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexSeq );
-    return 0;
-
-usage:
-    Abc_Print( -2, "usage: &abs_pba [-SFCT num] [-vh]\n" );
-    Abc_Print( -2, "\t         refines abstracted flop map with proof-based abstraction\n" );
-    Abc_Print( -2, "\t-S num : the starting timeframe for SAT check [default = %d]\n", nStart );
-    Abc_Print( -2, "\t-F num : the max number of timeframes to unroll [default = %d]\n", nFramesMax );
-    Abc_Print( -2, "\t-C num : the max number of SAT solver conflicts [default = %d]\n", nConfMax );
-    Abc_Print( -2, "\t-T num : an approximate timeout, in seconds [default = %d]\n", nTimeLimit );
-    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
-    Abc_Print( -2, "\t-h     : print the command usage\n");
-    return 1;
-} 
-
-#endif
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Abc_CommandAbc9GlaDerive( Abc_Frame_t * pAbc, int argc, char ** argv )
-{
-    Gia_Man_t * pTemp = NULL;
-    int c, fVerbose = 0;
-    Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
-    {
-        switch ( c )
-        {
-        case 'v':
-            fVerbose ^= 1;
-            break;
-        case 'h':
-            goto usage;
-        default:
-            goto usage;
-        }
-    }
-    if ( pAbc->pGia == NULL )
-    {
-        Abc_Print( -1, "Abc_CommandAbc9GlaDerive(): There is no AIG.\n" );
-        return 1;
-    } 
-/*
-    if ( Gia_ManRegNum(pAbc->pGia) == 0 )
-    {
-        Abc_Print( -1, "The network is combinational.\n" );
-        return 0;
-    }
-*/
-    if ( pAbc->pGia->vGateClasses == NULL )
-    {
-        Abc_Print( -1, "Abstraction gate map is missing.\n" );
-        return 0;
-    }
-    pTemp = Gia_ManDupAbsGates( pAbc->pGia, pAbc->pGia->vGateClasses );
-    Gia_ManStop( pTemp );
-    pTemp = Gia_ManDupAbsGates( pAbc->pGia, pAbc->pGia->vGateClasses );
-    Abc_CommandUpdate9( pAbc, pTemp );
-//    printf( "This command is currently not enabled.\n" );
-    return 0;
-
-usage:
-    Abc_Print( -2, "usage: &gla_derive [-vh]\n" );
-    Abc_Print( -2, "\t        derives abstracted model using the pre-computed gate map\n" );
-    Abc_Print( -2, "\t-v    : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
-    Abc_Print( -2, "\t-h    : print the command usage\n");
-    return 1;
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Abc_CommandAbc9GlaRefine( Abc_Frame_t * pAbc, int argc, char ** argv )
-{
-    extern int Gia_ManNewRefine( Gia_Man_t * p, Abc_Cex_t * pCex, int iFrameStart, int iFrameExtra, int fVerbose );
-    int iFrameStart = 0;
-    int iFrameExtra = 0;
-    int fMinCut = 1;
-    int c, fVerbose = 0;
-    Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FGmvh" ) ) != EOF )
-    {
-        switch ( c )
-        {
-        case 'F':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-F\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            iFrameStart = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( iFrameStart < 0 ) 
-                goto usage;
-            break;
-        case 'G':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-G\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            iFrameExtra = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( iFrameExtra < 0 ) 
-                goto usage;
-            break;
-        case 'm':
-            fMinCut ^= 1;
-            break;
-        case 'v':
-            fVerbose ^= 1;
-            break;
-        case 'h':
-            goto usage;
-        default:
-            goto usage;
-        }
-    }
-    if ( pAbc->pGia == NULL )
-    {
-        Abc_Print( -1, "Abc_CommandAbc9GlaRefine(): There is no AIG.\n" );
-        return 1;
-    } 
-    if ( Gia_ManRegNum(pAbc->pGia) == 0 )
-    {
-        Abc_Print( -1, "The network is combinational.\n" );
-        return 0;
-    }
-    if ( pAbc->pCex == NULL )
-    {
-        Abc_Print( -1, "Abc_CommandAbc9GlaRefine(): There is no counter-example.\n" );
-        return 1;
-    } 
-    pAbc->Status = Gia_ManNewRefine( pAbc->pGia, pAbc->pCex, iFrameStart, iFrameExtra, fVerbose );
-    Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexSeq );
-    return 0;
-
-usage:
-    Abc_Print( -2, "usage: &gla_refine [-FG num] [-vh]\n" );
-    Abc_Print( -2, "\t         refines the pre-computed gate map using the counter-example\n" );
-    Abc_Print( -2, "\t-F num : starting timeframe for suffix refinement [default = %d]\n", iFrameStart );
-    Abc_Print( -2, "\t-G num : the number of additional timeframes to try [default = %d]\n", iFrameExtra );
-//    Abc_Print( -2, "\t-m     : toggle using min-cut to derive the refinements [default = %s]\n", fMinCut? "yes": "no" );
-    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
-    Abc_Print( -2, "\t-h     : print the command usage\n");
-    return 1;
-} 
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Abc_CommandAbc9GlaShrink( Abc_Frame_t * pAbc, int argc, char ** argv )
-{
-    int fUsePdr = 0;
-    int fUseSat = 1;
-    int fUseBdd = 0;
-    int nFrameMax = 0;
-    int nTimeOut = 0;
-    int c, fVerbose = 0;
-    Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FTpsbvh" ) ) != EOF )
-    {
-        switch ( c )
-        {
-        case 'F':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-F\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            nFrameMax = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( nFrameMax < 0 ) 
-                goto usage;
-            break;
-        case 'T':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-T\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            nTimeOut = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( nTimeOut < 0 ) 
-                goto usage;
-            break;
-        case 'p':
-            fUsePdr ^= 1;
-            break;
-        case 's':
-            fUseSat ^= 1;
-            break;
-        case 'b':
-            fUseBdd ^= 1;
-            break;
-        case 'v':
-            fVerbose ^= 1;
-            break;
-        case 'h':
-            goto usage;
-        default:
-            goto usage;
-        }
-    }
-    if ( pAbc->pGia == NULL )
-    {
-        Abc_Print( -1, "Abc_CommandAbc9GlaShrink(): There is no AIG.\n" );
-        return 1;
-    } 
-    if ( pAbc->pGia->vGateClasses == NULL )
-    {
-        Abc_Print( -1, "Abc_CommandAbc9GlaShrink(): There is no gate-level abstraction.\n" );
-        return 0;
-    }
-    Gia_ManShrinkGla( pAbc->pGia, nFrameMax, nTimeOut, fUsePdr, fUseSat, fUseBdd, fVerbose );
-    return 0;
-
-usage:
-    Abc_Print( -2, "usage: &gla_shrink [-FT num] [-psbvh]\n" );
-    Abc_Print( -2, "\t         shrinks the abstraction by removing redundant objects\n" );
-    Abc_Print( -2, "\t-F num : the maximum timeframe to check to [default = %d]\n", nFrameMax );
-    Abc_Print( -2, "\t-T num : the timeout per call, in seconds [default = %d]\n", nTimeOut );
-    Abc_Print( -2, "\t-p     : toggle using PDR for checking [default = %s]\n", fUsePdr? "yes": "no" );
-    Abc_Print( -2, "\t-s     : toggle using BMC for checking [default = %s]\n", fUseSat? "yes": "no" );
-    Abc_Print( -2, "\t-b     : toggle using BDDs for checking [default = %s]\n", fUseBdd? "yes": "no" );
-    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
-    Abc_Print( -2, "\t-h     : print the command usage\n");
-    return 1;
-} 
-
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Abc_CommandAbc9Gla( Abc_Frame_t * pAbc, int argc, char ** argv )
-{
-    Abs_Par_t Pars, * pPars = &Pars;
-    int c, fStartVta = 0, fNewAlgo = 1;
-    Abs_ParSetDefaults( pPars );
-    Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FSCLDETRPBAtrfkadmnscbpqwvh" ) ) != EOF )
-    {
-        switch ( c )
-        {
-        case 'F':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-F\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            pPars->nFramesMax = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( pPars->nFramesMax < 0 ) 
-                goto usage;
-            break;
-        case 'S':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-S\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            pPars->nFramesStart = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( pPars->nFramesStart < 0 ) 
-                goto usage;
-            break;
-        case 'C':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-C\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            pPars->nConfLimit = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( pPars->nConfLimit < 0 ) 
-                goto usage;
-            break;
-        case 'L':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-L\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            pPars->nLearnedStart = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( pPars->nLearnedStart < 0 ) 
-                goto usage;
-            break;
-        case 'D':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-D\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            pPars->nLearnedDelta = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( pPars->nLearnedDelta < 0 ) 
-                goto usage;
-            break;
-        case 'E':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-P\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            pPars->nLearnedPerce = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( pPars->nLearnedPerce < 0 ) 
-                goto usage;
-            break;
-        case 'T':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-T\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            pPars->nTimeOut = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( pPars->nTimeOut < 0 ) 
-                goto usage;
-            break;
-        case 'R':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-R\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            pPars->nRatioMin = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( pPars->nRatioMin < 0 ) 
-                goto usage;
-            break;
-        case 'P':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-P\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            pPars->nRatioMax = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( pPars->nRatioMax < 0 ) 
-                goto usage;
-            break;
-        case 'B':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-B\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            pPars->nFramesNoChangeLim = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( pPars->nFramesNoChangeLim < 0 ) 
-                goto usage;
-            break;
-        case 'A':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-A\" should be followed by a file name.\n" );
-                goto usage;
-            }
-            pPars->pFileVabs = argv[globalUtilOptind];
-            globalUtilOptind++;
-            break;
-        case 't':
-            pPars->fUseTermVars ^= 1;
-            break;
-        case 'r':
-            pPars->fUseRollback ^= 1;
-            break;
-        case 'f':
-            pPars->fPropFanout ^= 1;
-            break;
-        case 'k':
-            fStartVta ^= 1;
-            break;
-        case 'a':
-            pPars->fAddLayer ^= 1;
-            break;
-        case 'd':
-            pPars->fDumpVabs ^= 1;
-            break;
-        case 'm':
-            pPars->fDumpMabs ^= 1;
-            break;
-        case 'n':
-            fNewAlgo ^= 1;
-            break;
-        case 's':
-            pPars->fUseSkip ^= 1;
-            break;
-        case 'c':
-            pPars->fUseSimple ^= 1;
-            break;
-        case 'b':
-            pPars->fSkipHash ^= 1;
-            break;
-        case 'p':
-            pPars->fUseFullProof ^= 1;
-            break;
-        case 'q':
-            pPars->fCallProver ^= 1;
-            break;
-        case 'v':
-            pPars->fVerbose ^= 1;
-            break;
-        case 'w':
-            pPars->fVeryVerbose ^= 1;
-            break;
-        case 'h':
-            goto usage;
-        default:
-            goto usage;
-        }
-    }
-    if ( pAbc->pGia == NULL )
-    {
-        Abc_Print( -1, "There is no AIG.\n" );
-        return 0;
-    }
-/*    
-    if ( Gia_ManRegNum(pAbc->pGia) == 0 )
-    {
-        Abc_Print( -1, "The network is combinational.\n" );
-        return 0;
-    }
-*/
-    if ( Gia_ManPoNum(pAbc->pGia) > 1 )
-    {
-        Abc_Print( 1, "The network is more than one PO (run \"orpos\").\n" );
-        return 0;
-    }
-    if ( pPars->nFramesMax < 0 )
-    {
-        Abc_Print( 1, "The number of starting frames should be a positive integer.\n" );
-        return 0;
-    }
-    if ( pPars->nFramesMax && pPars->nFramesStart > pPars->nFramesMax )
-    {
-        Abc_Print( 1, "The starting frame is larger than the max number of frames.\n" );
-        return 0;
-    }
-    if ( fNewAlgo )
-        pAbc->Status = Gia_ManPerformGla( pAbc->pGia, pPars );
-    else
-        pAbc->Status  = Gia_ManPerformGlaOld( pAbc->pGia, pPars, fStartVta );
-    pAbc->nFrames = pPars->iFrame;
-    Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexSeq );
-    return 0;
-
-usage:
-    Abc_Print( -2, "usage: &gla [-FSCLDETRPB num] [-A file] [-fkadmnscbpqwvh]\n" );
-    Abc_Print( -2, "\t          fixed-time-frame gate-level proof- and cex-based abstraction\n" );
-    Abc_Print( -2, "\t-F num  : the max number of timeframes to unroll [default = %d]\n", pPars->nFramesMax );
-    Abc_Print( -2, "\t-S num  : the starting time frame (0=unused) [default = %d]\n", pPars->nFramesStart );
-    Abc_Print( -2, "\t-C num  : the max number of SAT solver conflicts (0=unused) [default = %d]\n", pPars->nConfLimit );
-    Abc_Print( -2, "\t-L num  : the max number of learned clauses to keep (0=unused) [default = %d]\n", pPars->nLearnedStart );
-    Abc_Print( -2, "\t-D num  : delta value for learned clause removal [default = %d]\n", pPars->nLearnedDelta );
-    Abc_Print( -2, "\t-E num  : ratio percentage for learned clause removal [default = %d]\n", pPars->nLearnedPerce );
-    Abc_Print( -2, "\t-T num  : an approximate timeout, in seconds [default = %d]\n", pPars->nTimeOut );
-    Abc_Print( -2, "\t-R num  : minimum percentage of abstracted objects (0<=num<=100) [default = %d]\n", pPars->nRatioMin );
-    Abc_Print( -2, "\t-P num  : maximum percentage of added objects before a restart (0<=num<=100) [default = %d]\n", pPars->nRatioMax );
-    Abc_Print( -2, "\t-B num  : the number of stable frames to dump abstraction or call prover (0<=num<=100) [default = %d]\n", pPars->nFramesNoChangeLim );
-    Abc_Print( -2, "\t-A file : file name for dumping abstrated model [default = \"glabs.aig\"]\n" );
-    Abc_Print( -2, "\t-f      : toggle propagating fanout implications [default = %s]\n", pPars->fPropFanout? "yes": "no" );
-    Abc_Print( -2, "\t-k      : toggle using VTA to kick start GLA for starting frames [default = %s]\n", fStartVta? "yes": "no" );
-    Abc_Print( -2, "\t-a      : toggle refinement by adding one layers of gates [default = %s]\n", pPars->fAddLayer? "yes": "no" );
-    Abc_Print( -2, "\t-d      : toggle dumping abstracted model into a file [default = %s]\n", pPars->fDumpVabs? "yes": "no" );
-    Abc_Print( -2, "\t-m      : toggle dumping abstraction map into a file [default = %s]\n", pPars->fDumpMabs? "yes": "no" );
-    Abc_Print( -2, "\t-n      : toggle using new algorithms [default = %s]\n", fNewAlgo? "yes": "no" );
-    Abc_Print( -2, "\t-s      : toggle skipping previously proved timeframes [default = %s]\n", pPars->fUseSkip? "yes": "no" );
-    Abc_Print( -2, "\t-c      : toggle using naive (2-input AND node) CNF encoding [default = %s]\n", pPars->fUseSimple? "yes": "no" );
-    Abc_Print( -2, "\t-b      : toggle CNF construction without hashing [default = %s]\n", pPars->fSkipHash? "yes": "no" );
-    Abc_Print( -2, "\t-p      : toggle using full-proof for UNSAT cores [default = %s]\n", pPars->fUseFullProof? "yes": "no" );
-    Abc_Print( -2, "\t-q      : toggle calling the prover [default = %s]\n", pPars->fCallProver? "yes": "no" );
-    Abc_Print( -2, "\t-v      : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
-    Abc_Print( -2, "\t-w      : toggle printing more verbose information [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
-    Abc_Print( -2, "\t-h      : print the command usage\n");
-    return 1;
-} 
-
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Abc_CommandAbc9Vta( Abc_Frame_t * pAbc, int argc, char ** argv )
-{
-    Abs_Par_t Pars, * pPars = &Pars;
-    int c;
-    Abs_ParSetDefaults( pPars );
-    Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FSPCLDETRAtradvh" ) ) != EOF )
-    {
-        switch ( c )
-        {
-        case 'F':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-F\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            pPars->nFramesMax = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( pPars->nFramesMax < 0 ) 
-                goto usage;
-            break;
-        case 'S':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-S\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            pPars->nFramesStart = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( pPars->nFramesStart < 0 ) 
-                goto usage;
-            break;
-        case 'P':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-P\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            pPars->nFramesPast = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( pPars->nFramesPast < 0 ) 
-                goto usage;
-            break;
-        case 'C':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-C\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            pPars->nConfLimit = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( pPars->nConfLimit < 0 ) 
-                goto usage;
-            break;
-        case 'L':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-L\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            pPars->nLearnedStart = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( pPars->nLearnedStart < 0 ) 
-                goto usage;
-            break;
-        case 'D':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-D\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            pPars->nLearnedDelta = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( pPars->nLearnedDelta < 0 ) 
-                goto usage;
-            break;
-        case 'E':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-E\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            pPars->nLearnedPerce = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( pPars->nLearnedPerce < 0 ) 
-                goto usage;
-            break;
-        case 'T':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-T\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            pPars->nTimeOut = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( pPars->nTimeOut < 0 ) 
-                goto usage;
-            break;
-        case 'R':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-R\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            pPars->nRatioMin = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( pPars->nRatioMin < 0 ) 
-                goto usage;
-            break;
-        case 'A':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-A\" should be followed by a file name.\n" );
-                goto usage;
-            }
-            pPars->pFileVabs = argv[globalUtilOptind];
-            globalUtilOptind++;
-            break;
-        case 't':
-            pPars->fUseTermVars ^= 1;
-            break;
-        case 'r':
-            pPars->fUseRollback ^= 1;
-            break;
-        case 'a':
-            pPars->fAddLayer ^= 1;
-            break;
-        case 'd':
-            pPars->fDumpVabs ^= 1;
-            break;
-        case 'v':
-            pPars->fVerbose ^= 1;
-            break;
-        case 'h':
-            goto usage;
-        default:
-            goto usage;
-        }
-    }
-    if ( pAbc->pGia == NULL )
-    {
-        Abc_Print( -1, "There is no AIG.\n" );
-        return 0;
-    } 
-    if ( Gia_ManRegNum(pAbc->pGia) == 0 )
-    {
-        Abc_Print( -1, "The network is combinational.\n" );
-        return 0;
-    }
-    if ( Gia_ManPoNum(pAbc->pGia) > 1 )
-    {
-        Abc_Print( 1, "The network is more than one PO (run \"orpos\").\n" );
-        return 0;
-    }
-    if ( pPars->nFramesMax < 0 )
-    {
-        Abc_Print( 1, "The number of starting frames should be a positive integer.\n" );
-        return 0;
-    }
-    if ( pPars->nFramesMax && pPars->nFramesStart > pPars->nFramesMax )
-    {
-        Abc_Print( 1, "The starting frame is larger than the max number of frames.\n" );
-        return 0;
-    }
-    pAbc->Status  = Gia_VtaPerform( pAbc->pGia, pPars );
-    pAbc->nFrames = pPars->iFrame;
-    Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexSeq );
-    return 0;
-
-usage:
-    Abc_Print( -2, "usage: &vta [-FSPCLDETR num] [-A file] [-tradvh]\n" );
-    Abc_Print( -2, "\t          variable-time-frame gate-level proof- and cex-based abstraction\n" );
-    Abc_Print( -2, "\t-F num  : the max number of timeframes to unroll [default = %d]\n", pPars->nFramesMax );
-    Abc_Print( -2, "\t-S num  : the starting time frame (0=unused) [default = %d]\n", pPars->nFramesStart );
-    Abc_Print( -2, "\t-P num  : the number of previous frames for UNSAT core [default = %d]\n", pPars->nFramesPast );
-    Abc_Print( -2, "\t-C num  : the max number of SAT solver conflicts (0=unused) [default = %d]\n", pPars->nConfLimit );
-    Abc_Print( -2, "\t-L num  : the max number of learned clauses to keep (0=unused) [default = %d]\n", pPars->nLearnedStart );
-    Abc_Print( -2, "\t-D num  : delta value for learned clause removal [default = %d]\n", pPars->nLearnedDelta );
-    Abc_Print( -2, "\t-E num  : ratio percentage for learned clause removal [default = %d]\n", pPars->nLearnedPerce );
-    Abc_Print( -2, "\t-T num  : an approximate timeout, in seconds [default = %d]\n", pPars->nTimeOut );
-    Abc_Print( -2, "\t-R num  : minimum percentage of abstracted objects (0<=num<=100) [default = %d]\n", pPars->nRatioMin );
-    Abc_Print( -2, "\t-A file : file name for dumping abstrated model [default = \"vabs.aig\"]\n" );
-    Abc_Print( -2, "\t-t      : toggle using terminal variables [default = %s]\n", pPars->fUseTermVars? "yes": "no" );
-    Abc_Print( -2, "\t-r      : toggle using rollback after the starting frames [default = %s]\n", pPars->fUseRollback? "yes": "no" );
-    Abc_Print( -2, "\t-a      : toggle refinement by adding one layers of gates [default = %s]\n", pPars->fAddLayer? "yes": "no" );
-    Abc_Print( -2, "\t-d      : toggle dumping abstracted model into a file [default = %s]\n", pPars->fDumpVabs? "yes": "no" );
-    Abc_Print( -2, "\t-v      : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
-    Abc_Print( -2, "\t-h      : print the command usage\n");
-    return 1;
-} 
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Abc_CommandAbc9Vta2Gla( Abc_Frame_t * pAbc, int argc, char ** argv )
-{
-    int c, fVerbose = 0;
-    Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
-    {
-        switch ( c )
-        {
-        case 'v':
-            fVerbose ^= 1;
-            break;
-        case 'h':
-            goto usage;
-        default:
-            goto usage;
-        }
-    }
-    if ( pAbc->pGia == NULL )
-    {
-        Abc_Print( -1, "Abc_CommandAbc9Vta2Gla(): There is no AIG.\n" );
-        return 0;
-    }
-    if ( pAbc->pGia->vObjClasses == NULL )
-    {
-        Abc_Print( -1, "Abc_CommandAbc9Vta2Gla(): There is no variable-time-frame abstraction is defined.\n" );
-        return 0;
-    }
-    Vec_IntFreeP( &pAbc->pGia->vGateClasses );
-    pAbc->pGia->vGateClasses = Gia_VtaConvertToGla( pAbc->pGia, pAbc->pGia->vObjClasses );
-    Vec_IntFreeP( &pAbc->pGia->vObjClasses );
-    return 0;
-
-usage:
-    Abc_Print( -2, "usage: &vta_gla [-vh]\n" );
-    Abc_Print( -2, "\t        maps variable- into fixed-time-frame gate-level abstraction\n" );
-    Abc_Print( -2, "\t-v    : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
-    Abc_Print( -2, "\t-h    : print the command usage\n");
-    return 1;
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Abc_CommandAbc9Gla2Vta( Abc_Frame_t * pAbc, int argc, char ** argv )
-{
-    int c, fVerbose = 0;
-    int nFrames = pAbc->nFrames;
-    Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Fvh" ) ) != EOF )
-    {
-        switch ( c )
-        {
-        case 'F':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-F\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            nFrames = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( nFrames < 0 ) 
-                goto usage;
-            break;
-        case 'v':
-            fVerbose ^= 1;
-            break;
-        case 'h':
-            goto usage;
-        default:
-            goto usage;
-        }
-    }
-    if ( pAbc->pGia == NULL )
-    {
-        Abc_Print( -1, "Abc_CommandAbc9Gla2Vta(): There is no AIG.\n" );
-        return 0;
-    }
-    if ( pAbc->pGia->vGateClasses == NULL )
-    {
-        Abc_Print( -1, "Abc_CommandAbc9Gla2Vta(): There is no gate-level abstraction is defined.\n" );
-        return 0;
-    }
-    if ( pAbc->nFrames < 1 )
-    {
-        Abc_Print( -1, "Abc_CommandAbc9Gla2Vta(): The number of timeframes (%d) should be a positive integer.\n", nFrames );
-        return 0;
-    }
-    Vec_IntFreeP( &pAbc->pGia->vObjClasses );
-    pAbc->pGia->vObjClasses = Gia_VtaConvertFromGla( pAbc->pGia, pAbc->pGia->vGateClasses, nFrames );
-    Vec_IntFreeP( &pAbc->pGia->vGateClasses );
-    return 0;
-
-usage:
-    Abc_Print( -2, "usage: &gla_vta [-F num] [-vh]\n" );
-    Abc_Print( -2, "\t          maps fixed- into variable-time-frame gate-level abstraction\n" );
-    Abc_Print( -2, "\t-F num  : timeframes in the resulting variable-time-frame abstraction [default = %d]\n", nFrames );
-    Abc_Print( -2, "\t-v      : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
-    Abc_Print( -2, "\t-h      : print the command usage\n");
-    return 1;
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Abc_CommandAbc9Fla2Gla( Abc_Frame_t * pAbc, int argc, char ** argv )
-{
-    int c, fVerbose = 0;
-    Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
-    {
-        switch ( c )
-        {
-        case 'v':
-            fVerbose ^= 1;
-            break;
-        case 'h':
-            goto usage;
-        default:
-            goto usage;
-        }
-    }
-    if ( pAbc->pGia == NULL )
-    {
-        Abc_Print( -1, "Abc_CommandAbc9Fla2Gla(): There is no AIG.\n" );
-        return 0;
-    }
-    if ( pAbc->pGia->vFlopClasses == NULL )
-    {
-        Abc_Print( -1, "Abc_CommandAbc9Fla2Gla(): There is no gate-level abstraction is defined.\n" );
-        return 0;
-    }
-    Vec_IntFreeP( &pAbc->pGia->vGateClasses );
-    pAbc->pGia->vGateClasses = Gia_FlaConvertToGla( pAbc->pGia, pAbc->pGia->vFlopClasses );
-    Vec_IntFreeP( &pAbc->pGia->vFlopClasses );
-    return 0;
-
-usage:
-    Abc_Print( -2, "usage: &fla_gla [-vh]\n" );
-    Abc_Print( -2, "\t          maps flop-level into gate-level abstraction\n" );
-    Abc_Print( -2, "\t-v      : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
-    Abc_Print( -2, "\t-h      : print the command usage\n");
-    return 1;
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Abc_CommandAbc9Gla2Fla( Abc_Frame_t * pAbc, int argc, char ** argv )
-{
-    int c, fVerbose = 0;
-    Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
-    {
-        switch ( c )
-        {
-        case 'v':
-            fVerbose ^= 1;
-            break;
-        case 'h':
-            goto usage;
-        default:
-            goto usage;
-        }
-    }
-    if ( pAbc->pGia == NULL )
-    {
-        Abc_Print( -1, "Abc_CommandAbc9Gla2Fla(): There is no AIG.\n" );
-        return 0;
-    }
-    if ( pAbc->pGia->vGateClasses == NULL )
-    {
-        Abc_Print( -1, "Abc_CommandAbc9Gla2Fla(): There is no gate-level abstraction is defined.\n" );
-        return 0;
-    }
-    Vec_IntFreeP( &pAbc->pGia->vFlopClasses );
-    pAbc->pGia->vFlopClasses = Gia_GlaConvertToFla( pAbc->pGia, pAbc->pGia->vGateClasses );
-    Vec_IntFreeP( &pAbc->pGia->vGateClasses );
-    return 0;
-
-usage:
-    Abc_Print( -2, "usage: &gla_fla [-vh]\n" );
-    Abc_Print( -2, "\t          maps gate-level into flop-level abstraction\n" );
-    Abc_Print( -2, "\t-v      : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
-    Abc_Print( -2, "\t-h      : print the command usage\n");
-    return 1;
-}
 
 /**Function*************************************************************
 
@@ -29561,6 +27750,1067 @@ usage:
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 } 
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9AbsDerive( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Gia_Man_t * pTemp = NULL;
+    int c, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9AbsDerive(): There is no AIG.\n" );
+        return 1;
+    } 
+    if ( Gia_ManRegNum(pAbc->pGia) == 0 )
+    {
+        Abc_Print( -1, "The network is combinational.\n" );
+        return 0;
+    }
+    if ( pAbc->pGia->vFlopClasses == NULL )
+    {
+        Abc_Print( -1, "Abstraction flop map is missing.\n" );
+        return 0;
+    }
+    pTemp = Gia_ManDupAbsFlops( pAbc->pGia, pAbc->pGia->vFlopClasses );
+    Abc_CommandUpdate9( pAbc, pTemp );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &abs_derive [-vh]\n" );
+    Abc_Print( -2, "\t        derives abstracted model using the pre-computed flop map\n" );
+    Abc_Print( -2, "\t-v    : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9AbsRefine( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+//    Gia_Man_t * pTemp = NULL;
+    int c;
+    int nFfToAddMax = 0;
+    int fTryFour    = 1;
+    int fSensePath  = 0;
+    int fVerbose    = 0;
+
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Mtsvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'M':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-M\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nFfToAddMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nFfToAddMax < 0 ) 
+                goto usage;
+            break;
+        case 't':
+            fTryFour ^= 1;
+            break;
+        case 's':
+            fSensePath ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9AbsRefine(): There is no AIG.\n" );
+        return 1;
+    } 
+    if ( Gia_ManRegNum(pAbc->pGia) == 0 )
+    {
+        Abc_Print( -1, "The network is combinational.\n" );
+        return 0;
+    }
+    if ( pAbc->pCex == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9AbsRefine(): There is no counter-example.\n" );
+        return 1;
+    } 
+    pAbc->Status = Gia_ManCexAbstractionRefine( pAbc->pGia, pAbc->pCex, nFfToAddMax, fTryFour, fSensePath, fVerbose );
+    Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexSeq );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &abs_refine [-M <num>] [-tsvh]\n" );
+    Abc_Print( -2, "\t         refines the pre-computed flop map using the counter-example\n" );
+    Abc_Print( -2, "\t-M num : the max number of flops to add (0 = not used) [default = %d]\n", nFfToAddMax );
+    Abc_Print( -2, "\t-t     : toggle trying four abstractions instead of one [default = %s]\n", fTryFour? "yes": "no" );
+    Abc_Print( -2, "\t-s     : toggle using the path sensitization algorithm [default = %s]\n", fSensePath? "yes": "no" );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+} 
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9GlaDerive( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Gia_Man_t * pTemp = NULL;
+    int c, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9GlaDerive(): There is no AIG.\n" );
+        return 1;
+    } 
+/*
+    if ( Gia_ManRegNum(pAbc->pGia) == 0 )
+    {
+        Abc_Print( -1, "The network is combinational.\n" );
+        return 0;
+    }
+*/
+    if ( pAbc->pGia->vGateClasses == NULL )
+    {
+        Abc_Print( -1, "Abstraction gate map is missing.\n" );
+        return 0;
+    }
+    pTemp = Gia_ManDupAbsGates( pAbc->pGia, pAbc->pGia->vGateClasses );
+    Gia_ManStop( pTemp );
+    pTemp = Gia_ManDupAbsGates( pAbc->pGia, pAbc->pGia->vGateClasses );
+    Abc_CommandUpdate9( pAbc, pTemp );
+//    printf( "This command is currently not enabled.\n" );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &gla_derive [-vh]\n" );
+    Abc_Print( -2, "\t        derives abstracted model using the pre-computed gate map\n" );
+    Abc_Print( -2, "\t-v    : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9GlaRefine( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern int Gia_ManNewRefine( Gia_Man_t * p, Abc_Cex_t * pCex, int iFrameStart, int iFrameExtra, int fVerbose );
+    int iFrameStart = 0;
+    int iFrameExtra = 0;
+    int fMinCut = 1;
+    int c, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FGmvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'F':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-F\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            iFrameStart = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( iFrameStart < 0 ) 
+                goto usage;
+            break;
+        case 'G':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-G\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            iFrameExtra = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( iFrameExtra < 0 ) 
+                goto usage;
+            break;
+        case 'm':
+            fMinCut ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9GlaRefine(): There is no AIG.\n" );
+        return 1;
+    } 
+    if ( Gia_ManRegNum(pAbc->pGia) == 0 )
+    {
+        Abc_Print( -1, "The network is combinational.\n" );
+        return 0;
+    }
+    if ( pAbc->pCex == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9GlaRefine(): There is no counter-example.\n" );
+        return 1;
+    } 
+    pAbc->Status = Gia_ManNewRefine( pAbc->pGia, pAbc->pCex, iFrameStart, iFrameExtra, fVerbose );
+    Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexSeq );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &gla_refine [-FG num] [-vh]\n" );
+    Abc_Print( -2, "\t         refines the pre-computed gate map using the counter-example\n" );
+    Abc_Print( -2, "\t-F num : starting timeframe for suffix refinement [default = %d]\n", iFrameStart );
+    Abc_Print( -2, "\t-G num : the number of additional timeframes to try [default = %d]\n", iFrameExtra );
+//    Abc_Print( -2, "\t-m     : toggle using min-cut to derive the refinements [default = %s]\n", fMinCut? "yes": "no" );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+} 
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9GlaShrink( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    int fUsePdr = 0;
+    int fUseSat = 1;
+    int fUseBdd = 0;
+    int nFrameMax = 0;
+    int nTimeOut = 0;
+    int c, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FTpsbvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'F':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-F\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nFrameMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nFrameMax < 0 ) 
+                goto usage;
+            break;
+        case 'T':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-T\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nTimeOut = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nTimeOut < 0 ) 
+                goto usage;
+            break;
+        case 'p':
+            fUsePdr ^= 1;
+            break;
+        case 's':
+            fUseSat ^= 1;
+            break;
+        case 'b':
+            fUseBdd ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9GlaShrink(): There is no AIG.\n" );
+        return 1;
+    } 
+    if ( pAbc->pGia->vGateClasses == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9GlaShrink(): There is no gate-level abstraction.\n" );
+        return 0;
+    }
+    Gia_ManShrinkGla( pAbc->pGia, nFrameMax, nTimeOut, fUsePdr, fUseSat, fUseBdd, fVerbose );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &gla_shrink [-FT num] [-psbvh]\n" );
+    Abc_Print( -2, "\t         shrinks the abstraction by removing redundant objects\n" );
+    Abc_Print( -2, "\t-F num : the maximum timeframe to check to [default = %d]\n", nFrameMax );
+    Abc_Print( -2, "\t-T num : the timeout per call, in seconds [default = %d]\n", nTimeOut );
+    Abc_Print( -2, "\t-p     : toggle using PDR for checking [default = %s]\n", fUsePdr? "yes": "no" );
+    Abc_Print( -2, "\t-s     : toggle using BMC for checking [default = %s]\n", fUseSat? "yes": "no" );
+    Abc_Print( -2, "\t-b     : toggle using BDDs for checking [default = %s]\n", fUseBdd? "yes": "no" );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+} 
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Gla( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Abs_Par_t Pars, * pPars = &Pars;
+    int c, fStartVta = 0, fNewAlgo = 1;
+    Abs_ParSetDefaults( pPars );
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FSCLDETRPBAtrfkadmnscbpqwvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'F':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-F\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nFramesMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nFramesMax < 0 ) 
+                goto usage;
+            break;
+        case 'S':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-S\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nFramesStart = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nFramesStart < 0 ) 
+                goto usage;
+            break;
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-C\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nConfLimit = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nConfLimit < 0 ) 
+                goto usage;
+            break;
+        case 'L':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-L\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nLearnedStart = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nLearnedStart < 0 ) 
+                goto usage;
+            break;
+        case 'D':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-D\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nLearnedDelta = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nLearnedDelta < 0 ) 
+                goto usage;
+            break;
+        case 'E':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-P\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nLearnedPerce = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nLearnedPerce < 0 ) 
+                goto usage;
+            break;
+        case 'T':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-T\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nTimeOut = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nTimeOut < 0 ) 
+                goto usage;
+            break;
+        case 'R':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-R\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nRatioMin = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nRatioMin < 0 ) 
+                goto usage;
+            break;
+        case 'P':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-P\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nRatioMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nRatioMax < 0 ) 
+                goto usage;
+            break;
+        case 'B':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-B\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nFramesNoChangeLim = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nFramesNoChangeLim < 0 ) 
+                goto usage;
+            break;
+        case 'A':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-A\" should be followed by a file name.\n" );
+                goto usage;
+            }
+            pPars->pFileVabs = argv[globalUtilOptind];
+            globalUtilOptind++;
+            break;
+        case 't':
+            pPars->fUseTermVars ^= 1;
+            break;
+        case 'r':
+            pPars->fUseRollback ^= 1;
+            break;
+        case 'f':
+            pPars->fPropFanout ^= 1;
+            break;
+        case 'k':
+            fStartVta ^= 1;
+            break;
+        case 'a':
+            pPars->fAddLayer ^= 1;
+            break;
+        case 'd':
+            pPars->fDumpVabs ^= 1;
+            break;
+        case 'm':
+            pPars->fDumpMabs ^= 1;
+            break;
+        case 'n':
+            fNewAlgo ^= 1;
+            break;
+        case 's':
+            pPars->fUseSkip ^= 1;
+            break;
+        case 'c':
+            pPars->fUseSimple ^= 1;
+            break;
+        case 'b':
+            pPars->fSkipHash ^= 1;
+            break;
+        case 'p':
+            pPars->fUseFullProof ^= 1;
+            break;
+        case 'q':
+            pPars->fCallProver ^= 1;
+            break;
+        case 'v':
+            pPars->fVerbose ^= 1;
+            break;
+        case 'w':
+            pPars->fVeryVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "There is no AIG.\n" );
+        return 0;
+    }
+/*    
+    if ( Gia_ManRegNum(pAbc->pGia) == 0 )
+    {
+        Abc_Print( -1, "The network is combinational.\n" );
+        return 0;
+    }
+*/
+    if ( Gia_ManPoNum(pAbc->pGia) > 1 )
+    {
+        Abc_Print( 1, "The network is more than one PO (run \"orpos\").\n" );
+        return 0;
+    }
+    if ( pPars->nFramesMax < 0 )
+    {
+        Abc_Print( 1, "The number of starting frames should be a positive integer.\n" );
+        return 0;
+    }
+    if ( pPars->nFramesMax && pPars->nFramesStart > pPars->nFramesMax )
+    {
+        Abc_Print( 1, "The starting frame is larger than the max number of frames.\n" );
+        return 0;
+    }
+    if ( fNewAlgo )
+        pAbc->Status = Gia_ManPerformGla( pAbc->pGia, pPars );
+    else
+        pAbc->Status  = Gia_ManPerformGlaOld( pAbc->pGia, pPars, fStartVta );
+    pAbc->nFrames = pPars->iFrame;
+    Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexSeq );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &gla [-FSCLDETRPB num] [-A file] [-fkadmnscbpqwvh]\n" );
+    Abc_Print( -2, "\t          fixed-time-frame gate-level proof- and cex-based abstraction\n" );
+    Abc_Print( -2, "\t-F num  : the max number of timeframes to unroll [default = %d]\n", pPars->nFramesMax );
+    Abc_Print( -2, "\t-S num  : the starting time frame (0=unused) [default = %d]\n", pPars->nFramesStart );
+    Abc_Print( -2, "\t-C num  : the max number of SAT solver conflicts (0=unused) [default = %d]\n", pPars->nConfLimit );
+    Abc_Print( -2, "\t-L num  : the max number of learned clauses to keep (0=unused) [default = %d]\n", pPars->nLearnedStart );
+    Abc_Print( -2, "\t-D num  : delta value for learned clause removal [default = %d]\n", pPars->nLearnedDelta );
+    Abc_Print( -2, "\t-E num  : ratio percentage for learned clause removal [default = %d]\n", pPars->nLearnedPerce );
+    Abc_Print( -2, "\t-T num  : an approximate timeout, in seconds [default = %d]\n", pPars->nTimeOut );
+    Abc_Print( -2, "\t-R num  : minimum percentage of abstracted objects (0<=num<=100) [default = %d]\n", pPars->nRatioMin );
+    Abc_Print( -2, "\t-P num  : maximum percentage of added objects before a restart (0<=num<=100) [default = %d]\n", pPars->nRatioMax );
+    Abc_Print( -2, "\t-B num  : the number of stable frames to dump abstraction or call prover (0<=num<=100) [default = %d]\n", pPars->nFramesNoChangeLim );
+    Abc_Print( -2, "\t-A file : file name for dumping abstrated model [default = \"glabs.aig\"]\n" );
+    Abc_Print( -2, "\t-f      : toggle propagating fanout implications [default = %s]\n", pPars->fPropFanout? "yes": "no" );
+    Abc_Print( -2, "\t-k      : toggle using VTA to kick start GLA for starting frames [default = %s]\n", fStartVta? "yes": "no" );
+    Abc_Print( -2, "\t-a      : toggle refinement by adding one layers of gates [default = %s]\n", pPars->fAddLayer? "yes": "no" );
+    Abc_Print( -2, "\t-d      : toggle dumping abstracted model into a file [default = %s]\n", pPars->fDumpVabs? "yes": "no" );
+    Abc_Print( -2, "\t-m      : toggle dumping abstraction map into a file [default = %s]\n", pPars->fDumpMabs? "yes": "no" );
+    Abc_Print( -2, "\t-n      : toggle using new algorithms [default = %s]\n", fNewAlgo? "yes": "no" );
+    Abc_Print( -2, "\t-s      : toggle skipping previously proved timeframes [default = %s]\n", pPars->fUseSkip? "yes": "no" );
+    Abc_Print( -2, "\t-c      : toggle using naive (2-input AND node) CNF encoding [default = %s]\n", pPars->fUseSimple? "yes": "no" );
+    Abc_Print( -2, "\t-b      : toggle CNF construction without hashing [default = %s]\n", pPars->fSkipHash? "yes": "no" );
+    Abc_Print( -2, "\t-p      : toggle using full-proof for UNSAT cores [default = %s]\n", pPars->fUseFullProof? "yes": "no" );
+    Abc_Print( -2, "\t-q      : toggle calling the prover [default = %s]\n", pPars->fCallProver? "yes": "no" );
+    Abc_Print( -2, "\t-v      : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-w      : toggle printing more verbose information [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h      : print the command usage\n");
+    return 1;
+} 
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Vta( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Abs_Par_t Pars, * pPars = &Pars;
+    int c;
+    Abs_ParSetDefaults( pPars );
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FSPCLDETRAtradvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'F':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-F\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nFramesMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nFramesMax < 0 ) 
+                goto usage;
+            break;
+        case 'S':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-S\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nFramesStart = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nFramesStart < 0 ) 
+                goto usage;
+            break;
+        case 'P':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-P\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nFramesPast = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nFramesPast < 0 ) 
+                goto usage;
+            break;
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-C\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nConfLimit = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nConfLimit < 0 ) 
+                goto usage;
+            break;
+        case 'L':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-L\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nLearnedStart = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nLearnedStart < 0 ) 
+                goto usage;
+            break;
+        case 'D':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-D\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nLearnedDelta = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nLearnedDelta < 0 ) 
+                goto usage;
+            break;
+        case 'E':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-E\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nLearnedPerce = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nLearnedPerce < 0 ) 
+                goto usage;
+            break;
+        case 'T':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-T\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nTimeOut = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nTimeOut < 0 ) 
+                goto usage;
+            break;
+        case 'R':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-R\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nRatioMin = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nRatioMin < 0 ) 
+                goto usage;
+            break;
+        case 'A':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-A\" should be followed by a file name.\n" );
+                goto usage;
+            }
+            pPars->pFileVabs = argv[globalUtilOptind];
+            globalUtilOptind++;
+            break;
+        case 't':
+            pPars->fUseTermVars ^= 1;
+            break;
+        case 'r':
+            pPars->fUseRollback ^= 1;
+            break;
+        case 'a':
+            pPars->fAddLayer ^= 1;
+            break;
+        case 'd':
+            pPars->fDumpVabs ^= 1;
+            break;
+        case 'v':
+            pPars->fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "There is no AIG.\n" );
+        return 0;
+    } 
+    if ( Gia_ManRegNum(pAbc->pGia) == 0 )
+    {
+        Abc_Print( -1, "The network is combinational.\n" );
+        return 0;
+    }
+    if ( Gia_ManPoNum(pAbc->pGia) > 1 )
+    {
+        Abc_Print( 1, "The network is more than one PO (run \"orpos\").\n" );
+        return 0;
+    }
+    if ( pPars->nFramesMax < 0 )
+    {
+        Abc_Print( 1, "The number of starting frames should be a positive integer.\n" );
+        return 0;
+    }
+    if ( pPars->nFramesMax && pPars->nFramesStart > pPars->nFramesMax )
+    {
+        Abc_Print( 1, "The starting frame is larger than the max number of frames.\n" );
+        return 0;
+    }
+    pAbc->Status  = Gia_VtaPerform( pAbc->pGia, pPars );
+    pAbc->nFrames = pPars->iFrame;
+    Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexSeq );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &vta [-FSPCLDETR num] [-A file] [-tradvh]\n" );
+    Abc_Print( -2, "\t          variable-time-frame gate-level proof- and cex-based abstraction\n" );
+    Abc_Print( -2, "\t-F num  : the max number of timeframes to unroll [default = %d]\n", pPars->nFramesMax );
+    Abc_Print( -2, "\t-S num  : the starting time frame (0=unused) [default = %d]\n", pPars->nFramesStart );
+    Abc_Print( -2, "\t-P num  : the number of previous frames for UNSAT core [default = %d]\n", pPars->nFramesPast );
+    Abc_Print( -2, "\t-C num  : the max number of SAT solver conflicts (0=unused) [default = %d]\n", pPars->nConfLimit );
+    Abc_Print( -2, "\t-L num  : the max number of learned clauses to keep (0=unused) [default = %d]\n", pPars->nLearnedStart );
+    Abc_Print( -2, "\t-D num  : delta value for learned clause removal [default = %d]\n", pPars->nLearnedDelta );
+    Abc_Print( -2, "\t-E num  : ratio percentage for learned clause removal [default = %d]\n", pPars->nLearnedPerce );
+    Abc_Print( -2, "\t-T num  : an approximate timeout, in seconds [default = %d]\n", pPars->nTimeOut );
+    Abc_Print( -2, "\t-R num  : minimum percentage of abstracted objects (0<=num<=100) [default = %d]\n", pPars->nRatioMin );
+    Abc_Print( -2, "\t-A file : file name for dumping abstrated model [default = \"vabs.aig\"]\n" );
+    Abc_Print( -2, "\t-t      : toggle using terminal variables [default = %s]\n", pPars->fUseTermVars? "yes": "no" );
+    Abc_Print( -2, "\t-r      : toggle using rollback after the starting frames [default = %s]\n", pPars->fUseRollback? "yes": "no" );
+    Abc_Print( -2, "\t-a      : toggle refinement by adding one layers of gates [default = %s]\n", pPars->fAddLayer? "yes": "no" );
+    Abc_Print( -2, "\t-d      : toggle dumping abstracted model into a file [default = %s]\n", pPars->fDumpVabs? "yes": "no" );
+    Abc_Print( -2, "\t-v      : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h      : print the command usage\n");
+    return 1;
+} 
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Vta2Gla( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    int c, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Vta2Gla(): There is no AIG.\n" );
+        return 0;
+    }
+    if ( pAbc->pGia->vObjClasses == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Vta2Gla(): There is no variable-time-frame abstraction is defined.\n" );
+        return 0;
+    }
+    Vec_IntFreeP( &pAbc->pGia->vGateClasses );
+    pAbc->pGia->vGateClasses = Gia_VtaConvertToGla( pAbc->pGia, pAbc->pGia->vObjClasses );
+    Vec_IntFreeP( &pAbc->pGia->vObjClasses );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &vta_gla [-vh]\n" );
+    Abc_Print( -2, "\t        maps variable- into fixed-time-frame gate-level abstraction\n" );
+    Abc_Print( -2, "\t-v    : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Gla2Vta( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    int c, fVerbose = 0;
+    int nFrames = pAbc->nFrames;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Fvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'F':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-F\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nFrames = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nFrames < 0 ) 
+                goto usage;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Gla2Vta(): There is no AIG.\n" );
+        return 0;
+    }
+    if ( pAbc->pGia->vGateClasses == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Gla2Vta(): There is no gate-level abstraction is defined.\n" );
+        return 0;
+    }
+    if ( pAbc->nFrames < 1 )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Gla2Vta(): The number of timeframes (%d) should be a positive integer.\n", nFrames );
+        return 0;
+    }
+    Vec_IntFreeP( &pAbc->pGia->vObjClasses );
+    pAbc->pGia->vObjClasses = Gia_VtaConvertFromGla( pAbc->pGia, pAbc->pGia->vGateClasses, nFrames );
+    Vec_IntFreeP( &pAbc->pGia->vGateClasses );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &gla_vta [-F num] [-vh]\n" );
+    Abc_Print( -2, "\t          maps fixed- into variable-time-frame gate-level abstraction\n" );
+    Abc_Print( -2, "\t-F num  : timeframes in the resulting variable-time-frame abstraction [default = %d]\n", nFrames );
+    Abc_Print( -2, "\t-v      : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h      : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Fla2Gla( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    int c, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Fla2Gla(): There is no AIG.\n" );
+        return 0;
+    }
+    if ( pAbc->pGia->vFlopClasses == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Fla2Gla(): There is no gate-level abstraction is defined.\n" );
+        return 0;
+    }
+    Vec_IntFreeP( &pAbc->pGia->vGateClasses );
+    pAbc->pGia->vGateClasses = Gia_FlaConvertToGla( pAbc->pGia, pAbc->pGia->vFlopClasses );
+    Vec_IntFreeP( &pAbc->pGia->vFlopClasses );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &fla_gla [-vh]\n" );
+    Abc_Print( -2, "\t          maps flop-level into gate-level abstraction\n" );
+    Abc_Print( -2, "\t-v      : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h      : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Gla2Fla( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    int c, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Gla2Fla(): There is no AIG.\n" );
+        return 0;
+    }
+    if ( pAbc->pGia->vGateClasses == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Gla2Fla(): There is no gate-level abstraction is defined.\n" );
+        return 0;
+    }
+    Vec_IntFreeP( &pAbc->pGia->vFlopClasses );
+    pAbc->pGia->vFlopClasses = Gia_GlaConvertToFla( pAbc->pGia, pAbc->pGia->vGateClasses );
+    Vec_IntFreeP( &pAbc->pGia->vGateClasses );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &gla_fla [-vh]\n" );
+    Abc_Print( -2, "\t          maps gate-level into flop-level abstraction\n" );
+    Abc_Print( -2, "\t-v      : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h      : print the command usage\n");
+    return 1;
+}
+
 
 /**Function*************************************************************
 
