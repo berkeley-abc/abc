@@ -73,79 +73,19 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-typedef struct Rnm_Obj_t_ Rnm_Obj_t; // refinement object
-struct Rnm_Obj_t_
-{
-    unsigned       Value     :  1;  // binary value
-    unsigned       fVisit    :  1;  // visited object
-    unsigned       fVisit0   :  1;  // visited object
-    unsigned       fPPi      :  1;  // PPI object
-    unsigned       Prio      : 24;  // priority (0 - highest)
-};
-
-struct Rnm_Man_t_
-{
-    // user data
-    Gia_Man_t *    pGia;            // working AIG manager (it is completely owned by this package)
-    Abc_Cex_t *    pCex;            // counter-example
-    Vec_Int_t *    vMap;            // mapping of CEX inputs into objects (PI + PPI, in any order)
-    int            fPropFanout;     // propagate fanouts
-    int            fVerbose;        // verbose flag
-    // traversing data
-    Vec_Int_t *    vObjs;           // internal objects used in value propagation
-    Vec_Str_t *    vCounts;         // fanin counters
-    Vec_Int_t *    vFanins;         // fanins
-    // SAT solver
-    sat_solver2 *  pSat;            // incremental SAT solver
-    Vec_Int_t *    vSatVars;        // SAT variables
-    Vec_Int_t *    vSat2Ids;        // mapping of SAT variables into object IDs
-    Vec_Int_t *    vIsopMem;        // memory for ISOP computation
-    // internal data
-    Rnm_Obj_t *    pObjs;           // refinement objects
-    int            nObjs;           // the number of used objects
-    int            nObjsAlloc;      // the number of allocated objects
-    int            nObjsFrame;      // the number of used objects in each frame
-    int            nCalls;          // total number of calls
-    int            nRefines;        // total refined objects
-    int            nVisited;        // visited during justification
-    // statistics  
-    clock_t        timeFwd;         // forward propagation
-    clock_t        timeBwd;         // backward propagation
-    clock_t        timeVer;         // ternary simulation
-    clock_t        timeTotal;       // other time
-};
-
-// accessing the refinement object
-static inline Rnm_Obj_t * Rnm_ManObj( Rnm_Man_t * p, Gia_Obj_t * pObj, int f )  
-{ 
-    assert( Gia_ObjIsConst0(pObj) || pObj->Value );
-    assert( (int)pObj->Value < p->nObjsFrame );
-    assert( f >= 0 && f <= p->pCex->iFrame ); 
-    return p->pObjs + f * p->nObjsFrame + pObj->Value;  
-}
-
-static inline int         Ga2_ObjOffset( Gia_Man_t * p, Gia_Obj_t * pObj )          { return Vec_IntEntry(p->vMapping, Gia_ObjId(p, pObj));                                                         }
-static inline int         Ga2_ObjLeaveNum( Gia_Man_t * p, Gia_Obj_t * pObj )        { return Vec_IntEntry(p->vMapping, Ga2_ObjOffset(p, pObj));                                                     }
-static inline int *       Ga2_ObjLeavePtr( Gia_Man_t * p, Gia_Obj_t * pObj )        { return Vec_IntEntryP(p->vMapping, Ga2_ObjOffset(p, pObj) + 1);                                                }
-static inline unsigned    Ga2_ObjTruth( Gia_Man_t * p, Gia_Obj_t * pObj )           { return (unsigned)Vec_IntEntry(p->vMapping, Ga2_ObjOffset(p, pObj) + Ga2_ObjLeaveNum(p, pObj) + 1);            }
-static inline int         Ga2_ObjRefNum( Gia_Man_t * p, Gia_Obj_t * pObj )          { return (unsigned)Vec_IntEntry(p->vMapping, Ga2_ObjOffset(p, pObj) + Ga2_ObjLeaveNum(p, pObj) + 2);            }
-static inline Vec_Int_t * Ga2_ObjLeaves( Gia_Man_t * p, Gia_Obj_t * pObj )          { static Vec_Int_t v; v.nSize = Ga2_ObjLeaveNum(p, pObj), v.pArray = Ga2_ObjLeavePtr(p, pObj); return &v;       }
-
-static inline int         Rnm_ObjCount( Rnm_Man_t * p, Gia_Obj_t * pObj )           { return Vec_StrEntry( p->vCounts, Gia_ObjId(p->pGia, pObj) );                                                  }
-static inline void        Rnm_ObjSetCount( Rnm_Man_t * p, Gia_Obj_t * pObj, int c ) { Vec_StrWriteEntry( p->vCounts, Gia_ObjId(p->pGia, pObj), (char)c );                                           }
-static inline int         Rnm_ObjAddToCount( Rnm_Man_t * p, Gia_Obj_t * pObj )      { int c = Rnm_ObjCount(p, pObj); if ( c < 16 )  Rnm_ObjSetCount(p, pObj, c+1); return c;                        }
-
+/*
 static inline int         Rnm_ObjSatVar( Rnm_Man_t * p, Gia_Obj_t * pObj )          { return Vec_IntEntry( p->vSatVars, Gia_ObjId(p->pGia, pObj) );                                                 }
 static inline void        Rnm_ObjSetSatVar( Rnm_Man_t * p, Gia_Obj_t * pObj, int c) { Vec_IntWriteEntry( p->vSatVars, Gia_ObjId(p->pGia, pObj), c );                                                }
 static inline int         Rnm_ObjFindOrAddSatVar( Rnm_Man_t * p, Gia_Obj_t * pObj)  { if ( Rnm_ObjSatVar(p, pObj) == 0 ) { Rnm_ObjSetSatVar(p, pObj, Vec_IntSize(p->vSat2Ids)); Vec_IntPush(p->vSat2Ids, Gia_ObjId(p->pGia, pObj)); }; return 2*Rnm_ObjSatVar(p, pObj); }
-
+*/
 extern void               Ga2_ManCnfAddStatic( sat_solver2 * pSat, Vec_Int_t * vCnf0, Vec_Int_t * vCnf1, int * pLits, int iLitOut, int ProofId );
-
 extern Vec_Int_t *        Ga2_ManCnfCompute( unsigned uTruth, int nVars, Vec_Int_t * vCover );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
+
+#if 0 
 
 /**Function*************************************************************
 
@@ -308,6 +248,7 @@ Vec_Int_t * Rnm_ManRefineUnsatCore( Rnm_Man_t * p, Vec_Int_t * vPPIs )
     return vCoreFinal;
 }
 
+#endif
 
 /**Function*************************************************************
 
@@ -329,9 +270,9 @@ Rnm_Man_t * Rnm_ManStart( Gia_Man_t * pGia )
     p->vObjs = Vec_IntAlloc( 100 );
     p->vCounts = Vec_StrStart( Gia_ManObjNum(pGia) );
     p->vFanins = Vec_IntAlloc( 1000 );
-    p->vSatVars = Vec_IntAlloc( 0 );
-    p->vSat2Ids = Vec_IntAlloc( 1000 );
-    p->vIsopMem  = Vec_IntAlloc( 0 );
+//    p->vSatVars = Vec_IntAlloc( 0 );
+//    p->vSat2Ids = Vec_IntAlloc( 1000 );
+//    p->vIsopMem  = Vec_IntAlloc( 0 );
     p->nObjsAlloc = 10000;
     p->pObjs = ABC_ALLOC( Rnm_Obj_t, p->nObjsAlloc );
     if ( p->pGia->vFanout == NULL )
@@ -364,9 +305,9 @@ void Rnm_ManStop( Rnm_Man_t * p, int fProfile )
     Gia_ManCleanMark1(p->pGia);
     Gia_ManStaticFanoutStop(p->pGia);
 //    Gia_ManSetPhase(p->pGia);
-    Vec_IntFree( p->vIsopMem );
-    Vec_IntFree( p->vSatVars );
-    Vec_IntFree( p->vSat2Ids );
+//    Vec_IntFree( p->vIsopMem );
+//    Vec_IntFree( p->vSatVars );
+//    Vec_IntFree( p->vSat2Ids );
     Vec_StrFree( p->vCounts );
     Vec_IntFree( p->vFanins );
     Vec_IntFree( p->vObjs );
@@ -533,9 +474,9 @@ void Rnm_ManJustifyPropFanout_rec( Rnm_Man_t * p, Gia_Obj_t * pObj, int f, Vec_I
     int i, k;//, Id = Gia_ObjId(p->pGia, pObj);
     assert( pRnm->fVisit == 0 );
     pRnm->fVisit = 1;
-    if ( Rnm_ManObj( p, pObj, 0 )->fVisit0 == 0 )
+    if ( Rnm_ManObj( p, pObj, 0 )->fVisitJ == 0 )
     {
-        Rnm_ManObj( p, pObj, 0 )->fVisit0 = 1;
+        Rnm_ManObj( p, pObj, 0 )->fVisitJ = 1;
         p->nVisited++;
     }
     if ( pRnm->fPPi )
@@ -591,9 +532,9 @@ void Rnm_ManJustify_rec( Rnm_Man_t * p, Gia_Obj_t * pObj, int f, Vec_Int_t * vSe
     else
     {
         pRnm->fVisit = 1;
-        if ( Rnm_ManObj( p, pObj, 0 )->fVisit0 == 0 )
+        if ( Rnm_ManObj( p, pObj, 0 )->fVisitJ == 0 )
         {
-            Rnm_ManObj( p, pObj, 0 )->fVisit0 = 1;
+            Rnm_ManObj( p, pObj, 0 )->fVisitJ = 1;
             p->nVisited++;
         }
     }
@@ -720,177 +661,6 @@ void Rnm_ManVerifyUsingTerSim( Gia_Man_t * p, Abc_Cex_t * pCex, Vec_Int_t * vMap
 
 /**Function*************************************************************
 
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Rnm_ManPrintSelected( Rnm_Man_t * p, Vec_Int_t * vSelected )
-{
-    Gia_Obj_t * pObj;
-    int i, Counter = 0;
-    Gia_ManForEachObjVec( p->vMap, p->pGia, pObj, i )
-    {
-        if ( !Gia_ObjIsPi(p->pGia, pObj) ) // this is PPI
-        {
-            if ( Vec_IntFind(vSelected, Gia_ObjId(p->pGia, pObj)) >= 0 )
-                printf( "1" ), Counter++;
-            else
-                printf( "0" );
-        }
-        else
-            printf( "-" );
-    }
-    printf( " %3d\n", Counter );
-}
-
-
-
-
-
-/**Function*************************************************************
-
-  Synopsis    [Perform structural analysis.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Ga2_StructAnalize( Gia_Man_t * p, Vec_Int_t * vFront, Vec_Int_t * vInter, Vec_Int_t * vSelect )
-{
-    Vec_Int_t * vLeaves;
-    Gia_Obj_t * pObj, * pFanin;
-    int i, k;
-    // clean labels
-    Gia_ManForEachObj( p, pObj, i )
-        pObj->fMark0 = pObj->fMark1 = 0;
-    // label frontier
-    Gia_ManForEachObjVec( vFront, p, pObj, i )
-        pObj->fMark0 = 1, pObj->fMark1 = 0;
-    // label objects
-    Gia_ManForEachObjVec( vInter, p, pObj, i )
-        pObj->fMark1 = 0, pObj->fMark1 = 1;
-    // label selected
-    Gia_ManForEachObjVec( vSelect, p, pObj, i )
-        pObj->fMark1 = 1, pObj->fMark1 = 1;
-    // explore selected
-    printf( "\n" );
-    Gia_ManForEachObjVec( vSelect, p, pObj, i )
-    {
-        printf( "Selected %6d : ", Gia_ObjId(p, pObj) );
-        printf( "\n" );
-        vLeaves = Ga2_ObjLeaves( p, pObj );
-        Gia_ManForEachObjVec( vLeaves, p, pFanin, k )
-        {
-            printf( "    " );
-            printf( "%6d ", Gia_ObjId(p, pFanin) );
-            if ( pFanin->fMark0 && pFanin->fMark1 )
-                printf( "select" );
-            else if ( pFanin->fMark0 && !pFanin->fMark1 )
-                printf( "front" );
-            else if ( !pFanin->fMark0 &&  pFanin->fMark1 )
-                printf( "internal" );
-            else if ( !pFanin->fMark0 && !pFanin->fMark1 )
-                printf( "new" );
-            printf( "\n" );
-        }
-    }
-}
-
-
-/**Function*************************************************************
-
-  Synopsis    [Finds essential objects.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Vec_Int_t * Ga2_FilterSelected( Rnm_Man_t * p, Vec_Int_t * vSelect )
-{
-    Vec_Int_t * vNew, * vLeaves;
-    Gia_Obj_t * pObj, * pFanin;
-    int i, k, RetValue;//, Counters[3] = {0};
-/*
-    // check that selected are not visited
-    Gia_ManForEachObjVec( vSelect, p->pGia, pObj, i )
-        assert( Rnm_ManObj( p, pObj, 0 )->fVisit0 == 1 );
-    Gia_ManForEachObjVec( p->vMap, p->pGia, pObj, i )
-        if ( Vec_IntFind(vSelect, Gia_ObjId(p->pGia, pObj)) == -1 )
-            assert( Rnm_ManObj( p, pObj, 0 )->fVisit0 == 0 );
-*/
-
-    // verify
-//    Gia_ManForEachObj( p->pGia, pObj, i )
-//        assert( Rnm_ObjCount(p, pObj) == 0 );
-
-    // increment fanin counters
-    Vec_IntClear( p->vFanins );
-    Gia_ManForEachObjVec( vSelect, p->pGia, pObj, i )
-    {
-        vLeaves = Ga2_ObjLeaves( p->pGia, pObj );
-        Gia_ManForEachObjVec( vLeaves, p->pGia, pFanin, k )
-            if ( Rnm_ObjAddToCount(p, pFanin) == 0 )
-                Vec_IntPush( p->vFanins, Gia_ObjId(p->pGia, pFanin) );
-    }
-
-    // find selected objects, which create potential constraints
-    // - flop objects
-    // - objects whose fanin belongs to the justified area
-    // - objects whose fanins overlap
-    // (these do not guantee reconvergence, but may potentially have it)
-    // (other objects cannot have reconvergence, even if they are added)
-    vNew = Vec_IntAlloc( 100 );
-    Gia_ManForEachObjVec( vSelect, p->pGia, pObj, i )
-    {
-        if ( Gia_ObjIsRo(p->pGia, pObj) )
-        {
-            Vec_IntPush( vNew, Gia_ObjId(p->pGia, pObj) );
-            continue;
-        }
-        vLeaves = Ga2_ObjLeaves( p->pGia, pObj );
-        Gia_ManForEachObjVec( vLeaves, p->pGia, pFanin, k )
-        {
-            if ( Gia_ObjIsConst0(pFanin)
-                 || (pFanin->Value && Rnm_ManObj(p, pFanin, 0)->fVisit0 == 1)
-                 || Rnm_ObjCount(p, pFanin) > 1
-               )
-            {
-                Vec_IntPush( vNew, Gia_ObjId(p->pGia, pObj) );
-                break;
-            }
-        }
-//        Gia_ManForEachObjVec( vLeaves, p->pGia, pFanin, k )
-//        {
-//            Counters[1] += (pFanin->Value && Rnm_ManObj( p, pFanin, 0 )->fVisit0 == 1);
-//            Counters[2] += (Rnm_ObjCount(p, pFanin) > 1);
-//        }
-    }
-    RetValue = Vec_IntUniqify( vNew );
-    assert( RetValue == 0 );
-
-//    printf( "\n*** Select = %5d. New = %5d.   Flops = %5d.  Visited = %5d.  Fanins = %5d.\n", 
-//        Vec_IntSize(vSelect), Vec_IntSize(vNew), Counters[0], Counters[1], Counters[2] );
-
-    // clear fanin counters
-    Gia_ManForEachObjVec( p->vFanins, p->pGia, pObj, i )
-        Rnm_ObjSetCount( p, pObj, 0 );
-    return vNew;
-}
-
-
-/**Function*************************************************************
-
   Synopsis    [Computes the refinement for a given counter-example.]
 
   Description []
@@ -900,12 +670,10 @@ Vec_Int_t * Ga2_FilterSelected( Rnm_Man_t * p, Vec_Int_t * vSelect )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Rnm_ManRefine( Rnm_Man_t * p, Abc_Cex_t * pCex, Vec_Int_t * vMap, int fPropFanout, int fPostProcess, int fVerbose )
+Vec_Int_t * Rnm_ManRefine( Rnm_Man_t * p, Abc_Cex_t * pCex, Vec_Int_t * vMap, int fPropFanout, int fNewRefinement, int fVerbose )
 {
     int fVerify = 0;
-//    int fPostProcess = 1;
-    Vec_Int_t * vSelected = Vec_IntAlloc( 100 );
-    Vec_Int_t * vNew;
+    Vec_Int_t * vGoodPPis, * vNewPPis;
     clock_t clk, clk2 = clock();
     int RetValue;
     p->nCalls++;
@@ -925,71 +693,50 @@ Vec_Int_t * Rnm_ManRefine( Rnm_Man_t * p, Abc_Cex_t * pCex, Vec_Int_t * vMap, in
     memset( p->pObjs, 0, sizeof(Rnm_Obj_t) * p->nObjs );
     // propagate priorities
     clk = clock();
+    vGoodPPis = Vec_IntAlloc( 100 );
     if ( Rnm_ManSensitize( p ) ) // the CEX is not a true CEX
     {
         p->timeFwd += clock() - clk;
         // select refinement
         clk = clock();
         p->nVisited = 0;
-        Rnm_ManJustify_rec( p, Gia_ObjFanin0(Gia_ManPo(p->pGia, 0)), pCex->iFrame, vSelected );
-        RetValue = Vec_IntUniqify( vSelected );
+        Rnm_ManJustify_rec( p, Gia_ObjFanin0(Gia_ManPo(p->pGia, 0)), pCex->iFrame, vGoodPPis );
+        RetValue = Vec_IntUniqify( vGoodPPis );
 //        assert( RetValue == 0 );
         p->timeBwd += clock() - clk;
     }
+    // at this point array vGoodPPis contains the set of important PPIs
+    if ( Vec_IntSize(vGoodPPis) > 0 ) // spurious CEX resulting in a non-trivial refinement 
+    {
+        // filter selected set
+        if ( !fNewRefinement )  // default 
+            vNewPPis = Rnm_ManFilterSelected( p, vGoodPPis );
+        else // this is enabled when &gla is called with -r (&gla -r)
+            vNewPPis = Rnm_ManFilterSelectedNew( p, vGoodPPis );
 
-    if ( fPostProcess )
-    {
-        vNew = Ga2_FilterSelected( p, vSelected );
-        if ( Vec_IntSize(vNew) > 0 )
-        {
-            Vec_IntFree( vSelected );
-            vSelected = vNew;
-        }
-        else
-        {
-            Vec_IntFree( vNew );
-    //        printf( "\nBig refinement.\n" );
-        }
-    }
-    else
-    {
-/*
-        vNew = Rnm_ManRefineUnsatCore( p, vSelected );
-        if ( Vec_IntSize(vNew) > 0 )
-        {
-            Vec_IntFree( vSelected );
-            vSelected = vNew;
-//            Vec_IntFree( vNew );
-        }
-        else
-        {
-            Vec_IntFree( vNew );
-    //        printf( "\nBig refinement.\n" );
-        }
-*/
+        // replace the PPI array if necessary
+        if ( Vec_IntSize(vNewPPis) > 0 ) // something to select, replace current refinement 
+            Vec_IntFree( vGoodPPis ), vGoodPPis = vNewPPis;
+        else // if there is nothing to select, do not change the current refinement array
+            Vec_IntFree( vNewPPis );
     }
 
     // clean values
     Rnm_ManCleanValues( p );
 
     // verify (empty) refinement
+    // (only works when post-processing is not applied)
     if ( fVerify )
     {
         clk = clock();
-        Rnm_ManVerifyUsingTerSim( p->pGia, p->pCex, p->vMap, p->vObjs, vSelected );
+        Rnm_ManVerifyUsingTerSim( p->pGia, p->pCex, p->vMap, p->vObjs, vGoodPPis );
         p->timeVer += clock() - clk;
     }
 
-//    printf( "\nOriginal (%d): \n", Vec_IntSize(p->vMap) );
-//    Rnm_ManPrintSelected( p, vSelected );
-        
-//    Ga2_StructAnalize( p->pGia, vMap, p->vObjs, vSelected );
-//    printf( "\nObjects = %5d.  Visited = %5d.\n", Vec_IntSize(p->vObjs), p->nVisited );
-
-//    Vec_IntReverseOrder( vSelected );
+//    Vec_IntReverseOrder( vGoodPPis );
     p->timeTotal += clock() - clk2;
-    p->nRefines += Vec_IntSize(vSelected);
-    return vSelected;
+    p->nRefines += Vec_IntSize(vGoodPPis);
+    return vGoodPPis;
 }
 
 ////////////////////////////////////////////////////////////////////////

@@ -53,7 +53,7 @@ void Gia_ManDupAbsFlops_rec( Gia_Man_t * pNew, Gia_Obj_t * pObj )
 
 /**Function*************************************************************
 
-  Synopsis    [Performs abstraction of the AIG to preserve the included flops.]
+  Synopsis    [Extractes a flop-level abstraction given a flop map.]
 
   Description []
                
@@ -207,7 +207,7 @@ void Gia_ManDupAbsGates_rec( Gia_Man_t * pNew, Gia_Obj_t * pObj )
 
 /**Function*************************************************************
 
-  Synopsis    [Performs abstraction of the AIG to preserve the included gates.]
+  Synopsis    [Extractes a gate-level abstraction given a gate map.]
 
   Description [The array contains 1 for those objects (const, RO, AND)
   that are included in the abstraction; 0, otherwise.]

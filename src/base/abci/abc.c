@@ -28143,10 +28143,10 @@ usage:
 int Abc_CommandAbc9Gla( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abs_Par_t Pars, * pPars = &Pars;
-    int c, fStartVta = 0, fNewAlgo = 1;
+    int c, fNewAlgo = 1;
     Abs_ParSetDefaults( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FSCLDETRPBAtrfkadmnscbpqwvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FSCLDETRPBAtfardmnscbpqwvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -28272,17 +28272,14 @@ int Abc_CommandAbc9Gla( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 't':
             pPars->fUseTermVars ^= 1;
             break;
-        case 'r':
-            pPars->fUseRollback ^= 1;
-            break;
         case 'f':
             pPars->fPropFanout ^= 1;
             break;
-        case 'k':
-            fStartVta ^= 1;
-            break;
         case 'a':
             pPars->fAddLayer ^= 1;
+            break;
+        case 'r':
+            pPars->fNewRefine ^= 1;
             break;
         case 'd':
             pPars->fDumpVabs ^= 1;
@@ -28350,13 +28347,13 @@ int Abc_CommandAbc9Gla( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( fNewAlgo )
         pAbc->Status = Gia_ManPerformGla( pAbc->pGia, pPars );
     else
-        pAbc->Status  = Gia_ManPerformGlaOld( pAbc->pGia, pPars, fStartVta );
+        pAbc->Status  = Gia_ManPerformGlaOld( pAbc->pGia, pPars, 0 );
     pAbc->nFrames = pPars->iFrame;
     Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexSeq );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &gla [-FSCLDETRPB num] [-A file] [-fkadmnscbpqwvh]\n" );
+    Abc_Print( -2, "usage: &gla [-FSCLDETRPB num] [-A file] [-fardmnscbpqwvh]\n" );
     Abc_Print( -2, "\t          fixed-time-frame gate-level proof- and cex-based abstraction\n" );
     Abc_Print( -2, "\t-F num  : the max number of timeframes to unroll [default = %d]\n", pPars->nFramesMax );
     Abc_Print( -2, "\t-S num  : the starting time frame (0=unused) [default = %d]\n", pPars->nFramesStart );
@@ -28370,8 +28367,8 @@ usage:
     Abc_Print( -2, "\t-B num  : the number of stable frames to dump abstraction or call prover (0<=num<=100) [default = %d]\n", pPars->nFramesNoChangeLim );
     Abc_Print( -2, "\t-A file : file name for dumping abstrated model [default = \"glabs.aig\"]\n" );
     Abc_Print( -2, "\t-f      : toggle propagating fanout implications [default = %s]\n", pPars->fPropFanout? "yes": "no" );
-    Abc_Print( -2, "\t-k      : toggle using VTA to kick start GLA for starting frames [default = %s]\n", fStartVta? "yes": "no" );
     Abc_Print( -2, "\t-a      : toggle refinement by adding one layers of gates [default = %s]\n", pPars->fAddLayer? "yes": "no" );
+    Abc_Print( -2, "\t-r      : toggle using improved refinement heuristics [default = %s]\n", pPars->fNewRefine? "yes": "no" );
     Abc_Print( -2, "\t-d      : toggle dumping abstracted model into a file [default = %s]\n", pPars->fDumpVabs? "yes": "no" );
     Abc_Print( -2, "\t-m      : toggle dumping abstraction map into a file [default = %s]\n", pPars->fDumpMabs? "yes": "no" );
     Abc_Print( -2, "\t-n      : toggle using new algorithms [default = %s]\n", fNewAlgo? "yes": "no" );

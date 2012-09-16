@@ -6,7 +6,7 @@
 
   PackageName [Abstraction package.]
 
-  Synopsis    [Refinement manager.]
+  Synopsis    [Refinement manager to compute all justifying subsets.]
 
   Author      [Alan Mishchenko]
   

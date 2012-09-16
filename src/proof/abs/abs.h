@@ -61,6 +61,7 @@ struct Abs_Par_t_
     int                  fUseRollback;       // use rollback to the starting number of frames
     int                  fPropFanout;        // propagate fanout implications
     int                  fAddLayer;          // refinement strategy by adding layers
+    int                  fNewRefine;         // uses new refinement heuristics
     int                  fUseSkip;           // skip proving intermediate timeframes
     int                  fUseSimple;         // use simple CNF construction
     int                  fSkipHash;          // skip hashing CNF while unrolling
@@ -80,6 +81,13 @@ struct Abs_Par_t_
 ////////////////////////////////////////////////////////////////////////
 ///                      MACRO DEFINITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
+
+static inline int         Ga2_ObjOffset( Gia_Man_t * p, Gia_Obj_t * pObj )          { return Vec_IntEntry(p->vMapping, Gia_ObjId(p, pObj));                                                         }
+static inline int         Ga2_ObjLeaveNum( Gia_Man_t * p, Gia_Obj_t * pObj )        { return Vec_IntEntry(p->vMapping, Ga2_ObjOffset(p, pObj));                                                     }
+static inline int *       Ga2_ObjLeavePtr( Gia_Man_t * p, Gia_Obj_t * pObj )        { return Vec_IntEntryP(p->vMapping, Ga2_ObjOffset(p, pObj) + 1);                                                }
+static inline unsigned    Ga2_ObjTruth( Gia_Man_t * p, Gia_Obj_t * pObj )           { return (unsigned)Vec_IntEntry(p->vMapping, Ga2_ObjOffset(p, pObj) + Ga2_ObjLeaveNum(p, pObj) + 1);            }
+static inline int         Ga2_ObjRefNum( Gia_Man_t * p, Gia_Obj_t * pObj )          { return (unsigned)Vec_IntEntry(p->vMapping, Ga2_ObjOffset(p, pObj) + Ga2_ObjLeaveNum(p, pObj) + 2);            }
+static inline Vec_Int_t * Ga2_ObjLeaves( Gia_Man_t * p, Gia_Obj_t * pObj )          { static Vec_Int_t v; v.nSize = Ga2_ObjLeaveNum(p, pObj), v.pArray = Ga2_ObjLeavePtr(p, pObj); return &v;       }
 
 ////////////////////////////////////////////////////////////////////////
 ///                    FUNCTION DECLARATIONS                         ///
@@ -113,6 +121,7 @@ extern Vec_Int_t *       Gia_FlaConvertToGla( Gia_Man_t * p, Vec_Int_t * vFla );
 extern Vec_Int_t *       Gia_GlaConvertToFla( Gia_Man_t * p, Vec_Int_t * vGla );
 extern int               Gia_GlaCountFlops( Gia_Man_t * p, Vec_Int_t * vGla );
 extern int               Gia_GlaCountNodes( Gia_Man_t * p, Vec_Int_t * vGla );
+
 
 /*=== absOldCex.c ==========================================================*/
 extern Vec_Int_t *       Saig_ManCbaFilterFlops( Aig_Man_t * pAig, Abc_Cex_t * pAbsCex, Vec_Int_t * vFlopClasses, Vec_Int_t * vAbsFfsToAdd, int nFfsToSelect );

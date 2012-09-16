@@ -503,7 +503,7 @@ Vec_Int_t * Gla_ManRefinement( Gla_Man_t * p )
     Gia_Obj_t * pObj;
     int i;
     Gia_GlaPrepareCexAndMap( p, &pCex, &vMap );
-    vVec = Rnm_ManRefine( p->pRnm, pCex, vMap, p->pPars->fPropFanout, 0, 1 );
+    vVec = Rnm_ManRefine( p->pRnm, pCex, vMap, p->pPars->fPropFanout, p->pPars->fNewRefine, 1 );
     Abc_CexFree( pCex );
     if ( Vec_IntSize(vVec) == 0 )
     {

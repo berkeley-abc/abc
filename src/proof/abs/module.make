@@ -10,6 +10,6 @@ SRC +=    src/proof/abs/abs.c \
     src/proof/abs/absOut.c \
     src/proof/abs/absPth.c \
     src/proof/abs/absRef.c \
-    src/proof/abs/absRef2.c \
+    src/proof/abs/absRefSelect.c \
     src/proof/abs/absVta.c \
     src/proof/abs/absUtil.c

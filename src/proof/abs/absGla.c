@@ -78,13 +78,6 @@ struct Ga2_Man_t_
     clock_t        timeOther;
 };
 
-static inline int         Ga2_ObjOffset( Gia_Man_t * p, Gia_Obj_t * pObj )       { return Vec_IntEntry(p->vMapping, Gia_ObjId(p, pObj));                                                    }
-static inline int         Ga2_ObjLeaveNum( Gia_Man_t * p, Gia_Obj_t * pObj )     { return Vec_IntEntry(p->vMapping, Ga2_ObjOffset(p, pObj));                                                }
-static inline int *       Ga2_ObjLeavePtr( Gia_Man_t * p, Gia_Obj_t * pObj )     { return Vec_IntEntryP(p->vMapping, Ga2_ObjOffset(p, pObj) + 1);                                           }
-static inline unsigned    Ga2_ObjTruth( Gia_Man_t * p, Gia_Obj_t * pObj )        { return (unsigned)Vec_IntEntry(p->vMapping, Ga2_ObjOffset(p, pObj) + Ga2_ObjLeaveNum(p, pObj) + 1);       }
-static inline int         Ga2_ObjRefNum( Gia_Man_t * p, Gia_Obj_t * pObj )       { return (unsigned)Vec_IntEntry(p->vMapping, Ga2_ObjOffset(p, pObj) + Ga2_ObjLeaveNum(p, pObj) + 2);       }
-static inline Vec_Int_t * Ga2_ObjLeaves( Gia_Man_t * p, Gia_Obj_t * pObj )       { static Vec_Int_t v; v.nSize = Ga2_ObjLeaveNum(p, pObj), v.pArray = Ga2_ObjLeavePtr(p, pObj); return &v;  }
-
 static inline int         Ga2_ObjId( Ga2_Man_t * p, Gia_Obj_t * pObj )           { return Vec_IntEntry(p->vIds, Gia_ObjId(p->pGia, pObj));                                                  }
 static inline void        Ga2_ObjSetId( Ga2_Man_t * p, Gia_Obj_t * pObj, int i ) { Vec_IntWriteEntry(p->vIds, Gia_ObjId(p->pGia, pObj), i);                                                 }
 
@@ -1329,7 +1322,7 @@ Vec_Int_t * Ga2_ManRefine( Ga2_Man_t * p )
     }
     Ga2_GlaPrepareCexAndMap( p, &pCex, &vMap );
  //    Rf2_ManRefine( p->pRf2, pCex, vMap, p->pPars->fPropFanout, 1 );
-    vVec = Rnm_ManRefine( p->pRnm, pCex, vMap, p->pPars->fPropFanout, 1, 1 );
+    vVec = Rnm_ManRefine( p->pRnm, pCex, vMap, p->pPars->fPropFanout, p->pPars->fNewRefine, 1 );
 //    printf( "Refinement %d\n", Vec_IntSize(vVec) );
     Abc_CexFree( pCex );
     if ( Vec_IntSize(vVec) == 0 )
@@ -1644,6 +1637,7 @@ int Gia_ManPerformGla( Gia_Man_t * pAig, Abs_Par_t * pPars )
 
                     // perform refinement
                     clk2 = clock();
+                    Rnm_ManSetRefId( p->pRnm, c );
                     vPPis = Ga2_ManRefine( p );
                     p->timeCex += clock() - clk2;
                     if ( vPPis == NULL )

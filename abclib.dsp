@@ -4367,14 +4367,6 @@ SOURCE=.\src\proof\abs\absRef.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\proof\abs\absRef2.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\proof\abs\absRef2.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\src\proof\abs\absUtil.c
 # End Source File
 # Begin Source File
