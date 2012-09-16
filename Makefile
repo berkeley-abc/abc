@@ -40,7 +40,7 @@ CFLAGS   += -Wall -Wno-unused-function -Wno-unused-but-set-variable $(OPTFLAGS) 
 CXXFLAGS += $(CFLAGS) 
 
 #LIBS := -m32 -ldl -rdynamic -lreadline -ltermcap
-LIBS := -ldl -lreadline
+LIBS := -ldl -lreadline -lpthread
 
 SRC  := 
 GARBAGE := core core.* *.stackdump ./tags $(PROG) arch_flags
