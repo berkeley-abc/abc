@@ -3223,26 +3223,6 @@ SOURCE=.\src\aig\saig\saig.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\aig\saig\saigAbs.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\saig\saigAbsCba.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\saig\saigAbsPba.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\saig\saigAbsStart.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\saig\saigAbsVfa.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\src\aig\saig\saigBmc.c
 # End Source File
 # Begin Source File
@@ -3276,18 +3256,6 @@ SOURCE=.\src\aig\saig\saigDual.c
 # Begin Source File
 
 SOURCE=.\src\aig\saig\saigDup.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\saig\saigGlaCba.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\saig\saigGlaPba.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\saig\saigGlaPba2.c
 # End Source File
 # Begin Source File
 
@@ -3327,10 +3295,6 @@ SOURCE=.\src\aig\saig\saigPhase.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\aig\saig\saigRefSat.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\src\aig\saig\saigRetFwd.c
 # End Source File
 # Begin Source File
@@ -3344,14 +3308,6 @@ SOURCE=.\src\aig\saig\saigRetStep.c
 # Begin Source File
 
 SOURCE=.\src\aig\saig\saigScl.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\saig\saigSimExt.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\saig\saigSimExt2.c
 # End Source File
 # Begin Source File
 
@@ -3400,54 +3356,6 @@ SOURCE=.\src\aig\gia\gia.c
 # Begin Source File
 
 SOURCE=.\src\aig\gia\gia.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\gia\giaAbs.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\gia\giaAbs.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\gia\giaAbsGla.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\gia\giaAbsGla2.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\gia\giaAbsIter.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\gia\giaAbsOut.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\gia\giaAbsPth.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\gia\giaAbsRef.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\gia\giaAbsRef.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\gia\giaAbsRef2.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\gia\giaAbsRef2.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\gia\giaAbsVta.c
 # End Source File
 # Begin Source File
 
@@ -4396,6 +4304,82 @@ SOURCE=.\src\proof\ssw\sswSweep.c
 # Begin Source File
 
 SOURCE=.\src\proof\ssw\sswUnique.c
+# End Source File
+# End Group
+# Begin Group "abs"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\proof\abs\abs.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\abs\abs.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\abs\absDup.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\abs\absGla.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\abs\absGlaOld.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\abs\absIter.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\abs\absOldCex.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\abs\absOldRef.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\abs\absOldSat.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\abs\absOldSim.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\abs\absOut.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\abs\absPth.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\abs\absRef.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\abs\absRef.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\abs\absRef2.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\abs\absRef2.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\abs\absUtil.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\abs\absVta.c
 # End Source File
 # End Group
 # End Group

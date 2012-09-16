@@ -21,6 +21,7 @@
 #include "ioAbc.h"
 #include "base/main/mainInt.h"
 #include "aig/saig/saig.h"
+#include "proof/abs/abs.h"
 
 ABC_NAMESPACE_IMPL_START
 

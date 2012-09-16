@@ -1,10 +1,10 @@
 /**CFile****************************************************************
 
-  FileName    [giaAbsVta.c]
+  FileName    [absVta.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
-  PackageName [Scalable AIG package.]
+  PackageName [Abstraction package.]
 
   Synopsis    [Variable time-frame abstraction.]
 
@@ -14,13 +14,13 @@
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
 
-  Revision    [$Id: giaAbsVta.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
+  Revision    [$Id: absVta.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
-#include "gia.h"
 #include "sat/bsat/satSolver2.h"
 #include "base/main/main.h"
+#include "abs.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -47,7 +47,7 @@ struct Vta_Man_t_
 {
     // user data
     Gia_Man_t *   pGia;         // AIG manager
-    Gia_ParVta_t* pPars;        // parameters
+    Abs_Par_t *   pPars;        // parameters
     // internal data
     int           nObjs;        // the number of objects
     int           nObjsAlloc;   // the number of objects allocated
@@ -133,40 +133,6 @@ extern void Vga_ManAddClausesOne( Vta_Man_t * p, int iObj, int iFrame );
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
-
-/**Function*************************************************************
-
-  Synopsis    [This procedure sets default parameters.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Gia_VtaSetDefaultParams( Gia_ParVta_t * p )
-{
-    memset( p, 0, sizeof(Gia_ParVta_t) );
-    p->nFramesMax         =      0;   // maximum frames
-    p->nFramesStart       =      0;   // starting frame 
-    p->nFramesPast        =      4;   // overlap frames
-    p->nConfLimit         =      0;   // conflict limit
-    p->nLearnedMax        =   1000;   // max number of learned clauses
-    p->nLearnedStart      =   1000;   // max number of learned clauses
-    p->nLearnedDelta      =    200;   // max number of learned clauses
-    p->nLearnedPerce      =     70;   // max number of learned clauses
-    p->nTimeOut           =      0;   // timeout in seconds
-    p->nRatioMin          =      0;   // stop when less than this % of object is abstracted
-    p->nRatioMax          =     30;   // restart when more than this % of object is abstracted
-    p->fUseTermVars       =      0;   // use terminal variables
-    p->fUseRollback       =      0;   // use rollback to the starting number of frames
-    p->fPropFanout        =      1;   // propagate fanouts during refinement
-    p->fVerbose           =      0;   // verbose flag
-    p->iFrame             =     -1;   // the number of frames covered 
-    p->iFrameProved       =     -1;   // the number of frames proved
-    p->nFramesNoChangeLim =      1;   // the number of frames without change to dump abstraction
-}
 
 /**Function*************************************************************
 
@@ -1014,7 +980,7 @@ Abc_Cex_t * Vta_ManRefineAbstraction( Vta_Man_t * p, int f )
   SeeAlso     []
 
 ***********************************************************************/
-Vta_Man_t * Vga_ManStart( Gia_Man_t * pGia, Gia_ParVta_t * pPars )
+Vta_Man_t * Vga_ManStart( Gia_Man_t * pGia, Abs_Par_t * pPars )
 {
     Vta_Man_t * p;
     p = ABC_CALLOC( Vta_Man_t, 1 );
@@ -1524,7 +1490,7 @@ void Gia_VtaPrintMemory( Vta_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Gia_VtaPerformInt( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
+int Gia_VtaPerformInt( Gia_Man_t * pAig, Abs_Par_t * pPars )
 {
     Vta_Man_t * p;
     Vec_Int_t * vCore;
@@ -1775,7 +1741,7 @@ finish:
   SeeAlso     []
 
 ***********************************************************************/
-int Gia_VtaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
+int Gia_VtaPerform( Gia_Man_t * pAig, Abs_Par_t * pPars )
 {
     int RetValue = -1;
     if ( pAig->vObjClasses == NULL && pPars->fUseRollback )

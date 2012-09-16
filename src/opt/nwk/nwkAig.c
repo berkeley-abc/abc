@@ -105,7 +105,7 @@ Vec_Ptr_t * Nwk_ManDeriveRetimingCut( Aig_Man_t * p, int fForward, int fVerbose 
 
 
 
-#include "aig/gia/gia.h"
+#include "proof/abs/abs.h"
 
 /**Function*************************************************************
 

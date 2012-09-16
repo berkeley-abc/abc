@@ -1,10 +1,10 @@
 /**CFile****************************************************************
 
-  FileName    [giaAbsOut.c]
+  FileName    [absOut.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
-  PackageName [Scalable AIG package.]
+  PackageName [Abstraction package.]
 
   Synopsis    [Abstraction refinement outside of abstraction engines.]
 
@@ -14,13 +14,11 @@
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
 
-  Revision    [$Id: giaAbsOut.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
+  Revision    [$Id: absOut.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
-#include "gia.h"
-#include "giaAig.h"
-#include "aig/saig/saig.h"
+#include "abs.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -92,7 +90,6 @@ Abc_Cex_t * Gia_ManCexRemap( Gia_Man_t * p, Abc_Cex_t * pCexAbs, Vec_Int_t * vPi
 int Gia_ManGlaRefine( Gia_Man_t * p, Abc_Cex_t * pCex, int fMinCut, int fVerbose )
 {
     extern void Nwk_ManDeriveMinCut( Gia_Man_t * p, int fVerbose );
-//    extern Abc_Cex_t * Saig_ManCbaFindCexCareBits( Aig_Man_t * pAig, Abc_Cex_t * pCex, int nInputs, int fVerbose );
     int fAddOneLayer = 1;
     Abc_Cex_t * pCexNew = NULL;
     Gia_Man_t * pAbs;
@@ -431,11 +428,11 @@ int Gia_ManNewRefine( Gia_Man_t * p, Abc_Cex_t * pCex, int iFrameStart, int iFra
     pNew->vGateClasses = Vec_IntDup( p->vGateClasses );
     // perform abstraction for the new AIG
     {
-        Gia_ParVta_t Pars, * pPars = &Pars;
-        Gia_VtaSetDefaultParams( pPars );
+        Abs_Par_t Pars, * pPars = &Pars;
+        Abs_ParSetDefaults( pPars );
         pPars->nFramesMax = pCex->iFrame - iFrameStart + 1 + iFrameExtra;
         pPars->fVerbose = fVerbose;
-        RetValue = Ga2_ManPerform( pNew, pPars );
+        RetValue = Gia_ManPerformGla( pNew, pPars );
         if ( RetValue == 0 ) // spurious SAT
         {
             Vec_IntFreeP( &pNew->vGateClasses );

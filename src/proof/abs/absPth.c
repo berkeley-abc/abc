@@ -1,10 +1,10 @@
 /**CFile****************************************************************
 
-  FileName    [giaAbsPth.c]
+  FileName    [absPth.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
-  PackageName [Scalable AIG package.]
+  PackageName [Abstraction package.]
 
   Synopsis    [Interface to pthreads.]
 
@@ -14,7 +14,7 @@
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
 
-  Revision    [$Id: giaAbsPth.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
+  Revision    [$Id: absPth.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
  

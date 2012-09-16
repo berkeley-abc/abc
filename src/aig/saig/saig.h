@@ -27,17 +27,12 @@
 ////////////////////////////////////////////////////////////////////////
 
 #include "aig/aig/aig.h"
-#include "aig/gia/giaAbs.h"
 
 ABC_NAMESPACE_HEADER_START
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
-
-#define SAIG_ZER 1
-#define SAIG_ONE 2
-#define SAIG_UND 3
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
@@ -131,20 +126,6 @@ static inline int          Saig_ObjRegId( Aig_Man_t * p, Aig_Obj_t * pObj )   { 
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
-/*=== sswAbs.c ==========================================================*/
-extern Vec_Int_t *       Saig_ManClasses2Flops( Vec_Int_t * vFlopClasses );
-extern Vec_Int_t *       Saig_ManFlops2Classes( int nRegs, Vec_Int_t * vFlops );
-extern Abc_Cex_t *       Saig_ManCexRemap( Aig_Man_t * p, Aig_Man_t * pAbs, Abc_Cex_t * pCexAbs );
-/*=== sswAbsCba.c ==========================================================*/
-extern Vec_Int_t *       Saig_ManCbaFilterFlops( Aig_Man_t * pAig, Abc_Cex_t * pAbsCex, Vec_Int_t * vFlopClasses, Vec_Int_t * vAbsFfsToAdd, int nFfsToSelect );
-extern Abc_Cex_t *       Saig_ManCbaFindCexCareBits( Aig_Man_t * pAig, Abc_Cex_t * pCex, int nInputs, int fVerbose );
-extern Vec_Int_t *       Saig_ManCbaFilterInputs( Aig_Man_t * pAig, int iFirstFlopPi, Abc_Cex_t * pCex, int fVerbose );
-extern Vec_Int_t *       Saig_ManCbaPerform( Aig_Man_t * pAig, int nInputs, Saig_ParBmc_t * pPars );
-/*=== sswAbsPba.c ==========================================================*/
-extern Vec_Int_t *       Saig_ManPbaDerive( Aig_Man_t * pAig, int nInputs, int nStart, int nFrames, int nConfLimit, int nTimeLimit, int fVerbose, int * piFrame );
-/*=== sswAbsStart.c ==========================================================*/
-extern int               Saig_ManCexRefineStep( Aig_Man_t * p, Vec_Int_t * vFlops, Vec_Int_t * vFlopClasses, Abc_Cex_t * pCex, int nFfToAddMax, int fTryFour, int fSensePath, int fVerbose );
-extern Vec_Int_t *       Saig_ManCexAbstractionFlops( Aig_Man_t * p, Gia_ParAbs_t * pPars );
 /*=== saigBmc.c ==========================================================*/
 extern int               Saig_ManBmcSimple( Aig_Man_t * pAig, int nFrames, int nSizeMax, int nBTLimit, int fRewrite, int fVerbose, int * piFrame, int nCofFanLit );
 extern int               Saig_BmcPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nNodesMax, int nTimeOut, int nConfMaxOne, int nConfMaxAll, int fVerbose, int fVerbOverwrite, int * piFrames, int fSilent );
@@ -203,8 +184,6 @@ extern int               Saig_ManDemiterNew( Aig_Man_t * pMan );
 extern Aig_Man_t *       Saig_ManDecPropertyOutput( Aig_Man_t * pAig, int nLits, int fVerbose );
 /*=== saigPhase.c ==========================================================*/
 extern Aig_Man_t *       Saig_ManPhaseAbstract( Aig_Man_t * p, Vec_Int_t * vInits, int nFrames, int nPref, int fIgnore, int fPrint, int fVerbose );
-/*=== saigRefSat.c ==========================================================*/
-extern Vec_Int_t *       Saig_ManExtendCounterExampleTest3( Aig_Man_t * pAig, int iFirstFlopPi, Abc_Cex_t * pCex, int fVerbose );
 /*=== saigRetFwd.c ==========================================================*/
 extern void              Saig_ManMarkAutonomous( Aig_Man_t * p );
 extern Aig_Man_t *       Saig_ManRetimeForward( Aig_Man_t * p, int nMaxIters, int fVerbose );
@@ -215,11 +194,6 @@ extern Aig_Man_t *       Saig_ManRetimeMinArea( Aig_Man_t * p, int nMaxIters, in
 extern int               Saig_ManRetimeSteps( Aig_Man_t * p, int nSteps, int fForward, int fAddBugs );
 /*=== saigScl.c ==========================================================*/
 extern void              Saig_ManReportUselessRegisters( Aig_Man_t * pAig );
-/*=== saigSimExt.c ==========================================================*/
-extern Vec_Int_t *       Saig_ManExtendCounterExample( Aig_Man_t * p, int iFirstPi, Abc_Cex_t * pCex, Vec_Ptr_t * vSimInfo, int fVerbose );
-extern Vec_Int_t *       Saig_ManExtendCounterExampleTest( Aig_Man_t * p, int iFirstPi, Abc_Cex_t * pCex, int fTryFour, int fVerbose );
-/*=== saigSimExt.c ==========================================================*/
-extern Vec_Int_t *       Saig_ManExtendCounterExampleTest2( Aig_Man_t * p, int iFirstPi, Abc_Cex_t * pCex, int fVerbose );
 /*=== saigSimMv.c ==========================================================*/
 extern Vec_Ptr_t *       Saig_MvManSimulate( Aig_Man_t * pAig, int nFramesSymb, int nFramesSatur, int fVerbose, int fVeryVerbose );
 /*=== saigStrSim.c ==========================================================*/

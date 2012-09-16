@@ -1,10 +1,10 @@
 /**CFile****************************************************************
 
-  FileName    [giaIter.c]
+  FileName    [absIter.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
-  PackageName [Scalable AIG package.]
+  PackageName [Abstraction package.]
 
   Synopsis    [Iterative improvement of abstraction.]
 
@@ -14,12 +14,11 @@
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
 
-  Revision    [$Id: giaIter.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
+  Revision    [$Id: absIter.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
-#include "gia.h"
-#include "giaAig.h"
+#include "abs.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -49,7 +48,6 @@ static inline void Gia_ObjRemFromGla( Gia_Man_t * p, Gia_Obj_t * pObj ) { Vec_In
 ***********************************************************************/
 int Gia_IterTryImprove( Gia_Man_t * p, int nTimeOut, int iFrame0 )
 {
-    extern int Saig_BmcPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nNodesMax, int nTimeOut, int nConfMaxOne, int nConfMaxAll, int fVerbose, int fVerbOverwrite, int * piFrames, int fSilent );
     Gia_Man_t * pAbs = Gia_ManDupAbsGates( p, p->vGateClasses );
     Aig_Man_t * pAig = Gia_ManToAigSimple( pAbs );
     int nStart      =            0;
@@ -65,7 +63,7 @@ int Gia_IterTryImprove( Gia_Man_t * p, int nTimeOut, int iFrame0 )
     Gia_ManStop( pAbs );
     return iFrame;
 }
-Gia_Man_t * Gia_IterImprove( Gia_Man_t * p, int nFrameMax, int nTimeOut, int fUsePdr, int fUseSat, int fUseBdd, int fVerbose )
+Gia_Man_t * Gia_ManShrinkGla( Gia_Man_t * p, int nFrameMax, int nTimeOut, int fUsePdr, int fUseSat, int fUseBdd, int fVerbose )
 {
     Gia_Obj_t * pObj;
     int i, iFrame0, iFrame;

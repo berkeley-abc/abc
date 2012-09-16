@@ -33,16 +33,13 @@
 
 #include "misc/vec/vec.h"
 #include "misc/util/utilCex.h"
-#include "giaAbs.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
 
-
 ABC_NAMESPACE_HEADER_START
-
 
 #define GIA_NONE 0x1FFFFFFF
 #define GIA_VOID 0x0FFFFFFF
@@ -206,41 +203,6 @@ struct Gia_ParSim_t_
     int            fCheckMiter;   // check if miter outputs are non-zero
     int            fVerbose;      // enables verbose output
     int            iOutFail;      // index of the failed output
-};
-
-// abstraction parameters
-typedef struct Gia_ParVta_t_ Gia_ParVta_t;
-struct Gia_ParVta_t_
-{
-    int            nFramesMax;    // maximum frames
-    int            nFramesStart;  // starting frame 
-    int            nFramesPast;   // overlap frames
-    int            nConfLimit;    // conflict limit
-    int            nLearnedMax;   // max number of learned clauses
-    int            nLearnedStart; // max number of learned clauses
-    int            nLearnedDelta; // delta increase of learned clauses
-    int            nLearnedPerce; // percentage of clauses to leave
-    int            nTimeOut;      // timeout in seconds
-    int            nRatioMin;     // stop when less than this % of object is abstracted
-    int            nRatioMax;     // restart when the number of abstracted object is more than this
-    int            fUseTermVars;  // use terminal variables
-    int            fUseRollback;  // use rollback to the starting number of frames
-    int            fPropFanout;   // propagate fanout implications
-    int            fAddLayer;     // refinement strategy by adding layers
-    int            fUseSkip;      // skip proving intermediate timeframes
-    int            fUseSimple;    // use simple CNF construction
-    int            fSkipHash;     // skip hashing CNF while unrolling
-    int            fUseFullProof; // use full proof for UNSAT cores
-    int            fDumpVabs;     // dumps the abstracted model
-    int            fDumpMabs;     // dumps the original AIG with abstraction map
-    int            fCallProver;   // calls the prover
-    char *         pFileVabs;     // dumps the abstracted model into this file
-    int            fVerbose;      // verbose flag
-    int            fVeryVerbose;  // print additional information
-    int            iFrame;        // the number of frames covered
-    int            iFrameProved;  // the number of frames proved
-    int            nFramesNoChange; // the number of last frames without changes
-    int            nFramesNoChangeLim; // the number of last frames without changes to dump abstraction
 };
 
 static inline unsigned     Gia_ObjCutSign( unsigned ObjId )       { return (1 << (ObjId & 31));                                 }
@@ -717,26 +679,6 @@ static inline int         Gia_ObjLutFanin( Gia_Man_t * p, int Id, int i )   { re
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
-/*=== giaAbs.c ===========================================================*/
-extern void                Gia_ManCexAbstractionStart( Gia_Man_t * p, Gia_ParAbs_t * pPars );
-Gia_Man_t *                Gia_ManCexAbstractionDerive( Gia_Man_t * pGia );
-int                        Gia_ManCexAbstractionRefine( Gia_Man_t * pGia, Abc_Cex_t * pCex, int nFfToAddMax, int fTryFour, int fSensePath, int fVerbose );
-extern int                 Gia_ManPbaPerform( Gia_Man_t * pGia, int nStart, int nFrames, int nConfLimit, int nTimeLimit, int fVerbose, int * piFrame );
-extern int                 Gia_ManCbaPerform( Gia_Man_t * pGia, void * pPars );
-extern int                 Gia_ManGlaCbaPerform( Gia_Man_t * pGia, void * pPars, int fNaiveCnf );
-extern int                 Gia_ManGlaPbaPerform( Gia_Man_t * pGia, void * pPars, int fNewSolver );
-extern Vec_Int_t *         Gia_VtaConvertToGla( Gia_Man_t * p, Vec_Int_t * vVta );
-extern Vec_Int_t *         Gia_VtaConvertFromGla( Gia_Man_t * p, Vec_Int_t * vGla, int nFrames );
-extern Vec_Int_t *         Gia_FlaConvertToGla( Gia_Man_t * p, Vec_Int_t * vFla );
-extern Vec_Int_t *         Gia_GlaConvertToFla( Gia_Man_t * p, Vec_Int_t * vGla );
-extern int                 Gia_GlaCountFlops( Gia_Man_t * p, Vec_Int_t * vGla );
-extern int                 Gia_GlaCountNodes( Gia_Man_t * p, Vec_Int_t * vGla );
-/*=== giaAbsGla.c ===========================================================*/
-extern int                 Gia_GlaPerform( Gia_Man_t * p, Gia_ParVta_t * pPars, int fStartVta );
-extern int                 Ga2_ManPerform( Gia_Man_t * p, Gia_ParVta_t * pPars );
-/*=== giaAbsVta.c ===========================================================*/
-extern void                Gia_VtaSetDefaultParams( Gia_ParVta_t * p );
-extern int                 Gia_VtaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars );
 /*=== giaAiger.c ===========================================================*/
 extern int                 Gia_FileSize( char * pFileName );
 extern Gia_Man_t *         Gia_ReadAigerFromMemory( char * pContents, int nFileSize, int fSkipStrash, int fCheck );
@@ -800,9 +742,6 @@ extern Gia_Man_t *         Gia_ManMiter( Gia_Man_t * pAig0, Gia_Man_t * pAig1, i
 extern Gia_Man_t *         Gia_ManTransformMiter( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManChoiceMiter( Vec_Ptr_t * vGias );
 extern Gia_Man_t *         Gia_ManDupWithConstraints( Gia_Man_t * p, Vec_Int_t * vPoTypes );
-extern Gia_Man_t *         Gia_ManDupAbsFlops( Gia_Man_t * p, Vec_Int_t * vFlopClasses );
-extern Gia_Man_t *         Gia_ManDupAbsGates( Gia_Man_t * p, Vec_Int_t * vGateClasses );
-extern void                Gia_ManGlaCollect( Gia_Man_t * p, Vec_Int_t * vGateClasses, Vec_Int_t ** pvPis, Vec_Int_t ** pvPPis, Vec_Int_t ** pvFlops, Vec_Int_t ** pvNodes );
 extern Gia_Man_t *         Gia_ManDupCones( Gia_Man_t * p, int * pPos, int nPos, int fTrimPis );
 /*=== giaEnable.c ==========================================================*/
 extern void                Gia_ManDetectSeqSignals( Gia_Man_t * p, int fSetReset, int fVerbose );

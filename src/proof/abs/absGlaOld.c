@@ -1,10 +1,10 @@
 /**CFile****************************************************************
 
-  FileName    [giaAbsGla.c]
+  FileName    [absGla.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
-  PackageName [Scalable AIG package.]
+  PackageName [Abstraction package.]
 
   Synopsis    [Gate-level abstraction.]
 
@@ -14,16 +14,15 @@
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
 
-  Revision    [$Id: giaAbsGla.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
+  Revision    [$Id: absGla.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
-#include "gia.h"
-#include "giaAig.h"
-#include "giaAbsRef.h"
 #include "sat/cnf/cnf.h"
 #include "sat/bsat/satSolver2.h"
 #include "base/main/main.h"
+#include "abs.h"
+#include "absRef.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -65,7 +64,7 @@ struct Gla_Man_t_
     // user data
     Gia_Man_t *    pGia0;           // starting AIG manager
     Gia_Man_t *    pGia;            // working AIG manager
-    Gia_ParVta_t*  pPars;           // parameters
+    Abs_Par_t *    pPars;           // parameters
     // internal data
     Vec_Int_t *    vAbs;            // abstracted objects
     Gla_Obj_t *    pObjRoot;        // the primary output
@@ -823,7 +822,7 @@ Gia_Man_t * Gia_ManDupMapped( Gia_Man_t * p, Vec_Int_t * vMapping )
   SeeAlso     []
 
 ***********************************************************************/
-Gla_Man_t * Gla_ManStart( Gia_Man_t * pGia0, Gia_ParVta_t * pPars )
+Gla_Man_t * Gla_ManStart( Gia_Man_t * pGia0, Abs_Par_t * pPars )
 {
     Gla_Man_t * p;
     Aig_Man_t * pAig;
@@ -1000,7 +999,7 @@ Gla_Man_t * Gla_ManStart( Gia_Man_t * pGia0, Gia_ParVta_t * pPars )
   SeeAlso     []
 
 ***********************************************************************/
-Gla_Man_t * Gla_ManStart2( Gia_Man_t * pGia, Gia_ParVta_t * pPars )
+Gla_Man_t * Gla_ManStart2( Gia_Man_t * pGia, Abs_Par_t * pPars )
 {
     Gla_Man_t * p;
     Aig_Man_t * pAig;
@@ -1637,10 +1636,10 @@ void Gia_GlaDumpAbsracted( Gla_Man_t * p, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-int Gia_GlaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars, int fStartVta )
+int Gia_ManPerformGlaOld( Gia_Man_t * pAig, Abs_Par_t * pPars, int fStartVta )
 {
-    extern int Gia_VtaPerformInt( Gia_Man_t * pAig, Gia_ParVta_t * pPars );
-    extern void Ga2_ManDumpStats( Gia_Man_t * pGia, Gia_ParVta_t * pPars, sat_solver2 * pSat, int iFrame, int fUseN );
+    extern int Gia_VtaPerformInt( Gia_Man_t * pAig, Abs_Par_t * pPars );
+    extern void Ga2_ManDumpStats( Gia_Man_t * pGia, Abs_Par_t * pPars, sat_solver2 * pSat, int iFrame, int fUseN );
     Gla_Man_t * p;
     Vec_Int_t * vPPis, * vCore;//, * vCore2 = NULL;
     Abc_Cex_t * pCex = NULL;
@@ -1925,7 +1924,7 @@ finish:
         ABC_FREE( pAig->pCexSeq );
         pAig->pCexSeq = pCex;
         if ( !Gia_ManVerifyCex( pAig, pCex, 0 ) )
-            Abc_Print( 1, "    Gia_GlaPerform(): CEX verification has failed!\n" );
+            Abc_Print( 1, "    Gia_ManPerformGlaOld(): CEX verification has failed!\n" );
         Abc_Print( 1, "Counter-example detected in frame %d.  ", f );
         p->pPars->iFrame = pCex->iFrame - 1;
         Vec_IntFreeP( &pAig->vGateClasses );

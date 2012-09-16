@@ -1,0 +1,131 @@
+/**CFile****************************************************************
+
+  FileName    [abs.h]
+
+  SystemName  [ABC: Logic synthesis and verification system.]
+
+  PackageName [Abstraction package.]
+
+  Synopsis    [External declarations.]
+
+  Author      [Alan Mishchenko]
+  
+  Affiliation [UC Berkeley]
+
+  Date        [Ver. 1.0. Started - June 20, 2005.]
+
+  Revision    [$Id: abs.h,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
+
+***********************************************************************/
+ 
+#ifndef ABC__proof_abs__Abs_h
+#define ABC__proof_abs__Abs_h
+
+
+////////////////////////////////////////////////////////////////////////
+///                          INCLUDES                                ///
+////////////////////////////////////////////////////////////////////////
+
+#include "aig/gia/gia.h"
+#include "aig/gia/giaAig.h"
+#include "aig/saig/saig.h"
+
+////////////////////////////////////////////////////////////////////////
+///                         PARAMETERS                               ///
+////////////////////////////////////////////////////////////////////////
+
+
+ABC_NAMESPACE_HEADER_START
+
+
+////////////////////////////////////////////////////////////////////////
+///                         BASIC TYPES                              ///
+////////////////////////////////////////////////////////////////////////
+
+// abstraction parameters
+typedef struct Abs_Par_t_ Abs_Par_t;
+struct Abs_Par_t_
+{
+    int                  nFramesMax;         // maximum frames
+    int                  nFramesStart;       // starting frame 
+    int                  nFramesPast;        // overlap frames
+    int                  nConfLimit;         // conflict limit
+    int                  nLearnedMax;        // max number of learned clauses
+    int                  nLearnedStart;      // max number of learned clauses
+    int                  nLearnedDelta;      // delta increase of learned clauses
+    int                  nLearnedPerce;      // percentage of clauses to leave
+    int                  nTimeOut;           // timeout in seconds
+    int                  nRatioMin;          // stop when less than this % of object is abstracted
+    int                  nRatioMax;          // restart when the number of abstracted object is more than this
+    int                  fUseTermVars;       // use terminal variables
+    int                  fUseRollback;       // use rollback to the starting number of frames
+    int                  fPropFanout;        // propagate fanout implications
+    int                  fAddLayer;          // refinement strategy by adding layers
+    int                  fUseSkip;           // skip proving intermediate timeframes
+    int                  fUseSimple;         // use simple CNF construction
+    int                  fSkipHash;          // skip hashing CNF while unrolling
+    int                  fUseFullProof;      // use full proof for UNSAT cores
+    int                  fDumpVabs;          // dumps the abstracted model
+    int                  fDumpMabs;          // dumps the original AIG with abstraction map
+    int                  fCallProver;        // calls the prover
+    char *               pFileVabs;          // dumps the abstracted model into this file
+    int                  fVerbose;           // verbose flag
+    int                  fVeryVerbose;       // print additional information
+    int                  iFrame;             // the number of frames covered
+    int                  iFrameProved;       // the number of frames proved
+    int                  nFramesNoChange;    // the number of last frames without changes
+    int                  nFramesNoChangeLim; // the number of last frames without changes to dump abstraction
+};
+
+////////////////////////////////////////////////////////////////////////
+///                      MACRO DEFINITIONS                           ///
+////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////
+///                    FUNCTION DECLARATIONS                         ///
+////////////////////////////////////////////////////////////////////////
+
+/*=== abs.c =========================================================*/
+/*=== absDup.c =========================================================*/
+extern Gia_Man_t *       Gia_ManDupAbsFlops( Gia_Man_t * p, Vec_Int_t * vFlopClasses );
+extern Gia_Man_t *       Gia_ManDupAbsGates( Gia_Man_t * p, Vec_Int_t * vGateClasses );
+extern void              Gia_ManGlaCollect( Gia_Man_t * p, Vec_Int_t * vGateClasses, Vec_Int_t ** pvPis, Vec_Int_t ** pvPPis, Vec_Int_t ** pvFlops, Vec_Int_t ** pvNodes );
+extern void              Gia_ManPrintFlopClasses( Gia_Man_t * p );
+extern void              Gia_ManPrintObjClasses( Gia_Man_t * p );
+extern void              Gia_ManPrintGateClasses( Gia_Man_t * p );
+/*=== absGla.c =========================================================*/
+extern int               Gia_ManPerformGla( Gia_Man_t * p, Abs_Par_t * pPars );
+/*=== absGlaOld.c =========================================================*/
+extern int               Gia_ManPerformGlaOld( Gia_Man_t * p, Abs_Par_t * pPars, int fStartVta );
+/*=== absIter.c =========================================================*/
+extern Gia_Man_t *       Gia_ManShrinkGla( Gia_Man_t * p, int nFrameMax, int nTimeOut, int fUsePdr, int fUseSat, int fUseBdd, int fVerbose );
+/*=== absVta.c =========================================================*/
+extern int               Gia_VtaPerform( Gia_Man_t * pAig, Abs_Par_t * pPars );
+/*=== absUtil.c =========================================================*/
+extern void              Abs_ParSetDefaults( Abs_Par_t * p );
+extern Vec_Int_t *       Gia_VtaConvertToGla( Gia_Man_t * p, Vec_Int_t * vVta );
+extern Vec_Int_t *       Gia_VtaConvertFromGla( Gia_Man_t * p, Vec_Int_t * vGla, int nFrames );
+extern Vec_Int_t *       Gia_FlaConvertToGla( Gia_Man_t * p, Vec_Int_t * vFla );
+extern Vec_Int_t *       Gia_GlaConvertToFla( Gia_Man_t * p, Vec_Int_t * vGla );
+extern int               Gia_GlaCountFlops( Gia_Man_t * p, Vec_Int_t * vGla );
+extern int               Gia_GlaCountNodes( Gia_Man_t * p, Vec_Int_t * vGla );
+
+/*=== absOldCex.c ==========================================================*/
+extern Vec_Int_t *       Saig_ManCbaFilterFlops( Aig_Man_t * pAig, Abc_Cex_t * pAbsCex, Vec_Int_t * vFlopClasses, Vec_Int_t * vAbsFfsToAdd, int nFfsToSelect );
+extern Abc_Cex_t *       Saig_ManCbaFindCexCareBits( Aig_Man_t * pAig, Abc_Cex_t * pCex, int nInputs, int fVerbose );
+/*=== absOldRef.c ==========================================================*/
+extern int               Gia_ManCexAbstractionRefine( Gia_Man_t * pGia, Abc_Cex_t * pCex, int nFfToAddMax, int fTryFour, int fSensePath, int fVerbose );
+/*=== absOldSat.c ==========================================================*/
+extern Vec_Int_t *       Saig_ManExtendCounterExampleTest3( Aig_Man_t * pAig, int iFirstFlopPi, Abc_Cex_t * pCex, int fVerbose );
+/*=== absOldSim.c ==========================================================*/
+extern Vec_Int_t *       Saig_ManExtendCounterExampleTest2( Aig_Man_t * p, int iFirstPi, Abc_Cex_t * pCex, int fVerbose );
+
+
+ABC_NAMESPACE_HEADER_END
+
+#endif
+
+////////////////////////////////////////////////////////////////////////
+///                       END OF FILE                                ///
+////////////////////////////////////////////////////////////////////////
+

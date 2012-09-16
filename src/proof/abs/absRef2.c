@@ -1,10 +1,10 @@
 /**CFile****************************************************************
 
-  FileName    [giaAbsRef2.c]
+  FileName    [absRef2.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
-  PackageName [Scalable AIG package.]
+  PackageName [Abstraction package.]
 
   Synopsis    [Refinement manager.]
 
@@ -14,12 +14,12 @@
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
 
-  Revision    [$Id: giaAbsRef2.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
+  Revision    [$Id: absRef2.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
-#include "gia.h"
-#include "giaAbsRef2.h"
+#include "abs.h"
+#include "absRef2.h"
 
 ABC_NAMESPACE_IMPL_START
 

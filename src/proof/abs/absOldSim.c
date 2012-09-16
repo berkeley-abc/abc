@@ -18,8 +18,7 @@
 
 ***********************************************************************/
 
-#include "saig.h"
-#include "proof/ssw/ssw.h"
+#include "abs.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -27,6 +26,44 @@ ABC_NAMESPACE_IMPL_START
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
+
+#define SAIG_ZER 1
+#define SAIG_ONE 2
+#define SAIG_UND 3
+
+static inline int Saig_ManSimInfoNot( int Value )
+{
+    if ( Value == SAIG_ZER )
+        return SAIG_ONE;
+    if ( Value == SAIG_ONE )
+        return SAIG_ZER;
+    return SAIG_UND;
+}
+
+static inline int Saig_ManSimInfoAnd( int Value0, int Value1 )
+{
+    if ( Value0 == SAIG_ZER || Value1 == SAIG_ZER )
+        return SAIG_ZER;
+    if ( Value0 == SAIG_ONE && Value1 == SAIG_ONE )
+        return SAIG_ONE;
+    return SAIG_UND;
+}
+
+static inline int Saig_ManSimInfoGet( Vec_Ptr_t * vSimInfo, Aig_Obj_t * pObj, int iFrame )
+{
+    unsigned * pInfo = (unsigned *)Vec_PtrEntry( vSimInfo, Aig_ObjId(pObj) );
+    return 3 & (pInfo[iFrame >> 4] >> ((iFrame & 15) << 1));
+}
+
+static inline void Saig_ManSimInfoSet( Vec_Ptr_t * vSimInfo, Aig_Obj_t * pObj, int iFrame, int Value )
+{
+    unsigned * pInfo = (unsigned *)Vec_PtrEntry( vSimInfo, Aig_ObjId(pObj) );
+    assert( Value >= SAIG_ZER && Value <= SAIG_UND );
+    Value ^= Saig_ManSimInfoGet( vSimInfo, pObj, iFrame );
+    pInfo[iFrame >> 4] ^= (Value << ((iFrame & 15) << 1));
+}
+
+
 
 #define SAIG_ZER_NEW 0   // 0 not visited
 #define SAIG_ONE_NEW 1   // 1 not visited
@@ -86,11 +123,81 @@ static inline void Saig_ManSimInfo2Set( Vec_Ptr_t * vSimInfo, Aig_Obj_t * pObj, 
 }
 
 // performs ternary simulation
-extern int Saig_ManSimDataInit( Aig_Man_t * p, Abc_Cex_t * pCex, Vec_Ptr_t * vSimInfo, Vec_Int_t * vRes );
+//extern int Saig_ManSimDataInit( Aig_Man_t * p, Abc_Cex_t * pCex, Vec_Ptr_t * vSimInfo, Vec_Int_t * vRes );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
+
+/**Function*************************************************************
+
+  Synopsis    [Performs ternary simulation for one node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Saig_ManExtendOneEval( Vec_Ptr_t * vSimInfo, Aig_Obj_t * pObj, int iFrame )
+{
+    int Value0, Value1, Value;
+    Value0 = Saig_ManSimInfoGet( vSimInfo, Aig_ObjFanin0(pObj), iFrame );
+    if ( Aig_ObjFaninC0(pObj) )
+        Value0 = Saig_ManSimInfoNot( Value0 );
+    if ( Aig_ObjIsCo(pObj) )
+    {
+        Saig_ManSimInfoSet( vSimInfo, pObj, iFrame, Value0 );
+        return Value0;
+    }
+    assert( Aig_ObjIsNode(pObj) );
+    Value1 = Saig_ManSimInfoGet( vSimInfo, Aig_ObjFanin1(pObj), iFrame );
+    if ( Aig_ObjFaninC1(pObj) )
+        Value1 = Saig_ManSimInfoNot( Value1 );
+    Value = Saig_ManSimInfoAnd( Value0, Value1 );
+    Saig_ManSimInfoSet( vSimInfo, pObj, iFrame, Value );
+    return Value;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs ternary simulation for one design.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Saig_ManSimDataInit( Aig_Man_t * p, Abc_Cex_t * pCex, Vec_Ptr_t * vSimInfo, Vec_Int_t * vRes )
+{
+    Aig_Obj_t * pObj, * pObjLi, * pObjLo;
+    int i, f, Entry, iBit = 0;
+    Saig_ManForEachLo( p, pObj, i )
+        Saig_ManSimInfoSet( vSimInfo, pObj, 0, Abc_InfoHasBit(pCex->pData, iBit++)?SAIG_ONE:SAIG_ZER );
+    for ( f = 0; f <= pCex->iFrame; f++ )
+    {
+        Saig_ManSimInfoSet( vSimInfo, Aig_ManConst1(p), f, SAIG_ONE );
+        Saig_ManForEachPi( p, pObj, i )
+            Saig_ManSimInfoSet( vSimInfo, pObj, f, Abc_InfoHasBit(pCex->pData, iBit++)?SAIG_ONE:SAIG_ZER );
+        if ( vRes )
+        Vec_IntForEachEntry( vRes, Entry, i )
+            Saig_ManSimInfoSet( vSimInfo, Aig_ManCi(p, Entry), f, SAIG_UND );
+        Aig_ManForEachNode( p, pObj, i )
+            Saig_ManExtendOneEval( vSimInfo, pObj, f );
+        Aig_ManForEachCo( p, pObj, i )
+            Saig_ManExtendOneEval( vSimInfo, pObj, f );
+        if ( f == pCex->iFrame )
+            break;
+        Saig_ManForEachLiLo( p, pObjLi, pObjLo, i )
+            Saig_ManSimInfoSet( vSimInfo, pObjLo, f+1, Saig_ManSimInfoGet(vSimInfo, pObjLi, f) );
+    }
+    // make sure the output of the property failed
+    pObj = Aig_ManCo( p, pCex->iPo );
+    return Saig_ManSimInfoGet( vSimInfo, pObj, pCex->iFrame );
+}
 
 /**Function*************************************************************
 
@@ -360,117 +467,6 @@ ABC_PRT( "Time", clock() - clk );
     return vRes;
 }
 
-
-
-
-
-/**Function*************************************************************
-
-  Synopsis    [Returns the array of PIs for flops that should not be absracted.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Abc_Cex_t * Saig_ManDeriveCex( Aig_Man_t * p, int iFirstFlopPi, Abc_Cex_t * pCex, Vec_Ptr_t * vSimInfo, int fVerbose )
-{
-    Abc_Cex_t * pCare;
-    Aig_Obj_t * pObj;
-    Vec_Int_t * vRes, * vResInv;
-    int i, f, Value;
-//    assert( Aig_ManRegNum(p) > 0 );
-    assert( (unsigned *)Vec_PtrEntry(vSimInfo,1) - (unsigned *)Vec_PtrEntry(vSimInfo,0) >= Abc_BitWordNum(2*(pCex->iFrame+1)) );
-    // start simulation data
-    Value = Saig_ManSimDataInit2( p, pCex, vSimInfo );
-    assert( Value == SAIG_ONE_NEW );
-    // derive implications of constants and primary inputs
-    Saig_ManForEachLo( p, pObj, i )
-        Saig_ManSetAndDriveImplications_rec( p, pObj, 0, pCex->iFrame, vSimInfo );
-    for ( f = pCex->iFrame; f >= 0; f-- )
-    {
-        Saig_ManSetAndDriveImplications_rec( p, Aig_ManConst1(p), f, pCex->iFrame, vSimInfo );
-        for ( i = 0; i < iFirstFlopPi; i++ )
-            Saig_ManSetAndDriveImplications_rec( p, Aig_ManCi(p, i), f, pCex->iFrame, vSimInfo );
-    }
-    // recursively compute justification
-    Saig_ManExplorePaths_rec( p, Aig_ManCo(p, pCex->iPo), pCex->iFrame, pCex->iFrame, vSimInfo );
-
-    // create CEX
-    pCare = Abc_CexDup( pCex, pCex->nRegs );
-    memset( pCare->pData, 0, sizeof(unsigned) * Abc_BitWordNum(pCare->nBits) );
-
-    // select the result
-    vRes = Vec_IntAlloc( 1000 );
-    vResInv = Vec_IntAlloc( 1000 );
-    for ( i = iFirstFlopPi; i < Saig_ManPiNum(p); i++ )
-    {
-        int fFound = 0;
-        for ( f = pCex->iFrame; f >= 0; f-- )
-        {
-            Value = Saig_ManSimInfo2Get( vSimInfo, Aig_ManCi(p, i), f );
-            if ( Saig_ManSimInfo2IsOld( Value ) )
-            {
-                fFound = 1;
-                Abc_InfoSetBit( pCare->pData, pCare->nRegs + pCare->nPis * f + i );
-            }
-        }
-        if ( fFound )
-            Vec_IntPush( vRes, i );
-        else
-            Vec_IntPush( vResInv, i );
-    }
-    // resimulate to make sure it is valid
-    Value = Saig_ManSimDataInit( p, pCex, vSimInfo, vResInv );
-    assert( Value == SAIG_ONE );
-    Vec_IntFree( vResInv );
-    Vec_IntFree( vRes );
-
-    return pCare;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Returns the array of PIs for flops that should not be absracted.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Abc_Cex_t * Saig_ManFindCexCareBitsSense( Aig_Man_t * p, Abc_Cex_t * pCex, int iFirstFlopPi, int fVerbose )
-{
-    Abc_Cex_t * pCare;
-    Vec_Ptr_t * vSimInfo;
-    clock_t clk;
-    if ( Saig_ManPiNum(p) != pCex->nPis )
-    {
-        printf( "Saig_ManExtendCounterExampleTest2(): The PI count of AIG (%d) does not match that of cex (%d).\n", 
-            Aig_ManCiNum(p), pCex->nPis );
-        return NULL;
-    }
-    Aig_ManFanoutStart( p );
-    vSimInfo = Vec_PtrAllocSimInfo( Aig_ManObjNumMax(p), Abc_BitWordNum(2*(pCex->iFrame+1)) );
-    Vec_PtrCleanSimInfo( vSimInfo, 0, Abc_BitWordNum(2*(pCex->iFrame+1)) );
-
-clk = clock();
-    pCare = Saig_ManDeriveCex( p, iFirstFlopPi, pCex, vSimInfo, fVerbose );
-    if ( fVerbose )
-    {
-//        printf( "Total new PIs = %3d. Non-removable PIs = %3d.  ", Saig_ManPiNum(p)-iFirstFlopPi, Vec_IntSize(vRes) );
-Abc_CexPrintStats( pCex );
-Abc_CexPrintStats( pCare );
-ABC_PRT( "Time", clock() - clk );
-    }
-
-    Vec_PtrFree( vSimInfo );
-    Aig_ManFanoutStop( p );
-    return pCare;
-}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

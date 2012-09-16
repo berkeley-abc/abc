@@ -18,9 +18,7 @@
 
 ***********************************************************************/
 
-#include "saig.h"
-#include "aig/gia/giaAig.h"
-#include "aig/ioa/ioa.h"
+#include "abs.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -582,7 +580,7 @@ void Saig_ManCbaShrink( Saig_ManCba_t * p )
     }
     // try reducing the frames
     pManNew = Saig_ManDupWithCubes( p->pAig, p->vReg2Value );
-    Ioa_WriteAiger( pManNew, "aigcube.aig", 0, 0 );
+//    Ioa_WriteAiger( pManNew, "aigcube.aig", 0, 0 );
     Aig_ManStop( pManNew );
 }
 

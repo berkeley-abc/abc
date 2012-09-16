@@ -1,10 +1,10 @@
 /**CFile****************************************************************
 
-  FileName    [gia.c]
+  FileName    [absGla2.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
-  PackageName [Scalable AIG package.]
+  PackageName [Abstraction package.]
 
   Synopsis    [Scalable gate-level abstraction.]
 
@@ -14,16 +14,16 @@
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
 
-  Revision    [$Id: gia.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
+  Revision    [$Id: absGla2.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
-#include "gia.h"
-#include "giaAbsRef.h"
-//#include "giaAbsRef2.h"
 #include "sat/cnf/cnf.h"
 #include "sat/bsat/satSolver2.h"
 #include "base/main/main.h"
+#include "abs.h"
+#include "absRef.h"
+//#include "absRef2.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -38,7 +38,7 @@ struct Ga2_Man_t_
 {
     // user data
     Gia_Man_t *    pGia;         // working AIG manager
-    Gia_ParVta_t * pPars;        // parameters
+    Abs_Par_t *    pPars;        // parameters
     // markings 
     Vec_Ptr_t *    vCnfs;        // for each object: CNF0, CNF1
     // abstraction
@@ -378,7 +378,7 @@ void Ga2_ManComputeTest( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Ga2_Man_t * Ga2_ManStart( Gia_Man_t * pGia, Gia_ParVta_t * pPars )
+Ga2_Man_t * Ga2_ManStart( Gia_Man_t * pGia, Abs_Par_t * pPars )
 {
     Ga2_Man_t * p;
     p = ABC_CALLOC( Ga2_Man_t, 1 );
@@ -415,7 +415,7 @@ Ga2_Man_t * Ga2_ManStart( Gia_Man_t * pGia, Gia_ParVta_t * pPars )
     return p;
 }
 
-void Ga2_ManDumpStats( Gia_Man_t * pGia, Gia_ParVta_t * pPars, sat_solver2 * pSat, int iFrame, int fUseN )
+void Ga2_ManDumpStats( Gia_Man_t * pGia, Abs_Par_t * pPars, sat_solver2 * pSat, int iFrame, int fUseN )
 {
     FILE * pFile;
     char pFileName[32];
@@ -1525,7 +1525,7 @@ void Gia_Ga2SendCancel( Ga2_Man_t * p, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-int Ga2_ManPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
+int Gia_ManPerformGla( Gia_Man_t * pAig, Abs_Par_t * pPars )
 {
     int fUseSecondCore = 1;
     Ga2_Man_t * p;
@@ -1866,7 +1866,7 @@ finish:
         if ( p->pPars->fVerbose )
             Abc_Print( 1, "\n" );
         if ( !Gia_ManVerifyCex( pAig, pAig->pCexSeq, 0 ) )
-            Abc_Print( 1, "    Gia_GlaPerform(): CEX verification has failed!\n" );
+            Abc_Print( 1, "    Gia_ManPerformGlaOld(): CEX verification has failed!\n" );
         Abc_Print( 1, "True counter-example detected in frame %d.  ", f );
         p->pPars->iFrame = f - 1;
         Vec_IntFreeP( &pAig->vGateClasses );
