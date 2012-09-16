@@ -1193,39 +1193,6 @@ static inline int Ga2_ObjSatValue( Ga2_Man_t * p, Gia_Obj_t * pObj, int f )
         return 0;
     return Abc_LitIsCompl(Lit) ^ sat_solver2_var_value( p->pSat, Abc_Lit2Var(Lit) );
 }
-void Ga2_GlaPrepareCexAndMap( Ga2_Man_t * p, Abc_Cex_t ** ppCex, Vec_Int_t ** pvMaps )
-{
-    Abc_Cex_t * pCex;
-    Vec_Int_t * vMap;
-    Gia_Obj_t * pObj;
-    int f, i, k;
-/*
-    Gia_ManForEachObj( p->pGia, pObj, i )
-        if ( Ga2_ObjId(p, pObj) >= 0 )
-            assert( Vec_IntEntry(p->vValues, Ga2_ObjId(p, pObj)) == i );
-*/
-    // find PIs and PPIs
-    vMap = Vec_IntAlloc( 1000 );
-    Gia_ManForEachObjVec( p->vValues, p->pGia, pObj, i )
-    {
-        if ( !i ) continue;
-        if ( Ga2_ObjIsAbs(p, pObj) )
-            continue;
-        assert( pObj->fPhase );
-        assert( Ga2_ObjIsLeaf(p, pObj) );
-        assert( Gia_ObjIsAnd(pObj) || Gia_ObjIsCi(pObj) );
-        Vec_IntPush( vMap, Gia_ObjId(p->pGia, pObj) );
-    }
-    // derive counter-example
-    pCex = Abc_CexAlloc( 0, Vec_IntSize(vMap), p->pPars->iFrame+1 );
-    pCex->iFrame = p->pPars->iFrame;
-    for ( f = 0; f <= p->pPars->iFrame; f++ )
-        Gia_ManForEachObjVec( vMap, p->pGia, pObj, k )
-            if ( Ga2_ObjSatValue( p, pObj, f ) )
-                Abc_InfoSetBit( pCex->pData, f * Vec_IntSize(vMap) + k );
-    *pvMaps = vMap;
-    *ppCex = pCex;
-}
 Abc_Cex_t * Ga2_ManDeriveCex( Ga2_Man_t * p, Vec_Int_t * vPis )
 {
     Abc_Cex_t * pCex;
@@ -1307,12 +1274,64 @@ void Ga2_ManRefinePrintPPis( Ga2_Man_t * p )
 }
 
 
+void Ga2_GlaPrepareCexAndMap( Ga2_Man_t * p, Abc_Cex_t ** ppCex, Vec_Int_t ** pvMaps )
+{
+    Abc_Cex_t * pCex;
+    Vec_Int_t * vMap;
+    Gia_Obj_t * pObj;
+    int f, i, k;
+/*
+    Gia_ManForEachObj( p->pGia, pObj, i )
+        if ( Ga2_ObjId(p, pObj) >= 0 )
+            assert( Vec_IntEntry(p->vValues, Ga2_ObjId(p, pObj)) == i );
+*/
+    // find PIs and PPIs
+    vMap = Vec_IntAlloc( 1000 );
+    Gia_ManForEachObjVec( p->vValues, p->pGia, pObj, i )
+    {
+        if ( !i ) continue;
+        if ( Ga2_ObjIsAbs(p, pObj) )
+            continue;
+        assert( pObj->fPhase );
+        assert( Ga2_ObjIsLeaf(p, pObj) );
+        assert( Gia_ObjIsAnd(pObj) || Gia_ObjIsCi(pObj) );
+        Vec_IntPush( vMap, Gia_ObjId(p->pGia, pObj) );
+    }
+    // derive counter-example
+    pCex = Abc_CexAlloc( 0, Vec_IntSize(vMap), p->pPars->iFrame+1 );
+    pCex->iFrame = p->pPars->iFrame;
+    for ( f = 0; f <= p->pPars->iFrame; f++ )
+        Gia_ManForEachObjVec( vMap, p->pGia, pObj, k )
+            if ( Ga2_ObjSatValue( p, pObj, f ) )
+                Abc_InfoSetBit( pCex->pData, f * Vec_IntSize(vMap) + k );
+    *pvMaps = vMap;
+    *ppCex = pCex;
+}
 Vec_Int_t * Ga2_ManRefine( Ga2_Man_t * p )
 {
     Abc_Cex_t * pCex;
     Vec_Int_t * vMap, * vVec;
     Gia_Obj_t * pObj;
     int i, k;
+    if ( p->pPars->fAddLayer )
+    {
+        // use simplified refinement strategy, which adds logic near at PPI without finding important ones
+        vVec = Vec_IntAlloc( 100 );
+        Gia_ManForEachObjVec( p->vValues, p->pGia, pObj, i )
+        {
+            if ( !i ) continue;
+            if ( Ga2_ObjIsAbs(p, pObj) )
+                continue;
+            assert( pObj->fPhase );
+            assert( Ga2_ObjIsLeaf(p, pObj) );
+            assert( Gia_ObjIsAnd(pObj) || Gia_ObjIsCi(pObj) );
+            if ( Gia_ObjIsPi(p->pGia, pObj) )
+                continue;
+            Vec_IntPush( vVec, Gia_ObjId(p->pGia, pObj) );
+        }
+        p->nObjAdded += Vec_IntSize(vVec);
+        return vVec;
+    }
     Ga2_GlaPrepareCexAndMap( p, &pCex, &vMap );
  //    Rf2_ManRefine( p->pRf2, pCex, vMap, p->pPars->fPropFanout, 1 );
     vVec = Rnm_ManRefine( p->pRnm, pCex, vMap, p->pPars->fPropFanout, 1, 1 );
