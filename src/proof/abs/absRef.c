@@ -672,7 +672,7 @@ void Rnm_ManVerifyUsingTerSim( Gia_Man_t * p, Abc_Cex_t * pCex, Vec_Int_t * vMap
 ***********************************************************************/
 Vec_Int_t * Rnm_ManRefine( Rnm_Man_t * p, Abc_Cex_t * pCex, Vec_Int_t * vMap, int fPropFanout, int fNewRefinement, int fVerbose )
 {
-    int fVerify = 0;
+    int fVerify = 1;
     Vec_Int_t * vGoodPPis, * vNewPPis;
     clock_t clk, clk2 = clock();
     int RetValue;
@@ -705,6 +705,16 @@ Vec_Int_t * Rnm_ManRefine( Rnm_Man_t * p, Abc_Cex_t * pCex, Vec_Int_t * vMap, in
 //        assert( RetValue == 0 );
         p->timeBwd += clock() - clk;
     }
+
+    // verify (empty) refinement
+    // (only works when post-processing is not applied)
+    if ( fVerify )
+    {
+        clk = clock();
+        Rnm_ManVerifyUsingTerSim( p->pGia, p->pCex, p->vMap, p->vObjs, vGoodPPis );
+        p->timeVer += clock() - clk;
+    }
+
     // at this point array vGoodPPis contains the set of important PPIs
     if ( Vec_IntSize(vGoodPPis) > 0 ) // spurious CEX resulting in a non-trivial refinement 
     {
@@ -722,16 +732,9 @@ Vec_Int_t * Rnm_ManRefine( Rnm_Man_t * p, Abc_Cex_t * pCex, Vec_Int_t * vMap, in
     }
 
     // clean values
+    // we cannot do this before, because we need to remember what objects
+    // belong to the abstraction when we do Rnm_ManFilterSelected()
     Rnm_ManCleanValues( p );
-
-    // verify (empty) refinement
-    // (only works when post-processing is not applied)
-    if ( fVerify )
-    {
-        clk = clock();
-        Rnm_ManVerifyUsingTerSim( p->pGia, p->pCex, p->vMap, p->vObjs, vGoodPPis );
-        p->timeVer += clock() - clk;
-    }
 
 //    Vec_IntReverseOrder( vGoodPPis );
     p->timeTotal += clock() - clk2;

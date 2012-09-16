@@ -28364,7 +28364,7 @@ usage:
     Abc_Print( -2, "\t-T num  : an approximate timeout, in seconds [default = %d]\n", pPars->nTimeOut );
     Abc_Print( -2, "\t-R num  : minimum percentage of abstracted objects (0<=num<=100) [default = %d]\n", pPars->nRatioMin );
     Abc_Print( -2, "\t-P num  : maximum percentage of added objects before a restart (0<=num<=100) [default = %d]\n", pPars->nRatioMax );
-    Abc_Print( -2, "\t-B num  : the number of stable frames to dump abstraction or call prover (0<=num<=100) [default = %d]\n", pPars->nFramesNoChangeLim );
+    Abc_Print( -2, "\t-B num  : the number of stable frames to call prover or dump abstraction [default = %d]\n", pPars->nFramesNoChangeLim );
     Abc_Print( -2, "\t-A file : file name for dumping abstrated model [default = \"glabs.aig\"]\n" );
     Abc_Print( -2, "\t-f      : toggle propagating fanout implications [default = %s]\n", pPars->fPropFanout? "yes": "no" );
     Abc_Print( -2, "\t-a      : toggle refinement by adding one layers of gates [default = %s]\n", pPars->fAddLayer? "yes": "no" );

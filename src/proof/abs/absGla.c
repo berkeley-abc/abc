@@ -59,6 +59,7 @@ struct Ga2_Man_t_
     int            nSatVars;     // the number of SAT variables
     int            nCexes;       // the number of counter-examples
     int            nObjAdded;    // objs added during refinement
+    int            nPdrCalls;    // count the number of concurrent calls
     // hash table
     int *          pTable;
     int            nTable;
@@ -463,8 +464,8 @@ void Ga2_ManStop( Ga2_Man_t * p )
             sat_solver2_nconflicts(p->pSat), sat_solver2_nlearnts(p->pSat), 
             p->pSat->nDBreduces, p->nCexes, p->nObjAdded );
     if ( p->pPars->fVerbose )
-    Abc_Print( 1, "Hash hits = %d.  Hash misses = %d.  Hash overs = %d.\n", 
-        p->nHashHit, p->nHashMiss, p->nHashOver );
+    Abc_Print( 1, "Hash hits = %d.  Hash misses = %d.  Hash overs = %d.  Concurrent calls = %d.\n", 
+        p->nHashHit, p->nHashMiss, p->nHashOver, p->nPdrCalls );
 
     if( p->pSat ) sat_solver2_delete( p->pSat );
     Vec_VecFree( (Vec_Vec_t *)p->vCnfs );
@@ -1794,6 +1795,7 @@ int Gia_ManPerformGla( Gia_Man_t * pAig, Abs_Par_t * pPars )
                     // prove new one
                     Gia_GlaProveAbsracted( pAig, pPars->fVerbose );
                     iFrameTryToProve = f;
+                    p->nPdrCalls++;
                 }
                 // speak to the bridge
                 if ( Abc_FrameIsBridgeMode() )
