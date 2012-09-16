@@ -24,7 +24,7 @@
 // to compile on Linux, add -lpthread to LIBS in Makefile
 
 // uncomment this line to enable pthreads
-//#define ABC_USE_PTHREADS
+#define ABC_USE_PTHREADS
 
 #ifdef ABC_USE_PTHREADS
 
@@ -118,11 +118,11 @@ void * Abs_ProverThread( void * pArg )
     if ( pThData->fVerbose )
     {
         if ( RetValue == 1 )
-            Abc_Print( 1, "\nProved abstraction %d.\n", pThData->RunId );
+            Abc_Print( 1, "Proved abstraction %d.\n", pThData->RunId );
         else if ( RetValue == 0 )
-            Abc_Print( 1, "\nDisproved abstraction %d.\n", pThData->RunId );
+            Abc_Print( 1, "Disproved abstraction %d.\n", pThData->RunId );
         else if ( RetValue == -1 )
-            Abc_Print( 1, "\nCancelled abstraction %d.\n", pThData->RunId );
+            Abc_Print( 1, "Cancelled abstraction %d.\n", pThData->RunId );
         else assert( 0 );
     }
     // free memory
@@ -141,7 +141,7 @@ void Gia_GlaProveAbsracted( Gia_Man_t * pGia, int fVerbose )
     pthread_t ProverThread;
     int status;
     // disable verbosity
-    fVerbose = 0;
+//    fVerbose = 0;
     // create abstraction 
     assert( pGia->vGateClasses != NULL );
     pAbs = Gia_ManDupAbsGates( pGia, pGia->vGateClasses );

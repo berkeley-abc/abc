@@ -61,7 +61,7 @@ void Abs_ParSetDefaults( Abs_Par_t * p )
     p->fVerbose           =      0;   // verbose flag
     p->iFrame             =     -1;   // the number of frames covered 
     p->iFrameProved       =     -1;   // the number of frames proved
-    p->nFramesNoChangeLim =      1;   // the number of frames without change to dump abstraction
+    p->nFramesNoChangeLim =      2;   // the number of frames without change to dump abstraction
 }
 
 /**Function*************************************************************

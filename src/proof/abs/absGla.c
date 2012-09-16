@@ -50,6 +50,7 @@ struct Ga2_Man_t_
     int            LimAbs;       // limit value for starting abstraction objects
     int            LimPpi;       // limit value for starting PPI objects
     int            nMarked;      // total number of marked nodes and flops
+    int            fUseNewLine;  // remember that you used new line
     // refinement
     Rnm_Man_t *    pRnm;         // refinement manager
 //    Rf2_Man_t *    pRf2;         // refinement manager
@@ -372,6 +373,7 @@ Ga2_Man_t * Ga2_ManStart( Gia_Man_t * pGia, Abs_Par_t * pPars )
     Ga2_Man_t * p;
     p = ABC_CALLOC( Ga2_Man_t, 1 );
     p->timeStart = clock();
+    p->fUseNewLine = 1;
     // user data
     p->pGia      = pGia;
     p->pPars     = pPars;
@@ -1387,8 +1389,10 @@ int Ga2_GlaAbsCount( Ga2_Man_t * p, int fRo, int fAnd )
 ***********************************************************************/
 void Ga2_ManAbsPrintFrame( Ga2_Man_t * p, int nFrames, int nConfls, int nCexes, clock_t Time, int fFinal )
 {
-    if ( Abc_FrameIsBatchMode() && !(((fFinal && nCexes) || p->pPars->fVeryVerbose)) )
+    int fUseNewLine = ((fFinal && nCexes) || p->pPars->fVeryVerbose);
+    if ( Abc_FrameIsBatchMode() && !fUseNewLine )
         return;
+    p->fUseNewLine = fUseNewLine;
     Abc_Print( 1, "%4d :", nFrames );
     Abc_Print( 1, "%4d", Abc_MinInt(100, 100 * Vec_IntSize(p->vAbs) / p->nMarked) ); 
     Abc_Print( 1, "%6d", Vec_IntSize(p->vAbs) );
@@ -1405,7 +1409,7 @@ void Ga2_ManAbsPrintFrame( Ga2_Man_t * p, int nFrames, int nConfls, int nCexes, 
     Abc_PrintInt( sat_solver2_nlearnts(p->pSat) );
     Abc_Print( 1, "%9.2f sec", 1.0*Time/CLOCKS_PER_SEC );
     Abc_Print( 1, "%5.0f MB", (sat_solver2_memory_proof(p->pSat) + sat_solver2_memory(p->pSat, 0)) / (1<<20) );
-    Abc_Print( 1, "%s", ((fFinal && nCexes) || p->pPars->fVeryVerbose) ? "\n" : "\r" );
+    Abc_Print( 1, "%s", fUseNewLine ? "\n" : "\r" );
     fflush( stdout );
 }
 
@@ -1793,7 +1797,7 @@ int Gia_ManPerformGla( Gia_Man_t * pAig, Abs_Par_t * pPars )
                     if ( iFrameTryToProve >= 0 )
                         Gia_GlaProveCancel( pPars->fVerbose );
                     // prove new one
-                    Gia_GlaProveAbsracted( pAig, pPars->fVerbose );
+                    Gia_GlaProveAbsracted( pAig, pPars->fVeryVerbose );
                     iFrameTryToProve = f;
                     p->nPdrCalls++;
                 }
@@ -1826,6 +1830,8 @@ finish:
     if ( iFrameTryToProve >= 0 )
         Gia_GlaProveCancel( pPars->fVerbose );
     // analize the results
+    if ( !p->fUseNewLine )
+        Abc_Print( 1, "\n" );
     if ( RetValue == 1 )
         Abc_Print( 1, "GLA completed %d frames and proved abstraction derived in frame %d.  ", p->pPars->iFrameProved+1, iFrameTryToProve );
     else if ( pAig->pCexSeq == NULL )
@@ -1836,8 +1842,6 @@ finish:
         pAig->vGateClasses = Ga2_ManAbsTranslate( p );
         if ( Status == l_Undef )
         {
-            if ( p->pPars->fVerbose )
-                Abc_Print( 1, "\n" );
             if ( p->pPars->nTimeOut && clock() >= p->pSat->nRuntimeLimit ) 
                 Abc_Print( 1, "Timeout %d sec in frame %d with a %d-stable abstraction.    ", p->pPars->nTimeOut, p->pPars->iFrameProved+1, p->pPars->nFramesNoChange );
             else if ( pPars->nConfLimit && sat_solver2_nconflicts(p->pSat) >= pPars->nConfLimit )
