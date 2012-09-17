@@ -298,9 +298,10 @@ int Scl_CommandStime( Abc_Frame_t * pAbc, int argc, char **argv )
     int c;
     int fShowAll = 0;
     int fUseWireLoads = 1;
+    int fShort = 0;
 
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "cah" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "cash" ) ) != EOF )
     {
         switch ( c )
         {
@@ -309,6 +310,9 @@ int Scl_CommandStime( Abc_Frame_t * pAbc, int argc, char **argv )
                 break;
             case 'a':
                 fShowAll ^= 1;
+                break;
+            case 's':
+                fShort ^= 1;
                 break;
             case 'h':
                 goto usage;
@@ -338,14 +342,15 @@ int Scl_CommandStime( Abc_Frame_t * pAbc, int argc, char **argv )
         return 1;
     }
 
-    Abc_SclTimePerform( pAbc->pLibScl, Abc_FrameReadNtk(pAbc), fShowAll, fUseWireLoads );
+    Abc_SclTimePerform( pAbc->pLibScl, Abc_FrameReadNtk(pAbc), fUseWireLoads, fShowAll, fShort );
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: stime [-cah]\n" );
+    fprintf( pAbc->Err, "usage: stime [-cash]\n" );
     fprintf( pAbc->Err, "\t         performs STA using Liberty library\n" );
     fprintf( pAbc->Err, "\t-c     : toggle using wire-loads if specified [default = %s]\n", fUseWireLoads? "yes": "no" );
     fprintf( pAbc->Err, "\t-a     : display timing information for all nodes [default = %s]\n", fShowAll? "yes": "no" );
+    fprintf( pAbc->Err, "\t-s     : display timing information without critical path [default = %s]\n", fShort? "yes": "no" );
     fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
     return 1;
 }

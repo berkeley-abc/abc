@@ -235,7 +235,7 @@ static inline SC_Cell * Abc_SclObjResiable( SC_Man * p, Abc_Obj_t * pObj, int fU
 /*=== sclTime.c =============================================================*/
 extern Abc_Obj_t * Abc_SclFindCriticalCo( SC_Man * p, int * pfRise );
 extern Abc_Obj_t * Abc_SclFindMostCriticalFanin( SC_Man * p, int * pfRise, Abc_Obj_t * pNode );
-extern void        Abc_SclTimeNtkPrint( SC_Man * p, int fShowAll );
+extern void        Abc_SclTimeNtkPrint( SC_Man * p, int fShowAll, int fShort );
 extern SC_Man *    Abc_SclManStart( SC_Lib * pLib, Abc_Ntk_t * pNtk, int fUseWireLoads );
 extern void        Abc_SclTimeCone( SC_Man * p, Vec_Int_t * vCone );
 extern void        Abc_SclTimeNtkRecompute( SC_Man * p, float * pArea, float * pDelay );

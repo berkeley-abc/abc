@@ -432,7 +432,7 @@ extern void        Abc_SclWriteText( char * pFileName, SC_Lib * p );
 extern void        Abc_SclLoad( char * pFileName, SC_Lib ** ppScl );
 extern void        Abc_SclSave( char * pFileName, SC_Lib * pScl );
 /*=== sclTime.c =============================================================*/
-extern void        Abc_SclTimePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int fShowAll, int fUseWireLoads );
+extern void        Abc_SclTimePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int fUseWireLoads, int fShowAll, int fShort );
 /*=== sclSize.c =============================================================*/
 extern void        Abc_SclSizingPerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * p );
 /*=== sclUpsize.c =============================================================*/

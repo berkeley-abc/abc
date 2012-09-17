@@ -96,7 +96,7 @@ static inline void Abc_SclTimeGatePrint( SC_Man * p, Abc_Obj_t * pObj, int fRise
     printf( "slew =%6.1f ps   ",  Abc_SclObjSlewPs(p, pObj, fRise >= 0 ? fRise : 0 ) );
     printf( "\n" );
 }
-void Abc_SclTimeNtkPrint( SC_Man * p, int fShowAll )
+void Abc_SclTimeNtkPrint( SC_Man * p, int fShowAll, int fShort )
 {
     int i, nLength = 0, fRise = 0;
     Abc_Obj_t * pObj, * pPivot = Abc_SclFindCriticalCo( p, &fRise );    
@@ -105,6 +105,8 @@ void Abc_SclTimeNtkPrint( SC_Man * p, int fShowAll )
     printf( "Gates = %d.  ",              Abc_NtkNodeNum(p->pNtk) );
     printf( "Area = %.2f.  ",             Abc_SclGetTotalArea( p ) );
     printf( "Critical delay = %.1f ps\n", Abc_SclObjTimePs(p, pPivot, fRise) );
+    if ( fShort )
+        return;
 
     if ( fShowAll )
     {
@@ -299,11 +301,11 @@ SC_Man * Abc_SclManStart( SC_Lib * pLib, Abc_Ntk_t * pNtk, int fUseWireLoads )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_SclTimePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int fShowAll, int fUseWireLoads )
+void Abc_SclTimePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int fUseWireLoads, int fShowAll, int fShort )
 {
     SC_Man * p;
     p = Abc_SclManStart( pLib, pNtk, fUseWireLoads );   
-    Abc_SclTimeNtkPrint( p, fShowAll );
+    Abc_SclTimeNtkPrint( p, fShowAll, fShort );
     Abc_SclManFree( p );
 }
 

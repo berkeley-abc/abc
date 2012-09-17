@@ -367,7 +367,7 @@ void Abc_SclSizingPerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPars 
     int r, i, nNodes, nCones = 0, nDownSize = 0;
     p = Abc_SclManStart( pLib, pNtk, pPars->fUseWireLoads );
     if ( pPars->fPrintCP )
-        Abc_SclTimeNtkPrint( p, 0 );
+        Abc_SclTimeNtkPrint( p, 0, 0 );
     if ( pPars->fVerbose )
         printf( "Iterative gate-sizing of network \"%s\" with library \"%s\":\n", Abc_NtkName(pNtk), pLib->pName );
     if ( pPars->fVerbose )
@@ -459,7 +459,7 @@ void Abc_SclSizingPerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPars 
 
     p->MaxDelay = Abc_SclGetMaxDelay(p);
     if ( pPars->fPrintCP )
-        Abc_SclTimeNtkPrint( p, 0 );
+        Abc_SclTimeNtkPrint( p, 0, 0 );
     if ( nRuntimeLimit && clock() > nRuntimeLimit )
         printf( "Timeout was reached after %d seconds.\n", pPars->nTimeOut );
     // print cumulative statistics
