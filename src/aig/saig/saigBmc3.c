@@ -1392,6 +1392,13 @@ int Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars )
         {
             if ( i >= Saig_ManPoNum(pAig) )
                 break;
+            // check for timeout
+            if ( pPars->nTimeOut && clock() > nTimeToStop )
+            {
+                printf( "Reached timeout (%d seconds).\n",  pPars->nTimeOut );
+                Saig_Bmc3ManStop( p );
+                return RetValue;
+            }
             // skip solved outputs
             if ( p->vCexes && Vec_PtrEntry(p->vCexes, i) )
                 continue;
@@ -1496,12 +1503,6 @@ clkOther += clock() - clk2;
             else 
             {
                 assert( status == l_Undef );
-                if ( pPars->nTimeOut && clock() > nTimeToStop )
-                {
-                    printf( "Reached timeout (%d seconds).\n",  pPars->nTimeOut );
-                    Saig_Bmc3ManStop( p );
-                    return RetValue;
-                }
                 if ( pPars->nFramesJump )
                 {
                     pPars->nConfLimit = pPars->nConfLimitJump;
@@ -1509,12 +1510,6 @@ clkOther += clock() - clk2;
                     fUnfinished = 1;
                     break;
                 }
-                Saig_Bmc3ManStop( p );
-                return RetValue;
-            }
-            if ( pPars->nTimeOut && clock() > nTimeToStop )
-            {
-                printf( "Reached timeout (%d seconds).\n",  pPars->nTimeOut );
                 Saig_Bmc3ManStop( p );
                 return RetValue;
             }
