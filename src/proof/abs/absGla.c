@@ -1833,7 +1833,7 @@ finish:
     if ( !p->fUseNewLine )
         Abc_Print( 1, "\n" );
     if ( RetValue == 1 )
-        Abc_Print( 1, "GLA completed %d frames and proved abstraction derived in frame %d.  ", p->pPars->iFrameProved+1, iFrameTryToProve );
+        Abc_Print( 1, "GLA completed %d frames and proved abstraction derived in frame %d  ", p->pPars->iFrameProved+1, iFrameTryToProve );
     else if ( pAig->pCexSeq == NULL )
     {
         Vec_IntFreeP( &pAig->vGateClasses );
