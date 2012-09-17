@@ -47,7 +47,7 @@ void Cnf_ManPrepare()
 {
     if ( s_pManCnf == NULL )
     {
-        printf( "\n\nCreating CNF manager!!!!!\n\n" );
+//        printf( "\n\nCreating CNF manager!!!!!\n\n" );
         s_pManCnf = Cnf_ManStart();
     }
 }

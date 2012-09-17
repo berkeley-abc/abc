@@ -59,6 +59,7 @@ static Abc_Obj_t *  Abc_NodeFromMapSuperChoice_rec( Abc_Ntk_t * pNtkNew, Map_Sup
 ***********************************************************************/
 Abc_Ntk_t * Abc_NtkMap( Abc_Ntk_t * pNtk, double DelayTarget, double AreaMulti, double DelayMulti, int fRecovery, int fSwitching, int fVerbose )
 {
+    static int fUseMulti = 0;
     int fShowSwitching = 1;
     Abc_Ntk_t * pNtkNew;
     Map_Man_t * pMan;
@@ -76,12 +77,19 @@ Abc_Ntk_t * Abc_NtkMap( Abc_Ntk_t * pNtk, double DelayTarget, double AreaMulti, 
         return 0;
     }
 
+    if ( AreaMulti != 0.0 )
+        fUseMulti = 1, printf( "The cell areas are multiplied by the factor: <num_fanins> ^ (%.2f).\n", AreaMulti );
+    if ( DelayMulti != 0.0 )
+        fUseMulti = 1, printf( "The cell delays are multiplied by the factor: <num_fanins> ^ (%.2f).\n", DelayMulti );
+
     // penalize large gates by increasing their area
-    Mio_LibraryMultiArea( pLib, AreaMulti );
-    Mio_LibraryMultiDelay( pLib, DelayMulti );
+    if ( AreaMulti != 0.0 )
+        Mio_LibraryMultiArea( pLib, AreaMulti );
+    if ( DelayMulti != 0.0 )
+        Mio_LibraryMultiDelay( pLib, DelayMulti );
 
     // derive the supergate library
-    if ( Abc_FrameReadLibSuper() == NULL && pLib )
+    if ( fUseMulti || Abc_FrameReadLibSuper() == NULL )
     {
 //        printf( "A simple supergate library is derived from gate library \"%s\".\n", 
 //            Mio_LibraryReadName((Mio_Library_t *)Abc_FrameReadLibGen()) );
@@ -90,12 +98,10 @@ Abc_Ntk_t * Abc_NtkMap( Abc_Ntk_t * pNtk, double DelayTarget, double AreaMulti, 
     }
 
     // return the library to normal
-    Mio_LibraryMultiArea( Abc_FrameReadLibGen(), -AreaMulti );
-    Mio_LibraryMultiDelay( Abc_FrameReadLibGen(), -DelayMulti );
     if ( AreaMulti != 0.0 )
-        printf( "The cell areas are multiplied by the factor: <num_fanins> ^ (%.2f).\n", AreaMulti );
+        Mio_LibraryMultiArea( Abc_FrameReadLibGen(), -AreaMulti );
     if ( DelayMulti != 0.0 )
-        printf( "The cell delay are multiplied by the factor: <num_fanins> ^ (%.2f).\n", DelayMulti );
+        Mio_LibraryMultiDelay( Abc_FrameReadLibGen(), -DelayMulti );
 
     // print a warning about choice nodes
     if ( Abc_NtkGetChoiceNum( pNtk ) )
