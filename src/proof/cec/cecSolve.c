@@ -383,8 +383,8 @@ void Cec_ManSatSolverRecycle( Cec_ManSat_t * p )
     p->nSatVars = 1;
 //    p->nSatVars = 0;
     Lit = toLitCond( p->nSatVars, 1 );
-    if ( p->pPars->fPolarFlip )
-        Lit = lit_neg( Lit );
+//    if ( p->pPars->fPolarFlip ) // no need to normalize const0 node (bug fix by SS on 9/17/2012)
+//        Lit = lit_neg( Lit );
     sat_solver_addclause( p->pSat, &Lit, &Lit + 1 );
     Cec_ObjSetSatNum( p, Gia_ManConst0(p->pAig), p->nSatVars++ );
 
