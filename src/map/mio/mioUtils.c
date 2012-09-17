@@ -610,7 +610,7 @@ void Mio_LibraryShiftDelay( Mio_Library_t * pLib, double Shift )
 
 /**Function*************************************************************
 
-  Synopsis    [Multiply areas of all gates by values proportional to fanin count.]
+  Synopsis    [Multiply areas/delays by values proportional to fanin count.]
 
   Description []
                
@@ -619,14 +619,35 @@ void Mio_LibraryShiftDelay( Mio_Library_t * pLib, double Shift )
   SeeAlso     []
 
 ***********************************************************************/
-void Mio_LibraryShiftArea( Mio_Library_t * pLib, double Shift )
+void Mio_LibraryMultiArea( Mio_Library_t * pLib, double Multi )
 {
     Mio_Gate_t * pGate;
     Mio_LibraryForEachGate( pLib, pGate )
     {
+        if ( pGate->nInputs < 2 )
+            continue;
 //        printf( "Before %8.3f  ", pGate->dArea );
-        pGate->dArea *= pow( pGate->nInputs, Shift );
-//        printf( "After %8.3f  Inputs = %d. Factor = %8.3f\n", pGate->dArea, pGate->nInputs, pow( pGate->nInputs, Shift ) );
+        pGate->dArea *= pow( pGate->nInputs, Multi );
+//        printf( "After %8.3f  Inputs = %d. Factor = %8.3f\n", pGate->dArea, pGate->nInputs, pow( pGate->nInputs, Multi ) );
+    }
+}
+void Mio_LibraryMultiDelay( Mio_Library_t * pLib, double Multi )
+{
+    Mio_Gate_t * pGate;
+    Mio_Pin_t * pPin;
+    Mio_LibraryForEachGate( pLib, pGate )
+    {
+        if ( pGate->nInputs < 2 )
+            continue;
+//        printf( "Before %8.3f  ", pGate->dDelayMax );
+        pGate->dDelayMax *= pow( pGate->nInputs, Multi );
+//        printf( "After %8.3f  Inputs = %d. Factor = %8.3f\n", pGate->dDelayMax, pGate->nInputs, pow( pGate->nInputs, Multi ) );
+        Mio_GateForEachPin( pGate, pPin )
+        {
+            pPin->dDelayBlockRise *= pow( pGate->nInputs, Multi );
+            pPin->dDelayBlockFall *= pow( pGate->nInputs, Multi );
+            pPin->dDelayBlockMax  *= pow( pGate->nInputs, Multi );
+        }
     }
 }
 

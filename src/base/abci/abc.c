@@ -13006,26 +13006,28 @@ int Abc_CommandMap( Abc_Frame_t * pAbc, int argc, char ** argv )
     char Buffer[100];
     double DelayTarget;
     double AreaMulti;
+    double DelayMulti;
     int fAreaOnly;
     int fRecovery;
     int fSweep;
     int fSwitching;
     int fVerbose;
     int c;
-    extern Abc_Ntk_t * Abc_NtkMap( Abc_Ntk_t * pNtk, double DelayTarget, double AreaMulti, int fRecovery, int fSwitching, int fVerbose );
+    extern Abc_Ntk_t * Abc_NtkMap( Abc_Ntk_t * pNtk, double DelayTarget, double AreaMulti, double DelayMulti, int fRecovery, int fSwitching, int fVerbose );
     extern int Abc_NtkFraigSweep( Abc_Ntk_t * pNtk, int fUseInv, int fExdc, int fVerbose, int fVeryVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     // set defaults
     DelayTarget =-1;
     AreaMulti   = 0;
+    DelayMulti  = 0;
     fAreaOnly   = 0;
     fRecovery   = 1;
     fSweep      = 1;
     fSwitching  = 0;
     fVerbose    = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "DMarspvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "DABarspvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -13040,16 +13042,27 @@ int Abc_CommandMap( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( DelayTarget <= 0.0 ) 
                 goto usage;
             break;
-        case 'M':
+        case 'A':
             if ( globalUtilOptind >= argc )
             {
-                Abc_Print( -1, "Command line switch \"-M\" should be followed by a floating point number.\n" );
+                Abc_Print( -1, "Command line switch \"-A\" should be followed by a floating point number.\n" );
                 goto usage;
             }
             AreaMulti = (float)atof(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( AreaMulti < 0.0 ) 
+//            if ( AreaMulti < 0.0 ) 
+//                goto usage;
+            break;
+        case 'B':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-B\" should be followed by a floating point number.\n" );
                 goto usage;
+            }
+            DelayMulti = (float)atof(argv[globalUtilOptind]);
+            globalUtilOptind++;
+//            if ( DelayMulti < 0.0 ) 
+//                goto usage;
             break;
         case 'a':
             fAreaOnly ^= 1;
@@ -13099,7 +13112,7 @@ int Abc_CommandMap( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
         Abc_Print( 0, "The network was strashed and balanced before mapping.\n" );
         // get the new network
-        pNtkRes = Abc_NtkMap( pNtk, DelayTarget, AreaMulti, fRecovery, fSwitching, fVerbose );
+        pNtkRes = Abc_NtkMap( pNtk, DelayTarget, AreaMulti, DelayMulti, fRecovery, fSwitching, fVerbose );
         if ( pNtkRes == NULL )
         {
             Abc_NtkDelete( pNtk );
@@ -13111,7 +13124,7 @@ int Abc_CommandMap( Abc_Frame_t * pAbc, int argc, char ** argv )
     else
     {
         // get the new network
-        pNtkRes = Abc_NtkMap( pNtk, DelayTarget, AreaMulti, fRecovery, fSwitching, fVerbose );
+        pNtkRes = Abc_NtkMap( pNtk, DelayTarget, AreaMulti, DelayMulti, fRecovery, fSwitching, fVerbose );
         if ( pNtkRes == NULL )
         {
             Abc_Print( -1, "Mapping has failed.\n" );
@@ -13138,10 +13151,11 @@ usage:
         sprintf( Buffer, "not used" );
     else
         sprintf( Buffer, "%.3f", DelayTarget );
-    Abc_Print( -2, "usage: map [-DM float] [-arspvh]\n" );
+    Abc_Print( -2, "usage: map [-DAB float] [-arspvh]\n" );
     Abc_Print( -2, "\t           performs standard cell mapping of the current network\n" );
     Abc_Print( -2, "\t-D float : sets the global required times [default = %s]\n", Buffer );  
-    Abc_Print( -2, "\t-M float : \"area multiplier\" to discourage large gates [default = %.2f]\n", AreaMulti );  
+    Abc_Print( -2, "\t-A float : \"area multiplier\" to bias gate selection [default = %.2f]\n", AreaMulti );  
+    Abc_Print( -2, "\t-B float : \"delay multiplier\" to bias gate selection [default = %.2f]\n", DelayMulti );  
     Abc_Print( -2, "\t-a       : toggles area-only mapping [default = %s]\n", fAreaOnly? "yes": "no" );
     Abc_Print( -2, "\t-r       : toggles area recovery [default = %s]\n", fRecovery? "yes": "no" );
     Abc_Print( -2, "\t-s       : toggles sweep after mapping [default = %s]\n", fSweep? "yes": "no" );
