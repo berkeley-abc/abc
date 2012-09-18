@@ -619,6 +619,42 @@ static inline int Vec_FltRemove( Vec_Flt_t * p, float Entry )
 
 /**Function*************************************************************
 
+  Synopsis    [Find entry.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline float Vec_FltFindMax( Vec_Flt_t * p )
+{
+    int i;
+    float Best;
+    if ( p->nSize == 0 )
+        return 0;
+    Best = p->pArray[0];
+    for ( i = 1; i < p->nSize; i++ )
+        if ( Best < p->pArray[i] )
+            Best = p->pArray[i];
+    return Best;
+}
+static inline float Vec_FltFindMin( Vec_Flt_t * p )
+{
+    int i;
+    float Best;
+    if ( p->nSize == 0 )
+        return 0;
+    Best = p->pArray[0];
+    for ( i = 1; i < p->nSize; i++ )
+        if ( Best > p->pArray[i] )
+            Best = p->pArray[i];
+    return Best;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Comparison procedure for two floats.]
 
   Description []

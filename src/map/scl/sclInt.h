@@ -155,6 +155,7 @@ struct SC_Pin_
 struct SC_Cell_ 
 {
     char *         pName;
+    int            Id;
     int            seq;            // -- set to TRUE by parser if a sequential element
     int            unsupp;         // -- set to TRUE by parser if cell contains information we cannot handle
     float          area;
@@ -436,7 +437,7 @@ extern void        Abc_SclTimePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int fUse
 /*=== sclSize.c =============================================================*/
 extern void        Abc_SclSizingPerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * p );
 /*=== sclUpsize.c =============================================================*/
-extern void        Abc_SclUpsizingPerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int Degree, int nRange, int fVerbose );
+extern void        Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int Window, int Ratio, int nIters, int fVerbose );
 /*=== sclUtil.c =============================================================*/
 extern void        Abc_SclHashCells( SC_Lib * p );
 extern int         Abc_SclCellFind( SC_Lib * p, char * pName );

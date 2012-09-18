@@ -642,34 +642,46 @@ usage:
 int Scl_CommandUpsize( Abc_Frame_t * pAbc, int argc, char **argv )
 {
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
-    int Degree = 2;
-    int nRange = 5;
+    int Window =  5;
+    int Ratio  =  5;
+    int nIters = 20;
     int c, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "NWvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "WRIvh" ) ) != EOF )
     {
         switch ( c )
         {
-        case 'N':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-N\" should be followed by a positive integer.\n" );
-                goto usage;
-            }
-            Degree = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( Degree < 0 ) 
-                goto usage;
-            break;
         case 'W':
             if ( globalUtilOptind >= argc )
             {
                 Abc_Print( -1, "Command line switch \"-W\" should be followed by a positive integer.\n" );
                 goto usage;
             }
-            nRange = atoi(argv[globalUtilOptind]);
+            Window = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nRange < 0 ) 
+            if ( Window < 0 ) 
+                goto usage;
+            break;
+        case 'R':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-R\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            Ratio = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( Ratio < 0 ) 
+                goto usage;
+            break;
+        case 'I':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-I\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            nIters = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nIters < 0 ) 
                 goto usage;
             break;
         case 'v':
@@ -703,14 +715,15 @@ int Scl_CommandUpsize( Abc_Frame_t * pAbc, int argc, char **argv )
         return 1;
     }
 
-    Abc_SclUpsizingPerform( pAbc->pLibScl, pNtk, Degree, nRange, fVerbose );
+    Abc_SclUpsizePerform( pAbc->pLibScl, pNtk, Window, Ratio, nIters, fVerbose );
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: upsize [-NW num] [-vh]\n" );
+    fprintf( pAbc->Err, "usage: upsize [-WRI num] [-vh]\n" );
     fprintf( pAbc->Err, "\t           selectively increases gate sizes in timing-critical regions\n" );
-    fprintf( pAbc->Err, "\t-N <num> : the max fanout count of gates to upsize [default = %d]\n", Degree );
-    fprintf( pAbc->Err, "\t-W <num> : delay window (in percents) of near-critical COs [default = %d]\n", nRange );
+    fprintf( pAbc->Err, "\t-W <num> : delay window (in percents) of near-critical COs [default = %d]\n", Window );
+    fprintf( pAbc->Err, "\t-R <num> : ratio of critical nodes (in percents) to update [default = %d]\n", Ratio );
+    fprintf( pAbc->Err, "\t-I <num> : the number of upsizing iterations to perform [default = %d]\n", nIters );
     fprintf( pAbc->Err, "\t-v       : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pAbc->Err, "\t-h       : print the command usage\n");
     return 1;

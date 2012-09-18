@@ -103,7 +103,7 @@ void Abc_SclFindCriticalCone_rec( SC_Man * p, Abc_Obj_t * pObj, Vec_Int_t * vVis
     Abc_NodeSetTravIdCurrent( pObj );
     assert( Abc_ObjIsNode(pObj) );
     // compute timing critical fanin
-    fArrMax = Abc_SclGetMaxDelayNode( p, pObj ) * (100.0 - RangeF) / 100.0;
+    fArrMax = Abc_SclGetMaxDelayNodeFanins( p, pObj ) * (100.0 - RangeF) / 100.0;
     // traverse all fanins whose arrival times are within a window
     Abc_ObjForEachFanin( pObj, pNext, i )
         if ( Abc_SclObjTimeMax(p, pNext) >= fArrMax )

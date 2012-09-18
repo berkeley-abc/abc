@@ -200,7 +200,7 @@ static inline float Abc_SclGetMaxDelay( SC_Man * p )
         fMaxArr = Abc_MaxFloat( fMaxArr, Abc_SclObjTimeMax(p, pObj) );
     return fMaxArr;
 }
-static inline float Abc_SclGetMaxDelayNode( SC_Man * p, Abc_Obj_t * pNode )
+static inline float Abc_SclGetMaxDelayNodeFanins( SC_Man * p, Abc_Obj_t * pNode )
 {
     float fMaxArr = 0;
     Abc_Obj_t * pObj;

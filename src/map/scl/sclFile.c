@@ -121,6 +121,7 @@ static void Abc_SclReadLibrary( Vec_Str_t * vOut, int * pPos, SC_Lib * p )
     for ( i = Vec_StrGetI(vOut, pPos); i != 0; i-- )
     {
         SC_Cell * pCell = Abc_SclCellAlloc();
+        pCell->Id = Vec_PtrSize(p->vCells);
         Vec_PtrPush( p->vCells, pCell );
 
         pCell->pName           = Vec_StrGetS(vOut, pPos);     
