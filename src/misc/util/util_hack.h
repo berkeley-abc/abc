@@ -37,7 +37,7 @@ ABC_NAMESPACE_HEADER_START
 #define getSoftDataLimit    Extra_GetSoftDataLimit   
 #define MMoutOfMemory       Extra_UtilMMoutOfMemory      
 
-extern long                 Extra_CpuTime();
+extern clock_t              Extra_CpuTime();
 extern int                  Extra_GetSoftDataLimit();
 extern void               (*Extra_UtilMMoutOfMemory)( long size );
 

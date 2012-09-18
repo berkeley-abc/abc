@@ -100,7 +100,7 @@ static int Abc_CommandEliminate              ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandDisjoint               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandLutpack                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandLutmin                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandImfs                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
+//static int Abc_CommandImfs                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandMfs                    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandTrace                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandSpeedup                ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -552,7 +552,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Synthesis",    "dsd",           Abc_CommandDisjoint,         1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "lutpack",       Abc_CommandLutpack,          1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "lutmin",        Abc_CommandLutmin,           1 );
-    Cmd_CommandAdd( pAbc, "Synthesis",    "imfs",          Abc_CommandImfs,             1 );
+//    Cmd_CommandAdd( pAbc, "Synthesis",    "imfs",          Abc_CommandImfs,             1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "mfs",           Abc_CommandMfs,              1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "trace",         Abc_CommandTrace,            0 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "speedup",       Abc_CommandSpeedup,          1 );
@@ -3945,6 +3945,8 @@ usage:
     return 1;
 } 
 
+#if 0
+
 /**Function*************************************************************
 
   Synopsis    []
@@ -4068,6 +4070,8 @@ usage:
     Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;
 } 
+
+#endif
 
 /**Function*************************************************************
 
@@ -8899,7 +8903,7 @@ usage:
     Abc_Print( -2, "\t         (a) \"miter -i <onset.blif> <inter.blif>; iprove\"\n" );
     Abc_Print( -2, "\t         (b) \"miter -i <inter.blif> <offset_inv.blif>; iprove\"\n" );
     Abc_Print( -2, "\t         where <offset_inv.blif> is the network derived by complementing the\n" );
-    Abc_Print( -2, "\t         outputs of <offset.blif>: \"r <onset.blif>; st -i; w <offset_inv.blif>\"\n" ); 
+    Abc_Print( -2, "\t         outputs of <offset.blif>: \"r <offset.blif>; st -i; w <offset_inv.blif>\"\n" ); 
     return 1;
 }
 
