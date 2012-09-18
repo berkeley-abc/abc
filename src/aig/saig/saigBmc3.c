@@ -1240,12 +1240,17 @@ int Saig_ManBmcRunTerSim_rec( Gia_ManBmc_t * p, Aig_Obj_t * pObj, int iFrame )
 ***********************************************************************/
 int Saig_ManBmcCreateCnf( Gia_ManBmc_t * p, Aig_Obj_t * pObj, int iFrame )
 {
+    int Lit;
     // perform terminary simulation
     int Value = Saig_ManBmcRunTerSim_rec( p, pObj, iFrame );
     if ( Value != SAIG_TER_UND )
         return (int)(Value == SAIG_TER_ONE);
     // construct CNF if value is ternary
-    return Saig_ManBmcCreateCnf_rec( p, pObj, iFrame );
+    Lit = Saig_ManBmcCreateCnf_rec( p, pObj, iFrame );
+    // extend the SAT solver
+    if ( p->nSatVars > sat_solver_nvars(p->pSat) )
+        sat_solver_setnvars( p->pSat, p->nSatVars );
+    return Lit;
 }
 
 
