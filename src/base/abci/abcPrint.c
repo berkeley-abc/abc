@@ -1013,7 +1013,7 @@ void Abc_NtkPrintGates( Abc_Ntk_t * pNtk, int fUseLibrary )
 
         // clean value of all gates
         nGates = Mio_LibraryReadGateNum( (Mio_Library_t *)pNtk->pManFunc );
-        ppGates = Mio_LibraryReadGatesByName( (Mio_Library_t *)pNtk->pManFunc );
+        ppGates = Mio_LibraryReadGateArray( (Mio_Library_t *)pNtk->pManFunc );
         for ( i = 0; i < nGates; i++ )
             Mio_GateSetValue( ppGates[i], 0 );
 
@@ -1024,6 +1024,9 @@ void Abc_NtkPrintGates( Abc_Ntk_t * pNtk, int fUseLibrary )
             if ( i == 0 ) continue;
             Mio_GateSetValue( (Mio_Gate_t *)pObj->pData, 1 + Mio_GateReadValue((Mio_Gate_t *)pObj->pData) );
             CounterTotal++;
+            // assuming that twin gates follow each other
+            if ( Mio_GateReadTwin(((Mio_Gate_t *)pObj->pData)) != NULL )
+                i++;
         }
 
         // determine the longest gate name

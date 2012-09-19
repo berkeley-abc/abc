@@ -490,7 +490,7 @@ int Ver_ParseModule( Ver_Man_t * pMan )
             RetValue = Ver_ParseInitial( pMan, pNtk );
         else if ( !strcmp( pWord, "endmodule" ) )
             break;
-        else if ( pMan->pDesign->pGenlib && (pGate = Mio_LibraryReadGateByName((Mio_Library_t *)pMan->pDesign->pGenlib, pWord)) ) // current design
+        else if ( pMan->pDesign->pGenlib && (pGate = Mio_LibraryReadGateByName((Mio_Library_t *)pMan->pDesign->pGenlib, pWord, NULL)) ) // current design
             RetValue = Ver_ParseGate( pMan, pNtk, pGate );
 //        else if ( pMan->pDesign->pLibrary && st_lookup(pMan->pDesign->pLibrary->tModules, pWord, (char**)&pNtkTemp) ) // gate library
 //            RetValue = Ver_ParseGate( pMan, pNtkTemp );
@@ -1506,6 +1506,8 @@ int Ver_FindGateInput( Mio_Gate_t * pGate, char * pName )
             return i;
     if ( strcmp(pName, Mio_GateReadOutName(pGate)) == 0 )
         return i;
+    if ( Mio_GateReadTwin(pGate) && strcmp(pName, Mio_GateReadOutName(Mio_GateReadTwin(pGate))) == 0 )
+        return i+1;
     return -1;
 }
 
@@ -1523,7 +1525,7 @@ int Ver_FindGateInput( Mio_Gate_t * pGate, char * pName )
 int Ver_ParseGate( Ver_Man_t * pMan, Abc_Ntk_t * pNtk, Mio_Gate_t * pGate )
 {
     Ver_Stream_t * p = pMan->pReader;
-    Abc_Obj_t * pNetActual, * pNode;
+    Abc_Obj_t * pNetActual, * pNode, * pNode2 = NULL;
     char * pWord, Symbol;
     int Input, i, nFanins = Mio_GateReadInputs(pGate);
 
@@ -1555,7 +1557,11 @@ int Ver_ParseGate( Ver_Man_t * pMan, Abc_Ntk_t * pNtk, Mio_Gate_t * pGate )
     // start the node
     pNode = Abc_NtkCreateNode( pNtk );
     pNode->pData = pGate;
-
+    if ( Mio_GateReadTwin(pGate) )
+    {
+        pNode2 = Abc_NtkCreateNode( pNtk );
+        pNode2->pData = Mio_GateReadTwin(pGate);
+    }
     // parse pairs of formal/actural inputs
     Vec_IntClear( pMan->vPerm );
     while ( 1 )
@@ -1628,9 +1634,15 @@ int Ver_ParseGate( Ver_Man_t * pMan, Abc_Ntk_t * pNtk, Mio_Gate_t * pGate )
         {
             Vec_IntPush( pMan->vPerm, Input );
             Abc_ObjAddFanin( pNode, pNetActual ); // fanin
+            if ( pNode2 )
+                Abc_ObjAddFanin( pNode2, pNetActual ); // fanin
         }
-        else
+        else if ( Input == nFanins )
             Abc_ObjAddFanin( pNetActual, pNode ); // fanout
+        else if ( Input == nFanins + 1 )
+            Abc_ObjAddFanin( pNetActual, pNode2 ); // fanout
+        else
+            assert( 0 );
 
         // check if it is the end of gate
         Ver_ParseSkipComments( pMan );

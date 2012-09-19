@@ -382,7 +382,7 @@ void Map_LibraryComputeTruth_rec( Map_SuperLib_t * pLib, char * pFormula, unsign
     for ( i = 0; i < nStrings; i++ )
         Map_LibraryComputeTruth_rec( pLib, pStrings[i], uTruthsIn, uTruthsFanins[i] );
     // get the root supergate
-    pMioGate = Mio_LibraryReadGateByName( pLib->pGenlib, pGateName );
+    pMioGate = Mio_LibraryReadGateByName( pLib->pGenlib, pGateName, NULL );
     if ( pMioGate == NULL )
         printf( "A supergate contains gate \"%s\" that is not in \"%s\".\n", pGateName, Mio_LibraryReadName(pLib->pGenlib) ); 
     // derive the functionality of the output of the supergate

@@ -371,6 +371,9 @@ double Abc_NtkGetMappedArea( Abc_Ntk_t * pNtk )
             continue;
         }
         TotalArea += Mio_GateReadArea( (Mio_Gate_t *)pNode->pData );
+        // assuming that twin gates follow each other
+        if ( Mio_GateReadTwin(((Mio_Gate_t *)pNode->pData)) != NULL )
+            i++;
     }
     return TotalArea;
 }

@@ -2090,7 +2090,7 @@ static char * Io_ReadBlifCleanName( char * pName )
 ***********************************************************************/
 static int Io_MvParseLineGateBlif( Io_MvMod_t * p, Vec_Ptr_t * vTokens )
 {
-    extern int Io_ReadBlifReorderFormalNames( Vec_Ptr_t * vTokens, Mio_Gate_t * pGate );
+    extern int Io_ReadBlifReorderFormalNames( Vec_Ptr_t * vTokens, Mio_Gate_t * pGate, Mio_Gate_t * pTwin );
     Mio_Library_t * pGenlib; 
     Mio_Gate_t * pGate;
     Abc_Obj_t * pNode;
@@ -2115,7 +2115,7 @@ static int Io_MvParseLineGateBlif( Io_MvMod_t * p, Vec_Ptr_t * vTokens )
     }
 
     // get the gate
-    pGate = Mio_LibraryReadGateByName( pGenlib, (char *)vTokens->pArray[1] );
+    pGate = Mio_LibraryReadGateByName( pGenlib, (char *)vTokens->pArray[1], NULL );
     if ( pGate == NULL )
     {
         sprintf( p->pMan->sError, "Line %d: Cannot find gate \"%s\" in the library.", Io_MvGetLine(p->pMan, pName), (char*)vTokens->pArray[1] );
@@ -2132,7 +2132,7 @@ static int Io_MvParseLineGateBlif( Io_MvMod_t * p, Vec_Ptr_t * vTokens )
     }
 
     // reorder the formal inputs to be in the same order as in the gate
-    if ( !Io_ReadBlifReorderFormalNames( vTokens, pGate ) )
+    if ( !Io_ReadBlifReorderFormalNames( vTokens, pGate, Mio_GateReadTwin(pGate) ) )
     {
         sprintf( p->pMan->sError, "Line %d: Mismatch in the fanins of gate \"%s\".", Io_MvGetLine(p->pMan, pName), (char*)vTokens->pArray[1] );
         return 0;
@@ -2141,6 +2141,8 @@ static int Io_MvParseLineGateBlif( Io_MvMod_t * p, Vec_Ptr_t * vTokens )
     // remove the formal parameter names
     for ( i = 2; i < vTokens->nSize; i++ )
     {
+        if ( vTokens->pArray[i] == NULL )
+            continue;
         vTokens->pArray[i] = Io_ReadBlifCleanName( (char *)vTokens->pArray[i] );
         if ( vTokens->pArray[i] == NULL )
         {
@@ -2150,12 +2152,30 @@ static int Io_MvParseLineGateBlif( Io_MvMod_t * p, Vec_Ptr_t * vTokens )
     }
 
     // create the node
-    ppNames = (char **)vTokens->pArray + 2;
-    nNames  = vTokens->nSize - 3;
-    pNode   = Io_ReadCreateNode( p->pNtk, ppNames[nNames], ppNames, nNames );
+    if ( Mio_GateReadTwin(pGate) == NULL )
+    {
+        nNames  = vTokens->nSize - 3;
+        ppNames = (char **)vTokens->pArray + 2;
+        pNode   = Io_ReadCreateNode( p->pNtk, ppNames[nNames], ppNames, nNames );
+        Abc_ObjSetData( pNode, pGate );
+    }
+    else
+    {
+        nNames  = vTokens->nSize - 4;
+        ppNames = (char **)vTokens->pArray + 2;
+        assert( ppNames[nNames] != NULL || ppNames[nNames+1] != NULL );
+        if ( ppNames[nNames] )
+        {
+            pNode   = Io_ReadCreateNode( p->pNtk, ppNames[nNames], ppNames, nNames );
+            Abc_ObjSetData( pNode, pGate );
+        }
+        if ( ppNames[nNames+1] )
+        {
+            pNode   = Io_ReadCreateNode( p->pNtk, ppNames[nNames+1], ppNames, nNames );
+            Abc_ObjSetData( pNode, Mio_GateReadTwin(pGate) );
+        }
+    }
 
-    // set the pointer to the functionality of the node
-    Abc_ObjSetData( pNode, pGate );
     return 1;
 }
 

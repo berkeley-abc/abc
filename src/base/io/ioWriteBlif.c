@@ -37,9 +37,8 @@ static void Io_NtkWritePis( FILE * pFile, Abc_Ntk_t * pNtk, int fWriteLatches );
 static void Io_NtkWritePos( FILE * pFile, Abc_Ntk_t * pNtk, int fWriteLatches );
 static void Io_NtkWriteSubckt( FILE * pFile, Abc_Obj_t * pNode );
 static void Io_NtkWriteAsserts( FILE * pFile, Abc_Ntk_t * pNtk );
-static void Io_NtkWriteNodeGate( FILE * pFile, Abc_Obj_t * pNode, int Length );
 static void Io_NtkWriteNodeFanins( FILE * pFile, Abc_Obj_t * pNode );
-static void Io_NtkWriteNode( FILE * pFile, Abc_Obj_t * pNode, int Length );
+static int  Io_NtkWriteNode( FILE * pFile, Abc_Obj_t * pNode, int Length );
 static void Io_NtkWriteLatch( FILE * pFile, Abc_Obj_t * pLatch );
 
 ////////////////////////////////////////////////////////////////////////
@@ -251,7 +250,8 @@ void Io_NtkWriteOne( FILE * pFile, Abc_Ntk_t * pNtk, int fWriteLatches, int fBb2
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
         Extra_ProgressBarUpdate( pProgress, i, NULL );
-        Io_NtkWriteNode( pFile, pNode, Length );
+        if ( Io_NtkWriteNode( pFile, pNode, Length ) ) // skip the next node
+            i++;
     }
     Extra_ProgressBarStop( pProgress );
 }
@@ -462,61 +462,6 @@ void Io_NtkWriteLatch( FILE * pFile, Abc_Obj_t * pLatch )
 
 /**Function*************************************************************
 
-  Synopsis    [Write the node into a file.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Io_NtkWriteNode( FILE * pFile, Abc_Obj_t * pNode, int Length )
-{
-    if ( Abc_NtkHasMapping(pNode->pNtk) )
-    {
-        // write the .gate line
-        fprintf( pFile, ".gate" );
-        Io_NtkWriteNodeGate( pFile, pNode, Length );
-        fprintf( pFile, "\n" );
-    }
-    else
-    {
-        // write the .names line
-        fprintf( pFile, ".names" );
-        Io_NtkWriteNodeFanins( pFile, pNode );
-        fprintf( pFile, "\n" );
-        // write the cubes
-        fprintf( pFile, "%s", (char*)Abc_ObjData(pNode) );
-    }
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Writes the primary input list.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Io_NtkWriteNodeGate( FILE * pFile, Abc_Obj_t * pNode, int Length )
-{
-    Mio_Gate_t * pGate = (Mio_Gate_t *)pNode->pData;
-    Mio_Pin_t * pGatePin;
-    int i;
-    // write the node
-    fprintf( pFile, " %-*s ", Length, Mio_GateReadName(pGate) );
-    for ( pGatePin = Mio_GateReadPins(pGate), i = 0; pGatePin; pGatePin = Mio_PinReadNext(pGatePin), i++ )
-        fprintf( pFile, "%s=%s ", Mio_PinReadName(pGatePin), Abc_ObjName( Abc_ObjFanin(pNode,i) ) );
-    assert ( i == Abc_ObjFaninNum(pNode) );
-    fprintf( pFile, "%s=%s", Mio_GateReadOutName(pGate), Abc_ObjName( Abc_ObjFanout0(pNode) ) );
-}
-
-/**Function*************************************************************
-
   Synopsis    [Writes the primary input list.]
 
   Description []
@@ -567,6 +512,87 @@ void Io_NtkWriteNodeFanins( FILE * pFile, Abc_Obj_t * pNode )
         NameCounter = 0;
     }
     fprintf( pFile, " %s", pName );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Writes the primary input list.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Io_NtkWriteNodeGate( FILE * pFile, Abc_Obj_t * pNode, int Length )
+{
+    Mio_Gate_t * pGate = (Mio_Gate_t *)pNode->pData;
+    Mio_Gate_t * pGate2;
+    Mio_Pin_t * pGatePin;
+    Abc_Obj_t * pNode2;
+    int i;
+    // write the node
+    fprintf( pFile, " %-*s ", Length, Mio_GateReadName(pGate) );
+    for ( pGatePin = Mio_GateReadPins(pGate), i = 0; pGatePin; pGatePin = Mio_PinReadNext(pGatePin), i++ )
+        fprintf( pFile, "%s=%s ", Mio_PinReadName(pGatePin), Abc_ObjName( Abc_ObjFanin(pNode,i) ) );
+    assert ( i == Abc_ObjFaninNum(pNode) );
+    fprintf( pFile, "%s=%s", Mio_GateReadOutName(pGate), Abc_ObjName( Abc_ObjFanout0(pNode) ) );
+    if ( Mio_GateReadTwin(pGate) == NULL )
+        return 0;
+    // assuming the twin node is following next
+    if ( (int)Abc_ObjId(pNode) == Abc_NtkObjNumMax(pNode->pNtk) - 1 )
+    {
+        printf( "Warning: Missing second output of gate \"%s\".\n", Mio_GateReadName(pGate) );
+        return 0;
+    }
+    pNode2 = Abc_NtkObj( pNode->pNtk, Abc_ObjId(pNode) + 1 );
+    if ( !Abc_ObjIsNode(pNode2) || Abc_ObjFaninNum(pNode) != Abc_ObjFaninNum(pNode2) )
+    {
+        printf( "Warning: Missing second output of gate \"%s\".\n", Mio_GateReadName(pGate) );
+        return 0;
+    }
+    pGate2 = (Mio_Gate_t *)pNode2->pData;
+    if ( strcmp( Mio_GateReadName(pGate), Mio_GateReadName(pGate2)) )
+    {
+        printf( "Warning: Missing second output of gate \"%s\".\n", Mio_GateReadName(pGate) );
+        return 0;
+    }
+    fprintf( pFile, " %s=%s", Mio_GateReadOutName(pGate2), Abc_ObjName( Abc_ObjFanout0(pNode2) ) );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Write the node into a file.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Io_NtkWriteNode( FILE * pFile, Abc_Obj_t * pNode, int Length )
+{
+    int RetValue = 0;
+    if ( Abc_NtkHasMapping(pNode->pNtk) )
+    {
+        // write the .gate line
+        fprintf( pFile, ".gate" );
+        RetValue = Io_NtkWriteNodeGate( pFile, pNode, Length );
+        fprintf( pFile, "\n" );
+    }
+    else
+    {
+        // write the .names line
+        fprintf( pFile, ".names" );
+        Io_NtkWriteNodeFanins( pFile, pNode );
+        fprintf( pFile, "\n" );
+        // write the cubes
+        fprintf( pFile, "%s", (char*)Abc_ObjData(pNode) );
+    }
+    return RetValue;
 }
 
 /**Function*************************************************************

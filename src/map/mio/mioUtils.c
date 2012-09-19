@@ -164,6 +164,18 @@ int Mio_CheckPins( Mio_Pin_t * pPin1, Mio_Pin_t * pPin2 )
         return 0;
     return 1;
 }
+int Mio_CheckGates( Mio_Library_t * pLib )
+{
+    Mio_Gate_t * pGate;
+    Mio_Pin_t * pPin0 = NULL, * pPin = NULL;
+    Mio_LibraryForEachGate( pLib, pGate )
+        Mio_GateForEachPin( pGate, pPin )
+            if ( Mio_CheckPins( pPin0, pPin ) )
+                pPin0 = pPin;
+            else
+                return 0;
+    return 1;
+}
 
 /**Function*************************************************************
 
@@ -182,7 +194,7 @@ void Mio_WritePin( FILE * pFile, Mio_Pin_t * pPin, int NameLen, int fAllPins )
     if ( fAllPins )
         fprintf( pFile, "PIN *  " );
     else
-        fprintf( pFile, "\n     PIN %*s  ", NameLen, pPin->pName );
+        fprintf( pFile, "\n    PIN %*s  ", NameLen, pPin->pName );
     fprintf( pFile, "%7s ",   pPhaseNames[pPin->Phase] );
     fprintf( pFile, "%3d ",   (int)pPin->dLoadInput );
     fprintf( pFile, "%3d ",   (int)pPin->dLoadMax );
@@ -203,29 +215,23 @@ void Mio_WritePin( FILE * pFile, Mio_Pin_t * pPin, int NameLen, int fAllPins )
   SeeAlso     []
 
 ***********************************************************************/
-void Mio_WriteGate( FILE * pFile, Mio_Gate_t * pGate, int GateLen, int NameLen, int FormLen, int fPrintSops )
+void Mio_WriteGate( FILE * pFile, Mio_Gate_t * pGate, int GateLen, int NameLen, int FormLen, int fPrintSops, int fAllPins )
 {
     char Buffer[5000];
-    Mio_Pin_t * pPin = NULL, * pPin0 = NULL;
+    Mio_Pin_t * pPin;
     assert( NameLen+FormLen+2 < 5000 );
     sprintf( Buffer, "%s=%s;",    pGate->pOutName, pGate->pForm );
     fprintf( pFile, "GATE %-*s ", GateLen, pGate->pName );
     fprintf( pFile, "%8.2f  ",    pGate->dArea );
-    fprintf( pFile, "%-*s ",      NameLen+FormLen+2, Buffer );
-    // compare pins and decide if their properties are the same
-    Mio_GateForEachPin( pGate, pPin )
-        if ( Mio_CheckPins( pPin0, pPin ) )
-            pPin0 = pPin;
-        else
-            break;
+    fprintf( pFile, "%-*s ",      Abc_MinInt(NameLen+FormLen+2, 30), Buffer );
     // print the pins
     if ( fPrintSops )
         fprintf( pFile, "%s",       pGate->pSop? pGate->pSop : "unspecified\n" );
-    if ( pPin != NULL ) // different pins
+    if ( fAllPins && pGate->pPins ) // equal pins
+        Mio_WritePin( pFile, pGate->pPins, NameLen, 1 );
+    else // different pins
         Mio_GateForEachPin( pGate, pPin )
             Mio_WritePin( pFile, pPin, NameLen, 0 );
-    else if ( pPin0 != NULL ) // equal pins
-        Mio_WritePin( pFile, pPin0, NameLen, 1 );
     fprintf( pFile, "\n" );
 }
 
@@ -245,6 +251,7 @@ void Mio_WriteLibrary( FILE * pFile, Mio_Library_t * pLib, int fPrintSops )
     Mio_Gate_t * pGate;
     Mio_Pin_t * pPin;
     int i, GateLen = 0, NameLen = 0, FormLen = 0;
+    int fAllPins = Mio_CheckGates( pLib );
     Mio_LibraryForEachGate( pLib, pGate )
     {
         GateLen = Abc_MaxInt( GateLen, strlen(pGate->pName) );
@@ -255,7 +262,7 @@ void Mio_WriteLibrary( FILE * pFile, Mio_Library_t * pLib, int fPrintSops )
     }
     fprintf( pFile, "# The genlib library \"%s\".\n", pLib->pName );
     for ( i = 0; i < pLib->nGates; i++ )
-        Mio_WriteGate( pFile, pLib->ppGates0[i], GateLen, NameLen, FormLen, fPrintSops );
+        Mio_WriteGate( pFile, pLib->ppGates0[i], GateLen, NameLen, FormLen, fPrintSops, fAllPins );
 }
 
 /**Function*************************************************************

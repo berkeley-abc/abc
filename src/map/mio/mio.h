@@ -68,8 +68,8 @@ static inline char *    Mio_UtilStrsav( char * s )     { return s ? strcpy(ABC_A
     for ( Pin = Mio_GateReadPins(Gate);                       \
           Pin;                                                \
           Pin = Mio_PinReadNext(Pin) )
-#define Mio_GateForEachPinSafe( Gate, Pin, Pin2 )              \
-    for ( Pin = Mio_GateReadPins(Gate),                        \
+#define Mio_GateForEachPinSafe( Gate, Pin, Pin2 )             \
+    for ( Pin = Mio_GateReadPins(Gate),                       \
           Pin2 = (Pin? Mio_PinReadNext(Pin): NULL);           \
           Pin;                                                \
           Pin = Pin2,                                         \
@@ -83,8 +83,8 @@ static inline char *    Mio_UtilStrsav( char * s )     { return s ? strcpy(ABC_A
 extern char *            Mio_LibraryReadName       ( Mio_Library_t * pLib );
 extern int               Mio_LibraryReadGateNum    ( Mio_Library_t * pLib );
 extern Mio_Gate_t *      Mio_LibraryReadGates      ( Mio_Library_t * pLib );
-extern Mio_Gate_t **     Mio_LibraryReadGatesByName( Mio_Library_t * pLib );
-extern Mio_Gate_t *      Mio_LibraryReadGateByName ( Mio_Library_t * pLib, char * pName );
+extern Mio_Gate_t **     Mio_LibraryReadGateArray  ( Mio_Library_t * pLib );
+extern Mio_Gate_t *      Mio_LibraryReadGateByName ( Mio_Library_t * pLib, char * pName, char * pOutName );
 extern char *            Mio_LibraryReadSopByName  ( Mio_Library_t * pLib, char * pName );    
 extern Mio_Gate_t *      Mio_LibraryReadConst0     ( Mio_Library_t * pLib );
 extern Mio_Gate_t *      Mio_LibraryReadConst1     ( Mio_Library_t * pLib );
@@ -110,6 +110,7 @@ extern char *            Mio_GateReadForm          ( Mio_Gate_t * pGate );
 extern Mio_Pin_t *       Mio_GateReadPins          ( Mio_Gate_t * pGate );      
 extern Mio_Library_t *   Mio_GateReadLib           ( Mio_Gate_t * pGate );      
 extern Mio_Gate_t *      Mio_GateReadNext          ( Mio_Gate_t * pGate );      
+extern Mio_Gate_t *      Mio_GateReadTwin          ( Mio_Gate_t * pGate );      
 extern int               Mio_GateReadInputs        ( Mio_Gate_t * pGate );      
 extern double            Mio_GateReadDelayMax      ( Mio_Gate_t * pGate );      
 extern char *            Mio_GateReadSop           ( Mio_Gate_t * pGate );      

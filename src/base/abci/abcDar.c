@@ -3926,7 +3926,7 @@ Abc_Ntk_t * Amap_ManProduceNetwork( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMapping )
     int i, k, iPis, iPos, nDupGates;
     // make sure gates exist in the current library
     Vec_PtrForEachEntry( Amap_Out_t *, vMapping, pRes, i )
-        if ( pRes->pName && Mio_LibraryReadGateByName( pLib, pRes->pName ) == NULL )
+        if ( pRes->pName && Mio_LibraryReadGateByName( pLib, pRes->pName, NULL ) == NULL )
         {
             Abc_Print( 1, "Current library does not contain gate \"%s\".\n", pRes->pName );
             return NULL;
@@ -3945,7 +3945,7 @@ Abc_Ntk_t * Amap_ManProduceNetwork( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMapping )
         else
         {
             pNodeNew = Abc_NtkCreateNode( pNtkNew );
-            pNodeNew->pData = Mio_LibraryReadGateByName( pLib, pRes->pName );
+            pNodeNew->pData = Mio_LibraryReadGateByName( pLib, pRes->pName, NULL );
         }
         for ( k = 0; k < pRes->nFans; k++ )
         {

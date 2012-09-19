@@ -302,7 +302,7 @@ Map_Super_t * Map_LibraryReadGateTree( Map_SuperLib_t * pLib, char * pBuffer, in
     }
 
     // read the root gate
-    pGate->pRoot = Mio_LibraryReadGateByName( pLib->pGenlib, pTemp );
+    pGate->pRoot = Mio_LibraryReadGateByName( pLib->pGenlib, pTemp, NULL );
     if ( pGate->pRoot == NULL )
     {
         printf( "Cannot read the root gate names %s.\n", pTemp );

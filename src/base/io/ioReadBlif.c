@@ -525,14 +525,22 @@ int Io_ReadBlifNetworkNames( Io_ReadBlif_t * p, Vec_Ptr_t ** pvTokens )
   SeeAlso     []
 
 ***********************************************************************/
-int Io_ReadBlifReorderFormalNames( Vec_Ptr_t * vTokens, Mio_Gate_t * pGate )
+int Io_ReadBlifReorderFormalNames( Vec_Ptr_t * vTokens, Mio_Gate_t * pGate, Mio_Gate_t * pTwin )
 {
     Mio_Pin_t * pGatePin;
     char * pName, * pNamePin;
     int i, k, nSize, Length;
     nSize = Vec_PtrSize(vTokens);
-    if ( nSize - 3 != Mio_GateReadInputs(pGate) )
-        return 0;
+    if ( pTwin == NULL )
+    {
+        if ( nSize - 3 != Mio_GateReadInputs(pGate) )
+            return 0;
+    }
+    else
+    {
+        if ( nSize - 3 != Mio_GateReadInputs(pGate) && nSize - 4 != Mio_GateReadInputs(pGate) )
+            return 0;
+    }
     // check if the names are in order
     for ( pGatePin = Mio_GateReadPins(pGate), i = 0; pGatePin; pGatePin = Mio_PinReadNext(pGatePin), i++ )
     {
@@ -543,12 +551,26 @@ int Io_ReadBlifReorderFormalNames( Vec_Ptr_t * vTokens, Mio_Gate_t * pGate )
             continue;
         break;
     }
-    if ( i == nSize - 3 )
-        return 1;
-    // reorder the pins
-    for ( pGatePin = Mio_GateReadPins(pGate), i = 0; pGatePin; pGatePin = Mio_PinReadNext(pGatePin), i++ )
+    if ( pTwin == NULL )
     {
-        pNamePin = Mio_PinReadName(pGatePin);
+        if ( i == Mio_GateReadInputs(pGate) )
+            return 1;
+        // reorder the pins
+        for ( pGatePin = Mio_GateReadPins(pGate), i = 0; pGatePin; pGatePin = Mio_PinReadNext(pGatePin), i++ )
+        {
+            pNamePin = Mio_PinReadName(pGatePin);
+            Length = strlen(pNamePin);
+            for ( k = 2; k < nSize; k++ )
+            {
+                pName = (char *)Vec_PtrEntry(vTokens, k);
+                if ( !strncmp( pNamePin, pName, Length ) && pName[Length] == '=' )
+                {
+                    Vec_PtrPush( vTokens, pName );
+                    break;
+                }
+            }
+        }
+        pNamePin = Mio_GateReadOutName(pGate);
         Length = strlen(pNamePin);
         for ( k = 2; k < nSize; k++ )
         {
@@ -559,23 +581,55 @@ int Io_ReadBlifReorderFormalNames( Vec_Ptr_t * vTokens, Mio_Gate_t * pGate )
                 break;
             }
         }
+        if ( Vec_PtrSize(vTokens) - nSize != nSize - 2 )
+            return 0;
+        Vec_PtrForEachEntryStart( char *, vTokens, pName, k, nSize )
+            Vec_PtrWriteEntry( vTokens, k - nSize + 2, pName );
+        Vec_PtrShrink( vTokens, nSize );
     }
-    pNamePin = Mio_GateReadOutName(pGate);
-    Length = strlen(pNamePin);
-    for ( k = 2; k < nSize; k++ )
+    else
     {
-        pName = (char *)Vec_PtrEntry(vTokens, k);
-        if ( !strncmp( pNamePin, pName, Length ) && pName[Length] == '=' )
+        if ( i != Mio_GateReadInputs(pGate) ) // expect the correct order of input pins in the network with twin gates
+            return 0;
+        // check the last two entries
+        if ( nSize - 3 == Mio_GateReadInputs(pGate) ) // only one output is available
         {
-            Vec_PtrPush( vTokens, pName );
-            break;
+            pNamePin = Mio_GateReadOutName(pGate);
+            Length = strlen(pNamePin);
+            pName = (char *)Vec_PtrEntry(vTokens, nSize - 1);
+            if ( !strncmp( pNamePin, pName, Length ) && pName[Length] == '=' ) // the last entry is pGate
+            {
+                Vec_PtrPush( vTokens, NULL );
+                return 1;
+            }
+            pNamePin = Mio_GateReadOutName(pTwin);
+            Length = strlen(pNamePin);
+            pName = (char *)Vec_PtrEntry(vTokens, nSize - 1);
+            if ( !strncmp( pNamePin, pName, Length ) && pName[Length] == '=' ) // the last entry is pTwin
+            {
+                pName = Vec_PtrPop( vTokens );
+                Vec_PtrPush( vTokens, NULL );
+                Vec_PtrPush( vTokens, pName );
+                return 1;
+            }
+            return 0;
         }
+        if ( nSize - 4 == Mio_GateReadInputs(pGate) ) // two outputs are available
+        {
+            pNamePin = Mio_GateReadOutName(pGate);
+            Length = strlen(pNamePin);
+            pName = (char *)Vec_PtrEntry(vTokens, nSize - 2);
+            if ( !(!strncmp( pNamePin, pName, Length ) && pName[Length] == '=') )
+                return 0;
+            pNamePin = Mio_GateReadOutName(pTwin);
+            Length = strlen(pNamePin);
+            pName = (char *)Vec_PtrEntry(vTokens, nSize - 1);
+            if ( !(!strncmp( pNamePin, pName, Length ) && pName[Length] == '=') )
+                return 0;
+            return 1;
+        }
+        assert( 0 );
     }
-    if ( Vec_PtrSize(vTokens) - nSize != nSize - 2 )
-        return 0;
-    Vec_PtrForEachEntryStart( char *, vTokens, pName, k, nSize )
-        Vec_PtrWriteEntry( vTokens, k - nSize + 2, pName );
-    Vec_PtrShrink( vTokens, nSize );
     return 1;
 }
 
@@ -618,7 +672,7 @@ int Io_ReadBlifNetworkGate( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens )
     }
 
     // get the gate
-    pGate = Mio_LibraryReadGateByName( pGenlib, (char *)vTokens->pArray[1] );
+    pGate = Mio_LibraryReadGateByName( pGenlib, (char *)vTokens->pArray[1], NULL );
     if ( pGate == NULL )
     {
         p->LineCur = Extra_FileReaderGetLineNumber(p->pReader, 0);
@@ -637,7 +691,7 @@ int Io_ReadBlifNetworkGate( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens )
     }
 
     // reorder the formal inputs to be in the same order as in the gate
-    if ( !Io_ReadBlifReorderFormalNames( vTokens, pGate ) )
+    if ( !Io_ReadBlifReorderFormalNames( vTokens, pGate, Mio_GateReadTwin(pGate) ) )
     {
         p->LineCur = Extra_FileReaderGetLineNumber(p->pReader, 0);
         sprintf( p->sError, "Mismatch in the fanins of gate \"%s\".", (char*)vTokens->pArray[1] );
@@ -660,12 +714,29 @@ int Io_ReadBlifNetworkGate( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens )
     }
 
     // create the node
-    ppNames = (char **)vTokens->pArray + 2;
-    nNames  = vTokens->nSize - 3;
-    pNode   = Io_ReadCreateNode( p->pNtkCur, ppNames[nNames], ppNames, nNames );
-
-    // set the pointer to the functionality of the node
-    Abc_ObjSetData( pNode, pGate );
+    if ( Mio_GateReadTwin(pGate) == NULL )
+    {
+        nNames  = vTokens->nSize - 3;
+        ppNames = (char **)vTokens->pArray + 2;
+        pNode   = Io_ReadCreateNode( p->pNtkCur, ppNames[nNames], ppNames, nNames );
+        Abc_ObjSetData( pNode, pGate );
+    }
+    else
+    {
+        nNames  = vTokens->nSize - 4;
+        ppNames = (char **)vTokens->pArray + 2;
+        assert( ppNames[nNames] != NULL || ppNames[nNames+1] != NULL );
+        if ( ppNames[nNames] )
+        {
+            pNode   = Io_ReadCreateNode( p->pNtkCur, ppNames[nNames], ppNames, nNames );
+            Abc_ObjSetData( pNode, pGate );
+        }
+        if ( ppNames[nNames+1] )
+        {
+            pNode   = Io_ReadCreateNode( p->pNtkCur, ppNames[nNames+1], ppNames, nNames );
+            Abc_ObjSetData( pNode, Mio_GateReadTwin(pGate) );
+        }
+    }
     return 0;
 }
 

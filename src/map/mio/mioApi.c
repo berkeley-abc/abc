@@ -40,13 +40,12 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
-char *            Mio_LibraryReadName          ( Mio_Library_t * pLib )  { return pLib->pName;    }
-int               Mio_LibraryReadGateNum       ( Mio_Library_t * pLib )  { return pLib->nGates;   }
-Mio_Gate_t *      Mio_LibraryReadGates         ( Mio_Library_t * pLib )  { return pLib->pGates;   }
-Mio_Gate_t **     Mio_LibraryReadGatesByName   ( Mio_Library_t * pLib )  { return pLib->ppGatesName;}
-//DdManager *       Mio_LibraryReadDd            ( Mio_Library_t * pLib )  { return pLib->dd;       }
-Mio_Gate_t *      Mio_LibraryReadBuf           ( Mio_Library_t * pLib )  { return pLib->pGateBuf; }
-Mio_Gate_t *      Mio_LibraryReadInv           ( Mio_Library_t * pLib )  { return pLib->pGateInv; }
+char *            Mio_LibraryReadName          ( Mio_Library_t * pLib )  { return pLib->pName;      }
+int               Mio_LibraryReadGateNum       ( Mio_Library_t * pLib )  { return pLib->nGates;     }
+Mio_Gate_t *      Mio_LibraryReadGates         ( Mio_Library_t * pLib )  { return pLib->pGates;     }
+Mio_Gate_t **     Mio_LibraryReadGateArray     ( Mio_Library_t * pLib )  { return pLib->ppGatesName;}
+Mio_Gate_t *      Mio_LibraryReadBuf           ( Mio_Library_t * pLib )  { return pLib->pGateBuf;   }
+Mio_Gate_t *      Mio_LibraryReadInv           ( Mio_Library_t * pLib )  { return pLib->pGateInv;   }
 Mio_Gate_t *      Mio_LibraryReadConst0        ( Mio_Library_t * pLib )  { return pLib->pGate0;     }
 Mio_Gate_t *      Mio_LibraryReadConst1        ( Mio_Library_t * pLib )  { return pLib->pGate1;     }
 Mio_Gate_t *      Mio_LibraryReadNand2         ( Mio_Library_t * pLib )  { return pLib->pGateNand2; }
@@ -97,11 +96,17 @@ int Mio_LibraryReadGateNameMax( Mio_Library_t * pLib )
   SeeAlso     []
 
 ***********************************************************************/
-Mio_Gate_t * Mio_LibraryReadGateByName( Mio_Library_t * pLib, char * pName )      
+Mio_Gate_t * Mio_LibraryReadGateByName( Mio_Library_t * pLib, char * pName, char * pOutName )      
 { 
     Mio_Gate_t * pGate;
-    if ( st_lookup( pLib->tName2Gate, pName, (char **)&pGate ) )
+    if ( !st_lookup( pLib->tName2Gate, pName, (char **)&pGate ) )
+        return NULL;
+    if ( pOutName == NULL )
         return pGate;
+    if ( !strcmp(pGate->pOutName, pOutName) )
+        return pGate;
+    if ( pGate->pTwin && !strcmp(pGate->pTwin->pOutName, pOutName) )
+        return pGate->pTwin;
     return NULL;
 }
 
@@ -142,10 +147,10 @@ char *            Mio_GateReadForm    ( Mio_Gate_t * pGate )            { return
 Mio_Pin_t *       Mio_GateReadPins    ( Mio_Gate_t * pGate )            { return pGate->pPins;     }
 Mio_Library_t *   Mio_GateReadLib     ( Mio_Gate_t * pGate )            { return pGate->pLib;      }
 Mio_Gate_t *      Mio_GateReadNext    ( Mio_Gate_t * pGate )            { return pGate->pNext;     }
+Mio_Gate_t *      Mio_GateReadTwin    ( Mio_Gate_t * pGate )            { return pGate->pTwin;     }
 int               Mio_GateReadInputs  ( Mio_Gate_t * pGate )            { return pGate->nInputs;   }
 double            Mio_GateReadDelayMax( Mio_Gate_t * pGate )            { return pGate->dDelayMax; }
 char *            Mio_GateReadSop     ( Mio_Gate_t * pGate )            { return pGate->pSop;      }
-//DdNode *          Mio_GateReadFunc    ( Mio_Gate_t * pGate )            { return pGate->bFunc;     }
 word              Mio_GateReadTruth   ( Mio_Gate_t * pGate )            { return pGate->nInputs <= 6 ? pGate->uTruth : 0;   }
 word *            Mio_GateReadTruthP  ( Mio_Gate_t * pGate )            { return pGate->nInputs <= 6 ? NULL: pGate->pTruth; }
 int               Mio_GateReadValue   ( Mio_Gate_t * pGate )            { return pGate->Value;     }

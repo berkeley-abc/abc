@@ -233,10 +233,15 @@ int Mio_LibraryReadInternal( Mio_Library_t * pLib, char * pBuffer, int fExtended
                 st_insert( pLib->tName2Gate, pGate->pName, (char *)pGate );
             else
             {
-                Mio_Gate_t * pBase = Mio_LibraryReadGateByName( pLib, pGate->pName );
-                pBase->pTwin = pGate; 
-                pGate->pTwin = pBase; 
-                printf( "Gate \"%s\" appears more than once. Creating multi-output gate.\n", pGate->pName );
+                Mio_Gate_t * pBase = Mio_LibraryReadGateByName( pLib, pGate->pName, NULL );
+                if ( pBase->pTwin != NULL )
+                {
+                    printf( "Gates with more than 2 outputs are not supported.\n" );
+                    continue;
+                }
+                pBase->pTwin = pGate;
+                pGate->pTwin = pBase;
+                printf( "Gate \"%s\" appears two times. Creating a 2-output gate.\n", pGate->pName );
             }
         }
     }
