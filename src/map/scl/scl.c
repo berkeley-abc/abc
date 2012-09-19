@@ -642,9 +642,9 @@ usage:
 int Scl_CommandUpsize( Abc_Frame_t * pAbc, int argc, char **argv )
 {
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
-    int Window =  5;
-    int Ratio  =  5;
-    int nIters = 20;
+    int Window =   2;
+    int Ratio  =  10;
+    int nIters = 100;
     int c, fVerbose = 0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "WRIvh" ) ) != EOF )

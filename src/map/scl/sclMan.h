@@ -73,7 +73,8 @@ struct SC_Man_
 ///                       MACRO DEFINITIONS                          ///
 ////////////////////////////////////////////////////////////////////////
 
-static inline SC_Cell * Abc_SclObjCell( SC_Man * p, Abc_Obj_t * pObj )      { return SC_LibCell( p->pLib, Vec_IntEntry(p->vGates, Abc_ObjId(pObj)) ); }
+static inline SC_Cell * Abc_SclObjCell( SC_Man * p, Abc_Obj_t * pObj )      { return SC_LibCell( p->pLib, Vec_IntEntry(p->vGates, Abc_ObjId(pObj)) );       }
+static inline void      Abc_SclObjSetCell( SC_Man * p, Abc_Obj_t * pObj, SC_Cell * pCell ) { Vec_IntWriteEntry( p->vGates, Abc_ObjId(pObj), pCell->Id );    }
 
 static inline SC_Pair * Abc_SclObjLoad( SC_Man * p, Abc_Obj_t * pObj )      { return p->pLoads + Abc_ObjId(pObj);  }
 static inline SC_Pair * Abc_SclObjTime( SC_Man * p, Abc_Obj_t * pObj )      { return p->pTimes + Abc_ObjId(pObj);  }
