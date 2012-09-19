@@ -28,10 +28,6 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static void Mio_WriteGate( FILE * pFile, Mio_Gate_t * pGate, int fPrintSops );
-static void Mio_WritePin( FILE * pFile, Mio_Pin_t * pPin );
-static int  Mio_DelayCompare( Mio_Gate_t ** ppG1, Mio_Gate_t ** ppG2 );
-
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -141,6 +137,100 @@ Mio_Pin_t * Mio_PinDup( Mio_Pin_t * pPin )
 
 /**Function*************************************************************
 
+  Synopsis    [Check if pin characteristics are the same.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Mio_CheckPins( Mio_Pin_t * pPin1, Mio_Pin_t * pPin2 )
+{
+    if ( pPin1 == NULL || pPin2 == NULL )
+        return 1;
+    if ( pPin1->dLoadInput != pPin2->dLoadInput )
+        return 0;
+    if ( pPin1->dLoadMax != pPin2->dLoadMax )
+        return 0;
+    if ( pPin1->dDelayBlockRise != pPin2->dDelayBlockRise )
+        return 0;
+    if ( pPin1->dDelayFanoutRise != pPin2->dDelayFanoutRise )
+        return 0;
+    if ( pPin1->dDelayBlockFall != pPin2->dDelayBlockFall )
+        return 0;
+    if ( pPin1->dDelayFanoutFall != pPin2->dDelayFanoutFall )
+        return 0;
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Mio_WritePin( FILE * pFile, Mio_Pin_t * pPin, int NameLen, int fAllPins )
+{
+    char * pPhaseNames[10] = { "UNKNOWN", "INV", "NONINV" };
+    if ( fAllPins )
+        fprintf( pFile, "PIN *  " );
+    else
+        fprintf( pFile, "\n     PIN %*s  ", NameLen, pPin->pName );
+    fprintf( pFile, "%7s ",   pPhaseNames[pPin->Phase] );
+    fprintf( pFile, "%3d ",   (int)pPin->dLoadInput );
+    fprintf( pFile, "%3d ",   (int)pPin->dLoadMax );
+    fprintf( pFile, "%6.2f ", pPin->dDelayBlockRise );
+    fprintf( pFile, "%6.2f ", pPin->dDelayFanoutRise );
+    fprintf( pFile, "%6.2f ", pPin->dDelayBlockFall );
+    fprintf( pFile, "%6.2f",  pPin->dDelayFanoutFall );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Mio_WriteGate( FILE * pFile, Mio_Gate_t * pGate, int GateLen, int NameLen, int FormLen, int fPrintSops )
+{
+    char Buffer[5000];
+    Mio_Pin_t * pPin = NULL, * pPin0 = NULL;
+    assert( NameLen+FormLen+2 < 5000 );
+    sprintf( Buffer, "%s=%s;",    pGate->pOutName, pGate->pForm );
+    fprintf( pFile, "GATE %-*s ", GateLen, pGate->pName );
+    fprintf( pFile, "%8.2f  ",    pGate->dArea );
+    fprintf( pFile, "%-*s ",      NameLen+FormLen+2, Buffer );
+    // compare pins and decide if their properties are the same
+    Mio_GateForEachPin( pGate, pPin )
+        if ( Mio_CheckPins( pPin0, pPin ) )
+            pPin0 = pPin;
+        else
+            break;
+    // print the pins
+    if ( fPrintSops )
+        fprintf( pFile, "%s",       pGate->pSop? pGate->pSop : "unspecified\n" );
+    if ( pPin != NULL ) // different pins
+        Mio_GateForEachPin( pGate, pPin )
+            Mio_WritePin( pFile, pPin, NameLen, 0 );
+    else if ( pPin0 != NULL ) // equal pins
+        Mio_WritePin( pFile, pPin0, NameLen, 1 );
+    fprintf( pFile, "\n" );
+}
+
+/**Function*************************************************************
+
   Synopsis    []
 
   Description []
@@ -152,47 +242,25 @@ Mio_Pin_t * Mio_PinDup( Mio_Pin_t * pPin )
 ***********************************************************************/
 void Mio_WriteLibrary( FILE * pFile, Mio_Library_t * pLib, int fPrintSops )
 {
-//    Mio_Gate_t * pGate;
-    int i;
-
-    fprintf( pFile, "# The genlib library \"%s\".\n", pLib->pName );
-//    Mio_LibraryForEachGate( pLib, pGate )
-//        Mio_WriteGate( pFile, pGate, fPrintSops );
-    for ( i = 0; i < pLib->nGates; i++ )
-        Mio_WriteGate( pFile, pLib->ppGates0[i], fPrintSops );
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Mio_WriteGate( FILE * pFile, Mio_Gate_t * pGate, int fPrintSops )
-{
+    Mio_Gate_t * pGate;
     Mio_Pin_t * pPin;
-
-    fprintf( pFile, "GATE " );
-    fprintf( pFile, "%12s ",      pGate->pName );
-    fprintf( pFile, "%10.2f   ",  pGate->dArea );
-    fprintf( pFile, "%s=%s;\n",   pGate->pOutName,    pGate->pForm );
-    // print the pins
-    if ( fPrintSops )
-        fprintf( pFile, "%s",       pGate->pSop? pGate->pSop : "unspecified\n" );
-//    Extra_bddPrint( pGate->pLib->dd, pGate->bFunc );
-//    fprintf( pFile, "\n" );
-    Mio_GateForEachPin( pGate, pPin )
-        Mio_WritePin( pFile, pPin );
+    int i, GateLen = 0, NameLen = 0, FormLen = 0;
+    Mio_LibraryForEachGate( pLib, pGate )
+    {
+        GateLen = Abc_MaxInt( GateLen, strlen(pGate->pName) );
+        NameLen = Abc_MaxInt( NameLen, strlen(pGate->pOutName) );
+        FormLen = Abc_MaxInt( FormLen, strlen(pGate->pForm) );
+        Mio_GateForEachPin( pGate, pPin )
+            NameLen = Abc_MaxInt( NameLen, strlen(pPin->pName) );
+    }
+    fprintf( pFile, "# The genlib library \"%s\".\n", pLib->pName );
+    for ( i = 0; i < pLib->nGates; i++ )
+        Mio_WriteGate( pFile, pLib->ppGates0[i], GateLen, NameLen, FormLen, fPrintSops );
 }
 
 /**Function*************************************************************
 
-  Synopsis    []
+  Synopsis    [Compares the max delay of two gates.]
 
   Description []
                
@@ -201,19 +269,13 @@ void Mio_WriteGate( FILE * pFile, Mio_Gate_t * pGate, int fPrintSops )
   SeeAlso     []
 
 ***********************************************************************/
-void Mio_WritePin( FILE * pFile, Mio_Pin_t * pPin )
+int Mio_DelayCompare( Mio_Gate_t ** ppG1, Mio_Gate_t ** ppG2 )
 {
-    char * pPhaseNames[10] = { "UNKNOWN", "INV", "NONINV" };
-    fprintf( pFile, "    PIN " );
-    fprintf( pFile, "%9s ",     pPin->pName );
-    fprintf( pFile, "%10s ",    pPhaseNames[pPin->Phase] );
-    fprintf( pFile, "%6d ",     (int)pPin->dLoadInput );
-    fprintf( pFile, "%6d ",     (int)pPin->dLoadMax );
-    fprintf( pFile, "%6.2f ",   pPin->dDelayBlockRise );
-    fprintf( pFile, "%6.2f ",   pPin->dDelayFanoutRise );
-    fprintf( pFile, "%6.2f ",   pPin->dDelayBlockFall );
-    fprintf( pFile, "%6.2f",    pPin->dDelayFanoutFall );
-    fprintf( pFile, "\n" );
+    if ( (*ppG1)->dDelayMax < (*ppG2)->dDelayMax )
+        return -1;
+    if ( (*ppG1)->dDelayMax > (*ppG2)->dDelayMax )
+        return 1;
+    return 0;
 }
 
 /**Function*************************************************************
@@ -274,26 +336,6 @@ Mio_Gate_t ** Mio_CollectRoots( Mio_Library_t * pLib, int nInputs, float tDelay,
     if ( pnGates )
         *pnGates = iGate;
     return ppGates;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Compares the max delay of two gates.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Mio_DelayCompare( Mio_Gate_t ** ppG1, Mio_Gate_t ** ppG2 )
-{
-    if ( (*ppG1)->dDelayMax < (*ppG2)->dDelayMax )
-        return -1;
-    if ( (*ppG1)->dDelayMax > (*ppG2)->dDelayMax )
-        return 1;
-    return 0;
 }
 
 /**Function*************************************************************

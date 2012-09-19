@@ -88,6 +88,7 @@ struct  Mio_GateStruct_t_
     Mio_Library_t *    pLib; 
     // the next gate in the list
     Mio_Gate_t *       pNext;    
+    Mio_Gate_t *       pTwin;    
 
     // the derived information
     int                nInputs;     // the number of inputs

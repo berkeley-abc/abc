@@ -232,7 +232,12 @@ int Mio_LibraryReadInternal( Mio_Library_t * pLib, char * pBuffer, int fExtended
             if ( !st_is_member( pLib->tName2Gate, pGate->pName ) )
                 st_insert( pLib->tName2Gate, pGate->pName, (char *)pGate );
             else
-                printf( "The gate with name \"%s\" appears more than once.\n", pGate->pName );
+            {
+                Mio_Gate_t * pBase = Mio_LibraryReadGateByName( pLib, pGate->pName );
+                pBase->pTwin = pGate; 
+                pGate->pTwin = pBase; 
+                printf( "Gate \"%s\" appears more than once. Creating multi-output gate.\n", pGate->pName );
+            }
         }
     }
     if ( fVerbose )
