@@ -2538,7 +2538,7 @@ int Ver_ParseDriveFormal( Ver_Man_t * pMan, Abc_Ntk_t * pNtk, Ver_Bundle_t * pBu
         Vec_PtrForEachEntry( Abc_Obj_t *, pBundle->vNetsActual, pNetAct, m )
             if ( Abc_ObjFaninNum(pNetAct) > 0 )
             {
-                sprintf( pMan->sError, "Internal error while trying to connect undefined boxes. It is likely that the algorithm currently used has its limitations." );
+                sprintf( pMan->sError, "Missing specification of the I/Os of undefined box \"%s\".", Abc_NtkName(pNtk) );
                 Ver_ParsePrintErrorMessage( pMan );
                 return 0;
             }

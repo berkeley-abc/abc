@@ -192,8 +192,8 @@ struct Abc_Ntk_t_
     int               iStep;         // the generation number for the given network
     // hierarchy
     Abc_Lib_t *       pDesign;
-    short             fHieVisited;   // flag to mark the visited network
-    short             fHiePath;      // flag to mark the network on the path
+    int               fHieVisited;   // flag to mark the visited network
+    int               fHiePath;      // flag to mark the network on the path
     int               Id;            // model ID
     double            dTemp;         // temporary value
     // miscellaneous data members

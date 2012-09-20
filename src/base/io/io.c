@@ -197,6 +197,12 @@ int IoCommandRead( Abc_Frame_t * pAbc, int argc, char ** argv )
     for ( pTemp = pFileName; *pTemp; pTemp++ )
         if ( *pTemp == '>' )
             *pTemp = '\\';
+    // check if the library is available
+    if ( glo_fMapped && Abc_FrameReadLibGen() == NULL )
+    {
+        Abc_Print( 1, "Cannot read mapped design when the library is not given.\n" );
+        return 0;
+    }
     // read the file using the corresponding file reader
     pNtk = Io_Read( pFileName, Io_ReadFileType(pFileName), fCheck );
     if ( pNtk == NULL )
