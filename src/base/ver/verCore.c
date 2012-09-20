@@ -2372,7 +2372,7 @@ void Ver_ParseReportUndefBoxes( Ver_Man_t * pMan )
             if ( pBox->pData && !Ver_NtkIsDefined((Abc_Ntk_t *)pBox->pData) )
                 ((Abc_Ntk_t *)pBox->pData)->fHiePath++;
     // print the stats
-    printf( "Warning: The design contains %d undefined objects interpreted as blackboxes:\n", nBoxes );
+    printf( "Warning: The design contains %d undefined object types interpreted as blackboxes:\n", nBoxes );
     Vec_PtrForEachEntry( Abc_Ntk_t *, pMan->pDesign->vModules, pNtk, i )
         if ( !Ver_NtkIsDefined(pNtk) )
             printf( "%s (%d)  ", Abc_NtkName(pNtk), pNtk->fHiePath );

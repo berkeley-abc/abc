@@ -454,7 +454,7 @@ int Amap_LibertyPrintGenlib( Amap_Tree_t * p, char * pFileName, int fVerbose )
             fprintf( pFile, "%s=",    Amap_LibertyGetString(p, pOutput->Head) );
             fprintf( pFile, "%s;\n",  Amap_LibertyGetStringFormula(p, pFunc->Head) );
             Amap_ItemForEachChild( p, pCell, pPin )
-                if ( pPin != pOutput && !Amap_LibertyCompare(p, pPin->Key, "pin") )
+                if ( Vec_PtrFind(vOutputs, pPin) == -1 && !Amap_LibertyCompare(p, pPin->Key, "pin") )
                     fprintf( pFile, "    PIN  %13s  UNKNOWN  1  999  1.00  0.00  1.00  0.00\n", Amap_LibertyGetString(p, pPin->Head) );
         }
         Vec_PtrFree( vOutputs );

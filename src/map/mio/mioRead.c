@@ -209,14 +209,14 @@ int Mio_LibraryReadInternal( Mio_Library_t * pLib, char * pBuffer, int fExtended
         pGate = Mio_LibraryReadGate( &pToken, fExtendedFormat );
         if ( pGate == NULL )
             return 1;
-/*
+
         // skip the gate if its formula has problems
         if ( !Mio_ParseCheckFormula(pGate, pGate->pForm) )
         {
             Mio_GateDelete( pGate );
             continue;
         }
-*/        
+       
         // set the library
         pGate->pLib = pLib;
 

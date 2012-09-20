@@ -410,7 +410,7 @@ int Mio_ParseCheckFormula( Mio_Gate_t * pGate, char * pForm )
     Mio_Pin_t * pPin;
     char * pStr;
     int i, iPin, fVisit[32] = {0};
-    if ( Mio_GateReadPins(pGate) == NULL )
+    if ( Mio_GateReadPins(pGate) == NULL || !strcmp(Mio_PinReadName(Mio_GateReadPins(pGate)), "*") )
         return 1;
 /*
     // find the equality sign
@@ -421,9 +421,9 @@ int Mio_ParseCheckFormula( Mio_Gate_t * pGate, char * pForm )
         return 0;
     }
 */
-printf( "Checking gate %s\n", pGate->pName );
+//printf( "Checking gate %s\n", pGate->pName );
 
-    for ( pStr = pForm + 1; *pStr; pStr++ )
+    for ( pStr = pForm; *pStr; pStr++ )
     {
         if ( *pStr == ' ' ||
              *pStr == MIO_EQN_SYM_OPEN ||   
@@ -443,7 +443,7 @@ printf( "Checking gate %s\n", pGate->pName );
         iPin = Mio_ParseCheckName( pGate, &pStr );
         if ( iPin == -1 )
         {
-            printf( "Skipping gate \"%s\" because substring \"%s\" does not match with a pin name.\n", pGate->pName, *pStr );
+            printf( "Skipping gate \"%s\" because substring \"%s\" does not match with a pin name.\n", pGate->pName, pStr );
             return 0;
         }
         assert( iPin < 32 );
