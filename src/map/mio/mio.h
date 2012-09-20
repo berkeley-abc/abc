@@ -111,7 +111,7 @@ extern Mio_Pin_t *       Mio_GateReadPins          ( Mio_Gate_t * pGate );
 extern Mio_Library_t *   Mio_GateReadLib           ( Mio_Gate_t * pGate );      
 extern Mio_Gate_t *      Mio_GateReadNext          ( Mio_Gate_t * pGate );      
 extern Mio_Gate_t *      Mio_GateReadTwin          ( Mio_Gate_t * pGate );      
-extern int               Mio_GateReadInputs        ( Mio_Gate_t * pGate );      
+extern int               Mio_GateReadPinNum        ( Mio_Gate_t * pGate );      
 extern double            Mio_GateReadDelayMax      ( Mio_Gate_t * pGate );      
 extern char *            Mio_GateReadSop           ( Mio_Gate_t * pGate );      
 extern word              Mio_GateReadTruth         ( Mio_Gate_t * pGate );
@@ -135,6 +135,7 @@ extern int               Mio_LibraryReadExclude( char * ExcludeFile, st_table * 
 extern int               Mio_LibraryParseFormulas( Mio_Library_t * pLib );
 /*=== mioParse.c =============================================================*/
 extern Vec_Int_t *       Mio_ParseFormula( char * pFormInit, char ** ppVarNames, int nVars );
+extern int               Mio_ParseCheckFormula( Mio_Gate_t * pGate, char * pForm );
 /*=== mioSop.c =============================================================*/
 extern char *            Mio_LibDeriveSop( int nVars, Vec_Int_t * vExpr, Vec_Str_t * vStr );
 /*=== mioUtils.c =============================================================*/

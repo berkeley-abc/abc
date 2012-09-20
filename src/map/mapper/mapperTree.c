@@ -309,7 +309,7 @@ Map_Super_t * Map_LibraryReadGateTree( Map_SuperLib_t * pLib, char * pBuffer, in
         return NULL;
     }
     // set the max number of fanouts
-    pGate->nFanLimit = s_MapFanoutLimits[ Mio_GateReadInputs(pGate->pRoot) ];
+    pGate->nFanLimit = s_MapFanoutLimits[ Mio_GateReadPinNum(pGate->pRoot) ];
 
     // read the pin-to-pin delay
     for ( i = 0; ( pTemp = strtok( NULL, " \n\0" ) ); i++ )
@@ -336,7 +336,7 @@ Map_Super_t * Map_LibraryReadGateTree( Map_SuperLib_t * pLib, char * pBuffer, in
         pGate->pFanins[i] = pLib->ppSupers[Num];
     }
     pGate->nFanins = i;
-    if ( pGate->nFanins != (unsigned)Mio_GateReadInputs(pGate->pRoot) )
+    if ( pGate->nFanins != (unsigned)Mio_GateReadPinNum(pGate->pRoot) )
     {
         printf( "The number of fanins of a root gate is wrong.\n" );
         return NULL;

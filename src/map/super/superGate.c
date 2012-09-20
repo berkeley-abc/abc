@@ -360,7 +360,7 @@ Super_Man_t * Super_Compute( Super_Man_t * pMan, Mio_Gate_t ** ppGates, int nGat
         {
             if ( pMan->nLevels >= 1 )  // First level gates have been computed
             {
-                if ( Mio_GateReadInputs(ppGates[k]) >= iPruneLimitRoot )
+                if ( Mio_GateReadPinNum(ppGates[k]) >= iPruneLimitRoot )
                     continue;
             }
         }
@@ -386,7 +386,7 @@ Super_Man_t * Super_Compute( Super_Man_t * pMan, Mio_Gate_t ** ppGates, int nGat
 
         if ( pMan->fVerbose )
         {
-            printf ("Trying %d choices for %d inputs\n", t, Mio_GateReadInputs(ppGates[k]) );
+            printf ("Trying %d choices for %d inputs\n", t, Mio_GateReadPinNum(ppGates[k]) );
         }
 
         // resort part of this range by area
@@ -402,7 +402,7 @@ Super_Man_t * Super_Compute( Super_Man_t * pMan, Mio_Gate_t ** ppGates, int nGat
 
         // consider the combinations of gates with the root gate on top
         AreaMio = (float)Mio_GateReadArea(ppGates[k]);
-        nFanins = Mio_GateReadInputs(ppGates[k]);
+        nFanins = Mio_GateReadPinNum(ppGates[k]);
         switch ( nFanins )
         {
         case 0: // should not happen
@@ -1348,7 +1348,7 @@ void Super_WriteLibraryTree_rec( FILE * pFile, Super_Man_t * pMan, Super_Gate_t 
     if ( pSuper->fVar || pSuper->Number > 0 )
         return;
     // write the fanins
-    nFanins = Mio_GateReadInputs(pSuper->pRoot);
+    nFanins = Mio_GateReadPinNum(pSuper->pRoot);
     for ( i = 0; i < nFanins; i++ )
         Super_WriteLibraryTree_rec( pFile, pMan, pSuper->pFanins[i], pCounter );
     // finally write the gate

@@ -88,7 +88,7 @@ int Abc_NtkAttach( Abc_Ntk_t * pNtk )
     for ( i = 1; i < nGates; i++ )
         puTruthGates[i] = puTruthGates[i-1] + 2;
     for ( i = 0; i < nGates; i++ )
-        Mio_DeriveTruthTable( ppGates[i], uTruths, Mio_GateReadInputs(ppGates[i]), 6, puTruthGates[i] );
+        Mio_DeriveTruthTable( ppGates[i], uTruths, Mio_GateReadPinNum(ppGates[i]), 6, puTruthGates[i] );
 
     // assign the gates to pNode->pCopy
     Abc_NtkCleanCopy( pNtk );

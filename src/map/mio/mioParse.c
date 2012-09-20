@@ -382,6 +382,83 @@ Vec_Int_t * Mio_ParseFormula( char * pFormInit, char ** ppVarNames, int nVars )
     return NULL;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Checks if the gate's formula essentially depends on all variables.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Mio_ParseCheckName( Mio_Gate_t * pGate, char ** ppStr )
+{
+    Mio_Pin_t * pPin;
+    int i;
+    for ( pPin = Mio_GateReadPins(pGate), i = 0; pPin; pPin = Mio_PinReadNext(pPin), i++ )
+        if ( !strncmp( *ppStr, Mio_PinReadName(pPin), strlen(Mio_PinReadName(pPin)) ) )
+        {
+            *ppStr += strlen(Mio_PinReadName(pPin)) - 1;
+            return i;
+        }
+    return -1;
+}
+int Mio_ParseCheckFormula( Mio_Gate_t * pGate, char * pForm )
+{
+    Mio_Pin_t * pPin;
+    char * pStr;
+    int i, iPin, fVisit[32] = {0};
+    if ( Mio_GateReadPins(pGate) == NULL )
+        return 1;
+/*
+    // find the equality sign
+    pForm = strstr( pForm, "=" );
+    if ( pForm == NULL )
+    {
+        printf( "Skipping gate \"%s\" because formula \"%s\" has not equality sign (=).\n", pGate->pName, pForm );
+        return 0;
+    }
+*/
+printf( "Checking gate %s\n", pGate->pName );
+
+    for ( pStr = pForm + 1; *pStr; pStr++ )
+    {
+        if ( *pStr == ' ' ||
+             *pStr == MIO_EQN_SYM_OPEN ||   
+             *pStr == MIO_EQN_SYM_CLOSE ||  
+             *pStr == MIO_EQN_SYM_CONST0 || 
+             *pStr == MIO_EQN_SYM_CONST1 || 
+             *pStr == MIO_EQN_SYM_NEG ||    
+             *pStr == MIO_EQN_SYM_NEGAFT || 
+             *pStr == MIO_EQN_SYM_AND ||    
+             *pStr == MIO_EQN_SYM_AND2 ||   
+             *pStr == MIO_EQN_SYM_XOR ||    
+             *pStr == MIO_EQN_SYM_OR ||     
+             *pStr == MIO_EQN_SYM_OR2 
+           )
+           continue;
+        // return the number of the pin which has this name
+        iPin = Mio_ParseCheckName( pGate, &pStr );
+        if ( iPin == -1 )
+        {
+            printf( "Skipping gate \"%s\" because substring \"%s\" does not match with a pin name.\n", pGate->pName, *pStr );
+            return 0;
+        }
+        assert( iPin < 32 );
+        fVisit[iPin] = 1;
+    }
+    // check that all pins are used
+    for ( pPin = Mio_GateReadPins(pGate), i = 0; pPin; pPin = Mio_PinReadNext(pPin), i++ )
+        if ( fVisit[i] == 0 )
+        {
+            printf( "Skipping gate \"%s\" because pin \"%s\" does not appear in the formula \"%s\".\n", pGate->pName, Mio_PinReadName(pPin), pForm );
+            return 0;
+        }
+    return 1;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

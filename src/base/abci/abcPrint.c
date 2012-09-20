@@ -1049,7 +1049,7 @@ void Abc_NtkPrintGates( Abc_Ntk_t * pNtk, int fUseLibrary )
             Area = Counter * Mio_GateReadArea( ppGates[i] );
             printf( "%-*s   Fanin = %2d   Instance = %8d   Area = %10.2f   %6.2f %%\n", 
                 nGateNameLen, Mio_GateReadName( ppGates[i] ), 
-                Mio_GateReadInputs( ppGates[i] ), 
+                Mio_GateReadPinNum( ppGates[i] ), 
                 Counter, Area, 100.0 * Area / AreaTotal );
         }
         printf( "%-*s                Instance = %8d   Area = %10.2f   %6.2f %%\n", 

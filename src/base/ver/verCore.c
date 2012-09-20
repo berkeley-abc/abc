@@ -1527,7 +1527,7 @@ int Ver_ParseGate( Ver_Man_t * pMan, Abc_Ntk_t * pNtk, Mio_Gate_t * pGate )
     Ver_Stream_t * p = pMan->pReader;
     Abc_Obj_t * pNetActual, * pNode, * pNode2 = NULL;
     char * pWord, Symbol;
-    int Input, i, nFanins = Mio_GateReadInputs(pGate);
+    int Input, i, nFanins = Mio_GateReadPinNum(pGate);
 
     // convert from the blackbox into the network with local functions representated by gates
     if ( 1 != pMan->fMapped )

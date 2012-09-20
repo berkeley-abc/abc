@@ -148,7 +148,7 @@ Mio_Pin_t *       Mio_GateReadPins    ( Mio_Gate_t * pGate )            { return
 Mio_Library_t *   Mio_GateReadLib     ( Mio_Gate_t * pGate )            { return pGate->pLib;      }
 Mio_Gate_t *      Mio_GateReadNext    ( Mio_Gate_t * pGate )            { return pGate->pNext;     }
 Mio_Gate_t *      Mio_GateReadTwin    ( Mio_Gate_t * pGate )            { return pGate->pTwin;     }
-int               Mio_GateReadInputs  ( Mio_Gate_t * pGate )            { return pGate->nInputs;   }
+int               Mio_GateReadPinNum  ( Mio_Gate_t * pGate )            { return pGate->nInputs;   }
 double            Mio_GateReadDelayMax( Mio_Gate_t * pGate )            { return pGate->dDelayMax; }
 char *            Mio_GateReadSop     ( Mio_Gate_t * pGate )            { return pGate->pSop;      }
 word              Mio_GateReadTruth   ( Mio_Gate_t * pGate )            { return pGate->nInputs <= 6 ? pGate->uTruth : 0;   }

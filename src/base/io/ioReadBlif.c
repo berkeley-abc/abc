@@ -533,12 +533,12 @@ int Io_ReadBlifReorderFormalNames( Vec_Ptr_t * vTokens, Mio_Gate_t * pGate, Mio_
     nSize = Vec_PtrSize(vTokens);
     if ( pTwin == NULL )
     {
-        if ( nSize - 3 != Mio_GateReadInputs(pGate) )
+        if ( nSize - 3 != Mio_GateReadPinNum(pGate) )
             return 0;
     }
     else
     {
-        if ( nSize - 3 != Mio_GateReadInputs(pGate) && nSize - 4 != Mio_GateReadInputs(pGate) )
+        if ( nSize - 3 != Mio_GateReadPinNum(pGate) && nSize - 4 != Mio_GateReadPinNum(pGate) )
             return 0;
     }
     // check if the names are in order
@@ -553,7 +553,7 @@ int Io_ReadBlifReorderFormalNames( Vec_Ptr_t * vTokens, Mio_Gate_t * pGate, Mio_
     }
     if ( pTwin == NULL )
     {
-        if ( i == Mio_GateReadInputs(pGate) )
+        if ( i == Mio_GateReadPinNum(pGate) )
             return 1;
         // reorder the pins
         for ( pGatePin = Mio_GateReadPins(pGate), i = 0; pGatePin; pGatePin = Mio_PinReadNext(pGatePin), i++ )
@@ -589,10 +589,10 @@ int Io_ReadBlifReorderFormalNames( Vec_Ptr_t * vTokens, Mio_Gate_t * pGate, Mio_
     }
     else
     {
-        if ( i != Mio_GateReadInputs(pGate) ) // expect the correct order of input pins in the network with twin gates
+        if ( i != Mio_GateReadPinNum(pGate) ) // expect the correct order of input pins in the network with twin gates
             return 0;
         // check the last two entries
-        if ( nSize - 3 == Mio_GateReadInputs(pGate) ) // only one output is available
+        if ( nSize - 3 == Mio_GateReadPinNum(pGate) ) // only one output is available
         {
             pNamePin = Mio_GateReadOutName(pGate);
             Length = strlen(pNamePin);
@@ -614,7 +614,7 @@ int Io_ReadBlifReorderFormalNames( Vec_Ptr_t * vTokens, Mio_Gate_t * pGate, Mio_
             }
             return 0;
         }
-        if ( nSize - 4 == Mio_GateReadInputs(pGate) ) // two outputs are available
+        if ( nSize - 4 == Mio_GateReadPinNum(pGate) ) // two outputs are available
         {
             pNamePin = Mio_GateReadOutName(pGate);
             Length = strlen(pNamePin);

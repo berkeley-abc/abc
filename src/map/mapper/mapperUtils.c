@@ -799,7 +799,7 @@ st_table * Map_CreateTableGate2Super( Map_Man_t * pMan )
         if ( pSuper->nGates == 1 )
         {
             // skip different versions of the same root gate
-            nInputs = Mio_GateReadInputs(pSuper->pRoot);
+            nInputs = Mio_GateReadPinNum(pSuper->pRoot);
             for ( v = 0; v < nInputs; v++ )
                 if ( pSuper->pFanins[v]->Num != nInputs - 1 - v )
                     break;
