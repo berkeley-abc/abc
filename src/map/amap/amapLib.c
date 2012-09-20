@@ -269,11 +269,11 @@ Vec_Ptr_t * Amap_LibSelectGates( Amap_Lib_t * p, int fVerbose )
     vSelect = Vec_PtrAlloc( 100 );
     Vec_PtrForEachEntry( Amap_Gat_t *, p->vSorted, pGate, i )
     {
-        if ( pGate->pFunc == NULL )
+        if ( pGate->pFunc == NULL || pGate->pTwin != NULL )
             continue;
         Vec_PtrForEachEntryStop( Amap_Gat_t *, p->vSorted, pGate2, k, i )
         {
-            if ( pGate2->pFunc == NULL )
+            if ( pGate2->pFunc == NULL || pGate2->pTwin != NULL )
                 continue;
             if ( pGate2->nPins != pGate->nPins )
                 continue;

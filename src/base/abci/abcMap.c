@@ -682,6 +682,35 @@ Abc_Obj_t * Abc_NodeFromMapSuperChoice_rec( Abc_Ntk_t * pNtkNew, Map_Super_t * p
     return pNodeNew;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Returns the twin node if it exists.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Obj_t * Abc_NtkFetchTwinNode( Abc_Obj_t * pNode )
+{
+    Abc_Obj_t * pNode2;
+    Mio_Gate_t * pGate = (Mio_Gate_t *)pNode->pData;
+    assert( Abc_NtkHasMapping(pNode->pNtk) );
+    if ( pGate == NULL || Mio_GateReadTwin(pGate) == NULL )
+        return NULL;
+    // assuming the twin node is following next
+    if ( (int)Abc_ObjId(pNode) == Abc_NtkObjNumMax(pNode->pNtk) - 1 )
+        return NULL;
+    pNode2 = Abc_NtkObj( pNode->pNtk, Abc_ObjId(pNode) + 1 );
+    if ( pNode2 == NULL || !Abc_ObjIsNode(pNode2) || Abc_ObjFaninNum(pNode) != Abc_ObjFaninNum(pNode2) )
+        return NULL;
+    if ( Mio_GateReadTwin(pGate) != (Mio_Gate_t *)pNode2->pData )
+        return NULL;
+    return pNode2;
+}
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

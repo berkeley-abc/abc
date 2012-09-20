@@ -229,7 +229,7 @@ Amap_Item_t * Amap_LibertyPinFunction( Amap_Tree_t * p, Amap_Item_t * pPin )
 
 /**Function*************************************************************
 
-  Synopsis    [Returns cell's function.]
+  Synopsis    [Returns output pin(s).]
 
   Description []
 
@@ -249,6 +249,20 @@ Amap_Item_t * Amap_LibertyCellOutput( Amap_Tree_t * p, Amap_Item_t * pCell )
             return pPin;
     }
     return NULL;
+}
+Vec_Ptr_t * Amap_LibertyCellOutputs( Amap_Tree_t * p, Amap_Item_t * pCell )
+{
+    Amap_Item_t * pPin;
+    Vec_Ptr_t * vOutPins;
+    vOutPins = Vec_PtrAlloc( 2 );
+    Amap_ItemForEachChild( p, pCell, pPin )
+    {
+        if ( Amap_LibertyCompare(p, pPin->Key, "pin") )
+            continue;
+        if ( Amap_LibertyPinFunction(p, pPin) )
+            Vec_PtrPush( vOutPins, pPin );
+    }
+    return vOutPins;
 }
 
 /**Function*************************************************************
@@ -353,9 +367,10 @@ char * Amap_LibertyGetStringFormula( Amap_Tree_t * p, Amap_Pair_t Pair )
 int Amap_LibertyPrintGenlib( Amap_Tree_t * p, char * pFileName, int fVerbose )
 {
     FILE * pFile;
+    Vec_Ptr_t * vOutputs;
     Amap_Item_t * pCell, * pArea, * pFunc, * pPin, * pOutput;
     char * pForm;
-    int Counter;
+    int i, Counter;
     if ( pFileName == NULL )
         pFile = stdout;
     else
@@ -406,12 +421,14 @@ int Amap_LibertyPrintGenlib( Amap_Tree_t * p, char * pFileName, int fVerbose )
                 printf( "Amap_LibertyPrintGenlib() skipped cell \"%s\" without logic function.\n", Amap_LibertyGetString(p, pCell->Head) );
             continue;
         }
+/*
         if ( Counter > 1 )
         {
             if ( fVerbose )
                 printf( "Amap_LibertyPrintGenlib() skipped multi-output cell \"%s\".\n", Amap_LibertyGetString(p, pCell->Head) );
             continue;
         }
+*/
         pArea = Amap_LibertyCellArea( p, pCell );
         if ( pArea == NULL )
         {
@@ -419,25 +436,28 @@ int Amap_LibertyPrintGenlib( Amap_Tree_t * p, char * pFileName, int fVerbose )
                 printf( "Amap_LibertyPrintGenlib() skipped cell \"%s\" with unspecified area.\n", Amap_LibertyGetString(p, pCell->Head) );
             continue;
         }
-        pOutput = Amap_LibertyCellOutput( p, pCell );
-        pFunc   = Amap_LibertyPinFunction( p, pOutput );
-        pForm   = Amap_LibertyGetStringFormula( p, pFunc->Head );
-        if ( !strcmp(pForm, "0") || !strcmp(pForm, "1") )
+//        pOutput = Amap_LibertyCellOutput( p, pCell );
+        vOutputs = Amap_LibertyCellOutputs( p, pCell );
+        Vec_PtrForEachEntry( Amap_Item_t *, vOutputs, pOutput, i )
         {
-            if ( fVerbose )
-                printf( "Amap_LibertyPrintGenlib() skipped cell \"%s\" with constant formula \"%s\".\n", Amap_LibertyGetString(p, pCell->Head), pForm );
-            continue;
+            pFunc   = Amap_LibertyPinFunction( p, pOutput );
+            pForm   = Amap_LibertyGetStringFormula( p, pFunc->Head );
+            if ( !strcmp(pForm, "0") || !strcmp(pForm, "1") )
+            {
+                if ( fVerbose )
+                    printf( "Amap_LibertyPrintGenlib() skipped cell \"%s\" with constant formula \"%s\".\n", Amap_LibertyGetString(p, pCell->Head), pForm );
+                continue;
+            }
+            fprintf( pFile, "GATE  " );
+            fprintf( pFile, "%16s  ", Amap_LibertyGetString(p, pCell->Head) );
+            fprintf( pFile, "%f  ",   atof(Amap_LibertyGetString(p, pArea->Head)) );
+            fprintf( pFile, "%s=",    Amap_LibertyGetString(p, pOutput->Head) );
+            fprintf( pFile, "%s;\n",  Amap_LibertyGetStringFormula(p, pFunc->Head) );
+            Amap_ItemForEachChild( p, pCell, pPin )
+                if ( pPin != pOutput && !Amap_LibertyCompare(p, pPin->Key, "pin") )
+                    fprintf( pFile, "    PIN  %13s  UNKNOWN  1  999  1.00  0.00  1.00  0.00\n", Amap_LibertyGetString(p, pPin->Head) );
         }
-
-        fprintf( pFile, "GATE  " );
-        fprintf( pFile, "%16s  ", Amap_LibertyGetString(p, pCell->Head) );
-        fprintf( pFile, "%f  ",   atof(Amap_LibertyGetString(p, pArea->Head)) );
-        fprintf( pFile, "%s=",    Amap_LibertyGetString(p, pOutput->Head) );
-        fprintf( pFile, "%s;\n",  Amap_LibertyGetStringFormula(p, pFunc->Head) );
-
-        Amap_ItemForEachChild( p, pCell, pPin )
-            if ( pPin != pOutput && !Amap_LibertyCompare(p, pPin->Key, "pin") )
-                fprintf( pFile, "    PIN  %13s  UNKNOWN  1  999  1.00  0.00  1.00  0.00\n", Amap_LibertyGetString(p, pPin->Head) );
+        Vec_PtrFree( vOutputs );
     }
     if ( pFile != stdout )
         fclose( pFile );

@@ -514,6 +514,7 @@ void Io_NtkWriteNodeFanins( FILE * pFile, Abc_Obj_t * pNode )
     fprintf( pFile, " %s", pName );
 }
 
+
 /**Function*************************************************************
 
   Synopsis    [Writes the primary input list.]
@@ -527,12 +528,11 @@ void Io_NtkWriteNodeFanins( FILE * pFile, Abc_Obj_t * pNode )
 ***********************************************************************/
 int Io_NtkWriteNodeGate( FILE * pFile, Abc_Obj_t * pNode, int Length )
 {
+    static int fReport = 0;
     Mio_Gate_t * pGate = (Mio_Gate_t *)pNode->pData;
-    Mio_Gate_t * pGate2;
     Mio_Pin_t * pGatePin;
     Abc_Obj_t * pNode2;
     int i;
-    // write the node
     fprintf( pFile, " %-*s ", Length, Mio_GateReadName(pGate) );
     for ( pGatePin = Mio_GateReadPins(pGate), i = 0; pGatePin; pGatePin = Mio_PinReadNext(pGatePin), i++ )
         fprintf( pFile, "%s=%s ", Mio_PinReadName(pGatePin), Abc_ObjName( Abc_ObjFanin(pNode,i) ) );
@@ -540,25 +540,14 @@ int Io_NtkWriteNodeGate( FILE * pFile, Abc_Obj_t * pNode, int Length )
     fprintf( pFile, "%s=%s", Mio_GateReadOutName(pGate), Abc_ObjName( Abc_ObjFanout0(pNode) ) );
     if ( Mio_GateReadTwin(pGate) == NULL )
         return 0;
-    // assuming the twin node is following next
-    if ( (int)Abc_ObjId(pNode) == Abc_NtkObjNumMax(pNode->pNtk) - 1 )
+    pNode2 = Abc_NtkFetchTwinNode( pNode );
+    if ( pNode2 == NULL )
     {
-        printf( "Warning: Missing second output of gate \"%s\".\n", Mio_GateReadName(pGate) );
+        if ( !fReport )
+            fReport = 1, printf( "Warning: Missing second output of gate(s) \"%s\".\n", Mio_GateReadName(pGate) );
         return 0;
     }
-    pNode2 = Abc_NtkObj( pNode->pNtk, Abc_ObjId(pNode) + 1 );
-    if ( !Abc_ObjIsNode(pNode2) || Abc_ObjFaninNum(pNode) != Abc_ObjFaninNum(pNode2) )
-    {
-        printf( "Warning: Missing second output of gate \"%s\".\n", Mio_GateReadName(pGate) );
-        return 0;
-    }
-    pGate2 = (Mio_Gate_t *)pNode2->pData;
-    if ( strcmp( Mio_GateReadName(pGate), Mio_GateReadName(pGate2)) )
-    {
-        printf( "Warning: Missing second output of gate \"%s\".\n", Mio_GateReadName(pGate) );
-        return 0;
-    }
-    fprintf( pFile, " %s=%s", Mio_GateReadOutName(pGate2), Abc_ObjName( Abc_ObjFanout0(pNode2) ) );
+    fprintf( pFile, " %s=%s", Mio_GateReadOutName((Mio_Gate_t *)pNode2->pData), Abc_ObjName( Abc_ObjFanout0(pNode2) ) );
     return 1;
 }
 

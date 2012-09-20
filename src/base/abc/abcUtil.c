@@ -357,22 +357,22 @@ int Abc_NtkGetClauseNum( Abc_Ntk_t * pNtk )
 ***********************************************************************/
 double Abc_NtkGetMappedArea( Abc_Ntk_t * pNtk )
 {
-    Abc_Obj_t * pNode;
+    Abc_Obj_t * pObj;
     double TotalArea;
     int i;
     assert( Abc_NtkHasMapping(pNtk) );
     TotalArea = 0.0;
-    Abc_NtkForEachNode( pNtk, pNode, i )
+    Abc_NtkForEachNode( pNtk, pObj, i )
     {
-//        assert( pNode->pData );
-        if ( pNode->pData == NULL )
+//        assert( pObj->pData );
+        if ( pObj->pData == NULL )
         {
             printf( "Node without mapping is encountered.\n" );
             continue;
         }
-        TotalArea += Mio_GateReadArea( (Mio_Gate_t *)pNode->pData );
+        TotalArea += Mio_GateReadArea( (Mio_Gate_t *)pObj->pData );
         // assuming that twin gates follow each other
-        if ( Mio_GateReadTwin(((Mio_Gate_t *)pNode->pData)) != NULL )
+        if ( Abc_NtkFetchTwinNode(pObj) )
             i++;
     }
     return TotalArea;

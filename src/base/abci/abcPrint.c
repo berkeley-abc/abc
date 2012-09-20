@@ -1025,7 +1025,7 @@ void Abc_NtkPrintGates( Abc_Ntk_t * pNtk, int fUseLibrary )
             Mio_GateSetValue( (Mio_Gate_t *)pObj->pData, 1 + Mio_GateReadValue((Mio_Gate_t *)pObj->pData) );
             CounterTotal++;
             // assuming that twin gates follow each other
-            if ( Mio_GateReadTwin(((Mio_Gate_t *)pObj->pData)) != NULL )
+            if ( Abc_NtkFetchTwinNode(pObj) )
                 i++;
         }
 

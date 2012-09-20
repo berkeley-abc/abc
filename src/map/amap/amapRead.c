@@ -326,10 +326,10 @@ int Amap_CollectFormulaTokens( Vec_Ptr_t * vTokens, char * pToken, int iPos )
 Amap_Lib_t * Amap_ParseTokens( Vec_Ptr_t * vTokens, int fVerbose )
 {
     Amap_Lib_t * p;
-    Amap_Gat_t * pGate;
+    Amap_Gat_t * pGate, * pPrev;
     Amap_Pin_t * pPin;
     char * pToken;
-    int nPins, iPos = 0;
+    int i, nPins, iPos = 0;
     p = Amap_LibAlloc();
     pToken = (char *)Vec_PtrEntry(vTokens, iPos++);
     do 
@@ -409,8 +409,21 @@ Amap_Lib_t * Amap_ParseTokens( Vec_Ptr_t * vTokens, int fVerbose )
             Vec_PtrPush( p->vGates, pGate );
         }
         pToken = (char *)Vec_PtrEntry(vTokens, iPos++);
+//printf( "Finished reading gate %s (%s)\n", pGate->pName, pGate->pOutName );
     }
     while ( strcmp( pToken, ".end" ) );
+
+    // check if there are gates with identical names
+    pPrev = NULL;
+    Amap_LibForEachGate( p, pGate, i )
+    {
+        if ( pPrev && !strcmp(pPrev->pName, pGate->pName) )
+        {
+            pPrev->pTwin = pGate, pGate->pTwin = pPrev;
+            printf( "Warning: Detected multi-output gate \"%s\".\n", pGate->pName );
+        }
+        pPrev = pGate;
+    }
     return p;
 }
 

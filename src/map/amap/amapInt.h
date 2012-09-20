@@ -149,6 +149,7 @@ struct Amap_Pin_t_
 struct Amap_Gat_t_
 {
     Amap_Lib_t *       pLib;            // library   
+    Amap_Gat_t *       pTwin;           // twin gate
     char *             pName;           // the name of the gate
     char *             pOutName;        // name of the output
     double             dArea;           // the area of the gate
