@@ -206,6 +206,8 @@ int IoCommandRead( Abc_Frame_t * pAbc, int argc, char ** argv )
         sprintf( Command, "read_liberty %s", pFileName );
     else if ( !strcmp( Extra_FileNameExtension(pFileName), "scl" ) )
         sprintf( Command, "read_scl %s", pFileName );
+    else if ( !strcmp( Extra_FileNameExtension(pFileName), "c" ) )
+        sprintf( Command, "so %s", pFileName );
     if ( Command[0] )
     {
         Cmd_CommandExecute( pAbc, Command );
