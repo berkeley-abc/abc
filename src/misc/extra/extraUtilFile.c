@@ -129,7 +129,7 @@ char * Extra_FileNameExtension( char * FileName )
     for ( pDot = FileName + strlen(FileName)-1; pDot >= FileName; pDot-- )
         if ( *pDot == '.' )
             return pDot + 1;
-   return NULL;
+   return FileName;
 }
 
 /**Function*************************************************************

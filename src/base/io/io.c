@@ -165,10 +165,10 @@ void Io_End( Abc_Frame_t * pAbc )
 ***********************************************************************/
 int IoCommandRead( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
+    char Command[1000];
     Abc_Ntk_t * pNtk;
     char * pFileName, * pTemp;
-    int fCheck;
-    int c;
+    int c, fCheck;
 
     fCheck = 1;
     glo_fMapped = 0;
@@ -197,6 +197,20 @@ int IoCommandRead( Abc_Frame_t * pAbc, int argc, char ** argv )
     for ( pTemp = pFileName; *pTemp; pTemp++ )
         if ( *pTemp == '>' )
             *pTemp = '\\';
+    // read libraries
+    Command[0] = 0;
+    assert( strlen(pFileName) < 900 );
+    if ( !strcmp( Extra_FileNameExtension(pFileName), "genlib" )  )
+        sprintf( Command, "read_library %s", pFileName );
+    else if ( !strcmp( Extra_FileNameExtension(pFileName), "lib" ) )
+        sprintf( Command, "read_liberty %s", pFileName );
+    else if ( !strcmp( Extra_FileNameExtension(pFileName), "scl" ) )
+        sprintf( Command, "read_scl %s", pFileName );
+    if ( Command[0] )
+    {
+        Cmd_CommandExecute( pAbc, Command );
+        return 0;
+    }
     // check if the library is available
     if ( glo_fMapped && Abc_FrameReadLibGen() == NULL )
     {

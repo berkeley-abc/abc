@@ -149,6 +149,7 @@ void Mio_End( Abc_Frame_t * pAbc )
 ***********************************************************************/
 int Mio_CommandReadLiberty( Abc_Frame_t * pAbc, int argc, char **argv )
 {
+    char Command[1000];
     FILE * pFile;
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNet;
@@ -196,9 +197,11 @@ int Mio_CommandReadLiberty( Abc_Frame_t * pAbc, int argc, char **argv )
     }
     fclose( pFile );
 
-    if ( !Amap_LibertyParse( FileName, "temp.genlib", fVerbose ) )
+    if ( !Amap_LibertyParse( FileName, fVerbose ) )
         return 0;
-    Cmd_CommandExecute( pAbc, "read_library temp.genlib" );
+    assert( strlen(FileName) < 900 );
+    sprintf( Command, "read_library %s", Extra_FileNameGenericAppend(FileName, ".genlib") );
+    Cmd_CommandExecute( pAbc, Command );
     return 0;
 
 usage:

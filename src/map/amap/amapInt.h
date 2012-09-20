@@ -26,6 +26,7 @@
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
 
+#include "misc/extra/extra.h"
 #include "aig/aig/aig.h"
 #include "amap.h"
 

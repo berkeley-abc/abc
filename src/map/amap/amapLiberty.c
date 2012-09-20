@@ -914,7 +914,7 @@ void Amap_LibertyStop( Amap_Tree_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Amap_LibertyParse( char * pFileName, char * pFileGenlib, int fVerbose )
+int Amap_LibertyParse( char * pFileName, int fVerbose )
 {
     Amap_Tree_t * p;
     char * pPos;
@@ -930,7 +930,7 @@ int Amap_LibertyParse( char * pFileName, char * pFileGenlib, int fVerbose )
         if ( fVerbose )
         printf( "Parsing finished successfully.\n" );
 //        Amap_LibertyPrintLiberty( p, "temp_.lib" );
-        Amap_LibertyPrintGenlib( p, "temp.genlib", fVerbose );
+        Amap_LibertyPrintGenlib( p, Extra_FileNameGenericAppend(pFileName, ".genlib"), fVerbose );
         RetValue = 1;
     }
     else

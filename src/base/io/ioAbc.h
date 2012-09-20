@@ -134,6 +134,7 @@ extern int                Io_WriteSmv( Abc_Ntk_t * pNtk, char * FileName );
 extern void               Io_WriteVerilog( Abc_Ntk_t * pNtk, char * FileName );
 /*=== abcUtil.c ===============================================================*/
 extern Io_FileType_t      Io_ReadFileType( char * pFileName );
+extern Io_FileType_t      Io_ReadLibType( char * pFileName );
 extern Abc_Ntk_t *        Io_ReadNetlist( char * pFileName, Io_FileType_t FileType, int fCheck );
 extern Abc_Ntk_t *        Io_Read( char * pFileName, Io_FileType_t FileType, int fCheck );
 extern void               Io_Write( Abc_Ntk_t * pNtk, char * pFileName, Io_FileType_t FileType );
