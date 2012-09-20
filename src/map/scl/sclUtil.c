@@ -284,6 +284,44 @@ void Abc_SclPrintGateSizes( SC_Lib * pLib, Abc_Ntk_t * p )
     Vec_IntFree( vGates );
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Downsizes each gate to its minimium size.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_SclMinsizePerform( SC_Lib * pLib, Abc_Ntk_t * p, int fVerbose )
+{
+    Vec_Int_t * vMinCells, * vGates;
+    SC_Cell * pCell, * pRepr = NULL;
+    Abc_Obj_t * pObj;
+    int i, k, gateId;
+    // map each gate in the library into its min-size prototype
+    vMinCells = Vec_IntStartFull( Vec_PtrSize(pLib->vCells) );
+    SC_LibForEachCellClass( pLib, pRepr, i )
+        SC_RingForEachCell( pRepr, pCell, k )
+            Vec_IntWriteEntry( vMinCells, pCell->Id, pRepr->Id );
+    // update each cell
+    vGates = Abc_SclManFindGates( pLib, p );
+    Abc_NtkForEachNode1( p, pObj, i )
+    {
+        gateId = Vec_IntEntry( vGates, i );
+        assert( gateId >= 0 && gateId < Vec_PtrSize(pLib->vCells) );
+        gateId = Vec_IntEntry( vMinCells, gateId );
+        assert( gateId >= 0 && gateId < Vec_PtrSize(pLib->vCells) );
+        Vec_IntWriteEntry( vGates, i, gateId );
+    }
+    Abc_SclManSetGates( pLib, p, vGates );
+    Vec_IntFree( vMinCells );
+    Vec_IntFree( vGates );
+}
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

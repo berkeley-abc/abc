@@ -28,15 +28,16 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static int Scl_CommandRead   ( Abc_Frame_t * pAbc, int argc, char **argv );
-static int Scl_CommandWrite  ( Abc_Frame_t * pAbc, int argc, char **argv );
-static int Scl_CommandPrint  ( Abc_Frame_t * pAbc, int argc, char **argv );
-static int Scl_CommandPrintGS( Abc_Frame_t * pAbc, int argc, char **argv );
-static int Scl_CommandStime  ( Abc_Frame_t * pAbc, int argc, char **argv );
-static int Scl_CommandTopo   ( Abc_Frame_t * pAbc, int argc, char **argv );
-static int Scl_CommandBuffer ( Abc_Frame_t * pAbc, int argc, char **argv );
-static int Scl_CommandGsize  ( Abc_Frame_t * pAbc, int argc, char **argv );
-static int Scl_CommandUpsize ( Abc_Frame_t * pAbc, int argc, char **argv );
+static int Scl_CommandRead    ( Abc_Frame_t * pAbc, int argc, char **argv );
+static int Scl_CommandWrite   ( Abc_Frame_t * pAbc, int argc, char **argv );
+static int Scl_CommandPrint   ( Abc_Frame_t * pAbc, int argc, char **argv );
+static int Scl_CommandPrintGS ( Abc_Frame_t * pAbc, int argc, char **argv );
+static int Scl_CommandStime   ( Abc_Frame_t * pAbc, int argc, char **argv );
+static int Scl_CommandTopo    ( Abc_Frame_t * pAbc, int argc, char **argv );
+static int Scl_CommandBuffer  ( Abc_Frame_t * pAbc, int argc, char **argv );
+static int Scl_CommandGsize   ( Abc_Frame_t * pAbc, int argc, char **argv );
+static int Scl_CommandUpsize  ( Abc_Frame_t * pAbc, int argc, char **argv );
+static int Scl_CommandMinsize ( Abc_Frame_t * pAbc, int argc, char **argv );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -55,15 +56,16 @@ static int Scl_CommandUpsize ( Abc_Frame_t * pAbc, int argc, char **argv );
 ***********************************************************************/
 void Scl_Init( Abc_Frame_t * pAbc )
 {
-    Cmd_CommandAdd( pAbc, "SCL mapping",  "read_scl",   Scl_CommandRead,    0 ); 
-    Cmd_CommandAdd( pAbc, "SCL mapping",  "write_scl",  Scl_CommandWrite,   0 ); 
-    Cmd_CommandAdd( pAbc, "SCL mapping",  "print_scl",  Scl_CommandPrint,   0 ); 
-    Cmd_CommandAdd( pAbc, "SCL mapping",  "print_gs",   Scl_CommandPrintGS, 0 ); 
-    Cmd_CommandAdd( pAbc, "SCL mapping",  "stime",      Scl_CommandStime,   0 ); 
-    Cmd_CommandAdd( pAbc, "SCL mapping",  "topo",       Scl_CommandTopo,    1 ); 
-    Cmd_CommandAdd( pAbc, "SCL mapping",  "buffer",     Scl_CommandBuffer,  1 ); 
-    Cmd_CommandAdd( pAbc, "SCL mapping",  "gsize",      Scl_CommandGsize,   1 ); 
-    Cmd_CommandAdd( pAbc, "SCL mapping",  "upsize",     Scl_CommandUpsize,  1 ); 
+    Cmd_CommandAdd( pAbc, "SCL mapping",  "read_scl",   Scl_CommandRead,     0 ); 
+    Cmd_CommandAdd( pAbc, "SCL mapping",  "write_scl",  Scl_CommandWrite,    0 ); 
+    Cmd_CommandAdd( pAbc, "SCL mapping",  "print_scl",  Scl_CommandPrint,    0 ); 
+    Cmd_CommandAdd( pAbc, "SCL mapping",  "print_gs",   Scl_CommandPrintGS,  0 ); 
+    Cmd_CommandAdd( pAbc, "SCL mapping",  "stime",      Scl_CommandStime,    0 ); 
+    Cmd_CommandAdd( pAbc, "SCL mapping",  "topo",       Scl_CommandTopo,     1 ); 
+    Cmd_CommandAdd( pAbc, "SCL mapping",  "buffer",     Scl_CommandBuffer,   1 ); 
+    Cmd_CommandAdd( pAbc, "SCL mapping",  "gsize",      Scl_CommandGsize,    1 ); 
+    Cmd_CommandAdd( pAbc, "SCL mapping",  "upsize",     Scl_CommandUpsize,   1 ); 
+    Cmd_CommandAdd( pAbc, "SCL mapping",  "minsize",    Scl_CommandMinsize,  1 ); 
 }
 void Scl_End( Abc_Frame_t * pAbc )
 {
@@ -724,6 +726,68 @@ usage:
     fprintf( pAbc->Err, "\t-W <num> : delay window (in percents) of near-critical COs [default = %d]\n", Window );
     fprintf( pAbc->Err, "\t-R <num> : ratio of critical nodes (in percents) to update [default = %d]\n", Ratio );
     fprintf( pAbc->Err, "\t-I <num> : the number of upsizing iterations to perform [default = %d]\n", nIters );
+    fprintf( pAbc->Err, "\t-v       : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( pAbc->Err, "\t-h       : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Scl_CommandMinsize( Abc_Frame_t * pAbc, int argc, char **argv )
+{
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+    int c, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( Abc_FrameReadNtk(pAbc) == NULL )
+    {
+        fprintf( pAbc->Err, "There is no current network.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkHasMapping(Abc_FrameReadNtk(pAbc)) )
+    {
+        fprintf( pAbc->Err, "The current network is not mapped.\n" );
+        return 1;
+    }
+    if ( !Abc_SclCheckNtk(Abc_FrameReadNtk(pAbc), 0) )
+    {
+        fprintf( pAbc->Err, "The current networks is not in a topo order (run \"topo\").\n" );
+        return 1;
+    }
+    if ( pAbc->pLibScl == NULL )
+    {
+        fprintf( pAbc->Err, "There is no Liberty library available.\n" );
+        return 1;
+    }
+
+    Abc_SclMinsizePerform( pAbc->pLibScl, pNtk, fVerbose );
+    return 0;
+
+usage:
+    fprintf( pAbc->Err, "usage: minsize [-vh]\n" );
+    fprintf( pAbc->Err, "\t           downsized all gates to their minimum size\n" );
     fprintf( pAbc->Err, "\t-v       : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pAbc->Err, "\t-h       : print the command usage\n");
     return 1;
