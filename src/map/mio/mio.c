@@ -1,6 +1,6 @@
 /**CFile****************************************************************
 
-  FileName    [mio.c]
+  pFileName    [mio.c]
 
   PackageName [MVSIS 1.3: Multi-valued logic synthesis system.]
 
@@ -153,7 +153,7 @@ int Mio_CommandReadLiberty( Abc_Frame_t * pAbc, int argc, char **argv )
     FILE * pFile;
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNet;
-    char * FileName;
+    char * pFileName;
     int fVerbose;
     int c;
 
@@ -186,21 +186,21 @@ int Mio_CommandReadLiberty( Abc_Frame_t * pAbc, int argc, char **argv )
     }
 
     // get the input file name
-    FileName = argv[globalUtilOptind];
-    if ( (pFile = Io_FileOpen( FileName, "open_path", "r", 0 )) == NULL )
+    pFileName = argv[globalUtilOptind];
+    if ( (pFile = Io_FileOpen( pFileName, "open_path", "r", 0 )) == NULL )
     {
-        fprintf( pErr, "Cannot open input file \"%s\". ", FileName );
-        if ( (FileName = Extra_FileGetSimilarName( FileName, ".genlib", ".lib", ".gen", ".g", NULL )) )
-            fprintf( pErr, "Did you mean \"%s\"?", FileName );
+        fprintf( pErr, "Cannot open input file \"%s\". ", pFileName );
+        if ( (pFileName = Extra_FileGetSimilarName( pFileName, ".genlib", ".lib", ".gen", ".g", NULL )) )
+            fprintf( pErr, "Did you mean \"%s\"?", pFileName );
         fprintf( pErr, "\n" );
         return 1;
     }
     fclose( pFile );
 
-    if ( !Amap_LibertyParse( FileName, fVerbose ) )
+    if ( !Amap_LibertyParse( pFileName, fVerbose ) )
         return 0;
-    assert( strlen(FileName) < 900 );
-    sprintf( Command, "read_library %s", Extra_FileNameGenericAppend(FileName, ".genlib") );
+    assert( strlen(pFileName) < 900 );
+    sprintf( Command, "read_library %s", Extra_FileNameGenericAppend(pFileName, ".genlib") );
     Cmd_CommandExecute( pAbc, Command );
     return 0;
 
@@ -232,7 +232,8 @@ int Mio_CommandReadLibrary( Abc_Frame_t * pAbc, int argc, char **argv )
     FILE * pOut, * pErr;
     Mio_Library_t * pLib;
     Abc_Ntk_t * pNet;
-    char * FileName;
+    char * pFileName;
+    char * pExcludeFile = NULL;
     int fVerbose;
     double WireDelay;
     int c;
@@ -245,7 +246,7 @@ int Mio_CommandReadLibrary( Abc_Frame_t * pAbc, int argc, char **argv )
     WireDelay   = 0.0;
     fVerbose = 1;
     Extra_UtilGetoptReset();
-    while ( (c = Extra_UtilGetopt(argc, argv, "Wvh")) != EOF ) 
+    while ( (c = Extra_UtilGetopt(argc, argv, "WEvh")) != EOF ) 
     {
         switch (c) 
         {
@@ -260,6 +261,15 @@ int Mio_CommandReadLibrary( Abc_Frame_t * pAbc, int argc, char **argv )
                 if ( WireDelay <= 0.0 ) 
                     goto usage;
                 break;
+            case 'E':
+                if ( globalUtilOptind >= argc )
+                {
+                    Abc_Print( -1, "Command line switch \"-E\" should be followed by a file name.\n" );
+                    goto usage;
+                }
+                pExcludeFile = argv[globalUtilOptind];
+                globalUtilOptind++;
+                break;
             case 'v':
                 fVerbose ^= 1;
                 break;
@@ -270,27 +280,25 @@ int Mio_CommandReadLibrary( Abc_Frame_t * pAbc, int argc, char **argv )
                 goto usage;
         }
     }
-
-
     if ( argc != globalUtilOptind + 1 )
     {
         goto usage;
     }
 
     // get the input file name
-    FileName = argv[globalUtilOptind];
-    if ( (pFile = Io_FileOpen( FileName, "open_path", "r", 0 )) == NULL )
+    pFileName = argv[globalUtilOptind];
+    if ( (pFile = Io_FileOpen( pFileName, "open_path", "r", 0 )) == NULL )
     {
-        fprintf( pErr, "Cannot open input file \"%s\". ", FileName );
-        if ( (FileName = Extra_FileGetSimilarName( FileName, ".genlib", ".lib", ".gen", ".g", NULL )) )
-            fprintf( pErr, "Did you mean \"%s\"?", FileName );
+        fprintf( pErr, "Cannot open input file \"%s\". ", pFileName );
+        if ( (pFileName = Extra_FileGetSimilarName( pFileName, ".genlib", ".lib", ".gen", ".g", NULL )) )
+            fprintf( pErr, "Did you mean \"%s\"?", pFileName );
         fprintf( pErr, "\n" );
         return 1;
     }
     fclose( pFile );
 
     // set the new network
-    pLib = Mio_LibraryRead( FileName, 0, fVerbose );  
+    pLib = Mio_LibraryRead( pFileName, pExcludeFile, fVerbose );  
     if ( pLib == NULL )
     {
         fprintf( pErr, "Reading GENLIB library has failed.\n" );
@@ -312,7 +320,7 @@ int Mio_CommandReadLibrary( Abc_Frame_t * pAbc, int argc, char **argv )
     Abc_FrameSetLibGen( pLib );
 
     // set the new network
-    pLib = (Mio_Library_t *)Amap_LibReadAndPrepare( FileName, 0, 0 );  
+    pLib = (Mio_Library_t *)Amap_LibReadAndPrepare( pFileName, 0, 0 );  
     if ( pLib == NULL )
     {
         fprintf( pErr, "Reading GENLIB library has failed.\n" );
@@ -324,12 +332,13 @@ int Mio_CommandReadLibrary( Abc_Frame_t * pAbc, int argc, char **argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: read_library [-W float] [-vh]\n");
+    fprintf( pErr, "usage: read_library [-W float] [-E filename] [-vh]\n");
     fprintf( pErr, "\t           read the library from a genlib file\n" );  
     fprintf( pErr, "\t           (if the library contains more than one gate\n" );  
     fprintf( pErr, "\t           with the same Boolean function, only the gate\n" );  
     fprintf( pErr, "\t           with the smallest area will be used)\n" );  
-    Abc_Print( -2, "\t-W float : wire delay (added to pin-to-pin gate delays) [default = %g]\n", WireDelay );  
+    fprintf( pErr, "\t-W float : wire delay (added to pin-to-pin gate delays) [default = %g]\n", WireDelay );  
+    fprintf( pErr, "\t-E file :  the file name with gates to be excluded [default = none]\n" );
     fprintf( pErr, "\t-v       : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h       : enable verbose output\n");
     return 1;       /* error exit */
@@ -352,7 +361,7 @@ int Mio_CommandReadLibrary2( Abc_Frame_t * pAbc, int argc, char **argv )
     FILE * pOut, * pErr;
     Mio_Library_t * pLib;
     Abc_Ntk_t * pNet;
-    char * FileName;
+    char * pFileName;
     int fVerbose;
     int fVeryVerbose;
     int c;
@@ -390,19 +399,19 @@ int Mio_CommandReadLibrary2( Abc_Frame_t * pAbc, int argc, char **argv )
     }
 
     // get the input file name
-    FileName = argv[globalUtilOptind];
-    if ( (pFile = Io_FileOpen( FileName, "open_path", "r", 0 )) == NULL )
+    pFileName = argv[globalUtilOptind];
+    if ( (pFile = Io_FileOpen( pFileName, "open_path", "r", 0 )) == NULL )
     {
-        fprintf( pErr, "Cannot open input file \"%s\". ", FileName );
-        if ( (FileName = Extra_FileGetSimilarName( FileName, ".genlib", ".lib", ".gen", ".g", NULL )) )
-            fprintf( pErr, "Did you mean \"%s\"?", FileName );
+        fprintf( pErr, "Cannot open input file \"%s\". ", pFileName );
+        if ( (pFileName = Extra_FileGetSimilarName( pFileName, ".genlib", ".lib", ".gen", ".g", NULL )) )
+            fprintf( pErr, "Did you mean \"%s\"?", pFileName );
         fprintf( pErr, "\n" );
         return 1;
     }
     fclose( pFile );
 
     // set the new network
-    pLib = (Mio_Library_t *)Amap_LibReadAndPrepare( FileName, fVerbose, fVeryVerbose );  
+    pLib = (Mio_Library_t *)Amap_LibReadAndPrepare( pFileName, fVerbose, fVeryVerbose );  
     if ( pLib == NULL )
     {
         fprintf( pErr, "Reading GENLIB library has failed.\n" );
@@ -442,7 +451,7 @@ int Mio_CommandPrintLibrary( Abc_Frame_t * pAbc, int argc, char **argv )
 {
     FILE * pOut, * pErr, * pFile;
     Abc_Ntk_t * pNet;
-    char * FileName;
+    char * pFileName;
     int fVerbose;
     int c;
 
@@ -472,18 +481,18 @@ int Mio_CommandPrintLibrary( Abc_Frame_t * pAbc, int argc, char **argv )
         printf( "Library is not available.\n" );
         return 1;
     }
-    FileName = argv[globalUtilOptind];
+    pFileName = argv[globalUtilOptind];
     if ( argc == globalUtilOptind + 1 )
     {
-        pFile = fopen( FileName, "w" );
+        pFile = fopen( pFileName, "w" );
         if ( pFile == NULL )
         {
-            printf( "Error! Cannot open file \"%s\" for writing the library.\n", FileName );
+            printf( "Error! Cannot open file \"%s\" for writing the library.\n", pFileName );
             return 1;
         }
         Mio_WriteLibrary( pFile, (Mio_Library_t *)Abc_FrameReadLibGen(), 0 );
         fclose( pFile );
-        printf( "The current GENLIB library is written into file \"%s\".\n", FileName );
+        printf( "The current GENLIB library is written into file \"%s\".\n", pFileName );
     }
     else if ( argc == globalUtilOptind )
         Mio_WriteLibrary( stdout, (Mio_Library_t *)Abc_FrameReadLibGen(), 0 );
