@@ -69,6 +69,7 @@ struct Abs_Par_t_
     int                  fDumpVabs;          // dumps the abstracted model
     int                  fDumpMabs;          // dumps the original AIG with abstraction map
     int                  fCallProver;        // calls the prover
+    int                  fSimpProver;        // calls simplification before prover
     char *               pFileVabs;          // dumps the abstracted model into this file
     int                  fVerbose;           // verbose flag
     int                  fVeryVerbose;       // print additional information
@@ -108,7 +109,7 @@ extern int               Gia_ManPerformGlaOld( Gia_Man_t * p, Abs_Par_t * pPars,
 /*=== absIter.c =========================================================*/
 extern Gia_Man_t *       Gia_ManShrinkGla( Gia_Man_t * p, int nFrameMax, int nTimeOut, int fUsePdr, int fUseSat, int fUseBdd, int fVerbose );
 /*=== absPth.c =========================================================*/
-extern void              Gia_GlaProveAbsracted( Gia_Man_t * p, int fVerbose );
+extern void              Gia_GlaProveAbsracted( Gia_Man_t * p, int fSimpProver, int fVerbose );
 extern void              Gia_GlaProveCancel( int fVerbose );
 extern int               Gia_GlaProveCheck( int fVerbose );
 /*=== absVta.c =========================================================*/

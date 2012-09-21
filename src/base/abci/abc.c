@@ -28164,7 +28164,7 @@ int Abc_CommandAbc9Gla( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c, fNewAlgo = 1;
     Abs_ParSetDefaults( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FSCLDETRPBAtfardmnscbpqwvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FSCLDETRPBAtfardmnscbpquwvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -28323,6 +28323,9 @@ int Abc_CommandAbc9Gla( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'q':
             pPars->fCallProver ^= 1;
             break;
+        case 'u':
+            pPars->fSimpProver ^= 1;
+            break;
         case 'v':
             pPars->fVerbose ^= 1;
             break;
@@ -28371,7 +28374,7 @@ int Abc_CommandAbc9Gla( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &gla [-FSCLDETRPB num] [-A file] [-fardmnscbpqwvh]\n" );
+    Abc_Print( -2, "usage: &gla [-FSCLDETRPB num] [-A file] [-fardmnscbpquwvh]\n" );
     Abc_Print( -2, "\t          fixed-time-frame gate-level proof- and cex-based abstraction\n" );
     Abc_Print( -2, "\t-F num  : the max number of timeframes to unroll [default = %d]\n", pPars->nFramesMax );
     Abc_Print( -2, "\t-S num  : the starting time frame (0=unused) [default = %d]\n", pPars->nFramesStart );
@@ -28395,6 +28398,7 @@ usage:
     Abc_Print( -2, "\t-b      : toggle CNF construction without hashing [default = %s]\n", pPars->fSkipHash? "yes": "no" );
     Abc_Print( -2, "\t-p      : toggle using full-proof for UNSAT cores [default = %s]\n", pPars->fUseFullProof? "yes": "no" );
     Abc_Print( -2, "\t-q      : toggle calling the prover [default = %s]\n", pPars->fCallProver? "yes": "no" );
+    Abc_Print( -2, "\t-u      : toggle enabling simplifation before calling the prover [default = %s]\n", pPars->fSimpProver? "yes": "no" );
     Abc_Print( -2, "\t-v      : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w      : toggle printing more verbose information [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h      : print the command usage\n");

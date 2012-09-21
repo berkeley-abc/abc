@@ -1797,7 +1797,7 @@ int Gia_ManPerformGla( Gia_Man_t * pAig, Abs_Par_t * pPars )
                     if ( iFrameTryToProve >= 0 )
                         Gia_GlaProveCancel( pPars->fVerbose );
                     // prove new one
-                    Gia_GlaProveAbsracted( pAig, pPars->fVeryVerbose );
+                    Gia_GlaProveAbsracted( pAig, pPars->fSimpProver, pPars->fVeryVerbose );
                     iFrameTryToProve = f;
                     p->nPdrCalls++;
                 }

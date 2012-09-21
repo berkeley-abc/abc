@@ -46,9 +46,9 @@ ABC_NAMESPACE_IMPL_START
 
 #ifndef ABC_USE_PTHREADS
 
-void Gia_GlaProveAbsracted( Gia_Man_t * p, int fVerbose ) {}
-void Gia_GlaProveCancel( int fVerbose )                   {}
-int  Gia_GlaProveCheck( int fVerbose )                    { return 0; }
+void Gia_GlaProveAbsracted( Gia_Man_t * p, int fSimpProver, int fVerbose ) {}
+void Gia_GlaProveCancel( int fVerbose )                                    {}
+int  Gia_GlaProveCheck( int fVerbose )                                     { return 0; }
 
 #else // pthreads are used
 
@@ -134,7 +134,7 @@ void * Abs_ProverThread( void * pArg )
     assert(0);
     return NULL;
 }
-void Gia_GlaProveAbsracted( Gia_Man_t * pGia, int fVerbose )
+void Gia_GlaProveAbsracted( Gia_Man_t * pGia, int fSimpProver, int fVerbose )
 {
     extern Aig_Man_t * Dar_ManRwsat( Aig_Man_t * pAig, int fBalance, int fVerbose );
     Abs_ThData_t * pThData;
@@ -152,16 +152,19 @@ void Gia_GlaProveAbsracted( Gia_Man_t * pGia, int fVerbose )
     pAig = Gia_ManToAigSimple( pAbs );
     Gia_ManStop( pAbs );
     // simplify abstraction
-    Ssw_ManSetDefaultParams( pPars );
-    pPars->nFramesK = 4;
-    pAig = Ssw_SignalCorrespondence( pTemp = pAig, pPars );
+    if ( fSimpProver )
+    {
+        Ssw_ManSetDefaultParams( pPars );
+        pPars->nFramesK = 4;
+        pAig = Ssw_SignalCorrespondence( pTemp = pAig, pPars );
 //printf( "\n" );
 //Aig_ManPrintStats( pTemp );
 //Aig_ManPrintStats( pAig );
-    Aig_ManStop( pTemp );
+        Aig_ManStop( pTemp );
+    }
     // synthesize abstraction
-    pAig = Dar_ManRwsat( pTemp = pAig, 0, 0 ); 
-    Aig_ManStop( pTemp );
+//    pAig = Dar_ManRwsat( pTemp = pAig, 0, 0 ); 
+//    Aig_ManStop( pTemp );
     // reset the proof 
     status = pthread_mutex_lock(&g_mutex);  assert( status == 0 );
     g_fAbstractionProved = 0;
