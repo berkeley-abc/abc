@@ -195,8 +195,8 @@ int IoCommandRead( Abc_Frame_t * pAbc, int argc, char ** argv )
     pFileName = argv[globalUtilOptind];
     // fix the wrong symbol
     for ( pTemp = pFileName; *pTemp; pTemp++ )
-        if ( *pTemp == '>' )
-            *pTemp = '\\';
+        if ( *pTemp == '>' || *pTemp == '\\' )
+            *pTemp = '/';
     // read libraries
     Command[0] = 0;
     assert( strlen(pFileName) < 900 );

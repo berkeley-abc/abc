@@ -20,6 +20,7 @@
  
 #include "abs.h"
 #include "proof/pdr/pdr.h"
+#include "proof/ssw/ssw.h"
 
 // to compile on Linux, add -lpthread to LIBS in Makefile
 
@@ -135,9 +136,11 @@ void * Abs_ProverThread( void * pArg )
 }
 void Gia_GlaProveAbsracted( Gia_Man_t * pGia, int fVerbose )
 {
+    extern Aig_Man_t * Dar_ManRwsat( Aig_Man_t * pAig, int fBalance, int fVerbose );
     Abs_ThData_t * pThData;
+    Ssw_Pars_t Pars, * pPars = &Pars;
+    Aig_Man_t * pAig, * pTemp;
     Gia_Man_t * pAbs;
-    Aig_Man_t * pAig;
     pthread_t ProverThread;
     int status;
     // disable verbosity
@@ -148,6 +151,17 @@ void Gia_GlaProveAbsracted( Gia_Man_t * pGia, int fVerbose )
     Gia_ManCleanValue( pGia );
     pAig = Gia_ManToAigSimple( pAbs );
     Gia_ManStop( pAbs );
+    // simplify abstraction
+    Ssw_ManSetDefaultParams( pPars );
+    pPars->nFramesK = 4;
+    pAig = Ssw_SignalCorrespondence( pTemp = pAig, pPars );
+//printf( "\n" );
+//Aig_ManPrintStats( pTemp );
+//Aig_ManPrintStats( pAig );
+    Aig_ManStop( pTemp );
+    // synthesize abstraction
+    pAig = Dar_ManRwsat( pTemp = pAig, 0, 0 ); 
+    Aig_ManStop( pTemp );
     // reset the proof 
     status = pthread_mutex_lock(&g_mutex);  assert( status == 0 );
     g_fAbstractionProved = 0;
