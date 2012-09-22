@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "gia.h"
+#include "misc/tim/tim.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -887,11 +888,12 @@ Gia_Man_t * Gia_ManDupDfsLitArray( Gia_Man_t * p, Vec_Int_t * vLits )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManDupNormalized( Gia_Man_t * p )
+Gia_Man_t * Gia_ManDupNormalize( Gia_Man_t * p )
 {
     Gia_Man_t * pNew;
     Gia_Obj_t * pObj;
     int i;
+    Gia_ManFillValue( p );
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
     pNew->pSpec = Abc_UtilStrsav( p->pSpec );
@@ -904,6 +906,86 @@ Gia_Man_t * Gia_ManDupNormalized( Gia_Man_t * p )
         pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
     assert( Gia_ManIsNormalized(pNew) );
+    Gia_ManDupRemapEquiv( pNew, p );
+    return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Duplicates AIG according to the timing manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManDupUnnomalize( Gia_Man_t * p )
+{
+    Tim_Man_t * pTime = p->pManTime;
+    Gia_Man_t * pNew;
+    Gia_Obj_t * pObj;
+    int i, k, curCi, curCo, curNo, nodeId;
+    assert( pTime != NULL );
+    assert( Gia_ManIsNormalized(p) );
+    Gia_ManFillValue( p );
+    pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    Gia_ManConst0(p)->Value = 0;
+    // copy primary inputs
+    for ( k = 0; k < Tim_ManPiNum(pTime); k++ )
+        Gia_ManPi(p, k)->Value = Gia_ManAppendCi(pNew);
+    curCi = Tim_ManPiNum(pTime);
+    curCo = 0;
+    curNo = Gia_ManPiNum(p);
+    for ( i = 0; i < Tim_ManBoxNum(pTime); i++ )
+    {
+        // find the latest node feeding into inputs of this box
+        nodeId = -1;
+        for ( k = 0; k < Tim_ManBoxInputNum(pTime, i); k++ )
+        {
+            pObj = Gia_ManPo( p, curCo + k );
+            nodeId = Abc_MaxInt( nodeId, Gia_ObjFaninId0p(p, pObj) );
+        }
+        // copy nodes up to the given node
+        for ( k = curNo; k <= nodeId; k++ )
+        {
+            pObj = Gia_ManObj( p, k );
+            assert( Gia_ObjIsAnd(pObj) );
+            pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        }
+        curNo = Abc_MaxInt( curNo, nodeId + 1 );
+        // copy COs
+        for ( k = 0; k < Tim_ManBoxInputNum(pTime, i); k++ )
+        {
+            pObj = Gia_ManPo( p, curCo + k );
+            pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+        }
+        curCo += Tim_ManBoxInputNum(pTime, i);
+        // copy CIs
+        for ( k = 0; k < Tim_ManBoxOutputNum(pTime, i); k++ )
+        {
+            pObj = Gia_ManPi( p, curCi + k );
+            pObj->Value = Gia_ManAppendCi(pNew);
+        }
+        curCi += Tim_ManBoxOutputNum(pTime, i);
+    }
+    // copy primary outputs
+    for ( k = 0; k < Tim_ManPoNum(pTime); k++ )
+    {
+        pObj = Gia_ManPo( p, curCo + k );
+        pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    }
+    curCo += Tim_ManPoNum(pTime);
+    assert( curCi == Gia_ManPiNum(p) );
+    assert( curCo == Gia_ManPoNum(p) );
+    assert( curNo == Gia_ManAndNum(p) );
+    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    Gia_ManDupRemapEquiv( pNew, p );
+    // pass the timing manager
+    pNew->pManTime = pTime;  p->pManTime = NULL;
     return pNew;
 }
 
@@ -1259,7 +1341,7 @@ Gia_Man_t * Gia_ManDupTopAnd_iter( Gia_Man_t * p, int fVerbose )
             printf( "The AIG cannot be decomposed using AND-decomposition.\n" );
         Vec_IntFree( vFront );
         Vec_IntFree( vLeaves );
-        return Gia_ManDupNormalized( p );
+        return Gia_ManDupNormalize( p );
     }
     // expand the frontier
     Gia_ManForEachObjVec( vFront, p, pObj, i )
@@ -1304,7 +1386,7 @@ Gia_Man_t * Gia_ManDupTopAnd_iter( Gia_Man_t * p, int fVerbose )
         ABC_FREE( pCi2Lit );
         ABC_FREE( pVar2Val );
         Vec_IntFree( vLeaves );
-        return Gia_ManDupNormalized( p );
+        return Gia_ManDupNormalize( p );
     }
     // create array of input literals
     Vec_IntClear( vLeaves );
@@ -1339,7 +1421,7 @@ Gia_Man_t * Gia_ManDupTopAnd( Gia_Man_t * p, int fVerbose )
 {
     Gia_Man_t * pNew, * pTemp;
     int fContinue, iIter = 0;
-    pNew = Gia_ManDupNormalized( p );
+    pNew = Gia_ManDupNormalize( p );
     for ( fContinue = 1; fContinue; )
     {
         pNew = Gia_ManDupTopAnd_iter( pTemp = pNew, fVerbose );
@@ -1503,7 +1585,7 @@ Gia_Man_t * Gia_ManMiter( Gia_Man_t * p0, Gia_Man_t * p1, int fDualOut, int fSeq
     pNew = Gia_ManCleanup( pTemp = pNew );
     Gia_ManStop( pTemp );
 
-    pNew = Gia_ManDupNormalized( pTemp = pNew );
+    pNew = Gia_ManDupNormalize( pTemp = pNew );
     Gia_ManStop( pTemp );
     return pNew;
 }

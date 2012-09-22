@@ -1056,7 +1056,7 @@ Gia_Man_t * Gia_ReadAigerFromMemory( char * pContents, int nFileSize, int fSkipS
         Vec_IntFreeP( &vPoTypes );
     }
 
-    if ( Gia_ManHasDangling(pNew) )
+    if ( !fSkipStrash && Gia_ManHasDangling(pNew) )
     {
         Tim_Man_t * pManTime;
         Vec_Int_t * vFlopMap, * vGateMap, * vObjMap;
@@ -1072,6 +1072,11 @@ Gia_Man_t * Gia_ReadAigerFromMemory( char * pContents, int nFileSize, int fSkipS
         pNew->vGateClasses = vGateMap;
         pNew->vObjClasses  = vObjMap;
         pNew->pManTime     = pManTime;
+    }
+    if ( pNew->pManTime )
+    {
+        pNew = Gia_ManDupUnnomalize( pTemp = pNew );
+        Gia_ManStop( pTemp );
     }
     return pNew;
 }
@@ -1395,7 +1400,7 @@ void Gia_WriteAiger( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
         Tim_Man_t * pManTime;
         pManTime = pInit->pManTime;    pInit->pManTime     = NULL;
 //        printf( "Gia_WriteAiger(): Normalizing AIG for writing.\n" );
-        p = Gia_ManDupNormalized( pInit );
+        p = Gia_ManDupNormalize( pInit );
         p->pManTime = pManTime;
     }
     else
