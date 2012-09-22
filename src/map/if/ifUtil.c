@@ -286,7 +286,7 @@ void If_ManComputeRequired( If_Man_t * p )
         }
         else  
         {
-            Tim_ManSetCoRequiredAll( p->pManTim, p->RequiredGlo );
+            Tim_ManInitPoRequiredAll( p->pManTim, p->RequiredGlo );
 //            If_ManForEachCo( p, pObj, i )
 //                Tim_ManSetCoRequired( p->pManTim, pObj->IdPio, p->RequiredGlo );
         }

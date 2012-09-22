@@ -20,6 +20,7 @@
 ***********************************************************************/
 
 #include "gia.h"
+#include "misc/tim/tim.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -872,6 +873,17 @@ Gia_Man_t * Gia_ReadAigerFromMemory( char * pContents, int nFileSize, int fSkipS
             // read switching activity
             pNew->pSwitching = Gia_ReadSwitching( &pCur, Gia_ManObjNum(pNew) );
         }
+        if ( *pCur == 't' )
+        {
+            Vec_Str_t * vStr;
+            pCur++;
+            // read timing manager
+            vStr = Vec_StrStart( Gia_ReadInt(pCur) ); pCur += 4;
+            memcpy( Vec_StrArray(vStr), pCur, Vec_StrSize(vStr) );
+            pCur += Vec_StrSize(vStr);
+            pNew->pManTime = Tim_ManLoad( vStr );
+            Vec_StrFree( vStr );
+        }
         if ( *pCur == 'c' )
         {
             pCur++;
@@ -1046,10 +1058,12 @@ Gia_Man_t * Gia_ReadAigerFromMemory( char * pContents, int nFileSize, int fSkipS
 
     if ( Gia_ManHasDangling(pNew) )
     {
+        Tim_Man_t * pManTime;
         Vec_Int_t * vFlopMap, * vGateMap, * vObjMap;
         vFlopMap = pNew->vFlopClasses; pNew->vFlopClasses = NULL;
         vGateMap = pNew->vGateClasses; pNew->vGateClasses = NULL;
         vObjMap  = pNew->vObjClasses;  pNew->vObjClasses  = NULL;
+        pManTime = pNew->pManTime;     pNew->pManTime     = NULL;
         pNew = Gia_ManCleanup( pTemp = pNew );
         if ( (vGateMap || vObjMap) && (Gia_ManObjNum(pNew) < Gia_ManObjNum(pTemp)) )
             printf( "Cleanup removed objects after reading. Old gate/object abstraction maps are invalid!\n" );
@@ -1057,6 +1071,7 @@ Gia_Man_t * Gia_ReadAigerFromMemory( char * pContents, int nFileSize, int fSkipS
         pNew->vFlopClasses = vFlopMap;
         pNew->vGateClasses = vGateMap;
         pNew->vObjClasses  = vObjMap;
+        pNew->pManTime     = pManTime;
     }
     return pNew;
 }
@@ -1377,8 +1392,11 @@ void Gia_WriteAiger( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
     // create normalized AIG
     if ( !Gia_ManIsNormalized(pInit) )
     {
+        Tim_Man_t * pManTime;
+        pManTime = pInit->pManTime;    pInit->pManTime     = NULL;
 //        printf( "Gia_WriteAiger(): Normalizing AIG for writing.\n" );
         p = Gia_ManDupNormalized( pInit );
+        p->pManTime = pManTime;
     }
     else
         p = pInit;
@@ -1519,7 +1537,7 @@ void Gia_WriteAiger( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
         fwrite( Buffer, 1, 4, pFile );
         fwrite( p->pPlacement, 1, nSize, pFile );
     }
-    // write flop classes
+    // write switching activity
     if ( p->pSwitching )
     {
         unsigned char Buffer[10];
@@ -1528,6 +1546,18 @@ void Gia_WriteAiger( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
         fprintf( pFile, "s" );
         fwrite( Buffer, 1, 4, pFile );
         fwrite( p->pSwitching, 1, nSize, pFile );
+    }
+    // write timing information
+    if ( p->pManTime )
+    {
+        Vec_Str_t * vStr = Tim_ManSave( p->pManTime );
+        unsigned char Buffer[10];
+        int nSize = Vec_StrSize(vStr);
+        Gia_WriteInt( Buffer, nSize );
+        fprintf( pFile, "t" );
+        fwrite( Buffer, 1, 4, pFile );
+        fwrite( Vec_StrArray(vStr), 1, nSize, pFile );
+        Vec_StrFree( vStr );
     }
 /*
     // write constraints

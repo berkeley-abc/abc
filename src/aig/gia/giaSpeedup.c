@@ -279,7 +279,7 @@ float Gia_ManDelayTraceLut( Gia_Man_t * p )
     if ( p->pManTime )
     {
         Tim_ManIncrementTravId( (Tim_Man_t *)p->pManTime );
-        Tim_ManSetCoRequiredAll( (Tim_Man_t *)p->pManTime, tArrival );
+        Tim_ManInitPoRequiredAll( (Tim_Man_t *)p->pManTime, tArrival );
     }
     else
     {

@@ -2905,6 +2905,30 @@ SOURCE=.\src\misc\tim\tim.c
 
 SOURCE=.\src\misc\tim\tim.h
 # End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\tim\timBox.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\tim\timDump.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\tim\timInt.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\tim\timMan.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\tim\timTime.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\tim\timTrav.c
+# End Source File
 # End Group
 # End Group
 # Begin Group "ai"

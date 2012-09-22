@@ -110,7 +110,7 @@ int Nwk_ManLevelBackup( Nwk_Man_t * pNtk )
         Nwk_ObjSetLevel( pObj, 0 );
     // perform level computation
     LevelMax = 0;
-    pManTimeUnit = pNtk->pManTime ? Tim_ManDupUnit( pNtk->pManTime ) : NULL;
+    pManTimeUnit = pNtk->pManTime ? Tim_ManDup( pNtk->pManTime, 1 ) : NULL;
     if ( pManTimeUnit )
         Tim_ManIncrementTravId( pManTimeUnit );
     Nwk_ManForEachObj( pNtk, pObj, i )

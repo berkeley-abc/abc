@@ -128,7 +128,6 @@ struct If_Par_t_
     int                fUseSops;      // use local SOPs as a cost function
     int                fUseCnfs;      // use local CNFs as a cost function
     int                fUseMv;        // use local MV-SOPs as a cost function
-    int                fUseAdders;    // timing model for adders
     int                nLatchesCi;    // the number of latches among the CIs
     int                nLatchesCo;    // the number of latches among the COs
     int                nLatchesCiBox; // the number of white box outputs among the CIs
@@ -531,8 +530,8 @@ extern int             If_ManCountSpecialPos( If_Man_t * p );
 extern int             If_CutDelayRecCost(If_Man_t* p, If_Cut_t* pCut, If_Obj_t * pObj);
 extern int             If_CutDelayRecCost2(If_Man_t* p, If_Cut_t* pCut, If_Obj_t * pObj);
 /*=== abcRec2.c ============================================================*/
-extern int             Abc_NtkRecIsRunning();
-extern int             Abc_NtkRecIsRunning2();
+extern ABC_DLL int     Abc_NtkRecIsRunning();
+extern ABC_DLL int     Abc_NtkRecIsRunning2();
 
 // othe packages
 extern int             Bat_ManCellFuncLookup( unsigned * pTruth, int nVars, int nLeaves );

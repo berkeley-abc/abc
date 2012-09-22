@@ -638,6 +638,28 @@ static inline void Vec_StrReverseOrder( Vec_Str_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Compares two strings.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Vec_StrEqual( Vec_Str_t * p1, Vec_Str_t * p2 ) 
+{
+    int i;
+    if ( p1->nSize != p2->nSize )
+        return 0;
+    for ( i = 0; i < p1->nSize; i++ )
+        if ( p1->pArray[i] != p2->pArray[i] )
+            return 0;
+    return 1;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Comparison procedure for two clauses.]
 
   Description []

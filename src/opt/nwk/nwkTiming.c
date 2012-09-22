@@ -373,7 +373,7 @@ float Nwk_ManDelayTraceLut( Nwk_Man_t * pNtk )
     if ( pNtk->pManTime )
     {
         Tim_ManIncrementTravId( pNtk->pManTime );
-        Tim_ManSetCoRequiredAll( pNtk->pManTime, tArrival );
+        Tim_ManInitPoRequiredAll( pNtk->pManTime, tArrival );
     }
     else
     {
