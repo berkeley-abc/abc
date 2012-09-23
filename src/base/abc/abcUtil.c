@@ -59,30 +59,6 @@ void * Abc_NtkAttrFree( Abc_Ntk_t * pNtk, int Attr, int fFreeMan )
 
 /**Function*************************************************************
 
-  Synopsis    [Increments the current traversal ID of the network.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Abc_NtkIncrementTravId( Abc_Ntk_t * pNtk )
-{
-    Abc_Obj_t * pObj;
-    int i;
-    if ( pNtk->nTravIds >= (1<<30)-1 )
-    {
-        pNtk->nTravIds = 0;
-        Abc_NtkForEachObj( pNtk, pObj, i )
-            pObj->TravId = 0;
-    }
-    pNtk->nTravIds++;
-}
-
-/**Function*************************************************************
-
   Synopsis    [Order CI/COs.]
 
   Description []
@@ -520,27 +496,6 @@ void Abc_NtkCleanData( Abc_Ntk_t * pNtk )
     int i;
     Abc_NtkForEachObj( pNtk, pObj, i )
         pObj->pData = NULL;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Cleans the copy field of all objects.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Abc_NtkCleanEquiv( Abc_Ntk_t * pNtk )
-{
-    Abc_Obj_t * pObj;
-    int i;
-    Abc_NtkForEachObj( pNtk, pObj, i )
-    {
-//        pObj->pEquiv = NULL;
-    }
 }
 
 /**Function*************************************************************

@@ -1116,6 +1116,7 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
     Vec_PtrFree( pNtk->vCos );
     Vec_PtrFree( pNtk->vObjs );
     Vec_PtrFree( pNtk->vBoxes );
+    ABC_FREE( pNtk->vTravIds.pArray );
     if ( pNtk->vLevelsR ) Vec_IntFree( pNtk->vLevelsR );
     ABC_FREE( pNtk->pModel );
     ABC_FREE( pNtk->pSeqModel );

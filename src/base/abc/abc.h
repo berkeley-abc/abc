@@ -127,13 +127,11 @@ struct Abc_Time_t_
     float             Worst;
 };
 
-struct Abc_Obj_t_ // 12 words
+struct Abc_Obj_t_     // 48/72 bytes (32-bits/64-bits)
 {
-    // high-level information
     Abc_Ntk_t *       pNtk;          // the host network
+    Abc_Obj_t *       pNext;         // the next pointer in the hash table
     int               Id;            // the object ID
-    int               TravId;        // the traversal ID (if changed, update Abc_NtkIncrementTravId)
-    // internal information
     unsigned          Type    :  4;  // the object type
     unsigned          fMarkA  :  1;  // the multipurpose mark
     unsigned          fMarkB  :  1;  // the multipurpose mark
@@ -144,22 +142,14 @@ struct Abc_Obj_t_ // 12 words
     unsigned          fCompl0 :  1;  // complemented attribute of the first fanin in the AIG
     unsigned          fCompl1 :  1;  // complemented attribute of the second fanin in the AIG 
     unsigned          Level   : 20;  // the level of the node
-    // connectivity
     Vec_Int_t         vFanins;       // the array of fanins
     Vec_Int_t         vFanouts;      // the array of fanouts
-    // miscellaneous
-    union {
-        void *        pData;         // the network specific data (SOP, BDD, gate, equiv class, etc)
-        int           iData;
-    };
-    Abc_Obj_t *       pNext;         // the next pointer in the hash table
-    union {                          // temporary store for user's data
-        Abc_Obj_t *   pCopy;         // the copy of this object
-        void *        pTemp;
-        int           iTemp;
-        float         dTemp;
-    };
-//    Hop_Obj_t *       pEquiv;        // pointer to the HAIG node
+    union { void *    pData;         // the network specific data
+      int             iData; };      // (SOP, BDD, gate, equiv class, etc)
+    union { void *    pTemp;         // temporary store for user's data
+      Abc_Obj_t *     pCopy;         // the copy of this object
+      int             iTemp;
+      float           dTemp; };
 };
 
 struct Abc_Ntk_t_ 
@@ -198,6 +188,7 @@ struct Abc_Ntk_t_
     double            dTemp;         // temporary value
     // miscellaneous data members
     int               nTravIds;      // the unique traversal IDs of nodes
+    Vec_Int_t         vTravIds;      // trav IDs of the objects
     Mem_Fixed_t *     pMmObj;        // memory manager for objects
     Mem_Step_t *      pMmStep;       // memory manager for arrays
     void *            pManFunc;      // functionality manager (AIG manager, BDD manager, or memory manager for SOPs)
@@ -279,7 +270,6 @@ static inline int         Abc_NtkIsMappedLogic( Abc_Ntk_t * pNtk )   { return pN
 // reading data members of the network
 static inline char *      Abc_NtkName( Abc_Ntk_t * pNtk )            { return pNtk->pName;            }
 static inline char *      Abc_NtkSpec( Abc_Ntk_t * pNtk )            { return pNtk->pSpec;            }
-static inline int         Abc_NtkTravId( Abc_Ntk_t * pNtk )          { return pNtk->nTravIds;         }    
 static inline Abc_Ntk_t * Abc_NtkExdc( Abc_Ntk_t * pNtk )            { return pNtk->pExdc;            }
 static inline Abc_Ntk_t * Abc_NtkBackup( Abc_Ntk_t * pNtk )          { return pNtk->pNetBackup;       }
 static inline int         Abc_NtkStep  ( Abc_Ntk_t * pNtk )          { return pNtk->iStep;            }
@@ -338,14 +328,12 @@ static inline Abc_Obj_t * Abc_ObjNotCond( Abc_Obj_t * p, int c )     { return (A
 // reading data members of the object
 static inline unsigned    Abc_ObjType( Abc_Obj_t * pObj )            { return pObj->Type;               }
 static inline unsigned    Abc_ObjId( Abc_Obj_t * pObj )              { return pObj->Id;                 }
-static inline int         Abc_ObjTravId( Abc_Obj_t * pObj )          { return pObj->TravId;             }
 static inline int         Abc_ObjLevel( Abc_Obj_t * pObj )           { return pObj->Level;              }
 static inline Vec_Int_t * Abc_ObjFaninVec( Abc_Obj_t * pObj )        { return &pObj->vFanins;           }
 static inline Vec_Int_t * Abc_ObjFanoutVec( Abc_Obj_t * pObj )       { return &pObj->vFanouts;          }
 static inline Abc_Obj_t * Abc_ObjCopy( Abc_Obj_t * pObj )            { return pObj->pCopy;              }
 static inline Abc_Ntk_t * Abc_ObjNtk( Abc_Obj_t * pObj )             { return pObj->pNtk;               }
 static inline void *      Abc_ObjData( Abc_Obj_t * pObj )            { return pObj->pData;              }
-//static inline Hop_Obj_t * Abc_ObjEquiv( Abc_Obj_t * pObj )           { return pObj->pEquiv;             }
 static inline Abc_Obj_t * Abc_ObjCopyCond( Abc_Obj_t * pObj )        { return Abc_ObjRegular(pObj)->pCopy? Abc_ObjNotCond(Abc_ObjRegular(pObj)->pCopy, Abc_ObjIsComplement(pObj)) : NULL;  }
 
 // setting data members of the network
@@ -397,9 +385,6 @@ static inline Abc_Obj_t * Abc_ObjChild0Copy( Abc_Obj_t * pObj )      { return Ab
 static inline Abc_Obj_t * Abc_ObjChild1Copy( Abc_Obj_t * pObj )      { return Abc_ObjNotCond( Abc_ObjFanin1(pObj)->pCopy, Abc_ObjFaninC1(pObj) );    }
 static inline Abc_Obj_t * Abc_ObjChild0Data( Abc_Obj_t * pObj )      { return Abc_ObjNotCond( (Abc_Obj_t *)Abc_ObjFanin0(pObj)->pData, Abc_ObjFaninC0(pObj) );    }
 static inline Abc_Obj_t * Abc_ObjChild1Data( Abc_Obj_t * pObj )      { return Abc_ObjNotCond( (Abc_Obj_t *)Abc_ObjFanin1(pObj)->pData, Abc_ObjFaninC1(pObj) );    }
-//static inline Hop_Obj_t * Abc_ObjChild0Equiv( Abc_Obj_t * pObj )     { return Hop_NotCond( Abc_ObjFanin0(pObj)->pEquiv, Abc_ObjFaninC0(pObj) );      }
-//static inline Hop_Obj_t * Abc_ObjChild1Equiv( Abc_Obj_t * pObj )     { return Hop_NotCond( Abc_ObjFanin1(pObj)->pEquiv, Abc_ObjFaninC1(pObj) );      }
-
 static inline Abc_Obj_t * Abc_ObjFromLit( Abc_Ntk_t * p, int iLit )  { return Abc_ObjNotCond( Abc_NtkObj(p, Abc_Lit2Var(iLit)), Abc_LitIsCompl(iLit) );           }
 static inline int         Abc_ObjToLit( Abc_Obj_t * p )              { return Abc_Var2Lit( Abc_ObjId(Abc_ObjRegular(p)), Abc_ObjIsComplement(p) );                }
 
@@ -414,11 +399,15 @@ static inline void        Abc_NodeSetPersistant( Abc_Obj_t * pNode )   { assert(
 static inline void        Abc_NodeClearPersistant( Abc_Obj_t * pNode ) { assert( Abc_AigNodeIsAnd(pNode) ); pNode->fPersist = 0;    } 
 
 // working with the traversal ID
-static inline void        Abc_NodeSetTravId( Abc_Obj_t * pNode, int TravId ) { pNode->TravId = TravId;                                    }
-static inline void        Abc_NodeSetTravIdCurrent( Abc_Obj_t * pNode )      { pNode->TravId = pNode->pNtk->nTravIds;                     }
-static inline void        Abc_NodeSetTravIdPrevious( Abc_Obj_t * pNode )     { pNode->TravId = pNode->pNtk->nTravIds - 1;                 }
-static inline int         Abc_NodeIsTravIdCurrent( Abc_Obj_t * pNode )       { return (int )(pNode->TravId == pNode->pNtk->nTravIds);     }
-static inline int         Abc_NodeIsTravIdPrevious( Abc_Obj_t * pNode )      { return (int )(pNode->TravId == pNode->pNtk->nTravIds - 1); }
+static inline void        Abc_NtkIncrementTravId( Abc_Ntk_t * p )           { if (!p->vTravIds.pArray) Vec_IntFill(&p->vTravIds, Abc_NtkObjNumMax(p)+500, 0); p->nTravIds++; assert(p->nTravIds < (1<<30));  }
+static inline int         Abc_NodeTravId( Abc_Obj_t * p )                   { return Vec_IntGetEntry(&Abc_ObjNtk(p)->vTravIds, Abc_ObjId(p));                       }
+static inline void        Abc_NodeSetTravId( Abc_Obj_t * p, int TravId )    { Vec_IntSetEntry(&Abc_ObjNtk(p)->vTravIds, Abc_ObjId(p), TravId );                     }
+static inline void        Abc_NodeSetTravIdCurrent( Abc_Obj_t * p )         { Abc_NodeSetTravId( p, Abc_ObjNtk(p)->nTravIds );                                      }
+static inline void        Abc_NodeSetTravIdPrevious( Abc_Obj_t * p )        { Abc_NodeSetTravId( p, Abc_ObjNtk(p)->nTravIds-1 );                                    }
+static inline int         Abc_NodeIsTravIdCurrent( Abc_Obj_t * p )          { return (Abc_NodeTravId(p) == Abc_ObjNtk(p)->nTravIds);                                }
+static inline int         Abc_NodeIsTravIdPrevious( Abc_Obj_t * p )         { return (Abc_NodeTravId(p) == Abc_ObjNtk(p)->nTravIds-1);                              }
+static inline void        Abc_NodeSetTravIdCurrentId( Abc_Ntk_t * p, int i) { Vec_IntSetEntry(&p->vTravIds, i, p->nTravIds );                                       }
+static inline int         Abc_NodeIsTravIdCurrentId( Abc_Ntk_t * p, int i)  { return (Vec_IntGetEntry(&p->vTravIds, i) == p->nTravIds);                             }
 
 // checking initial state of the latches
 static inline void        Abc_LatchSetInitNone( Abc_Obj_t * pLatch ) { assert(Abc_ObjIsLatch(pLatch)); pLatch->pData = (void *)ABC_INIT_NONE;                       }
@@ -921,7 +910,6 @@ extern ABC_DLL void               Abc_NtkUpdateReverseLevel( Abc_Obj_t * pObjNew
 extern ABC_DLL void               Abc_NtkUpdate( Abc_Obj_t * pObj, Abc_Obj_t * pObjNew, Vec_Vec_t * vLevels );
 /*=== abcUtil.c ==========================================================*/
 extern ABC_DLL void *             Abc_NtkAttrFree( Abc_Ntk_t * pNtk, int Attr, int fFreeMan );
-extern ABC_DLL void               Abc_NtkIncrementTravId( Abc_Ntk_t * pNtk );
 extern ABC_DLL void               Abc_NtkOrderCisCos( Abc_Ntk_t * pNtk );
 extern ABC_DLL int                Abc_NtkGetCubeNum( Abc_Ntk_t * pNtk );
 extern ABC_DLL int                Abc_NtkGetCubePairNum( Abc_Ntk_t * pNtk );
@@ -938,7 +926,6 @@ extern ABC_DLL int                Abc_NtkGetFaninMax( Abc_Ntk_t * pNtk );
 extern ABC_DLL int                Abc_NtkGetTotalFanins( Abc_Ntk_t * pNtk );
 extern ABC_DLL void               Abc_NtkCleanCopy( Abc_Ntk_t * pNtk );
 extern ABC_DLL void               Abc_NtkCleanData( Abc_Ntk_t * pNtk );
-extern ABC_DLL void               Abc_NtkCleanEquiv( Abc_Ntk_t * pNtk );
 extern ABC_DLL void               Abc_NtkFillTemp( Abc_Ntk_t * pNtk );
 extern ABC_DLL int                Abc_NtkCountCopy( Abc_Ntk_t * pNtk );
 extern ABC_DLL Vec_Ptr_t *        Abc_NtkSaveCopy( Abc_Ntk_t * pNtk );

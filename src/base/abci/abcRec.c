@@ -1267,7 +1267,6 @@ void Abc_NtkRecStart( Abc_Ntk_t * pNtk, int nVars, int nCuts, int fTrim )
         Abc_ObjAssignName( pObj, Buffer, NULL );
     }
     Abc_NtkCleanCopy( pNtk );
-    Abc_NtkCleanEquiv( pNtk );
 
     // start the manager
     p = ABC_ALLOC( Abc_ManRec_t, 1 );
