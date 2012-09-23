@@ -49,12 +49,6 @@ Aig_Obj_t * Aig_ObjCreateCi( Aig_Man_t * p )
     pObj->Type = AIG_OBJ_CI;
     Vec_PtrPush( p->vCis, pObj );
     p->nObjs[AIG_OBJ_CI]++;
-    if ( p->pManHaig && p->fCreatePios )
-    {
-        p->pManHaig->nRegs++;
-        pObj->pHaig = Aig_ObjCreateCi( p->pManHaig );
-//        printf( "Creating PI HAIG node %d equivalent to PI %d.\n", pObj->pHaig->Id, pObj->Id );
-    }
     return pObj;
 }
 
@@ -77,11 +71,6 @@ Aig_Obj_t * Aig_ObjCreateCo( Aig_Man_t * p, Aig_Obj_t * pDriver )
     Vec_PtrPush( p->vCos, pObj );
     Aig_ObjConnect( p, pObj, pDriver, NULL );
     p->nObjs[AIG_OBJ_CO]++;
-    if ( p->pManHaig && p->fCreatePios )
-    {
-        pObj->pHaig = Aig_ObjCreateCo( p->pManHaig, Aig_ObjHaig( pDriver ) );
-//        printf( "Creating PO HAIG node %d equivalent to PO %d.\n", pObj->pHaig->Id, pObj->Id );
-    }
     return pObj;
 }
 
@@ -111,14 +100,6 @@ Aig_Obj_t * Aig_ObjCreate( Aig_Man_t * p, Aig_Obj_t * pGhost )
     // update node counters of the manager
     p->nObjs[Aig_ObjType(pObj)]++;
     assert( pObj->pData == NULL );
-    if ( p->pManHaig )
-    {
-        pGhost->pFanin0 = Aig_ObjHaig( pGhost->pFanin0 );
-        pGhost->pFanin1 = Aig_ObjHaig( pGhost->pFanin1 );
-        pObj->pHaig = Aig_ObjCreate( p->pManHaig, pGhost );
-        assert( !Aig_IsComplement(pObj->pHaig) );
-//        printf( "Creating  HAIG node %d equivalent to node %d.\n", pObj->pHaig->Id, pObj->Id );
-    }
     // create the power counter
     if ( p->vProbs )
     {
@@ -384,14 +365,6 @@ void Aig_ObjPrint( Aig_Man_t * p, Aig_Obj_t * pObj )
         }
         return;
     }
-    if ( fHaig )
-    {
-        if ( pObj->pHaig == NULL )
-            printf( " HAIG node not given" );
-        else
-            printf( " HAIG node = %d%s", Aig_Regular(pObj->pHaig)->Id, (Aig_IsComplement(pObj->pHaig)? "\'" : " ") );
-        return;
-    }
     // there are choices
     if ( p->pEquivs && p->pEquivs[pObj->Id] )
     {
@@ -511,19 +484,6 @@ void Aig_ObjReplace( Aig_Man_t * p, Aig_Obj_t * pObjOld, Aig_Obj_t * pObjNew, in
         printf( "Aig_ObjReplace(): Internal error!\n" );
         exit(1);
     }
-    // map the HAIG nodes
-    if ( p->pManHaig != NULL )
-    {
-//        printf( "Setting HAIG node %d equivalent to HAIG node %d (over = %d).\n", 
-//            pObjNewR->pHaig->Id, pObjOld->pHaig->Id, pObjNewR->pHaig->pHaig != NULL );
-        assert( pObjNewR->pHaig != NULL );
-        assert( !Aig_IsComplement(pObjNewR->pHaig) );
-        assert( p->pManHaig->vEquPairs != NULL );
-        Vec_IntPush( p->pManHaig->vEquPairs, pObjNewR->pHaig->Id );
-        Vec_IntPush( p->pManHaig->vEquPairs, pObjOld->pHaig->Id );
-    }
-    else
-        pObjOld->pHaig = pObjNewR->pHaig? pObjNewR->pHaig : pObjOld->pHaig;
     // recursively delete the old node - but leave the object there
     pObjNewR->nRefs++;
     Aig_ObjDelete_rec( p, pObjOld, 0 );

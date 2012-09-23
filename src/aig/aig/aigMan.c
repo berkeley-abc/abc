@@ -100,7 +100,6 @@ Aig_Man_t * Aig_ManStartFrom( Aig_Man_t * p )
     {
         pObjNew = Aig_ObjCreateCi( pNew );
         pObjNew->Level = pObj->Level;
-        pObjNew->pHaig = pObj->pHaig;
         pObj->pData = pObjNew;
     }
     return pNew;
@@ -127,7 +126,6 @@ Aig_Obj_t * Aig_ManDup_rec( Aig_Man_t * pNew, Aig_Man_t * p, Aig_Obj_t * pObj )
         return (Aig_Obj_t *)(pObj->pData = Aig_ObjChild0Copy(pObj));
     Aig_ManDup_rec( pNew, p, Aig_ObjFanin1(pObj) );
     pObjNew = Aig_Oper( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj), Aig_ObjType(pObj) );
-    Aig_Regular(pObjNew)->pHaig = pObj->pHaig;
     return (Aig_Obj_t *)(pObj->pData = pObjNew);
 }
 
@@ -357,27 +355,6 @@ int Aig_ManCoCleanup( Aig_Man_t * p )
     if ( Aig_ManRegNum(p) )
         p->nTruePos = Aig_ManCoNum(p) - Aig_ManRegNum(p);
     return nPosOld - Aig_ManCoNum(p);
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Performs one iteration of AIG rewriting.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Aig_ManHaigCounter( Aig_Man_t * pAig )
-{
-    Aig_Obj_t * pObj;
-    int Counter, i;
-    Counter = 0;
-    Aig_ManForEachNode( pAig, pObj, i )
-        Counter += (pObj->pHaig != NULL);
-    return Counter;
 }
 
 /**Function*************************************************************

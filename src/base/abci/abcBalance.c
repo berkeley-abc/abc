@@ -277,9 +277,6 @@ Abc_Obj_t * Abc_NodeBalance_rec( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNodeOld, Vec_
 //    if ( Abc_ObjRegular(pNodeOld->pCopy) == Abc_AigConst1(pNtkNew) )
 //        printf( "Constant node\n" );
 //    assert( pNodeOld->Level >= Abc_ObjRegular(pNodeOld->pCopy)->Level );
-    // update HAIG
-//    if ( Abc_ObjRegular(pNodeOld->pCopy)->pNtk->pHaig )
-//        Hop_ObjCreateChoice( pNodeOld->pEquiv, Abc_ObjRegular(pNodeOld->pCopy)->pEquiv );
     return pNodeOld->pCopy;
 }
 

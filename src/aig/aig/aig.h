@@ -66,7 +66,7 @@ typedef enum {
 } Aig_Type_t;
 
 // the AIG node
-struct Aig_Obj_t_  // 9 words
+struct Aig_Obj_t_  // 8 words
 {
     union {                         
         Aig_Obj_t *  pNext;          // strashing table
@@ -74,7 +74,6 @@ struct Aig_Obj_t_  // 9 words
     };
     Aig_Obj_t *      pFanin0;        // fanin
     Aig_Obj_t *      pFanin1;        // fanin
-    Aig_Obj_t *      pHaig;          // pointer to the HAIG node
     unsigned int     Type    :  3;   // object type
     unsigned int     fPhase  :  1;   // value under 000...0 pattern
     unsigned int     fMarkA  :  1;   // multipurpose mask
@@ -156,7 +155,6 @@ struct Aig_Man_t_
     Vec_Ptr_t *      vSeqModelVec;   // vector of counter-examples (for sequential miters)
     Aig_Man_t *      pManExdc;
     Vec_Ptr_t *      vOnehots;
-    Aig_Man_t *      pManHaig;
     int              fCreatePios;
     Vec_Int_t *      vEquPairs;   
     Vec_Vec_t *      vClockDoms; 
@@ -326,7 +324,6 @@ static inline Aig_Obj_t *  Aig_ObjEquiv( Aig_Man_t * p, Aig_Obj_t * pObj )    { 
 static inline void         Aig_ObjSetEquiv( Aig_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pEqu ) { assert(p->pEquivs); p->pEquivs[pObj->Id] = pEqu;                  }
 static inline Aig_Obj_t *  Aig_ObjRepr( Aig_Man_t * p, Aig_Obj_t * pObj )     { return p->pReprs? p->pReprs[pObj->Id] : NULL;             } 
 static inline void         Aig_ObjSetRepr( Aig_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pRepr )     { assert(p->pReprs); p->pReprs[pObj->Id] = pRepr;                                } 
-static inline Aig_Obj_t *  Aig_ObjHaig( Aig_Obj_t * pObj )        { assert( Aig_Regular(pObj)->pHaig ); return Aig_NotCond( Aig_Regular(pObj)->pHaig, Aig_IsComplement(pObj) );      } 
 static inline int          Aig_ObjWhatFanin( Aig_Obj_t * pObj, Aig_Obj_t * pFanin )    
 { 
     if ( Aig_ObjFanin0(pObj) == pFanin ) return 0; 

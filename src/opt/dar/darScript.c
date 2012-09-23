@@ -134,27 +134,6 @@ Aig_Man_t * Dar_ManRwsat( Aig_Man_t * pAig, int fBalance, int fVerbose )
 
 /**Function*************************************************************
 
-  Synopsis    [Performs one iteration of AIG rewriting.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Dar_ManHaigPrintStats( Aig_Man_t * pAig )
-{
-    Aig_Obj_t * pObj;
-    int Counter, i;
-    Counter = 0;
-    Aig_ManForEachNode( pAig, pObj, i )
-        Counter += (pObj->pHaig != NULL);
-    printf( "Total nodes = %6d. Equiv nodes = %6d.\n", Aig_ManNodeNum(pAig), Counter );
-}
-
-/**Function*************************************************************
-
   Synopsis    [Reproduces script "compress".]
 
   Description []
@@ -352,34 +331,20 @@ Vec_Ptr_t * Dar_ManChoiceSynthesis( Aig_Man_t * pAig, int fBalance, int fUpdateL
 //alias resyn2   "b; rw; rf; b; rw; rwz; b; rfz; rwz; b"
 {
     Vec_Ptr_t * vAigs;
-    Aig_Obj_t * pObj;
-    int i;
 
     vAigs = Vec_PtrAlloc( 3 );
     pAig = Aig_ManDupDfs(pAig);
     Vec_PtrPush( vAigs, pAig );
 
-    Aig_ManForEachObj( pAig, pObj, i )
-        pObj->pHaig = pObj;
-
     pAig = Dar_ManCompress(pAig, fBalance, fUpdateLevel, fPower, fVerbose);
     Vec_PtrPush( vAigs, pAig );
 //Aig_ManPrintStats( pAig );
-
-    Aig_ManForEachObj( pAig, pObj, i )
-    {
-        pObj->pNext = pObj->pHaig;
-        pObj->pHaig = pObj;
-    }
 
     pAig = Dar_ManCompress2(pAig, fBalance, fUpdateLevel, 1, fPower, fVerbose);
     Vec_PtrPush( vAigs, pAig );
 //Aig_ManPrintStats( pAig );
 
     pAig = (Aig_Man_t *)Vec_PtrEntry( vAigs, 1 );
-    Aig_ManForEachObj( pAig, pObj, i )
-        pObj->pHaig = pObj->pNext;
-
     return vAigs;
 }
 

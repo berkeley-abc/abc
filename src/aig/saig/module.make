@@ -7,7 +7,6 @@ SRC +=  src/aig/saig/saigBmc.c \
     src/aig/saig/saigConstr2.c \
     src/aig/saig/saigDual.c \
     src/aig/saig/saigDup.c \
-    src/aig/saig/saigHaig.c \
     src/aig/saig/saigInd.c \
     src/aig/saig/saigIoa.c \
     src/aig/saig/saigIso.c \

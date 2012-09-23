@@ -1493,8 +1493,6 @@ void Aig_ManChoiceConstructiveOne( Aig_Man_t * pNew, Aig_Man_t * pPrev, Aig_Man_
     // make sure the nodes of pThis point to pPrev
     Aig_ManForEachObj( pPrev, pObj, i )
         pObj->fMarkB = 1;
-    Aig_ManForEachObj( pThis, pObj, i )
-        assert( pObj->pHaig == NULL || (!Aig_IsComplement(pObj->pHaig) && pObj->pHaig->fMarkB) );
     Aig_ManForEachObj( pPrev, pObj, i )
         pObj->fMarkB = 0;
     // remap nodes of pThis on top of pNew using pPrev
@@ -1506,13 +1504,7 @@ void Aig_ManChoiceConstructiveOne( Aig_Man_t * pNew, Aig_Man_t * pPrev, Aig_Man_
         pObj->pData = Aig_ManCo(pNew, i);
     // go through the nodes in the topological order
     Aig_ManForEachNode( pThis, pObj, i )
-    {
         pObj->pData = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
-        if ( pObj->pHaig == NULL )
-            continue;
-        // pObj->pData and pObj->pHaig->pData are equivalent
-        Aig_ObjSetRepr_( pNew, Aig_Regular((Aig_Obj_t *)pObj->pData), Aig_Regular((Aig_Obj_t *)pObj->pHaig->pData) );
-    }
     // set the inputs of POs as equivalent
     Aig_ManForEachCo( pThis, pObj, i )
     {

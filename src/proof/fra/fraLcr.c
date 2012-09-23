@@ -273,7 +273,6 @@ Aig_Obj_t * Fra_LcrManDup_rec( Aig_Man_t * pNew, Aig_Man_t * p, Aig_Obj_t * pObj
         return (Aig_Obj_t *)(pObj->pData = Aig_ObjChild0Copy(pObj));
     Fra_LcrManDup_rec( pNew, p, Aig_ObjFanin1(pObj) );
     pObjNew = Aig_Oper( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj), Aig_ObjType(pObj) );
-    Aig_Regular(pObjNew)->pHaig = pObj->pHaig;
     return (Aig_Obj_t *)(pObj->pData = pObjNew);
 }
 

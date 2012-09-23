@@ -1000,7 +1000,6 @@ Hop_Man_t * Abc_NtkPartStartHop( Abc_Ntk_t * pNtk )
 Abc_Ntk_t * Abc_NtkPartStitchChoices( Abc_Ntk_t * pNtk, Vec_Ptr_t * vParts )
 {
     extern Abc_Ntk_t * Abc_NtkHopRemoveLoops( Abc_Ntk_t * pNtk, Hop_Man_t * pMan );
-
     Hop_Man_t * pMan;
     Vec_Ptr_t * vNodes;
     Abc_Ntk_t * pNtkNew, * pNtkTemp;

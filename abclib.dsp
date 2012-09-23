@@ -3283,10 +3283,6 @@ SOURCE=.\src\aig\saig\saigDup.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\aig\saig\saigHaig.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\src\aig\saig\saigInd.c
 # End Source File
 # Begin Source File

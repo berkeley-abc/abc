@@ -215,7 +215,6 @@ struct Abc_Ntk_t_
     void *            pExcare;       // the EXDC network (if given)
     void *            pData;         // misc
     Abc_Ntk_t *       pCopy;         // copy of this network
-    void *            pHaig;         // history AIG
     float *           pLutTimes;     // arrivals/requireds/slacks using LUT-delay model
     Vec_Ptr_t *       vOnehots;      // names of one-hot-encoded registers
     Vec_Int_t *       vObjPerm;      // permutation saved
