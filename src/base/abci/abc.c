@@ -21280,9 +21280,9 @@ int Abc_CommandUnfold( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Constraints are already extracted.\n" );
         return 0;
     }
-    if ( Abc_NtkPoNum(pNtk) > 1 )
+    if ( Abc_NtkPoNum(pNtk) > 1 && !fStruct )
     {
-        Abc_Print( -1, "Constraint extraction works for single-output miters (use \"orpos\").\n" );
+        Abc_Print( -1, "Functional constraint extraction works for single-output miters (use \"orpos\").\n" );
         return 0;
     }
     // modify the current network
