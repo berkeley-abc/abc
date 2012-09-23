@@ -63,6 +63,7 @@ Vec_Str_t * Tim_ManSave( Tim_Man_t * p )
     // save number of boxes
     Vec_StrPutI_ne( vStr, Tim_ManBoxNum(p) );
     // for each box, save num_inputs, num_outputs, and delay table ID
+    if ( Tim_ManBoxNum(p) > 0 )
     Tim_ManForEachBox( p, pBox, i )
     {
         Vec_StrPutI_ne( vStr, Tim_ManBoxInputNum(p, pBox->iBox) );
@@ -72,7 +73,8 @@ Vec_Str_t * Tim_ManSave( Tim_Man_t * p )
     // save the number of delay tables
     Vec_StrPutI_ne( vStr, Tim_ManDelayTableNum(p) );
     // save the delay tables
-    Vec_PtrForEachEntry( float *, p->vDelayTables, pDelayTable, i )
+    if ( Tim_ManDelayTableNum(p) > 0 )
+    Tim_ManForEachTable( p, pDelayTable, i )
     {
         assert( (int)pDelayTable[0] == i );
         // save table ID and dimensions (inputs x outputs)
@@ -126,7 +128,8 @@ Tim_Man_t * Tim_ManLoad( Vec_Str_t * p )
     // start boxes
     nBoxes = Vec_StrGetI_ne( p, &iStr );
     assert( pMan->vBoxes == NULL );
-    pMan->vBoxes = Vec_PtrAlloc( nBoxes );
+    if ( nBoxes > 0 )
+        pMan->vBoxes = Vec_PtrAlloc( nBoxes );
     // create boxes
     curPi = nPis;
     curPo = 0;
@@ -145,9 +148,9 @@ Tim_Man_t * Tim_ManLoad( Vec_Str_t * p )
     // create delay tables
     nTables = Vec_StrGetI_ne( p, &iStr );
     assert( pMan->vDelayTables == NULL );
-    pMan->vDelayTables = Vec_PtrAlloc( nTables );
+    if ( nTables > 0 )
+        pMan->vDelayTables = Vec_PtrAlloc( nTables );
     // read delay tables
-    assert( Vec_PtrSize(pMan->vDelayTables) == 0 );
     for ( i = 0; i < nTables; i++ )
     {
         // read table ID and dimensions
@@ -167,7 +170,7 @@ Tim_Man_t * Tim_ManLoad( Vec_Str_t * p )
         assert( Vec_PtrSize(pMan->vDelayTables) == TableId );
         Vec_PtrPush( pMan->vDelayTables, pDelayTable );
     }
-    assert( Vec_PtrSize(pMan->vDelayTables) == nTables );
+    assert( Tim_ManDelayTableNum(pMan) == nTables );
 //    Tim_ManPrint( pMan );
     return pMan;
 }

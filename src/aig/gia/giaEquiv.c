@@ -156,52 +156,6 @@ void Gia_ManDeriveReprs( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Gia_ManEquivCountOne( Gia_Man_t * p, int i )
-{
-    int Ent, nLits = 1;
-    Gia_ClassForEachObj1( p, i, Ent )
-    {
-        assert( Gia_ObjRepr(p, Ent) == i );
-        nLits++;
-    }
-    return nLits;
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Gia_ManEquivPrintOne( Gia_Man_t * p, int i, int Counter )
-{
-    int Ent;
-    printf( "Class %4d :  Num = %2d  {", Counter, Gia_ManEquivCountOne(p, i) );
-    Gia_ClassForEachObj( p, i, Ent )
-    {
-        printf(" %d", Ent );
-        if ( p->pReprs[Ent].fColorA || p->pReprs[Ent].fColorB )
-            printf(" <%d%d>", p->pReprs[Ent].fColorA, p->pReprs[Ent].fColorB );
-    }
-    printf( " }\n" );
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
 int Gia_ManEquivCountLitsAll( Gia_Man_t * p )
 {
     int i, nLits = 0;
@@ -324,6 +278,28 @@ int Gia_ManEquivCountLits( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
+int Gia_ManEquivCountOne( Gia_Man_t * p, int i )
+{
+    int Ent, nLits = 1;
+    Gia_ClassForEachObj1( p, i, Ent )
+    {
+        assert( Gia_ObjRepr(p, Ent) == i );
+        nLits++;
+    }
+    return nLits;
+}
+void Gia_ManEquivPrintOne( Gia_Man_t * p, int i, int Counter )
+{
+    int Ent;
+    printf( "Class %4d :  Num = %2d  {", Counter, Gia_ManEquivCountOne(p, i) );
+    Gia_ClassForEachObj( p, i, Ent )
+    {
+        printf(" %d", Ent );
+        if ( p->pReprs[Ent].fColorA || p->pReprs[Ent].fColorB )
+            printf(" <%d%d>", p->pReprs[Ent].fColorA, p->pReprs[Ent].fColorB );
+    }
+    printf( " }\n" );
+}
 void Gia_ManEquivPrintClasses( Gia_Man_t * p, int fVerbose, float Mem )
 {
     int i, Counter = 0, Counter0 = 0, CounterX = 0, Proved = 0, nLits;
@@ -342,13 +318,10 @@ void Gia_ManEquivPrintClasses( Gia_Man_t * p, int fVerbose, float Mem )
     nLits = Gia_ManCiNum(p) + Gia_ManAndNum(p) - Counter - CounterX;
     printf( "cst =%8d  cls =%7d  lit =%8d  unused =%8d  proof =%6d  mem =%5.2f MB\n", 
         Counter0, Counter, nLits, CounterX, Proved, (Mem == 0.0) ? 8.0*Gia_ManObjNum(p)/(1<<20) : Mem );
-//    printf( "cst =%8d  cls =%7d  lit =%8d\n", 
-//        Counter0, Counter, nLits );
     assert( Gia_ManEquivCheckLits( p, nLits ) );
     if ( fVerbose )
     {
-        int Ent;
-
+//        int Ent;
         printf( "Const0 = " );
         Gia_ManForEachConst( p, i )
             printf( "%d ", i );
@@ -356,7 +329,7 @@ void Gia_ManEquivPrintClasses( Gia_Man_t * p, int fVerbose, float Mem )
         Counter = 0;
         Gia_ManForEachClass( p, i )
             Gia_ManEquivPrintOne( p, i, ++Counter );
-
+/*
         Gia_ManLevelNum( p );
         Gia_ManForEachClass( p, i )
             if ( i % 100 == 0 )
@@ -368,7 +341,103 @@ void Gia_ManEquivPrintClasses( Gia_Man_t * p, int fVerbose, float Mem )
                 }
                 printf( "\n" );
             }
+*/
     }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Reverse the order of nodes in equiv classes.]
+
+  Description [If the flag is 1, assumed current increasing order ]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManReverseClasses( Gia_Man_t * p, int fNowIncreasing )
+{
+    Vec_Int_t * vCollected;
+    Vec_Int_t * vClass;
+    int i, k, iRepr, iNode, iPrev;
+    // collect classes
+    vCollected = Vec_IntAlloc( 100 );
+    Gia_ManForEachClass( p, iRepr )
+    {
+        Vec_IntPush( vCollected, iRepr );
+
+        // check classes
+        if ( !fNowIncreasing )
+        {
+            iPrev = iRepr;
+            Gia_ClassForEachObj1( p, iRepr, iNode )
+            {
+                if ( iPrev < iNode )
+                {
+                    printf( "Class %d : ", iRepr );
+                    Gia_ClassForEachObj( p, iRepr, iNode )
+                        printf( " %d", iNode );
+                    printf( "\n" );
+                    break;
+                }
+                iPrev = iNode;
+            }
+        }
+    }
+
+    iRepr = 129720;
+    printf( "Class %d : ", iRepr );
+    Gia_ClassForEachObj( p, iRepr, iNode )
+        printf( " %d", iNode );
+    printf( "\n" );
+
+    iRepr = 129737;
+    printf( "Class %d : ", iRepr );
+    Gia_ClassForEachObj( p, iRepr, iNode )
+        printf( " %d", iNode );
+    printf( "\n" );
+
+    // correct each class
+    vClass = Vec_IntAlloc( 100 );
+    Vec_IntForEachEntry( vCollected, iRepr, i )
+    {
+        Vec_IntClear( vClass );
+        Vec_IntPush( vClass, iRepr );
+        Gia_ClassForEachObj1( p, iRepr, iNode )
+        {
+            if ( fNowIncreasing )
+                assert( iRepr < iNode );
+            else
+                assert( iRepr > iNode );
+            Vec_IntPush( vClass, iNode );
+        }
+//        if ( !fNowIncreasing )
+//            Vec_IntSort( vClass, 1 );
+        if ( iRepr == 129720 || iRepr == 129737 )
+            Vec_IntPrint( vClass );
+        // reverse the class
+        iPrev = 0;
+        iRepr = Vec_IntEntryLast( vClass );
+        Vec_IntForEachEntry( vClass, iNode, k )
+        {
+            if ( fNowIncreasing )
+                Gia_ObjSetReprRev( p, iNode, iNode == iRepr ? GIA_VOID : iRepr );
+            else
+                Gia_ObjSetRepr( p, iNode, iNode == iRepr ? GIA_VOID : iRepr );
+            Gia_ObjSetNext( p, iNode, iPrev );
+            iPrev = iNode;
+        }
+    }
+    Vec_IntFree( vCollected );
+    Vec_IntFree( vClass );
+    // verify
+    Gia_ManForEachClass( p, iRepr )
+        Gia_ClassForEachObj1( p, iRepr, iNode )
+            if ( fNowIncreasing )
+                assert( Gia_ObjRepr(p, iNode) == iRepr && iRepr > iNode );
+            else
+                assert( Gia_ObjRepr(p, iNode) == iRepr && iRepr < iNode );
 }
 
 /**Function*************************************************************

@@ -189,10 +189,14 @@ int Tim_ManBoxOutputNum( Tim_Man_t * p, int iBox )
 ***********************************************************************/
 float * Tim_ManBoxDelayTable( Tim_Man_t * p, int iBox )
 {
+    float * pTable;
     Tim_Box_t * pBox = (Tim_Box_t *)Vec_PtrEntry( p->vBoxes, iBox );
     if ( pBox->iDelayTable < 0 )
         return NULL;
-    return (float *)Vec_PtrEntry( p->vDelayTables, pBox->iDelayTable );
+    pTable = (float *)Vec_PtrEntry( p->vDelayTables, pBox->iDelayTable );
+    assert( (int)pTable[1] == pBox->nInputs );
+    assert( (int)pTable[2] == pBox->nOutputs );
+    return pTable;
 }
 
 ////////////////////////////////////////////////////////////////////////

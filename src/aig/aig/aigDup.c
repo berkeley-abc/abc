@@ -582,6 +582,7 @@ Aig_Obj_t * Aig_ManDupDfs_rec( Aig_Man_t * pNew, Aig_Man_t * p, Aig_Obj_t * pObj
         Aig_Regular(pObjNew)->pHaig = pObj->pHaig;
     if ( pEquivNew )
     {
+        assert( Aig_Regular(pEquivNew)->Id < Aig_Regular(pObjNew)->Id );
         if ( pNew->pEquivs )
             pNew->pEquivs[Aig_Regular(pObjNew)->Id] = Aig_Regular(pEquivNew);        
         if ( pNew->pReprs )

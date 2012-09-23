@@ -993,8 +993,22 @@ int Gia_ManHasChoices( Gia_Man_t * p )
 void Gia_ManVerifyChoices( Gia_Man_t * p )
 {
     Gia_Obj_t * pObj;
-    int i, fProb = 0;
+    int i, iRepr, iNode, fProb = 0;
     assert( p->pReprs );
+
+    // mark nodes 
+    Gia_ManCleanMark0(p);
+    Gia_ManForEachClass( p, iRepr )
+        Gia_ClassForEachObj1( p, iRepr, iNode )
+        {
+            if ( Gia_ObjIsHead(p, iNode) )
+                printf( "Member %d of choice class %d is a representative.\n", iNode, iRepr ), fProb = 1;
+            if ( Gia_ManObj( p, iNode )->fMark0 == 1 )
+                printf( "Node %d participates in more than one choice node.\n", iNode ), fProb = 1;
+            Gia_ManObj( p, iNode )->fMark0 = 1;
+        }
+    Gia_ManCleanMark0(p);
+
     Gia_ManForEachObj( p, pObj, i )
     {
         if ( Gia_ObjIsAnd(pObj) )
@@ -1010,8 +1024,8 @@ void Gia_ManVerifyChoices( Gia_Man_t * p )
                 printf( "Fanin 0 of CO node %d has a repr.\n", i ), fProb = 1;
         }
     }
-//    if ( !fProb )
-//        printf( "GIA with choices is correct.\n" );
+    if ( !fProb )
+        printf( "GIA with choices is correct.\n" );
 }
 
 /**Function*************************************************************
@@ -1135,7 +1149,7 @@ void Gia_ObjPrint( Gia_Man_t * p, Gia_Obj_t * pObj )
         pObj = Gia_Not(pObj);
     }
     assert( !Gia_IsComplement(pObj) );
-    printf( "Node %4d : ", Gia_ObjId(p, pObj) );
+    printf( "Obj %4d : ", Gia_ObjId(p, pObj) );
     if ( Gia_ObjIsConst0(pObj) )
         printf( "constant 0" );
     else if ( Gia_ObjIsPi(p, pObj) )
@@ -1179,6 +1193,13 @@ void Gia_ObjPrint( Gia_Man_t * p, Gia_Obj_t * pObj )
         return;
     }
 */
+}
+void Gia_ManPrint( Gia_Man_t * p )
+{
+    Gia_Obj_t * pObj;
+    int i;
+    Gia_ManForEachObj( p, pObj, i )
+        Gia_ObjPrint( p, pObj );
 }
 
 /**Function*************************************************************
@@ -1419,6 +1440,47 @@ void Gia_ObjComputeTruthTableTest( Gia_Man_t * p )
 }
 
 
+/**Function*************************************************************
+
+  Synopsis    [Returns 1 if the manager are structural identical.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManCompare( Gia_Man_t * p1, Gia_Man_t * p2 )
+{
+    Gia_Obj_t * pObj1, * pObj2;
+    int i;
+    if ( Gia_ManObjNum(p1) != Gia_ManObjNum(p2) )
+    {
+        printf( "AIGs have different number of objects.\n" );
+        return 0;
+    }
+    Gia_ManCleanValue( p1 );
+    Gia_ManCleanValue( p2 );
+    Gia_ManForEachObj( p1, pObj1, i )
+    {
+        pObj2 = Gia_ManObj( p2, i );
+        if ( memcmp( pObj1, pObj2, sizeof(Gia_Obj_t) ) )
+        {
+            printf( "Objects %d are different.\n", i );
+            return 0;
+        }
+        if ( p1->pReprs && p2->pReprs )
+        {
+            if ( memcmp( &p1->pReprs[i], &p2->pReprs[i], sizeof(Gia_Rpr_t) ) )
+            {
+                printf( "Representatives of objects %d are different.\n", i );
+                return 0;
+            }
+        }
+    }
+    return 1;
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

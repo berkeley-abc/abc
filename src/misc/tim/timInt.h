@@ -128,6 +128,9 @@ static inline Tim_Obj_t * Tim_ManBoxOutput( Tim_Man_t * p, Tim_Box_t * pBox, int
 #define Tim_ManBoxForEachOutput( p, pBox, pObj, i )                     \
     for ( i = 0; (i < (pBox)->nOutputs) && ((pObj) = Tim_ManBoxOutput(p, pBox, i)); i++ )
 
+#define Tim_ManForEachTable( p, pTable, i )                             \
+    Vec_PtrForEachEntry( float *, p->vDelayTables, pTable, i )
+
 ////////////////////////////////////////////////////////////////////////
 ///                     SEQUENTIAL ITERATORS                         ///
 ////////////////////////////////////////////////////////////////////////

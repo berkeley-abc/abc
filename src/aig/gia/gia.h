@@ -570,6 +570,7 @@ static inline void Gia_ObjTerSimPrint( Gia_Obj_t * pObj )
 static inline Gia_Obj_t * Gia_ObjReprObj( Gia_Man_t * p, int Id )            { return p->pReprs[Id].iRepr == GIA_VOID ? NULL : Gia_ManObj( p, p->pReprs[Id].iRepr );                  }
 static inline int         Gia_ObjRepr( Gia_Man_t * p, int Id )               { return p->pReprs[Id].iRepr;                                                }
 static inline void        Gia_ObjSetRepr( Gia_Man_t * p, int Id, int Num )   { assert( Num == GIA_VOID || Num < Id ); p->pReprs[Id].iRepr = Num;          }
+static inline void        Gia_ObjSetReprRev( Gia_Man_t * p, int Id, int Num ){ assert( Num == GIA_VOID || Num > Id ); p->pReprs[Id].iRepr = Num;          }
 static inline void        Gia_ObjUnsetRepr( Gia_Man_t * p, int Id )          { p->pReprs[Id].iRepr = GIA_VOID;                                            }
 static inline int         Gia_ObjHasRepr( Gia_Man_t * p, int Id )            { return p->pReprs[Id].iRepr != GIA_VOID;                                    }
 static inline int         Gia_ObjReprSelf( Gia_Man_t * p, int Id )           { return Gia_ObjHasRepr(p, Id) ? Gia_ObjRepr(p, Id) : Id;                    }
@@ -590,8 +591,8 @@ static inline int         Gia_ObjDiffColors( Gia_Man_t * p, int i, int j )   { r
 static inline int         Gia_ObjDiffColors2( Gia_Man_t * p, int i, int j )  { return (p->pReprs[i].fColorA ^ p->pReprs[j].fColorA) || (p->pReprs[i].fColorB ^ p->pReprs[j].fColorB); }
 
 static inline Gia_Obj_t * Gia_ObjNextObj( Gia_Man_t * p, int Id )            { return p->pNexts[Id] == 0 ? NULL : Gia_ManObj( p, p->pNexts[Id] );}
-static inline int         Gia_ObjNext( Gia_Man_t * p, int Id )               { return p->pNexts[Id];               }
-static inline void        Gia_ObjSetNext( Gia_Man_t * p, int Id, int Num )   { p->pNexts[Id] = Num;                }
+static inline int         Gia_ObjNext( Gia_Man_t * p, int Id )               { return p->pNexts[Id];                                             }
+static inline void        Gia_ObjSetNext( Gia_Man_t * p, int Id, int Num )   { p->pNexts[Id] = Num;                                              }
 
 static inline int         Gia_ObjIsConst( Gia_Man_t * p, int Id )            { return Gia_ObjRepr(p, Id) == 0;                                   }
 static inline int         Gia_ObjIsUsed( Gia_Man_t * p, int Id )             { return Gia_ObjRepr(p, Id) != GIA_VOID && Gia_ObjNext(p, Id) > 0;  }
@@ -758,6 +759,7 @@ extern int                 Gia_ManEquivCountLitsAll( Gia_Man_t * p );
 extern int                 Gia_ManEquivCountClasses( Gia_Man_t * p );
 extern void                Gia_ManEquivPrintOne( Gia_Man_t * p, int i, int Counter );
 extern void                Gia_ManEquivPrintClasses( Gia_Man_t * p, int fVerbose, float Mem );
+extern void                Gia_ManReverseClasses( Gia_Man_t * p, int fNowIncreasing );
 extern Gia_Man_t *         Gia_ManEquivReduce( Gia_Man_t * p, int fUseAll, int fDualOut, int fVerbose );
 extern Gia_Man_t *         Gia_ManEquivReduceAndRemap( Gia_Man_t * p, int fSeq, int fMiterPairs );
 extern int                 Gia_ManEquivSetColors( Gia_Man_t * p, int fVerbose );
@@ -914,9 +916,11 @@ extern int                 Gia_ManHasDangling( Gia_Man_t * p );
 extern int                 Gia_ManMarkDangling( Gia_Man_t * p );
 extern Vec_Int_t *         Gia_ManGetDangling( Gia_Man_t * p );
 extern void                Gia_ObjPrint( Gia_Man_t * p, Gia_Obj_t * pObj );
+extern void                Gia_ManPrint( Gia_Man_t * p );
 extern void                Gia_ManInvertConstraints( Gia_Man_t * pAig );
 extern void                Gia_ObjCollectInternal( Gia_Man_t * p, Gia_Obj_t * pObj );
 extern unsigned *          Gia_ObjComputeTruthTable( Gia_Man_t * p, Gia_Obj_t * pObj );
+extern int                 Gia_ManCompare( Gia_Man_t * p1, Gia_Man_t * p2 );
 
 /*=== giaCTas.c ===========================================================*/
 typedef struct Tas_Man_t_  Tas_Man_t;

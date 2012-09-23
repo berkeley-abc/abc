@@ -926,7 +926,8 @@ Gia_Man_t * Gia_ManDupUnnomalize( Gia_Man_t * p )
     Tim_Man_t * pTime = p->pManTime;
     Gia_Man_t * pNew;
     Gia_Obj_t * pObj;
-    int i, k, curCi, curCo, curNo, nodeId;
+    int i, k, curCi, curCo, curNo, nodeLim;
+//Gia_ManPrint( p );
     assert( pTime != NULL );
     assert( Gia_ManIsNormalized(p) );
     Gia_ManFillValue( p );
@@ -939,24 +940,24 @@ Gia_Man_t * Gia_ManDupUnnomalize( Gia_Man_t * p )
         Gia_ManPi(p, k)->Value = Gia_ManAppendCi(pNew);
     curCi = Tim_ManPiNum(pTime);
     curCo = 0;
-    curNo = Gia_ManPiNum(p);
+    curNo = Gia_ManPiNum(p)+1;
     for ( i = 0; i < Tim_ManBoxNum(pTime); i++ )
     {
         // find the latest node feeding into inputs of this box
-        nodeId = -1;
+        nodeLim = -1;
         for ( k = 0; k < Tim_ManBoxInputNum(pTime, i); k++ )
         {
             pObj = Gia_ManPo( p, curCo + k );
-            nodeId = Abc_MaxInt( nodeId, Gia_ObjFaninId0p(p, pObj) );
+            nodeLim = Abc_MaxInt( nodeLim, Gia_ObjFaninId0p(p, pObj)+1 );
         }
         // copy nodes up to the given node
-        for ( k = curNo; k <= nodeId; k++ )
+        for ( k = curNo; k < nodeLim; k++ )
         {
             pObj = Gia_ManObj( p, k );
             assert( Gia_ObjIsAnd(pObj) );
             pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
         }
-        curNo = Abc_MaxInt( curNo, nodeId + 1 );
+        curNo = Abc_MaxInt( curNo, nodeLim );
         // copy COs
         for ( k = 0; k < Tim_ManBoxInputNum(pTime, i); k++ )
         {
@@ -972,6 +973,16 @@ Gia_Man_t * Gia_ManDupUnnomalize( Gia_Man_t * p )
         }
         curCi += Tim_ManBoxOutputNum(pTime, i);
     }
+    // copy remaining nodes
+    nodeLim = Gia_ManObjNum(p) - Gia_ManPoNum(p);
+    for ( k = curNo; k < nodeLim; k++ )
+    {
+        pObj = Gia_ManObj( p, k );
+        assert( Gia_ObjIsAnd(pObj) );
+        pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    }
+    curNo = Abc_MaxInt( curNo, nodeLim );
+    curNo += Gia_ManPoNum(p);
     // copy primary outputs
     for ( k = 0; k < Tim_ManPoNum(pTime); k++ )
     {
@@ -981,9 +992,10 @@ Gia_Man_t * Gia_ManDupUnnomalize( Gia_Man_t * p )
     curCo += Tim_ManPoNum(pTime);
     assert( curCi == Gia_ManPiNum(p) );
     assert( curCo == Gia_ManPoNum(p) );
-    assert( curNo == Gia_ManAndNum(p) );
+    assert( curNo == Gia_ManObjNum(p) );
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
     Gia_ManDupRemapEquiv( pNew, p );
+//Gia_ManPrint( pNew );
     // pass the timing manager
     pNew->pManTime = pTime;  p->pManTime = NULL;
     return pNew;

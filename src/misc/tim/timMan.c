@@ -112,25 +112,32 @@ Tim_Man_t * Tim_ManDup( Tim_Man_t * p, int fUnitDelay )
         Tim_ManInitPoRequiredAll( p, (float)TIM_ETERNITY );
     }
     // duplicate delay tables
-    pNew->vDelayTables = Vec_PtrAlloc( Vec_PtrSize(p->vDelayTables) );
-    Vec_PtrForEachEntry( float *, p->vDelayTables, pDelayTable, i )
+    if ( Tim_ManDelayTableNum(p) > 0 )
     {
-        assert( i == (int)pDelayTable[0] );
-        nInputs   = (int)pDelayTable[1];
-        nOutputs  = (int)pDelayTable[2];
-        pDelayTableNew = ABC_ALLOC( float, 3 + nInputs * nOutputs );
-        pDelayTableNew[0] = (int)pDelayTable[0];
-        pDelayTableNew[1] = (int)pDelayTable[1];
-        pDelayTableNew[2] = (int)pDelayTable[2];
-        for ( k = 0; k < nInputs * nOutputs; k++ )
-            pDelayTableNew[3+k] = fUnitDelay ? 1.0 : pDelayTable[3+k];
-        assert( (int)pDelayTableNew[0] == Vec_PtrSize(pNew->vDelayTables) );
-        Vec_PtrPush( pNew->vDelayTables, pDelayTableNew );
+        pNew->vDelayTables = Vec_PtrAlloc( Vec_PtrSize(p->vDelayTables) );
+        Tim_ManForEachTable( p, pDelayTable, i )
+        {
+            assert( i == (int)pDelayTable[0] );
+            nInputs   = (int)pDelayTable[1];
+            nOutputs  = (int)pDelayTable[2];
+            pDelayTableNew = ABC_ALLOC( float, 3 + nInputs * nOutputs );
+            pDelayTableNew[0] = (int)pDelayTable[0];
+            pDelayTableNew[1] = (int)pDelayTable[1];
+            pDelayTableNew[2] = (int)pDelayTable[2];
+            for ( k = 0; k < nInputs * nOutputs; k++ )
+                pDelayTableNew[3+k] = fUnitDelay ? 1.0 : pDelayTable[3+k];
+            assert( (int)pDelayTableNew[0] == Vec_PtrSize(pNew->vDelayTables) );
+            Vec_PtrPush( pNew->vDelayTables, pDelayTableNew );
+        }
     }
     // duplicate boxes
-    Tim_ManForEachBox( p, pBox, i )
-       Tim_ManCreateBox( pNew, pBox->Inouts[0], pBox->nInputs, 
-            pBox->Inouts[pBox->nInputs], pBox->nOutputs, pBox->iDelayTable );
+    if ( Tim_ManBoxNum(p) > 0 )
+    {
+        pNew->vBoxes = Vec_PtrAlloc( Tim_ManBoxNum(p) );
+        Tim_ManForEachBox( p, pBox, i )
+           Tim_ManCreateBox( pNew, pBox->Inouts[0], pBox->nInputs, 
+                pBox->Inouts[pBox->nInputs], pBox->nOutputs, pBox->iDelayTable );
+    }
     return pNew;
 }
 
@@ -147,15 +154,8 @@ Tim_Man_t * Tim_ManDup( Tim_Man_t * p, int fUnitDelay )
 ***********************************************************************/
 void Tim_ManStop( Tim_Man_t * p )
 {
-    float * pTable;
-    int i;
-    if ( p->vDelayTables )
-    {
-        Vec_PtrForEachEntry( float *, p->vDelayTables, pTable, i )
-            ABC_FREE( pTable );
-        Vec_PtrFree( p->vDelayTables );
-    }
-    Vec_PtrFree( p->vBoxes );
+    Vec_PtrFreeFree( p->vDelayTables );
+    Vec_PtrFreeP( &p->vBoxes );
     Mem_FlexStop( p->pMemObj, 0 );
     ABC_FREE( p->pCis );
     ABC_FREE( p->pCos );
@@ -185,7 +185,7 @@ void Tim_ManPrint( Tim_Man_t * p )
     Tim_Box_t * pBox;
     Tim_Obj_t * pObj, * pPrev;
     float * pTable;
-    int i, k;
+    int i, j, k, TableX, TableY;
     printf( "TIMING INFORMATION:\n" );
 
     // print CI info
@@ -211,40 +211,48 @@ void Tim_ManPrint( Tim_Man_t * p )
             printf( "PO%5d :  arr = %5.3f  req = %5.3f\n", i, pObj->timeArr, pObj->timeReq );
 
     // print box info
+    if ( Tim_ManBoxNum(p) > 0 )
     Tim_ManForEachBox( p, pBox, i )
     {
-        printf( "*** Box %3d :  Ins = %d. Outs = %d.\n", i, pBox->nInputs, pBox->nOutputs );
-        printf( "Delay table:\n" );
-        pTable = Tim_ManBoxDelayTable( p, pBox->iBox );
-        for ( i = 0; i < pBox->nOutputs; i++, printf( "\n" ) )
-            for ( k = 0; k < pBox->nInputs; k++ )
-                if ( pTable[3+i*pBox->nInputs+k] == -ABC_INFINITY )
-                    printf( "%5s", "-" );
-                else
-                    printf( "%5.0f", pTable[3+i*pBox->nInputs+k] );
-        printf( "\n" );
+        printf( "*** Box %5d :  Ins = %4d. Outs = %4d. DelayTable = %4d\n", i, pBox->nInputs, pBox->nOutputs, pBox->iDelayTable );
 
         // print box inputs
         pPrev = Tim_ManBoxInput( p, pBox, 0 );
-        Tim_ManBoxForEachInput( p, pBox, pObj, i )
+        Tim_ManBoxForEachInput( p, pBox, pObj, k )
             if ( pPrev->timeArr != pObj->timeArr || pPrev->timeReq != pObj->timeReq )
                 break;
-        if ( i == Tim_ManBoxInputNum(p, pBox->iBox) )
+        if ( k == Tim_ManBoxInputNum(p, pBox->iBox) )
             printf( "Box inputs  :  arr = %5.3f  req = %5.3f\n", pPrev->timeArr, pPrev->timeReq );
         else
-            Tim_ManBoxForEachInput( p, pBox, pObj, i )
-                printf( "box-inp%3d :  arr = %5.3f  req = %5.3f\n", i, pObj->timeArr, pObj->timeReq );
+            Tim_ManBoxForEachInput( p, pBox, pObj, k )
+                printf( "box-in%4d :  arr = %5.3f  req = %5.3f\n", k, pObj->timeArr, pObj->timeReq );
 
         // print box outputs
         pPrev = Tim_ManBoxOutput( p, pBox, 0 );
-        Tim_ManBoxForEachOutput( p, pBox, pObj, i )
+        Tim_ManBoxForEachOutput( p, pBox, pObj, k )
             if ( pPrev->timeArr != pObj->timeArr || pPrev->timeReq != pObj->timeReq )
                 break;
-        if ( i == Tim_ManBoxOutputNum(p, pBox->iBox) )
+        if ( k == Tim_ManBoxOutputNum(p, pBox->iBox) )
             printf( "Box outputs :  arr = %5.3f  req = %5.3f\n", pPrev->timeArr, pPrev->timeReq );
         else
-            Tim_ManBoxForEachOutput( p, pBox, pObj, i )
-                printf( "box-out%3d :  arr = %5.3f  req = %5.3f\n", i, pObj->timeArr, pObj->timeReq );
+            Tim_ManBoxForEachOutput( p, pBox, pObj, k )
+                printf( "box-out%3d :  arr = %5.3f  req = %5.3f\n", k, pObj->timeArr, pObj->timeReq );
+    }
+
+    // print delay tables
+    if ( Tim_ManDelayTableNum(p) > 0 )
+    Tim_ManForEachTable( p, pTable, i )
+    {
+        printf( "Delay table %d:\n", i );
+        assert( i == (int)pTable[0] );
+        TableX = (int)pTable[1];
+        TableY = (int)pTable[2];
+        for ( j = 0; j < TableY; j++, printf( "\n" ) )
+            for ( k = 0; k < TableX; k++ )
+                if ( pTable[3+j*TableX+k] == -ABC_INFINITY )
+                    printf( "%5s", "-" );
+                else
+                    printf( "%5.0f", pTable[3+j*TableX+k] );
     }
     printf( "\n" );
 }
@@ -270,20 +278,25 @@ int Tim_ManCoNum( Tim_Man_t * p )
 }
 int Tim_ManPiNum( Tim_Man_t * p )
 {
+    if ( Tim_ManBoxNum(p) == 0 )
+        return Tim_ManCiNum(p);
     return Tim_ManBoxOutputFirst(p, 0);
 }
 int Tim_ManPoNum( Tim_Man_t * p )
 {
-    int iLastBoxId = Tim_ManBoxNum(p) - 1;
+    int iLastBoxId;
+    if ( Tim_ManBoxNum(p) == 0 )
+        return Tim_ManCoNum(p);
+    iLastBoxId = Tim_ManBoxNum(p) - 1;
     return Tim_ManCoNum(p) - (Tim_ManBoxInputFirst(p, iLastBoxId) + Tim_ManBoxInputNum(p, iLastBoxId));
 }
 int Tim_ManBoxNum( Tim_Man_t * p )
 {
-    return Vec_PtrSize(p->vBoxes);
+    return p->vBoxes ? Vec_PtrSize(p->vBoxes) : 0;
 }
 int Tim_ManDelayTableNum( Tim_Man_t * p )
 {
-    return Vec_PtrSize(p->vDelayTables);
+    return p->vDelayTables ? Vec_PtrSize(p->vDelayTables) : 0;
 }
 
 /**Function*************************************************************
