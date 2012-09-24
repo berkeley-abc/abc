@@ -85,14 +85,6 @@ struct Tim_Obj_t_
     float            timeReq;        // required time of the object
 };
 
-/* 
-    A delay table is a one-dimensional array of floats whose size is: 3 + nInputs * nOutputs.
-    The first entry is the delay table ID used by the boxes to refer to the table.
-    The second and third entris are nInputs and nOutputs.
-    The following entries list the delay numbers for per output, 
-    that is, the first nInputs entries give delay of the first output, etc.
-*/   
-
 ////////////////////////////////////////////////////////////////////////
 ///                      MACRO DEFINITIONS                           ///
 ////////////////////////////////////////////////////////////////////////

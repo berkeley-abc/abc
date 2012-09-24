@@ -21,6 +21,59 @@
 #ifndef ABC__aig__tim__tim_h
 #define ABC__aig__tim__tim_h
 
+/*
+    The data-structure Tim_Man_t implemented in this package stores two types 
+    of information:
+    (1) hierarchical information about the connectivity of a combinational 
+    logic network with combinational logic node and combinational white boxes
+    (2) timing information about input-to-output delays of each combinational 
+    white box.
+
+    This data-structure is closely coupled with the AIG manager extracted from 
+    the same combinational logic network. The AIG manager represents combinational
+    logic surrounding white boxes, and contains additional PIs/POs corresponding
+    to the outputs/inputs of the white boxes.
+
+    The manager Tim_Man_t is created by a call to Tim_ManStart(). The arguments 
+    of this call are the total number of all combinational inputs/output in 
+    the extracted AIG. (Note that this number is different from the number of 
+    inputs/outputs of the combinational logic network, because the extracted AIG 
+    will have additional inputs/output due to white boxes.)
+
+    The extracted AIG and the corresponding Tim_Man_t may be created at the same 
+    time or at separate times. The following guideline assumes concurrent creation.
+
+    First, PIs of the AIG are created in 1-to-1 correspondence with the PIs 
+    of the original network.
+    Next, all nodes (logic nodes and white boxes) of the network are traversed 
+    in a topologic order.
+    When a white box is encountered, the TFI cone of box inputs are tranversed 
+    and all new logic nodes encoutered added to the AIG.
+    Then, the white box is created by the call to Tim_ManCreateBox().
+    Then, new POs of the AIG are created in 1-to-1 correspondence with box inputs. 
+    Then, new PIs of the AIG are created in 1-to-1 correspondence with box outputs.
+    Finally, the TFO cone of the POs is traversed and all new logic nodes 
+    encountered added to the AIG.
+    In the end, the POs of the AIG is constructed in 1-to-1 correspondence with 
+    the PIs of the original combinational logic network.
+
+    Delay tables representing input-to-output delays of each type of white
+    box should be computed in advance and given to the timing manager in one array
+    through the API Tim_ManSetDelayTables().  When each box is constructed, the delay
+    table ID of this box (which is the index of the table in the above array) is given 
+    as the last argument 'iDelayTable' in Tim_ManCreateBox().
+
+    A delay table is a one-dimensional array of floats whose size is: 3 + nInputs * nOutputs.
+    The first entry is the delay table ID used by the boxes to refer to the table.
+    The second and third entries are nInputs and nOutputs.
+    The following 'nInputs * nOutputs' entries are delay numbers for each output, 
+    that is, the first set of nInputs entries give delay of the first output.
+    the second set of nInputs entries give delay of the second output, etc.
+
+    The Tim_Man_t is typically associated with the AIG manager (pGia) using 
+    pointer (pGia->pManTime). It is automatically deallocated when the host 
+    AIG manager is deleted.
+*/
 
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
@@ -36,7 +89,7 @@ ABC_NAMESPACE_HEADER_START
 ///                         BASIC TYPES                              ///
 ////////////////////////////////////////////////////////////////////////
 
-typedef struct Tim_Man_t_           Tim_Man_t;
+typedef struct Tim_Man_t_  Tim_Man_t;
 
 ////////////////////////////////////////////////////////////////////////
 ///                      MACRO DEFINITIONS                           ///

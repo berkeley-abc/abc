@@ -216,7 +216,7 @@ Gia_Man_t * Abc_NtkTestTimDeriveGia( Abc_Ntk_t * pNtk, int fVerbose  )
     vNodes = Abc_NtkDfs( pNtk, 0 );
 
     // construct GIA
-    Abc_NtkCleanCopy( pNtk );
+    Abc_NtkFillTemp( pNtk );
     pGia = Gia_ManStart( Abc_NtkObjNumMax(pNtk) );
     Gia_ManHashAlloc( pGia );
     // create primary inputs
@@ -246,7 +246,7 @@ Gia_Man_t * Abc_NtkTestTimDeriveGia( Abc_Ntk_t * pNtk, int fVerbose  )
     vCone = Abc_NtkTestTimCollectCone( pNtk, NULL );
     // perform GIA constructino for these nodes
     Vec_PtrForEachEntry( Abc_Obj_t *, vCone, pFanin, k )
-        pObj->iTemp = Abc_NtkTestTimNodeStrash( pGia, pFanin );
+        pFanin->iTemp = Abc_NtkTestTimNodeStrash( pGia, pFanin );
     Vec_PtrFree( vCone );
     // create primary outputs
     Abc_NtkForEachCo( pNtk, pObj, i )
@@ -374,7 +374,7 @@ void Abc_NtkTestTimByWritingFile( Gia_Man_t * pGia, char * pFileName )
 ***********************************************************************/
 void Abc_NtkTestTim( Abc_Ntk_t * pNtk, int fVerbose )
 {
-    int fUseChoices = 1;
+    int fUseChoices = 0;
     Gia_Man_t * pGia, * pTemp;
 
     // this test only works for a logic network (for example, network with LUT mapping)
