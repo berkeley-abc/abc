@@ -186,7 +186,9 @@ void Tim_ManPrint( Tim_Man_t * p )
     Tim_Obj_t * pObj, * pPrev;
     float * pTable;
     int i, j, k, TableX, TableY;
-    printf( "TIMING INFORMATION:\n" );
+    if ( p == NULL )
+        return;
+    printf( "TIMING MANAGER:\n" );
 
     // print CI info
     pPrev = p->pCis;
@@ -214,7 +216,10 @@ void Tim_ManPrint( Tim_Man_t * p )
     if ( Tim_ManBoxNum(p) > 0 )
     Tim_ManForEachBox( p, pBox, i )
     {
-        printf( "*** Box %5d :  Ins = %4d. Outs = %4d. DelayTable = %4d\n", i, pBox->nInputs, pBox->nOutputs, pBox->iDelayTable );
+        printf( "*** Box %5d :  I =%4d. O =%4d. I1 =%6d. O1 =%6d. Table =%4d\n", 
+            i, pBox->nInputs, pBox->nOutputs, 
+            Tim_ManBoxInputFirst(p, i), Tim_ManBoxOutputFirst(p, i), 
+            pBox->iDelayTable );
 
         // print box inputs
         pPrev = Tim_ManBoxInput( p, pBox, 0 );

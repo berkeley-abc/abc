@@ -1266,7 +1266,7 @@ unsigned char * Gia_WriteEquivClasses( Gia_Man_t * p, int * pEquivSize )
         Gia_ClassForEachObj( p, iRepr, iNode )
             nItems++;
     }
-    pBuffer = ABC_ALLOC( unsigned char, sizeof(int) * (nItems + 1) );
+    pBuffer = ABC_ALLOC( unsigned char, sizeof(int) * (nItems + 10) );
     // write constant class
     iPos = Gia_WriteAigerEncode( pBuffer, 4, Abc_Var2Lit(0, 1) );
 //printf( "\nRepr = %d ", 0 );

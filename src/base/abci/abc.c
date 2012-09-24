@@ -9282,13 +9282,19 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
-/*
+
     if ( pNtk == NULL )
     {
         Abc_Print( -1, "Empty network.\n" );
         return 1;
     }
-*/
+
+    if ( Abc_NtkIsStrash(pNtk) )
+    {
+        Abc_Print( -1, "This command works only for logic networks.\n" );
+        return 1;
+    }
+
 /*
     if ( Abc_NtkLatchNum(pNtk) == 0 )
     {
@@ -9296,13 +9302,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 */
-/*
-    if ( !Abc_NtkIsStrash(pNtk) )
-    {
-        Abc_Print( -1, "Network should be strashed. Command has failed.\n" );
-        return 1;
-    }
-*/
+
 /*
     if ( pNtk )
     {
@@ -9316,43 +9316,20 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
     }
 */
-
-{
-//    extern void Abs_VfaManTest( Aig_Man_t * pAig, int nFrames, int nConfLimit, int fVerbose );
-    extern void Aig_ManInterRepar( Aig_Man_t * pMan, int fVerbose );
-    extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
-    extern void Aig_ManSupportsTest( Aig_Man_t * pMan );
-    extern int Aig_SupportSizeTest( Aig_Man_t * pMan );
-    extern int Abc_NtkSuppSizeTest( Abc_Ntk_t * p );
-    extern Aig_Man_t * Iso_ManTest( Aig_Man_t * pAig, int fVerbose );
-    extern Abc_Ntk_t * Abc_NtkFromAigPhase( Aig_Man_t * pMan );
-    extern Vec_Vec_t * Saig_IsoDetectFast( Aig_Man_t * pAig );
-    extern Aig_Man_t * Abc_NtkToDarBmc( Abc_Ntk_t * pNtk, Vec_Int_t ** pvMap );
-    extern void Abc2_NtkTestGia( char * pFileName, int fVerbose );
-    extern void Saig_ManBmcTerSimTestPo( Aig_Man_t * p );
-    extern int Abc_SclCheckNtk( Abc_Ntk_t * p );
-    extern void Abc_SclPerformBuffering( Abc_Ntk_t * p, int Degree );
-
+/*
     if ( pNtk )
     {
-/*
         Aig_Man_t * pAig = Abc_NtkToDar( pNtk, 0, 1 );
         Saig_ManBmcTerSimTestPo( pAig );
         Aig_ManStop( pAig );
-*/
-        Abc_SclPerformBuffering( pNtk, nDecMax );
-/*
-        extern Abc_Ntk_t * Abc_NtkShareXor( Abc_Ntk_t * pNtk );
-        Abc_Ntk_t * pNtkRes = Abc_NtkShareXor( pNtk );
-        if ( pNtkRes == NULL )
-            printf( "Transformation has failed.\n" );
-        else
-            Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
-*/
     }
+*/
 
-//    Abc2_NtkTestGia( "", 1 );
-}
+    if ( pNtk )
+    {
+        extern void Abc_NtkTestTim( Abc_Ntk_t * pNtk, int fVerbose );
+        Abc_NtkTestTim( pNtk, fVerbose );
+    }
 
     return 0;
 usage:

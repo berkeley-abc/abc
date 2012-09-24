@@ -315,7 +315,6 @@ void Aig_ObjPatchFanin0( Aig_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pFaninNew 
 ***********************************************************************/
 void Aig_ObjPrint( Aig_Man_t * p, Aig_Obj_t * pObj )
 {
-    int fHaig = 0;
     int fShowFanouts = 0;
     Aig_Obj_t * pTemp;
     if ( pObj == NULL )

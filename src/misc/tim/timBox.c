@@ -121,13 +121,12 @@ int Tim_ManBoxForCo( Tim_Man_t * p, int iCo )
 ***********************************************************************/
 int Tim_ManBoxInputFirst( Tim_Man_t * p, int iBox )
 {
-    Tim_Box_t * pBox = (Tim_Box_t *)Vec_PtrEntry( p->vBoxes, iBox );
-    return pBox->Inouts[0];
+    return Tim_ManBox(p, iBox)->Inouts[0];
 }
 
 /**Function*************************************************************
 
-  Synopsis    [Returns the first input of the box.]
+  Synopsis    [Returns the first output of the box.]
 
   Description []
                
@@ -138,13 +137,12 @@ int Tim_ManBoxInputFirst( Tim_Man_t * p, int iBox )
 ***********************************************************************/
 int Tim_ManBoxOutputFirst( Tim_Man_t * p, int iBox )
 {
-    Tim_Box_t * pBox = (Tim_Box_t *)Vec_PtrEntry( p->vBoxes, iBox );
-    return pBox->Inouts[pBox->nInputs];
+    return Tim_ManBox(p, iBox)->Inouts[Tim_ManBox(p, iBox)->nInputs];
 }
 
 /**Function*************************************************************
 
-  Synopsis    [Returns the first input of the box.]
+  Synopsis    [Returns the number of box inputs.]
 
   Description []
                
@@ -155,13 +153,12 @@ int Tim_ManBoxOutputFirst( Tim_Man_t * p, int iBox )
 ***********************************************************************/
 int Tim_ManBoxInputNum( Tim_Man_t * p, int iBox )
 {
-    Tim_Box_t * pBox = (Tim_Box_t *)Vec_PtrEntry( p->vBoxes, iBox );
-    return pBox->nInputs;
+    return Tim_ManBox(p, iBox)->nInputs;
 }
 
 /**Function*************************************************************
 
-  Synopsis    [Returns the first input of the box.]
+  Synopsis    [Returns the number of box outputs.]
 
   Description []
                
@@ -172,13 +169,28 @@ int Tim_ManBoxInputNum( Tim_Man_t * p, int iBox )
 ***********************************************************************/
 int Tim_ManBoxOutputNum( Tim_Man_t * p, int iBox )
 {
-    Tim_Box_t * pBox = (Tim_Box_t *)Vec_PtrEntry( p->vBoxes, iBox );
-    return pBox->nOutputs;
+    return Tim_ManBox(p, iBox)->nOutputs;
 }
 
 /**Function*************************************************************
 
-  Synopsis    []
+  Synopsis    [Return the delay table id.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Tim_ManBoxDelayTableId( Tim_Man_t * p, int iBox )
+{
+    return Tim_ManBox(p, iBox)->iDelayTable;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Return the delay table.]
 
   Description []
                
@@ -190,7 +202,7 @@ int Tim_ManBoxOutputNum( Tim_Man_t * p, int iBox )
 float * Tim_ManBoxDelayTable( Tim_Man_t * p, int iBox )
 {
     float * pTable;
-    Tim_Box_t * pBox = (Tim_Box_t *)Vec_PtrEntry( p->vBoxes, iBox );
+    Tim_Box_t * pBox = Tim_ManBox(p, iBox);
     if ( pBox->iDelayTable < 0 )
         return NULL;
     pTable = (float *)Vec_PtrEntry( p->vDelayTables, pBox->iDelayTable );
@@ -198,6 +210,39 @@ float * Tim_ManBoxDelayTable( Tim_Man_t * p, int iBox )
     assert( (int)pTable[2] == pBox->nOutputs );
     return pTable;
 }
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the copy of the box.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Tim_ManBoxCopy( Tim_Man_t * p, int iBox )
+{
+    return Tim_ManBox(p, iBox)->iCopy;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Sets the copy of the box.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Tim_ManBoxSetCopy( Tim_Man_t * p, int iBox, int iCopy )
+{
+    Tim_ManBox(p, iBox)->iCopy = iCopy;
+}
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

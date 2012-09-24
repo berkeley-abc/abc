@@ -64,11 +64,12 @@ typedef enum {
 // the AIG node
 struct Hop_Obj_t_  // 6 words
 {
-    void *           pData;          // misc
-    union {                         
+    union { 
+        void *       pData;          // misc
+        int          iData; };       // misc
+    union { 
         Hop_Obj_t *  pNext;          // strashing table
-        int          PioNum;         // the number of PI/PO
-    };
+        int          PioNum; };      // the number of PI/PO
     Hop_Obj_t *      pFanin0;        // fanin
     Hop_Obj_t *      pFanin1;        // fanin
     unsigned int     Type    :  3;   // object type
@@ -182,8 +183,10 @@ static inline Hop_Obj_t *  Hop_ObjFanin0( Hop_Obj_t * pObj )      { return Hop_R
 static inline Hop_Obj_t *  Hop_ObjFanin1( Hop_Obj_t * pObj )      { return Hop_Regular(pObj->pFanin1);             }
 static inline Hop_Obj_t *  Hop_ObjChild0( Hop_Obj_t * pObj )      { return pObj->pFanin0;                          }
 static inline Hop_Obj_t *  Hop_ObjChild1( Hop_Obj_t * pObj )      { return pObj->pFanin1;                          }
-static inline Hop_Obj_t *  Hop_ObjChild0Copy( Hop_Obj_t * pObj ) { assert( !Hop_IsComplement(pObj) ); return Hop_ObjFanin0(pObj)? Hop_NotCond((Hop_Obj_t *)Hop_ObjFanin0(pObj)->pData, Hop_ObjFaninC0(pObj)) : NULL;  }
-static inline Hop_Obj_t *  Hop_ObjChild1Copy( Hop_Obj_t * pObj ) { assert( !Hop_IsComplement(pObj) ); return Hop_ObjFanin1(pObj)? Hop_NotCond((Hop_Obj_t *)Hop_ObjFanin1(pObj)->pData, Hop_ObjFaninC1(pObj)) : NULL;  }
+static inline Hop_Obj_t *  Hop_ObjChild0Copy( Hop_Obj_t * pObj )  { assert( !Hop_IsComplement(pObj) ); return Hop_ObjFanin0(pObj)? Hop_NotCond((Hop_Obj_t *)Hop_ObjFanin0(pObj)->pData, Hop_ObjFaninC0(pObj)) : NULL;  }
+static inline Hop_Obj_t *  Hop_ObjChild1Copy( Hop_Obj_t * pObj )  { assert( !Hop_IsComplement(pObj) ); return Hop_ObjFanin1(pObj)? Hop_NotCond((Hop_Obj_t *)Hop_ObjFanin1(pObj)->pData, Hop_ObjFaninC1(pObj)) : NULL;  }
+static inline int          Hop_ObjChild0CopyI( Hop_Obj_t * pObj ) { assert( !Hop_IsComplement(pObj) ); return Hop_ObjFanin0(pObj)? Abc_LitNotCond(Hop_ObjFanin0(pObj)->iData, Hop_ObjFaninC0(pObj)) : -1;              }
+static inline int          Hop_ObjChild1CopyI( Hop_Obj_t * pObj ) { assert( !Hop_IsComplement(pObj) ); return Hop_ObjFanin1(pObj)? Abc_LitNotCond(Hop_ObjFanin1(pObj)->iData, Hop_ObjFaninC1(pObj)) : -1;              }
 static inline int          Hop_ObjLevel( Hop_Obj_t * pObj )       { return pObj->nRefs;                            }
 static inline int          Hop_ObjLevelNew( Hop_Obj_t * pObj )    { return 1 + Hop_ObjIsExor(pObj) + Abc_MaxInt(Hop_ObjFanin0(pObj)->nRefs, Hop_ObjFanin1(pObj)->nRefs);       }
 static inline int          Hop_ObjPhaseCompl( Hop_Obj_t * pObj )  { return Hop_IsComplement(pObj)? !Hop_Regular(pObj)->fPhase : pObj->fPhase; }

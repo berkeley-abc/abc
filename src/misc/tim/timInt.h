@@ -70,6 +70,7 @@ struct Tim_Box_t_
     int              nInputs;        // the number of box inputs (POs)
     int              nOutputs;       // the number of box outputs (PIs)
     int              iDelayTable;    // index of the delay table
+    int              iCopy;          // copy of this box
     int              Inouts[0];      // the int numbers of PIs and POs
 };
 

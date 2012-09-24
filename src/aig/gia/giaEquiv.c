@@ -366,7 +366,7 @@ void Gia_ManReverseClasses( Gia_Man_t * p, int fNowIncreasing )
     Gia_ManForEachClass( p, iRepr )
     {
         Vec_IntPush( vCollected, iRepr );
-
+/*
         // check classes
         if ( !fNowIncreasing )
         {
@@ -384,20 +384,8 @@ void Gia_ManReverseClasses( Gia_Man_t * p, int fNowIncreasing )
                 iPrev = iNode;
             }
         }
+*/
     }
-
-    iRepr = 129720;
-    printf( "Class %d : ", iRepr );
-    Gia_ClassForEachObj( p, iRepr, iNode )
-        printf( " %d", iNode );
-    printf( "\n" );
-
-    iRepr = 129737;
-    printf( "Class %d : ", iRepr );
-    Gia_ClassForEachObj( p, iRepr, iNode )
-        printf( " %d", iNode );
-    printf( "\n" );
-
     // correct each class
     vClass = Vec_IntAlloc( 100 );
     Vec_IntForEachEntry( vCollected, iRepr, i )
@@ -408,14 +396,14 @@ void Gia_ManReverseClasses( Gia_Man_t * p, int fNowIncreasing )
         {
             if ( fNowIncreasing )
                 assert( iRepr < iNode );
-            else
-                assert( iRepr > iNode );
+//            else
+//                assert( iRepr > iNode );
             Vec_IntPush( vClass, iNode );
         }
-//        if ( !fNowIncreasing )
-//            Vec_IntSort( vClass, 1 );
-        if ( iRepr == 129720 || iRepr == 129737 )
-            Vec_IntPrint( vClass );
+        if ( !fNowIncreasing )
+            Vec_IntSort( vClass, 1 );
+//        if ( iRepr == 129720 || iRepr == 129737 )
+//            Vec_IntPrint( vClass );
         // reverse the class
         iPrev = 0;
         iRepr = Vec_IntEntryLast( vClass );

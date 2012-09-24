@@ -64,7 +64,10 @@ extern int             Tim_ManBoxInputFirst( Tim_Man_t * p, int iBox );
 extern int             Tim_ManBoxOutputFirst( Tim_Man_t * p, int iBox );
 extern int             Tim_ManBoxInputNum( Tim_Man_t * p, int iBox );
 extern int             Tim_ManBoxOutputNum( Tim_Man_t * p, int iBox );
+extern int             Tim_ManBoxDelayTableId( Tim_Man_t * p, int iBox );
 extern float *         Tim_ManBoxDelayTable( Tim_Man_t * p, int iBox );
+extern int             Tim_ManBoxCopy( Tim_Man_t * p, int iBox );
+extern void            Tim_ManBoxSetCopy( Tim_Man_t * p, int iBox, int iCopy );
 /*=== timDump.c ===========================================================*/
 extern Vec_Str_t *     Tim_ManSave( Tim_Man_t * p );
 extern Tim_Man_t *     Tim_ManLoad( Vec_Str_t * p );

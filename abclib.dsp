@@ -451,6 +451,10 @@ SOURCE=.\src\base\abci\abcSymm.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\abci\abcTim.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\abci\abcTiming.c
 # End Source File
 # Begin Source File
