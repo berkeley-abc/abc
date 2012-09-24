@@ -419,18 +419,6 @@ void Gia_ManReprToAigRepr( Aig_Man_t * pAig, Gia_Man_t * pGia )
         Aig_ObjCreateRepr( pAig, Aig_ManObj(pAig, pGiaRepr->Value), Aig_ManObj(pAig, pGiaObj->Value) );
     }
 }
-
-/**Function*************************************************************
-
-  Synopsis    [Transfers representatives from pGia to pAig.]
-
-  Description [Assumes that pAig was created from pGia.]
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
 void Gia_ManReprToAigRepr2( Aig_Man_t * pAig, Gia_Man_t * pGia )
 {
     Gia_Obj_t * pGiaObj, * pGiaRepr;
@@ -470,9 +458,9 @@ void Gia_ManReprFromAigRepr( Aig_Man_t * pAig, Gia_Man_t * pGia )
     pGia->pReprs = ABC_CALLOC( Gia_Rpr_t, Gia_ManObjNum(pGia) );
     for ( i = 0; i < Gia_ManObjNum(pGia); i++ )
         Gia_ObjSetRepr( pGia, i, GIA_VOID );
+    // move pointers from GIA to AIG
     Gia_ManForEachObj( pGia, pObjGia, i )
     {
-//        Abc_Print( 1, "%d -> %d %d\n", i, Gia_ObjValue(pObjGia), Gia_ObjValue(pObjGia)/2 );
         if ( Gia_ObjIsCo(pObjGia) )
             continue;
         assert( i == 0 || !Abc_LitIsCompl(Gia_ObjValue(pObjGia)) );
@@ -487,6 +475,27 @@ void Gia_ManReprFromAigRepr( Aig_Man_t * pAig, Gia_Man_t * pGia )
             continue;
         pReprAig = pAig->pReprs[i];
         Gia_ObjSetRepr( pGia, pObjAig->iData, pReprAig->iData );
+    }
+    pGia->pNexts = Gia_ManDeriveNexts( pGia );
+}
+void Gia_ManReprFromAigRepr2( Aig_Man_t * pAig, Gia_Man_t * pGia )
+{
+    Aig_Obj_t * pObjAig, * pReprAig;
+    int i;
+    assert( pAig->pReprs != NULL );
+    assert( pGia->pReprs == NULL );
+    assert( Gia_ManObjNum(pGia) - Gia_ManCoNum(pGia) == Aig_ManObjNum(pAig) - Aig_ManCoNum(pAig) );
+    pGia->pReprs = ABC_CALLOC( Gia_Rpr_t, Gia_ManObjNum(pGia) );
+    for ( i = 0; i < Gia_ManObjNum(pGia); i++ )
+        Gia_ObjSetRepr( pGia, i, GIA_VOID );
+    Aig_ManForEachObj( pAig, pObjAig, i )
+    {
+        if ( Aig_ObjIsCo(pObjAig) )
+            continue;
+        if ( pAig->pReprs[i] == NULL )
+            continue;
+        pReprAig = pAig->pReprs[i];
+        Gia_ObjSetRepr( pGia, Abc_Lit2Var(pObjAig->iData), Abc_Lit2Var(pReprAig->iData) );
     }
     pGia->pNexts = Gia_ManDeriveNexts( pGia );
 }

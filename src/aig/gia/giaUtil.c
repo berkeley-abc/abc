@@ -981,55 +981,6 @@ int Gia_ManHasChoices( Gia_Man_t * p )
 
 /**Function*************************************************************
 
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Gia_ManVerifyChoices( Gia_Man_t * p )
-{
-    Gia_Obj_t * pObj;
-    int i, iRepr, iNode, fProb = 0;
-    assert( p->pReprs );
-
-    // mark nodes 
-    Gia_ManCleanMark0(p);
-    Gia_ManForEachClass( p, iRepr )
-        Gia_ClassForEachObj1( p, iRepr, iNode )
-        {
-            if ( Gia_ObjIsHead(p, iNode) )
-                printf( "Member %d of choice class %d is a representative.\n", iNode, iRepr ), fProb = 1;
-            if ( Gia_ManObj( p, iNode )->fMark0 == 1 )
-                printf( "Node %d participates in more than one choice node.\n", iNode ), fProb = 1;
-            Gia_ManObj( p, iNode )->fMark0 = 1;
-        }
-    Gia_ManCleanMark0(p);
-
-    Gia_ManForEachObj( p, pObj, i )
-    {
-        if ( Gia_ObjIsAnd(pObj) )
-        {
-            if ( Gia_ObjHasRepr(p, Gia_ObjFaninId0(pObj, i)) )
-                printf( "Fanin 0 of AND node %d has a repr.\n", i ), fProb = 1;
-            if ( Gia_ObjHasRepr(p, Gia_ObjFaninId1(pObj, i)) )
-                printf( "Fanin 1 of AND node %d has a repr.\n", i ), fProb = 1;
-        }
-        else if ( Gia_ObjIsCo(pObj) )
-        {
-            if ( Gia_ObjHasRepr(p, Gia_ObjFaninId0(pObj, i)) )
-                printf( "Fanin 0 of CO node %d has a repr.\n", i ), fProb = 1;
-        }
-    }
-    if ( !fProb )
-        printf( "GIA with choices is correct.\n" );
-}
-
-/**Function*************************************************************
-
   Synopsis    [Returns 1 if AIG has dangling nodes.]
 
   Description []

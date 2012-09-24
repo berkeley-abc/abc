@@ -106,6 +106,12 @@ p->timeSimInit = clock() - clk;
     // free memory ahead of time
 p->timeTotal = clock() - clkTotal;
     Dch_ManStop( p );
+    // try something different
+    {
+//    extern void Gia_ManNormalizeChoicesTest( Aig_Man_t * pAig );
+//    Gia_ManNormalizeChoicesTest( pAig );
+    }
+
     // create choices
     ABC_FREE( pAig->pTable );
     pResult = Dch_DeriveChoiceAig( pAig, pPars->fSkipRedSupp );
