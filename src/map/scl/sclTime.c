@@ -243,7 +243,7 @@ void Abc_SclTimeGate( SC_Man * p, Abc_Obj_t * pObj, int fDept )
     // get the library cell
     pCell = Abc_SclObjCell( p, pObj );
     // get the output pin
-    assert( pCell->n_outputs == 1 );
+//    assert( pCell->n_outputs == 1 );
     pPin = SC_CellPin( pCell, pCell->n_inputs );
     // compute timing using each fanin
     assert( Vec_PtrSize(pPin->vRTimings) == pCell->n_inputs );

@@ -80,7 +80,7 @@ int Abc_NtkAttach( Abc_Ntk_t * pNtk )
     Abc_AttachSetupTruthTables( uTruths );
     
     // collect all the gates
-    ppGates = Mio_CollectRoots( pGenlib, 6, (float)1.0e+20, 1, &nGates );
+    ppGates = Mio_CollectRoots( pGenlib, 6, (float)1.0e+20, 1, &nGates, 0 );
 
     // derive the gate truth tables
     puTruthGates    = ABC_ALLOC( unsigned *, nGates );

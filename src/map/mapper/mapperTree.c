@@ -147,6 +147,8 @@ int Map_LibraryReadFileTree( Map_SuperLib_t * pLib, FILE * pFile, char *pFileNam
 #ifdef __linux__
     snprintf( pLibFile, 5000, "%s/%s", dirname(strdup(pFileName)), pLibName ); 
 #else
+//    strcpy( pLibFile, pFileName );
+
     {
         char * pStr;
         strcpy( pLibFile, pFileName );
@@ -158,6 +160,7 @@ int Map_LibraryReadFileTree( Map_SuperLib_t * pLib, FILE * pFile, char *pFileNam
         else
             sprintf( pStr, "\\%s", pLibName );
     }
+
 #endif
     
     pFileGen = Io_FileOpen( pLibFile, "open_path", "r", 1 );

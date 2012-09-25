@@ -144,7 +144,7 @@ extern void              Mio_GateDelete( Mio_Gate_t * pGate );
 extern void              Mio_PinDelete( Mio_Pin_t * pPin );
 extern Mio_Pin_t *       Mio_PinDup( Mio_Pin_t * pPin );
 extern void              Mio_WriteLibrary( FILE * pFile, Mio_Library_t * pLib, int fPrintSops );
-extern Mio_Gate_t **     Mio_CollectRoots( Mio_Library_t * pLib, int nInputs, float tDelay, int fSkipInv, int * pnGates );
+extern Mio_Gate_t **     Mio_CollectRoots( Mio_Library_t * pLib, int nInputs, float tDelay, int fSkipInv, int * pnGates, int fVerbose );
 extern word              Mio_DeriveTruthTable6( Mio_Gate_t * pGate );
 extern void              Mio_DeriveTruthTable( Mio_Gate_t * pGate, unsigned uTruthsIn[][2], int nSigns, int nInputs, unsigned uTruthRes[] );
 extern void              Mio_DeriveGateDelays( Mio_Gate_t * pGate, 

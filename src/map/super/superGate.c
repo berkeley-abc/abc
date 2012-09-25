@@ -156,7 +156,7 @@ void Super_Precompute( Mio_Library_t * pLibGen, int nVarsMax, int nLevels, int n
     }
 
     // get the root gates
-    ppGates = Mio_CollectRoots( pLibGen, nVarsMax, tDelayMax, 0, &nGates );
+    ppGates = Mio_CollectRoots( pLibGen, nVarsMax, tDelayMax, 0, &nGates, fVerbose );
     if ( nGates >= nGatesMax )
     {
         fprintf( stdout, "Warning! Genlib library contains more gates than can be computed.\n");
@@ -386,7 +386,7 @@ Super_Man_t * Super_Compute( Super_Man_t * pMan, Mio_Gate_t ** ppGates, int nGat
 
         if ( pMan->fVerbose )
         {
-            printf ("Trying %d choices for %d inputs\n", t, Mio_GateReadPinNum(ppGates[k]) );
+            printf ("Trying %d choices for %d inputs\r", t, Mio_GateReadPinNum(ppGates[k]) );
         }
 
         // resort part of this range by area

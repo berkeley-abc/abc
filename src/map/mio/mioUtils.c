@@ -297,7 +297,7 @@ int Mio_DelayCompare( Mio_Gate_t ** ppG1, Mio_Gate_t ** ppG2 )
   SeeAlso     []
 
 ***********************************************************************/
-Mio_Gate_t ** Mio_CollectRoots( Mio_Library_t * pLib, int nInputs, float tDelay, int fSkipInv, int * pnGates )
+Mio_Gate_t ** Mio_CollectRoots( Mio_Library_t * pLib, int nInputs, float tDelay, int fSkipInv, int * pnGates, int fVerbose )
 {
     Mio_Gate_t * pGate;
     Mio_Gate_t ** ppGates;
@@ -334,6 +334,9 @@ Mio_Gate_t ** Mio_CollectRoots( Mio_Library_t * pLib, int nInputs, float tDelay,
             continue;
         assert( iGate < nGates );
         ppGates[ iGate++ ] = pGate;
+        if ( fVerbose )
+            printf( "Selected gate %3d:   %-20s  A = %7.2f  D = %7.2f  %3s = %-s\n", 
+                iGate+1, pGate->pName, pGate->dArea, pGate->dDelayMax, pGate->pOutName, pGate->pForm );
     }
     // sort by delay
     if ( iGate > 0 ) 
