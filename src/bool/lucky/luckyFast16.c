@@ -15,7 +15,7 @@
 ***********************************************************************/
 
 #include "luckyInt.h"
-
+//#define LUCKY_VERIFY
 
 ABC_NAMESPACE_IMPL_START
 
@@ -26,6 +26,48 @@ static word SFmask[5][4] = {
     {0xFF000000FF000000,0x00FF000000FF0000,0x0000FF000000FF00,0x000000FF000000FF},
     {0xFFFF000000000000,0x0000FFFF00000000,0x00000000FFFF0000,0x000000000000FFFF}   
 };
+
+// we need next two functions only for verification of lucky method in debugging mode 
+void swapAndFlip(word* pAfter, int nVars, int iVarInPosition, int jVar, char * pCanonPerm, unsigned* pUCanonPhase)
+{
+    int Temp;
+    swap_ij(pAfter, nVars, iVarInPosition, jVar);
+    
+    Temp = pCanonPerm[iVarInPosition];
+    pCanonPerm[iVarInPosition] = pCanonPerm[jVar];
+    pCanonPerm[jVar] = Temp;
+    
+    if ( ((*pUCanonPhase & (1 << iVarInPosition)) > 0) != ((*pUCanonPhase & (1 << jVar)) > 0) )
+    {
+        *pUCanonPhase ^= (1 << iVarInPosition);
+        *pUCanonPhase ^= (1 << jVar);
+    }
+    if((*pUCanonPhase>>iVarInPosition) & 1)
+        Kit_TruthChangePhase_64bit( pAfter, nVars, iVarInPosition );
+    
+}
+int luckyCheck(word* pAfter, word* pBefore, int nVars, char * pCanonPerm, unsigned uCanonPhase)
+{
+    int i,j;
+    char tempChar;
+    for(j=0;j<nVars;j++)
+    {
+        tempChar = 'a'+ j;
+        for(i=j;i<nVars;i++)
+        {
+            if(tempChar != pCanonPerm[i])
+                continue;
+            swapAndFlip(pAfter , nVars, j, i, pCanonPerm, &uCanonPhase);
+            break;
+        }
+    }
+    if((uCanonPhase>>nVars) & 1)
+        Kit_TruthNot_64bit(pAfter, nVars );
+    if(memcmp(pAfter, pBefore, Kit_TruthWordNum_64bit( nVars )*sizeof(word)) == 0)
+        return 0;
+    else
+        return 1;
+}
 
 ////////////////////////////////////lessThen5/////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -203,6 +245,13 @@ inline void minimalSwapAndFlipIVar_superFast_lessThen5(word* pInOut, int iVar, i
         }
     }
 }
+
+inline void minimalSwapAndFlipIVar_superFast_lessThen5_noEBFC(word* pInOut, int iVar, int nWords, char * pCanonPerm, unsigned* pCanonPhase)
+{
+    int DifStart1;
+    if(minTemp1_fast(pInOut, iVar, nWords, &DifStart1) == 2)
+        arrangeQuoters_superFast_lessThen5(pInOut, DifStart1/100, 0, 2, 1, 3, iVar, nWords, pCanonPerm, pCanonPhase); 
+}
 ////////////////////////////////////iVar = 5/////////////////////////////////////////////////////////////////////////////////////////////
 
 // It rearranges InOut (swaps and flips through rearrangement of quoters)
@@ -360,6 +409,14 @@ inline void minimalSwapAndFlipIVar_superFast_iVar5(unsigned* pInOut, int nWords,
                 arrangeQuoters_superFast_iVar5(pInOut, temp, DifStart0, M[min1], M[(min1+1)&1], 3 - M[(min1+1)&1], 3 - M[min1], pCanonPerm, pCanonPhase);
         }
     }
+}
+
+inline void minimalSwapAndFlipIVar_superFast_iVar5_noEBFC(unsigned* pInOut, int nWords, char * pCanonPerm, unsigned* pCanonPhase)
+{
+    int DifStart1;
+    unsigned temp[2048];
+    if(minTemp1_fast_iVar5(pInOut, nWords, &DifStart1) == 2)
+        arrangeQuoters_superFast_iVar5(pInOut, temp, DifStart1, 0, 2, 1, 3, pCanonPerm, pCanonPhase); 
 }
 
 ////////////////////////////////////moreThen5/////////////////////////////////////////////////////////////////////////////////////////////
@@ -536,6 +593,14 @@ inline void minimalSwapAndFlipIVar_superFast_moreThen5(word* pInOut, int iVar, i
     }
 }
 
+inline void minimalSwapAndFlipIVar_superFast_moreThen5_noEBFC(word* pInOut, int iVar, int nWords, char * pCanonPerm, unsigned* pCanonPhase)
+{
+    int DifStart1;
+    word temp[1024];
+    if(minTemp1_fast_moreThen5(pInOut, iVar, nWords, &DifStart1) == 2)
+        arrangeQuoters_superFast_moreThen5(pInOut, temp, DifStart1, 0, 2, 1, 3, iVar, pCanonPerm, pCanonPhase); 
+}
+
 /////////////////////////////////// for all /////////////////////////////////////////////////////////////////////////////////////////////
 inline void minimalInitialFlip_fast_16Vars(word* pInOut, int  nVars, unsigned* pCanonPhase)
 {
@@ -587,44 +652,166 @@ inline int minimalSwapAndFlipIVar_superFast_all(word* pInOut, int nVars, int nWo
         return 1;
 }
 
-inline void luckyCanonicizerS_F_first_16Vars(word* pInOut, int  nVars, int nWords, int * pStore, char * pCanonPerm, unsigned* pCanonPhase)
+inline int minimalSwapAndFlipIVar_superFast_all_noEBFC(word* pInOut, int nVars, int nWords, int * pStore, char * pCanonPerm, unsigned* pCanonPhase)
 {
-    minimalInitialFlip_fast_16Vars(pInOut, nVars, pCanonPhase);
-    while( minimalSwapAndFlipIVar_superFast_all(pInOut, nVars, nWords, pStore, pCanonPerm, pCanonPhase) != 0)
-        continue;
+    int i;
+    word pDuplicate[1024];  
+    int bitInfoTemp = pStore[0];
+    memcpy(pDuplicate,pInOut,nWords*sizeof(word));
+    for(i=0;i<5;i++)
+    {
+        if(bitInfoTemp == pStore[i+1])
+            minimalSwapAndFlipIVar_superFast_lessThen5_noEBFC(pInOut, i, nWords, pCanonPerm, pCanonPhase);
+        else
+        {
+            bitInfoTemp = pStore[i+1];
+            continue;
+        }
+    }
+    if(bitInfoTemp == pStore[i+1])
+        minimalSwapAndFlipIVar_superFast_iVar5_noEBFC((unsigned*) pInOut, nWords, pCanonPerm, pCanonPhase);
+    else    
+        bitInfoTemp = pStore[i+1];
+    
+    for(i=6;i<nVars-1;i++)
+    {
+        if(bitInfoTemp == pStore[i+1])
+            minimalSwapAndFlipIVar_superFast_moreThen5_noEBFC(pInOut, i, nWords, pCanonPerm, pCanonPhase);
+        else
+        {
+            bitInfoTemp = pStore[i+1];
+            continue;
+        }
+    }
+    if(memcmp(pInOut,pDuplicate , nWords*sizeof(word)) == 0)
+        return 0;
+    else
+        return 1;
+}
+
+
+// old version with out noEBFC
+// inline void luckyCanonicizerS_F_first_16Vars(word* pInOut, int  nVars, int nWords, int * pStore, char * pCanonPerm, unsigned* pCanonPhase)
+// {
+//     while( minimalSwapAndFlipIVar_superFast_all(pInOut, nVars, nWords, pStore, pCanonPerm, pCanonPhase) != 0)
+//         continue;
+// }
+
+inline void luckyCanonicizerS_F_first_16Vars1(word* pInOut, int  nVars, int nWords, int * pStore, char * pCanonPerm, unsigned* pCanonPhase)
+{
+    if(((* pCanonPhase) >> (nVars+1)) & 1)
+        while( minimalSwapAndFlipIVar_superFast_all(pInOut, nVars, nWords, pStore, pCanonPerm, pCanonPhase) != 0)
+            continue;
+    else
+        while( minimalSwapAndFlipIVar_superFast_all_noEBFC(pInOut, nVars, nWords, pStore, pCanonPerm, pCanonPhase) != 0)
+            continue;
+}
+
+inline void luckyCanonicizerS_F_first_16Vars11(word* pInOut, int  nVars, int nWords, int * pStore, char * pCanonPerm, unsigned* pCanonPhase)
+{
+    word duplicate[1024];
+    char pCanonPerm1[16];
+    unsigned uCanonPhase1;
+
+    if((* pCanonPhase) >> (nVars+2) )
+    {         
+        memcpy(duplicate, pInOut, sizeof(word)*nWords);
+        Kit_TruthNot_64bit(duplicate, nVars);
+        uCanonPhase1 = *pCanonPhase;
+        uCanonPhase1 ^= (1 << nVars);
+        memcpy(pCanonPerm1,pCanonPerm,sizeof(char)*16);
+        luckyCanonicizerS_F_first_16Vars1(pInOut, nVars, nWords, pStore, pCanonPerm, pCanonPhase);        
+        luckyCanonicizerS_F_first_16Vars1(duplicate, nVars, nWords, pStore, pCanonPerm1, &uCanonPhase1);
+        if(memCompare(pInOut, duplicate,nVars) == 1)
+        {
+            *pCanonPhase = uCanonPhase1;
+            memcpy(pCanonPerm,pCanonPerm1,sizeof(char)*16);
+            memcpy(pInOut, duplicate, sizeof(word)*nWords);
+        }
+    }
+    else    
+        luckyCanonicizerS_F_first_16Vars1(pInOut, nVars, nWords, pStore, pCanonPerm, pCanonPhase);
 }
 
 inline void luckyCanonicizer_final_fast_16Vars(word* pInOut, int  nVars, int nWords, int * pStore, char * pCanonPerm, unsigned* pCanonPhase)
 {
-//    word pDuplicate[1024]={0};
-//    word pDuplicateLocal[1024]={0};
-//    memcpy(pDuplicateLocal,pInOut,nWords*sizeof(word));
-
     assert( nVars > 6 && nVars <= 16 );
     (* pCanonPhase) = Kit_TruthSemiCanonicize_Yasha1( pInOut, nVars, pCanonPerm, pStore );
-    luckyCanonicizerS_F_first_16Vars(pInOut, nVars, nWords, pStore, pCanonPerm, pCanonPhase );
-
-//    memcpy(pDuplicate,pInOut,nWords*sizeof(word));
-//    assert(!luckyCheck(pDuplicate, pDuplicateLocal, nVars, pCanonPerm, * pCanonPhase));
+    luckyCanonicizerS_F_first_16Vars1(pInOut, nVars, nWords, pStore, pCanonPerm, pCanonPhase ); 
 }
 
-// top-level procedure calling two special cases (nVars <= 6 and nVars <= 16)
-int luckyCanonicizer_final_fast( word * pInOut, int nVars, char * pCanonPerm )
+void bitReverceOrder(word* x, int  nVars)
 {
+    int i;
+    for(i= nVars-1;i>=0;i--)
+        Kit_TruthChangePhase_64bit( x, nVars, i );
+}
+
+
+inline void luckyCanonicizer_final_fast_16Vars1(word* pInOut, int  nVars, int nWords, int * pStore, char * pCanonPerm, unsigned* pCanonPhase)
+{   
+    assert( nVars > 6 && nVars <= 16 );
+    (* pCanonPhase) = Kit_TruthSemiCanonicize_Yasha1( pInOut, nVars, pCanonPerm, pStore );
+    luckyCanonicizerS_F_first_16Vars11(pInOut, nVars, nWords, pStore, pCanonPerm, pCanonPhase ); 
+    bitReverceOrder(pInOut, nVars);
+    (*pCanonPhase) ^= (1<<nVars) -1;
+    luckyCanonicizerS_F_first_16Vars11(pInOut, nVars, nWords, pStore, pCanonPerm, pCanonPhase ); 
+}
+
+
+// top-level procedure calling two special cases (nVars <= 6 and nVars <= 16)
+unsigned luckyCanonicizer_final_fast( word * pInOut, int nVars, char * pCanonPerm )
+{
+    int nWords;
     int pStore[16];
     unsigned uCanonPhase = 0;
-    int nWords = (nVars <= 6) ? 1 : (1 << (nVars - 6));
+#ifdef LUCKY_VERIFY
+    word temp[1024] = {0};
+    word duplicate[1024] = {0};
+    Kit_TruthCopy_64bit( duplicate, pInOut, nVars );
+#endif
     if ( nVars <= 6 )
-        pInOut[0] = luckyCanonicizer_final_fast_6Vars( pInOut[0], pStore, pCanonPerm, &uCanonPhase );
+        pInOut[0] = luckyCanonicizer_final_fast_6Vars( pInOut[0], pStore, pCanonPerm, &uCanonPhase);
     else if ( nVars <= 16 )
+    {
+        nWords = (nVars <= 6) ? 1 : (1 << (nVars - 6));
         luckyCanonicizer_final_fast_16Vars( pInOut, nVars, nWords, pStore, pCanonPerm, &uCanonPhase );
+    }
     else assert( 0 );
+#ifdef LUCKY_VERIFY
+    Kit_TruthCopy_64bit( temp, pInOut, nVars );
+    assert( ! luckyCheck(temp, duplicate, nVars, pCanonPerm, uCanonPhase) );
+#endif
+        return uCanonPhase;
+}
+
+unsigned luckyCanonicizer_final_fast1( word * pInOut, int nVars, char * pCanonPerm)
+{
+    int nWords;
+    int pStore[16];
+    unsigned uCanonPhase = 0;
+#ifdef LUCKY_VERIFY
+    word temp[1024] = {0};
+    word duplicate[1024] = {0};
+    Kit_TruthCopy_64bit( duplicate, pInOut, nVars );
+#endif
+    if ( nVars <= 6 )
+        pInOut[0] = luckyCanonicizer_final_fast_6Vars1( pInOut[0], pStore, pCanonPerm, &uCanonPhase);
+    else if ( nVars <= 16 )
+    {
+        nWords = (nVars <= 6) ? 1 : (1 << (nVars - 6));
+        luckyCanonicizer_final_fast_16Vars1( pInOut, nVars, nWords, pStore, pCanonPerm, &uCanonPhase );
+    }
+    else assert( 0 );
+#ifdef LUCKY_VERIFY
+    Kit_TruthCopy_64bit( temp, pInOut, nVars );
+    assert( ! luckyCheck(temp, duplicate, nVars, pCanonPerm, uCanonPhase) );
+#endif
     return uCanonPhase;
 }
 
 
 ABC_NAMESPACE_IMPL_END
-
 
 
 

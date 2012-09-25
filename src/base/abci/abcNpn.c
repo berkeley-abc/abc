@@ -66,9 +66,66 @@ extern void            Abc_TtStoreWrite( char * pFileName, Abc_TtStore_t * p );
   SeeAlso     []
 
 ***********************************************************************/
+// returns hash key of the truth table
+static inline int Abc_TruthHashKey( word * pFunc, int nWords, int nTableSize )
+{
+    static unsigned s_BigPrimes[7] = {12582917, 25165843, 50331653, 100663319, 201326611, 402653189, 805306457};
+    int w;
+    word Key = 0;
+    for ( w = 0; w < nWords; w++ )
+        Key += pFunc[w] * s_BigPrimes[w % 7];
+    return (int)(Key % nTableSize);
+}
+// returns 1 if the entry with this truth table exits
+static inline int Abc_TruthHashLookup( word ** pFuncs, int iThis, int nWords, int * pTable, int * pNexts, int Key )
+{
+    int iThat;
+    for ( iThat = pTable[Key]; iThat != -1; iThat = pNexts[iThat] )
+        if ( !memcmp( pFuncs[iThat], pFuncs[iThis], sizeof(word) * nWords ) )
+            return 1;
+    return 0;
+}
+// hashes truth tables and collects unique ones
+int Abc_TruthNpnCountUnique( Abc_TtStore_t * p )
+{
+    // allocate hash table
+    int nTableSize = Abc_PrimeCudd(p->nFuncs);
+    int * pTable = ABC_FALLOC( int, nTableSize );
+    int * pNexts = ABC_FALLOC( int, nTableSize );
+    // hash functions
+    int i, k, Key;
+    for ( i = 0; i < p->nFuncs; i++ )
+    {
+        Key = Abc_TruthHashKey( p->pFuncs[i], p->nWords, nTableSize );
+        if ( Abc_TruthHashLookup( p->pFuncs, i, p->nWords, pTable, pNexts, Key ) ) // found equal
+            p->pFuncs[i] = NULL;
+        else // there is no equal (the first time this one occurs so far)
+            pNexts[i] = pTable[Key], pTable[Key] = i;
+    }
+    ABC_FREE( pTable );
+    ABC_FREE( pNexts );
+    // count the number of unqiue functions
+    assert( p->pFuncs[0] != NULL );
+    for ( i = k = 1; i < p->nFuncs; i++ )
+        if ( p->pFuncs[i] != NULL )
+            p->pFuncs[k++] = p->pFuncs[i];
+    return (p->nFuncs = k);
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Counts the number of unique truth tables.]
+
+  Description []
+               
+  SideEffects [] 
+
+  SeeAlso     []
+
+***********************************************************************/
 int nWords = 0; // unfortunate global variable
 int Abc_TruthCompare( word ** p1, word ** p2 ) { return memcmp(*p1, *p2, sizeof(word) * nWords); }
-int Abc_TruthNpnCountUnique( Abc_TtStore_t * p )
+int Abc_TruthNpnCountUniqueSort( Abc_TtStore_t * p )
 {
     int i, k;
     // sort them by value
@@ -116,28 +173,27 @@ void Abc_TruthNpnPrint( char * pCanonPerm, unsigned uCanonPhase, int nVars )
 void Abc_TruthNpnPerform( Abc_TtStore_t * p, int NpnType, int fVerbose )
 {
     unsigned pAux[2048];
-    char pCanonPerm[32];
+    word pAuxWord[1024], pAuxWord1[1024];
+    char pCanonPerm[16];
     unsigned uCanonPhase=0;
     clock_t clk = clock();
-    int i;
+    int i, maxCtr=0;
 
     char * pAlgoName = NULL;
     if ( NpnType == 0 )
-        pAlgoName = "uniqifying       ";
+        pAlgoName = "uniqifying         ";
     else if ( NpnType == 1 )
-        pAlgoName = "exact NPN        ";
+        pAlgoName = "exact NPN          ";
     else if ( NpnType == 2 )
-        pAlgoName = "counting 1s      ";
+        pAlgoName = "counting 1s        ";
     else if ( NpnType == 3 )
-        pAlgoName = "minimizing TT    ";
+        pAlgoName = "Jake's hybrid fast ";
     else if ( NpnType == 4 )
-        pAlgoName = "hybrid NPN       ";
-    else if ( NpnType == 5 )
-        pAlgoName = "Jake's hybrid NPN";
+        pAlgoName = "Jake's hybrid good ";
 
     assert( p->nVars <= 16 );
     if ( pAlgoName )
-        printf( "Applying %-10s to %8d func%s of %2d vars...  ",  
+        printf( "Applying %-20s to %8d func%s of %2d vars...  ",  
             pAlgoName, p->nFuncs, (p->nFuncs == 1 ? "":"s"), p->nVars );
     if ( fVerbose )
         printf( "\n" );
@@ -154,23 +210,18 @@ void Abc_TruthNpnPerform( Abc_TtStore_t * p, int NpnType, int fVerbose )
     }
     else if ( NpnType == 1 )
     {
-        int * pComp = Extra_GreyCodeSchedule( p->nVars );
-        int * pPerm = Extra_PermSchedule( p->nVars );
-        if ( p->nVars == 6 )
+        permInfo* pi; 
+        Abc_TruthNpnCountUnique(p);
+        pi = setPermInfoPtr(p->nVars);
+        for ( i = 0; i < p->nFuncs; i++ )
         {
-            for ( i = 0; i < p->nFuncs; i++ )
-            {
-                if ( fVerbose )
-                    printf( "%7d : ", i );
-                *((word *)p->pFuncs[i]) = Extra_Truth6MinimumExact( *((word *)p->pFuncs[i]), pComp, pPerm );
-                if ( fVerbose )
-                    Extra_PrintHex( stdout, (unsigned *)p->pFuncs[i], p->nVars ), printf( "\n" );
-            }
+            if ( fVerbose )
+                printf( "%7d : ", i );
+            simpleMinimal(p->pFuncs[i], pAuxWord, pAuxWord1, pi, p->nVars);
+            if ( fVerbose )
+                Extra_PrintHex( stdout, (unsigned *)p->pFuncs[i], p->nVars ), Abc_TruthNpnPrint(pCanonPerm, uCanonPhase, p->nVars), printf( "\n" );
         }
-        else
-            printf( "This feature only works for 6-variable functions.\n" );
-        ABC_FREE( pComp );
-        ABC_FREE( pPerm );
+        freePermInfoPtr(pi);
     }
     else if ( NpnType == 2 )
     {
@@ -191,43 +242,24 @@ void Abc_TruthNpnPerform( Abc_TtStore_t * p, int NpnType, int fVerbose )
             if ( fVerbose )
                 printf( "%7d : ", i );
             resetPCanonPermArray(pCanonPerm, p->nVars);
-            uCanonPhase = Kit_TruthSemiCanonicize_new( (unsigned *)p->pFuncs[i], pAux, p->nVars, pCanonPerm );
+            uCanonPhase = luckyCanonicizer_final_fast( p->pFuncs[i], p->nVars, pCanonPerm );
             if ( fVerbose )
                 Extra_PrintHex( stdout, (unsigned *)p->pFuncs[i], p->nVars ), Abc_TruthNpnPrint(pCanonPerm, uCanonPhase, p->nVars), printf( "\n" );
         }
     }
     else if ( NpnType == 4 )
     {
-        if ( p->nVars == 6 )
-        {
-            for ( i = 0; i < p->nFuncs; i++ )
-            {
-                if ( fVerbose )
-                    printf( "%7d : ", i );
-                resetPCanonPermArray(pCanonPerm, p->nVars);
-                Kit_TruthSemiCanonicize( (unsigned *)p->pFuncs[i], pAux, p->nVars, pCanonPerm );
-                *((word *)p->pFuncs[i]) = Extra_Truth6MinimumHeuristic( *((word *)p->pFuncs[i]) );
-                if ( fVerbose )
-                    Extra_PrintHex( stdout, (unsigned *)p->pFuncs[i], p->nVars ), printf( "\n" );
-            }
-        }
-        else
-            printf( "This feature only works for 6-variable functions.\n" );
-    }
-    else if ( NpnType == 5 )
-    {
         for ( i = 0; i < p->nFuncs; i++ )
         {
             if ( fVerbose )
                 printf( "%7d : ", i );
             resetPCanonPermArray(pCanonPerm, p->nVars);
-            uCanonPhase = luckyCanonicizer_final_fast( p->pFuncs[i], p->nVars, pCanonPerm );
+            uCanonPhase = luckyCanonicizer_final_fast1( p->pFuncs[i], p->nVars, pCanonPerm );
             if ( fVerbose )
                 Extra_PrintHex( stdout, (unsigned *)p->pFuncs[i], p->nVars ), Abc_TruthNpnPrint(pCanonPerm, uCanonPhase, p->nVars), printf( "\n" );
         }
     }
     else assert( 0 );
-
     clk = clock() - clk;
     printf( "Classes =%9d  ", Abc_TruthNpnCountUnique(p) );
     Abc_PrintTime( 1, "Time", clk );
@@ -284,7 +316,7 @@ int Abc_NpnTest( char * pFileName, int NpnType, int fVerbose )
 {
     if ( fVerbose )
         printf( "Using truth tables from file \"%s\"...\n", pFileName );
-    if ( NpnType >= 0 && NpnType <= 5 )
+    if ( NpnType >= 0 && NpnType <= 4 )
         Abc_TruthNpnTest( pFileName, NpnType, fVerbose );
     else
         printf( "Unknown canonical form value (%d).\n", NpnType );

@@ -41,6 +41,7 @@ typedef unsigned __int64  word;
 #define true 1
 #define inline __inline  // compatible with MS VS 6.0
 #define ABC_ALLOC(type, num)    ((type *) malloc(sizeof(type) * (num)))
+// #define LUCKY_VERIFY
 #endif
 
 
@@ -118,9 +119,9 @@ extern  permInfo* setPermInfoPtr(int var);
 extern  void freePermInfoPtr(permInfo* x);
 extern  inline void  Kit_TruthSemiCanonicize_Yasha_simple( word* pInOut, int nVars, int * pStore );
 extern  inline unsigned  Kit_TruthSemiCanonicize_Yasha( word* pInOut, int nVars, char * pCanonPerm);
-extern  inline unsigned  Kit_TruthSemiCanonicize_Yasha1( word* pInOut, int nVars, char * pCanonPerm, int * pStore );
-extern  inline word luckyCanonicizer_final_fast_6Vars(word InOut, int* pStore, char* pCanonPerm, unsigned* pCanonPhase );
-extern  inline void luckyCanonicizer_final_fast_16Vars(word* pInOut, int  nVars, int nWords, int * pStore, char * pCanonPerm, unsigned* pCanonPhase);
+extern  inline unsigned  Kit_TruthSemiCanonicize_Yasha1( word* pInOut, int nVars, char * pCanonPerm, int * pStore);
+extern  inline word luckyCanonicizer_final_fast_6Vars(word InOut, int* pStore, char* pCanonPerm, unsigned* pCanonPhase);
+extern  inline word luckyCanonicizer_final_fast_6Vars1(word InOut, int* pStore, char* pCanonPerm, unsigned* pCanonPhase);
 extern  inline void resetPCanonPermArray_6Vars(char* x);
 extern  void swap_ij( word* f,int totalVars, int varI, int varJ);
 extern  inline unsigned adjustInfoAfterSwap(char* pCanonPerm, unsigned uCanonPhase, int iVar, unsigned info);

@@ -241,6 +241,7 @@ inline unsigned  Kit_TruthSemiCanonicize_Yasha( word* pInOut, int nVars, char * 
     } while ( fChange );
     return uCanonPhase;
 }
+
 inline unsigned  Kit_TruthSemiCanonicize_Yasha1( word* pInOut, int nVars, char * pCanonPerm, int * pStore )
 {
     int nWords = Kit_TruthWordNum_64bit( nVars );
@@ -250,8 +251,8 @@ inline unsigned  Kit_TruthSemiCanonicize_Yasha1( word* pInOut, int nVars, char *
     assert( nVars <= 16 );
     
     nOnes = Kit_TruthCountOnes_64bit(pInOut, nVars);
-    //  if ( (nOnes == nWords * 32) )
-    //      return 999999;
+    if ( nOnes == nWords * 32 )
+        uCanonPhase |= (1 << (nVars+2));
     
     if ( (nOnes > nWords * 32) )
     {
@@ -266,9 +267,12 @@ inline unsigned  Kit_TruthSemiCanonicize_Yasha1( word* pInOut, int nVars, char *
     // canonicize phase
     for ( i = 0; i < nVars; i++ )
     {
-        //      if (  pStore[i]  == nOnes-pStore[i])
-        //          return 999999;
-        if ( pStore[i] >= nOnes-pStore[i])
+        if (  2*pStore[i]  == nOnes)
+        {
+            uCanonPhase |= (1 << (nVars+1));
+            continue;
+        }
+        if ( pStore[i] > nOnes-pStore[i])
             continue;
         uCanonPhase |= (1 << i);
         pStore[i] = nOnes-pStore[i]; 

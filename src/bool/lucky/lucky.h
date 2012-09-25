@@ -20,9 +20,24 @@
 
 ABC_NAMESPACE_HEADER_START
 
+typedef struct
+{
+    int varN;
+    int* swapArray;
+    int swapCtr;
+    int totalSwaps;
+    int* flipArray;
+    int flipCtr;
+    int totalFlips; 
+}permInfo;
+
 extern unsigned Kit_TruthSemiCanonicize_new( unsigned * pInOut, unsigned * pAux, int nVars, char * pCanonPerm );
-extern int      luckyCanonicizer_final_fast( word * pInOut, int nVars, char * pCanonPerm );
-extern void     resetPCanonPermArray(char* x, int nVars); 
+extern unsigned luckyCanonicizer_final_fast( word * pInOut, int nVars, char * pCanonPerm );
+extern unsigned luckyCanonicizer_final_fast1( word * pInOut, int nVars, char * pCanonPerm );
+extern void resetPCanonPermArray(char* x, int nVars); 
+extern permInfo* setPermInfoPtr(int var);
+extern void freePermInfoPtr(permInfo* x);
+extern void simpleMinimal(word* x, word* pAux,word* minimal, permInfo* pi, int nVars);
 
 ABC_NAMESPACE_HEADER_END
 

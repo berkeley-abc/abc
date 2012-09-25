@@ -4866,17 +4866,18 @@ int Abc_CommandTestNpn( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: testnpn [-A <num>] [-vh] <file_name>\n" );
-    Abc_Print( -2, "\t           testbench for computing semi-canonical forms of Boolean functions\n" );
+    Abc_Print( -2, "usage: testnpn [-A <num>] [-vh] <file>\n" );
+    Abc_Print( -2, "\t           testbench for computing (semi-)canonical forms\n" );
+    Abc_Print( -2, "\t           of completely-specified Boolean functions up to 16 varibles\n" );
     Abc_Print( -2, "\t-A <num> : semi-caninical form computation algorithm [default = %d]\n", NpnType );
-    Abc_Print( -2, "\t               0: none (reading and writing the file)\n" );
-    Abc_Print( -2, "\t               1: exact canonical form (works only for 6 variables)\n" );
+    Abc_Print( -2, "\t               0: uniqifying truth tables\n" );
+    Abc_Print( -2, "\t               1: exact NPN canonical form by brute-force enumeration\n" );
     Abc_Print( -2, "\t               2: semi-canonical form by counting 1s in cofactors\n" );
-    Abc_Print( -2, "\t               3: semi-canonical form by minimizing truth table value\n" );
-    Abc_Print( -2, "\t               4: hybrid semi-canonical form (works only for 6 variables)\n" );
-    Abc_Print( -2, "\t               5: Jake's hybrid semi-canonical form (works up to 16 variables)\n" );
+    Abc_Print( -2, "\t               3: Jake's hybrid semi-canonical form (fast)\n" );
+    Abc_Print( -2, "\t               4: Jake's hybrid semi-canonical form (high-effort)\n" );
     Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
+    Abc_Print( -2, "\t<file>   : the text file with truth tables in hexadecimal, listed one per line\n");
     return 1;
 } 
 
