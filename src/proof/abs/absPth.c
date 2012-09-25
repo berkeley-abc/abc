@@ -24,7 +24,7 @@
 
 // to compile on Linux, add -lpthread to LIBS in Makefile
 
-// uncomment this line to enable pthreads
+// comment out this line to disable pthreads
 #define ABC_USE_PTHREADS
 
 #ifdef ABC_USE_PTHREADS
