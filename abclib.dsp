@@ -3727,6 +3727,10 @@ SOURCE=.\src\bool\lucky\luckyRead.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\bool\lucky\luckySimple.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\bool\lucky\luckySwap.c
 # End Source File
 # Begin Source File
