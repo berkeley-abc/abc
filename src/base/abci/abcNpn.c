@@ -177,7 +177,7 @@ void Abc_TruthNpnPerform( Abc_TtStore_t * p, int NpnType, int fVerbose )
     char pCanonPerm[16];
     unsigned uCanonPhase=0;
     clock_t clk = clock();
-    int i, maxCtr=0;
+    int i;
 
     char * pAlgoName = NULL;
     if ( NpnType == 0 )
