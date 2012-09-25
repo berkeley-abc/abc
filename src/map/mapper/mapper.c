@@ -155,10 +155,8 @@ int Map_CommandReadLibrary( Abc_Frame_t * pAbc, int argc, char **argv )
     Map_SuperLibFree( (Map_SuperLib_t *)Abc_FrameReadLibSuper() );
     Abc_FrameSetLibSuper( pLib );
     // replace the current genlib library
-//    if ( s_pLib ) Mio_LibraryDelete( s_pLib );
-//    s_pLib = s_pSuperLib->pGenlib;
-    Mio_LibraryDelete( (Mio_Library_t *)Abc_FrameReadLibGen() );
-    Abc_FrameSetLibGen( (Mio_Library_t *)pLib->pGenlib );
+//    Mio_LibraryDelete( (Mio_Library_t *)Abc_FrameReadLibGen() );
+//    Abc_FrameSetLibGen( (Mio_Library_t *)pLib->pGenlib );
     return 0;
 
 usage:

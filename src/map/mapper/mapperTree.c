@@ -109,8 +109,7 @@ int Map_LibraryReadTree( Map_SuperLib_t * pLib, char * pFileName, char * pExclud
 int Map_LibraryReadFileTree( Map_SuperLib_t * pLib, FILE * pFile, char *pFileName )
 {
     ProgressBar * pProgress;
-    char pBuffer[5000], pLibFile[5000];
-    FILE * pFileGen;
+    char pBuffer[5000];
     Map_Super_t * pGate;
     char * pTemp = 0, * pLibName;
     int nCounter, k, i;
@@ -125,58 +124,12 @@ int Map_LibraryReadFileTree( Map_SuperLib_t * pLib, FILE * pFile, char *pFileNam
         if ( *pTemp != 0 && *pTemp != '#' )
             break;
     }
-    
-    // get the genlib file name (base)
+
     pLibName = strtok( pTemp, " \t\r\n" );
-#ifdef __linux__
-    if( strchr( pLibName, '/' ) != NULL )
-        pLibName = strrchr( pLibName, '/' ) + 1;
-#else
-    if( strchr( pLibName, '\\' ) != NULL )
-        pLibName = strrchr( pLibName, '\\' ) + 1;
-#endif
-
-    if ( strcmp( pLibName, "GATE" ) == 0 )
+    pLib->pGenlib = Abc_FrameReadLibGen();
+    if ( pLib->pGenlib == NULL || strcmp( Mio_LibraryReadName(pLib->pGenlib), pLibName ) )
     {
-        printf( "The input file \"%s\" looks like a GENLIB file and not a supergate library file.\n", pLib->pName );
-        return 0;
-    }
-    
-
-    // now figure out the directory if any in the pFileName
-#ifdef __linux__
-    snprintf( pLibFile, 5000, "%s/%s", dirname(strdup(pFileName)), pLibName ); 
-#else
-//    strcpy( pLibFile, pFileName );
-
-    {
-        char * pStr;
-        strcpy( pLibFile, pFileName );
-        pStr = pLibFile + strlen(pBuffer) - 1;
-        while ( pStr > pLibFile && *pStr != '\\' && *pStr != '/' )
-            pStr--;
-        if ( pStr == pLibFile )
-            strcpy( pLibFile, pLibName );
-        else
-            sprintf( pStr, "\\%s", pLibName );
-    }
-
-#endif
-    
-    pFileGen = Io_FileOpen( pLibFile, "open_path", "r", 1 );
-//    pFileGen = fopen( pLibFile, "r" ); 
-    if ( pFileGen == NULL )
-    {
-        printf( "Cannot open the GENLIB file \"%s\".\n", pLibFile );
-        return 0;
-    }
-    fclose( pFileGen );
-
-    // read the genlib library
-    pLib->pGenlib = Mio_LibraryRead( pLibFile, 0, 0 );
-    if ( pLib->pGenlib == NULL )
-    {
-        printf( "Cannot read GENLIB file \"%s\".\n", pLibFile );
+        printf( "Supergate library \"%s\" requires the use of Genlib library \"%s\".\n", pFileName, pLibName );
         return 0;
     }
 

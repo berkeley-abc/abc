@@ -438,14 +438,10 @@ Amap_Lib_t * Amap_ParseTokens( Vec_Ptr_t * vTokens, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-Amap_Lib_t * Amap_LibReadFile( char * pFileName, int fVerbose )
+Amap_Lib_t * Amap_LibReadBuffer( char * pBuffer, int fVerbose )
 {
     Amap_Lib_t * pLib;
     Vec_Ptr_t * vTokens;
-    char * pBuffer;
-    pBuffer = Amap_LoadFile( pFileName );
-    if ( pBuffer == NULL )
-        return NULL;
     Amap_RemoveComments( pBuffer, NULL, NULL );
     vTokens = Amap_DeriveTokens( pBuffer );
     pLib = Amap_ParseTokens( vTokens, fVerbose );
@@ -454,8 +450,31 @@ Amap_Lib_t * Amap_LibReadFile( char * pFileName, int fVerbose )
         Vec_PtrFree( vTokens );
         return NULL;
     }
-    pLib->pName = Amap_ParseStrsav( pLib->pMemGates, pFileName );
     Vec_PtrFree( vTokens );
+    return pLib;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Reads the library from the input file.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Amap_Lib_t * Amap_LibReadFile( char * pFileName, int fVerbose )
+{
+    Amap_Lib_t * pLib;
+    char * pBuffer;
+    pBuffer = Amap_LoadFile( pFileName );
+    if ( pBuffer == NULL )
+        return NULL;
+    pLib = Amap_LibReadBuffer( pBuffer, fVerbose );
+    if ( pLib )
+        pLib->pName = Abc_UtilStrsav( pFileName );
     ABC_FREE( pBuffer );
     return pLib;
 }

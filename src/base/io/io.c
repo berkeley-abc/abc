@@ -201,7 +201,7 @@ int IoCommandRead( Abc_Frame_t * pAbc, int argc, char ** argv )
     Command[0] = 0;
     assert( strlen(pFileName) < 900 );
     if ( !strcmp( Extra_FileNameExtension(pFileName), "genlib" )  )
-        sprintf( Command, "read_library %s", pFileName );
+        sprintf( Command, "read_genlib %s", pFileName );
     else if ( !strcmp( Extra_FileNameExtension(pFileName), "lib" ) )
         sprintf( Command, "read_liberty %s", pFileName );
     else if ( !strcmp( Extra_FileNameExtension(pFileName), "scl" ) )
@@ -1298,6 +1298,7 @@ usage:
 ***********************************************************************/
 int IoCommandWrite( Abc_Frame_t * pAbc, int argc, char **argv )
 {
+    char Command[1000];
     char * pFileName;
     int c;
 
@@ -1312,15 +1313,27 @@ int IoCommandWrite( Abc_Frame_t * pAbc, int argc, char **argv )
                 goto usage;
         }
     }
+    if ( argc != globalUtilOptind + 1 )
+        goto usage;
+    // get the output file name
+    pFileName = argv[globalUtilOptind];
+    // write libraries
+    Command[0] = 0;
+    assert( strlen(pFileName) < 900 );
+    if ( !strcmp( Extra_FileNameExtension(pFileName), "genlib" )  )
+        sprintf( Command, "write_genlib %s", pFileName );
+    else if ( !strcmp( Extra_FileNameExtension(pFileName), "lib" ) )
+        sprintf( Command, "write_liberty %s", pFileName );
+    if ( Command[0] )
+    {
+        Cmd_CommandExecute( pAbc, Command );
+        return 0;
+    }
     if ( pAbc->pNtkCur == NULL )
     {
         fprintf( pAbc->Out, "Empty network.\n" );
         return 0;
     }
-    if ( argc != globalUtilOptind + 1 )
-        goto usage;
-    // get the output file name
-    pFileName = argv[globalUtilOptind];
     // call the corresponding file writer
     Io_Write( pAbc->pNtkCur, pFileName, Io_ReadFileType(pFileName) );
     return 0;

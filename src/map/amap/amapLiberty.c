@@ -464,6 +464,101 @@ int Amap_LibertyPrintGenlib( Amap_Tree_t * p, char * pFileName, int fVerbose )
     return 1;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Prints parse tree in Genlib format.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Str_t * Amap_LibertyPrintGenlibStr( Amap_Tree_t * p, int fVerbose )
+{
+    Vec_Str_t * vStr;
+    char Buffer[100];
+    Vec_Ptr_t * vOutputs;
+    Amap_Item_t * pCell, * pArea, * pFunc, * pPin, * pOutput;
+    int i, Counter;
+    char * pForm;
+
+    vStr = Vec_StrAlloc( 1000 );
+
+    Vec_StrPrintStr( vStr, "GATE          _const0_  0.000000  z=CONST0;\n" );
+    Vec_StrPrintStr( vStr, "GATE          _const1_  0.000000  z=CONST1;\n" );
+    Amap_ItemForEachChild( p, Amap_LibertyRoot(p), pCell )
+    {
+        if ( Amap_LibertyCompare(p, pCell->Key, "cell") )
+            continue;
+        if ( Amap_LibertyCellIsFlop(p, pCell) )
+        {
+            if ( fVerbose )
+                printf( "Amap_LibertyPrintGenlib() skipped sequential cell \"%s\".\n", Amap_LibertyGetString(p, pCell->Head) );
+            continue;
+        }
+        Counter = Amap_LibertyCellCountOutputs( p, pCell );
+        if ( Counter == 0 )
+        {
+            if ( fVerbose )
+                printf( "Amap_LibertyPrintGenlib() skipped cell \"%s\" without logic function.\n", Amap_LibertyGetString(p, pCell->Head) );
+            continue;
+        }
+        pArea = Amap_LibertyCellArea( p, pCell );
+        if ( pArea == NULL )
+        {
+            if ( fVerbose )
+                printf( "Amap_LibertyPrintGenlib() skipped cell \"%s\" with unspecified area.\n", Amap_LibertyGetString(p, pCell->Head) );
+            continue;
+        }
+        vOutputs = Amap_LibertyCellOutputs( p, pCell );
+        Vec_PtrForEachEntry( Amap_Item_t *, vOutputs, pOutput, i )
+        {
+            pFunc   = Amap_LibertyPinFunction( p, pOutput );
+            pForm   = Amap_LibertyGetStringFormula( p, pFunc->Head );
+            if ( !strcmp(pForm, "0") || !strcmp(pForm, "1") )
+            {
+                if ( fVerbose )
+                    printf( "Amap_LibertyPrintGenlib() skipped cell \"%s\" with constant formula \"%s\".\n", Amap_LibertyGetString(p, pCell->Head), pForm );
+                continue;
+            }
+/*
+            fprintf( pFile, "GATE  " );
+            fprintf( pFile, "%16s  ", Amap_LibertyGetString(p, pCell->Head) );
+            fprintf( pFile, "%f  ",   atof(Amap_LibertyGetString(p, pArea->Head)) );
+            fprintf( pFile, "%s=",    Amap_LibertyGetString(p, pOutput->Head) );
+            fprintf( pFile, "%s;\n",  Amap_LibertyGetStringFormula(p, pFunc->Head) );
+            Amap_ItemForEachChild( p, pCell, pPin )
+                if ( Vec_PtrFind(vOutputs, pPin) == -1 && !Amap_LibertyCompare(p, pPin->Key, "pin") )
+                    fprintf( pFile, "    PIN  %13s  UNKNOWN  1  999  1.00  0.00  1.00  0.00\n", Amap_LibertyGetString(p, pPin->Head) );
+*/
+            Vec_StrPrintStr( vStr, "GATE " );
+            Vec_StrPrintStr( vStr, Amap_LibertyGetString(p, pCell->Head) );
+            Vec_StrPrintStr( vStr, " " );
+            sprintf( Buffer, "%f", atof(Amap_LibertyGetString(p, pArea->Head)) );
+            Vec_StrPrintStr( vStr, Buffer );
+            Vec_StrPrintStr( vStr, " " );
+            Vec_StrPrintStr( vStr, Amap_LibertyGetString(p, pOutput->Head) );
+            Vec_StrPrintStr( vStr, "=" );
+            Vec_StrPrintStr( vStr, Amap_LibertyGetStringFormula(p, pFunc->Head) );
+            Vec_StrPrintStr( vStr, ";\n" );
+            Amap_ItemForEachChild( p, pCell, pPin )
+                if ( Vec_PtrFind(vOutputs, pPin) == -1 && !Amap_LibertyCompare(p, pPin->Key, "pin") )
+                {
+                    Vec_StrPrintStr( vStr, "  PIN " );
+                    Vec_StrPrintStr( vStr, Amap_LibertyGetString(p, pPin->Head) );
+                    Vec_StrPrintStr( vStr, " UNKNOWN  1  999  1.00  0.00  1.00  0.00\n" );
+                }
+        }
+        Vec_PtrFree( vOutputs );
+    }
+    Vec_StrPrintStr( vStr, "\n.end\n" );
+    Vec_StrPush( vStr, '\0' );
+//    printf( "%s", Vec_StrArray(vStr) );
+    return vStr;
+}
+
 
 /**Function*************************************************************
 
@@ -949,6 +1044,55 @@ int Amap_LibertyParse( char * pFileName, int fVerbose )
     Amap_LibertyStop( p );
     return RetValue;
 }
+
+/**Function*************************************************************
+
+  Synopsis    [Parses the standard cell library in Liberty format.]
+
+  Description [Writes the resulting file in Genlib format.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Str_t * Amap_LibertyParseStr( char * pFileName, int fVerbose )
+{
+    Amap_Tree_t * p;
+    Vec_Str_t * vStr = NULL;
+    char * pPos;
+    clock_t clk = clock();
+    int RetValue;
+    p = Amap_LibertyStart( pFileName );
+    if ( p == NULL )
+        return 0;
+    pPos = p->pContents;
+    Amap_LibertyWipeOutComments( p->pContents, p->pContents+p->nContents );
+    if ( Amap_LibertyBuildItem( p, &pPos, p->pContents + p->nContents ) == 0 )
+    {
+        if ( fVerbose )
+        printf( "Parsing finished successfully.\n" );
+//        Amap_LibertyPrintLiberty( p, "temp_.lib" );
+        vStr = Amap_LibertyPrintGenlibStr( p, fVerbose );
+        RetValue = 1;
+    }
+    else
+    {
+        if ( p->pError )
+            printf( "%s", p->pError );
+        if ( fVerbose )
+        printf( "Parsing failed.\n" );
+        RetValue = 0;
+    }
+    if ( fVerbose )
+    {
+    printf( "Memory = %7.2f MB. ", 1.0*(p->nContents+p->nItermAlloc*sizeof(Amap_Item_t))/(1<<20) );
+    ABC_PRT( "Time", clock() - clk );
+    }
+    Amap_LibertyStop( p );
+    return vStr;
+}
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

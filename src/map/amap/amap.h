@@ -76,9 +76,11 @@ extern void          Amap_ManSetDefaultParams( Amap_Par_t * pPars );
 /*=== amapLib.c ==========================================================*/
 extern void          Amap_LibFree( Amap_Lib_t * p );
 extern void          Amap_LibPrintSelectedGates( Amap_Lib_t * p, int fAllGates );
-extern Amap_Lib_t *  Amap_LibReadAndPrepare( char * pFileName, int fVerbose, int fVeryVerbose );
+extern Amap_Lib_t *  Amap_LibReadAndPrepare( char * pFileName, char * pBuffer, int fVerbose, int fVeryVerbose );
 /*=== amapLiberty.c ==========================================================*/
 extern int           Amap_LibertyParse( char * pFileName, int fVerbose );
+extern Vec_Str_t *   Amap_LibertyParseStr( char * pFileName, int fVerbose );
+
 
 
 ABC_NAMESPACE_HEADER_END

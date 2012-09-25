@@ -349,6 +349,7 @@ extern Vec_Ptr_t *   Amap_ManProduceMapped( Amap_Man_t * p );
 extern int           Amap_LibParseEquations( Amap_Lib_t * p, int fVerbose );
 /*=== amapPerm.c ==========================================================*/
 /*=== amapRead.c ==========================================================*/
+extern Amap_Lib_t *  Amap_LibReadBuffer( char * pBuffer, int fVerbose );
 extern Amap_Lib_t *  Amap_LibReadFile( char * pFileName, int fVerbose );
 /*=== amapRule.c ==========================================================*/
 extern short *       Amap_LibTableFindNode( Amap_Lib_t * p, int iFan0, int iFan1, int fXor );

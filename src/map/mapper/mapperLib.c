@@ -99,11 +99,12 @@ clk = clock();
     assert( p->nVarsMax > 0 );
 
     // report the stats
-if ( fVerbose ) {
-    printf( "Loaded %d unique %d-input supergates from \"%s\".  ", 
-        p->nSupersReal, p->nVarsMax, pFileName );
-    ABC_PRT( "Time", clock() - clk );
-}
+    if ( fVerbose ) 
+    {
+        printf( "Loaded %d unique %d-input supergates from \"%s\".  ", 
+            p->nSupersReal, p->nVarsMax, pFileName );
+        ABC_PRT( "Time", clock() - clk );
+    }
 
     // assign the interver parameters
     p->pGateInv        = Mio_LibraryReadInv( p->pGenlib );
@@ -149,8 +150,9 @@ void Map_SuperLibFree( Map_SuperLib_t * p )
     if ( p->pGenlib )
     {
         assert( p->pGenlib == Abc_FrameReadLibGen() );
-        Mio_LibraryDelete( p->pGenlib );
-        Abc_FrameSetLibGen( NULL );
+//        Mio_LibraryDelete( p->pGenlib );
+//        Abc_FrameSetLibGen( NULL );
+        p->pGenlib = NULL;
     }
     if ( p->tTableC )
         Map_SuperTableFree( p->tTableC );
@@ -174,77 +176,22 @@ void Map_SuperLibFree( Map_SuperLib_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Map_SuperLibDeriveFromGenlib( Mio_Library_t * pLib )
+int Map_SuperLibDeriveFromGenlib( Mio_Library_t * pLib, int fVerbose )
 {
+    extern void Super_Precompute( Mio_Library_t * pLibGen, int nInputs, int nLevels, int nGatesMax, float tDelayMax, float tAreaMax, int TimeLimit, int fSkipInv, int fWriteOldFormat, int fVerbose );
     Abc_Frame_t * pAbc = Abc_FrameGetGlobalFrame();
-    char * pNameGeneric;
-    char * FileNameGenlib;
-    char * FileNameSuper;
-    char * CommandSuper;
-    char * CommandRead;
-    FILE * pFile;
-
+    char * pFileName;
     if ( pLib == NULL )
         return 0;
-
-    FileNameGenlib = ABC_ALLOC( char, 10000 );
-    FileNameSuper = ABC_ALLOC( char, 10000 );
-    CommandSuper = ABC_ALLOC( char, 10000 );
-    CommandRead = ABC_ALLOC( char, 10000 );
-
-    // write the current library into the file
-    sprintf( FileNameGenlib, "%s_temp", Mio_LibraryReadName(pLib) );
-    pFile = fopen( FileNameGenlib, "w" );
-    Mio_WriteLibrary( pFile, pLib, 0 );
-    fclose( pFile );
-
-    // get the file name with the library
-    pNameGeneric = Extra_FileNameGeneric( Mio_LibraryReadName(pLib) );
-    sprintf( FileNameSuper, "%s.super", pNameGeneric );
-    ABC_FREE( pNameGeneric );
- 
-    sprintf( CommandSuper,  "super -L 1 -I 5 -D 10000000 -A 10000000 -T 100 %s", FileNameGenlib ); 
-    if ( Cmd_CommandExecute( pAbc, CommandSuper ) )
+    // compute supergates
+    Super_Precompute( pLib, 5, 1, 100000000, 10000000, 10000000, 100, 1, 0, 0 );
+    // assuming that it terminated successfully
+    pFileName = Extra_FileNameGenericAppend(Mio_LibraryReadName(pLib), ".super");
+    if ( Cmd_CommandExecute( pAbc, pFileName ) )
     {
-        ABC_FREE( FileNameGenlib );
-        ABC_FREE( FileNameSuper );
-        ABC_FREE( CommandSuper );
-        ABC_FREE( CommandRead );
-        fprintf( stdout, "Cannot execute command \"%s\".\n", CommandSuper );
+        fprintf( stdout, "Cannot execute command \"read_super %s\".\n", pFileName );
         return 0;
     }
-//#ifdef WIN32
-//        _unlink( FileNameGenlib );
-//#else
-//        unlink( FileNameGenlib );
-//#endif
-    printf( "A simple supergate library is derived from gate library \"%s\".\n", Mio_LibraryReadName(pLib) );
-    fflush( stdout );
-
-    sprintf( CommandRead,  "read_super %s", FileNameSuper ); 
-    if ( Cmd_CommandExecute( pAbc, CommandRead ) )
-    {
-//#ifdef WIN32
-//        _unlink( FileNameSuper );
-//#else
-//       unlink( FileNameSuper );
-//#endif
-        fprintf( stdout, "Cannot execute command \"%s\".\n", CommandRead );
-        ABC_FREE( FileNameGenlib );
-        ABC_FREE( FileNameSuper );
-        ABC_FREE( CommandSuper );
-        ABC_FREE( CommandRead );
-        return 0;
-    }
-//#ifdef WIN32
-//    _unlink( FileNameSuper );
-//#else
-//    unlink( FileNameSuper );
-//#endif
-    ABC_FREE( FileNameGenlib );
-    ABC_FREE( FileNameSuper );
-    ABC_FREE( CommandSuper );
-    ABC_FREE( CommandRead );
     return 1;
 }
 

@@ -85,6 +85,7 @@ void Amap_LibFree( Amap_Lib_t * p )
     ABC_FREE( p->pRules );
     ABC_FREE( p->pRulesX );
     ABC_FREE( p->pNodes );
+    ABC_FREE( p->pName );
     ABC_FREE( p );
 }
 
@@ -325,11 +326,18 @@ void Amap_LibPrintSelectedGates( Amap_Lib_t * p, int fAllGates )
   SeeAlso     []
 
 ***********************************************************************/
-Amap_Lib_t * Amap_LibReadAndPrepare( char * pFileName, int fVerbose, int fVeryVerbose )
+Amap_Lib_t * Amap_LibReadAndPrepare( char * pFileName, char * pBuffer, int fVerbose, int fVeryVerbose )
 {
     Amap_Lib_t * p;
     clock_t clk = clock();
-    p = Amap_LibReadFile( pFileName, fVerbose );
+    if ( pBuffer == NULL )
+        p = Amap_LibReadFile( pFileName, fVerbose );
+    else
+    {
+        p = Amap_LibReadBuffer( pBuffer, fVerbose );
+        if ( p )
+            p->pName = Abc_UtilStrsav( pFileName );
+    }
     if ( fVerbose )
         printf( "Read %d gates from file \"%s\".\n", Vec_PtrSize(p->vGates), pFileName );
     if ( p == NULL )

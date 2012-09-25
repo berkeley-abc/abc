@@ -165,7 +165,7 @@ extern void            Map_CutCreateFromNode( Map_Man_t * p, Map_Super_t * pSupe
 /*=== mapperCore.c =============================================================*/
 extern int             Map_Mapping( Map_Man_t * p );
 /*=== mapperLib.c =============================================================*/
-extern int             Map_SuperLibDeriveFromGenlib( Mio_Library_t * pLib );
+extern int             Map_SuperLibDeriveFromGenlib( Mio_Library_t * pLib, int fVerbose );
 extern void            Map_SuperLibFree( Map_SuperLib_t * p );
 /*=== mapperMntk.c =============================================================*/
 //extern Mntk_Man_t *    Map_ConvertMappingToMntk( Map_Man_t * pMan );

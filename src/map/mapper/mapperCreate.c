@@ -186,7 +186,7 @@ Map_Man_t * Map_ManCreate( int nInputs, int nOutputs, int fVerbose )
     // derive the supergate library
     if ( Abc_FrameReadLibSuper() == NULL )
     {
-        printf( "The supergate library is not specified. Use \"read_library\" or \"read_super\".\n" );
+        printf( "The supergate library is not specified. Use \"read_super\".\n" );
         return NULL;
     }
 

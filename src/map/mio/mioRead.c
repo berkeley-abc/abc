@@ -32,6 +32,7 @@ ABC_NAMESPACE_IMPL_START
 ////////////////////////////////////////////////////////////////////////
 
 static Mio_Library_t * Mio_LibraryReadOne( char * FileName, int fExtendedFormat, st_table * tExcludeGate, int fVerbose );
+static Mio_Library_t * Mio_LibraryReadBuffer( char * pBuffer, int fExtendedFormat, st_table * tExcludeGate, int fVerbose );
 static int             Mio_LibraryReadInternal( Mio_Library_t * pLib, char * pBuffer, int fExtendedFormat, st_table * tExcludeGate, int fVerbose );
 static Mio_Gate_t *    Mio_LibraryReadGate( char ** ppToken, int fExtendedFormat );
 static Mio_Pin_t *     Mio_LibraryReadPin( char ** ppToken, int fExtendedFormat );
@@ -50,7 +51,7 @@ static void            Io_ReadFileRemoveComments( char * pBuffer, int * pnDots, 
   SeeAlso     []
 
 ***********************************************************************/
-Mio_Library_t * Mio_LibraryRead( char * FileName, char * ExcludeFile, int fVerbose )
+Mio_Library_t * Mio_LibraryRead( char * FileName, char * pBuffer, char * ExcludeFile, int fVerbose )
 {
     Mio_Library_t * pLib;
     int num;
@@ -69,16 +70,115 @@ Mio_Library_t * Mio_LibraryRead( char * FileName, char * ExcludeFile, int fVerbo
         fprintf ( stdout, "Read %d gates from exclude file\n", num );
     }
 
-    pLib = Mio_LibraryReadOne( FileName, 0, tExcludeGate, fVerbose );       // try normal format first ..
+    if ( pBuffer == NULL )
+        pLib = Mio_LibraryReadOne( FileName, 0, tExcludeGate, fVerbose );       // try normal format first ..
+    else
+    {
+        pLib = Mio_LibraryReadBuffer( pBuffer, 0, tExcludeGate, fVerbose );       // try normal format first ..
+        if ( pLib )
+            pLib->pName = Abc_UtilStrsav( Extra_FileNameGenericAppend(FileName, ".genlib") );
+    }
     if ( pLib == NULL )
     {
-        pLib = Mio_LibraryReadOne( FileName, 1, tExcludeGate, fVerbose );   // .. otherwise try extended format 
+        if ( pBuffer == NULL )
+            pLib = Mio_LibraryReadOne( FileName, 1, tExcludeGate, fVerbose );       // try normal format first ..
+        else
+        {
+            pLib = Mio_LibraryReadBuffer( pBuffer, 1, tExcludeGate, fVerbose );       // try normal format first ..
+            if ( pLib )
+                pLib->pName = Abc_UtilStrsav( Extra_FileNameGenericAppend(FileName, ".genlib") );
+        }
         if ( pLib != NULL )
             printf ( "Warning: Read extended GENLIB format but ignoring extensions\n" );
     }
     if ( tExcludeGate )
         st_free_table( tExcludeGate );
 
+    return pLib;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Read contents of the file.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+char * Mio_ReadFile( char * FileName )
+{
+    char * pBuffer;
+    FILE * pFile;
+    int nFileSize;
+    int RetValue;
+
+    // open the BLIF file for binary reading
+    pFile = Io_FileOpen( FileName, "open_path", "rb", 1 );
+//    pFile = fopen( FileName, "rb" );
+    // if we got this far, file should be okay otherwise would
+    // have been detected by caller
+    assert ( pFile != NULL );
+    // get the file size, in bytes
+    fseek( pFile, 0, SEEK_END );  
+    nFileSize = ftell( pFile );  
+    // move the file current reading position to the beginning
+    rewind( pFile ); 
+    // load the contents of the file into memory
+    pBuffer   = ABC_ALLOC( char, nFileSize + 10 );
+    RetValue = fread( pBuffer, nFileSize, 1, pFile );
+    // terminate the string with '\0'
+    pBuffer[ nFileSize ] = '\0';
+    strcat( pBuffer, "\n.end\n" );
+    // close file
+    fclose( pFile );
+    return pBuffer;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Read the genlib type of library.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Mio_Library_t * Mio_LibraryReadBuffer( char * pBuffer, int fExtendedFormat, st_table * tExcludeGate, int fVerbose )
+{
+    Mio_Library_t * pLib;
+
+    // allocate the genlib structure
+    pLib = ABC_ALLOC( Mio_Library_t, 1 );
+    memset( pLib, 0, sizeof(Mio_Library_t) );
+    pLib->tName2Gate = st_init_table(strcmp, st_strhash);
+    pLib->pMmFlex = Mem_FlexStart();
+    pLib->vCube = Vec_StrAlloc( 100 );
+
+    Io_ReadFileRemoveComments( pBuffer, NULL, NULL );
+
+    // parse the contents of the file
+    if ( Mio_LibraryReadInternal( pLib, pBuffer, fExtendedFormat, tExcludeGate, fVerbose ) )
+    {
+        Mio_LibraryDelete( pLib );
+        return NULL;
+    }
+
+    // derive the functinality of gates
+    if ( Mio_LibraryParseFormulas( pLib ) )
+    {
+        printf( "Mio_LibraryRead: Had problems parsing formulas.\n" );
+        Mio_LibraryDelete( pLib );
+        return NULL;
+    }
+
+    // detect INV and NAND2
+    Mio_LibraryDetectSpecialGates( pLib );
+//Mio_WriteLibrary( stdout, pLib );
     return pLib;
 }
 
@@ -96,69 +196,18 @@ Mio_Library_t * Mio_LibraryRead( char * FileName, char * ExcludeFile, int fVerbo
 Mio_Library_t * Mio_LibraryReadOne( char * FileName, int fExtendedFormat, st_table * tExcludeGate, int fVerbose )
 {
     Mio_Library_t * pLib;
-    char * pBuffer = 0;
-
-    // allocate the genlib structure
-    pLib = ABC_ALLOC( Mio_Library_t, 1 );
-    memset( pLib, 0, sizeof(Mio_Library_t) );
-    pLib->pName = Mio_UtilStrsav( FileName );
-    pLib->tName2Gate = st_init_table(strcmp, st_strhash);
-    pLib->pMmFlex = Mem_FlexStart();
-    pLib->vCube = Vec_StrAlloc( 100 );
-
+    char * pBuffer;
     // read the file and clean comments
     // pBuffer = Io_ReadFileFileContents( FileName, NULL );
     // we don't use above function but actually do the same thing explicitly
     // to handle open_path expansion correctly
-
-    {
-        FILE * pFile;
-        int nFileSize;
-        int RetValue;
-
-        // open the BLIF file for binary reading
-        pFile = Io_FileOpen( FileName, "open_path", "rb", 1 );
-//        pFile = fopen( FileName, "rb" );
-        // if we got this far, file should be okay otherwise would
-        // have been detected by caller
-        assert ( pFile != NULL );
-        // get the file size, in bytes
-        fseek( pFile, 0, SEEK_END );  
-        nFileSize = ftell( pFile );  
-        // move the file current reading position to the beginning
-        rewind( pFile ); 
-        // load the contents of the file into memory
-        pBuffer   = ABC_ALLOC( char, nFileSize + 10 );
-        RetValue = fread( pBuffer, nFileSize, 1, pFile );
-        // terminate the string with '\0'
-        pBuffer[ nFileSize ] = '\0';
-        strcat( pBuffer, "\n.end\n" );
-        // close file
-        fclose( pFile );
-    }
-
-    Io_ReadFileRemoveComments( pBuffer, NULL, NULL );
-
-    // parse the contents of the file
-    if ( Mio_LibraryReadInternal( pLib, pBuffer, fExtendedFormat, tExcludeGate, fVerbose ) )
-    {
-        Mio_LibraryDelete( pLib );
-        ABC_FREE( pBuffer );
+    pBuffer = Mio_ReadFile( FileName );
+    if ( pBuffer == NULL )
         return NULL;
-    }
+    pLib = Mio_LibraryReadBuffer( pBuffer, fExtendedFormat, tExcludeGate, fVerbose );
     ABC_FREE( pBuffer );
-
-    // derive the functinality of gates
-    if ( Mio_LibraryParseFormulas( pLib ) )
-    {
-        printf( "Mio_LibraryRead: Had problems parsing formulas.\n" );
-        Mio_LibraryDelete( pLib );
-        return NULL;
-    }
-
-    // detect INV and NAND2
-    Mio_LibraryDetectSpecialGates( pLib );
-//Mio_WriteLibrary( stdout, pLib );
+    if ( pLib )
+        pLib->pName = Mio_UtilStrsav( FileName );
     return pLib;
 }
 
@@ -248,12 +297,10 @@ int Mio_LibraryReadInternal( Mio_Library_t * pLib, char * pBuffer, int fExtended
                 }
                 pBase->pTwin = pGate;
                 pGate->pTwin = pBase;
-                printf( "Gate \"%s\" appears two times. Creating a 2-output gate.\n", pGate->pName );
+//                printf( "Gate \"%s\" appears two times. Creating a 2-output gate.\n", pGate->pName );
             }
         }
     }
-    if ( fVerbose )
-    printf( "Entered GENLIB library with %d gates from file \"%s\".\n", nGates, pLib->pName );
 
     if ( nGates == 0 )
     {
