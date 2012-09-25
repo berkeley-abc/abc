@@ -243,7 +243,7 @@ int Super_CommandSupergates( Abc_Frame_t * pAbc, int argc, char **argv )
 
     if ( argc != globalUtilOptind + 1 )
     {
-        fprintf( pErr, "The GENLIB library file should be given on the command line.\n" );
+        fprintf( pErr, "The genlib library file should be given on the command line.\n" );
         goto usage;
     }
 
@@ -275,7 +275,8 @@ int Super_CommandSupergates( Abc_Frame_t * pAbc, int argc, char **argv )
     }
 
     // compute the gates
-    Super_Precompute( pLib, nVarsMax, nLevels, nGatesMax, DelayLimit, AreaLimit, TimeLimit, fSkipInvs, fWriteOldFormat, fVerbose );
+    FileName = Extra_FileNameGenericAppend(Mio_LibraryReadName(pLib), ".super");
+    Super_Precompute( pLib, nVarsMax, nLevels, nGatesMax, DelayLimit, AreaLimit, TimeLimit, fSkipInvs, fVerbose, FileName );
 
     // delete the library
     Mio_LibraryDelete( pLib );
@@ -283,7 +284,7 @@ int Super_CommandSupergates( Abc_Frame_t * pAbc, int argc, char **argv )
 
 usage:
     fprintf( pErr, "usage: super [-ILNT num] [-DA float] [-E file] [-sovh] <genlib_file>\n");
-    fprintf( pErr, "\t         precomputes the supergates for the given GENLIB library\n" );  
+    fprintf( pErr, "\t         precomputes the supergates for the given genlib library\n" );  
     fprintf( pErr, "\t-I num   : the max number of supergate inputs [default = %d]\n", nVarsMax );
     fprintf( pErr, "\t-L num   : the max number of levels of gates [default = %d]\n", nLevels );
     fprintf( pErr, "\t-N num   : the limit on the number of considered supergates [default = %d]\n", nGatesMax );

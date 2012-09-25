@@ -28,10 +28,7 @@
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
-
-
 ABC_NAMESPACE_HEADER_START
-
 
 ////////////////////////////////////////////////////////////////////////
 ///                    STRUCTURE DEFINITIONS                         ///
@@ -49,13 +46,14 @@ ABC_NAMESPACE_HEADER_START
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
-/*=== superCore.c =============================================================*/
-    
+/*=== superAnd.c =============================================================*/
+extern void        Super2_Precompute( int nInputs, int nLevels, int fVerbose );
+/*=== superGate.c =============================================================*/
+extern Vec_Str_t * Super_PrecomputeStr( Mio_Library_t * pLibGen, int nVarsMax, int nLevels, int nGatesMax, float tDelayMax, float tAreaMax, int TimeLimit, int fSkipInv, int fVerbose );
+extern void        Super_Precompute( Mio_Library_t * pLibGen, int nVarsMax, int nLevels, int nGatesMax, float tDelayMax, float tAreaMax, int TimeLimit, int fSkipInv, int fVerbose, char * pFileName );
 
 
 ABC_NAMESPACE_HEADER_END
-
-
 
 #endif
 

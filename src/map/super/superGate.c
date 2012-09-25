@@ -113,17 +113,14 @@ static int            Super_AreaCompare( Super_Gate_t ** ppG1, Super_Gate_t ** p
 static void           Super_TranferGatesToArray( Super_Man_t * pMan );
 static int            Super_CheckTimeout( ProgressBar * pPro, Super_Man_t * pMan );
  
-static void           Super_Write( Super_Man_t * pMan );
+static Vec_Str_t *    Super_Write( Super_Man_t * pMan );
 static int            Super_WriteCompare( Super_Gate_t ** ppG1, Super_Gate_t ** ppG2 );
 static void           Super_WriteFileHeader( Super_Man_t * pMan, FILE * pFile );
 
 static void           Super_WriteLibrary( Super_Man_t * pMan );
-static void           Super_WriteLibraryGate( FILE * pFile, Super_Man_t * pMan, Super_Gate_t * pGate, int Num );
-static char *         Super_WriteLibraryGateName( Super_Gate_t * pGate );
-static void           Super_WriteLibraryGateName_rec( Super_Gate_t * pGate, char * pBuffer );
 
-static void           Super_WriteLibraryTree( Super_Man_t * pMan );
-static void           Super_WriteLibraryTree_rec( FILE * pFile, Super_Man_t * pMan, Super_Gate_t * pSuper, int * pCounter );
+static void           Super_WriteLibraryTreeFile( Super_Man_t * pMan );
+static Vec_Str_t *    Super_WriteLibraryTreeStr( Super_Man_t * pMan );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -140,8 +137,41 @@ static void           Super_WriteLibraryTree_rec( FILE * pFile, Super_Man_t * pM
   SeeAlso     []
 
 ***********************************************************************/
-void Super_Precompute( Mio_Library_t * pLibGen, int nVarsMax, int nLevels, int nGatesMax, float tDelayMax, float tAreaMax, int TimeLimit, int fSkipInv, int fWriteOldFormat, int fVerbose )
+void Super_Precompute( Mio_Library_t * pLibGen, int nVarsMax, int nLevels, int nGatesMax, float tDelayMax, float tAreaMax, int TimeLimit, int fSkipInv, int fVerbose, char * pFileName )
 {
+    Vec_Str_t * vStr;
+    FILE * pFile = fopen( pFileName, "wb" );
+    if ( pFile == NULL )
+    {     
+        printf( "Cannot open output file \"%s\".\n", pFileName );
+        return;
+    }
+    vStr = Super_PrecomputeStr( pLibGen, nVarsMax, nLevels, nGatesMax, tDelayMax, tAreaMax, TimeLimit, fSkipInv, fVerbose );
+    fwrite( Vec_StrArray(vStr), 1, Vec_StrSize(vStr), pFile );
+    fclose( pFile );
+    Vec_StrFree( vStr );
+    // report the result of writing
+    if ( fVerbose )
+    {
+        printf( "The supergates are written using new format \"%s\" ", pFileName );
+        printf( "(%0.3f MB).\n", ((double)Extra_FileSize(pFileName))/(1<<20) );
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Precomputes the library of supergates.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Str_t * Super_PrecomputeStr( Mio_Library_t * pLibGen, int nVarsMax, int nLevels, int nGatesMax, float tDelayMax, float tAreaMax, int TimeLimit, int fSkipInv, int fVerbose )
+{
+    Vec_Str_t * vStr;
     Super_Man_t * pMan;
     Mio_Gate_t ** ppGates;
     int nGates, Level;
@@ -152,7 +182,7 @@ void Super_Precompute( Mio_Library_t * pLibGen, int nVarsMax, int nLevels, int n
     {
         fprintf( stderr, "Erro! The number of supergates requested (%d) in less than the number of variables (%d).\n", nGatesMax, nVarsMax );
         fprintf( stderr, "The library cannot be computed.\n" );
-        return;
+        return NULL;
     }
 
     // get the root gates
@@ -173,7 +203,6 @@ void Super_Precompute( Mio_Library_t * pLibGen, int nVarsMax, int nLevels, int n
     pMan->TimeLimit = TimeLimit; // in seconds
     pMan->TimeStop  = TimeLimit * CLOCKS_PER_SEC + clock(); // in CPU ticks
     pMan->fVerbose  = fVerbose;
-    pMan->fWriteOldFormat = fWriteOldFormat;
 
     if ( nGates == 0 )
     {
@@ -185,7 +214,7 @@ void Super_Precompute( Mio_Library_t * pLibGen, int nVarsMax, int nLevels, int n
         Super_ManStop( pMan );
         ABC_FREE( ppGates );
 
-        return;
+        return NULL;
     }
 
     // get the starting supergates
@@ -224,11 +253,12 @@ printf( "Writing the output file...\n" );
 fflush( stdout );
 }
     // write them into a file
-    Super_Write( pMan );
+    vStr = Super_Write( pMan );
 
     // stop the manager
     Super_ManStop( pMan );
     ABC_FREE( ppGates );
+    return vStr;
 }
 
 
@@ -299,7 +329,7 @@ void Super_First( Super_Man_t * pMan, int nVarsMax )
   Synopsis    [Precomputes one level of supergates.]
 
   Description [This procedure computes the set of supergates that can be
-  derived from the given set of root gates (from GENLIB library) by composing
+  derived from the given set of root gates (from genlib library) by composing
   the root gates with the currently available supergates. This procedure is
   smart in the sense that it tries to avoid useless emuration by imposing
   tight bounds by area and delay. Only the supergates and are guaranteed to 
@@ -946,8 +976,9 @@ void Super_ManStop( Super_Man_t * pMan )
   SeeAlso     []
 
 ***********************************************************************/
-void Super_Write( Super_Man_t * pMan )
+Vec_Str_t * Super_Write( Super_Man_t * pMan )
 {
+    Vec_Str_t * vStr;
     Super_Gate_t * pGateRoot, * pGate;
     stmm_generator * gen;
     int fZeroFound, v;
@@ -957,7 +988,7 @@ void Super_Write( Super_Man_t * pMan )
     if ( pMan->nGates < 1 )
     {
         printf( "The generated library is empty. No output file written.\n" );
-        return;
+        return NULL;
     }
 
     // Filters the supergates by removing those that have fewer inputs than 
@@ -1010,11 +1041,12 @@ ABC_PRT( "Writing old format", clock() - clk );
 
     // write the tree-like structure of supergates
 clk = clock();
-    Super_WriteLibraryTree( pMan );
+    vStr = Super_WriteLibraryTreeStr( pMan );
 if ( pMan->fVerbose )
 {
 ABC_PRT( "Writing new format", clock() - clk );
 }
+    return vStr;
 }
 
 
@@ -1054,10 +1086,57 @@ void Super_WriteFileHeader( Super_Man_t * pMan, FILE * pFile )
     fprintf( pFile, "%d\n", pMan->nVarsMax );
     fprintf( pFile, "%d\n", pMan->nGates );
 }
+void Super_WriteFileHeaderStr( Super_Man_t * pMan, Vec_Str_t * vStr )
+{
+    char pBuffer[1000];
+    sprintf( pBuffer, "#\n" );
+    Vec_StrPrintStr( vStr, pBuffer );
+    sprintf( pBuffer, "# Supergate library derived for \"%s\" on %s.\n", pMan->pName, Extra_TimeStamp() );
+    Vec_StrPrintStr( vStr, pBuffer );
+    sprintf( pBuffer, "#\n" );
+    Vec_StrPrintStr( vStr, pBuffer );
+    sprintf( pBuffer, "# Command line: \"super -I %d -L %d -N %d -T %d -D %.2f -A %.2f %s %s\".\n", 
+        pMan->nVarsMax, pMan->nLevels, pMan->nGatesMax, pMan->TimeLimit, pMan->tDelayMax, pMan->tAreaMax, (pMan->fSkipInv? "" : "-s"), pMan->pName );
+    Vec_StrPrintStr( vStr, pBuffer );
+    sprintf( pBuffer, "#\n" );
+    Vec_StrPrintStr( vStr, pBuffer );
+    sprintf( pBuffer, "# The number of inputs      = %10d.\n", pMan->nVarsMax );
+    Vec_StrPrintStr( vStr, pBuffer );
+    sprintf( pBuffer, "# The number of levels      = %10d.\n", pMan->nLevels );
+    Vec_StrPrintStr( vStr, pBuffer );
+    sprintf( pBuffer, "# The maximum delay         = %10.2f.\n", pMan->tDelayMax  );
+    Vec_StrPrintStr( vStr, pBuffer );
+    sprintf( pBuffer, "# The maximum area          = %10.2f.\n", pMan->tAreaMax );
+    Vec_StrPrintStr( vStr, pBuffer );
+    sprintf( pBuffer, "# The maximum runtime (sec) = %10d.\n", pMan->TimeLimit );
+    Vec_StrPrintStr( vStr, pBuffer );
+    sprintf( pBuffer, "#\n" );
+    Vec_StrPrintStr( vStr, pBuffer );
+    sprintf( pBuffer, "# The number of attempts    = %10d.\n", pMan->nTried  );
+    Vec_StrPrintStr( vStr, pBuffer );
+    sprintf( pBuffer, "# The number of supergates  = %10d.\n", pMan->nGates  );
+    Vec_StrPrintStr( vStr, pBuffer );
+    sprintf( pBuffer, "# The number of functions   = %10d.\n", pMan->nUnique );
+    Vec_StrPrintStr( vStr, pBuffer );
+    sprintf( pBuffer, "# The total functions       = %.0f (2^%d).\n", pow((double)2,pMan->nMints), pMan->nMints );
+    Vec_StrPrintStr( vStr, pBuffer );
+    sprintf( pBuffer, "#\n" );
+    Vec_StrPrintStr( vStr, pBuffer );
+    sprintf( pBuffer, "# Generation time           = %10.2f sec.\n", (float)(pMan->Time)/(float)(CLOCKS_PER_SEC) );
+    Vec_StrPrintStr( vStr, pBuffer );
+    sprintf( pBuffer, "#\n" );
+    Vec_StrPrintStr( vStr, pBuffer );
+    sprintf( pBuffer, "%s\n", pMan->pName );
+    Vec_StrPrintStr( vStr, pBuffer );
+    sprintf( pBuffer, "%d\n", pMan->nVarsMax );
+    Vec_StrPrintStr( vStr, pBuffer );
+    sprintf( pBuffer, "%d\n", pMan->nGates );
+    Vec_StrPrintStr( vStr, pBuffer );
+}
 
 /**Function*************************************************************
 
-  Synopsis    [Compares the truth tables of two gates.]
+  Synopsis    [Compares two gates.]
 
   Description []
                
@@ -1080,18 +1159,6 @@ int Super_WriteCompare( Super_Gate_t ** ppG1, Super_Gate_t ** ppG2 )
         return 1;
     return 0;
 }
-
-/**Function*************************************************************
-
-  Synopsis    [Compares the max delay of two gates.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
 int Super_DelayCompare( Super_Gate_t ** ppG1, Super_Gate_t ** ppG2 )
 {
     if ( (*ppG1)->tDelayMax < (*ppG2)->tDelayMax )
@@ -1100,18 +1167,6 @@ int Super_DelayCompare( Super_Gate_t ** ppG1, Super_Gate_t ** ppG2 )
         return 1;
     return 0;
 }
-
-/**Function*************************************************************
-
-  Synopsis    [Compares the area of two gates.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
 int Super_AreaCompare( Super_Gate_t ** ppG1, Super_Gate_t ** ppG2 )
 {
     if ( (*ppG1)->Area < (*ppG2)->Area )
@@ -1137,6 +1192,48 @@ int Super_AreaCompare( Super_Gate_t ** ppG1, Super_Gate_t ** ppG2 )
   SeeAlso     []
 
 ***********************************************************************/
+void Super_WriteLibraryGateName_rec( Super_Gate_t * pGate, char * pBuffer )
+{
+    char Buffer[10];
+    int i;
+
+    if ( pGate->pRoot == NULL )
+    {
+        sprintf( Buffer, "%c", 'a' + pGate->Number );
+        strcat( pBuffer, Buffer );
+        return;
+    }
+    strcat( pBuffer, Mio_GateReadName(pGate->pRoot) );
+    strcat( pBuffer, "(" );
+    for ( i = 0; i < (int)pGate->nFanins; i++ )
+    {
+        if ( i )
+            strcat( pBuffer, "," );
+        Super_WriteLibraryGateName_rec( pGate->pFanins[i], pBuffer );
+    }
+    strcat( pBuffer, ")" );
+}
+char * Super_WriteLibraryGateName( Super_Gate_t * pGate )
+{
+    static char Buffer[2000];
+    Buffer[0] = 0;
+    Super_WriteLibraryGateName_rec( pGate, Buffer );
+    return Buffer;
+}
+void Super_WriteLibraryGate( FILE * pFile, Super_Man_t * pMan, Super_Gate_t * pGate, int Num )
+{
+    int i;
+    fprintf( pFile, "%04d  ", Num );                         // the number
+    Extra_PrintBinary( pFile, pGate->uTruth, pMan->nMints ); // the truth table
+    fprintf( pFile, "   %5.2f", pGate->tDelayMax );          // the max delay
+    fprintf( pFile, "  " );                                  
+    for ( i = 0; i < pMan->nVarsMax; i++ )                   // the pin-to-pin delays
+        fprintf( pFile, " %5.2f", pGate->ptDelays[i]==SUPER_NO_VAR? 0.0 : pGate->ptDelays[i] );  
+    fprintf( pFile, "   %5.2f", pGate->Area );               // the area
+    fprintf( pFile, "   " );
+    fprintf( pFile, "%s", Super_WriteLibraryGateName(pGate) );      // the symbolic expression
+    fprintf( pFile, "\n" );
+}
 void Super_WriteLibrary( Super_Man_t * pMan )
 {
     Super_Gate_t * pGate, * pGateNext;
@@ -1183,93 +1280,14 @@ void Super_WriteLibrary( Super_Man_t * pMan )
     assert( Counter == pMan->nGates );
     fclose( pFile );
 
-if ( pMan->fVerbose )
-{
-    printf( "The supergates are written using old format \"%s\" ", FileName );
-    printf( "(%0.3f MB).\n", ((double)Extra_FileSize(FileName))/(1<<20) );
-}
+    if ( pMan->fVerbose )
+    {
+        printf( "The supergates are written using old format \"%s\" ", FileName );
+        printf( "(%0.3f MB).\n", ((double)Extra_FileSize(FileName))/(1<<20) );
+    }
 
     ABC_FREE( FileName );
 }
-
-/**Function*************************************************************
-
-  Synopsis    [Writes the supergate into the file.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Super_WriteLibraryGate( FILE * pFile, Super_Man_t * pMan, Super_Gate_t * pGate, int Num )
-{
-    int i;
-    fprintf( pFile, "%04d  ", Num );                         // the number
-    Extra_PrintBinary( pFile, pGate->uTruth, pMan->nMints ); // the truth table
-    fprintf( pFile, "   %5.2f", pGate->tDelayMax );          // the max delay
-    fprintf( pFile, "  " );                                  
-    for ( i = 0; i < pMan->nVarsMax; i++ )                   // the pin-to-pin delays
-        fprintf( pFile, " %5.2f", pGate->ptDelays[i]==SUPER_NO_VAR? 0.0 : pGate->ptDelays[i] );  
-    fprintf( pFile, "   %5.2f", pGate->Area );               // the area
-    fprintf( pFile, "   " );
-    fprintf( pFile, "%s", Super_WriteLibraryGateName(pGate) );      // the symbolic expression
-    fprintf( pFile, "\n" );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Recursively generates symbolic name of the supergate.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-char * Super_WriteLibraryGateName( Super_Gate_t * pGate )
-{
-    static char Buffer[2000];
-    Buffer[0] = 0;
-    Super_WriteLibraryGateName_rec( pGate, Buffer );
-    return Buffer;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Recursively generates symbolic name of the supergate.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Super_WriteLibraryGateName_rec( Super_Gate_t * pGate, char * pBuffer )
-{
-    char Buffer[10];
-    int i;
-
-    if ( pGate->pRoot == NULL )
-    {
-        sprintf( Buffer, "%c", 'a' + pGate->Number );
-        strcat( pBuffer, Buffer );
-        return;
-    }
-    strcat( pBuffer, Mio_GateReadName(pGate->pRoot) );
-    strcat( pBuffer, "(" );
-    for ( i = 0; i < (int)pGate->nFanins; i++ )
-    {
-        if ( i )
-            strcat( pBuffer, "," );
-        Super_WriteLibraryGateName_rec( pGate->pFanins[i], pBuffer );
-    }
-    strcat( pBuffer, ")" );
-}
-
 
 
 
@@ -1285,7 +1303,30 @@ void Super_WriteLibraryGateName_rec( Super_Gate_t * pGate, char * pBuffer )
   SeeAlso     []
 
 ***********************************************************************/
-void Super_WriteLibraryTree( Super_Man_t * pMan )
+void Super_WriteLibraryTreeFile_rec( FILE * pFile, Super_Man_t * pMan, Super_Gate_t * pSuper, int * pCounter )
+{
+    int nFanins, i;
+    // skip an elementary variable and a gate that was already written
+    if ( pSuper->fVar || pSuper->Number > 0 )
+        return;
+    // write the fanins
+    nFanins = Mio_GateReadPinNum(pSuper->pRoot);
+    for ( i = 0; i < nFanins; i++ )
+        Super_WriteLibraryTreeFile_rec( pFile, pMan, pSuper->pFanins[i], pCounter );
+    // finally write the gate
+    pSuper->Number = (*pCounter)++;
+    fprintf( pFile, "%s", pSuper->fSuper? "* " : "" );
+    fprintf( pFile, "%s", Mio_GateReadName(pSuper->pRoot) );
+    for ( i = 0; i < nFanins; i++ )
+        fprintf( pFile, " %d", pSuper->pFanins[i]->Number );
+    // write the formula 
+    // this step is optional, the resulting library will work in any case
+    // however, it may be helpful to for debugging to compare the same library 
+    // written in the old format and written in the new format with formulas
+//    fprintf( pFile, "    # %s", Super_WriteLibraryGateName( pSuper ) );
+    fprintf( pFile, "\n" );
+}
+void Super_WriteLibraryTreeFile( Super_Man_t * pMan )
 {
     Super_Gate_t * pSuper;
     FILE * pFile;
@@ -1302,7 +1343,7 @@ void Super_WriteLibraryTree( Super_Man_t * pMan )
     ABC_FREE( pNameGeneric );
  
     // write the elementary variables
-    pFile = fopen( FileName, "w" );
+    pFile = fopen( FileName, "wb" );
     Super_WriteFileHeader( pMan, pFile );
     // write the place holder for the number of lines
     posStart = ftell( pFile );
@@ -1313,7 +1354,7 @@ void Super_WriteLibraryTree( Super_Man_t * pMan )
     // write the supergates
     Counter = pMan->nVarsMax;
     Super_ManForEachGate( pMan->pGates, pMan->nGates, i, pSuper )
-        Super_WriteLibraryTree_rec( pFile, pMan, pSuper, &Counter );
+        Super_WriteLibraryTreeFile_rec( pFile, pMan, pSuper, &Counter );
     fclose( pFile );
     // write the number of lines
     pFile = fopen( FileName, "rb+" );
@@ -1330,9 +1371,10 @@ if ( pMan->fVerbose )
     ABC_FREE( FileName );
 }
 
+
 /**Function*************************************************************
 
-  Synopsis    [Recursively writes the gate.]
+  Synopsis    [Recursively writes the gates.]
 
   Description []
                
@@ -1341,7 +1383,7 @@ if ( pMan->fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-void Super_WriteLibraryTree_rec( FILE * pFile, Super_Man_t * pMan, Super_Gate_t * pSuper, int * pCounter )
+void Super_WriteLibraryTreeStr_rec( Vec_Str_t * vStr, Super_Man_t * pMan, Super_Gate_t * pSuper, int * pCounter )
 {
     int nFanins, i;
     // skip an elementary variable and a gate that was already written
@@ -1350,21 +1392,78 @@ void Super_WriteLibraryTree_rec( FILE * pFile, Super_Man_t * pMan, Super_Gate_t 
     // write the fanins
     nFanins = Mio_GateReadPinNum(pSuper->pRoot);
     for ( i = 0; i < nFanins; i++ )
-        Super_WriteLibraryTree_rec( pFile, pMan, pSuper->pFanins[i], pCounter );
+        Super_WriteLibraryTreeStr_rec( vStr, pMan, pSuper->pFanins[i], pCounter );
     // finally write the gate
     pSuper->Number = (*pCounter)++;
-    fprintf( pFile, "%s", pSuper->fSuper? "* " : "" );
-    fprintf( pFile, "%s", Mio_GateReadName(pSuper->pRoot) );
+//    fprintf( pFile, "%s", pSuper->fSuper? "* " : "" );
+//    fprintf( pFile, "%s", Mio_GateReadName(pSuper->pRoot) );
+//    for ( i = 0; i < nFanins; i++ )
+//        fprintf( pFile, " %d", pSuper->pFanins[i]->Number );
+    Vec_StrPrintStr( vStr, pSuper->fSuper? "* " : "" );
+    Vec_StrPrintStr( vStr, Mio_GateReadName(pSuper->pRoot) );
     for ( i = 0; i < nFanins; i++ )
-        fprintf( pFile, " %d", pSuper->pFanins[i]->Number );
+    {
+        Vec_StrPrintStr( vStr, " " );
+        Vec_StrPrintNum( vStr, pSuper->pFanins[i]->Number );    
+    }
     // write the formula 
     // this step is optional, the resulting library will work in any case
     // however, it may be helpful to for debugging to compare the same library 
     // written in the old format and written in the new format with formulas
 //    fprintf( pFile, "    # %s", Super_WriteLibraryGateName( pSuper ) );
-    fprintf( pFile, "\n" );
+//    fprintf( pFile, "\n" );
+    Vec_StrPrintStr( vStr, "\n" );
 }
-
+Vec_Str_t * Super_WriteLibraryTreeStr( Super_Man_t * pMan )
+{
+    char pInsert[16];
+    Vec_Str_t * vStr;
+    Super_Gate_t * pSuper;
+    int i, Counter;
+    int posStart;
+     // write the elementary variables
+    vStr = Vec_StrAlloc( 1000 );
+    Super_WriteFileHeaderStr( pMan, vStr );
+    // write the place holder for the number of lines
+    posStart = Vec_StrSize( vStr );
+    for ( i = 0; i < 9; i++ )
+        Vec_StrPush( vStr, ' ' );
+    Vec_StrPush( vStr, '\n' );
+    // mark the real supergates
+    Super_ManForEachGate( pMan->pGates, pMan->nGates, i, pSuper )
+        pSuper->fSuper = 1;
+    // write the supergates
+    Counter = pMan->nVarsMax;
+    Super_ManForEachGate( pMan->pGates, pMan->nGates, i, pSuper )
+        Super_WriteLibraryTreeStr_rec( vStr, pMan, pSuper, &Counter );
+    Vec_StrPush( vStr, 0 );
+    // write the number of lines
+    sprintf( pInsert, "%d", Counter );
+    for ( i = 0; i < (int)strlen(pInsert); i++ )
+        Vec_StrWriteEntry( vStr, posStart + i, pInsert[i] );
+    return vStr;
+}
+void Super_WriteLibraryTree( Super_Man_t * pMan )
+{
+    Vec_Str_t * vStr;
+    char * pFileName = Extra_FileNameGenericAppend( pMan->pName, ".super" );
+    FILE * pFile = fopen( pFileName, "wb" );
+    if ( pFile == NULL )
+    {     
+        printf( "Cannot open output file \"%s\".\n", pFileName );
+        return;
+    }
+    vStr = Super_WriteLibraryTreeStr( pMan );
+    fwrite( Vec_StrArray(vStr), 1, Vec_StrSize(vStr), pFile );
+    fclose( pFile );
+    Vec_StrFree( vStr );
+    // report the result of writing
+    if ( pMan->fVerbose )
+    {
+        printf( "The supergates are written using new format \"%s\" ", pFileName );
+        printf( "(%0.3f MB).\n", ((double)Extra_FileSize(pFileName))/(1<<20) );
+    }
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

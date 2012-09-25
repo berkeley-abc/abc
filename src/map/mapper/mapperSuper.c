@@ -103,13 +103,13 @@ int Map_LibraryReadFile( Map_SuperLib_t * pLib, FILE * pFile )
     pLibName = strtok( pTemp, " \t\r\n" );
     if ( strcmp( pLibName, "GATE" ) == 0 )
     {
-        printf( "The input file \"%s\" looks like a GENLIB file and not a supergate library file.\n", pLib->pName );
+        printf( "The input file \"%s\" looks like a genlib file and not a supergate library file.\n", pLib->pName );
         return 0;
     }
     pFileGen = fopen( pLibName, "r" );
     if ( pFileGen == NULL )
     {
-        printf( "Cannot open the GENLIB file \"%s\".\n", pLibName );
+        printf( "Cannot open the genlib file \"%s\".\n", pLibName );
         return 0;
     }
     fclose( pFileGen );
@@ -118,7 +118,7 @@ int Map_LibraryReadFile( Map_SuperLib_t * pLib, FILE * pFile )
     pLib->pGenlib = Mio_LibraryRead( pLibName, NULL, 0, 0 );
     if ( pLib->pGenlib == NULL )
     {
-        printf( "Cannot read GENLIB file \"%s\".\n", pLibName );
+        printf( "Cannot read genlib file \"%s\".\n", pLibName );
         return 0;
     }
 

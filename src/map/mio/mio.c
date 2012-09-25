@@ -40,7 +40,7 @@ static int Mio_CommandWriteGenlib( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Mio_CommandPrintGenlib( Abc_Frame_t * pAbc, int argc, char **argv );
 
 /*
-// internal version of GENLIB library
+// internal version of genlib library
 static char * pMcncGenlib[25] = {
     "GATE inv1    1   O=!a;             PIN * INV     1 999 0.9 0.0 0.9 0.0\n",
     "GATE inv2    2   O=!a;             PIN * INV     2 999 1.0 0.0 1.0 0.0\n",
@@ -320,7 +320,7 @@ int Mio_CommandReadGenlib( Abc_Frame_t * pAbc, int argc, char **argv )
     pLib = Mio_LibraryRead( pFileName, NULL, pExcludeFile, fVerbose );  
     if ( pLib == NULL )
     {
-        fprintf( pErr, "Reading GENLIB library has failed.\n" );
+        fprintf( pErr, "Reading genlib library has failed.\n" );
         return 1;
     }
     // add the fixed number (wire delay) to all delays in the library
@@ -342,14 +342,14 @@ int Mio_CommandReadGenlib( Abc_Frame_t * pAbc, int argc, char **argv )
     pLib = (Mio_Library_t *)Amap_LibReadAndPrepare( pFileName, NULL, 0, 0 );  
     if ( pLib == NULL )
     {
-        fprintf( pErr, "Reading GENLIB library has failed.\n" );
+        fprintf( pErr, "Reading genlib library has failed.\n" );
         return 1;
     }
     // replace the current library
     Amap_LibFree( (Amap_Lib_t *)Abc_FrameReadLibGen2() );
     Abc_FrameSetLibGen2( pLib );
     if ( fVerbose )
-        printf( "Entered GENLIB library with %d gates from file \"%s\".\n", Mio_LibraryReadGateNum(pLib), pFileName );
+        printf( "Entered genlib library with %d gates from file \"%s\".\n", Mio_LibraryReadGateNum(pLib), pFileName );
     return 0;
 
 usage:
@@ -425,7 +425,7 @@ int Mio_CommandWriteGenlib( Abc_Frame_t * pAbc, int argc, char **argv )
     }
     Mio_WriteLibrary( pFile, (Mio_Library_t *)Abc_FrameReadLibGen(), 0 );
     fclose( pFile );
-    printf( "The current GENLIB library is written into file \"%s\".\n", pFileName );
+    printf( "The current genlib library is written into file \"%s\".\n", pFileName );
     return 0;
 
 usage:

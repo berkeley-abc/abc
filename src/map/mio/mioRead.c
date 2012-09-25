@@ -89,7 +89,7 @@ Mio_Library_t * Mio_LibraryRead( char * FileName, char * pBuffer, char * Exclude
                 pLib->pName = Abc_UtilStrsav( Extra_FileNameGenericAppend(FileName, ".genlib") );
         }
         if ( pLib != NULL )
-            printf ( "Warning: Read extended GENLIB format but ignoring extensions\n" );
+            printf ( "Warning: Read extended genlib format but ignoring extensions\n" );
     }
     if ( tExcludeGate )
         st_free_table( tExcludeGate );
@@ -108,7 +108,7 @@ Mio_Library_t * Mio_LibraryRead( char * FileName, char * pBuffer, char * Exclude
   SeeAlso     []
 
 ***********************************************************************/
-char * Mio_ReadFile( char * FileName )
+char * Mio_ReadFile( char * FileName, int fAddEnd )
 {
     char * pBuffer;
     FILE * pFile;
@@ -131,7 +131,8 @@ char * Mio_ReadFile( char * FileName )
     RetValue = fread( pBuffer, nFileSize, 1, pFile );
     // terminate the string with '\0'
     pBuffer[ nFileSize ] = '\0';
-    strcat( pBuffer, "\n.end\n" );
+    if ( fAddEnd )
+        strcat( pBuffer, "\n.end\n" );
     // close file
     fclose( pFile );
     return pBuffer;
@@ -201,7 +202,7 @@ Mio_Library_t * Mio_LibraryReadOne( char * FileName, int fExtendedFormat, st_tab
     // pBuffer = Io_ReadFileFileContents( FileName, NULL );
     // we don't use above function but actually do the same thing explicitly
     // to handle open_path expansion correctly
-    pBuffer = Mio_ReadFile( FileName );
+    pBuffer = Mio_ReadFile( FileName, 1 );
     if ( pBuffer == NULL )
         return NULL;
     pLib = Mio_LibraryReadBuffer( pBuffer, fExtendedFormat, tExcludeGate, fVerbose );
@@ -617,7 +618,7 @@ void Mio_LibraryDetectSpecialGates( Mio_Library_t * pLib )
         pLib->pGateBuf = Mio_GateCompare( pLib->pGateBuf, pGate, uFuncBuf );
     if ( pLib->pGateBuf == NULL )
     {
-        printf( "Warnings: GENLIB library reader cannot detect the buffer gate.\n" );
+        printf( "Warnings: genlib library reader cannot detect the buffer gate.\n" );
         printf( "Some parts of the supergate-based technology mapper may not work correctly.\n" );
     }
  
@@ -626,7 +627,7 @@ void Mio_LibraryDetectSpecialGates( Mio_Library_t * pLib )
         pLib->pGateInv = Mio_GateCompare( pLib->pGateInv, pGate, uFuncInv );
     if ( pLib->pGateInv == NULL )
     {
-        printf( "Warnings: GENLIB library reader cannot detect the invertor gate.\n" );
+        printf( "Warnings: genlib library reader cannot detect the invertor gate.\n" );
         printf( "Some parts of the supergate-based technology mapper may not work correctly.\n" );
     }
 
@@ -637,7 +638,7 @@ void Mio_LibraryDetectSpecialGates( Mio_Library_t * pLib )
         pLib->pGateAnd2 = Mio_GateCompare( pLib->pGateAnd2, pGate, uFuncAnd2 );
     if ( pLib->pGateAnd2 == NULL && pLib->pGateNand2 == NULL )
     {
-        printf( "Warnings: GENLIB library reader cannot detect the AND2 or NAND2 gate.\n" );
+        printf( "Warnings: genlib library reader cannot detect the AND2 or NAND2 gate.\n" );
         printf( "Some parts of the supergate-based technology mapper may not work correctly.\n" );
     }
 }
