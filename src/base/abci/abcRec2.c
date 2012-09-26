@@ -1552,6 +1552,7 @@ timeBuild = clock();
     }
 
     // build the node and compute its truth table
+    assert( Vec_PtrSize(vNodes) > 0 );
     nNodesBeg = Gia_ManObjNum( pAig );
     Vec_PtrForEachEntryStart( If_Obj_t *, vNodes, pIfObj, i, nLeaves )
     {
