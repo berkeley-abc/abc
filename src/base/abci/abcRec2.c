@@ -470,7 +470,7 @@ void Abc_NtkRecMarkNonDanglingNodes(Gia_Man_t * pGia)
     Gia_Obj_t * pObj, * pFanin;
     int i;
     int Id;
-    int counter = 0;
+//    int counter = 0;
     Gia_ManForEachObj(pGia, pObj, i)
     {
         if (pObj->fMark1 == 1)
@@ -1031,7 +1031,7 @@ void Abc_NtkRecStart2( Gia_Man_t * pGia, int nVars, int nCuts, int fTrim )
     Gia_Obj_t * pObj, *pFanin;
     int * ppSpot;
     unsigned * pTruth;
-    int i, j = 0;
+    int i;//, j = 0;
     int clkTotal = clock(), clk, timeInsert;
 
     assert( s_pMan == NULL );
@@ -1469,7 +1469,7 @@ int Abc_NtkRecAddCut2( If_Man_t * pIfMan, If_Obj_t * pRoot, If_Cut_t * pCut )
     static int s_MaxSize[16] = { 0 };
     char pCanonPerm[16];
     Gia_Obj_t * pObj = NULL,  *pPO;
-    int iFanin0, iFanin1, iRecObj;
+    int iFanin0, iFanin1, iRecObj = -1;
     int * ppSpot, lit;//, test;
     Gia_Man_t * pAig = s_pMan->pGia;
     If_Obj_t * pIfObj;
