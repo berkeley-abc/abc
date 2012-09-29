@@ -177,6 +177,10 @@ SOURCE=.\src\base\abc\abcSop.c
 
 SOURCE=.\src\base\abc\abcUtil.c
 # End Source File
+# Begin Source File
+
+SOURCE=.\src\base\abc\miniaig.h
+# End Source File
 # End Group
 # Begin Group "abci"
 

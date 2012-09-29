@@ -19,6 +19,8 @@
 ***********************************************************************/
 
 #include "base/abc/abc.h"
+#include "base/main/main.h"
+#include "base/abc/miniaig.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -27,8 +29,8 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static Hop_Man_t * Abc_NtkToMini( Abc_Ntk_t * pNtk );
-static Abc_Ntk_t * Abc_NtkFromMini( Abc_Ntk_t * pNtkOld, Hop_Man_t * pMan );
+static Mini_Aig_t * Abc_NtkToMini( Abc_Ntk_t * pNtk );
+static Abc_Ntk_t * Abc_NtkFromMini( Abc_Ntk_t * pNtkOld, Mini_Aig_t * p );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -36,7 +38,7 @@ static Abc_Ntk_t * Abc_NtkFromMini( Abc_Ntk_t * pNtkOld, Hop_Man_t * pMan );
 
 /**Function*************************************************************
 
-  Synopsis    [Gives the current ABC network to AIG manager for processing.]
+  Synopsis    [Converts the network from the AIG manager into ABC.]
 
   Description []
                
@@ -45,40 +47,55 @@ static Abc_Ntk_t * Abc_NtkFromMini( Abc_Ntk_t * pNtkOld, Hop_Man_t * pMan );
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkMiniBalance( Abc_Ntk_t * pNtk )
+Abc_Obj_t * Abc_NodeFanin0Copy( Abc_Ntk_t * pNtk, Vec_Int_t * vCopies, Mini_Aig_t * p, int Id )
 {
-    Abc_Ntk_t * pNtkAig;
-    Hop_Man_t * pMan, * pTemp;
-    assert( Abc_NtkIsStrash(pNtk) );
-    // convert to the AIG manager
-    pMan = Abc_NtkToMini( pNtk );
-    if ( pMan == NULL )
-        return NULL;
-    if ( !Hop_ManCheck( pMan ) )
+    int Lit = Mini_AigNodeFanin0( p, Id );
+    Lit = Abc_LitNotCond( Vec_IntEntry(vCopies, Abc_Lit2Var(Lit)), Abc_LitIsCompl(Lit) );
+    return Abc_ObjNotCond( Abc_NtkObj(pNtk, Abc_Lit2Var(Lit)), Abc_LitIsCompl(Lit) ); 
+}
+Abc_Obj_t * Abc_NodeFanin1Copy( Abc_Ntk_t * pNtk, Vec_Int_t * vCopies, Mini_Aig_t * p, int Id )
+{
+    int Lit = Mini_AigNodeFanin1( p, Id );
+    Lit = Abc_LitNotCond( Vec_IntEntry(vCopies, Abc_Lit2Var(Lit)), Abc_LitIsCompl(Lit) );
+    return Abc_ObjNotCond( Abc_NtkObj(pNtk, Abc_Lit2Var(Lit)), Abc_LitIsCompl(Lit) ); 
+}
+int Abc_NodeToLit( Abc_Obj_t * pObj )
+{
+    return Abc_LitNotCond( Abc_ObjId(Abc_ObjRegular(pObj)), Abc_ObjIsComplement(pObj) );
+}
+
+Abc_Ntk_t * Abc_NtkFromMiniAig( Mini_Aig_t * p )
+{
+    Abc_Ntk_t * pNtk;
+    Abc_Obj_t * pObj;
+    Vec_Int_t * vCopies;
+    int i, nNodes;
+    // get the number of nodes
+    nNodes = Mini_AigNumNodes(p);
+    // create ABC network
+    pNtk = Abc_NtkAlloc( ABC_NTK_STRASH, ABC_FUNC_AIG, 1 );
+    // create mapping from MiniAIG into ABC objects
+    vCopies = Vec_IntAlloc( nNodes );
+    Vec_IntPush( vCopies, Abc_LitNot(Abc_NodeToLit(Abc_AigConst1(pNtk))) );
+    // iterate through the objects
+    for ( i = 1; i < nNodes; i++ )
     {
-        printf( "AIG check has failed.\n" );
-        Hop_ManStop( pMan );
-        return NULL;
+        if ( Mini_AigNodeIsPi( p, i ) )
+            pObj = Abc_NtkCreatePi(pNtk);
+        else if ( Mini_AigNodeIsPo( p, i ) )
+            Abc_ObjAddFanin( (pObj = Abc_NtkCreatePo(pNtk)), Abc_NodeFanin0Copy(pNtk, vCopies, p, i) );
+        else if ( Mini_AigNodeIsAnd( p, i ) )
+            pObj = Abc_AigAnd((Abc_Aig_t *)pNtk->pManFunc, Abc_NodeFanin0Copy(pNtk, vCopies, p, i), Abc_NodeFanin1Copy(pNtk, vCopies, p, i));
+        else assert( 0 );
+        Vec_IntPush( vCopies, Abc_NodeToLit(pObj) );
     }
-    // perform balance
-    Hop_ManPrintStats( pMan );
-//    Hop_ManDumpBlif( pMan, "aig_temp.blif" );
-    pMan = Hop_ManBalance( pTemp = pMan, 1 );
-    Hop_ManStop( pTemp );
-    Hop_ManPrintStats( pMan );
-    // convert from the AIG manager
-    pNtkAig = Abc_NtkFromMini( pNtk, pMan );
-    if ( pNtkAig == NULL )
-        return NULL;
-    Hop_ManStop( pMan );
-    // make sure everything is okay
-    if ( !Abc_NtkCheck( pNtkAig ) )
-    {
-        printf( "Abc_NtkStrash: The network check has failed.\n" );
-        Abc_NtkDelete( pNtkAig );
-        return NULL;
-    }
-    return pNtkAig;
+    Abc_AigCleanup( (Abc_Aig_t *)pNtk->pManFunc );
+    Vec_IntFree( vCopies );
+    Abc_NtkAddDummyPiNames( pNtk );
+    Abc_NtkAddDummyPoNames( pNtk );
+    if ( !Abc_NtkCheck( pNtk ) )
+        fprintf( stdout, "Abc_NtkFromMini(): Network check has failed.\n" );
+    return pNtk;
 }
 
 /**Function*************************************************************
@@ -92,30 +109,32 @@ Abc_Ntk_t * Abc_NtkMiniBalance( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-Hop_Man_t * Abc_NtkToMini( Abc_Ntk_t * pNtk )
+Mini_Aig_t * Abc_NtkToMiniAig( Abc_Ntk_t * pNtk )
 {
-    Hop_Man_t * pMan;
+    Mini_Aig_t * p = NULL;
+/*
     Abc_Obj_t * pObj;
     int i;
     // create the manager
-    pMan = Hop_ManStart();
+    p = Hop_ManStart();
     // transfer the pointers to the basic nodes
-    Abc_AigConst1(pNtk)->pCopy = (Abc_Obj_t *)Hop_ManConst1(pMan);
+    Abc_AigConst1(pNtk)->pCopy = (Abc_Obj_t *)Hop_ManConst1(p);
     Abc_NtkForEachCi( pNtk, pObj, i )
-        pObj->pCopy = (Abc_Obj_t *)Hop_ObjCreatePi(pMan);
+        pObj->pCopy = (Abc_Obj_t *)Hop_ObjCreatePi(p);
     // perform the conversion of the internal nodes (assumes DFS ordering)
     Abc_NtkForEachNode( pNtk, pObj, i )
-        pObj->pCopy = (Abc_Obj_t *)Hop_And( pMan, (Hop_Obj_t *)Abc_ObjChild0Copy(pObj), (Hop_Obj_t *)Abc_ObjChild1Copy(pObj) );
+        pObj->pCopy = (Abc_Obj_t *)Hop_And( p, (Hop_Obj_t *)Abc_ObjChild0Copy(pObj), (Hop_Obj_t *)Abc_ObjChild1Copy(pObj) );
     // create the POs
     Abc_NtkForEachCo( pNtk, pObj, i )
-        Hop_ObjCreatePo( pMan, (Hop_Obj_t *)Abc_ObjChild0Copy(pObj) );
-    Hop_ManCleanup( pMan );
-    return pMan;
+        Hop_ObjCreatePo( p, (Hop_Obj_t *)Abc_ObjChild0Copy(pObj) );
+    Hop_ManCleanup( p );
+*/
+    return p;
 }
 
 /**Function*************************************************************
 
-  Synopsis    [Converts the network from the AIG manager into ABC.]
+  Synopsis    []
 
   Description []
                
@@ -124,30 +143,17 @@ Hop_Man_t * Abc_NtkToMini( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkFromMini( Abc_Ntk_t * pNtk, Hop_Man_t * pMan )
+void Abc_NtkInputMiniAig( Mini_Aig_t * p )
 {
-    Vec_Ptr_t * vNodes;
-    Abc_Ntk_t * pNtkNew;
-    Hop_Obj_t * pObj;
-    int i;
-    // perform strashing
-    pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_STRASH, ABC_FUNC_AIG );
-    // transfer the pointers to the basic nodes
-    Hop_ManConst1(pMan)->pData = Abc_AigConst1(pNtkNew);
-    Hop_ManForEachPi( pMan, pObj, i )
-        pObj->pData = Abc_NtkCi(pNtkNew, i);
-    // rebuild the AIG
-    vNodes = Hop_ManDfs( pMan );
-    Vec_PtrForEachEntry( Hop_Obj_t *, vNodes, pObj, i )
-        pObj->pData = Abc_AigAnd( (Abc_Aig_t *)pNtkNew->pManFunc, (Abc_Obj_t *)Hop_ObjChild0Copy(pObj), (Abc_Obj_t *)Hop_ObjChild1Copy(pObj) );
-    Vec_PtrFree( vNodes );
-    // connect the PO nodes
-    Hop_ManForEachPo( pMan, pObj, i )
-        Abc_ObjAddFanin( Abc_NtkCo(pNtkNew, i), (Abc_Obj_t *)Hop_ObjChild0Copy(pObj) );
-    if ( !Abc_NtkCheck( pNtkNew ) )
-        fprintf( stdout, "Abc_NtkFromMini(): Network check has failed.\n" );
-    return pNtkNew;
+    Abc_Ntk_t * pNtk;
+    Abc_Frame_t * pAbc = Abc_FrameReadGlobalFrame();
+    if ( pAbc == NULL )
+        printf( "ABC framework is not initialized by calling Abc_Start()\n" );
+    pNtk = Abc_NtkFromMiniAig( p );
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtk );
+//    Abc_NtkDelete( pNtk );
 }
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
