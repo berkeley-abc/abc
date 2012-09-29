@@ -131,7 +131,7 @@ extern Mio_Pin_t *       Mio_PinReadNext           ( Mio_Pin_t * pPin );
 /*=== mioRead.c =============================================================*/
 extern char *            Mio_ReadFile( char * FileName, int fAddEnd );
 extern Mio_Library_t *   Mio_LibraryRead( char * FileName, char * pBuffer, char * ExcludeFile, int fVerbose );
-extern int               Mio_LibraryReadExclude( char * ExcludeFile, st_table * tExcludeGate );
+extern int               Mio_LibraryReadExclude( char * ExcludeFile, st__table * tExcludeGate );
 /*=== mioFunc.c =============================================================*/
 extern int               Mio_LibraryParseFormulas( Mio_Library_t * pLib );
 /*=== mioParse.c =============================================================*/

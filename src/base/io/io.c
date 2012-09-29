@@ -1209,7 +1209,7 @@ int IoCommandReadVerLib( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( pAbc->Err, "Reading library from the verilog file has failed.\n" );
         return 1;
     }
-    printf( "The library contains %d gates.\n", st_count(pLibrary->tModules) );
+    printf( "The library contains %d gates.\n", st__count(pLibrary->tModules) );
     // free old library
     if ( Abc_FrameReadLibVer() )
         Abc_LibFree( (Abc_Lib_t *)Abc_FrameReadLibVer(), NULL );

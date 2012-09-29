@@ -111,11 +111,11 @@ extern "C" {
 /* Static function prototypes                                                */
 /*---------------------------------------------------------------------------*/
 
-static double bddCorrelationAux (DdManager *dd, DdNode *f, DdNode *g, st_table *table);
-static double bddCorrelationWeightsAux (DdManager *dd, DdNode *f, DdNode *g, double *prob, st_table *table);
+static double bddCorrelationAux (DdManager *dd, DdNode *f, DdNode *g, st__table *table);
+static double bddCorrelationWeightsAux (DdManager *dd, DdNode *f, DdNode *g, double *prob, st__table *table);
 static int CorrelCompare (const char *key1, const char *key2);
 static int CorrelHash (const char *key, int modulus);
-static enum st_retval CorrelCleanUp (char *key, char *value, char *arg);
+static enum st__retval CorrelCleanUp (char *key, char *value, char *arg);
 
 /**AutomaticEnd***************************************************************/
 
@@ -150,18 +150,18 @@ Cudd_bddCorrelation(
   DdNode * g)
 {
 
-    st_table    *table;
+    st__table    *table;
     double      correlation;
 
 #ifdef CORREL_STATS
     num_calls = 0;
 #endif
 
-    table = st_init_table(CorrelCompare,CorrelHash);
+    table = st__init_table(CorrelCompare,CorrelHash);
     if (table == NULL) return((double)CUDD_OUT_OF_MEM);
     correlation = bddCorrelationAux(manager,f,g,table);
-    st_foreach(table, CorrelCleanUp, NIL(char));
-    st_free_table(table);
+    st__foreach(table, CorrelCleanUp, NIL(char));
+    st__free_table(table);
     return(correlation);
 
 } /* end of Cudd_bddCorrelation */
@@ -193,18 +193,18 @@ Cudd_bddCorrelationWeights(
   double * prob)
 {
 
-    st_table    *table;
+    st__table    *table;
     double      correlation;
 
 #ifdef CORREL_STATS
     num_calls = 0;
 #endif
 
-    table = st_init_table(CorrelCompare,CorrelHash);
+    table = st__init_table(CorrelCompare,CorrelHash);
     if (table == NULL) return((double)CUDD_OUT_OF_MEM);
     correlation = bddCorrelationWeightsAux(manager,f,g,prob,table);
-    st_foreach(table, CorrelCleanUp, NIL(char));
-    st_free_table(table);
+    st__foreach(table, CorrelCleanUp, NIL(char));
+    st__free_table(table);
     return(correlation);
 
 } /* end of Cudd_bddCorrelationWeights */
@@ -238,7 +238,7 @@ bddCorrelationAux(
   DdManager * dd,
   DdNode * f,
   DdNode * g,
-  st_table * table)
+  st__table * table)
 {
     DdNode      *Fv, *Fnv, *G, *Gv, *Gnv;
     double      min, *pmin, min1, min2, *dummy;
@@ -279,7 +279,7 @@ bddCorrelationAux(
     ** correlation(f,g') = 1 - correlation(f,g)
     ** to minimize the risk of cancellation.
     */
-    if (st_lookup(table, (const char *)entry, (char **)&dummy)) {
+    if ( st__lookup(table, (const char *)entry, (char **)&dummy)) {
         min = *dummy;
         ABC_FREE(entry);
         return(min);
@@ -314,7 +314,7 @@ bddCorrelationAux(
     }
     *pmin = min;
 
-    if (st_insert(table,(char *)entry, (char *)pmin) == ST_OUT_OF_MEM) {
+    if ( st__insert(table,(char *)entry, (char *)pmin) == st__OUT_OF_MEM) {
         ABC_FREE(entry);
         ABC_FREE(pmin);
         return((double)CUDD_OUT_OF_MEM);
@@ -341,7 +341,7 @@ bddCorrelationWeightsAux(
   DdNode * f,
   DdNode * g,
   double * prob,
-  st_table * table)
+  st__table * table)
 {
     DdNode      *Fv, *Fnv, *G, *Gv, *Gnv;
     double      min, *pmin, min1, min2, *dummy;
@@ -382,7 +382,7 @@ bddCorrelationWeightsAux(
     ** correlation(f,g') = 1 - correlation(f,g)
     ** to minimize the risk of cancellation.
     */
-    if (st_lookup(table, (const char *)entry, (char **)&dummy)) {
+    if ( st__lookup(table, (const char *)entry, (char **)&dummy)) {
         min = *dummy;
         ABC_FREE(entry);
         return(min);
@@ -423,7 +423,7 @@ bddCorrelationWeightsAux(
     }
     *pmin = min;
 
-    if (st_insert(table,(char *)entry, (char *)pmin) == ST_OUT_OF_MEM) {
+    if ( st__insert(table,(char *)entry, (char *)pmin) == st__OUT_OF_MEM) {
         ABC_FREE(entry);
         ABC_FREE(pmin);
         return((double)CUDD_OUT_OF_MEM);
@@ -465,7 +465,7 @@ CorrelCompare(
   Synopsis    [Hashes a hash table entry.]
 
   Description [Hashes a hash table entry. It is patterned after
-  st_strhash. Returns a value between 0 and modulus.]
+  st__strhash. Returns a value between 0 and modulus.]
 
   SideEffects [None]
 
@@ -495,12 +495,12 @@ CorrelHash(
   Synopsis    [Frees memory associated with hash table.]
 
   Description [Frees memory associated with hash table. Returns
-  ST_CONTINUE.]
+  st__CONTINUE.]
 
   SideEffects [None]
 
 ******************************************************************************/
-static enum st_retval
+static enum st__retval
 CorrelCleanUp(
   char * key,
   char * value,
@@ -513,7 +513,7 @@ CorrelCleanUp(
     ABC_FREE(entry);
     d = (double *)value;
     ABC_FREE(d);
-    return ST_CONTINUE;
+    return st__CONTINUE;
 
 } /* end of CorrelCleanUp */
 

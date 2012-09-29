@@ -499,7 +499,7 @@ stmm_foreach (stmm_table *table, enum stmm_retval (*func) (char *, char *, char 
         return 0;
         case STMM_DELETE:
         *last = ptr->next;
-        table->num_entries--;    /* cstevens@ic */
+        table->num_entries--;   /* cstevens@ic */
 //                              ABC_FREE( ptr );
         Extra_MmFixedEntryRecycle ((Extra_MmFixed_t *)table->pMemMan, (char *) ptr);
 
@@ -578,7 +578,7 @@ stmm_gen (stmm_generator *gen, char **key_p, char **value_p)
         }
     }
     if (gen->entry == NULL) {
-        return 0;        /* that's all folks ! */
+        return 0;       /* that's all folks ! */
     }
     }
     *key_p = gen->entry->key;
@@ -605,7 +605,7 @@ stmm_gen_int (stmm_generator *gen, char **key_p, long *value_p)
         }
     }
     if (gen->entry == NULL) {
-        return 0;        /* that's all folks ! */
+        return 0;       /* that's all folks ! */
     }
     }
     *key_p = gen->entry->key;

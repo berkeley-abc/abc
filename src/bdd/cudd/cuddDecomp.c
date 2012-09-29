@@ -129,15 +129,15 @@ long lastTimeG;
 /* Static function prototypes                                                */
 /*---------------------------------------------------------------------------*/
 
-static NodeStat * CreateBotDist (DdNode * node, st_table * distanceTable);
-static double CountMinterms (DdNode * node, double max, st_table * mintermTable, FILE *fp);
+static NodeStat * CreateBotDist (DdNode * node, st__table * distanceTable);
+static double CountMinterms (DdNode * node, double max, st__table * mintermTable, FILE *fp);
 static void ConjunctsFree (DdManager * dd, Conjuncts * factors);
-static int PairInTables (DdNode * g, DdNode * h, st_table * ghTable);
-static Conjuncts * CheckTablesCacheAndReturn (DdNode * node, DdNode * g, DdNode * h, st_table * ghTable, st_table * cacheTable);
-static Conjuncts * PickOnePair (DdNode * node, DdNode * g1, DdNode * h1, DdNode * g2, DdNode * h2, st_table * ghTable, st_table * cacheTable);
-static Conjuncts * CheckInTables (DdNode * node, DdNode * g1, DdNode * h1, DdNode * g2, DdNode * h2, st_table * ghTable, st_table * cacheTable, int * outOfMem);
-static Conjuncts * ZeroCase (DdManager * dd, DdNode * node, Conjuncts * factorsNv, st_table * ghTable, st_table * cacheTable, int switched);
-static Conjuncts * BuildConjuncts (DdManager * dd, DdNode * node, st_table * distanceTable, st_table * cacheTable, int approxDistance, int maxLocalRef, st_table * ghTable, st_table * mintermTable);
+static int PairInTables (DdNode * g, DdNode * h, st__table * ghTable);
+static Conjuncts * CheckTablesCacheAndReturn (DdNode * node, DdNode * g, DdNode * h, st__table * ghTable, st__table * cacheTable);
+static Conjuncts * PickOnePair (DdNode * node, DdNode * g1, DdNode * h1, DdNode * g2, DdNode * h2, st__table * ghTable, st__table * cacheTable);
+static Conjuncts * CheckInTables (DdNode * node, DdNode * g1, DdNode * h1, DdNode * g2, DdNode * h2, st__table * ghTable, st__table * cacheTable, int * outOfMem);
+static Conjuncts * ZeroCase (DdManager * dd, DdNode * node, Conjuncts * factorsNv, st__table * ghTable, st__table * cacheTable, int switched);
+static Conjuncts * BuildConjuncts (DdManager * dd, DdNode * node, st__table * distanceTable, st__table * cacheTable, int approxDistance, int maxLocalRef, st__table * ghTable, st__table * mintermTable);
 static int cuddConjunctsAux (DdManager * dd, DdNode * f, DdNode ** c1, DdNode ** c2);
 
 /**AutomaticEnd***************************************************************/
@@ -771,7 +771,7 @@ Cudd_bddVarDisjDecomp(
 static NodeStat *
 CreateBotDist(
   DdNode * node,
-  st_table * distanceTable)
+  st__table * distanceTable)
 {
     DdNode *N, *Nv, *Nnv;
     int distance, distanceNv, distanceNnv;
@@ -785,7 +785,7 @@ CreateBotDist(
     
     /* Return the entry in the table if found. */
     N = Cudd_Regular(node);
-    if (st_lookup(distanceTable, (const char *)N, (char **)&nodeStat)) {
+    if ( st__lookup(distanceTable, (const char *)N, (char **)&nodeStat)) {
         nodeStat->localRef++;
         return(nodeStat);
     }
@@ -815,8 +815,8 @@ CreateBotDist(
     nodeStat->distance = distance;
     nodeStat->localRef = 1;
     
-    if (st_insert(distanceTable, (char *)N, (char *)nodeStat) ==
-        ST_OUT_OF_MEM) {
+    if ( st__insert(distanceTable, (char *)N, (char *)nodeStat) ==
+        st__OUT_OF_MEM) {
         return(0);
 
     }
@@ -841,7 +841,7 @@ static double
 CountMinterms(
   DdNode * node,
   double  max,
-  st_table * mintermTable,
+  st__table * mintermTable,
   FILE *fp)
 {
     DdNode *N, *Nv, *Nnv;
@@ -859,7 +859,7 @@ CountMinterms(
     }
 
     /* Return the entry in the table if found. */
-    if (st_lookup(mintermTable, (const char *)node, (char **)&dummy)) {
+    if ( st__lookup(mintermTable, (const char *)node, (char **)&dummy)) {
         min = *dummy;
         return(min);
     }
@@ -881,7 +881,7 @@ CountMinterms(
     dummy = ABC_ALLOC(double, 1);
     if (dummy == NULL) return(-1.0);
     *dummy = min;
-    if (st_insert(mintermTable, (char *)node, (char *)dummy) == ST_OUT_OF_MEM) {
+    if ( st__insert(mintermTable, (char *)node, (char *)dummy) == st__OUT_OF_MEM) {
         (void) fprintf(fp, "st table insert failed\n");
     }
     return(min);
@@ -944,14 +944,14 @@ static int
 PairInTables(
   DdNode * g,
   DdNode * h,
-  st_table * ghTable)
+  st__table * ghTable)
 {
     int valueG, valueH, gPresent, hPresent;
 
     valueG = valueH = gPresent = hPresent = 0;
     
-    gPresent = st_lookup_int(ghTable, (char *)Cudd_Regular(g), &valueG);
-    hPresent = st_lookup_int(ghTable, (char *)Cudd_Regular(h), &valueH);
+    gPresent = st__lookup_int(ghTable, (char *)Cudd_Regular(g), &valueG);
+    hPresent = st__lookup_int(ghTable, (char *)Cudd_Regular(h), &valueH);
 
     if (!gPresent && !hPresent) return(NONE);
 
@@ -995,8 +995,8 @@ CheckTablesCacheAndReturn(
   DdNode * node,
   DdNode * g,
   DdNode * h,
-  st_table * ghTable,
-  st_table * cacheTable)
+  st__table * ghTable,
+  st__table * cacheTable)
 {
     int pairValue;
     int value;
@@ -1014,13 +1014,13 @@ CheckTablesCacheAndReturn(
     if ((pairValue == BOTH_H) || (pairValue == H_ST)) {
         if (g != one) {
             value = 0;
-            if (st_lookup_int(ghTable, (char *)Cudd_Regular(g), &value)) {
+            if ( st__lookup_int(ghTable, (char *)Cudd_Regular(g), &value)) {
                 value |= 1;
             } else {
                 value = 1;
             }
-            if (st_insert(ghTable, (char *)Cudd_Regular(g),
-                          (char *)(long)value) == ST_OUT_OF_MEM) {
+            if ( st__insert(ghTable, (char *)Cudd_Regular(g),
+                          (char *)(long)value) == st__OUT_OF_MEM) {
                 return(NULL);
             }
         }
@@ -1029,13 +1029,13 @@ CheckTablesCacheAndReturn(
     } else  if ((pairValue == BOTH_G) || (pairValue == G_ST)) {
         if (h != one) {
             value = 0;
-            if (st_lookup_int(ghTable, (char *)Cudd_Regular(h), &value)) {
+            if ( st__lookup_int(ghTable, (char *)Cudd_Regular(h), &value)) {
                 value |= 2;
             } else {
                 value = 2;
             }
-            if (st_insert(ghTable, (char *)Cudd_Regular(h),
-                          (char *)(long)value) == ST_OUT_OF_MEM) {
+            if ( st__insert(ghTable, (char *)Cudd_Regular(h),
+                          (char *)(long)value) == st__OUT_OF_MEM) {
                 return(NULL);
             }
         }
@@ -1044,8 +1044,8 @@ CheckTablesCacheAndReturn(
     } else if (pairValue == H_CR) {
         if (g != one) {
             value = 2;
-            if (st_insert(ghTable, (char *)Cudd_Regular(g),
-                          (char *)(long)value) == ST_OUT_OF_MEM) {
+            if ( st__insert(ghTable, (char *)Cudd_Regular(g),
+                          (char *)(long)value) == st__OUT_OF_MEM) {
                 return(NULL);
             }
         }
@@ -1054,8 +1054,8 @@ CheckTablesCacheAndReturn(
     } else if (pairValue == G_CR) {
         if (h != one) {
             value = 1;
-            if (st_insert(ghTable, (char *)Cudd_Regular(h),
-                          (char *)(long)value) == ST_OUT_OF_MEM) {
+            if ( st__insert(ghTable, (char *)Cudd_Regular(h),
+                          (char *)(long)value) == st__OUT_OF_MEM) {
                 return(NULL);
             }
         }
@@ -1071,7 +1071,7 @@ CheckTablesCacheAndReturn(
     }
             
     /* cache the result for this node */
-    if (st_insert(cacheTable, (char *)node, (char *)factors) == ST_OUT_OF_MEM) {
+    if ( st__insert(cacheTable, (char *)node, (char *)factors) == st__OUT_OF_MEM) {
         ABC_FREE(factors);
         return(NULL);
     }
@@ -1102,8 +1102,8 @@ PickOnePair(
   DdNode * h1,
   DdNode * g2,
   DdNode * h2,
-  st_table * ghTable,
-  st_table * cacheTable)
+  st__table * ghTable,
+  st__table * cacheTable)
 {
     int value;
     Conjuncts *factors;
@@ -1146,19 +1146,19 @@ PickOnePair(
     if (factors->g != one) {
         /* insert g in htable */
         value = 0;
-        if (st_lookup_int(ghTable, (char *)Cudd_Regular(factors->g), &value)) {
+        if ( st__lookup_int(ghTable, (char *)Cudd_Regular(factors->g), &value)) {
             if (value == 2) {
                 value |= 1;
-                if (st_insert(ghTable, (char *)Cudd_Regular(factors->g),
-                              (char *)(long)value) == ST_OUT_OF_MEM) {
+                if ( st__insert(ghTable, (char *)Cudd_Regular(factors->g),
+                              (char *)(long)value) == st__OUT_OF_MEM) {
                     ABC_FREE(factors);
                     return(NULL);
                 }
             }
         } else {
             value = 1;
-            if (st_insert(ghTable, (char *)Cudd_Regular(factors->g),
-                          (char *)(long)value) == ST_OUT_OF_MEM) {
+            if ( st__insert(ghTable, (char *)Cudd_Regular(factors->g),
+                          (char *)(long)value) == st__OUT_OF_MEM) {
                 ABC_FREE(factors);
                 return(NULL);
             }
@@ -1168,19 +1168,19 @@ PickOnePair(
     if (factors->h != one) {
         /* insert h in htable */
         value = 0;
-        if (st_lookup_int(ghTable, (char *)Cudd_Regular(factors->h), &value)) {
+        if ( st__lookup_int(ghTable, (char *)Cudd_Regular(factors->h), &value)) {
             if (value == 1) {
                 value |= 2;
-                if (st_insert(ghTable, (char *)Cudd_Regular(factors->h),
-                              (char *)(long)value) == ST_OUT_OF_MEM) {
+                if ( st__insert(ghTable, (char *)Cudd_Regular(factors->h),
+                              (char *)(long)value) == st__OUT_OF_MEM) {
                     ABC_FREE(factors);
                     return(NULL);
                 }
             }       
         } else {
             value = 2;
-            if (st_insert(ghTable, (char *)Cudd_Regular(factors->h),
-                          (char *)(long)value) == ST_OUT_OF_MEM) {
+            if ( st__insert(ghTable, (char *)Cudd_Regular(factors->h),
+                          (char *)(long)value) == st__OUT_OF_MEM) {
                 ABC_FREE(factors);
                 return(NULL);
             }
@@ -1188,8 +1188,8 @@ PickOnePair(
     }
     
     /* Store factors in cache table for later use. */
-    if (st_insert(cacheTable, (char *)node, (char *)factors) ==
-            ST_OUT_OF_MEM) {
+    if ( st__insert(cacheTable, (char *)node, (char *)factors) ==
+            st__OUT_OF_MEM) {
         ABC_FREE(factors);
         return(NULL);
     }
@@ -1220,8 +1220,8 @@ CheckInTables(
   DdNode * h1,
   DdNode * g2,
   DdNode * h2,
-  st_table * ghTable,
-  st_table * cacheTable,
+  st__table * ghTable,
+  st__table * cacheTable,
   int * outOfMem)
 {
     int pairValue1,  pairValue2;
@@ -1264,8 +1264,8 @@ CheckInTables(
         factors->h = h1;
         if (h1 != one) {
             value = 2;
-            if (st_insert(ghTable, (char *)Cudd_Regular(h1),
-                          (char *)(long)value) == ST_OUT_OF_MEM) {
+            if ( st__insert(ghTable, (char *)Cudd_Regular(h1),
+                          (char *)(long)value) == st__OUT_OF_MEM) {
                 *outOfMem = 1;
                 ABC_FREE(factors);
                 return(NULL);
@@ -1277,8 +1277,8 @@ CheckInTables(
         factors->h = h1;
         if (h1 != one) {
             value = 3;
-            if (st_insert(ghTable, (char *)Cudd_Regular(h1),
-                          (char *)(long)value) == ST_OUT_OF_MEM) {
+            if ( st__insert(ghTable, (char *)Cudd_Regular(h1),
+                          (char *)(long)value) == st__OUT_OF_MEM) {
                 *outOfMem = 1;
                 ABC_FREE(factors);
                 return(NULL);
@@ -1290,8 +1290,8 @@ CheckInTables(
         factors->h = h1;
         if (g1 != one) {
             value = 1;
-            if (st_insert(ghTable, (char *)Cudd_Regular(g1),
-                          (char *)(long)value) == ST_OUT_OF_MEM) {
+            if ( st__insert(ghTable, (char *)Cudd_Regular(g1),
+                          (char *)(long)value) == st__OUT_OF_MEM) {
                 *outOfMem = 1;
                 ABC_FREE(factors);
                 return(NULL);
@@ -1303,8 +1303,8 @@ CheckInTables(
         factors->h = h1;
         if (g1 != one) {
             value = 3;
-            if (st_insert(ghTable, (char *)Cudd_Regular(g1),
-                          (char *)(long)value) == ST_OUT_OF_MEM) {
+            if ( st__insert(ghTable, (char *)Cudd_Regular(g1),
+                          (char *)(long)value) == st__OUT_OF_MEM) {
                 *outOfMem = 1;
                 ABC_FREE(factors);
                 return(NULL);
@@ -1316,8 +1316,8 @@ CheckInTables(
         factors->h = h2;
         if (h2 != one) {
             value = 2;
-            if (st_insert(ghTable, (char *)Cudd_Regular(h2),
-                          (char *)(long)value) == ST_OUT_OF_MEM) {
+            if ( st__insert(ghTable, (char *)Cudd_Regular(h2),
+                          (char *)(long)value) == st__OUT_OF_MEM) {
                 *outOfMem = 1;
                 ABC_FREE(factors);
                 return(NULL);
@@ -1329,8 +1329,8 @@ CheckInTables(
         factors->h = h2;
         if (h2 != one) {
             value = 3;
-            if (st_insert(ghTable, (char *)Cudd_Regular(h2),
-                          (char *)(long)value) == ST_OUT_OF_MEM) {
+            if ( st__insert(ghTable, (char *)Cudd_Regular(h2),
+                          (char *)(long)value) == st__OUT_OF_MEM) {
                 *outOfMem = 1;
                 ABC_FREE(factors);
                 return(NULL);
@@ -1342,8 +1342,8 @@ CheckInTables(
         factors->h = h2;
         if (g2 != one) {
             value = 1;
-            if (st_insert(ghTable, (char *)Cudd_Regular(g2),
-                          (char *)(long)value) == ST_OUT_OF_MEM) {
+            if ( st__insert(ghTable, (char *)Cudd_Regular(g2),
+                          (char *)(long)value) == st__OUT_OF_MEM) {
                 *outOfMem = 1;
                 ABC_FREE(factors);
                 return(NULL);
@@ -1355,8 +1355,8 @@ CheckInTables(
         factors->h = h2;
         if (g2 != one) {
             value = 3;
-            if (st_insert(ghTable, (char *)Cudd_Regular(g2),
-                          (char *)(long)value) == ST_OUT_OF_MEM) {
+            if ( st__insert(ghTable, (char *)Cudd_Regular(g2),
+                          (char *)(long)value) == st__OUT_OF_MEM) {
                 *outOfMem = 1;
                 ABC_FREE(factors);
                 return(NULL);
@@ -1368,8 +1368,8 @@ CheckInTables(
         factors->h = g1;
         if (h1 != one) {
             value = 1;
-            if (st_insert(ghTable, (char *)Cudd_Regular(h1),
-                          (char *)(long)value) == ST_OUT_OF_MEM) {
+            if ( st__insert(ghTable, (char *)Cudd_Regular(h1),
+                          (char *)(long)value) == st__OUT_OF_MEM) {
                 *outOfMem = 1;
                 ABC_FREE(factors);
                 return(NULL);
@@ -1381,8 +1381,8 @@ CheckInTables(
         factors->h = g1;
         if (g1 != one) {
             value = 2;
-            if (st_insert(ghTable, (char *)Cudd_Regular(g1),
-                          (char *)(long)value) == ST_OUT_OF_MEM) {
+            if ( st__insert(ghTable, (char *)Cudd_Regular(g1),
+                          (char *)(long)value) == st__OUT_OF_MEM) {
                 *outOfMem = 1;
                 ABC_FREE(factors);
                 return(NULL);
@@ -1394,8 +1394,8 @@ CheckInTables(
         factors->h = g2;
         if (h2 != one) {
             value = 1;
-            if (st_insert(ghTable, (char *)Cudd_Regular(h2),
-                          (char *)(long)value) == ST_OUT_OF_MEM) {
+            if ( st__insert(ghTable, (char *)Cudd_Regular(h2),
+                          (char *)(long)value) == st__OUT_OF_MEM) {
                 *outOfMem = 1;
                 ABC_FREE(factors);
                 return(NULL);
@@ -1407,8 +1407,8 @@ CheckInTables(
         factors->h = g2;
         if (g2 != one) {
             value = 2;
-            if (st_insert(ghTable, (char *)Cudd_Regular(g2),
-                          (char *)(long)value) == ST_OUT_OF_MEM) {
+            if ( st__insert(ghTable, (char *)Cudd_Regular(g2),
+                          (char *)(long)value) == st__OUT_OF_MEM) {
                 *outOfMem = 1;
                 ABC_FREE(factors);
                 return(NULL);
@@ -1417,8 +1417,8 @@ CheckInTables(
     }
     
     /* Store factors in cache table for later use. */
-    if (st_insert(cacheTable, (char *)node, (char *)factors) ==
-            ST_OUT_OF_MEM) {
+    if ( st__insert(cacheTable, (char *)node, (char *)factors) ==
+            st__OUT_OF_MEM) {
         *outOfMem = 1;
         ABC_FREE(factors);
         return(NULL);
@@ -1448,8 +1448,8 @@ ZeroCase(
   DdManager * dd,
   DdNode * node,
   Conjuncts * factorsNv,
-  st_table * ghTable,
-  st_table * cacheTable,
+  st__table * ghTable,
+  st__table * cacheTable,
   int switched)
 {
     int topid;
@@ -1479,7 +1479,7 @@ ZeroCase(
         factors->g = x;
         factors->h = factorsNv->h;
         /* cache the result*/
-        if (st_insert(cacheTable, (char *)node, (char *)factors) == ST_OUT_OF_MEM) {
+        if ( st__insert(cacheTable, (char *)node, (char *)factors) == st__OUT_OF_MEM) {
             dd->errorCode = CUDD_MEMORY_OUT;
             Cudd_RecursiveDeref(dd, factorsNv->h); 
             Cudd_RecursiveDeref(dd, x);
@@ -1488,12 +1488,12 @@ ZeroCase(
         }
         
         /* store  x in g table, the other node is already in the table */
-        if (st_lookup_int(ghTable, (char *)Cudd_Regular(x), &value)) {
+        if ( st__lookup_int(ghTable, (char *)Cudd_Regular(x), &value)) {
             value |= 1;
         } else {
             value = 1;
         }
-        if (st_insert(ghTable, (char *)Cudd_Regular(x), (char *)(long)value) == ST_OUT_OF_MEM) {
+        if ( st__insert(ghTable, (char *)Cudd_Regular(x), (char *)(long)value) == st__OUT_OF_MEM) {
             dd->errorCode = CUDD_MEMORY_OUT;
             return NULL;
         }
@@ -1513,7 +1513,7 @@ ZeroCase(
         factors->g = factorsNv->g;
         factors->h = x;
         /* cache the result. */
-        if (st_insert(cacheTable, (char *)node, (char *)factors) == ST_OUT_OF_MEM) {
+        if ( st__insert(cacheTable, (char *)node, (char *)factors) == st__OUT_OF_MEM) {
             dd->errorCode = CUDD_MEMORY_OUT;
             Cudd_RecursiveDeref(dd, factorsNv->g);
             Cudd_RecursiveDeref(dd, x);
@@ -1521,12 +1521,12 @@ ZeroCase(
             return(NULL);
         }
         /* store x in h table,  the other node is already in the table */
-        if (st_lookup_int(ghTable, (char *)Cudd_Regular(x), &value)) {
+        if ( st__lookup_int(ghTable, (char *)Cudd_Regular(x), &value)) {
             value |= 2;
         } else {
             value = 2;
         }
-        if (st_insert(ghTable, (char *)Cudd_Regular(x), (char *)(long)value) == ST_OUT_OF_MEM) {
+        if ( st__insert(ghTable, (char *)Cudd_Regular(x), (char *)(long)value) == st__OUT_OF_MEM) {
             dd->errorCode = CUDD_MEMORY_OUT;
             return NULL;
         }
@@ -1685,12 +1685,12 @@ static Conjuncts *
 BuildConjuncts(
   DdManager * dd,
   DdNode * node,
-  st_table * distanceTable,
-  st_table * cacheTable,
+  st__table * distanceTable,
+  st__table * cacheTable,
   int approxDistance,
   int maxLocalRef,
-  st_table * ghTable,
-  st_table * mintermTable)
+  st__table * ghTable,
+  st__table * mintermTable)
 {
     int topid, distance;
     Conjuncts *factorsNv = NULL, *factorsNnv = NULL, *factors;
@@ -1717,14 +1717,14 @@ BuildConjuncts(
     }
 
     /* If result (a pair of conjuncts) in cache, return the factors. */
-    if (st_lookup(cacheTable, (const char *)node, (char **)&dummy)) {
+    if ( st__lookup(cacheTable, (const char *)node, (char **)&dummy)) {
         factors = dummy;
         return(factors);
     }
     
     /* check distance and local reference count of this node */
     N = Cudd_Regular(node);
-    if (!st_lookup(distanceTable, (const char *)N, (char **)&nodeStat)) {
+    if (! st__lookup(distanceTable, (const char *)N, (char **)&nodeStat)) {
         (void) fprintf(dd->err, "Not in table, Something wrong\n");
         dd->errorCode = CUDD_INTERNAL_ERROR;
         return(NULL);
@@ -1742,7 +1742,7 @@ BuildConjuncts(
         }
         /* alternate assigning (f,1) */
         value = 0;
-        if (st_lookup_int(ghTable, (char *)Cudd_Regular(node), &value)) {
+        if ( st__lookup_int(ghTable, (char *)Cudd_Regular(node), &value)) {
             if (value == 3) {
                 if (!lastTimeG) {
                     factors->g = node;
@@ -1765,7 +1765,7 @@ BuildConjuncts(
             factors->h = one;
             lastTimeG = 1;
             value = 1;
-            if (st_insert(ghTable, (char *)Cudd_Regular(node), (char *)(long)value) == ST_OUT_OF_MEM) {
+            if ( st__insert(ghTable, (char *)Cudd_Regular(node), (char *)(long)value) == st__OUT_OF_MEM) {
                 dd->errorCode = CUDD_MEMORY_OUT;
                 ABC_FREE(factors);
                 return NULL;
@@ -1775,7 +1775,7 @@ BuildConjuncts(
             factors->h = node;
             lastTimeG = 0;
             value = 2;
-            if (st_insert(ghTable, (char *)Cudd_Regular(node), (char *)(long)value) == ST_OUT_OF_MEM) {
+            if ( st__insert(ghTable, (char *)Cudd_Regular(node), (char *)(long)value) == st__OUT_OF_MEM) {
                 dd->errorCode = CUDD_MEMORY_OUT;
                 ABC_FREE(factors);
                 return NULL;
@@ -1794,7 +1794,7 @@ BuildConjuncts(
      * minterms. We go first where there are more minterms.
      */
     if (!Cudd_IsConstant(Nv)) {
-        if (!st_lookup(mintermTable, (const char *)Nv, (char **)&doubleDummy)) {
+        if (! st__lookup(mintermTable, (const char *)Nv, (char **)&doubleDummy)) {
             (void) fprintf(dd->err, "Not in table: Something wrong\n");
             dd->errorCode = CUDD_INTERNAL_ERROR;
             return(NULL);
@@ -1803,7 +1803,7 @@ BuildConjuncts(
     }
     
     if (!Cudd_IsConstant(Nnv)) {
-        if (!st_lookup(mintermTable, (const char *)Nnv, (char **)&doubleDummy)) {
+        if (! st__lookup(mintermTable, (const char *)Nnv, (char **)&doubleDummy)) {
             (void) fprintf(dd->err, "Not in table: Something wrong\n");
             dd->errorCode = CUDD_INTERNAL_ERROR;
             return(NULL);
@@ -2008,11 +2008,11 @@ cuddConjunctsAux(
   DdNode ** c1,
   DdNode ** c2)
 {
-    st_table *distanceTable = NULL;
-    st_table *cacheTable = NULL;
-    st_table *mintermTable = NULL;
-    st_table *ghTable = NULL;
-    st_generator *stGen;
+    st__table *distanceTable = NULL;
+    st__table *cacheTable = NULL;
+    st__table *mintermTable = NULL;
+    st__table *ghTable = NULL;
+    st__generator *stGen;
     char *key, *value;
     Conjuncts *factors;
     int distance, approxDistance;
@@ -2026,7 +2026,7 @@ cuddConjunctsAux(
     *c2 = NULL;
 
     /* initialize distances table */
-    distanceTable = st_init_table(st_ptrcmp,st_ptrhash);
+    distanceTable = st__init_table( st__ptrcmp, st__ptrhash);
     if (distanceTable == NULL) goto outOfMem;
     
     /* make the entry for the constant */
@@ -2034,7 +2034,7 @@ cuddConjunctsAux(
     if (nodeStat == NULL) goto outOfMem;
     nodeStat->distance = 0;
     nodeStat->localRef = 1;
-    if (st_insert(distanceTable, (char *)one, (char *)nodeStat) == ST_OUT_OF_MEM) {
+    if ( st__insert(distanceTable, (char *)one, (char *)nodeStat) == st__OUT_OF_MEM) {
         goto outOfMem;
     }
 
@@ -2051,39 +2051,39 @@ cuddConjunctsAux(
         *c1 = f;
         *c2 = DD_ONE(dd);
         cuddRef(*c1); cuddRef(*c2);
-        stGen = st_init_gen(distanceTable);
+        stGen = st__init_gen(distanceTable);
         if (stGen == NULL) goto outOfMem;
-        while(st_gen(stGen, (const char **)&key, (char **)&value)) {
+        while( st__gen(stGen, (const char **)&key, (char **)&value)) {
             ABC_FREE(value);
         }
-        st_free_gen(stGen); stGen = NULL;
-        st_free_table(distanceTable);
+        st__free_gen(stGen); stGen = NULL;
+        st__free_table(distanceTable);
         return(1);
     }
 
     /* record the maximum local reference count */
     maxLocalRef = 0;
-    stGen = st_init_gen(distanceTable);
+    stGen = st__init_gen(distanceTable);
     if (stGen == NULL) goto outOfMem;
-    while(st_gen(stGen, (const char **)&key, (char **)&value)) {
+    while( st__gen(stGen, (const char **)&key, (char **)&value)) {
         nodeStat = (NodeStat *)value;
         maxLocalRef = (nodeStat->localRef > maxLocalRef) ?
             nodeStat->localRef : maxLocalRef;
     }
-    st_free_gen(stGen); stGen = NULL;
+    st__free_gen(stGen); stGen = NULL;
 
             
     /* Count minterms for each node. */
     max = pow(2.0, (double)Cudd_SupportSize(dd,f)); /* potential overflow */
-    mintermTable = st_init_table(st_ptrcmp,st_ptrhash);
+    mintermTable = st__init_table( st__ptrcmp, st__ptrhash);
     if (mintermTable == NULL) goto outOfMem;
     minterms = CountMinterms(f, max, mintermTable, dd->err);
     if (minterms == -1.0) goto outOfMem;
     
     lastTimeG = Cudd_Random() & 1;
-    cacheTable = st_init_table(st_ptrcmp, st_ptrhash);
+    cacheTable = st__init_table( st__ptrcmp, st__ptrhash);
     if (cacheTable == NULL) goto outOfMem;
-    ghTable = st_init_table(st_ptrcmp, st_ptrhash);
+    ghTable = st__init_table( st__ptrcmp, st__ptrhash);
     if (ghTable == NULL) goto outOfMem;
 
     /* Build conjuncts. */
@@ -2092,22 +2092,22 @@ cuddConjunctsAux(
     if (factors == NULL) goto outOfMem;
 
     /* free up tables */
-    stGen = st_init_gen(distanceTable);
+    stGen = st__init_gen(distanceTable);
     if (stGen == NULL) goto outOfMem;
-    while(st_gen(stGen, (const char **)&key, (char **)&value)) {
+    while( st__gen(stGen, (const char **)&key, (char **)&value)) {
         ABC_FREE(value);
     }
-    st_free_gen(stGen); stGen = NULL;
-    st_free_table(distanceTable); distanceTable = NULL;
-    st_free_table(ghTable); ghTable = NULL;
+    st__free_gen(stGen); stGen = NULL;
+    st__free_table(distanceTable); distanceTable = NULL;
+    st__free_table(ghTable); ghTable = NULL;
     
-    stGen = st_init_gen(mintermTable);
+    stGen = st__init_gen(mintermTable);
     if (stGen == NULL) goto outOfMem;
-    while(st_gen(stGen, (const char **)&key, (char **)&value)) {
+    while( st__gen(stGen, (const char **)&key, (char **)&value)) {
         ABC_FREE(value);
     }
-    st_free_gen(stGen); stGen = NULL;
-    st_free_table(mintermTable); mintermTable = NULL;
+    st__free_gen(stGen); stGen = NULL;
+    st__free_table(mintermTable); mintermTable = NULL;
 
     freeFactors = FactorsNotStored(factors);
     factors = (freeFactors) ? FactorsUncomplement(factors) : factors;
@@ -2135,45 +2135,45 @@ cuddConjunctsAux(
 #endif
     }
 
-    stGen = st_init_gen(cacheTable);
+    stGen = st__init_gen(cacheTable);
     if (stGen == NULL) goto outOfMem;
-    while(st_gen(stGen, (const char **)&key, (char **)&value)) {
+    while( st__gen(stGen, (const char **)&key, (char **)&value)) {
         ConjunctsFree(dd, (Conjuncts *)value);
     }
-    st_free_gen(stGen); stGen = NULL;
+    st__free_gen(stGen); stGen = NULL;
 
-    st_free_table(cacheTable); cacheTable = NULL;
+    st__free_table(cacheTable); cacheTable = NULL;
 
     return(1);
 
 outOfMem:
     if (distanceTable != NULL) {
-        stGen = st_init_gen(distanceTable);
+        stGen = st__init_gen(distanceTable);
         if (stGen == NULL) goto outOfMem;
-        while(st_gen(stGen, (const char **)&key, (char **)&value)) {
+        while( st__gen(stGen, (const char **)&key, (char **)&value)) {
             ABC_FREE(value);
         }
-        st_free_gen(stGen); stGen = NULL;
-        st_free_table(distanceTable); distanceTable = NULL;
+        st__free_gen(stGen); stGen = NULL;
+        st__free_table(distanceTable); distanceTable = NULL;
     }
     if (mintermTable != NULL) {
-        stGen = st_init_gen(mintermTable);
+        stGen = st__init_gen(mintermTable);
         if (stGen == NULL) goto outOfMem;
-        while(st_gen(stGen, (const char **)&key, (char **)&value)) {
+        while( st__gen(stGen, (const char **)&key, (char **)&value)) {
             ABC_FREE(value);
         }
-        st_free_gen(stGen); stGen = NULL;
-        st_free_table(mintermTable); mintermTable = NULL;
+        st__free_gen(stGen); stGen = NULL;
+        st__free_table(mintermTable); mintermTable = NULL;
     }
-    if (ghTable != NULL) st_free_table(ghTable);
+    if (ghTable != NULL) st__free_table(ghTable);
     if (cacheTable != NULL) {
-        stGen = st_init_gen(cacheTable);
+        stGen = st__init_gen(cacheTable);
         if (stGen == NULL) goto outOfMem;
-        while(st_gen(stGen, (const char **)&key, (char **)&value)) {
+        while( st__gen(stGen, (const char **)&key, (char **)&value)) {
             ConjunctsFree(dd, (Conjuncts *)value);
         }
-        st_free_gen(stGen); stGen = NULL;
-        st_free_table(cacheTable); cacheTable = NULL;
+        st__free_gen(stGen); stGen = NULL;
+        st__free_table(cacheTable); cacheTable = NULL;
     }
     dd->errorCode = CUDD_MEMORY_OUT;
     return(0);

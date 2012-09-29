@@ -178,7 +178,7 @@ extern Map_Super_t *   Map_SuperTableLookupC( Map_SuperLib_t * pLib, unsigned uT
 /*=== mapperTime.c =============================================================*/
 /*=== mapperUtil.c =============================================================*/
 extern int             Map_ManCheckConsistency( Map_Man_t * p );
-extern st_table *      Map_CreateTableGate2Super( Map_Man_t * p );
+extern st__table *      Map_CreateTableGate2Super( Map_Man_t * p );
 extern void            Map_ManCleanData( Map_Man_t * p );
 extern void            Map_MappingSetupTruthTables( unsigned uTruths[][2] );
 extern void            Map_MappingSetupTruthTablesLarge( unsigned uTruths[][32] );

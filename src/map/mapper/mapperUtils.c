@@ -787,12 +787,12 @@ int Map_MappingCountDoubles( Map_Man_t * pMan, Map_NodeVec_t * vNodes )
   SeeAlso     []
 
 ***********************************************************************/
-st_table * Map_CreateTableGate2Super( Map_Man_t * pMan )
+ st__table * Map_CreateTableGate2Super( Map_Man_t * pMan )
 {
     Map_Super_t * pSuper;
-    st_table * tTable;
+    st__table * tTable;
     int i, nInputs, v;
-    tTable = st_init_table(strcmp, st_strhash);
+    tTable = st__init_table(strcmp, st__strhash);
     for ( i = 0; i < pMan->pSuperLib->nSupersAll; i++ )
     {
         pSuper = pMan->pSuperLib->ppSupers[i];
@@ -806,7 +806,7 @@ st_table * Map_CreateTableGate2Super( Map_Man_t * pMan )
             if ( v != nInputs )
                 continue;
 //            printf( "%s\n", Mio_GateReadName(pSuper->pRoot) );
-            if ( st_insert( tTable, (char *)pSuper->pRoot, (char *)pSuper ) )
+            if ( st__insert( tTable, (char *)pSuper->pRoot, (char *)pSuper ) )
             {
                 assert( 0 );
             }

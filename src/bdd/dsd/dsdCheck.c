@@ -80,7 +80,7 @@ void Dsd_CheckCacheAllocate( int nEntries )
     }
     // otherwise, there is no need to allocate, just clean
     Dsd_CheckCacheClear();
-//    printf( "\nThe number of allocated cache entries = %d.\n\n", pCache->nTableSize );
+//  printf( "\nThe number of allocated cache entries = %d.\n\n", pCache->nTableSize );
 }
 
 /**Function********************************************************************
@@ -133,10 +133,10 @@ void Dsd_CheckCacheClear()
 int Dsd_CheckRootFunctionIdentity( DdManager * dd, DdNode * bF1, DdNode * bF2, DdNode * bC1, DdNode * bC2 )
 {
     int RetValue;
-//    pCache->nSuccess = 0;
-//    pCache->nFailure = 0;
+//  pCache->nSuccess = 0;
+//  pCache->nFailure = 0;
     RetValue = Dsd_CheckRootFunctionIdentity_rec(dd, bF1, bF2, bC1, bC2);
-//    printf( "Cache success = %d. Cache failure = %d.\n", pCache->nSuccess, pCache->nFailure );
+//  printf( "Cache success = %d. Cache failure = %d.\n", pCache->nSuccess, pCache->nFailure );
     return RetValue;
 }
 
@@ -156,7 +156,7 @@ int Dsd_CheckRootFunctionIdentity_rec( DdManager * dd, DdNode * bF1, DdNode * bF
     unsigned HKey;
 
     // if either bC1 or bC2 is zero, the test is true
-//    if ( bC1 == b0 || bC2 == b0 )  return 1;
+//  if ( bC1 == b0 || bC2 == b0 )  return 1;
     assert( bC1 != b0 );
     assert( bC2 != b0 );
 
@@ -178,7 +178,7 @@ int Dsd_CheckRootFunctionIdentity_rec( DdManager * dd, DdNode * bF1, DdNode * bF
     // otherwise, keep expanding
 
     // check cache
-//    HKey = _Hash( ((unsigned)bF1), ((unsigned)bF2), ((unsigned)bC1), ((unsigned)bC2) );
+//  HKey = _Hash( ((unsigned)bF1), ((unsigned)bF2), ((unsigned)bC1), ((unsigned)bC2) );
     HKey = hashKey4( bF1, bF2, bC1, bC2, pCache->nTableSize );
     if ( pCache->pTable[HKey].bX[0] == bF1 && 
          pCache->pTable[HKey].bX[1] == bF2 && 

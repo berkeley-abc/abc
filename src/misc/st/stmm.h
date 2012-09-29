@@ -129,12 +129,12 @@ EXTERN void stmm_clean ARGS ((stmm_table *));
 /*
 
 // consider adding these other other similar definitions
-#define st_table       stmm_table
-#define st_insert      stmm_insert
-#define st_delete      stmm_delete
-#define st_lookup      stmm_lookup
-#define st_init_table  stmm_init_table
-#define st_free_table  stmm_free_table
+#define st__table       stmm_table
+#define st__insert      stmm_insert
+#define st__delete      stmm_delete
+#define st__lookup      stmm_lookup
+#define st__init_table  stmm_init_table
+#define st__free_table  stmm_free_table
 
 */
 

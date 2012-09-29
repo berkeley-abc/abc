@@ -31,9 +31,9 @@ ABC_NAMESPACE_IMPL_START
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
-static Mio_Library_t * Mio_LibraryReadOne( char * FileName, int fExtendedFormat, st_table * tExcludeGate, int fVerbose );
-static Mio_Library_t * Mio_LibraryReadBuffer( char * pBuffer, int fExtendedFormat, st_table * tExcludeGate, int fVerbose );
-static int             Mio_LibraryReadInternal( Mio_Library_t * pLib, char * pBuffer, int fExtendedFormat, st_table * tExcludeGate, int fVerbose );
+static Mio_Library_t * Mio_LibraryReadOne( char * FileName, int fExtendedFormat, st__table * tExcludeGate, int fVerbose );
+static Mio_Library_t * Mio_LibraryReadBuffer( char * pBuffer, int fExtendedFormat, st__table * tExcludeGate, int fVerbose );
+static int             Mio_LibraryReadInternal( Mio_Library_t * pLib, char * pBuffer, int fExtendedFormat, st__table * tExcludeGate, int fVerbose );
 static Mio_Gate_t *    Mio_LibraryReadGate( char ** ppToken, int fExtendedFormat );
 static Mio_Pin_t *     Mio_LibraryReadPin( char ** ppToken, int fExtendedFormat );
 static char *          chomp( char *s );
@@ -56,14 +56,14 @@ Mio_Library_t * Mio_LibraryRead( char * FileName, char * pBuffer, char * Exclude
     Mio_Library_t * pLib;
     int num;
 
-    st_table * tExcludeGate = 0;
+    st__table * tExcludeGate = 0;
 
     if ( ExcludeFile )
     {
-        tExcludeGate = st_init_table(strcmp, st_strhash);
+        tExcludeGate = st__init_table(strcmp, st__strhash);
         if ( (num = Mio_LibraryReadExclude( ExcludeFile, tExcludeGate )) == -1 )
         {
-            st_free_table( tExcludeGate );
+            st__free_table( tExcludeGate );
             tExcludeGate = 0;
             return 0;
         }
@@ -92,7 +92,7 @@ Mio_Library_t * Mio_LibraryRead( char * FileName, char * pBuffer, char * Exclude
             printf ( "Warning: Read extended genlib format but ignoring extensions\n" );
     }
     if ( tExcludeGate )
-        st_free_table( tExcludeGate );
+        st__free_table( tExcludeGate );
 
     return pLib;
 }
@@ -149,14 +149,14 @@ char * Mio_ReadFile( char * FileName, int fAddEnd )
   SeeAlso     []
 
 ***********************************************************************/
-Mio_Library_t * Mio_LibraryReadBuffer( char * pBuffer, int fExtendedFormat, st_table * tExcludeGate, int fVerbose )
+Mio_Library_t * Mio_LibraryReadBuffer( char * pBuffer, int fExtendedFormat, st__table * tExcludeGate, int fVerbose )
 {
     Mio_Library_t * pLib;
 
     // allocate the genlib structure
     pLib = ABC_ALLOC( Mio_Library_t, 1 );
     memset( pLib, 0, sizeof(Mio_Library_t) );
-    pLib->tName2Gate = st_init_table(strcmp, st_strhash);
+    pLib->tName2Gate = st__init_table(strcmp, st__strhash);
     pLib->pMmFlex = Mem_FlexStart();
     pLib->vCube = Vec_StrAlloc( 100 );
 
@@ -194,7 +194,7 @@ Mio_Library_t * Mio_LibraryReadBuffer( char * pBuffer, int fExtendedFormat, st_t
   SeeAlso     []
 
 ***********************************************************************/
-Mio_Library_t * Mio_LibraryReadOne( char * FileName, int fExtendedFormat, st_table * tExcludeGate, int fVerbose )
+Mio_Library_t * Mio_LibraryReadOne( char * FileName, int fExtendedFormat, st__table * tExcludeGate, int fVerbose )
 {
     Mio_Library_t * pLib;
     char * pBuffer;
@@ -223,7 +223,7 @@ Mio_Library_t * Mio_LibraryReadOne( char * FileName, int fExtendedFormat, st_tab
   SeeAlso     []
 
 ***********************************************************************/
-int Mio_LibraryReadInternal( Mio_Library_t * pLib, char * pBuffer, int fExtendedFormat, st_table * tExcludeGate, int fVerbose )
+int Mio_LibraryReadInternal( Mio_Library_t * pLib, char * pBuffer, int fExtendedFormat, st__table * tExcludeGate, int fVerbose )
 {
     Mio_Gate_t * pGate, ** ppGate;
     char * pToken;
@@ -272,7 +272,7 @@ int Mio_LibraryReadInternal( Mio_Library_t * pLib, char * pBuffer, int fExtended
 
         // printf ("Processing: '%s'\n", pGate->pName);
 
-        if ( tExcludeGate && st_is_member( tExcludeGate, pGate->pName ) )
+        if ( tExcludeGate && st__is_member( tExcludeGate, pGate->pName ) )
         {
             //printf ("Excluding: '%s'\n", pGate->pName);
             Mio_GateDelete( pGate );
@@ -286,8 +286,8 @@ int Mio_LibraryReadInternal( Mio_Library_t * pLib, char * pBuffer, int fExtended
             nGates++;
 
             // remember this gate by name
-            if ( !st_is_member( pLib->tName2Gate, pGate->pName ) )
-                st_insert( pLib->tName2Gate, pGate->pName, (char *)pGate );
+            if ( ! st__is_member( pLib->tName2Gate, pGate->pName ) )
+                st__insert( pLib->tName2Gate, pGate->pName, (char *)pGate );
             else
             {
                 Mio_Gate_t * pBase = Mio_LibraryReadGateByName( pLib, pGate->pName, NULL );
@@ -654,7 +654,7 @@ void Mio_LibraryDetectSpecialGates( Mio_Library_t * pLib )
   SeeAlso     []
 
 ***********************************************************************/
-int Mio_LibraryReadExclude( char * ExcludeFile, st_table * tExcludeGate )
+int Mio_LibraryReadExclude( char * ExcludeFile, st__table * tExcludeGate )
 {
     int nDel = 0;
     FILE *pEx;
@@ -675,7 +675,7 @@ int Mio_LibraryReadExclude( char * ExcludeFile, st_table * tExcludeGate )
         while (1 == fscanf( pEx, "%127s", buffer ))
         {
             //printf ("Read: '%s'\n", buffer );
-            st_insert( tExcludeGate, Mio_UtilStrsav( buffer ), (char *)0 );
+            st__insert( tExcludeGate, Mio_UtilStrsav( buffer ), (char *)0 );
             nDel++;
         }
 

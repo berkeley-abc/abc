@@ -180,8 +180,8 @@ void Rwt_Man5ExploreStart()
     Rwr_Man5_t * p;
     p = ABC_ALLOC( Rwr_Man5_t, 1 );
     memset( p, 0, sizeof(Rwr_Man5_t) );
-    p->tTableNN  = stmm_init_table( st_numcmp, st_numhash );
-    p->tTableNPN = stmm_init_table( st_numcmp, st_numhash );
+    p->tTableNN  = stmm_init_table( st__numcmp, st__numhash );
+    p->tTableNPN = stmm_init_table( st__numcmp, st__numhash );
     s_pManRwrExp5 = p;
 
 //Extra_PrintHex( stdout, Extra_TruthCanonNPN( 0x0000FFFF, 5 ), 5 );

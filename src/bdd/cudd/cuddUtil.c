@@ -168,23 +168,23 @@ extern "C" {
 /* Static function prototypes                                                */
 /*---------------------------------------------------------------------------*/
 
-static int dp2 (DdManager *dd, DdNode *f, st_table *t);
+static int dp2 (DdManager *dd, DdNode *f, st__table *t);
 static void ddPrintMintermAux (DdManager *dd, DdNode *node, int *list);
 static int ddDagInt (DdNode *n);
 static int cuddNodeArrayRecur (DdNode *f, DdNodePtr *table, int index);
-static int cuddEstimateCofactor (DdManager *dd, st_table *table, DdNode * node, int i, int phase, DdNode ** ptr);
+static int cuddEstimateCofactor (DdManager *dd, st__table *table, DdNode * node, int i, int phase, DdNode ** ptr);
 static DdNode * cuddUniqueLookup (DdManager * unique, int  index, DdNode * T, DdNode * E);
 static int cuddEstimateCofactorSimple (DdNode * node, int i);
 static double ddCountMintermAux (DdNode *node, double max, DdHashTable *table);
-static int ddEpdCountMintermAux (DdNode *node, EpDouble *max, EpDouble *epd, st_table *table);
-static double ddCountPathAux (DdNode *node, st_table *table);
-static double ddCountPathsToNonZero (DdNode * N, st_table * table);
+static int ddEpdCountMintermAux (DdNode *node, EpDouble *max, EpDouble *epd, st__table *table);
+static double ddCountPathAux (DdNode *node, st__table *table);
+static double ddCountPathsToNonZero (DdNode * N, st__table * table);
 static void ddSupportStep (DdNode *f, int *support);
 static void ddClearFlag (DdNode *f);
 static int ddLeavesInt (DdNode *n);
 static int ddPickArbitraryMinterms (DdManager *dd, DdNode *node, int nvars, int nminterms, char **string);
 static int ddPickRepresentativeCube (DdManager *dd, DdNode *node, double *weight, char *string);
-static enum st_retval ddEpdFree (char * key, char * value, char * arg);
+static enum st__retval ddEpdFree (char * key, char * value, char * arg);
 
 /**AutomaticEnd***************************************************************/
 
@@ -483,13 +483,13 @@ Cudd_EstimateCofactor(
 {
     int val;
     DdNode *ptr;
-    st_table *table;
+    st__table *table;
 
-    table = st_init_table(st_ptrcmp,st_ptrhash);
+    table = st__init_table( st__ptrcmp, st__ptrhash);
     if (table == NULL) return(CUDD_OUT_OF_MEM);
     val = cuddEstimateCofactor(dd,table,Cudd_Regular(f),i,phase,&ptr);
     ddClearFlag(Cudd_Regular(f));
-    st_free_table(table);
+    st__free_table(table);
 
     return(val);
 
@@ -624,16 +624,16 @@ Cudd_CountPath(
   DdNode * node)
 {
 
-    st_table    *table;
+    st__table    *table;
     double      i;
 
-    table = st_init_table(st_ptrcmp,st_ptrhash);
+    table = st__init_table( st__ptrcmp, st__ptrhash);
     if (table == NULL) {
         return((double)CUDD_OUT_OF_MEM);
     }
     i = ddCountPathAux(Cudd_Regular(node),table);
-    st_foreach(table, cuddStCountfree, NULL);
-    st_free_table(table);
+    st__foreach(table, cuddStCountfree, NULL);
+    st__free_table(table);
     return(i);
 
 } /* end of Cudd_CountPath */
@@ -661,21 +661,21 @@ Cudd_EpdCountMinterm(
   EpDouble * epd)
 {
     EpDouble    max, tmp;
-    st_table    *table;
+    st__table    *table;
     int         status;
 
     background = manager->background;
     zero = Cudd_Not(manager->one);
 
     EpdPow2(nvars, &max);
-    table = st_init_table(EpdCmp, st_ptrhash);
+    table = st__init_table(EpdCmp, st__ptrhash);
     if (table == NULL) {
         EpdMakeZero(epd, 0);
         return(CUDD_OUT_OF_MEM);
     }
     status = ddEpdCountMintermAux(Cudd_Regular(node),&max,epd,table);
-    st_foreach(table, ddEpdFree, NULL);
-    st_free_table(table);
+    st__foreach(table, ddEpdFree, NULL);
+    st__free_table(table);
     if (status == CUDD_OUT_OF_MEM) {
         EpdMakeZero(epd, 0);
         return(CUDD_OUT_OF_MEM);
@@ -708,16 +708,16 @@ Cudd_CountPathsToNonZero(
   DdNode * node)
 {
 
-    st_table    *table;
+    st__table    *table;
     double      i;
 
-    table = st_init_table(st_ptrcmp,st_ptrhash);
+    table = st__init_table( st__ptrcmp, st__ptrhash);
     if (table == NULL) {
         return((double)CUDD_OUT_OF_MEM);
     }
     i = ddCountPathsToNonZero(node,table);
-    st_foreach(table, cuddStCountfree, NULL);
-    st_free_table(table);
+    st__foreach(table, cuddStCountfree, NULL);
+    st__free_table(table);
     return(i);
 
 } /* end of Cudd_CountPathsToNonZero */
@@ -2868,12 +2868,12 @@ cuddP(
   DdNode * f)
 {
     int retval;
-    st_table *table = st_init_table(st_ptrcmp,st_ptrhash);
+    st__table *table = st__init_table( st__ptrcmp, st__ptrhash);
 
     if (table == NULL) return(0);
 
     retval = dp2(dd,f,table);
-    st_free_table(table);
+    st__free_table(table);
     (void) fputc('\n',dd->out);
     return(retval);
 
@@ -2886,12 +2886,12 @@ cuddP(
   in the visited table.]
 
   Description [Frees the memory used to store the minterm counts
-  recorded in the visited table. Returns ST_CONTINUE.]
+  recorded in the visited table. Returns st__CONTINUE.]
 
   SideEffects [None]
 
 ******************************************************************************/
-enum st_retval
+enum st__retval
 cuddStCountfree(
   char * key,
   char * value,
@@ -2901,7 +2901,7 @@ cuddStCountfree(
 
     d = (double *)value;
     ABC_FREE(d);
-    return(ST_CONTINUE);
+    return( st__CONTINUE);
 
 } /* end of cuddStCountfree */
 
@@ -2924,7 +2924,7 @@ cuddStCountfree(
 int
 cuddCollectNodes(
   DdNode * f,
-  st_table * visited)
+  st__table * visited)
 {
     DdNode      *T, *E;
     int         retval;
@@ -2934,7 +2934,7 @@ cuddCollectNodes(
 #endif
 
     /* If already visited, nothing to do. */
-    if (st_is_member(visited, (char *) f) == 1)
+    if ( st__is_member(visited, (char *) f) == 1)
         return(1);
 
     /* Check for abnormal condition that should never happen. */
@@ -2942,7 +2942,7 @@ cuddCollectNodes(
         return(0);
 
     /* Mark node as visited. */
-    if (st_add_direct(visited, (char *) f, NULL) == ST_OUT_OF_MEM)
+    if ( st__add_direct(visited, (char *) f, NULL) == st__OUT_OF_MEM)
         return(0);
 
     /* Check terminal case. */
@@ -3018,7 +3018,7 @@ static int
 dp2(
   DdManager *dd,
   DdNode * f,
-  st_table * t)
+  st__table * t)
 {
     DdNode *g, *n, *N;
     int T,E;
@@ -3037,10 +3037,10 @@ dp2(
 #endif
         return(1);
     }
-    if (st_is_member(t,(char *) g) == 1) {
+    if ( st__is_member(t,(char *) g) == 1) {
         return(1);
     }
-    if (st_add_direct(t,(char *) g,NULL) == ST_OUT_OF_MEM)
+    if ( st__add_direct(t,(char *) g,NULL) == st__OUT_OF_MEM)
         return(0);
 #ifdef DD_STATS
 #if SIZEOF_VOID_P == 8
@@ -3239,7 +3239,7 @@ cuddNodeArrayRecur(
 static int
 cuddEstimateCofactor(
   DdManager *dd,
-  st_table *table,
+  st__table *table,
   DdNode * node,
   int i,
   int phase,
@@ -3249,9 +3249,9 @@ cuddEstimateCofactor(
     DdNode *ptrT, *ptrE;
 
     if (Cudd_IsComplement(node->next)) {
-        if (!st_lookup(table,(char *)node,(char **)ptr)) {
-            if (st_add_direct(table,(char *)node,(char *)node) ==
-                ST_OUT_OF_MEM)
+        if (! st__lookup(table,(char *)node,(char **)ptr)) {
+            if ( st__add_direct(table,(char *)node,(char *)node) ==
+                st__OUT_OF_MEM)
                 return(CUDD_OUT_OF_MEM);
             *ptr = node;
         }
@@ -3260,7 +3260,7 @@ cuddEstimateCofactor(
     node->next = Cudd_Not(node->next);
     if (cuddIsConstant(node)) {
         *ptr = node;
-        if (st_add_direct(table,(char *)node,(char *)node) == ST_OUT_OF_MEM)
+        if ( st__add_direct(table,(char *)node,(char *)node) == st__OUT_OF_MEM)
             return(CUDD_OUT_OF_MEM);
         return(1);
     }
@@ -3273,8 +3273,8 @@ cuddEstimateCofactor(
             val = ddDagInt(Cudd_Regular(cuddE(node)));
         }
         if (node->ref > 1) {
-            if (st_add_direct(table,(char *)node,(char *)*ptr) ==
-                ST_OUT_OF_MEM)
+            if ( st__add_direct(table,(char *)node,(char *)*ptr) ==
+                st__OUT_OF_MEM)
                 return(CUDD_OUT_OF_MEM);
         }
         return(val);
@@ -3284,8 +3284,8 @@ cuddEstimateCofactor(
         tval = ddDagInt(cuddT(node));
         eval = ddDagInt(Cudd_Regular(cuddE(node)));
         if (node->ref > 1) {
-            if (st_add_direct(table,(char *)node,(char *)node) ==
-                ST_OUT_OF_MEM)
+            if ( st__add_direct(table,(char *)node,(char *)node) ==
+                st__OUT_OF_MEM)
                 return(CUDD_OUT_OF_MEM);
         }
         val = 1 + tval + eval;
@@ -3299,8 +3299,8 @@ cuddEstimateCofactor(
         *ptr = ptrT;
         val = tval;
         if (node->ref > 1) {
-            if (st_add_direct(table,(char *)node,(char *)*ptr) ==
-                    ST_OUT_OF_MEM)
+            if ( st__add_direct(table,(char *)node,(char *)*ptr) ==
+                    st__OUT_OF_MEM)
                 return(CUDD_OUT_OF_MEM);
         }
     } else if ((ptrT != cuddT(node) || ptrE != cuddE(node)) &&
@@ -3311,8 +3311,8 @@ cuddEstimateCofactor(
             val = 1 + tval + eval;
         }
         if (node->ref > 1) {
-            if (st_add_direct(table,(char *)node,(char *)*ptr) ==
-                    ST_OUT_OF_MEM)
+            if ( st__add_direct(table,(char *)node,(char *)*ptr) ==
+                    st__OUT_OF_MEM)
                 return(CUDD_OUT_OF_MEM);
         }
     } else {
@@ -3511,7 +3511,7 @@ ddCountMintermAux(
 static double
 ddCountPathAux(
   DdNode * node,
-  st_table * table)
+  st__table * table)
 {
 
     DdNode      *Nv, *Nnv;
@@ -3522,7 +3522,7 @@ ddCountPathAux(
     if (cuddIsConstant(node)) {
         return(1.0);
     }
-    if (st_lookup(table, (const char *)node, (char **)&dummy)) {
+    if ( st__lookup(table, (const char *)node, (char **)&dummy)) {
         paths = *dummy;
         return(paths);
     }
@@ -3542,7 +3542,7 @@ ddCountPathAux(
 
     *ppaths = paths;
 
-    if (st_add_direct(table,(char *)node, (char *)ppaths) == ST_OUT_OF_MEM) {
+    if ( st__add_direct(table,(char *)node, (char *)ppaths) == st__OUT_OF_MEM) {
         ABC_FREE(ppaths);
         return((double)CUDD_OUT_OF_MEM);
     }
@@ -3574,7 +3574,7 @@ ddEpdCountMintermAux(
   DdNode * node,
   EpDouble * max,
   EpDouble * epd,
-  st_table * table)
+  st__table * table)
 {
     DdNode      *Nt, *Ne;
     EpDouble    *min, minT, minE;
@@ -3590,7 +3590,7 @@ ddEpdCountMintermAux(
         }
         return(0);
     }
-    if (node->ref != 1 && st_lookup(table, (const char *)node, (char **)&res)) {
+    if (node->ref != 1 && st__lookup(table, (const char *)node, (char **)&res)) {
         EpdCopy(res, epd);
         return(0);
     }
@@ -3614,7 +3614,7 @@ ddEpdCountMintermAux(
         if (!min)
             return(CUDD_OUT_OF_MEM);
         EpdCopy(epd, min);
-        if (st_insert(table, (char *)node, (char *)min) == ST_OUT_OF_MEM) {
+        if ( st__insert(table, (char *)node, (char *)min) == st__OUT_OF_MEM) {
             EpdFree(min);
             return(CUDD_OUT_OF_MEM);
         }
@@ -3644,7 +3644,7 @@ ddEpdCountMintermAux(
 static double
 ddCountPathsToNonZero(
   DdNode * N,
-  st_table * table)
+  st__table * table)
 {
 
     DdNode      *node, *Nt, *Ne;
@@ -3655,7 +3655,7 @@ ddCountPathsToNonZero(
     if (cuddIsConstant(node)) {
         return((double) !(Cudd_IsComplement(N) || cuddV(node)==DD_ZERO_VAL));
     }
-    if (st_lookup(table, (const char *)N, (char **)&dummy)) {
+    if ( st__lookup(table, (const char *)N, (char **)&dummy)) {
         paths = *dummy;
         return(paths);
     }
@@ -3678,7 +3678,7 @@ ddCountPathsToNonZero(
 
     *ppaths = paths;
 
-    if (st_add_direct(table,(char *)N, (char *)ppaths) == ST_OUT_OF_MEM) {
+    if ( st__add_direct(table,(char *)N, (char *)ppaths) == st__OUT_OF_MEM) {
         ABC_FREE(ppaths);
         return((double)CUDD_OUT_OF_MEM);
     }
@@ -3913,12 +3913,12 @@ ddPickRepresentativeCube(
   in the visited table.]
 
   Description [Frees the memory used to store the minterm counts
-  recorded in the visited table. Returns ST_CONTINUE.]
+  recorded in the visited table. Returns st__CONTINUE.]
 
   SideEffects [None]
 
 ******************************************************************************/
-static enum st_retval
+static enum st__retval
 ddEpdFree(
   char * key,
   char * value,
@@ -3928,7 +3928,7 @@ ddEpdFree(
 
     epd = (EpDouble *) value;
     EpdFree(epd);
-    return(ST_CONTINUE);
+    return( st__CONTINUE);
 
 } /* end of ddEpdFree */
 

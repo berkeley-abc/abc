@@ -102,7 +102,7 @@ static int table_mem;
 /* Static function prototypes                                                */
 /*---------------------------------------------------------------------------*/
 
-static double * ddCofMintermAux (DdManager *dd, DdNode *node, st_table *table);
+static double * ddCofMintermAux (DdManager *dd, DdNode *node, st__table *table);
 
 /**AutomaticEnd***************************************************************/
 
@@ -132,7 +132,7 @@ Cudd_CofMinterm(
   DdManager * dd,
   DdNode * node)
 {
-    st_table    *table;
+    st__table    *table;
     double      *values;
     double      *result = NULL;
     int         i, firstLevel;
@@ -141,10 +141,10 @@ Cudd_CofMinterm(
     long startTime;
     startTime = util_cpu_time();
     num_calls = 0;
-    table_mem = sizeof(st_table);
+    table_mem = sizeof( st__table);
 #endif
 
-    table = st_init_table(st_ptrcmp, st_ptrhash);
+    table = st__init_table( st__ptrcmp, st__ptrhash);
     if (table == NULL) {
         (void) fprintf(dd->err,
                        "out-of-memory, couldn't measure DD cofactors.\n");
@@ -177,11 +177,11 @@ Cudd_CofMinterm(
     }
 
 #ifdef DD_STATS
-    table_mem += table->num_bins * sizeof(st_table_entry *);
+    table_mem += table->num_bins * sizeof( st__table_entry *);
 #endif
     if (Cudd_Regular(node)->ref == 1) ABC_FREE(values);
-    st_foreach(table, cuddStCountfree, NULL);
-    st_free_table(table);
+    st__foreach(table, cuddStCountfree, NULL);
+    st__free_table(table);
 #ifdef DD_STATS
     (void) fprintf(dd->out,"Number of calls: %d\tTable memory: %d bytes\n",
                   num_calls, table_mem);
@@ -232,7 +232,7 @@ static double *
 ddCofMintermAux(
   DdManager * dd,
   DdNode * node,
-  st_table * table)
+  st__table * table)
 {
     DdNode      *N;             /* regular version of node */
     DdNode      *Nv, *Nnv;
@@ -247,7 +247,7 @@ ddCofMintermAux(
     num_calls++;
 #endif
 
-    if (st_lookup(table, (const char *)node, (char **)&values)) {
+    if ( st__lookup(table, (const char *)node, (char **)&values)) {
         return(values);
     }
 
@@ -309,12 +309,12 @@ ddCofMintermAux(
     }
 
     if (N->ref > 1) {
-        if (st_add_direct(table, (char *) node, (char *) values) == ST_OUT_OF_MEM) {
+        if ( st__add_direct(table, (char *) node, (char *) values) == st__OUT_OF_MEM) {
             ABC_FREE(values);
             return(NULL);
         }
 #ifdef DD_STATS
-        table_mem += localSize * sizeof(double) + sizeof(st_table_entry);
+        table_mem += localSize * sizeof(double) + sizeof( st__table_entry);
 #endif
     }
     return(values);

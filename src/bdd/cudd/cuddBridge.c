@@ -121,7 +121,7 @@ static DdNode * addBddDoStrictThreshold (DdManager *dd, DdNode *f, DdNode *val);
 static DdNode * addBddDoInterval (DdManager *dd, DdNode *f, DdNode *l, DdNode *u);
 static DdNode * addBddDoIthBit (DdManager *dd, DdNode *f, DdNode *index);
 static DdNode * ddBddToAddRecur (DdManager *dd, DdNode *B);
-static DdNode * cuddBddTransferRecur (DdManager *ddS, DdManager *ddD, DdNode *f, st_table *table);
+static DdNode * cuddBddTransferRecur (DdManager *ddS, DdManager *ddD, DdNode *f, st__table *table);
 
 /**AutomaticEnd***************************************************************/
 
@@ -446,11 +446,11 @@ cuddBddTransfer(
   DdNode * f)
 {
     DdNode *res;
-    st_table *table = NULL;
-    st_generator *gen = NULL;
+    st__table *table = NULL;
+    st__generator *gen = NULL;
     DdNode *key, *value;
 
-    table = st_init_table(st_ptrcmp,st_ptrhash);
+    table = st__init_table( st__ptrcmp, st__ptrhash);
     if (table == NULL) goto failure;
     res = cuddBddTransferRecur(ddS, ddD, f, table);
     if (res != NULL) cuddRef(res);
@@ -458,20 +458,20 @@ cuddBddTransfer(
     /* Dereference all elements in the table and dispose of the table.
     ** This must be done also if res is NULL to avoid leaks in case of
     ** reordering. */
-    gen = st_init_gen(table);
+    gen = st__init_gen(table);
     if (gen == NULL) goto failure;
-    while (st_gen(gen, (const char **)&key, (char **)&value)) {
+    while ( st__gen(gen, (const char **)&key, (char **)&value)) {
         Cudd_RecursiveDeref(ddD, value);
     }
-    st_free_gen(gen); gen = NULL;
-    st_free_table(table); table = NULL;
+    st__free_gen(gen); gen = NULL;
+    st__free_table(table); table = NULL;
 
     if (res != NULL) cuddDeref(res);
     return(res);
 
 failure:
     /* No need to free gen because it is always NULL here. */
-    if (table != NULL) st_free_table(table);
+    if (table != NULL) st__free_table(table);
     return(NULL);
 
 } /* end of cuddBddTransfer */
@@ -954,7 +954,7 @@ cuddBddTransferRecur(
   DdManager * ddS,
   DdManager * ddD,
   DdNode * f,
-  st_table * table)
+  st__table * table)
 {
     DdNode *ft, *fe, *t, *e, *var, *res;
     DdNode *one, *zero;
@@ -973,7 +973,7 @@ cuddBddTransferRecur(
     /* Now f is a regular pointer to a non-constant node. */
 
     /* Check the cache. */
-    if (st_lookup(table, (const char *)f, (char **)&res))
+    if ( st__lookup(table, (const char *)f, (char **)&res))
         return(Cudd_NotCond(res,comple));
 
     if ( ddS->TimeStop && clock() > ddS->TimeStop )
@@ -1015,7 +1015,7 @@ cuddBddTransferRecur(
     Cudd_RecursiveDeref(ddD, t);
     Cudd_RecursiveDeref(ddD, e);
 
-    if (st_add_direct(table, (char *) f, (char *) res) == ST_OUT_OF_MEM) {
+    if ( st__add_direct(table, (char *) f, (char *) res) == st__OUT_OF_MEM) {
         Cudd_RecursiveDeref(ddD, res);
         return(NULL);
     }

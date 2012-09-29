@@ -107,7 +107,7 @@ static char rcsid[] DD_UNUSED = "$Id: cuddZddUtil.c,v 1.27 2009/03/08 02:49:02 f
 /* Static function prototypes                                                */
 /*---------------------------------------------------------------------------*/
 
-static int zp2 (DdManager *zdd, DdNode *f, st_table *t);
+static int zp2 (DdManager *zdd, DdNode *f, st__table *t);
 static void zdd_print_minterm_aux (DdManager *zdd, DdNode *node, int level, int *list);
 static void zddPrintCoverAux (DdManager *zdd, DdNode *node, int level, int *list);
 
@@ -558,8 +558,8 @@ Cudd_zddDumpDot(
     DdNode      *scan;
     int         *sorted = NULL;
     int         nvars = dd->sizeZ;
-    st_table    *visited = NULL;
-    st_generator *gen;
+    st__table    *visited = NULL;
+    st__generator *gen;
     int         retval;
     int         i, j;
     int         slots;
@@ -589,7 +589,7 @@ Cudd_zddDumpDot(
     support = NULL; /* so that we do not try to free it in case of failure */
 
     /* Initialize symbol table for visited nodes. */
-    visited = st_init_table(st_ptrcmp, st_ptrhash);
+    visited = st__init_table( st__ptrcmp, st__ptrhash);
     if (visited == NULL) goto failure;
 
     /* Collect all the nodes of this DD in the symbol table. */
@@ -612,11 +612,11 @@ Cudd_zddDumpDot(
     /* Find the bits that are different. */
     refAddr = (long) f[0];
     diff = 0;
-    gen = st_init_gen(visited);
-    while (st_gen(gen, (const char **)&scan, NULL)) {
+    gen = st__init_gen(visited);
+    while ( st__gen(gen, (const char **)&scan, NULL)) {
         diff |= refAddr ^ (long) scan;
     }
-    st_free_gen(gen);
+    st__free_gen(gen);
 
     /* Choose the mask. */
     for (i = 0; (unsigned) i < 8 * sizeof(long); i += 4) {
@@ -688,7 +688,7 @@ Cudd_zddDumpDot(
             for (j = 0; j < slots; j++) {
                 scan = nodelist[j];
                 while (scan != NULL) {
-                    if (st_is_member(visited,(char *) scan)) {
+                    if ( st__is_member(visited,(char *) scan)) {
                         retval = fprintf(fp,"\"%p\";\n", (void *)
                                          ((mask & (ptrint) scan) /
                                           sizeof(DdNode)));
@@ -711,7 +711,7 @@ Cudd_zddDumpDot(
     for (j = 0; j < slots; j++) {
         scan = nodelist[j];
         while (scan != NULL) {
-            if (st_is_member(visited,(char *) scan)) {
+            if ( st__is_member(visited,(char *) scan)) {
                 retval = fprintf(fp,"\"%p\";\n", (void *)
                                  ((mask & (ptrint) scan) / sizeof(DdNode)));
                 if (retval == EOF) goto failure;
@@ -745,7 +745,7 @@ Cudd_zddDumpDot(
             for (j = 0; j < slots; j++) {
                 scan = nodelist[j];
                 while (scan != NULL) {
-                    if (st_is_member(visited,(char *) scan)) {
+                    if ( st__is_member(visited,(char *) scan)) {
                         retval = fprintf(fp,
                             "\"%p\" -> \"%p\";\n",
                             (void *) ((mask & (ptrint) scan) / sizeof(DdNode)),
@@ -773,7 +773,7 @@ Cudd_zddDumpDot(
     for (j = 0; j < slots; j++) {
         scan = nodelist[j];
         while (scan != NULL) {
-            if (st_is_member(visited,(char *) scan)) {
+            if ( st__is_member(visited,(char *) scan)) {
                 retval = fprintf(fp,"\"%p\" [label = \"%g\"];\n",
                                  (void *) ((mask & (ptrint) scan) /
                                            sizeof(DdNode)),
@@ -788,13 +788,13 @@ Cudd_zddDumpDot(
     retval = fprintf(fp,"}\n");
     if (retval == EOF) goto failure;
 
-    st_free_table(visited);
+    st__free_table(visited);
     ABC_FREE(sorted);
     return(1);
 
 failure:
     if (sorted != NULL) ABC_FREE(sorted);
-    if (visited != NULL) st_free_table(visited);
+    if (visited != NULL) st__free_table(visited);
     return(0);
 
 } /* end of Cudd_zddDumpBlif */
@@ -824,12 +824,12 @@ cuddZddP(
   DdNode * f)
 {
     int retval;
-    st_table *table = st_init_table(st_ptrcmp, st_ptrhash);
+    st__table *table = st__init_table( st__ptrcmp, st__ptrhash);
 
     if (table == NULL) return(0);
 
     retval = zp2(zdd, f, table);
-    st_free_table(table);
+    st__free_table(table);
     (void) fputc('\n', zdd->out);
     return(retval);
 
@@ -857,7 +857,7 @@ static int
 zp2(
   DdManager * zdd,
   DdNode * f,
-  st_table * t)
+  st__table * t)
 {
     DdNode      *n;
     int         T, E;
@@ -870,10 +870,10 @@ zp2(
         (void)fprintf(zdd->out, "ID = %d\n", (f == base));
         return(1);
     }
-    if (st_is_member(t, (char *)f) == 1)
+    if ( st__is_member(t, (char *)f) == 1)
         return(1);
 
-    if (st_insert(t, (char *) f, NULL) == ST_OUT_OF_MEM)
+    if ( st__insert(t, (char *) f, NULL) == st__OUT_OF_MEM)
         return(0);
 
 #if SIZEOF_VOID_P == 8

@@ -688,7 +688,7 @@ void Dsd_TreePrint_rec( FILE * pFile, Dsd_Node_t * pNode, int fComp, char * pInp
     pInputNums = ABC_ALLOC( int, pNode->nDecs );
     if ( pNode->Type == DSD_NODE_CONST1 )
     {
-         fprintf( pFile, " Constant 1.\n" );
+        fprintf( pFile, " Constant 1.\n" );
     }
     else if ( pNode->Type == DSD_NODE_BUF )
     {
@@ -1036,7 +1036,7 @@ DdNode * Dsd_TreeGetPrimeFunctionOld( DdManager * dd, Dsd_Node_t * pNode, int fR
         Cudd_RecursiveDeref( dd, bNewFunc );
 
         // use the variable in the i-th level of the manager
-//        bNewFunc = Cudd_bddIte( dd, dd->vars[dd->invperm[i]],bCof1,bCof0 );     Cudd_Ref( bNewFunc );
+//      bNewFunc = Cudd_bddIte( dd, dd->vars[dd->invperm[i]],bCof1,bCof0 );     Cudd_Ref( bNewFunc );
         // use the first variale in the support of the component
         bNewFunc = Cudd_bddIte( dd, dd->vars[pNode->pDecs[i]->S->index],bCof1,bCof0 );     Cudd_Ref( bNewFunc );
         Cudd_RecursiveDeref( dd, bCof0 );
@@ -1048,7 +1048,7 @@ DdNode * Dsd_TreeGetPrimeFunctionOld( DdManager * dd, Dsd_Node_t * pNode, int fR
         // remap the function to the top of the manager
         // remap the function to the first variables of the manager
         for ( i = 0; i < pNode->nDecs; i++ )
-    //        Permute[ pNode->pDecs[i]->S->index ] = dd->invperm[i];
+    //      Permute[ pNode->pDecs[i]->S->index ] = dd->invperm[i];
             Permute[ pNode->pDecs[i]->S->index ] = i;
 
         bNewFunc = Cudd_bddPermute( dd, bTemp = bNewFunc, Permute );   Cudd_Ref( bNewFunc );

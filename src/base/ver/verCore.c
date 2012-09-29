@@ -492,7 +492,7 @@ int Ver_ParseModule( Ver_Man_t * pMan )
             break;
         else if ( pMan->pDesign->pGenlib && (pGate = Mio_LibraryReadGateByName((Mio_Library_t *)pMan->pDesign->pGenlib, pWord, NULL)) ) // current design
             RetValue = Ver_ParseGate( pMan, pNtk, pGate );
-//        else if ( pMan->pDesign->pLibrary && st_lookup(pMan->pDesign->pLibrary->tModules, pWord, (char**)&pNtkTemp) ) // gate library
+//        else if ( pMan->pDesign->pLibrary && st__lookup(pMan->pDesign->pLibrary->tModules, pWord, (char**)&pNtkTemp) ) // gate library
 //            RetValue = Ver_ParseGate( pMan, pNtkTemp );
         else // assume this is the box used in the current design
         {
@@ -561,7 +561,7 @@ int Ver_ParseLookupSuffix( Ver_Man_t * pMan, char * pWord, int * pnMsb, int * pn
     *pnMsb = *pnLsb = -1;
     if ( pMan->tName2Suffix == NULL )
         return 1;
-    if ( !st_lookup( pMan->tName2Suffix, (char *)pWord, (char **)&Value ) )
+    if ( ! st__lookup( pMan->tName2Suffix, (char *)pWord, (char **)&Value ) )
         return 1;
     *pnMsb = (Value >> 8) & 0xff;
     *pnLsb = Value & 0xff;
@@ -583,13 +583,13 @@ int Ver_ParseInsertsSuffix( Ver_Man_t * pMan, char * pWord, int nMsb, int nLsb )
 {
     unsigned Value;
     if ( pMan->tName2Suffix == NULL )
-        pMan->tName2Suffix = st_init_table( strcmp, st_strhash );
-    if ( st_is_member( pMan->tName2Suffix, pWord ) )
+        pMan->tName2Suffix = st__init_table( strcmp, st__strhash );
+    if ( st__is_member( pMan->tName2Suffix, pWord ) )
         return 1;
     assert( nMsb >= 0 && nMsb < 128 );
     assert( nLsb >= 0 && nLsb < 128 );
     Value = (nMsb << 8) | nLsb;
-    st_insert( pMan->tName2Suffix, Extra_UtilStrsav(pWord), (char *)(ABC_PTRUINT_T)Value );
+    st__insert( pMan->tName2Suffix, Extra_UtilStrsav(pWord), (char *)(ABC_PTRUINT_T)Value );
     return 1;
 }
 
@@ -606,13 +606,13 @@ int Ver_ParseInsertsSuffix( Ver_Man_t * pMan, char * pWord, int nMsb, int nLsb )
 ***********************************************************************/
 void Ver_ParseRemoveSuffixTable( Ver_Man_t * pMan )
 {
-    st_generator * gen;
+    st__generator * gen;
     char * pKey, * pValue;
     if ( pMan->tName2Suffix == NULL )
         return;
-    st_foreach_item( pMan->tName2Suffix, gen, (const char **)&pKey, (char **)&pValue )
+    st__foreach_item( pMan->tName2Suffix, gen, (const char **)&pKey, (char **)&pValue )
         ABC_FREE( pKey );
-    st_free_table( pMan->tName2Suffix );
+    st__free_table( pMan->tName2Suffix );
     pMan->tName2Suffix = NULL;
 }
 

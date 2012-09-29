@@ -148,15 +148,15 @@ Cudd_DebugCheck(
     DdNodePtr   *nodelist;
     DdNode      *f;
     DdNode      *sentinel = &(table->sentinel);
-    st_table    *edgeTable;     /* stores internal ref count for each node */
-    st_generator        *gen;
+    st__table    *edgeTable;     /* stores internal ref count for each node */
+    st__generator        *gen;
     int         flag = 0;
     int         totalNode;
     int         deadNode;
     int         index;
 
 
-    edgeTable = st_init_table(st_ptrcmp,st_ptrhash);
+    edgeTable = st__init_table( st__ptrcmp, st__ptrhash);
     if (edgeTable == NULL) return(CUDD_OUT_OF_MEM);
 
     /* Check the BDD/ADD subtables. */
@@ -212,29 +212,29 @@ Cudd_DebugCheck(
                     /* Increment the internal reference count for the
                     ** then child of the current node.
                     */
-                    if (st_lookup_int(edgeTable,(char *)cuddT(f),&count)) {
+                    if ( st__lookup_int(edgeTable,(char *)cuddT(f),&count)) {
                         count++;
                     } else {
                         count = 1;
                     }
-                    if (st_insert(edgeTable,(char *)cuddT(f),
-                    (char *)(long)count) == ST_OUT_OF_MEM) {
-                        st_free_table(edgeTable);
+                    if ( st__insert(edgeTable,(char *)cuddT(f),
+                    (char *)(long)count) == st__OUT_OF_MEM) {
+                        st__free_table(edgeTable);
                         return(CUDD_OUT_OF_MEM);
                     }
 
                     /* Increment the internal reference count for the
                     ** else child of the current node.
                     */
-                    if (st_lookup_int(edgeTable,(char *)Cudd_Regular(cuddE(f)),
+                    if ( st__lookup_int(edgeTable,(char *)Cudd_Regular(cuddE(f)),
                                       &count)) {
                         count++;
                     } else {
                         count = 1;
                     }
-                    if (st_insert(edgeTable,(char *)Cudd_Regular(cuddE(f)),
-                    (char *)(long)count) == ST_OUT_OF_MEM) {
-                        st_free_table(edgeTable);
+                    if ( st__insert(edgeTable,(char *)Cudd_Regular(cuddE(f)),
+                    (char *)(long)count) == st__OUT_OF_MEM) {
+                        st__free_table(edgeTable);
                         return(CUDD_OUT_OF_MEM);
                     }
                 } else if (cuddT(f) != NULL && cuddE(f) != NULL && f->ref == 0) {
@@ -318,28 +318,28 @@ Cudd_DebugCheck(
                     /* Increment the internal reference count for the
                     ** then child of the current node.
                     */
-                    if (st_lookup_int(edgeTable,(char *)cuddT(f),&count)) {
+                    if ( st__lookup_int(edgeTable,(char *)cuddT(f),&count)) {
                         count++;
                     } else {
                         count = 1;
                     }
-                    if (st_insert(edgeTable,(char *)cuddT(f),
-                    (char *)(long)count) == ST_OUT_OF_MEM) {
-                        st_free_table(edgeTable);
+                    if ( st__insert(edgeTable,(char *)cuddT(f),
+                    (char *)(long)count) == st__OUT_OF_MEM) {
+                        st__free_table(edgeTable);
                         return(CUDD_OUT_OF_MEM);
                     }
 
                     /* Increment the internal reference count for the
                     ** else child of the current node.
                     */
-                    if (st_lookup_int(edgeTable,(char *)cuddE(f),&count)) {
+                    if ( st__lookup_int(edgeTable,(char *)cuddE(f),&count)) {
                         count++;
                     } else {
                         count = 1;
                     }
-                    if (st_insert(edgeTable,(char *)cuddE(f),
-                    (char *)(long)count) == ST_OUT_OF_MEM) {
-                        st_free_table(edgeTable);
+                    if ( st__insert(edgeTable,(char *)cuddE(f),
+                    (char *)(long)count) == st__OUT_OF_MEM) {
+                        st__free_table(edgeTable);
                         table->errorCode = CUDD_MEMORY_OUT;
                         return(CUDD_OUT_OF_MEM);
                     }
@@ -411,8 +411,8 @@ Cudd_DebugCheck(
                        "Error: wrong number of dead nodes in constants\n");
         flag = 1;
     }
-    gen = st_init_gen(edgeTable);
-    while (st_gen(gen, (const char **)&f, (char **)&count)) {
+    gen = st__init_gen(edgeTable);
+    while ( st__gen(gen, (const char **)&f, (char **)&count)) {
         if (count > (int)(f->ref) && f->ref != DD_MAXREF) {
 #if SIZEOF_VOID_P == 8
             fprintf(table->err,"ref count error at node 0x%lx, count = %d, id = %u, ref = %u, then = 0x%lx, else = 0x%lx\n",(ptruint)f,count,f->index,f->ref,(ptruint)cuddT(f),(ptruint)cuddE(f));
@@ -423,8 +423,8 @@ Cudd_DebugCheck(
             flag = 1;
         }
     }
-    st_free_gen(gen);
-    st_free_table(edgeTable);
+    st__free_gen(gen);
+    st__free_table(edgeTable);
 
     return (flag);
 

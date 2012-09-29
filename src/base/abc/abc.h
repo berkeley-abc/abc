@@ -222,7 +222,7 @@ struct Abc_Lib_t_
     void *            pManFunc;      // functionality manager for the nodes
     Vec_Ptr_t *       vTops;         // the array of top-level modules
     Vec_Ptr_t *       vModules;      // the array of modules
-    st_table *        tModules;      // the table hashing module names into their networks
+    st__table *        tModules;      // the table hashing module names into their networks
     Abc_Lib_t *       pLibrary;      // the library used to map this design
     void *            pGenlib;       // the genlib library used to map this design
 };

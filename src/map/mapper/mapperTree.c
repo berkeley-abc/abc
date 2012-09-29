@@ -265,7 +265,7 @@ int Map_LibraryReadTree2( Map_SuperLib_t * pLib, char * pFileName, char * pExclu
     FILE * pFile;
     int Status, num;
     Abc_Frame_t * pAbc;
-    st_table * tExcludeGate = 0;
+    st__table * tExcludeGate = 0;
 
     // read the beginning of the file
     assert( pLib->pGenlib == NULL );
@@ -281,10 +281,10 @@ int Map_LibraryReadTree2( Map_SuperLib_t * pLib, char * pFileName, char * pExclu
     {
         pAbc = Abc_FrameGetGlobalFrame();
         
-        tExcludeGate = st_init_table(strcmp, st_strhash);
+        tExcludeGate = st__init_table(strcmp, st__strhash);
         if ( (num = Mio_LibraryReadExclude( pExcludeFile, tExcludeGate )) == -1 )
         {
-            st_free_table( tExcludeGate );
+            st__free_table( tExcludeGate );
             tExcludeGate = 0;
             return 0;
         }
@@ -525,7 +525,7 @@ int Map_LibraryReadTree( Map_SuperLib_t * pLib, char * pFileName, char * pExclud
     Vec_Str_t * vStr;
     int Status, num;
     Abc_Frame_t * pAbc;
-    st_table * tExcludeGate = 0;
+    st__table * tExcludeGate = 0;
 
     // read the beginning of the file
     assert( pLib->pGenlib == NULL );
@@ -542,10 +542,10 @@ int Map_LibraryReadTree( Map_SuperLib_t * pLib, char * pFileName, char * pExclud
     {
         pAbc = Abc_FrameGetGlobalFrame();
         
-        tExcludeGate = st_init_table(strcmp, st_strhash);
+        tExcludeGate = st__init_table(strcmp, st__strhash);
         if ( (num = Mio_LibraryReadExclude( pExcludeFile, tExcludeGate )) == -1 )
         {
-            st_free_table( tExcludeGate );
+            st__free_table( tExcludeGate );
             tExcludeGate = 0;
             Vec_StrFree( vStr );
             return 0;
@@ -580,7 +580,7 @@ int Map_LibraryReadTree( Map_SuperLib_t * pLib, char * pFileName, char * pExclud
   SeeAlso     []
 
 ***********************************************************************/
-int Map_LibraryDeriveGateInfo( Map_SuperLib_t * pLib, st_table * tExcludeGate )
+int Map_LibraryDeriveGateInfo( Map_SuperLib_t * pLib, st__table * tExcludeGate )
 {
     Map_Super_t * pGate, * pFanin;
     Mio_Pin_t * pPin;
@@ -595,7 +595,7 @@ int Map_LibraryDeriveGateInfo( Map_SuperLib_t * pLib, st_table * tExcludeGate )
 
         if ( tExcludeGate )
         {
-            if ( st_is_member( tExcludeGate, Mio_GateReadName( pGate->pRoot ) ) )
+            if ( st__is_member( tExcludeGate, Mio_GateReadName( pGate->pRoot ) ) )
                 pGate->fExclude = 1;
             for ( k = 0; k < (int)pGate->nFanins; k++ )
             {

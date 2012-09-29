@@ -821,13 +821,13 @@ void WriteDDintoBLIFfile( FILE * pFile, DdNode * Func, char * OutputName, char *
 // (some part of the code is borrowed from Cudd_DumpDot())
 {
     int i;
-    st_table * visited;
-    st_generator * gen = NULL;
+    st__table * visited;
+    st__generator * gen = NULL;
     long refAddr, diff, mask;
     DdNode * Node, * Else, * ElseR, * Then;
 
     /* Initialize symbol table for visited nodes. */
-    visited = st_init_table( st_ptrcmp, st_ptrhash );
+    visited = st__init_table( st__ptrcmp, st__ptrhash );
 
     /* Collect all the nodes of this DD in the symbol table. */
     cuddCollectNodes( Cudd_Regular(Func), visited );
@@ -846,12 +846,12 @@ void WriteDDintoBLIFfile( FILE * pFile, DdNode * Func, char * OutputName, char *
     /* Find the bits that are different. */
     refAddr = ( long )Cudd_Regular(Func);
     diff = 0;
-    gen = st_init_gen( visited );
-    while ( st_gen( gen, ( const char ** ) &Node, NULL ) )
+    gen = st__init_gen( visited );
+    while ( st__gen( gen, ( const char ** ) &Node, NULL ) )
     {
         diff |= refAddr ^ ( long ) Node;
     }
-    st_free_gen( gen );
+    st__free_gen( gen );
     gen = NULL;
 
     /* Choose the mask. */
@@ -868,8 +868,8 @@ void WriteDDintoBLIFfile( FILE * pFile, DdNode * Func, char * OutputName, char *
     fprintf( pFile, "%s 1\n", (Cudd_IsComplement(Func))? "0": "1" );
 
 
-    gen = st_init_gen( visited );
-    while ( st_gen( gen, ( const char ** ) &Node, NULL ) )
+    gen = st__init_gen( visited );
+    while ( st__gen( gen, ( const char ** ) &Node, NULL ) )
     {
         if ( Node->index == CUDD_MAXINDEX )
         {
@@ -904,7 +904,7 @@ void WriteDDintoBLIFfile( FILE * pFile, DdNode * Func, char * OutputName, char *
             fprintf( pFile, "1-1 1\n" );
 
             // if the inverter is written, skip
-            if ( !st_find( visited, (char *)ElseR, (char ***)&pSlot ) )
+            if ( ! st__find( visited, (char *)ElseR, (char ***)&pSlot ) )
                 assert( 0 );
             if ( *pSlot )
                 continue;
@@ -916,9 +916,9 @@ void WriteDDintoBLIFfile( FILE * pFile, DdNode * Func, char * OutputName, char *
             fprintf( pFile, "0 1\n" );
         }
     }
-    st_free_gen( gen );
+    st__free_gen( gen );
     gen = NULL;
-    st_free_table( visited );
+    st__free_table( visited );
 }
 
 
@@ -946,8 +946,8 @@ void WriteDDintoBLIFfileReorder( DdManager * dd, FILE * pFile, DdNode * Func, ch
 // (some part of the code is borrowed from Cudd_DumpDot())
 {
     int i;
-    st_table * visited;
-    st_generator * gen = NULL;
+    st__table * visited;
+    st__generator * gen = NULL;
     long refAddr, diff, mask;
     DdNode * Node, * Else, * ElseR, * Then;
 
@@ -972,7 +972,7 @@ void WriteDDintoBLIFfileReorder( DdManager * dd, FILE * pFile, DdNode * Func, ch
 
 
     /* Initialize symbol table for visited nodes. */
-    visited = st_init_table( st_ptrcmp, st_ptrhash );
+    visited = st__init_table( st__ptrcmp, st__ptrhash );
 
     /* Collect all the nodes of this DD in the symbol table. */
     cuddCollectNodes( Cudd_Regular(bFmin), visited );
@@ -991,12 +991,12 @@ void WriteDDintoBLIFfileReorder( DdManager * dd, FILE * pFile, DdNode * Func, ch
     /* Find the bits that are different. */
     refAddr = ( long )Cudd_Regular(bFmin);
     diff = 0;
-    gen = st_init_gen( visited );
-    while ( st_gen( gen, ( const char ** ) &Node, NULL ) )
+    gen = st__init_gen( visited );
+    while ( st__gen( gen, ( const char ** ) &Node, NULL ) )
     {
         diff |= refAddr ^ ( long ) Node;
     }
-    st_free_gen( gen );
+    st__free_gen( gen );
     gen = NULL;
 
     /* Choose the mask. */
@@ -1013,8 +1013,8 @@ void WriteDDintoBLIFfileReorder( DdManager * dd, FILE * pFile, DdNode * Func, ch
     fprintf( pFile, "%s 1\n", (Cudd_IsComplement(bFmin))? "0": "1" );
 
 
-    gen = st_init_gen( visited );
-    while ( st_gen( gen, ( const char ** ) &Node, NULL ) )
+    gen = st__init_gen( visited );
+    while ( st__gen( gen, ( const char ** ) &Node, NULL ) )
     {
         if ( Node->index == CUDD_MAXINDEX )
         {
@@ -1053,9 +1053,9 @@ void WriteDDintoBLIFfileReorder( DdManager * dd, FILE * pFile, DdNode * Func, ch
             fprintf( pFile, "0 1\n" );
         }
     }
-    st_free_gen( gen );
+    st__free_gen( gen );
     gen = NULL;
-    st_free_table( visited );
+    st__free_table( visited );
 
 
     //////////////////////////////////////////////////
@@ -1070,7 +1070,7 @@ void WriteDDintoBLIFfileReorder( DdManager * dd, FILE * pFile, DdNode * Func, ch
 ///                    TRANSFER WITH MAPPING                         ///
 ////////////////////////////////////////////////////////////////////////
 static DdNode * cuddBddTransferPermuteRecur
-ARGS((DdManager * ddS, DdManager * ddD, DdNode * f, st_table * table, int * Permute ));
+ARGS((DdManager * ddS, DdManager * ddD, DdNode * f, st__table * table, int * Permute ));
 
 static DdNode * cuddBddTransferPermute
 ARGS((DdManager * ddS, DdManager * ddD, DdNode * f, int * Permute));
@@ -1128,11 +1128,11 @@ DdNode *
 cuddBddTransferPermute( DdManager * ddS, DdManager * ddD, DdNode * f, int * Permute )
 {
     DdNode *res;
-    st_table *table = NULL;
-    st_generator *gen = NULL;
+    st__table *table = NULL;
+    st__generator *gen = NULL;
     DdNode *key, *value;
 
-    table = st_init_table( st_ptrcmp, st_ptrhash );
+    table = st__init_table( st__ptrcmp, st__ptrhash );
     if ( table == NULL )
         goto failure;
     res = cuddBddTransferPermuteRecur( ddS, ddD, f, table, Permute );
@@ -1142,16 +1142,16 @@ cuddBddTransferPermute( DdManager * ddS, DdManager * ddD, DdNode * f, int * Perm
     /* Dereference all elements in the table and dispose of the table.
        ** This must be done also if res is NULL to avoid leaks in case of
        ** reordering. */
-    gen = st_init_gen( table );
+    gen = st__init_gen( table );
     if ( gen == NULL )
         goto failure;
-    while ( st_gen( gen, ( const char ** ) &key, ( char ** ) &value ) )
+    while ( st__gen( gen, ( const char ** ) &key, ( char ** ) &value ) )
     {
         Cudd_RecursiveDeref( ddD, value );
     }
-    st_free_gen( gen );
+    st__free_gen( gen );
     gen = NULL;
-    st_free_table( table );
+    st__free_table( table );
     table = NULL;
 
     if ( res != NULL )
@@ -1160,9 +1160,9 @@ cuddBddTransferPermute( DdManager * ddS, DdManager * ddD, DdNode * f, int * Perm
 
   failure:
     if ( table != NULL )
-        st_free_table( table );
+        st__free_table( table );
     if ( gen != NULL )
-        st_free_gen( gen );
+        st__free_gen( gen );
     return ( NULL );
 
 }                               /* end of cuddBddTransferPermute */
@@ -1182,7 +1182,7 @@ cuddBddTransferPermute( DdManager * ddS, DdManager * ddD, DdNode * f, int * Perm
 ******************************************************************************/
 static DdNode *
 cuddBddTransferPermuteRecur( DdManager * ddS,
-                      DdManager * ddD, DdNode * f, st_table * table, int * Permute )
+                      DdManager * ddD, DdNode * f, st__table * table, int * Permute )
 {
     DdNode *ft, *fe, *t, *e, *var, *res;
     DdNode *one, *zero;
@@ -1202,7 +1202,7 @@ cuddBddTransferPermuteRecur( DdManager * ddS,
     /* Now f is a regular pointer to a non-constant node. */
 
     /* Check the cache. */
-    if ( st_lookup( table, ( char * ) f, ( char ** ) &res ) )
+    if ( st__lookup( table, ( char * ) f, ( char ** ) &res ) )
         return ( Cudd_NotCond( res, comple ) );
 
     /* Recursive step. */
@@ -1244,8 +1244,8 @@ cuddBddTransferPermuteRecur( DdManager * ddS,
     Cudd_RecursiveDeref( ddD, t );
     Cudd_RecursiveDeref( ddD, e );
 
-    if ( st_add_direct( table, ( char * ) f, ( char * ) res ) ==
-         ST_OUT_OF_MEM )
+    if ( st__add_direct( table, ( char * ) f, ( char * ) res ) ==
+         st__OUT_OF_MEM )
     {
         Cudd_RecursiveDeref( ddD, res );
         return ( NULL );

@@ -44,21 +44,21 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Obj_t * Aig_NodeBddToMuxes_rec( DdManager * dd, DdNode * bFunc, Aig_Man_t * pNew, st_table * tBdd2Node )
+Aig_Obj_t * Aig_NodeBddToMuxes_rec( DdManager * dd, DdNode * bFunc, Aig_Man_t * pNew, st__table * tBdd2Node )
 {
     Aig_Obj_t * pNode, * pNode0, * pNode1, * pNodeC;
     assert( !Cudd_IsComplement(bFunc) );
-    if ( st_lookup( tBdd2Node, (char *)bFunc, (char **)&pNode ) )
+    if ( st__lookup( tBdd2Node, (char *)bFunc, (char **)&pNode ) )
         return pNode;
     // solve for the children nodes
     pNode0 = Aig_NodeBddToMuxes_rec( dd, Cudd_Regular(cuddE(bFunc)), pNew, tBdd2Node );
     pNode0 = Aig_NotCond( pNode0, Cudd_IsComplement(cuddE(bFunc)) );
     pNode1 = Aig_NodeBddToMuxes_rec( dd, cuddT(bFunc), pNew, tBdd2Node );
-    if ( !st_lookup( tBdd2Node, (char *)Cudd_bddIthVar(dd, bFunc->index), (char **)&pNodeC ) )
+    if ( ! st__lookup( tBdd2Node, (char *)Cudd_bddIthVar(dd, bFunc->index), (char **)&pNodeC ) )
         assert( 0 );
     // create the MUX node
     pNode = Aig_Mux( pNew, pNodeC, pNode1, pNode0 );
-    st_insert( tBdd2Node, (char *)bFunc, (char *)pNode );
+    st__insert( tBdd2Node, (char *)bFunc, (char *)pNode );
     return pNode;
 }
 
@@ -76,7 +76,7 @@ Aig_Obj_t * Aig_NodeBddToMuxes_rec( DdManager * dd, DdNode * bFunc, Aig_Man_t * 
 Aig_Man_t * Aig_ManConvertBddsToAigs( Aig_Man_t * p, DdManager * dd, Vec_Ptr_t * vCofs )
 {
     DdNode * bFunc;
-    st_table * tBdd2Node;
+    st__table * tBdd2Node;
     Aig_Man_t * pNew;
     Aig_Obj_t * pObj;
     int i;
@@ -88,11 +88,11 @@ Aig_Man_t * Aig_ManConvertBddsToAigs( Aig_Man_t * p, DdManager * dd, Vec_Ptr_t *
     Aig_ManForEachCi( p, pObj, i )
         pObj->pData = Aig_ObjCreateCi( pNew );
     // create the table mapping BDD nodes into the ABC nodes
-    tBdd2Node = st_init_table( st_ptrcmp, st_ptrhash );
+    tBdd2Node = st__init_table( st__ptrcmp, st__ptrhash );
     // add the constant and the elementary vars
-    st_insert( tBdd2Node, (char *)Cudd_ReadOne(dd), (char *)Aig_ManConst1(pNew) );
+    st__insert( tBdd2Node, (char *)Cudd_ReadOne(dd), (char *)Aig_ManConst1(pNew) );
     Aig_ManForEachCi( p, pObj, i )
-        st_insert( tBdd2Node, (char *)Cudd_bddIthVar(dd, i), (char *)pObj->pData );
+        st__insert( tBdd2Node, (char *)Cudd_bddIthVar(dd, i), (char *)pObj->pData );
     // build primary outputs for the cofactors
     Vec_PtrForEachEntry( DdNode *, vCofs, bFunc, i )
     {
@@ -102,7 +102,7 @@ Aig_Man_t * Aig_ManConvertBddsToAigs( Aig_Man_t * p, DdManager * dd, Vec_Ptr_t *
         pObj = Aig_NotCond( pObj, Cudd_IsComplement(bFunc) );
         Aig_ObjCreateCo( pNew, pObj );
     }
-    st_free_table( tBdd2Node );
+    st__free_table( tBdd2Node );
 
     // duplicate the rest of the AIG
     // add the POs

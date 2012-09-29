@@ -202,7 +202,7 @@ s_Loops2Useless = 0;
         printf( "  Completely decomposable outputs           = %5d\n", nCBFOutputs );
         printf( "  The sum of max gate sizes                 = %5d\n", SumMaxGateSize );
         printf( "  Shared BDD size                           = %5d\n", Cudd_SharingSize( pbFuncs, nFuncs ) );
-        printf( "  Decomposition entries                     = %5d\n", st_count( pDsdMan->Table ) );
+        printf( "  Decomposition entries                     = %5d\n", st__count( pDsdMan->Table ) );
         printf( "  Pure decomposition time                   =  %.2f sec\n", (float)(clock() - clk)/(float)(CLOCKS_PER_SEC) );
     }
 /*
@@ -275,7 +275,7 @@ Dsd_Node_t * dsdKernelDecompose_rec( Dsd_Manager_t * pDsdMan, DdNode * bFunc0 )
     int  fCompF = (int)(bF != bFunc0);
 
     // check cache
-    if ( st_lookup( pDsdMan->Table, (char*)bF, (char**)&pTableEntry ) )
+    if ( st__lookup( pDsdMan->Table, (char*)bF, (char**)&pTableEntry ) )
     { // the entry is present 
         HashSuccess++;
         return Dsd_NotCond( pTableEntry, fCompF );
@@ -338,19 +338,19 @@ Dsd_Node_t * dsdKernelDecompose_rec( Dsd_Manager_t * pDsdMan, DdNode * bFunc0 )
           /////////////////////////////////////////////////////////////////
             if ( pHR->Type == DSD_NODE_OR && pH != pHR ) // DSD_NODE_OR and complement
             { // add to the components
-               pThis = Dsd_TreeNodeCreate( DSD_NODE_OR, pHR->nDecs+1, s_nDecBlocks++ );
+              pThis = Dsd_TreeNodeCreate( DSD_NODE_OR, pHR->nDecs+1, s_nDecBlocks++ );
               dsdKernelCopyListPlusOne( pThis, Dsd_Not(pVarCurDE), pHR->pDecs, pHR->nDecs );
               pThis = Dsd_Not(pThis);
             }
             else // all other cases
             { // create a new 2-input NOR gate
-               pThis = Dsd_TreeNodeCreate( DSD_NODE_OR, 2, s_nDecBlocks++ );
+              pThis = Dsd_TreeNodeCreate( DSD_NODE_OR, 2, s_nDecBlocks++ );
               pH = Dsd_Not(pH);
               dsdKernelCopyListPlusOne( pThis, Dsd_Not(pVarCurDE), &pH, 1 );
               pThis = Dsd_Not(pThis);
             }
           else // if ( bLow == b1 )
-            /////////////////////////////////////////////////////////////////
+          /////////////////////////////////////////////////////////////////
           // Low == 1, High != 1, F = x'&1 + x&High = x' + High --- DSD_NODE_OR(x',High)
           /////////////////////////////////////////////////////////////////
             if ( pHR->Type == DSD_NODE_OR && pH == pHR ) // OR and no complement
@@ -412,8 +412,8 @@ Dsd_Node_t * dsdKernelDecompose_rec( Dsd_Manager_t * pDsdMan, DdNode * bFunc0 )
 /*
 if ( Depth == 1 )
 {
-//    PRK(bLow,pDecTreeTotal->nInputs);
-//    PRK(bHigh,pDecTreeTotal->nInputs);
+//  PRK(bLow,pDecTreeTotal->nInputs);
+//  PRK(bHigh,pDecTreeTotal->nInputs);
 if ( s_Show )
 {
     PRD( pL );
@@ -503,7 +503,7 @@ if ( s_Show )
             }
 
             for ( g = 0; g < pLargeR->nDecs; g++ )
-//            if ( g != c )
+//          if ( g != c )
             {
                 pDETemp = pLargeR->pDecs[g]; // cannot be complemented
                 if ( Dsd_CheckRootFunctionIdentity( dd, bLarge, bSmall, pDETemp->G, b1 ) )
@@ -584,7 +584,7 @@ if ( s_Show )
 
         if ( pComp ) // the decomposition is possible!
         {
-//            Dsd_Node_t * pComp  = pLargeR->pDecs[iCompLarge];
+//          Dsd_Node_t * pComp  = pLargeR->pDecs[iCompLarge];
             Dsd_Node_t * pCompR = Dsd_Regular( pComp );
             int fComp1 = (int)( pLarge != pLargeR );
             int fComp2 = (int)( pComp  != pCompR );
@@ -753,7 +753,7 @@ if ( s_Show )
                 dsdKernelComputeSumOfComponents( pDsdMan, pCommon, nCommon, &bCommF, &bCommS, 0 );
                 Cudd_Ref( bCommF );
                 Cudd_Ref( bCommS );
-                bFTemp = ( pL != pLR )?    Cudd_Not(bF): bF;
+                bFTemp = ( pL != pLR )? Cudd_Not(bF): bF;
 
                 bFuncNew = Cudd_bddAndAbstract( dd, bFTemp, Cudd_Not(bCommF), bCommS ); Cudd_Ref( bFuncNew );
                 Cudd_RecursiveDeref( dd, bCommF );
@@ -768,7 +768,7 @@ if ( s_Show )
 
                 // call the decomposition recursively
                 pDENew = dsdKernelDecompose_rec( pDsdMan, bFuncNew );
-//                assert( !Dsd_IsComplement(pDENew) ); // follows from the consideration of cases
+//              assert( !Dsd_IsComplement(pDENew) ); // follows from the consideration of cases
                 Cudd_RecursiveDeref( dd, bFuncNew );
 
                 // add the first component
@@ -824,12 +824,12 @@ if ( s_Show )
 
                 Dsd_Node_t * pDENew;
                 DdNode * bFuncNew;
-                int fCompComp = 0;    // this flag can be {0,1,2}
+                int fCompComp = 0;  // this flag can be {0,1,2}
                 // if it is 0 there is no identity
                 // if it is 1/2, the cofactored functions are equal in the direct/complemented polarity
 
                 if ( nCommon == pLR->nDecs )
-                {    // all the components are the same
+                {   // all the components are the same
                     // find the formal input, in which pLow and pHigh differ (if such input exists)
                     int m;
                     Dsd_Node_t * pTempL, * pTempH;
@@ -1039,11 +1039,11 @@ if ( s_Show )
                 // find the first component in pHigher 
                 // whose support does not overlap with supp(Lower) 
                 // and remember the previous component
-                int fPolarity;            
+                int fPolarity;          
                 Dsd_Node_t * pPrev = NULL;       // the pointer to the component proceeding pCur
                 Dsd_Node_t * pCur  = pHigher;    // the first component not contained in supp(Lower)
                 while ( Extra_bddSuppOverlapping( dd, pCur->S, bSuppLower ) )
-                {    // get the next component
+                {   // get the next component
                     pPrev = pCur;
                     pCur  = dsdKernelFindContainingComponent( pDsdMan, pCur, bVarTop, &fPolarity );
                 };
@@ -1176,7 +1176,7 @@ if ( s_Show )
         
                     if ( nCommon == 0 || nCommon == 1 )
                     { // one one component was found, which is the original one
-    //                    assert( Dsd_Regular(pCommon[0]) == pCurL);
+    //                  assert( Dsd_Regular(pCommon[0]) == pCurL);
                         // add the new decomposition entry
                         pThis->pDecs[ nEntries++ ] = pCurL;
                         // assign the support to be subtracted from both components
@@ -1242,7 +1242,7 @@ EXIT:
 
     assert( bSuppNew );
     pThisR->S = bSuppNew;   // takes the reference from the new support
-    if ( st_insert( pDsdMan->Table, (char*)bF, (char*)pThis ) )
+    if ( st__insert( pDsdMan->Table, (char*)bF, (char*)pThis ) )
     {
         assert( 0 );
     }
@@ -1303,8 +1303,8 @@ Dsd_Node_t * dsdKernelFindContainingComponent( Dsd_Manager_t * pDsdMan, Dsd_Node
     Dsd_Node_t * pTemp;
     int i;
 
-//    assert( !Dsd_IsComplement( pWhere ) );
-//    assert( Extra_bddSuppContainVar( pDsdMan->dd, pWhere->S, Var ) );
+//  assert( !Dsd_IsComplement( pWhere ) );
+//  assert( Extra_bddSuppContainVar( pDsdMan->dd, pWhere->S, Var ) );
 
     if ( pWhere->nDecs == 1 )
         return NULL;
@@ -1408,7 +1408,7 @@ int dsdKernelFindCommonComponents( Dsd_Manager_t * pDsdMan, Dsd_Node_t * pL, Dsd
     // return the pointer to the array
     *pCommon = Common;
     // return the number of common components
-    return nCommon;            
+    return nCommon;         
 }
 
 /**Function*************************************************************
@@ -1587,7 +1587,7 @@ int dsdKernelVerifyDecomposition( Dsd_Manager_t * pDsdMan, Dsd_Node_t * pDE )
             bGVars[dd->invperm[i]] = pR->pDecs[i]->G;
 
         // perform the composition
-        bRes = Cudd_bddVectorCompose( dd, bNewFunc, bGVars );       Cudd_Ref( bRes );
+        bRes = Cudd_bddVectorCompose( dd, bNewFunc, bGVars );      Cudd_Ref( bRes );
         Cudd_RecursiveDeref( dd, bNewFunc );
 
         /////////////////////////////////////////////////////////

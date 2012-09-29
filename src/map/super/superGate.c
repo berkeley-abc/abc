@@ -938,7 +938,7 @@ Super_Man_t * Super_ManStart()
     Super_Man_t * pMan;
     pMan = ABC_CALLOC( Super_Man_t, 1 );
     pMan->pMem     = Extra_MmFixedStart( sizeof(Super_Gate_t) );
-    pMan->tTable   = stmm_init_table( st_ptrcmp, st_ptrhash );
+    pMan->tTable   = stmm_init_table( st__ptrcmp, st__ptrhash );
     return pMan;
 }
 

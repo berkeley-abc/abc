@@ -29,7 +29,7 @@ ABC_NAMESPACE_IMPL_START
 ///                      STATIC VARIABLES                            ///
 ////////////////////////////////////////////////////////////////////////
 
-static DdNode * Extra_dsdRemap( DdManager * dd, DdNode * bFunc, st_table * pCache,
+static DdNode * Extra_dsdRemap( DdManager * dd, DdNode * bFunc, st__table * pCache,
     int * pVar2Form, int * pForm2Var, DdNode * pbCube0[], DdNode * pbCube1[] );
 static DdNode * Extra_bddNodePointedByCube( DdManager * dd, DdNode * bF, DdNode * bC );
 
@@ -58,7 +58,7 @@ DdNode * Dsd_TreeGetPrimeFunction( DdManager * dd, Dsd_Node_t * pNode )
     int i, iVar, iLev, * pPermute;
     DdNode ** pbCube0, ** pbCube1;
     DdNode * bFunc, * bRes, * bTemp;
-    st_table * pCache;
+    st__table * pCache;
     
     pPermute  = ABC_ALLOC( int, dd->size );
     pVar2Form = ABC_ALLOC( int, dd->size );
@@ -100,9 +100,9 @@ DdNode * Dsd_TreeGetPrimeFunction( DdManager * dd, Dsd_Node_t * pNode )
     }
 
     // remap the function
-    pCache = st_init_table(st_ptrcmp, st_ptrhash);;
+    pCache = st__init_table( st__ptrcmp, st__ptrhash);;
     bRes = Extra_dsdRemap( dd, bFunc, pCache, pVar2Form, pForm2Var, pbCube0, pbCube1 );  Cudd_Ref( bRes );
-    st_free_table( pCache );
+    st__free_table( pCache );
 
     Cudd_RecursiveDeref( dd, bFunc );
     for ( i = 0; i < pNode->nDecs; i++ )
@@ -143,7 +143,7 @@ DdNode * Dsd_TreeGetPrimeFunction( DdManager * dd, Dsd_Node_t * pNode )
   SeeAlso     []
 
 ***********************************************************************/
-DdNode * Extra_dsdRemap( DdManager * dd, DdNode * bF, st_table * pCache,
+DdNode * Extra_dsdRemap( DdManager * dd, DdNode * bF, st__table * pCache,
     int * pVar2Form, int * pForm2Var, DdNode * pbCube0[], DdNode * pbCube1[] )
 {
     DdNode * bFR, * bF0, * bF1;
@@ -157,7 +157,7 @@ DdNode * Extra_dsdRemap( DdManager * dd, DdNode * bF, st_table * pCache,
     // check the hash-table
     if ( bFR->ref != 1 )
     {
-        if ( st_lookup( pCache, (char *)bF, (char **)&bRes ) )
+        if ( st__lookup( pCache, (char *)bF, (char **)&bRes ) )
             return bRes;
     }
 
@@ -179,7 +179,7 @@ DdNode * Extra_dsdRemap( DdManager * dd, DdNode * bF, st_table * pCache,
 
     // add to the hash table
     if ( bFR->ref != 1 )
-        st_insert( pCache, (char *)bF, (char *)bRes );
+        st__insert( pCache, (char *)bF, (char *)bRes );
     Cudd_Deref( bRes );
     return bRes;
 }
@@ -208,7 +208,7 @@ DdNode * Extra_bddNodePointedByCube( DdManager * dd, DdNode * bF, DdNode * bC )
 
 //    bRes = cuddCacheLookup2( dd, Extra_bddNodePointedByCube, bF, bC );
 //    if ( bRes )
-//        return bRes;
+//      return bRes;
     // there is no need for caching because this operation is very fast
     // there will no gain reusing the results of this operations
     // instead, it will flush CUDD cache of other useful entries
@@ -310,7 +310,7 @@ DdNode * dsdTreeGetPrimeFunction( DdManager * dd, Dsd_Node_t * pNode, int fRemap
         Cudd_RecursiveDeref( dd, bNewFunc );
 
         // use the variable in the i-th level of the manager
-//        bNewFunc = Cudd_bddIte( dd, dd->vars[dd->invperm[i]],bCof1,bCof0 );     Cudd_Ref( bNewFunc );
+//      bNewFunc = Cudd_bddIte( dd, dd->vars[dd->invperm[i]],bCof1,bCof0 );     Cudd_Ref( bNewFunc );
         // use the first variale in the support of the component
         bNewFunc = Cudd_bddIte( dd, dd->vars[pNode->pDecs[i]->S->index],bCof1,bCof0 );     Cudd_Ref( bNewFunc );
         Cudd_RecursiveDeref( dd, bCof0 );
@@ -322,7 +322,7 @@ DdNode * dsdTreeGetPrimeFunction( DdManager * dd, Dsd_Node_t * pNode, int fRemap
         // remap the function to the top of the manager
         // remap the function to the first variables of the manager
         for ( i = 0; i < pNode->nDecs; i++ )
-    //        Permute[ pNode->pDecs[i]->S->index ] = dd->invperm[i];
+    //      Permute[ pNode->pDecs[i]->S->index ] = dd->invperm[i];
             Permute[ pNode->pDecs[i]->S->index ] = i;
 
         bNewFunc = Cudd_bddPermute( dd, bTemp = bNewFunc, Permute );   Cudd_Ref( bNewFunc );

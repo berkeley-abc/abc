@@ -475,7 +475,7 @@ struct DdManager {      /* specialized DD symbol table */
     array_t *order;             /* copy of order_list */
     lsHandle handle;            /* where it is in network BDD list */
     network_t *network;
-    st_table *local_order;      /* for local BDDs */
+    st__table *local_order;      /* for local BDDs */
     int nvars;                  /* variables used so far */
     int threshold;              /* for pseudo var threshold value*/
 #endif
@@ -1149,8 +1149,8 @@ extern int             cuddBddAlignToZdd( DdManager * table );
 extern DdNode *        cuddBddMakePrime( DdManager * dd, DdNode * cube, DdNode * f );
 extern DdNode *        cuddSolveEqnRecur( DdManager * bdd, DdNode * F, DdNode * Y, DdNode ** G, int n, int * yIndex, int i );
 extern DdNode *        cuddVerifySol( DdManager * bdd, DdNode * F, DdNode ** G, int * yIndex, int n );
-#ifdef ST_INCLUDED
-extern DdNode *        cuddSplitSetRecur( DdManager * manager, st_table * mtable, int * varSeen, DdNode * p, double n, double max, int index );
+#ifdef st__INCLUDED
+extern DdNode *        cuddSplitSetRecur( DdManager * manager, st__table * mtable, int * varSeen, DdNode * p, double n, double max, int index );
 #endif
 extern DdNode *        cuddSubsetHeavyBranch( DdManager * dd, DdNode * f, int numVars, int threshold );
 extern DdNode *        cuddSubsetShortPaths( DdManager * dd, DdNode * f, int numVars, int threshold, int hardlimit );
@@ -1174,9 +1174,9 @@ extern int             cuddDestroySubtables( DdManager * unique, int n );
 extern int             cuddResizeTableZdd( DdManager * unique, int index );
 extern void            cuddSlowTableGrowth( DdManager * unique );
 extern int             cuddP( DdManager * dd, DdNode * f );
-#ifdef ST_INCLUDED
-extern enum st_retval  cuddStCountfree( char * key, char * value, char * arg );
-extern int             cuddCollectNodes( DdNode * f, st_table * visited );
+#ifdef st__INCLUDED
+extern enum st__retval  cuddStCountfree( char * key, char * value, char * arg );
+extern int             cuddCollectNodes( DdNode * f, st__table * visited );
 #endif
 extern DdNodePtr *     cuddNodeArray( DdNode * f, int * n );
 extern int             cuddWindowReorder( DdManager * table, int low, int high, Cudd_ReorderingType submethod );

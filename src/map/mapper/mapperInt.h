@@ -405,7 +405,7 @@ extern float             Map_MappingGetArea( Map_Man_t * pMan, Map_NodeVec_t * v
 /*=== mapperShow.c =============================================================*/
 extern void              Map_MappingShow( Map_Man_t * pMan, char * pFileName );
 /*=== mapperTree.c ===============================================================*/
-extern int               Map_LibraryDeriveGateInfo( Map_SuperLib_t * pLib, st_table * tExcludeGate );
+extern int               Map_LibraryDeriveGateInfo( Map_SuperLib_t * pLib, st__table * tExcludeGate );
 extern int               Map_LibraryReadFileTreeStr( Map_SuperLib_t * pLib, Vec_Str_t * vStr, char * pFileName );
 extern int               Map_LibraryReadTree( Map_SuperLib_t * pLib, char * pFileName, char * pExcludeFile );
 extern void              Map_LibraryPrintTree( Map_SuperLib_t * pLib );

@@ -98,7 +98,7 @@ ABC_NAMESPACE_IMPL_START
 
 static DdNode * selectMintermsFromUniverse (DdManager *manager, int *varSeen, double n);
 static DdNode * mintermsFromUniverse (DdManager *manager, DdNode **vars, int numVars, double n, int index);
-static double bddAnnotateMintermCount (DdManager *manager, DdNode *node, double max, st_table *table);
+static double bddAnnotateMintermCount (DdManager *manager, DdNode *node, double max, st__table *table);
 
 /**AutomaticEnd***************************************************************/
 
@@ -135,7 +135,7 @@ Cudd_SplitSet(
     DdNode *result;
     DdNode *zero, *one;
     double  max, num;
-    st_table *mtable;
+    st__table *mtable;
     int *varSeen;
     int i,index, size;
 
@@ -183,7 +183,7 @@ Cudd_SplitSet(
                 cuddRef(result);
             ABC_FREE(varSeen);
         } else {
-            mtable = st_init_table(st_ptrcmp,st_ptrhash);
+            mtable = st__init_table( st__ptrcmp, st__ptrhash);
             if (mtable == NULL) {
                 (void) fprintf(manager->out,
                                "Cudd_SplitSet: out-of-memory.\n");
@@ -197,8 +197,8 @@ Cudd_SplitSet(
             */
             num = bddAnnotateMintermCount(manager,S,max,mtable);
             if (m == num) {
-                st_foreach(mtable,cuddStCountfree,NIL(char));
-                st_free_table(mtable);
+                st__foreach(mtable,cuddStCountfree,NIL(char));
+                st__free_table(mtable);
                 ABC_FREE(varSeen);
                 return(S);
             }
@@ -206,8 +206,8 @@ Cudd_SplitSet(
             result = cuddSplitSetRecur(manager,mtable,varSeen,S,m,max,0);
             if (result)
                 cuddRef(result);
-            st_foreach(mtable,cuddStCountfree,NULL);
-            st_free_table(mtable);
+            st__foreach(mtable,cuddStCountfree,NULL);
+            st__free_table(mtable);
             ABC_FREE(varSeen);
         }
     } while (manager->reordered == 1);
@@ -246,7 +246,7 @@ Cudd_SplitSet(
 DdNode*
 cuddSplitSetRecur(
   DdManager * manager,
-  st_table * mtable,
+  st__table * mtable,
   int * varSeen,
   DdNode * p,
   double  n,
@@ -307,7 +307,7 @@ cuddSplitSetRecur(
   
     /* Lookup the # of minterms in the onset of the node from the table. */
     if (!Cudd_IsConstant(Nv)) {
-        if (!st_lookup(mtable, (const char *)Nv, (char **)&dummy)) return(NULL);
+        if (! st__lookup(mtable, (const char *)Nv, (char **)&dummy)) return(NULL);
         numT = *dummy/(2*(1<<index));
     } else if (Nv == one) {
         numT = max/(2*(1<<index));
@@ -316,7 +316,7 @@ cuddSplitSetRecur(
     }
   
     if (!Cudd_IsConstant(Nnv)) {
-        if (!st_lookup(mtable, (const char *)Nnv, (char **)&dummy)) return(NULL);
+        if (! st__lookup(mtable, (const char *)Nnv, (char **)&dummy)) return(NULL);
         numE = *dummy/(2*(1<<index));
     } else if (Nnv == one) {
         numE = max/(2*(1<<index));
@@ -634,7 +634,7 @@ bddAnnotateMintermCount(
   DdManager * manager,
   DdNode * node,
   double  max,
-  st_table * table)
+  st__table * table)
 {
 
     DdNode *N,*Nv,*Nnv;
@@ -653,7 +653,7 @@ bddAnnotateMintermCount(
         }
     }
 
-    if (st_lookup(table, (const char *)node, (char **)&dummy)) {
+    if ( st__lookup(table, (const char *)node, (char **)&dummy)) {
         return(*dummy);
     }   
   
@@ -680,7 +680,7 @@ bddAnnotateMintermCount(
     }
     *pmin = min_N;
 
-    if (st_insert(table,(char *)node, (char *)pmin) == ST_OUT_OF_MEM) {
+    if ( st__insert(table,(char *)node, (char *)pmin) == st__OUT_OF_MEM) {
         ABC_FREE(pmin);
         return((double)CUDD_OUT_OF_MEM);
     }

@@ -135,7 +135,7 @@ extern DdNode *     Extra_bddEncodingBinary( DdManager * dd, DdNode ** pbFuncs, 
 /* solves the column encoding problem using a sophisticated method */
 extern DdNode *     Extra_bddEncodingNonStrict( DdManager * dd, DdNode ** pbColumns, int nColumns, DdNode * bVarsCol, DdNode ** pCVars, int nMulti, int * pSimple );
 /* collects the nodes under the cut and, for each node, computes the sum of paths leading to it from the root */
-extern st_table *   Extra_bddNodePathsUnderCut( DdManager * dd, DdNode * bFunc, int CutLevel );
+extern st__table *   Extra_bddNodePathsUnderCut( DdManager * dd, DdNode * bFunc, int CutLevel );
 /* collects the nodes under the cut starting from the given set of ADD nodes */
 extern int          Extra_bddNodePathsUnderCutArray( DdManager * dd, DdNode ** paNodes, DdNode ** pbCubes, int nNodes, DdNode ** paNodesRes, DdNode ** pbCubesRes, int CutLevel );
 /* find the profile of a DD (the number of edges crossing each level) */

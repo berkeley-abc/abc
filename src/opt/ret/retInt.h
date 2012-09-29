@@ -58,8 +58,8 @@ extern int         Abc_NtkRetimeIncremental( Abc_Ntk_t * pNtk, int nDelayLim, in
 extern void        Abc_NtkRetimeShareLatches( Abc_Ntk_t * pNtk, int fInitial );
 extern int         Abc_NtkRetimeNodeIsEnabled( Abc_Obj_t * pObj, int fForward );
 extern void        Abc_NtkRetimeNode( Abc_Obj_t * pObj, int fForward, int fInitial );
-extern st_table *  Abc_NtkRetimePrepareLatches( Abc_Ntk_t * pNtk );
-extern int         Abc_NtkRetimeFinalizeLatches( Abc_Ntk_t * pNtk, st_table * tLatches, int nIdMaxStart );
+extern st__table *  Abc_NtkRetimePrepareLatches( Abc_Ntk_t * pNtk );
+extern int         Abc_NtkRetimeFinalizeLatches( Abc_Ntk_t * pNtk, st__table * tLatches, int nIdMaxStart );
 /*=== retFlow.c ========================================================*/
 extern void        Abc_NtkMaxFlowTest( Abc_Ntk_t * pNtk );
 extern Vec_Ptr_t * Abc_NtkMaxFlow( Abc_Ntk_t * pNtk, int fForward, int fVerbose );

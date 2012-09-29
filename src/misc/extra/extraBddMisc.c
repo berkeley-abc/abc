@@ -51,7 +51,7 @@ ABC_NAMESPACE_IMPL_START
 /*---------------------------------------------------------------------------*/
 
 // file "extraDdTransfer.c"
-static DdNode * extraTransferPermuteRecur( DdManager * ddS, DdManager * ddD, DdNode * f, st_table * table, int * Permute );
+static DdNode * extraTransferPermuteRecur( DdManager * ddS, DdManager * ddD, DdNode * f, st__table * table, int * Permute );
 static DdNode * extraTransferPermute( DdManager * ddS, DdManager * ddD, DdNode * f, int * Permute );
 static DdNode * cuddBddPermuteRecur ARGS( ( DdManager * manager, DdHashTable * table, DdNode * node, int *permut ) );
 
@@ -1266,11 +1266,11 @@ extraDecomposeCover(
 DdNode * extraTransferPermute( DdManager * ddS, DdManager * ddD, DdNode * f, int * Permute )
 {
     DdNode *res;
-    st_table *table = NULL;
-    st_generator *gen = NULL;
+    st__table *table = NULL;
+    st__generator *gen = NULL;
     DdNode *key, *value;
 
-    table = st_init_table( st_ptrcmp, st_ptrhash );
+    table = st__init_table( st__ptrcmp, st__ptrhash );
     if ( table == NULL )
         goto failure;
     res = extraTransferPermuteRecur( ddS, ddD, f, table, Permute );
@@ -1280,16 +1280,16 @@ DdNode * extraTransferPermute( DdManager * ddS, DdManager * ddD, DdNode * f, int
     /* Dereference all elements in the table and dispose of the table.
        ** This must be done also if res is NULL to avoid leaks in case of
        ** reordering. */
-    gen = st_init_gen( table );
+    gen = st__init_gen( table );
     if ( gen == NULL )
         goto failure;
-    while ( st_gen( gen, ( const char ** ) &key, ( char ** ) &value ) )
+    while ( st__gen( gen, ( const char ** ) &key, ( char ** ) &value ) )
     {
         Cudd_RecursiveDeref( ddD, value );
     }
-    st_free_gen( gen );
+    st__free_gen( gen );
     gen = NULL;
-    st_free_table( table );
+    st__free_table( table );
     table = NULL;
 
     if ( res != NULL )
@@ -1298,9 +1298,9 @@ DdNode * extraTransferPermute( DdManager * ddS, DdManager * ddD, DdNode * f, int
 
   failure:
     if ( table != NULL )
-        st_free_table( table );
+        st__free_table( table );
     if ( gen != NULL )
-        st_free_gen( gen );
+        st__free_gen( gen );
     return ( NULL );
 
 }                               /* end of extraTransferPermute */
@@ -1323,7 +1323,7 @@ extraTransferPermuteRecur(
   DdManager * ddS, 
   DdManager * ddD, 
   DdNode * f, 
-  st_table * table, 
+  st__table * table, 
   int * Permute )
 {
     DdNode *ft, *fe, *t, *e, *var, *res;
@@ -1345,7 +1345,7 @@ extraTransferPermuteRecur(
     /* Now f is a regular pointer to a non-constant node. */
 
     /* Check the cache. */
-    if ( st_lookup( table, ( char * ) f, ( char ** ) &res ) )
+    if ( st__lookup( table, ( char * ) f, ( char ** ) &res ) )
         return ( Cudd_NotCond( res, comple ) );
 
     if ( ddS->TimeStop && clock() > ddS->TimeStop )
@@ -1397,8 +1397,8 @@ extraTransferPermuteRecur(
     Cudd_RecursiveDeref( ddD, t );
     Cudd_RecursiveDeref( ddD, e );
 
-    if ( st_add_direct( table, ( char * ) f, ( char * ) res ) ==
-         ST_OUT_OF_MEM )
+    if ( st__add_direct( table, ( char * ) f, ( char * ) res ) ==
+         st__OUT_OF_MEM )
     {
         Cudd_RecursiveDeref( ddD, res );
         return ( NULL );

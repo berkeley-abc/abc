@@ -169,7 +169,7 @@ Super2_Man_t * Super2_ManStart()
     pMan = ABC_ALLOC( Super2_Man_t, 1 );
     memset( pMan, 0, sizeof(Super2_Man_t) );
     pMan->pMem   = Extra_MmFixedStart( sizeof(Super2_Gate_t) );
-    pMan->tTable = stmm_init_table( st_ptrcmp, st_ptrhash );
+    pMan->tTable = stmm_init_table( st__ptrcmp, st__ptrhash );
     return pMan;
 }
 
@@ -344,7 +344,7 @@ Super2_Lib_t * Super2_LibCompute( Super2_Man_t * pMan, Super2_Lib_t * pLib )
 
     // reset the hash table
     stmm_free_table( pMan->tTable );
-    pMan->tTable = stmm_init_table( st_ptrcmp, st_ptrhash );
+    pMan->tTable = stmm_init_table( st__ptrcmp, st__ptrhash );
     // set the starting things into the hash table
     Super2_LibForEachGate( pLibNew, pGate1 )
     {

@@ -58,7 +58,7 @@ struct Ver_Man_t_
     ProgressBar *   pProgress;
     // current design
     Abc_Lib_t *     pDesign;
-    st_table *      tName2Suffix;
+    st__table *      tName2Suffix;
     // error handling
     FILE *          Output;
     int             fTopLevel;

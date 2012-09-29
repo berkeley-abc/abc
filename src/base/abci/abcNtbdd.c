@@ -30,7 +30,7 @@ ABC_NAMESPACE_IMPL_START
 
 static void        Abc_NtkBddToMuxesPerform( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew );
 static Abc_Obj_t * Abc_NodeBddToMuxes( Abc_Obj_t * pNodeOld, Abc_Ntk_t * pNtkNew );
-static Abc_Obj_t * Abc_NodeBddToMuxes_rec( DdManager * dd, DdNode * bFunc, Abc_Ntk_t * pNtkNew, st_table * tBdd2Node );
+static Abc_Obj_t * Abc_NodeBddToMuxes_rec( DdManager * dd, DdNode * bFunc, Abc_Ntk_t * pNtkNew, st__table * tBdd2Node );
 static DdNode *    Abc_NodeGlobalBdds_rec( DdManager * dd, Abc_Obj_t * pNode, int nBddSizeMax, int fDropInternal, ProgressBar * pProgress, int * pCounter, int fVerbose );
 
 ////////////////////////////////////////////////////////////////////////
@@ -189,16 +189,16 @@ Abc_Obj_t * Abc_NodeBddToMuxes( Abc_Obj_t * pNodeOld, Abc_Ntk_t * pNtkNew )
     DdManager * dd = (DdManager *)pNodeOld->pNtk->pManFunc;
     DdNode * bFunc = (DdNode *)pNodeOld->pData;
     Abc_Obj_t * pFaninOld, * pNodeNew;
-    st_table * tBdd2Node;
+    st__table * tBdd2Node;
     int i;
     // create the table mapping BDD nodes into the ABC nodes
-    tBdd2Node = st_init_table( st_ptrcmp, st_ptrhash );
+    tBdd2Node = st__init_table( st__ptrcmp, st__ptrhash );
     // add the constant and the elementary vars
     Abc_ObjForEachFanin( pNodeOld, pFaninOld, i )
-        st_insert( tBdd2Node, (char *)Cudd_bddIthVar(dd, i), (char *)pFaninOld->pCopy );
+        st__insert( tBdd2Node, (char *)Cudd_bddIthVar(dd, i), (char *)pFaninOld->pCopy );
     // create the new nodes recursively
     pNodeNew = Abc_NodeBddToMuxes_rec( dd, Cudd_Regular(bFunc), pNtkNew, tBdd2Node );
-    st_free_table( tBdd2Node );
+    st__free_table( tBdd2Node );
     if ( Cudd_IsComplement(bFunc) )
         pNodeNew = Abc_NtkCreateNodeInv( pNtkNew, pNodeNew );
     return pNodeNew;
@@ -215,24 +215,24 @@ Abc_Obj_t * Abc_NodeBddToMuxes( Abc_Obj_t * pNodeOld, Abc_Ntk_t * pNtkNew )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Obj_t * Abc_NodeBddToMuxes_rec( DdManager * dd, DdNode * bFunc, Abc_Ntk_t * pNtkNew, st_table * tBdd2Node )
+Abc_Obj_t * Abc_NodeBddToMuxes_rec( DdManager * dd, DdNode * bFunc, Abc_Ntk_t * pNtkNew, st__table * tBdd2Node )
 {
     Abc_Obj_t * pNodeNew, * pNodeNew0, * pNodeNew1, * pNodeNewC;
     assert( !Cudd_IsComplement(bFunc) );
     if ( bFunc == b1 )
         return Abc_NtkCreateNodeConst1(pNtkNew);
-    if ( st_lookup( tBdd2Node, (char *)bFunc, (char **)&pNodeNew ) )
+    if ( st__lookup( tBdd2Node, (char *)bFunc, (char **)&pNodeNew ) )
         return pNodeNew;
     // solve for the children nodes
     pNodeNew0 = Abc_NodeBddToMuxes_rec( dd, Cudd_Regular(cuddE(bFunc)), pNtkNew, tBdd2Node );
     if ( Cudd_IsComplement(cuddE(bFunc)) )
         pNodeNew0 = Abc_NtkCreateNodeInv( pNtkNew, pNodeNew0 );
     pNodeNew1 = Abc_NodeBddToMuxes_rec( dd, cuddT(bFunc), pNtkNew, tBdd2Node );
-    if ( !st_lookup( tBdd2Node, (char *)Cudd_bddIthVar(dd, bFunc->index), (char **)&pNodeNewC ) )
+    if ( ! st__lookup( tBdd2Node, (char *)Cudd_bddIthVar(dd, bFunc->index), (char **)&pNodeNewC ) )
         assert( 0 );
     // create the MUX node
     pNodeNew = Abc_NtkCreateNodeMux( pNtkNew, pNodeNewC, pNodeNew1, pNodeNew0 );
-    st_insert( tBdd2Node, (char *)bFunc, (char *)pNodeNew );
+    st__insert( tBdd2Node, (char *)bFunc, (char *)pNodeNew );
     return pNodeNew;
 }
 

@@ -99,7 +99,7 @@ int Mio_LibraryReadGateNameMax( Mio_Library_t * pLib )
 Mio_Gate_t * Mio_LibraryReadGateByName( Mio_Library_t * pLib, char * pName, char * pOutName )      
 { 
     Mio_Gate_t * pGate;
-    if ( !st_lookup( pLib->tName2Gate, pName, (char **)&pGate ) )
+    if ( ! st__lookup( pLib->tName2Gate, pName, (char **)&pGate ) )
         return NULL;
     if ( pOutName == NULL )
         return pGate;
@@ -124,7 +124,7 @@ Mio_Gate_t * Mio_LibraryReadGateByName( Mio_Library_t * pLib, char * pName, char
 char * Mio_LibraryReadSopByName( Mio_Library_t * pLib, char * pName )      
 { 
     Mio_Gate_t * pGate;
-    if ( st_lookup( pLib->tName2Gate, pName, (char **)&pGate ) )
+    if ( st__lookup( pLib->tName2Gate, pName, (char **)&pGate ) )
         return pGate->pSop;
     return NULL;
 }

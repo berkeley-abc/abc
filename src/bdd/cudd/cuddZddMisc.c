@@ -101,7 +101,7 @@ static char rcsid[] DD_UNUSED = "$Id: cuddZddMisc.c,v 1.16 2009/02/20 02:14:58 f
 /* Static function prototypes                                                */
 /*---------------------------------------------------------------------------*/
 
-static int cuddZddDagInt (DdNode *n, st_table *tab);
+static int cuddZddDagInt (DdNode *n, st__table *tab);
 
 /**AutomaticEnd***************************************************************/
 
@@ -129,11 +129,11 @@ Cudd_zddDagSize(
 {
 
     int         i;
-    st_table    *table;
+    st__table    *table;
 
-    table = st_init_table(st_ptrcmp, st_ptrhash);
+    table = st__init_table( st__ptrcmp, st__ptrhash);
     i = cuddZddDagInt(p_node, table);
-    st_free_table(table);
+    st__free_table(table);
     return(i);
 
 } /* end of Cudd_zddDagSize */
@@ -264,18 +264,18 @@ Cudd_zddPrintSubtable(
 static int
 cuddZddDagInt(
   DdNode * n,
-  st_table * tab)
+  st__table * tab)
 {
     if (n == NIL(DdNode))
         return(0);
 
-    if (st_is_member(tab, (char *)n) == 1)
+    if ( st__is_member(tab, (char *)n) == 1)
         return(0);
 
     if (Cudd_IsConstant(n))
         return(0);
 
-    (void)st_insert(tab, (char *)n, NIL(char));
+    (void) st__insert(tab, (char *)n, NIL(char));
     return(1 + cuddZddDagInt(cuddT(n), tab) +
         cuddZddDagInt(cuddE(n), tab));
 

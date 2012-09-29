@@ -75,9 +75,9 @@ extern int Cmd_CommandAbcLoadPlugIn( Abc_Frame_t * pAbc, int argc, char ** argv 
 ******************************************************************************/
 void Cmd_Init( Abc_Frame_t * pAbc )
 { 
-    pAbc->tCommands = st_init_table(strcmp, st_strhash);
-    pAbc->tAliases  = st_init_table(strcmp, st_strhash);
-    pAbc->tFlags    = st_init_table(strcmp, st_strhash);
+    pAbc->tCommands = st__init_table(strcmp, st__strhash);
+    pAbc->tAliases  = st__init_table(strcmp, st__strhash);
+    pAbc->tFlags    = st__init_table(strcmp, st__strhash);
     pAbc->aHistory  = Vec_PtrAlloc( 100 );
     Cmd_HistoryRead( pAbc );
 
@@ -120,25 +120,25 @@ void Cmd_Init( Abc_Frame_t * pAbc )
 ******************************************************************************/
 void Cmd_End( Abc_Frame_t * pAbc )
 {
-    st_generator * gen;
+    st__generator * gen;
     char * pKey, * pValue;
     Cmd_HistoryWrite( pAbc, ABC_INFINITY );
 
-//    st_free_table( pAbc->tCommands, (void (*)()) 0, CmdCommandFree );
-//    st_free_table( pAbc->tAliases,  (void (*)()) 0, CmdCommandAliasFree );
-//    st_free_table( pAbc->tFlags,    free, free );
+//    st__free_table( pAbc->tCommands, (void (*)()) 0, CmdCommandFree );
+//    st__free_table( pAbc->tAliases,  (void (*)()) 0, CmdCommandAliasFree );
+//    st__free_table( pAbc->tFlags,    free, free );
 
-    st_foreach_item( pAbc->tCommands, gen, (const char **)&pKey, (char **)&pValue )
+    st__foreach_item( pAbc->tCommands, gen, (const char **)&pKey, (char **)&pValue )
         CmdCommandFree( (Abc_Command *)pValue );
-    st_free_table( pAbc->tCommands );
+    st__free_table( pAbc->tCommands );
 
-    st_foreach_item( pAbc->tAliases, gen, (const char **)&pKey, (char **)&pValue )
+    st__foreach_item( pAbc->tAliases, gen, (const char **)&pKey, (char **)&pValue )
         CmdCommandAliasFree( (Abc_Alias *)pValue );
-    st_free_table( pAbc->tAliases );
+    st__free_table( pAbc->tAliases );
 
-    st_foreach_item( pAbc->tFlags, gen, (const char **)&pKey, (char **)&pValue )
+    st__foreach_item( pAbc->tFlags, gen, (const char **)&pKey, (char **)&pValue )
         ABC_FREE( pKey ), ABC_FREE( pValue );
-    st_free_table( pAbc->tFlags );
+    st__free_table( pAbc->tFlags );
 
     Vec_PtrFreeFree( pAbc->aHistory );
 }
@@ -420,14 +420,14 @@ int CmdCommandAlias( Abc_Frame_t * pAbc, int argc, char **argv )
     }
     else if ( argc == 2 )
     {
-        if ( st_lookup( pAbc->tAliases, argv[1], &value ) )
+        if ( st__lookup( pAbc->tAliases, argv[1], &value ) )
             CmdCommandAliasPrint( pAbc, ( Abc_Alias * ) value );
         return 0;
     }
 
     // delete any existing alias 
     key = argv[1];
-    if ( st_delete( pAbc->tAliases, &key, &value ) )
+    if ( st__delete( pAbc->tAliases, &key, &value ) )
         CmdCommandAliasFree( ( Abc_Alias * ) value );
     CmdCommandAliasAdd( pAbc, argv[1], argc - 2, argv + 2 );
     return 0;
@@ -477,7 +477,7 @@ int CmdCommandUnalias( Abc_Frame_t * pAbc, int argc, char **argv )
     for ( i = 1; i < argc; i++ )
     {
         key = argv[i];
-        if ( st_delete( pAbc->tAliases, &key, &value ) )
+        if ( st__delete( pAbc->tAliases, &key, &value ) )
         {
             CmdCommandAliasFree( ( Abc_Alias * ) value );
         }
@@ -762,7 +762,7 @@ int CmdCommandSetVariable( Abc_Frame_t * pAbc, int argc, char **argv )
     else
     {
         key = argv[1];
-        if ( st_delete( pAbc->tFlags, &key, &value ) )
+        if ( st__delete( pAbc->tFlags, &key, &value ) )
         {
             ABC_FREE( key );
             ABC_FREE( value );
@@ -770,7 +770,7 @@ int CmdCommandSetVariable( Abc_Frame_t * pAbc, int argc, char **argv )
 
         flag_value = argc == 2 ? Extra_UtilStrsav( "" ) : Extra_UtilStrsav( argv[2] );
 //        flag_value = argc == 2 ? NULL : Extra_UtilStrsav(argv[2]);
-        st_insert( pAbc->tFlags, Extra_UtilStrsav(argv[1]), flag_value );
+        st__insert( pAbc->tFlags, Extra_UtilStrsav(argv[1]), flag_value );
 
         if ( strcmp( argv[1], "abcout" ) == 0 )
         {
@@ -861,7 +861,7 @@ int CmdCommandUnsetVariable( Abc_Frame_t * pAbc, int argc, char **argv )
     for ( i = 1; i < argc; i++ )
     {
         key = argv[i];
-        if ( st_delete( pAbc->tFlags, &key, &value ) )
+        if ( st__delete( pAbc->tFlags, &key, &value ) )
         {
             ABC_FREE( key );
             ABC_FREE( value );

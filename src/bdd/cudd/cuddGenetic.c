@@ -118,7 +118,7 @@ static int numvars;             /* the number of input variables in the ckt. */
 ** it is a two-dimensional structure.
 */
 static int *storedd;
-static st_table *computed;      /* hash table to identify existing orders */
+static st__table *computed;      /* hash table to identify existing orders */
 static int *repeat;             /* how many times an order is present */
 static int large;               /* stores the index of the population with
                                 ** the largest number of nodes in the DD */
@@ -240,7 +240,7 @@ cuddGa(
     for (i = 0; i < popsize; i++) {
         repeat[i] = 0;
     }
-    computed = st_init_table(array_compare,array_hash);
+    computed = st__init_table(array_compare,array_hash);
     if (computed == NULL) {
         table->errorCode = CUDD_MEMORY_OUT;
         ABC_FREE(storedd);
@@ -255,10 +255,10 @@ cuddGa(
     STOREDD(0,numvars) = table->keys - table->isolated; /* size of initial DD */
 
     /* Store the initial order in the computed table. */
-    if (st_insert(computed,(char *)storedd,(char *) 0) == ST_OUT_OF_MEM) {
+    if ( st__insert(computed,(char *)storedd,(char *) 0) == st__OUT_OF_MEM) {
         ABC_FREE(storedd);
         ABC_FREE(repeat);
-        st_free_table(computed);
+        st__free_table(computed);
         return(0);
     }
     repeat[0]++;
@@ -277,7 +277,7 @@ cuddGa(
         table->errorCode = CUDD_MEMORY_OUT;
         ABC_FREE(storedd);
         ABC_FREE(repeat);
-        st_free_table(computed);
+        st__free_table(computed);
         return(0);
     }
     for (i = 1; i < popsize; i++) {
@@ -285,17 +285,17 @@ cuddGa(
         if (!result) {
             ABC_FREE(storedd);
             ABC_FREE(repeat);
-            st_free_table(computed);
+            st__free_table(computed);
             return(0);
         }
-        if (st_lookup_int(computed,(char *)&STOREDD(i,0),&index)) {
+        if ( st__lookup_int(computed,(char *)&STOREDD(i,0),&index)) {
             repeat[index]++;
         } else {
-            if (st_insert(computed,(char *)&STOREDD(i,0),(char *)(long)i) ==
-            ST_OUT_OF_MEM) {
+            if ( st__insert(computed,(char *)&STOREDD(i,0),(char *)(long)i) ==
+            st__OUT_OF_MEM) {
                 ABC_FREE(storedd);
                 ABC_FREE(repeat);
-                st_free_table(computed);
+                st__free_table(computed);
                 return(0);
             }
             repeat[i]++;
@@ -338,7 +338,7 @@ cuddGa(
             table->errorCode = CUDD_MEMORY_OUT;
             ABC_FREE(storedd);
             ABC_FREE(repeat);
-            st_free_table(computed);
+            st__free_table(computed);
             return(0);
         }
         /* The offsprings are left in the last two entries of the
@@ -349,7 +349,7 @@ cuddGa(
             if (!result) {
                 ABC_FREE(storedd);
                 ABC_FREE(repeat);
-                st_free_table(computed);
+                st__free_table(computed);
                 return(0);
             }
             large = largest();  /* find the largest DD in population */
@@ -363,22 +363,22 @@ cuddGa(
                 ** Decrease its repetition count. If the repetition count
                 ** goes to 0, remove the largest DD from the computed table.
                 */
-                result = st_lookup_int(computed,(char *)&STOREDD(large,0),
+                result = st__lookup_int(computed,(char *)&STOREDD(large,0),
                                        &index);
                 if (!result) {
                     ABC_FREE(storedd);
                     ABC_FREE(repeat);
-                    st_free_table(computed);
+                    st__free_table(computed);
                     return(0);
                 }
                 repeat[index]--;
                 if (repeat[index] == 0) {
                     int *pointer = &STOREDD(index,0);
-                    result = st_delete(computed, (const char **)&pointer, NULL);
+                    result = st__delete(computed, (const char **)&pointer, NULL);
                     if (!result) {
                         ABC_FREE(storedd);
                         ABC_FREE(repeat);
-                        st_free_table(computed);
+                        st__free_table(computed);
                         return(0);
                     }
                 }
@@ -389,15 +389,15 @@ cuddGa(
                 for (n = 0; n <= numvars; n++) {
                     STOREDD(large,n) = STOREDD(i,n);
                 }
-                if (st_lookup_int(computed,(char *)&STOREDD(large,0),
+                if ( st__lookup_int(computed,(char *)&STOREDD(large,0),
                                   &index)) {
                     repeat[index]++;
                 } else {
-                    if (st_insert(computed,(char *)&STOREDD(large,0),
-                    (char *)(long)large) == ST_OUT_OF_MEM) {
+                    if ( st__insert(computed,(char *)&STOREDD(large,0),
+                    (char *)(long)large) == st__OUT_OF_MEM) {
                         ABC_FREE(storedd);
                         ABC_FREE(repeat);
-                        st_free_table(computed);
+                        st__free_table(computed);
                         return(0);
                     }
                     repeat[large]++;
@@ -418,7 +418,7 @@ cuddGa(
 #endif
 
     /* Clean up, build the result DD, and return. */
-    st_free_table(computed);
+    st__free_table(computed);
     computed = NULL;
     result = build_dd(table,small,lower,upper);
     ABC_FREE(storedd);
@@ -565,7 +565,7 @@ build_dd(
     /* Check the computed table. If the order already exists, it
     ** suffices to copy the size from the existing entry.
     */
-    if (computed && st_lookup_int(computed,(char *)&STOREDD(num,0),&index)) {
+    if (computed && st__lookup_int(computed,(char *)&STOREDD(num,0),&index)) {
         STOREDD(num,numvars) = STOREDD(index,numvars);
 #ifdef DD_STATS
         (void) fprintf(table->out,"\nCache hit for index %d", index);

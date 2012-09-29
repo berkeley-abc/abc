@@ -99,9 +99,9 @@ static char rcsid[] DD_UNUSED = "$Id: cuddExport.c,v 1.22 2009/03/08 02:49:02 fa
 /* Static function prototypes                                                */
 /*---------------------------------------------------------------------------*/
 
-static int ddDoDumpBlif (DdManager *dd, DdNode *f, FILE *fp, st_table *visited, char **names, int mv);
-static int ddDoDumpDaVinci (DdManager *dd, DdNode *f, FILE *fp, st_table *visited, char **names, ptruint mask);
-static int ddDoDumpDDcal (DdManager *dd, DdNode *f, FILE *fp, st_table *visited, char **names, ptruint mask);
+static int ddDoDumpBlif (DdManager *dd, DdNode *f, FILE *fp, st__table *visited, char **names, int mv);
+static int ddDoDumpDaVinci (DdManager *dd, DdNode *f, FILE *fp, st__table *visited, char **names, ptruint mask);
+static int ddDoDumpDDcal (DdManager *dd, DdNode *f, FILE *fp, st__table *visited, char **names, ptruint mask);
 static int ddDoDumpFactoredForm (DdManager *dd, DdNode *f, FILE *fp, char **names);
 
 /**AutomaticEnd***************************************************************/
@@ -258,12 +258,12 @@ Cudd_DumpBlifBody(
   FILE * fp /* pointer to the dump file */,
   int mv /* 0: blif, 1: blif-MV */)
 {
-    st_table    *visited = NULL;
+    st__table    *visited = NULL;
     int         retval;
     int         i;
 
     /* Initialize symbol table for visited nodes. */
-    visited = st_init_table(st_ptrcmp, st_ptrhash);
+    visited = st__init_table( st__ptrcmp, st__ptrhash);
     if (visited == NULL) goto failure;
 
     /* Call the function that really gets the job done. */
@@ -301,11 +301,11 @@ Cudd_DumpBlifBody(
         if (retval == EOF) goto failure;
     }
 
-    st_free_table(visited);
+    st__free_table(visited);
     return(1);
 
 failure:
-    if (visited != NULL) st_free_table(visited);
+    if (visited != NULL) st__free_table(visited);
     return(0);
 
 } /* end of Cudd_DumpBlifBody */
@@ -353,8 +353,8 @@ Cudd_DumpDot(
     DdNode      *scan;
     int         *sorted = NULL;
     int         nvars = dd->size;
-    st_table    *visited = NULL;
-    st_generator *gen = NULL;
+    st__table    *visited = NULL;
+    st__generator *gen = NULL;
     int         retval;
     int         i, j;
     int         slots;
@@ -382,7 +382,7 @@ Cudd_DumpDot(
     support = NULL; /* so that we do not try to free it in case of failure */
 
     /* Initialize symbol table for visited nodes. */
-    visited = st_init_table(st_ptrcmp, st_ptrhash);
+    visited = st__init_table( st__ptrcmp, st__ptrhash);
     if (visited == NULL) goto failure;
 
     /* Collect all the nodes of this DD in the symbol table. */
@@ -405,12 +405,12 @@ Cudd_DumpDot(
     /* Find the bits that are different. */
     refAddr = (long) Cudd_Regular(f[0]);
     diff = 0;
-    gen = st_init_gen(visited);
+    gen = st__init_gen(visited);
     if (gen == NULL) goto failure;
-    while (st_gen(gen, (const char **)&scan, NULL)) {
+    while ( st__gen(gen, (const char **)&scan, NULL)) {
         diff |= refAddr ^ (long) scan;
     }
-    st_free_gen(gen); gen = NULL;
+    st__free_gen(gen); gen = NULL;
 
     /* Choose the mask. */
     for (i = 0; (unsigned) i < 8 * sizeof(long); i += 4) {
@@ -482,7 +482,7 @@ Cudd_DumpDot(
             for (j = 0; j < slots; j++) {
                 scan = nodelist[j];
                 while (scan != NULL) {
-                    if (st_is_member(visited,(char *) scan)) {
+                    if ( st__is_member(visited,(char *) scan)) {
                         retval = fprintf(fp,"\"%lx\";\n", ((mask & (ptrint) scan) / sizeof(DdNode)));
                         if (retval == EOF) goto failure;
                     }
@@ -503,7 +503,7 @@ Cudd_DumpDot(
     for (j = 0; j < slots; j++) {
         scan = nodelist[j];
         while (scan != NULL) {
-            if (st_is_member(visited,(char *) scan)) {
+            if ( st__is_member(visited,(char *) scan)) {
                 retval = fprintf(fp,"\"%lx\";\n", ((mask & (ptrint) scan) / sizeof(DdNode)));
                 if (retval == EOF) goto failure;
             }
@@ -539,7 +539,7 @@ Cudd_DumpDot(
             for (j = 0; j < slots; j++) {
                 scan = nodelist[j];
                 while (scan != NULL) {
-                    if (st_is_member(visited,(char *) scan)) {
+                    if ( st__is_member(visited,(char *) scan)) {
                         retval = fprintf(fp, "\"%lx\" -> \"%lx\";\n", 
                             ((mask & (ptrint) scan) / sizeof(DdNode)),
                             ((mask & (ptrint) cuddT(scan)) / sizeof(DdNode)));
@@ -567,7 +567,7 @@ Cudd_DumpDot(
     for (j = 0; j < slots; j++) {
         scan = nodelist[j];
         while (scan != NULL) {
-            if (st_is_member(visited,(char *) scan)) {
+            if ( st__is_member(visited,(char *) scan)) {
                 retval = fprintf(fp,"\"%lx\" [label = \"%g\"];\n", 
                     ((mask & (ptrint) scan) / sizeof(DdNode)), cuddV(scan));
                 if (retval == EOF) goto failure;
@@ -580,14 +580,14 @@ Cudd_DumpDot(
     retval = fprintf(fp,"}\n");
     if (retval == EOF) goto failure;
 
-    st_free_table(visited);
+    st__free_table(visited);
     ABC_FREE(sorted);
     return(1);
 
 failure:
     if (sorted != NULL) ABC_FREE(sorted);
     if (support != NULL) Cudd_RecursiveDeref(dd,support);
-    if (visited != NULL) st_free_table(visited);
+    if (visited != NULL) st__free_table(visited);
     return(0);
 
 } /* end of Cudd_DumpDot */
@@ -622,14 +622,14 @@ Cudd_DumpDaVinci(
 {
     DdNode        *support = NULL;
     DdNode        *scan;
-    st_table      *visited = NULL;
+    st__table      *visited = NULL;
     int           retval;
     int           i;
-    st_generator  *gen;
+    st__generator  *gen;
     ptruint       refAddr, diff, mask;
 
     /* Initialize symbol table for visited nodes. */
-    visited = st_init_table(st_ptrcmp, st_ptrhash);
+    visited = st__init_table( st__ptrcmp, st__ptrhash);
     if (visited == NULL) goto failure;
 
     /* Collect all the nodes of this DD in the symbol table. */
@@ -652,21 +652,21 @@ Cudd_DumpDaVinci(
     /* Find the bits that are different. */
     refAddr = (ptruint) Cudd_Regular(f[0]);
     diff = 0;
-    gen = st_init_gen(visited);
-    while (st_gen(gen, (const char **)&scan, NULL)) {
+    gen = st__init_gen(visited);
+    while ( st__gen(gen, (const char **)&scan, NULL)) {
         diff |= refAddr ^ (ptruint) scan;
     }
-    st_free_gen(gen);
+    st__free_gen(gen);
 
     /* Choose the mask. */
     for (i = 0; (unsigned) i < 8 * sizeof(ptruint); i += 4) {
         mask = (1 << i) - 1;
         if (diff <= mask) break;
     }
-    st_free_table(visited);
+    st__free_table(visited);
 
     /* Initialize symbol table for visited nodes. */
-    visited = st_init_table(st_ptrcmp, st_ptrhash);
+    visited = st__init_table( st__ptrcmp, st__ptrhash);
     if (visited == NULL) goto failure;
 
     retval = fprintf(fp, "[");
@@ -696,12 +696,12 @@ Cudd_DumpDaVinci(
     retval = fprintf(fp, "]\n");
     if (retval == EOF) goto failure;
 
-    st_free_table(visited);
+    st__free_table(visited);
     return(1);
 
 failure:
     if (support != NULL) Cudd_RecursiveDeref(dd,support);
-    if (visited != NULL) st_free_table(visited);
+    if (visited != NULL) st__free_table(visited);
     return(0);
 
 } /* end of Cudd_DumpDaVinci */
@@ -738,14 +738,14 @@ Cudd_DumpDDcal(
     DdNode        *scan;
     int           *sorted = NULL;
     int           nvars = dd->size;
-    st_table      *visited = NULL;
+    st__table      *visited = NULL;
     int           retval;
     int           i;
-    st_generator  *gen;
+    st__generator  *gen;
     ptruint       refAddr, diff, mask;
 
     /* Initialize symbol table for visited nodes. */
-    visited = st_init_table(st_ptrcmp, st_ptrhash);
+    visited = st__init_table( st__ptrcmp, st__ptrhash);
     if (visited == NULL) goto failure;
 
     /* Collect all the nodes of this DD in the symbol table. */
@@ -768,18 +768,18 @@ Cudd_DumpDDcal(
     /* Find the bits that are different. */
     refAddr = (ptruint) Cudd_Regular(f[0]);
     diff = 0;
-    gen = st_init_gen(visited);
-    while (st_gen(gen, (const char **)&scan, NULL)) {
+    gen = st__init_gen(visited);
+    while ( st__gen(gen, (const char **)&scan, NULL)) {
         diff |= refAddr ^ (ptruint) scan;
     }
-    st_free_gen(gen);
+    st__free_gen(gen);
 
     /* Choose the mask. */
     for (i = 0; (unsigned) i < 8 * sizeof(ptruint); i += 4) {
         mask = (1 << i) - 1;
         if (diff <= mask) break;
     }
-    st_free_table(visited);
+    st__free_table(visited);
     visited = NULL;
 
     /* Build a bit array with the support of f. */
@@ -817,7 +817,7 @@ Cudd_DumpDDcal(
     sorted = NULL;
 
     /* Initialize symbol table for visited nodes. */
-    visited = st_init_table(st_ptrcmp, st_ptrhash);
+    visited = st__init_table( st__ptrcmp, st__ptrhash);
     if (visited == NULL) goto failure;
 
     /* Call the function that really gets the job done. */
@@ -853,13 +853,13 @@ Cudd_DumpDDcal(
     if (retval == EOF) goto failure;
 
     if ( visited )
-        st_free_table(visited);
+        st__free_table(visited);
     return(1);
 
 failure:
     if (sorted != NULL) ABC_FREE(sorted);
     if (support != NULL) Cudd_RecursiveDeref(dd,support);
-    if (visited != NULL) st_free_table(visited);
+    if (visited != NULL) st__free_table(visited);
     return(0);
 
 } /* end of Cudd_DumpDDcal */
@@ -957,7 +957,7 @@ ddDoDumpBlif(
   DdManager * dd,
   DdNode * f,
   FILE * fp,
-  st_table * visited,
+  st__table * visited,
   char ** names,
   int mv)
 {
@@ -969,7 +969,7 @@ ddDoDumpBlif(
 #endif
 
     /* If already visited, nothing to do. */
-    if (st_is_member(visited, (char *) f) == 1)
+    if ( st__is_member(visited, (char *) f) == 1)
         return(1);
 
     /* Check for abnormal condition that should never happen. */
@@ -977,7 +977,7 @@ ddDoDumpBlif(
         return(0);
 
     /* Mark node as visited. */
-    if (st_insert(visited, (char *) f, NULL) == ST_OUT_OF_MEM)
+    if ( st__insert(visited, (char *) f, NULL) == st__OUT_OF_MEM)
         return(0);
 
     /* Check for special case: If constant node, generate constant 1. */
@@ -1118,7 +1118,7 @@ ddDoDumpDaVinci(
   DdManager * dd,
   DdNode * f,
   FILE * fp,
-  st_table * visited,
+  st__table * visited,
   char ** names,
   ptruint mask)
 {
@@ -1133,7 +1133,7 @@ ddDoDumpDaVinci(
     id = ((ptruint) f & mask) / sizeof(DdNode);
 
     /* If already visited, insert a reference. */
-    if (st_is_member(visited, (char *) f) == 1) {
+    if ( st__is_member(visited, (char *) f) == 1) {
         retval = fprintf(fp,"r(\"%p\")", (void *) id);
         if (retval == EOF) {
             return(0);
@@ -1147,7 +1147,7 @@ ddDoDumpDaVinci(
         return(0);
 
     /* Mark node as visited. */
-    if (st_insert(visited, (char *) f, NULL) == ST_OUT_OF_MEM)
+    if ( st__insert(visited, (char *) f, NULL) == st__OUT_OF_MEM)
         return(0);
 
     /* Check for special case: If constant node, generate constant 1. */
@@ -1217,7 +1217,7 @@ ddDoDumpDDcal(
   DdManager * dd,
   DdNode * f,
   FILE * fp,
-  st_table * visited,
+  st__table * visited,
   char ** names,
   ptruint mask)
 {
@@ -1232,7 +1232,7 @@ ddDoDumpDDcal(
     id = ((ptruint) f & mask) / sizeof(DdNode);
 
     /* If already visited, do nothing. */
-    if (st_is_member(visited, (char *) f) == 1) {
+    if ( st__is_member(visited, (char *) f) == 1) {
         return(1);
     }
 
@@ -1241,7 +1241,7 @@ ddDoDumpDDcal(
         return(0);
 
     /* Mark node as visited. */
-    if (st_insert(visited, (char *) f, NULL) == ST_OUT_OF_MEM)
+    if ( st__insert(visited, (char *) f, NULL) == st__OUT_OF_MEM)
         return(0);
 
     /* Check for special case: If constant node, assign constant. */

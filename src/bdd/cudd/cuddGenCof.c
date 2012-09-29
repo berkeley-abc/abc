@@ -134,11 +134,11 @@ extern "C" {
 
 static int cuddBddConstrainDecomp (DdManager *dd, DdNode *f, DdNode **decomp);
 static DdNode * cuddBddCharToVect (DdManager *dd, DdNode *f, DdNode *x);
-static int cuddBddLICMarkEdges (DdManager *dd, DdNode *f, DdNode *c, st_table *table, st_table *cache);
-static DdNode * cuddBddLICBuildResult (DdManager *dd, DdNode *f, st_table *cache, st_table *table);
+static int cuddBddLICMarkEdges (DdManager *dd, DdNode *f, DdNode *c, st__table *table, st__table *cache);
+static DdNode * cuddBddLICBuildResult (DdManager *dd, DdNode *f, st__table *cache, st__table *table);
 static int MarkCacheHash (const char *ptr, int modulus);
 static int MarkCacheCompare (const char *ptr1, const char *ptr2);
-static enum st_retval MarkCacheCleanUp (char *key, char *value, char *arg);
+static enum st__retval MarkCacheCleanUp (char *key, char *value, char *arg);
 static DdNode * cuddBddSqueeze (DdManager *dd, DdNode *l, DdNode *u);
 
 /**AutomaticEnd***************************************************************/
@@ -1436,7 +1436,7 @@ cuddBddLICompaction(
   DdNode * f /* function to be minimized */,
   DdNode * c /* constraint (care set) */)
 {
-    st_table *marktable, *markcache, *buildcache;
+    st__table *marktable, *markcache, *buildcache;
     DdNode *res, *zero;
 
     zero = Cudd_Not(DD_ONE(dd));
@@ -1453,31 +1453,31 @@ cuddBddLICompaction(
     ** appears. Hence, the same node and constrain may give different results
     ** in successive invocations.
     */
-    marktable = st_init_table(st_ptrcmp,st_ptrhash);
+    marktable = st__init_table( st__ptrcmp, st__ptrhash);
     if (marktable == NULL) {
         return(NULL);
     }
-    markcache = st_init_table(MarkCacheCompare,MarkCacheHash);
+    markcache = st__init_table(MarkCacheCompare,MarkCacheHash);
     if (markcache == NULL) {
-        st_free_table(marktable);
+        st__free_table(marktable);
         return(NULL);
     }
     if (cuddBddLICMarkEdges(dd,f,c,marktable,markcache) == CUDD_OUT_OF_MEM) {
-        st_foreach(markcache, MarkCacheCleanUp, NULL);
-        st_free_table(marktable);
-        st_free_table(markcache);
+        st__foreach(markcache, MarkCacheCleanUp, NULL);
+        st__free_table(marktable);
+        st__free_table(markcache);
         return(NULL);
     }
-    st_foreach(markcache, MarkCacheCleanUp, NULL);
-    st_free_table(markcache);
-    buildcache = st_init_table(st_ptrcmp,st_ptrhash);
+    st__foreach(markcache, MarkCacheCleanUp, NULL);
+    st__free_table(markcache);
+    buildcache = st__init_table( st__ptrcmp, st__ptrhash);
     if (buildcache == NULL) {
-        st_free_table(marktable);
+        st__free_table(marktable);
         return(NULL);
     }
     res = cuddBddLICBuildResult(dd,f,buildcache,marktable);
-    st_free_table(buildcache);
-    st_free_table(marktable);
+    st__free_table(buildcache);
+    st__free_table(marktable);
     return(res);
 
 } /* end of cuddBddLICompaction */
@@ -1648,8 +1648,8 @@ cuddBddLICMarkEdges(
   DdManager * dd,
   DdNode * f,
   DdNode * c,
-  st_table * table,
-  st_table * cache)
+  st__table * table,
+  st__table * cache)
 {
     DdNode *Fv, *Fnv, *Cv, *Cnv;
     DdNode *one, *zero;
@@ -1681,7 +1681,7 @@ cuddBddLICMarkEdges(
         return(CUDD_OUT_OF_MEM);
     }
     key->f = f; key->c = c;
-    if (st_lookup_int(cache, (char *)key, &res)) {
+    if ( st__lookup_int(cache, (char *)key, &res)) {
         ABC_FREE(key);
         if (comple) {
             if (res == DD_LIC_0) res = DD_LIC_1;
@@ -1722,7 +1722,7 @@ cuddBddLICMarkEdges(
 
     /* Update edge markings. */
     if (topf <= topc) {
-        retval = st_find_or_add(table, (char *)f, (char ***)&slot);
+        retval = st__find_or_add(table, (char *)f, (char ***)&slot);
         if (retval == 0) {
             *slot = (char *) (ptrint)((resT << 2) | resE);
         } else if (retval == 1) {
@@ -1735,7 +1735,7 @@ cuddBddLICMarkEdges(
 
     /* Cache result. */
     res = resT | resE;
-    if (st_insert(cache, (char *)key, (char *)(ptrint)res) == ST_OUT_OF_MEM) {
+    if ( st__insert(cache, (char *)key, (char *)(ptrint)res) == st__OUT_OF_MEM) {
         ABC_FREE(key);
         return(CUDD_OUT_OF_MEM);
     }
@@ -1766,8 +1766,8 @@ static DdNode *
 cuddBddLICBuildResult(
   DdManager * dd,
   DdNode * f,
-  st_table * cache,
-  st_table * table)
+  st__table * cache,
+  st__table * table)
 {
     DdNode *Fv, *Fnv, *r, *t, *e;
     DdNode *one, *zero;
@@ -1784,12 +1784,12 @@ cuddBddLICBuildResult(
     f = Cudd_Regular(f);
 
     /* Check the cache. */
-    if (st_lookup(cache, (const char *)f, (char **)&r)) {
+    if ( st__lookup(cache, (const char *)f, (char **)&r)) {
         return(Cudd_NotCond(r,comple));
     }
 
     /* Retrieve the edge markings. */
-    if (st_lookup_int(table, (char *)f, &markings) == 0)
+    if ( st__lookup_int(table, (char *)f, &markings) == 0)
         return(NULL);
     markT = markings >> 2;
     markE = markings & 3;
@@ -1848,7 +1848,7 @@ cuddBddLICBuildResult(
     cuddDeref(t);
     cuddDeref(e);
 
-    if (st_insert(cache, (char *)f, (char *)r) == ST_OUT_OF_MEM) {
+    if ( st__insert(cache, (char *)f, (char *)r) == st__OUT_OF_MEM) {
         cuddRef(r);
         Cudd_IterDerefBdd(dd,r);
         return(NULL);
@@ -1925,14 +1925,14 @@ MarkCacheCompare(
   cuddBddLICMarkEdges.]
 
   Description [Frees memory associated with computed table of
-  cuddBddLICMarkEdges. Returns ST_CONTINUE.]
+  cuddBddLICMarkEdges. Returns st__CONTINUE.]
 
   SideEffects [None]
 
   SeeAlso     [Cudd_bddLICompaction]
 
 ******************************************************************************/
-static enum st_retval
+static enum st__retval
 MarkCacheCleanUp(
   char * key,
   char * value,
@@ -1942,7 +1942,7 @@ MarkCacheCleanUp(
 
     entry = (MarkCacheKey *) key;
     ABC_FREE(entry);
-    return ST_CONTINUE;
+    return st__CONTINUE;
 
 } /* end of MarkCacheCleanUp */
 

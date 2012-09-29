@@ -47,7 +47,7 @@ ABC_NAMESPACE_IMPL_START
 char * Cmd_FlagReadByName( Abc_Frame_t * pAbc, char * flag )
 {
     char * value;
-    if ( st_lookup(pAbc->tFlags, flag, &value) )
+    if ( st__lookup(pAbc->tFlags, flag, &value) )
         return value;
     return NULL;
 }
@@ -72,9 +72,9 @@ void Cmd_FlagUpdateValue( Abc_Frame_t * pAbc, const char * key, char * value )
     else
         newValue = Extra_UtilStrsav("");
 //        newValue = NULL;
-    if ( st_delete(pAbc->tFlags, &key, &oldValue) )
+    if ( st__delete(pAbc->tFlags, &key, &oldValue) )
         ABC_FREE(oldValue);
-    st_insert( pAbc->tFlags, key, newValue );
+    st__insert( pAbc->tFlags, key, newValue );
 }
 
 
@@ -92,7 +92,7 @@ void Cmd_FlagDeleteByName( Abc_Frame_t * pAbc, const char * key )
     char *value;
     if ( !key )
         return;
-    if ( st_delete( pAbc->tFlags, &key, &value ) ) 
+    if ( st__delete( pAbc->tFlags, &key, &value ) ) 
     {
         ABC_FREE(key);
         ABC_FREE(value);

@@ -48,7 +48,7 @@ Abc_Lib_t * Abc_LibCreate( char * pName )
     p = ABC_ALLOC( Abc_Lib_t, 1 );
     memset( p, 0, sizeof(Abc_Lib_t) );
     p->pName    = Abc_UtilStrsav( pName );
-    p->tModules = st_init_table( strcmp, st_strhash );
+    p->tModules = st__init_table( strcmp, st__strhash );
     p->vTops    = Vec_PtrAlloc( 100 );
     p->vModules = Vec_PtrAlloc( 100 );
     p->pManFunc = Hop_ManStart();
@@ -76,7 +76,7 @@ void Abc_LibFree( Abc_Lib_t * pLib, Abc_Ntk_t * pNtkSave )
     if ( pLib->pManFunc )
         Hop_ManStop( (Hop_Man_t *)pLib->pManFunc );
     if ( pLib->tModules )
-        st_free_table( pLib->tModules );
+        st__free_table( pLib->tModules );
     if ( pLib->vModules )
     {
         Vec_PtrForEachEntry( Abc_Ntk_t *, pLib->vModules, pNtk, i )
@@ -170,9 +170,9 @@ void Abc_LibPrint( Abc_Lib_t * pLib )
 ***********************************************************************/
 int Abc_LibAddModel( Abc_Lib_t * pLib, Abc_Ntk_t * pNtk )
 {
-    if ( st_is_member( pLib->tModules, (char *)pNtk->pName ) )
+    if ( st__is_member( pLib->tModules, (char *)pNtk->pName ) )
         return 0;
-    st_insert( pLib->tModules, (char *)pNtk->pName, (char *)pNtk );
+    st__insert( pLib->tModules, (char *)pNtk->pName, (char *)pNtk );
     assert( pNtk->Id == 0 );
     pNtk->Id = Vec_PtrSize(pLib->vModules);
     Vec_PtrPush( pLib->vModules, pNtk );
@@ -194,9 +194,9 @@ int Abc_LibAddModel( Abc_Lib_t * pLib, Abc_Ntk_t * pNtk )
 Abc_Ntk_t * Abc_LibFindModelByName( Abc_Lib_t * pLib, char * pName )
 {
     Abc_Ntk_t * pNtk;
-    if ( !st_is_member( pLib->tModules, (char *)pName ) )
+    if ( ! st__is_member( pLib->tModules, (char *)pName ) )
         return NULL;
-    st_lookup( pLib->tModules, (char *)pName, (char **)&pNtk );
+    st__lookup( pLib->tModules, (char *)pName, (char **)&pNtk );
     return pNtk;
 }
 

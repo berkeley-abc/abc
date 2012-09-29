@@ -57,7 +57,7 @@ void Mio_LibraryDelete( Mio_Library_t * pLib )
     Mem_FlexStop( pLib->pMmFlex, 0 );
     Vec_StrFree( pLib->vCube );
     if ( pLib->tName2Gate )
-        st_free_table( pLib->tName2Gate );
+        st__free_table( pLib->tName2Gate );
 //    if ( pLib->dd )
 //        Cudd_Quit( pLib->dd );
     ABC_FREE( pLib->ppGates0 );

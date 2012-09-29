@@ -112,8 +112,8 @@ static DdNode * ComputeVarSetAndCountMinterms2( DdManager * dd, DdNode * bVars, 
 unsigned Extra_CountCofactorMinterms( DdManager * dd, DdNode * bFunc, DdNode * bVarsCof, DdNode * bVarsAll );
 static unsigned Extra_CountMintermsSimple( DdNode * bFunc, unsigned max );
 
-static void CountNodeVisits_rec( DdManager * dd, DdNode * aFunc, st_table * Visited );
-static void CollectNodesAndComputePaths_rec( DdManager * dd, DdNode * aFunc, DdNode * bCube, st_table * Visited, st_table * CutNodes );
+static void CountNodeVisits_rec( DdManager * dd, DdNode * aFunc, st__table * Visited );
+static void CollectNodesAndComputePaths_rec( DdManager * dd, DdNode * aFunc, DdNode * bCube, st__table * Visited, st__table * CutNodes );
 
 /**AutomaticEnd***************************************************************/
 
@@ -225,19 +225,19 @@ Extra_bddEncodingNonStrict(
     // find the simplest encoding
     if ( nColumns > 2 )
     EvaluateEncodings_rec( dd, bVarsCol, nVarsCol, nMulti, 1 );
-//    printf( "The number of backtracks = %d\n", s_BackTracks );
-//    s_EncSearchTime += clock() - clk;
+//  printf( "The number of backtracks = %d\n", s_BackTracks );
+//  s_EncSearchTime += clock() - clk;
 
     // allocate the temporary storage for the columns
     s_pbTemp = (DdNode **)ABC_ALLOC( char, nColumns * sizeof(DdNode *) );
 
-//    clk = clock();
+//  clk = clock();
     bResult = CreateTheCodes_rec( dd, bEncoded, 0, pCVars );   Cudd_Ref( bResult );
-//    s_EncComputeTime += clock() - clk;
+//  s_EncComputeTime += clock() - clk;
     
     // delocate the preliminarily encoded set
     Cudd_RecursiveDeref( dd, bEncoded );
-//    Cudd_RecursiveDeref( dd, aEncoded );
+//  Cudd_RecursiveDeref( dd, aEncoded );
 
     ABC_FREE( s_pbTemp );
 
@@ -260,28 +260,28 @@ Extra_bddEncodingNonStrict(
   SeeAlso     [Extra_bddNodePaths]
 
 ******************************************************************************/
-st_table * Extra_bddNodePathsUnderCut( DdManager * dd, DdNode * bFunc, int CutLevel )
+ st__table * Extra_bddNodePathsUnderCut( DdManager * dd, DdNode * bFunc, int CutLevel )
 {
-    st_table * Visited;  // temporary table to remember the visited nodes
-    st_table * CutNodes; // the result goes here
-    st_table * Result; // the result goes here
+    st__table * Visited;  // temporary table to remember the visited nodes
+    st__table * CutNodes; // the result goes here
+    st__table * Result; // the result goes here
     DdNode * aFunc;
 
     s_CutLevel = CutLevel;
 
-    Result  = st_init_table(st_ptrcmp, st_ptrhash);;
+    Result  = st__init_table( st__ptrcmp, st__ptrhash);;
     // the terminal cases
     if ( Cudd_IsConstant( bFunc ) )
     {
         if ( bFunc == b1 )
         {
-            st_insert( Result, (char*)b1, (char*)b1 );
+            st__insert( Result, (char*)b1, (char*)b1 );
             Cudd_Ref( b1 );
             Cudd_Ref( b1 );
         }
         else
         {
-            st_insert( Result, (char*)b0, (char*)b0 );
+            st__insert( Result, (char*)b0, (char*)b0 );
             Cudd_Ref( b0 );
             Cudd_Ref( b0 );
         }
@@ -293,8 +293,8 @@ st_table * Extra_bddNodePathsUnderCut( DdManager * dd, DdNode * bFunc, int CutLe
 
     // Step 1: Start the tables and collect information about the nodes above the cut 
     // this information tells how many edges point to each node
-    Visited  = st_init_table(st_ptrcmp, st_ptrhash);;
-    CutNodes = st_init_table(st_ptrcmp, st_ptrhash);;
+    Visited  = st__init_table( st__ptrcmp, st__ptrhash);;
+    CutNodes = st__init_table( st__ptrcmp, st__ptrhash);;
 
     CountNodeVisits_rec( dd, aFunc, Visited );
 
@@ -303,29 +303,29 @@ st_table * Extra_bddNodePathsUnderCut( DdManager * dd, DdNode * bFunc, int CutLe
 
     // at this point the table of cut nodes is ready and the table of visited is useless
     {
-        st_generator * gen;
+        st__generator * gen;
         DdNode * aNode;
         traventry * p;
-        st_foreach_item( Visited, gen, (const char**)&aNode, (char**)&p )
+        st__foreach_item( Visited, gen, (const char**)&aNode, (char**)&p )
         {
             Cudd_RecursiveDeref( dd, p->bSum );
             ABC_FREE( p );
         }
-        st_free_table( Visited );
+        st__free_table( Visited );
     }
 
     // go through the table CutNodes and create the BDD and the path to be returned
     {
-        st_generator * gen;
+        st__generator * gen;
         DdNode * aNode, * bNode, * bSum;
-        st_foreach_item( CutNodes, gen, (const char**)&aNode, (char**)&bSum)
+        st__foreach_item( CutNodes, gen, (const char**)&aNode, (char**)&bSum)
         {
             // aNode is not referenced, because aFunc is holding it
             bNode = Cudd_addBddPattern( dd, aNode );  Cudd_Ref( bNode ); 
-            st_insert( Result, (char*)bNode, (char*)bSum );
+            st__insert( Result, (char*)bNode, (char*)bSum );
             // the new table takes both refs
         }
-        st_free_table( CutNodes );
+        st__free_table( CutNodes );
     }
 
     // dereference the ADD
@@ -354,8 +354,8 @@ st_table * Extra_bddNodePathsUnderCut( DdManager * dd, DdNode * bFunc, int CutLe
 ******************************************************************************/
 int Extra_bddNodePathsUnderCutArray( DdManager * dd, DdNode ** paNodes, DdNode ** pbCubes, int nNodes, DdNode ** paNodesRes, DdNode ** pbCubesRes, int CutLevel )
 {
-    st_table * Visited;  // temporary table to remember the visited nodes
-    st_table * CutNodes; // the nodes under the cut go here
+    st__table * Visited;  // temporary table to remember the visited nodes
+    st__table * CutNodes; // the nodes under the cut go here
     int i, Counter;
 
     s_CutLevel = CutLevel;
@@ -379,8 +379,8 @@ int Extra_bddNodePathsUnderCutArray( DdManager * dd, DdNode ** paNodes, DdNode *
 
     // Step 1: Start the table and collect information about the nodes above the cut 
     // this information tells how many edges point to each node
-    CutNodes = st_init_table(st_ptrcmp, st_ptrhash);;
-    Visited  = st_init_table(st_ptrcmp, st_ptrhash);;
+    CutNodes = st__init_table( st__ptrcmp, st__ptrhash);;
+    Visited  = st__init_table( st__ptrcmp, st__ptrhash);;
 
     for ( i = 0; i < nNodes; i++ )
         CountNodeVisits_rec( dd, paNodes[i], Visited );
@@ -391,29 +391,29 @@ int Extra_bddNodePathsUnderCutArray( DdManager * dd, DdNode ** paNodes, DdNode *
 
     // at this point, the table of cut nodes is ready and the table of visited is useless
     {
-        st_generator * gen;
+        st__generator * gen;
         DdNode * aNode;
         traventry * p;
-        st_foreach_item( Visited, gen, (const char**)&aNode, (char**)&p )
+        st__foreach_item( Visited, gen, (const char**)&aNode, (char**)&p )
         {
             Cudd_RecursiveDeref( dd, p->bSum );
             ABC_FREE( p );
         }
-        st_free_table( Visited );
+        st__free_table( Visited );
     }
 
     // go through the table CutNodes and create the BDD and the path to be returned
     {
-        st_generator * gen;
+        st__generator * gen;
         DdNode * aNode, * bSum;
         Counter = 0;
-        st_foreach_item( CutNodes, gen, (const char**)&aNode, (char**)&bSum)
+        st__foreach_item( CutNodes, gen, (const char**)&aNode, (char**)&bSum)
         {
             paNodesRes[Counter] = aNode;   Cudd_Ref( aNode ); 
             pbCubesRes[Counter] = bSum;
             Counter++;
         }
-        st_free_table( CutNodes );
+        st__free_table( CutNodes );
     }
 
     // return the number of cofactors found
@@ -432,11 +432,11 @@ int Extra_bddNodePathsUnderCutArray( DdManager * dd, DdNode ** paNodes, DdNode *
   SeeAlso     []
 
 ***********************************************************************/
-void extraCollectNodes( DdNode * Func, st_table * tNodes )
+void extraCollectNodes( DdNode * Func, st__table * tNodes )
 {
     DdNode * FuncR;
     FuncR = Cudd_Regular(Func);
-    if ( st_find_or_add( tNodes, (char*)FuncR, NULL ) )
+    if ( st__find_or_add( tNodes, (char*)FuncR, NULL ) )
         return;
     if ( cuddIsConstant(FuncR) )
         return;
@@ -455,10 +455,10 @@ void extraCollectNodes( DdNode * Func, st_table * tNodes )
   SeeAlso     []
 
 ***********************************************************************/
-st_table * Extra_CollectNodes( DdNode * Func )
+ st__table * Extra_CollectNodes( DdNode * Func )
 {
-    st_table * tNodes;
-    tNodes = st_init_table( st_ptrcmp, st_ptrhash );
+    st__table * tNodes;
+    tNodes = st__init_table( st__ptrcmp, st__ptrhash );
     extraCollectNodes( Func, tNodes );
     return tNodes;
 }
@@ -477,11 +477,11 @@ st_table * Extra_CollectNodes( DdNode * Func )
   SeeAlso     []
 
 ***********************************************************************/
-void extraProfileUpdateTopLevel( st_table * tNodeTopRef, int TopLevelNew, DdNode * node )
+void extraProfileUpdateTopLevel( st__table * tNodeTopRef, int TopLevelNew, DdNode * node )
 {
     int * pTopLevel;
 
-    if ( st_find_or_add( tNodeTopRef, (char*)node, (char***)&pTopLevel ) )
+    if ( st__find_or_add( tNodeTopRef, (char*)node, (char***)&pTopLevel ) )
     { // the node is already referenced
         // the current top level should be updated if it is larger than the new level
         if ( *pTopLevel > TopLevelNew ) 
@@ -518,27 +518,27 @@ void extraProfileUpdateTopLevel( st_table * tNodeTopRef, int TopLevelNew, DdNode
 ***********************************************************************/
 int Extra_ProfileWidth( DdManager * dd, DdNode * Func, int * pProfile, int CutLevel )
 {
-    st_generator * gen;
-    st_table * tNodeTopRef; // this table stores the top level from which this node is pointed to
-    st_table * tNodes;
+    st__generator * gen;
+    st__table * tNodeTopRef; // this table stores the top level from which this node is pointed to
+    st__table * tNodes;
     DdNode * node;
     DdNode * nodeR;
     int LevelStart, Limit;
-    int    i, size;
+    int i, size;
     int WidthMax;
   
     // start the mapping table
-    tNodeTopRef = st_init_table(st_ptrcmp, st_ptrhash);;
+    tNodeTopRef = st__init_table( st__ptrcmp, st__ptrhash);;
     // add the topmost node to the profile
     extraProfileUpdateTopLevel( tNodeTopRef, 0, Func );
 
     // collect all nodes
     tNodes = Extra_CollectNodes( Func );
     // go though all the nodes and set the top level the cofactors are pointed from
-//    Cudd_ForeachNode( dd, Func, genDD, node )
-    st_foreach_item( tNodes, gen, (const char**)&node, NULL )
+//  Cudd_ForeachNode( dd, Func, genDD, node )
+    st__foreach_item( tNodes, gen, (const char**)&node, NULL )
     {
-//        assert( Cudd_Regular(node) );  // this procedure works only with ADD/ZDD (not BDD w/ compl.edges)
+//      assert( Cudd_Regular(node) );  // this procedure works only with ADD/ZDD (not BDD w/ compl.edges)
         nodeR = Cudd_Regular(node);
         if ( cuddIsConstant(nodeR) )
             continue;
@@ -546,7 +546,7 @@ int Extra_ProfileWidth( DdManager * dd, DdNode * Func, int * pProfile, int CutLe
         extraProfileUpdateTopLevel( tNodeTopRef, dd->perm[node->index]+1, cuddE(nodeR) );
         extraProfileUpdateTopLevel( tNodeTopRef, dd->perm[node->index]+1, cuddT(nodeR) );
     }
-    st_free_table( tNodes );
+    st__free_table( tNodes );
 
     // clean the profile
     size = ddMax(dd->size, dd->sizeZ) + 1;
@@ -554,7 +554,7 @@ int Extra_ProfileWidth( DdManager * dd, DdNode * Func, int * pProfile, int CutLe
         pProfile[i] = 0;
 
     // create the profile
-    st_foreach_item( tNodeTopRef, gen, (const char**)&node, (char**)&LevelStart )
+    st__foreach_item( tNodeTopRef, gen, (const char**)&node, (char**)&LevelStart )
     {
         nodeR = Cudd_Regular(node);
         Limit = (cuddIsConstant(nodeR))? dd->size: dd->perm[nodeR->index];
@@ -572,7 +572,7 @@ int Extra_ProfileWidth( DdManager * dd, DdNode * Func, int * pProfile, int CutLe
             WidthMax = pProfile[i];
 
     // deref the table
-    st_free_table( tNodeTopRef );
+    st__free_table( tNodeTopRef );
 
     return WidthMax;
 } /* end of Extra_ProfileWidth */
@@ -605,9 +605,9 @@ DdNode * CreateTheCodes_rec( DdManager * dd, DdNode * bEncoded, int Level, DdNod
     if ( Level == s_nVarsBest )
     { // the terminal case, when we need to remap the encoded function 
         // from the preliminary encoded variables to the new ones
-        st_table * CutNodes;
+        st__table * CutNodes;
         int nCols;
-//        double nMints;
+//      double nMints;
 /*
 #ifdef _DEBUG
 
@@ -615,7 +615,7 @@ DdNode * CreateTheCodes_rec( DdManager * dd, DdNode * bEncoded, int Level, DdNod
         DdNode * bTemp;
         // make sure that the given number of variables is enough
         bTemp  = Cudd_bddExistAbstract( dd, bEncoded, s_VarAll );           Cudd_Ref( bTemp );
-//        nMints = Cudd_CountMinterm( dd, bTemp, s_MultiStart );
+//      nMints = Cudd_CountMinterm( dd, bTemp, s_MultiStart );
         nMints = Extra_CountMintermsSimple( bTemp, (1<<s_MultiStart) );
         if ( nMints > Extra_Power2( s_MultiStart-Level ) ) 
         {  // the number of minterms is too large to encode the columns 
@@ -634,10 +634,10 @@ DdNode * CreateTheCodes_rec( DdManager * dd, DdNode * bEncoded, int Level, DdNod
 
         // put the entries from the table into the temporary array
         { 
-            st_generator * gen;
+            st__generator * gen;
             DdNode * bColumn, * bCode;
             nCols = 0;
-            st_foreach_item( CutNodes, gen, (const char**)&bCode, (char**)&bColumn )
+            st__foreach_item( CutNodes, gen, (const char**)&bCode, (char**)&bColumn )
             {
                 if ( bCode == b0 )
                 { // the unused part of the columns
@@ -652,15 +652,15 @@ DdNode * CreateTheCodes_rec( DdManager * dd, DdNode * bEncoded, int Level, DdNod
                     nCols++;
                 }
             }
-            st_free_table( CutNodes );
-//            assert( nCols == (int)nMints );
+            st__free_table( CutNodes );
+//          assert( nCols == (int)nMints );
         }
 
         // encode the columns
         if ( s_MultiStart-Level == 0 ) // we reached the bottom level of recursion
         {
             assert( nCols       == 1 );
-//            assert( (int)nMints == 1 );
+//          assert( (int)nMints == 1 );
             bRes = s_pbTemp[0];     Cudd_Ref( bRes );
         }
         else
@@ -864,7 +864,7 @@ DdNode * ComputeVarSetAndCountMinterms( DdManager * dd, DdNode * bVars, DdNode *
     *Cost = Extra_CountCofactorMinterms( dd, s_Encoded, bVarsRes, s_VarAll );
 
     Cudd_Deref( bVarsRes );
-//    s_CountCalls++;
+//  s_CountCalls++;
     return bVarsRes;
 }
 
@@ -893,7 +893,7 @@ DdNode * ComputeVarSetAndCountMinterms2( DdManager * dd, DdNode * bVars, DdNode 
     Cudd_RecursiveDeref( dd, bCof );
 
     Cudd_Deref( bVarsRes );
-//    s_CountCalls++;
+//  s_CountCalls++;
     return bVarsRes;
 }
 
@@ -917,23 +917,23 @@ unsigned Extra_CountCofactorMinterms( DdManager * dd, DdNode * bFunc, DdNode * b
     DdNode * bFuncR;
 
     // if the function is zero, there are no minterms
-//    if ( bFunc == b0 )
-//        return 0;
+//  if ( bFunc == b0 )
+//      return 0;
 
-//    if ( st_lookup(Visited, (char*)bFunc, NULL) )
-//        return 0;
+//  if ( st__lookup(Visited, (char*)bFunc, NULL) )
+//      return 0;
 
-//    HKey = hashKey2c( s_Signature, bFuncR );
-//    if ( HHTable1[HKey].Sign == s_Signature && HHTable1[HKey].Arg1 == bFuncR ) // this node is visited
-//        return 0;
+//  HKey = hashKey2c( s_Signature, bFuncR );
+//  if ( HHTable1[HKey].Sign == s_Signature && HHTable1[HKey].Arg1 == bFuncR ) // this node is visited
+//      return 0;
 
 
     // check the hash-table 
     bFuncR = Cudd_Regular(bFunc);
-//    HKey = hashKey2( s_Signature, bFuncR, _TABLESIZE_COF );
+//  HKey = hashKey2( s_Signature, bFuncR, _TABLESIZE_COF );
     HKey = hashKey2( s_Signature, bFunc, _TABLESIZE_COF );
     for ( ;  HHTable1[HKey].Sign == s_Signature; HKey = (HKey+1) % _TABLESIZE_COF )
-//        if ( HHTable1[HKey].Arg1 == bFuncR ) // this node is visited
+//      if ( HHTable1[HKey].Arg1 == bFuncR ) // this node is visited
         if ( HHTable1[HKey].Arg1 == bFunc ) // this node is visited
             return 0;
 
@@ -941,14 +941,14 @@ unsigned Extra_CountCofactorMinterms( DdManager * dd, DdNode * bFunc, DdNode * b
     // if the function is already the code
     if ( dd->perm[bFuncR->index] >= s_EncodingVarsLevel )
     {
-//        st_insert(Visited, (char*)bFunc, NULL);
+//      st__insert(Visited, (char*)bFunc, NULL);
 
-//        HHTable1[HKey].Sign = s_Signature;
-//        HHTable1[HKey].Arg1 = bFuncR;
+//      HHTable1[HKey].Sign = s_Signature;
+//      HHTable1[HKey].Arg1 = bFuncR;
 
         assert( HHTable1[HKey].Sign != s_Signature );
         HHTable1[HKey].Sign = s_Signature;
-//        HHTable1[HKey].Arg1 = bFuncR;
+//      HHTable1[HKey].Arg1 = bFuncR;
         HHTable1[HKey].Arg1 = bFunc;
 
         return Extra_CountMintermsSimple( bFunc, (1<<s_MultiStart) );
@@ -1038,17 +1038,17 @@ unsigned Extra_CountCofactorMinterms( DdManager * dd, DdNode * bFunc, DdNode * b
             Res += Extra_CountCofactorMinterms( dd, bFunc1, bVarsCof1, cuddT(bVarsAll) );
         }
 
-//        st_insert(Visited, (char*)bFunc, NULL);
+//      st__insert(Visited, (char*)bFunc, NULL);
 
-//        HHTable1[HKey].Sign = s_Signature;
-//        HHTable1[HKey].Arg1 = bFuncR;
+//      HHTable1[HKey].Sign = s_Signature;
+//      HHTable1[HKey].Arg1 = bFuncR;
 
         // skip through the entries with the same signatures 
         // (these might have been created at the time of recursive calls)
         for ( ; HHTable1[HKey].Sign == s_Signature; HKey = (HKey+1) % _TABLESIZE_COF );
         assert( HHTable1[HKey].Sign != s_Signature );
         HHTable1[HKey].Sign = s_Signature;
-//        HHTable1[HKey].Arg1 = bFuncR;
+//      HHTable1[HKey].Arg1 = bFuncR;
         HHTable1[HKey].Arg1 = bFunc;
 
         return Res;
@@ -1094,7 +1094,7 @@ unsigned Extra_CountMintermsSimple( DdNode * bFunc, unsigned max )
 
         return min;
     }
-}    /* end of Extra_CountMintermsSimple */
+}   /* end of Extra_CountMintermsSimple */
 
 
 /**Function********************************************************************
@@ -1110,12 +1110,12 @@ unsigned Extra_CountMintermsSimple( DdNode * bFunc, unsigned max )
   SeeAlso     []
 
 ******************************************************************************/
-void CountNodeVisits_rec( DdManager * dd, DdNode * aFunc, st_table * Visited )
+void CountNodeVisits_rec( DdManager * dd, DdNode * aFunc, st__table * Visited )
 
 {
     traventry * p;
     char **slot;
-    if ( st_find_or_add(Visited, (char*)aFunc, &slot) )
+    if ( st__find_or_add(Visited, (char*)aFunc, &slot) )
     { // the entry already exists
         p = (traventry*) *slot;
         // increment the counter of incoming edges
@@ -1156,13 +1156,13 @@ void CountNodeVisits_rec( DdManager * dd, DdNode * aFunc, st_table * Visited )
   SeeAlso     []
 
 ******************************************************************************/
-void CollectNodesAndComputePaths_rec( DdManager * dd, DdNode * aFunc, DdNode * bCube, st_table * Visited, st_table * CutNodes )
-{    
+void CollectNodesAndComputePaths_rec( DdManager * dd, DdNode * aFunc, DdNode * bCube, st__table * Visited, st__table * CutNodes )
+{   
     // find the node in the visited table
     DdNode * bTemp;
     traventry * p;
     char **slot;
-    if ( st_find_or_add(Visited, (char*)aFunc, &slot) )
+    if ( st__find_or_add(Visited, (char*)aFunc, &slot) )
     { // the node is found
         // get the pointer to the traversal entry
         p = (traventry*) *slot;
@@ -1208,9 +1208,9 @@ void CollectNodesAndComputePaths_rec( DdManager * dd, DdNode * aFunc, DdNode * b
             { // the node is below the cut
                 // add this node to the cut node table, if it is not yet there
 
-//                DdNode * bNode;
-//                bNode = Cudd_addBddPattern( dd, aFunc );  Cudd_Ref( bNode );
-                if ( st_find_or_add(CutNodes, (char*)aFunc, &slot) )
+//              DdNode * bNode;
+//              bNode = Cudd_addBddPattern( dd, aFunc );  Cudd_Ref( bNode );
+                if ( st__find_or_add(CutNodes, (char*)aFunc, &slot) )
                 { // the node exists - should never happen
                     assert( 0 );
                 }

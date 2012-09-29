@@ -53,7 +53,7 @@ struct Cut_CMan_t_
 {
     // storage for canonical cells
     Extra_MmFixed_t *  pMem;
-    st_table *         tTable;
+    st__table *         tTable;
     Cut_Cell_t *       pSameVar[CUT_CELL_MVAR+1];
     // elementary truth tables
     unsigned           uInputs[CUT_CELL_MVAR][1<<(CUT_CELL_MVAR-5)];
@@ -521,7 +521,7 @@ int Cut_CellTableLookup( Cut_CMan_t * p, Cut_Cell_t * pCell )
     Cut_Cell_t ** pSlot, * pTemp;
     unsigned Hash;
     Hash = Extra_TruthHash( pCell->uTruth, Extra_TruthWordNum( pCell->nVars ) );
-    if ( !st_find_or_add( p->tTable, (char *)(ABC_PTRUINT_T)Hash, (char ***)&pSlot ) )
+    if ( ! st__find_or_add( p->tTable, (char *)(ABC_PTRUINT_T)Hash, (char ***)&pSlot ) )
         *pSlot = NULL;
     for ( pTemp = *pSlot; pTemp; pTemp = pTemp->pNext )
     {
@@ -777,7 +777,7 @@ Cut_CMan_t * Cut_CManStart()
     p = ABC_ALLOC( Cut_CMan_t, 1 );
     memset( p, 0, sizeof(Cut_CMan_t) );
     // start the table and the memory manager
-    p->tTable = st_init_table(st_ptrcmp, st_ptrhash);;
+    p->tTable = st__init_table( st__ptrcmp, st__ptrhash);;
     p->pMem = Extra_MmFixedStart( sizeof(Cut_Cell_t) );
     // set elementary truth tables
     for ( k = 0; k < CUT_CELL_MVAR; k++ )
@@ -801,7 +801,7 @@ Cut_CMan_t * Cut_CManStart()
 ***********************************************************************/
 void Cut_CManStop( Cut_CMan_t * p )
 {
-    st_free_table( p->tTable );
+    st__free_table( p->tTable );
     Extra_MmFixedStop( p->pMem );
     ABC_FREE( p );
 }
@@ -966,7 +966,7 @@ int Cut_CellTruthLookup( unsigned * pTruth, int nVars )
 
     // check if the cell exists
     Hash = Extra_TruthHash( pCell->uTruth, Extra_TruthWordNum(pCell->nVars) );
-    if ( st_lookup( p->tTable, (char *)(ABC_PTRUINT_T)Hash, (char **)&pTemp ) )
+    if ( st__lookup( p->tTable, (char *)(ABC_PTRUINT_T)Hash, (char **)&pTemp ) )
     {
         for ( ; pTemp; pTemp = pTemp->pNext )
         {

@@ -48,7 +48,7 @@ int Abc_NtkRetimeIncremental( Abc_Ntk_t * pNtk, int nDelayLim, int fForward, int
 {
     Abc_Ntk_t * pNtkCopy = NULL;
     Vec_Ptr_t * vBoxes;
-    st_table * tLatches;
+    st__table * tLatches;
     int nLatches = Abc_NtkLatchNum(pNtk);
     int nIdMaxStart = Abc_NtkObjNumMax(pNtk);
     int RetValue;
@@ -62,7 +62,7 @@ int Abc_NtkRetimeIncremental( Abc_Ntk_t * pNtk, int nDelayLim, int fForward, int
         nIterLimit = fOneStep? 1 : 2 * Abc_NtkLevel(pNtk);
         pNtkCopy = Abc_NtkDup( pNtk );
         tLatches = Abc_NtkRetimePrepareLatches( pNtkCopy );
-        st_free_table( tLatches );
+        st__free_table( tLatches );
     }
     // collect latches and remove CIs/COs
     tLatches = Abc_NtkRetimePrepareLatches( pNtk );
@@ -83,7 +83,7 @@ int Abc_NtkRetimeIncremental( Abc_Ntk_t * pNtk, int nDelayLim, int fForward, int
     pNtk->vBoxes = vBoxes;
     // finalize the latches
     RetValue = Abc_NtkRetimeFinalizeLatches( pNtk, tLatches, nIdMaxStart );
-    st_free_table( tLatches );
+    st__free_table( tLatches );
     if ( RetValue == 0 )
         return 0;
     // fix the COs
@@ -106,17 +106,17 @@ int Abc_NtkRetimeIncremental( Abc_Ntk_t * pNtk, int nDelayLim, int fForward, int
   SeeAlso     []
 
 ***********************************************************************/
-st_table * Abc_NtkRetimePrepareLatches( Abc_Ntk_t * pNtk )
+ st__table * Abc_NtkRetimePrepareLatches( Abc_Ntk_t * pNtk )
 {
-    st_table * tLatches;
+    st__table * tLatches;
     Abc_Obj_t * pLatch, * pLatchIn, * pLatchOut, * pFanin;
     int i, nOffSet = Abc_NtkBoxNum(pNtk) - Abc_NtkLatchNum(pNtk);
     // collect latches and remove CIs/COs
-    tLatches = st_init_table( st_ptrcmp, st_ptrhash );
+    tLatches = st__init_table( st__ptrcmp, st__ptrhash );
     Abc_NtkForEachLatch( pNtk, pLatch, i )
     {
         // map latch into its true number
-        st_insert( tLatches, (char *)(ABC_PTRUINT_T)pLatch, (char *)(ABC_PTRUINT_T)(i-nOffSet) );
+        st__insert( tLatches, (char *)(ABC_PTRUINT_T)pLatch, (char *)(ABC_PTRUINT_T)(i-nOffSet) );
         // disconnect LI     
         pLatchIn = Abc_ObjFanin0(pLatch);
         pFanin = Abc_ObjFanin0(pLatchIn);
@@ -143,7 +143,7 @@ st_table * Abc_NtkRetimePrepareLatches( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkRetimeFinalizeLatches( Abc_Ntk_t * pNtk, st_table * tLatches, int nIdMaxStart )
+int Abc_NtkRetimeFinalizeLatches( Abc_Ntk_t * pNtk, st__table * tLatches, int nIdMaxStart )
 {
     Vec_Ptr_t * vCisOld, * vCosOld, * vBoxesOld, * vCisNew, * vCosNew, * vBoxesNew;
     Abc_Obj_t * pObj, * pLatch, * pLatchIn, * pLatchOut;
@@ -153,11 +153,11 @@ int Abc_NtkRetimeFinalizeLatches( Abc_Ntk_t * pNtk, st_table * tLatches, int nId
     vCosOld   = pNtk->vCos;    pNtk->vCos   = NULL;  vCosNew   = Vec_PtrAlloc( 100 );  
     vBoxesOld = pNtk->vBoxes;  pNtk->vBoxes = NULL;  vBoxesNew = Vec_PtrAlloc( 100 );
     // copy boxes and their CIs/COs
-    Vec_PtrForEachEntryStop( Abc_Obj_t *, vCisOld, pObj, i, Vec_PtrSize(vCisOld) - st_count(tLatches) )
+    Vec_PtrForEachEntryStop( Abc_Obj_t *, vCisOld, pObj, i, Vec_PtrSize(vCisOld) - st__count(tLatches) )
         Vec_PtrPush( vCisNew, pObj );
-    Vec_PtrForEachEntryStop( Abc_Obj_t *, vCosOld, pObj, i, Vec_PtrSize(vCosOld) - st_count(tLatches) )
+    Vec_PtrForEachEntryStop( Abc_Obj_t *, vCosOld, pObj, i, Vec_PtrSize(vCosOld) - st__count(tLatches) )
         Vec_PtrPush( vCosNew, pObj );
-    Vec_PtrForEachEntryStop( Abc_Obj_t *, vBoxesOld, pObj, i, Vec_PtrSize(vBoxesOld) - st_count(tLatches) )
+    Vec_PtrForEachEntryStop( Abc_Obj_t *, vBoxesOld, pObj, i, Vec_PtrSize(vBoxesOld) - st__count(tLatches) )
         Vec_PtrPush( vBoxesNew, pObj );
     // go through the latches
     Abc_NtkForEachObj( pNtk, pLatch, i )
@@ -176,15 +176,15 @@ int Abc_NtkRetimeFinalizeLatches( Abc_Ntk_t * pNtk, st_table * tLatches, int nId
         {
             // this is an old latch 
             // get its number in the original order
-            if ( !st_lookup( tLatches, (char *)pLatch, (char **)&Index ) )
+            if ( ! st__lookup( tLatches, (char *)pLatch, (char **)&Index ) )
             {
                 printf( "Abc_NtkRetimeFinalizeLatches(): Internal error.\n" );
                 return 0;
             }
-            assert( pLatch == Vec_PtrEntry(vBoxesOld, Vec_PtrSize(vBoxesOld) - st_count(tLatches) + Index) );
+            assert( pLatch == Vec_PtrEntry(vBoxesOld, Vec_PtrSize(vBoxesOld) - st__count(tLatches) + Index) );
             // reconnect with the old LIs/LOs
-            pLatchIn  = (Abc_Obj_t *)Vec_PtrEntry( vCosOld, Vec_PtrSize(vCosOld) - st_count(tLatches) + Index );
-            pLatchOut = (Abc_Obj_t *)Vec_PtrEntry( vCisOld, Vec_PtrSize(vCisOld) - st_count(tLatches) + Index );
+            pLatchIn  = (Abc_Obj_t *)Vec_PtrEntry( vCosOld, Vec_PtrSize(vCosOld) - st__count(tLatches) + Index );
+            pLatchOut = (Abc_Obj_t *)Vec_PtrEntry( vCisOld, Vec_PtrSize(vCisOld) - st__count(tLatches) + Index );
         }
         // connect
         Abc_ObjAddFanin( pLatchIn, Abc_ObjFanin0(pLatch) );

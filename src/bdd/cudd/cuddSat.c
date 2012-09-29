@@ -121,11 +121,11 @@ extern "C" {
 /* Static function prototypes                                                */
 /*---------------------------------------------------------------------------*/
 
-static enum st_retval freePathPair (char *key, char *value, char *arg);
-static cuddPathPair getShortest (DdNode *root, int *cost, int *support, st_table *visited);
-static DdNode * getPath (DdManager *manager, st_table *visited, DdNode *f, int *weight, int cost);
-static cuddPathPair getLargest (DdNode *root, st_table *visited);
-static DdNode * getCube (DdManager *manager, st_table *visited, DdNode *f, int cost);
+static enum st__retval freePathPair (char *key, char *value, char *arg);
+static cuddPathPair getShortest (DdNode *root, int *cost, int *support, st__table *visited);
+static DdNode * getPath (DdManager *manager, st__table *visited, DdNode *f, int *weight, int cost);
+static cuddPathPair getLargest (DdNode *root, st__table *visited);
+static DdNode * getCube (DdManager *manager, st__table *visited, DdNode *f, int cost);
 
 /**AutomaticEnd***************************************************************/
 
@@ -206,7 +206,7 @@ Cudd_ShortestPath(
   int * length)
 {
     DdNode      *F;
-    st_table    *visited;
+    st__table    *visited;
     DdNode      *sol;
     cuddPathPair *rootPair;
     int         complement, cost;
@@ -234,7 +234,7 @@ Cudd_ShortestPath(
         manager->reordered = 0;
 
         /* Initialize visited table. */
-        visited = st_init_table(st_ptrcmp, st_ptrhash);
+        visited = st__init_table( st__ptrcmp, st__ptrhash);
 
         /* Now get the length of the shortest path(s) from f to 1. */
         (void) getShortest(f, weight, support, visited);
@@ -243,7 +243,7 @@ Cudd_ShortestPath(
 
         F = Cudd_Regular(f);
 
-        if (!st_lookup(visited, (const char *)F, (char **)&rootPair)) return(NULL);
+        if (! st__lookup(visited, (const char *)F, (char **)&rootPair)) return(NULL);
 
         if (complement) {
           cost = rootPair->neg;
@@ -254,8 +254,8 @@ Cudd_ShortestPath(
         /* Recover an actual shortest path. */
         sol = getPath(manager,visited,f,weight,cost);
 
-        st_foreach(visited, freePathPair, NULL);
-        st_free_table(visited);
+        st__foreach(visited, freePathPair, NULL);
+        st__free_table(visited);
 
     } while (manager->reordered == 1);
 
@@ -288,7 +288,7 @@ Cudd_LargestCube(
   int * length)
 {
     register    DdNode  *F;
-    st_table    *visited;
+    st__table    *visited;
     DdNode      *sol;
     cuddPathPair *rootPair;
     int         complement, cost;
@@ -306,7 +306,7 @@ Cudd_LargestCube(
         manager->reordered = 0;
 
         /* Initialize visited table. */
-        visited = st_init_table(st_ptrcmp, st_ptrhash);
+        visited = st__init_table( st__ptrcmp, st__ptrhash);
 
         /* Now get the length of the shortest path(s) from f to 1. */
         (void) getLargest(f, visited);
@@ -315,7 +315,7 @@ Cudd_LargestCube(
 
         F = Cudd_Regular(f);
 
-        if (!st_lookup(visited, (const char *)F, (char **)&rootPair)) return(NULL);
+        if (! st__lookup(visited, (const char *)F, (char **)&rootPair)) return(NULL);
 
         if (complement) {
           cost = rootPair->neg;
@@ -326,8 +326,8 @@ Cudd_LargestCube(
         /* Recover an actual shortest path. */
         sol = getCube(manager,visited,f,cost);
 
-        st_foreach(visited, freePathPair, NULL);
-        st_free_table(visited);
+        st__foreach(visited, freePathPair, NULL);
+        st__free_table(visited);
 
     } while (manager->reordered == 1);
 
@@ -360,7 +360,7 @@ Cudd_ShortestLength(
   int * weight)
 {
     register    DdNode  *F;
-    st_table    *visited;
+    st__table    *visited;
     cuddPathPair *my_pair;
     int         complement, cost;
 
@@ -373,7 +373,7 @@ Cudd_ShortestLength(
 
     /* From this point on, a path exists. */
     /* Initialize visited table and support. */
-    visited = st_init_table(st_ptrcmp, st_ptrhash);
+    visited = st__init_table( st__ptrcmp, st__ptrhash);
 
     /* Now get the length of the shortest path(s) from f to 1. */
     (void) getShortest(f, weight, NULL, visited);
@@ -382,7 +382,7 @@ Cudd_ShortestLength(
 
     F = Cudd_Regular(f);
 
-    if (!st_lookup(visited, (const char *)F, (char **)&my_pair)) return(CUDD_OUT_OF_MEM);
+    if (! st__lookup(visited, (const char *)F, (char **)&my_pair)) return(CUDD_OUT_OF_MEM);
     
     if (complement) {
         cost = my_pair->neg;
@@ -390,8 +390,8 @@ Cudd_ShortestLength(
         cost = my_pair->pos;
     }
 
-    st_foreach(visited, freePathPair, NULL);
-    st_free_table(visited);
+    st__foreach(visited, freePathPair, NULL);
+    st__free_table(visited);
 
     return(cost);
 
@@ -955,12 +955,12 @@ cuddBddMakePrime(
   Synopsis    [Frees the entries of the visited symbol table.]
 
   Description [Frees the entries of the visited symbol table. Returns
-  ST_CONTINUE.]
+  st__CONTINUE.]
 
   SideEffects [None]
 
 ******************************************************************************/
-static enum st_retval
+static enum st__retval
 freePathPair(
   char * key,
   char * value,
@@ -970,7 +970,7 @@ freePathPair(
 
     pair = (cuddPathPair *) value;
         ABC_FREE(pair);
-    return(ST_CONTINUE);
+    return( st__CONTINUE);
 
 } /* end of freePathPair */
 
@@ -998,7 +998,7 @@ getShortest(
   DdNode * root,
   int * cost,
   int * support,
-  st_table * visited)
+  st__table * visited)
 {
     cuddPathPair *my_pair, res_pair, pair_T, pair_E;
     DdNode      *my_root, *T, *E;
@@ -1006,7 +1006,7 @@ getShortest(
 
     my_root = Cudd_Regular(root);
 
-    if (st_lookup(visited, (const char *)my_root, (char **)&my_pair)) {
+    if ( st__lookup(visited, (const char *)my_root, (char **)&my_pair)) {
         if (Cudd_IsComplement(root)) {
             res_pair.pos = my_pair->neg;
             res_pair.neg = my_pair->pos;
@@ -1058,7 +1058,7 @@ getShortest(
     my_pair->pos = res_pair.pos;
     my_pair->neg = res_pair.neg;
 
-    st_insert(visited, (char *)my_root, (char *)my_pair);
+    st__insert(visited, (char *)my_root, (char *)my_pair);
     if (Cudd_IsComplement(root)) {
         res_pair.pos = my_pair->neg;
         res_pair.neg = my_pair->pos;
@@ -1092,7 +1092,7 @@ getShortest(
 static DdNode *
 getPath(
   DdManager * manager,
-  st_table * visited,
+  st__table * visited,
   DdNode * f,
   int * weight,
   int  cost)
@@ -1118,7 +1118,7 @@ getPath(
 
         if (complement) {T = Cudd_Not(T); E = Cudd_Not(E);}
 
-        st_lookup(visited, (const char *)Cudd_Regular(T), (char **)&T_pair);
+        st__lookup(visited, (const char *)Cudd_Regular(T), (char **)&T_pair);
         if ((Cudd_IsComplement(T) && T_pair->neg == Tcost) ||
         (!Cudd_IsComplement(T) && T_pair->pos == Tcost)) {
             tmp = cuddBddAndRecur(manager,manager->vars[my_dd->index],sol);
@@ -1135,7 +1135,7 @@ getPath(
             cost = Tcost;
             continue;
         }
-        st_lookup(visited, (const char *)Cudd_Regular(E), (char **)&E_pair);
+        st__lookup(visited, (const char *)Cudd_Regular(E), (char **)&E_pair);
         if ((Cudd_IsComplement(E) && E_pair->neg == Ecost) ||
         (!Cudd_IsComplement(E) && E_pair->pos == Ecost)) {
             tmp = cuddBddAndRecur(manager,Cudd_Not(manager->vars[my_dd->index]),sol);
@@ -1185,14 +1185,14 @@ getPath(
 static cuddPathPair
 getLargest(
   DdNode * root,
-  st_table * visited)
+  st__table * visited)
 {
     cuddPathPair *my_pair, res_pair, pair_T, pair_E;
     DdNode      *my_root, *T, *E;
 
     my_root = Cudd_Regular(root);
 
-    if (st_lookup(visited, (const char *)my_root, (char **)&my_pair)) {
+    if ( st__lookup(visited, (const char *)my_root, (char **)&my_pair)) {
         if (Cudd_IsComplement(root)) {
             res_pair.pos = my_pair->neg;
             res_pair.neg = my_pair->pos;
@@ -1239,7 +1239,7 @@ getLargest(
     my_pair->neg = res_pair.neg;
 
     /* Caching may fail without affecting correctness. */
-    st_insert(visited, (char *)my_root, (char *)my_pair);
+    st__insert(visited, (char *)my_root, (char *)my_pair);
     if (Cudd_IsComplement(root)) {
         res_pair.pos = my_pair->neg;
         res_pair.neg = my_pair->pos;
@@ -1273,7 +1273,7 @@ getLargest(
 static DdNode *
 getCube(
   DdManager * manager,
-  st_table * visited,
+  st__table * visited,
   DdNode * f,
   int  cost)
 {
@@ -1298,7 +1298,7 @@ getCube(
 
         if (complement) {T = Cudd_Not(T); E = Cudd_Not(E);}
 
-        if (!st_lookup(visited, (const char *)Cudd_Regular(T), (char **)&T_pair)) return(NULL);
+        if (! st__lookup(visited, (const char *)Cudd_Regular(T), (char **)&T_pair)) return(NULL);
         if ((Cudd_IsComplement(T) && T_pair->neg == Tcost) ||
         (!Cudd_IsComplement(T) && T_pair->pos == Tcost)) {
             tmp = cuddBddAndRecur(manager,manager->vars[my_dd->index],sol);
@@ -1315,7 +1315,7 @@ getCube(
             cost = Tcost;
             continue;
         }
-        if (!st_lookup(visited, (const char *)Cudd_Regular(E), (char **)&E_pair)) return(NULL);
+        if (! st__lookup(visited, (const char *)Cudd_Regular(E), (char **)&E_pair)) return(NULL);
         if ((Cudd_IsComplement(E) && E_pair->neg == Ecost) ||
         (!Cudd_IsComplement(E) && E_pair->pos == Ecost)) {
             tmp = cuddBddAndRecur(manager,Cudd_Not(manager->vars[my_dd->index]),sol);

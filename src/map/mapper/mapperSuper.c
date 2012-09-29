@@ -425,12 +425,12 @@ void Map_LibraryPrintSupergate( Map_Super_t * pGate )
 void Map_LibraryPrintClasses( Map_SuperLib_t * p )
 {
 /*
-    st_generator * gen;
+    st__generator * gen;
     Map_Super_t * pSuper, * pSuper2;
     unsigned Key, uTruth;
     int Counter = 0;
     // copy all the supergates into one array
-    st_foreach_item( p->tSuplib, gen, (char **)&Key, (char **)&pSuper )
+    st__foreach_item( p->tSuplib, gen, (char **)&Key, (char **)&pSuper )
     {
         for ( pSuper2 = pSuper; pSuper2; pSuper2 = pSuper2->pNext )
         {

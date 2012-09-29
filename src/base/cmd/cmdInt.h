@@ -78,7 +78,7 @@ extern void       CmdFreeArgv( int argc, char ** argv );
 extern char **    CmdAddToArgv( int argc, char ** argv );
 extern void       CmdCommandFree( Abc_Command * pCommand );
 extern void       CmdCommandPrint( Abc_Frame_t * pAbc, int fPrintAll );
-extern void       CmdPrintTable( st_table * tTable, int fAliases );
+extern void       CmdPrintTable( st__table * tTable, int fAliases );
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

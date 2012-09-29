@@ -59,9 +59,9 @@ struct Abc_Frame_t_
     // general info
     char *          sVersion;      // the name of the current version
     // commands, aliases, etc
-    st_table *      tCommands;     // the command table
-    st_table *      tAliases;      // the alias table
-    st_table *      tFlags;        // the flag table
+    st__table *      tCommands;     // the command table
+    st__table *      tAliases;      // the alias table
+    st__table *      tFlags;        // the flag table
     Vec_Ptr_t *     aHistory;      // the command history
     // the functionality
     Abc_Ntk_t *     pNtkCur;       // the current network

@@ -18,8 +18,8 @@
                     <ul>
                     <li> cuddZddCountStep();
                     <li> cuddZddCountDoubleStep();
-                    <li> st_zdd_count_dbl_free()
-                    <li> st_zdd_countfree()
+                    <li> st__zdd_count_dbl_free()
+                    <li> st__zdd_countfree()
                     </ul>
               ]
 
@@ -105,10 +105,10 @@ extern "C" {
 /* Static function prototypes                                                */
 /*---------------------------------------------------------------------------*/
 
-static int cuddZddCountStep (DdNode *P, st_table *table, DdNode *base, DdNode *empty);
-static double cuddZddCountDoubleStep (DdNode *P, st_table *table, DdNode *base, DdNode *empty);
-static enum st_retval st_zdd_countfree (char *key, char *value, char *arg);
-static enum st_retval st_zdd_count_dbl_free (char *key, char *value, char *arg);
+static int cuddZddCountStep (DdNode *P, st__table *table, DdNode *base, DdNode *empty);
+static double cuddZddCountDoubleStep (DdNode *P, st__table *table, DdNode *base, DdNode *empty);
+static enum st__retval st__zdd_countfree (char *key, char *value, char *arg);
+static enum st__retval st__zdd_count_dbl_free (char *key, char *value, char *arg);
 
 /**AutomaticEnd***************************************************************/
 
@@ -138,20 +138,20 @@ Cudd_zddCount(
   DdManager * zdd,
   DdNode * P)
 {
-    st_table    *table;
+    st__table    *table;
     int         res;
     DdNode      *base, *empty;
 
     base  = DD_ONE(zdd);
     empty = DD_ZERO(zdd);
-    table = st_init_table(st_ptrcmp, st_ptrhash);
+    table = st__init_table( st__ptrcmp, st__ptrhash);
     if (table == NULL) return(CUDD_OUT_OF_MEM);
     res = cuddZddCountStep(P, table, base, empty);
     if (res == CUDD_OUT_OF_MEM) {
         zdd->errorCode = CUDD_MEMORY_OUT;
     }
-    st_foreach(table, st_zdd_countfree, NIL(char));
-    st_free_table(table);
+    st__foreach(table, st__zdd_countfree, NIL(char));
+    st__free_table(table);
 
     return(res);
 
@@ -177,20 +177,20 @@ Cudd_zddCountDouble(
   DdManager * zdd,
   DdNode * P)
 {
-    st_table    *table;
+    st__table    *table;
     double      res;
     DdNode      *base, *empty;
 
     base  = DD_ONE(zdd);
     empty = DD_ZERO(zdd);
-    table = st_init_table(st_ptrcmp, st_ptrhash);
+    table = st__init_table( st__ptrcmp, st__ptrhash);
     if (table == NULL) return((double)CUDD_OUT_OF_MEM);
     res = cuddZddCountDoubleStep(P, table, base, empty);
     if (res == (double)CUDD_OUT_OF_MEM) {
         zdd->errorCode = CUDD_MEMORY_OUT;
     }
-    st_foreach(table, st_zdd_count_dbl_free, NIL(char));
-    st_free_table(table);
+    st__foreach(table, st__zdd_count_dbl_free, NIL(char));
+    st__free_table(table);
 
     return(res);
 
@@ -221,7 +221,7 @@ Cudd_zddCountDouble(
 static int
 cuddZddCountStep(
   DdNode * P,
-  st_table * table,
+  st__table * table,
   DdNode * base,
   DdNode * empty)
 {
@@ -234,7 +234,7 @@ cuddZddCountStep(
         return(1);
 
     /* Check cache. */
-    if (st_lookup(table, (const char *)P, (char **)&dummy)) {
+    if ( st__lookup(table, (const char *)P, (char **)&dummy)) {
         res = *dummy;
         return(res);
     }
@@ -247,7 +247,7 @@ cuddZddCountStep(
         return(CUDD_OUT_OF_MEM);
     }
     *dummy = res;
-    if (st_insert(table, (char *)P, (char *)dummy) == ST_OUT_OF_MEM) {
+    if ( st__insert(table, (char *)P, (char *)dummy) == st__OUT_OF_MEM) {
         ABC_FREE(dummy);
         return(CUDD_OUT_OF_MEM);
     }
@@ -271,7 +271,7 @@ cuddZddCountStep(
 static double
 cuddZddCountDoubleStep(
   DdNode * P,
-  st_table * table,
+  st__table * table,
   DdNode * base,
   DdNode * empty)
 {
@@ -284,7 +284,7 @@ cuddZddCountDoubleStep(
         return((double)1.0);
 
     /* Check cache */
-    if (st_lookup(table, (const char *)P, (char **)&dummy)) {
+    if ( st__lookup(table, (const char *)P, (char **)&dummy)) {
         res = *dummy;
         return(res);
     }
@@ -297,7 +297,7 @@ cuddZddCountDoubleStep(
         return((double)CUDD_OUT_OF_MEM);
     }
     *dummy = res;
-    if (st_insert(table, (char *)P, (char *)dummy) == ST_OUT_OF_MEM) {
+    if ( st__insert(table, (char *)P, (char *)dummy) == st__OUT_OF_MEM) {
         ABC_FREE(dummy);
         return((double)CUDD_OUT_OF_MEM);
     }
@@ -319,8 +319,8 @@ cuddZddCountDoubleStep(
   SeeAlso     []
 
 ******************************************************************************/
-static enum st_retval
-st_zdd_countfree(
+static enum st__retval
+ st__zdd_countfree(
   char * key,
   char * value,
   char * arg)
@@ -329,9 +329,9 @@ st_zdd_countfree(
 
     d = (int *)value;
     ABC_FREE(d);
-    return(ST_CONTINUE);
+    return( st__CONTINUE);
 
-} /* end of st_zdd_countfree */
+} /* end of st__zdd_countfree */
 
 
 /**Function********************************************************************
@@ -346,8 +346,8 @@ st_zdd_countfree(
   SeeAlso     []
 
 ******************************************************************************/
-static enum st_retval
-st_zdd_count_dbl_free(
+static enum st__retval
+ st__zdd_count_dbl_free(
   char * key,
   char * value,
   char * arg)
@@ -356,9 +356,9 @@ st_zdd_count_dbl_free(
 
     d = (double *)value;
     ABC_FREE(d);
-    return(ST_CONTINUE);
+    return( st__CONTINUE);
 
-} /* end of st_zdd_count_dbl_free */
+} /* end of st__zdd_count_dbl_free */
 
 
 ABC_NAMESPACE_IMPL_END

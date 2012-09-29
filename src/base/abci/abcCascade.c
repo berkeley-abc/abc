@@ -762,7 +762,7 @@ DdNode * Abc_NtkBddToAdd( DdManager * dd, DdNode * bFunc, int nOuts )
     DdNode * aFunc, * aTemp, * bTemp;
     stmm_table * tTable;
     stmm_generator * gen;
-    tTable = stmm_init_table( st_ptrcmp, st_ptrhash );
+    tTable = stmm_init_table( st__ptrcmp, st__ptrhash );
     aFunc = Abc_NtkBddToAdd_rec( dd, Cudd_Regular(bFunc), nOuts, tTable, Cudd_IsComplement(bFunc) );  
     stmm_foreach_item( tTable, gen, (char **)&bTemp, (char **)&aTemp )
         Cudd_RecursiveDeref( dd, aTemp );
@@ -820,7 +820,7 @@ DdNode * Abc_NtkAddToBdd( DdManager * dd, DdNode * aFunc, int nIns, int nOuts )
     DdNode * bFunc, * bTemp, * aTemp;
     stmm_table * tTable;
     stmm_generator * gen;
-    tTable = stmm_init_table( st_ptrcmp, st_ptrhash );
+    tTable = stmm_init_table( st__ptrcmp, st__ptrhash );
     bFunc = Abc_NtkAddToBdd_rec( dd, aFunc, nIns, nOuts, tTable );  
     stmm_foreach_item( tTable, gen, (char **)&aTemp, (char **)&bTemp )
         Cudd_RecursiveDeref( dd, bTemp );

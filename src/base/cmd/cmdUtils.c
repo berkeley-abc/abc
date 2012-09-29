@@ -110,7 +110,7 @@ int CmdCommandDispatch( Abc_Frame_t * pAbc, int * pargc, char *** pargv )
         return 0;
 
     // get the command
-    if ( !st_lookup( pAbc->tCommands, argv[0], (char **)&pCommand ) )
+    if ( ! st__lookup( pAbc->tCommands, argv[0], (char **)&pCommand ) )
     {   // the command is not in the table
         // if there is only one word with an extension, assume this is file to be read
         if ( argc == 1 && strstr( argv[0], "." ) )
@@ -122,7 +122,7 @@ int CmdCommandDispatch( Abc_Frame_t * pAbc, int * pargc, char *** pargv )
             argv = argv2;
             *pargc = argc;
             *pargv = argv;
-            if ( !st_lookup( pAbc->tCommands, argv[0], (char **)&pCommand ) )
+            if ( ! st__lookup( pAbc->tCommands, argv[0], (char **)&pCommand ) )
                 assert( 0 );
         }
         else
@@ -157,7 +157,7 @@ int CmdCommandDispatch( Abc_Frame_t * pAbc, int * pargc, char *** pargv )
     // usually this is a passive command ... 
     if ( fError == 0 && !pAbc->fAutoexac )
     {
-        if ( st_lookup( pAbc->tFlags, "autoexec", &value ) )
+        if ( st__lookup( pAbc->tFlags, "autoexec", &value ) )
         {
             pAbc->fAutoexac = 1;
             fError = Cmd_CommandExecute( pAbc, value );
@@ -278,7 +278,7 @@ int CmdApplyAlias( Abc_Frame_t * pAbc, int *argcp, char ***argvp, int *loop )
     {
         if ( argc == 0 )
             return 0;
-        if ( stopit != 0 || st_lookup( pAbc->tAliases, argv[0],  (char **) &alias ) == 0 )
+        if ( stopit != 0 || st__lookup( pAbc->tAliases, argv[0],  (char **) &alias ) == 0 )
         {
             return 0;
         }
@@ -546,7 +546,7 @@ void CmdCommandPrint( Abc_Frame_t * pAbc, int fPrintAll )
 {
     const char *key;
     char *value;
-    st_generator * gen;
+    st__generator * gen;
     Abc_Command ** ppCommands;
     Abc_Command * pCommands;
     int nCommands, i;
@@ -554,10 +554,10 @@ void CmdCommandPrint( Abc_Frame_t * pAbc, int fPrintAll )
     int LenghtMax, nColumns, iCom = 0;
 
     // put all commands into one array
-    nCommands = st_count( pAbc->tCommands );
+    nCommands = st__count( pAbc->tCommands );
     ppCommands = ABC_ALLOC( Abc_Command *, nCommands );
     i = 0;
-    st_foreach_item( pAbc->tCommands, gen, &key, &value )
+    st__foreach_item( pAbc->tCommands, gen, &key, &value )
     {
         pCommands = (Abc_Command *)value;
         if ( fPrintAll || pCommands->sName[0] != '_' )
@@ -675,18 +675,18 @@ int CmdNamePrintCompare( char ** ppC1, char ** ppC2 )
   SeeAlso     []
 
 ***********************************************************************/
-void CmdPrintTable( st_table * tTable, int fAliases )
+void CmdPrintTable( st__table * tTable, int fAliases )
 {
-    st_generator * gen;
+    st__generator * gen;
     const char ** ppNames;
     const char * key;
     char* value;
     int nNames, i;
 
     // collect keys in the array
-    ppNames = ABC_ALLOC( const char *, st_count(tTable) );
+    ppNames = ABC_ALLOC( const char *, st__count(tTable) );
     nNames = 0;
-    st_foreach_item( tTable, gen, &key, &value )
+    st__foreach_item( tTable, gen, &key, &value )
         ppNames[nNames++] = key;
 
     // sort array by name
@@ -696,7 +696,7 @@ void CmdPrintTable( st_table * tTable, int fAliases )
     // print in this order
     for ( i = 0; i < nNames; i++ )
     {
-        st_lookup( tTable, ppNames[i], &value );
+        st__lookup( tTable, ppNames[i], &value );
         if ( fAliases )
             CmdCommandAliasPrint( Abc_FrameGetGlobalFrame(), (Abc_Alias *)value );
         else

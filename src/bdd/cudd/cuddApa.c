@@ -113,8 +113,8 @@ extern "C" {
 /* Static function prototypes                                                */
 /*---------------------------------------------------------------------------*/
 
-static DdApaNumber cuddApaCountMintermAux (DdNode * node, int digits, DdApaNumber max, DdApaNumber min, st_table * table);
-static enum st_retval cuddApaStCountfree (char * key, char * value, char * arg);
+static DdApaNumber cuddApaCountMintermAux (DdNode * node, int digits, DdApaNumber max, DdApaNumber min, st__table * table);
+static enum st__retval cuddApaStCountfree (char * key, char * value, char * arg);
 
 /**AutomaticEnd***************************************************************/
 
@@ -688,7 +688,7 @@ Cudd_ApaCountMinterm(
   int * digits)
 {
     DdApaNumber max, min;
-    st_table    *table;
+    st__table    *table;
     DdApaNumber i,count;
 
     background = manager->background;
@@ -706,7 +706,7 @@ Cudd_ApaCountMinterm(
         return(NULL);
     }
     Cudd_ApaSetToLiteral(*digits,min,0);
-    table = st_init_table(st_ptrcmp,st_ptrhash);
+    table = st__init_table( st__ptrcmp, st__ptrhash);
     if (table == NULL) {
         ABC_FREE(max);
         ABC_FREE(min);
@@ -716,16 +716,16 @@ Cudd_ApaCountMinterm(
     if (i == NULL) {
         ABC_FREE(max);
         ABC_FREE(min);
-        st_foreach(table, cuddApaStCountfree, NULL);
-        st_free_table(table);
+        st__foreach(table, cuddApaStCountfree, NULL);
+        st__free_table(table);
         return(NULL);
     }
     count = Cudd_NewApaNumber(*digits);
     if (count == NULL) {
         ABC_FREE(max);
         ABC_FREE(min);
-        st_foreach(table, cuddApaStCountfree, NULL);
-        st_free_table(table);
+        st__foreach(table, cuddApaStCountfree, NULL);
+        st__free_table(table);
         if (Cudd_Regular(node)->ref == 1) ABC_FREE(i);
         return(NULL);
     }
@@ -736,8 +736,8 @@ Cudd_ApaCountMinterm(
     }
     ABC_FREE(max);
     ABC_FREE(min);
-    st_foreach(table, cuddApaStCountfree, NULL);
-    st_free_table(table);
+    st__foreach(table, cuddApaStCountfree, NULL);
+    st__free_table(table);
     if (Cudd_Regular(node)->ref == 1) ABC_FREE(i);
     return(count);
 
@@ -901,7 +901,7 @@ cuddApaCountMintermAux(
   int  digits,
   DdApaNumber  max,
   DdApaNumber  min,
-  st_table * table)
+  st__table * table)
 {
     DdNode      *Nt, *Ne;
     DdApaNumber mint, mint1, mint2;
@@ -914,7 +914,7 @@ cuddApaCountMintermAux(
             return(max);
         }
     }
-    if (node->ref > 1 && st_lookup(table, (const char *)node, (char **)&mint)) {
+    if (node->ref > 1 && st__lookup(table, (const char *)node, (char **)&mint)) {
         return(mint);
     }
 
@@ -947,7 +947,7 @@ cuddApaCountMintermAux(
     if (Cudd_Regular(Ne)->ref == 1) ABC_FREE(mint2);
 
     if (node->ref > 1) {
-        if (st_insert(table, (char *)node, (char *)mint) == ST_OUT_OF_MEM) {
+        if ( st__insert(table, (char *)node, (char *)mint) == st__OUT_OF_MEM) {
             ABC_FREE(mint);
             return(NULL);
         }
@@ -963,12 +963,12 @@ cuddApaCountMintermAux(
   in the visited table.]
 
   Description [Frees the memory used to store the minterm counts
-  recorded in the visited table. Returns ST_CONTINUE.]
+  recorded in the visited table. Returns st__CONTINUE.]
 
   SideEffects [None]
 
 ******************************************************************************/
-static enum st_retval
+static enum st__retval
 cuddApaStCountfree(
   char * key,
   char * value,
@@ -978,7 +978,7 @@ cuddApaStCountfree(
 
     d = (DdApaNumber) value;
     ABC_FREE(d);
-    return(ST_CONTINUE);
+    return( st__CONTINUE);
 
 } /* end of cuddApaStCountfree */
 

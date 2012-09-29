@@ -166,7 +166,7 @@ static BitVector *Eolp;
 /*---------------------------------------------------------------------------*/
 
 static DdNode * ddFindEssentialRecur (DdManager *dd, DdNode *f);
-static DdTlcInfo * ddFindTwoLiteralClausesRecur (DdManager * dd, DdNode * f, st_table *table);
+static DdTlcInfo * ddFindTwoLiteralClausesRecur (DdManager * dd, DdNode * f, st__table *table);
 static DdTlcInfo * computeClauses (DdTlcInfo *Tres, DdTlcInfo *Eres, DdHalfWord label, int size);
 static DdTlcInfo * computeClausesWithUniverse (DdTlcInfo *Cres, DdHalfWord label, short phase);
 static DdTlcInfo * emptyClauseSet (void);
@@ -279,8 +279,8 @@ Cudd_FindTwoLiteralClauses(
   DdNode * f)
 {
     DdTlcInfo *res;
-    st_table *table;
-    st_generator *gen;
+    st__table *table;
+    st__generator *gen;
     DdTlcInfo *tlc;
     DdNode *node;
     int size = dd->size;
@@ -289,29 +289,29 @@ Cudd_FindTwoLiteralClauses(
         res = emptyClauseSet();
         return(res);
     }
-    table = st_init_table(st_ptrcmp,st_ptrhash);
+    table = st__init_table( st__ptrcmp, st__ptrhash);
     if (table == NULL) return(NULL);
     Tolv = bitVectorAlloc(size);
     if (Tolv == NULL) {
-        st_free_table(table);
+        st__free_table(table);
         return(NULL);
     }
     Tolp = bitVectorAlloc(size);
     if (Tolp == NULL) {
-        st_free_table(table);
+        st__free_table(table);
         bitVectorFree(Tolv);
         return(NULL);
     }
     Eolv = bitVectorAlloc(size);
     if (Eolv == NULL) {
-        st_free_table(table);
+        st__free_table(table);
         bitVectorFree(Tolv);
         bitVectorFree(Tolp);
         return(NULL);
     }
     Eolp = bitVectorAlloc(size);
     if (Eolp == NULL) {
-        st_free_table(table);
+        st__free_table(table);
         bitVectorFree(Tolv);
         bitVectorFree(Tolp);
         bitVectorFree(Eolv);
@@ -320,12 +320,12 @@ Cudd_FindTwoLiteralClauses(
 
     res = ddFindTwoLiteralClausesRecur(dd,f,table);
     /* Dispose of table contents and free table. */
-    st_foreach_item(table, gen, (const char **)&node, (char **)&tlc) {
+    st__foreach_item(table, gen, (const char **)&node, (char **)&tlc) {
         if (node != f) {
             Cudd_tlcInfoFree(tlc);
         }
     }
-    st_free_table(table);
+    st__free_table(table);
     bitVectorFree(Tolv);
     bitVectorFree(Tolp);
     bitVectorFree(Eolv);
@@ -620,7 +620,7 @@ static DdTlcInfo *
 ddFindTwoLiteralClausesRecur(
   DdManager * dd,
   DdNode * f,
-  st_table *table)
+  st__table *table)
 {
     DdNode *T, *E, *F;
     DdNode *one, *lzero, *azero;
@@ -633,7 +633,7 @@ ddFindTwoLiteralClausesRecur(
 
     /* Check computed table.  Separate entries are necessary for
     ** a node and its complement.  We should update the counter here. */
-    if (st_lookup(table, (const char *)f, (char **)&res)) {
+    if ( st__lookup(table, (const char *)f, (char **)&res)) {
         return(res);
     }
 
@@ -742,7 +742,7 @@ ddFindTwoLiteralClausesRecur(
     }
 
     /* Cache results. */
-    if (st_add_direct(table, (char *)f, (char *)res) == ST_OUT_OF_MEM) {
+    if ( st__add_direct(table, (char *)f, (char *)res) == st__OUT_OF_MEM) {
         ABC_FREE(res);
         return(NULL);
     }
