@@ -25,6 +25,7 @@ MODULES := \
 	src/proof/cec src/proof/dch src/proof/fraig src/proof/fra src/proof/ssw \
 	src/proof/abs \
 	src/aig/aig src/aig/saig src/aig/gia src/aig/ioa src/aig/ivy src/aig/hop \
+	src/aig/miniaig \
 	src/python 
 
 all: $(PROG)

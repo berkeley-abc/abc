@@ -177,10 +177,6 @@ SOURCE=.\src\base\abc\abcSop.c
 
 SOURCE=.\src\base\abc\abcUtil.c
 # End Source File
-# Begin Source File
-
-SOURCE=.\src\base\abc\miniaig.h
-# End Source File
 # End Group
 # Begin Group "abci"
 
@@ -3560,6 +3556,14 @@ SOURCE=.\src\aig\gia\giaTsim.c
 # Begin Source File
 
 SOURCE=.\src\aig\gia\giaUtil.c
+# End Source File
+# End Group
+# Begin Group "miniaig"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\aig\miniaig\miniaig.h
 # End Source File
 # End Group
 # End Group

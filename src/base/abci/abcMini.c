@@ -20,7 +20,7 @@
 
 #include "base/abc/abc.h"
 #include "base/main/main.h"
-#include "base/abc/miniaig.h"
+#include "aig/miniaig/miniaig.h"
 
 ABC_NAMESPACE_IMPL_START
 
