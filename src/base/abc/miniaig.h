@@ -73,7 +73,7 @@ static void Mini_AigGrow( Mini_Aig_t * p, int nCapMin )
 }
 static void Mini_AigPush( Mini_Aig_t * p, int Lit0, int Lit1 )
 {
-    if ( p->nSize >= p->nCap + 1 )
+    if ( p->nSize + 2 > p->nCap )
     {
         if ( p->nCap < MINI_AIG_START_SIZE )
             Mini_AigGrow( p, MINI_AIG_START_SIZE );
@@ -110,7 +110,7 @@ static int      Mini_AigLitIsConst0( int Lit )                 { return Lit == 0
 static int      Mini_AigLitIsConst1( int Lit )                 { return Lit == 1;             }
 static int      Mini_AigLitIsConst( int Lit )                  { return Lit == 0 || Lit == 1; }
 
-static int      Mini_AigNumNodes(  Mini_Aig_t * p )            { return p->nSize/2;           }
+static int      Mini_AigNodeNum( Mini_Aig_t * p )              { return p->nSize/2;           }
 static int      Mini_AigNodeIsConst( Mini_Aig_t * p, int Id )  { assert( Id >= 0 ); return Id == 0; }
 static int      Mini_AigNodeIsPi( Mini_Aig_t * p, int Id )     { assert( Id >= 0 ); return Id > 0 && Mini_AigNodeFanin0( p, Id ) == MINI_AIG_NULL; }
 static int      Mini_AigNodeIsPo( Mini_Aig_t * p, int Id )     { assert( Id >= 0 ); return Id > 0 && Mini_AigNodeFanin0( p, Id ) != MINI_AIG_NULL && Mini_AigNodeFanin1( p, Id ) == MINI_AIG_NULL; }
@@ -118,15 +118,12 @@ static int      Mini_AigNodeIsAnd( Mini_Aig_t * p, int Id )    { assert( Id >= 0
 
 
 // constructor/destructor
-static Mini_Aig_t * Mini_AigStart( int nCap )
+static Mini_Aig_t * Mini_AigStart()
 {
     Mini_Aig_t * p;
-    assert( nCap > 0 );
     p = MINI_AIG_ALLOC( Mini_Aig_t, 1 );
-    if ( nCap < MINI_AIG_START_SIZE )
-        nCap = MINI_AIG_START_SIZE;
     p->nSize  = 0;
-    p->nCap   = nCap;
+    p->nCap   = MINI_AIG_START_SIZE;
     p->pArray = MINI_AIG_ALLOC( int, p->nCap );
     Mini_AigPush( p, MINI_AIG_NULL, MINI_AIG_NULL );
     return p;
@@ -142,14 +139,14 @@ static void Mini_AigStop( Mini_Aig_t * p )
 // (constant node is created when AIG manager is created)
 static int Mini_AigCreatePi( Mini_Aig_t * p )
 {
-    int Lit = Mini_AigNumNodes(p);
+    int Lit = Mini_AigNodeNum(p);
     Mini_AigPush( p, MINI_AIG_NULL, MINI_AIG_NULL );
     return Lit;
 }
 static int Mini_AigCreatePo( Mini_Aig_t * p, int Lit0 )
 {
-    int Lit = Mini_AigNumNodes(p);
-    assert( Lit0 >= 0 && Lit0 < 2 * Mini_AigNumNodes(p) );
+    int Lit = Mini_AigNodeNum(p);
+    assert( Lit0 >= 0 && Lit0 < 2 * Mini_AigNodeNum(p) );
     Mini_AigPush( p, Lit0, MINI_AIG_NULL );
     return Lit;
 }
@@ -157,9 +154,9 @@ static int Mini_AigCreatePo( Mini_Aig_t * p, int Lit0 )
 // boolean operations
 static int Mini_AigAnd( Mini_Aig_t * p, int Lit0, int Lit1 )
 {
-    int Lit = Mini_AigNumNodes(p);
-    assert( Lit0 >= 0 && Lit0 < 2 * Mini_AigNumNodes(p) );
-    assert( Lit1 >= 0 && Lit1 < 2 * Mini_AigNumNodes(p) );
+    int Lit = Mini_AigNodeNum(p);
+    assert( Lit0 >= 0 && Lit0 < 2 * Mini_AigNodeNum(p) );
+    assert( Lit1 >= 0 && Lit1 < 2 * Mini_AigNodeNum(p) );
     Mini_AigPush( p, Lit0, Lit1 );
     return Lit;
 }
@@ -177,6 +174,12 @@ static int Mini_AigXor( Mini_Aig_t * p, int Lit0, int Lit1 )
 {
     return Mini_AigMux( p, Lit0, Mini_AigLitNot(Lit1), Lit1 );
 }
+
+
+#define Mini_AigForEachPi( p, i )  for (i = 1; i < Mini_AigNodeNum(p); i++) if ( !Mini_AigNodeIsPi(p, i) ) else 
+#define Mini_AigForEachPo( p, i )  for (i = 1; i < Mini_AigNodeNum(p); i++) if ( !Mini_AigNodeIsPo(p, i) ) else 
+#define Mini_AigForEachAnd( p, i ) for (i = 1; i < Mini_AigNodeNum(p); i++) if ( !Mini_AigNodeIsAnd(p, i) ) else
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                    FUNCTION DECLARATIONS                         ///

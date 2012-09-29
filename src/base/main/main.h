@@ -131,6 +131,10 @@ extern ABC_DLL void            Abc_FrameSetCex( Abc_Cex_t * pCex );
 extern ABC_DLL void            Abc_FrameSetNFrames( int nFrames );
 extern ABC_DLL void            Abc_FrameSetStatus( int Status );
 
+/*=== mainFrame.c ===========================================================*/
+extern ABC_DLL void            Abc_NtkInputMiniAig( Abc_Frame_t * pAbc, void * p );
+extern ABC_DLL void *          Abc_NtkOutputMiniAig( Abc_Frame_t * pAbc );
+
 
 ABC_NAMESPACE_HEADER_END
 
