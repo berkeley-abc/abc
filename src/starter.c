@@ -31,8 +31,6 @@
 #include <unistd.h>
 #endif
 
-//ABC_NAMESPACE_IMPL_START
-
 // the max number of commands to execute from the input file
 #define MAX_COMM_NUM 1000
 
@@ -189,6 +187,4 @@ usage:
     return 1;
 
 }
-
-//ABC_NAMESPACE_IMPL_END
 
