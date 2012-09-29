@@ -200,7 +200,6 @@ void Map_SuperLibFree( Map_SuperLib_t * p )
 int Map_SuperLibDeriveFromGenlib( Mio_Library_t * pLib, int fVerbose )
 {
     Map_SuperLib_t * pLibSuper;
-    Abc_Frame_t * pAbc = Abc_FrameGetGlobalFrame();
     Vec_Str_t * vStr;
     char * pFileName;
     if ( pLib == NULL )

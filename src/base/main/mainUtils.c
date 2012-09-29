@@ -82,9 +82,12 @@ char * Abc_UtilsGetUsersInput( Abc_Frame_t * pAbc )
     return line;
     }
 #else
+    {
+    char * pRetValue;
     fprintf( pAbc->Out, "%s", Prompt );
-    fgets( Prompt, 5000, stdin );
+    pRetValue = fgets( Prompt, 5000, stdin );
     return Prompt;
+    }
 #endif
 }
 
