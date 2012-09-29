@@ -139,14 +139,14 @@ static void Mini_AigStop( Mini_Aig_t * p )
 // (constant node is created when AIG manager is created)
 static int Mini_AigCreatePi( Mini_Aig_t * p )
 {
-    int Lit = Mini_AigNodeNum(p);
+    int Lit = p->nSize;
     Mini_AigPush( p, MINI_AIG_NULL, MINI_AIG_NULL );
     return Lit;
 }
 static int Mini_AigCreatePo( Mini_Aig_t * p, int Lit0 )
 {
-    int Lit = Mini_AigNodeNum(p);
-    assert( Lit0 >= 0 && Lit0 < 2 * Mini_AigNodeNum(p) );
+    int Lit = p->nSize;
+    assert( Lit0 >= 0 && Lit0 < Lit );
     Mini_AigPush( p, Lit0, MINI_AIG_NULL );
     return Lit;
 }
@@ -154,9 +154,9 @@ static int Mini_AigCreatePo( Mini_Aig_t * p, int Lit0 )
 // boolean operations
 static int Mini_AigAnd( Mini_Aig_t * p, int Lit0, int Lit1 )
 {
-    int Lit = Mini_AigNodeNum(p);
-    assert( Lit0 >= 0 && Lit0 < 2 * Mini_AigNodeNum(p) );
-    assert( Lit1 >= 0 && Lit1 < 2 * Mini_AigNodeNum(p) );
+    int Lit = p->nSize;
+    assert( Lit0 >= 0 && Lit0 < Lit );
+    assert( Lit1 >= 0 && Lit1 < Lit );
     Mini_AigPush( p, Lit0, Lit1 );
     return Lit;
 }

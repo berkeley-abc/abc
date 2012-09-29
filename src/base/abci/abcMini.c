@@ -66,6 +66,7 @@ Abc_Ntk_t * Abc_NtkFromMiniAig( Mini_Aig_t * p )
     nNodes = Mini_AigNodeNum(p);
     // create ABC network
     pNtk = Abc_NtkAlloc( ABC_NTK_STRASH, ABC_FUNC_AIG, 1 );
+    pNtk->pName = Abc_UtilStrsav( "MiniAig" );
     // create mapping from MiniAIG objects into ABC objects
     vCopies = Vec_IntAlloc( nNodes );
     Vec_IntPush( vCopies, Abc_LitNot(Abc_ObjToLit(Abc_AigConst1(pNtk))) );
@@ -81,6 +82,7 @@ Abc_Ntk_t * Abc_NtkFromMiniAig( Mini_Aig_t * p )
         else assert( 0 );
         Vec_IntPush( vCopies, Abc_ObjToLit(pObj) );
     }
+    assert( Vec_IntSize(vCopies) == nNodes );
     Abc_AigCleanup( (Abc_Aig_t *)pNtk->pManFunc );
     Vec_IntFree( vCopies );
     Abc_NtkAddDummyPiNames( pNtk );
@@ -92,7 +94,7 @@ Abc_Ntk_t * Abc_NtkFromMiniAig( Mini_Aig_t * p )
 
 /**Function*************************************************************
 
-  Synopsis    [Converts the network from the AIG manager into ABC.]
+  Synopsis    [Converts the network from ABC into the AIG manager.]
 
   Description []
                
@@ -134,7 +136,7 @@ Mini_Aig_t * Abc_NtkToMiniAig( Abc_Ntk_t * pNtk )
 
 /**Function*************************************************************
 
-  Synopsis    []
+  Synopsis    [Procedures to update internal ABC network using AIG node array.]
 
   Description []
                
@@ -163,6 +165,37 @@ void * Abc_NtkOutputMiniAig( Abc_Frame_t * pAbc )
     return Abc_NtkToMiniAig( pNtk );
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Testing the above code.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkMiniAigTest( Abc_Ntk_t * pNtk )
+{
+    Abc_Ntk_t * pNtkNew;
+    Mini_Aig_t * p;
+    p = Abc_NtkToMiniAig( pNtk );
+    pNtkNew = Abc_NtkFromMiniAig( p );
+    Mini_AigStop( p );
+    Abc_NtkPrintStats( pNtkNew, 0, 0, 0, 0, 0, 0, 0 );
+    Abc_NtkDelete( pNtkNew );
+}
+
+/*
+    if ( pNtk )
+    {
+        extern void Abc_NtkMiniAigTest( Abc_Ntk_t * pNtk );
+        Abc_NtkMiniAigTest( pNtk );
+
+    }
+*/
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
