@@ -21,7 +21,7 @@
 #include "base/abc/abc.h"
 #include "mainInt.h"
 
-#ifndef _WIN32
+#if !defined(_WIN32) && defined(READLINE)
 #include <readline/readline.h>
 #include <readline/history.h>
 #endif
@@ -71,21 +71,20 @@ char * Abc_UtilsGetVersion( Abc_Frame_t * pAbc )
 char * Abc_UtilsGetUsersInput( Abc_Frame_t * pAbc )
 {
     static char Prompt[5000];
-#ifndef _WIN32
-    static char * line = NULL;
-#endif
-
     sprintf( Prompt, "abc %02d> ", pAbc->nSteps );
-#ifdef _WIN32
-    fprintf( pAbc->Out, "%s", Prompt );
-    fgets( Prompt, 5000, stdin );
-    return Prompt;
-#else
+#if !defined(_WIN32) && defined(READLINE)
+    {
+    static char * line = NULL;
     if (line != NULL) ABC_FREE(line);
     line = readline(Prompt);  
     if (line == NULL){ printf("***EOF***\n"); exit(0); }
     add_history(line);
     return line;
+    }
+#else
+    fprintf( pAbc->Out, "%s", Prompt );
+    fgets( Prompt, 5000, stdin );
+    return Prompt;
 #endif
 }
 
