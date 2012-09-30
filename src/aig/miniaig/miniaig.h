@@ -46,6 +46,7 @@ struct Mini_Aig_t_
 {
     int           nCap;
     int           nSize;
+    int           nRegs;
     int *         pArray;
 };
 
@@ -116,13 +117,21 @@ static int      Mini_AigNodeIsPi( Mini_Aig_t * p, int Id )     { assert( Id >= 0
 static int      Mini_AigNodeIsPo( Mini_Aig_t * p, int Id )     { assert( Id >= 0 ); return Id > 0 && Mini_AigNodeFanin0( p, Id ) != MINI_AIG_NULL && Mini_AigNodeFanin1( p, Id ) == MINI_AIG_NULL; }
 static int      Mini_AigNodeIsAnd( Mini_Aig_t * p, int Id )    { assert( Id >= 0 ); return Id > 0 && Mini_AigNodeFanin0( p, Id ) != MINI_AIG_NULL && Mini_AigNodeFanin1( p, Id ) != MINI_AIG_NULL; }
 
+// working with sequential AIGs
+static int      Mini_AigRegNum( Mini_Aig_t * p )               { return p->nRegs;             }
+static void     Mini_AigSetRegNum( Mini_Aig_t * p, int n )     { p->nRegs = n;                }
+
+// iterators through objects
+#define Mini_AigForEachPi( p, i )  for (i = 1; i < Mini_AigNodeNum(p); i++) if ( !Mini_AigNodeIsPi(p, i) ) {} else 
+#define Mini_AigForEachPo( p, i )  for (i = 1; i < Mini_AigNodeNum(p); i++) if ( !Mini_AigNodeIsPo(p, i) ) {} else 
+#define Mini_AigForEachAnd( p, i ) for (i = 1; i < Mini_AigNodeNum(p); i++) if ( !Mini_AigNodeIsAnd(p, i) ) {} else
+
 
 // constructor/destructor
 static Mini_Aig_t * Mini_AigStart()
 {
     Mini_Aig_t * p;
-    p = MINI_AIG_ALLOC( Mini_Aig_t, 1 );
-    p->nSize  = 0;
+    p = MINI_AIG_CALLOC( Mini_Aig_t, 1 );
     p->nCap   = MINI_AIG_START_SIZE;
     p->pArray = MINI_AIG_ALLOC( int, p->nCap );
     Mini_AigPush( p, MINI_AIG_NULL, MINI_AIG_NULL );
@@ -132,6 +141,57 @@ static void Mini_AigStop( Mini_Aig_t * p )
 {
     MINI_AIG_FREE( p->pArray );
     MINI_AIG_FREE( p );
+}
+static void Mini_AigPrintStats( Mini_Aig_t * p )
+{
+    int i, nPis, nPos, nNodes;
+    nPis = 0;
+    Mini_AigForEachPi( p, i )
+        nPis++;
+    nPos = 0;
+    Mini_AigForEachPo( p, i )
+        nPos++;
+    nNodes = 0;
+    Mini_AigForEachAnd( p, i )
+        nNodes++;
+    printf( "PI = %d. PO = %d. Node = %d.\n", nPis, nPos, nNodes );
+}
+
+// serialization
+static void Mini_AigDump( Mini_Aig_t * p, char * pFileName )
+{
+    FILE * pFile;
+    int RetValue;
+    pFile = fopen( pFileName, "wb" );
+    if ( pFile == NULL )
+    {
+        printf( "Cannot open file for writing \"%s\".\n", pFileName );
+        return;
+    }
+    RetValue = fwrite( &p->nSize, sizeof(int), 1, pFile );
+    RetValue = fwrite( &p->nRegs, sizeof(int), 1, pFile );
+    RetValue = fwrite( p->pArray, sizeof(int), p->nSize, pFile );
+    fclose( pFile );
+}
+static Mini_Aig_t * Mini_AigLoad( char * pFileName )
+{
+    Mini_Aig_t * p;
+    FILE * pFile;
+    int RetValue, nSize;
+    pFile = fopen( pFileName, "rb" );
+    if ( pFile == NULL )
+    {
+        printf( "Cannot open file for reading \"%s\".\n", pFileName );
+        return NULL;
+    }
+    RetValue = fread( &nSize, sizeof(int), 1, pFile );
+    p = MINI_AIG_CALLOC( Mini_Aig_t, 1 );
+    p->nSize = p->nCap = nSize;
+    p->pArray = MINI_AIG_ALLOC( int, p->nCap );
+    RetValue = fread( &p->nRegs, sizeof(int), 1, pFile );
+    RetValue = fread( p->pArray, sizeof(int), p->nSize, pFile );
+    fclose( pFile );
+    return p;
 }
 
 
@@ -175,10 +235,6 @@ static int Mini_AigXor( Mini_Aig_t * p, int Lit0, int Lit1 )
     return Mini_AigMux( p, Lit0, Mini_AigLitNot(Lit1), Lit1 );
 }
 
-
-#define Mini_AigForEachPi( p, i )  for (i = 1; i < Mini_AigNodeNum(p); i++) if ( !Mini_AigNodeIsPi(p, i) ) else 
-#define Mini_AigForEachPo( p, i )  for (i = 1; i < Mini_AigNodeNum(p); i++) if ( !Mini_AigNodeIsPo(p, i) ) else 
-#define Mini_AigForEachAnd( p, i ) for (i = 1; i < Mini_AigNodeNum(p); i++) if ( !Mini_AigNodeIsAnd(p, i) ) else
 
 
 ////////////////////////////////////////////////////////////////////////

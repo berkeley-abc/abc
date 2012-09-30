@@ -186,6 +186,16 @@ void Abc_NtkMiniAigTest( Abc_Ntk_t * pNtk )
     Mini_AigStop( p );
     Abc_NtkPrintStats( pNtkNew, 0, 0, 0, 0, 0, 0, 0 );
     Abc_NtkDelete( pNtkNew );
+
+    // test dumping
+    p = Abc_NtkToMiniAig( pNtk );
+    Mini_AigDump( p, "miniaig.data" );
+    Mini_AigPrintStats( p );
+    Mini_AigStop( p );
+
+    p = Mini_AigLoad( "miniaig.data" );
+    Mini_AigPrintStats( p );
+    Mini_AigStop( p );
 }
 
 /*
