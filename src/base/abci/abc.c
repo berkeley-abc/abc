@@ -343,6 +343,7 @@ static int Abc_CommandAbc9Speedup            ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9Era                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Dch                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Reparam            ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Rpm                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9BackReach          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Posplit            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9ReachM             ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -791,6 +792,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&era",          Abc_CommandAbc9Era,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&dch",          Abc_CommandAbc9Dch,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&reparam",      Abc_CommandAbc9Reparam,      0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&rpm",          Abc_CommandAbc9Rpm,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&back_reach",   Abc_CommandAbc9BackReach,    0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&posplit",      Abc_CommandAbc9Posplit,      0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&reachm",       Abc_CommandAbc9ReachM,       0 );
@@ -26766,6 +26768,56 @@ usage:
     Abc_Print( -2, "\t        performs input trimming and reparameterization\n" );
     Abc_Print( -2, "\t-v    : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Rpm( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern Gia_Man_t * Abs_RpmPerform( Gia_Man_t * p, int nCutMax, int fVerbose );
+    Gia_Man_t * pTemp;
+    int nCutMax = 6;
+    int c, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Rpm(): There is no AIG.\n" );
+        return 0;
+    } 
+    pTemp = Abs_RpmPerform( pAbc->pGia, nCutMax, fVerbose );
+    if ( pTemp )
+        Abc_CommandUpdate9( pAbc, pTemp );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &rpm [-K num] [-vh]\n" );
+    Abc_Print( -2, "\t         performs structural reparametrization\n" );
+    Abc_Print( -2, "\t-K num : the max cut size used for testing [default = %d]\n", nCutMax );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
 

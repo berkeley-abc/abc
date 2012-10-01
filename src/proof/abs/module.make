@@ -11,5 +11,6 @@ SRC +=    src/proof/abs/abs.c \
     src/proof/abs/absPth.c \
     src/proof/abs/absRef.c \
     src/proof/abs/absRefSelect.c \
+    src/proof/abs/absRpm.c \
     src/proof/abs/absVta.c \
     src/proof/abs/absUtil.c

@@ -4411,6 +4411,10 @@ SOURCE=.\src\proof\abs\absRefSelect.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\proof\abs\absRpm.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\proof\abs\absUtil.c
 # End Source File
 # Begin Source File
