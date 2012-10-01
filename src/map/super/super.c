@@ -166,11 +166,11 @@ int Super_CommandSupergates( Abc_Frame_t * pAbc, int argc, char **argv )
 
     // set the defaults
     nVarsMax   = 5;
-    nLevels    = 3;
-    DelayLimit = 3.5;
-    AreaLimit  = 9;
-    nGatesMax  = 1000000;
-    TimeLimit  = 10;
+    nLevels    = 2;
+    DelayLimit = 0;
+    AreaLimit  = 0;
+    nGatesMax  = 0;
+    TimeLimit  = 0;
     fSkipInvs  = 1;
     fVerbose   = 0;
     fWriteOldFormat = 0;

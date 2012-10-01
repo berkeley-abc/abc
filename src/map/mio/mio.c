@@ -250,6 +250,7 @@ int Mio_CommandReadGenlib( Abc_Frame_t * pAbc, int argc, char **argv )
     FILE * pFile;
     FILE * pOut, * pErr;
     Mio_Library_t * pLib;
+    Amap_Lib_t * pLib2;
     Abc_Ntk_t * pNet;
     char * pFileName;
     char * pExcludeFile = NULL;
@@ -323,6 +324,9 @@ int Mio_CommandReadGenlib( Abc_Frame_t * pAbc, int argc, char **argv )
         fprintf( pErr, "Reading genlib library has failed.\n" );
         return 1;
     }
+    if ( fVerbose )
+        printf( "Entered genlib library with %d gates from file \"%s\".\n", Mio_LibraryReadGateNum(pLib), pFileName );
+
     // add the fixed number (wire delay) to all delays in the library
     if ( WireDelay != 0.0 )
         Mio_LibraryShiftDelay( pLib, WireDelay );
@@ -339,17 +343,15 @@ int Mio_CommandReadGenlib( Abc_Frame_t * pAbc, int argc, char **argv )
     Abc_FrameSetLibGen( pLib );
 
     // set the new network
-    pLib = (Mio_Library_t *)Amap_LibReadAndPrepare( pFileName, NULL, 0, 0 );  
-    if ( pLib == NULL )
+    pLib2 = Amap_LibReadAndPrepare( pFileName, NULL, 0, 0 );  
+    if ( pLib2 == NULL )
     {
         fprintf( pErr, "Reading genlib library has failed.\n" );
         return 1;
     }
     // replace the current library
     Amap_LibFree( (Amap_Lib_t *)Abc_FrameReadLibGen2() );
-    Abc_FrameSetLibGen2( pLib );
-    if ( fVerbose )
-        printf( "Entered genlib library with %d gates from file \"%s\".\n", Mio_LibraryReadGateNum(pLib), pFileName );
+    Abc_FrameSetLibGen2( pLib2 );
     return 0;
 
 usage:

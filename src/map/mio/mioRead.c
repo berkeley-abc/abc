@@ -154,8 +154,7 @@ Mio_Library_t * Mio_LibraryReadBuffer( char * pBuffer, int fExtendedFormat, st__
     Mio_Library_t * pLib;
 
     // allocate the genlib structure
-    pLib = ABC_ALLOC( Mio_Library_t, 1 );
-    memset( pLib, 0, sizeof(Mio_Library_t) );
+    pLib = ABC_CALLOC( Mio_Library_t, 1 );
     pLib->tName2Gate = st__init_table(strcmp, st__strhash);
     pLib->pMmFlex = Mem_FlexStart();
     pLib->vCube = Vec_StrAlloc( 100 );
@@ -337,8 +336,7 @@ Mio_Gate_t * Mio_LibraryReadGate( char ** ppToken, int fExtendedFormat )
     char * pToken = *ppToken;
 
     // allocate the gate structure
-    pGate = ABC_ALLOC( Mio_Gate_t, 1 );
-    memset( pGate, 0, sizeof(Mio_Gate_t) );
+    pGate = ABC_CALLOC( Mio_Gate_t, 1 );
 
     // read the name
     pToken = strtok( NULL, " \t\r\n" );
@@ -405,8 +403,7 @@ Mio_Pin_t * Mio_LibraryReadPin( char ** ppToken, int fExtendedFormat )
     char * pToken = *ppToken;
 
     // allocate the gate structure
-    pPin = ABC_ALLOC( Mio_Pin_t, 1 );
-    memset( pPin, 0, sizeof(Mio_Pin_t) );
+    pPin = ABC_CALLOC( Mio_Pin_t, 1 );
 
     // read the name
     pToken = strtok( NULL, " \t\r\n" );

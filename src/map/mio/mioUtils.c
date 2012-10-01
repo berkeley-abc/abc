@@ -311,7 +311,7 @@ Mio_Gate_t ** Mio_CollectRoots( Mio_Library_t * pLib, int nInputs, float tDelay,
     {
         if ( pGate->nInputs > nInputs )
             continue;
-        if ( pGate->dDelayMax > (double)tDelay )
+        if ( tDelay > 0.0 && pGate->dDelayMax > (double)tDelay )
             continue;
         if ( pGate->uTruth == 0 || pGate->uTruth == ~0 )
             continue;

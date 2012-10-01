@@ -73,8 +73,8 @@ struct Super_ManStruct_t_
     clock_t             Time;         // the runtime of the generation procedure
     int                 TimeLimit;    // the runtime limit (in seconds)
     int                 TimeSec;      // the time passed (in seconds)
-    double              TimeStop;     // the time to stop computation (in miliseconds)
-    double              TimePrint;    // the time to print message
+    clock_t             TimeStop;     // the time to stop computation (in miliseconds)
+    clock_t             TimePrint;    // the time to print message
 };
 
 struct Super_GateStruct_t_
@@ -178,7 +178,7 @@ Vec_Str_t * Super_PrecomputeStr( Mio_Library_t * pLibGen, int nVarsMax, int nLev
     clock_t clk, clockStart;
 
     assert( nVarsMax < 7 );
-    if ( nGatesMax < nVarsMax )
+    if ( nGatesMax && nGatesMax < nVarsMax )
     {
         fprintf( stderr, "Erro! The number of supergates requested (%d) in less than the number of variables (%d).\n", nGatesMax, nVarsMax );
         fprintf( stderr, "The library cannot be computed.\n" );
@@ -187,7 +187,7 @@ Vec_Str_t * Super_PrecomputeStr( Mio_Library_t * pLibGen, int nVarsMax, int nLev
 
     // get the root gates
     ppGates = Mio_CollectRoots( pLibGen, nVarsMax, tDelayMax, 0, &nGates, fVerbose );
-    if ( nGates >= nGatesMax )
+    if ( nGatesMax && nGates >= nGatesMax )
     {
         fprintf( stdout, "Warning! Genlib library contains more gates than can be computed.\n");
         fprintf( stdout, "Only one-gate supergates are included in the supergate library.\n" );
@@ -201,7 +201,7 @@ Vec_Str_t * Super_PrecomputeStr( Mio_Library_t * pLibGen, int nVarsMax, int nLev
     pMan->tDelayMax = tDelayMax;
     pMan->tAreaMax  = tAreaMax;
     pMan->TimeLimit = TimeLimit; // in seconds
-    pMan->TimeStop  = TimeLimit * CLOCKS_PER_SEC + clock(); // in CPU ticks
+    pMan->TimeStop  = TimeLimit ? TimeLimit * CLOCKS_PER_SEC + clock() : 0; // in CPU ticks
     pMan->fVerbose  = fVerbose;
 
     if ( nGates == 0 )
@@ -232,7 +232,7 @@ if ( fVerbose )
 
     for ( Level = 1; Level <= nLevels; Level++ )
     {
-        if ( clock() > pMan->TimeStop )
+        if ( pMan->TimeStop && clock() > pMan->TimeStop )
             break;
 clk = clock();
         Super_Compute( pMan, ppGates, nGates, nGatesMax, fSkipInv );
@@ -409,7 +409,7 @@ Super_Man_t * Super_Compute( Super_Man_t * pMan, Mio_Gate_t ** ppGates, int nGat
                 continue;
             
             ppGatesLimit[t] = pMan->pGates[s];
-            if ( ppGatesLimit[t++]->tDelayMax + tDelayMio > pMan->tDelayMax )
+            if ( ppGatesLimit[t++]->tDelayMax + tDelayMio > pMan->tDelayMax && pMan->tDelayMax > 0.0 )
                 break;
         }
         nGatesLimit = t;
@@ -450,7 +450,7 @@ Super_Man_t * Super_Compute( Super_Man_t * pMan, Mio_Gate_t ** ppGates, int nGat
                   continue;
               // compute area
               Area = AreaMio + pGate0->Area;
-              if ( Area > pMan->tAreaMax )
+              if ( pMan->tAreaMax > 0.0 && Area > pMan->tAreaMax )
                   break;
 
               pSupers[0] = pGate0;  uTruths[0][0] = pGate0->uTruth[0];  uTruths[0][1] = pGate0->uTruth[1];  ptPinDelays[0] = pGate0->ptDelays; 
@@ -461,7 +461,7 @@ Super_Man_t * Super_Compute( Super_Man_t * pMan, Mio_Gate_t ** ppGates, int nGat
               // create a new gate
               pGateNew = Super_CreateGateNew( pMan, ppGates[k], pSupers, nFanins, uTruth, Area, tPinDelaysRes, tPinDelayMax, pMan->nVarsMax );
               Super_AddGateToTable( pMan, pGateNew );
-              if ( pMan->nClasses > nGatesMax )
+              if ( nGatesMax && pMan->nClasses > nGatesMax )
                   goto done;
             }
             break;
@@ -469,7 +469,7 @@ Super_Man_t * Super_Compute( Super_Man_t * pMan, Mio_Gate_t ** ppGates, int nGat
             Super_ManForEachGate( ppGatesLimit, nGatesLimit, i0, pGate0 )
             {
               Area0 = AreaMio + pGate0->Area;
-              if ( Area0 > pMan->tAreaMax )
+              if ( pMan->tAreaMax > 0.0 && Area0 > pMan->tAreaMax )
                   break;
               pSupers[0] = pGate0;  uTruths[0][0] = pGate0->uTruth[0];  uTruths[0][1] = pGate0->uTruth[1];  ptPinDelays[0] = pGate0->ptDelays; 
               Super_ManForEachGate( ppGatesLimit, nGatesLimit, i1, pGate1 )
@@ -479,7 +479,7 @@ Super_Man_t * Super_Compute( Super_Man_t * pMan, Mio_Gate_t ** ppGates, int nGat
                 fTimeOut = Super_CheckTimeout( pProgress, pMan );
                 // compute area
                 Area = Area0 + pGate1->Area;
-                if ( Area > pMan->tAreaMax )
+                if ( pMan->tAreaMax > 0.0 && Area > pMan->tAreaMax )
                     break;
 
                 pSupers[1] = pGate1;  uTruths[1][0] = pGate1->uTruth[0];  uTruths[1][1] = pGate1->uTruth[1];  ptPinDelays[1] = pGate1->ptDelays;
@@ -490,7 +490,7 @@ Super_Man_t * Super_Compute( Super_Man_t * pMan, Mio_Gate_t ** ppGates, int nGat
                 // create a new gate
                 pGateNew = Super_CreateGateNew( pMan, ppGates[k], pSupers, nFanins, uTruth, Area, tPinDelaysRes, tPinDelayMax, pMan->nVarsMax );
                 Super_AddGateToTable( pMan, pGateNew );
-                if ( pMan->nClasses > nGatesMax )
+                if ( nGatesMax && pMan->nClasses > nGatesMax )
                     goto done;
               }
             }
@@ -499,7 +499,7 @@ Super_Man_t * Super_Compute( Super_Man_t * pMan, Mio_Gate_t ** ppGates, int nGat
             Super_ManForEachGate( ppGatesLimit, nGatesLimit, i0, pGate0 )
             {
               Area0 = AreaMio + pGate0->Area;
-              if ( Area0 > pMan->tAreaMax )
+              if ( pMan->tAreaMax > 0.0 && Area0 > pMan->tAreaMax )
                   break;
               pSupers[0] = pGate0;  uTruths[0][0] = pGate0->uTruth[0];  uTruths[0][1] = pGate0->uTruth[1];  ptPinDelays[0] = pGate0->ptDelays; 
 
@@ -507,7 +507,7 @@ Super_Man_t * Super_Compute( Super_Man_t * pMan, Mio_Gate_t ** ppGates, int nGat
               if ( i1 != i0 )
               {
                 Area1 = Area0 + pGate1->Area;
-                if ( Area1 > pMan->tAreaMax )
+                if ( pMan->tAreaMax > 0.0 && Area1 > pMan->tAreaMax )
                     break;
                 pSupers[1] = pGate1;  uTruths[1][0] = pGate1->uTruth[0];  uTruths[1][1] = pGate1->uTruth[1];  ptPinDelays[1] = pGate1->ptDelays;
 
@@ -518,7 +518,7 @@ Super_Man_t * Super_Compute( Super_Man_t * pMan, Mio_Gate_t ** ppGates, int nGat
                   fTimeOut = Super_CheckTimeout( pProgress, pMan );
                   // compute area
                   Area = Area1 + pGate2->Area;
-                  if ( Area > pMan->tAreaMax )
+                  if ( pMan->tAreaMax > 0.0 && Area > pMan->tAreaMax )
                       break;
                   pSupers[2] = pGate2;  uTruths[2][0] = pGate2->uTruth[0];  uTruths[2][1] = pGate2->uTruth[1];   ptPinDelays[2] = pGate2->ptDelays;
 
@@ -529,7 +529,7 @@ Super_Man_t * Super_Compute( Super_Man_t * pMan, Mio_Gate_t ** ppGates, int nGat
                   // create a new gate
                   pGateNew = Super_CreateGateNew( pMan, ppGates[k], pSupers, nFanins, uTruth, Area, tPinDelaysRes, tPinDelayMax, pMan->nVarsMax );
                   Super_AddGateToTable( pMan, pGateNew );
-                  if ( pMan->nClasses > nGatesMax )
+                  if ( nGatesMax && pMan->nClasses > nGatesMax )
                       goto done;
                 }
               }
@@ -539,7 +539,7 @@ Super_Man_t * Super_Compute( Super_Man_t * pMan, Mio_Gate_t ** ppGates, int nGat
             Super_ManForEachGate( ppGatesLimit, nGatesLimit, i0, pGate0 )
             {
               Area0 = AreaMio + pGate0->Area;
-              if ( Area0 > pMan->tAreaMax )
+              if ( pMan->tAreaMax > 0.0 && Area0 > pMan->tAreaMax )
                   break;
               pSupers[0] = pGate0;  uTruths[0][0] = pGate0->uTruth[0];  uTruths[0][1] = pGate0->uTruth[1];  ptPinDelays[0] = pGate0->ptDelays; 
 
@@ -547,7 +547,7 @@ Super_Man_t * Super_Compute( Super_Man_t * pMan, Mio_Gate_t ** ppGates, int nGat
               if ( i1 != i0 )
               {
                 Area1 = Area0 + pGate1->Area;
-                if ( Area1 > pMan->tAreaMax )
+                if ( pMan->tAreaMax > 0.0 && Area1 > pMan->tAreaMax )
                     break;
                 pSupers[1] = pGate1;  uTruths[1][0] = pGate1->uTruth[0];  uTruths[1][1] = pGate1->uTruth[1];  ptPinDelays[1] = pGate1->ptDelays;
 
@@ -555,7 +555,7 @@ Super_Man_t * Super_Compute( Super_Man_t * pMan, Mio_Gate_t ** ppGates, int nGat
                 if ( i2 != i0 && i2 != i1 )
                 {
                   Area2 = Area1 + pGate2->Area;
-                  if ( Area2 > pMan->tAreaMax )
+                  if ( pMan->tAreaMax > 0.0 && Area2 > pMan->tAreaMax )
                       break;
                   pSupers[2] = pGate2;  uTruths[2][0] = pGate2->uTruth[0];  uTruths[2][1] = pGate2->uTruth[1];   ptPinDelays[2] = pGate2->ptDelays;
 
@@ -566,7 +566,7 @@ Super_Man_t * Super_Compute( Super_Man_t * pMan, Mio_Gate_t ** ppGates, int nGat
                     fTimeOut = Super_CheckTimeout( pProgress, pMan );
                     // compute area
                     Area = Area2 + pGate3->Area;
-                    if ( Area > pMan->tAreaMax )
+                    if ( pMan->tAreaMax > 0.0 && Area > pMan->tAreaMax )
                         break;
                     pSupers[3] = pGate3;   uTruths[3][0] = pGate3->uTruth[0];  uTruths[3][1] = pGate3->uTruth[1];   ptPinDelays[3] = pGate3->ptDelays;
 
@@ -577,7 +577,7 @@ Super_Man_t * Super_Compute( Super_Man_t * pMan, Mio_Gate_t ** ppGates, int nGat
                     // create a new gate
                     pGateNew = Super_CreateGateNew( pMan, ppGates[k], pSupers, nFanins, uTruth, Area, tPinDelaysRes, tPinDelayMax, pMan->nVarsMax );
                     Super_AddGateToTable( pMan, pGateNew );
-                    if ( pMan->nClasses > nGatesMax )
+                    if ( nGatesMax && pMan->nClasses > nGatesMax )
                         goto done;
                   }
                 }
@@ -588,7 +588,7 @@ Super_Man_t * Super_Compute( Super_Man_t * pMan, Mio_Gate_t ** ppGates, int nGat
             Super_ManForEachGate( ppGatesLimit, nGatesLimit, i0, pGate0 )
             {
               Area0 = AreaMio + pGate0->Area;
-              if ( Area0 > pMan->tAreaMax )
+              if ( pMan->tAreaMax > 0.0 && Area0 > pMan->tAreaMax )
                   break;
               pSupers[0] = pGate0;  uTruths[0][0] = pGate0->uTruth[0];  uTruths[0][1] = pGate0->uTruth[1];  ptPinDelays[0] = pGate0->ptDelays; 
 
@@ -596,7 +596,7 @@ Super_Man_t * Super_Compute( Super_Man_t * pMan, Mio_Gate_t ** ppGates, int nGat
               if ( i1 != i0 )
               {
                 Area1 = Area0 + pGate1->Area;
-                if ( Area1 > pMan->tAreaMax )
+                if ( pMan->tAreaMax > 0.0 && Area1 > pMan->tAreaMax )
                     break;
                 pSupers[1] = pGate1;  uTruths[1][0] = pGate1->uTruth[0];  uTruths[1][1] = pGate1->uTruth[1];  ptPinDelays[1] = pGate1->ptDelays;
 
@@ -604,7 +604,7 @@ Super_Man_t * Super_Compute( Super_Man_t * pMan, Mio_Gate_t ** ppGates, int nGat
                 if ( i2 != i0 && i2 != i1 )
                 {
                   Area2 = Area1 + pGate2->Area;
-                  if ( Area2 > pMan->tAreaMax )
+                  if ( pMan->tAreaMax > 0.0 && Area2 > pMan->tAreaMax )
                       break;
                   pSupers[2] = pGate2;  uTruths[2][0] = pGate2->uTruth[0];  uTruths[2][1] = pGate2->uTruth[1];   ptPinDelays[2] = pGate2->ptDelays;
 
@@ -612,7 +612,7 @@ Super_Man_t * Super_Compute( Super_Man_t * pMan, Mio_Gate_t ** ppGates, int nGat
                   if ( i3 != i0 && i3 != i1 && i3 != i2 )
                   {
                     Area3 = Area2 + pGate3->Area;
-                    if ( Area3 > pMan->tAreaMax )
+                    if ( pMan->tAreaMax > 0.0 && Area3 > pMan->tAreaMax )
                         break;
                     pSupers[3] = pGate3;   uTruths[3][0] = pGate3->uTruth[0];  uTruths[3][1] = pGate3->uTruth[1];   ptPinDelays[3] = pGate3->ptDelays;
 
@@ -623,7 +623,7 @@ Super_Man_t * Super_Compute( Super_Man_t * pMan, Mio_Gate_t ** ppGates, int nGat
                       fTimeOut = Super_CheckTimeout( pProgress, pMan );
                       // compute area
                       Area = Area3 + pGate4->Area;
-                      if ( Area > pMan->tAreaMax )
+                      if ( pMan->tAreaMax > 0.0 && Area > pMan->tAreaMax )
                           break;
                       pSupers[4] = pGate4;   uTruths[4][0] = pGate4->uTruth[0];  uTruths[4][1] = pGate4->uTruth[1];  ptPinDelays[4] = pGate4->ptDelays;
 
@@ -634,7 +634,7 @@ Super_Man_t * Super_Compute( Super_Man_t * pMan, Mio_Gate_t ** ppGates, int nGat
                       // create a new gate
                       pGateNew = Super_CreateGateNew( pMan, ppGates[k], pSupers, nFanins, uTruth, Area, tPinDelaysRes, tPinDelayMax, pMan->nVarsMax );
                       Super_AddGateToTable( pMan, pGateNew );
-                      if ( pMan->nClasses > nGatesMax )
+                      if ( nGatesMax && pMan->nClasses > nGatesMax )
                           goto done;
                     }
                   }
@@ -646,7 +646,7 @@ Super_Man_t * Super_Compute( Super_Man_t * pMan, Mio_Gate_t ** ppGates, int nGat
             Super_ManForEachGate( ppGatesLimit, nGatesLimit, i0, pGate0 )
             {
               Area0 = AreaMio + pGate0->Area;
-              if ( Area0 > pMan->tAreaMax )
+              if ( pMan->tAreaMax > 0.0 && Area0 > pMan->tAreaMax )
                   break;
               pSupers[0] = pGate0;  uTruths[0][0] = pGate0->uTruth[0];  uTruths[0][1] = pGate0->uTruth[1];  ptPinDelays[0] = pGate0->ptDelays; 
 
@@ -654,7 +654,7 @@ Super_Man_t * Super_Compute( Super_Man_t * pMan, Mio_Gate_t ** ppGates, int nGat
               if ( i1 != i0 )
               {
                 Area1 = Area0 + pGate1->Area;
-                if ( Area1 > pMan->tAreaMax )
+                if ( pMan->tAreaMax > 0.0 && Area1 > pMan->tAreaMax )
                     break;
                 pSupers[1] = pGate1;  uTruths[1][0] = pGate1->uTruth[0];  uTruths[1][1] = pGate1->uTruth[1];  ptPinDelays[1] = pGate1->ptDelays;
 
@@ -662,7 +662,7 @@ Super_Man_t * Super_Compute( Super_Man_t * pMan, Mio_Gate_t ** ppGates, int nGat
                 if ( i2 != i0 && i2 != i1 )
                 {
                   Area2 = Area1 + pGate2->Area;
-                  if ( Area2 > pMan->tAreaMax )
+                  if ( pMan->tAreaMax > 0.0 && Area2 > pMan->tAreaMax )
                       break;
                   pSupers[2] = pGate2;  uTruths[2][0] = pGate2->uTruth[0];  uTruths[2][1] = pGate2->uTruth[1];   ptPinDelays[2] = pGate2->ptDelays;
 
@@ -670,7 +670,7 @@ Super_Man_t * Super_Compute( Super_Man_t * pMan, Mio_Gate_t ** ppGates, int nGat
                   if ( i3 != i0 && i3 != i1 && i3 != i2 )
                   {
                     Area3 = Area2 + pGate3->Area;
-                    if ( Area3 > pMan->tAreaMax )
+                    if ( pMan->tAreaMax > 0.0 && Area3 > pMan->tAreaMax )
                         break;
                     pSupers[3] = pGate3;   uTruths[3][0] = pGate3->uTruth[0];  uTruths[3][1] = pGate3->uTruth[1];   ptPinDelays[3] = pGate3->ptDelays;
 
@@ -681,7 +681,7 @@ Super_Man_t * Super_Compute( Super_Man_t * pMan, Mio_Gate_t ** ppGates, int nGat
                       fTimeOut = Super_CheckTimeout( pProgress, pMan );
                       // compute area
                       Area4 = Area3 + pGate4->Area;
-                      if ( Area > pMan->tAreaMax )
+                      if ( pMan->tAreaMax > 0.0 && Area > pMan->tAreaMax )
                           break;
                       pSupers[4] = pGate4;   uTruths[4][0] = pGate4->uTruth[0];  uTruths[4][1] = pGate4->uTruth[1];  ptPinDelays[4] = pGate4->ptDelays;
 
@@ -692,7 +692,7 @@ Super_Man_t * Super_Compute( Super_Man_t * pMan, Mio_Gate_t ** ppGates, int nGat
                         fTimeOut = Super_CheckTimeout( pProgress, pMan );
                         // compute area
                         Area = Area4 + pGate5->Area;
-                        if ( Area > pMan->tAreaMax )
+                        if ( pMan->tAreaMax > 0.0 && Area > pMan->tAreaMax )
                             break;
                         pSupers[5] = pGate5;   uTruths[5][0] = pGate5->uTruth[0];  uTruths[5][1] = pGate5->uTruth[1];  ptPinDelays[5] = pGate5->ptDelays;
 
@@ -703,7 +703,7 @@ Super_Man_t * Super_Compute( Super_Man_t * pMan, Mio_Gate_t ** ppGates, int nGat
                         // create a new gate
                         pGateNew = Super_CreateGateNew( pMan, ppGates[k], pSupers, nFanins, uTruth, Area, tPinDelaysRes, tPinDelayMax, pMan->nVarsMax );
                         Super_AddGateToTable( pMan, pGateNew );
-                        if ( pMan->nClasses > nGatesMax )
+                        if ( nGatesMax && pMan->nClasses > nGatesMax )
                             goto done;
                       }
                     }
@@ -742,7 +742,7 @@ int Super_CheckTimeout( ProgressBar * pPro, Super_Man_t * pMan )
         Extra_ProgressBarUpdate( pPro, ++pMan->TimeSec, NULL );
         pMan->TimePrint = clock() + CLOCKS_PER_SEC;
     }
-    if ( TimeNow > pMan->TimeStop )
+    if ( pMan->TimeStop && TimeNow > pMan->TimeStop )
     {
         printf ("Timeout!\n");
         return 1;
