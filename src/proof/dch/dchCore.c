@@ -112,7 +112,7 @@ p->timeTotal = clock() - clkTotal;
     // count the number of representatives
     if ( pPars->fVerbose ) 
         Abc_Print( 1, "STATS:  Reprs = %6d.  Equivs = %6d.  Choices = %6d.\n", 
-               Dch_DeriveChoiceCountReprs( pResult ),
+               Dch_DeriveChoiceCountReprs( pAig ),
                Dch_DeriveChoiceCountEquivs( pResult ),
                Aig_ManChoiceNum( pResult ) );
     return pResult;
