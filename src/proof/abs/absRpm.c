@@ -52,7 +52,7 @@ Vec_Int_t * Gia_ManCollectDoms( Gia_Man_t * p )
 {
     Vec_Int_t * vNodes;
     Gia_Obj_t * pObj;
-    int Level, LevelMax = 2;
+    int Lev, LevMax = 2;
     int i, iDom, iDomNext;
     vNodes = Vec_IntAlloc( 100 );
     Gia_ManForEachObj( p, pObj, i )
@@ -60,9 +60,9 @@ Vec_Int_t * Gia_ManCollectDoms( Gia_Man_t * p )
         if ( !pObj->fMark0 )
             continue;
         iDom = Gia_ObjDom(p, pObj);
-        if ( iDom == Gia_ObjId(p, pObj) )
+        if ( iDom == i )
             continue;
-        for ( Level = 0; Level < LevelMax && Gia_ObjIsAnd( Gia_ManObj(p, iDom) ); Level++ )
+        for ( Lev = 0; Lev < LevMax && Gia_ObjIsAnd( Gia_ManObj(p, iDom) ); Lev++ )
         {
             Vec_IntPush( vNodes, iDom );
             iDomNext = Gia_ObjDom( p, Gia_ManObj(p, iDom) );
@@ -189,24 +189,43 @@ void Gia_ManTestDoms2( Gia_Man_t * p )
     Gia_ManCleanMark0( p );
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Collect PI doms.]
+
+  Description [Assumes that some PIs and ANDs are marked with fMark0.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Gia_ManComputePiDoms( Gia_Man_t * p )
+{
+    Vec_Int_t * vNodes;
+    Gia_ManComputeDoms( p );
+    vNodes = Gia_ManCollectDoms( p );
+//    Vec_IntPrint( vNodes );
+    printf( "Nodes = %d. Doms = %d.\n", Gia_ManAndNum(p), Vec_IntSize(vNodes) );
+    return vNodes;
+}
+
 void Gia_ManTestDoms( Gia_Man_t * p )
 {
     Vec_Int_t * vNodes;
     Gia_Obj_t * pObj;
     int i;
     assert( p->vDoms == NULL );
-    Gia_ManComputeDoms( p );
-    // for each dominated PI, when if the PIs is in a leaf of the MFFC of the dominator
+    // mark PIs
     Gia_ManCleanMark0( p );
     Gia_ManForEachPi( p, pObj, i )
         pObj->fMark0 = 1;
-    vNodes = Gia_ManCollectDoms( p );
-//    Vec_IntPrint( vNodes );
-    printf( "Nodes = %d. Doms = %d.\n", Gia_ManAndNum(p), Vec_IntSize(vNodes) );
+    // compute dominators
+    vNodes = Gia_ManComputePiDoms( p );
     Vec_IntFree( vNodes );
+    // unmark PIs
     Gia_ManCleanMark0( p );
 }
-
 
 /**Function*************************************************************
 
@@ -446,62 +465,6 @@ int Abs_GiaCheckTruth( word * pTruth, int nSize, int nSize0 )
 
 /**Function*************************************************************
 
-  Synopsis    [Computes truth table up to 6 inputs.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Abs_GiaComputeTruth_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Wrd_t * vTruths )
-{
-    word uTruth0, uTruth1;
-    if ( Gia_ObjIsTravIdCurrent(p, pObj) )
-        return;
-    Gia_ObjSetTravIdCurrent(p, pObj);
-    assert( !pObj->fMark0 );
-    assert( Gia_ObjIsAnd(pObj) );
-    Abs_GiaComputeTruth_rec( p, Gia_ObjFanin0(pObj), vTruths );
-    Abs_GiaComputeTruth_rec( p, Gia_ObjFanin1(pObj), vTruths );
-    uTruth0 = Vec_WrdEntry( vTruths, Gia_ObjFanin0(pObj)->Value );
-    uTruth0 = Gia_ObjFaninC0(pObj) ? ~uTruth0 : uTruth0;
-    uTruth1 = Vec_WrdEntry( vTruths, Gia_ObjFanin1(pObj)->Value );
-    uTruth1 = Gia_ObjFaninC1(pObj) ? ~uTruth1 : uTruth1;
-    pObj->Value = Vec_WrdSize(vTruths);
-    Vec_WrdPush( vTruths, uTruth0 & uTruth1 );
-}
-word Abs_GiaComputeTruth( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vSupp, Vec_Wrd_t * vTruths )
-{
-    static word s_Truth6[6] = {
-        0xAAAAAAAAAAAAAAAA,
-        0xCCCCCCCCCCCCCCCC,
-        0xF0F0F0F0F0F0F0F0,
-        0xFF00FF00FF00FF00,
-        0xFFFF0000FFFF0000,
-        0xFFFFFFFF00000000
-    };
-    Gia_Obj_t * pLeaf;
-    int i;
-    assert( Vec_IntSize(vSupp) <= 6 );
-    assert( Gia_ObjIsAnd(pObj) );
-    assert( !pObj->fMark0 );
-    Vec_WrdClear( vTruths );
-    Gia_ManIncrementTravId( p );
-    Gia_ManForEachObjVec( vSupp, p, pLeaf, i )
-    {
-        assert( pLeaf->fMark0 || Gia_ObjIsRo(p, pLeaf) );
-        pLeaf->Value = Vec_WrdSize(vTruths);
-        Vec_WrdPush( vTruths, s_Truth6[i] );
-        Gia_ObjSetTravIdCurrent(p, pLeaf);
-    }
-    Abs_GiaComputeTruth_rec( p, pObj, vTruths );
-    return Vec_WrdEntryLast( vTruths );
-}
-
-/**Function*************************************************************
-
   Synopsis    [Returns 1 if truth table has const cofactors.]
 
   Description []
@@ -575,7 +538,7 @@ void Abs_RpmPerformMark( Gia_Man_t * p, int nCutMax, int fVerbose )
             }
 
             // compute truth table
-            uTruth = Abs_GiaComputeTruth( p, pObj, vSupp, vTruths );
+            uTruth = Gia_ObjComputeTruthTable6( p, pObj, vSupp, vTruths );
 
             // check if truth table has const cofs
             if ( !Abs_GiaCheckTruth( &uTruth, Vec_IntSize(vSupp), nSize0 ) ) // has const
@@ -658,10 +621,9 @@ Gia_Man_t * Gia_ManDupRpm( Gia_Man_t * p )
 Gia_Man_t * Abs_RpmPerform( Gia_Man_t * p, int nCutMax, int fVerbose )
 {
     Gia_Man_t * pNew;
-
-    Gia_ManTestDoms( p );
-    return NULL;
-
+    Gia_ObjComputeTruthTableStart( p, nCutMax );
+//    Gia_ManTestDoms( p );
+//    return NULL;
     Abs_RpmPerformMark( p, nCutMax, 1 );
     pNew = Gia_ManDupRpm( p );
     Gia_ManCleanMark0( p );

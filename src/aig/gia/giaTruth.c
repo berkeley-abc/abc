@@ -40,6 +40,62 @@ static inline word * Gla_ObjTruthDup( Gia_Man_t * p, word * pDst, word * pSrc, i
 
 /**Function*************************************************************
 
+  Synopsis    [Computes truth table up to 6 inputs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ObjComputeTruthTable6_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Wrd_t * vTruths )
+{
+    word uTruth0, uTruth1;
+    if ( Gia_ObjIsTravIdCurrent(p, pObj) )
+        return;
+    Gia_ObjSetTravIdCurrent(p, pObj);
+    assert( !pObj->fMark0 );
+    assert( Gia_ObjIsAnd(pObj) );
+    Gia_ObjComputeTruthTable6_rec( p, Gia_ObjFanin0(pObj), vTruths );
+    Gia_ObjComputeTruthTable6_rec( p, Gia_ObjFanin1(pObj), vTruths );
+    uTruth0 = Vec_WrdEntry( vTruths, Gia_ObjFanin0(pObj)->Value );
+    uTruth0 = Gia_ObjFaninC0(pObj) ? ~uTruth0 : uTruth0;
+    uTruth1 = Vec_WrdEntry( vTruths, Gia_ObjFanin1(pObj)->Value );
+    uTruth1 = Gia_ObjFaninC1(pObj) ? ~uTruth1 : uTruth1;
+    pObj->Value = Vec_WrdSize(vTruths);
+    Vec_WrdPush( vTruths, uTruth0 & uTruth1 );
+}
+word Gia_ObjComputeTruthTable6( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vSupp, Vec_Wrd_t * vTruths )
+{
+    static word s_Truth6[6] = {
+        0xAAAAAAAAAAAAAAAA,
+        0xCCCCCCCCCCCCCCCC,
+        0xF0F0F0F0F0F0F0F0,
+        0xFF00FF00FF00FF00,
+        0xFFFF0000FFFF0000,
+        0xFFFFFFFF00000000
+    };
+    Gia_Obj_t * pLeaf;
+    int i;
+    assert( Vec_IntSize(vSupp) <= 6 );
+    assert( Gia_ObjIsAnd(pObj) );
+    assert( !pObj->fMark0 );
+    Vec_WrdClear( vTruths );
+    Gia_ManIncrementTravId( p );
+    Gia_ManForEachObjVec( vSupp, p, pLeaf, i )
+    {
+        assert( pLeaf->fMark0 || Gia_ObjIsRo(p, pLeaf) );
+        pLeaf->Value = Vec_WrdSize(vTruths);
+        Vec_WrdPush( vTruths, s_Truth6[i] );
+        Gia_ObjSetTravIdCurrent(p, pLeaf);
+    }
+    Gia_ObjComputeTruthTable6_rec( p, pObj, vTruths );
+    return Vec_WrdEntryLast( vTruths );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Collects internal nodes reachable from the given node.]
 
   Description []
