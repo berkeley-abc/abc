@@ -285,6 +285,15 @@ void Gia_ObjComputeTruthTableStart( Gia_Man_t * p, int nVarsMax )
     p->vTtInputs = Vec_PtrAllocTruthTables( p->nTtVars );
     p->vTtMemory = Vec_WrdStart( p->nTtWords * 256 );
 }
+void Gia_ObjComputeTruthTableStop( Gia_Man_t * p )
+{
+    p->nTtVars   = 0;
+    p->nTtWords  = 0;
+    Vec_StrFreeP( &p->vTtNums );
+    Vec_IntFreeP( &p->vTtNodes );
+    Vec_PtrFreeP( &p->vTtInputs );
+    Vec_WrdFreeP( &p->vTtMemory );
+}
 
 /**Function*************************************************************
 
@@ -303,7 +312,7 @@ unsigned * Gia_ObjComputeTruthTableCut( Gia_Man_t * p, Gia_Obj_t * pRoot, Vec_In
     word * pTruth, * pTruthL, * pTruth0, * pTruth1;
     int i;
     assert( p->vTtMemory != NULL );
-    assert( p->nTtVars <= Vec_IntSize(vLeaves) );
+    assert( Vec_IntSize(vLeaves) <= p->nTtVars );
     // collect internal nodes
     Gia_ObjCollectInternalCut( p, pRoot, vLeaves );
     // compute the truth table for internal nodes

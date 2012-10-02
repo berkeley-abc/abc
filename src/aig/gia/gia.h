@@ -888,6 +888,7 @@ extern word                Gia_ObjComputeTruthTable6( Gia_Man_t * p, Gia_Obj_t *
 extern void                Gia_ObjCollectInternal( Gia_Man_t * p, Gia_Obj_t * pObj );
 extern unsigned *          Gia_ObjComputeTruthTable( Gia_Man_t * p, Gia_Obj_t * pObj );
 extern void                Gia_ObjComputeTruthTableStart( Gia_Man_t * p, int nVarsMax );
+extern void                Gia_ObjComputeTruthTableStop( Gia_Man_t * p );
 extern unsigned *          Gia_ObjComputeTruthTableCut( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vLeaves );
 /*=== giaTsim.c ============================================================*/
 extern Gia_Man_t *         Gia_ManReduceConst( Gia_Man_t * pAig, int fVerbose );

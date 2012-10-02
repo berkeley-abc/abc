@@ -26784,17 +26784,32 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Rpm( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Gia_Man_t * Abs_RpmPerform( Gia_Man_t * p, int nCutMax, int fVerbose );
+    extern Gia_Man_t * Abs_RpmPerform( Gia_Man_t * p, int nCutMax, int fVerbose, int fVeryVerbose );
     Gia_Man_t * pTemp;
-    int nCutMax = 6;
-    int c, fVerbose = 0;
+    int c, nCutMax   = 6;
+    int fVerbose     = 0;
+    int fVeryVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Cvwh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-C\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nCutMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nCutMax < 0 ) 
+                goto usage;
+            break;
         case 'v':
             fVerbose ^= 1;
+            break;
+        case 'w':
+            fVeryVerbose ^= 1;
             break;
         case 'h':
             goto usage;
@@ -26807,16 +26822,17 @@ int Abc_CommandAbc9Rpm( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Rpm(): There is no AIG.\n" );
         return 0;
     } 
-    pTemp = Abs_RpmPerform( pAbc->pGia, nCutMax, fVerbose );
+    pTemp = Abs_RpmPerform( pAbc->pGia, nCutMax, fVerbose, fVeryVerbose );
     if ( pTemp )
         Abc_CommandUpdate9( pAbc, pTemp );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &rpm [-K num] [-vh]\n" );
+    Abc_Print( -2, "usage: &rpm [-C num] [-vwh]\n" );
     Abc_Print( -2, "\t         performs structural reparametrization\n" );
-    Abc_Print( -2, "\t-K num : the max cut size used for testing [default = %d]\n", nCutMax );
+    Abc_Print( -2, "\t-C num : max cut size for testing range equivalence [default = %d]\n", nCutMax );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-w     : toggle printing more verbose information [default = %s]\n", fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
