@@ -85,6 +85,7 @@ void Gia_ManStop( Gia_Man_t * p )
     Vec_IntFreeP( &p->vFlopClasses );
     Vec_IntFreeP( &p->vGateClasses );
     Vec_IntFreeP( &p->vObjClasses );
+    Vec_IntFreeP( &p->vDoms );
     Vec_IntFreeP( &p->vLevels );
     Vec_IntFreeP( &p->vTruths );
     Vec_StrFreeP( &p->vTtNums );
