@@ -3543,6 +3543,10 @@ SOURCE=.\src\aig\gia\giaSwitch.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\gia\giaTruth.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\gia\giaTsim.c
 # End Source File
 # Begin Source File

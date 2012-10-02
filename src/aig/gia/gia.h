@@ -883,6 +883,11 @@ extern Gia_Man_t *         Gia_ManSpeedup( Gia_Man_t * p, int Percentage, int De
 /*=== giaSwitch.c ============================================================*/
 extern float               Gia_ManEvaluateSwitching( Gia_Man_t * p );
 extern float               Gia_ManComputeSwitching( Gia_Man_t * p, int nFrames, int nPref, int fProbOne );
+/*=== giaTruth.c ===========================================================*/
+extern void                Gia_ObjCollectInternal( Gia_Man_t * p, Gia_Obj_t * pObj );
+extern unsigned *          Gia_ObjComputeTruthTable( Gia_Man_t * p, Gia_Obj_t * pObj );
+extern void                Gia_ObjComputeTruthTableStart( Gia_Man_t * p, int nVarsMax );
+extern unsigned *          Gia_ObjComputeTruthTableCut( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vLeaves );
 /*=== giaTsim.c ============================================================*/
 extern Gia_Man_t *         Gia_ManReduceConst( Gia_Man_t * pAig, int fVerbose );
 /*=== giaUtil.c ===========================================================*/
@@ -922,8 +927,6 @@ extern Vec_Int_t *         Gia_ManGetDangling( Gia_Man_t * p );
 extern void                Gia_ObjPrint( Gia_Man_t * p, Gia_Obj_t * pObj );
 extern void                Gia_ManPrint( Gia_Man_t * p );
 extern void                Gia_ManInvertConstraints( Gia_Man_t * pAig );
-extern void                Gia_ObjCollectInternal( Gia_Man_t * p, Gia_Obj_t * pObj );
-extern unsigned *          Gia_ObjComputeTruthTable( Gia_Man_t * p, Gia_Obj_t * pObj );
 extern int                 Gia_ManCompare( Gia_Man_t * p1, Gia_Man_t * p2 );
 
 /*=== giaCTas.c ===========================================================*/
