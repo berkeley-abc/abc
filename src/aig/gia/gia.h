@@ -703,6 +703,7 @@ extern int                 Gia_ManCounterExampleValueLookup( Gia_Man_t * pGia, i
 /*=== giaChoice.c ============================================================*/
 extern void                Gia_ManVerifyChoices( Gia_Man_t * p );
 extern void                Gia_ManReverseClasses( Gia_Man_t * p, int fNowIncreasing );
+extern int                 Gia_ManHasChoices( Gia_Man_t * p );
 /*=== giaCsatOld.c ============================================================*/
 extern Vec_Int_t *         Cbs_ManSolveMiter( Gia_Man_t * pGia, int nConfs, Vec_Str_t ** pvStatus, int fVerbose );
 /*=== giaCsat.c ============================================================*/
@@ -914,7 +915,6 @@ extern int                 Gia_ObjIsMuxType( Gia_Obj_t * pNode );
 extern int                 Gia_ObjRecognizeExor( Gia_Obj_t * pObj, Gia_Obj_t ** ppFan0, Gia_Obj_t ** ppFan1 );
 extern Gia_Obj_t *         Gia_ObjRecognizeMux( Gia_Obj_t * pNode, Gia_Obj_t ** ppNodeT, Gia_Obj_t ** ppNodeE );
 extern int                 Gia_NodeMffcSize( Gia_Man_t * p, Gia_Obj_t * pNode );
-extern int                 Gia_ManHasChoices( Gia_Man_t * p );
 extern int                 Gia_ManHasDangling( Gia_Man_t * p );
 extern int                 Gia_ManMarkDangling( Gia_Man_t * p );
 extern Vec_Int_t *         Gia_ManGetDangling( Gia_Man_t * p );

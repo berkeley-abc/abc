@@ -51,28 +51,7 @@ void Gia_ManReverseClasses( Gia_Man_t * p, int fNowIncreasing )
     // collect classes
     vCollected = Vec_IntAlloc( 100 );
     Gia_ManForEachClass( p, iRepr )
-    {
         Vec_IntPush( vCollected, iRepr );
-/*
-        // check classes
-        if ( !fNowIncreasing )
-        {
-            iPrev = iRepr;
-            Gia_ClassForEachObj1( p, iRepr, iNode )
-            {
-                if ( iPrev < iNode )
-                {
-                    printf( "Class %d : ", iRepr );
-                    Gia_ClassForEachObj( p, iRepr, iNode )
-                        printf( " %d", iNode );
-                    printf( "\n" );
-                    break;
-                }
-                iPrev = iNode;
-            }
-        }
-*/
-    }
     // correct each class
     vClass = Vec_IntAlloc( 100 );
     Vec_IntForEachEntry( vCollected, iRepr, i )
@@ -83,14 +62,12 @@ void Gia_ManReverseClasses( Gia_Man_t * p, int fNowIncreasing )
         {
             if ( fNowIncreasing )
                 assert( iRepr < iNode );
-//            else
-//                assert( iRepr > iNode );
+            else
+                assert( iRepr > iNode );
             Vec_IntPush( vClass, iNode );
         }
-        if ( !fNowIncreasing )
-            Vec_IntSort( vClass, 1 );
-//        if ( iRepr == 129720 || iRepr == 129737 )
-//            Vec_IntPrint( vClass );
+//        if ( !fNowIncreasing )
+//            Vec_IntSort( vClass, 1 );
         // reverse the class
         iPrev = 0;
         iRepr = Vec_IntEntryLast( vClass );
@@ -192,9 +169,10 @@ void Gia_ManCheckReprs( Gia_Man_t * p )
         printf( "GIA \"%s\": Representive verification successful.\n", Gia_ManName(p) );
 }
 
+
 /**Function*************************************************************
 
-  Synopsis    [Find minimum level of each node using representatives.]
+  Synopsis    [Returns 1 if AIG has choices.]
 
   Description []
                
@@ -203,290 +181,84 @@ void Gia_ManCheckReprs( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Gia_ManMinLevelRepr_rec( Gia_Man_t * p, Gia_Obj_t * pObj )
-{
-    int levMin, levCur, objId, reprId;
-    // skip visited nodes
-    if ( Gia_ObjIsTravIdCurrent(p, pObj) )
-        return Gia_ObjLevel(p, pObj);
-    Gia_ObjSetTravIdCurrent(p, pObj);
-    // skip CI nodes
-    if ( Gia_ObjIsCi(pObj) )
-        return Gia_ObjLevel(p, pObj);
-    assert( Gia_ObjIsAnd(pObj) );
-    objId = Gia_ObjId(p, pObj);
-    if ( Gia_ObjIsNone(p, objId) )
-    {
-        // not part of the equivalence class
-        Gia_ManMinLevelRepr_rec( p, Gia_ObjFanin0(pObj) );
-        Gia_ManMinLevelRepr_rec( p, Gia_ObjFanin1(pObj) );
-        Gia_ObjSetAndLevel( p, pObj );
-        return Gia_ObjLevel(p, pObj);
-    }
-    // has equivalences defined
-    assert( Gia_ObjHasRepr(p, objId) || Gia_ObjIsHead(p, objId) );
-    reprId = Gia_ObjHasRepr(p, objId) ? Gia_ObjRepr(p, objId) : objId;
-    // iterate through objects
-    levMin = ABC_INFINITY;
-    Gia_ClassForEachObj( p, reprId, objId )
-    {
-        levCur = Gia_ManMinLevelRepr_rec( p, Gia_ManObj(p, objId) );
-        levMin = Abc_MinInt( levMin, levCur );
-    }
-    assert( levMin < ABC_INFINITY );
-    // assign minimum level to all
-    Gia_ClassForEachObj( p, reprId, objId )
-        Gia_ObjSetLevelId( p, objId, levMin );
-    return levMin;
-}
-int Gia_ManMinLevelRepr( Gia_Man_t * p )
+int Gia_ManHasChoices( Gia_Man_t * p )
 {
     Gia_Obj_t * pObj;
-    int i, LevelCur, LevelMax = 0;
-    assert( Gia_ManRegNum(p) == 0 );
-    Gia_ManCleanLevels( p, Gia_ManObjNum(p) );
-    Gia_ManIncrementTravId( p );
-    Gia_ManForEachAnd( p, pObj, i )
+    int i, Counter1 = 0, Counter2 = 0;
+    int nFailNoRepr = 0;
+    int nFailHaveRepr = 0;
+    int nChoiceNodes = 0;
+    int nChoices = 0;
+    if ( p->pReprs == NULL || p->pNexts == NULL )
+        return 0;
+    // check if there are any representatives
+    Gia_ManForEachObj( p, pObj, i )
     {
-        assert( !Gia_ObjIsConst(p, i) );
-        LevelCur = Gia_ManMinLevelRepr_rec( p, pObj );
-        LevelMax = Abc_MaxInt( LevelMax, LevelCur );
-    }
-    printf( "Max level %d\n", LevelMax );
-    return LevelMax;
-} 
-
-/**Function*************************************************************
-
-  Synopsis    [Returns mapping of each old repr into new repr.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int * Gia_ManFindMinLevelMap( Gia_Man_t * p )
-{
-    Gia_Obj_t * pObj;
-    int reprId, objId, levFan0, levFan1;
-    int levMin, levMinOld, levMax, reprBest;
-    int * pReprMap, * pMinLevels, iFanin;
-    int i, fChange = 1;
-
-    Gia_ManLevelNum( p );
-    pMinLevels = ABC_ALLOC( int, Gia_ManObjNum(p) );
-    while ( fChange )
-    {
-        fChange = 0;
-        // clean min-levels
-        memset( pMinLevels, 0xFF, sizeof(int) * Gia_ManObjNum(p) );        
-        // for each class find min level
-        Gia_ManForEachClass( p, reprId )
+        if ( Gia_ObjReprObj( p, Gia_ObjId(p, pObj) ) )
         {
-            levMin = ABC_INFINITY;
-            Gia_ClassForEachObj( p, reprId, objId )
-                levMin = Abc_MinInt( levMin, Gia_ObjLevelId(p, objId) );
-            assert( levMin >= 0 && levMin < ABC_INFINITY );
-            Gia_ClassForEachObj( p, reprId, objId )
-            {
-                assert( pMinLevels[objId] == -1 );
-                pMinLevels[objId] = levMin;
-            }
+//            printf( "%d ", i );
+            Counter1++;
         }
-        // recompute levels
-        levMax = 0;
-        Gia_ManForEachAnd( p, pObj, i )
+//        if ( Gia_ObjNext( p, Gia_ObjId(p, pObj) ) )
+//            Counter2++;
+    }
+//    printf( "\n" );
+    Gia_ManForEachObj( p, pObj, i )
+    {
+//        if ( Gia_ObjReprObj( p, Gia_ObjId(p, pObj) ) )
+//            Counter1++;
+        if ( Gia_ObjNext( p, Gia_ObjId(p, pObj) ) )
         {
-            iFanin = Gia_ObjFaninId0(pObj, i);
-            if ( Gia_ObjIsNone(p, iFanin) )
-                levFan0 = Gia_ObjLevelId(p, iFanin);
-            else if ( Gia_ObjIsConst(p, iFanin) )
-                levFan0 = 0;
-            else
-            {
-                assert( Gia_ObjIsClass( p, iFanin ) );
-                assert( pMinLevels[iFanin] >= 0 );
-                levFan0 = pMinLevels[iFanin];
-            }
-
-            iFanin = Gia_ObjFaninId1(pObj, i);
-            if ( Gia_ObjIsNone(p, iFanin) )
-                levFan1 = Gia_ObjLevelId(p, iFanin);
-            else if ( Gia_ObjIsConst(p, iFanin) )
-                levFan1 = 0;
-            else
-            {
-                assert( Gia_ObjIsClass( p, iFanin ) );
-                assert( pMinLevels[iFanin] >= 0 );
-                levFan1 = pMinLevels[iFanin];
-            }
-            levMinOld = Gia_ObjLevelId(p, i);
-            levMin = 1 + Abc_MaxInt( levFan0, levFan1 );
-            Gia_ObjSetLevelId( p, i, levMin );
-            assert( levMin <= levMinOld );
-            if ( levMin < levMinOld )
-                fChange = 1;
-            levMax = Abc_MaxInt( levMax, levMin );
+//            printf( "%d ", i );
+            Counter2++;
         }
-        printf( "%d ", levMax );
     }
-    ABC_FREE( pMinLevels );
-    printf( "\n" );
-
-    // create repr map
-    pReprMap = ABC_FALLOC( int, Gia_ManObjNum(p) );
-    Gia_ManForEachAnd( p, pObj, i )
-        if ( Gia_ObjIsConst(p, i) )
-            pReprMap[i] = 0;
-    Gia_ManForEachClass( p, reprId )
+//    printf( "\n" );
+    if ( Counter1 == 0 )
     {
-        // find min-level repr
-        reprBest = -1;
-        levMin = ABC_INFINITY;
-        Gia_ClassForEachObj( p, reprId, objId )
-            if ( levMin > Gia_ObjLevelId(p, objId) )
-            {
-                levMin = Gia_ObjLevelId(p, objId);
-                reprBest = objId;
-            }
-        assert( reprBest > 0 );
-        Gia_ClassForEachObj( p, reprId, objId )
-            pReprMap[objId] = reprBest;
+        printf( "Warning: AIG has repr data-strucure but not reprs.\n" );
+        return 0;
     }
-    return pReprMap;
-}
-
-
-
-/**Function*************************************************************
-
-  Synopsis    [Find terminal AND nodes]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Vec_Int_t * Gia_ManDanglingAndNodes( Gia_Man_t * p )
-{
-    Vec_Int_t * vTerms;
-    Gia_Obj_t * pObj;
-    int i;
-    Gia_ManCleanMark0( p );
+    printf( "%d nodes have reprs.\n", Counter1 );
+    printf( "%d nodes have nexts.\n", Counter2 );
+    // check if there are any internal nodes without fanout
+    // make sure all nodes without fanout have representatives
+    // make sure all nodes with fanout have no representatives
+    ABC_FREE( p->pRefs );
+    Gia_ManCreateRefs( p );
     Gia_ManForEachAnd( p, pObj, i )
     {
-        Gia_ObjFanin0(pObj)->fMark0 = 1;
-        Gia_ObjFanin1(pObj)->fMark1 = 1;
+        if ( Gia_ObjRefs(p, pObj) == 0 )
+        {
+            if ( Gia_ObjReprObj( p, Gia_ObjId(p, pObj) ) == NULL )
+                nFailNoRepr++;
+            else
+                nChoices++;
+        }
+        else
+        {
+            if ( Gia_ObjReprObj( p, Gia_ObjId(p, pObj) ) != NULL )
+                nFailHaveRepr++;
+            if ( Gia_ObjNextObj( p, Gia_ObjId(p, pObj) ) != NULL )
+                nChoiceNodes++;
+        }
+        if ( Gia_ObjReprObj( p, i ) )
+            assert( Gia_ObjRepr(p, i) < i );
     }
-    vTerms = Vec_IntAlloc( 1000 );
-    Gia_ManForEachAnd( p, pObj, i )
-        if ( !pObj->fMark0 )
-            Vec_IntPush( vTerms, i );
-    Gia_ManCleanMark0( p );
-    return vTerms;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Reconstruct AIG starting with terminals.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Gia_ManRebuidRepr_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj, int * pReprMap )
-{
-    int objId, reprLit = -1;
-    if ( ~pObj->Value )
-        return pObj->Value;
-    assert( Gia_ObjIsAnd(pObj) );
-    objId = Gia_ObjId( p, pObj );
-    if ( Gia_ObjIsClass(p, objId) )
+    if ( nChoices == 0 )
+        return 0;
+    if ( nFailNoRepr )
     {
-        assert( pReprMap[objId] > 0 );
-        reprLit = Gia_ManRebuidRepr_rec( pNew, p, Gia_ManObj(p, pReprMap[objId]), pReprMap );
-        assert( reprLit > 1 );
+        printf( "Gia_ManHasChoices(): Error: %d internal nodes have no fanout and no repr.\n", nFailNoRepr );
+//        return 0;
     }
-    else
-        assert( Gia_ObjIsNone(p, objId) );
-    Gia_ManRebuidRepr_rec( pNew, p, Gia_ObjFanin0(pObj), pReprMap );
-    Gia_ManRebuidRepr_rec( pNew, p, Gia_ObjFanin1(pObj), pReprMap );
-    pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
-    assert( reprLit != (int)pObj->Value );
-    if ( reprLit > 1 )
-        pNew->pReprs[ Abc_Lit2Var(pObj->Value) ].iRepr = Abc_Lit2Var(reprLit);
-    return pObj->Value;
-}
-Gia_Man_t * Gia_ManRebuidRepr( Gia_Man_t * p, int * pReprMap )
-{
-    Vec_Int_t * vTerms;
-    Gia_Man_t * pNew;
-    Gia_Obj_t * pObj;
-    int i;
-    Gia_ManFillValue( p );
-    pNew = Gia_ManStart( Gia_ManObjNum(p) );
-    Gia_ManConst0(p)->Value = 0;
-    Gia_ManForEachCi( p, pObj, i )
-        pObj->Value = Gia_ManAppendCi(pNew);
-    vTerms = Gia_ManDanglingAndNodes( p );
-    Gia_ManForEachObjVec( vTerms, p, pObj, i )
-        Gia_ManRebuidRepr_rec( pNew, p, pObj, pReprMap );
-    Vec_IntFree( vTerms );
-    Gia_ManForEachCo( p, pObj, i )
-        pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
-    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
-    return pNew;
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Aig_Man_t * Gia_ManNormalizeChoices( Aig_Man_t * pAig )
-{
-    int * pReprMap;
-    Aig_Man_t * pNew;
-    Gia_Man_t * pGia, * pTemp;
-    // create GIA with representatives
-    assert( Aig_ManRegNum(pAig) == 0 );
-    assert( pAig->pReprs != NULL );
-    pGia = Gia_ManFromAigSimple( pAig );
-    Gia_ManReprFromAigRepr2( pAig, pGia );
-    // verify that representatives are correct
-    Gia_ManCheckReprs( pGia );
-    // find min-level repr for each class
-    pReprMap = Gia_ManFindMinLevelMap( pGia );
-    // reconstruct using correct order
-    pGia = Gia_ManRebuidRepr( pTemp = pGia, pReprMap );
-    Gia_ManStop( pTemp );
-    ABC_FREE( pReprMap );
-    // create choices
-
-    // verify that choices are correct
-//    Gia_ManVerifyChoices( pGia );
-    // copy the result back into AIG
-    pNew = Gia_ManToAigSimple( pGia );
-    Gia_ManReprToAigRepr( pNew, pGia );
-    return pNew;
-}
-void Gia_ManNormalizeChoicesTest( Aig_Man_t * pAig )
-{
-    Aig_Man_t * pNew = Gia_ManNormalizeChoices( pAig );
-    Aig_ManStop( pNew );
+    if ( nFailHaveRepr )
+    {
+        printf( "Gia_ManHasChoices(): Error: %d internal nodes have both fanout and repr.\n", nFailHaveRepr );
+//        return 0;
+    }
+//    printf( "Gia_ManHasChoices(): AIG has %d choice nodes with %d choices.\n", nChoiceNodes, nChoices );
+    return 1;
 }
 
 ////////////////////////////////////////////////////////////////////////

@@ -106,19 +106,13 @@ p->timeSimInit = clock() - clk;
     // free memory ahead of time
 p->timeTotal = clock() - clkTotal;
     Dch_ManStop( p );
-    // try something different
-    {
-//    extern void Gia_ManNormalizeChoicesTest( Aig_Man_t * pAig );
-//    Gia_ManNormalizeChoicesTest( pAig );
-    }
-
     // create choices
     ABC_FREE( pAig->pTable );
     pResult = Dch_DeriveChoiceAig( pAig, pPars->fSkipRedSupp );
     // count the number of representatives
     if ( pPars->fVerbose ) 
         Abc_Print( 1, "STATS:  Reprs = %6d.  Equivs = %6d.  Choices = %6d.\n", 
-               Dch_DeriveChoiceCountReprs( pAig ),
+               Dch_DeriveChoiceCountReprs( pResult ),
                Dch_DeriveChoiceCountEquivs( pResult ),
                Aig_ManChoiceNum( pResult ) );
     return pResult;

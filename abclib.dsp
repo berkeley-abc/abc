@@ -3475,19 +3475,11 @@ SOURCE=.\src\aig\gia\giaFront.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\aig\gia\giaGiarf.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\src\aig\gia\giaGlitch.c
 # End Source File
 # Begin Source File
 
 SOURCE=.\src\aig\gia\giaHash.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\gia\giaHcd.c
 # End Source File
 # Begin Source File
 

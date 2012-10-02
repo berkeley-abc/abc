@@ -33,6 +33,36 @@ ABC_NAMESPACE_IMPL_START
 
 /**Function*************************************************************
 
+  Synopsis    [Counts support nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Dch_ObjCountSupp_rec( Aig_Man_t * p, Aig_Obj_t * pObj )
+{
+    int Count;
+    if ( Aig_ObjIsTravIdCurrent( p, pObj ) )
+        return 0;
+    Aig_ObjSetTravIdCurrent( p, pObj );
+    if ( Aig_ObjIsCi(pObj) )
+        return 1;
+    assert( Aig_ObjIsNode(pObj) );
+    Count  = Dch_ObjCountSupp_rec( p, Aig_ObjFanin0(pObj) );
+    Count += Dch_ObjCountSupp_rec( p, Aig_ObjFanin1(pObj) );
+    return Count;
+}
+int Dch_ObjCountSupp( Aig_Man_t * p, Aig_Obj_t * pObj )
+{
+    Aig_ManIncrementTravId( p );
+    return Dch_ObjCountSupp_rec( p, pObj );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Counts the number of representatives.]
 
   Description []
@@ -56,54 +86,72 @@ int Dch_DeriveChoiceCountReprs( Aig_Man_t * pAig )
     }
     return nReprs;
 }
-
-/**Function*************************************************************
-
-  Synopsis    [Counts the number of equivalences.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
 int Dch_DeriveChoiceCountEquivs( Aig_Man_t * pAig )
 {
-    Aig_Obj_t * pObj, * pTemp, * pPrev;
-    int i, nEquivs = 0, Counter = 0;
+    Aig_Obj_t * pObj, * pEquiv;
+    int i, nEquivs = 0;
     Aig_ManForEachObj( pAig, pObj, i )
     {
-        if ( !Aig_ObjIsChoice(pAig, pObj) )
+        pEquiv = Aig_ObjEquiv( pAig, pObj );
+        if ( pEquiv == NULL )
             continue;
-        for ( pPrev = pObj, pTemp = Aig_ObjEquiv(pAig, pObj); pTemp; 
-              pPrev = pTemp, pTemp = Aig_ObjEquiv(pAig, pTemp) )
-        {
-            if ( pTemp->nRefs > 0 )
-            {
-                // remove referenced node from equivalence class
-                assert( pAig->pEquivs[pPrev->Id] == pTemp );
-                pAig->pEquivs[pPrev->Id] = pAig->pEquivs[pTemp->Id];
-                pAig->pEquivs[pTemp->Id] = NULL;
-                // how about the need to continue iterating over the list?
-                // pPrev = pTemp ???
-                Counter++;
-            }
-            nEquivs++;
-        }
+        assert( pEquiv->Id > pObj->Id );
+        nEquivs++;
     }
-//    printf( "Removed %d classes.\n", Counter );
-
-    if ( Counter )
-        Dch_DeriveChoiceCountEquivs( pAig );
-//    if ( Counter )
-//    printf( "Removed %d equiv nodes because of non-zero ref counter.\n", Counter );
     return nEquivs;
 }
 
 /**Function*************************************************************
 
-  Synopsis    [Returns representatives of fanin in approapriate polarity.]
+  Synopsis    [Marks the TFI of the node.]
+
+  Description [Returns 1 if there is a CI not marked with previous ID.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Dch_ObjMarkTfi_rec( Aig_Man_t * p, Aig_Obj_t * pObj )
+{
+    int RetValue;
+    if ( pObj == NULL )
+        return 0;
+    if ( Aig_ObjIsTravIdCurrent( p, pObj ) )
+        return 0;
+    if ( Aig_ObjIsCi(pObj) )
+    {
+        RetValue = !Aig_ObjIsTravIdPrevious( p, pObj );
+        Aig_ObjSetTravIdCurrent( p, pObj );
+        return RetValue;
+    }
+    assert( Aig_ObjIsNode(pObj) );
+    Aig_ObjSetTravIdCurrent( p, pObj );
+    RetValue  = Dch_ObjMarkTfi_rec( p, Aig_ObjFanin0(pObj) );
+    RetValue += Dch_ObjMarkTfi_rec( p, Aig_ObjFanin1(pObj) );
+//    RetValue += Dch_ObjMarkTfi_rec( p, Aig_ObjEquiv(p, pObj) );
+    return (RetValue > 0);
+}
+int Dch_ObjCheckSuppRed( Aig_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pRepr )
+{
+    // mark support of the representative node (pRepr)
+    Aig_ManIncrementTravId( p );
+    Dch_ObjMarkTfi_rec( p, pRepr );
+    // detect if the new node (pObj) depends on additional variables
+    Aig_ManIncrementTravId( p );
+    if ( Dch_ObjMarkTfi_rec( p, pObj ) )
+        return 1;//, printf( "1" );
+    // detect if the representative node (pRepr) depends on additional variables
+    Aig_ManIncrementTravId( p );
+    if ( Dch_ObjMarkTfi_rec( p, pRepr ) )
+        return 1;//, printf( "2" );
+    // skip the choice if this is what is happening
+    return 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Make sure reprsentative nodes do not have representatives.]
 
   Description []
                
@@ -112,19 +160,88 @@ int Dch_DeriveChoiceCountEquivs( Aig_Man_t * pAig )
   SeeAlso     []
 
 ***********************************************************************/
-static inline Aig_Obj_t * Aig_ObjGetRepr( Aig_Man_t * p, Aig_Obj_t * pObj )
+void Aig_ManCheckReprs( Aig_Man_t * p )
 {
-    Aig_Obj_t * pRepr;
-    if ( (pRepr = Aig_ObjRepr(p, Aig_Regular(pObj))) )
-        return Aig_NotCond( pRepr, Aig_Regular(pObj)->fPhase ^ pRepr->fPhase ^ Aig_IsComplement(pObj) );
-    return pObj;
+    int fPrintConst = 0;
+    Aig_Obj_t * pObj;
+    int i, fProb = 0;
+    int Class0 = 0, ClassCi = 0;
+    Aig_ManForEachObj( p, pObj, i )
+    {
+        if ( Aig_ObjRepr(p, pObj) == NULL )
+            continue;
+        if ( !Aig_ObjIsNode(pObj) )
+            printf( "Obj %d is not an AND but it has a repr %d.\n", i, Aig_ObjId(Aig_ObjRepr(p, pObj)) ), fProb = 1;
+        else if ( Aig_ObjRepr(p, Aig_ObjRepr(p, pObj)) )
+            printf( "Obj %d has repr %d with a repr %d.\n", i, Aig_ObjId(Aig_ObjRepr(p, pObj)), Aig_ObjId(Aig_ObjRepr(p, Aig_ObjRepr(p, pObj))) ), fProb = 1;
+    }
+    if ( !fProb )
+        printf( "Representive verification successful.\n" );
+    else
+        printf( "Representive verification FAILED.\n" );
+    if ( !fPrintConst )
+        return;
+    // count how many representatives are const0 or a CI
+    Aig_ManForEachObj( p, pObj, i )
+    {
+        if ( Aig_ObjRepr(p, pObj) == Aig_ManConst1(p) )
+            Class0++;
+        if ( Aig_ObjRepr(p, pObj) && Aig_ObjIsCi(Aig_ObjRepr(p, pObj)) )
+            ClassCi++;
+    }
+    printf( "Const0 nodes = %d.  ConstCI nodes = %d.\n", Class0, ClassCi );
 }
 
-static inline Aig_Obj_t * Aig_ObjChild0CopyRepr( Aig_Man_t * p, Aig_Obj_t * pObj ) { return Aig_ObjGetRepr( p, Aig_ObjChild0Copy(pObj) ); }
-static inline Aig_Obj_t * Aig_ObjChild1CopyRepr( Aig_Man_t * p, Aig_Obj_t * pObj ) { return Aig_ObjGetRepr( p, Aig_ObjChild1Copy(pObj) ); }
+/**Function*************************************************************
 
+  Synopsis    [Verify correctness of choices.]
 
+  Description []
+               
+  SideEffects []
 
+  SeeAlso     []
+
+***********************************************************************/
+void Dch_CheckChoices( Aig_Man_t * p, int fSkipRedSupps )
+{
+    Aig_Obj_t * pObj;
+    int i, fProb = 0;
+    Aig_ManCleanMarkA( p );
+    Aig_ManForEachNode( p, pObj, i )
+    {
+        if ( p->pEquivs[i] != NULL )
+        {
+            if ( pObj->fMarkA == 1 )
+                printf( "node %d participates in more than one choice class\n", i ), fProb = 1;
+            pObj->fMarkA = 1;
+            // check redundancy
+            if ( fSkipRedSupps && Dch_ObjCheckSuppRed( p, pObj, p->pEquivs[i]) )
+                printf( "node %d and repr %d have diff supports\n", pObj->Id, p->pEquivs[i]->Id );
+            // consider the next one
+            pObj = p->pEquivs[i];
+            if ( p->pEquivs[Aig_ObjId(pObj)] == NULL )
+            {
+                if ( pObj->fMarkA == 1 )
+                    printf( "repr %d has final node %d participates in more than one choice class\n", i, pObj->Id ), fProb = 1;
+                pObj->fMarkA = 1;
+            }
+            // consider the non-head ones
+            if ( pObj->nRefs > 0 )
+                printf( "node %d belonging to choice has fanout %d\n", pObj->Id, pObj->nRefs );
+        }
+        if ( p->pReprs && p->pReprs[i] != NULL )
+        {
+            if ( pObj->nRefs > 0 )
+                printf( "node %d has representative %d and fanout count %d\n", pObj->Id, p->pReprs[i]->Id, pObj->nRefs ), fProb = 1;
+        }
+    }
+    Aig_ManCleanMarkA( p );
+    if ( !fProb )
+        printf( "Verification of choice AIG succeeded.\n" );
+    else
+        printf( "Verification of choice AIG FAILED.\n" );
+}
 
 /**Function*************************************************************
 
@@ -240,104 +357,6 @@ int Aig_ManCheckAcyclic( Aig_Man_t * p, int fVerbose )
     return fAcyclic;
 }
 
-/**Function*************************************************************
-
-  Synopsis    [Removes combinational loop.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Aig_ManFixLoopProblem( Aig_Man_t * p, int fVerbose )
-{
-    Aig_Obj_t * pObj;
-    int i, Counter = 0, Counter2 = 0;
-    Aig_ManForEachObj( p, pObj, i )
-    {
-        if ( !Aig_ObjIsTravIdCurrent(p, pObj) )
-            continue;
-        Counter2++;
-        if ( Aig_ObjRepr(p, pObj) == NULL && Aig_ObjEquiv(p, pObj) != NULL )
-        {
-            Aig_ObjSetEquiv(p, pObj, NULL);
-            Counter++;
-        }
-    }
-    if ( fVerbose )
-    Abc_Print( 1, "Fixed %d choice nodes on the path with %d objects.\n", Counter, Counter2 );
-}
-
-
-/**Function*************************************************************
-
-  Synopsis    [Verify correctness of choices.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Dch_CheckChoices( Aig_Man_t * p )
-{
-    Aig_Obj_t * pObj;
-    int i, fProb = 0;
-    Aig_ManCleanMarkA( p );
-    Aig_ManForEachNode( p, pObj, i )
-        if ( p->pEquivs[i] != NULL )
-        {
-            if ( pObj->fMarkA == 1 )
-                printf( "node %d participates in more than one choice class\n", i ), fProb = 1;
-            pObj->fMarkA = 1;
-            // consider the last one
-            pObj = p->pEquivs[i];
-            if ( p->pEquivs[Aig_ObjId(pObj)] == NULL )
-            {
-                if ( pObj->fMarkA == 1 )
-                    printf( "repr %d has final node %d participates in more than one choice class\n", i, pObj->Id ), fProb = 1;
-                pObj->fMarkA = 1;
-            }
-        }
-    Aig_ManCleanMarkA( p );
-    if ( !fProb )
-        printf( "Verification of choice AIG succeeded.\n" );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Marks the TFI of the node.]
-
-  Description [Returns 1 if there is a CI not marked with previous ID.]
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Dch_ObjMarkTfi_rec( Aig_Man_t * p, Aig_Obj_t * pObj )
-{
-    int RetValue;
-    if ( pObj == NULL )
-        return 0;
-    if ( Aig_ObjIsTravIdCurrent( p, pObj ) )
-        return 0;
-    if ( Aig_ObjIsCi(pObj) )
-    {
-        RetValue = !Aig_ObjIsTravIdPrevious( p, pObj );
-        Aig_ObjSetTravIdCurrent( p, pObj );
-        return RetValue;
-    }
-    assert( Aig_ObjIsNode(pObj) );
-    Aig_ObjSetTravIdCurrent( p, pObj );
-    RetValue  = Dch_ObjMarkTfi_rec( p, Aig_ObjFanin0(pObj) );
-    RetValue += Dch_ObjMarkTfi_rec( p, Aig_ObjFanin1(pObj) );
-//    RetValue += Dch_ObjMarkTfi_rec( p, Aig_ObjEquiv(p, pObj) );
-    return (RetValue > 0);
-}
 
 /**Function*************************************************************
 
@@ -391,7 +410,7 @@ int Dch_ObjCheckTfi( Aig_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pRepr )
 
 /**Function*************************************************************
 
-  Synopsis    [Derives the AIG with choices from representatives.]
+  Synopsis    [Returns representatives of fanin in approapriate polarity.]
 
   Description []
                
@@ -400,91 +419,15 @@ int Dch_ObjCheckTfi( Aig_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pRepr )
   SeeAlso     []
 
 ***********************************************************************/
-void Dch_DeriveChoiceAigNode( Aig_Man_t * pAigNew, Aig_Man_t * pAigOld, Aig_Obj_t * pObj, int fSkipRedSupps )
+static inline Aig_Obj_t * Aig_ObjGetRepr( Aig_Man_t * p, Aig_Obj_t * pObj )
 {
-    Aig_Obj_t * pRepr, * pObjNew, * pReprNew;
-    // get the new node
-    assert( pObj->pData == NULL );
-    pObj->pData = Aig_And( pAigNew, 
-        Aig_ObjChild0CopyRepr(pAigNew, pObj), 
-        Aig_ObjChild1CopyRepr(pAigNew, pObj) );
-    pRepr = Aig_ObjRepr( pAigOld, pObj );
-    if ( pRepr == NULL )
-        return;
-    assert( pRepr->Id < pObj->Id );
-    // get the corresponding new nodes
-    pObjNew  = Aig_Regular((Aig_Obj_t *)pObj->pData);
-    pReprNew = Aig_Regular((Aig_Obj_t *)pRepr->pData);
-    if ( pObjNew == pReprNew )
-        return;
-    // skip the earlier nodes
-    if ( pReprNew->Id > pObjNew->Id )
-        return;
-    assert( pReprNew->Id < pObjNew->Id );
-    // set the representatives
-    Aig_ObjSetRepr( pAigNew, pObjNew, pReprNew );
-    // skip used nodes
-    if ( pObjNew->nRefs > 0 )
-        return;
-    assert( pObjNew->nRefs == 0 );
-    // update new nodes of the object
-    if ( !Aig_ObjIsNode(pRepr) )
-        return;
-    // skip choices with combinational loops
-    if ( Dch_ObjCheckTfi( pAigNew, pObjNew, pReprNew ) )
-        return;
-    // don't add choice if structural support of pObjNew and pReprNew differ
-    if ( fSkipRedSupps )
-    {
-        int fSkipChoice = 0;
-        // mark support of the representative node (pReprNew)
-        Aig_ManIncrementTravId( pAigNew );
-        Dch_ObjMarkTfi_rec( pAigNew, pReprNew );
-        // detect if the new node (pObjNew) depends on any additional variables
-        Aig_ManIncrementTravId( pAigNew );
-        if ( Dch_ObjMarkTfi_rec( pAigNew, pObjNew ) )
-            fSkipChoice = 1;//, printf( "1" );
-        // detect if the representative node (pReprNew) depends on any additional variables
-        Aig_ManIncrementTravId( pAigNew );
-        if ( Dch_ObjMarkTfi_rec( pAigNew, pReprNew ) )
-            fSkipChoice = 1;//, printf( "2" );
-        // skip the choice if this is what is happening
-        if ( fSkipChoice )
-            return;
-    }
-    // add choice
-    pAigNew->pEquivs[pObjNew->Id]  = pAigNew->pEquivs[pReprNew->Id];
-    pAigNew->pEquivs[pReprNew->Id] = pObjNew;
+    Aig_Obj_t * pRepr;
+    if ( (pRepr = Aig_ObjRepr(p, Aig_Regular(pObj))) )
+        return Aig_NotCond( pRepr, Aig_Regular(pObj)->fPhase ^ pRepr->fPhase ^ Aig_IsComplement(pObj) );
+    return pObj;
 }
-Aig_Man_t * Dch_DeriveChoiceAigInt( Aig_Man_t * pAig, int fSkipRedSupps )
-{
-    Aig_Man_t * pChoices;
-    Aig_Obj_t * pObj;
-    int i;
-    // make sure reprsentative nodes do not have representatives
-    Aig_ManForEachNode( pAig, pObj, i )
-        if ( pAig->pReprs[i] != NULL && pAig->pReprs[pAig->pReprs[i]->Id] != NULL )
-            printf( "Node %d: repr %d has repr %d.\n", i, Aig_ObjId(pAig->pReprs[i]), Aig_ObjId(pAig->pReprs[pAig->pReprs[i]->Id]) );
-    // start recording equivalences
-    pChoices = Aig_ManStart( Aig_ManObjNumMax(pAig) );
-    pChoices->pEquivs = ABC_CALLOC( Aig_Obj_t *, Aig_ManObjNumMax(pAig) );
-    pChoices->pReprs  = ABC_CALLOC( Aig_Obj_t *, Aig_ManObjNumMax(pAig) );
-    // map constants and PIs
-    Aig_ManCleanData( pAig );
-    Aig_ManConst1(pAig)->pData = Aig_ManConst1(pChoices);
-    Aig_ManForEachCi( pAig, pObj, i )
-        pObj->pData = Aig_ObjCreateCi( pChoices );
-    // construct choices for the internal nodes
-    assert( pAig->pReprs != NULL );
-    Aig_ManForEachNode( pAig, pObj, i )
-        Dch_DeriveChoiceAigNode( pChoices, pAig, pObj, fSkipRedSupps );
-    Aig_ManForEachCo( pAig, pObj, i )
-        Aig_ObjCreateCo( pChoices, Aig_ObjChild0CopyRepr(pChoices, pObj) );
-    Dch_DeriveChoiceCountEquivs( pChoices );
-    Aig_ManSetRegNum( pChoices, Aig_ManRegNum(pAig) );
-//Dch_CheckChoices( pChoices );
-    return pChoices;
-}
+static inline Aig_Obj_t * Aig_ObjChild0CopyRepr( Aig_Man_t * p, Aig_Obj_t * pObj ) { return Aig_ObjGetRepr( p, Aig_ObjChild0Copy(pObj) ); }
+static inline Aig_Obj_t * Aig_ObjChild1CopyRepr( Aig_Man_t * p, Aig_Obj_t * pObj ) { return Aig_ObjGetRepr( p, Aig_ObjChild1Copy(pObj) ); }
 
 /**Function*************************************************************
 
@@ -497,24 +440,99 @@ Aig_Man_t * Dch_DeriveChoiceAigInt( Aig_Man_t * pAig, int fSkipRedSupps )
   SeeAlso     []
 
 ***********************************************************************/
+void Dch_DeriveChoiceAigNode( Aig_Man_t * pAigNew, Aig_Man_t * pAigOld, Aig_Obj_t * pObj, int fSkipRedSupps )
+{
+    Aig_Obj_t * pRepr, * pObjNew, * pReprNew;
+    assert( !Aig_IsComplement(pObj) );
+    // get the representative
+    pRepr = Aig_ObjRepr( pAigOld, pObj );
+    if ( pRepr != NULL && (Aig_ObjIsConst1(pRepr) || Aig_ObjIsCi(pRepr)) )
+    {
+        assert( pRepr->pData != NULL );
+        pObj->pData = Aig_NotCond( (Aig_Obj_t *)pRepr->pData, pObj->fPhase ^ pRepr->fPhase );
+        return;
+    }
+    // get the new node
+    pObjNew = Aig_And( pAigNew, 
+        Aig_ObjChild0CopyRepr(pAigNew, pObj), 
+        Aig_ObjChild1CopyRepr(pAigNew, pObj) );
+    pObjNew = Aig_ObjGetRepr( pAigNew, pObjNew );
+    assert( Aig_ObjRepr( pAigNew, pObjNew ) == NULL );
+    // assign the copy
+    assert( pObj->pData == NULL );
+    pObj->pData = pObjNew;
+    // skip those without reprs
+    if ( pRepr == NULL )
+        return;
+    assert( pRepr->Id < pObj->Id );
+    assert( Aig_ObjIsNode(pRepr) );
+    // get the corresponding new nodes
+    pObjNew  = Aig_Regular((Aig_Obj_t *)pObj->pData);
+    pReprNew = Aig_Regular((Aig_Obj_t *)pRepr->pData);
+    // skip earlier nodes
+    if ( pReprNew->Id >= pObjNew->Id )
+        return;
+    assert( pReprNew->Id < pObjNew->Id );
+    // set the representatives
+    Aig_ObjSetRepr( pAigNew, pObjNew, pReprNew );
+    // skip used nodes
+    if ( pObjNew->nRefs > 0 )
+        return;
+    assert( pObjNew->nRefs == 0 );
+    // skip choices that can lead to combo loops
+    if ( Dch_ObjCheckTfi( pAigNew, pObjNew, pReprNew ) )
+        return;
+    // don't add choice if structural support of pObjNew and pReprNew differ
+    if ( fSkipRedSupps && Dch_ObjCheckSuppRed(pAigNew, pObjNew, pReprNew) )
+        return;
+    // add choice to the end of the list
+    while ( pAigNew->pEquivs[pReprNew->Id] != NULL )
+        pReprNew = pAigNew->pEquivs[pReprNew->Id];
+    assert( pAigNew->pEquivs[pReprNew->Id] == NULL );
+    pAigNew->pEquivs[pReprNew->Id] = pObjNew;
+}
+Aig_Man_t * Dch_DeriveChoiceAigInt( Aig_Man_t * pAig, int fSkipRedSupps )
+{
+    Aig_Man_t * pChoices;
+    Aig_Obj_t * pObj;
+    int i;
+    // start recording equivalences
+    pChoices = Aig_ManStart( Aig_ManObjNumMax(pAig) );
+    pChoices->pEquivs = ABC_CALLOC( Aig_Obj_t *, Aig_ManObjNumMax(pAig) );
+    pChoices->pReprs  = ABC_CALLOC( Aig_Obj_t *, Aig_ManObjNumMax(pAig) );
+    // map constants and PIs
+    Aig_ManCleanData( pAig );
+    Aig_ManConst1(pAig)->pData = Aig_ManConst1(pChoices);
+    Aig_ManForEachCi( pAig, pObj, i )
+        pObj->pData = Aig_ObjCreateCi( pChoices );
+    // construct choices for the internal nodes
+    assert( pAig->pReprs != NULL );
+    Aig_ManForEachNode( pAig, pObj, i ) 
+        Dch_DeriveChoiceAigNode( pChoices, pAig, pObj, fSkipRedSupps );
+    Aig_ManForEachCo( pAig, pObj, i )
+        Aig_ObjCreateCo( pChoices, Aig_ObjChild0CopyRepr(pChoices, pObj) );
+    Aig_ManSetRegNum( pChoices, Aig_ManRegNum(pAig) );
+    return pChoices;
+}
 Aig_Man_t * Dch_DeriveChoiceAig( Aig_Man_t * pAig, int fSkipRedSupps )
 {
-    extern int Aig_ManCheckAcyclic( Aig_Man_t * pAig, int fVerbose );
+    int fCheck = 0;
     Aig_Man_t * pChoices, * pTemp;
-    int fVerbose = 0;
+    // verify
+    if ( fCheck )
+        Aig_ManCheckReprs( pAig ); 
+    // compute choices
     pChoices = Dch_DeriveChoiceAigInt( pAig, fSkipRedSupps );
-//    pChoices = Dch_DeriveChoiceAigInt( pTemp = pChoices );
-//    Aig_ManStop( pTemp );
-    // there is no need for cleanup
     ABC_FREE( pChoices->pReprs );
-    while ( !Aig_ManCheckAcyclic( pChoices, fVerbose ) )
-    {
-        if ( fVerbose )
-        Abc_Print( 1, "There is a loop!\n" );
-        Aig_ManFixLoopProblem( pChoices, fVerbose );
-    }
+    // verify
+    if ( fCheck )
+        Dch_CheckChoices( pChoices, fSkipRedSupps ); 
+    // find correct topo order with choices
     pChoices = Aig_ManDupDfs( pTemp = pChoices );
     Aig_ManStop( pTemp );
+    // verify
+    if ( fCheck )
+        Dch_CheckChoices( pChoices, fSkipRedSupps ); 
     return pChoices;
 }
 
