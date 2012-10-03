@@ -26737,10 +26737,10 @@ usage:
 int Abc_CommandAbc9Rpm( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Gia_Man_t * pTemp;
-    int c, nCutMax   = 6;
-    int fUseOldAlgo  = 0;
-    int fVerbose     = 0;
-    int fVeryVerbose = 0;
+    int c, nCutMax   = 16;
+    int fUseOldAlgo  =  0;
+    int fVerbose     =  0;
+    int fVeryVerbose =  0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "Cavwh" ) ) != EOF )
     {

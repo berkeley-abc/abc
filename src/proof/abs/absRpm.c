@@ -19,7 +19,6 @@
 ***********************************************************************/
  
 #include "abs.h"
-#include "misc/extra/extra.h"
 
 ABC_NAMESPACE_IMPL_START 
 
@@ -30,7 +29,7 @@ ABC_NAMESPACE_IMPL_START
 static inline int   Gia_ObjDom( Gia_Man_t * p, Gia_Obj_t * pObj )            { return Vec_IntEntry(p->vDoms, Gia_ObjId(p, pObj));   }
 static inline void  Gia_ObjSetDom( Gia_Man_t * p, Gia_Obj_t * pObj, int d )  { Vec_IntWriteEntry(p->vDoms, Gia_ObjId(p, pObj), d);  }
 
-static int Abs_ManSupport( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vSupp );
+static int Abs_ManSupport2( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vSupp );
 static int Abs_GiaObjDeref_rec( Gia_Man_t * p, Gia_Obj_t * pNode );
 static int Abs_GiaObjRef_rec( Gia_Man_t * p, Gia_Obj_t * pNode );
 
@@ -140,7 +139,7 @@ void Gia_ManTestDoms2( Gia_Man_t * p )
         }
         assert( Gia_ObjIsAnd(pDom) );
         Abs_GiaObjDeref_rec( p, pDom );
-        Abs_ManSupport( p, pDom, vNodes );
+        Abs_ManSupport2( p, pDom, vNodes );
         Abs_GiaObjRef_rec( p, pDom );
 
         if ( Vec_IntFind(vNodes, Gia_ObjId(p, pObj)) == -1 )
@@ -173,6 +172,8 @@ Vec_Int_t * Gia_ManCollectDoms( Gia_Man_t * p )
     Gia_ManForEachObj( p, pObj, i )
     {
         if ( !pObj->fMark1 )
+            continue;
+        if ( p->pRefs && Gia_ObjRefs(p, pObj) == 0 )
             continue;
         iDom = Gia_ObjDom(p, pObj);
         if ( iDom == -1 )
@@ -221,6 +222,30 @@ void Gia_ManTestDoms( Gia_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Counts flops without fanout.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManCountFanoutlessFlops( Gia_Man_t * p )
+{
+    Gia_Obj_t * pObj;
+    int i;
+    int Counter = 0;
+    Gia_ManCreateRefs( p );
+    Gia_ManForEachRo( p, pObj, i )
+        if ( Gia_ObjRefs(p, pObj) == 0 )
+            Counter++;
+    printf( "Fanoutless flops = %d.\n", Counter );
+    ABC_FREE( p->pRefs );
+}
+
+/**Function*************************************************************
+
   Synopsis    []
 
   Description []
@@ -259,76 +284,6 @@ void Gia_ManCountPisNodes( Gia_Man_t * p, Vec_Int_t * vPis, Vec_Int_t * vAnds )
     Vec_IntClear( vAnds );
     Gia_ManForEachCo( p, pObj, i )
         Gia_ManCountPisNodes_rec( p, Gia_ObjFanin0(pObj), vPis, vAnds );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Computes support in terms of PIs and flops.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Abs_ManSupport2_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vSupp )
-{
-    if ( Gia_ObjIsTravIdCurrent(p, pObj) )
-        return;
-    Gia_ObjSetTravIdCurrent(p, pObj);
-    if ( pObj->fMark1 || Gia_ObjIsRo(p, pObj) )
-    {
-        Vec_IntPush( vSupp, Gia_ObjId(p, pObj) );
-        return;
-    }
-    assert( Gia_ObjIsAnd(pObj) );
-    Abs_ManSupport2_rec( p, Gia_ObjFanin0(pObj), vSupp );
-    Abs_ManSupport2_rec( p, Gia_ObjFanin1(pObj), vSupp );
-}
-int Abs_ManSupport2( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vSupp )
-{
-    assert( Gia_ObjIsAnd(pObj) );
-    Vec_IntClear( vSupp );
-    Gia_ManIncrementTravId( p );
-    Abs_ManSupport2_rec( p, pObj, vSupp );
-    return Vec_IntSize(vSupp);
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Computes support of the MFFC.]
-
-  Description [Should be called when pObj's cone is dereferenced.]
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Abs_ManSupport_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vSupp )
-{
-    if ( Gia_ObjIsTravIdCurrent(p, pObj) )
-        return;
-    Gia_ObjSetTravIdCurrent(p, pObj);
-    if ( pObj->fMark1 || Gia_ObjIsRo(p, pObj) || Gia_ObjRefs(p, pObj) > 0 )
-    {
-        Vec_IntPush( vSupp, Gia_ObjId(p, pObj) );
-        return;
-    }
-    assert( Gia_ObjIsAnd(pObj) );
-    Abs_ManSupport_rec( p, Gia_ObjFanin0(pObj), vSupp );
-    Abs_ManSupport_rec( p, Gia_ObjFanin1(pObj), vSupp );
-}
-int Abs_ManSupport( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vSupp )
-{
-    assert( Gia_ObjIsAnd(pObj) );
-    Vec_IntClear( vSupp );
-    Gia_ManIncrementTravId( p );
-    Abs_ManSupport_rec( p, Gia_ObjFanin0(pObj), vSupp );
-    Abs_ManSupport_rec( p, Gia_ObjFanin1(pObj), vSupp );
-    Gia_ObjSetTravIdCurrent(p, pObj);
-    return Vec_IntSize(vSupp);
 }
 
 /**Function*************************************************************
@@ -407,12 +362,183 @@ int Abs_GiaSortNodes( Gia_Man_t * p, Vec_Int_t * vSupp )
     return RetValue;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Computes support in terms of PIs and flops.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abs_ManSupport1_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vSupp )
+{
+    if ( Gia_ObjIsTravIdCurrent(p, pObj) )
+        return;
+    Gia_ObjSetTravIdCurrent(p, pObj);
+    if ( pObj->fMark1 || Gia_ObjIsRo(p, pObj) )
+    {
+        Vec_IntPush( vSupp, Gia_ObjId(p, pObj) );
+        return;
+    }
+    assert( Gia_ObjIsAnd(pObj) );
+    Abs_ManSupport1_rec( p, Gia_ObjFanin0(pObj), vSupp );
+    Abs_ManSupport1_rec( p, Gia_ObjFanin1(pObj), vSupp );
+}
+int Abs_ManSupport1( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vSupp )
+{
+    assert( Gia_ObjIsAnd(pObj) );
+    Vec_IntClear( vSupp );
+    Gia_ManIncrementTravId( p );
+    Abs_ManSupport1_rec( p, pObj, vSupp );
+    return Vec_IntSize(vSupp);
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes support of the MFFC.]
+
+  Description [Should be called when pObj's cone is dereferenced.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abs_ManSupport2_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vSupp )
+{
+    if ( Gia_ObjIsTravIdCurrent(p, pObj) )
+        return;
+    Gia_ObjSetTravIdCurrent(p, pObj);
+    if ( pObj->fMark1 || Gia_ObjIsRo(p, pObj) || Gia_ObjRefs(p, pObj) > 0 )
+    {
+        Vec_IntPush( vSupp, Gia_ObjId(p, pObj) );
+        return;
+    }
+    assert( Gia_ObjIsAnd(pObj) );
+    Abs_ManSupport2_rec( p, Gia_ObjFanin0(pObj), vSupp );
+    Abs_ManSupport2_rec( p, Gia_ObjFanin1(pObj), vSupp );
+}
+int Abs_ManSupport2( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vSupp )
+{
+    assert( Gia_ObjIsAnd(pObj) );
+    Vec_IntClear( vSupp );
+    Gia_ManIncrementTravId( p );
+    Abs_ManSupport2_rec( p, Gia_ObjFanin0(pObj), vSupp );
+    Abs_ManSupport2_rec( p, Gia_ObjFanin1(pObj), vSupp );
+    Gia_ObjSetTravIdCurrent(p, pObj);
+    return Vec_IntSize(vSupp);
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes support of the extended MFFC.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abs_ManSupport3( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vSupp )
+{
+    Gia_Obj_t * pTemp, * pFan0, * pFan1;
+    int i, nSize0;
+    // collect MFFC
+    Abs_ManSupport2( p, pObj, vSupp );
+    // move dominated to the front
+    nSize0 = Abs_GiaSortNodes( p, vSupp );
+    assert( nSize0 > 0 );
+    // consider remaining nodes
+    while ( 1 )
+    {
+        int fChanges = 0;
+        Gia_ManForEachObjVec( vSupp, p, pTemp, i )
+        {
+            if ( i < nSize0 )
+                continue;
+            if ( !Gia_ObjIsAnd(pTemp) )
+                continue;
+            assert( !pTemp->fMark1 );
+            assert( Gia_ObjRefs(p, pTemp) > 0 );
+            pFan0 = Gia_ObjFanin0(pTemp);
+            pFan1 = Gia_ObjFanin1(pTemp);
+            if ( Gia_ObjIsTravIdCurrent(p, pFan0) && Gia_ObjIsTravIdCurrent(p, pFan1) )
+            {
+                Vec_IntRemove( vSupp, Gia_ObjId(p, pTemp) );
+                fChanges = 1;
+                break;
+            }
+            if ( Gia_ObjIsTravIdCurrent(p, pFan0) )
+            {
+                Vec_IntRemove( vSupp, Gia_ObjId(p, pTemp) );
+                Vec_IntPush( vSupp, Gia_ObjId(p, pFan1) );
+                assert( !Gia_ObjIsTravIdCurrent(p, pFan1) );
+                Gia_ObjSetTravIdCurrent(p, pFan1);
+                fChanges = 1;
+                break;
+            }
+            if ( Gia_ObjIsTravIdCurrent(p, pFan1) )
+            {
+                Vec_IntRemove( vSupp, Gia_ObjId(p, pTemp) );
+                Vec_IntPush( vSupp, Gia_ObjId(p, pFan0) );
+                assert( !Gia_ObjIsTravIdCurrent(p, pFan0) );
+                Gia_ObjSetTravIdCurrent(p, pFan0);
+                fChanges = 1;
+                break;
+            }
+        }
+        if ( !fChanges )
+            break;
+    }
+    return Vec_IntSize(vSupp);
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abs_GiaCofPrint( word * pTruth, int nSize, int nSize0, int Res )
+{
+    int i, Bit;
+    int nBits = (1 << nSize);
+    int nStep = (1 << nSize0);
+    int Mark[2] = {1,1};
+    for ( i = 0; i < nBits; i++ )
+    {
+        if ( i % nStep == 0 )
+        {
+            printf( " " );
+            assert( Res || (Mark[0] && Mark[1]) );
+            Mark[0] = Mark[1] = 0;
+        }
+        Bit = Abc_InfoHasBit((unsigned *)pTruth, i);
+        Mark[Bit] = 1;
+        printf( "%d", Bit );
+    }
+    printf( "\n" );
+    assert( Res || (Mark[0] && Mark[1]) );
+    return 1;
+}
+
 /**Function*************************************************************
 
   Synopsis    [Returns 1 if truth table has no const cofactors.]
 
   Description [The cofactoring variables are the (nSize-nSize0)
-  most significant vars.  Each factors depends on nSize0 vars.]
+  most significant vars.  Each cofactor depends on nSize0 vars.]
                
   SideEffects []
 
@@ -421,7 +547,7 @@ int Abs_GiaSortNodes( Gia_Man_t * p, Vec_Int_t * vSupp )
 ***********************************************************************/
 int Abs_GiaCheckTruth( word * pTruth, int nSize, int nSize0 )
 {
-    char * pStr = (char *)pTruth;
+    unsigned char * pStr = (unsigned char *)pTruth;
     int nStr = (nSize >= 3 ? (1 << (nSize - 3)) : 1);
     int i, k, nSteps;
     assert( nSize0 > 0 && nSize0 <= nSize );
@@ -472,10 +598,11 @@ int Abs_GiaCheckTruth( word * pTruth, int nSize, int nSize0 )
 ***********************************************************************/
 void Abs_RpmPerformMark( Gia_Man_t * p, int nCutMax, int fVerbose, int fVeryVerbose )
 {
-    Vec_Int_t * vSupp, * vPis, * vAnds, * vDoms;
+    Vec_Int_t * vPis, * vAnds, * vDoms;
+    Vec_Int_t * vSupp, * vSupp1, * vSupp2;
     Gia_Obj_t * pObj;
     word * pTruth;
-    int Iter, i, nSize0;
+    int Iter, i, nSize0, nNodes;
     int fHasConst, fChanges = 1;
     Gia_ManCreateRefs( p );
     Gia_ManCleanMark1( p );
@@ -483,7 +610,8 @@ void Abs_RpmPerformMark( Gia_Man_t * p, int nCutMax, int fVerbose, int fVeryVerb
         pObj->fMark1 = 1;
     vPis = Vec_IntAlloc( 100 );
     vAnds = Vec_IntAlloc( 100 );
-    vSupp = Vec_IntAlloc( 100 );
+    vSupp1 = Vec_IntAlloc( 100 );
+    vSupp2 = Vec_IntAlloc( 100 );
     for ( Iter = 0; fChanges; Iter++ )
     {
         fChanges = 0;
@@ -493,9 +621,9 @@ void Abs_RpmPerformMark( Gia_Man_t * p, int nCutMax, int fVerbose, int fVeryVerb
         {
             Gia_ManCountPisNodes( p, vPis, vAnds );
             printf( "Iter %3d :  ", Iter );
-            printf( "Dom = %5d  (%6.2f %%)  ", Vec_IntSize(vDoms), 100.0 * Vec_IntSize(vDoms) / Gia_ManAndNum(p)  );
             printf( "PI = %5d  (%6.2f %%)  ",  Vec_IntSize(vPis),  100.0 * Vec_IntSize(vPis)  / Gia_ManPiNum(p)  );
             printf( "And = %6d  (%6.2f %%) ",  Vec_IntSize(vAnds), 100.0 * Vec_IntSize(vAnds) / Gia_ManAndNum(p) );
+            printf( "Dom = %5d  (%6.2f %%)  ", Vec_IntSize(vDoms), 100.0 * Vec_IntSize(vDoms) / Gia_ManAndNum(p)  );
             printf( "\n" );
         }
 //        pObj = Gia_ObjFanin0( Gia_ManPo(p, 1) );
@@ -504,13 +632,35 @@ void Abs_RpmPerformMark( Gia_Man_t * p, int nCutMax, int fVerbose, int fVeryVerb
             assert( !pObj->fMark1 );
             assert( Gia_ObjRefs( p, pObj ) > 0 );
             // dereference root node
-            Abs_GiaObjDeref_rec( p, pObj );
-            // check support size
-            if ( Abs_ManSupport(p, pObj, vSupp) > nCutMax )
+            nNodes = Abs_GiaObjDeref_rec( p, pObj );
+/*
+            // compute support of full cone
+            if ( Abs_ManSupport1(p, pObj, vSupp1) > nCutMax )
+//            if ( 1 )
+            {
+                // check support of MFFC
+                if ( Abs_ManSupport2(p, pObj, vSupp2) > nCutMax )
+//                if ( 1 )
+                {
+                    Abs_GiaObjRef_rec( p, pObj );
+                    continue;
+                }
+                vSupp = vSupp2;
+//                printf( "-" );
+            }
+            else
+            {
+                vSupp = vSupp1;
+//                printf( "+" );
+            }
+*/
+            if ( Abs_ManSupport2(p, pObj, vSupp2) > nCutMax )
             {
                 Abs_GiaObjRef_rec( p, pObj );
                 continue;
             }
+            vSupp = vSupp2;
+
             // order nodes by their ref counts
             nSize0 = Abs_GiaSortNodes( p, vSupp );
             assert( nSize0 > 0 && nSize0 <= nCutMax );
@@ -519,8 +669,11 @@ void Abs_RpmPerformMark( Gia_Man_t * p, int nCutMax, int fVerbose, int fVeryVerb
             fHasConst = !Abs_GiaCheckTruth( pTruth, Vec_IntSize(vSupp), nSize0 );
             if ( fVeryVerbose )
             {
-                printf( "Node = %8d   Supp = %2d   Supp0 = %2d  Res = %4s  ", Gia_ObjId(p, pObj), Vec_IntSize(vSupp), nSize0, fHasConst? "no":"yes" );
-                Extra_PrintHex( stdout, (unsigned *)pTruth, Vec_IntSize(vSupp) ); printf( "\n" );
+                printf( "Nodes =%3d ",  nNodes );
+                printf( "Size =%3d ",   Vec_IntSize(vSupp) );
+                printf( "Size0 =%3d  ", nSize0 );
+                printf( "%3s", fHasConst ? "yes" : "no" );
+                Abs_GiaCofPrint( pTruth, Vec_IntSize(vSupp), nSize0, fHasConst );
             }
             if ( fHasConst )
             {
@@ -532,23 +685,24 @@ void Abs_RpmPerformMark( Gia_Man_t * p, int nCutMax, int fVerbose, int fVeryVerb
             fChanges = 1;
         }
         Vec_IntFree( vDoms );
-//        break;
     }
     // count the number of PIs and internal nodes
     if ( fVeryVerbose )
     {
         Gia_ManCountPisNodes( p, vPis, vAnds );
         printf( "Iter %3d :  ", Iter );
-        printf( "Dom = %5d  (%6.2f %%)  ", Vec_IntSize(vDoms), 100.0 * Vec_IntSize(vDoms) / Gia_ManAndNum(p)  );
         printf( "PI = %5d  (%6.2f %%)  ",  Vec_IntSize(vPis),  100.0 * Vec_IntSize(vPis)  / Gia_ManPiNum(p)  );
         printf( "And = %6d  (%6.2f %%) ",  Vec_IntSize(vAnds), 100.0 * Vec_IntSize(vAnds) / Gia_ManAndNum(p) );
+//        printf( "Dom = %5d  (%6.2f %%)  ", Vec_IntSize(vDoms), 100.0 * Vec_IntSize(vDoms) / Gia_ManAndNum(p)  );
         printf( "\n" );
     }
+    // cleanup
     Vec_IntFree( vPis );
     Vec_IntFree( vAnds );
-    Vec_IntFree( vSupp );
+    Vec_IntFree( vSupp1 );
+    Vec_IntFree( vSupp2 );
+//    Gia_ManCleanMark1( p ); // this will erase markings
     ABC_FREE( p->pRefs );
-//    Gia_ManCleanMark1( p ); // temp
 }
 
 /**Function*************************************************************
