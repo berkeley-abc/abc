@@ -23,6 +23,7 @@
 #include <string.h>
 #include <assert.h>
 #include "misc/util/abc_global.h"
+#include "misc/extra/extra.h"
 
 // comment out this line to disable pthreads
 #define ABC_USE_PTHREADS
@@ -39,14 +40,14 @@
 #endif
 
 ABC_NAMESPACE_IMPL_START
-
+ 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
 #ifndef ABC_USE_PTHREADS
 
-void Cmd_RunStarter( char * pFileName, int nCores ) {}
+void Cmd_RunStarter( char * pFileName, char * pBinary, char * pCommand, int nCores ) {}
 
 #else // pthreads are used
 
@@ -106,19 +107,19 @@ void * Abc_RunThread( void * pCommand )
   SeeAlso     []
 
 ***********************************************************************/
-void Cmd_RunStarter( char * pFileName, int nCores )
+void Cmd_RunStarter( char * pFileName, char * pBinary, char * pCommand, int nCores )
 {
-    FILE * pFile, * pOutput = stdout;
+    FILE * pFile, * pFileTemp;
     pthread_t * pThreadIds;
     char * BufferCopy, * Buffer;
-    int nLines, LineMax, Line;
+    int nLines, LineMax, Line, Len;
     int i, c, status, Counter;
     clock_t clk = clock();
 
     // check the number of cores
     if ( nCores < 2 )
     {
-        fprintf( pOutput, "The number of cores (%d) should be more than 1.\n", nCores ); 
+        fprintf( stdout, "The number of cores (%d) should be more than 1.\n", nCores ); 
         return; 
     }
 
@@ -126,7 +127,7 @@ void Cmd_RunStarter( char * pFileName, int nCores )
     pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
     { 
-        fprintf( pOutput, "Input file \"%s\" cannot be opened.\n", pFileName ); 
+        fprintf( stdout, "Input file \"%s\" cannot be opened.\n", pFileName ); 
         return; 
     }
 
@@ -141,28 +142,72 @@ void Cmd_RunStarter( char * pFileName, int nCores )
         LineMax = Abc_MaxInt( LineMax, Line );
         Line = 0;       
     }
-    LineMax += 10;
     nLines += 10;
+    LineMax += LineMax + 100;
+    LineMax += pBinary  ? strlen(pBinary) : 0;
+    LineMax += pCommand ? strlen(pCommand) : 0;
 
     // allocate storage
     Buffer = ABC_ALLOC( char, LineMax );
     pThreadIds = ABC_ALLOC( pthread_t, nLines );
 
+    // check if all files can be opened
+    if ( pCommand != NULL )
+    {
+        // read file names
+        rewind( pFile );
+        for ( i = 0; fgets( Buffer, LineMax, pFile ) != NULL; i++ )
+        {
+            // remove trailing spaces
+            for ( Len = strlen(Buffer) - 1; Len >= 0; Len-- )
+                if ( Buffer[Len] == '\n' || Buffer[Len] == '\r' || Buffer[Len] == '\t' || Buffer[Len] == ' ' )
+                    Buffer[Len] = 0;
+                else
+                    break;
+
+            // get command from file
+            if ( Buffer[0] == 0 || Buffer[0] == '\n' || Buffer[0] == '\r' || Buffer[0] == '\t' || Buffer[0] == ' ' || Buffer[0] == '#' )
+                continue;
+
+            // try to open the file
+            pFileTemp = fopen( Buffer, "rb" );
+            if ( pFileTemp == NULL )
+            {
+                fprintf( stdout, "Starter cannot open file \"%s\".\n", Buffer );
+                fflush( stdout );
+                ABC_FREE( pThreadIds );
+                ABC_FREE( Buffer );
+                fclose( pFile );
+                return;
+            }    
+        }
+    } 
+ 
     // read commands and execute at most <num> of them at a time
     rewind( pFile );
     for ( i = 0; fgets( Buffer, LineMax, pFile ) != NULL; i++ )
     {
-        // get the command from the file
-        if ( Buffer[0] == '\n' || Buffer[0] == '\r' || Buffer[0] == '\t' || 
-             Buffer[0] == ' ' || Buffer[0] == '#')
-        {
-            continue;
-        }
+        // remove trailing spaces
+        for ( Len = strlen(Buffer) - 1; Len >= 0; Len-- )
+            if ( Buffer[Len] == '\n' || Buffer[Len] == '\r' || Buffer[Len] == '\t' || Buffer[Len] == ' ' )
+                Buffer[Len] = 0;
+            else
+                break;
 
-        if ( Buffer[strlen(Buffer)-1] == '\n' )
-            Buffer[strlen(Buffer)-1] = 0;
-        if ( Buffer[strlen(Buffer)-1] == '\r' )
-            Buffer[strlen(Buffer)-1] = 0;
+        // get command from file
+        if ( Buffer[0] == 0 || Buffer[0] == '\n' || Buffer[0] == '\r' || Buffer[0] == '\t' || Buffer[0] == ' ' || Buffer[0] == '#' )
+            continue;
+
+        // create command
+        if ( pCommand != NULL )
+        {
+            BufferCopy = ABC_ALLOC( char, LineMax );
+            sprintf( BufferCopy, "%s -c \"%s; %s\" > %s", pBinary, Buffer, pCommand, Extra_FileNameGenericAppend(Buffer, ".txt") );
+        }
+        else
+            BufferCopy = Abc_UtilStrsav( Buffer );
+        fprintf( stdout, "Calling:  %s\n", (char *)BufferCopy );  
+        fflush( stdout );
 
         // wait till there is an empty thread
         while ( 1 )
@@ -180,11 +225,7 @@ void Cmd_RunStarter( char * pFileName, int nCores )
         nThreadsRunning++;
         status = pthread_mutex_unlock(&mutex); assert(status == 0);
 
-        printf( "Calling:  %s\n", (char *)Buffer );  
-        fflush( stdout );
-
         // create thread to execute this command
-        BufferCopy = Abc_UtilStrsav( Buffer );
         status = pthread_create( &pThreadIds[i], NULL, Abc_RunThread, (void *)BufferCopy );  assert(status == 0);
         assert( i < nLines );
     }
@@ -204,9 +245,10 @@ void Cmd_RunStarter( char * pFileName, int nCores )
 
     // cleanup
     status = pthread_mutex_destroy(&mutex);   assert(status == 0);
-//    assert(mutex == NULL);
-    printf( "Finished processing commands in file \"%s\".  ", pFileName );
+    mutex = PTHREAD_MUTEX_INITIALIZER;
+    fprintf( stdout, "Finished processing commands in file \"%s\".  ", pFileName );
     Abc_PrintTime( 1, "Total wall time", clock() - clk );
+    fflush( stdout );
 }
 
 #endif

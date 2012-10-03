@@ -57,7 +57,7 @@ static int CmdCommandVersion       ( Abc_Frame_t * pAbc, int argc, char ** argv 
 static int CmdCommandSis           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int CmdCommandMvsis         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int CmdCommandCapo          ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Cmd_CommandStarter      ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int CmdCommandStarter       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 extern int Cmd_CommandAbcLoadPlugIn( Abc_Frame_t * pAbc, int argc, char ** argv );
 
@@ -104,7 +104,7 @@ void Cmd_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Various", "sis",         CmdCommandSis,             1 ); 
     Cmd_CommandAdd( pAbc, "Various", "mvsis",       CmdCommandMvsis,           1 ); 
     Cmd_CommandAdd( pAbc, "Various", "capo",        CmdCommandCapo,            0 ); 
-    Cmd_CommandAdd( pAbc, "Various", "starter",     Cmd_CommandStarter,        0 );
+    Cmd_CommandAdd( pAbc, "Various", "starter",     CmdCommandStarter,         0 );
 
     Cmd_CommandAdd( pAbc, "Various", "load_plugin", Cmd_CommandAbcLoadPlugIn,  0 );
 }
@@ -2024,15 +2024,16 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
-int Cmd_CommandStarter( Abc_Frame_t * pAbc, int argc, char ** argv )
+int CmdCommandStarter( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Cmd_RunStarter( char * pFileName, int nCores );
+    extern void Cmd_RunStarter( char * pFileName, char * pBinary, char * pCommand, int nCores );
     FILE * pFile;
     char * pFileName;
+    char * pCommand = NULL;
     int c, nCores    =  3;
     int fVerbose     =  0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Nvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "NCvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -2046,6 +2047,15 @@ int Cmd_CommandStarter( Abc_Frame_t * pAbc, int argc, char ** argv )
             globalUtilOptind++;
             if ( nCores < 0 ) 
                 goto usage;
+            break;
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-C\" should be followed by a string (possibly in quotes).\n" );
+                goto usage;
+            }
+            pCommand = argv[globalUtilOptind];
+            globalUtilOptind++;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -2074,15 +2084,17 @@ int Cmd_CommandStarter( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     fclose( pFile );
     // run commands
-    Cmd_RunStarter( pFileName, nCores );
+    Cmd_RunStarter( pFileName, pAbc->sBinary, pCommand, nCores );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: starter [-N num] [-vh]\n" );
-    Abc_Print( -2, "\t         executes command listed in <file> concurrently on <num> CPUs\n" );
+    Abc_Print( -2, "usage: starter [-N num] [-C cmd] [-vh] <file>\n" );
+    Abc_Print( -2, "\t         executes command lines in <file> concurrently on <num> CPUs\n" );
     Abc_Print( -2, "\t-N num : the number of concurrent jobs counting the controler [default = %d]\n", nCores );
+    Abc_Print( -2, "\t-C cmd : (optional) ABC command line to execute on benchmarks in <file>\n" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
+    Abc_Print( -2, "\t<file> : file name with ABC command lines (or benchmark names, if <cmd> is given)\n");
     return 1;
 }
 
