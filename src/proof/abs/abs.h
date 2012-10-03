@@ -123,6 +123,10 @@ extern Vec_Int_t *       Gia_GlaConvertToFla( Gia_Man_t * p, Vec_Int_t * vGla );
 extern int               Gia_GlaCountFlops( Gia_Man_t * p, Vec_Int_t * vGla );
 extern int               Gia_GlaCountNodes( Gia_Man_t * p, Vec_Int_t * vGla );
 
+/*=== absRpm.c =========================================================*/
+extern Gia_Man_t *       Abs_RpmPerform( Gia_Man_t * p, int nCutMax, int fVerbose, int fVeryVerbose );
+/*=== absRpmOld.c =========================================================*/
+extern Gia_Man_t *       Abs_RpmPerformOld( Gia_Man_t * p, int fVerbose );
 
 /*=== absOldCex.c ==========================================================*/
 extern Vec_Int_t *       Saig_ManCbaFilterFlops( Aig_Man_t * pAig, Abc_Cex_t * pAbsCex, Vec_Int_t * vFlopClasses, Vec_Int_t * vAbsFfsToAdd, int nFfsToSelect );

@@ -857,8 +857,6 @@ extern void                Gia_MmStepEntryRecycle( Gia_MmStep_t * p, char * pEnt
 extern int                 Gia_MmStepReadMemUsage( Gia_MmStep_t * p );
 /*=== giaPat.c ===========================================================*/
 extern void                Gia_SatVerifyPattern( Gia_Man_t * p, Gia_Obj_t * pRoot, Vec_Int_t * vCex, Vec_Int_t * vVisit );
-/*=== giaReparam.c ===========================================================*/
-extern Gia_Man_t *         Gia_ManReparam( Gia_Man_t * p, int fVerbose );
 /*=== giaRetime.c ===========================================================*/
 extern Gia_Man_t *         Gia_ManRetimeForward( Gia_Man_t * p, int nMaxIters, int fVerbose );
 /*=== giaSat.c ============================================================*/

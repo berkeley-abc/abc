@@ -1,12 +1,12 @@
 /**CFile****************************************************************
 
-  FileName    [gia.c]
+  FileName    [absRpmOld.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
   PackageName [Scalable AIG package.]
 
-  Synopsis    []
+  Synopsis    [Old min-cut-based reparametrization.]
 
   Author      [Alan Mishchenko]
   
@@ -14,13 +14,11 @@
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
 
-  Revision    [$Id: gia.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
+  Revision    [$Id: absRpmOld.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
-#include "gia.h"
-#include "giaAig.h"
-#include "aig/saig/saig.h"
+#include "abs.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -140,7 +138,7 @@ Gia_Man_t * Gia_ManDupFf2In( Gia_Man_t * p, int nFlopsOld )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManReparam( Gia_Man_t * p, int fVerbose )
+Gia_Man_t * Abs_RpmPerformOld( Gia_Man_t * p, int fVerbose )
 {
 //    extern Aig_Man_t * Saig_ManRetimeMinArea( Aig_Man_t * p, int nMaxIters, int fForwardOnly, int fBackwardOnly, int fInitial, int fVerbose );
     Aig_Man_t * pMan, * pTemp;

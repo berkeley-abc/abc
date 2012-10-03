@@ -28,7 +28,6 @@ SRC +=    src/aig/gia/gia.c \
     src/aig/gia/giaMan.c \
     src/aig/gia/giaMem.c \
     src/aig/gia/giaPat.c \
-    src/aig/gia/giaReparam.c \
     src/aig/gia/giaRetime.c \
     src/aig/gia/giaScl.c \
     src/aig/gia/giaShrink.c \

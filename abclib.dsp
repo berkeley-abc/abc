@@ -3503,10 +3503,6 @@ SOURCE=.\src\aig\gia\giaPat.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\aig\gia\giaReparam.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\src\aig\gia\giaRetime.c
 # End Source File
 # Begin Source File
@@ -4408,6 +4404,10 @@ SOURCE=.\src\proof\abs\absRefSelect.c
 # Begin Source File
 
 SOURCE=.\src\proof\abs\absRpm.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\abs\absRpmOld.c
 # End Source File
 # Begin Source File
 
