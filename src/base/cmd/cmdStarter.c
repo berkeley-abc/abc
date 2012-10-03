@@ -244,8 +244,8 @@ void Cmd_RunStarter( char * pFileName, char * pBinary, char * pCommand, int nCor
     }
 
     // cleanup
-    status = pthread_mutex_destroy(&mutex);   assert(status == 0);
-    mutex = PTHREAD_MUTEX_INITIALIZER;
+//    status = pthread_mutex_destroy(&mutex);   assert(status == 0);
+//    mutex = PTHREAD_MUTEX_INITIALIZER;
     fprintf( stdout, "Finished processing commands in file \"%s\".  ", pFileName );
     Abc_PrintTime( 1, "Total wall time", clock() - clk );
     fflush( stdout );

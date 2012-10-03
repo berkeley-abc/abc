@@ -2089,8 +2089,8 @@ int CmdCommandStarter( Abc_Frame_t * pAbc, int argc, char ** argv )
 
 usage:
     Abc_Print( -2, "usage: starter [-N num] [-C cmd] [-vh] <file>\n" );
-    Abc_Print( -2, "\t         executes command lines in <file> concurrently on <num> CPUs\n" );
-    Abc_Print( -2, "\t-N num : the number of concurrent jobs counting the controler [default = %d]\n", nCores );
+    Abc_Print( -2, "\t         runs command lines listed in <file> concurrently on <num> CPUs\n" );
+    Abc_Print( -2, "\t-N num : the number of concurrent jobs including the controler [default = %d]\n", nCores );
     Abc_Print( -2, "\t-C cmd : (optional) ABC command line to execute on benchmarks in <file>\n" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
