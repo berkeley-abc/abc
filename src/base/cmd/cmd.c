@@ -57,6 +57,7 @@ static int CmdCommandVersion       ( Abc_Frame_t * pAbc, int argc, char ** argv 
 static int CmdCommandSis           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int CmdCommandMvsis         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int CmdCommandCapo          ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Cmd_CommandStarter      ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 extern int Cmd_CommandAbcLoadPlugIn( Abc_Frame_t * pAbc, int argc, char ** argv );
 
@@ -103,6 +104,7 @@ void Cmd_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Various", "sis",         CmdCommandSis,             1 ); 
     Cmd_CommandAdd( pAbc, "Various", "mvsis",       CmdCommandMvsis,           1 ); 
     Cmd_CommandAdd( pAbc, "Various", "capo",        CmdCommandCapo,            0 ); 
+    Cmd_CommandAdd( pAbc, "Various", "starter",     Cmd_CommandStarter,        0 );
 
     Cmd_CommandAdd( pAbc, "Various", "load_plugin", Cmd_CommandAbcLoadPlugIn,  0 );
 }
@@ -334,7 +336,7 @@ int CmdCommandHistory( Abc_Frame_t * pAbc, int argc, char **argv )
 {
     char * pName;
     int i, c;
-    int nPrints = 10;
+    int nPrints = 25;
     int iRepeat = -1;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "Nh" ) ) != EOF )
@@ -2009,6 +2011,79 @@ usage:
     fprintf( pErr, "         Please refer to the Capo webpage for additional information:\n" );
     fprintf( pErr, "         http://vlsicad.eecs.umich.edu/BK/PDtools/\n" );
     return 1;                    // error exit 
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Cmd_CommandStarter( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Cmd_RunStarter( char * pFileName, int nCores );
+    FILE * pFile;
+    char * pFileName;
+    int c, nCores    =  3;
+    int fVerbose     =  0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Nvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-N\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nCores = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nCores < 0 ) 
+                goto usage;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( argc != globalUtilOptind + 1 )
+    {
+        Abc_Print( -2, "The file name should be given on the command line.\n" );
+        return 1;
+    }
+    // get the input file name
+    pFileName = argv[globalUtilOptind];
+    if ( (pFile = Io_FileOpen( pFileName, "open_path", "rb", 0 )) == NULL )
+//    if ( (pFile = fopen( pFileName, "rb" )) == NULL )
+    {
+        Abc_Print( -2, "Cannot open input file \"%s\". ", pFileName );
+        if (( pFileName = Extra_FileGetSimilarName( pFileName, ".c", ".s", ".scr", ".script", NULL ) ))
+            Abc_Print( -2, "Did you mean \"%s\"?", pFileName );
+        Abc_Print( -2, "\n" );
+        return 1;
+    }
+    fclose( pFile );
+    // run commands
+    Cmd_RunStarter( pFileName, nCores );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: starter [-N num] [-vh]\n" );
+    Abc_Print( -2, "\t         executes command listed in <file> concurrently on <num> CPUs\n" );
+    Abc_Print( -2, "\t-N num : the number of concurrent jobs counting the controler [default = %d]\n", nCores );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
 }
 
 /**Function********************************************************************

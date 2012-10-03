@@ -98,12 +98,10 @@ int Abc_RealMain( int argc, char * argv[] )
     _CrtSetDbgFlag( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
 #endif
 
-//    Npn_Experiment();
-//    Npn_Generate();
-
     // get global frame (singleton pattern)
     // will be initialized on first call
     pAbc = Abc_FrameGetGlobalFrame();
+    pAbc->sBinary = argv[0];
 
 #ifdef ABC_PYTHON_EMBED
     {

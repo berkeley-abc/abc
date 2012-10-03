@@ -515,6 +515,10 @@ SOURCE=.\src\base\cmd\cmdPlugin.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\cmd\cmdStarter.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\cmd\cmdUtils.c
 # End Source File
 # End Group

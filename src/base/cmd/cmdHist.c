@@ -49,9 +49,11 @@ void Cmd_HistoryAddCommand(    Abc_Frame_t * p, const char * command )
 {
     int nLastLooked =  10;  // do not add history if the same entry appears among the last entries
     int nLastSaved  = 500;  // when saving a file, save no more than this number of last entries
-
     char Buffer[ABC_MAX_STR];
-    int Len = strlen(command);
+    int Len;
+    if ( p->fBatchMode )
+        return;
+    Len = strlen(command);
     strcpy( Buffer, command );
     if ( Buffer[Len-1] == '\n' )
         Buffer[Len-1] = 0;

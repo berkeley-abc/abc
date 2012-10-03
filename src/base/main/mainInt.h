@@ -58,6 +58,7 @@ struct Abc_Frame_t_
 {
     // general info
     char *          sVersion;      // the name of the current version
+    char *          sBinary;       // the name of the binary running
     // commands, aliases, etc
     st__table *      tCommands;     // the command table
     st__table *      tAliases;      // the alias table
