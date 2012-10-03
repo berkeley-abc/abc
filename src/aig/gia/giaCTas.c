@@ -441,8 +441,8 @@ static inline int Tas_VarFaninFanoutMax( Tas_Man_t * p, Gia_Obj_t * pObj )
     int Count0, Count1;
     assert( !Gia_IsComplement(pObj) );
     assert( Gia_ObjIsAnd(pObj) );
-    Count0 = Gia_ObjRefs( p->pAig, Gia_ObjFanin0(pObj) );
-    Count1 = Gia_ObjRefs( p->pAig, Gia_ObjFanin1(pObj) );
+    Count0 = Gia_ObjRefNum( p->pAig, Gia_ObjFanin0(pObj) );
+    Count1 = Gia_ObjRefNum( p->pAig, Gia_ObjFanin1(pObj) );
     return Abc_MaxInt( Count0, Count1 );
 }
 
@@ -1321,7 +1321,7 @@ int Tas_ManSolve_rec( Tas_Man_t * p, int Level )
     if ( pVar != NULL )
     {
         assert( Tas_VarIsJust( pVar ) );
-        if ( Gia_ObjRefs(p->pAig, Gia_ObjFanin0(pVar)) > Gia_ObjRefs(p->pAig, Gia_ObjFanin1(pVar)) )
+        if ( Gia_ObjRefNum(p->pAig, Gia_ObjFanin0(pVar)) > Gia_ObjRefNum(p->pAig, Gia_ObjFanin1(pVar)) )
             pDecVar = Gia_Not(Gia_ObjChild0(pVar));
         else
             pDecVar = Gia_Not(Gia_ObjChild1(pVar));

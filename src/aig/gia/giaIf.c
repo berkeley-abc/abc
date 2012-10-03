@@ -153,7 +153,7 @@ If_Man_t * Gia_ManToIf( Gia_Man_t * p, If_Par_t * pPars, Vec_Ptr_t * vAigToIf )
         // set up the choice node
 /*
 //        if ( p->pReprs && p->pNexts && Gia_ObjIsHead( p, i ) )
-        if ( p->pNexts && Gia_ObjNext(p, i) && Gia_ObjRefsId(p, i) )
+        if ( p->pNexts && Gia_ObjNext(p, i) && Gia_ObjRefNumId(p, i) )
         {
             int iPrev, iFanin;
             pIfMan->nChoices++;
@@ -509,7 +509,7 @@ void Gia_ManPrintNpnClasses( Gia_Man_t * p )
         Gia_LutForEachFanin( p, i, iFan, k )
         {
             Counter  += (pLutClass[iFan] == 109);
-            Counter2 += (pLutClass[iFan] == 109) && (Gia_ObjRefsId(p, iFan) == 1);
+            Counter2 += (pLutClass[iFan] == 109) && (Gia_ObjRefNumId(p, iFan) == 1);
         }
         OtherClasses  += (Counter > 1);
         OtherClasses2 += (Counter2 > 1);

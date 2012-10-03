@@ -110,7 +110,7 @@ void Gia_ManPrintSignals( Gia_Man_t * p, int * pFreq, char * pStr )
         if ( pFreq[i] > 10 )
         {
             printf( "%3d :   Obj = %6d   Refs = %6d   Freq = %6d\n", 
-                ++Counter, i, Gia_ObjRefs(p, Gia_ManObj(p,i)), pFreq[i] );
+                ++Counter, i, Gia_ObjRefNum(p, Gia_ManObj(p,i)), pFreq[i] );
             Vec_IntPush( vObjs, i );
         }
     Vec_IntFree( vObjs );

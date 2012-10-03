@@ -112,7 +112,7 @@ Gia_Man_t * Gia_ManFront( Gia_Man_t * p )
     int nCrossCutMaxInit = Gia_ManCrossCut( p );
     int iFront = 0;//, clk = clock(); 
     // set references for all objects
-    Gia_ManSetRefs( p );
+    Gia_ManCreateValueRefs( p );
     // start the new manager
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );

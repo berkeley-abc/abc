@@ -857,7 +857,7 @@ int Cec_ManSimClassesPrepare( Cec_ManSim_t * p, int LevelMax )
     p->pAig->pReprs = ABC_CALLOC( Gia_Rpr_t, Gia_ManObjNum(p->pAig) );
     p->pAig->pNexts = ABC_CALLOC( int, Gia_ManObjNum(p->pAig) );
     // create references
-    Gia_ManSetRefs( p->pAig );
+    Gia_ManCreateValueRefs( p->pAig );
     // set starting representative of internal nodes to be constant 0
     if ( p->pPars->fLatchCorr )
         Gia_ManForEachObj( p->pAig, pObj, i )
@@ -908,7 +908,7 @@ int Cec_ManSimClassesPrepare( Cec_ManSim_t * p, int LevelMax )
 int Cec_ManSimClassesRefine( Cec_ManSim_t * p )
 {
     int i;
-    Gia_ManSetRefs( p->pAig );
+    Gia_ManCreateValueRefs( p->pAig );
     p->nWords = p->pPars->nWords;
     for ( i = 0; i < p->pPars->nRounds; i++ )
     {

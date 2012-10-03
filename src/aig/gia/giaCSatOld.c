@@ -330,8 +330,8 @@ static inline int Cbs0_VarFaninFanoutMax( Cbs0_Man_t * p, Gia_Obj_t * pObj )
     int Count0, Count1;
     assert( !Gia_IsComplement(pObj) );
     assert( Gia_ObjIsAnd(pObj) );
-    Count0 = Gia_ObjRefs( p->pAig, Gia_ObjFanin0(pObj) );
-    Count1 = Gia_ObjRefs( p->pAig, Gia_ObjFanin1(pObj) );
+    Count0 = Gia_ObjRefNum( p->pAig, Gia_ObjFanin0(pObj) );
+    Count1 = Gia_ObjRefNum( p->pAig, Gia_ObjFanin1(pObj) );
     return Abc_MaxInt( Count0, Count1 );
 }
 
@@ -612,7 +612,7 @@ int Cbs0_ManSolve_rec( Cbs0_Man_t * p )
     else assert( 0 );
     assert( Cbs0_VarIsJust( pVar ) );
     // chose decision variable using fanout count
-    if ( Gia_ObjRefs(p->pAig, Gia_ObjFanin0(pVar)) > Gia_ObjRefs(p->pAig, Gia_ObjFanin1(pVar)) )
+    if ( Gia_ObjRefNum(p->pAig, Gia_ObjFanin0(pVar)) > Gia_ObjRefNum(p->pAig, Gia_ObjFanin1(pVar)) )
         pDecVar = Gia_Not(Gia_ObjChild0(pVar));
     else
         pDecVar = Gia_Not(Gia_ObjChild1(pVar));

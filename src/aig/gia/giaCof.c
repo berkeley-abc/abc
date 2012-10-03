@@ -143,7 +143,7 @@ Cof_Man_t * Cof_ManCreateLogicSimple( Gia_Man_t * pGia )
         pObj->Value = iHandle;
         pObjLog = Cof_ManObj( p, iHandle );
         pObjLog->nFanins  = 0;
-        pObjLog->nFanouts = Gia_ObjRefs( pGia, pObj );
+        pObjLog->nFanouts = Gia_ObjRefNum( pGia, pObj );
         pObjLog->Id       = i;
         pObjLog->Value    = 0;
         if ( Gia_ObjIsAnd(pObj) )
@@ -811,7 +811,7 @@ Vec_Int_t * Gia_ManCofVars( Gia_Man_t * p, int nFanLim )
     Gia_ManCreateRefs( p );
     vVars = Vec_IntAlloc( 100 );
     Gia_ManForEachObj( p, pObj, i )
-        if ( Gia_ObjIsCand(pObj) && Gia_ObjRefs(p, pObj) >= nFanLim )
+        if ( Gia_ObjIsCand(pObj) && Gia_ObjRefNum(p, pObj) >= nFanLim )
             Vec_IntPush( vVars, i );
     ABC_FREE( p->pRefs );
     return vVars;
@@ -877,7 +877,7 @@ Gia_Man_t * Gia_ManDupCofAllInt( Gia_Man_t * p, Vec_Int_t * vSigs, int fVerbose 
         Vec_IntSort( vSigsNew, 0 );
         iVar = Vec_IntPop( vSigsNew );
 //        Gia_ManCreateRefs( pAig );
-//        printf( "ref count = %d\n", Gia_ObjRefs( pAig, Gia_ManObj(pAig, iVar) ) );
+//        printf( "ref count = %d\n", Gia_ObjRefNum( pAig, Gia_ManObj(pAig, iVar) ) );
 //        ABC_FREE( pAig->pRefs );
         pCof = Gia_ManDupCofInt( pAig, iVar );
         pNew = Gia_ManCleanup( pCof );

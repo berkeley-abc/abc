@@ -190,7 +190,7 @@ Emb_Man_t * Emb_ManStartSimple( Gia_Man_t * pGia )
     pObjLog = Emb_ManObj( p, hHandle );
     pObjLog->hHandle  = hHandle;
     pObjLog->nFanins  = Gia_ManCoNum(pGia);  //0;
-    pObjLog->nFanouts = Gia_ObjRefs( pGia, Gia_ManConst0(pGia) );
+    pObjLog->nFanouts = Gia_ObjRefNum( pGia, Gia_ManConst0(pGia) );
     // count objects
     hHandle += Emb_ObjSize( pObjLog );
     nNodes = 1;
@@ -204,7 +204,7 @@ Emb_Man_t * Emb_ManStartSimple( Gia_Man_t * pGia )
         pObjLog = Emb_ManObj( p, hHandle );
         pObjLog->hHandle  = hHandle;
         pObjLog->nFanins  = Gia_ObjIsRo( pGia, pObj );
-        pObjLog->nFanouts = Gia_ObjRefs( pGia, pObj );
+        pObjLog->nFanouts = Gia_ObjRefNum( pGia, pObj );
         pObjLog->fCi = 1;
         // count objects
         hHandle += Emb_ObjSize( pObjLog );
@@ -213,13 +213,13 @@ Emb_Man_t * Emb_ManStartSimple( Gia_Man_t * pGia )
     // create internal nodes
     Gia_ManForEachAnd( pGia, pObj, i )
     {
-        assert( Gia_ObjRefs( pGia, pObj ) > 0 );
+        assert( Gia_ObjRefNum( pGia, pObj ) > 0 );
         // create node object
         pObj->Value = hHandle;
         pObjLog = Emb_ManObj( p, hHandle );
         pObjLog->hHandle  = hHandle;
         pObjLog->nFanins  = 2;
-        pObjLog->nFanouts = Gia_ObjRefs( pGia, pObj );
+        pObjLog->nFanouts = Gia_ObjRefNum( pGia, pObj );
         // add fanins
         pFanLog = Emb_ManObj( p, Gia_ObjValue(Gia_ObjFanin0(pObj)) ); 
         Emb_ObjAddFanin( pObjLog, pFanLog );
@@ -364,7 +364,7 @@ void Emb_ManCreateRefsSpecial( Gia_Man_t * p )
             Gia_ObjRefDec( p, Gia_Regular(pObjD0) );
     }
     Gia_ManForEachAnd( p, pObj, i )
-        assert( Gia_ObjRefs(p, pObj) > 0 );
+        assert( Gia_ObjRefNum(p, pObj) > 0 );
     Gia_ManCleanMark0( p );
 }
 
@@ -394,7 +394,7 @@ void Emb_ManTransformRefs( Gia_Man_t * p, int * pnObjs, int * pnFanios )
         pObj->fMark0 = 1;
     // mark those nodes that have ref count more than 1
     Gia_ManForEachAnd( p, pObj, i )
-        pObj->fMark0 = (Gia_ObjRefs(p, pObj) > 1);
+        pObj->fMark0 = (Gia_ObjRefNum(p, pObj) > 1);
     // mark the output drivers
     Gia_ManForEachCoDriver( p, pObj, i )
         pObj->fMark0 = 1;
@@ -516,7 +516,7 @@ Emb_Man_t * Emb_ManStart( Gia_Man_t * pGia )
     pObjLog = Emb_ManObj( p, hHandle );
     pObjLog->hHandle  = hHandle;
     pObjLog->nFanins  = Gia_ManCoNum(pGia);  //0;
-    pObjLog->nFanouts = Gia_ObjRefs( pGia, Gia_ManConst0(pGia) );
+    pObjLog->nFanouts = Gia_ObjRefNum( pGia, Gia_ManConst0(pGia) );
     // count objects
     hHandle += Emb_ObjSize( pObjLog );
     nNodes++;
@@ -530,7 +530,7 @@ Emb_Man_t * Emb_ManStart( Gia_Man_t * pGia )
         pObjLog = Emb_ManObj( p, hHandle );
         pObjLog->hHandle  = hHandle;
         pObjLog->nFanins  = Gia_ObjIsRo( pGia, pObj );
-        pObjLog->nFanouts = Gia_ObjRefs( pGia, pObj );
+        pObjLog->nFanouts = Gia_ObjRefNum( pGia, pObj );
         pObjLog->fCi = 1;
         // count objects
         hHandle += Emb_ObjSize( pObjLog );
@@ -543,17 +543,17 @@ Emb_Man_t * Emb_ManStart( Gia_Man_t * pGia )
     {
         if ( pObj->fMark0 == 0 )
         {
-            assert( Gia_ObjRefs( pGia, pObj ) == 0 );
+            assert( Gia_ObjRefNum( pGia, pObj ) == 0 );
             continue;
         }
-        assert( Gia_ObjRefs( pGia, pObj ) > 0 );
+        assert( Gia_ObjRefNum( pGia, pObj ) > 0 );
         Emb_ManCollectSuper( pGia, pObj, vSuper, vVisit );
         // create node object
         pObj->Value = hHandle;
         pObjLog = Emb_ManObj( p, hHandle );
         pObjLog->hHandle  = hHandle;
         pObjLog->nFanins  = Vec_IntSize( vSuper );
-        pObjLog->nFanouts = Gia_ObjRefs( pGia, pObj );
+        pObjLog->nFanouts = Gia_ObjRefNum( pGia, pObj );
         // add fanins
         Gia_ManForEachObjVec( vSuper, pGia, pFanin, k )
         {

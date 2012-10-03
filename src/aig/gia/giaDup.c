@@ -1061,7 +1061,7 @@ Gia_Man_t * Gia_ManDupTrimmed( Gia_Man_t * p, int fTrimCis, int fTrimCos, int fD
     // check if there are PIs to be added
     Gia_ManCreateRefs( p );
     Gia_ManForEachPi( p, pObj, i )
-        if ( !fTrimCis || Gia_ObjRefs(p, pObj) )
+        if ( !fTrimCis || Gia_ObjRefNum(p, pObj) )
             break;
     if ( i == Gia_ManPiNum(p) ) // there is no PIs - add dummy PI
         Gia_ManAppendCi(pNew);
@@ -1069,7 +1069,7 @@ Gia_Man_t * Gia_ManDupTrimmed( Gia_Man_t * p, int fTrimCis, int fTrimCos, int fD
     Gia_ManFillValue( p );
     Gia_ManConst0(p)->Value = 0;
     Gia_ManForEachCi( p, pObj, i )
-        if ( !fTrimCis || Gia_ObjRefs(p, pObj) || Gia_ObjIsRo(p, pObj) )
+        if ( !fTrimCis || Gia_ObjRefNum(p, pObj) || Gia_ObjIsRo(p, pObj) )
             pObj->Value = Gia_ManAppendCi(pNew);
     Gia_ManForEachAnd( p, pObj, i )
         pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
@@ -1142,7 +1142,7 @@ Gia_Man_t * Gia_ManDupTrimmed2( Gia_Man_t * p )
         Gia_ObjRefFanin0Dec( p, pObj );
     // check if PIs are left
     Gia_ManForEachPi( p, pObj, i )
-        if ( Gia_ObjRefs(p, pObj) )
+        if ( Gia_ObjRefNum(p, pObj) )
             break;
     if ( i == Gia_ManPiNum(p) ) // there is no PIs - add dummy PI
         Gia_ManAppendCi(pNew);
@@ -1150,7 +1150,7 @@ Gia_Man_t * Gia_ManDupTrimmed2( Gia_Man_t * p )
     Gia_ManFillValue( p );
     Gia_ManConst0(p)->Value = 0;
     Gia_ManForEachCi( p, pObj, i )
-        if ( Gia_ObjRefs(p, pObj) || Gia_ObjIsRo(p, pObj) )
+        if ( Gia_ObjRefNum(p, pObj) || Gia_ObjIsRo(p, pObj) )
             pObj->Value = Gia_ManAppendCi(pNew);
     Gia_ManForEachAnd( p, pObj, i )
         pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );

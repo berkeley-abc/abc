@@ -197,7 +197,7 @@ p->timePat += clock() - clk;
 clk = clock();
     if ( vInfo != NULL )
     {
-        Gia_ManSetRefs( p->pAig );
+        Gia_ManCreateValueRefs( p->pAig );
         for ( i = 0; i < pPat->nSeries; i++ )
         {
             Cec_ManFraCreateInfo( pSim, pSim->vCiSimInfo, vInfo, i );

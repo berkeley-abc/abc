@@ -548,7 +548,7 @@ int Cec_ManResimulateCounterExamples( Cec_ManSim_t * pSim, Vec_Int_t * vCexStore
     Vec_Ptr_t * vSimInfo; 
     int RetValue = 0, iStart = 0;
     vPairs = Gia_ManCorrCreateRemapping( pSim->pAig );
-    Gia_ManSetRefs( pSim->pAig );
+    Gia_ManCreateValueRefs( pSim->pAig );
 //    pSim->pPars->nWords  = 63;
     pSim->pPars->nFrames = nFrames;
     vSimInfo = Vec_PtrAllocSimInfo( Gia_ManRegNum(pSim->pAig) + Gia_ManPiNum(pSim->pAig) * nFrames, pSim->pPars->nWords );
@@ -584,7 +584,7 @@ int Cec_ManResimulateCounterExamplesComb( Cec_ManSim_t * pSim, Vec_Int_t * vCexS
 { 
     Vec_Ptr_t * vSimInfo; 
     int RetValue = 0, iStart = 0;
-    Gia_ManSetRefs( pSim->pAig );
+    Gia_ManCreateValueRefs( pSim->pAig );
     pSim->pPars->nFrames = 1;
     vSimInfo = Vec_PtrAllocSimInfo( Gia_ManCiNum(pSim->pAig), pSim->pPars->nWords );
     while ( iStart < Vec_IntSize(vCexStore) )

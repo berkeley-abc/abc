@@ -93,7 +93,7 @@ void Gia_ManComputeDoms( Gia_Man_t * p )
     {
         if ( i == 0 || Gia_ObjIsCi(pObj) )
             continue;
-        if ( pObj->fMark1 || (p->pRefs && Gia_ObjIsAnd(pObj) && Gia_ObjRefs(p, pObj) == 0) )
+        if ( pObj->fMark1 || (p->pRefs && Gia_ObjIsAnd(pObj) && Gia_ObjRefNum(p, pObj) == 0) )
             continue;
         if ( Gia_ObjIsCo(pObj) )
         {
@@ -173,7 +173,7 @@ Vec_Int_t * Gia_ManCollectDoms( Gia_Man_t * p )
     {
         if ( !pObj->fMark1 )
             continue;
-        if ( p->pRefs && Gia_ObjRefs(p, pObj) == 0 )
+        if ( p->pRefs && Gia_ObjRefNum(p, pObj) == 0 )
             continue;
         iDom = Gia_ObjDom(p, pObj);
         if ( iDom == -1 )
@@ -238,7 +238,7 @@ void Gia_ManCountFanoutlessFlops( Gia_Man_t * p )
     int Counter = 0;
     Gia_ManCreateRefs( p );
     Gia_ManForEachRo( p, pObj, i )
-        if ( Gia_ObjRefs(p, pObj) == 0 )
+        if ( Gia_ObjRefNum(p, pObj) == 0 )
             Counter++;
     printf( "Fanoutless flops = %d.\n", Counter );
     ABC_FREE( p->pRefs );
@@ -305,11 +305,11 @@ int Abs_GiaObjDeref_rec( Gia_Man_t * p, Gia_Obj_t * pNode )
         return 0;
     assert( Gia_ObjIsAnd(pNode) );
     pFanin = Gia_ObjFanin0(pNode);
-    assert( Gia_ObjRefs(p, pFanin) > 0 );
+    assert( Gia_ObjRefNum(p, pFanin) > 0 );
     if ( Gia_ObjRefDec(p, pFanin) == 0 )
         Counter += Abs_GiaObjDeref_rec( p, pFanin );
     pFanin = Gia_ObjFanin1(pNode);
-    assert( Gia_ObjRefs(p, pFanin) > 0 );
+    assert( Gia_ObjRefNum(p, pFanin) > 0 );
     if ( Gia_ObjRefDec(p, pFanin) == 0 )
         Counter += Abs_GiaObjDeref_rec( p, pFanin );
     return Counter + 1;
@@ -347,14 +347,14 @@ int Abs_GiaSortNodes( Gia_Man_t * p, Vec_Int_t * vSupp )
     int nSize = Vec_IntSize(vSupp);
     int i, RetValue;
     Gia_ManForEachObjVec( vSupp, p, pObj, i )
-        if ( i < nSize && Gia_ObjRefs(p, pObj) == 0 && !Gia_ObjIsRo(p, pObj) ) // add removable leaves
+        if ( i < nSize && Gia_ObjRefNum(p, pObj) == 0 && !Gia_ObjIsRo(p, pObj) ) // add removable leaves
         {
             assert( pObj->fMark1 );
             Vec_IntPush( vSupp, Gia_ObjId(p, pObj) );
         }
     RetValue = Vec_IntSize(vSupp) - nSize;
     Gia_ManForEachObjVec( vSupp, p, pObj, i )
-        if ( i < nSize && !(Gia_ObjRefs(p, pObj) == 0 && !Gia_ObjIsRo(p, pObj)) ) // add non-removable leaves
+        if ( i < nSize && !(Gia_ObjRefNum(p, pObj) == 0 && !Gia_ObjIsRo(p, pObj)) ) // add non-removable leaves
             Vec_IntPush( vSupp, Gia_ObjId(p, pObj) );
     assert( Vec_IntSize(vSupp) == 2 * nSize );
     memmove( Vec_IntArray(vSupp), Vec_IntArray(vSupp) + nSize, sizeof(int) * nSize );
@@ -413,7 +413,7 @@ void Abs_ManSupport2_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vSupp )
     if ( Gia_ObjIsTravIdCurrent(p, pObj) )
         return;
     Gia_ObjSetTravIdCurrent(p, pObj);
-    if ( pObj->fMark1 || Gia_ObjIsRo(p, pObj) || Gia_ObjRefs(p, pObj) > 0 )
+    if ( pObj->fMark1 || Gia_ObjIsRo(p, pObj) || Gia_ObjRefNum(p, pObj) > 0 )
     {
         Vec_IntPush( vSupp, Gia_ObjId(p, pObj) );
         return;
@@ -464,7 +464,7 @@ int Abs_ManSupport3( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vSupp )
             if ( !Gia_ObjIsAnd(pTemp) )
                 continue;
             assert( !pTemp->fMark1 );
-            assert( Gia_ObjRefs(p, pTemp) > 0 );
+            assert( Gia_ObjRefNum(p, pTemp) > 0 );
             pFan0 = Gia_ObjFanin0(pTemp);
             pFan1 = Gia_ObjFanin1(pTemp);
             if ( Gia_ObjIsTravIdCurrent(p, pFan0) && Gia_ObjIsTravIdCurrent(p, pFan1) )
@@ -630,7 +630,7 @@ void Abs_RpmPerformMark( Gia_Man_t * p, int nCutMax, int fVerbose, int fVeryVerb
         Gia_ManForEachObjVec( vDoms, p, pObj, i )
         {
             assert( !pObj->fMark1 );
-            assert( Gia_ObjRefs( p, pObj ) > 0 );
+            assert( Gia_ObjRefNum( p, pObj ) > 0 );
             // dereference root node
             nNodes = Abs_GiaObjDeref_rec( p, pObj );
 /*

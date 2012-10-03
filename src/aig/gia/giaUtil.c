@@ -465,7 +465,7 @@ int Gia_ManLevelNum( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManSetRefs( Gia_Man_t * p )  
+void Gia_ManCreateValueRefs( Gia_Man_t * p )  
 {
     Gia_Obj_t * pObj;
     int i;
@@ -554,7 +554,7 @@ int Gia_ManCrossCut( Gia_Man_t * p )
 {
     Gia_Obj_t * pObj;
     int i, nCutCur = 0, nCutMax = 0;
-    Gia_ManSetRefs( p );
+    Gia_ManCreateValueRefs( p );
     Gia_ManForEachObj( p, pObj, i )
     {
         if ( pObj->Value )
@@ -810,11 +810,11 @@ int Gia_NodeDeref_rec( Gia_Man_t * p, Gia_Obj_t * pNode )
         return 0;
     assert( Gia_ObjIsAnd(pNode) );
     pFanin = Gia_ObjFanin0(pNode);
-    assert( Gia_ObjRefs(p, pFanin) > 0 );
+    assert( Gia_ObjRefNum(p, pFanin) > 0 );
     if ( Gia_ObjRefDec(p, pFanin) == 0 )
         Counter += Gia_NodeDeref_rec( p, pFanin );
     pFanin = Gia_ObjFanin1(pNode);
-    assert( Gia_ObjRefs(p, pFanin) > 0 );
+    assert( Gia_ObjRefNum(p, pFanin) > 0 );
     if ( Gia_ObjRefDec(p, pFanin) == 0 )
         Counter += Gia_NodeDeref_rec( p, pFanin );
     return Counter + 1;
@@ -1027,7 +1027,7 @@ void Gia_ObjPrint( Gia_Man_t * p, Gia_Obj_t * pObj )
             Gia_ObjFaninId0p(p, pObj), (Gia_ObjFaninC0(pObj)? "\'" : " "), 
             Gia_ObjFaninId1p(p, pObj), (Gia_ObjFaninC1(pObj)? "\'" : " ") );
     if ( p->pRefs )
-        printf( " (refs = %3d)", Gia_ObjRefs(p, pObj) );
+        printf( " (refs = %3d)", Gia_ObjRefNum(p, pObj) );
     printf( "\n" );
 /*
     if ( p->pRefs )

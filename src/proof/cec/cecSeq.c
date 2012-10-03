@@ -191,7 +191,7 @@ int Cec_ManSeqResimulateInfo( Gia_Man_t * pAig, Vec_Ptr_t * vSimInfo, Abc_Cex_t 
     pParsSim->nFrames = (Vec_PtrSize(vSimInfo) - Gia_ManRegNum(pAig)) / Gia_ManPiNum(pAig);
     pParsSim->nWords  = Vec_PtrReadWordsSimInfo( vSimInfo );
     pParsSim->fCheckMiter = fCheckMiter;
-    Gia_ManSetRefs( pAig );
+    Gia_ManCreateValueRefs( pAig );
     pSim = Cec_ManSimStart( pAig, pParsSim );
     if ( pBestState )
         pSim->pBestState = pBestState;

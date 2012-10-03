@@ -358,7 +358,7 @@ void Gia_ManSatExperiment( Gia_Man_t * p )
     int nWords = 0, nWords2 = 0;
     pMan = Gia_ManSatStart();
     // mark the nodes to become roots of leaf-DAGs
-    Gia_ManSetRefs( p );
+    Gia_ManCreateValueRefs( p );
     Gia_ManForEachObj( p, pObj, i )
     {
         pObj->fMark0 = 0;

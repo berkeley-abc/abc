@@ -228,7 +228,7 @@ int Gia_ManHasChoices( Gia_Man_t * p )
     Gia_ManCreateRefs( p );
     Gia_ManForEachAnd( p, pObj, i )
     {
-        if ( Gia_ObjRefs(p, pObj) == 0 )
+        if ( Gia_ObjRefNum(p, pObj) == 0 )
         {
             if ( Gia_ObjReprObj( p, Gia_ObjId(p, pObj) ) == NULL )
                 nFailNoRepr++;

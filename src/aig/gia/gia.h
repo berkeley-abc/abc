@@ -109,7 +109,6 @@ struct Gia_Man_t_
     int            nHTable;       // hash table size 
     int            fAddStrash;    // performs additional structural hashing
     int *          pRefs;         // the reference count
-    int *          pNodeRefs;     // node references
     Vec_Int_t *    vLevels;       // levels of the nodes
     int            nLevels;       // the mamixum level
     int            nConstrs;      // the number of constraints
@@ -368,21 +367,14 @@ static inline void         Gia_ObjSetAndLevel( Gia_Man_t * p, Gia_Obj_t * pObj )
 static inline int          Gia_ObjNum( Gia_Man_t * p, Gia_Obj_t * pObj )       { return (int)(unsigned char)Vec_StrGetEntry(p->vTtNums, Gia_ObjId(p,pObj));                  }
 static inline void         Gia_ObjSetNum( Gia_Man_t * p, Gia_Obj_t * pObj, int n ) { assert( n >= 0 && n < 254 ); Vec_StrSetEntry(p->vTtNums, Gia_ObjId(p,pObj), (char)n);   }
 
-static inline int          Gia_ObjRefs( Gia_Man_t * p, Gia_Obj_t * pObj )      { assert( p->pRefs); return p->pRefs[Gia_ObjId(p, pObj)];    }
-static inline int          Gia_ObjRefsId( Gia_Man_t * p, int Id )              { assert( p->pRefs); return p->pRefs[Id];                    }
-static inline int          Gia_ObjRefInc( Gia_Man_t * p, Gia_Obj_t * pObj )    { assert( p->pRefs); return p->pRefs[Gia_ObjId(p, pObj)]++;  }
-static inline int          Gia_ObjRefDec( Gia_Man_t * p, Gia_Obj_t * pObj )    { assert( p->pRefs); return --p->pRefs[Gia_ObjId(p, pObj)];  }
-static inline void         Gia_ObjRefFanin0Inc(Gia_Man_t * p, Gia_Obj_t * pObj){ assert( p->pRefs); Gia_ObjRefInc(p, Gia_ObjFanin0(pObj));  }
-static inline void         Gia_ObjRefFanin1Inc(Gia_Man_t * p, Gia_Obj_t * pObj){ assert( p->pRefs); Gia_ObjRefInc(p, Gia_ObjFanin1(pObj));  }
-static inline void         Gia_ObjRefFanin0Dec(Gia_Man_t * p, Gia_Obj_t * pObj){ assert( p->pRefs); Gia_ObjRefDec(p, Gia_ObjFanin0(pObj));  }
-static inline void         Gia_ObjRefFanin1Dec(Gia_Man_t * p, Gia_Obj_t * pObj){ assert( p->pRefs); Gia_ObjRefDec(p, Gia_ObjFanin1(pObj));  }
-
-static inline int          Gia_ObjNodeRefs( Gia_Man_t * p, Gia_Obj_t * pObj )      { assert( p->pNodeRefs); return p->pNodeRefs[Gia_ObjId(p, pObj)];    }
-static inline int          Gia_ObjNodeRefsId( Gia_Man_t * p, int Id )              { assert( p->pNodeRefs); return p->pNodeRefs[Id];                    }
-static inline int          Gia_ObjNodeRefIncId( Gia_Man_t * p, int Id )            { assert( p->pNodeRefs); return p->pNodeRefs[Id]++;                  }
-static inline int          Gia_ObjNodeRefDecId( Gia_Man_t * p, int Id )            { assert( p->pNodeRefs); return --p->pNodeRefs[Id];                  }
-static inline int          Gia_ObjNodeRefInc( Gia_Man_t * p, Gia_Obj_t * pObj )    { assert( p->pNodeRefs); return p->pNodeRefs[Gia_ObjId(p, pObj)]++;  }
-static inline int          Gia_ObjNodeRefDec( Gia_Man_t * p, Gia_Obj_t * pObj )    { assert( p->pNodeRefs); return --p->pNodeRefs[Gia_ObjId(p, pObj)];  }
+static inline int          Gia_ObjRefNumId( Gia_Man_t * p, int Id )            { assert(p->pRefs); return p->pRefs[Id];                    }
+static inline int          Gia_ObjRefNum( Gia_Man_t * p, Gia_Obj_t * pObj )    { assert(p->pRefs); return p->pRefs[Gia_ObjId(p, pObj)];    }
+static inline int          Gia_ObjRefInc( Gia_Man_t * p, Gia_Obj_t * pObj )    { assert(p->pRefs); return p->pRefs[Gia_ObjId(p, pObj)]++;  }
+static inline int          Gia_ObjRefDec( Gia_Man_t * p, Gia_Obj_t * pObj )    { assert(p->pRefs); return --p->pRefs[Gia_ObjId(p, pObj)];  }
+static inline void         Gia_ObjRefFanin0Inc(Gia_Man_t * p, Gia_Obj_t * pObj){ assert(p->pRefs); Gia_ObjRefInc(p, Gia_ObjFanin0(pObj));  }
+static inline void         Gia_ObjRefFanin1Inc(Gia_Man_t * p, Gia_Obj_t * pObj){ assert(p->pRefs); Gia_ObjRefInc(p, Gia_ObjFanin1(pObj));  }
+static inline void         Gia_ObjRefFanin0Dec(Gia_Man_t * p, Gia_Obj_t * pObj){ assert(p->pRefs); Gia_ObjRefDec(p, Gia_ObjFanin0(pObj));  }
+static inline void         Gia_ObjRefFanin1Dec(Gia_Man_t * p, Gia_Obj_t * pObj){ assert(p->pRefs); Gia_ObjRefDec(p, Gia_ObjFanin1(pObj));  }
 
 static inline void         Gia_ObjSetTravIdCurrent( Gia_Man_t * p, Gia_Obj_t * pObj )         { assert( Gia_ObjId(p, pObj) < p->nTravIdsAlloc ); p->pTravIds[Gia_ObjId(p, pObj)] = p->nTravIds;                    }
 static inline void         Gia_ObjSetTravIdPrevious( Gia_Man_t * p, Gia_Obj_t * pObj )        { assert( Gia_ObjId(p, pObj) < p->nTravIdsAlloc ); p->pTravIds[Gia_ObjId(p, pObj)] = p->nTravIds - 1;                }
@@ -911,9 +903,9 @@ extern void                Gia_ManSetPhase( Gia_Man_t * p );
 extern void                Gia_ManSetPhase1( Gia_Man_t * p );
 extern void                Gia_ManCleanPhase( Gia_Man_t * p );
 extern int                 Gia_ManLevelNum( Gia_Man_t * p );
-extern void                Gia_ManSetRefs( Gia_Man_t * p );
-extern int *               Gia_ManCreateMuxRefs( Gia_Man_t * p );
+extern void                Gia_ManCreateValueRefs( Gia_Man_t * p );
 extern void                Gia_ManCreateRefs( Gia_Man_t * p );
+extern int *               Gia_ManCreateMuxRefs( Gia_Man_t * p );
 extern int                 Gia_ManCrossCut( Gia_Man_t * p );
 extern int                 Gia_ManIsNormalized( Gia_Man_t * p );
 extern Vec_Int_t *         Gia_ManCollectPoIds( Gia_Man_t * p );

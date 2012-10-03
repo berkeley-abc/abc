@@ -301,7 +301,7 @@ Vec_Int_t * Abc_ManExpandCex( Gia_Man_t * pGia, Vec_Int_t * vCex )
     {
         Gia_ManForEachPi( pGia, pObj, i )
         {
-            if ( Gia_ObjRefs(pGia, pObj) == 0 )
+            if ( Gia_ObjRefNum(pGia, pObj) == 0 )
                 Vec_IntPush( vCexNew, 0 );
             else
             {
