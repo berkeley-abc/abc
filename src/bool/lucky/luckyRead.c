@@ -112,7 +112,7 @@ static inline Abc_TtStore_t * Abc_TruthStoreAlloc( int nVars, int nFuncs )
 }
 
 // free memory previously allocated for storing truth tables
-static inline void Abc_TruthStoreFree( Abc_TtStore_t * p )
+void Abc_TruthStoreFree( Abc_TtStore_t * p )
 {
     free( p->pFuncs[0] );
     free( p->pFuncs );
