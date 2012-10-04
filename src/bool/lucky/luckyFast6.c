@@ -48,7 +48,7 @@ void resetPCanonPermArray(char* x, int nVars)
     
 }
 
-inline unsigned adjustInfoAfterSwap(char* pCanonPerm, unsigned uCanonPhase, int iVar, unsigned info)
+unsigned adjustInfoAfterSwap(char* pCanonPerm, unsigned uCanonPhase, int iVar, unsigned info)
 {   
     if(info<4)
         return (uCanonPhase ^= (info << iVar));
@@ -262,12 +262,12 @@ inline word Extra_Truth6MinimumRoundMany1( word t, int* pStore, char* pCanonPerm
     return Extra_Truth6MinimumRoundMany( t, pStore, pCanonPerm, pCanonPhase);
 }
 
-inline word luckyCanonicizer_final_fast_6Vars(word InOut, int* pStore, char* pCanonPerm, unsigned* pCanonPhase)
+word luckyCanonicizer_final_fast_6Vars(word InOut, int* pStore, char* pCanonPerm, unsigned* pCanonPhase)
 {
     (* pCanonPhase) = Kit_TruthSemiCanonicize_Yasha1( &InOut, 6, pCanonPerm, pStore);
     return Extra_Truth6MinimumRoundMany1(InOut, pStore, pCanonPerm, pCanonPhase); 
 }
-inline word luckyCanonicizer_final_fast_6Vars1(word InOut, int* pStore, char* pCanonPerm, unsigned* pCanonPhase )
+word luckyCanonicizer_final_fast_6Vars1(word InOut, int* pStore, char* pCanonPerm, unsigned* pCanonPhase )
 {
     (* pCanonPhase) = Kit_TruthSemiCanonicize_Yasha1( &InOut, 6, pCanonPerm, pStore);
     InOut = Extra_Truth6MinimumRoundMany1(InOut, pStore, pCanonPerm, pCanonPhase);
