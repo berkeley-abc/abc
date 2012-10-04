@@ -1786,7 +1786,7 @@ int Gia_ManPerformGla( Gia_Man_t * pAig, Abs_Par_t * pPars )
                     Abc_FrameSetStatus( -1 );
                     Abc_FrameSetCex( NULL );
                     Abc_FrameSetNFrames( f+1 );
-                    sprintf( Command, "write_status %s", Extra_FileNameGenericAppend((p->pPars->pFileVabs ? p->pPars->pFileVabs : "glabs.aig"), ".status") );
+                    sprintf( Command, "write_status %s", Extra_FileNameGenericAppend( (char *)(p->pPars->pFileVabs ? p->pPars->pFileVabs : "glabs.aig"), ".status") );
                     Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Command );
                     Ga2_GlaDumpAbsracted( p, pPars->fVerbose );
                 }
