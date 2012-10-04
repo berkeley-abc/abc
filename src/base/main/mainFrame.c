@@ -378,6 +378,9 @@ void Abc_FrameSetCurrentNetwork( Abc_Frame_t * p, Abc_Ntk_t * pNtkNew )
     int nNetsToSave;
     char * pValue;
 
+    if ( p->pNtkCur == pNtkNew )
+        return;
+
     // link it to the previous network
     Abc_NtkSetBackup( pNtkNew, p->pNtkCur );
     // set the step of this network
