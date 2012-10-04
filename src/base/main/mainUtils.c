@@ -21,7 +21,7 @@
 #include "base/abc/abc.h"
 #include "mainInt.h"
 
-#if !defined(_WIN32) //&& defined(HAVE_LIBREADLINE)
+#if !defined(_WIN32) && !defined(AIX) 
 #include <readline/readline.h>
 #include <readline/history.h>
 #endif
@@ -72,7 +72,7 @@ char * Abc_UtilsGetUsersInput( Abc_Frame_t * pAbc )
 {
     static char Prompt[5000];
     sprintf( Prompt, "abc %02d> ", pAbc->nSteps );
-#if !defined(_WIN32) //&& defined(HAVE_LIBREADLINE)
+#if !defined(_WIN32) && !defined(AIX) 
     {
     static char * line = NULL;
     if (line != NULL) ABC_FREE(line);
