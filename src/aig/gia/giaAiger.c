@@ -1397,11 +1397,11 @@ void Gia_WriteAiger( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
     // create normalized AIG
     if ( !Gia_ManIsNormalized(pInit) )
     {
-        Tim_Man_t * pManTime;
-        pManTime = pInit->pManTime;    pInit->pManTime     = NULL;
 //        printf( "Gia_WriteAiger(): Normalizing AIG for writing.\n" );
         p = Gia_ManDupNormalize( pInit );
-        p->pManTime = pManTime;
+        p->pManTime  = pInit->pManTime;  pInit->pManTime = NULL;
+        p->vNamesIn  = pInit->vNamesIn;  pInit->vNamesIn = NULL;
+        p->vNamesOut = pInit->vNamesOut; pInit->vNamesOut = NULL;
     }
     else
         p = pInit;
@@ -1581,7 +1581,12 @@ void Gia_WriteAiger( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
     fprintf( pFile, "For information about AIGER format, refer to %s\n", "http://fmv.jku.at/aiger" );
     fclose( pFile );
     if ( p != pInit )
+    {
+        pInit->pManTime  = p->pManTime;  p->pManTime = NULL;
+        pInit->vNamesIn  = p->vNamesIn;  p->vNamesIn = NULL;
+        pInit->vNamesOut = p->vNamesOut; p->vNamesOut = NULL;
         Gia_ManStop( p );
+    }
 }
 
 /**Function*************************************************************

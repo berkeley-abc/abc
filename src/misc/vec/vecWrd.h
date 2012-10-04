@@ -428,7 +428,7 @@ static inline void Vec_WrdWriteEntry( Vec_Wrd_t * p, int i, word Entry )
   SeeAlso     []
 
 ***********************************************************************/
-static inline word Vec_WrdAddToEntry( Vec_Wrd_t * p, int i, int Addition )
+static inline word Vec_WrdAddToEntry( Vec_Wrd_t * p, int i, word Addition )
 {
     assert( i >= 0 && i < p->nSize );
     return p->pArray[i] += Addition;
@@ -482,7 +482,7 @@ static inline void Vec_WrdGrow( Vec_Wrd_t * p, int nCapMin )
   SeeAlso     []
 
 ***********************************************************************/
-static inline void Vec_WrdFill( Vec_Wrd_t * p, int nSize, int Fill )
+static inline void Vec_WrdFill( Vec_Wrd_t * p, int nSize, word Fill )
 {
     int i;
     Vec_WrdGrow( p, nSize );
@@ -502,7 +502,7 @@ static inline void Vec_WrdFill( Vec_Wrd_t * p, int nSize, int Fill )
   SeeAlso     []
 
 ***********************************************************************/
-static inline void Vec_WrdFillExtra( Vec_Wrd_t * p, int nSize, int Fill )
+static inline void Vec_WrdFillExtra( Vec_Wrd_t * p, int nSize, word Fill )
 {
     int i;
     if ( nSize <= p->nSize )
