@@ -19,7 +19,7 @@
 ABC_NAMESPACE_IMPL_START
 
 
-inline int memCompare(word* x, word*  y, int nVars)
+int memCompare(word* x, word*  y, int nVars)
 {
     int i;
     for(i=Kit_TruthWordNum_64bit( nVars )-1;i>=0;i--)

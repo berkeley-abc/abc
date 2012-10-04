@@ -33,7 +33,7 @@ static word mask[6][2] =   {
 };
 */
 
-inline int Kit_TruthWordNum_64bit( int nVars )  { return nVars <= 6 ? 1 : (1 << (nVars - 6));}
+int Kit_TruthWordNum_64bit( int nVars )  { return nVars <= 6 ? 1 : (1 << (nVars - 6));}
 
 inline int Kit_WordCountOnes_64bit(word x)
 {

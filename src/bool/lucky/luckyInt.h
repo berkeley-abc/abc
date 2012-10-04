@@ -105,30 +105,30 @@ static inline int CompareWords( word x, word y)
     return 0;
 }
 
-static inline int luckyMin( int x, int y ) { return (x < y) ? x : y; }
-static inline int luckyMax( int x, int y ) { return (x < y) ? y : x; }
+static inline int       luckyMin( int x, int y ) { return (x < y) ? x : y; }
+static inline int       luckyMax( int x, int y ) { return (x < y) ? y : x; }
 
 
-extern  inline int memCompare(word* x, word*  y, int nVars);
-extern  inline int Kit_TruthWordNum_64bit( int nVars );
+extern  int             memCompare(word* x, word*  y, int nVars);
+extern  int             Kit_TruthWordNum_64bit( int nVars );
 extern  Abc_TtStore_t * setTtStore(char * pFileInput);
-extern  inline void Abc_TruthStoreFree( Abc_TtStore_t * p );
-extern  inline void Kit_TruthChangePhase_64bit( word * pInOut, int nVars, int iVar );
-extern  inline void Kit_TruthNot_64bit(word * pIn, int nVars );
-extern  inline void Kit_TruthCopy_64bit( word * pOut, word * pIn, int nVars );
-extern  inline void Kit_TruthSwapAdjacentVars_64bit( word * pInOut, int nVars, int iVar );
-extern  inline int Kit_TruthCountOnes_64bit( word* pIn, int nVars );
-extern  void simpleMinimal(word* x, word* pAux,word* minimal, permInfo* pi, int nVars);
-extern  permInfo* setPermInfoPtr(int var);
-extern  void freePermInfoPtr(permInfo* x);
-extern  inline void  Kit_TruthSemiCanonicize_Yasha_simple( word* pInOut, int nVars, int * pStore );
-extern  inline unsigned  Kit_TruthSemiCanonicize_Yasha( word* pInOut, int nVars, char * pCanonPerm);
-extern  inline unsigned  Kit_TruthSemiCanonicize_Yasha1( word* pInOut, int nVars, char * pCanonPerm, int * pStore);
-extern  inline word luckyCanonicizer_final_fast_6Vars(word InOut, int* pStore, char* pCanonPerm, unsigned* pCanonPhase);
-extern  inline word luckyCanonicizer_final_fast_6Vars1(word InOut, int* pStore, char* pCanonPerm, unsigned* pCanonPhase);
-extern  inline unsigned adjustInfoAfterSwap(char* pCanonPerm, unsigned uCanonPhase, int iVar, unsigned info);
-extern  void resetPCanonPermArray_6Vars(char* x);
-extern  void swap_ij( word* f,int totalVars, int varI, int varJ);
+extern  void            Abc_TruthStoreFree( Abc_TtStore_t * p );
+extern  void            Kit_TruthChangePhase_64bit( word * pInOut, int nVars, int iVar );
+extern  void            Kit_TruthNot_64bit(word * pIn, int nVars );
+extern  void            Kit_TruthCopy_64bit( word * pOut, word * pIn, int nVars );
+extern  void            Kit_TruthSwapAdjacentVars_64bit( word * pInOut, int nVars, int iVar );
+extern  int             Kit_TruthCountOnes_64bit( word* pIn, int nVars );
+extern  void            simpleMinimal(word* x, word* pAux,word* minimal, permInfo* pi, int nVars);
+extern  permInfo *      setPermInfoPtr(int var);
+extern  void            freePermInfoPtr(permInfo* x);
+extern  void            Kit_TruthSemiCanonicize_Yasha_simple( word* pInOut, int nVars, int * pStore );
+extern  unsigned        Kit_TruthSemiCanonicize_Yasha( word* pInOut, int nVars, char * pCanonPerm);
+extern  unsigned        Kit_TruthSemiCanonicize_Yasha1( word* pInOut, int nVars, char * pCanonPerm, int * pStore);
+extern  word            luckyCanonicizer_final_fast_6Vars(word InOut, int* pStore, char* pCanonPerm, unsigned* pCanonPhase);
+extern  word            luckyCanonicizer_final_fast_6Vars1(word InOut, int* pStore, char* pCanonPerm, unsigned* pCanonPhase);
+extern  unsigned        adjustInfoAfterSwap(char* pCanonPerm, unsigned uCanonPhase, int iVar, unsigned info);
+extern  void            resetPCanonPermArray_6Vars(char* x);
+extern  void            swap_ij( word* f,int totalVars, int varI, int varJ);
 
 
 ABC_NAMESPACE_HEADER_END
