@@ -120,7 +120,7 @@ int Scl_CommandRead( Abc_Frame_t * pAbc, int argc, char ** argv )
     // read new library
     Abc_SclLoad( pFileName, (SC_Lib **)&pAbc->pLibScl );
     if ( fVerbose )
-        Abc_SclWriteText( "scl_out.txt", pAbc->pLibScl );
+        Abc_SclWriteText( "scl_out.txt", (SC_Lib *)pAbc->pLibScl );
     return 0;
 
 usage:
@@ -221,7 +221,7 @@ int Scl_CommandPrint( Abc_Frame_t * pAbc, int argc, char **argv )
     }
 
     // save current library
-    Abc_SclPrintCells( pAbc->pLibScl );
+    Abc_SclPrintCells( (SC_Lib *)pAbc->pLibScl );
     return 0;
 
 usage:
@@ -274,7 +274,7 @@ int Scl_CommandPrintGS( Abc_Frame_t * pAbc, int argc, char **argv )
     }
 
     // save current library
-    Abc_SclPrintGateSizes( pAbc->pLibScl, Abc_FrameReadNtk(pAbc) );
+    Abc_SclPrintGateSizes( (SC_Lib *)pAbc->pLibScl, Abc_FrameReadNtk(pAbc) );
     return 0;
 
 usage:
@@ -344,7 +344,7 @@ int Scl_CommandStime( Abc_Frame_t * pAbc, int argc, char **argv )
         return 1;
     }
 
-    Abc_SclTimePerform( pAbc->pLibScl, Abc_FrameReadNtk(pAbc), fUseWireLoads, fShowAll, fShort );
+    Abc_SclTimePerform( (SC_Lib *)pAbc->pLibScl, Abc_FrameReadNtk(pAbc), fUseWireLoads, fShowAll, fShort );
     return 0;
 
 usage:
@@ -611,7 +611,7 @@ int Scl_CommandGsize( Abc_Frame_t * pAbc, int argc, char **argv )
         return 1;
     }
 
-    Abc_SclSizingPerform( pAbc->pLibScl, Abc_FrameReadNtk(pAbc), pPars );
+    Abc_SclSizingPerform( (SC_Lib *)pAbc->pLibScl, Abc_FrameReadNtk(pAbc), pPars );
     return 0;
 
 usage:
@@ -717,7 +717,7 @@ int Scl_CommandUpsize( Abc_Frame_t * pAbc, int argc, char **argv )
         return 1;
     }
 
-    Abc_SclUpsizePerform( pAbc->pLibScl, pNtk, Window, Ratio, nIters, fVerbose );
+    Abc_SclUpsizePerform( (SC_Lib *)pAbc->pLibScl, pNtk, Window, Ratio, nIters, fVerbose );
     return 0;
 
 usage:
@@ -782,7 +782,7 @@ int Scl_CommandMinsize( Abc_Frame_t * pAbc, int argc, char **argv )
         return 1;
     }
 
-    Abc_SclMinsizePerform( pAbc->pLibScl, pNtk, fVerbose );
+    Abc_SclMinsizePerform( (SC_Lib *)pAbc->pLibScl, pNtk, fVerbose );
     return 0;
 
 usage:

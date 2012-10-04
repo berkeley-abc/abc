@@ -264,6 +264,12 @@ enum Abc_VerbLevel
     ABC_VERBOSE  =  2
 };
 
+// string printing
+extern char * vnsprintf(const char* format, va_list args);
+extern char * nsprintf(const char* format, ...);
+extern int Gia_ManToBridgeText( FILE * pFile, int Size, unsigned char * pBuffer );
+
+// misc printing procedures
 static inline void Abc_Print( int level, const char * format, ... )
 {
     extern ABC_DLL int Abc_FrameIsBridgeMode();
@@ -275,8 +281,6 @@ static inline void Abc_Print( int level, const char * format, ... )
     va_start( args, format );
     if ( Abc_FrameIsBridgeMode() )
     {
-        extern int Gia_ManToBridgeText( FILE * pFile, int Size, unsigned char * pBuffer );
-        extern char * vnsprintf(const char* format, va_list args);
         char * tmp = vnsprintf( format, args );
         Gia_ManToBridgeText( stdout, strlen(tmp), (unsigned char*)tmp );
         free( tmp );
@@ -362,9 +366,6 @@ extern void   Abc_QuickSort3( word * pData, int nSize, int fDecrease );
 extern void   Abc_QuickSortCostData( int * pCosts, int nSize, int fDecrease, word * pData, int * pResult );
 extern int *  Abc_QuickSortCost( int * pCosts, int nSize, int fDecrease );
 
-// string printing
-extern char * vnsprintf(const char* format, va_list args);
-extern char * nsprintf(const char* format, ...);
 
 
 ABC_NAMESPACE_HEADER_END

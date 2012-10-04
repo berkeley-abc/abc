@@ -24,13 +24,16 @@
 #include <math.h>
 #include <time.h>
 
-
 // comment out this line to run Lucky Code outside of ABC
 #define _RUNNING_ABC_
 
 #ifdef _RUNNING_ABC_
+
 #include "misc/util/abc_global.h"
+#include "lucky.h"
+
 #else
+
 #define ABC_NAMESPACE_HEADER_START
 #define ABC_NAMESPACE_HEADER_END
 #define ABC_NAMESPACE_IMPL_START
@@ -42,6 +45,18 @@ typedef unsigned __int64  word;
 #define inline __inline  // compatible with MS VS 6.0
 #define ABC_ALLOC(type, num)    ((type *) malloc(sizeof(type) * (num)))
 // #define LUCKY_VERIFY
+
+typedef struct
+{
+    int varN;
+    int* swapArray;
+    int swapCtr;
+    int totalSwaps;
+    int* flipArray;
+    int flipCtr;
+    int totalFlips; 
+}permInfo;
+
 #endif
 
 
@@ -70,17 +85,6 @@ typedef struct
     int positionToSwap1;
     int positionToSwap2;
 } swapInfo;
-
-typedef struct
-{
-    int varN;
-    int* swapArray;
-    int swapCtr;
-    int totalSwaps;
-    int* flipArray;
-    int flipCtr;
-    int totalFlips; 
-}permInfo;
 
 
 static inline void TimePrint( char* Message )

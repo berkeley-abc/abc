@@ -385,11 +385,11 @@ void Abc_NtkTestTim( Abc_Ntk_t * pNtk, int fVerbose )
     // create GIA manager (pGia) with hierarhy/timing manager attached (pGia->pManTime)
     // while assuming that some nodes are white boxes (see Abc_NodeIsWhiteBox)
     pGia = Abc_NtkTestTimDeriveGia( pNtk, fVerbose );
-    printf( "Created GIA manager for network with %d white boxes.\n", Tim_ManBoxNum(pGia->pManTime) );
+    printf( "Created GIA manager for network with %d white boxes.\n", Tim_ManBoxNum((Tim_Man_t *)pGia->pManTime) );
 
     // print the timing manager
     if ( fVerbose )
-        Tim_ManPrint( pGia->pManTime );
+        Tim_ManPrint( (Tim_Man_t *)pGia->pManTime );
 
     // test writing both managers into a file and reading them back
     Abc_NtkTestTimByWritingFile( pGia, "test1.aig" );

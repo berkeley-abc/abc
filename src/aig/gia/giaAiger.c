@@ -1063,7 +1063,7 @@ Gia_Man_t * Gia_ReadAigerFromMemory( char * pContents, int nFileSize, int fSkipS
         vFlopMap = pNew->vFlopClasses; pNew->vFlopClasses = NULL;
         vGateMap = pNew->vGateClasses; pNew->vGateClasses = NULL;
         vObjMap  = pNew->vObjClasses;  pNew->vObjClasses  = NULL;
-        pManTime = pNew->pManTime;     pNew->pManTime     = NULL;
+        pManTime = (Tim_Man_t *)pNew->pManTime; pNew->pManTime     = NULL;
         pNew = Gia_ManCleanup( pTemp = pNew );
         if ( (vGateMap || vObjMap) && (Gia_ManObjNum(pNew) < Gia_ManObjNum(pTemp)) )
             printf( "Cleanup removed objects after reading. Old gate/object abstraction maps are invalid!\n" );
@@ -1555,7 +1555,7 @@ void Gia_WriteAiger( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
     // write timing information
     if ( p->pManTime )
     {
-        Vec_Str_t * vStr = Tim_ManSave( p->pManTime );
+        Vec_Str_t * vStr = Tim_ManSave( (Tim_Man_t *)p->pManTime );
         unsigned char Buffer[10];
         int nSize = Vec_StrSize(vStr);
         Gia_WriteInt( Buffer, nSize );

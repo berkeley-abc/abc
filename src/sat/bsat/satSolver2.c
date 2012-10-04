@@ -1552,8 +1552,10 @@ void sat_solver2_reducedb(sat_solver2* s)
 
     // compact proof (compacts 'proofs' and update 'claProofs')
     if ( s->pPrf1 )
+    {
+        extern int Sat_ProofReduce( Vec_Set_t * vProof, void * pRoots, int hProofPivot );
         s->hProofPivot = Sat_ProofReduce( s->pPrf1, &s->claProofs, s->hProofPivot );
-
+    }
 
     // report the results
     TimeTotal += clock() - clk;

@@ -66,7 +66,7 @@ Abc_Ntk_t * Abc_NtkMap( Abc_Ntk_t * pNtk, double DelayTarget, double AreaMulti, 
     Vec_Int_t * vSwitching = NULL;
     float * pSwitching = NULL;
     clock_t clk, clkTotal = clock();
-    Mio_Library_t * pLib = Abc_FrameReadLibGen();
+    Mio_Library_t * pLib = (Mio_Library_t *)Abc_FrameReadLibGen();
 
     assert( Abc_NtkIsStrash(pNtk) );
 
@@ -102,9 +102,9 @@ Abc_Ntk_t * Abc_NtkMap( Abc_Ntk_t * pNtk, double DelayTarget, double AreaMulti, 
 
     // return the library to normal
     if ( AreaMulti != 0.0 )
-        Mio_LibraryMultiArea( Abc_FrameReadLibGen(), -AreaMulti );
+        Mio_LibraryMultiArea( (Mio_Library_t *)Abc_FrameReadLibGen(), -AreaMulti );
     if ( DelayMulti != 0.0 )
-        Mio_LibraryMultiDelay( Abc_FrameReadLibGen(), -DelayMulti );
+        Mio_LibraryMultiDelay( (Mio_Library_t *)Abc_FrameReadLibGen(), -DelayMulti );
 
     // print a warning about choice nodes
     if ( Abc_NtkGetChoiceNum( pNtk ) )

@@ -162,7 +162,7 @@ int Map_LibraryReadFileTree( Map_SuperLib_t * pLib, FILE * pFile, char *pFileNam
     }
 
     pLibName = strtok( pTemp, " \t\r\n" );
-    pLib->pGenlib = Abc_FrameReadLibGen();
+    pLib->pGenlib = (Mio_Library_t *)Abc_FrameReadLibGen();
     if ( pLib->pGenlib == NULL || strcmp( Mio_LibraryReadName(pLib->pGenlib), pLibName ) )
     {
         printf( "Supergate library \"%s\" requires the use of genlib library \"%s\".\n", pFileName, pLibName );
@@ -410,7 +410,7 @@ int Map_LibraryReadFileTreeStr( Map_SuperLib_t * pLib, Vec_Str_t * vStr, char * 
     }
 
     pLibName = strtok( pTemp, " \t\r\n" );
-    pLib->pGenlib = Abc_FrameReadLibGen();
+    pLib->pGenlib = (Mio_Library_t *)Abc_FrameReadLibGen();
 //    if ( pLib->pGenlib == NULL || strcmp( , pLibName ) )
     if ( pLib->pGenlib == NULL || Map_LibraryCompareLibNames(Mio_LibraryReadName(pLib->pGenlib), pLibName) )
     {

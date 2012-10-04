@@ -923,7 +923,7 @@ Gia_Man_t * Gia_ManDupNormalize( Gia_Man_t * p )
 ***********************************************************************/
 Gia_Man_t * Gia_ManDupUnnomalize( Gia_Man_t * p )
 {
-    Tim_Man_t * pTime = p->pManTime;
+    Tim_Man_t * pTime = (Tim_Man_t *)p->pManTime;
     Gia_Man_t * pNew;
     Gia_Obj_t * pObj;
     int i, k, curCi, curCo, curNo, nodeLim;

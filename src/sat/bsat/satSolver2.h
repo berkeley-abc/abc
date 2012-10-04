@@ -70,7 +70,6 @@ extern void         var_set_partA  (sat_solver2* s, int v, int partA);
 extern void *       Sat_ProofCore( sat_solver2 * s );
 extern void *       Sat_ProofInterpolant( sat_solver2 * s, void * pGloVars );
 extern word *       Sat_ProofInterpolantTruth( sat_solver2 * s, void * pGloVars );
-extern int          Sat_ProofReduce( Vec_Set_t * vProof, void * pRoots, int hProofPivot );
 extern void         Sat_ProofCheck( sat_solver2 * s );
 
 //=================================================================================================

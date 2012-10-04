@@ -18,9 +18,10 @@
 
 ***********************************************************************/
 
+#include "base/main/main.h"
 #include "sat/cnf/cnf.h"
 #include "sat/bsat/satSolver2.h"
-#include "base/main/main.h"
+#include "bool/kit/kit.h"
 #include "abs.h"
 #include "absRef.h"
 //#include "absRef2.h"
@@ -83,8 +84,8 @@ struct Ga2_Man_t_
 static inline int         Ga2_ObjId( Ga2_Man_t * p, Gia_Obj_t * pObj )           { return Vec_IntEntry(p->vIds, Gia_ObjId(p->pGia, pObj));                                                  }
 static inline void        Ga2_ObjSetId( Ga2_Man_t * p, Gia_Obj_t * pObj, int i ) { Vec_IntWriteEntry(p->vIds, Gia_ObjId(p->pGia, pObj), i);                                                 }
 
-static inline Vec_Int_t * Ga2_ObjCnf0( Ga2_Man_t * p, Gia_Obj_t * pObj )         { assert(Ga2_ObjId(p,pObj) >= 0); return Vec_PtrEntry( p->vCnfs, 2*Ga2_ObjId(p,pObj)   );                  }
-static inline Vec_Int_t * Ga2_ObjCnf1( Ga2_Man_t * p, Gia_Obj_t * pObj )         { assert(Ga2_ObjId(p,pObj) >= 0); return Vec_PtrEntry( p->vCnfs, 2*Ga2_ObjId(p,pObj)+1 );                  }
+static inline Vec_Int_t * Ga2_ObjCnf0( Ga2_Man_t * p, Gia_Obj_t * pObj )         { assert(Ga2_ObjId(p,pObj) >= 0); return (Vec_Int_t *)Vec_PtrEntry( p->vCnfs, 2*Ga2_ObjId(p,pObj)   );                  }
+static inline Vec_Int_t * Ga2_ObjCnf1( Ga2_Man_t * p, Gia_Obj_t * pObj )         { assert(Ga2_ObjId(p,pObj) >= 0); return (Vec_Int_t *)Vec_PtrEntry( p->vCnfs, 2*Ga2_ObjId(p,pObj)+1 );                  }
 
 static inline int         Ga2_ObjIsAbs0( Ga2_Man_t * p, Gia_Obj_t * pObj )       { assert(Ga2_ObjId(p,pObj) >= 0); return Ga2_ObjId(p,pObj) >= 0         && Ga2_ObjId(p,pObj) < p->LimAbs;  }
 static inline int         Ga2_ObjIsLeaf0( Ga2_Man_t * p, Gia_Obj_t * pObj )      { assert(Ga2_ObjId(p,pObj) >= 0); return Ga2_ObjId(p,pObj) >= p->LimAbs && Ga2_ObjId(p,pObj) < p->LimPpi;  }
@@ -628,7 +629,6 @@ if ( fVerbose )
 ***********************************************************************/
 Vec_Int_t * Ga2_ManCnfCompute( unsigned uTruth, int nVars, Vec_Int_t * vCover )
 {
-    extern int Kit_TruthIsop( unsigned * puTruth, int nVars, Vec_Int_t * vMemory, int fTryBoth );
     int RetValue;
     assert( nVars <= 5 );
     // transform truth table into the SOP

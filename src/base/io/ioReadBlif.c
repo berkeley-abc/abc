@@ -607,7 +607,7 @@ int Io_ReadBlifReorderFormalNames( Vec_Ptr_t * vTokens, Mio_Gate_t * pGate, Mio_
             pName = (char *)Vec_PtrEntry(vTokens, nSize - 1);
             if ( !strncmp( pNamePin, pName, Length ) && pName[Length] == '=' ) // the last entry is pTwin
             {
-                pName = Vec_PtrPop( vTokens );
+                pName = (char *)Vec_PtrPop( vTokens );
                 Vec_PtrPush( vTokens, NULL );
                 Vec_PtrPush( vTokens, pName );
                 return 1;

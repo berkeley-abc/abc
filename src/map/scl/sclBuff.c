@@ -136,7 +136,7 @@ Abc_Obj_t * Abc_SclPerformBufferingOne( Abc_Obj_t * pObj, int Degree, int fVerbo
     // collect fanouts and sort by reverse level
     vFanouts = Vec_PtrAlloc( Abc_ObjFanoutNum(pObj) );
     Abc_NodeCollectFanouts( pObj, vFanouts );
-    Vec_PtrSort( vFanouts, Abc_NodeCompareLevels );
+    Vec_PtrSort( vFanouts, (int (*)(void))Abc_NodeCompareLevels );
     // select the first Degree fanouts
     pBuffer = Abc_NtkCreateNodeBuf( pObj->pNtk, NULL );
     // check if it is possible to not increase level

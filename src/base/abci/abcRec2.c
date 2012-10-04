@@ -163,7 +163,7 @@ static inline int Rec_AppendObj( Abc_ManRec_t2 * p, Rec_Obj_t2 ** pObj )
     if ( p->nRecObjs == p->nRecObjsAlloc )
     {
         assert( p->nRecObjs > 0 );
-        p->pRecObjs = realloc(p->pRecObjs, 2 * p->nRecObjsAlloc * p->recObjSize );
+        p->pRecObjs = ABC_REALLOC( char, p->pRecObjs, 2 * p->nRecObjsAlloc * p->recObjSize );
         memset( p->pRecObjs + p->nRecObjsAlloc * p->recObjSize, 0, p->recObjSize * p->nRecObjsAlloc );
         p->nRecObjsAlloc *= 2;
         hasRealloced = 1;
@@ -2177,7 +2177,7 @@ void Abc_NtkRecCutTruthFromLib2( Gia_Man_t * pGia2, Vec_Ptr_t * vNodes, int nLea
     Vec_PtrForEachEntry( Gia_Obj_t *, vNodes, pObj, i )
     {
         Gia_ObjSetCopyF(pGia2, 0, pObj, i);
-        pSims = Vec_PtrEntry(vTtTemps, i);
+        pSims = (unsigned *)Vec_PtrEntry(vTtTemps, i);
         if ( i < nLeaves )
         {
             Kit_TruthCopy( pSims, (unsigned *)Vec_PtrEntry(vTtElems, i), nInputs );

@@ -20,6 +20,7 @@
 
 #include "sclInt.h"
 #include "map/mio/mio.h"
+#include "bool/kit/kit.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -135,7 +136,7 @@ void Abc_SclLinkCells( SC_Lib * p )
             Vec_PtrPush( vList, pCell );
         qsort( (void *)Vec_PtrArray(vList), Vec_PtrSize(vList), sizeof(void *), (int(*)(const void *,const void *))Abc_SclCompareCells );
         // create new representative
-        pRepr = Vec_PtrEntry( vList, 0 );
+        pRepr = (SC_Cell *)Vec_PtrEntry( vList, 0 );
         pRepr->pNext = pRepr->pPrev = pRepr;
         pRepr->Order = 0;
         // relink cells
@@ -152,7 +153,6 @@ void Abc_SclLinkCells( SC_Lib * p )
 }
 void Abc_SclPrintCells( SC_Lib * p )
 {
-    extern void Kit_DsdPrintFromTruth( unsigned * pTruth, int nVars );
     SC_Cell * pCell, * pRepr;
     int i, k, j, nLength = 0;
     assert( Vec_PtrSize(p->vCellClasses) > 0 );

@@ -76,7 +76,7 @@ void swap_ij_case3( word* f,int totalVars, int i, int j)
     shift = (wwj - wwi)/2;
     WORDS_IN_TT = Kit_TruthWordNum_64bit(totalVars);
     SizeOfBlock = sizeof(word)*wwi/2;
-    temp = malloc(SizeOfBlock);
+    temp = (word *)malloc(SizeOfBlock);
     for(y=wwj/2; y<WORDS_IN_TT; y+=wwj)
         for(x=y-shift; x<y; x+=wwi)
         {
