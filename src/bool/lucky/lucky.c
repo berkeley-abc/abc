@@ -157,7 +157,7 @@ void freeArrayB(word* b)
 
 // if highest bit in F ( all ones min term ) is one => inverse 
 // if pInOnt changed(minimized) by function return 1 if not 0
-// inline int minimalInitialFlip_propper(word* pInOut, word* pDuplicat, int  nVars)
+// int minimalInitialFlip_propper(word* pInOut, word* pDuplicat, int  nVars)
 // {
 //  word oneWord=1;
 //  Kit_TruthCopy_64bit( pDuplicat, pInOut, nVars );
@@ -169,7 +169,7 @@ void freeArrayB(word* b)
 //  }
 //  return 0;
 // }
-// inline int minimalFlip(word* pInOut, word* pMinimal, word* PDuplicat, int  nVars) 
+// int minimalFlip(word* pInOut, word* pMinimal, word* PDuplicat, int  nVars) 
 // {
 //  int i;
 //  int blockSize = Kit_TruthWordNum_64bit( nVars )*sizeof(word);
@@ -188,7 +188,7 @@ void freeArrayB(word* b)
 //  else
 //      return 1;
 // }
-// inline int minimalSwap(word* pInOut, word* pMinimal, word* PDuplicat, int  nVars) 
+// int minimalSwap(word* pInOut, word* pMinimal, word* PDuplicat, int  nVars) 
 // {
 //  int i;  
 //  int blockSize = Kit_TruthWordNum_64bit( nVars )*sizeof(word);
@@ -561,7 +561,7 @@ int luckyCheck(word* pAfter, word* pBefore, int nVars, char * pCanonPerm, unsign
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-inline void luckyCanonicizer(word* pInOut, word* pAux, word* pAux1, int  nVars, char * pCanonPerm, char * tempArray, unsigned* p_uCanonPhase)
+void luckyCanonicizer(word* pInOut, word* pAux, word* pAux1, int  nVars, char * pCanonPerm, char * tempArray, unsigned* p_uCanonPhase)
 {
     int counter=1;
     assert( nVars <= 16 );

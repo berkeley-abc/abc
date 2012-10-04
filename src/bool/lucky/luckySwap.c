@@ -35,7 +35,7 @@ static word mask[6][2] =   {
 
 int Kit_TruthWordNum_64bit( int nVars )  { return nVars <= 6 ? 1 : (1 << (nVars - 6));}
 
-inline int Kit_WordCountOnes_64bit(word x)
+int Kit_WordCountOnes_64bit(word x)
 {
     x = x - ((x >> 1) & 0x5555555555555555);   
     x = (x & 0x3333333333333333) + ((x >> 2) & 0x3333333333333333);    
@@ -46,7 +46,7 @@ inline int Kit_WordCountOnes_64bit(word x)
     return (int)(x & 0xFF);
 }
 
-inline int Kit_TruthCountOnes_64bit( word* pIn, int nVars )
+int Kit_TruthCountOnes_64bit( word* pIn, int nVars )
 {
     int w, Counter = 0;
     for ( w = Kit_TruthWordNum_64bit(nVars)-1; w >= 0; w-- )
@@ -54,7 +54,7 @@ inline int Kit_TruthCountOnes_64bit( word* pIn, int nVars )
     return Counter;
 }
 
-inline void Kit_TruthCountOnesInCofs_64bit( word * pTruth, int nVars, int * pStore )
+void Kit_TruthCountOnesInCofs_64bit( word * pTruth, int nVars, int * pStore )
 {    
     int nWords = Kit_TruthWordNum_64bit( nVars );
     int i, k, Counter;
@@ -97,7 +97,7 @@ inline void Kit_TruthCountOnesInCofs_64bit( word * pTruth, int nVars, int * pSto
     }
 }
 
-inline void Kit_TruthChangePhase_64bit( word * pInOut, int nVars, int iVar )
+void Kit_TruthChangePhase_64bit( word * pInOut, int nVars, int iVar )
 {
     int nWords = Kit_TruthWordNum_64bit( nVars );
     int i, Step,SizeOfBlock;
@@ -127,18 +127,18 @@ inline void Kit_TruthChangePhase_64bit( word * pInOut, int nVars, int iVar )
     
 }
 
-inline void Kit_TruthNot_64bit(word * pIn, int nVars )
+void Kit_TruthNot_64bit(word * pIn, int nVars )
 {
     int w;
     for ( w = Kit_TruthWordNum_64bit(nVars)-1; w >= 0; w-- )
         pIn[w] = ~pIn[w];
 }
-inline void Kit_TruthCopy_64bit( word * pOut, word * pIn, int nVars )
+void Kit_TruthCopy_64bit( word * pOut, word * pIn, int nVars )
 { 
     memcpy(pOut,pIn,Kit_TruthWordNum_64bit(nVars)*sizeof(word));
 }
 
-inline void Kit_TruthSwapAdjacentVars_64bit( word * pInOut, int nVars, int iVar )
+void Kit_TruthSwapAdjacentVars_64bit( word * pInOut, int nVars, int iVar )
 {
     int i, Step, Shift, SizeOfBlock;                   //
     word temp[256];                   // to make only pInOut possible
@@ -183,7 +183,7 @@ inline void Kit_TruthSwapAdjacentVars_64bit( word * pInOut, int nVars, int iVar 
     }
 }
 
-inline unsigned  Kit_TruthSemiCanonicize_Yasha( word* pInOut, int nVars, char * pCanonPerm )
+unsigned  Kit_TruthSemiCanonicize_Yasha( word* pInOut, int nVars, char * pCanonPerm )
 {
     int pStore[16];
     int nWords = Kit_TruthWordNum_64bit( nVars );
@@ -242,7 +242,7 @@ inline unsigned  Kit_TruthSemiCanonicize_Yasha( word* pInOut, int nVars, char * 
     return uCanonPhase;
 }
 
-inline unsigned  Kit_TruthSemiCanonicize_Yasha1( word* pInOut, int nVars, char * pCanonPerm, int * pStore )
+unsigned  Kit_TruthSemiCanonicize_Yasha1( word* pInOut, int nVars, char * pCanonPerm, int * pStore )
 {
     int nWords = Kit_TruthWordNum_64bit( nVars );
     int i, fChange, nOnes;
@@ -309,7 +309,7 @@ inline unsigned  Kit_TruthSemiCanonicize_Yasha1( word* pInOut, int nVars, char *
 }
 
 
-// inline unsigned  Kit_TruthSemiCanonicize_Yasha_simple( word* pInOut, int nVars, char * pCanonPerm )
+// unsigned  Kit_TruthSemiCanonicize_Yasha_simple( word* pInOut, int nVars, char * pCanonPerm )
 // {
 //     unsigned uCanonPhase = 0;
 //     int pStore[16];
@@ -355,7 +355,7 @@ inline unsigned  Kit_TruthSemiCanonicize_Yasha1( word* pInOut, int nVars, char *
 //     return uCanonPhase;
 // }
 
-inline void  Kit_TruthSemiCanonicize_Yasha_simple( word* pInOut, int nVars, int * pStore )
+void  Kit_TruthSemiCanonicize_Yasha_simple( word* pInOut, int nVars, int * pStore )
 {
     int nWords = Kit_TruthWordNum_64bit( nVars );
     int i, Temp, fChange, nOnes; 
