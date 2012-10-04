@@ -126,10 +126,9 @@ extern  inline unsigned  Kit_TruthSemiCanonicize_Yasha( word* pInOut, int nVars,
 extern  inline unsigned  Kit_TruthSemiCanonicize_Yasha1( word* pInOut, int nVars, char * pCanonPerm, int * pStore);
 extern  inline word luckyCanonicizer_final_fast_6Vars(word InOut, int* pStore, char* pCanonPerm, unsigned* pCanonPhase);
 extern  inline word luckyCanonicizer_final_fast_6Vars1(word InOut, int* pStore, char* pCanonPerm, unsigned* pCanonPhase);
-extern  inline void resetPCanonPermArray_6Vars(char* x);
-extern  void swap_ij( word* f,int totalVars, int varI, int varJ);
 extern  inline unsigned adjustInfoAfterSwap(char* pCanonPerm, unsigned uCanonPhase, int iVar, unsigned info);
-extern  inline void resetPCanonPermArray(char* x, int nVars);
+extern  void resetPCanonPermArray_6Vars(char* x);
+extern  void swap_ij( word* f,int totalVars, int varI, int varJ);
 
 
 ABC_NAMESPACE_HEADER_END

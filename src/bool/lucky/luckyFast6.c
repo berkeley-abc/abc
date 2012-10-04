@@ -18,7 +18,7 @@
 
 ABC_NAMESPACE_IMPL_START
 
-inline void resetPCanonPermArray_6Vars(char* x)
+void resetPCanonPermArray_6Vars(char* x)
 {
     x[0]='a';
     x[1]='b';
@@ -27,7 +27,7 @@ inline void resetPCanonPermArray_6Vars(char* x)
     x[4]='e';
     x[5]='f';
 }
-inline void resetPCanonPermArray(char* x, int nVars)
+void resetPCanonPermArray(char* x, int nVars)
 {
     int i;
     for(i=0;i<nVars;i++)
@@ -36,7 +36,7 @@ inline void resetPCanonPermArray(char* x, int nVars)
 
 
 
-inline word Abc_allFlip(word x, unsigned* pCanonPhase)
+ word Abc_allFlip(word x, unsigned* pCanonPhase)
 {
     if(  (x>>63) )
     {
