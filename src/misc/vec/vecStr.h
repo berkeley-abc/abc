@@ -764,7 +764,7 @@ static inline int Vec_StrGetI_ne( Vec_Str_t * vOut, int * pPos )
     int i;
     int Val = 0;
     for ( i = 0; i < 4; i++ )
-        Val |= (int)(unsigned char)Vec_StrEntry(vOut, (*pPos)++) << (8*i);
+        Val |= ((int)(unsigned char)Vec_StrEntry(vOut, (*pPos)++) << (8*i));
     return Val;
 }
 
@@ -779,7 +779,7 @@ static inline int Vec_StrGetI( Vec_Str_t * vOut, int * pPos )
     unsigned char ch;
     int i = 0, Val = 0;
     while ( (ch = Vec_StrEntry(vOut, (*pPos)++)) & 0x80 )
-        Val |= (ch & 0x7f) << (7 * i++);
+        Val |= ((ch & 0x7f) << (7 * i++));
     return Val | (ch << (7 * i));
 }
 
@@ -794,7 +794,7 @@ static inline word Vec_StrGetW( Vec_Str_t * vOut, int * pPos )
     int i;
     word Val = 0;
     for ( i = 0; i < 8; i++ )
-        Val |= (word)(unsigned char)Vec_StrEntry(vOut, (*pPos)++) << (8*i);
+        Val |= ((word)(unsigned char)Vec_StrEntry(vOut, (*pPos)++) << (8*i));
     return Val;
 }
 
