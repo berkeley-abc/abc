@@ -110,6 +110,7 @@ Vec_Str_t * Tim_ManSave( Tim_Man_t * p )
 Tim_Man_t * Tim_ManLoad( Vec_Str_t * p )
 {
     Tim_Man_t * pMan;
+    Tim_Obj_t * pObj;
     int VerNum, nCis, nCos, nPis, nPos;
     int nBoxes, nBoxIns, nBoxOuts, CopyBox;
     int TableId, nTables, TableSize, TableX, TableY;
@@ -174,6 +175,13 @@ Tim_Man_t * Tim_ManLoad( Vec_Str_t * p )
         Vec_PtrPush( pMan->vDelayTables, pDelayTable );
     }
     assert( Tim_ManDelayTableNum(pMan) == nTables );
+    // read PI arrival times
+    Tim_ManForEachPi( pMan, pObj, i )
+        Tim_ManInitPiArrival( pMan, i, Vec_StrGetF(p, &iStr) );
+    // read PO required times
+    Tim_ManForEachPo( pMan, pObj, i )
+        Tim_ManInitPoRequired( pMan, i, Vec_StrGetF(p, &iStr) );
+    assert( Vec_StrSize(p) == iStr );
 //    Tim_ManPrint( pMan );
     return pMan;
 }
