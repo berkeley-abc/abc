@@ -514,7 +514,7 @@ Aig_Obj_t * Dar_Balance_rec( Aig_Man_t * pNew, Aig_Obj_t * pObjOld, Vec_Vec_t * 
     if ( vSuper->nSize == 0 )
         return (Aig_Obj_t *)(pObjOld->pData = Aig_ManConst0(pNew));
     if ( vSuper->nSize == 1 )
-        return (Aig_Obj_t *)Vec_PtrEntry(vSuper, 0);
+        return ((Aig_Obj_t *)Vec_PtrEntry(vSuper, 0))->pData;
     if ( Vec_PtrSize(vSuper) < 2 )
         printf( "Dar_Balance_rec: Internal error!\n" );
     // for each old node, derive the new well-balanced node
