@@ -412,7 +412,7 @@ void Dau_DsdTestOne( word t, int i )
 //    t = t & 0xFFFFFFFF;
 //    t |= (t << 32);
     p = Dau_DsdPerform( t );
-    return;
+//    return;
 
     t2 = Dau_DsdToTruth( p ); 
     if ( t != t2 )
