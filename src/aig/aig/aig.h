@@ -109,7 +109,6 @@ struct Aig_Man_t_
     int              nConstrs;       // the number of constraints (model checking only)
     // AIG node counters
     int              nObjs[AIG_OBJ_VOID];// the number of objects by type
-    int              nCreated;       // the number of created objects
     int              nDeleted;       // the number of deleted objects
     // structural hash table
     Aig_Obj_t **     pTable;         // structural hash table
@@ -250,7 +249,7 @@ static inline int          Aig_ManAndNum( Aig_Man_t * p )         { return p->nO
 static inline int          Aig_ManExorNum( Aig_Man_t * p )        { return p->nObjs[AIG_OBJ_EXOR];                   }
 static inline int          Aig_ManNodeNum( Aig_Man_t * p )        { return p->nObjs[AIG_OBJ_AND]+p->nObjs[AIG_OBJ_EXOR];   }
 static inline int          Aig_ManGetCost( Aig_Man_t * p )        { return p->nObjs[AIG_OBJ_AND]+3*p->nObjs[AIG_OBJ_EXOR]; }
-static inline int          Aig_ManObjNum( Aig_Man_t * p )         { return p->nCreated - p->nDeleted;                }
+static inline int          Aig_ManObjNum( Aig_Man_t * p )         { return Vec_PtrSize(p->vObjs) - p->nDeleted;      }
 static inline int          Aig_ManObjNumMax( Aig_Man_t * p )      { return Vec_PtrSize(p->vObjs);                    }
 static inline int          Aig_ManRegNum( Aig_Man_t * p )         { return p->nRegs;                                 }
 static inline int          Aig_ManConstrNum( Aig_Man_t * p )      { return p->nConstrs;                              }
@@ -366,8 +365,8 @@ static inline Aig_Obj_t * Aig_ManFetchMemory( Aig_Man_t * p )
     Aig_Obj_t * pTemp;
     pTemp = (Aig_Obj_t *)Aig_MmFixedEntryFetch( p->pMemObjs );
     memset( pTemp, 0, sizeof(Aig_Obj_t) ); 
+    pTemp->Id = Vec_PtrSize(p->vObjs);
     Vec_PtrPush( p->vObjs, pTemp );
-    pTemp->Id = p->nCreated++;
     return pTemp;
 }
 static inline void Aig_ManRecycleMemory( Aig_Man_t * p, Aig_Obj_t * pEntry )

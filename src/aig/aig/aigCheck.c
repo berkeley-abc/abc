@@ -100,7 +100,7 @@ int Aig_ManCheck( Aig_Man_t * p )
             1, Aig_ManCiNum(p), Aig_ManCoNum(p), Aig_ManBufNum(p), Aig_ManAndNum(p), Aig_ManExorNum(p), 
             1 + Aig_ManCiNum(p) + Aig_ManCoNum(p) + Aig_ManBufNum(p) + Aig_ManAndNum(p) + Aig_ManExorNum(p) );
         printf( "Created = %d. Deleted = %d. Existing = %d.\n",
-            p->nCreated, p->nDeleted, p->nCreated - p->nDeleted );
+            Aig_ManObjNumMax(p), p->nDeleted, Aig_ManObjNum(p) );
         return 0;
     }
     // count the number of nodes in the table
