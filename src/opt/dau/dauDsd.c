@@ -26,6 +26,8 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
+#define DAU_MAX_STR 300
+
 static word s_Truth6[6] = 
 {
     0xAAAAAAAAAAAAAAAA,
@@ -195,7 +197,7 @@ static inline int Dau_DsdPerformReplace2( char * pBuffer, int PosStart, int Pos,
 }
 static inline int Dau_DsdPerformReplace( char * pBuffer, int PosStart, int Pos, int Symb, char * pNext )
 {
-    static char pTemp[1000];
+    static char pTemp[DAU_MAX_STR+20];
     char * pCur = pTemp;
     int i, k, RetValue;
     for ( i = PosStart; i < Pos; i++ )
@@ -215,6 +217,7 @@ int Dau_DsdPerform_rec( word t, char * pBuffer, int Pos, int * pVars, int nVars 
     word Cof0[6], Cof1[6], Cof[4];
     int pVarsNew[6], nVarsNew, PosStart;
     int v, u, vBest, CountBest;
+    assert( Pos < DAU_MAX_STR );
     // copy remaining variables
     nVarsNew = 0;
     for ( v = 0; v < nVars; v++ )
@@ -360,9 +363,49 @@ int Dau_DsdPerform_rec( word t, char * pBuffer, int Pos, int * pVars, int nVars 
     pBuffer[Pos++] = '>';
     return Pos;
 }
+
+static inline void Dau_DsdCleanBraces( char * p )
+{
+    char * q, Last = -1;
+    int i;
+    for ( i = 0; p[i]; i++ )
+    {
+        if ( p[i] == '(' || p[i] == '[' || p[i] == '<' )
+        {
+            if ( p[i] != '<' && p[i] == Last && i > 0 && p[i-1] != '!' )
+            {
+                q = Dau_DsdFindMatch( p + i );
+                assert( (p[i] == '(') == (*q == ')') );
+                assert( (p[i] == '[') == (*q == ']') );
+                p[i] = *q = 'x';
+            }
+            else
+                Last = p[i];
+        }
+        else if ( p[i] == ')' || p[i] == ']' || p[i] == '>' )
+            Last = -1;
+    }
+/*
+    if ( p[0] == '(' )
+    {
+        assert( p[i-1] == ')' );
+        p[0] = p[i-1] = 'x';
+    }
+    else if ( p[0] == '[' )
+    {
+        assert( p[i-1] == ']' );
+        p[0] = p[i-1] = 'x';
+    }
+*/
+    for ( q = p; *p; p++ )
+        if ( *p != 'x' )
+            *q++ = *p;
+    *q = 0;
+}
+
 char * Dau_DsdPerform( word t )
 {
-    static char pBuffer[1000];
+    static char pBuffer[DAU_MAX_STR+20];
     int pVarsNew[6] = {0, 1, 2, 3, 4, 5};
     int Pos = 0;
     if ( t == 0 )
@@ -372,6 +415,10 @@ char * Dau_DsdPerform( word t )
     else
         Pos = Dau_DsdPerform_rec( t, pBuffer, Pos, pVarsNew, 6 );
     pBuffer[Pos++] = 0;
+//    printf( "%d ", strlen(pBuffer) );
+//    printf( "%s ->", pBuffer );
+    Dau_DsdCleanBraces( pBuffer );
+//    printf( " %s\n", pBuffer );
     return pBuffer;
 }
 
@@ -399,7 +446,7 @@ void Dau_DsdTest()
 //    word t = 0xF3F5030503050305;
 //    word t = (s_Truth6[0] & s_Truth6[1] & (s_Truth6[2] ^ s_Truth6[4])) | (~s_Truth6[0] & ~s_Truth6[1] & ~(s_Truth6[2] ^ s_Truth6[4]));
 //    word t = 0x05050500f5f5f5f3;
-    word t = 0xFFAF00ACFFAF00AC;
+    word t = 0x9ef7a8d9c7193a0f;
     char * p = Dau_DsdPerform( t );
     word t2 = Dau_DsdToTruth( p );
     if ( t != t2 )
@@ -407,34 +454,27 @@ void Dau_DsdTest()
 }
 void Dau_DsdTestOne( word t, int i )
 {
-    char * p;
-    word t2, t1;
-//    t = t & 0xFFFFFFFF;
-//    t |= (t << 32);
-    p = Dau_DsdPerform( t );
+    word t2;
+    char * p = Dau_DsdPerform( t );
 //    return;
-
     t2 = Dau_DsdToTruth( p ); 
     if ( t != t2 )
     {
+        printf( "Verification failed.  " );
         printf( "%8d : ", i );
         printf( "%30s  ", p );
-//        printf( "Verification failed.  " );
         Kit_DsdPrintFromTruth( (unsigned *)&t, 6 );
-/*
-        printf( "  " );
-        t1 = Dau_DsdCof1(t, 3);
-        Kit_DsdPrintFromTruth( (unsigned *)&t1, 6 );
-
-        printf( "  " );
-        t1 = Dau_DsdCof0(t, 3);
-        Kit_DsdPrintFromTruth( (unsigned *)&t1, 6 );
-*/
         printf( "  " );
         Kit_DsdPrintFromTruth( (unsigned *)&t2, 6 );
         printf( "\n" );
     }
 }
+
+/*
+    extern void Dau_DsdTestOne( word t, int i );
+    assert( p->nVars == 6 );
+    Dau_DsdTestOne( *p->pFuncs[i], i );
+*/
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
