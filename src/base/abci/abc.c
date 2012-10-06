@@ -4757,13 +4757,14 @@ usage:
 ***********************************************************************/
 int Abc_CommandTestDec( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern int Abc_DecTest( char * pFileName, int DecType, int fVerbose );
+    extern int Abc_DecTest( char * pFileName, int DecType, int nVarNum, int fVerbose );
     char * pFileName;
     int c;
     int fVerbose = 0;
     int DecType = 0;
+    int nVarNum = -1;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Avh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "ANvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -4776,6 +4777,17 @@ int Abc_CommandTestDec( Abc_Frame_t * pAbc, int argc, char ** argv )
             DecType = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( DecType < 0 ) 
+                goto usage;
+            break;
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-N\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nVarNum = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nVarNum < 0 ) 
                 goto usage;
             break;
         case 'v':
@@ -4795,19 +4807,23 @@ int Abc_CommandTestDec( Abc_Frame_t * pAbc, int argc, char ** argv )
     // get the output file name
     pFileName = argv[globalUtilOptind];
     // call the testbench
-    Abc_DecTest( pFileName, DecType, fVerbose );
+    Abc_DecTest( pFileName, DecType, nVarNum, fVerbose );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: testdec [-A <num>] [-vh] <file_name>\n" );
+    Abc_Print( -2, "usage: testdec [-AN <num>] [-vh] <file>\n" );
     Abc_Print( -2, "\t           testbench for Boolean decomposition algorithms\n" );
     Abc_Print( -2, "\t-A <num> : decomposition algorithm [default = %d]\n", DecType );
     Abc_Print( -2, "\t               0: none (reading and writing the file)\n" );
     Abc_Print( -2, "\t               1: algebraic factoring applied to ISOP\n" );
     Abc_Print( -2, "\t               2: bi-decomposition with cofactoring\n" );
     Abc_Print( -2, "\t               3: disjoint-support decomposition with cofactoring\n" );
+    Abc_Print( -2, "\t-N <num> : the number of support variables (binary files only) [default = unused]\n" );
     Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
+    Abc_Print( -2, "\t<file>   : a text file with truth tables in hexadecimal, listed one per line,\n");
+    Abc_Print( -2, "\t           or a binary file with an array of truth tables (in this case,\n");
+    Abc_Print( -2, "\t           -N <num> is required to determine how many functions are stored)\n");
     return 1;
 } 
 
@@ -4824,13 +4840,15 @@ usage:
 ***********************************************************************/
 int Abc_CommandTestNpn( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern int Abc_NpnTest( char * pFileName, int NpnType, int fVerbose );
+    extern int Abc_NpnTest( char * pFileName, int NpnType, int nVarNum, int fDumpRes, int fVerbose );
     char * pFileName;
     int c;
     int fVerbose = 0;
     int NpnType = 0;
+    int nVarNum = -1;
+    int fDumpRes = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Avh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "ANdvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -4844,6 +4862,20 @@ int Abc_CommandTestNpn( Abc_Frame_t * pAbc, int argc, char ** argv )
             globalUtilOptind++;
             if ( NpnType < 0 ) 
                 goto usage;
+            break;
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-N\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nVarNum = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nVarNum < 0 ) 
+                goto usage;
+            break;
+        case 'd':
+            fDumpRes ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -4862,11 +4894,11 @@ int Abc_CommandTestNpn( Abc_Frame_t * pAbc, int argc, char ** argv )
     // get the output file name
     pFileName = argv[globalUtilOptind];
     // call the testbench
-    Abc_NpnTest( pFileName, NpnType, fVerbose );
+    Abc_NpnTest( pFileName, NpnType, nVarNum, fDumpRes, fVerbose );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: testnpn [-A <num>] [-vh] <file>\n" );
+    Abc_Print( -2, "usage: testnpn [-AN <num>] [-dvh] <file>\n" );
     Abc_Print( -2, "\t           testbench for computing (semi-)canonical forms\n" );
     Abc_Print( -2, "\t           of completely-specified Boolean functions up to 16 varibles\n" );
     Abc_Print( -2, "\t-A <num> : semi-caninical form computation algorithm [default = %d]\n", NpnType );
@@ -4875,9 +4907,13 @@ usage:
     Abc_Print( -2, "\t               2: semi-canonical form by counting 1s in cofactors\n" );
     Abc_Print( -2, "\t               3: Jake's hybrid semi-canonical form (fast)\n" );
     Abc_Print( -2, "\t               4: Jake's hybrid semi-canonical form (high-effort)\n" );
+    Abc_Print( -2, "\t-N <num> : the number of support variables (binary files only) [default = unused]\n" );
+    Abc_Print( -2, "\t-d       : toggle dumping resulting functions into a file [default = %s]\n", fDumpRes? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
-    Abc_Print( -2, "\t<file>   : the text file with truth tables in hexadecimal, listed one per line\n");
+    Abc_Print( -2, "\t<file>   : a text file with truth tables in hexadecimal, listed one per line,\n");
+    Abc_Print( -2, "\t           or a binary file with an array of truth tables (in this case,\n");
+    Abc_Print( -2, "\t           -N <num> is required to determine how many functions are stored)\n");
     return 1;
 } 
 

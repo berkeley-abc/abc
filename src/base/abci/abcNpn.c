@@ -47,8 +47,8 @@ struct Abc_TtStore_t_
     word **            pFuncs;
 };
 
-extern Abc_TtStore_t * Abc_TtStoreLoad( char * pFileName );
-extern void            Abc_TtStoreFree( Abc_TtStore_t * p );
+extern Abc_TtStore_t * Abc_TtStoreLoad( char * pFileName, int nVarNum );
+extern void            Abc_TtStoreFree( Abc_TtStore_t * p, int nVarNum );
 extern void            Abc_TtStoreWrite( char * pFileName, Abc_TtStore_t * p );
 
 ////////////////////////////////////////////////////////////////////////
@@ -276,13 +276,13 @@ void Abc_TruthNpnPerform( Abc_TtStore_t * p, int NpnType, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_TruthNpnTest( char * pFileName, int NpnType, int fVerbose )
+void Abc_TruthNpnTest( char * pFileName, int NpnType, int nVarNum, int fDumpRes, int fVerbose )
 {
     Abc_TtStore_t * p;
     char * pFileNameOut;
 
     // read info from file
-    p = Abc_TtStoreLoad( pFileName );
+    p = Abc_TtStoreLoad( pFileName, nVarNum );
     if ( p == NULL )
         return;
 
@@ -290,13 +290,16 @@ void Abc_TruthNpnTest( char * pFileName, int NpnType, int fVerbose )
     Abc_TruthNpnPerform( p, NpnType, fVerbose );
 
     // write the result
-    pFileNameOut = Extra_FileNameGenericAppend( pFileName, "_out.txt" );
-    Abc_TtStoreWrite( pFileNameOut, p );
-    if ( fVerbose )
-        printf( "The resulting functions are written into file \"%s\".\n", pFileNameOut );
+    if ( fDumpRes )
+    {
+        pFileNameOut = Extra_FileNameGenericAppend( pFileName, "_out.txt" );
+        Abc_TtStoreWrite( pFileNameOut, p );
+        if ( fVerbose )
+            printf( "The resulting functions are written into file \"%s\".\n", pFileNameOut );
+    }
 
     // delete data-structure
-    Abc_TtStoreFree( p );
+    Abc_TtStoreFree( p, nVarNum );
 //    printf( "Finished computing canonical forms for functions from file \"%s\".\n", pFileName );
 }
 
@@ -312,12 +315,12 @@ void Abc_TruthNpnTest( char * pFileName, int NpnType, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NpnTest( char * pFileName, int NpnType, int fVerbose )
+int Abc_NpnTest( char * pFileName, int NpnType, int nVarNum, int fDumpRes, int fVerbose )
 {
     if ( fVerbose )
         printf( "Using truth tables from file \"%s\"...\n", pFileName );
     if ( NpnType >= 0 && NpnType <= 4 )
-        Abc_TruthNpnTest( pFileName, NpnType, fVerbose );
+        Abc_TruthNpnTest( pFileName, NpnType, nVarNum, fDumpRes, fVerbose );
     else
         printf( "Unknown canonical form value (%d).\n", NpnType );
     fflush( stdout );

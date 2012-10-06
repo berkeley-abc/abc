@@ -153,10 +153,57 @@ Abc_TtStore_t * Abc_TruthStoreAlloc( int nVars, int nFuncs )
         p->pFuncs[i] = p->pFuncs[i-1] + p->nWords;
     return p;
 }
-void Abc_TtStoreFree( Abc_TtStore_t * p )
+Abc_TtStore_t * Abc_TruthStoreAlloc2( int nVars, int nFuncs, word * pBuffer )
 {
-    free( p->pFuncs );
-    free( p );
+    Abc_TtStore_t * p;
+    int i;
+    p = (Abc_TtStore_t *)malloc( sizeof(Abc_TtStore_t) );
+    p->nVars  =  nVars;
+    p->nWords = (nVars < 7) ? 1 : (1 << (nVars-6));
+    p->nFuncs =  nFuncs;
+    // alloc storage for 'nFuncs' truth tables as one chunk of memory
+    p->pFuncs = (word **)malloc( sizeof(word *) * p->nFuncs );
+    // assign and clean the truth table storage
+    p->pFuncs[0] = pBuffer;
+    // split it up into individual truth tables
+    for ( i = 1; i < p->nFuncs; i++ )
+        p->pFuncs[i] = p->pFuncs[i-1] + p->nWords;
+    return p;
+}
+void Abc_TtStoreFree( Abc_TtStore_t * p, int nVarNum )
+{
+    if ( nVarNum >= 0 )
+        ABC_FREE( p->pFuncs[0] );
+    ABC_FREE( p->pFuncs );
+    ABC_FREE( p );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Read file contents.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_FileSize( char * pFileName )
+{
+    FILE * pFile;
+    int nFileSize;
+    pFile = fopen( pFileName, "rb" );
+    if ( pFile == NULL )
+    {
+        printf( "Cannot open file \"%s\" for reading.\n", pFileName );
+        return -1;
+    }
+    // get the file size, in bytes
+    fseek( pFile, 0, SEEK_END );  
+    nFileSize = ftell( pFile );  
+    fclose( pFile );
+    return nFileSize;
 }
 
 /**Function*************************************************************
@@ -336,22 +383,35 @@ void Abc_TtStoreWrite( char * pFileName, Abc_TtStore_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_TtStore_t * Abc_TtStoreLoad( char * pFileName )
+Abc_TtStore_t * Abc_TtStoreLoad( char * pFileName, int nVarNum )
 { 
     Abc_TtStore_t * p;
-    char * pFileInput  = pFileName;
-    int nVars, nTruths;
-
-    // figure out how many truth table and how many variables
-    Abc_TruthGetParams( pFileInput, &nVars, &nTruths );
-    if ( nVars < 2 || nVars > 16 || nTruths == 0 )
-        return NULL;
-
-    // allocate data-structure
-    p = Abc_TruthStoreAlloc( nVars, nTruths );
-
-    // read info from file
-    Abc_TruthStoreRead( pFileInput, p );
+    if ( nVarNum < 0 )
+    {
+        int nVars, nTruths;
+        // figure out how many truth table and how many variables
+        Abc_TruthGetParams( pFileName, &nVars, &nTruths );
+        if ( nVars < 2 || nVars > 16 || nTruths == 0 )
+            return NULL;
+        // allocate data-structure
+        p = Abc_TruthStoreAlloc( nVars, nTruths );
+        // read info from file
+        Abc_TruthStoreRead( pFileName, p );
+    }
+    else
+    {
+        char * pBuffer;
+        int nFileSize = Abc_FileSize( pFileName );
+        int nBytes = (1 << nVarNum);
+        int nTruths = nFileSize / nBytes;
+        if ( nFileSize == -1 )
+            return NULL;
+        assert( nFileSize % nBytes == 0 );
+        // read file contents
+        pBuffer = Abc_FileRead( pFileName );
+        // allocate data-structure
+        p = Abc_TruthStoreAlloc2( nVarNum, nTruths, (word *)pBuffer );
+    }
     return p;
 }
 
@@ -373,7 +433,7 @@ void Abc_TtStoreTest( char * pFileName )
     char * pFileOutput = "out.txt";
 
     // read info from file
-    p = Abc_TtStoreLoad( pFileInput );
+    p = Abc_TtStoreLoad( pFileInput, -1 );
     if ( p == NULL )
         return;
 
@@ -381,7 +441,7 @@ void Abc_TtStoreTest( char * pFileName )
     Abc_TtStoreWrite( pFileOutput, p );
 
     // delete data-structure
-    Abc_TtStoreFree( p );
+    Abc_TtStoreFree( p, -1 );
     printf( "Input file \"%s\" was copied into output file \"%s\".\n", pFileInput, pFileOutput );
 }
 
@@ -489,27 +549,18 @@ void Abc_TruthDecPerform( Abc_TtStore_t * p, int DecType, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_TruthDecTest( char * pFileName, int DecType, int fVerbose )
+void Abc_TruthDecTest( char * pFileName, int DecType, int nVarNum, int fVerbose )
 {
     Abc_TtStore_t * p;
-    int nVars, nTruths;
-
-    // figure out how many truth tables and how many variables
-    Abc_TruthGetParams( pFileName, &nVars, &nTruths );
-    if ( nVars < 2 || nVars > 16 || nTruths == 0 )
-        return;
 
     // allocate data-structure
-    p = Abc_TruthStoreAlloc( nVars, nTruths );
-
-    // read info from file
-    Abc_TruthStoreRead( pFileName, p );
+    p = Abc_TtStoreLoad( pFileName, nVarNum );
 
     // consider functions from the file
     Abc_TruthDecPerform( p, DecType, fVerbose );
 
     // delete data-structure
-    Abc_TtStoreFree( p );
+    Abc_TtStoreFree( p, nVarNum );
 //    printf( "Finished decomposing truth tables from file \"%s\".\n", pFileName );
 }
 
@@ -525,14 +576,14 @@ void Abc_TruthDecTest( char * pFileName, int DecType, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_DecTest( char * pFileName, int DecType, int fVerbose )
+int Abc_DecTest( char * pFileName, int DecType, int nVarNum, int fVerbose )
 {
     if ( fVerbose )
         printf( "Using truth tables from file \"%s\"...\n", pFileName );
     if ( DecType == 0 )
-        Abc_TtStoreTest( pFileName );
+        { if ( nVarNum < 0 ) Abc_TtStoreTest( pFileName ); }
     else if ( DecType >= 1 && DecType <= 3 )
-        Abc_TruthDecTest( pFileName, DecType, fVerbose );
+        Abc_TruthDecTest( pFileName, DecType, nVarNum, fVerbose );
     else
         printf( "Unknown decomposition type value (%d).\n", DecType );
     fflush( stdout );
