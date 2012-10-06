@@ -1962,6 +1962,26 @@ SOURCE=.\src\opt\nwk\nwkTiming.c
 SOURCE=.\src\opt\nwk\nwkUtil.c
 # End Source File
 # End Group
+# Begin Group "dau"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\opt\dau\dau.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\dau\dauCore.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\dau\dauDsd.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\dau\dauInt.h
+# End Source File
+# End Group
 # End Group
 # Begin Group "map"
 

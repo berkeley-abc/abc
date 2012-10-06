@@ -202,6 +202,10 @@ void Abc_TruthNpnPerform( Abc_TtStore_t * p, int NpnType, int fVerbose )
     {
         for ( i = 0; i < p->nFuncs; i++ )
         {
+            extern void Dau_DsdTestOne( word t, int i );
+            assert( p->nVars == 6 );
+            Dau_DsdTestOne( *p->pFuncs[i], i );
+
             if ( fVerbose )
                 printf( "%7d : ", i );
             if ( fVerbose )
