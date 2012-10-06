@@ -399,14 +399,16 @@ Abc_TtStore_t * Abc_TtStoreLoad( char * pFileName, int nVarNum )
         Abc_TruthStoreRead( pFileName, p );
     }
     else
-    {
+    { 
         char * pBuffer;
         int nFileSize = Abc_FileSize( pFileName );
         int nBytes = (1 << nVarNum);
         int nTruths = nFileSize / nBytes;
         if ( nFileSize == -1 )
             return NULL;
-        assert( nFileSize % nBytes == 0 );
+        if ( nFileSize % nBytes != 0 ) 
+            Abc_Print( 0, "The file size (%d) is divided by the truth table size (%d) with remainder (%d).\n", 
+                nFileSize, nBytes, nFileSize % nBytes );
         // read file contents
         pBuffer = Abc_FileRead( pFileName );
         // allocate data-structure
