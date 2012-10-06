@@ -402,10 +402,11 @@ Abc_TtStore_t * Abc_TtStoreLoad( char * pFileName, int nVarNum )
     { 
         char * pBuffer;
         int nFileSize = Abc_FileSize( pFileName );
-        int nBytes = (1 << nVarNum);
+        int nBytes = (1 << (nVarNum-3));
         int nTruths = nFileSize / nBytes;
         if ( nFileSize == -1 )
             return NULL;
+        assert( nVarNum >= 6 );
         if ( nFileSize % nBytes != 0 ) 
             Abc_Print( 0, "The file size (%d) is divided by the truth table size (%d) with remainder (%d).\n", 
                 nFileSize, nBytes, nFileSize % nBytes );

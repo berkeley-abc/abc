@@ -818,6 +818,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Liveness",     "l3s",           Abc_CommandAbcLivenessToSafetyWithLTL,    0 );
 
     Cmd_CommandAdd( pAbc, "ABC9",         "&test",         Abc_CommandAbc9Test,         0 );
+
     {
         extern void Dar_LibStart();
         Dar_LibStart();
@@ -4802,7 +4803,12 @@ int Abc_CommandTestDec( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( argc != globalUtilOptind + 1 )
     {
         printf( "Input file is not given.\n" );
-        goto usage;
+        return 0;
+    }
+    if ( nVarNum >= 0 && nVarNum < 6 )
+    {
+        printf( "The number of variables cannot be less than 6.\n" );
+        return 0;
     }
     // get the output file name
     pFileName = argv[globalUtilOptind];
@@ -4889,7 +4895,12 @@ int Abc_CommandTestNpn( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( argc != globalUtilOptind + 1 )
     {
         printf( "Input file is not given.\n" );
-        goto usage;
+        return 0;
+    }
+    if ( nVarNum >= 0 && nVarNum < 6 )
+    {
+        printf( "The number of variables cannot be less than 6.\n" );
+        return 0;
     }
     // get the output file name
     pFileName = argv[globalUtilOptind];
