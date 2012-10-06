@@ -38,8 +38,14 @@ static word s_Truth6[6] =
     0xFFFFFFFF00000000
 };
 
-// ! = not; (a + b) = a and b;  [a + b] = a xor b;  <abc> = ITE( a, b, c )
-
+/* 
+    This code performs truth-table-based decomposition for 6-variable functions.
+    Representation of operations:
+    ! = not; 
+    (ab) = a and b;  
+    [ab] = a xor b;  
+    <abc> = ITE( a, b, c )
+*/
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -173,28 +179,6 @@ static inline word Dau_DsdVarPres( word t, int iVar )
     assert( iVar >= 0 && iVar < 6 );
     return (t & s_Truth6[iVar]) != ((t << (1<<iVar)) & s_Truth6[iVar]);
 }
-static inline int Dau_DsdPerformReplace2( char * pBuffer, int PosStart, int Pos, int Symb, char * pNext )
-{
-    char * pTemp, * pStop = pTemp = pBuffer + Pos;
-    int i, Len = strlen(pNext);
-    do
-    {
-        for ( pTemp = pBuffer + Pos - 1; pTemp >= pBuffer + PosStart; pTemp[Len-1] = *pTemp, pTemp-- )
-            if ( pTemp < pStop && *pTemp == (char)Symb )
-            {
-                for ( i = 0; i < Len; i++ )
-                    pTemp[i] = pNext[i];
-                Pos += Len - 1;
-                pStop = pTemp;
-                // check if there is symbol left
-                for ( ; pTemp >= pBuffer + PosStart; pTemp-- )
-                    if ( *pTemp == (char)Symb )
-                        break;
-                break;
-            }
-    } while ( pTemp >= pBuffer + PosStart );
-    return Pos;
-}
 static inline int Dau_DsdPerformReplace( char * pBuffer, int PosStart, int Pos, int Symb, char * pNext )
 {
     static char pTemp[DAU_MAX_STR+20];
@@ -218,12 +202,13 @@ int Dau_DsdPerform_rec( word t, char * pBuffer, int Pos, int * pVars, int nVars 
     int pVarsNew[6], nVarsNew, PosStart;
     int v, u, vBest, CountBest;
     assert( Pos < DAU_MAX_STR );
-    // copy remaining variables
+    // perform support minimization
     nVarsNew = 0;
     for ( v = 0; v < nVars; v++ )
         if ( Dau_DsdVarPres( t, pVars[v] ) )
             pVarsNew[ nVarsNew++ ] = pVars[v];
     assert( nVarsNew > 0 );
+    // special case when function is a var
     if ( nVarsNew == 1 )
     {
         if ( t == s_Truth6[ pVarsNew[0] ] )
@@ -240,12 +225,13 @@ int Dau_DsdPerform_rec( word t, char * pBuffer, int Pos, int * pVars, int nVars 
         assert( 0 );
         return Pos;
     }
+    // decompose on the output side
     for ( v = 0; v < nVarsNew; v++ )
     {
         Cof0[v] = Dau_DsdCof0( t, pVarsNew[v] );
         Cof1[v] = Dau_DsdCof1( t, pVarsNew[v] );
         assert( Cof0[v] != Cof1[v] );
-        if ( Cof0[v] == 0 )
+        if ( Cof0[v] == 0 ) // ax
         {
             pBuffer[Pos++] = '(';
             pBuffer[Pos++] = 'a' + pVarsNew[v];
@@ -253,7 +239,7 @@ int Dau_DsdPerform_rec( word t, char * pBuffer, int Pos, int * pVars, int nVars 
             pBuffer[Pos++] = ')';
             return Pos;
         }
-        if ( Cof0[v] == ~0 )
+        if ( Cof0[v] == ~0 ) // !(ax)
         {
             pBuffer[Pos++] = '!';
             pBuffer[Pos++] = '(';
@@ -262,7 +248,7 @@ int Dau_DsdPerform_rec( word t, char * pBuffer, int Pos, int * pVars, int nVars 
             pBuffer[Pos++] = ')';
             return Pos;
         }
-        if ( Cof1[v] == 0 )
+        if ( Cof1[v] == 0 ) // !ax
         {
             pBuffer[Pos++] = '(';
             pBuffer[Pos++] = '!';
@@ -271,7 +257,7 @@ int Dau_DsdPerform_rec( word t, char * pBuffer, int Pos, int * pVars, int nVars 
             pBuffer[Pos++] = ')';
             return Pos;
         }
-        if ( Cof1[v] == ~0 )
+        if ( Cof1[v] == ~0 ) // !(!ax)
         {
             pBuffer[Pos++] = '!';
             pBuffer[Pos++] = '(';
@@ -281,7 +267,7 @@ int Dau_DsdPerform_rec( word t, char * pBuffer, int Pos, int * pVars, int nVars 
             pBuffer[Pos++] = ')';
             return Pos;
         }
-        if ( Cof0[v] == ~Cof1[v] )
+        if ( Cof0[v] == ~Cof1[v] ) // a^x
         {
             pBuffer[Pos++] = '[';
             pBuffer[Pos++] = 'a' + pVarsNew[v];
@@ -290,6 +276,7 @@ int Dau_DsdPerform_rec( word t, char * pBuffer, int Pos, int * pVars, int nVars 
             return Pos;
         }
     }
+    // decompose on the input side
     for ( v = 0; v < nVarsNew; v++ )
     for ( u = v+1; u < nVarsNew; u++ )
     {
@@ -338,7 +325,7 @@ int Dau_DsdPerform_rec( word t, char * pBuffer, int Pos, int * pVars, int nVars 
             return Pos;
         }
     }
-    // look for MUX
+    // find best variable for MUX decomposition
     vBest = -1;
     CountBest = 10;
     for ( v = 0; v < nVarsNew; v++ )
