@@ -1,57 +1,87 @@
-Often the code comes directly from a Windows computer.
-The following steps may be needed to compile it on UNIX:
+ABC: System for Sequential Logic Synthesis and Formal Verification
 
-Modify Makefile to have -DLIN (for 32-bits) or -DLIN64 (for 64-bits)
 
->> dos2unix Makefile Makefile
->> dos2unix depends.sh depends.sh
->> chmod 755 depends.sh
->> make  // on Solaris, try "gmake"
+ABC is always changing but the current snapshot is believed to be stable. 
 
-If compiling as a static library, it is necessary to uncomment
-#define _LIB in "src/abc/main/main.c"
 
-To compile with Microsoft Visual Studio higher than 6.0,
-remove ABC_CHECK_LEAKS from the preprocessor definitions
-for the debug version (Project->Settings->C/C++->Preprocessor Definitions)
+Compiling:
 
-If compilation does not start because of the cyclic dependency check, 
-try "touching" all files:    find ./ -type f -exec touch "{}" \;
+To compile ABC as a binary, download and unzip the code, then type "make".
 
-Several things to try if it does not compile on your platform:
-- Try running all code (not only Makefile and depends.sh) through dos2unix
-- Try the following actions:
-  (a) Remove flags from the libs line (LIBS :=) in Makefile
-  (b) Remove "src\base\main\libSupport.c" from "src\base\main\module.make"
-  (c) Comment calls to Libs_Init() and Libs_End() in "src\base\main\mainInit.c"
-- Try linking with gcc (rather than g++)
-  For this replace "LD   := g++" with "LD   := gcc -lm" in Makefile
-- If your Linux distributin does not have "readline", you may have problems 
-  compiling ABC with gcc. Please try installing this library from
-  http://tiswww.case.edu/php/chet/readline/rltop.html
+To compile ABC as a static library, comment out #define _LIB in file 
+"src/base/main/main.c", then type "make libabc.a".
 
-To compile the latest version of ABC, you may need to define "LIN" or "LIN64" 
-(depending on whether you are using 32- or 64-bit Linux). 
-For example, instead of
-    OPTFLAGS  := -g -O
-use
-    OPTFLAGS  := -g -O -DLIN64
-in Makefile.
+When ABC is used as a static library, two additional procedures, Abc_Start() 
+and Abc_Stop(), are provided for starting and quitting the ABC framework in 
+the calling application. A simple demo program (file demo.c) shows how to 
+create a stand-alone program performing DAG-aware AIG rewriting, by calling 
+APIs of ABC compiled as a static library.
 
-Finally, run regression test:
-abc>>> so regtest.script
+To build the demo program
+- Copy libabc.a to the working directory
+- Run "gcc -Wall -g -c demo.c -o demo.o"
+- Run "gcc -g -o demo demo.o -lm -ldl -rdynamic -lreadline -ltermcap -lpthread libabc.a"
+
+
+Compiling as C or C++
+
+The current version of ABC can be compiled with both C compiler and C++ compiler.
+
+To compile as C code (default): make sure that CC=gcc and ABC_NAMESPACE is not defined.
+To compile as C++ code without namespaces: make sure that CC=g++ and ABC_NAMESPACE is not defined.
+To compile as C++ code with namespaces: make sure that CC=g++ and ABC_NAMESPACE is set to
+the name of the requested namespace. For example, add to OPTFLAGS -DABC_NAMESPACE=xxx
+
+
+Bug reporting:
+
+Please try to reproduce all the reported bugs and unexpected features using the latest 
+version of ABC available from https://bitbucket.org/alanmi/abc/
+
+If the bug still persists, please provide the following information:    
+1. ABC version (when it was downloaded from BitBucket)
+2. Linux distribution and version (32-bit or 64-bit)
+3. The exact command-line and error message when trying to run the tool
+4. The output of the 'ldd' command run on the exeutable (e.g. 'ldd abc').
+5. Versions of relevant tools or packages used.
+
+
+Trouble shooting:
+
+(1) If compilation does not start because of the cyclic dependency check, 
+try touching all files as follows:    find ./ -type f -exec touch "{}" \;
+
+(2) If compilation fails because 'readline' is missing, install 'readline' or
+comment out line 26 "#define ABC_USE_READ_LINE" in file "src/base/main/mainUtils.c"
+
+(4) If compilation fails because 'pthread' is missing, install 'pthreads' library or
+comment out line 29 "#define ABC_USE_PTHREADS" in file "src/base/cmd/cmdStarter.c" and 
+"src/proof/abs/absPth.c"
+
+(5) If compilation fails in file "src\base\main\libSupport.c", 
+- Remove "src\base\main\libSupport.c" from "src\base\main\module.make"
+- Comment out calls to Libs_Init() and Libs_End() in "src\base\main\mainInit.c"
 
 
 The following comment was added by Krish Sundaresan:
 
-"I found that the code does compile correctly on Solaris 
-if gcc is used (instead of g++ that I was using for some reason). 
-Also readline which is not available by default on most 
-Sol10 systems, needs to be installed. I downloaded the 
-readline-5.2 package from sunfreeware.com and installed it 
-locally. Also modified CFLAGS to add the local include files 
-for readline and LIBS to add the local libreadline.a. Perhaps 
-you can add these steps in the readme to help folks compiling 
-this on Solaris."
+"I found that the code does compile correctly on Solaris if gcc is used (instead of 
+g++ that I was using for some reason). Also readline which is not available by default 
+on most Sol10 systems, needs to be installed. I downloaded the readline-5.2 package 
+from sunfreeware.com and installed it locally. Also modified CFLAGS to add the local 
+include files for readline and LIBS to add the local libreadline.a. Perhaps you can 
+add these steps in the readme to help folks compiling this on Solaris."
 
-Archiving the binary: tar czf archive.tar.gz directory
+
+Final remarks:
+
+Unfortunately, there is no regression test. Good luck!                                
+
+
+Alan Mishchenko <alanmi@eecs.berkeley.edu>
+
+This file was last modified on Oct 6, 2012
+
+
+
+

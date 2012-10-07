@@ -22,7 +22,8 @@
 #include "proof/pdr/pdr.h"
 #include "proof/ssw/ssw.h"
 
-// to compile on Linux, add -lpthread to LIBS in Makefile
+
+
 
 // comment out this line to disable pthreads
 #define ABC_USE_PTHREADS
