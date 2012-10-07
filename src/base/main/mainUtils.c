@@ -23,10 +23,10 @@
 
 #if !defined(_WIN32) && !defined(AIX) 
 // comment out the following line if 'readline' is not available
-#define ABC_USE_READ_LINE
+#define ABC_USE_READLINE
 #endif
 
-#ifdef ABC_USE_READ_LINE
+#ifdef ABC_USE_READLINE
 #include <readline/readline.h>
 #include <readline/history.h>
 #endif
@@ -76,7 +76,7 @@ char * Abc_UtilsGetUsersInput( Abc_Frame_t * pAbc )
 {
     static char Prompt[5000];
     sprintf( Prompt, "abc %02d> ", pAbc->nSteps );
-#ifdef ABC_USE_READ_LINE
+#ifdef ABC_USE_READLINE
     {
     static char * line = NULL;
     if (line != NULL) ABC_FREE(line);

@@ -15,24 +15,41 @@ the calling application. A simple demo program (file src/demo.c) shows how to
 create a stand-alone program performing DAG-aware AIG rewriting, by calling 
 APIs of ABC compiled as a static library.
 
-To build demo program
+To build the demo program
 - Copy demo.cc and libabc.a to the working directory
 - Run "gcc -Wall -g -c demo.c -o demo.o"
 - Run "gcc -g -o demo demo.o libabc.a -lm -ldl -rdynamic -lreadline -ltermcap -lpthread"
 
-To run demo program, give it a file with the logic network in AIGER or BLIF. For example:
+To run the demo program, give it a file with the logic network in AIGER or BLIF. For example:
 
-[alanmi@mima] ~/abc> demo i10.aig
-i10          : i/o =  257/  224  lat =    0  and =   2396  lev = 37
-i10          : i/o =  257/  224  lat =    0  and =   1851  lev = 35
-Networks are equivalent.
-Reading =   0.00 sec   Rewriting =   0.18 sec   Verification =   0.41 sec
+> [alanmi@mima] ~/abc> demo i10.aig
+> i10          : i/o =  257/  224  lat =    0  and =   2396  lev = 37
+> i10          : i/o =  257/  224  lat =    0  and =   1851  lev = 35
+> Networks are equivalent.
+> Reading =   0.00 sec   Rewriting =   0.18 sec   Verification =   0.41 sec
+
+The same can be produced by running the binary in the command-line mode:
+
+> [alanmi@mima] ~/abc> ./abc
+> UC Berkeley, ABC 1.01 (compiled Oct  6 2012 19:05:18)
+> abc 01> r i10.aig; b; ps; b; rw -l; rw -lz; b; rw -lz; b; ps; cec
+> i10          : i/o =  257/  224  lat =    0  and =   2396  lev = 37
+> i10          : i/o =  257/  224  lat =    0  and =   1851  lev = 35
+> Networks are equivalent.
+
+or in the batch mode:
+
+> [alanmi@mima] ~/abc> ./abc -c "r i10.aig; b; ps; b; rw -l; rw -lz; b; rw -lz; b; ps; cec"
+> ABC command line: "r i10.aig; b; ps; b; rw -l; rw -lz; b; rw -lz; b; ps; cec".
+> i10          : i/o =  257/  224  lat =    0  and =   2396  lev = 37
+> i10          : i/o =  257/  224  lat =    0  and =   1851  lev = 35
+> Networks are equivalent.
 
 
 
 Compiling as C or C++
 
-The current version of ABC can be compiled with both C compiler and C++ compiler.
+The current version of ABC can be compiled with C compiler or C++ compiler.
 
 To compile as C code (default): make sure that CC=gcc and ABC_NAMESPACE is not defined.
 To compile as C++ code without namespaces: make sure that CC=g++ and ABC_NAMESPACE is not defined.
@@ -58,16 +75,18 @@ Trouble shooting:
 (1) If compilation does not start because of the cyclic dependency check, 
 try touching all files as follows:    find ./ -type f -exec touch "{}" \;
 
-(2) If compilation fails because 'readline' is missing, install 'readline' or
-comment out line 26 "#define ABC_USE_READ_LINE" in file "src/base/main/mainUtils.c"
+(2) If compilation fails because readline is missing, install 'readline' library or
+comment out line 26 "#define ABC_USE_READLINE" in file "src/base/main/mainUtils.c"
 
-(4) If compilation fails because 'pthread' is missing, install 'pthreads' library or
+(4) If compilation fails because pthreads are missing, install 'pthread' library or
 comment out line 29 "#define ABC_USE_PTHREADS" in file "src/base/cmd/cmdStarter.c" 
 and in file "src/proof/abs/absPth.c"
 
 (5) If compilation fails in file "src/base/main/libSupport.c", try the following:
 - Remove "src/base/main/libSupport.c" from "src/base/main/module.make"
 - Comment out calls to Libs_Init() and Libs_End() in "src/base/main/mainInit.c"
+
+(6) On some systems, readline requires adding '-lcurses' to Makefile.
 
 
 The following comment was added by Krish Sundaresan:
