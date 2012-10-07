@@ -1,4 +1,4 @@
-ABC: System for Sequential Logic Synthesis and Formal Verification     
+ABC: System for Sequential Logic Synthesis and Formal Verification
 
 ABC is always changing but the current snapshot is believed to be stable. 
 
@@ -101,10 +101,11 @@ add these steps in the readme to help folks compiling this on Solaris."
 
 Final remarks:
 
-Unfortunately, there is no regression test. Good luck!                                
+Unfortunately, there is no comprehensive regression test. Good luck!                                
 
 
-Alan Mishchenko <alanmi@eecs.berkeley.edu>
+This system is maintained by Alan Mishchenko <alanmi@eecs.berkeley.edu>. Consider also 
+using ZZ framework developed by Niklas Een: https://bitbucket.org/niklaseen/abc-zz
 
 This file was last modified on Oct 6, 2012
 
