@@ -147,8 +147,8 @@ word Dau_DsdToTruth( char * p )
 void Dau_DsdTest2()
 {
 //    char * p = Abc_UtilStrsav( "!(ab!(de[cf]))" );
-    char * p = Abc_UtilStrsav( "!(a![d<ecf>]b)" );
-    word t = Dau_DsdToTruth( p );
+//    char * p = Abc_UtilStrsav( "!(a![d<ecf>]b)" );
+//    word t = Dau_DsdToTruth( p );
 }
 
 
@@ -450,9 +450,9 @@ void Dau_DsdTestOne( word t, int i )
         printf( "Verification failed.  " );
         printf( "%8d : ", i );
         printf( "%30s  ", p );
-        Kit_DsdPrintFromTruth( (unsigned *)&t, 6 );
-        printf( "  " );
-        Kit_DsdPrintFromTruth( (unsigned *)&t2, 6 );
+//        Kit_DsdPrintFromTruth( (unsigned *)&t, 6 );
+//        printf( "  " );
+//        Kit_DsdPrintFromTruth( (unsigned *)&t2, 6 );
         printf( "\n" );
     }
 }
