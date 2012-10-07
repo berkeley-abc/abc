@@ -1,8 +1,6 @@
-ABC: System for Sequential Logic Synthesis and Formal Verification
-
+ABC: System for Sequential Logic Synthesis and Formal Verification     
 
 ABC is always changing but the current snapshot is believed to be stable. 
-
 
 Compiling:
 
@@ -13,14 +11,23 @@ To compile ABC as a static library, comment out #define _LIB in file
 
 When ABC is used as a static library, two additional procedures, Abc_Start() 
 and Abc_Stop(), are provided for starting and quitting the ABC framework in 
-the calling application. A simple demo program (file demo.c) shows how to 
+the calling application. A simple demo program (file src/demo.c) shows how to 
 create a stand-alone program performing DAG-aware AIG rewriting, by calling 
 APIs of ABC compiled as a static library.
 
-To build the demo program
-- Copy libabc.a to the working directory
+To build demo program
+- Copy demo.cc and libabc.a to the working directory
 - Run "gcc -Wall -g -c demo.c -o demo.o"
-- Run "gcc -g -o demo demo.o -lm -ldl -rdynamic -lreadline -ltermcap -lpthread libabc.a"
+- Run "gcc -g -o demo demo.o libabc.a -lm -ldl -rdynamic -lreadline -ltermcap -lpthread"
+
+To run demo program, give it a file with the logic network in AIGER or BLIF. For example:
+
+[alanmi@mima] ~/abc> demo i10.aig
+i10          : i/o =  257/  224  lat =    0  and =   2396  lev = 37
+i10          : i/o =  257/  224  lat =    0  and =   1851  lev = 35
+Networks are equivalent.
+Reading =   0.00 sec   Rewriting =   0.18 sec   Verification =   0.41 sec
+
 
 
 Compiling as C or C++
@@ -55,12 +62,12 @@ try touching all files as follows:    find ./ -type f -exec touch "{}" \;
 comment out line 26 "#define ABC_USE_READ_LINE" in file "src/base/main/mainUtils.c"
 
 (4) If compilation fails because 'pthread' is missing, install 'pthreads' library or
-comment out line 29 "#define ABC_USE_PTHREADS" in file "src/base/cmd/cmdStarter.c" and 
-"src/proof/abs/absPth.c"
+comment out line 29 "#define ABC_USE_PTHREADS" in file "src/base/cmd/cmdStarter.c" 
+and in file "src/proof/abs/absPth.c"
 
-(5) If compilation fails in file "src\base\main\libSupport.c", 
-- Remove "src\base\main\libSupport.c" from "src\base\main\module.make"
-- Comment out calls to Libs_Init() and Libs_End() in "src\base\main\mainInit.c"
+(5) If compilation fails in file "src/base/main/libSupport.c", try the following:
+- Remove "src/base/main/libSupport.c" from "src/base/main/module.make"
+- Comment out calls to Libs_Init() and Libs_End() in "src/base/main/mainInit.c"
 
 
 The following comment was added by Krish Sundaresan:
