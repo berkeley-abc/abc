@@ -820,86 +820,8 @@ Gia_Man_t * Gia_ReadAigerFromMemory( char * pContents, int nFileSize, int fSkipS
     // create the latches
     Gia_ManSetRegNum( pNew, nLatches );
 
-
-    // check if there are other types of information to read
-    pCur = pSymbols;
-    if ( pCur + 1 < (unsigned char *)pContents + nFileSize && *pCur == 'c' )
-    {
-        pCur++;
-        if ( *pCur == 'e' )
-        {
-            pCur++;
-            // read equivalence classes
-            pNew->pReprs = Gia_ReadEquivClasses( &pCur, Gia_ManObjNum(pNew) );
-            pNew->pNexts = Gia_ManDeriveNexts( pNew );
-        }
-        if ( *pCur == 'f' )
-        {
-            pCur++;
-            // read flop classes
-            pNew->vFlopClasses = Vec_IntStart( Gia_ManRegNum(pNew) );
-            Gia_ReadFlopClasses( &pCur, pNew->vFlopClasses, Gia_ManRegNum(pNew) );
-        }
-        if ( *pCur == 'g' )
-        {
-            pCur++;
-            // read gate classes
-            pNew->vGateClasses = Vec_IntStart( Gia_ManObjNum(pNew) );
-            Gia_ReadFlopClasses( &pCur, pNew->vGateClasses, Gia_ManObjNum(pNew) );
-        }
-        if ( *pCur == 'v' )
-        {
-            pCur++;
-            // read object classes
-            pNew->vObjClasses = Vec_IntStart( Gia_ReadInt(pCur)/4 ); pCur += 4;
-            memcpy( Vec_IntArray(pNew->vObjClasses), pCur, 4*Vec_IntSize(pNew->vObjClasses) );
-            pCur += 4*Vec_IntSize(pNew->vObjClasses);
-        }
-        if ( *pCur == 'm' )
-        {
-            pCur++;
-            // read mapping
-            pNew->pMapping = Gia_ReadMapping( &pCur, Gia_ManObjNum(pNew) );
-        }
-        if ( *pCur == 'p' )
-        {
-            pCur++;
-            // read placement
-            pNew->pPlacement = Gia_ReadPlacement( &pCur, Gia_ManObjNum(pNew) );
-        }
-        if ( *pCur == 's' )
-        { 
-            pCur++;
-            // read switching activity
-            pNew->pSwitching = Gia_ReadSwitching( &pCur, Gia_ManObjNum(pNew) );
-        }
-        if ( *pCur == 't' )
-        {
-            Vec_Str_t * vStr;
-            pCur++;
-            // read timing manager
-            vStr = Vec_StrStart( Gia_ReadInt(pCur) ); pCur += 4;
-            memcpy( Vec_StrArray(vStr), pCur, Vec_StrSize(vStr) );
-            pCur += Vec_StrSize(vStr);
-            pNew->pManTime = Tim_ManLoad( vStr );
-            Vec_StrFree( vStr );
-        }
-        if ( *pCur == 'c' )
-        {
-            pCur++;
-            // read number of constraints
-            pNew->nConstrs = Gia_ReadInt( pCur ); pCur += 4;
-        }
-        if ( *pCur == 'n' )
-        {
-            pCur++;
-            // read model name
-            ABC_FREE( pNew->pName );
-            pNew->pName = Abc_UtilStrsav( (char *)pCur );
-        }
-    }
-
     // read signal names if they are of the special type
+    pCur = pSymbols;
     if ( *pCur != 'c' )
     {
         int fBreakUsed = 0;
@@ -1029,6 +951,84 @@ Gia_Man_t * Gia_ReadAigerFromMemory( char * pContents, int nFileSize, int fSkipS
                     Vec_IntFreeP( &vPoTypes );
             }
             Vec_IntFree( vPoNames );
+        }
+    }
+
+
+    // check if there are other types of information to read
+    if ( pCur + 1 < (unsigned char *)pContents + nFileSize && *pCur == 'c' )
+    {
+        pCur++;
+        if ( *pCur == 'e' )
+        {
+            pCur++;
+            // read equivalence classes
+            pNew->pReprs = Gia_ReadEquivClasses( &pCur, Gia_ManObjNum(pNew) );
+            pNew->pNexts = Gia_ManDeriveNexts( pNew );
+        }
+        if ( *pCur == 'f' )
+        {
+            pCur++;
+            // read flop classes
+            pNew->vFlopClasses = Vec_IntStart( Gia_ManRegNum(pNew) );
+            Gia_ReadFlopClasses( &pCur, pNew->vFlopClasses, Gia_ManRegNum(pNew) );
+        }
+        if ( *pCur == 'g' )
+        {
+            pCur++;
+            // read gate classes
+            pNew->vGateClasses = Vec_IntStart( Gia_ManObjNum(pNew) );
+            Gia_ReadFlopClasses( &pCur, pNew->vGateClasses, Gia_ManObjNum(pNew) );
+        }
+        if ( *pCur == 'v' )
+        {
+            pCur++;
+            // read object classes
+            pNew->vObjClasses = Vec_IntStart( Gia_ReadInt(pCur)/4 ); pCur += 4;
+            memcpy( Vec_IntArray(pNew->vObjClasses), pCur, 4*Vec_IntSize(pNew->vObjClasses) );
+            pCur += 4*Vec_IntSize(pNew->vObjClasses);
+        }
+        if ( *pCur == 'm' )
+        {
+            pCur++;
+            // read mapping
+            pNew->pMapping = Gia_ReadMapping( &pCur, Gia_ManObjNum(pNew) );
+        }
+        if ( *pCur == 'p' )
+        {
+            pCur++;
+            // read placement
+            pNew->pPlacement = Gia_ReadPlacement( &pCur, Gia_ManObjNum(pNew) );
+        }
+        if ( *pCur == 's' )
+        { 
+            pCur++;
+            // read switching activity
+            pNew->pSwitching = Gia_ReadSwitching( &pCur, Gia_ManObjNum(pNew) );
+        }
+        if ( *pCur == 't' )
+        {
+            Vec_Str_t * vStr;
+            pCur++;
+            // read timing manager
+            vStr = Vec_StrStart( Gia_ReadInt(pCur) ); pCur += 4;
+            memcpy( Vec_StrArray(vStr), pCur, Vec_StrSize(vStr) );
+            pCur += Vec_StrSize(vStr);
+            pNew->pManTime = Tim_ManLoad( vStr );
+            Vec_StrFree( vStr );
+        }
+        if ( *pCur == 'c' )
+        {
+            pCur++;
+            // read number of constraints
+            pNew->nConstrs = Gia_ReadInt( pCur ); pCur += 4;
+        }
+        if ( *pCur == 'n' )
+        {
+            pCur++;
+            // read model name
+            ABC_FREE( pNew->pName );
+            pNew->pName = Abc_UtilStrsav( (char *)pCur );
         }
     }
 
