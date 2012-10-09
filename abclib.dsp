@@ -2391,6 +2391,10 @@ SOURCE=.\src\map\scl\sclFile.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\map\scl\sclGsize.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\map\scl\sclInt.h
 # End Source File
 # Begin Source File
@@ -2624,6 +2628,10 @@ SOURCE=.\src\misc\vec\vecMem.h
 # Begin Source File
 
 SOURCE=.\src\misc\vec\vecPtr.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\vec\vecQue.h
 # End Source File
 # Begin Source File
 

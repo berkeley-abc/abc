@@ -233,6 +233,7 @@ void Abc_SclManSetGates( SC_Lib * pLib, Abc_Ntk_t * p, Vec_Int_t * vGates )
         SC_Cell * pCell = SC_LibCell( pLib, Vec_IntEntry(vGates, Abc_ObjId(pObj)) );
         assert( pCell->n_inputs == Abc_ObjFaninNum(pObj) );
         pObj->pData = Mio_LibraryReadGateByName( (Mio_Library_t *)p->pManFunc, pCell->pName, NULL );
+        assert( pObj->fMarkA == 0 && pObj->fMarkB == 0 );
 //printf( "Found gate %s\n", pCell->name );
     }
 }

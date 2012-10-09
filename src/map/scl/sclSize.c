@@ -336,12 +336,12 @@ void Abc_SclUpdateNetwork( SC_Man * p, Abc_Obj_t * pObj, int nCone, int fUpsize,
         printf( "d =%8.2f ps    ",     SC_LibTimePs(p->pLib, Abc_SclGetMaxDelay(p)) );
         printf( "a =%10.2f   ",        p->SumArea );
         printf( "n =%5d   ",           nCone );
-//        Abc_PrintTime( 1, "Time",      clock() - p->clkStart );
-//        ABC_PRTr( "Time", clock() - p->clkStart );
+//        Abc_PrintTime( 1, "Time",      clock() - p->timeTotal );
+//        ABC_PRTr( "Time", clock() - p->timeTotal );
         if ( fVeryVerbose )
-            ABC_PRT( "Time", clock() - p->clkStart );
+            ABC_PRT( "Time", clock() - p->timeTotal );
         else
-            ABC_PRTr( "Time", clock() - p->clkStart );
+            ABC_PRTr( "Time", clock() - p->timeTotal );
     }
 }
  
@@ -366,6 +366,7 @@ void Abc_SclSizingPerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPars 
     clock_t nRuntimeLimit = pPars->nTimeOut ? pPars->nTimeOut * CLOCKS_PER_SEC + clock() : 0;
     int r, i, nNodes, nCones = 0, nDownSize = 0;
     p = Abc_SclManStart( pLib, pNtk, pPars->fUseWireLoads );
+    p->timeTotal  = clock();
     if ( pPars->fPrintCP )
         Abc_SclTimeNtkPrint( p, 0, 0 );
     if ( pPars->fVerbose )
@@ -377,7 +378,7 @@ void Abc_SclSizingPerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPars 
         printf( "d =%8.2f ps    ", SC_LibTimePs(p->pLib, Abc_SclGetMaxDelay(p)) );
         printf( "a =%10.2f   ",    p->SumArea );
         printf( "           " );
-        Abc_PrintTime( 1, "Time",      clock() - p->clkStart );
+        Abc_PrintTime( 1, "Time",      clock() - p->timeTotal );
     }
     for ( r = i = 0; r < nIters; r++ )
     {
@@ -471,7 +472,7 @@ void Abc_SclSizingPerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPars 
     printf( "Area: " );
     printf( "%.2f -> %.2f ",     p->SumArea0, p->SumArea );
     printf( "(%+.1f %%).  ",     100.0 * (p->SumArea - p->SumArea0)/ p->SumArea0 );
-    Abc_PrintTime( 1, "Time",    clock() - p->clkStart );
+    Abc_PrintTime( 1, "Time",    clock() - p->timeTotal );
     // save the result and quit
     Abc_SclManSetGates( pLib, pNtk, p->vGates ); // updates gate pointers
     Abc_SclManFree( p );

@@ -644,15 +644,29 @@ usage:
 int Scl_CommandUpsize( Abc_Frame_t * pAbc, int argc, char **argv )
 {
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
-    int Window =   2;
-    int Ratio  =  10;
-    int nIters = 100;
+    int nIters  = 300;
+    int Window  =   2;
+    int Ratio   =  10;
+    int Notches =  10;
+    int TimeOut =   0;
     int c, fVerbose = 0;
+    int fVeryVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "WRIvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "IWRNTvwh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'I':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-I\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            nIters = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nIters < 0 ) 
+                goto usage;
+            break;
         case 'W':
             if ( globalUtilOptind >= argc )
             {
@@ -675,19 +689,33 @@ int Scl_CommandUpsize( Abc_Frame_t * pAbc, int argc, char **argv )
             if ( Ratio < 0 ) 
                 goto usage;
             break;
-        case 'I':
+        case 'N':
             if ( globalUtilOptind >= argc )
             {
-                Abc_Print( -1, "Command line switch \"-I\" should be followed by a positive integer.\n" );
+                Abc_Print( -1, "Command line switch \"-N\" should be followed by a positive integer.\n" );
                 goto usage;
             }
-            nIters = atoi(argv[globalUtilOptind]);
+            Notches = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nIters < 0 ) 
+            if ( Notches < 0 ) 
+                goto usage;
+            break;
+        case 'T':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-T\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            TimeOut = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( TimeOut < 0 ) 
                 goto usage;
             break;
         case 'v':
             fVerbose ^= 1;
+            break;
+        case 'w':
+            fVeryVerbose ^= 1;
             break;
         case 'h':
             goto usage;
@@ -717,16 +745,19 @@ int Scl_CommandUpsize( Abc_Frame_t * pAbc, int argc, char **argv )
         return 1;
     }
 
-    Abc_SclUpsizePerform( (SC_Lib *)pAbc->pLibScl, pNtk, Window, Ratio, nIters, fVerbose );
+    Abc_SclUpsizePerform( (SC_Lib *)pAbc->pLibScl, pNtk, nIters, Window, Ratio, Notches, TimeOut, fVerbose, fVeryVerbose );
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: upsize [-WRI num] [-vh]\n" );
+    fprintf( pAbc->Err, "usage: upsize [-IWRNT num] [-vwh]\n" );
     fprintf( pAbc->Err, "\t           selectively increases gate sizes in timing-critical regions\n" );
+    fprintf( pAbc->Err, "\t-I <num> : the number of upsizing iterations to perform [default = %d]\n", nIters );
     fprintf( pAbc->Err, "\t-W <num> : delay window (in percents) of near-critical COs [default = %d]\n", Window );
     fprintf( pAbc->Err, "\t-R <num> : ratio of critical nodes (in percents) to update [default = %d]\n", Ratio );
-    fprintf( pAbc->Err, "\t-I <num> : the number of upsizing iterations to perform [default = %d]\n", nIters );
+    fprintf( pAbc->Err, "\t-N <num> : limit on discrete upsizing steps at a node [default = %d]\n", Notches );
+    fprintf( pAbc->Err, "\t-T <num> : approximate timeout in seconds [default = %d]\n", TimeOut );
     fprintf( pAbc->Err, "\t-v       : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( pAbc->Err, "\t-w       : toggle printing more verbose information [default = %s]\n", fVeryVerbose? "yes": "no" );
     fprintf( pAbc->Err, "\t-h       : print the command usage\n");
     return 1;
 }

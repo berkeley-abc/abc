@@ -34,6 +34,63 @@ ABC_NAMESPACE_IMPL_START
 
 /**Function*************************************************************
 
+  Synopsis    [Returns the wireload model for the given area.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+SC_WireLoad * Abc_SclFindWireLoadModel( SC_Lib * p, float Area )
+{
+    SC_WireLoad * pWL = NULL;
+    char * pWLoadUsed = NULL;
+    int i;
+    if ( p->default_wire_load_sel && strlen(p->default_wire_load_sel) )
+    {
+        SC_WireLoadSel * pWLS = NULL;
+        SC_LibForEachWireLoadSel( p, pWLS, i )
+            if ( !strcmp(pWLS->pName, p->default_wire_load_sel) )
+                break;
+        if ( i == Vec_PtrSize(p->vWireLoadSels) )
+        {
+            Abc_Print( -1, "Cannot find wire load selection model \"%s\".\n", p->default_wire_load_sel );
+            exit(1);
+        }
+        for ( i = 0; i < Vec_FltSize(pWLS->vAreaFrom); i++)
+            if ( Area >= Vec_FltEntry(pWLS->vAreaFrom, i) && Area <  Vec_FltEntry(pWLS->vAreaTo, i) )
+            {
+                pWLoadUsed = (char *)Vec_PtrEntry(pWLS->vWireLoadModel, i);
+                break;
+            }
+        if ( i == Vec_FltSize(pWLS->vAreaFrom) )
+            pWLoadUsed = (char *)Vec_PtrEntryLast(pWLS->vWireLoadModel);
+    }
+    else if ( p->default_wire_load && strlen(p->default_wire_load) )
+        pWLoadUsed = p->default_wire_load;
+    else
+    {
+        Abc_Print( 0, "No wire model given.\n" );
+        return NULL;
+    }
+    // Get the actual table and reformat it for 'wire_cap' output:
+    assert( pWLoadUsed != NULL );
+    SC_LibForEachWireLoad( p, pWL, i )
+        if ( !strcmp(pWL->pName, pWLoadUsed) )
+            break;
+    if ( i == Vec_PtrSize(p->vWireLoads) )
+    {
+        Abc_Print( -1, "Cannot find wire load model \"%s\".\n", pWLoadUsed );
+        exit(1);
+    }
+//    printf( "Using wireload model \"%s\".\n", pWL->pName );
+    return pWL;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Returns estimated wire capacitances for each fanout count.]
 
   Description []
@@ -43,52 +100,12 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Flt_t * Abc_SclFindWireCaps( SC_Man * p )
+Vec_Flt_t * Abc_SclFindWireCaps( SC_Man * p, SC_WireLoad * pWL )
 {
     Vec_Flt_t * vCaps = NULL;
-    SC_WireLoad * pWL = NULL;
-    int i, Entry, EntryMax;
     float EntryPrev, EntryCur;
-    p->pWLoadUsed = NULL;
-    if ( p->pLib->default_wire_load_sel && strlen(p->pLib->default_wire_load_sel) )
-    {
-        float Area;
-        SC_WireLoadSel * pWLS = NULL;
-        SC_LibForEachWireLoadSel( p->pLib, pWLS, i )
-            if ( !strcmp(pWLS->pName, p->pLib->default_wire_load_sel) )
-                break;
-        if ( i == Vec_PtrSize(p->pLib->vWireLoadSels) )
-        {
-            Abc_Print( -1, "Cannot find wire load selection model \"%s\".\n", p->pLib->default_wire_load_sel );
-            exit(1);
-        }
-        Area = (float)Abc_SclGetTotalArea( p );
-        for ( i = 0; i < Vec_FltSize(pWLS->vAreaFrom); i++)
-            if ( Area >= Vec_FltEntry(pWLS->vAreaFrom, i) && Area <  Vec_FltEntry(pWLS->vAreaTo, i) )
-            {
-                p->pWLoadUsed = (char *)Vec_PtrEntry(pWLS->vWireLoadModel, i);
-                break;
-            }
-        if ( i == Vec_FltSize(pWLS->vAreaFrom) )
-            p->pWLoadUsed = (char *)Vec_PtrEntryLast(pWLS->vWireLoadModel);
-    }
-    else if ( p->pLib->default_wire_load && strlen(p->pLib->default_wire_load) )
-        p->pWLoadUsed = p->pLib->default_wire_load;
-    else
-    {
-        Abc_Print( 0, "No wire model given.\n" );
-        return NULL;
-    }
-    // Get the actual table and reformat it for 'wire_cap' output:
-    assert( p->pWLoadUsed != NULL );
-    SC_LibForEachWireLoad( p->pLib, pWL, i )
-        if ( !strcmp(pWL->pName, p->pWLoadUsed) )
-            break;
-    if ( i == Vec_PtrSize(p->pLib->vWireLoads) )
-    {
-        Abc_Print( -1, "Cannot find wire load model \"%s\".\n", p->pWLoadUsed );
-        exit(1);
-    }
+    int i, Entry, EntryMax;
+    assert( pWL != NULL );
     // find the biggest fanout
     EntryMax = 0;
     Vec_IntForEachEntry( pWL->vFanout, Entry, i )
@@ -111,7 +128,7 @@ Vec_Flt_t * Abc_SclFindWireCaps( SC_Man * p )
 
 /**Function*************************************************************
 
-  Synopsis    [Computes/updates load for all nodes in the network.]
+  Synopsis    [Computes load for all nodes in the network.]
 
   Description []
                
@@ -143,22 +160,31 @@ void Abc_SclComputeLoad( SC_Man * p )
             pLoad->fall += pPin->fall_cap;
         }
     }
-    if ( !p->fUseWireLoads )
+    if ( p->pWLoadUsed == NULL )
         return;
     // add wire load
-    vWireCaps = Abc_SclFindWireCaps( p );
-    if ( vWireCaps )
+    vWireCaps = Abc_SclFindWireCaps( p, p->pWLoadUsed );
+    Abc_NtkForEachNode1( p->pNtk, pObj, i )
     {
-        Abc_NtkForEachNode1( p->pNtk, pObj, i )
-        {
-            SC_Pair * pLoad = Abc_SclObjLoad( p, pObj );
-            k = Abc_MinInt( Vec_FltSize(vWireCaps)-1, Abc_ObjFanoutNum(pObj) );
-            pLoad->rise += Vec_FltEntry(vWireCaps, k);
-            pLoad->fall += Vec_FltEntry(vWireCaps, k);
-        }
-        Vec_FltFree( vWireCaps );
+        SC_Pair * pLoad = Abc_SclObjLoad( p, pObj );
+        k = Abc_MinInt( Vec_FltSize(vWireCaps)-1, Abc_ObjFanoutNum(pObj) );
+        pLoad->rise += Vec_FltEntry(vWireCaps, k);
+        pLoad->fall += Vec_FltEntry(vWireCaps, k);
     }
+    Vec_FltFree( vWireCaps );
 }
+
+/**Function*************************************************************
+
+  Synopsis    [Updates load of the node's fanins.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 void Abc_SclUpdateLoad( SC_Man * p, Abc_Obj_t * pObj, SC_Cell * pOld, SC_Cell * pNew )
 {
     Abc_Obj_t * pFanin;
