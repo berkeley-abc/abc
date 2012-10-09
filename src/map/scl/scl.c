@@ -301,9 +301,10 @@ int Scl_CommandStime( Abc_Frame_t * pAbc, int argc, char **argv )
     int fShowAll = 0;
     int fUseWireLoads = 1;
     int fShort = 0;
+    int fDumpStats = 0;
 
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "cash" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "casdh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -315,6 +316,9 @@ int Scl_CommandStime( Abc_Frame_t * pAbc, int argc, char **argv )
                 break;
             case 's':
                 fShort ^= 1;
+                break;
+            case 'd':
+                fDumpStats ^= 1;
                 break;
             case 'h':
                 goto usage;
@@ -344,15 +348,16 @@ int Scl_CommandStime( Abc_Frame_t * pAbc, int argc, char **argv )
         return 1;
     }
 
-    Abc_SclTimePerform( (SC_Lib *)pAbc->pLibScl, Abc_FrameReadNtk(pAbc), fUseWireLoads, fShowAll, fShort );
+    Abc_SclTimePerform( (SC_Lib *)pAbc->pLibScl, Abc_FrameReadNtk(pAbc), fUseWireLoads, fShowAll, fShort, fDumpStats );
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: stime [-cash]\n" );
+    fprintf( pAbc->Err, "usage: stime [-casdh]\n" );
     fprintf( pAbc->Err, "\t         performs STA using Liberty library\n" );
     fprintf( pAbc->Err, "\t-c     : toggle using wire-loads if specified [default = %s]\n", fUseWireLoads? "yes": "no" );
     fprintf( pAbc->Err, "\t-a     : display timing information for all nodes [default = %s]\n", fShowAll? "yes": "no" );
     fprintf( pAbc->Err, "\t-s     : display timing information without critical path [default = %s]\n", fShort? "yes": "no" );
+    fprintf( pAbc->Err, "\t-d     : toggle dumping statistics into a file [default = %s]\n", fDumpStats? "yes": "no" );
     fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
     return 1;
 }
@@ -649,10 +654,11 @@ int Scl_CommandUpsize( Abc_Frame_t * pAbc, int argc, char **argv )
     int Ratio   =  10;
     int Notches =  10;
     int TimeOut =   0;
+    int fDumpStats = 0;
     int c, fVerbose = 0;
     int fVeryVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "IWRNTvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "IWRNTdvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -711,6 +717,9 @@ int Scl_CommandUpsize( Abc_Frame_t * pAbc, int argc, char **argv )
             if ( TimeOut < 0 ) 
                 goto usage;
             break;
+        case 'd':
+            fDumpStats ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -745,17 +754,18 @@ int Scl_CommandUpsize( Abc_Frame_t * pAbc, int argc, char **argv )
         return 1;
     }
 
-    Abc_SclUpsizePerform( (SC_Lib *)pAbc->pLibScl, pNtk, nIters, Window, Ratio, Notches, TimeOut, fVerbose, fVeryVerbose );
+    Abc_SclUpsizePerform( (SC_Lib *)pAbc->pLibScl, pNtk, nIters, Window, Ratio, Notches, TimeOut, fDumpStats, fVerbose, fVeryVerbose );
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: upsize [-IWRNT num] [-vwh]\n" );
+    fprintf( pAbc->Err, "usage: upsize [-IWRNT num] [-dvwh]\n" );
     fprintf( pAbc->Err, "\t           selectively increases gate sizes in timing-critical regions\n" );
     fprintf( pAbc->Err, "\t-I <num> : the number of upsizing iterations to perform [default = %d]\n", nIters );
     fprintf( pAbc->Err, "\t-W <num> : delay window (in percents) of near-critical COs [default = %d]\n", Window );
     fprintf( pAbc->Err, "\t-R <num> : ratio of critical nodes (in percents) to update [default = %d]\n", Ratio );
     fprintf( pAbc->Err, "\t-N <num> : limit on discrete upsizing steps at a node [default = %d]\n", Notches );
     fprintf( pAbc->Err, "\t-T <num> : approximate timeout in seconds [default = %d]\n", TimeOut );
+    fprintf( pAbc->Err, "\t-d       : toggle dumping statistics into a file [default = %s]\n", fDumpStats? "yes": "no" );
     fprintf( pAbc->Err, "\t-v       : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pAbc->Err, "\t-w       : toggle printing more verbose information [default = %s]\n", fVeryVerbose? "yes": "no" );
     fprintf( pAbc->Err, "\t-h       : print the command usage\n");

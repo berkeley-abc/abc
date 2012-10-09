@@ -155,8 +155,8 @@ Vec_Int_t * Abc_SclFindCriticalNodeWindow( SC_Man * p, Vec_Int_t * vPathCos, int
     Abc_NtkForEachObjVec( vPathCos, p->pNtk, pObj, i )
     {
         float fSlackThis = fSlack - (fMaxArr - Abc_SclObjTimeMax(p, pObj));
-        assert( fSlackThis >= 0 );
-        Abc_SclFindCriticalNodeWindow_rec( p, Abc_ObjFanin0(pObj), vPath, fSlackThis );
+        if ( fSlackThis >= 0 )
+            Abc_SclFindCriticalNodeWindow_rec( p, Abc_ObjFanin0(pObj), vPath, fSlackThis );
     }
     // label critical nodes
     Abc_NtkForEachObjVec( vPathCos, p->pNtk, pObj, i )
@@ -452,7 +452,7 @@ void Abc_SclUpsizePrint( SC_Man * p, int Iter, int win, int nPathPos, int nPathN
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int nIters, int Window, int Ratio, int Notches, int TimeOut, int fVerbose, int fVeryVerbose )
+void Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int nIters, int Window, int Ratio, int Notches, int TimeOut, int fDumpStats, int fVerbose, int fVeryVerbose )
 {
     SC_Man * p;
     Vec_Int_t * vPathPos;    // critical POs
@@ -550,7 +550,8 @@ void Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int nIters, int Wind
         ABC_PRTP( "Runtime: Other        ", p->timeOther, p->timeTotal );
         ABC_PRTP( "Runtime: TOTAL        ", p->timeTotal, p->timeTotal );
     }
-//    Abc_SclDumpStats( p, "stats2.txt", p->timeTotal );
+    if ( fDumpStats )
+        Abc_SclDumpStats( p, "stats2.txt", p->timeTotal );
 
     // save the result and quit
     Abc_SclManSetGates( pLib, pNtk, p->vGates ); // updates gate pointers

@@ -334,9 +334,8 @@ SC_Man * Abc_SclManStart( SC_Lib * pLib, Abc_Ntk_t * pNtk, int fUseWireLoads )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_SclTimePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int fUseWireLoads, int fShowAll, int fShort )
+void Abc_SclTimePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int fUseWireLoads, int fShowAll, int fShort, int fDumpStats )
 {
-    int fDumpStats = 0;
     SC_Man * p;
     p = Abc_SclManStart( pLib, pNtk, fUseWireLoads );   
     Abc_SclTimeNtkPrint( p, fShowAll, fShort );

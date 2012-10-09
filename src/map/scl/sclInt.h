@@ -435,11 +435,11 @@ extern void          Abc_SclSave( char * pFileName, SC_Lib * pScl );
 /*=== sclLoad.c ===============================================================*/
 extern SC_WireLoad * Abc_SclFindWireLoadModel( SC_Lib * p, float Area );
 /*=== sclTime.c ===============================================================*/
-extern void          Abc_SclTimePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int fUseWireLoads, int fShowAll, int fShort );
+extern void          Abc_SclTimePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int fUseWireLoads, int fShowAll, int fShort, int fDumpStats );
 /*=== sclSize.c ===============================================================*/
 extern void          Abc_SclSizingPerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * p );
 /*=== sclUpsize.c ===============================================================*/
-extern void          Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int nIters, int Window, int Ratio, int Notches, int TimeOut, int fVerbose, int fVeryVerbose );
+extern void          Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int nIters, int Window, int Ratio, int Notches, int TimeOut, int fDumpStats, int fVerbose, int fVeryVerbose );
 /*=== sclUtil.c ===============================================================*/
 extern void          Abc_SclHashCells( SC_Lib * p );
 extern int           Abc_SclCellFind( SC_Lib * p, char * pName );
