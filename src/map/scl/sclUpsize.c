@@ -436,10 +436,9 @@ void Abc_SclUpsizePrint( SC_Man * p, int Iter, int win, int nPathPos, int nPathN
     printf( "A: " );
     printf( "%.2f ",         p->SumArea );
     printf( "(%+5.1f %%)  ", 100.0 * (p->SumArea - p->SumArea0)/ p->SumArea0 );
-    if ( fVerbose )
-        ABC_PRT( "T", clock() - p->timeTotal );
-    else
-        ABC_PRTr( "T", clock() - p->timeTotal );
+    ABC_PRTn( "T", clock() - p->timeTotal );
+    printf( "    " );
+    printf( "%c", fVerbose ? '\n' : '\r' );
 }
 
 /**Function*************************************************************
@@ -538,12 +537,12 @@ void Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int nIters, int Wind
     }
     // update for best gates and recompute timing
     ABC_SWAP( Vec_Int_t *, p->vGatesBest, p->vGates );
+    Abc_SclTimeNtkRecompute( p, &p->SumArea, &p->MaxDelay, 0 );
+    p->timeTotal = clock() - p->timeTotal;
     if ( fVerbose )
     {
-        Abc_SclTimeNtkRecompute( p, &p->SumArea, &p->MaxDelay, 0 );
         Abc_SclUpsizePrint( p, i, Window, nAllPos/i, nAllNodes/i, nAllUpsizes/i, nAllTfos/i, 1 );
         // report runtime
-        p->timeTotal = clock() - p->timeTotal;
         p->timeOther = p->timeTotal - p->timeCone - p->timeSize - p->timeTime;
         ABC_PRTP( "Runtime: Critical path", p->timeCone,  p->timeTotal );
         ABC_PRTP( "Runtime: Sizing eval  ", p->timeSize,  p->timeTotal );
@@ -551,6 +550,7 @@ void Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int nIters, int Wind
         ABC_PRTP( "Runtime: Other        ", p->timeOther, p->timeTotal );
         ABC_PRTP( "Runtime: TOTAL        ", p->timeTotal, p->timeTotal );
     }
+//    Abc_SclDumpStats( p, "stats2.txt", p->timeTotal );
 
     // save the result and quit
     Abc_SclManSetGates( pLib, pNtk, p->vGates ); // updates gate pointers

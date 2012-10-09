@@ -321,6 +321,32 @@ static inline SC_Cell * Abc_SclObjResiable( SC_Man * p, Abc_Obj_t * pObj, int fU
         return pOld->pPrev->Order < pOld->Order ? pOld->pPrev : NULL;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Dumps timing results into a file.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Abc_SclDumpStats( SC_Man * p, char * pFileName, clock_t Time )
+{
+    FILE * pTable;
+    pTable = fopen( pFileName, "a+" );
+    fprintf( pTable, "%s ", p->pNtk->pName );
+    fprintf( pTable, "%d ", Abc_NtkPiNum(p->pNtk) );
+    fprintf( pTable, "%d ", Abc_NtkPoNum(p->pNtk) );
+    fprintf( pTable, "%d ", Abc_NtkNodeNum(p->pNtk) );
+    fprintf( pTable, "%d ", (int)p->SumArea0 );
+    fprintf( pTable, "%d ", (int)p->MaxDelay0 );
+    fprintf( pTable, "%.2f ", 1.0*Time/CLOCKS_PER_SEC );
+    fprintf( pTable, "\n" );
+    fclose( pTable );
+}
+
 
 /*=== sclTime.c =============================================================*/
 extern Abc_Obj_t * Abc_SclFindCriticalCo( SC_Man * p, int * pfRise );
