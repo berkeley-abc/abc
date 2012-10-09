@@ -1441,7 +1441,7 @@ void Gia_WriteAiger( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
 
     // write the nodes into the buffer
     Pos = 0;
-    nBufferSize = 6 * Gia_ManAndNum(p) + 100; // skeptically assuming 3 chars per one AIG edge
+    nBufferSize = 8 * Gia_ManAndNum(p) + 100; // skeptically assuming 3 chars per one AIG edge
     pBuffer = ABC_ALLOC( unsigned char, nBufferSize );
     Gia_ManForEachAnd( p, pObj, i )
     {
