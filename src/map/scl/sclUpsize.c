@@ -514,8 +514,10 @@ void Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int nIters, int nIte
 
         // update timing information
         clk = clock();
-        vTFO = Abc_SclFindTFO( p->pNtk, vPathNodes );
-        Abc_SclTimeCone( p, vTFO );
+//        vTFO = Abc_SclFindTFO( p->pNtk, vPathNodes );
+//        Abc_SclTimeCone( p, vTFO );
+        vTFO = Vec_IntAlloc( 0 );
+        Abc_SclTimeNtkRecompute( p, NULL, NULL, 0 );
         p->timeTime += clock() - clk;
 //        Abc_SclUpsizePrintDiffs( p, pLib, pNtk );
 
