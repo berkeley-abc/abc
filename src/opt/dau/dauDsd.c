@@ -95,7 +95,7 @@ word Dau_DsdToTruth_rec( char ** p )
         assert( (**p == '<') == (*q == '>') );
         if ( **p == '(' ) // and/or
         {
-            Res = ~0;
+            Res = ~(word)0;
             for ( (*p)++; *p < q; (*p)++ )
                 Res &= Dau_DsdToTruth_rec( p );
         }
@@ -126,7 +126,7 @@ word Dau_DsdToTruth( char * p )
     if ( *p == '0' )
         Res = 0;
     else if ( *p == '1' )
-        Res = ~0;
+        Res = ~(word)0;
     else
         Res = Dau_DsdToTruth_rec( &p );
     assert( *++p == 0 );
@@ -239,7 +239,7 @@ int Dau_DsdPerform_rec( word t, char * pBuffer, int Pos, int * pVars, int nVars 
             pBuffer[Pos++] = ')';
             return Pos;
         }
-        if ( Cof0[v] == ~0 ) // !(ax)
+        if ( Cof0[v] == ~(word)0 ) // !(ax)
         {
             pBuffer[Pos++] = '!';
             pBuffer[Pos++] = '(';
@@ -257,7 +257,7 @@ int Dau_DsdPerform_rec( word t, char * pBuffer, int Pos, int * pVars, int nVars 
             pBuffer[Pos++] = ')';
             return Pos;
         }
-        if ( Cof1[v] == ~0 ) // !(!ax)
+        if ( Cof1[v] == ~(word)0 ) // !(!ax)
         {
             pBuffer[Pos++] = '!';
             pBuffer[Pos++] = '(';
@@ -397,7 +397,7 @@ char * Dau_DsdPerform( word t )
     int Pos = 0;
     if ( t == 0 )
         pBuffer[Pos++] = '0';
-    else if ( t == ~0 )
+    else if ( t == ~(word)0 )
         pBuffer[Pos++] = '1';
     else
         Pos = Dau_DsdPerform_rec( t, pBuffer, Pos, pVarsNew, 6 );

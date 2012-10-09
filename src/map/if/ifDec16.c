@@ -331,7 +331,7 @@ static inline void If_CluFill( word * pIn, int nVars )
 {
     int w, nWords = If_CluWordNum( nVars );
     for ( w = 0; w < nWords; w++ )
-        pIn[w] = ~0;
+        pIn[w] = ~(word)0;
 }
 static inline void If_CluCopy( word * pOut, word * pIn, int nVars )
 {
@@ -610,7 +610,7 @@ void If_CluInitTruthTables()
             TruthAll[i][k] = Truth6[i];
     for ( i = 6; i < CLU_VAR_MAX; i++ )
         for ( k = 0; k < CLU_WRD_MAX; k++ )
-            TruthAll[i][k] = ((k >> (i-6)) & 1) ? ~0 : 0;
+            TruthAll[i][k] = ((k >> (i-6)) & 1) ? ~(word)0 : 0;
 
 //    Extra_PrintHex( stdout, TruthAll[6], 8 ); printf( "\n" );
 //    Extra_PrintHex( stdout, TruthAll[7], 8 ); printf( "\n" );
@@ -1081,11 +1081,11 @@ int If_CluDetectSpecialCaseCofs( word * pF, int nVars, int iVar )
 
                 if ( Cof0 == 0 )
                     State[0]++;
-                else if ( Cof0 == ~0 )
+                else if ( Cof0 == ~(word)0 )
                     State[1]++;
                 else if ( Cof1 == 0 )
                     State[2]++;
-                else if ( Cof1 == ~0 )
+                else if ( Cof1 == ~(word)0 )
                     State[3]++;
                 else if ( Cof0 == ~Cof1 )
                     State[4]++;

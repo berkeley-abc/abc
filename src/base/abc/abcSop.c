@@ -1229,7 +1229,7 @@ void Abc_SopToTruth7( char * pSop, int nInputs, word r[2] )
     assert( nVars == nInputs );
     r[0] = r[1] = 0;
     do {
-        Cube[0] = Cube[1] = ~0;
+        Cube[0] = Cube[1] = ~(word)0;
         for ( v = 0; v < nVars; v++, lit++ )
         {
             if ( pSop[lit] == '1' )
@@ -1282,7 +1282,7 @@ void Abc_SopToTruthBig( char * pSop, int nInputs, word ** pVars, word * pCube, w
         pRes[i] = 0;
     do {
         for ( i = 0; i < nWords; i++ )
-            pCube[i] = ~0;
+            pCube[i] = ~(word)0;
         for ( v = 0; v < nVars; v++, lit++ )
         {
             if ( pSop[lit] == '1' )

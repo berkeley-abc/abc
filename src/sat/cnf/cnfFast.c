@@ -145,7 +145,7 @@ word Cnf_CutDeriveTruth( Aig_Man_t * p, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vNodes 
         0xFFFF0000FFFF0000,
         0xFFFFFFFF00000000
     };
-    static word C[2] = { 0, ~0 };
+    static word C[2] = { 0, ~(word)0 };
     static word S[256];
     Aig_Obj_t * pObj;
     int i;
@@ -240,7 +240,7 @@ void Cnf_ComputeClauses( Aig_Man_t * p, Aig_Obj_t * pRoot,
     assert( Vec_PtrSize(vLeaves) <= 6 );
 
     Truth = Cnf_CutDeriveTruth( p, vLeaves, vNodes );
-    if ( Truth == 0 || Truth == ~0 )
+    if ( Truth == 0 || Truth == ~(word)0 )
     {
         Vec_IntPush( vClauses, 0 );
         Vec_IntPush( vClauses, (Truth == 0) ? (OutLit ^ 1) : OutLit );

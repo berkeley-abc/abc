@@ -185,7 +185,7 @@ void Aig_ManPackSimulate( Aig_ManPack_t * p )
     word Sign, Sign0, Sign1;
     int i;
     // set the constant
-    Vec_WrdWriteEntry( p->vSigns, 0, (word)~0 );
+    Vec_WrdWriteEntry( p->vSigns, 0, ~(word)0 );
     // transfer into the array
     Aig_ManForEachCi( p->pAig, pObj, i )
         Vec_WrdWriteEntry( p->vSigns, Aig_ObjId(pObj), Vec_WrdEntry(p->vPiPats, i) );

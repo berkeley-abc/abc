@@ -433,7 +433,7 @@ int Ssw_RarManObjIsConst( void * pMan, Aig_Obj_t * pObj )
 {
     Ssw_RarMan_t * p = (Ssw_RarMan_t *)pMan;
     word * pSim = Ssw_RarObjSim( p, Aig_ObjId(pObj) );
-    word Flip = pObj->fPhase ? ~0 : 0;
+    word Flip = pObj->fPhase ? ~(word)0 : 0;
     int w;
     for ( w = 0; w < p->nWords; w++ )
         if ( pSim[w] ^ Flip )
@@ -457,7 +457,7 @@ int Ssw_RarManObjsAreEqual( void * pMan, Aig_Obj_t * pObj0, Aig_Obj_t * pObj1 )
     Ssw_RarMan_t * p = (Ssw_RarMan_t *)pMan;
     word * pSim0 = Ssw_RarObjSim( p, pObj0->Id );
     word * pSim1 = Ssw_RarObjSim( p, pObj1->Id );
-    word Flip = (pObj0->fPhase != pObj1->fPhase) ? ~0 : 0;
+    word Flip = (pObj0->fPhase != pObj1->fPhase) ? ~(word)0 : 0;
     int w;
     for ( w = 0; w < p->nWords; w++ )
         if ( pSim0[w] ^ pSim1[w] ^ Flip )
@@ -518,7 +518,7 @@ unsigned Ssw_RarManObjHashWord( void * pMan, Aig_Obj_t * pObj )
 int Ssw_RarManObjWhichOne( Ssw_RarMan_t * p, Aig_Obj_t * pObj )
 {
     word * pSim = Ssw_RarObjSim( p, Aig_ObjId(pObj) );
-    word Flip = pObj->fPhase ? ~0 : 0;
+    word Flip = pObj->fPhase ? ~(word)0 : 0;
     int w, i;
     for ( w = 0; w < p->nWords; w++ )
         if ( pSim[w] ^ Flip )
@@ -609,8 +609,8 @@ void Ssw_RarManSimulate( Ssw_RarMan_t * p, Vec_Int_t * vInit, int fUpdate, int f
         pSim  = Ssw_RarObjSim( p, Aig_ObjId(pObj) );
         pSim0 = Ssw_RarObjSim( p, Aig_ObjFaninId0(pObj) );
         pSim1 = Ssw_RarObjSim( p, Aig_ObjFaninId1(pObj) );
-        Flip0 = Aig_ObjFaninC0(pObj) ? ~0 : 0;
-        Flip1 = Aig_ObjFaninC1(pObj) ? ~0 : 0;
+        Flip0 = Aig_ObjFaninC0(pObj) ? ~(word)0 : 0;
+        Flip1 = Aig_ObjFaninC1(pObj) ? ~(word)0 : 0;
         for ( w = 0; w < p->nWords; w++ )
             pSim[w] = (Flip0 ^ pSim0[w]) & (Flip1 ^ pSim1[w]);
         if ( !fUpdate )
@@ -635,7 +635,7 @@ void Ssw_RarManSimulate( Ssw_RarMan_t * p, Vec_Int_t * vInit, int fUpdate, int f
     {
         pSim  = Ssw_RarObjSim( p, Aig_ObjId(pObj) );
         pSim0 = Ssw_RarObjSim( p, Aig_ObjFaninId0(pObj) );
-        Flip  = Aig_ObjFaninC0(pObj) ? ~0 : 0;
+        Flip  = Aig_ObjFaninC0(pObj) ? ~(word)0 : 0;
         for ( w = 0; w < p->nWords; w++ )
             pSim[w] = Flip ^ pSim0[w];
     }

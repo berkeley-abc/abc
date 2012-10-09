@@ -940,7 +940,7 @@ void Io_NtkWriteNodeIntStruct( FILE * pFile, Abc_Obj_t * pNode, Vec_Int_t * vCov
                     pTruths[i][k] = Truth6[i];
             for ( i = 6; i < nVarsMax; i++ )
                 for ( k = 0; k < nWordsMax; k++ )
-                    pTruths[i][k] = ((k >> (i-6)) & 1) ? ~0 : 0;
+                    pTruths[i][k] = ((k >> (i-6)) & 1) ? ~(word)0 : 0;
         }
 
         // collect variables

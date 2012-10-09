@@ -110,7 +110,7 @@ static inline void If_Dec10ComposeLut4( int t, word ** pF, word * pR, int nVars 
         if ( !((t >> m) & 1) )
             continue;
         for ( w = 0; w < nWords; w++ )
-            pC[w] = ~0;
+            pC[w] = ~(word)0;
         for ( v = 0; v < 4; v++ )
             for ( w = 0; w < nWords; w++ )
                 pC[w] &= ((m >> v) & 1) ? pF[v][w] : ~pF[v][w];
@@ -156,7 +156,7 @@ static inline int If_Dec10CofCount2( word * pF, int nVars )
     int i;
     assert( nVars > 6 && nVars <= 10 );
     if ( nVars == 10 )
-        Mask = ~0;
+        Mask = ~(word)0;
     for ( i = 1; i < 16; i++ )
     {
         iCof = (pF[(i * nShift) / 64] >> ((i * nShift) & 63)) & Mask;
@@ -176,7 +176,7 @@ static inline int If_Dec10CofCount( word * pF, int nVars )
     word iCofs[16], iCof;
     int i, c, nCofs = 1;
     if ( nVars == 10 )
-        Mask = ~0;
+        Mask = ~(word)0;
     iCofs[0] = pF[0] & Mask;
     for ( i = 1; i < 16; i++ )
     {
@@ -267,7 +267,7 @@ static inline int If_Dec10DeriveCount2( word * pF, word * pRes, int nVars )
     word iCof1 = pF[0] & Mask;
     word iCof, * pCof0, * pCof1;
     if ( nVars == 10 )
-        Mask = ~0;
+        Mask = ~(word)0;
     for ( i = 1; i < 16; i++ )
     {
         iCof = (pF[(i * nShift) / 64] >> ((i * nShift) & 63)) & Mask;

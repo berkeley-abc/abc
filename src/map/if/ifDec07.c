@@ -108,7 +108,7 @@ static word If_Dec6ComposeLut4( int t, word f[4] )
     {
         if ( !((t >> m) & 1) )
             continue;
-        c = ~0;
+        c = ~(word)0;
         for ( v = 0; v < 4; v++ )
             c &= ((m >> v) & 1) ? f[v] : ~f[v];
         r |= c;
@@ -152,7 +152,7 @@ static void If_Dec7ComposeLut4( int t, word f[4][2], word r[2] )
     {
         if ( !((t >> m) & 1) )
             continue;
-        c[0] = c[1] = ~0;
+        c[0] = c[1] = ~(word)0;
         for ( v = 0; v < 4; v++ )
         {
             c[0] &= ((m >> v) & 1) ? f[v][0] : ~f[v][0];
