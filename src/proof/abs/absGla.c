@@ -1527,6 +1527,7 @@ int Gia_ManPerformGla( Gia_Man_t * pAig, Abs_Par_t * pPars )
     clock_t clk2, clk = clock();
     int Status = l_Undef, RetValue = -1, iFrameTryToProve = -1, fOneIsSent = 0;
     int i, c, f, Lit;
+    pPars->iFrame = -1;
     // check trivial case 
     assert( Gia_ManPoNum(pAig) == 1 ); 
     ABC_FREE( pAig->pCexSeq );
@@ -1846,7 +1847,7 @@ finish:
             Abc_Print( 1, "GLA found the ratio of abstracted objects to exceed %d %% in frame %d.  ", pPars->nRatioMin, p->pPars->iFrameProved+1 );
         else
             Abc_Print( 1, "GLA finished %d frames and produced a %d-stable abstraction.  ", p->pPars->iFrameProved+1, p->pPars->nFramesNoChange );
-        p->pPars->iFrame = p->pPars->iFrameProved;
+        p->pPars->iFrame = p->pPars->iFrameProved - 1;
     }
     else
     {
