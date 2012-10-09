@@ -1786,7 +1786,7 @@ int Gia_ManPerformGla( Gia_Man_t * pAig, Abs_Par_t * pPars )
                     char Command[1000];
                     Abc_FrameSetStatus( -1 );
                     Abc_FrameSetCex( NULL );
-                    Abc_FrameSetNFrames( f+1 );
+                    Abc_FrameSetNFrames( f );
                     sprintf( Command, "write_status %s", Extra_FileNameGenericAppend((char *)(p->pPars->pFileVabs ? p->pPars->pFileVabs : "glabs.aig"), ".status"));
                     Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Command );
                     Ga2_GlaDumpAbsracted( p, pPars->fVerbose );
@@ -1847,7 +1847,7 @@ finish:
             Abc_Print( 1, "GLA found the ratio of abstracted objects to exceed %d %% in frame %d.  ", pPars->nRatioMin, p->pPars->iFrameProved+1 );
         else
             Abc_Print( 1, "GLA finished %d frames and produced a %d-stable abstraction.  ", p->pPars->iFrameProved+1, p->pPars->nFramesNoChange );
-        p->pPars->iFrame = p->pPars->iFrameProved - 1;
+        p->pPars->iFrame = p->pPars->iFrameProved;
     }
     else
     {
