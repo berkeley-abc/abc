@@ -67,6 +67,12 @@ struct SC_Man_
     Vec_Flt_t *    vTimesOut;     // output arrival times
     Vec_Que_t *    vQue;          // outputs by their time
     SC_WireLoad *  pWLoadUsed;    // name of the used WireLoad model
+    // intermediate data
+    Vec_Que_t *    vNodeByGain;   // nodes by gain
+    Vec_Flt_t *    vNode2Gain;    // mapping node into its gain
+    Vec_Int_t *    vNode2Gate;    // mapping node into its best gate
+    Vec_Int_t *    vNodeIter;     // the last iteration the node was upsized
+    // optimization parameters
     float          SumArea;       // total area
     float          MaxDelay;      // max delay
     float          SumArea0;      // total area at the begining 
@@ -147,10 +153,21 @@ static inline SC_Man * Abc_SclManAlloc( SC_Lib * pLib, Abc_Ntk_t * pNtk )
     for ( i = 0; i < Abc_NtkCoNum(pNtk); i++ )
         Vec_QuePush( p->vQue, i );
     p->vUpdates  = Vec_IntAlloc( 1000 );
+    // intermediate data
+    p->vNode2Gain  = Vec_FltStart( p->nObjs );
+    p->vNode2Gate  = Vec_IntStart( p->nObjs );
+    p->vNodeByGain = Vec_QueAlloc( p->nObjs );
+    Vec_QueSetCosts( p->vNodeByGain, Vec_FltArray(p->vNode2Gain) );
+    p->vNodeIter   = Vec_IntStartFull( p->nObjs );
     return p;
 }
 static inline void Abc_SclManFree( SC_Man * p )
 {
+    Vec_IntFreeP( &p->vNodeIter );
+    Vec_QueFreeP( &p->vNodeByGain );
+    Vec_FltFreeP( &p->vNode2Gain );
+    Vec_IntFreeP( &p->vNode2Gate );
+    // intermediate data
     Vec_IntFreeP( &p->vUpdates );
     Vec_IntFreeP( &p->vGatesBest );
 //    Vec_QuePrint( p->vQue );

@@ -218,6 +218,7 @@ Vec_Int_t * Abc_SclFindNodesToUpdate( Abc_Obj_t * pPivot, Vec_Int_t ** pvEvals )
     Abc_NtkForEachObjVec( vNodes, p, pObj, i )
         Abc_ObjForEachFanout( pObj, pNext, k )
             if ( pNext->fMarkA && !pNext->fMarkB )
+//            if ( !pNext->fMarkB )
             {
                 assert( pObj->fMarkB );
                 Vec_IntPush( *pvEvals, Abc_ObjId(pObj) );
@@ -242,39 +243,38 @@ Vec_Int_t * Abc_SclFindNodesToUpdate( Abc_Obj_t * pPivot, Vec_Int_t ** pvEvals )
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_SclFindUpsizes( SC_Man * p, Vec_Int_t * vPathNodes, int Ratio, int Notches )
+int Abc_SclFindUpsizes( SC_Man * p, Vec_Int_t * vPathNodes, int Ratio, int Notches, int iIter )
 {
     SC_Cell * pCellOld, * pCellNew;
-    Vec_Int_t * vChamps;  // best gate for each node
-    Vec_Flt_t * vSavings; // best gain for each node
-    Vec_Int_t * vRecalcs, * vEvals, * vUpdate;
+    Vec_Int_t * vRecalcs, * vEvals;
     Abc_Obj_t * pObj, * pTemp;
     float dGain, dGainBest;
-    int i, k, n, Entry, gateBest;
-    int nUpsizes = 0;
-//    return nUpsizes;
+    int i, k, n, gateBest, Limit, iIterLast;
 
     // compute savings due to upsizing each node
-    vChamps = Vec_IntAlloc( Vec_IntSize(vPathNodes) );
-    vSavings = Vec_FltAlloc( Vec_IntSize(vPathNodes) );
+    Vec_QueClear( p->vNodeByGain );
     Abc_NtkForEachObjVec( vPathNodes, p->pNtk, pObj, i )
     {
+        iIterLast = Vec_IntEntry(p->vNodeIter, Abc_ObjId(pObj));
+        if ( iIterLast >= 0 && iIterLast + 10 > iIter )
+            continue;
         // compute nodes to recalculate timing and nodes to evaluate afterwards
         vRecalcs = Abc_SclFindNodesToUpdate( pObj, &vEvals );
+        assert( Vec_IntSize(vEvals) > 0 );
+        //printf( "%d -> %d\n", Vec_IntSize(vRecalcs), Vec_IntSize(vEvals) );
         // save old gate, timing, fanin load
         pCellOld = Abc_SclObjCell( p, pObj );
         Abc_SclConeStore( p, vRecalcs );
         Abc_SclLoadStore( p, pObj );
         // try different gate sizes for this node
-        dGainBest = 0.0;
         gateBest = -1;
+        dGainBest = 0.0;
         SC_RingForEachCell( pCellOld, pCellNew, k )
         {
             if ( pCellNew == pCellOld )
                 continue;
             if ( k > Notches )
                 break;
-//printf( "Tring %s\n", pCellNew->pName );
             // set new cell
             Abc_SclObjSetCell( p, pObj, pCellNew );
             Abc_SclUpdateLoad( p, pObj, pCellOld, pCellNew );
@@ -288,21 +288,21 @@ int Abc_SclFindUpsizes( SC_Man * p, Vec_Int_t * vPathNodes, int Ratio, int Notch
             Abc_NtkForEachObjVec( vEvals, p->pNtk, pTemp, n )
                 dGain += Abc_SclObjGain( p, pTemp );
             dGain /= Vec_IntSize(vEvals);
-            if ( dGain <= 0.0 )
-                continue;
-            // put back timing and load
-//printf( "gain is %f\n", dGain );
+            // save best gain
             if ( dGainBest < dGain )
             {
                 dGainBest = dGain;
                 gateBest = pCellNew->Id;
             }
         }
-//printf( "gain is %f\n", dGainBest );
         // remember savings
-        assert( dGainBest >= 0.0 );
-        Vec_IntPush( vChamps, gateBest );
-        Vec_FltPush( vSavings, dGainBest );
+        if ( gateBest >= 0 )
+        {
+            assert( dGainBest > 0.0 );
+            Vec_FltWriteEntry( p->vNode2Gain, Abc_ObjId(pObj), dGainBest );
+            Vec_IntWriteEntry( p->vNode2Gate, Abc_ObjId(pObj), gateBest );
+            Vec_QuePush( p->vNodeByGain, Abc_ObjId(pObj) );
+        }
         // put back old cell and timing
         Abc_SclObjSetCell( p, pObj, pCellOld );
         Abc_SclConeRestore( p, vRecalcs );
@@ -310,47 +310,22 @@ int Abc_SclFindUpsizes( SC_Man * p, Vec_Int_t * vPathNodes, int Ratio, int Notch
         Vec_IntFree( vRecalcs );
         Vec_IntFree( vEvals );
     }
-    assert( Vec_IntSize(vChamps) == Vec_IntSize(vPathNodes) );
+    if ( Vec_QueSize(p->vNodeByGain) < 3 )
+        return 0;
 
-    // we have computed the gains - find the best ones
-    {
-        Vec_Int_t * vCosts;
-        float Max = Vec_FltFindMax( vSavings );
-        float Factor = 1.0 * (1<<28) / Max, This;
-        int i, Limit, * pPerm;
-        // find a good factor
-        vCosts = Vec_IntAlloc( Vec_FltSize(vSavings) );
-        Vec_FltForEachEntry( vSavings, This, i )
-        {
-            Vec_IntPush( vCosts, (int)(This * Factor) );
-            assert( (int)(This * Factor) < (1<<30) );
-        }
-        pPerm = Abc_QuickSortCost( Vec_IntArray(vCosts), Vec_IntSize(vCosts), 1 );
-        assert( Vec_FltEntry(vSavings, pPerm[0]) >= Vec_FltEntry(vSavings, pPerm[Vec_FltSize(vSavings)-1]) );
-        // find those that are good to update
-        Limit = Abc_MaxInt( 1, (int)(0.01 * Ratio * Vec_IntSize(vChamps)) ); 
-        vUpdate = Vec_IntAlloc( Limit );
-        for ( i = 0; i < Limit; i++ )
-            if ( Vec_FltEntry(vSavings, pPerm[i]) > 0 )
-            {
-                assert( Vec_IntEntry(vChamps, pPerm[i]) >= 0 );
-                Vec_IntPush( vUpdate, pPerm[i] );
-            }
-        Vec_IntFree( vCosts );
-        ABC_FREE( pPerm );
-    }
-
-    // update the network
-    Vec_IntForEachEntry( vUpdate, Entry, i )
+    Limit = Abc_MinInt( Vec_QueSize(p->vNodeByGain), (int)(0.01 * Ratio * Vec_IntSize(vPathNodes)) + 1 ); 
+//printf( "\nSelecting %d out of %d\n", Limit, Vec_QueSize(p->vNodeByGain) );
+    for ( i = 0; i < Limit; i++ )
     {
         // get the object
-        pObj = Abc_NtkObj( p->pNtk, Vec_IntEntry(vPathNodes, Entry) );
+        pObj = Abc_NtkObj( p->pNtk, Vec_QuePop(p->vNodeByGain) );
         assert( pObj->fMarkA );
         // find old and new gates
         pCellOld = Abc_SclObjCell( p, pObj );
-        pCellNew = SC_LibCell( p->pLib, Vec_IntEntry(vChamps, Entry) );
+        pCellNew = SC_LibCell( p->pLib, Vec_IntEntry(p->vNode2Gate, Abc_ObjId(pObj)) );
         assert( pCellNew != NULL );
-//        printf( "%6d  %s -> %s      \n", Abc_ObjId(pObj), pCellOld->pName, pCellNew->pName );
+//        printf( "%6d  %20s -> %20s  ", Abc_ObjId(pObj), pCellOld->pName, pCellNew->pName );
+//        printf( "gain is %f\n", Vec_FltEntry(p->vNode2Gain, Abc_ObjId(pObj)) );
         // update gate
         Abc_SclUpdateLoad( p, pObj, pCellOld, pCellNew );
         p->SumArea += pCellNew->area - pCellOld->area;
@@ -358,14 +333,10 @@ int Abc_SclFindUpsizes( SC_Man * p, Vec_Int_t * vPathNodes, int Ratio, int Notch
         // record the update
         Vec_IntPush( p->vUpdates, Abc_ObjId(pObj) );
         Vec_IntPush( p->vUpdates, pCellNew->Id );
+        // remember when this node was upsized
+        Vec_IntWriteEntry( p->vNodeIter, Abc_ObjId(pObj), iIter );
     }
-
-    // cleanup
-    nUpsizes = Vec_IntSize(vUpdate);
-    Vec_IntFree( vUpdate );
-    Vec_IntFree( vChamps );
-    Vec_FltFree( vSavings );
-    return nUpsizes;
+    return Limit;
 }
 void Abc_SclApplyUpdateToBest( Vec_Int_t * vGates, Vec_Int_t * vGatesBest, Vec_Int_t * vUpdate )
 {
@@ -375,7 +346,6 @@ void Abc_SclApplyUpdateToBest( Vec_Int_t * vGates, Vec_Int_t * vGatesBest, Vec_I
     Vec_IntClear( vUpdate );
     Vec_IntForEachEntryTwo( vGates, vGatesBest, GateId, GateId2, i )
         assert( GateId == GateId2 );
-//printf( "Updating gates.\n" );
 }
 
 
@@ -449,9 +419,10 @@ if ( memcmp( pLoads, p->pLoads, sizeof(SC_Pair) * p->nObjs ) )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_SclUpsizePrint( SC_Man * p, int Iter, int nPathPos, int nPathNodes, int nUpsizes, int nTFOs, int fVerbose )
+void Abc_SclUpsizePrint( SC_Man * p, int Iter, int win, int nPathPos, int nPathNodes, int nUpsizes, int nTFOs, int fVerbose )
 {
     printf( "%4d ",          Iter );
+    printf( "Win:%3d. ",     win );
     printf( "PO:%5d. ",      nPathPos );
     printf( "Path:%6d. ",    nPathNodes );
     printf( "Gate:%5d. ",    nUpsizes );
@@ -488,7 +459,7 @@ void Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int nIters, int Wind
     Vec_Int_t * vPathPos;    // critical POs
     Vec_Int_t * vPathNodes;  // critical nodes and PIs
     Vec_Int_t * vTFO;
-    int i, nUpsizes = -1;
+    int i, win, nUpsizes = -1;
     int nAllPos, nAllNodes, nAllTfos, nAllUpsizes;
     clock_t clk;
 
@@ -512,24 +483,33 @@ void Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int nIters, int Wind
 
     // perform upsizing
     nAllPos = nAllNodes = nAllTfos = nAllUpsizes = 0;
-    for ( i = 0; nUpsizes && i < nIters; i++ )
+    for ( i = 0; i < nIters; i++ )
     {
-        // detect critical path
-        clk = clock();
-        vPathPos   = Abc_SclFindCriticalCoWindow( p, Window );
-        vPathNodes = Abc_SclFindCriticalNodeWindow( p, vPathPos, Window );
-        p->timeCone += clock() - clk;
+        for ( win = Window; win <= 100;  win *= 2 )
+        {
+            // detect critical path
+            clk = clock();
+            vPathPos   = Abc_SclFindCriticalCoWindow( p, win );
+            vPathNodes = Abc_SclFindCriticalNodeWindow( p, vPathPos, win );
+            p->timeCone += clock() - clk;
 
-        // selectively upsize the nodes
-        clk = clock();
-        nUpsizes   = Abc_SclFindUpsizes( p, vPathNodes, Ratio, Notches );
-        p->timeSize += clock() - clk;
+            // selectively upsize the nodes
+            clk = clock();
+            nUpsizes   = Abc_SclFindUpsizes( p, vPathNodes, Ratio, Notches, i );
+            p->timeSize += clock() - clk;
 
-        // unmark critical path
-        clk = clock();
-        Abc_SclUnmarkCriticalNodeWindow( p, vPathNodes );
-        Abc_SclUnmarkCriticalNodeWindow( p, vPathPos );
-        p->timeCone += clock() - clk;
+            // unmark critical path
+            clk = clock();
+            Abc_SclUnmarkCriticalNodeWindow( p, vPathNodes );
+            Abc_SclUnmarkCriticalNodeWindow( p, vPathPos );
+            p->timeCone += clock() - clk;
+            if ( nUpsizes > 0 )
+                break;
+            Vec_IntFree( vPathPos );
+            Vec_IntFree( vPathNodes );
+        }
+        if ( nUpsizes == 0 )
+            break;
 
         // update timing information
         clk = clock();
@@ -547,7 +527,7 @@ void Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int nIters, int Wind
         }
 
         // report and cleanup
-        Abc_SclUpsizePrint( p, i, Vec_IntSize(vPathPos), Vec_IntSize(vPathNodes), nUpsizes, Vec_IntSize(vTFO), fVeryVerbose ); //|| (i == nIters-1) );
+        Abc_SclUpsizePrint( p, i, win, Vec_IntSize(vPathPos), Vec_IntSize(vPathNodes), nUpsizes, Vec_IntSize(vTFO), fVeryVerbose ); //|| (i == nIters-1) );
         nAllPos += Vec_IntSize(vPathPos);
         nAllNodes += Vec_IntSize(vPathNodes);
         nAllTfos += Vec_IntSize(vTFO);
@@ -561,7 +541,7 @@ void Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int nIters, int Wind
     if ( fVerbose )
     {
         Abc_SclTimeNtkRecompute( p, &p->SumArea, &p->MaxDelay, 0 );
-        Abc_SclUpsizePrint( p, i, nAllPos/i, nAllNodes/i, nAllUpsizes/i, nAllTfos/i, 1 );
+        Abc_SclUpsizePrint( p, i, Window, nAllPos/i, nAllNodes/i, nAllUpsizes/i, nAllTfos/i, 1 );
         // report runtime
         p->timeTotal = clock() - p->timeTotal;
         p->timeOther = p->timeTotal - p->timeCone - p->timeSize - p->timeTime;

@@ -226,7 +226,10 @@ static inline int Vec_QuePop( Vec_Que_t * p )
     assert( p->nSize > 1 );
     Res = p->pHeap[1];      p->pOrder[Res] = -1;
     if ( --p->nSize == 1 )
+    {
+        p->pHeap[1] = -1;
         return Res;
+    }
     v = p->pHeap[p->nSize]; p->pHeap[p->nSize] = -1;
     p->pHeap[1] = v;        p->pOrder[v] = 1;
     Vec_QueMoveDown( p, v );
