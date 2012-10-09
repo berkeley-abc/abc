@@ -60,7 +60,8 @@ void Abc_SclFindTFO_rec( Abc_Obj_t * pObj, Vec_Int_t * vNodes, Vec_Int_t * vCos 
     assert( Abc_ObjIsNode(pObj) );
     Abc_ObjForEachFanout( pObj, pNext, i )
         Abc_SclFindTFO_rec( pNext, vNodes, vCos );
-    Vec_IntPush( vNodes, Abc_ObjId(pObj) );
+    if ( Abc_ObjFaninNum(pObj) > 0 )
+        Vec_IntPush( vNodes, Abc_ObjId(pObj) );
 }
 Vec_Int_t * Abc_SclFindTFO( Abc_Ntk_t * p, Vec_Int_t * vPath )
 {
