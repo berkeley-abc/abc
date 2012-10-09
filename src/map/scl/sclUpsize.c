@@ -143,7 +143,8 @@ void Abc_SclFindCriticalNodeWindow_rec( SC_Man * p, Abc_Obj_t * pObj, Vec_Int_t 
         if ( fSlackFan >= 0 )
             Abc_SclFindCriticalNodeWindow_rec( p, pNext, vPath, fSlackFan );
     }
-    Vec_IntPush( vPath, Abc_ObjId(pObj) );
+    if ( Abc_ObjFaninNum(pObj) > 0 )
+        Vec_IntPush( vPath, Abc_ObjId(pObj) );
 }
 Vec_Int_t * Abc_SclFindCriticalNodeWindow( SC_Man * p, Vec_Int_t * vPathCos, int Window )
 {
@@ -196,7 +197,7 @@ Vec_Int_t * Abc_SclFindNodesToUpdate( Abc_Obj_t * pPivot, Vec_Int_t ** pvEvals )
     // collect fanins, node, and fanouts
     vNodes = Vec_IntAlloc( 16 );
     Abc_ObjForEachFanin( pPivot, pNext, i )
-        if ( Abc_ObjIsNode(pNext) )
+        if ( Abc_ObjIsNode(pNext) && Abc_ObjFaninNum(pNext) > 0 )
             Vec_IntPush( vNodes, Abc_ObjId(pNext) );
     Vec_IntPush( vNodes, Abc_ObjId(pPivot) );
     Abc_ObjForEachFanout( pPivot, pNext, i )
@@ -539,11 +540,12 @@ void Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int nIters, int Wind
     // update for best gates and recompute timing
     ABC_SWAP( Vec_Int_t *, p->vGatesBest, p->vGates );
     Abc_SclTimeNtkRecompute( p, &p->SumArea, &p->MaxDelay, 0 );
+    if ( fVerbose )
+        Abc_SclUpsizePrint( p, i, Window, nAllPos/i, nAllNodes/i, nAllUpsizes/i, nAllTfos/i, 1 );
+    // report runtime
     p->timeTotal = clock() - p->timeTotal;
     if ( fVerbose )
     {
-        Abc_SclUpsizePrint( p, i, Window, nAllPos/i, nAllNodes/i, nAllUpsizes/i, nAllTfos/i, 1 );
-        // report runtime
         p->timeOther = p->timeTotal - p->timeCone - p->timeSize - p->timeTime;
         ABC_PRTP( "Runtime: Critical path", p->timeCone,  p->timeTotal );
         ABC_PRTP( "Runtime: Sizing eval  ", p->timeSize,  p->timeTotal );
