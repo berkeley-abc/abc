@@ -9,7 +9,9 @@ ReleaseExe/
 ReleaseExt/
 
 _TEST/
-lib/
+lib/abc*
+lib/m114*
+lib/bip*
 docs/
 
 src/ext/
