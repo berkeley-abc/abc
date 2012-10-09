@@ -649,7 +649,8 @@ usage:
 int Scl_CommandUpsize( Abc_Frame_t * pAbc, int argc, char **argv )
 {
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
-    int nIters  = 300;
+    int nIters  = 1000;
+    int nIterNoChange = 50;
     int Window  =   2;
     int Ratio   =  10;
     int Notches =  10;
@@ -658,7 +659,7 @@ int Scl_CommandUpsize( Abc_Frame_t * pAbc, int argc, char **argv )
     int c, fVerbose = 0;
     int fVeryVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "IWRNTdvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "IJWRNTdvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -666,6 +667,17 @@ int Scl_CommandUpsize( Abc_Frame_t * pAbc, int argc, char **argv )
             if ( globalUtilOptind >= argc )
             {
                 Abc_Print( -1, "Command line switch \"-I\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            nIterNoChange = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nIterNoChange < 0 ) 
+                goto usage;
+            break;
+        case 'J':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-J\" should be followed by a positive integer.\n" );
                 goto usage;
             }
             nIters = atoi(argv[globalUtilOptind]);
@@ -754,13 +766,14 @@ int Scl_CommandUpsize( Abc_Frame_t * pAbc, int argc, char **argv )
         return 1;
     }
 
-    Abc_SclUpsizePerform( (SC_Lib *)pAbc->pLibScl, pNtk, nIters, Window, Ratio, Notches, TimeOut, fDumpStats, fVerbose, fVeryVerbose );
+    Abc_SclUpsizePerform( (SC_Lib *)pAbc->pLibScl, pNtk, nIters, nIterNoChange, Window, Ratio, Notches, TimeOut, fDumpStats, fVerbose, fVeryVerbose );
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: upsize [-IWRNT num] [-dvwh]\n" );
+    fprintf( pAbc->Err, "usage: upsize [-IJWRNT num] [-dvwh]\n" );
     fprintf( pAbc->Err, "\t           selectively increases gate sizes in timing-critical regions\n" );
     fprintf( pAbc->Err, "\t-I <num> : the number of upsizing iterations to perform [default = %d]\n", nIters );
+    fprintf( pAbc->Err, "\t-J <num> : the number of iterations without improvement [default = %d]\n", nIterNoChange );
     fprintf( pAbc->Err, "\t-W <num> : delay window (in percents) of near-critical COs [default = %d]\n", Window );
     fprintf( pAbc->Err, "\t-R <num> : ratio of critical nodes (in percents) to update [default = %d]\n", Ratio );
     fprintf( pAbc->Err, "\t-N <num> : limit on discrete upsizing steps at a node [default = %d]\n", Notches );

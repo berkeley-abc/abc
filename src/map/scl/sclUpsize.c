@@ -437,8 +437,8 @@ void Abc_SclUpsizePrint( SC_Man * p, int Iter, int win, int nPathPos, int nPathN
     printf( "(%+5.1f %%)  ", 100.0 * (p->MaxDelay - p->MaxDelay0)/ p->MaxDelay0 );
     printf( "A: " );
     printf( "%.2f ",         p->SumArea );
-    printf( "(%+5.1f %%)  ", 100.0 * (p->SumArea - p->SumArea0)/ p->SumArea0 );
-    ABC_PRTn( "T", clock() - p->timeTotal );
+    printf( "(%+5.1f %%)",   100.0 * (p->SumArea - p->SumArea0)/ p->SumArea0 );
+    printf( "%8.2f",         1.0*(clock() - p->timeTotal)/(CLOCKS_PER_SEC) );
     printf( "    " );
     printf( "%c", fVerbose ? '\n' : '\r' );
 }
@@ -454,13 +454,13 @@ void Abc_SclUpsizePrint( SC_Man * p, int Iter, int win, int nPathPos, int nPathN
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int nIters, int Window, int Ratio, int Notches, int TimeOut, int fDumpStats, int fVerbose, int fVeryVerbose )
+void Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int nIters, int nIterNoChange, int Window, int Ratio, int Notches, int TimeOut, int fDumpStats, int fVerbose, int fVeryVerbose )
 {
     SC_Man * p;
     Vec_Int_t * vPathPos = NULL;    // critical POs
     Vec_Int_t * vPathNodes = NULL;  // critical nodes and PIs
     Vec_Int_t * vTFO;
-    int i, win, nUpsizes = -1;
+    int i, win, nUpsizes = -1, nFramesNoChange = 0;
     int nAllPos, nAllNodes, nAllTfos, nAllUpsizes;
     clock_t clk;
 
@@ -525,7 +525,12 @@ void Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int nIters, int Wind
         {
             p->BestDelay = p->MaxDelay;
             Abc_SclApplyUpdateToBest( p->vGates, p->vGatesBest, p->vUpdates );
+            nFramesNoChange = 0;
         }
+        else
+            nFramesNoChange++;
+        if ( nFramesNoChange > nIterNoChange )
+            break;
 
         // report and cleanup
         Abc_SclUpsizePrint( p, i, win, Vec_IntSize(vPathPos), Vec_IntSize(vPathNodes), nUpsizes, Vec_IntSize(vTFO), fVeryVerbose ); //|| (i == nIters-1) );
