@@ -658,7 +658,7 @@ static void Abc_NtkRecResizeHash2(Abc_ManRec_t2* p)
     printf("Hash table resize from %d to %d.\n", p->nBins, nBinsNew);
     // allocate a new array
     pBinsNew = ABC_ALLOC( int, nBinsNew );
-    memset( pBinsNew, -1, sizeof(int *) * nBinsNew );
+    memset( pBinsNew, -1, sizeof(int) * nBinsNew );
     // rehash the entries from the old table
     Counter = 0;
     for ( i = 0; i < p->nBins; i++ )
