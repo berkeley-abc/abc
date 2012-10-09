@@ -455,8 +455,8 @@ void Abc_SclUpsizePrint( SC_Man * p, int Iter, int win, int nPathPos, int nPathN
 void Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int nIters, int Window, int Ratio, int Notches, int TimeOut, int fDumpStats, int fVerbose, int fVeryVerbose )
 {
     SC_Man * p;
-    Vec_Int_t * vPathPos;    // critical POs
-    Vec_Int_t * vPathNodes;  // critical nodes and PIs
+    Vec_Int_t * vPathPos = NULL;    // critical POs
+    Vec_Int_t * vPathNodes = NULL;  // critical nodes and PIs
     Vec_Int_t * vTFO;
     int i, win, nUpsizes = -1;
     int nAllPos, nAllNodes, nAllTfos, nAllUpsizes;
