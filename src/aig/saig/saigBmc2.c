@@ -833,7 +833,7 @@ int Saig_BmcPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nNodesMax
                 p->iOutputFail, p->pAig->pName, p->iFrameFail );
         Status = 0;
         if ( piFrames )
-            *piFrames = p->iFrameFail;
+            *piFrames = p->iFrameFail - 1;
     }
     else // if ( RetValue == l_False || RetValue == l_Undef )
     {
@@ -842,9 +842,9 @@ int Saig_BmcPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nNodesMax
         if ( piFrames )
         {
             if ( p->iOutputLast > 0 )
-                *piFrames = p->iFramePrev - 1;
+                *piFrames = p->iFramePrev - 2;
             else
-                *piFrames = p->iFramePrev;
+                *piFrames = p->iFramePrev - 1;
         }
     }
     if ( !fSilent )

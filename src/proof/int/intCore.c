@@ -97,7 +97,7 @@ int Inter_ManPerformInterpolation( Aig_Man_t * pAig, Inter_ManParams_t * pPars, 
 
     if ( Inter_ManCheckInitialState(pAig) )
     {
-        *piFrame = 0;
+        *piFrame = -1;
         printf( "Property trivially fails in the initial state.\n" );
         return 0;
     }
@@ -223,7 +223,7 @@ p->timeEqu += clock() - clk;
                 ABC_PRT( "Time", clock() - clk );
             }
             // remember the number of timeframes completed
-            pPars->iFrameMax = i + 1 + p->nFrames;
+            pPars->iFrameMax = i - 1 + p->nFrames;
             if ( RetValue == 0 ) // found a (spurious?) counter-example
             {
                 if ( i == 0 ) // real counterexample

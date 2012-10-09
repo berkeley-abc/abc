@@ -709,6 +709,7 @@ int Pdr_ManSolve_( Aig_Man_t * pAig, Pdr_Par_t * pPars, Vec_Int_t ** pvPrioInit,
         p->vPrio = NULL;
     }
     Pdr_ManStop( p );
+    pPars->iFrame--;
     return RetValue;
 }
 

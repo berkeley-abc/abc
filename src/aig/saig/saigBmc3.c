@@ -1551,7 +1551,7 @@ clkOther += clock() - clk2;
     if ( nJumpFrame && pPars->nStart == 0 )
         pPars->iFrame = nJumpFrame - pPars->nFramesJump;
     else if ( RetValue == -1 && pPars->nStart == 0 )
-        pPars->iFrame = f;
+        pPars->iFrame = f-1;
 //ABC_PRT( "CNF generation runtime", clkOther );
     if ( pPars->fVerbose )
     {
