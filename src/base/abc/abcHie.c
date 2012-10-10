@@ -436,7 +436,7 @@ void Abc_NtkPrintBoxInfo( Abc_Ntk_t * pNtk )
     int i, k, Num;
     if ( pNtk->pDesign == NULL || pNtk->pDesign->vModules == NULL )
     {
-        printf( "There is no hierarchy information.\n" );
+//        printf( "There is no hierarchy information.\n" );
         return;
     }
     // sort models by name

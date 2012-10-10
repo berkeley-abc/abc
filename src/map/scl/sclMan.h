@@ -64,6 +64,7 @@ struct SC_Man_
     SC_Pair *      pSlews;        // slews for each gate
     SC_Pair *      pTimes2;       // arrivals for each gate
     SC_Pair *      pSlews2;       // slews for each gate
+    float *        pSlack;        // slacks for each gate
     Vec_Flt_t *    vTimesOut;     // output arrival times
     Vec_Que_t *    vQue;          // outputs by their time
     SC_WireLoad *  pWLoadUsed;    // name of the used WireLoad model
@@ -147,6 +148,7 @@ static inline SC_Man * Abc_SclManAlloc( SC_Lib * pLib, Abc_Ntk_t * pNtk )
     p->pSlews    = ABC_CALLOC( SC_Pair, p->nObjs );
     p->pTimes2   = ABC_CALLOC( SC_Pair, p->nObjs );
     p->pSlews2   = ABC_CALLOC( SC_Pair, p->nObjs );
+    p->pSlack    = ABC_FALLOC( float, p->nObjs );
     p->vTimesOut = Vec_FltStart( Abc_NtkCoNum(pNtk) );
     p->vQue      = Vec_QueAlloc( Abc_NtkCoNum(pNtk) );
     Vec_QueSetCosts( p->vQue, Vec_FltArray(p->vTimesOut) );
@@ -182,6 +184,7 @@ static inline void Abc_SclManFree( SC_Man * p )
     ABC_FREE( p->pSlews );
     ABC_FREE( p->pTimes2 );
     ABC_FREE( p->pSlews2 );
+    ABC_FREE( p->pSlack );
     ABC_FREE( p );
 }
 static inline void Abc_SclManCleanTime( SC_Man * p )
@@ -300,6 +303,10 @@ static inline float Abc_SclGetMaxDelayNodeFanins( SC_Man * p, Abc_Obj_t * pNode 
         fMaxArr = Abc_MaxFloat( fMaxArr, Abc_SclObjTimeMax(p, pObj) );
     return fMaxArr;
 }
+static inline float Abc_SclReadMaxDelay( SC_Man * p )
+{
+    return Abc_SclObjTimeMax( p, Abc_NtkPo(p->pNtk, Vec_QueTop(p->vQue)) );
+}
 
 /**Function*************************************************************
 
@@ -340,8 +347,8 @@ static inline void Abc_SclDumpStats( SC_Man * p, char * pFileName, clock_t Time 
     fprintf( pTable, "%d ", Abc_NtkPiNum(p->pNtk) );
     fprintf( pTable, "%d ", Abc_NtkPoNum(p->pNtk) );
     fprintf( pTable, "%d ", Abc_NtkNodeNum(p->pNtk) );
-    fprintf( pTable, "%d ", (int)p->SumArea0 );
-    fprintf( pTable, "%d ", (int)p->MaxDelay0 );
+    fprintf( pTable, "%d ", (int)p->SumArea );
+    fprintf( pTable, "%d ", (int)SC_LibTimePs(p->pLib, p->MaxDelay) );
     fprintf( pTable, "%.2f ", 1.0*Time/CLOCKS_PER_SEC );
     fprintf( pTable, "\n" );
     fclose( pTable );
@@ -352,7 +359,7 @@ static inline void Abc_SclDumpStats( SC_Man * p, char * pFileName, clock_t Time 
 extern Abc_Obj_t * Abc_SclFindCriticalCo( SC_Man * p, int * pfRise );
 extern Abc_Obj_t * Abc_SclFindMostCriticalFanin( SC_Man * p, int * pfRise, Abc_Obj_t * pNode );
 extern void        Abc_SclTimeNtkPrint( SC_Man * p, int fShowAll, int fShort );
-extern SC_Man *    Abc_SclManStart( SC_Lib * pLib, Abc_Ntk_t * pNtk, int fUseWireLoads );
+extern SC_Man *    Abc_SclManStart( SC_Lib * pLib, Abc_Ntk_t * pNtk, int fUseWireLoads, int fDept );
 extern void        Abc_SclTimeCone( SC_Man * p, Vec_Int_t * vCone );
 extern void        Abc_SclTimeNtkRecompute( SC_Man * p, float * pArea, float * pDelay, int fReverse );
 /*=== sclTime.c =============================================================*/

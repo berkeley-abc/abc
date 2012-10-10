@@ -67,7 +67,8 @@ Vec_Int_t * Abc_SclCollectNodes( Abc_Ntk_t * p )
 ***********************************************************************/
 Vec_Int_t * Abc_SclFindCriticalCoRange( SC_Man * p, int Range )
 {
-    float fMaxArr = Abc_SclGetMaxDelay( p ) * (100.0 - Range) / 100.0;
+//    float fMaxArr = Abc_SclGetMaxDelay( p ) * (100.0 - Range) / 100.0;
+    float fMaxArr = Abc_SclReadMaxDelay( p ) * (100.0 - Range) / 100.0;
     Vec_Int_t * vPivots;
     Abc_Obj_t * pObj;
     int i;
@@ -333,7 +334,7 @@ void Abc_SclUpdateNetwork( SC_Man * p, Abc_Obj_t * pObj, int nCone, int fUpsize,
         printf( "%5d :",               iStep );
         printf( "%7d  ",               Abc_ObjId(pObj) );
         printf( "%-12s->  %-12s  ",    pOld->pName, pNew->pName );
-        printf( "d =%8.2f ps    ",     SC_LibTimePs(p->pLib, Abc_SclGetMaxDelay(p)) );
+        printf( "d =%8.2f ps    ",     SC_LibTimePs(p->pLib, Abc_SclReadMaxDelay(p)) );
         printf( "a =%10.2f   ",        p->SumArea );
         printf( "n =%5d   ",           nCone );
 //        Abc_PrintTime( 1, "Time",      clock() - p->timeTotal );
@@ -365,7 +366,7 @@ void Abc_SclSizingPerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPars 
     Abc_Obj_t * pBest;
     clock_t nRuntimeLimit = pPars->nTimeOut ? pPars->nTimeOut * CLOCKS_PER_SEC + clock() : 0;
     int r, i, nNodes, nCones = 0, nDownSize = 0;
-    p = Abc_SclManStart( pLib, pNtk, pPars->fUseWireLoads );
+    p = Abc_SclManStart( pLib, pNtk, pPars->fUseWireLoads, 0 );
     p->timeTotal  = clock();
     if ( pPars->fPrintCP )
         Abc_SclTimeNtkPrint( p, 0, 0 );
@@ -375,7 +376,7 @@ void Abc_SclSizingPerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPars 
     {
 //        printf( "%5d :                                       ", 0 );
         printf( "Starting parameters of current mapping:       " );
-        printf( "d =%8.2f ps    ", SC_LibTimePs(p->pLib, Abc_SclGetMaxDelay(p)) );
+        printf( "d =%8.2f ps    ", SC_LibTimePs(p->pLib, Abc_SclReadMaxDelay(p)) );
         printf( "a =%10.2f   ",    p->SumArea );
         printf( "           " );
         Abc_PrintTime( 1, "Time",      clock() - p->timeTotal );
@@ -458,7 +459,7 @@ void Abc_SclSizingPerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPars 
             printf( "\n" );
     }
 
-    p->MaxDelay = Abc_SclGetMaxDelay(p);
+    p->MaxDelay = Abc_SclReadMaxDelay(p);
     if ( pPars->fPrintCP )
         Abc_SclTimeNtkPrint( p, 0, 0 );
     if ( nRuntimeLimit && clock() > nRuntimeLimit )

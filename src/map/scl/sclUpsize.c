@@ -28,8 +28,6 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-extern Vec_Int_t * Abc_SclFindCriticalCoWindow( SC_Man * p, int Window );
-
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -100,7 +98,7 @@ Vec_Int_t * Abc_SclFindTFO( Abc_Ntk_t * p, Vec_Int_t * vPath )
 ***********************************************************************/
 Vec_Int_t * Abc_SclFindCriticalCoWindow( SC_Man * p, int Window )
 {
-    float fMaxArr = Abc_SclGetMaxDelay( p ) * (100.0 - Window) / 100.0;
+    float fMaxArr = Abc_SclReadMaxDelay( p ) * (100.0 - Window) / 100.0;
     Vec_Int_t * vPivots;
     Abc_Obj_t * pObj;
     int i;
@@ -123,7 +121,7 @@ Vec_Int_t * Abc_SclFindCriticalCoWindow( SC_Man * p, int Window )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_SclFindCriticalNodeWindow_rec( SC_Man * p, Abc_Obj_t * pObj, Vec_Int_t * vPath, float fSlack )
+void Abc_SclFindCriticalNodeWindow_rec( SC_Man * p, Abc_Obj_t * pObj, Vec_Int_t * vPath, float fSlack, int fDept )
 {
     Abc_Obj_t * pNext;
     float fArrMax, fSlackFan;
@@ -135,30 +133,40 @@ void Abc_SclFindCriticalNodeWindow_rec( SC_Man * p, Abc_Obj_t * pObj, Vec_Int_t 
     Abc_NodeSetTravIdCurrent( pObj );
     assert( Abc_ObjIsNode(pObj) );
     // compute the max arrival time of the fanins
-    fArrMax = Abc_SclGetMaxDelayNodeFanins( p, pObj );
+    if ( fDept )
+        fArrMax = p->pSlack[Abc_ObjId(pObj)];
+    else
+        fArrMax = Abc_SclGetMaxDelayNodeFanins( p, pObj );
+    assert( fArrMax >= 0 );
     // traverse all fanins whose arrival times are within a window
     Abc_ObjForEachFanin( pObj, pNext, i )
     {
-        fSlackFan = fSlack - (fArrMax - Abc_SclObjTimeMax(p, pNext));
+        if ( Abc_ObjIsCi(pNext) || Abc_ObjFaninNum(pNext) == 0 )
+            continue;
+        assert( Abc_ObjIsNode(pNext) );
+        if ( fDept )
+            fSlackFan = fSlack - (p->pSlack[Abc_ObjId(pNext)] - fArrMax);
+        else
+            fSlackFan = fSlack - (fArrMax - Abc_SclObjTimeMax(p, pNext));
         if ( fSlackFan >= 0 )
-            Abc_SclFindCriticalNodeWindow_rec( p, pNext, vPath, fSlackFan );
+            Abc_SclFindCriticalNodeWindow_rec( p, pNext, vPath, fSlackFan, fDept );
     }
     if ( Abc_ObjFaninNum(pObj) > 0 )
         Vec_IntPush( vPath, Abc_ObjId(pObj) );
 }
-Vec_Int_t * Abc_SclFindCriticalNodeWindow( SC_Man * p, Vec_Int_t * vPathCos, int Window )
+Vec_Int_t * Abc_SclFindCriticalNodeWindow( SC_Man * p, Vec_Int_t * vPathCos, int Window, int fDept )
 {
-    float fMaxArr = Abc_SclGetMaxDelay( p );
-    float fSlack = fMaxArr * Window / 100.0;
+    float fMaxArr = Abc_SclReadMaxDelay( p );
+    float fSlackMax = fMaxArr * Window / 100.0;
     Vec_Int_t * vPath = Vec_IntAlloc( 100 );
     Abc_Obj_t * pObj;
     int i;
     Abc_NtkIncrementTravId( p->pNtk ); 
     Abc_NtkForEachObjVec( vPathCos, p->pNtk, pObj, i )
     {
-        float fSlackThis = fSlack - (fMaxArr - Abc_SclObjTimeMax(p, pObj));
+        float fSlackThis = fSlackMax - (fMaxArr - Abc_SclObjTimeMax(p, pObj));
         if ( fSlackThis >= 0 )
-            Abc_SclFindCriticalNodeWindow_rec( p, Abc_ObjFanin0(pObj), vPath, fSlackThis );
+            Abc_SclFindCriticalNodeWindow_rec( p, Abc_ObjFanin0(pObj), vPath, fSlackThis, fDept );
     }
     // label critical nodes
     Abc_NtkForEachObjVec( vPathCos, p->pNtk, pObj, i )
@@ -454,29 +462,30 @@ void Abc_SclUpsizePrint( SC_Man * p, int Iter, int win, int nPathPos, int nPathN
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int nIters, int nIterNoChange, int Window, int Ratio, int Notches, int TimeOut, int fDumpStats, int fVerbose, int fVeryVerbose )
+void Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_UpSizePars * pPars )
 {
     SC_Man * p;
     Vec_Int_t * vPathPos = NULL;    // critical POs
     Vec_Int_t * vPathNodes = NULL;  // critical nodes and PIs
     Vec_Int_t * vTFO;
+    clock_t clk, nRuntimeLimit = pPars->TimeOut ? pPars->TimeOut * CLOCKS_PER_SEC + clock() : 0;
     int i, win, nUpsizes = -1, nFramesNoChange = 0;
     int nAllPos, nAllNodes, nAllTfos, nAllUpsizes;
-    clock_t clk;
 
-    if ( fVerbose )
+    if ( pPars->fVerbose )
     {
         printf( "Sizing parameters: " );
-        printf( "Iters =%4d.  ",            nIters );
-        printf( "Time window =%3d %%.  ",   Window );
-        printf( "Update ratio =%3d %%.  ",  Ratio );
-        printf( "Max upsize steps =%2d.  ", Notches );
-        printf( "Timeout =%3d sec",         TimeOut );
+        printf( "Iters =%5d.  ",          pPars->nIters   );
+        printf( "Time window =%3d %%. ",  pPars->Window   );
+        printf( "Update ratio =%3d %%. ", pPars->Ratio    );
+        printf( "Max steps =%3d. ",       pPars->Notches  );
+        printf( "UseDept =%2d. ",         pPars->fUseDept );
+        printf( "Timeout =%4d sec",       pPars->TimeOut  );
         printf( "\n" );
     }
 
     // prepare the manager; collect init stats
-    p = Abc_SclManStart( pLib, pNtk, 1 );
+    p = Abc_SclManStart( pLib, pNtk, 1, pPars->fUseDept );
     p->timeTotal  = clock();
     assert( p->vGatesBest == NULL );
     p->vGatesBest = Vec_IntDup( p->vGates );
@@ -484,19 +493,19 @@ void Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int nIters, int nIte
 
     // perform upsizing
     nAllPos = nAllNodes = nAllTfos = nAllUpsizes = 0;
-    for ( i = 0; i < nIters; i++ )
+    for ( i = 0; i < pPars->nIters; i++ )
     {
-        for ( win = Window; win <= 100;  win *= 2 )
+        for ( win = pPars->Window; win <= 100;  win *= 2 )
         {
             // detect critical path
             clk = clock();
             vPathPos   = Abc_SclFindCriticalCoWindow( p, win );
-            vPathNodes = Abc_SclFindCriticalNodeWindow( p, vPathPos, win );
+            vPathNodes = Abc_SclFindCriticalNodeWindow( p, vPathPos, win, pPars->fUseDept );
             p->timeCone += clock() - clk;
 
             // selectively upsize the nodes
             clk = clock();
-            nUpsizes   = Abc_SclFindUpsizes( p, vPathNodes, Ratio, Notches, i );
+            nUpsizes   = Abc_SclFindUpsizes( p, vPathNodes, pPars->Ratio, pPars->Notches, i );
             p->timeSize += clock() - clk;
 
             // unmark critical path
@@ -514,15 +523,21 @@ void Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int nIters, int nIte
 
         // update timing information
         clk = clock();
-//        vTFO = Abc_SclFindTFO( p->pNtk, vPathNodes );
-//        Abc_SclTimeCone( p, vTFO );
-        vTFO = Vec_IntAlloc( 0 );
-        Abc_SclTimeNtkRecompute( p, NULL, NULL, 0 );
+        if ( pPars->fUseDept )
+        {
+            vTFO = Vec_IntAlloc( 0 );
+            Abc_SclTimeNtkRecompute( p, NULL, NULL, pPars->fUseDept );
+        }
+        else
+        {
+            vTFO = Abc_SclFindTFO( p->pNtk, vPathNodes );
+            Abc_SclTimeCone( p, vTFO );
+        }
         p->timeTime += clock() - clk;
 //        Abc_SclUpsizePrintDiffs( p, pLib, pNtk );
 
         // save the best network
-        p->MaxDelay = Abc_SclGetMaxDelay( p );
+        p->MaxDelay = Abc_SclReadMaxDelay( p );
         if ( p->BestDelay > p->MaxDelay )
         {
             p->BestDelay = p->MaxDelay;
@@ -531,27 +546,35 @@ void Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int nIters, int nIte
         }
         else
             nFramesNoChange++;
-        if ( nFramesNoChange > nIterNoChange )
+        if ( nFramesNoChange > pPars->nIterNoChange )
+        {
+            Vec_IntFree( vPathPos );
+            Vec_IntFree( vPathNodes );
+            Vec_IntFree( vTFO );
             break;
+        }
 
         // report and cleanup
-        Abc_SclUpsizePrint( p, i, win, Vec_IntSize(vPathPos), Vec_IntSize(vPathNodes), nUpsizes, Vec_IntSize(vTFO), fVeryVerbose ); //|| (i == nIters-1) );
-        nAllPos += Vec_IntSize(vPathPos);
-        nAllNodes += Vec_IntSize(vPathNodes);
-        nAllTfos += Vec_IntSize(vTFO);
+        Abc_SclUpsizePrint( p, i, win, Vec_IntSize(vPathPos), Vec_IntSize(vPathNodes), nUpsizes, Vec_IntSize(vTFO), pPars->fVeryVerbose ); //|| (i == nIters-1) );
+        nAllPos     += Vec_IntSize(vPathPos);
+        nAllNodes   += Vec_IntSize(vPathNodes);
+        nAllTfos    += Vec_IntSize(vTFO);
         nAllUpsizes += nUpsizes;
         Vec_IntFree( vPathPos );
         Vec_IntFree( vPathNodes );
         Vec_IntFree( vTFO );
+        // check timeout
+        if ( nRuntimeLimit && clock() > nRuntimeLimit )
+            break;
     }
     // update for best gates and recompute timing
     ABC_SWAP( Vec_Int_t *, p->vGatesBest, p->vGates );
     Abc_SclTimeNtkRecompute( p, &p->SumArea, &p->MaxDelay, 0 );
-    if ( fVerbose )
-        Abc_SclUpsizePrint( p, i, Window, nAllPos/i, nAllNodes/i, nAllUpsizes/i, nAllTfos/i, 1 );
+    if ( pPars->fVerbose )
+        Abc_SclUpsizePrint( p, i, pPars->Window, nAllPos/(i?i:1), nAllNodes/(i?i:1), nAllUpsizes/(i?i:1), nAllTfos/(i?i:1), 1 );
     // report runtime
     p->timeTotal = clock() - p->timeTotal;
-    if ( fVerbose )
+    if ( pPars->fVerbose )
     {
         p->timeOther = p->timeTotal - p->timeCone - p->timeSize - p->timeTime;
         ABC_PRTP( "Runtime: Critical path", p->timeCone,  p->timeTotal );
@@ -560,8 +583,10 @@ void Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int nIters, int nIte
         ABC_PRTP( "Runtime: Other        ", p->timeOther, p->timeTotal );
         ABC_PRTP( "Runtime: TOTAL        ", p->timeTotal, p->timeTotal );
     }
-    if ( fDumpStats )
+    if ( pPars->fDumpStats )
         Abc_SclDumpStats( p, "stats2.txt", p->timeTotal );
+    if ( nRuntimeLimit && clock() > nRuntimeLimit )
+        printf( "Gate sizing timed out at %d seconds.\n", pPars->TimeOut );
 
     // save the result and quit
     Abc_SclManSetGates( pLib, pNtk, p->vGates ); // updates gate pointers

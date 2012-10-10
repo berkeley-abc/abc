@@ -74,6 +74,21 @@ struct SC_SizePars_
     int        fVeryVerbose;
 };
 
+typedef struct SC_UpSizePars_    SC_UpSizePars;
+struct SC_UpSizePars_
+{
+    int        nIters;
+    int        nIterNoChange;
+    int        Window;
+    int        Ratio;
+    int        Notches;
+    int        TimeOut;
+    int        fUseDept;
+    int        fDumpStats;
+    int        fVerbose;
+    int        fVeryVerbose;
+};
+
 ////////////////////////////////////////////////////////////////////////
 ///                    STRUCTURE DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -439,7 +454,7 @@ extern void          Abc_SclTimePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int fU
 /*=== sclSize.c ===============================================================*/
 extern void          Abc_SclSizingPerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * p );
 /*=== sclUpsize.c ===============================================================*/
-extern void          Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int nIters, int nIterNoChange, int Window, int Ratio, int Notches, int TimeOut, int fDumpStats, int fVerbose, int fVeryVerbose );
+extern void          Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_UpSizePars * pPars );
 /*=== sclUtil.c ===============================================================*/
 extern void          Abc_SclHashCells( SC_Lib * p );
 extern int           Abc_SclCellFind( SC_Lib * p, char * pName );
