@@ -235,6 +235,33 @@ static int Mini_AigXor( Mini_Aig_t * p, int Lit0, int Lit1 )
     return Mini_AigMux( p, Lit0, Mini_AigLitNot(Lit1), Lit1 );
 }
 
+// procedure to check the topological order during AIG construction
+static int Mini_AigCheck( Mini_Aig_t * p )
+{
+    int status = 1;
+    int i, iFaninLit0, iFaninLit1;
+    Mini_AigForEachAnd( p, i )
+    {
+        // get the fanin literals of this AND node
+        iFaninLit0 = Mini_AigNodeFanin0( p, i );
+        iFaninLit1 = Mini_AigNodeFanin1( p, i );
+        // compare the fanin literals with the literal of the current node (2 * i)
+        if ( iFaninLit0 >= 2 * i )
+            printf( "Fanin0 of AND node %d is not in a topological order.\n", i ), status = 0;
+        if ( iFaninLit1 >= 2 * i )
+            printf( "Fanin0 of AND node %d is not in a topological order.\n", i ), status = 0;
+    }
+    Mini_AigForEachPo( p, i )
+    {
+        // get the fanin literal of this PO node
+        iFaninLit0 = Mini_AigNodeFanin0( p, i );
+        // compare the fanin literal with the literal of the current node (2 * i)
+        if ( iFaninLit0 >= 2 * i )
+            printf( "Fanin0 of PO node %d is not in a topological order.\n", i ), status = 0;
+    }
+    return status;
+}
+
 
 
 ////////////////////////////////////////////////////////////////////////
