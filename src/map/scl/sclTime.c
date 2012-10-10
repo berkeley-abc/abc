@@ -34,7 +34,7 @@ ABC_NAMESPACE_IMPL_START
 
 /**Function*************************************************************
 
-  Synopsis    [Finding most critical nodes/fanins/path.]
+  Synopsis    [Finding most critical objects.]
 
   Description []
                
@@ -57,17 +57,40 @@ Abc_Obj_t * Abc_SclFindCriticalCo( SC_Man * p, int * pfRise )
     assert( pPivot != NULL );
     return pPivot;
 }
-Abc_Obj_t * Abc_SclFindMostCriticalFanin( SC_Man * p, int * pfRise, Abc_Obj_t * pNode )
+// assumes that slacks are not available (uses arrival times)
+Abc_Obj_t * Abc_SclFindMostCriticalFanin2( SC_Man * p, int * pfRise, Abc_Obj_t * pNode )
 {
-    Abc_Obj_t * pObj, * pPivot = NULL;
+    Abc_Obj_t * pFanin, * pPivot = NULL;
     float fMaxArr = 0;
     int i;
-    Abc_ObjForEachFanin( pNode, pObj, i )
+    Abc_ObjForEachFanin( pNode, pFanin, i )
     {
-        SC_Pair * pArr = Abc_SclObjTime( p, pObj );
-        if ( fMaxArr < pArr->rise )  fMaxArr = pArr->rise, *pfRise = 1, pPivot = pObj;
-        if ( fMaxArr < pArr->fall )  fMaxArr = pArr->fall, *pfRise = 0, pPivot = pObj;
+        SC_Pair * pArr = Abc_SclObjTime( p, pFanin );
+        if ( fMaxArr < pArr->rise )  fMaxArr = pArr->rise, *pfRise = 1, pPivot = pFanin;
+        if ( fMaxArr < pArr->fall )  fMaxArr = pArr->fall, *pfRise = 0, pPivot = pFanin;
     }
+    return pPivot;
+}
+// assumes that slack are available
+Abc_Obj_t * Abc_SclFindMostCriticalFanin( SC_Man * p, int * pfRise, Abc_Obj_t * pNode )
+{
+    Abc_Obj_t * pFanin, * pPivot = NULL;
+    float fMinSlack = ABC_INFINITY;
+    SC_Pair * pArr;
+    int i;
+    *pfRise = 0;
+    // find min-slack node
+    Abc_ObjForEachFanin( pNode, pFanin, i )
+        if ( fMinSlack > Abc_SclObjSlack( p, pFanin ) )
+        {
+            fMinSlack = Abc_SclObjSlack( p, pFanin );
+            pPivot = pFanin;
+        }
+    if ( pPivot == NULL )
+        return NULL;
+    // find its leading phase
+    pArr = Abc_SclObjTime( p, pPivot );
+    *pfRise = (pArr->rise >= pArr->fall);
     return pPivot;
 }
 
@@ -92,9 +115,9 @@ static inline void Abc_SclTimeNodePrint( SC_Man * p, Abc_Obj_t * pObj, int fRise
     printf( "delay = (" );
     printf( "%8.2f ps ",          Abc_SclObjTimePs(p, pObj, 1) );
     printf( "%8.2f ps )  ",       Abc_SclObjTimePs(p, pObj, 0) );
-    printf( "load =%6.2f ff   ",  Abc_SclObjLoadFf(p, pObj, fRise >= 0 ? fRise : 0 ) );
-    printf( "slew =%6.1f ps   ",  Abc_SclObjSlewPs(p, pObj, fRise >= 0 ? fRise : 0 ) );
-    printf( "slack =%6.1f ps",    Abc_SclObjSlack(p, pObj, maxDelay) );
+    printf( "load =%7.2f ff   ",  Abc_SclObjLoadFf(p, pObj, fRise >= 0 ? fRise : 0 ) );
+    printf( "slew =%7.2f ps   ",  Abc_SclObjSlewPs(p, pObj, fRise >= 0 ? fRise : 0 ) );
+    printf( "slack =%6.2f ps",    Abc_SclObjSlack(p, pObj) );
     printf( "\n" );
 }
 void Abc_SclTimeNtkPrint( SC_Man * p, int fShowAll, int fShort )
@@ -127,8 +150,10 @@ void Abc_SclTimeNtkPrint( SC_Man * p, int fShowAll, int fShort )
 //        printf( "Critical path: \n" );
         // find the longest cell name
         pObj = Abc_ObjFanin0(pPivot);
+        i = 0;
         while ( pObj && Abc_ObjIsNode(pObj) )
         {
+            i++;
             nLength = Abc_MaxInt( nLength, strlen(Abc_SclObjCell(p, pObj)->pName) );
             pObj = Abc_SclFindMostCriticalFanin( p, &fRise, pObj );
         }
@@ -136,7 +161,7 @@ void Abc_SclTimeNtkPrint( SC_Man * p, int fShowAll, int fShort )
         pObj = Abc_ObjFanin0(pPivot);
         while ( pObj && Abc_ObjIsNode(pObj) )
         {
-            printf( "Critical path -- " );
+            printf( "C-path %2d -- ", i-- );
             Abc_SclTimeNodePrint( p, pObj, fRise, nLength, maxDelay );
             pObj = Abc_SclFindMostCriticalFanin( p, &fRise, pObj );
         }
@@ -226,7 +251,7 @@ void Abc_SclDeptFanin( SC_Man * p, SC_Timing * pTime, Abc_Obj_t * pObj, Abc_Obj_
         pDepIn->rise  = Abc_MaxFloat( pDepIn->rise,  pDepOut->fall + Abc_SclLookup(pTime->pCellFall,  pSlewIn->rise, pLoad->fall) );
     }
 }
-void Abc_SclTimeNode( SC_Man * p, Abc_Obj_t * pObj, int fDept, float D )
+void Abc_SclTimeNode( SC_Man * p, Abc_Obj_t * pObj, int fDept )
 {
     SC_Timings * pRTime;
     SC_Timing * pTime;
@@ -256,8 +281,6 @@ void Abc_SclTimeNode( SC_Man * p, Abc_Obj_t * pObj, int fDept, float D )
         else
             Abc_SclTimeFanin( p, pTime, pObj, Abc_ObjFanin(pObj, k) );
     }
-    if ( fDept )
-        p->pSlack[Abc_ObjId(pObj)] = Abc_MaxFloat( 0.0, Abc_SclObjSlack(p, pObj, D) );
 }
 void Abc_SclTimeCone( SC_Man * p, Vec_Int_t * vCone )
 {
@@ -271,7 +294,7 @@ void Abc_SclTimeCone( SC_Man * p, Vec_Int_t * vCone )
         printf( "  Updating node %d with gate %s\n", Abc_ObjId(pObj), Abc_SclObjCell(p, pObj)->pName );
         if ( fVerbose && Abc_ObjIsNode(pObj) )
         printf( "    before (%6.1f ps  %6.1f ps)   ", Abc_SclObjTimePs(p, pObj, 1), Abc_SclObjTimePs(p, pObj, 0) );
-        Abc_SclTimeNode( p, pObj, 0, 0 );
+        Abc_SclTimeNode( p, pObj, 0 );
         if ( fVerbose && Abc_ObjIsNode(pObj) )
         printf( "after (%6.1f ps  %6.1f ps)\n", Abc_SclObjTimePs(p, pObj, 1), Abc_SclObjTimePs(p, pObj, 0) );
     }
@@ -284,7 +307,7 @@ void Abc_SclTimeNtkRecompute( SC_Man * p, float * pArea, float * pDelay, int fRe
     Abc_SclComputeLoad( p );
     Abc_SclManCleanTime( p );
     Abc_NtkForEachNode1( p->pNtk, pObj, i )
-        Abc_SclTimeNode( p, pObj, 0, 0 );
+        Abc_SclTimeNode( p, pObj, 0 );
     Abc_NtkForEachCo( p->pNtk, pObj, i )
     {
         Abc_SclObjDupFanin( p, pObj );
@@ -297,8 +320,12 @@ void Abc_SclTimeNtkRecompute( SC_Man * p, float * pArea, float * pDelay, int fRe
     if ( pDelay )
         *pDelay = D;
     if ( fReverse )
+    {
         Abc_NtkForEachNodeReverse1( p->pNtk, pObj, i )
-            Abc_SclTimeNode( p, pObj, 1, D );
+            Abc_SclTimeNode( p, pObj, 1 );
+        Abc_NtkForEachObj( p->pNtk, pObj, i )
+            p->pSlack[i] = Abc_MaxFloat( 0.0, Abc_SclObjGetSlack(p, pObj, D) );
+    }
 }
 
 /**Function*************************************************************

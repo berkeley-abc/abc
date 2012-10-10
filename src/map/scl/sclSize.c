@@ -138,29 +138,6 @@ Vec_Int_t * Abc_SclFindCriticalCone( SC_Man * p, int Range, int RangeF, Vec_Int_
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Abc_SclFindCriticalPath2( SC_Man * p, int Range, Vec_Int_t ** pvPivots )
-{
-    Vec_Int_t * vPivots = Abc_SclFindCriticalCoRange( p, Range );
-    Vec_Int_t * vPath = Vec_IntAlloc( 100 );
-    Abc_Obj_t * pObj;
-    int i, fRise = 0;
-    //Vec_IntShrink( vPivots, 1 );
-    Abc_NtkForEachObjVec( vPivots, p->pNtk, pObj, i )
-    {
-        pObj = Abc_ObjFanin0(pObj);
-        while ( pObj && Abc_ObjIsNode(pObj) )
-        {
-            Vec_IntPush( vPath, Abc_ObjId(pObj) );
-            pObj = Abc_SclFindMostCriticalFanin( p, &fRise, pObj );
-        }
-    }
-    Vec_IntUniqify( vPath );
-    if ( pvPivots ) 
-        *pvPivots = vPivots;
-    else
-        Vec_IntFree( vPivots );
-    return vPath;  
-}
 Vec_Int_t * Abc_SclFindCriticalPath( SC_Man * p, int Range, Vec_Int_t ** pvPivots )
 {
     return Abc_SclFindCriticalCone( p, Range, 1, pvPivots );
