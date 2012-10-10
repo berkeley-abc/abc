@@ -69,6 +69,7 @@ static int IoCommandWriteVerilog( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteVerLib ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteSortCnf( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteTruth  ( Abc_Frame_t * pAbc, int argc, char **argv );
+static int IoCommandWriteTruths ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteStatus ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteSmv    ( Abc_Frame_t * pAbc, int argc, char **argv );
 
@@ -133,6 +134,7 @@ void Io_Init( Abc_Frame_t * pAbc )
 //    Cmd_CommandAdd( pAbc, "I/O", "write_verlib",  IoCommandWriteVerLib,  0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_sorter_cnf", IoCommandWriteSortCnf,  0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_truth",   IoCommandWriteTruth,   0 );
+    Cmd_CommandAdd( pAbc, "I/O", "&write_truths", IoCommandWriteTruths,  0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_status",  IoCommandWriteStatus,  0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_smv",     IoCommandWriteSmv,     0 );
 }
@@ -2713,6 +2715,81 @@ usage:
     fprintf( pAbc->Err, "\tfile   : the name of the file to write\n" );
     return 1;
 }
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int IoCommandWriteTruths( Abc_Frame_t * pAbc, int argc, char **argv )
+{
+    Gia_Obj_t * pObj;
+    char * pFileName;
+    FILE * pFile;
+    unsigned * pTruth;
+    int fReverse = 0;
+    int c, i;
+ 
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "rh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+            case 'r':
+                fReverse ^= 1;
+                break;
+            case 'h':
+                goto usage;
+            default:
+                goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "IoCommandWriteTruths(): There is no AIG.\n" );
+        return 1;
+    } 
+    if ( Gia_ManPiNum(pAbc->pGia) > 16 )
+    {
+        Abc_Print( -1, "IoCommandWriteTruths(): Can write truth tables up to 16 inputs.\n" );
+        return 0;
+    }
+    if ( argc != globalUtilOptind + 1 )
+        goto usage;
+    // get the input file name
+    pFileName = argv[globalUtilOptind];
+    // convert to logic
+    pFile = fopen( pFileName, "w" );
+    if ( pFile == NULL )
+    {
+        printf( "Cannot open file \"%s\" for writing.\n", pFileName );
+        return 0;
+    }
+    Gia_ManForEachCo( pAbc->pGia, pObj, i )
+    {
+        pTruth = Gia_ObjComputeTruthTable( pAbc->pGia, pObj );
+        Extra_PrintHex( pFile, pTruth, Gia_ManPiNum(pAbc->pGia) );
+        fprintf( pFile, "\n" );
+    }
+    fclose( pFile );
+    return 0;
+
+usage:
+    fprintf( pAbc->Err, "usage: &write_truths [-rh] <file>\n" );
+    fprintf( pAbc->Err, "\t         writes truth tables of each PO of GIA manager into a file\n" );
+    fprintf( pAbc->Err, "\t-r     : toggle reversing bits in the truth table [default = %s]\n", fReverse? "yes":"no" );
+    fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
+    fprintf( pAbc->Err, "\tfile   : the name of the file to write\n" );
+    return 1;
+}
+
 
 /**Function*************************************************************
 
