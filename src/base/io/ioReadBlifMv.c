@@ -1272,7 +1272,7 @@ static int Io_MvParseLineSubckt( Io_MvMod_t * p, char * pLine )
             return 0;
         }
 */
-        if ( k == nEquals )
+        if ( pName2 == NULL )
         {
             Abc_Obj_t * pNode = Abc_NtkCreateNode( p->pNtk );
             pNode->pData = Abc_SopRegister( (Mem_Flex_t *)p->pNtk->pManFunc, " 0\n" );
@@ -1313,11 +1313,10 @@ static int Io_MvParseLineSubckt( Io_MvMod_t * p, char * pLine )
             return 0;
         }
 */
-        assert( pName2 != NULL );
 
         // create the BI with the actual name
         pTerm = Abc_NtkCreateBo( p->pNtk );
-        pNet = Abc_NtkFindOrCreateNet( p->pNtk, k == nEquals ? Abc_ObjNameSuffix(pTerm, "abc") : pName2 );
+        pNet = Abc_NtkFindOrCreateNet( p->pNtk, pName2 == NULL  ? Abc_ObjNameSuffix(pTerm, "abc") : pName2 );
         Abc_ObjAddFanin( pNet, pTerm );
         Abc_ObjAddFanin( pTerm, pBox );
     }
