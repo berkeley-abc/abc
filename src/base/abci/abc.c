@@ -13052,7 +13052,7 @@ int Abc_CommandMap( Abc_Frame_t * pAbc, int argc, char ** argv )
     DelayMulti  = 0;
     fAreaOnly   = 0;
     fRecovery   = 1;
-    fSweep      = 1;
+    fSweep      = 0;
     fSwitching  = 0;
     fVerbose    = 0;
     Extra_UtilGetoptReset();
