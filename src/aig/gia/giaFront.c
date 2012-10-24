@@ -103,13 +103,54 @@ void Gia_ManFrontTransform( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
+int Gia_ManCrossCutSimple( Gia_Man_t * p )
+{
+    Gia_Obj_t * pObj;
+    int i, nCutCur = 0, nCutMax = 0;
+    Gia_ManCreateValueRefs( p );
+    Gia_ManForEachObj( p, pObj, i )
+    {
+        if ( pObj->Value )
+            nCutCur++;
+        if ( nCutMax < nCutCur )
+            nCutMax = nCutCur;
+        if ( Gia_ObjIsAnd(pObj) )
+        {
+            if ( --Gia_ObjFanin0(pObj)->Value == 0 )
+                nCutCur--;
+            if ( --Gia_ObjFanin1(pObj)->Value == 0 )
+                nCutCur--;
+        }
+        else if ( Gia_ObjIsCo(pObj) )
+        {
+            if ( --Gia_ObjFanin0(pObj)->Value == 0 )
+                nCutCur--;
+        }
+    }
+//    Gia_ManForEachObj( p, pObj, i )
+//        assert( pObj->Value == 0 );
+    return nCutMax;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Determine the frontier.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 Gia_Man_t * Gia_ManFront( Gia_Man_t * p )
 {
     Gia_Man_t * pNew;
     Gia_Obj_t * pObj, * pFanin0New, * pFanin1New, * pObjNew;
     char * pFront;    // places used for the frontier
     int i, iLit, nCrossCut = 0, nCrossCutMax = 0;
-    int nCrossCutMaxInit = Gia_ManCrossCut( p );
+    int nCrossCutMaxInit = Gia_ManCrossCutSimple( p );
     int iFront = 0;//, clk = clock(); 
     // set references for all objects
     Gia_ManCreateValueRefs( p );

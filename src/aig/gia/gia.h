@@ -906,7 +906,7 @@ extern int                 Gia_ManLevelNum( Gia_Man_t * p );
 extern void                Gia_ManCreateValueRefs( Gia_Man_t * p );
 extern void                Gia_ManCreateRefs( Gia_Man_t * p );
 extern int *               Gia_ManCreateMuxRefs( Gia_Man_t * p );
-extern int                 Gia_ManCrossCut( Gia_Man_t * p );
+extern int                 Gia_ManCrossCut( Gia_Man_t * p, int fReverse );
 extern int                 Gia_ManIsNormalized( Gia_Man_t * p );
 extern Vec_Int_t *         Gia_ManCollectPoIds( Gia_Man_t * p );
 extern int                 Gia_ObjIsMuxType( Gia_Obj_t * pNode );

@@ -574,7 +574,7 @@ void Gia_ManDfsForCrossCut_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vNo
     Gia_ManDfsForCrossCut_rec( p, Gia_ObjFanin1(pObj), vNodes );
     Vec_IntPush( vNodes, Gia_ObjId(p, pObj) );
 }
-Vec_Int_t * Gia_ManDfsForCrossCut( Gia_Man_t * p )
+Vec_Int_t * Gia_ManDfsForCrossCut( Gia_Man_t * p, int fReverse )
 {
     Vec_Int_t * vNodes;
     Gia_Obj_t * pObj;
@@ -582,17 +582,26 @@ Vec_Int_t * Gia_ManDfsForCrossCut( Gia_Man_t * p )
     Gia_ManCleanValue( p );
     vNodes = Vec_IntAlloc( Gia_ManObjNum(p) );
     Gia_ManIncrementTravId( p );
-    Gia_ManForEachCo( p, pObj, i )
-        if ( !Gia_ObjIsConst0(Gia_ObjFanin0(pObj)) )
-            Gia_ManDfsForCrossCut_rec( p, pObj, vNodes );
+    if ( fReverse )
+    {
+        Gia_ManForEachCoReverse( p, pObj, i )
+            if ( !Gia_ObjIsConst0(Gia_ObjFanin0(pObj)) )
+                Gia_ManDfsForCrossCut_rec( p, pObj, vNodes );
+    }
+    else
+    {
+        Gia_ManForEachCo( p, pObj, i )
+            if ( !Gia_ObjIsConst0(Gia_ObjFanin0(pObj)) )
+                Gia_ManDfsForCrossCut_rec( p, pObj, vNodes );
+    }
     return vNodes;
 }
-int Gia_ManCrossCut( Gia_Man_t * p )
+int Gia_ManCrossCut( Gia_Man_t * p, int fReverse )
 {
     Vec_Int_t * vNodes;
     Gia_Obj_t * pObj;
     int i, nCutCur = 0, nCutMax = 0;
-    vNodes = Gia_ManDfsForCrossCut( p );
+    vNodes = Gia_ManDfsForCrossCut( p, fReverse );
     Gia_ManForEachObjVec( vNodes, p, pObj, i )
     {
         if ( pObj->Value )
