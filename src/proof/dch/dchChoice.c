@@ -95,7 +95,7 @@ int Dch_DeriveChoiceCountEquivs( Aig_Man_t * pAig )
         pEquiv = Aig_ObjEquiv( pAig, pObj );
         if ( pEquiv == NULL )
             continue;
-        assert( pEquiv->Id > pObj->Id );
+        assert( pEquiv->Id < pObj->Id );
         nEquivs++;
     }
     return nEquivs;

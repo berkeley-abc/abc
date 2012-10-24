@@ -117,6 +117,7 @@ struct Gia_Man_t_
     int *          pReprsOld;     // representatives (for CIs and ANDs)
     Gia_Rpr_t *    pReprs;        // representatives (for CIs and ANDs)
     int *          pNexts;        // next nodes in the equivalence classes
+    int *          pSibls;        // next nodes in the choice nodes
     int *          pIso;          // pairs of structurally isomorphic nodes
     int            nTerLoop;      // the state where loop begins  
     int            nTerStates;    // the total number of ternary states
@@ -570,6 +571,8 @@ static inline void        Gia_ObjSetReprRev( Gia_Man_t * p, int Id, int Num ){ a
 static inline void        Gia_ObjUnsetRepr( Gia_Man_t * p, int Id )          { p->pReprs[Id].iRepr = GIA_VOID;                                            }
 static inline int         Gia_ObjHasRepr( Gia_Man_t * p, int Id )            { return p->pReprs[Id].iRepr != GIA_VOID;                                    }
 static inline int         Gia_ObjReprSelf( Gia_Man_t * p, int Id )           { return Gia_ObjHasRepr(p, Id) ? Gia_ObjRepr(p, Id) : Id;                    }
+static inline int         Gia_ObjSibl( Gia_Man_t * p, int Id )               { return p->pSibls ? p->pSibls[Id] : 0;                                      }
+static inline Gia_Obj_t * Gia_ObjSiblObj( Gia_Man_t * p, int Id )            { return (p->pSibls && p->pSibls[Id]) ? Gia_ManObj(p, p->pSibls[Id]) : NULL; }
 
 static inline int         Gia_ObjProved( Gia_Man_t * p, int Id )             { return p->pReprs[Id].fProved;       }
 static inline void        Gia_ObjSetProved( Gia_Man_t * p, int Id )          { p->pReprs[Id].fProved = 1;          }
@@ -920,6 +923,7 @@ extern void                Gia_ObjPrint( Gia_Man_t * p, Gia_Obj_t * pObj );
 extern void                Gia_ManPrint( Gia_Man_t * p );
 extern void                Gia_ManInvertConstraints( Gia_Man_t * pAig );
 extern int                 Gia_ManCompare( Gia_Man_t * p1, Gia_Man_t * p2 );
+extern void                Gia_ManMarkFanoutDrivers( Gia_Man_t * p );
 
 /*=== giaCTas.c ===========================================================*/
 typedef struct Tas_Man_t_  Tas_Man_t;

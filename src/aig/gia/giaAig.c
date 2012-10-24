@@ -42,7 +42,7 @@ static inline Aig_Obj_t * Gia_ObjChild1Copy2( Aig_Obj_t ** ppNodes, Gia_Obj_t * 
 
 /**Function*************************************************************
 
-  Synopsis    [Derives combinational miter of the two AIGs.]
+  Synopsis    [Duplicates AIG in the DFS order.]
 
   Description []
                
@@ -70,18 +70,6 @@ void Gia_ManFromAig_rec( Gia_Man_t * pNew, Aig_Man_t * p, Aig_Obj_t * pObj )
             pNew->pNexts[iObjNew] = iNextNew;        
     }
 }
-
-/**Function*************************************************************
-
-  Synopsis    [Duplicates AIG in the DFS order.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
 Gia_Man_t * Gia_ManFromAig( Aig_Man_t * p )
 {
     Gia_Man_t * pNew;
@@ -108,6 +96,64 @@ Gia_Man_t * Gia_ManFromAig( Aig_Man_t * p )
     Gia_ManSetRegNum( pNew, Aig_ManRegNum(p) );
     if ( pNew->pNexts )
         Gia_ManDeriveReprs( pNew );
+    return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Duplicates AIG in the DFS order.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManFromAigChoices_rec( Gia_Man_t * pNew, Aig_Man_t * p, Aig_Obj_t * pObj )
+{
+    if ( pObj == NULL || pObj->iData )
+        return;
+    assert( Aig_ObjIsNode(pObj) );
+    Gia_ManFromAigChoices_rec( pNew, p, Aig_ObjFanin0(pObj) );
+    Gia_ManFromAigChoices_rec( pNew, p, Aig_ObjFanin1(pObj) );
+    Gia_ManFromAigChoices_rec( pNew, p, Aig_ObjEquiv(p, pObj) );
+    pObj->iData = Gia_ManAppendAnd( pNew, Gia_ObjChild0Copy(pObj), Gia_ObjChild1Copy(pObj) );
+    if ( Aig_ObjEquiv(p, pObj) )
+    {
+        int iObjNew, iNextNew;
+        iObjNew  = Abc_Lit2Var(pObj->iData);
+        iNextNew = Abc_Lit2Var(Aig_ObjEquiv(p, pObj)->iData);
+        assert( iObjNew > iNextNew );
+        assert( Gia_ObjIsAnd(Gia_ManObj(pNew, iNextNew)) );
+        pNew->pSibls[iObjNew] = iNextNew;        
+    }
+}
+Gia_Man_t * Gia_ManFromAigChoices( Aig_Man_t * p )
+{
+    Gia_Man_t * pNew;
+    Aig_Obj_t * pObj;
+    int i;
+    assert( p->pEquivs != NULL );
+    // create the new manager
+    pNew = Gia_ManStart( Aig_ManObjNum(p) );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    pNew->nConstrs = p->nConstrs;
+    // create room to store equivalences
+    pNew->pSibls = ABC_CALLOC( int, Aig_ManObjNum(p) );
+    // create the PIs
+    Aig_ManCleanData( p );
+    Aig_ManConst1(p)->iData = 1;
+    Aig_ManForEachCi( p, pObj, i )
+        pObj->iData = Gia_ManAppendCi( pNew );
+    // add logic for the POs
+    Aig_ManForEachCo( p, pObj, i )
+        Gia_ManFromAigChoices_rec( pNew, p, Aig_ObjFanin0(pObj) );        
+    Aig_ManForEachCo( p, pObj, i )
+        Gia_ManAppendCo( pNew, Gia_ObjChild0Copy(pObj) );
+    Gia_ManSetRegNum( pNew, Aig_ManRegNum(p) );
+    assert( Gia_ManObjNum(pNew) == Aig_ManObjNum(p) );
     return pNew;
 }
 
@@ -195,7 +241,7 @@ Gia_Man_t * Gia_ManFromAigSwitch( Aig_Man_t * p )
 
 /**Function*************************************************************
 
-  Synopsis    [Derives combinational miter of the two AIGs.]
+  Synopsis    [Duplicates AIG in the DFS order.]
 
   Description []
                
@@ -228,18 +274,6 @@ void Gia_ManToAig_rec( Aig_Man_t * pNew, Aig_Obj_t ** ppNodes, Gia_Man_t * p, Gi
             pNew->pEquivs[Aig_Regular(pObjNew)->Id] = Aig_Regular(pNextNew);        
     }
 }
-
-/**Function*************************************************************
-
-  Synopsis    [Duplicates AIG in the DFS order.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
 Aig_Man_t * Gia_ManToAig( Gia_Man_t * p, int fChoices )
 {
     Aig_Man_t * pNew;
@@ -541,7 +575,8 @@ Gia_Man_t * Gia_ManPerformDch( Gia_Man_t * p, void * pPars )
     Aig_Man_t * pNew;
     pNew = Gia_ManToAig( p, 0 );
     pNew = Dar_ManChoiceNew( pNew, (Dch_Pars_t *)pPars );
-    pGia = Gia_ManFromAig( pNew );
+//    pGia = Gia_ManFromAig( pNew );
+    pGia = Gia_ManFromAigChoices( pNew );
     Aig_ManStop( pNew );
     return pGia;
 }

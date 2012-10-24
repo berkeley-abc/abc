@@ -111,7 +111,9 @@ p->timeTotal = clock() - clkTotal;
     pResult = Dch_DeriveChoiceAig( pAig, pPars->fSkipRedSupp );
     // count the number of representatives
     if ( pPars->fVerbose ) 
-        Abc_Print( 1, "STATS:  Reprs = %6d.  Equivs = %6d.  Choices = %6d.\n", 
+        Abc_Print( 1, "STATS:  Ands:%8d  ->%8d.  Reprs:%7d  ->%7d.  Choices =%7d.\n", 
+               Aig_ManNodeNum(pAig), 
+               Aig_ManNodeNum(pResult), 
                Dch_DeriveChoiceCountReprs( pAig ),
                Dch_DeriveChoiceCountEquivs( pResult ),
                Aig_ManChoiceNum( pResult ) );

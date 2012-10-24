@@ -1243,6 +1243,31 @@ int Gia_ManCompare( Gia_Man_t * p1, Gia_Man_t * p2 )
     return 1;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Marks nodes that appear as faninis of other nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManMarkFanoutDrivers( Gia_Man_t * p )
+{
+    Gia_Obj_t * pObj;
+    int i;
+    Gia_ManCleanMark0( p );
+    Gia_ManForEachObj( p, pObj, i )
+        if ( Gia_ObjIsAnd(pObj) )
+        {
+            Gia_ObjFanin0(pObj)->fMark0 = 1;
+            Gia_ObjFanin1(pObj)->fMark0 = 1;
+        }
+        else if ( Gia_ObjIsCo(pObj) )
+            Gia_ObjFanin0(pObj)->fMark0 = 1;
+}
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

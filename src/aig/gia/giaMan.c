@@ -107,6 +107,7 @@ void Gia_ManStop( Gia_Man_t * p )
     ABC_FREE( p->pReprsOld );
     ABC_FREE( p->pReprs );
     ABC_FREE( p->pNexts );
+    ABC_FREE( p->pSibls );
     ABC_FREE( p->pRefs );
 //    ABC_FREE( p->pNodeRefs );
     ABC_FREE( p->pHTable );
@@ -260,6 +261,35 @@ void Gia_ManPrintTents( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
+void Gia_ManPrintChoiceStats( Gia_Man_t * p )
+{
+    Gia_Obj_t * pObj;
+    int i, nEquivs = 0, nChoices = 0;
+    Gia_ManMarkFanoutDrivers( p );
+    Gia_ManForEachAnd( p, pObj, i )
+    {
+        if ( !Gia_ObjSibl(p, i) )
+            continue;
+        nEquivs++;
+        if ( pObj->fMark0 )
+            nChoices++;
+        assert( !Gia_ObjSiblObj(p, i)->fMark0 );
+        assert( Gia_ObjIsAnd(Gia_ObjSiblObj(p, i)) );
+    }
+    Abc_Print( 1, "Choice stats: Equivs =%7d. Choices =%7d.\n", nEquivs, nChoices );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Prints stats for the AIG.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 void Gia_ManPrintStats( Gia_Man_t * p, int fTents, int fSwitch )
 {
     if ( p->pName )
@@ -289,6 +319,8 @@ void Gia_ManPrintStats( Gia_Man_t * p, int fTents, int fSwitch )
 //    Gia_ManSatExperiment( p );
     if ( p->pReprs && p->pNexts )
         Gia_ManEquivPrintClasses( p, 0, 0.0 );
+    if ( p->pSibls )
+        Gia_ManPrintChoiceStats( p );
     if ( p->pMapping )
         Gia_ManPrintMappingStats( p );
     if ( p->pPlacement )
