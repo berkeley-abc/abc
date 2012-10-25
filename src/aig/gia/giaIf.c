@@ -30,6 +30,9 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
+extern int Kit_TruthToGia( Gia_Man_t * pMan, unsigned * pTruth, int nVars, Vec_Int_t * vMemory, Vec_Int_t * vLeaves, int fHash );
+extern int Abc_RecToGia2( Gia_Man_t * pMan, If_Man_t * pIfMan, If_Cut_t * pCut, If_Obj_t * pIfObj, Vec_Int_t * vLeaves, int fHash );
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -315,7 +318,7 @@ If_Man_t * Gia_ManToIf( Gia_Man_t * p, If_Par_t * pPars )
   SeeAlso     []
 
 ***********************************************************************/
-int Gia_ManNodeIfSopToGiaInt( Gia_Man_t * pNew, Vec_Wrd_t * vAnds, int nVars, Vec_Int_t * vLeaves )
+int Gia_ManNodeIfSopToGiaInt( Gia_Man_t * pNew, Vec_Wrd_t * vAnds, int nVars, Vec_Int_t * vLeaves, int fHash )
 {
     Vec_Int_t * vResults;
     int iRes0, iRes1, iRes;
@@ -334,19 +337,21 @@ int Gia_ManNodeIfSopToGiaInt( Gia_Man_t * pNew, Vec_Wrd_t * vAnds, int nVars, Ve
         This  = If_WrdToAnd( Entry );
         iRes0 = Abc_LitNotCond( Vec_IntEntry(vResults, This.iFan0), This.fCompl0 ); 
         iRes1 = Abc_LitNotCond( Vec_IntEntry(vResults, This.iFan1), This.fCompl1 ); 
-        iRes  = Gia_ManHashAnd( pNew, iRes0, iRes1 );
-//        iRes  = Gia_ManAppendAnd( pNew, iRes0, iRes1 );
+        if ( fHash )
+            iRes  = Gia_ManHashAnd( pNew, iRes0, iRes1 );
+        else
+            iRes  = Gia_ManAppendAnd( pNew, iRes0, iRes1 );
         Vec_IntPush( vResults, iRes );
     }
     Vec_IntFree( vResults );
     return Abc_LitNotCond( iRes, This.fCompl );
 }
-int Gia_ManNodeIfSopToGia( Gia_Man_t * pNew, If_Man_t * p, If_Cut_t * pCut, Vec_Int_t * vLeaves )
+int Gia_ManNodeIfSopToGia( Gia_Man_t * pNew, If_Man_t * p, If_Cut_t * pCut, Vec_Int_t * vLeaves, int fHash )
 {
     int iResult;
     Vec_Wrd_t * vArray;
     vArray  = If_CutDelaySopArray( p, pCut );
-    iResult = Gia_ManNodeIfSopToGiaInt( pNew, vArray, If_CutLeaveNum(pCut), vLeaves );
+    iResult = Gia_ManNodeIfSopToGiaInt( pNew, vArray, If_CutLeaveNum(pCut), vLeaves, fHash );
 //    Vec_WrdFree( vArray );
     return iResult;
 }
@@ -362,7 +367,7 @@ int Gia_ManNodeIfSopToGia( Gia_Man_t * pNew, If_Man_t * p, If_Cut_t * pCut, Vec_
   SeeAlso     []
 
 ***********************************************************************/
-int Gia_ManNodeIfToGia_rec( Gia_Man_t * pNew, If_Man_t * pIfMan, If_Obj_t * pIfObj, Vec_Ptr_t * vVisited )
+int Gia_ManNodeIfToGia_rec( Gia_Man_t * pNew, If_Man_t * pIfMan, If_Obj_t * pIfObj, Vec_Ptr_t * vVisited, int fHash )
 {
     If_Cut_t * pCut;
     If_Obj_t * pTemp;
@@ -382,15 +387,17 @@ int Gia_ManNodeIfToGia_rec( Gia_Man_t * pNew, If_Man_t * pIfMan, If_Obj_t * pIfO
     // compute the functions of the children
     for ( pTemp = pIfObj; pTemp; pTemp = pTemp->pEquiv )
     {
-        iFunc0 = Gia_ManNodeIfToGia_rec( pNew, pIfMan, pTemp->pFanin0, vVisited );
+        iFunc0 = Gia_ManNodeIfToGia_rec( pNew, pIfMan, pTemp->pFanin0, vVisited, fHash );
         if ( iFunc0 == ~0 )
             continue;
-        iFunc1 = Gia_ManNodeIfToGia_rec( pNew, pIfMan, pTemp->pFanin1, vVisited );
+        iFunc1 = Gia_ManNodeIfToGia_rec( pNew, pIfMan, pTemp->pFanin1, vVisited, fHash );
         if ( iFunc1 == ~0 )
             continue;
         // both branches are solved
-        iFunc = Gia_ManHashAnd( pNew, Abc_LitNotCond(iFunc0, pTemp->fCompl0), Abc_LitNotCond(iFunc1, pTemp->fCompl1) ); 
-//        iFunc = Gia_ManAppendAnd( pNew, Abc_LitNotCond(iFunc0, pTemp->fCompl0), Abc_LitNotCond(iFunc1, pTemp->fCompl1) ); 
+        if ( fHash )
+            iFunc = Gia_ManHashAnd( pNew, Abc_LitNotCond(iFunc0, pTemp->fCompl0), Abc_LitNotCond(iFunc1, pTemp->fCompl1) ); 
+        else
+            iFunc = Gia_ManAppendAnd( pNew, Abc_LitNotCond(iFunc0, pTemp->fCompl0), Abc_LitNotCond(iFunc1, pTemp->fCompl1) ); 
         if ( pTemp->fPhase != pIfObj->fPhase )
             iFunc = Abc_LitNot(iFunc);
         If_CutSetDataInt( pCut, iFunc );
@@ -398,7 +405,7 @@ int Gia_ManNodeIfToGia_rec( Gia_Man_t * pNew, If_Man_t * pIfMan, If_Obj_t * pIfO
     }
     return If_CutDataInt(pCut);
 }
-int Gia_ManNodeIfToGia( Gia_Man_t * pNew, If_Man_t * pIfMan, If_Obj_t * pIfObj, Vec_Int_t * vLeaves )
+int Gia_ManNodeIfToGia( Gia_Man_t * pNew, If_Man_t * pIfMan, If_Obj_t * pIfObj, Vec_Int_t * vLeaves, int fHash )
 {
     If_Cut_t * pCut;
     If_Obj_t * pLeaf;
@@ -411,7 +418,7 @@ int Gia_ManNodeIfToGia( Gia_Man_t * pNew, If_Man_t * pIfMan, If_Obj_t * pIfObj, 
         If_CutSetDataInt( If_ObjCutBest(pLeaf), Vec_IntEntry(vLeaves, i) );
     // recursively compute the function while collecting visited cuts
     Vec_PtrClear( pIfMan->vTemp );
-    iRes = Gia_ManNodeIfToGia_rec( pNew, pIfMan, pIfObj, pIfMan->vTemp ); 
+    iRes = Gia_ManNodeIfToGia_rec( pNew, pIfMan, pIfObj, pIfMan->vTemp, fHash ); 
     if ( iRes == ~0 )
     {
         Abc_Print( -1, "Gia_ManNodeIfToGia(): Computing local AIG has failed.\n" );
@@ -438,10 +445,12 @@ int Gia_ManNodeIfToGia( Gia_Man_t * pNew, If_Man_t * pIfMan, If_Obj_t * pIfObj, 
 ***********************************************************************/
 Gia_Man_t * Gia_ManFromIf( If_Man_t * pIfMan )
 {
+    int fHash = 0;
     Gia_Man_t * pNew;
     If_Obj_t * pIfObj, * pIfLeaf;
     If_Cut_t * pCutBest;
     Vec_Int_t * vLeaves;
+    Vec_Int_t * vCover;
     unsigned * pTruth;
     int Counter, iOffset, nItems = 0;
     int i, k, w, GiaId;
@@ -449,6 +458,7 @@ Gia_Man_t * Gia_ManFromIf( If_Man_t * pIfMan )
     pNew = Gia_ManStart( If_ManObjNum(pIfMan) );
     Gia_ManHashAlloc( pNew );
     // iterate through nodes used in the mapping
+    vCover = Vec_IntAlloc( 1 << 16 );
     vLeaves = Vec_IntAlloc( 16 );
     If_ManCleanCutData( pIfMan );
     If_ManForEachObj( pIfMan, pIfObj, i )
@@ -463,10 +473,18 @@ Gia_Man_t * Gia_ManFromIf( If_Man_t * pIfMan )
             If_CutForEachLeaf( pIfMan, pCutBest, pIfLeaf, k )
                 Vec_IntPush( vLeaves, pIfLeaf->iCopy );
             // get the functionality
-            if ( pIfMan->pPars->fDelayOpt )
-                pIfObj->iCopy = Gia_ManNodeIfSopToGia( pNew, pIfMan, pCutBest, vLeaves );
+            if ( pIfMan->pPars->pLutStruct )
+                pIfObj->iCopy = Kit_TruthToGia( pNew, If_CutTruth(pCutBest), If_CutLeaveNum(pCutBest), vCover, vLeaves, fHash );
+            else if ( pIfMan->pPars->fDelayOpt )
+                pIfObj->iCopy = Gia_ManNodeIfSopToGia( pNew, pIfMan, pCutBest, vLeaves, fHash );
+            else if ( pIfMan->pPars->fUserRecLib )
+                pIfObj->iCopy = Abc_RecToGia2( pNew, pIfMan, pCutBest, pIfObj, vLeaves, fHash );
             else
-                pIfObj->iCopy = Gia_ManNodeIfToGia( pNew, pIfMan, pIfObj, vLeaves );
+                pIfObj->iCopy = Gia_ManNodeIfToGia( pNew, pIfMan, pIfObj, vLeaves, fHash );
+            // complement the node if the TT was used and the cut was complemented
+            if ( pIfMan->pPars->pLutStruct )
+                pIfObj->iCopy = Abc_LitNotCond( pIfObj->iCopy, pCutBest->fCompl );
+            // count entries in the mapping array
             nItems += 2 + If_CutLeaveNum( pCutBest );
         }
         else if ( If_ObjIsCi(pIfObj) )
@@ -480,6 +498,7 @@ Gia_Man_t * Gia_ManFromIf( If_Man_t * pIfMan )
         }
         else assert( 0 );
     }
+    Vec_IntFree( vCover );
     Vec_IntFree( vLeaves );
     Gia_ManHashStop( pNew );
 
@@ -501,8 +520,10 @@ Gia_Man_t * Gia_ManFromIf( If_Man_t * pIfMan )
         if ( pIfObj->nRefs == 0 && !If_ObjIsTerm(pIfObj) )
             continue;
         if ( If_ObjIsAnd(pIfObj) )
-        {
+        { 
             GiaId = Abc_Lit2Var( pIfObj->iCopy );
+            if ( !Gia_ObjIsAnd(Gia_ManObj(pNew, GiaId)) ) // skip trivial node
+                continue;
             assert( Gia_ObjIsAnd(Gia_ManObj(pNew, GiaId)) );
             if ( !Gia_ManObj(pNew, GiaId)->fMark0 ) // skip dangling node
                 continue;
@@ -526,10 +547,10 @@ Gia_Man_t * Gia_ManFromIf( If_Man_t * pIfMan )
             pNew->pMapping[iOffset++] = If_CutLeaveNum(pCutBest);
             If_CutForEachLeaf( pIfMan, pCutBest, pIfLeaf, k )
             {
-                GiaId = Abc_Lit2Var(pIfLeaf->iCopy);
+                int FaninId = Abc_Lit2Var(pIfLeaf->iCopy);
                 if ( pTruth && Abc_LitIsCompl(pIfLeaf->iCopy) )
                     Kit_TruthChangePhase( pTruth, If_CutLeaveNum(pCutBest), k );
-                if ( !Gia_ManObj(pNew, GiaId)->fMark0 ) // skip dangling node
+                if ( !Gia_ManObj(pNew, FaninId)->fMark0 ) // skip dangling node
                 {
                     // update truth table
                     if ( pTruth )
@@ -547,7 +568,8 @@ Gia_Man_t * Gia_ManFromIf( If_Man_t * pIfMan )
                     pNew->pMapping[iOffset-k-1]--;
                     continue;
                 }
-                pNew->pMapping[iOffset++] = GiaId;
+                assert( FaninId != GiaId );
+                pNew->pMapping[iOffset++] = FaninId;
             }
             pNew->pMapping[iOffset++] = GiaId;
         }

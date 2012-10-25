@@ -20,6 +20,7 @@
 
 #include "kit.h"
 #include "aig/hop/hop.h"
+#include "aig/gia/gia.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -31,6 +32,74 @@ ABC_NAMESPACE_IMPL_START
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
+
+/**Function*************************************************************
+
+  Synopsis    [Transforms the decomposition graph into the AIG.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Kit_GraphToGiaInternal( Gia_Man_t * pMan, Kit_Graph_t * pGraph, int fHash )
+{
+    Kit_Node_t * pNode = NULL;
+    int i, pAnd0, pAnd1;
+    // check for constant function
+    if ( Kit_GraphIsConst(pGraph) )
+        return Abc_LitNotCond( 1, Kit_GraphIsComplement(pGraph) );
+    // check for a literal
+    if ( Kit_GraphIsVar(pGraph) )
+        return Abc_LitNotCond( Kit_GraphVar(pGraph)->iFunc, Kit_GraphIsComplement(pGraph) );
+    // build the AIG nodes corresponding to the AND gates of the graph
+    Kit_GraphForEachNode( pGraph, pNode, i )
+    {
+        pAnd0 = Abc_LitNotCond( Kit_GraphNode(pGraph, pNode->eEdge0.Node)->iFunc, pNode->eEdge0.fCompl ); 
+        pAnd1 = Abc_LitNotCond( Kit_GraphNode(pGraph, pNode->eEdge1.Node)->iFunc, pNode->eEdge1.fCompl ); 
+        if ( fHash )
+            pNode->iFunc = Gia_ManHashAnd( pMan, pAnd0, pAnd1 );
+        else
+            pNode->iFunc = Gia_ManAppendAnd( pMan, pAnd0, pAnd1 );
+    }
+    // complement the result if necessary
+    return Abc_LitNotCond( pNode->iFunc, Kit_GraphIsComplement(pGraph) );
+}
+int Kit_GraphToGia( Gia_Man_t * pMan, Kit_Graph_t * pGraph, Vec_Int_t * vLeaves, int fHash )
+{
+    Kit_Node_t * pNode = NULL;
+    int i;
+    // collect the fanins
+    Kit_GraphForEachLeaf( pGraph, pNode, i )
+        pNode->iFunc = Vec_IntEntry( vLeaves, i );
+    // perform strashing
+    return Kit_GraphToGiaInternal( pMan, pGraph, fHash );
+}
+int Kit_TruthToGia( Gia_Man_t * pMan, unsigned * pTruth, int nVars, Vec_Int_t * vMemory, Vec_Int_t * vLeaves, int fHash )
+{
+    int iLit;
+    Kit_Graph_t * pGraph;
+    // transform truth table into the decomposition tree
+    if ( vMemory == NULL )
+    {
+        vMemory = Vec_IntAlloc( 0 );
+        pGraph = Kit_TruthToGraph( pTruth, nVars, vMemory );
+        Vec_IntFree( vMemory );
+    }
+    else
+        pGraph = Kit_TruthToGraph( pTruth, nVars, vMemory );
+    if ( pGraph == NULL )
+    {
+        printf( "Kit_TruthToGia(): Converting truth table to AIG has failed for function:\n" );
+        Kit_DsdPrintFromTruth( pTruth, nVars ); printf( "\n" );
+    }
+    // derive the AIG for the decomposition tree
+    iLit = Kit_GraphToGia( pMan, pGraph, vLeaves, fHash );
+    Kit_GraphFree( pGraph );
+    return iLit;
+}
 
 /**Function*************************************************************
 
@@ -64,18 +133,6 @@ Hop_Obj_t * Kit_GraphToHopInternal( Hop_Man_t * pMan, Kit_Graph_t * pGraph )
     // complement the result if necessary
     return Hop_NotCond( (Hop_Obj_t *)pNode->pFunc, Kit_GraphIsComplement(pGraph) );
 }
-
-/**Function*************************************************************
-
-  Synopsis    [Strashes one logic node using its SOP.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
 Hop_Obj_t * Kit_GraphToHop( Hop_Man_t * pMan, Kit_Graph_t * pGraph )
 {
     Kit_Node_t * pNode = NULL;
@@ -86,18 +143,6 @@ Hop_Obj_t * Kit_GraphToHop( Hop_Man_t * pMan, Kit_Graph_t * pGraph )
     // perform strashing
     return Kit_GraphToHopInternal( pMan, pGraph );
 }
-
-/**Function*************************************************************
-
-  Synopsis    [Strashed onen logic nodes using its truth table.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
 Hop_Obj_t * Kit_TruthToHop( Hop_Man_t * pMan, unsigned * pTruth, int nVars, Vec_Int_t * vMemory )
 {
     Hop_Obj_t * pObj;
