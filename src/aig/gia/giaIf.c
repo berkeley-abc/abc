@@ -21,7 +21,7 @@
 #include "gia.h"
 #include "aig/aig/aig.h"
 #include "map/if/if.h"
-#include "opt/dar/dar.h"
+#include "bool/kit/kit.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -45,282 +45,44 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManSetIfParsDefault( If_Par_t * pPars )
+void Gia_ManSetIfParsDefault( void * pp )
 {
+    If_Par_t * pPars = (If_Par_t *)pp;
 //    extern void * Abc_FrameReadLibLut();
+    If_Par_t * p = (If_Par_t *)pPars;
     // set defaults
-    memset( pPars, 0, sizeof(If_Par_t) );
+    memset( p, 0, sizeof(If_Par_t) );
     // user-controlable paramters
-//    pPars->nLutSize    = -1;
-    pPars->nLutSize    =  6;
-    pPars->nCutsMax    =  8;
-    pPars->nFlowIters  =  1;
-    pPars->nAreaIters  =  2;
-    pPars->DelayTarget = -1;
-    pPars->Epsilon     =  (float)0.005;
-    pPars->fPreprocess =  1;
-    pPars->fArea       =  0;
-    pPars->fFancy      =  0;
-    pPars->fExpRed     =  1; ////
-    pPars->fLatchPaths =  0;
-    pPars->fEdge       =  1;
-    pPars->fPower      =  0;
-    pPars->fCutMin     =  0;
-    pPars->fSeqMap     =  0;
-    pPars->fVerbose    =  0;
+    p->nLutSize    = -1;
+//    p->nLutSize    =  6;
+    p->nCutsMax    =  8;
+    p->nFlowIters  =  1;
+    p->nAreaIters  =  2;
+    p->DelayTarget = -1;
+    p->Epsilon     =  (float)0.005;
+    p->fPreprocess =  1;
+    p->fArea       =  0;
+    p->fFancy      =  0;
+    p->fExpRed     =  0; ////
+    p->fLatchPaths =  0;
+    p->fEdge       =  1;
+    p->fPower      =  0;
+    p->fCutMin     =  0;
+    p->fSeqMap     =  0;
+    p->fVerbose    =  0;
+    p->pLutStruct  =  NULL;
     // internal parameters
-    pPars->fTruth      =  0;
-    pPars->nLatchesCi  =  0;
-    pPars->nLatchesCo  =  0;
-    pPars->fLiftLeaves =  0;
-//    pPars->pLutLib     =  Abc_FrameReadLibLut();
-    pPars->pLutLib     =  NULL;
-    pPars->pTimesArr   =  NULL; 
-    pPars->pTimesArr   =  NULL;   
-    pPars->pFuncCost   =  NULL;   
+    p->fTruth      =  0;
+    p->nLatchesCi  =  0;
+    p->nLatchesCo  =  0;
+    p->fLiftLeaves =  0;
+    p->fUseCoAttrs =  1;   // use CO attributes
+    p->pLutLib     =  NULL;
+    p->pTimesArr   =  NULL; 
+    p->pTimesArr   =  NULL;   
+    p->pFuncCost   =  NULL;   
 }
 
-/**Function*************************************************************
-
-  Synopsis    [Load the network into FPGA manager.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-If_Man_t * Gia_ManToIf( Gia_Man_t * p, If_Par_t * pPars, Vec_Ptr_t * vAigToIf )
-{
-//    extern Vec_Int_t * SGia_ManComputeSwitchProbs( Gia_Man_t * p, int nFrames, int nPref, int fProbOne );
-//    Vec_Int_t * vSwitching = NULL, * vSwitching2 = NULL;
-//    float * pSwitching, * pSwitching2;
-    If_Man_t * pIfMan;
-    If_Obj_t * pIfObj;
-    Gia_Obj_t * pNode;
-    int i;//, clk = clock();
-    Gia_ManLevelNum( p );
-//    assert( p->pReprs == NULL );
-/*
-    // set the number of registers (switch activity will be combinational)
-    Gia_ManSetRegNum( p, 0 );
-    if ( pPars->fPower )
-    {
-        vSwitching  = SGia_ManComputeSwitchProbs( p, 48, 16, 0 );
-        if ( pPars->fVerbose )
-        {
-            ABC_PRT( "Computing switching activity", clock() - clk );
-        }
-        pSwitching  = (float *)vSwitching->pArray;
-        vSwitching2 = Vec_IntStart( Gia_ManObjNumMax(p) );
-        pSwitching2 = (float *)vSwitching2->pArray;
-    }
-*/
-    // start the mapping manager and set its parameters
-    pIfMan = If_ManStart( pPars );
-//    pIfMan->vSwitching = vSwitching2;
-    // load the AIG into the mapper
-    Gia_ManCreateRefs( p );
-    Gia_ManForEachObj( p, pNode, i )
-    {
-        if ( Gia_ObjIsAnd(pNode) )
-            pIfObj = If_ManCreateAnd( pIfMan, 
-                If_NotCond( (If_Obj_t *)Vec_PtrEntry(vAigToIf, Gia_ObjFaninId0(pNode, i)), Gia_ObjFaninC0(pNode) ), 
-                If_NotCond( (If_Obj_t *)Vec_PtrEntry(vAigToIf, Gia_ObjFaninId1(pNode, i)), Gia_ObjFaninC1(pNode) ) );
-        else if ( Gia_ObjIsCi(pNode) )
-        {
-            pIfObj = If_ManCreateCi( pIfMan );
-            If_ObjSetLevel( pIfObj, Gia_ObjLevel(p,pNode) );
-//            Abc_Print( 1, "pi=%d ", pIfObj->Level );
-            if ( pIfMan->nLevelMax < (int)pIfObj->Level )
-                pIfMan->nLevelMax = (int)pIfObj->Level;
-        }
-        else if ( Gia_ObjIsCo(pNode) )
-        {
-            pIfObj = If_ManCreateCo( pIfMan, If_NotCond( (If_Obj_t *)Vec_PtrEntry(vAigToIf, Gia_ObjFaninId0(pNode, i)), Gia_ObjFaninC0(pNode) ) );
-//            Abc_Print( 1, "po=%d ", pIfObj->Level );
-        }
-        else if ( Gia_ObjIsConst0(pNode) )
-            pIfObj = If_Not(If_ManConst1( pIfMan ));
-        else // add the node to the mapper
-            assert( 0 );
-        // save the result
-        assert( Vec_PtrEntry(vAigToIf, i) == NULL );
-        Vec_PtrWriteEntry( vAigToIf, i, pIfObj );
-//        if ( vSwitching2 )
-//            pSwitching2[pIfObj->Id] = pSwitching[pNode->Id];    
-        // set up the choice node
-/*
-//        if ( p->pReprs && p->pNexts && Gia_ObjIsHead( p, i ) )
-        if ( p->pNexts && Gia_ObjNext(p, i) && Gia_ObjRefNumId(p, i) )
-        {
-            int iPrev, iFanin;
-            pIfMan->nChoices++;
-            for ( iPrev = i, iFanin = Gia_ObjNext(p, i); iFanin; iPrev = iFanin, iFanin = Gia_ObjNext(p, iFanin) )
-                If_ObjSetChoice( Vec_PtrEntry(vAigToIf,iPrev), Vec_PtrEntry(vAigToIf,iFanin) );
-            If_ManCreateChoice( pIfMan, Vec_PtrEntry(vAigToIf,i) );
-        }
-*/
-/*        // set up the choice node
-        if ( Gia_ObjIsChoice( p, pNode ) )
-        {
-            pIfMan->nChoices++;
-            for ( pPrev = pNode, pFanin = Gia_ObjEquiv(p, pNode); pFanin; pPrev = pFanin, pFanin = Gia_ObjEquiv(p, pFanin) )
-                If_ObjSetChoice( pPrev->pData, pFanin->pData );
-            If_ManCreateChoice( pIfMan, pNode->pData );
-        }
-//        assert( If_ObjLevel(pIfObj) == Gia_ObjLevel(pNode) );
-*/
-    }
-//    if ( vSwitching )
-//        Vec_IntFree( vSwitching );
-    return pIfMan;
-}
-
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int * Gia_ManFromIf( If_Man_t * pIfMan, Gia_Man_t * p, Vec_Ptr_t * vAigToIf )
-{
-    int * pMapping, iOffset;
-    Vec_Ptr_t * vIfToAig;
-    Gia_Obj_t * pObj, * pObjRepr;
-    If_Obj_t * pIfObj;
-    If_Cut_t * pCutBest;
-    int i, k, j, nLeaves, * ppLeaves;
-    int nItems = 0;
-    assert( Gia_ManCiNum(p) == If_ManCiNum(pIfMan) );
-    assert( Gia_ManCoNum(p) == If_ManCoNum(pIfMan) );
-    assert( Gia_ManAndNum(p) == If_ManAndNum(pIfMan) );
-    // create mapping of IF to AIG
-    vIfToAig = Vec_PtrStart( If_ManObjNum(pIfMan) );
-    Gia_ManForEachObj( p, pObj, i )
-    {
-        pIfObj = (If_Obj_t *)Vec_PtrEntry( vAigToIf, i );
-        Vec_PtrWriteEntry( vIfToAig, pIfObj->Id, pObj );
-        if ( !Gia_ObjIsAnd(pObj) || pIfObj->nRefs == 0 )
-            continue;
-        nItems += 2 + If_CutLeaveNum( If_ObjCutBest(pIfObj) );
-    }
-    // construct the network
-    pMapping = ABC_CALLOC( int, Gia_ManObjNum(p) + nItems );
-    iOffset = Gia_ManObjNum(p);
-    Gia_ManForEachObj( p, pObj, i )
-    {
-        pIfObj = (If_Obj_t *)Vec_PtrEntry( vAigToIf, i );
-        if ( !Gia_ObjIsAnd(pObj) || pIfObj->nRefs == 0 )
-            continue;
-        pCutBest = If_ObjCutBest( pIfObj );
-        nLeaves  = If_CutLeaveNum( pCutBest ); 
-        ppLeaves = If_CutLeaves( pCutBest );
-        // create node
-        k = iOffset;
-        pMapping[k++] = nLeaves;
-        for ( j = 0; j < nLeaves; j++ )
-        {
-            pObjRepr = (Gia_Obj_t *)Vec_PtrEntry( vIfToAig, ppLeaves[j] );
-            pMapping[k++] = Gia_ObjId( p, pObjRepr );
-        }
-        pMapping[k++] = i;
-        pMapping[i] = iOffset;
-        iOffset = k;
-    }
-    assert( iOffset <= Gia_ManObjNum(p) + nItems );
-    Vec_PtrFree( vIfToAig );
-//    pNtk->pManTime = Tim_ManDup( pIfMan->pManTim, 0 );
-    return pMapping;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Interface with the FPGA mapping package.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Gia_MappingIf( Gia_Man_t * p, If_Par_t * pPars )
-{
-    If_Man_t * pIfMan;
-    Vec_Ptr_t * vAigToIf;
-    // set the arrival times
-    pPars->pTimesArr = ABC_ALLOC( float, Gia_ManCiNum(p) );
-    memset( pPars->pTimesArr, 0, sizeof(float) * Gia_ManCiNum(p) );
-    // translate into the mapper
-    vAigToIf = Vec_PtrStart( Gia_ManObjNum(p) );
-    pIfMan = Gia_ManToIf( p, pPars, vAigToIf );    
-    if ( pIfMan == NULL )
-    {
-        Vec_PtrFree( vAigToIf );
-        return 0;
-    }
-//    pIfMan->pManTim = Tim_ManDup( pManTime, 0 );
-    if ( !If_ManPerformMapping( pIfMan ) )
-    {
-        Vec_PtrFree( vAigToIf );
-        If_ManStop( pIfMan );
-        return 0;
-    }
-    // transform the result of mapping into the new network
-    ABC_FREE( p->pMapping );
-    p->pMapping = Gia_ManFromIf( pIfMan, p, vAigToIf );
-//    if ( pPars->fBidec && pPars->nLutSize <= 8 )
-//        Gia_ManBidecResyn( pNtk, 0 );
-    If_ManStop( pIfMan );
-    Vec_PtrFree( vAigToIf );
-    return 1;
-}
-
-
-/**Function*************************************************************
-
-  Synopsis    [Prints mapping statistics.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Gia_ManPrintMappingStats( Gia_Man_t * p )
-{
-    int * pLevels;
-    int i, k, iFan, nLutSize = 0, nLuts = 0, nFanins = 0, LevelMax = 0;
-    if ( !p->pMapping )
-        return;
-    pLevels = ABC_CALLOC( int, Gia_ManObjNum(p) );
-    Gia_ManForEachLut( p, i )
-    {
-        nLuts++;
-        nFanins += Gia_ObjLutSize(p, i);
-        nLutSize = Abc_MaxInt( nLutSize, Gia_ObjLutSize(p, i) );
-        Gia_LutForEachFanin( p, i, iFan, k )
-            pLevels[i] = Abc_MaxInt( pLevels[i], pLevels[iFan] );
-        pLevels[i]++;
-        LevelMax = Abc_MaxInt( LevelMax, pLevels[i] );
-    }
-    ABC_FREE( pLevels );
-    Abc_Print( 1, "mapping (K=%d)  :  ", nLutSize );
-    Abc_Print( 1, "lut =%7d  ", nLuts );
-    Abc_Print( 1, "edge =%8d  ", nFanins );
-    Abc_Print( 1, "lev =%5d  ", LevelMax );
-    Abc_Print( 1, "mem =%5.2f MB", 4.0*(Gia_ManObjNum(p) + 2*nLuts + nFanins)/(1<<20) );
-    Abc_Print( 1, "\n" );
-}
 
 /**Function*************************************************************
 
@@ -437,7 +199,7 @@ void Gia_ManSetRefsMapped( Gia_Man_t * p )
 
 /**Function*************************************************************
 
-  Synopsis    [Prints NPN class statistics.]
+  Synopsis    [Prints mapping statistics.]
 
   Description []
                
@@ -446,83 +208,424 @@ void Gia_ManSetRefsMapped( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManPrintNpnClasses( Gia_Man_t * p )
+void Gia_ManPrintMappingStats( Gia_Man_t * p )
 {
-    extern char ** Kit_DsdNpn4ClassNames();
-    char ** pNames = Kit_DsdNpn4ClassNames();
-    Vec_Int_t * vLeaves, * vTruth, * vVisited;
-    int * pLutClass, ClassCounts[222] = {0};
-    int i, k, iFan, Class, OtherClasses, OtherClasses2, nTotal, Counter, Counter2;
-    unsigned * pTruth;
-    assert( p->pMapping != NULL );
-    assert(  Gia_ManLutSizeMax( p ) <= 4 );
-    vLeaves   = Vec_IntAlloc( 100 );
-    vVisited  = Vec_IntAlloc( 100 );
-    vTruth    = Vec_IntAlloc( (1<<16) );
-    pLutClass = ABC_CALLOC( int, Gia_ManObjNum(p) );
-    Gia_ManCleanTruth( p );
+    int * pLevels;
+    int i, k, iFan, nLutSize = 0, nLuts = 0, nFanins = 0, LevelMax = 0;
+    if ( !p->pMapping )
+        return;
+    pLevels = ABC_CALLOC( int, Gia_ManObjNum(p) );
     Gia_ManForEachLut( p, i )
     {
-        if ( Gia_ObjLutSize(p,i) > 4 )
-            continue;
-        Vec_IntClear( vLeaves );
+        nLuts++;
+        nFanins += Gia_ObjLutSize(p, i);
+        nLutSize = Abc_MaxInt( nLutSize, Gia_ObjLutSize(p, i) );
         Gia_LutForEachFanin( p, i, iFan, k )
-            Vec_IntPush( vLeaves, iFan );
-        for ( ; k < 4; k++ )
-            Vec_IntPush( vLeaves, 0 );
-        pTruth = Gia_ManConvertAigToTruth( p, Gia_ManObj(p, i), vLeaves, vTruth, vVisited );
-        Class = Dar_LibReturnClass( *pTruth );
-        ClassCounts[ Class ]++;
-        pLutClass[i] = Class;
+            pLevels[i] = Abc_MaxInt( pLevels[i], pLevels[iFan] );
+        pLevels[i]++;
+        LevelMax = Abc_MaxInt( LevelMax, pLevels[i] );
+    }
+    ABC_FREE( pLevels );
+    Abc_Print( 1, "mapping (K=%d)  :  ", nLutSize );
+    Abc_Print( 1, "lut =%7d  ", nLuts );
+    Abc_Print( 1, "edge =%8d  ", nFanins );
+    Abc_Print( 1, "lev =%5d  ", LevelMax );
+    Abc_Print( 1, "mem =%5.2f MB", 4.0*(Gia_ManObjNum(p) + 2*nLuts + nFanins)/(1<<20) );
+    Abc_Print( 1, "\n" );
+}
+
+
+
+/**Function*************************************************************
+
+  Synopsis    [Converts GIA into IF manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline If_Obj_t * If_ManFanin0Copy( If_Man_t * pIfMan, Gia_Obj_t * pObj ) { return If_NotCond( If_ManObj(pIfMan, Gia_ObjValue(Gia_ObjFanin0(pObj))), Gia_ObjFaninC0(pObj) ); }
+static inline If_Obj_t * If_ManFanin1Copy( If_Man_t * pIfMan, Gia_Obj_t * pObj ) { return If_NotCond( If_ManObj(pIfMan, Gia_ObjValue(Gia_ObjFanin1(pObj))), Gia_ObjFaninC1(pObj) ); }
+If_Man_t * Gia_ManToIf( Gia_Man_t * p, If_Par_t * pPars )
+{
+    If_Man_t * pIfMan;
+    If_Obj_t * pIfObj;
+    Gia_Obj_t * pObj;
+    int i;
+    // create levels with choices
+    Gia_ManChoiceLevel( p );
+    // mark representative nodes
+    Gia_ManMarkFanoutDrivers( p );
+    // start the mapping manager and set its parameters
+    pIfMan = If_ManStart( pPars );
+    pIfMan->pName = Abc_UtilStrsav( Gia_ManName(p) );
+    // print warning about excessive memory usage
+    if ( 1.0 * Gia_ManObjNum(p) * pIfMan->nObjBytes / (1<<30) > 1.0 )
+        printf( "Warning: The mapper will allocate %.1f GB for to represent the subject graph with %d AIG nodes.\n", 
+            1.0 * Gia_ManObjNum(p) * pIfMan->nObjBytes / (1<<30), Gia_ManObjNum(p) );
+    // load the AIG into the mapper
+    Gia_ManFillValue( p );
+    Gia_ManConst0(p)->Value = If_ObjId( If_ManConst1(pIfMan) );
+    Gia_ManForEachObj1( p, pObj, i )
+    {
+        if ( Gia_ObjIsAnd(pObj) )
+            pIfObj = If_ManCreateAnd( pIfMan, If_ManFanin0Copy(pIfMan, pObj), If_ManFanin1Copy(pIfMan, pObj) );
+        else if ( Gia_ObjIsCi(pObj) )
+        {
+            pIfObj = If_ManCreateCi( pIfMan );
+            If_ObjSetLevel( pIfObj, Gia_ObjLevel(p, pObj) );
+//            Abc_Print( 1, "pi%d=%d\n ", If_ObjId(pIfObj), If_ObjLevel(pIfObj) );
+            if ( pIfMan->nLevelMax < (int)pIfObj->Level )
+                pIfMan->nLevelMax = (int)pIfObj->Level;
+        }
+        else if ( Gia_ObjIsCo(pObj) )
+        {
+            pIfObj = If_ManCreateCo( pIfMan, If_NotCond( If_ManFanin0Copy(pIfMan, pObj), Gia_ObjIsConst0(Gia_ObjFanin0(pObj))) );
+//            Abc_Print( 1, "po%d=%d\n ", If_ObjId(pIfObj), If_ObjLevel(pIfObj) );
+        }
+        else assert( 0 );
+        assert( i == If_ObjId(pIfObj) );
+        Gia_ObjSetValue( pObj, If_ObjId(pIfObj) );
+        // set up the choice node
+        if ( Gia_ObjSibl(p, i) && pObj->fMark0 )
+        {
+            Gia_Obj_t * pSibl, * pPrev;
+            for ( pPrev = pObj, pSibl = Gia_ObjSiblObj(p, i); pSibl; pPrev = pSibl, pSibl = Gia_ObjSiblObj(p, Gia_ObjId(p, pSibl)) )
+                If_ObjSetChoice( If_ManObj(pIfMan, Gia_ObjValue(pObj)), If_ManObj(pIfMan, Gia_ObjValue(pSibl)) );
+            If_ManCreateChoice( pIfMan, If_ManObj(pIfMan, Gia_ObjValue(pObj)) );
+        }
+//        assert( If_ObjLevel(pIfObj) == Gia_ObjLevel(pNode) );
+    }
+    Gia_ManCleanMark0( p );
+    return pIfMan;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Derives node's AIG after SOP balancing]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManNodeIfSopToGiaInt( Gia_Man_t * pNew, Vec_Wrd_t * vAnds, int nVars, Vec_Int_t * vLeaves )
+{
+    Vec_Int_t * vResults;
+    int iRes0, iRes1, iRes;
+    If_And_t This;
+    word Entry;
+    int i;
+    if ( Vec_WrdSize(vAnds) == 0 )
+        return 0;
+    if ( Vec_WrdSize(vAnds) == 1 && Vec_WrdEntry(vAnds,0) == 0 )
+        return 1;
+    vResults = Vec_IntAlloc( Vec_WrdSize(vAnds) );
+    for ( i = 0; i < nVars; i++ )
+        Vec_IntPush( vResults, Vec_IntEntry(vLeaves, i) );
+    Vec_WrdForEachEntryStart( vAnds, Entry, i, nVars )
+    {
+        This  = If_WrdToAnd( Entry );
+        iRes0 = Abc_LitNotCond( Vec_IntEntry(vResults, This.iFan0), This.fCompl0 ); 
+        iRes1 = Abc_LitNotCond( Vec_IntEntry(vResults, This.iFan1), This.fCompl1 ); 
+        iRes  = Gia_ManHashAnd( pNew, iRes0, iRes1 );
+//        iRes  = Gia_ManAppendAnd( pNew, iRes0, iRes1 );
+        Vec_IntPush( vResults, iRes );
+    }
+    Vec_IntFree( vResults );
+    return Abc_LitNotCond( iRes, This.fCompl );
+}
+int Gia_ManNodeIfSopToGia( Gia_Man_t * pNew, If_Man_t * p, If_Cut_t * pCut, Vec_Int_t * vLeaves )
+{
+    int iResult;
+    Vec_Wrd_t * vArray;
+    vArray  = If_CutDelaySopArray( p, pCut );
+    iResult = Gia_ManNodeIfSopToGiaInt( pNew, vArray, If_CutLeaveNum(pCut), vLeaves );
+//    Vec_WrdFree( vArray );
+    return iResult;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Recursively derives the local AIG for the cut.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManNodeIfToGia_rec( Gia_Man_t * pNew, If_Man_t * pIfMan, If_Obj_t * pIfObj, Vec_Ptr_t * vVisited )
+{
+    If_Cut_t * pCut;
+    If_Obj_t * pTemp;
+    int iFunc, iFunc0, iFunc1;
+    // get the best cut
+    pCut = If_ObjCutBest(pIfObj);
+    // if the cut is visited, return the result
+    if ( If_CutDataInt(pCut) )
+        return If_CutDataInt(pCut);
+    // mark the node as visited
+    Vec_PtrPush( vVisited, pCut );
+    // insert the worst case
+    If_CutSetDataInt( pCut, ~0 );
+    // skip in case of primary input
+    if ( If_ObjIsCi(pIfObj) )
+        return If_CutDataInt(pCut);
+    // compute the functions of the children
+    for ( pTemp = pIfObj; pTemp; pTemp = pTemp->pEquiv )
+    {
+        iFunc0 = Gia_ManNodeIfToGia_rec( pNew, pIfMan, pTemp->pFanin0, vVisited );
+        if ( iFunc0 == ~0 )
+            continue;
+        iFunc1 = Gia_ManNodeIfToGia_rec( pNew, pIfMan, pTemp->pFanin1, vVisited );
+        if ( iFunc1 == ~0 )
+            continue;
+        // both branches are solved
+        iFunc = Gia_ManHashAnd( pNew, Abc_LitNotCond(iFunc0, pTemp->fCompl0), Abc_LitNotCond(iFunc1, pTemp->fCompl1) ); 
+//        iFunc = Gia_ManAppendAnd( pNew, Abc_LitNotCond(iFunc0, pTemp->fCompl0), Abc_LitNotCond(iFunc1, pTemp->fCompl1) ); 
+        if ( pTemp->fPhase != pIfObj->fPhase )
+            iFunc = Abc_LitNot(iFunc);
+        If_CutSetDataInt( pCut, iFunc );
+        break;
+    }
+    return If_CutDataInt(pCut);
+}
+int Gia_ManNodeIfToGia( Gia_Man_t * pNew, If_Man_t * pIfMan, If_Obj_t * pIfObj, Vec_Int_t * vLeaves )
+{
+    If_Cut_t * pCut;
+    If_Obj_t * pLeaf;
+    int i, iRes;
+    // get the best cut
+    pCut = If_ObjCutBest(pIfObj);
+    assert( pCut->nLeaves > 1 );
+    // set the leaf variables
+    If_CutForEachLeaf( pIfMan, pCut, pLeaf, i )
+        If_CutSetDataInt( If_ObjCutBest(pLeaf), Vec_IntEntry(vLeaves, i) );
+    // recursively compute the function while collecting visited cuts
+    Vec_PtrClear( pIfMan->vTemp );
+    iRes = Gia_ManNodeIfToGia_rec( pNew, pIfMan, pIfObj, pIfMan->vTemp ); 
+    if ( iRes == ~0 )
+    {
+        Abc_Print( -1, "Gia_ManNodeIfToGia(): Computing local AIG has failed.\n" );
+        return ~0;
+    }
+    // clean the cuts
+    If_CutForEachLeaf( pIfMan, pCut, pLeaf, i )
+        If_CutSetDataInt( If_ObjCutBest(pLeaf), 0 );
+    Vec_PtrForEachEntry( If_Cut_t *, pIfMan->vTemp, pCut, i )
+        If_CutSetDataInt( pCut, 0 );
+    return iRes;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Converts IF into GIA manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManFromIf( If_Man_t * pIfMan )
+{
+    Gia_Man_t * pNew;
+    If_Obj_t * pIfObj, * pIfLeaf;
+    If_Cut_t * pCutBest;
+    Vec_Int_t * vLeaves;
+    unsigned * pTruth;
+    int Counter, iOffset, nItems = 0;
+    int i, k, w, GiaId;
+    // create new manager
+    pNew = Gia_ManStart( If_ManObjNum(pIfMan) );
+    Gia_ManHashAlloc( pNew );
+    // iterate through nodes used in the mapping
+    vLeaves = Vec_IntAlloc( 16 );
+    If_ManCleanCutData( pIfMan );
+    If_ManForEachObj( pIfMan, pIfObj, i )
+    {
+        if ( pIfObj->nRefs == 0 && !If_ObjIsTerm(pIfObj) )
+            continue;
+        if ( If_ObjIsAnd(pIfObj) )
+        {
+            pCutBest = If_ObjCutBest( pIfObj );
+            // collect leaves of the best cut
+            Vec_IntClear( vLeaves );
+            If_CutForEachLeaf( pIfMan, pCutBest, pIfLeaf, k )
+                Vec_IntPush( vLeaves, pIfLeaf->iCopy );
+            // get the functionality
+            if ( pIfMan->pPars->fDelayOpt )
+                pIfObj->iCopy = Gia_ManNodeIfSopToGia( pNew, pIfMan, pCutBest, vLeaves );
+            else
+                pIfObj->iCopy = Gia_ManNodeIfToGia( pNew, pIfMan, pIfObj, vLeaves );
+            nItems += 2 + If_CutLeaveNum( pCutBest );
+        }
+        else if ( If_ObjIsCi(pIfObj) )
+            pIfObj->iCopy = Gia_ManAppendCi(pNew);
+        else if ( If_ObjIsCo(pIfObj) )
+            pIfObj->iCopy = Gia_ManAppendCo( pNew, Abc_LitNotCond(If_ObjFanin0(pIfObj)->iCopy, If_ObjFaninC0(pIfObj)) );
+        else if ( If_ObjIsConst1(pIfObj) )
+        {
+            pIfObj->iCopy = 1;
+            nItems += 2; 
+        }
+        else assert( 0 );
     }
     Vec_IntFree( vLeaves );
-    Vec_IntFree( vTruth );
-    Vec_IntFree( vVisited );
-    Vec_IntFreeP( &p->vTruths );
-    nTotal = 0;
-    for ( i = 0; i < 222; i++ )
-        nTotal += ClassCounts[i];
-    Abc_Print( 1, "NPN CLASS STATISTICS (for %d LUT4 present in the current mapping):\n", nTotal );
-    OtherClasses = 0;
-    for ( i = 0; i < 222; i++ )
+    Gia_ManHashStop( pNew );
+
+    // GIA after mapping with choices may end up with dangling nodes
+    // which participate as leaves of some cuts used in the mapping
+    // such nodes are marked here and skipped when mapping is derived
+    Counter = Gia_ManMarkDangling(pNew);
+    if ( pIfMan->pPars->fVerbose && Counter )
+        printf( "GIA after mapping has %d dangling nodes.\n", Counter );
+
+    // create mapping
+    iOffset = Gia_ManObjNum(pNew);
+    pNew->pMapping = ABC_CALLOC( int, iOffset + nItems );
+    assert( pNew->vTruths == NULL );
+    if ( pIfMan->pPars->pLutStruct )
+        pNew->vTruths = Vec_IntAlloc( 1000 );
+    If_ManForEachObj( pIfMan, pIfObj, i )
     {
-        if ( ClassCounts[i] == 0 )
+        if ( pIfObj->nRefs == 0 && !If_ObjIsTerm(pIfObj) )
             continue;
-        if ( 100.0 * ClassCounts[i] / (nTotal+1) < 0.1 ) // do not show anything below 0.1 percent
-            continue;
-        OtherClasses += ClassCounts[i];
-        Abc_Print( 1, "Class %3d :  Count = %6d   (%7.2f %%)   %s\n", 
-            i, ClassCounts[i], 100.0 * ClassCounts[i] / (nTotal+1), pNames[i] );
-    }
-    OtherClasses = nTotal - OtherClasses;
-    Abc_Print( 1, "Other     :  Count = %6d   (%7.2f %%)\n", 
-        OtherClasses, 100.0 * OtherClasses / (nTotal+1) );
-    // count the number of LUTs that have MUX function and two fanins with MUX functions
-    OtherClasses = OtherClasses2 = 0;
-    ABC_FREE( p->pRefs );
-    Gia_ManSetRefsMapped( p );
-    Gia_ManForEachLut( p, i )
-    {
-        if ( pLutClass[i] != 109 )
-            continue;
-        Counter = Counter2 = 0;
-        Gia_LutForEachFanin( p, i, iFan, k )
+        if ( If_ObjIsAnd(pIfObj) )
         {
-            Counter  += (pLutClass[iFan] == 109);
-            Counter2 += (pLutClass[iFan] == 109) && (Gia_ObjRefNumId(p, iFan) == 1);
+            GiaId = Abc_Lit2Var( pIfObj->iCopy );
+            assert( Gia_ObjIsAnd(Gia_ManObj(pNew, GiaId)) );
+            if ( !Gia_ManObj(pNew, GiaId)->fMark0 ) // skip dangling node
+                continue;
+            // get the best cut
+            pCutBest = If_ObjCutBest( pIfObj );
+            // copy the truth tables
+            pTruth = NULL;
+            if ( pNew->vTruths )
+            { 
+                // copy truth table
+                for ( w = 0; w < pIfMan->nTruthWords; w++ )
+                    Vec_IntPush( pNew->vTruths, If_CutTruth(pCutBest)[w] );
+                pTruth = (unsigned *)(Vec_IntArray(pNew->vTruths) + Vec_IntSize(pNew->vTruths) - pIfMan->nTruthWords);
+                // complement 
+                if ( pCutBest->fCompl ^ Abc_LitIsCompl(pIfObj->iCopy) )
+                    for ( w = 0; w < pIfMan->nTruthWords; w++ )
+                        pTruth[w] = ~pTruth[w];
+            }
+            // create node
+            pNew->pMapping[GiaId]     = iOffset;
+            pNew->pMapping[iOffset++] = If_CutLeaveNum(pCutBest);
+            If_CutForEachLeaf( pIfMan, pCutBest, pIfLeaf, k )
+            {
+                GiaId = Abc_Lit2Var(pIfLeaf->iCopy);
+                if ( pTruth && Abc_LitIsCompl(pIfLeaf->iCopy) )
+                    Kit_TruthChangePhase( pTruth, If_CutLeaveNum(pCutBest), k );
+                if ( !Gia_ManObj(pNew, GiaId)->fMark0 ) // skip dangling node
+                {
+                    // update truth table
+                    if ( pTruth )
+                    {
+                        extern void If_CluSwapVars( word * pTruth, int nVars, int * V2P, int * P2V, int iVar, int jVar );
+                        if ( If_CutLeaveNum(pCutBest) >= 6 )
+                            If_CluSwapVars( (word*)pTruth, If_CutLeaveNum(pCutBest), NULL, NULL, k, If_CutLeaveNum(pCutBest)-1 );
+                        else
+                        {
+                            word Truth = (pTruth[0] << 32) | pTruth[0];
+                            If_CluSwapVars( &Truth, 6, NULL, NULL, k, If_CutLeaveNum(pCutBest)-1 );
+                            pTruth[0] = (Truth & 0xFFFFFFFF);
+                        }
+                    }
+                    pNew->pMapping[iOffset-k-1]--;
+                    continue;
+                }
+                pNew->pMapping[iOffset++] = GiaId;
+            }
+            pNew->pMapping[iOffset++] = GiaId;
         }
-        OtherClasses  += (Counter > 1);
-        OtherClasses2 += (Counter2 > 1);
-//            Abc_Print( 1, "%d -- ", pLutClass[i] );
-//            Gia_LutForEachFanin( p, i, iFan, k )
-//                Abc_Print( 1, "%d ", pLutClass[iFan] );
-//            Abc_Print( 1, "\n" );
+        else if ( If_ObjIsConst1(pIfObj) )
+        {
+            // create node
+            pNew->pMapping[0] = iOffset;
+            pNew->pMapping[iOffset++] = 0;
+            pNew->pMapping[iOffset++] = 0;
+/*
+            if ( pNew->vTruths )
+            {
+                printf( "%d ", nLeaves );
+                for ( w = 0; w < pIfMan->nTruthWords; w++ )
+                    Vec_IntPush( pNew->vTruths, 0 );
+            }
+*/
+        }
     }
-    ABC_FREE( p->pRefs );
-    Abc_Print( 1, "Approximate number of 4:1 MUX structures: All = %6d  (%7.2f %%)  MFFC = %6d  (%7.2f %%)\n", 
-        OtherClasses,  100.0 * OtherClasses  / (nTotal+1),
-        OtherClasses2, 100.0 * OtherClasses2 / (nTotal+1) );
-    ABC_FREE( pLutClass );
+    Gia_ManCleanMark0( pNew );
+//    assert( iOffset == Gia_ManObjNum(pNew) + nItems );
+    if ( pIfMan->pManTim )
+        pNew->pManTime = Tim_ManDup( pIfMan->pManTim, 0 );
+    // verify that COs have mapping
+    {
+        Gia_Obj_t * pObj;
+        Gia_ManForEachCo( pNew, pObj, i )
+        {
+            if ( Gia_ObjIsAnd(Gia_ObjFanin0(pObj)) )
+                assert( pNew->pMapping[Gia_ObjFaninId0p(pNew, pObj)] != 0 );
+        }
+    }
+    return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Interface of LUT mapping package.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManPerformMapping( Gia_Man_t * p, void * pp )
+{
+    Gia_Man_t * pNew;
+    If_Man_t * pIfMan;
+    If_Par_t * pPars = (If_Par_t *)pp;
+    // set the arrival times
+    assert( pPars->pTimesArr == NULL );
+    pPars->pTimesArr = ABC_ALLOC( float, Gia_ManCiNum(p) );
+    memset( pPars->pTimesArr, 0, sizeof(float) * Gia_ManCiNum(p) );
+    // translate into the mapper
+    pIfMan = Gia_ManToIf( p, pPars );    
+    if ( pIfMan == NULL )
+        return NULL;
+    if ( p->pManTime )
+        pIfMan->pManTim = Tim_ManDup( p->pManTime, 0 );
+    if ( !If_ManPerformMapping( pIfMan ) )
+    {
+        If_ManStop( pIfMan );
+        return NULL;
+    }
+    // transform the result of mapping into the new network
+    pNew = Gia_ManFromIf( pIfMan );
+    If_ManStop( pIfMan );
+    // transfer name
+    assert( pNew->pName == NULL );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    // unmap in case of SOP balancing
+//    if ( pIfMan->pPars->fDelayOpt )
+//        Vec_IntFreeP( &pNew->vMapping );
+    return pNew;
 }
 
 ////////////////////////////////////////////////////////////////////////

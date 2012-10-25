@@ -87,20 +87,13 @@ void Abc_ObjAddFanin( Abc_Obj_t * pObj, Abc_Obj_t * pFanin )
     assert( !Abc_ObjIsComplement(pObj) );
     assert( pObj->pNtk == pFaninR->pNtk );
     assert( pObj->Id >= 0 && pFaninR->Id >= 0 );
+    assert( !Abc_ObjIsPi(pObj) && !Abc_ObjIsPo(pFanin) );    // fanin of PI or fanout of PO
+    assert( !Abc_ObjIsCo(pObj) || !Abc_ObjFaninNum(pObj) );  // CO with two fanins
+    assert( !Abc_ObjIsNet(pObj) || !Abc_ObjFaninNum(pObj) ); // net with two fanins
     Vec_IntPushMem( pObj->pNtk->pMmStep, &pObj->vFanins,     pFaninR->Id );
     Vec_IntPushMem( pObj->pNtk->pMmStep, &pFaninR->vFanouts, pObj->Id    );
     if ( Abc_ObjIsComplement(pFanin) )
         Abc_ObjSetFaninC( pObj, Abc_ObjFaninNum(pObj)-1 );
-    if ( Abc_ObjIsNet(pObj) && Abc_ObjFaninNum(pObj) > 1 )
-    {
-        printf( "Abc_ObjAddFanin(): Error! Creating net \"%s\" with two fanins.\n", Abc_ObjName(pObj) );
-    }
-/*
-    if ( Abc_ObjIsCo(pFanin) )
-    {
-        printf( "Abc_ObjAddFanin(): Error! Creating fanout of a CO.\n", Abc_ObjName(pFanin) );
-    }
-*/
 }
 
 

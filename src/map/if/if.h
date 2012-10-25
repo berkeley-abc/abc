@@ -333,7 +333,7 @@ static inline void *     If_ObjCopy( If_Obj_t * pObj )                       { r
 static inline int        If_ObjLevel( If_Obj_t * pObj )                      { return pObj->Level;                   }
 static inline void       If_ObjSetLevel( If_Obj_t * pObj, int Level )        { pObj->Level = Level;                  }
 static inline void       If_ObjSetCopy( If_Obj_t * pObj, void * pCopy )      { pObj->pCopy = pCopy;                  }
-static inline void       If_ObjSetChoice( If_Obj_t * pObj, If_Obj_t * pEqu ) { pObj->pEquiv = pEqu;                  }
+static inline void       If_ObjSetChoice( If_Obj_t * pObj, If_Obj_t * pEqu ) { assert( pObj->Id > pEqu->Id ); pObj->pEquiv = pEqu;                  }
 
 static inline If_Cut_t * If_ObjCutBest( If_Obj_t * pObj )                    { return &pObj->CutBest;                }
 static inline unsigned   If_ObjCutSign( unsigned ObjId )                     { return (1 << (ObjId % 31));           }

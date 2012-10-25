@@ -48,7 +48,7 @@ Vec_Int_t * Llb_AigMap( Aig_Man_t * pAig, int nLutSize, int nLutMin )
 {
     extern Abc_Ntk_t * Abc_NtkFromAigPhase( Aig_Man_t * pMan );
     extern If_Man_t *  Abc_NtkToIf( Abc_Ntk_t * pNtk, If_Par_t * pPars );
-    extern void        Gia_ManSetIfParsDefault( If_Par_t * pPars );
+    extern void        Gia_ManSetIfParsDefault( void * pPars );
     If_Par_t Pars, * pPars = &Pars;
     If_Man_t * pIfMan;
     If_Obj_t * pAnd;

@@ -337,6 +337,7 @@ void If_ManCreateChoice( If_Man_t * p, If_Obj_t * pObj )
     // mark the largest level
     if ( p->nLevelMax < (int)pObj->Level )
         p->nLevelMax = (int)pObj->Level;
+    p->nChoices++;
 }
 
 /**Function*************************************************************

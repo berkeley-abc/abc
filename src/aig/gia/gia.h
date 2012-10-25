@@ -700,6 +700,7 @@ extern int                 Gia_ManCounterExampleValueLookup( Gia_Man_t * pGia, i
 extern void                Gia_ManVerifyChoices( Gia_Man_t * p );
 extern void                Gia_ManReverseClasses( Gia_Man_t * p, int fNowIncreasing );
 extern int                 Gia_ManHasChoices( Gia_Man_t * p );
+extern int                 Gia_ManChoiceLevel( Gia_Man_t * p );
 /*=== giaCsatOld.c ============================================================*/
 extern Vec_Int_t *         Cbs_ManSolveMiter( Gia_Man_t * pGia, int nConfs, Vec_Str_t ** pvStatus, int fVerbose );
 /*=== giaCsat.c ============================================================*/
@@ -810,7 +811,14 @@ extern Gia_Man_t *         Gia_ManRehash( Gia_Man_t * p, int fAddStrash );
 extern void                Gia_ManHashProfile( Gia_Man_t * p );
 extern int                 Gia_ManHashLookup( Gia_Man_t * p, Gia_Obj_t * p0, Gia_Obj_t * p1 );
 /*=== giaIf.c ===========================================================*/
-extern void                Gia_ManPrintNpnClasses( Gia_Man_t * p );
+extern void                Gia_ManPrintMappingStats( Gia_Man_t * p );
+extern int                 Gia_ManLutFaninCount( Gia_Man_t * p );
+extern int                 Gia_ManLutSizeMax( Gia_Man_t * p );
+extern int                 Gia_ManLutNum( Gia_Man_t * p );
+extern int                 Gia_ManLutLevel( Gia_Man_t * p );
+extern void                Gia_ManSetRefsMapped( Gia_Man_t * p );
+extern void                Gia_ManSetIfParsDefault( void * pIfPars );
+extern Gia_Man_t *         Gia_ManPerformMapping( Gia_Man_t * p, void * pIfPars );
 /*=== giaIso.c ===========================================================*/
 extern Gia_Man_t *         Gia_ManIsoCanonicize( Gia_Man_t * p, int fVerbose );
 extern Gia_Man_t *         Gia_ManIsoReduce( Gia_Man_t * p, Vec_Ptr_t ** pvPosEquivs, int fDualOut, int fVerbose );
@@ -826,12 +834,7 @@ extern void                Gia_ManPrintStatsShort( Gia_Man_t * p );
 extern void                Gia_ManPrintMiterStatus( Gia_Man_t * p ); 
 extern void                Gia_ManSetRegNum( Gia_Man_t * p, int nRegs );
 extern void                Gia_ManReportImprovement( Gia_Man_t * p, Gia_Man_t * pNew );
-/*=== giaMap.c ===========================================================*/
-extern void                Gia_ManPrintMappingStats( Gia_Man_t * p );
-extern int                 Gia_ManLutFaninCount( Gia_Man_t * p );
-extern int                 Gia_ManLutSizeMax( Gia_Man_t * p );
-extern int                 Gia_ManLutNum( Gia_Man_t * p );
-extern int                 Gia_ManLutLevel( Gia_Man_t * p );
+extern void                Gia_ManPrintNpnClasses( Gia_Man_t * p );
 /*=== giaMem.c ===========================================================*/
 extern Gia_MmFixed_t *     Gia_MmFixedStart( int nEntrySize, int nEntriesMax );
 extern void                Gia_MmFixedStop( Gia_MmFixed_t * p, int fVerbose );

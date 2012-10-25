@@ -20,6 +20,7 @@
 
 #include "gia.h"
 #include "giaAig.h"
+#include "misc/tim/tim.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -260,6 +261,108 @@ int Gia_ManHasChoices( Gia_Man_t * p )
 //    printf( "Gia_ManHasChoices(): AIG has %d choice nodes with %d choices.\n", nChoiceNodes, nChoices );
     return 1;
 }
+
+
+/**Function*************************************************************
+
+  Synopsis    [Computes levels for AIG with choices and white boxes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManChoiceLevel_rec( Gia_Man_t * p, Gia_Obj_t * pObj )
+{
+    Tim_Man_t * pManTime = (Tim_Man_t *)p->pManTime;
+    Gia_Obj_t * pNext;
+    int i, iBox, iTerm1, nTerms, LevelMax = 0;
+    if ( Gia_ObjIsTravIdCurrent( p, pObj ) )
+        return;
+    Gia_ObjSetTravIdCurrent( p, pObj );
+    if ( Gia_ObjIsCi(pObj) )
+    {
+        if ( pManTime )
+        {
+            iBox = Tim_ManBoxForCi( pManTime, Gia_ObjCioId(pObj) );
+            if ( iBox >= 0 ) // this is not a true PI
+            {
+                iTerm1 = Tim_ManBoxInputFirst( pManTime, iBox );
+                nTerms = Tim_ManBoxInputNum( pManTime, iBox );
+                for ( i = 0; i < nTerms; i++ )
+                {
+                    pNext = Gia_ManCo( p, iTerm1 + i );
+                    Gia_ManChoiceLevel_rec( p, pNext );
+                    if ( LevelMax < Gia_ObjLevel(p, pNext) )
+                        LevelMax = Gia_ObjLevel(p, pNext);
+                }
+                LevelMax++;
+            }
+        }
+//        Abc_Print( 1, "%d ", pObj->Level );
+    }
+    else if ( Gia_ObjIsCo(pObj) )
+    {
+        pNext = Gia_ObjFanin0(pObj);
+        Gia_ManChoiceLevel_rec( p, pNext );
+        if ( LevelMax < Gia_ObjLevel(p, pNext) )
+            LevelMax = Gia_ObjLevel(p, pNext);
+    }
+    else if ( Gia_ObjIsAnd(pObj) )
+    { 
+        // get the maximum level of the two fanins
+        pNext = Gia_ObjFanin0(pObj);
+        Gia_ManChoiceLevel_rec( p, pNext );
+        if ( LevelMax < Gia_ObjLevel(p, pNext) )
+            LevelMax = Gia_ObjLevel(p, pNext);
+        pNext = Gia_ObjFanin1(pObj);
+        Gia_ManChoiceLevel_rec( p, pNext );
+        if ( LevelMax < Gia_ObjLevel(p, pNext) )
+            LevelMax = Gia_ObjLevel(p, pNext);
+        LevelMax++;
+
+        // get the level of the nodes in the choice node
+        if ( p->pSibls && (pNext = Gia_ObjSiblObj(p, Gia_ObjId(p, pObj))) )
+        {
+            Gia_ManChoiceLevel_rec( p, pNext );
+            if ( LevelMax < Gia_ObjLevel(p, pNext) )
+                LevelMax = Gia_ObjLevel(p, pNext);
+        }
+    }
+    else if ( !Gia_ObjIsConst0(pObj) )
+        assert( 0 );
+    Gia_ObjSetLevel( p, pObj, LevelMax );
+}
+int Gia_ManChoiceLevel( Gia_Man_t * p )
+{
+    Gia_Obj_t * pObj;
+    int i, LevelMax = 0;
+//    assert( Gia_ManRegNum(p) == 0 );
+    Gia_ManCleanLevels( p, Gia_ManObjNum(p) );
+    Gia_ManIncrementTravId( p );
+    Gia_ManForEachCo( p, pObj, i )
+    {
+        Gia_ManChoiceLevel_rec( p, pObj );
+        if ( LevelMax < Gia_ObjLevel(p, pObj) )
+            LevelMax = Gia_ObjLevel(p, pObj);
+    }
+    // account for dangling boxes
+    Gia_ManForEachCi( p, pObj, i )
+    {
+        Gia_ManChoiceLevel_rec( p, pObj );
+        if ( LevelMax < Gia_ObjLevel(p, pObj) )
+            LevelMax = Gia_ObjLevel(p, pObj);
+//        Abc_Print( 1, "%d ", Gia_ObjLevel(p, pObj) );
+    }
+//    Abc_Print( 1, "\n" );
+    Gia_ManForEachAnd( p, pObj, i )
+        assert( Gia_ObjLevel(p, pObj) > 0 );
+//    printf( "Max level %d\n", LevelMax );
+    return LevelMax;
+} 
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

@@ -111,7 +111,7 @@ struct Abc_Frame_t_
     void *          pAbc85Ntl2;
     void *          pAbc85Best;
     void *          pAbc85Delay;
-    If_Lib_t *      pAbc85Lib;
+//    If_Lib_t *      pAbc85Lib;
 
     EXT_ABC_FRAME   // plugin for external functionality
 };

@@ -14392,7 +14392,7 @@ usage:
     Abc_Print( -2, "\t-d       : toggles deriving local AIGs using bi-decomposition [default = %s]\n", pPars->fBidec? "yes": "no" );
     Abc_Print( -2, "\t-b       : toggles the use of one special feature [default = %s]\n", pPars->fUseBat? "yes": "no" );
     Abc_Print( -2, "\t-u       : toggles the use of MUXes along with LUTs [default = %s]\n", fLutMux? "yes": "no" );
-    Abc_Print( -2, "\t-g       : toggles global delay optimization [default = %s]\n", pPars->fDelayOpt? "yes": "no" );
+    Abc_Print( -2, "\t-g       : toggles delay optimization by SOP balancing [default = %s]\n", pPars->fDelayOpt? "yes": "no" );
     Abc_Print( -2, "\t-y       : toggles delay optimization with recorded library [default = %s]\n", pPars->fUserRecLib? "yes": "no" );
     Abc_Print( -2, "\t-o       : toggles using buffers to decouple combinational outputs [default = %s]\n", pPars->fUseBuffs? "yes": "no" );
     Abc_Print( -2, "\t-j       : toggles enabling additional check [default = %s]\n", pPars->fEnableCheck07? "yes": "no" );
@@ -22697,7 +22697,12 @@ int Abc_CommandAbc9Put( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Empty network.\n" );
         return 1;
     }
-    if ( Gia_ManHasDangling(pAbc->pGia) == 0 )
+    if ( pAbc->pGia->pMapping )
+    {
+        extern Abc_Ntk_t * Abc_NtkFromMappedGia( Gia_Man_t * p );
+        pNtk = Abc_NtkFromMappedGia( pAbc->pGia );
+    }
+    else if ( Gia_ManHasDangling(pAbc->pGia) == 0 )
     {
         pMan = Gia_ManToAig( pAbc->pGia, 0 );
         pNtk = Abc_NtkFromAigPhase( pMan );
@@ -26210,20 +26215,18 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     char Buffer[200];
     char LutSize[200];
+    Gia_Man_t * pNew;
     If_Par_t Pars, * pPars = &Pars;
     int c;
-    extern void Gia_ManSetIfParsDefault( If_Par_t * pPars );
-    extern int Gia_MappingIf( Gia_Man_t * p, If_Par_t * pPars );
     // set defaults
     Gia_ManSetIfParsDefault( pPars );
-//    if ( pAbc->pAbc8Lib == NULL )
-//    {
-//        Abc_Print( -1, "LUT library is not given. Using default LUT library.\n" );
-//        pAbc->pAbc8Lib = If_SetSimpleLutLib( 6 );
-//    }
-//    pPars->pLutLib = pAbc->pAbc8Lib;
+    if ( pAbc->pLibLut == NULL )
+    {
+        Abc_Print( -1, "LUT library is not given. Using default LUT library.\n" );
+        pAbc->pLibLut = If_SetSimpleLutLib( 6 );
+    }
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KCFADEqaflepmrsdbvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KCFAGDEWSqaflepmrsdbgyojikcvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -26273,6 +26276,17 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( pPars->nAreaIters < 0 ) 
                 goto usage;
             break;
+        case 'G':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-G\" should be followed by a positive integer no less than 3.\n" );
+                goto usage;
+            }
+            pPars->nGateSize = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nGateSize < 2 ) 
+                goto usage;
+            break;
         case 'D':
             if ( globalUtilOptind >= argc )
             {
@@ -26294,6 +26308,31 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
             globalUtilOptind++;
             if ( pPars->Epsilon < 0.0 || pPars->Epsilon > 1.0 ) 
                 goto usage;
+            break;
+        case 'W':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-W\" should be followed by a floating point number.\n" );
+                goto usage;
+            }
+            pPars->WireDelay = (float)atof(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->WireDelay < 0.0 ) 
+                goto usage;
+            break;
+        case 'S':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-S\" should be followed by string.\n" );
+                goto usage;
+            }
+            pPars->pLutStruct = argv[globalUtilOptind];
+            globalUtilOptind++;
+            if ( strlen(pPars->pLutStruct) != 2 && strlen(pPars->pLutStruct) != 3 ) 
+            {
+                Abc_Print( -1, "Command line switch \"-S\" should be followed by a 2- or 3-char string (e.g. \"44\" or \"555\").\n" );
+                goto usage;
+            }
             break;
         case 'q':
             pPars->fPreprocess ^= 1;
@@ -26328,6 +26367,27 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'b':
             pPars->fUseBat ^= 1;
             break;
+        case 'g':
+            pPars->fDelayOpt ^= 1;
+            break;
+        case 'y':
+            pPars->fUserRecLib ^= 1;
+            break;
+        case 'o':
+            pPars->fUseBuffs ^= 1;
+            break;
+        case 'j':
+            pPars->fEnableCheck07 ^= 1;
+            break;
+        case 'i':
+            pPars->fEnableCheck08 ^= 1;
+            break;
+        case 'k':
+            pPars->fEnableCheck10 ^= 1;
+            break;
+        case 'c':
+            pPars->fEnableRealPos ^= 1;
+            break;
         case 'v':
             pPars->fVerbose ^= 1;
             break;
@@ -26336,10 +26396,25 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
+
     if ( pAbc->pGia == NULL )
     {
-        Abc_Print( -1, "Abc_CommandAbc9If(): There is no AIG to map.\n" );
+        Abc_Print( -1, "Empty GIA network.\n" );
         return 1;
+    }
+
+    if ( pPars->nLutSize == -1 )
+    {
+        if ( pPars->pLutLib == NULL )
+        {
+            Abc_Print( -1, "The LUT library is not given.\n" );
+            return 1;
+        }
+        // get LUT size from the library
+        pPars->nLutSize = pPars->pLutLib->LutMax;
+        // if variable pin delay, force truth table computation
+//        if ( pPars->pLutLib->fVarPinDelays )
+//            pPars->fTruth = 1;
     }
 
     if ( pPars->nLutSize < 3 || pPars->nLutSize > IF_MAX_LUTSIZE )
@@ -26355,9 +26430,10 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // enable truth table computation if choices are selected
-    if ( (c = Gia_ManCountChoiceNodes( pAbc->pGia )) )
+    if ( Gia_ManHasChoices(pAbc->pGia) )
     {
-        Abc_Print( 0, "Performing LUT mapping with %d choices.\n", c );
+        if ( !Abc_FrameReadFlag("silentmode") )
+            Abc_Print( 0, "Performing LUT mapping with choices.\n" );
         pPars->fExpRed = 0;
     }
 
@@ -26371,11 +26447,85 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
         pPars->fCutMin = 1;            
     }
 
+    if ( pPars->fEnableCheck07 + pPars->fEnableCheck08 + pPars->fEnableCheck10 + (pPars->pLutStruct != NULL) > 1 )
+    {
+        Abc_Print( -1, "Only one additional check can be performed at the same time.\n" );
+        return 1;
+    }
+    if ( pPars->fEnableCheck07 )
+    {
+        if ( pPars->nLutSize < 6 || pPars->nLutSize > 7 )
+        {
+            Abc_Print( -1, "This feature only works for {6,7}-LUTs.\n" );
+            return 1;
+        }
+        pPars->pFuncCell = If_CutPerformCheck07;
+        pPars->fCutMin = 1;            
+    }
+    if ( pPars->fEnableCheck08 )
+    {
+        if ( pPars->nLutSize < 6 || pPars->nLutSize > 8 )
+        {
+            Abc_Print( -1, "This feature only works for {6,7,8}-LUTs.\n" );
+            return 1;
+        }
+        pPars->pFuncCell = If_CutPerformCheck08;
+        pPars->fCutMin = 1;            
+    }
+    if ( pPars->fEnableCheck10 )
+    {
+        if ( pPars->nLutSize < 6 || pPars->nLutSize > 10 )
+        {
+            Abc_Print( -1, "This feature only works for {6,7,8,9,10}-LUTs.\n" );
+            return 1;
+        }
+        pPars->pFuncCell = If_CutPerformCheck10;
+        pPars->fCutMin = 1;            
+    }
+    if ( pPars->pLutStruct )
+    {
+        if ( pPars->nLutSize < 6 || pPars->nLutSize > 16 )
+        {
+            Abc_Print( -1, "This feature only works for [6;16]-LUTs.\n" );
+            return 1;
+        }
+        pPars->pFuncCell = If_CutPerformCheck16;
+        pPars->fCutMin = 1;            
+    }
+
     // enable truth table computation if cut minimization is selected
     if ( pPars->fCutMin )
     {
         pPars->fTruth = 1;
         pPars->fExpRed = 0;
+    }
+    // modify the subgraph recording
+    if ( pPars->fUserRecLib )
+    {
+        pPars->fTruth      =  1;
+        pPars->fCutMin     =  1;
+        pPars->fExpRed     =  0;
+        pPars->fUsePerm    =  1;
+        pPars->pLutLib     =  NULL;
+    }
+    // modify for global delay optimization
+    if ( pPars->fDelayOpt )
+    {
+        pPars->fTruth      =  1;
+        pPars->fCutMin     =  1;
+        pPars->fExpRed     =  0;
+        pPars->fUsePerm    =  1;
+        pPars->pLutLib     =  NULL;
+    }
+    // modify for global delay optimization
+    if ( pPars->nGateSize > 0 )
+    {
+        pPars->fTruth      =  1;
+        pPars->fCutMin     =  1;
+        pPars->fExpRed     =  0;
+        pPars->fUsePerm    =  1;
+        pPars->pLutLib     =  NULL;
+        pPars->nLutSize    =  pPars->nGateSize; 
     }
 
     // complain if truth tables are requested but the cut size is too large
@@ -26385,11 +26535,14 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
-    if ( !Gia_MappingIf( pAbc->pGia, pPars ) )
+    // perform mapping
+    pNew = Gia_ManPerformMapping( pAbc->pGia, pPars );
+    if ( pNew == NULL )
     {
         Abc_Print( -1, "Abc_CommandAbc9If(): Mapping of the AIG has failed.\n" );
         return 1;
     }
+    Abc_CommandUpdate9( pAbc, pNew );
     return 0;
 
 usage:
@@ -26401,14 +26554,17 @@ usage:
         sprintf( LutSize, "library" );
     else
         sprintf( LutSize, "%d", pPars->nLutSize );
-    Abc_Print( -2, "usage: &if [-KCFA num] [-DE float] [-qarlepmdbvh]\n" );
+    Abc_Print( -2, "usage: &if [-KCFAG num] [-DEW float] [-S str] [-qarlepmsdbgyojikcvh]\n" );
     Abc_Print( -2, "\t           performs FPGA technology mapping of the network\n" );
     Abc_Print( -2, "\t-K num   : the number of LUT inputs (2 < num < %d) [default = %s]\n", IF_MAX_LUTSIZE+1, LutSize );
     Abc_Print( -2, "\t-C num   : the max number of priority cuts (0 < num < 2^12) [default = %d]\n", pPars->nCutsMax );
     Abc_Print( -2, "\t-F num   : the number of area flow recovery iterations (num >= 0) [default = %d]\n", pPars->nFlowIters );
     Abc_Print( -2, "\t-A num   : the number of exact area recovery iterations (num >= 0) [default = %d]\n", pPars->nAreaIters );
+    Abc_Print( -2, "\t-G num   : the max AND/OR gate size for mapping (0 = unused) [default = %d]\n", pPars->nGateSize );
     Abc_Print( -2, "\t-D float : sets the delay constraint for the mapping [default = %s]\n", Buffer );  
     Abc_Print( -2, "\t-E float : sets epsilon used for tie-breaking [default = %f]\n", pPars->Epsilon );  
+    Abc_Print( -2, "\t-W float : sets wire delay between adjects LUTs [default = %f]\n", pPars->WireDelay );  
+    Abc_Print( -2, "\t-S str   : string representing the LUT structure [default = %s]\n", pPars->pLutStruct ? pPars->pLutStruct : "not used" );  
     Abc_Print( -2, "\t-q       : toggles preprocessing using several starting points [default = %s]\n", pPars->fPreprocess? "yes": "no" );
     Abc_Print( -2, "\t-a       : toggles area-oriented mapping [default = %s]\n", pPars->fArea? "yes": "no" );
 //    Abc_Print( -2, "\t-f       : toggles one fancy feature [default = %s]\n", pPars->fFancy? "yes": "no" );
@@ -26417,9 +26573,16 @@ usage:
     Abc_Print( -2, "\t-e       : uses edge-based cut selection heuristics [default = %s]\n", pPars->fEdge? "yes": "no" );
     Abc_Print( -2, "\t-p       : uses power-aware cut selection heuristics [default = %s]\n", pPars->fPower? "yes": "no" );
     Abc_Print( -2, "\t-m       : enables cut minimization by removing vacuous variables [default = %s]\n", pPars->fCutMin? "yes": "no" );
-//    Abc_Print( -2, "\t-s       : toggles sequential mapping [default = %s]\n", pPars->fSeqMap? "yes": "no" );
+    Abc_Print( -2, "\t-s       : toggles sequential mapping [default = %s]\n", pPars->fSeqMap? "yes": "no" );
     Abc_Print( -2, "\t-d       : toggles deriving local AIGs using bi-decomposition [default = %s]\n", pPars->fBidec? "yes": "no" );
     Abc_Print( -2, "\t-b       : toggles the use of one special feature [default = %s]\n", pPars->fUseBat? "yes": "no" );
+    Abc_Print( -2, "\t-g       : toggles delay optimization by SOP balancing [default = %s]\n", pPars->fDelayOpt? "yes": "no" );
+    Abc_Print( -2, "\t-y       : toggles delay optimization with recorded library [default = %s]\n", pPars->fUserRecLib? "yes": "no" );
+    Abc_Print( -2, "\t-o       : toggles using buffers to decouple combinational outputs [default = %s]\n", pPars->fUseBuffs? "yes": "no" );
+    Abc_Print( -2, "\t-j       : toggles enabling additional check [default = %s]\n", pPars->fEnableCheck07? "yes": "no" );
+    Abc_Print( -2, "\t-i       : toggles enabling additional check [default = %s]\n", pPars->fEnableCheck08? "yes": "no" );
+    Abc_Print( -2, "\t-k       : toggles enabling additional check [default = %s]\n", pPars->fEnableCheck10? "yes": "no" );
+    Abc_Print( -2, "\t-c       : toggles enabling additional feature [default = %s]\n", pPars->fEnableRealPos? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : prints the command usage\n");
     return 1;

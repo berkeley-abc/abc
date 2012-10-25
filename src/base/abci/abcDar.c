@@ -620,6 +620,150 @@ Abc_Ntk_t * Abc_NtkFromAigPhase( Aig_Man_t * pMan )
     return pNtkNew;
 }
 
+
+
+/**Function*************************************************************
+
+  Synopsis    [Creates local function of the node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Hop_Obj_t * Abc_ObjHopFromGia_rec( Hop_Man_t * pHopMan, Gia_Man_t * p, int Id, Vec_Ptr_t * vCopies )
+{
+    Gia_Obj_t * pObj;
+    Hop_Obj_t * gFunc, * gFunc0, * gFunc1;
+    if ( Gia_ObjIsTravIdCurrentId(p, Id) )
+        return (Hop_Obj_t *)Vec_PtrEntry( vCopies, Id );
+    Gia_ObjSetTravIdCurrentId(p, Id);
+    pObj = Gia_ManObj(p, Id);
+    assert( Gia_ObjIsAnd(pObj) );
+    // compute the functions of the children
+    gFunc0 = Abc_ObjHopFromGia_rec( pHopMan, p, Gia_ObjFaninId0(pObj, Id), vCopies );
+    gFunc1 = Abc_ObjHopFromGia_rec( pHopMan, p, Gia_ObjFaninId1(pObj, Id), vCopies );
+    // get the function of the cut
+    gFunc  = Hop_And( pHopMan, Hop_NotCond(gFunc0, Gia_ObjFaninC0(pObj)), Hop_NotCond(gFunc1, Gia_ObjFaninC1(pObj)) );  
+    Vec_PtrWriteEntry( vCopies, Id, gFunc );
+    return gFunc;
+}
+Hop_Obj_t * Abc_ObjHopFromGia( Hop_Man_t * pHopMan, Gia_Man_t * p, int GiaId, Vec_Ptr_t * vCopies )
+{
+    int k, iFan;
+    assert( Gia_ObjIsLut(p, GiaId) );
+    assert( Gia_ObjLutSize(p, GiaId) > 0 );
+    Gia_ManIncrementTravId( p );
+    Gia_LutForEachFanin( p, GiaId, iFan, k )
+    {
+        Gia_ObjSetTravIdCurrentId(p, iFan);
+        Vec_PtrWriteEntry( vCopies, iFan, Hop_IthVar(pHopMan, k) );
+    }
+    return Abc_ObjHopFromGia_rec( pHopMan, p, GiaId, vCopies );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Converts the network from the mapped GIA manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkFromMappedGia( Gia_Man_t * p )
+{
+    int fVerbose = 0;
+    int fDuplicate = 0;
+    Abc_Ntk_t * pNtkNew;
+    Abc_Obj_t * pObjNew, * pObjNewLi, * pObjNewLo, * pConst0 = NULL;
+    Gia_Obj_t * pObj, * pObjLi, * pObjLo;
+    Vec_Ptr_t * vReflect;
+    int i, k, iFan, nDupGates; 
+    assert( p->pMapping != NULL );
+    pNtkNew = Abc_NtkAlloc( ABC_NTK_LOGIC, ABC_FUNC_AIG, 1 );
+    // duplicate the name and the spec
+    pNtkNew->pName = Extra_UtilStrsav(p->pName);
+    pNtkNew->pSpec = Extra_UtilStrsav(p->pSpec);
+    Gia_ManFillValue( p );
+    // create constant
+    pConst0 = Abc_NtkCreateNodeConst0( pNtkNew );
+    Gia_ManConst0(p)->Value = Abc_ObjId(pConst0);
+    // create PIs
+    Gia_ManForEachPi( p, pObj, i )
+        pObj->Value = Abc_ObjId( Abc_NtkCreatePi( pNtkNew ) );
+    // create POs
+    Gia_ManForEachPo( p, pObj, i )
+        pObj->Value = Abc_ObjId( Abc_NtkCreatePo( pNtkNew ) );
+    // create as many latches as there are registers in the manager
+    Gia_ManForEachRiRo( p, pObjLi, pObjLo, i )
+    {
+        pObjNew = Abc_NtkCreateLatch( pNtkNew );
+        pObjNewLi = Abc_NtkCreateBi( pNtkNew );
+        pObjNewLo = Abc_NtkCreateBo( pNtkNew );
+        Abc_ObjAddFanin( pObjNew, pObjNewLi );
+        Abc_ObjAddFanin( pObjNewLo, pObjNew );
+        pObjLi->Value = Abc_ObjId( pObjNewLi );
+        pObjLo->Value = Abc_ObjId( pObjNewLo );
+        Abc_LatchSetInit0( pObjNew );
+    }
+    // rebuild the AIG
+    vReflect = Vec_PtrStart( Gia_ManObjNum(p) );
+    Gia_ManForEachLut( p, i )
+    {
+        pObj = Gia_ManObj(p, i);
+        assert( pObj->Value == ~0 );
+        if ( Gia_ObjLutSize(p, i) == 0 )
+        {
+            pObj->Value = Abc_ObjId(pConst0);
+            continue;
+        }
+        pObjNew = Abc_NtkCreateNode( pNtkNew );
+        Gia_LutForEachFanin( p, i, iFan, k )
+            Abc_ObjAddFanin( pObjNew, Abc_NtkObj(pNtkNew, Gia_ObjValue(Gia_ManObj(p, iFan))) );
+        pObjNew->pData = Abc_ObjHopFromGia( pNtkNew->pManFunc, p, i, vReflect );
+        pObj->Value = Abc_ObjId( pObjNew );
+    }
+    Vec_PtrFree( vReflect );
+    // connect the PO nodes
+    Gia_ManForEachCo( p, pObj, i )
+    {
+        pObjNew = Abc_NtkObj( pNtkNew, Gia_ObjValue(Gia_ObjFanin0(pObj)) );
+        Abc_ObjAddFanin( Abc_NtkCo(pNtkNew, i), Abc_ObjNotCond( pObjNew, Gia_ObjFaninC0(pObj) ) );
+    }
+    // create names
+    Abc_NtkAddDummyPiNames( pNtkNew );
+    Abc_NtkAddDummyPoNames( pNtkNew );
+    Abc_NtkAddDummyBoxNames( pNtkNew );
+
+    // decouple the PO driver nodes to reduce the number of levels
+    nDupGates = Abc_NtkLogicMakeSimpleCos( pNtkNew, fDuplicate );
+    if ( fVerbose && nDupGates && !Abc_FrameReadFlag("silentmode") )
+    {
+        if ( !fDuplicate )
+            printf( "Added %d buffers/inverters to decouple the CO drivers.\n", nDupGates );
+        else
+            printf( "Duplicated %d gates to decouple the CO drivers.\n", nDupGates );
+    }
+    // remove const node if it is not used
+    if ( Abc_ObjFanoutNum(pConst0) == 0 )
+        Abc_NtkDeleteObj( pConst0 );
+
+    assert( Gia_ManPiNum(p) == Abc_NtkPiNum(pNtkNew) );
+    assert( Gia_ManPoNum(p) == Abc_NtkPoNum(pNtkNew) );
+    assert( Gia_ManRegNum(p) == Abc_NtkLatchNum(pNtkNew) );
+
+    // check the resulting AIG
+    if ( !Abc_NtkCheck( pNtkNew ) )
+        Abc_Print( 1, "Abc_NtkFromMappedGia(): Network check has failed.\n" );
+    return pNtkNew;
+}
+
+
 /**Function*************************************************************
 
   Synopsis    [Converts the network from the AIG manager into ABC.]
