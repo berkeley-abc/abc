@@ -2781,7 +2781,7 @@ int IoCommandWriteTruths( Abc_Frame_t * pAbc, int argc, char **argv )
     // get the input file name
     pFileName = argv[globalUtilOptind];
     // convert to logic
-    pFile = fopen( pFileName, "w" );
+    pFile = fopen( pFileName, "wb" );
     if ( pFile == NULL )
     {
         printf( "Cannot open file \"%s\" for writing.\n", pFileName );
