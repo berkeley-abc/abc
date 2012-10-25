@@ -2739,16 +2739,21 @@ int IoCommandWriteTruths( Abc_Frame_t * pAbc, int argc, char **argv )
     char * pFileName;
     FILE * pFile;
     unsigned * pTruth;
+    int nBytes;
     int fReverse = 0;
+    int fBinary = 0;
     int c, i;
  
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "rh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "rbh" ) ) != EOF )
     {
         switch ( c )
         {
             case 'r':
                 fReverse ^= 1;
+                break;
+            case 'b':
+                fBinary ^= 1;
                 break;
             case 'h':
                 goto usage;
@@ -2766,6 +2771,11 @@ int IoCommandWriteTruths( Abc_Frame_t * pAbc, int argc, char **argv )
         Abc_Print( -1, "IoCommandWriteTruths(): Can write truth tables up to 16 inputs.\n" );
         return 0;
     }
+    if ( Gia_ManPiNum(pAbc->pGia) < 3 )
+    {
+        Abc_Print( -1, "IoCommandWriteTruths(): Can write truth tables for 3 inputs or more.\n" );
+        return 0;
+    }
     if ( argc != globalUtilOptind + 1 )
         goto usage;
     // get the input file name
@@ -2777,19 +2787,23 @@ int IoCommandWriteTruths( Abc_Frame_t * pAbc, int argc, char **argv )
         printf( "Cannot open file \"%s\" for writing.\n", pFileName );
         return 0;
     }
+    nBytes = 8 * Abc_Truth6WordNum( Gia_ManPiNum(pAbc->pGia) );
     Gia_ManForEachCo( pAbc->pGia, pObj, i )
     {
         pTruth = Gia_ObjComputeTruthTable( pAbc->pGia, pObj );
-        Extra_PrintHex( pFile, pTruth, Gia_ManPiNum(pAbc->pGia) );
-        fprintf( pFile, "\n" );
+        if ( fBinary )
+            fwrite( pTruth, nBytes, 1, pFile );
+        else
+            Extra_PrintHex( pFile, pTruth, Gia_ManPiNum(pAbc->pGia) ), fprintf( pFile, "\n" );
     }
     fclose( pFile );
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: &write_truths [-rh] <file>\n" );
+    fprintf( pAbc->Err, "usage: &write_truths [-rbh] <file>\n" );
     fprintf( pAbc->Err, "\t         writes truth tables of each PO of GIA manager into a file\n" );
     fprintf( pAbc->Err, "\t-r     : toggle reversing bits in the truth table [default = %s]\n", fReverse? "yes":"no" );
+    fprintf( pAbc->Err, "\t-b     : toggle using binary format [default = %s]\n", fBinary? "yes":"no" );
     fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
     fprintf( pAbc->Err, "\tfile   : the name of the file to write\n" );
     return 1;

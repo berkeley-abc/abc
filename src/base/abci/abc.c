@@ -4846,15 +4846,16 @@ usage:
 ***********************************************************************/
 int Abc_CommandTestNpn( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern int Abc_NpnTest( char * pFileName, int NpnType, int nVarNum, int fDumpRes, int fVerbose );
+    extern int Abc_NpnTest( char * pFileName, int NpnType, int nVarNum, int fDumpRes, int fBinary, int fVerbose );
     char * pFileName;
     int c;
     int fVerbose = 0;
     int NpnType = 0;
     int nVarNum = -1;
     int fDumpRes = 0;
+    int fBinary = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "ANdvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "ANdbvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -4883,6 +4884,9 @@ int Abc_CommandTestNpn( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'd':
             fDumpRes ^= 1;
             break;
+        case 'b':
+            fBinary ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -4905,11 +4909,11 @@ int Abc_CommandTestNpn( Abc_Frame_t * pAbc, int argc, char ** argv )
     // get the output file name
     pFileName = argv[globalUtilOptind];
     // call the testbench
-    Abc_NpnTest( pFileName, NpnType, nVarNum, fDumpRes, fVerbose );
+    Abc_NpnTest( pFileName, NpnType, nVarNum, fDumpRes, fBinary, fVerbose );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: testnpn [-AN <num>] [-dvh] <file>\n" );
+    Abc_Print( -2, "usage: testnpn [-AN <num>] [-dbvh] <file>\n" );
     Abc_Print( -2, "\t           testbench for computing (semi-)canonical forms\n" );
     Abc_Print( -2, "\t           of completely-specified Boolean functions up to 16 varibles\n" );
     Abc_Print( -2, "\t-A <num> : semi-caninical form computation algorithm [default = %d]\n", NpnType );
@@ -4920,6 +4924,7 @@ usage:
     Abc_Print( -2, "\t               4: Jake's hybrid semi-canonical form (high-effort)\n" );
     Abc_Print( -2, "\t-N <num> : the number of support variables (binary files only) [default = unused]\n" );
     Abc_Print( -2, "\t-d       : toggle dumping resulting functions into a file [default = %s]\n", fDumpRes? "yes": "no" );
+    Abc_Print( -2, "\t-b       : toggle dumping in binary format [default = %s]\n", fBinary? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
     Abc_Print( -2, "\t<file>   : a text file with truth tables in hexadecimal, listed one per line,\n");

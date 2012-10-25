@@ -49,7 +49,7 @@ struct Abc_TtStore_t_
 
 extern Abc_TtStore_t * Abc_TtStoreLoad( char * pFileName, int nVarNum );
 extern void            Abc_TtStoreFree( Abc_TtStore_t * p, int nVarNum );
-extern void            Abc_TtStoreWrite( char * pFileName, Abc_TtStore_t * p );
+extern void            Abc_TtStoreWrite( char * pFileName, Abc_TtStore_t * p, int fBinary );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -276,7 +276,7 @@ void Abc_TruthNpnPerform( Abc_TtStore_t * p, int NpnType, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_TruthNpnTest( char * pFileName, int NpnType, int nVarNum, int fDumpRes, int fVerbose )
+void Abc_TruthNpnTest( char * pFileName, int NpnType, int nVarNum, int fDumpRes, int fBinary, int fVerbose )
 {
     Abc_TtStore_t * p;
     char * pFileNameOut;
@@ -292,8 +292,11 @@ void Abc_TruthNpnTest( char * pFileName, int NpnType, int nVarNum, int fDumpRes,
     // write the result
     if ( fDumpRes )
     {
-        pFileNameOut = Extra_FileNameGenericAppend( pFileName, "_out.txt" );
-        Abc_TtStoreWrite( pFileNameOut, p );
+        if ( fBinary )
+            pFileNameOut = Extra_FileNameGenericAppend( pFileName, "_out.tt" );
+        else
+            pFileNameOut = Extra_FileNameGenericAppend( pFileName, "_out.txt" );
+        Abc_TtStoreWrite( pFileNameOut, p, fBinary );
         if ( fVerbose )
             printf( "The resulting functions are written into file \"%s\".\n", pFileNameOut );
     }
@@ -315,12 +318,12 @@ void Abc_TruthNpnTest( char * pFileName, int NpnType, int nVarNum, int fDumpRes,
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NpnTest( char * pFileName, int NpnType, int nVarNum, int fDumpRes, int fVerbose )
+int Abc_NpnTest( char * pFileName, int NpnType, int nVarNum, int fDumpRes, int fBinary, int fVerbose )
 {
     if ( fVerbose )
         printf( "Using truth tables from file \"%s\"...\n", pFileName );
     if ( NpnType >= 0 && NpnType <= 4 )
-        Abc_TruthNpnTest( pFileName, NpnType, nVarNum, fDumpRes, fVerbose );
+        Abc_TruthNpnTest( pFileName, NpnType, nVarNum, fDumpRes, fBinary, fVerbose );
     else
         printf( "Unknown canonical form value (%d).\n", NpnType );
     fflush( stdout );

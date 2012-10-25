@@ -353,10 +353,10 @@ void Abc_TruthStoreRead( char * pFileName, Abc_TtStore_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_TtStoreWrite( char * pFileName, Abc_TtStore_t * p )
+void Abc_TtStoreWrite( char * pFileName, Abc_TtStore_t * p, int fBinary )
 {
     FILE * pFile;
-    int i;
+    int i, nBytes = 8 * Abc_Truth6WordNum( p->nVars );
     pFile = fopen( pFileName, "wb" );
     if ( pFile == NULL )
     {
@@ -365,8 +365,10 @@ void Abc_TtStoreWrite( char * pFileName, Abc_TtStore_t * p )
     }
     for ( i = 0; i < p->nFuncs; i++ )
     {
-        Abc_TruthWriteHex( pFile, p->pFuncs[i], p->nVars );
-        fprintf( pFile, "\n" );
+        if ( fBinary )
+            fwrite( p->pFuncs[i], nBytes, 1, pFile );
+        else
+            Abc_TruthWriteHex( pFile, p->pFuncs[i], p->nVars ), fprintf( pFile, "\n" );
     }
     fclose( pFile );
 }
@@ -441,7 +443,7 @@ void Abc_TtStoreTest( char * pFileName )
         return;
 
     // write into another file
-    Abc_TtStoreWrite( pFileOutput, p );
+    Abc_TtStoreWrite( pFileOutput, p, 0 );
 
     // delete data-structure
     Abc_TtStoreFree( p, -1 );
