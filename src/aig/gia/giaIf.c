@@ -506,7 +506,8 @@ Gia_Man_t * Gia_ManFromIf( If_Man_t * pIfMan )
     // which participate as leaves of some cuts used in the mapping
     // such nodes are marked here and skipped when mapping is derived
     Counter = Gia_ManMarkDangling(pNew);
-    if ( pIfMan->pPars->fVerbose && Counter )
+//    if ( pIfMan->pPars->fVerbose && Counter )
+    if ( Counter )
         printf( "GIA after mapping has %d dangling nodes.\n", Counter );
 
     // create mapping
@@ -568,7 +569,7 @@ Gia_Man_t * Gia_ManFromIf( If_Man_t * pIfMan )
                     pNew->pMapping[iOffset-k-1]--;
                     continue;
                 }
-                assert( FaninId != GiaId );
+                assert( FaninId < GiaId );
                 pNew->pMapping[iOffset++] = FaninId;
             }
             pNew->pMapping[iOffset++] = GiaId;

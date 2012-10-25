@@ -1654,9 +1654,10 @@ int IoCommandWriteBlif( Abc_Frame_t * pAbc, int argc, char **argv )
     char * pFileName;
     char * pLutStruct = NULL;
     int c, fSpecial = 0;
+    int fUseHie = 0;
 
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Sjh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Sjah" ) ) != EOF )
     {
         switch ( c )
         {
@@ -1677,6 +1678,9 @@ int IoCommandWriteBlif( Abc_Frame_t * pAbc, int argc, char **argv )
             case 'j':
                 fSpecial ^= 1;
                 break;
+            case 'a':
+                fUseHie ^= 1;
+                break;
             case 'h':
                 goto usage;
             default:
@@ -1694,16 +1698,17 @@ int IoCommandWriteBlif( Abc_Frame_t * pAbc, int argc, char **argv )
     pFileName = argv[globalUtilOptind];
     // call the corresponding file writer
     if ( fSpecial || pLutStruct )
-        Io_WriteBlifSpecial( pAbc->pNtkCur, pFileName, pLutStruct );
+        Io_WriteBlifSpecial( pAbc->pNtkCur, pFileName, pLutStruct, fUseHie );
     else
         Io_Write( pAbc->pNtkCur, pFileName, IO_FILE_BLIF );
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: write_blif [-S str] [-jh] <file>\n" );
+    fprintf( pAbc->Err, "usage: write_blif [-S str] [-jah] <file>\n" );
     fprintf( pAbc->Err, "\t         writes the network into a BLIF file\n" );
     fprintf( pAbc->Err, "\t-S str : string representing the LUT structure [default = %s]\n", pLutStruct ? pLutStruct : "not used" );  
     fprintf( pAbc->Err, "\t-j     : enables special BLIF writing [default = %s]\n", fSpecial? "yes" : "no" );;
+    fprintf( pAbc->Err, "\t-a     : enables hierarchical BLIF writing for LUT structures [default = %s]\n", fUseHie? "yes" : "no" );;
     fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
     fprintf( pAbc->Err, "\tfile   : the name of the file to write (extension .blif)\n" );
     return 1;

@@ -106,7 +106,7 @@ extern void               Io_WriteBblif( Abc_Ntk_t * pNtk, char * pFileName );
 extern void               Io_WriteBlifLogic( Abc_Ntk_t * pNtk, char * pFileName, int fWriteLatches );
 extern void               Io_WriteBlif( Abc_Ntk_t * pNtk, char * pFileName, int fWriteLatches, int fBb2Wb, int fSeq );
 extern void               Io_WriteTimingInfo( FILE * pFile, Abc_Ntk_t * pNtk );
-extern void               Io_WriteBlifSpecial( Abc_Ntk_t * pNtk, char * FileName, char * pLutStruct );
+extern void               Io_WriteBlifSpecial( Abc_Ntk_t * pNtk, char * FileName, char * pLutStruct, int fUseHie );
 /*=== abcWriteBlifMv.c ==========================================================*/ 
 extern void               Io_WriteBlifMv( Abc_Ntk_t * pNtk, char * FileName );
 /*=== abcWriteBench.c =========================================================*/
