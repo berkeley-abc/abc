@@ -2628,10 +2628,10 @@ int Abc_CommandCollapse( Abc_Frame_t * pAbc, int argc, char ** argv )
     pNtk = Abc_FrameReadNtk(pAbc);
 
     // set defaults
-    fVerbose = 1;
+    fVerbose = 0;
     fReorder = 1;
     fDualRail = 0;
-    fBddSizeMax = 50000000;
+    fBddSizeMax = ABC_INFINITY;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "Brdvh" ) ) != EOF )
     {
