@@ -769,6 +769,57 @@ int If_ManCountSpecialPos( If_Man_t * p )
 }
 
 
+/**Function*************************************************************
+
+  Synopsis    [Traverse the cut and counts its volume.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static void If_CutTraverse_rec( If_Obj_t * pNode, Vec_Ptr_t * vNodes )
+{
+    if ( pNode->fMark )
+        return;
+    pNode->fMark = 1;
+//    assert( !If_ObjIsCi(pNode) ); // does not hold with cut minimization
+    if ( If_ObjIsAnd(pNode) )
+        If_CutTraverse_rec( If_ObjFanin0(pNode), vNodes );
+    if ( If_ObjIsAnd(pNode) )
+        If_CutTraverse_rec( If_ObjFanin1(pNode), vNodes );
+    Vec_PtrPush( vNodes, pNode );
+}
+void If_CutTraverse( If_Man_t * p, If_Obj_t * pRoot, If_Cut_t * pCut, Vec_Ptr_t * vNodes )
+{
+    If_Obj_t * pLeaf;
+    int i;
+    // collect the internal nodes of the cut
+    Vec_PtrClear( vNodes );
+    If_CutForEachLeaf( p, pCut, pLeaf, i )
+    {
+        Vec_PtrPush( vNodes, pLeaf );
+        assert( pLeaf->fMark == 0 );
+        pLeaf->fMark = 1;
+    }
+    // collect other nodes
+    If_CutTraverse_rec( pRoot, vNodes );
+    // clean the mark
+    Vec_PtrForEachEntry( If_Obj_t *, vNodes, pLeaf, i )
+        pLeaf->fMark = 0;
+}
+void If_CutTraverseTest( If_Man_t * p, If_Obj_t * pRoot, If_Cut_t * pCut )
+{
+    Vec_Ptr_t * vNodes;
+    vNodes = Vec_PtrAlloc( 1000 );
+    If_CutTraverse( p, pRoot, pCut, vNodes );
+//if ( Vec_PtrSize(vNodes) > 30 )
+//printf( "%d ", Vec_PtrSize(vNodes) );
+    Vec_PtrFree( vNodes );
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

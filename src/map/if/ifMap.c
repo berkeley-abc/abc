@@ -75,7 +75,8 @@ float If_CutDelaySpecial( If_Man_t * p, If_Cut_t * pCut, int fCarry )
         Delay = IF_MAX( Delay, Pin2Pin[fCarry][i] + DelayCur );
     }
     return Delay;
- }
+}
+
 
 /**Function*************************************************************
 
@@ -263,6 +264,7 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
         pCut->AveRefs = (Mode == 0)? (float)0.0 : If_CutAverageRefs( p, pCut );
         // insert the cut into storage
         If_CutSort( p, pCutSet, pCut );
+//        If_CutTraverse( p, pObj, pCut );
     } 
     assert( pCutSet->nCuts > 0 );
 
