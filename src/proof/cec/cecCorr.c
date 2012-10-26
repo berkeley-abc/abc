@@ -753,6 +753,7 @@ void Cec_ManRefinedClassPrintStats( Gia_Man_t * p, Vec_Str_t * vStatus, int iIte
             nFail++;
     }
     Abc_Print( 1, "p =%6d  d =%6d  f =%6d  ", nProve, nDispr, nFail );
+    Abc_Print( 1, "%c  ", Gia_ObjIsConst( p, Gia_ObjFaninId0p(p, Gia_ManPo(p, 0)) ) ? '+' : '-' );
     Abc_PrintTime( 1, "T", Time );
 }
 
@@ -950,6 +951,14 @@ int Cec_ManLSCorrespondenceClasses( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
 //Gia_ManEquivPrintClasses( pAig, 1, 0 );
         if ( pPars->pFunc )
             ((int (*)(void *))pPars->pFunc)( pPars->pData );
+        // quit if const is no longer there
+        if ( pPars->fStopWhenGone && Gia_ManPoNum(pAig) == 1 && !Gia_ObjIsConst( pAig, Gia_ObjFaninId0p(pAig, Gia_ManPo(pAig, 0)) ) )
+        {
+            printf( "Iterative refinement is stopped after iteration %d\n", r );
+            printf( "because the property output is no longer a candidate constant.\n" );
+            Cec_ManSimStop( pSim );
+            return 0;
+        }
     }
     if ( pPars->fVerbose )
         Cec_ManRefinedClassPrintStats( pAig, NULL, r+1, clock() - clk );
@@ -1071,7 +1080,11 @@ Gia_Man_t * Cec_ManLSCorrespondence( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
     ABC_FREE( pAig->pReprs );
     ABC_FREE( pAig->pNexts );
     if ( pPars->nPrefix == 0 )
+    {
         RetValue = Cec_ManLSCorrespondenceClasses( pAig, pPars );
+        if ( RetValue == 0 )
+            return Gia_ManDup( pAig );
+    }
     else
     {
         // compute the cycles AIG

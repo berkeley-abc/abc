@@ -346,6 +346,24 @@ clk = clock();
             } 
 //            if ( p->pPars->fDynamic && p->nSatCallsSat-nSatCallsSat < 100 )
 //                p->pPars->nBTLimit = 10000;
+
+            if ( p->pPars->fStopWhenGone && Saig_ManPoNum(p->pAig) == 1 && !Ssw_ObjIsConst1Cand(p->pAig,Aig_ObjFanin0(Aig_ManCo(p->pAig,0))) )
+            {
+                printf( "Iterative refinement is stopped after iteration %d\n", nIter );
+                printf( "because the property output is no longer a candidate constant.\n" );
+                // prepare to quite
+                p->nLitsEnd  = p->nLitsBeg;
+                p->nNodesEnd = p->nNodesBeg;
+                p->nRegsEnd  = p->nRegsBeg;
+                // cleanup
+                Ssw_SatStop( p->pMSat );
+                p->pMSat = NULL;
+                Ssw_ManCleanup( p );
+                // cleanup
+                Aig_ManSetPhase( p->pAig );
+                Aig_ManCleanMarkB( p->pAig );
+                return Aig_ManDupSimple( p->pAig );
+            }
         }
         nSatProof     = p->nSatProof;
         nSatCallsSat  = p->nSatCallsSat;

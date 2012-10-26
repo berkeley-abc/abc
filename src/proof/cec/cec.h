@@ -144,6 +144,7 @@ struct Cec_ParCor_t_
     int              fUseCSat;      // use circuit-based solver
 //    int              fFirstStop;    // stop on the first sat output
     int              fUseSmartCnf;  // use smart CNF computation
+    int              fStopWhenGone; // quit when PO is not a candidate constant
     int              fVerboseFlops; // verbose stats
     int              fVeryVerbose;  // verbose stats
     int              fVerbose;      // verbose stats
