@@ -321,7 +321,7 @@ If_Man_t * Gia_ManToIf( Gia_Man_t * p, If_Par_t * pPars )
 int Gia_ManNodeIfSopToGiaInt( Gia_Man_t * pNew, Vec_Wrd_t * vAnds, int nVars, Vec_Int_t * vLeaves, int fHash )
 {
     Vec_Int_t * vResults;
-    int iRes0, iRes1, iRes;
+    int iRes0, iRes1, iRes = -1;
     If_And_t This;
     word Entry;
     int i;
@@ -561,7 +561,7 @@ Gia_Man_t * Gia_ManFromIf( If_Man_t * pIfMan )
                             If_CluSwapVars( (word*)pTruth, If_CutLeaveNum(pCutBest), NULL, NULL, k, If_CutLeaveNum(pCutBest)-1 );
                         else
                         {
-                            word Truth = (pTruth[0] << 32) | pTruth[0];
+                            word Truth = ((word)pTruth[0] << 32) | (word)pTruth[0];
                             If_CluSwapVars( &Truth, 6, NULL, NULL, k, If_CutLeaveNum(pCutBest)-1 );
                             pTruth[0] = (Truth & 0xFFFFFFFF);
                         }
