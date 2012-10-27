@@ -353,8 +353,9 @@ static inline void       If_CutSetDataInt( If_Cut_t * pCut, int Data )       { *
 static inline int        If_CutLeaveNum( If_Cut_t * pCut )                   { return pCut->nLeaves;                             }
 static inline int *      If_CutLeaves( If_Cut_t * pCut )                     { return pCut->pLeaves;                             }
 static inline unsigned * If_CutTruth( If_Cut_t * pCut )                      { return pCut->pTruth;                              }
+static inline word *     If_CutTruthW( If_Cut_t * pCut )                     { return (word *)pCut->pTruth;                      }
 static inline unsigned   If_CutSuppMask( If_Cut_t * pCut )                   { return (~(unsigned)0) >> (32-pCut->nLeaves);      }
-static inline int        If_CutTruthWords( int nVarsMax )                    { return nVarsMax <= 5 ? 1 : (1 << (nVarsMax - 5)); }
+static inline int        If_CutTruthWords( int nVarsMax )                    { return nVarsMax <= 5 ? 2 : (1 << (nVarsMax - 5)); }
 static inline int        If_CutPermWords( int nVarsMax )                     { return nVarsMax / sizeof(int) + ((nVarsMax % sizeof(int)) > 0); }
 
 static inline float      If_CutLutArea( If_Man_t * p, If_Cut_t * pCut )      { return pCut->fUser? (float)pCut->Cost : (p->pPars->pLutLib? p->pPars->pLutLib->pLutAreas[pCut->nLeaves] : (float)1.0); }
@@ -505,8 +506,9 @@ extern void            If_CutPropagateRequired( If_Man_t * p, If_Obj_t * pObj, I
 extern void            If_CutRotatePins( If_Man_t * p, If_Cut_t * pCut );
 /*=== ifTruth.c ===========================================================*/
 extern int             If_CutTruthMinimize( If_Man_t * p, If_Cut_t * pCut );
-extern int             If_CutComputeTruth( If_Man_t * p, If_Cut_t * pCut, If_Cut_t * pCut0, If_Cut_t * pCut1, int fCompl0, int fCompl1 );
 extern void            If_CutTruthPermute( unsigned * pOut, unsigned * pIn, int nVars, float * pDelays, int * pVars );
+extern int             If_CutComputeTruth( If_Man_t * p, If_Cut_t * pCut, If_Cut_t * pCut0, If_Cut_t * pCut1, int fCompl0, int fCompl1 );
+extern int             If_CutComputeTruth2( If_Man_t * p, If_Cut_t * pCut, If_Cut_t * pCut0, If_Cut_t * pCut1, int fCompl0, int fCompl1 );
 /*=== ifUtil.c ============================================================*/
 extern void            If_ManCleanNodeCopy( If_Man_t * p );
 extern void            If_ManCleanCutData( If_Man_t * p );

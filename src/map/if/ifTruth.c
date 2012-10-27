@@ -43,29 +43,28 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
-static inline int  If_TruthWordNum( int nVars )  { return nVars <= 5 ? 1 : (1 << (nVars - 5)); }
 static inline void If_TruthNot( unsigned * pOut, unsigned * pIn, int nVars )
 {
     int w;
-    for ( w = If_TruthWordNum(nVars)-1; w >= 0; w-- )
+    for ( w = If_CutTruthWords(nVars)-1; w >= 0; w-- )
         pOut[w] = ~pIn[w];
 }
 static inline void If_TruthCopy( unsigned * pOut, unsigned * pIn, int nVars )
 {
     int w;
-    for ( w = If_TruthWordNum(nVars)-1; w >= 0; w-- )
+    for ( w = If_CutTruthWords(nVars)-1; w >= 0; w-- )
         pOut[w] = pIn[w];
 }
 static inline void If_TruthNand( unsigned * pOut, unsigned * pIn0, unsigned * pIn1, int nVars )
 {
     int w;
-    for ( w = If_TruthWordNum(nVars)-1; w >= 0; w-- )
+    for ( w = If_CutTruthWords(nVars)-1; w >= 0; w-- )
         pOut[w] = ~(pIn0[w] & pIn1[w]);
 }
 static inline void If_TruthAnd( unsigned * pOut, unsigned * pIn0, unsigned * pIn1, int nVars )
 {
     int w;
-    for ( w = If_TruthWordNum(nVars)-1; w >= 0; w-- )
+    for ( w = If_CutTruthWords(nVars)-1; w >= 0; w-- )
         pOut[w] = pIn0[w] & pIn1[w];
 }
 
@@ -89,7 +88,7 @@ void If_TruthSwapAdjacentVars( unsigned * pOut, unsigned * pIn, int nVars, int i
         { 0xF00FF00F, 0x00F000F0, 0x0F000F00 },
         { 0xFF0000FF, 0x0000FF00, 0x00FF0000 }
     };
-    int nWords = If_TruthWordNum( nVars );
+    int nWords = If_CutTruthWords( nVars );
     int i, k, Step, Shift;
 
     assert( iVar < nVars - 1 );
@@ -245,7 +244,7 @@ void If_TruthShrink( unsigned * pOut, unsigned * pIn, int nVars, int nVarsAll, u
 ***********************************************************************/
 int If_CutTruthVarInSupport( unsigned * pTruth, int nVars, int iVar )
 {
-    int nWords = If_TruthWordNum( nVars );
+    int nWords = If_CutTruthWords( nVars );
     int i, k, Step;
 
     assert( iVar < nVars );
@@ -446,6 +445,446 @@ int If_CutTruthMinimize( If_Man_t * p, If_Cut_t * pCut )
 //    uSupport = If_CutTruthSupport( If_CutTruth(pCut), If_CutLeaveNum(pCut), &nSuppSize );
 //    assert( nSuppSize == If_CutLeaveNum(pCut) );
     return 1;
+}
+
+
+
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int  Abc_TtWordNum( int nVars ) { return nVars <= 6 ? 1 : 1 << (nVars-6); }
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Abc_TtCopy( word * pOut, word * pIn, int nWords, int fCompl )
+{
+    int w;
+    if ( fCompl )
+        for ( w = 0; w < nWords; w++ )
+            pOut[w] = ~pIn[w];
+    else
+        for ( w = 0; w < nWords; w++ )
+            pOut[w] = pIn[w];
+}
+static inline void Abc_TtAnd( word * pOut, word * pIn1, word * pIn2, int nWords, int fCompl )
+{
+    int w;
+    if ( fCompl )
+        for ( w = 0; w < nWords; w++ )
+            pOut[w] = ~(pIn1[w] & pIn2[w]);
+    else
+        for ( w = 0; w < nWords; w++ )
+            pOut[w] = pIn1[w] & pIn2[w];
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Abc_TtSuppIsMinBase( int Supp )
+{
+    return (Supp & (Supp+1)) == 0;
+}
+static inline int Abc_Tt6HasVar( word t, int iVar )
+{
+    static word Truth6[6] = {
+        0xAAAAAAAAAAAAAAAA,
+        0xCCCCCCCCCCCCCCCC,
+        0xF0F0F0F0F0F0F0F0,
+        0xFF00FF00FF00FF00,
+        0xFFFF0000FFFF0000,
+        0xFFFFFFFF00000000
+    };
+    return (t & ~Truth6[iVar]) != ((t & Truth6[iVar]) >> (1<<iVar));
+}
+static inline int Abc_TtHasVar( word * t, int nVars, int iVar )
+{
+    static word Truth6[6] = {
+        0xAAAAAAAAAAAAAAAA,
+        0xCCCCCCCCCCCCCCCC,
+        0xF0F0F0F0F0F0F0F0,
+        0xFF00FF00FF00FF00,
+        0xFFFF0000FFFF0000,
+        0xFFFFFFFF00000000
+    };
+    int nWords = Abc_TtWordNum( nVars );
+    assert( iVar < nVars );
+    if ( iVar < 6 )
+    {
+        int i, Shift = (1 << iVar);
+        for ( i = 0; i < nWords; i++ )
+            if ( (t[i] & ~Truth6[iVar]) != ((t[i] & Truth6[iVar]) >> Shift) )
+                return 1;
+        return 0;
+    }
+    else
+    {
+        int i, k, Step = (1 << (iVar - 6));
+        for ( k = 0; k < nWords; k += 2*Step )
+        {
+            for ( i = 0; i < Step; i++ )
+                if ( t[i] != t[Step+i] )
+                    return 1;
+            t += 2*Step;
+        }
+        return 0;
+    }
+}
+static inline int Abc_TtSupport( word * t, int nVars )
+{
+    int v, Supp = 0;
+    for ( v = 0; v < nVars; v++ )
+        if ( Abc_TtHasVar( t, nVars, v ) )
+            Supp |= (1 << v);
+    return Supp;
+}
+static inline int Abc_TtSupportSize( word * t, int nVars )
+{
+    int v, SuppSize = 0;
+    for ( v = 0; v < nVars; v++ )
+        if ( Abc_TtHasVar( t, nVars, v ) )
+            SuppSize++;
+    return SuppSize;
+}
+static inline int Abc_TtSupportAndSize( word * t, int nVars, int * pSuppSize )
+{
+    int v, Supp = 0;
+    *pSuppSize = 0;
+    for ( v = 0; v < nVars; v++ )
+        if ( Abc_TtHasVar( t, nVars, v ) )
+            Supp |= (1 << v), (*pSuppSize)++;
+    return Supp;
+}
+static inline int Abc_Tt6SupportAndSize( word t, int nVars, int * pSuppSize )
+{
+    int v, Supp = 0;
+    *pSuppSize = 0;
+    assert( nVars <= 6 );
+    for ( v = 0; v < nVars; v++ )
+        if ( Abc_Tt6HasVar( t, v ) )
+            Supp |= (1 << v), (*pSuppSize)++;
+    return Supp;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline word Abc_Tt6SwapVars( word Truth, int iVar, int jVar )
+{
+    static word PPMasks[6][6] = {
+        { 0x2222222222222222, 0x0A0A0A0A0A0A0A0A, 0x00AA00AA00AA00AA, 0x0000AAAA0000AAAA, 0x00000000AAAAAAAA, 0xAAAAAAAAAAAAAAAA },
+        { 0x0000000000000000, 0x0C0C0C0C0C0C0C0C, 0x00CC00CC00CC00CC, 0x0000CCCC0000CCCC, 0x00000000CCCCCCCC, 0xCCCCCCCCCCCCCCCC },
+        { 0x0000000000000000, 0x0000000000000000, 0x00F000F000F000F0, 0x0000F0F00000F0F0, 0x00000000F0F0F0F0, 0xF0F0F0F0F0F0F0F0 },
+        { 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000FF000000FF00, 0x00000000FF00FF00, 0xFF00FF00FF00FF00 },
+        { 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x00000000FFFF0000, 0xFFFF0000FFFF0000 },
+        { 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0xFFFFFFFF00000000 }
+    };
+    int shift;
+    word low2High, high2Low; 
+    assert( iVar <= 5 && jVar <= 5 && iVar < jVar );
+    shift = (1 << jVar) - (1 << iVar);
+    low2High = (Truth & PPMasks[iVar][jVar - 1] ) << shift;
+    Truth &= ~PPMasks[iVar][jVar - 1];
+    high2Low = (Truth & (PPMasks[iVar][jVar - 1] << shift )) >> shift;
+    Truth &= ~(PPMasks[iVar][jVar - 1] << shift);
+    return Truth | low2High | high2Low;
+}
+
+static inline void Abc_TtSwapVars( word * pTruth, int nVars, int * V2P, int * P2V, int iVar, int jVar )
+{
+    word low2High, high2Low, temp;
+    int nWords = Abc_TtWordNum(nVars);
+    int shift, step, iStep, jStep;
+    int w = 0, i = 0, j = 0;
+    static word PPMasks[6][6] = {
+        { 0x2222222222222222, 0x0A0A0A0A0A0A0A0A, 0x00AA00AA00AA00AA, 0x0000AAAA0000AAAA, 0x00000000AAAAAAAA, 0xAAAAAAAAAAAAAAAA },
+        { 0x0000000000000000, 0x0C0C0C0C0C0C0C0C, 0x00CC00CC00CC00CC, 0x0000CCCC0000CCCC, 0x00000000CCCCCCCC, 0xCCCCCCCCCCCCCCCC },
+        { 0x0000000000000000, 0x0000000000000000, 0x00F000F000F000F0, 0x0000F0F00000F0F0, 0x00000000F0F0F0F0, 0xF0F0F0F0F0F0F0F0 },
+        { 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000FF000000FF00, 0x00000000FF00FF00, 0xFF00FF00FF00FF00 },
+        { 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x00000000FFFF0000, 0xFFFF0000FFFF0000 },
+        { 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0xFFFFFFFF00000000 }
+    };
+    if ( iVar == jVar )
+        return;
+    if ( jVar < iVar )
+    {
+        int varTemp = jVar;
+        jVar = iVar;
+        iVar = varTemp;
+    }
+    if ( iVar <= 5 && jVar <= 5 )
+    {
+        shift = (1 << jVar) - (1 << iVar);
+        for ( w = 0; w < nWords; w++ )
+        {
+            low2High = (pTruth[w] & PPMasks[iVar][jVar - 1] ) << shift;
+            pTruth[w] &= ~PPMasks[iVar][jVar - 1];
+            high2Low = (pTruth[w] & (PPMasks[iVar][jVar - 1] << shift )) >> shift;
+            pTruth[w] &= ~(PPMasks[iVar][jVar - 1] << shift);
+            pTruth[w] = pTruth[w] | low2High | high2Low;
+        }
+    }
+    else if ( iVar <= 5 && jVar > 5 )
+    {
+        step = Abc_TtWordNum(jVar + 1)/2;
+        shift = 1 << iVar;
+        for ( w = 0; w < nWords; w += 2*step )
+        {
+            for (j = 0; j < step; j++)
+            {
+                low2High = (pTruth[w + j] & PPMasks[iVar][5]) >> shift;
+                pTruth[w + j] &= ~PPMasks[iVar][5];
+                high2Low = (pTruth[w + step + j] & (PPMasks[iVar][5] >> shift)) << shift;
+                pTruth[w + step + j] &= ~(PPMasks[iVar][5] >> shift);
+                pTruth[w + j] |= high2Low;
+                pTruth[w + step + j] |= low2High;            
+            }
+        }
+    }
+    else
+    {
+        iStep = Abc_TtWordNum(iVar + 1)/2;
+        jStep = Abc_TtWordNum(jVar + 1)/2;
+        for (w = 0; w < nWords; w += 2*jStep)
+        {
+            for (i = 0; i < jStep; i += 2*iStep)
+            {
+                for (j = 0; j < iStep; j++)
+                {
+                    temp = pTruth[w + iStep + i + j];
+                    pTruth[w + iStep + i + j] = pTruth[w + jStep + i + j];
+                    pTruth[w + jStep + i + j] = temp;
+                }
+            }
+        }
+    }    
+    if ( V2P && P2V )
+    {
+        V2P[P2V[iVar]] = jVar;
+        V2P[P2V[jVar]] = iVar;
+        P2V[iVar] ^= P2V[jVar];
+        P2V[jVar] ^= P2V[iVar];
+        P2V[iVar] ^= P2V[jVar];
+    }
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Performs truth table computation.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int If_CutTruthMinimize6( If_Man_t * p, If_Cut_t * pCut )
+{
+    unsigned uSupport;
+    int i, k, nSuppSize;
+    int nVars = If_CutLeaveNum(pCut);
+    // compute the support of the cut's function
+    uSupport = Abc_Tt6SupportAndSize( *If_CutTruthW(pCut), nVars, &nSuppSize );
+    if ( nSuppSize == If_CutLeaveNum(pCut) )
+        return 0;
+// TEMPORARY
+    if ( nSuppSize < 2 )
+    {
+        p->nSmallSupp++;
+        return 2;
+    }
+    // update leaves and signature
+    pCut->uSign = 0;
+    for ( i = k = 0; i < nVars; i++ )
+    {
+        if ( !(uSupport & (1 << i)) )
+            continue;    
+        pCut->uSign |= If_ObjCutSign( pCut->pLeaves[i] );
+        if ( k < i )
+        {
+            pCut->pLeaves[k] = pCut->pLeaves[i];
+            *If_CutTruthW(pCut) = Abc_Tt6SwapVars( *If_CutTruthW(pCut), k, i );
+        }
+        k++;
+    }
+    assert( k == nSuppSize );
+    pCut->nLeaves = nSuppSize;
+    // verify the result
+//    assert( nSuppSize == Abc_TtSupportSize(If_CutTruthW(pCut), nVars) );
+    return 1;
+}
+static inline word If_TruthStretch6( word Truth, If_Cut_t * pCut, If_Cut_t * pCut0 )
+{
+    int i, k;
+    for ( i = (int)pCut->nLeaves - 1, k = (int)pCut0->nLeaves - 1; i >= 0 && k >= 0; i-- )
+    {
+        if ( pCut0->pLeaves[k] < pCut->pLeaves[i] )
+            continue;
+        assert( pCut0->pLeaves[k] == pCut->pLeaves[i] );
+        if ( k < i )
+            Truth = Abc_Tt6SwapVars( Truth, k, i );
+        k--;
+    }
+    return Truth;
+}
+static inline int If_CutComputeTruth6( If_Man_t * p, If_Cut_t * pCut, If_Cut_t * pCut0, If_Cut_t * pCut1, int fCompl0, int fCompl1 )
+{
+    word t0 = (fCompl0 ^ pCut0->fCompl) ? ~*If_CutTruthW(pCut0) : *If_CutTruthW(pCut0);
+    word t1 = (fCompl1 ^ pCut1->fCompl) ? ~*If_CutTruthW(pCut1) : *If_CutTruthW(pCut1);
+    assert( pCut->nLimit <= 6 );
+    t0 = If_TruthStretch6( t0, pCut, pCut0 );
+    t1 = If_TruthStretch6( t1, pCut, pCut1 );
+    *If_CutTruthW(pCut) = t0 & t1;
+    if ( p->pPars->fCutMin )
+        return If_CutTruthMinimize6( p, pCut );
+    return 0;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Performs truth table computation.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+// this procedure handles special case reductions
+static inline int If_CutTruthMinimize21( If_Man_t * p, If_Cut_t * pCut ) 
+{
+    word * pTruth = If_CutTruthW(pCut);
+    int i, k, nVars = If_CutLeaveNum(pCut);
+    unsigned uSign = 0;
+    for ( i = k = 0; i < nVars; i++ )
+    {
+        if ( !Abc_TtHasVar( pTruth, nVars, i ) )
+            continue;
+        uSign |= If_ObjCutSign( pCut->pLeaves[i] );
+        if ( k < i )
+        {
+            pCut->pLeaves[k] = pCut->pLeaves[i];
+            Abc_TtSwapVars( pTruth, nVars, NULL, NULL, k, i );
+        }
+        k++;
+    }
+    if ( k == nVars )
+        return 0;
+    assert( k < nVars );
+    pCut->nLeaves = k;
+    pCut->uSign = uSign;
+// TEMPORARY
+    if ( pCut->nLeaves < 2 )
+    {
+        p->nSmallSupp++;
+        return 2;
+    }
+    // verify the result
+    assert( If_CutLeaveNum(pCut) == Abc_TtSupportSize(pTruth, nVars) );
+    return 1;
+}
+static inline int If_CutTruthMinimize2( If_Man_t * p, If_Cut_t * pCut )
+{
+    unsigned uSupport;
+    int i, k, nSuppSize;
+    int nVars = If_CutLeaveNum(pCut);
+    // compute the support of the cut's function
+    uSupport = Abc_TtSupportAndSize( If_CutTruthW(pCut), nVars, &nSuppSize );
+    if ( nSuppSize == If_CutLeaveNum(pCut) )
+        return 0;
+// TEMPORARY
+    if ( nSuppSize < 2 )
+    {
+        p->nSmallSupp++;
+        return 2;
+    }
+    // update leaves and signature
+    pCut->uSign = 0;
+    for ( i = k = 0; i < nVars; i++ )
+    {
+        if ( !(uSupport & (1 << i)) )
+            continue;    
+        pCut->uSign |= If_ObjCutSign( pCut->pLeaves[i] );
+        if ( k < i )
+        {
+            pCut->pLeaves[k] = pCut->pLeaves[i];
+            Abc_TtSwapVars( If_CutTruthW(pCut), pCut->nLimit, NULL, NULL, k, i );
+        }
+        k++;
+    }
+    assert( k == nSuppSize );
+    pCut->nLeaves = nSuppSize;
+    // verify the result
+//    assert( nSuppSize == Abc_TtSupportSize(If_CutTruthW(pCut), nVars) );
+    return 1;
+}
+static inline void If_TruthStretch2( word * pTruth, If_Cut_t * pCut, If_Cut_t * pCut0 )
+{
+    int i, k;
+    for ( i = (int)pCut->nLeaves - 1, k = (int)pCut0->nLeaves - 1; i >= 0 && k >= 0; i-- )
+    {
+        if ( pCut0->pLeaves[k] < pCut->pLeaves[i] )
+            continue;
+        assert( pCut0->pLeaves[k] == pCut->pLeaves[i] );
+        if ( k < i )
+            Abc_TtSwapVars( pTruth, pCut->nLimit, NULL, NULL, k, i );
+        k--;
+    }
+}
+inline int If_CutComputeTruth2( If_Man_t * p, If_Cut_t * pCut, If_Cut_t * pCut0, If_Cut_t * pCut1, int fCompl0, int fCompl1 )
+{
+    int nWords;
+    if ( pCut->nLimit < 7 )
+        return If_CutComputeTruth6( p, pCut, pCut0, pCut1, fCompl0, fCompl1 );
+    nWords = Abc_TtWordNum( pCut->nLimit );
+    Abc_TtCopy( (word *)p->puTemp[0], If_CutTruthW(pCut0), nWords, fCompl0 ^ pCut0->fCompl );
+    Abc_TtCopy( (word *)p->puTemp[1], If_CutTruthW(pCut1), nWords, fCompl1 ^ pCut1->fCompl );
+    If_TruthStretch2( (word *)p->puTemp[0], pCut, pCut0 );
+    If_TruthStretch2( (word *)p->puTemp[1], pCut, pCut1 );
+    Abc_TtAnd( If_CutTruthW(pCut), (word *)p->puTemp[0], (word *)p->puTemp[1], nWords, 0 );
+    if ( p->pPars->fCutMin )
+        return If_CutTruthMinimize2( p, pCut );
+    return 0;
 }
 
 

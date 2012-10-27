@@ -212,8 +212,10 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
         if ( p->pPars->fTruth )
         {
 //            clock_t clk = clock();
-            int RetValue = If_CutComputeTruth( p, pCut, pCut0, pCut1, pObj->fCompl0, pObj->fCompl1 );
+//            int RetValue = If_CutComputeTruth( p, pCut, pCut0, pCut1, pObj->fCompl0, pObj->fCompl1 );
+            int RetValue = If_CutComputeTruth2( p, pCut, pCut0, pCut1, pObj->fCompl0, pObj->fCompl1 );
 //            p->timeTruth += clock() - clk;
+
             pCut->fUseless = 0;
             if ( p->pPars->pFuncCell && RetValue < 2 )
             {
