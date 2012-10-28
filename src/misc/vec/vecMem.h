@@ -342,14 +342,13 @@ static int Vec_MemHashInsert( Vec_Mem_t * p, word * pEntry )
     if ( p->nEntries > Vec_IntSize(p->vTable) )
         Vec_MemHashResize( p );
     pSpot = Vec_MemHashLookup( p, pEntry );
-    if ( *pSpot == -1 )
-    {
-        *pSpot = Vec_IntSize(p->vNexts);
-        Vec_IntPush( p->vNexts, -1 );
-        Vec_MemPush( p, pEntry );
-        assert( p->nEntries == Vec_IntSize(p->vNexts) );
-    }
-    return *pSpot;
+    if ( *pSpot != -1 )
+        return *pSpot;
+    *pSpot = Vec_IntSize(p->vNexts);
+    Vec_IntPush( p->vNexts, -1 );
+    Vec_MemPush( p, pEntry );
+    assert( p->nEntries == Vec_IntSize(p->vNexts) );
+    return Vec_IntSize(p->vNexts) - 1;
 }
 
 
