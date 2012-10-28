@@ -820,6 +820,39 @@ void If_CutTraverseTest( If_Man_t * p, If_Obj_t * pRoot, If_Cut_t * pCut )
     Vec_PtrFree( vNodes );
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void If_ObjPrint( If_Obj_t * pObj )
+{
+    if ( pObj == NULL )
+    {
+        printf( "Object is NULL." );
+        return;
+    }
+    printf( "Obj %4d : ", If_ObjId(pObj) );
+    if ( If_ObjIsConst1(pObj) )
+        printf( "constant 1" );
+    else if ( If_ObjIsCi(pObj) )
+        printf( "PI" );
+    else if ( If_ObjIsCo(pObj) )
+        printf( "PO( %4d%s )", If_ObjId(If_ObjFanin0(pObj)), (If_ObjFaninC0(pObj)? "\'" : " ") );
+    else
+        printf( "AND( %4d%s, %4d%s )", 
+            If_ObjId(If_ObjFanin0(pObj)), (If_ObjFaninC0(pObj)? "\'" : " "), 
+            If_ObjId(If_ObjFanin1(pObj)), (If_ObjFaninC1(pObj)? "\'" : " ") );
+    printf( " (refs = %3d)", pObj->nVisitsCopy );
+    printf( "\n" );
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

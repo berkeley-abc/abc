@@ -528,6 +528,7 @@ extern Vec_Int_t *     If_ManCollectMappingInt( If_Man_t * p );
 
 extern int             If_ManCountSpecialPos( If_Man_t * p );
 extern void            If_CutTraverse( If_Man_t * p, If_Obj_t * pRoot, If_Cut_t * pCut, Vec_Ptr_t * vNodes );
+extern void            If_ObjPrint( If_Obj_t * pObj );
 
 /*=== abcRec.c ============================================================*/
 extern int             If_CutDelayRecCost(If_Man_t* p, If_Cut_t* pCut, If_Obj_t * pObj);
