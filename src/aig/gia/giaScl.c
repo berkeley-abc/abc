@@ -94,6 +94,32 @@ Gia_Man_t * Gia_ManCleanup( Gia_Man_t * p )
     return Gia_ManDupMarked( p );
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Skip the first outputs during cleanup.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManCleanupOutputs( Gia_Man_t * p, int nOutputs )
+{
+    Gia_Obj_t * pObj;
+    int i;
+    assert( Gia_ManRegNum(p) == 0 );
+    assert( nOutputs < Gia_ManCoNum(p) );
+    Gia_ManCombMarkUsed( p );
+    Gia_ManForEachCo( p, pObj, i )
+        if ( i < nOutputs )
+            pObj->fMark0 = 1;
+        else
+            break;
+    return Gia_ManDupMarked( p );
+}
+
 
 /**Function*************************************************************
 

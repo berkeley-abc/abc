@@ -13056,9 +13056,10 @@ int Abc_CommandRecStart3( Abc_Frame_t * pAbc, int argc, char ** argv )
     Gia_Man_t * pGia = NULL;
     int nVars = 6;
     int nCuts = 32;
-    int fTrim = 0;
+    int fFuncOnly = 0;
+    int fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KCth" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KCfvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -13084,8 +13085,11 @@ int Abc_CommandRecStart3( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( nCuts < 1 ) 
                 goto usage;
             break;
-        case 't':
-            fTrim ^= 1;
+        case 'f':
+            fFuncOnly ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
             break;
         case 'h':
             goto usage;
@@ -13131,16 +13135,17 @@ int Abc_CommandRecStart3( Abc_Frame_t * pAbc, int argc, char ** argv )
             return 0;
         }
     }
-    Abc_NtkRecStart3( pGia, nVars, nCuts, fTrim );
+    Abc_NtkRecStart3( pGia, nVars, nCuts, fFuncOnly, fVerbose );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: rec_start3 [-K num] [-C num] [-th]\n" );
+    Abc_Print( -2, "usage: rec_start3 [-K num] [-C num] [-fvh]\n" );
     Abc_Print( -2, "\t         starts recording AIG subgraphs (should be called for\n" );
     Abc_Print( -2, "\t         an empty network or after reading in a previous record)\n" );
     Abc_Print( -2, "\t-K num : the largest number of inputs [default = %d]\n", nVars );
     Abc_Print( -2, "\t-C num : the max number of cuts used at a node (0 < num < 2^12) [default = %d]\n", nCuts );
-    Abc_Print( -2, "\t-t     : toggles the use of trimming [default = %s]\n", fTrim? "yes": "no" );
+    Abc_Print( -2, "\t-f     : toggles recording functions without AIG subgraphs [default = %s]\n", fFuncOnly? "yes": "no" );
+    Abc_Print( -2, "\t-v     : toggles additional verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }

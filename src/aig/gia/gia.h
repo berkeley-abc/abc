@@ -482,6 +482,13 @@ static inline int Gia_ManAppendXor( Gia_Man_t * p, int iLit0, int iLit1 )
 { 
     return Gia_ManAppendMux( p, iLit0, Abc_LitNot(iLit1), iLit1 );
 }
+static inline void Gia_ManPatchCoDriver( Gia_Man_t * p, int iCoIndex, int iLit0 )  
+{
+    Gia_Obj_t * pObjCo  = Gia_ManCo( p, iCoIndex );
+    assert( Gia_ObjId(p, pObjCo) > Abc_Lit2Var(iLit0) );
+    pObjCo->iDiff0  = Gia_ObjId(p, pObjCo) - Abc_Lit2Var(iLit0);
+    pObjCo->fCompl0 = Abc_LitIsCompl(iLit0);
+}
 
 #define GIA_ZER 1
 #define GIA_ONE 2
@@ -863,6 +870,7 @@ extern int                 Sat_ManTest( Gia_Man_t * pGia, Gia_Obj_t * pObj, int 
 extern int                 Gia_ManSeqMarkUsed( Gia_Man_t * p );
 extern int                 Gia_ManCombMarkUsed( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManCleanup( Gia_Man_t * p );
+extern Gia_Man_t *         Gia_ManCleanupOutputs( Gia_Man_t * p, int nOutputs );
 extern Gia_Man_t *         Gia_ManSeqCleanup( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManSeqStructSweep( Gia_Man_t * p, int fConst, int fEquiv, int fVerbose );
 /*=== giaShrink.c ===========================================================*/
