@@ -42,10 +42,9 @@ struct Lms_Man_t_
     // internal data
     Gia_Man_t *       pGia;         // the record
     Vec_Mem_t *       vTtMem;       // truth tables of primary outputs
-    Vec_Int_t *       vTruthPo;     // for each semi-canonical class, last PO where this truth table was seen
+//    Vec_Int_t *       vTruthPo;     // for each semi-canonical class, first PO where this truth table was seen
     // subgraph attributes (1-to-1 correspondence with POs of Gia)
     Vec_Int_t *       vTruthIds;    // truth table IDs of this PO
-    Vec_Int_t *       vEquivs;      // link to the previous PO of the same functional class
     Vec_Wrd_t *       vDelays;      // pin-to-pin delays of this PO
     Vec_Str_t *       vCosts;       // number of AND gates in this PO
     // sugraph usage statistics
@@ -130,10 +129,9 @@ Lms_Man_t * Lms_ManStart( int nVars, int nCuts, int fFuncOnly, int fVerbose )
     // truth tables
     p->vTtMem = Vec_MemAlloc( p->nWords, 12 ); // 32 KB/page for 6-var functions
     Vec_MemHashAlloc( p->vTtMem, 10000 );
-    p->vTruthPo  = Vec_IntAlloc( 1000 );
+//    p->vTruthPo  = Vec_IntAlloc( 1000 );
     // subgraph attributes
     p->vTruthIds = Vec_IntAlloc( 1000 );
-    p->vEquivs   = Vec_IntAlloc( 1000 );
     p->vDelays   = Vec_WrdAlloc( 1000 );
     p->vCosts    = Vec_StrAlloc( 1000 );
     // sugraph usage statistics
@@ -149,10 +147,9 @@ void Lms_ManStop( Lms_Man_t * p )
     Vec_IntFree( p->vLabels );
     Vec_PtrFree( p->vNodes );
     // subgraph attributes
-    Vec_IntFree( p->vEquivs );
     Vec_WrdFree( p->vDelays );
     Vec_StrFree( p->vCosts );
-    Vec_IntFree( p->vTruthPo );
+//    Vec_IntFree( p->vTruthPo );
     // sugraph usage statistics
 //    Vec_IntFree( p->vFreqs );
     // truth tables
@@ -354,7 +351,6 @@ clk = clock();
         printf( "Truth table verification has failed.\n" );
 */
         Vec_IntPush( s_pMan->vTruthIds, -1 ); // truth table IDs
-        Vec_IntPush( s_pMan->vEquivs, -1 );   // truth table IDs
         Vec_WrdPush( s_pMan->vDelays, 0 );
         Vec_StrPush( s_pMan->vCosts, 0 );
         s_pMan->nFilterTruth++;
@@ -368,18 +364,8 @@ clk = clock();
     Index = Vec_MemHashInsert( s_pMan->vTtMem, s_pMan->pTemp1 );
     Vec_IntPush( s_pMan->vTruthIds, Index ); // truth table IDs
     assert( Gia_ManPoNum(pGia) == Vec_IntSize(s_pMan->vTruthIds) );
-    if ( Index < Vec_IntSize(s_pMan->vTruthPo) ) // old ID -- add to linked list
-    {
-        Vec_IntPush( s_pMan->vEquivs, Vec_IntEntry(s_pMan->vTruthPo, Index) );
-        Vec_IntWriteEntry( s_pMan->vTruthPo, Index, Gia_ManPoNum(pGia) - 1 );
-    }
-    else
-    {
-        assert( Index == Vec_IntSize(s_pMan->vTruthPo) );
-        Vec_IntPush( s_pMan->vTruthPo, Gia_ManPoNum(pGia) - 1 );
-        Vec_IntPush( s_pMan->vEquivs, -1 );
+    if ( Index == Vec_MemEntryNum(s_pMan->vTtMem) - 1 )
         s_pMan->nAddedFuncs++;
-    }
     Vec_WrdPush( s_pMan->vDelays, 0 );
     Vec_StrPush( s_pMan->vCosts, 0 );
 s_pMan->timeInsert += clock() - clk;
