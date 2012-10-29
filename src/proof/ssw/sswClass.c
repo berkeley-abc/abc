@@ -89,11 +89,11 @@ static inline void         Ssw_ObjSetNext( Aig_Obj_t ** ppNexts, Aig_Obj_t * pOb
   SeeAlso     []
 
 ***********************************************************************/
-static inline void Ssw_ObjAddClass( Ssw_Cla_t * p, Aig_Obj_t * pRepr, Aig_Obj_t ** pClass, int nSize ) 
+static inline void Ssw_ObjAddClass( Ssw_Cla_t * p, Aig_Obj_t * pRepr, Aig_Obj_t ** pClass, int nSize )
 {
     assert( p->pId2Class[pRepr->Id] == NULL );
     assert( pClass[0] == pRepr );
-    p->pId2Class[pRepr->Id] = pClass; 
+    p->pId2Class[pRepr->Id] = pClass;
     assert( p->pClassSizes[pRepr->Id] == 0 );
     assert( nSize > 1 );
     p->pClassSizes[pRepr->Id] = nSize;
@@ -112,12 +112,12 @@ static inline void Ssw_ObjAddClass( Ssw_Cla_t * p, Aig_Obj_t * pRepr, Aig_Obj_t 
   SeeAlso     []
 
 ***********************************************************************/
-static inline Aig_Obj_t ** Ssw_ObjRemoveClass( Ssw_Cla_t * p, Aig_Obj_t * pRepr ) 
+static inline Aig_Obj_t ** Ssw_ObjRemoveClass( Ssw_Cla_t * p, Aig_Obj_t * pRepr )
 {
     Aig_Obj_t ** pClass = p->pId2Class[pRepr->Id];
     int nSize;
     assert( pClass != NULL );
-    p->pId2Class[pRepr->Id] = NULL; 
+    p->pId2Class[pRepr->Id] = NULL;
     nSize = p->pClassSizes[pRepr->Id];
     assert( nSize > 1 );
     p->nClasses--;
@@ -131,7 +131,7 @@ static inline Aig_Obj_t ** Ssw_ObjRemoveClass( Ssw_Cla_t * p, Aig_Obj_t * pRepr 
   Synopsis    [Starts representation of equivalence classes.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -158,13 +158,13 @@ Ssw_Cla_t * Ssw_ClassesStart( Aig_Man_t * pAig )
   Synopsis    [Starts representation of equivalence classes.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
-void Ssw_ClassesSetData( Ssw_Cla_t * p, void * pManData, 
+void Ssw_ClassesSetData( Ssw_Cla_t * p, void * pManData,
     unsigned (*pFuncNodeHash)(void *,Aig_Obj_t *),               // returns hash key of the node
     int (*pFuncNodeIsConst)(void *,Aig_Obj_t *),                 // returns 1 if the node is a constant
     int (*pFuncNodesAreEqual)(void *,Aig_Obj_t *, Aig_Obj_t *) ) // returns 1 if nodes are equal up to a complement
@@ -180,7 +180,7 @@ void Ssw_ClassesSetData( Ssw_Cla_t * p, void * pManData,
   Synopsis    [Stop representation of equivalence classes.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -202,7 +202,7 @@ void Ssw_ClassesStop( Ssw_Cla_t * p )
   Synopsis    [Stop representation of equivalence classes.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -218,7 +218,7 @@ Aig_Man_t * Ssw_ClassesReadAig( Ssw_Cla_t * p )
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -234,7 +234,7 @@ Vec_Ptr_t * Ssw_ClassesGetRefined( Ssw_Cla_t * p )
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -250,7 +250,7 @@ void Ssw_ClassesClearRefined( Ssw_Cla_t * p )
   Synopsis    [Stop representation of equivalence classes.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -266,7 +266,7 @@ int Ssw_ClassesCand1Num( Ssw_Cla_t * p )
   Synopsis    [Stop representation of equivalence classes.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -282,7 +282,7 @@ int Ssw_ClassesClassNum( Ssw_Cla_t * p )
   Synopsis    [Stop representation of equivalence classes.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -298,7 +298,7 @@ int Ssw_ClassesLitNum( Ssw_Cla_t * p )
   Synopsis    [Stop representation of equivalence classes.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -319,7 +319,7 @@ Aig_Obj_t ** Ssw_ClassesReadClass( Ssw_Cla_t * p, Aig_Obj_t * pRepr, int * pnSiz
   Synopsis    [Stop representation of equivalence classes.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -393,11 +393,11 @@ void Ssw_ClassesPrintOne( Ssw_Cla_t * p, Aig_Obj_t * pRepr )
 {
     Aig_Obj_t * pObj;
     int i;
-    printf( "{ " );
+    Abc_Print( 1, "{ " );
     Ssw_ClassForEachNode( p, pRepr, pObj, i )
-        printf( "%d(%d,%d,%d) ", pObj->Id, pObj->Level, 
+        Abc_Print( 1, "%d(%d,%d,%d) ", pObj->Id, pObj->Level,
         Aig_SupportSize(p->pAig,pObj), Aig_NodeMffcSupp(p->pAig,pObj,0,NULL) );
-    printf( "}\n" );
+    Abc_Print( 1, "}\n" );
 }
 
 /**Function*************************************************************
@@ -416,22 +416,22 @@ void Ssw_ClassesPrint( Ssw_Cla_t * p, int fVeryVerbose )
     Aig_Obj_t ** ppClass;
     Aig_Obj_t * pObj;
     int i;
-    printf( "Equiv classes: Const1 = %5d. Class = %5d. Lit = %5d.\n", 
+    Abc_Print( 1, "Equiv classes: Const1 = %5d. Class = %5d. Lit = %5d.\n",
         p->nCands1, p->nClasses, p->nCands1+p->nLits );
     if ( !fVeryVerbose )
         return;
-    printf( "Constants { " );
+    Abc_Print( 1, "Constants { " );
     Aig_ManForEachObj( p->pAig, pObj, i )
         if ( Ssw_ObjIsConst1Cand( p->pAig, pObj ) )
-            printf( "%d(%d,%d,%d) ", pObj->Id, pObj->Level, 
+            Abc_Print( 1, "%d(%d,%d,%d) ", pObj->Id, pObj->Level,
             Aig_SupportSize(p->pAig,pObj), Aig_NodeMffcSupp(p->pAig,pObj,0,NULL) );
-    printf( "}\n" );
+    Abc_Print( 1, "}\n" );
     Ssw_ManForEachClass( p, ppClass, i )
     {
-        printf( "%3d (%3d) : ", i, p->pClassSizes[i] );
+        Abc_Print( 1, "%3d (%3d) : ", i, p->pClassSizes[i] );
         Ssw_ClassesPrintOne( p, ppClass[0] );
     }
-    printf( "\n" );
+    Abc_Print( 1, "\n" );
 }
 
 /**Function*************************************************************
@@ -491,7 +491,7 @@ void Ssw_ClassesRemoveNode( Ssw_Cla_t * p, Aig_Obj_t * pObj )
   Synopsis    [Takes the set of const1 cands and rehashes them using sim info.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -506,8 +506,8 @@ int Ssw_ClassesPrepareRehash( Ssw_Cla_t * p, Vec_Ptr_t * vCands, int fConstCorr 
 
     // allocate the hash table hashing simulation info into nodes
     nTableSize = Abc_PrimeCudd( Vec_PtrSize(vCands)/2 );
-    ppTable = ABC_CALLOC( Aig_Obj_t *, nTableSize ); 
-    ppNexts = ABC_CALLOC( Aig_Obj_t *, Aig_ManObjNumMax(p->pAig) ); 
+    ppTable = ABC_CALLOC( Aig_Obj_t *, nTableSize );
+    ppNexts = ABC_CALLOC( Aig_Obj_t *, Aig_ManObjNumMax(p->pAig) );
 
     // sort through the candidates
     nEntries = 0;
@@ -550,7 +550,7 @@ int Ssw_ClassesPrepareRehash( Ssw_Cla_t * p, Vec_Ptr_t * vCands, int fConstCorr 
             nEntries++;
         }
     }
- 
+
     // copy the entries into storage in the topological order
     nEntries2 = 0;
     Vec_PtrForEachEntry( Aig_Obj_t *, vCands, pObj, i )
@@ -563,7 +563,7 @@ int Ssw_ClassesPrepareRehash( Ssw_Cla_t * p, Vec_Ptr_t * vCands, int fConstCorr 
         // add the nodes to the class in the topological order
         ppClassNew = p->pMemClassesFree + nEntries2;
         ppClassNew[0] = pObj;
-        for ( pTemp = Ssw_ObjNext(ppNexts, pObj), k = 1; pTemp; 
+        for ( pTemp = Ssw_ObjNext(ppNexts, pObj), k = 1; pTemp;
               pTemp = Ssw_ObjNext(ppNexts, pTemp), k++ )
         {
             ppClassNew[nNodes-k] = pTemp;
@@ -622,9 +622,9 @@ clk = clock();
     pSml = Ssw_SmlSimulateSeq( pAig, 0, nFrames, nWords );
 if ( fVerbose )
 {
-    printf( "Allocated %.2f MB to store simulation information.\n", 
+    Abc_Print( 1, "Allocated %.2f MB to store simulation information.\n",
         1.0*(sizeof(unsigned) * Aig_ManObjNumMax(pAig) * nFrames * nWords)/(1<<20) );
-    printf( "Initial simulation of %d frames with %d words.     ", nFrames, nWords );
+    Abc_Print( 1, "Initial simulation of %d frames with %d words.     ", nFrames, nWords );
     ABC_PRT( "Time", clock() - clk );
 }
 
@@ -651,7 +651,7 @@ clk = clock();
         }
         Vec_PtrPush( vCands, pObj );
     }
- 
+
     // this change will consider all PO drivers
     if ( fOutputCorr )
     {
@@ -676,7 +676,7 @@ clk = clock();
     Ssw_ClassesPrepareRehash( p, vCands, fConstCorr );
 if ( fVerbose )
 {
-    printf( "Collecting candidate equivalence classes.        " );
+    Abc_Print( 1, "Collecting candidate equivalence classes.        " );
 ABC_PRT( "Time", clock() - clk );
 }
 
@@ -701,7 +701,7 @@ clk = clock();
     Vec_PtrFree( vCands );
 if ( fVerbose )
 {
-    printf( "Simulation of %d frames with %d words (%2d rounds). ", 
+    Abc_Print( 1, "Simulation of %d frames with %d words (%2d rounds). ",
         nFrames, nWords, i-1 );
     ABC_PRT( "Time", clock() - clk );
 }
@@ -759,7 +759,7 @@ Ssw_Cla_t * Ssw_ClassesPrepareSimple( Aig_Man_t * pAig, int fLatchCorr, int nMax
   Synopsis    [Creates initial simulation classes.]
 
   Description [Assumes that simulation info is assigned.]
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -812,7 +812,7 @@ Ssw_Cla_t * Ssw_ClassesPrepareFromReprs( Aig_Man_t * pAig )
     p->nLits = nEntries - p->nClasses;
     assert( memcmp(pClassSizes, p->pClassSizes, sizeof(int)*Aig_ManObjNumMax(pAig)) == 0 );
     ABC_FREE( pClassSizes );
-//    printf( "After converting:\n" );
+//    Abc_Print( 1, "After converting:\n" );
 //    Ssw_ClassesPrint( p, 0 );
     return p;
 }
@@ -870,7 +870,7 @@ Ssw_Cla_t * Ssw_ClassesPreparePairs( Aig_Man_t * pAig, Vec_Int_t ** pvClasses )
     // count the number of entries in the classes
     nTotalObjs = 0;
     for ( i = 0; i < Aig_ManObjNumMax(pAig); i++ )
-        nTotalObjs += pvClasses[i] ? Vec_IntSize(pvClasses[i]) : 0; 
+        nTotalObjs += pvClasses[i] ? Vec_IntSize(pvClasses[i]) : 0;
     // allocate memory for classes
     p->pMemClasses = ABC_ALLOC( Aig_Obj_t *, nTotalObjs );
     // create constant-1 class
@@ -919,7 +919,7 @@ Ssw_Cla_t * Ssw_ClassesPreparePairs( Aig_Man_t * pAig, Vec_Int_t ** pvClasses )
   Synopsis    [Creates classes from the temporary representation.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -961,7 +961,7 @@ Ssw_Cla_t * Ssw_ClassesPreparePairsSimple( Aig_Man_t * pMiter, Vec_Int_t * vPair
   Synopsis    [Iteratively refines the classes after simulation.]
 
   Description [Returns the number of refinements performed.]
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -971,7 +971,7 @@ int Ssw_ClassesRefineOneClass( Ssw_Cla_t * p, Aig_Obj_t * pReprOld, int fRecursi
 {
     Aig_Obj_t ** pClassOld, ** pClassNew;
     Aig_Obj_t * pObj, * pReprNew;
-    int i; 
+    int i;
 
     // split the class
     Vec_PtrClear( p->vClassOld );
@@ -1025,7 +1025,7 @@ int Ssw_ClassesRefineOneClass( Ssw_Cla_t * p, Aig_Obj_t * pReprOld, int fRecursi
   Synopsis    [Refines the classes after simulation.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -1045,7 +1045,7 @@ int Ssw_ClassesRefine( Ssw_Cla_t * p, int fRecursive )
   Synopsis    [Refines the classes after simulation.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -1065,7 +1065,7 @@ int Ssw_ClassesRefineGroup( Ssw_Cla_t * p, Vec_Ptr_t * vReprs, int fRecursive )
   Synopsis    [Refine the group of constant 1 nodes.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -1110,7 +1110,7 @@ int Ssw_ClassesRefineConst1Group( Ssw_Cla_t * p, Vec_Ptr_t * vRoots, int fRecurs
   Synopsis    [Refine the group of constant 1 nodes.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -1168,4 +1168,3 @@ int Ssw_ClassesRefineConst1( Ssw_Cla_t * p, int fRecursive )
 
 
 ABC_NAMESPACE_IMPL_END
-
