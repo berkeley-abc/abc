@@ -506,7 +506,7 @@ void Abc_NtkRecLibMerge3( Gia_Man_t * pLib )
     unsigned uCanonPhase;
     unsigned * pTruth;
     int i, k, Index, iFanin0, iFanin1, nLeaves;
-    Gia_Obj_t * pDriver, * pTemp, * pObjPo;
+    Gia_Obj_t * pObjPo, * pDriver, * pTemp = NULL;
     clock_t clk, clk2 = clock();
 
     assert( Gia_ManCiNum(pLib) == Gia_ManCiNum(pGia) );
@@ -619,7 +619,7 @@ int Abc_NtkRecAddCut3( If_Man_t * pIfMan, If_Obj_t * pRoot, If_Cut_t * pCut )
     Vec_Ptr_t * vNodes = p->vNodes;
     Gia_Man_t * pGia = p->pGia;
     Gia_Obj_t * pDriver;
-    If_Obj_t * pIfObj;
+    If_Obj_t * pIfObj = NULL;
     unsigned * pTruth;
     clock_t clk;
     p->nTried++;
@@ -649,7 +649,7 @@ p->timeCanon += clock() - clk;
 clk = clock();
     // map cut leaves into elementary variables of GIA
     for ( i = 0; i < nLeaves; i++ )
-        If_ManObj( pIfMan, pCut->pLeaves[pCanonPerm[i]] )->iCopy = Abc_Var2Lit( Gia_ObjId(pGia, Gia_ManPi(pGia, i)), (uCanonPhase >> i) & 1 );
+        If_ManObj( pIfMan, pCut->pLeaves[(int)pCanonPerm[i]] )->iCopy = Abc_Var2Lit( Gia_ObjId(pGia, Gia_ManPi(pGia, i)), (uCanonPhase >> i) & 1 );
     // build internal nodes
     fHole = 0;
     assert( Vec_PtrSize(vNodes) > 0 );
@@ -891,8 +891,8 @@ Hop_Obj_t * Abc_RecToHop3( Hop_Man_t * pMan, If_Man_t * pIfMan, If_Cut_t * pCut,
     unsigned uCanonPhase;
     Hop_Obj_t * pFan0, * pFan1, * pHopObj;
     Gia_Man_t * pGia = p->pGia;
-    Gia_Obj_t * pGiaPo, * pGiaTemp;
-    int i, BestPo, nLeaves = If_CutLeaveNum(pCut);
+    Gia_Obj_t * pGiaPo, * pGiaTemp = NULL;
+    int i, BestPo = -1, nLeaves = If_CutLeaveNum(pCut);
     assert( pIfMan->pPars->fCutMin == 1 );
     assert( nLeaves > 1 );
 
