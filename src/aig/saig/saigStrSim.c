@@ -50,19 +50,19 @@ static inline void         Saig_ObjSetNext( Aig_Obj_t ** ppNexts, Aig_Obj_t * pO
 ***********************************************************************/
 unsigned Saig_StrSimHash( Aig_Obj_t * pObj )
 {
-    static int s_SPrimes[128] = { 
-        1009, 1049, 1093, 1151, 1201, 1249, 1297, 1361, 1427, 1459, 
-        1499, 1559, 1607, 1657, 1709, 1759, 1823, 1877, 1933, 1997, 
-        2039, 2089, 2141, 2213, 2269, 2311, 2371, 2411, 2467, 2543, 
-        2609, 2663, 2699, 2741, 2797, 2851, 2909, 2969, 3037, 3089, 
-        3169, 3221, 3299, 3331, 3389, 3461, 3517, 3557, 3613, 3671, 
-        3719, 3779, 3847, 3907, 3943, 4013, 4073, 4129, 4201, 4243, 
-        4289, 4363, 4441, 4493, 4549, 4621, 4663, 4729, 4793, 4871, 
-        4933, 4973, 5021, 5087, 5153, 5227, 5281, 5351, 5417, 5471, 
-        5519, 5573, 5651, 5693, 5749, 5821, 5861, 5923, 6011, 6073, 
-        6131, 6199, 6257, 6301, 6353, 6397, 6481, 6563, 6619, 6689, 
-        6737, 6803, 6863, 6917, 6977, 7027, 7109, 7187, 7237, 7309, 
-        7393, 7477, 7523, 7561, 7607, 7681, 7727, 7817, 7877, 7933, 
+    static int s_SPrimes[128] = {
+        1009, 1049, 1093, 1151, 1201, 1249, 1297, 1361, 1427, 1459,
+        1499, 1559, 1607, 1657, 1709, 1759, 1823, 1877, 1933, 1997,
+        2039, 2089, 2141, 2213, 2269, 2311, 2371, 2411, 2467, 2543,
+        2609, 2663, 2699, 2741, 2797, 2851, 2909, 2969, 3037, 3089,
+        3169, 3221, 3299, 3331, 3389, 3461, 3517, 3557, 3613, 3671,
+        3719, 3779, 3847, 3907, 3943, 4013, 4073, 4129, 4201, 4243,
+        4289, 4363, 4441, 4493, 4549, 4621, 4663, 4729, 4793, 4871,
+        4933, 4973, 5021, 5087, 5153, 5227, 5281, 5351, 5417, 5471,
+        5519, 5573, 5651, 5693, 5749, 5821, 5861, 5923, 6011, 6073,
+        6131, 6199, 6257, 6301, 6353, 6397, 6481, 6563, 6619, 6689,
+        6737, 6803, 6863, 6917, 6977, 7027, 7109, 7187, 7237, 7309,
+        7393, 7477, 7523, 7561, 7607, 7681, 7727, 7817, 7877, 7933,
         8011, 8039, 8059, 8081, 8093, 8111, 8123, 8147
     };
     unsigned * pSims;
@@ -144,7 +144,7 @@ int Saig_StrSimIsOne( Aig_Obj_t * pObj )
   Synopsis    [Assigns random simulation info.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -163,7 +163,7 @@ void Saig_StrSimAssignRandom( Aig_Obj_t * pObj )
   Synopsis    [Assigns constant 0 simulation info.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -182,7 +182,7 @@ void Saig_StrSimAssignOne( Aig_Obj_t * pObj )
   Synopsis    [Assigns constant 0 simulation info.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -199,7 +199,7 @@ void Saig_StrSimAssignZeroInit( Aig_Obj_t * pObj )
   Synopsis    [Simulated one node.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -225,7 +225,7 @@ void Saig_StrSimulateNode( Aig_Obj_t * pObj, int i )
   Synopsis    [Saves output of one node.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -237,7 +237,7 @@ void Saig_StrSimSaveOutput( Aig_Obj_t * pObj, int i )
     unsigned * pSims0 = (unsigned *)Aig_ObjFanin0(pObj)->pData;
     if ( Aig_ObjFaninC0(pObj) )
         pSims[i] = ~pSims0[i];
-    else 
+    else
         pSims[i] = pSims0[i];
 }
 
@@ -246,7 +246,7 @@ void Saig_StrSimSaveOutput( Aig_Obj_t * pObj, int i )
   Synopsis    [Transfers simulation output to another node.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -266,7 +266,7 @@ void Saig_StrSimTransfer( Aig_Obj_t * pObj0, Aig_Obj_t * pObj1 )
   Synopsis    [Transfers simulation output to another node.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -285,7 +285,7 @@ void Saig_StrSimTransferNext( Aig_Obj_t * pObj0, Aig_Obj_t * pObj1, int i )
   Synopsis    [Perform one round of simulation.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -336,7 +336,7 @@ void Saig_StrSimulateRound( Aig_Man_t * p0, Aig_Man_t * p1 )
   Synopsis    [Checks if the entry exists in the table.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -360,7 +360,7 @@ Aig_Obj_t * Saig_StrSimTableLookup( Aig_Obj_t ** ppTable, Aig_Obj_t ** ppNexts, 
   Synopsis    [Inserts the entry into the table.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -385,7 +385,7 @@ void Saig_StrSimTableInsert( Aig_Obj_t ** ppTable, Aig_Obj_t ** ppNexts, int nTa
   Synopsis    [Perform one round of matching.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -399,11 +399,11 @@ int Saig_StrSimDetectUnique( Aig_Man_t * p0, Aig_Man_t * p1 )
 
     // allocate the hash table hashing simulation info into nodes
     nTableSize = Abc_PrimeCudd( Aig_ManObjNum(p0)/2 );
-    ppTable = ABC_CALLOC( Aig_Obj_t *, nTableSize ); 
-    ppNexts = ABC_CALLOC( Aig_Obj_t *, Aig_ManObjNumMax(p0) ); 
-    ppCands = ABC_CALLOC( Aig_Obj_t *, Aig_ManObjNumMax(p0) ); 
+    ppTable = ABC_CALLOC( Aig_Obj_t *, nTableSize );
+    ppNexts = ABC_CALLOC( Aig_Obj_t *, Aig_ManObjNumMax(p0) );
+    ppCands = ABC_CALLOC( Aig_Obj_t *, Aig_ManObjNumMax(p0) );
 
-    // hash nodes of the first AIG 
+    // hash nodes of the first AIG
     Aig_ManForEachObj( p0, pObj, i )
     {
         if ( !Aig_ObjIsCi(pObj) && !Aig_ObjIsNode(pObj) )
@@ -467,7 +467,7 @@ int Saig_StrSimDetectUnique( Aig_Man_t * p0, Aig_Man_t * p1 )
   Synopsis    [Counts the number of matched flops.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -581,7 +581,7 @@ void Saig_StrSimSetFinalMatching( Aig_Man_t * p0, Aig_Man_t * p1 )
         if ( pObj1 == NULL )
             continue;
         CountAll++;
-        assert( pObj0 == Aig_ObjRepr( p1, pObj1 ) );        
+        assert( pObj0 == Aig_ObjRepr( p1, pObj1 ) );
         if ( Aig_ObjIsNode(pObj0) )
         {
             assert( Aig_ObjIsNode(pObj1) );
@@ -589,7 +589,7 @@ void Saig_StrSimSetFinalMatching( Aig_Man_t * p0, Aig_Man_t * p1 )
             pFanin01 = Aig_ObjFanin1(pObj0);
             pFanin10 = Aig_ObjFanin0(pObj1);
             pFanin11 = Aig_ObjFanin1(pObj1);
-            if ( Aig_ObjRepr(p0, pFanin00) != pFanin10 || 
+            if ( Aig_ObjRepr(p0, pFanin00) != pFanin10 ||
                  Aig_ObjRepr(p0, pFanin01) != pFanin11 )
             {
                 Aig_ObjSetTravIdCurrent(p0, pObj0);
@@ -614,14 +614,14 @@ void Saig_StrSimSetFinalMatching( Aig_Man_t * p0, Aig_Man_t * p1 )
         pObj1 = Aig_ObjRepr( p0, pObj0 );
         if ( pObj1 == NULL )
             continue;
-        assert( pObj0 == Aig_ObjRepr( p1, pObj1 ) );   
+        assert( pObj0 == Aig_ObjRepr( p1, pObj1 ) );
         if ( Aig_ObjIsTravIdCurrent( p0, pObj0 ) )
         {
             Aig_ObjSetRepr( p0, pObj0, NULL );
             Aig_ObjSetRepr( p1, pObj1, NULL );
         }
     }
-    printf( "Total matches = %6d.  Wrong matches = %6d.  Ratio = %5.2f %%\n", 
+    Abc_Print( 1, "Total matches = %6d.  Wrong matches = %6d.  Ratio = %5.2f %%\n",
         CountAll, CountNot, 100.0*CountNot/CountAll );
 }
 
@@ -691,7 +691,7 @@ void Saig_StrSimSetContiguousMatching( Aig_Man_t * p0, Aig_Man_t * p1 )
         if ( pObj1 == NULL )
             continue;
         CountAll++;
-        assert( pObj0 == Aig_ObjRepr( p1, pObj1 ) );   
+        assert( pObj0 == Aig_ObjRepr( p1, pObj1 ) );
         if ( !Aig_ObjIsTravIdCurrent( p0, pObj0 ) )
         {
             Aig_ObjSetRepr( p0, pObj0, NULL );
@@ -699,7 +699,7 @@ void Saig_StrSimSetContiguousMatching( Aig_Man_t * p0, Aig_Man_t * p1 )
             CountNot++;
         }
     }
-    printf( "Total matches = %6d.  Wrong matches = %6d.  Ratio = %5.2f %%\n", 
+    Abc_Print( 1, "Total matches = %6d.  Wrong matches = %6d.  Ratio = %5.2f %%\n",
         CountAll, CountNot, 100.0*CountNot/CountAll );
 }
 
@@ -753,7 +753,7 @@ void Ssw_StrSimMatchingExtendOne( Aig_Man_t * p, Vec_Ptr_t * vNodes )
                 Vec_PtrPush( vNodes, pNext );
             }
         }
-        Aig_ObjForEachFanout( p, pObj, pNext, iFan, k )  
+        Aig_ObjForEachFanout( p, pObj, pNext, iFan, k )
         {
             if ( Saig_ObjIsPo(p, pNext) )
                 continue;
@@ -815,9 +815,9 @@ void Ssw_StrSimMatchingExtend( Aig_Man_t * p0, Aig_Man_t * p1, int nDist, int fV
     if ( fVerbose )
     {
         int nUnmached = Ssw_StrSimMatchingCountUnmached(p0);
-        printf( "Extending islands by %d steps:\n", nDist );
-        printf( "%2d : Total = %6d. Unmatched = %6d.  Ratio = %6.2f %%\n",
-            0, Aig_ManCiNum(p0) + Aig_ManNodeNum(p0), 
+        Abc_Print( 1, "Extending islands by %d steps:\n", nDist );
+        Abc_Print( 1, "%2d : Total = %6d. Unmatched = %6d.  Ratio = %6.2f %%\n",
+            0, Aig_ManCiNum(p0) + Aig_ManNodeNum(p0),
             nUnmached, 100.0 * nUnmached/(Aig_ManCiNum(p0) + Aig_ManNodeNum(p0)) );
     }
     for ( d = 0; d < nDist; d++ )
@@ -849,8 +849,8 @@ void Ssw_StrSimMatchingExtend( Aig_Man_t * p0, Aig_Man_t * p1, int nDist, int fV
         if ( fVerbose )
         {
             int nUnmached = Ssw_StrSimMatchingCountUnmached(p0);
-            printf( "%2d : Total = %6d. Unmatched = %6d.  Ratio = %6.2f %%\n",
-                d+1, Aig_ManCiNum(p0) + Aig_ManNodeNum(p0), 
+            Abc_Print( 1, "%2d : Total = %6d. Unmatched = %6d.  Ratio = %6.2f %%\n",
+                d+1, Aig_ManCiNum(p0) + Aig_ManNodeNum(p0),
                 nUnmached, 100.0 * nUnmached/(Aig_ManCiNum(p0) + Aig_ManNodeNum(p0)) );
         }
     }
@@ -890,7 +890,7 @@ Vec_Int_t * Saig_StrSimPerformMatching( Aig_Man_t * p0, Aig_Man_t * p1, int nDis
         // demiter the miter
         if ( !Saig_ManDemiterSimpleDiff( p0, &pPart0, &pPart1 ) )
         {
-            printf( "Demitering has failed.\n" );
+            Abc_Print( 1, "Demitering has failed.\n" );
             return NULL;
         }
     }
@@ -910,9 +910,9 @@ Vec_Int_t * Saig_StrSimPerformMatching( Aig_Man_t * p0, Aig_Man_t * p1, int nDis
     Saig_StrSimSetInitMatching( pPart0, pPart1 );
     if ( fVerbose )
     {
-        printf( "Allocated %6.2f MB to simulate the first AIG.\n", 
+        Abc_Print( 1, "Allocated %6.2f MB to simulate the first AIG.\n",
             1.0 * Aig_ManObjNumMax(pPart0) * SAIG_WORDS * sizeof(unsigned) / (1<<20) );
-        printf( "Allocated %6.2f MB to simulate the second AIG.\n", 
+        Abc_Print( 1, "Allocated %6.2f MB to simulate the second AIG.\n",
             1.0 * Aig_ManObjNumMax(pPart1) * SAIG_WORDS * sizeof(unsigned) / (1<<20) );
     }
     // iterate matching
@@ -926,7 +926,7 @@ Vec_Int_t * Saig_StrSimPerformMatching( Aig_Man_t * p0, Aig_Man_t * p1, int nDis
         {
             int nFlops = Saig_StrSimCountMatchedFlops(pPart0);
             int nNodes = Saig_StrSimCountMatchedNodes(pPart0);
-            printf( "%3d : Match =%6d.  FF =%6d. (%6.2f %%)  Node =%6d. (%6.2f %%)  ",
+            Abc_Print( 1, "%3d : Match =%6d.  FF =%6d. (%6.2f %%)  Node =%6d. (%6.2f %%)  ",
                 i, nMatches,
                 nFlops, 100.0*nFlops/Aig_ManRegNum(pPart0),
                 nNodes, 100.0*nNodes/Aig_ManNodeNum(pPart0) );
@@ -952,7 +952,7 @@ Vec_Int_t * Saig_StrSimPerformMatching( Aig_Man_t * p0, Aig_Man_t * p1, int nDis
         pObj1 = Aig_ObjRepr(pPart0, pObj0);
         if ( pObj1 == NULL )
             continue;
-        assert( pObj0 == Aig_ObjRepr(pPart1, pObj1) );        
+        assert( pObj0 == Aig_ObjRepr(pPart1, pObj1) );
         Vec_IntPush( vPairs, pObj0->Id );
         Vec_IntPush( vPairs, pObj1->Id );
     }
@@ -974,4 +974,3 @@ Vec_Int_t * Saig_StrSimPerformMatching( Aig_Man_t * p0, Aig_Man_t * p1, int nDis
 
 
 ABC_NAMESPACE_IMPL_END
-
