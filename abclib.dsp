@@ -1983,6 +1983,10 @@ SOURCE=.\src\opt\dau\dauDsd.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\opt\dau\dauEnum.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\opt\dau\dauInt.h
 # End Source File
 # End Group
