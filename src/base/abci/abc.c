@@ -4838,6 +4838,7 @@ usage:
     Abc_Print( -2, "\t               1: algebraic factoring applied to ISOP\n" );
     Abc_Print( -2, "\t               2: bi-decomposition with cofactoring\n" );
     Abc_Print( -2, "\t               3: disjoint-support decomposition with cofactoring\n" );
+    Abc_Print( -2, "\t               4: updated disjoint-support decomposition with cofactoring\n" );
     Abc_Print( -2, "\t-N <num> : the number of support variables (binary files only) [default = unused]\n" );
     Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");

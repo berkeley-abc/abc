@@ -473,6 +473,8 @@ void Abc_TruthDecPerform( Abc_TtStore_t * p, int DecType, int fVerbose )
         pAlgoName = "bi-decomp";
     else if ( DecType == 3 )
         pAlgoName = "DSD";
+    else if ( DecType == 4 )
+        pAlgoName = "fast DSD";
 
     if ( pAlgoName )
         printf( "Applying %-10s to %8d func%s of %2d vars...  ",  
@@ -537,6 +539,24 @@ void Abc_TruthDecPerform( Abc_TtStore_t * p, int DecType, int fVerbose )
             Kit_DsdNtkFree( pNtk );
         }
     }
+    else if ( DecType == 4 )
+    {
+        extern void Dau_DsdTestOne( word t, int i );
+        if ( p->nVars != 6 )
+        {
+            printf( "Currently only works for 6 variables.\n" );
+            return;
+        }
+        // perform disjoint-support decomposition and count AIG nodes
+        // (non-DSD blocks are decomposed into 2:1 MUXes, each counting as 3 AIG nodes)
+        assert( p->nVars == 6 );
+        for ( i = 0; i < p->nFuncs; i++ )
+        {
+            if ( fVerbose )
+                printf( "%7d :      ", i );
+            Dau_DsdTestOne( *p->pFuncs[i], i );
+        }
+    }
     else assert( 0 );
 
     printf( "AIG nodes =%9d  ", nNodes );
@@ -587,7 +607,7 @@ int Abc_DecTest( char * pFileName, int DecType, int nVarNum, int fVerbose )
         printf( "Using truth tables from file \"%s\"...\n", pFileName );
     if ( DecType == 0 )
         { if ( nVarNum < 0 ) Abc_TtStoreTest( pFileName ); }
-    else if ( DecType >= 1 && DecType <= 3 )
+    else if ( DecType >= 1 && DecType <= 4 )
         Abc_TruthDecTest( pFileName, DecType, nVarNum, fVerbose );
     else
         printf( "Unknown decomposition type value (%d).\n", DecType );

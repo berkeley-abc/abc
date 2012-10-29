@@ -443,7 +443,7 @@ void Dau_DsdTestOne( word t, int i )
 {
     word t2;
     char * p = Dau_DsdPerform( t );
-//    return;
+    return;
     t2 = Dau_DsdToTruth( p ); 
     if ( t != t2 )
     {
