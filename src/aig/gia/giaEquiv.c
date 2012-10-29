@@ -200,7 +200,7 @@ int Gia_ManEquivCheckLits( Gia_Man_t * p, int nLits )
 {
     int nLitsReal = Gia_ManEquivCountLitsAll( p );
     if ( nLitsReal != nLits )
-        printf( "Detected a mismatch in counting equivalence classes (%d).\n", nLitsReal - nLits );
+        Abc_Print( 1, "Detected a mismatch in counting equivalence classes (%d).\n", nLitsReal - nLits );
     return 1;
 }
 
@@ -232,10 +232,10 @@ void Gia_ManPrintStatsClasses( Gia_Man_t * p )
     CounterX -= Gia_ManCoNum(p);
     nLits = Gia_ManCiNum(p) + Gia_ManAndNum(p) - Counter - CounterX;
 
-//    printf( "i/o/ff =%5d/%5d/%5d  ", Gia_ManPiNum(p), Gia_ManPoNum(p), Gia_ManRegNum(p) );
-//    printf( "and =%5d  ", Gia_ManAndNum(p) );
-//    printf( "lev =%3d  ", Gia_ManLevelNum(p) );
-    printf( "cst =%3d  cls =%6d  lit =%8d\n", Counter0, Counter, nLits );
+//    Abc_Print( 1, "i/o/ff =%5d/%5d/%5d  ", Gia_ManPiNum(p), Gia_ManPoNum(p), Gia_ManRegNum(p) );
+//    Abc_Print( 1, "and =%5d  ", Gia_ManAndNum(p) );
+//    Abc_Print( 1, "lev =%3d  ", Gia_ManLevelNum(p) );
+    Abc_Print( 1, "cst =%3d  cls =%6d  lit =%8d\n", Counter0, Counter, nLits );
 }
 
 /**Function*************************************************************
@@ -291,14 +291,14 @@ int Gia_ManEquivCountOne( Gia_Man_t * p, int i )
 void Gia_ManEquivPrintOne( Gia_Man_t * p, int i, int Counter )
 {
     int Ent;
-    printf( "Class %4d :  Num = %2d  {", Counter, Gia_ManEquivCountOne(p, i) );
+    Abc_Print( 1, "Class %4d :  Num = %2d  {", Counter, Gia_ManEquivCountOne(p, i) );
     Gia_ClassForEachObj( p, i, Ent )
     {
-        printf(" %d", Ent );
+        Abc_Print( 1," %d", Ent );
         if ( p->pReprs[Ent].fColorA || p->pReprs[Ent].fColorB )
-            printf(" <%d%d>", p->pReprs[Ent].fColorA, p->pReprs[Ent].fColorB );
+            Abc_Print( 1," <%d%d>", p->pReprs[Ent].fColorA, p->pReprs[Ent].fColorB );
     }
-    printf( " }\n" );
+    Abc_Print( 1, " }\n" );
 }
 void Gia_ManEquivPrintClasses( Gia_Man_t * p, int fVerbose, float Mem )
 {
@@ -316,16 +316,16 @@ void Gia_ManEquivPrintClasses( Gia_Man_t * p, int fVerbose, float Mem )
     }
     CounterX -= Gia_ManCoNum(p);
     nLits = Gia_ManCiNum(p) + Gia_ManAndNum(p) - Counter - CounterX;
-    printf( "cst =%8d  cls =%7d  lit =%8d  unused =%8d  proof =%6d  mem =%5.2f MB\n", 
+    Abc_Print( 1, "cst =%8d  cls =%7d  lit =%8d  unused =%8d  proof =%6d  mem =%5.2f MB\n",
         Counter0, Counter, nLits, CounterX, Proved, (Mem == 0.0) ? 8.0*Gia_ManObjNum(p)/(1<<20) : Mem );
     assert( Gia_ManEquivCheckLits( p, nLits ) );
     if ( fVerbose )
     {
 //        int Ent;
-        printf( "Const0 = " );
+        Abc_Print( 1, "Const0 = " );
         Gia_ManForEachConst( p, i )
-            printf( "%d ", i );
-        printf( "\n" );
+            Abc_Print( 1, "%d ", i );
+        Abc_Print( 1, "\n" );
         Counter = 0;
         Gia_ManForEachClass( p, i )
             Gia_ManEquivPrintOne( p, i, ++Counter );
@@ -334,12 +334,12 @@ void Gia_ManEquivPrintClasses( Gia_Man_t * p, int fVerbose, float Mem )
         Gia_ManForEachClass( p, i )
             if ( i % 100 == 0 )
             {
-//                printf( "%d ", Gia_ManEquivCountOne(p, i) );
+//                Abc_Print( 1, "%d ", Gia_ManEquivCountOne(p, i) );
                 Gia_ClassForEachObj( p, i, Ent )
                 {
-                    printf( "%d ", Gia_ObjLevel( p, Gia_ManObj(p, Ent) ) );
+                    Abc_Print( 1, "%d ", Gia_ObjLevel( p, Gia_ManObj(p, Ent) ) );
                 }
-                printf( "\n" );
+                Abc_Print( 1, "\n" );
             }
 */
     }
@@ -362,7 +362,7 @@ static inline Gia_Obj_t * Gia_ManEquivRepr( Gia_Man_t * p, Gia_Obj_t * pObj, int
     {
         if ( Gia_ObjRepr(p, Gia_ObjId(p,pObj)) == GIA_VOID )
             return NULL;
-    } 
+    }
     else
     {
         if ( !Gia_ObjProved(p, Gia_ObjId(p,pObj)) )
@@ -420,27 +420,27 @@ Gia_Man_t * Gia_ManEquivReduce( Gia_Man_t * p, int fUseAll, int fDualOut, int fV
     int i;
     if ( !p->pReprs )
     {
-        printf( "Gia_ManEquivReduce(): Equivalence classes are not available.\n" );
+        Abc_Print( 1, "Gia_ManEquivReduce(): Equivalence classes are not available.\n" );
         return NULL;
     }
     if ( fDualOut && (Gia_ManPoNum(p) & 1) )
     {
-        printf( "Gia_ManEquivReduce(): Dual-output miter should have even number of POs.\n" );
+        Abc_Print( 1, "Gia_ManEquivReduce(): Dual-output miter should have even number of POs.\n" );
         return NULL;
-    } 
+    }
     // check if there are any equivalences defined
     Gia_ManForEachObj( p, pObj, i )
         if ( Gia_ObjReprObj(p, i) != NULL )
             break;
     if ( i == Gia_ManObjNum(p) )
     {
-//        printf( "Gia_ManEquivReduce(): There are no equivalences to reduce.\n" );
+//        Abc_Print( 1, "Gia_ManEquivReduce(): There are no equivalences to reduce.\n" );
         return NULL;
     }
 /*
     if ( !Gia_ManCheckTopoOrder( p ) )
     {
-        printf( "Gia_ManEquivReduce(): AIG is not in a correct topological order.\n" );
+        Abc_Print( 1, "Gia_ManEquivReduce(): AIG is not in a correct topological order.\n" );
         return NULL;
     }
 */
@@ -479,7 +479,7 @@ void Gia_ManEquivFixOutputPairs( Gia_Man_t * p )
 {
     Gia_Obj_t * pObj0, * pObj1;
     int i;
-    assert( (Gia_ManPoNum(p) & 1) == 0 ); 
+    assert( (Gia_ManPoNum(p) & 1) == 0 );
     Gia_ManForEachPo( p, pObj0, i )
     {
         pObj1 = Gia_ManPo( p, ++i );
@@ -497,7 +497,7 @@ void Gia_ManEquivFixOutputPairs( Gia_Man_t * p )
   Synopsis    [Removes pointers to the unmarked nodes..]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -522,7 +522,7 @@ void Gia_ManEquivUpdatePointers( Gia_Man_t * p, Gia_Man_t * pNew )
   Synopsis    [Removes pointers to the unmarked nodes..]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -581,7 +581,7 @@ void Gia_ManEquivDeriveReprs( Gia_Man_t * p, Gia_Man_t * pNew, Gia_Man_t * pFina
   Synopsis    [Removes pointers to the unmarked nodes..]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -627,7 +627,7 @@ Gia_Man_t * Gia_ManEquivRemapDfs( Gia_Man_t * p )
   Synopsis    [Reduces AIG while remapping equivalence classes.]
 
   Description [Drops the pairs of outputs if they are proved equivalent.]
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -705,8 +705,8 @@ int Gia_ManEquivSetColors( Gia_Man_t * p, int fVerbose )
     nDiffs[1] = Gia_ManCandNum(p) - nNodes[1];
     if ( fVerbose )
     {
-        printf( "CI+AND = %7d  A = %7d  B = %7d  Ad = %7d  Bd = %7d  AB = %7d.\n", 
-            Gia_ManCandNum(p), nNodes[0], nNodes[1], nDiffs[0], nDiffs[1], 
+        Abc_Print( 1, "CI+AND = %7d  A = %7d  B = %7d  Ad = %7d  Bd = %7d  AB = %7d.\n",
+            Gia_ManCandNum(p), nNodes[0], nNodes[1], nDiffs[0], nDiffs[1],
             Gia_ManCandNum(p) - nDiffs[0] - nDiffs[1] );
     }
     return (nDiffs[0] + nDiffs[1]) / 2;
@@ -736,14 +736,14 @@ static inline void Gia_ManSpecBuild( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t 
     iLitNew = Abc_LitNotCond( pRepr->Value, Gia_ObjPhaseReal(pRepr) ^ Gia_ObjPhaseReal(pObj) );
     if ( pObj->Value != iLitNew && !Gia_ObjProved(p, Gia_ObjId(p,pObj)) )
     {
-        if ( vTrace ) 
+        if ( vTrace )
             Vec_IntPush( vTrace, 1 );
         if ( vGuide == NULL || Vec_IntEntry( vGuide, Vec_IntSize(vTrace)-1 ) )
             Vec_IntPush( vXorLits, Gia_ManHashXor(pNew, pObj->Value, iLitNew) );
     }
     else
     {
-        if ( vTrace ) 
+        if ( vTrace )
             Vec_IntPush( vTrace, 0 );
     }
     if ( fSpeculate )
@@ -814,7 +814,7 @@ Gia_Man_t * Gia_ManSpecReduceTrace( Gia_Man_t * p, Vec_Int_t * vTrace )
     int i, iLitNew;
     if ( !p->pReprs )
     {
-        printf( "Gia_ManSpecReduce(): Equivalence classes are not available.\n" );
+        Abc_Print( 1, "Gia_ManSpecReduce(): Equivalence classes are not available.\n" );
         return NULL;
     }
     Vec_IntClear( vTrace );
@@ -838,7 +838,7 @@ Gia_Man_t * Gia_ManSpecReduceTrace( Gia_Man_t * p, Vec_Int_t * vTrace )
         Gia_ManAppendCo( pNew, iLitNew );
     if ( Vec_IntSize(vXorLits) == 0 )
     {
-        printf( "Speculatively reduced model has no primary outputs.\n" );
+        Abc_Print( 1, "Speculatively reduced model has no primary outputs.\n" );
         Gia_ManAppendCo( pNew, 0 );
     }
     Gia_ManForEachRi( p, pObj, i )
@@ -871,12 +871,12 @@ Gia_Man_t * Gia_ManSpecReduce( Gia_Man_t * p, int fDualOut, int fSynthesis, int 
     Vec_Int_t * vTrace = NULL, * vGuide = NULL;
     if ( !p->pReprs )
     {
-        printf( "Gia_ManSpecReduce(): Equivalence classes are not available.\n" );
+        Abc_Print( 1, "Gia_ManSpecReduce(): Equivalence classes are not available.\n" );
         return NULL;
     }
     if ( fDualOut && (Gia_ManPoNum(p) & 1) )
     {
-        printf( "Gia_ManSpecReduce(): Dual-output miter should have even number of POs.\n" );
+        Abc_Print( 1, "Gia_ManSpecReduce(): Dual-output miter should have even number of POs.\n" );
         return NULL;
     }
     if ( fSkipSome )
@@ -912,7 +912,7 @@ Gia_Man_t * Gia_ManSpecReduce( Gia_Man_t * p, int fDualOut, int fSynthesis, int 
         Gia_ManAppendCo( pNew, iLitNew );
     if ( Vec_IntSize(vXorLits) == 0 )
     {
-        printf( "Speculatively reduced model has no primary outputs.\n" );
+        Abc_Print( 1, "Speculatively reduced model has no primary outputs.\n" );
         Gia_ManAppendCo( pNew, 0 );
     }
     Gia_ManForEachRi( p, pObj, i )
@@ -944,7 +944,7 @@ Gia_Man_t * Gia_ManSpecReduce( Gia_Man_t * p, int fDualOut, int fSynthesis, int 
   Synopsis    [Duplicates the AIG in the DFS order.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -1007,29 +1007,29 @@ Gia_Man_t * Gia_ManSpecReduceInit( Gia_Man_t * p, Abc_Cex_t * pInit, int nFrames
     int f, i, iLitNew;
     if ( !p->pReprs )
     {
-        printf( "Gia_ManSpecReduceInit(): Equivalence classes are not available.\n" );
+        Abc_Print( 1, "Gia_ManSpecReduceInit(): Equivalence classes are not available.\n" );
         return NULL;
     }
     if ( Gia_ManRegNum(p) == 0 )
     {
-        printf( "Gia_ManSpecReduceInit(): Circuit is not sequential.\n" );
+        Abc_Print( 1, "Gia_ManSpecReduceInit(): Circuit is not sequential.\n" );
         return NULL;
     }
     if ( Gia_ManRegNum(p) != pInit->nRegs )
     {
-        printf( "Gia_ManSpecReduceInit(): Mismatch in the number of registers.\n" );
+        Abc_Print( 1, "Gia_ManSpecReduceInit(): Mismatch in the number of registers.\n" );
         return NULL;
     }
     if ( fDualOut && (Gia_ManPoNum(p) & 1) )
     {
-        printf( "Gia_ManSpecReduceInit(): Dual-output miter should have even number of POs.\n" );
+        Abc_Print( 1, "Gia_ManSpecReduceInit(): Dual-output miter should have even number of POs.\n" );
         return NULL;
     }
 
 /*
     if ( !Gia_ManCheckTopoOrder( p ) )
     {
-        printf( "Gia_ManSpecReduceInit(): AIG is not in a correct topological order.\n" );
+        Abc_Print( 1, "Gia_ManSpecReduceInit(): AIG is not in a correct topological order.\n" );
         return NULL;
     }
 */
@@ -1066,7 +1066,7 @@ Gia_Man_t * Gia_ManSpecReduceInit( Gia_Man_t * p, Abc_Cex_t * pInit, int nFrames
         Gia_ManAppendCo( pNew, iLitNew );
     if ( Vec_IntSize(vXorLits) == 0 )
     {
-//        printf( "Speculatively reduced model has no primary outputs.\n" );
+//        Abc_Print( 1, "Speculatively reduced model has no primary outputs.\n" );
         Gia_ManAppendCo( pNew, 0 );
     }
     ABC_FREE( p->pCopies );
@@ -1097,7 +1097,7 @@ Gia_Man_t * Gia_ManSpecReduceInitFrames( Gia_Man_t * p, Abc_Cex_t * pInit, int n
     for ( f = 1; ; f++ )
     {
         pFrames = Gia_ManSpecReduceInit( p, pInit, f, fDualOut );
-        if ( (nMinOutputs == 0 && Gia_ManPoNum(pFrames) >= nLits/2+1) || 
+        if ( (nMinOutputs == 0 && Gia_ManPoNum(pFrames) >= nLits/2+1) ||
              (nMinOutputs != 0 && Gia_ManPoNum(pFrames) >= nMinOutputs) )
             break;
         if ( f == nFramesMax )
@@ -1111,7 +1111,7 @@ Gia_Man_t * Gia_ManSpecReduceInitFrames( Gia_Man_t * p, Abc_Cex_t * pInit, int n
         pFrames = NULL;
     }
     if ( f == nFramesMax )
-        printf( "Stopped unrolling after %d frames.\n", nFramesMax );
+        Abc_Print( 1, "Stopped unrolling after %d frames.\n", nFramesMax );
     if ( pnFrames )
         *pnFrames = f;
     return pFrames;
@@ -1174,7 +1174,7 @@ void Gia_ManEquivTransform( Gia_Man_t * p, int fVerbose )
     Vec_IntFree( vClass );
     Vec_IntFree( vClassNew );
     if ( fVerbose )
-    printf( "Removed classes = %6d (out of %6d). Removed literals = %6d (out of %6d).\n", 
+    Abc_Print( 1, "Removed classes = %6d (out of %6d). Removed literals = %6d (out of %6d).\n",
         nRemovedClas, nTotalClas, nRemovedLits, nTotalLits );
 }
 
@@ -1198,14 +1198,14 @@ void Gia_ManEquivMark( Gia_Man_t * p, char * pFileName, int fSkipSome, int fVerb
     nLitsAll = Gia_ManEquivCountLitsAll( p );
     if ( nLitsAll == 0 )
     {
-        printf( "Gia_ManEquivMark(): Current AIG does not have equivalences.\n" );
+        Abc_Print( 1, "Gia_ManEquivMark(): Current AIG does not have equivalences.\n" );
         return;
     }
     // read AIGER file
     pMiter = Gia_ReadAiger( pFileName, 0, 0 );
     if ( pMiter == NULL )
     {
-        printf( "Gia_ManEquivMark(): Input file %s could not be read.\n", pFileName );
+        Abc_Print( 1, "Gia_ManEquivMark(): Input file %s could not be read.\n", pFileName );
         return;
     }
     if ( fSkipSome )
@@ -1222,7 +1222,7 @@ void Gia_ManEquivMark( Gia_Man_t * p, char * pFileName, int fSkipSome, int fVerb
         // check the number
         if ( Gia_ManPoNum(pMiter) != Gia_ManPoNum(p) + nAddPos )
         {
-            printf( "Gia_ManEquivMark(): The number of POs is not correct: MiterPONum(%d) != AIGPONum(%d) + AIGFilteredEquivNum(%d).\n", 
+            Abc_Print( 1, "Gia_ManEquivMark(): The number of POs is not correct: MiterPONum(%d) != AIGPONum(%d) + AIGFilteredEquivNum(%d).\n",
                 Gia_ManPoNum(pMiter), Gia_ManPoNum(p), nAddPos );
             Gia_ManStop( pMiter );
             Vec_IntFreeP( &vTrace );
@@ -1251,7 +1251,7 @@ void Gia_ManEquivMark( Gia_Man_t * p, char * pFileName, int fSkipSome, int fVerb
     {
         if ( Gia_ManPoNum(pMiter) != Gia_ManPoNum(p) + nLitsAll )
         {
-            printf( "Gia_ManEquivMark(): The number of POs is not correct: MiterPONum(%d) != AIGPONum(%d) + AIGEquivNum(%d).\n", 
+            Abc_Print( 1, "Gia_ManEquivMark(): The number of POs is not correct: MiterPONum(%d) != AIGPONum(%d) + AIGEquivNum(%d).\n",
                 Gia_ManPoNum(pMiter), Gia_ManPoNum(p), nLitsAll );
             Gia_ManStop( pMiter );
             return;
@@ -1272,7 +1272,7 @@ void Gia_ManEquivMark( Gia_Man_t * p, char * pFileName, int fSkipSome, int fVerb
         assert( nLits == nLitsAll );
     }
     if ( fVerbose )
-        printf( "Set %d equivalences as proved.\n", Counter );
+        Abc_Print( 1, "Set %d equivalences as proved.\n", Counter );
     Gia_ManStop( pMiter );
 }
 
@@ -1319,7 +1319,7 @@ void Gia_ManEquivImprove( Gia_Man_t * p )
         if ( i == iReprBest )
             continue;
 /*
-        printf( "Repr/Best = %6d/%6d. Lev = %3d/%3d. Mffc = %3d/%3d.\n", 
+        Abc_Print( 1, "Repr/Best = %6d/%6d. Lev = %3d/%3d. Mffc = %3d/%3d.\n", 
             i, iReprBest, Gia_ObjLevel( p,Gia_ManObj(p, i) ), Gia_ObjLevel( p,Gia_ManObj(p, iReprBest) ),
             Gia_NodeMffcSize( p, Gia_ManObj(p, i) ), Gia_NodeMffcSize( p, Gia_ManObj(p, iReprBest) ) );
 */
@@ -1405,7 +1405,7 @@ int Gia_ObjCheckTfi( Gia_Man_t * p, Gia_Obj_t * pOld, Gia_Obj_t * pNode )
   Synopsis    [Adds the next entry while making choices.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -1426,7 +1426,7 @@ void Gia_ManAddNextEntry_rec( Gia_Man_t * p, Gia_Obj_t * pOld, Gia_Obj_t * pNode
   Synopsis    [Duplicates the AIG in the DFS order.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -1471,7 +1471,7 @@ void Gia_ManEquivToChoices_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pOb
         {
             assert( Gia_ObjNext(pNew, Gia_ObjId(pNew, pObjNew)) == 0 );
             Gia_ObjSetRepr( pNew, Gia_ObjId(pNew, pObjNew), Gia_ObjId(pNew, pReprNew) );
-            Gia_ManAddNextEntry_rec( pNew, pReprNew, pObjNew ); 
+            Gia_ManAddNextEntry_rec( pNew, pReprNew, pObjNew );
         }
         pObj->Value = Abc_LitNotCond( pRepr->Value, Gia_ObjPhaseReal(pRepr) ^ Gia_ObjPhaseReal(pObj) );
         return;
@@ -1516,18 +1516,18 @@ void Gia_ManRemoveBadChoices( Gia_Man_t * p )
         {
             if ( !Gia_ManObj(p, iObj)->fMark0 )
             {
-                iPrev = iObj; 
+                iPrev = iObj;
                 continue;
             }
             Gia_ObjSetRepr( p, iObj, GIA_VOID );
             Gia_ObjSetNext( p, iPrev, Gia_ObjNext(p, iObj) );
             Gia_ObjSetNext( p, iObj, 0 );
             Counter++;
-        } 
+        }
     }
     // remove the marks
     Gia_ManCleanMark0( p );
-//    printf( "Removed %d bad choices.\n", Counter );
+//    Abc_Print( 1, "Removed %d bad choices.\n", Counter );
 }
 
 /**Function*************************************************************
@@ -1660,7 +1660,7 @@ int Gia_CommandSpecI( Gia_Man_t * pGia, int nFramesInit, int nBTLimitInit, int f
     int nIter, nStart = 0;
     if ( pGia->pReprs == NULL || pGia->pNexts == NULL )
     {
-        printf( "Gia_CommandSpecI(): Equivalence classes are not defined.\n" );
+        Abc_Print( 1, "Gia_CommandSpecI(): Equivalence classes are not defined.\n" );
         return 0;
     }
     // (spech)*  where spech = &srm; restore save3; bmc2 -F 100 -C 25000; &resim
@@ -1670,12 +1670,12 @@ int Gia_CommandSpecI( Gia_Man_t * pGia, int nFramesInit, int nBTLimitInit, int f
     {
         if ( Gia_ManHasNoEquivs(pGia) )
         {
-            printf( "Gia_CommandSpecI: No equivalences left.\n" );
+            Abc_Print( 1, "Gia_CommandSpecI: No equivalences left.\n" );
             break;
         }
-        printf( "ITER %3d : ", nIter );
+        Abc_Print( 1, "ITER %3d : ", nIter );
 //      if ( fVerbose )
-//            printf( "Starting BMC from frame %d.\n", nStart );
+//            Abc_Print( 1, "Starting BMC from frame %d.\n", nStart );
 //      if ( fVerbose )
 //            Gia_ManPrintStats( pGia, 0 );
             Gia_ManPrintStatsClasses( pGia );
@@ -1683,10 +1683,10 @@ int Gia_CommandSpecI( Gia_Man_t * pGia, int nFramesInit, int nBTLimitInit, int f
 //        if ( Gia_ManPoNum(pSrm) <= Gia_ManPoNum(pGia) )
         if ( !Cec_ManCheckNonTrivialCands(pGia) )
         {
-            printf( "Gia_CommandSpecI: There are only trivial equiv candidates left (PO drivers). Quitting.\n" );
+            Abc_Print( 1, "Gia_CommandSpecI: There are only trivial equiv candidates left (PO drivers). Quitting.\n" );
             break;
         }
-        pSrm = Gia_ManSpecReduce( pGia, 0, 0, 1, 0, 0 ); 
+        pSrm = Gia_ManSpecReduce( pGia, 0, 0, 1, 0, 0 );
         // bmc2 -F 100 -C 25000
         {
             Abc_Cex_t * pCex;
@@ -1702,10 +1702,10 @@ int Gia_CommandSpecI( Gia_Man_t * pGia, int nFramesInit, int nBTLimitInit, int f
             Aig_ManStop( pTemp );
             if ( pCex == NULL )
             {
-                printf( "Gia_CommandSpecI(): Internal BMC could not find a counter-example.\n" );
+                Abc_Print( 1, "Gia_CommandSpecI(): Internal BMC could not find a counter-example.\n" );
                 break;
             }
-            if ( fStart ) 
+            if ( fStart )
                 nStart = pCex->iFrame;
             // perform simulation
             {
@@ -1719,7 +1719,7 @@ int Gia_CommandSpecI( Gia_Man_t * pGia, int nFramesInit, int nBTLimitInit, int f
                 }
                 ABC_FREE( pCex );
             }
-        } 
+        }
         // write equivalence classes
         Gia_WriteAiger( pGia, "gore.aig", 0, 0 );
         // reduce the model
@@ -1729,7 +1729,7 @@ int Gia_CommandSpecI( Gia_Man_t * pGia, int nFramesInit, int nBTLimitInit, int f
             pReduce = Gia_ManSeqStructSweep( pAux = pReduce, 1, 1, 0 );
             Gia_ManStop( pAux );
             Gia_WriteAiger( pReduce, "gsrm.aig", 0, 0 );
-//            printf( "Speculatively reduced model was written into file \"%s\".\n", "gsrm.aig" );
+//            Abc_Print( 1, "Speculatively reduced model was written into file \"%s\".\n", "gsrm.aig" );
 //          Gia_ManPrintStatsShort( pReduce );
             Gia_ManStop( pReduce );
         }
@@ -1758,20 +1758,20 @@ int Gia_ManFilterEquivsForSpeculation( Gia_Man_t * pGia, char * pName1, char * p
     int i, iObj, iNext, Counter = 0;
     if ( pGia->pReprs == NULL || pGia->pNexts == NULL )
     {
-        printf( "Equivalences are not defined.\n" );
+        Abc_Print( 1, "Equivalences are not defined.\n" );
         return 0;
     }
     pGia1 = Gia_ReadAiger( pName1, 0, 0 );
     if ( pGia1 == NULL )
     {
-        printf( "Cannot read first file %s.\n", pName1 );
+        Abc_Print( 1, "Cannot read first file %s.\n", pName1 );
         return 0;
     }
     pGia2 = Gia_ReadAiger( pName2, 0, 0 );
     if ( pGia2 == NULL )
     {
         Gia_ManStop( pGia2 );
-        printf( "Cannot read second file %s.\n", pName2 );
+        Abc_Print( 1, "Cannot read second file %s.\n", pName2 );
         return 0;
     }
     pMiter = Gia_ManMiter( pGia1, pGia2, 0, 1, 0 );
@@ -1779,7 +1779,7 @@ int Gia_ManFilterEquivsForSpeculation( Gia_Man_t * pGia, char * pName1, char * p
     {
         Gia_ManStop( pGia1 );
         Gia_ManStop( pGia2 );
-        printf( "Cannot create sequential miter.\n" );
+        Abc_Print( 1, "Cannot create sequential miter.\n" );
         return 0;
     }
     // make sure the miter is isomorphic
@@ -1788,7 +1788,7 @@ int Gia_ManFilterEquivsForSpeculation( Gia_Man_t * pGia, char * pName1, char * p
         Gia_ManStop( pGia1 );
         Gia_ManStop( pGia2 );
         Gia_ManStop( pMiter );
-        printf( "The number of objects in different.\n" );
+        Abc_Print( 1, "The number of objects in different.\n" );
         return 0;
     }
     if ( memcmp( pGia->pObjs, pMiter->pObjs, sizeof(Gia_Obj_t) *  Gia_ManObjNum(pGia) ) )
@@ -1796,7 +1796,7 @@ int Gia_ManFilterEquivsForSpeculation( Gia_Man_t * pGia, char * pName1, char * p
         Gia_ManStop( pGia1 );
         Gia_ManStop( pGia2 );
         Gia_ManStop( pMiter );
-        printf( "The AIG structure of the miter does not match.\n" );
+        Abc_Print( 1, "The AIG structure of the miter does not match.\n" );
         return 0;
     }
     // transfer copies
@@ -1846,7 +1846,7 @@ int Gia_ManFilterEquivsForSpeculation( Gia_Man_t * pGia, char * pName1, char * p
             }
         }
         // undo equivalence classes
-        for ( iObj = i, iNext = Gia_ObjNext(pGia, iObj); iObj; 
+        for ( iObj = i, iNext = Gia_ObjNext(pGia, iObj); iObj;
               iObj = iNext, iNext = Gia_ObjNext(pGia, iObj) )
         {
             Gia_ObjUnsetRepr( pGia, iObj );
@@ -1868,7 +1868,7 @@ int Gia_ManFilterEquivsForSpeculation( Gia_Man_t * pGia, char * pName1, char * p
             assert( Gia_ObjIsHead(pGia, ClassA) );
         }
     }
-    printf( "The number of two-node classes after filtering = %d.\n", Counter );
+    Abc_Print( 1, "The number of two-node classes after filtering = %d.\n", Counter );
 //Gia_ManEquivPrintClasses( pGia, 1, 0 );
 
     Gia_ManCleanMark0( pGia );
@@ -1897,20 +1897,20 @@ int Gia_ManFilterEquivsUsingParts( Gia_Man_t * pGia, char * pName1, char * pName
     int iLitsOld, iLitsNew;
     if ( pGia->pReprs == NULL || pGia->pNexts == NULL )
     {
-        printf( "Equivalences are not defined.\n" );
+        Abc_Print( 1, "Equivalences are not defined.\n" );
         return 0;
     }
     pGia1 = Gia_ReadAiger( pName1, 0, 0 );
     if ( pGia1 == NULL )
     {
-        printf( "Cannot read first file %s.\n", pName1 );
+        Abc_Print( 1, "Cannot read first file %s.\n", pName1 );
         return 0;
     }
     pGia2 = Gia_ReadAiger( pName2, 0, 0 );
     if ( pGia2 == NULL )
     {
         Gia_ManStop( pGia2 );
-        printf( "Cannot read second file %s.\n", pName2 );
+        Abc_Print( 1, "Cannot read second file %s.\n", pName2 );
         return 0;
     }
     pMiter = Gia_ManMiter( pGia1, pGia2, 0, 1, 0 );
@@ -1918,7 +1918,7 @@ int Gia_ManFilterEquivsUsingParts( Gia_Man_t * pGia, char * pName1, char * pName
     {
         Gia_ManStop( pGia1 );
         Gia_ManStop( pGia2 );
-        printf( "Cannot create sequential miter.\n" );
+        Abc_Print( 1, "Cannot create sequential miter.\n" );
         return 0;
     }
     // make sure the miter is isomorphic
@@ -1927,7 +1927,7 @@ int Gia_ManFilterEquivsUsingParts( Gia_Man_t * pGia, char * pName1, char * pName
         Gia_ManStop( pGia1 );
         Gia_ManStop( pGia2 );
         Gia_ManStop( pMiter );
-        printf( "The number of objects in different.\n" );
+        Abc_Print( 1, "The number of objects in different.\n" );
         return 0;
     }
     if ( memcmp( pGia->pObjs, pMiter->pObjs, sizeof(Gia_Obj_t) *  Gia_ManObjNum(pGia) ) )
@@ -1935,7 +1935,7 @@ int Gia_ManFilterEquivsUsingParts( Gia_Man_t * pGia, char * pName1, char * pName
         Gia_ManStop( pGia1 );
         Gia_ManStop( pGia2 );
         Gia_ManStop( pMiter );
-        printf( "The AIG structure of the miter does not match.\n" );
+        Abc_Print( 1, "The AIG structure of the miter does not match.\n" );
         return 0;
     }
     // transfer copies
@@ -1995,7 +1995,7 @@ int Gia_ManFilterEquivsUsingParts( Gia_Man_t * pGia, char * pName1, char * pName
         }
         iLitsOld--;
         // undo equivalence classes
-        for ( iObj = i, iNext = Gia_ObjNext(pGia, iObj); iObj; 
+        for ( iObj = i, iNext = Gia_ObjNext(pGia, iObj); iObj;
               iObj = iNext, iNext = Gia_ObjNext(pGia, iObj) )
         {
             Gia_ObjUnsetRepr( pGia, iObj );
@@ -2017,7 +2017,7 @@ int Gia_ManFilterEquivsUsingParts( Gia_Man_t * pGia, char * pName1, char * pName
         }
     }
     Vec_IntFree( vNodes );
-    printf( "The number of literals: Before = %d. After = %d.\n", iLitsOld, iLitsNew );
+    Abc_Print( 1, "The number of literals: Before = %d. After = %d.\n", iLitsOld, iLitsNew );
 //Gia_ManEquivPrintClasses( pGia, 1, 0 );
 
     Gia_ManCleanMark0( pGia );
@@ -2050,7 +2050,7 @@ void Gia_ManFilterEquivsUsingLatches( Gia_Man_t * pGia, int fFlopsOnly, int fFlo
         iLitsOld++;
         pObj = Gia_ManObj( pGia, i );
         assert( pGia->pNexts[i] == 0 );
-        if ( !Gia_ObjIsRo(pGia, pObj) ) 
+        if ( !Gia_ObjIsRo(pGia, pObj) )
             Gia_ObjUnsetRepr( pGia, i );
         else
             iLitsNew++;
@@ -2070,7 +2070,7 @@ void Gia_ManFilterEquivsUsingLatches( Gia_Man_t * pGia, int fFlopsOnly, int fFlo
             }
             iLitsOld--;
             // undo equivalence classes
-            for ( iObj = i, iNext = Gia_ObjNext(pGia, iObj); iObj; 
+            for ( iObj = i, iNext = Gia_ObjNext(pGia, iObj); iObj;
                   iObj = iNext, iNext = Gia_ObjNext(pGia, iObj) )
             {
                 Gia_ObjUnsetRepr( pGia, iObj );
@@ -2110,7 +2110,7 @@ void Gia_ManFilterEquivsUsingLatches( Gia_Man_t * pGia, int fFlopsOnly, int fFlo
             if ( fSeenFlop )
                 continue;
             // undo equivalence classes
-            for ( iObj = i, iNext = Gia_ObjNext(pGia, iObj); iObj; 
+            for ( iObj = i, iNext = Gia_ObjNext(pGia, iObj); iObj;
                   iObj = iNext, iNext = Gia_ObjNext(pGia, iObj) )
             {
                 Gia_ObjUnsetRepr( pGia, iObj );
@@ -2122,7 +2122,7 @@ void Gia_ManFilterEquivsUsingLatches( Gia_Man_t * pGia, int fFlopsOnly, int fFlo
         }
     }
     Vec_IntFree( vNodes );
-    printf( "The number of literals: Before = %d. After = %d.\n", iLitsOld, iLitsNew );
+    Abc_Print( 1, "The number of literals: Before = %d. After = %d.\n", iLitsOld, iLitsNew );
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -2131,4 +2131,3 @@ void Gia_ManFilterEquivsUsingLatches( Gia_Man_t * pGia, int fFlopsOnly, int fFlo
 
 
 ABC_NAMESPACE_IMPL_END
-
