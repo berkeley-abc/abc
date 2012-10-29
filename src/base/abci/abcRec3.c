@@ -795,15 +795,13 @@ static inline int If_CutComputeDelay( If_Man_t * p, If_Cut_t * pCut, char * pCan
 static inline int If_CutFindBestStruct( If_Man_t * pIfMan, If_Cut_t * pCut, char * pCanonPerm, unsigned * puCanonPhase, int * pBestPo )
 {
     Lms_Man_t * p = s_pMan3;
-    int i, nLeaves, * pTruthId, iFirstPo, iFirstPoNext, iBestPo;
+    int i, * pTruthId, iFirstPo, iFirstPoNext, iBestPo;
     int BestDelay = ABC_INFINITY, BestArea = ABC_INFINITY, Delay, Area;
+    int nLeaves = If_CutLeaveNum( pCut );
     clock_t clk;
 
     // semicanonicize the function
 clk = clock();
-    nLeaves = If_CutLeaveNum( pCut );
-    for ( i = 0; i < Abc_MaxInt(nLeaves, 6); i++ )
-        pCanonPerm[i] = i;
     memcpy( p->pTemp1, If_CutTruthW(pCut), p->nWords * sizeof(word) );
 //    uCanonPhase = luckyCanonicizer_final_fast( p->pTemp1, nLeaves, pCanonPerm );
     *puCanonPhase = Kit_TruthSemiCanonicize( (unsigned *)p->pTemp1, (unsigned *)p->pTemp2, nLeaves, pCanonPerm );
