@@ -60,10 +60,10 @@ Aig_Obj_t * Ssw_BmcUnroll_rec( Ssw_Frm_t * pFrm, Aig_Obj_t * pObj, int f )
     {
         if ( f == 0 )
             pRes = Aig_ManConst0( pFrm->pFrames );
-        else 
+        else
             pRes = Ssw_BmcUnroll_rec( pFrm, Saig_ObjLoToLi(pFrm->pAig, pObj), f-1 );
     }
-    else 
+    else
     {
         assert( Aig_ObjIsNode(pObj) );
         Ssw_BmcUnroll_rec( pFrm, Aig_ObjFanin0(pObj), f );
@@ -81,7 +81,7 @@ Aig_Obj_t * Ssw_BmcUnroll_rec( Ssw_Frm_t * pFrm, Aig_Obj_t * pObj, int f )
   Synopsis    [Derives counter-example.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -140,7 +140,7 @@ int Ssw_BmcDynamic( Aig_Man_t * pAig, int nFramesMax, int nConfLimit, int fVerbo
     // report statistics
     if ( fVerbose )
     {
-        printf( "AIG:  PI/PO/Reg = %d/%d/%d.  Node = %6d. Lev = %5d.\n", 
+        Abc_Print( 1, "AIG:  PI/PO/Reg = %d/%d/%d.  Node = %6d. Lev = %5d.\n",
             Saig_ManPiNum(pAig), Saig_ManPoNum(pAig), Saig_ManRegNum(pAig),
             Aig_ManNodeNum(pAig), Aig_ManLevelNum(pAig) );
         fflush( stdout );
@@ -162,7 +162,7 @@ int Ssw_BmcDynamic( Aig_Man_t * pAig, int nFramesMax, int nConfLimit, int fVerbo
             Lit = toLitCond( Ssw_ObjSatNum(pSat,pObjFrame), Aig_IsComplement(pObjFrame) );
             if ( fVerbose )
             {
-                printf( "Solving output %2d of frame %3d ... \r", 
+                Abc_Print( 1, "Solving output %2d of frame %3d ... \r",
                     i % Saig_ManPoNum(pAig), i / Saig_ManPoNum(pAig) );
             }
             status = sat_solver_solve( pSat->pSat, &Lit, &Lit + 1, (ABC_INT64_T)nConfLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
@@ -199,9 +199,9 @@ int Ssw_BmcDynamic( Aig_Man_t * pAig, int nFramesMax, int nConfLimit, int fVerbo
         }
         if ( fVerbose )
         {
-            printf( "Solved %2d outputs of frame %3d.  ", Saig_ManPoNum(pAig), f );
-            printf( "Conf =%8.0f. Var =%8d. AIG=%9d. ", 
-                (double)pSat->pSat->stats.conflicts, 
+            Abc_Print( 1, "Solved %2d outputs of frame %3d.  ", Saig_ManPoNum(pAig), f );
+            Abc_Print( 1, "Conf =%8.0f. Var =%8d. AIG=%9d. ",
+                (double)pSat->pSat->stats.conflicts,
                 pSat->nSatVars, Aig_ManNodeNum(pFrm->pFrames) );
             ABC_PRT( "T", clock() - clkPart );
             clkPart = clock();
@@ -222,4 +222,3 @@ int Ssw_BmcDynamic( Aig_Man_t * pAig, int nFramesMax, int nConfLimit, int fVerbo
 
 
 ABC_NAMESPACE_IMPL_END
-

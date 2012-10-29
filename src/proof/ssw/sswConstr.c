@@ -77,32 +77,32 @@ Aig_Man_t * Ssw_FramesWithConstraints( Aig_Man_t * p, int nFrames )
                 continue;
             Aig_ObjCreateCo( pFrames, Aig_Not( Aig_ObjCopy(pObj) ) );
         }
-        // transfer latch inputs to the latch outputs 
+        // transfer latch inputs to the latch outputs
         Saig_ManForEachLiLo( p, pObjLi, pObjLo, i )
             Aig_ObjSetCopy( pObjLo, Aig_ObjCopy(pObjLi) );
     }
     // remove dangling nodes
     Aig_ManCleanup( pFrames );
-    return pFrames; 
-} 
+    return pFrames;
+}
 
 /**Function*************************************************************
 
   Synopsis    [Finds one satisfiable assignment of the timeframes.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
 int Ssw_ManSetConstrPhases( Aig_Man_t * p, int nFrames, Vec_Int_t ** pvInits )
-{ 
+{
     Aig_Man_t * pFrames;
     sat_solver * pSat;
     Cnf_Dat_t * pCnf;
-    Aig_Obj_t * pObj; 
+    Aig_Obj_t * pObj;
     int i, RetValue;
     if ( pvInits )
         *pvInits = NULL;
@@ -110,7 +110,7 @@ int Ssw_ManSetConstrPhases( Aig_Man_t * p, int nFrames, Vec_Int_t ** pvInits )
     // derive the timeframes
     pFrames = Ssw_FramesWithConstraints( p, nFrames );
     // create CNF
-    pCnf = Cnf_Derive( pFrames, 0 );  
+    pCnf = Cnf_Derive( pFrames, 0 );
     // create SAT solver
     pSat = (sat_solver *)Cnf_DataWriteIntoSolver( pCnf, 1, 0 );
     if ( pSat == NULL )
@@ -120,7 +120,7 @@ int Ssw_ManSetConstrPhases( Aig_Man_t * p, int nFrames, Vec_Int_t ** pvInits )
         return 1;
     }
     // solve
-    RetValue = sat_solver_solve( pSat, NULL, NULL, 
+    RetValue = sat_solver_solve( pSat, NULL, NULL,
         (ABC_INT64_T)1000000, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
     if ( RetValue == l_True && pvInits )
     {
@@ -129,8 +129,8 @@ int Ssw_ManSetConstrPhases( Aig_Man_t * p, int nFrames, Vec_Int_t ** pvInits )
             Vec_IntPush( *pvInits, sat_solver_var_value(pSat, pCnf->pVarNums[Aig_ObjId(pObj)]) );
 
 //        Aig_ManForEachCi( pFrames, pObj, i )
-//            printf( "%d", Vec_IntEntry(*pvInits, i) );
-//        printf( "\n" );
+//            Abc_Print( 1, "%d", Vec_IntEntry(*pvInits, i) );
+//        Abc_Print( 1, "\n" );
     }
     sat_solver_delete( pSat );
     Cnf_DataFree( pCnf );
@@ -154,19 +154,19 @@ int Ssw_ManSetConstrPhases( Aig_Man_t * p, int nFrames, Vec_Int_t ** pvInits )
 
 ***********************************************************************/
 int Ssw_ManSetConstrPhases_( Aig_Man_t * p, int nFrames, Vec_Int_t ** pvInits )
-{ 
+{
     Vec_Int_t * vLits;
     sat_solver * pSat;
     Cnf_Dat_t * pCnf;
-    Aig_Obj_t * pObj; 
+    Aig_Obj_t * pObj;
     int i, f, iVar, RetValue, nRegs;
     if ( pvInits )
         *pvInits = NULL;
     assert( p->nConstrs > 0 );
     // create CNF
     nRegs = p->nRegs; p->nRegs = 0;
-    pCnf = Cnf_Derive( p, Aig_ManCoNum(p) );  
-    p->nRegs = nRegs;  
+    pCnf = Cnf_Derive( p, Aig_ManCoNum(p) );
+    p->nRegs = nRegs;
     // create SAT solver
     pSat = (sat_solver *)Cnf_DataWriteIntoSolver( pCnf, nFrames, 0 );
     assert( pSat->size == nFrames * pCnf->nVars );
@@ -188,8 +188,8 @@ int Ssw_ManSetConstrPhases_( Aig_Man_t * p, int nFrames, Vec_Int_t ** pvInits )
             Vec_IntPush( vLits, toLitCond(iVar, 1) );
         }
     }
-    RetValue = sat_solver_solve( pSat, (int *)Vec_IntArray(vLits), 
-        (int *)Vec_IntArray(vLits) + Vec_IntSize(vLits), 
+    RetValue = sat_solver_solve( pSat, (int *)Vec_IntArray(vLits),
+        (int *)Vec_IntArray(vLits) + Vec_IntSize(vLits),
         (ABC_INT64_T)1000000, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
     if ( RetValue == l_True && pvInits )
     {
@@ -225,12 +225,12 @@ int Ssw_ManSetConstrPhases_( Aig_Man_t * p, int nFrames, Vec_Int_t ** pvInits )
 
 ***********************************************************************/
 void Ssw_ManPrintPolarity( Aig_Man_t * p )
-{ 
+{
     Aig_Obj_t * pObj;
     int i;
     Aig_ManForEachObj( p, pObj, i )
-        printf( "%d", pObj->fPhase );
-    printf( "\n" );
+        Abc_Print( 1, "%d", pObj->fPhase );
+    Abc_Print( 1, "\n" );
 }
 
 /**Function*************************************************************
@@ -245,7 +245,7 @@ void Ssw_ManPrintPolarity( Aig_Man_t * p )
 
 ***********************************************************************/
 void Ssw_ManRefineByConstrSim( Ssw_Man_t * p )
-{ 
+{
     Aig_Obj_t * pObj, * pObjLi;
     int f, i, iLits, RetValue1, RetValue2;
     int nFrames = Vec_IntSize(p->vInits) / Saig_ManPiNum(p->pAig);
@@ -276,12 +276,12 @@ void Ssw_ManRefineByConstrSim( Ssw_Man_t * p )
             if ( i < Saig_ManPoNum(p->pAig) - Saig_ManConstrNum(p->pAig) )
             {
                 if ( pObj->fMarkB )
-                    printf( "output %d failed in frame %d.\n", i, f );
+                    Abc_Print( 1, "output %d failed in frame %d.\n", i, f );
             }
             else
             {
                 if ( pObj->fMarkB )
-                    printf( "constraint %d failed in frame %d.\n", i, f );
+                    Abc_Print( 1, "constraint %d failed in frame %d.\n", i, f );
             }
         }
         // transfer
@@ -312,7 +312,7 @@ void Ssw_ManRefineByConstrSim( Ssw_Man_t * p )
 
 ***********************************************************************/
 int Ssw_ManSweepNodeConstr( Ssw_Man_t * p, Aig_Obj_t * pObj, int f, int fBmc )
-{ 
+{
     Aig_Obj_t * pObjRepr, * pObjFraig, * pObjFraig2, * pObjReprFraig;
     int RetValue;
     // get representative of this class
@@ -328,7 +328,7 @@ int Ssw_ManSweepNodeConstr( Ssw_Man_t * p, Aig_Obj_t * pObj, int f, int fBmc )
     assert( (pObj->fPhase == pObjRepr->fPhase) == (Aig_ObjPhaseReal(pObjFraig) == Aig_ObjPhaseReal(pObjReprFraig)) );
     // if the fraiged nodes are the same, return
     if ( Aig_Regular(pObjFraig) == Aig_Regular(pObjReprFraig) )
-        return 0; 
+        return 0;
     // call equivalence checking
     if ( Aig_Regular(pObjFraig) != Aig_ManConst1(p->pFrames) )
         RetValue = Ssw_NodesAreEquiv( p, Aig_Regular(pObjReprFraig), Aig_Regular(pObjFraig) );
@@ -351,7 +351,7 @@ int Ssw_ManSweepNodeConstr( Ssw_Man_t * p, Aig_Obj_t * pObj, int f, int fBmc )
     assert( Aig_ObjRepr( p->pAig, pObj ) != pObjRepr );
     if ( Aig_ObjRepr( p->pAig, pObj ) == pObjRepr )
     {
-        printf( "Ssw_ManSweepNodeConstr(): Failed to refine representative.\n" );
+        Abc_Print( 1, "Ssw_ManSweepNodeConstr(): Failed to refine representative.\n" );
     }
     return 1;
 }
@@ -398,7 +398,7 @@ Aig_Obj_t * Ssw_ManSweepBmcConstr_rec( Ssw_Man_t * p, Aig_Obj_t * pObj, int f )
   Synopsis    [Performs fraiging for the internal nodes.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -464,7 +464,7 @@ clk = clock();
         // quit if this is the last timeframe
         if ( f == p->pPars->nFramesK - 1 )
             break;
-        // transfer latch input to the latch outputs 
+        // transfer latch input to the latch outputs
         Aig_ManForEachCo( p->pAig, pObj, i )
             Ssw_ObjSetFrame( p, pObj, f, Ssw_ObjChild0Fra(p, pObj, f) );
         // build logic cones for register outputs
@@ -489,7 +489,7 @@ p->timeBmc += clock() - clk;
   Synopsis    [Performs fraiging for the internal nodes.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -545,7 +545,7 @@ clk = clock();
         // quit if this is the last timeframe
         if ( f == p->pPars->nFramesK - 1 )
             break;
-        // transfer latch input to the latch outputs 
+        // transfer latch input to the latch outputs
         Aig_ManForEachCo( p->pAig, pObj, i )
             Ssw_ObjSetFrame( p, pObj, f, Ssw_ObjChild0Fra(p, pObj, f) );
         // build logic cones for register outputs
@@ -572,7 +572,7 @@ p->timeBmc += clock() - clk;
   Synopsis    [Performs fraiging for the internal nodes.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -610,14 +610,14 @@ Aig_Obj_t * Ssw_FramesWithClasses_rec( Ssw_Man_t * p, Aig_Obj_t * pObj, int f )
   Synopsis    [Performs fraiging for the internal nodes.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
 int Ssw_ManSweepConstr( Ssw_Man_t * p )
-{ 
+{
     Bar_Progress_t * pProgress = NULL;
     Aig_Obj_t * pObj, * pObj2, * pObjNew;
     int nConstrPairs, i, f, iLits;
@@ -672,7 +672,7 @@ p->timeReduce += clock() - clk;
             assert( Ssw_ObjChild0Fra(p,pObj,f) != Aig_ManConst1(p->pFrames) );
             if ( Ssw_ObjChild0Fra(p,pObj,f) == Aig_ManConst1(p->pFrames) )
             {
-                printf( "Polarity violation.\n" );
+                Abc_Print( 1, "Polarity violation.\n" );
                 continue;
             }
             Ssw_NodesAreConstrained( p, Ssw_ObjChild0Fra(p,pObj,f), Aig_ManConst0(p->pFrames) );
@@ -695,7 +695,7 @@ p->timeReduce += clock() - clk;
         if ( Saig_ObjIsLo(p->pAig, pObj) )
             p->fRefined |= Ssw_ManSweepNodeConstr( p, pObj, f, 0 );
         else if ( Aig_ObjIsNode(pObj) )
-        { 
+        {
             pObjNew = Aig_And( p->pFrames, Ssw_ObjChild0Fra(p, pObj, f), Ssw_ObjChild1Fra(p, pObj, f) );
             Ssw_ObjSetFrame( p, pObj, f, pObjNew );
             p->fRefined |= Ssw_ManSweepNodeConstr( p, pObj, f, 0 );
@@ -714,4 +714,3 @@ p->timeReduce += clock() - clk;
 
 
 ABC_NAMESPACE_IMPL_END
-

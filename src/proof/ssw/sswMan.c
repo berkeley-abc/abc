@@ -50,7 +50,7 @@ Ssw_Man_t * Ssw_ManCreate( Aig_Man_t * pAig, Ssw_Pars_t * pPars )
     Aig_ManFanoutStart( pAig );
     Aig_ManSetCioIds( pAig );
     // create interpolation manager
-    p = ABC_ALLOC( Ssw_Man_t, 1 ); 
+    p = ABC_ALLOC( Ssw_Man_t, 1 );
     memset( p, 0, sizeof(Ssw_Man_t) );
     p->pPars         = pPars;
     p->pAig          = pAig;
@@ -60,7 +60,7 @@ Ssw_Man_t * Ssw_ManCreate( Aig_Man_t * pAig, Ssw_Pars_t * pPars )
     p->iOutputLit    = -1;
     // allocate storage for sim pattern
     p->nPatWords     = Abc_BitWordNum( Saig_ManPiNum(pAig) * p->nFrames + Saig_ManRegNum(pAig) );
-    p->pPatWords     = ABC_CALLOC( unsigned, p->nPatWords ); 
+    p->pPatWords     = ABC_CALLOC( unsigned, p->nPatWords );
     // other
     p->vNewLos       = Vec_PtrAlloc( 100 );
     p->vNewPos       = Vec_IntAlloc( 100 );
@@ -75,7 +75,7 @@ Ssw_Man_t * Ssw_ManCreate( Aig_Man_t * pAig, Ssw_Pars_t * pPars )
   Synopsis    [Prints stats of the manager.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -105,17 +105,17 @@ void Ssw_ManPrintStats( Ssw_Man_t * p )
 {
     double nMemory = 1.0*Aig_ManObjNumMax(p->pAig)*p->nFrames*(2*sizeof(int)+2*sizeof(void*))/(1<<20);
 
-    printf( "Parameters: F = %d. AddF = %d. C-lim = %d. Constr = %d. MaxLev = %d. Mem = %0.2f MB.\n", 
+    Abc_Print( 1, "Parameters: F = %d. AddF = %d. C-lim = %d. Constr = %d. MaxLev = %d. Mem = %0.2f MB.\n",
         p->pPars->nFramesK, p->pPars->nFramesAddSim, p->pPars->nBTLimit, Saig_ManConstrNum(p->pAig), p->pPars->nMaxLevs, nMemory );
-    printf( "AIG       : PI = %d. PO = %d. Latch = %d. Node = %d.  Ave SAT vars = %d.\n", 
-        Saig_ManPiNum(p->pAig), Saig_ManPoNum(p->pAig), Saig_ManRegNum(p->pAig), Aig_ManNodeNum(p->pAig), 
+    Abc_Print( 1, "AIG       : PI = %d. PO = %d. Latch = %d. Node = %d.  Ave SAT vars = %d.\n",
+        Saig_ManPiNum(p->pAig), Saig_ManPoNum(p->pAig), Saig_ManRegNum(p->pAig), Aig_ManNodeNum(p->pAig),
         0/(p->pPars->nIters+1) );
-    printf( "SAT calls : Proof = %d. Cex = %d. Fail = %d. Lits proved = %d.\n", 
+    Abc_Print( 1, "SAT calls : Proof = %d. Cex = %d. Fail = %d. Lits proved = %d.\n",
         p->nSatProof, p->nSatCallsSat, p->nSatFailsReal, Ssw_ManCountEquivs(p) );
-    printf( "SAT solver: Vars max = %d. Calls max = %d. Recycles = %d. Sim rounds = %d.\n", 
+    Abc_Print( 1, "SAT solver: Vars max = %d. Calls max = %d. Recycles = %d. Sim rounds = %d.\n",
         p->nVarsMax, p->nCallsMax, p->nRecyclesTotal, p->nSimRounds );
-    printf( "NBeg = %d. NEnd = %d. (Gain = %6.2f %%).  RBeg = %d. REnd = %d. (Gain = %6.2f %%).\n", 
-        p->nNodesBeg, p->nNodesEnd, 100.0*(p->nNodesBeg-p->nNodesEnd)/(p->nNodesBeg?p->nNodesBeg:1), 
+    Abc_Print( 1, "NBeg = %d. NEnd = %d. (Gain = %6.2f %%).  RBeg = %d. REnd = %d. (Gain = %6.2f %%).\n",
+        p->nNodesBeg, p->nNodesEnd, 100.0*(p->nNodesBeg-p->nNodesEnd)/(p->nNodesBeg?p->nNodesBeg:1),
         p->nRegsBeg, p->nRegsEnd, 100.0*(p->nRegsBeg-p->nRegsEnd)/(p->nRegsBeg?p->nRegsBeg:1) );
 
     p->timeOther = p->timeTotal-p->timeBmc-p->timeReduce-p->timeMarkCones-p->timeSimSat-p->timeSat;
@@ -133,13 +133,13 @@ void Ssw_ManPrintStats( Ssw_Man_t * p )
     // report the reductions
     if ( p->pAig->nConstrs )
     {
-        printf( "Statistics reflecting the use of constraints:\n" );
-        printf( "Total cones  = %6d.  Constraint cones = %6d. (%6.2f %%)\n", 
+        Abc_Print( 1, "Statistics reflecting the use of constraints:\n" );
+        Abc_Print( 1, "Total cones  = %6d.  Constraint cones = %6d. (%6.2f %%)\n",
             p->nConesTotal, p->nConesConstr, 100.0*p->nConesConstr/p->nConesTotal );
-        printf( "Total equivs = %6d.  Removed equivs   = %6d. (%6.2f %%)\n", 
+        Abc_Print( 1, "Total equivs = %6d.  Removed equivs   = %6d. (%6.2f %%)\n",
             p->nEquivsTotal, p->nEquivsConstr, 100.0*p->nEquivsConstr/p->nEquivsTotal );
-        printf( "NBeg = %d. NEnd = %d. (Gain = %6.2f %%).  RBeg = %d. REnd = %d. (Gain = %6.2f %%).\n", 
-            p->nNodesBegC, p->nNodesEndC, 100.0*(p->nNodesBegC-p->nNodesEndC)/(p->nNodesBegC?p->nNodesBegC:1), 
+        Abc_Print( 1, "NBeg = %d. NEnd = %d. (Gain = %6.2f %%).  RBeg = %d. REnd = %d. (Gain = %6.2f %%).\n",
+            p->nNodesBegC, p->nNodesEndC, 100.0*(p->nNodesBegC-p->nNodesEndC)/(p->nNodesBegC?p->nNodesBegC:1),
             p->nRegsBegC, p->nRegsEndC,   100.0*(p->nRegsBegC-p->nRegsEndC)/(p->nRegsBegC?p->nRegsBegC:1) );
     }
 }
@@ -166,7 +166,7 @@ void Ssw_ManCleanup( Ssw_Man_t * p )
         p->pFrames = NULL;
         memset( p->pNodeToFrames, 0, sizeof(Aig_Obj_t *) * Aig_ManObjNumMax(p->pAig) * p->nFrames );
     }
-    if ( p->vSimInfo )  
+    if ( p->vSimInfo )
     {
         Vec_PtrFree( p->vSimInfo );
         p->vSimInfo = NULL;
@@ -180,7 +180,7 @@ void Ssw_ManCleanup( Ssw_Man_t * p )
   Synopsis    [Frees the manager.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -193,7 +193,7 @@ void Ssw_ManStop( Ssw_Man_t * p )
         Ssw_ManPrintStats( p );
     if ( p->ppClasses )
         Ssw_ClassesStop( p->ppClasses );
-    if ( p->pSml )      
+    if ( p->pSml )
         Ssw_SmlStop( p->pSml );
     if ( p->vDiffPairs )
         Vec_IntFree( p->vDiffPairs );
@@ -215,4 +215,3 @@ void Ssw_ManStop( Ssw_Man_t * p )
 
 
 ABC_NAMESPACE_IMPL_END
-

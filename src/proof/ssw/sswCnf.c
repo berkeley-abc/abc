@@ -46,7 +46,7 @@ Ssw_Sat_t * Ssw_SatStart( int fPolarFlip )
 {
     Ssw_Sat_t * p;
     int Lit;
-    p = ABC_ALLOC( Ssw_Sat_t, 1 ); 
+    p = ABC_ALLOC( Ssw_Sat_t, 1 );
     memset( p, 0, sizeof(Ssw_Sat_t) );
     p->pAig          = NULL;
     p->fPolarFlip    = fPolarFlip;
@@ -80,7 +80,7 @@ Ssw_Sat_t * Ssw_SatStart( int fPolarFlip )
 ***********************************************************************/
 void Ssw_SatStop( Ssw_Sat_t * p )
 {
-//    printf( "Recycling SAT solver with %d vars and %d restarts.\n", 
+//    Abc_Print( 1, "Recycling SAT solver with %d vars and %d restarts.\n", 
 //        p->pSat->size, p->pSat->stats.starts );
     if ( p->pSat )
         sat_solver_delete( p->pSat );
@@ -174,10 +174,10 @@ void Ssw_AddClausesMux( Ssw_Sat_t * p, Aig_Obj_t * pNode )
 
     // two additional clauses
     // t' & e' -> f'
-    // t  & e  -> f 
+    // t  & e  -> f
 
     // t  + e   + f'
-    // t' + e'  + f 
+    // t' + e'  + f
 
     if ( VarT == VarE )
     {
@@ -214,7 +214,7 @@ void Ssw_AddClausesMux( Ssw_Sat_t * p, Aig_Obj_t * pNode )
   Synopsis    [Addes clauses to the solver.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -267,7 +267,7 @@ void Ssw_AddClausesSuper( Ssw_Sat_t * p, Aig_Obj_t * pNode, Vec_Ptr_t * vSuper )
   Synopsis    [Collects the supergate.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -276,8 +276,8 @@ void Ssw_AddClausesSuper( Ssw_Sat_t * p, Aig_Obj_t * pNode, Vec_Ptr_t * vSuper )
 void Ssw_CollectSuper_rec( Aig_Obj_t * pObj, Vec_Ptr_t * vSuper, int fFirst, int fUseMuxes )
 {
     // if the new node is complemented or a PI, another gate begins
-    if ( Aig_IsComplement(pObj) || Aig_ObjIsCi(pObj) || 
-         (!fFirst && Aig_ObjRefs(pObj) > 1) || 
+    if ( Aig_IsComplement(pObj) || Aig_ObjIsCi(pObj) ||
+         (!fFirst && Aig_ObjRefs(pObj) > 1) ||
          (fUseMuxes && Aig_ObjIsMuxType(pObj)) )
     {
         Vec_PtrPushUnique( vSuper, pObj );
@@ -294,7 +294,7 @@ void Ssw_CollectSuper_rec( Aig_Obj_t * pObj, Vec_Ptr_t * vSuper, int fFirst, int
   Synopsis    [Collects the supergate.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -313,7 +313,7 @@ void Ssw_CollectSuper( Aig_Obj_t * pObj, int fUseMuxes, Vec_Ptr_t * vSuper )
   Synopsis    [Updates the solver clause database.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -342,14 +342,14 @@ void Ssw_ObjAddToFrontier( Ssw_Sat_t * p, Aig_Obj_t * pObj, Vec_Ptr_t * vFrontie
   Synopsis    [Updates the solver clause database.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
 void Ssw_CnfNodeAddToSolver( Ssw_Sat_t * p, Aig_Obj_t * pObj )
-{ 
+{
     Vec_Ptr_t * vFrontier;
     Aig_Obj_t * pNode, * pFanin;
     int i, k, fUseMuxes = 1;
@@ -393,7 +393,7 @@ void Ssw_CnfNodeAddToSolver( Ssw_Sat_t * p, Aig_Obj_t * pObj )
   Synopsis    [Copy pattern from the solver into the internal storage.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -425,4 +425,3 @@ int Ssw_CnfGetNodeValue( Ssw_Sat_t * p, Aig_Obj_t * pObj )
 
 
 ABC_NAMESPACE_IMPL_END
-

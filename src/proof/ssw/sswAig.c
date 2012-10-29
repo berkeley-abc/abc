@@ -45,7 +45,7 @@ ABC_NAMESPACE_IMPL_START
 Ssw_Frm_t * Ssw_FrmStart( Aig_Man_t * pAig )
 {
     Ssw_Frm_t * p;
-    p = ABC_ALLOC( Ssw_Frm_t, 1 ); 
+    p = ABC_ALLOC( Ssw_Frm_t, 1 );
     memset( p, 0, sizeof(Ssw_Frm_t) );
     p->pAig          = pAig;
     p->nObjs         = Aig_ManObjNumMax( pAig );
@@ -80,7 +80,7 @@ void Ssw_FrmStop( Ssw_Frm_t * p )
   Synopsis    [Performs speculative reduction for one node.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -95,7 +95,7 @@ static inline void Ssw_FramesConstrainNode( Ssw_Man_t * p, Aig_Man_t * pFrames, 
         return;
     p->nConstrTotal++;
     assert( pObjRepr->Id < pObj->Id );
-    // get the new node 
+    // get the new node
     pObjNew = Ssw_ObjFrame( p, pObj, iFrame );
     // get the new node of the representative
     pObjReprNew = Ssw_ObjFrame( p, pObjRepr, iFrame );
@@ -135,7 +135,7 @@ static inline void Ssw_FramesConstrainNode( Ssw_Man_t * p, Aig_Man_t * pFrames, 
   Synopsis    [Prepares the inductive case with speculative reduction.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -181,7 +181,7 @@ Aig_Man_t * Ssw_FramesWithClasses( Ssw_Man_t * p )
         // transfer to the primary outputs
         Aig_ManForEachCo( p->pAig, pObj, i )
             Ssw_ObjSetFrame( p, pObj, f, Ssw_ObjChild0Fra(p, pObj,f) );
-        // transfer latch input to the latch outputs 
+        // transfer latch input to the latch outputs
         Saig_ManForEachLiLo( p->pAig, pObjLi, pObjLo, i )
             Ssw_ObjSetFrame( p, pObjLo, f+1, Ssw_ObjFrame(p, pObjLi,f) );
     }
@@ -203,7 +203,7 @@ Aig_Man_t * Ssw_FramesWithClasses( Ssw_Man_t * p )
   Synopsis    [Prepares the inductive case with speculative reduction.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -218,7 +218,7 @@ Aig_Man_t * Ssw_SpeculativeReduction( Ssw_Man_t * p )
     assert( Aig_ManRegNum(p->pAig) > 0 );
     assert( Aig_ManRegNum(p->pAig) < Aig_ManCiNum(p->pAig) );
     p->nConstrTotal = p->nConstrReduced = 0;
- 
+
     // start the fraig package
     pFrames = Aig_ManStart( Aig_ManObjNumMax(p->pAig) * p->nFrames );
     pFrames->pName = Abc_UtilStrsav( p->pAig->pName );
@@ -245,7 +245,7 @@ Aig_Man_t * Ssw_SpeculativeReduction( Ssw_Man_t * p )
     // remove dangling nodes
     Aig_ManCleanup( pFrames );
     Aig_ManSetRegNum( pFrames, Aig_ManRegNum(p->pAig) );
-//    printf( "SpecRed: Total constraints = %d. Reduced constraints = %d.\n", 
+//    Abc_Print( 1, "SpecRed: Total constraints = %d. Reduced constraints = %d.\n", 
 //        p->nConstrTotal, p->nConstrReduced );
     return pFrames;
 }
@@ -256,4 +256,3 @@ Aig_Man_t * Ssw_SpeculativeReduction( Ssw_Man_t * p )
 
 
 ABC_NAMESPACE_IMPL_END
-

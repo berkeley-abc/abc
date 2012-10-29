@@ -62,19 +62,19 @@ static inline unsigned   Ssw_ObjRandomSim()                   { return Aig_ManRa
 ***********************************************************************/
 unsigned Ssw_SmlObjHashWord( Ssw_Sml_t * p, Aig_Obj_t * pObj )
 {
-    static int s_SPrimes[128] = { 
-        1009, 1049, 1093, 1151, 1201, 1249, 1297, 1361, 1427, 1459, 
-        1499, 1559, 1607, 1657, 1709, 1759, 1823, 1877, 1933, 1997, 
-        2039, 2089, 2141, 2213, 2269, 2311, 2371, 2411, 2467, 2543, 
-        2609, 2663, 2699, 2741, 2797, 2851, 2909, 2969, 3037, 3089, 
-        3169, 3221, 3299, 3331, 3389, 3461, 3517, 3557, 3613, 3671, 
-        3719, 3779, 3847, 3907, 3943, 4013, 4073, 4129, 4201, 4243, 
-        4289, 4363, 4441, 4493, 4549, 4621, 4663, 4729, 4793, 4871, 
-        4933, 4973, 5021, 5087, 5153, 5227, 5281, 5351, 5417, 5471, 
-        5519, 5573, 5651, 5693, 5749, 5821, 5861, 5923, 6011, 6073, 
-        6131, 6199, 6257, 6301, 6353, 6397, 6481, 6563, 6619, 6689, 
-        6737, 6803, 6863, 6917, 6977, 7027, 7109, 7187, 7237, 7309, 
-        7393, 7477, 7523, 7561, 7607, 7681, 7727, 7817, 7877, 7933, 
+    static int s_SPrimes[128] = {
+        1009, 1049, 1093, 1151, 1201, 1249, 1297, 1361, 1427, 1459,
+        1499, 1559, 1607, 1657, 1709, 1759, 1823, 1877, 1933, 1997,
+        2039, 2089, 2141, 2213, 2269, 2311, 2371, 2411, 2467, 2543,
+        2609, 2663, 2699, 2741, 2797, 2851, 2909, 2969, 3037, 3089,
+        3169, 3221, 3299, 3331, 3389, 3461, 3517, 3557, 3613, 3671,
+        3719, 3779, 3847, 3907, 3943, 4013, 4073, 4129, 4201, 4243,
+        4289, 4363, 4441, 4493, 4549, 4621, 4663, 4729, 4793, 4871,
+        4933, 4973, 5021, 5087, 5153, 5227, 5281, 5351, 5417, 5471,
+        5519, 5573, 5651, 5693, 5749, 5821, 5861, 5923, 6011, 6073,
+        6131, 6199, 6257, 6301, 6353, 6397, 6481, 6563, 6619, 6689,
+        6737, 6803, 6863, 6917, 6977, 7027, 7109, 7187, 7237, 7309,
+        7393, 7477, 7523, 7561, 7607, 7681, 7727, 7817, 7877, 7933,
         8011, 8039, 8059, 8081, 8093, 8111, 8123, 8147
     };
     unsigned * pSims;
@@ -93,7 +93,7 @@ unsigned Ssw_SmlObjHashWord( Ssw_Sml_t * p, Aig_Obj_t * pObj )
   Synopsis    [Returns 1 if simulation info is composed of all zeros.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -115,7 +115,7 @@ int Ssw_SmlObjIsConstWord( Ssw_Sml_t * p, Aig_Obj_t * pObj )
   Synopsis    [Returns 1 if simulation infos are equal.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -138,7 +138,7 @@ int Ssw_SmlObjsAreEqualWord( Ssw_Sml_t * p, Aig_Obj_t * pObj0, Aig_Obj_t * pObj1
   Synopsis    [Returns 1 if the node appears to be constant 1 candidate.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -154,7 +154,7 @@ int Ssw_SmlObjIsConstBit( void * p, Aig_Obj_t * pObj )
   Synopsis    [Returns 1 if the nodes appear equal.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -171,7 +171,7 @@ int Ssw_SmlObjsAreEqualBit( void * p, Aig_Obj_t * pObj0, Aig_Obj_t * pObj1 )
   Synopsis    [Counts the number of 1s in the XOR of simulation data.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -193,7 +193,7 @@ int Ssw_SmlNodeNotEquWeight( Ssw_Sml_t * p, int Left, int Right )
   Synopsis    [Checks implication.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -228,7 +228,7 @@ int Ssw_SmlCheckXorImplication( Ssw_Sml_t * p, Aig_Obj_t * pObjLi, Aig_Obj_t * p
   Synopsis    [Counts the number of 1s in the implication.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -261,7 +261,7 @@ int Ssw_SmlCountXorImplication( Ssw_Sml_t * p, Aig_Obj_t * pObjLi, Aig_Obj_t * p
   Synopsis    [Counts the number of 1s in the implication.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -285,7 +285,7 @@ int Ssw_SmlCountEqual( Ssw_Sml_t * p, Aig_Obj_t * pObjLi, Aig_Obj_t * pObjLo )
   Synopsis    [Returns 1 if simulation info is composed of all zeros.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -307,7 +307,7 @@ int Ssw_SmlNodeIsZero( Ssw_Sml_t * p, Aig_Obj_t * pObj )
   Synopsis    [Returns 1 if simulation info is composed of all zeros.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -324,7 +324,7 @@ int Ssw_SmlNodeIsZeroFrame( Ssw_Sml_t * p, Aig_Obj_t * pObj, int f )
   Synopsis    [Counts the number of one's in the patten the object.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -353,7 +353,7 @@ int Ssw_SmlNodeCountOnesReal( Ssw_Sml_t * p, Aig_Obj_t * pObj )
   Synopsis    [Counts the number of one's in the patten the object.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -389,7 +389,7 @@ int Ssw_SmlNodeCountOnesRealVec( Ssw_Sml_t * p, Vec_Ptr_t * vObjs )
   Synopsis    [Generated const 0 pattern.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -405,7 +405,7 @@ void Ssw_SmlSavePattern0( Ssw_Man_t * p, int fInit )
   Synopsis    [[Generated const 1 pattern.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -431,14 +431,14 @@ void Ssw_SmlSavePattern1( Ssw_Man_t * p, int fInit )
   Synopsis    [Creates the counter-example from the successful pattern.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
 int * Ssw_SmlCheckOutputSavePattern( Ssw_Sml_t * p, Aig_Obj_t * pObjPo )
-{ 
+{
     Aig_Obj_t * pFanin, * pObjPi;
     unsigned * pSims;
     int i, k, BestPat, * pModel;
@@ -461,10 +461,10 @@ int * Ssw_SmlCheckOutputSavePattern( Ssw_Sml_t * p, Aig_Obj_t * pObjPo )
     Aig_ManForEachCi( p->pAig, pObjPi, i )
     {
         pModel[i] = Abc_InfoHasBit(Ssw_ObjSim(p, pObjPi->Id), BestPat);
-//        printf( "%d", pModel[i] );
+//        Abc_Print( 1, "%d", pModel[i] );
     }
     pModel[Aig_ManCiNum(p->pAig)] = pObjPo->Id;
-//    printf( "\n" );
+//    Abc_Print( 1, "\n" );
     return pModel;
 }
 
@@ -485,7 +485,7 @@ int * Ssw_SmlCheckOutput( Ssw_Sml_t * p )
     int i;
     // make sure the reference simulation pattern does not detect the bug
     pObj = Aig_ManCo( p->pAig, 0 );
-    assert( Aig_ObjFanin0(pObj)->fPhase == (unsigned)Aig_ObjFaninC0(pObj) ); 
+    assert( Aig_ObjFanin0(pObj)->fPhase == (unsigned)Aig_ObjFaninC0(pObj) );
     Aig_ManForEachCo( p->pAig, pObj, i )
     {
         if ( !Ssw_SmlObjIsConstWord( p, Aig_ObjFanin0(pObj) ) )
@@ -504,7 +504,7 @@ int * Ssw_SmlCheckOutput( Ssw_Sml_t * p )
   Synopsis    [Assigns random patterns to the PI node.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -529,7 +529,7 @@ void Ssw_SmlAssignRandom( Ssw_Sml_t * p, Aig_Obj_t * pObj )
   Synopsis    [Assigns random patterns to the PI node.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -551,7 +551,7 @@ void Ssw_SmlAssignRandomFrame( Ssw_Sml_t * p, Aig_Obj_t * pObj, int iFrame )
   Synopsis    [Assigns constant patterns to the PI node.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -566,14 +566,14 @@ void Ssw_SmlObjAssignConst( Ssw_Sml_t * p, Aig_Obj_t * pObj, int fConst1, int iF
     pSims = Ssw_ObjSim( p, pObj->Id ) + p->nWordsFrame * iFrame;
     for ( i = 0; i < p->nWordsFrame; i++ )
         pSims[i] = fConst1? ~(unsigned)0 : 0;
-} 
+}
 
 /**Function*************************************************************
 
   Synopsis    [Assigns constant patterns to the PI node.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -587,14 +587,14 @@ void Ssw_SmlObjAssignConstWord( Ssw_Sml_t * p, Aig_Obj_t * pObj, int fConst1, in
     assert( Aig_ObjIsCi(pObj) );
     pSims = Ssw_ObjSim( p, pObj->Id ) + p->nWordsFrame * iFrame;
     pSims[iWord] = fConst1? ~(unsigned)0 : 0;
-} 
+}
 
 /**Function*************************************************************
 
   Synopsis    [Assigns constant patterns to the PI node.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -607,14 +607,14 @@ void Ssw_SmlObjSetWord( Ssw_Sml_t * p, Aig_Obj_t * pObj, unsigned Word, int iWor
     assert( Aig_ObjIsCi(pObj) );
     pSims = Ssw_ObjSim( p, pObj->Id ) + p->nWordsFrame * iFrame;
     pSims[iWord] = Word;
-} 
+}
 
 /**Function*************************************************************
 
   Synopsis    [Assings distance-1 simulation info for the PIs.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -627,7 +627,7 @@ void Ssw_SmlAssignDist1( Ssw_Sml_t * p, unsigned * pPat )
     assert( p->nFrames > 0 );
     if ( p->nFrames == 1 )
     {
-        // copy the PI info 
+        // copy the PI info
         Aig_ManForEachCi( p->pAig, pObj, i )
             Ssw_SmlObjAssignConst( p, pObj, Abc_InfoHasBit(pPat, i), 0 );
         // flip one bit
@@ -644,7 +644,7 @@ void Ssw_SmlAssignDist1( Ssw_Sml_t * p, unsigned * pPat )
         for ( f = 0; f < p->nFrames; f++ )
             Saig_ManForEachPi( p->pAig, pObj, i )
                 Ssw_SmlObjAssignConst( p, pObj, Abc_InfoHasBit(pPat, nTruePis * f + i), f );
-        // copy the latch info 
+        // copy the latch info
         k = 0;
         Saig_ManForEachLo( p->pAig, pObj, i )
             Ssw_SmlObjAssignConst( p, pObj, Abc_InfoHasBit(pPat, nTruePis * p->nFrames + k++), 0 );
@@ -665,7 +665,7 @@ void Ssw_SmlAssignDist1( Ssw_Sml_t * p, unsigned * pPat )
   Synopsis    [Assings distance-1 simulation info for the PIs.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -697,7 +697,7 @@ void Ssw_SmlAssignDist1Plus( Ssw_Sml_t * p, unsigned * pPat )
   Synopsis    [Simulates one node.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -763,7 +763,7 @@ void Ssw_SmlNodeSimulate( Ssw_Sml_t * p, Aig_Obj_t * pObj, int iFrame )
   Synopsis    [Simulates one node.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -794,7 +794,7 @@ int Ssw_SmlNodesCompareInFrame( Ssw_Sml_t * p, Aig_Obj_t * pObj0, Aig_Obj_t * pO
   Synopsis    [Simulates one node.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -828,7 +828,7 @@ void Ssw_SmlNodeCopyFanin( Ssw_Sml_t * p, Aig_Obj_t * pObj, int iFrame )
   Synopsis    [Simulates one node.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -857,7 +857,7 @@ void Ssw_SmlNodeTransferNext( Ssw_Sml_t * p, Aig_Obj_t * pOut, Aig_Obj_t * pIn, 
   Synopsis    [Simulates one node.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -886,7 +886,7 @@ void Ssw_SmlNodeTransferFirst( Ssw_Sml_t * p, Aig_Obj_t * pOut, Aig_Obj_t * pIn 
   Synopsis    [Assings random simulation info for the PIs.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -919,7 +919,7 @@ void Ssw_SmlInitialize( Ssw_Sml_t * p, int fInit )
   Synopsis    [Assings random simulation info for the PIs.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -946,7 +946,7 @@ void Ssw_SmlInitializeSpecial( Ssw_Sml_t * p, Vec_Int_t * vInit )
   Synopsis    [Assings random simulation info for the PIs.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -971,7 +971,7 @@ void Ssw_SmlReinitialize( Ssw_Sml_t * p )
   Synopsis    [Check if any of the POs becomes non-constant.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -996,7 +996,7 @@ int Ssw_SmlCheckNonConstOutputs( Ssw_Sml_t * p )
   Synopsis    [Simulates AIG manager.]
 
   Description [Assumes that the PI simulation info is attached.]
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -1035,7 +1035,7 @@ p->nSimRounds++;
   Synopsis    [Converts simulation information to be not normallized.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -1067,7 +1067,7 @@ void Ssw_SmlUnnormalize( Ssw_Sml_t * p )
   Synopsis    [Simulates AIG manager.]
 
   Description [Assumes that the PI simulation info is attached.]
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -1108,7 +1108,7 @@ void Ssw_SmlSimulateOneDyn_rec( Ssw_Sml_t * p, Aig_Obj_t * pObj, int f, int * pV
   Synopsis    [Simulates AIG manager.]
 
   Description [Assumes that the PI simulation info is attached.]
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -1139,7 +1139,7 @@ p->nSimRounds++;
   Synopsis    [Allocates simulation manager.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -1164,7 +1164,7 @@ Ssw_Sml_t * Ssw_SmlStart( Aig_Man_t * pAig, int nPref, int nFrames, int nWordsFr
   Synopsis    [Allocates simulation manager.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -1180,7 +1180,7 @@ void Ssw_SmlClean( Ssw_Sml_t * p )
   Synopsis    [Get simulation data.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -1202,7 +1202,7 @@ Vec_Ptr_t * Ssw_SmlSimDataPointers( Ssw_Sml_t * p )
   Synopsis    [Deallocates simulation manager.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -1219,7 +1219,7 @@ void Ssw_SmlStop( Ssw_Sml_t * p )
   Synopsis    [Performs simulation of the uninitialized circuit.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -1239,7 +1239,7 @@ Ssw_Sml_t * Ssw_SmlSimulateComb( Aig_Man_t * pAig, int nWords )
   Synopsis    [Performs simulation of the initialized circuit.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -1260,7 +1260,7 @@ Ssw_Sml_t * Ssw_SmlSimulateSeq( Aig_Man_t * pAig, int nPref, int nFrames, int nW
   Synopsis    [Performs next round of sequential simulation.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -1279,7 +1279,7 @@ void Ssw_SmlResimulateSeq( Ssw_Sml_t * p )
   Synopsis    [Returns the number of frames simulated in the manager.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -1295,7 +1295,7 @@ int Ssw_SmlNumFrames( Ssw_Sml_t * p )
   Synopsis    [Returns the total number of simulation words.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -1312,7 +1312,7 @@ int Ssw_SmlNumWordsTotal( Ssw_Sml_t * p )
 
   Description [The simulation info is normalized unless procedure
   Ssw_SmlUnnormalize() is called in advance.]
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -1329,7 +1329,7 @@ unsigned * Ssw_SmlSimInfo( Ssw_Sml_t * p, Aig_Obj_t * pObj )
   Synopsis    [Creates sequential counter-example from the simulation info.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -1391,7 +1391,7 @@ Abc_Cex_t * Ssw_SmlGetCounterExample( Ssw_Sml_t * p )
     // verify the counter example
     if ( !Saig_ManVerifyCex( p->pAig, pCex ) )
     {
-        printf( "Ssw_SmlGetCounterExample(): Counter-example is invalid.\n" );
+        Abc_Print( 1, "Ssw_SmlGetCounterExample(): Counter-example is invalid.\n" );
         Abc_CexFree( pCex );
         pCex = NULL;
     }
@@ -1404,4 +1404,3 @@ Abc_Cex_t * Ssw_SmlGetCounterExample( Ssw_Sml_t * p )
 
 
 ABC_NAMESPACE_IMPL_END
-

@@ -94,7 +94,7 @@ void Ssw_ManCollectPis_rec( Aig_Obj_t * pObj, Vec_Ptr_t * vNewPis )
   Synopsis    [Collects new POs in p->vNewPos.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -129,11 +129,11 @@ void Ssw_ManCollectPos_rec( Ssw_Man_t * p, Aig_Obj_t * pObj, Vec_Int_t * vNewPos
 
   Synopsis    [Loads logic cones and relevant constraints.]
 
-  Description [Both pRepr and pObj are objects of the AIG. 
+  Description [Both pRepr and pObj are objects of the AIG.
   The result is the current SAT solver loaded with the logic cones
-  for pRepr and pObj corresponding to them in the frames, 
+  for pRepr and pObj corresponding to them in the frames,
   as well as all the relevant constraints.]
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -151,7 +151,7 @@ void Ssw_ManLoadSolver( Ssw_Man_t * p, Aig_Obj_t * pRepr, Aig_Obj_t * pObj )
     pObjFrames  = Aig_Regular( Ssw_ObjFrame( p, pObj,  p->pPars->nFramesK ) );
     assert( pReprFrames != pObjFrames );
  /*
-    // compute the AIG support 
+    // compute the AIG support
     Vec_PtrClear( p->vNewLos );
     Ssw_ManCollectPis_rec( pRepr, p->vNewLos );
     Ssw_ManCollectPis_rec( pObj,  p->vNewLos );
@@ -166,7 +166,7 @@ void Ssw_ManLoadSolver( Ssw_Man_t * p, Aig_Obj_t * pRepr, Aig_Obj_t * pObj )
     Ssw_CnfNodeAddToSolver( p->pMSat, pReprFrames );
     Ssw_CnfNodeAddToSolver( p->pMSat, pObjFrames );
 
-    // compute the frames support 
+    // compute the frames support
     Vec_PtrClear( p->vNewLos );
     Ssw_ManCollectPis_rec( pReprFrames, p->vNewLos );
     Ssw_ManCollectPis_rec( pObjFrames,  p->vNewLos );
@@ -202,7 +202,7 @@ void Ssw_ManLoadSolver( Ssw_Man_t * p, Aig_Obj_t * pRepr, Aig_Obj_t * pObj )
   Synopsis    [Tranfers simulation information from FRAIG to AIG.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -254,7 +254,7 @@ void Ssw_ManSweepTransferDyn( Ssw_Man_t * p )
   Synopsis    [Performs one round of simulation with counter-examples.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -286,7 +286,7 @@ p->timeSimSat += clock() - clk;
   Synopsis    [Performs one round of simulation with counter-examples.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -364,14 +364,14 @@ p->timeSimSat += clock() - clk;
   Synopsis    [Performs fraiging for the internal nodes.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
 int Ssw_ManSweepDyn( Ssw_Man_t * p )
-{ 
+{
     Bar_Progress_t * pProgress = NULL;
     Aig_Obj_t * pObj, * pObjNew;
     int i, f;
@@ -414,15 +414,15 @@ p->timeReduce += clock() - clk;
         if ( Saig_ObjIsLo(p->pAig, pObj) )
             p->fRefined |= Ssw_ManSweepNode( p, pObj, f, 0, NULL );
         else if ( Aig_ObjIsNode(pObj) )
-        { 
+        {
             pObjNew = Aig_And( p->pFrames, Ssw_ObjChild0Fra(p, pObj, f), Ssw_ObjChild1Fra(p, pObj, f) );
             Ssw_ObjSetFrame( p, pObj, f, pObjNew );
             p->fRefined |= Ssw_ManSweepNode( p, pObj, f, 0, NULL );
         }
         // check if it is time to recycle the solver
-        if ( p->pMSat->pSat == NULL || 
-            (p->pPars->nSatVarMax2 && 
-             p->pMSat->nSatVars > p->pPars->nSatVarMax2 && 
+        if ( p->pMSat->pSat == NULL ||
+            (p->pPars->nSatVarMax2 &&
+             p->pMSat->nSatVars > p->pPars->nSatVarMax2 &&
              p->nRecycleCalls > p->pPars->nRecycleCalls2) )
         {
             // resimulate
@@ -435,7 +435,7 @@ p->timeReduce += clock() - clk;
                     Ssw_ManSweepResimulateDyn( p, f );
                 p->iNodeStart = i+1;
             }
-//                printf( "Recycling SAT solver with %d vars and %d calls.\n", 
+//                Abc_Print( 1, "Recycling SAT solver with %d vars and %d calls.\n", 
 //                    p->pMSat->nSatVars, p->nRecycleCalls );
 //            Aig_ManCleanMarkAB( p->pAig );
             Aig_ManCleanMarkAB( p->pFrames );
@@ -489,4 +489,3 @@ p->timeReduce += clock() - clk;
 
 
 ABC_NAMESPACE_IMPL_END
-

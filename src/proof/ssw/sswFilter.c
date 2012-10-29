@@ -44,7 +44,7 @@ ABC_NAMESPACE_IMPL_START
 
 ***********************************************************************/
 void Ssw_ManRefineByFilterSim( Ssw_Man_t * p, int nFrames )
-{ 
+{
     Aig_Obj_t * pObj, * pObjLi;
     int f, i, RetValue1, RetValue2;
     assert( nFrames > 0 );
@@ -87,14 +87,14 @@ void Ssw_ManRefineByFilterSim( Ssw_Man_t * p, int nFrames )
   Synopsis    [Performs fraiging for one node.]
 
   Description [Returns the fraiged node.]
-               
+
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
 void Ssw_ManRollForward( Ssw_Man_t * p, int nFrames )
-{ 
+{
     Aig_Obj_t * pObj, * pObjLi;
     int f, i;
     assert( nFrames > 0 );
@@ -129,14 +129,14 @@ void Ssw_ManRollForward( Ssw_Man_t * p, int nFrames )
   Synopsis    [Performs fraiging for one node.]
 
   Description [Returns the fraiged node.]
-               
+
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
 void Ssw_ManFindStartingState( Ssw_Man_t * p, Abc_Cex_t * pCex )
-{ 
+{
     Aig_Obj_t * pObj, * pObjLi;
     int f, i, iBit;
     // assign register outputs
@@ -164,7 +164,7 @@ void Ssw_ManFindStartingState( Ssw_Man_t * p, Abc_Cex_t * pCex )
     // check that the output failed as expected -- cannot check because it is not an SRM!
 //    pObj = Aig_ManCo( p->pAig, pCex->iPo );
 //    if ( pObj->fMarkB != 1 )
-//        printf( "The counter-example does not refine the output.\n" );
+//        Abc_Print( 1, "The counter-example does not refine the output.\n" );
     // record the new pattern
     Saig_ManForEachLo( p->pAig, pObj, i )
         if ( pObj->fMarkB ^ Abc_InfoHasBit(p->pPatWords, Saig_ManPiNum(p->pAig) + i) )
@@ -183,7 +183,7 @@ void Ssw_ManFindStartingState( Ssw_Man_t * p, Abc_Cex_t * pCex )
 
 ***********************************************************************/
 int Ssw_ManSweepNodeFilter( Ssw_Man_t * p, Aig_Obj_t * pObj, int f )
-{ 
+{
     Aig_Obj_t * pObjRepr, * pObjFraig, * pObjFraig2, * pObjReprFraig;
     int RetValue;
     // get representative of this class
@@ -199,7 +199,7 @@ int Ssw_ManSweepNodeFilter( Ssw_Man_t * p, Aig_Obj_t * pObj, int f )
     assert( (pObj->fPhase == pObjRepr->fPhase) == (Aig_ObjPhaseReal(pObjFraig) == Aig_ObjPhaseReal(pObjReprFraig)) );
     // if the fraiged nodes are the same, return
     if ( Aig_Regular(pObjFraig) == Aig_Regular(pObjReprFraig) )
-        return 0; 
+        return 0;
     // call equivalence checking
     if ( Aig_Regular(pObjFraig) != Aig_ManConst1(p->pFrames) )
         RetValue = Ssw_NodesAreEquiv( p, Aig_Regular(pObjReprFraig), Aig_Regular(pObjFraig) );
@@ -222,7 +222,7 @@ int Ssw_ManSweepNodeFilter( Ssw_Man_t * p, Aig_Obj_t * pObj, int f )
     assert( Aig_ObjRepr( p->pAig, pObj ) != pObjRepr );
     if ( Aig_ObjRepr( p->pAig, pObj ) == pObjRepr )
     {
-        printf( "Ssw_ManSweepNodeFilter(): Failed to refine representative.\n" );
+        Abc_Print( 1, "Ssw_ManSweepNodeFilter(): Failed to refine representative.\n" );
     }
     return 0;
 }
@@ -287,15 +287,15 @@ int Ssw_ManSweepBmcFilter( Ssw_Man_t * p, int TimeLimit )
         if ( Abc_InfoHasBit( p->pPatWords, Saig_ManPiNum(p->pAig) + i ) )
         {
             Ssw_ObjSetFrame( p, pObj, 0, Aig_ManConst1(p->pFrames) );
-//printf( "1" );
+//Abc_Print( 1, "1" );
         }
         else
         {
             Ssw_ObjSetFrame( p, pObj, 0, Aig_ManConst0(p->pFrames) );
-//printf( "0" );
+//Abc_Print( 1, "0" );
         }
     }
-//printf( "\n" );
+//Abc_Print( 1, "\n" );
 
     // sweep internal nodes
     for ( f = 0; f < p->pPars->nFramesK; f++ )
@@ -332,20 +332,20 @@ int Ssw_ManSweepBmcFilter( Ssw_Man_t * p, int TimeLimit )
         // printout
         if ( p->pPars->fVerbose )
         {
-            printf( "Frame %4d : ", f );
+            Abc_Print( 1, "Frame %4d : ", f );
             Ssw_ClassesPrint( p->ppClasses, 0 );
         }
         if ( i < Vec_PtrSize(p->pAig->vObjs) )
         {
             if ( p->pPars->fVerbose )
-                printf( "Exceeded the resource limits (%d conflicts). Quitting...\n", p->pPars->nBTLimit );
+                Abc_Print( 1, "Exceeded the resource limits (%d conflicts). Quitting...\n", p->pPars->nBTLimit );
             break;
-        }       
+        }
         // quit if this is the last timeframe
         if ( f == p->pPars->nFramesK - 1 )
         {
             if ( p->pPars->fVerbose )
-                printf( "Exceeded the time frame limit (%d time frames). Quitting...\n", p->pPars->nFramesK );
+                Abc_Print( 1, "Exceeded the time frame limit (%d time frames). Quitting...\n", p->pPars->nFramesK );
             break;
         }
         // check timeout
@@ -371,9 +371,9 @@ int Ssw_ManSweepBmcFilter( Ssw_Man_t * p, int TimeLimit )
 
   Synopsis    [Filter equivalence classes of nodes.]
 
-  Description [Unrolls at most nFramesMax frames. Works with nConfMax 
+  Description [Unrolls at most nFramesMax frames. Works with nConfMax
   conflicts until the first undefined SAT call. Verbose prints the message.]
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -415,18 +415,18 @@ void Ssw_SignalFilter( Aig_Man_t * pAig, int nFramesMax, int nConfMax, int nRoun
     for ( r = 0; r < nRounds; r++ )
     {
         if ( p->pPars->fVerbose )
-            printf( "Round %3d:\n", r );
+            Abc_Print( 1, "Round %3d:\n", r );
         // start filtering equivalence classes
         Ssw_ManRefineByFilterSim( p, p->pPars->nFramesK );
         if ( Ssw_ClassesCand1Num(p->ppClasses) == 0 && Ssw_ClassesClassNum(p->ppClasses) == 0 )
         {
-            printf( "All equivalences are refined away.\n" );
+            Abc_Print( 1, "All equivalences are refined away.\n" );
             break;
         }
         // printout
         if ( p->pPars->fVerbose )
         {
-            printf( "Initial    : " );
+            Abc_Print( 1, "Initial    : " );
             Ssw_ClassesPrint( p->ppClasses, 0 );
         }
         p->pMSat = Ssw_SatStart( 0 );
@@ -447,7 +447,7 @@ void Ssw_SignalFilter( Aig_Man_t * pAig, int nFramesMax, int nConfMax, int nRoun
         // check timeout
         if ( TimeLimit && clock() > nTimeToStop )
         {
-            printf( "Reached timeout (%d seconds).\n",  TimeLimit );
+            Abc_Print( 1, "Reached timeout (%d seconds).\n",  TimeLimit );
             break;
         }
     }
@@ -471,7 +471,7 @@ void Ssw_SignalFilter( Aig_Man_t * pAig, int nFramesMax, int nConfMax, int nRoun
 
 ***********************************************************************/
 void Ssw_SignalFilterGia( Gia_Man_t * p, int nFramesMax, int nConfMax, int nRounds, int TimeLimit, int TimeLimit2, Abc_Cex_t * pCex, int fLatchOnly, int fVerbose )
-{ 
+{
     Aig_Man_t * pAig;
     pAig = Gia_ManToAigSimple( p );
     if ( p->pReprs != NULL )
@@ -491,4 +491,3 @@ void Ssw_SignalFilterGia( Gia_Man_t * p, int nFramesMax, int nConfMax, int nRoun
 
 
 ABC_NAMESPACE_IMPL_END
-

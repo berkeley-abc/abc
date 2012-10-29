@@ -67,7 +67,7 @@ Ssw_Sem_t * Ssw_SemManStart( Ssw_Man_t * pMan, int nConfMax, int fVerbose )
     Aig_Obj_t * pObj;
     int i;
     // create interpolation manager
-    p = ABC_ALLOC( Ssw_Sem_t, 1 ); 
+    p = ABC_ALLOC( Ssw_Sem_t, 1 );
     memset( p, 0, sizeof(Ssw_Sem_t) );
     p->nConfMaxStart  = nConfMax;
     p->nConfMax       = nConfMax;
@@ -101,7 +101,7 @@ Ssw_Sem_t * Ssw_SemManStart( Ssw_Man_t * pMan, int nConfMax, int fVerbose )
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -120,7 +120,7 @@ void Ssw_SemManStop( Ssw_Sem_t * p )
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -141,7 +141,7 @@ int Ssw_SemCheckTargets( Ssw_Sem_t * p )
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -168,7 +168,7 @@ void Ssw_ManFilterBmcSavePattern( Ssw_Sem_t * p )
   Synopsis    [Performs fraiging for the internal nodes.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -212,7 +212,7 @@ clk = clock();
                 {
                     fFirst = 1;
                     pBmc->nConfMax *= 10;
-                } 
+                }
             }
             if ( f > 0 && p->pMSat->pSat->stats.conflicts >= pBmc->nConfMax )
             {
@@ -236,7 +236,7 @@ clk = clock();
             Ssw_ObjSetFrame( p, pObjLo, f+1, pObjNew );
             Ssw_CnfNodeAddToSolver( p->pMSat, Aig_Regular(pObjNew) );
         }
-//printf( "Frame %2d : Conflicts = %6d. \n", f, p->pSat->stats.conflicts );
+//Abc_Print( 1, "Frame %2d : Conflicts = %6d. \n", f, p->pSat->stats.conflicts );
     }
     if ( fFirst )
         pBmc->nConfMax /= 10;
@@ -272,10 +272,10 @@ int Ssw_FilterUsingSemi( Ssw_Man_t * pMan, int fCheckTargets, int nConfMax, int 
     }
     if ( fVerbose )
     {
-        printf( "AIG : C = %6d. Cl = %6d. Nodes = %6d.  ConfMax = %6d. FramesMax = %6d.\n", 
-            Ssw_ClassesCand1Num(p->pMan->ppClasses), Ssw_ClassesClassNum(p->pMan->ppClasses), 
+        Abc_Print( 1, "AIG : C = %6d. Cl = %6d. Nodes = %6d.  ConfMax = %6d. FramesMax = %6d.\n",
+            Ssw_ClassesCand1Num(p->pMan->ppClasses), Ssw_ClassesClassNum(p->pMan->ppClasses),
             Aig_ManNodeNum(p->pMan->pAig), p->nConfMax, p->nFramesSweep );
-    } 
+    }
     RetValue = 0;
     for ( Iter = 0; Iter < p->nPatterns; Iter++ )
     {
@@ -284,16 +284,16 @@ clk = clock();
         Frames = Ssw_ManFilterBmc( p, Iter, fCheckTargets );
         if ( fVerbose )
         {
-            printf( "%3d : C = %6d. Cl = %6d. NR = %6d. F = %3d. C = %5d. P = %3d. %s ", 
-                Iter, Ssw_ClassesCand1Num(p->pMan->ppClasses), Ssw_ClassesClassNum(p->pMan->ppClasses), 
-                Aig_ManNodeNum(p->pMan->pFrames), Frames, (int)p->pMan->pMSat->pSat->stats.conflicts, p->nPatterns, 
+            Abc_Print( 1, "%3d : C = %6d. Cl = %6d. NR = %6d. F = %3d. C = %5d. P = %3d. %s ",
+                Iter, Ssw_ClassesCand1Num(p->pMan->ppClasses), Ssw_ClassesClassNum(p->pMan->ppClasses),
+                Aig_ManNodeNum(p->pMan->pFrames), Frames, (int)p->pMan->pMSat->pSat->stats.conflicts, p->nPatterns,
                 p->pMan->nSatFailsReal? "f" : " " );
             ABC_PRT( "T", clock() - clk );
-        } 
+        }
         Ssw_ManCleanup( p->pMan );
         if ( fCheckTargets && Ssw_SemCheckTargets( p ) )
         {
-            printf( "Target is hit!!!\n" );
+            Abc_Print( 1, "Target is hit!!!\n" );
             RetValue = 1;
         }
         if ( p->nPatterns >= p->nPatternsAlloc )
@@ -304,14 +304,14 @@ clk = clock();
     pMan->nStrangers = 0;
     pMan->nSatCalls = 0;
     pMan->nSatProof = 0;
-    pMan->nSatFailsReal = 0; 
+    pMan->nSatFailsReal = 0;
     pMan->nSatCallsUnsat = 0;
-    pMan->nSatCallsSat = 0;  
-    pMan->timeSimSat = 0;    
-    pMan->timeSat = 0;       
-    pMan->timeSatSat = 0;    
-    pMan->timeSatUnsat = 0;  
-    pMan->timeSatUndec = 0;  
+    pMan->nSatCallsSat = 0;
+    pMan->timeSimSat = 0;
+    pMan->timeSat = 0;
+    pMan->timeSatSat = 0;
+    pMan->timeSatUnsat = 0;
+    pMan->timeSatUndec = 0;
     return RetValue;
 }
 
@@ -321,4 +321,3 @@ clk = clock();
 
 
 ABC_NAMESPACE_IMPL_END
-

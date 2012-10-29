@@ -152,14 +152,14 @@ int Pdr_ManExtendOneEval( Aig_Man_t * pAig, Aig_Obj_t * pObj )
   Synopsis    [Performs ternary simulation for one design.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
-int Pdr_ManSimDataInit( Aig_Man_t * pAig, 
-    Vec_Int_t * vCiObjs, Vec_Int_t * vCiVals, Vec_Int_t * vNodes, 
+int Pdr_ManSimDataInit( Aig_Man_t * pAig,
+    Vec_Int_t * vCiObjs, Vec_Int_t * vCiVals, Vec_Int_t * vNodes,
     Vec_Int_t * vCoObjs, Vec_Int_t * vCoVals, Vec_Int_t * vCi2Rem )
 {
     Aig_Obj_t * pObj;
@@ -190,7 +190,7 @@ int Pdr_ManSimDataInit( Aig_Man_t * pAig,
   Synopsis    [Tries to assign ternary value to one of the CIs.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -368,7 +368,7 @@ Pdr_Set_t * Pdr_ManTernarySim( Pdr_Man_t * p, int k, Pdr_Set_t * pCube )
     // collect CO objects
     Vec_IntClear( vCoObjs );
     if ( pCube == NULL ) // the target is the property output
-        Vec_IntPush( vCoObjs, Aig_ObjId(Aig_ManCo(p->pAig, (p->pPars->iOutput==-1)?0:p->pPars->iOutput)) ); 
+        Vec_IntPush( vCoObjs, Aig_ObjId(Aig_ManCo(p->pAig, (p->pPars->iOutput==-1)?0:p->pPars->iOutput)) );
     else // the target is the cube
     {
         for ( i = 0; i < pCube->nLits; i++ )
@@ -400,6 +400,7 @@ Pdr_ManPrintCex( p->pAig, vCiObjs, vCiVals, NULL );
     RetValue = Pdr_ManSimDataInit( p->pAig, vCiObjs, vCiVals, vNodes, vCoObjs, vCoVals, NULL );
     assert( RetValue );
 
+#if 1
     // try removing high-priority flops
     Vec_IntClear( vCi2Rem );
     Aig_ManForEachObjVec( vCiObjs, p->pAig, pObj, i )
@@ -429,10 +430,42 @@ Pdr_ManPrintCex( p->pAig, vCiObjs, vCiVals, NULL );
         else
             Pdr_ManExtendUndo( p->pAig, vUndo );
     }
+#else
+    // try removing low-priority flops
+    Aig_ManForEachObjVec( vCiObjs, p->pAig, pObj, i )
+    {
+        if ( !Saig_ObjIsLo( p->pAig, pObj ) )
+            continue;
+        Entry = Aig_ObjCioId(pObj) - Saig_ManPiNum(p->pAig);
+        if ( vPrio == NULL || Vec_IntEntry( vPrio, Entry ) == 0 )
+            continue;
+        Vec_IntClear( vUndo );
+        if ( Pdr_ManExtendOne( p->pAig, pObj, vUndo, vVisits ) )
+            Vec_IntPush( vCi2Rem, Aig_ObjId(pObj) );
+        else
+            Pdr_ManExtendUndo( p->pAig, vUndo );
+    }
+    // try removing high-priority flops
+    Vec_IntClear( vCi2Rem );
+    Aig_ManForEachObjVec( vCiObjs, p->pAig, pObj, i )
+    {
+        if ( !Saig_ObjIsLo( p->pAig, pObj ) )
+            continue;
+        Entry = Aig_ObjCioId(pObj) - Saig_ManPiNum(p->pAig);
+        if ( vPrio != NULL && Vec_IntEntry( vPrio, Entry ) != 0 )
+            continue;
+        Vec_IntClear( vUndo );
+        if ( Pdr_ManExtendOne( p->pAig, pObj, vUndo, vVisits ) )
+            Vec_IntPush( vCi2Rem, Aig_ObjId(pObj) );
+        else
+            Pdr_ManExtendUndo( p->pAig, vUndo );
+    }
+#endif
+
 if ( p->pPars->fVeryVerbose )
 Pdr_ManPrintCex( p->pAig, vCiObjs, vCiVals, vCi2Rem );
     RetValue = Pdr_ManSimDataInit( p->pAig, vCiObjs, vCiVals, vNodes, vCoObjs, vCoVals, vCi2Rem );
-    assert( RetValue ); 
+    assert( RetValue );
 
     // derive the set of resulting registers
     Pdr_ManDeriveResult( p->pAig, vCiObjs, vCiVals, vCi2Rem, vRes, vPiLits );
@@ -447,4 +480,3 @@ Pdr_ManPrintCex( p->pAig, vCiObjs, vCiVals, vCi2Rem );
 
 
 ABC_NAMESPACE_IMPL_END
-

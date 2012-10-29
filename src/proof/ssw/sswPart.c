@@ -56,7 +56,7 @@ Aig_Man_t * Ssw_SignalCorrespondencePart( Aig_Man_t * pAig, Ssw_Pars_t * pPars )
     clock_t clk = clock();
     if ( pPars->fConstrs )
     {
-        printf( "Cannot use partitioned computation with constraints.\n" );
+        Abc_Print( 1, "Cannot use partitioned computation with constraints.\n" );
         return NULL;
     }
     // save parameters
@@ -82,14 +82,14 @@ Aig_Man_t * Ssw_SignalCorrespondencePart( Aig_Man_t * pAig, Ssw_Pars_t * pPars )
     if ( fPrintParts )
     {
         // print partitions
-        printf( "Simple partitioning. %d partitions are saved:\n", Vec_PtrSize(vResult) );
+        Abc_Print( 1, "Simple partitioning. %d partitions are saved:\n", Vec_PtrSize(vResult) );
         Vec_PtrForEachEntry( Vec_Int_t *, vResult, vPart, i )
         {
 //            extern void Ioa_WriteAiger( Aig_Man_t * pMan, char * pFileName, int fWriteSymbols, int fCompact );
             sprintf( Buffer, "part%03d.aig", i );
             pTemp = Aig_ManRegCreatePart( pAig, vPart, &nCountPis, &nCountRegs, NULL );
             Ioa_WriteAiger( pTemp, Buffer, 0, 0 );
-            printf( "part%03d.aig : Reg = %4d. PI = %4d. (True = %4d. Regs = %4d.) And = %5d.\n", 
+            Abc_Print( 1, "part%03d.aig : Reg = %4d. PI = %4d. (True = %4d. Regs = %4d.) And = %5d.\n",
                 i, Vec_IntSize(vPart), Aig_ManCiNum(pTemp)-Vec_IntSize(vPart), nCountPis, nCountRegs, Aig_ManNodeNum(pTemp) );
             Aig_ManStop( pTemp );
         }
@@ -109,7 +109,7 @@ Aig_Man_t * Ssw_SignalCorrespondencePart( Aig_Man_t * pAig, Ssw_Pars_t * pPars )
             pNew = Ssw_SignalCorrespondence( pTemp, pPars );
             nClasses = Aig_TransferMappedClasses( pAig, pTemp, pMapBack );
             if ( fVerbose )
-                printf( "%3d : Reg = %4d. PI = %4d. (True = %4d. Regs = %4d.) And = %5d. It = %3d. Cl = %5d.\n", 
+                Abc_Print( 1, "%3d : Reg = %4d. PI = %4d. (True = %4d. Regs = %4d.) And = %5d. It = %3d. Cl = %5d.\n",
                     i, Vec_IntSize(vPart), Aig_ManCiNum(pTemp)-Vec_IntSize(vPart), nCountPis, nCountRegs, Aig_ManNodeNum(pTemp), pPars->nIters, nClasses );
             Aig_ManStop( pNew );
         }
@@ -138,4 +138,3 @@ Aig_Man_t * Ssw_SignalCorrespondencePart( Aig_Man_t * pAig, Ssw_Pars_t * pPars )
 
 
 ABC_NAMESPACE_IMPL_END
-

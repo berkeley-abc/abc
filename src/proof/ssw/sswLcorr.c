@@ -69,7 +69,7 @@ void Ssw_ManSweepTransfer( Ssw_Man_t * p )
   Synopsis    [Performs one round of simulation with counter-examples.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -99,7 +99,7 @@ p->timeSimSat += clock() - clk;
   Synopsis    [Saves one counter-example into internal storage.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -127,7 +127,7 @@ void Ssw_SmlAddPattern( Ssw_Man_t * p, Aig_Obj_t * pRepr, Aig_Obj_t * pCand )
   Synopsis    [Builds fraiged logic cone of the node.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -151,7 +151,7 @@ void Ssw_ManBuildCone_rec( Ssw_Man_t * p, Aig_Obj_t * pObj )
   Synopsis    [Recycles the SAT solver.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -173,17 +173,17 @@ void Ssw_ManSweepLatchOne( Ssw_Man_t * p, Aig_Obj_t * pObjRepr, Aig_Obj_t * pObj
     p->nCallsDelta = 0;
 clk = clock();
     // get the fraiged node
-    pObjLi = Saig_ObjLoToLi( p->pAig, pObj ); 
+    pObjLi = Saig_ObjLoToLi( p->pAig, pObj );
     Ssw_ManBuildCone_rec( p, Aig_ObjFanin0(pObjLi) );
     pObjFraig = Ssw_ObjChild0Fra( p, pObjLi, 0 );
     // get the fraiged representative
     if ( Aig_ObjIsCi(pObjRepr) )
     {
-        pObjLi = Saig_ObjLoToLi( p->pAig, pObjRepr ); 
+        pObjLi = Saig_ObjLoToLi( p->pAig, pObjRepr );
         Ssw_ManBuildCone_rec( p, Aig_ObjFanin0(pObjLi) );
         pObjReprFraig = Ssw_ObjChild0Fra( p, pObjLi, 0 );
     }
-    else 
+    else
         pObjReprFraig = Ssw_ObjFrame( p, pObjRepr, 0 );
 p->timeReduce += clock() - clk;
     // if the fraiged nodes are the same, return
@@ -200,7 +200,7 @@ p->timeReduce += clock() - clk;
         p->fRefined = 1;
     }
     else
-    { 
+    {
         RetValue = Ssw_NodesAreEquiv( p, Aig_Regular(pObjReprFraig), Aig_Regular(pObjFraig) );
         if ( RetValue == 1 )  // proved equivalence
         {
@@ -215,7 +215,7 @@ p->timeReduce += clock() - clk;
             return;
         }
         else // disproved equivalence
-        {       
+        {
             Ssw_SmlAddPattern( p, pObjRepr, pObj );
             p->nPatterns++;
             p->nCallsSat++;
@@ -229,7 +229,7 @@ p->timeReduce += clock() - clk;
   Synopsis    [Performs one iteration of sweeping latches.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -301,7 +301,7 @@ int Ssw_ManSweepLatch( Ssw_Man_t * p )
         if ( p->nPatterns == 32 )
             Ssw_ManSweepResimulate( p );
         // attempt recycling the SAT solver
-        if ( p->pPars->nSatVarMax && 
+        if ( p->pPars->nSatVarMax &&
              p->pMSat->nSatVars > p->pPars->nSatVarMax &&
              p->nRecycleCalls > p->pPars->nRecycleCalls )
         {
@@ -315,7 +315,7 @@ int Ssw_ManSweepLatch( Ssw_Man_t * p )
     }
 //    ABC_PRT( "reduce", p->timeReduce );
 //    Aig_TableProfile( p->pFrames );
-//    printf( "And gates = %d\n", Aig_ManNodeNum(p->pFrames) );
+//    Abc_Print( 1, "And gates = %d\n", Aig_ManNodeNum(p->pFrames) );
     // resimulate
     if ( p->nPatterns > 0 )
         Ssw_ManSweepResimulate( p );
@@ -335,4 +335,3 @@ int Ssw_ManSweepLatch( Ssw_Man_t * p )
 
 
 ABC_NAMESPACE_IMPL_END
-

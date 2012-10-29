@@ -80,11 +80,11 @@ int Ssw_MiterStatus( Aig_Man_t * p, int fVerbose )
 
     if ( fVerbose )
     {
-        printf( "Miter has %d outputs. ", Saig_ManPoNum(p) );
-        printf( "Const0 = %d.  ", CountConst0 );
-        printf( "NonConst0 = %d.  ", CountNonConst0 );
-        printf( "Undecided = %d.  ", CountUndecided );
-        printf( "\n" );
+        Abc_Print( 1, "Miter has %d outputs. ", Saig_ManPoNum(p) );
+        Abc_Print( 1, "Const0 = %d.  ", CountConst0 );
+        Abc_Print( 1, "NonConst0 = %d.  ", CountNonConst0 );
+        Abc_Print( 1, "Undecided = %d.  ", CountUndecided );
+        Abc_Print( 1, "\n" );
     }
 
     if ( CountNonConst0 )
@@ -140,7 +140,7 @@ Vec_Int_t * Ssw_TransferSignalPairs( Aig_Man_t * pMiter, Aig_Man_t * pAig1, Aig_
   Synopsis    [Transform pairs into class representation.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -187,12 +187,12 @@ Vec_Int_t ** Ssw_TransformPairsIntoTempClasses( Vec_Int_t * vPairs, int nObjNumM
         else if ( idReprRepr == -1 && idReprObj >= 0 )
         {   // object has a class
             assert( idReprObj != idRepr );
-            if ( idReprObj < idRepr ) 
+            if ( idReprObj < idRepr )
             { // add idRepr to the same class
                 Vec_IntPushUniqueOrder( pvClasses[idReprObj], idRepr );
                 pReprs[ idRepr ] = idReprObj;
             }
-            else // if ( idReprObj > idRepr ) 
+            else // if ( idReprObj > idRepr )
             { // make idRepr new representative
                 Vec_IntPushFirst( pvClasses[idReprObj], idRepr );
                 pvClasses[idRepr] = pvClasses[idReprObj];
@@ -243,7 +243,7 @@ Vec_Int_t ** Ssw_TransformPairsIntoTempClasses( Vec_Int_t * vPairs, int nObjNumM
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -253,7 +253,7 @@ void Ssw_FreeTempClasses( Vec_Int_t ** pvClasses, int nObjNumMax )
 {
     int i;
     for ( i = 0; i < nObjNumMax; i++ )
-        if ( pvClasses[i] ) 
+        if ( pvClasses[i] )
             Vec_IntFree( pvClasses[i] );
     ABC_FREE( pvClasses );
 }
@@ -263,7 +263,7 @@ void Ssw_FreeTempClasses( Vec_Int_t ** pvClasses, int nObjNumMax )
   Synopsis    [Performs signal correspondence for the miter of two AIGs with node pairs defined.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -271,7 +271,7 @@ void Ssw_FreeTempClasses( Vec_Int_t ** pvClasses, int nObjNumMax )
 ***********************************************************************/
 Aig_Man_t * Ssw_SignalCorrespondenceWithPairs( Aig_Man_t * pAig1, Aig_Man_t * pAig2, Vec_Int_t * vIds1, Vec_Int_t * vIds2, Ssw_Pars_t * pPars )
 {
-    Ssw_Man_t * p; 
+    Ssw_Man_t * p;
     Aig_Man_t * pAigNew, * pMiter;
     Ssw_Pars_t Pars;
     Vec_Int_t * vPairs;
@@ -308,7 +308,7 @@ Aig_Man_t * Ssw_SignalCorrespondenceWithPairs( Aig_Man_t * pAig1, Aig_Man_t * pA
   Synopsis    [Runs inductive SEC for the miter of two AIGs with node pairs defined.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -337,16 +337,16 @@ Aig_Man_t * Ssw_SignalCorrespondeceTestPairs( Aig_Man_t * pAig )
             continue;
 /*
         if ( Aig_ObjIsNode(pObj) )
-            printf( "n " );
+            Abc_Print( 1, "n " );
         else if ( Saig_ObjIsPi(pAig, pObj) )
-            printf( "pi " );
+            Abc_Print( 1, "pi " );
         else if ( Saig_ObjIsLo(pAig, pObj) )
-            printf( "lo " );
+            Abc_Print( 1, "lo " );
 */
         Vec_IntPush( vIds1, Aig_ObjId(pObj) );
         Vec_IntPush( vIds2, Aig_ObjId(pRepr) );
     }
-    printf( "Recorded %d pairs (before: %d  after: %d).\n", Vec_IntSize(vIds1), Aig_ManObjNumMax(pAig), Aig_ManObjNumMax(pAigNew) );
+    Abc_Print( 1, "Recorded %d pairs (before: %d  after: %d).\n", Vec_IntSize(vIds1), Aig_ManObjNumMax(pAig), Aig_ManObjNumMax(pAigNew) );
     // try the new AIGs
     pAigRes = Ssw_SignalCorrespondenceWithPairs( pAig, pAigNew, vIds1, vIds2, pPars );
     Vec_IntFree( vIds1 );
@@ -354,11 +354,11 @@ Aig_Man_t * Ssw_SignalCorrespondeceTestPairs( Aig_Man_t * pAig )
     // report the results
     RetValue = Ssw_MiterStatus( pAigRes, 1 );
     if ( RetValue == 1 )
-        printf( "Verification successful.  " );
+        Abc_Print( 1, "Verification successful.  " );
     else if ( RetValue == 0 )
-        printf( "Verification failed with the counter-example.  " );
+        Abc_Print( 1, "Verification failed with the counter-example.  " );
     else
-        printf( "Verification UNDECIDED. Remaining registers %d (total %d).  ", 
+        Abc_Print( 1, "Verification UNDECIDED. Remaining registers %d (total %d).  ",
             Aig_ManRegNum(pAigRes), Aig_ManRegNum(pAig) + Aig_ManRegNum(pAigNew) );
     ABC_PRT( "Time", clock() - clk );
     // cleanup
@@ -384,16 +384,16 @@ int Ssw_SecWithPairs( Aig_Man_t * pAig1, Aig_Man_t * pAig2, Vec_Int_t * vIds1, V
     clock_t clk = clock();
     assert( vIds1 != NULL && vIds2 != NULL );
     // try the new AIGs
-    printf( "Performing specialized verification with node pairs.\n" );
+    Abc_Print( 1, "Performing specialized verification with node pairs.\n" );
     pAigRes = Ssw_SignalCorrespondenceWithPairs( pAig1, pAig2, vIds1, vIds2, pPars );
     // report the results
     RetValue = Ssw_MiterStatus( pAigRes, 1 );
     if ( RetValue == 1 )
-        printf( "Verification successful.  " );
+        Abc_Print( 1, "Verification successful.  " );
     else if ( RetValue == 0 )
-        printf( "Verification failed with a counter-example.  " );
+        Abc_Print( 1, "Verification failed with a counter-example.  " );
     else
-        printf( "Verification UNDECIDED. The number of remaining regs = %d (total = %d).  ", 
+        Abc_Print( 1, "Verification UNDECIDED. The number of remaining regs = %d (total = %d).  ",
             Aig_ManRegNum(pAigRes), Aig_ManRegNum(pAig1) + Aig_ManRegNum(pAig2) );
     ABC_PRT( "Time", clock() - clk );
     // cleanup
@@ -418,7 +418,7 @@ int Ssw_SecGeneral( Aig_Man_t * pAig1, Aig_Man_t * pAig2, Ssw_Pars_t * pPars )
     int RetValue;
     clock_t clk = clock();
     // try the new AIGs
-    printf( "Performing general verification without node pairs.\n" );
+    Abc_Print( 1, "Performing general verification without node pairs.\n" );
     pMiter = Saig_ManCreateMiter( pAig1, pAig2, 0 );
     Aig_ManCleanup( pMiter );
     pAigRes = Ssw_SignalCorrespondence( pMiter, pPars );
@@ -426,11 +426,11 @@ int Ssw_SecGeneral( Aig_Man_t * pAig1, Aig_Man_t * pAig2, Ssw_Pars_t * pPars )
     // report the results
     RetValue = Ssw_MiterStatus( pAigRes, 1 );
     if ( RetValue == 1 )
-        printf( "Verification successful.  " );
+        Abc_Print( 1, "Verification successful.  " );
     else if ( RetValue == 0 )
-        printf( "Verification failed with a counter-example.  " );
+        Abc_Print( 1, "Verification failed with a counter-example.  " );
     else
-        printf( "Verification UNDECIDED. The number of remaining regs = %d (total = %d).  ", 
+        Abc_Print( 1, "Verification UNDECIDED. The number of remaining regs = %d (total = %d).  ",
             Aig_ManRegNum(pAigRes), Aig_ManRegNum(pAig1) + Aig_ManRegNum(pAig2) );
     ABC_PRT( "Time", clock() - clk );
     // cleanup
@@ -455,16 +455,16 @@ int Ssw_SecGeneralMiter( Aig_Man_t * pMiter, Ssw_Pars_t * pPars )
     int RetValue;
     clock_t clk = clock();
     // try the new AIGs
-//    printf( "Performing general verification without node pairs.\n" );
+//    Abc_Print( 1, "Performing general verification without node pairs.\n" );
     pAigRes = Ssw_SignalCorrespondence( pMiter, pPars );
     // report the results
     RetValue = Ssw_MiterStatus( pAigRes, 1 );
     if ( RetValue == 1 )
-        printf( "Verification successful.  " );
+        Abc_Print( 1, "Verification successful.  " );
     else if ( RetValue == 0 )
-        printf( "Verification failed with a counter-example.  " );
+        Abc_Print( 1, "Verification failed with a counter-example.  " );
     else
-        printf( "Verification UNDECIDED. The number of remaining regs = %d (total = %d).  ", 
+        Abc_Print( 1, "Verification UNDECIDED. The number of remaining regs = %d (total = %d).  ",
             Aig_ManRegNum(pAigRes), Aig_ManRegNum(pMiter) );
     ABC_PRT( "Time", clock() - clk );
     // cleanup
@@ -478,4 +478,3 @@ int Ssw_SecGeneralMiter( Aig_Man_t * pMiter, Ssw_Pars_t * pPars )
 
 
 ABC_NAMESPACE_IMPL_END
-

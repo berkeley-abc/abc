@@ -104,7 +104,7 @@ void Ssw_MatchingStart( Aig_Man_t * p0, Aig_Man_t * p1, Vec_Int_t * vPairs )
             continue;
         pObj1 = (Aig_Obj_t *)pObj0->pData;
         if ( !Saig_ObjIsLo(p1, pObj1) )
-            printf( "Mismatch between LO pairs.\n" );
+            Abc_Print( 1, "Mismatch between LO pairs.\n" );
     }
     Saig_ManForEachLo( p1, pObj1, i )
     {
@@ -112,7 +112,7 @@ void Ssw_MatchingStart( Aig_Man_t * p0, Aig_Man_t * p1, Vec_Int_t * vPairs )
             continue;
         pObj0 = (Aig_Obj_t *)pObj1->pData;
         if ( !Saig_ObjIsLo(p0, pObj0) )
-            printf( "Mismatch between LO pairs.\n" );
+            Abc_Print( 1, "Mismatch between LO pairs.\n" );
     }
 }
 
@@ -164,7 +164,7 @@ void Ssw_MatchingExtendOne( Aig_Man_t * p, Vec_Ptr_t * vNodes )
                 Vec_PtrPush( vNodes, pNext );
             }
         }
-        Aig_ObjForEachFanout( p, pObj, pNext, iFan, k )  
+        Aig_ObjForEachFanout( p, pObj, pNext, iFan, k )
         {
             if ( Saig_ObjIsPo(p, pNext) )
                 continue;
@@ -184,7 +184,7 @@ void Ssw_MatchingExtendOne( Aig_Man_t * p, Vec_Ptr_t * vNodes )
   Synopsis    [Establishes relationship between nodes using pairing.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -228,9 +228,9 @@ void Ssw_MatchingExtend( Aig_Man_t * p0, Aig_Man_t * p1, int nDist, int fVerbose
     if ( fVerbose )
     {
         int nUnmached = Ssw_MatchingCountUnmached(p0);
-        printf( "Extending islands by %d steps:\n", nDist );
-        printf( "%2d : Total = %6d. Unmatched = %6d.  Ratio = %6.2f %%\n",
-            0, Aig_ManCiNum(p0) + Aig_ManNodeNum(p0), 
+        Abc_Print( 1, "Extending islands by %d steps:\n", nDist );
+        Abc_Print( 1, "%2d : Total = %6d. Unmatched = %6d.  Ratio = %6.2f %%\n",
+            0, Aig_ManCiNum(p0) + Aig_ManNodeNum(p0),
             nUnmached, 100.0 * nUnmached/(Aig_ManCiNum(p0) + Aig_ManNodeNum(p0)) );
     }
     for ( d = 0; d < nDist; d++ )
@@ -262,8 +262,8 @@ void Ssw_MatchingExtend( Aig_Man_t * p0, Aig_Man_t * p1, int nDist, int fVerbose
         if ( fVerbose )
         {
             int nUnmached = Ssw_MatchingCountUnmached(p0);
-            printf( "%2d : Total = %6d. Unmatched = %6d.  Ratio = %6.2f %%\n",
-                d+1, Aig_ManCiNum(p0) + Aig_ManNodeNum(p0), 
+            Abc_Print( 1, "%2d : Total = %6d. Unmatched = %6d.  Ratio = %6.2f %%\n",
+                d+1, Aig_ManCiNum(p0) + Aig_ManNodeNum(p0),
                 nUnmached, 100.0 * nUnmached/(Aig_ManCiNum(p0) + Aig_ManNodeNum(p0)) );
         }
     }
@@ -323,7 +323,7 @@ void Ssw_MatchingComplete( Aig_Man_t * p0, Aig_Man_t * p1 )
   Synopsis    [Derives matching for all pairs.]
 
   Description [Modifies both AIGs.]
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -361,7 +361,7 @@ Vec_Int_t * Ssw_MatchingPairs( Aig_Man_t * p0, Aig_Man_t * p1 )
   Synopsis    [Transfers the result of matching to miter.]
 
   Description [The array of pairs should be complete.]
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -410,7 +410,7 @@ Vec_Int_t * Ssw_MatchingMiter( Aig_Man_t * pMiter, Aig_Man_t * p0, Aig_Man_t * p
   Synopsis    [Solves SEC using structural similarity.]
 
   Description [Modifies both p0 and p1 by adding extra logic.]
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -418,7 +418,7 @@ Vec_Int_t * Ssw_MatchingMiter( Aig_Man_t * pMiter, Aig_Man_t * p0, Aig_Man_t * p
 ***********************************************************************/
 Aig_Man_t * Ssw_SecWithSimilaritySweep( Aig_Man_t * p0, Aig_Man_t * p1, Vec_Int_t * vPairs, Ssw_Pars_t * pPars )
 {
-    Ssw_Man_t * p; 
+    Ssw_Man_t * p;
     Vec_Int_t * vPairsAll, * vPairsMiter;
     Aig_Man_t * pMiter, * pAigNew;
     // derive full matching
@@ -446,10 +446,10 @@ Aig_Man_t * Ssw_SecWithSimilaritySweep( Aig_Man_t * p0, Aig_Man_t * p1, Vec_Int_
             Aig_Man_t * pSRed = Ssw_SpeculativeReduction( p );
             Aig_ManDumpBlif( pSRed, "srm_part.blif", NULL, NULL );
             Aig_ManStop( pSRed );
-            printf( "Speculatively reduced miter is saved in file \"%s\".\n", "srm_part.blif" );
+            Abc_Print( 1, "Speculatively reduced miter is saved in file \"%s\".\n", "srm_part.blif" );
         }
         else
-            printf( "Dumping speculative miter is possible only for partial signal correspondence (switch \"-c\").\n" );
+            Abc_Print( 1, "Dumping speculative miter is possible only for partial signal correspondence (switch \"-c\").\n" );
     }
     p->pSml = Ssw_SmlStart( pMiter, 0, 1 + p->pPars->nFramesAddSim, 1 );
     Ssw_ClassesSetData( p->ppClasses, p->pSml, (unsigned(*)(void *,Aig_Obj_t *))Ssw_SmlObjHashWord, (int(*)(void *,Aig_Obj_t *))Ssw_SmlObjIsConstWord, (int(*)(void *,Aig_Obj_t *,Aig_Obj_t *))Ssw_SmlObjsAreEqualWord );
@@ -489,11 +489,11 @@ int Ssw_SecWithSimilarityPairs( Aig_Man_t * p0, Aig_Man_t * p1, Vec_Int_t * vPai
     // report the result of verification
     RetValue = Ssw_MiterStatus( pAigRes, 1 );
     if ( RetValue == 1 )
-        printf( "Verification successful.  " );
+        Abc_Print( 1, "Verification successful.  " );
     else if ( RetValue == 0 )
-        printf( "Verification failed with a counter-example.  " );
+        Abc_Print( 1, "Verification failed with a counter-example.  " );
     else
-        printf( "Verification UNDECIDED. The number of remaining regs = %d (total = %d).  ", 
+        Abc_Print( 1, "Verification UNDECIDED. The number of remaining regs = %d (total = %d).  ",
             Aig_ManRegNum(pAigRes), Aig_ManRegNum(p0)+Aig_ManRegNum(p1) );
     ABC_PRT( "Time", clock() - clk );
     Aig_ManStop( pAigRes );
@@ -545,7 +545,7 @@ int Ssw_SecWithSimilarity( Aig_Man_t * p0, Aig_Man_t * p1, Ssw_Pars_t * pPars )
     Aig_Man_t * pPart0, * pPart1;
     int RetValue;
     if ( pPars->fVerbose )
-        printf( "Performing sequential verification using structural similarity.\n" );
+        Abc_Print( 1, "Performing sequential verification using structural similarity.\n" );
     // consider the case when a miter is given
     if ( p1 == NULL )
     {
@@ -556,7 +556,7 @@ int Ssw_SecWithSimilarity( Aig_Man_t * p0, Aig_Man_t * p1, Ssw_Pars_t * pPars )
         // demiter the miter
         if ( !Saig_ManDemiterSimpleDiff( p0, &pPart0, &pPart1 ) )
         {
-            printf( "Demitering has failed.\n" );
+            Abc_Print( 1, "Demitering has failed.\n" );
             return -1;
         }
     }
@@ -573,7 +573,7 @@ int Ssw_SecWithSimilarity( Aig_Man_t * p0, Aig_Man_t * p1, Ssw_Pars_t * pPars )
         {
 //        Aig_ManDumpBlif( pPart0, "part0.blif", NULL, NULL );
 //        Aig_ManDumpBlif( pPart1, "part1.blif", NULL, NULL );
-//        printf( "The result of demitering is written into files \"%s\" and \"%s\".\n", "part0.blif", "part1.blif" );
+//        Abc_Print( 1, "The result of demitering is written into files \"%s\" and \"%s\".\n", "part0.blif", "part1.blif" );
         }
     }
     assert( Aig_ManRegNum(pPart0) > 0 );
@@ -596,4 +596,3 @@ int Ssw_SecWithSimilarity( Aig_Man_t * p0, Aig_Man_t * p1, Ssw_Pars_t * pPars )
 
 
 ABC_NAMESPACE_IMPL_END
-

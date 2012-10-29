@@ -98,7 +98,7 @@ void Ssw_CheckConstraints( Ssw_Man_t * p )
             Counter++;
         }
     }
-    printf( "Total constraints = %d. Added constraints = %d.\n", nConstrPairs/2, Counter );
+    Abc_Print( 1, "Total constraints = %d. Added constraints = %d.\n", nConstrPairs/2, Counter );
 }
 
 /**Function*************************************************************
@@ -148,7 +148,7 @@ void Ssw_SmlSavePatternAig( Ssw_Man_t * p, int f )
   Synopsis    [Saves one counter-example into internal storage.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -178,14 +178,14 @@ void Ssw_SmlAddPatternDyn( Ssw_Man_t * p )
   Synopsis    [Performs fraiging for one node.]
 
   Description [Returns the fraiged node.]
-               
+
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
 int Ssw_ManSweepNode( Ssw_Man_t * p, Aig_Obj_t * pObj, int f, int fBmc, Vec_Int_t * vPairs )
-{ 
+{
     Aig_Obj_t * pObjRepr, * pObjFraig, * pObjFraig2, * pObjReprFraig;
     int RetValue;
     clock_t clk;
@@ -202,7 +202,7 @@ int Ssw_ManSweepNode( Ssw_Man_t * p, Aig_Obj_t * pObj, int f, int fBmc, Vec_Int_
     assert( (pObj->fPhase == pObjRepr->fPhase) == (Aig_ObjPhaseReal(pObjFraig) == Aig_ObjPhaseReal(pObjReprFraig)) );
     // if the fraiged nodes are the same, return
     if ( Aig_Regular(pObjFraig) == Aig_Regular(pObjReprFraig) )
-        return 0; 
+        return 0;
     // add constraints on demand
     if ( !fBmc && p->pPars->fDynamic )
     {
@@ -248,7 +248,7 @@ p->timeMarkCones += clock() - clk;
     assert( Aig_ObjRepr( p->pAig, pObj ) != pObjRepr );
     if ( Aig_ObjRepr( p->pAig, pObj ) == pObjRepr )
     {
-        printf( "Ssw_ManSweepNode(): Failed to refine representative.\n" );
+        Abc_Print( 1, "Ssw_ManSweepNode(): Failed to refine representative.\n" );
     }
     return 1;
 }
@@ -299,7 +299,7 @@ clk = clock();
         // quit if this is the last timeframe
         if ( f == p->pPars->nFramesK - 1 )
             break;
-        // transfer latch input to the latch outputs 
+        // transfer latch input to the latch outputs
         Aig_ManForEachCo( p->pAig, pObj, i )
             Ssw_ObjSetFrame( p, pObj, f, Ssw_ObjChild0Fra(p, pObj, f) );
         // build logic cones for register outputs
@@ -340,14 +340,14 @@ void Ssw_ManDumpEquivMiter( Aig_Man_t * p, Vec_Int_t * vPairs, int Num )
     pFile = fopen( pBuffer, "w" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open file %s for writing.\n", pBuffer );
+        Abc_Print( 1, "Cannot open file %s for writing.\n", pBuffer );
         return;
     }
     fclose( pFile );
     pNew = Saig_ManCreateEquivMiter( p, vPairs );
     Ioa_WriteAiger( pNew, pBuffer, 0, 0 );
     Aig_ManStop( pNew );
-    printf( "AIG with %4d disproved equivs is dumped into file \"%s\".\n", Vec_IntSize(vPairs)/2, pBuffer );
+    Abc_Print( 1, "AIG with %4d disproved equivs is dumped into file \"%s\".\n", Vec_IntSize(vPairs)/2, pBuffer );
 }
 
 
@@ -363,7 +363,7 @@ void Ssw_ManDumpEquivMiter( Aig_Man_t * p, Vec_Int_t * vPairs, int Num )
 
 ***********************************************************************/
 int Ssw_ManSweep( Ssw_Man_t * p )
-{ 
+{
     static int Counter;
     Bar_Progress_t * pProgress = NULL;
     Aig_Obj_t * pObj, * pObj2, * pObjNew;
@@ -412,7 +412,7 @@ p->timeReduce += clock() - clk;
         if ( Saig_ObjIsLo(p->pAig, pObj) )
             p->fRefined |= Ssw_ManSweepNode( p, pObj, f, 0, vDisproved );
         else if ( Aig_ObjIsNode(pObj) )
-        { 
+        {
             pObjNew = Aig_And( p->pFrames, Ssw_ObjChild0Fra(p, pObj, f), Ssw_ObjChild1Fra(p, pObj, f) );
             Ssw_ObjSetFrame( p, pObj, f, pObjNew );
             p->fRefined |= Ssw_ManSweepNode( p, pObj, f, 0, vDisproved );
@@ -435,4 +435,3 @@ p->timeReduce += clock() - clk;
 
 
 ABC_NAMESPACE_IMPL_END
-

@@ -61,7 +61,7 @@ void Ssw_UniqueRegisterPairInfo( Ssw_Man_t * p )
 //            Vec_IntPush( p->vDiffPairs, 1 );
         else if ( Aig_ObjPhaseReal(pObj0) != Aig_ObjPhaseReal(pObj1) )
             Vec_IntPush( p->vDiffPairs, 1 );
-        else 
+        else
         {
             RetValue = Ssw_NodesAreEquiv( p, Aig_Regular(pObj0), Aig_Regular(pObj1) );
             Vec_IntPush( p->vDiffPairs, RetValue!=1 );
@@ -72,7 +72,7 @@ void Ssw_UniqueRegisterPairInfo( Ssw_Man_t * p )
     Counter = 0;
     Vec_IntForEachEntry( p->vDiffPairs, RetValue, i )
         Counter += RetValue;
-//    printf( "The number of different register pairs = %d.\n", Counter );
+//    Abc_Print( 1, "The number of different register pairs = %d.\n", Counter );
 }
 
 
@@ -96,7 +96,7 @@ int Ssw_ManUniqueOne( Ssw_Man_t * p, Aig_Obj_t * pRepr, Aig_Obj_t * pObj, int fV
     assert( p->vDiffPairs && Vec_IntSize(p->vDiffPairs) == Saig_ManRegNum(p->pAig) );
 
     // compute the first support in terms of LOs
-    ppObjs[0] = pRepr; 
+    ppObjs[0] = pRepr;
     ppObjs[1] = pObj;
     Aig_SupportNodes( p->pAig, ppObjs, 2, p->vCommon );
     // keep only LOs
@@ -116,7 +116,7 @@ int Ssw_ManUniqueOne( Ssw_Man_t * p, Aig_Obj_t * pRepr, Aig_Obj_t * pObj, int fV
     Vec_PtrShrink( p->vCommon, k );
 
     if ( fVerbose )
-        printf( "Node = %5d : Supp = %3d. Regs = %3d. Feasible = %s. ",
+        Abc_Print( 1, "Node = %5d : Supp = %3d. Regs = %3d. Feasible = %s. ",
             Aig_ObjId(pObj), RetValue, Vec_PtrSize(p->vCommon),
             fFeasible? "yes": "no " );
 
@@ -129,10 +129,10 @@ int Ssw_ManUniqueOne( Ssw_Man_t * p, Aig_Obj_t * pRepr, Aig_Obj_t * pObj, int fV
         if ( Value0 != Value1 )
             RetValue = 0;
         if ( fVerbose )
-            printf( "%d", Value0 ^ Value1 );
+            Abc_Print( 1, "%d", Value0 ^ Value1 );
     }
     if ( fVerbose )
-        printf( "\n" );
+        Abc_Print( 1, "\n" );
 
     return RetValue && fFeasible;
 }
@@ -166,7 +166,7 @@ int Ssw_ManUniqueAddConstraint( Ssw_Man_t * p, Vec_Ptr_t * vCommon, int f1, int 
     }
     if ( Aig_ObjIsConst1(Aig_Regular(pTotal)) )
     {
-//        printf( "Skipped\n" );
+//        Abc_Print( 1, "Skipped\n" );
         return 0;
     }
     // create CNF
@@ -194,4 +194,3 @@ int Ssw_ManUniqueAddConstraint( Ssw_Man_t * p, Vec_Ptr_t * vCommon, int f1, int 
 
 
 ABC_NAMESPACE_IMPL_END
-

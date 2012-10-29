@@ -86,7 +86,7 @@ clean:
 	@rm -rvf $(PROG) lib$(PROG).a $(OBJ) $(GARBAGE) $(OBJ:.o=.d) 
 
 tags:
-	ctags -R .
+	etags `find . -type f -regex '.*\.\(c\|h\)'`
 
 $(PROG): $(OBJ)
 	@echo "\`\` Building binary:" $(notdir $@)
