@@ -531,11 +531,14 @@ extern void            If_CutTraverse( If_Man_t * p, If_Obj_t * pRoot, If_Cut_t 
 extern void            If_ObjPrint( If_Obj_t * pObj );
 
 /*=== abcRec.c ============================================================*/
+/*=== abcRec2.c ============================================================*/
+/*=== abcRec3.c ============================================================*/
 extern int             If_CutDelayRecCost(If_Man_t* p, If_Cut_t* pCut, If_Obj_t * pObj);
 extern int             If_CutDelayRecCost2(If_Man_t* p, If_Cut_t* pCut, If_Obj_t * pObj);
-/*=== abcRec2.c ============================================================*/
+extern int             If_CutDelayRecCost2(If_Man_t* p, If_Cut_t* pCut, If_Obj_t * pObj);
 extern ABC_DLL int     Abc_NtkRecIsRunning();
 extern ABC_DLL int     Abc_NtkRecIsRunning2();
+extern ABC_DLL int     Abc_NtkRecIsRunning3();
 
 // othe packages
 extern int             Bat_ManCellFuncLookup( unsigned * pTruth, int nVars, int nLeaves );
