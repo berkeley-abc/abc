@@ -220,6 +220,7 @@ static int Abc_CommandRecStop3               ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandRecPs3                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRecAdd3                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRecDump3               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandRecMerge3              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandMap                    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAmap                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -659,22 +660,23 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Choicing",     "rec_add",       Abc_CommandRecAdd,           0 );
     Cmd_CommandAdd( pAbc, "Choicing",     "rec_ps",        Abc_CommandRecPs,            0 );
     Cmd_CommandAdd( pAbc, "Choicing",     "rec_use",       Abc_CommandRecUse,           1 );
-    Cmd_CommandAdd( pAbc, "Choicing",     "rec_filter",    Abc_CommandRecFilter,        1 );
-    Cmd_CommandAdd( pAbc, "Choicing",     "rec_merge",     Abc_CommandRecMerge,         1 );
+    Cmd_CommandAdd( pAbc, "Choicing",     "rec_filter",    Abc_CommandRecFilter,        0 );
+    Cmd_CommandAdd( pAbc, "Choicing",     "rec_merge",     Abc_CommandRecMerge,         0 );
 
     Cmd_CommandAdd( pAbc, "Choicing",     "rec_start2",    Abc_CommandRecStart2,        0 );
     Cmd_CommandAdd( pAbc, "Choicing",     "rec_stop2",     Abc_CommandRecStop2,         0 );
     Cmd_CommandAdd( pAbc, "Choicing",     "rec_ps2",       Abc_CommandRecPs2,           0 );
     Cmd_CommandAdd( pAbc, "Choicing",     "rec_add2",      Abc_CommandRecAdd2,          0 );
     Cmd_CommandAdd( pAbc, "Choicing",     "rec_dump2",     Abc_CommandRecDump2,         1 );
-    Cmd_CommandAdd( pAbc, "Choicing",     "rec_filter2",   Abc_CommandRecFilter2,       1 );
-    Cmd_CommandAdd( pAbc, "Choicing",     "rec_merge2",    Abc_CommandRecMerge2,        1 );
+    Cmd_CommandAdd( pAbc, "Choicing",     "rec_filter2",   Abc_CommandRecFilter2,       0 );
+    Cmd_CommandAdd( pAbc, "Choicing",     "rec_merge2",    Abc_CommandRecMerge2,        0 );
 
     Cmd_CommandAdd( pAbc, "Choicing",     "rec_start3",    Abc_CommandRecStart3,        0 );
     Cmd_CommandAdd( pAbc, "Choicing",     "rec_stop3",     Abc_CommandRecStop3,         0 );
     Cmd_CommandAdd( pAbc, "Choicing",     "rec_ps3",       Abc_CommandRecPs3,           0 );
     Cmd_CommandAdd( pAbc, "Choicing",     "rec_add3",      Abc_CommandRecAdd3,          0 );
-    Cmd_CommandAdd( pAbc, "Choicing",     "rec_dump3",     Abc_CommandRecDump3,         1 );
+    Cmd_CommandAdd( pAbc, "Choicing",     "rec_dump3",     Abc_CommandRecDump3,         0 );
+    Cmd_CommandAdd( pAbc, "Choicing",     "rec_merge3",    Abc_CommandRecMerge3,        0 );
 
     Cmd_CommandAdd( pAbc, "SC mapping",   "map",           Abc_CommandMap,              1 );
     Cmd_CommandAdd( pAbc, "SC mapping",   "amap",          Abc_CommandAmap,             1 );
@@ -13110,7 +13112,7 @@ int Abc_CommandRecStart3( Abc_Frame_t * pAbc, int argc, char ** argv )
     pArgvNew = argv + globalUtilOptind;
     nArgcNew = argc - globalUtilOptind;
     if ( nArgcNew != 1 )
-        Abc_Print( 1, "File name is not given on the command line. Start a new record.\n" );
+        Abc_Print( 1, "File name is not given on the command line. Starting a new record.\n" );
     else
     {   
         // get the input file name
@@ -13139,7 +13141,7 @@ int Abc_CommandRecStart3( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: rec_start3 [-K num] [-C num] [-fvh]\n" );
+    Abc_Print( -2, "usage: rec_start3 [-K num] [-C num] [-fvh] <file>\n" );
     Abc_Print( -2, "\t         starts recording AIG subgraphs (should be called for\n" );
     Abc_Print( -2, "\t         an empty network or after reading in a previous record)\n" );
     Abc_Print( -2, "\t-K num : the largest number of inputs [default = %d]\n", nVars );
@@ -13147,6 +13149,7 @@ usage:
     Abc_Print( -2, "\t-f     : toggles recording functions without AIG subgraphs [default = %s]\n", fFuncOnly? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggles additional verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
+    Abc_Print( -2, "\t<file> : AIGER file with the library\n");
     return 1;
 }
 
@@ -13348,6 +13351,87 @@ int Abc_CommandRecDump3( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     Abc_Print( -2, "usage: rec_dump3 [-h] <file>\n" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
+    Abc_Print( -2, "\t<file> : AIGER file to write the library\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandRecMerge3( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    int c;
+    char * FileName, * pTemp;
+    char ** pArgvNew;
+    int nArgcNew;
+    FILE * pFile;
+    Gia_Man_t * pGia = NULL;
+
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "dh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( !Abc_NtkRecIsRunning3() )
+    {
+        Abc_Print( -1, "This command works for AIGs only after calling \"rec_start3\".\n" );
+        return 0;
+    }
+    pArgvNew = argv + globalUtilOptind;
+    nArgcNew = argc - globalUtilOptind;
+    if ( nArgcNew != 1 )
+    {
+        Abc_Print( -1, "File name is not given on the command line.\n" );
+        return 1;
+    }
+    else
+    {   
+        // get the input file name
+        FileName = pArgvNew[0];
+        // fix the wrong symbol
+        for ( pTemp = FileName; *pTemp; pTemp++ )
+            if ( *pTemp == '>' )
+                *pTemp = '\\';
+        if ( (pFile = fopen( FileName, "r" )) == NULL )
+        {
+            Abc_Print( -1, "Cannot open input file \"%s\". ", FileName );
+            if ( (FileName = Extra_FileGetSimilarName( FileName, ".aig", NULL, NULL, NULL, NULL )) )
+                Abc_Print( 1, "Did you mean \"%s\"?", FileName );
+            Abc_Print( 1, "\n" );
+            return 1;
+        }
+        fclose( pFile );
+        pGia = Gia_ReadAiger( FileName, 1, 0 );
+        if ( pGia == NULL )
+        {
+            Abc_Print( -1, "Reading AIGER has failed.\n" );
+            return 0;
+        }
+    }
+    Abc_NtkRecLibMerge3(pGia);
+    Gia_ManStop( pGia );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: rec_merge3 [-h] <file>\n" );
+    Abc_Print( -2, "\t         merge libraries\n" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    Abc_Print( -2, "\t<file> : AIGER file with the library\n");
     return 1;
 }
 

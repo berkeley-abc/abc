@@ -1664,6 +1664,8 @@ unsigned Kit_TruthSemiCanonicize( unsigned * pInOut, unsigned * pAux, int nVars,
 
     // canonicize output
     uCanonPhase = 0;
+    for ( i = 0; i < nVars; i++ )
+        pCanonPerm[i] = i;
 
     nOnes = Kit_TruthCountOnes(pIn, nVars);
     //if(pIn[0] & 1)

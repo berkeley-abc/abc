@@ -84,8 +84,6 @@ struct Lms_Man_t_
     clock_t           timeInsert;
     clock_t           timeOther;
     clock_t           timeTotal;
-
-    clock_t           timeDerive;
 };
 
 static Lms_Man_t * s_pMan3 = NULL;
@@ -174,7 +172,8 @@ void Lms_ManStop( Lms_Man_t * p )
 void Lms_ManPrint( Lms_Man_t * p )
 {
 //    Gia_ManPrintStats( p->pGia, 0, 0 );
-    printf( "The record has %d classes containing %d AIG subgraphs with %d AND nodes.\n", Vec_MemEntryNum(p->vTtMem), p->nAdded, Gia_ManAndNum(p->pGia) );
+    printf( "Library with %d vars has %d classes and %d AIG subgraphs with %d AND nodes.\n", 
+        Gia_ManCiNum(p->pGia), Vec_MemEntryNum(p->vTtMem), p->nAdded, Gia_ManAndNum(p->pGia) );
 
     p->nAddedFuncs = Vec_MemEntryNum(p->vTtMem);
     printf( "Subgraphs tried                             = %10d. (%6.2f %%)\n", p->nTried,         !p->nTried? 0 : 100.0*p->nTried/p->nTried );
@@ -186,6 +185,7 @@ void Lms_ManPrint( Lms_Man_t * p )
     printf( "Subgraphs filtered by isomorphism           = %10d. (%6.2f %%)\n", p->nFilterSame,    !p->nTried? 0 : 100.0*p->nFilterSame/p->nTried );
     printf( "Subgraphs added                             = %10d. (%6.2f %%)\n", p->nAdded,         !p->nTried? 0 : 100.0*p->nAdded/p->nTried );
     printf( "Functions added                             = %10d. (%6.2f %%)\n", p->nAddedFuncs,    !p->nTried? 0 : 100.0*p->nAddedFuncs/p->nTried );
+    if ( p->nHoleInTheWall )
     printf( "Cuts whose logic structure has a hole       = %10d. (%6.2f %%)\n", p->nHoleInTheWall, !p->nTried? 0 : 100.0*p->nHoleInTheWall/p->nTried );
 
     p->timeOther = p->timeTotal - p->timeCollect - p->timeCanon - p->timeBuild - p->timeCheck - p->timeInsert;
@@ -383,7 +383,7 @@ void Lms_GiaPrintSubgraph( Gia_Man_t * p, Gia_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Lms_GiaProfilesPrint( Gia_Man_t * p )
+void Lms_GiaProfilesPrint( Gia_Man_t * p )
 {
     Gia_Obj_t * pObj;
     int i;
@@ -403,7 +403,6 @@ Gia_Man_t * Lms_GiaProfilesPrint( Gia_Man_t * p )
 
     Vec_WrdFree( vDelays );
     Vec_StrFree( vAreas );
-    return NULL;
 }
 
 /**Function*************************************************************
@@ -448,6 +447,156 @@ static void Abc_TtStretch6( word * pInOut, int nVarS, int nVarB )
             pInOut[w + i] = pInOut[i];              
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Compute support sizes for each CO.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Str_t * Gia_ManSuppSizes( Gia_Man_t * p )
+{
+    Vec_Str_t * vResult;
+    Vec_Str_t * vSupps;
+    Gia_Obj_t * pObj;
+    int i;
+    vSupps = Vec_StrAlloc( Gia_ManObjNum(p) );
+    Vec_StrPush( vSupps, 0 );
+    Gia_ManForEachObj1( p, pObj, i )
+    {
+        if ( Gia_ObjIsAnd(pObj) )
+            Vec_StrPush( vSupps, (char)Abc_MaxInt( Vec_StrEntry(vSupps, Gia_ObjFaninId0(pObj, i)), Vec_StrEntry(vSupps, Gia_ObjFaninId1(pObj, i)) ) );
+        else if ( Gia_ObjIsCo(pObj) )
+            Vec_StrPush( vSupps, Vec_StrEntry(vSupps, Gia_ObjFaninId0(pObj, i)) );
+        else if ( Gia_ObjIsCi(pObj) )
+            Vec_StrPush( vSupps, (char)(Gia_ObjCioId(pObj)+1) );
+        else assert( 0 );
+    }
+    assert( Vec_StrSize(vSupps) == Gia_ManObjNum(p) );
+    vResult = Vec_StrAlloc( Gia_ManCoNum(p) );
+    Gia_ManForEachCo( p, pObj, i )
+        Vec_StrPush( vResult, Vec_StrEntry(vSupps, Gia_ObjId(p, pObj)) );
+    Vec_StrFree( vSupps );
+    return vResult;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Recanonicizes the library and add it to the current library.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkRecLibMerge3( Gia_Man_t * pLib )
+{
+    int fCheck = 0;
+    Lms_Man_t * p = s_pMan3;
+    Gia_Man_t * pGia = p->pGia;
+    Vec_Str_t * vSupps;
+    char pCanonPerm[16];
+    unsigned uCanonPhase;
+    unsigned * pTruth;
+    int i, k, Index, iFanin0, iFanin1, nLeaves;
+    Gia_Obj_t * pDriver, * pTemp, * pObjPo;
+    clock_t clk, clk2 = clock();
+
+    assert( Gia_ManCiNum(pLib) == Gia_ManCiNum(pGia) );
+
+    // create hash table if not available
+    if ( pGia->pHTable == NULL )
+        Gia_ManHashStart( pGia );
+
+    // add AIG subgraphs
+    vSupps = Gia_ManSuppSizes( pLib );
+    Gia_ManForEachCo( pLib, pObjPo, k )
+    {
+        // get support size
+        nLeaves = Vec_StrEntry(vSupps, k);
+        assert( nLeaves > 1 );
+        // compute the truth table
+clk = clock();
+        pTruth = Gia_ObjComputeTruthTable( pLib, Gia_ObjFanin0(pObjPo) );
+p->timeCollect += clock() - clk;
+        // semi-canonicize
+clk = clock();
+        memcpy( p->pTemp1, pTruth, p->nWords * sizeof(word) );
+    //    uCanonPhase = luckyCanonicizer_final_fast( p->pTemp1, nLeaves, pCanonPerm );
+        uCanonPhase = Kit_TruthSemiCanonicize( (unsigned *)p->pTemp1, (unsigned *)p->pTemp2, nLeaves, pCanonPerm );
+        Abc_TtStretch5( (unsigned *)p->pTemp1, nLeaves, p->nVars );
+p->timeCanon += clock() - clk;
+        // pCanonPerm and uCanonPhase show what was the variable corresponding to each var in the current truth
+
+clk = clock();
+        // map cut leaves into elementary variables of GIA
+        for ( i = 0; i < nLeaves; i++ )
+            Gia_ManCi( pLib, pCanonPerm[i] )->Value = Abc_Var2Lit( Gia_ObjId(pGia, Gia_ManPi(pGia, i)), (uCanonPhase >> i) & 1 );
+        // build internal nodes
+        assert( Vec_IntSize(pLib->vTtNodes) > 0 );
+        Gia_ManForEachObjVec( pLib->vTtNodes, pLib, pTemp, i )
+        {
+            iFanin0 = Abc_LitNotCond( Gia_ObjFanin0(pTemp)->Value, Gia_ObjFaninC0(pTemp) );
+            iFanin1 = Abc_LitNotCond( Gia_ObjFanin1(pTemp)->Value, Gia_ObjFaninC1(pTemp) );
+            pTemp->Value = Gia_ManHashAnd( pGia, iFanin0, iFanin1 );
+        }
+p->timeBuild += clock() - clk;
+
+        // check if this node is already driving a PO
+        assert( Gia_ObjIsAnd(pTemp) );
+        pDriver = Gia_ManObj(pGia, Abc_Lit2Var(pTemp->Value));
+        if ( pDriver->fMark1 )
+        {
+            p->nFilterSame++;
+            continue;
+        }
+        pDriver->fMark1 = 1;
+        // create output
+        Gia_ManAppendCo( pGia, Abc_LitNotCond( pTemp->Value, (uCanonPhase >> nLeaves) & 1 ) );
+
+        // verify truth table
+        if ( fCheck )
+        {
+clk = clock();
+        pTemp = Gia_ManCo(pGia, Gia_ManCoNum(pGia)-1);
+        pTruth = Gia_ObjComputeTruthTable( pGia, Gia_ManCo(pGia, Gia_ManCoNum(pGia)-1) );
+p->timeCheck += clock() - clk;
+        if ( memcmp( p->pTemp1, pTruth, p->nWords * sizeof(word) ) != 0 )
+        {
+    
+            Kit_DsdPrintFromTruth( pTruth, nLeaves ); printf( "\n" );
+            Kit_DsdPrintFromTruth( (unsigned *)p->pTemp1, nLeaves ); printf( "\n" );
+            printf( "Truth table verification has failed.\n" );
+    
+            // drive PO with constant
+            Gia_ManPatchCoDriver( pGia, Gia_ManCoNum(pGia)-1, 0 );
+            // save truth table ID
+            Vec_IntPush( p->vTruthIds, -1 );
+            p->nFilterTruth++;
+            continue;
+        }
+        }
+
+clk = clock();
+        // add the resulting truth table to the hash table 
+        Index = Vec_MemHashInsert( p->vTtMem, p->pTemp1 );
+        // save truth table ID
+        Vec_IntPush( p->vTruthIds, Index );
+        assert( Gia_ManCoNum(pGia) == Vec_IntSize(p->vTruthIds) );
+        p->nAdded++;
+p->timeInsert += clock() - clk;
+    }
+    Vec_StrFree( vSupps );
+p->timeTotal += clock() - clk2;
+}
+
 
 /**Function*************************************************************
 
@@ -490,8 +639,6 @@ p->timeCollect += clock() - clk;
 
     // semi-canonicize truth table
 clk = clock();
-    for ( i = 0; i < Abc_MaxInt(nLeaves, 6); i++ )
-        pCanonPerm[i] = i;
     memcpy( p->pTemp1, If_CutTruthW(pCut), p->nWords * sizeof(word) );
 //    uCanonPhase = luckyCanonicizer_final_fast( p->pTemp1, nLeaves, pCanonPerm );
     uCanonPhase = Kit_TruthSemiCanonicize( (unsigned *)p->pTemp1, (unsigned *)p->pTemp2, nLeaves, pCanonPerm );
@@ -522,24 +669,21 @@ clk = clock();
 p->timeBuild += clock() - clk;
 
     // check if this node is already driving a PO
+    assert( If_ObjIsAnd(pIfObj) );
     pDriver = Gia_ManObj(pGia, Abc_Lit2Var(pIfObj->iCopy));
     if ( pDriver->fMark1 )
     {
         p->nFilterSame++;
         return 1;
     }
-
-    // create output
-    assert( If_ObjIsAnd(pIfObj) );
-    Gia_ManAppendCo( pGia, Abc_LitNotCond( pIfObj->iCopy, (uCanonPhase >> nLeaves) & 1 ) );
-
-    // mark the driver
-    pDriver = Gia_ManObj(pGia, Abc_Lit2Var(pIfObj->iCopy));
     pDriver->fMark1 = 1;
+    // create output
+    Gia_ManAppendCo( pGia, Abc_LitNotCond( pIfObj->iCopy, (uCanonPhase >> nLeaves) & 1 ) );
 
     // verify truth table
 clk = clock();
     pTruth = Gia_ObjComputeTruthTable( pGia, Gia_ManCo(pGia, Gia_ManCoNum(pGia)-1) );
+p->timeCheck += clock() - clk;
     if ( memcmp( p->pTemp1, pTruth, p->nWords * sizeof(word) ) != 0 )
     {
 /*
@@ -554,7 +698,6 @@ clk = clock();
         p->nFilterTruth++;
         return 1;
     }
-p->timeCheck += clock() - clk;
 
 clk = clock();
     // add the resulting truth table to the hash table 
@@ -909,6 +1052,7 @@ void Lms_GiaNormalize( Lms_Man_t * p )
     Vec_Int_t * vRemain;
     Vec_Int_t * vTruthIdsNew;
     int i, Entry, Prev = -1, Next;
+    clock_t clk = clock();
     // collect non-redundant COs
     vRemain = Lms_GiaFindNonRedundantCos( p );
     // change these to be useful literals
@@ -940,6 +1084,7 @@ void Lms_GiaNormalize( Lms_Man_t * p )
     Vec_IntFree( p->vTruthIds );
     p->vTruthIds = vTruthIdsNew;
 //    Vec_IntPrint( vTruthIdsNew );
+    Abc_PrintTime( 1, "Normalization runtime", clock() - clk );
 }
 
 /**Function*************************************************************
