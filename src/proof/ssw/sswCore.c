@@ -116,7 +116,7 @@ void Ssw_ReportConeReductions( Ssw_Man_t * p, Aig_Man_t * pAigInit, Aig_Man_t * 
     pAig2 = Aig_ManDupOneOutput( pAigStop, 0, 1 );
     pAig2 = Aig_ManScl( pAux = pAig2, 1, 1, 0, -1, -1, 0, 0 );
     Aig_ManStop( pAux );
-   
+
     p->nNodesBegC = Aig_ManNodeNum(pAig1);
     p->nNodesEndC = Aig_ManNodeNum(pAig2);
     p->nRegsBegC  = Aig_ManRegNum(pAig1);
@@ -140,11 +140,11 @@ void Ssw_ReportConeReductions( Ssw_Man_t * p, Aig_Man_t * pAigInit, Aig_Man_t * 
 void Ssw_ReportOneOutput( Aig_Man_t * p, Aig_Obj_t * pObj )
 {
     if ( pObj == Aig_ManConst1(p) )
-        printf( "1" );
+        Abc_Print( 1, "1" );
     else if ( pObj == Aig_ManConst0(p) )
-        printf( "0" );
-    else 
-        printf( "X" );
+        Abc_Print( 1, "0" );
+    else
+        Abc_Print( 1, "X" );
 }
 
 /**Function*************************************************************
@@ -165,12 +165,12 @@ void Ssw_ReportOutputs( Aig_Man_t * pAig )
     Saig_ManForEachPo( pAig, pObj, i )
     {
         if ( i < Saig_ManPoNum(pAig)-Saig_ManConstrNum(pAig) )
-            printf( "o" );
+            Abc_Print( 1, "o" );
         else
-            printf( "c" );
+            Abc_Print( 1, "c" );
         Ssw_ReportOneOutput( pAig, Aig_ObjChild0(pObj) );
     }
-    printf( "\n" );
+    Abc_Print( 1, "\n" );
 }
 
 /**Function*************************************************************
@@ -244,13 +244,13 @@ Aig_Man_t * Ssw_SignalCorrespondenceRefine( Ssw_Man_t * p )
     // refine classes using BMC
     if ( p->pPars->fVerbose )
     {
-        printf( "Before BMC: " );
+        Abc_Print( 1, "Before BMC: " );
         Ssw_ClassesPrint( p->ppClasses, 0 );
     }
     if ( !p->pPars->fLatchCorr )
-    { 
+    {
         p->pMSat = Ssw_SatStart( 0 );
-        if ( p->pPars->fConstrs ) 
+        if ( p->pPars->fConstrs )
             Ssw_ManSweepBmcConstr( p );
         else
             Ssw_ManSweepBmc( p );
@@ -260,7 +260,7 @@ Aig_Man_t * Ssw_SignalCorrespondenceRefine( Ssw_Man_t * p )
     }
     if ( p->pPars->fVerbose )
     {
-        printf( "After  BMC: " );
+        Abc_Print( 1, "After  BMC: " );
         Ssw_ClassesPrint( p->ppClasses, 0 );
     }
     // apply semi-formal filtering
@@ -282,7 +282,7 @@ Aig_Man_t * Ssw_SignalCorrespondenceRefine( Ssw_Man_t * p )
     }
     if ( p->pPars->nStepsMax == 0 )
     {
-        printf( "Stopped signal correspondence after BMC.\n" );
+        Abc_Print( 1, "Stopped signal correspondence after BMC.\n" );
         goto finalize;
     }
     // refine classes using induction
@@ -291,7 +291,7 @@ Aig_Man_t * Ssw_SignalCorrespondenceRefine( Ssw_Man_t * p )
     {
         if ( p->pPars->nStepsMax == nIter )
         {
-            printf( "Stopped signal correspondence after %d refiment iterations.\n", nIter );
+            Abc_Print( 1, "Stopped signal correspondence after %d refiment iterations.\n", nIter );
             goto finalize;
         }
         if ( p->pPars->nItersStop >= 0 && p->pPars->nItersStop == nIter )
@@ -299,10 +299,10 @@ Aig_Man_t * Ssw_SignalCorrespondenceRefine( Ssw_Man_t * p )
             Aig_Man_t * pSRed = Ssw_SpeculativeReduction( p );
             Aig_ManDumpBlif( pSRed, "srm.blif", NULL, NULL );
             Aig_ManStop( pSRed );
-            printf( "Iterative refinement is stopped before iteration %d.\n", nIter );
-            printf( "The network is reduced using candidate equivalences.\n" );
-            printf( "Speculatively reduced miter is saved in file \"%s\".\n", "srm.blif" );
-            printf( "If the miter is SAT, the reduced result is incorrect.\n" );
+            Abc_Print( 1, "Iterative refinement is stopped before iteration %d.\n", nIter );
+            Abc_Print( 1, "The network is reduced using candidate equivalences.\n" );
+            Abc_Print( 1, "Speculatively reduced miter is saved in file \"%s\".\n", "srm.blif" );
+            Abc_Print( 1, "If the miter is SAT, the reduced result is incorrect.\n" );
             break;
         }
 
@@ -313,16 +313,16 @@ clk = clock();
             RetValue = Ssw_ManSweepLatch( p );
             if ( p->pPars->fVerbose )
             {
-                printf( "%3d : C =%7d. Cl =%7d. Pr =%6d. Cex =%5d. R =%4d. F =%4d. ", 
-                    nIter, Ssw_ClassesCand1Num(p->ppClasses), Ssw_ClassesClassNum(p->ppClasses), 
-                    p->nSatProof-nSatProof, p->nSatCallsSat-nSatCallsSat, 
+                Abc_Print( 1, "%3d : C =%7d. Cl =%7d. Pr =%6d. Cex =%5d. R =%4d. F =%4d. ",
+                    nIter, Ssw_ClassesCand1Num(p->ppClasses), Ssw_ClassesClassNum(p->ppClasses),
+                    p->nSatProof-nSatProof, p->nSatCallsSat-nSatCallsSat,
                     p->nRecycles-nRecycles, p->nSatFailsReal-nSatFailsReal );
                 ABC_PRT( "T", clock() - clk );
-            } 
+            }
         }
         else
         {
-            if ( p->pPars->fConstrs ) 
+            if ( p->pPars->fConstrs )
                 RetValue = Ssw_ManSweepConstr( p );
             else if ( p->pPars->fDynamic )
                 RetValue = Ssw_ManSweepDyn( p );
@@ -332,18 +332,18 @@ clk = clock();
             p->pPars->nConflicts += p->pMSat->pSat->stats.conflicts;
             if ( p->pPars->fVerbose )
             {
-                printf( "%3d : C =%7d. Cl =%7d. LR =%6d. NR =%6d. ", 
-                    nIter, Ssw_ClassesCand1Num(p->ppClasses), Ssw_ClassesClassNum(p->ppClasses), 
+                Abc_Print( 1, "%3d : C =%7d. Cl =%7d. LR =%6d. NR =%6d. ",
+                    nIter, Ssw_ClassesCand1Num(p->ppClasses), Ssw_ClassesClassNum(p->ppClasses),
                     p->nConstrReduced, Aig_ManNodeNum(p->pFrames) );
                 if ( p->pPars->fDynamic )
                 {
-                    printf( "Cex =%5d. ", p->nSatCallsSat-nSatCallsSat );
-                    printf( "R =%4d. ",   p->nRecycles-nRecycles );
+                    Abc_Print( 1, "Cex =%5d. ", p->nSatCallsSat-nSatCallsSat );
+                    Abc_Print( 1, "R =%4d. ",   p->nRecycles-nRecycles );
                 }
-                printf( "F =%5d. %s ", p->nSatFailsReal-nSatFailsReal, 
+                Abc_Print( 1, "F =%5d. %s ", p->nSatFailsReal-nSatFailsReal,
                     (Saig_ManPoNum(p->pAig)==1 && Ssw_ObjIsConst1Cand(p->pAig,Aig_ObjFanin0(Aig_ManCo(p->pAig,0))))? "+" : "-" );
                 ABC_PRT( "T", clock() - clk );
-            } 
+            }
 //            if ( p->pPars->fDynamic && p->nSatCallsSat-nSatCallsSat < 100 )
 //                p->pPars->nBTLimit = 10000;
         }
@@ -358,11 +358,11 @@ clk = clock();
         Ssw_SatStop( p->pMSat );
         p->pMSat = NULL;
         Ssw_ManCleanup( p );
-        if ( !RetValue ) 
+        if ( !RetValue )
             break;
         if ( p->pPars->pFunc )
             ((int (*)(void *))p->pPars->pFunc)( p->pPars->pData );
-    } 
+    }
 
 finalize:
     p->pPars->nIters = nIter + 1;
@@ -387,7 +387,7 @@ p->timeTotal = clock() - clkTotal;
   Synopsis    [Performs computation of signal correspondence with constraints.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -442,7 +442,7 @@ Aig_Man_t * Ssw_SignalCorrespondence( Aig_Man_t * pAig, Ssw_Pars_t * pPars )
             return Cec_SignalCorrespondence( pAig, pPars->nBTLimit, pPars->fUseCSat );
         }
     }
- 
+
     // start the induction manager
     p = Ssw_ManCreate( pAig, pPars );
     // compute candidate equivalence classes
@@ -455,7 +455,7 @@ Aig_Man_t * Ssw_SignalCorrespondence( Aig_Man_t * pAig, Ssw_Pars_t * pPars )
         // derive phase bits to satisfy the constraints
         if ( Ssw_ManSetConstrPhases( pAig, p->pPars->nFramesK + 1, &p->vInits ) != 0 )
         {
-            printf( "Ssw_SignalCorrespondence(): The init state does not satisfy the constraints!\n" );
+            Abc_Print( 1, "Ssw_SignalCorrespondence(): The init state does not satisfy the constraints!\n" );
             p->pPars->fVerbose = 0;
             Ssw_ManStop( p );
             return NULL;
@@ -480,7 +480,7 @@ Aig_Man_t * Ssw_SignalCorrespondence( Aig_Man_t * pAig, Ssw_Pars_t * pPars )
     if ( p->pPars->fLocalSim )
         p->pVisited = ABC_CALLOC( int, Ssw_SmlNumFrames( p->pSml ) * Aig_ManObjNumMax(p->pAig) );
     // perform refinement of classes
-    pAigNew = Ssw_SignalCorrespondenceRefine( p );    
+    pAigNew = Ssw_SignalCorrespondenceRefine( p );
 //    Ssw_ReportOutputs( pAigNew );
     if ( pPars->fConstrs && pPars->fVerbose )
         Ssw_ReportConeReductions( p, pAig, pAigNew );
@@ -519,4 +519,3 @@ Aig_Man_t * Ssw_LatchCorrespondence( Aig_Man_t * pAig, Ssw_Pars_t * pPars )
 
 
 ABC_NAMESPACE_IMPL_END
-
