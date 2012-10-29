@@ -2709,6 +2709,10 @@ SOURCE=.\src\misc\util\utilSignal.h
 
 SOURCE=.\src\misc\util\utilSort.c
 # End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\util\utilTruth.h
+# End Source File
 # End Group
 # Begin Group "nm"
 

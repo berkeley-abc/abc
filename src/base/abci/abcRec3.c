@@ -24,6 +24,7 @@
 #include "aig/gia/giaAig.h"
 #include "misc/vec/vecMem.h"
 #include "bool/lucky/lucky.h"
+#include "misc/util/utilTruth.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -403,48 +404,6 @@ void Lms_GiaProfilesPrint( Gia_Man_t * p )
 
     Vec_WrdFree( vDelays );
     Vec_StrFree( vAreas );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Stretch truthtable to have more input variables.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-static void Abc_TtStretch5( unsigned * pInOut, int nVarS, int nVarB )
-{
-    int w, i, step, nWords;
-    if ( nVarS == nVarB )
-        return;
-    assert( nVarS < nVarB );
-    step = Abc_TruthWordNum(nVarS);
-    nWords = Abc_TruthWordNum(nVarB);
-    if ( step == nWords )
-        return;
-    assert( step < nWords );
-    for ( w = 0; w < nWords; w += step )
-        for ( i = 0; i < step; i++ )
-            pInOut[w + i] = pInOut[i];              
-}
-static void Abc_TtStretch6( word * pInOut, int nVarS, int nVarB )
-{
-    int w, i, step, nWords;
-    if ( nVarS == nVarB )
-        return;
-    assert( nVarS < nVarB );
-    step = Abc_Truth6WordNum(nVarS);
-    nWords = Abc_Truth6WordNum(nVarB);
-    if ( step == nWords )
-        return;
-    assert( step < nWords );
-    for ( w = 0; w < nWords; w += step )
-        for ( i = 0; i < step; i++ )
-            pInOut[w + i] = pInOut[i];              
 }
 
 /**Function*************************************************************
