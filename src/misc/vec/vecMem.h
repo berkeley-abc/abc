@@ -57,14 +57,16 @@ struct Vec_Mem_t_
     int              nPageAlloc;  // number of pages currently allocated
     int              iPage;       // the number of a page currently used   
     word **          ppPages;     // memory pages
+    Vec_Int_t *      vTable;      // hash table
+    Vec_Int_t *      vNexts;      // next pointers
 };
 
 ////////////////////////////////////////////////////////////////////////
 ///                      MACRO DEFINITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
-#define Vec_MemForEachEntry( vVec, pEntry, i )                                              \
-    for ( i = 0; (i < Vec_MemEntryNum(vVec)) && ((pEntry) = Vec_MemReadEntry(vVec, i)); i++ )
+#define Vec_MemForEachEntry( p, pEntry, i )                                              \
+    for ( i = 0; (i < Vec_MemEntryNum(p)) && ((pEntry) = Vec_MemReadEntry(p, i)); i++ )
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -266,17 +268,87 @@ static inline void Vec_MemShrink( Vec_Mem_t * p, int nEntriesNew )
   SeeAlso     []
 
 ***********************************************************************/
-static inline void Vec_MemPrint( Vec_Mem_t * vVec )
+static inline void Vec_MemPrint( Vec_Mem_t * p )
 {
     word * pEntry;
     int i;
-    printf( "Memory vector has %d entries: ", Vec_MemEntryNum(vVec) );
-    Vec_MemForEachEntry( vVec, pEntry, i )
+    printf( "Memory vector has %d entries: ", Vec_MemEntryNum(p) );
+    Vec_MemForEachEntry( p, pEntry, i )
     {
         printf( "%3d : ", i );
         // add printout here
         printf( "\n" );
     }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Hashing entries in the memory vector.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Vec_MemHashAlloc( Vec_Mem_t * p, int nTableSize )
+{
+    assert( p->vTable == NULL && p->vNexts == NULL );
+    p->vTable = Vec_IntStartFull( Abc_PrimeCudd(nTableSize) );
+    p->vNexts = Vec_IntAlloc( nTableSize );
+}
+static inline void Vec_MemHashFree( Vec_Mem_t * p )
+{
+    Vec_IntFreeP( &p->vTable );
+    Vec_IntFreeP( &p->vNexts );
+}
+static inline unsigned Vec_MemHashKey( Vec_Mem_t * p, word * pEntry )
+{
+    static int s_Primes[8] = { 1699, 4177, 5147, 5647, 6343, 7103, 7873, 8147 };
+    int i, nData = 2 * p->nEntrySize;
+    unsigned * pData = (unsigned *)pEntry;
+    unsigned uHash = 0;
+    for ( i = 0; i < nData; i++ )
+        uHash += pData[i] * s_Primes[i & 0x7];
+    return uHash % Vec_IntSize(p->vTable);
+}
+static int * Vec_MemHashLookup( Vec_Mem_t * p, word * pEntry )
+{
+    int * pSpot = Vec_IntEntryP( p->vTable, Vec_MemHashKey(p, pEntry) );
+    for ( ; *pSpot != -1; pSpot = Vec_IntEntryP(p->vNexts, *pSpot) )
+        if ( !memcmp( Vec_MemReadEntry(p, *pSpot), pEntry, sizeof(word) * p->nEntrySize ) ) // equal
+            return pSpot;
+    return pSpot;
+}
+static void Vec_MemHashResize( Vec_Mem_t * p )
+{
+    word * pEntry;
+    int i, * pSpot;
+    Vec_IntFill( p->vTable, Abc_PrimeCudd(2 * Vec_IntSize(p->vTable)), -1 );
+    Vec_IntClear( p->vNexts );
+    Vec_MemForEachEntry( p, pEntry, i )
+    {
+        pSpot = Vec_MemHashLookup( p, pEntry );
+        assert( *pSpot == -1 );
+        *pSpot = Vec_IntSize(p->vNexts);
+        Vec_IntPush( p->vNexts, -1 );
+    }
+    assert( p->nEntries == Vec_IntSize(p->vNexts) );
+}
+static int Vec_MemHashInsert( Vec_Mem_t * p, word * pEntry )
+{
+    int * pSpot;
+    if ( p->nEntries > Vec_IntSize(p->vTable) )
+        Vec_MemHashResize( p );
+    pSpot = Vec_MemHashLookup( p, pEntry );
+    if ( *pSpot != -1 )
+        return *pSpot;
+    *pSpot = Vec_IntSize(p->vNexts);
+    Vec_IntPush( p->vNexts, -1 );
+    Vec_MemPush( p, pEntry );
+    assert( p->nEntries == Vec_IntSize(p->vNexts) );
+    return Vec_IntSize(p->vNexts) - 1;
 }
 
 

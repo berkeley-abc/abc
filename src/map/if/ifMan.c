@@ -337,6 +337,7 @@ void If_ManCreateChoice( If_Man_t * p, If_Obj_t * pObj )
     // mark the largest level
     if ( p->nLevelMax < (int)pObj->Level )
         p->nLevelMax = (int)pObj->Level;
+    p->nChoices++;
 }
 
 /**Function*************************************************************
@@ -410,8 +411,7 @@ void If_ManSetupCutTriv( If_Man_t * p, If_Cut_t * pCut, int ObjId )
     // set up elementary truth table of the unit cut
     if ( p->pPars->fTruth )
     {
-        int i, nTruthWords;
-        nTruthWords = pCut->nLimit <= 5 ? 1 : (1 << (pCut->nLimit - 5));
+        int i, nTruthWords = If_CutTruthWords(pCut->nLimit);
         for ( i = 0; i < nTruthWords; i++ )
             If_CutTruth(pCut)[i] = 0xAAAAAAAA;
     }

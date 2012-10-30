@@ -163,7 +163,6 @@ If_Man_t * Nwk_ManToIf( Aig_Man_t * p, If_Par_t * pPars, Vec_Ptr_t * vAigToIf )
         // set up the choice node
         if ( Aig_ObjIsChoice( p, pNode ) )
         {
-            pIfMan->nChoices++;
             for ( pPrev = pNode, pFanin = Aig_ObjEquiv(p, pNode); pFanin; pPrev = pFanin, pFanin = Aig_ObjEquiv(p, pFanin) )
                 If_ObjSetChoice( (If_Obj_t *)pPrev->pData, (If_Obj_t *)pFanin->pData );
             If_ManCreateChoice( pIfMan, (If_Obj_t *)pNode->pData );

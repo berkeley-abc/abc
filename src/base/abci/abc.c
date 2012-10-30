@@ -169,6 +169,10 @@ static int Abc_CommandSenseInput             ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandNpnLoad                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandNpnSave                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
+static int Abc_CommandSendAig                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandSendStatus             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandSendCex                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+
 static int Abc_CommandIStrash                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandICut                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandIRewrite               ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -201,19 +205,26 @@ static int Abc_CommandFraigDress             ( Abc_Frame_t * pAbc, int argc, cha
 
 static int Abc_CommandRecStart               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRecStop                ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandRecAdd                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRecPs                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandRecAdd                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRecUse                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRecFilter              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRecMerge               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandRecStart2              ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandRecStop2               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRecPs2                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRecAdd2                ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandRecStop2               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRecDump2               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRecMerge2              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRecFilter2             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+
+static int Abc_CommandRecStart3              ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandRecStop3               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandRecPs3                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandRecAdd3                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandRecDump3               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandRecMerge3              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandMap                    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAmap                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -622,6 +633,10 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Various",      "npnload",       Abc_CommandNpnLoad,          0 );
     Cmd_CommandAdd( pAbc, "Various",      "npnsave",       Abc_CommandNpnSave,          0 );
 
+    Cmd_CommandAdd( pAbc, "Various",      "send_aig",      Abc_CommandSendAig,          0 );
+    Cmd_CommandAdd( pAbc, "Various",      "send_status",   Abc_CommandSendStatus,       0 );
+    Cmd_CommandAdd( pAbc, "Various",      "send_cex",      Abc_CommandSendCex,          0 );
+
     Cmd_CommandAdd( pAbc, "New AIG",      "istrash",       Abc_CommandIStrash,          1 );
     Cmd_CommandAdd( pAbc, "New AIG",      "icut",          Abc_CommandICut,             0 );
     Cmd_CommandAdd( pAbc, "New AIG",      "irw",           Abc_CommandIRewrite,         1 );
@@ -653,16 +668,23 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Choicing",     "rec_add",       Abc_CommandRecAdd,           0 );
     Cmd_CommandAdd( pAbc, "Choicing",     "rec_ps",        Abc_CommandRecPs,            0 );
     Cmd_CommandAdd( pAbc, "Choicing",     "rec_use",       Abc_CommandRecUse,           1 );
-    Cmd_CommandAdd( pAbc, "Choicing",     "rec_filter",    Abc_CommandRecFilter,        1 );
-    Cmd_CommandAdd( pAbc, "Choicing",     "rec_merge",     Abc_CommandRecMerge,         1 );
+    Cmd_CommandAdd( pAbc, "Choicing",     "rec_filter",    Abc_CommandRecFilter,        0 );
+    Cmd_CommandAdd( pAbc, "Choicing",     "rec_merge",     Abc_CommandRecMerge,         0 );
 
-    Cmd_CommandAdd( pAbc, "Choicing",     "rec_start2",     Abc_CommandRecStart2,         0 );
-    Cmd_CommandAdd( pAbc, "Choicing",     "rec_stop2",      Abc_CommandRecStop2,          0 );
-    Cmd_CommandAdd( pAbc, "Choicing",     "rec_add2",       Abc_CommandRecAdd2,           0 );
-    Cmd_CommandAdd( pAbc, "Choicing",     "rec_ps2",        Abc_CommandRecPs2,            0 );
-    Cmd_CommandAdd( pAbc, "Choicing",     "rec_dump2",       Abc_CommandRecDump2,         1 );
-    Cmd_CommandAdd( pAbc, "Choicing",     "rec_filter2",    Abc_CommandRecFilter2,        1 );
-    Cmd_CommandAdd( pAbc, "Choicing",     "rec_merge2",     Abc_CommandRecMerge2,         1 );
+    Cmd_CommandAdd( pAbc, "Choicing",     "rec_start2",    Abc_CommandRecStart2,        0 );
+    Cmd_CommandAdd( pAbc, "Choicing",     "rec_stop2",     Abc_CommandRecStop2,         0 );
+    Cmd_CommandAdd( pAbc, "Choicing",     "rec_ps2",       Abc_CommandRecPs2,           0 );
+    Cmd_CommandAdd( pAbc, "Choicing",     "rec_add2",      Abc_CommandRecAdd2,          0 );
+    Cmd_CommandAdd( pAbc, "Choicing",     "rec_dump2",     Abc_CommandRecDump2,         1 );
+    Cmd_CommandAdd( pAbc, "Choicing",     "rec_filter2",   Abc_CommandRecFilter2,       0 );
+    Cmd_CommandAdd( pAbc, "Choicing",     "rec_merge2",    Abc_CommandRecMerge2,        0 );
+
+    Cmd_CommandAdd( pAbc, "Choicing",     "rec_start3",    Abc_CommandRecStart3,        0 );
+    Cmd_CommandAdd( pAbc, "Choicing",     "rec_stop3",     Abc_CommandRecStop3,         0 );
+    Cmd_CommandAdd( pAbc, "Choicing",     "rec_ps3",       Abc_CommandRecPs3,           0 );
+    Cmd_CommandAdd( pAbc, "Choicing",     "rec_add3",      Abc_CommandRecAdd3,          0 );
+    Cmd_CommandAdd( pAbc, "Choicing",     "rec_dump3",     Abc_CommandRecDump3,         0 );
+    Cmd_CommandAdd( pAbc, "Choicing",     "rec_merge3",    Abc_CommandRecMerge3,        0 );
 
     Cmd_CommandAdd( pAbc, "SC mapping",   "map",           Abc_CommandMap,              1 );
     Cmd_CommandAdd( pAbc, "SC mapping",   "amap",          Abc_CommandAmap,             1 );
@@ -2628,10 +2650,10 @@ int Abc_CommandCollapse( Abc_Frame_t * pAbc, int argc, char ** argv )
     pNtk = Abc_FrameReadNtk(pAbc);
 
     // set defaults
-    fVerbose = 1;
+    fVerbose = 0;
     fReorder = 1;
     fDualRail = 0;
-    fBddSizeMax = 50000000;
+    fBddSizeMax = ABC_INFINITY;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "Brdvh" ) ) != EOF )
     {
@@ -4824,6 +4846,7 @@ usage:
     Abc_Print( -2, "\t               1: algebraic factoring applied to ISOP\n" );
     Abc_Print( -2, "\t               2: bi-decomposition with cofactoring\n" );
     Abc_Print( -2, "\t               3: disjoint-support decomposition with cofactoring\n" );
+    Abc_Print( -2, "\t               4: updated disjoint-support decomposition with cofactoring\n" );
     Abc_Print( -2, "\t-N <num> : the number of support variables (binary files only) [default = unused]\n" );
     Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
@@ -4846,15 +4869,16 @@ usage:
 ***********************************************************************/
 int Abc_CommandTestNpn( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern int Abc_NpnTest( char * pFileName, int NpnType, int nVarNum, int fDumpRes, int fVerbose );
+    extern int Abc_NpnTest( char * pFileName, int NpnType, int nVarNum, int fDumpRes, int fBinary, int fVerbose );
     char * pFileName;
     int c;
     int fVerbose = 0;
     int NpnType = 0;
     int nVarNum = -1;
     int fDumpRes = 0;
+    int fBinary = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "ANdvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "ANdbvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -4883,6 +4907,9 @@ int Abc_CommandTestNpn( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'd':
             fDumpRes ^= 1;
             break;
+        case 'b':
+            fBinary ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -4905,11 +4932,11 @@ int Abc_CommandTestNpn( Abc_Frame_t * pAbc, int argc, char ** argv )
     // get the output file name
     pFileName = argv[globalUtilOptind];
     // call the testbench
-    Abc_NpnTest( pFileName, NpnType, nVarNum, fDumpRes, fVerbose );
+    Abc_NpnTest( pFileName, NpnType, nVarNum, fDumpRes, fBinary, fVerbose );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: testnpn [-AN <num>] [-dvh] <file>\n" );
+    Abc_Print( -2, "usage: testnpn [-AN <num>] [-dbvh] <file>\n" );
     Abc_Print( -2, "\t           testbench for computing (semi-)canonical forms\n" );
     Abc_Print( -2, "\t           of completely-specified Boolean functions up to 16 varibles\n" );
     Abc_Print( -2, "\t-A <num> : semi-caninical form computation algorithm [default = %d]\n", NpnType );
@@ -4920,6 +4947,7 @@ usage:
     Abc_Print( -2, "\t               4: Jake's hybrid semi-canonical form (high-effort)\n" );
     Abc_Print( -2, "\t-N <num> : the number of support variables (binary files only) [default = unused]\n" );
     Abc_Print( -2, "\t-d       : toggle dumping resulting functions into a file [default = %s]\n", fDumpRes? "yes": "no" );
+    Abc_Print( -2, "\t-b       : toggle dumping in binary format [default = %s]\n", fBinary? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
     Abc_Print( -2, "\t<file>   : a text file with truth tables in hexadecimal, listed one per line,\n");
@@ -11602,6 +11630,171 @@ usage:
     return 1;
 }
 
+ 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandSendAig( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern int Gia_ManToBridgeAbsNetlist( FILE * pFile, Gia_Man_t * p );
+    int c, fAndSpace = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "a" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'a':
+            fAndSpace ^= 1;
+            break;
+        default:
+            goto usage;
+        }
+    }
+    if ( !Abc_FrameIsBridgeMode() )
+    {
+        Abc_Print( -1, "The bridge mode is not available.\n" );
+        return 1;
+    }
+    if ( fAndSpace )
+    {
+        if ( pAbc->pGia == NULL )
+        {
+            Abc_Print( -1, "There is no AIG in the &-space.\n" );
+            return 1;
+        }
+        Gia_ManToBridgeAbsNetlist( stdout, pAbc->pGia );
+    }
+    else
+    {
+        extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
+        Aig_Man_t * pAig;
+        Gia_Man_t * pGia;
+        if ( pAbc->pNtkCur == NULL )
+        {
+            Abc_Print( -1, "There is no network in the main-space.\n" );
+            return 1;
+        }
+        if ( !Abc_NtkIsStrash(pAbc->pNtkCur) )
+        {
+            Abc_Print( -1, "The main-space network is not an AIG.\n" );
+            return 1;
+        }
+        pAig = Abc_NtkToDar( pAbc->pNtkCur, 0, 1 );
+        pGia = Gia_ManFromAig( pAig );
+        Aig_ManStop( pAig );
+        Gia_ManToBridgeAbsNetlist( stdout, pGia );
+        Gia_ManStop( pGia );
+    }
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: send_aig -a\n" );
+    Abc_Print( -2, "\t         sends current AIG to the bridge\n" );
+    Abc_Print( -2, "\t-a     : toggle sending AIG from &-space [default = %s]\n", fAndSpace? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+ 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandSendStatus( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern int Gia_ManToBridgeResult( FILE * pFile, int Result, Abc_Cex_t * pCex );
+    int c;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( !Abc_FrameIsBridgeMode() )
+    {
+        Abc_Print( -1, "The bridge mode is not available.\n" );
+        return 1;
+    }
+    if ( pAbc->Status == 0 && pAbc->pCex == NULL )
+    {
+        Abc_Print( -1, "Status is \"sat\", but current CEX is not available.\n" );
+        return 1;
+    }
+    Gia_ManToBridgeResult( stdout, pAbc->Status, pAbc->pCex );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: send_status\n" );
+    Abc_Print( -2, "\t         sends current status to the bridge\n" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+ 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandSendCex( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Gia_ManFromBridgeCex( FILE * pFile, Abc_Cex_t * pCex );
+    int c;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( !Abc_FrameIsBridgeMode() )
+    {
+        Abc_Print( -1, "The bridge mode is not available.\n" );
+        return 1;
+    }
+    if ( pAbc->pCex == NULL )
+    {
+        Abc_Print( -1, "Current CEX is not available.\n" );
+        return 1;
+    }
+    Gia_ManFromBridgeCex( stdout, pAbc->pCex );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: send_cex\n" );
+    Abc_Print( -2, "\t         sends current CEX to the bridge\n" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
 
 
 /**Function*************************************************************
@@ -12312,6 +12505,51 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
+int Abc_CommandRecPs( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+//    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+    int c, fPrintLib = 0;
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "ph" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'p':
+            fPrintLib ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( !Abc_NtkRecIsRunning() )
+    {
+        Abc_Print( -1, "This command works for AIGs only after calling \"rec_start\".\n" );
+        return 0;
+    }
+    Abc_NtkRecPs(fPrintLib);
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: rec_ps [-h]\n" );
+    Abc_Print( -2, "\t        prints statistics about the recorded AIG subgraphs\n" );
+    Abc_Print( -2, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Abc_CommandRecAdd( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
@@ -12348,51 +12586,6 @@ int Abc_CommandRecAdd( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     Abc_Print( -2, "usage: rec_add [-h]\n" );
     Abc_Print( -2, "\t        adds subgraphs from the current network to the set\n" );
-    Abc_Print( -2, "\t-h    : print the command usage\n");
-    return 1;
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Abc_CommandRecPs( Abc_Frame_t * pAbc, int argc, char ** argv )
-{
-//    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
-    int c, fPrintLib = 0;
-    // set defaults
-    Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "ph" ) ) != EOF )
-    {
-        switch ( c )
-        {
-        case 'p':
-            fPrintLib ^= 1;
-            break;
-        case 'h':
-            goto usage;
-        default:
-            goto usage;
-        }
-    }
-    if ( !Abc_NtkRecIsRunning() )
-    {
-        Abc_Print( -1, "This command works for AIGs only after calling \"rec_start\".\n" );
-        return 0;
-    }
-    Abc_NtkRecPs(fPrintLib);
-    return 0;
-
-usage:
-    Abc_Print( -2, "usage: rec_ps [-h]\n" );
-    Abc_Print( -2, "\t        prints statistics about the recorded AIG subgraphs\n" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;
 }
@@ -12728,6 +12921,52 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
+int Abc_CommandRecPs2( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+//    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+    int c, fPrintLib = 0;
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "ph" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'p':
+            fPrintLib ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( !Abc_NtkRecIsRunning2() )
+    {
+        Abc_Print( -1, "This command works for AIGs only after calling \"rec_start2\".\n" );
+        return 0;
+    }
+    Abc_NtkRecPs2(fPrintLib);
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: rec_ps2 [-h]\n" );
+    Abc_Print( -2, "\t        prints statistics about the recorded AIG subgraphs\n" );
+    Abc_Print( -2, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Abc_CommandRecAdd2( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
@@ -12764,52 +13003,6 @@ int Abc_CommandRecAdd2( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     Abc_Print( -2, "usage: rec_add2 [-h]\n" );
     Abc_Print( -2, "\t        adds subgraphs from the current network to the set\n" );
-    Abc_Print( -2, "\t-h    : print the command usage\n");
-    return 1;
-}
-
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Abc_CommandRecPs2( Abc_Frame_t * pAbc, int argc, char ** argv )
-{
-//    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
-    int c, fPrintLib = 0;
-    // set defaults
-    Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "ph" ) ) != EOF )
-    {
-        switch ( c )
-        {
-        case 'p':
-            fPrintLib ^= 1;
-            break;
-        case 'h':
-            goto usage;
-        default:
-            goto usage;
-        }
-    }
-    if ( !Abc_NtkRecIsRunning2() )
-    {
-        Abc_Print( -1, "This command works for AIGs only after calling \"rec_start2\".\n" );
-        return 0;
-    }
-    Abc_NtkRecPs2(fPrintLib);
-    return 0;
-
-usage:
-    Abc_Print( -2, "usage: rec_ps2 [-h]\n" );
-    Abc_Print( -2, "\t        prints statistics about the recorded AIG subgraphs\n" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;
 }
@@ -13018,6 +13211,405 @@ usage:
 }
 
 
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandRecStart3( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    char * FileName, * pTemp;
+    char ** pArgvNew;
+    int c, nArgcNew;
+    FILE * pFile;
+    Gia_Man_t * pGia = NULL;
+    int nVars = 6;
+    int nCuts = 32;
+    int fFuncOnly = 0;
+    int fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KCfvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'K':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-K\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nVars = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nVars < 1 ) 
+                goto usage;
+            break;
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-C\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nCuts = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nCuts < 1 ) 
+                goto usage;
+            break;
+        case 'f':
+            fFuncOnly ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( !(nVars >= 3 && nVars <= 16) )
+    {
+        Abc_Print( -1, "The range of allowed values is 3 <= K <= 16.\n" );
+        return 0;
+    }
+    if ( Abc_NtkRecIsRunning3() )
+    {
+        Abc_Print( -1, "The AIG subgraph recording is already started.\n" );
+        return 0;
+    }
+    pArgvNew = argv + globalUtilOptind;
+    nArgcNew = argc - globalUtilOptind;
+    if ( nArgcNew != 1 )
+        Abc_Print( 1, "File name is not given on the command line. Starting a new record.\n" );
+    else
+    {   
+        // get the input file name
+        FileName = pArgvNew[0];
+        // fix the wrong symbol
+        for ( pTemp = FileName; *pTemp; pTemp++ )
+            if ( *pTemp == '>' )
+                *pTemp = '\\';
+        if ( (pFile = fopen( FileName, "r" )) == NULL )
+        {
+            Abc_Print( -1, "Cannot open input file \"%s\". ", FileName );
+            if ( (FileName = Extra_FileGetSimilarName( FileName, ".aig", NULL, NULL, NULL, NULL )) )
+                Abc_Print( 1, "Did you mean \"%s\"?", FileName );
+            Abc_Print( 1, "\n" );
+            return 1;
+        }
+        fclose( pFile );
+        pGia = Gia_ReadAiger( FileName, 1, 0 );
+        if ( pGia == NULL )
+        {
+            Abc_Print( -1, "Reading AIGER has failed.\n" );
+            return 0;
+        }
+    }
+    Abc_NtkRecStart3( pGia, nVars, nCuts, fFuncOnly, fVerbose );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: rec_start3 [-K num] [-C num] [-fvh] <file>\n" );
+    Abc_Print( -2, "\t         starts recording AIG subgraphs (should be called for\n" );
+    Abc_Print( -2, "\t         an empty network or after reading in a previous record)\n" );
+    Abc_Print( -2, "\t-K num : the largest number of inputs [default = %d]\n", nVars );
+    Abc_Print( -2, "\t-C num : the max number of cuts used at a node (0 < num < 2^12) [default = %d]\n", nCuts );
+    Abc_Print( -2, "\t-f     : toggles recording functions without AIG subgraphs [default = %s]\n", fFuncOnly? "yes": "no" );
+    Abc_Print( -2, "\t-v     : toggles additional verbose output [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    Abc_Print( -2, "\t<file> : AIGER file with the library\n");
+    return 1;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandRecStop3( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    int c;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "dh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( !Abc_NtkRecIsRunning3() )
+    {
+        Abc_Print( -1, "This command works only after calling \"rec_start3\".\n" );
+        return 0;
+    }
+    Abc_NtkRecStop3();
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: rec_stop3 [-h]\n" );
+    Abc_Print( -2, "\t        cleans the internal storage for AIG subgraphs\n" );
+    Abc_Print( -2, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandRecPs3( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    int c, fPrintLib = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "ph" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'p':
+            fPrintLib ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( !Abc_NtkRecIsRunning3() )
+    {
+        Abc_Print( -1, "This command works for AIGs only after calling \"rec_start2\".\n" );
+        return 0;
+    }
+    Abc_NtkRecPs3(fPrintLib);
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: rec_ps3 [-h]\n" );
+    Abc_Print( -2, "\t        prints statistics about the recorded AIG subgraphs\n" );
+    Abc_Print( -2, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandRecAdd3( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+    int c;
+    int fUseSOPB = 0;
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "gh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'g':
+            fUseSOPB = 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        Abc_Print( -1, "This command works for AIGs.\n" );
+        return 0;
+    }
+    if ( !Abc_NtkRecIsRunning3() )
+    {
+        Abc_Print( -1, "This command works for AIGs after calling \"rec_start2\".\n" );
+        return 0;
+    }
+    Abc_NtkRecAdd3( pNtk, fUseSOPB );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: rec_add3 [-h]\n" );
+    Abc_Print( -2, "\t        adds subgraphs from the current network to the set\n" );
+    Abc_Print( -2, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandRecDump3( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    char * FileName;
+    char ** pArgvNew;
+    int nArgcNew;
+    Gia_Man_t * pGia;
+    int c;
+
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( !Abc_NtkRecIsRunning3() )
+    {
+        Abc_Print( -1, "The AIG subgraph recording is not started.\n" );
+        return 1;
+    }
+
+    pGia = Abc_NtkRecGetGia3();
+    pArgvNew = argv + globalUtilOptind;
+    nArgcNew = argc - globalUtilOptind;
+    if ( nArgcNew != 1 )
+    {
+        Abc_Print( -1, "File name is not given on the command line.\n" );
+        return 1;
+    }
+    else if( Gia_ManPoNum(pGia) == 0 )
+    {
+        Abc_Print( 0, "No structure in the library.\n" );
+        return 1;
+    }
+    else
+    {   
+        // get the input file name
+        FileName = pArgvNew[0];
+        Gia_WriteAiger( pGia, FileName, 0, 0 );
+    }   
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: rec_dump3 [-h] <file>\n" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    Abc_Print( -2, "\t<file> : AIGER file to write the library\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandRecMerge3( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    int c;
+    char * FileName, * pTemp;
+    char ** pArgvNew;
+    int nArgcNew;
+    FILE * pFile;
+    Gia_Man_t * pGia = NULL;
+
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "dh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( !Abc_NtkRecIsRunning3() )
+    {
+        Abc_Print( -1, "This command works for AIGs only after calling \"rec_start3\".\n" );
+        return 0;
+    }
+    pArgvNew = argv + globalUtilOptind;
+    nArgcNew = argc - globalUtilOptind;
+    if ( nArgcNew != 1 )
+    {
+        Abc_Print( -1, "File name is not given on the command line.\n" );
+        return 1;
+    }
+    else
+    {   
+        // get the input file name
+        FileName = pArgvNew[0];
+        // fix the wrong symbol
+        for ( pTemp = FileName; *pTemp; pTemp++ )
+            if ( *pTemp == '>' )
+                *pTemp = '\\';
+        if ( (pFile = fopen( FileName, "r" )) == NULL )
+        {
+            Abc_Print( -1, "Cannot open input file \"%s\". ", FileName );
+            if ( (FileName = Extra_FileGetSimilarName( FileName, ".aig", NULL, NULL, NULL, NULL )) )
+                Abc_Print( 1, "Did you mean \"%s\"?", FileName );
+            Abc_Print( 1, "\n" );
+            return 1;
+        }
+        fclose( pFile );
+        pGia = Gia_ReadAiger( FileName, 1, 0 );
+        if ( pGia == NULL )
+        {
+            Abc_Print( -1, "Reading AIGER has failed.\n" );
+            return 0;
+        }
+    }
+    Abc_NtkRecLibMerge3(pGia);
+    Gia_ManStop( pGia );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: rec_merge3 [-h] <file>\n" );
+    Abc_Print( -2, "\t         merge libraries\n" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    Abc_Print( -2, "\t<file> : AIGER file with the library\n");
+    return 1;
+}
+
+
 /**Function*************************************************************
 
   Synopsis    []
@@ -13052,7 +13644,7 @@ int Abc_CommandMap( Abc_Frame_t * pAbc, int argc, char ** argv )
     DelayMulti  = 0;
     fAreaOnly   = 0;
     fRecovery   = 1;
-    fSweep      = 1;
+    fSweep      = 0;
     fSwitching  = 0;
     fVerbose    = 0;
     Extra_UtilGetoptReset();
@@ -14392,7 +14984,7 @@ usage:
     Abc_Print( -2, "\t-d       : toggles deriving local AIGs using bi-decomposition [default = %s]\n", pPars->fBidec? "yes": "no" );
     Abc_Print( -2, "\t-b       : toggles the use of one special feature [default = %s]\n", pPars->fUseBat? "yes": "no" );
     Abc_Print( -2, "\t-u       : toggles the use of MUXes along with LUTs [default = %s]\n", fLutMux? "yes": "no" );
-    Abc_Print( -2, "\t-g       : toggles global delay optimization [default = %s]\n", pPars->fDelayOpt? "yes": "no" );
+    Abc_Print( -2, "\t-g       : toggles delay optimization by SOP balancing [default = %s]\n", pPars->fDelayOpt? "yes": "no" );
     Abc_Print( -2, "\t-y       : toggles delay optimization with recorded library [default = %s]\n", pPars->fUserRecLib? "yes": "no" );
     Abc_Print( -2, "\t-o       : toggles using buffers to decouple combinational outputs [default = %s]\n", pPars->fUseBuffs? "yes": "no" );
     Abc_Print( -2, "\t-j       : toggles enabling additional check [default = %s]\n", pPars->fEnableCheck07? "yes": "no" );
@@ -16004,7 +16596,7 @@ int Abc_CommandSeqSweep2( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set defaults
     Ssw_ManSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "PQFCLSIVMNcmplkofdsevwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "PQFCLSIVMNcmplkofdseqvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -16148,6 +16740,9 @@ int Abc_CommandSeqSweep2( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'e':
             pPars->fEquivDump ^= 1;
             break;
+        case 'q':
+            pPars->fStopWhenGone ^= 1;
+            break;
         case 'v':
             pPars->fVerbose ^= 1;
             break;
@@ -16214,7 +16809,7 @@ int Abc_CommandSeqSweep2( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: scorr [-PQFCLSIVMN <num>] [-cmplkodsevwh]\n" );
+    Abc_Print( -2, "usage: scorr [-PQFCLSIVMN <num>] [-cmplkodseqvwh]\n" );
     Abc_Print( -2, "\t         performs sequential sweep using K-step induction\n" );
     Abc_Print( -2, "\t-P num : max partition size (0 = no partitioning) [default = %d]\n", pPars->nPartSize );
     Abc_Print( -2, "\t-Q num : partition overlap (0 = no overlap) [default = %d]\n", pPars->nOverSize );
@@ -16237,6 +16832,7 @@ usage:
     Abc_Print( -2, "\t-d     : toggle dynamic addition of constraints [default = %s]\n", pPars->fDynamic? "yes": "no" );
     Abc_Print( -2, "\t-s     : toggle local simulation in the cone of influence [default = %s]\n", pPars->fLocalSim? "yes": "no" );
     Abc_Print( -2, "\t-e     : toggle dumping disproved internal equivalences [default = %s]\n", pPars->fEquivDump? "yes": "no" );
+    Abc_Print( -2, "\t-q     : toggle quitting when PO is not a constant candidate [default = %s]\n", pPars->fStopWhenGone? "yes": "no" );
     Abc_Print( -2, "\t-w     : toggle printout of flop equivalences [default = %s]\n", pPars->fFlopVerbose? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
@@ -22697,7 +23293,12 @@ int Abc_CommandAbc9Put( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Empty network.\n" );
         return 1;
     }
-    if ( Gia_ManHasDangling(pAbc->pGia) == 0 )
+    if ( pAbc->pGia->pMapping )
+    {
+        extern Abc_Ntk_t * Abc_NtkFromMappedGia( Gia_Man_t * p );
+        pNtk = Abc_NtkFromMappedGia( pAbc->pGia );
+    }
+    else if ( Gia_ManHasDangling(pAbc->pGia) == 0 )
     {
         pMan = Gia_ManToAig( pAbc->pGia, 0 );
         pNtk = Abc_NtkFromAigPhase( pMan );
@@ -25098,7 +25699,7 @@ int Abc_CommandAbc9Scorr( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     Cec_ManCorSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FCPkrecwvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FCPkrecqwvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -25147,6 +25748,9 @@ int Abc_CommandAbc9Scorr( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'c':
             pPars->fUseCSat ^= 1;
             break;
+        case 'q':
+            pPars->fStopWhenGone ^= 1;
+            break;
         case 'w':
             pPars->fVerboseFlops ^= 1;
             break;
@@ -25172,7 +25776,7 @@ int Abc_CommandAbc9Scorr( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &scorr [-FCP num] [-krecwvh]\n" );
+    Abc_Print( -2, "usage: &scorr [-FCP num] [-krecqwvh]\n" );
     Abc_Print( -2, "\t         performs signal correpondence computation\n" );
     Abc_Print( -2, "\t-C num : the max number of conflicts at a node [default = %d]\n", pPars->nBTLimit );
     Abc_Print( -2, "\t-F num : the number of timeframes in inductive case [default = %d]\n", pPars->nFrames );
@@ -25181,6 +25785,7 @@ usage:
     Abc_Print( -2, "\t-r     : toggle using implication rings during refinement [default = %s]\n", pPars->fUseRings? "yes": "no" );
     Abc_Print( -2, "\t-e     : toggle using equivalences as choices [default = %s]\n", pPars->fMakeChoices? "yes": "no" );
     Abc_Print( -2, "\t-c     : toggle using circuit-based SAT solver [default = %s]\n", pPars->fUseCSat? "yes": "no" );
+    Abc_Print( -2, "\t-q     : toggle quitting when PO is not a constant candidate [default = %s]\n", pPars->fStopWhenGone? "yes": "no" );
     Abc_Print( -2, "\t-w     : toggle printing verbose info about equivalent flops [default = %s]\n", pPars->fVerboseFlops? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
@@ -26210,20 +26815,18 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     char Buffer[200];
     char LutSize[200];
+    Gia_Man_t * pNew;
     If_Par_t Pars, * pPars = &Pars;
     int c;
-    extern void Gia_ManSetIfParsDefault( If_Par_t * pPars );
-    extern int Gia_MappingIf( Gia_Man_t * p, If_Par_t * pPars );
     // set defaults
     Gia_ManSetIfParsDefault( pPars );
-//    if ( pAbc->pAbc8Lib == NULL )
-//    {
-//        Abc_Print( -1, "LUT library is not given. Using default LUT library.\n" );
-//        pAbc->pAbc8Lib = If_SetSimpleLutLib( 6 );
-//    }
-//    pPars->pLutLib = pAbc->pAbc8Lib;
+    if ( pAbc->pLibLut == NULL )
+    {
+        Abc_Print( -1, "LUT library is not given. Using default LUT library.\n" );
+        pAbc->pLibLut = If_SetSimpleLutLib( 6 );
+    }
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KCFADEqaflepmrsdbvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KCFAGDEWSqaflepmrsdbgyojikcvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -26273,6 +26876,17 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( pPars->nAreaIters < 0 ) 
                 goto usage;
             break;
+        case 'G':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-G\" should be followed by a positive integer no less than 3.\n" );
+                goto usage;
+            }
+            pPars->nGateSize = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nGateSize < 2 ) 
+                goto usage;
+            break;
         case 'D':
             if ( globalUtilOptind >= argc )
             {
@@ -26294,6 +26908,31 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
             globalUtilOptind++;
             if ( pPars->Epsilon < 0.0 || pPars->Epsilon > 1.0 ) 
                 goto usage;
+            break;
+        case 'W':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-W\" should be followed by a floating point number.\n" );
+                goto usage;
+            }
+            pPars->WireDelay = (float)atof(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->WireDelay < 0.0 ) 
+                goto usage;
+            break;
+        case 'S':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-S\" should be followed by string.\n" );
+                goto usage;
+            }
+            pPars->pLutStruct = argv[globalUtilOptind];
+            globalUtilOptind++;
+            if ( strlen(pPars->pLutStruct) != 2 && strlen(pPars->pLutStruct) != 3 ) 
+            {
+                Abc_Print( -1, "Command line switch \"-S\" should be followed by a 2- or 3-char string (e.g. \"44\" or \"555\").\n" );
+                goto usage;
+            }
             break;
         case 'q':
             pPars->fPreprocess ^= 1;
@@ -26328,6 +26967,27 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'b':
             pPars->fUseBat ^= 1;
             break;
+        case 'g':
+            pPars->fDelayOpt ^= 1;
+            break;
+        case 'y':
+            pPars->fUserRecLib ^= 1;
+            break;
+        case 'o':
+            pPars->fUseBuffs ^= 1;
+            break;
+        case 'j':
+            pPars->fEnableCheck07 ^= 1;
+            break;
+        case 'i':
+            pPars->fEnableCheck08 ^= 1;
+            break;
+        case 'k':
+            pPars->fEnableCheck10 ^= 1;
+            break;
+        case 'c':
+            pPars->fEnableRealPos ^= 1;
+            break;
         case 'v':
             pPars->fVerbose ^= 1;
             break;
@@ -26336,10 +26996,25 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
+
     if ( pAbc->pGia == NULL )
     {
-        Abc_Print( -1, "Abc_CommandAbc9If(): There is no AIG to map.\n" );
+        Abc_Print( -1, "Empty GIA network.\n" );
         return 1;
+    }
+
+    if ( pPars->nLutSize == -1 )
+    {
+        if ( pPars->pLutLib == NULL )
+        {
+            Abc_Print( -1, "The LUT library is not given.\n" );
+            return 1;
+        }
+        // get LUT size from the library
+        pPars->nLutSize = pPars->pLutLib->LutMax;
+        // if variable pin delay, force truth table computation
+//        if ( pPars->pLutLib->fVarPinDelays )
+//            pPars->fTruth = 1;
     }
 
     if ( pPars->nLutSize < 3 || pPars->nLutSize > IF_MAX_LUTSIZE )
@@ -26355,9 +27030,10 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // enable truth table computation if choices are selected
-    if ( (c = Gia_ManCountChoiceNodes( pAbc->pGia )) )
+    if ( Gia_ManHasChoices(pAbc->pGia) )
     {
-        Abc_Print( 0, "Performing LUT mapping with %d choices.\n", c );
+        if ( !Abc_FrameReadFlag("silentmode") )
+            Abc_Print( 0, "Performing LUT mapping with choices.\n" );
         pPars->fExpRed = 0;
     }
 
@@ -26371,11 +27047,85 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
         pPars->fCutMin = 1;            
     }
 
+    if ( pPars->fEnableCheck07 + pPars->fEnableCheck08 + pPars->fEnableCheck10 + (pPars->pLutStruct != NULL) > 1 )
+    {
+        Abc_Print( -1, "Only one additional check can be performed at the same time.\n" );
+        return 1;
+    }
+    if ( pPars->fEnableCheck07 )
+    {
+        if ( pPars->nLutSize < 6 || pPars->nLutSize > 7 )
+        {
+            Abc_Print( -1, "This feature only works for {6,7}-LUTs.\n" );
+            return 1;
+        }
+        pPars->pFuncCell = If_CutPerformCheck07;
+        pPars->fCutMin = 1;            
+    }
+    if ( pPars->fEnableCheck08 )
+    {
+        if ( pPars->nLutSize < 6 || pPars->nLutSize > 8 )
+        {
+            Abc_Print( -1, "This feature only works for {6,7,8}-LUTs.\n" );
+            return 1;
+        }
+        pPars->pFuncCell = If_CutPerformCheck08;
+        pPars->fCutMin = 1;            
+    }
+    if ( pPars->fEnableCheck10 )
+    {
+        if ( pPars->nLutSize < 6 || pPars->nLutSize > 10 )
+        {
+            Abc_Print( -1, "This feature only works for {6,7,8,9,10}-LUTs.\n" );
+            return 1;
+        }
+        pPars->pFuncCell = If_CutPerformCheck10;
+        pPars->fCutMin = 1;            
+    }
+    if ( pPars->pLutStruct )
+    {
+        if ( pPars->nLutSize < 6 || pPars->nLutSize > 16 )
+        {
+            Abc_Print( -1, "This feature only works for [6;16]-LUTs.\n" );
+            return 1;
+        }
+        pPars->pFuncCell = If_CutPerformCheck16;
+        pPars->fCutMin = 1;            
+    }
+
     // enable truth table computation if cut minimization is selected
     if ( pPars->fCutMin )
     {
         pPars->fTruth = 1;
         pPars->fExpRed = 0;
+    }
+    // modify the subgraph recording
+    if ( pPars->fUserRecLib )
+    {
+        pPars->fTruth      =  1;
+        pPars->fCutMin     =  1;
+        pPars->fExpRed     =  0;
+        pPars->fUsePerm    =  1;
+        pPars->pLutLib     =  NULL;
+    }
+    // modify for global delay optimization
+    if ( pPars->fDelayOpt )
+    {
+        pPars->fTruth      =  1;
+        pPars->fCutMin     =  1;
+        pPars->fExpRed     =  0;
+        pPars->fUsePerm    =  1;
+        pPars->pLutLib     =  NULL;
+    }
+    // modify for global delay optimization
+    if ( pPars->nGateSize > 0 )
+    {
+        pPars->fTruth      =  1;
+        pPars->fCutMin     =  1;
+        pPars->fExpRed     =  0;
+        pPars->fUsePerm    =  1;
+        pPars->pLutLib     =  NULL;
+        pPars->nLutSize    =  pPars->nGateSize; 
     }
 
     // complain if truth tables are requested but the cut size is too large
@@ -26385,11 +27135,14 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
-    if ( !Gia_MappingIf( pAbc->pGia, pPars ) )
+    // perform mapping
+    pNew = Gia_ManPerformMapping( pAbc->pGia, pPars );
+    if ( pNew == NULL )
     {
         Abc_Print( -1, "Abc_CommandAbc9If(): Mapping of the AIG has failed.\n" );
         return 1;
     }
+    Abc_CommandUpdate9( pAbc, pNew );
     return 0;
 
 usage:
@@ -26401,14 +27154,17 @@ usage:
         sprintf( LutSize, "library" );
     else
         sprintf( LutSize, "%d", pPars->nLutSize );
-    Abc_Print( -2, "usage: &if [-KCFA num] [-DE float] [-qarlepmdbvh]\n" );
+    Abc_Print( -2, "usage: &if [-KCFAG num] [-DEW float] [-S str] [-qarlepmsdbgyojikcvh]\n" );
     Abc_Print( -2, "\t           performs FPGA technology mapping of the network\n" );
     Abc_Print( -2, "\t-K num   : the number of LUT inputs (2 < num < %d) [default = %s]\n", IF_MAX_LUTSIZE+1, LutSize );
     Abc_Print( -2, "\t-C num   : the max number of priority cuts (0 < num < 2^12) [default = %d]\n", pPars->nCutsMax );
     Abc_Print( -2, "\t-F num   : the number of area flow recovery iterations (num >= 0) [default = %d]\n", pPars->nFlowIters );
     Abc_Print( -2, "\t-A num   : the number of exact area recovery iterations (num >= 0) [default = %d]\n", pPars->nAreaIters );
+    Abc_Print( -2, "\t-G num   : the max AND/OR gate size for mapping (0 = unused) [default = %d]\n", pPars->nGateSize );
     Abc_Print( -2, "\t-D float : sets the delay constraint for the mapping [default = %s]\n", Buffer );  
     Abc_Print( -2, "\t-E float : sets epsilon used for tie-breaking [default = %f]\n", pPars->Epsilon );  
+    Abc_Print( -2, "\t-W float : sets wire delay between adjects LUTs [default = %f]\n", pPars->WireDelay );  
+    Abc_Print( -2, "\t-S str   : string representing the LUT structure [default = %s]\n", pPars->pLutStruct ? pPars->pLutStruct : "not used" );  
     Abc_Print( -2, "\t-q       : toggles preprocessing using several starting points [default = %s]\n", pPars->fPreprocess? "yes": "no" );
     Abc_Print( -2, "\t-a       : toggles area-oriented mapping [default = %s]\n", pPars->fArea? "yes": "no" );
 //    Abc_Print( -2, "\t-f       : toggles one fancy feature [default = %s]\n", pPars->fFancy? "yes": "no" );
@@ -26417,9 +27173,16 @@ usage:
     Abc_Print( -2, "\t-e       : uses edge-based cut selection heuristics [default = %s]\n", pPars->fEdge? "yes": "no" );
     Abc_Print( -2, "\t-p       : uses power-aware cut selection heuristics [default = %s]\n", pPars->fPower? "yes": "no" );
     Abc_Print( -2, "\t-m       : enables cut minimization by removing vacuous variables [default = %s]\n", pPars->fCutMin? "yes": "no" );
-//    Abc_Print( -2, "\t-s       : toggles sequential mapping [default = %s]\n", pPars->fSeqMap? "yes": "no" );
+    Abc_Print( -2, "\t-s       : toggles sequential mapping [default = %s]\n", pPars->fSeqMap? "yes": "no" );
     Abc_Print( -2, "\t-d       : toggles deriving local AIGs using bi-decomposition [default = %s]\n", pPars->fBidec? "yes": "no" );
     Abc_Print( -2, "\t-b       : toggles the use of one special feature [default = %s]\n", pPars->fUseBat? "yes": "no" );
+    Abc_Print( -2, "\t-g       : toggles delay optimization by SOP balancing [default = %s]\n", pPars->fDelayOpt? "yes": "no" );
+    Abc_Print( -2, "\t-y       : toggles delay optimization with recorded library [default = %s]\n", pPars->fUserRecLib? "yes": "no" );
+    Abc_Print( -2, "\t-o       : toggles using buffers to decouple combinational outputs [default = %s]\n", pPars->fUseBuffs? "yes": "no" );
+    Abc_Print( -2, "\t-j       : toggles enabling additional check [default = %s]\n", pPars->fEnableCheck07? "yes": "no" );
+    Abc_Print( -2, "\t-i       : toggles enabling additional check [default = %s]\n", pPars->fEnableCheck08? "yes": "no" );
+    Abc_Print( -2, "\t-k       : toggles enabling additional check [default = %s]\n", pPars->fEnableCheck10? "yes": "no" );
+    Abc_Print( -2, "\t-c       : toggles enabling additional feature [default = %s]\n", pPars->fEnableRealPos? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : prints the command usage\n");
     return 1;

@@ -377,12 +377,12 @@ int Abc_NtkCheckPos( Abc_Ntk_t * pNtk )
         }
         if ( Abc_ObjFaninNum(pObj) != 1 )
         {
-            fprintf( stdout, "NetworkCheck: A PO \"%s\" does not have one fanin.\n", Abc_ObjName(pObj) );
+            fprintf( stdout, "NetworkCheck: A PO \"%s\" does not have one fanin (but %d).\n", Abc_ObjName(pObj), Abc_ObjFaninNum(pObj) );
             return 0;
         }
         if ( Abc_ObjFanoutNum(pObj) > 0 )
         {
-            fprintf( stdout, "NetworkCheck: A PO \"%s\" has fanouts.\n", Abc_ObjName(pObj) );
+            fprintf( stdout, "NetworkCheck: A PO \"%s\" has %d fanout(s).\n", Abc_ObjName(pObj), Abc_ObjFanoutNum(pObj) );
             return 0;
         }
         pObj->pCopy = (Abc_Obj_t *)1;

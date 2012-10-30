@@ -109,6 +109,7 @@ static inline void Abc_SclTimeNodePrint( SC_Man * p, Abc_Obj_t * pObj, int fRise
 {
     printf( "%7d : ",             Abc_ObjId(pObj) );
     printf( "%d ",                Abc_ObjFaninNum(pObj) );
+    printf( "%d ",                Abc_ObjFanoutNum(pObj) );
     printf( "%-*s ",              Length, Abc_SclObjCell(p, pObj)->pName );
     if ( fRise >= 0 )
     printf( "(%s)   ",            fRise ? "rise" : "fall" );

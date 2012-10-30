@@ -68,7 +68,8 @@ struct Kit_Node_t_
     Kit_Edge_t        eEdge0;          // the left child of the node
     Kit_Edge_t        eEdge1;          // the right child of the node
     // other info
-    void *            pFunc;           // the function of the node (BDD or AIG)
+    union { int       iFunc;           // the function of the node (BDD or AIG)
+    void *            pFunc; };        // the function of the node (BDD or AIG)
     unsigned          Level    : 14;   // the level of this node in the global AIG
     // printing info 
     unsigned          fNodeOr  :  1;   // marks the original OR node
@@ -561,6 +562,7 @@ extern unsigned        Kit_GraphToTruth( Kit_Graph_t * pGraph );
 extern Kit_Graph_t *   Kit_TruthToGraph( unsigned * pTruth, int nVars, Vec_Int_t * vMemory );
 extern int             Kit_GraphLeafDepth_rec( Kit_Graph_t * pGraph, Kit_Node_t * pNode, Kit_Node_t * pLeaf );
 /*=== kitHop.c ==========================================================*/
+//extern int             Kit_TruthToGia( Gia_Man_t * pMan, unsigned * pTruth, int nVars, Vec_Int_t * vMemory, Vec_Int_t * vLeaves, int fHash );
 //extern Hop_Obj_t *     Kit_GraphToHop( Hop_Man_t * pMan, Kit_Graph_t * pGraph );
 //extern Hop_Obj_t *     Kit_TruthToHop( Hop_Man_t * pMan, unsigned * pTruth, int nVars, Vec_Int_t * vMemory );
 //extern Hop_Obj_t *     Kit_CoverToHop( Hop_Man_t * pMan, Vec_Int_t * vCover, int nVars, Vec_Int_t * vMemory );

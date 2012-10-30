@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "if.h"
+#include "misc/util/utilTruth.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -43,29 +44,28 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
-static inline int  If_TruthWordNum( int nVars )  { return nVars <= 5 ? 1 : (1 << (nVars - 5)); }
 static inline void If_TruthNot( unsigned * pOut, unsigned * pIn, int nVars )
 {
     int w;
-    for ( w = If_TruthWordNum(nVars)-1; w >= 0; w-- )
+    for ( w = If_CutTruthWords(nVars)-1; w >= 0; w-- )
         pOut[w] = ~pIn[w];
 }
 static inline void If_TruthCopy( unsigned * pOut, unsigned * pIn, int nVars )
 {
     int w;
-    for ( w = If_TruthWordNum(nVars)-1; w >= 0; w-- )
+    for ( w = If_CutTruthWords(nVars)-1; w >= 0; w-- )
         pOut[w] = pIn[w];
 }
 static inline void If_TruthNand( unsigned * pOut, unsigned * pIn0, unsigned * pIn1, int nVars )
 {
     int w;
-    for ( w = If_TruthWordNum(nVars)-1; w >= 0; w-- )
+    for ( w = If_CutTruthWords(nVars)-1; w >= 0; w-- )
         pOut[w] = ~(pIn0[w] & pIn1[w]);
 }
 static inline void If_TruthAnd( unsigned * pOut, unsigned * pIn0, unsigned * pIn1, int nVars )
 {
     int w;
-    for ( w = If_TruthWordNum(nVars)-1; w >= 0; w-- )
+    for ( w = If_CutTruthWords(nVars)-1; w >= 0; w-- )
         pOut[w] = pIn0[w] & pIn1[w];
 }
 
@@ -89,7 +89,7 @@ void If_TruthSwapAdjacentVars( unsigned * pOut, unsigned * pIn, int nVars, int i
         { 0xF00FF00F, 0x00F000F0, 0x0F000F00 },
         { 0xFF0000FF, 0x0000FF00, 0x00FF0000 }
     };
-    int nWords = If_TruthWordNum( nVars );
+    int nWords = If_CutTruthWords( nVars );
     int i, k, Step, Shift;
 
     assert( iVar < nVars - 1 );
@@ -245,7 +245,7 @@ void If_TruthShrink( unsigned * pOut, unsigned * pIn, int nVars, int nVarsAll, u
 ***********************************************************************/
 int If_CutTruthVarInSupport( unsigned * pTruth, int nVars, int iVar )
 {
-    int nWords = If_TruthWordNum( nVars );
+    int nWords = If_CutTruthWords( nVars );
     int i, k, Step;
 
     assert( iVar < nVars );
@@ -446,6 +446,191 @@ int If_CutTruthMinimize( If_Man_t * p, If_Cut_t * pCut )
 //    uSupport = If_CutTruthSupport( If_CutTruth(pCut), If_CutLeaveNum(pCut), &nSuppSize );
 //    assert( nSuppSize == If_CutLeaveNum(pCut) );
     return 1;
+}
+
+
+
+
+/**Function*************************************************************
+
+  Synopsis    [Performs truth table computation.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int If_CutTruthMinimize6( If_Man_t * p, If_Cut_t * pCut )
+{
+    unsigned uSupport;
+    int i, k, nSuppSize;
+    int nVars = If_CutLeaveNum(pCut);
+    // compute the support of the cut's function
+    uSupport = Abc_Tt6SupportAndSize( *If_CutTruthW(pCut), nVars, &nSuppSize );
+    if ( nSuppSize == If_CutLeaveNum(pCut) )
+        return 0;
+// TEMPORARY
+    if ( nSuppSize < 2 )
+    {
+        p->nSmallSupp++;
+        return 2;
+    }
+    // update leaves and signature
+    pCut->uSign = 0;
+    for ( i = k = 0; i < nVars; i++ )
+    {
+        if ( !(uSupport & (1 << i)) )
+            continue;    
+        pCut->uSign |= If_ObjCutSign( pCut->pLeaves[i] );
+        if ( k < i )
+        {
+            pCut->pLeaves[k] = pCut->pLeaves[i];
+            Abc_TtSwapVars( If_CutTruthW(pCut), pCut->nLimit, k, i );
+        }
+        k++;
+    }
+    assert( k == nSuppSize );
+    pCut->nLeaves = nSuppSize;
+    // verify the result
+//    assert( nSuppSize == Abc_TtSupportSize(If_CutTruthW(pCut), nVars) );
+    return 1;
+}
+static inline word If_TruthStretch6( word Truth, If_Cut_t * pCut, If_Cut_t * pCut0 )
+{
+    int i, k;
+    for ( i = (int)pCut->nLeaves - 1, k = (int)pCut0->nLeaves - 1; i >= 0 && k >= 0; i-- )
+    {
+        if ( pCut0->pLeaves[k] < pCut->pLeaves[i] )
+            continue;
+        assert( pCut0->pLeaves[k] == pCut->pLeaves[i] );
+        if ( k < i )
+            Abc_TtSwapVars( &Truth, pCut->nLimit, k, i );
+        k--;
+    }
+    return Truth;
+}
+static inline int If_CutComputeTruth6( If_Man_t * p, If_Cut_t * pCut, If_Cut_t * pCut0, If_Cut_t * pCut1, int fCompl0, int fCompl1 )
+{
+    word t0 = (fCompl0 ^ pCut0->fCompl) ? ~*If_CutTruthW(pCut0) : *If_CutTruthW(pCut0);
+    word t1 = (fCompl1 ^ pCut1->fCompl) ? ~*If_CutTruthW(pCut1) : *If_CutTruthW(pCut1);
+    assert( pCut->nLimit <= 6 );
+    t0 = If_TruthStretch6( t0, pCut, pCut0 );
+    t1 = If_TruthStretch6( t1, pCut, pCut1 );
+    *If_CutTruthW(pCut) = t0 & t1;
+    if ( p->pPars->fCutMin )
+        return If_CutTruthMinimize6( p, pCut );
+    return 0;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Performs truth table computation.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+// this procedure handles special case reductions
+static inline int If_CutTruthMinimize21( If_Man_t * p, If_Cut_t * pCut ) 
+{
+    word * pTruth = If_CutTruthW(pCut);
+    int i, k, nVars = If_CutLeaveNum(pCut);
+    unsigned uSign = 0;
+    for ( i = k = 0; i < nVars; i++ )
+    {
+        if ( !Abc_TtHasVar( pTruth, nVars, i ) )
+            continue;
+        uSign |= If_ObjCutSign( pCut->pLeaves[i] );
+        if ( k < i )
+        {
+            pCut->pLeaves[k] = pCut->pLeaves[i];
+            Abc_TtSwapVars( pTruth, nVars, k, i );
+        }
+        k++;
+    }
+    if ( k == nVars )
+        return 0;
+    assert( k < nVars );
+    pCut->nLeaves = k;
+    pCut->uSign = uSign;
+// TEMPORARY
+    if ( pCut->nLeaves < 2 )
+    {
+        p->nSmallSupp++;
+        return 2;
+    }
+    // verify the result
+    assert( If_CutLeaveNum(pCut) == Abc_TtSupportSize(pTruth, nVars) );
+    return 1;
+}
+static inline int If_CutTruthMinimize2( If_Man_t * p, If_Cut_t * pCut )
+{
+    unsigned uSupport;
+    int i, k, nSuppSize;
+    int nVars = If_CutLeaveNum(pCut);
+    // compute the support of the cut's function
+    uSupport = Abc_TtSupportAndSize( If_CutTruthW(pCut), nVars, &nSuppSize );
+    if ( nSuppSize == If_CutLeaveNum(pCut) )
+        return 0;
+// TEMPORARY
+    if ( nSuppSize < 2 )
+    {
+        p->nSmallSupp++;
+        return 2;
+    }
+    // update leaves and signature
+    pCut->uSign = 0;
+    for ( i = k = 0; i < nVars; i++ )
+    {
+        if ( !(uSupport & (1 << i)) )
+            continue;    
+        pCut->uSign |= If_ObjCutSign( pCut->pLeaves[i] );
+        if ( k < i )
+        {
+            pCut->pLeaves[k] = pCut->pLeaves[i];
+            Abc_TtSwapVars( If_CutTruthW(pCut), pCut->nLimit, k, i );
+        }
+        k++;
+    }
+    assert( k == nSuppSize );
+    pCut->nLeaves = nSuppSize;
+    // verify the result
+//    assert( nSuppSize == Abc_TtSupportSize(If_CutTruthW(pCut), nVars) );
+    return 1;
+}
+static inline void If_TruthStretch2( word * pTruth, If_Cut_t * pCut, If_Cut_t * pCut0 )
+{
+    int i, k;
+    for ( i = (int)pCut->nLeaves - 1, k = (int)pCut0->nLeaves - 1; i >= 0 && k >= 0; i-- )
+    {
+        if ( pCut0->pLeaves[k] < pCut->pLeaves[i] )
+            continue;
+        assert( pCut0->pLeaves[k] == pCut->pLeaves[i] );
+        if ( k < i )
+            Abc_TtSwapVars( pTruth, pCut->nLimit, k, i );
+        k--;
+    }
+}
+inline int If_CutComputeTruth2( If_Man_t * p, If_Cut_t * pCut, If_Cut_t * pCut0, If_Cut_t * pCut1, int fCompl0, int fCompl1 )
+{
+    int nWords;
+    if ( pCut->nLimit < 7 )
+        return If_CutComputeTruth6( p, pCut, pCut0, pCut1, fCompl0, fCompl1 );
+    nWords = Abc_TtWordNum( pCut->nLimit );
+    Abc_TtCopy( (word *)p->puTemp[0], If_CutTruthW(pCut0), nWords, fCompl0 ^ pCut0->fCompl );
+    Abc_TtCopy( (word *)p->puTemp[1], If_CutTruthW(pCut1), nWords, fCompl1 ^ pCut1->fCompl );
+    If_TruthStretch2( (word *)p->puTemp[0], pCut, pCut0 );
+    If_TruthStretch2( (word *)p->puTemp[1], pCut, pCut1 );
+    Abc_TtAnd( If_CutTruthW(pCut), (word *)p->puTemp[0], (word *)p->puTemp[1], nWords, 0 );
+    if ( p->pPars->fCutMin )
+        return If_CutTruthMinimize2( p, pCut );
+    return 0;
 }
 
 

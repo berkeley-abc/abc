@@ -21,6 +21,7 @@
 #include "gia.h"
 #include "misc/tim/tim.h"
 #include "proof/abs/abs.h"
+#include "opt/dar/dar.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -107,6 +108,7 @@ void Gia_ManStop( Gia_Man_t * p )
     ABC_FREE( p->pReprsOld );
     ABC_FREE( p->pReprs );
     ABC_FREE( p->pNexts );
+    ABC_FREE( p->pSibls );
     ABC_FREE( p->pRefs );
 //    ABC_FREE( p->pNodeRefs );
     ABC_FREE( p->pHTable );
@@ -260,6 +262,36 @@ void Gia_ManPrintTents( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
+void Gia_ManPrintChoiceStats( Gia_Man_t * p )
+{
+    Gia_Obj_t * pObj;
+    int i, nEquivs = 0, nChoices = 0;
+    Gia_ManMarkFanoutDrivers( p );
+    Gia_ManForEachAnd( p, pObj, i )
+    {
+        if ( !Gia_ObjSibl(p, i) )
+            continue;
+        nEquivs++;
+        if ( pObj->fMark0 )
+            nChoices++;
+        assert( !Gia_ObjSiblObj(p, i)->fMark0 );
+        assert( Gia_ObjIsAnd(Gia_ObjSiblObj(p, i)) );
+    }
+    Abc_Print( 1, "Choice stats: Equivs =%7d. Choices =%7d.\n", nEquivs, nChoices );
+    Gia_ManCleanMark0( p );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Prints stats for the AIG.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 void Gia_ManPrintStats( Gia_Man_t * p, int fTents, int fSwitch )
 {
     if ( p->pName )
@@ -271,7 +303,7 @@ void Gia_ManPrintStats( Gia_Man_t * p, int fTents, int fSwitch )
         printf( "  ff =%7d", Gia_ManRegNum(p) );
     printf( "  and =%8d", Gia_ManAndNum(p) );
     printf( "  lev =%5d", Gia_ManLevelNum(p) ); Vec_IntFreeP( &p->vLevels );
-    printf( "  cut =%5d", Gia_ManCrossCut(p) );
+    printf( "  cut = %d(%d)", Gia_ManCrossCut(p, 0), Gia_ManCrossCut(p, 1) );
 //    printf( "  mem =%5.2f MB", 1.0*(sizeof(Gia_Obj_t)*p->nObjs + sizeof(int)*(Vec_IntSize(p->vCis) + Vec_IntSize(p->vCos)))/(1<<20) );
     printf( "  mem =%5.2f MB", 1.0*(sizeof(Gia_Obj_t)*p->nObjsAlloc + sizeof(int)*(Vec_IntCap(p->vCis) + Vec_IntCap(p->vCos)))/(1<<20) );
     if ( Gia_ManHasDangling(p) )
@@ -289,6 +321,8 @@ void Gia_ManPrintStats( Gia_Man_t * p, int fTents, int fSwitch )
 //    Gia_ManSatExperiment( p );
     if ( p->pReprs && p->pNexts )
         Gia_ManEquivPrintClasses( p, 0, 0.0 );
+    if ( p->pSibls )
+        Gia_ManPrintChoiceStats( p );
     if ( p->pMapping )
         Gia_ManPrintMappingStats( p );
     if ( p->pPlacement )
@@ -425,6 +459,96 @@ void Gia_ManReportImprovement( Gia_Man_t * p, Gia_Man_t * pNew )
         Gia_ManAndNum(p), Gia_ManAndNum(pNew), 
         Gia_ManAndNum(p)? 100.0*(Gia_ManAndNum(p)-Gia_ManAndNum(pNew))/Gia_ManAndNum(p) : 0.0 );
     printf( "\n" );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Prints NPN class statistics.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManPrintNpnClasses( Gia_Man_t * p )
+{
+    extern char ** Kit_DsdNpn4ClassNames();
+    char ** pNames = Kit_DsdNpn4ClassNames();
+    Vec_Int_t * vLeaves, * vTruth, * vVisited;
+    int * pLutClass, ClassCounts[222] = {0};
+    int i, k, iFan, Class, OtherClasses, OtherClasses2, nTotal, Counter, Counter2;
+    unsigned * pTruth;
+    assert( p->pMapping != NULL );
+    assert(  Gia_ManLutSizeMax( p ) <= 4 );
+    vLeaves   = Vec_IntAlloc( 100 );
+    vVisited  = Vec_IntAlloc( 100 );
+    vTruth    = Vec_IntAlloc( (1<<16) );
+    pLutClass = ABC_CALLOC( int, Gia_ManObjNum(p) );
+    Gia_ManCleanTruth( p );
+    Gia_ManForEachLut( p, i )
+    {
+        if ( Gia_ObjLutSize(p,i) > 4 )
+            continue;
+        Vec_IntClear( vLeaves );
+        Gia_LutForEachFanin( p, i, iFan, k )
+            Vec_IntPush( vLeaves, iFan );
+        for ( ; k < 4; k++ )
+            Vec_IntPush( vLeaves, 0 );
+        pTruth = Gia_ManConvertAigToTruth( p, Gia_ManObj(p, i), vLeaves, vTruth, vVisited );
+        Class = Dar_LibReturnClass( *pTruth );
+        ClassCounts[ Class ]++;
+        pLutClass[i] = Class;
+    }
+    Vec_IntFree( vLeaves );
+    Vec_IntFree( vTruth );
+    Vec_IntFree( vVisited );
+    Vec_IntFreeP( &p->vTruths );
+    nTotal = 0;
+    for ( i = 0; i < 222; i++ )
+        nTotal += ClassCounts[i];
+    Abc_Print( 1, "NPN CLASS STATISTICS (for %d LUT4 present in the current mapping):\n", nTotal );
+    OtherClasses = 0;
+    for ( i = 0; i < 222; i++ )
+    {
+        if ( ClassCounts[i] == 0 )
+            continue;
+        if ( 100.0 * ClassCounts[i] / (nTotal+1) < 0.1 ) // do not show anything below 0.1 percent
+            continue;
+        OtherClasses += ClassCounts[i];
+        Abc_Print( 1, "Class %3d :  Count = %6d   (%7.2f %%)   %s\n", 
+            i, ClassCounts[i], 100.0 * ClassCounts[i] / (nTotal+1), pNames[i] );
+    }
+    OtherClasses = nTotal - OtherClasses;
+    Abc_Print( 1, "Other     :  Count = %6d   (%7.2f %%)\n", 
+        OtherClasses, 100.0 * OtherClasses / (nTotal+1) );
+    // count the number of LUTs that have MUX function and two fanins with MUX functions
+    OtherClasses = OtherClasses2 = 0;
+    ABC_FREE( p->pRefs );
+    Gia_ManSetRefsMapped( p );
+    Gia_ManForEachLut( p, i )
+    {
+        if ( pLutClass[i] != 109 )
+            continue;
+        Counter = Counter2 = 0;
+        Gia_LutForEachFanin( p, i, iFan, k )
+        {
+            Counter  += (pLutClass[iFan] == 109);
+            Counter2 += (pLutClass[iFan] == 109) && (Gia_ObjRefNumId(p, iFan) == 1);
+        }
+        OtherClasses  += (Counter > 1);
+        OtherClasses2 += (Counter2 > 1);
+//            Abc_Print( 1, "%d -- ", pLutClass[i] );
+//            Gia_LutForEachFanin( p, i, iFan, k )
+//                Abc_Print( 1, "%d ", pLutClass[iFan] );
+//            Abc_Print( 1, "\n" );
+    }
+    ABC_FREE( p->pRefs );
+    Abc_Print( 1, "Approximate number of 4:1 MUX structures: All = %6d  (%7.2f %%)  MFFC = %6d  (%7.2f %%)\n", 
+        OtherClasses,  100.0 * OtherClasses  / (nTotal+1),
+        OtherClasses2, 100.0 * OtherClasses2 / (nTotal+1) );
+    ABC_FREE( pLutClass );
 }
 
 ////////////////////////////////////////////////////////////////////////

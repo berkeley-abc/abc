@@ -391,6 +391,10 @@ SOURCE=.\src\base\abci\abcRec2.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\abci\abcRec3.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\abci\abcReconv.c
 # End Source File
 # Begin Source File
@@ -1979,6 +1983,10 @@ SOURCE=.\src\opt\dau\dauDsd.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\opt\dau\dauEnum.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\opt\dau\dauInt.h
 # End Source File
 # End Group
@@ -2704,6 +2712,10 @@ SOURCE=.\src\misc\util\utilSignal.h
 # Begin Source File
 
 SOURCE=.\src\misc\util\utilSort.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\util\utilTruth.h
 # End Source File
 # End Group
 # Begin Group "nm"

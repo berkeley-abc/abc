@@ -86,6 +86,7 @@ struct Abc_ManRec_t_2
     Vec_Ptr_t *       vNodes;                   // the temporary nodes
     Vec_Ptr_t *       vTtTemps;                 // the truth tables for the internal nodes of the cut
     Vec_Ptr_t *       vLabels;                  // temporary storage for AIG node labels
+    Vec_Int_t *       vLabelsInt;               // temporary storage for AIG node labels
     Vec_Int_t *       vUselessPos;
     // statistics
     int               nTried;                   // the number of cuts tried
@@ -1144,6 +1145,7 @@ p->timeInsert += clock() - timeInsert;
     p->vNodes = Vec_PtrAlloc( 100 );
     p->vTtTemps = Vec_PtrAllocSimInfo( 1024, p->nWords );
     p->vLabels = Vec_PtrStart( 1000 );
+    p->vLabelsInt = Vec_IntStart( 1000 );
 
 
  p->timeTotal += clock() - clkTotal;  
@@ -2065,6 +2067,105 @@ Hop_Obj_t * Abc_RecToHop2( Hop_Man_t * pMan, If_Man_t * pIfMan, If_Cut_t * pCut,
 
 /**Function*************************************************************
 
+  Synopsis    [Derive the final network from the library.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_RecToGia2( Gia_Man_t * pMan, If_Man_t * pIfMan, If_Cut_t * pCut, If_Obj_t * pIfObj, Vec_Int_t * vLeaves, int fHash )
+{
+    Rec_Obj_t2 * pCandMin;
+    int pHopObj, pFan0, pFan1;
+    Gia_Obj_t* pGiaObj, *pGiaTemp;
+    Gia_Man_t * pAig = s_pMan->pGia;
+    int nLeaves, i;// DelayMin = ABC_INFINITY , Delay = -ABC_INFINITY
+    unsigned uCanonPhase;
+    int nVars = s_pMan->nVars;
+    char pCanonPerm[16];
+    unsigned *pInOut = s_pMan->pTemp1;
+    unsigned *pTemp = s_pMan->pTemp2;
+    int time = clock();
+    int fCompl;
+    int * pCompl = &fCompl;
+    nLeaves = If_CutLeaveNum(pCut);
+//  if (nLeaves < 3)
+//      return Abc_NodeTruthToHop(pMan, pIfMan, pCut);
+    Kit_TruthCopy(pInOut, If_CutTruth(pCut), pCut->nLimit);
+    //special cases when cut-minimization return 2, that means there is only one leaf in the cut.
+    if ((Kit_TruthIsConst0(pInOut, nLeaves) && pCut->fCompl == 0) || (Kit_TruthIsConst1(pInOut, nLeaves) && pCut->fCompl == 1))
+        return 0;
+    if ((Kit_TruthIsConst0(pInOut, nLeaves) && pCut->fCompl == 1) || (Kit_TruthIsConst1(pInOut, nLeaves) && pCut->fCompl == 0))
+        return 1;
+    if (Kit_TruthSupport(pInOut, nLeaves) != Kit_BitMask(nLeaves))
+    {   
+        for (i = 0; i < nLeaves; i++)
+            if(Kit_TruthVarInSupport( pInOut, nLeaves, i ))
+                return Abc_LitNotCond( Vec_IntEntry(vLeaves, i), (pCut->fCompl ^ ((*pInOut & 0x01) > 0)) );
+    }
+    
+    for (i = 0; i < nLeaves; i++)
+        pCanonPerm[i] = i;
+    uCanonPhase = Kit_TruthSemiCanonicize_new(pInOut, pTemp, nLeaves, pCanonPerm);
+    If_CutTruthStretch(pInOut, nLeaves, nVars);
+    pCandMin = Abc_NtkRecLookUpBest(pIfMan, pCut, pInOut, pCanonPerm, pCompl,NULL);
+
+    // get the top-most GIA node
+    pGiaObj = Abc_NtkRecGetObj( Rec_ObjID(s_pMan, pCandMin) );
+    assert( Gia_ObjIsAnd(pGiaObj) || Gia_ObjIsPi(pAig, pGiaObj) );
+    // collect internal nodes into pAig->vTtNodes
+    if ( pAig->vTtNodes == NULL )
+        pAig->vTtNodes = Vec_IntAlloc( 256 );
+    Gia_ObjCollectInternal( pAig, pGiaObj );
+    // collect HOP nodes for leaves
+    Vec_IntClear( s_pMan->vLabelsInt );
+    for (i = 0; i < nLeaves; i++)
+    {
+        pHopObj = Vec_IntEntry(vLeaves, pCanonPerm[i]);
+        pHopObj = Abc_LitNotCond(pHopObj, ((uCanonPhase & (1 << i)) > 0));
+        Vec_IntPush(s_pMan->vLabelsInt, pHopObj);
+    }
+    // compute HOP nodes for internal nodes
+    Gia_ManForEachObjVec( pAig->vTtNodes, pAig, pGiaTemp, i )
+    {
+        pGiaTemp->fMark0 = 0; // unmark node marked by Gia_ObjCollectInternal()
+
+        if ( Gia_ObjIsAnd(Gia_ObjFanin0(pGiaTemp)) )
+            pFan0 = Vec_IntEntry(s_pMan->vLabelsInt, Gia_ObjNum(pAig, Gia_ObjFanin0(pGiaTemp)) + nLeaves);
+        else
+            pFan0 = Vec_IntEntry(s_pMan->vLabelsInt, Gia_ObjCioId(Gia_ObjFanin0(pGiaTemp)));
+        pFan0 = Abc_LitNotCond(pFan0, Gia_ObjFaninC0(pGiaTemp));
+
+        if ( Gia_ObjIsAnd(Gia_ObjFanin1(pGiaTemp)) )
+            pFan1 = Vec_IntEntry(s_pMan->vLabelsInt, Gia_ObjNum(pAig, Gia_ObjFanin1(pGiaTemp)) + nLeaves);
+        else
+            pFan1 = Vec_IntEntry(s_pMan->vLabelsInt, Gia_ObjCioId(Gia_ObjFanin1(pGiaTemp)));
+        pFan1 = Abc_LitNotCond(pFan1, Gia_ObjFaninC1(pGiaTemp));
+
+        if ( fHash )
+            pHopObj = Gia_ManHashAnd(pMan, pFan0, pFan1);
+        else
+            pHopObj = Gia_ManAppendAnd(pMan, pFan0, pFan1);
+        Vec_IntPush(s_pMan->vLabelsInt, pHopObj);
+    }
+    // get the final result
+    if ( Gia_ObjIsAnd(pGiaObj) )
+        pHopObj = Vec_IntEntry(s_pMan->vLabelsInt, Gia_ObjNum(pAig, pGiaObj) + nLeaves);
+    else if ( Gia_ObjIsPi(pAig, pGiaObj) )
+        pHopObj = Vec_IntEntry(s_pMan->vLabelsInt, Gia_ObjCioId(pGiaObj));
+    else assert( 0 );
+    
+    s_pMan->timeIfDerive += clock() - time;
+    s_pMan->timeIfTotal += clock() - time;
+    // complement the result if needed
+    return Abc_LitNotCond(pHopObj, (pCut->fCompl)^(((uCanonPhase & (1 << nLeaves)) > 0)) ^ fCompl);    
+}
+
+/**Function*************************************************************
+
   Synopsis    [Returns the given record.]
 
   Description []
@@ -2097,8 +2198,8 @@ void Abc_NtkRecStop2()
     ABC_FREE( s_pMan->pTemp2 );
     Vec_PtrFree( s_pMan->vNodes );
     Vec_PtrFree( s_pMan->vTtTemps );
-    if ( s_pMan->vLabels )
-        Vec_PtrFree( s_pMan->vLabels );
+    Vec_PtrFree( s_pMan->vLabels );
+    Vec_IntFree( s_pMan->vLabelsInt );
     //if(s_pMan->pMemObj)
     //    Mem_FixedStop(s_pMan->pMemObj, 0);
     Vec_IntFree( s_pMan->vUselessPos);

@@ -333,7 +333,7 @@ static inline void *     If_ObjCopy( If_Obj_t * pObj )                       { r
 static inline int        If_ObjLevel( If_Obj_t * pObj )                      { return pObj->Level;                   }
 static inline void       If_ObjSetLevel( If_Obj_t * pObj, int Level )        { pObj->Level = Level;                  }
 static inline void       If_ObjSetCopy( If_Obj_t * pObj, void * pCopy )      { pObj->pCopy = pCopy;                  }
-static inline void       If_ObjSetChoice( If_Obj_t * pObj, If_Obj_t * pEqu ) { pObj->pEquiv = pEqu;                  }
+static inline void       If_ObjSetChoice( If_Obj_t * pObj, If_Obj_t * pEqu ) { assert( pObj->Id > pEqu->Id ); pObj->pEquiv = pEqu;                  }
 
 static inline If_Cut_t * If_ObjCutBest( If_Obj_t * pObj )                    { return &pObj->CutBest;                }
 static inline unsigned   If_ObjCutSign( unsigned ObjId )                     { return (1 << (ObjId % 31));           }
@@ -353,8 +353,9 @@ static inline void       If_CutSetDataInt( If_Cut_t * pCut, int Data )       { *
 static inline int        If_CutLeaveNum( If_Cut_t * pCut )                   { return pCut->nLeaves;                             }
 static inline int *      If_CutLeaves( If_Cut_t * pCut )                     { return pCut->pLeaves;                             }
 static inline unsigned * If_CutTruth( If_Cut_t * pCut )                      { return pCut->pTruth;                              }
+static inline word *     If_CutTruthW( If_Cut_t * pCut )                     { return (word *)pCut->pTruth;                      }
 static inline unsigned   If_CutSuppMask( If_Cut_t * pCut )                   { return (~(unsigned)0) >> (32-pCut->nLeaves);      }
-static inline int        If_CutTruthWords( int nVarsMax )                    { return nVarsMax <= 5 ? 1 : (1 << (nVarsMax - 5)); }
+static inline int        If_CutTruthWords( int nVarsMax )                    { return nVarsMax <= 5 ? 2 : (1 << (nVarsMax - 5)); }
 static inline int        If_CutPermWords( int nVarsMax )                     { return nVarsMax / sizeof(int) + ((nVarsMax % sizeof(int)) > 0); }
 
 static inline float      If_CutLutArea( If_Man_t * p, If_Cut_t * pCut )      { return pCut->fUser? (float)pCut->Cost : (p->pPars->pLutLib? p->pPars->pLutLib->pLutAreas[pCut->nLeaves] : (float)1.0); }
@@ -505,8 +506,9 @@ extern void            If_CutPropagateRequired( If_Man_t * p, If_Obj_t * pObj, I
 extern void            If_CutRotatePins( If_Man_t * p, If_Cut_t * pCut );
 /*=== ifTruth.c ===========================================================*/
 extern int             If_CutTruthMinimize( If_Man_t * p, If_Cut_t * pCut );
-extern int             If_CutComputeTruth( If_Man_t * p, If_Cut_t * pCut, If_Cut_t * pCut0, If_Cut_t * pCut1, int fCompl0, int fCompl1 );
 extern void            If_CutTruthPermute( unsigned * pOut, unsigned * pIn, int nVars, float * pDelays, int * pVars );
+extern int             If_CutComputeTruth( If_Man_t * p, If_Cut_t * pCut, If_Cut_t * pCut0, If_Cut_t * pCut1, int fCompl0, int fCompl1 );
+extern int             If_CutComputeTruth2( If_Man_t * p, If_Cut_t * pCut, If_Cut_t * pCut0, If_Cut_t * pCut1, int fCompl0, int fCompl1 );
 /*=== ifUtil.c ============================================================*/
 extern void            If_ManCleanNodeCopy( If_Man_t * p );
 extern void            If_ManCleanCutData( If_Man_t * p );
@@ -525,13 +527,18 @@ extern Vec_Ptr_t *     If_ManCollectMappingDirect( If_Man_t * p );
 extern Vec_Int_t *     If_ManCollectMappingInt( If_Man_t * p );
 
 extern int             If_ManCountSpecialPos( If_Man_t * p );
+extern void            If_CutTraverse( If_Man_t * p, If_Obj_t * pRoot, If_Cut_t * pCut, Vec_Ptr_t * vNodes );
+extern void            If_ObjPrint( If_Obj_t * pObj );
 
 /*=== abcRec.c ============================================================*/
+/*=== abcRec2.c ============================================================*/
+/*=== abcRec3.c ============================================================*/
 extern int             If_CutDelayRecCost(If_Man_t* p, If_Cut_t* pCut, If_Obj_t * pObj);
 extern int             If_CutDelayRecCost2(If_Man_t* p, If_Cut_t* pCut, If_Obj_t * pObj);
-/*=== abcRec2.c ============================================================*/
+extern int             If_CutDelayRecCost3(If_Man_t* p, If_Cut_t* pCut, If_Obj_t * pObj);
 extern ABC_DLL int     Abc_NtkRecIsRunning();
 extern ABC_DLL int     Abc_NtkRecIsRunning2();
+extern ABC_DLL int     Abc_NtkRecIsRunning3();
 
 // othe packages
 extern int             Bat_ManCellFuncLookup( unsigned * pTruth, int nVars, int nLeaves );

@@ -117,6 +117,7 @@ struct Gia_Man_t_
     int *          pReprsOld;     // representatives (for CIs and ANDs)
     Gia_Rpr_t *    pReprs;        // representatives (for CIs and ANDs)
     int *          pNexts;        // next nodes in the equivalence classes
+    int *          pSibls;        // next nodes in the choice nodes
     int *          pIso;          // pairs of structurally isomorphic nodes
     int            nTerLoop;      // the state where loop begins  
     int            nTerStates;    // the total number of ternary states
@@ -481,6 +482,13 @@ static inline int Gia_ManAppendXor( Gia_Man_t * p, int iLit0, int iLit1 )
 { 
     return Gia_ManAppendMux( p, iLit0, Abc_LitNot(iLit1), iLit1 );
 }
+static inline void Gia_ManPatchCoDriver( Gia_Man_t * p, int iCoIndex, int iLit0 )  
+{
+    Gia_Obj_t * pObjCo  = Gia_ManCo( p, iCoIndex );
+    assert( Gia_ObjId(p, pObjCo) > Abc_Lit2Var(iLit0) );
+    pObjCo->iDiff0  = Gia_ObjId(p, pObjCo) - Abc_Lit2Var(iLit0);
+    pObjCo->fCompl0 = Abc_LitIsCompl(iLit0);
+}
 
 #define GIA_ZER 1
 #define GIA_ONE 2
@@ -570,6 +578,8 @@ static inline void        Gia_ObjSetReprRev( Gia_Man_t * p, int Id, int Num ){ a
 static inline void        Gia_ObjUnsetRepr( Gia_Man_t * p, int Id )          { p->pReprs[Id].iRepr = GIA_VOID;                                            }
 static inline int         Gia_ObjHasRepr( Gia_Man_t * p, int Id )            { return p->pReprs[Id].iRepr != GIA_VOID;                                    }
 static inline int         Gia_ObjReprSelf( Gia_Man_t * p, int Id )           { return Gia_ObjHasRepr(p, Id) ? Gia_ObjRepr(p, Id) : Id;                    }
+static inline int         Gia_ObjSibl( Gia_Man_t * p, int Id )               { return p->pSibls ? p->pSibls[Id] : 0;                                      }
+static inline Gia_Obj_t * Gia_ObjSiblObj( Gia_Man_t * p, int Id )            { return (p->pSibls && p->pSibls[Id]) ? Gia_ManObj(p, p->pSibls[Id]) : NULL; }
 
 static inline int         Gia_ObjProved( Gia_Man_t * p, int Id )             { return p->pReprs[Id].fProved;       }
 static inline void        Gia_ObjSetProved( Gia_Man_t * p, int Id )          { p->pReprs[Id].fProved = 1;          }
@@ -697,6 +707,7 @@ extern int                 Gia_ManCounterExampleValueLookup( Gia_Man_t * pGia, i
 extern void                Gia_ManVerifyChoices( Gia_Man_t * p );
 extern void                Gia_ManReverseClasses( Gia_Man_t * p, int fNowIncreasing );
 extern int                 Gia_ManHasChoices( Gia_Man_t * p );
+extern int                 Gia_ManChoiceLevel( Gia_Man_t * p );
 /*=== giaCsatOld.c ============================================================*/
 extern Vec_Int_t *         Cbs_ManSolveMiter( Gia_Man_t * pGia, int nConfs, Vec_Str_t ** pvStatus, int fVerbose );
 /*=== giaCsat.c ============================================================*/
@@ -807,7 +818,14 @@ extern Gia_Man_t *         Gia_ManRehash( Gia_Man_t * p, int fAddStrash );
 extern void                Gia_ManHashProfile( Gia_Man_t * p );
 extern int                 Gia_ManHashLookup( Gia_Man_t * p, Gia_Obj_t * p0, Gia_Obj_t * p1 );
 /*=== giaIf.c ===========================================================*/
-extern void                Gia_ManPrintNpnClasses( Gia_Man_t * p );
+extern void                Gia_ManPrintMappingStats( Gia_Man_t * p );
+extern int                 Gia_ManLutFaninCount( Gia_Man_t * p );
+extern int                 Gia_ManLutSizeMax( Gia_Man_t * p );
+extern int                 Gia_ManLutNum( Gia_Man_t * p );
+extern int                 Gia_ManLutLevel( Gia_Man_t * p );
+extern void                Gia_ManSetRefsMapped( Gia_Man_t * p );
+extern void                Gia_ManSetIfParsDefault( void * pIfPars );
+extern Gia_Man_t *         Gia_ManPerformMapping( Gia_Man_t * p, void * pIfPars );
 /*=== giaIso.c ===========================================================*/
 extern Gia_Man_t *         Gia_ManIsoCanonicize( Gia_Man_t * p, int fVerbose );
 extern Gia_Man_t *         Gia_ManIsoReduce( Gia_Man_t * p, Vec_Ptr_t ** pvPosEquivs, int fDualOut, int fVerbose );
@@ -823,12 +841,7 @@ extern void                Gia_ManPrintStatsShort( Gia_Man_t * p );
 extern void                Gia_ManPrintMiterStatus( Gia_Man_t * p ); 
 extern void                Gia_ManSetRegNum( Gia_Man_t * p, int nRegs );
 extern void                Gia_ManReportImprovement( Gia_Man_t * p, Gia_Man_t * pNew );
-/*=== giaMap.c ===========================================================*/
-extern void                Gia_ManPrintMappingStats( Gia_Man_t * p );
-extern int                 Gia_ManLutFaninCount( Gia_Man_t * p );
-extern int                 Gia_ManLutSizeMax( Gia_Man_t * p );
-extern int                 Gia_ManLutNum( Gia_Man_t * p );
-extern int                 Gia_ManLutLevel( Gia_Man_t * p );
+extern void                Gia_ManPrintNpnClasses( Gia_Man_t * p );
 /*=== giaMem.c ===========================================================*/
 extern Gia_MmFixed_t *     Gia_MmFixedStart( int nEntrySize, int nEntriesMax );
 extern void                Gia_MmFixedStop( Gia_MmFixed_t * p, int fVerbose );
@@ -857,6 +870,7 @@ extern int                 Sat_ManTest( Gia_Man_t * pGia, Gia_Obj_t * pObj, int 
 extern int                 Gia_ManSeqMarkUsed( Gia_Man_t * p );
 extern int                 Gia_ManCombMarkUsed( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManCleanup( Gia_Man_t * p );
+extern Gia_Man_t *         Gia_ManCleanupOutputs( Gia_Man_t * p, int nOutputs );
 extern Gia_Man_t *         Gia_ManSeqCleanup( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManSeqStructSweep( Gia_Man_t * p, int fConst, int fEquiv, int fVerbose );
 /*=== giaShrink.c ===========================================================*/
@@ -906,7 +920,7 @@ extern int                 Gia_ManLevelNum( Gia_Man_t * p );
 extern void                Gia_ManCreateValueRefs( Gia_Man_t * p );
 extern void                Gia_ManCreateRefs( Gia_Man_t * p );
 extern int *               Gia_ManCreateMuxRefs( Gia_Man_t * p );
-extern int                 Gia_ManCrossCut( Gia_Man_t * p );
+extern int                 Gia_ManCrossCut( Gia_Man_t * p, int fReverse );
 extern int                 Gia_ManIsNormalized( Gia_Man_t * p );
 extern Vec_Int_t *         Gia_ManCollectPoIds( Gia_Man_t * p );
 extern int                 Gia_ObjIsMuxType( Gia_Obj_t * pNode );
@@ -920,6 +934,7 @@ extern void                Gia_ObjPrint( Gia_Man_t * p, Gia_Obj_t * pObj );
 extern void                Gia_ManPrint( Gia_Man_t * p );
 extern void                Gia_ManInvertConstraints( Gia_Man_t * pAig );
 extern int                 Gia_ManCompare( Gia_Man_t * p1, Gia_Man_t * p2 );
+extern void                Gia_ManMarkFanoutDrivers( Gia_Man_t * p );
 
 /*=== giaCTas.c ===========================================================*/
 typedef struct Tas_Man_t_  Tas_Man_t;

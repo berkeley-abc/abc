@@ -550,12 +550,59 @@ int * Gia_ManCreateMuxRefs( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Gia_ManCrossCut( Gia_Man_t * p )
+void Gia_ManDfsForCrossCut_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vNodes )
 {
+    if ( Gia_ObjIsTravIdCurrent(p, pObj) )
+        return;
+    Gia_ObjSetTravIdCurrent(p, pObj);
+    if ( Gia_ObjIsCi(pObj) )
+    {
+        Vec_IntPush( vNodes, Gia_ObjId(p, pObj) );
+        return;
+    }
+    if ( Gia_ObjIsCo(pObj) )
+    {
+        Gia_ObjFanin0(pObj)->Value++;
+        Gia_ManDfsForCrossCut_rec( p, Gia_ObjFanin0(pObj), vNodes );
+        Vec_IntPush( vNodes, Gia_ObjId(p, pObj) );
+        return;
+    }
+    assert( Gia_ObjIsAnd(pObj) );
+    Gia_ObjFanin0(pObj)->Value++;
+    Gia_ObjFanin1(pObj)->Value++;
+    Gia_ManDfsForCrossCut_rec( p, Gia_ObjFanin0(pObj), vNodes );
+    Gia_ManDfsForCrossCut_rec( p, Gia_ObjFanin1(pObj), vNodes );
+    Vec_IntPush( vNodes, Gia_ObjId(p, pObj) );
+}
+Vec_Int_t * Gia_ManDfsForCrossCut( Gia_Man_t * p, int fReverse )
+{
+    Vec_Int_t * vNodes;
+    Gia_Obj_t * pObj;
+    int i;
+    Gia_ManCleanValue( p );
+    vNodes = Vec_IntAlloc( Gia_ManObjNum(p) );
+    Gia_ManIncrementTravId( p );
+    if ( fReverse )
+    {
+        Gia_ManForEachCoReverse( p, pObj, i )
+            if ( !Gia_ObjIsConst0(Gia_ObjFanin0(pObj)) )
+                Gia_ManDfsForCrossCut_rec( p, pObj, vNodes );
+    }
+    else
+    {
+        Gia_ManForEachCo( p, pObj, i )
+            if ( !Gia_ObjIsConst0(Gia_ObjFanin0(pObj)) )
+                Gia_ManDfsForCrossCut_rec( p, pObj, vNodes );
+    }
+    return vNodes;
+}
+int Gia_ManCrossCut( Gia_Man_t * p, int fReverse )
+{
+    Vec_Int_t * vNodes;
     Gia_Obj_t * pObj;
     int i, nCutCur = 0, nCutMax = 0;
-    Gia_ManCreateValueRefs( p );
-    Gia_ManForEachObj( p, pObj, i )
+    vNodes = Gia_ManDfsForCrossCut( p, fReverse );
+    Gia_ManForEachObjVec( vNodes, p, pObj, i )
     {
         if ( pObj->Value )
             nCutCur++;
@@ -574,8 +621,9 @@ int Gia_ManCrossCut( Gia_Man_t * p )
                 nCutCur--;
         }
     }
-//    Gia_ManForEachObj( p, pObj, i )
-//        assert( pObj->Value == 0 );
+    Vec_IntFree( vNodes );
+    Gia_ManForEachObj( p, pObj, i )
+        assert( pObj->Value == 0 );
     return nCutMax;
 }
 
@@ -1195,6 +1243,31 @@ int Gia_ManCompare( Gia_Man_t * p1, Gia_Man_t * p2 )
     return 1;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Marks nodes that appear as faninis of other nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManMarkFanoutDrivers( Gia_Man_t * p )
+{
+    Gia_Obj_t * pObj;
+    int i;
+    Gia_ManCleanMark0( p );
+    Gia_ManForEachObj( p, pObj, i )
+        if ( Gia_ObjIsAnd(pObj) )
+        {
+            Gia_ObjFanin0(pObj)->fMark0 = 1;
+            Gia_ObjFanin1(pObj)->fMark0 = 1;
+        }
+        else if ( Gia_ObjIsCo(pObj) )
+            Gia_ObjFanin0(pObj)->fMark0 = 1;
+}
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
