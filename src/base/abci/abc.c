@@ -399,12 +399,6 @@ extern int Abc_CommandAbcLivenessToSafetyWithLTL( Abc_Frame_t * pAbc, int argc, 
 ***********************************************************************/
 void Abc_FrameReplaceCex( Abc_Frame_t * pAbc, Abc_Cex_t ** ppCex )
 {
-    // update bridge
-    if ( Abc_FrameIsBridgeMode() )
-    {
-        extern int Gia_ManToBridgeResult( FILE * pFile, int Result, Abc_Cex_t * pCex );
-        Gia_ManToBridgeResult( stdout, pAbc->Status, *ppCex );
-    }
     // update CEX
     ABC_FREE( pAbc->pCex );
     pAbc->pCex = *ppCex;
@@ -444,7 +438,7 @@ void Abc_FrameReplaceCexVec( Abc_Frame_t * pAbc, Vec_Ptr_t ** pvCexVec )
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -464,7 +458,7 @@ void Abc_FrameReplacePoEquivs( Abc_Frame_t * pAbc, Vec_Ptr_t ** pvPoEquivs )
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -479,7 +473,7 @@ void Abc_FrameClearDesign()
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -516,7 +510,7 @@ void Abc_CommandUpdate9( Abc_Frame_t * pAbc, Gia_Man_t * pNew )
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -524,7 +518,7 @@ void Abc_CommandUpdate9( Abc_Frame_t * pAbc, Gia_Man_t * pNew )
 ***********************************************************************/
 void Abc_Init( Abc_Frame_t * pAbc )
 {
-    Cmd_CommandAdd( pAbc, "Printing",     "print_stats",   Abc_CommandPrintStats,       0 ); 
+    Cmd_CommandAdd( pAbc, "Printing",     "print_stats",   Abc_CommandPrintStats,       0 );
     Cmd_CommandAdd( pAbc, "Printing",     "print_exdc",    Abc_CommandPrintExdc,        0 );
     Cmd_CommandAdd( pAbc, "Printing",     "print_io",      Abc_CommandPrintIo,          0 );
     Cmd_CommandAdd( pAbc, "Printing",     "print_latch",   Abc_CommandPrintLatch,       0 );
@@ -845,14 +839,14 @@ void Abc_Init( Abc_Frame_t * pAbc )
         extern void Dar_LibStart();
         Dar_LibStart();
     }
-} 
+}
 
 /**Function*************************************************************
 
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -861,7 +855,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
 void Abc_End( Abc_Frame_t * pAbc )
 {
     extern Abc_Frame_t * Abc_FrameGetGlobalFrame();
-    Abc_FrameClearDesign(); 
+    Abc_FrameClearDesign();
     Cnf_ManFree();
     {
         extern int Abc_NtkCompareAndSaveBest( Abc_Ntk_t * pNtk );
@@ -891,7 +885,7 @@ void Abc_End( Abc_Frame_t * pAbc )
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -996,7 +990,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -1083,7 +1077,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -1152,7 +1146,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -1206,7 +1200,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -1267,7 +1261,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -1314,7 +1308,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -1391,7 +1385,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -1474,7 +1468,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -1547,9 +1541,9 @@ int Abc_CommandPrintSupport( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     Abc_Print( -2, "usage: print_supp [-svwh]\n" );
     Abc_Print( -2, "\t        prints the supports of the CO nodes\n" );
-    Abc_Print( -2, "\t-s    : toggle printing structural support only [default = %s].\n", fStruct? "yes": "no" );  
-    Abc_Print( -2, "\t-v    : enable verbose output [default = %s].\n", fVerbose? "yes": "no" );  
-    Abc_Print( -2, "\t-w    : enable printing CI/CO dependency matrix [default = %s].\n", fVeryVerbose? "yes": "no" );  
+    Abc_Print( -2, "\t-s    : toggle printing structural support only [default = %s].\n", fStruct? "yes": "no" );
+    Abc_Print( -2, "\t-v    : enable verbose output [default = %s].\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-w    : enable printing CI/CO dependency matrix [default = %s].\n", fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;
 }
@@ -1559,7 +1553,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -1626,10 +1620,10 @@ int Abc_CommandPrintSymms( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     Abc_Print( -2, "usage: print_symm [-bnrvh]\n" );
     Abc_Print( -2, "\t         computes symmetries of the PO functions\n" );
-    Abc_Print( -2, "\t-b     : toggle BDD-based or SAT-based computations [default = %s].\n", fUseBdds? "BDD": "SAT" );  
-    Abc_Print( -2, "\t-n     : enable naive BDD-based computation [default = %s].\n", fNaive? "yes": "no" );  
-    Abc_Print( -2, "\t-r     : enable dynamic BDD variable reordering [default = %s].\n", fReorder? "yes": "no" );  
-    Abc_Print( -2, "\t-v     : enable verbose output [default = %s].\n", fVerbose? "yes": "no" );  
+    Abc_Print( -2, "\t-b     : toggle BDD-based or SAT-based computations [default = %s].\n", fUseBdds? "BDD": "SAT" );
+    Abc_Print( -2, "\t-n     : enable naive BDD-based computation [default = %s].\n", fNaive? "yes": "no" );
+    Abc_Print( -2, "\t-r     : enable dynamic BDD variable reordering [default = %s].\n", fReorder? "yes": "no" );
+    Abc_Print( -2, "\t-v     : enable verbose output [default = %s].\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
@@ -1639,7 +1633,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -1694,9 +1688,9 @@ int Abc_CommandPrintUnate( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     Abc_Print( -2, "usage: print_unate [-bnvh]\n" );
     Abc_Print( -2, "\t         computes unate variables of the PO functions\n" );
-    Abc_Print( -2, "\t-b     : toggle BDD-based or SAT-based computations [default = %s].\n", fUseBdds? "BDD": "SAT" );  
-    Abc_Print( -2, "\t-n     : toggle naive BDD-based computation [default = %s].\n", fUseNaive? "yes": "no" );  
-    Abc_Print( -2, "\t-v     : enable verbose output [default = %s].\n", fVerbose? "yes": "no" );  
+    Abc_Print( -2, "\t-b     : toggle BDD-based or SAT-based computations [default = %s].\n", fUseBdds? "BDD": "SAT" );
+    Abc_Print( -2, "\t-n     : toggle naive BDD-based computation [default = %s].\n", fUseNaive? "yes": "no" );
+    Abc_Print( -2, "\t-v     : enable verbose output [default = %s].\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
@@ -1706,7 +1700,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -1738,7 +1732,7 @@ int Abc_CommandPrintAuto( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             Output = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( Output < 0 ) 
+            if ( Output < 0 )
                 goto usage;
             break;
         case 'n':
@@ -1772,8 +1766,8 @@ usage:
     Abc_Print( -2, "usage: print_auto [-O <num>] [-nvh]\n" );
     Abc_Print( -2, "\t           computes autosymmetries of the PO functions\n" );
     Abc_Print( -2, "\t-O <num> : (optional) the 0-based number of the output [default = all]\n");
-    Abc_Print( -2, "\t-n       : enable naive BDD-based computation [default = %s].\n", fNaive? "yes": "no" );  
-    Abc_Print( -2, "\t-v       : enable verbose output [default = %s].\n", fVerbose? "yes": "no" );  
+    Abc_Print( -2, "\t-n       : enable naive BDD-based computation [default = %s].\n", fNaive? "yes": "no" );
+    Abc_Print( -2, "\t-v       : enable verbose output [default = %s].\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;
 }
@@ -1783,7 +1777,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -1871,7 +1865,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -1929,7 +1923,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -1981,7 +1975,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -2033,7 +2027,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -2067,7 +2061,7 @@ int Abc_CommandPrintDsd( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nCofLevel = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nCofLevel < 0 ) 
+            if ( nCofLevel < 0 )
                 goto usage;
             break;
         case 'c':
@@ -2141,7 +2135,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -2196,7 +2190,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -2251,7 +2245,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -2276,10 +2270,10 @@ int Abc_CommandPrintStatus( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( pAbc->pCex == NULL )
         printf( "Cex is not defined.\n" );
     else
-        printf( "Cex: PIs = %d  Regs = %d  PO = %d  Frame = %d  Bits = %d\n", 
-            pAbc->pCex->nPis, pAbc->pCex->nRegs, 
-            pAbc->pCex->iPo, pAbc->pCex->iFrame, 
-            pAbc->pCex->nBits ); 
+        printf( "Cex: PIs = %d  Regs = %d  PO = %d  Frame = %d  Bits = %d\n",
+            pAbc->pCex->nPis, pAbc->pCex->nRegs,
+            pAbc->pCex->iPo, pAbc->pCex->iFrame,
+            pAbc->pCex->nBits );
     return 0;
 
 usage:
@@ -2294,7 +2288,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -2378,7 +2372,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -2441,10 +2435,10 @@ usage:
     Abc_Print( -2, "       \"dot.exe\" and \"gsview32.exe\" should be set in the paths\n" );
     Abc_Print( -2, "       (\"gsview32.exe\" may be in \"C:\\Program Files\\Ghostgum\\gsview\\\")\n" );
 #endif
-    Abc_Print( -2, "\t-s    : toggles visualization of sequential networks [default = %s].\n", fSeq? "yes": "no" );  
-    Abc_Print( -2, "\t-r    : toggles ordering nodes in reverse order [default = %s].\n", fUseReverse? "yes": "no" );  
-    Abc_Print( -2, "\t-g    : toggles printing gate names for mapped network [default = %s].\n", fGateNames? "yes": "no" );  
-    Abc_Print( -2, "\t-f    : toggles visualizing flop dependency graph [default = %s].\n", fFlopDep? "yes": "no" );  
+    Abc_Print( -2, "\t-s    : toggles visualization of sequential networks [default = %s].\n", fSeq? "yes": "no" );
+    Abc_Print( -2, "\t-r    : toggles ordering nodes in reverse order [default = %s].\n", fUseReverse? "yes": "no" );
+    Abc_Print( -2, "\t-g    : toggles printing gate names for mapped network [default = %s].\n", fGateNames? "yes": "no" );
+    Abc_Print( -2, "\t-f    : toggles visualizing flop dependency graph [default = %s].\n", fFlopDep? "yes": "no" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;
 }
@@ -2454,7 +2448,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -2514,7 +2508,7 @@ int Abc_CommandShowBdd( Abc_Frame_t * pAbc, int argc, char ** argv )
             Abc_Print( -1, "Cannot find node \"%s\".\n", argv[globalUtilOptind] );
             return 1;
         }
-    }    
+    }
     Abc_NodeShowBdd( pNode );
     return 0;
 
@@ -2535,7 +2529,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -2566,7 +2560,7 @@ int Abc_CommandShowCut( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nNodeSizeMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nNodeSizeMax < 0 ) 
+            if ( nNodeSizeMax < 0 )
                 goto usage;
             break;
         case 'C':
@@ -2577,7 +2571,7 @@ int Abc_CommandShowCut( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nConeSizeMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nConeSizeMax < 0 ) 
+            if ( nConeSizeMax < 0 )
                 goto usage;
             break;
         case 'h':
@@ -2620,8 +2614,8 @@ usage:
     Abc_Print( -2, "             \"dot.exe\" and \"gsview32.exe\" should be set in the paths\n" );
     Abc_Print( -2, "             (\"gsview32.exe\" may be in \"C:\\Program Files\\Ghostgum\\gsview\\\")\n" );
 #endif
-    Abc_Print( -2, "\t-N <num> : the max size of the cut to be computed [default = %d]\n", nNodeSizeMax );  
-    Abc_Print( -2, "\t-C <num> : the max support of the containing cone [default = %d]\n", nConeSizeMax );  
+    Abc_Print( -2, "\t-N <num> : the max size of the cut to be computed [default = %d]\n", nNodeSizeMax );
+    Abc_Print( -2, "\t-C <num> : the max support of the containing cone [default = %d]\n", nConeSizeMax );
     Abc_Print( -2, "\t<node>   : the node to consider\n");
     Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;
@@ -2633,7 +2627,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -2667,7 +2661,7 @@ int Abc_CommandCollapse( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             fBddSizeMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( fBddSizeMax < 0 ) 
+            if ( fBddSizeMax < 0 )
                 goto usage;
             break;
         case 'd':
@@ -2722,7 +2716,7 @@ usage:
     Abc_Print( -2, "\t-B <num>: limit on live BDD nodes during collapsing [default = %d]\n", fBddSizeMax );
     Abc_Print( -2, "\t-r      : toggles dynamic variable reordering [default = %s]\n", fReorder? "yes": "no" );
     Abc_Print( -2, "\t-d      : toggles dual-rail collapsing mode [default = %s]\n", fDualRail? "yes": "no" );
-    Abc_Print( -2, "\t-v      : print verbose information [default = %s]\n", fVerbose? "yes": "no" ); 
+    Abc_Print( -2, "\t-v      : print verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h      : print the command usage\n");
     return 1;
 }
@@ -2733,7 +2727,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -2814,7 +2808,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -2872,7 +2866,7 @@ int Abc_CommandBalance( Abc_Frame_t * pAbc, int argc, char ** argv )
     // get the new network
     if ( Abc_NtkIsStrash(pNtk) )
     {
-        if ( fExor ) 
+        if ( fExor )
             pNtkRes = Abc_NtkBalanceExor( pNtk, fUpdateLevel, fVerbose );
         else
             pNtkRes = Abc_NtkBalance( pNtk, fDuplicate, fSelective, fUpdateLevel );
@@ -2885,7 +2879,7 @@ int Abc_CommandBalance( Abc_Frame_t * pAbc, int argc, char ** argv )
             Abc_Print( -1, "Strashing before balancing has failed.\n" );
             return 1;
         }
-        if ( fExor ) 
+        if ( fExor )
             pNtkRes = Abc_NtkBalanceExor( pNtkTemp, fUpdateLevel, fVerbose );
         else
             pNtkRes = Abc_NtkBalance( pNtkTemp, fDuplicate, fSelective, fUpdateLevel );
@@ -2909,7 +2903,7 @@ usage:
     Abc_Print( -2, "\t-d    : toggle duplication of logic [default = %s]\n", fDuplicate? "yes": "no" );
     Abc_Print( -2, "\t-s    : toggle duplication on the critical paths [default = %s]\n", fSelective? "yes": "no" );
     Abc_Print( -2, "\t-x    : toggle balancing multi-input EXORs [default = %s]\n", fExor? "yes": "no" );
-    Abc_Print( -2, "\t-v    : print verbose information [default = %s]\n", fVerbose? "yes": "no" ); 
+    Abc_Print( -2, "\t-v    : print verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;
 }
@@ -2919,7 +2913,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -2977,7 +2971,7 @@ int Abc_CommandMuxStruct( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     Abc_Print( -2, "usage: mux_struct [-vh]\n" );
     Abc_Print( -2, "\t        performs MUX restructuring of the current network\n" );
-    Abc_Print( -2, "\t-v    : print verbose information [default = %s]\n", fVerbose? "yes": "no" ); 
+    Abc_Print( -2, "\t-v    : print verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;
 }
@@ -2987,7 +2981,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -3025,7 +3019,7 @@ int Abc_CommandMulti( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nThresh = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nThresh < 0 ) 
+            if ( nThresh < 0 )
                 goto usage;
             break;
         case 'F':
@@ -3036,7 +3030,7 @@ int Abc_CommandMulti( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nFaninMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nFaninMax < 0 ) 
+            if ( nFaninMax < 0 )
                 goto usage;
             break;
         case 'c':
@@ -3101,7 +3095,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -3146,7 +3140,7 @@ int Abc_CommandRenode( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nLutSize = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nLutSize < 0 ) 
+            if ( nLutSize < 0 )
                 goto usage;
             break;
         case 'C':
@@ -3157,7 +3151,7 @@ int Abc_CommandRenode( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nCutsMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nCutsMax < 0 ) 
+            if ( nCutsMax < 0 )
                 goto usage;
             break;
         case 'F':
@@ -3168,7 +3162,7 @@ int Abc_CommandRenode( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nFlowIters = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nFlowIters < 0 ) 
+            if ( nFlowIters < 0 )
                 goto usage;
             break;
         case 'A':
@@ -3179,7 +3173,7 @@ int Abc_CommandRenode( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nAreaIters = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nAreaIters < 0 ) 
+            if ( nAreaIters < 0 )
                 goto usage;
             break;
         case 'a':
@@ -3260,7 +3254,7 @@ usage:
     Abc_Print( -2, "\t-c      : toggles minimizing CNF clauses instead of FF lits [default = %s]\n", fUseCnfs? "yes": "no" );
     Abc_Print( -2, "\t-i      : toggles minimizing MV-SOP instead of FF lits [default = %s]\n", fUseMv? "yes": "no" );
     Abc_Print( -2, "\t-a      : toggles area-oriented mapping [default = %s]\n", fArea? "yes": "no" );
-    Abc_Print( -2, "\t-v      : print verbose information [default = %s]\n", fVerbose? "yes": "no" ); 
+    Abc_Print( -2, "\t-v      : print verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h      : print the command usage\n");
     return 1;
 }
@@ -3270,7 +3264,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -3348,7 +3342,7 @@ usage:
     Abc_Print( -2, "\t        for AIGs, removes PIs w/o fanout and POs driven by const-0\n" );
     Abc_Print( -2, "\t-i    : toggles removing PIs without fanout [default = %s]\n", fCleanupPis? "yes": "no" );
     Abc_Print( -2, "\t-o    : toggles removing POs with const-0 drivers [default = %s]\n", fCleanupPos? "yes": "no" );
-    Abc_Print( -2, "\t-v    : print verbose information [default = %s]\n", fVerbose? "yes": "no" ); 
+    Abc_Print( -2, "\t-v    : print verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;
 }
@@ -3358,7 +3352,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -3410,8 +3404,8 @@ int Abc_CommandSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     Abc_Print( -2, "usage: sweep [-svh]\n" );
     Abc_Print( -2, "\t        removes dangling nodes; propagates constant, buffers, inverters\n" );
-    Abc_Print( -2, "\t-s    : toggle sweeping buffers/inverters only [default = %s]\n", fSingle? "yes": "no" );  
-    Abc_Print( -2, "\t-v    : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" ); 
+    Abc_Print( -2, "\t-s    : toggle sweeping buffers/inverters only [default = %s]\n", fSingle? "yes": "no" );
+    Abc_Print( -2, "\t-v    : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;
 }
@@ -3422,7 +3416,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -3436,9 +3430,9 @@ int Abc_CommandFastExtract( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set the defaults
     Abc_NtkSetDefaultParams( p );
     Extra_UtilGetoptReset();
-    while ( (c = Extra_UtilGetopt(argc, argv, "SDNWsdzcvh")) != EOF ) 
+    while ( (c = Extra_UtilGetopt(argc, argv, "SDNWsdzcvh")) != EOF )
     {
-        switch (c) 
+        switch (c)
         {
             case 'S':
                 if ( globalUtilOptind >= argc )
@@ -3448,7 +3442,7 @@ int Abc_CommandFastExtract( Abc_Frame_t * pAbc, int argc, char ** argv )
                 }
                 p->nSingleMax = atoi(argv[globalUtilOptind]);
                 globalUtilOptind++;
-                if ( p->nSingleMax < 0 ) 
+                if ( p->nSingleMax < 0 )
                     goto usage;
                 break;
             case 'D':
@@ -3459,7 +3453,7 @@ int Abc_CommandFastExtract( Abc_Frame_t * pAbc, int argc, char ** argv )
                 }
                 p->nPairsMax = atoi(argv[globalUtilOptind]);
                 globalUtilOptind++;
-                if ( p->nPairsMax < 0 ) 
+                if ( p->nPairsMax < 0 )
                     goto usage;
                 break;
             case 'N':
@@ -3470,7 +3464,7 @@ int Abc_CommandFastExtract( Abc_Frame_t * pAbc, int argc, char ** argv )
                 }
                 p->nNodesExt = atoi(argv[globalUtilOptind]);
                 globalUtilOptind++;
-                if ( p->nNodesExt < 0 ) 
+                if ( p->nNodesExt < 0 )
                     goto usage;
                 break;
             case 'W':
@@ -3481,7 +3475,7 @@ int Abc_CommandFastExtract( Abc_Frame_t * pAbc, int argc, char ** argv )
                 }
                 p->WeightMax = atoi(argv[globalUtilOptind]);
                 globalUtilOptind++;
-                if ( p->WeightMax < 0 ) 
+                if ( p->WeightMax < 0 )
                     goto usage;
                 break;
             case 's':
@@ -3505,7 +3499,7 @@ int Abc_CommandFastExtract( Abc_Frame_t * pAbc, int argc, char ** argv )
             default:
                 goto usage;
         }
-    } 
+    }
     if ( pNtk == NULL )
     {
         Abc_Print( -1, "Empty network.\n" );
@@ -3530,17 +3524,17 @@ int Abc_CommandFastExtract( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     Abc_Print( -2, "usage: fx [-SDNW <num>] [-sdzcvh]\n");
     Abc_Print( -2, "\t           performs unate fast extract on the current network\n");
-    Abc_Print( -2, "\t-S <num> : max number of single-cube divisors to consider [default = %d]\n", p->nSingleMax );  
-    Abc_Print( -2, "\t-D <num> : max number of double-cube divisors to consider [default = %d]\n", p->nPairsMax );  
-    Abc_Print( -2, "\t-N <num> : the maximum number of divisors to extract [default = %d]\n", p->nNodesExt );  
-    Abc_Print( -2, "\t-W <num> : only extract divisors with weight more than this [default = %d]\n", p->nSingleMax );  
-    Abc_Print( -2, "\t-s       : use only single-cube divisors [default = %s]\n", p->fOnlyS? "yes": "no" );  
-    Abc_Print( -2, "\t-d       : use only double-cube divisors [default = %s]\n", p->fOnlyD? "yes": "no" );  
-    Abc_Print( -2, "\t-z       : use zero-weight divisors [default = %s]\n", p->fUse0? "yes": "no" );  
-    Abc_Print( -2, "\t-c       : use complement in the binary case [default = %s]\n", p->fUseCompl? "yes": "no" );  
-    Abc_Print( -2, "\t-v       : print verbose information [default = %s]\n", p->fVerbose? "yes": "no" ); 
+    Abc_Print( -2, "\t-S <num> : max number of single-cube divisors to consider [default = %d]\n", p->nSingleMax );
+    Abc_Print( -2, "\t-D <num> : max number of double-cube divisors to consider [default = %d]\n", p->nPairsMax );
+    Abc_Print( -2, "\t-N <num> : the maximum number of divisors to extract [default = %d]\n", p->nNodesExt );
+    Abc_Print( -2, "\t-W <num> : only extract divisors with weight more than this [default = %d]\n", p->nSingleMax );
+    Abc_Print( -2, "\t-s       : use only single-cube divisors [default = %s]\n", p->fOnlyS? "yes": "no" );
+    Abc_Print( -2, "\t-d       : use only double-cube divisors [default = %s]\n", p->fOnlyD? "yes": "no" );
+    Abc_Print( -2, "\t-z       : use zero-weight divisors [default = %s]\n", p->fUse0? "yes": "no" );
+    Abc_Print( -2, "\t-c       : use complement in the binary case [default = %s]\n", p->fUseCompl? "yes": "no" );
+    Abc_Print( -2, "\t-v       : print verbose information [default = %s]\n", p->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
-    return 1;       
+    return 1;
 }
 
 /**Function*************************************************************
@@ -3548,7 +3542,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -3568,9 +3562,9 @@ int Abc_CommandEliminate( Abc_Frame_t * pAbc, int argc, char ** argv )
     fReverse  = 0;
     fVerbose  = 0;
     Extra_UtilGetoptReset();
-    while ( (c = Extra_UtilGetopt(argc, argv, "Nrvh")) != EOF ) 
+    while ( (c = Extra_UtilGetopt(argc, argv, "Nrvh")) != EOF )
     {
-        switch (c) 
+        switch (c)
         {
             case 'N':
                 if ( globalUtilOptind >= argc )
@@ -3580,7 +3574,7 @@ int Abc_CommandEliminate( Abc_Frame_t * pAbc, int argc, char ** argv )
                 }
                 nMaxSize = atoi(argv[globalUtilOptind]);
                 globalUtilOptind++;
-                if ( nMaxSize <= 0 ) 
+                if ( nMaxSize <= 0 )
                     goto usage;
                 break;
             case 'r':
@@ -3595,7 +3589,7 @@ int Abc_CommandEliminate( Abc_Frame_t * pAbc, int argc, char ** argv )
             default:
                 goto usage;
         }
-    } 
+    }
 
     if ( pNtk == NULL )
     {
@@ -3622,11 +3616,11 @@ int Abc_CommandEliminate( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     Abc_Print( -2, "usage: eliminate [-N <num>] [-rvh]\n");
     Abc_Print( -2, "\t           greedily eliminates nodes by collapsing them into fanouts\n");
-    Abc_Print( -2, "\t-N <num> : the maximum support size after collapsing [default = %d]\n", nMaxSize );  
-    Abc_Print( -2, "\t-r       : use the reverse topological order [default = %s]\n", fReverse? "yes": "no" );  
-    Abc_Print( -2, "\t-v       : print verbose information [default = %s]\n", fVerbose? "yes": "no" ); 
+    Abc_Print( -2, "\t-N <num> : the maximum support size after collapsing [default = %d]\n", nMaxSize );
+    Abc_Print( -2, "\t-r       : use the reverse topological order [default = %s]\n", fReverse? "yes": "no" );
+    Abc_Print( -2, "\t-v       : print verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
-    return 1;       
+    return 1;
 }
 
 /**Function*************************************************************
@@ -3634,7 +3628,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -3722,7 +3716,7 @@ int Abc_CommandDisjoint( Abc_Frame_t * pAbc, int argc, char ** argv )
         if ( !Abc_NtkDsdLocal( pNtk, fVerbose, fRecursive ) )
             Abc_Print( -1, "Recursive DSD has failed.\n" );
     }
-    else 
+    else
     {
         if ( !Abc_NtkIsBddLogic( pNtk ) )
         {
@@ -3738,11 +3732,11 @@ int Abc_CommandDisjoint( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     Abc_Print( -2, "usage: dsd [-grvpsh]\n" );
     Abc_Print( -2, "\t     decomposes the network using disjoint-support decomposition\n" );
-    Abc_Print( -2, "\t-g     : toggle DSD of global and local functions [default = %s]\n", fGlobal? "global": "local" );  
-    Abc_Print( -2, "\t-r     : toggle recursive DSD/MUX and simple DSD [default = %s]\n", fRecursive? "recursive DSD/MUX": "simple DSD" );  
-    Abc_Print( -2, "\t-v     : prints DSD statistics and runtime [default = %s]\n", fVerbose? "yes": "no" ); 
-    Abc_Print( -2, "\t-p     : prints DSD structure to the standard output [default = %s]\n", fPrint? "yes": "no" ); 
-    Abc_Print( -2, "\t-s     : use short PI names when printing DSD structure [default = %s]\n", fShort? "yes": "no" ); 
+    Abc_Print( -2, "\t-g     : toggle DSD of global and local functions [default = %s]\n", fGlobal? "global": "local" );
+    Abc_Print( -2, "\t-r     : toggle recursive DSD/MUX and simple DSD [default = %s]\n", fRecursive? "recursive DSD/MUX": "simple DSD" );
+    Abc_Print( -2, "\t-v     : prints DSD statistics and runtime [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-p     : prints DSD structure to the standard output [default = %s]\n", fPrint? "yes": "no" );
+    Abc_Print( -2, "\t-s     : use short PI names when printing DSD structure [default = %s]\n", fShort? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
@@ -3752,7 +3746,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -3763,7 +3757,7 @@ int Abc_CommandLutpack( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     Lpk_Par_t Pars, * pPars = &Pars;
     int c;
- 
+
     pNtk = Abc_FrameReadNtk(pAbc);
     // set defaults
     memset( pPars, 0, sizeof(Lpk_Par_t) );
@@ -3772,7 +3766,7 @@ int Abc_CommandLutpack( Abc_Frame_t * pAbc, int argc, char ** argv )
     pPars->nVarsShared  =  0; // (S) the maximum number of shared variables (crossbars)
     pPars->nGrowthLevel =  0; // (L) the maximum number of increased levels
     pPars->fSatur       =  1;
-    pPars->fZeroCost    =  0; 
+    pPars->fZeroCost    =  0;
     pPars->fFirst       =  0;
     pPars->fOldAlgo     =  0;
     pPars->fVerbose     =  0;
@@ -3790,7 +3784,7 @@ int Abc_CommandLutpack( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nLutsMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nLutsMax < 2 || pPars->nLutsMax > 8 ) 
+            if ( pPars->nLutsMax < 2 || pPars->nLutsMax > 8 )
                 goto usage;
             break;
         case 'Q':
@@ -3801,7 +3795,7 @@ int Abc_CommandLutpack( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nLutsOver = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nLutsOver < 0 || pPars->nLutsOver > 8 ) 
+            if ( pPars->nLutsOver < 0 || pPars->nLutsOver > 8 )
                 goto usage;
             break;
         case 'S':
@@ -3812,7 +3806,7 @@ int Abc_CommandLutpack( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nVarsShared = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nVarsShared < 0 || pPars->nVarsShared > 4 ) 
+            if ( pPars->nVarsShared < 0 || pPars->nVarsShared > 4 )
                 goto usage;
             break;
         case 'L':
@@ -3823,7 +3817,7 @@ int Abc_CommandLutpack( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nGrowthLevel = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nGrowthLevel < 0 || pPars->nGrowthLevel > ABC_INFINITY ) 
+            if ( pPars->nGrowthLevel < 0 || pPars->nGrowthLevel > ABC_INFINITY )
                 goto usage;
             break;
         case 's':
@@ -3900,7 +3894,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -3913,7 +3907,7 @@ int Abc_CommandLutmin( Abc_Frame_t * pAbc, int argc, char ** argv )
     int nLutSize;
     int fVerbose;
     extern Abc_Ntk_t * Abc_NtkLutmin( Abc_Ntk_t * pNtk, int nLutSize, int fVerbose );
- 
+
     pNtk = Abc_FrameReadNtk(pAbc);
     // set defaults
     nLutSize = 4;
@@ -3966,7 +3960,7 @@ usage:
     Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;
-} 
+}
 
 #if 0
 
@@ -3975,7 +3969,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -4008,7 +4002,7 @@ int Abc_CommandImfs( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nWindow = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nWindow < 1 || pPars->nWindow > 99 ) 
+            if ( pPars->nWindow < 1 || pPars->nWindow > 99 )
                 goto usage;
             break;
         case 'S':
@@ -4019,7 +4013,7 @@ int Abc_CommandImfs( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nSimWords = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nSimWords < 1 || pPars->nSimWords > 256 ) 
+            if ( pPars->nSimWords < 1 || pPars->nSimWords > 256 )
                 goto usage;
             break;
         case 'C':
@@ -4030,7 +4024,7 @@ int Abc_CommandImfs( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nCands = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nCands < 0 || pPars->nCands > ABC_INFINITY ) 
+            if ( pPars->nCands < 0 || pPars->nCands > ABC_INFINITY )
                 goto usage;
             break;
         case 'L':
@@ -4041,7 +4035,7 @@ int Abc_CommandImfs( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nGrowthLevel = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nGrowthLevel < 0 || pPars->nGrowthLevel > ABC_INFINITY ) 
+            if ( pPars->nGrowthLevel < 0 || pPars->nGrowthLevel > ABC_INFINITY )
                 goto usage;
             break;
         case 'a':
@@ -4092,7 +4086,7 @@ usage:
     Abc_Print( -2, "\t-w       : toggle printout subgraph statistics [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;
-} 
+}
 
 #endif
 
@@ -4101,7 +4095,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -4127,7 +4121,7 @@ int Abc_CommandMfs( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nWinTfoLevs = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nWinTfoLevs < 0 ) 
+            if ( pPars->nWinTfoLevs < 0 )
                 goto usage;
             break;
         case 'F':
@@ -4138,7 +4132,7 @@ int Abc_CommandMfs( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nFanoutsMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nFanoutsMax < 1 ) 
+            if ( pPars->nFanoutsMax < 1 )
                 goto usage;
             break;
         case 'D':
@@ -4149,7 +4143,7 @@ int Abc_CommandMfs( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nDepthMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nDepthMax < 0 ) 
+            if ( pPars->nDepthMax < 0 )
                 goto usage;
             break;
         case 'M':
@@ -4160,7 +4154,7 @@ int Abc_CommandMfs( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nWinSizeMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nWinSizeMax < 0 ) 
+            if ( pPars->nWinSizeMax < 0 )
                 goto usage;
             break;
         case 'L':
@@ -4171,7 +4165,7 @@ int Abc_CommandMfs( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nGrowthLevel = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nGrowthLevel < 0 || pPars->nGrowthLevel > ABC_INFINITY ) 
+            if ( pPars->nGrowthLevel < 0 || pPars->nGrowthLevel > ABC_INFINITY )
                 goto usage;
             break;
         case 'C':
@@ -4182,7 +4176,7 @@ int Abc_CommandMfs( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nBTLimit = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nBTLimit < 0 ) 
+            if ( pPars->nBTLimit < 0 )
                 goto usage;
             break;
         case 'r':
@@ -4258,7 +4252,7 @@ usage:
     Abc_Print( -2, "\t-w       : toggle printing detailed stats for each node [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;
-} 
+}
 
 
 /**Function*************************************************************
@@ -4266,7 +4260,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -4323,14 +4317,14 @@ usage:
     Abc_Print( -2, "\t-v       : toggle printing optimization summary [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;
-} 
+}
 
 /**Function*************************************************************
 
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -4367,7 +4361,7 @@ int Abc_CommandSpeedup( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             Percentage = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( Percentage < 1 || Percentage > 100 ) 
+            if ( Percentage < 1 || Percentage > 100 )
                 goto usage;
             break;
         case 'N':
@@ -4378,7 +4372,7 @@ int Abc_CommandSpeedup( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             Degree = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( Degree < 1 || Degree > 5 ) 
+            if ( Degree < 1 || Degree > 5 )
                 goto usage;
             break;
         case 'l':
@@ -4430,14 +4424,14 @@ usage:
     Abc_Print( -2, "\t-w       : toggle printing detailed stats for each node [default = %s]\n", fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;
-} 
+}
 
 /**Function*************************************************************
 
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -4474,7 +4468,7 @@ int Abc_CommandPowerdown( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             Percentage = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( Percentage < 1 || Percentage > 100 ) 
+            if ( Percentage < 1 || Percentage > 100 )
                 goto usage;
             break;
         case 'N':
@@ -4485,7 +4479,7 @@ int Abc_CommandPowerdown( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             Degree = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( Degree < 1 || Degree > 5 ) 
+            if ( Degree < 1 || Degree > 5 )
                 goto usage;
             break;
         case 'l':
@@ -4538,14 +4532,14 @@ usage:
     Abc_Print( -2, "\t-w       : toggle printing detailed stats for each node [default = %s]\n", fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;
-} 
+}
 
 /**Function*************************************************************
 
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -4578,7 +4572,7 @@ int Abc_CommandAddBuffs( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nImprove = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nImprove < 0 ) 
+            if ( nImprove < 0 )
                 goto usage;
             break;
         case 'd':
@@ -4628,7 +4622,7 @@ usage:
     Abc_Print( -2, "\t-v       : toggle printing optimization summary [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;
-} 
+}
 
 #if 0
 /**Function*************************************************************
@@ -4636,7 +4630,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -4673,7 +4667,7 @@ int Abc_CommandMerge( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nMaxLutSize = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nMaxLutSize < 2 ) 
+            if ( pPars->nMaxLutSize < 2 )
                 goto usage;
             break;
         case 'S':
@@ -4684,7 +4678,7 @@ int Abc_CommandMerge( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nMaxSuppSize = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nMaxSuppSize < 2 ) 
+            if ( pPars->nMaxSuppSize < 2 )
                 goto usage;
             break;
         case 'D':
@@ -4695,7 +4689,7 @@ int Abc_CommandMerge( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nMaxDistance = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nMaxDistance < 2 ) 
+            if ( pPars->nMaxDistance < 2 )
                 goto usage;
             break;
         case 'L':
@@ -4706,7 +4700,7 @@ int Abc_CommandMerge( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nMaxLevelDiff = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nMaxLevelDiff < 2 ) 
+            if ( pPars->nMaxLevelDiff < 2 )
                 goto usage;
             break;
         case 'F':
@@ -4717,7 +4711,7 @@ int Abc_CommandMerge( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nMaxFanout = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nMaxFanout < 2 ) 
+            if ( pPars->nMaxFanout < 2 )
                 goto usage;
             break;
         case 's':
@@ -4743,7 +4737,7 @@ int Abc_CommandMerge( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandMerge(): There is no mapped network to merge LUTs.\n" );
         return 1;
     }
-       
+
     vResult = Abc_NtkLutMerge( pNtk, pPars );
     Vec_IntFree( vResult );
     return 0;
@@ -4962,7 +4956,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -5058,14 +5052,14 @@ usage:
 //    Abc_Print( -2, "\t-p     : toggle placement-aware rewriting [default = %s]\n", fPlaceEnable? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
-} 
+}
 
 /**Function*************************************************************
 
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -5103,7 +5097,7 @@ int Abc_CommandRefactor( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nNodeSizeMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nNodeSizeMax < 0 ) 
+            if ( nNodeSizeMax < 0 )
                 goto usage;
             break;
         case 'C':
@@ -5114,7 +5108,7 @@ int Abc_CommandRefactor( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nConeSizeMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nConeSizeMax < 0 ) 
+            if ( nConeSizeMax < 0 )
                 goto usage;
             break;
         case 'l':
@@ -5169,8 +5163,8 @@ int Abc_CommandRefactor( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     Abc_Print( -2, "usage: refactor [-NC <num>] [-lzdvh]\n" );
     Abc_Print( -2, "\t           performs technology-independent refactoring of the AIG\n" );
-    Abc_Print( -2, "\t-N <num> : the max support of the collapsed node [default = %d]\n", nNodeSizeMax );  
-    Abc_Print( -2, "\t-C <num> : the max support of the containing cone [default = %d]\n", nConeSizeMax );  
+    Abc_Print( -2, "\t-N <num> : the max support of the collapsed node [default = %d]\n", nNodeSizeMax );
+    Abc_Print( -2, "\t-C <num> : the max support of the containing cone [default = %d]\n", nConeSizeMax );
     Abc_Print( -2, "\t-l       : toggle preserving the number of levels [default = %s]\n", fUpdateLevel? "yes": "no" );
     Abc_Print( -2, "\t-z       : toggle using zero-cost replacements [default = %s]\n", fUseZeros? "yes": "no" );
     Abc_Print( -2, "\t-d       : toggle using don't-cares [default = %s]\n", fUseDcs? "yes": "no" );
@@ -5184,7 +5178,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -5218,7 +5212,7 @@ int Abc_CommandRestructure( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nCutsMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nCutsMax < 0 ) 
+            if ( nCutsMax < 0 )
                 goto usage;
             break;
         case 'l':
@@ -5269,7 +5263,7 @@ int Abc_CommandRestructure( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     Abc_Print( -2, "usage: restructure [-K <num>] [-lzvh]\n" );
     Abc_Print( -2, "\t           performs technology-independent restructuring of the AIG\n" );
-    Abc_Print( -2, "\t-K <num> : the max cut size (%d <= num <= %d) [default = %d]\n",   CUT_SIZE_MIN, CUT_SIZE_MAX, nCutsMax );  
+    Abc_Print( -2, "\t-K <num> : the max cut size (%d <= num <= %d) [default = %d]\n",   CUT_SIZE_MIN, CUT_SIZE_MAX, nCutsMax );
     Abc_Print( -2, "\t-l       : toggle preserving the number of levels [default = %s]\n", fUpdateLevel? "yes": "no" );
     Abc_Print( -2, "\t-z       : toggle using zero-cost replacements [default = %s]\n", fUseZeros? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
@@ -5282,7 +5276,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -5324,7 +5318,7 @@ int Abc_CommandResubstitute( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nCutsMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nCutsMax < 0 ) 
+            if ( nCutsMax < 0 )
                 goto usage;
             break;
         case 'N':
@@ -5335,7 +5329,7 @@ int Abc_CommandResubstitute( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nNodesMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nNodesMax < 0 ) 
+            if ( nNodesMax < 0 )
                 goto usage;
             break;
         case 'F':
@@ -5346,7 +5340,7 @@ int Abc_CommandResubstitute( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nLevelsOdc = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nLevelsOdc < 0 ) 
+            if ( nLevelsOdc < 0 )
                 goto usage;
             break;
         case 'l':
@@ -5405,9 +5399,9 @@ int Abc_CommandResubstitute( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     Abc_Print( -2, "usage: resub [-KN <num>] [-lzvwh]\n" );
     Abc_Print( -2, "\t           performs technology-independent restructuring of the AIG\n" );
-    Abc_Print( -2, "\t-K <num> : the max cut size (%d <= num <= %d) [default = %d]\n", RS_CUT_MIN, RS_CUT_MAX, nCutsMax );  
-    Abc_Print( -2, "\t-N <num> : the max number of nodes to add (0 <= num <= 3) [default = %d]\n", nNodesMax );  
-    Abc_Print( -2, "\t-F <num> : the number of fanout levels for ODC computation [default = %d]\n", nLevelsOdc );  
+    Abc_Print( -2, "\t-K <num> : the max cut size (%d <= num <= %d) [default = %d]\n", RS_CUT_MIN, RS_CUT_MAX, nCutsMax );
+    Abc_Print( -2, "\t-N <num> : the max number of nodes to add (0 <= num <= 3) [default = %d]\n", nNodesMax );
+    Abc_Print( -2, "\t-F <num> : the number of fanout levels for ODC computation [default = %d]\n", nLevelsOdc );
     Abc_Print( -2, "\t-l       : toggle preserving the number of levels [default = %s]\n", fUpdateLevel? "yes": "no" );
     Abc_Print( -2, "\t-z       : toggle using zero-cost replacements [default = %s]\n", fUseZeros? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
@@ -5421,7 +5415,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -5455,7 +5449,7 @@ int Abc_CommandRr( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             Window = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( Window < 0 ) 
+            if ( Window < 0 )
                 goto usage;
             nFaninLevels  = Window / 10;
             nFanoutLevels = Window % 10;
@@ -5512,7 +5506,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -5544,7 +5538,7 @@ int Abc_CommandCascade( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nLutSize = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nLutSize < 0 ) 
+            if ( nLutSize < 0 )
                 goto usage;
             break;
         case 'c':
@@ -5611,7 +5605,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -5641,7 +5635,7 @@ int Abc_CommandExtract( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nMultiSize = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nMultiSize < 0 ) 
+            if ( nMultiSize < 0 )
                 goto usage;
             break;
         case 'a':
@@ -5694,7 +5688,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -5754,7 +5748,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -5782,10 +5776,10 @@ int Abc_CommandComb( Abc_Frame_t * pAbc, int argc, char ** argv )
             {
                 Abc_Print( -1, "Command line switch \"-L\" should be followed by an integer.\n" );
                 goto usage;
-            } 
+            }
             nLatchesToAdd = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nLatchesToAdd < 0 ) 
+            if ( nLatchesToAdd < 0 )
                 goto usage;
             break;
         case 'l':
@@ -5816,7 +5810,7 @@ int Abc_CommandComb( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // get the new network
     pNtkRes = Abc_NtkDup( pNtk );
-    if ( nLatchesToAdd ) 
+    if ( nLatchesToAdd )
         Abc_NtkMakeSeq( pNtkRes, nLatchesToAdd );
     else
         Abc_NtkMakeComb( pNtkRes, fRemoveLatches );
@@ -5838,7 +5832,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -5883,7 +5877,7 @@ int Abc_CommandMiter( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nPartSize = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nPartSize < 0 ) 
+            if ( nPartSize < 0 )
                 goto usage;
             break;
         case 'c':
@@ -5924,7 +5918,7 @@ int Abc_CommandMiter( Abc_Frame_t * pAbc, int argc, char ** argv )
     nArgcNew = argc - globalUtilOptind;
     if ( !Abc_NtkPrepareTwoNtks( stdout, pNtk, pArgvNew, nArgcNew, &pNtk1, &pNtk2, &fDelete1, &fDelete2 ) )
         return 1;
-    
+
     if ( fIgnoreNames )
     {
         if ( !fDelete1 )
@@ -5981,7 +5975,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -6010,7 +6004,7 @@ int Abc_CommandDemiter( Abc_Frame_t * pAbc, int argc, char ** argv )
         default:
             goto usage;
         }
-    } 
+    }
 
     if ( pNtk == NULL )
     {
@@ -6069,7 +6063,7 @@ usage:
     Abc_Print( -2, "usage: demiter [-dvh]\n" );
     Abc_Print( -2, "\t        splits sequential miter into two circuits\n" );
     Abc_Print( -2, "\t-d    : expects a dual-output miter (without XORs) [default = %s]\n", fDual? "yes": "no" );
-    Abc_Print( -2, "\t-v    : toggles outputting verbose information [default = %s]\n", fVerbose? "yes": "no" );  
+    Abc_Print( -2, "\t-v    : toggles outputting verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;
 }
@@ -6079,7 +6073,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -6130,7 +6124,7 @@ int Abc_CommandOrPos( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Ntk_t * pNtkRes = Abc_NtkFromAigPhase( pMan );
         Aig_ManStop( pMan );
         // perform expansion
-        if ( Abc_NtkPoNum(pNtk) != Abc_NtkPoNum(pNtkRes) ) 
+        if ( Abc_NtkPoNum(pNtk) != Abc_NtkPoNum(pNtkRes) )
             printf( "Expanded %d outputs into %d outputs using OR decomposition.\n", Abc_NtkPoNum(pNtk), Abc_NtkPoNum(pNtkRes) );
         else
             printf( "The output(s) cannot be structurally decomposed.\n" );
@@ -6170,7 +6164,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -6243,7 +6237,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -6269,7 +6263,7 @@ int Abc_CommandZeroPo( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             iOutput = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( iOutput < 0 ) 
+            if ( iOutput < 0 )
                 goto usage;
             break;
         default:
@@ -6319,7 +6313,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -6345,7 +6339,7 @@ int Abc_CommandSwapPos( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             iOutput = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( iOutput < 0 ) 
+            if ( iOutput < 0 )
                 goto usage;
             break;
         default:
@@ -6394,7 +6388,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -6421,7 +6415,7 @@ int Abc_CommandRemovePo( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             iOutput = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( iOutput < 0 ) 
+            if ( iOutput < 0 )
                 goto usage;
             break;
         case 'z':
@@ -6475,7 +6469,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -6492,7 +6486,7 @@ int Abc_CommandAddPi( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         switch ( c )
         {
-        case 'h': 
+        case 'h':
         default:
             goto usage;
         }
@@ -6527,7 +6521,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -6610,7 +6604,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -6642,7 +6636,7 @@ int Abc_CommandFrames( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nFrames = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nFrames <= 0 ) 
+            if ( nFrames <= 0 )
                 goto usage;
             break;
         case 'i':
@@ -6686,8 +6680,8 @@ usage:
     Abc_Print( -2, "usage: frames [-F <num>] [-ivh]\n" );
     Abc_Print( -2, "\t           unrolls the network for a number of time frames\n" );
     Abc_Print( -2, "\t-F <num> : the number of frames to unroll [default = %d]\n", nFrames );
-    Abc_Print( -2, "\t-i       : toggles initializing the first frame [default = %s]\n", fInitial? "yes": "no" );  
-    Abc_Print( -2, "\t-v       : toggles outputting verbose information [default = %s]\n", fVerbose? "yes": "no" );  
+    Abc_Print( -2, "\t-i       : toggles initializing the first frame [default = %s]\n", fInitial? "yes": "no" );
+    Abc_Print( -2, "\t-v       : toggles outputting verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;
 }
@@ -6697,7 +6691,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -6733,7 +6727,7 @@ int Abc_CommandDFrames( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nPrefix = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nPrefix <= 0 ) 
+            if ( nPrefix <= 0 )
                 goto usage;
             break;
         case 'F':
@@ -6744,7 +6738,7 @@ int Abc_CommandDFrames( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nFrames = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nFrames <= 0 ) 
+            if ( nFrames <= 0 )
                 goto usage;
             break;
         case 'i':
@@ -6794,8 +6788,8 @@ usage:
     Abc_Print( -2, "\t         unrolls the network with simplification\n" );
     Abc_Print( -2, "\t-N num : the number of frames to use as prefix [default = %d]\n", nPrefix );
     Abc_Print( -2, "\t-F num : the number of frames to unroll [default = %d]\n", nFrames );
-    Abc_Print( -2, "\t-i     : toggles initializing the first frame [default = %s]\n", fInitial? "yes": "no" );  
-    Abc_Print( -2, "\t-v     : toggles outputting verbose information [default = %s]\n", fVerbose? "yes": "no" );  
+    Abc_Print( -2, "\t-i     : toggles initializing the first frame [default = %s]\n", fInitial? "yes": "no" );
+    Abc_Print( -2, "\t-v     : toggles outputting verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
@@ -6807,7 +6801,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -6855,7 +6849,7 @@ int Abc_CommandSop( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     Abc_Print( -2, "usage: sop [-dh]\n" );
     Abc_Print( -2, "\t         converts node functions to SOP\n" );
-    Abc_Print( -2, "\t-d     : toggles using both phases or only positive [default = %s]\n", fDirect? "direct": "both" );  
+    Abc_Print( -2, "\t-d     : toggles using both phases or only positive [default = %s]\n", fDirect? "direct": "both" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
@@ -6865,7 +6859,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -6922,7 +6916,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -6979,7 +6973,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -7027,7 +7021,7 @@ int Abc_CommandReorder( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     Abc_Print( -2, "usage: reorder [-vh]\n" );
     Abc_Print( -2, "\t         reorders local functions of the nodes using sifting\n" );
-    Abc_Print( -2, "\t-v     : prints verbose information [default = %s]\n", fVerbose? "yes": "no" );  
+    Abc_Print( -2, "\t-v     : prints verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
@@ -7037,7 +7031,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -7085,7 +7079,7 @@ int Abc_CommandBidec( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     Abc_Print( -2, "usage: bidec [-vh]\n" );
     Abc_Print( -2, "\t         applies bi-decomposition to local functions of the nodes\n" );
-    Abc_Print( -2, "\t-v     : prints verbose information [default = %s]\n", fVerbose? "yes": "no" );  
+    Abc_Print( -2, "\t-v     : prints verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
@@ -7095,7 +7089,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -7166,10 +7160,10 @@ int Abc_CommandOrder( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     Abc_Print( -2, "usage: order [-rvh] <file>\n" );
     Abc_Print( -2, "\t         computes a good static CI variable order\n" );
-    Abc_Print( -2, "\t-r     : toggle reverse ordering [default = %s]\n", fReverse? "yes": "no" );  
-    Abc_Print( -2, "\t-v     : prints verbose information [default = %s]\n", fVerbose? "yes": "no" );  
+    Abc_Print( -2, "\t-r     : toggle reverse ordering [default = %s]\n", fReverse? "yes": "no" );
+    Abc_Print( -2, "\t-v     : prints verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
-    Abc_Print( -2, "\t<file> : (optional) file with the given variable order\n" );  
+    Abc_Print( -2, "\t<file> : (optional) file with the given variable order\n" );
     return 1;
 }
 
@@ -7178,7 +7172,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -7239,7 +7233,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -7302,7 +7296,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -7358,7 +7352,7 @@ int Abc_CommandExtSeqDcs( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     Abc_Print( -2, "usage: ext_seq_dcs [-vh]\n" );
     Abc_Print( -2, "\t         create EXDC network using unreachable states\n" );
-    Abc_Print( -2, "\t-v     : prints verbose information [default = %s]\n", fVerbose? "yes": "no" );  
+    Abc_Print( -2, "\t-v     : prints verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
@@ -7368,7 +7362,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -7398,7 +7392,7 @@ int Abc_CommandReach( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->TimeLimit = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->TimeLimit < 0 ) 
+            if ( pPars->TimeLimit < 0 )
                 goto usage;
             break;
         case 'B':
@@ -7409,7 +7403,7 @@ int Abc_CommandReach( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nBddMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nBddMax < 0 ) 
+            if ( pPars->nBddMax < 0 )
                 goto usage;
             break;
         case 'F':
@@ -7420,7 +7414,7 @@ int Abc_CommandReach( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nIterMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nIterMax < 0 ) 
+            if ( pPars->nIterMax < 0 )
                 goto usage;
             break;
         case 'L':
@@ -7482,11 +7476,11 @@ usage:
     Abc_Print( -2, "\t-B num : max number of nodes in the intermediate BDDs [default = %d]\n", pPars->nBddMax );
     Abc_Print( -2, "\t-F num : max number of reachability iterations [default = %d]\n", pPars->nIterMax );
     Abc_Print( -2, "\t-L file: the log file name [default = %s]\n", pLogFileName ? pLogFileName : "no logging" );
-    Abc_Print( -2, "\t-p     : enable partitioned image computation [default = %s]\n", pPars->fPartition? "yes": "no" );  
-    Abc_Print( -2, "\t-r     : enable dynamic BDD variable reordering [default = %s]\n", pPars->fReorder? "yes": "no" );  
+    Abc_Print( -2, "\t-p     : enable partitioned image computation [default = %s]\n", pPars->fPartition? "yes": "no" );
+    Abc_Print( -2, "\t-r     : enable dynamic BDD variable reordering [default = %s]\n", pPars->fReorder? "yes": "no" );
     Abc_Print( -2, "\t-o     : toggles BDD variable reordering during image computation [default = %s]\n", pPars->fReorderImage? "yes": "no" );
-    Abc_Print( -2, "\t-y     : skip checking property outputs [default = %s]\n", pPars->fSkipOutCheck? "yes": "no" );  
-    Abc_Print( -2, "\t-v     : prints verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );  
+    Abc_Print( -2, "\t-y     : skip checking property outputs [default = %s]\n", pPars->fSkipOutCheck? "yes": "no" );
+    Abc_Print( -2, "\t-v     : prints verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
@@ -7496,7 +7490,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -7535,7 +7529,7 @@ int Abc_CommandCone( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             Output = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( Output < 0 ) 
+            if ( Output < 0 )
                 goto usage;
             break;
         case 'R':
@@ -7546,7 +7540,7 @@ int Abc_CommandCone( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nRange = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nRange < 0 ) 
+            if ( nRange < 0 )
                 goto usage;
             break;
         case 'm':
@@ -7614,7 +7608,7 @@ int Abc_CommandCone( Abc_Frame_t * pAbc, int argc, char ** argv )
             pNtkRes = Abc_NtkMakeOnePo( pNtk, Output, nRange );
         else if ( fUseMffc )
             pNtkRes = Abc_NtkCreateMffc( pNtk, Abc_ObjFanin0(pNodeCo), Abc_ObjName(pNodeCo) );
-        else 
+        else
             pNtkRes = Abc_NtkCreateCone( pNtk, Abc_ObjFanin0(pNodeCo), Abc_ObjName(pNodeCo), fUseAllCis );
     }
     if ( pNodeCo && Abc_ObjFaninC0(pNodeCo) && !fSeq )
@@ -7649,7 +7643,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -7725,7 +7719,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -7753,7 +7747,7 @@ int Abc_CommandTopmost( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nLevels = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nLevels < 0 ) 
+            if ( nLevels < 0 )
                 goto usage;
             break;
         case 'h':
@@ -7779,12 +7773,12 @@ int Abc_CommandTopmost( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Print( -1, "Currently can only works for combinational circuits.\n" );
         return 0;
-    } 
+    }
     if ( Abc_NtkPoNum(pNtk) != 1 )
     {
         Abc_Print( -1, "Currently expects a single-output miter.\n" );
         return 0;
-    } 
+    }
 
     pNtkRes = Abc_NtkTopmost( pNtk, nLevels );
     if ( pNtkRes == NULL )
@@ -7810,7 +7804,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -7852,22 +7846,22 @@ int Abc_CommandTopAnd( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Print( -1, "Currently can only works for combinational circuits.\n" );
         return 0;
-    } 
+    }
     if ( Abc_NtkPoNum(pNtk) != 1 )
     {
         Abc_Print( -1, "Currently expects a single-output miter.\n" );
         return 0;
-    } 
+    }
     if ( Abc_ObjFaninC0(Abc_NtkPo(pNtk, 0)) )
     {
         Abc_Print( -1, "The PO driver is complemented. AND-decomposition is impossible.\n" );
         return 0;
-    } 
+    }
     if ( !Abc_ObjIsNode(Abc_ObjChild0(Abc_NtkPo(pNtk, 0))) )
     {
         Abc_Print( -1, "The PO driver is not a node. AND-decomposition is impossible.\n" );
         return 0;
-    } 
+    }
     pNtkRes = Abc_NtkTopAnd( pNtk );
     if ( pNtkRes == NULL )
     {
@@ -7891,9 +7885,9 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
- 
+
   SeeAlso     []
 
 ***********************************************************************/
@@ -7911,7 +7905,7 @@ int Abc_CommandTrim( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         switch ( c )
         {
-/* 
+/*
         case 'N':
             if ( globalUtilOptind >= argc )
             {
@@ -7920,7 +7914,7 @@ int Abc_CommandTrim( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nLevels = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nLevels < 0 ) 
+            if ( nLevels < 0 )
                 goto usage;
             break;
 */
@@ -7966,7 +7960,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -8009,7 +8003,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -8065,7 +8059,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -8118,7 +8112,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -8202,7 +8196,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -8286,7 +8280,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -8319,7 +8313,7 @@ int Abc_CommandCut( Abc_Frame_t * pAbc, int argc, char ** argv )
     pParams->fRecordAig  = 1;     // compute something fancy
     pParams->fMap        = 0;     // compute mapping delay
     pParams->fAdjust     = 0;     // removes useless fanouts
-    pParams->fNpnSave    = 0;     // enables dumping truth tables  
+    pParams->fNpnSave    = 0;     // enables dumping truth tables
     pParams->fVerbose    = 0;     // the verbosiness flag
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "KMtfdxyglzamjvosh" ) ) != EOF )
@@ -8334,7 +8328,7 @@ int Abc_CommandCut( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pParams->nVarsMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pParams->nVarsMax < 0 ) 
+            if ( pParams->nVarsMax < 0 )
                 goto usage;
             break;
         case 'M':
@@ -8345,7 +8339,7 @@ int Abc_CommandCut( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pParams->nKeepMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pParams->nKeepMax < 0 ) 
+            if ( pParams->nKeepMax < 0 )
                 goto usage;
             break;
         case 't':
@@ -8465,7 +8459,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -8500,7 +8494,7 @@ int Abc_CommandScut( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pParams->nVarsMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pParams->nVarsMax < 0 ) 
+            if ( pParams->nVarsMax < 0 )
                 goto usage;
             break;
         case 'M':
@@ -8511,7 +8505,7 @@ int Abc_CommandScut( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pParams->nKeepMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pParams->nKeepMax < 0 ) 
+            if ( pParams->nKeepMax < 0 )
                 goto usage;
             break;
         case 't':
@@ -8565,7 +8559,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -8613,7 +8607,7 @@ int Abc_CommandEspresso( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     Abc_Print( -2, "usage: espresso [-vh]\n" );
     Abc_Print( -2, "\t         minimizes SOPs of the local functions using Espresso\n" );
-    Abc_Print( -2, "\t-v     : prints verbose information [default = %s]\n", fVerbose? "yes": "no" );  
+    Abc_Print( -2, "\t-v     : prints verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
@@ -8623,7 +8617,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -8677,7 +8671,7 @@ int Abc_CommandGen( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nVars = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nVars < 0 ) 
+            if ( nVars < 0 )
                 goto usage;
             break;
         case 'K':
@@ -8688,7 +8682,7 @@ int Abc_CommandGen( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nLutSize = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nLutSize < 0 ) 
+            if ( nLutSize < 0 )
                 goto usage;
             break;
         case 'L':
@@ -8699,7 +8693,7 @@ int Abc_CommandGen( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nLuts = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nLuts < 0 ) 
+            if ( nLuts < 0 )
                 goto usage;
             break;
         case 'a':
@@ -8773,17 +8767,17 @@ int Abc_CommandGen( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     Abc_Print( -2, "usage: gen [-NKL num] [-asemftrvh] <file>\n" );
     Abc_Print( -2, "\t         generates simple circuits\n" );
-    Abc_Print( -2, "\t-N num : the number of variables [default = %d]\n", nVars );  
-    Abc_Print( -2, "\t-K num : the LUT size (to be used with switch -f) [default = %d]\n", nLutSize );  
-    Abc_Print( -2, "\t-L num : the LUT count (to be used with switch -f) [default = %d]\n", nLuts );  
-    Abc_Print( -2, "\t-a     : generate ripple-carry adder [default = %s]\n", fAdder? "yes": "no" );  
-    Abc_Print( -2, "\t-s     : generate a sorter [default = %s]\n", fSorter? "yes": "no" );  
-    Abc_Print( -2, "\t-e     : generate a mesh [default = %s]\n", fMesh? "yes": "no" );  
-    Abc_Print( -2, "\t-m     : generate a multiplier [default = %s]\n", fMulti? "yes": "no" );  
-    Abc_Print( -2, "\t-f     : generate a LUT FPGA structure [default = %s]\n", fFpga? "yes": "no" );  
-    Abc_Print( -2, "\t-t     : generate one-hotness conditions [default = %s]\n", fOneHot? "yes": "no" );  
-    Abc_Print( -2, "\t-r     : generate random single-output function [default = %s]\n", fRandom? "yes": "no" );  
-    Abc_Print( -2, "\t-v     : prints verbose information [default = %s]\n", fVerbose? "yes": "no" );  
+    Abc_Print( -2, "\t-N num : the number of variables [default = %d]\n", nVars );
+    Abc_Print( -2, "\t-K num : the LUT size (to be used with switch -f) [default = %d]\n", nLutSize );
+    Abc_Print( -2, "\t-L num : the LUT count (to be used with switch -f) [default = %d]\n", nLuts );
+    Abc_Print( -2, "\t-a     : generate ripple-carry adder [default = %s]\n", fAdder? "yes": "no" );
+    Abc_Print( -2, "\t-s     : generate a sorter [default = %s]\n", fSorter? "yes": "no" );
+    Abc_Print( -2, "\t-e     : generate a mesh [default = %s]\n", fMesh? "yes": "no" );
+    Abc_Print( -2, "\t-m     : generate a multiplier [default = %s]\n", fMulti? "yes": "no" );
+    Abc_Print( -2, "\t-f     : generate a LUT FPGA structure [default = %s]\n", fFpga? "yes": "no" );
+    Abc_Print( -2, "\t-t     : generate one-hotness conditions [default = %s]\n", fOneHot? "yes": "no" );
+    Abc_Print( -2, "\t-r     : generate random single-output function [default = %s]\n", fRandom? "yes": "no" );
+    Abc_Print( -2, "\t-v     : prints verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     Abc_Print( -2, "\t<file> : output file name\n");
     return 1;
@@ -8794,7 +8788,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -8830,7 +8824,7 @@ int Abc_CommandCover( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nFaninMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nFaninMax < 0 ) 
+            if ( nFaninMax < 0 )
                 goto usage;
             break;
         case 's':
@@ -8891,7 +8885,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -8979,7 +8973,7 @@ usage:
     Abc_Print( -2, "\t         (a) \"miter -i <onset.blif> <inter.blif>; iprove\"\n" );
     Abc_Print( -2, "\t         (b) \"miter -i <inter.blif> <offset_inv.blif>; iprove\"\n" );
     Abc_Print( -2, "\t         where <offset_inv.blif> is the network derived by complementing the\n" );
-    Abc_Print( -2, "\t         outputs of <offset.blif>: \"r <offset.blif>; st -i; w <offset_inv.blif>\"\n" ); 
+    Abc_Print( -2, "\t         outputs of <offset.blif>: \"r <offset.blif>; st -i; w <offset_inv.blif>\"\n" );
     return 1;
 }
 
@@ -8988,7 +8982,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -9019,7 +9013,7 @@ int Abc_CommandDouble( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nFrames = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nFrames < 0 ) 
+            if ( nFrames < 0 )
                 goto usage;
             break;
         case 'v':
@@ -9066,7 +9060,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -9121,7 +9115,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -9149,7 +9143,7 @@ int Abc_CommandOutdec( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nLits = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nLits < 1 || nLits > 2 ) 
+            if ( nLits < 1 || nLits > 2 )
             {
                 printf( "Currently, command \"outdec\" works for 1-lit and 2-lit primes only.\n" );
                 goto usage;
@@ -9197,7 +9191,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -9273,7 +9267,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -9304,7 +9298,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nCutMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nCutMax < 0 ) 
+            if ( nCutMax < 0 )
                 goto usage;
             break;
         case 'K':
@@ -9315,7 +9309,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nLeafMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nLeafMax < 0 ) 
+            if ( nLeafMax < 0 )
                 goto usage;
             break;
         case 'D':
@@ -9326,7 +9320,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nDivMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nDivMax < 0 ) 
+            if ( nDivMax < 0 )
                 goto usage;
             break;
         case 'N':
@@ -9337,7 +9331,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nDecMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nDecMax < 0 ) 
+            if ( nDecMax < 0 )
                 goto usage;
             break;
         case 'a':
@@ -9428,7 +9422,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -9458,7 +9452,7 @@ int Abc_CommandQuaVar( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             iVar = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( iVar < 0 ) 
+            if ( iVar < 0 )
                 goto usage;
             break;
         case 'u':
@@ -9490,7 +9484,7 @@ int Abc_CommandQuaVar( Abc_Frame_t * pAbc, int argc, char ** argv )
     // clean temporary storage for the cofactors
     Abc_NtkCleanData( pNtkRes );
     Abc_AigCleanup( (Abc_Aig_t *)pNtkRes->pManFunc );
-    // check the result 
+    // check the result
     if ( !RetValue )
     {
         Abc_Print( -1, "Command has failed.\n" );
@@ -9515,7 +9509,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -9545,7 +9539,7 @@ int Abc_CommandQuaRel( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             iVar = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( iVar < 0 ) 
+            if ( iVar < 0 )
                 goto usage;
             break;
         case 'q':
@@ -9610,7 +9604,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -9639,7 +9633,7 @@ int Abc_CommandQuaReach( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nIters = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nIters < 0 ) 
+            if ( nIters < 0 )
                 goto usage;
             break;
         case 'v':
@@ -9708,7 +9702,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -9737,7 +9731,7 @@ int Abc_CommandSenseInput( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nConfLim = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nConfLim < 0 ) 
+            if ( nConfLim < 0 )
                 goto usage;
             break;
         case 'v':
@@ -9795,7 +9789,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -9854,7 +9848,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -9881,7 +9875,7 @@ int Abc_CommandICut( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nInputs = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nInputs < 0 ) 
+            if ( nInputs < 0 )
                 goto usage;
             break;
         case 'h':
@@ -9917,7 +9911,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -9990,7 +9984,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -10020,7 +10014,7 @@ int Abc_CommandDRewrite( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nCutsMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nCutsMax < 0 ) 
+            if ( pPars->nCutsMax < 0 )
                 goto usage;
             break;
         case 'N':
@@ -10031,7 +10025,7 @@ int Abc_CommandDRewrite( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nSubgMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nSubgMax < 0 ) 
+            if ( pPars->nSubgMax < 0 )
                 goto usage;
             break;
         case 'f':
@@ -10098,7 +10092,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -10128,7 +10122,7 @@ int Abc_CommandDRefactor( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nMffcMin = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nMffcMin < 0 ) 
+            if ( pPars->nMffcMin < 0 )
                 goto usage;
             break;
         case 'K':
@@ -10139,7 +10133,7 @@ int Abc_CommandDRefactor( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nLeafMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nLeafMax < 0 ) 
+            if ( pPars->nLeafMax < 0 )
                 goto usage;
             break;
         case 'C':
@@ -10150,7 +10144,7 @@ int Abc_CommandDRefactor( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nCutsMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nCutsMax < 0 ) 
+            if ( pPars->nCutsMax < 0 )
                 goto usage;
             break;
         case 'e':
@@ -10219,7 +10213,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -10303,7 +10297,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -10338,7 +10332,7 @@ int Abc_CommandDChoice( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nConfMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nConfMax < 0 ) 
+            if ( nConfMax < 0 )
                 goto usage;
             break;
         case 'L':
@@ -10349,7 +10343,7 @@ int Abc_CommandDChoice( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nLevelMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nLevelMax < 0 ) 
+            if ( nLevelMax < 0 )
                 goto usage;
             break;
         case 'b':
@@ -10408,7 +10402,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -10437,7 +10431,7 @@ int Abc_CommandDch( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nWords = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nWords < 0 ) 
+            if ( pPars->nWords < 0 )
                 goto usage;
             break;
         case 'C':
@@ -10448,7 +10442,7 @@ int Abc_CommandDch( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nBTLimit = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nBTLimit < 0 ) 
+            if ( pPars->nBTLimit < 0 )
                 goto usage;
             break;
         case 'S':
@@ -10459,7 +10453,7 @@ int Abc_CommandDch( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nSatVarMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nSatVarMax < 0 ) 
+            if ( pPars->nSatVarMax < 0 )
                 goto usage;
             break;
         case 's':
@@ -10492,7 +10486,7 @@ int Abc_CommandDch( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
-    if ( pNtk == NULL ) 
+    if ( pNtk == NULL )
     {
         Abc_Print( -1, "Empty network.\n" );
         return 1;
@@ -10535,7 +10529,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -10603,7 +10597,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -10676,7 +10670,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -10744,7 +10738,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -10760,7 +10754,7 @@ int Abc_CommandISat( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     pNtk = Abc_FrameReadNtk(pAbc);
     // set defaults
-    nConfLimit   = 100000;   
+    nConfLimit   = 100000;
     fUpdateLevel = 1;
     fVerbose     = 0;
     Extra_UtilGetoptReset();
@@ -10776,7 +10770,7 @@ int Abc_CommandISat( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nConfLimit = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nConfLimit < 0 ) 
+            if ( nConfLimit < 0 )
                 goto usage;
             break;
         case 'l':
@@ -10827,7 +10821,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -10848,7 +10842,7 @@ int Abc_CommandIFraig( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set defaults
     nPartSize    = 0;
     nLevelMax    = 0;
-    nConfLimit   = 100;   
+    nConfLimit   = 100;
     fDoSparse    = 0;
     fProve       = 0;
     fVerbose     = 0;
@@ -10865,7 +10859,7 @@ int Abc_CommandIFraig( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nPartSize = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nPartSize < 0 ) 
+            if ( nPartSize < 0 )
                 goto usage;
             break;
         case 'C':
@@ -10876,7 +10870,7 @@ int Abc_CommandIFraig( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nConfLimit = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nConfLimit < 0 ) 
+            if ( nConfLimit < 0 )
                 goto usage;
             break;
          case 'L':
@@ -10887,7 +10881,7 @@ int Abc_CommandIFraig( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nLevelMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nLevelMax < 0 ) 
+            if ( nLevelMax < 0 )
                 goto usage;
             break;
         case 's':
@@ -10947,7 +10941,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -10962,7 +10956,7 @@ int Abc_CommandDFraig( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     pNtk = Abc_FrameReadNtk(pAbc);
     // set defaults
-    nConfLimit   = 100;  
+    nConfLimit   = 100;
     fDoSparse    = 1;
     fProve       = 0;
     fSpeculate   = 0;
@@ -10981,7 +10975,7 @@ int Abc_CommandDFraig( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nConfLimit = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nConfLimit < 0 ) 
+            if ( nConfLimit < 0 )
                 goto usage;
             break;
         case 's':
@@ -11044,7 +11038,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -11059,7 +11053,7 @@ int Abc_CommandCSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     pNtk = Abc_FrameReadNtk(pAbc);
     // set defaults
-    nCutsMax  =  8;  
+    nCutsMax  =  8;
     nLeafMax  =  6;
     fVerbose  =  0;
     Extra_UtilGetoptReset();
@@ -11075,7 +11069,7 @@ int Abc_CommandCSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nCutsMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nCutsMax < 0 ) 
+            if ( nCutsMax < 0 )
                 goto usage;
             break;
         case 'K':
@@ -11086,7 +11080,7 @@ int Abc_CommandCSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nLeafMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nLeafMax < 0 ) 
+            if ( nLeafMax < 0 )
                 goto usage;
             break;
         case 'v':
@@ -11146,7 +11140,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -11179,7 +11173,7 @@ int Abc_CommandIProve( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pParams->nItersMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pParams->nItersMax < 0 ) 
+            if ( pParams->nItersMax < 0 )
                 goto usage;
             break;
         case 'C':
@@ -11190,7 +11184,7 @@ int Abc_CommandIProve( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pParams->nMiteringLimitStart = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pParams->nMiteringLimitStart < 0 ) 
+            if ( pParams->nMiteringLimitStart < 0 )
                 goto usage;
             break;
         case 'F':
@@ -11201,7 +11195,7 @@ int Abc_CommandIProve( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pParams->nFraigingLimitStart = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pParams->nFraigingLimitStart < 0 ) 
+            if ( pParams->nFraigingLimitStart < 0 )
                 goto usage;
             break;
         case 'G':
@@ -11212,7 +11206,7 @@ int Abc_CommandIProve( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pParams->nFraigingLimitMulti = (float)atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pParams->nFraigingLimitMulti < 0 ) 
+            if ( pParams->nFraigingLimitMulti < 0 )
                 goto usage;
             break;
         case 'L':
@@ -11223,7 +11217,7 @@ int Abc_CommandIProve( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pParams->nMiteringLimitLast = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pParams->nMiteringLimitLast < 0 ) 
+            if ( pParams->nMiteringLimitLast < 0 )
                 goto usage;
             break;
         case 'I':
@@ -11234,7 +11228,7 @@ int Abc_CommandIProve( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pParams->nTotalInspectLimit = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pParams->nTotalInspectLimit < 0 ) 
+            if ( pParams->nTotalInspectLimit < 0 )
                 goto usage;
             break;
         case 'r':
@@ -11293,7 +11287,7 @@ int Abc_CommandIProve( Abc_Frame_t * pAbc, int argc, char ** argv )
         ABC_FREE( pSimInfo );
     }
     pAbc->Status = RetValue;
-    if ( RetValue == -1 ) 
+    if ( RetValue == -1 )
         Abc_Print( 1, "UNDECIDED      " );
     else if ( RetValue == 0 )
         Abc_Print( 1, "SATISFIABLE (output = %d) ", iOut );
@@ -11321,10 +11315,10 @@ usage:
     Abc_Print( -2, "\t-G num : multiplicative coefficient for fraiging [default = %d]\n", (int)pParams->nFraigingLimitMulti );
     Abc_Print( -2, "\t-L num : max last-gasp number of conflicts in mitering [default = %d]\n", pParams->nMiteringLimitLast );
     Abc_Print( -2, "\t-I num : max number of clause inspections in all SAT calls [default = %d]\n", (int)pParams->nTotalInspectLimit );
-    Abc_Print( -2, "\t-r     : toggle the use of rewriting [default = %s]\n", pParams->fUseRewriting? "yes": "no" );  
-    Abc_Print( -2, "\t-f     : toggle the use of FRAIGing [default = %s]\n", pParams->fUseFraiging? "yes": "no" );  
-    Abc_Print( -2, "\t-b     : toggle the use of BDDs [default = %s]\n", pParams->fUseBdds? "yes": "no" );  
-    Abc_Print( -2, "\t-v     : prints verbose information [default = %s]\n", pParams->fVerbose? "yes": "no" );  
+    Abc_Print( -2, "\t-r     : toggle the use of rewriting [default = %s]\n", pParams->fUseRewriting? "yes": "no" );
+    Abc_Print( -2, "\t-f     : toggle the use of FRAIGing [default = %s]\n", pParams->fUseFraiging? "yes": "no" );
+    Abc_Print( -2, "\t-b     : toggle the use of BDDs [default = %s]\n", pParams->fUseBdds? "yes": "no" );
+    Abc_Print( -2, "\t-v     : prints verbose information [default = %s]\n", pParams->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
@@ -11334,7 +11328,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -11379,7 +11373,7 @@ int Abc_CommandHaig( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nIters = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nIters < 0 ) 
+            if ( nIters < 0 )
                 goto usage;
             break;
         case 'S':
@@ -11390,7 +11384,7 @@ int Abc_CommandHaig( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nSteps = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nSteps < 0 ) 
+            if ( nSteps < 0 )
                 goto usage;
             break;
         case 'r':
@@ -11449,13 +11443,13 @@ usage:
     return 1;
 }
 */
- 
+
 /**Function*************************************************************
 
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -11487,7 +11481,7 @@ int Abc_CommandQbf( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nPars = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nPars < 0 ) 
+            if ( nPars < 0 )
                 goto usage;
             break;
         case 'I':
@@ -11498,7 +11492,7 @@ int Abc_CommandQbf( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nIters = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nIters < 0 ) 
+            if ( nIters < 0 )
                 goto usage;
             break;
         case 'v':
@@ -11549,13 +11543,13 @@ usage:
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
- 
+
 /**Function*************************************************************
 
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -11802,7 +11796,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -11830,7 +11824,7 @@ int Abc_CommandFraig( Abc_Frame_t * pAbc, int argc, char ** argv )
     pParams->fFuncRed   =    1; // performs only one level hashing
     pParams->fFeedBack  =    1; // enables solver feedback
     pParams->fDist1Pats =    1; // enables distance-1 patterns
-    pParams->fDoSparse  =    1; // performs equiv tests for sparse functions 
+    pParams->fDoSparse  =    1; // performs equiv tests for sparse functions
     pParams->fChoicing  =    0; // enables recording structural choices
     pParams->fTryProve  =    0; // tries to solve the final miter
     pParams->fVerbose   =    0; // the verbosiness flag
@@ -11848,7 +11842,7 @@ int Abc_CommandFraig( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pParams->nPatsRand = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pParams->nPatsRand < 0 ) 
+            if ( pParams->nPatsRand < 0 )
                 goto usage;
             break;
         case 'D':
@@ -11859,7 +11853,7 @@ int Abc_CommandFraig( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pParams->nPatsDyna = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pParams->nPatsDyna < 0 ) 
+            if ( pParams->nPatsDyna < 0 )
                 goto usage;
             break;
         case 'C':
@@ -11870,7 +11864,7 @@ int Abc_CommandFraig( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pParams->nBTLimit = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pParams->nBTLimit < 0 ) 
+            if ( pParams->nBTLimit < 0 )
                 goto usage;
             break;
 
@@ -11903,7 +11897,7 @@ int Abc_CommandFraig( Abc_Frame_t * pAbc, int argc, char ** argv )
         default:
             goto usage;
         }
-    } 
+    }
 
     if ( pNtk == NULL )
     {
@@ -11982,7 +11976,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -12042,7 +12036,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -12098,7 +12092,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -12158,7 +12152,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -12201,7 +12195,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -12272,8 +12266,8 @@ usage:
     Abc_Print( -2, "usage: fraig_sweep [-evwh]\n" );
     Abc_Print( -2, "\t        performs technology-dependent sweep\n" );
     Abc_Print( -2, "\t-e    : toggle functional sweeping using EXDC [default = %s]\n", fExdc? "yes": "no" );
-    Abc_Print( -2, "\t-v    : prints verbose information [default = %s]\n", fVerbose? "yes": "no" );  
-    Abc_Print( -2, "\t-w    : prints equivalence class information [default = %s]\n", fVeryVerbose? "yes": "no" );  
+    Abc_Print( -2, "\t-v    : prints verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-w    : prints equivalence class information [default = %s]\n", fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;
 }
@@ -12283,7 +12277,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -12314,7 +12308,7 @@ int Abc_CommandFraigDress( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nConfs = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nConfs < 0 ) 
+            if ( nConfs < 0 )
                 goto usage;
             break;
         case 'v':
@@ -12355,9 +12349,9 @@ int Abc_CommandFraigDress( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     Abc_Print( -2, "usage: dress [-C num] [-vh] <file>\n" );
     Abc_Print( -2, "\t         transfers internal node names from file to the current network\n" );
-    Abc_Print( -2, "\t<file> : network with names (if not given, the current network spec is used)\n" );  
+    Abc_Print( -2, "\t<file> : network with names (if not given, the current network spec is used)\n" );
     Abc_Print( -2, "\t-C num : the maximum number of conflicts at each node [default = %d]\n", nConfs );
-    Abc_Print( -2, "\t-v     : prints verbose information [default = %s]\n", fVerbose? "yes": "no" );  
+    Abc_Print( -2, "\t-v     : prints verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
@@ -12368,7 +12362,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -12400,7 +12394,7 @@ int Abc_CommandRecStart( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nVars = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nVars < 1 ) 
+            if ( nVars < 1 )
                 goto usage;
             break;
         case 'C':
@@ -12411,7 +12405,7 @@ int Abc_CommandRecStart( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nCuts = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nCuts < 1 ) 
+            if ( nCuts < 1 )
                 goto usage;
             break;
         case 't':
@@ -12457,7 +12451,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -12544,7 +12538,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -12595,7 +12589,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -12647,7 +12641,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -12671,7 +12665,7 @@ int Abc_CommandRecFilter( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nLimit = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nLimit < 0 ) 
+            if ( nLimit < 0 )
                 goto usage;
         break;
         case 'h':
@@ -12687,7 +12681,7 @@ int Abc_CommandRecFilter( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if (!Abc_NtkRecIsInTrimMode())
         Abc_Print( 0, "This command works fine only in trim mode. Please call \"rec_start -t\" first.\n" );
-    
+
     Abc_NtkRecFilter(nLimit);
     return 0;
 
@@ -12704,7 +12698,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -13615,7 +13609,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -13768,7 +13762,7 @@ int Abc_CommandMap( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    if ( DelayTarget == -1 ) 
+    if ( DelayTarget == -1 )
         sprintf( Buffer, "not used" );
     else
         sprintf( Buffer, "%.3f", DelayTarget );
@@ -13791,7 +13785,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -13823,7 +13817,7 @@ int Abc_CommandAmap( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nIterFlow = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nIterFlow < 0 ) 
+            if ( pPars->nIterFlow < 0 )
                 goto usage;
             break;
         case 'A':
@@ -13834,7 +13828,7 @@ int Abc_CommandAmap( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nIterArea = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nIterArea < 0 ) 
+            if ( pPars->nIterArea < 0 )
                 goto usage;
             break;
         case 'E':
@@ -13845,7 +13839,7 @@ int Abc_CommandAmap( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->fEpsilon = (float)atof(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->fEpsilon < 0.0 || pPars->fEpsilon > 1.0 ) 
+            if ( pPars->fEpsilon < 0.0 || pPars->fEpsilon > 1.0 )
                 goto usage;
             break;
         case 'm':
@@ -13931,7 +13925,7 @@ usage:
     Abc_Print( -2, "\t           performs standard cell mapping of the current network\n" );
     Abc_Print( -2, "\t-F num   : the number of iterations of area flow [default = %d]\n", pPars->nIterFlow );
     Abc_Print( -2, "\t-A num   : the number of iterations of exact area [default = %d]\n", pPars->nIterArea );
-    Abc_Print( -2, "\t-E float : sets epsilon used for tie-breaking [default = %f]\n", pPars->fEpsilon );  
+    Abc_Print( -2, "\t-E float : sets epsilon used for tie-breaking [default = %f]\n", pPars->fEpsilon );
     Abc_Print( -2, "\t-m       : toggles using MUX matching [default = %s]\n", pPars->fUseMuxes? "yes": "no" );
     Abc_Print( -2, "\t-x       : toggles using XOR matching [default = %s]\n", pPars->fUseXors? "yes": "no" );
     Abc_Print( -2, "\t-i       : toggles assuming inverters are free [default = %s]\n", pPars->fFreeInvs? "yes": "no" );
@@ -13947,7 +13941,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -14001,7 +13995,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -14057,7 +14051,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -14120,7 +14114,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -14153,7 +14147,7 @@ int Abc_CommandSuperChoiceLut( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nLutSize = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nLutSize < 0 ) 
+            if ( nLutSize < 0 )
                 goto usage;
             break;
         case 'N':
@@ -14164,7 +14158,7 @@ int Abc_CommandSuperChoiceLut( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nCutSizeMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nCutSizeMax < 0 ) 
+            if ( nCutSizeMax < 0 )
                 goto usage;
             break;
         case 'v':
@@ -14220,7 +14214,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -14276,7 +14270,7 @@ int Abc_CommandFpga( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             DelayTarget = (float)atof(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( DelayTarget <= 0.0 ) 
+            if ( DelayTarget <= 0.0 )
                 goto usage;
             break;
         case 'K':
@@ -14287,7 +14281,7 @@ int Abc_CommandFpga( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nLutSize = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nLutSize < 0 ) 
+            if ( nLutSize < 0 )
                 goto usage;
             break;
         default:
@@ -14353,11 +14347,11 @@ int Abc_CommandFpga( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    if ( DelayTarget == -1 ) 
+    if ( DelayTarget == -1 )
         sprintf( Buffer, "best possible" );
     else
         sprintf( Buffer, "%.2f", DelayTarget );
-    if ( nLutSize == -1 ) 
+    if ( nLutSize == -1 )
         sprintf( LutSize, "library" );
     else
         sprintf( LutSize, "%d", nLutSize );
@@ -14366,7 +14360,7 @@ usage:
     Abc_Print( -2, "\t-a       : toggles area recovery [default = %s]\n", fRecovery? "yes": "no" );
     Abc_Print( -2, "\t-p       : optimizes power by minimizing switching activity [default = %s]\n", fSwitching? "yes": "no" );
     Abc_Print( -2, "\t-l       : optimizes latch paths for delay, other paths for area [default = %s]\n", fLatchPaths? "yes": "no" );
-    Abc_Print( -2, "\t-D float : sets the required time for the mapping [default = %s]\n", Buffer );  
+    Abc_Print( -2, "\t-D float : sets the required time for the mapping [default = %s]\n", Buffer );
     Abc_Print( -2, "\t-K num   : the number of LUT inputs (2 < num < 11) [default = %s]%s\n", LutSize, (nLutSize == -1 ? " (type \"print_lut\")" : "") );
     Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : prints the command usage\n");
@@ -14378,7 +14372,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -14423,7 +14417,7 @@ int Abc_CommandFpgaFast( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             DelayTarget = (float)atof(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( DelayTarget <= 0.0 ) 
+            if ( DelayTarget <= 0.0 )
                 goto usage;
             break;
         case 'K':
@@ -14434,7 +14428,7 @@ int Abc_CommandFpgaFast( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nLutSize = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nLutSize < 0 ) 
+            if ( nLutSize < 0 )
                 goto usage;
             break;
         default:
@@ -14490,14 +14484,14 @@ int Abc_CommandFpgaFast( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    if ( DelayTarget == -1 ) 
+    if ( DelayTarget == -1 )
         sprintf( Buffer, "not used" );
     else
         sprintf( Buffer, "%.2f", DelayTarget );
     Abc_Print( -2, "usage: ffpga [-K num] [-avh]\n" );
     Abc_Print( -2, "\t           performs fast FPGA mapping of the current network\n" );
     Abc_Print( -2, "\t-a       : toggles area recovery [default = %s]\n", fRecovery? "yes": "no" );
-//    Abc_Print( -2, "\t-D float : sets the required time for the mapping [default = %s]\n", Buffer );  
+//    Abc_Print( -2, "\t-D float : sets the required time for the mapping [default = %s]\n", Buffer );
     Abc_Print( -2, "\t-K num   : the number of LUT inputs (2 < num < 32) [default = %d]\n", nLutSize );
     Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : prints the command usage\n");
@@ -14509,7 +14503,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -14534,7 +14528,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
     pPars->nAreaIters  =  2;
     pPars->DelayTarget = -1;
     pPars->Epsilon     =  (float)0.005;
-    pPars->fPreprocess =  1; 
+    pPars->fPreprocess =  1;
     pPars->fArea       =  0;
     pPars->fFancy      =  0;
     pPars->fExpRed     =  1;
@@ -14552,9 +14546,9 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
     pPars->nLatchesCo  =  pNtk? Abc_NtkLatchNum(pNtk) : 0;
     pPars->fLiftLeaves =  0;
     pPars->pLutLib     =  (If_Lib_t *)Abc_FrameReadLibLut();
-    pPars->pTimesArr   =  NULL; 
-    pPars->pTimesArr   =  NULL;   
-    pPars->pFuncCost   =  NULL;   
+    pPars->pTimesArr   =  NULL;
+    pPars->pTimesArr   =  NULL;
+    pPars->pFuncCost   =  NULL;
 
     fLutMux = 0;
     Extra_UtilGetoptReset();
@@ -14570,10 +14564,10 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nLutSize = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nLutSize < 0 ) 
+            if ( pPars->nLutSize < 0 )
                 goto usage;
             // if the LUT size is specified, disable library
-            pPars->pLutLib = NULL; 
+            pPars->pLutLib = NULL;
             break;
         case 'C':
             if ( globalUtilOptind >= argc )
@@ -14583,7 +14577,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nCutsMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nCutsMax < 0 ) 
+            if ( pPars->nCutsMax < 0 )
                 goto usage;
             break;
         case 'F':
@@ -14594,7 +14588,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nFlowIters = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nFlowIters < 0 ) 
+            if ( pPars->nFlowIters < 0 )
                 goto usage;
             break;
         case 'A':
@@ -14605,7 +14599,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nAreaIters = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nAreaIters < 0 ) 
+            if ( pPars->nAreaIters < 0 )
                 goto usage;
             break;
         case 'G':
@@ -14616,7 +14610,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nGateSize = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nGateSize < 2 ) 
+            if ( pPars->nGateSize < 2 )
                 goto usage;
             break;
         case 'D':
@@ -14627,7 +14621,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->DelayTarget = (float)atof(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->DelayTarget <= 0.0 ) 
+            if ( pPars->DelayTarget <= 0.0 )
                 goto usage;
             break;
         case 'E':
@@ -14638,7 +14632,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->Epsilon = (float)atof(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->Epsilon < 0.0 || pPars->Epsilon > 1.0 ) 
+            if ( pPars->Epsilon < 0.0 || pPars->Epsilon > 1.0 )
                 goto usage;
             break;
         case 'W':
@@ -14649,7 +14643,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->WireDelay = (float)atof(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->WireDelay < 0.0 ) 
+            if ( pPars->WireDelay < 0.0 )
                 goto usage;
             break;
         case 'S':
@@ -14660,7 +14654,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->pLutStruct = argv[globalUtilOptind];
             globalUtilOptind++;
-            if ( strlen(pPars->pLutStruct) != 2 && strlen(pPars->pLutStruct) != 3 ) 
+            if ( strlen(pPars->pLutStruct) != 2 && strlen(pPars->pLutStruct) != 3 )
             {
                 Abc_Print( -1, "Command line switch \"-S\" should be followed by a 2- or 3-char string (e.g. \"44\" or \"555\").\n" );
                 goto usage;
@@ -14782,7 +14776,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
         extern int Abc_NtkCutCostMux( If_Cut_t * pCut );
         pPars->fCutMin   = 1;
         pPars->fTruth    = 1;
-        pPars->pFuncCost = Abc_NtkCutCostMux;   
+        pPars->pFuncCost = Abc_NtkCutCostMux;
     }
 
     // enable truth table computation if choices are selected
@@ -14800,7 +14794,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
             Abc_Print( -1, "This feature only works for {4,5,6}-LUTs.\n" );
             return 1;
         }
-        pPars->fCutMin = 1;            
+        pPars->fCutMin = 1;
     }
 
     if ( pPars->fEnableCheck07 + pPars->fEnableCheck08 + pPars->fEnableCheck10 + (pPars->pLutStruct != NULL) > 1 )
@@ -14816,7 +14810,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
             return 1;
         }
         pPars->pFuncCell = If_CutPerformCheck07;
-        pPars->fCutMin = 1;            
+        pPars->fCutMin = 1;
     }
     if ( pPars->fEnableCheck08 )
     {
@@ -14826,7 +14820,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
             return 1;
         }
         pPars->pFuncCell = If_CutPerformCheck08;
-        pPars->fCutMin = 1;            
+        pPars->fCutMin = 1;
     }
     if ( pPars->fEnableCheck10 )
     {
@@ -14836,7 +14830,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
             return 1;
         }
         pPars->pFuncCell = If_CutPerformCheck10;
-        pPars->fCutMin = 1;            
+        pPars->fCutMin = 1;
     }
     if ( pPars->pLutStruct )
     {
@@ -14846,7 +14840,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
             return 1;
         }
         pPars->pFuncCell = If_CutPerformCheck16;
-        pPars->fCutMin = 1;            
+        pPars->fCutMin = 1;
     }
 
     // enable truth table computation if cut minimization is selected
@@ -14881,7 +14875,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
         pPars->fExpRed     =  0;
         pPars->fUsePerm    =  1;
         pPars->pLutLib     =  NULL;
-        pPars->nLutSize    =  pPars->nGateSize; 
+        pPars->nLutSize    =  pPars->nGateSize;
     }
 
 /*
@@ -14953,11 +14947,11 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    if ( pPars->DelayTarget == -1 ) 
+    if ( pPars->DelayTarget == -1 )
         sprintf( Buffer, "best possible" );
     else
         sprintf( Buffer, "%.2f", pPars->DelayTarget );
-    if ( pPars->nLutSize == -1 ) 
+    if ( pPars->nLutSize == -1 )
         sprintf( LutSize, "library" );
     else
         sprintf( LutSize, "%d", pPars->nLutSize );
@@ -14968,10 +14962,10 @@ usage:
     Abc_Print( -2, "\t-F num   : the number of area flow recovery iterations (num >= 0) [default = %d]\n", pPars->nFlowIters );
     Abc_Print( -2, "\t-A num   : the number of exact area recovery iterations (num >= 0) [default = %d]\n", pPars->nAreaIters );
     Abc_Print( -2, "\t-G num   : the max AND/OR gate size for mapping (0 = unused) [default = %d]\n", pPars->nGateSize );
-    Abc_Print( -2, "\t-D float : sets the delay constraint for the mapping [default = %s]\n", Buffer );  
-    Abc_Print( -2, "\t-E float : sets epsilon used for tie-breaking [default = %f]\n", pPars->Epsilon );  
-    Abc_Print( -2, "\t-W float : sets wire delay between adjects LUTs [default = %f]\n", pPars->WireDelay );  
-    Abc_Print( -2, "\t-S str   : string representing the LUT structure [default = %s]\n", pPars->pLutStruct ? pPars->pLutStruct : "not used" );  
+    Abc_Print( -2, "\t-D float : sets the delay constraint for the mapping [default = %s]\n", Buffer );
+    Abc_Print( -2, "\t-E float : sets epsilon used for tie-breaking [default = %f]\n", pPars->Epsilon );
+    Abc_Print( -2, "\t-W float : sets wire delay between adjects LUTs [default = %f]\n", pPars->WireDelay );
+    Abc_Print( -2, "\t-S str   : string representing the LUT structure [default = %s]\n", pPars->pLutStruct ? pPars->pLutStruct : "not used" );
     Abc_Print( -2, "\t-q       : toggles preprocessing using several starting points [default = %s]\n", pPars->fPreprocess? "yes": "no" );
     Abc_Print( -2, "\t-a       : toggles area-oriented mapping [default = %s]\n", pPars->fArea? "yes": "no" );
 //    Abc_Print( -2, "\t-f       : toggles one fancy feature [default = %s]\n", pPars->fFancy? "yes": "no" );
@@ -15001,7 +14995,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -15017,7 +15011,7 @@ int Abc_CommandIfif( Abc_Frame_t * pAbc, int argc, char ** argv )
     pPars->nLutSize     =  -1;    // the LUT size
     pPars->pLutLib      = (If_Lib_t *)Abc_FrameReadLibLut();       // the LUT library
     pPars->DelayWire    = (float)0.5;    // wire delay
-    pPars->nDegree      =   0;    // structure degree 
+    pPars->nDegree      =   0;    // structure degree
     pPars->fCascade     =   0;    // cascade
     pPars->fVerbose     =   0;    // verbose
     pPars->fVeryVerbose =   0;    // verbose
@@ -15035,7 +15029,7 @@ int Abc_CommandIfif( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->DelayWire = atof(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->DelayWire < 0.0 ) 
+            if ( pPars->DelayWire < 0.0 )
                 goto usage;
             break;
         case 'N':
@@ -15046,7 +15040,7 @@ int Abc_CommandIfif( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nDegree = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nDegree < 0 ) 
+            if ( pPars->nDegree < 0 )
                 goto usage;
             break;
         case 'c':
@@ -15128,7 +15122,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -15228,7 +15222,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -15296,7 +15290,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -15353,7 +15347,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -15416,7 +15410,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -15443,7 +15437,7 @@ int Abc_CommandPipe( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nLatches = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nLatches < 0 ) 
+            if ( nLatches < 0 )
                 goto usage;
             break;
         case 'h':
@@ -15482,7 +15476,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -15549,7 +15543,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -15620,7 +15614,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -15659,7 +15653,7 @@ int Abc_CommandRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             Mode = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( Mode < 0 ) 
+            if ( Mode < 0 )
                 goto usage;
             break;
         case 'D':
@@ -15670,7 +15664,7 @@ int Abc_CommandRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nDelayLim = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nDelayLim < 0 ) 
+            if ( nDelayLim < 0 )
                 goto usage;
             break;
         case 'f':
@@ -15777,7 +15771,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -15822,7 +15816,7 @@ int Abc_CommandDRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nMaxIters = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nMaxIters < 0 ) 
+            if ( nMaxIters < 0 )
                 goto usage;
             break;
         case 'S':
@@ -15833,7 +15827,7 @@ int Abc_CommandDRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nStepsMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nStepsMax < 0 ) 
+            if ( nStepsMax < 0 )
                 goto usage;
             break;
         case 'm':
@@ -15916,7 +15910,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -15935,7 +15929,7 @@ int Abc_CommandFlowRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     Abc_Print( -1, "This command is temporarily disabled.\n" );
     return 0;
-//    extern Abc_Ntk_t* Abc_FlowRetime_MinReg( Abc_Ntk_t * pNtk, int fVerbose, 
+//    extern Abc_Ntk_t* Abc_FlowRetime_MinReg( Abc_Ntk_t * pNtk, int fVerbose,
 //                                             int fComputeInit, int fGuaranteeInit, int fBlockConst,
 //                                             int fForward, int fBackward, int nMaxIters,
 //                                             int maxDelay, int fFastButConservative);
@@ -15964,7 +15958,7 @@ int Abc_CommandFlowRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nMaxIters = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nMaxIters < 0 ) 
+            if ( nMaxIters < 0 )
                 goto usage;
             break;
         case 'D':
@@ -15975,7 +15969,7 @@ int Abc_CommandFlowRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             maxDelay = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( maxDelay < 0 ) 
+            if ( maxDelay < 0 )
                 goto usage;
            break;
         case 'f':
@@ -16017,7 +16011,7 @@ int Abc_CommandFlowRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Only one switch \"-f\" or \"-b\" can be selected at a time.\n" );
         return 1;
     }
- 
+
     if ( fGuaranteeInit && !fComputeInit )
     {
       Abc_Print( -1, "Initial state guarantee (-g) requires initial state computation (-i).\n" );
@@ -16038,8 +16032,8 @@ int Abc_CommandFlowRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // perform the retiming
 //    pNtkRes = Abc_FlowRetime_MinReg( pNtk, fVerbose, fComputeInit,
-//                                     fGuaranteeInit, fBlockConst, 
-//                                     fForward, fBackward, 
+//                                     fGuaranteeInit, fBlockConst,
+//                                     fForward, fBackward,
 //                                     nMaxIters, maxDelay, fFastButConservative );
 
     if (pNtkRes != pNtk)
@@ -16068,7 +16062,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -16137,7 +16131,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -16166,7 +16160,7 @@ int Abc_CommandSeqFpga( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nMaxIters = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nMaxIters < 0 ) 
+            if ( nMaxIters < 0 )
                 goto usage;
             break;
         case 'v':
@@ -16260,7 +16254,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -16289,7 +16283,7 @@ int Abc_CommandSeqMap( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nMaxIters = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nMaxIters < 0 ) 
+            if ( nMaxIters < 0 )
                 goto usage;
             break;
         case 'v':
@@ -16384,7 +16378,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -16426,7 +16420,7 @@ int Abc_CommandSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nPartSize = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nPartSize < 2 ) 
+            if ( pPars->nPartSize < 2 )
                 goto usage;
             break;
         case 'Q':
@@ -16437,7 +16431,7 @@ int Abc_CommandSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nOverSize = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nOverSize < 0 ) 
+            if ( pPars->nOverSize < 0 )
                 goto usage;
             break;
         case 'N':
@@ -16448,7 +16442,7 @@ int Abc_CommandSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nFramesP = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nFramesP < 0 ) 
+            if ( pPars->nFramesP < 0 )
                 goto usage;
             break;
         case 'F':
@@ -16459,7 +16453,7 @@ int Abc_CommandSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nFramesK = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nFramesK <= 0 ) 
+            if ( pPars->nFramesK <= 0 )
                 goto usage;
             break;
         case 'I':
@@ -16470,7 +16464,7 @@ int Abc_CommandSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nMaxImps = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nMaxImps <= 0 ) 
+            if ( pPars->nMaxImps <= 0 )
                 goto usage;
             break;
         case 'L':
@@ -16481,7 +16475,7 @@ int Abc_CommandSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nMaxLevs = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nMaxLevs <= 0 ) 
+            if ( pPars->nMaxLevs <= 0 )
                 goto usage;
             break;
         case 'i':
@@ -16578,7 +16572,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -16608,7 +16602,7 @@ int Abc_CommandSeqSweep2( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nPartSize = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nPartSize < 2 ) 
+            if ( pPars->nPartSize < 2 )
                 goto usage;
             break;
         case 'Q':
@@ -16619,7 +16613,7 @@ int Abc_CommandSeqSweep2( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nOverSize = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nOverSize < 0 ) 
+            if ( pPars->nOverSize < 0 )
                 goto usage;
             break;
         case 'F':
@@ -16630,7 +16624,7 @@ int Abc_CommandSeqSweep2( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nFramesK = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nFramesK <= 0 ) 
+            if ( pPars->nFramesK <= 0 )
                 goto usage;
             break;
         case 'C':
@@ -16641,7 +16635,7 @@ int Abc_CommandSeqSweep2( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nBTLimit = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nBTLimit <= 0 ) 
+            if ( pPars->nBTLimit <= 0 )
                 goto usage;
             break;
         case 'L':
@@ -16652,7 +16646,7 @@ int Abc_CommandSeqSweep2( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nMaxLevs = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nMaxLevs <= 0 ) 
+            if ( pPars->nMaxLevs <= 0 )
                 goto usage;
             break;
         case 'S':
@@ -16663,7 +16657,7 @@ int Abc_CommandSeqSweep2( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nFramesAddSim = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nFramesAddSim < 0 ) 
+            if ( pPars->nFramesAddSim < 0 )
                 goto usage;
             break;
         case 'I':
@@ -16674,7 +16668,7 @@ int Abc_CommandSeqSweep2( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nItersStop = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nItersStop < 0 ) 
+            if ( pPars->nItersStop < 0 )
                 goto usage;
             break;
         case 'V':
@@ -16685,7 +16679,7 @@ int Abc_CommandSeqSweep2( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nSatVarMax2 = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nSatVarMax2 < 0 ) 
+            if ( pPars->nSatVarMax2 < 0 )
                 goto usage;
             break;
         case 'M':
@@ -16696,7 +16690,7 @@ int Abc_CommandSeqSweep2( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nRecycleCalls2 = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nRecycleCalls2 < 0 ) 
+            if ( pPars->nRecycleCalls2 < 0 )
                 goto usage;
             break;
         case 'N':
@@ -16707,7 +16701,7 @@ int Abc_CommandSeqSweep2( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nConstrs = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nConstrs < 0 ) 
+            if ( nConstrs < 0 )
                 goto usage;
             break;
         case 'c':
@@ -16844,7 +16838,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -16886,7 +16880,7 @@ int Abc_CommandTestSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nPartSize = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nPartSize < 2 ) 
+            if ( pPars->nPartSize < 2 )
                 goto usage;
             break;
         case 'Q':
@@ -16897,7 +16891,7 @@ int Abc_CommandTestSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nOverSize = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nOverSize < 0 ) 
+            if ( pPars->nOverSize < 0 )
                 goto usage;
             break;
         case 'N':
@@ -16908,7 +16902,7 @@ int Abc_CommandTestSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nFramesP = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nFramesP < 0 ) 
+            if ( pPars->nFramesP < 0 )
                 goto usage;
             break;
         case 'F':
@@ -16919,7 +16913,7 @@ int Abc_CommandTestSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nFramesK = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nFramesK <= 0 ) 
+            if ( pPars->nFramesK <= 0 )
                 goto usage;
             break;
         case 'I':
@@ -16930,7 +16924,7 @@ int Abc_CommandTestSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nMaxImps = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nMaxImps <= 0 ) 
+            if ( pPars->nMaxImps <= 0 )
                 goto usage;
             break;
         case 'L':
@@ -16941,7 +16935,7 @@ int Abc_CommandTestSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nMaxLevs = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nMaxLevs <= 0 ) 
+            if ( pPars->nMaxLevs <= 0 )
                 goto usage;
             break;
         case 'i':
@@ -17008,7 +17002,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -17020,14 +17014,14 @@ int Abc_CommandTestScorr( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     Abc_Ntk_t * pNtkRes;
     int c;
-    int nConfMax;   
+    int nConfMax;
     int nStepsMax;
     int fNewAlgo;
     int fFlopOnly;
     int fFfNdOnly;
     int fVerbose;
     // set defaults
-    nConfMax  = 100;   
+    nConfMax  = 100;
     nStepsMax =  -1;
     fNewAlgo  =   0;
     fFlopOnly =   0;
@@ -17046,7 +17040,7 @@ int Abc_CommandTestScorr( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nConfMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nConfMax < 0 ) 
+            if ( nConfMax < 0 )
                 goto usage;
             break;
         case 'S':
@@ -17057,7 +17051,7 @@ int Abc_CommandTestScorr( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nStepsMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nStepsMax < 0 ) 
+            if ( nStepsMax < 0 )
                 goto usage;
             break;
         case 'n':
@@ -17118,7 +17112,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -17159,7 +17153,7 @@ int Abc_CommandLcorr( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nFramesP = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nFramesP < 0 ) 
+            if ( nFramesP < 0 )
                 goto usage;
             break;
         case 'C':
@@ -17170,7 +17164,7 @@ int Abc_CommandLcorr( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nConfMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nConfMax < 0 ) 
+            if ( nConfMax < 0 )
                 goto usage;
             break;
         case 'S':
@@ -17181,7 +17175,7 @@ int Abc_CommandLcorr( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nVarsMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nVarsMax < 0 ) 
+            if ( nVarsMax < 0 )
                 goto usage;
             break;
         case 'n':
@@ -17246,7 +17240,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -17294,7 +17288,7 @@ int Abc_CommandSeqCleanup( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nFramesSymb = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nFramesSymb < 0 ) 
+            if ( nFramesSymb < 0 )
                 goto usage;
             break;
         case 'S':
@@ -17305,7 +17299,7 @@ int Abc_CommandSeqCleanup( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nFramesSatur = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nFramesSatur < 0 ) 
+            if ( nFramesSatur < 0 )
                 goto usage;
             break;
         case 'v':
@@ -17367,7 +17361,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -17399,7 +17393,7 @@ int Abc_CommandCycle( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nFrames = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nFrames < 0 ) 
+            if ( nFrames < 0 )
                 goto usage;
             break;
         case 'x':
@@ -17459,7 +17453,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -17492,7 +17486,7 @@ int Abc_CommandXsim( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nFrames = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nFrames < 0 ) 
+            if ( nFrames < 0 )
                 goto usage;
             break;
         case 'i':
@@ -17546,7 +17540,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -17587,7 +17581,7 @@ int Abc_CommandSim( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nFrames = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nFrames < 0 ) 
+            if ( nFrames < 0 )
                 goto usage;
             break;
         case 'W':
@@ -17598,7 +17592,7 @@ int Abc_CommandSim( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nWords = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nWords < 0 ) 
+            if ( nWords < 0 )
                 goto usage;
             break;
         case 'T':
@@ -17609,7 +17603,7 @@ int Abc_CommandSim( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             TimeOut = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( TimeOut < 0 ) 
+            if ( TimeOut < 0 )
                 goto usage;
             break;
         case 'A':
@@ -17652,7 +17646,7 @@ int Abc_CommandSim( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     ABC_FREE( pNtk->pSeqModel );
-    pAbc->Status = Abc_NtkDarSeqSim( pNtk, nFrames, nWords, TimeOut, fNew, fMiter, fVerbose, pFileSim );  
+    pAbc->Status = Abc_NtkDarSeqSim( pNtk, nFrames, nWords, TimeOut, fNew, fMiter, fVerbose, pFileSim );
     Abc_FrameReplaceCex( pAbc, &pNtk->pSeqModel );
     return 0;
 
@@ -17677,7 +17671,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -17719,7 +17713,7 @@ int Abc_CommandSim3( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nFrames = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nFrames < 0 ) 
+            if ( nFrames < 0 )
                 goto usage;
             break;
         case 'W':
@@ -17730,7 +17724,7 @@ int Abc_CommandSim3( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nWords = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nWords < 0 ) 
+            if ( nWords < 0 )
                 goto usage;
             break;
         case 'B':
@@ -17741,7 +17735,7 @@ int Abc_CommandSim3( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nBinSize = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nBinSize < 0 ) 
+            if ( nBinSize < 0 )
                 goto usage;
             break;
         case 'R':
@@ -17774,7 +17768,7 @@ int Abc_CommandSim3( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nRandSeed = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nRandSeed < 0 ) 
+            if ( nRandSeed < 0 )
                 goto usage;
             break;
         case 'T':
@@ -17785,7 +17779,7 @@ int Abc_CommandSim3( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             TimeOut = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( TimeOut < 0 ) 
+            if ( TimeOut < 0 )
                 goto usage;
             break;
         case 'v':
@@ -17808,7 +17802,7 @@ int Abc_CommandSim3( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     ABC_FREE( pNtk->pSeqModel );
-    pAbc->Status = Abc_NtkDarSeqSim3( pNtk, nFrames, nWords, nBinSize, nRounds, nRestart, nRandSeed, TimeOut, fVerbose );  
+    pAbc->Status = Abc_NtkDarSeqSim3( pNtk, nFrames, nWords, nBinSize, nRounds, nRestart, nRandSeed, TimeOut, fVerbose );
 //    pAbc->nFrames = pAbc->pCex->iFrame;
     Abc_FrameReplaceCex( pAbc, &pNtk->pSeqModel );
     return 0;
@@ -17834,7 +17828,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -17870,7 +17864,7 @@ int Abc_CommandDarPhase( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nFrames = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nFrames < 0 ) 
+            if ( nFrames < 0 )
                 goto usage;
             break;
         case 'P':
@@ -17881,7 +17875,7 @@ int Abc_CommandDarPhase( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nPref = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nPref < 0 ) 
+            if ( nPref < 0 )
                 goto usage;
             break;
         case 'i':
@@ -17948,7 +17942,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -17984,7 +17978,7 @@ int Abc_CommandSynch( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nWords = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nWords <= 0 ) 
+            if ( nWords <= 0 )
                 goto usage;
             break;
         case 'v':
@@ -18060,7 +18054,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -18090,7 +18084,7 @@ int Abc_CommandClockGate( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nLevelMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nLevelMax <= 0 ) 
+            if ( pPars->nLevelMax <= 0 )
                 goto usage;
             break;
         case 'N':
@@ -18101,7 +18095,7 @@ int Abc_CommandClockGate( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nCandMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nCandMax <= 0 ) 
+            if ( pPars->nCandMax <= 0 )
                 goto usage;
             break;
         case 'D':
@@ -18112,7 +18106,7 @@ int Abc_CommandClockGate( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nOdcMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nOdcMax <= 0 ) 
+            if ( pPars->nOdcMax <= 0 )
                 goto usage;
             break;
         case 'C':
@@ -18123,7 +18117,7 @@ int Abc_CommandClockGate( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nConfMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nConfMax <= 0 ) 
+            if ( pPars->nConfMax <= 0 )
                 goto usage;
             break;
         case 'V':
@@ -18134,7 +18128,7 @@ int Abc_CommandClockGate( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nVarsMin = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nVarsMin <= 0 ) 
+            if ( pPars->nVarsMin <= 0 )
                 goto usage;
             break;
         case 'K':
@@ -18145,7 +18139,7 @@ int Abc_CommandClockGate( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nFlopsMin = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nFlopsMin <= 0 ) 
+            if ( pPars->nFlopsMin <= 0 )
                 goto usage;
             break;
         case 'a':
@@ -18221,7 +18215,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -18255,7 +18249,7 @@ int Abc_CommandExtWin( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nObjId = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nObjId <= 0 ) 
+            if ( nObjId <= 0 )
                 goto usage;
             break;
         case 'D':
@@ -18266,7 +18260,7 @@ int Abc_CommandExtWin( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nDist = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nDist <= 0 ) 
+            if ( nDist <= 0 )
                 goto usage;
             break;
         case 'v':
@@ -18320,7 +18314,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -18354,7 +18348,7 @@ int Abc_CommandInsWin( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nObjId = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nObjId <= 0 ) 
+            if ( nObjId <= 0 )
                 goto usage;
             break;
         case 'D':
@@ -18365,7 +18359,7 @@ int Abc_CommandInsWin( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nDist = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nDist <= 0 ) 
+            if ( nDist <= 0 )
                 goto usage;
             break;
         case 'v':
@@ -18434,14 +18428,14 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
 int Abc_CommandPermute( Abc_Frame_t * pAbc, int argc, char ** argv )
-{   
+{
     extern Abc_Ntk_t * Abc_NtkRestrashRandom( Abc_Ntk_t * pNtk );
     Abc_Ntk_t * pNtk = pAbc->pNtkCur, * pNtkRes = NULL;
     int fInputs = 1;
@@ -18512,14 +18506,14 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
 int Abc_CommandUnpermute( Abc_Frame_t * pAbc, int argc, char ** argv )
-{   
+{
     Abc_Ntk_t * pNtk = pAbc->pNtkCur, * pNtkRes = NULL;
     int c;
     Extra_UtilGetoptReset();
@@ -18562,7 +18556,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -18596,7 +18590,7 @@ int Abc_CommandCec( Abc_Frame_t * pAbc, int argc, char ** argv )
     fVerbose =  0;
     nSeconds = 20;
     nPartSize  = 0;
-    nConfLimit = 10000;   
+    nConfLimit = 10000;
     nInsLimit  = 0;
     fPartition = 0;
     fIgnoreNames = 0;
@@ -18613,7 +18607,7 @@ int Abc_CommandCec( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nSeconds = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nSeconds < 0 ) 
+            if ( nSeconds < 0 )
                 goto usage;
             break;
         case 'C':
@@ -18624,7 +18618,7 @@ int Abc_CommandCec( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nConfLimit = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nConfLimit < 0 ) 
+            if ( nConfLimit < 0 )
                 goto usage;
             break;
         case 'I':
@@ -18635,7 +18629,7 @@ int Abc_CommandCec( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nInsLimit = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nInsLimit < 0 ) 
+            if ( nInsLimit < 0 )
                 goto usage;
             break;
         case 'P':
@@ -18646,7 +18640,7 @@ int Abc_CommandCec( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nPartSize = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nPartSize < 0 ) 
+            if ( nPartSize < 0 )
                 goto usage;
             break;
         case 'p':
@@ -18670,7 +18664,7 @@ int Abc_CommandCec( Abc_Frame_t * pAbc, int argc, char ** argv )
     nArgcNew = argc - globalUtilOptind;
     if ( !Abc_NtkPrepareTwoNtks( stdout, pNtk, pArgvNew, nArgcNew, &pNtk1, &pNtk2, &fDelete1, &fDelete2 ) )
         return 1;
-    
+
     if ( fIgnoreNames )
     {
         if ( !fDelete1 )
@@ -18730,7 +18724,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -18759,7 +18753,7 @@ int Abc_CommandDCec( Abc_Frame_t * pAbc, int argc, char ** argv )
     fSat     =  0;
     fVerbose =  0;
     nSeconds = 20;
-    nConfLimit = 10000;   
+    nConfLimit = 10000;
     nInsLimit  = 0;
     fPartition = 0;
     fMiter     = 0;
@@ -18776,7 +18770,7 @@ int Abc_CommandDCec( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nSeconds = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nSeconds < 0 ) 
+            if ( nSeconds < 0 )
                 goto usage;
             break;
         case 'C':
@@ -18787,7 +18781,7 @@ int Abc_CommandDCec( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nConfLimit = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nConfLimit < 0 ) 
+            if ( nConfLimit < 0 )
                 goto usage;
             break;
         case 'I':
@@ -18798,7 +18792,7 @@ int Abc_CommandDCec( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nInsLimit = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nInsLimit < 0 ) 
+            if ( nInsLimit < 0 )
                 goto usage;
             break;
         case 'p':
@@ -18887,7 +18881,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -18924,7 +18918,7 @@ int Abc_CommandDSec( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pSecPar->nFramesMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pSecPar->nFramesMax < 0 ) 
+            if ( pSecPar->nFramesMax < 0 )
                 goto usage;
             break;
         case 'T':
@@ -18935,7 +18929,7 @@ int Abc_CommandDSec( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pSecPar->TimeLimit = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pSecPar->TimeLimit < 0 ) 
+            if ( pSecPar->TimeLimit < 0 )
                 goto usage;
             break;
         case 'a':
@@ -18975,7 +18969,7 @@ int Abc_CommandDSec( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "The network has no latches. Used combinational command \"cec\".\n" );
         return 0;
     }
-    
+
     if ( fIgnoreNames )
     {
         if ( !fDelete1 )
@@ -19024,7 +19018,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -19063,7 +19057,7 @@ int Abc_CommandDProve( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nBmcFramesMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nBmcFramesMax < 0 ) 
+            if ( nBmcFramesMax < 0 )
                 goto usage;
             break;
         case 'E':
@@ -19074,7 +19068,7 @@ int Abc_CommandDProve( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nBmcConfMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nBmcConfMax < 0 ) 
+            if ( nBmcConfMax < 0 )
                 goto usage;
             break;
         case 'F':
@@ -19085,7 +19079,7 @@ int Abc_CommandDProve( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pSecPar->nFramesMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pSecPar->nFramesMax < 0 ) 
+            if ( pSecPar->nFramesMax < 0 )
                 goto usage;
             break;
         case 'C':
@@ -19096,7 +19090,7 @@ int Abc_CommandDProve( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pSecPar->nBTLimit = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pSecPar->nBTLimit < 0 ) 
+            if ( pSecPar->nBTLimit < 0 )
                 goto usage;
             break;
         case 'G':
@@ -19107,7 +19101,7 @@ int Abc_CommandDProve( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pSecPar->nBTLimitGlobal = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pSecPar->nBTLimitGlobal < 0 ) 
+            if ( pSecPar->nBTLimitGlobal < 0 )
                 goto usage;
             break;
         case 'D':
@@ -19118,7 +19112,7 @@ int Abc_CommandDProve( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pSecPar->nBTLimitInter = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pSecPar->nBTLimitInter < 0 ) 
+            if ( pSecPar->nBTLimitInter < 0 )
                 goto usage;
             break;
         case 'V':
@@ -19129,7 +19123,7 @@ int Abc_CommandDProve( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pSecPar->nBddVarsMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pSecPar->nBddVarsMax < 0 ) 
+            if ( pSecPar->nBddVarsMax < 0 )
                 goto usage;
             break;
         case 'B':
@@ -19140,7 +19134,7 @@ int Abc_CommandDProve( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pSecPar->nBddMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pSecPar->nBddMax < 0 ) 
+            if ( pSecPar->nBddMax < 0 )
                 goto usage;
             break;
         case 'R':
@@ -19151,7 +19145,7 @@ int Abc_CommandDProve( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pSecPar->nBddIterMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pSecPar->nBddIterMax < 0 ) 
+            if ( pSecPar->nBddIterMax < 0 )
                 goto usage;
             break;
         case 'T':
@@ -19162,7 +19156,7 @@ int Abc_CommandDProve( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pSecPar->nPdrTimeout = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pSecPar->nPdrTimeout < 0 ) 
+            if ( pSecPar->nPdrTimeout < 0 )
                 goto usage;
             break;
         case 'L':
@@ -19275,7 +19269,7 @@ usage:
     Abc_Print( -2, "\t-w     : toggles additional verbose output [default = %s]\n", pSecPar->fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
-} 
+}
 
 
 /**Function*************************************************************
@@ -19283,7 +19277,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -19298,7 +19292,7 @@ int Abc_CommandAbSec( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fMiter, nFrames, fVerbose, c;
 
     extern int Abc_NtkDarAbSec( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nFrames, int fVerbose );
- 
+
     pNtk = Abc_FrameReadNtk(pAbc);
     // set defaults
     fMiter   = 1;
@@ -19317,10 +19311,10 @@ int Abc_CommandAbSec( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nFrames = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nFrames < 0 ) 
+            if ( nFrames < 0 )
                 goto usage;
             break;
-        case 'm': 
+        case 'm':
             fMiter ^= 1;
             break;
         case 'v':
@@ -19331,7 +19325,7 @@ int Abc_CommandAbSec( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
     }
 
-    if ( fMiter ) 
+    if ( fMiter )
     {
 //        pNtk = Io_Read( argv[globalUtilOptind], Io_ReadFileType(argv[globalUtilOptind]), 1 );
         if ( argc == globalUtilOptind + 1 )
@@ -19349,7 +19343,7 @@ int Abc_CommandAbSec( Abc_Frame_t * pAbc, int argc, char ** argv )
         else
             pAbc->Status = -1;
     }
-    else 
+    else
     {
         pArgvNew = argv + globalUtilOptind;
         nArgcNew = argc - globalUtilOptind;
@@ -19390,7 +19384,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -19426,7 +19420,7 @@ int Abc_CommandSimSec( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nFramesK = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nFramesK < 0 ) 
+            if ( pPars->nFramesK < 0 )
                 goto usage;
             break;
         case 'D':
@@ -19437,7 +19431,7 @@ int Abc_CommandSimSec( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nIsleDist = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nIsleDist < 0 ) 
+            if ( pPars->nIsleDist < 0 )
                 goto usage;
             break;
         case 'm':
@@ -19515,7 +19509,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -19551,7 +19545,7 @@ int Abc_CommandMatch( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nDist = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nDist < 0 ) 
+            if ( nDist < 0 )
                 goto usage;
             break;
         case 'm':
@@ -19628,7 +19622,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -19645,7 +19639,7 @@ int Abc_CommandSat( Abc_Frame_t * pAbc, int argc, char ** argv )
     clock_t clk;
     // set defaults
     fVerbose   = 0;
-    nConfLimit = 0;   
+    nConfLimit = 0;
     nInsLimit  = 0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "CIvh" ) ) != EOF )
@@ -19660,7 +19654,7 @@ int Abc_CommandSat( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nConfLimit = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nConfLimit < 0 ) 
+            if ( nConfLimit < 0 )
                 goto usage;
             break;
         case 'I':
@@ -19671,7 +19665,7 @@ int Abc_CommandSat( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nInsLimit = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nInsLimit < 0 ) 
+            if ( nInsLimit < 0 )
                 goto usage;
             break;
         case 'v':
@@ -19693,7 +19687,7 @@ int Abc_CommandSat( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Print( -1, "Currently can only solve the miter for combinational circuits.\n" );
         return 0;
-    } 
+    }
 
     clk = clock();
     if ( Abc_NtkIsStrash(pNtk) )
@@ -19745,7 +19739,7 @@ usage:
     Abc_Print( -2, "\t         (there is also a newer SAT solving command \"dsat\")\n" );
     Abc_Print( -2, "\t-C num : limit on the number of conflicts [default = %d]\n",    nConfLimit );
     Abc_Print( -2, "\t-I num : limit on the number of inspections [default = %d]\n", nInsLimit );
-    Abc_Print( -2, "\t-v     : prints verbose information [default = %s]\n", fVerbose? "yes": "no" );  
+    Abc_Print( -2, "\t-v     : prints verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
@@ -19755,7 +19749,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -19783,7 +19777,7 @@ int Abc_CommandDSat( Abc_Frame_t * pAbc, int argc, char ** argv )
     fAndOuts   = 0;
     fNewSolver = 0;
     fVerbose   = 0;
-    nConfLimit = 0;   
+    nConfLimit = 0;
     nInsLimit  = 0;
     nLearnedStart = 0;
     nLearnedDelta = 0;
@@ -19801,7 +19795,7 @@ int Abc_CommandDSat( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nConfLimit = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nConfLimit < 0 ) 
+            if ( nConfLimit < 0 )
                 goto usage;
             break;
         case 'I':
@@ -19876,13 +19870,13 @@ int Abc_CommandDSat( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Print( -1, "Currently can only solve the miter for combinational circuits.\n" );
         return 0;
-    } 
+    }
 
     if ( Abc_NtkPoNum(pNtk) != 1 )
     {
         Abc_Print( -1, "Currently expects a single-output miter.\n" );
         return 0;
-    } 
+    }
 
     if ( !Abc_NtkIsStrash(pNtk) )
     {
@@ -19921,10 +19915,10 @@ usage:
     Abc_Print( -2, "\t-L num : starting value for learned clause removal [default = %d]\n", nLearnedStart );
     Abc_Print( -2, "\t-D num : delta value for learned clause removal [default = %d]\n", nLearnedDelta );
     Abc_Print( -2, "\t-E num : ratio percentage for learned clause removal [default = %d]\n", nLearnedPerce );
-    Abc_Print( -2, "\t-p     : alighn polarity of SAT variables [default = %s]\n", fAlignPol? "yes": "no" );  
-    Abc_Print( -2, "\t-a     : toggle ANDing/ORing of miter outputs [default = %s]\n", fAndOuts? "ANDing": "ORing" );  
-    Abc_Print( -2, "\t-n     : toggle using new solver [default = %s]\n", fNewSolver? "yes": "no" );  
-    Abc_Print( -2, "\t-v     : prints verbose information [default = %s]\n", fVerbose? "yes": "no" );  
+    Abc_Print( -2, "\t-p     : alighn polarity of SAT variables [default = %s]\n", fAlignPol? "yes": "no" );
+    Abc_Print( -2, "\t-a     : toggle ANDing/ORing of miter outputs [default = %s]\n", fAndOuts? "ANDing": "ORing" );
+    Abc_Print( -2, "\t-n     : toggle using new solver [default = %s]\n", fNewSolver? "yes": "no" );
+    Abc_Print( -2, "\t-v     : prints verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
@@ -19934,7 +19928,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -19976,7 +19970,7 @@ int Abc_CommandPSat( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nAlgo = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nAlgo < 0 ) 
+            if ( nAlgo < 0 )
                 goto usage;
             break;
         case 'P':
@@ -19987,7 +19981,7 @@ int Abc_CommandPSat( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nPartSize = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nPartSize < 0 ) 
+            if ( nPartSize < 0 )
                 goto usage;
             break;
         case 'C':
@@ -19998,7 +19992,7 @@ int Abc_CommandPSat( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nConfTotal = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nConfTotal < 0 ) 
+            if ( nConfTotal < 0 )
                 goto usage;
             break;
         case 'p':
@@ -20026,7 +20020,7 @@ int Abc_CommandPSat( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Print( -1, "Currently can only solve the miter for combinational circuits.\n" );
         return 0;
-    } 
+    }
     if ( !Abc_NtkIsStrash(pNtk) )
     {
         Abc_Print( -1, "Currently only works for structurally hashed circuits.\n" );
@@ -20081,9 +20075,9 @@ usage:
     Abc_Print( -2, "\t         partitions are ordered by level (high level first)\n" );
     Abc_Print( -2, "\t-P num : limit on the partition size [default = %d]\n", nPartSize );
     Abc_Print( -2, "\t-C num : limit on the number of conflicts [default = %d]\n", nConfTotal );
-    Abc_Print( -2, "\t-p     : align polarity of SAT variables [default = %s]\n", fAlignPol? "yes": "no" );  
-    Abc_Print( -2, "\t-s     : apply logic synthesis to each partition [default = %s]\n", fSynthesize? "yes": "no" );  
-    Abc_Print( -2, "\t-v     : prints verbose information [default = %s]\n", fVerbose? "yes": "no" );  
+    Abc_Print( -2, "\t-p     : align polarity of SAT variables [default = %s]\n", fAlignPol? "yes": "no" );
+    Abc_Print( -2, "\t-s     : apply logic synthesis to each partition [default = %s]\n", fSynthesize? "yes": "no" );
+    Abc_Print( -2, "\t-v     : prints verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
@@ -20093,7 +20087,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -20122,7 +20116,7 @@ int Abc_CommandProve( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pParams->nItersMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pParams->nItersMax < 0 ) 
+            if ( pParams->nItersMax < 0 )
                 goto usage;
             break;
         case 'C':
@@ -20133,7 +20127,7 @@ int Abc_CommandProve( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pParams->nMiteringLimitStart = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pParams->nMiteringLimitStart < 0 ) 
+            if ( pParams->nMiteringLimitStart < 0 )
                 goto usage;
             break;
         case 'F':
@@ -20144,7 +20138,7 @@ int Abc_CommandProve( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pParams->nFraigingLimitStart = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pParams->nFraigingLimitStart < 0 ) 
+            if ( pParams->nFraigingLimitStart < 0 )
                 goto usage;
             break;
         case 'G':
@@ -20155,7 +20149,7 @@ int Abc_CommandProve( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pParams->nFraigingLimitMulti = (float)atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pParams->nFraigingLimitMulti < 0 ) 
+            if ( pParams->nFraigingLimitMulti < 0 )
                 goto usage;
             break;
         case 'L':
@@ -20166,7 +20160,7 @@ int Abc_CommandProve( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pParams->nMiteringLimitLast = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pParams->nMiteringLimitLast < 0 ) 
+            if ( pParams->nMiteringLimitLast < 0 )
                 goto usage;
             break;
         case 'I':
@@ -20177,7 +20171,7 @@ int Abc_CommandProve( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pParams->nTotalInspectLimit = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pParams->nTotalInspectLimit < 0 ) 
+            if ( pParams->nTotalInspectLimit < 0 )
                 goto usage;
             break;
         case 'r':
@@ -20208,12 +20202,12 @@ int Abc_CommandProve( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Print( -1, "Currently can only solve the miter for combinational circuits.\n" );
         return 0;
-    } 
+    }
     if ( Abc_NtkCoNum(pNtk) != 1 )
     {
         Abc_Print( -1, "Currently can only solve the miter with one output.\n" );
         return 0;
-    } 
+    }
     clk = clock();
 
     if ( Abc_NtkIsStrash(pNtk) )
@@ -20232,7 +20226,7 @@ int Abc_CommandProve( Abc_Frame_t * pAbc, int argc, char ** argv )
         ABC_FREE( pSimInfo );
     }
     pAbc->Status = RetValue;
-    if ( RetValue == -1 ) 
+    if ( RetValue == -1 )
         Abc_Print( 1, "UNDECIDED      " );
     else if ( RetValue == 0 )
         Abc_Print( 1, "SATISFIABLE    " );
@@ -20256,10 +20250,10 @@ usage:
     Abc_Print( -2, "\t-G num : multiplicative coefficient for fraiging [default = %d]\n", (int)pParams->nFraigingLimitMulti );
     Abc_Print( -2, "\t-L num : max last-gasp number of conflicts in mitering [default = %d]\n", pParams->nMiteringLimitLast );
     Abc_Print( -2, "\t-I num : max number of clause inspections in all SAT calls [default = %d]\n", (int)pParams->nTotalInspectLimit );
-    Abc_Print( -2, "\t-r     : toggle the use of rewriting [default = %s]\n", pParams->fUseRewriting? "yes": "no" );  
-    Abc_Print( -2, "\t-f     : toggle the use of FRAIGing [default = %s]\n", pParams->fUseFraiging? "yes": "no" );  
-    Abc_Print( -2, "\t-b     : toggle the use of BDDs [default = %s]\n", pParams->fUseBdds? "yes": "no" );  
-    Abc_Print( -2, "\t-v     : prints verbose information [default = %s]\n", pParams->fVerbose? "yes": "no" );  
+    Abc_Print( -2, "\t-r     : toggle the use of rewriting [default = %s]\n", pParams->fUseRewriting? "yes": "no" );
+    Abc_Print( -2, "\t-f     : toggle the use of FRAIGing [default = %s]\n", pParams->fUseFraiging? "yes": "no" );
+    Abc_Print( -2, "\t-b     : toggle the use of BDDs [default = %s]\n", pParams->fUseBdds? "yes": "no" );
+    Abc_Print( -2, "\t-v     : prints verbose information [default = %s]\n", pParams->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
@@ -20269,7 +20263,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -20314,14 +20308,14 @@ usage:
     Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;
 }
- 
+
 /**Function*************************************************************
 
   Synopsis    []
 
   Description []
-               
-  SideEffects [] 
+
+  SideEffects []
 
   SeeAlso     []
 
@@ -20366,7 +20360,7 @@ int Abc_CommandBmc( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nFrames = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nFrames < 0 ) 
+            if ( nFrames < 0 )
                 goto usage;
             break;
         case 'N':
@@ -20377,7 +20371,7 @@ int Abc_CommandBmc( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nSizeMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nSizeMax < 0 ) 
+            if ( nSizeMax < 0 )
                 goto usage;
             break;
         case 'C':
@@ -20388,7 +20382,7 @@ int Abc_CommandBmc( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nBTLimit = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nBTLimit < 0 ) 
+            if ( nBTLimit < 0 )
                 goto usage;
             break;
         case 'G':
@@ -20399,7 +20393,7 @@ int Abc_CommandBmc( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nBTLimitAll = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nBTLimitAll < 0 ) 
+            if ( nBTLimitAll < 0 )
                 goto usage;
             break;
         case 'D':
@@ -20410,7 +20404,7 @@ int Abc_CommandBmc( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nNodeDelta = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nNodeDelta < 0 ) 
+            if ( nNodeDelta < 0 )
                 goto usage;
             break;
 /*
@@ -20422,7 +20416,7 @@ int Abc_CommandBmc( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nCofFanLit = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nCofFanLit < 0 ) 
+            if ( nCofFanLit < 0 )
                 goto usage;
             break;
 */
@@ -20456,7 +20450,7 @@ int Abc_CommandBmc( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     if ( !Abc_NtkIsStrash(pNtk) )
-    { 
+    {
         Abc_Print( -1, "Currently only works for structurally hashed circuits.\n" );
         return 0;
     }
@@ -20486,14 +20480,14 @@ usage:
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
- 
+
 /**Function*************************************************************
 
   Synopsis    []
 
   Description []
-               
-  SideEffects [] 
+
+  SideEffects []
 
   SeeAlso     []
 
@@ -20543,7 +20537,7 @@ int Abc_CommandBmc2( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nStart = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nStart < 0 ) 
+            if ( nStart < 0 )
                 goto usage;
             break;
         case 'F':
@@ -20554,7 +20548,7 @@ int Abc_CommandBmc2( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nFrames = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nFrames < 0 ) 
+            if ( nFrames < 0 )
                 goto usage;
             break;
         case 'N':
@@ -20565,7 +20559,7 @@ int Abc_CommandBmc2( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nSizeMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nSizeMax < 0 ) 
+            if ( nSizeMax < 0 )
                 goto usage;
             break;
         case 'T':
@@ -20576,7 +20570,7 @@ int Abc_CommandBmc2( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nTimeOut = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nTimeOut < 0 ) 
+            if ( nTimeOut < 0 )
                 goto usage;
             break;
         case 'C':
@@ -20587,7 +20581,7 @@ int Abc_CommandBmc2( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nBTLimit = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nBTLimit < 0 ) 
+            if ( nBTLimit < 0 )
                 goto usage;
             break;
         case 'G':
@@ -20598,7 +20592,7 @@ int Abc_CommandBmc2( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nBTLimitAll = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nBTLimitAll < 0 ) 
+            if ( nBTLimitAll < 0 )
                 goto usage;
             break;
         case 'D':
@@ -20609,7 +20603,7 @@ int Abc_CommandBmc2( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nNodeDelta = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nNodeDelta < 0 ) 
+            if ( nNodeDelta < 0 )
                 goto usage;
             break;
         case 'L':
@@ -20645,7 +20639,7 @@ int Abc_CommandBmc2( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     if ( !Abc_NtkIsStrash(pNtk) )
-    { 
+    {
         Abc_Print( -1, "Currently only works for structurally hashed circuits.\n" );
         return 0;
     }
@@ -20676,14 +20670,14 @@ usage:
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
- 
+
 /**Function*************************************************************
 
   Synopsis    []
 
   Description []
-               
-  SideEffects [] 
+
+  SideEffects []
 
   SeeAlso     []
 
@@ -20711,7 +20705,7 @@ int Abc_CommandBmc3( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nStart = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nStart < 0 ) 
+            if ( pPars->nStart < 0 )
                 goto usage;
             break;
         case 'F':
@@ -20722,7 +20716,7 @@ int Abc_CommandBmc3( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nFramesMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nFramesMax < 0 ) 
+            if ( pPars->nFramesMax < 0 )
                 goto usage;
             break;
         case 'T':
@@ -20733,7 +20727,7 @@ int Abc_CommandBmc3( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nTimeOut = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nTimeOut < 0 ) 
+            if ( pPars->nTimeOut < 0 )
                 goto usage;
             break;
         case 'C':
@@ -20744,7 +20738,7 @@ int Abc_CommandBmc3( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nConfLimit = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nConfLimit < 0 ) 
+            if ( pPars->nConfLimit < 0 )
                 goto usage;
             break;
         case 'D':
@@ -20755,7 +20749,7 @@ int Abc_CommandBmc3( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nConfLimitJump = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nConfLimitJump < 0 ) 
+            if ( pPars->nConfLimitJump < 0 )
                 goto usage;
             break;
         case 'J':
@@ -20766,7 +20760,7 @@ int Abc_CommandBmc3( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nFramesJump = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nFramesJump < 0 ) 
+            if ( pPars->nFramesJump < 0 )
                 goto usage;
             break;
         case 'I':
@@ -20777,7 +20771,7 @@ int Abc_CommandBmc3( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nPisAbstract = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nPisAbstract < 0 ) 
+            if ( pPars->nPisAbstract < 0 )
                 goto usage;
             break;
         case 'L':
@@ -20813,7 +20807,7 @@ int Abc_CommandBmc3( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     if ( !Abc_NtkIsStrash(pNtk) )
-    { 
+    {
         Abc_Print( -1, "Currently only works for structurally hashed circuits.\n" );
         return 0;
     }
@@ -20879,7 +20873,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -20908,7 +20902,7 @@ int Abc_CommandBmcInter( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nBTLimit = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nBTLimit < 0 ) 
+            if ( pPars->nBTLimit < 0 )
                 goto usage;
             break;
         case 'F':
@@ -20919,7 +20913,7 @@ int Abc_CommandBmcInter( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nFramesMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nFramesMax < 0 ) 
+            if ( pPars->nFramesMax < 0 )
                 goto usage;
             break;
         case 'T':
@@ -20930,7 +20924,7 @@ int Abc_CommandBmcInter( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nSecLimit = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nSecLimit < 0 ) 
+            if ( pPars->nSecLimit < 0 )
                 goto usage;
             break;
         case 'K':
@@ -20941,7 +20935,7 @@ int Abc_CommandBmcInter( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nFramesK = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nFramesK < 0 ) 
+            if ( pPars->nFramesK < 0 )
                 goto usage;
             break;
         case 'L':
@@ -21001,10 +20995,10 @@ int Abc_CommandBmcInter( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     if ( !Abc_NtkIsStrash(pNtk) )
-    { 
+    {
         Abc_Print( -1, "Currently only works for structurally hashed circuits.\n" );
         return 0;
-    } 
+    }
     if ( Abc_NtkLatchNum(pNtk) == 0 )
     {
         Abc_Print( -1, "Does not work for combinational networks.\n" );
@@ -21041,7 +21035,7 @@ int Abc_CommandBmcInter( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( !Abc_NtkCombinePos( pNtkNew, 0 ) )
             {
                 Abc_NtkDelete( pNtkNew );
-                Abc_Print( -1, "ORing outputs has failed.\n" ); 
+                Abc_Print( -1, "ORing outputs has failed.\n" );
                 return 0;
             }
             pAbc->Status = Abc_NtkDarBmcInter( pNtkNew, pPars, NULL );
@@ -21097,7 +21091,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -21148,7 +21142,7 @@ int Abc_CommandIndcut( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nFrames = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nFrames < 0 ) 
+            if ( nFrames < 0 )
                 goto usage;
             break;
         case 'P':
@@ -21159,7 +21153,7 @@ int Abc_CommandIndcut( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nPref = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nPref < 0 ) 
+            if ( nPref < 0 )
                 goto usage;
             break;
         case 'C':
@@ -21170,7 +21164,7 @@ int Abc_CommandIndcut( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nClauses = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nClauses < 0 ) 
+            if ( nClauses < 0 )
                 goto usage;
             break;
         case 'M':
@@ -21181,7 +21175,7 @@ int Abc_CommandIndcut( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nLutSize = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nLutSize < 0 ) 
+            if ( nLutSize < 0 )
                 goto usage;
             break;
         case 'L':
@@ -21192,7 +21186,7 @@ int Abc_CommandIndcut( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nLevels = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nLevels < 0 ) 
+            if ( nLevels < 0 )
                 goto usage;
             break;
         case 'N':
@@ -21203,7 +21197,7 @@ int Abc_CommandIndcut( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nCutsMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nCutsMax < 0 ) 
+            if ( nCutsMax < 0 )
                 goto usage;
             break;
         case 'B':
@@ -21214,7 +21208,7 @@ int Abc_CommandIndcut( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nBatches = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nBatches < 0 ) 
+            if ( nBatches < 0 )
                 goto usage;
             break;
         case 's':
@@ -21282,13 +21276,13 @@ usage:
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
- 
+
 /**Function*************************************************************
 
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -21319,7 +21313,7 @@ int Abc_CommandEnlarge( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nFrames = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nFrames < 1 ) 
+            if ( nFrames < 1 )
                 goto usage;
             break;
         case 'v':
@@ -21371,7 +21365,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -21402,7 +21396,7 @@ int Abc_CommandTempor( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nFrames = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nFrames < 0 ) 
+            if ( nFrames < 0 )
                 goto usage;
             break;
         case 'T':
@@ -21413,7 +21407,7 @@ int Abc_CommandTempor( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             TimeOut = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( TimeOut < 0 ) 
+            if ( TimeOut < 0 )
                 goto usage;
             break;
         case 'C':
@@ -21424,7 +21418,7 @@ int Abc_CommandTempor( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nConfMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nConfMax < 0 ) 
+            if ( nConfMax < 0 )
                 goto usage;
             break;
         case 'b':
@@ -21481,7 +21475,7 @@ usage:
     Abc_Print( -2, "\t-v       : toggle printing verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w       : toggle printing ternary state space [default = %s]\n", fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
-    return 1; 
+    return 1;
 }
 
 /**Function*************************************************************
@@ -21489,7 +21483,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -21528,7 +21522,7 @@ int Abc_CommandInduction( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nFramesMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nFramesMax < 0 ) 
+            if ( nFramesMax < 0 )
                 goto usage;
             break;
         case 'C':
@@ -21539,7 +21533,7 @@ int Abc_CommandInduction( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nConfMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nConfMax < 0 ) 
+            if ( nConfMax < 0 )
                 goto usage;
             break;
         case 'u':
@@ -21610,13 +21604,13 @@ usage:
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
- 
+
 /**Function*************************************************************
 
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -21627,8 +21621,8 @@ int Abc_CommandConstr( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_Ntk_t * pNtk;
     int c;
     int nFrames;
-    int nConfs; 
-    int nProps; 
+    int nConfs;
+    int nProps;
     int fRemove;
     int fStruct;
     int fInvert;
@@ -21644,7 +21638,7 @@ int Abc_CommandConstr( Abc_Frame_t * pAbc, int argc, char ** argv )
     nProps    =   1000;
     fRemove   =      0;
     fStruct   =      0;
-    fInvert   =      0;    
+    fInvert   =      0;
     fOldAlgo  =      0;
     fVerbose  =      0;
     nConstrs  =      0;
@@ -21661,7 +21655,7 @@ int Abc_CommandConstr( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nFrames = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nFrames < 0 ) 
+            if ( nFrames < 0 )
                 goto usage;
             break;
         case 'C':
@@ -21672,7 +21666,7 @@ int Abc_CommandConstr( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nConfs = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nConfs < 0 ) 
+            if ( nConfs < 0 )
                 goto usage;
             break;
         case 'P':
@@ -21683,7 +21677,7 @@ int Abc_CommandConstr( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nProps = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nProps < 0 ) 
+            if ( nProps < 0 )
                 goto usage;
             break;
         case 'N':
@@ -21694,7 +21688,7 @@ int Abc_CommandConstr( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nConstrs = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nConstrs < 0 ) 
+            if ( nConstrs < 0 )
                 goto usage;
             break;
         case 'r':
@@ -21759,7 +21753,7 @@ int Abc_CommandConstr( Abc_Frame_t * pAbc, int argc, char ** argv )
         if ( fVerbose )
             Abc_NtkDarConstrProfile( pNtk, fVerbose );
         return 0;
-    } 
+    }
     // consider the case of manual constraint definition
     if ( nConstrs > 0 )
     {
@@ -21803,7 +21797,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -21813,8 +21807,8 @@ int Abc_CommandUnfold( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk, * pNtkRes;
     int nFrames;
-    int nConfs; 
-    int nProps; 
+    int nConfs;
+    int nProps;
     int fStruct;
     int fOldAlgo;
     int fVerbose;
@@ -21841,7 +21835,7 @@ int Abc_CommandUnfold( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nFrames = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nFrames < 0 ) 
+            if ( nFrames < 0 )
                 goto usage;
             break;
         case 'C':
@@ -21852,7 +21846,7 @@ int Abc_CommandUnfold( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nConfs = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nConfs < 0 ) 
+            if ( nConfs < 0 )
                 goto usage;
             break;
         case 'P':
@@ -21863,7 +21857,7 @@ int Abc_CommandUnfold( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nProps = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nProps < 0 ) 
+            if ( nProps < 0 )
                 goto usage;
             break;
         case 's':
@@ -21934,7 +21928,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -22012,26 +22006,26 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
 int Abc_CommandBm( Abc_Frame_t * pAbc, int argc, char ** argv )
-{   
+{
     FILE * pOut, * pErr;
     Abc_Ntk_t *pNtk, *pNtk1, *pNtk2;
-    int fDelete1, fDelete2; 
+    int fDelete1, fDelete2;
     char ** pArgvNew;
-    int c, nArgcNew;        
+    int c, nArgcNew;
     int p_equivalence = FALSE;
     extern void bmGateWay( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int p_equivalence );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
-    pErr = Abc_FrameReadErr(pAbc);  
-    
+    pErr = Abc_FrameReadErr(pAbc);
+
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "Ph" ) ) != EOF )
     {
@@ -22040,19 +22034,19 @@ int Abc_CommandBm( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'h':
             goto usage;
         case 'P':
-            p_equivalence = 1;          
-            break;        
+            p_equivalence = 1;
+            break;
         default:
             Abc_Print( -2, "Unknown switch.\n");
             goto usage;
         }
     }
-    
+
     pArgvNew = argv + globalUtilOptind;
     nArgcNew = argc - globalUtilOptind;
     if ( !Abc_NtkPrepareTwoNtks( pErr, pNtk, pArgvNew, nArgcNew , &pNtk1, &pNtk2, &fDelete1, &fDelete2 ) )
         return 1;
-        
+
     if( (unsigned)Abc_NtkPiNum(pNtk1) != (unsigned)Abc_NtkPiNum(pNtk2) || (unsigned)Abc_NtkPoNum(pNtk1) != (unsigned)Abc_NtkPoNum(pNtk2) )
     {
         Abc_Print( -2, "Mismatch in the number of inputs or outputs\n");
@@ -22064,14 +22058,14 @@ int Abc_CommandBm( Abc_Frame_t * pAbc, int argc, char ** argv )
     bmGateWay( pNtk1, pNtk2, p_equivalence );
 
     if ( fDelete1 ) Abc_NtkDelete( pNtk1 );
-    if ( fDelete2 ) Abc_NtkDelete( pNtk2 );     
+    if ( fDelete2 ) Abc_NtkDelete( pNtk2 );
     return 0;
 
 usage:
     Abc_Print( -2, "usage: bm [-P] <file1> <file2>\n" );
     Abc_Print( -2, "\t        performs Boolean matching (P-equivalence & PP-equivalence)\n" );
     Abc_Print( -2, "\t        for equivalent circuits, I/O matches are printed in IOmatch.txt\n" );
-    Abc_Print( -2, "\t-P    : performs P-equivalnce checking\n");    
+    Abc_Print( -2, "\t-P    : performs P-equivalnce checking\n");
     Abc_Print( -2, "\t        default is PP-equivalence checking (when -P is not provided)\n" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
     Abc_Print( -2, "\tfile1 : the file with the first network\n");
@@ -22083,7 +22077,7 @@ usage:
     Abc_Print( -2, "\t        \"Large-scale Boolean matching\". Proc. DATE 2010. \n" );
     Abc_Print( -2, "\t        http://www.eecs.umich.edu/~imarkov/pubs/conf/date10-match.pdf\n" );
     Abc_Print( -2, "\t        \n" );
-  
+
     return 1;
 }
 
@@ -22092,14 +22086,14 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
 int Abc_CommandTestCex( Abc_Frame_t * pAbc, int argc, char ** argv )
-{   
+{
     Abc_Ntk_t * pNtk;
     int c;
     int nOutputs = 0;
@@ -22117,7 +22111,7 @@ int Abc_CommandTestCex( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nOutputs = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nOutputs < 0 ) 
+            if ( nOutputs < 0 )
                 goto usage;
             break;
         case 'a':
@@ -22151,7 +22145,7 @@ int Abc_CommandTestCex( Abc_Frame_t * pAbc, int argc, char ** argv )
 //          Abc_Print( 1, "Main AIG: The number of registers (%d) is different from cex (%d).\n", Abc_NtkLatchNum(pNtk), pAbc->pCex->nRegs );
 //      else if ( Abc_NtkPoNum(pNtk) <= pAbc->pCex->iPo )
 //          Abc_Print( 1, "Main AIG: The number of POs (%d) is less than the PO index in cex (%d).\n", Abc_NtkPoNum(pNtk), pAbc->pCex->iPo );
-        else 
+        else
         {
             extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
             Aig_Man_t * pAig = Abc_NtkToDar( pNtk, 0, 1 );
@@ -22166,7 +22160,7 @@ int Abc_CommandTestCex( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             else if ( iPoOld != pAbc->pCex->iPo )
                 Abc_Print( 1, "Main AIG: The cex refined PO %d instead of PO %d.\n", pAbc->pCex->iPo, iPoOld );
-            else 
+            else
                 Abc_Print( 1, "Main AIG: The cex is correct.\n" );
             Gia_ManStop( pGia );
             Aig_ManStop( pAig );
@@ -22183,7 +22177,7 @@ int Abc_CommandTestCex( Abc_Frame_t * pAbc, int argc, char ** argv )
 //          Abc_Print( 1, "And  AIG: The number of registers (%d) is different from cex (%d).\n", Gia_ManRegNum(pAbc->pGia), pAbc->pCex->nRegs );
 //      else if ( Gia_ManPoNum(pAbc->pGia) <= pAbc->pCex->iPo )
 //          Abc_Print( 1, "And  AIG: The number of POs (%d) is less than the PO index in cex (%d).\n", Gia_ManPoNum(pAbc->pGia), pAbc->pCex->iPo );
-        else 
+        else
         {
     //        if ( !Gia_ManVerifyCex( pAbc->pGia, pAbc->pCex, 0 ) )
             int iPoOld = pAbc->pCex->iPo;
@@ -22195,7 +22189,7 @@ int Abc_CommandTestCex( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             else if ( iPoOld != pAbc->pCex->iPo )
                 Abc_Print( 1, "And  AIG: The cex refined PO %d instead of PO %d.\n", pAbc->pCex->iPo, iPoOld );
-            else 
+            else
                 Abc_Print( 1, "And  AIG: The cex is correct.\n" );
         }
     }
@@ -22215,7 +22209,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -22242,7 +22236,7 @@ int Abc_CommandPdr( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->iOutput = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->iOutput < 0 ) 
+            if ( pPars->iOutput < 0 )
                 goto usage;
             break;
         case 'M':
@@ -22253,7 +22247,7 @@ int Abc_CommandPdr( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nRecycle = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nRecycle < 0 ) 
+            if ( pPars->nRecycle < 0 )
                 goto usage;
             break;
         case 'F':
@@ -22264,7 +22258,7 @@ int Abc_CommandPdr( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nFrameMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nFrameMax < 0 ) 
+            if ( pPars->nFrameMax < 0 )
                 goto usage;
             break;
         case 'C':
@@ -22275,7 +22269,7 @@ int Abc_CommandPdr( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nConfLimit = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nConfLimit < 0 ) 
+            if ( pPars->nConfLimit < 0 )
                 goto usage;
             break;
         case 'R':
@@ -22286,7 +22280,7 @@ int Abc_CommandPdr( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nRestLimit = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nRestLimit < 0 ) 
+            if ( pPars->nRestLimit < 0 )
                 goto usage;
             break;
         case 'T':
@@ -22297,7 +22291,7 @@ int Abc_CommandPdr( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nTimeOut = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nTimeOut < 0 ) 
+            if ( pPars->nTimeOut < 0 )
                 goto usage;
             break;
         case 'r':
@@ -22343,7 +22337,7 @@ int Abc_CommandPdr( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( pPars->iOutput != -1 && (pPars->iOutput < 0 || pPars->iOutput >= Abc_NtkPoNum(pNtk)) )
     {
-        Abc_Print( -2, "Output index (%d) is incorrect (can be 0 through %d).\n", 
+        Abc_Print( -2, "Output index (%d) is incorrect (can be 0 through %d).\n",
             pPars->iOutput, Abc_NtkPoNum(pNtk)-1 );
         return 0;
     }
@@ -22351,8 +22345,8 @@ int Abc_CommandPdr( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         if ( pPars->iOutput == -1 )
             Abc_Print( -2, "The %d property outputs are ORed together.\n", Abc_NtkPoNum(pNtk) );
-        else 
-            Abc_Print( -2, "Working on the primary output with zero-based number %d (out of %d).\n", 
+        else
+            Abc_Print( -2, "Working on the primary output with zero-based number %d (out of %d).\n",
                 pPars->iOutput, Abc_NtkPoNum(pNtk) );
     }
     // run the procedure
@@ -22380,7 +22374,7 @@ usage:
     Abc_Print( -2, "\t-v     : toggle printing optimization summary [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w     : toggle printing detailed stats default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
-    return 1; 
+    return 1;
 }
 
 /**Function*************************************************************
@@ -22388,14 +22382,14 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
 int Abc_CommandReconcile( Abc_Frame_t * pAbc, int argc, char ** argv )
-{   
+{
     extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
     extern Abc_Cex_t * Llb4_Nonlin4NormalizeCex( Aig_Man_t * pAigOrg, Aig_Man_t * pAigRpm, Abc_Cex_t * pCexRpm );
     Abc_Cex_t * pCex;
@@ -22414,7 +22408,7 @@ int Abc_CommandReconcile( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
-    if ( argc != globalUtilOptind + 2 ) 
+    if ( argc != globalUtilOptind + 2 )
     {
         printf( "Does not seen to have two files names as arguments.\n" );
         return 1;
@@ -22476,14 +22470,14 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
 int Abc_CommandCexMin( Abc_Frame_t * pAbc, int argc, char ** argv )
-{   
+{
     Abc_Ntk_t * pNtk;
     Abc_Cex_t * vCexNew = NULL;
     int c;
@@ -22503,7 +22497,7 @@ int Abc_CommandCexMin( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nConfLimit = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nConfLimit < 0 ) 
+            if ( nConfLimit < 0 )
                 goto usage;
             break;
         case 'R':
@@ -22514,7 +22508,7 @@ int Abc_CommandCexMin( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nRounds = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nRounds < 0 ) 
+            if ( nRounds < 0 )
                 goto usage;
             break;
         case 'v':
@@ -22546,7 +22540,7 @@ int Abc_CommandCexMin( Abc_Frame_t * pAbc, int argc, char ** argv )
 //          Abc_Print( 1, "Main AIG: The number of registers (%d) is different from cex (%d).\n", Abc_NtkLatchNum(pNtk), pAbc->pCex->nRegs );
 //      else if ( Abc_NtkPoNum(pNtk) <= pAbc->pCex->iPo )
 //          Abc_Print( 1, "Main AIG: The number of POs (%d) is less than the PO index in cex (%d).\n", Abc_NtkPoNum(pNtk), pAbc->pCex->iPo );
-    else 
+    else
     {
         extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
         Aig_Man_t * pAig = Abc_NtkToDar( pNtk, 0, 1 );
@@ -22588,14 +22582,14 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
 int Abc_CommandDualRail( Abc_Frame_t * pAbc, int argc, char ** argv )
-{   
+{
     extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
     extern Abc_Ntk_t * Abc_NtkFromAigPhase( Aig_Man_t * pMan );
     Abc_Ntk_t * pNtk, * pNtkNew = NULL;
@@ -22619,7 +22613,7 @@ int Abc_CommandDualRail( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nDualPis = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nDualPis < 0 ) 
+            if ( nDualPis < 0 )
                 goto usage;
             break;
         case 't':
@@ -22655,7 +22649,7 @@ int Abc_CommandDualRail( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
 
-    // tranform    
+    // tranform
     pAig = Abc_NtkToDar( pNtk, 0, 1 );
     pAigNew = Saig_ManDupDual( pAig, nDualPis, fDualFfs, fMiterFfs, fComplPo );
     Aig_ManStop( pAig );
@@ -22686,14 +22680,14 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
 int Abc_CommandBlockPo( Abc_Frame_t * pAbc, int argc, char ** argv )
-{   
+{
     extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
     extern Abc_Ntk_t * Abc_NtkFromAigPhase( Aig_Man_t * pMan );
     Abc_Ntk_t * pNtk, * pNtkNew = NULL;
@@ -22714,7 +22708,7 @@ int Abc_CommandBlockPo( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nCycles = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nCycles < 0 ) 
+            if ( nCycles < 0 )
                 goto usage;
             break;
         case 'v':
@@ -22770,14 +22764,14 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
 int Abc_CommandIso( Abc_Frame_t * pAbc, int argc, char ** argv )
-{   
+{
     extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
     extern Abc_Ntk_t * Abc_NtkFromAigPhase( Aig_Man_t * pMan );
     Abc_Ntk_t * pNtk, * pNtkNew = NULL;
@@ -22845,7 +22839,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -22900,7 +22894,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -22959,7 +22953,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -23032,7 +23026,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -23101,7 +23095,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -23181,7 +23175,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -23256,7 +23250,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -23321,7 +23315,7 @@ int Abc_CommandAbc9Put( Abc_Frame_t * pAbc, int argc, char ** argv )
         Aig_ManStop( pMan );
     }
     // transfer PI names to pNtk
-    if ( pAbc->pGia->vNamesIn ) 
+    if ( pAbc->pGia->vNamesIn )
     {
         Abc_Obj_t * pObj;
         int i;
@@ -23353,7 +23347,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -23421,7 +23415,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -23453,7 +23447,7 @@ int Abc_CommandAbc9Ps( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Print( -1, "Abc_CommandAbc9Ps(): There is no AIG.\n" );
         return 1;
-    } 
+    }
     Gia_ManPrintStats( pAbc->pGia, fTents, fSwitch );
     return 0;
 
@@ -23471,7 +23465,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -23494,7 +23488,7 @@ int Abc_CommandAbc9PFan( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nNodes = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nNodes < 0 ) 
+            if ( nNodes < 0 )
                 goto usage;
             break;
         case 'h':
@@ -23507,7 +23501,7 @@ int Abc_CommandAbc9PFan( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Print( -1, "Abc_CommandAbc9PFan(): There is no AIG.\n" );
         return 1;
-    } 
+    }
     Gia_ManPrintFanio( pAbc->pGia, nNodes );
     return 0;
 
@@ -23524,7 +23518,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -23552,12 +23546,12 @@ int Abc_CommandAbc9PSig( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Print( -1, "Abc_CommandAbc9PSigs(): There is no AIG.\n" );
         return 1;
-    } 
+    }
     if ( Gia_ManRegNum(pAbc->pGia) == 0 )
     {
         Abc_Print( -1, "Abc_CommandAbc9PSigs(): Works only for sequential circuits.\n" );
         return 1;
-    } 
+    }
     Gia_ManDetectSeqSignals( pAbc->pGia, fSetReset, 1 );
     return 0;
 
@@ -23574,7 +23568,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -23598,7 +23592,7 @@ int Abc_CommandAbc9Status( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Print( -1, "Abc_CommandAbc9Status(): There is no AIG.\n" );
         return 1;
-    } 
+    }
     Gia_ManPrintMiterStatus( pAbc->pGia );
     return 0;
 
@@ -23614,7 +23608,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -23639,7 +23633,7 @@ int Abc_CommandAbc9Show( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Print( -1, "Abc_CommandAbc9Show(): There is no AIG.\n" );
         return 1;
-    } 
+    }
     pMan = Gia_ManToAig( pAbc->pGia, 0 );
     Aig_ManShow( pMan, 0, NULL );
     Aig_ManStop( pMan );
@@ -23657,7 +23651,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -23686,7 +23680,7 @@ int Abc_CommandAbc9Hash( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Print( -1, "Abc_CommandAbc9Hash(): There is no AIG.\n" );
         return 1;
-    } 
+    }
     pTemp = Gia_ManRehash( pAbc->pGia, fAddStrash );
     Abc_CommandUpdate9( pAbc, pTemp );
     return 0;
@@ -23704,7 +23698,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -23732,12 +23726,12 @@ int Abc_CommandAbc9Topand( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Print( -1, "Abc_CommandAbc9Topand(): There is no AIG.\n" );
         return 1;
-    } 
+    }
     if ( Gia_ManRegNum(pAbc->pGia) > 0 )
     {
         Abc_Print( -1, "Abc_CommandAbc9Topand(): Can only be applied to a combinational miter.\n" );
         return 1;
-    } 
+    }
     pTemp = Gia_ManDupTopAnd( pAbc->pGia, fVerbose );
     Abc_CommandUpdate9( pAbc, pTemp );
     return 0;
@@ -23755,7 +23749,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -23779,7 +23773,7 @@ int Abc_CommandAbc9Cof( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             iVar = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( iVar < 0 ) 
+            if ( iVar < 0 )
                 goto usage;
             break;
         case 'L':
@@ -23787,10 +23781,10 @@ int Abc_CommandAbc9Cof( Abc_Frame_t * pAbc, int argc, char ** argv )
             {
                 Abc_Print( -1, "Command line switch \"-L\" should be followed by an integer.\n" );
                 goto usage;
-            } 
+            }
             nLimFan = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nLimFan < 0 ) 
+            if ( nLimFan < 0 )
                 goto usage;
             break;
         case 'v':
@@ -23806,7 +23800,7 @@ int Abc_CommandAbc9Cof( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Print( -1, "Abc_CommandAbc9Cof(): There is no AIG.\n" );
         return 1;
-    } 
+    }
     if ( nLimFan )
     {
         Abc_Print( -1, "Cofactoring all variables whose fanout count is higher than %d.\n", nLimFan );
@@ -23841,7 +23835,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -23882,7 +23876,7 @@ int Abc_CommandAbc9Trim( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Print( -1, "Abc_CommandAbc9Trim(): There is no AIG.\n" );
         return 1;
-    } 
+    }
     pTemp = Gia_ManDupTrimmed( pAbc->pGia, fTrimCis, fTrimCos, fDualOut );
     if ( fPoFedByPi )
     {
@@ -23909,7 +23903,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -23946,7 +23940,7 @@ int Abc_CommandAbc9Dfs( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Print( -1, "Abc_CommandAbc9Dfs(): There is no AIG.\n" );
         return 1;
-    } 
+    }
     if ( fNormal )
     {
         pTemp = Gia_ManDupOrderAiger( pAbc->pGia );
@@ -23959,7 +23953,7 @@ int Abc_CommandAbc9Dfs( Abc_Frame_t * pAbc, int argc, char ** argv )
         if ( fVerbose )
             Abc_Print( -1, "AIG objects are reordered in the reserve DFS order.\n" );
     }
-    else 
+    else
     {
         pTemp = Gia_ManDupOrderDfs( pAbc->pGia );
         if ( fVerbose )
@@ -23983,7 +23977,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -24007,7 +24001,7 @@ int Abc_CommandAbc9Sim( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nIters = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nIters < 0 ) 
+            if ( pPars->nIters < 0 )
                 goto usage;
             break;
         case 'W':
@@ -24018,7 +24012,7 @@ int Abc_CommandAbc9Sim( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nWords = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nWords < 0 ) 
+            if ( pPars->nWords < 0 )
                 goto usage;
             break;
         case 'N':
@@ -24029,7 +24023,7 @@ int Abc_CommandAbc9Sim( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->RandSeed = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->RandSeed < 0 ) 
+            if ( pPars->RandSeed < 0 )
                 goto usage;
             break;
         case 'T':
@@ -24040,7 +24034,7 @@ int Abc_CommandAbc9Sim( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->TimeLimit = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->TimeLimit < 0 ) 
+            if ( pPars->TimeLimit < 0 )
                 goto usage;
             break;
         case 'm':
@@ -24059,7 +24053,7 @@ int Abc_CommandAbc9Sim( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Print( -1, "Abc_CommandAbc9Sim(): There is no AIG.\n" );
         return 1;
-    } 
+    }
     if ( Gia_ManRegNum(pAbc->pGia) == 0 )
     {
         Abc_Print( -1, "The network is combinational.\n" );
@@ -24094,7 +24088,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -24135,7 +24129,7 @@ int Abc_CommandAbc9Sim3( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nFrames = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nFrames < 0 ) 
+            if ( nFrames < 0 )
                 goto usage;
             break;
         case 'W':
@@ -24146,7 +24140,7 @@ int Abc_CommandAbc9Sim3( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nWords = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nWords < 0 ) 
+            if ( nWords < 0 )
                 goto usage;
             break;
         case 'B':
@@ -24157,7 +24151,7 @@ int Abc_CommandAbc9Sim3( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nBinSize = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nBinSize < 0 ) 
+            if ( nBinSize < 0 )
                 goto usage;
             break;
         case 'R':
@@ -24168,7 +24162,7 @@ int Abc_CommandAbc9Sim3( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nRounds = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nRounds < 0 ) 
+            if ( nRounds < 0 )
                 goto usage;
             break;
         case 'S':
@@ -24190,7 +24184,7 @@ int Abc_CommandAbc9Sim3( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nRandSeed = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nRandSeed < 0 ) 
+            if ( nRandSeed < 0 )
                 goto usage;
             break;
         case 'T':
@@ -24201,7 +24195,7 @@ int Abc_CommandAbc9Sim3( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             TimeOut = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( TimeOut < 0 ) 
+            if ( TimeOut < 0 )
                 goto usage;
             break;
         case 'v':
@@ -24218,7 +24212,7 @@ int Abc_CommandAbc9Sim3( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Sim3(): There is no AIG.\n" );
         return 1;
     }
-    pAbc->Status = Ssw_RarSimulateGia( pAbc->pGia, nFrames, nWords, nBinSize, nRounds, nRestart, nRandSeed, TimeOut, fVerbose );  
+    pAbc->Status = Ssw_RarSimulateGia( pAbc->pGia, nFrames, nWords, nBinSize, nRounds, nRestart, nRandSeed, TimeOut, fVerbose );
 //    pAbc->nFrames = pAbc->pGia->pCexSeq->iFrame;
     Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexSeq );
     return 0;
@@ -24244,7 +24238,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -24268,7 +24262,7 @@ int Abc_CommandAbc9Resim( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nFrames = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nFrames < 0 ) 
+            if ( pPars->nFrames < 0 )
                 goto usage;
             break;
         case 'm':
@@ -24287,7 +24281,7 @@ int Abc_CommandAbc9Resim( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Print( -1, "Abc_CommandAbc9Resim(): There is no AIG.\n" );
         return 1;
-    } 
+    }
     RetValue = Cec_ManSeqResimulateCounter( pAbc->pGia, pPars, pAbc->pCex );
     pAbc->Status  = RetValue ? 0 : -1;
     pAbc->nFrames = pAbc->pCex->iFrame;
@@ -24309,7 +24303,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -24337,7 +24331,7 @@ int Abc_CommandAbc9SpecI( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nFrames = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nFrames < 0 ) 
+            if ( nFrames < 0 )
                 goto usage;
             break;
         case 'C':
@@ -24348,7 +24342,7 @@ int Abc_CommandAbc9SpecI( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nBTLimit = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nBTLimit < 0 ) 
+            if ( nBTLimit < 0 )
                 goto usage;
             break;
         case 'f':
@@ -24370,7 +24364,7 @@ int Abc_CommandAbc9SpecI( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Print( -1, "Abc_CommandAbc9SpecI(): There is no AIG.\n" );
         return 1;
-    } 
+    }
     Gia_CommandSpecI( pAbc->pGia, nFrames, nBTLimit, fUseStart, fCheckMiter, fVerbose );
     return 0;
 
@@ -24393,7 +24387,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -24417,7 +24411,7 @@ int Abc_CommandAbc9Equiv( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nWords = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nWords < 0 ) 
+            if ( pPars->nWords < 0 )
                 goto usage;
             break;
         case 'F':
@@ -24428,7 +24422,7 @@ int Abc_CommandAbc9Equiv( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nFrames = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nFrames < 0 ) 
+            if ( pPars->nFrames < 0 )
                 goto usage;
             break;
         case 'R':
@@ -24439,7 +24433,7 @@ int Abc_CommandAbc9Equiv( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nRounds = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nRounds < 0 ) 
+            if ( pPars->nRounds < 0 )
                 goto usage;
             break;
         case 'S':
@@ -24450,7 +24444,7 @@ int Abc_CommandAbc9Equiv( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nNonRefines = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nNonRefines < 0 ) 
+            if ( pPars->nNonRefines < 0 )
                 goto usage;
             break;
         case 'T':
@@ -24461,7 +24455,7 @@ int Abc_CommandAbc9Equiv( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->TimeLimit = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->TimeLimit < 0 ) 
+            if ( pPars->TimeLimit < 0 )
                 goto usage;
             break;
         case 's':
@@ -24486,7 +24480,7 @@ int Abc_CommandAbc9Equiv( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Print( -1, "Abc_CommandAbc9Equiv(): There is no AIG.\n" );
         return 1;
-    } 
+    }
     Cec_ManSimulation( pAbc->pGia, pPars );
     return 0;
 
@@ -24511,7 +24505,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -24542,7 +24536,7 @@ int Abc_CommandAbc9Equiv2( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nFramesMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nFramesMax < 0 ) 
+            if ( nFramesMax < 0 )
                 goto usage;
             break;
         case 'C':
@@ -24553,7 +24547,7 @@ int Abc_CommandAbc9Equiv2( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nConfMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nConfMax < 0 ) 
+            if ( nConfMax < 0 )
                 goto usage;
             break;
         case 'R':
@@ -24564,7 +24558,7 @@ int Abc_CommandAbc9Equiv2( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nRounds = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nRounds < 0 ) 
+            if ( nRounds < 0 )
                 goto usage;
             break;
         case 'T':
@@ -24575,7 +24569,7 @@ int Abc_CommandAbc9Equiv2( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             TimeLimit = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( TimeLimit < 0 ) 
+            if ( TimeLimit < 0 )
                 goto usage;
             break;
         case 'S':
@@ -24586,7 +24580,7 @@ int Abc_CommandAbc9Equiv2( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             TimeLimit2 = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( TimeLimit2 < 0 ) 
+            if ( TimeLimit2 < 0 )
                 goto usage;
             break;
         case 'x':
@@ -24608,7 +24602,7 @@ int Abc_CommandAbc9Equiv2( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Print( -1, "Abc_CommandAbc9Equiv2(): There is no AIG.\n" );
         return 1;
-    } 
+    }
     if ( Gia_ManRegNum(pAbc->pGia) == 0 )
     {
         Abc_Print( 0, "Abc_CommandAbc9Equiv2(): There is no flops. Nothing is done.\n" );
@@ -24623,7 +24617,7 @@ int Abc_CommandAbc9Equiv2( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
         if ( pAbc->pCex->nPis != Gia_ManPiNum(pAbc->pGia) )
         {
-            Abc_Print( -1, "Abc_CommandAbc9Equiv2(): The number of PIs differs in cex (%d) and in AIG (%d).\n", 
+            Abc_Print( -1, "Abc_CommandAbc9Equiv2(): The number of PIs differs in cex (%d) and in AIG (%d).\n",
                 pAbc->pCex->nPis, Gia_ManPiNum(pAbc->pGia) );
             return 1;
         }
@@ -24654,7 +24648,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -24690,7 +24684,7 @@ int Abc_CommandAbc9Equiv3( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nFrames = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nFrames < 0 ) 
+            if ( nFrames < 0 )
                 goto usage;
             break;
         case 'W':
@@ -24701,7 +24695,7 @@ int Abc_CommandAbc9Equiv3( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nWords = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nWords < 0 ) 
+            if ( nWords < 0 )
                 goto usage;
             break;
         case 'B':
@@ -24712,7 +24706,7 @@ int Abc_CommandAbc9Equiv3( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nBinSize = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nBinSize < 0 ) 
+            if ( nBinSize < 0 )
                 goto usage;
             break;
         case 'R':
@@ -24723,7 +24717,7 @@ int Abc_CommandAbc9Equiv3( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nRounds = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nRounds < 0 ) 
+            if ( nRounds < 0 )
                 goto usage;
             break;
         case 'S':
@@ -24745,7 +24739,7 @@ int Abc_CommandAbc9Equiv3( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nRandSeed = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nRandSeed < 0 ) 
+            if ( nRandSeed < 0 )
                 goto usage;
             break;
         case 'T':
@@ -24756,7 +24750,7 @@ int Abc_CommandAbc9Equiv3( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             TimeOut = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( TimeOut < 0 ) 
+            if ( TimeOut < 0 )
                 goto usage;
             break;
         case 'm':
@@ -24779,12 +24773,12 @@ int Abc_CommandAbc9Equiv3( Abc_Frame_t * pAbc, int argc, char ** argv )
         default:
             goto usage;
         }
-    } 
+    }
     if ( pAbc->pGia == NULL )
     {
         Abc_Print( -1, "Abc_CommandAbc9Equiv3(): There is no AIG.\n" );
         return 1;
-    } 
+    }
     if ( Gia_ManRegNum(pAbc->pGia) == 0 )
     {
         Abc_Print( 0, "Abc_CommandAbc9Equiv3(): There is no flops. Nothing is done.\n" );
@@ -24804,7 +24798,7 @@ int Abc_CommandAbc9Equiv3( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
         if ( pAbc->pCex->nPis != Gia_ManPiNum(pAbc->pGia) )
         {
-            Abc_Print( -1, "Abc_CommandAbc9Equiv3(): The number of PIs differs in cex (%d) and in AIG (%d).\n", 
+            Abc_Print( -1, "Abc_CommandAbc9Equiv3(): The number of PIs differs in cex (%d) and in AIG (%d).\n",
                 pAbc->pCex->nPis, Gia_ManPiNum(pAbc->pGia) );
             return 1;
         }
@@ -24842,7 +24836,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -24866,7 +24860,7 @@ int Abc_CommandAbc9Semi( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nWords = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nWords < 0 ) 
+            if ( pPars->nWords < 0 )
                 goto usage;
             break;
         case 'R':
@@ -24877,7 +24871,7 @@ int Abc_CommandAbc9Semi( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nRounds = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nRounds < 0 ) 
+            if ( pPars->nRounds < 0 )
                 goto usage;
             break;
         case 'F':
@@ -24888,7 +24882,7 @@ int Abc_CommandAbc9Semi( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nFrames = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nFrames < 0 ) 
+            if ( pPars->nFrames < 0 )
                 goto usage;
             break;
         case 'S':
@@ -24899,7 +24893,7 @@ int Abc_CommandAbc9Semi( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nNonRefines = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nNonRefines < 0 ) 
+            if ( pPars->nNonRefines < 0 )
                 goto usage;
             break;
         case 'M':
@@ -24910,7 +24904,7 @@ int Abc_CommandAbc9Semi( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nMinOutputs = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nMinOutputs < 0 ) 
+            if ( pPars->nMinOutputs < 0 )
                 goto usage;
             break;
         case 'C':
@@ -24921,7 +24915,7 @@ int Abc_CommandAbc9Semi( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nBTLimit = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nBTLimit < 0 ) 
+            if ( pPars->nBTLimit < 0 )
                 goto usage;
             break;
         case 'T':
@@ -24932,7 +24926,7 @@ int Abc_CommandAbc9Semi( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->TimeLimit = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->TimeLimit < 0 ) 
+            if ( pPars->TimeLimit < 0 )
                 goto usage;
             break;
         case 'm':
@@ -24954,7 +24948,7 @@ int Abc_CommandAbc9Semi( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Print( -1, "Abc_CommandAbc9Resim(): There is no AIG.\n" );
         return 1;
-    } 
+    }
     Cec_ManSeqSemiformal( pAbc->pGia, pPars );
     return 0;
 
@@ -24981,7 +24975,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -25004,7 +24998,7 @@ int Abc_CommandAbc9Times( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nTimes = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nTimes < 0 ) 
+            if ( nTimes < 0 )
                 goto usage;
             break;
         case 'v':
@@ -25020,7 +25014,7 @@ int Abc_CommandAbc9Times( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Print( -1, "Abc_CommandAbc9Times(): There is no AIG.\n" );
         return 1;
-    } 
+    }
     pTemp = Gia_ManDupTimes( pAbc->pGia, nTimes );
     Abc_CommandUpdate9( pAbc, pTemp );
     return 0;
@@ -25039,7 +25033,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -25069,7 +25063,7 @@ int Abc_CommandAbc9Frames( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nFrames = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nFrames < 0 ) 
+            if ( pPars->nFrames < 0 )
                 goto usage;
             break;
         case 'L':
@@ -25080,7 +25074,7 @@ int Abc_CommandAbc9Frames( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nCofFanLit = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nCofFanLit < 0 ) 
+            if ( nCofFanLit < 0 )
                 goto usage;
             break;
         case 'i':
@@ -25105,7 +25099,7 @@ int Abc_CommandAbc9Frames( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Print( -1, "Abc_CommandAbc9Frames(): There is no AIG.\n" );
         return 1;
-    } 
+    }
     if ( Gia_ManRegNum(pAbc->pGia) == 0 )
     {
         Abc_Print( -1, "The network is combinational.\n" );
@@ -25117,7 +25111,7 @@ int Abc_CommandAbc9Frames( Abc_Frame_t * pAbc, int argc, char ** argv )
         pTemp = Gia_ManUnrollAndCofactor( pAbc->pGia, pPars->nFrames, nCofFanLit, pPars->fVerbose );
     else if ( fNewAlgo )
         pTemp = Gia_ManFrames2( pAbc->pGia, pPars );
-    else 
+    else
         pTemp = Gia_ManFrames( pAbc->pGia, pPars );
     Abc_CommandUpdate9( pAbc, pTemp );
     return 0;
@@ -25140,7 +25134,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -25165,7 +25159,7 @@ int Abc_CommandAbc9Retime( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nMaxIters = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nMaxIters < 0 ) 
+            if ( nMaxIters < 0 )
                 goto usage;
             break;
         case 'v':
@@ -25181,7 +25175,7 @@ int Abc_CommandAbc9Retime( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Print( -1, "Abc_CommandAbc9Retime(): There is no AIG.\n" );
         return 1;
-    } 
+    }
     if ( Gia_ManRegNum(pAbc->pGia) == 0 )
     {
         Abc_Print( -1, "The network is combinational.\n" );
@@ -25205,7 +25199,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -25238,7 +25232,7 @@ int Abc_CommandAbc9Enable( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Print( -1, "Abc_CommandAbc9Enable(): There is no AIG.\n" );
         return 1;
-    } 
+    }
     if ( fRemove )
         pTemp = Gia_ManRemoveEnables( pAbc->pGia );
     else
@@ -25260,7 +25254,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -25292,7 +25286,7 @@ int Abc_CommandAbc9Dc2( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Print( -1, "Abc_CommandAbc9Dc2(): There is no AIG.\n" );
         return 1;
-    } 
+    }
     pTemp = Gia_ManCompress2( pAbc->pGia, fUpdateLevel, fVerbose );
     Abc_CommandUpdate9( pAbc, pTemp );
     return 0;
@@ -25311,7 +25305,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -25343,7 +25337,7 @@ int Abc_CommandAbc9Bidec( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Print( -1, "Abc_CommandAbc9Bidec(): There is no AIG.\n" );
         return 1;
-    } 
+    }
     if ( pAbc->pGia->pMapping == NULL )
     {
         Abc_Print( -1, "Abc_CommandAbc9Bidec(): Mapping of the AIG is not defined.\n" );
@@ -25367,7 +25361,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -25399,7 +25393,7 @@ int Abc_CommandAbc9Shrink( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Print( -1, "Abc_CommandAbc9Shrink(): There is no AIG.\n" );
         return 1;
-    } 
+    }
     if ( pAbc->pGia->pMapping == NULL )
     {
         Abc_Print( -1, "Abc_CommandAbc9Shrink(): Mapping of the AIG is not defined.\n" );
@@ -25423,7 +25417,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -25476,7 +25470,7 @@ int Abc_CommandAbc9Miter( Abc_Frame_t * pAbc, int argc, char ** argv )
         {
             Abc_Print( -1, "Abc_CommandAbc9Miter(): There is no AIG.\n" );
             return 1;
-        } 
+        }
         pAux = Gia_ManTransformMiter( pAbc->pGia );
         Abc_CommandUpdate9( pAbc, pAux );
         Abc_Print( 1, "The miter (current AIG) is transformed by XORing POs pair-wise.\n" );
@@ -25535,7 +25529,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -25570,7 +25564,7 @@ int Abc_CommandAbc9Scl( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Print( -1, "Abc_CommandAbc9Scl(): There is no AIG.\n" );
         return 1;
-    } 
+    }
     pTemp = Gia_ManSeqStructSweep( pAbc->pGia, fConst, fEquiv, fVerbose );
     Abc_CommandUpdate9( pAbc, pTemp );
     return 0;
@@ -25590,7 +25584,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -25616,7 +25610,7 @@ int Abc_CommandAbc9Lcorr( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nFrames = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nFrames < 0 ) 
+            if ( pPars->nFrames < 0 )
                 goto usage;
             break;
         case 'C':
@@ -25627,7 +25621,7 @@ int Abc_CommandAbc9Lcorr( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nBTLimit = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nBTLimit < 0 ) 
+            if ( pPars->nBTLimit < 0 )
                 goto usage;
             break;
         case 'P':
@@ -25638,7 +25632,7 @@ int Abc_CommandAbc9Lcorr( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nPrefix = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nPrefix < 0 ) 
+            if ( pPars->nPrefix < 0 )
                 goto usage;
             break;
         case 'r':
@@ -25658,7 +25652,7 @@ int Abc_CommandAbc9Lcorr( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Print( -1, "Abc_CommandAbc9Lcorr(): There is no AIG.\n" );
         return 1;
-    } 
+    }
     if ( Gia_ManRegNum(pAbc->pGia) == 0 )
     {
         Abc_Print( -1, "The network is combinational.\n" );
@@ -25686,7 +25680,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -25711,7 +25705,7 @@ int Abc_CommandAbc9Scorr( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nFrames = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nFrames < 0 ) 
+            if ( pPars->nFrames < 0 )
                 goto usage;
             break;
         case 'C':
@@ -25722,7 +25716,7 @@ int Abc_CommandAbc9Scorr( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nBTLimit = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nBTLimit < 0 ) 
+            if ( pPars->nBTLimit < 0 )
                 goto usage;
             break;
         case 'P':
@@ -25733,7 +25727,7 @@ int Abc_CommandAbc9Scorr( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nPrefix = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nPrefix < 0 ) 
+            if ( pPars->nPrefix < 0 )
                 goto usage;
             break;
         case 'k':
@@ -25765,7 +25759,7 @@ int Abc_CommandAbc9Scorr( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Print( -1, "Abc_CommandAbc9Scorr(): There is no AIG.\n" );
         return 1;
-    } 
+    }
     if ( Gia_ManRegNum(pAbc->pGia) == 0 )
     {
         Abc_Print( -1, "The network is combinational.\n" );
@@ -25797,7 +25791,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -25822,7 +25816,7 @@ int Abc_CommandAbc9Choice( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nBTLimit = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nBTLimit < 0 ) 
+            if ( pPars->nBTLimit < 0 )
                 goto usage;
             break;
         case 'c':
@@ -25839,7 +25833,7 @@ int Abc_CommandAbc9Choice( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Print( -1, "Abc_CommandAbc9Choice(): There is no AIG.\n" );
         return 1;
-    } 
+    }
     pTemp = Cec_ManChoiceComputation( pAbc->pGia, pPars );
     Abc_CommandUpdate9( pAbc, pTemp );
     return 0;
@@ -25859,7 +25853,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -25885,7 +25879,7 @@ int Abc_CommandAbc9Sat( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nBTLimit = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nBTLimit < 0 ) 
+            if ( pPars->nBTLimit < 0 )
                 goto usage;
             break;
         case 'S':
@@ -25896,7 +25890,7 @@ int Abc_CommandAbc9Sat( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nSatVarMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nSatVarMax < 0 ) 
+            if ( pPars->nSatVarMax < 0 )
                 goto usage;
             break;
         case 'N':
@@ -25907,7 +25901,7 @@ int Abc_CommandAbc9Sat( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nCallsRecycle = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nCallsRecycle < 0 ) 
+            if ( pPars->nCallsRecycle < 0 )
                 goto usage;
             break;
         case 'n':
@@ -25933,7 +25927,7 @@ int Abc_CommandAbc9Sat( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Print( -1, "Abc_CommandAbc9Sat(): There is no AIG.\n" );
         return 1;
-    } 
+    }
     if ( fCSat )
     {
         Vec_Int_t * vCounters;
@@ -25974,7 +25968,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -26000,7 +25994,7 @@ int Abc_CommandAbc9Fraig( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nWords = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nWords < 0 ) 
+            if ( pPars->nWords < 0 )
                 goto usage;
             break;
         case 'R':
@@ -26011,7 +26005,7 @@ int Abc_CommandAbc9Fraig( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nRounds = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nRounds < 0 ) 
+            if ( pPars->nRounds < 0 )
                 goto usage;
             break;
         case 'I':
@@ -26022,7 +26016,7 @@ int Abc_CommandAbc9Fraig( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nItersMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nItersMax < 0 ) 
+            if ( pPars->nItersMax < 0 )
                 goto usage;
             break;
         case 'L':
@@ -26033,7 +26027,7 @@ int Abc_CommandAbc9Fraig( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nLevelMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nLevelMax < 0 ) 
+            if ( pPars->nLevelMax < 0 )
                 goto usage;
             break;
         case 'D':
@@ -26044,7 +26038,7 @@ int Abc_CommandAbc9Fraig( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nDepthMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nDepthMax < 0 ) 
+            if ( pPars->nDepthMax < 0 )
                 goto usage;
             break;
         case 'C':
@@ -26055,7 +26049,7 @@ int Abc_CommandAbc9Fraig( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nBTLimit = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nBTLimit < 0 ) 
+            if ( pPars->nBTLimit < 0 )
                 goto usage;
             break;
         case 'r':
@@ -26081,7 +26075,7 @@ int Abc_CommandAbc9Fraig( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Print( -1, "Abc_CommandAbc9Fraig(): There is no AIG.\n" );
         return 1;
-    } 
+    }
     pTemp = Cec_ManSatSweeping( pAbc->pGia, pPars );
     Abc_CommandUpdate9( pAbc, pTemp );
     return 0;
@@ -26109,7 +26103,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -26164,7 +26158,7 @@ int Abc_CommandAbc9Srm( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Print( -1, "Abc_CommandAbc9Srm(): There is no AIG.\n" );
         return 1;
-    } 
+    }
     sprintf( pFileName,  "gsrm%s.aig", fSpeculate? "" : "s" );
     sprintf( pFileName2, "gsyn%s.aig", fSpeculate? "" : "s" );
     pTemp = Gia_ManSpecReduce( pAbc->pGia, fDualOut, fSynthesis, fSpeculate, fSkipSome, fVerbose );
@@ -26215,7 +26209,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -26265,7 +26259,7 @@ int Abc_CommandAbc9Srm2( Abc_Frame_t * pAbc, int argc, char ** argv )
     // get the input file name
     pFileName1 = argv[globalUtilOptind];
     pFileName2 = argv[globalUtilOptind+1];
-    // create file name 
+    // create file name
     sprintf( pFileName,  "gsrm.aig" );
     pTemp = Gia_ManDup( pAbc->pGia );
     // copy equivalences
@@ -26312,7 +26306,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -26390,7 +26384,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -26426,7 +26420,7 @@ int Abc_CommandAbc9Reduce( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Print( -1, "Abc_CommandAbc9Reduce(): There is no AIG.\n" );
         return 1;
-    } 
+    }
     if ( fUseAll )
     {
         pTemp = Gia_ManEquivReduce( pAbc->pGia, fUseAll, fDualOut, fVerbose );
@@ -26453,7 +26447,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -26486,7 +26480,7 @@ int Abc_CommandAbc9EquivMark( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Print( -1, "Abc_CommandAbc9Reduce(): There is no AIG.\n" );
         return 1;
-    } 
+    }
     if ( argc != globalUtilOptind + 1 )
         goto usage;
     // get the input file name
@@ -26518,7 +26512,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -26546,7 +26540,7 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nBTLimit = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nBTLimit < 0 ) 
+            if ( pPars->nBTLimit < 0 )
                 goto usage;
             break;
         case 'T':
@@ -26557,7 +26551,7 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->TimeLimit = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->TimeLimit < 0 ) 
+            if ( pPars->TimeLimit < 0 )
                 goto usage;
             break;
         case 'm':
@@ -26641,7 +26635,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -26666,7 +26660,7 @@ int Abc_CommandAbc9Force( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nIters = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nIters < 0 ) 
+            if ( nIters < 0 )
                 goto usage;
             break;
         case 'c':
@@ -26685,7 +26679,7 @@ int Abc_CommandAbc9Force( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Print( -1, "Abc_CommandAbc9Force(): There is no AIG.\n" );
         return 1;
-    } 
+    }
     For_ManExperiment( pAbc->pGia, nIters, fClustered, fVerbose );
     return 0;
 
@@ -26705,7 +26699,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -26718,10 +26712,10 @@ int Abc_CommandAbc9Embed( Abc_Frame_t * pAbc, int argc, char ** argv )
     pPars->nDims      = 30;
     pPars->nIters     = 10;
     pPars->nSols      =  2;
-    pPars->fRefine    =  0; 
+    pPars->fRefine    =  0;
     pPars->fCluster   =  0;
-    pPars->fDump      =  0; 
-    pPars->fDumpLarge =  0; 
+    pPars->fDump      =  0;
+    pPars->fDumpLarge =  0;
     pPars->fShowImage =  0;
     pPars->fVerbose   =  0;
     Extra_UtilGetoptReset();
@@ -26737,7 +26731,7 @@ int Abc_CommandAbc9Embed( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nDims = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nDims < 0 ) 
+            if ( pPars->nDims < 0 )
                 goto usage;
             break;
         case 'I':
@@ -26748,7 +26742,7 @@ int Abc_CommandAbc9Embed( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nIters = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nIters < 0 ) 
+            if ( pPars->nIters < 0 )
                 goto usage;
             break;
         case 'r':
@@ -26763,7 +26757,7 @@ int Abc_CommandAbc9Embed( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'l':
             pPars->fDumpLarge ^= 1;
             break;
-        case 's': 
+        case 's':
             pPars->fShowImage ^= 1;
             break;
         case 'v':
@@ -26779,7 +26773,7 @@ int Abc_CommandAbc9Embed( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Print( -1, "Abc_CommandAbc9Embed(): There is no AIG.\n" );
         return 1;
-    } 
+    }
     Gia_ManSolveProblem( pAbc->pGia, pPars );
     return 0;
 
@@ -26805,7 +26799,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -27193,7 +27187,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -27247,14 +27241,14 @@ usage:
     Abc_Print( -2, "\t-v       : toggle printing optimization summary [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;
-} 
+}
 
 /**Function*************************************************************
 
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -27288,7 +27282,7 @@ int Abc_CommandAbc9Speedup( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             Percentage = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( Percentage < 1 || Percentage > 100 ) 
+            if ( Percentage < 1 || Percentage > 100 )
                 goto usage;
             break;
         case 'N':
@@ -27299,7 +27293,7 @@ int Abc_CommandAbc9Speedup( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             Degree = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( Degree < 1 || Degree > 5 ) 
+            if ( Degree < 1 || Degree > 5 )
                 goto usage;
             break;
         case 'l':
@@ -27350,7 +27344,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -27379,7 +27373,7 @@ int Abc_CommandAbc9Era( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nStatesMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nStatesMax < 0 ) 
+            if ( nStatesMax < 0 )
                 goto usage;
             break;
         case 'm':
@@ -27401,7 +27395,7 @@ int Abc_CommandAbc9Era( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Print( -1, "Abc_CommandAbc9Era(): There is no AIG.\n" );
         return 1;
-    } 
+    }
     if ( Gia_ManRegNum(pAbc->pGia) == 0 )
     {
         Abc_Print( -1, "Abc_CommandAbc9Era(): The network is combinational.\n" );
@@ -27436,7 +27430,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -27462,7 +27456,7 @@ int Abc_CommandAbc9Dch( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nWords = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nWords < 0 ) 
+            if ( pPars->nWords < 0 )
                 goto usage;
             break;
         case 'C':
@@ -27473,7 +27467,7 @@ int Abc_CommandAbc9Dch( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nBTLimit = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nBTLimit < 0 ) 
+            if ( pPars->nBTLimit < 0 )
                 goto usage;
             break;
         case 'S':
@@ -27484,7 +27478,7 @@ int Abc_CommandAbc9Dch( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nSatVarMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nSatVarMax < 0 ) 
+            if ( pPars->nSatVarMax < 0 )
                 goto usage;
             break;
         case 's':
@@ -27512,7 +27506,7 @@ int Abc_CommandAbc9Dch( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Print( -1, "Abc_CommandAbc9Dch(): There is no AIG.\n" );
         return 1;
-    } 
+    }
     pTemp = Gia_ManPerformDch( pAbc->pGia, pPars );
     Abc_CommandUpdate9( pAbc, pTemp );
     return 0;
@@ -27610,7 +27604,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -27638,7 +27632,7 @@ int Abc_CommandAbc9BackReach( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nFrameMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nFrameMax < 0 ) 
+            if ( nFrameMax < 0 )
                 goto usage;
             break;
         case 'C':
@@ -27649,7 +27643,7 @@ int Abc_CommandAbc9BackReach( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nConfMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nConfMax < 0 ) 
+            if ( nConfMax < 0 )
                 goto usage;
             break;
         case 'T':
@@ -27660,7 +27654,7 @@ int Abc_CommandAbc9BackReach( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nTimeMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nTimeMax < 0 ) 
+            if ( nTimeMax < 0 )
                 goto usage;
             break;
         case 'v':
@@ -27702,7 +27696,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -27727,7 +27721,7 @@ int Abc_CommandAbc9Posplit( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nVars = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nVars < 0 ) 
+            if ( nVars < 0 )
                 goto usage;
             break;
         case 'v':
@@ -27743,7 +27737,7 @@ int Abc_CommandAbc9Posplit( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Print( -1, "Abc_CommandAbc9Posplit(): There is no AIG.\n" );
         return 1;
-    } 
+    }
     pMan = Gia_ManToAigSimple( pAbc->pGia );
     pMan = Aig_ManSplit( pAux = pMan, nVars, fVerbose );
     Aig_ManStop( pAux );
@@ -27770,7 +27764,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -27799,7 +27793,7 @@ int Abc_CommandAbc9ReachM( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->TimeLimit = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->TimeLimit < 0 ) 
+            if ( pPars->TimeLimit < 0 )
                 goto usage;
             break;
         case 'B':
@@ -27810,7 +27804,7 @@ int Abc_CommandAbc9ReachM( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nBddMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nBddMax < 0 ) 
+            if ( pPars->nBddMax < 0 )
                 goto usage;
             break;
         case 'F':
@@ -27821,7 +27815,7 @@ int Abc_CommandAbc9ReachM( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nIterMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nIterMax < 0 ) 
+            if ( pPars->nIterMax < 0 )
                 goto usage;
             break;
         case 'C':
@@ -27832,7 +27826,7 @@ int Abc_CommandAbc9ReachM( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nClusterMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nClusterMax < 0 ) 
+            if ( pPars->nClusterMax < 0 )
                 goto usage;
             break;
         case 'H':
@@ -27843,7 +27837,7 @@ int Abc_CommandAbc9ReachM( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nHintDepth = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nHintDepth < 0 ) 
+            if ( pPars->nHintDepth < 0 )
                 goto usage;
             break;
         case 'S':
@@ -27854,7 +27848,7 @@ int Abc_CommandAbc9ReachM( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->HintFirst = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->HintFirst < 0 ) 
+            if ( pPars->HintFirst < 0 )
                 goto usage;
             break;
         case 'L':
@@ -27908,7 +27902,7 @@ int Abc_CommandAbc9ReachM( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Print( -1, "Abc_CommandAbc9ReachM(): The current AIG has no latches.\n" );
         return 0;
-    } 
+    }
     if ( Gia_ManObjNum(pAbc->pGia) >= (1<<16) )
     {
         Abc_Print( -1, "Abc_CommandAbc9ReachM(): Currently cannot handle AIGs with more than %d objects.\n", (1<<16) );
@@ -27931,15 +27925,15 @@ usage:
     Abc_Print( -2, "\t-H num : max number of hints to use [default = %d]\n", pPars->nHintDepth );
     Abc_Print( -2, "\t-S num : the number of the starting hint [default = %d]\n", pPars->HintFirst );
     Abc_Print( -2, "\t-L file: the log file name [default = %s]\n", pLogFileName ? pLogFileName : "no logging" );
-    Abc_Print( -2, "\t-r     : enable dynamic BDD variable reordering [default = %s]\n", pPars->fReorder? "yes": "no" );  
-    Abc_Print( -2, "\t-i     : enable extraction of inductive constraints [default = %s]\n", pPars->fIndConstr? "yes": "no" );  
-    Abc_Print( -2, "\t-p     : enable partitions for internal cut-points [default = %s]\n", pPars->fUsePivots? "yes": "no" );  
-    Abc_Print( -2, "\t-c     : enable clustering of partitions [default = %s]\n", pPars->fCluster? "yes": "no" );  
-    Abc_Print( -2, "\t-s     : enable scheduling of clusters [default = %s]\n", pPars->fSchedule? "yes": "no" );  
-    Abc_Print( -2, "\t-y     : skip checking property outputs [default = %s]\n", pPars->fSkipOutCheck? "yes": "no" );  
-    Abc_Print( -2, "\t-z     : skip reachability (run preparation phase only) [default = %s]\n", pPars->fSkipReach? "yes": "no" );  
-    Abc_Print( -2, "\t-v     : prints verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );  
-    Abc_Print( -2, "\t-w     : prints dependency matrix [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );  
+    Abc_Print( -2, "\t-r     : enable dynamic BDD variable reordering [default = %s]\n", pPars->fReorder? "yes": "no" );
+    Abc_Print( -2, "\t-i     : enable extraction of inductive constraints [default = %s]\n", pPars->fIndConstr? "yes": "no" );
+    Abc_Print( -2, "\t-p     : enable partitions for internal cut-points [default = %s]\n", pPars->fUsePivots? "yes": "no" );
+    Abc_Print( -2, "\t-c     : enable clustering of partitions [default = %s]\n", pPars->fCluster? "yes": "no" );
+    Abc_Print( -2, "\t-s     : enable scheduling of clusters [default = %s]\n", pPars->fSchedule? "yes": "no" );
+    Abc_Print( -2, "\t-y     : skip checking property outputs [default = %s]\n", pPars->fSkipOutCheck? "yes": "no" );
+    Abc_Print( -2, "\t-z     : skip reachability (run preparation phase only) [default = %s]\n", pPars->fSkipReach? "yes": "no" );
+    Abc_Print( -2, "\t-v     : prints verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-w     : prints dependency matrix [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
@@ -27949,7 +27943,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -27979,7 +27973,7 @@ int Abc_CommandAbc9ReachP( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nPartValue = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nPartValue < 0 ) 
+            if ( pPars->nPartValue < 0 )
                 goto usage;
             break;
         case 'B':
@@ -27990,7 +27984,7 @@ int Abc_CommandAbc9ReachP( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nBddMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nBddMax < 0 ) 
+            if ( pPars->nBddMax < 0 )
                 goto usage;
             break;
         case 'F':
@@ -28001,7 +27995,7 @@ int Abc_CommandAbc9ReachP( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nIterMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nIterMax < 0 ) 
+            if ( pPars->nIterMax < 0 )
                 goto usage;
             break;
         case 'T':
@@ -28012,7 +28006,7 @@ int Abc_CommandAbc9ReachP( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->TimeLimit = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->TimeLimit < 0 ) 
+            if ( pPars->TimeLimit < 0 )
                 goto usage;
             break;
         case 'L':
@@ -28083,13 +28077,13 @@ usage:
     Abc_Print( -2, "\t-F num : max number of reachability iterations [default = %d]\n", pPars->nIterMax );
     Abc_Print( -2, "\t-T num : approximate time limit in seconds (0=infinite) [default = %d]\n", pPars->TimeLimit );
     Abc_Print( -2, "\t-L file: the log file name [default = %s]\n", pLogFileName ? pLogFileName : "no logging" );
-    Abc_Print( -2, "\t-r     : enable additional BDD var reordering before image [default = %s]\n", pPars->fReorder? "yes": "no" );  
-    Abc_Print( -2, "\t-b     : perform backward reachability analysis [default = %s]\n", pPars->fBackward? "yes": "no" );  
-    Abc_Print( -2, "\t-y     : skip checking property outputs [default = %s]\n", pPars->fSkipOutCheck? "yes": "no" );  
-    Abc_Print( -2, "\t-z     : skip reachability (run preparation phase only) [default = %s]\n", pPars->fSkipReach? "yes": "no" );  
-    Abc_Print( -2, "\t-d     : dump BDD of reached states into file \"reached.blif\" [default = %s]\n", pPars->fDumpReached? "yes": "no" );  
-    Abc_Print( -2, "\t-v     : prints verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );  
-    Abc_Print( -2, "\t-w     : prints additional information [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );  
+    Abc_Print( -2, "\t-r     : enable additional BDD var reordering before image [default = %s]\n", pPars->fReorder? "yes": "no" );
+    Abc_Print( -2, "\t-b     : perform backward reachability analysis [default = %s]\n", pPars->fBackward? "yes": "no" );
+    Abc_Print( -2, "\t-y     : skip checking property outputs [default = %s]\n", pPars->fSkipOutCheck? "yes": "no" );
+    Abc_Print( -2, "\t-z     : skip reachability (run preparation phase only) [default = %s]\n", pPars->fSkipReach? "yes": "no" );
+    Abc_Print( -2, "\t-d     : dump BDD of reached states into file \"reached.blif\" [default = %s]\n", pPars->fDumpReached? "yes": "no" );
+    Abc_Print( -2, "\t-v     : prints verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-w     : prints additional information [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
@@ -28099,7 +28093,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -28129,7 +28123,7 @@ int Abc_CommandAbc9ReachN( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nBddMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nBddMax < 0 ) 
+            if ( pPars->nBddMax < 0 )
                 goto usage;
             break;
         case 'F':
@@ -28140,7 +28134,7 @@ int Abc_CommandAbc9ReachN( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nIterMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nIterMax < 0 ) 
+            if ( pPars->nIterMax < 0 )
                 goto usage;
             break;
         case 'T':
@@ -28151,7 +28145,7 @@ int Abc_CommandAbc9ReachN( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->TimeLimit = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->TimeLimit < 0 ) 
+            if ( pPars->TimeLimit < 0 )
                 goto usage;
             break;
         case 'L':
@@ -28215,11 +28209,11 @@ usage:
     Abc_Print( -2, "\t-F num : max number of reachability iterations [default = %d]\n", pPars->nIterMax );
     Abc_Print( -2, "\t-T num : approximate time limit in seconds (0=infinite) [default = %d]\n", pPars->TimeLimit );
     Abc_Print( -2, "\t-L file: the log file name [default = %s]\n", pLogFileName ? pLogFileName : "no logging" );
-    Abc_Print( -2, "\t-r     : enable additional BDD var reordering before image [default = %s]\n", pPars->fReorder? "yes": "no" );  
-    Abc_Print( -2, "\t-y     : skip checking property outputs [default = %s]\n", pPars->fSkipOutCheck? "yes": "no" );  
-    Abc_Print( -2, "\t-z     : skip reachability (run preparation phase only) [default = %s]\n", pPars->fSkipReach? "yes": "no" );  
-    Abc_Print( -2, "\t-v     : prints verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );  
-//    Abc_Print( -2, "\t-w     : prints additional information [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );  
+    Abc_Print( -2, "\t-r     : enable additional BDD var reordering before image [default = %s]\n", pPars->fReorder? "yes": "no" );
+    Abc_Print( -2, "\t-y     : skip checking property outputs [default = %s]\n", pPars->fSkipOutCheck? "yes": "no" );
+    Abc_Print( -2, "\t-z     : skip reachability (run preparation phase only) [default = %s]\n", pPars->fSkipReach? "yes": "no" );
+    Abc_Print( -2, "\t-v     : prints verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
+//    Abc_Print( -2, "\t-w     : prints additional information [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
@@ -28229,7 +28223,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -28262,7 +28256,7 @@ int Abc_CommandAbc9ReachY( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nBddMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nBddMax < 0 ) 
+            if ( pPars->nBddMax < 0 )
                 goto usage;
             break;
         case 'C':
@@ -28273,7 +28267,7 @@ int Abc_CommandAbc9ReachY( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nClusterMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nClusterMax < 0 ) 
+            if ( pPars->nClusterMax < 0 )
                 goto usage;
             break;
         case 'F':
@@ -28284,7 +28278,7 @@ int Abc_CommandAbc9ReachY( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nIterMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nIterMax < 0 ) 
+            if ( pPars->nIterMax < 0 )
                 goto usage;
             break;
         case 'T':
@@ -28295,7 +28289,7 @@ int Abc_CommandAbc9ReachY( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->TimeLimit = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->TimeLimit < 0 ) 
+            if ( pPars->TimeLimit < 0 )
                 goto usage;
             break;
         case 'L':
@@ -28366,13 +28360,13 @@ usage:
     Abc_Print( -2, "\t-F num : max number of reachability iterations [default = %d]\n", pPars->nIterMax );
     Abc_Print( -2, "\t-T num : approximate time limit in seconds (0=infinite) [default = %d]\n", pPars->TimeLimit );
     Abc_Print( -2, "\t-L file: the log file name [default = %s]\n", pLogFileName ? pLogFileName : "no logging" );
-    Abc_Print( -2, "\t-b     : enable using backward enumeration [default = %s]\n", pPars->fBackward? "yes": "no" );  
-    Abc_Print( -2, "\t-c     : enable reparametrization clustering [default = %s]\n", pPars->fCluster? "yes": "no" );  
-    Abc_Print( -2, "\t-r     : enable additional BDD var reordering before image [default = %s]\n", pPars->fReorder? "yes": "no" );  
-    Abc_Print( -2, "\t-y     : skip checking property outputs [default = %s]\n", pPars->fSkipOutCheck? "yes": "no" );  
-    Abc_Print( -2, "\t-z     : skip reachability (run preparation phase only) [default = %s]\n", pPars->fSkipReach? "yes": "no" );  
-    Abc_Print( -2, "\t-v     : prints verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );  
-//    Abc_Print( -2, "\t-w     : prints additional information [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );  
+    Abc_Print( -2, "\t-b     : enable using backward enumeration [default = %s]\n", pPars->fBackward? "yes": "no" );
+    Abc_Print( -2, "\t-c     : enable reparametrization clustering [default = %s]\n", pPars->fCluster? "yes": "no" );
+    Abc_Print( -2, "\t-r     : enable additional BDD var reordering before image [default = %s]\n", pPars->fReorder? "yes": "no" );
+    Abc_Print( -2, "\t-y     : skip checking property outputs [default = %s]\n", pPars->fSkipOutCheck? "yes": "no" );
+    Abc_Print( -2, "\t-z     : skip reachability (run preparation phase only) [default = %s]\n", pPars->fSkipReach? "yes": "no" );
+    Abc_Print( -2, "\t-v     : prints verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
+//    Abc_Print( -2, "\t-w     : prints additional information [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
@@ -28382,7 +28376,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -28407,12 +28401,12 @@ int Abc_CommandAbc9Undo( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Print( -1, "Abc_CommandAbc9Undo(): There is no design.\n" );
         return 1;
-    } 
+    }
     if ( pAbc->pGia2 == NULL )
     {
         Abc_Print( -1, "Abc_CommandAbc9Undo(): There is no previously saved network.\n" );
         return 1;
-    } 
+    }
     Gia_ManStop( pAbc->pGia );
     pAbc->pGia = pAbc->pGia2;
     pAbc->pGia2 = NULL;
@@ -28430,7 +28424,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -29650,7 +29644,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -29688,7 +29682,7 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Print( -1, "Abc_CommandAbc9Test(): There is no AIG.\n" );
         return 1;
-    } 
+    }
 //    Gia_ManFrontTest( pAbc->pGia );
 //    Gia_ManReduceConst( pAbc->pGia, 1 );
 //    Sat_ManTest( pAbc->pGia, Gia_ManCo(pAbc->pGia, 0), 0 );
@@ -29721,4 +29715,3 @@ usage:
 
 
 ABC_NAMESPACE_IMPL_END
-
