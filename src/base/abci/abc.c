@@ -169,6 +169,10 @@ static int Abc_CommandSenseInput             ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandNpnLoad                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandNpnSave                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
+static int Abc_CommandSendAig                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandSendStatus             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandSendCex                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+
 static int Abc_CommandIStrash                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandICut                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandIRewrite               ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -628,6 +632,10 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Various",      "senseinput",    Abc_CommandSenseInput,       1 );
     Cmd_CommandAdd( pAbc, "Various",      "npnload",       Abc_CommandNpnLoad,          0 );
     Cmd_CommandAdd( pAbc, "Various",      "npnsave",       Abc_CommandNpnSave,          0 );
+
+    Cmd_CommandAdd( pAbc, "Various",      "send_aig",      Abc_CommandSendAig,          0 );
+    Cmd_CommandAdd( pAbc, "Various",      "send_status",   Abc_CommandSendStatus,       0 );
+    Cmd_CommandAdd( pAbc, "Various",      "send_cex",      Abc_CommandSendCex,          0 );
 
     Cmd_CommandAdd( pAbc, "New AIG",      "istrash",       Abc_CommandIStrash,          1 );
     Cmd_CommandAdd( pAbc, "New AIG",      "icut",          Abc_CommandICut,             0 );
@@ -11618,6 +11626,171 @@ int Abc_CommandNpnSave( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     Abc_Print( -2, "usage: npnsave <filename>\n" );
     Abc_Print( -2, "\t         saves current 6-input function library into file\n" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+ 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandSendAig( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern int Gia_ManToBridgeAbsNetlist( FILE * pFile, Gia_Man_t * p );
+    int c, fAndSpace = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "a" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'a':
+            fAndSpace ^= 1;
+            break;
+        default:
+            goto usage;
+        }
+    }
+    if ( !Abc_FrameIsBridgeMode() )
+    {
+        Abc_Print( -1, "The bridge mode is not available.\n" );
+        return 1;
+    }
+    if ( fAndSpace )
+    {
+        if ( pAbc->pGia == NULL )
+        {
+            Abc_Print( -1, "There is no AIG in the &-space.\n" );
+            return 1;
+        }
+        Gia_ManToBridgeAbsNetlist( stdout, pAbc->pGia );
+    }
+    else
+    {
+        extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
+        Aig_Man_t * pAig;
+        Gia_Man_t * pGia;
+        if ( pAbc->pNtkCur == NULL )
+        {
+            Abc_Print( -1, "There is no network in the main-space.\n" );
+            return 1;
+        }
+        if ( !Abc_NtkIsStrash(pAbc->pNtkCur) )
+        {
+            Abc_Print( -1, "The main-space network is not an AIG.\n" );
+            return 1;
+        }
+        pAig = Abc_NtkToDar( pAbc->pNtkCur, 0, 1 );
+        pGia = Gia_ManFromAig( pAig );
+        Aig_ManStop( pAig );
+        Gia_ManToBridgeAbsNetlist( stdout, pGia );
+        Gia_ManStop( pGia );
+    }
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: send_aig -a\n" );
+    Abc_Print( -2, "\t         sends current AIG to the bridge\n" );
+    Abc_Print( -2, "\t-a     : toggle sending AIG from &-space [default = %s]\n", fAndSpace? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+ 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandSendStatus( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern int Gia_ManToBridgeResult( FILE * pFile, int Result, Abc_Cex_t * pCex );
+    int c;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( !Abc_FrameIsBridgeMode() )
+    {
+        Abc_Print( -1, "The bridge mode is not available.\n" );
+        return 1;
+    }
+    if ( pAbc->Status == 0 && pAbc->pCex == NULL )
+    {
+        Abc_Print( -1, "Status is \"sat\", but current CEX is not available.\n" );
+        return 1;
+    }
+    Gia_ManToBridgeResult( stdout, pAbc->Status, pAbc->pCex );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: send_status\n" );
+    Abc_Print( -2, "\t         sends current status to the bridge\n" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+ 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandSendCex( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Gia_ManFromBridgeCex( FILE * pFile, Abc_Cex_t * pCex );
+    int c;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( !Abc_FrameIsBridgeMode() )
+    {
+        Abc_Print( -1, "The bridge mode is not available.\n" );
+        return 1;
+    }
+    if ( pAbc->pCex == NULL )
+    {
+        Abc_Print( -1, "Current CEX is not available.\n" );
+        return 1;
+    }
+    Gia_ManFromBridgeCex( stdout, pAbc->pCex );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: send_cex\n" );
+    Abc_Print( -2, "\t         sends current CEX to the bridge\n" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
