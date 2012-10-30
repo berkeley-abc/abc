@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "dauInt.h"
+#include "misc/util/utilTruth.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -462,6 +463,344 @@ void Dau_DsdTestOne( word t, int i )
     assert( p->nVars == 6 );
     Dau_DsdTestOne( *p->pFuncs[i], i );
 */
+
+
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Abc_TtTruthIsConst0( word * p, int nWords ) { int w; for ( w = 0; w < nWords; w++ ) if ( p[w] != 0        ) return 0; return 1; }
+static inline int Abc_TtTruthIsConst1( word * p, int nWords ) { int w; for ( w = 0; w < nWords; w++ ) if ( p[w] != ~(word)0 ) return 0; return 1; }
+
+static inline int Abc_TtCof0IsConst0( word * t, int nWords, int iVar ) 
+{ 
+    if ( iVar < 6 )
+    {
+        int i;
+        for ( i = 0; i < nWords; i++ )
+            if ( t[i] & ~s_Truths6[iVar] )
+                return 0;
+        return 1;
+    }
+    else
+    {
+        int i, Step = (1 << (iVar - 6));
+        word * tLimit = t + nWords;
+        for ( ; t < tLimit; t += 2*Step )
+            for ( i = 0; i < Step; i++ )
+                if ( t[i] )
+                    return 0;
+        return 1;
+    }
+}
+static inline int Abc_TtCof0IsConst1( word * t, int nWords, int iVar ) 
+{ 
+    if ( iVar < 6 )
+    {
+        int i;
+        for ( i = 0; i < nWords; i++ )
+            if ( (t[i] & ~s_Truths6[iVar]) != ~s_Truths6[iVar] )
+                return 0;
+        return 1;
+    }
+    else
+    {
+        int i, Step = (1 << (iVar - 6));
+        word * tLimit = t + nWords;
+        for ( ; t < tLimit; t += 2*Step )
+            for ( i = 0; i < Step; i++ )
+                if ( t[i] != ~(word)0 )
+                    return 0;
+        return 1;
+    }
+}
+static inline int Abc_TtCof1IsConst0( word * t, int nWords, int iVar ) 
+{ 
+    if ( iVar < 6 )
+    {
+        int i;
+        for ( i = 0; i < nWords; i++ )
+            if ( t[i] & s_Truths6[iVar] )
+                return 0;
+        return 1;
+    }
+    else
+    {
+        int i, Step = (1 << (iVar - 6));
+        word * tLimit = t + nWords;
+        for ( ; t < tLimit; t += 2*Step )
+            for ( i = 0; i < Step; i++ )
+                if ( t[i+Step] )
+                    return 0;
+        return 1;
+    }
+}
+static inline int Abc_TtCof1IsConst1( word * t, int nWords, int iVar ) 
+{ 
+    if ( iVar < 6 )
+    {
+        int i;
+        for ( i = 0; i < nWords; i++ )
+            if ( (t[i] & s_Truths6[iVar]) != s_Truths6[iVar] )
+                return 0;
+        return 1;
+    }
+    else
+    {
+        int i, Step = (1 << (iVar - 6));
+        word * tLimit = t + nWords;
+        for ( ; t < tLimit; t += 2*Step )
+            for ( i = 0; i < Step; i++ )
+                if ( t[i+Step] != ~(word)0 )
+                    return 0;
+        return 1;
+    }
+}
+static inline int Abc_TtCofsOpposite( word * t, int nWords, int iVar ) 
+{ 
+    if ( iVar < 6 )
+    {
+        int i, Shift = (1 << iVar);
+        for ( i = 0; i < nWords; i++ )
+            if ( ((t[i] << Shift) & s_Truths6[iVar]) != (~t[i] & s_Truths6[iVar]) )
+                return 0;
+        return 1;
+    }
+    else
+    {
+        int i, Step = (1 << (iVar - 6));
+        word * tLimit = t + nWords;
+        for ( ; t < tLimit; t += 2*Step )
+            for ( i = 0; i < Step; i++ )
+                if ( t[i] != ~t[i+Step] )
+                    return 0;
+        return 1;
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Abc_TtCof0HasVar( word * t, int nWords, int iVarI, int iVarJ ) 
+{
+    assert( iVarI > iVarJ );
+    if ( iVarI < 6 )
+    {
+        int i, Shift = (1 << iVarJ);
+        for ( i = 0; i < nWords; i++ )
+            if ( (((t[i] & ~s_Truths6[iVarI]) << Shift) & s_Truths6[iVarJ]) != ((t[i] & ~s_Truths6[iVarI]) & s_Truths6[iVarJ]) )
+                return 0;
+        return 1;
+    }
+    else if ( iVarI == 6 )
+    {
+    }
+    else
+    {
+        int i, Step = (1 << (iVarJ - 6));
+        word * tLimit = t + nWords;
+        for ( ; t < tLimit; t += 2*Step )
+            for ( i = 0; i < Step; i++ )
+                if ( t[i] != t[i+Step] )
+                    return 0;
+        return 1;
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Dau_DsdMinimize( word * p, int * pVars, int nVars )
+{
+    int i, k;
+    assert( nVars > 6 );
+    for ( i = k = nVars - 1; i >= 0; i-- )
+    {
+        if ( Abc_TtHasVar( p, nVars, i ) )
+            continue;
+        if ( i < k )
+        {
+            pVars[i] = pVars[k];
+            Abc_TtSwapVars( p, nVars, i, k );
+        }
+        k--;
+        nVars--;
+    }
+    return nVars;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Dau_DsdRun6_rec( word * p, int * pVars, int nVars, char * pBuffer, int Pos, char pStore[16][16], int Func )
+{
+    return 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Dau_DsdRun_rec( word * p, int * pVars, int nVars, char * pBuffer, int Pos, char pStore[16][16], int Func )
+{
+    int v, nWords = Abc_TtWordNum( nVars );
+    nVars = Dau_DsdMinimize( p, pVars, nVars );
+    if ( nVars <= 6 )
+        return Dau_DsdRun6_rec( p, pVars, nVars, pBuffer, Pos, pStore, Func );
+    if ( p[0] & 1 )
+    {
+        // check for !(ax)
+        for ( v = 0; v < nVars; v++ )
+        if ( Abc_TtCof0IsConst0( p, nWords, v ) )
+        {
+            pBuffer[Pos++] = '(';
+            pBuffer[Pos++] = 'a' + pVars[v];
+            Abc_TtSwapVars( p, nVars, v, nVars - 1 );
+            pVars[v] = pVars[nVars-1];
+            Pos = Dau_DsdRun_rec( p + nWords/2, pVars, nVars-1, pBuffer, Pos, pStore, Func );
+            pBuffer[Pos++] = ')';
+            return Pos;
+        }
+    }
+    else
+    {
+        // check for ax
+        for ( v = 0; v < nVars; v++ )
+        if ( Abc_TtCof0IsConst1( p, nWords, v ) )
+        {
+            pBuffer[Pos++] = '!';
+            pBuffer[Pos++] = '(';
+            pBuffer[Pos++] = 'a' + pVars[v];
+            Abc_TtSwapVars( p, nVars, v, nVars - 1 );
+            pVars[v] = pVars[nVars-1];
+            Pos = Dau_DsdRun_rec( p + nWords/2, pVars, nVars-1, pBuffer, Pos, pStore, Func );
+            pBuffer[Pos++] = ')';
+            return Pos;
+        }
+    }
+    if ( (p[nWords-1] >> 63) & 1 )
+    {
+        // check for !(!ax)
+        for ( v = 0; v < nVars; v++ )
+        if ( Abc_TtCof0IsConst1( p, nWords, v ) )
+        {
+            pBuffer[Pos++] = '!';
+            pBuffer[Pos++] = '(';
+            pBuffer[Pos++] = '!';
+            pBuffer[Pos++] = 'a' + pVars[v];
+            Abc_TtSwapVars( p, nVars, v, nVars - 1 );
+            pVars[v] = pVars[nVars-1];
+            Pos = Dau_DsdRun_rec( p, pVars, nVars-1, pBuffer, Pos, pStore, Func );
+            pBuffer[Pos++] = ')';
+            return Pos;
+        }
+    }
+    else
+    {
+        // check for !ax
+        for ( v = 0; v < nVars; v++ )
+        if ( Abc_TtCof1IsConst0( p, nWords, v ) )
+        {
+            pBuffer[Pos++] = '(';
+            pBuffer[Pos++] = '!';
+            pBuffer[Pos++] = 'a' + pVars[v];
+            Abc_TtSwapVars( p, nVars, v, nVars - 1 );
+            pVars[v] = pVars[nVars-1];
+            Pos = Dau_DsdRun_rec( p, pVars, nVars-1, pBuffer, Pos, pStore, Func );
+            pBuffer[Pos++] = ')';
+            return Pos;
+        }
+    }
+    // check for a^x
+    for ( v = 0; v < nVars; v++ )
+    if ( Abc_TtCofsOpposite( p, nWords, v ) )
+    {
+        pBuffer[Pos++] = '[';
+        pBuffer[Pos++] = 'a' + pVars[v];
+        Abc_TtSwapVars( p, nVars, v, nVars - 1 );
+        pVars[v] = pVars[nVars-1];
+        Pos = Dau_DsdRun_rec( p, pVars, nVars-1, pBuffer, Pos, pStore, Func );
+        pBuffer[Pos++] = ']';
+        return Pos;
+    }
+
+    return 0;
+}
+
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+char * Dau_DsdRun( word * p, int nVars )
+{
+    static char pBuffer[DAU_MAX_STR+20];
+    static char pStore[16][16];
+    int nWords = Abc_TtWordNum( nVars );
+    int i, Pos = 0, Func = 0, pVars[16];
+    assert( nVars <= 16 );
+    for ( i = 0; i < nVars; i++ )
+        pVars[i] = i;
+    if ( Abc_TtTruthIsConst0( p, nWords ) )
+        pBuffer[Pos++] = '0';
+    else if ( Abc_TtTruthIsConst1( p, nWords ) )
+        pBuffer[Pos++] = '1';
+    else if ( nVars <= 6 )
+        Pos = Dau_DsdRun6_rec( p, pVars, nVars, pBuffer, Pos, pStore, Func );
+    else
+        Pos = Dau_DsdRun_rec( p, pVars, nVars, pBuffer, Pos, pStore, Func );
+    pBuffer[Pos++] = 0;
+    Dau_DsdCleanBraces( pBuffer );
+    return pBuffer;
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
