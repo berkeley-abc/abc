@@ -81,6 +81,7 @@ static word s_CMasks6[5] = {
 
 ***********************************************************************/
 static inline int  Abc_TtWordNum( int nVars ) { return nVars <= 6 ? 1 : 1 << (nVars-6); }
+static inline int  Abc_TtByteNum( int nVars ) { return nVars <= 3 ? 1 : 1 << (nVars-3); }
 
 /**Function*************************************************************
 
@@ -142,6 +143,22 @@ static inline int Abc_TtCompareRev( word * pIn1, word * pIn2, int nWords )
         if ( pIn1[w] != pIn2[w] )
             return (pIn1[w] < pIn2[w]) ? -1 : 1;
     return 0;
+}
+static inline int Abc_TtIsConst0( word * pIn1, int nWords )
+{
+    int w;
+    for ( w = 0; w < nWords; w++ )
+        if ( pIn1[w] )
+            return 0;
+    return 1;
+}
+static inline int Abc_TtIsConst1( word * pIn1, int nWords )
+{
+    int w;
+    for ( w = 0; w < nWords; w++ )
+        if ( ~pIn1[w] )
+            return 0;
+    return 1;
 }
 
  
@@ -499,6 +516,17 @@ static inline int Abc_Tt6Cof0IsConst1( word t, int iVar ) { return (t & s_Truths
 static inline int Abc_Tt6Cof1IsConst0( word t, int iVar ) { return (t & s_Truths6[iVar]) == 0;                                             }
 static inline int Abc_Tt6Cof1IsConst1( word t, int iVar ) { return (t & s_Truths6[iVar]) == s_Truths6[iVar];                               }
 static inline int Abc_Tt6CofsOpposite( word t, int iVar ) { return ((t >> (1 << iVar)) & s_Truths6Neg[iVar]) == (~t & s_Truths6Neg[iVar]); } 
+
+static inline word Abc_Tt6Cof0( word t, int iVar )
+{
+    assert( iVar >= 0 && iVar < 6 );
+    return (t &s_Truths6Neg[iVar]) | ((t &s_Truths6Neg[iVar]) << (1<<iVar));
+}
+static inline word Abc_Tt6Cof1( word t, int iVar )
+{
+    assert( iVar >= 0 && iVar < 6 );
+    return (t & s_Truths6[iVar]) | ((t & s_Truths6[iVar]) >> (1<<iVar));
+}
 
 /**Function*************************************************************
 
@@ -1073,7 +1101,10 @@ static inline void Abc_TtCountOnesInCofsSlow( word * pTruth, int nVars, int * pS
 ***********************************************************************/
 static inline unsigned Abc_TtSemiCanonicize( word * pTruth, int nVars, char * pCanonPerm )
 {
+    extern int Abc_TtCountOnesInCofsFast( word * pTruth, int nVars, int * pStore );
+
     int pStore[16];
+//    int pStore2[16];
     int nWords = Abc_TtWordNum( nVars );
     int i, k, BestK, Temp, nOnes;//, nSwaps = 0;//, fChange;
     unsigned  uCanonPhase = 0;
@@ -1087,8 +1118,13 @@ static inline unsigned Abc_TtSemiCanonicize( word * pTruth, int nVars, char * pC
         uCanonPhase |= (1 << nVars);
     }
     // normalize phase
-//    Abc_TtCountOnesInCofsSlow( pTruth, nVars, pStore );
-    Abc_TtCountOnesInCofs( pTruth, nVars, pStore );
+//    Abc_TtCountOnesInCofs( pTruth, nVars, pStore );
+    Abc_TtCountOnesInCofsFast( pTruth, nVars, pStore );
+
+//    Abc_TtCountOnesInCofsFast( pTruth, nVars, pStore2 );
+//    for ( i = 0; i < nVars; i++ )
+//        assert( pStore[i] == pStore2[i] );
+
     for ( i = 0; i < nVars; i++ )
     {
         if ( pStore[i] >= nOnes - pStore[i] )

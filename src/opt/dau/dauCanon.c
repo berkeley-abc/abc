@@ -526,6 +526,93 @@ void Abc_TtConfactorTest( word * pTruth, int nVars, int N )
 }
 
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_TtCountOnesInCofsFast6_rec( word Truth, int iVar, int nBytes, int * pStore )
+{
+    static int bit_count[256] = {
+      0,1,1,2,1,2,2,3,1,2,2,3,2,3,3,4,1,2,2,3,2,3,3,4,2,3,3,4,3,4,4,5,
+      1,2,2,3,2,3,3,4,2,3,3,4,3,4,4,5,2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,6,
+      1,2,2,3,2,3,3,4,2,3,3,4,3,4,4,5,2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,6,
+      2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,6,3,4,4,5,4,5,5,6,4,5,5,6,5,6,6,7,
+      1,2,2,3,2,3,3,4,2,3,3,4,3,4,4,5,2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,6,
+      2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,6,3,4,4,5,4,5,5,6,4,5,5,6,5,6,6,7,
+      2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,6,3,4,4,5,4,5,5,6,4,5,5,6,5,6,6,7,
+      3,4,4,5,4,5,5,6,4,5,5,6,5,6,6,7,4,5,5,6,5,6,6,7,5,6,6,7,6,7,7,8
+    };
+    int nMints0, nMints1;
+    if ( Truth == 0 )
+        return 0;
+    if ( ~Truth == 0 )
+    {
+        int i;
+        for ( i = 0; i <= iVar; i++ )
+            pStore[i] += nBytes * 4;
+        return nBytes * 8;
+    }
+    if ( nBytes == 1 )
+    {
+        assert( iVar == 2 );
+        pStore[0] += bit_count[ Truth & 0x55 ];
+        pStore[1] += bit_count[ Truth & 0x33 ];
+        pStore[2] += bit_count[ Truth & 0x0F ];
+        return bit_count[ Truth & 0xFF ];
+    }
+    nMints0 = Abc_TtCountOnesInCofsFast6_rec( Abc_Tt6Cof0(Truth, iVar), iVar - 1, nBytes/2, pStore );
+    nMints1 = Abc_TtCountOnesInCofsFast6_rec( Abc_Tt6Cof1(Truth, iVar), iVar - 1, nBytes/2, pStore );
+    pStore[iVar] += nMints0;
+    return nMints0 + nMints1;
+}
+
+int Abc_TtCountOnesInCofsFast_rec( word * pTruth, int iVar, int nWords, int * pStore )
+{
+    int nMints0, nMints1;
+    if ( nWords == 1 )
+    {
+        assert( iVar == 5 );
+        return Abc_TtCountOnesInCofsFast6_rec( pTruth[0], iVar, 8, pStore );
+    }
+    assert( nWords > 1 );
+    assert( iVar > 5 );
+    if ( pTruth[0] & 1 )
+    {
+        if ( Abc_TtIsConst1( pTruth, nWords ) )
+        {
+            int i;
+            for ( i = 0; i <= iVar; i++ )
+                pStore[i] += nWords * 32;
+            return nWords * 64;
+        }
+    }
+    else 
+    {
+        if ( Abc_TtIsConst0( pTruth, nWords ) )
+            return 0;
+    }
+    nMints0 = Abc_TtCountOnesInCofsFast_rec( pTruth,            iVar - 1, nWords/2, pStore );
+    nMints1 = Abc_TtCountOnesInCofsFast_rec( pTruth + nWords/2, iVar - 1, nWords/2, pStore );
+    pStore[iVar] += nMints0;
+    return nMints0 + nMints1;
+}
+int Abc_TtCountOnesInCofsFast( word * pTruth, int nVars, int * pStore )
+{
+    memset( pStore, 0, sizeof(int) * nVars );
+    assert( nVars >= 3 );
+    if ( nVars <= 6 )
+        return Abc_TtCountOnesInCofsFast6_rec( pTruth[0], nVars - 1, Abc_TtByteNum( nVars ), pStore );
+    else
+        return Abc_TtCountOnesInCofsFast_rec( pTruth, nVars - 1, Abc_TtWordNum( nVars ), pStore );
+}
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
