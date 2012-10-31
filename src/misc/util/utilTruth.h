@@ -642,7 +642,7 @@ static inline void Abc_TtPrintDigit( int Digit )
 static inline void Abc_TtPrintHex( word * pTruth, int nVars )
 {
     word * pThis, * pLimit = pTruth + Abc_TtWordNum(nVars);
-    int k, nDigits = 1 << (nVars-2);
+    int k;
     assert( nVars >= 2 );
     for ( pThis = pTruth; pThis < pLimit; pThis++ )
         for ( k = 0; k < 16; k++ )
@@ -652,7 +652,7 @@ static inline void Abc_TtPrintHex( word * pTruth, int nVars )
 static inline void Abc_TtPrintHexRev( word * pTruth, int nVars )
 {
     word * pThis;
-    int k, nDigits = 1 << (nVars-2);
+    int k;
     assert( nVars >= 2 );
     for ( pThis = pTruth + Abc_TtWordNum(nVars) - 1; pThis >= pTruth; pThis-- )
         for ( k = 15; k >= 0; k-- )
@@ -662,7 +662,7 @@ static inline void Abc_TtPrintHexRev( word * pTruth, int nVars )
 static inline void Abc_TtPrintHexSpecial( word * pTruth, int nVars )
 {
     word * pThis;
-    int k, nDigits = 1 << (nVars-2);
+    int k;
     assert( nVars >= 2 );
     for ( pThis = pTruth + Abc_TtWordNum(nVars) - 1; pThis >= pTruth; pThis-- )
         for ( k = 0; k < 16; k++ )
@@ -685,7 +685,7 @@ static inline void Abc_TtPrintHexSpecial( word * pTruth, int nVars )
 static inline void Abc_TtPrintBinary( word * pTruth, int nVars )
 {
     word * pThis, * pLimit = pTruth + Abc_TtWordNum(nVars);
-    int k, nDigits = 1 << (nVars-2);
+    int k;
     assert( nVars >= 2 );
     for ( pThis = pTruth; pThis < pLimit; pThis++ )
         for ( k = 0; k < 64; k++ )

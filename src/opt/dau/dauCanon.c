@@ -74,7 +74,7 @@ void Abc_TtConfactorTest7( word * pTruth, int nVars, int N )
 {
     word Cof[4][1024];
     int i, nWords = Abc_TtWordNum( nVars );
-    int Counter = 0;
+//    int Counter = 0;
     for ( i = 0; i < nVars-1; i++ )
     {
         Abc_TtCopy( Cof[0], pTruth, nWords, 0 );
@@ -221,7 +221,7 @@ void Abc_TtConfactorTest4( word * pTruth, int nVars, int N )
 {
     word Cof[4][1024];
     int i, j, nWords = Abc_TtWordNum( nVars );
-    int Counter = 0, Sum = 0;
+    int Sum = 0;
     for ( i = 0; i < nVars-1; i++ )
     for ( j = i+1; j < nVars; j++ )
     {
@@ -508,7 +508,7 @@ void Abc_TtConfactorTest10( word * pTruth, int nVars, int N )
 void Abc_TtConfactorTest( word * pTruth, int nVars, int N )
 {
     char pCanonPerm[32];
-    static word pCopy1[1024];
+//    static word pCopy1[1024];
     static word pCopy2[1024];
     int nWords = Abc_TtWordNum( nVars );
 
