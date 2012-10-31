@@ -1004,8 +1004,6 @@ static inline int Abc_TtCountOnesSlow( word t )
 }
 static inline int Abc_TtCountOnes( word x )
 {
-    if ( x == 0 )
-        return 0;
     x = x - ((x >> 1) & 0x5555555555555555);   
     x = (x & 0x3333333333333333) + ((x >> 2) & 0x3333333333333333);    
     x = (x + (x >> 4)) & 0x0F0F0F0F0F0F0F0F;    
@@ -1031,17 +1029,20 @@ static inline int Abc_TtCountOnesInTruth( word * pTruth, int nVars )
     int nWords = Abc_TtWordNum( nVars );
     int k, Counter = 0;
     for ( k = 0; k < nWords; k++ )
-        Counter += Abc_TtCountOnes( pTruth[k] );
+        if ( pTruth[k] )
+            Counter += Abc_TtCountOnes( pTruth[k] );
     return Counter;
 }
 static inline void Abc_TtCountOnesInCofs( word * pTruth, int nVars, int * pStore )
 {
+    word Temp;
     int i, k, Counter, nWords;
     memset( pStore, 0, sizeof(int) * nVars );
     if ( nVars <= 6 )
     {
         for ( i = 0; i < nVars; i++ )
-            pStore[i] = Abc_TtCountOnes( pTruth[0] & s_Truths6Neg[i] );
+            if ( pTruth[0] & s_Truths6Neg[i] )
+                pStore[i] = Abc_TtCountOnes( pTruth[0] & s_Truths6Neg[i] );
         return;
     }
     assert( nVars > 6 );
@@ -1050,17 +1051,25 @@ static inline void Abc_TtCountOnesInCofs( word * pTruth, int nVars, int * pStore
     {
         // count 1's for the first six variables
         for ( i = 0; i < 6; i++ )
-            pStore[i] += Abc_TtCountOnes( (pTruth[k] & s_Truths6Neg[i]) | ((pTruth[k+1] & s_Truths6Neg[i]) << (1 << i)) );
+            if ( (Temp = (pTruth[k] & s_Truths6Neg[i]) | ((pTruth[k+1] & s_Truths6Neg[i]) << (1 << i))) )
+                pStore[i] += Abc_TtCountOnes( Temp );
         // count 1's for all other variables
-        Counter = Abc_TtCountOnes( pTruth[k] );
-        for ( i = 6; i < nVars; i++ )
-            if ( (k & (1 << (i-6))) == 0 )
-                pStore[i] += Counter;
+        if ( pTruth[k] )
+        {
+            Counter = Abc_TtCountOnes( pTruth[k] );
+            for ( i = 6; i < nVars; i++ )
+                if ( (k & (1 << (i-6))) == 0 )
+                    pStore[i] += Counter;
+        }
+        k++;
         // count 1's for all other variables
-        Counter = Abc_TtCountOnes( pTruth[++k] );
-        for ( i = 6; i < nVars; i++ )
-            if ( (k & (1 << (i-6))) == 0 )
-                pStore[i] += Counter;
+        if ( pTruth[k] )
+        {
+            Counter = Abc_TtCountOnes( pTruth[k] );
+            for ( i = 6; i < nVars; i++ )
+                if ( (k & (1 << (i-6))) == 0 )
+                    pStore[i] += Counter;
+        }
     } 
 }
 static inline void Abc_TtCountOnesInCofsSlow( word * pTruth, int nVars, int * pStore )
