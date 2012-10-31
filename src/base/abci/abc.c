@@ -171,7 +171,6 @@ static int Abc_CommandNpnSave                ( Abc_Frame_t * pAbc, int argc, cha
 
 static int Abc_CommandSendAig                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandSendStatus             ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandSendCex                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandIStrash                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandICut                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -629,7 +628,6 @@ void Abc_Init( Abc_Frame_t * pAbc )
 
     Cmd_CommandAdd( pAbc, "Various",      "send_aig",      Abc_CommandSendAig,          0 );
     Cmd_CommandAdd( pAbc, "Various",      "send_status",   Abc_CommandSendStatus,       0 );
-    Cmd_CommandAdd( pAbc, "Various",      "send_cex",      Abc_CommandSendCex,          0 );
 
     Cmd_CommandAdd( pAbc, "New AIG",      "istrash",       Abc_CommandIStrash,          1 );
     Cmd_CommandAdd( pAbc, "New AIG",      "icut",          Abc_CommandICut,             0 );
@@ -11749,53 +11747,6 @@ usage:
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Abc_CommandSendCex( Abc_Frame_t * pAbc, int argc, char ** argv )
-{
-    extern void Gia_ManFromBridgeCex( FILE * pFile, Abc_Cex_t * pCex );
-    int c;
-    Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "" ) ) != EOF )
-    {
-        switch ( c )
-        {
-        case 'h':
-            goto usage;
-        default:
-            goto usage;
-        }
-    }
-    if ( !Abc_FrameIsBridgeMode() )
-    {
-        Abc_Print( -1, "The bridge mode is not available.\n" );
-        return 1;
-    }
-    if ( pAbc->pCex == NULL )
-    {
-        Abc_Print( -1, "Current CEX is not available.\n" );
-        return 1;
-    }
-    Gia_ManFromBridgeCex( stdout, pAbc->pCex );
-    return 0;
-
-usage:
-    Abc_Print( -2, "usage: send_cex\n" );
-    Abc_Print( -2, "\t         sends current CEX to the bridge\n" );
-    Abc_Print( -2, "\t-h     : print the command usage\n");
-    return 1;
-}
-
 
 
 /**Function*************************************************************
