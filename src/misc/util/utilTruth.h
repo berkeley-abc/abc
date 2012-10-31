@@ -1004,6 +1004,8 @@ static inline int Abc_TtCountOnesSlow( word t )
 }
 static inline int Abc_TtCountOnes( word x )
 {
+    if ( x == 0 )
+        return 0;
     x = x - ((x >> 1) & 0x5555555555555555);   
     x = (x & 0x3333333333333333) + ((x >> 2) & 0x3333333333333333);    
     x = (x + (x >> 4)) & 0x0F0F0F0F0F0F0F0F;    
@@ -1118,8 +1120,8 @@ static inline unsigned Abc_TtSemiCanonicize( word * pTruth, int nVars, char * pC
         uCanonPhase |= (1 << nVars);
     }
     // normalize phase
-//    Abc_TtCountOnesInCofs( pTruth, nVars, pStore );
-    Abc_TtCountOnesInCofsFast( pTruth, nVars, pStore );
+    Abc_TtCountOnesInCofs( pTruth, nVars, pStore );
+//    Abc_TtCountOnesInCofsFast( pTruth, nVars, pStore );
 
 //    Abc_TtCountOnesInCofsFast( pTruth, nVars, pStore2 );
 //    for ( i = 0; i < nVars; i++ )
