@@ -1075,7 +1075,7 @@ static inline unsigned Abc_TtSemiCanonicize( word * pTruth, int nVars, char * pC
 {
     int pStore[16];
     int nWords = Abc_TtWordNum( nVars );
-    int i, Temp, fChange, nOnes;
+    int i, k, BestK, Temp, nOnes;//, nSwaps = 0;//, fChange;
     unsigned  uCanonPhase = 0;
     assert( nVars <= 16 );
     // normalize polarity    
@@ -1087,6 +1087,7 @@ static inline unsigned Abc_TtSemiCanonicize( word * pTruth, int nVars, char * pC
         uCanonPhase |= (1 << nVars);
     }
     // normalize phase
+//    Abc_TtCountOnesInCofsSlow( pTruth, nVars, pStore );
     Abc_TtCountOnesInCofs( pTruth, nVars, pStore );
     for ( i = 0; i < nVars; i++ )
     {
@@ -1096,7 +1097,7 @@ static inline unsigned Abc_TtSemiCanonicize( word * pTruth, int nVars, char * pC
         uCanonPhase |= (1 << i);
         pStore[i] = nOnes - pStore[i]; 
     }
-    
+/*
     do {
         fChange = 0;
         for ( i = 0; i < nVars-1; i++ )
@@ -1119,8 +1120,44 @@ static inline unsigned Abc_TtSemiCanonicize( word * pTruth, int nVars, char * pC
             }
             Abc_TtSwapAdjacent( pTruth, nWords, i );            
             fChange = 1;
+//            nSwaps++;
         }
     } while ( fChange );
+*/
+
+    for ( i = 0; i < nVars - 1; i++ )
+    {
+        BestK = i + 1;
+        for ( k = i + 2; k < nVars; k++ )
+            if ( pStore[BestK] > pStore[k] )
+                BestK = k;
+        if ( pStore[BestK] >= pStore[i] )
+            continue;
+           
+        Temp = pCanonPerm[i];
+        pCanonPerm[i] = pCanonPerm[BestK];
+        pCanonPerm[BestK] = Temp;
+        
+        Temp = pStore[i];
+        pStore[i] = pStore[BestK];
+        pStore[BestK] = Temp;
+        
+        if ( ((uCanonPhase >> i) & 1) != ((uCanonPhase >> BestK) & 1) )
+        {
+            uCanonPhase ^= (1 << i);
+            uCanonPhase ^= (1 << BestK);
+        }
+        Abc_TtSwapVars( pTruth, nVars, i, BestK );
+//        nSwaps++;
+    }
+/*
+    printf( "%d ", nSwaps );
+
+    printf( "Minterms: " );
+    for ( i = 0; i < nVars; i++ )
+        printf( "%d ", pStore[i] );
+    printf( "\n" );
+*/
     return uCanonPhase;
 }
 
