@@ -198,6 +198,7 @@ typedef unsigned __int64 ABC_UINT64_T;
 #endif /* defined(PLATFORM) */
 
 typedef ABC_UINT64_T word;
+typedef ABC_INT64_T iword;
 
 ////////////////////////////////////////////////////////////////////////
 ///                      MACRO DEFINITIONS                           ///

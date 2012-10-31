@@ -478,163 +478,6 @@ void Dau_DsdTestOne( word t, int i )
   SeeAlso     []
 
 ***********************************************************************/
-static inline int Abc_TtTruthIsConst0( word * p, int nWords ) { int w; for ( w = 0; w < nWords; w++ ) if ( p[w] != 0        ) return 0; return 1; }
-static inline int Abc_TtTruthIsConst1( word * p, int nWords ) { int w; for ( w = 0; w < nWords; w++ ) if ( p[w] != ~(word)0 ) return 0; return 1; }
-
-static inline int Abc_TtCof0IsConst0( word * t, int nWords, int iVar ) 
-{ 
-    if ( iVar < 6 )
-    {
-        int i;
-        for ( i = 0; i < nWords; i++ )
-            if ( t[i] & ~s_Truths6[iVar] )
-                return 0;
-        return 1;
-    }
-    else
-    {
-        int i, Step = (1 << (iVar - 6));
-        word * tLimit = t + nWords;
-        for ( ; t < tLimit; t += 2*Step )
-            for ( i = 0; i < Step; i++ )
-                if ( t[i] )
-                    return 0;
-        return 1;
-    }
-}
-static inline int Abc_TtCof0IsConst1( word * t, int nWords, int iVar ) 
-{ 
-    if ( iVar < 6 )
-    {
-        int i;
-        for ( i = 0; i < nWords; i++ )
-            if ( (t[i] & ~s_Truths6[iVar]) != ~s_Truths6[iVar] )
-                return 0;
-        return 1;
-    }
-    else
-    {
-        int i, Step = (1 << (iVar - 6));
-        word * tLimit = t + nWords;
-        for ( ; t < tLimit; t += 2*Step )
-            for ( i = 0; i < Step; i++ )
-                if ( t[i] != ~(word)0 )
-                    return 0;
-        return 1;
-    }
-}
-static inline int Abc_TtCof1IsConst0( word * t, int nWords, int iVar ) 
-{ 
-    if ( iVar < 6 )
-    {
-        int i;
-        for ( i = 0; i < nWords; i++ )
-            if ( t[i] & s_Truths6[iVar] )
-                return 0;
-        return 1;
-    }
-    else
-    {
-        int i, Step = (1 << (iVar - 6));
-        word * tLimit = t + nWords;
-        for ( ; t < tLimit; t += 2*Step )
-            for ( i = 0; i < Step; i++ )
-                if ( t[i+Step] )
-                    return 0;
-        return 1;
-    }
-}
-static inline int Abc_TtCof1IsConst1( word * t, int nWords, int iVar ) 
-{ 
-    if ( iVar < 6 )
-    {
-        int i;
-        for ( i = 0; i < nWords; i++ )
-            if ( (t[i] & s_Truths6[iVar]) != s_Truths6[iVar] )
-                return 0;
-        return 1;
-    }
-    else
-    {
-        int i, Step = (1 << (iVar - 6));
-        word * tLimit = t + nWords;
-        for ( ; t < tLimit; t += 2*Step )
-            for ( i = 0; i < Step; i++ )
-                if ( t[i+Step] != ~(word)0 )
-                    return 0;
-        return 1;
-    }
-}
-static inline int Abc_TtCofsOpposite( word * t, int nWords, int iVar ) 
-{ 
-    if ( iVar < 6 )
-    {
-        int i, Shift = (1 << iVar);
-        for ( i = 0; i < nWords; i++ )
-            if ( ((t[i] << Shift) & s_Truths6[iVar]) != (~t[i] & s_Truths6[iVar]) )
-                return 0;
-        return 1;
-    }
-    else
-    {
-        int i, Step = (1 << (iVar - 6));
-        word * tLimit = t + nWords;
-        for ( ; t < tLimit; t += 2*Step )
-            for ( i = 0; i < Step; i++ )
-                if ( t[i] != ~t[i+Step] )
-                    return 0;
-        return 1;
-    }
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-static inline int Abc_TtCof0HasVar( word * t, int nWords, int iVarI, int iVarJ ) 
-{
-    assert( iVarI > iVarJ );
-    if ( iVarI < 6 )
-    {
-        int i, Shift = (1 << iVarJ);
-        for ( i = 0; i < nWords; i++ )
-            if ( (((t[i] & ~s_Truths6[iVarI]) << Shift) & s_Truths6[iVarJ]) != ((t[i] & ~s_Truths6[iVarI]) & s_Truths6[iVarJ]) )
-                return 0;
-        return 1;
-    }
-    else if ( iVarI == 6 )
-    {
-    }
-    else
-    {
-        int i, Step = (1 << (iVarJ - 6));
-        word * tLimit = t + nWords;
-        for ( ; t < tLimit; t += 2*Step )
-            for ( i = 0; i < Step; i++ )
-                if ( t[i] != t[i+Step] )
-                    return 0;
-        return 1;
-    }
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
 int Dau_DsdMinimize( word * p, int * pVars, int nVars )
 {
     int i, k;
@@ -683,28 +526,14 @@ int Dau_DsdRun6_rec( word * p, int * pVars, int nVars, char * pBuffer, int Pos, 
 ***********************************************************************/
 int Dau_DsdRun_rec( word * p, int * pVars, int nVars, char * pBuffer, int Pos, char pStore[16][16], int Func )
 {
-    int v, nWords = Abc_TtWordNum( nVars );
+    int v, u, nWords = Abc_TtWordNum( nVars );
     nVars = Dau_DsdMinimize( p, pVars, nVars );
     if ( nVars <= 6 )
         return Dau_DsdRun6_rec( p, pVars, nVars, pBuffer, Pos, pStore, Func );
+    // consider negative cofactors
     if ( p[0] & 1 )
     {
         // check for !(ax)
-        for ( v = 0; v < nVars; v++ )
-        if ( Abc_TtCof0IsConst0( p, nWords, v ) )
-        {
-            pBuffer[Pos++] = '(';
-            pBuffer[Pos++] = 'a' + pVars[v];
-            Abc_TtSwapVars( p, nVars, v, nVars - 1 );
-            pVars[v] = pVars[nVars-1];
-            Pos = Dau_DsdRun_rec( p + nWords/2, pVars, nVars-1, pBuffer, Pos, pStore, Func );
-            pBuffer[Pos++] = ')';
-            return Pos;
-        }
-    }
-    else
-    {
-        // check for ax
         for ( v = 0; v < nVars; v++ )
         if ( Abc_TtCof0IsConst1( p, nWords, v ) )
         {
@@ -718,6 +547,22 @@ int Dau_DsdRun_rec( word * p, int * pVars, int nVars, char * pBuffer, int Pos, c
             return Pos;
         }
     }
+    else
+    {
+        // check for ax
+        for ( v = 0; v < nVars; v++ )
+        if ( Abc_TtCof0IsConst0( p, nWords, v ) )
+        {
+            pBuffer[Pos++] = '(';
+            pBuffer[Pos++] = 'a' + pVars[v];
+            Abc_TtSwapVars( p, nVars, v, nVars - 1 );
+            pVars[v] = pVars[nVars-1];
+            Pos = Dau_DsdRun_rec( p + nWords/2, pVars, nVars-1, pBuffer, Pos, pStore, Func );
+            pBuffer[Pos++] = ')';
+            return Pos;
+        }
+    }
+    // consider positive cofactors
     if ( (p[nWords-1] >> 63) & 1 )
     {
         // check for !(!ax)
@@ -764,7 +609,85 @@ int Dau_DsdRun_rec( word * p, int * pVars, int nVars, char * pBuffer, int Pos, c
         return Pos;
     }
 
-    return 0;
+    // consider two-variable cofactors
+    for ( v = nVars - 1; v > 0; v-- )
+    {
+        unsigned uSupp0 = 0, uSupp1 = 0;
+        for ( u = v - 1; u >= 0; u-- )
+        {
+            if ( Abc_TtCheckEqualCofs( p, nWords, u, v, 0, 1 ) )
+            {
+                uSupp0 |= (1 << u);
+                if ( Abc_TtCheckEqualCofs( p, nWords, u, v, 2, 3 ) )
+                {
+                    uSupp1 |= (1 << u);
+                    // check XOR decomposition
+                    if ( Abc_TtCheckEqualCofs( p, nWords, u, v, 0, 3 ) && Abc_TtCheckEqualCofs( p, nWords, u, v, 1, 2 ) )
+                    {
+                        // perform XOR (u, v)
+                        return Pos;
+                    }
+                }
+                else
+                {
+                    // F(v=0) does not depend on u; F(v=1) depends on u
+                    if ( Abc_TtCheckEqualCofs( p, nWords, u, v, 0, 2 ) )
+                    {
+                        // perform AND (u, v)
+                        return Pos;
+                    }
+                    if ( Abc_TtCheckEqualCofs( p, nWords, u, v, 0, 3 ) )
+                    {
+                        // perform AND (u, v)
+                        return Pos;
+                    }
+                }
+            }
+            else if ( Abc_TtCheckEqualCofs( p, nWords, u, v, 2, 3 ) )
+            {
+                uSupp1 |= (1 << u);
+                // F(v=0) depends on u; F(v=1) does not depend on u
+                if ( Abc_TtCheckEqualCofs( p, nWords, u, v, 0, 2 ) )
+                {
+                    // perform AND (u, v)
+                    return Pos;
+                }
+                if ( Abc_TtCheckEqualCofs( p, nWords, u, v, 1, 2 ) )
+                {
+                    // perform AND (u, v)
+                    return Pos;
+                }
+            }
+            else assert( 0 );
+        }
+        // check MUX decomposition w.r.t. u
+        if ( (uSupp0 & uSupp1) == 0 )
+        {
+            // perform MUX( v, F(v=1), F(v=0) )
+        }
+        // check MUX decomposition w.r.t. u
+        if ( Abc_TtSuppOnlyOne( uSupp0 & ~uSupp1 ) && Abc_TtSuppOnlyOne( ~uSupp0 & uSupp1 ) )
+        {
+            // check MUX 
+            int iVar0 = Abc_TtSuppFindFirst( uSupp0 );
+            int iVar1 = Abc_TtSuppFindFirst( uSupp1 );
+            int fEqual0, fEqual1;
+
+            if ( iVar0 > iVar1 )
+                ABC_SWAP( int, iVar0, iVar1 );
+
+            // check existence conditions
+            assert( iVar0 < iVar1 );
+            fEqual0 = Abc_TtCheckEqualCofs( p, nWords, iVar0, iVar1, 0, 2 ) && Abc_TtCheckEqualCofs( p, nWords, iVar0, iVar1, 1, 3 );
+            fEqual1 = Abc_TtCheckEqualCofs( p, nWords, iVar0, iVar1, 0, 3 ) && Abc_TtCheckEqualCofs( p, nWords, iVar0, iVar1, 1, 2 );
+            if ( fEqual0 || fEqual1 )
+            {
+                // perform MUX( v, F(v=1), F(v=0) )
+                return Pos;
+            }
+        }
+    }
+    return Pos;
 }
 
 

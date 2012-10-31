@@ -561,6 +561,24 @@ void Extra_PrintHex( FILE * pFile, unsigned * pTruth, int nVars )
     }
 //    fprintf( pFile, "\n" );
 }
+void Extra_PrintHexReverse( FILE * pFile, unsigned * pTruth, int nVars )
+{
+    int nMints, nDigits, Digit, k;
+
+    // write the number into the file
+    fprintf( pFile, "0x" );
+    nMints  = (1 << nVars);
+    nDigits = nMints / 4;
+    for ( k = 0; k < nDigits; k++ )
+    {
+        Digit = ((pTruth[k/8] >> (k * 4)) & 15);
+        if ( Digit < 10 )
+            fprintf( pFile, "%d", Digit );
+        else
+            fprintf( pFile, "%c", 'A' + Digit-10 );
+    }
+//    fprintf( pFile, "\n" );
+}
 
 /**Function*************************************************************
 

@@ -119,6 +119,7 @@ extern int          Extra_ReadHexadecimal( unsigned Sign[], char * pString, int 
 extern void         Extra_PrintHexadecimal( FILE * pFile, unsigned Sign[], int nVars );
 extern void         Extra_PrintHexadecimalString( char * pString, unsigned Sign[], int nVars );
 extern void         Extra_PrintHex( FILE * pFile, unsigned * pTruth, int nVars );
+extern void         Extra_PrintHexReverse( FILE * pFile, unsigned * pTruth, int nVars );
 extern void         Extra_PrintSymbols( FILE * pFile, char Char, int nTimes, int fPrintNewLine );
 
 /*=== extraUtilReader.c ========================================================*/

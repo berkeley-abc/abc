@@ -1975,6 +1975,10 @@ SOURCE=.\src\opt\dau\dau.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\opt\dau\dauCanon.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\opt\dau\dauCore.c
 # End Source File
 # Begin Source File
