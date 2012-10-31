@@ -33,6 +33,7 @@ ABC_NAMESPACE_IMPL_START
 
 #define BRIDGE_TEXT_MESSAGE   999996
 #define BRIDGE_RESULTS           101
+#define BRIDGE_NETLIST           106
 #define BRIDGE_ABS_NETLIST       107
 #define BRIDGE_BAD_ABS           105
 
@@ -150,11 +151,11 @@ int Gia_ManToBridgeText( FILE * pFile, int Size, unsigned char * pBuffer )
     Gia_CreateHeader( pFile, BRIDGE_TEXT_MESSAGE, Size, pBuffer );
     return 1;
 }
-int Gia_ManToBridgeAbsNetlist( FILE * pFile, Gia_Man_t * p )
+int Gia_ManToBridgeAbsNetlist( FILE * pFile, Gia_Man_t * p, int pkg_type )
 {
     Vec_Str_t * vBuffer;
     vBuffer = Gia_ManToBridgeVec( p );
-    Gia_CreateHeader( pFile, BRIDGE_ABS_NETLIST, Vec_StrSize(vBuffer), (unsigned char *)Vec_StrArray(vBuffer) );
+    Gia_CreateHeader( pFile, pkg_type, Vec_StrSize(vBuffer), (unsigned char *)Vec_StrArray(vBuffer) );
     Vec_StrFree( vBuffer );
     return 1;
 }
@@ -359,7 +360,7 @@ Gia_Man_t *  Gia_ManFromBridgeReadBody( int Size, unsigned char * pBuffer, Vec_I
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -449,7 +450,7 @@ Gia_Man_t * Gia_ManFromBridge( FILE * pFile, Vec_Int_t ** pvInit )
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManToBridgeAbsNetlistTest( char * pFileName, Gia_Man_t * p )
+void Gia_ManToBridgeAbsNetlistTest( char * pFileName, Gia_Man_t * p, int msg_type )
 {
     FILE * pFile = fopen( pFileName, "wb" );
     if ( pFile == NULL )
@@ -457,7 +458,7 @@ void Gia_ManToBridgeAbsNetlistTest( char * pFileName, Gia_Man_t * p )
         printf( "Cannot open output file \"%s\".\n", pFileName );
         return;
     }
-    Gia_ManToBridgeAbsNetlist( pFile, p );
+    Gia_ManToBridgeAbsNetlist( pFile, p, msg_type );
     fclose ( pFile );
 }
 
@@ -488,7 +489,7 @@ void Gia_ManFromBridgeTest( char * pFileName )
     Gia_ManPrintStats( p, 0, 0 );
     Gia_WriteAiger( p, "temp.aig", 0, 0 );
 
-    Gia_ManToBridgeAbsNetlistTest( "par_.dump", p );
+    Gia_ManToBridgeAbsNetlistTest( "par_.dump", p, BRIDGE_ABS_NETLIST );
     Gia_ManStop( p );
 }
 

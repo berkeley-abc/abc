@@ -276,10 +276,19 @@ static inline void Abc_Print( int level, const char * format, ... )
 {
     extern ABC_DLL int Abc_FrameIsBridgeMode();
     va_list args;
-    if ( level == ABC_ERROR )
-        printf( "Error: " );
-    else if ( level == ABC_WARNING )
-        printf( "Warning: " );
+
+    if ( ! Abc_FrameIsBridgeMode() ){
+        if ( level == ABC_ERROR )
+            printf( "Error: " );
+        else if ( level == ABC_WARNING )
+            printf( "Warning: " );
+    }else{
+        if ( level == ABC_ERROR )
+            Gia_ManToBridgeText( stdout, strlen("Error: "), (unsigned char*)"Error: " );
+        else if ( level == ABC_WARNING )
+            Gia_ManToBridgeText( stdout, strlen("Warning: "), (unsigned char*)"Warning: " );
+    }
+
     va_start( args, format );
     if ( Abc_FrameIsBridgeMode() )
     {

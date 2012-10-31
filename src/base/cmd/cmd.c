@@ -17,9 +17,9 @@
   Revision    [$Id: cmd.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
- 
+
 #ifdef WIN32
-#include <process.h> 
+#include <process.h>
 #else
 #include <unistd.h>
 #endif
@@ -75,7 +75,7 @@ extern int Cmd_CommandAbcLoadPlugIn( Abc_Frame_t * pAbc, int argc, char ** argv 
 
 ******************************************************************************/
 void Cmd_Init( Abc_Frame_t * pAbc )
-{ 
+{
     pAbc->tCommands = st__init_table(strcmp, st__strhash);
     pAbc->tAliases  = st__init_table(strcmp, st__strhash);
     pAbc->tFlags    = st__init_table(strcmp, st__strhash);
@@ -92,18 +92,18 @@ void Cmd_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Basic", "source",        CmdCommandSource,          0 );
     Cmd_CommandAdd( pAbc, "Basic", "set",           CmdCommandSetVariable,     0 );
     Cmd_CommandAdd( pAbc, "Basic", "unset",         CmdCommandUnsetVariable,   0 );
-    Cmd_CommandAdd( pAbc, "Basic", "undo",          CmdCommandUndo,            0 ); 
-    Cmd_CommandAdd( pAbc, "Basic", "recall",        CmdCommandRecall,          0 ); 
-    Cmd_CommandAdd( pAbc, "Basic", "empty",         CmdCommandEmpty,           0 ); 
+    Cmd_CommandAdd( pAbc, "Basic", "undo",          CmdCommandUndo,            0 );
+    Cmd_CommandAdd( pAbc, "Basic", "recall",        CmdCommandRecall,          0 );
+    Cmd_CommandAdd( pAbc, "Basic", "empty",         CmdCommandEmpty,           0 );
 #if defined(WIN32) && !defined(__cplusplus)
     Cmd_CommandAdd( pAbc, "Basic", "ls",            CmdCommandLs,              0 );
     Cmd_CommandAdd( pAbc, "Basic", "scrgen",        CmdCommandScrGen,          0 );
 #endif
-    Cmd_CommandAdd( pAbc, "Basic", "version",       CmdCommandVersion,         0 ); 
+    Cmd_CommandAdd( pAbc, "Basic", "version",       CmdCommandVersion,         0 );
 
-    Cmd_CommandAdd( pAbc, "Various", "sis",         CmdCommandSis,             1 ); 
-    Cmd_CommandAdd( pAbc, "Various", "mvsis",       CmdCommandMvsis,           1 ); 
-    Cmd_CommandAdd( pAbc, "Various", "capo",        CmdCommandCapo,            0 ); 
+    Cmd_CommandAdd( pAbc, "Various", "sis",         CmdCommandSis,             1 );
+    Cmd_CommandAdd( pAbc, "Various", "mvsis",       CmdCommandMvsis,           1 );
+    Cmd_CommandAdd( pAbc, "Various", "capo",        CmdCommandCapo,            0 );
     Cmd_CommandAdd( pAbc, "Various", "starter",     CmdCommandStarter,         0 );
 
     Cmd_CommandAdd( pAbc, "Various", "load_plugin", Cmd_CommandAbcLoadPlugIn,  0 );
@@ -193,7 +193,7 @@ int CmdCommandTime( Abc_Frame_t * pAbc, int argc, char **argv )
 
 
     pAbc->TimeTotal += pAbc->TimeCommand;
-    fprintf( pAbc->Out, "elapse: %3.2f seconds, total: %3.2f seconds\n", 
+    fprintf( pAbc->Out, "elapse: %3.2f seconds, total: %3.2f seconds\n",
         pAbc->TimeCommand, pAbc->TimeTotal );
 /*
     {
@@ -247,12 +247,20 @@ int CmdCommandEcho( Abc_Frame_t * pAbc, int argc, char **argv )
         }
     }
 
-    for ( i = globalUtilOptind; i < argc; i++ )
-        fprintf( pAbc->Out, "%s ", argv[i] );
-    if ( n )
-        fprintf( pAbc->Out, "\n" );
-    else
+    if (pAbc->Out == stdout){
+        for ( i = globalUtilOptind; i < argc; i++ )
+            Abc_Print( 1, "%s ", argv[i] );
+        if ( n )
+            Abc_Print( 1, "\n" );
+
+    }else{
+        for ( i = globalUtilOptind; i < argc; i++ )
+            fprintf( pAbc->Out, "%s ", argv[i] );
+        if ( n )
+            fprintf( pAbc->Out, "\n" );
+
         fflush ( pAbc->Out );
+    }
     return 0;
 
   usage:
@@ -427,7 +435,7 @@ int CmdCommandAlias( Abc_Frame_t * pAbc, int argc, char **argv )
         return 0;
     }
 
-    // delete any existing alias 
+    // delete any existing alias
     key = argv[1];
     if ( st__delete( pAbc->tAliases, &key, &value ) )
         CmdCommandAliasFree( ( Abc_Alias * ) value );
@@ -900,7 +908,7 @@ int CmdCommandUndo( Abc_Frame_t * pAbc, int argc, char **argv )
 
     // if there are no arguments on the command line
     // set the current network to be the network from the previous step
-    if ( argc == 1 ) 
+    if ( argc == 1 )
         return CmdCommandRecall( pAbc, argc, argv );
 
     fprintf( pAbc->Err, "usage: undo\n" );
@@ -934,7 +942,7 @@ int CmdCommandRecall( Abc_Frame_t * pAbc, int argc, char **argv )
         return 0;
     }
 
-    
+
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
     {
@@ -946,18 +954,18 @@ int CmdCommandRecall( Abc_Frame_t * pAbc, int argc, char **argv )
                 goto usage;
         }
     }
- 
+
     // get the number of networks to save
     pValue = Cmd_FlagReadByName( pAbc, "savesteps" );
     // if the value of steps to save is not set, assume 1-level undo
     if ( pValue == NULL )
         nNetsToSave = 1;
-    else 
+    else
         nNetsToSave = atoi(pValue);
 
     // if there are no arguments on the command line
     // set the current network to be the network from the previous step
-    if ( argc == 1 ) 
+    if ( argc == 1 )
     {
         // get the previously saved network
         pNtk = Abc_NtkBackup(pAbc->pNtkCur);
@@ -989,13 +997,13 @@ int CmdCommandRecall( Abc_Frame_t * pAbc, int argc, char **argv )
             fprintf( pAbc->Out, "Cannot recall step %d.\n", iStep );
         else if ( iStep == 0 )
             Abc_FrameDeleteAllNetworks( pAbc );
-        else 
+        else
         {
             // scroll backward through the list of networks
             // to determine if such a network exist
             iStepFound = 0;
             for ( pNtk = pAbc->pNtkCur; pNtk; pNtk = Abc_NtkBackup(pNtk) )
-                if ( (iStepFound = Abc_NtkStep(pNtk)) == iStep ) 
+                if ( (iStepFound = Abc_NtkStep(pNtk)) == iStep )
                     break;
             if ( pNtk == NULL )
             {
@@ -1058,7 +1066,7 @@ int CmdCommandEmpty( Abc_Frame_t * pAbc, int argc, char **argv )
                 goto usage;
         }
     }
- 
+
     Abc_FrameDeleteAllNetworks( pAbc );
     Abc_FrameRestart( pAbc );
     return 0;
@@ -1107,7 +1115,7 @@ int CmdCommandUndo( Abc_Frame_t * pAbc, int argc, char **argv )
     }
     id = atoi(argv[globalUtilOptind]);
     pNtkTemp = Cmd_HistoryGetSnapshot(pAbc, id);
-    if (!pNtkTemp) 
+    if (!pNtkTemp)
     fprintf( pAbc->Err, "Snapshot %d does not exist\n", id);
     else
     pAbc->pNtk = Abc_NtkDup(pNtkTemp, Abc_NtkMan(pNtkTemp));
@@ -1130,8 +1138,8 @@ typedef unsigned long _fsize_t; // Could be 64 bits for Win32
 
 struct _finddata_t {
     unsigned    attrib;
-    time_t      time_create;    // -1 for FAT file systems 
-    time_t      time_access;    // -1 for FAT file systems 
+    time_t      time_create;    // -1 for FAT file systems
+    time_t      time_access;    // -1 for FAT file systems
     time_t      time_write;
     _fsize_t    size;
     char        name[260];
@@ -1149,7 +1157,7 @@ extern int  _findclose( long handle );
   Synopsis    [Command to print the contents of the current directory (Windows).]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -1243,7 +1251,7 @@ usage:
     fprintf( pAbc->Err, "       print the file names in the current directory\n" );
     fprintf( pAbc->Err, "        -l : print in the long format [default = short]\n" );
     fprintf( pAbc->Err, "        -b : print only .mv files [default = all]\n" );
-    return 1; 
+    return 1;
 }
 
 
@@ -1252,7 +1260,7 @@ usage:
   Synopsis    [Generates the script for running ABC.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -1381,14 +1389,14 @@ int CmdCommandScrGen( Abc_Frame_t * pAbc, int argc, char **argv )
             if ( c_file.name[nFileNameCur-1] == '.' )
                 continue;
             if ( nFileNameCur > 2 &&
-                 c_file.name[nFileNameCur-1] == 's' && 
-                 c_file.name[nFileNameCur-2] == '.' ) 
+                 c_file.name[nFileNameCur-1] == 's' &&
+                 c_file.name[nFileNameCur-2] == '.' )
                  continue;
             if ( nFileNameCur > 4 &&
-                 c_file.name[nFileNameCur-1] == 't' && 
-                 c_file.name[nFileNameCur-2] == 'x' && 
-                 c_file.name[nFileNameCur-3] == 't' && 
-                 c_file.name[nFileNameCur-4] == '.' ) 
+                 c_file.name[nFileNameCur-1] == 't' &&
+                 c_file.name[nFileNameCur-2] == 'x' &&
+                 c_file.name[nFileNameCur-3] == 't' &&
+                 c_file.name[nFileNameCur-4] == '.' )
                  continue;
             if ( nFileNameMax < nFileNameCur )
                 nFileNameMax = nFileNameCur;
@@ -1407,7 +1415,7 @@ int CmdCommandScrGen( Abc_Frame_t * pAbc, int argc, char **argv )
                 printf( "No files in directory: %s\n", pDirStr );
         }
         fprintf( pFile, "# Script file produced by ABC on %s\n", Extra_TimeStamp() );
-        fprintf( pFile, "# Command line was: scrgen -F %s -D %s -C \"%s\"%s%s\n", 
+        fprintf( pFile, "# Command line was: scrgen -F %s -D %s -C \"%s\"%s%s\n",
             pFileStr, pDirStr, pComStr, pWriteStr?" -W ":"", pWriteStr?pWriteStr:"" );
         do
         {
@@ -1416,14 +1424,14 @@ int CmdCommandScrGen( Abc_Frame_t * pAbc, int argc, char **argv )
             if ( c_file.name[nFileNameCur-1] == '.' )
                 continue;
             if ( nFileNameCur > 2 &&
-                 c_file.name[nFileNameCur-1] == 's' && 
-                 c_file.name[nFileNameCur-2] == '.' ) 
+                 c_file.name[nFileNameCur-1] == 's' &&
+                 c_file.name[nFileNameCur-2] == '.' )
                  continue;
             if ( nFileNameCur > 4 &&
-                 c_file.name[nFileNameCur-1] == 't' && 
-                 c_file.name[nFileNameCur-2] == 'x' && 
-                 c_file.name[nFileNameCur-3] == 't' && 
-                 c_file.name[nFileNameCur-4] == '.' ) 
+                 c_file.name[nFileNameCur-1] == 't' &&
+                 c_file.name[nFileNameCur-2] == 'x' &&
+                 c_file.name[nFileNameCur-3] == 't' &&
+                 c_file.name[nFileNameCur-4] == '.' )
                  continue;
             sprintf( Line, "r %s%s%-*s ; %s", pDirStr?pDirStr:"", pDirStr?"/":"", nFileNameMax, c_file.name, pComStr );
             for ( c = (int)strlen(Line)-1; c >= 0; c-- )
@@ -1467,7 +1475,7 @@ usage:
     fprintf( pAbc->Err, "\t-c      : toggle placing file in current/target dir [default = %s]\n", fUseCurrent? "current": "target" );
     fprintf( pAbc->Err, "\t-h      : print the command usage\n\n");
     fprintf( pAbc->Err, "\tExample : scrgen -F test1.s -D a/in -C \"ps; st; ps\" -W a/out\n" );
-    return 1; 
+    return 1;
 }
 #endif
 
@@ -1615,7 +1623,7 @@ usage:
     fprintf( pErr, "         Example 1: sis eliminate 0\n" );
     fprintf( pErr, "         Example 2: sis \"ps; rd; fx; ps\"\n" );
     fprintf( pErr, "         Example 3: sis source script.rugged\n" );
-    return 1;                    // error exit 
+    return 1;                   // error exit
 }
 
 
@@ -1758,7 +1766,7 @@ usage:
     fprintf( pErr, "         Example 1: mvsis fraig_sweep\n" );
     fprintf( pErr, "         Example 2: mvsis \"ps; fxu; ps\"\n" );
     fprintf( pErr, "         Example 3: mvsis source mvsis.rugged\n" );
-    return 1;                    // error exit 
+    return 1;                   // error exit
 }
 
 
@@ -1767,7 +1775,7 @@ usage:
   Synopsis    [Computes dimentions of the graph.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -2010,7 +2018,7 @@ usage:
     fprintf( pErr, "                    (prints the default usage message of the Capo binary)\n" );
     fprintf( pErr, "         Please refer to the Capo webpage for additional information:\n" );
     fprintf( pErr, "         http://vlsicad.eecs.umich.edu/BK/PDtools/\n" );
-    return 1;                    // error exit 
+    return 1;                   // error exit
 }
 
 /**Function*************************************************************
@@ -2122,4 +2130,3 @@ int CmdCommandVersion( Abc_Frame_t * pAbc, int argc, char **argv )
 
 
 ABC_NAMESPACE_IMPL_END
-
