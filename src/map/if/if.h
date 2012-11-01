@@ -53,6 +53,8 @@ ABC_NAMESPACE_HEADER_START
 // the largest possible user cut cost
 #define IF_COST_MAX          8191 // ((1<<13)-1)
 
+#define IF_BIG_CHAR 120
+
 // object types
 typedef enum { 
     IF_NONE,     // 0: non-existent object

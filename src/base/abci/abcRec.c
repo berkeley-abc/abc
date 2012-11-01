@@ -29,7 +29,6 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-#define  IF_BIG_CHAR 120
 typedef struct Abc_ManRec_t_ Abc_ManRec_t;
 typedef struct Rec_Obj_t_ Rec_Obj_t;
 

@@ -33,7 +33,6 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-#define  IF_BIG_CHAR 120
 #define  REC_EMPTY_ID -1
 
 typedef struct Abc_ManRec_t_2 Abc_ManRec_t2;

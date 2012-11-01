@@ -752,10 +752,9 @@ static inline int If_CutComputeDelay( If_Man_t * p, If_Cut_t * pCut, char * pCan
     int i, delayTemp, delayMax = -ABC_INFINITY;
     for ( i = 0; i < nLeaves; i++ )
     {
-        pLeaf = If_ManObj(p, (pCut)->pLeaves[(int)pCanonPerm[i]]);
+        pLeaf     = If_ManObj(p, (pCut)->pLeaves[(int)pCanonPerm[i]]);
         delayTemp = If_ObjCutBest(pLeaf)->Delay + Lms_DelayGet(Delay, i);
-        if(delayTemp > delayMax)
-            delayMax = delayTemp;
+        delayMax  = Abc_MaxInt( delayMax, delayTemp );
     }
     return delayMax;
 }
@@ -764,8 +763,30 @@ static inline int If_CutFindBestStruct( If_Man_t * pIfMan, If_Cut_t * pCut, char
     Lms_Man_t * p = s_pMan3;
     int i, * pTruthId, iFirstPo, iFirstPoNext, iBestPo;
     int BestDelay = ABC_INFINITY, BestArea = ABC_INFINITY, Delay, Area;
-    int nLeaves = If_CutLeaveNum( pCut );
+    int uSupport, nLeaves = If_CutLeaveNum( pCut );
+    word Delays;
     clock_t clk;
+    assert( nLeaves > 1 );
+    pCut->fUser = 1;
+    // compute support
+    uSupport = Abc_TtSupport( If_CutTruthW(pCut), nLeaves );
+    if ( uSupport == 0 )
+    {
+        pCut->Cost = 1;
+        for ( i = 0; i < nLeaves; i++ )
+            pCut->pPerm[i] = IF_BIG_CHAR;
+        return 0;
+    }
+    if ( !Abc_TtSuppIsMinBase(uSupport) || uSupport == 1 )
+    {
+        assert( Abc_TtSuppOnlyOne(uSupport) );
+        pCut->Cost = 1;
+        for ( i = 0; i < nLeaves; i++ )
+            pCut->pPerm[i] = IF_BIG_CHAR;
+        pCut->pPerm[Abc_TtSuppFindFirst(uSupport)] = 0;
+        return If_ObjCutBest(If_ManObj(pIfMan, Abc_TtSuppFindFirst(uSupport)))->Delay;
+    }
+    assert( Gia_WordCountOnes(uSupport) == nLeaves );
 
     // semicanonicize the function
 clk = clock();
@@ -781,7 +802,10 @@ p->timeCanon += clock() - clk;
     // get TT ID for the given class
     pTruthId = Vec_MemHashLookup( p->vTtMem, p->pTemp1 );
     if ( *pTruthId == -1 )
+    {
+        pCut->Cost = IF_COST_MAX;
         return ABC_INFINITY;
+    }
 
     // note that array p->vTruthPo contains the first PO for the given truth table
     // other POs belonging to the same equivalence class follow immediately after this one
@@ -806,6 +830,12 @@ p->timeCanon += clock() - clk;
     }
     if ( pBestPo )
         *pBestPo = iBestPo;
+
+    // mark as user cut.
+    pCut->Cost = Vec_StrEntry(p->vAreas, iBestPo);
+    Delays = Vec_WrdEntry(p->vDelays, iBestPo);
+    for ( i = 0; i < nLeaves; i++ )
+        pCut->pPerm[(int)pCanonPerm[i]] = Lms_DelayGet(Delays, i);
     return BestDelay; 
 }
 int If_CutDelayRecCost3( If_Man_t * pIfMan, If_Cut_t * pCut, If_Obj_t * pObj )
@@ -860,19 +890,51 @@ Hop_Obj_t * Abc_RecToHop3( Hop_Man_t * pMan, If_Man_t * pIfMan, If_Cut_t * pCut,
     Hop_Obj_t * pFan0, * pFan1, * pHopObj;
     Gia_Man_t * pGia = p->pGia;
     Gia_Obj_t * pGiaPo, * pGiaTemp = NULL;
-    int i, BestPo = -1, nLeaves = If_CutLeaveNum(pCut);
+    int i, uSupport, BestPo = -1, nLeaves = If_CutLeaveNum(pCut);
     assert( pIfMan->pPars->fCutMin == 1 );
     assert( nLeaves > 1 );
+
+    // compute support
+    uSupport = Abc_TtSupport( If_CutTruthW(pCut), nLeaves );
+    if ( uSupport == 0 )
+    {
+        if ( ((*If_CutTruthW(pCut) & 1) && pCut->fCompl == 0) || ((*If_CutTruthW(pCut) & 1) && pCut->fCompl == 1) )
+            return Hop_ManConst0(pMan);
+        if ( ((*If_CutTruthW(pCut) & 1) && pCut->fCompl == 1) || ((*If_CutTruthW(pCut) & 1) && pCut->fCompl == 0) )
+            return Hop_ManConst1(pMan);
+    }
+    if ( !Abc_TtSuppIsMinBase(uSupport) || uSupport == 1 )
+    {
+        assert( Abc_TtSuppOnlyOne(uSupport) );
+        return Hop_NotCond( Hop_IthVar(pMan, Abc_TtSuppFindFirst(uSupport)), pCut->fCompl ^ (int)(*If_CutTruthW(pCut) & 1) );
+    }
+    assert( Gia_WordCountOnes(uSupport) == nLeaves );
 
     // get the best output for this node
     If_CutFindBestStruct( pIfMan, pCut, pCanonPerm, &uCanonPhase, &BestPo );
     assert( BestPo >= 0 );
     pGiaPo = Gia_ManCo( pGia, BestPo );
+/*
+    Kit_TruthCopy(pInOut, If_CutTruth(pCut), pCut->nLimit);
+    //special cases when cut-minimization return 2, that means there is only one leaf in the cut.
+    if ((Kit_TruthIsConst0(pInOut, nLeaves) && pCut->fCompl == 0) || (Kit_TruthIsConst1(pInOut, nLeaves) && pCut->fCompl == 1))
+        return 0;
+    if ((Kit_TruthIsConst0(pInOut, nLeaves) && pCut->fCompl == 1) || (Kit_TruthIsConst1(pInOut, nLeaves) && pCut->fCompl == 0))
+        return 1;
+    if (Kit_TruthSupport(pInOut, nLeaves) != Kit_BitMask(nLeaves))
+    {   
+        for (i = 0; i < nLeaves; i++)
+            if(Kit_TruthVarInSupport( pInOut, nLeaves, i ))
+                return Abc_LitNotCond( Vec_IntEntry(vLeaves, i), (pCut->fCompl ^ ((*pInOut & 0x01) > 0)) );
+    }
+*/
 
     // collect internal nodes into pGia->vTtNodes
     if ( pGia->vTtNodes == NULL )
         pGia->vTtNodes = Vec_IntAlloc( 256 );
-    Gia_ObjCollectInternal( pGia, pGiaPo );
+    assert( Gia_ObjIsAnd( Gia_ObjFanin0(pGiaPo) ) );
+    Gia_ObjCollectInternal( pGia, Gia_ObjFanin0(pGiaPo) );
+    assert( Vec_IntSize(pGia->vTtNodes) > 0 );
     // collect HOP nodes for leaves
     Vec_PtrClear( p->vLabelsP );
     for ( i = 0; i < nLeaves; i++ )
@@ -1020,7 +1082,6 @@ void Lms_GiaNormalize( Lms_Man_t * p )
     Vec_Int_t * vRemain;
     Vec_Int_t * vTruthIdsNew;
     int i, Entry, Prev = -1, Next;
-    clock_t clk = clock();
     // collect non-redundant COs
     vRemain = Lms_GiaFindNonRedundantCos( p );
     // change these to be useful literals
@@ -1052,7 +1113,6 @@ void Lms_GiaNormalize( Lms_Man_t * p )
     Vec_IntFree( p->vTruthIds );
     p->vTruthIds = vTruthIdsNew;
 //    Vec_IntPrint( vTruthIdsNew );
-    Abc_PrintTime( 1, "Normalization runtime", clock() - clk );
 }
 
 /**Function*************************************************************
@@ -1069,14 +1129,6 @@ void Lms_GiaNormalize( Lms_Man_t * p )
 void Abc_NtkRecPs3(int fPrintLib)
 {
     Lms_ManPrint( s_pMan3 );
-
-    printf( "Before normalizing\n" );
-    Gia_ManPrintStats( s_pMan3->pGia, 0, 0 );
-
-    Lms_GiaNormalize( s_pMan3 );
-
-    printf( "After normalizing\n" );
-    Gia_ManPrintStats( s_pMan3->pGia, 0, 0 );
 }
 
 /**Function*************************************************************
@@ -1096,7 +1148,13 @@ int Abc_NtkRecIsRunning3()
 }
 Gia_Man_t * Abc_NtkRecGetGia3()
 {
+    clock_t clk = clock();
+    printf( "Before normalizing: Library has %d classes and %d AIG subgraphs with %d AND nodes.\n", 
+        Vec_MemEntryNum(s_pMan3->vTtMem), s_pMan3->nAdded, Gia_ManAndNum(s_pMan3->pGia) );
     Lms_GiaNormalize( s_pMan3 );
+    printf( "After normalizing:  Library has %d classes and %d AIG subgraphs with %d AND nodes.\n", 
+        Vec_MemEntryNum(s_pMan3->vTtMem), s_pMan3->nAdded, Gia_ManAndNum(s_pMan3->pGia) );
+    Abc_PrintTime( 1, "Normalization runtime", clock() - clk );
     return s_pMan3->pGia;
 }
 
