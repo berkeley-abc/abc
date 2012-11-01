@@ -165,21 +165,6 @@ void Dau_DsdTest2()
   SeeAlso     []
 
 ***********************************************************************/
-static inline word Dau_DsdCof0( word t, int iVar )
-{
-    assert( iVar >= 0 && iVar < 6 );
-    return (t &~s_Truth6[iVar]) | ((t &~s_Truth6[iVar]) << (1<<iVar));
-}
-static inline word Dau_DsdCof1( word t, int iVar )
-{
-    assert( iVar >= 0 && iVar < 6 );
-    return (t & s_Truth6[iVar]) | ((t & s_Truth6[iVar]) >> (1<<iVar));
-}
-static inline word Dau_DsdVarPres( word t, int iVar )
-{
-    assert( iVar >= 0 && iVar < 6 );
-    return (t & s_Truth6[iVar]) != ((t << (1<<iVar)) & s_Truth6[iVar]);
-}
 static inline int Dau_DsdPerformReplace( char * pBuffer, int PosStart, int Pos, int Symb, char * pNext )
 {
     static char pTemp[DAU_MAX_STR+20];
@@ -206,7 +191,7 @@ int Dau_DsdPerform_rec( word t, char * pBuffer, int Pos, int * pVars, int nVars 
     // perform support minimization
     nVarsNew = 0;
     for ( v = 0; v < nVars; v++ )
-        if ( Dau_DsdVarPres( t, pVars[v] ) )
+        if ( Abc_Tt6HasVar( t, pVars[v] ) )
             pVarsNew[ nVarsNew++ ] = pVars[v];
     assert( nVarsNew > 0 );
     // special case when function is a var
@@ -229,8 +214,8 @@ int Dau_DsdPerform_rec( word t, char * pBuffer, int Pos, int * pVars, int nVars 
     // decompose on the output side
     for ( v = 0; v < nVarsNew; v++ )
     {
-        Cof0[v] = Dau_DsdCof0( t, pVarsNew[v] );
-        Cof1[v] = Dau_DsdCof1( t, pVarsNew[v] );
+        Cof0[v] = Abc_Tt6Cofactor0( t, pVarsNew[v] );
+        Cof1[v] = Abc_Tt6Cofactor1( t, pVarsNew[v] );
         assert( Cof0[v] != Cof1[v] );
         if ( Cof0[v] == 0 ) // ax
         {
@@ -281,10 +266,10 @@ int Dau_DsdPerform_rec( word t, char * pBuffer, int Pos, int * pVars, int nVars 
     for ( v = 0; v < nVarsNew; v++ )
     for ( u = v+1; u < nVarsNew; u++ )
     {
-        Cof[0] = Dau_DsdCof0( Cof0[v], pVarsNew[u] );
-        Cof[1] = Dau_DsdCof1( Cof0[v], pVarsNew[u] );
-        Cof[2] = Dau_DsdCof0( Cof1[v], pVarsNew[u] );
-        Cof[3] = Dau_DsdCof1( Cof1[v], pVarsNew[u] );
+        Cof[0] = Abc_Tt6Cofactor0( Cof0[v], pVarsNew[u] );
+        Cof[1] = Abc_Tt6Cofactor1( Cof0[v], pVarsNew[u] );
+        Cof[2] = Abc_Tt6Cofactor0( Cof1[v], pVarsNew[u] );
+        Cof[3] = Abc_Tt6Cofactor1( Cof1[v], pVarsNew[u] );
         if ( Cof[0] == Cof[1] && Cof[0] == Cof[2] ) // vu
         {
             PosStart = Pos;
@@ -333,7 +318,7 @@ int Dau_DsdPerform_rec( word t, char * pBuffer, int Pos, int * pVars, int nVars 
     {
         int CountCur = 0;
         for ( u = 0; u < nVarsNew; u++ )
-            if ( u != v && Dau_DsdVarPres(Cof0[v], pVarsNew[u]) && Dau_DsdVarPres(Cof1[v], pVarsNew[u]) )
+            if ( u != v && Abc_Tt6HasVar(Cof0[v], pVarsNew[u]) && Abc_Tt6HasVar(Cof1[v], pVarsNew[u]) )
                 CountCur++;
         if ( CountBest > CountCur )
         {

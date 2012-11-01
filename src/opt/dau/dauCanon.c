@@ -27,6 +27,14 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
+static word s_CMasks6[5] = {
+    0x1111111111111111,
+    0x0303030303030303,
+    0x000F000F000F000F,
+    0x000000FF000000FF,
+    0x000000000000FFFF
+};
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -406,8 +414,8 @@ int Abc_TtCountOnesInCofsFast6_rec( word Truth, int iVar, int nBytes, int * pSto
         pStore[2] += bit_count[ Truth & 0x0F ];
         return bit_count[ Truth & 0xFF ];
     }
-    nMints0 = Abc_TtCountOnesInCofsFast6_rec( Abc_Tt6Cof0(Truth, iVar), iVar - 1, nBytes/2, pStore );
-    nMints1 = Abc_TtCountOnesInCofsFast6_rec( Abc_Tt6Cof1(Truth, iVar), iVar - 1, nBytes/2, pStore );
+    nMints0 = Abc_TtCountOnesInCofsFast6_rec( Abc_Tt6Cofactor0(Truth, iVar), iVar - 1, nBytes/2, pStore );
+    nMints1 = Abc_TtCountOnesInCofsFast6_rec( Abc_Tt6Cofactor1(Truth, iVar), iVar - 1, nBytes/2, pStore );
     pStore[iVar] += nMints0;
     return nMints0 + nMints1;
 }
@@ -899,7 +907,7 @@ unsigned Abc_TtCanonicize( word * pTruth, int nVars, char * pCanonPerm )
 #endif
 
     uCanonPhase = Abc_TtSemiCanonicize( pTruth, nVars, pCanonPerm, pStoreIn );
-    for ( k = 0; k < 3; k++ )
+    for ( k = 0; k < 5; k++ )
     {
         int fChanges = 0;
         for ( i = nVars - 2; i >= 0; i-- )

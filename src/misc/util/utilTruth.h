@@ -53,14 +53,6 @@ static word s_Truths6Neg[6] = {
     0x00000000FFFFFFFF
 };
 
-static word s_CMasks6[5] = {
-    0x1111111111111111,
-    0x0303030303030303,
-    0x000F000F000F000F,
-    0x000000FF000000FF,
-    0x000000000000FFFF
-};
-
 static word s_PMasks[5][3] = {
     { 0x9999999999999999, 0x2222222222222222, 0x4444444444444444 },
     { 0xC3C3C3C3C3C3C3C3, 0x0C0C0C0C0C0C0C0C, 0x3030303030303030 },
@@ -299,12 +291,12 @@ static inline int Abc_Tt6Cof1IsConst0( word t, int iVar ) { return (t & s_Truths
 static inline int Abc_Tt6Cof1IsConst1( word t, int iVar ) { return (t & s_Truths6[iVar]) == s_Truths6[iVar];                               }
 static inline int Abc_Tt6CofsOpposite( word t, int iVar ) { return ((t >> (1 << iVar)) & s_Truths6Neg[iVar]) == (~t & s_Truths6Neg[iVar]); } 
 
-static inline word Abc_Tt6Cof0( word t, int iVar )
+static inline word Abc_Tt6Cofactor0( word t, int iVar )
 {
     assert( iVar >= 0 && iVar < 6 );
     return (t &s_Truths6Neg[iVar]) | ((t &s_Truths6Neg[iVar]) << (1<<iVar));
 }
-static inline word Abc_Tt6Cof1( word t, int iVar )
+static inline word Abc_Tt6Cofactor1( word t, int iVar )
 {
     assert( iVar >= 0 && iVar < 6 );
     return (t & s_Truths6[iVar]) | ((t & s_Truths6[iVar]) >> (1<<iVar));

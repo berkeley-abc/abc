@@ -23,10 +23,12 @@
 #include "bool/kit/kit.h"
 #include "aig/gia/giaAig.h"
 #include "misc/vec/vecMem.h"
-#include "bool/lucky/lucky.h"
+#include "opt/dau/dau.h"
 #include "misc/util/utilTruth.h"
 
 ABC_NAMESPACE_IMPL_START
+
+//#define LMS_USE_OLD_FORM
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -488,8 +490,11 @@ p->timeCollect += clock() - clk;
         // semi-canonicize
 clk = clock();
         memcpy( p->pTemp1, pTruth, p->nWords * sizeof(word) );
-    //    uCanonPhase = luckyCanonicizer_final_fast( p->pTemp1, nLeaves, pCanonPerm );
+#ifdef LMS_USE_OLD_FORM
         uCanonPhase = Kit_TruthSemiCanonicize( (unsigned *)p->pTemp1, (unsigned *)p->pTemp2, nLeaves, pCanonPerm );
+#else
+        uCanonPhase = Abc_TtCanonicize( p->pTemp1, nLeaves, pCanonPerm );
+#endif
         Abc_TtStretch5( (unsigned *)p->pTemp1, nLeaves, p->nVars );
 p->timeCanon += clock() - clk;
         // pCanonPerm and uCanonPhase show what was the variable corresponding to each var in the current truth
@@ -599,8 +604,11 @@ p->timeCollect += clock() - clk;
     // semi-canonicize truth table
 clk = clock();
     memcpy( p->pTemp1, If_CutTruthW(pCut), p->nWords * sizeof(word) );
-//    uCanonPhase = luckyCanonicizer_final_fast( p->pTemp1, nLeaves, pCanonPerm );
+#ifdef LMS_USE_OLD_FORM
     uCanonPhase = Kit_TruthSemiCanonicize( (unsigned *)p->pTemp1, (unsigned *)p->pTemp2, nLeaves, pCanonPerm );
+#else
+    uCanonPhase = Abc_TtCanonicize( p->pTemp1, nLeaves, pCanonPerm );
+#endif
     Abc_TtStretch5( (unsigned *)p->pTemp1, nLeaves, p->nVars );
 p->timeCanon += clock() - clk;
     // pCanonPerm and uCanonPhase show what was the variable corresponding to each var in the current truth
@@ -762,8 +770,11 @@ static inline int If_CutFindBestStruct( If_Man_t * pIfMan, If_Cut_t * pCut, char
     // semicanonicize the function
 clk = clock();
     memcpy( p->pTemp1, If_CutTruthW(pCut), p->nWords * sizeof(word) );
-//    uCanonPhase = luckyCanonicizer_final_fast( p->pTemp1, nLeaves, pCanonPerm );
+#ifdef LMS_USE_OLD_FORM
     *puCanonPhase = Kit_TruthSemiCanonicize( (unsigned *)p->pTemp1, (unsigned *)p->pTemp2, nLeaves, pCanonPerm );
+#else
+    *puCanonPhase = Abc_TtCanonicize( p->pTemp1, nLeaves, pCanonPerm );
+#endif
     Abc_TtStretch5( (unsigned *)p->pTemp1, nLeaves, p->nVars );
 p->timeCanon += clock() - clk;
 
