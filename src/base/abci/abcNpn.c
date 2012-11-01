@@ -202,10 +202,10 @@ void Abc_TruthNpnPerform( Abc_TtStore_t * p, int NpnType, int fVerbose )
     {
         for ( i = 0; i < p->nFuncs; i++ )
         {
-            extern void Abc_TtConfactorTest( word * pTruth, int nVars, int i );
+            extern void Abc_TtCofactorTest( word * pTruth, int nVars, int i );
             if ( fVerbose )
                 printf( "%7d : ", i );
-            Abc_TtConfactorTest( p->pFuncs[i], p->nVars, i );
+            Abc_TtCofactorTest( p->pFuncs[i], p->nVars, i );
             if ( fVerbose )
                 Extra_PrintHex( stdout, (unsigned *)p->pFuncs[i], p->nVars ), printf( "\n" );
         }

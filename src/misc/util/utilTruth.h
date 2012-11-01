@@ -943,43 +943,43 @@ static inline void Abc_TtSwapVars( word * pTruth, int nVars, int iVar, int jVar 
         word * pMasks = PPMasks[iVar][jVar];
         int shift = (1 << jVar) - (1 << iVar);
         pTruth[0] = (pTruth[0] & pMasks[0]) | ((pTruth[0] & pMasks[1]) << shift) | ((pTruth[0] & pMasks[2]) >> shift);
+        return;
     }
-    else
+    if ( jVar <= 5 )
     {
-        if ( jVar <= 5 )
-        {
-            word * pMasks = PPMasks[iVar][jVar];
-            int nWords = Abc_TtWordNum(nVars);
-            int w, shift = (1 << jVar) - (1 << iVar);
-            for ( w = 0; w < nWords; w++ )
-                pTruth[w] = (pTruth[w] & pMasks[0]) | ((pTruth[w] & pMasks[1]) << shift) | ((pTruth[w] & pMasks[2]) >> shift);
-        }
-        else if ( iVar <= 5 && jVar > 5 )
-        {
-            word low2High, high2Low;
-            word * pLimit = pTruth + Abc_TtWordNum(nVars);
-            int j, jStep = Abc_TtWordNum(jVar);
-            int shift = 1 << iVar;
-            for ( ; pTruth < pLimit; pTruth += 2*jStep )
-                for ( j = 0; j < jStep; j++ )
-                {
-                    low2High = (pTruth[j] & s_Truths6[iVar]) >> shift;
-                    high2Low = (pTruth[j+jStep] << shift) & s_Truths6[iVar];
-                    pTruth[j] = (pTruth[j] & ~s_Truths6[iVar]) | high2Low;
-                    pTruth[j+jStep] = (pTruth[j+jStep] & s_Truths6[iVar]) | low2High;
-                }
-        }
-        else
-        {
-            word * pLimit = pTruth + Abc_TtWordNum(nVars);
-            int i, iStep = Abc_TtWordNum(iVar);
-            int j, jStep = Abc_TtWordNum(jVar);
-            for ( ; pTruth < pLimit; pTruth += 2*jStep )
-                for ( i = 0; i < jStep; i += 2*iStep )
-                    for ( j = 0; j < iStep; j++ )
-                        ABC_SWAP( word, pTruth[iStep + i + j], pTruth[jStep + i + j] );
-        }    
+        word * pMasks = PPMasks[iVar][jVar];
+        int nWords = Abc_TtWordNum(nVars);
+        int w, shift = (1 << jVar) - (1 << iVar);
+        for ( w = 0; w < nWords; w++ )
+            pTruth[w] = (pTruth[w] & pMasks[0]) | ((pTruth[w] & pMasks[1]) << shift) | ((pTruth[w] & pMasks[2]) >> shift);
+        return;
     }
+    if ( iVar <= 5 && jVar > 5 )
+    {
+        word low2High, high2Low;
+        word * pLimit = pTruth + Abc_TtWordNum(nVars);
+        int j, jStep = Abc_TtWordNum(jVar);
+        int shift = 1 << iVar;
+        for ( ; pTruth < pLimit; pTruth += 2*jStep )
+            for ( j = 0; j < jStep; j++ )
+            {
+                low2High = (pTruth[j] & s_Truths6[iVar]) >> shift;
+                high2Low = (pTruth[j+jStep] << shift) & s_Truths6[iVar];
+                pTruth[j] = (pTruth[j] & ~s_Truths6[iVar]) | high2Low;
+                pTruth[j+jStep] = (pTruth[j+jStep] & s_Truths6[iVar]) | low2High;
+            }
+        return;
+    }
+    {
+        word * pLimit = pTruth + Abc_TtWordNum(nVars);
+        int i, iStep = Abc_TtWordNum(iVar);
+        int j, jStep = Abc_TtWordNum(jVar);
+        for ( ; pTruth < pLimit; pTruth += 2*jStep )
+            for ( i = 0; i < jStep; i += 2*iStep )
+                for ( j = 0; j < iStep; j++ )
+                    ABC_SWAP( word, pTruth[iStep + i + j], pTruth[jStep + i + j] );
+        return;
+    }    
 }
 
 /**Function*************************************************************
@@ -1037,16 +1037,18 @@ static inline void Abc_TtCountOnesInCofs( word * pTruth, int nVars, int * pStore
 {
     word Temp;
     int i, k, Counter, nWords;
-    memset( pStore, 0, sizeof(int) * nVars );
     if ( nVars <= 6 )
     {
         for ( i = 0; i < nVars; i++ )
             if ( pTruth[0] & s_Truths6Neg[i] )
                 pStore[i] = Abc_TtCountOnes( pTruth[0] & s_Truths6Neg[i] );
+            else
+                pStore[i] = 0;
         return;
     }
     assert( nVars > 6 );
     nWords = Abc_TtWordNum( nVars );
+    memset( pStore, 0, sizeof(int) * nVars );
     for ( k = 0; k < nWords; k++ )
     {
         // count 1's for the first six variables
@@ -1110,16 +1112,21 @@ static inline void Abc_TtCountOnesInCofsSlow( word * pTruth, int nVars, int * pS
   SeeAlso     []
 
 ***********************************************************************/
-static inline unsigned Abc_TtSemiCanonicize( word * pTruth, int nVars, char * pCanonPerm )
+static inline unsigned Abc_TtSemiCanonicize( word * pTruth, int nVars, char * pCanonPerm, int * pStoreOut )
 {
     extern int Abc_TtCountOnesInCofsFast( word * pTruth, int nVars, int * pStore );
 
-    int pStore[16];
-//    int pStore2[16];
+    int fOldSwap = 0;
+    int pStoreIn[17];
+    int * pStore = pStoreOut ? pStoreOut : pStoreIn;
+//    int pStore2[17];
     int nWords = Abc_TtWordNum( nVars );
-    int i, k, BestK, Temp, nOnes;//, nSwaps = 0;//, fChange;
+    int i, Temp, nOnes;//, fChange;//, nSwaps = 0;//;
+    int k, BestK;
     unsigned  uCanonPhase = 0;
     assert( nVars <= 16 );
+    for ( i = 0; i < nVars; i++ )
+        pCanonPerm[i] = i;
     // normalize polarity    
     nOnes = Abc_TtCountOnesInTruth( pTruth, nVars );
     if ( nOnes > nWords * 32 )
@@ -1130,6 +1137,7 @@ static inline unsigned Abc_TtSemiCanonicize( word * pTruth, int nVars, char * pC
     }
     // normalize phase
     Abc_TtCountOnesInCofs( pTruth, nVars, pStore );
+    pStore[nVars] = nOnes;
 //    Abc_TtCountOnesInCofsFast( pTruth, nVars, pStore );
 
 //    Abc_TtCountOnesInCofsFast( pTruth, nVars, pStore2 );
@@ -1144,62 +1152,71 @@ static inline unsigned Abc_TtSemiCanonicize( word * pTruth, int nVars, char * pC
         uCanonPhase |= (1 << i);
         pStore[i] = nOnes - pStore[i]; 
     }
-/*
-    do {
-        fChange = 0;
-        for ( i = 0; i < nVars-1; i++ )
+
+    if ( fOldSwap )
+    {
+        int fChange;
+        do {
+            fChange = 0;
+            for ( i = 0; i < nVars-1; i++ )
+            {
+    //            if ( pStore[i] <= pStore[i+1] )
+                if ( pStore[i] >= pStore[i+1] )
+                    continue;            
+           
+                Temp = pCanonPerm[i];
+                pCanonPerm[i] = pCanonPerm[i+1];
+                pCanonPerm[i+1] = Temp;
+            
+                Temp = pStore[i];
+                pStore[i] = pStore[i+1];
+                pStore[i+1] = Temp;
+            
+                if ( ((uCanonPhase >> i) & 1) != ((uCanonPhase >> (i+1)) & 1) )
+                {
+                    uCanonPhase ^= (1 << i);
+                    uCanonPhase ^= (1 << (i+1));
+                }
+                Abc_TtSwapAdjacent( pTruth, nWords, i );            
+                fChange = 1;
+    //            nSwaps++;
+            }
+        } while ( fChange );
+    }
+    else
+    {
+        for ( i = 0; i < nVars - 1; i++ )
         {
-            if ( pStore[i] <= pStore[i+1] )
-                continue;            
+            BestK = i + 1;
+            for ( k = i + 2; k < nVars; k++ )
+    //            if ( pStore[BestK] > pStore[k] )
+                if ( pStore[BestK] < pStore[k] )
+                    BestK = k;
+    //        if ( pStore[i] <= pStore[BestK] )
+            if ( pStore[i] >= pStore[BestK] )
+                continue;
            
             Temp = pCanonPerm[i];
-            pCanonPerm[i] = pCanonPerm[i+1];
-            pCanonPerm[i+1] = Temp;
-            
+            pCanonPerm[i] = pCanonPerm[BestK];
+            pCanonPerm[BestK] = Temp;
+        
             Temp = pStore[i];
-            pStore[i] = pStore[i+1];
-            pStore[i+1] = Temp;
-            
-            if ( ((uCanonPhase >> i) & 1) != ((uCanonPhase >> (i+1)) & 1) )
+            pStore[i] = pStore[BestK];
+            pStore[BestK] = Temp;
+        
+            if ( ((uCanonPhase >> i) & 1) != ((uCanonPhase >> BestK) & 1) )
             {
                 uCanonPhase ^= (1 << i);
-                uCanonPhase ^= (1 << (i+1));
+                uCanonPhase ^= (1 << BestK);
             }
-            Abc_TtSwapAdjacent( pTruth, nWords, i );            
-            fChange = 1;
-//            nSwaps++;
+            Abc_TtSwapVars( pTruth, nVars, i, BestK );
+    //        nSwaps++;
         }
-    } while ( fChange );
-*/
-
-    for ( i = 0; i < nVars - 1; i++ )
-    {
-        BestK = i + 1;
-        for ( k = i + 2; k < nVars; k++ )
-            if ( pStore[BestK] > pStore[k] )
-                BestK = k;
-        if ( pStore[BestK] >= pStore[i] )
-            continue;
-           
-        Temp = pCanonPerm[i];
-        pCanonPerm[i] = pCanonPerm[BestK];
-        pCanonPerm[BestK] = Temp;
-        
-        Temp = pStore[i];
-        pStore[i] = pStore[BestK];
-        pStore[BestK] = Temp;
-        
-        if ( ((uCanonPhase >> i) & 1) != ((uCanonPhase >> BestK) & 1) )
-        {
-            uCanonPhase ^= (1 << i);
-            uCanonPhase ^= (1 << BestK);
-        }
-        Abc_TtSwapVars( pTruth, nVars, i, BestK );
-//        nSwaps++;
     }
-/*
-    printf( "%d ", nSwaps );
 
+
+//    printf( "%d ", nSwaps );
+/*
     printf( "Minterms: " );
     for ( i = 0; i < nVars; i++ )
         printf( "%d ", pStore[i] );
