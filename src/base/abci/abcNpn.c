@@ -23,6 +23,7 @@
 
 #include "bool/kit/kit.h"
 #include "bool/lucky/lucky.h"
+#include "opt/dau/dau.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -190,6 +191,8 @@ void Abc_TruthNpnPerform( Abc_TtStore_t * p, int NpnType, int fVerbose )
         pAlgoName = "Jake's hybrid fast ";
     else if ( NpnType == 4 )
         pAlgoName = "Jake's hybrid good ";
+    else if ( NpnType == 5 )
+        pAlgoName = "new hybrid fast    ";
 
     assert( p->nVars <= 16 );
     if ( pAlgoName )
@@ -202,10 +205,8 @@ void Abc_TruthNpnPerform( Abc_TtStore_t * p, int NpnType, int fVerbose )
     {
         for ( i = 0; i < p->nFuncs; i++ )
         {
-            extern void Abc_TtCofactorTest( word * pTruth, int nVars, int i );
             if ( fVerbose )
                 printf( "%7d : ", i );
-            Abc_TtCofactorTest( p->pFuncs[i], p->nVars, i );
             if ( fVerbose )
                 Extra_PrintHex( stdout, (unsigned *)p->pFuncs[i], p->nVars ), printf( "\n" );
         }
@@ -257,6 +258,17 @@ void Abc_TruthNpnPerform( Abc_TtStore_t * p, int NpnType, int fVerbose )
                 printf( "%7d : ", i );
             resetPCanonPermArray(pCanonPerm, p->nVars);
             uCanonPhase = luckyCanonicizer_final_fast1( p->pFuncs[i], p->nVars, pCanonPerm );
+            if ( fVerbose )
+                Extra_PrintHex( stdout, (unsigned *)p->pFuncs[i], p->nVars ), Abc_TruthNpnPrint(pCanonPerm, uCanonPhase, p->nVars), printf( "\n" );
+        }
+    }
+    else if ( NpnType == 5 )
+    {
+        for ( i = 0; i < p->nFuncs; i++ )
+        {
+            if ( fVerbose )
+                printf( "%7d : ", i );
+            uCanonPhase = Abc_TtCanonicize( p->pFuncs[i], p->nVars, pCanonPerm );
             if ( fVerbose )
                 Extra_PrintHex( stdout, (unsigned *)p->pFuncs[i], p->nVars ), Abc_TruthNpnPrint(pCanonPerm, uCanonPhase, p->nVars), printf( "\n" );
         }
@@ -324,7 +336,7 @@ int Abc_NpnTest( char * pFileName, int NpnType, int nVarNum, int fDumpRes, int f
 {
     if ( fVerbose )
         printf( "Using truth tables from file \"%s\"...\n", pFileName );
-    if ( NpnType >= 0 && NpnType <= 4 )
+    if ( NpnType >= 0 && NpnType <= 5 )
         Abc_TruthNpnTest( pFileName, NpnType, nVarNum, fDumpRes, fBinary, fVerbose );
     else
         printf( "Unknown canonical form value (%d).\n", NpnType );
