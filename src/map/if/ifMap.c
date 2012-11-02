@@ -344,6 +344,8 @@ void If_ObjPerformMappingChoice( If_Man_t * p, If_Obj_t * pObj, int Mode, int fP
         If_ObjForEachCut( pTemp, pCutTemp, i )
         {
             assert( p->pPars->fSeqMap || pCutTemp->nLeaves > 1 );
+            if ( pCutTemp->fUseless )
+                continue;
             // get the next free cut
             assert( pCutSet->nCuts <= pCutSet->nCutsMax );
             pCut = pCutSet->ppCuts[pCutSet->nCuts];

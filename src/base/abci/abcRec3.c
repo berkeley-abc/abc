@@ -745,7 +745,7 @@ s_pMan3->timeTotal += clock() - clk;
   SeeAlso     []
 
 ***********************************************************************/
-static inline int If_CutComputeDelay( If_Man_t * p, If_Cut_t * pCut, char * pCanonPerm, word Delay )
+static inline int If_CutComputeDelay( If_Man_t * p, If_Cut_t * pCut, char * pCanonPerm, word DelayProfile )
 {
     If_Obj_t* pLeaf;
     int nLeaves = If_CutLeaveNum(pCut);
@@ -753,7 +753,7 @@ static inline int If_CutComputeDelay( If_Man_t * p, If_Cut_t * pCut, char * pCan
     for ( i = 0; i < nLeaves; i++ )
     {
         pLeaf     = If_ManObj(p, (pCut)->pLeaves[(int)pCanonPerm[i]]);
-        delayTemp = If_ObjCutBest(pLeaf)->Delay + Lms_DelayGet(Delay, i);
+        delayTemp = If_ObjCutBest(pLeaf)->Delay + Lms_DelayGet(DelayProfile, i);
         delayMax  = Abc_MaxInt( delayMax, delayTemp );
     }
     return delayMax;
@@ -764,7 +764,7 @@ static inline int If_CutFindBestStruct( If_Man_t * pIfMan, If_Cut_t * pCut, char
     int i, * pTruthId, iFirstPo, iFirstPoNext, iBestPo;
     int BestDelay = ABC_INFINITY, BestArea = ABC_INFINITY, Delay, Area;
     int uSupport, nLeaves = If_CutLeaveNum( pCut );
-    word Delays;
+    word DelayProfile;
     clock_t clk;
     assert( nLeaves > 1 );
     pCut->fUser = 1;
@@ -784,7 +784,7 @@ static inline int If_CutFindBestStruct( If_Man_t * pIfMan, If_Cut_t * pCut, char
         for ( i = 0; i < nLeaves; i++ )
             pCut->pPerm[i] = IF_BIG_CHAR;
         pCut->pPerm[Abc_TtSuppFindFirst(uSupport)] = 0;
-        return If_ObjCutBest(If_ManObj(pIfMan, Abc_TtSuppFindFirst(uSupport)))->Delay;
+        return If_ObjCutBest(If_ManObj(pIfMan, pCut->pLeaves[Abc_TtSuppFindFirst(uSupport)]))->Delay;
     }
     assert( Gia_WordCountOnes(uSupport) == nLeaves );
 
@@ -804,6 +804,7 @@ p->timeCanon += clock() - clk;
     if ( *pTruthId == -1 )
     {
         pCut->Cost = IF_COST_MAX;
+        pCut->fUseless = 1;
         return ABC_INFINITY;
     }
 
@@ -832,10 +833,10 @@ p->timeCanon += clock() - clk;
         *pBestPo = iBestPo;
 
     // mark as user cut.
+    DelayProfile = Vec_WrdEntry(p->vDelays, iBestPo);
     pCut->Cost = Vec_StrEntry(p->vAreas, iBestPo);
-    Delays = Vec_WrdEntry(p->vDelays, iBestPo);
     for ( i = 0; i < nLeaves; i++ )
-        pCut->pPerm[(int)pCanonPerm[i]] = Lms_DelayGet(Delays, i);
+        pCut->pPerm[(int)pCanonPerm[i]] = Lms_DelayGet(DelayProfile, i);
     return BestDelay; 
 }
 int If_CutDelayRecCost3( If_Man_t * pIfMan, If_Cut_t * pCut, If_Obj_t * pObj )
@@ -897,16 +898,11 @@ Hop_Obj_t * Abc_RecToHop3( Hop_Man_t * pMan, If_Man_t * pIfMan, If_Cut_t * pCut,
     // compute support
     uSupport = Abc_TtSupport( If_CutTruthW(pCut), nLeaves );
     if ( uSupport == 0 )
-    {
-        if ( ((*If_CutTruthW(pCut) & 1) && pCut->fCompl == 0) || ((*If_CutTruthW(pCut) & 1) && pCut->fCompl == 1) )
-            return Hop_ManConst0(pMan);
-        if ( ((*If_CutTruthW(pCut) & 1) && pCut->fCompl == 1) || ((*If_CutTruthW(pCut) & 1) && pCut->fCompl == 0) )
-            return Hop_ManConst1(pMan);
-    }
+        return Hop_NotCond( Hop_ManConst0(pMan), (int)(*If_CutTruthW(pCut) & 1) );
     if ( !Abc_TtSuppIsMinBase(uSupport) || uSupport == 1 )
     {
         assert( Abc_TtSuppOnlyOne(uSupport) );
-        return Hop_NotCond( Hop_IthVar(pMan, Abc_TtSuppFindFirst(uSupport)), pCut->fCompl ^ (int)(*If_CutTruthW(pCut) & 1) );
+        return Hop_NotCond( Hop_IthVar(pMan, Abc_TtSuppFindFirst(uSupport)), (int)(*If_CutTruthW(pCut) & 1) );
     }
     assert( Gia_WordCountOnes(uSupport) == nLeaves );
 
@@ -914,20 +910,6 @@ Hop_Obj_t * Abc_RecToHop3( Hop_Man_t * pMan, If_Man_t * pIfMan, If_Cut_t * pCut,
     If_CutFindBestStruct( pIfMan, pCut, pCanonPerm, &uCanonPhase, &BestPo );
     assert( BestPo >= 0 );
     pGiaPo = Gia_ManCo( pGia, BestPo );
-/*
-    Kit_TruthCopy(pInOut, If_CutTruth(pCut), pCut->nLimit);
-    //special cases when cut-minimization return 2, that means there is only one leaf in the cut.
-    if ((Kit_TruthIsConst0(pInOut, nLeaves) && pCut->fCompl == 0) || (Kit_TruthIsConst1(pInOut, nLeaves) && pCut->fCompl == 1))
-        return 0;
-    if ((Kit_TruthIsConst0(pInOut, nLeaves) && pCut->fCompl == 1) || (Kit_TruthIsConst1(pInOut, nLeaves) && pCut->fCompl == 0))
-        return 1;
-    if (Kit_TruthSupport(pInOut, nLeaves) != Kit_BitMask(nLeaves))
-    {   
-        for (i = 0; i < nLeaves; i++)
-            if(Kit_TruthVarInSupport( pInOut, nLeaves, i ))
-                return Abc_LitNotCond( Vec_IntEntry(vLeaves, i), (pCut->fCompl ^ ((*pInOut & 0x01) > 0)) );
-    }
-*/
 
     // collect internal nodes into pGia->vTtNodes
     if ( pGia->vTtNodes == NULL )
@@ -967,7 +949,7 @@ Hop_Obj_t * Abc_RecToHop3( Hop_Man_t * pMan, If_Man_t * pIfMan, If_Cut_t * pCut,
     assert( Gia_ObjIsAnd(pGiaTemp) );
     pHopObj = (Hop_Obj_t *)Vec_PtrEntry(p->vLabelsP, Gia_ObjNum(pGia, pGiaTemp) + nLeaves);
     // complement the result if needed
-    return Hop_NotCond( pHopObj,  pCut->fCompl ^ Gia_ObjFaninC0(pGiaPo) ^ ((uCanonPhase >> nLeaves) & 1) );    
+    return Hop_NotCond( pHopObj,  Gia_ObjFaninC0(pGiaPo) ^ ((uCanonPhase >> nLeaves) & 1) );    
 }
 
 
