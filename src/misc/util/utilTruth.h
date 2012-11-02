@@ -172,6 +172,17 @@ static inline int Abc_TtIsConst1( word * pIn1, int nWords )
   SeeAlso     []
 
 ***********************************************************************/
+static inline word Abc_Tt6Cofactor0( word t, int iVar )
+{
+    assert( iVar >= 0 && iVar < 6 );
+    return (t &s_Truths6Neg[iVar]) | ((t &s_Truths6Neg[iVar]) << (1<<iVar));
+}
+static inline word Abc_Tt6Cofactor1( word t, int iVar )
+{
+    assert( iVar >= 0 && iVar < 6 );
+    return (t & s_Truths6[iVar]) | ((t & s_Truths6[iVar]) >> (1<<iVar));
+}
+
 static inline void Abc_TtCofactor0( word * pTruth, int nWords, int iVar )
 {
     if ( nWords == 1 )
@@ -289,18 +300,10 @@ static inline int Abc_Tt6Cof0IsConst0( word t, int iVar ) { return (t & s_Truths
 static inline int Abc_Tt6Cof0IsConst1( word t, int iVar ) { return (t & s_Truths6Neg[iVar]) == s_Truths6Neg[iVar];                         }
 static inline int Abc_Tt6Cof1IsConst0( word t, int iVar ) { return (t & s_Truths6[iVar]) == 0;                                             }
 static inline int Abc_Tt6Cof1IsConst1( word t, int iVar ) { return (t & s_Truths6[iVar]) == s_Truths6[iVar];                               }
-static inline int Abc_Tt6CofsOpposite( word t, int iVar ) { return ((t >> (1 << iVar)) & s_Truths6Neg[iVar]) == (~t & s_Truths6Neg[iVar]); } 
-
-static inline word Abc_Tt6Cofactor0( word t, int iVar )
-{
-    assert( iVar >= 0 && iVar < 6 );
-    return (t &s_Truths6Neg[iVar]) | ((t &s_Truths6Neg[iVar]) << (1<<iVar));
-}
-static inline word Abc_Tt6Cofactor1( word t, int iVar )
-{
-    assert( iVar >= 0 && iVar < 6 );
-    return (t & s_Truths6[iVar]) | ((t & s_Truths6[iVar]) >> (1<<iVar));
-}
+static inline int Abc_Tt6CofsOpposite( word t, int iVar ) { return (~t & s_Truths6Neg[iVar]) == ((t >> (1 << iVar)) & s_Truths6Neg[iVar]); } 
+static inline int Abc_Tt6Cof0EqualCof1( word t1, word t2, int iVar ) { return (t1 & s_Truths6Neg[iVar]) == ((t2 >> (1 << iVar)) & s_Truths6Neg[iVar]); } 
+static inline int Abc_Tt6Cof0EqualCof0( word t1, word t2, int iVar ) { return (t1 & s_Truths6Neg[iVar]) == (t2 & s_Truths6Neg[iVar]); } 
+static inline int Abc_Tt6Cof1EqualCof1( word t1, word t2, int iVar ) { return (t1 & s_Truths6[iVar])    == (t2 & s_Truths6[iVar]); } 
 
 /**Function*************************************************************
 
@@ -433,13 +436,12 @@ static inline int Abc_TtCofsOpposite( word * t, int nWords, int iVar )
   SeeAlso     []
 
 ***********************************************************************/
-static inline void Abc_TtPrintDigit( int Digit )
+static inline char Abc_TtPrintDigit( int Digit )
 {
     assert( Digit >= 0 && Digit < 16 );
     if ( Digit < 10 )
-        printf( "%d", Digit );
-    else
-        printf( "%c", 'A' + Digit-10 );
+        return '0' + Digit;;
+    return 'A' + Digit-10;
 }
 static inline void Abc_TtPrintHex( word * pTruth, int nVars )
 {
@@ -448,7 +450,7 @@ static inline void Abc_TtPrintHex( word * pTruth, int nVars )
     assert( nVars >= 2 );
     for ( pThis = pTruth; pThis < pLimit; pThis++ )
         for ( k = 0; k < 16; k++ )
-            Abc_TtPrintDigit( (int)(pThis[0] >> (k << 2)) & 15 );
+            printf( "%c", Abc_TtPrintDigit((int)(pThis[0] >> (k << 2)) & 15) );
     printf( "\n" );
 }
 static inline void Abc_TtPrintHexRev( word * pTruth, int nVars )
@@ -458,7 +460,7 @@ static inline void Abc_TtPrintHexRev( word * pTruth, int nVars )
     assert( nVars >= 2 );
     for ( pThis = pTruth + Abc_TtWordNum(nVars) - 1; pThis >= pTruth; pThis-- )
         for ( k = 15; k >= 0; k-- )
-            Abc_TtPrintDigit( (int)(pThis[0] >> (k << 2)) & 15 );
+            printf( "%c", Abc_TtPrintDigit((int)(pThis[0] >> (k << 2)) & 15) );
     printf( "\n" );
 }
 static inline void Abc_TtPrintHexSpecial( word * pTruth, int nVars )
@@ -468,8 +470,19 @@ static inline void Abc_TtPrintHexSpecial( word * pTruth, int nVars )
     assert( nVars >= 2 );
     for ( pThis = pTruth + Abc_TtWordNum(nVars) - 1; pThis >= pTruth; pThis-- )
         for ( k = 0; k < 16; k++ )
-            Abc_TtPrintDigit( (int)(pThis[0] >> (k << 2)) & 15 );
+            printf( "%c", Abc_TtPrintDigit((int)(pThis[0] >> (k << 2)) & 15) );
     printf( "\n" );
+}
+static inline int Abc_TtWriteHexRev( char * pStr, word * pTruth, int nVars )
+{
+    word * pThis;
+    char * pStrInit = pStr;
+    int k, StartK = nVars >= 6 ? 16 : (1 << (nVars - 2));
+    assert( nVars >= 2 );
+    for ( pThis = pTruth + Abc_TtWordNum(nVars) - 1; pThis >= pTruth; pThis-- )
+        for ( k = StartK - 1; k >= 0; k-- )
+            *pStr++ = Abc_TtPrintDigit( (int)(pThis[0] >> (k << 2)) & 15 );
+    return pStr - pStrInit;
 }
 
 
@@ -531,11 +544,13 @@ static inline int Abc_Tt6HasVar( word t, int iVar )
 }
 static inline int Abc_TtHasVar( word * t, int nVars, int iVar )
 {
-    int nWords = Abc_TtWordNum( nVars );
     assert( iVar < nVars );
+    if ( nVars <= 6 )
+        return Abc_Tt6HasVar( t[0], iVar );
     if ( iVar < 6 )
     {
         int i, Shift = (1 << iVar);
+        int nWords = Abc_TtWordNum( nVars );
         for ( i = 0; i < nWords; i++ )
             if ( ((t[i] >> Shift) & s_Truths6Neg[iVar]) != (t[i] & s_Truths6Neg[iVar]) )
                 return 1;
@@ -544,7 +559,7 @@ static inline int Abc_TtHasVar( word * t, int nVars, int iVar )
     else
     {
         int i, Step = (1 << (iVar - 6));
-        word * tLimit = t + nWords;
+        word * tLimit = t + Abc_TtWordNum( nVars );
         for ( ; t < tLimit; t += 2*Step )
             for ( i = 0; i < Step; i++ )
                 if ( t[i] != t[Step+i] )
