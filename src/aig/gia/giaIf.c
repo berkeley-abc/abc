@@ -66,7 +66,7 @@ void Gia_ManSetIfParsDefault( void * pp )
     p->fPreprocess =  1;
     p->fArea       =  0;
     p->fFancy      =  0;
-    p->fExpRed     =  0; ////
+    p->fExpRed     =  1; ////
     p->fLatchPaths =  0;
     p->fEdge       =  1;
     p->fPower      =  0;
