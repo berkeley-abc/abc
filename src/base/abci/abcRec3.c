@@ -611,6 +611,11 @@ int Abc_NtkRecAddCut3( If_Man_t * pIfMan, If_Obj_t * pRoot, If_Cut_t * pCut )
 clk = clock();
     If_CutTraverse( pIfMan, pRoot, pCut, vNodes );
 p->timeTruth += clock() - clk;
+    if ( Vec_PtrSize(vNodes) > 253 )
+    {
+        p->nFilterSize++;
+        return 1;
+    }
 
     // semi-canonicize truth table
 clk = clock();

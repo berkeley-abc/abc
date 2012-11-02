@@ -105,23 +105,28 @@ word Gia_ObjComputeTruthTable6( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vSu
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ObjCollectInternal_rec( Gia_Man_t * p, Gia_Obj_t * pObj )
+int Gia_ObjCollectInternal_rec( Gia_Man_t * p, Gia_Obj_t * pObj )
 {
     if ( !Gia_ObjIsAnd(pObj) )
-        return;
+        return 0;
     if ( pObj->fMark0 )
-        return;
+        return 0;
     pObj->fMark0 = 1;
     Gia_ObjCollectInternal_rec( p, Gia_ObjFanin0(pObj) );
     Gia_ObjCollectInternal_rec( p, Gia_ObjFanin1(pObj) );
+    if ( Vec_IntSize(p->vTtNodes) > 253 )
+        return 1;
     Gia_ObjSetNum( p, pObj, Vec_IntSize(p->vTtNodes) );
     Vec_IntPush( p->vTtNodes, Gia_ObjId(p, pObj) );
+    return 0;
 }
-void Gia_ObjCollectInternal( Gia_Man_t * p, Gia_Obj_t * pObj )
+int Gia_ObjCollectInternal( Gia_Man_t * p, Gia_Obj_t * pObj )
 {
+    int RetValue;
     Vec_IntClear( p->vTtNodes );
-    Gia_ObjCollectInternal_rec( p, pObj );
+    RetValue = Gia_ObjCollectInternal_rec( p, pObj );
     assert( Vec_IntSize(p->vTtNodes) < 254 );
+    return RetValue;
 }
 
 /**Function*************************************************************
@@ -158,7 +163,12 @@ unsigned * Gia_ObjComputeTruthTable( Gia_Man_t * p, Gia_Obj_t * pObj )
     }
     // collect internal nodes
     pRoot = Gia_ObjIsCo(pObj) ? Gia_ObjFanin0(pObj) : pObj;
-    Gia_ObjCollectInternal( p, pRoot );
+    if ( Gia_ObjCollectInternal( p, pRoot ) )
+    {
+        Gia_ManForEachObjVec( p->vTtNodes, p, pTemp, i )
+            pTemp->fMark0 = 0;
+        return NULL;
+    }
     // compute the truth table for internal nodes
     Gia_ManForEachObjVec( p->vTtNodes, p, pTemp, i )
     {

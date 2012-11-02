@@ -27,17 +27,7 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-#define DAU_MAX_STR 300
-
-static word s_Truth6[6] = 
-{
-    0xAAAAAAAAAAAAAAAA,
-    0xCCCCCCCCCCCCCCCC,
-    0xF0F0F0F0F0F0F0F0,
-    0xFF00FF00FF00FF00,
-    0xFFFF0000FFFF0000,
-    0xFFFFFFFF00000000
-};
+#define DAU_MAX_STR 256
 
 /* 
     This code performs truth-table-based decomposition for 6-variable functions.
@@ -85,7 +75,7 @@ word Dau_DsdToTruth_rec( char ** p )
     if ( **p == '!' )
         (*p)++, fCompl = 1;
     if ( **p >= 'a' && **p <= 'f' )
-        return fCompl ? ~s_Truth6[**p - 'a'] : s_Truth6[**p - 'a'];
+        return fCompl ? ~s_Truths6[**p - 'a'] : s_Truths6[**p - 'a'];
     if ( **p == '(' || **p == '[' || **p == '<' )
     {
         word Res = 0;
@@ -197,12 +187,12 @@ int Dau_DsdPerform_rec( word t, char * pBuffer, int Pos, int * pVars, int nVars 
     // special case when function is a var
     if ( nVarsNew == 1 )
     {
-        if ( t == s_Truth6[ pVarsNew[0] ] )
+        if ( t == s_Truths6[ pVarsNew[0] ] )
         {
             pBuffer[Pos++] = 'a' +  pVarsNew[0];
             return Pos;
         }
-        if ( t == ~s_Truth6[ pVarsNew[0] ] )
+        if ( t == ~s_Truths6[ pVarsNew[0] ] )
         {
             pBuffer[Pos++] = '!';
             pBuffer[Pos++] = 'a' +  pVarsNew[0];
@@ -274,7 +264,7 @@ int Dau_DsdPerform_rec( word t, char * pBuffer, int Pos, int * pVars, int nVars 
         {
             PosStart = Pos;
             sprintf( pNest, "(%c%c)", 'a' + pVarsNew[v], 'a' + pVarsNew[u] );
-            Pos = Dau_DsdPerform_rec( (s_Truth6[pVarsNew[u]] & Cof[3]) | (~s_Truth6[pVarsNew[u]] & Cof[0]), pBuffer, Pos, pVarsNew, nVarsNew );
+            Pos = Dau_DsdPerform_rec( (s_Truths6[pVarsNew[u]] & Cof[3]) | (~s_Truths6[pVarsNew[u]] & Cof[0]), pBuffer, Pos, pVarsNew, nVarsNew );
             Pos = Dau_DsdPerformReplace( pBuffer, PosStart, Pos, 'a' + pVarsNew[u], pNest );
             return Pos;
         }
@@ -282,7 +272,7 @@ int Dau_DsdPerform_rec( word t, char * pBuffer, int Pos, int * pVars, int nVars 
         {
             PosStart = Pos;
             sprintf( pNest, "(%c!%c)", 'a' + pVarsNew[v], 'a' + pVarsNew[u] );
-            Pos = Dau_DsdPerform_rec( (s_Truth6[pVarsNew[u]] & Cof[2]) | (~s_Truth6[pVarsNew[u]] & Cof[0]), pBuffer, Pos, pVarsNew, nVarsNew );
+            Pos = Dau_DsdPerform_rec( (s_Truths6[pVarsNew[u]] & Cof[2]) | (~s_Truths6[pVarsNew[u]] & Cof[0]), pBuffer, Pos, pVarsNew, nVarsNew );
             Pos = Dau_DsdPerformReplace( pBuffer, PosStart, Pos, 'a' + pVarsNew[u], pNest );
             return Pos;
         }
@@ -290,7 +280,7 @@ int Dau_DsdPerform_rec( word t, char * pBuffer, int Pos, int * pVars, int nVars 
         {
             PosStart = Pos;
             sprintf( pNest, "(!%c%c)", 'a' + pVarsNew[v], 'a' + pVarsNew[u] );
-            Pos = Dau_DsdPerform_rec( (s_Truth6[pVarsNew[u]] & Cof[1]) | (~s_Truth6[pVarsNew[u]] & Cof[0]), pBuffer, Pos, pVarsNew, nVarsNew );
+            Pos = Dau_DsdPerform_rec( (s_Truths6[pVarsNew[u]] & Cof[1]) | (~s_Truths6[pVarsNew[u]] & Cof[0]), pBuffer, Pos, pVarsNew, nVarsNew );
             Pos = Dau_DsdPerformReplace( pBuffer, PosStart, Pos, 'a' + pVarsNew[u], pNest );
             return Pos;
         }
@@ -298,7 +288,7 @@ int Dau_DsdPerform_rec( word t, char * pBuffer, int Pos, int * pVars, int nVars 
         {
             PosStart = Pos;
             sprintf( pNest, "(!%c!%c)", 'a' + pVarsNew[v], 'a' + pVarsNew[u] );
-            Pos = Dau_DsdPerform_rec( (s_Truth6[pVarsNew[u]] & Cof[0]) | (~s_Truth6[pVarsNew[u]] & Cof[1]), pBuffer, Pos, pVarsNew, nVarsNew );
+            Pos = Dau_DsdPerform_rec( (s_Truths6[pVarsNew[u]] & Cof[0]) | (~s_Truths6[pVarsNew[u]] & Cof[1]), pBuffer, Pos, pVarsNew, nVarsNew );
             Pos = Dau_DsdPerformReplace( pBuffer, PosStart, Pos, 'a' + pVarsNew[u], pNest );
             return Pos;
         }
@@ -306,7 +296,7 @@ int Dau_DsdPerform_rec( word t, char * pBuffer, int Pos, int * pVars, int nVars 
         {
             PosStart = Pos;
             sprintf( pNest, "[%c%c]", 'a' + pVarsNew[v], 'a' + pVarsNew[u] );
-            Pos = Dau_DsdPerform_rec( (s_Truth6[pVarsNew[u]] & Cof[1]) | (~s_Truth6[pVarsNew[u]] & Cof[0]), pBuffer, Pos, pVarsNew, nVarsNew );
+            Pos = Dau_DsdPerform_rec( (s_Truths6[pVarsNew[u]] & Cof[1]) | (~s_Truths6[pVarsNew[u]] & Cof[0]), pBuffer, Pos, pVarsNew, nVarsNew );
             Pos = Dau_DsdPerformReplace( pBuffer, PosStart, Pos, 'a' + pVarsNew[u], pNest );
             return Pos;
         }
@@ -408,16 +398,16 @@ char * Dau_DsdPerform( word t )
 ***********************************************************************/
 void Dau_DsdTest()
 {
-//    word t = s_Truth6[0] & s_Truth6[1] & s_Truth6[2];
-//    word t = ~s_Truth6[0] | (s_Truth6[1] ^ ~s_Truth6[2]);
-//    word t = (s_Truth6[1] & s_Truth6[2]) | (s_Truth6[0] & s_Truth6[3]);
-//    word t = (~s_Truth6[1] & ~s_Truth6[2]) | (s_Truth6[0] ^ s_Truth6[3]);
-//    word t = ((~s_Truth6[1] & ~s_Truth6[2]) | (s_Truth6[0] ^ s_Truth6[3])) ^ s_Truth6[5];
-//    word t = ((s_Truth6[1] & ~s_Truth6[2]) ^ (s_Truth6[0] & s_Truth6[3])) & s_Truth6[5];
-//    word t = (~(~s_Truth6[0] & ~s_Truth6[4]) & s_Truth6[2]) | (~s_Truth6[1] & ~s_Truth6[0] & ~s_Truth6[4]);
+//    word t = s_Truths6[0] & s_Truths6[1] & s_Truths6[2];
+//    word t = ~s_Truths6[0] | (s_Truths6[1] ^ ~s_Truths6[2]);
+//    word t = (s_Truths6[1] & s_Truths6[2]) | (s_Truths6[0] & s_Truths6[3]);
+//    word t = (~s_Truths6[1] & ~s_Truths6[2]) | (s_Truths6[0] ^ s_Truths6[3]);
+//    word t = ((~s_Truths6[1] & ~s_Truths6[2]) | (s_Truths6[0] ^ s_Truths6[3])) ^ s_Truths6[5];
+//    word t = ((s_Truths6[1] & ~s_Truths6[2]) ^ (s_Truths6[0] & s_Truths6[3])) & s_Truths6[5];
+//    word t = (~(~s_Truths6[0] & ~s_Truths6[4]) & s_Truths6[2]) | (~s_Truths6[1] & ~s_Truths6[0] & ~s_Truths6[4]);
 //    word t = 0x0000000000005F3F;
 //    word t = 0xF3F5030503050305;
-//    word t = (s_Truth6[0] & s_Truth6[1] & (s_Truth6[2] ^ s_Truth6[4])) | (~s_Truth6[0] & ~s_Truth6[1] & ~(s_Truth6[2] ^ s_Truth6[4]));
+//    word t = (s_Truths6[0] & s_Truths6[1] & (s_Truths6[2] ^ s_Truths6[4])) | (~s_Truths6[0] & ~s_Truths6[1] & ~(s_Truths6[2] ^ s_Truths6[4]));
 //    word t = 0x05050500f5f5f5f3;
     word t = 0x9ef7a8d9c7193a0f;
     char * p = Dau_DsdPerform( t );
@@ -709,6 +699,123 @@ char * Dau_DsdRun( word * p, int nVars )
     Dau_DsdCleanBraces( pBuffer );
     return pBuffer;
 }
+
+
+
+
+typedef struct Dau_Dsd_t_ Dau_Dsd_t;
+struct Dau_Dsd_t_
+{
+    int      nVarsInit;            // the initial number of variables
+    int      nVarsUsed;            // the current number of variables
+    char     pVarDefs[32][8];      // variable definitions
+    char     pOutput[DAU_MAX_STR]; // output stream
+    int      nPos;                 // writing position
+};
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Dua_DsdInit( Dau_Dsd_t * p, int nVarsInit )
+{
+    int i;
+    memset( p, 0, sizeof(Dau_Dsd_t) );
+    p->nVarsInit = p->nVarsUsed = nVarsInit;
+    for ( i = 0; i < nVarsInit; i++ )
+        p->pVarDefs[i][0] = 'a';
+}
+void Dua_DsdWrite( Dau_Dsd_t * p, char * pStr )
+{
+    while ( *pStr )
+        p->pOutput[ p->nPos++ ] = *pStr++;
+}
+void Dua_DsdWriteInv( Dau_Dsd_t * p, int Cond )
+{
+    if ( Cond )
+        p->pOutput[ p->nPos++ ] = '!';
+}
+void Dua_DsdWriteVar( Dau_Dsd_t * p, int iVar )
+{
+    char * pStr;
+    for ( pStr = p->pVarDefs[iVar]; *pStr; pStr++ )
+        if ( *pStr >= 'a' + p->nVarsInit && *pStr < 'a' + p->nVarsUsed )
+            Dua_DsdWriteVar( p, *pStr - 'a' );
+        else
+            p->pOutput[ p->nPos++ ] = *pStr;
+}
+void Dua_DsdWriteStop( Dau_Dsd_t * p )
+{
+    p->pOutput[ p->nPos++ ] = 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Dua_DsdMinBase( word t, int nVars, int * pVarsNew )
+{
+    int v, nVarsNew = 0;
+    for ( v = 0; v < nVars; v++ )
+        if ( Abc_Tt6HasVar( t, v ) )
+            pVarsNew[nVarsNew++] = v;
+    return nVarsNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Dau_DsdDecomposeInternal( Dau_Dsd_t * p, word t, int * pVars, int nVars )
+{
+}
+char * Dau_DsdDecompose( word t, int nVarsInit )
+{
+    Dau_Dsd_t P, * p = &P;
+    int nVars, pVars[6];
+    Dua_DsdInit( p, nVarsInit );
+    if ( t == 0 )
+        Dua_DsdWrite( p, "0" );
+    else if ( ~t == 0 )
+        Dua_DsdWrite( p, "1" );
+    else
+    {
+        nVars = Dua_DsdMinBase( t, nVarsInit, pVars );
+        assert( nVars > 0 && nVars < 6 );
+        if ( nVars == 1 )
+        {
+            Dua_DsdWriteInv( p, (int)(t & 1) );
+            Dua_DsdWriteVar( p, pVars[0] );
+        }
+        else
+            Dau_DsdDecomposeInternal( p, t, pVars, nVars );
+    }
+    Dua_DsdWriteStop( p );
+    return p->pOutput;
+}
+
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
