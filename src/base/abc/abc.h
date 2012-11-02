@@ -806,6 +806,7 @@ extern ABC_DLL void               Abc_NtkRecPs3(int fPrintLib);
 extern ABC_DLL Gia_Man_t *        Abc_NtkRecGetGia3();
 extern ABC_DLL int                Abc_NtkRecIsRunning3();
 extern ABC_DLL void               Abc_NtkRecLibMerge3(Gia_Man_t * pGia);
+extern ABC_DLL int                Abc_NtkRecInputNum3();
 //extern ABC_DLL void               Abc_NtkRecFilter3(int nLimit);
 /*=== abcReconv.c ==========================================================*/
 extern ABC_DLL Abc_ManCut_t *     Abc_NtkManCutStart( int nNodeSizeMax, int nConeSizeMax, int nNodeFanStop, int nConeFanStop );

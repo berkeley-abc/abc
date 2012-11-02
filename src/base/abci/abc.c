@@ -876,6 +876,12 @@ void Abc_End( Abc_Frame_t * pAbc )
         Gia_ManStop( Abc_FrameGetGlobalFrame()->pGia );
     if ( Abc_FrameGetGlobalFrame()->pGia2 )
         Gia_ManStop( Abc_FrameGetGlobalFrame()->pGia2 );
+    if ( Abc_NtkRecIsRunning() )
+        Abc_NtkRecStop();
+    if ( Abc_NtkRecIsRunning2() )
+        Abc_NtkRecStop2();
+    if ( Abc_NtkRecIsRunning3() )
+        Abc_NtkRecStop3();
 }
 
 /**Function*************************************************************
@@ -14837,6 +14843,20 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
         pPars->nLutSize    =  pPars->nGateSize;
     }
 
+    if ( pPars->fUserRecLib )
+    {
+        if ( Abc_NtkRecIsRunning() + Abc_NtkRecIsRunning2() + Abc_NtkRecIsRunning3() != 1 )
+        {
+            printf( "Exactly one LMS manager should be running.\n" );
+            return 0;
+        }
+        if ( Abc_NtkRecIsRunning3() && Abc_NtkRecInputNum3() != pPars->nLutSize )
+        {
+            printf( "The number of library inputs (%d) different from the K parameters (%d).\n", Abc_NtkRecInputNum3(), pPars->nLutSize );
+            return 0;
+        }
+    }
+ 
 /*
     // modify for LUT structures
     if ( pPars->pLutStruct )

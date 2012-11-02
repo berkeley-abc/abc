@@ -80,7 +80,7 @@ struct Lms_Man_t_
     int               nAddedFuncs;
     int               nHoleInTheWall;
     // runtime
-    clock_t           timeCollect;
+    clock_t           timeTruth;
     clock_t           timeCanon;
     clock_t           timeBuild;
     clock_t           timeCheck;
@@ -109,6 +109,7 @@ static Lms_Man_t * s_pMan3 = NULL;
 Lms_Man_t * Lms_ManStart( Gia_Man_t * pGia, int nVars, int nCuts, int fFuncOnly, int fVerbose )
 {
     Lms_Man_t * p;
+    clock_t clk, clk2 = clock();
     // if GIA is given, use the number of variables from GIA
     nVars = pGia ? Gia_ManCiNum(pGia) : nVars;
     assert( nVars >= 6 && nVars <= 16 );
@@ -141,8 +142,12 @@ Lms_Man_t * Lms_ManStart( Gia_Man_t * pGia, int nVars, int nCuts, int fFuncOnly,
         p->nAdded = Gia_ManCoNum( p->pGia );
         Gia_ManForEachCo( p->pGia, pObj, i )
         {
+            clk = clock();
             pTruth = Gia_ObjComputeTruthTable( p->pGia, pObj );
+            p->timeTruth += clock() - clk;
+            clk = clock();
             Index = Vec_MemHashInsert( p->vTtMem, (word *)pTruth );
+            p->timeInsert += clock() - clk;
             assert( Index == Prev || Index == Prev + 1 ); // GIA subgraphs should be ordered
             Vec_IntPush( p->vTruthIds, Index );
             Prev = Index;
@@ -152,6 +157,7 @@ Lms_Man_t * Lms_ManStart( Gia_Man_t * pGia, int nVars, int nCuts, int fFuncOnly,
     p->vNodes    = Vec_PtrAlloc( 1000 );
     p->vLabelsP  = Vec_PtrAlloc( 1000 );
     p->vLabels   = Vec_IntAlloc( 1000 );
+p->timeTotal += clock() - clk2;
     return p;    
 }
 void Lms_ManStop( Lms_Man_t * p )
@@ -191,14 +197,14 @@ void Lms_ManPrint( Lms_Man_t * p )
     if ( p->nHoleInTheWall )
     printf( "Cuts whose logic structure has a hole       = %10d. (%6.2f %%)\n", p->nHoleInTheWall, !p->nTried? 0 : 100.0*p->nHoleInTheWall/p->nTried );
 
-    p->timeOther = p->timeTotal - p->timeCollect - p->timeCanon - p->timeBuild - p->timeCheck - p->timeInsert;
-    ABC_PRTP( "Runtime: Collect", p->timeCollect, p->timeTotal );
-    ABC_PRTP( "Runtime: Canon  ", p->timeCanon,   p->timeTotal );
-    ABC_PRTP( "Runtime: Build  ", p->timeBuild,   p->timeTotal );
-    ABC_PRTP( "Runtime: Check  ", p->timeCheck,   p->timeTotal );
-    ABC_PRTP( "Runtime: Insert ", p->timeInsert,  p->timeTotal );
-    ABC_PRTP( "Runtime: Other  ", p->timeOther,   p->timeTotal );
-    ABC_PRTP( "Runtime: TOTAL  ", p->timeTotal,   p->timeTotal );
+    p->timeOther = p->timeTotal - p->timeTruth - p->timeCanon - p->timeBuild - p->timeCheck - p->timeInsert;
+    ABC_PRTP( "Runtime: Truth ", p->timeTruth,  p->timeTotal );
+    ABC_PRTP( "Runtime: Canon ", p->timeCanon,  p->timeTotal );
+    ABC_PRTP( "Runtime: Build ", p->timeBuild,  p->timeTotal );
+    ABC_PRTP( "Runtime: Check ", p->timeCheck,  p->timeTotal );
+    ABC_PRTP( "Runtime: Insert", p->timeInsert, p->timeTotal );
+    ABC_PRTP( "Runtime: Other ", p->timeOther,  p->timeTotal );
+    ABC_PRTP( "Runtime: TOTAL ", p->timeTotal,  p->timeTotal );
 }
 
 
@@ -470,6 +476,11 @@ void Abc_NtkRecLibMerge3( Gia_Man_t * pLib )
     Gia_Obj_t * pObjPo, * pDriver, * pTemp = NULL;
     clock_t clk, clk2 = clock();
 
+    if ( Gia_ManCiNum(pLib) != Gia_ManCiNum(pGia) )
+    {
+        printf( "The number of Library inputs (%d) differs from the number of Gia inputs (%d).\n", Gia_ManCiNum(pLib), Gia_ManCiNum(pGia) );
+        return;
+    }
     assert( Gia_ManCiNum(pLib) == Gia_ManCiNum(pGia) );
 
     // create hash table if not available
@@ -486,7 +497,7 @@ void Abc_NtkRecLibMerge3( Gia_Man_t * pLib )
         // compute the truth table
 clk = clock();
         pTruth = Gia_ObjComputeTruthTable( pLib, Gia_ObjFanin0(pObjPo) );
-p->timeCollect += clock() - clk;
+p->timeTruth += clock() - clk;
         // semi-canonicize
 clk = clock();
         memcpy( p->pTemp1, pTruth, p->nWords * sizeof(word) );
@@ -599,7 +610,7 @@ int Abc_NtkRecAddCut3( If_Man_t * pIfMan, If_Obj_t * pRoot, If_Cut_t * pCut )
     // collect internal nodes and skip redundant cuts
 clk = clock();
     If_CutTraverse( pIfMan, pRoot, pCut, vNodes );
-p->timeCollect += clock() - clk;
+p->timeTruth += clock() - clk;
 
     // semi-canonicize truth table
 clk = clock();
@@ -1132,12 +1143,16 @@ Gia_Man_t * Abc_NtkRecGetGia3()
 {
     clock_t clk = clock();
     printf( "Before normalizing: Library has %d classes and %d AIG subgraphs with %d AND nodes.\n", 
-        Vec_MemEntryNum(s_pMan3->vTtMem), s_pMan3->nAdded, Gia_ManAndNum(s_pMan3->pGia) );
+        Vec_MemEntryNum(s_pMan3->vTtMem), Gia_ManPoNum(s_pMan3->pGia), Gia_ManAndNum(s_pMan3->pGia) );
     Lms_GiaNormalize( s_pMan3 );
     printf( "After normalizing:  Library has %d classes and %d AIG subgraphs with %d AND nodes.\n", 
-        Vec_MemEntryNum(s_pMan3->vTtMem), s_pMan3->nAdded, Gia_ManAndNum(s_pMan3->pGia) );
+        Vec_MemEntryNum(s_pMan3->vTtMem), Gia_ManPoNum(s_pMan3->pGia), Gia_ManAndNum(s_pMan3->pGia) );
     Abc_PrintTime( 1, "Normalization runtime", clock() - clk );
     return s_pMan3->pGia;
+}
+int Abc_NtkRecInputNum3()
+{
+    return Gia_ManCiNum(s_pMan3->pGia);
 }
 
 ////////////////////////////////////////////////////////////////////////
