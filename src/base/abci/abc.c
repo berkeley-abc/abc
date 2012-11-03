@@ -837,6 +837,10 @@ void Abc_Init( Abc_Frame_t * pAbc )
         extern void Dar_LibStart();
         Dar_LibStart();
     }
+    {
+        extern void Dau_DsdTest();
+        Dau_DsdTest();
+    }
 }
 
 /**Function*************************************************************

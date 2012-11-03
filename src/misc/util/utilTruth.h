@@ -530,7 +530,8 @@ static inline int Abc_TtSuppFindFirst( int Supp )
 }
 static inline int Abc_TtSuppOnlyOne( int Supp )
 {
-    assert( Supp > 0 );
+    if ( Supp == 0 )
+        return 0;
     return (Supp & (Supp-1)) == 0;
 }
 static inline int Abc_TtSuppIsMinBase( int Supp )
