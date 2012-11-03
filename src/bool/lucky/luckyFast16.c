@@ -76,6 +76,7 @@ int luckyCheck(word* pAfter, word* pBefore, int nVars, char * pCanonPerm, unsign
 inline void updataInfo(int iQ, int jQ, int iVar,  char * pCanonPerm, unsigned* pCanonPhase)
 {
     *pCanonPhase = adjustInfoAfterSwap(pCanonPerm, *pCanonPhase, iVar, ((abs(iQ-jQ)-1)<<2) + iQ );
+
 }
 
 // returns the first shift from the left in word x that has One bit in it.
@@ -100,6 +101,8 @@ inline int firstShiftWithOneBit(word x, int blockSize)
 inline void arrangeQuoters_superFast_lessThen5(word* pInOut, int start, int iQ, int jQ, int kQ, int lQ, int iVar, int nWords, char * pCanonPerm, unsigned* pCanonPhase)
 {
     int i, blockSize = 1<<iVar;
+//     printf("in arrangeQuoters_superFast_lessThen5\n");
+//     printf("start = %d, iQ = %d,jQ = %d,kQ = %d,lQ = %d, iVar = %d, nWords = %d\n", start, iQ, jQ, kQ , lQ, iVar, nWords);
     for(i=start;i>=0;i--)
     {   
         assert( iQ*blockSize < 64 );
@@ -113,8 +116,16 @@ inline void arrangeQuoters_superFast_lessThen5(word* pInOut, int start, int iQ, 
             (((pInOut[i] & SFmask[iVar][lQ])<<(lQ*blockSize))>>3*blockSize);
     }
     updataInfo(iQ, jQ, iVar, pCanonPerm, pCanonPhase);
-}
+//     printf("out arrangeQuoters_superFast_lessThen5\n");
 
+}
+// static word SFmask[5][4] = {
+//     {0x8888888888888888,0x4444444444444444,0x2222222222222222,0x1111111111111111},
+//     {0xC0C0C0C0C0C0C0C0,0x3030303030303030,0x0C0C0C0C0C0C0C0C,0x0303030303030303},
+//     {0xF000F000F000F000,0x0F000F000F000F00,0x00F000F000F000F0,0x000F000F000F000F},
+//     {0xFF000000FF000000,0x00FF000000FF0000,0x0000FF000000FF00,0x000000FF000000FF},
+//     {0xFFFF000000000000,0x0000FFFF00000000,0x00000000FFFF0000,0x000000000000FFFF}   
+// };
 //It compares 0Q and 3Q and returns 0 if 0Q is smaller then 3Q ( comparison starts at highest bit) and visa versa
 // DifStart contains the information about the first different bit in 0Q and 3Q
 inline int minTemp0_fast(word* pInOut, int iVar, int nWords, int* pDifStart)
@@ -166,7 +177,7 @@ inline int minTemp1_fast(word* pInOut, int iVar, int nWords, int* pDifStart)
     return 1;
 }
 
-//It compares iQ and jQ and returns 0 if iQ is smaller then jQ ( comparison starts at highest bit) and visa versa
+//It compares iQ and jQ and returns 0 if iQ is smaller then jQ ( comparison starts at highest bit) and 1 if jQ is
 // DifStart contains the information about the first different bit in iQ and jQ
 inline int minTemp2_fast(word* pInOut, int iVar, int iQ, int jQ, int nWords, int* pDifStart)
 {
@@ -188,7 +199,7 @@ inline int minTemp2_fast(word* pInOut, int iVar, int iQ, int jQ, int nWords, int
         }
     }
     *pDifStart=0;
-    return iQ;
+    return 0;
 }
 // same as minTemp2_fast but this one has a start position
 inline int minTemp3_fast(word* pInOut, int iVar, int start, int finish, int iQ, int jQ, int* pDifStart)
@@ -211,19 +222,22 @@ inline int minTemp3_fast(word* pInOut, int iVar, int start, int finish, int iQ, 
         }
     }
     *pDifStart=0;
-    return iQ;
+    return 0;
 }
 
 // It considers all swap and flip possibilities of iVar and iVar+1 and switches InOut to a minimal of them  
 inline void minimalSwapAndFlipIVar_superFast_lessThen5(word* pInOut, int iVar, int nWords, char * pCanonPerm, unsigned* pCanonPhase)
 {
-    int min1, min2, DifStart0, DifStart1, DifStartMin;
+    int min1, min2, DifStart0, DifStart1, DifStartMin, DifStart4=0;
     int M[2];   
     M[0] = minTemp0_fast(pInOut, iVar, nWords, &DifStart0); // 0, 3
     M[1] = minTemp1_fast(pInOut, iVar, nWords, &DifStart1); // 1, 2
     min1 = minTemp2_fast(pInOut, iVar, M[0], M[1], nWords, &DifStartMin);
+//     printf("\nDifStart0 = %d, DifStart1 = %d, DifStartMin = %d\n",DifStart0, DifStart1, DifStartMin);
+//     printf("M[0] = %d, M[1] = %d, min1 = %d\n", M[0], M[1], min1);
     if(DifStart0 != DifStart1)
-    {   
+    {
+//         printf("if\n");
         if( DifStartMin>=DifStart1 && DifStartMin>=DifStart0 )
             arrangeQuoters_superFast_lessThen5(pInOut, DifStartMin/100, M[min1], M[(min1+1)&1], 3 - M[(min1+1)&1], 3 - M[min1], iVar, nWords, pCanonPerm, pCanonPhase);
         else if( DifStart0 > DifStart1)
@@ -233,12 +247,14 @@ inline void minimalSwapAndFlipIVar_superFast_lessThen5(word* pInOut, int iVar, i
     }
     else
     {
+//         printf("else\n");
         if(DifStartMin>=DifStart0)
             arrangeQuoters_superFast_lessThen5(pInOut, DifStartMin/100, M[min1], M[(min1+1)&1], 3 - M[(min1+1)&1], 3 - M[min1], iVar, nWords, pCanonPerm, pCanonPhase);
         else
         {
-            min2 = minTemp3_fast(pInOut, iVar, DifStart0/100, DifStartMin/100, 3-M[0], 3-M[1], &DifStart1);  // reuse DifStart1 because DifStart1 = DifStart1=0
-            if(DifStart1>DifStartMin)
+            min2 = minTemp3_fast(pInOut, iVar, DifStart0/100, DifStartMin/100, 3-M[0], 3-M[1], &DifStart4);  // no reuse DifStart1 because DifStart1 = DifStart1=0
+//             printf("after minTemp3_fast min2 = %d, DifStart4 = %d\n", min2, DifStart4);
+            if(DifStart4>DifStartMin)
                 arrangeQuoters_superFast_lessThen5(pInOut, DifStart0/100, M[(min2+1)&1], M[min2], 3 - M[min2], 3 - M[(min2+1)&1], iVar, nWords, pCanonPerm, pCanonPhase);
             else
                 arrangeQuoters_superFast_lessThen5(pInOut, DifStart0/100, M[min1], M[(min1+1)&1], 3 - M[(min1+1)&1], 3 - M[min1], iVar, nWords, pCanonPerm, pCanonPhase);
@@ -260,6 +276,8 @@ inline void arrangeQuoters_superFast_iVar5(unsigned* pInOut, unsigned* temp, int
 {
     int i,blockSize,shiftSize;
     unsigned* tempPtr = temp+start;
+//     printf("in arrangeQuoters_superFast_iVar5\n");
+
     if(iQ == 0 && jQ == 1)
         return; 
     blockSize = sizeof(unsigned);
@@ -284,6 +302,7 @@ inline void arrangeQuoters_superFast_iVar5(unsigned* pInOut, unsigned* temp, int
 inline int minTemp0_fast_iVar5(unsigned* pInOut, int nWords, int* pDifStart)
 {
     int i, temp;
+//     printf("in minTemp0_fast_iVar5\n");
     for(i=(nWords)*2 - 1; i>=0; i-=4)   
     {
         temp = CompareWords(pInOut[i],pInOut[i-3]);
@@ -309,6 +328,7 @@ inline int minTemp0_fast_iVar5(unsigned* pInOut, int nWords, int* pDifStart)
 inline int minTemp1_fast_iVar5(unsigned* pInOut, int nWords, int* pDifStart)
 {
     int i, temp;
+//     printf("in minTemp1_fast_iVar5\n");
     for(i=(nWords)*2 - 2; i>=0; i-=4)   
     {
         temp = CompareWords(pInOut[i],pInOut[i-1]);
@@ -334,6 +354,8 @@ inline int minTemp1_fast_iVar5(unsigned* pInOut, int nWords, int* pDifStart)
 inline int minTemp2_fast_iVar5(unsigned* pInOut, int iQ, int jQ, int nWords, int* pDifStart)
 {
     int i, temp;
+//     printf("in minTemp2_fast_iVar5\n");
+
     for(i=(nWords)*2 - 1; i>=0; i-=4)   
     {
         temp = CompareWords(pInOut[i-iQ],pInOut[i-jQ]);
@@ -351,13 +373,15 @@ inline int minTemp2_fast_iVar5(unsigned* pInOut, int iQ, int jQ, int nWords, int
         }
     }
     *pDifStart=0;
-    return iQ;
+    return 0;
 }
 
 // same as minTemp2_fast but this one has a start position
 inline int minTemp3_fast_iVar5(unsigned* pInOut, int start, int finish, int iQ, int jQ, int* pDifStart)
 {
     int i, temp;
+//     printf("in minTemp3_fast_iVar5\n");
+
     for(i=start-1; i>=finish; i-=4) 
     {
         temp = CompareWords(pInOut[i-iQ],pInOut[i-jQ]);
@@ -375,7 +399,7 @@ inline int minTemp3_fast_iVar5(unsigned* pInOut, int start, int finish, int iQ, 
         }
     }
     *pDifStart=0;
-    return iQ;
+    return 0;
 }
 
 // It considers all swap and flip possibilities of iVar and iVar+1 and switches InOut to a minimal of them 
@@ -384,6 +408,7 @@ inline void minimalSwapAndFlipIVar_superFast_iVar5(unsigned* pInOut, int nWords,
     int min1, min2, DifStart0, DifStart1, DifStartMin;
     int M[2];
     unsigned temp[2048];
+//     printf("in minimalSwapAndFlipIVar_superFast_iVar5\n");
     M[0] = minTemp0_fast_iVar5(pInOut, nWords, &DifStart0); // 0, 3
     M[1] = minTemp1_fast_iVar5(pInOut, nWords, &DifStart1); // 1, 2
     min1 = minTemp2_fast_iVar5(pInOut, M[0], M[1], nWords, &DifStartMin);
@@ -427,6 +452,8 @@ inline void arrangeQuoters_superFast_moreThen5(word* pInOut, word* temp, int sta
 {
     int i,wordBlock,blockSize,shiftSize;
     word* tempPtr = temp+start;
+//     printf("in arrangeQuoters_superFast_moreThen5\n");
+
     if(iQ == 0 && jQ == 1)
         return;
     wordBlock = (1<<(iVar-6));
@@ -445,6 +472,8 @@ inline void arrangeQuoters_superFast_moreThen5(word* pInOut, word* temp, int sta
     }   
     memcpy(pInOut, temp, start*sizeof(word));
     updataInfo(iQ, jQ, iVar, pCanonPerm, pCanonPhase);
+//    printf("out arrangeQuoters_superFast_moreThen5\n");
+
 }
 
 //It compares 0Q and 3Q and returns 0 if 0Q is smaller then 3Q ( comparison starts at highest bit) and visa versa
@@ -455,6 +484,8 @@ inline int minTemp0_fast_moreThen5(word* pInOut, int iVar, int nWords, int* pDif
     int  wordBlock = 1<<(iVar-6);
     int wordDif = 3*wordBlock;
     int  shiftBlock = wordBlock*4;
+//    printf("in minTemp0_fast_moreThen5\n");
+
     for(i=nWords - 1; i>=0; i-=shiftBlock)
         for(j=0;j<wordBlock;j++)
         {
@@ -473,6 +504,8 @@ inline int minTemp0_fast_moreThen5(word* pInOut, int iVar, int nWords, int* pDif
             }
         }
     *pDifStart=0;
+//    printf("out minTemp0_fast_moreThen5\n");
+
     return 0;
 }
 
@@ -483,6 +516,8 @@ inline int minTemp1_fast_moreThen5(word* pInOut, int iVar, int nWords, int* pDif
     int i, j, temp;
     int  wordBlock = 1<<(iVar-6);
     int  shiftBlock = wordBlock*4;
+//    printf("in minTemp1_fast_moreThen5\n");
+
     for(i=nWords - wordBlock - 1; i>=0; i-=shiftBlock)
         for(j=0;j<wordBlock;j++)
         {
@@ -501,6 +536,8 @@ inline int minTemp1_fast_moreThen5(word* pInOut, int iVar, int nWords, int* pDif
             }
         }
     *pDifStart=0;
+//    printf("out minTemp1_fast_moreThen5\n");
+
     return 1;
 }
 
@@ -511,6 +548,8 @@ inline int minTemp2_fast_moreThen5(word* pInOut, int iVar, int iQ, int jQ, int n
     int i, j, temp;
     int  wordBlock = 1<<(iVar-6);
     int  shiftBlock = wordBlock*4;
+//    printf("in minTemp2_fast_moreThen5\n");
+
     for(i=nWords - 1; i>=0; i-=shiftBlock)
         for(j=0;j<wordBlock;j++)
         {
@@ -529,7 +568,9 @@ inline int minTemp2_fast_moreThen5(word* pInOut, int iVar, int iQ, int jQ, int n
             }
         }
     *pDifStart=0;
-    return iQ;
+//    printf("out minTemp2_fast_moreThen5\n");
+    
+    return 0;
 }
 
 // same as minTemp2_fast but this one has a start position
@@ -538,6 +579,8 @@ inline int minTemp3_fast_moreThen5(word* pInOut, int iVar, int start, int finish
     int i, j, temp;
     int  wordBlock = 1<<(iVar-6);
     int  shiftBlock = wordBlock*4;
+//    printf("in minTemp3_fast_moreThen5\n");
+
     for(i=start-1; i>=finish; i-=shiftBlock)
         for(j=0;j<wordBlock;j++)
         {
@@ -556,7 +599,9 @@ inline int minTemp3_fast_moreThen5(word* pInOut, int iVar, int start, int finish
             }
         }
     *pDifStart=0;
-    return iQ;
+//    printf("out minTemp3_fast_moreThen5\n");
+
+    return 0;
 }
 
 // It considers all swap and flip possibilities of iVar and iVar+1 and switches InOut to a minimal of them 
@@ -565,7 +610,7 @@ inline void minimalSwapAndFlipIVar_superFast_moreThen5(word* pInOut, int iVar, i
     int min1, min2, DifStart0, DifStart1, DifStartMin;
     int M[2];
     word temp[1024];
-
+//    printf("in minimalSwapAndFlipIVar_superFast_moreThen5\n");
     M[0] = minTemp0_fast_moreThen5(pInOut, iVar, nWords, &DifStart0); // 0, 3
     M[1] = minTemp1_fast_moreThen5(pInOut, iVar, nWords, &DifStart1); // 1, 2
     min1 = minTemp2_fast_moreThen5(pInOut, iVar, M[0], M[1], nWords, &DifStartMin);
@@ -591,6 +636,8 @@ inline void minimalSwapAndFlipIVar_superFast_moreThen5(word* pInOut, int iVar, i
                 arrangeQuoters_superFast_moreThen5(pInOut, temp, DifStart0, M[min1], M[(min1+1)&1], 3 - M[(min1+1)&1], 3 - M[min1], iVar, pCanonPerm, pCanonPhase);
         }
     }
+//    printf("out minimalSwapAndFlipIVar_superFast_moreThen5\n");
+
 }
 
 inline void minimalSwapAndFlipIVar_superFast_moreThen5_noEBFC(word* pInOut, int iVar, int nWords, char * pCanonPerm, unsigned* pCanonPhase)
@@ -621,6 +668,7 @@ inline int minimalSwapAndFlipIVar_superFast_all(word* pInOut, int nVars, int nWo
     word pDuplicate[1024];  
     int bitInfoTemp = pStore[0];
     memcpy(pDuplicate,pInOut,nWords*sizeof(word));
+//    printf("in minimalSwapAndFlipIVar_superFast_all\n");
     for(i=0;i<5;i++)
     {
         if(bitInfoTemp == pStore[i+1])
@@ -646,6 +694,8 @@ inline int minimalSwapAndFlipIVar_superFast_all(word* pInOut, int nVars, int nWo
             continue;
         }
     }
+//    printf("out minimalSwapAndFlipIVar_superFast_all\n");
+
     if(memcmp(pInOut,pDuplicate , nWords*sizeof(word)) == 0)
         return 0;
     else
@@ -714,13 +764,13 @@ inline void luckyCanonicizerS_F_first_16Vars11(word* pInOut, int  nVars, int nWo
     unsigned uCanonPhase1;
 
     if((* pCanonPhase) >> (nVars+2) )
-    {         
+    {  
         memcpy(duplicate, pInOut, sizeof(word)*nWords);
         Kit_TruthNot_64bit(duplicate, nVars);
         uCanonPhase1 = *pCanonPhase;
         uCanonPhase1 ^= (1 << nVars);
         memcpy(pCanonPerm1,pCanonPerm,sizeof(char)*16);
-        luckyCanonicizerS_F_first_16Vars1(pInOut, nVars, nWords, pStore, pCanonPerm, pCanonPhase);        
+        luckyCanonicizerS_F_first_16Vars1(pInOut, nVars, nWords, pStore, pCanonPerm, pCanonPhase); 
         luckyCanonicizerS_F_first_16Vars1(duplicate, nVars, nWords, pStore, pCanonPerm1, &uCanonPhase1);
         if(memCompare(pInOut, duplicate,nVars) == 1)
         {
@@ -729,8 +779,10 @@ inline void luckyCanonicizerS_F_first_16Vars11(word* pInOut, int  nVars, int nWo
             memcpy(pInOut, duplicate, sizeof(word)*nWords);
         }
     }
-    else    
+    else 
+    {
         luckyCanonicizerS_F_first_16Vars1(pInOut, nVars, nWords, pStore, pCanonPerm, pCanonPhase);
+    }
 }
 
 inline void luckyCanonicizer_final_fast_16Vars(word* pInOut, int  nVars, int nWords, int * pStore, char * pCanonPerm, unsigned* pCanonPhase)
@@ -755,7 +807,10 @@ inline void luckyCanonicizer_final_fast_16Vars1(word* pInOut, int  nVars, int nW
     luckyCanonicizerS_F_first_16Vars11(pInOut, nVars, nWords, pStore, pCanonPerm, pCanonPhase ); 
     bitReverceOrder(pInOut, nVars);
     (*pCanonPhase) ^= (1<<nVars) -1;
-    luckyCanonicizerS_F_first_16Vars11(pInOut, nVars, nWords, pStore, pCanonPerm, pCanonPhase ); 
+    luckyCanonicizerS_F_first_16Vars11(pInOut, nVars, nWords, pStore, pCanonPerm, pCanonPhase );
+//     bitReverceOrder(pInOut, nVars);
+//     (*pCanonPhase) ^= (1<<nVars) -1;
+//     luckyCanonicizerS_F_first_16Vars11(pInOut, nVars, nWords, pStore, pCanonPerm, pCanonPhase );
 }
 
 
@@ -799,7 +854,7 @@ unsigned luckyCanonicizer_final_fast1( word * pInOut, int nVars, char * pCanonPe
         pInOut[0] = luckyCanonicizer_final_fast_6Vars1( pInOut[0], pStore, pCanonPerm, &uCanonPhase);
     else if ( nVars <= 16 )
     {
-        nWords = (nVars <= 6) ? 1 : (1 << (nVars - 6));
+        nWords = 1 << (nVars - 6);
         luckyCanonicizer_final_fast_16Vars1( pInOut, nVars, nWords, pStore, pCanonPerm, &uCanonPhase );
     }
     else assert( 0 );

@@ -254,7 +254,7 @@ unsigned  Kit_TruthSemiCanonicize_Yasha1( word* pInOut, int nVars, char * pCanon
     if ( nOnes == nWords * 32 )
         uCanonPhase |= (1 << (nVars+2));
     
-    if ( (nOnes > nWords * 32) )
+    else if ( (nOnes > nWords * 32) )
     {
         uCanonPhase |= (1 << nVars);
         Kit_TruthNot_64bit( pInOut, nVars );
