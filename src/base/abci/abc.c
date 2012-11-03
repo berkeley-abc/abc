@@ -13437,17 +13437,26 @@ usage:
 ***********************************************************************/
 int Abc_CommandRecDump3( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
+    extern void Abc_NtkRecDumpTt3( char * pFileName, int fBinary );
     char * FileName;
     char ** pArgvNew;
     int nArgcNew;
     Gia_Man_t * pGia;
+    int fAscii = 0;
+    int fBinary = 0;
     int c;
 
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "abh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'a':
+            fAscii ^= 1;
+            break;
+        case 'b':
+            fBinary ^= 1;
+            break;
         case 'h':
             goto usage;
         default:
@@ -13460,7 +13469,6 @@ int Abc_CommandRecDump3( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
-    pGia = Abc_NtkRecGetGia3();
     pArgvNew = argv + globalUtilOptind;
     nArgcNew = argc - globalUtilOptind;
     if ( nArgcNew != 1 )
@@ -13468,22 +13476,34 @@ int Abc_CommandRecDump3( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "File name is not given on the command line.\n" );
         return 1;
     }
-    else if( Gia_ManPoNum(pGia) == 0 )
-    {
-        Abc_Print( 0, "No structure in the library.\n" );
-        return 1;
-    }
+    // get the input file name
+    FileName = pArgvNew[0];
+    if ( fAscii )
+        Abc_NtkRecDumpTt3( FileName, 0 );
+    else if ( fBinary )
+        Abc_NtkRecDumpTt3( FileName, 1 );
     else
     {
-        // get the input file name
-        FileName = pArgvNew[0];
+        pGia = Abc_NtkRecGetGia3();
+        if( pGia == NULL )
+        {
+            Abc_Print( 0, "Library AIG is not available.\n" );
+            return 1;
+        }
+        if( Gia_ManPoNum(pGia) == 0 )
+        {
+            Abc_Print( 0, "No structure in the library.\n" );
+            return 1;
+        }
         Gia_WriteAiger( pGia, FileName, 0, 0 );
     }
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: rec_dump3 [-h] <file>\n" );
+    Abc_Print( -2, "usage: rec_dump3 [-abh] <file>\n" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
+    Abc_Print( -2, "\t-a     : toggles dumping TTs into an ASCII file [default = %s]\n", fAscii? "yes": "no" );
+    Abc_Print( -2, "\t-b     : toggles dumping TTs into a binary file [default = %s]\n", fBinary? "yes": "no" );
     Abc_Print( -2, "\t<file> : AIGER file to write the library\n");
     return 1;
 }

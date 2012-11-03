@@ -66,6 +66,7 @@ struct Lms_Man_t_
     Vec_Ptr_t *       vNodes;       // the temporary nodes
     Vec_Ptr_t *       vLabelsP;     // temporary storage for HOP node labels
     Vec_Int_t *       vLabels;      // temporary storage for AIG node labels
+    Vec_Str_t *       vSupps;       // used temporarily by TT dumping
     word              pTemp1[1024]; // copy of the truth table
     word              pTemp2[1024]; // copy of the truth table
     // statistics 
@@ -123,6 +124,8 @@ Lms_Man_t * Lms_ManStart( Gia_Man_t * pGia, int nVars, int nCuts, int fFuncOnly,
     // internal data for library construction
     p->vTtMem = Vec_MemAlloc( p->nWords, 12 ); // 32 KB/page for 6-var functions
     Vec_MemHashAlloc( p->vTtMem, 10000 );
+    if ( fFuncOnly )
+        return p;    
     p->vTruthIds = Vec_IntAlloc( 10000 );
     if ( pGia == NULL )
     {
@@ -182,7 +185,7 @@ void Lms_ManPrint( Lms_Man_t * p )
 {
 //    Gia_ManPrintStats( p->pGia, 0, 0 );
     printf( "Library with %d vars has %d classes and %d AIG subgraphs with %d AND nodes.\n", 
-        Gia_ManCiNum(p->pGia), Vec_MemEntryNum(p->vTtMem), p->nAdded, Gia_ManAndNum(p->pGia) );
+        p->nVars, Vec_MemEntryNum(p->vTtMem), p->nAdded, p->pGia ? Gia_ManAndNum(p->pGia) : 0 );
 
     p->nAddedFuncs = Vec_MemEntryNum(p->vTtMem);
     printf( "Subgraphs tried                             = %10d. (%6.2f %%)\n", p->nTried,         !p->nTried? 0 : 100.0*p->nTried/p->nTried );
@@ -607,16 +610,6 @@ int Abc_NtkRecAddCut3( If_Man_t * pIfMan, If_Obj_t * pRoot, If_Cut_t * pCut )
         return 1;
     }
 
-    // collect internal nodes and skip redundant cuts
-clk = clock();
-    If_CutTraverse( pIfMan, pRoot, pCut, vNodes );
-p->timeTruth += clock() - clk;
-    if ( Vec_PtrSize(vNodes) > 253 )
-    {
-        p->nFilterSize++;
-        return 1;
-    }
-
     // semi-canonicize truth table
 clk = clock();
     memcpy( p->pTemp1, If_CutTruthW(pCut), p->nWords * sizeof(word) );
@@ -628,6 +621,26 @@ clk = clock();
     Abc_TtStretch5( (unsigned *)p->pTemp1, nLeaves, p->nVars );
 p->timeCanon += clock() - clk;
     // pCanonPerm and uCanonPhase show what was the variable corresponding to each var in the current truth
+
+    if ( p->pGia == NULL )
+    {
+clk = clock();
+        // add the resulting truth table to the hash table 
+        Vec_MemHashInsert( p->vTtMem, p->pTemp1 );
+        p->nAdded++;
+p->timeInsert += clock() - clk;
+        return 1;
+    }
+
+    // collect internal nodes and skip redundant cuts
+clk = clock();
+    If_CutTraverse( pIfMan, pRoot, pCut, vNodes );
+p->timeTruth += clock() - clk;
+    if ( Vec_PtrSize(vNodes) > 253 )
+    {
+        p->nFilterSize++;
+        return 1;
+    }
 
 clk = clock();
     // map cut leaves into elementary variables of GIA
@@ -715,7 +728,7 @@ void Abc_NtkRecAdd3( Abc_Ntk_t * pNtk, int fUseSOPB )
     // remember that the manager was used for library construction
     s_pMan3->fLibConstr = 1;
     // create hash table if not available
-    if ( s_pMan3->pGia->pHTable == NULL )
+    if ( s_pMan3->pGia && s_pMan3->pGia->pHTable == NULL )
         Gia_ManHashStart( s_pMan3->pGia );
 
     // set defaults
@@ -1186,6 +1199,68 @@ void Lms_GiaNormalize( Lms_Man_t * p )
     Vec_IntFree( p->vTruthIds );
     p->vTruthIds = vTruthIdsNew;
 //    Vec_IntPrint( vTruthIdsNew );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkRecTruthCompare( int * p1, int * p2 ) 
+{
+    int Diff = Vec_StrEntry( s_pMan3->vSupps, *p1 ) - Vec_StrEntry( s_pMan3->vSupps, *p2 );
+    if ( Diff )
+        return Diff;
+    return memcmp( Vec_MemReadEntry(s_pMan3->vTtMem, *p1), Vec_MemReadEntry(s_pMan3->vTtMem, *p2), sizeof(word) * s_pMan3->nWords ); 
+}
+void Abc_NtkRecDumpTt3( char * pFileName, int fBinary )
+{
+    FILE * pFile;
+    char pBuffer[1000];
+    Lms_Man_t * p = s_pMan3;
+    Vec_Int_t * vEntries;
+    word * pTruth;
+    int i, Entry, nVars = p->nVars;
+    int nEntries = Vec_MemEntryNum(p->vTtMem);
+    if ( nEntries == 0 )
+    {
+        printf( "There is not truth tables.\n" );
+        return;
+    }
+    pFile = fopen( pFileName, "wb" );
+    if ( pFile == NULL )
+    {
+        printf( "The file cannot be opened.\n" );
+        return;
+    }
+    p->vSupps = Vec_StrAlloc( nEntries );
+    Vec_MemForEachEntry( p->vTtMem, pTruth, i )
+        Vec_StrPush( p->vSupps, (char)Abc_TtSupportSize(pTruth, nVars) );
+    vEntries = Vec_IntStartNatural( nEntries );
+    qsort( (void *)Vec_IntArray(vEntries), nEntries, sizeof(int), (int(*)(const void *,const void *))Abc_NtkRecTruthCompare );
+    Vec_StrFreeP( &p->vSupps );
+    // write the file
+    Vec_IntForEachEntry( vEntries, Entry, i )
+    {
+        pTruth = Vec_MemReadEntry(p->vTtMem, Entry);
+        if ( fBinary )
+        {
+            fwrite( pTruth, 1, sizeof(word) * p->nWords, pFile );
+            continue;
+        }
+        Extra_PrintHex( pFile, (unsigned *)pTruth, nVars );
+        fprintf( pFile, "  " );
+        Kit_DsdWriteFromTruth( pBuffer, (unsigned *)pTruth, nVars );
+        fprintf( pFile, "%s\n", pBuffer );
+    }
+    fclose( pFile );
+    Vec_IntFree( vEntries );
 }
 
 /**Function*************************************************************
