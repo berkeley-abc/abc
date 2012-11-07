@@ -138,6 +138,48 @@ static inline void Dau_DsdCleanBraces( char * p )
     *q = 0;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Generate random permutation.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Dau_DsdFindVarNum( char * pDsd )
+{
+    int vMax = 0;
+    pDsd--;
+    while ( *++pDsd )
+        if ( *pDsd >= 'a' && *pDsd <= 'z' )
+            vMax = Abc_MaxInt( vMax, *pDsd - 'a' );
+    return vMax + 1;
+}
+void Dau_DsdGenRandPerm( int * pPerm, int nVars )
+{
+    int v, vNew;
+    for ( v = 0; v < nVars; v++ )
+        pPerm[v] = v;
+    for ( v = 0; v < nVars; v++ )
+    {
+        vNew = rand() % nVars;
+        ABC_SWAP( int, pPerm[v], pPerm[vNew] );
+    }
+}
+void Dau_DsdPermute( char * pDsd )
+{
+    int pPerm[16];
+    int nVars = Dau_DsdFindVarNum( pDsd );
+    Dau_DsdGenRandPerm( pPerm, nVars );
+    pDsd--;
+    while ( *++pDsd )
+        if ( *pDsd >= 'a' && *pDsd < 'a' + nVars )
+            *pDsd = 'a' + pPerm[*pDsd - 'a'];
+}
+
 
 /**Function*************************************************************
 
@@ -725,6 +767,8 @@ struct Dau_Dsd_t_
     char     pOutput[DAU_MAX_STR]; // output stream
 };
 
+static clock_t s_Times[3] = {0};
+
 /**Function*************************************************************
 
   Synopsis    [Manipulation of DSD data-structure.]
@@ -830,74 +874,6 @@ static inline int Dau_DsdLookupVarCache( Dau_Dsd_t * p, int v, int u )
 
 /**Function*************************************************************
 
-  Synopsis    [Generate random permutation.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Dau_DsdFindVarNum( char * pDsd )
-{
-    int vMax = 0;
-    pDsd--;
-    while ( *++pDsd )
-        if ( *pDsd >= 'a' && *pDsd <= 'z' )
-            vMax = Abc_MaxInt( vMax, *pDsd - 'a' );
-    return vMax + 1;
-}
-void Dau_DsdGenRandPerm( int * pPerm, int nVars )
-{
-    int v, vNew;
-    for ( v = 0; v < nVars; v++ )
-        pPerm[v] = v;
-    for ( v = 0; v < nVars; v++ )
-    {
-        vNew = rand() % nVars;
-        ABC_SWAP( int, pPerm[v], pPerm[vNew] );
-    }
-}
-void Dau_DsdPermute( char * pDsd )
-{
-    int pPerm[16];
-    int nVars = Dau_DsdFindVarNum( pDsd );
-    Dau_DsdGenRandPerm( pPerm, nVars );
-    pDsd--;
-    while ( *++pDsd )
-        if ( *pDsd >= 'a' && *pDsd < 'a' + nVars )
-            *pDsd = 'a' + pPerm[*pDsd - 'a'];
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Dau_DsdMinBase( word * pTruth, int nVars, int * pVarsNew )
-{
-    int v;
-    for ( v = 0; v < nVars; v++ )
-        pVarsNew[v] = v;
-    for ( v = nVars - 1; v >= 0; v-- )
-    {
-        if ( Abc_TtHasVar( pTruth, nVars, v ) )
-            continue;
-        Abc_TtSwapVars( pTruth, nVars, v, nVars-1 );
-        pVarsNew[v] = pVarsNew[--nVars];
-    }
-    return nVars;
-}
-
-/**Function*************************************************************
-
   Synopsis    [Procedures specialized for 6-variable functions.]
 
   Description []
@@ -966,6 +942,7 @@ finish:
 }
 int Dau_Dsd6DecomposeSingleVar( Dau_Dsd_t * p, word * pTruth, int * pVars, int nVars )
 {
+    clock_t clk = clock();
     assert( nVars > 1 );
     while ( 1 )
     {
@@ -981,6 +958,7 @@ int Dau_Dsd6DecomposeSingleVar( Dau_Dsd_t * p, word * pTruth, int * pVars, int n
     }
     if ( nVars == 1 )
         Dau_DsdWriteVar( p, pVars[--nVars], (int)(pTruth[0] & 1) );
+    s_Times[0] += clock() - clk;
     return nVars;
 }
 static inline int Dau_Dsd6FindSupportOne( Dau_Dsd_t * p, word tCof0, word tCof1, int * pVars, int nVars, int v, int u )
@@ -1090,6 +1068,7 @@ finish:
 }
 int Dau_Dsd6DecomposeDoubleVars( Dau_Dsd_t * p, word  * pTruth, int * pVars, int nVars )
 {
+    clock_t clk = clock();
     while ( 1 )
     {
         int v, u, nVarsOld;
@@ -1102,7 +1081,10 @@ int Dau_Dsd6DecomposeDoubleVars( Dau_Dsd_t * p, word  * pTruth, int * pVars, int
                 nVarsOld = nVars;
                 nVars = Dau_Dsd6DecomposeDoubleVarsOne( p, pTruth, pVars, nVars, v, u );
                 if ( nVars == 0 )
+                {
+                    s_Times[1] += clock() - clk;
                     return 0;
+                }
                 if ( nVarsOld > nVars )
                     break;
             }
@@ -1112,6 +1094,7 @@ int Dau_Dsd6DecomposeDoubleVars( Dau_Dsd_t * p, word  * pTruth, int * pVars, int
         if ( v == 0 ) // not found
             break;
     }
+    s_Times[1] += clock() - clk;
     return nVars;
 }
 
@@ -1181,6 +1164,7 @@ static inline int Dau_Dsd6DecomposeTripleVarsInner( Dau_Dsd_t * p, word  * pTrut
 }
 int Dau_Dsd6DecomposeTripleVars( Dau_Dsd_t * p, word  * pTruth, int * pVars, int nVars )
 {
+    clock_t clk = clock();
     while ( 1 )
     {
         int v;
@@ -1198,15 +1182,24 @@ int Dau_Dsd6DecomposeTripleVars( Dau_Dsd_t * p, word  * pTruth, int * pVars, int
                 if ( nVarsNew == nVars )
                     continue;
                 if ( nVarsNew == 0 )
+                {
+                    s_Times[2] += clock() - clk;
                     return 0;
+                }
                 nVars = Dau_Dsd6DecomposeDoubleVars( p, pTruth, pVars, nVarsNew );
                 if ( nVars == 0 )
+                {
+                    s_Times[2] += clock() - clk;
                     return 0;
+                }
                 break;
             }
         }
         if ( v == -1 )
+        {
+            s_Times[2] += clock() - clk;
             return nVars;
+        }
     }
     assert( 0 );
     return -1;
@@ -1281,6 +1274,20 @@ void Dau_DsdDecomposeInternal( Dau_Dsd_t * p, word  * pTruth, int * pVars, int n
   SeeAlso     []
 
 ***********************************************************************/
+int Dau_DsdMinBase( word * pTruth, int nVars, int * pVarsNew )
+{
+    int v;
+    for ( v = 0; v < nVars; v++ )
+        pVarsNew[v] = v;
+    for ( v = nVars - 1; v >= 0; v-- )
+    {
+        if ( Abc_TtHasVar( pTruth, nVars, v ) )
+            continue;
+        Abc_TtSwapVars( pTruth, nVars, v, nVars-1 );
+        pVarsNew[v] = pVarsNew[--nVars];
+    }
+    return nVars;
+}
 void Dau_DsdDecomposeInt( Dau_Dsd_t * p, word * pTruth, int nVarsInit )
 {
     int nVars, pVars[16];
@@ -1370,6 +1377,11 @@ void Dau_DsdTest33()
     }
     printf( "Finished trying %d decompositions.  ", Counter );
     Abc_PrintTime( 1, "Time", clock() - clk );
+
+    Abc_PrintTime( 1, "Time1", s_Times[0] );
+    Abc_PrintTime( 1, "Time2", s_Times[1] );
+    Abc_PrintTime( 1, "Time3", s_Times[2] );
+
     fclose( pFile );
 }
 
