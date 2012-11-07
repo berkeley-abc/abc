@@ -890,10 +890,10 @@ extern float               Gia_ManComputeSwitching( Gia_Man_t * p, int nFrames, 
 /*=== giaTruth.c ===========================================================*/
 extern word                Gia_ObjComputeTruthTable6( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vSupp, Vec_Wrd_t * vTruths );
 extern int                 Gia_ObjCollectInternal( Gia_Man_t * p, Gia_Obj_t * pObj );
-extern unsigned *          Gia_ObjComputeTruthTable( Gia_Man_t * p, Gia_Obj_t * pObj );
+extern word *              Gia_ObjComputeTruthTable( Gia_Man_t * p, Gia_Obj_t * pObj );
 extern void                Gia_ObjComputeTruthTableStart( Gia_Man_t * p, int nVarsMax );
 extern void                Gia_ObjComputeTruthTableStop( Gia_Man_t * p );
-extern unsigned *          Gia_ObjComputeTruthTableCut( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vLeaves );
+extern word *              Gia_ObjComputeTruthTableCut( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vLeaves );
 /*=== giaTsim.c ============================================================*/
 extern Gia_Man_t *         Gia_ManReduceConst( Gia_Man_t * pAig, int fVerbose );
 /*=== giaUtil.c ===========================================================*/
@@ -932,6 +932,7 @@ extern int                 Gia_ManMarkDangling( Gia_Man_t * p );
 extern Vec_Int_t *         Gia_ManGetDangling( Gia_Man_t * p );
 extern void                Gia_ObjPrint( Gia_Man_t * p, Gia_Obj_t * pObj );
 extern void                Gia_ManPrint( Gia_Man_t * p );
+extern void                Gia_ManPrintCo( Gia_Man_t * p, Gia_Obj_t * pObj );
 extern void                Gia_ManInvertConstraints( Gia_Man_t * pAig );
 extern int                 Gia_ManCompare( Gia_Man_t * p1, Gia_Man_t * p2 );
 extern void                Gia_ManMarkFanoutDrivers( Gia_Man_t * p );

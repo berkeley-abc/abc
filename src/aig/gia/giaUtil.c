@@ -1109,6 +1109,22 @@ void Gia_ManPrint( Gia_Man_t * p )
     Gia_ManForEachObj( p, pObj, i )
         Gia_ObjPrint( p, pObj );
 }
+void Gia_ManPrintCo_rec( Gia_Man_t * p, Gia_Obj_t * pObj )
+{
+    if ( Gia_ObjIsAnd(pObj) )
+    {
+        Gia_ManPrintCo_rec( p, Gia_ObjFanin0(pObj) );
+        Gia_ManPrintCo_rec( p, Gia_ObjFanin1(pObj) );
+    }
+    Gia_ObjPrint( p, pObj );
+}
+void Gia_ManPrintCo( Gia_Man_t * p, Gia_Obj_t * pObj )
+{
+    assert( Gia_ObjIsCo(pObj) );
+    printf( "TFI cone of CO number %d:\n", Gia_ObjCioId(pObj) );
+    Gia_ManPrintCo_rec( p, Gia_ObjFanin0(pObj) );
+    Gia_ObjPrint( p, pObj );
+}
 
 /**Function*************************************************************
 

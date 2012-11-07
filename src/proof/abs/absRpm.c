@@ -665,7 +665,7 @@ void Abs_RpmPerformMark( Gia_Man_t * p, int nCutMax, int fVerbose, int fVeryVerb
             nSize0 = Abs_GiaSortNodes( p, vSupp );
             assert( nSize0 > 0 && nSize0 <= nCutMax );
             // check if truth table has const cofs
-            pTruth = (word *)Gia_ObjComputeTruthTableCut( p, pObj, vSupp );
+            pTruth = Gia_ObjComputeTruthTableCut( p, pObj, vSupp );
             fHasConst = !Abs_GiaCheckTruth( pTruth, Vec_IntSize(vSupp), nSize0 );
             if ( fVeryVerbose )
             {

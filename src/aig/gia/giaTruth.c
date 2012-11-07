@@ -141,7 +141,7 @@ int Gia_ObjCollectInternal( Gia_Man_t * p, Gia_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
-unsigned * Gia_ObjComputeTruthTable( Gia_Man_t * p, Gia_Obj_t * pObj )
+word * Gia_ObjComputeTruthTable( Gia_Man_t * p, Gia_Obj_t * pObj )
 {
     Gia_Obj_t * pTemp, * pRoot;
     word * pTruth, * pTruthL, * pTruth0, * pTruth1;
@@ -205,7 +205,7 @@ unsigned * Gia_ObjComputeTruthTable( Gia_Man_t * p, Gia_Obj_t * pObj )
         pTruth = Gla_ObjTruthNode( p, pRoot );
     else
         pTruth = NULL;
-    return (unsigned *)Gla_ObjTruthDup( p, Gla_ObjTruthFree2(p), pTruth, Gia_ObjIsCo(pObj) && Gia_ObjFaninC0(pObj) );
+    return Gla_ObjTruthDup( p, Gla_ObjTruthFree2(p), pTruth, Gia_ObjIsCo(pObj) && Gia_ObjFaninC0(pObj) );
 }
 
 /**Function*************************************************************
@@ -227,7 +227,7 @@ void Gia_ObjComputeTruthTableTest( Gia_Man_t * p )
     int i;
     Gia_ManForEachPo( p, pObj, i )
     {
-        pTruth = Gia_ObjComputeTruthTable( p, pObj );
+        pTruth = (unsigned *)Gia_ObjComputeTruthTable( p, pObj );
 //        Extra_PrintHex( stdout, pTruth, Gia_ManPiNum(p) ); printf( "\n" );
     }
     Abc_PrintTime( 1, "Time", clock() - clk );
@@ -316,7 +316,7 @@ void Gia_ObjComputeTruthTableStop( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-unsigned * Gia_ObjComputeTruthTableCut( Gia_Man_t * p, Gia_Obj_t * pRoot, Vec_Int_t * vLeaves )
+word * Gia_ObjComputeTruthTableCut( Gia_Man_t * p, Gia_Obj_t * pRoot, Vec_Int_t * vLeaves )
 {
     Gia_Obj_t * pTemp;
     word * pTruth, * pTruthL, * pTruth0, * pTruth1;
@@ -358,7 +358,7 @@ unsigned * Gia_ObjComputeTruthTableCut( Gia_Man_t * p, Gia_Obj_t * pRoot, Vec_In
         assert( pTemp->fMark0 == 1 );
         pTemp->fMark0 = 0; 
     }
-    return (unsigned *)Gla_ObjTruthNode( p, pRoot );
+    return Gla_ObjTruthNode( p, pRoot );
 }
 
 ////////////////////////////////////////////////////////////////////////

@@ -28,6 +28,8 @@
 
 ABC_NAMESPACE_IMPL_START
 
+#define LMS_VAR_MAX    16  // LMS_VAR_MAX >= 6
+#define LMS_MAX_WORD  (1<<(LMS_VAR_MAX-6))
 //#define LMS_USE_OLD_FORM
 
 ////////////////////////////////////////////////////////////////////////
@@ -36,12 +38,11 @@ ABC_NAMESPACE_IMPL_START
 
 /*
     This LMS manager can be used in two modes:
-    - library constuction
-    - AIG level minimization
-
-    It is not OK to switch from library construction to AIG level minimization
-    without restarting LSM manager.  To restart the LSM manager, GIA has to be written out 
-    (rec_dump3 <file>.aig) and LMS manager started again (rec_start3 <file>.aig).
+        - library constuction
+        - AIG level minimization
+    To switch from library construction to AIG level minimization
+    LSM manager should be restarted by dumping GIA (rec_dump3 <file>.aig) 
+    and starting LMS manager again (rec_start3 <file>.aig).
 */
 
 typedef struct Lms_Man_t_ Lms_Man_t;
@@ -67,8 +68,8 @@ struct Lms_Man_t_
     Vec_Ptr_t *       vLabelsP;     // temporary storage for HOP node labels
     Vec_Int_t *       vLabels;      // temporary storage for AIG node labels
     Vec_Str_t *       vSupps;       // used temporarily by TT dumping
-    word              pTemp1[1024]; // copy of the truth table
-    word              pTemp2[1024]; // copy of the truth table
+    word              pTemp1[LMS_MAX_WORD]; // copy of the truth table
+    word              pTemp2[LMS_MAX_WORD]; // copy of the truth table
     // statistics 
     int               nTried;
     int               nFilterSize;
@@ -98,146 +99,6 @@ static Lms_Man_t * s_pMan3 = NULL;
 
 /**Function*************************************************************
 
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Lms_Man_t * Lms_ManStart( Gia_Man_t * pGia, int nVars, int nCuts, int fFuncOnly, int fVerbose )
-{
-    Lms_Man_t * p;
-    clock_t clk, clk2 = clock();
-    // if GIA is given, use the number of variables from GIA
-    nVars = pGia ? Gia_ManCiNum(pGia) : nVars;
-    assert( nVars >= 6 && nVars <= 16 );
-    // allocate manager
-    p = ABC_CALLOC( Lms_Man_t, 1 );
-    // parameters
-    p->nVars = nVars;
-    p->nCuts = nCuts;
-    p->nWords = Abc_Truth6WordNum( nVars );
-    p->fFuncOnly = fFuncOnly;
-    // internal data for library construction
-    p->vTtMem = Vec_MemAlloc( p->nWords, 12 ); // 32 KB/page for 6-var functions
-    Vec_MemHashAlloc( p->vTtMem, 10000 );
-    if ( fFuncOnly )
-        return p;    
-    p->vTruthIds = Vec_IntAlloc( 10000 );
-    if ( pGia == NULL )
-    {
-        int i;
-        p->pGia = Gia_ManStart( 10000 );
-        p->pGia->pName = Abc_UtilStrsav( "record" );
-        for ( i = 0; i < nVars; i++ )
-            Gia_ManAppendCi( p->pGia );
-    }
-    else
-    {
-        Gia_Obj_t * pObj;
-        unsigned * pTruth;
-        int i, Index, Prev = -1;
-        p->pGia = pGia;
-        // populate the manager with subgraphs present in GIA
-        p->nAdded = Gia_ManCoNum( p->pGia );
-        Gia_ManForEachCo( p->pGia, pObj, i )
-        {
-            clk = clock();
-            pTruth = Gia_ObjComputeTruthTable( p->pGia, pObj );
-            p->timeTruth += clock() - clk;
-            clk = clock();
-            Index = Vec_MemHashInsert( p->vTtMem, (word *)pTruth );
-            p->timeInsert += clock() - clk;
-            assert( Index == Prev || Index == Prev + 1 ); // GIA subgraphs should be ordered
-            Vec_IntPush( p->vTruthIds, Index );
-            Prev = Index;
-        }
-    }
-    // temporaries
-    p->vNodes    = Vec_PtrAlloc( 1000 );
-    p->vLabelsP  = Vec_PtrAlloc( 1000 );
-    p->vLabels   = Vec_IntAlloc( 1000 );
-p->timeTotal += clock() - clk2;
-    return p;    
-}
-void Lms_ManStop( Lms_Man_t * p )
-{
-    // temporaries
-    Vec_IntFreeP( &p->vLabels );
-    Vec_PtrFreeP( &p->vLabelsP );
-    Vec_PtrFreeP( &p->vNodes );
-    // internal data for AIG level minimization
-    Vec_IntFreeP( &p->vTruthPo );
-    Vec_WrdFreeP( &p->vDelays );
-    Vec_StrFreeP( &p->vAreas );
-    Vec_IntFreeP( &p->vFreqs );
-    // internal data for library construction
-    Vec_IntFreeP( &p->vTruthIds );
-    Vec_MemHashFree( p->vTtMem );
-    Vec_MemFree( p->vTtMem );
-    Gia_ManStop( p->pGia );
-    ABC_FREE( p );
-}
-void Lms_ManPrint( Lms_Man_t * p )
-{
-//    Gia_ManPrintStats( p->pGia, 0, 0 );
-    printf( "Library with %d vars has %d classes and %d AIG subgraphs with %d AND nodes.\n", 
-        p->nVars, Vec_MemEntryNum(p->vTtMem), p->nAdded, p->pGia ? Gia_ManAndNum(p->pGia) : 0 );
-
-    p->nAddedFuncs = Vec_MemEntryNum(p->vTtMem);
-    printf( "Subgraphs tried                             = %10d. (%6.2f %%)\n", p->nTried,         !p->nTried? 0 : 100.0*p->nTried/p->nTried );
-    printf( "Subgraphs filtered by support size          = %10d. (%6.2f %%)\n", p->nFilterSize,    !p->nTried? 0 : 100.0*p->nFilterSize/p->nTried );
-    printf( "Subgraphs filtered by structural redundancy = %10d. (%6.2f %%)\n", p->nFilterRedund,  !p->nTried? 0 : 100.0*p->nFilterRedund/p->nTried );
-    printf( "Subgraphs filtered by volume                = %10d. (%6.2f %%)\n", p->nFilterVolume,  !p->nTried? 0 : 100.0*p->nFilterVolume/p->nTried );
-    printf( "Subgraphs filtered by TT redundancy         = %10d. (%6.2f %%)\n", p->nFilterTruth,   !p->nTried? 0 : 100.0*p->nFilterTruth/p->nTried );
-    printf( "Subgraphs filtered by error                 = %10d. (%6.2f %%)\n", p->nFilterError,   !p->nTried? 0 : 100.0*p->nFilterError/p->nTried );
-    printf( "Subgraphs filtered by isomorphism           = %10d. (%6.2f %%)\n", p->nFilterSame,    !p->nTried? 0 : 100.0*p->nFilterSame/p->nTried );
-    printf( "Subgraphs added                             = %10d. (%6.2f %%)\n", p->nAdded,         !p->nTried? 0 : 100.0*p->nAdded/p->nTried );
-    printf( "Functions added                             = %10d. (%6.2f %%)\n", p->nAddedFuncs,    !p->nTried? 0 : 100.0*p->nAddedFuncs/p->nTried );
-    if ( p->nHoleInTheWall )
-    printf( "Cuts whose logic structure has a hole       = %10d. (%6.2f %%)\n", p->nHoleInTheWall, !p->nTried? 0 : 100.0*p->nHoleInTheWall/p->nTried );
-
-    p->timeOther = p->timeTotal - p->timeTruth - p->timeCanon - p->timeBuild - p->timeCheck - p->timeInsert;
-    ABC_PRTP( "Runtime: Truth ", p->timeTruth,  p->timeTotal );
-    ABC_PRTP( "Runtime: Canon ", p->timeCanon,  p->timeTotal );
-    ABC_PRTP( "Runtime: Build ", p->timeBuild,  p->timeTotal );
-    ABC_PRTP( "Runtime: Check ", p->timeCheck,  p->timeTotal );
-    ABC_PRTP( "Runtime: Insert", p->timeInsert, p->timeTotal );
-    ABC_PRTP( "Runtime: Other ", p->timeOther,  p->timeTotal );
-    ABC_PRTP( "Runtime: TOTAL ", p->timeTotal,  p->timeTotal );
-}
-
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Abc_NtkRecStart3( Gia_Man_t * p, int nVars, int nCuts, int fFuncOnly, int fVerbose )
-{
-    assert( s_pMan3 == NULL );
-    s_pMan3 = Lms_ManStart( p, nVars, nCuts, fFuncOnly, fVerbose );
-}
-
-void Abc_NtkRecStop3()
-{
-    assert( s_pMan3 != NULL );
-    Lms_ManStop( s_pMan3 );
-    s_pMan3 = NULL;
-}
-
-
-/**Function*************************************************************
-
   Synopsis    [Compute delay/area profiles of POs.]
 
   Description []
@@ -247,9 +108,9 @@ void Abc_NtkRecStop3()
   SeeAlso     []
 
 ***********************************************************************/
-static inline int  Lms_DelayGet( word D, int v )           { assert(v >= 0 && v < 16); return (int)((D >> (v << 2)) & 0xF);                    }
-static inline void Lms_DelaySet( word * pD, int v, int d ) { assert(v >= 0 && v < 16); assert(d >= 0 && d < 16); *pD |= ((word)d << (v << 2)); }
-static inline word Lms_DelayInit( int v )                  { assert(v >= 0 && v < 16); return (word)1 << (v << 2);                             }
+static inline int  Lms_DelayGet( word D, int v )           { assert(v >= 0 && v < LMS_VAR_MAX); return (int)((D >> (v << 2)) & 0xF);                             }
+static inline void Lms_DelaySet( word * pD, int v, int d ) { assert(v >= 0 && v < LMS_VAR_MAX); assert(d >= 0 && d < LMS_VAR_MAX); *pD |= ((word)d << (v << 2)); }
+static inline word Lms_DelayInit( int v )                  { assert(v >= 0 && v < LMS_VAR_MAX); return (word)1 << (v << 2);                                      }
 static inline word Lms_DelayMax( word D1, word D2, int nVars )
 {
     int v, Max;
@@ -349,6 +210,50 @@ Vec_Str_t * Lms_GiaAreas( Gia_Man_t * p )
         Vec_StrPush( vAreas, (char)(Gia_ObjIsAnd(Gia_ObjFanin0(pObj)) ? Lms_ObjArea(Gia_ObjFanin0(pObj)) : 0) );
     return vAreas;
 }
+Vec_Str_t * Lms_GiaSuppSizes( Gia_Man_t * p )
+{
+    Vec_Str_t * vResult;
+    Vec_Str_t * vSupps;
+    Gia_Obj_t * pObj;
+    int i;
+    vSupps = Vec_StrAlloc( Gia_ManObjNum(p) );
+    Vec_StrPush( vSupps, 0 );
+    Gia_ManForEachObj1( p, pObj, i )
+    {
+        if ( Gia_ObjIsAnd(pObj) )
+            Vec_StrPush( vSupps, (char)Abc_MaxInt( Vec_StrEntry(vSupps, Gia_ObjFaninId0(pObj, i)), Vec_StrEntry(vSupps, Gia_ObjFaninId1(pObj, i)) ) );
+        else if ( Gia_ObjIsCo(pObj) )
+            Vec_StrPush( vSupps, Vec_StrEntry(vSupps, Gia_ObjFaninId0(pObj, i)) );
+        else if ( Gia_ObjIsCi(pObj) )
+            Vec_StrPush( vSupps, (char)(Gia_ObjCioId(pObj)+1) );
+        else assert( 0 );
+    }
+    assert( Vec_StrSize(vSupps) == Gia_ManObjNum(p) );
+    vResult = Vec_StrAlloc( Gia_ManCoNum(p) );
+    Gia_ManForEachCo( p, pObj, i )
+        Vec_StrPush( vResult, Vec_StrEntry(vSupps, Gia_ObjId(p, pObj)) );
+    Vec_StrFree( vSupps );
+    return vResult;
+}
+void Lms_GiaProfilesPrint( Gia_Man_t * p )
+{
+    Gia_Obj_t * pObj;
+    int i;
+    Vec_Wrd_t * vDelays;
+    Vec_Str_t * vAreas;
+    vDelays = Lms_GiaDelays( p );
+    vAreas = Lms_GiaAreas( p );
+    Gia_ManForEachPo( p, pObj, i )
+    {
+        printf( "%6d : ", i );
+        printf( "A = %2d  ", Vec_StrEntry(vAreas, i) );
+        Lms_DelayPrint( Vec_WrdEntry(vDelays, i), Gia_ManPiNum(p) );
+//        Lms_GiaPrintSubgraph( p, pObj );
+//        printf( "\n" );
+    }
+    Vec_WrdFree( vDelays );
+    Vec_StrFree( vAreas );
+}
 
 /**Function*************************************************************
 
@@ -386,7 +291,7 @@ void Lms_GiaPrintSubgraph( Gia_Man_t * p, Gia_Obj_t * pObj )
 
 /**Function*************************************************************
 
-  Synopsis    [Prints delay/area profiles of the GIA subgraphs.]
+  Synopsis    []
 
   Description []
                
@@ -395,65 +300,156 @@ void Lms_GiaPrintSubgraph( Gia_Man_t * p, Gia_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
-void Lms_GiaProfilesPrint( Gia_Man_t * p )
+Lms_Man_t * Lms_ManStart( Gia_Man_t * pGia, int nVars, int nCuts, int fFuncOnly, int fVerbose )
 {
-    Gia_Obj_t * pObj;
-    int i;
-    Vec_Wrd_t * vDelays;
-    Vec_Str_t * vAreas;
-    vDelays = Lms_GiaDelays( p );
-    vAreas = Lms_GiaAreas( p );
-
-    Gia_ManForEachPo( p, pObj, i )
+    Lms_Man_t * p;
+    clock_t clk, clk2 = clock();
+    // if GIA is given, use the number of variables from GIA
+    nVars = pGia ? Gia_ManCiNum(pGia) : nVars;
+    assert( nVars >= 6 && nVars <= LMS_VAR_MAX );
+    // allocate manager
+    p = ABC_CALLOC( Lms_Man_t, 1 );
+    // parameters
+    p->nVars = nVars;
+    p->nCuts = nCuts;
+    p->nWords = Abc_Truth6WordNum( nVars );
+    p->fFuncOnly = fFuncOnly;
+    // internal data for library construction
+    p->vTtMem = Vec_MemAlloc( p->nWords, 12 ); // 32 KB/page for 6-var functions
+    Vec_MemHashAlloc( p->vTtMem, 10000 );
+    if ( fFuncOnly )
+        return p;    
+    p->vTruthIds = Vec_IntAlloc( 10000 );
+    if ( pGia == NULL )
     {
-        printf( "%6d : ", i );
-        printf( "A = %2d  ", Vec_StrEntry(vAreas, i) );
-        Lms_DelayPrint( Vec_WrdEntry(vDelays, i), Gia_ManPiNum(p) );
-//        Lms_GiaPrintSubgraph( p, pObj );
-//        printf( "\n" );
+        int i;
+        p->pGia = Gia_ManStart( 10000 );
+        p->pGia->pName = Abc_UtilStrsav( "record" );
+        for ( i = 0; i < nVars; i++ )
+            Gia_ManAppendCi( p->pGia );
     }
-
-    Vec_WrdFree( vDelays );
-    Vec_StrFree( vAreas );
+    else
+    {
+        Gia_Obj_t * pObj;
+        word * pTruth;
+        int i, Index, Prev = -1;
+        p->pGia = pGia;
+        // populate the manager with subgraphs present in GIA
+        p->nAdded = Gia_ManCoNum( p->pGia );
+        Gia_ManForEachCo( p->pGia, pObj, i )
+        {
+            clk = clock();
+            pTruth = Gia_ObjComputeTruthTable( p->pGia, pObj );
+            p->timeTruth += clock() - clk;
+            clk = clock();
+            Index = Vec_MemHashInsert( p->vTtMem, pTruth );
+            p->timeInsert += clock() - clk;
+            assert( Index == Prev || Index == Prev + 1 ); // GIA subgraphs should be ordered
+            Vec_IntPush( p->vTruthIds, Index );
+            Prev = Index;
+        }
+    }
+    // temporaries
+    p->vNodes    = Vec_PtrAlloc( 1000 );
+    p->vLabelsP  = Vec_PtrAlloc( 1000 );
+    p->vLabels   = Vec_IntAlloc( 1000 );
+p->timeTotal += clock() - clk2;
+    return p;    
 }
-
-/**Function*************************************************************
-
-  Synopsis    [Compute support sizes for each CO.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Vec_Str_t * Gia_ManSuppSizes( Gia_Man_t * p )
+void Lms_ManStop( Lms_Man_t * p )
 {
-    Vec_Str_t * vResult;
+    // temporaries
+    Vec_IntFreeP( &p->vLabels );
+    Vec_PtrFreeP( &p->vLabelsP );
+    Vec_PtrFreeP( &p->vNodes );
+    // internal data for AIG level minimization
+    Vec_IntFreeP( &p->vTruthPo );
+    Vec_WrdFreeP( &p->vDelays );
+    Vec_StrFreeP( &p->vAreas );
+    Vec_IntFreeP( &p->vFreqs );
+    // internal data for library construction
+    Vec_IntFreeP( &p->vTruthIds );
+    Vec_MemHashFree( p->vTtMem );
+    Vec_MemFree( p->vTtMem );
+    Gia_ManStop( p->pGia );
+    ABC_FREE( p );
+}
+void Lms_ManPrepare( Lms_Man_t * p )
+{
+    // compute the first PO for each semi-canonical form
+    int i, Entry;
+    assert( !p->fLibConstr );
+    assert( p->vTruthPo == NULL );
+    p->vTruthPo = Vec_IntStartFull( Vec_MemEntryNum(p->vTtMem)+1 );
+    assert( Vec_IntFindMin(p->vTruthIds) >= 0 );
+    assert( Vec_IntFindMax(p->vTruthIds) < Vec_MemEntryNum(p->vTtMem) );
+    Vec_IntForEachEntry( p->vTruthIds, Entry, i )
+        if ( Vec_IntEntry(p->vTruthPo, Entry) == -1 )
+            Vec_IntWriteEntry( p->vTruthPo, Entry, i );
+    Vec_IntWriteEntry( p->vTruthPo, Vec_MemEntryNum(p->vTtMem), Gia_ManCoNum(p->pGia) );
+    // compute delay/area and init frequency
+    assert( p->vDelays == NULL );
+    assert( p->vAreas == NULL );
+    assert( p->vFreqs == NULL );
+    p->vDelays = Lms_GiaDelays( p->pGia );
+    p->vAreas  = Lms_GiaAreas( p->pGia );
+    p->vFreqs  = Vec_IntStart( Gia_ManCoNum(p->pGia) );
+}
+void Lms_ManPrintFuncStats( Lms_Man_t * p )
+{
     Vec_Str_t * vSupps;
-    Gia_Obj_t * pObj;
-    int i;
-    vSupps = Vec_StrAlloc( Gia_ManObjNum(p) );
-    Vec_StrPush( vSupps, 0 );
-    Gia_ManForEachObj1( p, pObj, i )
+    int Counters[LMS_VAR_MAX+1] = {0}, CountersS[LMS_VAR_MAX+1] = {0};
+    int i, Entry, Next;
+    if ( p->pGia == NULL )
+        return;
+    if ( p->fLibConstr )
+        return;
+    if ( p->vTruthPo == NULL )
+        Lms_ManPrepare( p );
+    vSupps = Lms_GiaSuppSizes( p->pGia );
+    Vec_IntForEachEntry( p->vTruthPo, Entry, i )
     {
-        if ( Gia_ObjIsAnd(pObj) )
-            Vec_StrPush( vSupps, (char)Abc_MaxInt( Vec_StrEntry(vSupps, Gia_ObjFaninId0(pObj, i)), Vec_StrEntry(vSupps, Gia_ObjFaninId1(pObj, i)) ) );
-        else if ( Gia_ObjIsCo(pObj) )
-            Vec_StrPush( vSupps, Vec_StrEntry(vSupps, Gia_ObjFaninId0(pObj, i)) );
-        else if ( Gia_ObjIsCi(pObj) )
-            Vec_StrPush( vSupps, (char)(Gia_ObjCioId(pObj)+1) );
-        else assert( 0 );
+        if ( i == Vec_IntSize(p->vTruthPo) - 1 )
+            break;
+        Next = Vec_IntEntry( p->vTruthPo, i+1 );
+        Counters[Vec_StrEntry(vSupps, Entry)]++;
+        CountersS[Vec_StrEntry(vSupps, Entry)] += Next - Entry;
     }
-    assert( Vec_StrSize(vSupps) == Gia_ManObjNum(p) );
-    vResult = Vec_StrAlloc( Gia_ManCoNum(p) );
-    Gia_ManForEachCo( p, pObj, i )
-        Vec_StrPush( vResult, Vec_StrEntry(vSupps, Gia_ObjId(p, pObj)) );
+    for ( i = 0; i <= LMS_VAR_MAX; i++ )
+        if ( Counters[i] )
+            printf( "Inputs = %2d.  Funcs = %8d.  Subgrs = %8d.  Ratio = %6.2f.\n", i, Counters[i], CountersS[i], 1.0*CountersS[i]/Counters[i] );
     Vec_StrFree( vSupps );
-    return vResult;
 }
+void Lms_ManPrint( Lms_Man_t * p )
+{
+//    Gia_ManPrintStats( p->pGia, 0, 0 );
+    printf( "Library with %d vars has %d classes and %d AIG subgraphs with %d AND nodes.\n", 
+        p->nVars, Vec_MemEntryNum(p->vTtMem), p->nAdded, p->pGia ? Gia_ManAndNum(p->pGia) : 0 );
 
+    Lms_ManPrintFuncStats( p );
+
+    p->nAddedFuncs = Vec_MemEntryNum(p->vTtMem);
+    printf( "Subgraphs tried                             = %10d. (%6.2f %%)\n", p->nTried,         !p->nTried? 0 : 100.0*p->nTried/p->nTried );
+    printf( "Subgraphs filtered by support size          = %10d. (%6.2f %%)\n", p->nFilterSize,    !p->nTried? 0 : 100.0*p->nFilterSize/p->nTried );
+    printf( "Subgraphs filtered by structural redundancy = %10d. (%6.2f %%)\n", p->nFilterRedund,  !p->nTried? 0 : 100.0*p->nFilterRedund/p->nTried );
+    printf( "Subgraphs filtered by volume                = %10d. (%6.2f %%)\n", p->nFilterVolume,  !p->nTried? 0 : 100.0*p->nFilterVolume/p->nTried );
+    printf( "Subgraphs filtered by TT redundancy         = %10d. (%6.2f %%)\n", p->nFilterTruth,   !p->nTried? 0 : 100.0*p->nFilterTruth/p->nTried );
+    printf( "Subgraphs filtered by error                 = %10d. (%6.2f %%)\n", p->nFilterError,   !p->nTried? 0 : 100.0*p->nFilterError/p->nTried );
+    printf( "Subgraphs filtered by isomorphism           = %10d. (%6.2f %%)\n", p->nFilterSame,    !p->nTried? 0 : 100.0*p->nFilterSame/p->nTried );
+    printf( "Subgraphs added                             = %10d. (%6.2f %%)\n", p->nAdded,         !p->nTried? 0 : 100.0*p->nAdded/p->nTried );
+    printf( "Functions added                             = %10d. (%6.2f %%)\n", p->nAddedFuncs,    !p->nTried? 0 : 100.0*p->nAddedFuncs/p->nTried );
+    if ( p->nHoleInTheWall )
+    printf( "Cuts whose logic structure has a hole       = %10d. (%6.2f %%)\n", p->nHoleInTheWall, !p->nTried? 0 : 100.0*p->nHoleInTheWall/p->nTried );
+
+    p->timeOther = p->timeTotal - p->timeTruth - p->timeCanon - p->timeBuild - p->timeCheck - p->timeInsert;
+    ABC_PRTP( "Runtime: Truth ", p->timeTruth,  p->timeTotal );
+    ABC_PRTP( "Runtime: Canon ", p->timeCanon,  p->timeTotal );
+    ABC_PRTP( "Runtime: Build ", p->timeBuild,  p->timeTotal );
+    ABC_PRTP( "Runtime: Check ", p->timeCheck,  p->timeTotal );
+    ABC_PRTP( "Runtime: Insert", p->timeInsert, p->timeTotal );
+    ABC_PRTP( "Runtime: Other ", p->timeOther,  p->timeTotal );
+    ABC_PRTP( "Runtime: TOTAL ", p->timeTotal,  p->timeTotal );
+}
 
 /**Function*************************************************************
 
@@ -472,9 +468,9 @@ void Abc_NtkRecLibMerge3( Gia_Man_t * pLib )
     Lms_Man_t * p = s_pMan3;
     Gia_Man_t * pGia = p->pGia;
     Vec_Str_t * vSupps;
-    char pCanonPerm[16];
+    char pCanonPerm[LMS_VAR_MAX];
     unsigned uCanonPhase;
-    unsigned * pTruth;
+    word * pTruth;
     int i, k, Index, iFanin0, iFanin1, nLeaves;
     Gia_Obj_t * pObjPo, * pDriver, * pTemp = NULL;
     clock_t clk, clk2 = clock();
@@ -491,12 +487,13 @@ void Abc_NtkRecLibMerge3( Gia_Man_t * pLib )
         Gia_ManHashStart( pGia );
 
     // add AIG subgraphs
-    vSupps = Gia_ManSuppSizes( pLib );
+    vSupps = Lms_GiaSuppSizes( pLib );
     Gia_ManForEachCo( pLib, pObjPo, k )
     {
         // get support size
         nLeaves = Vec_StrEntry(vSupps, k);
         assert( nLeaves > 1 );
+
         // compute the truth table
 clk = clock();
         pTruth = Gia_ObjComputeTruthTable( pLib, Gia_ObjFanin0(pObjPo) );
@@ -512,6 +509,8 @@ clk = clock();
         Abc_TtStretch5( (unsigned *)p->pTemp1, nLeaves, p->nVars );
 p->timeCanon += clock() - clk;
         // pCanonPerm and uCanonPhase show what was the variable corresponding to each var in the current truth
+        if ( nLeaves == 2 && Abc_TtSupportSize(pTruth, 2) != 2 )
+            continue;
 
 clk = clock();
         // map cut leaves into elementary variables of GIA
@@ -549,7 +548,7 @@ p->timeCheck += clock() - clk;
         if ( memcmp( p->pTemp1, pTruth, p->nWords * sizeof(word) ) != 0 )
         {
     
-            Kit_DsdPrintFromTruth( pTruth, nLeaves ); printf( "\n" );
+            Kit_DsdPrintFromTruth( (unsigned *)pTruth, nLeaves ); printf( "\n" );
             Kit_DsdPrintFromTruth( (unsigned *)p->pTemp1, nLeaves ); printf( "\n" );
             printf( "Truth table verification has failed.\n" );
     
@@ -590,7 +589,7 @@ p->timeTotal += clock() - clk2;
 int Abc_NtkRecAddCut3( If_Man_t * pIfMan, If_Obj_t * pRoot, If_Cut_t * pCut )
 {
     Lms_Man_t * p = s_pMan3;
-    char pCanonPerm[16];
+    char pCanonPerm[LMS_VAR_MAX];
     unsigned uCanonPhase;
     int i, Index, iFanin0, iFanin1, fHole;
     int nLeaves = If_CutLeaveNum(pCut);
@@ -598,13 +597,13 @@ int Abc_NtkRecAddCut3( If_Man_t * pIfMan, If_Obj_t * pRoot, If_Cut_t * pCut )
     Gia_Man_t * pGia = p->pGia;
     Gia_Obj_t * pDriver;
     If_Obj_t * pIfObj = NULL;
-    unsigned * pTruth;
+    word * pTruth;
     clock_t clk;
     p->nTried++;
 
     // skip small cuts
     assert( p->nVars == (int)pCut->nLimit );
-    if ( nLeaves < 2 )
+    if ( nLeaves < 2 || (nLeaves == 2 && Abc_TtSupportSize(If_CutTruthW(pCut), 2) != 2) )
     {
         p->nFilterSize++;
         return 1;
@@ -871,32 +870,15 @@ p->timeCanon += clock() - clk;
 int If_CutDelayRecCost3( If_Man_t * pIfMan, If_Cut_t * pCut, If_Obj_t * pObj )
 {
     Lms_Man_t * p = s_pMan3;
-    char pCanonPerm[16];
+    char pCanonPerm[LMS_VAR_MAX];
     unsigned uCanonPhase;
     // make sure the cut functions match the library
     assert( p->nVars == (int)pCut->nLimit );
     // if this assertion fires, it means that LMS manager was used for library construction
     // in this case, GIA has to be written out and the manager restarted as described above
     assert( !p->fLibConstr );
-    if ( p->vTruthPo == NULL ) // the first time AIG level minimization is called
-    {
-        // compute the first PO for each semi-canonical form
-        int i, Entry;
-        p->vTruthPo = Vec_IntStartFull( Vec_MemEntryNum(p->vTtMem)+1 );
-        assert( Vec_IntFindMin(p->vTruthIds) >= 0 );
-        assert( Vec_IntFindMax(p->vTruthIds) < Vec_MemEntryNum(p->vTtMem) );
-        Vec_IntForEachEntry( p->vTruthIds, Entry, i )
-            if ( Vec_IntEntry(p->vTruthPo, Entry) == -1 )
-                Vec_IntWriteEntry( p->vTruthPo, Entry, i );
-        Vec_IntWriteEntry( p->vTruthPo, Vec_MemEntryNum(p->vTtMem), Gia_ManCoNum(p->pGia) );
-        // compute delay/area and init frequency
-        assert( p->vDelays == NULL );
-        assert( p->vAreas == NULL );
-        assert( p->vFreqs == NULL );
-        p->vDelays = Lms_GiaDelays( p->pGia );
-        p->vAreas  = Lms_GiaAreas( p->pGia );
-        p->vFreqs  = Vec_IntStart( Gia_ManCoNum(p->pGia) );
-    }
+    if ( p->vTruthPo == NULL )
+        Lms_ManPrepare( p );
     // return the delay of the best structure
     return If_CutFindBestStruct( pIfMan, pCut, pCanonPerm, &uCanonPhase, NULL );
 }
@@ -915,7 +897,7 @@ int If_CutDelayRecCost3( If_Man_t * pIfMan, If_Cut_t * pCut, If_Obj_t * pObj )
 Hop_Obj_t * Abc_RecToHop3( Hop_Man_t * pMan, If_Man_t * pIfMan, If_Cut_t * pCut, If_Obj_t * pIfObj )
 {
     Lms_Man_t * p = s_pMan3;
-    char pCanonPerm[16];
+    char pCanonPerm[LMS_VAR_MAX];
     unsigned uCanonPhase;
     Hop_Obj_t * pFan0, * pFan1, * pHopObj;
     Gia_Man_t * pGia = p->pGia;
@@ -991,7 +973,7 @@ Hop_Obj_t * Abc_RecToHop3( Hop_Man_t * pMan, If_Man_t * pIfMan, If_Cut_t * pCut,
 int Abc_RecToGia3( Gia_Man_t * pMan, If_Man_t * pIfMan, If_Cut_t * pCut, If_Obj_t * pIfObj, Vec_Int_t * vLeaves, int fHash )
 {
     Lms_Man_t * p = s_pMan3;
-    char pCanonPerm[16];
+    char pCanonPerm[LMS_VAR_MAX];
     unsigned uCanonPhase;
     int iFan0, iFan1, iGiaObj;
     Gia_Man_t * pGia = p->pGia;
@@ -1274,22 +1256,10 @@ void Abc_NtkRecDumpTt3( char * pFileName, int fBinary )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkRecPs3(int fPrintLib)
+int Abc_NtkRecInputNum3()
 {
-    Lms_ManPrint( s_pMan3 );
+    return Gia_ManCiNum(s_pMan3->pGia);
 }
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
 int Abc_NtkRecIsRunning3()
 {
     return s_pMan3 != NULL;
@@ -1303,11 +1273,24 @@ Gia_Man_t * Abc_NtkRecGetGia3()
     printf( "After normalizing:  Library has %d classes and %d AIG subgraphs with %d AND nodes.\n", 
         Vec_MemEntryNum(s_pMan3->vTtMem), Gia_ManPoNum(s_pMan3->pGia), Gia_ManAndNum(s_pMan3->pGia) );
     Abc_PrintTime( 1, "Normalization runtime", clock() - clk );
+    s_pMan3->fLibConstr = 0;
     return s_pMan3->pGia;
 }
-int Abc_NtkRecInputNum3()
+void Abc_NtkRecPs3(int fPrintLib)
 {
-    return Gia_ManCiNum(s_pMan3->pGia);
+    Lms_ManPrint( s_pMan3 );
+}
+void Abc_NtkRecStart3( Gia_Man_t * p, int nVars, int nCuts, int fFuncOnly, int fVerbose )
+{
+    assert( s_pMan3 == NULL );
+    s_pMan3 = Lms_ManStart( p, nVars, nCuts, fFuncOnly, fVerbose );
+}
+
+void Abc_NtkRecStop3()
+{
+    assert( s_pMan3 != NULL );
+    Lms_ManStop( s_pMan3 );
+    s_pMan3 = NULL;
 }
 
 ////////////////////////////////////////////////////////////////////////

@@ -1107,7 +1107,7 @@ void Abc_NtkRecStart2( Gia_Man_t * pGia, int nVars, int nCuts, int fTrim )
 clk = clock();
 //     Gia_ManForEachPo( pGia, pObj, i )
 //     {
-//         pTruthSrc = Gia_ObjComputeTruthTable(pGia, pObj);
+//         pTruthSrc = (unsigned *)Gia_ObjComputeTruthTable(pGia, pObj);
 // //        pTruthDst = (unsigned *)Vec_PtrEntry( p->vTtNodes, Gia_ObjCioId(pObj) );
 // //        Kit_TruthCopy(pTruthDst, pTruthSrc, p->nVars);
 //         Rec_MemSetEntry( p, Gia_ObjCioId(pObj), pTruthSrc );
@@ -1125,7 +1125,7 @@ timeInsert = clock();
         assert(pFanin->fMark1 == 0);
         pFanin->fMark1 = 1;
 //        pTruth = (unsigned *)Vec_PtrEntry( p->vTtNodes, Gia_ObjCioId(pObj) );
-        pTruth = Gia_ObjComputeTruthTable(pGia, pObj);
+        pTruth = (unsigned *)Gia_ObjComputeTruthTable(pGia, pObj);
 
         //pTruth = Rec_MemReadEntry( p, Gia_ObjCioId(pObj) );
         // add the resulting truth table to the hash table 
@@ -1569,7 +1569,7 @@ timeBuild = clock();
     }
     //assert(pObj);
     pObj = Gia_ManObj(pAig, Abc_Lit2Var(iRecObj));
-    pTruth = Gia_ObjComputeTruthTable(pAig, pObj);
+    pTruth = (unsigned *)Gia_ObjComputeTruthTable(pAig, pObj);
 s_pMan->timeBuild += clock() - timeBuild;
     
     if ( Kit_TruthSupport(pTruth, nInputs) != Kit_BitMask(nLeaves) )
@@ -2349,7 +2349,7 @@ void Abc_NtkRecAddFromLib2( Gia_Man_t * pGia2, Gia_Obj_t * pRoot, int nVars )
         Gia_ObjSetCopyF(pGia2, 0, pAbcObj, Gia_ObjId(pGia,pObj));
     }
     assert(pObj);
-    pTruth = Gia_ObjComputeTruthTable(pGia, pObj);
+    pTruth = (unsigned *)Gia_ObjComputeTruthTable(pGia, pObj);
     //pTruth = (unsigned *)Vec_PtrEntry( s_pMan->vTtNodes, Gia_ObjId(pGia, pObj) );
     assert ( Kit_TruthSupport(pTruth, nInputs) == Kit_BitMask(nLeaves) );
     // compare the truth tables

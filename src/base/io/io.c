@@ -2738,7 +2738,7 @@ int IoCommandWriteTruths( Abc_Frame_t * pAbc, int argc, char **argv )
     Gia_Obj_t * pObj;
     char * pFileName;
     FILE * pFile;
-    unsigned * pTruth;
+    word * pTruth;
     int nBytes;
     int fReverse = 0;
     int fBinary = 0;
@@ -2794,7 +2794,7 @@ int IoCommandWriteTruths( Abc_Frame_t * pAbc, int argc, char **argv )
         if ( fBinary )
             fwrite( pTruth, nBytes, 1, pFile );
         else
-            Extra_PrintHex( pFile, pTruth, Gia_ManPiNum(pAbc->pGia) ), fprintf( pFile, "\n" );
+            Extra_PrintHex( pFile, (unsigned *)pTruth, Gia_ManPiNum(pAbc->pGia) ), fprintf( pFile, "\n" );
     }
     fclose( pFile );
     return 0;
