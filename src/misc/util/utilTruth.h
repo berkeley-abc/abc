@@ -80,8 +80,30 @@ static word s_PMasks[5][3] = {
   SeeAlso     []
 
 ***********************************************************************/
-static inline int  Abc_TtWordNum( int nVars ) { return nVars <= 6 ? 1 : 1 << (nVars-6); }
-static inline int  Abc_TtByteNum( int nVars ) { return nVars <= 3 ? 1 : 1 << (nVars-3); }
+// read/write/flip i-th bit of a bit string table:
+static inline int     Abc_TtGetBit( word * p, int i )         { return (int)(p[i>>6] >> (i & 63)) & 1;        }
+static inline void    Abc_TtSetBit( word * p, int i )         { p[i>>6] |= (((word)1)<<(i & 63));             }
+static inline void    Abc_TtXorBit( word * p, int i )         { p[i>>6] ^= (((word)1)<<(i & 63));             }
+
+// read/write k-th digit d of a hexadecimal number:
+static inline int     Abc_TtGetHex( word * p, int k )         { return (int)(p[k>>4] >> ((k<<2) & 63)) & 15;  }
+static inline void    Abc_TtSetHex( word * p, int k, int d )  { p[k>>4] |= (((word)d)<<((k<<2) & 63));        }
+static inline void    Abc_TtXorHex( word * p, int k, int d )  { p[k>>4] ^= (((word)d)<<((k<<2) & 63));        }
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int  Abc_TtWordNum( int nVars )     { return nVars <= 6 ? 1 : 1 << (nVars-6); }
+static inline int  Abc_TtByteNum( int nVars )     { return nVars <= 3 ? 1 : 1 << (nVars-3); }
+static inline int  Abc_TtHexDigitNum( int nVars ) { return nVars <= 2 ? 1 : 1 << (nVars-2); }
 
 /**Function*************************************************************
 
@@ -427,6 +449,66 @@ static inline int Abc_TtCofsOpposite( word * t, int nWords, int iVar )
 
 /**Function*************************************************************
 
+  Synopsis    [Stretch truthtable to have more input variables.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Abc_TtStretch5( unsigned * pInOut, int nVarS, int nVarB )
+{
+    int w, i, step, nWords;
+    if ( nVarS == nVarB )
+        return;
+    assert( nVarS < nVarB );
+    step = Abc_TruthWordNum(nVarS);
+    nWords = Abc_TruthWordNum(nVarB);
+    if ( step == nWords )
+        return;
+    assert( step < nWords );
+    for ( w = 0; w < nWords; w += step )
+        for ( i = 0; i < step; i++ )
+            pInOut[w + i] = pInOut[i];              
+}
+static inline void Abc_TtStretch6( word * pInOut, int nVarS, int nVarB )
+{
+    int w, i, step, nWords;
+    if ( nVarS == nVarB )
+        return;
+    assert( nVarS < nVarB );
+    step = Abc_Truth6WordNum(nVarS);
+    nWords = Abc_Truth6WordNum(nVarB);
+    if ( step == nWords )
+        return;
+    assert( step < nWords );
+    for ( w = 0; w < nWords; w += step )
+        for ( i = 0; i < step; i++ )
+            pInOut[w + i] = pInOut[i];              
+}
+static inline word Abc_Tt6Stretch( word t, int nVars )
+{
+    assert( nVars >= 0 );
+    if ( nVars == 0 )
+        nVars++, t = (t & 0x1) | ((t & 0x1) << 1);
+    if ( nVars == 1 )
+        nVars++, t = (t & 0x3) | ((t & 0x3) << 2);
+    if ( nVars == 2 )
+        nVars++, t = (t & 0xF) | ((t & 0xF) << 4);
+    if ( nVars == 3 )
+        nVars++, t = (t & 0xFF) | ((t & 0xFF) << 8);
+    if ( nVars == 4 )
+        nVars++, t = (t & 0xFFFF) | ((t & 0xFFFF) << 16);
+    if ( nVars == 5 )
+        nVars++, t = (t & 0xFFFFFFFF) | ((t & 0xFFFFFFFF) << 32);
+    assert( nVars == 6 );
+    return t;
+}
+
+/**Function*************************************************************
+
   Synopsis    []
 
   Description []
@@ -436,13 +518,40 @@ static inline int Abc_TtCofsOpposite( word * t, int nWords, int iVar )
   SeeAlso     []
 
 ***********************************************************************/
+static inline int Abc_TtIsHexDigit( char HexChar )
+{
+    return (HexChar >= '0' && HexChar <= '9') || (HexChar >= 'A' && HexChar <= 'F') || (HexChar >= 'a' && HexChar <= 'f');
+}
 static inline char Abc_TtPrintDigit( int Digit )
 {
     assert( Digit >= 0 && Digit < 16 );
     if ( Digit < 10 )
-        return '0' + Digit;;
+        return '0' + Digit;
     return 'A' + Digit-10;
 }
+static inline int Abc_TtReadHexDigit( char HexChar )
+{
+    if ( HexChar >= '0' && HexChar <= '9' )
+        return HexChar - '0';
+    if ( HexChar >= 'A' && HexChar <= 'F' )
+        return HexChar - 'A' + 10;
+    if ( HexChar >= 'a' && HexChar <= 'f' )
+        return HexChar - 'a' + 10;
+    assert( 0 ); // not a hexadecimal symbol
+    return -1; // return value which makes no sense
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 static inline void Abc_TtPrintHex( word * pTruth, int nVars )
 {
     word * pThis, * pLimit = pTruth + Abc_TtWordNum(nVars);
@@ -483,6 +592,58 @@ static inline int Abc_TtWriteHexRev( char * pStr, word * pTruth, int nVars )
         for ( k = StartK - 1; k >= 0; k-- )
             *pStr++ = Abc_TtPrintDigit( (int)(pThis[0] >> (k << 2)) & 15 );
     return pStr - pStrInit;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Reads hex truth table from a string.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Abc_TtReadHex( word * pTruth, char * pString )
+{
+    int k, nVars, Digit, nDigits;
+    // skip the first 2 symbols if they are "0x"
+    if ( pString[0] == '0' && pString[1] == 'x' )
+        pString += 2;
+    // count the number of hex digits
+    nDigits = 0;
+    for ( k = 0; Abc_TtIsHexDigit(pString[k]); k++ )
+        nDigits++;
+    if ( nDigits == 1 )
+    {
+        if ( pString[0] == '0' || pString[0] == 'F' )
+        {
+            pTruth[0] = (pString[0] == '0') ? 0 : ~(word)0;
+            return 0;
+        }
+        if ( pString[0] == '5' || pString[0] == 'A' )
+        {
+            pTruth[0] = (pString[0] == '5') ? s_Truths6Neg[0] : s_Truths6[0];
+            return 1;
+        }
+    }
+    // determine the number of variables
+    nVars = 2 + Abc_Base2Log( nDigits );
+    // clean storage
+    for ( k = Abc_TtWordNum(nVars) - 1; k >= 0; k-- )
+        pTruth[k] = 0;
+    // read hexadecimal digits in the reverse order
+    // (the last symbol in the string is the least significant digit)
+    for ( k = 0; k < nDigits; k++ )
+    {
+        Digit = Abc_TtReadHexDigit( pString[nDigits - 1 - k] );
+        assert( Digit >= 0 && Digit < 16 );
+        Abc_TtSetHex( pTruth, k, Digit );
+    }
+    if ( nVars < 6 )
+        pTruth[0] = Abc_Tt6Stretch( pTruth[0], nVars );
+    return nVars;
 }
 
 
@@ -889,48 +1050,6 @@ static inline void Abc_TtReverseBits( word * pTruth, int nVars )
     }
 }
 
-
-/**Function*************************************************************
-
-  Synopsis    [Stretch truthtable to have more input variables.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-static inline void Abc_TtStretch5( unsigned * pInOut, int nVarS, int nVarB )
-{
-    int w, i, step, nWords;
-    if ( nVarS == nVarB )
-        return;
-    assert( nVarS < nVarB );
-    step = Abc_TruthWordNum(nVarS);
-    nWords = Abc_TruthWordNum(nVarB);
-    if ( step == nWords )
-        return;
-    assert( step < nWords );
-    for ( w = 0; w < nWords; w += step )
-        for ( i = 0; i < step; i++ )
-            pInOut[w + i] = pInOut[i];              
-}
-static inline void Abc_TtStretch6( word * pInOut, int nVarS, int nVarB )
-{
-    int w, i, step, nWords;
-    if ( nVarS == nVarB )
-        return;
-    assert( nVarS < nVarB );
-    step = Abc_Truth6WordNum(nVarS);
-    nWords = Abc_Truth6WordNum(nVarB);
-    if ( step == nWords )
-        return;
-    assert( step < nWords );
-    for ( w = 0; w < nWords; w += step )
-        for ( i = 0; i < step; i++ )
-            pInOut[w + i] = pInOut[i];              
-}
 
 /*=== utilTruth.c ===========================================================*/
 
