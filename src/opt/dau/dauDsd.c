@@ -1313,7 +1313,7 @@ char * Dau_DsdDecompose( word * pTruth, int nVarsInit, int * pnSizeNonDec )
         *pnSizeNonDec = p->nSizeNonDec;
     return p->pOutput;
 }
-void Dau_DsdTest33()
+void Dau_DsdTest()
 {
 //    char * pStr = "(!(!a<bcd>)!(!fe))";
 //    char * pStr = "([acb]<!edf>)";
@@ -1328,7 +1328,7 @@ void Dau_DsdTest33()
     t = 0; 
 }
 
-void Dau_DsdTest()
+void Dau_DsdTest33()
 {
     char * pFileName = "_npn/npn/dsd06.txt";
     FILE * pFile = fopen( pFileName, "rb" );
