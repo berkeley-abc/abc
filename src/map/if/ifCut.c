@@ -145,7 +145,7 @@ int If_CutFilter( If_Set_t * pCutSet, If_Cut_t * pCut )
   SeeAlso     []
 
 ***********************************************************************/
-static inline int If_CutMergeOrdered( If_Cut_t * pC0, If_Cut_t * pC1, If_Cut_t * pC )
+static inline int If_CutMergeOrderedOld( If_Cut_t * pC0, If_Cut_t * pC1, If_Cut_t * pC )
 { 
     int i, k, c;
     assert( pC0->nLeaves >= pC1->nLeaves );
@@ -216,6 +216,90 @@ static inline int If_CutMergeOrdered( If_Cut_t * pC0, If_Cut_t * pC1, If_Cut_t *
     }
     if ( i < (int)pC0->nLeaves || k < (int)pC1->nLeaves )
         return 0;
+    pC->nLeaves = c;
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Merges two cuts.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int If_CutMergeOrdered( If_Cut_t * pC0, If_Cut_t * pC1, If_Cut_t * pC )
+{ 
+    int nLimit = pC0->nLimit;
+    int nSizeC0 = pC0->nLeaves;
+    int nSizeC1 = pC1->nLeaves;
+    int i, k, c;
+    assert( nSizeC0 >= nSizeC1 );
+
+    // the case when one of the cuts is the largest
+    if ( nSizeC0 == nLimit )
+    {
+        // the case of the largest cut sizes
+        if ( nSizeC1 == nLimit )
+        {
+            for ( i = 0; i < nSizeC0; i++ )
+                if ( pC0->pLeaves[i] != pC1->pLeaves[i] )
+                    return 0;
+        }
+        else
+        {
+            for ( i = 0; i < nSizeC1; i++ )
+            {
+                for ( k = nSizeC0 - 1; k >= 0; k-- )
+                    if ( pC0->pLeaves[k] == pC1->pLeaves[i] )
+                        break;
+                if ( k == -1 ) // did not find
+                    return 0;
+            }
+        }
+        for ( i = 0; i < nSizeC0; i++ )
+            pC->pLeaves[i] = pC0->pLeaves[i];
+        pC->nLeaves = nLimit;
+        return 1;
+    }
+
+    // compare two cuts with different numbers
+    i = k = c = 0;
+    while ( 1 )
+    {
+        if ( c == nLimit ) return 0;
+        if ( pC0->pLeaves[i] < pC1->pLeaves[k] )
+        {
+            pC->pLeaves[c++] = pC0->pLeaves[i++];
+            if ( i >= nSizeC0 ) goto FlushCut1;
+        }
+        else if ( pC0->pLeaves[i] > pC1->pLeaves[k] )
+        {
+            pC->pLeaves[c++] = pC1->pLeaves[k++];
+            if ( k >= nSizeC1 ) goto FlushCut0;
+        }
+        else
+        {
+            pC->pLeaves[c++] = pC0->pLeaves[i++]; k++;
+            if ( i >= nSizeC0 ) goto FlushCut1;
+            if ( k >= nSizeC1 ) goto FlushCut0;
+        }
+    }
+
+FlushCut0:
+    if ( c + nSizeC0 > nLimit + i ) return 0;
+    while ( i < nSizeC0 )
+        pC->pLeaves[c++] = pC0->pLeaves[i++];
+    pC->nLeaves = c;
+    return 1;
+
+FlushCut1:
+    if ( c + nSizeC1 > nLimit + k ) return 0;
+    while ( k < nSizeC1 )
+        pC->pLeaves[c++] = pC1->pLeaves[k++];
     pC->nLeaves = c;
     return 1;
 }
