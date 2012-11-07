@@ -1446,8 +1446,8 @@ void Ga2_GlaDumpAbsracted( Ga2_Man_t * p, int fVerbose )
     if ( p->pPars->fDumpMabs )
     {
         pFileName = Ga2_GlaGetFileName(p, 0);
-//        if ( fVerbose )
-//            Abc_Print( 1, "Dumping miter with abstraction map into file \"%s\"...\n", pFileName );
+        if ( fVerbose )
+            Abc_Print( 1, "Dumping miter with abstraction map into file \"%s\"...\n", pFileName );
         // dump abstraction map
         Vec_IntFreeP( &p->pGia->vGateClasses );
         p->pGia->vGateClasses = Ga2_ManAbsTranslate( p );
@@ -1458,8 +1458,8 @@ void Ga2_GlaDumpAbsracted( Ga2_Man_t * p, int fVerbose )
         Vec_Int_t * vGateClasses;
         Gia_Man_t * pAbs;
         pFileName = Ga2_GlaGetFileName(p, 1);
-//        if ( fVerbose )
-//            Abc_Print( 1, "Dumping abstracted model into file \"%s\"...\n", pFileName );
+        if ( fVerbose )
+            Abc_Print( 1, "Dumping abstracted model into file \"%s\"...\n", pFileName );
         // dump absracted model
         vGateClasses = Ga2_ManAbsTranslate( p );
         pAbs = Gia_ManDupAbsGates( p->pGia, vGateClasses );
