@@ -55,7 +55,10 @@ ABC_NAMESPACE_HEADER_START
 
 /*=== dauCanon.c ==========================================================*/
 extern unsigned      Abc_TtCanonicize( word * pTruth, int nVars, char * pCanonPerm );
+/*=== dauDsd.c  ==========================================================*/
 extern char *        Dau_DsdDecompose( word * pTruth, int nVarsInit, int * pnSizeNonDec );
+extern word *        Dau_DsdToTruth( char * p, int nVars );
+
 
 ABC_NAMESPACE_HEADER_END
 

@@ -142,6 +142,22 @@ static inline void Abc_TtAnd( word * pOut, word * pIn1, word * pIn2, int nWords,
         for ( w = 0; w < nWords; w++ )
             pOut[w] = pIn1[w] & pIn2[w];
 }
+static inline void Abc_TtXor( word * pOut, word * pIn1, word * pIn2, int nWords, int fCompl )
+{
+    int w;
+    if ( fCompl )
+        for ( w = 0; w < nWords; w++ )
+            pOut[w] = pIn1[w] ^ ~pIn2[w];
+    else
+        for ( w = 0; w < nWords; w++ )
+            pOut[w] = pIn1[w] ^ pIn2[w];
+}
+static inline void Abc_TtMux( word * pOut, word * pCtrl, word * pIn1, word * pIn0, int nWords )
+{
+    int w;
+    for ( w = 0; w < nWords; w++ )
+        pOut[w] = (pCtrl[w] & pIn1[w]) | (~pCtrl[w] & pIn0[w]);
+}
 static inline int Abc_TtEqual( word * pIn1, word * pIn2, int nWords )
 {
     int w;
@@ -182,6 +198,42 @@ static inline int Abc_TtIsConst1( word * pIn1, int nWords )
             return 0;
     return 1;
 }
+static inline void Abc_TtConst0( word * pIn1, int nWords )
+{
+    int w;
+    for ( w = 0; w < nWords; w++ )
+        pIn1[w] = 0;
+}
+static inline void Abc_TtConst1( word * pIn1, int nWords )
+{
+    int w;
+    for ( w = 0; w < nWords; w++ )
+        pIn1[w] = ~(word)0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Compute elementary truth tables.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Abc_TtElemInit( word ** pTtElems, int nVars )
+{
+    int i, k, nWords = Abc_TtWordNum( nVars );
+    for ( i = 0; i < nVars; i++ )
+        if ( i < 6 )
+            for ( k = 0; k < nWords; k++ )
+                pTtElems[i][k] = s_Truths6[i];
+        else
+            for ( k = 0; k < nWords; k++ )
+                pTtElems[i][k] = (k & (1 << (i-6))) ? ~(word)0 : 0;
+}
+
 
 /**Function*************************************************************
 
