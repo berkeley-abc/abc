@@ -334,6 +334,7 @@ static inline Vec_Int_t * Abc_ObjFanoutVec( Abc_Obj_t * pObj )       { return &p
 static inline Abc_Obj_t * Abc_ObjCopy( Abc_Obj_t * pObj )            { return pObj->pCopy;              }
 static inline Abc_Ntk_t * Abc_ObjNtk( Abc_Obj_t * pObj )             { return pObj->pNtk;               }
 static inline void *      Abc_ObjData( Abc_Obj_t * pObj )            { return pObj->pData;              }
+static inline Abc_Obj_t * Abc_ObjEquiv( Abc_Obj_t * pObj )           { return (Abc_Obj_t *)pObj->pData; }
 static inline Abc_Obj_t * Abc_ObjCopyCond( Abc_Obj_t * pObj )        { return Abc_ObjRegular(pObj)->pCopy? Abc_ObjNotCond(Abc_ObjRegular(pObj)->pCopy, Abc_ObjIsComplement(pObj)) : NULL;  }
 
 // setting data members of the network

@@ -184,17 +184,16 @@ Abc_Ntk_t * Abc_NtkIf( Abc_Ntk_t * pNtk, If_Par_t * pPars )
   SeeAlso     []
 
 ***********************************************************************/
+static inline If_Obj_t * Abc_ObjIfCopy( Abc_Obj_t * pNode ) { return (If_Obj_t *)pNode->pCopy; } 
 If_Man_t * Abc_NtkToIf( Abc_Ntk_t * pNtk, If_Par_t * pPars )
 {
     ProgressBar * pProgress;
     If_Man_t * pIfMan;
-    Abc_Obj_t * pNode, * pFanin, * pPrev;
     Vec_Ptr_t * vNodes;
+    Abc_Obj_t * pNode, * pPrev;
     int i;
 
     assert( Abc_NtkIsStrash(pNtk) );
-//    vNodes = Abc_NtkFindGoodOrder( pNtk );
-    vNodes = Abc_AigDfs( pNtk, 0, 0 );
 
     // start the mapping manager and set its parameters
     pIfMan = If_ManStart( pPars );
@@ -212,34 +211,37 @@ If_Man_t * Abc_NtkToIf( Abc_Ntk_t * pNtk, If_Par_t * pPars )
     {
         pNode->pCopy = (Abc_Obj_t *)If_ManCreateCi( pIfMan );
         // transfer logic level information
-        ((If_Obj_t *)pNode->pCopy)->Level = pNode->Level;
+        Abc_ObjIfCopy(pNode)->Level = pNode->Level;
     }
 
     // load the AIG into the mapper
     pProgress = Extra_ProgressBarStart( stdout, Abc_NtkObjNumMax(pNtk) );
-//    Abc_AigForEachAnd( pNtk, pNode, i )
+    vNodes = Abc_AigDfs( pNtk, 0, 0 );
     Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNode, i )
     {
         Extra_ProgressBarUpdate( pProgress, i, "Initial" );
         // add the node to the mapper
         pNode->pCopy = (Abc_Obj_t *)If_ManCreateAnd( pIfMan, 
-            If_NotCond( (If_Obj_t *)Abc_ObjFanin0(pNode)->pCopy, Abc_ObjFaninC0(pNode) ), 
-            If_NotCond( (If_Obj_t *)Abc_ObjFanin1(pNode)->pCopy, Abc_ObjFaninC1(pNode) ) );
+            If_NotCond( Abc_ObjIfCopy(Abc_ObjFanin0(pNode)), Abc_ObjFaninC0(pNode) ), 
+            If_NotCond( Abc_ObjIfCopy(Abc_ObjFanin1(pNode)), Abc_ObjFaninC1(pNode) ) );
         // set up the choice node
         if ( Abc_AigNodeIsChoice( pNode ) )
         {
-            for ( pPrev = pNode, pFanin = (Abc_Obj_t *)pNode->pData; pFanin; pPrev = pFanin, pFanin = (Abc_Obj_t *)pFanin->pData )
-                If_ObjSetChoice( (If_Obj_t *)pPrev->pCopy, (If_Obj_t *)pFanin->pCopy );
-            If_ManCreateChoice( pIfMan, (If_Obj_t *)pNode->pCopy );
+            Abc_Obj_t * pEquiv;
+//            int Counter = 0;
+            assert( If_ObjId(Abc_ObjIfCopy(pNode)) > If_ObjId(Abc_ObjIfCopy(Abc_ObjEquiv(pNode))) );
+            for ( pPrev = pNode, pEquiv = Abc_ObjEquiv(pPrev); pEquiv; pPrev = pEquiv, pEquiv = Abc_ObjEquiv(pPrev) )
+                If_ObjSetChoice( Abc_ObjIfCopy(pPrev), Abc_ObjIfCopy(pEquiv) );//, Counter++;
+//            printf( "%d ", Counter );
+            If_ManCreateChoice( pIfMan, Abc_ObjIfCopy(pNode) );
         }
-//printf( "AIG node %2d -> IF node %2d\n", pNode->Id, ((If_Obj_t *)pNode->pCopy)->Id );
     }
     Extra_ProgressBarStop( pProgress );
     Vec_PtrFree( vNodes );
 
     // set the primary outputs without copying the phase
     Abc_NtkForEachCo( pNtk, pNode, i )
-        pNode->pCopy = (Abc_Obj_t *)If_ManCreateCo( pIfMan, If_NotCond( (If_Obj_t *)Abc_ObjFanin0(pNode)->pCopy, Abc_ObjFaninC0(pNode) ) );
+        pNode->pCopy = (Abc_Obj_t *)If_ManCreateCo( pIfMan, If_NotCond( Abc_ObjIfCopy(Abc_ObjFanin0(pNode)), Abc_ObjFaninC0(pNode) ) );
     return pIfMan;
 }
 

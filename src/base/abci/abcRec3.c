@@ -412,8 +412,8 @@ void Lms_ManPrintFuncStats( Lms_Man_t * p )
         if ( i == Vec_IntSize(p->vTruthPo) - 1 )
             break;
         Next = Vec_IntEntry( p->vTruthPo, i+1 );
-        Counters[Vec_StrEntry(vSupps, Entry)]++;
-        CountersS[Vec_StrEntry(vSupps, Entry)] += Next - Entry;
+        Counters[(int)Vec_StrEntry(vSupps, Entry)]++;
+        CountersS[(int)Vec_StrEntry(vSupps, Entry)] += Next - Entry;
     }
     for ( i = 0; i <= LMS_VAR_MAX; i++ )
         if ( Counters[i] )

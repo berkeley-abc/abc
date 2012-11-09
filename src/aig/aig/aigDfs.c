@@ -392,7 +392,20 @@ Vec_Ptr_t * Aig_ManDfsChoices( Aig_Man_t * p )
 {
     Vec_Ptr_t * vNodes;
     Aig_Obj_t * pObj;
-    int i;
+    int i, Counter = 0;
+
+    Aig_ManForEachNode( p, pObj, i )
+    {
+        if ( Aig_ObjEquiv(p, pObj) == NULL )
+            continue;
+
+        Counter = 0;
+        for ( pObj = Aig_ObjEquiv(p, pObj) ; pObj; pObj = Aig_ObjEquiv(p, pObj) )
+            Counter++;
+        printf( "%d ", Counter );
+    }
+    printf( "\n" );
+
     assert( p->pEquivs != NULL );
     Aig_ManIncrementTravId( p );
     // mark constant and PIs

@@ -864,7 +864,6 @@ Abc_Ntk_t * Abc_NtkAfterTrim( Aig_Man_t * pMan, Abc_Ntk_t * pNtkOld )
 ***********************************************************************/
 Abc_Ntk_t * Abc_NtkFromDarChoices( Abc_Ntk_t * pNtkOld, Aig_Man_t * pMan )
 {
-    Vec_Ptr_t * vNodes;
     Abc_Ntk_t * pNtkNew;
     Aig_Obj_t * pObj, * pTemp;
     int i;
@@ -874,32 +873,40 @@ Abc_Ntk_t * Abc_NtkFromDarChoices( Abc_Ntk_t * pNtkOld, Aig_Man_t * pMan )
     pNtkNew = Abc_NtkStartFrom( pNtkOld, ABC_NTK_STRASH, ABC_FUNC_AIG );
     pNtkNew->nConstrs = pMan->nConstrs;
     // transfer the pointers to the basic nodes
+    Aig_ManCleanData( pMan );
     Aig_ManConst1(pMan)->pData = Abc_AigConst1(pNtkNew);
     Aig_ManForEachCi( pMan, pObj, i )
         pObj->pData = Abc_NtkCi(pNtkNew, i);
-
     // rebuild the AIG
-    vNodes = Aig_ManDfsChoices( pMan );
-    Vec_PtrForEachEntry( Aig_Obj_t *, vNodes, pObj, i )
+    Aig_ManForEachNode( pMan, pObj, i )
     {
         pObj->pData = Abc_AigAnd( (Abc_Aig_t *)pNtkNew->pManFunc, (Abc_Obj_t *)Aig_ObjChild0Copy(pObj), (Abc_Obj_t *)Aig_ObjChild1Copy(pObj) );
         if ( (pTemp = Aig_ObjEquiv(pMan, pObj)) )
         {
-            Abc_Obj_t * pAbcRepr, * pAbcObj;
             assert( pTemp->pData != NULL );
-            pAbcRepr = (Abc_Obj_t *)pObj->pData;
-            pAbcObj  = (Abc_Obj_t *)pTemp->pData;
-            pAbcObj->pData  = pAbcRepr->pData;
-            pAbcRepr->pData = pAbcObj;
+            ((Abc_Obj_t *)pObj->pData)->pData = ((Abc_Obj_t *)pTemp->pData);
         }
     }
-//Abc_Print( 1, "Total = %d.  Collected = %d.\n", Aig_ManNodeNum(pMan), Vec_PtrSize(vNodes) );
-    Vec_PtrFree( vNodes );
     // connect the PO nodes
     Aig_ManForEachCo( pMan, pObj, i )
         Abc_ObjAddFanin( Abc_NtkCo(pNtkNew, i), (Abc_Obj_t *)Aig_ObjChild0Copy(pObj) );
     if ( !Abc_NtkCheck( pNtkNew ) )
         Abc_Print( 1, "Abc_NtkFromDar(): Network check has failed.\n" );
+
+    // verify topological order
+    if ( 0 )
+    {
+        Abc_Obj_t * pNode;
+        Abc_NtkForEachNode( pNtkNew, pNode, i )
+            if ( Abc_AigNodeIsChoice( pNode ) )
+            {
+                int Counter = 0;
+                for ( pNode = Abc_ObjEquiv(pNode); pNode; pNode = Abc_ObjEquiv(pNode) )
+                    Counter++;
+                printf( "%d ", Counter );
+            }
+        printf( "\n" );
+    }
     return pNtkNew;
 }
 
