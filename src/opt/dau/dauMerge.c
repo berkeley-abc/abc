@@ -31,21 +31,6 @@ ABC_NAMESPACE_IMPL_START
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
- 
-/**Function*************************************************************
-
-  Synopsis    [Substitution storage.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-static inline int Dau_DsdIsConst( char * p )  { return (p[0] == '0' || p[0] == '1') && p[1] == 0; }
-static inline int Dau_DsdIsConst0( char * p ) { return  p[0] == '0' && p[1] == 0; }
-static inline int Dau_DsdIsConst1( char * p ) { return  p[0] == '1' && p[1] == 0; }
 
 
 /**Function*************************************************************
@@ -328,7 +313,7 @@ int Dau_DsdMergeStatus_rec( char * pStr, char ** p, int * pMatches, int nShared,
                 pStatus[pTemp - pStr] = -1;
         }
     }
-    if ( **p >= 'a' && **p <= 'f' ) // var
+    if ( **p >= 'a' && **p <= 'z' ) // var
         return pStatus[*p - pStr] = (**p - 'a' < nShared) ? 0 : 3;
     if ( **p == '(' || **p == '[' || **p == '<' || **p == '{' ) // and/or/xor
     {
@@ -417,7 +402,7 @@ void Dau_DsdMergeSubstitute_rec( Dau_Sto_t * pS, char * pStr, char ** p, int * p
                     Dau_DsdMergeStoreAddToOutputChar( pS, *pTemp );
         }
     }
-    if ( **p >= 'a' && **p <= 'f' ) // var
+    if ( **p >= 'a' && **p <= 'z' ) // var
     {
         if ( fWrite )
             Dau_DsdMergeStoreAddToOutputChar( pS, **p );
@@ -544,7 +529,7 @@ void Dau_DsdRemoveBraces_rec( char * pStr, char ** p, int * pMatches )
         if ( *(q+1) == '{' )
             *p = q+1;
     }
-    if ( **p >= 'a' && **p <= 'f' ) // var
+    if ( **p >= 'a' && **p <= 'z' ) // var
         return;
     if ( **p == '(' || **p == '[' || **p == '<' || **p == '{' ) 
     {
@@ -773,7 +758,7 @@ printf( "%s\n", pRes );
 }
 
 
-void Dau_DsdTest()
+void Dau_DsdTest66()
 {
     int Perm0[DAU_MAX_VAR] = { 0, 1, 2, 3, 4, 5 };
 //    int pMatches[DAU_MAX_STR];

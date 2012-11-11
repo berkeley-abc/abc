@@ -234,7 +234,6 @@ static inline void Abc_TtElemInit( word ** pTtElems, int nVars )
                 pTtElems[i][k] = (k & (1 << (i-6))) ? ~(word)0 : 0;
 }
 
-
 /**Function*************************************************************
 
   Synopsis    []
@@ -257,6 +256,50 @@ static inline word Abc_Tt6Cofactor1( word t, int iVar )
     return (t & s_Truths6[iVar]) | ((t & s_Truths6[iVar]) >> (1<<iVar));
 }
 
+static inline void Abc_TtCofactor0p( word * pOut, word * pIn, int nWords, int iVar )
+{
+    if ( nWords == 1 )
+        pOut[0] = ((pIn[0] & s_Truths6Neg[iVar]) << (1 << iVar)) | (pIn[0] & s_Truths6Neg[iVar]);
+    else if ( iVar <= 5 )
+    {
+        int w, shift = (1 << iVar);
+        for ( w = 0; w < nWords; w++ )
+            pOut[w] = ((pIn[w] & s_Truths6Neg[iVar]) << shift) | (pIn[w] & s_Truths6Neg[iVar]);
+    }
+    else // if ( iVar > 5 )
+    {
+        word * pLimit = pIn + nWords;
+        int i, iStep = Abc_TtWordNum(iVar);
+        for ( ; pIn < pLimit; pIn += 2*iStep, pOut += 2*iStep )
+            for ( i = 0; i < iStep; i++ )
+            {
+                pOut[i]         = pIn[i];
+                pOut[i + iStep] = pIn[i];
+            }
+    }    
+}
+static inline void Abc_TtCofactor1p( word * pOut, word * pIn, int nWords, int iVar )
+{
+    if ( nWords == 1 )
+        pOut[0] = (pIn[0] & s_Truths6[iVar]) | ((pIn[0] & s_Truths6[iVar]) >> (1 << iVar));
+    else if ( iVar <= 5 )
+    {
+        int w, shift = (1 << iVar);
+        for ( w = 0; w < nWords; w++ )
+            pOut[w] = (pIn[w] & s_Truths6[iVar]) | ((pIn[w] & s_Truths6[iVar]) >> shift);
+    }
+    else // if ( iVar > 5 )
+    {
+        word * pLimit = pIn + nWords;
+        int i, iStep = Abc_TtWordNum(iVar);
+        for ( ; pIn < pLimit; pIn += 2*iStep, pOut += 2*iStep )
+            for ( i = 0; i < iStep; i++ )
+            {
+                pOut[i]         = pIn[i + iStep];
+                pOut[i + iStep] = pIn[i + iStep];
+            }
+    }    
+}
 static inline void Abc_TtCofactor0( word * pTruth, int nWords, int iVar )
 {
     if ( nWords == 1 )
@@ -274,7 +317,7 @@ static inline void Abc_TtCofactor0( word * pTruth, int nWords, int iVar )
         for ( ; pTruth < pLimit; pTruth += 2*iStep )
             for ( i = 0; i < iStep; i++ )
                 pTruth[i + iStep] = pTruth[i];
-    }    
+    }
 }
 static inline void Abc_TtCofactor1( word * pTruth, int nWords, int iVar )
 {
@@ -293,7 +336,7 @@ static inline void Abc_TtCofactor1( word * pTruth, int nWords, int iVar )
         for ( ; pTruth < pLimit; pTruth += 2*iStep )
             for ( i = 0; i < iStep; i++ )
                 pTruth[i] = pTruth[i + iStep];
-    }    
+    }
 }
 
 /**Function*************************************************************

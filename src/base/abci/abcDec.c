@@ -24,6 +24,7 @@
 #include "bool/bdc/bdc.h"
 #include "bool/dec/dec.h"
 #include "bool/kit/kit.h"
+#include "opt/dau/dau.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -541,20 +542,15 @@ void Abc_TruthDecPerform( Abc_TtStore_t * p, int DecType, int fVerbose )
     }
     else if ( DecType == 4 )
     {
-//        extern void Dau_DsdTestOne( word t, int i );
-        if ( p->nVars != 6 )
-        {
-            printf( "Currently only works for 6 variables.\n" );
-            return;
-        }
-        // perform disjoint-support decomposition and count AIG nodes
-        // (non-DSD blocks are decomposed into 2:1 MUXes, each counting as 3 AIG nodes)
-        assert( p->nVars == 6 );
+        char pDsd[DAU_MAX_STR];
         for ( i = 0; i < p->nFuncs; i++ )
         {
             if ( fVerbose )
                 printf( "%7d :      ", i );
-//            Dau_DsdTestOne( *p->pFuncs[i], i );
+            Dau_DsdDecompose( p->pFuncs[i], p->nVars, 0, pDsd );
+            if ( fVerbose )
+                printf( "%s\n", pDsd );
+            nNodes += Dau_DsdCountAnds( pDsd );
         }
     }
     else assert( 0 );

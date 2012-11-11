@@ -39,8 +39,8 @@
 
 ABC_NAMESPACE_HEADER_START
 
-#define DAU_MAX_VAR     8 // should be 6 or more
-#define DAU_MAX_STR    64
+#define DAU_MAX_VAR    16 // should be 6 or more
+#define DAU_MAX_STR   256
 #define DAU_MAX_WORD  (1<<(DAU_MAX_VAR-6))
 
 ////////////////////////////////////////////////////////////////////////
@@ -50,6 +50,10 @@ ABC_NAMESPACE_HEADER_START
 ////////////////////////////////////////////////////////////////////////
 ///                      MACRO DEFINITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
+
+static inline int Dau_DsdIsConst( char * p )  { return (p[0] == '0' || p[0] == '1') && p[1] == 0; }
+static inline int Dau_DsdIsConst0( char * p ) { return  p[0] == '0' && p[1] == 0; }
+static inline int Dau_DsdIsConst1( char * p ) { return  p[0] == '1' && p[1] == 0; }
 
 ////////////////////////////////////////////////////////////////////////
 ///                    FUNCTION DECLARATIONS                         ///
@@ -62,6 +66,7 @@ extern int           Dau_DsdDecompose( word * pTruth, int nVarsInit, int fSplitP
 extern word *        Dau_DsdToTruth( char * p, int nVars );
 extern word          Dau_Dsd6ToTruth( char * p );
 extern void          Dau_DsdNormalize( char * p );
+extern int           Dau_DsdCountAnds( char * pDsd );
 
 /*=== dauMerge.c  ==========================================================*/
 extern void          Dau_DsdRemoveBraces( char * pDsd, int * pMatches );
