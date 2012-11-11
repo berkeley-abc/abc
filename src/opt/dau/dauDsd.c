@@ -184,6 +184,14 @@ void Dau_DsdNormalize_rec( char * pStr, char ** p, int * pMatches )
     static char pBuffer[DAU_MAX_STR];
     if ( **p == '!' )
         (*p)++;
+    while ( (**p >= 'A' && **p <= 'F') || (**p >= '0' && **p <= '9') )
+        (*p)++;
+    if ( **p == '<' )
+    {
+        char * q = pStr + pMatches[*p - pStr];
+        if ( *(q+1) == '{' )
+            *p = q+1;
+    }
     if ( **p >= 'a' && **p <= 'f' ) // var
         return;
     if ( **p == '(' || **p == '[' ) // and/or/xor

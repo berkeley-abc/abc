@@ -27,6 +27,8 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
+extern char * Dau_DsdMerge( char * pDsd0i, int * pPerm0, char * pDsd1i, int * pPerm1, int fCompl0, int fCompl1 );
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -76,6 +78,50 @@ float If_CutDelaySpecial( If_Man_t * p, If_Cut_t * pCut, int fCarry )
     }
     return Delay;
 }
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int * If_CutPerm0( If_Cut_t * pCut, If_Cut_t * pCut0 )
+{
+    static int pPerm[IF_MAX_LUTSIZE];
+    int i, k;
+    for ( i = k = 0; i < (int)pCut->nLeaves; i++ )
+    {
+        if ( k == (int)pCut0->nLeaves )
+            break;
+        if ( pCut->pLeaves[i] < pCut0->pLeaves[k] )
+            continue;
+        assert( pCut->pLeaves[i] == pCut0->pLeaves[k] );
+        pPerm[k++] = i;
+    }
+    return pPerm;
+}
+static inline int * If_CutPerm1( If_Cut_t * pCut, If_Cut_t * pCut1 )
+{
+    static int pPerm[IF_MAX_LUTSIZE];
+    int i, k;
+    for ( i = k = 0; i < (int)pCut->nLeaves; i++ )
+    {
+        if ( k == (int)pCut1->nLeaves )
+            break;
+        if ( pCut->pLeaves[i] < pCut1->pLeaves[k] )
+            continue;
+        assert( pCut->pLeaves[i] == pCut1->pLeaves[k] );
+        pPerm[k++] = i;
+    }
+    return pPerm;
+}
+
 
 
 /**Function*************************************************************
@@ -227,7 +273,16 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
                 p->nCutsCountAll++;
                 p->nCutsCount[pCut->nLeaves]++;
             }
-
+        }
+        if ( p->pPars->fUseDsd )
+        {
+            char * pName = Dau_DsdMerge( 
+                Abc_NamStr(p->pNamDsd, pCut0->iDsd), 
+                If_CutPerm0(pCut, pCut0), 
+                Abc_NamStr(p->pNamDsd, pCut1->iDsd), 
+                If_CutPerm1(pCut, pCut1), 
+                pObj->fCompl0, pObj->fCompl1 );
+            pCut->iDsd = Abc_NamStrFindOrAdd( p->pNamDsd, pName, NULL );
         }
         
         // compute the application-specific cost and depth

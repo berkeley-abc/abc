@@ -43,23 +43,40 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
+static inline int Dau_DsdIsConst( char * p )  { return (p[0] == '0' || p[0] == '1') && p[1] == 0; }
+static inline int Dau_DsdIsConst0( char * p ) { return  p[0] == '0' && p[1] == 0; }
+static inline int Dau_DsdIsConst1( char * p ) { return  p[0] == '1' && p[1] == 0; }
+
+
+/**Function*************************************************************
+
+  Synopsis    [Substitution storage.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 typedef struct Dau_Sto_t_ Dau_Sto_t;
 struct Dau_Sto_t_
 {
-    int      iVarUsed;             // counter of used variables
-    char     pOutput[DAU_MAX_STR]; // storage for reduced function
-    char *   pPosOutput;           // place in the output
-    char     pStore[DAU_MAX_STR];  // storage for definitions
-    char *   pPosStore;            // place in the store
-    char *   pVarDefs[DAU_MAX_VAR];// variable definition (inside pStore)
+    int      iVarUsed;                          // counter of used variables
+    char     pOutput[DAU_MAX_STR];              // storage for reduced function
+    char *   pPosOutput;                        // place in the output
+    char     pStore[DAU_MAX_VAR][DAU_MAX_STR];  // storage for definitions
+    char *   pPosStore[DAU_MAX_VAR];            // place in the store
 };
 
 static inline void Dau_DsdMergeStoreClean( Dau_Sto_t * pS, int nShared )
 {
+    int i;
     pS->iVarUsed  = nShared;
-    pS->pPosStore = pS->pStore;
-    memset( pS->pVarDefs, 0, sizeof(char *) * DAU_MAX_VAR );
+    for ( i = 0; i < DAU_MAX_VAR; i++ )
+        pS->pStore[i][0] = 0;
 }
+
 static inline void Dau_DsdMergeStoreCleanOutput( Dau_Sto_t * pS )
 {
     pS->pPosOutput = pS->pOutput;
@@ -74,39 +91,40 @@ static inline void Dau_DsdMergeStoreAddToOutputChar( Dau_Sto_t * pS, char c )
     *pS->pPosOutput++ = c;
 }
 
-static inline void Dau_DsdMergeStoreStartDef( Dau_Sto_t * pS, char c )
+static inline int Dau_DsdMergeStoreStartDef( Dau_Sto_t * pS, char c )
 {
-    pS->pVarDefs[pS->iVarUsed] = pS->pPosStore;
-    if (c) *pS->pPosStore++ = c;
+    pS->pPosStore[pS->iVarUsed] = pS->pStore[pS->iVarUsed];
+    if (c) *pS->pPosStore[pS->iVarUsed]++ = c;
+    return pS->iVarUsed++;
 }
-static inline void Dau_DsdMergeStoreAddToDef( Dau_Sto_t * pS, char * pBeg, char * pEnd )
+static inline void Dau_DsdMergeStoreAddToDef( Dau_Sto_t * pS, int New, char * pBeg, char * pEnd )
 {
     while ( pBeg < pEnd )
-        *pS->pPosStore++ = *pBeg++;
+        *pS->pPosStore[New]++ = *pBeg++;
 }
-static inline void Dau_DsdMergeStoreAddToDefChar( Dau_Sto_t * pS, char c )
+static inline void Dau_DsdMergeStoreAddToDefChar( Dau_Sto_t * pS, int New, char c )
 {
-    *pS->pPosStore++ = c;
+    *pS->pPosStore[New]++ = c;
 }
-static inline char Dau_DsdMergeStoreStopDef( Dau_Sto_t * pS, char c )
+static inline void Dau_DsdMergeStoreStopDef( Dau_Sto_t * pS, int New, char c )
 {
-    if (c) *pS->pPosStore++ = c;
-    *pS->pPosStore++ = 0;
-    return 'a' + pS->iVarUsed++;
+    if (c) *pS->pPosStore[New]++ = c;
+    *pS->pPosStore[New]++ = 0;
 }
 
 static inline char Dau_DsdMergeStoreCreateDef( Dau_Sto_t * pS, char * pBeg, char * pEnd )
 {
-    Dau_DsdMergeStoreStartDef( pS, 0 );
-    Dau_DsdMergeStoreAddToDef( pS, pBeg, pEnd );
-    return Dau_DsdMergeStoreStopDef( pS, 0 );
+    int New = Dau_DsdMergeStoreStartDef( pS, 0 );
+    Dau_DsdMergeStoreAddToDef( pS, New, pBeg, pEnd );
+    Dau_DsdMergeStoreStopDef( pS, New, 0 );
+    return New;
 }
 static inline void Dau_DsdMergeStorePrintDefs( Dau_Sto_t * pS )
 {
     int i;
     for ( i = 0; i < DAU_MAX_VAR; i++ )
-        if ( pS->pVarDefs[i] != NULL )
-            printf( "%c = %s\n", 'a' + i, pS->pVarDefs[i] );
+        if ( pS->pStore[i][0] )
+            printf( "%c = %s\n", 'a' + i, pS->pStore[i] );
 }
 
 /**Function*************************************************************
@@ -124,7 +142,7 @@ static inline void Dau_DsdMergeCopy( char * pDsd, int fCompl, char * pRes )
 {
     if ( fCompl && pDsd[0] == '!' )
         fCompl = 0, pDsd++;
-    if ( pDsd[1] == 0 ) // constant
+    if ( Dau_DsdIsConst(pDsd) ) // constant
         pRes[0] = (fCompl ? (char)((int)pDsd[0] ^ 1) : pDsd[0]), pRes[1] = 0;
     else
         sprintf( pRes, "%s%s", fCompl ? "!" : "", pDsd );
@@ -226,7 +244,7 @@ static inline int Dau_DsdMergeCreateMaps( int * pVarPres, int nShared, int * pOl
     }
     return Counter2;
 }
-static inline void Dau_DsdMergeInlineDefinitions( char * pDsd, int * pMatches, char ** pVarDefs, char * pRes, int nShared )
+static inline void Dau_DsdMergeInlineDefinitions( char * pDsd, int * pMatches, Dau_Sto_t * pS, char * pRes, int nShared )
 {
     int i;
     char * pDef;
@@ -251,7 +269,7 @@ static inline void Dau_DsdMergeInlineDefinitions( char * pDsd, int * pMatches, c
         }
         // inline definition
         assert( pDsd[i]-'a' < DAU_MAX_STR );
-        for ( pDef = pVarDefs[pDsd[i]-'a']; *pDef; pDef++ )
+        for ( pDef = pS->pStore[pDsd[i]-'a']; *pDef; pDef++ )
             *pRes++ = *pDef;
     }
     *pRes++ = 0;
@@ -372,15 +390,15 @@ static inline int Dau_DsdMergeGetStatus( char * pBeg, char * pStr, int * pMatche
 }
 void Dau_DsdMergeSubstitute_rec( Dau_Sto_t * pS, char * pStr, char ** p, int * pMatches, int * pStatus, int fWrite )
 {
-    assert( **p != '!' );
-/*
+//    assert( **p != '!' );
+
     if ( **p == '!' )
     {
         if ( fWrite )
             Dau_DsdMergeStoreAddToOutputChar( pS, **p );
         (*p)++;
     }
-*/
+
     while ( (**p >= 'A' && **p <= 'F') || (**p >= '0' && **p <= '9') )
     {
         if ( fWrite )
@@ -407,8 +425,8 @@ void Dau_DsdMergeSubstitute_rec( Dau_Sto_t * pS, char * pStr, char ** p, int * p
     }
     if ( **p == '(' || **p == '[' || **p == '<' || **p == '{' ) // and/or/xor
     {
-        int StatusFan, Status = pStatus[*p - pStr];
-        char New, * pBeg, * q = pStr + pMatches[ *p - pStr ];
+        int New, StatusFan, Status = pStatus[*p - pStr];
+        char * pBeg, * q = pStr + pMatches[ *p - pStr ];
         assert( *q == **p + 1 + (**p != '(') );
         if ( !fWrite )
         {
@@ -448,8 +466,8 @@ void Dau_DsdMergeSubstitute_rec( Dau_Sto_t * pS, char * pStr, char ** p, int * p
                 Dau_DsdMergeSubstitute_rec( pS, pStr, p, pMatches, pStatus, StatusFan != 3 );
                 if ( StatusFan == 3 )
                 {
-                    char New = Dau_DsdMergeStoreCreateDef( pS, pBeg, *p+1 );
-                    Dau_DsdMergeStoreAddToOutputChar( pS, New );
+                    int New = Dau_DsdMergeStoreCreateDef( pS, pBeg, *p+1 );
+                    Dau_DsdMergeStoreAddToOutputChar( pS, (char)('a' + New) );
                 }
             }
             Dau_DsdMergeStoreAddToOutputChar( pS, **p );
@@ -460,7 +478,7 @@ void Dau_DsdMergeSubstitute_rec( Dau_Sto_t * pS, char * pStr, char ** p, int * p
         {
             // add more than one defs
             Dau_DsdMergeStoreAddToOutputChar( pS, **p );
-            Dau_DsdMergeStoreStartDef( pS, **p );
+            New = Dau_DsdMergeStoreStartDef( pS, **p );
             for ( (*p)++; *p < q; (*p)++ )
             {
                 pBeg = *p;
@@ -470,16 +488,16 @@ void Dau_DsdMergeSubstitute_rec( Dau_Sto_t * pS, char * pStr, char ** p, int * p
                     if ( StatusFan != 3 )
                         Dau_DsdMergeStoreAddToOutputChar( pS, '!' );
                     else
-                        Dau_DsdMergeStoreAddToDefChar( pS, '!' );
+                        Dau_DsdMergeStoreAddToDefChar( pS, New, '!' );
                     (*p)++;
                     pBeg++;
                 }
                 Dau_DsdMergeSubstitute_rec( pS, pStr, p, pMatches, pStatus, StatusFan != 3 );
                 if ( StatusFan == 3 )
-                    Dau_DsdMergeStoreAddToDef( pS, pBeg, *p+1 );
+                    Dau_DsdMergeStoreAddToDef( pS, New, pBeg, *p+1 );
             }
-            New = Dau_DsdMergeStoreStopDef( pS, *q );
-            Dau_DsdMergeStoreAddToOutputChar( pS, New );
+            Dau_DsdMergeStoreStopDef( pS, New, *q );
+            Dau_DsdMergeStoreAddToOutputChar( pS, (char)('a' + New) );
             Dau_DsdMergeStoreAddToOutputChar( pS, **p );
             return;
         }
@@ -490,11 +508,15 @@ void Dau_DsdMergeSubstitute_rec( Dau_Sto_t * pS, char * pStr, char ** p, int * p
 }
 static inline void Dau_DsdMergeSubstitute( Dau_Sto_t * pS, char * pDsd, int * pMatches, int * pStatus )
 {
+/*
+    int fCompl = 0;
     if ( pDsd[0] == '!' )
     {
         Dau_DsdMergeStoreAddToOutputChar( pS, '!' );
         pDsd++;
+        fCompl = 1;
     }
+*/
     Dau_DsdMergeSubstitute_rec( pS, pDsd, &pDsd, pMatches, pStatus, 1 );
     Dau_DsdMergeStoreAddToOutputChar( pS, 0 );
 }
@@ -552,10 +574,19 @@ void Dau_DsdRemoveBraces( char * pDsd, int * pMatches )
     Dau_DsdRemoveBraces_rec( pDsd, &pDsd, pMatches );
     for ( q = p; *p; p++ )
         if ( *p != ' ' )
+        {
+            if ( *p == '!' && *(q-1) == '!' && p != q )
+            {
+                q--;
+                continue;
+            }
             *q++ = *p;
+        }
     *q = 0;
 }
 
+
+clock_t s_TimeComp[3] = {0};
 
 /**Function*************************************************************
 
@@ -570,6 +601,9 @@ void Dau_DsdRemoveBraces( char * pDsd, int * pMatches )
 ***********************************************************************/
 char * Dau_DsdMerge( char * pDsd0i, int * pPerm0, char * pDsd1i, int * pPerm1, int fCompl0, int fCompl1 )
 {
+    int fVerbose = 0;
+    int fCheck = 1;
+    static int Counter = 0;
     static char pRes[DAU_MAX_STR];
     char pDsd0[DAU_MAX_STR];
     char pDsd1[DAU_MAX_STR];
@@ -583,40 +617,73 @@ char * Dau_DsdMerge( char * pDsd0i, int * pPerm0, char * pDsd1i, int * pPerm1, i
     int pMatches[DAU_MAX_STR];
     int nVarsShared, nVarsTotal;
     Dau_Sto_t S, * pS = &S;
-    word Truth, t, t0, t1;
+    word Truth, t = 0, t0 = 0, t1 = 0;
     int Status;
+    clock_t clk = clock();
+    Counter++;
     // create local copies
     Dau_DsdMergeCopy( pDsd0i, fCompl0, pDsd0 );
     Dau_DsdMergeCopy( pDsd1i, fCompl1, pDsd1 );
+if ( fVerbose )
+printf( "\nAfter copying:\n" );
+if ( fVerbose )
+printf( "%s\n", pDsd0 );
+if ( fVerbose )
+printf( "%s\n", pDsd1 );
     // handle constants
-    if ( pDsd0[1] == 0 || pDsd1[1] == 0 )
+    if ( Dau_DsdIsConst(pDsd0) || Dau_DsdIsConst(pDsd1) )
     {
-        if ( pDsd0[0] == '0' )
+        if ( Dau_DsdIsConst0(pDsd0) )
             strcpy( pRes, pDsd0 );
-        else if ( pDsd0[0] == '1' )
+        else if ( Dau_DsdIsConst1(pDsd0) )
             strcpy( pRes, pDsd1 );
-        else if ( pDsd1[0] == '0' )
+        else if ( Dau_DsdIsConst0(pDsd1) )
             strcpy( pRes, pDsd1 );
-        else if ( pDsd1[0] == '1' )
+        else if ( Dau_DsdIsConst1(pDsd1) )
             strcpy( pRes, pDsd0 );
         else assert( 0 );
         return pRes;
     }
+
     // compute matches
     Dau_DsdMergeMatches( pDsd0, pMatches0 );
     Dau_DsdMergeMatches( pDsd1, pMatches1 );
     // implement permutation
     Dau_DsdMergeReplace( pDsd0, pMatches0, pPerm0 );
     Dau_DsdMergeReplace( pDsd1, pMatches1, pPerm1 );
+if ( fVerbose )
+printf( "After replacement:\n" );
+if ( fVerbose )
 printf( "%s\n", pDsd0 );
+if ( fVerbose )
 printf( "%s\n", pDsd1 );
-    t0 = Dau_Dsd6ToTruth( pDsd0 );
-    t1 = Dau_Dsd6ToTruth( pDsd1 );
+
+//s_TimeComp[2] += clock() - clk;
+
+    if ( fCheck )
+        t0 = Dau_Dsd6ToTruth( pDsd0 );
+    if ( fCheck )
+        t1 = Dau_Dsd6ToTruth( pDsd1 );
+
     // find shared varaiables
     nVarsShared = Dau_DsdMergeFindShared(pDsd0, pDsd1, pMatches0, pMatches1, pVarPres);
     if ( nVarsShared == 0 )
     {
         sprintf( pRes, "(%s%s)", pDsd0, pDsd1 );
+if ( fVerbose )
+printf( "Disjoint:\n" );
+if ( fVerbose )
+printf( "%s\n", pRes );
+
+        Dau_DsdMergeMatches( pRes, pMatches );
+        Dau_DsdRemoveBraces( pRes, pMatches );
+        Dau_DsdNormalize( pRes );
+if ( fVerbose )
+printf( "Normalized:\n" );
+if ( fVerbose )
+printf( "%s\n", pRes );
+
+        s_TimeComp[2] += clock() - clk;
         return pRes;
     }
     // create variable mapping
@@ -627,7 +694,11 @@ printf( "%s\n", pDsd1 );
     // find uniqueness status
     Dau_DsdMergeStatus( pDsd0, pMatches0, nVarsShared, pStatus0 );
     Dau_DsdMergeStatus( pDsd1, pMatches1, nVarsShared, pStatus1 );
+if ( fVerbose )
+printf( "Individual status:\n" );
+if ( fVerbose )
 Dau_DsdMergePrintWithStatus( pDsd0, pStatus0 );
+if ( fVerbose )
 Dau_DsdMergePrintWithStatus( pDsd1, pStatus1 );
     // prepare storage
     Dau_DsdMergeStoreClean( pS, nVarsShared );
@@ -635,13 +706,18 @@ Dau_DsdMergePrintWithStatus( pDsd1, pStatus1 );
     Dau_DsdMergeStoreCleanOutput( pS );
     Dau_DsdMergeSubstitute( pS, pDsd0, pMatches0, pStatus0 );
     strcpy( pDsd0, pS->pOutput );
+if ( fVerbose )
+printf( "Substitutions:\n" );
+if ( fVerbose )
 printf( "%s\n", pDsd0 );
 
     // perform substitutions
     Dau_DsdMergeStoreCleanOutput( pS );
     Dau_DsdMergeSubstitute( pS, pDsd1, pMatches1, pStatus1 );
     strcpy( pDsd1, pS->pOutput );
+if ( fVerbose )
 printf( "%s\n", pDsd1 );
+if ( fVerbose )
 Dau_DsdMergeStorePrintDefs( pS );
 
     // create new function
@@ -649,24 +725,50 @@ Dau_DsdMergeStorePrintDefs( pS );
     sprintf( pS->pOutput, "(%s%s)", pDsd0, pDsd1 );
     Truth = Dau_Dsd6ToTruth( pS->pOutput );
     Status = Dau_DsdDecompose( &Truth, nVarsTotal, 0, pS->pOutput );
+//printf( "%d ", Status );
     if ( Status == -1 ) // did not find 1-step DSD
         return NULL;
     if ( Status > 6 ) // non-DSD part is too large
         return NULL;
+    if ( Dau_DsdIsConst(pS->pOutput) )
+    {
+        strcpy( pRes, pS->pOutput );
+        return pRes;
+    }
+if ( fVerbose )
+printf( "Decomposition:\n" );
+if ( fVerbose )
 printf( "%s\n", pS->pOutput );
     // substitute definitions
     Dau_DsdMergeMatches( pS->pOutput, pMatches );
-    Dau_DsdMergeInlineDefinitions( pS->pOutput, pMatches, pS->pVarDefs, pRes, nVarsShared );
+    Dau_DsdMergeInlineDefinitions( pS->pOutput, pMatches, pS, pRes, nVarsShared );
+if ( fVerbose )
+printf( "Inlining:\n" );
+if ( fVerbose )
 printf( "%s\n", pRes );
     // perform variable replacement
     Dau_DsdMergeMatches( pRes, pMatches );
     Dau_DsdMergeReplace( pRes, pMatches, pNew2Old );
     Dau_DsdRemoveBraces( pRes, pMatches );
+if ( fVerbose )
+printf( "Replaced:\n" );
+if ( fVerbose )
 printf( "%s\n", pRes );
     Dau_DsdNormalize( pRes );
+if ( fVerbose )
+printf( "Normalized:\n" );
+if ( fVerbose )
 printf( "%s\n", pRes );
-    t = Dau_Dsd6ToTruth( pRes );
-    assert( t == (t0 & t1) );
+
+    if ( fCheck )
+        t = Dau_Dsd6ToTruth( pRes );
+    if ( t != (t0 & t1) )
+        printf( "Dau_DsdMerge(): Verification failed!\n" );
+
+    if ( Status == 0 )
+        s_TimeComp[0] += clock() - clk;
+    else
+        s_TimeComp[1] += clock() - clk;
     return pRes;
 }
 
@@ -696,11 +798,16 @@ void Dau_DsdTest()
 //    char * pStr2 = "(df)";
 //    char * pStr1 = "(abf)";
 //    char * pStr2 = "(a[(bc)(fde)])";
-    char * pStr1 = "8001{abc[ef]}";
-    char * pStr2 = "(abe)";
+//    char * pStr1 = "8001{abc[ef]}";
+//    char * pStr2 = "(abe)";
+
+    char * pStr1 = "(!(ab)de)";
+    char * pStr2 = "(!(ac)f)";
+
     char * pRes;
     word t = Dau_Dsd6ToTruth( pStr );
     return;
+
 //    pStr2 = Dau_DsdDecompose( &t, 6, 0, NULL );
 //    Dau_DsdNormalize( pStr2 );
 

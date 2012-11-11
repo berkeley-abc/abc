@@ -32,6 +32,8 @@ static If_Obj_t * If_ManSetupObj( If_Man_t * p );
 static void       If_ManCutSetRecycle( If_Man_t * p, If_Set_t * pSet ) { pSet->pNext = p->pFreeList; p->pFreeList = pSet;                            }
 static If_Set_t * If_ManCutSetFetch( If_Man_t * p )                    { If_Set_t * pTemp = p->pFreeList; p->pFreeList = p->pFreeList->pNext; return pTemp; }
 
+extern clock_t s_TimeComp[3];
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -79,6 +81,11 @@ If_Man_t * If_ManStart( If_Par_t * pPars )
     p->puTemp[2] = p->puTemp[1] + p->nTruthWords;
     p->puTemp[3] = p->puTemp[2] + p->nTruthWords;
     p->pCutTemp  = (If_Cut_t *)ABC_ALLOC( char, p->nCutBytes );
+    if ( pPars->fUseDsd )
+    {
+    p->pNamDsd   = Abc_NamStart( 1000, 20 );
+    p->iNamVar   = Abc_NamStrFindOrAdd( p->pNamDsd, "a", NULL );
+    }
 
     // create the constant node
     p->pConst1   = If_ManSetupObj( p );
@@ -142,6 +149,17 @@ void If_ManStop( If_Man_t * p )
             if ( p->nCutsUseless[i] )
                 Abc_Print( 1, "Useless cuts %2d  = %9d  (out of %9d)  (%6.2f %%)\n", i, p->nCutsUseless[i], p->nCutsCount[i], 100.0*p->nCutsUseless[i]/(p->nCutsCount[i]+1) );
         Abc_Print( 1, "Useless cuts all = %9d  (out of %9d)  (%6.2f %%)\n", p->nCutsUselessAll, p->nCutsCountAll, 100.0*p->nCutsUselessAll/(p->nCutsCountAll+1) );
+    }
+    if ( p->pNamDsd )
+    {
+        if ( p->pPars->fVerbose )
+            Abc_Print( 1, "Number of unique entries in the DSD table = %d.  Memory = %.1f MB.\n", 
+                Abc_NamObjNumMax(p->pNamDsd), 1.0*Abc_NamMemAlloc(p->pNamDsd)/(1<<20) );
+        Abc_PrintTime( 1, "Time0", s_TimeComp[0] );
+        Abc_PrintTime( 1, "Time1", s_TimeComp[1] );
+        Abc_PrintTime( 1, "Time2", s_TimeComp[2] );
+//        Abc_NamPrint( p->pNamDsd );
+        Abc_NamStop( p->pNamDsd );
     }
 //    Abc_PrintTime( 1, "Truth", p->timeTruth );
 //    Abc_Print( 1, "Small support = %d.\n", p->nSmallSupp );
@@ -408,6 +426,7 @@ void If_ManSetupCutTriv( If_Man_t * p, If_Cut_t * pCut, int ObjId )
     pCut->nLeaves    = 1;
     pCut->pLeaves[0] = p->pPars->fLiftLeaves? (ObjId << 8) : ObjId;
     pCut->uSign      = If_ObjCutSign( pCut->pLeaves[0] );
+    pCut->iDsd       = p->iNamVar;
     // set up elementary truth table of the unit cut
     if ( p->pPars->fTruth )
     {
