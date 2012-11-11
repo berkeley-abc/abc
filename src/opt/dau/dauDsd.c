@@ -1942,7 +1942,7 @@ void Dau_DsdTest888()
     i = 0;
 }
 
-void Dau_DsdTest()
+void Dau_DsdTest555()
 {
     int nVars = 10;
     int nWords = Abc_TtWordNum(nVars);
@@ -1953,8 +1953,8 @@ void Dau_DsdTest()
     char pRes[DAU_MAX_STR];
     int nSizeNonDec;
     int i, Counter = 0;
-    clock_t clk = clock();
-    return;
+    clock_t clk = clock(), clkDec = 0, clk2;
+//    return;
 
     while ( fgets( pBuffer, DAU_MAX_STR, pFile ) != NULL )
     {
@@ -1967,14 +1967,15 @@ void Dau_DsdTest()
             continue;
         Counter++; 
 
-        for ( i = 0; i < 10; i++ )
+        for ( i = 0; i < 1; i++ )
         {
-            Dau_DsdPermute( pBuffer );
-
+//            Dau_DsdPermute( pBuffer );
             pTruth = Dau_DsdToTruth( pBuffer[0] == '*' ? pBuffer + 1 : pBuffer, nVars );
             Abc_TtCopy( Tru[0], pTruth, nWords, 0 );
             Abc_TtCopy( Tru[1], pTruth, nWords, 0 );
+            clk2 = clock();
             nSizeNonDec = Dau_DsdDecompose( Tru[1], nVars, 0, pRes );
+            clkDec += clock() - clk2;
             Dau_DsdNormalize( pRes );
 //            pStr2 = Dau_DsdPerform( t ); nSizeNonDec = 0;
             assert( nSizeNonDec == 0 );
@@ -1990,7 +1991,8 @@ void Dau_DsdTest()
         }
     }
     printf( "Finished trying %d decompositions.  ", Counter );
-    Abc_PrintTime( 1, "Time", clock() - clk );
+    Abc_PrintTime( 1, "Time", clkDec );
+    Abc_PrintTime( 1, "Total", clock() - clk );
 
     Abc_PrintTime( 1, "Time1", s_Times[0] );
     Abc_PrintTime( 1, "Time2", s_Times[1] );

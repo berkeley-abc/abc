@@ -1987,6 +1987,10 @@ SOURCE=.\src\opt\dau\dauCore.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\opt\dau\dauDivs.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\opt\dau\dauDsd.c
 # End Source File
 # Begin Source File
