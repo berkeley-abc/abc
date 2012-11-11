@@ -28,10 +28,6 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-#define DAU_MAX_VAR    16 // should be 6 or more
-#define DAU_MAX_STR   256
-#define DAU_MAX_WORD  (1<<(DAU_MAX_VAR-6))
-
 /* 
     This code performs truth-table-based decomposition for 6-variable functions.
     Representation of operations:
@@ -73,69 +69,7 @@ int * Dau_DsdComputeMatches( char * p )
         assert( nNested < DAU_MAX_VAR );
     }
     assert( nNested == 0 );
-/*
-    // verify
-    for ( v = 0; p[v]; v++ )
-        if ( p[v] == '(' || p[v] == '[' || p[v] == '<' || p[v] == '{' )
-            assert( pMatches[v] > 0 );
-        else
-            assert( pMatches[v] == 0 );
-*/
     return pMatches;
-}
-char * Dau_DsdFindMatch( char * p )
-{
-    int Counter = 0;
-    assert( *p == '(' || *p == '[' || *p == '<' || *p == '{' );
-    while ( *p )
-    {
-        if ( *p == '(' || *p == '[' || *p == '<' || *p == '{' )
-            Counter++;
-        else if ( *p == ')' || *p == ']' || *p == '>' || *p == '}' )
-            Counter--;
-        if ( Counter == 0 )
-            return p;
-        p++;
-    }
-    return NULL;
-}
-static inline void Dau_DsdCleanBraces( char * p )
-{
-    char * q, Last = -1;
-    int i;
-    for ( i = 0; p[i]; i++ )
-    {
-        if ( p[i] == '(' || p[i] == '[' || p[i] == '<' )
-        {
-            if ( p[i] != '<' && p[i] == Last && i > 0 && p[i-1] != '!' )
-            {
-                q = Dau_DsdFindMatch( p + i );
-                assert( (p[i] == '(') == (*q == ')') );
-                assert( (p[i] == '[') == (*q == ']') );
-                p[i] = *q = 'x';
-            }
-            else
-                Last = p[i];
-        }
-        else if ( p[i] == ')' || p[i] == ']' || p[i] == '>' )
-            Last = -1;
-    }
-/*
-    if ( p[0] == '(' )
-    {
-        assert( p[i-1] == ')' );
-        p[0] = p[i-1] = 'x';
-    }
-    else if ( p[0] == '[' )
-    {
-        assert( p[i-1] == ']' );
-        p[0] = p[i-1] = 'x';
-    }
-*/
-    for ( q = p; *p; p++ )
-        if ( *p != 'x' )
-            *q++ = *p;
-    *q = 0;
 }
 
 /**Function*************************************************************
@@ -180,6 +114,130 @@ void Dau_DsdPermute( char * pDsd )
             *pDsd = 'a' + pPerm[*pDsd - 'a'];
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Normalize the ordering of components.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+char * Dau_DsdNormalizeCopy( char * pDest, char * pSour, int * pMarks, int i )
+{
+    int s;
+    for ( s = pMarks[i]; s < pMarks[i+1]; s++ )
+        *pDest++ = pSour[s];
+    return pDest;
+}
+int Dau_DsdNormalizeCompare( char * pStr, int * pMarks, int i, int j )
+{
+    char * pStr1 = pStr + pMarks[i];
+    char * pStr2 = pStr + pMarks[j];
+    char * pLimit1 = pStr + pMarks[i+1];
+    char * pLimit2 = pStr + pMarks[j+1];
+    for ( ; pStr1 < pLimit1 && pStr2 < pLimit2; pStr1++, pStr2++ )
+    {
+        if ( !(*pStr1 >= 'a' &&  *pStr1 <= 'z') )
+        {
+            pStr2--;
+            continue;
+        }
+        if ( !(*pStr2 >= 'a' &&  *pStr2 <= 'z') )
+        {
+            pStr1--;
+            continue;
+        }
+        if ( *pStr1 < *pStr2 )
+            return -1;
+        if ( *pStr1 > *pStr2 )
+            return 1;
+    }
+    assert( pStr1 < pLimit1 || pStr2 < pLimit2 );
+    if ( pStr1 == pLimit1 )
+        return -1;
+    if ( pStr2 == pLimit2 )
+        return 1;
+    assert( 0 );
+    return 0;
+}
+int * Dau_DsdNormalizePerm( char * pStr, int * pMarks, int nMarks )
+{
+    static int pPerm[DAU_MAX_VAR];
+    int i, k;
+    for ( i = 0; i < nMarks; i++ )
+        pPerm[i] = i;
+    for ( i = 0; i < nMarks; i++ )
+    {
+        int iBest = i;
+        for ( k = i + 1; k < nMarks; k++ )
+            if ( Dau_DsdNormalizeCompare( pStr, pMarks, pPerm[iBest], pPerm[k] ) == 1 )
+                iBest = k;
+        ABC_SWAP( int, pPerm[i], pPerm[iBest] );
+    }
+    return pPerm;
+}
+void Dau_DsdNormalize_rec( char * pStr, char ** p, int * pMatches )
+{
+    static char pBuffer[DAU_MAX_STR];
+    if ( **p == '!' )
+        (*p)++;
+    if ( **p >= 'a' && **p <= 'f' ) // var
+        return;
+    if ( **p == '(' || **p == '[' ) // and/or/xor
+    {
+        char * pStore, * pOld = *p + 1;
+        char * q = pStr + pMatches[ *p - pStr ];
+        int i, * pPerm, nMarks = 0, pMarks[DAU_MAX_VAR+1];
+        assert( *q == **p + 1 + (**p != '(') );
+        for ( (*p)++; *p < q; (*p)++ )
+        {
+            pMarks[nMarks++] = *p - pStr;
+            Dau_DsdNormalize_rec( pStr, p, pMatches );
+        }
+        pMarks[nMarks] = *p - pStr;
+        assert( *p == q );
+        // add to buffer in good order
+        pPerm = Dau_DsdNormalizePerm( pStr, pMarks, nMarks );
+        // copy to the buffer
+        pStore = pBuffer;
+        for ( i = 0; i < nMarks; i++ )
+            pStore = Dau_DsdNormalizeCopy( pStore, pStr, pMarks, pPerm[i] );
+        assert( pStore - pBuffer == *p - pOld );
+        memcpy( pOld, pBuffer, pStore - pBuffer );
+        return;
+    }
+    if ( **p == '<' || **p == '{' ) // mux
+    {
+        char * q = pStr + pMatches[ *p - pStr ];
+        assert( *q == **p + 1 + (**p != '(') );
+        if ( (**p == '<') && (*(q+1) == '{') )
+        {
+            *p = q+1;
+            Dau_DsdNormalize_rec( pStr, p, pMatches );
+            return;
+        }
+        for ( (*p)++; *p < q; (*p)++ )
+            Dau_DsdNormalize_rec( pStr, p, pMatches );
+        assert( *p == q );
+        return;
+    }
+    if ( (**p >= 'A' && **p <= 'F') || (**p >= '0' && **p <= '9') )
+    {
+        (*p)++;
+        return;
+    }
+    assert( 0 );
+}
+void Dau_DsdNormalize( char * pDsd )
+{
+    if ( pDsd[1] != 0 )
+        Dau_DsdNormalize_rec( pDsd, &pDsd, Dau_DsdComputeMatches(pDsd) );
+}
+
+
 
 /**Function*************************************************************
 
@@ -211,7 +269,7 @@ word Dau_Dsd6TruthCompose_rec( word Func, word * pFanins, int nVars )
     t1 = Dau_Dsd6TruthCompose_rec( Abc_Tt6Cofactor1(Func, nVars), pFanins, nVars );
     return (~pFanins[nVars] & t0) | (pFanins[nVars] & t1);
 }
-word Dau_Dsd6ToTruth_rec( char * pStr, char ** p, int * pMatches )
+word Dau_Dsd6ToTruth_rec( char * pStr, char ** p, int * pMatches, word * pTruths )
 {
     int fCompl = 0;
     if ( **p == '!' )
@@ -219,7 +277,7 @@ word Dau_Dsd6ToTruth_rec( char * pStr, char ** p, int * pMatches )
     if ( **p >= 'a' && **p <= 'f' ) // var
     {
         assert( **p - 'a' >= 0 && **p - 'a' < 6 );
-        return fCompl ? ~s_Truths6[**p - 'a'] : s_Truths6[**p - 'a'];
+        return fCompl ? ~pTruths[**p - 'a'] : pTruths[**p - 'a'];
     }
     if ( **p == '(' ) // and/or
     {
@@ -227,7 +285,7 @@ word Dau_Dsd6ToTruth_rec( char * pStr, char ** p, int * pMatches )
         word Res = ~(word)0;
         assert( **p == '(' && *q == ')' );
         for ( (*p)++; *p < q; (*p)++ )
-            Res &= Dau_Dsd6ToTruth_rec( pStr, p, pMatches );
+            Res &= Dau_Dsd6ToTruth_rec( pStr, p, pMatches, pTruths );
         assert( *p == q );
         return fCompl ? ~Res : Res;
     }
@@ -237,19 +295,51 @@ word Dau_Dsd6ToTruth_rec( char * pStr, char ** p, int * pMatches )
         word Res = 0;
         assert( **p == '[' && *q == ']' );
         for ( (*p)++; *p < q; (*p)++ )
-            Res ^= Dau_Dsd6ToTruth_rec( pStr, p, pMatches );
+            Res ^= Dau_Dsd6ToTruth_rec( pStr, p, pMatches, pTruths );
         assert( *p == q );
         return fCompl ? ~Res : Res;
     }
     if ( **p == '<' ) // mux
     {
-        char * q = pStr + pMatches[ *p - pStr ];
+        int nVars = 0;
         word Temp[3], * pTemp = Temp, Res;
+        word Fanins[6], * pTruths2;
+        char * pOld = *p;
+        char * q = pStr + pMatches[ *p - pStr ];
+        // read fanins
+        if ( *(q+1) == '{' )
+        {
+            char * q2;
+            *p = q+1;
+            q2 = pStr + pMatches[ *p - pStr ];
+            assert( **p == '{' && *q2 == '}' );
+            for ( nVars = 0, (*p)++; *p < q2; (*p)++, nVars++ )
+                Fanins[nVars] = Dau_Dsd6ToTruth_rec( pStr, p, pMatches, pTruths );
+            assert( *p == q2 );
+            pTruths2 = Fanins;
+        }
+        else
+            pTruths2 = pTruths;
+        // read MUX
+        *p = pOld;
+        q = pStr + pMatches[ *p - pStr ];
         assert( **p == '<' && *q == '>' );
+        // verify internal variables
+        if ( nVars )
+            for ( ; pOld < q; pOld++ )
+                if ( *pOld >= 'a' && *pOld <= 'z' )
+                    assert( *pOld - 'a' < nVars );
+        // derive MAX components
         for ( (*p)++; *p < q; (*p)++ )
-            *pTemp++ = Dau_Dsd6ToTruth_rec( pStr, p, pMatches );
+            *pTemp++ = Dau_Dsd6ToTruth_rec( pStr, p, pMatches, pTruths2 );
         assert( pTemp == Temp + 3 );
         assert( *p == q );
+        if ( *(q+1) == '{' ) // and/or
+        {
+            char * q = pStr + pMatches[ ++(*p) - pStr ];
+            assert( **p == '{' && *q == '}' );
+            *p = q;
+        }
         Res = (Temp[0] & Temp[1]) | (~Temp[0] & Temp[2]);
         return fCompl ? ~Res : Res;
     }
@@ -262,7 +352,7 @@ word Dau_Dsd6ToTruth_rec( char * pStr, char ** p, int * pMatches )
         q = pStr + pMatches[ *p - pStr ];
         assert( **p == '{' && *q == '}' );
         for ( i = 0, (*p)++; *p < q; (*p)++, i++ )
-            Fanins[i] = Dau_Dsd6ToTruth_rec( pStr, p, pMatches );
+            Fanins[i] = Dau_Dsd6ToTruth_rec( pStr, p, pMatches, pTruths );
         assert( i == nVars );
         assert( *p == q );
         Res = Dau_Dsd6TruthCompose_rec( Func, Fanins, nVars );
@@ -279,7 +369,7 @@ word Dau_Dsd6ToTruth( char * p )
     else if ( *p == '1' && *(p+1) == 0 )
         Res = ~(word)0;
     else
-        Res = Dau_Dsd6ToTruth_rec( p, &p, Dau_DsdComputeMatches(p) );
+        Res = Dau_Dsd6ToTruth_rec( p, &p, Dau_DsdComputeMatches(p), s_Truths6 );
     assert( *++p == 0 );
     return Res;
 }
@@ -495,7 +585,7 @@ void Dau_DsdTest2()
 ***********************************************************************/
 static inline int Dau_DsdPerformReplace( char * pBuffer, int PosStart, int Pos, int Symb, char * pNext )
 {
-    static char pTemp[DAU_MAX_STR+20];
+    static char pTemp[DAU_MAX_STR];
     char * pCur = pTemp;
     int i, k, RetValue;
     for ( i = PosStart; i < Pos; i++ )
@@ -666,7 +756,7 @@ int Dau_DsdPerform_rec( word t, char * pBuffer, int Pos, int * pVars, int nVars 
 }
 char * Dau_DsdPerform( word t )
 {
-    static char pBuffer[DAU_MAX_STR+20];
+    static char pBuffer[DAU_MAX_STR];
     int pVarsNew[6] = {0, 1, 2, 3, 4, 5};
     int Pos = 0;
     if ( t == 0 )
@@ -678,7 +768,7 @@ char * Dau_DsdPerform( word t )
     pBuffer[Pos++] = 0;
 //    printf( "%d ", strlen(pBuffer) );
 //    printf( "%s ->", pBuffer );
-    Dau_DsdCleanBraces( pBuffer );
+    Dau_DsdRemoveBraces( pBuffer, Dau_DsdComputeMatches(pBuffer) );
 //    printf( " %s\n", pBuffer );
     return pBuffer;
 }
@@ -713,34 +803,55 @@ void Dau_DsdTest3()
     if ( t != t2 )
         printf( "Verification failed.\n" );
 }
-void Dau_DsdTestOne( word t, int i )
+
+
+
+
+/**Function*************************************************************
+
+  Synopsis    [Find the best cofactoring variable.]
+
+  Description [Return -2 if non-DSD; -1 if full DSD; otherwise,
+  returns cofactoring variables i (i >= 0).]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Dau_DsdCheck1Step( word * pTruth, int nVarsInit )
 {
-    int nSizeNonDec;
-    word t2;
-//    char * p = Dau_DsdPerform( t );
-    char * p = Dau_DsdDecompose( &t, 6, &nSizeNonDec );
-    return;
-    t2 = Dau_Dsd6ToTruth( p ); 
-    if ( t != t2 )
+    word pCofTemp[DAU_MAX_WORD];
+    int nWords = Abc_TtWordNum(nVarsInit);
+    int nSizeNonDec, nSizeNonDec0, nSizeNonDec1;
+    int v, vBest = -2, nSumCofsBest = ABC_INFINITY, nSumCofs;
+    nSizeNonDec = Dau_DsdDecompose( pTruth, nVarsInit, 0, NULL );
+    if ( nSizeNonDec == 0 )
+        return -1;
+    assert( nSizeNonDec > 0 );
+    for ( v = 0; v < nVarsInit; v++ )
     {
-        printf( "Verification failed.  " );
-        printf( "%8d : ", i );
-        printf( "%30s  ", p );
-//        Kit_DsdPrintFromTruth( (unsigned *)&t, 6 );
-//        printf( "  " );
-//        Kit_DsdPrintFromTruth( (unsigned *)&t2, 6 );
-        printf( "\n" );
+        // try first cofactor
+        Abc_TtCopy( pCofTemp, pTruth, nWords, 0 );
+        Abc_TtCofactor0( pCofTemp, nWords, v );
+        nSumCofs = Abc_TtSupportSize( pCofTemp, nVarsInit );
+        nSizeNonDec0 = Dau_DsdDecompose( pCofTemp, nVarsInit, 0, NULL );
+        // try second cofactor
+        Abc_TtCopy( pCofTemp, pTruth, nWords, 0 );
+        Abc_TtCofactor1( pCofTemp, nWords, v );
+        nSumCofs += Abc_TtSupportSize( pCofTemp, nVarsInit );
+        nSizeNonDec1 = Dau_DsdDecompose( pCofTemp, nVarsInit, 0, NULL );
+        // compare cofactors
+        if ( nSizeNonDec0 || nSizeNonDec1 )
+            continue;
+        if ( nSumCofsBest > nSumCofs )
+        {
+            vBest = v;
+            nSumCofsBest = nSumCofs;
+        }
     }
+    return vBest;
 }
-
-/*
-    extern void Dau_DsdTestOne( word t, int i );
-    assert( p->nVars == 6 );
-    Dau_DsdTestOne( *p->pFuncs[i], i );
-*/
-
-
-
 
 /**Function*************************************************************
 
@@ -762,6 +873,7 @@ struct Dau_Dsd_t_
     int      nSizeNonDec;          // size of the largest non-decomposable block
     int      nConsts;              // the number of constant decompositions
     int      uConstMask;           // constant decomposition mask
+    int      fSplitPrime;          // represent prime function as 1-step DSD
     char     pVarDefs[32][8];      // variable definitions
     char     Cache[32][32];        // variable cache
     char     pOutput[DAU_MAX_STR]; // output stream
@@ -821,16 +933,49 @@ static inline void Dau_DsdTranslate( Dau_Dsd_t * p, int * pVars, int nVars, char
         else
             p->pOutput[ p->nPos++ ] = *pStr;
 }
-static inline void Dau_DsdWritePrime( Dau_Dsd_t * p, word * pTruth, int * pVars, int nVars )
+static inline int Dau_DsdWritePrime( Dau_Dsd_t * p, word * pTruth, int * pVars, int nVars )
 {
-    int v;
+    int v, RetValue = 2;
     assert( nVars > 2 );
-    p->nPos += Abc_TtWriteHexRev( p->pOutput + p->nPos, pTruth, nVars );
+    if ( p->fSplitPrime )
+    {
+        word pCofTemp[DAU_MAX_WORD];
+        int nWords = Abc_TtWordNum(nVars);
+        int vBest = Dau_DsdCheck1Step( pTruth, nVars );
+        assert( vBest != -1 );
+        if ( vBest == -2 ) // non-dec
+            p->nPos += Abc_TtWriteHexRev( p->pOutput + p->nPos, pTruth, nVars );
+        else 
+        {
+            char pRes[DAU_MAX_STR];
+            int nNonDecSize;
+            // compose the result
+            Dau_DsdWriteString( p, "<" );
+            Dau_DsdWriteVar( p, pVars[vBest], 0 );
+            // split decomposition
+            Abc_TtCopy( pCofTemp, pTruth, nWords, 0 );
+            Abc_TtCofactor1( pCofTemp, nWords, vBest );
+            nNonDecSize = Dau_DsdDecompose( pCofTemp, nVars, 0, pRes );
+            assert( nNonDecSize == 0 );
+            Dau_DsdWriteString( p, pRes );
+            // split decomposition
+            Abc_TtCopy( pCofTemp, pTruth, nWords, 0 );
+            Abc_TtCofactor0( pCofTemp, nWords, vBest );
+            nNonDecSize = Dau_DsdDecompose( pCofTemp, nVars, 0, pRes );
+            assert( nNonDecSize == 0 );
+            Dau_DsdWriteString( p, pRes );
+            Dau_DsdWriteString( p, ">" );
+            RetValue = 1;
+        }
+    }
+    else
+        p->nPos += Abc_TtWriteHexRev( p->pOutput + p->nPos, pTruth, nVars );
     Dau_DsdWriteString( p, "{" );
     for ( v = 0; v < nVars; v++ )
         Dau_DsdWriteVar( p, pVars[v], 0 );
     Dau_DsdWriteString( p, "}" );
     p->nSizeNonDec = nVars;
+    return RetValue;
 }
 static inline void Dau_DsdFinalize( Dau_Dsd_t * p )
 {
@@ -1012,6 +1157,8 @@ static inline int Dau_Dsd6DecomposeDoubleVarsOne( Dau_Dsd_t * p, word  * pTruth,
     word tCof1 = Abc_Tt6Cofactor1( pTruth[0], v );
     int Status = Dau_Dsd6FindSupportOne( p, tCof0, tCof1, pVars, nVars, v, u );
     assert( v > u );
+//printf( "Checking %s and %s.\n", p->pVarDefs[pVars[v]], p->pVarDefs[pVars[u]] );
+
 //    Kit_DsdPrintFromTruth( (unsigned *)pTruth, 6 );printf( "\n" );
     if ( Status == 3 )
     {
@@ -1101,9 +1248,10 @@ int Dau_Dsd6DecomposeDoubleVars( Dau_Dsd_t * p, word  * pTruth, int * pVars, int
 // look for MUX-decomposable variable on top or at the bottom
 static inline int Dau_Dsd6DecomposeTripleVarsOuter( Dau_Dsd_t * p, word  * pTruth, int * pVars, int nVars, int v )
 {
-    extern void Dau_DsdDecomposeInt( Dau_Dsd_t * p, word * pTruth, int nVarsInit );
+    extern int Dau_DsdDecomposeInt( Dau_Dsd_t * p, word * pTruth, int nVarsInit );
     Dau_Dsd_t P1, * p1 = &P1;
     word tCof0, tCof1;
+    p1->fSplitPrime = 0;
     // move this variable to the top
     ABC_SWAP( int, pVars[v], pVars[nVars-1] );
     Abc_TtSwapVars( pTruth, 6, v, nVars-1 );
@@ -1204,22 +1352,22 @@ int Dau_Dsd6DecomposeTripleVars( Dau_Dsd_t * p, word  * pTruth, int * pVars, int
     assert( 0 );
     return -1;
 }
-void Dau_Dsd6DecomposeInternal( Dau_Dsd_t * p, word  * pTruth, int * pVars, int nVars )
+int Dau_Dsd6DecomposeInternal( Dau_Dsd_t * p, word  * pTruth, int * pVars, int nVars )
 {
     // decompose single variales on the output side
     nVars = Dau_Dsd6DecomposeSingleVar( p, pTruth, pVars, nVars );
     if ( nVars == 0 )
-        return;
+        return 0;
     // decompose double variables on the input side
     nVars = Dau_Dsd6DecomposeDoubleVars( p, pTruth, pVars, nVars );
     if ( nVars == 0 )
-        return;
+        return 0;
     // decompose MUX on the output/input side
     nVars = Dau_Dsd6DecomposeTripleVars( p, pTruth, pVars, nVars );
     if ( nVars == 0 )
-        return;
+        return 0;
     // write non-decomposable function
-    Dau_DsdWritePrime( p, pTruth, pVars, nVars );
+    return Dau_DsdWritePrime( p, pTruth, pVars, nVars );
 }
 
 /**Function*************************************************************
@@ -1245,22 +1393,22 @@ int Dau_DsdDecomposeTripleVars( Dau_Dsd_t * p, word  * pTruth, int * pVars, int 
 {
     return 0;
 }
-void Dau_DsdDecomposeInternal( Dau_Dsd_t * p, word  * pTruth, int * pVars, int nVars )
+int Dau_DsdDecomposeInternal( Dau_Dsd_t * p, word  * pTruth, int * pVars, int nVars )
 {
     // decompose single variales on the output side
     nVars = Dau_DsdDecomposeSingleVar( p, pTruth, pVars, nVars );
     if ( nVars == 0 )
-        return;
+        return 0;
     // decompose double variables on the input side
     nVars = Dau_DsdDecomposeDoubleVars( p, pTruth, pVars, nVars );
     if ( nVars == 0 )
-        return;
+        return 0;
     // decompose MUX on the output/input side
     nVars = Dau_DsdDecomposeTripleVars( p, pTruth, pVars, nVars );
     if ( nVars == 0 )
-        return;
+        return 0;
     // write non-decomposable function
-    Dau_DsdWritePrime( p, pTruth, pVars, nVars );
+    return Dau_DsdWritePrime( p, pTruth, pVars, nVars );
 }
 
 /**Function*************************************************************
@@ -1288,50 +1436,59 @@ int Dau_DsdMinBase( word * pTruth, int nVars, int * pVarsNew )
     }
     return nVars;
 }
-void Dau_DsdDecomposeInt( Dau_Dsd_t * p, word * pTruth, int nVarsInit )
+int Dau_DsdDecomposeInt( Dau_Dsd_t * p, word * pTruth, int nVarsInit )
 {
-    int nVars, pVars[16];
+    int Status = 0, nVars, pVars[16];
     Dau_DsdInitialize( p, nVarsInit );
     nVars = Dau_DsdMinBase( pTruth, nVarsInit, pVars );
     assert( nVars > 0 && nVars <= 6 );
     if ( nVars == 1 )
         Dau_DsdWriteVar( p, pVars[0], (int)(pTruth[0] & 1) );
     else if ( nVars <= 6 )
-        Dau_Dsd6DecomposeInternal( p, pTruth, pVars, nVars );
+        Status = Dau_Dsd6DecomposeInternal( p, pTruth, pVars, nVars );
     else
-        Dau_DsdDecomposeInternal( p, pTruth, pVars, nVars );
+        Status = Dau_DsdDecomposeInternal( p, pTruth, pVars, nVars );
     Dau_DsdFinalize( p );
+    return Status;
 }
-char * Dau_DsdDecompose( word * pTruth, int nVarsInit, int * pnSizeNonDec )
+int Dau_DsdDecompose( word * pTruth, int nVarsInit, int fSplitPrime, char * pRes )
 {
-    static Dau_Dsd_t P;
-    Dau_Dsd_t * p = &P;
+    Dau_Dsd_t P, * p = &P;
+    p->fSplitPrime = fSplitPrime;
     p->nSizeNonDec = 0;
     if ( (pTruth[0] & 1) == 0 && Abc_TtIsConst0(pTruth, Abc_TtWordNum(nVarsInit)) )
-        p->pOutput[0] = '0', p->pOutput[1] = 0;
+        pRes[0] = '0', pRes[1] = 0;
     else if ( (pTruth[0] & 1) && Abc_TtIsConst1(pTruth, Abc_TtWordNum(nVarsInit)) )
-        p->pOutput[0] = '1', p->pOutput[1] = 0;
+        pRes[0] = '1', pRes[1] = 0;
     else 
     {
-        Dau_DsdDecomposeInt( p, pTruth, nVarsInit );
-        Dau_DsdCleanBraces( p->pOutput );
+        int Status = Dau_DsdDecomposeInt( p, pTruth, nVarsInit );
+        Dau_DsdRemoveBraces( p->pOutput, Dau_DsdComputeMatches(p->pOutput) );
+        if ( pRes )
+            strcpy( pRes, p->pOutput );
+        assert( fSplitPrime || Status != 1 );
+        if ( fSplitPrime && Status == 2 )
+            return -1;
     }
-    if ( pnSizeNonDec )
-        *pnSizeNonDec = p->nSizeNonDec;
-    return p->pOutput;
+    return p->nSizeNonDec;
 }
-void Dau_DsdTest()
+
+void Dau_DsdTest44()
 {
+    char pRes[DAU_MAX_STR];
 //    char * pStr = "(!(!a<bcd>)!(!fe))";
 //    char * pStr = "([acb]<!edf>)";
 //    char * pStr = "!(f!(b!c!(d[ea])))";
 //    char * pStr = "[!(a[be])!(c!df)]";
-//    char * pStr = "<(a<bcd>)ef>";
-    char * pStr = "[d8001{a(!bc)ef}]";
-    char * pStr2;
+//    char * pStr = "<(e<bca>)fd>";
+//    char * pStr = "[d8001{abef}c]";
+    char * pStr = "[dc<a(cbd)(!c!b!d)>{abef}]";
+//    char * pStr3;
     word t = Dau_Dsd6ToTruth( pStr );
-    return;
-    pStr2 = Dau_DsdDecompose( &t, 6, NULL );
+//    return;
+    int nNonDec = Dau_DsdDecompose( &t, 6, 1, pRes );
+//    Dau_DsdNormalize( pStr2 );
+//    Dau_DsdExtract( pStr, 2, 0 );
     t = 0; 
 }
 
@@ -1341,13 +1498,13 @@ void Dau_DsdTest33()
     FILE * pFile = fopen( pFileName, "rb" );
     word t, t1, t2;
     char pBuffer[100];
-    char * pStr2;
+    char pRes[DAU_MAX_STR];
     int nSizeNonDec;
     int i, Counter = 0;
     clock_t clk = clock();
     while ( fgets( pBuffer, 100, pFile ) != NULL )
     {
-        pStr2 = pBuffer + strlen(pBuffer)-1;
+        char * pStr2 = pBuffer + strlen(pBuffer)-1;
         if ( *pStr2 == '\n' )
             *pStr2-- = 0;
         if ( *pStr2 == '\r' )
@@ -1359,12 +1516,12 @@ void Dau_DsdTest33()
         for ( i = 0; i < 1000; i++ )
         {
             Dau_DsdPermute( pBuffer );
- 
             t = t1 = Dau_Dsd6ToTruth( pBuffer[0] == '*' ? pBuffer + 1 : pBuffer );
-            pStr2 = Dau_DsdDecompose( &t, 6, &nSizeNonDec );
+            nSizeNonDec = Dau_DsdDecompose( &t, 6, 0, pRes );
+            Dau_DsdNormalize( pRes );
 //            pStr2 = Dau_DsdPerform( t ); nSizeNonDec = 0;
             assert( nSizeNonDec == 0 );
-            t2 = Dau_Dsd6ToTruth( pStr2 );
+            t2 = Dau_Dsd6ToTruth( pRes );
             if ( t1 != t2 )
             {
     //        Kit_DsdPrintFromTruth( (unsigned *)&t, 6 );

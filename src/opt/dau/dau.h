@@ -37,9 +37,11 @@
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
-
 ABC_NAMESPACE_HEADER_START
 
+#define DAU_MAX_VAR    16 // should be 6 or more
+#define DAU_MAX_STR   256
+#define DAU_MAX_WORD  (1<<(DAU_MAX_VAR-6))
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
@@ -56,9 +58,14 @@ ABC_NAMESPACE_HEADER_START
 /*=== dauCanon.c ==========================================================*/
 extern unsigned      Abc_TtCanonicize( word * pTruth, int nVars, char * pCanonPerm );
 /*=== dauDsd.c  ==========================================================*/
-extern char *        Dau_DsdDecompose( word * pTruth, int nVarsInit, int * pnSizeNonDec );
+extern int           Dau_DsdDecompose( word * pTruth, int nVarsInit, int fSplitPrime, char * pRes );
 extern word *        Dau_DsdToTruth( char * p, int nVars );
+extern word          Dau_Dsd6ToTruth( char * p );
+extern void          Dau_DsdNormalize( char * p );
 
+/*=== dauMerge.c  ==========================================================*/
+extern void          Dau_DsdRemoveBraces( char * pDsd, int * pMatches );
+extern char *        Dau_DsdMerge( char * pDsd0i, int * pPerm0, char * pDsd1i, int * pPerm1, int fCompl0, int fCompl1 );
 
 ABC_NAMESPACE_HEADER_END
 

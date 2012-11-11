@@ -541,7 +541,7 @@ void Abc_TruthDecPerform( Abc_TtStore_t * p, int DecType, int fVerbose )
     }
     else if ( DecType == 4 )
     {
-        extern void Dau_DsdTestOne( word t, int i );
+//        extern void Dau_DsdTestOne( word t, int i );
         if ( p->nVars != 6 )
         {
             printf( "Currently only works for 6 variables.\n" );
@@ -554,7 +554,7 @@ void Abc_TruthDecPerform( Abc_TtStore_t * p, int DecType, int fVerbose )
         {
             if ( fVerbose )
                 printf( "%7d :      ", i );
-            Dau_DsdTestOne( *p->pFuncs[i], i );
+//            Dau_DsdTestOne( *p->pFuncs[i], i );
         }
     }
     else assert( 0 );

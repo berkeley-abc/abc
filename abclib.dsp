@@ -1997,6 +1997,10 @@ SOURCE=.\src\opt\dau\dauEnum.c
 
 SOURCE=.\src\opt\dau\dauInt.h
 # End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\dau\dauMerge.c
+# End Source File
 # End Group
 # End Group
 # Begin Group "map"
