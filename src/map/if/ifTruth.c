@@ -519,6 +519,15 @@ static inline int If_CutComputeTruth6( If_Man_t * p, If_Cut_t * pCut, If_Cut_t *
     t0 = If_TruthStretch6( t0, pCut, pCut0 );
     t1 = If_TruthStretch6( t1, pCut, pCut1 );
     *If_CutTruthW(pCut) = t0 & t1;
+
+    if ( 0 )
+    {
+        word pCopy[1024];
+        char pCanonPerm[16];
+        memcpy( pCopy, If_CutTruthW(pCut), sizeof(word) * 1 );
+        Abc_TtCanonicize( pCopy, pCut->nLimit, pCanonPerm );
+    }
+
     if ( p->pPars->fCutMin )
         return If_CutTruthMinimize6( p, pCut );
     return 0;
@@ -628,6 +637,15 @@ inline int If_CutComputeTruth2( If_Man_t * p, If_Cut_t * pCut, If_Cut_t * pCut0,
     If_TruthStretch2( (word *)p->puTemp[0], pCut, pCut0 );
     If_TruthStretch2( (word *)p->puTemp[1], pCut, pCut1 );
     Abc_TtAnd( If_CutTruthW(pCut), (word *)p->puTemp[0], (word *)p->puTemp[1], nWords, 0 );
+
+    if ( 0 )
+    {
+        word pCopy[1024];
+        char pCanonPerm[16];
+        memcpy( pCopy, If_CutTruthW(pCut), sizeof(word) * nWords );
+        Abc_TtCanonicize( pCopy, pCut->nLimit, pCanonPerm );
+    }
+
     if ( p->pPars->fCutMin )
         return If_CutTruthMinimize2( p, pCut );
     return 0;

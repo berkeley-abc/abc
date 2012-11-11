@@ -32,7 +32,7 @@ static If_Obj_t * If_ManSetupObj( If_Man_t * p );
 static void       If_ManCutSetRecycle( If_Man_t * p, If_Set_t * pSet ) { pSet->pNext = p->pFreeList; p->pFreeList = pSet;                            }
 static If_Set_t * If_ManCutSetFetch( If_Man_t * p )                    { If_Set_t * pTemp = p->pFreeList; p->pFreeList = p->pFreeList->pNext; return pTemp; }
 
-extern clock_t s_TimeComp[3];
+extern clock_t s_TimeComp[4];
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -158,6 +158,7 @@ void If_ManStop( If_Man_t * p )
         Abc_PrintTime( 1, "Time0", s_TimeComp[0] );
         Abc_PrintTime( 1, "Time1", s_TimeComp[1] );
         Abc_PrintTime( 1, "Time2", s_TimeComp[2] );
+        Abc_PrintTime( 1, "Time3", s_TimeComp[3] );
 //        Abc_NamPrint( p->pNamDsd );
         Abc_NamStop( p->pNamDsd );
     }

@@ -1498,6 +1498,7 @@ void Dau_DsdTest44()
 //    Dau_DsdNormalize( pStr2 );
 //    Dau_DsdExtract( pStr, 2, 0 );
     t = 0; 
+    nNonDec = 0;
 }
 
 void Dau_DsdTest33()
