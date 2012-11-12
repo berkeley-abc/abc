@@ -23438,10 +23438,11 @@ usage:
 int Abc_CommandAbc9Ps( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     int c;
-    int fSwitch = 0;
     int fTents = 0;
+    int fSwitch = 0;
+    int fCut = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "tph" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "tpch" ) ) != EOF )
     {
         switch ( c )
         {
@@ -23450,6 +23451,9 @@ int Abc_CommandAbc9Ps( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'p':
             fSwitch ^= 1;
+            break;
+        case 'c':
+            fCut ^= 1;
             break;
         case 'h':
             goto usage;
@@ -23462,14 +23466,15 @@ int Abc_CommandAbc9Ps( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Ps(): There is no AIG.\n" );
         return 1;
     }
-    Gia_ManPrintStats( pAbc->pGia, fTents, fSwitch );
+    Gia_ManPrintStats( pAbc->pGia, fTents, fSwitch, fCut );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &ps [-tph]\n" );
+    Abc_Print( -2, "usage: &ps [-tpch]\n" );
     Abc_Print( -2, "\t        prints stats of the current AIG\n" );
     Abc_Print( -2, "\t-t    : toggle printing BMC tents [default = %s]\n", fTents? "yes": "no" );
     Abc_Print( -2, "\t-p    : toggle printing switching activity [default = %s]\n", fSwitch? "yes": "no" );
+    Abc_Print( -2, "\t-c    : toggle printing the size of frontier cut [default = %s]\n", fCut? "yes": "no" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;
 }

@@ -1665,7 +1665,7 @@ int Gia_CommandSpecI( Gia_Man_t * pGia, int nFramesInit, int nBTLimitInit, int f
     }
     // (spech)*  where spech = &srm; restore save3; bmc2 -F 100 -C 25000; &resim
     Gia_ManCleanMark0( pGia );
-    Gia_ManPrintStats( pGia, 0, 0 );
+    Gia_ManPrintStats( pGia, 0, 0, 0 );
     for ( nIter = 0; ; nIter++ )
     {
         if ( Gia_ManHasNoEquivs(pGia) )

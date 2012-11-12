@@ -404,7 +404,7 @@ Gia_Man_t * Abc_NtkDeriveFlatGia2Derive( Abc_Ntk_t * pNtk, Vec_Ptr_t * vOrder )
     Gia_ManStop( pGiaBox );
 
     printf( "%8d -> ", Abc_NtkCountAndNodes(vOrder) );
-    Gia_ManPrintStats( pGia, 0, 0 );
+    Gia_ManPrintStats( pGia, 0, 0, 0 );
     return pGia;
 }
 /*
@@ -724,7 +724,7 @@ Gia_Man_t * Abc_NtkHieCecTest( char * pFileName, int fVerbose )
         clk = clock();
         pGia = Abc_NtkDeriveFlatGia2( pNtk, vOrder );
         Abc_PrintTime( 1, "Deriving GIA", clock() - clk );
-        Gia_ManPrintStats( pGia, 0, 0 );
+        Gia_ManPrintStats( pGia, 0, 0, 0 );
     //    Gia_ManStop( pGia );
  
         Vec_PtrFree( vOrder );
@@ -740,7 +740,7 @@ Gia_Man_t * Abc_NtkHieCecTest( char * pFileName, int fVerbose )
         clk = clock();
         pGia = Abc_NtkDeriveFlatGia( pNtk );
         Abc_PrintTime( 1, "Deriving GIA", clock() - clk );
-        Gia_ManPrintStats( pGia, 0, 0 );
+        Gia_ManPrintStats( pGia, 0, 0, 0 );
 
         // clean nodes/boxes of all nodes
         Vec_PtrForEachEntry( Abc_Ntk_t *, vMods, pModel, i )
