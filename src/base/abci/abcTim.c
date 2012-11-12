@@ -142,6 +142,93 @@ int Abc_NtkTestTimNodeStrash( Gia_Man_t * pGia, Abc_Obj_t * pNode )
 }
 
 
+/**Function*************************************************************
+
+  Synopsis    [Derives GIA manager using special pins to denote box boundaries.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Abc_NtkTestPinDeriveGia( Abc_Ntk_t * pNtk, int fWhiteBoxOnly, int fVerbose )
+{
+    Gia_Man_t * pTemp;
+    Gia_Man_t * pGia = NULL;
+    Vec_Ptr_t * vNodes;
+    Abc_Obj_t * pObj, * pFanin;
+    int i, k, iPinLit = 0;
+    // prepare logic network
+    assert( Abc_NtkIsLogic(pNtk) );
+    Abc_NtkToAig( pNtk );
+    // construct GIA
+    Abc_NtkFillTemp( pNtk );
+    pGia = Gia_ManStart( Abc_NtkObjNumMax(pNtk) );
+    Gia_ManHashAlloc( pGia );
+    // create primary inputs
+    Abc_NtkForEachCi( pNtk, pObj, i )
+        pObj->iTemp = Gia_ManAppendCi(pGia);
+    // create internal nodes in a topologic order from white boxes
+    vNodes = Abc_NtkDfs( pNtk, 0 );
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
+    {
+        // input side
+        if ( !fWhiteBoxOnly || Abc_NodeIsWhiteBox(pObj) )
+        {
+            // create special pintype for this node
+            iPinLit = Gia_ManAppendPinType( pGia, 1 );
+            // create input pins
+            Abc_ObjForEachFanin( pObj, pFanin, k )
+                pFanin->iTemp = Gia_ManAppendAnd( pGia, pFanin->iTemp, iPinLit );
+        }
+        // perform GIA construction
+        pObj->iTemp = Abc_NtkTestTimNodeStrash( pGia, pObj );
+        // output side
+        if ( !fWhiteBoxOnly || Abc_NodeIsWhiteBox(pObj) )
+        {
+            // create special pintype for this node
+            iPinLit = Gia_ManAppendPinType( pGia, 1 );
+            // create output pins
+            pObj->iTemp = Gia_ManAppendAnd( pGia, pObj->iTemp, iPinLit );
+        }
+    }
+    Vec_PtrFree( vNodes );
+    // create primary outputs
+    Abc_NtkForEachCo( pNtk, pObj, i )
+        pObj->iTemp = Gia_ManAppendCo( pGia, Abc_ObjFanin0(pObj)->iTemp );
+    // finalize GIA
+    Gia_ManHashStop( pGia );
+    Gia_ManSetRegNum( pGia, 0 );
+    // clean up GIA
+    pGia = Gia_ManCleanup( pTemp = pGia );
+    Gia_ManStop( pTemp );
+    return pGia;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkTestPinGia( Abc_Ntk_t * pNtk, int fWhiteBoxOnly, int fVerbose )
+{
+    Gia_Man_t * pGia;
+    char * pFileName = "testpin.aig";
+    pGia = Abc_NtkTestPinDeriveGia( pNtk, fWhiteBoxOnly, fVerbose );
+    Gia_WriteAiger( pGia, pFileName, 0, 0 );
+    Gia_ManStop( pGia );
+    printf( "AIG with pins derived from mapped network \"%s\" was written into file \"%s\".\n", 
+        Abc_NtkName(pNtk), pFileName );
+}
+
 
 /**Function*************************************************************
 

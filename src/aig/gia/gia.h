@@ -114,6 +114,8 @@ struct Gia_Man_t_
     int            nConstrs;      // the number of constraints
     int            nTravIds;      // the current traversal ID
     int            nFront;        // frontier size 
+    int            nPinTypes;     // the number of pintypes 
+    int            nPins;         // the number of pins  
     int *          pReprsOld;     // representatives (for CIs and ANDs)
     Gia_Rpr_t *    pReprs;        // representatives (for CIs and ANDs)
     int *          pNexts;        // next nodes in the equivalence classes
@@ -300,6 +302,8 @@ static inline int          Gia_ObjIsAndOrConst0( Gia_Obj_t * pObj )            {
 static inline int          Gia_ObjIsCi( Gia_Obj_t * pObj )                     { return pObj->fTerm && pObj->iDiff0 == GIA_NONE; } 
 static inline int          Gia_ObjIsCo( Gia_Obj_t * pObj )                     { return pObj->fTerm && pObj->iDiff0 != GIA_NONE; } 
 static inline int          Gia_ObjIsAnd( Gia_Obj_t * pObj )                    { return!pObj->fTerm && pObj->iDiff0 != GIA_NONE; } 
+static inline int          Gia_ObjIsPinType( Gia_Obj_t * pObj )                { return Gia_ObjIsAnd(pObj) && pObj->iDiff0 == pObj->iDiff1;   }
+static inline int          Gia_ObjIsPin( Gia_Obj_t * pObj )                    { return Gia_ObjIsAnd(pObj) && (Gia_ObjIsPinType(pObj - pObj->iDiff0) || Gia_ObjIsPinType(pObj - pObj->iDiff1));   } 
 static inline int          Gia_ObjIsCand( Gia_Obj_t * pObj )                   { return Gia_ObjIsAnd(pObj) || Gia_ObjIsCi(pObj); } 
 static inline int          Gia_ObjIsConst0( Gia_Obj_t * pObj )                 { return pObj->iDiff0 == GIA_NONE && pObj->iDiff1 == GIA_NONE; } 
 static inline int          Gia_ManObjIsConst0( Gia_Man_t * p, Gia_Obj_t * pObj){ return pObj == p->pObjs;                        } 
@@ -451,6 +455,22 @@ static inline int Gia_ManAppendAnd( Gia_Man_t * p, int iLit0, int iLit1 )
         Gia_ObjAddFanout( p, Gia_ObjFanin0(pObj), pObj );
         Gia_ObjAddFanout( p, Gia_ObjFanin1(pObj), pObj );
     }
+    return Gia_ObjId( p, pObj ) << 1;
+}
+static inline int Gia_ManAppendPinType( Gia_Man_t * p, int iLit )  
+{ 
+    Gia_Obj_t * pObj = Gia_ManAppendObj( p );
+    assert( iLit >= 0 && Abc_Lit2Var(iLit) < Gia_ManObjNum(p) );
+    pObj->iDiff0  = Gia_ObjId(p, pObj) - Abc_Lit2Var(iLit);
+    pObj->fCompl0 = Abc_LitIsCompl(iLit);
+    pObj->iDiff1  = Gia_ObjId(p, pObj) - Abc_Lit2Var(iLit);
+    pObj->fCompl1 = Abc_LitIsCompl(iLit);
+    if ( p->pFanData )
+    {
+        Gia_ObjAddFanout( p, Gia_ObjFanin0(pObj), pObj );
+        Gia_ObjAddFanout( p, Gia_ObjFanin1(pObj), pObj );
+    }
+    p->nPinTypes++;
     return Gia_ObjId( p, pObj ) << 1;
 }
 static inline int Gia_ManAppendCo( Gia_Man_t * p, int iLit0 )  

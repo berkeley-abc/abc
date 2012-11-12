@@ -9407,7 +9407,14 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( pNtk )
     {
         extern void Abc_NtkTestTim( Abc_Ntk_t * pNtk, int fVerbose );
-        Abc_NtkTestTim( pNtk, fVerbose );
+        extern void Abc_NtkTestPinGia( Abc_Ntk_t * pNtk, int fWhiteBoxOnly, int fVerbose );
+//        Abc_NtkTestTim( pNtk, fVerbose );
+        if ( !Abc_NtkIsLogic(pNtk) )
+        {
+            Abc_Print( -1, "The current ABC netowrk is not a logic network.\n" );
+            return 1;
+        }
+        Abc_NtkTestPinGia( pNtk, 0, 0 );
     }
 
     return 0;
