@@ -27,7 +27,7 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-extern char * Dau_DsdMerge( char * pDsd0i, int * pPerm0, char * pDsd1i, int * pPerm1, int fCompl0, int fCompl1 );
+extern char * Dau_DsdMerge( char * pDsd0i, int * pPerm0, char * pDsd1i, int * pPerm1, int fCompl0, int fCompl1, int nVars );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -281,7 +281,7 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
                 If_CutPerm0(pCut, pCut0), 
                 Abc_NamStr(p->pNamDsd, pCut1->iDsd), 
                 If_CutPerm1(pCut, pCut1), 
-                pObj->fCompl0, pObj->fCompl1 );
+                pObj->fCompl0, pObj->fCompl1, pCut->nLimit );
             pCut->iDsd = Abc_NamStrFindOrAdd( p->pNamDsd, pName, NULL );
         }
         

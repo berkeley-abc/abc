@@ -40,7 +40,7 @@
 ABC_NAMESPACE_HEADER_START
 
 #define DAU_MAX_VAR    12 // should be 6 or more
-#define DAU_MAX_STR   256
+#define DAU_MAX_STR  2048
 #define DAU_MAX_WORD  (1<<(DAU_MAX_VAR-6))
 
 ////////////////////////////////////////////////////////////////////////
@@ -70,7 +70,7 @@ extern int           Dau_DsdCountAnds( char * pDsd );
 
 /*=== dauMerge.c  ==========================================================*/
 extern void          Dau_DsdRemoveBraces( char * pDsd, int * pMatches );
-extern char *        Dau_DsdMerge( char * pDsd0i, int * pPerm0, char * pDsd1i, int * pPerm1, int fCompl0, int fCompl1 );
+extern char *        Dau_DsdMerge( char * pDsd0i, int * pPerm0, char * pDsd1i, int * pPerm1, int fCompl0, int fCompl1, int nVars );
 
 ABC_NAMESPACE_HEADER_END
 

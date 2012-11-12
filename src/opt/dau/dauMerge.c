@@ -20,6 +20,7 @@
 
 #include "dau.h"
 #include "dauInt.h"
+#include "misc/util/utilTruth.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -584,7 +585,7 @@ clock_t s_TimeComp[4] = {0};
   SeeAlso     []
 
 ***********************************************************************/
-char * Dau_DsdMerge( char * pDsd0i, int * pPerm0, char * pDsd1i, int * pPerm1, int fCompl0, int fCompl1 )
+char * Dau_DsdMerge( char * pDsd0i, int * pPerm0, char * pDsd1i, int * pPerm1, int fCompl0, int fCompl1, int nVars )
 {
     int fVerbose = 0;
     int fCheck = 0;
@@ -602,7 +603,8 @@ char * Dau_DsdMerge( char * pDsd0i, int * pPerm0, char * pDsd1i, int * pPerm1, i
     int pMatches[DAU_MAX_STR];
     int nVarsShared, nVarsTotal;
     Dau_Sto_t S, * pS = &S;
-    word Truth, t = 0, t0 = 0, t1 = 0;
+    word * pTruth, * pt = NULL, * pt0 = NULL, * pt1 = NULL;
+    word pParts[3][DAU_MAX_WORD];
     int Status;
     clock_t clk = clock();
     Counter++;
@@ -645,9 +647,16 @@ printf( "%s\n", pDsd1 );
 
 
     if ( fCheck )
-        t0 = Dau_Dsd6ToTruth( pDsd0 );
+    {
+        pt0 = Dau_DsdToTruth( pDsd0, nVars );
+        Abc_TtCopy( pParts[0], pt0, Abc_TtWordNum(nVars), 0 );
+    }
     if ( fCheck )
-        t1 = Dau_Dsd6ToTruth( pDsd1 );
+    {
+        pt1 = Dau_DsdToTruth( pDsd1, nVars );
+        Abc_TtCopy( pParts[1], pt1, Abc_TtWordNum(nVars), 0 );
+        Abc_TtAnd( pParts[2], pParts[0], pParts[1], Abc_TtWordNum(nVars), 0 );
+    }
 
     // find shared varaiables
     nVarsShared = Dau_DsdMergeFindShared(pDsd0, pDsd1, pMatches0, pMatches1, pVarPres);
@@ -706,15 +715,15 @@ if ( fVerbose )
 Dau_DsdMergeStorePrintDefs( pS );
 
     // create new function
-    assert( nVarsTotal <= 6 );
+//    assert( nVarsTotal <= 6 );
     sprintf( pS->pOutput, "(%s%s)", pDsd0, pDsd1 );
-    Truth = Dau_Dsd6ToTruth( pS->pOutput );
-    Status = Dau_DsdDecompose( &Truth, nVarsTotal, 0, pS->pOutput );
+    pTruth = Dau_DsdToTruth( pS->pOutput, nVarsTotal );
+    Status = Dau_DsdDecompose( pTruth, nVarsTotal, 0, pS->pOutput );
 //printf( "%d ", Status );
     if ( Status == -1 ) // did not find 1-step DSD
         return NULL;
-    if ( Status > 6 ) // non-DSD part is too large
-        return NULL;
+//    if ( Status > 6 ) // non-DSD part is too large
+//        return NULL;
     if ( Dau_DsdIsConst(pS->pOutput) )
     {
         strcpy( pRes, pS->pOutput );
@@ -746,9 +755,11 @@ if ( fVerbose )
 printf( "%s\n", pRes );
 
     if ( fCheck )
-        t = Dau_Dsd6ToTruth( pRes );
-    if ( t != (t0 & t1) )
-        printf( "Dau_DsdMerge(): Verification failed!\n" );
+    {
+        pt = Dau_DsdToTruth( pRes, nVars );
+        if ( !Abc_TtEqual( pParts[2], pt, Abc_TtWordNum(nVars) ) )
+            printf( "Dau_DsdMerge(): Verification failed!\n" );
+    }
 
     if ( Status == 0 )
         s_TimeComp[1] += clock() - clk;
@@ -800,7 +811,7 @@ void Dau_DsdTest66()
 //    Dau_DsdMergeStatus( pStr, pMatches, 2, pStatus );
 //    Dau_DsdMergePrintWithStatus( pStr, pStatus );
 
-    pRes = Dau_DsdMerge( pStr1, Perm0, pStr2, Perm0, 0, 0 );
+    pRes = Dau_DsdMerge( pStr1, Perm0, pStr2, Perm0, 0, 0, 6 );
 
     t = 0; 
 }
