@@ -3215,7 +3215,7 @@ int Abc_CommandRenode( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
-    if ( nLutSize < 3 || nLutSize > IF_MAX_FUNC_LUTSIZE )
+    if ( nLutSize < 2 || nLutSize > IF_MAX_FUNC_LUTSIZE )
     {
         Abc_Print( -1, "Incorrect LUT size (%d).\n", nLutSize );
         return 1;
@@ -14758,7 +14758,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
 //            pPars->fTruth = 1;
     }
 
-    if ( pPars->nLutSize < 3 || pPars->nLutSize > IF_MAX_LUTSIZE )
+    if ( pPars->nLutSize < 2 || pPars->nLutSize > IF_MAX_LUTSIZE )
     {
         Abc_Print( -1, "Incorrect LUT size (%d).\n", pPars->nLutSize );
         return 1;
@@ -27030,7 +27030,7 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
 //            pPars->fTruth = 1;
     }
 
-    if ( pPars->nLutSize < 3 || pPars->nLutSize > IF_MAX_LUTSIZE )
+    if ( pPars->nLutSize < 2 || pPars->nLutSize > IF_MAX_LUTSIZE )
     {
         Abc_Print( -1, "Incorrect LUT size (%d).\n", pPars->nLutSize );
         return 1;
