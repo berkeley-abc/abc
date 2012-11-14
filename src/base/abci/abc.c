@@ -50,6 +50,7 @@
 #include "map/cov/cov.h"
 #include "base/cmd/cmd.h"
 #include "proof/abs/abs.h"
+#include "sat/bmc/bmc.h"
 
 #ifndef _WIN32
 #include <unistd.h>

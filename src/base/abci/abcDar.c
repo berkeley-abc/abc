@@ -34,6 +34,7 @@
 #include "proof/cec/cec.h"
 #include "opt/csw/csw.h"
 #include "proof/pdr/pdr.h"
+#include "sat/bmc/bmc.h"
 
 ABC_NAMESPACE_IMPL_START
 

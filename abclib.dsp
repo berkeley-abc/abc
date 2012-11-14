@@ -1378,6 +1378,42 @@ SOURCE=.\src\sat\cnf\cnfUtil.c
 SOURCE=.\src\sat\cnf\cnfWrite.c
 # End Source File
 # End Group
+# Begin Group "bmc"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\sat\bmc\bmc.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\bmc\bmc.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\bmc\bmcBmc.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\bmc\bmcBmc2.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\bmc\bmcBmc3.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\bmc\bmcCexCut.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\bmc\bmcCexMin1.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\bmc\bmcCexMin2.c
+# End Source File
+# End Group
 # End Group
 # Begin Group "opt"
 
@@ -3315,22 +3351,6 @@ SOURCE=.\src\aig\saig\saig.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\aig\saig\saigBmc.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\saig\saigBmc2.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\saig\saigBmc3.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\saig\saigCexMin.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\src\aig\saig\saigCone.c
 # End Source File
 # Begin Source File
@@ -3468,10 +3488,6 @@ SOURCE=.\src\aig\gia\giaCCof.c
 # Begin Source File
 
 SOURCE=.\src\aig\gia\giaCex.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\gia\giaCexMin.c
 # End Source File
 # Begin Source File
 

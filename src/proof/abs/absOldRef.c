@@ -23,6 +23,7 @@
 #include "proof/fra/fra.h"
 #include "proof/bbr/bbr.h"
 #include "proof/pdr/pdr.h"
+#include "sat/bmc/bmc.h"
 
 ABC_NAMESPACE_IMPL_START
 

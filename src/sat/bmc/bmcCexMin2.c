@@ -1,10 +1,10 @@
 /**CFile****************************************************************
 
-  FileName    [giaCexMin.c]
+  FileName    [bmcCexMin2.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
-  PackageName [Scalable AIG package.]
+  PackageName [SAT-based bounded model checking.]
 
   Synopsis    [CEX minimization.]
 
@@ -14,11 +14,12 @@
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
 
-  Revision    [$Id: giaCexMin.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
+  Revision    [$Id: bmcCexMin2.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
-#include "gia.h"
+#include "aig/gia/gia.h"
+#include "bmc.h"
 
 ABC_NAMESPACE_IMPL_START
 

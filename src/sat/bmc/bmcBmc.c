@@ -1,10 +1,10 @@
 /**CFile****************************************************************
 
-  FileName    [saigBmc.c]
+  FileName    [bmcBmc.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
-  PackageName [Sequential AIG package.]
+  PackageName [SAT-based bounded model checking.]
 
   Synopsis    [Simple BMC package.]
 
@@ -14,14 +14,15 @@
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
 
-  Revision    [$Id: saigBmc.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
+  Revision    [$Id: bmcBmc.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
-#include "saig.h"
+#include "aig/saig/saig.h"
 #include "proof/fra/fra.h"
 #include "sat/cnf/cnf.h"
 #include "sat/bsat/satStore.h"
+#include "bmc.h"
 
 ABC_NAMESPACE_IMPL_START
 

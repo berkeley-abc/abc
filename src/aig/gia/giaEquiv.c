@@ -20,6 +20,7 @@
 
 #include "gia.h"
 #include "proof/cec/cec.h"
+#include "sat/bmc/bmc.h"
 
 ABC_NAMESPACE_IMPL_START
 

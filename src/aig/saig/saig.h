@@ -50,26 +50,6 @@ struct Sec_MtrStatus_t_
     int         iOut;         // the satisfied output
 }; 
  
-typedef struct Saig_ParBmc_t_ Saig_ParBmc_t;
-struct Saig_ParBmc_t_
-{
-    int         nStart;         // starting timeframe
-    int         nFramesMax;     // maximum number of timeframes 
-    int         nConfLimit;     // maximum number of conflicts at a node
-    int         nConfLimitJump; // maximum number of conflicts after jumping
-    int         nFramesJump;    // the number of tiemframes to jump
-    int         nTimeOut;       // approximate timeout in seconds
-    int         nPisAbstract;   // the number of PIs to abstract
-    int         fSolveAll;      // does not stop at the first SAT output
-    int         fDropSatOuts;   // replace sat outputs by constant 0
-    int         nFfToAddMax;    // max number of flops to add during CBA
-    int         fSkipRand;      // skip random decisions
-    int         fVerbose;       // verbose 
-    int         iFrame;         // explored up to this frame
-    int         nFailOuts;      // the number of failed outputs
-};
-
- 
 typedef struct Saig_ParBbr_t_ Saig_ParBbr_t;
 struct Saig_ParBbr_t_
 {
@@ -126,14 +106,6 @@ static inline int          Saig_ObjRegId( Aig_Man_t * p, Aig_Obj_t * pObj )   { 
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
-/*=== saigBmc.c ==========================================================*/
-extern int               Saig_ManBmcSimple( Aig_Man_t * pAig, int nFrames, int nSizeMax, int nBTLimit, int fRewrite, int fVerbose, int * piFrame, int nCofFanLit );
-extern int               Saig_BmcPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nNodesMax, int nTimeOut, int nConfMaxOne, int nConfMaxAll, int fVerbose, int fVerbOverwrite, int * piFrames, int fSilent );
-/*=== saigBmc3.c ==========================================================*/
-extern void              Saig_ParBmcSetDefaultParams( Saig_ParBmc_t * p );
-extern int               Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars );
-/*=== saigCexMin.c ==========================================================*/
-extern Abc_Cex_t *       Saig_ManCexMinPerform( Aig_Man_t * pAig, Abc_Cex_t * pCex );
 /*=== saigCone.c ==========================================================*/
 extern void              Saig_ManPrintCones( Aig_Man_t * p );
 /*=== saigConstr.c ==========================================================*/

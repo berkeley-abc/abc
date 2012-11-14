@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "abs.h"
+#include "sat/bmc/bmc.h"
 
 ABC_NAMESPACE_IMPL_START
 
