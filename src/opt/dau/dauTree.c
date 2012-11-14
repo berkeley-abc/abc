@@ -201,7 +201,7 @@ void Dss_NtkPrint( Dss_Ntk_t * p )
     {
         printf( "%s", Dss_IsComplement(p->pRoot) ? "!":"" );        
         if ( Dss_Regular(p->pRoot)->Type == DAU_DSD_VAR )
-            printf( "%s%d", Dss_Regular(p->pRoot)->iVar );
+            printf( "%c", 'a' + Dss_Regular(p->pRoot)->iVar );
         else
             Dss_NtkPrint_rec( p, Dss_Regular(p->pRoot) );
     }
@@ -388,7 +388,6 @@ void Dss_NtkCheck( Dss_Ntk_t * p )
 void Dss_NtkTransform( Dss_Ntk_t * p )
 {
     Dss_Obj_t * pChildren[DAU_MAX_VAR];
-    Vec_Ptr_t Fanins, * vFanins = &Fanins;
     Dss_Obj_t * pObj, * pChild;
     int i, k;
     Dss_NtkForEachNode( p, pObj, i )
@@ -569,7 +568,7 @@ Dss_Man_t * Dss_ManAlloc( int nVars )
     p = ABC_CALLOC( Dss_Man_t, 1 );
     p->nVars = nVars;
     p->nBins = Abc_PrimeCudd( 1000 );
-    p->pBins = ABC_CALLOC( int, p->nBins );
+    p->pBins = ABC_CALLOC( unsigned, p->nBins );
     p->pMem  = Mem_FlexStart();
     p->vObjs = Vec_PtrAlloc( 1000 );
     Dss_ObjAlloc( p, DAU_DSD_CONST0, 0, 0 );

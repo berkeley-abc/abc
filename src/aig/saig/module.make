@@ -1,4 +1,4 @@
-SRC +=  src/aig/saig/saigCone. \
+SRC +=  src/aig/saig/saigCone.c \
     src/aig/saig/saigConstr.c \
     src/aig/saig/saigConstr2.c \
     src/aig/saig/saigDual.c \
