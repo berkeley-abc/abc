@@ -40,20 +40,35 @@
 ABC_NAMESPACE_HEADER_START
 
 #define DAU_MAX_VAR    12 // should be 6 or more
-#define DAU_MAX_STR  2048
+#define DAU_MAX_STR   256
 #define DAU_MAX_WORD  (1<<(DAU_MAX_VAR-6))
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
 ////////////////////////////////////////////////////////////////////////
 
+// network types
+typedef enum { 
+    DAU_DSD_NONE = 0,      // 0:  unknown
+    DAU_DSD_CONST0,        // 1:  constant
+    DAU_DSD_VAR,           // 2:  variable
+    DAU_DSD_AND,           // 3:  AND
+    DAU_DSD_XOR,           // 4:  XOR
+    DAU_DSD_MUX,           // 5:  MUX
+    DAU_DSD_PRIME          // 6:  PRIME
+} Dau_DsdType_t;
+
+typedef struct Dss_Man_t_ Dss_Man_t;
+
 ////////////////////////////////////////////////////////////////////////
 ///                      MACRO DEFINITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
-static inline int Dau_DsdIsConst( char * p )  { return (p[0] == '0' || p[0] == '1') && p[1] == 0; }
-static inline int Dau_DsdIsConst0( char * p ) { return  p[0] == '0' && p[1] == 0; }
-static inline int Dau_DsdIsConst1( char * p ) { return  p[0] == '1' && p[1] == 0; }
+static inline int Dau_DsdIsConst( char * p )  { return (p[0] == '0' || p[0] == '1') && p[1] == 0;    }
+static inline int Dau_DsdIsConst0( char * p ) { return  p[0] == '0' && p[1] == 0;                    }
+static inline int Dau_DsdIsConst1( char * p ) { return  p[0] == '1' && p[1] == 0;                    }
+static inline int Dau_DsdIsVar( char * p )    { if ( *p == '!' ) p++; return *p >= 'a' && *p <= 'z'; }
+static inline int Dau_DsdReadVar( char * p )  { if ( *p == '!' ) p++; return *p - 'a';               }
 
 ////////////////////////////////////////////////////////////////////////
 ///                    FUNCTION DECLARATIONS                         ///

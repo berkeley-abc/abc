@@ -243,8 +243,9 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
         if ( If_WordCountOnes(pCut0->uSign | pCut1->uSign) > p->pPars->nLutSize )
             continue;
         // merge the cuts
-        if ( !If_CutMerge( pCut0, pCut1, pCut ) )
+        if ( !If_CutMerge( p, pCut0, pCut1, pCut ) )
             continue;
+        assert( If_CutCheck( pCut ) );
         if ( pObj->fSpec && pCut->nLeaves == (unsigned)p->pPars->nLutSize )
             continue;
         assert( p->pPars->fSeqMap || pCut->nLeaves > 1 );

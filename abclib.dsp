@@ -2005,6 +2005,10 @@ SOURCE=.\src\opt\dau\dauInt.h
 
 SOURCE=.\src\opt\dau\dauMerge.c
 # End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\dau\dauTree.c
+# End Source File
 # End Group
 # End Group
 # Begin Group "map"

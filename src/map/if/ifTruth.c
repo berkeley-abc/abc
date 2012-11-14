@@ -498,7 +498,7 @@ static inline int If_CutTruthMinimize6( If_Man_t * p, If_Cut_t * pCut )
 //    assert( nSuppSize == Abc_TtSupportSize(If_CutTruthW(pCut), nVars) );
     return 1;
 }
-static inline word If_TruthStretch6( word Truth, If_Cut_t * pCut, If_Cut_t * pCut0 )
+static inline word If_TruthStretch6_( word Truth, If_Cut_t * pCut, If_Cut_t * pCut0 )
 {
     int i, k;
     for ( i = (int)pCut->nLeaves - 1, k = (int)pCut0->nLeaves - 1; i >= 0 && k >= 0; i-- )
@@ -512,13 +512,23 @@ static inline word If_TruthStretch6( word Truth, If_Cut_t * pCut, If_Cut_t * pCu
     }
     return Truth;
 }
+static inline word If_TruthStretch6( word Truth, int nVars, int * pPerm, int nVarsCut )
+{
+    int i; 
+    for ( i = nVarsCut - 1; i >= 0; i-- )
+        if ( i < pPerm[i] )
+            Abc_TtSwapVars( &Truth, nVars, i, pPerm[i] );
+    return Truth;
+}
 static inline int If_CutComputeTruth6( If_Man_t * p, If_Cut_t * pCut, If_Cut_t * pCut0, If_Cut_t * pCut1, int fCompl0, int fCompl1 )
 {
     word t0 = (fCompl0 ^ pCut0->fCompl) ? ~*If_CutTruthW(pCut0) : *If_CutTruthW(pCut0);
     word t1 = (fCompl1 ^ pCut1->fCompl) ? ~*If_CutTruthW(pCut1) : *If_CutTruthW(pCut1);
     assert( pCut->nLimit <= 6 );
-    t0 = If_TruthStretch6( t0, pCut, pCut0 );
-    t1 = If_TruthStretch6( t1, pCut, pCut1 );
+//    t0 = If_TruthStretch6( t0, pCut, pCut0 );
+//    t1 = If_TruthStretch6( t1, pCut, pCut1 );
+    t0 = If_TruthStretch6( t0, pCut->nLimit, p->pPerm[0], pCut0->nLeaves );
+    t1 = If_TruthStretch6( t1, pCut->nLimit, p->pPerm[1], pCut1->nLeaves );
     *If_CutTruthW(pCut) = t0 & t1;
 
 #ifdef IF_TRY_NEW
@@ -615,7 +625,7 @@ static inline int If_CutTruthMinimize2( If_Man_t * p, If_Cut_t * pCut )
 //    assert( nSuppSize == Abc_TtSupportSize(If_CutTruthW(pCut), nVars) );
     return 1;
 }
-static inline void If_TruthStretch2( word * pTruth, If_Cut_t * pCut, If_Cut_t * pCut0 )
+static inline void If_TruthStretch2_( word * pTruth, If_Cut_t * pCut, If_Cut_t * pCut0 )
 {
     int i, k;
     for ( i = (int)pCut->nLeaves - 1, k = (int)pCut0->nLeaves - 1; i >= 0 && k >= 0; i-- )
@@ -628,6 +638,13 @@ static inline void If_TruthStretch2( word * pTruth, If_Cut_t * pCut, If_Cut_t * 
         k--;
     }
 }
+static inline void If_TruthStretch2( word * pTruth, int nVars, int * pPerm, int nVarsCut )
+{
+    int i; 
+    for ( i = nVarsCut - 1; i >= 0; i-- )
+        if ( i < pPerm[i] )
+            Abc_TtSwapVars( pTruth, nVars, i, pPerm[i] );
+}
 inline int If_CutComputeTruth2( If_Man_t * p, If_Cut_t * pCut, If_Cut_t * pCut0, If_Cut_t * pCut1, int fCompl0, int fCompl1 )
 {
     int nWords;
@@ -636,8 +653,10 @@ inline int If_CutComputeTruth2( If_Man_t * p, If_Cut_t * pCut, If_Cut_t * pCut0,
     nWords = Abc_TtWordNum( pCut->nLimit );
     Abc_TtCopy( (word *)p->puTemp[0], If_CutTruthW(pCut0), nWords, fCompl0 ^ pCut0->fCompl );
     Abc_TtCopy( (word *)p->puTemp[1], If_CutTruthW(pCut1), nWords, fCompl1 ^ pCut1->fCompl );
-    If_TruthStretch2( (word *)p->puTemp[0], pCut, pCut0 );
-    If_TruthStretch2( (word *)p->puTemp[1], pCut, pCut1 );
+//    If_TruthStretch2( (word *)p->puTemp[0], pCut, pCut0 );
+//    If_TruthStretch2( (word *)p->puTemp[1], pCut, pCut1 );
+    If_TruthStretch2( (word *)p->puTemp[0], pCut->nLimit, p->pPerm[0], pCut0->nLeaves );
+    If_TruthStretch2( (word *)p->puTemp[1], pCut->nLimit, p->pPerm[1], pCut1->nLeaves );
     Abc_TtAnd( If_CutTruthW(pCut), (word *)p->puTemp[0], (word *)p->puTemp[1], nWords, 0 );
 
 #ifdef IF_TRY_NEW

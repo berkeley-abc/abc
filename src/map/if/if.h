@@ -188,6 +188,8 @@ struct If_Man_t_
     int                nChoices;      // the number of choice nodes
     Vec_Int_t *        vSwitching;    // switching activity of each node
     Vec_Int_t **       pDriverCuts;   // temporary driver cuts
+    int                pPerm[3][IF_MAX_LUTSIZE]; // permutations
+    int                nShared;       // the number of shared variables
     // SOP balancing
     Vec_Int_t *        vCover;        // used to compute ISOP
     Vec_Wrd_t *        vAnds;         // intermediate storage
@@ -437,7 +439,7 @@ extern int             If_ManPerformMappingComb( If_Man_t * p );
 extern int             If_CutFilter( If_Set_t * pCutSet, If_Cut_t * pCut );
 extern void            If_CutSort( If_Man_t * p, If_Set_t * pCutSet, If_Cut_t * pCut );
 extern void            If_CutOrder( If_Cut_t * pCut );
-extern int             If_CutMerge( If_Cut_t * pCut0, If_Cut_t * pCut1, If_Cut_t * pCut );
+extern int             If_CutMerge( If_Man_t * p, If_Cut_t * pCut0, If_Cut_t * pCut1, If_Cut_t * pCut );
 extern int             If_CutCheck( If_Cut_t * pCut );
 extern void            If_CutPrint( If_Cut_t * pCut );
 extern void            If_CutPrintTiming( If_Man_t * p, If_Cut_t * pCut );

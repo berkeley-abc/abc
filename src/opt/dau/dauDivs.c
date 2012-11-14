@@ -19,7 +19,6 @@
 ***********************************************************************/
 
 #include "dauInt.h"
-#include "dau.h"
 #include "misc/util/utilTruth.h"
 
 ABC_NAMESPACE_IMPL_START
@@ -88,7 +87,7 @@ Vec_Int_t * Dau_DsdDivisors( word * pTruth, int nVars )
     }
     return NULL;
 }
-void Dau_DsdTest()
+void Dau_DsdTest000()
 {
 //    char * pDsd = "!(!(abc)!(def))";
 //    char * pDsd = "[(abc)(def)]";

@@ -32,6 +32,7 @@
 #include <assert.h>
 #include <time.h>
 #include "misc/vec/vec.h"
+#include "dau.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///

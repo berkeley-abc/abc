@@ -26,17 +26,6 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-// network types
-typedef enum { 
-    DAU_DSD_NONE = 0,      // 0:  unknown
-    DAU_DSD_CONST0,        // 1:  constant
-    DAU_DSD_VAR,           // 2:  variable
-    DAU_DSD_AND,           // 3:  AND
-    DAU_DSD_XOR,           // 4:  XOR
-    DAU_DSD_MUX,           // 5:  MUX
-    DAU_DSD_PRIME          // 6:  PRIME
-} Dau_DsdType_t;
-
 typedef struct Dau_Dsd_t_ Dau_Dsd_t;
 struct Dau_Dsd_t_
 {
