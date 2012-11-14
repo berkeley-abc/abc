@@ -27,6 +27,7 @@
 ////////////////////////////////////////////////////////////////////////
 
 #include "aig/saig/saig.h"
+#include "aig/gia/gia.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
@@ -66,13 +67,16 @@ struct Saig_ParBmc_t_
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
-/*=== saigBmc.c ==========================================================*/
+/*=== bmcBmc.c ==========================================================*/
 extern int               Saig_ManBmcSimple( Aig_Man_t * pAig, int nFrames, int nSizeMax, int nBTLimit, int fRewrite, int fVerbose, int * piFrame, int nCofFanLit );
+/*=== bmcBmc2.c ==========================================================*/
 extern int               Saig_BmcPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nNodesMax, int nTimeOut, int nConfMaxOne, int nConfMaxAll, int fVerbose, int fVerbOverwrite, int * piFrames, int fSilent );
-/*=== saigBmc3.c ==========================================================*/
+/*=== bmcBmc3.c ==========================================================*/
 extern void              Saig_ParBmcSetDefaultParams( Saig_ParBmc_t * p );
 extern int               Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars );
-/*=== saigCexMin.c ==========================================================*/
+/*=== bmcCexCut.c ==========================================================*/
+extern Gia_Man_t *       Bmc_GiaTargetStates( Gia_Man_t * p, Abc_Cex_t * pCex, int iFrBeg, int iFrEnd, int fVerbose );
+/*=== bmcCexMin.c ==========================================================*/
 extern Abc_Cex_t *       Saig_ManCexMinPerform( Aig_Man_t * pAig, Abc_Cex_t * pCex );
 
 

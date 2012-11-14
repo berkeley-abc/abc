@@ -190,6 +190,7 @@ void Abc_FrameDeallocate( Abc_Frame_t * p )
     }
     Vec_PtrFreeP( &p->vLTLProperties_global );
     Abc_FrameDeleteAllNetworks( p );
+    ABC_FREE( p->pCex2 );
     ABC_FREE( p->pCex );
     ABC_FREE( p );
     s_GlobalFrame = NULL;

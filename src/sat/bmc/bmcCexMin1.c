@@ -18,7 +18,6 @@
 
 ***********************************************************************/
 
-#include "aig/saig/saig.h"
 #include "aig/ioa/ioa.h"
 #include "bmc.h"
 

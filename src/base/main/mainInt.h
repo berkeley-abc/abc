@@ -97,6 +97,7 @@ struct Abc_Frame_t_
     Gia_Man_t *     pGia;          // alternative current network as a light-weight AIG
     Gia_Man_t *     pGia2;         // copy of the above
     Abc_Cex_t *     pCex;          // a counter-example to fail the current network
+    Abc_Cex_t *     pCex2;         // copy of the above
     Vec_Ptr_t *     vCexVec;       // a vector of counter-examples if more than one PO fails
     Vec_Ptr_t *     vPoEquivs;     // equivalence classes of isomorphic primary outputs
     int             Status;                // the status of verification problem (proved=1, disproved=0, undecided=-1)

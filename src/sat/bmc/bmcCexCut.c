@@ -33,7 +33,7 @@ ABC_NAMESPACE_IMPL_START
 
 /**Function*************************************************************
 
-  Synopsis    []
+  Synopsis    [Generate GIA for target bad states.]
 
   Description []
                
@@ -42,6 +42,10 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
+Gia_Man_t * Bmc_GiaTargetStates( Gia_Man_t * p, Abc_Cex_t * pCex, int iFrBeg, int iFrEnd )
+{
+    return NULL;
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

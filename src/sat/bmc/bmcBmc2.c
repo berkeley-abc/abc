@@ -18,7 +18,6 @@
 
 ***********************************************************************/
 
-#include "aig/saig/saig.h"
 #include "sat/cnf/cnf.h"
 #include "sat/bsat/satStore.h"
 #include "proof/ssw/ssw.h"
