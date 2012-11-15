@@ -22650,6 +22650,8 @@ int Abc_CommandCexCut( Abc_Frame_t * pAbc, int argc, char ** argv )
         iFrStop = pAbc->pCex->iFrame;
 
     {
+        extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
+        extern Abc_Ntk_t * Abc_NtkFromAigPhase( Aig_Man_t * pMan );
         Abc_Ntk_t * pNtkNew;
         Aig_Man_t * pAig = Abc_NtkToDar( pAbc->pNtkCur, 0, 1 );
         Aig_Man_t * pAigNew = Bmc_AigTargetStates( pAig, pAbc->pCex, iFrStart, iFrStop, fVerbose );
