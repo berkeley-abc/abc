@@ -1234,8 +1234,8 @@ Gia_Man_t * Gia_ManDupWithNewPo( Gia_Man_t * p1, Gia_Man_t * p2 )
     assert( Gia_ManRegNum(p2) == 0 );
     // there is only one PO in p2
     assert( Gia_ManPoNum(p2) == 1 );
-    // flop count of p1 is equal to input count of p2
-    assert( Gia_ManRegNum(p1) == Gia_ManPiNum(p2) );
+    // input count of p2 is equal to flop count of p1 
+    assert( Gia_ManPiNum(p2) == Gia_ManRegNum(p1) );
 
     // start new AIG
     pNew = Gia_ManStart( Gia_ManObjNum(p1)+Gia_ManObjNum(p2) );
@@ -1261,7 +1261,7 @@ Gia_Man_t * Gia_ManDupWithNewPo( Gia_Man_t * p1, Gia_Man_t * p2 )
     Gia_ManForEachRi( p1, pObj, i )
         Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
     Gia_ManHashStop( pNew );
-//    Gia_ManPrintStats( pGiaNew, 0 );
+    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p1) );
     pNew = Gia_ManCleanup( pTemp = pNew );
     Gia_ManStop( pTemp );
     return pNew;

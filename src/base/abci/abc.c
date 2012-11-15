@@ -296,6 +296,8 @@ static int Abc_CommandPdr                    ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandReconcile              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandCexSave                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandCexLoad                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandCexCut                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandCexMerge               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 //static int Abc_CommandCexMin                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandDualRail               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandBlockPo                ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -364,8 +366,8 @@ static int Abc_CommandAbc9ReachN             ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9ReachY             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Undo               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Iso                ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc9CexCut             ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc9CexMerge           ( Abc_Frame_t * pAbc, int argc, char ** argv );
+//static int Abc_CommandAbc9CexCut             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+//static int Abc_CommandAbc9CexMerge           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 //static int Abc_CommandAbc9CexMin             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandAbc9AbsDerive          ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -755,6 +757,8 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Verification", "reconcile",     Abc_CommandReconcile,        1 );
     Cmd_CommandAdd( pAbc, "Verification", "cexsave",       Abc_CommandCexSave,          0 );
     Cmd_CommandAdd( pAbc, "Verification", "cexload",       Abc_CommandCexLoad,          0 );
+    Cmd_CommandAdd( pAbc, "Verification", "cexcut",        Abc_CommandCexCut,           0 );
+    Cmd_CommandAdd( pAbc, "Verification", "cexmerge",      Abc_CommandCexMerge,         0 );
 //    Cmd_CommandAdd( pAbc, "Verification", "cexmin",        Abc_CommandCexMin,           0 );
     Cmd_CommandAdd( pAbc, "Verification", "dualrail",      Abc_CommandDualRail,         1 );
     Cmd_CommandAdd( pAbc, "Verification", "blockpo",       Abc_CommandBlockPo,          1 );
@@ -820,8 +824,8 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&reachy",       Abc_CommandAbc9ReachY,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&undo",         Abc_CommandAbc9Undo,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&iso",          Abc_CommandAbc9Iso,          0 );
-    Cmd_CommandAdd( pAbc, "ABC9",         "&cexcut",       Abc_CommandAbc9CexCut,       0 );
-    Cmd_CommandAdd( pAbc, "ABC9",         "&cexmerge",     Abc_CommandAbc9CexMerge,     0 );
+//    Cmd_CommandAdd( pAbc, "ABC9",         "&cexcut",       Abc_CommandAbc9CexCut,       0 );
+//    Cmd_CommandAdd( pAbc, "ABC9",         "&cexmerge",     Abc_CommandAbc9CexMerge,     0 );
 //    Cmd_CommandAdd( pAbc, "ABC9",         "&cexmin",       Abc_CommandAbc9CexMin,       0 );
 
     Cmd_CommandAdd( pAbc, "Abstraction",  "&abs_derive",   Abc_CommandAbc9AbsDerive,    0 );
@@ -22516,7 +22520,7 @@ int Abc_CommandCexSave( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( pAbc->pCex == NULL )
     {
-        Abc_Print( -1, "Empty network.\n" );
+        Abc_Print( -1, "Current CEX is not available..\n" );
         return 1;
     }
     ABC_FREE( pAbc->pCex2 );
@@ -22555,9 +22559,9 @@ int Abc_CommandCexLoad( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
-    if ( pAbc->pCex == NULL )
+    if ( pAbc->pCex2 == NULL )
     {
-        Abc_Print( -1, "Empty network.\n" );
+        Abc_Print( -1, "Saved CEX is not available.\n" );
         return 1;
     }
     ABC_FREE( pAbc->pCex );
@@ -22571,6 +22575,200 @@ usage:
     return 1;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandCexCut( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    int c;
+    int iFrStart = 0;
+    int iFrStop  = ABC_INFINITY;
+    int fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FGvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'F':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-F\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            iFrStart = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( iFrStart < 0 )
+                goto usage;
+            break;
+        case 'G':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-G\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            iFrStop = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( iFrStop < 0 )
+                goto usage;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            Abc_Print( -2, "Unknown switch.\n");
+            goto usage;
+        }
+    }
+
+    if ( pAbc->pCex == NULL )
+    {
+        Abc_Print( 1, "There is no current cex.\n");
+        return 0;
+    }
+    if ( pAbc->pNtkCur == NULL )
+    {
+        Abc_Print( 1, "There is no AIG in the &-space.\n");
+        return 0;
+    }
+    if ( !Abc_NtkIsStrash(pAbc->pNtkCur) )
+    {
+        Abc_Print( 1, "Current network is not an AIG.\n");
+        return 0;
+    }
+    if ( iFrStop == ABC_INFINITY )
+        iFrStop = pAbc->pCex->iFrame;
+
+    {
+        Abc_Ntk_t * pNtkNew;
+        Aig_Man_t * pAig = Abc_NtkToDar( pAbc->pNtkCur, 0, 1 );
+        Aig_Man_t * pAigNew = Bmc_AigTargetStates( pAig, pAbc->pCex, iFrStart, iFrStop, fVerbose );
+        Aig_ManStop( pAig );
+        if ( pAigNew == NULL )
+        {
+            Abc_Print( 1, "Command has failed.\n");
+            return 0;
+        }
+        pNtkNew = Abc_NtkFromAigPhase( pAigNew );
+        pNtkNew->pName = Extra_UtilStrsav( pAbc->pNtkCur->pName );
+        Aig_ManStop( pAigNew );
+        // update the network
+        Abc_FrameReplaceCurrentNetwork( pAbc, pNtkNew );
+    }
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: cexcut [-FG num] [-vh]\n" );
+    Abc_Print( -2, "\t         creates logic for bad states using the current CEX\n" );
+    Abc_Print( -2, "\t-F num : 0-based number of the starting frame [default = %d]\n", iFrStart );
+    Abc_Print( -2, "\t-G num : 0-based number of the ending frame [default = %d]\n",   iFrStop );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n",  fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandCexMerge( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Abc_Cex_t * pCexNew;
+    int c;
+    int iFrStart = 0;
+    int iFrStop  = ABC_INFINITY;
+    int fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FGvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'F':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-F\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            iFrStart = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( iFrStart < 0 )
+                goto usage;
+            break;
+        case 'G':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-G\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            iFrStop = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( iFrStop < 0 )
+                goto usage;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            Abc_Print( -2, "Unknown switch.\n");
+            goto usage;
+        }
+    }
+
+    if ( pAbc->pCex == NULL )
+    {
+        Abc_Print( 1, "There is no current cex.\n");
+        return 0;
+    }
+    if ( pAbc->pCex2 == NULL )
+    {
+        Abc_Print( 1, "There is no saved cex.\n");
+        return 0;
+    }
+    if ( iFrStop - iFrStart < pAbc->pCex->iFrame )
+    {
+        Abc_Print( 1, "Current CEX does not allow to shorten the saved CEX.\n");
+        return 0;
+    }
+    pCexNew = Abc_CexMerge( pAbc->pCex2, pAbc->pCex, iFrStart, iFrStop );
+    if ( pCexNew == NULL )
+    {
+        Abc_Print( 1, "Merging CEXes has failed.\n");
+        return 0;
+    }
+    // replace the saved CEX
+    ABC_FREE( pAbc->pCex2 );
+    pAbc->pCex2 = pCexNew;
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: cexmerge [-FG num] [-vh]\n" );
+    Abc_Print( -2, "\t         merges the current CEX into the saved one\n" );
+    Abc_Print( -2, "\t         and sets the resulting CEX as the saved one\n" );
+    Abc_Print( -2, "\t-F num : 0-based number of the starting frame [default = %d]\n", iFrStart );
+    Abc_Print( -2, "\t-G num : 0-based number of the ending frame [default = %d]\n",   iFrStop );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
 
 /**Function*************************************************************
 
@@ -28680,10 +28878,10 @@ int Abc_CommandAbc9CexCut( Abc_Frame_t * pAbc, int argc, char ** argv )
 
 usage:
     Abc_Print( -2, "usage: &cexcut [-FG num] [-vh]\n" );
-    Abc_Print( -2, "\t         extract logic representation of bad states\n" );
+    Abc_Print( -2, "\t         creates logic for bad states using the current CEX\n" );
     Abc_Print( -2, "\t-F num : 0-based number of the starting frame [default = %d]\n", iFrStart );
     Abc_Print( -2, "\t-G num : 0-based number of the ending frame [default = %d]\n",   iFrStop );
-    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n",  fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
@@ -28754,7 +28952,7 @@ int Abc_CommandAbc9CexMerge( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( 1, "There is no saved cex.\n");
         return 0;
     }
-    if ( iFrStop - iFrStart > pAbc->pCex->iFrame )
+    if ( iFrStop - iFrStart < pAbc->pCex->iFrame )
     {
         Abc_Print( 1, "Current CEX does not allow to shorten the saved CEX.\n");
         return 0;

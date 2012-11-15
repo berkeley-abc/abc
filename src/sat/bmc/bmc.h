@@ -76,6 +76,7 @@ extern void              Saig_ParBmcSetDefaultParams( Saig_ParBmc_t * p );
 extern int               Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars );
 /*=== bmcCexCut.c ==========================================================*/
 extern Gia_Man_t *       Bmc_GiaTargetStates( Gia_Man_t * p, Abc_Cex_t * pCex, int iFrBeg, int iFrEnd, int fVerbose );
+extern Aig_Man_t *       Bmc_AigTargetStates( Aig_Man_t * p, Abc_Cex_t * pCex, int iFrBeg, int iFrEnd, int fVerbose );
 /*=== bmcCexMin.c ==========================================================*/
 extern Abc_Cex_t *       Saig_ManCexMinPerform( Aig_Man_t * pAig, Abc_Cex_t * pCex );
 

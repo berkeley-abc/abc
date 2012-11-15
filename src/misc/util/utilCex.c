@@ -195,14 +195,14 @@ Abc_Cex_t * Abc_CexMerge( Abc_Cex_t * pCex, Abc_Cex_t * pPart, int iFrBeg, int i
         { printf( "Starting frame is more than the last frame of CEX (%d).\n", pCex->iFrame ); return NULL; }
     if ( iFrEnd > pCex->iFrame )
         { printf( "Stopping frame is more than the last frame of CEX (%d).\n", pCex->iFrame ); return NULL; }
-    if ( iFrBeg >= iFrEnd )
+    if ( iFrBeg > iFrEnd )
         { printf( "Starting frame (%d) should be less than stopping frame (%d).\n", iFrBeg, iFrEnd ); return NULL; }
     assert( iFrBeg >= 0 && iFrBeg <= pCex->iFrame );
     assert( iFrEnd >= 0 && iFrEnd <= pCex->iFrame );
-    assert( iFrBeg < iFrEnd );
+    assert( iFrBeg <= iFrEnd );
 
     assert( pCex->nPis == pPart->nPis );
-    assert( iFrEnd - iFrBeg > pPart->iFrame );
+    assert( iFrEnd - iFrBeg >= pPart->iFrame );
 
     nFramesGain = (iFrEnd - iFrBeg) - pPart->iFrame;
     pNew = Abc_CexAlloc( pCex->nRegs, pCex->nPis, pCex->iFrame + 1 - nFramesGain );
@@ -211,20 +211,21 @@ Abc_Cex_t * Abc_CexMerge( Abc_Cex_t * pCex, Abc_Cex_t * pPart, int iFrBeg, int i
 
     for ( iBit = 0; iBit < pCex->nRegs; iBit++ )
         if ( Abc_InfoHasBit(pCex->pData, iBit) )
-            Abc_InfoSetBit( pNew->pData, iBit++ );
+            Abc_InfoSetBit( pNew->pData, iBit );
     for ( f = 0; f < iFrBeg; f++ )
-        for ( i = 0; i < pCex->nPis; i++ )
+        for ( i = 0; i < pCex->nPis; i++, iBit++ )
             if ( Abc_InfoHasBit(pCex->pData, pCex->nRegs + pCex->nPis * f + i) )
-                Abc_InfoSetBit( pNew->pData, iBit++ );
+                Abc_InfoSetBit( pNew->pData, iBit );
     for ( f = 0; f < pPart->iFrame; f++ )
-        for ( i = 0; i < pCex->nPis; i++ )
+        for ( i = 0; i < pCex->nPis; i++, iBit++ )
             if ( Abc_InfoHasBit(pPart->pData, pPart->nRegs + pCex->nPis * f + i) )
-                Abc_InfoSetBit( pNew->pData, iBit++ );
+                Abc_InfoSetBit( pNew->pData, iBit );
     for ( f = iFrEnd; f <= pCex->iFrame; f++ )
-        for ( i = 0; i < pCex->nPis; i++ )
-            if ( Abc_InfoHasBit(pPart->pData, pPart->nRegs + pCex->nPis * f + i) )
-                Abc_InfoSetBit( pNew->pData, iBit++ );
+        for ( i = 0; i < pCex->nPis; i++, iBit++ )
+            if ( Abc_InfoHasBit(pCex->pData, pCex->nRegs + pCex->nPis * f + i) )
+                Abc_InfoSetBit( pNew->pData, iBit );
     assert( iBit == pNew->nBits );
+
     return pNew;
 }
 
