@@ -61,6 +61,7 @@ extern Abc_Cex_t *   Abc_CexMakeTriv( int nRegs, int nTruePis, int nTruePos, int
 extern Abc_Cex_t *   Abc_CexCreate( int nRegs, int nTruePis, int * pArray, int iFrame, int iPo, int fSkipRegs );
 extern Abc_Cex_t *   Abc_CexDup( Abc_Cex_t * p, int nRegsNew );
 extern Abc_Cex_t *   Abc_CexDeriveFromCombModel( int * pModel, int nPis, int nRegs, int iPo );
+extern Abc_Cex_t *   Abc_CexMerge( Abc_Cex_t * pCex, Abc_Cex_t * pPart, int iFrBeg, int iFrEnd );
 extern void          Abc_CexPrintStats( Abc_Cex_t * p );
 extern void          Abc_CexPrint( Abc_Cex_t * p );
 extern void          Abc_CexFreeP( Abc_Cex_t ** p );

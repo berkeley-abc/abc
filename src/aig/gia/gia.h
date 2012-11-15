@@ -767,6 +767,7 @@ extern Gia_Man_t *         Gia_ManDupNormalize( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManDupUnnomalize( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManDupTrimmed( Gia_Man_t * p, int fTrimCis, int fTrimCos, int fDualOut );
 extern Gia_Man_t *         Gia_ManDupOntop( Gia_Man_t * p, Gia_Man_t * p2 );
+extern Gia_Man_t *         Gia_ManDupWithNewPo( Gia_Man_t * p1, Gia_Man_t * p2 );
 extern Gia_Man_t *         Gia_ManDupDfsCiMap( Gia_Man_t * p, int * pCi2Lit, Vec_Int_t * vLits );
 extern Gia_Man_t *         Gia_ManDupDfsClasses( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManDupTopAnd( Gia_Man_t * p, int fVerbose );

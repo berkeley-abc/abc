@@ -172,6 +172,64 @@ Abc_Cex_t * Abc_CexDeriveFromCombModel( int * pModel, int nPis, int nRegs, int i
 
 /**Function*************************************************************
 
+  Synopsis    [Derives CEX from comb model.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Cex_t * Abc_CexMerge( Abc_Cex_t * pCex, Abc_Cex_t * pPart, int iFrBeg, int iFrEnd )
+{
+    Abc_Cex_t * pNew;
+    int nFramesGain;
+    int i, f, iBit;
+
+    if ( iFrBeg < 0 )
+        { printf( "Starting frame is less than 0.\n" ); return NULL; }
+    if ( iFrEnd < 0 )
+        { printf( "Stopping frame is less than 0.\n" ); return NULL; }
+    if ( iFrBeg > pCex->iFrame )
+        { printf( "Starting frame is more than the last frame of CEX (%d).\n", pCex->iFrame ); return NULL; }
+    if ( iFrEnd > pCex->iFrame )
+        { printf( "Stopping frame is more than the last frame of CEX (%d).\n", pCex->iFrame ); return NULL; }
+    if ( iFrBeg >= iFrEnd )
+        { printf( "Starting frame (%d) should be less than stopping frame (%d).\n", iFrBeg, iFrEnd ); return NULL; }
+    assert( iFrBeg >= 0 && iFrBeg <= pCex->iFrame );
+    assert( iFrEnd >= 0 && iFrEnd <= pCex->iFrame );
+    assert( iFrBeg < iFrEnd );
+
+    assert( pCex->nPis == pPart->nPis );
+    assert( iFrEnd - iFrBeg > pPart->iFrame );
+
+    nFramesGain = (iFrEnd - iFrBeg) - pPart->iFrame;
+    pNew = Abc_CexAlloc( pCex->nRegs, pCex->nPis, pCex->iFrame + 1 - nFramesGain );
+    pNew->iPo    = pCex->iPo;
+    pNew->iFrame = pCex->iFrame - nFramesGain;
+
+    for ( iBit = 0; iBit < pCex->nRegs; iBit++ )
+        if ( Abc_InfoHasBit(pCex->pData, iBit) )
+            Abc_InfoSetBit( pNew->pData, iBit++ );
+    for ( f = 0; f < iFrBeg; f++ )
+        for ( i = 0; i < pCex->nPis; i++ )
+            if ( Abc_InfoHasBit(pCex->pData, pCex->nRegs + pCex->nPis * f + i) )
+                Abc_InfoSetBit( pNew->pData, iBit++ );
+    for ( f = 0; f < pPart->iFrame; f++ )
+        for ( i = 0; i < pCex->nPis; i++ )
+            if ( Abc_InfoHasBit(pPart->pData, pPart->nRegs + pCex->nPis * f + i) )
+                Abc_InfoSetBit( pNew->pData, iBit++ );
+    for ( f = iFrEnd; f <= pCex->iFrame; f++ )
+        for ( i = 0; i < pCex->nPis; i++ )
+            if ( Abc_InfoHasBit(pPart->pData, pPart->nRegs + pCex->nPis * f + i) )
+                Abc_InfoSetBit( pNew->pData, iBit++ );
+    assert( iBit == pNew->nBits );
+    return pNew;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Prints out the counter-example.]
 
   Description []

@@ -1216,6 +1216,59 @@ Gia_Man_t * Gia_ManDupOntop( Gia_Man_t * p, Gia_Man_t * p2 )
 
 /**Function*************************************************************
 
+  Synopsis    [Duplicates transition relation from p1 and property from p2.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManDupWithNewPo( Gia_Man_t * p1, Gia_Man_t * p2 )
+{
+    Gia_Man_t * pTemp, * pNew;
+    Gia_Obj_t * pObj;
+    int i;
+    // there is no flops in p2
+    assert( Gia_ManRegNum(p2) == 0 );
+    // there is only one PO in p2
+    assert( Gia_ManPoNum(p2) == 1 );
+    // flop count of p1 is equal to input count of p2
+    assert( Gia_ManRegNum(p1) == Gia_ManPiNum(p2) );
+
+    // start new AIG
+    pNew = Gia_ManStart( Gia_ManObjNum(p1)+Gia_ManObjNum(p2) );
+    pNew->pName = Abc_UtilStrsav( p1->pName );
+    pNew->pSpec = Abc_UtilStrsav( p1->pSpec );
+    Gia_ManHashAlloc( pNew );
+    // dup first AIG
+    Gia_ManConst0(p1)->Value = 0;
+    Gia_ManForEachCi( p1, pObj, i )
+        pObj->Value = Gia_ManAppendCi(pNew);
+    Gia_ManForEachAnd( p1, pObj, i )
+        pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    // dup second AIG
+    Gia_ManConst0(p2)->Value = 0;
+    Gia_ManForEachPi( p2, pObj, i )
+        pObj->Value = Gia_ManRo(p1, i)->Value;
+    Gia_ManForEachAnd( p2, pObj, i )
+        pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    // add property output
+    pObj = Gia_ManPo( p2, 0 );
+    Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    // add flop inputs
+    Gia_ManForEachRi( p1, pObj, i )
+        Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    Gia_ManHashStop( pNew );
+//    Gia_ManPrintStats( pGiaNew, 0 );
+    pNew = Gia_ManCleanup( pTemp = pNew );
+    Gia_ManStop( pTemp );
+    return pNew;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Print representatives.]
 
   Description []
