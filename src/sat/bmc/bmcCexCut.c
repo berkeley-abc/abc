@@ -43,7 +43,7 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Bmc_GiaTargetStates( Gia_Man_t * p, Abc_Cex_t * pCex, int iFrBeg, int iFrEnd, int fVerbose )
+Gia_Man_t * Bmc_GiaTargetStates( Gia_Man_t * p, Abc_Cex_t * pCex, int iFrBeg, int iFrEnd, int fCombOnly, int fVerbose )
 {
     Gia_Man_t * pNew, * pTemp;
     Gia_Obj_t * pObj, * pObjRo, * pObjRi;
@@ -141,13 +141,16 @@ Gia_Man_t * Bmc_GiaTargetStates( Gia_Man_t * p, Abc_Cex_t * pCex, int iFrBeg, in
     pNew = Gia_ManCleanup( pTemp = pNew );
     Gia_ManStop( pTemp );
 
-    // create new GIA
-    pNew = Gia_ManDupWithNewPo( p, pTemp = pNew ); 
-    Gia_ManStop( pTemp );
+    if ( !fCombOnly )
+    {
+        // create new GIA
+        pNew = Gia_ManDupWithNewPo( p, pTemp = pNew ); 
+        Gia_ManStop( pTemp );
 
-    // create new initial state
-    pNew = Gia_ManDupFlip( pTemp = pNew, Vec_BitArray(vInitNew) );
-    Gia_ManStop( pTemp );
+        // create new initial state
+        pNew = Gia_ManDupFlip( pTemp = pNew, Vec_BitArray(vInitNew) );
+        Gia_ManStop( pTemp );
+    }
 
     Vec_BitFree( vInitNew );
     return pNew;
@@ -164,18 +167,18 @@ Gia_Man_t * Bmc_GiaTargetStates( Gia_Man_t * p, Abc_Cex_t * pCex, int iFrBeg, in
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Bmc_AigTargetStates( Aig_Man_t * p, Abc_Cex_t * pCex, int iFrBeg, int iFrEnd, int fVerbose )
+Aig_Man_t * Bmc_AigTargetStates( Aig_Man_t * p, Abc_Cex_t * pCex, int iFrBeg, int iFrEnd, int fCombOnly, int fVerbose )
 {
     Aig_Man_t * pAig;
     Gia_Man_t * pGia, * pRes;
     pGia = Gia_ManFromAigSimple( p );
     if ( !Gia_ManVerifyCex( pGia, pCex, 0 ) )
     {
-        Abc_Print( 1, "Current CEX does not fail AIG \"%s\".\n", p->pName );
+        Abc_Print( 1, "Current CEX does not fail AIG \"%s\".\n", p->pName ); 
         Gia_ManStop( pGia );
         return NULL;
     }
-    pRes = Bmc_GiaTargetStates( pGia, pCex, iFrBeg, iFrEnd, fVerbose );
+    pRes = Bmc_GiaTargetStates( pGia, pCex, iFrBeg, iFrEnd, fCombOnly, fVerbose );
     pAig = Gia_ManToAigSimple( pRes );
     Gia_ManStop( pGia );
     Gia_ManStop( pRes );

@@ -22590,11 +22590,12 @@ usage:
 int Abc_CommandCexCut( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     int c;
-    int iFrStart = 0;
-    int iFrStop  = ABC_INFINITY;
-    int fVerbose = 0;
+    int iFrStart  = 0;
+    int iFrStop   = ABC_INFINITY;
+    int fCombOnly = 0;
+    int fVerbose  = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FGvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FGcvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -22619,6 +22620,9 @@ int Abc_CommandCexCut( Abc_Frame_t * pAbc, int argc, char ** argv )
             globalUtilOptind++;
             if ( iFrStop < 0 )
                 goto usage;
+            break;
+        case 'c':
+            fCombOnly ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -22654,7 +22658,7 @@ int Abc_CommandCexCut( Abc_Frame_t * pAbc, int argc, char ** argv )
         extern Abc_Ntk_t * Abc_NtkFromAigPhase( Aig_Man_t * pMan );
         Abc_Ntk_t * pNtkNew;
         Aig_Man_t * pAig = Abc_NtkToDar( pAbc->pNtkCur, 0, 1 );
-        Aig_Man_t * pAigNew = Bmc_AigTargetStates( pAig, pAbc->pCex, iFrStart, iFrStop, fVerbose );
+        Aig_Man_t * pAigNew = Bmc_AigTargetStates( pAig, pAbc->pCex, iFrStart, iFrStop, fCombOnly, fVerbose );
         Aig_ManStop( pAig );
         if ( pAigNew == NULL )
         {
@@ -22670,10 +22674,11 @@ int Abc_CommandCexCut( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: cexcut [-FG num] [-vh]\n" );
+    Abc_Print( -2, "usage: cexcut [-FG num] [-cvh]\n" );
     Abc_Print( -2, "\t         creates logic for bad states using the current CEX\n" );
     Abc_Print( -2, "\t-F num : 0-based number of the starting frame [default = %d]\n", iFrStart );
     Abc_Print( -2, "\t-G num : 0-based number of the ending frame [default = %d]\n",   iFrStop );
+    Abc_Print( -2, "\t-c     : toggle outputting combinational unate circuit [default = %s]\n",  fCombOnly? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n",  fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
@@ -28810,11 +28815,12 @@ int Abc_CommandAbc9CexCut( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Gia_Man_t * pGiaNew;
     int c;
-    int iFrStart = 0;
-    int iFrStop  = ABC_INFINITY;
-    int fVerbose = 0;
+    int iFrStart  = 0;
+    int iFrStop   = ABC_INFINITY;
+    int fCombOnly = 0;
+    int fVerbose  = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FGvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FGcvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -28839,6 +28845,9 @@ int Abc_CommandAbc9CexCut( Abc_Frame_t * pAbc, int argc, char ** argv )
             globalUtilOptind++;
             if ( iFrStop < 0 )
                 goto usage;
+            break;
+        case 'c':
+            fCombOnly ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -28869,7 +28878,7 @@ int Abc_CommandAbc9CexCut( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( iFrStop == ABC_INFINITY )
         iFrStop = pAbc->pCex->iFrame;
 
-    pGiaNew = Bmc_GiaTargetStates( pAbc->pGia, pAbc->pCex, iFrStart, iFrStop, fVerbose );
+    pGiaNew = Bmc_GiaTargetStates( pAbc->pGia, pAbc->pCex, iFrStart, iFrStop, fCombOnly, fVerbose );
     if ( pGiaNew == NULL )
     {
         Abc_Print( 1, "Command has failed.\n");
@@ -28879,10 +28888,11 @@ int Abc_CommandAbc9CexCut( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &cexcut [-FG num] [-vh]\n" );
+    Abc_Print( -2, "usage: &cexcut [-FG num] [-cvh]\n" );
     Abc_Print( -2, "\t         creates logic for bad states using the current CEX\n" );
     Abc_Print( -2, "\t-F num : 0-based number of the starting frame [default = %d]\n", iFrStart );
     Abc_Print( -2, "\t-G num : 0-based number of the ending frame [default = %d]\n",   iFrStop );
+    Abc_Print( -2, "\t-c     : toggle producing combinational unate circuit [default = %s]\n",  fCombOnly? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n",  fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
