@@ -1233,7 +1233,7 @@ Gia_Man_t * Gia_ManDupWithNewPo( Gia_Man_t * p1, Gia_Man_t * p2 )
     // there is no flops in p2
     assert( Gia_ManRegNum(p2) == 0 );
     // there is only one PO in p2
-    assert( Gia_ManPoNum(p2) == 1 );
+//    assert( Gia_ManPoNum(p2) == 1 );
     // input count of p2 is equal to flop count of p1 
     assert( Gia_ManPiNum(p2) == Gia_ManRegNum(p1) );
 
@@ -1255,8 +1255,8 @@ Gia_Man_t * Gia_ManDupWithNewPo( Gia_Man_t * p1, Gia_Man_t * p2 )
     Gia_ManForEachAnd( p2, pObj, i )
         pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
     // add property output
-    pObj = Gia_ManPo( p2, 0 );
-    Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    Gia_ManForEachPo( p2, pObj, i )
+        Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
     // add flop inputs
     Gia_ManForEachRi( p1, pObj, i )
         Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );

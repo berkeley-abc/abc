@@ -22566,6 +22566,9 @@ int Abc_CommandCexLoad( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     ABC_FREE( pAbc->pCex );
     pAbc->pCex = Abc_CexDup( pAbc->pCex2, -1 );
+    // update status
+    pAbc->nFrames = pAbc->pCex2->iFrame;
+    pAbc->Status = 0;
     return 0;
 
 usage:
@@ -22590,13 +22593,14 @@ usage:
 int Abc_CommandCexCut( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     int c;
-    int iFrStart  = 0;
-    int iFrStop   = ABC_INFINITY;
-    int fCombOnly = 0;
-    int fUseOne   = 0;
-    int fVerbose  = 0;
+    int iFrStart   = 0;
+    int iFrStop    = ABC_INFINITY;
+    int fCombOnly  = 0;
+    int fUseOne    = 0;
+    int fAllFrames = 0;
+    int fVerbose   = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FGcnvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FGcnmvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -22627,6 +22631,9 @@ int Abc_CommandCexCut( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'n':
             fUseOne ^= 1;
+            break;
+        case 'm':
+            fAllFrames ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -22662,7 +22669,7 @@ int Abc_CommandCexCut( Abc_Frame_t * pAbc, int argc, char ** argv )
         extern Abc_Ntk_t * Abc_NtkFromAigPhase( Aig_Man_t * pMan );
         Abc_Ntk_t * pNtkNew;
         Aig_Man_t * pAig = Abc_NtkToDar( pAbc->pNtkCur, 0, 1 );
-        Aig_Man_t * pAigNew = Bmc_AigTargetStates( pAig, pAbc->pCex, iFrStart, iFrStop, fCombOnly, fUseOne, fVerbose );
+        Aig_Man_t * pAigNew = Bmc_AigTargetStates( pAig, pAbc->pCex, iFrStart, iFrStop, fCombOnly, fUseOne, fAllFrames, fVerbose );
         Aig_ManStop( pAig );
         if ( pAigNew == NULL )
         {
@@ -22687,12 +22694,13 @@ int Abc_CommandCexCut( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: cexcut [-FG num] [-cvh]\n" );
+    Abc_Print( -2, "usage: cexcut [-FG num] [-cnmvh]\n" );
     Abc_Print( -2, "\t         creates logic for bad states using the current CEX\n" );
     Abc_Print( -2, "\t-F num : 0-based number of the starting frame [default = %d]\n", iFrStart );
     Abc_Print( -2, "\t-G num : 0-based number of the ending frame [default = %d]\n",   iFrStop );
     Abc_Print( -2, "\t-c     : toggle outputting unate combinational circuit [default = %s]\n",  fCombOnly? "yes": "no" );
     Abc_Print( -2, "\t-n     : toggle generating only one bad state [default = %s]\n", fUseOne? "yes": "no" );
+    Abc_Print( -2, "\t-m     : toggle generating bad states for all frames after G [default = %s]\n", fAllFrames? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n",  fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
@@ -22764,7 +22772,7 @@ int Abc_CommandCexMerge( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( 1, "There is no saved cex.\n");
         return 0;
     }
-    if ( iFrStop - iFrStart < pAbc->pCex->iFrame )
+    if ( iFrStop - iFrStart + pAbc->pCex->iPo < pAbc->pCex->iFrame )
     {
         Abc_Print( 1, "Current CEX does not allow to shorten the saved CEX.\n");
         return 0;

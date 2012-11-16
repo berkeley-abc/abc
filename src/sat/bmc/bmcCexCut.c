@@ -225,7 +225,7 @@ Gia_Man_t * Bmc_GiaGenerateGiaOne( Gia_Man_t * p, Abc_Cex_t * pCex, Vec_Bit_t **
 
 /**Function*************************************************************
 
-  Synopsis    []
+  Synopsis    [Generates all frames from G to the last one.]
 
   Description []
                
@@ -234,7 +234,135 @@ Gia_Man_t * Bmc_GiaGenerateGiaOne( Gia_Man_t * p, Abc_Cex_t * pCex, Vec_Bit_t **
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Bmc_GiaGenerateGiaAll( Gia_Man_t * p, Abc_Cex_t * pCex, Vec_Bit_t ** pvInits, int iFrBeg, int iFrEnd )
+Gia_Man_t * Bmc_GiaGenerateGiaAllFrames( Gia_Man_t * p, Abc_Cex_t * pCex, Vec_Bit_t ** pvInits, int iFrBeg, int iFrEnd )
+{
+    Vec_Bit_t * vInitEnd;
+    Gia_Man_t * pNew, * pTemp;
+    Gia_Obj_t * pObj, * pObjRo, * pObjRi;
+    int f, i, k, iBitOld, iBit = 0, fCompl0, fCompl1;
+
+    // skip trough the first iFrEnd frames
+    Gia_ManCleanMark0(p);
+    Gia_ManForEachRo( p, pObj, k )
+        pObj->fMark0 = Abc_InfoHasBit(pCex->pData, iBit++);
+    *pvInits = Vec_BitStart( Gia_ManRegNum(p) );
+    for ( i = 0; i < iFrEnd; i++ )
+    {
+        // remember values in frame iFrBeg
+        if ( i == iFrBeg )
+            Gia_ManForEachRo( p, pObjRo, k )
+                if ( pObjRo->fMark0 )
+                    Vec_BitWriteEntry( *pvInits, k, 1 );
+        // simulate other values
+        Gia_ManForEachPi( p, pObj, k )
+            pObj->fMark0 = Abc_InfoHasBit(pCex->pData, iBit++);
+        Gia_ManForEachAnd( p, pObj, k )
+            pObj->fMark0 = (Gia_ObjFanin0(pObj)->fMark0 ^ Gia_ObjFaninC0(pObj)) & 
+                           (Gia_ObjFanin1(pObj)->fMark0 ^ Gia_ObjFaninC1(pObj));
+        Gia_ManForEachCo( p, pObj, k )
+            pObj->fMark0 = Gia_ObjFanin0(pObj)->fMark0 ^ Gia_ObjFaninC0(pObj);
+        Gia_ManForEachRiRo( p, pObjRi, pObjRo, k )
+            pObjRo->fMark0 = pObjRi->fMark0;
+    }
+    assert( i == iFrEnd );
+    vInitEnd = Vec_BitStart( Gia_ManRegNum(p) );
+    Gia_ManForEachRo( p, pObjRo, k )
+        if ( pObjRo->fMark0 )
+            Vec_BitWriteEntry( vInitEnd, k, 1 );
+
+    // create new AIG manager
+    pNew = Gia_ManStart( 10000 );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    Gia_ManForEachRo( p, pObjRo, k )
+        Gia_ManAppendCi(pNew);
+    Gia_ManHashStart( pNew );
+
+    Gia_ManConst0(p)->Value = 1;
+    Gia_ManForEachPi( p, pObj, k )
+        pObj->Value = 1;
+
+    iBitOld = iBit;
+    for ( f = iFrEnd; f <= pCex->iFrame; f++ )
+    {
+        // set up correct init state
+        Gia_ManForEachRo( p, pObjRo, k )
+            pObjRo->fMark0 = Vec_BitEntry( vInitEnd, k );
+        // simulate it for a few frames
+        iBit = iBitOld;
+        for ( i = iFrEnd; i < f; i++ )
+        {
+            Gia_ManForEachPi( p, pObj, k )
+                pObj->fMark0 = Abc_InfoHasBit(pCex->pData, iBit++);
+            Gia_ManForEachAnd( p, pObj, k )
+                pObj->fMark0 = (Gia_ObjFanin0(pObj)->fMark0 ^ Gia_ObjFaninC0(pObj)) & 
+                               (Gia_ObjFanin1(pObj)->fMark0 ^ Gia_ObjFaninC1(pObj));
+            Gia_ManForEachCo( p, pObj, k )
+                pObj->fMark0 = Gia_ObjFanin0(pObj)->fMark0 ^ Gia_ObjFaninC0(pObj);
+            Gia_ManForEachRiRo( p, pObjRi, pObjRo, k )
+                pObjRo->fMark0 = pObjRi->fMark0;
+        }
+        // start creating values
+        Gia_ManForEachRo( p, pObjRo, k )
+            pObjRo->Value = Abc_LitNotCond( Gia_Obj2Lit(pNew, Gia_ManPi(pNew, k)), !pObjRo->fMark0 );
+        for ( i = f; i <= pCex->iFrame; i++ )
+        {
+            Gia_ManForEachPi( p, pObj, k )
+                pObj->fMark0 = Abc_InfoHasBit(pCex->pData, iBit++);
+            Gia_ManForEachAnd( p, pObj, k )
+            {
+                fCompl0 = Gia_ObjFanin0(pObj)->fMark0 ^ Gia_ObjFaninC0(pObj);
+                fCompl1 = Gia_ObjFanin1(pObj)->fMark0 ^ Gia_ObjFaninC1(pObj);
+                pObj->fMark0 = fCompl0 & fCompl1;
+                if ( pObj->fMark0 )
+                    pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0(pObj)->Value, Gia_ObjFanin1(pObj)->Value );
+                else if ( !fCompl0 && !fCompl1 )
+                    pObj->Value = Gia_ManHashOr( pNew, Gia_ObjFanin0(pObj)->Value, Gia_ObjFanin1(pObj)->Value );
+                else if ( !fCompl0 )
+                    pObj->Value = Gia_ObjFanin0(pObj)->Value;
+                else if ( !fCompl1 )
+                    pObj->Value = Gia_ObjFanin1(pObj)->Value;
+                else assert( 0 );
+                assert( pObj->Value > 0 );
+            }
+            Gia_ManForEachCo( p, pObj, k )
+            {
+                pObj->fMark0 = Gia_ObjFanin0(pObj)->fMark0 ^ Gia_ObjFaninC0(pObj);
+                pObj->Value = Gia_ObjFanin0(pObj)->Value;
+                assert( pObj->Value > 0 );
+            } 
+            if ( i == pCex->iFrame )
+                break;
+            Gia_ManForEachRiRo( p, pObjRi, pObjRo, k )
+            {
+                pObjRo->fMark0 = pObjRi->fMark0;
+                pObjRo->Value = pObjRi->Value;
+            }
+        }
+        assert( iBit == pCex->nBits );
+        // create PO
+        Gia_ManAppendCo( pNew, Gia_ManPo(p, pCex->iPo)->Value );
+    }
+    Gia_ManHashStop( pNew );
+    Vec_BitFree( vInitEnd );
+
+    // cleanup
+    pNew = Gia_ManCleanup( pTemp = pNew );
+    Gia_ManStop( pTemp );
+    return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Generates one frame.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Bmc_GiaGenerateGiaAllOne( Gia_Man_t * p, Abc_Cex_t * pCex, Vec_Bit_t ** pvInits, int iFrBeg, int iFrEnd )
 {
     Gia_Man_t * pNew, * pTemp;
     Gia_Obj_t * pObj, * pObjRo, * pObjRi;
@@ -319,7 +447,6 @@ Gia_Man_t * Bmc_GiaGenerateGiaAll( Gia_Man_t * p, Abc_Cex_t * pCex, Vec_Bit_t **
     return pNew;
 }
 
-
 /**Function*************************************************************
 
   Synopsis    [Generate GIA for target bad states.]
@@ -331,7 +458,7 @@ Gia_Man_t * Bmc_GiaGenerateGiaAll( Gia_Man_t * p, Abc_Cex_t * pCex, Vec_Bit_t **
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Bmc_GiaTargetStates( Gia_Man_t * p, Abc_Cex_t * pCex, int iFrBeg, int iFrEnd, int fCombOnly, int fUseOne, int fVerbose )
+Gia_Man_t * Bmc_GiaTargetStates( Gia_Man_t * p, Abc_Cex_t * pCex, int iFrBeg, int iFrEnd, int fCombOnly, int fUseOne, int fAllFrames, int fVerbose )
 {
     Gia_Man_t * pNew, * pTemp;
     Vec_Bit_t * vInitNew;
@@ -352,8 +479,10 @@ Gia_Man_t * Bmc_GiaTargetStates( Gia_Man_t * p, Abc_Cex_t * pCex, int iFrBeg, in
 
     if ( fUseOne )
         pNew = Bmc_GiaGenerateGiaOne( p, pCex, &vInitNew, iFrBeg, iFrEnd );
-    else
-        pNew = Bmc_GiaGenerateGiaAll( p, pCex, &vInitNew, iFrBeg, iFrEnd );
+    else if ( fAllFrames )
+        pNew = Bmc_GiaGenerateGiaAllFrames( p, pCex, &vInitNew, iFrBeg, iFrEnd );
+    else 
+        pNew = Bmc_GiaGenerateGiaAllOne( p, pCex, &vInitNew, iFrBeg, iFrEnd );
 
     if ( !fCombOnly )
     {
@@ -381,7 +510,7 @@ Gia_Man_t * Bmc_GiaTargetStates( Gia_Man_t * p, Abc_Cex_t * pCex, int iFrBeg, in
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Bmc_AigTargetStates( Aig_Man_t * p, Abc_Cex_t * pCex, int iFrBeg, int iFrEnd, int fCombOnly, int fUseOne, int fVerbose )
+Aig_Man_t * Bmc_AigTargetStates( Aig_Man_t * p, Abc_Cex_t * pCex, int iFrBeg, int iFrEnd, int fCombOnly, int fUseOne, int fAllFrames, int fVerbose )
 {
     Aig_Man_t * pAig;
     Gia_Man_t * pGia, * pRes;
@@ -392,7 +521,7 @@ Aig_Man_t * Bmc_AigTargetStates( Aig_Man_t * p, Abc_Cex_t * pCex, int iFrBeg, in
         Gia_ManStop( pGia );
         return NULL;
     }
-    pRes = Bmc_GiaTargetStates( pGia, pCex, iFrBeg, iFrEnd, fCombOnly, fUseOne, fVerbose );
+    pRes = Bmc_GiaTargetStates( pGia, pCex, iFrBeg, iFrEnd, fCombOnly, fUseOne, fAllFrames, fVerbose );
     Gia_ManStop( pGia );
     pAig = Gia_ManToAigSimple( pRes );
     Gia_ManStop( pRes );

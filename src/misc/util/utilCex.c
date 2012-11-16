@@ -202,9 +202,9 @@ Abc_Cex_t * Abc_CexMerge( Abc_Cex_t * pCex, Abc_Cex_t * pPart, int iFrBeg, int i
     assert( iFrBeg <= iFrEnd );
 
     assert( pCex->nPis == pPart->nPis );
-    assert( iFrEnd - iFrBeg >= pPart->iFrame );
+    assert( iFrEnd - iFrBeg + pPart->iPo >= pPart->iFrame );
 
-    nFramesGain = (iFrEnd - iFrBeg) - pPart->iFrame;
+    nFramesGain = iFrEnd - iFrBeg + pPart->iPo - pPart->iFrame;
     pNew = Abc_CexAlloc( pCex->nRegs, pCex->nPis, pCex->iFrame + 1 - nFramesGain );
     pNew->iPo    = pCex->iPo;
     pNew->iFrame = pCex->iFrame - nFramesGain;
