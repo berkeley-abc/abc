@@ -93,18 +93,20 @@ static inline Dss_Obj_t *  Dss_Lit2Obj( Dss_Man_t * p, int iLit )               
 static inline Dss_Obj_t *  Dss_ObjFanin( Dss_Man_t * p, Dss_Obj_t * pObj, int i )  { assert(i < (int)pObj->nFans); return Dss_ManObj(p, Abc_Lit2Var(pObj->pFans[i]));   }
 static inline Dss_Obj_t *  Dss_ObjChild( Dss_Man_t * p, Dss_Obj_t * pObj, int i )  { assert(i < (int)pObj->nFans); return Dss_Lit2Obj(p, pObj->pFans[i]);               }
 
-#define Dss_NtkForEachNode( p, pObj, i )                        \
+#define Dss_NtkForEachNode( p, pObj, i )                  \
     Vec_PtrForEachEntryStart( Dss_Obj_t *, p->vObjs, pObj, i, p->nVars + 1 )
-#define Dss_ObjForEachFaninNtk( p, pObj, pFanin, i )            \
+#define Dss_ObjForEachFaninNtk( p, pObj, pFanin, i )      \
     for ( i = 0; (i < Dss_ObjFaninNum(pObj)) && ((pFanin) = Dss_ObjFaninNtk(p, pObj, i)); i++ )
-#define Dss_ObjForEachChildNtk( p, pObj, pFanin, i )            \
+#define Dss_ObjForEachChildNtk( p, pObj, pFanin, i )      \
     for ( i = 0; (i < Dss_ObjFaninNum(pObj)) && ((pFanin) = Dss_ObjChildNtk(p, pObj, i)); i++ )
 
-#define Dss_ManForEachObjVec( vLits, p, pObj, i )               \
+#define Dss_ManForEachObj( p, pObj, i )                   \
+    Vec_PtrForEachEntry( Dss_Obj_t *, p->vObjs, pObj, i )
+#define Dss_ManForEachObjVec( vLits, p, pObj, i )         \
     for ( i = 0; (i < Vec_IntSize(vLits)) && ((pObj) = Dss_Lit2Obj(p, Vec_IntEntry(vLits,i))); i++ )
-#define Dss_ObjForEachFanin( p, pObj, pFanin, i )               \
+#define Dss_ObjForEachFanin( p, pObj, pFanin, i )         \
     for ( i = 0; (i < Dss_ObjFaninNum(pObj)) && ((pFanin) = Dss_ObjFanin(p, pObj, i)); i++ )
-#define Dss_ObjForEachChild( p, pObj, pFanin, i )               \
+#define Dss_ObjForEachChild( p, pObj, pFanin, i )         \
     for ( i = 0; (i < Dss_ObjFaninNum(pObj)) && ((pFanin) = Dss_ObjChild(p, pObj, i)); i++ )
 
 
@@ -490,14 +492,22 @@ Dss_Obj_t * Dss_ObjCreate( Dss_Man_t * p, int Type, Vec_Int_t * vFaninLits )
 {
     Dss_Obj_t * pObj, * pFanin, * pPrev = NULL;
     int i, Entry;
+    // check structural canonicity
+    assert( Type != DAU_DSD_MUX || Vec_IntSize(vFaninLits) == 3 );
+    assert( Type != DAU_DSD_MUX || !Abc_LitIsCompl(Vec_IntEntry(vFaninLits, 0)) );
+    assert( Type != DAU_DSD_MUX || !Abc_LitIsCompl(Vec_IntEntry(vFaninLits, 1)) || !Abc_LitIsCompl(Vec_IntEntry(vFaninLits, 2)) );
     // check that leaves are in good order
+    if ( Type == DAU_DSD_AND || Type == DAU_DSD_XOR )
     Dss_ManForEachObjVec( vFaninLits, p, pFanin, i )
     {
+        assert( Type != DAU_DSD_AND || Abc_LitIsCompl(Vec_IntEntry(vFaninLits, i)) || Dss_ObjType(pFanin) != DAU_DSD_AND );
+        assert( Type != DAU_DSD_XOR || Dss_ObjType(pFanin) != DAU_DSD_XOR );
         assert( pPrev == NULL || Dss_ObjCompare(p, pPrev, pFanin) <= 0 );
         pPrev = pFanin;
     }
     // create new node
     pObj = Dss_ObjAlloc( p, Type, Vec_IntSize(vFaninLits), 0 );
+    assert( pObj->nSupp == 0 );
     Vec_IntForEachEntry( vFaninLits, Entry, i )
     {
         pObj->pFans[i] = Entry;
@@ -591,6 +601,46 @@ void Dss_ManFree( Dss_Man_t * p )
     ABC_FREE( p->pBins );
     ABC_FREE( p );
 }
+void Dss_ManPrint_rec( Dss_Man_t * p, Dss_Obj_t * pObj )
+{
+    char OpenType[7]  = {0, 0, 0, '(', '[', '<', '{'};
+    char CloseType[7] = {0, 0, 0, ')', ']', '>', '}'};
+    Dss_Obj_t * pFanin;
+    int i;
+    assert( !Dss_IsComplement(pObj) );
+    if ( pObj->Type == DAU_DSD_CONST0 )
+        { printf( "0" ); return; }
+    if ( pObj->Type == DAU_DSD_VAR )
+        { printf( "%c", 'a' + pObj->iVar ); return; }
+    printf( "%c", OpenType[pObj->Type] );
+    Dss_ObjForEachFanin( p, pObj, pFanin, i )
+    {
+        printf( "%s", Dss_ObjFaninC(pObj, i) ? "!":"" );
+        Dss_ManPrint_rec( p, pFanin );
+    }
+    printf( "%c", CloseType[pObj->Type] );
+}
+void Dss_ManPrintOne( Dss_Man_t * p, Dss_Obj_t * pObj )
+{
+    printf( "%6d : ", Dss_ObjId(pObj) );
+    printf( "%2d ", pObj->nSupp );
+    Dss_ManPrint_rec( p, pObj );
+    printf( "\n" );
+}
+void Dss_ManPrintAll( Dss_Man_t * p )
+{
+    Dss_Obj_t * pObj;
+    int i, nSuppMax = 0;
+    printf( "DSD manager contains %d objects:\n", Vec_PtrSize(p->vObjs) );
+    Dss_ManForEachObj( p, pObj, i )
+    {
+        if ( (int)pObj->nSupp < nSuppMax )
+            continue;
+        Dss_ManPrintOne( p, pObj );
+        nSuppMax = Abc_MaxInt( nSuppMax, pObj->nSupp );
+    }
+    printf( "\n" );
+}
 
 
 /**Function*************************************************************
@@ -604,13 +654,15 @@ void Dss_ManFree( Dss_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Dss_Obj_t * Dss_ManShiftTree( Dss_Man_t * p, Dss_Obj_t * pObj, int Shift )
+Dss_Obj_t * Dss_ManShiftTree_rec( Dss_Man_t * p, Dss_Obj_t * pObj, int Shift )
 {
     Vec_Int_t * vFaninLits;
-    Dss_Obj_t * pFanin, * pObjNew;
-    int i;
+    Dss_Obj_t * pMirror, * pFanin, * pObjNew;
+    int i, nSupp = Shift;
     assert( !Dss_IsComplement(pObj) );
     assert( pObj->Mirror == pObj->Id );
+    if ( Shift == 0 )
+        return pObj;
     if ( pObj->Type == DAU_DSD_VAR )
     {
         assert( (int)pObj->iVar + Shift < p->nVars );
@@ -620,14 +672,31 @@ Dss_Obj_t * Dss_ManShiftTree( Dss_Man_t * p, Dss_Obj_t * pObj, int Shift )
     vFaninLits = Vec_IntAlloc( 10 );
     Dss_ObjForEachFanin( p, pObj, pFanin, i )
     {
-        pFanin = Dss_ManShiftTree( p, pFanin, Shift );
+        pMirror = Dss_ManObj( p, pFanin->Mirror );
+        pFanin = Dss_ManShiftTree_rec( p, pMirror, nSupp );
         Vec_IntPush( vFaninLits, Abc_Var2Lit(pFanin->Id, Dss_ObjFaninC(pObj, i)) );
+        assert( pFanin->nSupp > 0 );
+        nSupp += pFanin->nSupp;
     }
     // create new graph
     pObjNew = Dss_ObjFindOrAdd( p, pObj->Type, vFaninLits );
     pObjNew->Mirror = pObj->Id;
     Vec_IntFree( vFaninLits );
     return pObjNew;
+}
+void Dss_ManShiftTree( Dss_Man_t * p, Dss_Obj_t ** pChildren, int nChildren, Vec_Int_t * vLeaves )
+{
+    int i, nSupp = 0;
+    Vec_IntClear( vLeaves );
+    for ( i = 0; i < nChildren; i++ )
+    {
+        Dss_Obj_t * pMirror = Dss_ManObj( p, Dss_Regular(pChildren[i])->Mirror );
+        Dss_Obj_t * pFanin = Dss_ManShiftTree_rec( p, pMirror, nSupp );
+        assert( !Dss_IsComplement(pFanin) );
+        Vec_IntPush( vLeaves, Abc_Var2Lit(pFanin->Id, Dss_IsComplement(pChildren[i])) );
+        assert( pFanin->nSupp > 0 );
+        nSupp += pFanin->nSupp;
+    }
 }
 
 /**Function*************************************************************
@@ -644,7 +713,7 @@ Dss_Obj_t * Dss_ManShiftTree( Dss_Man_t * p, Dss_Obj_t * pObj, int Shift )
 int Dss_ManOperation( Dss_Man_t * p, int Type, int * pLits, int nLits, int * pPerm )
 {
     Dss_Obj_t * pChildren[DAU_MAX_VAR];
-    Dss_Obj_t * pObj, * pFanin, * pChild, * pMirror;
+    Dss_Obj_t * pObj, * pChild;
     int i, k, nChildren = 0, fCompl = 0, nSupp = 0;
 
     if ( Type == DAU_DSD_AND )
@@ -701,21 +770,51 @@ int Dss_ManOperation( Dss_Man_t * p, int Type, int * pLits, int nLits, int * pPe
     else assert( 0 );
 
     // shift subgraphs
-    nSupp = 0;
-    Vec_IntClear( p->vLeaves );
-    for ( i = 0; i < nChildren; i++ )
-    {
-        pMirror = Dss_ManObj( p, Dss_Regular(pChildren[i])->Mirror );
-        pFanin = Dss_ManShiftTree( p, pMirror, nSupp );
-        assert( !Dss_IsComplement(pFanin) );
-        assert( pFanin->nSupp > 0 );
-        nSupp += pFanin->nSupp;
-        Vec_IntPush( p->vLeaves, Abc_Var2Lit(pFanin->Id, Dss_IsComplement(pChildren[i])) );
-    }
+    Dss_ManShiftTree( p, pChildren, nChildren, p->vLeaves );
     // create new graph
     pObj = Dss_ObjFindOrAdd( p, Type, p->vLeaves );
     pObj->Mirror = pObj->Id;
     return Abc_Var2Lit( pObj->Id, fCompl );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Dss_ObjCheckTransparent( Dss_Man_t * p, Dss_Obj_t * pObj )
+{
+    Dss_Obj_t * pFanin;
+    int i;
+    if ( pObj->Type == DAU_DSD_VAR )
+        return 1;
+    if ( pObj->Type == DAU_DSD_AND )
+        return 0;
+    if ( pObj->Type == DAU_DSD_XOR )
+    {
+        Dss_ObjForEachFanin( p, pObj, pFanin, i )
+            if ( Dss_ObjCheckTransparent( p, pFanin ) )
+                return 1;
+        return 0;
+    }
+    if ( pObj->Type == DAU_DSD_MUX )
+    {
+        pFanin = Dss_ObjFanin( p, pObj, 1 );
+        if ( !Dss_ObjCheckTransparent(p, pFanin) )
+            return 0;
+        pFanin = Dss_ObjFanin( p, pObj, 2 );
+        if ( !Dss_ObjCheckTransparent(p, pFanin) )
+            return 0;
+        return 1;
+    }
+    assert( pObj->Type == DAU_DSD_PRIME );
+    return 0;
 }
 
 /**Function*************************************************************
@@ -756,9 +855,9 @@ void Dau_DsdTest()
 ***********************************************************************/
 void Dau_DsdTest_()
 {
-    int nVars = 8;
+    int nVars = 6;
     Vec_Vec_t * vFuncs = Vec_VecStart( nVars+1 );
-    Vec_Int_t * vOne, * vTwo, * vThree;
+    Vec_Int_t * vOne, * vTwo, * vThree, * vRes;
     Dss_Man_t * p;
     int pEntries[3];
     int e0, e1, e2, iLit;
@@ -774,6 +873,7 @@ void Dau_DsdTest_()
     // enumerate
     for ( s = 2; s <= nVars; s++ )
     {
+        vRes = Vec_VecEntryInt( vFuncs, s );
         for ( i = 1; i < s; i++ )
         for ( k = i; k < s; k++ )
         if ( i + k == s )
@@ -783,44 +883,93 @@ void Dau_DsdTest_()
             Vec_IntForEachEntry( vOne, pEntries[0], e0 )
             Vec_IntForEachEntry( vTwo, pEntries[1], e1 )
             {
-                iLit = Dss_ManOperation( p, DAU_DSD_AND, pEntries, 2, NULL );
-                Vec_VecPushInt( vFuncs, s, iLit );
+                int fAddInv0 = !Dss_ObjCheckTransparent( p, Dss_ManObj(p, Abc_Lit2Var(pEntries[0])) );
+                int fAddInv1 = !Dss_ObjCheckTransparent( p, Dss_ManObj(p, Abc_Lit2Var(pEntries[1])) );
 
-                pEntries[0] = Abc_LitNot( pEntries[0] );
                 iLit = Dss_ManOperation( p, DAU_DSD_AND, pEntries, 2, NULL );
-                Vec_VecPushInt( vFuncs, s, iLit );
+                assert( !Abc_LitIsCompl(iLit) );
+                Vec_IntPush( vRes, iLit );
 
-                pEntries[1] = Abc_LitNot( pEntries[1] );
-                iLit = Dss_ManOperation( p, DAU_DSD_AND, pEntries, 2, NULL );
-                Vec_VecPushInt( vFuncs, s, iLit );
+                if ( fAddInv0 )
+                {
+                    pEntries[0] = Abc_LitNot( pEntries[0] );
+                    iLit = Dss_ManOperation( p, DAU_DSD_AND, pEntries, 2, NULL );
+                    pEntries[0] = Abc_LitNot( pEntries[0] );
+                    assert( !Abc_LitIsCompl(iLit) );
+                    Vec_IntPush( vRes, iLit );
+                }
 
-                pEntries[0] = Abc_LitNot( pEntries[0] );
-                iLit = Dss_ManOperation( p, DAU_DSD_AND, pEntries, 2, NULL );
-                Vec_VecPushInt( vFuncs, s, iLit );
+                if ( fAddInv1 )
+                {
+                    pEntries[1] = Abc_LitNot( pEntries[1] );
+                    iLit = Dss_ManOperation( p, DAU_DSD_AND, pEntries, 2, NULL );
+                    pEntries[1] = Abc_LitNot( pEntries[1] );
+                    assert( !Abc_LitIsCompl(iLit) );
+                    Vec_IntPush( vRes, iLit );
+                }
 
-                pEntries[1] = Abc_LitNot( pEntries[1] );
+                if ( fAddInv0 && fAddInv1 )
+                {
+                    pEntries[0] = Abc_LitNot( pEntries[0] );
+                    pEntries[1] = Abc_LitNot( pEntries[1] );
+                    iLit = Dss_ManOperation( p, DAU_DSD_AND, pEntries, 2, NULL );
+                    pEntries[0] = Abc_LitNot( pEntries[0] );
+                    pEntries[1] = Abc_LitNot( pEntries[1] );
+                    assert( !Abc_LitIsCompl(iLit) );
+                    Vec_IntPush( vRes, iLit );
+                }
+
                 iLit = Dss_ManOperation( p, DAU_DSD_XOR, pEntries, 2, NULL );
-                Vec_VecPushInt( vFuncs, s, iLit );
+                assert( !Abc_LitIsCompl(iLit) );
+                Vec_IntPush( vRes, iLit );
             }
         }
 
         for ( i = 1; i < s; i++ )
-        for ( k = i; k < s; k++ )
-        for ( j = i; j < s; j++ )
+        for ( k = 1; k < s; k++ )
+        for ( j = 1; j < s; j++ )
         if ( i + k + j == s )
         {
-            vOne = Vec_VecEntryInt( vFuncs, i );
-            vTwo = Vec_VecEntryInt( vFuncs, k );
+            vOne   = Vec_VecEntryInt( vFuncs, i );
+            vTwo   = Vec_VecEntryInt( vFuncs, k );
             vThree = Vec_VecEntryInt( vFuncs, j );
-            Vec_IntForEachEntry( vOne, pEntries[0], e0 )
-            Vec_IntForEachEntry( vTwo, pEntries[1], e1 )
-            Vec_IntForEachEntry( vTwo, pEntries[2], e2 )
+            Vec_IntForEachEntry( vOne,   pEntries[0], e0 )
+            Vec_IntForEachEntry( vTwo,   pEntries[1], e1 )
+            Vec_IntForEachEntry( vThree, pEntries[2], e2 )
             {
-                iLit = Dss_ManOperation( p, DAU_DSD_AND, pEntries, 3, NULL );
-                Vec_VecPushInt( vFuncs, s, iLit );
+                int fAddInv0 = !Dss_ObjCheckTransparent( p, Dss_ManObj(p, Abc_Lit2Var(pEntries[0])) );
+                int fAddInv1 = !Dss_ObjCheckTransparent( p, Dss_ManObj(p, Abc_Lit2Var(pEntries[1])) );
+                int fAddInv2 = !Dss_ObjCheckTransparent( p, Dss_ManObj(p, Abc_Lit2Var(pEntries[2])) );
+
+                if ( !fAddInv0 && k > j )
+                    continue;
+
+                iLit = Dss_ManOperation( p, DAU_DSD_MUX, pEntries, 3, NULL );
+                assert( !Abc_LitIsCompl(iLit) );
+                Vec_IntPush( vRes, iLit );
+
+                if ( fAddInv1 )
+                {
+                    pEntries[1] = Abc_LitNot( pEntries[1] );
+                    iLit = Dss_ManOperation( p, DAU_DSD_MUX, pEntries, 3, NULL );
+                    pEntries[1] = Abc_LitNot( pEntries[1] );
+                    assert( !Abc_LitIsCompl(iLit) );
+                    Vec_IntPush( vRes, iLit );
+                }
+
+                if ( fAddInv2 )
+                {
+                    pEntries[2] = Abc_LitNot( pEntries[2] );
+                    iLit = Dss_ManOperation( p, DAU_DSD_MUX, pEntries, 3, NULL );
+                    pEntries[2] = Abc_LitNot( pEntries[2] );
+                    assert( !Abc_LitIsCompl(iLit) );
+                    Vec_IntPush( vRes, iLit );
+                }
             }
         }
+        Vec_IntUniqify( vRes );
     }
+    Dss_ManPrintAll( p );
 
     Dss_ManFree( p );
     Vec_VecFree( vFuncs );
