@@ -14890,6 +14890,13 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
         pPars->nLutSize    =  pPars->nGateSize;
     }
 
+    if ( pPars->fUseDsd )
+    {
+        pPars->fTruth      =  1;
+        pPars->fCutMin     =  1;
+        pPars->fUsePerm    =  1;
+    }
+
     if ( pPars->fUserRecLib )
     {
         if ( Abc_NtkRecIsRunning() + Abc_NtkRecIsRunning2() + Abc_NtkRecIsRunning3() != 1 )
@@ -27459,6 +27466,13 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
         pPars->fUsePerm    =  1;
         pPars->pLutLib     =  NULL;
         pPars->nLutSize    =  pPars->nGateSize;
+    }
+
+    if ( pPars->fUseDsd )
+    {
+        pPars->fTruth      =  1;
+        pPars->fCutMin     =  1;
+        pPars->fUsePerm    =  1;
     }
 
     // complain if truth tables are requested but the cut size is too large

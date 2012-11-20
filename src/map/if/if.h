@@ -35,7 +35,7 @@
 #include "misc/mem/mem.h"
 #include "misc/tim/tim.h"
 #include "misc/util/utilNam.h"
-
+#include "opt/dau/dau.h"
 
 ABC_NAMESPACE_HEADER_START
 
@@ -189,6 +189,7 @@ struct If_Man_t_
     Vec_Int_t *        vSwitching;    // switching activity of each node
     Vec_Int_t **       pDriverCuts;   // temporary driver cuts
     int                pPerm[3][IF_MAX_LUTSIZE]; // permutations
+    unsigned           uSharedMask;   // mask of shared variables
     int                nShared;       // the number of shared variables
     // SOP balancing
     Vec_Int_t *        vCover;        // used to compute ISOP
@@ -218,8 +219,9 @@ struct If_Man_t_
     int                nCutsCount[32];
     int                nCutsCountAll;
     int                nCutsUselessAll;
-    Abc_Nam_t *        pNamDsd;
+//    Abc_Nam_t *        pNamDsd;
     int                iNamVar;
+    Dss_Man_t *        pDsdMan;
 
     // timing manager
     Tim_Man_t *        pManTim;

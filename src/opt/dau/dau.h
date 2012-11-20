@@ -87,6 +87,12 @@ extern int           Dau_DsdCountAnds( char * pDsd );
 extern void          Dau_DsdRemoveBraces( char * pDsd, int * pMatches );
 extern char *        Dau_DsdMerge( char * pDsd0i, int * pPerm0, char * pDsd1i, int * pPerm1, int fCompl0, int fCompl1, int nVars );
 
+/*=== dauMerge.c  ==========================================================*/
+extern Dss_Man_t *   Dss_ManAlloc( int nVars );
+extern void          Dss_ManFree( Dss_Man_t * p );
+extern int           Dss_ManMerge( Dss_Man_t * p, int * iDsd, int * nFans, int ** pFans, unsigned uSharedMask, int nKLutSize, unsigned char * pPerm );
+
+
 ABC_NAMESPACE_HEADER_END
 
 

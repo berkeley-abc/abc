@@ -83,8 +83,10 @@ If_Man_t * If_ManStart( If_Par_t * pPars )
     p->pCutTemp  = (If_Cut_t *)ABC_ALLOC( char, p->nCutBytes );
     if ( pPars->fUseDsd )
     {
-    p->pNamDsd   = Abc_NamStart( 1000, 20 );
-    p->iNamVar   = Abc_NamStrFindOrAdd( p->pNamDsd, "a", NULL );
+//    p->pNamDsd   = Abc_NamStart( 1000, 20 );
+//    p->iNamVar   = Abc_NamStrFindOrAdd( p->pNamDsd, "a", NULL );
+        p->pDsdMan = Dss_ManAlloc( pPars->nLutSize );
+        p->iNamVar = 2;
     }
 
     // create the constant node
@@ -150,8 +152,9 @@ void If_ManStop( If_Man_t * p )
                 Abc_Print( 1, "Useless cuts %2d  = %9d  (out of %9d)  (%6.2f %%)\n", i, p->nCutsUseless[i], p->nCutsCount[i], 100.0*p->nCutsUseless[i]/(p->nCutsCount[i]+1) );
         Abc_Print( 1, "Useless cuts all = %9d  (out of %9d)  (%6.2f %%)\n", p->nCutsUselessAll, p->nCutsCountAll, 100.0*p->nCutsUselessAll/(p->nCutsCountAll+1) );
     }
-    if ( p->pNamDsd )
+    if ( p->pPars->fUseDsd )
     {
+/*
         if ( p->pPars->fVerbose )
             Abc_Print( 1, "Number of unique entries in the DSD table = %d.  Memory = %.1f MB.\n", 
                 Abc_NamObjNumMax(p->pNamDsd), 1.0*Abc_NamMemAlloc(p->pNamDsd)/(1<<20) );
@@ -161,6 +164,8 @@ void If_ManStop( If_Man_t * p )
         Abc_PrintTime( 1, "Time3", s_TimeComp[3] );
 //        Abc_NamPrint( p->pNamDsd );
         Abc_NamStop( p->pNamDsd );
+*/
+        Dss_ManFree( p->pDsdMan );
     }
 //    Abc_PrintTime( 1, "Truth", p->timeTruth );
 //    Abc_Print( 1, "Small support = %d.\n", p->nSmallSupp );
@@ -427,7 +432,11 @@ void If_ManSetupCutTriv( If_Man_t * p, If_Cut_t * pCut, int ObjId )
     pCut->nLeaves    = 1;
     pCut->pLeaves[0] = p->pPars->fLiftLeaves? (ObjId << 8) : ObjId;
     pCut->uSign      = If_ObjCutSign( pCut->pLeaves[0] );
-    pCut->iDsd       = p->iNamVar;
+    if ( p->pPars->fUseDsd )
+    {
+        pCut->iDsd     = p->iNamVar;
+        pCut->pPerm[0] = 0;
+    }
     // set up elementary truth table of the unit cut
     if ( p->pPars->fTruth )
     {

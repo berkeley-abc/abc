@@ -418,11 +418,13 @@ int If_CutMerge( If_Man_t * p, If_Cut_t * pC0, If_Cut_t * pC1, If_Cut_t * pC )
         p->nShared = nLimit;
         pC->nLeaves = nLimit;
         pC->uSign = pC0->uSign | pC1->uSign;
+        p->uSharedMask = Abc_InfoMask( nLimit );
         return 1;
     }
 
     // compare two cuts with different numbers
     i = k = c = s = 0;
+    p->uSharedMask = 0;
     while ( 1 )
     {
         if ( c == nLimit ) return 0;
@@ -440,6 +442,7 @@ int If_CutMerge( If_Man_t * p, If_Cut_t * pC0, If_Cut_t * pC1, If_Cut_t * pC )
         }
         else
         {
+            p->uSharedMask |= (1 << c);
             p->pPerm[0][i] = p->pPerm[1][k] = p->pPerm[2][s++] = c;
             pC->pLeaves[c++] = pC0->pLeaves[i++]; k++;
             if ( i == nSizeC0 ) goto FlushCut1;
