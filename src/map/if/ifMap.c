@@ -277,32 +277,36 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
         }
         if ( p->pPars->fUseDsd )
         {
-            int j, iDsd[2] = { Abc_LitNotCond(pCut0->iDsd, pObj->fCompl0), Abc_LitNotCond(pCut1->iDsd, pObj->fCompl1) };
-            int nFans[2] = { pCut0->nLeaves, pCut1->nLeaves };
-            int Fans[2][DAU_MAX_VAR], * pFans[2] = { Fans[0], Fans[1] };
-/*
-            char * pName = Dau_DsdMerge( 
-                Abc_NamStr(p->pNamDsd, pCut0->iDsd), 
-                If_CutPerm0(pCut, pCut0), 
-                Abc_NamStr(p->pNamDsd, pCut1->iDsd), 
-                If_CutPerm1(pCut, pCut1), 
-                pObj->fCompl0, pObj->fCompl1, pCut->nLimit );
-            pCut->iDsd = Abc_NamStrFindOrAdd( p->pNamDsd, pName, NULL );
-*/
-            // create fanins
-            for ( j = 0; j < (int)pCut0->nLeaves; j++ )
-                pFans[0][j] = Abc_Lit2Lit( p->pPerm[0], (int)pCut0->pPerm[j] );
-            for ( j = 0; j < (int)pCut1->nLeaves; j++ )
-                pFans[1][j] = Abc_Lit2Lit( p->pPerm[1], (int)pCut1->pPerm[j] );
-            // canonicize
-            if ( iDsd[0] > iDsd[1] )
+            if ( pCut0->iDsd < 0 || pCut1->iDsd < 0 )
+                pCut->iDsd = -1;
+            else
             {
-                ABC_SWAP( int, iDsd[0], iDsd[1] );
-                ABC_SWAP( int, nFans[0], nFans[1] );
-                ABC_SWAP( int *, pFans[0], pFans[1] );
+                int j, iDsd[2] = { Abc_LitNotCond(pCut0->iDsd, pObj->fCompl0), Abc_LitNotCond(pCut1->iDsd, pObj->fCompl1) };
+                int nFans[2] = { pCut0->nLeaves, pCut1->nLeaves };
+                int Fans[2][DAU_MAX_VAR], * pFans[2] = { Fans[0], Fans[1] };
+                // create fanins
+                for ( j = 0; j < (int)pCut0->nLeaves; j++ )
+                    pFans[0][j] = Abc_Lit2Lit( p->pPerm[0], (int)pCut0->pPerm[j] );
+                for ( j = 0; j < (int)pCut1->nLeaves; j++ )
+                    pFans[1][j] = Abc_Lit2Lit( p->pPerm[1], (int)pCut1->pPerm[j] );
+                // canonicize
+                if ( iDsd[0] > iDsd[1] )
+                {
+                    ABC_SWAP( int, iDsd[0], iDsd[1] );
+                    ABC_SWAP( int, nFans[0], nFans[1] );
+                    ABC_SWAP( int *, pFans[0], pFans[1] );
+                }
+                // derive new DSD
+                pCut->iDsd = Dss_ManMerge( p->pDsdMan, iDsd, nFans, pFans, p->uSharedMask, pCut->nLimit, pCut->pPerm, If_CutTruthW(pCut) );
             }
-            // derive new DSD
-            pCut->iDsd = Dss_ManMerge( p->pDsdMan, iDsd, nFans, pFans, p->uSharedMask, pCut->nLimit, pCut->pPerm );
+            if ( pCut->iDsd < 0 )
+            {
+                pCut->fUseless = 1;
+                p->nCutsUselessAll++;
+                p->nCutsUseless[pCut->nLeaves]++;
+            }
+            p->nCutsCountAll++;
+            p->nCutsCount[pCut->nLeaves]++;
         }
         
         // compute the application-specific cost and depth

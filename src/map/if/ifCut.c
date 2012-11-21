@@ -856,7 +856,7 @@ void If_CutSort( If_Man_t * p, If_Set_t * pCutSet, If_Cut_t * pCut )
         return;
     }
 
-    if ( (p->pPars->fUseBat || p->pPars->fEnableCheck07 || p->pPars->fEnableCheck08 || p->pPars->fEnableCheck10 || p->pPars->pLutStruct || p->pPars->fUserRecLib) && !pCut->fUseless )
+    if ( (p->pPars->fUseDsd || p->pPars->fUseBat || p->pPars->fEnableCheck07 || p->pPars->fEnableCheck08 || p->pPars->fEnableCheck10 || p->pPars->pLutStruct || p->pPars->fUserRecLib) && !pCut->fUseless )
     {
         If_Cut_t * pFirst = pCutSet->ppCuts[0];
         if ( pFirst->fUseless || If_ManSortCompare(p, pFirst, pCut) == 1 )

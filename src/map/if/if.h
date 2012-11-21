@@ -98,6 +98,7 @@ struct If_Par_t_
     int                nFlowIters;    // the number of iterations of area recovery
     int                nAreaIters;    // the number of iterations of area recovery
     int                nGateSize;     // the max size of the AND/OR gate to map into
+    int                nNonDecLimit;  // the max size of non-dec nodes
     float              DelayTarget;   // delay target
     float              Epsilon;       // value used in comparison floating point numbers
     int                fPreprocess;   // preprossing

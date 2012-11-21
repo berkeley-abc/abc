@@ -475,6 +475,7 @@ static inline int If_CutTruthMinimize6( If_Man_t * p, If_Cut_t * pCut )
 // TEMPORARY
     if ( nSuppSize < 2 )
     {
+//printf( "Small supp\n" );
         p->nSmallSupp++;
         return 2;
     }
@@ -602,6 +603,7 @@ static inline int If_CutTruthMinimize2( If_Man_t * p, If_Cut_t * pCut )
 // TEMPORARY
     if ( nSuppSize < 2 )
     {
+//printf( "Small supp\n" );
         p->nSmallSupp++;
         return 2;
     }

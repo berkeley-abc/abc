@@ -58,7 +58,7 @@ struct Dss_Obj_t_
     unsigned       fMark1  :   1;  // user mark
     unsigned       iVar    :   8;  // variable
     unsigned       nSupp   :   8;  // variable
-    unsigned       Data    :   8;  // variable
+    unsigned       nWords  :   8;  // variable
     unsigned       Type    :   3;  // node type
     unsigned       nFans   :   5;  // fanin count
     unsigned       pFans[0];       // fanins
@@ -70,7 +70,7 @@ struct Dss_Ntk_t_
     int            nVars;          // the number of variables
     int            nMem;           // memory used
     int            nMemAlloc;      // memory allocated
-    Dss_Obj_t *    pMem;           // memory array
+    word *         pMem;           // memory array
     Dss_Obj_t *    pRoot;          // root node
     Vec_Ptr_t *    vObjs;          // internal nodes
 };
@@ -78,6 +78,7 @@ struct Dss_Ntk_t_
 struct Dss_Man_t_
 {
     int            nVars;          // variable number
+    int            nNonDecLimit;   // limit on non-dec size
     int            nBins;          // table size
     unsigned *     pBins;          // hash table
     Mem_Flex_t *   pMem;           // memory for nodes
@@ -98,7 +99,9 @@ static inline int          Dss_ObjType( Dss_Obj_t * pObj )                      
 static inline int          Dss_ObjSuppSize( Dss_Obj_t * pObj )                     { return pObj->nSupp;                                                                }
 static inline int          Dss_ObjFaninNum( Dss_Obj_t * pObj )                     { return pObj->nFans;                                                                }
 static inline int          Dss_ObjFaninC( Dss_Obj_t * pObj, int i )                { assert(i < (int)pObj->nFans); return Abc_LitIsCompl(pObj->pFans[i]);               }
-static inline word *       Dss_ObjTruth( Dss_Obj_t * pObj )                        { return (word *)(pObj->pFans + pObj->nFans + (pObj->nFans & 1));                    }
+
+static inline int          Dss_ObjWordNum( int nFans )                             { return sizeof(Dss_Obj_t) / 8 + nFans / 2 + ((nFans & 1) > 0);                      }
+static inline word *       Dss_ObjTruth( Dss_Obj_t * pObj )                        { return (word *)pObj + pObj->nWords;                                                }
 
 static inline Dss_Obj_t *  Dss_NtkObj( Dss_Ntk_t * p, int Id )                     { return (Dss_Obj_t *)Vec_PtrEntry(p->vObjs, Id);                                    }
 static inline Dss_Obj_t *  Dss_NtkConst0( Dss_Ntk_t * p )                          { return Dss_NtkObj( p, 0 );                                                         }
@@ -192,24 +195,25 @@ static inline word ** Dss_ManTtElems()
 ***********************************************************************/
 Dss_Obj_t * Dss_ObjAllocNtk( Dss_Ntk_t * p, int Type, int nFans, int nTruthVars )
 {
-    int nStructs = 1 + (nFans / sizeof(Dss_Obj_t)) + (nFans % sizeof(Dss_Obj_t) > 0);
-    Dss_Obj_t * pObj = p->pMem + p->nMem;
-    p->nMem += nStructs;
-    assert( p->nMem < p->nMemAlloc );
+    Dss_Obj_t * pObj;
+    pObj = (Dss_Obj_t *)(p->pMem + p->nMem);
     Dss_ObjClean( pObj );
-    pObj->Type   = Type;
     pObj->nFans  = nFans;
+    pObj->nWords = Dss_ObjWordNum( nFans );
+    pObj->Type   = Type;
     pObj->Id     = Vec_PtrSize( p->vObjs );
     pObj->iVar   = 31;
     pObj->Mirror = ~0;
     Vec_PtrPush( p->vObjs, pObj );
+    p->nMem += pObj->nWords + (nTruthVars ? Abc_TtWordNum(nTruthVars) : 0);
+    assert( p->nMem < p->nMemAlloc );
     return pObj;
 }
 Dss_Obj_t * Dss_ObjCreateNtk( Dss_Ntk_t * p, int Type, Vec_Int_t * vFaninLits )
 {
     Dss_Obj_t * pObj;
     int i, Entry;
-    pObj = Dss_ObjAllocNtk( p, Type, Vec_IntSize(vFaninLits), 0 );
+    pObj = Dss_ObjAllocNtk( p, Type, Vec_IntSize(vFaninLits), Type == DAU_DSD_PRIME ? Vec_IntSize(vFaninLits) : 0 );
     Vec_IntForEachEntry( vFaninLits, Entry, i )
     {
         pObj->pFans[i] = Entry;
@@ -226,7 +230,7 @@ Dss_Ntk_t * Dss_NtkAlloc( int nVars )
     p = ABC_CALLOC( Dss_Ntk_t, 1 );
     p->nVars     = nVars;
     p->nMemAlloc = DAU_MAX_STR;
-    p->pMem      = ABC_ALLOC( Dss_Obj_t, p->nMemAlloc );
+    p->pMem      = ABC_ALLOC( word, p->nMemAlloc );
     p->vObjs     = Vec_PtrAlloc( 100 );
     Dss_ObjAllocNtk( p, DAU_DSD_CONST0, 0, 0 );
     for ( i = 0; i < nVars; i++ )
@@ -252,6 +256,8 @@ void Dss_NtkPrint_rec( Dss_Ntk_t * p, Dss_Obj_t * pObj )
     assert( !Dss_IsComplement(pObj) );
     if ( pObj->Type == DAU_DSD_VAR )
         { printf( "%c", 'a' + pObj->iVar ); return; }
+    if ( pObj->Type == DAU_DSD_PRIME )
+        Abc_TtPrintHexRev( stdout, Dss_ObjTruth(pObj), pObj->nFans );
     printf( "%c", OpenType[pObj->Type] );
     Dss_ObjForEachFaninNtk( p, pObj, pFanin, i )
     {
@@ -311,12 +317,14 @@ int Dss_NtkCreate_rec( char * pStr, char ** p, int * pMatches, Dss_Ntk_t * pNtk 
     }
     while ( (**p >= 'A' && **p <= 'F') || (**p >= '0' && **p <= '9') )
         (*p)++;
+/*
     if ( **p == '<' )
     {
         char * q = pStr + pMatches[ *p - pStr ];
         if ( *(q+1) == '{' )
             *p = q+1;
     }
+*/
     if ( **p >= 'a' && **p <= 'z' ) // var
         return Abc_Var2Lit( Dss_ObjId(Dss_NtkVar(pNtk, **p - 'a')), fCompl );
     if ( **p == '(' || **p == '[' || **p == '<' || **p == '{' ) // and/or/xor
@@ -345,7 +353,7 @@ int Dss_NtkCreate_rec( char * pStr, char ** p, int * pMatches, Dss_Ntk_t * pNtk 
     assert( 0 );
     return -1;
 }
-Dss_Ntk_t * Dss_NtkCreate( char * pDsd, int nVars )
+Dss_Ntk_t * Dss_NtkCreate( char * pDsd, int nVars, word * pTruth )
 {
     int fCompl = 0;
     Dss_Ntk_t * pNtk = Dss_NtkAlloc( nVars );
@@ -361,6 +369,21 @@ Dss_Ntk_t * Dss_NtkCreate( char * pDsd, int nVars )
         Dau_DsdMergeMatches( pDsd, pMatches );
         iLit = Dss_NtkCreate_rec( pDsd, &pDsd, pMatches, pNtk );
         pNtk->pRoot = Dss_Lit2ObjNtk( pNtk, iLit );
+        // assign the truth table
+        if ( pTruth )
+        {
+            Dss_Obj_t * pObj;
+            int k, Counter = 0;
+            Dss_NtkForEachNode( pNtk, pObj, k )
+                if ( pObj->Type == DAU_DSD_PRIME )
+                {
+//                    Kit_DsdPrintFromTruth( (unsigned *)pTruth, nVars ); printf( "\n" );
+
+                    Abc_TtCopy( Dss_ObjTruth(pObj), pTruth, Abc_TtWordNum(pObj->nFans), 0 );
+                    Counter++;
+                }
+            assert( Counter < 2 );
+        }
     }
     if ( fCompl )
         pNtk->pRoot = Dss_Not(pNtk->pRoot);
@@ -477,6 +500,8 @@ void Dss_NtkTransform( Dss_Ntk_t * p, int * pPermDsd )
         return;
     Dss_NtkForEachNode( p, pObj, i )
     {
+        if ( pObj->Type == DAU_DSD_MUX || pObj->Type == DAU_DSD_PRIME )
+            continue;
         Dss_ObjForEachChildNtk( p, pObj, pChild, k )
             pChildren[k] = pChild;
         Dss_ObjSortNtk( p, pChildren, Dss_ObjFaninNum(pObj) );
@@ -512,8 +537,8 @@ int Dss_ObjCompare( Dss_Man_t * p, Dss_Obj_t * p0i, Dss_Obj_t * p1i )
         return 1;
     if ( Dss_ObjType(p0) < DAU_DSD_AND )
     {
-        assert( !Dss_IsComplement(p0i) );
-        assert( !Dss_IsComplement(p1i) );
+//        assert( !Dss_IsComplement(p0i) );
+//        assert( !Dss_IsComplement(p1i) );
         return 0;
     }
     if ( Dss_ObjFaninNum(p0) < Dss_ObjFaninNum(p1) )
@@ -565,19 +590,19 @@ void Dss_ObjSort( Dss_Man_t * p, Dss_Obj_t ** pNodes, int nNodes, int * pPerm )
 ***********************************************************************/
 Dss_Obj_t * Dss_ObjAlloc( Dss_Man_t * p, int Type, int nFans, int nTruthVars )
 {
-    int nInts = sizeof(Dss_Obj_t) / sizeof(int) + nFans;
-    int nWords = (nInts >> 1) + (nInts & 1) + (nTruthVars ? Abc_Truth6WordNum(nTruthVars) : 0);
+    int nWords = Dss_ObjWordNum(nFans) + (nTruthVars ? Abc_TtWordNum(nTruthVars) : 0);
     Dss_Obj_t * pObj = (Dss_Obj_t *)Mem_FlexEntryFetch( p->pMem, sizeof(word) * nWords );
     Dss_ObjClean( pObj );
     pObj->Type   = Type;
     pObj->nFans  = nFans;
+    pObj->nWords = Dss_ObjWordNum(nFans);
     pObj->Id     = Vec_PtrSize( p->vObjs );
     pObj->iVar   = 31;
     pObj->Mirror = ~0;
     Vec_PtrPush( p->vObjs, pObj );
     return pObj;
 }
-Dss_Obj_t * Dss_ObjCreate( Dss_Man_t * p, int Type, Vec_Int_t * vFaninLits )
+Dss_Obj_t * Dss_ObjCreate( Dss_Man_t * p, int Type, Vec_Int_t * vFaninLits, word * pTruth )
 {
     Dss_Obj_t * pObj, * pFanin, * pPrev = NULL;
     int i, Entry;
@@ -595,13 +620,21 @@ Dss_Obj_t * Dss_ObjCreate( Dss_Man_t * p, int Type, Vec_Int_t * vFaninLits )
         pPrev = pFanin;
     }
     // create new node
-    pObj = Dss_ObjAlloc( p, Type, Vec_IntSize(vFaninLits), 0 );
+    pObj = Dss_ObjAlloc( p, Type, Vec_IntSize(vFaninLits), Type == DAU_DSD_PRIME ? Vec_IntSize(vFaninLits) : 0 );
+    if ( Type == DAU_DSD_PRIME )
+        Abc_TtCopy( Dss_ObjTruth(pObj), pTruth, Abc_TtWordNum(Vec_IntSize(vFaninLits)), 0 );
     assert( pObj->nSupp == 0 );
     Vec_IntForEachEntry( vFaninLits, Entry, i )
     {
         pObj->pFans[i] = Entry;
         pObj->nSupp += Dss_ObjFanin(p, pObj, i)->nSupp;
     }
+/*
+    {
+        extern void Dss_ManPrintOne( Dss_Man_t * p, int iDsdLit, int * pPermLits );
+        Dss_ManPrintOne( p, Dss_Obj2Lit(pObj), NULL );
+    }
+*/
     return pObj;
 }
 
@@ -616,34 +649,60 @@ Dss_Obj_t * Dss_ObjCreate( Dss_Man_t * p, int Type, Vec_Int_t * vFaninLits )
   SeeAlso     []
 
 ***********************************************************************/
-static inline unsigned Dss_ObjHashKey( Dss_Man_t * p, int Type, Vec_Int_t * vFaninLits )
+void Dss_ManHashProfile( Dss_Man_t * p )
+{
+    Dss_Obj_t * pObj;
+    unsigned * pSpot;
+    int i, Counter;
+    for ( i = 0; i < p->nBins; i++ )
+    {
+        Counter = 0;
+        for ( pSpot = p->pBins + i; *pSpot; pSpot = &pObj->Next, Counter++ )
+             pObj = Dss_ManObj( p, *pSpot );
+        if ( Counter )
+            printf( "%d ", Counter );
+    }
+    printf( "\n" );
+}
+static inline unsigned Dss_ObjHashKey( Dss_Man_t * p, int Type, Vec_Int_t * vFaninLits, word * pTruth )
 {
     static int s_Primes[8] = { 1699, 4177, 5147, 5647, 6343, 7103, 7873, 8147 };
     int i, Entry;
     unsigned uHash = Type * 7873 + Vec_IntSize(vFaninLits) * 8147;
     Vec_IntForEachEntry( vFaninLits, Entry, i )
         uHash += Entry * s_Primes[i & 0x7];
+    assert( (Type == DAU_DSD_PRIME) == (pTruth != NULL) );
+    if ( pTruth )
+    {
+        unsigned char * pTruthC = (unsigned char *)pTruth;
+        int nBytes = Abc_TtByteNum(Vec_IntSize(vFaninLits));
+        for ( i = 0; i < nBytes; i++ )
+            uHash += pTruthC[i] * s_Primes[i & 0x7];
+    }
     return uHash % p->nBins;
 }
-unsigned * Dss_ObjHashLookup( Dss_Man_t * p, int Type, Vec_Int_t * vFaninLits )
+unsigned * Dss_ObjHashLookup( Dss_Man_t * p, int Type, Vec_Int_t * vFaninLits, word * pTruth )
 {
     Dss_Obj_t * pObj;
-    unsigned * pSpot = p->pBins + Dss_ObjHashKey(p, Type, vFaninLits);
+    unsigned * pSpot = p->pBins + Dss_ObjHashKey(p, Type, vFaninLits, pTruth);
     for ( ; *pSpot; pSpot = &pObj->Next )
     {
         pObj = Dss_ManObj( p, *pSpot );
-        if ( (int)pObj->Type == Type && (int)pObj->nFans == Vec_IntSize(vFaninLits) && !memcmp(pObj->pFans, Vec_IntArray(vFaninLits), sizeof(int)*pObj->nFans) ) // equal
+        if ( (int)pObj->Type == Type && 
+             (int)pObj->nFans == Vec_IntSize(vFaninLits) && 
+             !memcmp(pObj->pFans, Vec_IntArray(vFaninLits), sizeof(int)*pObj->nFans) &&
+             (pTruth == NULL || !memcmp(Dss_ObjTruth(pObj), pTruth, Abc_TtByteNum(pObj->nFans))) ) // equal
             return pSpot;
     }
     return pSpot;
 }
-Dss_Obj_t * Dss_ObjFindOrAdd( Dss_Man_t * p, int Type, Vec_Int_t * vFaninLits )
+Dss_Obj_t * Dss_ObjFindOrAdd( Dss_Man_t * p, int Type, Vec_Int_t * vFaninLits, word * pTruth )
 {
     Dss_Obj_t * pObj;
-    unsigned * pSpot = Dss_ObjHashLookup( p, Type, vFaninLits );
+    unsigned * pSpot = Dss_ObjHashLookup( p, Type, vFaninLits, pTruth );
     if ( *pSpot )
         return Dss_ManObj( p, *pSpot );
-    pObj = Dss_ObjCreate( p, Type, vFaninLits );
+    pObj = Dss_ObjCreate( p, Type, vFaninLits, pTruth );
     *pSpot = pObj->Id;
     return pObj;
 }
@@ -659,17 +718,18 @@ Dss_Obj_t * Dss_ObjFindOrAdd( Dss_Man_t * p, int Type, Vec_Int_t * vFaninLits )
   SeeAlso     []
 
 ***********************************************************************/
-Dss_Man_t * Dss_ManAlloc( int nVars )
+Dss_Man_t * Dss_ManAlloc( int nVars, int nNonDecLimit )
 {
     Dss_Man_t * p;
     Dss_Obj_t * pObj;
     int i;
     p = ABC_CALLOC( Dss_Man_t, 1 );
     p->nVars = nVars;
-    p->nBins = Abc_PrimeCudd( 1000 );
+    p->nNonDecLimit = nNonDecLimit;
+    p->nBins = Abc_PrimeCudd( 100000 );
     p->pBins = ABC_CALLOC( unsigned, p->nBins );
     p->pMem  = Mem_FlexStart();
-    p->vObjs = Vec_PtrAlloc( 1000 );
+    p->vObjs = Vec_PtrAlloc( 10000 );
     Dss_ObjAlloc( p, DAU_DSD_CONST0, 0, 0 );
     for ( i = 0; i < nVars; i++ )
     {
@@ -708,6 +768,8 @@ void Dss_ManPrint_rec( Dss_Man_t * p, Dss_Obj_t * pObj, int * pPermLits )
         printf( "%s%c", Abc_LitIsCompl(iPermLit)? "!":"", 'a' + Abc_Lit2Var(iPermLit) );
         return;
     }
+    if ( pObj->Type == DAU_DSD_PRIME )
+        Abc_TtPrintHexRev( stdout, Dss_ObjTruth(pObj), pObj->nFans );
     printf( "%c", OpenType[pObj->Type] );
     Dss_ObjForEachFanin( p, pObj, pFanin, i )
     {
@@ -724,54 +786,95 @@ void Dss_ManPrintOne( Dss_Man_t * p, int iDsdLit, int * pPermLits )
     Dss_ManPrint_rec( p, Dss_ManObj(p, Abc_Lit2Var(iDsdLit)), pPermLits );
     printf( "\n" );
 }
-void Dss_ManPrintAll( Dss_Man_t * p )
+int Dss_ManPrintIndex_rec( Dss_Man_t * p, Dss_Obj_t * pObj )
 {
+    Dss_Obj_t * pFanin;
+    int i, nVarsMax = 0;
+    assert( !Dss_IsComplement(pObj) );
+    if ( pObj->Type == DAU_DSD_CONST0 )
+        return 0;
+    if ( pObj->Type == DAU_DSD_VAR )
+        return pObj->iVar + 1;
+    Dss_ObjForEachFanin( p, pObj, pFanin, i )
+        nVarsMax = Abc_MaxInt( nVarsMax, Dss_ManPrintIndex_rec(p, pFanin) );
+    return nVarsMax;
+}
+int Dss_ManCheckNonDec_rec( Dss_Man_t * p, Dss_Obj_t * pObj )
+{
+    Dss_Obj_t * pFanin;
+    int i;
+    assert( !Dss_IsComplement(pObj) );
+    if ( pObj->Type == DAU_DSD_CONST0 )
+        return 0;
+    if ( pObj->Type == DAU_DSD_VAR )
+        return 0;
+    if ( pObj->Type == DAU_DSD_PRIME )
+        return 1;
+    Dss_ObjForEachFanin( p, pObj, pFanin, i )
+        if ( Dss_ManCheckNonDec_rec( p, pFanin ) )
+            return 1;
+    return 0;
+}
+void Dss_ManDump( Dss_Man_t * p )
+{
+    char * pFileName = "dss_tts.txt";
+    FILE * pFile;
+    word Temp[DAU_MAX_WORD];
     Dss_Obj_t * pObj;
-    int i, nSuppMax = 0;
-    printf( "DSD manager contains %d objects:\n", Vec_PtrSize(p->vObjs) );
+    int i;
+    pFile = fopen( pFileName, "wb" );
+    if ( pFile == NULL )
+    {
+        printf( "Cannot open file \"%s\".\n", pFileName );
+        return;
+    }
     Dss_ManForEachObj( p, pObj, i )
     {
-        if ( (int)pObj->nSupp < nSuppMax )
+        if ( pObj->Type != DAU_DSD_PRIME )
             continue;
-        Dss_ManPrintOne( p, Dss_Obj2Lit(pObj), NULL );
-        nSuppMax = Abc_MaxInt( nSuppMax, pObj->nSupp );
+        Abc_TtCopy( Temp, Dss_ObjTruth(pObj), Abc_TtWordNum(pObj->nFans), 0 );
+        Abc_TtStretch6( Temp, pObj->nFans, p->nVars );
+        fprintf( pFile, "0x" );
+        Abc_TtPrintHexRev( pFile, Temp, p->nVars );
+        fprintf( pFile, "\n" );
+
+//        printf( "%6d : ", i );
+//        Abc_TtPrintHexRev( stdout, Temp, p->nVars );
+//        printf( "    " );
+//        Dau_DsdPrintFromTruth( stdout, Temp, p->nVars );
     }
-    printf( "\n" );
+    fclose( pFile );
 }
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Dss_NtkRebuild( Dss_Man_t * p, Dss_Ntk_t * pNtk )
+void Dss_ManPrint( Dss_Man_t * p )
 {
-    Dss_Obj_t * pObj, * pFanin, * pObjNew;
-    int i, k;
-    assert( p->nVars == pNtk->nVars );
-    if ( Dss_Regular(pNtk->pRoot)->Type == DAU_DSD_CONST0 )
-        return Dss_IsComplement(pNtk->pRoot);
-    if ( Dss_Regular(pNtk->pRoot)->Type == DAU_DSD_VAR )
-        return Abc_Var2Lit( Dss_Regular(pNtk->pRoot)->iVar, Dss_IsComplement(pNtk->pRoot) );
-    Vec_IntFill( p->vCopies, Vec_PtrSize(pNtk->vObjs), -1 );
-    Dss_NtkForEachNode( pNtk, pObj, i )
+    Dss_Obj_t * pObj;
+    int i, c, CountStr = 0, CountNonDsd = 0, CountNonDsdStr = 0;
+    int clk = clock();
+    Dss_ManForEachObj( p, pObj, i )
     {
-        Vec_IntClear( p->vLeaves );
-        Dss_ObjForEachFaninNtk( pNtk, pObj, pFanin, k )
-            if ( pFanin->Type == DAU_DSD_VAR )
-                Vec_IntPush( p->vLeaves, Abc_Var2Lit(pFanin->iVar+1, 0) );
-            else
-                Vec_IntPush( p->vLeaves, Abc_Lit2Lit(Vec_IntArray(p->vCopies), pObj->pFans[k]) );
-        pObjNew = Dss_ObjCreate( p, pObj->Type, p->vLeaves );
-        Vec_IntWriteEntry( p->vCopies, Dss_ObjId(pObj), Dss_ObjId(pObjNew) );
+        CountStr += ((int)pObj->nSupp == Dss_ManPrintIndex_rec(p, pObj));
+        CountNonDsd += (pObj->Type == DAU_DSD_PRIME);
+        CountNonDsdStr += Dss_ManCheckNonDec_rec( p, pObj );
     }
-    return Abc_Lit2Lit( Vec_IntArray(p->vCopies), Dss_Obj2Lit(pNtk->pRoot) );
+    printf( "Total number of objects    = %8d\n", Vec_PtrSize(p->vObjs) );
+    printf( "Total number of structures = %8d\n", CountStr );
+    printf( "Non-DSD objects (max =%2d)  = %8d\n", p->nNonDecLimit, CountNonDsd );
+    printf( "Non-DSD structures         = %8d\n", CountNonDsdStr );
+    printf( "Memory used for objects    = %6.2f MB.\n", 1.0*Mem_FlexReadMemUsage(p->pMem)/(1<<20) );
+    printf( "Memory used for array      = %6.2f MB.\n", 1.0*sizeof(void *)*Vec_PtrCap(p->vObjs)/(1<<20) );
+    printf( "Memory used for hash table = %6.2f MB.\n", 1.0*sizeof(int)*p->nBins/(1<<20) );
+    Abc_PrintTime( 1, "Time", clock() - clk );
+//    Dss_ManHashProfile( p );
+//    Dss_ManDump( p );
+//    return;
+    c = 0;
+    Dss_ManForEachObj( p, pObj, i )
+        if ( (int)pObj->nSupp == Dss_ManPrintIndex_rec(p, pObj) )
+        {
+            printf( "%6d : ", c++ );
+            Dss_ManPrintOne( p, Dss_Obj2Lit(pObj), NULL );
+        }
+    printf( "\n" );
 }
 
 /**Function*************************************************************
@@ -828,26 +931,33 @@ void Dss_ManComputeTruth_rec( Dss_Man_t * p, Dss_Obj_t * pObj, int nVars, word *
     }
     if ( pObj->Type == DAU_DSD_PRIME ) // function
     {
+        word pFanins[DAU_MAX_VAR][DAU_MAX_WORD];
+        Dss_ObjForEachChild( p, pObj, pChild, i )
+            Dss_ManComputeTruth_rec( p, pChild, nVars, pFanins[i], pPermLits );
+        Dau_DsdTruthCompose_rec( Dss_ObjTruth(pObj), pFanins, pRes, pObj->nFans, nWords );
+        if ( fCompl ) Abc_TtNot( pRes, nWords );
+        return;
     }
     assert( 0 );
 
 }
 word * Dss_ManComputeTruth( Dss_Man_t * p, int iDsd, int nVars, int * pPermLits )
 {
-    int nWords = Abc_TtWordNum( nVars );
+    Dss_Obj_t * pObj = Dss_Lit2Obj(p, iDsd);
     word * pRes = p->pTtElems[DAU_MAX_VAR];
+    int nWords = Abc_TtWordNum( nVars );
     assert( nVars <= DAU_MAX_VAR );
     if ( iDsd == 0 )
         Abc_TtConst0( pRes, nWords );
     else if ( iDsd == 1 )
         Abc_TtConst1( pRes, nWords );
-    else if ( Abc_Lit2Var(iDsd) < p->nVars )
+    else if ( Dss_Regular(pObj)->Type == DAU_DSD_VAR )
     {
-        int iPermLit = pPermLits[Abc_Lit2Var(iDsd)];
+        int iPermLit = pPermLits[Dss_Regular(pObj)->iVar];
         Abc_TtCopy( pRes, p->pTtElems[Abc_Lit2Var(iPermLit)], nWords, Abc_LitIsCompl(iDsd) ^ Abc_LitIsCompl(iPermLit) );
     }
     else
-        Dss_ManComputeTruth_rec( p, Dss_Lit2Obj(p, iDsd), nVars, pRes, pPermLits );
+        Dss_ManComputeTruth_rec( p, pObj, nVars, pRes, pPermLits );
     return pRes;
 }
 
@@ -888,7 +998,7 @@ Dss_Obj_t * Dss_ManShiftTree_rec( Dss_Man_t * p, Dss_Obj_t * pObj, int Shift )
         nSupp += pFanin->nSupp;
     }
     // create new graph
-    pObjNew = Dss_ObjFindOrAdd( p, pObj->Type, vFaninLits );
+    pObjNew = Dss_ObjFindOrAdd( p, pObj->Type, vFaninLits, pObj->Type == DAU_DSD_PRIME ? Dss_ObjTruth(pObj) : NULL );
     pObjNew->Mirror = pObj->Id;
     Vec_IntFree( vFaninLits );
     return pObjNew;
@@ -910,6 +1020,90 @@ void Dss_ManShiftTree( Dss_Man_t * p, Dss_Obj_t ** pChildren, int nChildren, Vec
 
 /**Function*************************************************************
 
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+/*
+int Dss_NtkRebuild( Dss_Man_t * p, Dss_Ntk_t * pNtk )
+{
+    Dss_Obj_t * pObj, * pFanin, * pObjNew;
+    int i, k;
+    assert( p->nVars == pNtk->nVars );
+    if ( Dss_Regular(pNtk->pRoot)->Type == DAU_DSD_CONST0 )
+        return Dss_IsComplement(pNtk->pRoot);
+    if ( Dss_Regular(pNtk->pRoot)->Type == DAU_DSD_VAR )
+        return Abc_Var2Lit( Dss_Regular(pNtk->pRoot)->iVar, Dss_IsComplement(pNtk->pRoot) );
+    Vec_IntFill( p->vCopies, Vec_PtrSize(pNtk->vObjs), -1 );
+    Dss_NtkForEachNode( pNtk, pObj, i )
+    {
+        Vec_IntClear( p->vLeaves );
+        Dss_ObjForEachFaninNtk( pNtk, pObj, pFanin, k )
+            if ( pFanin->Type == DAU_DSD_VAR )
+                Vec_IntPush( p->vLeaves, Abc_Var2Lit(pFanin->iVar+1, 0) );
+            else
+                Vec_IntPush( p->vLeaves, Abc_Lit2Lit(Vec_IntArray(p->vCopies), pObj->pFans[k]) );
+        pObjNew = Dss_ObjCreate( p, pObj->Type, p->vLeaves );
+        Vec_IntWriteEntry( p->vCopies, Dss_ObjId(pObj), Dss_ObjId(pObjNew) );
+    }
+    return Abc_Lit2Lit( Vec_IntArray(p->vCopies), Dss_Obj2Lit(pNtk->pRoot) );
+}
+*/
+
+// returns literal of non-shifted tree in p, corresponding to pObj in pNtk, which may be compl
+int Dss_NtkRebuild_rec( Dss_Man_t * p, Dss_Ntk_t * pNtk, Dss_Obj_t * pObj )
+{
+    Dss_Obj_t * pChildren[DAU_MAX_VAR];
+    Dss_Obj_t * pChild, * pObjNew;
+    int k, fCompl = Dss_IsComplement(pObj);
+    pObj = Dss_Regular(pObj);
+    if ( pObj->Type == DAU_DSD_VAR )
+        return Abc_Var2Lit( 1, fCompl );
+    Dss_ObjForEachChildNtk( pNtk, pObj, pChild, k )
+    {
+        pChildren[k] = Dss_Lit2Obj( p, Dss_NtkRebuild_rec( p, pNtk, pChild ) );
+        if ( pObj->Type == DAU_DSD_XOR && Dss_IsComplement(pChildren[k]) )
+            pChildren[k] = Dss_Not(pChildren[k]), fCompl ^= 1;
+    }
+    // normalize MUX
+    if ( pObj->Type == DAU_DSD_MUX )
+    {
+        if ( Dss_IsComplement(pChildren[0]) )
+        {
+            pChildren[0] = Dss_Not(pChildren[0]);
+            ABC_SWAP( Dss_Obj_t *, pChildren[1], pChildren[2] );
+        }
+        if ( Dss_IsComplement(pChildren[1]) )
+        {
+            pChildren[1] = Dss_Not(pChildren[1]);
+            pChildren[2] = Dss_Not(pChildren[2]);
+            fCompl ^= 1;
+        }
+    }
+    // shift subgraphs
+    Dss_ManShiftTree( p, pChildren, k, p->vLeaves );
+    // create new graph
+    pObjNew = Dss_ObjFindOrAdd( p, pObj->Type, p->vLeaves, pObj->Type == DAU_DSD_PRIME ? Dss_ObjTruth(pObj) : NULL );
+    pObjNew->Mirror = pObjNew->Id;
+    return Abc_Var2Lit( pObjNew->Id, fCompl );
+}
+int Dss_NtkRebuild( Dss_Man_t * p, Dss_Ntk_t * pNtk )
+{
+    assert( p->nVars == pNtk->nVars );
+    if ( Dss_Regular(pNtk->pRoot)->Type == DAU_DSD_CONST0 )
+        return Dss_IsComplement(pNtk->pRoot);
+    if ( Dss_Regular(pNtk->pRoot)->Type == DAU_DSD_VAR )
+        return Abc_Var2Lit( Dss_Regular(pNtk->pRoot)->iVar + 1, Dss_IsComplement(pNtk->pRoot) );
+    return Dss_NtkRebuild_rec( p, pNtk, pNtk->pRoot );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Performs DSD operation on the two literals.]
 
   Description [Returns the perm of the resulting literals. The perm size 
@@ -921,11 +1115,11 @@ void Dss_ManShiftTree( Dss_Man_t * p, Dss_Obj_t ** pChildren, int nChildren, Vec
   SeeAlso     []
 
 ***********************************************************************/
-int Dss_ManOperation( Dss_Man_t * p, int Type, int * pLits, int nLits, unsigned char * pPerm )
+int Dss_ManOperation( Dss_Man_t * p, int Type, int * pLits, int nLits, unsigned char * pPerm, word * pTruth )
 {
     Dss_Obj_t * pChildren[DAU_MAX_VAR];
     Dss_Obj_t * pObj, * pChild;
-    int i, k, nChildren = 0, fCompl = 0;
+    int i, k, nChildren = 0, fCompl = 0, fComplFan;
 
     assert( Type == DAU_DSD_AND || pPerm == NULL );
     if ( Type == DAU_DSD_AND && pPerm != NULL )
@@ -937,14 +1131,20 @@ int Dss_ManOperation( Dss_Man_t * p, int Type, int * pLits, int nLits, unsigned 
             pObj = Dss_Lit2Obj(p, pLits[k]);
             if ( Dss_IsComplement(pObj) || pObj->Type != DAU_DSD_AND )
             {
-                pBegEnd[nChildren] = (nSSize << 16) | (nSSize + Dss_Regular(pObj)->nSupp);
+                fComplFan = (Dss_Regular(pObj)->Type == DAU_DSD_VAR && Dss_IsComplement(pObj));
+                if ( fComplFan )
+                    pObj = Dss_Regular(pObj);
+                pBegEnd[nChildren] = (nSSize << 16) | (fComplFan << 8) | (nSSize + Dss_Regular(pObj)->nSupp);
                 nSSize += Dss_Regular(pObj)->nSupp;
                 pChildren[nChildren++] = pObj;
             }
             else
                 Dss_ObjForEachChild( p, pObj, pChild, i )
                 {
-                    pBegEnd[nChildren] = (nSSize << 16) | (nSSize + Dss_Regular(pChild)->nSupp);
+                    fComplFan = (Dss_Regular(pChild)->Type == DAU_DSD_VAR && Dss_IsComplement(pChild));
+                    if ( fComplFan )
+                        pChild = Dss_Regular(pChild);
+                    pBegEnd[nChildren] = (nSSize << 16) | (fComplFan << 8) | (nSSize + Dss_Regular(pChild)->nSupp);
                     nSSize += Dss_Regular(pChild)->nSupp;
                     pChildren[nChildren++] = pChild;
                 }
@@ -953,7 +1153,7 @@ int Dss_ManOperation( Dss_Man_t * p, int Type, int * pLits, int nLits, unsigned 
         // create permutation
         for ( j = i = 0; i < nChildren; i++ )
             for ( k = (pBegEnd[i] >> 16); k < (pBegEnd[i] & 0xFF); k++ )
-                pPerm[j++] = (unsigned char)Abc_Var2Lit( k, 0 );
+                pPerm[j++] = (unsigned char)Abc_Var2Lit( k, (pBegEnd[i] >> 8) & 1 );
         assert( j == nSSize );
     }
     else if ( Type == DAU_DSD_AND )
@@ -988,31 +1188,31 @@ int Dss_ManOperation( Dss_Man_t * p, int Type, int * pLits, int nLits, unsigned 
     }
     else if ( Type == DAU_DSD_MUX )
     {
-        fCompl = Abc_LitIsCompl(pLits[1]) && Abc_LitIsCompl(pLits[2]);
         if ( Abc_LitIsCompl(pLits[0]) )
         {
-            pChildren[nChildren++] = Dss_Lit2Obj(p, Abc_LitNotCond(pLits[0], 1));
-            pChildren[nChildren++] = Dss_Lit2Obj(p, Abc_LitNotCond(pLits[2], fCompl));
-            pChildren[nChildren++] = Dss_Lit2Obj(p, Abc_LitNotCond(pLits[1], fCompl));
+            pLits[0] = Abc_LitNot(pLits[0]);
+            ABC_SWAP( int, pLits[1], pLits[2] );
         }
-        else
+        if ( Abc_LitIsCompl(pLits[1]) )
         {
-            pChildren[nChildren++] = Dss_Lit2Obj(p, Abc_LitNotCond(pLits[0], 0));
-            pChildren[nChildren++] = Dss_Lit2Obj(p, Abc_LitNotCond(pLits[1], fCompl));
-            pChildren[nChildren++] = Dss_Lit2Obj(p, Abc_LitNotCond(pLits[2], fCompl));
+            pLits[1] = Abc_LitNot(pLits[1]);
+            pLits[2] = Abc_LitNot(pLits[2]);
+            fCompl ^= 1;
         }
+        for ( k = 0; k < nLits; k++ )
+            pChildren[nChildren++] = Dss_Lit2Obj(p, pLits[k]);
     }
     else if ( Type == DAU_DSD_PRIME )
     {
         for ( k = 0; k < nLits; k++ )
-             pChildren[nChildren++] = Dss_Lit2Obj(p, pLits[k]);
+            pChildren[nChildren++] = Dss_Lit2Obj(p, pLits[k]);
     }
     else assert( 0 );
 
     // shift subgraphs
     Dss_ManShiftTree( p, pChildren, nChildren, p->vLeaves );
     // create new graph
-    pObj = Dss_ObjFindOrAdd( p, Type, p->vLeaves );
+    pObj = Dss_ObjFindOrAdd( p, Type, p->vLeaves, pTruth );
     pObj->Mirror = pObj->Id;
     return Abc_Var2Lit( pObj->Id, fCompl );
 }
@@ -1020,7 +1220,7 @@ Dss_Fun_t * Dss_ManOperationFun( Dss_Man_t * p, int * iDsd, int * nFans )
 {
     static char Buffer[100];
     Dss_Fun_t * pFun = (Dss_Fun_t *)Buffer;
-    pFun->iDsd = Dss_ManOperation( p, DAU_DSD_AND, iDsd, 2, pFun->pFans );
+    pFun->iDsd = Dss_ManOperation( p, DAU_DSD_AND, iDsd, 2, pFun->pFans, NULL );
     pFun->nFans = nFans[0] + nFans[1];
     assert( (int)pFun->nFans == Dss_ManLitSuppSize(p, pFun->iDsd) );
     return pFun;
@@ -1039,7 +1239,7 @@ Dss_Fun_t * Dss_ManOperationFun( Dss_Man_t * p, int * iDsd, int * nFans )
   SeeAlso     []
 
 ***********************************************************************/
-Dss_Fun_t * Dss_ManBooleanAnd( Dss_Man_t * p, Dss_Ent_t * pEnt, int * nFans )
+Dss_Fun_t * Dss_ManBooleanAnd( Dss_Man_t * p, Dss_Ent_t * pEnt, int * nFans, int Counter )
 {
     static char Buffer[100];
     Dss_Fun_t * pFun = (Dss_Fun_t *)Buffer;
@@ -1058,7 +1258,10 @@ Dss_Fun_t * Dss_ManBooleanAnd( Dss_Man_t * p, Dss_Ent_t * pEnt, int * nFans )
     }
     pTruthOne = Dss_ManComputeTruth( p, pEnt->iDsd0, p->nVars, pPermLits );
     Abc_TtCopy( pTruth, pTruthOne, Abc_TtWordNum(p->nVars), 0 );
+if ( Counter )
+{
 //Kit_DsdPrintFromTruth( pTruthOne, p->nVars );  printf( "\n" );
+}
     // create second truth table
     for ( i = 0; i < nFans[1]; i++ )
         pPermLits[i] = -1;
@@ -1071,16 +1274,21 @@ Dss_Fun_t * Dss_ManBooleanAnd( Dss_Man_t * p, Dss_Ent_t * pEnt, int * nFans )
             pPermLits[i] = Abc_Var2Lit( nSuppSize++, 0 );
         }
     pTruthOne = Dss_ManComputeTruth( p, pEnt->iDsd1, p->nVars, pPermLits );
+if ( Counter )
+{
 //Kit_DsdPrintFromTruth( pTruthOne, p->nVars );  printf( "\n" );
+}
     Abc_TtAnd( pTruth, pTruth, pTruthOne, Abc_TtWordNum(p->nVars), 0 );
     // perform decomposition
-    nNonDec = Dau_DsdDecompose( pTruth, nSuppSize, 0, pDsd );
+    nNonDec = Dau_DsdDecompose( pTruth, nSuppSize, 0, 0, pDsd );
+    if ( p->nNonDecLimit && nNonDec > p->nNonDecLimit )
+        return NULL;
     // derive network and convert it into the manager
-    pNtk = Dss_NtkCreate( pDsd, p->nVars );
-Dss_NtkPrint( pNtk );    
+    pNtk = Dss_NtkCreate( pDsd, p->nVars, nNonDec ? pTruth : NULL );
+//Dss_NtkPrint( pNtk );    
     Dss_NtkCheck( pNtk );
     Dss_NtkTransform( pNtk, pPermDsd );
-Dss_NtkPrint( pNtk );    
+//Dss_NtkPrint( pNtk );    
     pFun->iDsd = Dss_NtkRebuild( p, pNtk );
     Dss_NtkFree( pNtk );
     // pPermDsd maps vars of iDsdRes into literals of pTruth
@@ -1131,12 +1339,32 @@ Dss_Ent_t * Dss_ManSharedMap( Dss_Man_t * p, int * iDsd, int * nFans, int ** pFa
     return pEnt;
 }
 // merge two DSD functions
-int Dss_ManMerge( Dss_Man_t * p, int * iDsd, int * nFans, int ** pFans, unsigned uSharedMask, int nKLutSize, unsigned char * pPermRes )
+int Dss_ManMerge( Dss_Man_t * p, int * iDsd, int * nFans, int ** pFans, unsigned uSharedMask, int nKLutSize, unsigned char * pPermRes, word * pTruth )
 {
+    int fVerbose = 0;
+    static int Counter = 0;
+//    word pTtTemp[DAU_MAX_WORD];
+    word * pTruthOne;
+    int pPermResInt[DAU_MAX_VAR];
     Dss_Ent_t * pEnt;
     Dss_Fun_t * pFun;
     int i;
+    Counter++;
+
+    if ( Counter == 122053 )
+    {
+        int s = 0;
+//        fVerbose = 1;
+    }
+
     assert( iDsd[0] <= iDsd[1] );
+
+if ( fVerbose )
+{
+Dss_ManPrintOne( p, iDsd[0], pFans[0] );
+Dss_ManPrintOne( p, iDsd[1], pFans[1] );
+} 
+
     // constant argument
     if ( iDsd[0] == 0 ) return 0;
     if ( iDsd[0] == 1 ) return iDsd[1];
@@ -1152,24 +1380,68 @@ int Dss_ManMerge( Dss_Man_t * p, int * iDsd, int * nFans, int ** pFans, unsigned
     if ( uSharedMask == 0 )
         pFun = Dss_ManOperationFun( p, iDsd, nFans );
     else
-        pFun = Dss_ManBooleanAnd( p, pEnt, nFans );
+        pFun = Dss_ManBooleanAnd( p, pEnt, nFans, 0 );
+    if ( pFun == NULL )
+        return -1;
     assert( (int)pFun->nFans == Dss_ManLitSuppSize(p, pFun->iDsd) );
     assert( (int)pFun->nFans <= nKLutSize );
+/*
     // create permutation
     for ( i = 0; i < (int)pFun->nFans; i++ )
         printf( "%d ", pFun->pFans[i] );
     printf( "\n" );
-
+*/
     for ( i = 0; i < (int)pFun->nFans; i++ )
         if ( pFun->pFans[i] < 2 * nFans[0] ) // first dec
             pPermRes[i] = (unsigned char)Dss_Lit2Lit( pFans[0], pFun->pFans[i] );
         else
             pPermRes[i] = (unsigned char)Dss_Lit2Lit( pFans[1], pFun->pFans[i] - 2 * nFans[0] );
-
+/*
     // create permutation
     for ( i = 0; i < (int)pFun->nFans; i++ )
         printf( "%d ", pPermRes[i] );
     printf( "\n" );
+*/
+
+
+    // perform support minimization
+    if ( uSharedMask && pFun->nFans > 1 )
+    {
+        int pVarPres[DAU_MAX_VAR];
+        int nSupp = 0;
+        for ( i = 0; i < p->nVars; i++ )
+            pVarPres[i] = -1;
+        for ( i = 0; i < (int)pFun->nFans; i++ )
+            pVarPres[ Abc_Lit2Var(pPermRes[i]) ] = i;
+        for ( i = 0; i < p->nVars; i++ )
+            if ( pVarPres[i] >= 0 )
+                pPermRes[pVarPres[i]] = Abc_Var2Lit( nSupp++, Abc_LitIsCompl(pPermRes[pVarPres[i]]) );
+        assert( nSupp == (int)pFun->nFans );
+    }
+
+    for ( i = 0; i < (int)pFun->nFans; i++ )
+        pPermResInt[i] = pPermRes[i];
+
+if ( fVerbose )
+{
+Dss_ManPrintOne( p, pFun->iDsd, pPermResInt );
+printf( "\n" );
+}
+
+if ( Counter == 134 )
+{
+    int s = 0;
+//    Dss_ManPrint( p );
+}
+    pTruthOne = Dss_ManComputeTruth( p, pFun->iDsd, p->nVars, pPermResInt );
+    if ( !Abc_TtEqual( pTruthOne, pTruth, Abc_TtWordNum(p->nVars) ) )
+    {
+        int s;
+//        Kit_DsdPrintFromTruth( pTruthOne, p->nVars );  printf( "\n" );
+//        Kit_DsdPrintFromTruth( pTruth, p->nVars );     printf( "\n" );
+        printf( "Verification failed.\n" );
+        s = 0;
+    }
 
     return pFun->iDsd;
 }
@@ -1231,7 +1503,7 @@ void Dau_DsdTest()
     int nVars = 8;
 //    char * pDsd = "[(ab)(cd)]";
     char * pDsd = "(!(a!(bh))[cde]!(fg))";
-    Dss_Ntk_t * pNtk = Dss_NtkCreate( pDsd, nVars );
+    Dss_Ntk_t * pNtk = Dss_NtkCreate( pDsd, nVars, NULL );
 //    Dss_NtkPrint( pNtk );
 //    Dss_NtkCheck( pNtk );
 //    Dss_NtkTransform( pNtk );
@@ -1263,7 +1535,7 @@ void Dau_DsdTest_()
 
 
     assert( nVars < DAU_MAX_VAR );
-    p = Dss_ManAlloc( nVars );
+    p = Dss_ManAlloc( nVars, 0 );
 
     // init
     Vec_VecPushInt( vFuncs, 1, Dss_Obj2Lit(Dss_ManVar(p, 0)) );
@@ -1284,14 +1556,14 @@ void Dau_DsdTest_()
                 int fAddInv0 = !Dss_ObjCheckTransparent( p, Dss_ManObj(p, Abc_Lit2Var(pEntries[0])) );
                 int fAddInv1 = !Dss_ObjCheckTransparent( p, Dss_ManObj(p, Abc_Lit2Var(pEntries[1])) );
 
-                iLit = Dss_ManOperation( p, DAU_DSD_AND, pEntries, 2, NULL );
+                iLit = Dss_ManOperation( p, DAU_DSD_AND, pEntries, 2, NULL, NULL );
                 assert( !Abc_LitIsCompl(iLit) );
                 Vec_IntPush( vRes, iLit );
 
                 if ( fAddInv0 )
                 {
                     pEntries[0] = Abc_LitNot( pEntries[0] );
-                    iLit = Dss_ManOperation( p, DAU_DSD_AND, pEntries, 2, NULL );
+                    iLit = Dss_ManOperation( p, DAU_DSD_AND, pEntries, 2, NULL, NULL );
                     pEntries[0] = Abc_LitNot( pEntries[0] );
                     assert( !Abc_LitIsCompl(iLit) );
                     Vec_IntPush( vRes, iLit );
@@ -1300,7 +1572,7 @@ void Dau_DsdTest_()
                 if ( fAddInv1 )
                 {
                     pEntries[1] = Abc_LitNot( pEntries[1] );
-                    iLit = Dss_ManOperation( p, DAU_DSD_AND, pEntries, 2, NULL );
+                    iLit = Dss_ManOperation( p, DAU_DSD_AND, pEntries, 2, NULL, NULL );
                     pEntries[1] = Abc_LitNot( pEntries[1] );
                     assert( !Abc_LitIsCompl(iLit) );
                     Vec_IntPush( vRes, iLit );
@@ -1310,14 +1582,14 @@ void Dau_DsdTest_()
                 {
                     pEntries[0] = Abc_LitNot( pEntries[0] );
                     pEntries[1] = Abc_LitNot( pEntries[1] );
-                    iLit = Dss_ManOperation( p, DAU_DSD_AND, pEntries, 2, NULL );
+                    iLit = Dss_ManOperation( p, DAU_DSD_AND, pEntries, 2, NULL, NULL );
                     pEntries[0] = Abc_LitNot( pEntries[0] );
                     pEntries[1] = Abc_LitNot( pEntries[1] );
                     assert( !Abc_LitIsCompl(iLit) );
                     Vec_IntPush( vRes, iLit );
                 }
 
-                iLit = Dss_ManOperation( p, DAU_DSD_XOR, pEntries, 2, NULL );
+                iLit = Dss_ManOperation( p, DAU_DSD_XOR, pEntries, 2, NULL, NULL );
                 assert( !Abc_LitIsCompl(iLit) );
                 Vec_IntPush( vRes, iLit );
             }
@@ -1342,14 +1614,14 @@ void Dau_DsdTest_()
                 if ( !fAddInv0 && k > j )
                     continue;
 
-                iLit = Dss_ManOperation( p, DAU_DSD_MUX, pEntries, 3, NULL );
+                iLit = Dss_ManOperation( p, DAU_DSD_MUX, pEntries, 3, NULL, NULL );
                 assert( !Abc_LitIsCompl(iLit) );
                 Vec_IntPush( vRes, iLit );
 
                 if ( fAddInv1 )
                 {
                     pEntries[1] = Abc_LitNot( pEntries[1] );
-                    iLit = Dss_ManOperation( p, DAU_DSD_MUX, pEntries, 3, NULL );
+                    iLit = Dss_ManOperation( p, DAU_DSD_MUX, pEntries, 3, NULL, NULL );
                     pEntries[1] = Abc_LitNot( pEntries[1] );
                     assert( !Abc_LitIsCompl(iLit) );
                     Vec_IntPush( vRes, iLit );
@@ -1358,7 +1630,7 @@ void Dau_DsdTest_()
                 if ( fAddInv2 )
                 {
                     pEntries[2] = Abc_LitNot( pEntries[2] );
-                    iLit = Dss_ManOperation( p, DAU_DSD_MUX, pEntries, 3, NULL );
+                    iLit = Dss_ManOperation( p, DAU_DSD_MUX, pEntries, 3, NULL, NULL );
                     pEntries[2] = Abc_LitNot( pEntries[2] );
                     assert( !Abc_LitIsCompl(iLit) );
                     Vec_IntPush( vRes, iLit );
@@ -1367,7 +1639,7 @@ void Dau_DsdTest_()
         }
         Vec_IntUniqify( vRes );
     }
-    Dss_ManPrintAll( p );
+    Dss_ManPrint( p );
 
     Dss_ManFree( p );
     Vec_VecFree( vFuncs );
@@ -1387,7 +1659,7 @@ void Dau_DsdTest_()
 ***********************************************************************/
 void Dau_DsdTest444()
 {
-    Dss_Man_t * p = Dss_ManAlloc( 6 );
+    Dss_Man_t * p = Dss_ManAlloc( 6, 0 );
     int iLit1[3] = { 2, 4 };
     int iLit2[3] = { 2, 4, 6 };
     int iRes[5];
@@ -1400,10 +1672,10 @@ void Dau_DsdTest444()
     unsigned uMaskShared = 2;
     int i;
 
-    iRes[0] = 1 ^ Dss_ManOperation( p, DAU_DSD_AND, iLit1, 2, NULL );
+    iRes[0] = 1 ^ Dss_ManOperation( p, DAU_DSD_AND, iLit1, 2, NULL, NULL );
     iRes[1] = iRes[0]; 
-    iRes[2] = 1 ^ Dss_ManOperation( p, DAU_DSD_AND, iRes, 2, NULL );
-    iRes[3] = Dss_ManOperation( p, DAU_DSD_AND, iLit2, 3, NULL );
+    iRes[2] = 1 ^ Dss_ManOperation( p, DAU_DSD_AND, iRes, 2, NULL, NULL );
+    iRes[3] = Dss_ManOperation( p, DAU_DSD_AND, iLit2, 3, NULL, NULL );
 
     Dss_ManPrintOne( p, iRes[0], NULL );
     Dss_ManPrintOne( p, iRes[2], NULL );
@@ -1412,7 +1684,7 @@ void Dau_DsdTest444()
     Dss_ManPrintOne( p, iRes[2], pPermLits1 );
     Dss_ManPrintOne( p, iRes[3], pPermLits2 );
 
-    iRes[4] = Dss_ManMerge( p, iRes+2, nFans, pPermLits, uMaskShared, 6, pPermRes );
+    iRes[4] = Dss_ManMerge( p, iRes+2, nFans, pPermLits, uMaskShared, 6, pPermRes, NULL );
 
     for ( i = 0; i < 6; i++ )
         pPermResInt[i] = pPermRes[i];

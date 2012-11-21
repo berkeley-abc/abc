@@ -717,7 +717,7 @@ Dau_DsdMergeStorePrintDefs( pS );
 //    assert( nVarsTotal <= 6 );
     sprintf( pS->pOutput, "(%s%s)", pDsd0, pDsd1 );
     pTruth = Dau_DsdToTruth( pS->pOutput, nVarsTotal );
-    Status = Dau_DsdDecompose( pTruth, nVarsTotal, 0, pS->pOutput );
+    Status = Dau_DsdDecompose( pTruth, nVarsTotal, 0, 1, pS->pOutput );
 //printf( "%d ", Status );
     if ( Status == -1 ) // did not find 1-step DSD
         return NULL;

@@ -896,7 +896,7 @@ int Dau_DsdCheck1Step( word * pTruth, int nVarsInit )
     int nWords = Abc_TtWordNum(nVarsInit);
     int nSizeNonDec, nSizeNonDec0, nSizeNonDec1;
     int v, vBest = -2, nSumCofsBest = ABC_INFINITY, nSumCofs;
-    nSizeNonDec = Dau_DsdDecompose( pTruth, nVarsInit, 0, NULL );
+    nSizeNonDec = Dau_DsdDecompose( pTruth, nVarsInit, 0, 0, NULL );
     if ( nSizeNonDec == 0 )
         return -1;
     assert( nSizeNonDec > 0 );
@@ -905,11 +905,11 @@ int Dau_DsdCheck1Step( word * pTruth, int nVarsInit )
         // try first cofactor
         Abc_TtCofactor0p( pCofTemp, pTruth, nWords, v );
         nSumCofs = Abc_TtSupportSize( pCofTemp, nVarsInit );
-        nSizeNonDec0 = Dau_DsdDecompose( pCofTemp, nVarsInit, 0, NULL );
+        nSizeNonDec0 = Dau_DsdDecompose( pCofTemp, nVarsInit, 0, 0, NULL );
         // try second cofactor
         Abc_TtCofactor1p( pCofTemp, pTruth, nWords, v );
         nSumCofs += Abc_TtSupportSize( pCofTemp, nVarsInit );
-        nSizeNonDec1 = Dau_DsdDecompose( pCofTemp, nVarsInit, 0, NULL );
+        nSizeNonDec1 = Dau_DsdDecompose( pCofTemp, nVarsInit, 0, 0, NULL );
         // compare cofactors
         if ( nSizeNonDec0 || nSizeNonDec1 )
             continue;
@@ -943,6 +943,7 @@ struct Dau_Dsd_t_
     int      nConsts;              // the number of constant decompositions
     int      uConstMask;           // constant decomposition mask
     int      fSplitPrime;          // represent prime function as 1-step DSD
+    int      fWriteTruth;          // writing truth table as a hex string
     char     pVarDefs[32][8];      // variable definitions
     char     Cache[32][32];        // variable cache
     char     pOutput[DAU_MAX_STR]; // output stream
@@ -1023,19 +1024,19 @@ static inline int Dau_DsdWritePrime( Dau_Dsd_t * p, word * pTruth, int * pVars, 
             Dau_DsdWriteVar( p, pVars[vBest], 0 );
             // split decomposition
             Abc_TtCofactor1p( pCofTemp, pTruth, nWords, vBest );
-            nNonDecSize = Dau_DsdDecompose( pCofTemp, nVars, 0, pRes );
+            nNonDecSize = Dau_DsdDecompose( pCofTemp, nVars, 0, p->fWriteTruth, pRes );
             assert( nNonDecSize == 0 );
             Dau_DsdWriteString( p, pRes );
             // split decomposition
             Abc_TtCofactor0p( pCofTemp, pTruth, nWords, vBest );
-            nNonDecSize = Dau_DsdDecompose( pCofTemp, nVars, 0, pRes );
+            nNonDecSize = Dau_DsdDecompose( pCofTemp, nVars, 0, p->fWriteTruth, pRes );
             assert( nNonDecSize == 0 );
             Dau_DsdWriteString( p, pRes );
             Dau_DsdWriteString( p, ">" );
             RetValue = 1;
         }
     }
-    else
+    else if ( p->fWriteTruth )
         p->nPos += Abc_TtWriteHexRev( p->pOutput + p->nPos, pTruth, nVars );
     Dau_DsdWriteString( p, "{" );
     for ( v = 0; v < nVars; v++ )
@@ -1333,11 +1334,15 @@ static inline int Dau_Dsd6DecomposeTripleVarsOuter( Dau_Dsd_t * p, word  * pTrut
     Dau_DsdDecomposeInt( p1, &tCof1, nVars - 1 );
     Dau_DsdTranslate( p, pVars, nVars - 1, p1->pOutput );
     p->nSizeNonDec = p1->nSizeNonDec;
+    if ( p1->nSizeNonDec )
+        *pTruth = tCof1;
     // split decomposition
     Dau_DsdDecomposeInt( p1, &tCof0, nVars - 1 );
     Dau_DsdTranslate( p, pVars, nVars - 1, p1->pOutput );
     Dau_DsdWriteString( p, ">" );
     p->nSizeNonDec = Abc_MaxInt( p->nSizeNonDec, p1->nSizeNonDec );
+    if ( p1->nSizeNonDec )
+        *pTruth = tCof0;
     return 0;
 }
 static inline int Dau_Dsd6DecomposeTripleVarsInner( Dau_Dsd_t * p, word  * pTruth, int * pVars, int nVars, int v, unsigned uSupports )
@@ -1693,6 +1698,7 @@ static inline int Dau_DsdDecomposeTripleVarsOuter( Dau_Dsd_t * p, word  * pTruth
     word pTtCof[2][DAU_MAX_WORD];
     int nWords = Abc_TtWordNum(nVars);
     p1->fSplitPrime = 0;
+    p1->fWriteTruth = p->fWriteTruth;
     // move this variable to the top
     ABC_SWAP( int, pVars[v], pVars[nVars-1] );
     Abc_TtSwapVars( pTruth, nVars, v, nVars-1 );
@@ -1708,11 +1714,15 @@ static inline int Dau_DsdDecomposeTripleVarsOuter( Dau_Dsd_t * p, word  * pTruth
     Dau_DsdDecomposeInt( p1, pTtCof[1], nVars - 1 );
     Dau_DsdTranslate( p, pVars, nVars - 1, p1->pOutput );
     p->nSizeNonDec = p1->nSizeNonDec;
+    if ( p1->nSizeNonDec )
+        Abc_TtCopy( pTruth, pTtCof[1], Abc_TtWordNum(p1->nSizeNonDec), 0 );
     // split decomposition
     Dau_DsdDecomposeInt( p1, pTtCof[0], nVars - 1 );
     Dau_DsdTranslate( p, pVars, nVars - 1, p1->pOutput );
     Dau_DsdWriteString( p, ">" );
     p->nSizeNonDec = Abc_MaxInt( p->nSizeNonDec, p1->nSizeNonDec );
+    if ( p1->nSizeNonDec )
+        Abc_TtCopy( pTruth, pTtCof[0], Abc_TtWordNum(p1->nSizeNonDec), 0 );
     return 0;
 }
 static inline int Dau_DsdDecomposeTripleVarsInner( Dau_Dsd_t * p, word  * pTruth, int * pVars, int nVars, int v, unsigned uSupports )
@@ -1863,10 +1873,11 @@ int Dau_DsdDecomposeInt( Dau_Dsd_t * p, word * pTruth, int nVarsInit )
     Dau_DsdFinalize( p );
     return Status;
 }
-int Dau_DsdDecompose( word * pTruth, int nVarsInit, int fSplitPrime, char * pRes )
+int Dau_DsdDecompose( word * pTruth, int nVarsInit, int fSplitPrime, int fWriteTruth, char * pRes )
 {
     Dau_Dsd_t P, * p = &P;
     p->fSplitPrime = fSplitPrime;
+    p->fWriteTruth = fWriteTruth;
     p->nSizeNonDec = 0;
     if ( (pTruth[0] & 1) == 0 && Abc_TtIsConst0(pTruth, Abc_TtWordNum(nVarsInit)) )
         { if ( pRes ) pRes[0] = '0', pRes[1] = 0; }
@@ -1885,6 +1896,12 @@ int Dau_DsdDecompose( word * pTruth, int nVarsInit, int fSplitPrime, char * pRes
 //    assert( p->nSizeNonDec == 0 );
     return p->nSizeNonDec;
 }
+void Dau_DsdPrintFromTruth( FILE * pFile, word * pTruth, int nVarsInit )
+{
+    char pRes[DAU_MAX_STR];
+    Dau_DsdDecompose( pTruth, nVarsInit, 0, 1, pRes );
+    fprintf( pFile, "%s\n", pRes );
+}
 
 void Dau_DsdTest44()
 {
@@ -1899,7 +1916,7 @@ void Dau_DsdTest44()
 //    char * pStr3;
     word t = Dau_Dsd6ToTruth( pStr );
 //    return;
-    int nNonDec = Dau_DsdDecompose( &t, 6, 1, pRes );
+    int nNonDec = Dau_DsdDecompose( &t, 6, 1, 1, pRes );
 //    Dau_DsdNormalize( pStr2 );
 //    Dau_DsdExtract( pStr, 2, 0 );
     t = 0; 
@@ -1937,7 +1954,7 @@ void Dau_DsdTest888()
         Dau_DsdPrintSupports( uSupp, nVars );
     }
 */
-    Status = Dau_DsdDecompose( pTruth, nVars, 0, pDsd );
+    Status = Dau_DsdDecompose( pTruth, nVars, 0, 0, pDsd );
     i = 0;
 }
 
@@ -1973,7 +1990,7 @@ void Dau_DsdTest555()
             Abc_TtCopy( Tru[0], pTruth, nWords, 0 );
             Abc_TtCopy( Tru[1], pTruth, nWords, 0 );
             clk2 = clock();
-            nSizeNonDec = Dau_DsdDecompose( Tru[1], nVars, 0, pRes );
+            nSizeNonDec = Dau_DsdDecompose( Tru[1], nVars, 0, 1, pRes );
             clkDec += clock() - clk2;
             Dau_DsdNormalize( pRes );
 //            pStr2 = Dau_DsdPerform( t ); nSizeNonDec = 0;

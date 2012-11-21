@@ -85,7 +85,7 @@ If_Man_t * If_ManStart( If_Par_t * pPars )
     {
 //    p->pNamDsd   = Abc_NamStart( 1000, 20 );
 //    p->iNamVar   = Abc_NamStrFindOrAdd( p->pNamDsd, "a", NULL );
-        p->pDsdMan = Dss_ManAlloc( pPars->nLutSize );
+        p->pDsdMan = Dss_ManAlloc( pPars->nLutSize, pPars->nNonDecLimit );
         p->iNamVar = 2;
     }
 
@@ -165,6 +165,7 @@ void If_ManStop( If_Man_t * p )
 //        Abc_NamPrint( p->pNamDsd );
         Abc_NamStop( p->pNamDsd );
 */
+        Dss_ManPrint( p->pDsdMan );
         Dss_ManFree( p->pDsdMan );
     }
 //    Abc_PrintTime( 1, "Truth", p->timeTruth );

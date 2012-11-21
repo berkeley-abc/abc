@@ -14561,7 +14561,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     fLutMux = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KCFAGDEWSqaflepmrsdbugyojikcnvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KCFAGNDEWSqaflepmrsdbugyojikcnvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -14620,6 +14620,17 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->nGateSize = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( pPars->nGateSize < 2 )
+                goto usage;
+            break;
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-N\" should be followed by a positive integer no less than 3.\n" );
+                goto usage;
+            }
+            pPars->nNonDecLimit = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nNonDecLimit < 2 )
                 goto usage;
             break;
         case 'D':
@@ -14894,6 +14905,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         pPars->fTruth      =  1;
         pPars->fCutMin     =  1;
+        pPars->fExpRed     =  0;
         pPars->fUsePerm    =  1;
     }
 
@@ -14988,12 +15000,13 @@ usage:
         sprintf(LutSize, "library" );
     else
         sprintf(LutSize, "%d", pPars->nLutSize );
-    Abc_Print( -2, "usage: if [-KCFAG num] [-DEW float] [-S str] [-qarlepmsdbugyojikcnvh]\n" );
+    Abc_Print( -2, "usage: if [-KCFANG num] [-DEW float] [-S str] [-qarlepmsdbugyojikcnvh]\n" );
     Abc_Print( -2, "\t           performs FPGA technology mapping of the network\n" );
     Abc_Print( -2, "\t-K num   : the number of LUT inputs (2 < num < %d) [default = %s]\n", IF_MAX_LUTSIZE+1, LutSize );
     Abc_Print( -2, "\t-C num   : the max number of priority cuts (0 < num < 2^12) [default = %d]\n", pPars->nCutsMax );
     Abc_Print( -2, "\t-F num   : the number of area flow recovery iterations (num >= 0) [default = %d]\n", pPars->nFlowIters );
     Abc_Print( -2, "\t-A num   : the number of exact area recovery iterations (num >= 0) [default = %d]\n", pPars->nAreaIters );
+    Abc_Print( -2, "\t-N num   : the max size of non-decomposable nodes [default = unused]\n", pPars->nNonDecLimit );
     Abc_Print( -2, "\t-G num   : the max AND/OR gate size for mapping (0 = unused) [default = %d]\n", pPars->nGateSize );
     Abc_Print( -2, "\t-D float : sets the delay constraint for the mapping [default = %s]\n", Buffer );
     Abc_Print( -2, "\t-E float : sets epsilon used for tie-breaking [default = %f]\n", pPars->Epsilon );
@@ -27472,6 +27485,7 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         pPars->fTruth      =  1;
         pPars->fCutMin     =  1;
+        pPars->fExpRed     =  0;
         pPars->fUsePerm    =  1;
     }
 

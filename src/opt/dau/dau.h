@@ -77,20 +77,23 @@ static inline int Dau_DsdReadVar( char * p )  { if ( *p == '!' ) p++; return *p 
 /*=== dauCanon.c ==========================================================*/
 extern unsigned      Abc_TtCanonicize( word * pTruth, int nVars, char * pCanonPerm );
 /*=== dauDsd.c  ==========================================================*/
-extern int           Dau_DsdDecompose( word * pTruth, int nVarsInit, int fSplitPrime, char * pRes );
+extern int           Dau_DsdDecompose( word * pTruth, int nVarsInit, int fSplitPrime, int fWriteTruth, char * pRes );
+extern void          Dau_DsdPrintFromTruth( FILE * pFile, word * pTruth, int nVarsInit );
 extern word *        Dau_DsdToTruth( char * p, int nVars );
 extern word          Dau_Dsd6ToTruth( char * p );
 extern void          Dau_DsdNormalize( char * p );
 extern int           Dau_DsdCountAnds( char * pDsd );
+extern void          Dau_DsdTruthCompose_rec( word * pFunc, word pFanins[DAU_MAX_VAR][DAU_MAX_WORD], word * pRes, int nVars, int nWordsR );
 
 /*=== dauMerge.c  ==========================================================*/
 extern void          Dau_DsdRemoveBraces( char * pDsd, int * pMatches );
 extern char *        Dau_DsdMerge( char * pDsd0i, int * pPerm0, char * pDsd1i, int * pPerm1, int fCompl0, int fCompl1, int nVars );
 
-/*=== dauMerge.c  ==========================================================*/
-extern Dss_Man_t *   Dss_ManAlloc( int nVars );
+/*=== dauTree.c  ==========================================================*/
+extern Dss_Man_t *   Dss_ManAlloc( int nVars, int nNonDecLimit );
 extern void          Dss_ManFree( Dss_Man_t * p );
-extern int           Dss_ManMerge( Dss_Man_t * p, int * iDsd, int * nFans, int ** pFans, unsigned uSharedMask, int nKLutSize, unsigned char * pPerm );
+extern int           Dss_ManMerge( Dss_Man_t * p, int * iDsd, int * nFans, int ** pFans, unsigned uSharedMask, int nKLutSize, unsigned char * pPerm, word * pTruth );
+extern void          Dss_ManPrint( Dss_Man_t * p );
 
 
 ABC_NAMESPACE_HEADER_END

@@ -547,7 +547,7 @@ void Abc_TruthDecPerform( Abc_TtStore_t * p, int DecType, int fVerbose )
         {
             if ( fVerbose )
                 printf( "%7d :      ", i );
-            Dau_DsdDecompose( p->pFuncs[i], p->nVars, 0, pDsd );
+            Dau_DsdDecompose( p->pFuncs[i], p->nVars, 0, 1, pDsd );
             if ( fVerbose )
                 printf( "%s\n", pDsd );
             nNodes += Dau_DsdCountAnds( pDsd );

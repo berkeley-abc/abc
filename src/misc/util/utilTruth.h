@@ -657,15 +657,15 @@ static inline void Abc_TtPrintHex( word * pTruth, int nVars )
             printf( "%c", Abc_TtPrintDigit((int)(pThis[0] >> (k << 2)) & 15) );
     printf( "\n" );
 }
-static inline void Abc_TtPrintHexRev( word * pTruth, int nVars )
+static inline void Abc_TtPrintHexRev( FILE * pFile, word * pTruth, int nVars )
 {
     word * pThis;
-    int k;
+    int k, StartK = nVars >= 6 ? 16 : (1 << (nVars - 2));
     assert( nVars >= 2 );
     for ( pThis = pTruth + Abc_TtWordNum(nVars) - 1; pThis >= pTruth; pThis-- )
-        for ( k = 15; k >= 0; k-- )
-            printf( "%c", Abc_TtPrintDigit((int)(pThis[0] >> (k << 2)) & 15) );
-    printf( "\n" );
+        for ( k = StartK - 1; k >= 0; k-- )
+            fprintf( pFile, "%c", Abc_TtPrintDigit((int)(pThis[0] >> (k << 2)) & 15) );
+//    printf( "\n" );
 }
 static inline void Abc_TtPrintHexSpecial( word * pTruth, int nVars )
 {
