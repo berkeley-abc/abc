@@ -57,6 +57,7 @@ struct Abc_Cex_t_
 
 /*=== utilCex.c ===========================================================*/
 extern Abc_Cex_t *   Abc_CexAlloc( int nRegs, int nTruePis, int nFrames );
+extern Abc_Cex_t *   Abc_CexAllocFull( int nRegs, int nTruePis, int nFrames );
 extern Abc_Cex_t *   Abc_CexMakeTriv( int nRegs, int nTruePis, int nTruePos, int iFrameOut );
 extern Abc_Cex_t *   Abc_CexCreate( int nRegs, int nTruePis, int * pArray, int iFrame, int iPo, int fSkipRegs );
 extern Abc_Cex_t *   Abc_CexDup( Abc_Cex_t * p, int nRegsNew );

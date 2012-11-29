@@ -928,6 +928,7 @@ extern void                Gia_ManRandomInfo( Vec_Ptr_t * vInfo, int iInputStart
 extern char *              Gia_TimeStamp();
 extern char *              Gia_FileNameGenericAppend( char * pBase, char * pSuffix );
 extern void                Gia_ManIncrementTravId( Gia_Man_t * p );
+extern void                Gia_ManCleanMark01( Gia_Man_t * p );
 extern void                Gia_ManSetMark0( Gia_Man_t * p );
 extern void                Gia_ManCleanMark0( Gia_Man_t * p );
 extern void                Gia_ManCheckMark0( Gia_Man_t * p );

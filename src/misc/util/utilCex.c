@@ -59,6 +59,17 @@ Abc_Cex_t * Abc_CexAlloc( int nRegs, int nRealPis, int nFrames )
     pCex->nBits  = nRegs + nRealPis * nFrames;
     return pCex;
 }
+Abc_Cex_t * Abc_CexAllocFull( int nRegs, int nRealPis, int nFrames )
+{
+    Abc_Cex_t * pCex;
+    int nWords = Abc_BitWordNum( nRegs + nRealPis * nFrames );
+    pCex = (Abc_Cex_t *)ABC_ALLOC( char, sizeof(Abc_Cex_t) + sizeof(unsigned) * nWords );
+    memset( pCex, 0xFF, sizeof(Abc_Cex_t) + sizeof(unsigned) * nWords );
+    pCex->nRegs  = nRegs;
+    pCex->nPis   = nRealPis;
+    pCex->nBits  = nRegs + nRealPis * nFrames;
+    return pCex;
+}
 
 /**Function*************************************************************
 

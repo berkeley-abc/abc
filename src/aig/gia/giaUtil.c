@@ -168,6 +168,25 @@ void Gia_ManIncrementTravId( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
+void Gia_ManCleanMark01( Gia_Man_t * p )  
+{
+    Gia_Obj_t * pObj;
+    int i;
+    Gia_ManForEachObj( p, pObj, i )
+        pObj->fMark0 = pObj->fMark1 = 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Sets phases of the internal nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 void Gia_ManSetMark0( Gia_Man_t * p )  
 {
     Gia_Obj_t * pObj;
