@@ -366,6 +366,7 @@ static int Abc_CommandAbc9ReachN             ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9ReachY             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Undo               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Iso                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9CexInfo            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 //static int Abc_CommandAbc9CexCut             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 //static int Abc_CommandAbc9CexMerge           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 //static int Abc_CommandAbc9CexMin             ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -824,6 +825,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&reachy",       Abc_CommandAbc9ReachY,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&undo",         Abc_CommandAbc9Undo,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&iso",          Abc_CommandAbc9Iso,          0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&cexinfo",      Abc_CommandAbc9CexInfo,      0 );
 //    Cmd_CommandAdd( pAbc, "ABC9",         "&cexcut",       Abc_CommandAbc9CexCut,       0 );
 //    Cmd_CommandAdd( pAbc, "ABC9",         "&cexmerge",     Abc_CommandAbc9CexMerge,     0 );
 //    Cmd_CommandAdd( pAbc, "ABC9",         "&cexmin",       Abc_CommandAbc9CexMin,       0 );
@@ -28849,6 +28851,61 @@ usage:
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9CexInfo( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Bmc_CexTest( Gia_Man_t * p, Abc_Cex_t * pCex );
+    int c, fDualOut = 0, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "dvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'd':
+            fDualOut ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9CexInfo(): There is no AIG.\n" );
+        return 1;
+    }
+    if ( pAbc->pCex == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9CexInfo(): There is no CEX.\n" );
+        return 1;
+    }
+    Bmc_CexTest( pAbc->pGia, pAbc->pCex );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &cexinfo [-vh]\n" );
+    Abc_Print( -2, "\t         prints information about counter-examples\n" );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+
 
 /**Function*************************************************************
 

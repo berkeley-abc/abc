@@ -151,9 +151,10 @@ Abc_Cex_t * Bmc_CexInnerStates( Gia_Man_t * p, Abc_Cex_t * pCex, Abc_Cex_t ** pp
     // set init state
     Gia_ManForEachRi( p, pObjRi, k )
     {
-        pObjRi->fMark0 = Abc_InfoHasBit(pCex->pData, iBit++);
+        pObjRi->fMark0 = 0;
         pObjRi->fMark1 = 1;
     }
+    iBit = pCex->nRegs;
     for ( i = 0; i <= pCex->iFrame; i++ )
     {
         Gia_ManForEachPi( p, pObj, k )
@@ -312,7 +313,9 @@ Abc_Cex_t * Bmc_CexCareBits( Gia_Man_t * p, Abc_Cex_t * pCexState, Abc_Cex_t * p
         Gia_ManForEachCi( p, pObj, k )
         {
             pObj->fMark0 = Abc_InfoHasBit(pCexState->pData, iBit+k);
-            pObj->fMark1 = Abc_InfoHasBit(pCexImpl->pData, iBit+k);
+            pObj->fMark1 = 0;
+            if ( pCexImpl )
+                pObj->fMark1 |= Abc_InfoHasBit(pCexImpl->pData, iBit+k);
             if ( pCexEss )
                 pObj->fMark1 |= Abc_InfoHasBit(pCexEss->pData, iBit+k);
         }
@@ -358,7 +361,7 @@ Abc_Cex_t * Bmc_CexCareBits( Gia_Man_t * p, Abc_Cex_t * pCexState, Abc_Cex_t * p
             if ( pObj->fMark1 )
             {
                 pObj->fMark1 = 0;
-                if ( !Abc_InfoHasBit(pCexImpl->pData, pNew->nPis * i + k) )
+                if ( pCexImpl == NULL || !Abc_InfoHasBit(pCexImpl->pData, pNew->nPis * i + k) )
                     Abc_InfoSetBit(pNew->pData, pNew->nPis * i + k);
             }
     }
@@ -495,7 +498,7 @@ Abc_Cex_t * Bmc_CexEssentialBits( Gia_Man_t * p, Abc_Cex_t * pCexState, Abc_Cex_
 {
     Abc_Cex_t * pNew, * pTemp, * pPrev = NULL;
     int b, fEqual = 0, fPrevStatus = 0;
-    clock_t clk = clock();
+//    clock_t clk = clock();
     assert( pCexState->nBits == pCexCare->nBits );
     // start the counter-example
     pNew = Abc_CexAlloc( 0, Gia_ManCiNum(p), pCexState->iFrame + 1 );
@@ -534,13 +537,76 @@ Abc_Cex_t * Bmc_CexEssentialBits( Gia_Man_t * p, Abc_Cex_t * pCexState, Abc_Cex_
             Abc_InfoSetBit( pNew->pData, b );
     }
     Abc_CexFreeP( &pPrev );
-    Abc_PrintTime( 1, "Time", clock() - clk );
+//    Abc_PrintTime( 1, "Time", clock() - clk );
     printf( "Essentials:   " );
     Bmc_CexPrint( pNew, Gia_ManPiNum(p) );
     return pNew;
 }
  
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Bmc_CexBitCount( Abc_Cex_t * p, int nInputs )
+{
+    int k, Counter = 0, Counter2 = 0;
+    if ( p == NULL )
+    {
+        printf( "The counter example is NULL.\n" );
+        return -1;
+    }
+    for ( k = 0; k < p->nBits; k++ )
+    {
+        Counter += Abc_InfoHasBit(p->pData, k);
+        if ( (k - p->nRegs) % p->nPis < nInputs )
+            Counter2 += Abc_InfoHasBit(p->pData, k);
+    }
+    return Counter2;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Bmc_CexDumpStats( Gia_Man_t * p, Abc_Cex_t * pCex, Abc_Cex_t * pCexCare, Abc_Cex_t * pCexEss, Abc_Cex_t * pCexMin, clock_t clk )
+{
+    int nInputs    = Gia_ManPiNum(p);
+    int nBitsTotal = (pCex->iFrame + 1) * nInputs;
+    int nBitsCare  = Bmc_CexBitCount(pCexCare, nInputs);
+    int nBitsDC    = nBitsTotal - nBitsCare;
+    int nBitsEss   = Bmc_CexBitCount(pCexEss, nInputs);
+    int nBitsOpt   = nBitsCare - nBitsEss;
+    int nBitsMin   = Bmc_CexBitCount(pCexMin, nInputs);
+
+    FILE * pTable  = fopen( "cex/stats.txt", "a+" );
+    fprintf( pTable, "%s ", p->pName );
+    fprintf( pTable, "%d ", nInputs );
+    fprintf( pTable, "%d ", Gia_ManRegNum(p) );
+    fprintf( pTable, "%d ", pCex->iFrame + 1 );
+    fprintf( pTable, "%d ", nBitsTotal );
+    fprintf( pTable, "%.2f ", 100.0 * nBitsDC  / nBitsTotal );
+    fprintf( pTable, "%.2f ", 100.0 * nBitsOpt / nBitsTotal );
+    fprintf( pTable, "%.2f ", 100.0 * nBitsEss / nBitsTotal );
+    fprintf( pTable, "%.2f ", 100.0 * nBitsMin / nBitsTotal );
+    fprintf( pTable, "%.2f ", 1.0*clk/(CLOCKS_PER_SEC) );
+    fprintf( pTable, "\n" );
+    fclose( pTable );
+}
 
 /**Function*************************************************************
 
@@ -555,30 +621,30 @@ Abc_Cex_t * Bmc_CexEssentialBits( Gia_Man_t * p, Abc_Cex_t * pCexState, Abc_Cex_
 ***********************************************************************/
 void Bmc_CexTest( Gia_Man_t * p, Abc_Cex_t * pCex )
 {
-    Abc_Cex_t * pCexImpl = NULL;
+    clock_t clk = clock();
+    Abc_Cex_t * pCexImpl   = NULL;
     Abc_Cex_t * pCexStates = Bmc_CexInnerStates( p, pCex, &pCexImpl );
-    Abc_Cex_t * pCexCare = Bmc_CexCareBits( p, pCexStates, pCexImpl, NULL, 1 );
+    Abc_Cex_t * pCexCare   = Bmc_CexCareBits( p, pCexStates, pCexImpl, NULL, 1 );
     Abc_Cex_t * pCexEss, * pCexMin;
 
     if ( !Bmc_CexVerify( p, pCex, pCexCare ) )
         printf( "Counter-example care-set verification has failed.\n" );
 
-//    Bmc_CexEssentialBitTest( p, pCexStates );
     pCexEss = Bmc_CexEssentialBits( p, pCexStates, pCexCare );
-
     pCexMin = Bmc_CexCareBits( p, pCexStates, pCexImpl, pCexEss, 0 );
 
     if ( !Bmc_CexVerify( p, pCex, pCexMin ) )
-        printf( "Counter-example care-set verification has failed.\n" );
+        printf( "Counter-example min-set verification has failed.\n" );
 
-//    if ( !Bmc_CexVerify( p, pCex, pCexEss ) )
-//        printf( "Counter-example care-set verification has failed.\n" );
+//    Bmc_CexDumpStats( p, pCex, pCexCare, pCexEss, pCexMin, clock() - clk );
 
     Abc_CexFreeP( &pCexStates );
     Abc_CexFreeP( &pCexImpl );
     Abc_CexFreeP( &pCexCare );
     Abc_CexFreeP( &pCexEss );
     Abc_CexFreeP( &pCexMin );
+
+    Abc_PrintTime( 1, "Time", clock() - clk );
 }
 
 ////////////////////////////////////////////////////////////////////////
