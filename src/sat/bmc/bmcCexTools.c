@@ -48,11 +48,12 @@ static inline int  Bmc_CexSim( Vec_Wrd_t * vSims, int iObj, int i )             
   SeeAlso     []
 
 ***********************************************************************/
-void Bmc_CexPrint( Abc_Cex_t * pCex, int nInputs )
+void Bmc_CexPrint( Abc_Cex_t * pCex, int nInputs, int fVerbose )
 {
     int i, k, Count, iBit = 0;
     Abc_CexPrintStatsInputs( pCex, nInputs );
-    return;
+    if ( !fVerbose )
+        return;
 
     for ( i = 0; i <= pCex->iFrame; i++ )
     {
@@ -128,7 +129,7 @@ int Bmc_CexVerify( Gia_Man_t * p, Abc_Cex_t * pCex, Abc_Cex_t * pCexCare )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Cex_t * Bmc_CexInnerStates( Gia_Man_t * p, Abc_Cex_t * pCex, Abc_Cex_t ** ppCexImpl )
+Abc_Cex_t * Bmc_CexInnerStates( Gia_Man_t * p, Abc_Cex_t * pCex, Abc_Cex_t ** ppCexImpl, int fVerbose )
 {
     Abc_Cex_t * pNew, * pNew2;
     Gia_Obj_t * pObj, * pObjRo, * pObjRi;
@@ -210,9 +211,9 @@ Abc_Cex_t * Bmc_CexInnerStates( Gia_Man_t * p, Abc_Cex_t * pCex, Abc_Cex_t ** pp
     assert( Gia_ManPo(p, pCex->iPo)->fMark0 == 1 );
 
     printf( "Inner states: " );
-    Bmc_CexPrint( pNew, Gia_ManPiNum(p) );
+    Bmc_CexPrint( pNew, Gia_ManPiNum(p), fVerbose );
     printf( "Implications: " );
-    Bmc_CexPrint( pNew2, Gia_ManPiNum(p) );
+    Bmc_CexPrint( pNew2, Gia_ManPiNum(p), fVerbose );
     if ( ppCexImpl )
         *ppCexImpl = pNew2;
     else
@@ -290,7 +291,7 @@ void Bmc_CexCareBits2_rec( Gia_Man_t * p, Gia_Obj_t * pObj )
             Bmc_CexCareBits2_rec( p, Gia_ObjFanin1(pObj) );
     }
 }
-Abc_Cex_t * Bmc_CexCareBits( Gia_Man_t * p, Abc_Cex_t * pCexState, Abc_Cex_t * pCexImpl, Abc_Cex_t * pCexEss, int fFindAll )
+Abc_Cex_t * Bmc_CexCareBits( Gia_Man_t * p, Abc_Cex_t * pCexState, Abc_Cex_t * pCexImpl, Abc_Cex_t * pCexEss, int fFindAll, int fVerbose )
 {
     Abc_Cex_t * pNew;
     Gia_Obj_t * pObj;
@@ -365,8 +366,11 @@ Abc_Cex_t * Bmc_CexCareBits( Gia_Man_t * p, Abc_Cex_t * pCexState, Abc_Cex_t * p
                     Abc_InfoSetBit(pNew->pData, pNew->nPis * i + k);
             }
     }
-    printf( "Care bits:    " );
-    Bmc_CexPrint( pNew, Gia_ManPiNum(p) );
+    if ( pCexEss )
+        printf( "Minimized:    " );
+    else
+        printf( "Care bits:    " );
+    Bmc_CexPrint( pNew, Gia_ManPiNum(p), fVerbose );
     return pNew;
 }
 
@@ -472,7 +476,7 @@ void Bmc_CexEssentialBitTest( Gia_Man_t * p, Abc_Cex_t * pCexState )
         if ( b % 100 )
             continue;
         pNew = Bmc_CexEssentialBitOne( p, pCexState, b, NULL, NULL );
-        Bmc_CexPrint( pNew, Gia_ManPiNum(p) );
+        Bmc_CexPrint( pNew, Gia_ManPiNum(p), 0 );
 
         if ( Gia_ManPo(p, pCexState->iPo)->fMark1 )
             printf( "Not essential\n" );
@@ -494,7 +498,7 @@ void Bmc_CexEssentialBitTest( Gia_Man_t * p, Abc_Cex_t * pCexState )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Cex_t * Bmc_CexEssentialBits( Gia_Man_t * p, Abc_Cex_t * pCexState, Abc_Cex_t * pCexCare )
+Abc_Cex_t * Bmc_CexEssentialBits( Gia_Man_t * p, Abc_Cex_t * pCexState, Abc_Cex_t * pCexCare, int fVerbose )
 {
     Abc_Cex_t * pNew, * pTemp, * pPrev = NULL;
     int b, fEqual = 0, fPrevStatus = 0;
@@ -527,7 +531,7 @@ Abc_Cex_t * Bmc_CexEssentialBits( Gia_Man_t * p, Abc_Cex_t * pCexState, Abc_Cex_
                 Abc_InfoSetBit( pNew->pData, b );
             continue;
         }
-//        Bmc_CexPrint( pTemp, Gia_ManPiNum(p) );
+//        Bmc_CexPrint( pTemp, Gia_ManPiNum(p), fVerbose );
         Abc_CexFree( pPrev );
         pPrev = pTemp;
 
@@ -539,7 +543,7 @@ Abc_Cex_t * Bmc_CexEssentialBits( Gia_Man_t * p, Abc_Cex_t * pCexState, Abc_Cex_
     Abc_CexFreeP( &pPrev );
 //    Abc_PrintTime( 1, "Time", clock() - clk );
     printf( "Essentials:   " );
-    Bmc_CexPrint( pNew, Gia_ManPiNum(p) );
+    Bmc_CexPrint( pNew, Gia_ManPiNum(p), fVerbose );
     return pNew;
 }
  
@@ -619,19 +623,19 @@ void Bmc_CexDumpStats( Gia_Man_t * p, Abc_Cex_t * pCex, Abc_Cex_t * pCexCare, Ab
   SeeAlso     []
 
 ***********************************************************************/
-void Bmc_CexTest( Gia_Man_t * p, Abc_Cex_t * pCex )
+void Bmc_CexTest( Gia_Man_t * p, Abc_Cex_t * pCex, int fVerbose )
 {
     clock_t clk = clock();
     Abc_Cex_t * pCexImpl   = NULL;
-    Abc_Cex_t * pCexStates = Bmc_CexInnerStates( p, pCex, &pCexImpl );
-    Abc_Cex_t * pCexCare   = Bmc_CexCareBits( p, pCexStates, pCexImpl, NULL, 1 );
+    Abc_Cex_t * pCexStates = Bmc_CexInnerStates( p, pCex, &pCexImpl, fVerbose );
+    Abc_Cex_t * pCexCare   = Bmc_CexCareBits( p, pCexStates, pCexImpl, NULL, 1, fVerbose );
     Abc_Cex_t * pCexEss, * pCexMin;
 
     if ( !Bmc_CexVerify( p, pCex, pCexCare ) )
         printf( "Counter-example care-set verification has failed.\n" );
 
-    pCexEss = Bmc_CexEssentialBits( p, pCexStates, pCexCare );
-    pCexMin = Bmc_CexCareBits( p, pCexStates, pCexImpl, pCexEss, 0 );
+    pCexEss = Bmc_CexEssentialBits( p, pCexStates, pCexCare, fVerbose );
+    pCexMin = Bmc_CexCareBits( p, pCexStates, pCexImpl, pCexEss, 0, fVerbose );
 
     if ( !Bmc_CexVerify( p, pCex, pCexMin ) )
         printf( "Counter-example min-set verification has failed.\n" );

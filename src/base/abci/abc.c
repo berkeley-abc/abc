@@ -28865,7 +28865,7 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9CexInfo( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Bmc_CexTest( Gia_Man_t * p, Abc_Cex_t * pCex );
+    extern void Bmc_CexTest( Gia_Man_t * p, Abc_Cex_t * pCex, int fVerbose );
     int c, fDualOut = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "dvh" ) ) != EOF )
@@ -28894,12 +28894,12 @@ int Abc_CommandAbc9CexInfo( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9CexInfo(): There is no CEX.\n" );
         return 1;
     }
-    Bmc_CexTest( pAbc->pGia, pAbc->pCex );
+    Bmc_CexTest( pAbc->pGia, pAbc->pCex, fVerbose );
     return 0;
 
 usage:
     Abc_Print( -2, "usage: &cexinfo [-vh]\n" );
-    Abc_Print( -2, "\t         prints information about counter-examples\n" );
+    Abc_Print( -2, "\t         prints information about the current counter-example\n" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
@@ -30192,8 +30192,8 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    extern int Gia_ManSuppSizeTest( Gia_Man_t * p );
 //    extern void Gia_VtaTest( Gia_Man_t * p, int nFramesStart, int nFramesMax, int nConfMax, int nTimeMax, int fVerbose );
 //    extern void Gia_IsoTest( Gia_Man_t * p, int fVerbose );
-    extern void Ga2_ManComputeTest( Gia_Man_t * p );
-    extern void Bmc_CexTest( Gia_Man_t * p, Abc_Cex_t * pCex );
+//    extern void Ga2_ManComputeTest( Gia_Man_t * p );
+//    extern void Bmc_CexTest( Gia_Man_t * p, Abc_Cex_t * pCex, int fVerbose );
 
 
     Extra_UtilGetoptReset();
@@ -30239,7 +30239,7 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    Gia_VtaTest( pAbc->pGia, 10, 100000, 0, 0, 1 );
 //    Gia_IsoTest( pAbc->pGia, fVerbose );
 //    Ga2_ManComputeTest( pAbc->pGia );
-    Bmc_CexTest( pAbc->pGia, pAbc->pCex );
+//    Bmc_CexTest( pAbc->pGia, pAbc->pCex, fVerbose );
     return 0;
 usage:
     Abc_Print( -2, "usage: &test [-svh]\n" );
