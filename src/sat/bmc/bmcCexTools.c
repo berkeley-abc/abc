@@ -390,8 +390,6 @@ Abc_Cex_t * Bmc_CexEssentialBitOne( Gia_Man_t * p, Abc_Cex_t * pCexState, int iB
     Abc_Cex_t * pNew;
     Gia_Obj_t * pObj;
     int i, k, fCompl0, fCompl1;
-    int iFrame  = iBit / pCexState->nPis;
-    int iNumber = iBit % pCexState->nPis;
     assert( pCexState->nRegs == 0 );
     assert( iBit < pCexState->nBits );
     if ( pfEqual )
@@ -405,7 +403,7 @@ Abc_Cex_t * Bmc_CexEssentialBitOne( Gia_Man_t * p, Abc_Cex_t * pCexState, int iB
     // simulate the remaining frames
     Gia_ManConst0(p)->fMark0 = 0;
     Gia_ManConst0(p)->fMark1 = 1;
-    for ( i = iFrame; i <= pCexState->iFrame; i++ )
+    for ( i = iBit / pCexState->nPis; i <= pCexState->iFrame; i++ )
     {
         Gia_ManForEachCi( p, pObj, k )
         {
