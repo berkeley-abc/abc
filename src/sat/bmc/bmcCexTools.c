@@ -39,6 +39,262 @@ static inline int  Bmc_CexSim( Vec_Wrd_t * vSims, int iObj, int i )             
 
 /**Function*************************************************************
 
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Bmc_CexBitCount( Abc_Cex_t * p, int nInputs )
+{
+    int k, Counter = 0, Counter2 = 0;
+    if ( p == NULL )
+    {
+        printf( "The counter example is NULL.\n" );
+        return -1;
+    }
+    for ( k = 0; k < p->nBits; k++ )
+    {
+        Counter += Abc_InfoHasBit(p->pData, k);
+        if ( (k - p->nRegs) % p->nPis < nInputs )
+            Counter2 += Abc_InfoHasBit(p->pData, k);
+    }
+    return Counter2;
+}
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Bmc_CexDumpStats( Gia_Man_t * p, Abc_Cex_t * pCex, Abc_Cex_t * pCexCare, Abc_Cex_t * pCexEss, Abc_Cex_t * pCexMin, clock_t clk )
+{
+    int nInputs    = Gia_ManPiNum(p);
+    int nBitsTotal = (pCex->iFrame + 1) * nInputs;
+    int nBitsCare  = Bmc_CexBitCount(pCexCare, nInputs);
+    int nBitsDC    = nBitsTotal - nBitsCare;
+    int nBitsEss   = Bmc_CexBitCount(pCexEss, nInputs);
+    int nBitsOpt   = nBitsCare - nBitsEss;
+    int nBitsMin   = Bmc_CexBitCount(pCexMin, nInputs);
+
+    FILE * pTable  = fopen( "cex/stats.txt", "a+" );
+    fprintf( pTable, "%s ", p->pName );
+    fprintf( pTable, "%d ", nInputs );
+    fprintf( pTable, "%d ", Gia_ManRegNum(p) );
+    fprintf( pTable, "%d ", pCex->iFrame + 1 );
+    fprintf( pTable, "%d ", nBitsTotal );
+    fprintf( pTable, "%.2f ", 100.0 * nBitsDC  / nBitsTotal );
+    fprintf( pTable, "%.2f ", 100.0 * nBitsOpt / nBitsTotal );
+    fprintf( pTable, "%.2f ", 100.0 * nBitsEss / nBitsTotal );
+    fprintf( pTable, "%.2f ", 100.0 * nBitsMin / nBitsTotal );
+    fprintf( pTable, "%.2f ", 1.0*clk/(CLOCKS_PER_SEC) );
+    fprintf( pTable, "\n" );
+    fclose( pTable );
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Bmc_CexDumpAogStats( Gia_Man_t * p, clock_t clk )
+{
+    FILE * pTable  = fopen( "cex/aig_stats.txt", "a+" );
+    fprintf( pTable, "%s ", p->pName );
+    fprintf( pTable, "%d ", Gia_ManPiNum(p) );
+    fprintf( pTable, "%d ", Gia_ManAndNum(p) );
+    fprintf( pTable, "%d ", Gia_ManLevelNum(p) );
+    fprintf( pTable, "%.2f ", 1.0*clk/(CLOCKS_PER_SEC) );
+    fprintf( pTable, "\n" );
+    fclose( pTable );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs initialized unrolling till the last frame.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Bmc_CexPerformUnrolling( Gia_Man_t * p, Abc_Cex_t * pCex )
+{
+    Gia_Man_t * pNew, * pTemp;
+    Gia_Obj_t * pObj, * pObjRo, * pObjRi;
+    int i, k;
+    assert( Gia_ManRegNum(p) > 0 );
+    pNew = Gia_ManStart( (pCex->iFrame + 1) * Gia_ManObjNum(p) );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManForEachRi( p, pObj, k )
+        pObj->Value = 0;
+    Gia_ManHashAlloc( pNew );
+    for ( i = 0; i <= pCex->iFrame; i++ )
+    {
+        Gia_ManForEachPi( p, pObj, k )
+            pObj->Value = Gia_ManAppendCi( pNew );
+        Gia_ManForEachRiRo( p, pObjRi, pObjRo, k )
+            pObjRo->Value = pObjRi->Value;
+        Gia_ManForEachAnd( p, pObj, k )
+            pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        Gia_ManForEachCo( p, pObj, k )
+            pObj->Value = Gia_ObjFanin0Copy(pObj);
+    }
+    Gia_ManHashStop( pNew );
+    pObj = Gia_ManPo(p, pCex->iPo);
+    Gia_ManAppendCo( pNew, pObj->Value );
+    // cleanup
+    pNew = Gia_ManCleanup( pTemp = pNew );
+    Gia_ManStop( pTemp );
+    return pNew;
+}
+void Bmc_CexPerformUnrollingTest( Gia_Man_t * p, Abc_Cex_t * pCex )
+{
+    Gia_Man_t * pNew;
+    clock_t clk = clock();
+    pNew = Bmc_CexPerformUnrolling( p, pCex );
+    Gia_ManPrintStats( pNew, 0, 0, 0 );
+    Gia_WriteAiger( pNew, "unroll.aig", 0, 0 );
+//Bmc_CexDumpAogStats( pNew, clock() - clk );
+    Gia_ManStop( pNew );
+    printf( "CE-induced network is written into file \"unroll.aig\".\n" );
+    Abc_PrintTime( 1, "Time", clock() - clk );
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Computes CE-induced network.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Bmc_CexBuildNetwork( Gia_Man_t * p, Abc_Cex_t * pCex )
+{
+    Gia_Man_t * pNew, * pTemp;
+    Gia_Obj_t * pObj, * pObjRo, * pObjRi;
+    int fCompl0, fCompl1;
+    int i, k, iBit = pCex->nRegs;
+    // start the manager
+    pNew = Gia_ManStart( 1000 );
+    pNew->pName = Abc_UtilStrsav( "unate" );
+    // set const0
+    Gia_ManConst0(p)->fMark0 = 0;
+    Gia_ManConst0(p)->fMark1 = 1;
+    Gia_ManConst0(p)->Value  = ~0;
+    // set init state
+    Gia_ManForEachRi( p, pObj, k )
+    {
+        pObj->fMark0 = 0;
+        pObj->fMark1 = 1;
+        pObj->Value  = ~0;
+    }
+    Gia_ManHashAlloc( pNew );
+    for ( i = 0; i <= pCex->iFrame; i++ )
+    {
+        //  primary inputs
+        Gia_ManForEachPi( p, pObj, k )
+        {
+            pObj->fMark0 = Abc_InfoHasBit( pCex->pData, iBit++ );
+            pObj->fMark1 = 0;
+            pObj->Value  = Gia_ManAppendCi(pNew);
+        }
+        // transfer 
+        Gia_ManForEachRiRo( p, pObjRi, pObjRo, k )
+        {
+            pObjRo->fMark0 = pObjRi->fMark0;
+            pObjRo->fMark1 = pObjRi->fMark1;
+            pObjRo->Value  = pObjRi->Value;
+        }
+        // internal nodes
+        Gia_ManForEachAnd( p, pObj, k )
+        {
+            fCompl0 = Gia_ObjFanin0(pObj)->fMark0 ^ Gia_ObjFaninC0(pObj);
+            fCompl1 = Gia_ObjFanin1(pObj)->fMark0 ^ Gia_ObjFaninC1(pObj);
+            pObj->fMark0 = fCompl0 & fCompl1;
+            if ( pObj->fMark0 )
+                pObj->fMark1 = Gia_ObjFanin0(pObj)->fMark1 & Gia_ObjFanin1(pObj)->fMark1;
+            else if ( !fCompl0 && !fCompl1 )
+                pObj->fMark1 = Gia_ObjFanin0(pObj)->fMark1 | Gia_ObjFanin1(pObj)->fMark1;
+            else if ( !fCompl0 )
+                pObj->fMark1 = Gia_ObjFanin0(pObj)->fMark1;
+            else if ( !fCompl1 )
+                pObj->fMark1 = Gia_ObjFanin1(pObj)->fMark1;
+            else assert( 0 );
+            pObj->Value = ~0;
+            if ( pObj->fMark1 )
+                continue;
+            if ( pObj->fMark0 )
+                pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0(pObj)->Value, Gia_ObjFanin1(pObj)->Value );
+            else if ( !fCompl0 && !fCompl1 )
+                pObj->Value = Gia_ManHashOr( pNew, Gia_ObjFanin0(pObj)->Value, Gia_ObjFanin1(pObj)->Value );
+            else if ( !fCompl0 )
+                pObj->Value = Gia_ObjFanin0(pObj)->Value;
+            else if ( !fCompl1 )
+                pObj->Value = Gia_ObjFanin1(pObj)->Value;
+            else assert( 0 );
+            assert( pObj->Value > 0 );
+        }
+        // combinational outputs
+        Gia_ManForEachCo( p, pObj, k )
+        {
+            pObj->fMark0 = Gia_ObjFanin0(pObj)->fMark0 ^ Gia_ObjFaninC0(pObj);
+            pObj->fMark1 = Gia_ObjFanin0(pObj)->fMark1;
+            pObj->Value  = Gia_ObjFanin0(pObj)->Value;
+        }
+    }
+    Gia_ManHashStop( pNew );
+    assert( iBit == pCex->nBits );
+    // create primary output
+    pObj = Gia_ManPo(p, pCex->iPo);
+    assert( pObj->fMark0 == 1 );
+    assert( pObj->fMark1 == 0 );
+    assert( pObj->Value > 0 );
+    Gia_ManAppendCo( pNew, pObj->Value );
+    // cleanup
+    pNew = Gia_ManCleanup( pTemp = pNew );
+    Gia_ManStop( pTemp );
+    return pNew;
+}
+void Bmc_CexBuildNetworkTest( Gia_Man_t * p, Abc_Cex_t * pCex )
+{
+    Gia_Man_t * pNew;
+    clock_t clk = clock();
+    pNew = Bmc_CexBuildNetwork( p, pCex );
+    Gia_ManPrintStats( pNew, 0, 0, 0 );
+    Gia_WriteAiger( pNew, "unate.aig", 0, 0 );
+//Bmc_CexDumpAogStats( pNew, clock() - clk );
+    Gia_ManStop( pNew );
+    printf( "CE-induced network is written into file \"unate.aig\".\n" );
+    Abc_PrintTime( 1, "Time", clock() - clk );
+}
+
+
+/**Function*************************************************************
+
   Synopsis    [Prints one counter-example.]
 
   Description []
@@ -548,70 +804,6 @@ Abc_Cex_t * Bmc_CexEssentialBits( Gia_Man_t * p, Abc_Cex_t * pCexState, Abc_Cex_
 
 /**Function*************************************************************
 
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Bmc_CexBitCount( Abc_Cex_t * p, int nInputs )
-{
-    int k, Counter = 0, Counter2 = 0;
-    if ( p == NULL )
-    {
-        printf( "The counter example is NULL.\n" );
-        return -1;
-    }
-    for ( k = 0; k < p->nBits; k++ )
-    {
-        Counter += Abc_InfoHasBit(p->pData, k);
-        if ( (k - p->nRegs) % p->nPis < nInputs )
-            Counter2 += Abc_InfoHasBit(p->pData, k);
-    }
-    return Counter2;
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Bmc_CexDumpStats( Gia_Man_t * p, Abc_Cex_t * pCex, Abc_Cex_t * pCexCare, Abc_Cex_t * pCexEss, Abc_Cex_t * pCexMin, clock_t clk )
-{
-    int nInputs    = Gia_ManPiNum(p);
-    int nBitsTotal = (pCex->iFrame + 1) * nInputs;
-    int nBitsCare  = Bmc_CexBitCount(pCexCare, nInputs);
-    int nBitsDC    = nBitsTotal - nBitsCare;
-    int nBitsEss   = Bmc_CexBitCount(pCexEss, nInputs);
-    int nBitsOpt   = nBitsCare - nBitsEss;
-    int nBitsMin   = Bmc_CexBitCount(pCexMin, nInputs);
-
-    FILE * pTable  = fopen( "cex/stats.txt", "a+" );
-    fprintf( pTable, "%s ", p->pName );
-    fprintf( pTable, "%d ", nInputs );
-    fprintf( pTable, "%d ", Gia_ManRegNum(p) );
-    fprintf( pTable, "%d ", pCex->iFrame + 1 );
-    fprintf( pTable, "%d ", nBitsTotal );
-    fprintf( pTable, "%.2f ", 100.0 * nBitsDC  / nBitsTotal );
-    fprintf( pTable, "%.2f ", 100.0 * nBitsOpt / nBitsTotal );
-    fprintf( pTable, "%.2f ", 100.0 * nBitsEss / nBitsTotal );
-    fprintf( pTable, "%.2f ", 100.0 * nBitsMin / nBitsTotal );
-    fprintf( pTable, "%.2f ", 1.0*clk/(CLOCKS_PER_SEC) );
-    fprintf( pTable, "\n" );
-    fclose( pTable );
-}
-
-/**Function*************************************************************
-
   Synopsis    [Computes essential bits of the CEX.]
 
   Description []
@@ -647,6 +839,8 @@ void Bmc_CexTest( Gia_Man_t * p, Abc_Cex_t * pCex, int fVerbose )
     Abc_CexFreeP( &pCexMin );
 
     Abc_PrintTime( 1, "Time", clock() - clk );
+//    Bmc_CexBuildNetworkTest( p, pCex );
+//    Bmc_CexPerformUnrollingTest( p, pCex );
 }
 
 ////////////////////////////////////////////////////////////////////////
