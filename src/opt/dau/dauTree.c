@@ -157,6 +157,242 @@ static inline int Dss_Lit2Lit( int * pMapLit, int Lit )   { return Abc_Var2Lit( 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
+
+#if 0
+
+/**Function*************************************************************
+
+  Synopsis    [Check decomposability for 666.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+// recursively collects 6-feasible supports
+int Dss_ObjCheck666_rec( Dss_Ntk_t * p, Dss_Obj_t * pObj, Vec_Int_t * vSupps )
+{
+    Dss_Obj_t * pFanin;
+    int i, uSupp = 0;
+    assert( !Dss_IsComplement(pObj) );
+    if ( pObj->Type == DAU_DSD_VAR )
+    {
+        assert( pObj->iVar >= 0 && pObj->iVar < 30 );
+        return (1 << pObj->iVar);
+    }
+    if ( pObj->Type == DAU_DSD_AND || pObj->Type == DAU_DSD_XOR )
+    {
+        int c0, c1, c2, uSuppTemp;
+        int uSuppVars[16];
+        int nSuppVars = 0;
+        int nFanins = Dss_ObjFaninNum(pObj);
+        int uSupps[16], nSuppSizes[16];
+        Dss_ObjForEachFaninNtk( p, pObj, pFanin, i )
+        {
+            uSupps[i] = Dss_ObjCheck666_rec( p, pFanin, vSupps );
+            nSuppSizes[i] = Dss_WordCountOnes( uSupps[i] );
+            uSupp |= uSupps[i];
+            if ( nSuppSizes[i] == 1 )
+                uSuppVars[nSuppVars++] = uSupps[i];
+        }
+        // iterate through the permutations
+        for ( c0 = 0; c0 < nFanins; c0++ )
+        if ( nSuppSizes[c0] > 1 && nSuppSizes[c0] < 6 )
+        {
+            uSuppTemp = uSupps[c0];
+            for ( i = 0; i < nSuppVars; i++ )
+                if ( nSuppSizes[c0] + i < 6 )
+                    uSuppTemp |= uSuppVars[i];
+                else
+                    break;
+            if ( Dss_WordCountOnes(uSuppTemp) <= 6 )
+                Vec_IntPush( vSupps, uSuppTemp );
+
+            for ( c1 = c0 + 1; c1 < nFanins; c1++ )
+            if ( nSuppSizes[c1] > 1 && nSuppSizes[c1] < 6 )
+            {
+                if ( nSuppSizes[c0] + nSuppSizes[c1] <= 6 )
+                    Vec_IntPush( vSupps, uSupps[c0] | uSupps[c1] );
+
+                uSuppTemp = uSupps[c0] | uSupps[c1];
+                for ( i = 0; i < nSuppVars; i++ )
+                    if ( nSuppSizes[c0] + nSuppSizes[c1] + i < 6 )
+                        uSuppTemp |= uSuppVars[i];
+                    else
+                        break;
+                if ( Dss_WordCountOnes(uSuppTemp) <= 6 )
+                    Vec_IntPush( vSupps, uSuppTemp );
+
+                for ( c2 = c1 + 1; c2 < nFanins; c2++ )
+                if ( nSuppSizes[c2] > 1 && nSuppSizes[c2] < 6 )
+                {
+                    if ( nSuppSizes[c0] + nSuppSizes[c1] + nSuppSizes[c2] <= 6 )
+                        Vec_IntPush( vSupps, uSupps[c0] | uSupps[c1] | uSupps[c2] );
+                    assert( nSuppSizes[c0] + nSuppSizes[c1] + nSuppSizes[c2] >= 6 );
+                }
+            }
+        }
+        if ( nSuppVars > 1 && nSuppVars <= 6 )
+        {
+            uSuppTemp = 0;
+            for ( i = 0; i < nSuppVars; i++ )
+                uSuppTemp |= uSuppVars[i];
+            Vec_IntPush( vSupps, uSuppTemp );
+        }
+        else if ( nSuppVars > 6 && nSuppVars <= 12 )
+        {
+            uSuppTemp = 0;
+            for ( i = 0; i < 6; i++ )
+                uSuppTemp |= uSuppVars[i];
+            Vec_IntPush( vSupps, uSuppTemp );
+
+            uSuppTemp = 0;
+            for ( i = 6; i < nSuppVars; i++ )
+                uSuppTemp |= uSuppVars[i];
+            Vec_IntPush( vSupps, uSuppTemp );
+        }
+    }
+    else if ( pObj->Type == DAU_DSD_MUX || pObj->Type == DAU_DSD_PRIME )
+    {
+        Dss_ObjForEachFaninNtk( p, pObj, pFanin, i )
+            uSupp |= Dss_ObjCheck666_rec( p, pFanin, vSupps );
+    }
+    if ( Dss_WordCountOnes( uSupp ) <= 6 )
+        Vec_IntPush( vSupps, uSupp );
+    return uSupp;
+}
+int Dss_ObjCheck666( Dss_Ntk_t * p )
+{
+    Vec_Int_t * vSupps;
+    int i, k, SuppI, SuppK;
+    int nSupp = Dss_ObjSuppSize(Dss_Regular(p->pRoot));
+    if ( nSupp <= 6 )
+        return 1;
+    // compute supports
+    vSupps = Vec_IntAlloc( 100 );
+    Dss_ObjCheck666_rec( p, Dss_Regular(p->pRoot), vSupps );
+    Vec_IntUniqify( vSupps );
+    Vec_IntForEachEntry( vSupps, SuppI, i )
+    {
+        k = Dss_WordCountOnes(SuppI);
+        assert( k > 0 && k <= 6 );
+/*
+        for ( k = 0; k < 16; k++ )
+            if ( (SuppI >> k) & 1 )
+                printf( "%c", 'a' + k );
+            else
+                printf( "-" );
+        printf( "\n" );
+*/
+    }
+    // consider support pairs
+    Vec_IntForEachEntry( vSupps, SuppI, i )
+    Vec_IntForEachEntryStart( vSupps, SuppK, k, i+1 )
+    {
+        if ( SuppI & SuppK )
+            continue;
+        if ( Dss_WordCountOnes(SuppI | SuppK) + 4 >= nSupp )
+        {
+            Vec_IntFree( vSupps );
+            return 1;
+        }
+    }
+    Vec_IntFree( vSupps );
+    return 0;
+}
+void Dau_DsdTest()
+{
+/*
+    extern Dss_Ntk_t * Dss_NtkCreate( char * pDsd, int nVars, word * pTruth );
+    extern void Dss_NtkFree( Dss_Ntk_t * p );
+
+//    char * pDsd = "(!(amn!(bh))[cdeij]!(fklg)o)";
+    char * pDsd = "<[(ab)(cd)(ef)][(gh)(ij)(kl)](mn)>";
+    Dss_Ntk_t * pNtk = Dss_NtkCreate( pDsd, 16, NULL );
+    int Status = Dss_ObjCheck666( pNtk );
+    Dss_NtkFree( pNtk );
+*/
+}
+
+clock_t if_dec_time;
+
+void Dau_DsdCheckStructOne( word * pTruth, int nVars, int nLeaves )
+{
+    extern Dss_Ntk_t * Dss_NtkCreate( char * pDsd, int nVars, word * pTruth );
+    extern void Dss_NtkFree( Dss_Ntk_t * p );
+
+    static clock_t timeTt  = 0;
+    static clock_t timeDsd = 0;
+    clock_t clkTt, clkDsd;
+
+    char pDsd[1000];
+    word Truth[1024];
+    Dss_Ntk_t * pNtk;
+    int Status, nNonDec;
+
+    if ( pTruth == NULL )
+    {
+        Abc_PrintTime( 1, "TT  runtime", timeTt );
+        Abc_PrintTime( 1, "DSD runtime", timeDsd );
+        Abc_PrintTime( 1, "Total      ", if_dec_time );
+
+        if_dec_time = 0;
+        timeTt = 0;
+        timeDsd = 0;
+        return;
+    }
+
+    Abc_TtCopy( Truth, pTruth, Abc_TtWordNum(nVars), 0 );
+    nNonDec = Dau_DsdDecompose( Truth, nVars, 0, 0, pDsd );
+    if ( nNonDec > 0 )
+        return;
+
+    pNtk = Dss_NtkCreate( pDsd, 16, NULL );
+
+    // measure DSD runtime
+    clkDsd = clock();
+    Status = Dss_ObjCheck666( pNtk );
+    timeDsd += clock() - clkDsd;
+
+    Dss_NtkFree( pNtk );
+
+    // measure TT runtime
+    clkTt = clock();
+    {
+        #define CLU_VAR_MAX  16
+
+        // decomposition
+        typedef struct If_Grp_t_ If_Grp_t;
+        struct If_Grp_t_
+        {
+            char       nVars;
+            char       nMyu;
+            char       pVars[CLU_VAR_MAX];
+        };
+
+
+        int nLutLeaf  = 6;
+        int nLutLeaf2 = 6;
+        int nLutRoot  = 6;
+
+        If_Grp_t G;
+        If_Grp_t G2, R;
+        word Func0, Func1, Func2;
+
+        {
+            extern If_Grp_t If_CluCheck3( void * p, word * pTruth0, int nVars, int nLutLeaf, int nLutLeaf2, int nLutRoot, 
+                          If_Grp_t * pR, If_Grp_t * pG2, word * pFunc0, word * pFunc1, word * pFunc2 );
+            G = If_CluCheck3( NULL, pTruth, nLeaves, nLutLeaf, nLutLeaf2, nLutRoot, &R, &G2, &Func0, &Func1, &Func2 );
+        }
+
+    }
+    timeTt += clock() - clkTt;
+}
+
+#endif
+
  
 /**Function*************************************************************
 
