@@ -1353,7 +1353,7 @@ int Dss_ManMerge( Dss_Man_t * p, int * iDsd, int * nFans, int ** pFans, unsigned
 
     if ( Counter == 122053 )
     {
-        int s = 0;
+//        int s = 0;
 //        fVerbose = 1;
     }
 
@@ -1430,7 +1430,7 @@ printf( "\n" );
 
 if ( Counter == 134 )
 {
-    int s = 0;
+//    int s = 0;
 //    Dss_ManPrint( p );
 }
     pTruthOne = Dss_ManComputeTruth( p, pFun->iDsd, p->nVars, pPermResInt );

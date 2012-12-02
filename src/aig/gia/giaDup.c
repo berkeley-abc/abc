@@ -430,6 +430,38 @@ Gia_Man_t * Gia_ManDup( Gia_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Appends second AIG without any changes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManDupAppend( Gia_Man_t * pNew, Gia_Man_t * pTwo )
+{
+    Gia_Obj_t * pObj;
+    int i;
+    if ( pNew->nRegs > 0 )
+        pNew->nRegs = 0;
+    if ( pNew->pHTable == NULL )
+        Gia_ManHashAlloc( pNew );
+    Gia_ManConst0(pTwo)->Value = 0;
+    Gia_ManForEachObj1( pTwo, pObj, i )
+    {
+        if ( Gia_ObjIsAnd(pObj) )
+            pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        else if ( Gia_ObjIsCi(pObj) )
+            pObj->Value = Gia_ManAppendCi( pNew );
+        else if ( Gia_ObjIsCo(pObj) )
+            pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    }
+    return pNew;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Duplicates while adding self-loops to the registers.]
 
   Description []

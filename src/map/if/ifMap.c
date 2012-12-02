@@ -297,7 +297,7 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
                     ABC_SWAP( int *, pFans[0], pFans[1] );
                 }
                 // derive new DSD
-                pCut->iDsd = Dss_ManMerge( p->pDsdMan, iDsd, nFans, pFans, p->uSharedMask, pCut->nLimit, pCut->pPerm, If_CutTruthW(pCut) );
+                pCut->iDsd = Dss_ManMerge( p->pDsdMan, iDsd, nFans, pFans, p->uSharedMask, pCut->nLimit, (unsigned char *)pCut->pPerm, If_CutTruthW(pCut) );
             }
             if ( pCut->iDsd < 0 )
             {
