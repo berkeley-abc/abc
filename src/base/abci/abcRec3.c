@@ -1351,7 +1351,7 @@ void Abc_NtkRecDumpTt3( char * pFileName, int fBinary )
         Extra_PrintHex( pFile, (unsigned *)pTruth, nVars );
         fprintf( pFile, "  " );
 //        Kit_DsdWriteFromTruth( pBuffer, (unsigned *)pTruth, nVars );
-        Dau_DsdDecompose( pTruth, p->nVars, 0, 1, pBuffer );
+        Dau_DsdDecompose( pTruth, p->nVars, 0, (int)(nVars <= 10), pBuffer );
         fprintf( pFile, "%s\n", pBuffer );
     }
     fclose( pFile );
