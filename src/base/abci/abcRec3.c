@@ -731,6 +731,7 @@ p->timeCanon += clock() - clk;
 clk = clock();
         // add the resulting truth table to the hash table 
         Index = Vec_MemHashInsert( p->vTtMem, p->pTemp1 );
+/*
         if ( p->vTruthFreqs == NULL )
             p->vTruthFreqs = Vec_IntAlloc( 1000 );
         assert( Index <= Vec_IntSize(p->vTruthFreqs)  );
@@ -738,6 +739,7 @@ clk = clock();
             Vec_IntAddToEntry( p->vTruthFreqs, Index, 1 );
         else
             Vec_IntPush( p->vTruthFreqs, 1 );
+*/
         p->nAdded++;
 p->timeInsert += clock() - clk;
         return 1;
