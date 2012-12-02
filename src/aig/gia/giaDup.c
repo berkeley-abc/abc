@@ -457,7 +457,6 @@ void Gia_ManDupAppend( Gia_Man_t * pNew, Gia_Man_t * pTwo )
         else if ( Gia_ObjIsCo(pObj) )
             pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
     }
-    return pNew;
 }
 
 /**Function*************************************************************

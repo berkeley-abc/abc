@@ -57,7 +57,7 @@ struct Lms_Man_t_
     // internal data for library construction
     Gia_Man_t *       pGia;         // the record
     Vec_Mem_t *       vTtMem;       // truth table memory and hash table
-    Vec_Mem_t *       vTtMem2;      // truth table memory and hash table
+//    Vec_Mem_t *       vTtMem2;      // truth table memory and hash table
     Vec_Int_t *       vTruthIds;    // truth table IDs of each PO
     // internal data for AIG level minimization (allocated the first time it is called)
     Vec_Int_t *       vTruthPo;     // first PO where this canonicized truth table was seen
@@ -318,9 +318,9 @@ Lms_Man_t * Lms_ManStart( Gia_Man_t * pGia, int nVars, int nCuts, int fFuncOnly,
     p->fFuncOnly = fFuncOnly;
     // internal data for library construction
     p->vTtMem = Vec_MemAlloc( p->nWords, 12 ); // 32 KB/page for 6-var functions
-    p->vTtMem2 = Vec_MemAlloc( p->nWords, 12 ); // 32 KB/page for 6-var functions
+//    p->vTtMem2 = Vec_MemAlloc( p->nWords, 12 ); // 32 KB/page for 6-var functions
     Vec_MemHashAlloc( p->vTtMem, 10000 );
-    Vec_MemHashAlloc( p->vTtMem2, 10000 );
+//    Vec_MemHashAlloc( p->vTtMem2, 10000 );
     if ( fFuncOnly )
         return p;    
     p->vTruthIds = Vec_IntAlloc( 10000 );
@@ -375,9 +375,9 @@ void Lms_ManStop( Lms_Man_t * p )
     // internal data for library construction
     Vec_IntFreeP( &p->vTruthIds );
     Vec_MemHashFree( p->vTtMem );
-    Vec_MemHashFree( p->vTtMem2 );
+//    Vec_MemHashFree( p->vTtMem2 );
     Vec_MemFree( p->vTtMem );
-    Vec_MemFree( p->vTtMem2 );
+//    Vec_MemFree( p->vTtMem2 );
     Gia_ManStopP( &p->pGia );
     ABC_FREE( p );
 }
@@ -439,7 +439,7 @@ void Lms_ManPrintFreqStats( Lms_Man_t * p )
     word * pTruth;
     int i, Freq, Status;
     printf( "Cuts  = %10d. ",            p->nTried );
-    printf( "Funcs = %10d (%6.2f %%). ", Vec_MemEntryNum(p->vTtMem2), 100.0*Vec_MemEntryNum(p->vTtMem2)/p->nTried );
+//    printf( "Funcs = %10d (%6.2f %%). ", Vec_MemEntryNum(p->vTtMem2), 100.0*Vec_MemEntryNum(p->vTtMem2)/p->nTried );
     printf( "Class = %10d (%6.2f %%). ", Vec_MemEntryNum(p->vTtMem),  100.0*Vec_MemEntryNum(p->vTtMem)/p->nTried );
     printf( "\n" );
 //    return;
@@ -527,7 +527,7 @@ void Lms_ManPrint( Lms_Man_t * p )
     printf( "Library with %d vars has %d classes and %d AIG subgraphs with %d AND nodes.\n", 
         p->nVars, Vec_MemEntryNum(p->vTtMem), p->nAdded, p->pGia ? Gia_ManAndNum(p->pGia) : 0 );
 
-    Lms_ManPrintFreqStats( p );
+//    Lms_ManPrintFreqStats( p );
     Lms_ManPrintFuncStats( p );
 
     p->nAddedFuncs = Vec_MemEntryNum(p->vTtMem);
@@ -711,8 +711,8 @@ int Abc_NtkRecAddCut3( If_Man_t * pIfMan, If_Obj_t * pRoot, If_Cut_t * pCut )
         return 1;
     }
 
-    if ( p->vTtMem2 )
-        Vec_MemHashInsert( p->vTtMem2, If_CutTruthW(pCut) );
+//    if ( p->vTtMem2 )
+//        Vec_MemHashInsert( p->vTtMem2, If_CutTruthW(pCut) );
 
     // semi-canonicize truth table
 clk = clock();
@@ -1350,7 +1350,8 @@ void Abc_NtkRecDumpTt3( char * pFileName, int fBinary )
         }
         Extra_PrintHex( pFile, (unsigned *)pTruth, nVars );
         fprintf( pFile, "  " );
-        Kit_DsdWriteFromTruth( pBuffer, (unsigned *)pTruth, nVars );
+//        Kit_DsdWriteFromTruth( pBuffer, (unsigned *)pTruth, nVars );
+        Dau_DsdDecompose( pTruth, p->nVars, 0, 1, pBuffer );
         fprintf( pFile, "%s\n", pBuffer );
     }
     fclose( pFile );
