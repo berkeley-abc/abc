@@ -57,12 +57,14 @@ struct Lms_Man_t_
     // internal data for library construction
     Gia_Man_t *       pGia;         // the record
     Vec_Mem_t *       vTtMem;       // truth table memory and hash table
+    Vec_Mem_t *       vTtMem2;      // truth table memory and hash table
     Vec_Int_t *       vTruthIds;    // truth table IDs of each PO
     // internal data for AIG level minimization (allocated the first time it is called)
     Vec_Int_t *       vTruthPo;     // first PO where this canonicized truth table was seen
     Vec_Wrd_t *       vDelays;      // pin-to-pin delays of each PO
     Vec_Str_t *       vAreas;       // number of AND gates in each PO
     Vec_Int_t *       vFreqs;       // subgraph usage frequencies
+    Vec_Int_t *       vTruthFreqs;  // truth table usage frequencies
     // temporaries
     Vec_Ptr_t *       vNodes;       // the temporary nodes
     Vec_Ptr_t *       vLabelsP;     // temporary storage for HOP node labels
@@ -316,7 +318,9 @@ Lms_Man_t * Lms_ManStart( Gia_Man_t * pGia, int nVars, int nCuts, int fFuncOnly,
     p->fFuncOnly = fFuncOnly;
     // internal data for library construction
     p->vTtMem = Vec_MemAlloc( p->nWords, 12 ); // 32 KB/page for 6-var functions
+    p->vTtMem2 = Vec_MemAlloc( p->nWords, 12 ); // 32 KB/page for 6-var functions
     Vec_MemHashAlloc( p->vTtMem, 10000 );
+    Vec_MemHashAlloc( p->vTtMem2, 10000 );
     if ( fFuncOnly )
         return p;    
     p->vTruthIds = Vec_IntAlloc( 10000 );
@@ -367,11 +371,14 @@ void Lms_ManStop( Lms_Man_t * p )
     Vec_WrdFreeP( &p->vDelays );
     Vec_StrFreeP( &p->vAreas );
     Vec_IntFreeP( &p->vFreqs );
+    Vec_IntFreeP( &p->vTruthFreqs );
     // internal data for library construction
     Vec_IntFreeP( &p->vTruthIds );
     Vec_MemHashFree( p->vTtMem );
+    Vec_MemHashFree( p->vTtMem2 );
     Vec_MemFree( p->vTtMem );
-    Gia_ManStop( p->pGia );
+    Vec_MemFree( p->vTtMem2 );
+    Gia_ManStopP( &p->pGia );
     ABC_FREE( p );
 }
 void Lms_ManPrepare( Lms_Man_t * p )
@@ -420,12 +427,107 @@ void Lms_ManPrintFuncStats( Lms_Man_t * p )
             printf( "Inputs = %2d.  Funcs = %8d.  Subgrs = %8d.  Ratio = %6.2f.\n", i, Counters[i], CountersS[i], 1.0*CountersS[i]/Counters[i] );
     Vec_StrFree( vSupps );
 }
+void Lms_ManPrintFreqStats( Lms_Man_t * p )
+{
+    int CountDsdNpn[3]  = {0};  // full/part/none
+    int CountDsdAll[3]  = {0};  // full/part/none
+    int CountStepNpn[3] = {0};  // full/1step/complex
+    int CountStepAll[3] = {0};  // full/1step/complex
+    char pBuffer[1000];
+    int nSuppSize;
+    int nNonDecSize;
+    word * pTruth;
+    int i, Freq, Status;
+    printf( "Cuts  = %10d. ",            p->nTried );
+    printf( "Funcs = %10d (%6.2f %%). ", Vec_MemEntryNum(p->vTtMem2), 100.0*Vec_MemEntryNum(p->vTtMem2)/p->nTried );
+    printf( "Class = %10d (%6.2f %%). ", Vec_MemEntryNum(p->vTtMem),  100.0*Vec_MemEntryNum(p->vTtMem)/p->nTried );
+    printf( "\n" );
+//    return;
+
+    Vec_IntForEachEntry( p->vTruthFreqs, Freq, i )
+    {
+        pTruth = Vec_MemReadEntry(p->vTtMem, i);
+/*
+        printf( "%6d -- %6d : ", i, Freq );
+        Kit_DsdWriteFromTruth( pBuffer, (unsigned *)pTruth, p->nVars );
+        printf( "%s\n", pBuffer );
+*/
+        nSuppSize = Abc_TtSupportSize( pTruth, p->nVars );
+        nNonDecSize = Dau_DsdDecompose( pTruth, p->nVars, 0, 0, pBuffer );
+        if ( nNonDecSize == 0 )
+        {
+            CountDsdNpn[0]++;
+            CountDsdAll[0] += Freq;
+        }
+        else if ( nNonDecSize < nSuppSize )
+        {
+            CountDsdNpn[1]++;
+            CountDsdAll[1] += Freq;
+        }
+        else // non-dec
+        {
+            CountDsdNpn[2]++;
+            CountDsdAll[2] += Freq;
+        }
+
+        if ( nNonDecSize == 0 )
+        {
+            CountStepNpn[0]++;
+            CountStepAll[0] += Freq;
+            continue;
+        }
+
+        // check the non dec core
+        Status = Dau_DsdCheck1Step( pTruth, nNonDecSize );
+        if ( Status >= 0 )
+        {
+            CountStepNpn[1]++;
+            CountStepAll[1] += Freq;
+        }
+        else
+        {
+            assert( Status == -2 );
+            CountStepNpn[2]++;
+            CountStepAll[2] += Freq;
+        }
+    }
+
+    // print the results
+    printf( "NPN: " );
+    printf( "Full = %6.2f %%  ", 100.0 * CountDsdNpn[0] / Vec_MemEntryNum(p->vTtMem) );
+    printf( "Part = %6.2f %%  ", 100.0 * CountDsdNpn[1] / Vec_MemEntryNum(p->vTtMem) );
+    printf( "None = %6.2f %%  ", 100.0 * CountDsdNpn[2] / Vec_MemEntryNum(p->vTtMem) );
+//    printf( "\n" );
+    printf( "   " );
+    // print the results
+    printf( "All: " );
+    printf( "Full = %6.2f %%  ", 100.0 * CountDsdAll[0] / p->nTried );
+    printf( "Part = %6.2f %%  ", 100.0 * CountDsdAll[1] / p->nTried );
+    printf( "None = %6.2f %%  ", 100.0 * CountDsdAll[2] / p->nTried );
+    printf( "\n" );
+
+    // print the results
+    printf( "NPN: " );
+    printf( "Full = %6.2f %%  ", 100.0 * CountStepNpn[0] / Vec_MemEntryNum(p->vTtMem) );
+    printf( "1stp = %6.2f %%  ", 100.0 * CountStepNpn[1] / Vec_MemEntryNum(p->vTtMem) );
+    printf( "Comp = %6.2f %%  ", 100.0 * CountStepNpn[2] / Vec_MemEntryNum(p->vTtMem) );
+//    printf( "\n" );
+    printf( "   " );
+    // print the results
+    printf( "All: " );
+    printf( "Full = %6.2f %%  ", 100.0 * CountStepAll[0] / p->nTried );
+    printf( "1stp = %6.2f %%  ", 100.0 * CountStepAll[1] / p->nTried );
+    printf( "Comp = %6.2f %%  ", 100.0 * CountStepAll[2] / p->nTried );
+    printf( "\n" );
+
+}
 void Lms_ManPrint( Lms_Man_t * p )
 {
 //    Gia_ManPrintStats( p->pGia, 0, 0 );
     printf( "Library with %d vars has %d classes and %d AIG subgraphs with %d AND nodes.\n", 
         p->nVars, Vec_MemEntryNum(p->vTtMem), p->nAdded, p->pGia ? Gia_ManAndNum(p->pGia) : 0 );
 
+    Lms_ManPrintFreqStats( p );
     Lms_ManPrintFuncStats( p );
 
     p->nAddedFuncs = Vec_MemEntryNum(p->vTtMem);
@@ -609,6 +711,9 @@ int Abc_NtkRecAddCut3( If_Man_t * pIfMan, If_Obj_t * pRoot, If_Cut_t * pCut )
         return 1;
     }
 
+    if ( p->vTtMem2 )
+        Vec_MemHashInsert( p->vTtMem2, If_CutTruthW(pCut) );
+
     // semi-canonicize truth table
 clk = clock();
     memcpy( p->pTemp1, If_CutTruthW(pCut), p->nWords * sizeof(word) );
@@ -625,7 +730,14 @@ p->timeCanon += clock() - clk;
     {
 clk = clock();
         // add the resulting truth table to the hash table 
-        Vec_MemHashInsert( p->vTtMem, p->pTemp1 );
+        Index = Vec_MemHashInsert( p->vTtMem, p->pTemp1 );
+        if ( p->vTruthFreqs == NULL )
+            p->vTruthFreqs = Vec_IntAlloc( 1000 );
+        assert( Index <= Vec_IntSize(p->vTruthFreqs)  );
+        if ( Index < Vec_IntSize(p->vTruthFreqs) )
+            Vec_IntAddToEntry( p->vTruthFreqs, Index, 1 );
+        else
+            Vec_IntPush( p->vTruthFreqs, 1 );
         p->nAdded++;
 p->timeInsert += clock() - clk;
         return 1;

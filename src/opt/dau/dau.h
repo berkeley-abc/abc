@@ -39,8 +39,8 @@
 
 ABC_NAMESPACE_HEADER_START
 
-#define DAU_MAX_VAR    12 // should be 6 or more
-#define DAU_MAX_STR   256
+#define DAU_MAX_VAR    16 // should be 6 or more
+#define DAU_MAX_STR  1000
 #define DAU_MAX_WORD  (1<<(DAU_MAX_VAR-6))
 
 ////////////////////////////////////////////////////////////////////////
@@ -84,6 +84,7 @@ extern word          Dau_Dsd6ToTruth( char * p );
 extern void          Dau_DsdNormalize( char * p );
 extern int           Dau_DsdCountAnds( char * pDsd );
 extern void          Dau_DsdTruthCompose_rec( word * pFunc, word pFanins[DAU_MAX_VAR][DAU_MAX_WORD], word * pRes, int nVars, int nWordsR );
+extern int           Dau_DsdCheck1Step( word * pTruth, int nVarsInit );
 
 /*=== dauMerge.c  ==========================================================*/
 extern void          Dau_DsdRemoveBraces( char * pDsd, int * pMatches );
