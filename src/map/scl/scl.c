@@ -64,8 +64,8 @@ void Scl_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "SCL mapping",  "topo",       Scl_CommandTopo,     1 ); 
     Cmd_CommandAdd( pAbc, "SCL mapping",  "buffer",     Scl_CommandBuffer,   1 ); 
     Cmd_CommandAdd( pAbc, "SCL mapping",  "minsize",    Scl_CommandMinsize,  1 ); 
-    Cmd_CommandAdd( pAbc, "SCL mapping",  "gsize",      Scl_CommandGsize,    1 ); 
     Cmd_CommandAdd( pAbc, "SCL mapping",  "upsize",     Scl_CommandUpsize,   1 ); 
+//    Cmd_CommandAdd( pAbc, "SCL mapping",  "gsize",      Scl_CommandGsize,    1 ); 
 }
 void Scl_End( Abc_Frame_t * pAbc )
 {
@@ -679,7 +679,7 @@ int Scl_CommandGsize( Abc_Frame_t * pAbc, int argc, char **argv )
         return 1;
     }
 
-    Abc_SclSizingPerform( (SC_Lib *)pAbc->pLibScl, Abc_FrameReadNtk(pAbc), pPars );
+//    Abc_SclSizingPerform( (SC_Lib *)pAbc->pLibScl, Abc_FrameReadNtk(pAbc), pPars );
     return 0;
 
 usage:

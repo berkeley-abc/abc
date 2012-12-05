@@ -2459,10 +2459,6 @@ SOURCE=.\src\map\scl\sclFile.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\map\scl\sclGsize.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\src\map\scl\sclInt.h
 # End Source File
 # Begin Source File
@@ -2472,10 +2468,6 @@ SOURCE=.\src\map\scl\sclLoad.c
 # Begin Source File
 
 SOURCE=.\src\map\scl\sclMan.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\map\scl\sclSize.c
 # End Source File
 # Begin Source File
 
