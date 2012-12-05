@@ -49,7 +49,7 @@ Aig_Man_t * Ssw_FramesWithConstraints( Aig_Man_t * p, int nFrames )
     Aig_Man_t * pFrames;
     Aig_Obj_t * pObj, * pObjLi, * pObjLo;
     int i, f;
-    assert( Saig_ManConstrNum(p) > 0 );
+//    assert( Saig_ManConstrNum(p) > 0 );
     assert( Aig_ManRegNum(p) > 0 );
     assert( Aig_ManRegNum(p) < Aig_ManCiNum(p) );
     // start the fraig package
@@ -106,7 +106,7 @@ int Ssw_ManSetConstrPhases( Aig_Man_t * p, int nFrames, Vec_Int_t ** pvInits )
     int i, RetValue;
     if ( pvInits )
         *pvInits = NULL;
-    assert( p->nConstrs > 0 );
+//    assert( p->nConstrs > 0 );
     // derive the timeframes
     pFrames = Ssw_FramesWithConstraints( p, nFrames );
     // create CNF
@@ -275,12 +275,12 @@ void Ssw_ManRefineByConstrSim( Ssw_Man_t * p )
         {
             if ( i < Saig_ManPoNum(p->pAig) - Saig_ManConstrNum(p->pAig) )
             {
-                if ( pObj->fMarkB )
+                if ( pObj->fMarkB && Saig_ManConstrNum(p->pAig) )
                     Abc_Print( 1, "output %d failed in frame %d.\n", i, f );
             }
             else
             {
-                if ( pObj->fMarkB )
+                if ( pObj->fMarkB && Saig_ManConstrNum(p->pAig) )
                     Abc_Print( 1, "constraint %d failed in frame %d.\n", i, f );
             }
         }
