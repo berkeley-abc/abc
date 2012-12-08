@@ -230,7 +230,7 @@ Aig_Man_t * Saig_ManTempor( Aig_Man_t * pAig, int nFrames, int TimeOut, int nCon
             printf( "A cex found in the first %d frames.\n", nFrames );
             return NULL;
         }
-        if ( nFramesFinished < nFrames )
+        if ( nFramesFinished + 1 < nFrames )
         {
             int iLastBefore = Vec_IntLastNonZeroBeforeLimit( vTransSigs, nFramesFinished );
             if ( iLastBefore < 1 || !fUseTransSigs )
