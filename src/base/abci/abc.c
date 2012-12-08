@@ -17888,11 +17888,11 @@ usage:
 int Abc_CommandDarPhase( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk, * pNtkRes;
-    int c;
     int nFrames, nPref;
     int fIgnore;
     int fPrint;
-    int fVerbose;
+    int fUpdateCex;
+    int c, fVerbose;
     extern Abc_Ntk_t * Abc_NtkPhaseAbstract( Abc_Ntk_t * pNtk, int nFrames, int nPref, int fIgnore, int fPrint, int fVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
@@ -17901,9 +17901,10 @@ int Abc_CommandDarPhase( Abc_Frame_t * pAbc, int argc, char ** argv )
     nPref       = 0;
     fIgnore     = 0;
     fPrint      = 0;
+    fUpdateCex  = 0;
     fVerbose    = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FPipvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FPipcvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -17935,6 +17936,9 @@ int Abc_CommandDarPhase( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'p':
             fPrint ^= 1;
             break;
+        case 'c':
+            fUpdateCex ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -17953,6 +17957,24 @@ int Abc_CommandDarPhase( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Print( -1, "Only works for structrally hashed networks.\n" );
         return 1;
+    }
+    if ( fUpdateCex )
+    {
+        Abc_Cex_t * pCexNew;
+        if ( pAbc->pCex == NULL )
+        {
+            Abc_Print( -1, "Counter-example is not available.\n" );
+            return 1;
+        }
+        if ( pAbc->pCex->nPis % Abc_NtkPiNum(pNtk) != 0 )
+        {
+            Abc_Print( -1, "PI count of the CEX is not a multiple of PI count of the current AIG.\n" );
+            return 1;
+        }
+        pCexNew = Abc_CexTransformPhase( pAbc->pCex, Abc_NtkPiNum(pNtk), Abc_NtkPoNum(pNtk), Abc_NtkLatchNum(pNtk) );
+        Abc_CexFree( pAbc->pCex );
+        pAbc->pCex = pCexNew;
+        return 0;
     }
     if ( !Abc_NtkLatchNum(pNtk) )
     {
@@ -17976,13 +17998,15 @@ int Abc_CommandDarPhase( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: phase [-FP <num>] [-ipvh]\n" );
+    Abc_Print( -2, "usage: phase [-FP <num>] [-ipcvh]\n" );
     Abc_Print( -2, "\t         performs sequential cleanup of the current network\n" );
     Abc_Print( -2, "\t         by removing nodes and latches that do not feed into POs\n" );
     Abc_Print( -2, "\t-F num : the number of frames to abstract [default = %d]\n", nFrames );
     Abc_Print( -2, "\t-P num : the number of prefix frames to skip [default = %d]\n", nPref );
     Abc_Print( -2, "\t-i     : toggle ignoring the initial state [default = %s]\n", fIgnore? "yes": "no" );
     Abc_Print( -2, "\t-p     : toggle printing statistics about generators [default = %s]\n", fPrint? "yes": "no" );
+    Abc_Print( -2, "\t-c     : update the current CEX derived for a new AIG after \"phase\"\n" );
+    Abc_Print( -2, "\t         to match the current AIG (the one before \"phase\") [default = %s]\n", fUpdateCex? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
@@ -21431,11 +21455,12 @@ int Abc_CommandTempor( Abc_Frame_t * pAbc, int argc, char ** argv )
     int nConfMax      =  100000;
     int fUseBmc       =       1;
     int fUseTransSigs =       0;
+    int fUpdateCex    =       0;
     int fVerbose      =       0;
     int fVeryVerbose  =       0;
     int c;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FTCbsvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FTCbscvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -21478,6 +21503,9 @@ int Abc_CommandTempor( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 's':
             fUseTransSigs ^= 1;
             break;
+        case 'c':
+            fUpdateCex ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -21494,14 +21522,32 @@ int Abc_CommandTempor( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -2, "There is no current network.\n");
         return 0;
     }
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        Abc_Print( -2, "The current network is not an AIG (run \"strash\").\n");
+        return 0;
+    }
     if ( Abc_NtkLatchNum(pNtk) == 0 )
     {
         Abc_Print( -2, "The current network is combinational.\n");
         return 0;
     }
-    if ( !Abc_NtkIsStrash(pNtk) )
+    if ( fUpdateCex )
     {
-        Abc_Print( -2, "The current network is not an AIG (run \"strash\").\n");
+        Abc_Cex_t * pCexNew;
+        if ( pAbc->pCex == NULL )
+        {
+            Abc_Print( -1, "Counter-example is not available.\n" );
+            return 1;
+        }
+        if ( pAbc->pCex->nPis % Abc_NtkPiNum(pNtk) != 0 )
+        {
+            Abc_Print( -1, "PI count of the CEX is not a multiple of PI count of the current AIG.\n" );
+            return 1;
+        }
+        pCexNew = Abc_CexTransformTempor( pAbc->pCex, Abc_NtkPiNum(pNtk), Abc_NtkPoNum(pNtk), Abc_NtkLatchNum(pNtk) );
+        Abc_CexFree( pAbc->pCex );
+        pAbc->pCex = pCexNew;
         return 0;
     }
     // modify the current network
@@ -21516,13 +21562,15 @@ int Abc_CommandTempor( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: tempor [-FTC <num>] [-bsvwh]\n" );
+    Abc_Print( -2, "usage: tempor [-FTC <num>] [-bscvwh]\n" );
     Abc_Print( -2, "\t           performs temporal decomposition\n" );
     Abc_Print( -2, "\t-F <num> : init logic timeframe count (0 = use leading length) [default = %d]\n", nFrames );
     Abc_Print( -2, "\t-T <num> : runtime limit in seconds for BMC (0=unused) [default = %d]\n", TimeOut );
     Abc_Print( -2, "\t-C <num> : max number of SAT conflicts in BMC (0=unused) [default = %d]\n", nConfMax );
     Abc_Print( -2, "\t-b       : toggle running BMC2 on the init frames [default = %s]\n", fUseBmc? "yes": "no" );
     Abc_Print( -2, "\t-s       : toggle using transient signals [default = %s]\n", fUseTransSigs? "yes": "no" );
+    Abc_Print( -2, "\t-c       : update the current CEX derived for a new AIG after \"tempor\"\n" );
+    Abc_Print( -2, "\t           to match the current AIG (the one before \"tempor\") [default = %s]\n", fUpdateCex? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggle printing verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w       : toggle printing ternary state space [default = %s]\n", fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
@@ -22459,7 +22507,8 @@ int Abc_CommandReconcile( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
-    if ( argc != globalUtilOptind + 2 )
+
+    if ( argc != globalUtilOptind + 2 && argc != globalUtilOptind )
     {
         Abc_Print( 1,"Does not seen to have two files names as arguments.\n" );
         return 1;
@@ -22470,19 +22519,39 @@ int Abc_CommandReconcile( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
-    // derive networks
-    pNtk1 = Io_Read( argv[globalUtilOptind], Io_ReadFileType(argv[globalUtilOptind]), 1 );
-    if ( pNtk1 == NULL )
-        return 1;
-    pNtk2 = Io_Read( argv[globalUtilOptind+1], Io_ReadFileType(argv[globalUtilOptind+1]), 1 );
-    if ( pNtk2 == NULL )
+    if ( argc == globalUtilOptind + 2 )
     {
-        Abc_NtkDelete( pNtk1 );
-        return 1;
+        // derive networks
+        pNtk1 = Io_Read( argv[globalUtilOptind], Io_ReadFileType(argv[globalUtilOptind]), 1 );
+        if ( pNtk1 == NULL )
+            return 1;
+        pNtk2 = Io_Read( argv[globalUtilOptind+1], Io_ReadFileType(argv[globalUtilOptind+1]), 1 );
+        if ( pNtk2 == NULL )
+        {
+            Abc_NtkDelete( pNtk1 );
+            return 1;
+        }
+        // create counter-examples
+        pAig1 = Abc_NtkToDar( pNtk1, 0, 0 );
+        pAig2 = Abc_NtkToDar( pNtk2, 0, 0 );
     }
-    // create counter-examples
-    pAig1 = Abc_NtkToDar( pNtk1, 0, 0 );
-    pAig2 = Abc_NtkToDar( pNtk2, 0, 0 );
+    else if ( argc == globalUtilOptind )
+    {
+        if ( pAbc->pNtkCur == NULL )
+        {
+            Abc_Print( 1, "There is no AIG in the main-space.\n");
+            return 0;
+        }
+        if ( pAbc->pGia == NULL )
+        {
+            Abc_Print( 1, "There is no AIG in the &-space.\n");
+            return 0;
+        }
+        // create counter-examples
+        pAig1 = Abc_NtkToDar( pAbc->pNtkCur, 0, 0 );
+        pAig2 = Gia_ManToAigSimple( pAbc->pGia );
+    }
+    else assert( 0 );
     pCex = Llb4_Nonlin4NormalizeCex( pAig1, pAig2, pAbc->pCex );
     Aig_ManStop( pAig1 );
     Aig_ManStop( pAig2 );
@@ -22512,6 +22581,8 @@ usage:
     Abc_Print( -2, "\t        and <fileOrigin> to be current CEX and current network\n" );
     Abc_Print( -2, "\t<fileOrigin>   : file name with the original AIG\n");
     Abc_Print( -2, "\t<fileReparam>  : file name with the reparametrized AIG\n");
+    Abc_Print( -2, "\t        (if both file names are not given on the command line,\n");
+    Abc_Print( -2, "\t        original/reparam AIG has to be in the main-space/&-space)\n");
     Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;
 }
@@ -28911,7 +28982,7 @@ int Abc_CommandAbc9Iso( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Iso(): The AIG has only one PO. Isomorphism detection is not performed.\n" );
         return 1;
     }
-    pAig = Gia_ManIsoReduce( pAbc->pGia, &vPosEquivs, fDualOut, fVerbose );
+    pAig = Gia_ManIsoReduce( pAbc->pGia, &vPosEquivs, NULL, fDualOut, fVerbose );
     if ( pAig == NULL )
     {
         Abc_Print( -1, "Abc_CommandAbc9Iso(): Transformation has failed.\n" );

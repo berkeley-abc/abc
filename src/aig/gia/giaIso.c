@@ -876,7 +876,7 @@ void Gia_ManFindCaninicalOrder_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t *
     }
     Vec_IntPush( vAnds, Gia_ObjId(p, pObj) );
 }
-void Gia_ManFindCaninicalOrder( Gia_Man_t * p, Vec_Int_t * vCis, Vec_Int_t * vAnds, Vec_Int_t * vCos )
+void Gia_ManFindCaninicalOrder( Gia_Man_t * p, Vec_Int_t * vCis, Vec_Int_t * vAnds, Vec_Int_t * vCos, Vec_Int_t ** pvPiPerm )
 {
     Vec_Ptr_t * vTemp;
     Gia_Obj_t * pObj;
@@ -895,6 +895,10 @@ void Gia_ManFindCaninicalOrder( Gia_Man_t * p, Vec_Int_t * vCis, Vec_Int_t * vAn
     // create the result
     Vec_PtrForEachEntry( Gia_Obj_t *, vTemp, pObj, i )
         Vec_IntPush( vCis, Gia_ObjId(p, pObj) );
+    // remember PI permutation
+    if ( pvPiPerm ) 
+        Vec_PtrForEachEntry( Gia_Obj_t *, vTemp, pObj, i )
+            Vec_IntPush( *pvPiPerm, Gia_ObjCioId(pObj) );
 
     // assign unique IDs to POs
     if ( Gia_ManPoNum(p) == 1 )
@@ -999,7 +1003,7 @@ Gia_Man_t * Gia_ManIsoCanonicize( Gia_Man_t * p, int fVerbose )
     vCis  = Vec_IntAlloc( Gia_ManCiNum(p) );
     vAnds = Vec_IntAlloc( Gia_ManAndNum(p) );
     vCos  = Vec_IntAlloc( Gia_ManCoNum(p) );
-    Gia_ManFindCaninicalOrder( p, vCis, vAnds, vCos );
+    Gia_ManFindCaninicalOrder( p, vCis, vAnds, vCos, NULL );
     // derive the new AIG
     vResult = Gia_ManDupFromVecs( p, vCis, vAnds, vCos, Gia_ManRegNum(p) );
     // cleanup
@@ -1020,7 +1024,7 @@ Gia_Man_t * Gia_ManIsoCanonicize( Gia_Man_t * p, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Str_t * Gia_ManIsoFindString( Gia_Man_t * p, int iPo, int fVerbose )
+Vec_Str_t * Gia_ManIsoFindString( Gia_Man_t * p, int iPo, int fVerbose, Vec_Int_t ** pvPiPerm )
 {
     Gia_Man_t * pPart;
     Vec_Ptr_t * vEquiv;
@@ -1044,7 +1048,7 @@ Vec_Str_t * Gia_ManIsoFindString( Gia_Man_t * p, int iPo, int fVerbose )
     vCis  = Vec_IntAlloc( Gia_ManCiNum(pPart) );
     vAnds = Vec_IntAlloc( Gia_ManAndNum(pPart) );
     vCos  = Vec_IntAlloc( Gia_ManCoNum(pPart) );
-    Gia_ManFindCaninicalOrder( pPart, vCis, vAnds, vCos );
+    Gia_ManFindCaninicalOrder( pPart, vCis, vAnds, vCos, pvPiPerm );
     // derive the AIGER string
     vStr = Gia_WriteAigerIntoMemoryStrPart( pPart, vCis, vAnds, vCos, Gia_ManRegNum(pPart) );
     // cleanup
@@ -1066,17 +1070,19 @@ Vec_Str_t * Gia_ManIsoFindString( Gia_Man_t * p, int iPo, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManIsoReduce( Gia_Man_t * pInit, Vec_Ptr_t ** pvPosEquivs, int fDualOut, int fVerbose )
+Gia_Man_t * Gia_ManIsoReduce( Gia_Man_t * pInit, Vec_Ptr_t ** pvPosEquivs, Vec_Ptr_t ** pvPiPerms, int fDualOut, int fVerbose )
 { 
     int fVeryVerbose = 0;
     Gia_Man_t * p, * pPart;
     Vec_Ptr_t * vEquivs, * vEquivs2, * vStrings;
     Vec_Int_t * vRemain, * vLevel, * vLevel2;
     Vec_Str_t * vStr, * vStr2;
-    int i, k, s, sStart, Entry, Counter;
+    int i, k, s, sStart, iPo, Counter;
     clock_t clk = clock();
     if ( pvPosEquivs )
         *pvPosEquivs = NULL;
+    if ( pvPiPerms )
+        *pvPiPerms = Vec_PtrStart( Gia_ManPoNum(pInit) );
 
     if ( fDualOut )
     {
@@ -1120,11 +1126,12 @@ Gia_Man_t * Gia_ManIsoReduce( Gia_Man_t * pInit, Vec_Ptr_t ** pvPosEquivs, int f
         }
         sStart = Vec_PtrSize( vEquivs2 ); 
         vStrings = Vec_PtrAlloc( 100 );
-        Vec_IntForEachEntry( vLevel, Entry, k )
+        Vec_IntForEachEntry( vLevel, iPo, k )
         {
             if ( ++Counter % 100 == 0 )
                 printf( "%6d finished...\r", Counter );
-            vStr = Gia_ManIsoFindString( p, Entry, 0 );
+            assert( pvPiPerms == NULL || Vec_PtrArray(*pvPiPerms)[iPo] == NULL );
+            vStr = Gia_ManIsoFindString( p, iPo, 0, pvPiPerms ? (Vec_Int_t **)Vec_PtrArray(*pvPiPerms) + iPo : NULL );
             // check if this string already exists
             Vec_PtrForEachEntry( Vec_Str_t *, vStrings, vStr2, s )
                 if ( Vec_StrCompareVec(vStr, vStr2) == 0 )
@@ -1138,7 +1145,7 @@ Gia_Man_t * Gia_ManIsoReduce( Gia_Man_t * pInit, Vec_Ptr_t ** pvPosEquivs, int f
                 Vec_StrFree( vStr );
             // add this entry to the corresponding level
             vLevel2 = (Vec_Int_t *)Vec_PtrEntry( vEquivs2, sStart + s );
-            Vec_IntPush( vLevel2, Entry );
+            Vec_IntPush( vLevel2, iPo );
         }
         Vec_VecFree( (Vec_Vec_t *)vStrings );
     }

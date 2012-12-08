@@ -23,7 +23,7 @@
 #include <stdlib.h>
 #include <assert.h>
 
-#include "abc_global.h"
+#include "misc/vec/vec.h"
 #include "utilCex.h"
 
 ABC_NAMESPACE_IMPL_START
@@ -352,6 +352,119 @@ void Abc_CexFree( Abc_Cex_t * p )
     ABC_FREE( p );
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Transform CEX after phase abstraction with nFrames frames.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Cex_t * Abc_CexTransformPhase( Abc_Cex_t * p, int nPisOld, int nPosOld, int nRegsOld )
+{
+    Abc_Cex_t * pCex;
+    int nFrames = p->nPis / nPisOld;
+    int nPosNew = nPosOld * nFrames;
+    assert( p->nPis % nPisOld == 0 );
+    assert( p->iPo < nPosNew );
+    pCex = Abc_CexDup( p, nRegsOld );
+    pCex->nPis   = nPisOld;
+    pCex->iPo    = p->iPo % nPosOld;
+    pCex->iFrame = p->iFrame * nFrames + p->iPo / nPosOld;
+    pCex->nBits  = pCex->nRegs + pCex->nPis * (pCex->iFrame + 1);
+    return pCex;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Transform CEX after phase temporal decomposition with nFrames frames.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Cex_t * Abc_CexTransformTempor( Abc_Cex_t * p, int nPisOld, int nPosOld, int nRegsOld )
+{
+    Abc_Cex_t * pCex;
+    int i, k, iBit = nRegsOld, nFrames = p->nPis / nPisOld - 1;
+    assert( p->iFrame > 0 ); // otherwise tempor did not properly check for failures in the prefix
+    assert( p->nPis % nPisOld == 0 );
+    pCex = Abc_CexAlloc( nRegsOld, nPisOld, nFrames + p->iFrame + 1 );
+    pCex->iPo    = p->iPo;
+    pCex->iFrame = nFrames + p->iFrame;
+    for ( i = 0; i < nFrames; i++ )
+        for ( k = 0; k < nPisOld; k++, iBit++ )
+            if ( Abc_InfoHasBit(p->pData, p->nRegs + (i+1)*nPisOld + k) )
+                Abc_InfoSetBit( pCex->pData, iBit );
+    for ( i = 0; i <= p->iFrame; i++ )
+        for ( k = 0; k < nPisOld; k++, iBit++ )
+            if ( Abc_InfoHasBit(p->pData, p->nRegs + i*p->nPis + k) )
+                Abc_InfoSetBit( pCex->pData, iBit );
+    assert( iBit == pCex->nBits );
+    return pCex;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Derives permuted CEX using permutation of its inputs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Cex_t * Abc_CexPermute( Abc_Cex_t * p, Vec_Int_t * vMapOld2New )
+{
+    Abc_Cex_t * pCex;
+    int i, iNew;
+    assert( Vec_IntSize(vMapOld2New) == p->nPis );
+    pCex = Abc_CexAlloc( p->nRegs, p->nPis, p->iFrame+1 );
+    pCex->iPo    = p->iPo;
+    pCex->iFrame = p->iFrame;
+    for ( i = p->nRegs; i < p->nBits; i++ )
+        if ( Abc_InfoHasBit(p->pData, i) )
+        {
+            iNew = p->nRegs + p->nPis * ((i - p->nRegs) / p->nPis) + Vec_IntEntry( vMapOld2New, (i - p->nRegs) % p->nPis );
+            Abc_InfoSetBit( pCex->pData, iNew );
+        }
+    return pCex;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Derives permuted CEX using two canonical permutations.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Cex_t * Abc_CexPermuteTwo( Abc_Cex_t * p, Vec_Int_t * vPermOld, Vec_Int_t * vPermNew )
+{
+    Vec_Int_t * vPermInv = Vec_IntInvert( vPermNew, -1 );
+    Vec_Int_t * vPerm = Vec_IntAlloc( Vec_IntSize(vPermOld) );
+    Abc_Cex_t * pCex;
+    int i, Entry;
+    assert( Vec_IntSize(vPermOld) == p->nPis );
+    assert( Vec_IntSize(vPermNew) == p->nPis );
+    Vec_IntForEachEntry( vPerm, Entry, i )
+        Vec_IntEntry( vPerm, Vec_IntEntry(vPermInv, Vec_IntEntry(vPermOld, Entry)) );
+    pCex = Abc_CexPermute( p, vPerm );
+    Vec_IntFree( vPermInv );
+    Vec_IntFree( vPerm );
+    return pCex;
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
