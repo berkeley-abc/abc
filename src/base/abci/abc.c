@@ -17972,8 +17972,7 @@ int Abc_CommandDarPhase( Abc_Frame_t * pAbc, int argc, char ** argv )
             return 1;
         }
         pCexNew = Abc_CexTransformPhase( pAbc->pCex, Abc_NtkPiNum(pNtk), Abc_NtkPoNum(pNtk), Abc_NtkLatchNum(pNtk) );
-        Abc_CexFree( pAbc->pCex );
-        pAbc->pCex = pCexNew;
+        Abc_FrameReplaceCex( pAbc, &pCexNew );
         return 0;
     }
     if ( !Abc_NtkLatchNum(pNtk) )
@@ -21546,8 +21545,7 @@ int Abc_CommandTempor( Abc_Frame_t * pAbc, int argc, char ** argv )
             return 1;
         }
         pCexNew = Abc_CexTransformTempor( pAbc->pCex, Abc_NtkPiNum(pNtk), Abc_NtkPoNum(pNtk), Abc_NtkLatchNum(pNtk) );
-        Abc_CexFree( pAbc->pCex );
-        pAbc->pCex = pCexNew;
+        Abc_FrameReplaceCex( pAbc, &pCexNew );
         return 0;
     }
     // modify the current network
@@ -22492,8 +22490,8 @@ int Abc_CommandReconcile( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
     extern Abc_Cex_t * Llb4_Nonlin4NormalizeCex( Aig_Man_t * pAigOrg, Aig_Man_t * pAigRpm, Abc_Cex_t * pCexRpm );
     Abc_Cex_t * pCex;
-    Abc_Ntk_t * pNtk1, * pNtk2;
-    Aig_Man_t * pAig1, * pAig2;
+    Abc_Ntk_t * pNtk1 = NULL, * pNtk2 = NULL;
+    Aig_Man_t * pAig1 = NULL, * pAig2 = NULL;
     int c;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
@@ -22555,16 +22553,17 @@ int Abc_CommandReconcile( Abc_Frame_t * pAbc, int argc, char ** argv )
     pCex = Llb4_Nonlin4NormalizeCex( pAig1, pAig2, pAbc->pCex );
     Aig_ManStop( pAig1 );
     Aig_ManStop( pAig2 );
-    Abc_NtkDelete( pNtk2 );
+    if ( pNtk2 )  Abc_NtkDelete( pNtk2 );
     if ( pCex == NULL )
     {
         Abc_Print( 1,"Counter-example computation has failed.\n" );
-        Abc_NtkDelete( pNtk1 );
+        if ( pNtk1 )  Abc_NtkDelete( pNtk1 );
         return 1;
     }
 
     // replace the current network
-    Abc_FrameReplaceCurrentNetwork( pAbc, pNtk1 );
+    if ( pNtk1 )
+        Abc_FrameReplaceCurrentNetwork( pAbc, pNtk1 );
     // update the counter-example
     pAbc->nFrames = pCex->iFrame;
     Abc_FrameReplaceCex( pAbc, &pCex );
