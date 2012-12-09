@@ -430,6 +430,49 @@ Gia_Man_t * Gia_ManDup( Gia_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Duplicates AIG without any changes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManDupPerm( Gia_Man_t * p, Vec_Int_t * vPiPerm )
+{
+//    Vec_Int_t * vPiPermInv;
+    Gia_Man_t * pNew;
+    Gia_Obj_t * pObj;
+    int i;
+    assert( Vec_IntSize(vPiPerm) == Gia_ManPiNum(p) );
+    pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    Gia_ManConst0(p)->Value = 0;
+//    vPiPermInv = Vec_IntInvert( vPiPerm, -1 );
+    Gia_ManForEachPi( p, pObj, i )
+//        Gia_ManPi(p, Vec_IntEntry(vPiPermInv,i))->Value = Gia_ManAppendCi( pNew );
+        Gia_ManPi(p, Vec_IntEntry(vPiPerm,i))->Value = Gia_ManAppendCi( pNew );
+//    Vec_IntFree( vPiPermInv );
+    Gia_ManForEachObj1( p, pObj, i )
+    {
+        if ( Gia_ObjIsAnd(pObj) )
+            pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        else if ( Gia_ObjIsCi(pObj) )
+        {
+            if ( Gia_ObjIsRo(p, pObj) )
+                pObj->Value = Gia_ManAppendCi( pNew );
+        }
+        else if ( Gia_ObjIsCo(pObj) )
+            pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    }
+    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    return pNew;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Appends second AIG without any changes.]
 
   Description []
@@ -457,6 +500,60 @@ void Gia_ManDupAppend( Gia_Man_t * pNew, Gia_Man_t * pTwo )
         else if ( Gia_ObjIsCo(pObj) )
             pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
     }
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Append second AIG on top of the first with the permutation.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManDupAppendNew( Gia_Man_t * pOne, Gia_Man_t * pTwo )
+{
+    Gia_Man_t * pNew;
+    Gia_Obj_t * pObj;
+    int i;
+    pNew = Gia_ManStart( Gia_ManObjNum(pOne) + Gia_ManObjNum(pTwo) );
+    pNew->pName = Abc_UtilStrsav( pOne->pName );
+    pNew->pSpec = Abc_UtilStrsav( pOne->pSpec );
+    Gia_ManHashAlloc( pNew );
+    Gia_ManConst0(pOne)->Value = 0;
+    Gia_ManForEachObj1( pOne, pObj, i )
+    {
+        if ( Gia_ObjIsAnd(pObj) )
+            pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        else if ( Gia_ObjIsCi(pObj) )
+            pObj->Value = Gia_ManAppendCi( pNew );
+    }
+    Gia_ManConst0(pTwo)->Value = 0;
+    Gia_ManForEachObj1( pTwo, pObj, i )
+    {
+        if ( Gia_ObjIsAnd(pObj) )
+            pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        else if ( Gia_ObjIsPi(pTwo, pObj) )
+            pObj->Value = Gia_ManPi(pOne, Gia_ObjCioId(pObj))->Value;
+        else if ( Gia_ObjIsCi(pObj) )
+            pObj->Value = Gia_ManAppendCi( pNew );
+    }
+    Gia_ManHashStop( pNew );
+    // primary outputs
+    Gia_ManForEachPo( pOne, pObj, i )
+        pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    Gia_ManForEachPo( pTwo, pObj, i )
+        pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    // flop inputs
+    Gia_ManForEachRi( pOne, pObj, i )
+        pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    Gia_ManForEachRi( pTwo, pObj, i )
+        pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    Gia_ManSetRegNum( pNew, Gia_ManRegNum(pOne) + Gia_ManRegNum(pTwo) );
+    return pNew;
 }
 
 /**Function*************************************************************
@@ -1854,6 +1951,12 @@ Gia_Man_t * Gia_ManDupWithConstraints( Gia_Man_t * p, Vec_Int_t * vPoTypes )
   SeeAlso     []
 
 ***********************************************************************/
+int Gia_ObjCompareByCioId( Gia_Obj_t ** pp1, Gia_Obj_t ** pp2 )
+{
+    Gia_Obj_t * pObj1 = *pp1;
+    Gia_Obj_t * pObj2 = *pp2;
+    return Gia_ObjCioId(pObj1) - Gia_ObjCioId(pObj2);
+}
 void Gia_ManDupCones_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vNodes, Vec_Ptr_t * vRoots )
 {
     if ( Gia_ObjIsTravIdCurrent(p, pObj) )
@@ -1892,6 +1995,7 @@ Gia_Man_t * Gia_ManDupCones( Gia_Man_t * p, int * pPos, int nPos, int fTrimPis )
     Gia_ObjSetTravIdCurrent( p, Gia_ManConst0(p) );
     Vec_PtrForEachEntry( Gia_Obj_t *, vRoots, pObj, i )
         Gia_ManDupCones_rec( p, pObj, vLeaves, vNodes, vRoots );
+    Vec_PtrSort( vLeaves, (int (*)(void))Gia_ObjCompareByCioId );
 
     // start the new manager
 //    Gia_ManFillValue( p );

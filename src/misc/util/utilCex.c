@@ -452,16 +452,15 @@ Abc_Cex_t * Abc_CexPermute( Abc_Cex_t * p, Vec_Int_t * vMapOld2New )
 ***********************************************************************/
 Abc_Cex_t * Abc_CexPermuteTwo( Abc_Cex_t * p, Vec_Int_t * vPermOld, Vec_Int_t * vPermNew )
 {
-    Vec_Int_t * vPermInv = Vec_IntInvert( vPermNew, -1 );
-    Vec_Int_t * vPerm = Vec_IntAlloc( Vec_IntSize(vPermOld) );
     Abc_Cex_t * pCex;
-    int i, Entry;
+    Vec_Int_t * vPerm;
+    int i, eOld, eNew;
     assert( Vec_IntSize(vPermOld) == p->nPis );
     assert( Vec_IntSize(vPermNew) == p->nPis );
-    Vec_IntForEachEntry( vPerm, Entry, i )
-        Vec_IntEntry( vPerm, Vec_IntEntry(vPermInv, Vec_IntEntry(vPermOld, Entry)) );
+    vPerm = Vec_IntStartFull( p->nPis );
+    Vec_IntForEachEntryTwo( vPermOld, vPermNew, eOld, eNew, i )
+        Vec_IntWriteEntry( vPerm, eOld, eNew );
     pCex = Abc_CexPermute( p, vPerm );
-    Vec_IntFree( vPermInv );
     Vec_IntFree( vPerm );
     return pCex;
 }

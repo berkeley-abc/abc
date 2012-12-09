@@ -28953,6 +28953,7 @@ int Abc_CommandAbc9Iso( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Gia_Man_t * pAig;
     Vec_Ptr_t * vPosEquivs;
+//    Vec_Ptr_t * vPiPerms;
     int c, fDualOut = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "dvh" ) ) != EOF )
@@ -28982,6 +28983,8 @@ int Abc_CommandAbc9Iso( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     pAig = Gia_ManIsoReduce( pAbc->pGia, &vPosEquivs, NULL, fDualOut, fVerbose );
+//    pAig = Gia_ManIsoReduce( pAbc->pGia, &vPosEquivs, &vPiPerms, fDualOut, fVerbose );
+//    Vec_VecFree( (Vec_Vec_t *)vPiPerms );
     if ( pAig == NULL )
     {
         Abc_Print( -1, "Abc_CommandAbc9Iso(): Transformation has failed.\n" );
@@ -30344,7 +30347,7 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    extern void Gia_IsoTest( Gia_Man_t * p, int fVerbose );
 //    extern void Ga2_ManComputeTest( Gia_Man_t * p );
 //    extern void Bmc_CexTest( Gia_Man_t * p, Abc_Cex_t * pCex, int fVerbose );
-
+    extern void Gia_IsoTest( Gia_Man_t * p, Abc_Cex_t * pCex, int fVerbose );
 
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "svh" ) ) != EOF )
@@ -30390,6 +30393,7 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    Gia_IsoTest( pAbc->pGia, fVerbose );
 //    Ga2_ManComputeTest( pAbc->pGia );
 //    Bmc_CexTest( pAbc->pGia, pAbc->pCex, fVerbose );
+    Gia_IsoTest( pAbc->pGia, pAbc->pCex, 0 );
     return 0;
 usage:
     Abc_Print( -2, "usage: &test [-svh]\n" );

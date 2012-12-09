@@ -728,6 +728,8 @@ extern int                 Gia_ManFindFailedPoCex( Gia_Man_t * pAig, Abc_Cex_t *
 extern void                Gia_ManCounterExampleValueStart( Gia_Man_t * pGia, Abc_Cex_t * pCex );
 extern void                Gia_ManCounterExampleValueStop( Gia_Man_t * pGia );
 extern int                 Gia_ManCounterExampleValueLookup( Gia_Man_t * pGia, int Id, int iFrame );
+extern Abc_Cex_t *         Gia_ManCexExtendToIncludeCurrentStates( Gia_Man_t * p, Abc_Cex_t * pCex );
+extern Abc_Cex_t *         Gia_ManCexExtendToIncludeAllObjects( Gia_Man_t * p, Abc_Cex_t * pCex );
 /*=== giaChoice.c ============================================================*/
 extern void                Gia_ManVerifyChoices( Gia_Man_t * p );
 extern void                Gia_ManReverseClasses( Gia_Man_t * p, int fNowIncreasing );
@@ -760,7 +762,9 @@ extern Gia_Man_t *         Gia_ManDupOutputGroup( Gia_Man_t * p, int iOutStart, 
 extern Gia_Man_t *         Gia_ManDupOrderAiger( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManDupFlip( Gia_Man_t * p, int * pInitState );
 extern Gia_Man_t *         Gia_ManDup( Gia_Man_t * p );  
+extern Gia_Man_t *         Gia_ManDupPerm( Gia_Man_t * p, Vec_Int_t * vPiPerm );
 extern void                Gia_ManDupAppend( Gia_Man_t * p, Gia_Man_t * pTwo );
+extern Gia_Man_t *         Gia_ManDupAppendNew( Gia_Man_t * pOne, Gia_Man_t * pTwo );
 extern Gia_Man_t *         Gia_ManDupSelf( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManDupFlopClass( Gia_Man_t * p, int iClass );
 extern Gia_Man_t *         Gia_ManDupMarked( Gia_Man_t * p );

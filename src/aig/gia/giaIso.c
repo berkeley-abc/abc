@@ -821,10 +821,12 @@ Vec_Ptr_t * Gia_IsoDeriveEquivPos( Gia_Man_t * pGia, int fForward, int fVerbose 
         ABC_PRTP( "Other    ", p->timeOther,              p->timeTotal );
         ABC_PRTP( "TOTAL    ", p->timeTotal,              p->timeTotal );
     }
+
     if ( Gia_ManPoNum(p->pGia) > 1 )
         vEquivs = Gia_IsoCollectCosClasses( p, fVerbose );
     Gia_IsoManTransferUnique( p );
     Gia_IsoManStop( p );
+
     return vEquivs;
 }
 
@@ -897,8 +899,11 @@ void Gia_ManFindCaninicalOrder( Gia_Man_t * p, Vec_Int_t * vCis, Vec_Int_t * vAn
         Vec_IntPush( vCis, Gia_ObjId(p, pObj) );
     // remember PI permutation
     if ( pvPiPerm ) 
+    {
+        *pvPiPerm = Vec_IntAlloc( Gia_ManPiNum(p) );
         Vec_PtrForEachEntry( Gia_Obj_t *, vTemp, pObj, i )
             Vec_IntPush( *pvPiPerm, Gia_ObjCioId(pObj) );
+    }
 
     // assign unique IDs to POs
     if ( Gia_ManPoNum(p) == 1 )
@@ -986,7 +991,7 @@ Gia_Man_t * Gia_ManDupFromVecs( Gia_Man_t * p, Vec_Int_t * vCis, Vec_Int_t * vAn
 ***********************************************************************/
 Gia_Man_t * Gia_ManIsoCanonicize( Gia_Man_t * p, int fVerbose )
 {
-    Gia_Man_t * vResult = NULL;
+    Gia_Man_t * pRes = NULL;
     Vec_Int_t * vCis, * vAnds, * vCos;
     Vec_Ptr_t * vEquiv;
     if ( Gia_ManCiNum(p) == 0 ) // const AIG
@@ -1005,12 +1010,12 @@ Gia_Man_t * Gia_ManIsoCanonicize( Gia_Man_t * p, int fVerbose )
     vCos  = Vec_IntAlloc( Gia_ManCoNum(p) );
     Gia_ManFindCaninicalOrder( p, vCis, vAnds, vCos, NULL );
     // derive the new AIG
-    vResult = Gia_ManDupFromVecs( p, vCis, vAnds, vCos, Gia_ManRegNum(p) );
+    pRes = Gia_ManDupFromVecs( p, vCis, vAnds, vCos, Gia_ManRegNum(p) );
     // cleanup
     Vec_IntFree( vCis );
     Vec_IntFree( vAnds );
     Vec_IntFree( vCos );
-    return vResult;
+    return pRes;
 }
 
 /**Function*************************************************************
@@ -1032,6 +1037,7 @@ Vec_Str_t * Gia_ManIsoFindString( Gia_Man_t * p, int iPo, int fVerbose, Vec_Int_
     Vec_Str_t * vStr;
     // duplicate
     pPart = Gia_ManDupCones( p, &iPo, 1, 1 );
+//Gia_ManPrint( pPart );
     assert( Gia_ManPoNum(pPart) == 1 );
     if ( Gia_ManCiNum(pPart) == 0 ) // const AIG
     {
@@ -1039,6 +1045,8 @@ Vec_Str_t * Gia_ManIsoFindString( Gia_Man_t * p, int iPo, int fVerbose, Vec_Int_
         assert( Gia_ManObjNum(pPart) == 2 );
         vStr = Gia_WriteAigerIntoMemoryStr( pPart );
         Gia_ManStop( pPart );
+        if ( pvPiPerm )
+            *pvPiPerm = Vec_IntAlloc( 0 );
         return vStr;
     }
     // derive canonical values
@@ -1049,6 +1057,8 @@ Vec_Str_t * Gia_ManIsoFindString( Gia_Man_t * p, int iPo, int fVerbose, Vec_Int_
     vAnds = Vec_IntAlloc( Gia_ManAndNum(pPart) );
     vCos  = Vec_IntAlloc( Gia_ManCoNum(pPart) );
     Gia_ManFindCaninicalOrder( pPart, vCis, vAnds, vCos, pvPiPerm );
+//printf( "Internal: " );
+//Vec_IntPrint( vCis );
     // derive the AIGER string
     vStr = Gia_WriteAigerIntoMemoryStrPart( pPart, vCis, vAnds, vCos, Gia_ManRegNum(pPart) );
     // cleanup
@@ -1132,6 +1142,10 @@ Gia_Man_t * Gia_ManIsoReduce( Gia_Man_t * pInit, Vec_Ptr_t ** pvPosEquivs, Vec_P
                 printf( "%6d finished...\r", Counter );
             assert( pvPiPerms == NULL || Vec_PtrArray(*pvPiPerms)[iPo] == NULL );
             vStr = Gia_ManIsoFindString( p, iPo, 0, pvPiPerms ? (Vec_Int_t **)Vec_PtrArray(*pvPiPerms) + iPo : NULL );
+
+//            printf( "Output %2d : ", iPo );
+//            Vec_IntPrint( Vec_PtrArray(*pvPiPerms)[iPo] );
+
             // check if this string already exists
             Vec_PtrForEachEntry( Vec_Str_t *, vStrings, vStr2, s )
                 if ( Vec_StrCompareVec(vStr, vStr2) == 0 )
@@ -1211,7 +1225,7 @@ Gia_Man_t * Gia_ManIsoReduce( Gia_Man_t * pInit, Vec_Ptr_t ** pvPosEquivs, Vec_P
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_IsoTest( Gia_Man_t * p, int fVerbose )
+void Gia_IsoTestOld( Gia_Man_t * p, int fVerbose )
 {
     Vec_Ptr_t * vEquivs;
     clock_t clk = clock(); 
@@ -1224,6 +1238,75 @@ void Gia_IsoTest( Gia_Man_t * p, int fVerbose )
 //        Vec_VecPrintInt( (Vec_Vec_t *)vEquivs, 1 );
     }
     Vec_VecFreeP( (Vec_Vec_t **)&vEquivs );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Test remapping of CEXes for isomorphic POs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Gia_IsoTestGenPerm( int nPis )
+{
+    Vec_Int_t * vPerm;
+    int i, * pArray;
+    vPerm = Vec_IntStartNatural( nPis );
+    pArray = Vec_IntArray( vPerm );
+    for ( i = 0; i < nPis; i++ )
+    {
+        int iNew = rand() % nPis;
+        ABC_SWAP( int, pArray[i], pArray[iNew] );
+    }
+    return vPerm;
+}
+void Gia_IsoTest( Gia_Man_t * p, Abc_Cex_t * pCex, int fVerbose )
+{
+    Abc_Cex_t * pCexNew;
+    Vec_Int_t * vPiPerm;
+    Vec_Ptr_t * vPosEquivs, * vPisPerm;
+    Vec_Int_t * vPerm0, * vPerm1;
+    Gia_Man_t * pPerm, * pDouble, * pAig;
+    assert( Gia_ManPoNum(p) == 1 );
+    assert( Gia_ManRegNum(p) > 0 );
+    // generate random permutation of PIs
+    vPiPerm = Gia_IsoTestGenPerm( Gia_ManPiNum(p) );
+    printf( "Considering random permutation of the AIG:\n" );
+    Vec_IntPrint( vPiPerm );
+    // create AIG with two primary outputs (original and permuted)
+    pPerm = Gia_ManDupPerm( p, vPiPerm );
+    pDouble = Gia_ManDupAppendNew( p, pPerm );
+//Gia_WriteAiger( pDouble, "test.aig", 0, 0 );
+
+    // analyze the two-output miter
+    pAig = Gia_ManIsoReduce( pDouble, &vPosEquivs, &vPisPerm, 0, 0 );
+    Vec_VecFree( (Vec_Vec_t *)vPosEquivs );
+
+    // given CEX for output 0, derive CEX for output 1
+    vPerm0 = (Vec_Int_t *)Vec_PtrEntry( vPisPerm, 0 );
+    vPerm1 = (Vec_Int_t *)Vec_PtrEntry( vPisPerm, 1 );
+    pCexNew = Abc_CexPermuteTwo( pCex, vPerm0, vPerm1 );
+    Vec_VecFree( (Vec_Vec_t *)vPisPerm );
+
+    // check that original CEX and the resulting CEX is valid
+    if ( Gia_ManVerifyCex(p, pCex, 0) )
+        printf( "CEX for the init AIG is valid.\n" );
+    else
+        printf( "CEX for the init AIG is not valid.\n" );
+    if ( Gia_ManVerifyCex(pPerm, pCexNew, 0) )
+        printf( "CEX for the perm AIG is valid.\n" );
+    else
+        printf( "CEX for the perm AIG is not valid.\n" );
+    // delete
+    Gia_ManStop( pAig );
+    Gia_ManStop( pDouble );
+    Gia_ManStop( pPerm );
+    Vec_IntFree( vPiPerm );
+    Abc_CexFree( pCexNew );
 }
 
 ////////////////////////////////////////////////////////////////////////

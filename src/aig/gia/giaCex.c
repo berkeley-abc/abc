@@ -241,6 +241,101 @@ void Gia_ManCounterExampleValueTest( Gia_Man_t * pGia, Abc_Cex_t * pCex )
 }
 
 
+/**Function*************************************************************
+
+  Synopsis    [Returns CEX containing PI+CS values for each timeframe.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Cex_t * Gia_ManCexExtendToIncludeCurrentStates( Gia_Man_t * p, Abc_Cex_t * pCex )
+{
+    Abc_Cex_t * pNew;
+    Gia_Obj_t * pObj, * pObjRo, * pObjRi;
+    int i, k, iBit = 0;
+    assert( pCex->nRegs > 0 );
+    // start the counter-example
+    pNew = Abc_CexAlloc( 0, Gia_ManCiNum(p), pCex->iFrame + 1 );
+    pNew->iFrame = pCex->iFrame;
+    pNew->iPo    = pCex->iPo;
+    // set const0
+    Gia_ManConst0(p)->fMark0 = 0;
+    // set init state
+    Gia_ManForEachRi( p, pObjRi, k )
+        pObjRi->fMark0 = Abc_InfoHasBit(pCex->pData, iBit++);
+    assert( iBit == pCex->nRegs );
+    for ( i = 0; i <= pCex->iFrame; i++ )
+    {
+        Gia_ManForEachPi( p, pObj, k )
+            pObj->fMark0 = Abc_InfoHasBit(pCex->pData, iBit++);
+        Gia_ManForEachRiRo( p, pObjRi, pObjRo, k )
+            pObjRo->fMark0 = pObjRi->fMark0;
+        Gia_ManForEachCi( p, pObj, k )
+            if ( pObj->fMark0 )
+                Abc_InfoSetBit( pNew->pData, pNew->nPis * i + k );
+        Gia_ManForEachAnd( p, pObj, k )
+            pObj->fMark0 = (Gia_ObjFanin0(pObj)->fMark0 ^ Gia_ObjFaninC0(pObj)) & (Gia_ObjFanin1(pObj)->fMark0 ^ Gia_ObjFaninC1(pObj));
+        Gia_ManForEachCo( p, pObj, k )
+            pObj->fMark0 = Gia_ObjFanin0(pObj)->fMark0 ^ Gia_ObjFaninC0(pObj);
+    }
+    assert( iBit == pCex->nBits );
+    assert( Gia_ManPo(p, pCex->iPo)->fMark0 == 1 );
+    Gia_ManCleanMark0(p);
+    return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns CEX containing all object valuess for each timeframe.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Cex_t * Gia_ManCexExtendToIncludeAllObjects( Gia_Man_t * p, Abc_Cex_t * pCex )
+{
+    Abc_Cex_t * pNew;
+    Gia_Obj_t * pObj, * pObjRo, * pObjRi;
+    int i, k, iBit = 0;
+    assert( pCex->nRegs > 0 );
+    // start the counter-example
+    pNew = Abc_CexAlloc( 0, Gia_ManObjNum(p), pCex->iFrame + 1 );
+    pNew->iFrame = pCex->iFrame;
+    pNew->iPo    = pCex->iPo;
+    // set const0
+    Gia_ManConst0(p)->fMark0 = 0;
+    // set init state
+    Gia_ManForEachRi( p, pObjRi, k )
+        pObjRi->fMark0 = Abc_InfoHasBit(pCex->pData, iBit++);
+    assert( iBit == pCex->nRegs );
+    for ( i = 0; i <= pCex->iFrame; i++ )
+    {
+        Gia_ManForEachPi( p, pObj, k )
+            pObj->fMark0 = Abc_InfoHasBit(pCex->pData, iBit++);
+        Gia_ManForEachRiRo( p, pObjRi, pObjRo, k )
+            pObjRo->fMark0 = pObjRi->fMark0;
+        Gia_ManForEachObj( p, pObj, k )
+            if ( pObj->fMark0 )
+                Abc_InfoSetBit( pNew->pData, pNew->nPis * i + k );
+        Gia_ManForEachAnd( p, pObj, k )
+            pObj->fMark0 = (Gia_ObjFanin0(pObj)->fMark0 ^ Gia_ObjFaninC0(pObj)) & (Gia_ObjFanin1(pObj)->fMark0 ^ Gia_ObjFaninC1(pObj));
+        Gia_ManForEachCo( p, pObj, k )
+            pObj->fMark0 = Gia_ObjFanin0(pObj)->fMark0 ^ Gia_ObjFaninC0(pObj);
+    }
+    assert( iBit == pCex->nBits );
+    assert( Gia_ManPo(p, pCex->iPo)->fMark0 == 1 );
+    Gia_ManCleanMark0(p);
+    return pNew;
+}
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
