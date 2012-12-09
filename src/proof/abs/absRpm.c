@@ -666,6 +666,11 @@ void Abs_RpmPerformMark( Gia_Man_t * p, int nCutMax, int fVerbose, int fVeryVerb
             assert( nSize0 > 0 && nSize0 <= nCutMax );
             // check if truth table has const cofs
             pTruth = Gia_ObjComputeTruthTableCut( p, pObj, vSupp );
+            if ( pTruth == NULL )
+            {
+                Abs_GiaObjRef_rec( p, pObj );
+                continue;
+            }
             fHasConst = !Abs_GiaCheckTruth( pTruth, Vec_IntSize(vSupp), nSize0 );
             if ( fVeryVerbose )
             {

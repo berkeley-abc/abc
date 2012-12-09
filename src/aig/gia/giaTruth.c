@@ -245,18 +245,21 @@ void Gia_ObjComputeTruthTableTest( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ObjCollectInternalCut_rec( Gia_Man_t * p, Gia_Obj_t * pObj )
+int Gia_ObjCollectInternalCut_rec( Gia_Man_t * p, Gia_Obj_t * pObj )
 {
     if ( pObj->fMark0 )
-        return;
-    pObj->fMark0 = 1;
+        return 0;
     assert( Gia_ObjIsAnd(pObj) );
-    Gia_ObjCollectInternalCut_rec( p, Gia_ObjFanin0(pObj) );
-    Gia_ObjCollectInternalCut_rec( p, Gia_ObjFanin1(pObj) );
+    if ( Gia_ObjCollectInternalCut_rec( p, Gia_ObjFanin0(pObj) ) )
+        return 1;
+    if ( Gia_ObjCollectInternalCut_rec( p, Gia_ObjFanin1(pObj) ) )
+        return 1;
+    pObj->fMark0 = 1;
     Gia_ObjSetNum( p, pObj, Vec_IntSize(p->vTtNodes) );
     Vec_IntPush( p->vTtNodes, Gia_ObjId(p, pObj) );
+    return (Vec_IntSize(p->vTtNodes) >= 254);
 }
-void Gia_ObjCollectInternalCut( Gia_Man_t * p, Gia_Obj_t * pRoot, Vec_Int_t * vLeaves )
+int Gia_ObjCollectInternalCut( Gia_Man_t * p, Gia_Obj_t * pRoot, Vec_Int_t * vLeaves )
 {
     Gia_Obj_t * pObj;
     int i;
@@ -270,8 +273,7 @@ void Gia_ObjCollectInternalCut( Gia_Man_t * p, Gia_Obj_t * pRoot, Vec_Int_t * vL
     }
     assert( pRoot->fMark0 == 0 ); // the root cannot be one of the leaves
     Vec_IntClear( p->vTtNodes );
-    Gia_ObjCollectInternalCut_rec( p, pRoot );
-    assert( Vec_IntSize(p->vTtNodes) < 254 );
+    return Gia_ObjCollectInternalCut_rec( p, pRoot );
 }
 
 /**Function*************************************************************
@@ -324,8 +326,21 @@ word * Gia_ObjComputeTruthTableCut( Gia_Man_t * p, Gia_Obj_t * pRoot, Vec_Int_t 
     assert( p->vTtMemory != NULL );
     assert( Vec_IntSize(vLeaves) <= p->nTtVars );
     // collect internal nodes
-    Gia_ObjCollectInternalCut( p, pRoot, vLeaves );
+    if ( Gia_ObjCollectInternalCut( p, pRoot, vLeaves ) )
+    {
+        // unmark nodes makred by Gia_ObjCollectInternal()
+        Gia_ManForEachObjVec( p->vTtNodes, p, pTemp, i )
+            pTemp->fMark0 = 0; 
+        // unmark leaves marked by Gia_ObjCollectInternal()
+        Gia_ManForEachObjVec( vLeaves, p, pTemp, i )
+        {
+            assert( pTemp->fMark0 == 1 );
+            pTemp->fMark0 = 0; 
+        }
+        return NULL;
+    }
     // compute the truth table for internal nodes
+    assert( Vec_IntSize(p->vTtNodes) < 254 );
     Gia_ManForEachObjVec( p->vTtNodes, p, pTemp, i )
     {
         pTemp->fMark0 = 0; // unmark nodes marked by Gia_ObjCollectInternal()
