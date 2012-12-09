@@ -76,6 +76,8 @@ struct Pdr_Man_t_
     Vec_Int_t** pvId2Vars; // for each used ObjId, maps frame into SAT var
     Vec_Ptr_t * vVar2Ids;  // for each used frame, maps SAT var into ObjId
     // data representation
+    int         iOutCur;   // current output
+    Vec_Ptr_t * vCexes;    // counter-examples for each output
     Vec_Ptr_t * vSolvers;  // SAT solvers
     Vec_Vec_t * vClauses;  // clauses by timeframe
     Pdr_Obl_t * pQueue;    // proof obligations

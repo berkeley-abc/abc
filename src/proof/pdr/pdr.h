@@ -40,7 +40,7 @@ ABC_NAMESPACE_HEADER_START
 typedef struct Pdr_Par_t_ Pdr_Par_t;
 struct Pdr_Par_t_
 {
-    int iOutput;          // zero-based number of primary output to solve
+//    int iOutput;          // zero-based number of primary output to solve
     int nRecycle;         // limit on vars for recycling
     int nFrameMax;        // limit on frame count
     int nConfLimit;       // limit on SAT solver conflicts
@@ -54,6 +54,8 @@ struct Pdr_Par_t_
     int fVerbose;         // verbose output`
     int fVeryVerbose;     // very verbose output
     int fSilent;          // totally silent execution
+    int fSolveAll;        // do not stop when found a SAT output
+    int nFailOuts;        // the number of failed outputs
     int iFrame;           // explored up to this frame
     int RunId;            // PDR id in this run 
     int(*pFuncStop)(int); // callback to terminate

@@ -144,6 +144,8 @@ void Pdr_ManStop( Pdr_Man_t * p )
     Vec_IntFree( p->vRes      );  // final result
     Vec_IntFree( p->vSuppLits );  // support literals
     ABC_FREE( p->pCubeJust );
+    if ( p->vCexes )
+        Vec_PtrFreeFree( p->vCexes );
     // additional AIG data-members
     if ( p->pAig->pFanData != NULL )
         Aig_ManFanoutStop( p->pAig );
@@ -173,7 +175,8 @@ Abc_Cex_t * Pdr_ManDeriveCex( Pdr_Man_t * p )
         nFrames++;
     // create the counter-example
     pCex = Abc_CexAlloc( Aig_ManRegNum(p->pAig), Saig_ManPiNum(p->pAig), nFrames );
-    pCex->iPo    = (p->pPars->iOutput==-1)? 0 : p->pPars->iOutput;
+//    pCex->iPo    = (p->pPars->iOutput==-1)? 0 : p->pPars->iOutput;
+    pCex->iPo    = p->iOutCur;
     pCex->iFrame = nFrames-1;
     for ( pObl = p->pQueue, f = 0; pObl; pObl = pObl->pNext, f++ )
         for ( i = pObl->pState->nLits; i < pObl->pState->nTotal; i++ )

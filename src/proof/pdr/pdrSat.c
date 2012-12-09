@@ -45,6 +45,8 @@ ABC_NAMESPACE_IMPL_START
 sat_solver * Pdr_ManCreateSolver( Pdr_Man_t * p, int k )
 {
     sat_solver * pSat;
+    Aig_Obj_t * pObj;
+    int i;
     assert( Vec_PtrSize(p->vSolvers) == k );
     assert( Vec_VecSize(p->vClauses) == k );
     assert( Vec_IntSize(p->vActVars) == k );
@@ -55,7 +57,9 @@ sat_solver * Pdr_ManCreateSolver( Pdr_Man_t * p, int k )
     Vec_VecExpand( p->vClauses, k );
     Vec_IntPush( p->vActVars, 0 );
     // add property cone
-    Pdr_ObjSatVar( p, k, Aig_ManCo(p->pAig, (p->pPars->iOutput==-1)?0:p->pPars->iOutput ) );
+//    Pdr_ObjSatVar( p, k, Aig_ManCo(p->pAig, (p->pPars->iOutput==-1)?0:p->pPars->iOutput ) );
+    Saig_ManForEachPo( p->pAig, pObj, i )
+        Pdr_ObjSatVar( p, k, pObj );
     return pSat;
 }
 
@@ -173,11 +177,15 @@ Vec_Int_t * Pdr_ManCubeToLits( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, int fCom
 void Pdr_ManSetPropertyOutput( Pdr_Man_t * p, int k )
 {
     sat_solver * pSat;
-    int Lit, RetValue;
+    Aig_Obj_t * pObj;
+    int Lit, RetValue, i;
     pSat = Pdr_ManSolver(p, k);
-    Lit = toLitCond( Pdr_ObjSatVar(p, k, Aig_ManCo(p->pAig, (p->pPars->iOutput==-1)?0:p->pPars->iOutput)), 1 ); // neg literal
-    RetValue = sat_solver_addclause( pSat, &Lit, &Lit + 1 );
-    assert( RetValue == 1 );
+    Saig_ManForEachPo( p->pAig, pObj, i )
+    {
+        Lit = toLitCond( Pdr_ObjSatVar(p, k, pObj), 1 ); // neg literal
+        RetValue = sat_solver_addclause( pSat, &Lit, &Lit + 1 );
+        assert( RetValue == 1 );
+    }
     sat_solver_compress( pSat );
 }
 
@@ -279,7 +287,7 @@ int Pdr_ManCheckCube( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppPr
     if ( pCube == NULL ) // solve the property
     {
         clk = clock();
-        Lit = toLit( Pdr_ObjSatVar(p, k, Aig_ManCo(p->pAig, (p->pPars->iOutput==-1)?0:p->pPars->iOutput)) ); // pos literal (property fails)
+        Lit = toLit( Pdr_ObjSatVar(p, k, Aig_ManCo(p->pAig, p->iOutCur)) ); // pos literal (property fails)
         RetValue = sat_solver_solve( pSat, &Lit, &Lit + 1, nConfLimit, 0, 0, 0 );
         if ( RetValue == l_Undef )
             return -1;

@@ -2717,6 +2717,7 @@ int Abc_NtkDarPdr( Abc_Ntk_t * pNtk, Pdr_Par_t * pPars, Abc_Cex_t ** ppCex )
         Abc_Print( 1, "Converting network into AIG has failed.\n" );
         return -1;
     }
+/*
     // perform ORing the primary outputs
     if ( pPars->iOutput == -1 )
     {
@@ -2728,6 +2729,9 @@ int Abc_NtkDarPdr( Abc_Ntk_t * pNtk, Pdr_Par_t * pPars, Abc_Cex_t ** ppCex )
     }
     else
         RetValue = Pdr_ManSolve( pMan, pPars, ppCex );
+*/
+    RetValue = Pdr_ManSolve( pMan, pPars, ppCex );
+
     // output the result
     if ( !pPars->fSilent )
     {
@@ -2739,7 +2743,7 @@ int Abc_NtkDarPdr( Abc_Ntk_t * pNtk, Pdr_Par_t * pPars, Abc_Cex_t ** ppCex )
             Abc_Print( 1, "Property UNDECIDED.  " );
         else
             assert( 0 );
-    ABC_PRT( "Time", clock() - clk );
+        ABC_PRT( "Time", clock() - clk );
     }
 
     if ( *ppCex && !Saig_ManVerifyCex( pMan, *ppCex ) )

@@ -368,7 +368,10 @@ Pdr_Set_t * Pdr_ManTernarySim( Pdr_Man_t * p, int k, Pdr_Set_t * pCube )
     // collect CO objects
     Vec_IntClear( vCoObjs );
     if ( pCube == NULL ) // the target is the property output
-        Vec_IntPush( vCoObjs, Aig_ObjId(Aig_ManCo(p->pAig, (p->pPars->iOutput==-1)?0:p->pPars->iOutput)) );
+    {
+//        Vec_IntPush( vCoObjs, Aig_ObjId(Aig_ManCo(p->pAig, (p->pPars->iOutput==-1)?0:p->pPars->iOutput)) );
+        Vec_IntPush( vCoObjs, Aig_ObjId(Aig_ManCo(p->pAig, p->iOutCur)) );
+    }
     else // the target is the cube
     {
         for ( i = 0; i < pCube->nLits; i++ )

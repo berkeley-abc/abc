@@ -45,7 +45,7 @@ ABC_NAMESPACE_IMPL_START
 void Pdr_ManSetDefaultParams( Pdr_Par_t * pPars )
 {
     memset( pPars, 0, sizeof(Pdr_Par_t) );
-    pPars->iOutput       =      -1;  // zero-based output number
+//    pPars->iOutput       =      -1;  // zero-based output number
     pPars->nRecycle      =     300;  // limit on vars for recycling
     pPars->nFrameMax     =   10000;  // limit on number of timeframes
     pPars->nTimeOut      =       0;  // timeout in seconds
@@ -552,7 +552,9 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
 {
     int fPrintClauses = 0;
     Pdr_Set_t * pCube;
+    Aig_Obj_t * pObj;
     int k, RetValue = -1;
+    int nOutDigits = Abc_Base10Log( Saig_ManPoNum(p->pAig) );
     clock_t clkStart = clock();
     p->timeToStop = p->pPars->nTimeOut ? p->pPars->nTimeOut * CLOCKS_PER_SEC + clock(): 0;
     assert( Vec_PtrSize(p->vSolvers) == 0 );
@@ -562,87 +564,132 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
     {
         p->nFrames = k;
         assert( k == Vec_PtrSize(p->vSolvers)-1 );
-        RetValue = Pdr_ManCheckCube( p, k, NULL, &pCube, p->pPars->nConfLimit );
+        Saig_ManForEachPo( p->pAig, pObj, p->iOutCur )
+        {
+            // skip solved outputs
+            if ( p->vCexes && Vec_PtrEntry(p->vCexes, p->iOutCur) )
+                continue;
+            // check if the output is trivially solved
+            if ( Aig_ObjChild0(pObj) == Aig_ManConst0(p->pAig) )
+                continue;
+            // check if the output is trivially solved
+            if ( Aig_ObjChild0(pObj) == Aig_ManConst1(p->pAig) )
+            {
+                if ( !p->pPars->fSolveAll )
+                {
+                    p->pAig->pSeqModel = Abc_CexMakeTriv( Aig_ManRegNum(p->pAig), Saig_ManPiNum(p->pAig), Saig_ManPoNum(p->pAig), k*Saig_ManPoNum(p->pAig)+p->iOutCur );
+                    return 0; // SAT
+                }
+                p->pPars->nFailOuts++;
+                Abc_Print( 1, "Output %*d was trivially asserted in frame %2d (solved %*d out of %*d outputs).\n",  
+                    nOutDigits, p->iOutCur, k, nOutDigits, p->pPars->nFailOuts, nOutDigits, Saig_ManPoNum(p->pAig) );
+                if ( p->vCexes == NULL )
+                    p->vCexes = Vec_PtrStart( Saig_ManPoNum(p->pAig) );
+                assert( Vec_PtrEntry(p->vCexes, p->iOutCur) == NULL );
+                Vec_PtrWriteEntry( p->vCexes, p->iOutCur, Pdr_ManDeriveCex(p) );
+                if ( p->pPars->nFailOuts == Saig_ManPoNum(p->pAig) )
+                    return 0; // all SAT
+                continue;
+            }
+            // try to solve this output
+            while ( 1 )
+            {
+                RetValue = Pdr_ManCheckCube( p, k, NULL, &pCube, p->pPars->nConfLimit );
+                if ( RetValue == 1 )
+                    break;
+                if ( RetValue == -1 )
+                {
+                    if ( p->pPars->fVerbose ) 
+                        Pdr_ManPrintProgress( p, 1, clock() - clkStart );
+                        if ( p->pPars->nConfLimit )
+                            Abc_Print( 1, "Reached conflict limit (%d).\n",  p->pPars->nConfLimit );
+                        else if ( p->pPars->fVerbose ) 
+                            Abc_Print( 1, "Computation cancelled by the callback.\n" );
+                    p->pPars->iFrame = k;
+                    return -1;
+                }
+                if ( RetValue == 0 )
+                {
+                    RetValue = Pdr_ManBlockCube( p, pCube );
+                    if ( RetValue == -1 )
+                    {
+                        if ( p->pPars->fVerbose ) 
+                            Pdr_ManPrintProgress( p, 1, clock() - clkStart );
+                        if ( p->pPars->nConfLimit )
+                            Abc_Print( 1, "Reached conflict limit (%d).\n",  p->pPars->nConfLimit );
+                        else if ( p->pPars->fVerbose ) 
+                            Abc_Print( 1, "Computation cancelled by the callback.\n" );
+                        p->pPars->iFrame = k;
+                        return -1;
+                    }
+                    if ( RetValue == 0 )
+                    {
+                        if ( fPrintClauses )
+                        {
+                            Abc_Print( 1, "*** Clauses after frame %d:\n", k );
+                            Pdr_ManPrintClauses( p, 0 );
+                        }
+                        if ( p->pPars->fVerbose ) 
+                            Pdr_ManPrintProgress( p, 1, clock() - clkStart );
+                        p->pPars->iFrame = k;
+
+                        if ( !p->pPars->fSolveAll )
+                        {
+                            p->pAig->pSeqModel = Pdr_ManDeriveCex( p );
+                            return 0; // SAT
+                        }
+                        p->pPars->nFailOuts++;
+                        Abc_Print( 1, "Output %*d was asserted in frame %2d (solved %*d out of %*d outputs).\n",  
+                            nOutDigits, p->iOutCur, k, nOutDigits, p->pPars->nFailOuts, nOutDigits, Saig_ManPoNum(p->pAig) );
+                        if ( p->vCexes == NULL )
+                            p->vCexes = Vec_PtrStart( Saig_ManPoNum(p->pAig) );
+                        assert( Vec_PtrEntry(p->vCexes, p->iOutCur) == NULL );
+                        Vec_PtrWriteEntry( p->vCexes, p->iOutCur, Pdr_ManDeriveCex(p) );
+                        if ( p->pPars->nFailOuts == Saig_ManPoNum(p->pAig) )
+                            return 0; // all SAT
+                    }
+                    if ( p->pPars->fVerbose ) 
+                        Pdr_ManPrintProgress( p, 0, clock() - clkStart );
+                }
+            } 
+        }
+
+        if ( p->pPars->fVerbose ) 
+            Pdr_ManPrintProgress( p, 1, clock() - clkStart );
+        // open a new timeframe
+        p->nQueLim = p->pPars->nRestLimit;
+        assert( pCube == NULL );
+        Pdr_ManSetPropertyOutput( p, k );
+        Pdr_ManCreateSolver( p, ++k );
+        if ( fPrintClauses )
+        {
+            Abc_Print( 1, "*** Clauses after frame %d:\n", k );
+            Pdr_ManPrintClauses( p, 0 );
+        }
+        // push clauses into this timeframe
+        RetValue = Pdr_ManPushClauses( p );
         if ( RetValue == -1 )
         {
             if ( p->pPars->fVerbose ) 
                 Pdr_ManPrintProgress( p, 1, clock() - clkStart );
-                if ( p->pPars->nConfLimit )
-                    Abc_Print( 1, "Reached conflict limit (%d).\n",  p->pPars->nConfLimit );
-                else if ( p->pPars->fVerbose ) 
-                    Abc_Print( 1, "Computation cancelled by the callback.\n" );
+            if ( !p->pPars->fSilent )
+                Abc_Print( 1, "Reached conflict limit (%d).\n",  p->pPars->nConfLimit );
             p->pPars->iFrame = k;
             return -1;
         }
-        if ( RetValue == 0 )
-        {
-            RetValue = Pdr_ManBlockCube( p, pCube );
-            if ( RetValue == -1 )
-            {
-                if ( p->pPars->fVerbose ) 
-                    Pdr_ManPrintProgress( p, 1, clock() - clkStart );
-                if ( p->pPars->nConfLimit )
-                    Abc_Print( 1, "Reached conflict limit (%d).\n",  p->pPars->nConfLimit );
-                else if ( p->pPars->fVerbose ) 
-                    Abc_Print( 1, "Computation cancelled by the callback.\n" );
-                p->pPars->iFrame = k;
-                return -1;
-            }
-            if ( RetValue == 0 )
-            {
-                if ( fPrintClauses )
-                {
-                    Abc_Print( 1, "*** Clauses after frame %d:\n", k );
-                    Pdr_ManPrintClauses( p, 0 );
-                }
-                if ( p->pPars->fVerbose ) 
-                    Pdr_ManPrintProgress( p, 1, clock() - clkStart );
-                p->pPars->iFrame = k;
-                return 0; // SAT
-            }
-            if ( p->pPars->fVerbose ) 
-                Pdr_ManPrintProgress( p, 0, clock() - clkStart );
-        }
-        else
+        if ( RetValue )
         {
             if ( p->pPars->fVerbose ) 
                 Pdr_ManPrintProgress( p, 1, clock() - clkStart );
-            // open a new timeframe
-            p->nQueLim = p->pPars->nRestLimit;
-            assert( pCube == NULL );
-            Pdr_ManSetPropertyOutput( p, k );
-            Pdr_ManCreateSolver( p, ++k );
-            if ( fPrintClauses )
-            {
-                Abc_Print( 1, "*** Clauses after frame %d:\n", k );
-                Pdr_ManPrintClauses( p, 0 );
-            }
-            // push clauses into this timeframe
-            RetValue = Pdr_ManPushClauses( p );
-            if ( RetValue == -1 )
-            {
-                if ( p->pPars->fVerbose ) 
-                    Pdr_ManPrintProgress( p, 1, clock() - clkStart );
-                if ( !p->pPars->fSilent )
-                    Abc_Print( 1, "Reached conflict limit (%d).\n",  p->pPars->nConfLimit );
-                p->pPars->iFrame = k;
-                return -1;
-            }
-            if ( RetValue )
-            {
-                if ( p->pPars->fVerbose ) 
-                    Pdr_ManPrintProgress( p, 1, clock() - clkStart );
-                if ( !p->pPars->fSilent )
-                    Pdr_ManReportInvariant( p );
-                if ( !p->pPars->fSilent )
-                    Pdr_ManVerifyInvariant( p );
-                p->pPars->iFrame = k;
-                return 1; // UNSAT
-            }
-            if ( p->pPars->fVerbose ) 
-                Pdr_ManPrintProgress( p, 0, clock() - clkStart );
-//            clkStart = clock();
+            if ( !p->pPars->fSilent )
+                Pdr_ManReportInvariant( p );
+            if ( !p->pPars->fSilent )
+                Pdr_ManVerifyInvariant( p );
+            p->pPars->iFrame = k;
+            return 1; // UNSAT
         }
+        if ( p->pPars->fVerbose ) 
+            Pdr_ManPrintProgress( p, 0, clock() - clkStart );
 
         // check termination
         if ( p->pPars->pFuncStop && p->pPars->pFuncStop(p->pPars->RunId) )
@@ -688,70 +735,41 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Pdr_ManSolve_( Aig_Man_t * pAig, Pdr_Par_t * pPars, Vec_Int_t ** pvPrioInit, Abc_Cex_t ** ppCex )
+int Pdr_ManSolve( Aig_Man_t * pAig, Pdr_Par_t * pPars, Abc_Cex_t ** ppCex )
 {
     Pdr_Man_t * p;
     int RetValue;
     clock_t clk = clock();
-    p = Pdr_ManStart( pAig, pPars, pvPrioInit? *pvPrioInit : NULL );
+    if ( pPars->fVerbose )
+    {
+//    Abc_Print( 1, "Running PDR by Niklas Een (aka IC3 by Aaron Bradley) with these parameters:\n" );
+        Abc_Print( 1, "VarMax = %d. FrameMax = %d. QueueMax = %d. TimeMax = %d. ", 
+            pPars->nRecycle, pPars->nFrameMax, pPars->nRestLimit, pPars->nTimeOut );
+        Abc_Print( 1, "MonoCNF = %s. SkipGen = %s.\n", 
+            pPars->fMonoCnf ? "yes" : "no", pPars->fSkipGeneral ? "yes" : "no" );
+    }
+    ABC_FREE( pAig->pSeqModel );
+    p = Pdr_ManStart( pAig, pPars, NULL );
     RetValue = Pdr_ManSolveInt( p );
-    if ( ppCex )
-        *ppCex = RetValue ? NULL : Pdr_ManDeriveCex( p );
+//    if ( ppCex )
+//        *ppCex = RetValue ? NULL : Pdr_ManDeriveCex( p );
+    if ( RetValue == 0 )
+        assert( pAig->pSeqModel != NULL || p->vCexes != NULL );
+    if ( p->vCexes )
+    {
+        assert( p->pAig->vSeqModelVec == NULL );
+        p->pAig->vSeqModelVec = p->vCexes;
+        p->vCexes = NULL;
+    }
     if ( p->pPars->fDumpInv )
         Pdr_ManDumpClauses( p, (char *)"inv.pla", RetValue==1 );
 //    if ( *ppCex && pPars->fVerbose )
 //        Abc_Print( 1, "Found counter-example in frame %d after exploring %d frames.\n", 
 //            (*ppCex)->iFrame, p->nFrames );
     p->tTotal += clock() - clk;
-    if ( pvPrioInit )
-    {
-        *pvPrioInit = p->vPrio;
-        p->vPrio = NULL;
-    }
     Pdr_ManStop( p );
     pPars->iFrame--;
     return RetValue;
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Pdr_ManSolve( Aig_Man_t * pAig, Pdr_Par_t * pPars, Abc_Cex_t ** ppCex )
-{
-    if ( pPars->fVerbose )
-    {
-//    Abc_Print( 1, "Running PDR by Niklas Een (aka IC3 by Aaron Bradley) with these parameters:\n" );
-    Abc_Print( 1, "VarMax = %d. FrameMax = %d. QueueMax = %d. TimeMax = %d. ", 
-        pPars->nRecycle, pPars->nFrameMax, pPars->nRestLimit, pPars->nTimeOut );
-    if ( pPars->iOutput >= 0 )
-        Abc_Print( 1, "Output = %d. ", pPars->iOutput );
-    Abc_Print( 1, "MonoCNF = %s. SkipGen = %s.\n", 
-        pPars->fMonoCnf ? "yes" : "no", pPars->fSkipGeneral ? "yes" : "no" );
-    }
-
-/*
-    Vec_Int_t * vPrioInit = NULL;
-    int RetValue, nTimeOut;
-    if ( pPars->nTimeOut > 0 )
-        return Pdr_ManSolve_( pAig, pPars, NULL, ppCex );
-    nTimeOut = pPars->nTimeOut;
-    pPars->nTimeOut = 10;
-    RetValue = Pdr_ManSolve_( pAig, pPars, &vPrioInit, ppCex );
-    pPars->nTimeOut = nTimeOut;
-    if ( RetValue == -1 )
-        RetValue = Pdr_ManSolve_( pAig, pPars, &vPrioInit, ppCex );
-    Vec_IntFree( vPrioInit );
-    return RetValue;
-*/
-    return Pdr_ManSolve_( pAig, pPars, NULL, ppCex );
 }
 
 ////////////////////////////////////////////////////////////////////////
