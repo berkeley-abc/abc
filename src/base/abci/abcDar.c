@@ -2145,10 +2145,10 @@ int Abc_NtkDarBmc3( Abc_Ntk_t * pNtk, Saig_ParBmc_t * pPars, int fOrDecomp )
         else
         {
             int nOutputs = Saig_ManPoNum(pMan) - Saig_ManConstrNum(pMan);
-            if ( Vec_PtrCountZero(pMan->vSeqModelVec) == 0 )
-                Abc_Print( 1, "All %d outputs are found to be SAT.   ", nOutputs );
-            else if ( Vec_PtrCountZero(pMan->vSeqModelVec) == nOutputs )
+            if ( pMan->vSeqModelVec == NULL || Vec_PtrCountZero(pMan->vSeqModelVec) == nOutputs )
                 Abc_Print( 1, "None of the %d outputs is found to be SAT.   ", nOutputs );
+            else if ( Vec_PtrCountZero(pMan->vSeqModelVec) == 0 )
+                Abc_Print( 1, "All %d outputs are found to be SAT.   ", nOutputs );
             else
                 Abc_Print( 1, "Some outputs (%d out of %d) are proved SAT.   ", 
                     nOutputs - Vec_PtrCountZero(pMan->vSeqModelVec), nOutputs );
@@ -2719,23 +2719,37 @@ int Abc_NtkDarPdr( Abc_Ntk_t * pNtk, Pdr_Par_t * pPars )
     RetValue = Pdr_ManSolve( pMan, pPars );
     if ( !pPars->fSilent )
     {
-        if ( RetValue == 1 )
-            Abc_Print( 1, "Property proved.  " );
-        else if ( RetValue == 0 )
+        if ( pPars->fSolveAll )
         {
-            if ( pMan->pSeqModel == NULL )
-                Abc_Print( 1, "Abc_NtkDarPdr(): Counter-example is not available.\n" );
+            int nOutputs = Saig_ManPoNum(pMan) - Saig_ManConstrNum(pMan);
+            if ( pMan->vSeqModelVec == NULL || Vec_PtrCountZero(pMan->vSeqModelVec) == nOutputs )
+                Abc_Print( 1, "None of the %d outputs is found to be SAT.   ", nOutputs );
+            else if ( Vec_PtrCountZero(pMan->vSeqModelVec) == 0 )
+                Abc_Print( 1, "All %d outputs are found to be SAT.   ", nOutputs );
             else
-            {
-                Abc_Print( 1, "Output %d of miter \"%s\" was asserted in frame %d.  ", pMan->pSeqModel->iPo, pNtk->pName, pMan->pSeqModel->iFrame );
-                if ( !Saig_ManVerifyCex( pMan, pMan->pSeqModel ) )
-                    Abc_Print( 1, "Abc_NtkDarPdr(): Counter-example verification has FAILED.\n" );
-            }
+                Abc_Print( 1, "Some outputs (%d out of %d) are proved SAT.   ", 
+                    nOutputs - Vec_PtrCountZero(pMan->vSeqModelVec), nOutputs );
         }
-        else if ( RetValue == -1 )
-            Abc_Print( 1, "Property UNDECIDED.  " );
         else
-            assert( 0 );
+        {
+            if ( RetValue == 1 )
+                Abc_Print( 1, "Property proved.  " );
+            else if ( RetValue == 0 )
+            {
+                if ( pMan->pSeqModel == NULL )
+                    Abc_Print( 1, "Abc_NtkDarPdr(): Counter-example is not available.\n" );
+                else
+                {
+                    Abc_Print( 1, "Output %d of miter \"%s\" was asserted in frame %d.  ", pMan->pSeqModel->iPo, pNtk->pName, pMan->pSeqModel->iFrame );
+                    if ( !Saig_ManVerifyCex( pMan, pMan->pSeqModel ) )
+                        Abc_Print( 1, "Abc_NtkDarPdr(): Counter-example verification has FAILED.\n" );
+                }
+            }
+            else if ( RetValue == -1 )
+                Abc_Print( 1, "Property UNDECIDED.  " );
+            else
+                assert( 0 );
+        }
         ABC_PRT( "Time", clock() - clk );
     }
     ABC_FREE( pNtk->pSeqModel );
