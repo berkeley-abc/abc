@@ -1275,7 +1275,7 @@ void Gia_IsoTest( Gia_Man_t * p, Abc_Cex_t * pCex, int fVerbose )
     assert( Gia_ManRegNum(p) > 0 );
     // generate random permutation of PIs
     vPiPerm = Gia_IsoTestGenPerm( Gia_ManPiNum(p) );
-    printf( "Considering random permutation of the AIG:\n" );
+    printf( "Considering random permutation of the primary inputs of the AIG:\n" );
     Vec_IntPrint( vPiPerm );
     // create AIG with two primary outputs (original and permuted)
     pPerm = Gia_ManDupPerm( p, vPiPerm );
