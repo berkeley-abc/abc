@@ -2738,13 +2738,21 @@ int Abc_NtkDarPdr( Abc_Ntk_t * pNtk, Pdr_Par_t * pPars, Abc_Cex_t ** ppCex )
         if ( RetValue == 1 )
             Abc_Print( 1, "Property proved.  " );
         else if ( RetValue == 0 )
-            Abc_Print( 1, "Output %d of miter \"%s\" was asserted in frame %d.  ", (*ppCex)->iPo, pNtk->pName, ppCex? (*ppCex)->iFrame : -1 );
+            Abc_Print( 1, "Output %d of miter \"%s\" was asserted in frame %d.  ", pMan->pSeqModel->iPo, pNtk->pName, pMan->pSeqModel->iFrame );
         else if ( RetValue == -1 )
             Abc_Print( 1, "Property UNDECIDED.  " );
         else
             assert( 0 );
         ABC_PRT( "Time", clock() - clk );
     }
+
+//    ABC_FREE( pNtk->pSeqModel );
+//    pNtk->pSeqModel = pMan->pSeqModel; pMan->pSeqModel = NULL;
+    if ( ppCex )
+        *ppCex = pMan->pSeqModel;
+    else
+        ABC_FREE( pMan->pSeqModel );
+    pMan->pSeqModel = NULL;
 
     if ( *ppCex && !Saig_ManVerifyCex( pMan, *ppCex ) )
         Abc_Print( 1, "Abc_NtkDarPdr(): Counter-example verification has FAILED.\n" );
