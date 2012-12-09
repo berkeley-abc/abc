@@ -635,7 +635,7 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
 
                         if ( !p->pPars->fSolveAll )
                         {
-                            p->pAig->pSeqModel = Pdr_ManDeriveCex( p );
+                            p->pAig->pSeqModel = Pdr_ManDeriveCex(p);
                             return 0; // SAT
                         }
                         p->pPars->nFailOuts++;
@@ -647,6 +647,9 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
                         Vec_PtrWriteEntry( p->vCexes, p->iOutCur, Pdr_ManDeriveCex(p) );
                         if ( p->pPars->nFailOuts == Saig_ManPoNum(p->pAig) )
                             return 0; // all SAT
+                        Pdr_QueueClean( p );
+                        pCube = NULL;
+                        break; // keep solving
                     }
                     if ( p->pPars->fVerbose ) 
                         Pdr_ManPrintProgress( p, 0, clock() - clkStart );
@@ -735,7 +738,7 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Pdr_ManSolve( Aig_Man_t * pAig, Pdr_Par_t * pPars, Abc_Cex_t ** ppCex )
+int Pdr_ManSolve( Aig_Man_t * pAig, Pdr_Par_t * pPars )
 {
     Pdr_Man_t * p;
     int RetValue;
@@ -743,16 +746,19 @@ int Pdr_ManSolve( Aig_Man_t * pAig, Pdr_Par_t * pPars, Abc_Cex_t ** ppCex )
     if ( pPars->fVerbose )
     {
 //    Abc_Print( 1, "Running PDR by Niklas Een (aka IC3 by Aaron Bradley) with these parameters:\n" );
-        Abc_Print( 1, "VarMax = %d. FrameMax = %d. QueueMax = %d. TimeMax = %d. ", 
-            pPars->nRecycle, pPars->nFrameMax, pPars->nRestLimit, pPars->nTimeOut );
-        Abc_Print( 1, "MonoCNF = %s. SkipGen = %s.\n", 
-            pPars->fMonoCnf ? "yes" : "no", pPars->fSkipGeneral ? "yes" : "no" );
+        Abc_Print( 1, "VarMax = %d. FrameMax = %d. QueMax = %d. TimeMax = %d. ", 
+            pPars->nRecycle, 
+            pPars->nFrameMax, 
+            pPars->nRestLimit, 
+            pPars->nTimeOut );
+        Abc_Print( 1, "MonoCNF = %s. SkipGen = %s. SolveAll = %s.\n", 
+            pPars->fMonoCnf ?     "yes" : "no", 
+            pPars->fSkipGeneral ? "yes" : "no", 
+            pPars->fSolveAll ?    "yes" : "no" );
     }
     ABC_FREE( pAig->pSeqModel );
     p = Pdr_ManStart( pAig, pPars, NULL );
     RetValue = Pdr_ManSolveInt( p );
-//    if ( ppCex )
-//        *ppCex = RetValue ? NULL : Pdr_ManDeriveCex( p );
     if ( RetValue == 0 )
         assert( pAig->pSeqModel != NULL || p->vCexes != NULL );
     if ( p->vCexes )
@@ -763,9 +769,6 @@ int Pdr_ManSolve( Aig_Man_t * pAig, Pdr_Par_t * pPars, Abc_Cex_t ** ppCex )
     }
     if ( p->pPars->fDumpInv )
         Pdr_ManDumpClauses( p, (char *)"inv.pla", RetValue==1 );
-//    if ( *ppCex && pPars->fVerbose )
-//        Abc_Print( 1, "Found counter-example in frame %d after exploring %d frames.\n", 
-//            (*ppCex)->iFrame, p->nFrames );
     p->tTotal += clock() - clk;
     Pdr_ManStop( p );
     pPars->iFrame--;

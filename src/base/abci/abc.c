@@ -2292,13 +2292,21 @@ int Abc_CommandPrintStatus( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
     }
     Abc_Print( 1,"Status = %d  Frames = %d   ", pAbc->Status, pAbc->nFrames );
-    if ( pAbc->pCex == NULL )
+    if ( pAbc->pCex == NULL && pAbc->vCexVec == NULL )
         Abc_Print( 1,"Cex is not defined.\n" );
     else
-        Abc_Print( 1,"Cex: PIs = %d  Regs = %d  PO = %d  Frame = %d  Bits = %d\n",
-            pAbc->pCex->nPis, pAbc->pCex->nRegs,
-            pAbc->pCex->iPo, pAbc->pCex->iFrame,
-            pAbc->pCex->nBits );
+    {
+        if ( pAbc->pCex )
+            Abc_CexPrintStats( pAbc->pCex );
+        if ( pAbc->vCexVec )
+        {
+            Abc_Cex_t * pTemp;
+            printf( "\n" );
+            Vec_PtrForEachEntry( Abc_Cex_t *, pAbc->vCexVec, pTemp, c )
+                if ( pTemp )
+                    Abc_CexPrintStats( pTemp );
+        }
+    }
     return 0;
 
 usage:
@@ -20920,7 +20928,10 @@ int Abc_CommandBmc3( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
     }
     if ( pNtk->vSeqModelVec )
+    {
         Abc_FrameReplaceCexVec( pAbc, &pNtk->vSeqModelVec );
+        pAbc->nFrames = -1;
+    }
     return 0;
 
 usage:
@@ -22314,10 +22325,9 @@ usage:
 ***********************************************************************/
 int Abc_CommandPdr( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern int Abc_NtkDarPdr( Abc_Ntk_t * pNtk, Pdr_Par_t * pPars, Abc_Cex_t ** ppCex );
+    extern int Abc_NtkDarPdr( Abc_Ntk_t * pNtk, Pdr_Par_t * pPars );
     Pdr_Par_t Pars, * pPars = &Pars;
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
-    Abc_Cex_t * pCex = NULL;
     int c;
     Pdr_ManSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
@@ -22437,28 +22447,15 @@ int Abc_CommandPdr( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -2, "The current network is not an AIG (run \"strash\").\n");
         return 0;
     }
-/*
-    if ( pPars->iOutput != -1 && (pPars->iOutput < 0 || pPars->iOutput >= Abc_NtkPoNum(pNtk)) )
-    {
-        Abc_Print( -2, "Output index (%d) is incorrect (can be 0 through %d).\n",
-            pPars->iOutput, Abc_NtkPoNum(pNtk)-1 );
-        return 0;
-    }
-*/
-/*
-    if ( Abc_NtkPoNum(pNtk) != 1 && pPars->fVerbose )
-    {
-        if ( pPars->iOutput == -1 )
-            Abc_Print( -2, "The %d property outputs are ORed together.\n", Abc_NtkPoNum(pNtk) );
-        else
-            Abc_Print( -2, "Working on the primary output with zero-based number %d (out of %d).\n",
-                pPars->iOutput, Abc_NtkPoNum(pNtk) );
-    }
-*/
     // run the procedure
-    pAbc->Status  = Abc_NtkDarPdr( pNtk, pPars, &pCex );
+    pAbc->Status  = Abc_NtkDarPdr( pNtk, pPars );
     pAbc->nFrames = pPars->iFrame;
-    Abc_FrameReplaceCex( pAbc, &pCex );
+    Abc_FrameReplaceCex( pAbc, &pNtk->pSeqModel );
+    if ( pNtk->vSeqModelVec )
+    {
+        Abc_FrameReplaceCexVec( pAbc, &pNtk->vSeqModelVec );
+        pAbc->nFrames = -1;
+    }
     return 0;
 
 usage:

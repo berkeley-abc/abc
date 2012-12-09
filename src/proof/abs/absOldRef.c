@@ -134,7 +134,6 @@ Aig_Man_t * Saig_ManCexRefine( Aig_Man_t * p, Aig_Man_t * pAbs, Vec_Int_t * vFlo
         pSecPar->fVerbose       = fVerbose;
         RetValue = Fra_FraigSec( pAbs, pSecPar, NULL );
 */
-        Abc_Cex_t * pCex = NULL;
         Aig_Man_t * pAbsOrpos = Saig_ManDupOrpos( pAbs );
         Pdr_Par_t Pars, * pPars = &Pars;
         Pdr_ManSetDefaultParams( pPars );
@@ -142,11 +141,12 @@ Aig_Man_t * Saig_ManCexRefine( Aig_Man_t * p, Aig_Man_t * pAbs, Vec_Int_t * vFlo
         pPars->fVerbose = fVerbose;
         if ( pPars->fVerbose )
             printf( "Running property directed reachability...\n" );
-        RetValue = Pdr_ManSolve( pAbsOrpos, pPars, &pCex );
-        if ( pCex )
-            pCex->iPo = Saig_ManFindFailedPoCex( pAbs, pCex );
+        RetValue = Pdr_ManSolve( pAbsOrpos, pPars );
+        if ( pAbsOrpos->pSeqModel )
+            pAbsOrpos->pSeqModel->iPo = Saig_ManFindFailedPoCex( pAbs, pAbsOrpos->pSeqModel );
+        pAbs->pSeqModel = pAbsOrpos->pSeqModel;
+        pAbsOrpos->pSeqModel = NULL;
         Aig_ManStop( pAbsOrpos );
-        pAbs->pSeqModel = pCex;
         if ( RetValue )
             *piRetValue = 1;
 

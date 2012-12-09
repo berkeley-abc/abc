@@ -187,6 +187,7 @@ extern void            Pdr_OblDeref( Pdr_Obl_t * p );
 extern int             Pdr_QueueIsEmpty( Pdr_Man_t * p );
 extern Pdr_Obl_t *     Pdr_QueueHead( Pdr_Man_t * p );
 extern Pdr_Obl_t *     Pdr_QueuePop( Pdr_Man_t * p );
+extern void            Pdr_QueueClean( Pdr_Man_t * p );
 extern void            Pdr_QueuePush( Pdr_Man_t * p, Pdr_Obl_t * pObl );
 extern void            Pdr_QueuePrint( Pdr_Man_t * p );
 extern void            Pdr_QueueStop( Pdr_Man_t * p );

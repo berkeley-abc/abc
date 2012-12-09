@@ -510,6 +510,24 @@ Pdr_Obl_t * Pdr_QueuePop( Pdr_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
+void Pdr_QueueClean( Pdr_Man_t * p )
+{
+    Pdr_Obl_t * pThis;
+    while ( (pThis = Pdr_QueuePop(p)) )
+        Pdr_OblDeref( pThis );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 void Pdr_QueuePush( Pdr_Man_t * p, Pdr_Obl_t * pObl )
 {
     Pdr_Obl_t * pTemp, ** ppPrev;

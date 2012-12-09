@@ -589,19 +589,15 @@ ABC_PRT( "Time", clock() - clk );
     // try PDR
     if ( pParSec->fUsePdr && RetValue == -1 && Aig_ManRegNum(pNew) > 0 )
     {
-        Abc_Cex_t * pCex = NULL;
-        Aig_Man_t * pNewOrpos = Saig_ManDupOrpos( pNew );
         Pdr_Par_t Pars, * pPars = &Pars;
         Pdr_ManSetDefaultParams( pPars );
         pPars->nTimeOut = pParSec->nPdrTimeout;
         pPars->fVerbose = pParSec->fVerbose;
         if ( pParSec->fVerbose )
             printf( "Running property directed reachability...\n" );
-        RetValue = Pdr_ManSolve( pNewOrpos, pPars, &pCex );
-        if ( pCex )
-            pCex->iPo = Saig_ManFindFailedPoCex( pNew, pCex );
-        Aig_ManStop( pNewOrpos );
-        pNew->pSeqModel = pCex;
+        RetValue = Pdr_ManSolve( pNew, pPars );
+        if ( pNew->pSeqModel )
+            pNew->pSeqModel->iPo = Saig_ManFindFailedPoCex( pNew, pNew->pSeqModel );
     }
 
 finish:

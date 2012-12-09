@@ -107,8 +107,7 @@ void * Abs_ProverThread( void * pArg )
     pPars->fSilent   = 1;
     pPars->RunId     = pThData->RunId;
     pPars->pFuncStop = Abs_CallBackToStop;
-    RetValue = Pdr_ManSolve( pThData->pAig, pPars, NULL );
-//    RetValue = Pdr_ManSolve_test( pAig, pPars, NULL );
+    RetValue = Pdr_ManSolve( pThData->pAig, pPars );
     // update the result
     if ( RetValue == 1 )
     {

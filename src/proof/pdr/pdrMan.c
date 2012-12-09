@@ -188,6 +188,8 @@ Abc_Cex_t * Pdr_ManDeriveCex( Pdr_Man_t * p )
             Abc_InfoSetBit( pCex->pData, pCex->nRegs + f * pCex->nPis + lit_var(Lit) );
         }
     assert( f == nFrames );
+    if ( !Saig_ManVerifyCex(p->pAig, pCex) )
+        printf( "CEX for output %d is not valid.\n", p->iOutCur );
     return pCex;
 }
 

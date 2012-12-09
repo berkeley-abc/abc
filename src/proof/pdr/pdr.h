@@ -71,7 +71,7 @@ struct Pdr_Par_t_
 
 /*=== pdrCore.c ==========================================================*/
 extern void               Pdr_ManSetDefaultParams( Pdr_Par_t * pPars );
-extern int                Pdr_ManSolve( Aig_Man_t * p, Pdr_Par_t * pPars, Abc_Cex_t ** ppCex );
+extern int                Pdr_ManSolve( Aig_Man_t * p, Pdr_Par_t * pPars );
 
 
 ABC_NAMESPACE_HEADER_END

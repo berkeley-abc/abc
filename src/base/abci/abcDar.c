@@ -2705,57 +2705,46 @@ int Abc_NtkDarSec( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, Fra_Sec_t * pSecPar )
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkDarPdr( Abc_Ntk_t * pNtk, Pdr_Par_t * pPars, Abc_Cex_t ** ppCex )
+int Abc_NtkDarPdr( Abc_Ntk_t * pNtk, Pdr_Par_t * pPars )
 {
     int RetValue = -1;
     clock_t clk = clock();
     Aig_Man_t * pMan;
-    *ppCex = NULL;
     pMan = Abc_NtkToDar( pNtk, 0, 1 );
     if ( pMan == NULL )
     {
         Abc_Print( 1, "Converting network into AIG has failed.\n" );
         return -1;
     }
-/*
-    // perform ORing the primary outputs
-    if ( pPars->iOutput == -1 )
-    {
-        Aig_Man_t * pTemp = Saig_ManDupOrpos( pMan );
-        RetValue = Pdr_ManSolve( pTemp, pPars, ppCex );
-        if ( RetValue == 0 )
-            (*ppCex)->iPo = Saig_ManFindFailedPoCex( pMan, *ppCex );
-        Aig_ManStop( pTemp );
-    }
-    else
-        RetValue = Pdr_ManSolve( pMan, pPars, ppCex );
-*/
-    RetValue = Pdr_ManSolve( pMan, pPars, ppCex );
-
-    // output the result
+    RetValue = Pdr_ManSolve( pMan, pPars );
     if ( !pPars->fSilent )
     {
         if ( RetValue == 1 )
             Abc_Print( 1, "Property proved.  " );
         else if ( RetValue == 0 )
-            Abc_Print( 1, "Output %d of miter \"%s\" was asserted in frame %d.  ", pMan->pSeqModel->iPo, pNtk->pName, pMan->pSeqModel->iFrame );
+        {
+            if ( pMan->pSeqModel == NULL )
+                Abc_Print( 1, "Abc_NtkDarPdr(): Counter-example is not available.\n" );
+            else
+            {
+                Abc_Print( 1, "Output %d of miter \"%s\" was asserted in frame %d.  ", pMan->pSeqModel->iPo, pNtk->pName, pMan->pSeqModel->iFrame );
+                if ( !Saig_ManVerifyCex( pMan, pMan->pSeqModel ) )
+                    Abc_Print( 1, "Abc_NtkDarPdr(): Counter-example verification has FAILED.\n" );
+            }
+        }
         else if ( RetValue == -1 )
             Abc_Print( 1, "Property UNDECIDED.  " );
         else
             assert( 0 );
         ABC_PRT( "Time", clock() - clk );
     }
-
-//    ABC_FREE( pNtk->pSeqModel );
-//    pNtk->pSeqModel = pMan->pSeqModel; pMan->pSeqModel = NULL;
-    if ( ppCex )
-        *ppCex = pMan->pSeqModel;
-    else
-        ABC_FREE( pMan->pSeqModel );
+    ABC_FREE( pNtk->pSeqModel );
+    pNtk->pSeqModel = pMan->pSeqModel;
     pMan->pSeqModel = NULL;
-
-    if ( *ppCex && !Saig_ManVerifyCex( pMan, *ppCex ) )
-        Abc_Print( 1, "Abc_NtkDarPdr(): Counter-example verification has FAILED.\n" );
+    if ( pNtk->vSeqModelVec )
+        Vec_PtrFreeFree( pNtk->vSeqModelVec );
+    pNtk->vSeqModelVec = pMan->vSeqModelVec;
+    pMan->vSeqModelVec = NULL;
     Aig_ManStop( pMan );
     return RetValue;
 }

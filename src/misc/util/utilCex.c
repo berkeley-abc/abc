@@ -261,8 +261,9 @@ void Abc_CexPrintStats( Abc_Cex_t * p )
     }
     for ( k = 0; k < p->nBits; k++ )
         Counter += Abc_InfoHasBit(p->pData, k);
-    printf( "CEX: iPo = %d  iFrame = %d  nRegs = %d  nPis = %d  nBits =%8d  nOnes =%8d (%5.2f %%)\n", 
-        p->iPo, p->iFrame, p->nRegs, p->nPis, p->nBits, Counter, 100.0 * Counter / (p->nBits - p->nRegs) );
+    printf( "CEX: Po =%4d  Frame =%4d  FF = %d  PI = %d  Bit =%8d  1s =%8d (%5.2f %%)\n", 
+        p->iPo, p->iFrame, p->nRegs, p->nPis, p->nBits, 
+        Counter, 100.0 * Counter / (p->nBits - p->nRegs) );
 }
 void Abc_CexPrintStatsInputs( Abc_Cex_t * p, int nInputs )
 {
@@ -278,7 +279,7 @@ void Abc_CexPrintStatsInputs( Abc_Cex_t * p, int nInputs )
         if ( (k - p->nRegs) % p->nPis < nInputs )
             Counter2 += Abc_InfoHasBit(p->pData, k);
     }
-    printf( "CEX: iPo = %d  iFrame = %d  nRegs = %d  nPis = %d  nBits =%8d  nOnes =%8d (%5.2f %%)  nOnesIn =%8d (%5.2f %%)\n", 
+    printf( "CEX: Po =%4d  Frame =%4d  FF = %d  PI = %d  Bit =%8d  1s =%8d (%5.2f %%) 1sIn =%8d (%5.2f %%)\n", 
         p->iPo, p->iFrame, p->nRegs, p->nPis, p->nBits, 
         Counter,  100.0 * Counter  / (p->nBits - p->nRegs), 
         Counter2, 100.0 * Counter2 / (p->nBits - p->nRegs - (p->iFrame + 1) * (p->nPis - nInputs)) );
