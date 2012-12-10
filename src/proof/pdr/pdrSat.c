@@ -182,6 +182,9 @@ void Pdr_ManSetPropertyOutput( Pdr_Man_t * p, int k )
     pSat = Pdr_ManSolver(p, k);
     Saig_ManForEachPo( p->pAig, pObj, i )
     {
+        // skip solved outputs
+        if ( p->vCexes && Vec_PtrEntry(p->vCexes, i) )
+            continue;
         Lit = toLitCond( Pdr_ObjSatVar(p, k, pObj), 1 ); // neg literal
         RetValue = sat_solver_addclause( pSat, &Lit, &Lit + 1 );
         assert( RetValue == 1 );

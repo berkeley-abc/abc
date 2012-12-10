@@ -2719,7 +2719,9 @@ int Abc_NtkDarPdr( Abc_Ntk_t * pNtk, Pdr_Par_t * pPars )
     RetValue = Pdr_ManSolve( pMan, pPars );
     if ( !pPars->fSilent )
     {
-        if ( pPars->fSolveAll )
+        if ( RetValue == 1 )
+            Abc_Print( 1, "Property proved.  " );
+        else if ( pPars->fSolveAll )
         {
             int nOutputs = Saig_ManPoNum(pMan) - Saig_ManConstrNum(pMan);
             if ( pMan->vSeqModelVec == NULL || Vec_PtrCountZero(pMan->vSeqModelVec) == nOutputs )
@@ -2732,9 +2734,7 @@ int Abc_NtkDarPdr( Abc_Ntk_t * pNtk, Pdr_Par_t * pPars )
         }
         else
         {
-            if ( RetValue == 1 )
-                Abc_Print( 1, "Property proved.  " );
-            else if ( RetValue == 0 )
+            if ( RetValue == 0 )
             {
                 if ( pMan->pSeqModel == NULL )
                     Abc_Print( 1, "Abc_NtkDarPdr(): Counter-example is not available.\n" );

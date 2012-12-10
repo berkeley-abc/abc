@@ -350,6 +350,7 @@ void Pdr_ManPrintCex( Aig_Man_t * pAig, Vec_Int_t * vCiObjs, Vec_Int_t * vCiVals
 ***********************************************************************/
 Pdr_Set_t * Pdr_ManTernarySim( Pdr_Man_t * p, int k, Pdr_Set_t * pCube )
 {
+    Pdr_Set_t * pRes;
     Vec_Int_t * vPrio   = p->vPrio;    // priority flops (flop indices)
     Vec_Int_t * vPiLits = p->vLits;    // array of literals (0/1 PI values)
     Vec_Int_t * vCiObjs = p->vCiObjs;  // cone leaves (CI obj IDs)
@@ -474,7 +475,9 @@ Pdr_ManPrintCex( p->pAig, vCiObjs, vCiVals, vCi2Rem );
     Pdr_ManDeriveResult( p->pAig, vCiObjs, vCiVals, vCi2Rem, vRes, vPiLits );
     assert( Vec_IntSize(vRes) > 0 );
     p->tTsim += clock() - clk;
-    return Pdr_SetCreate( vRes, vPiLits );
+    pRes = Pdr_SetCreate( vRes, vPiLits );
+    assert( k == 0 || !Pdr_SetIsInit(pRes, -1) );
+    return pRes;
 }
 
 ////////////////////////////////////////////////////////////////////////

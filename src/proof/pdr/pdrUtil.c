@@ -515,6 +515,7 @@ void Pdr_QueueClean( Pdr_Man_t * p )
     Pdr_Obl_t * pThis;
     while ( (pThis = Pdr_QueuePop(p)) )
         Pdr_OblDeref( pThis );
+    pThis = NULL;
 }
 
 /**Function*************************************************************
