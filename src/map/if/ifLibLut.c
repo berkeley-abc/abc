@@ -1,6 +1,6 @@
 /**CFile****************************************************************
 
-  FileName    [ifLib.c]
+  FileName    [ifLibLut.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
@@ -14,7 +14,7 @@
 
   Date        [Ver. 1.0. Started - November 21, 2006.]
 
-  Revision    [$Id: ifLib.c,v 1.00 2006/11/21 00:00:00 alanmi Exp $]
+  Revision    [$Id: ifLibLut.c,v 1.00 2006/11/21 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
@@ -276,7 +276,7 @@ int If_LutLibDelaysAreDifferent( If_Lib_t * pLutLib )
   SeeAlso     []
 
 ***********************************************************************/
-If_Lib_t * If_SetSimpleLutLib( int nLutSize )
+If_Lib_t * If_LutLibSetSimple( int nLutSize )
 {
     If_Lib_t s_LutLib10= { "lutlib",10, 0, {0,1,1,1,1,1,1,1,1,1,1}, {{0},{1},{1},{1},{1},{1},{1},{1},{1},{1},{1}} };
     If_Lib_t s_LutLib9 = { "lutlib", 9, 0, {0,1,1,1,1,1,1,1,1,1}, {{0},{1},{1},{1},{1},{1},{1},{1},{1},{1}} };

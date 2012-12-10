@@ -233,8 +233,8 @@ static int Abc_CommandAttach                 ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandSuperChoice            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandSuperChoiceLut         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
-static int Abc_CommandFpga                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandFpgaFast               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+//static int Abc_CommandFpga                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
+//static int Abc_CommandFpgaFast               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandIf                     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandIfif                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
@@ -694,8 +694,8 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "SC mapping",   "superc",        Abc_CommandSuperChoice,      1 );
     Cmd_CommandAdd( pAbc, "SC mapping",   "supercl",       Abc_CommandSuperChoiceLut,   1 );
 
-    Cmd_CommandAdd( pAbc, "FPGA mapping", "fpga",          Abc_CommandFpga,             1 );
-    Cmd_CommandAdd( pAbc, "FPGA mapping", "ffpga",         Abc_CommandFpgaFast,         1 );
+//    Cmd_CommandAdd( pAbc, "FPGA mapping", "fpga",          Abc_CommandFpga,             1 );
+//    Cmd_CommandAdd( pAbc, "FPGA mapping", "ffpga",         Abc_CommandFpgaFast,         1 );
     Cmd_CommandAdd( pAbc, "FPGA mapping", "if",            Abc_CommandIf,               1 );
     Cmd_CommandAdd( pAbc, "FPGA mapping", "ifif",          Abc_CommandIfif,             1 );
 
@@ -14241,6 +14241,7 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
+#if 0 
 int Abc_CommandFpga( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     char Buffer[100];
@@ -14518,6 +14519,7 @@ usage:
     Abc_Print( -2, "\t-h       : prints the command usage\n");
     return 1;
 }
+#endif
 
 /**Function*************************************************************
 
@@ -27335,7 +27337,7 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( pAbc->pLibLut == NULL )
     {
         Abc_Print( -1, "LUT library is not given. Using default LUT library.\n" );
-        pAbc->pLibLut = If_SetSimpleLutLib( 6 );
+        pAbc->pLibLut = If_LutLibSetSimple( 6 );
     }
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "KCFAGDEWSqaflepmrsdbgyojikcvh" ) ) != EOF )

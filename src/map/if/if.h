@@ -312,6 +312,23 @@ struct If_And_t_
     unsigned           Delay   : 16;  // delay 
 };
 
+typedef struct If_Box_t_ If_Box_t;
+struct If_Box_t_
+{
+    char *             pName;
+    int                Id;
+    int                fWhite;
+    int                nPis;
+    int                nPos;
+    int *              pDelays;
+};
+
+typedef struct If_LibBox_t_ If_LibBox_t;
+struct If_LibBox_t_
+{
+    Vec_Ptr_t *        vBoxes;
+};
+
 static inline If_Obj_t * If_Regular( If_Obj_t * p )                          { return (If_Obj_t *)((ABC_PTRUINT_T)(p) & ~01);  }
 static inline If_Obj_t * If_Not( If_Obj_t * p )                              { return (If_Obj_t *)((ABC_PTRUINT_T)(p) ^  01);  }
 static inline If_Obj_t * If_NotCond( If_Obj_t * p, int c )                   { return (If_Obj_t *)((ABC_PTRUINT_T)(p) ^ (c));  }
@@ -481,9 +498,17 @@ extern void            If_LutLibFree( If_Lib_t * pLutLib );
 extern void            If_LutLibPrint( If_Lib_t * pLutLib );
 extern int             If_LutLibDelaysAreDiscrete( If_Lib_t * pLutLib );
 extern int             If_LutLibDelaysAreDifferent( If_Lib_t * pLutLib );
-extern If_Lib_t *      If_SetSimpleLutLib( int nLutSize );
+extern If_Lib_t *      If_LutLibSetSimple( int nLutSize );
 extern float           If_LutLibFastestPinDelay( If_Lib_t * p );
 extern float           If_LutLibSlowestPinDelay( If_Lib_t * p );
+/*=== ifLibBox.c =============================================================*/
+extern If_LibBox_t *   If_LibBoxStart();
+extern void            If_LibBoxFree( If_LibBox_t * p );
+extern If_Box_t *      If_LibBoxReadBox( If_LibBox_t * p, int Id );
+extern void            If_LibBoxAdd( If_LibBox_t * p, If_Box_t * pBox );
+extern If_LibBox_t *   If_LibBoxRead( char * pFileName );
+extern void            If_LibBoxPrint( FILE * pFile, If_LibBox_t * p );
+extern void            If_LibBoxWrite( char * pFileName, If_LibBox_t * p );
 /*=== ifMan.c =============================================================*/
 extern If_Man_t *      If_ManStart( If_Par_t * pPars );
 extern void            If_ManRestart( If_Man_t * p );

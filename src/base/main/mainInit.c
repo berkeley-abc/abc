@@ -36,8 +36,8 @@ extern void Io_Init( Abc_Frame_t * pAbc );
 extern void Io_End ( Abc_Frame_t * pAbc );
 extern void Cmd_Init( Abc_Frame_t * pAbc );
 extern void Cmd_End ( Abc_Frame_t * pAbc );
-extern void Fpga_Init( Abc_Frame_t * pAbc );
-extern void Fpga_End ( Abc_Frame_t * pAbc );
+extern void If_Init( Abc_Frame_t * pAbc );
+extern void If_End ( Abc_Frame_t * pAbc );
 extern void Map_Init( Abc_Frame_t * pAbc );
 extern void Map_End ( Abc_Frame_t * pAbc );
 extern void Mio_Init( Abc_Frame_t * pAbc );
@@ -78,7 +78,7 @@ void Abc_FrameInit( Abc_Frame_t * pAbc )
     Cmd_CommandExecute( pAbc, "set checkread" ); 
     Io_Init( pAbc );
     Abc_Init( pAbc );
-    Fpga_Init( pAbc );
+    If_Init( pAbc );
     Map_Init( pAbc );
     Mio_Init( pAbc );
     Super_Init( pAbc );
@@ -112,7 +112,7 @@ void Abc_FrameEnd( Abc_Frame_t * pAbc )
     Abc_End( pAbc );
     Io_End( pAbc );
     Cmd_End( pAbc );
-    Fpga_End( pAbc );
+    If_End( pAbc );
     Map_End( pAbc );
     Mio_End( pAbc );
     Super_End( pAbc );

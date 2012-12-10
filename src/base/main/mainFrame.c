@@ -51,6 +51,7 @@ static Abc_Frame_t * s_GlobalFrame = NULL;
 Vec_Ptr_t * Abc_FrameReadStore()                             { return s_GlobalFrame->vStore;       } 
 int         Abc_FrameReadStoreSize()                         { return Vec_PtrSize(s_GlobalFrame->vStore); }
 void *      Abc_FrameReadLibLut()                            { return s_GlobalFrame->pLibLut;      } 
+void *      Abc_FrameReadLibBox()                            { return s_GlobalFrame->pLibBox;      } 
 void *      Abc_FrameReadLibGen()                            { return s_GlobalFrame->pLibGen;      } 
 void *      Abc_FrameReadLibGen2()                           { return s_GlobalFrame->pLibGen2;     } 
 void *      Abc_FrameReadLibSuper()                          { return s_GlobalFrame->pLibSuper;    } 
@@ -71,6 +72,7 @@ int         Abc_FrameReadCexPo( Abc_Frame_t * p )            { return s_GlobalFr
 int         Abc_FrameReadCexFrame( Abc_Frame_t * p )         { return s_GlobalFrame->pCex->iFrame; }               
 
 void        Abc_FrameSetLibLut( void * pLib )                { s_GlobalFrame->pLibLut   = pLib;    } 
+void        Abc_FrameSetLibBox( void * pLib )                { s_GlobalFrame->pLibBox   = pLib;    } 
 void        Abc_FrameSetLibGen( void * pLib )                { s_GlobalFrame->pLibGen   = pLib;    } 
 void        Abc_FrameSetLibGen2( void * pLib )               { s_GlobalFrame->pLibGen2  = pLib;    } 
 void        Abc_FrameSetLibSuper( void * pLib )              { s_GlobalFrame->pLibSuper = pLib;    } 
