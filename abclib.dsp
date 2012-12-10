@@ -255,14 +255,6 @@ SOURCE=.\src\base\abci\abcExtract.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\base\abci\abcFpga.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\abci\abcFpgaFast.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\src\base\abci\abcFraig.c
 # End Source File
 # Begin Source File
