@@ -20775,7 +20775,7 @@ int Abc_CommandBmc3( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     Saig_ParBmcSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "SFTCDJILsdruvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "SFTCDJILadruvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -20865,7 +20865,7 @@ int Abc_CommandBmc3( Abc_Frame_t * pAbc, int argc, char ** argv )
             pLogFileName = argv[globalUtilOptind];
             globalUtilOptind++;
             break;
-        case 's':
+        case 'a':
             pPars->fSolveAll ^= 1;
             break;
         case 'd':
@@ -20935,7 +20935,7 @@ int Abc_CommandBmc3( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: bmc3 [-SFTCDJI num] [-L file] [-sduvh]\n" );
+    Abc_Print( -2, "usage: bmc3 [-SFTCDJI num] [-L file] [-aduvh]\n" );
     Abc_Print( -2, "\t         performs bounded model checking with dynamic unrolling\n" );
     Abc_Print( -2, "\t-S num : the starting time frame [default = %d]\n", pPars->nStart );
     Abc_Print( -2, "\t-F num : the max number of time frames (0 = unused) [default = %d]\n", pPars->nFramesMax );
@@ -20945,7 +20945,7 @@ usage:
     Abc_Print( -2, "\t-J num : the number of timeframes to jump (0 = not used) [default = %d]\n", pPars->nFramesJump );
     Abc_Print( -2, "\t-I num : the number of PIs to abstract [default = %d]\n", pPars->nPisAbstract );
     Abc_Print( -2, "\t-L file: the log file name [default = %s]\n", pLogFileName ? pLogFileName : "no logging" );
-    Abc_Print( -2, "\t-s     : solve all outputs (do not stop when one is SAT) [default = %s]\n", pPars->fSolveAll? "yes": "no" );
+    Abc_Print( -2, "\t-a     : solve all outputs (do not stop when one is SAT) [default = %s]\n", pPars->fSolveAll? "yes": "no" );
     Abc_Print( -2, "\t-d     : drops (replaces by 0) satisfiable outputs [default = %s]\n", pPars->fDropSatOuts? "yes": "no" );
     Abc_Print( -2, "\t-u     : toggle performing structural OR-decomposition [default = %s]\n", fOrDecomp? "yes": "not" );
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );
