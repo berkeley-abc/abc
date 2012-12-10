@@ -2150,7 +2150,7 @@ int Abc_NtkDarBmc3( Abc_Ntk_t * pNtk, Saig_ParBmc_t * pPars, int fOrDecomp )
             else if ( Vec_PtrCountZero(pMan->vSeqModelVec) == 0 )
                 Abc_Print( 1, "All %d outputs are found to be SAT.   ", nOutputs );
             else
-                Abc_Print( 1, "Some outputs (%d out of %d) are proved SAT.   ", 
+                Abc_Print( 1, "Some outputs (%d out of %d) are found to be SAT.   ", 
                     nOutputs - Vec_PtrCountZero(pMan->vSeqModelVec), nOutputs );
             if ( pNtk->vSeqModelVec )
                 Vec_PtrFreeFree( pNtk->vSeqModelVec );
@@ -2729,7 +2729,7 @@ int Abc_NtkDarPdr( Abc_Ntk_t * pNtk, Pdr_Par_t * pPars )
             else if ( Vec_PtrCountZero(pMan->vSeqModelVec) == 0 )
                 Abc_Print( 1, "All %d outputs are found to be SAT.   ", nOutputs );
             else
-                Abc_Print( 1, "Some outputs (%d out of %d) are proved SAT.   ", 
+                Abc_Print( 1, "Some outputs (%d out of %d) are found to be SAT.   ", 
                     nOutputs - Vec_PtrCountZero(pMan->vSeqModelVec), nOutputs );
         }
         else
