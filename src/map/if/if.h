@@ -71,16 +71,17 @@ typedef enum {
 
 typedef struct If_Man_t_     If_Man_t;
 typedef struct If_Par_t_     If_Par_t;
-typedef struct If_Lib_t_     If_Lib_t;
 typedef struct If_Obj_t_     If_Obj_t;
 typedef struct If_Cut_t_     If_Cut_t;
 typedef struct If_Set_t_     If_Set_t;
+typedef struct If_LibLut_t_  If_LibLut_t;
+typedef struct If_LibBox_t_  If_LibBox_t;
 
 typedef struct Ifif_Par_t_   Ifif_Par_t;
 struct Ifif_Par_t_
 {
     int                nLutSize;      // the LUT size
-    If_Lib_t *         pLutLib;       // the LUT library
+    If_LibLut_t *      pLutLib;       // the LUT library
     float              pLutDelays[IF_MAX_LUTSIZE];  // pin-to-pin delays of the max LUT
     float              DelayWire;     // wire delay
     int                nDegree;       // structure degree 
@@ -138,7 +139,7 @@ struct If_Par_t_
     int                nLatchesCoBox; // the number of white box inputs among the COs
     int                fLiftLeaves;   // shift the leaves for seq mapping
     int                fUseCoAttrs;   // use CO attributes
-    If_Lib_t *         pLutLib;       // the LUT library
+    If_LibLut_t *      pLutLib;       // the LUT library
     float *            pTimesArr;     // arrival times
     float *            pTimesReq;     // required times
     int (* pFuncCost)  (If_Cut_t *);  // procedure to compute the user's cost of a cut
@@ -148,7 +149,7 @@ struct If_Par_t_
 };
 
 // the LUT library
-struct If_Lib_t_
+struct If_LibLut_t_
 {
     char *             pName;         // the name of the LUT library
     int                LutMax;        // the maximum LUT size 
@@ -323,7 +324,6 @@ struct If_Box_t_
     int *              pDelays;
 };
 
-typedef struct If_LibBox_t_ If_LibBox_t;
 struct If_LibBox_t_
 {
     Vec_Ptr_t *        vBoxes;
@@ -388,7 +388,7 @@ static inline int        If_CutTruthWords( int nVarsMax )                    { r
 static inline int        If_CutPermWords( int nVarsMax )                     { return nVarsMax / sizeof(int) + ((nVarsMax % sizeof(int)) > 0); }
 
 static inline float      If_CutLutArea( If_Man_t * p, If_Cut_t * pCut )      { return pCut->fUser? (float)pCut->Cost : (p->pPars->pLutLib? p->pPars->pLutLib->pLutAreas[pCut->nLeaves] : (float)1.0); }
-static inline float      If_CutLutDelay( If_Lib_t * p, int Size, int iPin )  { return p ? (p->fVarPinDelays ? p->pLutDelays[Size][iPin] : p->pLutDelays[Size][0]) : 1.0;                              }
+static inline float      If_CutLutDelay( If_LibLut_t * p, int Size, int iPin )  { return p ? (p->fVarPinDelays ? p->pLutDelays[Size][iPin] : p->pLutDelays[Size][0]) : 1.0;                              }
 
 static inline word       If_AndToWrd( If_And_t m )                           { union { If_And_t x; word y; } v; v.x = m; return v.y;  }
 static inline If_And_t   If_WrdToAnd( word m )                               { union { If_And_t x; word y; } v; v.y = m; return v.x;  }
@@ -492,15 +492,15 @@ extern int             If_CluCheckExt( void * p, word * pTruth, int nVars, int n
 extern int             If_CluCheckExt3( void * p, word * pTruth, int nVars, int nLutLeaf, int nLutLeaf2, int nLutRoot, 
                            char * pLut0, char * pLut1, char * pLut2, word * pFunc0, word * pFunc1, word * pFunc2 );
 /*=== ifLib.c =============================================================*/
-extern If_Lib_t *      If_LutLibRead( char * FileName );
-extern If_Lib_t *      If_LutLibDup( If_Lib_t * p );
-extern void            If_LutLibFree( If_Lib_t * pLutLib );
-extern void            If_LutLibPrint( If_Lib_t * pLutLib );
-extern int             If_LutLibDelaysAreDiscrete( If_Lib_t * pLutLib );
-extern int             If_LutLibDelaysAreDifferent( If_Lib_t * pLutLib );
-extern If_Lib_t *      If_LutLibSetSimple( int nLutSize );
-extern float           If_LutLibFastestPinDelay( If_Lib_t * p );
-extern float           If_LutLibSlowestPinDelay( If_Lib_t * p );
+extern If_LibLut_t *   If_LibLutRead( char * FileName );
+extern If_LibLut_t *   If_LibLutDup( If_LibLut_t * p );
+extern void            If_LibLutFree( If_LibLut_t * pLutLib );
+extern void            If_LibLutPrint( If_LibLut_t * pLutLib );
+extern int             If_LibLutDelaysAreDiscrete( If_LibLut_t * pLutLib );
+extern int             If_LibLutDelaysAreDifferent( If_LibLut_t * pLutLib );
+extern If_LibLut_t *   If_LibLutSetSimple( int nLutSize );
+extern float           If_LibLutFastestPinDelay( If_LibLut_t * p );
+extern float           If_LibLutSlowestPinDelay( If_LibLut_t * p );
 /*=== ifLibBox.c =============================================================*/
 extern If_LibBox_t *   If_LibBoxStart();
 extern void            If_LibBoxFree( If_LibBox_t * p );

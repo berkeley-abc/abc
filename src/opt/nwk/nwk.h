@@ -72,7 +72,7 @@ struct Nwk_Man_t_
     // functionality, timing, memory, etc
     Hop_Man_t *        pManHop;        // the functionality representation
     Tim_Man_t *        pManTime;       // the timing manager
-    If_Lib_t *         pLutLib;        // the LUT library
+    If_LibLut_t *         pLutLib;        // the LUT library
     Aig_MmFlex_t *     pMemObjs;       // memory for objects
     Vec_Ptr_t *        vTemp;          // array used for incremental updates
     int                nTravIds;       // the counter of traversal IDs
@@ -255,7 +255,7 @@ extern ABC_DLL Vec_Ptr_t *     Nwk_ManRetimeCutBackward( Nwk_Man_t * pMan, int n
 extern ABC_DLL Nwk_Man_t *     Nwk_ManAlloc();
 extern ABC_DLL void            Nwk_ManFree( Nwk_Man_t * p );
 extern ABC_DLL float           Nwl_ManComputeTotalSwitching( Nwk_Man_t * pNtk );
-extern ABC_DLL void            Nwk_ManPrintStats( Nwk_Man_t * p, If_Lib_t * pLutLib, int fSaveBest, int fDumpResult, int fPower, Ntl_Man_t * pNtl );
+extern ABC_DLL void            Nwk_ManPrintStats( Nwk_Man_t * p, If_LibLut_t * pLutLib, int fSaveBest, int fDumpResult, int fPower, Ntl_Man_t * pNtl );
 /*=== nwkMap.c ============================================================*/
 extern ABC_DLL Nwk_Man_t *     Nwk_MappingIf( Aig_Man_t * p, Tim_Man_t * pManTime, If_Par_t * pPars );
 /*=== nwkObj.c ============================================================*/

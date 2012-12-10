@@ -159,7 +159,7 @@ unsigned Nwk_ManDelayTraceTCEdges( Nwk_Man_t * pNtk, Nwk_Obj_t * pNode, float tD
 {
     int pPinPerm[32];
     float pPinDelays[32];
-    If_Lib_t * pLutLib = fUseLutLib? pNtk->pLutLib : NULL;
+    If_LibLut_t * pLutLib = fUseLutLib? pNtk->pLutLib : NULL;
     Nwk_Obj_t * pFanin;
     unsigned uResult = 0;
     float tRequired, * pDelays;
@@ -206,7 +206,7 @@ Aig_Man_t * Nwk_ManSpeedup( Nwk_Man_t * pNtk, int fUseLutLib, int Percentage, in
     Vec_Ptr_t * vTimeCries, * vTimeFanins;
     Nwk_Obj_t * pNode, * pFanin, * pFanin2;
     Aig_Obj_t * pAnd;
-    If_Lib_t * pTempLib = pNtk->pLutLib;
+    If_LibLut_t * pTempLib = pNtk->pLutLib;
     Tim_Man_t * pTempTim = NULL; 
     float tDelta, tArrival;
     int i, k, k2, Counter, CounterRes, nTimeCris;

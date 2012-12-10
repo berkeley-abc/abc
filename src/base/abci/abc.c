@@ -14568,7 +14568,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
     pPars->nLatchesCi  =  pNtk? Abc_NtkLatchNum(pNtk) : 0;
     pPars->nLatchesCo  =  pNtk? Abc_NtkLatchNum(pNtk) : 0;
     pPars->fLiftLeaves =  0;
-    pPars->pLutLib     =  (If_Lib_t *)Abc_FrameReadLibLut();
+    pPars->pLutLib     =  (If_LibLut_t *)Abc_FrameReadLibLut();
     pPars->pTimesArr   =  NULL;
     pPars->pTimesArr   =  NULL;
     pPars->pFuncCost   =  NULL;
@@ -15070,7 +15070,7 @@ int Abc_CommandIfif( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c, fError;
 
     pPars->nLutSize     =  -1;    // the LUT size
-    pPars->pLutLib      = (If_Lib_t *)Abc_FrameReadLibLut();       // the LUT library
+    pPars->pLutLib      = (If_LibLut_t *)Abc_FrameReadLibLut();       // the LUT library
     pPars->DelayWire    = (float)0.5;    // wire delay
     pPars->nDegree      =   0;    // structure degree
     pPars->fCascade     =   0;    // cascade
@@ -27337,7 +27337,7 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( pAbc->pLibLut == NULL )
     {
         Abc_Print( -1, "LUT library is not given. Using default LUT library.\n" );
-        pAbc->pLibLut = If_LutLibSetSimple( 6 );
+        pAbc->pLibLut = If_LibLutSetSimple( 6 );
     }
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "KCFAGDEWSqaflepmrsdbgyojikcvh" ) ) != EOF )

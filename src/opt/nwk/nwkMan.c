@@ -94,7 +94,7 @@ void Nwk_ManFree( Nwk_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Nwk_ManPrintLutSizes( Nwk_Man_t * p, If_Lib_t * pLutLib )
+void Nwk_ManPrintLutSizes( Nwk_Man_t * p, If_LibLut_t * pLutLib )
 {
     Nwk_Obj_t * pObj;
     int i, Counters[256] = {0};
@@ -231,7 +231,7 @@ float Nwl_ManComputeTotalSwitching( Nwk_Man_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-void Nwk_ManPrintStats( Nwk_Man_t * pNtk, If_Lib_t * pLutLib, int fSaveBest, int fDumpResult, int fPower, Ntl_Man_t * pNtl )
+void Nwk_ManPrintStats( Nwk_Man_t * pNtk, If_LibLut_t * pLutLib, int fSaveBest, int fDumpResult, int fPower, Ntl_Man_t * pNtl )
 {
 //    extern int Ntl_ManLatchNum( Ntl_Man_t * p );
 //    extern void Ntl_ManWriteBlifLogic( Nwk_Man_t * pNtk, void * pNtl, char * pFileName );

@@ -86,7 +86,7 @@ extern ABC_DLL Aig_Man_t * Ntl_ManPrepareSec( char * pFileName1, char * pFileNam
 
 extern ABC_DLL Nwk_Man_t * Ntl_ManExtractNwk( Ntl_Man_t * p, Aig_Man_t * pAig, Tim_Man_t * pManTime );
 extern ABC_DLL Nwk_Man_t * Ntl_ManReadNwk( char * pFileName, Aig_Man_t * pAig, Tim_Man_t * pManTime );
-extern ABC_DLL void        Nwk_ManPrintStats( Nwk_Man_t * p, If_Lib_t * pLutLib, int fSaveBest, int fDumpResult, int fPower, Ntl_Man_t * pNtl );
+extern ABC_DLL void        Nwk_ManPrintStats( Nwk_Man_t * p, If_LibLut_t * pLutLib, int fSaveBest, int fDumpResult, int fPower, Ntl_Man_t * pNtl );
 extern ABC_DLL void        Nwk_ManPrintStatsShort( Ntl_Man_t * p, Aig_Man_t * pAig, Nwk_Man_t * pNtk );
 extern ABC_DLL void        Nwk_ManPrintFanioNew( Nwk_Man_t * p );
 extern ABC_DLL Nwk_Man_t * Nwk_MappingIf( Aig_Man_t * p, Tim_Man_t * pManTime, If_Par_t * pPars );

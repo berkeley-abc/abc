@@ -109,7 +109,7 @@ int Gia_LutWhereIsPin( Gia_Man_t * p, int iFanout, int iFanin, int * pPinPerm )
 ***********************************************************************/
 float Gia_ObjComputeArrival( Gia_Man_t * p, int iObj, int fUseSorting )
 {
-    If_Lib_t * pLutLib = (If_Lib_t *)p->pLutLib;
+    If_LibLut_t * pLutLib = (If_LibLut_t *)p->pLutLib;
     Gia_Obj_t * pObj = Gia_ManObj( p, iObj );
     int k, iFanin, pPinPerm[32];
     float pPinDelays[32];
@@ -169,7 +169,7 @@ float Gia_ObjComputeArrival( Gia_Man_t * p, int iObj, int fUseSorting )
 ***********************************************************************/
 float Gia_ObjPropagateRequired( Gia_Man_t * p, int iObj, int fUseSorting )
 {
-    If_Lib_t * pLutLib = (If_Lib_t *)p->pLutLib;
+    If_LibLut_t * pLutLib = (If_LibLut_t *)p->pLutLib;
     int k, iFanin, pPinPerm[32];
     float pPinDelays[32];
     float tRequired = 0.0; // Suppress "might be used uninitialized"
@@ -230,7 +230,7 @@ float Gia_ObjPropagateRequired( Gia_Man_t * p, int iObj, int fUseSorting )
 float Gia_ManDelayTraceLut( Gia_Man_t * p )
 {
     int fUseSorting = 1;
-    If_Lib_t * pLutLib = (If_Lib_t *)p->pLutLib;
+    If_LibLut_t * pLutLib = (If_LibLut_t *)p->pLutLib;
     Vec_Int_t * vObjs;
     Gia_Obj_t * pObj;
     float tArrival, tArrivalCur, tRequired, tSlack;
@@ -336,7 +336,7 @@ float Gia_ManDelayTraceLut( Gia_Man_t * p )
 ***********************************************************************/
 float Gia_ObjComputeRequired( Gia_Man_t * p, int iObj, int fUseSorting )
 {
-    If_Lib_t * pLutLib = p->pLutLib;
+    If_LibLut_t * pLutLib = p->pLutLib;
     int pPinPerm[32];
     float pPinDelays[32];
     Gia_Obj_t * pFanout;
@@ -442,7 +442,7 @@ int Gia_LutVerifyTiming(  Gia_Man_t * p )
 ***********************************************************************/
 float Gia_ManDelayTraceLutPrint( Gia_Man_t * p, int fVerbose )
 {
-    If_Lib_t * pLutLib = (If_Lib_t *)p->pLutLib;
+    If_LibLut_t * pLutLib = (If_LibLut_t *)p->pLutLib;
     int i, Nodes, * pCounters;
     float tArrival, tDelta, nSteps, Num;
     // get the library
@@ -500,7 +500,7 @@ float Gia_ManDelayTraceLutPrint( Gia_Man_t * p, int fVerbose )
 ***********************************************************************/
 unsigned Gia_LutDelayTraceTCEdges( Gia_Man_t * p, int iObj, float tDelta )
 {
-    If_Lib_t * pLutLib = (If_Lib_t *)p->pLutLib;
+    If_LibLut_t * pLutLib = (If_LibLut_t *)p->pLutLib;
     int pPinPerm[32];
     float pPinDelays[32];
     float tRequired, * pDelays;

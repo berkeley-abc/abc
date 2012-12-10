@@ -519,7 +519,7 @@ int Lpk_Resynthesize( Abc_Ntk_t * pNtk, Lpk_Par_t * pPars )
 
     // get the number of inputs
     if ( Abc_FrameReadLibLut() )
-        pPars->nLutSize = ((If_Lib_t *)Abc_FrameReadLibLut())->LutMax;
+        pPars->nLutSize = ((If_LibLut_t *)Abc_FrameReadLibLut())->LutMax;
     else
         pPars->nLutSize = Abc_NtkGetFaninMax( pNtk );
     if ( pPars->nLutSize > 6 )

@@ -130,7 +130,7 @@ int Nwk_ManWhereIsPin( Nwk_Obj_t * pFanout, Nwk_Obj_t * pFanin, int * pPinPerm )
 ***********************************************************************/
 float Nwk_NodeComputeArrival( Nwk_Obj_t * pObj, int fUseSorting )
 {
-    If_Lib_t * pLutLib = pObj->pMan->pLutLib;
+    If_LibLut_t * pLutLib = pObj->pMan->pLutLib;
     int pPinPerm[32];
     float pPinDelays[32];
     Nwk_Obj_t * pFanin;
@@ -190,7 +190,7 @@ float Nwk_NodeComputeArrival( Nwk_Obj_t * pObj, int fUseSorting )
 ***********************************************************************/
 float Nwk_NodeComputeRequired( Nwk_Obj_t * pObj, int fUseSorting )
 {
-    If_Lib_t * pLutLib = pObj->pMan->pLutLib;
+    If_LibLut_t * pLutLib = pObj->pMan->pLutLib;
     int pPinPerm[32];
     float pPinDelays[32];
     Nwk_Obj_t * pFanout;
@@ -263,7 +263,7 @@ float Nwk_NodeComputeRequired( Nwk_Obj_t * pObj, int fUseSorting )
 ***********************************************************************/
 float Nwk_NodePropagateRequired( Nwk_Obj_t * pObj, int fUseSorting )
 {
-    If_Lib_t * pLutLib = pObj->pMan->pLutLib;
+    If_LibLut_t * pLutLib = pObj->pMan->pLutLib;
     int pPinPerm[32];
     float pPinDelays[32];
     Nwk_Obj_t * pFanin;
@@ -327,7 +327,7 @@ float Nwk_ManDelayTraceLut( Nwk_Man_t * pNtk )
 {
     Vec_Ptr_t * vObjs;
     int fUseSorting = 1;
-    If_Lib_t * pLutLib = pNtk->pLutLib;
+    If_LibLut_t * pLutLib = pNtk->pLutLib;
     Vec_Ptr_t * vNodes;
     Nwk_Obj_t * pObj;
     float tArrival, tRequired, tSlack;
@@ -458,7 +458,7 @@ int Nwk_ManVerifyTiming(  Nwk_Man_t * pNtk )
 ***********************************************************************/
 void Nwk_ManDelayTracePrint( Nwk_Man_t * pNtk )
 {
-    If_Lib_t * pLutLib = pNtk->pLutLib;
+    If_LibLut_t * pLutLib = pNtk->pLutLib;
     Nwk_Obj_t * pNode;
     int i, Nodes, * pCounters;
     float tArrival, tDelta, nSteps, Num;

@@ -44,10 +44,10 @@ static inline char * If_UtilStrsav( char *s ) {  return !s ? s : strcpy(ABC_ALLO
   SeeAlso     []
 
 ***********************************************************************/
-If_Lib_t * If_LutLibRead( char * FileName )
+If_LibLut_t * If_LibLutRead( char * FileName )
 {
     char pBuffer[1000], * pToken;
-    If_Lib_t * p;
+    If_LibLut_t * p;
     FILE * pFile;
     int i, k;
 
@@ -58,8 +58,8 @@ If_Lib_t * If_LutLibRead( char * FileName )
         return NULL;
     }
 
-    p = ABC_ALLOC( If_Lib_t, 1 );
-    memset( p, 0, sizeof(If_Lib_t) );
+    p = ABC_ALLOC( If_LibLut_t, 1 );
+    memset( p, 0, sizeof(If_LibLut_t) );
     p->pName = If_UtilStrsav( FileName );
 
     i = 1;
@@ -150,10 +150,10 @@ If_Lib_t * If_LutLibRead( char * FileName )
   SeeAlso     []
 
 ***********************************************************************/
-If_Lib_t * If_LutLibDup( If_Lib_t * p )
+If_LibLut_t * If_LibLutDup( If_LibLut_t * p )
 {
-    If_Lib_t * pNew;
-    pNew = ABC_ALLOC( If_Lib_t, 1 );
+    If_LibLut_t * pNew;
+    pNew = ABC_ALLOC( If_LibLut_t, 1 );
     *pNew = *p;
     pNew->pName = If_UtilStrsav( pNew->pName );
     return pNew;
@@ -170,7 +170,7 @@ If_Lib_t * If_LutLibDup( If_Lib_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void If_LutLibFree( If_Lib_t * pLutLib )
+void If_LibLutFree( If_LibLut_t * pLutLib )
 {
     if ( pLutLib == NULL )
         return;
@@ -190,7 +190,7 @@ void If_LutLibFree( If_Lib_t * pLutLib )
   SeeAlso     []
 
 ***********************************************************************/
-void If_LutLibPrint( If_Lib_t * pLutLib )
+void If_LibLutPrint( If_LibLut_t * pLutLib )
 {
     int i, k;
     Abc_Print( 1, "# The area/delay of k-variable LUTs:\n" );
@@ -221,7 +221,7 @@ void If_LutLibPrint( If_Lib_t * pLutLib )
   SeeAlso     []
 
 ***********************************************************************/
-int If_LutLibDelaysAreDiscrete( If_Lib_t * pLutLib )
+int If_LibLutDelaysAreDiscrete( If_LibLut_t * pLutLib )
 {
     float Delay;
     int i;
@@ -245,7 +245,7 @@ int If_LutLibDelaysAreDiscrete( If_Lib_t * pLutLib )
   SeeAlso     []
 
 ***********************************************************************/
-int If_LutLibDelaysAreDifferent( If_Lib_t * pLutLib )
+int If_LibLutDelaysAreDifferent( If_LibLut_t * pLutLib )
 {
     int i, k;
     float Delay = pLutLib->pLutDelays[1][0];
@@ -276,17 +276,17 @@ int If_LutLibDelaysAreDifferent( If_Lib_t * pLutLib )
   SeeAlso     []
 
 ***********************************************************************/
-If_Lib_t * If_LutLibSetSimple( int nLutSize )
+If_LibLut_t * If_LibLutSetSimple( int nLutSize )
 {
-    If_Lib_t s_LutLib10= { "lutlib",10, 0, {0,1,1,1,1,1,1,1,1,1,1}, {{0},{1},{1},{1},{1},{1},{1},{1},{1},{1},{1}} };
-    If_Lib_t s_LutLib9 = { "lutlib", 9, 0, {0,1,1,1,1,1,1,1,1,1}, {{0},{1},{1},{1},{1},{1},{1},{1},{1},{1}} };
-    If_Lib_t s_LutLib8 = { "lutlib", 8, 0, {0,1,1,1,1,1,1,1,1}, {{0},{1},{1},{1},{1},{1},{1},{1},{1}} };
-    If_Lib_t s_LutLib7 = { "lutlib", 7, 0, {0,1,1,1,1,1,1,1}, {{0},{1},{1},{1},{1},{1},{1},{1}} };
-    If_Lib_t s_LutLib6 = { "lutlib", 6, 0, {0,1,1,1,1,1,1}, {{0},{1},{1},{1},{1},{1},{1}} };
-    If_Lib_t s_LutLib5 = { "lutlib", 5, 0, {0,1,1,1,1,1}, {{0},{1},{1},{1},{1},{1}} };
-    If_Lib_t s_LutLib4 = { "lutlib", 4, 0, {0,1,1,1,1}, {{0},{1},{1},{1},{1}} };
-    If_Lib_t s_LutLib3 = { "lutlib", 3, 0, {0,1,1,1}, {{0},{1},{1},{1}} };
-    If_Lib_t * pLutLib;
+    If_LibLut_t s_LutLib10= { "lutlib",10, 0, {0,1,1,1,1,1,1,1,1,1,1}, {{0},{1},{1},{1},{1},{1},{1},{1},{1},{1},{1}} };
+    If_LibLut_t s_LutLib9 = { "lutlib", 9, 0, {0,1,1,1,1,1,1,1,1,1}, {{0},{1},{1},{1},{1},{1},{1},{1},{1},{1}} };
+    If_LibLut_t s_LutLib8 = { "lutlib", 8, 0, {0,1,1,1,1,1,1,1,1}, {{0},{1},{1},{1},{1},{1},{1},{1},{1}} };
+    If_LibLut_t s_LutLib7 = { "lutlib", 7, 0, {0,1,1,1,1,1,1,1}, {{0},{1},{1},{1},{1},{1},{1},{1}} };
+    If_LibLut_t s_LutLib6 = { "lutlib", 6, 0, {0,1,1,1,1,1,1}, {{0},{1},{1},{1},{1},{1},{1}} };
+    If_LibLut_t s_LutLib5 = { "lutlib", 5, 0, {0,1,1,1,1,1}, {{0},{1},{1},{1},{1},{1}} };
+    If_LibLut_t s_LutLib4 = { "lutlib", 4, 0, {0,1,1,1,1}, {{0},{1},{1},{1},{1}} };
+    If_LibLut_t s_LutLib3 = { "lutlib", 3, 0, {0,1,1,1}, {{0},{1},{1},{1}} };
+    If_LibLut_t * pLutLib;
     assert( nLutSize >= 3 && nLutSize <= 10 );
     switch ( nLutSize )
     {
@@ -302,7 +302,7 @@ If_Lib_t * If_LutLibSetSimple( int nLutSize )
     }
     if ( pLutLib == NULL )
         return NULL;
-    return If_LutLibDup(pLutLib);
+    return If_LibLutDup(pLutLib);
 }
 
 /**Function*************************************************************
@@ -316,7 +316,7 @@ If_Lib_t * If_LutLibSetSimple( int nLutSize )
   SeeAlso     []
 
 ***********************************************************************/
-float If_LutLibFastestPinDelay( If_Lib_t * p )
+float If_LibLutFastestPinDelay( If_LibLut_t * p )
 {
     return !p? 1.0 : p->pLutDelays[p->LutMax][0];
 }
@@ -332,7 +332,7 @@ float If_LutLibFastestPinDelay( If_Lib_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-float If_LutLibSlowestPinDelay( If_Lib_t * p )
+float If_LibLutSlowestPinDelay( If_LibLut_t * p )
 {
     return !p? 1.0 : (p->fVarPinDelays? p->pLutDelays[p->LutMax][p->LutMax-1]: p->pLutDelays[p->LutMax][0]);
 }

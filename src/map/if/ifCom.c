@@ -51,8 +51,8 @@ static int If_CommandPrintBox( Abc_Frame_t * pAbc, int argc, char **argv );
 void If_Init( Abc_Frame_t * pAbc )
 {
     // set the default library
-    If_Lib_t s_LutLib = { "lutlib", 4, 0, {0,1,1,1,1}, {{0},{1},{1},{1},{1}} };
-    Abc_FrameSetLibLut( If_LutLibDup(&s_LutLib) );
+    If_LibLut_t s_LutLib = { "lutlib", 4, 0, {0,1,1,1,1}, {{0},{1},{1},{1},{1}} };
+    Abc_FrameSetLibLut( If_LibLutDup(&s_LutLib) );
 
     Cmd_CommandAdd( pAbc, "FPGA mapping", "read_lut",   If_CommandReadLut,   0 ); 
     Cmd_CommandAdd( pAbc, "FPGA mapping", "print_lut",  If_CommandPrintLut,  0 ); 
@@ -74,7 +74,7 @@ void If_Init( Abc_Frame_t * pAbc )
 ***********************************************************************/
 void If_End( Abc_Frame_t * pAbc )
 {
-    If_LutLibFree( (If_Lib_t *)   Abc_FrameReadLibLut() );
+    If_LibLutFree( (If_LibLut_t *)   Abc_FrameReadLibLut() );
     If_LibBoxFree( (If_LibBox_t *)Abc_FrameReadLibBox() );
 }
 
@@ -93,7 +93,7 @@ int If_CommandReadLut( Abc_Frame_t * pAbc, int argc, char **argv )
 {
     FILE * pFile;
     FILE * pOut, * pErr;
-    If_Lib_t * pLib;
+    If_LibLut_t * pLib;
     Abc_Ntk_t * pNet;
     char * FileName;
     int fVerbose;
@@ -137,14 +137,14 @@ int If_CommandReadLut( Abc_Frame_t * pAbc, int argc, char **argv )
     fclose( pFile );
 
     // set the new network
-    pLib = If_LutLibRead( FileName );
+    pLib = If_LibLutRead( FileName );
     if ( pLib == NULL )
     {
         fprintf( pErr, "Reading LUT library has failed.\n" );
         goto usage;
     }
     // replace the current library
-    If_LutLibFree( (If_Lib_t *)Abc_FrameReadLibLut() );
+    If_LibLutFree( (If_LibLut_t *)Abc_FrameReadLibLut() );
     Abc_FrameSetLibLut( pLib );
     return 0;
 
@@ -212,7 +212,7 @@ int If_CommandPrintLut( Abc_Frame_t * pAbc, int argc, char **argv )
         goto usage;
 
     // set the new network
-    If_LutLibPrint( (If_Lib_t *)Abc_FrameReadLibLut() );
+    If_LibLutPrint( (If_LibLut_t *)Abc_FrameReadLibLut() );
     return 0;
 
 usage:

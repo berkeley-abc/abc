@@ -165,13 +165,13 @@ float Abc_NtkMfsTotalSwitching( Abc_Ntk_t * pNtk )
 ***********************************************************************/
 float Abc_NtkGetArea( Abc_Ntk_t * pNtk )
 {
-    If_Lib_t * pLutLib;
+    If_LibLut_t * pLutLib;
     Abc_Obj_t * pObj;
     float Counter = 0.0;
     int i;
     assert( Abc_NtkIsLogic(pNtk) );
     // get the library
-    pLutLib = (If_Lib_t *)Abc_FrameReadLibLut();
+    pLutLib = (If_LibLut_t *)Abc_FrameReadLibLut();
     if ( pLutLib && pLutLib->LutMax >= Abc_NtkGetFaninMax(pNtk) )
     {
         Abc_NtkForEachNode( pNtk, pObj, i )

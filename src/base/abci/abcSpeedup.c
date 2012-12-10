@@ -102,7 +102,7 @@ float Abc_NtkDelayTraceLut( Abc_Ntk_t * pNtk, int fUseLutLib )
     int fUseSorting = 1;
     int pPinPerm[32];
     float pPinDelays[32];
-    If_Lib_t * pLutLib;
+    If_LibLut_t * pLutLib;
     Abc_Obj_t * pNode, * pFanin;
     Vec_Ptr_t * vNodes;
     float tArrival, tRequired, tSlack, * pDelays;
@@ -110,7 +110,7 @@ float Abc_NtkDelayTraceLut( Abc_Ntk_t * pNtk, int fUseLutLib )
 
     assert( Abc_NtkIsLogic(pNtk) );
     // get the library
-    pLutLib = fUseLutLib?  (If_Lib_t *)Abc_FrameReadLibLut() : NULL;
+    pLutLib = fUseLutLib?  (If_LibLut_t *)Abc_FrameReadLibLut() : NULL;
     if ( pLutLib && pLutLib->LutMax < Abc_NtkGetFaninMax(pNtk) )
     {
         printf( "The max LUT size (%d) is less than the max fanin count (%d).\n", 
@@ -244,11 +244,11 @@ float Abc_NtkDelayTraceLut( Abc_Ntk_t * pNtk, int fUseLutLib )
 void Abc_NtkDelayTracePrint( Abc_Ntk_t * pNtk, int fUseLutLib, int fVerbose )
 {
     Abc_Obj_t * pNode;
-    If_Lib_t * pLutLib;
+    If_LibLut_t * pLutLib;
     int i, Nodes, * pCounters;
     float tArrival, tDelta, nSteps, Num;
     // get the library
-    pLutLib = fUseLutLib?  (If_Lib_t *)Abc_FrameReadLibLut() : NULL;
+    pLutLib = fUseLutLib?  (If_LibLut_t *)Abc_FrameReadLibLut() : NULL;
     if ( pLutLib && pLutLib->LutMax < Abc_NtkGetFaninMax(pNtk) )
     {
         printf( "The max LUT size (%d) is less than the max fanin count (%d).\n", 
@@ -467,12 +467,12 @@ unsigned Abc_NtkDelayTraceTCEdges( Abc_Ntk_t * pNtk, Abc_Obj_t * pNode, float tD
 {
     int pPinPerm[32];
     float pPinDelays[32];
-    If_Lib_t * pLutLib;
+    If_LibLut_t * pLutLib;
     Abc_Obj_t * pFanin;
     unsigned uResult = 0;
     float tRequired, * pDelays;
     int k;
-    pLutLib = fUseLutLib?  (If_Lib_t *)Abc_FrameReadLibLut() : NULL;
+    pLutLib = fUseLutLib?  (If_LibLut_t *)Abc_FrameReadLibLut() : NULL;
     tRequired = Abc_ObjRequired(pNode);
     if ( pLutLib == NULL )
     {
