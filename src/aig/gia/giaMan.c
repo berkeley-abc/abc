@@ -94,6 +94,10 @@ void Gia_ManStop( Gia_Man_t * p )
     Vec_WrdFreeP( &p->vTtMemory );
     Vec_PtrFreeP( &p->vTtInputs );
     Vec_IntFreeP( &p->vMapping );
+    Vec_IntFreeP( &p->vPacking );
+    Vec_FltFreeP( &p->vInArrs );
+    Vec_FltFreeP( &p->vOutReqs );
+    Gia_ManStopP( &p->pAigExtra );
     Vec_IntFree( p->vCis );
     Vec_IntFree( p->vCos );
     ABC_FREE( p->pData2 );
@@ -161,10 +165,10 @@ void Gia_ManPrintClasses_old( Gia_Man_t * p )
     {
         Gia_Man_t * pTemp;
         pTemp = Gia_ManDupFlopClass( p, 1 );
-        Gia_WriteAiger( pTemp, "dom1.aig", 0, 0 );
+        Gia_AigerWrite( pTemp, "dom1.aig", 0, 0 );
         Gia_ManStop( pTemp );
         pTemp = Gia_ManDupFlopClass( p, 2 );
-        Gia_WriteAiger( pTemp, "dom2.aig", 0, 0 );
+        Gia_AigerWrite( pTemp, "dom2.aig", 0, 0 );
         Gia_ManStop( pTemp );
     }
 }

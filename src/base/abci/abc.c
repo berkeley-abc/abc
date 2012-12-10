@@ -12840,7 +12840,7 @@ int Abc_CommandRecStart2( Abc_Frame_t * pAbc, int argc, char ** argv )
             return 1;
         }
         fclose( pFile );
-        pGia = Gia_ReadAiger( FileName, 1, 0 );
+        pGia = Gia_AigerRead( FileName, 1, 0 );
         if ( pGia == NULL )
         {
             Abc_Print( -1, "Reading AIGER has failed.\n" );
@@ -13059,7 +13059,7 @@ int Abc_CommandRecDump2( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         // get the input file name
         FileName = pArgvNew[0];
-        Gia_WriteAiger( pGia, FileName, 0, 0 );
+        Gia_AigerWrite( pGia, FileName, 0, 0 );
     }
     return 0;
 
@@ -13188,7 +13188,7 @@ int Abc_CommandRecMerge2( Abc_Frame_t * pAbc, int argc, char ** argv )
             return 1;
         }
         fclose( pFile );
-        pGia = Gia_ReadAiger( FileName, 0, 0 );
+        pGia = Gia_AigerRead( FileName, 0, 0 );
         if ( pGia == NULL )
         {
             Abc_Print( -1, "Reading AIGER has failed.\n" );
@@ -13299,7 +13299,7 @@ int Abc_CommandRecStart3( Abc_Frame_t * pAbc, int argc, char ** argv )
             return 1;
         }
         fclose( pFile );
-        pGia = Gia_ReadAiger( FileName, 1, 0 );
+        pGia = Gia_AigerRead( FileName, 1, 0 );
         if ( pGia == NULL )
         {
             Abc_Print( -1, "Reading AIGER has failed.\n" );
@@ -13531,7 +13531,7 @@ int Abc_CommandRecDump3( Abc_Frame_t * pAbc, int argc, char ** argv )
             Abc_Print( 0, "No structure in the library.\n" );
             return 1;
         }
-        Gia_WriteAiger( pGia, FileName, 0, 0 );
+        Gia_AigerWrite( pGia, FileName, 0, 0 );
     }
     return 0;
 
@@ -13605,7 +13605,7 @@ int Abc_CommandRecMerge3( Abc_Frame_t * pAbc, int argc, char ** argv )
             return 1;
         }
         fclose( pFile );
-        pGia = Gia_ReadAiger( FileName, 1, 0 );
+        pGia = Gia_AigerRead( FileName, 1, 0 );
         if ( pGia == NULL )
         {
             Abc_Print( -1, "Reading AIGER has failed.\n" );
@@ -23444,7 +23444,7 @@ int Abc_CommandAbc9Read( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     fclose( pFile );
 
-    pAig = Gia_ReadAiger( FileName, fSkipStrash, 0 );
+    pAig = Gia_AigerRead( FileName, fSkipStrash, 0 );
     Abc_CommandUpdate9( pAbc, pAig );
     return 0;
 
@@ -23830,11 +23830,11 @@ int Abc_CommandAbc9Write( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( fUnique )
     {
         Gia_Man_t * pGia = Gia_ManIsoCanonicize( pAbc->pGia, fVerbose );
-        Gia_WriteAigerSimple( pGia, pFileName );
+        Gia_AigerWriteSimple( pGia, pFileName );
         Gia_ManStop( pGia );
     }
     else
-        Gia_WriteAiger( pAbc->pGia, pFileName, 0, 0 );
+        Gia_AigerWrite( pAbc->pGia, pFileName, 0, 0 );
     return 0;
 
 usage:
@@ -25942,7 +25942,7 @@ int Abc_CommandAbc9Miter( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     fclose( pFile );
-    pSecond = Gia_ReadAiger( FileName, 0, 0 );
+    pSecond = Gia_AigerRead( FileName, 0, 0 );
     if ( pSecond == NULL )
     {
         Abc_Print( -1, "Reading AIGER has failed.\n" );
@@ -26024,7 +26024,7 @@ int Abc_CommandAbc9Append( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     fclose( pFile );
-    pSecond = Gia_ReadAiger( FileName, 0, 0 );
+    pSecond = Gia_AigerRead( FileName, 0, 0 );
     if ( pSecond == NULL )
     {
         Abc_Print( -1, "Reading AIGER has failed.\n" );
@@ -26689,7 +26689,7 @@ int Abc_CommandAbc9Srm( Abc_Frame_t * pAbc, int argc, char ** argv )
             pTemp = Gia_ManSeqStructSweep( pAux = pTemp, 1, 1, 0 );
             Gia_ManStop( pAux );
         }
-        Gia_WriteAiger( pTemp, pFileNameIn ? pFileNameIn : pFileName, 0, 0 );
+        Gia_AigerWrite( pTemp, pFileNameIn ? pFileNameIn : pFileName, 0, 0 );
         Abc_Print( 1, "Speculatively reduced model was written into file \"%s\".\n", pFileName );
         Gia_ManPrintStatsShort( pTemp );
         Gia_ManStop( pTemp );
@@ -26702,7 +26702,7 @@ int Abc_CommandAbc9Srm( Abc_Frame_t * pAbc, int argc, char ** argv )
             pTemp = Gia_ManSeqStructSweep( pAux = pTemp, 1, 1, 0 );
             Gia_ManStop( pAux );
 
-            Gia_WriteAiger( pTemp, pFileName2, 0, 0 );
+            Gia_AigerWrite( pTemp, pFileName2, 0, 0 );
             Abc_Print( 1, "Reduced original network was written into file \"%s\".\n", pFileName2 );
             Gia_ManPrintStatsShort( pTemp );
             Gia_ManStop( pTemp );
@@ -26803,7 +26803,7 @@ int Abc_CommandAbc9Srm2( Abc_Frame_t * pAbc, int argc, char ** argv )
         pTemp = Gia_ManSeqStructSweep( pAux = pTemp, 1, 1, 0 );
         Gia_ManStop( pAux );
 
-        Gia_WriteAiger( pTemp, pFileName, 0, 0 );
+        Gia_AigerWrite( pTemp, pFileName, 0, 0 );
         Abc_Print( 1, "Speculatively reduced model was written into file \"%s\".\n", pFileName );
         Gia_ManPrintStatsShort( pTemp );
         Gia_ManStop( pTemp );
@@ -27122,7 +27122,7 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     fclose( pFile );
-    pSecond = Gia_ReadAiger( FileName, 0, 0 );
+    pSecond = Gia_AigerRead( FileName, 0, 0 );
     if ( pSecond == NULL )
     {
         Abc_Print( -1, "Reading AIGER has failed.\n" );

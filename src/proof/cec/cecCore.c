@@ -398,7 +398,7 @@ p->timeSim += clock() - clk;
         }
         pSrm = Cec_ManFraSpecReduction( p ); 
 
-//        Gia_WriteAiger( pSrm, "gia_srm.aig", 0, 0 );
+//        Gia_AigerWrite( pSrm, "gia_srm.aig", 0, 0 );
 
         if ( pPars->fVeryVerbose )
             Gia_ManPrintStats( pSrm, 0, 0, 0 );
@@ -481,7 +481,7 @@ p->timeSat += clock() - clk;
                     Abc_Print( 1, "Increasing conflict limit to %d.\n", pParsSat->nBTLimit );
                 if ( fOutputResult )
                 {
-                    Gia_WriteAiger( p->pAig, "gia_cec_temp.aig", 0, 0 );
+                    Gia_AigerWrite( p->pAig, "gia_cec_temp.aig", 0, 0 );
                     Abc_Print( 1,"The result is written into file \"%s\".\n", "gia_cec_temp.aig" );
                 }
             }

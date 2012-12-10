@@ -35,88 +35,30 @@ ABC_NAMESPACE_IMPL_START
 
 /**Function*************************************************************
 
-  Synopsis    [Extracts one unsigned AIG edge from the input buffer.]
-
-  Description [This procedure is a slightly modified version of Armin Biere's
-  procedure "unsigned decode (FILE * file)". ]
-  
-  SideEffects [Updates the current reading position.]
-
-  SeeAlso     []
-
-***********************************************************************/
-unsigned Gia_ReadAigerDecode( unsigned char ** ppPos )
-{
-    unsigned x = 0, i = 0;
-    unsigned char ch;
-    while ((ch = *(*ppPos)++) & 0x80)
-        x |= (ch & 0x7f) << (7 * i++);
-    return x | (ch << (7 * i));
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Decodes the encoded array of literals.]
+  Synopsis    []
 
   Description []
-  
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Vec_Int_t * Gia_WriteDecodeLiterals( unsigned char ** ppPos, int nEntries )
-{
-    Vec_Int_t * vLits;
-    int Lit, LitPrev, Diff, i;
-    vLits = Vec_IntAlloc( nEntries );
-    LitPrev = Gia_ReadAigerDecode( ppPos );
-    Vec_IntPush( vLits, LitPrev );
-    for ( i = 1; i < nEntries; i++ )
-    {
-//        Diff = Lit - LitPrev;
-//        Diff = (Lit < LitPrev)? -Diff : Diff;
-//        Diff = ((2 * Diff) << 1) | (int)(Lit < LitPrev);
-        Diff = Gia_ReadAigerDecode( ppPos );
-        Diff = (Diff & 1)? -(Diff >> 1) : Diff >> 1;
-        Lit  = Diff + LitPrev;
-        Vec_IntPush( vLits, Lit );
-        LitPrev = Lit;
-    }
-    return vLits;
-}
-
-
-/**Function*************************************************************
-
-  Synopsis    [Returns the file size.]
-
-  Description [The file should be closed.]
 
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_FixFileName( char * pFileName )
+void Gia_FileFixName( char * pFileName )
 {
     char * pName;
     for ( pName = pFileName; *pName; pName++ )
         if ( *pName == '>' )
             *pName = '\\';
 }
-
-/**Function*************************************************************
-
-  Synopsis    [Returns the file size.]
-
-  Description [The file should be closed.]
-
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
+char * Gia_FileNameGeneric( char * FileName )
+{
+    char * pDot, * pRes;
+    pRes = Abc_UtilStrsav( FileName );
+    if ( (pDot = strrchr( pRes, '.' )) )
+        *pDot = 0;
+    return pRes;
+}
 int Gia_FileSize( char * pFileName )
 {
     FILE * pFile;
@@ -132,30 +74,16 @@ int Gia_FileSize( char * pFileName )
     fclose( pFile );
     return nFileSize;
 }
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-char * Gia_FileNameGeneric( char * FileName )
+void Gia_FileWriteBufferSize( FILE * pFile, int nSize )
 {
-    char * pDot, * pRes;
-    pRes = Abc_UtilStrsav( FileName );
-    if ( (pDot = strrchr( pRes, '.' )) )
-        *pDot = 0;
-    return pRes;
+    unsigned char Buffer[5];
+    Gia_AigerWriteInt( Buffer, nSize );
+    fwrite( Buffer, 1, 4, pFile );
 }
 
 /**Function*************************************************************
 
-  Synopsis    [Read integer from the string.]
+  Synopsis    [Create the array of literals to be written.]
 
   Description []
   
@@ -164,469 +92,72 @@ char * Gia_FileNameGeneric( char * FileName )
   SeeAlso     []
 
 ***********************************************************************/
-int Gia_ReadInt( unsigned char * pPos )
+Vec_Int_t * Gia_AigerCollectLiterals( Gia_Man_t * p )
 {
-    int i, Value = 0;
-    for ( i = 0; i < 4; i++ )
-        Value = (Value << 8) | *pPos++;
-    return Value;
+    Vec_Int_t * vLits;
+    Gia_Obj_t * pObj;
+    int i;
+    vLits = Vec_IntAlloc( Gia_ManPoNum(p) );
+    Gia_ManForEachRi( p, pObj, i )
+        Vec_IntPush( vLits, Gia_ObjFaninLit0p(p, pObj) );
+    Gia_ManForEachPo( p, pObj, i )
+        Vec_IntPush( vLits, Gia_ObjFaninLit0p(p, pObj) );
+    return vLits;
 }
-
-/**Function*************************************************************
-
-  Synopsis    [Reads decoded value.]
-
-  Description []
-  
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-unsigned Gia_ReadDiffValue( unsigned char ** ppPos, int iPrev )
+Vec_Int_t * Gia_AigerReadLiterals( unsigned char ** ppPos, int nEntries )
 {
-    int Item = Gia_ReadAigerDecode( ppPos );
-    if ( Item & 1 )
-        return iPrev + (Item >> 1);
-    return iPrev - (Item >> 1);
+    Vec_Int_t * vLits;
+    int Lit, LitPrev, Diff, i;
+    vLits = Vec_IntAlloc( nEntries );
+    LitPrev = Gia_AigerReadUnsigned( ppPos );
+    Vec_IntPush( vLits, LitPrev );
+    for ( i = 1; i < nEntries; i++ )
+    {
+//        Diff = Lit - LitPrev;
+//        Diff = (Lit < LitPrev)? -Diff : Diff;
+//        Diff = ((2 * Diff) << 1) | (int)(Lit < LitPrev);
+        Diff = Gia_AigerReadUnsigned( ppPos );
+        Diff = (Diff & 1)? -(Diff >> 1) : Diff >> 1;
+        Lit  = Diff + LitPrev;
+        Vec_IntPush( vLits, Lit );
+        LitPrev = Lit;
+    }
+    return vLits;
 }
-
-/**Function*************************************************************
-
-  Synopsis    [Read equivalence classes from the string.]
-
-  Description []
-  
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Gia_Rpr_t * Gia_ReadEquivClasses( unsigned char ** ppPos, int nSize )
+Vec_Str_t * Gia_AigerWriteLiterals( Vec_Int_t * vLits )
 {
-    Gia_Rpr_t * pReprs;
-    unsigned char * pStop;
-    int i, Item, fProved, iRepr, iNode;
-    pStop = *ppPos;
-    pStop += Gia_ReadInt( *ppPos ); *ppPos += 4;
-    pReprs = ABC_CALLOC( Gia_Rpr_t, nSize );
-    for ( i = 0; i < nSize; i++ )
-        pReprs[i].iRepr = GIA_VOID;
-    iRepr = iNode = 0;
-    while ( *ppPos < pStop )
+    Vec_Str_t * vBinary;
+    int Pos = 0, Lit, LitPrev, Diff, i;
+    vBinary = Vec_StrAlloc( 2 * Vec_IntSize(vLits) );
+    LitPrev = Vec_IntEntry( vLits, 0 );
+    Pos = Gia_AigerWriteUnsignedBuffer( (unsigned char *)Vec_StrArray(vBinary), Pos, LitPrev ); 
+    Vec_IntForEachEntryStart( vLits, Lit, i, 1 )
     {
-        Item = Gia_ReadAigerDecode( ppPos );
-        if ( Item & 1 )
-        {
-            iRepr += (Item >> 1);
-            iNode = iRepr;
-//printf( "\nRepr = %d ", iRepr );
-            continue;
-        }
-        Item >>= 1;
-        fProved = (Item & 1);
-        Item >>= 1;
-        iNode += Item;
-        pReprs[iNode].fProved = fProved;
-        pReprs[iNode].iRepr = iRepr;
-        assert( iRepr < iNode );
-//printf( "Node = %d ", iNode );
+        Diff = Lit - LitPrev;
+        Diff = (Lit < LitPrev)? -Diff : Diff;
+        Diff = (Diff << 1) | (int)(Lit < LitPrev);
+        Pos = Gia_AigerWriteUnsignedBuffer( (unsigned char *)Vec_StrArray(vBinary), Pos, Diff );
+        LitPrev = Lit;
+        if ( Pos + 10 > vBinary->nCap )
+            Vec_StrGrow( vBinary, vBinary->nCap+1 );
     }
-    return pReprs;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Read flop classes from the string.]
-
-  Description []
-  
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Gia_ReadFlopClasses( unsigned char ** ppPos, Vec_Int_t * vClasses, int nSize )
-{
-    int nAlloc = Gia_ReadInt( *ppPos ); *ppPos += 4;
-    assert( nAlloc/4 == nSize );
-    assert( Vec_IntSize(vClasses) == nSize );
-    memcpy( Vec_IntArray(vClasses), *ppPos, 4*nSize );
-    *ppPos += 4 * nSize;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Read equivalence classes from the string.]
-
-  Description []
-  
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int * Gia_ReadMapping( unsigned char ** ppPos, int nSize )
-{
-    int * pMapping;
-    unsigned char * pStop;
-    int k, j, nFanins, nAlloc, iNode = 0, iOffset = nSize;
-    pStop = *ppPos;
-    pStop += Gia_ReadInt( *ppPos ); *ppPos += 4;
-    nAlloc = nSize + pStop - *ppPos;
-    pMapping = ABC_CALLOC( int, nAlloc );
-    while ( *ppPos < pStop )
-    {
-        k = iOffset;
-        pMapping[k++] = nFanins = Gia_ReadAigerDecode( ppPos );
-        for ( j = 0; j <= nFanins; j++ )
-            pMapping[k++] = iNode = Gia_ReadDiffValue( ppPos, iNode );
-        pMapping[iNode] = iOffset;
-        iOffset = k;
-    }
-    assert( iOffset <= nAlloc );
-    return pMapping;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Read switching from the string.]
-
-  Description []
-  
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-unsigned char * Gia_ReadSwitching( unsigned char ** ppPos, int nSize )
-{
-    unsigned char * pSwitching;
-    int nAlloc = Gia_ReadInt( *ppPos ); *ppPos += 4;
-    assert( nAlloc == nSize );
-    pSwitching = ABC_ALLOC( unsigned char, nSize );
-    memcpy( pSwitching, *ppPos, nSize );
-    *ppPos += nSize;
-    return pSwitching;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Read placement from the string.]
-
-  Description []
-  
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Gia_Plc_t * Gia_ReadPlacement( unsigned char ** ppPos, int nSize )
-{
-    Gia_Plc_t * pPlacement;
-    int nAlloc = Gia_ReadInt( *ppPos ); *ppPos += 4;
-    assert( nAlloc/4 == nSize );
-    pPlacement = ABC_ALLOC( Gia_Plc_t, nSize );
-    memcpy( pPlacement, *ppPos, 4*nSize );
-    *ppPos += 4 * nSize;
-    return pPlacement;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Reads the AIG in the binary AIGER format.]
-
-  Description []
-  
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Gia_Man_t * Gia_ReadAiger2( char * pFileName, int fCheck )
-{
-    FILE * pFile;
-    Gia_Man_t * pNew;
-    Vec_Int_t * vLits = NULL;
-    Vec_Int_t * vNodes, * vDrivers;//, * vTerms;
-    int iObj, iNode0, iNode1;
-    int nTotal, nInputs, nOutputs, nLatches, nAnds, nFileSize, i;//, iTerm, nDigits;
-    int nBad = 0, nConstr = 0, nJust = 0, nFair = 0;
-    unsigned char * pDrivers, * pSymbols, * pCur;//, * pType;
-    char * pContents, * pName;
-    unsigned uLit0, uLit1, uLit;
-    int RetValue;
-
-    // read the file into the buffer
-    Gia_FixFileName( pFileName );
-    nFileSize = Gia_FileSize( pFileName );
-    pFile = fopen( pFileName, "rb" );
-    pContents = ABC_ALLOC( char, nFileSize );
-    RetValue = fread( pContents, nFileSize, 1, pFile );
-    fclose( pFile );
-
-    // check if the input file format is correct
-    if ( strncmp(pContents, "aig", 3) != 0 || (pContents[3] != ' ' && pContents[3] != '2') )
-    {
-        ABC_FREE( pContents );
-        fprintf( stdout, "Wrong input file format.\n" );
-        return NULL;
-    }
-
-    // read the parameters (M I L O A + B C J F)
-    pCur = (unsigned char *)pContents;         while ( *pCur != ' ' ) pCur++; pCur++;
-    // read the number of objects
-    nTotal = atoi( (const char *)pCur );    while ( *pCur != ' ' ) pCur++; pCur++;
-    // read the number of inputs
-    nInputs = atoi( (const char *)pCur );   while ( *pCur != ' ' ) pCur++; pCur++;
-    // read the number of latches
-    nLatches = atoi( (const char *)pCur );  while ( *pCur != ' ' ) pCur++; pCur++;
-    // read the number of outputs
-    nOutputs = atoi( (const char *)pCur );  while ( *pCur != ' ' ) pCur++; pCur++;
-    // read the number of nodes
-    nAnds = atoi( (const char *)pCur );     while ( *pCur != ' ' && *pCur != '\n' ) pCur++; 
-    if ( *pCur == ' ' )
-    {
-        assert( nOutputs == 0 );
-        // read the number of properties
-        pCur++;
-        nBad = atoi( (const char *)pCur );     while ( *pCur != ' ' && *pCur != '\n' ) pCur++; 
-        nOutputs += nBad;
-    }
-    if ( *pCur == ' ' )
-    {
-        // read the number of properties
-        pCur++;
-        nConstr = atoi( (const char *)pCur );     while ( *pCur != ' ' && *pCur != '\n' ) pCur++; 
-        nOutputs += nConstr;
-    }
-    if ( *pCur == ' ' )
-    {
-        // read the number of properties
-        pCur++;
-        nJust = atoi( (const char *)pCur );     while ( *pCur != ' ' && *pCur != '\n' ) pCur++; 
-        nOutputs += nJust;
-    }
-    if ( *pCur == ' ' )
-    {
-        // read the number of properties
-        pCur++;
-        nFair = atoi( (const char *)pCur );     while ( *pCur != ' ' && *pCur != '\n' ) pCur++; 
-        nOutputs += nFair;
-    }
-    if ( *pCur != '\n' )
-    {
-        fprintf( stdout, "The parameter line is in a wrong format.\n" );
-        ABC_FREE( pContents );
-        return NULL;
-    }
-    pCur++;
-
-    // check the parameters
-    if ( nTotal != nInputs + nLatches + nAnds )
-    {
-        fprintf( stdout, "The number of objects does not match.\n" );
-        ABC_FREE( pContents );
-        return NULL;
-    }
-    if ( nJust || nFair )
-    {
-        fprintf( stdout, "Reading AIGER files with liveness properties are currently not supported.\n" );
-        ABC_FREE( pContents );
-        return NULL;
-    }
-
-    if ( nConstr )
-    {
-        if ( nConstr == 1 )
-            fprintf( stdout, "Warning: The last output is interpreted as a constraint.\n" );
-        else
-            fprintf( stdout, "Warning: The last %d outputs are interpreted as constraints.\n", nConstr );
-    }
-
-    // allocate the empty AIG
-    pNew = Gia_ManStart( nTotal + nLatches + nOutputs + 1 );
-    pName = Gia_FileNameGeneric( pFileName );
-    pNew->pName = Abc_UtilStrsav( pName );
-    pNew->pSpec = Abc_UtilStrsav( pFileName );
-//    pNew->pSpec = Abc_UtilStrsav( pFileName );
-    ABC_FREE( pName );
-    pNew->nConstrs = nConstr;
-
-    // prepare the array of nodes
-    vNodes = Vec_IntAlloc( 1 + nTotal );
-    Vec_IntPush( vNodes, 0 );
-
-    // create the PIs
-    for ( i = 0; i < nInputs + nLatches; i++ )
-    {
-        iObj = Gia_ManAppendCi(pNew);    
-        Vec_IntPush( vNodes, iObj );
-    }
-
-    // remember the beginning of latch/PO literals
-    pDrivers = pCur;
-    if ( pContents[3] == ' ' ) // standard AIGER
-    {
-        // scroll to the beginning of the binary data
-        for ( i = 0; i < nLatches + nOutputs; )
-            if ( *pCur++ == '\n' )
-                i++;
-    }
-    else // modified AIGER
-    {
-        vLits = Gia_WriteDecodeLiterals( &pCur, nLatches + nOutputs );
-    }
-
-    // create the AND gates
-    for ( i = 0; i < nAnds; i++ )
-    {
-        uLit = ((i + 1 + nInputs + nLatches) << 1);
-        uLit1 = uLit  - Gia_ReadAigerDecode( &pCur );
-        uLit0 = uLit1 - Gia_ReadAigerDecode( &pCur );
-//        assert( uLit1 > uLit0 );
-        iNode0 = Abc_LitNotCond( Vec_IntEntry(vNodes, uLit0 >> 1), uLit0 & 1 );
-        iNode1 = Abc_LitNotCond( Vec_IntEntry(vNodes, uLit1 >> 1), uLit1 & 1 );
-        assert( Vec_IntSize(vNodes) == i + 1 + nInputs + nLatches );
-//        Vec_IntPush( vNodes, Gia_And(pNew, iNode0, iNode1) );
-        Vec_IntPush( vNodes, Gia_ManAppendAnd(pNew, iNode0, iNode1) );
-    }
-
-    // remember the place where symbols begin
-    pSymbols = pCur;
-
-    // read the latch driver literals
-    vDrivers = Vec_IntAlloc( nLatches + nOutputs );
-    if ( pContents[3] == ' ' ) // standard AIGER
-    {
-        pCur = pDrivers;
-        for ( i = 0; i < nLatches; i++ )
-        {
-            uLit0 = atoi( (char *)pCur );  while ( *pCur++ != '\n' );
-            iNode0 = Abc_LitNotCond( Vec_IntEntry(vNodes, uLit0 >> 1), (uLit0 & 1) );
-            Vec_IntPush( vDrivers, iNode0 );
-        }
-        // read the PO driver literals
-        for ( i = 0; i < nOutputs; i++ )
-        {
-            uLit0 = atoi( (char *)pCur );  while ( *pCur++ != '\n' );
-            iNode0 = Abc_LitNotCond( Vec_IntEntry(vNodes, uLit0 >> 1), (uLit0 & 1) );
-            Vec_IntPush( vDrivers, iNode0 );
-        }
-
-    }
-    else
-    {
-        // read the latch driver literals
-        for ( i = 0; i < nLatches; i++ )
-        {
-            uLit0 = Vec_IntEntry( vLits, i );
-            iNode0 = Abc_LitNotCond( Vec_IntEntry(vNodes, uLit0 >> 1), (uLit0 & 1) );
-            Vec_IntPush( vDrivers, iNode0 );
-        }
-        // read the PO driver literals
-        for ( i = 0; i < nOutputs; i++ )
-        {
-            uLit0 = Vec_IntEntry( vLits, i+nLatches );
-            iNode0 = Abc_LitNotCond( Vec_IntEntry(vNodes, uLit0 >> 1), (uLit0 & 1) );
-            Vec_IntPush( vDrivers, iNode0 );
-        }
-        Vec_IntFree( vLits );
-    }
-
-    // create the POs
-    for ( i = 0; i < nOutputs; i++ )
-        Gia_ManAppendCo( pNew, Vec_IntEntry(vDrivers, nLatches + i) );
-    for ( i = 0; i < nLatches; i++ )
-        Gia_ManAppendCo( pNew, Vec_IntEntry(vDrivers, i) );
-    Vec_IntFree( vDrivers );
-
-    // create the latches
-    Gia_ManSetRegNum( pNew, nLatches );
-
-    // check if there are other types of information to read
-    pCur = pSymbols;
-    if ( pCur + 1 < (unsigned char *)pContents + nFileSize && *pCur == 'c' )
-    {
-        pCur++;
-        if ( *pCur == 'e' )
-        {
-            pCur++;
-            // read equivalence classes
-            pNew->pReprs = Gia_ReadEquivClasses( &pCur, Gia_ManObjNum(pNew) );
-            pNew->pNexts = Gia_ManDeriveNexts( pNew );
-        }
-        if ( *pCur == 'f' )
-        {
-            pCur++;
-            // read flop classes
-            pNew->vFlopClasses = Vec_IntStart( Gia_ManRegNum(pNew) );
-            Gia_ReadFlopClasses( &pCur, pNew->vFlopClasses, Gia_ManRegNum(pNew) );
-        }
-        if ( *pCur == 'g' )
-        {
-            pCur++;
-            // read gate classes
-            pNew->vGateClasses = Vec_IntStart( Gia_ManObjNum(pNew) );
-            Gia_ReadFlopClasses( &pCur, pNew->vGateClasses, Gia_ManObjNum(pNew) );
-        }
-        if ( *pCur == 'v' )
-        {
-            pCur++;
-            // read object classes
-            pNew->vObjClasses = Vec_IntStart( Gia_ReadInt(pCur)/4 ); pCur += 4;
-            memcpy( Vec_IntArray(pNew->vObjClasses), pCur, 4*Vec_IntSize(pNew->vObjClasses) );
-            pCur += 4*Vec_IntSize(pNew->vObjClasses);
-        }
-        if ( *pCur == 'm' )
-        {
-            pCur++;
-            // read mapping
-            pNew->pMapping = Gia_ReadMapping( &pCur, Gia_ManObjNum(pNew) );
-        }
-        if ( *pCur == 'p' )
-        {
-            pCur++;
-            // read placement
-            pNew->pPlacement = Gia_ReadPlacement( &pCur, Gia_ManObjNum(pNew) );
-        }
-        if ( *pCur == 's' )
-        { 
-            pCur++;
-            // read switching activity
-            pNew->pSwitching = Gia_ReadSwitching( &pCur, Gia_ManObjNum(pNew) );
-        }
-        if ( *pCur == 'c' )
-        {
-            pCur++;
-            // read number of constraints
-            pNew->nConstrs = Gia_ReadInt( pCur ); pCur += 4;
-        }
-        if ( *pCur == 'n' )
-        {
-            pCur++;
-            // read model name
-            ABC_FREE( pNew->pName );
-            pNew->pName = Abc_UtilStrsav( (char *)pCur );
-        }
-    }
-    Vec_IntFree( vNodes );
-
-    // update polarity of the additional outputs
-    if ( nBad || nConstr || nJust || nFair )
-        Gia_ManInvertConstraints( pNew );
-
-    // skipping the comments
+    vBinary->nSize = Pos;
 /*
-    // check the result
-    if ( fCheck && !Gia_ManCheck( pNew ) )
+    // verify
     {
-        printf( "Gia_ReadAiger: The network check has failed.\n" );
-        Gia_ManStop( pNew );
-        return NULL;
+        extern Vec_Int_t * Gia_AigerReadLiterals( char ** ppPos, int nEntries );
+        char * pPos = Vec_StrArray( vBinary );
+        Vec_Int_t * vTemp = Gia_AigerReadLiterals( &pPos, Vec_IntSize(vLits) );
+        for ( i = 0; i < Vec_IntSize(vLits); i++ )
+        {
+            int Entry1 = Vec_IntEntry(vLits,i);
+            int Entry2 = Vec_IntEntry(vTemp,i);
+            assert( Entry1 == Entry2 );
+        }
+        Vec_IntFree( vTemp );
     }
 */
-    return pNew;
+    return vBinary;
 }
 
 /**Function*************************************************************
@@ -640,7 +171,7 @@ Gia_Man_t * Gia_ReadAiger2( char * pFileName, int fCheck )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ReadAigerFromMemory( char * pContents, int nFileSize, int fSkipStrash, int fCheck )
+Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fSkipStrash, int fCheck )
 {
     Gia_Man_t * pNew, * pTemp;
     Vec_Int_t * vLits = NULL, * vPoTypes = NULL;
@@ -745,7 +276,7 @@ Gia_Man_t * Gia_ReadAigerFromMemory( char * pContents, int nFileSize, int fSkipS
     }
     else // modified AIGER
     {
-        vLits = Gia_WriteDecodeLiterals( &pCur, nLatches + nOutputs );
+        vLits = Gia_AigerReadLiterals( &pCur, nLatches + nOutputs );
     }
 
     // create the AND gates
@@ -754,8 +285,8 @@ Gia_Man_t * Gia_ReadAigerFromMemory( char * pContents, int nFileSize, int fSkipS
     for ( i = 0; i < nAnds; i++ )
     {
         uLit = ((i + 1 + nInputs + nLatches) << 1);
-        uLit1 = uLit  - Gia_ReadAigerDecode( &pCur );
-        uLit0 = uLit1 - Gia_ReadAigerDecode( &pCur );
+        uLit1 = uLit  - Gia_AigerReadUnsigned( &pCur );
+        uLit0 = uLit1 - Gia_AigerReadUnsigned( &pCur );
 //        assert( uLit1 > uLit0 );
         iNode0 = Abc_LitNotCond( Vec_IntEntry(vNodes, uLit0 >> 1), uLit0 & 1 );
         iNode1 = Abc_LitNotCond( Vec_IntEntry(vNodes, uLit1 >> 1), uLit1 & 1 );
@@ -963,91 +494,151 @@ Gia_Man_t * Gia_ReadAigerFromMemory( char * pContents, int nFileSize, int fSkipS
     // check if there are other types of information to read
     if ( pCur + 1 < (unsigned char *)pContents + nFileSize && *pCur == 'c' )
     {
+        Vec_Str_t * vStr;
+        char * pCurTemp;
         pCur++;
-        if ( *pCur == 'e' )
+        while ( 1 )
         {
-            pCur++;
-            // read equivalence classes
-            pNew->pReprs = Gia_ReadEquivClasses( &pCur, Gia_ManObjNum(pNew) );
-            pNew->pNexts = Gia_ManDeriveNexts( pNew );
-        }
-        if ( *pCur == 'f' )
-        {
-            pCur++;
-            // read flop classes
-            pNew->vFlopClasses = Vec_IntStart( Gia_ManRegNum(pNew) );
-            Gia_ReadFlopClasses( &pCur, pNew->vFlopClasses, Gia_ManRegNum(pNew) );
-        }
-        if ( *pCur == 'g' )
-        {
-            pCur++;
-            // read gate classes
-            pNew->vGateClasses = Vec_IntStart( Gia_ManObjNum(pNew) );
-            Gia_ReadFlopClasses( &pCur, pNew->vGateClasses, Gia_ManObjNum(pNew) );
-        }
-        if ( *pCur == 'v' )
-        {
-            pCur++;
-            // read object classes
-            pNew->vObjClasses = Vec_IntStart( Gia_ReadInt(pCur)/4 ); pCur += 4;
-            memcpy( Vec_IntArray(pNew->vObjClasses), pCur, 4*Vec_IntSize(pNew->vObjClasses) );
-            pCur += 4*Vec_IntSize(pNew->vObjClasses);
-        }
-        if ( *pCur == 'm' )
-        {
-            pCur++;
-            // read mapping
-            pNew->pMapping = Gia_ReadMapping( &pCur, Gia_ManObjNum(pNew) );
-        }
-        if ( *pCur == 'p' )
-        {
-            pCur++;
-            // read placement
-            pNew->pPlacement = Gia_ReadPlacement( &pCur, Gia_ManObjNum(pNew) );
-        }
-        if ( *pCur == 's' )
-        { 
-            pCur++;
-            // read switching activity
-            pNew->pSwitching = Gia_ReadSwitching( &pCur, Gia_ManObjNum(pNew) );
-        }
-        if ( *pCur == 't' )
-        {
-            Vec_Str_t * vStr;
-            pCur++;
-            // read timing manager
-            vStr = Vec_StrStart( Gia_ReadInt(pCur) ); pCur += 4;
-            memcpy( Vec_StrArray(vStr), pCur, Vec_StrSize(vStr) );
-            pCur += Vec_StrSize(vStr);
-            pNew->pManTime = Tim_ManLoad( vStr );
-            Vec_StrFree( vStr );
-        }
-        if ( *pCur == 'c' )
-        {
-            pCur++;
+            // read extra AIG
+            if ( *pCur == 'a' )
+            {
+                pCur++;
+                vStr = Vec_StrStart( Gia_AigerReadInt(pCur) );       pCur += 4;
+                memcpy( Vec_StrArray(vStr), pCur, Vec_StrSize(vStr) );
+                pCur += Vec_StrSize(vStr);
+                pNew->pAigExtra = Gia_AigerReadFromMemory( Vec_StrArray(vStr), Vec_StrSize(vStr), 0, 0 );
+                Vec_StrFree( vStr );
+            }
             // read number of constraints
-            pNew->nConstrs = Gia_ReadInt( pCur ); pCur += 4;
-        }
-        if ( *pCur == 'n' )
-        {
-            pCur++;
+            else if ( *pCur == 'c' )
+            {
+                pCur++;
+                assert( Gia_AigerReadInt(pCur) == 4 );                pCur += 4;
+                pNew->nConstrs = Gia_AigerReadInt( pCur );            pCur += 4;
+            }
+            // read delay information
+            else if ( *pCur == 'd' )
+            {
+                pCur++;
+                assert( Gia_AigerReadInt(pCur) == 4*(Gia_ManPiNum(pNew) + Gia_ManPoNum(pNew)) );   pCur += 4;
+                pNew->vInArrs  = Vec_FltStart( Gia_ManPiNum(pNew) );
+                pNew->vOutReqs = Vec_FltStart( Gia_ManPoNum(pNew) );
+                memcpy( Vec_FltArray(pNew->vInArrs),  pCur, 4*Gia_ManPiNum(pNew) );   pCur += 4*Gia_ManPiNum(pNew);
+                memcpy( Vec_FltArray(pNew->vOutReqs), pCur, 4*Gia_ManPoNum(pNew) );   pCur += 4*Gia_ManPoNum(pNew);
+            }
+            // read equivalence classes
+            else if ( *pCur == 'e' )
+            {
+                extern Gia_Rpr_t * Gia_AigerReadEquivClasses( unsigned char ** ppPos, int nSize );
+                pCur++;
+    //            pCurTemp = pCur + Gia_AigerReadInt(pCur);                    pCur += 4;
+                pNew->pReprs = Gia_AigerReadEquivClasses( &pCur, Gia_ManObjNum(pNew) );
+                pNew->pNexts = Gia_ManDeriveNexts( pNew );
+    //            assert( pCur == pCurTemp );
+            }
+            // read flop classes
+            else if ( *pCur == 'f' )
+            {
+                pCur++;
+                assert( Gia_AigerReadInt(pCur) == 4*Gia_ManRegNum(pNew) );   pCur += 4;
+                pNew->vFlopClasses  = Vec_IntStart( Gia_ManRegNum(pNew) );
+                memcpy( Vec_IntArray(pNew->vFlopClasses),  pCur, 4*Gia_ManRegNum(pNew) );   pCur += 4*Gia_ManRegNum(pNew);
+            }
+            // read gate classes
+            else if ( *pCur == 'g' )
+            {
+                pCur++;
+                assert( Gia_AigerReadInt(pCur) == 4*Gia_ManObjNum(pNew) );   pCur += 4;
+                pNew->vGateClasses  = Vec_IntStart( Gia_ManObjNum(pNew) );
+                memcpy( Vec_IntArray(pNew->vGateClasses),  pCur, 4*Gia_ManObjNum(pNew) );   pCur += 4*Gia_ManObjNum(pNew);
+            }
+            // read hierarchy information
+            else if ( *pCur == 'h' )
+            {
+                pCur++;
+                vStr = Vec_StrStart( Gia_AigerReadInt(pCur) );          pCur += 4;
+                memcpy( Vec_StrArray(vStr), pCur, Vec_StrSize(vStr) );
+                pCur += Vec_StrSize(vStr);
+                pNew->pManTime = Tim_ManLoad( vStr, 1 );
+                Vec_StrFree( vStr );
+            }
+            // read packing
+            else if ( *pCur == 'k' )
+            {
+                extern Vec_Int_t * Gia_AigerReadPacking( unsigned char ** ppPos, int nSize );
+                pCur++;
+                pCurTemp = pCur + Gia_AigerReadInt(pCur);               pCur += 4;
+                pNew->vPacking = Gia_AigerReadPacking( &pCur, pCurTemp - pCur ); 
+                assert( pCur == pCurTemp );
+            }
+            // read mapping
+            else if ( *pCur == 'm' )
+            {
+                extern int * Gia_AigerReadMapping( unsigned char ** ppPos, int nSize );
+                pCur++;
+                pCurTemp = pCur + Gia_AigerReadInt(pCur);               pCur += 4;
+                pNew->pMapping = Gia_AigerReadMapping( &pCur, Gia_ManObjNum(pNew) );
+                assert( pCur == pCurTemp );
+            }
             // read model name
-            ABC_FREE( pNew->pName );
-            pNew->pName = Abc_UtilStrsav( (char *)pCur );
+            else if ( *pCur == 'n' )
+            {
+                pCur++;
+                if ( (*pCur >= 'a' && *pCur <= 'z') || (*pCur >= 'A' && *pCur <= 'Z') || (*pCur >= '0' && *pCur <= '9') )
+                {
+                    pNew->pName = Abc_UtilStrsav( (char *)pCur );       pCur += strlen(pNew->pName) + 1;
+                }
+                else
+                {
+                    pCurTemp = pCur + Gia_AigerReadInt(pCur);           pCur += 4;
+                    ABC_FREE( pNew->pName );
+                    pNew->pName = Abc_UtilStrsav( (char *)pCur );       pCur += strlen(pNew->pName) + 1;
+                    assert( pCur == pCurTemp );
+                }
+            }
+            // read placement
+            else if ( *pCur == 'p' )
+            {
+                Gia_Plc_t * pPlacement;
+                pCur++;
+                pCurTemp = pCur + Gia_AigerReadInt(pCur);               pCur += 4;
+                pPlacement = ABC_ALLOC( Gia_Plc_t, Gia_ManObjNum(pNew) );
+                memcpy( pPlacement, pCur, 4*Gia_ManObjNum(pNew) );      pCur += 4*Gia_ManObjNum(pNew);
+                assert( pCur == pCurTemp );
+            }
+            // read switching activity
+            else if ( *pCur == 's' )
+            { 
+                unsigned char * pSwitching;
+                pCur++;
+                pCurTemp = pCur + Gia_AigerReadInt(pCur);               pCur += 4;
+                pSwitching = ABC_ALLOC( unsigned char, Gia_ManObjNum(pNew) );
+                memcpy( pSwitching, pCur, Gia_ManObjNum(pNew) );        pCur += Gia_ManObjNum(pNew);
+                assert( pCur == pCurTemp );
+            }
+            // read timing manager
+            else if ( *pCur == 't' )
+            {
+                pCur++;
+                vStr = Vec_StrStart( Gia_AigerReadInt(pCur) );          pCur += 4;
+                memcpy( Vec_StrArray(vStr), pCur, Vec_StrSize(vStr) );  pCur += Vec_StrSize(vStr);
+                pNew->pManTime = Tim_ManLoad( vStr, 0 );
+                Vec_StrFree( vStr );
+            }
+            // read object classes
+            else if ( *pCur == 'v' )
+            {
+                pCur++;
+                pNew->vObjClasses = Vec_IntStart( Gia_AigerReadInt(pCur)/4 ); pCur += 4;
+                memcpy( Vec_IntArray(pNew->vObjClasses), pCur, 4*Vec_IntSize(pNew->vObjClasses) );
+                pCur += 4*Vec_IntSize(pNew->vObjClasses);
+            }
+            else break;
         }
     }
 
     // skipping the comments
     Vec_IntFree( vNodes );
-/*
-    // check the result
-    if ( fCheck && !Gia_ManCheck( pNew ) )
-    {
-        printf( "Gia_ReadAiger: The network check has failed.\n" );
-        Gia_ManStop( pNew );
-        return NULL;
-    }
-*/
 
     // update polarity of the additional outputs
     if ( nBad || nConstr || nJust || nFair )
@@ -1083,6 +674,15 @@ Gia_Man_t * Gia_ReadAigerFromMemory( char * pContents, int nFileSize, int fSkipS
         pNew = Gia_ManDupUnnomalize( pTemp = pNew );
         Gia_ManStop( pTemp );
     }
+/*
+    // check the result
+    if ( fCheck && !Gia_ManCheck( pNew ) )
+    {
+        printf( "Gia_AigerRead: The network check has failed.\n" );
+        Gia_ManStop( pNew );
+        return NULL;
+    }
+*/
     return pNew;
 }
 
@@ -1097,7 +697,7 @@ Gia_Man_t * Gia_ReadAigerFromMemory( char * pContents, int nFileSize, int fSkipS
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ReadAiger( char * pFileName, int fSkipStrash, int fCheck )
+Gia_Man_t * Gia_AigerRead( char * pFileName, int fSkipStrash, int fCheck )
 {
     FILE * pFile;
     Gia_Man_t * pNew;
@@ -1106,14 +706,14 @@ Gia_Man_t * Gia_ReadAiger( char * pFileName, int fSkipStrash, int fCheck )
     int RetValue;
 
     // read the file into the buffer
-    Gia_FixFileName( pFileName );
+    Gia_FileFixName( pFileName );
     nFileSize = Gia_FileSize( pFileName );
     pFile = fopen( pFileName, "rb" );
     pContents = ABC_ALLOC( char, nFileSize );
     RetValue = fread( pContents, nFileSize, 1, pFile );
     fclose( pFile );
 
-    pNew = Gia_ReadAigerFromMemory( pContents, nFileSize, fSkipStrash, fCheck );
+    pNew = Gia_AigerReadFromMemory( pContents, nFileSize, fSkipStrash, fCheck );
     ABC_FREE( pContents );
     if ( pNew )
     {
@@ -1132,517 +732,6 @@ Gia_Man_t * Gia_ReadAiger( char * pFileName, int fSkipStrash, int fCheck )
 
 /**Function*************************************************************
 
-  Synopsis    [Adds one unsigned AIG edge to the output buffer.]
-
-  Description [This procedure is a slightly modified version of Armin Biere's
-  procedure "void encode (FILE * file, unsigned x)" ]
-  
-  SideEffects [Returns the current writing position.]
-
-  SeeAlso     []
-
-***********************************************************************/
-int Gia_WriteAigerEncode( unsigned char * pBuffer, int Pos, unsigned x )
-{
-    unsigned char ch;
-    while (x & ~0x7f)
-    {
-        ch = (x & 0x7f) | 0x80;
-        pBuffer[Pos++] = ch;
-        x >>= 7;
-    }
-    ch = x;
-    pBuffer[Pos++] = ch;
-    return Pos;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Create the array of literals to be written.]
-
-  Description []
-  
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Vec_Int_t * Gia_WriteAigerLiterals( Gia_Man_t * p )
-{
-    Vec_Int_t * vLits;
-    Gia_Obj_t * pObj;
-    int i;
-    vLits = Vec_IntAlloc( Gia_ManPoNum(p) );
-    Gia_ManForEachRi( p, pObj, i )
-        Vec_IntPush( vLits, Gia_ObjFaninLit0p(p, pObj) );
-    Gia_ManForEachPo( p, pObj, i )
-        Vec_IntPush( vLits, Gia_ObjFaninLit0p(p, pObj) );
-    return vLits;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Creates the binary encoded array of literals.]
-
-  Description []
-  
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Vec_Str_t * Gia_WriteEncodeLiterals( Vec_Int_t * vLits )
-{
-    Vec_Str_t * vBinary;
-    int Pos = 0, Lit, LitPrev, Diff, i;
-    vBinary = Vec_StrAlloc( 2 * Vec_IntSize(vLits) );
-    LitPrev = Vec_IntEntry( vLits, 0 );
-    Pos = Gia_WriteAigerEncode( (unsigned char *)Vec_StrArray(vBinary), Pos, LitPrev ); 
-    Vec_IntForEachEntryStart( vLits, Lit, i, 1 )
-    {
-        Diff = Lit - LitPrev;
-        Diff = (Lit < LitPrev)? -Diff : Diff;
-        Diff = (Diff << 1) | (int)(Lit < LitPrev);
-        Pos = Gia_WriteAigerEncode( (unsigned char *)Vec_StrArray(vBinary), Pos, Diff );
-        LitPrev = Lit;
-        if ( Pos + 10 > vBinary->nCap )
-            Vec_StrGrow( vBinary, vBinary->nCap+1 );
-    }
-    vBinary->nSize = Pos;
-/*
-    // verify
-    {
-        extern Vec_Int_t * Gia_WriteDecodeLiterals( char ** ppPos, int nEntries );
-        char * pPos = Vec_StrArray( vBinary );
-        Vec_Int_t * vTemp = Gia_WriteDecodeLiterals( &pPos, Vec_IntSize(vLits) );
-        for ( i = 0; i < Vec_IntSize(vLits); i++ )
-        {
-            int Entry1 = Vec_IntEntry(vLits,i);
-            int Entry2 = Vec_IntEntry(vTemp,i);
-            assert( Entry1 == Entry2 );
-        }
-        Vec_IntFree( vTemp );
-    }
-*/
-    return vBinary;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Write integer into the string.]
-
-  Description []
-  
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Gia_WriteInt( unsigned char * pPos, int Value )
-{
-    int i;
-    for ( i = 3; i >= 0; i-- )
-        *pPos++ = (Value >> (8*i)) & 255;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Read equivalence classes from the string.]
-
-  Description []
-  
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-unsigned char * Gia_WriteEquivClasses( Gia_Man_t * p, int * pEquivSize )
-{
-    unsigned char * pBuffer;
-    int iRepr, iNode, iPrevRepr, iPrevNode, iLit, nItems, iPos;
-    assert( p->pReprs && p->pNexts );
-    // count the number of entries to be written
-    nItems = 0;
-    for ( iRepr = 1; iRepr < Gia_ManObjNum(p); iRepr++ )
-    {
-        nItems += Gia_ObjIsConst( p, iRepr );
-        if ( !Gia_ObjIsHead(p, iRepr) )
-            continue;
-        Gia_ClassForEachObj( p, iRepr, iNode )
-            nItems++;
-    }
-    pBuffer = ABC_ALLOC( unsigned char, sizeof(int) * (nItems + 10) );
-    // write constant class
-    iPos = Gia_WriteAigerEncode( pBuffer, 4, Abc_Var2Lit(0, 1) );
-//printf( "\nRepr = %d ", 0 );
-    iPrevNode = 0;
-    for ( iNode = 1; iNode < Gia_ManObjNum(p); iNode++ )
-        if ( Gia_ObjIsConst(p, iNode) )
-        {
-//printf( "Node = %d ", iNode );
-            iLit = Abc_Var2Lit( iNode - iPrevNode, Gia_ObjProved(p, iNode) );
-            iPrevNode = iNode;
-            iPos = Gia_WriteAigerEncode( pBuffer, iPos, Abc_Var2Lit(iLit, 0) );
-        }
-    // write non-constant classes
-    iPrevRepr = 0;
-    Gia_ManForEachClass( p, iRepr )
-    {
-//printf( "\nRepr = %d ", iRepr );
-        iPos = Gia_WriteAigerEncode( pBuffer, iPos, Abc_Var2Lit(iRepr - iPrevRepr, 1) );
-        iPrevRepr = iPrevNode = iRepr;
-        Gia_ClassForEachObj1( p, iRepr, iNode )
-        {
-//printf( "Node = %d ", iNode );
-            iLit = Abc_Var2Lit( iNode - iPrevNode, Gia_ObjProved(p, iNode) );
-            iPrevNode = iNode;
-            iPos = Gia_WriteAigerEncode( pBuffer, iPos, Abc_Var2Lit(iLit, 0) );
-        }
-    }
-    Gia_WriteInt( pBuffer, iPos );
-    *pEquivSize = iPos;
-    return pBuffer;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Reads decoded value.]
-
-  Description []
-  
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Gia_WriteDiffValue( unsigned char * pPos, int iPos, int iPrev, int iThis )
-{
-    if ( iPrev < iThis )
-        return Gia_WriteAigerEncode( pPos, iPos, Abc_Var2Lit(iThis - iPrev, 1) );
-    return Gia_WriteAigerEncode( pPos, iPos, Abc_Var2Lit(iPrev - iThis, 0) );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Read equivalence classes from the string.]
-
-  Description []
-  
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-unsigned char * Gia_WriteMapping( Gia_Man_t * p, int * pMapSize )
-{
-    unsigned char * pBuffer;
-    int i, k, iPrev, iFan, nItems, iPos = 4;
-    assert( p->pMapping );
-    // count the number of entries to be written
-    nItems = 0;
-    Gia_ManForEachLut( p, i )
-        nItems += 2 + Gia_ObjLutSize( p, i );
-    pBuffer = ABC_ALLOC( unsigned char, sizeof(int) * (nItems + 1) );
-    // write non-constant classes
-    iPrev = 0;
-    Gia_ManForEachLut( p, i )
-    {
-//printf( "\nSize = %d ", Gia_ObjLutSize(p, i) );
-        iPos = Gia_WriteAigerEncode( pBuffer, iPos, Gia_ObjLutSize(p, i) );
-        Gia_LutForEachFanin( p, i, iFan, k )
-        {
-//printf( "Fan = %d ", iFan );
-            iPos = Gia_WriteDiffValue( pBuffer, iPos, iPrev, iFan );
-            iPrev = iFan;
-        }
-        iPos = Gia_WriteDiffValue( pBuffer, iPos, iPrev, i );
-        iPrev = i;
-//printf( "Node = %d ", i );
-    }
-//printf( "\n" );
-    Gia_WriteInt( pBuffer, iPos );
-    *pMapSize = iPos;
-    return pBuffer;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Writes the AIG in the binary AIGER format.]
-
-  Description []
-  
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Gia_WriteAiger( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int fCompact )
-{
-    FILE * pFile;
-    Gia_Man_t * p;
-    Gia_Obj_t * pObj;
-    int i, nBufferSize, Pos;
-    unsigned char * pBuffer;
-    unsigned uLit0, uLit1, uLit;
-
-    if ( Gia_ManCoNum(pInit) == 0 )
-    {
-        printf( "AIG cannot be written because it has no POs.\n" );
-        return;
-    }
-
-    // start the output stream
-    pFile = fopen( pFileName, "wb" );
-    if ( pFile == NULL )
-    {
-        fprintf( stdout, "Gia_WriteAiger(): Cannot open the output file \"%s\".\n", pFileName );
-        return;
-    }
-
-    // create normalized AIG
-    if ( !Gia_ManIsNormalized(pInit) )
-    {
-//        printf( "Gia_WriteAiger(): Normalizing AIG for writing.\n" );
-        p = Gia_ManDupNormalize( pInit );
-        p->pManTime  = pInit->pManTime;  pInit->pManTime = NULL;
-        p->vNamesIn  = pInit->vNamesIn;  pInit->vNamesIn = NULL;
-        p->vNamesOut = pInit->vNamesOut; pInit->vNamesOut = NULL;
-    }
-    else
-        p = pInit;
-
-    // write the header "M I L O A" where M = I + L + A
-    fprintf( pFile, "aig%s %u %u %u %u %u", 
-        fCompact? "2" : "",
-        Gia_ManCiNum(p) + Gia_ManAndNum(p), 
-        Gia_ManPiNum(p),
-        Gia_ManRegNum(p),
-        Gia_ManConstrNum(p) ? 0 : Gia_ManPoNum(p),
-        Gia_ManAndNum(p) );
-    // write the extended header "B C J F"
-    if ( Gia_ManConstrNum(p) )
-        fprintf( pFile, " %u %u", Gia_ManPoNum(p) - Gia_ManConstrNum(p), Gia_ManConstrNum(p) );
-    fprintf( pFile, "\n" ); 
-
-    Gia_ManInvertConstraints( p );
-    if ( !fCompact ) 
-    {
-        // write latch drivers
-        Gia_ManForEachRi( p, pObj, i )
-            fprintf( pFile, "%u\n", Gia_ObjFaninLit0p(p, pObj) );
-        // write PO drivers
-        Gia_ManForEachPo( p, pObj, i )
-            fprintf( pFile, "%u\n", Gia_ObjFaninLit0p(p, pObj) );
-    }
-    else
-    {
-        Vec_Int_t * vLits = Gia_WriteAigerLiterals( p );
-        Vec_Str_t * vBinary = Gia_WriteEncodeLiterals( vLits );
-        fwrite( Vec_StrArray(vBinary), 1, Vec_StrSize(vBinary), pFile );
-        Vec_StrFree( vBinary );
-        Vec_IntFree( vLits );
-    }
-    Gia_ManInvertConstraints( p );
-
-    // write the nodes into the buffer
-    Pos = 0;
-    nBufferSize = 8 * Gia_ManAndNum(p) + 100; // skeptically assuming 3 chars per one AIG edge
-    pBuffer = ABC_ALLOC( unsigned char, nBufferSize );
-    Gia_ManForEachAnd( p, pObj, i )
-    {
-        uLit  = Abc_Var2Lit( i, 0 );
-        uLit0 = Gia_ObjFaninLit0( pObj, i );
-        uLit1 = Gia_ObjFaninLit1( pObj, i );
-        assert( p->nPinTypes || uLit0 < uLit1 );
-        Pos = Gia_WriteAigerEncode( pBuffer, Pos, uLit  - uLit1 );
-        Pos = Gia_WriteAigerEncode( pBuffer, Pos, uLit1 - uLit0 );
-        if ( Pos > nBufferSize - 10 )
-        {
-            printf( "Gia_WriteAiger(): AIGER generation has failed because the allocated buffer is too small.\n" );
-            fclose( pFile );
-            if ( p != pInit )
-                Gia_ManStop( p );
-            return;
-        }
-    }
-    assert( Pos < nBufferSize );
-
-    // write the buffer
-    fwrite( pBuffer, 1, Pos, pFile );
-    ABC_FREE( pBuffer );
-
-    // write the symbol table
-    if ( p->vNamesIn && p->vNamesOut )
-    {
-        assert( Vec_PtrSize(p->vNamesIn)  == Gia_ManCiNum(p) );
-        assert( Vec_PtrSize(p->vNamesOut) == Gia_ManCoNum(p) );
-        // write PIs
-        Gia_ManForEachPi( p, pObj, i )
-            fprintf( pFile, "i%d %s\n", i, (char *)Vec_PtrEntry(p->vNamesIn, i) );
-        // write latches
-        Gia_ManForEachRo( p, pObj, i )
-            fprintf( pFile, "l%d %s\n", i, (char *)Vec_PtrEntry(p->vNamesIn, Gia_ManPiNum(p) + i) );
-        // write POs
-        Gia_ManForEachPo( p, pObj, i )
-            fprintf( pFile, "o%d %s\n", i, (char *)Vec_PtrEntry(p->vNamesOut, i) );
-    }
-
-    // write the comment
-    fprintf( pFile, "c" );
-    // write equivalences
-    if ( p->pReprs && p->pNexts )
-    {
-        int nEquivSize;
-        unsigned char * pEquivs = Gia_WriteEquivClasses( p, &nEquivSize );
-        fprintf( pFile, "e" );
-        fwrite( pEquivs, 1, nEquivSize, pFile );
-        ABC_FREE( pEquivs );
-    }
-    // write flop classes
-    if ( p->vFlopClasses )
-    {
-        unsigned char Buffer[10];
-        int nSize = 4*Gia_ManRegNum(p);
-        Gia_WriteInt( Buffer, nSize );
-        fprintf( pFile, "f" );
-        fwrite( Buffer, 1, 4, pFile );
-        fwrite( Vec_IntArray(p->vFlopClasses), 1, nSize, pFile );
-    }
-    // write gate classes
-    if ( p->vGateClasses )
-    {
-        unsigned char Buffer[10];
-        int nSize = 4*Gia_ManObjNum(p);
-        Gia_WriteInt( Buffer, nSize );
-        fprintf( pFile, "g" );
-        fwrite( Buffer, 1, 4, pFile );
-        fwrite( Vec_IntArray(p->vGateClasses), 1, nSize, pFile );
-    }
-    // write object classes
-    if ( p->vObjClasses )
-    {
-        unsigned char Buffer[10];
-        int nSize = 4*Vec_IntSize(p->vObjClasses);
-        Gia_WriteInt( Buffer, nSize );
-        fprintf( pFile, "v" );
-        fwrite( Buffer, 1, 4, pFile );
-        fwrite( Vec_IntArray(p->vObjClasses), 1, nSize, pFile );
-    }
-    // write mapping
-    if ( p->pMapping )
-    {
-        int nMapSize;
-        unsigned char * pMaps = Gia_WriteMapping( p, &nMapSize );
-        fprintf( pFile, "m" );
-        fwrite( pMaps, 1, nMapSize, pFile );
-        ABC_FREE( pMaps );
-    }
-    // write placement
-    if ( p->pPlacement )
-    {
-        unsigned char Buffer[10];
-        int nSize = 4*Gia_ManObjNum(p);
-        Gia_WriteInt( Buffer, nSize );
-        fprintf( pFile, "p" );
-        fwrite( Buffer, 1, 4, pFile );
-        fwrite( p->pPlacement, 1, nSize, pFile );
-    }
-    // write switching activity
-    if ( p->pSwitching )
-    {
-        unsigned char Buffer[10];
-        int nSize = Gia_ManObjNum(p);
-        Gia_WriteInt( Buffer, nSize );
-        fprintf( pFile, "s" );
-        fwrite( Buffer, 1, 4, pFile );
-        fwrite( p->pSwitching, 1, nSize, pFile );
-    }
-    // write timing information
-    if ( p->pManTime )
-    {
-        Vec_Str_t * vStr = Tim_ManSave( (Tim_Man_t *)p->pManTime );
-        unsigned char Buffer[10];
-        int nSize = Vec_StrSize(vStr);
-        Gia_WriteInt( Buffer, nSize );
-        fprintf( pFile, "t" );
-        fwrite( Buffer, 1, 4, pFile );
-        fwrite( Vec_StrArray(vStr), 1, nSize, pFile );
-        Vec_StrFree( vStr );
-    }
-/*
-    // write constraints
-    if ( p->nConstrs )
-    {
-        unsigned char Buffer[10];
-        Gia_WriteInt( Buffer, p->nConstrs );
-        fprintf( pFile, "c" );
-        fwrite( Buffer, 1, 4, pFile );
-    }
-*/
-    // write name
-    if ( p->pName )
-        fprintf( pFile, "n%s%c", p->pName, '\0' );
-    fprintf( pFile, "\nThis file was produced by the GIA package in ABC on %s\n", Gia_TimeStamp() );
-    fprintf( pFile, "For information about AIGER format, refer to %s\n", "http://fmv.jku.at/aiger" );
-    fclose( pFile );
-    if ( p != pInit )
-    {
-        pInit->pManTime  = p->pManTime;  p->pManTime = NULL;
-        pInit->vNamesIn  = p->vNamesIn;  p->vNamesIn = NULL;
-        pInit->vNamesOut = p->vNamesOut; p->vNamesOut = NULL;
-        Gia_ManStop( p );
-    }
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Writes the AIG in the binary AIGER format.]
-
-  Description []
-  
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Gia_DumpAiger( Gia_Man_t * p, char * pFilePrefix, int iFileNum, int nFileNumDigits )
-{
-    char Buffer[100];
-    sprintf( Buffer, "%s%0*d.aig", pFilePrefix, nFileNumDigits, iFileNum );
-    Gia_WriteAiger( p, Buffer, 0, 0 );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Adds one unsigned AIG edge to the output buffer.]
-
-  Description [This procedure is a slightly modified version of Armin Biere's
-  procedure "void encode (FILE * file, unsigned x)" ]
-  
-  SideEffects [Returns the current writing position.]
-
-  SeeAlso     []
-
-***********************************************************************/
-void Gia_WriteAigerEncodeStr( Vec_Str_t * vStr, unsigned x )
-{
-    unsigned char ch;
-    while (x & ~0x7f)
-    {
-        ch = (x & 0x7f) | 0x80;
-//        putc (ch, file);
-//        pBuffer[Pos++] = ch;
-        Vec_StrPush( vStr, ch );
-        x >>= 7;
-    }
-    ch = x;
-//    putc (ch, file);
-//    pBuffer[Pos++] = ch;
-    Vec_StrPush( vStr, ch );
-}
-
-/**Function*************************************************************
-
   Synopsis    [Writes the AIG in into the memory buffer.]
 
   Description [The resulting buffer constains the AIG in AIGER format. 
@@ -1653,7 +742,7 @@ void Gia_WriteAigerEncodeStr( Vec_Str_t * vStr, unsigned x )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Str_t * Gia_WriteAigerIntoMemoryStr( Gia_Man_t * p )
+Vec_Str_t * Gia_AigerWriteIntoMemoryStr( Gia_Man_t * p )
 {
     Vec_Str_t * vBuffer;
     Gia_Obj_t * pObj;
@@ -1707,8 +796,8 @@ Vec_Str_t * Gia_WriteAigerIntoMemoryStr( Gia_Man_t * p )
             uLit0 = uLit1;
             uLit1 = Temp;
         }
-        Gia_WriteAigerEncodeStr( vBuffer, uLit  - uLit1 );
-        Gia_WriteAigerEncodeStr( vBuffer, uLit1 - uLit0 );
+        Gia_AigerWriteUnsigned( vBuffer, uLit  - uLit1 );
+        Gia_AigerWriteUnsigned( vBuffer, uLit1 - uLit0 );
     }
     Vec_StrPrintStr( vBuffer, "c" );
     return vBuffer;
@@ -1727,7 +816,7 @@ Vec_Str_t * Gia_WriteAigerIntoMemoryStr( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Str_t * Gia_WriteAigerIntoMemoryStrPart( Gia_Man_t * p, Vec_Int_t * vCis, Vec_Int_t * vAnds, Vec_Int_t * vCos, int nRegs )
+Vec_Str_t * Gia_AigerWriteIntoMemoryStrPart( Gia_Man_t * p, Vec_Int_t * vCis, Vec_Int_t * vAnds, Vec_Int_t * vCos, int nRegs )
 {
     Vec_Str_t * vBuffer;
     Gia_Obj_t * pObj;
@@ -1793,8 +882,8 @@ Vec_Str_t * Gia_WriteAigerIntoMemoryStrPart( Gia_Man_t * p, Vec_Int_t * vCis, Ve
             uLit0 = uLit1;
             uLit1 = Temp;
         }
-        Gia_WriteAigerEncodeStr( vBuffer, uLit  - uLit1 );
-        Gia_WriteAigerEncodeStr( vBuffer, uLit1 - uLit0 );
+        Gia_AigerWriteUnsigned( vBuffer, uLit  - uLit1 );
+        Gia_AigerWriteUnsigned( vBuffer, uLit1 - uLit0 );
     }
     Vec_StrPrintStr( vBuffer, "c" );
     return vBuffer;
@@ -1811,24 +900,303 @@ Vec_Str_t * Gia_WriteAigerIntoMemoryStrPart( Gia_Man_t * p, Vec_Int_t * vCis, Ve
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_WriteAigerSimple( Gia_Man_t * pInit, char * pFileName )
+void Gia_AigerWrite( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int fCompact )
+{
+    FILE * pFile;
+    Gia_Man_t * p;
+    Gia_Obj_t * pObj;
+    Vec_Str_t * vStrExt;
+    int i, nBufferSize, Pos;
+    unsigned char * pBuffer;
+    unsigned uLit0, uLit1, uLit;
+
+    if ( Gia_ManCoNum(pInit) == 0 )
+    {
+        printf( "AIG cannot be written because it has no POs.\n" );
+        return;
+    }
+
+    // start the output stream
+    pFile = fopen( pFileName, "wb" );
+    if ( pFile == NULL )
+    {
+        fprintf( stdout, "Gia_AigerWrite(): Cannot open the output file \"%s\".\n", pFileName );
+        return;
+    }
+
+    // create normalized AIG
+    if ( !Gia_ManIsNormalized(pInit) )
+    {
+//        printf( "Gia_AigerWrite(): Normalizing AIG for writing.\n" );
+        p = Gia_ManDupNormalize( pInit );
+        p->pManTime  = pInit->pManTime;  pInit->pManTime = NULL;
+        p->vNamesIn  = pInit->vNamesIn;  pInit->vNamesIn = NULL;
+        p->vNamesOut = pInit->vNamesOut; pInit->vNamesOut = NULL;
+    }
+    else
+        p = pInit;
+
+    // write the header "M I L O A" where M = I + L + A
+    fprintf( pFile, "aig%s %u %u %u %u %u", 
+        fCompact? "2" : "",
+        Gia_ManCiNum(p) + Gia_ManAndNum(p), 
+        Gia_ManPiNum(p),
+        Gia_ManRegNum(p),
+        Gia_ManConstrNum(p) ? 0 : Gia_ManPoNum(p),
+        Gia_ManAndNum(p) );
+    // write the extended header "B C J F"
+    if ( Gia_ManConstrNum(p) )
+        fprintf( pFile, " %u %u", Gia_ManPoNum(p) - Gia_ManConstrNum(p), Gia_ManConstrNum(p) );
+    fprintf( pFile, "\n" ); 
+
+    Gia_ManInvertConstraints( p );
+    if ( !fCompact ) 
+    {
+        // write latch drivers
+        Gia_ManForEachRi( p, pObj, i )
+            fprintf( pFile, "%u\n", Gia_ObjFaninLit0p(p, pObj) );
+        // write PO drivers
+        Gia_ManForEachPo( p, pObj, i )
+            fprintf( pFile, "%u\n", Gia_ObjFaninLit0p(p, pObj) );
+    }
+    else
+    {
+        Vec_Int_t * vLits = Gia_AigerCollectLiterals( p );
+        Vec_Str_t * vBinary = Gia_AigerWriteLiterals( vLits );
+        fwrite( Vec_StrArray(vBinary), 1, Vec_StrSize(vBinary), pFile );
+        Vec_StrFree( vBinary );
+        Vec_IntFree( vLits );
+    }
+    Gia_ManInvertConstraints( p );
+
+    // write the nodes into the buffer
+    Pos = 0;
+    nBufferSize = 8 * Gia_ManAndNum(p) + 100; // skeptically assuming 3 chars per one AIG edge
+    pBuffer = ABC_ALLOC( unsigned char, nBufferSize );
+    Gia_ManForEachAnd( p, pObj, i )
+    {
+        uLit  = Abc_Var2Lit( i, 0 );
+        uLit0 = Gia_ObjFaninLit0( pObj, i );
+        uLit1 = Gia_ObjFaninLit1( pObj, i );
+        assert( p->nPinTypes || uLit0 < uLit1 );
+        Pos = Gia_AigerWriteUnsignedBuffer( pBuffer, Pos, uLit  - uLit1 );
+        Pos = Gia_AigerWriteUnsignedBuffer( pBuffer, Pos, uLit1 - uLit0 );
+        if ( Pos > nBufferSize - 10 )
+        {
+            printf( "Gia_AigerWrite(): AIGER generation has failed because the allocated buffer is too small.\n" );
+            fclose( pFile );
+            if ( p != pInit )
+                Gia_ManStop( p );
+            return;
+        }
+    }
+    assert( Pos < nBufferSize );
+
+    // write the buffer
+    fwrite( pBuffer, 1, Pos, pFile );
+    ABC_FREE( pBuffer );
+
+    // write the symbol table
+    if ( p->vNamesIn && p->vNamesOut )
+    {
+        assert( Vec_PtrSize(p->vNamesIn)  == Gia_ManCiNum(p) );
+        assert( Vec_PtrSize(p->vNamesOut) == Gia_ManCoNum(p) );
+        // write PIs
+        Gia_ManForEachPi( p, pObj, i )
+            fprintf( pFile, "i%d %s\n", i, (char *)Vec_PtrEntry(p->vNamesIn, i) );
+        // write latches
+        Gia_ManForEachRo( p, pObj, i )
+            fprintf( pFile, "l%d %s\n", i, (char *)Vec_PtrEntry(p->vNamesIn, Gia_ManPiNum(p) + i) );
+        // write POs
+        Gia_ManForEachPo( p, pObj, i )
+            fprintf( pFile, "o%d %s\n", i, (char *)Vec_PtrEntry(p->vNamesOut, i) );
+    }
+
+    // write the comment
+    fprintf( pFile, "c" );
+
+    // write additional AIG
+    if ( p->pAigExtra )
+    {
+        fprintf( pFile, "a" );
+        vStrExt = Gia_AigerWriteIntoMemoryStr( p->pAigExtra );
+        Gia_FileWriteBufferSize( pFile, Vec_StrSize(vStrExt) );
+        fwrite( Vec_StrArray(vStrExt), 1, Vec_StrSize(vStrExt), pFile );
+        Vec_StrFree( vStrExt );
+    }
+/*
+    // write constraints
+    if ( p->nConstrs )
+    {
+        fprintf( pFile, "c" );
+        Gia_FileWriteBufferSize( pFile, 4 );
+        Gia_FileWriteBufferSize( pFile, p->nConstrs );
+    }
+*/
+    // write gate classes
+    if ( p->vInArrs && p->vOutReqs )
+    {
+        fprintf( pFile, "d" );
+        Gia_FileWriteBufferSize( pFile, 4*(Gia_ManPiNum(p) + Gia_ManPoNum(p)) );
+        assert( Vec_FltSize(p->vInArrs)  == Gia_ManPiNum(p) );
+        assert( Vec_FltSize(p->vOutReqs) == Gia_ManPoNum(p) );
+        fwrite( Vec_FltArray(p->vInArrs),  1, 4*Gia_ManPiNum(p), pFile );
+        fwrite( Vec_FltArray(p->vOutReqs), 1, 4*Gia_ManPoNum(p), pFile );
+    }
+    // write equivalences
+    if ( p->pReprs && p->pNexts )
+    {
+        extern Vec_Str_t * Gia_WriteEquivClasses( Gia_Man_t * p );
+        fprintf( pFile, "e" );
+        vStrExt = Gia_WriteEquivClasses( p );
+//        Gia_FileWriteBufferSize( pFile, Vec_StrSize(vStrExt) );
+        fwrite( Vec_StrArray(vStrExt), 1, Vec_StrSize(vStrExt), pFile );
+        Vec_StrFree( vStrExt );
+    }
+    // write flop classes
+    if ( p->vFlopClasses )
+    {
+        fprintf( pFile, "f" );
+        Gia_FileWriteBufferSize( pFile, 4*Gia_ManRegNum(p) );
+        assert( Vec_IntSize(p->vFlopClasses) == Gia_ManRegNum(p) );
+        fwrite( Vec_IntArray(p->vFlopClasses), 1, 4*Gia_ManRegNum(p), pFile );
+    }
+    // write gate classes
+    if ( p->vGateClasses )
+    {
+        fprintf( pFile, "g" );
+        Gia_FileWriteBufferSize( pFile, 4*Gia_ManObjNum(p) );
+        assert( Vec_IntSize(p->vGateClasses) == Gia_ManObjNum(p) );
+        fwrite( Vec_IntArray(p->vGateClasses), 1, 4*Gia_ManObjNum(p), pFile );
+    }
+    // write hierarchy info
+    if ( p->pManTime )
+    {
+        fprintf( pFile, "h" );
+        vStrExt = Tim_ManSave( (Tim_Man_t *)p->pManTime, 1 );
+        Gia_FileWriteBufferSize( pFile, Vec_StrSize(vStrExt) );
+        fwrite( Vec_StrArray(vStrExt), 1, Vec_StrSize(vStrExt), pFile );
+        Vec_StrFree( vStrExt );
+    }
+    // write packing
+    if ( p->vPacking )
+    {
+        extern Vec_Str_t * Gia_WritePacking( Vec_Int_t * vPacking );
+        fprintf( pFile, "k" );
+        vStrExt = Gia_WritePacking( p->vPacking );
+        Gia_FileWriteBufferSize( pFile, Vec_StrSize(vStrExt) );
+        fwrite( Vec_StrArray(vStrExt), 1, Vec_StrSize(vStrExt), pFile );
+        Vec_StrFree( vStrExt );
+    }
+    // write mapping
+    if ( p->pMapping )
+    {
+        extern Vec_Str_t * Gia_AigerWriteMapping( Gia_Man_t * p );
+        fprintf( pFile, "m" );
+        vStrExt = Gia_AigerWriteMapping( p );
+        Gia_FileWriteBufferSize( pFile, Vec_StrSize(vStrExt) );
+        fwrite( Vec_StrArray(vStrExt), 1, Vec_StrSize(vStrExt), pFile );
+        Vec_StrFree( vStrExt );
+    }
+    // write name
+    if ( p->pName )
+    {
+        fprintf( pFile, "n" );
+        Gia_FileWriteBufferSize( pFile, strlen(p->pName)+1 );
+        fwrite( p->pName, 1, strlen(p->pName), pFile );
+        fprintf( pFile, "\0" );
+    }
+    // write placement
+    if ( p->pPlacement )
+    {
+        fprintf( pFile, "p" );
+        Gia_FileWriteBufferSize( pFile, 4*Gia_ManObjNum(p) );
+        fwrite( p->pPlacement, 1, 4*Gia_ManObjNum(p), pFile );
+    }
+    // write switching activity
+    if ( p->pSwitching )
+    {
+        fprintf( pFile, "s" );
+        Gia_FileWriteBufferSize( pFile, Gia_ManObjNum(p) );
+        fwrite( p->pSwitching, 1, Gia_ManObjNum(p), pFile );
+    }
+    // write timing information
+    if ( p->pManTime )
+    {
+        fprintf( pFile, "t" );
+        vStrExt = Tim_ManSave( (Tim_Man_t *)p->pManTime, 0 );
+        Gia_FileWriteBufferSize( pFile, Vec_StrSize(vStrExt) );
+        fwrite( Vec_StrArray(vStrExt), 1, Vec_StrSize(vStrExt), pFile );
+        Vec_StrFree( vStrExt );
+    }
+    // write object classes
+    if ( p->vObjClasses )
+    {
+        fprintf( pFile, "v" );
+        Gia_FileWriteBufferSize( pFile, 4*Gia_ManObjNum(p) );
+        assert( Vec_IntSize(p->vObjClasses) == Gia_ManObjNum(p) );
+        fwrite( Vec_IntArray(p->vObjClasses), 1, 4*Gia_ManObjNum(p), pFile );
+    }
+    // write comments
+    fprintf( pFile, "\nThis file was produced by the GIA package in ABC on %s\n", Gia_TimeStamp() );
+    fprintf( pFile, "For information about AIGER format, refer to %s\n", "http://fmv.jku.at/aiger" );
+    fclose( pFile );
+    if ( p != pInit )
+    {
+        pInit->pManTime  = p->pManTime;  p->pManTime = NULL;
+        pInit->vNamesIn  = p->vNamesIn;  p->vNamesIn = NULL;
+        pInit->vNamesOut = p->vNamesOut; p->vNamesOut = NULL;
+        Gia_ManStop( p );
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Writes the AIG in the binary AIGER format.]
+
+  Description []
+  
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_DumpAiger( Gia_Man_t * p, char * pFilePrefix, int iFileNum, int nFileNumDigits )
+{
+    char Buffer[100];
+    sprintf( Buffer, "%s%0*d.aig", pFilePrefix, nFileNumDigits, iFileNum );
+    Gia_AigerWrite( p, Buffer, 0, 0 );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Writes the AIG in the binary AIGER format.]
+
+  Description []
+  
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_AigerWriteSimple( Gia_Man_t * pInit, char * pFileName )
 {
     FILE * pFile;
     Vec_Str_t * vStr;
     if ( Gia_ManPoNum(pInit) == 0 )
     {
-        printf( "Gia_WriteAigerSimple(): AIG cannot be written because it has no POs.\n" );
+        printf( "Gia_AigerWriteSimple(): AIG cannot be written because it has no POs.\n" );
         return;
     }
     // start the output stream
     pFile = fopen( pFileName, "wb" );
     if ( pFile == NULL )
     {
-        fprintf( stdout, "Gia_WriteAigerSimple(): Cannot open the output file \"%s\".\n", pFileName );
+        fprintf( stdout, "Gia_AigerWriteSimple(): Cannot open the output file \"%s\".\n", pFileName );
         return;
     }
     // write the buffer
-    vStr = Gia_WriteAigerIntoMemoryStr( pInit );
+    vStr = Gia_AigerWriteIntoMemoryStr( pInit );
     fwrite( Vec_StrArray(vStr), 1, Vec_StrSize(vStr), pFile );
     Vec_StrFree( vStr );
     fclose( pFile );

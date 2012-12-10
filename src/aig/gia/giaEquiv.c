@@ -1203,7 +1203,7 @@ void Gia_ManEquivMark( Gia_Man_t * p, char * pFileName, int fSkipSome, int fVerb
         return;
     }
     // read AIGER file
-    pMiter = Gia_ReadAiger( pFileName, 0, 0 );
+    pMiter = Gia_AigerRead( pFileName, 0, 0 );
     if ( pMiter == NULL )
     {
         Abc_Print( 1, "Gia_ManEquivMark(): Input file %s could not be read.\n", pFileName );
@@ -1722,14 +1722,14 @@ int Gia_CommandSpecI( Gia_Man_t * pGia, int nFramesInit, int nBTLimitInit, int f
             }
         }
         // write equivalence classes
-        Gia_WriteAiger( pGia, "gore.aig", 0, 0 );
+        Gia_AigerWrite( pGia, "gore.aig", 0, 0 );
         // reduce the model
         pReduce = Gia_ManSpecReduce( pGia, 0, 0, 1, 0, 0 );
         if ( pReduce )
         {
             pReduce = Gia_ManSeqStructSweep( pAux = pReduce, 1, 1, 0 );
             Gia_ManStop( pAux );
-            Gia_WriteAiger( pReduce, "gsrm.aig", 0, 0 );
+            Gia_AigerWrite( pReduce, "gsrm.aig", 0, 0 );
 //            Abc_Print( 1, "Speculatively reduced model was written into file \"%s\".\n", "gsrm.aig" );
 //          Gia_ManPrintStatsShort( pReduce );
             Gia_ManStop( pReduce );
@@ -1762,13 +1762,13 @@ int Gia_ManFilterEquivsForSpeculation( Gia_Man_t * pGia, char * pName1, char * p
         Abc_Print( 1, "Equivalences are not defined.\n" );
         return 0;
     }
-    pGia1 = Gia_ReadAiger( pName1, 0, 0 );
+    pGia1 = Gia_AigerRead( pName1, 0, 0 );
     if ( pGia1 == NULL )
     {
         Abc_Print( 1, "Cannot read first file %s.\n", pName1 );
         return 0;
     }
-    pGia2 = Gia_ReadAiger( pName2, 0, 0 );
+    pGia2 = Gia_AigerRead( pName2, 0, 0 );
     if ( pGia2 == NULL )
     {
         Gia_ManStop( pGia2 );
@@ -1901,13 +1901,13 @@ int Gia_ManFilterEquivsUsingParts( Gia_Man_t * pGia, char * pName1, char * pName
         Abc_Print( 1, "Equivalences are not defined.\n" );
         return 0;
     }
-    pGia1 = Gia_ReadAiger( pName1, 0, 0 );
+    pGia1 = Gia_AigerRead( pName1, 0, 0 );
     if ( pGia1 == NULL )
     {
         Abc_Print( 1, "Cannot read first file %s.\n", pName1 );
         return 0;
     }
-    pGia2 = Gia_ReadAiger( pName2, 0, 0 );
+    pGia2 = Gia_AigerRead( pName2, 0, 0 );
     if ( pGia2 == NULL )
     {
         Gia_ManStop( pGia2 );

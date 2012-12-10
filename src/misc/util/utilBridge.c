@@ -41,11 +41,6 @@ ABC_NAMESPACE_IMPL_START
 #define BRIDGE_VALUE_0             2
 #define BRIDGE_VALUE_1             3
 
-extern void Gia_WriteAigerEncodeStr( Vec_Str_t * vStr, unsigned x );
-
-extern unsigned Gia_ReadAigerDecode( unsigned char ** ppPos );
-extern void     Gia_WriteAigerEncodeStr( Vec_Str_t * vStr, unsigned x );
-
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -79,9 +74,9 @@ Vec_Str_t * Gia_ManToBridgeVec( Gia_Man_t * p )
 
     // write header
     vStr = Vec_StrAlloc( 1000 );
-    Gia_WriteAigerEncodeStr( vStr, Gia_ManPiNum(p) );
-    Gia_WriteAigerEncodeStr( vStr, Gia_ManRegNum(p) );
-    Gia_WriteAigerEncodeStr( vStr, Gia_ManAndNum(p) );
+    Gia_AigerWriteUnsigned( vStr, Gia_ManPiNum(p) );
+    Gia_AigerWriteUnsigned( vStr, Gia_ManRegNum(p) );
+    Gia_AigerWriteUnsigned( vStr, Gia_ManAndNum(p) );
 
     // write the nodes 
     Gia_ManForEachAnd( p, pObj, i )
@@ -89,24 +84,24 @@ Vec_Str_t * Gia_ManToBridgeVec( Gia_Man_t * p )
         uLit0 = Gia_ObjFanin0Copy( pObj );
         uLit1 = Gia_ObjFanin1Copy( pObj );
         assert( uLit0 != uLit1 );
-        Gia_WriteAigerEncodeStr( vStr, uLit0 << 1 );
-        Gia_WriteAigerEncodeStr( vStr, uLit1 );
+        Gia_AigerWriteUnsigned( vStr, uLit0 << 1 );
+        Gia_AigerWriteUnsigned( vStr, uLit1 );
     }
 
     // write latch drivers
     Gia_ManForEachRi( p, pObj, i )
     {
         uLit0 = Gia_ObjFanin0Copy( pObj );
-        Gia_WriteAigerEncodeStr( vStr, (uLit0 << 2) | BRIDGE_VALUE_0 );
+        Gia_AigerWriteUnsigned( vStr, (uLit0 << 2) | BRIDGE_VALUE_0 );
     }
 
     // write PO drivers
-    Gia_WriteAigerEncodeStr( vStr, Gia_ManPoNum(p) );
+    Gia_AigerWriteUnsigned( vStr, Gia_ManPoNum(p) );
     Gia_ManForEachPo( p, pObj, i )
     {
         uLit0 = Gia_ObjFanin0Copy( pObj );
         // complement property output!!!
-        Gia_WriteAigerEncodeStr( vStr, Abc_LitNot(uLit0) );
+        Gia_AigerWriteUnsigned( vStr, Abc_LitNot(uLit0) );
     }
     return vStr;
 }
@@ -209,20 +204,20 @@ void Gia_ManFromBridgeCex( FILE * pFile, Abc_Cex_t * pCex )
     Vec_StrPush( vStr, (char)1 ); // size of vector (Armin's encoding)
     Vec_StrPush( vStr, (char)0 ); // number of the property (Armin's encoding)
     Vec_StrPush( vStr, (char)1 ); // size of vector (Armin's encoding)
-    Gia_WriteAigerEncodeStr( vStr, pCex->iFrame ); // depth
+    Gia_AigerWriteUnsigned( vStr, pCex->iFrame ); // depth
 
-    Gia_WriteAigerEncodeStr( vStr, 1 ); // concrete
-    Gia_WriteAigerEncodeStr( vStr, pCex->iFrame + 1 ); // number of frames (1 more than depth)
+    Gia_AigerWriteUnsigned( vStr, 1 ); // concrete
+    Gia_AigerWriteUnsigned( vStr, pCex->iFrame + 1 ); // number of frames (1 more than depth)
     iBit = pCex->nRegs;
     for ( f = 0; f <= pCex->iFrame; f++ )
     {
-        Gia_WriteAigerEncodeStr( vStr, pCex->nPis ); // num of inputs
+        Gia_AigerWriteUnsigned( vStr, pCex->nPis ); // num of inputs
         for ( i = 0; i < pCex->nPis; i++, iBit++ )
             Vec_StrPush( vStr, (char)(Abc_InfoHasBit(pCex->pData, iBit) ? BRIDGE_VALUE_1:BRIDGE_VALUE_0) ); // value
     }
     assert( iBit == pCex->nBits );
     Vec_StrPush( vStr, (char)1 ); // the number of frames (for a concrete counter-example)
-    Gia_WriteAigerEncodeStr( vStr, pCex->nRegs ); // num of flops
+    Gia_AigerWriteUnsigned( vStr, pCex->nRegs ); // num of flops
     for ( i = 0; i < pCex->nRegs; i++ )
         Vec_StrPush( vStr, (char)BRIDGE_VALUE_0 ); // always zero!!!
 //    RetValue = fwrite( Vec_StrArray(vStr), Vec_StrSize(vStr), 1, pFile );
@@ -264,9 +259,9 @@ Gia_Man_t *  Gia_ManFromBridgeReadBody( int Size, unsigned char * pBuffer, Vec_I
     int i, nInputs, nFlops, nGates, nProps;
     unsigned iFan0, iFan1;
 
-    nInputs = Gia_ReadAigerDecode( &pBuffer );
-    nFlops  = Gia_ReadAigerDecode( &pBuffer );
-    nGates  = Gia_ReadAigerDecode( &pBuffer );
+    nInputs = Gia_AigerReadUnsigned( &pBuffer );
+    nFlops  = Gia_AigerReadUnsigned( &pBuffer );
+    nGates  = Gia_AigerReadUnsigned( &pBuffer );
 
     vLits = Vec_IntAlloc( 1000 );
     Vec_IntPush( vLits, -999 );
@@ -289,8 +284,8 @@ Gia_Man_t *  Gia_ManFromBridgeReadBody( int Size, unsigned char * pBuffer, Vec_I
         Gia_ManHashAlloc( p );
     for ( i = 0; i < nGates; i++ )
     {
-        iFan0 = Gia_ReadAigerDecode( &pBuffer );
-        iFan1 = Gia_ReadAigerDecode( &pBuffer );
+        iFan0 = Gia_AigerReadUnsigned( &pBuffer );
+        iFan1 = Gia_AigerReadUnsigned( &pBuffer );
         assert( !(iFan0 & 1) );
         iFan0 >>= 1;
         iFan0 = Abc_LitNotCond( Vec_IntEntry(vLits, iFan0 >> 1), iFan0 & 1 );
@@ -308,14 +303,14 @@ Gia_Man_t *  Gia_ManFromBridgeReadBody( int Size, unsigned char * pBuffer, Vec_I
     pBufferPivot = pBuffer;
     // scroll through flops
     for ( i = 0; i < nFlops; i++ )
-        Gia_ReadAigerDecode( &pBuffer );
+        Gia_AigerReadUnsigned( &pBuffer );
 
     // create POs
-    nProps = Gia_ReadAigerDecode( &pBuffer );
+    nProps = Gia_AigerReadUnsigned( &pBuffer );
     assert( nProps == 1 );
     for ( i = 0; i < nProps; i++ )
     {
-        iFan0 = Gia_ReadAigerDecode( &pBuffer );
+        iFan0 = Gia_AigerReadUnsigned( &pBuffer );
         iFan0 = Abc_LitNotCond( Vec_IntEntry(vLits, iFan0 >> 1), iFan0 & 1 );
         // complement property output!!!
         Gia_ManAppendCo( p, Abc_LitNot(iFan0) );
@@ -328,7 +323,7 @@ Gia_Man_t *  Gia_ManFromBridgeReadBody( int Size, unsigned char * pBuffer, Vec_I
     vInits = Vec_IntAlloc( nFlops );
     for ( i = 0; i < nFlops; i++ )
     {
-        iFan0 = Gia_ReadAigerDecode( &pBuffer );
+        iFan0 = Gia_AigerReadUnsigned( &pBuffer );
         assert( (iFan0 & 3) == BRIDGE_VALUE_0 );
         Vec_IntPush( vInits, iFan0 & 3 ); // 0 = X value; 1 = not used; 2 = false; 3 = true
         iFan0 >>= 2;
@@ -487,7 +482,7 @@ void Gia_ManFromBridgeTest( char * pFileName )
     fclose ( pFile );
 
     Gia_ManPrintStats( p, 0, 0, 0 );
-    Gia_WriteAiger( p, "temp.aig", 0, 0 );
+    Gia_AigerWrite( p, "temp.aig", 0, 0 );
 
     Gia_ManToBridgeAbsNetlistTest( "par_.dump", p, BRIDGE_ABS_NETLIST );
     Gia_ManStop( p );

@@ -140,6 +140,10 @@ struct Gia_Man_t_
     Vec_Int_t *    vDoms;         // dominators
     unsigned char* pSwitching;    // switching activity for each object
     Gia_Plc_t *    pPlacement;    // placement of the objects
+    Gia_Man_t *    pAigExtra;     // combinational logic of holes
+    Vec_Flt_t *    vInArrs;       // PI arrival times
+    Vec_Flt_t *    vOutReqs;      // PO required times
+    Vec_Int_t *    vPacking;      // packing information
     int *          pTravIds;      // separate traversal ID representation
     int            nTravIdsAlloc; // the number of trav IDs allocated
     Vec_Ptr_t *    vNamesIn;      // the input names 
@@ -593,6 +597,52 @@ static inline void Gia_ObjTerSimPrint( Gia_Obj_t * pObj )
         printf( "X" );
 }
 
+static inline int Gia_AigerReadInt( unsigned char * pPos )
+{
+    int i, Value = 0;
+    for ( i = 0; i < 4; i++ )
+        Value = (Value << 8) | *pPos++;
+    return Value;
+}
+static inline void Gia_AigerWriteInt( unsigned char * pPos, int Value )
+{
+    int i;
+    for ( i = 3; i >= 0; i-- )
+        *pPos++ = (Value >> (8*i)) & 255;
+}
+static inline unsigned Gia_AigerReadUnsigned( unsigned char ** ppPos )
+{
+    unsigned x = 0, i = 0;
+    unsigned char ch;
+    while ((ch = *(*ppPos)++) & 0x80)
+        x |= (ch & 0x7f) << (7 * i++);
+    return x | (ch << (7 * i));
+}
+static inline void Gia_AigerWriteUnsigned( Vec_Str_t * vStr, unsigned x )
+{
+    unsigned char ch;
+    while (x & ~0x7f)
+    {
+        ch = (x & 0x7f) | 0x80;
+        Vec_StrPush( vStr, ch );
+        x >>= 7;
+    }
+    ch = x;
+    Vec_StrPush( vStr, ch );
+}
+static inline int Gia_AigerWriteUnsignedBuffer( unsigned char * pBuffer, int Pos, unsigned x )
+{
+    unsigned char ch;
+    while (x & ~0x7f)
+    {
+        ch = (x & 0x7f) | 0x80;
+        pBuffer[Pos++] = ch;
+        x >>= 7;
+    }
+    ch = x;
+    pBuffer[Pos++] = ch;
+    return Pos;
+}
 
 static inline Gia_Obj_t * Gia_ObjReprObj( Gia_Man_t * p, int Id )            { return p->pReprs[Id].iRepr == GIA_VOID ? NULL : Gia_ManObj( p, p->pReprs[Id].iRepr );                  }
 static inline int         Gia_ObjRepr( Gia_Man_t * p, int Id )               { return p->pReprs[Id].iRepr;                                                }
@@ -712,13 +762,13 @@ static inline int         Gia_ObjLutFanin( Gia_Man_t * p, int Id, int i )   { re
 
 /*=== giaAiger.c ===========================================================*/
 extern int                 Gia_FileSize( char * pFileName );
-extern Gia_Man_t *         Gia_ReadAigerFromMemory( char * pContents, int nFileSize, int fSkipStrash, int fCheck );
-extern Gia_Man_t *         Gia_ReadAiger( char * pFileName, int fSkipStrash, int fCheck );
-extern void                Gia_WriteAiger( Gia_Man_t * p, char * pFileName, int fWriteSymbols, int fCompact );
+extern Gia_Man_t *         Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fSkipStrash, int fCheck );
+extern Gia_Man_t *         Gia_AigerRead( char * pFileName, int fSkipStrash, int fCheck );
+extern void                Gia_AigerWrite( Gia_Man_t * p, char * pFileName, int fWriteSymbols, int fCompact );
 extern void                Gia_DumpAiger( Gia_Man_t * p, char * pFilePrefix, int iFileNum, int nFileNumDigits );
-extern Vec_Str_t *         Gia_WriteAigerIntoMemoryStr( Gia_Man_t * p );
-extern Vec_Str_t *         Gia_WriteAigerIntoMemoryStrPart( Gia_Man_t * p, Vec_Int_t * vCis, Vec_Int_t * vAnds, Vec_Int_t * vCos, int nRegs );
-extern void                Gia_WriteAigerSimple( Gia_Man_t * pInit, char * pFileName );
+extern Vec_Str_t *         Gia_AigerWriteIntoMemoryStr( Gia_Man_t * p );
+extern Vec_Str_t *         Gia_AigerWriteIntoMemoryStrPart( Gia_Man_t * p, Vec_Int_t * vCis, Vec_Int_t * vAnds, Vec_Int_t * vCos, int nRegs );
+extern void                Gia_AigerWriteSimple( Gia_Man_t * pInit, char * pFileName );
 /*=== giaBidec.c ===========================================================*/
 extern unsigned *          Gia_ManConvertAigToTruth( Gia_Man_t * p, Gia_Obj_t * pRoot, Vec_Int_t * vLeaves, Vec_Int_t * vTruth, Vec_Int_t * vVisited );
 extern Gia_Man_t *         Gia_ManPerformBidec( Gia_Man_t * p, int fVerbose );

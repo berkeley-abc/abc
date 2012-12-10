@@ -334,7 +334,7 @@ Abc_Cex_t * Gia_ManCexMin( Gia_Man_t * p, Abc_Cex_t * pCex, int iFrameStart, int
         printf( "%3d : ", iFrameStart );
         Gia_ManPrintStats( pNew, 0, 0, 0 );
         if ( fVerbose )
-            Gia_WriteAiger( pNew, "temp.aig", 0, 0 );
+            Gia_AigerWrite( pNew, "temp.aig", 0, 0 );
         Gia_ManStop( pNew );
     }
     else // CEX min
@@ -345,7 +345,7 @@ Abc_Cex_t * Gia_ManCexMin( Gia_Man_t * p, Abc_Cex_t * pCex, int iFrameStart, int
             printf( "%3d : ", f );
             Gia_ManPrintStats( pNew, 0, 0, 0 );
             if ( fVerbose )
-                Gia_WriteAiger( pNew, "temp.aig", 0, 0 );
+                Gia_AigerWrite( pNew, "temp.aig", 0, 0 );
             Gia_ManStop( pNew );
         }
     }

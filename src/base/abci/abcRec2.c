@@ -581,7 +581,7 @@ void Abc_NtkRecFilter2(int nLimit)
     // remove dangling nodes and POs driven by constants
     newPGia = Abc_NtkDupWithoutDangling2(pGia);
     sprintf( fileName, "RecLib%d_Filtered%d.aig", p->nVars, nLimit);
-    Gia_WriteAiger( newPGia, fileName, 0, 0 );
+    Gia_AigerWrite( newPGia, fileName, 0, 0 );
     Abc_Print(1, "Library %s was written.", fileName);
     //Gia_ManHashStop(newPGia);
     Gia_ManStop(newPGia); 

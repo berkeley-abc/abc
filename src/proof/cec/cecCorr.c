@@ -1124,7 +1124,7 @@ Gia_Man_t * Cec_ManLSCorrespondence( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
         pNew = Gia_ManCorrReduce( pAig );
         pNew = Gia_ManSeqCleanup( pTemp = pNew );
         Gia_ManStop( pTemp );
-        //Gia_WriteAiger( pNew, "reduced.aig", 0, 0 );
+        //Gia_AigerWrite( pNew, "reduced.aig", 0, 0 );
     }
     // report the results
     if ( pPars->fVerbose )

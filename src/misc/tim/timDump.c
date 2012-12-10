@@ -43,7 +43,7 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Str_t * Tim_ManSave( Tim_Man_t * p )
+Vec_Str_t * Tim_ManSave( Tim_Man_t * p, int fHieOnly )
 {
     Tim_Box_t * pBox;
     Tim_Obj_t * pObj;
@@ -71,6 +71,8 @@ Vec_Str_t * Tim_ManSave( Tim_Man_t * p )
         Vec_StrPutI_ne( vStr, Tim_ManBoxDelayTableId(p, pBox->iBox) ); // can be -1 if delay table is not given
         Vec_StrPutI_ne( vStr, Tim_ManBoxCopy(p, pBox->iBox) );         // can be -1 if the copy is node defined
     }
+    if ( fHieOnly )
+        return vStr;
     // save the number of delay tables
     Vec_StrPutI_ne( vStr, Tim_ManDelayTableNum(p) );
     // save the delay tables
@@ -107,7 +109,7 @@ Vec_Str_t * Tim_ManSave( Tim_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Tim_Man_t * Tim_ManLoad( Vec_Str_t * p )
+Tim_Man_t * Tim_ManLoad( Vec_Str_t * p, int fHieOnly )
 {
     Tim_Man_t * pMan;
     Tim_Obj_t * pObj;
@@ -149,6 +151,8 @@ Tim_Man_t * Tim_ManLoad( Vec_Str_t * p )
     curPo += nPos;
     assert( curPi == nCis );
     assert( curPo == nCos );
+    if ( fHieOnly )
+        return pMan;
     // create delay tables
     nTables = Vec_StrGetI_ne( p, &iStr );
     assert( pMan->vDelayTables == NULL );

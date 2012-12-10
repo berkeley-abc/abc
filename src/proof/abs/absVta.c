@@ -1440,7 +1440,7 @@ void Gia_VtaDumpAbsracted( Vta_Man_t * p, int fVerbose )
     pAbs = Gia_ManDupAbsGates( p->pGia, p->pGia->vGateClasses );
     Vec_IntFreeP( &p->pGia->vGateClasses );
     // send it out
-    Gia_WriteAiger( pAbs, pFileName, 0, 0 );
+    Gia_AigerWrite( pAbs, pFileName, 0, 0 );
     Gia_ManStop( pAbs );
 }
 

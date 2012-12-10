@@ -173,7 +173,7 @@ void Bmc_CexPerformUnrollingTest( Gia_Man_t * p, Abc_Cex_t * pCex )
     clock_t clk = clock();
     pNew = Bmc_CexPerformUnrolling( p, pCex );
     Gia_ManPrintStats( pNew, 0, 0, 0 );
-    Gia_WriteAiger( pNew, "unroll.aig", 0, 0 );
+    Gia_AigerWrite( pNew, "unroll.aig", 0, 0 );
 //Bmc_CexDumpAogStats( pNew, clock() - clk );
     Gia_ManStop( pNew );
     printf( "CE-induced network is written into file \"unroll.aig\".\n" );
@@ -285,7 +285,7 @@ void Bmc_CexBuildNetworkTest( Gia_Man_t * p, Abc_Cex_t * pCex )
     clock_t clk = clock();
     pNew = Bmc_CexBuildNetwork( p, pCex );
     Gia_ManPrintStats( pNew, 0, 0, 0 );
-    Gia_WriteAiger( pNew, "unate.aig", 0, 0 );
+    Gia_AigerWrite( pNew, "unate.aig", 0, 0 );
 //Bmc_CexDumpAogStats( pNew, clock() - clk );
     Gia_ManStop( pNew );
     printf( "CE-induced network is written into file \"unate.aig\".\n" );

@@ -223,7 +223,7 @@ void Abc_NtkTestPinGia( Abc_Ntk_t * pNtk, int fWhiteBoxOnly, int fVerbose )
     Gia_Man_t * pGia;
     char * pFileName = "testpin.aig";
     pGia = Abc_NtkTestPinDeriveGia( pNtk, fWhiteBoxOnly, fVerbose );
-    Gia_WriteAiger( pGia, pFileName, 0, 0 );
+    Gia_AigerWrite( pGia, pFileName, 0, 0 );
     Gia_ManStop( pGia );
     printf( "AIG with pins derived from mapped network \"%s\" was written into file \"%s\".\n", 
         Abc_NtkName(pNtk), pFileName );
@@ -426,13 +426,13 @@ void Abc_NtkTestTimByWritingFile( Gia_Man_t * pGia, char * pFileName )
         Gia_ManReverseClasses( pGia, 0 );
     }
     // write file
-    Gia_WriteAiger( pGia, pFileName, 0, 0 );
+    Gia_AigerWrite( pGia, pFileName, 0, 0 );
     // unnormalize choices
     if ( Gia_ManWithChoices(pGia) )
         Gia_ManReverseClasses( pGia, 1 );
 
     // read file
-    pGia2 = Gia_ReadAiger( pFileName, 1, 1 );
+    pGia2 = Gia_AigerRead( pFileName, 1, 1 );
 
     // normalize choices
     if ( Gia_ManWithChoices(pGia2) )

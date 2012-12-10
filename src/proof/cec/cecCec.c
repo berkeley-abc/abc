@@ -263,7 +263,7 @@ int Cec_ManVerify( Gia_Man_t * pInit, Cec_ParCec_t * pPars )
     {
         ABC_FREE( pNew->pReprs );
         ABC_FREE( pNew->pNexts );
-        Gia_WriteAiger( pNew, "gia_cec_undecided.aig", 0, 0 );
+        Gia_AigerWrite( pNew, "gia_cec_undecided.aig", 0, 0 );
         Abc_Print( 1, "The result is written into file \"%s\".\n", "gia_cec_undecided.aig" );
     }
     if ( pPars->TimeLimit && (clock() - clkTotal)/CLOCKS_PER_SEC >= pPars->TimeLimit )

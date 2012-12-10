@@ -1043,7 +1043,7 @@ Vec_Str_t * Gia_ManIsoFindString( Gia_Man_t * p, int iPo, int fVerbose, Vec_Int_
     {
         assert( Gia_ManPoNum(pPart) == 1 );
         assert( Gia_ManObjNum(pPart) == 2 );
-        vStr = Gia_WriteAigerIntoMemoryStr( pPart );
+        vStr = Gia_AigerWriteIntoMemoryStr( pPart );
         Gia_ManStop( pPart );
         if ( pvPiPerm )
             *pvPiPerm = Vec_IntAlloc( 0 );
@@ -1060,7 +1060,7 @@ Vec_Str_t * Gia_ManIsoFindString( Gia_Man_t * p, int iPo, int fVerbose, Vec_Int_
 //printf( "Internal: " );
 //Vec_IntPrint( vCis );
     // derive the AIGER string
-    vStr = Gia_WriteAigerIntoMemoryStrPart( pPart, vCis, vAnds, vCos, Gia_ManRegNum(pPart) );
+    vStr = Gia_AigerWriteIntoMemoryStrPart( pPart, vCis, vAnds, vCos, Gia_ManRegNum(pPart) );
     // cleanup
     Vec_IntFree( vCis );
     Vec_IntFree( vAnds );
@@ -1280,7 +1280,7 @@ void Gia_IsoTest( Gia_Man_t * p, Abc_Cex_t * pCex, int fVerbose )
     // create AIG with two primary outputs (original and permuted)
     pPerm = Gia_ManDupPerm( p, vPiPerm );
     pDouble = Gia_ManDupAppendNew( p, pPerm );
-//Gia_WriteAiger( pDouble, "test.aig", 0, 0 );
+//Gia_AigerWrite( pDouble, "test.aig", 0, 0 );
 
     // analyze the two-output miter
     pAig = Gia_ManIsoReduce( pDouble, &vPosEquivs, &vPisPerm, 0, 0 );

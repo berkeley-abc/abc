@@ -391,7 +391,7 @@ Gia_Man_t * Abc_ManReadAig( char * pFileName, char * pToken )
             fclose( pFile );
         }
         // derive AIG
-        pGia = Gia_ReadAigerFromMemory( pStr, nBinaryPart, 0, 0 ); 
+        pGia = Gia_AigerReadFromMemory( pStr, nBinaryPart, 0, 0 ); 
     }
     Vec_StrFree( vStr );
     return pGia;
@@ -513,7 +513,7 @@ int Cmd_CommandAbcPlugIn( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // create input file
-    Gia_WriteAiger( pAbc->pGia, pFileIn, 0, 0 );
+    Gia_AigerWrite( pAbc->pGia, pFileIn, 0, 0 );
 
     // create command line
     vCommand = Vec_StrAlloc( 100 );
