@@ -527,7 +527,7 @@ static inline void Dau_DsdMergeMatches( char * pDsd, int * pMatches )
     }
     assert( nNested == 0 );
 }
-int Dss_NtkCreate_rec( char * pStr, char ** p, int * pMatches, Dss_Ntk_t * pNtk )
+int Dss_NtkCreate_rec( char * pStr, char ** p, int * pMatches, Dss_Ntk_t * pNtk, word * pTruth )
 {
     int fCompl = 0;
     if ( **p == '!' )
@@ -564,9 +564,26 @@ int Dss_NtkCreate_rec( char * pStr, char ** p, int * pMatches, Dss_Ntk_t * pNtk 
         else assert( 0 );
         assert( *q == **p + 1 + (**p != '(') );
         for ( (*p)++; *p < q; (*p)++ )
-            Vec_IntPush( vFaninLits, Dss_NtkCreate_rec(pStr, p, pMatches, pNtk) );
+            Vec_IntPush( vFaninLits, Dss_NtkCreate_rec(pStr, p, pMatches, pNtk, pTruth) );
         assert( *p == q );
-        pObj = Dss_ObjCreateNtk( pNtk, Type, vFaninLits );
+        if ( Type == DAU_DSD_PRIME )
+        {
+            Vec_Int_t * vFaninLitsNew;
+            word pTemp[DAU_MAX_WORD];
+            char pCanonPerm[DAU_MAX_VAR];
+            int i, uCanonPhase, nFanins = Vec_IntSize(vFaninLits);
+            Abc_TtCopy( pTemp, pTruth, Abc_TtWordNum(nFanins), 0 );
+            uCanonPhase = Abc_TtCanonicize( pTemp, nFanins, pCanonPerm );
+            fCompl = (uCanonPhase >> nFanins) & 1;
+            vFaninLitsNew = Vec_IntAlloc( nFanins );
+            for ( i = 0; i < nFanins; i++ )
+                Vec_IntPush( vFaninLitsNew, Abc_LitNotCond(Vec_IntEntry(vFaninLits, pCanonPerm[i]), (uCanonPhase>>i)&1) );
+            pObj = Dss_ObjCreateNtk( pNtk, DAU_DSD_PRIME, vFaninLitsNew );
+            Abc_TtCopy( Dss_ObjTruth(pObj), pTemp, Abc_TtWordNum(nFanins), 0 );
+            Vec_IntFree( vFaninLitsNew );
+        }
+        else
+            pObj = Dss_ObjCreateNtk( pNtk, Type, vFaninLits );
         Vec_IntFree( vFaninLits );
         return Abc_LitNotCond( Dss_Obj2Lit(pObj), fCompl );
     }
@@ -587,23 +604,8 @@ Dss_Ntk_t * Dss_NtkCreate( char * pDsd, int nVars, word * pTruth )
     {
         int iLit, pMatches[DAU_MAX_STR];
         Dau_DsdMergeMatches( pDsd, pMatches );
-        iLit = Dss_NtkCreate_rec( pDsd, &pDsd, pMatches, pNtk );
+        iLit = Dss_NtkCreate_rec( pDsd, &pDsd, pMatches, pNtk, pTruth );
         pNtk->pRoot = Dss_Lit2Obj( pNtk->vObjs, iLit );
-        // assign the truth table
-        if ( pTruth )
-        {
-            Dss_Obj_t * pObj;
-            int k, Counter = 0;
-            Dss_VecForEachNode( pNtk->vObjs, pObj, k )
-                if ( pObj->Type == DAU_DSD_PRIME )
-                {
-//                    Kit_DsdPrintFromTruth( (unsigned *)pTruth, nVars ); printf( "\n" );
-
-                    Abc_TtCopy( Dss_ObjTruth(pObj), pTruth, Abc_TtWordNum(pObj->nFans), 0 );
-                    Counter++;
-                }
-            assert( Counter < 2 );
-        }
     }
     if ( fCompl )
         pNtk->pRoot = Dss_Not(pNtk->pRoot);
