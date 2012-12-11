@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "timInt.h"
+#include "map/if/if.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -168,6 +169,66 @@ void Tim_ManStopP( Tim_Man_t ** p )
     Tim_ManStop( *p );
     *p = NULL;
 }
+
+/**Function*************************************************************
+
+  Synopsis    [Creates manager using hierarchy / box library / delay info.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Tim_Man_t * Tim_ManCreate( Tim_Man_t * p, void * pLib, Vec_Flt_t * vInArrs, Vec_Flt_t * vOutReqs )
+{
+    Tim_Box_t * pBox;
+    If_LibBox_t * pLibBox = (If_LibBox_t *)pLib;
+    If_Box_t * pIfBox;
+    int i, k, * pTable;
+    float Entry;
+    assert( p->vDelayTables == NULL );
+    p->vDelayTables = Vec_PtrStart( Vec_PtrSize(pLibBox->vBoxes) );
+    Tim_ManForEachBox( p, pBox, i )
+    {
+        if ( pBox->iDelayTable == -1 )
+        {
+            // create table with constants
+            pTable = ABC_ALLOC( int, pBox->nInputs * pBox->nOutputs );
+            for ( k = 0; k < pBox->nInputs * pBox->nOutputs; k++ )
+                pTable[k] = 1;
+            continue;
+        }
+        assert( pBox->iDelayTable >= 0 && pBox->iDelayTable < Vec_PtrSize(pLibBox->vBoxes) );
+        pIfBox = (If_Box_t *)Vec_PtrEntry( pLibBox->vBoxes, pBox->iDelayTable );
+        assert( pIfBox != NULL );
+        assert( pIfBox->nPis == pBox->nInputs );
+        assert( pIfBox->nPos == pBox->nOutputs );
+        if ( Vec_PtrEntry( p->vDelayTables, pBox->iDelayTable ) != NULL )
+            continue;
+        // create table of boxes
+        pTable = ABC_ALLOC( int, pBox->nInputs * pBox->nOutputs );
+        for ( k = 0; k < pBox->nInputs * pBox->nOutputs; k++ )
+            pTable[k] = pIfBox->pDelays[k];
+    }
+    // create arrival times
+    if ( vInArrs )
+    {
+        assert( Vec_FltSize(vInArrs) == Tim_ManPiNum(p) );
+        Vec_FltForEachEntry( vInArrs, Entry, i )
+            Tim_ManInitPiArrival( p, i, Entry );
+    }
+    // create required times
+    if ( vOutReqs )
+    {
+        assert( Vec_FltSize(vOutReqs) == Tim_ManPoNum(p) );
+        Vec_FltForEachEntry( vOutReqs, Entry, i )
+            Tim_ManInitPoRequired( p, i, Entry );
+    }
+    return p;
+}
+
 
 /**Function*************************************************************
 
