@@ -52,12 +52,12 @@ typedef struct Dss_Obj_t_ Dss_Obj_t;
 struct Dss_Obj_t_
 {
     unsigned       Id;             // node ID
+    unsigned       Type    :   3;  // node type
+    unsigned       nSupp   :   8;  // variable
+    unsigned       iVar    :   8;  // variable
+    unsigned       nWords  :   6;  // variable
     unsigned       fMark0  :   1;  // user mark
     unsigned       fMark1  :   1;  // user mark
-    unsigned       iVar    :   8;  // variable
-    unsigned       nSupp   :   8;  // variable
-    unsigned       nWords  :   6;  // variable
-    unsigned       Type    :   3;  // node type
     unsigned       nFans   :   5;  // fanin count
     unsigned       pFans[0];       // fanins
 };
@@ -92,6 +92,9 @@ static inline Dss_Obj_t *  Dss_Not( Dss_Obj_t * p )                             
 static inline Dss_Obj_t *  Dss_NotCond( Dss_Obj_t * p, int c )                     { return (Dss_Obj_t *)((ABC_PTRUINT_T)(p) ^ (c));                                    }
 static inline int          Dss_IsComplement( Dss_Obj_t * p )                       { return (int)((ABC_PTRUINT_T)(p) & 01);                                             }
 
+static inline int          Dss_ObjWordNum( int nFans )                             { return sizeof(Dss_Obj_t) / 8 + nFans / 2 + ((nFans & 1) > 0);                      }
+static inline word *       Dss_ObjTruth( Dss_Obj_t * pObj )                        { return (word *)pObj + pObj->nWords;                                                }
+
 static inline void         Dss_ObjClean( Dss_Obj_t * pObj )                        { memset( pObj, 0, sizeof(Dss_Obj_t) );                                              }
 static inline int          Dss_ObjId( Dss_Obj_t * pObj )                           { return pObj->Id;                                                                   }
 static inline int          Dss_ObjType( Dss_Obj_t * pObj )                         { return pObj->Type;                                                                 }
@@ -99,48 +102,31 @@ static inline int          Dss_ObjSuppSize( Dss_Obj_t * pObj )                  
 static inline int          Dss_ObjFaninNum( Dss_Obj_t * pObj )                     { return pObj->nFans;                                                                }
 static inline int          Dss_ObjFaninC( Dss_Obj_t * pObj, int i )                { assert(i < (int)pObj->nFans); return Abc_LitIsCompl(pObj->pFans[i]);               }
 
-static inline int          Dss_ObjWordNum( int nFans )                             { return sizeof(Dss_Obj_t) / 8 + nFans / 2 + ((nFans & 1) > 0);                      }
-static inline word *       Dss_ObjTruth( Dss_Obj_t * pObj )                        { return (word *)pObj + pObj->nWords;                                                }
-
-static inline Dss_Obj_t *  Dss_NtkObj( Dss_Ntk_t * p, int Id )                     { return (Dss_Obj_t *)Vec_PtrEntry(p->vObjs, Id);                                    }
-static inline Dss_Obj_t *  Dss_NtkConst0( Dss_Ntk_t * p )                          { return Dss_NtkObj( p, 0 );                                                         }
-static inline Dss_Obj_t *  Dss_NtkVar( Dss_Ntk_t * p, int v )                      { assert( v >= 0 && v < p->nVars ); return Dss_NtkObj( p, v+1 );                     }
-
-static inline Dss_Obj_t *  Dss_Lit2ObjNtk( Dss_Ntk_t * p, int iLit )               { return Dss_NotCond(Dss_NtkObj(p, Abc_Lit2Var(iLit)), Abc_LitIsCompl(iLit));        }
-static inline Dss_Obj_t *  Dss_ObjFaninNtk( Dss_Ntk_t * p, Dss_Obj_t * pObj,int i) { assert(i < (int)pObj->nFans); return Dss_NtkObj( p, Abc_Lit2Var(pObj->pFans[i]) ); }
-static inline Dss_Obj_t *  Dss_ObjChildNtk( Dss_Ntk_t * p, Dss_Obj_t * pObj,int i) { assert(i < (int)pObj->nFans); return Dss_Lit2ObjNtk(p, pObj->pFans[i]);            }
-
-static inline Dss_Obj_t *  Dss_ManObj( Dss_Man_t * p, int Id )                     { return (Dss_Obj_t *)Vec_PtrEntry(p->vObjs, Id);                                    }
-static inline Dss_Obj_t *  Dss_ManConst0( Dss_Man_t * p )                          { return Dss_ManObj( p, 0 );                                                         }
-//static inline Dss_Obj_t *  Dss_ManVar( Dss_Man_t * p, int v )                      { assert( v >= 0 && v < p->nVars ); return Dss_ManObj( p, v+1 );                     }
-static inline Dss_Obj_t *  Dss_ManVar( Dss_Man_t * p )                             { return Dss_ManObj( p, 1 );                                                         }
-static inline int          Dss_ManLitSuppSize( Dss_Man_t * p, int iLit )           { return Dss_ManObj( p, Abc_Lit2Var(iLit) )->nSupp;                                  }
+static inline Dss_Obj_t *  Dss_VecObj( Vec_Ptr_t * p, int Id )                     { return (Dss_Obj_t *)Vec_PtrEntry(p, Id);                                           }
+static inline Dss_Obj_t *  Dss_VecConst0( Vec_Ptr_t * p )                          { return Dss_VecObj( p, 0 );                                                         }
+static inline Dss_Obj_t *  Dss_VecVar( Vec_Ptr_t * p, int v )                      { return Dss_VecObj( p, v+1 );                                                       }
+static inline int          Dss_VecLitSuppSize( Vec_Ptr_t * p, int iLit )           { return Dss_VecObj( p, Abc_Lit2Var(iLit) )->nSupp;                                  }
 
 static inline int          Dss_Obj2Lit( Dss_Obj_t * pObj )                         { return Abc_Var2Lit(Dss_Regular(pObj)->Id, Dss_IsComplement(pObj));                 }
-static inline Dss_Obj_t *  Dss_Lit2Obj( Dss_Man_t * p, int iLit )                  { return Dss_NotCond(Dss_ManObj(p, Abc_Lit2Var(iLit)), Abc_LitIsCompl(iLit));        }
-static inline Dss_Obj_t *  Dss_ObjFanin( Dss_Man_t * p, Dss_Obj_t * pObj, int i )  { assert(i < (int)pObj->nFans); return Dss_ManObj(p, Abc_Lit2Var(pObj->pFans[i]));   }
-static inline Dss_Obj_t *  Dss_ObjChild( Dss_Man_t * p, Dss_Obj_t * pObj, int i )  { assert(i < (int)pObj->nFans); return Dss_Lit2Obj(p, pObj->pFans[i]);               }
+static inline Dss_Obj_t *  Dss_Lit2Obj( Vec_Ptr_t * p, int iLit )                  { return Dss_NotCond(Dss_VecObj(p, Abc_Lit2Var(iLit)), Abc_LitIsCompl(iLit));        }
+static inline Dss_Obj_t *  Dss_ObjFanin( Vec_Ptr_t * p, Dss_Obj_t * pObj, int i )  { assert(i < (int)pObj->nFans); return Dss_VecObj(p, Abc_Lit2Var(pObj->pFans[i]));   }
+static inline Dss_Obj_t *  Dss_ObjChild( Vec_Ptr_t * p, Dss_Obj_t * pObj, int i )  { assert(i < (int)pObj->nFans); return Dss_Lit2Obj(p, pObj->pFans[i]);               }
 
 static inline int          Dss_EntWordNum( Dss_Ent_t * p )                         { return sizeof(Dss_Ent_t) / 8 + p->nShared / 4 + ((p->nShared & 3) > 0);            }
 static inline int          Dss_FunWordNum( Dss_Fun_t * p )                         { assert(p->nFans >= 2); return (p->nFans + 4) / 8 + (((p->nFans + 4) & 7) > 0);     }
 static inline word *       Dss_FunTruth( Dss_Fun_t * p )                           { assert(p->nFans >= 2); return (word *)p + Dss_FunWordNum(p);                       }
 
-
-#define Dss_NtkForEachNode( p, pObj, i )                  \
-    Vec_PtrForEachEntryStart( Dss_Obj_t *, p->vObjs, pObj, i, p->nVars + 1 )
-#define Dss_ObjForEachFaninNtk( p, pObj, pFanin, i )      \
-    for ( i = 0; (i < Dss_ObjFaninNum(pObj)) && ((pFanin) = Dss_ObjFaninNtk(p, pObj, i)); i++ )
-#define Dss_ObjForEachChildNtk( p, pObj, pFanin, i )      \
-    for ( i = 0; (i < Dss_ObjFaninNum(pObj)) && ((pFanin) = Dss_ObjChildNtk(p, pObj, i)); i++ )
-
-#define Dss_ManForEachObj( p, pObj, i )                   \
-    Vec_PtrForEachEntry( Dss_Obj_t *, p->vObjs, pObj, i )
-#define Dss_ManForEachObjVec( vLits, p, pObj, i )         \
-    for ( i = 0; (i < Vec_IntSize(vLits)) && ((pObj) = Dss_Lit2Obj(p, Vec_IntEntry(vLits,i))); i++ )
-#define Dss_ObjForEachFanin( p, pObj, pFanin, i )         \
-    for ( i = 0; (i < Dss_ObjFaninNum(pObj)) && ((pFanin) = Dss_ObjFanin(p, pObj, i)); i++ )
-#define Dss_ObjForEachChild( p, pObj, pFanin, i )         \
-    for ( i = 0; (i < Dss_ObjFaninNum(pObj)) && ((pFanin) = Dss_ObjChild(p, pObj, i)); i++ )
+#define Dss_VecForEachObj( vVec, pObj, i )                \
+    Vec_PtrForEachEntry( Dss_Obj_t *, vVec, pObj, i )
+#define Dss_VecForEachObjVec( vLits, vVec, pObj, i )      \
+    for ( i = 0; (i < Vec_IntSize(vLits)) && ((pObj) = Dss_Lit2Obj(vVec, Vec_IntEntry(vLits,i))); i++ )
+#define Dss_VecForEachNode( vVec, pObj, i )               \
+    Vec_PtrForEachEntry( Dss_Obj_t *, vVec, pObj, i )     \
+        if ( pObj->Type == DAU_DSD_CONST0 || pObj->Type == DAU_DSD_VAR ) {} else
+#define Dss_ObjForEachFanin( vVec, pObj, pFanin, i )      \
+    for ( i = 0; (i < Dss_ObjFaninNum(pObj)) && ((pFanin) = Dss_ObjFanin(vVec, pObj, i)); i++ )
+#define Dss_ObjForEachChild( vVec, pObj, pFanin, i )      \
+    for ( i = 0; (i < Dss_ObjFaninNum(pObj)) && ((pFanin) = Dss_ObjChild(vVec, pObj, i)); i++ )
 
 static inline int Dss_WordCountOnes( unsigned uWord )
 {
@@ -152,7 +138,6 @@ static inline int Dss_WordCountOnes( unsigned uWord )
 }
 
 static inline int Dss_Lit2Lit( int * pMapLit, int Lit )   { return Abc_Var2Lit( Abc_Lit2Var(pMapLit[Abc_Lit2Var(Lit)]), Abc_LitIsCompl(Lit) ^ Abc_LitIsCompl(pMapLit[Abc_Lit2Var(Lit)]) );   }
-
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -189,7 +174,7 @@ int Dss_ObjCheck666_rec( Dss_Ntk_t * p, Dss_Obj_t * pObj, Vec_Int_t * vSupps )
         int nSuppVars = 0;
         int nFanins = Dss_ObjFaninNum(pObj);
         int uSupps[16], nSuppSizes[16];
-        Dss_ObjForEachFaninNtk( p, pObj, pFanin, i )
+        Dss_ObjForEachFanin( p->vObjs, pObj, pFanin, i )
         {
             uSupps[i] = Dss_ObjCheck666_rec( p, pFanin, vSupps );
             nSuppSizes[i] = Dss_WordCountOnes( uSupps[i] );
@@ -256,7 +241,7 @@ int Dss_ObjCheck666_rec( Dss_Ntk_t * p, Dss_Obj_t * pObj, Vec_Int_t * vSupps )
     }
     else if ( pObj->Type == DAU_DSD_MUX || pObj->Type == DAU_DSD_PRIME )
     {
-        Dss_ObjForEachFaninNtk( p, pObj, pFanin, i )
+        Dss_ObjForEachFanin( p->vObjs, pObj, pFanin, i )
             uSupp |= Dss_ObjCheck666_rec( p, pFanin, vSupps );
     }
     if ( Dss_WordCountOnes( uSupp ) <= 6 )
@@ -452,7 +437,7 @@ Dss_Obj_t * Dss_ObjCreateNtk( Dss_Ntk_t * p, int Type, Vec_Int_t * vFaninLits )
     Vec_IntForEachEntry( vFaninLits, Entry, i )
     {
         pObj->pFans[i] = Entry;
-        pObj->nSupp += Dss_ObjFaninNtk(p, pObj, i)->nSupp;
+        pObj->nSupp += Dss_VecLitSuppSize(p->vObjs, Entry);
     }
     assert( i == (int)pObj->nFans );
     return pObj;
@@ -494,7 +479,7 @@ void Dss_NtkPrint_rec( Dss_Ntk_t * p, Dss_Obj_t * pObj )
     if ( pObj->Type == DAU_DSD_PRIME )
         Abc_TtPrintHexRev( stdout, Dss_ObjTruth(pObj), pObj->nFans );
     printf( "%c", OpenType[pObj->Type] );
-    Dss_ObjForEachFaninNtk( p, pObj, pFanin, i )
+    Dss_ObjForEachFanin( p->vObjs, pObj, pFanin, i )
     {
         printf( "%s", Dss_ObjFaninC(pObj, i) ? "!":"" );
         Dss_NtkPrint_rec( p, pFanin );
@@ -561,7 +546,7 @@ int Dss_NtkCreate_rec( char * pStr, char ** p, int * pMatches, Dss_Ntk_t * pNtk 
     }
 */
     if ( **p >= 'a' && **p <= 'z' ) // var
-        return Abc_Var2Lit( Dss_ObjId(Dss_NtkVar(pNtk, **p - 'a')), fCompl );
+        return Abc_Var2Lit( Dss_ObjId(Dss_VecVar(pNtk->vObjs, **p - 'a')), fCompl );
     if ( **p == '(' || **p == '[' || **p == '<' || **p == '{' ) // and/or/xor
     {
         Dss_Obj_t * pObj;
@@ -595,21 +580,21 @@ Dss_Ntk_t * Dss_NtkCreate( char * pDsd, int nVars, word * pTruth )
     if ( *pDsd == '!' )
          pDsd++, fCompl = 1;
     if ( Dau_DsdIsConst(pDsd) )
-        pNtk->pRoot = Dss_NtkConst0(pNtk);
+        pNtk->pRoot = Dss_VecConst0(pNtk->vObjs);
     else if ( Dau_DsdIsVar(pDsd) )
-        pNtk->pRoot = Dss_NtkVar(pNtk, Dau_DsdReadVar(pDsd));
+        pNtk->pRoot = Dss_VecVar(pNtk->vObjs, Dau_DsdReadVar(pDsd));
     else
     {
         int iLit, pMatches[DAU_MAX_STR];
         Dau_DsdMergeMatches( pDsd, pMatches );
         iLit = Dss_NtkCreate_rec( pDsd, &pDsd, pMatches, pNtk );
-        pNtk->pRoot = Dss_Lit2ObjNtk( pNtk, iLit );
+        pNtk->pRoot = Dss_Lit2Obj( pNtk->vObjs, iLit );
         // assign the truth table
         if ( pTruth )
         {
             Dss_Obj_t * pObj;
             int k, Counter = 0;
-            Dss_NtkForEachNode( pNtk, pObj, k )
+            Dss_VecForEachNode( pNtk->vObjs, pObj, k )
                 if ( pObj->Type == DAU_DSD_PRIME )
                 {
 //                    Kit_DsdPrintFromTruth( (unsigned *)pTruth, nVars ); printf( "\n" );
@@ -625,7 +610,6 @@ Dss_Ntk_t * Dss_NtkCreate( char * pDsd, int nVars, word * pTruth )
     return pNtk;
 }
  
-
 /**Function*************************************************************
 
   Synopsis    [Comparing two DSD nodes.]
@@ -637,7 +621,7 @@ Dss_Ntk_t * Dss_NtkCreate( char * pDsd, int nVars, word * pTruth )
   SeeAlso     []
 
 ***********************************************************************/
-int Dss_ObjCompareNtk( Dss_Ntk_t * p, Dss_Obj_t * p0i, Dss_Obj_t * p1i )
+int Dss_ObjCompare( Vec_Ptr_t * p, Dss_Obj_t * p0i, Dss_Obj_t * p1i )
 {
     Dss_Obj_t * p0 = Dss_Regular(p0i);
     Dss_Obj_t * p1 = Dss_Regular(p1i);
@@ -655,9 +639,9 @@ int Dss_ObjCompareNtk( Dss_Ntk_t * p, Dss_Obj_t * p0i, Dss_Obj_t * p1i )
         return 1;
     for ( i = 0; i < Dss_ObjFaninNum(p0); i++ )
     {
-        pChild0 = Dss_ObjChildNtk( p, p0, i );
-        pChild1 = Dss_ObjChildNtk( p, p1, i );
-        Res = Dss_ObjCompareNtk( p, pChild0, pChild1 );
+        pChild0 = Dss_ObjChild( p, p0, i );
+        pChild1 = Dss_ObjChild( p, p1, i );
+        Res = Dss_ObjCompare( p, pChild0, pChild1 );
         if ( Res != 0 )
             return Res;
     }
@@ -667,18 +651,20 @@ int Dss_ObjCompareNtk( Dss_Ntk_t * p, Dss_Obj_t * p0i, Dss_Obj_t * p1i )
         return 1;
     return 0;
 }
-void Dss_ObjSortNtk( Dss_Ntk_t * p, Dss_Obj_t ** pNodes, int nNodes )
+void Dss_ObjSort( Vec_Ptr_t * p, Dss_Obj_t ** pNodes, int nNodes, int * pPerm )
 {
     int i, j, best_i;
     for ( i = 0; i < nNodes-1; i++ )
     {
         best_i = i;
         for ( j = i+1; j < nNodes; j++ )
-            if ( Dss_ObjCompareNtk(p, pNodes[best_i], pNodes[j]) == 1 )
+            if ( Dss_ObjCompare(p, pNodes[best_i], pNodes[j]) == 1 )
                 best_i = j;
         if ( i == best_i )
             continue;
         ABC_SWAP( Dss_Obj_t *, pNodes[i], pNodes[best_i] );
+        if ( pPerm )
+            ABC_SWAP( int, pPerm[i], pPerm[best_i] );
     }
 }
 
@@ -697,9 +683,9 @@ void Dss_NtkCheck( Dss_Ntk_t * p )
 {
     Dss_Obj_t * pObj, * pFanin;
     int i, k;
-    Dss_NtkForEachNode( p, pObj, i )
+    Dss_VecForEachNode( p->vObjs, pObj, i )
     {
-        Dss_ObjForEachFaninNtk( p, pObj, pFanin, k )
+        Dss_ObjForEachFanin( p->vObjs, pObj, pFanin, k )
         {
             if ( pObj->Type == DAU_DSD_AND && pFanin->Type == DAU_DSD_AND )
                 assert( Dss_ObjFaninC(pObj, k) );
@@ -721,7 +707,7 @@ int Dss_NtkCollectPerm_rec( Dss_Ntk_t * p, Dss_Obj_t * pObj, int * pPermDsd, int
         pObj->iVar = (*pnPerms)++;
         return fCompl;
     }
-    Dss_ObjForEachChildNtk( p, pObj, pChild, k )
+    Dss_ObjForEachChild( p->vObjs, pObj, pChild, k )
         if ( Dss_NtkCollectPerm_rec( p, pChild, pPermDsd, pnPerms ) )
             pObj->pFans[k] = (unsigned char)Abc_LitRegular((int)pObj->pFans[k]);
     return 0;
@@ -733,13 +719,13 @@ void Dss_NtkTransform( Dss_Ntk_t * p, int * pPermDsd )
     int i, k, nPerms;
     if ( Dss_Regular(p->pRoot)->Type == DAU_DSD_CONST0 )
         return;
-    Dss_NtkForEachNode( p, pObj, i )
+    Dss_VecForEachNode( p->vObjs, pObj, i )
     {
         if ( pObj->Type == DAU_DSD_MUX || pObj->Type == DAU_DSD_PRIME )
             continue;
-        Dss_ObjForEachChildNtk( p, pObj, pChild, k )
+        Dss_ObjForEachChild( p->vObjs, pObj, pChild, k )
             pChildren[k] = pChild;
-        Dss_ObjSortNtk( p, pChildren, Dss_ObjFaninNum(pObj) );
+        Dss_ObjSort( p->vObjs, pChildren, Dss_ObjFaninNum(pObj), NULL );
         for ( k = 0; k < Dss_ObjFaninNum(pObj); k++ )
             pObj->pFans[k] = Dss_Obj2Lit( pChildren[k] );
     }
@@ -747,68 +733,6 @@ void Dss_NtkTransform( Dss_Ntk_t * p, int * pPermDsd )
     if ( Dss_NtkCollectPerm_rec( p, p->pRoot, pPermDsd, &nPerms ) )
         p->pRoot = Dss_Regular(p->pRoot);
     assert( nPerms == (int)Dss_Regular(p->pRoot)->nSupp );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Comparing two DSD nodes.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Dss_ObjCompare( Dss_Man_t * p, Dss_Obj_t * p0i, Dss_Obj_t * p1i )
-{
-    Dss_Obj_t * p0 = Dss_Regular(p0i);
-    Dss_Obj_t * p1 = Dss_Regular(p1i);
-    Dss_Obj_t * pChild0, * pChild1;
-    int i, Res;
-    if ( Dss_ObjType(p0) < Dss_ObjType(p1) )
-        return -1;
-    if ( Dss_ObjType(p0) > Dss_ObjType(p1) )
-        return 1;
-    if ( Dss_ObjType(p0) < DAU_DSD_AND )
-    {
-//        assert( !Dss_IsComplement(p0i) );
-//        assert( !Dss_IsComplement(p1i) );
-        return 0;
-    }
-    if ( Dss_ObjFaninNum(p0) < Dss_ObjFaninNum(p1) )
-        return -1;
-    if ( Dss_ObjFaninNum(p0) > Dss_ObjFaninNum(p1) )
-        return 1;
-    for ( i = 0; i < Dss_ObjFaninNum(p0); i++ )
-    {
-        pChild0 = Dss_ObjChild( p, p0, i );
-        pChild1 = Dss_ObjChild( p, p1, i );
-        Res = Dss_ObjCompare( p, pChild0, pChild1 );
-        if ( Res != 0 )
-            return Res;
-    }
-    if ( Dss_IsComplement(p0i) < Dss_IsComplement(p1i) )
-        return -1;
-    if ( Dss_IsComplement(p0i) > Dss_IsComplement(p1i) )
-        return 1;
-    return 0;
-}
-void Dss_ObjSort( Dss_Man_t * p, Dss_Obj_t ** pNodes, int nNodes, int * pPerm )
-{
-    int i, j, best_i;
-    for ( i = 0; i < nNodes-1; i++ )
-    {
-        best_i = i;
-        for ( j = i+1; j < nNodes; j++ )
-            if ( Dss_ObjCompare(p, pNodes[best_i], pNodes[j]) == 1 )
-                best_i = j;
-        if ( i == best_i )
-            continue;
-        ABC_SWAP( Dss_Obj_t *, pNodes[i], pNodes[best_i] );
-        if ( pPerm )
-            ABC_SWAP( int, pPerm[i], pPerm[best_i] );
-    }
 }
 
 
@@ -847,11 +771,11 @@ Dss_Obj_t * Dss_ObjCreate( Dss_Man_t * p, int Type, Vec_Int_t * vFaninLits, word
     assert( Type != DAU_DSD_MUX || !Abc_LitIsCompl(Vec_IntEntry(vFaninLits, 1)) || !Abc_LitIsCompl(Vec_IntEntry(vFaninLits, 2)) );
     // check that leaves are in good order
     if ( Type == DAU_DSD_AND || Type == DAU_DSD_XOR )
-    Dss_ManForEachObjVec( vFaninLits, p, pFanin, i )
+    Dss_VecForEachObjVec( vFaninLits, p->vObjs, pFanin, i )
     {
         assert( Type != DAU_DSD_AND || Abc_LitIsCompl(Vec_IntEntry(vFaninLits, i)) || Dss_ObjType(pFanin) != DAU_DSD_AND );
         assert( Type != DAU_DSD_XOR || Dss_ObjType(pFanin) != DAU_DSD_XOR );
-        assert( pPrev == NULL || Dss_ObjCompare(p, pPrev, pFanin) <= 0 );
+        assert( pPrev == NULL || Dss_ObjCompare(p->vObjs, pPrev, pFanin) <= 0 );
         pPrev = pFanin;
     }
     // create new node
@@ -862,7 +786,7 @@ Dss_Obj_t * Dss_ObjCreate( Dss_Man_t * p, int Type, Vec_Int_t * vFaninLits, word
     Vec_IntForEachEntry( vFaninLits, Entry, i )
     {
         pObj->pFans[i] = Entry;
-        pObj->nSupp += Dss_ObjFanin(p, pObj, i)->nSupp;
+        pObj->nSupp += Dss_VecLitSuppSize(p->vObjs, Entry);
     }
 /*
     {
@@ -893,7 +817,7 @@ void Dss_ManHashProfile( Dss_Man_t * p )
     {
         Counter = 0;
         for ( pSpot = p->pBins + i; *pSpot; pSpot = Vec_IntEntryP(p->vNexts, pObj->Id), Counter++ )
-             pObj = Dss_ManObj( p, *pSpot );
+             pObj = Dss_VecObj( p->vObjs, *pSpot );
         if ( Counter )
             printf( "%d ", Counter );
     }
@@ -922,7 +846,7 @@ unsigned * Dss_ObjHashLookup( Dss_Man_t * p, int Type, Vec_Int_t * vFaninLits, w
     unsigned * pSpot = p->pBins + Dss_ObjHashKey(p, Type, vFaninLits, pTruth);
     for ( ; *pSpot; pSpot = Vec_IntEntryP(p->vNexts, pObj->Id) )
     {
-        pObj = Dss_ManObj( p, *pSpot );
+        pObj = Dss_VecObj( p->vObjs, *pSpot );
         if ( (int)pObj->Type == Type && 
              (int)pObj->nFans == Vec_IntSize(vFaninLits) && 
              !memcmp(pObj->pFans, Vec_IntArray(vFaninLits), sizeof(int)*pObj->nFans) &&
@@ -936,7 +860,7 @@ Dss_Obj_t * Dss_ObjFindOrAdd( Dss_Man_t * p, int Type, Vec_Int_t * vFaninLits, w
     Dss_Obj_t * pObj;
     unsigned * pSpot = Dss_ObjHashLookup( p, Type, vFaninLits, pTruth );
     if ( *pSpot )
-        return Dss_ManObj( p, *pSpot );
+        return Dss_VecObj( p->vObjs, *pSpot );
     *pSpot = Vec_PtrSize( p->vObjs );
     pObj = Dss_ObjCreate( p, Type, vFaninLits, pTruth );
     return pObj;
@@ -970,7 +894,6 @@ Dss_Man_t * Dss_ManAlloc( int nVars, int nNonDecLimit )
     p->vCopies = Vec_IntAlloc( 32 );
     p->pTtElems = Dss_ManTtElems();
     return p;
-
 }
 void Dss_ManFree( Dss_Man_t * p )
 {
@@ -1000,7 +923,7 @@ void Dss_ManPrint_rec( Dss_Man_t * p, Dss_Obj_t * pObj, int * pPermLits, int * p
     if ( pObj->Type == DAU_DSD_PRIME )
         Abc_TtPrintHexRev( stdout, Dss_ObjTruth(pObj), pObj->nFans );
     printf( "%c", OpenType[pObj->Type] );
-    Dss_ObjForEachFanin( p, pObj, pFanin, i )
+    Dss_ObjForEachFanin( p->vObjs, pObj, pFanin, i )
     {
         printf( "%s", Dss_ObjFaninC(pObj, i) ? "!":"" );
         Dss_ManPrint_rec( p, pFanin, pPermLits, pnSupp );
@@ -1011,27 +934,12 @@ void Dss_ManPrintOne( Dss_Man_t * p, int iDsdLit, int * pPermLits )
 {
     int nSupp = 0;
     printf( "%6d : ", Abc_Lit2Var(iDsdLit) );
-    printf( "%2d ",   Dss_ManLitSuppSize(p, iDsdLit) );
+    printf( "%2d ",   Dss_VecLitSuppSize(p->vObjs, iDsdLit) );
     printf( "%s",     Abc_LitIsCompl(iDsdLit) ? "!" : ""  );
-    Dss_ManPrint_rec( p, Dss_ManObj(p, Abc_Lit2Var(iDsdLit)), pPermLits, &nSupp );
+    Dss_ManPrint_rec( p, Dss_VecObj(p->vObjs, Abc_Lit2Var(iDsdLit)), pPermLits, &nSupp );
     printf( "\n" );
-    assert( nSupp == (int)Dss_ManObj(p, Abc_Lit2Var(iDsdLit))->nSupp );
+    assert( nSupp == (int)Dss_VecObj(p->vObjs, Abc_Lit2Var(iDsdLit))->nSupp );
 }
-/*
-int Dss_ManPrintIndex_rec( Dss_Man_t * p, Dss_Obj_t * pObj )
-{
-    Dss_Obj_t * pFanin;
-    int i, nVarsMax = 0;
-    assert( !Dss_IsComplement(pObj) );
-    if ( pObj->Type == DAU_DSD_CONST0 )
-        return 0;
-    if ( pObj->Type == DAU_DSD_VAR )
-        return pObj->iVar + 1;
-    Dss_ObjForEachFanin( p, pObj, pFanin, i )
-        nVarsMax = Abc_MaxInt( nVarsMax, Dss_ManPrintIndex_rec(p, pFanin) );
-    return nVarsMax;
-}
-*/
 int Dss_ManCheckNonDec_rec( Dss_Man_t * p, Dss_Obj_t * pObj )
 {
     Dss_Obj_t * pFanin;
@@ -1043,7 +951,7 @@ int Dss_ManCheckNonDec_rec( Dss_Man_t * p, Dss_Obj_t * pObj )
         return 0;
     if ( pObj->Type == DAU_DSD_PRIME )
         return 1;
-    Dss_ObjForEachFanin( p, pObj, pFanin, i )
+    Dss_ObjForEachFanin( p->vObjs, pObj, pFanin, i )
         if ( Dss_ManCheckNonDec_rec( p, pFanin ) )
             return 1;
     return 0;
@@ -1061,7 +969,7 @@ void Dss_ManDump( Dss_Man_t * p )
         printf( "Cannot open file \"%s\".\n", pFileName );
         return;
     }
-    Dss_ManForEachObj( p, pObj, i )
+    Dss_VecForEachObj( p->vObjs, pObj, i )
     {
         if ( pObj->Type != DAU_DSD_PRIME )
             continue;
@@ -1083,7 +991,7 @@ void Dss_ManPrint( Dss_Man_t * p )
     Dss_Obj_t * pObj;
     int CountNonDsd = 0, CountNonDsdStr = 0;
     int i, clk = clock();
-    Dss_ManForEachObj( p, pObj, i )
+    Dss_VecForEachObj( p->vObjs, pObj, i )
     {
         CountNonDsd += (pObj->Type == DAU_DSD_PRIME);
         CountNonDsdStr += Dss_ManCheckNonDec_rec( p, pObj );
@@ -1098,7 +1006,7 @@ void Dss_ManPrint( Dss_Man_t * p )
 //    Dss_ManHashProfile( p );
 //    Dss_ManDump( p );
 //    return;
-    Dss_ManForEachObj( p, pObj, i )
+    Dss_VecForEachObj( p->vObjs, pObj, i )
         Dss_ManPrintOne( p, Dss_Obj2Lit(pObj), NULL );
     printf( "\n" );
 }
@@ -1134,7 +1042,7 @@ void Dss_ManComputeTruth_rec( Dss_Man_t * p, Dss_Obj_t * pObj, int nVars, word *
             Abc_TtConst1( pRes, nWords );
         else
             Abc_TtConst0( pRes, nWords );
-        Dss_ObjForEachChild( p, pObj, pChild, i )
+        Dss_ObjForEachChild( p->vObjs, pObj, pChild, i )
         {
             Dss_ManComputeTruth_rec( p, pChild, nVars, pTtTemp, pPermLits, pnSupp );
             if ( pObj->Type == DAU_DSD_AND )
@@ -1148,7 +1056,7 @@ void Dss_ManComputeTruth_rec( Dss_Man_t * p, Dss_Obj_t * pObj, int nVars, word *
     if ( pObj->Type == DAU_DSD_MUX ) // mux
     {
         word pTtTemp[3][DAU_MAX_WORD];
-        Dss_ObjForEachChild( p, pObj, pChild, i )
+        Dss_ObjForEachChild( p->vObjs, pObj, pChild, i )
             Dss_ManComputeTruth_rec( p, pChild, nVars, pTtTemp[i], pPermLits, pnSupp );
         assert( i == 3 );
         Abc_TtMux( pRes, pTtTemp[0], pTtTemp[1], pTtTemp[2], nWords );
@@ -1158,7 +1066,7 @@ void Dss_ManComputeTruth_rec( Dss_Man_t * p, Dss_Obj_t * pObj, int nVars, word *
     if ( pObj->Type == DAU_DSD_PRIME ) // function
     {
         word pFanins[DAU_MAX_VAR][DAU_MAX_WORD];
-        Dss_ObjForEachChild( p, pObj, pChild, i )
+        Dss_ObjForEachChild( p->vObjs, pObj, pChild, i )
             Dss_ManComputeTruth_rec( p, pChild, nVars, pFanins[i], pPermLits, pnSupp );
         Dau_DsdTruthCompose_rec( Dss_ObjTruth(pObj), pFanins, pRes, pObj->nFans, nWords );
         if ( fCompl ) Abc_TtNot( pRes, nWords );
@@ -1169,7 +1077,7 @@ void Dss_ManComputeTruth_rec( Dss_Man_t * p, Dss_Obj_t * pObj, int nVars, word *
 }
 word * Dss_ManComputeTruth( Dss_Man_t * p, int iDsd, int nVars, int * pPermLits )
 {
-    Dss_Obj_t * pObj = Dss_Lit2Obj(p, iDsd);
+    Dss_Obj_t * pObj = Dss_Lit2Obj(p->vObjs, iDsd);
     word * pRes = p->pTtElems[DAU_MAX_VAR];
     int nWords = Abc_TtWordNum( nVars );
     int nSupp = 0;
@@ -1210,9 +1118,9 @@ int Dss_NtkRebuild_rec( Dss_Man_t * p, Dss_Ntk_t * pNtk, Dss_Obj_t * pObj )
     pObj = Dss_Regular(pObj);
     if ( pObj->Type == DAU_DSD_VAR )
         return Abc_Var2Lit( 1, fCompl );
-    Dss_ObjForEachChildNtk( pNtk, pObj, pChild, k )
+    Dss_ObjForEachChild( pNtk->vObjs, pObj, pChild, k )
     {
-        pChildren[k] = Dss_Lit2Obj( p, Dss_NtkRebuild_rec( p, pNtk, pChild ) );
+        pChildren[k] = Dss_Lit2Obj( p->vObjs, Dss_NtkRebuild_rec( p, pNtk, pChild ) );
         if ( pObj->Type == DAU_DSD_XOR && Dss_IsComplement(pChildren[k]) )
             pChildren[k] = Dss_Not(pChildren[k]), fCompl ^= 1;
     }
@@ -1275,7 +1183,7 @@ int Dss_ManOperation( Dss_Man_t * p, int Type, int * pLits, int nLits, unsigned 
         int j, nSSize = 0;
         for ( k = 0; k < nLits; k++ )
         {
-            pObj = Dss_Lit2Obj(p, pLits[k]);
+            pObj = Dss_Lit2Obj(p->vObjs, pLits[k]);
             if ( Dss_IsComplement(pObj) || pObj->Type != DAU_DSD_AND )
             {
                 fComplFan = (Dss_Regular(pObj)->Type == DAU_DSD_VAR && Dss_IsComplement(pObj));
@@ -1286,7 +1194,7 @@ int Dss_ManOperation( Dss_Man_t * p, int Type, int * pLits, int nLits, unsigned 
                 pChildren[nChildren++] = pObj;
             }
             else
-                Dss_ObjForEachChild( p, pObj, pChild, i )
+                Dss_ObjForEachChild( p->vObjs, pObj, pChild, i )
                 {
                     fComplFan = (Dss_Regular(pChild)->Type == DAU_DSD_VAR && Dss_IsComplement(pChild));
                     if ( fComplFan )
@@ -1296,7 +1204,7 @@ int Dss_ManOperation( Dss_Man_t * p, int Type, int * pLits, int nLits, unsigned 
                     pChildren[nChildren++] = pChild;
                 }
         }
-        Dss_ObjSort( p, pChildren, nChildren, pBegEnd );
+        Dss_ObjSort( p->vObjs, pChildren, nChildren, pBegEnd );
         // create permutation
         for ( j = i = 0; i < nChildren; i++ )
             for ( k = (pBegEnd[i] >> 16); k < (pBegEnd[i] & 0xFF); k++ )
@@ -1307,31 +1215,31 @@ int Dss_ManOperation( Dss_Man_t * p, int Type, int * pLits, int nLits, unsigned 
     {
         for ( k = 0; k < nLits; k++ )
         {
-            pObj = Dss_Lit2Obj(p, pLits[k]);
+            pObj = Dss_Lit2Obj(p->vObjs, pLits[k]);
             if ( Dss_IsComplement(pObj) || pObj->Type != DAU_DSD_AND )
                 pChildren[nChildren++] = pObj;
             else
-                Dss_ObjForEachChild( p, pObj, pChild, i )
+                Dss_ObjForEachChild( p->vObjs, pObj, pChild, i )
                     pChildren[nChildren++] = pChild;
         }
-        Dss_ObjSort( p, pChildren, nChildren, NULL );
+        Dss_ObjSort( p->vObjs, pChildren, nChildren, NULL );
     }
     else if ( Type == DAU_DSD_XOR )
     {
         for ( k = 0; k < nLits; k++ )
         {
             fCompl ^= Abc_LitIsCompl(pLits[k]);
-            pObj = Dss_Lit2Obj(p, Abc_LitRegular(pLits[k]));
+            pObj = Dss_Lit2Obj(p->vObjs, Abc_LitRegular(pLits[k]));
             if ( pObj->Type != DAU_DSD_XOR )
                 pChildren[nChildren++] = pObj;
             else
-                Dss_ObjForEachChild( p, pObj, pChild, i )
+                Dss_ObjForEachChild( p->vObjs, pObj, pChild, i )
                 {
                     assert( !Dss_IsComplement(pChild) );
                     pChildren[nChildren++] = pChild;
                 }
         }
-        Dss_ObjSort( p, pChildren, nChildren, NULL );
+        Dss_ObjSort( p->vObjs, pChildren, nChildren, NULL );
     }
     else if ( Type == DAU_DSD_MUX )
     {
@@ -1347,12 +1255,12 @@ int Dss_ManOperation( Dss_Man_t * p, int Type, int * pLits, int nLits, unsigned 
             fCompl ^= 1;
         }
         for ( k = 0; k < nLits; k++ )
-            pChildren[nChildren++] = Dss_Lit2Obj(p, pLits[k]);
+            pChildren[nChildren++] = Dss_Lit2Obj(p->vObjs, pLits[k]);
     }
     else if ( Type == DAU_DSD_PRIME )
     {
         for ( k = 0; k < nLits; k++ )
-            pChildren[nChildren++] = Dss_Lit2Obj(p, pLits[k]);
+            pChildren[nChildren++] = Dss_Lit2Obj(p->vObjs, pLits[k]);
     }
     else assert( 0 );
 
@@ -1370,7 +1278,7 @@ Dss_Fun_t * Dss_ManOperationFun( Dss_Man_t * p, int * iDsd, int * nFans )
     Dss_Fun_t * pFun = (Dss_Fun_t *)Buffer;
     pFun->iDsd = Dss_ManOperation( p, DAU_DSD_AND, iDsd, 2, pFun->pFans, NULL );
     pFun->nFans = nFans[0] + nFans[1];
-    assert( (int)pFun->nFans == Dss_ManLitSuppSize(p, pFun->iDsd) );
+    assert( (int)pFun->nFans == Dss_VecLitSuppSize(p->vObjs, pFun->iDsd) );
     return pFun;
 }
 
@@ -1441,7 +1349,7 @@ if ( Counter )
     Dss_NtkFree( pNtk );
     // pPermDsd maps vars of iDsdRes into literals of pTruth
     // translate this map into the one that maps vars of iDsdRes into literals of cut
-    pFun->nFans = Dss_ManLitSuppSize( p, pFun->iDsd );
+    pFun->nFans = Dss_VecLitSuppSize( p->vObjs, pFun->iDsd );
     for ( i = 0; i < (int)pFun->nFans; i++ )
         pFun->pFans[i] = (unsigned char)Abc_Lit2Lit( pMapDsd2Truth, pPermDsd[i] );
     return pFun;
@@ -1519,8 +1427,8 @@ Dss_ManPrintOne( p, iDsd[1], pFans[1] );
     if ( iDsd[1] == 0 ) return 0;
     if ( iDsd[1] == 1 ) return iDsd[0];
     // no overlap
-    assert( nFans[0] == Dss_ManLitSuppSize(p, iDsd[0]) );
-    assert( nFans[1] == Dss_ManLitSuppSize(p, iDsd[1]) );
+    assert( nFans[0] == Dss_VecLitSuppSize(p->vObjs, iDsd[0]) );
+    assert( nFans[1] == Dss_VecLitSuppSize(p->vObjs, iDsd[1]) );
     assert( nFans[0] + nFans[1] <= nKLutSize + Dss_WordCountOnes(uSharedMask) );
     // create map of shared variables
     pEnt = Dss_ManSharedMap( p, iDsd, nFans, pFans, uSharedMask );
@@ -1531,7 +1439,7 @@ Dss_ManPrintOne( p, iDsd[1], pFans[1] );
         pFun = Dss_ManBooleanAnd( p, pEnt, nFans, 0 );
     if ( pFun == NULL )
         return -1;
-    assert( (int)pFun->nFans == Dss_ManLitSuppSize(p, pFun->iDsd) );
+    assert( (int)pFun->nFans == Dss_VecLitSuppSize(p->vObjs, pFun->iDsd) );
     assert( (int)pFun->nFans <= nKLutSize );
 /*
     // create permutation
@@ -1616,17 +1524,17 @@ int Dss_ObjCheckTransparent( Dss_Man_t * p, Dss_Obj_t * pObj )
         return 0;
     if ( pObj->Type == DAU_DSD_XOR )
     {
-        Dss_ObjForEachFanin( p, pObj, pFanin, i )
+        Dss_ObjForEachFanin( p->vObjs, pObj, pFanin, i )
             if ( Dss_ObjCheckTransparent( p, pFanin ) )
                 return 1;
         return 0;
     }
     if ( pObj->Type == DAU_DSD_MUX )
     {
-        pFanin = Dss_ObjFanin( p, pObj, 1 );
+        pFanin = Dss_ObjFanin( p->vObjs, pObj, 1 );
         if ( !Dss_ObjCheckTransparent(p, pFanin) )
             return 0;
-        pFanin = Dss_ObjFanin( p, pObj, 2 );
+        pFanin = Dss_ObjFanin( p->vObjs, pObj, 2 );
         if ( !Dss_ObjCheckTransparent(p, pFanin) )
             return 0;
         return 1;
@@ -1686,7 +1594,7 @@ void Dau_DsdTest_()
     p = Dss_ManAlloc( nVars, 0 );
 
     // init
-    Vec_VecPushInt( vFuncs, 1, Dss_Obj2Lit(Dss_ManVar(p)) );
+    Vec_VecPushInt( vFuncs, 1, Dss_Obj2Lit(Dss_VecVar(p->vObjs,0)) );
 
     // enumerate
     for ( s = 2; s <= nVars; s++ )
@@ -1701,8 +1609,8 @@ void Dau_DsdTest_()
             Vec_IntForEachEntry( vOne, pEntries[0], e0 )
             Vec_IntForEachEntry( vTwo, pEntries[1], e1 )
             {
-                int fAddInv0 = !Dss_ObjCheckTransparent( p, Dss_ManObj(p, Abc_Lit2Var(pEntries[0])) );
-                int fAddInv1 = !Dss_ObjCheckTransparent( p, Dss_ManObj(p, Abc_Lit2Var(pEntries[1])) );
+                int fAddInv0 = !Dss_ObjCheckTransparent( p, Dss_VecObj(p->vObjs, Abc_Lit2Var(pEntries[0])) );
+                int fAddInv1 = !Dss_ObjCheckTransparent( p, Dss_VecObj(p->vObjs, Abc_Lit2Var(pEntries[1])) );
 
                 iLit = Dss_ManOperation( p, DAU_DSD_AND, pEntries, 2, NULL, NULL );
                 assert( !Abc_LitIsCompl(iLit) );
@@ -1755,9 +1663,9 @@ void Dau_DsdTest_()
             Vec_IntForEachEntry( vTwo,   pEntries[1], e1 )
             Vec_IntForEachEntry( vThree, pEntries[2], e2 )
             {
-                int fAddInv0 = !Dss_ObjCheckTransparent( p, Dss_ManObj(p, Abc_Lit2Var(pEntries[0])) );
-                int fAddInv1 = !Dss_ObjCheckTransparent( p, Dss_ManObj(p, Abc_Lit2Var(pEntries[1])) );
-                int fAddInv2 = !Dss_ObjCheckTransparent( p, Dss_ManObj(p, Abc_Lit2Var(pEntries[2])) );
+                int fAddInv0 = !Dss_ObjCheckTransparent( p, Dss_VecObj(p->vObjs, Abc_Lit2Var(pEntries[0])) );
+                int fAddInv1 = !Dss_ObjCheckTransparent( p, Dss_VecObj(p->vObjs, Abc_Lit2Var(pEntries[1])) );
+                int fAddInv2 = !Dss_ObjCheckTransparent( p, Dss_VecObj(p->vObjs, Abc_Lit2Var(pEntries[2])) );
 
                 if ( !fAddInv0 && k > j )
                     continue;
