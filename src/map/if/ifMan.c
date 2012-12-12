@@ -165,7 +165,7 @@ void If_ManStop( If_Man_t * p )
 //        Abc_NamPrint( p->pNamDsd );
         Abc_NamStop( p->pNamDsd );
 */
-        Dss_ManPrint( p->pDsdMan );
+        Dss_ManPrint( NULL, p->pDsdMan );
         Dss_ManFree( p->pDsdMan );
     }
 //    Abc_PrintTime( 1, "Truth", p->timeTruth );

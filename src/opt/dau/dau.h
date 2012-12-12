@@ -94,7 +94,7 @@ extern char *        Dau_DsdMerge( char * pDsd0i, int * pPerm0, char * pDsd1i, i
 extern Dss_Man_t *   Dss_ManAlloc( int nVars, int nNonDecLimit );
 extern void          Dss_ManFree( Dss_Man_t * p );
 extern int           Dss_ManMerge( Dss_Man_t * p, int * iDsd, int * nFans, int ** pFans, unsigned uSharedMask, int nKLutSize, unsigned char * pPerm, word * pTruth );
-extern void          Dss_ManPrint( Dss_Man_t * p );
+extern void          Dss_ManPrint( char * pFileName, Dss_Man_t * p );
 
 
 ABC_NAMESPACE_HEADER_END

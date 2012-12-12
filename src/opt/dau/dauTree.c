@@ -287,7 +287,7 @@ int Dss_ObjCheck666( Dss_Ntk_t * p )
     Vec_IntFree( vSupps );
     return 0;
 }
-void Dau_DsdTest()
+void Dau_DsdTest_()
 {
 /*
     extern Dss_Ntk_t * Dss_NtkCreate( char * pDsd, int nVars, word * pTruth );
@@ -885,7 +885,7 @@ Dss_Man_t * Dss_ManAlloc( int nVars, int nNonDecLimit )
     p = ABC_CALLOC( Dss_Man_t, 1 );
     p->nVars  = nVars;
     p->nNonDecLimit = nNonDecLimit;
-    p->nBins  = Abc_PrimeCudd( 100000 );
+    p->nBins  = Abc_PrimeCudd( 10000000 );
     p->pBins  = ABC_CALLOC( unsigned, p->nBins );
     p->pMem   = Mem_FlexStart();
     p->vObjs  = Vec_PtrAlloc( 10000 );
@@ -907,7 +907,7 @@ void Dss_ManFree( Dss_Man_t * p )
     ABC_FREE( p->pBins );
     ABC_FREE( p );
 }
-void Dss_ManPrint_rec( Dss_Man_t * p, Dss_Obj_t * pObj, int * pPermLits, int * pnSupp )
+void Dss_ManPrint_rec( FILE * pFile, Dss_Man_t * p, Dss_Obj_t * pObj, int * pPermLits, int * pnSupp )
 {
     char OpenType[7]  = {0, 0, 0, '(', '[', '<', '{'};
     char CloseType[7] = {0, 0, 0, ')', ']', '>', '}'};
@@ -915,31 +915,31 @@ void Dss_ManPrint_rec( Dss_Man_t * p, Dss_Obj_t * pObj, int * pPermLits, int * p
     int i;
     assert( !Dss_IsComplement(pObj) );
     if ( pObj->Type == DAU_DSD_CONST0 )
-        { printf( "0" ); return; }
+        { fprintf( pFile, "0" ); return; }
     if ( pObj->Type == DAU_DSD_VAR )
     {
         int iPermLit = pPermLits ? pPermLits[(*pnSupp)++] : Abc_Var2Lit((*pnSupp)++, 0);
-        printf( "%s%c", Abc_LitIsCompl(iPermLit)? "!":"", 'a' + Abc_Lit2Var(iPermLit) );
+        fprintf( pFile, "%s%c", Abc_LitIsCompl(iPermLit)? "!":"", 'a' + Abc_Lit2Var(iPermLit) );
         return;
     }
     if ( pObj->Type == DAU_DSD_PRIME )
-        Abc_TtPrintHexRev( stdout, Dss_ObjTruth(pObj), pObj->nFans );
-    printf( "%c", OpenType[pObj->Type] );
+        Abc_TtPrintHexRev( pFile, Dss_ObjTruth(pObj), pObj->nFans );
+    fprintf( pFile, "%c", OpenType[pObj->Type] );
     Dss_ObjForEachFanin( p->vObjs, pObj, pFanin, i )
     {
-        printf( "%s", Dss_ObjFaninC(pObj, i) ? "!":"" );
-        Dss_ManPrint_rec( p, pFanin, pPermLits, pnSupp );
+        fprintf( pFile, "%s", Dss_ObjFaninC(pObj, i) ? "!":"" );
+        Dss_ManPrint_rec( pFile, p, pFanin, pPermLits, pnSupp );
     }
-    printf( "%c", CloseType[pObj->Type] );
+    fprintf( pFile, "%c", CloseType[pObj->Type] );
 }
-void Dss_ManPrintOne( Dss_Man_t * p, int iDsdLit, int * pPermLits )
+void Dss_ManPrintOne( FILE * pFile, Dss_Man_t * p, int iDsdLit, int * pPermLits )
 {
     int nSupp = 0;
-    printf( "%6d : ", Abc_Lit2Var(iDsdLit) );
-    printf( "%2d ",   Dss_VecLitSuppSize(p->vObjs, iDsdLit) );
-    printf( "%s",     Abc_LitIsCompl(iDsdLit) ? "!" : ""  );
-    Dss_ManPrint_rec( p, Dss_VecObj(p->vObjs, Abc_Lit2Var(iDsdLit)), pPermLits, &nSupp );
-    printf( "\n" );
+    fprintf( pFile, "%6d : ", Abc_Lit2Var(iDsdLit) );
+    fprintf( pFile, "%2d ",   Dss_VecLitSuppSize(p->vObjs, iDsdLit) );
+    fprintf( pFile, "%s",     Abc_LitIsCompl(iDsdLit) ? "!" : ""  );
+    Dss_ManPrint_rec( pFile, p, Dss_VecObj(p->vObjs, Abc_Lit2Var(iDsdLit)), pPermLits, &nSupp );
+    fprintf( pFile, "\n" );
     assert( nSupp == (int)Dss_VecObj(p->vObjs, Abc_Lit2Var(iDsdLit))->nSupp );
 }
 int Dss_ManCheckNonDec_rec( Dss_Man_t * p, Dss_Obj_t * pObj )
@@ -988,29 +988,38 @@ void Dss_ManDump( Dss_Man_t * p )
     }
     fclose( pFile );
 }
-void Dss_ManPrint( Dss_Man_t * p )
+void Dss_ManPrint( char * pFileName, Dss_Man_t * p )
 {
     Dss_Obj_t * pObj;
     int CountNonDsd = 0, CountNonDsdStr = 0;
     int i, clk = clock();
+    FILE * pFile;
+    pFile = pFileName ? fopen( pFileName, "wb" ) : stdout;
+    if ( pFileName && pFile == NULL )
+    {
+        printf( "cannot open output file\n" );
+        return;
+    }
     Dss_VecForEachObj( p->vObjs, pObj, i )
     {
         CountNonDsd += (pObj->Type == DAU_DSD_PRIME);
         CountNonDsdStr += Dss_ManCheckNonDec_rec( p, pObj );
     }
-    printf( "Total number of objects    = %8d\n", Vec_PtrSize(p->vObjs) );
-    printf( "Non-DSD objects (max =%2d)  = %8d\n", p->nNonDecLimit, CountNonDsd );
-    printf( "Non-DSD structures         = %8d\n", CountNonDsdStr );
-    printf( "Memory used for objects    = %6.2f MB.\n", 1.0*Mem_FlexReadMemUsage(p->pMem)/(1<<20) );
-    printf( "Memory used for array      = %6.2f MB.\n", 1.0*sizeof(void *)*Vec_PtrCap(p->vObjs)/(1<<20) );
-    printf( "Memory used for hash table = %6.2f MB.\n", 1.0*sizeof(int)*p->nBins/(1<<20) );
+    fprintf( pFile, "Total number of objects    = %8d\n", Vec_PtrSize(p->vObjs) );
+    fprintf( pFile, "Non-DSD objects (max =%2d)  = %8d\n", p->nNonDecLimit, CountNonDsd );
+    fprintf( pFile, "Non-DSD structures         = %8d\n", CountNonDsdStr );
+    fprintf( pFile, "Memory used for objects    = %6.2f MB.\n", 1.0*Mem_FlexReadMemUsage(p->pMem)/(1<<20) );
+    fprintf( pFile, "Memory used for array      = %6.2f MB.\n", 1.0*sizeof(void *)*Vec_PtrCap(p->vObjs)/(1<<20) );
+    fprintf( pFile, "Memory used for hash table = %6.2f MB.\n", 1.0*sizeof(int)*p->nBins/(1<<20) );
     Abc_PrintTime( 1, "Time", clock() - clk );
 //    Dss_ManHashProfile( p );
 //    Dss_ManDump( p );
 //    return;
     Dss_VecForEachObj( p->vObjs, pObj, i )
-        Dss_ManPrintOne( p, Dss_Obj2Lit(pObj), NULL );
-    printf( "\n" );
+        Dss_ManPrintOne( pFile, p, Dss_Obj2Lit(pObj), NULL );
+    fprintf( pFile, "\n" );
+    if ( pFileName )
+        fclose( pFile );
 }
 
 /**Function*************************************************************
@@ -1279,9 +1288,30 @@ Dss_Fun_t * Dss_ManOperationFun( Dss_Man_t * p, int * iDsd, int * nFans )
     static char Buffer[100];
     Dss_Fun_t * pFun = (Dss_Fun_t *)Buffer;
     pFun->iDsd = Dss_ManOperation( p, DAU_DSD_AND, iDsd, 2, pFun->pFans, NULL );
+//printf( "%d %d -> %d  ", iDsd[0], iDsd[1], pFun->iDsd );
     pFun->nFans = nFans[0] + nFans[1];
     assert( (int)pFun->nFans == Dss_VecLitSuppSize(p->vObjs, pFun->iDsd) );
     return pFun;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Dss_EntPrint( Dss_Ent_t * p, Dss_Fun_t * pFun )
+{
+    int i;
+    printf( "%d %d ", p->iDsd0, p->iDsd1 );
+    for ( i = 0; i < (int)p->nShared; i++ )
+        printf( "%d=%d ", p->pShared[2*i], p->pShared[2*i+1] );
+    printf( "-> %d   ", pFun->iDsd );
 }
 
 /**Function*************************************************************
@@ -1354,6 +1384,8 @@ if ( Counter )
     pFun->nFans = Dss_VecLitSuppSize( p->vObjs, pFun->iDsd );
     for ( i = 0; i < (int)pFun->nFans; i++ )
         pFun->pFans[i] = (unsigned char)Abc_Lit2Lit( pMapDsd2Truth, pPermDsd[i] );
+
+//    Dss_EntPrint( pEnt, pFun );
     return pFun;
 }
 
@@ -1419,8 +1451,8 @@ int Dss_ManMerge( Dss_Man_t * p, int * iDsd, int * nFans, int ** pFans, unsigned
 
 if ( fVerbose )
 {
-Dss_ManPrintOne( p, iDsd[0], pFans[0] );
-Dss_ManPrintOne( p, iDsd[1], pFans[1] );
+Dss_ManPrintOne( stdout, p, iDsd[0], pFans[0] );
+Dss_ManPrintOne( stdout, p, iDsd[1], pFans[1] );
 } 
 
     // constant argument
@@ -1482,7 +1514,7 @@ Dss_ManPrintOne( p, iDsd[1], pFans[1] );
 
 if ( fVerbose )
 {
-Dss_ManPrintOne( p, pFun->iDsd, pPermResInt );
+Dss_ManPrintOne( stdout, p, pFun->iDsd, pPermResInt );
 printf( "\n" );
 }
 
@@ -1556,7 +1588,7 @@ int Dss_ObjCheckTransparent( Dss_Man_t * p, Dss_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
-void Dau_DsdTest()
+void Dau_DsdTest__()
 {
     int nVars = 8;
 //    char * pDsd = "[(ab)(cd)]";
@@ -1581,17 +1613,19 @@ void Dau_DsdTest()
   SeeAlso     []
 
 ***********************************************************************/
-void Dau_DsdTest_()
+void Dau_DsdTest()
 {
-    int nVars = 6;
-    Vec_Vec_t * vFuncs = Vec_VecStart( nVars+1 );
+    int nVars = 8;
+    Vec_Vec_t * vFuncs;
     Vec_Int_t * vOne, * vTwo, * vThree, * vRes;
     Dss_Man_t * p;
     int pEntries[3];
     int e0, e1, e2, iLit;
     int i, j, k, s;
 
+    return;
 
+    vFuncs = Vec_VecStart( nVars+1 );
     assert( nVars < DAU_MAX_VAR );
     p = Dss_ManAlloc( nVars, 0 );
 
@@ -1649,10 +1683,10 @@ void Dau_DsdTest_()
 
                 iLit = Dss_ManOperation( p, DAU_DSD_XOR, pEntries, 2, NULL, NULL );
                 assert( !Abc_LitIsCompl(iLit) );
-                Vec_IntPush( vRes, iLit );
+                Vec_IntPush( vRes, Abc_LitRegular(iLit) );
             }
         }
-
+/*
         for ( i = 1; i < s; i++ )
         for ( k = 1; k < s; k++ )
         for ( j = 1; j < s; j++ )
@@ -1695,9 +1729,10 @@ void Dau_DsdTest_()
                 }
             }
         }
+*/
         Vec_IntUniqify( vRes );
     }
-    Dss_ManPrint( p );
+    Dss_ManPrint( "_npn/npn/dsdcanon.txt", p );
 
     Dss_ManFree( p );
     Vec_VecFree( vFuncs );
@@ -1735,20 +1770,20 @@ void Dau_DsdTest444()
     iRes[2] = 1 ^ Dss_ManOperation( p, DAU_DSD_AND, iRes, 2, NULL, NULL );
     iRes[3] = Dss_ManOperation( p, DAU_DSD_AND, iLit2, 3, NULL, NULL );
 
-    Dss_ManPrintOne( p, iRes[0], NULL );
-    Dss_ManPrintOne( p, iRes[2], NULL );
-    Dss_ManPrintOne( p, iRes[3], NULL );
+    Dss_ManPrintOne( stdout, p, iRes[0], NULL );
+    Dss_ManPrintOne( stdout, p, iRes[2], NULL );
+    Dss_ManPrintOne( stdout, p, iRes[3], NULL );
 
-    Dss_ManPrintOne( p, iRes[2], pPermLits1 );
-    Dss_ManPrintOne( p, iRes[3], pPermLits2 );
+    Dss_ManPrintOne( stdout, p, iRes[2], pPermLits1 );
+    Dss_ManPrintOne( stdout, p, iRes[3], pPermLits2 );
 
     iRes[4] = Dss_ManMerge( p, iRes+2, nFans, pPermLits, uMaskShared, 6, pPermRes, NULL );
 
     for ( i = 0; i < 6; i++ )
         pPermResInt[i] = pPermRes[i];
 
-    Dss_ManPrintOne( p, iRes[4], NULL );
-    Dss_ManPrintOne( p, iRes[4], pPermResInt );
+    Dss_ManPrintOne( stdout, p, iRes[4], NULL );
+    Dss_ManPrintOne( stdout, p, iRes[4], pPermResInt );
 
     Dss_ManFree( p );
 }
