@@ -495,7 +495,7 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fSkipS
     if ( pCur + 1 < (unsigned char *)pContents + nFileSize && *pCur == 'c' )
     {
         Vec_Str_t * vStr;
-        char * pCurTemp;
+        unsigned char * pCurTemp;
         pCur++;
         while ( 1 )
         {
