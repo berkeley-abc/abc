@@ -119,7 +119,7 @@ Vec_Str_t * Gia_WriteEquivClasses( Gia_Man_t * p )
 {
     int nEquivSize;
     unsigned char * pBuffer = Gia_WriteEquivClassesInt( p, &nEquivSize );
-    return Vec_StrAllocArray( pBuffer, nEquivSize );
+    return Vec_StrAllocArray( (char *)pBuffer, nEquivSize );
 }
 
 /**Function*************************************************************
@@ -202,7 +202,7 @@ Vec_Str_t * Gia_AigerWriteMapping( Gia_Man_t * p )
 {
     int nMapSize;
     unsigned char * pBuffer = Gia_AigerWriteMappingInt( p, &nMapSize );
-    return Vec_StrAllocArray( pBuffer, nMapSize );
+    return Vec_StrAllocArray( (char *)pBuffer, nMapSize );
 }
 
 /**Function*************************************************************
