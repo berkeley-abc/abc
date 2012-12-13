@@ -531,7 +531,7 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fSkipS
             {
                 extern Gia_Rpr_t * Gia_AigerReadEquivClasses( unsigned char ** ppPos, int nSize );
                 pCur++;
-    //            pCurTemp = pCur + Gia_AigerReadInt(pCur);                    pCur += 4;
+    //            pCurTemp = pCur + Gia_AigerReadInt(pCur) + 4;              pCur += 4;
                 pNew->pReprs = Gia_AigerReadEquivClasses( &pCur, Gia_ManObjNum(pNew) );
                 pNew->pNexts = Gia_ManDeriveNexts( pNew );
     //            assert( pCur == pCurTemp );
@@ -567,7 +567,7 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fSkipS
             {
                 extern Vec_Int_t * Gia_AigerReadPacking( unsigned char ** ppPos, int nSize );
                 pCur++;
-                pCurTemp = pCur + Gia_AigerReadInt(pCur);               pCur += 4;
+                pCurTemp = pCur + Gia_AigerReadInt(pCur) + 4;           pCur += 4;
                 pNew->vPacking = Gia_AigerReadPacking( &pCur, pCurTemp - pCur ); 
                 assert( pCur == pCurTemp );
             }
@@ -576,7 +576,7 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fSkipS
             {
                 extern int * Gia_AigerReadMapping( unsigned char ** ppPos, int nSize );
                 pCur++;
-                pCurTemp = pCur + Gia_AigerReadInt(pCur);               pCur += 4;
+                pCurTemp = pCur + Gia_AigerReadInt(pCur) + 4;           pCur += 4;
                 pNew->pMapping = Gia_AigerReadMapping( &pCur, Gia_ManObjNum(pNew) );
                 assert( pCur == pCurTemp );
             }
@@ -590,7 +590,7 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fSkipS
                 }
                 else
                 {
-                    pCurTemp = pCur + Gia_AigerReadInt(pCur);           pCur += 4;
+                    pCurTemp = pCur + Gia_AigerReadInt(pCur) + 4;       pCur += 4;
                     ABC_FREE( pNew->pName );
                     pNew->pName = Abc_UtilStrsav( (char *)pCur );       pCur += strlen(pNew->pName) + 1;
                     assert( pCur == pCurTemp );
@@ -601,7 +601,7 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fSkipS
             {
                 Gia_Plc_t * pPlacement;
                 pCur++;
-                pCurTemp = pCur + Gia_AigerReadInt(pCur);               pCur += 4;
+                pCurTemp = pCur + Gia_AigerReadInt(pCur) + 4;           pCur += 4;
                 pPlacement = ABC_ALLOC( Gia_Plc_t, Gia_ManObjNum(pNew) );
                 memcpy( pPlacement, pCur, 4*Gia_ManObjNum(pNew) );      pCur += 4*Gia_ManObjNum(pNew);
                 assert( pCur == pCurTemp );
@@ -611,7 +611,7 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fSkipS
             { 
                 unsigned char * pSwitching;
                 pCur++;
-                pCurTemp = pCur + Gia_AigerReadInt(pCur);               pCur += 4;
+                pCurTemp = pCur + Gia_AigerReadInt(pCur) + 4;           pCur += 4;
                 pSwitching = ABC_ALLOC( unsigned char, Gia_ManObjNum(pNew) );
                 memcpy( pSwitching, pCur, Gia_ManObjNum(pNew) );        pCur += Gia_ManObjNum(pNew);
                 assert( pCur == pCurTemp );
@@ -1098,14 +1098,6 @@ void Gia_AigerWrite( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
         fwrite( Vec_StrArray(vStrExt), 1, Vec_StrSize(vStrExt), pFile );
         Vec_StrFree( vStrExt );
     }
-    // write name
-    if ( p->pName )
-    {
-        fprintf( pFile, "n" );
-        Gia_FileWriteBufferSize( pFile, strlen(p->pName)+1 );
-        fwrite( p->pName, 1, strlen(p->pName), pFile );
-        fprintf( pFile, "\0" );
-    }
     // write placement
     if ( p->pPlacement )
     {
@@ -1136,6 +1128,14 @@ void Gia_AigerWrite( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
         Gia_FileWriteBufferSize( pFile, 4*Gia_ManObjNum(p) );
         assert( Vec_IntSize(p->vObjClasses) == Gia_ManObjNum(p) );
         fwrite( Vec_IntArray(p->vObjClasses), 1, 4*Gia_ManObjNum(p), pFile );
+    }
+    // write name
+    if ( p->pName )
+    {
+        fprintf( pFile, "n" );
+        Gia_FileWriteBufferSize( pFile, strlen(p->pName)+1 );
+        fwrite( p->pName, 1, strlen(p->pName), pFile );
+        fprintf( pFile, "%c", '\0' );
     }
     // write comments
     fprintf( pFile, "\nThis file was produced by the GIA package in ABC on %s\n", Gia_TimeStamp() );
