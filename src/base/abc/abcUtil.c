@@ -2648,6 +2648,42 @@ void Abc_NtkFromPlaTest()
     Abc_NtkDelete( pNtkAig );
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Checks if the logic network is in the topological order.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkIsTopo( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pObj, * pFanin;
+    int i, k, Counter = 0;
+    Abc_NtkIncrementTravId( pNtk );
+    Abc_NtkForEachCi( pNtk, pObj, i )
+        Abc_NodeSetTravIdCurrent(pObj);
+    Abc_NtkForEachNode( pNtk, pObj, i )
+    {
+        // check if fanins are in the topo order
+        Abc_ObjForEachFanin( pObj, pFanin, k )
+            if ( !Abc_NodeIsTravIdCurrent(pFanin) )
+                break;
+        if ( k != Abc_ObjFaninNum(pObj) )
+        {
+            if ( Counter++ == 0 )
+                printf( "Node %d is out of topo order.\n", Abc_ObjId(pObj) );
+        }
+        Abc_NodeSetTravIdCurrent(pObj);
+    }
+    if ( Counter )
+        printf( "Topological order does not hold for %d internal nodes.\n", Counter );
+    return (int)(Counter == 0);
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

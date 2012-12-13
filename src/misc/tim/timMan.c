@@ -181,13 +181,13 @@ void Tim_ManStopP( Tim_Man_t ** p )
   SeeAlso     []
 
 ***********************************************************************/
-Tim_Man_t * Tim_ManCreate( Tim_Man_t * p, void * pLib, Vec_Flt_t * vInArrs, Vec_Flt_t * vOutReqs )
+void Tim_ManCreate( Tim_Man_t * p, void * pLib, Vec_Flt_t * vInArrs, Vec_Flt_t * vOutReqs )
 {
-    Tim_Box_t * pBox;
     If_LibBox_t * pLibBox = (If_LibBox_t *)pLib;
     If_Box_t * pIfBox;
-    int i, k, * pTable;
-    float Entry;
+    Tim_Box_t * pBox;
+    float * pTable, Entry;
+    int i, k;
     assert( p->vDelayTables == NULL );
     p->vDelayTables = Vec_PtrStart( Vec_PtrSize(pLibBox->vBoxes) );
     Tim_ManForEachBox( p, pBox, i )
@@ -195,9 +195,15 @@ Tim_Man_t * Tim_ManCreate( Tim_Man_t * p, void * pLib, Vec_Flt_t * vInArrs, Vec_
         if ( pBox->iDelayTable == -1 )
         {
             // create table with constants
-            pTable = ABC_ALLOC( int, pBox->nInputs * pBox->nOutputs );
+            pTable = ABC_ALLOC( float, 3 + pBox->nInputs * pBox->nOutputs );
+            pTable[0] = pBox->iDelayTable;
+            pTable[1] = pBox->nInputs;
+            pTable[2] = pBox->nOutputs;
             for ( k = 0; k < pBox->nInputs * pBox->nOutputs; k++ )
-                pTable[k] = 1;
+                pTable[3 + k] = 1.0;
+            // save table
+            pBox->iDelayTable = Vec_PtrSize(p->vDelayTables);
+            Vec_PtrPush( p->vDelayTables, pTable );
             continue;
         }
         assert( pBox->iDelayTable >= 0 && pBox->iDelayTable < Vec_PtrSize(pLibBox->vBoxes) );
@@ -208,9 +214,14 @@ Tim_Man_t * Tim_ManCreate( Tim_Man_t * p, void * pLib, Vec_Flt_t * vInArrs, Vec_
         if ( Vec_PtrEntry( p->vDelayTables, pBox->iDelayTable ) != NULL )
             continue;
         // create table of boxes
-        pTable = ABC_ALLOC( int, pBox->nInputs * pBox->nOutputs );
+        pTable = ABC_ALLOC( float, 3 + pBox->nInputs * pBox->nOutputs );
+        pTable[0] = pBox->iDelayTable;
+        pTable[1] = pBox->nInputs;
+        pTable[2] = pBox->nOutputs;
         for ( k = 0; k < pBox->nInputs * pBox->nOutputs; k++ )
-            pTable[k] = pIfBox->pDelays[k];
+            pTable[3 + k] = pIfBox->pDelays[k];
+        // save table
+        Vec_PtrWriteEntry( p->vDelayTables, pBox->iDelayTable, pTable );
     }
     // create arrival times
     if ( vInArrs )
@@ -226,7 +237,6 @@ Tim_Man_t * Tim_ManCreate( Tim_Man_t * p, void * pLib, Vec_Flt_t * vInArrs, Vec_
         Vec_FltForEachEntry( vOutReqs, Entry, i )
             Tim_ManInitPoRequired( p, i, Entry );
     }
-    return p;
 }
 
 
@@ -309,6 +319,8 @@ void Tim_ManPrint( Tim_Man_t * p )
     if ( Tim_ManDelayTableNum(p) > 0 )
     Tim_ManForEachTable( p, pTable, i )
     {
+        if ( pTable == NULL )
+            continue;
         printf( "Delay table %d:\n", i );
         assert( i == (int)pTable[0] );
         TableX = (int)pTable[1];

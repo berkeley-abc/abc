@@ -221,6 +221,7 @@ void If_LibBoxPrint( FILE * pFile, If_LibBox_t * p )
     If_Box_t * pBox;
     int i, j, k;
     fprintf( pFile, "# Box library written by ABC on %s.\n", Extra_TimeStamp() );
+    fprintf( pFile, "# <Name> <ID> <Type> <I> <O>\n" );
     If_LibBoxForEachBox( p, pBox, i )
     {
         fprintf( pFile, "%s %d %d %d %d\n", pBox->pName, pBox->Id, pBox->fWhite, pBox->nPis, pBox->nPos );

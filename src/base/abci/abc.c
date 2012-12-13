@@ -9429,17 +9429,16 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 */
 
+    if ( !Abc_NtkIsTopo(pNtk) )
+    {
+        Abc_Print( -1, "Current network is not in a topological order.\n" );
+        return 1;
+    }
+
     if ( pNtk )
     {
         extern void Abc_NtkTestTim( Abc_Ntk_t * pNtk, int fVerbose );
-        extern void Abc_NtkTestPinGia( Abc_Ntk_t * pNtk, int fWhiteBoxOnly, int fVerbose );
-//        Abc_NtkTestTim( pNtk, fVerbose );
-        if ( !Abc_NtkIsLogic(pNtk) )
-        {
-            Abc_Print( -1, "The current ABC netowrk is not a logic network.\n" );
-            return 1;
-        }
-        Abc_NtkTestPinGia( pNtk, 0, 0 );
+        Abc_NtkTestTim( pNtk, fVerbose );
     }
 
     return 0;

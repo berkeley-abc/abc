@@ -23,6 +23,7 @@
 #include "misc/tim/tim.h"
 #include "opt/dar/dar.h"
 #include "proof/dch/dch.h"
+#include "base/main/main.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -30,70 +31,14 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-#define TIM_TEST_BOX_RATIO 30
+#define TIM_TEST_BOX_RATIO 200
 
 // assume that every TIM_TEST_BOX_RATIO'th object is a white box
-static inline int Abc_NodeIsWhiteBox( Abc_Obj_t * pObj )  { assert( Abc_ObjIsNode(pObj) ); return Abc_ObjId(pObj) % TIM_TEST_BOX_RATIO == 0; }
+static inline int Abc_NodeIsWhiteBox( Abc_Obj_t * pObj )  { assert( Abc_ObjIsNode(pObj) ); return Abc_ObjId(pObj) % TIM_TEST_BOX_RATIO == 0 && Abc_ObjFaninNum(pObj) > 0 && Abc_ObjFaninNum(pObj) < 10; }
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
-
-/**Function*************************************************************
-
-  Synopsis    [Derives one delay table.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-float * Abc_NtkTestTimDelayTableOne( int nInputs, int nOutputs )
-{
-    float * pTable;
-    int i, k;
-    pTable = ABC_ALLOC( float, 3 + nInputs * nOutputs );
-    pTable[0] = (float)-1;
-    pTable[1] = (float)nInputs;
-    pTable[2] = (float)nOutputs;
-    for ( i = 0; i < nOutputs; i++ )
-    for ( k = 0; k < nInputs; k++ )
-        pTable[3 + i * nInputs + k] = 1.0;
-    return pTable;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Derives timing tables for each fanin size.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Vec_Ptr_t * Abc_NtkTestTimDelayTables( int nFaninsMax )
-{
-    Vec_Ptr_t * vTables;
-    float * pTable;
-    int i;
-    vTables = Vec_PtrAlloc( nFaninsMax + 1 );
-    for ( i = 0; i <= nFaninsMax; i++ )
-    {
-        // derive delay table
-        pTable = Abc_NtkTestTimDelayTableOne( i, 1 );
-        // set its table ID 
-        pTable[0] = (float)Vec_PtrSize(vTables);
-        // save in the resulting array
-        Vec_PtrPush( vTables, pTable );
-    }
-    return vTables;
-}
-
-
 
 /**Function*************************************************************
 
@@ -290,86 +235,118 @@ Vec_Ptr_t * Abc_NtkTestTimCollectCone( Abc_Ntk_t * pNtk, Abc_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Abc_NtkTestTimDeriveGia( Abc_Ntk_t * pNtk, int fVerbose  )
+Gia_Man_t * Abc_NtkTestTimDeriveGia( Abc_Ntk_t * pNtk, int fVerbose )
 {
     Gia_Man_t * pTemp;
     Gia_Man_t * pGia = NULL;
+    Gia_Man_t * pHoles = NULL;
     Tim_Man_t * pTim = NULL;
-    Vec_Ptr_t * vNodes, * vCone;
+    Vec_Int_t * vGiaCoLits;
     Abc_Obj_t * pObj, * pFanin;
-    int i, k, curPi, curPo, TableID;
+    int i, k, Entry, curPi, curPo, BoxUniqueId;
+    int nBoxFaninMax = 0;
+    assert( Abc_NtkIsTopo(pNtk) );
+    Abc_NtkFillTemp( pNtk );
 
-    // compute topological order
-    vNodes = Abc_NtkDfs( pNtk, 0 );
+    // create white boxes
+    curPi = Abc_NtkCiNum(pNtk);
+    curPo = Abc_NtkCoNum(pNtk);
+    Abc_NtkForEachNode( pNtk, pObj, i )
+    {
+        pObj->fMarkA = Abc_NodeIsWhiteBox( pObj );
+        if ( !pObj->fMarkA )
+            continue;
+        nBoxFaninMax  = Abc_MaxInt( nBoxFaninMax, Abc_ObjFaninNum(pObj) );
+        curPi++;
+        curPo += Abc_ObjFaninNum(pObj);
+        if ( fVerbose )
+            printf( "Selecting node %6d as white boxes with %d inputs and %d output.\n", i, Abc_ObjFaninNum(pObj), 1 );
+    }
 
     // construct GIA
-    Abc_NtkFillTemp( pNtk );
     pGia = Gia_ManStart( Abc_NtkObjNumMax(pNtk) );
+    pHoles = Gia_ManStart( 1000 );
+    for ( i = 0; i < curPi; i++ )
+        Gia_ManAppendCi(pGia);
+    for ( i = 0; i < nBoxFaninMax; i++ )
+        Gia_ManAppendCi(pHoles);
     Gia_ManHashAlloc( pGia );
-    // create primary inputs
-    Abc_NtkForEachCi( pNtk, pObj, i )
-        pObj->iTemp = Gia_ManAppendCi(pGia);
-    // create internal nodes in a topologic order from white boxes
-    Abc_NtkIncrementTravId( pNtk );
-    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
-    {
-        if ( !Abc_NodeIsWhiteBox(pObj) )
-            continue;
-        // collect nodes in the DFS order from this box
-        vCone = Abc_NtkTestTimCollectCone( pNtk, pObj );
-        // perform GIA constructino for these nodes
-        Vec_PtrForEachEntry( Abc_Obj_t *, vCone, pFanin, k )
-            pFanin->iTemp = Abc_NtkTestTimNodeStrash( pGia, pFanin );
-        // create inputs of the box
-        Abc_ObjForEachFanin( pObj, pFanin, k )
-            Gia_ManAppendCo( pGia, pFanin->iTemp );
-        // craete outputs of the box
-        pObj->iTemp = Gia_ManAppendCi(pGia);
-        if ( fVerbose )
-            printf( "White box %7d :  Cone = %7d  Lit = %7d.\n", Abc_ObjId(pObj), Vec_PtrSize(vCone), pObj->iTemp );
-        Vec_PtrFree( vCone );
-    }
-    // collect node in the DSF from the primary outputs
-    vCone = Abc_NtkTestTimCollectCone( pNtk, NULL );
-    // perform GIA constructino for these nodes
-    Vec_PtrForEachEntry( Abc_Obj_t *, vCone, pFanin, k )
-        pFanin->iTemp = Abc_NtkTestTimNodeStrash( pGia, pFanin );
-    Vec_PtrFree( vCone );
-    // create primary outputs
-    Abc_NtkForEachCo( pNtk, pObj, i )
-        pObj->iTemp = Gia_ManAppendCo( pGia, Abc_ObjFanin0(pObj)->iTemp );
-    // finalize GIA
-    Gia_ManHashStop( pGia );
-    Gia_ManSetRegNum( pGia, 0 );
-    // clean up GIA
-    pGia = Gia_ManCleanup( pTemp = pGia );
-    Gia_ManStop( pTemp );
-//Gia_ManPrint( pGia );
+    Gia_ManHashAlloc( pHoles );
 
     // construct the timing manager
-    pTim = Tim_ManStart( Gia_ManPiNum(pGia), Gia_ManPoNum(pGia) );
-    Tim_ManSetDelayTables( pTim, Abc_NtkTestTimDelayTables(Abc_NtkGetFaninMax(pNtk)) );
-    // create timing boxes
-    curPi = Abc_NtkPiNum( pNtk );
+    pTim = Tim_ManStart( curPi, curPo );
+
+    // assign primary inputs
+    curPi = 0;
     curPo = 0;
-    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
+    Abc_NtkForEachCi( pNtk, pObj, i )
+        pObj->iTemp = Abc_Var2Lit( Gia_ObjId(pGia, Gia_ManCi(pGia, curPi++)), 0 );
+    // create internal nodes in a topologic order from white boxes
+    vGiaCoLits = Vec_IntAlloc( 1000 );
+    Abc_NtkForEachNode( pNtk, pObj, i )
     {
-        if ( !Abc_NodeIsWhiteBox(pObj) )
+        if ( !pObj->fMarkA ) // not a white box
+        {
+            pObj->iTemp = Abc_NtkTestTimNodeStrash( pGia, pObj );
             continue;
-        TableID = Abc_ObjFaninNum(pObj); // in this case, the node size is the ID of its delay table
-        Tim_ManCreateBox( pTim, curPo, Abc_ObjFaninNum(pObj), curPi, 1, TableID );
-        curPi += 1;
+        }
+        // create box
+        BoxUniqueId = Abc_ObjFaninNum(pObj); // in this case, the node size is the ID of its delay table
+        Tim_ManCreateBox( pTim, curPo, Abc_ObjFaninNum(pObj), curPi, 1, BoxUniqueId );
         curPo += Abc_ObjFaninNum(pObj);
+
+        // handle box inputs
+        Abc_ObjForEachFanin( pObj, pFanin, k )
+        {
+            // save CO drivers for the AIG
+            Vec_IntPush( vGiaCoLits, pFanin->iTemp );
+            // load CI nodes for the Holes
+            pFanin->iTemp = Abc_Var2Lit( Gia_ObjId(pHoles, Gia_ManCi(pHoles, k)), 0 );
+        }
+
+        // handle logic of the box
+        pObj->iTemp = Abc_NtkTestTimNodeStrash( pHoles, pObj );
+
+        // handle box outputs
+        // save CO drivers for the Holes
+        Gia_ManAppendCo( pHoles, pObj->iTemp );
+        // load CO drivers for the AIG
+        pObj->iTemp = Abc_Var2Lit( Gia_ObjId(pGia, Gia_ManCi(pGia, curPi++)), 0 );
     }
+    Abc_NtkCleanMarkA( pNtk );
+    // create COs of the AIG
+    Abc_NtkForEachCo( pNtk, pObj, i )
+        Gia_ManAppendCo( pGia, Abc_ObjFanin0(pObj)->iTemp );
+    Vec_IntForEachEntry( vGiaCoLits, Entry, i )
+        Gia_ManAppendCo( pGia, Entry );
+    Vec_IntFree( vGiaCoLits );
+    // check parameters
     curPo += Abc_NtkPoNum( pNtk );
     assert( curPi == Gia_ManPiNum(pGia) );
     assert( curPo == Gia_ManPoNum(pGia) );
-    Vec_PtrFree( vNodes );
+    // finalize GIA
+    Gia_ManHashStop( pGia );
+    Gia_ManSetRegNum( pGia, 0 );
+    Gia_ManHashStop( pHoles );
+    Gia_ManSetRegNum( pHoles, 0 );
+
+    // clean up GIA
+    pGia = Gia_ManCleanup( pTemp = pGia );
+    Gia_ManStop( pTemp );
+    pHoles = Gia_ManCleanup( pTemp = pHoles );
+    Gia_ManStop( pTemp );
 
     // attach the timing manager
     assert( pGia->pManTime == NULL );
     pGia->pManTime = pTim;
+
+    // combinen hierarchy manager with box info and input/output arrival/required info
+    Tim_ManPrint( pGia->pManTime );
+    Tim_ManCreate( pGia->pManTime, Abc_FrameReadLibBox(), NULL, NULL );
+    Tim_ManPrint( pGia->pManTime );
+
     // return 
+    pGia->pAigExtra = pHoles;
     return pGia;
 }
 

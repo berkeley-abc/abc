@@ -21,6 +21,7 @@
 
 #include "gia.h"
 #include "misc/tim/tim.h"
+#include "base/main/main.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -176,7 +177,7 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fSkipS
     Gia_Man_t * pNew, * pTemp;
     Vec_Int_t * vLits = NULL, * vPoTypes = NULL;
     Vec_Int_t * vNodes, * vDrivers;//, * vTerms;
-    int iObj, iNode0, iNode1;
+    int iObj, iNode0, iNode1, fHieOnly = 0;
     int nTotal, nInputs, nOutputs, nLatches, nAnds, i;//, iTerm, nDigits;
     int nBad = 0, nConstr = 0, nJust = 0, nFair = 0;
     unsigned char * pDrivers, * pSymbols, * pCur;//, * pType;
@@ -561,6 +562,7 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fSkipS
                 pCur += Vec_StrSize(vStr);
                 pNew->pManTime = Tim_ManLoad( vStr, 1 );
                 Vec_StrFree( vStr );
+                fHieOnly = 1;
             }
             // read packing
             else if ( *pCur == 'k' )
@@ -669,11 +671,21 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fSkipS
         pNew->vObjClasses  = vObjMap;
         pNew->pManTime     = pManTime;
     }
+
+    if ( fHieOnly )
+    {
+        Tim_ManPrint( pNew->pManTime );
+        Tim_ManCreate( pNew->pManTime, Abc_FrameReadLibBox(), pNew->vInArrs, pNew->vOutReqs );
+        Tim_ManPrint( pNew->pManTime );
+    }
+
+/*
     if ( pNew->pManTime )
     {
         pNew = Gia_ManDupUnnomalize( pTemp = pNew );
         Gia_ManStop( pTemp );
     }
+*/
 /*
     // check the result
     if ( fCheck && !Gia_ManCheck( pNew ) )
@@ -909,6 +921,7 @@ void Gia_AigerWrite( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
     int i, nBufferSize, Pos;
     unsigned char * pBuffer;
     unsigned uLit0, uLit1, uLit;
+    assert( Gia_ManIsNormalized(pInit) );
 
     if ( Gia_ManCoNum(pInit) == 0 )
     {
@@ -1112,6 +1125,7 @@ void Gia_AigerWrite( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
         Gia_FileWriteBufferSize( pFile, Gia_ManObjNum(p) );
         fwrite( p->pSwitching, 1, Gia_ManObjNum(p), pFile );
     }
+/*
     // write timing information
     if ( p->pManTime )
     {
@@ -1121,6 +1135,7 @@ void Gia_AigerWrite( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
         fwrite( Vec_StrArray(vStrExt), 1, Vec_StrSize(vStrExt), pFile );
         Vec_StrFree( vStrExt );
     }
+*/
     // write object classes
     if ( p->vObjClasses )
     {
