@@ -186,7 +186,8 @@ void Tim_ManCreate( Tim_Man_t * p, void * pLib, Vec_Flt_t * vInArrs, Vec_Flt_t *
     If_LibBox_t * pLibBox = (If_LibBox_t *)pLib;
     If_Box_t * pIfBox;
     Tim_Box_t * pBox;
-    float * pTable, Entry;
+    Tim_Obj_t * pObj;
+    float * pTable;
     int i, k;
     assert( p->vDelayTables == NULL );
     p->vDelayTables = Vec_PtrStart( Vec_PtrSize(pLibBox->vBoxes) );
@@ -227,16 +228,60 @@ void Tim_ManCreate( Tim_Man_t * p, void * pLib, Vec_Flt_t * vInArrs, Vec_Flt_t *
     if ( vInArrs )
     {
         assert( Vec_FltSize(vInArrs) == Tim_ManPiNum(p) );
-        Vec_FltForEachEntry( vInArrs, Entry, i )
-            Tim_ManInitPiArrival( p, i, Entry );
+        Tim_ManForEachPi( p, pObj, i )
+            pObj->timeArr = Vec_FltEntry(vInArrs, i);
+
     }
     // create required times
     if ( vOutReqs )
     {
+        k = 0;
         assert( Vec_FltSize(vOutReqs) == Tim_ManPoNum(p) );
-        Vec_FltForEachEntry( vOutReqs, Entry, i )
-            Tim_ManInitPoRequired( p, i, Entry );
+        Tim_ManForEachPo( p, pObj, i )
+            pObj->timeReq = Vec_FltEntry(vOutReqs, k++);
+        assert( k == Tim_ManPoNum(p) );
     }
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Get arrival and required times if they are non-trivial.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Tim_ManGetArrsReqs( Tim_Man_t * p, Vec_Flt_t ** pvInArrs, Vec_Flt_t ** pvOutReqs )
+{
+    Tim_Obj_t * pObj;
+    int i, fTrivial = 1;
+    *pvInArrs = NULL;
+    *pvOutReqs = NULL;
+    Tim_ManForEachPi( p, pObj, i )
+        if ( pObj->timeArr != 0.0 )
+        {
+            fTrivial = 0;
+            break;
+        }
+    Tim_ManForEachPo( p, pObj, i )
+        if ( pObj->timeReq != TIM_ETERNITY )
+        {
+            fTrivial = 0;
+            break;
+        }
+    if ( fTrivial )
+        return 0;
+    *pvInArrs  = Vec_FltAlloc( Tim_ManPiNum(p) );
+    Tim_ManForEachPi( p, pObj, i )
+        Vec_FltPush( *pvInArrs, pObj->timeArr );
+    *pvOutReqs = Vec_FltAlloc( Tim_ManPoNum(p) );
+    Tim_ManForEachPo( p, pObj, i )
+        Vec_FltPush( *pvOutReqs, pObj->timeReq );
+    return 1;
 }
 
 

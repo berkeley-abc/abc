@@ -128,6 +128,7 @@ extern Tim_Man_t *     Tim_ManLoad( Vec_Str_t * p, int fHieOnly );
 extern Tim_Man_t *     Tim_ManStart( int nCis, int nCos );
 extern Tim_Man_t *     Tim_ManDup( Tim_Man_t * p, int fUnitDelay );
 extern void            Tim_ManCreate( Tim_Man_t * p, void * pLib, Vec_Flt_t * vInArrs, Vec_Flt_t * vOutReqs );
+extern int             Tim_ManGetArrsReqs( Tim_Man_t * p, Vec_Flt_t ** pvInArrs, Vec_Flt_t ** pvOutReqs );
 extern void            Tim_ManStop( Tim_Man_t * p );
 extern void            Tim_ManStopP( Tim_Man_t ** p );
 extern void            Tim_ManPrint( Tim_Man_t * p );

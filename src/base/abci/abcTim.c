@@ -226,6 +226,36 @@ Vec_Ptr_t * Abc_NtkTestTimCollectCone( Abc_Ntk_t * pNtk, Abc_Obj_t * pObj )
 
 /**Function*************************************************************
 
+  Synopsis    [Create arrival times]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Flt_t * Abc_NtkTestCreateArrivals( int nInputs )
+{
+    Vec_Flt_t * p;
+    int i;
+    p = Vec_FltAlloc( nInputs );
+    for ( i = 0; i < nInputs; i++ )
+        Vec_FltPush( p, 1.0*(i % 10) );
+    return p;
+}
+Vec_Flt_t * Abc_NtkTestCreateRequired( int nOutputs )
+{
+    Vec_Flt_t * p;
+    int i;
+    p = Vec_FltAlloc( nOutputs );
+    for ( i = 0; i < nOutputs; i++ )
+        Vec_FltPush( p, 100.0 + 1.0*i );
+    return p;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Derives GIA manager together with the hierachy manager.]
 
   Description []
@@ -241,7 +271,8 @@ Gia_Man_t * Abc_NtkTestTimDeriveGia( Abc_Ntk_t * pNtk, int fVerbose )
     Gia_Man_t * pGia = NULL;
     Gia_Man_t * pHoles = NULL;
     Tim_Man_t * pTim = NULL;
-    Vec_Int_t * vGiaCoLits;
+    Vec_Int_t * vGiaCoLits, * vGiaCoLits2;
+    Vec_Flt_t * vArrTimes, * vReqTimes;
     Abc_Obj_t * pObj, * pFanin;
     int i, k, Entry, curPi, curPo, BoxUniqueId;
     int nBoxFaninMax = 0;
@@ -283,6 +314,7 @@ Gia_Man_t * Abc_NtkTestTimDeriveGia( Abc_Ntk_t * pNtk, int fVerbose )
         pObj->iTemp = Abc_Var2Lit( Gia_ObjId(pGia, Gia_ManCi(pGia, curPi++)), 0 );
     // create internal nodes in a topologic order from white boxes
     vGiaCoLits = Vec_IntAlloc( 1000 );
+    vGiaCoLits2 = Vec_IntAlloc( 1000 );
     Abc_NtkForEachNode( pNtk, pObj, i )
     {
         if ( !pObj->fMarkA ) // not a white box
@@ -309,7 +341,8 @@ Gia_Man_t * Abc_NtkTestTimDeriveGia( Abc_Ntk_t * pNtk, int fVerbose )
 
         // handle box outputs
         // save CO drivers for the Holes
-        Gia_ManAppendCo( pHoles, pObj->iTemp );
+        Vec_IntPush( vGiaCoLits2, pObj->iTemp );
+//        Gia_ManAppendCo( pHoles, pObj->iTemp );
         // load CO drivers for the AIG
         pObj->iTemp = Abc_Var2Lit( Gia_ObjId(pGia, Gia_ManCi(pGia, curPi++)), 0 );
     }
@@ -320,6 +353,10 @@ Gia_Man_t * Abc_NtkTestTimDeriveGia( Abc_Ntk_t * pNtk, int fVerbose )
     Vec_IntForEachEntry( vGiaCoLits, Entry, i )
         Gia_ManAppendCo( pGia, Entry );
     Vec_IntFree( vGiaCoLits );
+    // second AIG
+    Vec_IntForEachEntry( vGiaCoLits2, Entry, i )
+        Gia_ManAppendCo( pHoles, Entry );
+    Vec_IntFree( vGiaCoLits2 );
     // check parameters
     curPo += Abc_NtkPoNum( pNtk );
     assert( curPi == Gia_ManPiNum(pGia) );
@@ -340,10 +377,18 @@ Gia_Man_t * Abc_NtkTestTimDeriveGia( Abc_Ntk_t * pNtk, int fVerbose )
     assert( pGia->pManTime == NULL );
     pGia->pManTime = pTim;
 
-    // combinen hierarchy manager with box info and input/output arrival/required info
+    // derive hierarchy manager from box info and input/output arrival/required info
+    vArrTimes = Abc_NtkTestCreateArrivals( Abc_NtkPiNum(pNtk) );
+    vReqTimes = Abc_NtkTestCreateRequired( Abc_NtkPoNum(pNtk) );
+
     Tim_ManPrint( pGia->pManTime );
-    Tim_ManCreate( pGia->pManTime, Abc_FrameReadLibBox(), NULL, NULL );
+    Tim_ManCreate( pGia->pManTime, Abc_FrameReadLibBox(), vArrTimes, vReqTimes );
     Tim_ManPrint( pGia->pManTime );
+
+    Vec_FltFree( vArrTimes );
+    Vec_FltFree( vReqTimes );
+
+Gia_AigerWrite( pHoles, "holes00.aig", 0, 0 );
 
     // return 
     pGia->pAigExtra = pHoles;

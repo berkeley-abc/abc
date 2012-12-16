@@ -504,7 +504,7 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fSkipS
             if ( *pCur == 'a' )
             {
                 pCur++;
-                vStr = Vec_StrStart( Gia_AigerReadInt(pCur) );       pCur += 4;
+                vStr = Vec_StrStart( Gia_AigerReadInt(pCur) );             pCur += 4;
                 memcpy( Vec_StrArray(vStr), pCur, Vec_StrSize(vStr) );
                 pCur += Vec_StrSize(vStr);
                 pNew->pAigExtra = Gia_AigerReadFromMemory( Vec_StrArray(vStr), Vec_StrSize(vStr), 0, 0 );
@@ -514,18 +514,23 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fSkipS
             else if ( *pCur == 'c' )
             {
                 pCur++;
-                assert( Gia_AigerReadInt(pCur) == 4 );                pCur += 4;
-                pNew->nConstrs = Gia_AigerReadInt( pCur );            pCur += 4;
+                assert( Gia_AigerReadInt(pCur) == 4 );                     pCur += 4;
+                pNew->nConstrs = Gia_AigerReadInt( pCur );                 pCur += 4;
             }
             // read delay information
-            else if ( *pCur == 'd' )
+            else if ( *pCur == 'i' )
             {
                 pCur++;
-                assert( Gia_AigerReadInt(pCur) == 4*(Gia_ManPiNum(pNew) + Gia_ManPoNum(pNew)) );   pCur += 4;
-                pNew->vInArrs  = Vec_FltStart( Gia_ManPiNum(pNew) );
-                pNew->vOutReqs = Vec_FltStart( Gia_ManPoNum(pNew) );
-                memcpy( Vec_FltArray(pNew->vInArrs),  pCur, 4*Gia_ManPiNum(pNew) );   pCur += 4*Gia_ManPiNum(pNew);
-                memcpy( Vec_FltArray(pNew->vOutReqs), pCur, 4*Gia_ManPoNum(pNew) );   pCur += 4*Gia_ManPoNum(pNew);
+                nInputs = Gia_AigerReadInt(pCur)/4;                        pCur += 4;
+                pNew->vInArrs  = Vec_FltStart( nInputs );
+                memcpy( Vec_FltArray(pNew->vInArrs),  pCur, 4*nInputs );   pCur += 4*nInputs;
+            }
+            else if ( *pCur == 'o' )
+            {
+                pCur++;
+                nOutputs = Gia_AigerReadInt(pCur)/4;                       pCur += 4;
+                pNew->vOutReqs  = Vec_FltStart( nOutputs );
+                memcpy( Vec_FltArray(pNew->vOutReqs),  pCur, 4*nOutputs ); pCur += 4*nOutputs;
             }
             // read equivalence classes
             else if ( *pCur == 'e' )
@@ -677,6 +682,8 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fSkipS
         Tim_ManPrint( pNew->pManTime );
         Tim_ManCreate( pNew->pManTime, Abc_FrameReadLibBox(), pNew->vInArrs, pNew->vOutReqs );
         Tim_ManPrint( pNew->pManTime );
+        Vec_FltFreeP( &pNew->vInArrs );
+        Vec_FltFreeP( &pNew->vOutReqs );
     }
 
 /*
@@ -1047,14 +1054,24 @@ void Gia_AigerWrite( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
     }
 */
     // write gate classes
-    if ( p->vInArrs && p->vOutReqs )
+    if ( p->pManTime )
     {
-        fprintf( pFile, "d" );
-        Gia_FileWriteBufferSize( pFile, 4*(Gia_ManPiNum(p) + Gia_ManPoNum(p)) );
-        assert( Vec_FltSize(p->vInArrs)  == Gia_ManPiNum(p) );
-        assert( Vec_FltSize(p->vOutReqs) == Gia_ManPoNum(p) );
-        fwrite( Vec_FltArray(p->vInArrs),  1, 4*Gia_ManPiNum(p), pFile );
-        fwrite( Vec_FltArray(p->vOutReqs), 1, 4*Gia_ManPoNum(p), pFile );
+        Vec_Flt_t * vArrTimes, * vReqTimes;
+        if ( Tim_ManGetArrsReqs( p->pManTime, &vArrTimes, &vReqTimes ) )
+        {
+            fprintf( pFile, "i" );
+            Gia_FileWriteBufferSize( pFile, 4*Tim_ManPiNum(p->pManTime) );
+            assert( Vec_FltSize(vArrTimes) == Tim_ManPiNum(p->pManTime) );
+            fwrite( Vec_FltArray(vArrTimes), 1, 4*Gia_ManPiNum(p->pManTime), pFile );
+
+            fprintf( pFile, "o" );
+            Gia_FileWriteBufferSize( pFile, 4*Tim_ManPoNum(p->pManTime) );
+            assert( Vec_FltSize(vReqTimes) == Tim_ManPoNum(p->pManTime) );
+            fwrite( Vec_FltArray(vReqTimes), 1, 4*Gia_ManPoNum(p->pManTime), pFile );
+
+            Vec_FltFree( vArrTimes );
+            Vec_FltFree( vReqTimes );
+        }
     }
     // write equivalences
     if ( p->pReprs && p->pNexts )
