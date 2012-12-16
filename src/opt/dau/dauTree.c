@@ -31,8 +31,8 @@ ABC_NAMESPACE_IMPL_START
 typedef struct Dss_Fun_t_ Dss_Fun_t;
 struct Dss_Fun_t_
 {
-    unsigned       iDsd  :    27;  // DSD literal
-    unsigned       nFans :     5;  // fanin count
+    unsigned       iDsd  :    26;  // DSD literal
+    unsigned       nFans :     6;  // fanin count
     unsigned char  pFans[0];       // fanins
 };
 
@@ -85,6 +85,16 @@ struct Dss_Man_t_
     Vec_Int_t *    vLeaves;        // temp
     Vec_Int_t *    vCopies;        // temp
     word **        pTtElems;       // elementary TTs
+    Dss_Ent_t **   pCache;         // decomposition cache
+    int            nCache;         // size of decomposition cache
+    Mem_Flex_t *   pMemEnts;       // memory for cache entries
+    int            nCacheHits[2];
+    int            nCacheMisses[2];
+    int            nCacheEntries[2];
+    clock_t        timeBeg;
+    clock_t        timeDec;
+    clock_t        timeLook;
+    clock_t        timeEnd;
 };
 
 static inline Dss_Obj_t *  Dss_Regular( Dss_Obj_t * p )                            { return (Dss_Obj_t *)((ABC_PTRUINT_T)(p) & ~01);                                    }
@@ -92,6 +102,8 @@ static inline Dss_Obj_t *  Dss_Not( Dss_Obj_t * p )                             
 static inline Dss_Obj_t *  Dss_NotCond( Dss_Obj_t * p, int c )                     { return (Dss_Obj_t *)((ABC_PTRUINT_T)(p) ^ (c));                                    }
 static inline int          Dss_IsComplement( Dss_Obj_t * p )                       { return (int)((ABC_PTRUINT_T)(p) & 01);                                             }
 
+static inline int          Dss_EntWordNum( Dss_Ent_t * p )                         { return sizeof(Dss_Ent_t) / 8 + p->nShared / 4 + ((p->nShared & 3) > 0);            }
+static inline int          Dss_FunWordNum( Dss_Fun_t * p )                         { assert(p->nFans >= 2); return (p->nFans + 4) / 8 + (((p->nFans + 4) & 7) > 0);     }
 static inline int          Dss_ObjWordNum( int nFans )                             { return sizeof(Dss_Obj_t) / 8 + nFans / 2 + ((nFans & 1) > 0);                      }
 static inline word *       Dss_ObjTruth( Dss_Obj_t * pObj )                        { return (word *)pObj + pObj->nWords;                                                }
 
@@ -111,10 +123,6 @@ static inline int          Dss_Obj2Lit( Dss_Obj_t * pObj )                      
 static inline Dss_Obj_t *  Dss_Lit2Obj( Vec_Ptr_t * p, int iLit )                  { return Dss_NotCond(Dss_VecObj(p, Abc_Lit2Var(iLit)), Abc_LitIsCompl(iLit));        }
 static inline Dss_Obj_t *  Dss_ObjFanin( Vec_Ptr_t * p, Dss_Obj_t * pObj, int i )  { assert(i < (int)pObj->nFans); return Dss_VecObj(p, Abc_Lit2Var(pObj->pFans[i]));   }
 static inline Dss_Obj_t *  Dss_ObjChild( Vec_Ptr_t * p, Dss_Obj_t * pObj, int i )  { assert(i < (int)pObj->nFans); return Dss_Lit2Obj(p, pObj->pFans[i]);               }
-
-static inline int          Dss_EntWordNum( Dss_Ent_t * p )                         { return sizeof(Dss_Ent_t) / 8 + p->nShared / 4 + ((p->nShared & 3) > 0);            }
-static inline int          Dss_FunWordNum( Dss_Fun_t * p )                         { assert(p->nFans >= 2); return (p->nFans + 4) / 8 + (((p->nFans + 4) & 7) > 0);     }
-static inline word *       Dss_FunTruth( Dss_Fun_t * p )                           { assert(p->nFans >= 2); return (word *)p + Dss_FunWordNum(p);                       }
 
 #define Dss_VecForEachObj( vVec, pObj, i )                \
     Vec_PtrForEachEntry( Dss_Obj_t *, vVec, pObj, i )
@@ -870,6 +878,83 @@ Dss_Obj_t * Dss_ObjFindOrAdd( Dss_Man_t * p, int Type, Vec_Int_t * vFaninLits, w
 
 /**Function*************************************************************
 
+  Synopsis    [Cache for decomposition calls.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Dss_ManCacheAlloc( Dss_Man_t * p )
+{
+    assert( p->nCache == 0 );
+    p->nCache = Abc_PrimeCudd( 100000 );
+    p->pCache = ABC_CALLOC( Dss_Ent_t *, p->nCache );
+}
+void Dss_ManCacheFree( Dss_Man_t * p )
+{
+    if ( p->pCache == NULL )
+        return;
+    assert( p->nCache != 0 );
+    p->nCache = 0;
+    ABC_FREE( p->pCache );
+}
+static inline unsigned Dss_ManCacheHashKey( Dss_Man_t * p, Dss_Ent_t * pEnt )
+{ 
+    static int s_Primes[8] = { 1699, 4177, 5147, 5647, 6343, 7103, 7873, 8147 };
+    int i;
+    unsigned uHash = pEnt->nShared * 7103 + pEnt->iDsd0 * 7873 + pEnt->iDsd1 * 8147;
+    for ( i = 0; i < 2*(int)pEnt->nShared; i++ )
+        uHash += pEnt->pShared[i] * s_Primes[i & 0x7];
+    return uHash % p->nCache;
+}
+void Dss_ManCacheProfile( Dss_Man_t * p )
+{
+    Dss_Ent_t ** pSpot;
+    int i, Counter;
+    for ( i = 0; i < p->nCache; i++ )
+    {
+        Counter = 0;
+        for ( pSpot = p->pCache + i; *pSpot; pSpot = &(*pSpot)->pNext, Counter++ )
+            ;
+        if ( Counter )
+            printf( "%d ", Counter );
+    }
+    printf( "\n" );
+}
+Dss_Ent_t ** Dss_ManCacheLookup( Dss_Man_t * p, Dss_Ent_t * pEnt )
+{
+    Dss_Ent_t ** pSpot = p->pCache + Dss_ManCacheHashKey( p, pEnt );
+    for ( ; *pSpot; pSpot = &(*pSpot)->pNext )
+    {
+        if ( (*pSpot)->iDsd0   == pEnt->iDsd0 && 
+             (*pSpot)->iDsd1   == pEnt->iDsd1 && 
+             (*pSpot)->nShared == pEnt->nShared && 
+             !memcmp((*pSpot)->pShared, pEnt->pShared, sizeof(char)*2*pEnt->nShared)  ) // equal
+        {
+            p->nCacheHits[pEnt->nShared!=0]++;
+            return pSpot;
+        }
+    }
+    p->nCacheMisses[pEnt->nShared!=0]++;
+    return pSpot;
+}
+Dss_Ent_t * Dss_ManCacheCreate( Dss_Man_t * p, Dss_Ent_t * pEnt0, Dss_Fun_t * pFun0 )
+{
+    Dss_Ent_t * pEnt = (Dss_Ent_t *)Mem_FlexEntryFetch( p->pMemEnts, sizeof(word) * pEnt0->nWords );
+    Dss_Fun_t * pFun = (Dss_Fun_t *)Mem_FlexEntryFetch( p->pMemEnts, sizeof(word) * Dss_FunWordNum(pFun0) );
+    memcpy( pEnt, pEnt0, sizeof(word) * pEnt0->nWords );
+    memcpy( pFun, pFun0, sizeof(word) * Dss_FunWordNum(pFun0) );
+    pEnt->pFunc = pFun;
+    pEnt->pNext = NULL;
+    p->nCacheEntries[pEnt->nShared!=0]++;
+    return pEnt;
+}
+
+/**Function*************************************************************
+
   Synopsis    []
 
   Description []
@@ -885,7 +970,7 @@ Dss_Man_t * Dss_ManAlloc( int nVars, int nNonDecLimit )
     p = ABC_CALLOC( Dss_Man_t, 1 );
     p->nVars  = nVars;
     p->nNonDecLimit = nNonDecLimit;
-    p->nBins  = Abc_PrimeCudd( 10000000 );
+    p->nBins  = Abc_PrimeCudd( 1000000 );
     p->pBins  = ABC_CALLOC( unsigned, p->nBins );
     p->pMem   = Mem_FlexStart();
     p->vObjs  = Vec_PtrAlloc( 10000 );
@@ -895,10 +980,20 @@ Dss_Man_t * Dss_ManAlloc( int nVars, int nNonDecLimit )
     p->vLeaves = Vec_IntAlloc( 32 );
     p->vCopies = Vec_IntAlloc( 32 );
     p->pTtElems = Dss_ManTtElems();
+    p->pMemEnts = Mem_FlexStart();
+    Dss_ManCacheAlloc( p );
     return p;
 }
 void Dss_ManFree( Dss_Man_t * p )
 {
+    Abc_PrintTime( 1, "Time begin ", p->timeBeg );
+    Abc_PrintTime( 1, "Time decomp", p->timeDec );
+    Abc_PrintTime( 1, "Time lookup", p->timeLook );
+    Abc_PrintTime( 1, "Time end   ", p->timeEnd );
+
+//    Dss_ManCacheProfile( p );
+    Dss_ManCacheFree( p );
+    Mem_FlexStop( p->pMemEnts, 0 );
     Vec_IntFreeP( &p->vCopies );
     Vec_IntFreeP( &p->vLeaves );
     Vec_IntFreeP( &p->vNexts );
@@ -1011,12 +1106,20 @@ void Dss_ManPrint( char * pFileName, Dss_Man_t * p )
     fprintf( pFile, "Memory used for objects    = %6.2f MB.\n", 1.0*Mem_FlexReadMemUsage(p->pMem)/(1<<20) );
     fprintf( pFile, "Memory used for array      = %6.2f MB.\n", 1.0*sizeof(void *)*Vec_PtrCap(p->vObjs)/(1<<20) );
     fprintf( pFile, "Memory used for hash table = %6.2f MB.\n", 1.0*sizeof(int)*p->nBins/(1<<20) );
+    fprintf( pFile, "Memory used for cache      = %6.2f MB.\n", 1.0*Mem_FlexReadMemUsage(p->pMemEnts)/(1<<20) );
+    fprintf( pFile, "Cache hits    = %8d %8d\n", p->nCacheHits[0],    p->nCacheHits[1] );
+    fprintf( pFile, "Cache misses  = %8d %8d\n", p->nCacheMisses[0],  p->nCacheMisses[1] );
+    fprintf( pFile, "Cache entries = %8d %8d\n", p->nCacheEntries[0], p->nCacheEntries[1] );
     Abc_PrintTime( 1, "Time", clock() - clk );
 //    Dss_ManHashProfile( p );
 //    Dss_ManDump( p );
 //    return;
     Dss_VecForEachObj( p->vObjs, pObj, i )
+    {
+        if ( i == 50 )
+            break;
         Dss_ManPrintOne( pFile, p, Dss_Obj2Lit(pObj), NULL );
+    }
     fprintf( pFile, "\n" );
     if ( pFileName )
         fclose( pFile );
@@ -1428,25 +1531,26 @@ Dss_Ent_t * Dss_ManSharedMap( Dss_Man_t * p, int * iDsd, int * nFans, int ** pFa
     pEnt->nWords = Dss_EntWordNum( pEnt );
     return pEnt;
 }
+
 // merge two DSD functions
 int Dss_ManMerge( Dss_Man_t * p, int * iDsd, int * nFans, int ** pFans, unsigned uSharedMask, int nKLutSize, unsigned char * pPermRes, word * pTruth )
 {
     int fVerbose = 0;
+    int fCheck = 0;
     static int Counter = 0;
 //    word pTtTemp[DAU_MAX_WORD];
     word * pTruthOne;
     int pPermResInt[DAU_MAX_VAR];
-    Dss_Ent_t * pEnt;
+    Dss_Ent_t * pEnt, ** ppSpot;
     Dss_Fun_t * pFun;
     int i;
+    clock_t clk;
     Counter++;
-
-    if ( Counter == 122053 )
+    if ( DAU_MAX_VAR < nKLutSize )
     {
-//        int s = 0;
-//        fVerbose = 1;
+        printf( "Paramater DAU_MAX_VAR (%d) smaller than LUT size (%d).\n", DAU_MAX_VAR, nKLutSize );
+        return -1;
     }
-
     assert( iDsd[0] <= iDsd[1] );
 
 if ( fVerbose )
@@ -1460,40 +1564,58 @@ Dss_ManPrintOne( stdout, p, iDsd[1], pFans[1] );
     if ( iDsd[0] == 1 ) return iDsd[1];
     if ( iDsd[1] == 0 ) return 0;
     if ( iDsd[1] == 1 ) return iDsd[0];
+
     // no overlap
+clk = clock();
     assert( nFans[0] == Dss_VecLitSuppSize(p->vObjs, iDsd[0]) );
     assert( nFans[1] == Dss_VecLitSuppSize(p->vObjs, iDsd[1]) );
     assert( nFans[0] + nFans[1] <= nKLutSize + Dss_WordCountOnes(uSharedMask) );
     // create map of shared variables
     pEnt = Dss_ManSharedMap( p, iDsd, nFans, pFans, uSharedMask );
+p->timeBeg += clock() - clk;
     // check cache
-    if ( uSharedMask == 0 )
-        pFun = Dss_ManOperationFun( p, iDsd, nFans );
+    if ( p->pCache == NULL )
+    {
+clk = clock();
+        if ( uSharedMask == 0 )
+            pFun = Dss_ManOperationFun( p, iDsd, nFans );
+        else
+            pFun = Dss_ManBooleanAnd( p, pEnt, nFans, 0 );
+        if ( pFun == NULL )
+            return -1;
+        assert( (int)pFun->nFans == Dss_VecLitSuppSize(p->vObjs, pFun->iDsd) );
+        assert( (int)pFun->nFans <= nKLutSize );
+p->timeDec += clock() - clk;
+    }
     else
-        pFun = Dss_ManBooleanAnd( p, pEnt, nFans, 0 );
-    if ( pFun == NULL )
-        return -1;
-    assert( (int)pFun->nFans == Dss_VecLitSuppSize(p->vObjs, pFun->iDsd) );
-    assert( (int)pFun->nFans <= nKLutSize );
-/*
-    // create permutation
-    for ( i = 0; i < (int)pFun->nFans; i++ )
-        printf( "%d ", pFun->pFans[i] );
-    printf( "\n" );
-*/
+    {
+clk = clock();
+        ppSpot = Dss_ManCacheLookup( p, pEnt );
+p->timeLook += clock() - clk;
+clk = clock();
+        if ( *ppSpot == NULL )
+        {
+            if ( uSharedMask == 0 )
+                pFun = Dss_ManOperationFun( p, iDsd, nFans );
+            else
+                pFun = Dss_ManBooleanAnd( p, pEnt, nFans, 0 );
+            if ( pFun == NULL )
+                return -1;
+            assert( (int)pFun->nFans == Dss_VecLitSuppSize(p->vObjs, pFun->iDsd) );
+            assert( (int)pFun->nFans <= nKLutSize );
+            // create cache entry
+            *ppSpot = Dss_ManCacheCreate( p, pEnt, pFun );
+        }
+        pFun = (*ppSpot)->pFunc;
+p->timeDec += clock() - clk;
+    }
+
+clk = clock();
     for ( i = 0; i < (int)pFun->nFans; i++ )
         if ( pFun->pFans[i] < 2 * nFans[0] ) // first dec
             pPermRes[i] = (unsigned char)Dss_Lit2Lit( pFans[0], pFun->pFans[i] );
         else
             pPermRes[i] = (unsigned char)Dss_Lit2Lit( pFans[1], pFun->pFans[i] - 2 * nFans[0] );
-/*
-    // create permutation
-    for ( i = 0; i < (int)pFun->nFans; i++ )
-        printf( "%d ", pPermRes[i] );
-    printf( "\n" );
-*/
-
-
     // perform support minimization
     if ( uSharedMask && pFun->nFans > 1 )
     {
@@ -1511,6 +1633,7 @@ Dss_ManPrintOne( stdout, p, iDsd[1], pFans[1] );
 
     for ( i = 0; i < (int)pFun->nFans; i++ )
         pPermResInt[i] = pPermRes[i];
+p->timeEnd += clock() - clk;
 
 if ( fVerbose )
 {
@@ -1518,21 +1641,25 @@ Dss_ManPrintOne( stdout, p, pFun->iDsd, pPermResInt );
 printf( "\n" );
 }
 
-if ( Counter == 134 )
+if ( Counter == 43418 )
 {
 //    int s = 0;
-//    Dss_ManPrint( p );
+//    Dss_ManPrint( NULL, p );
 }
-    pTruthOne = Dss_ManComputeTruth( p, pFun->iDsd, p->nVars, pPermResInt );
-    if ( !Abc_TtEqual( pTruthOne, pTruth, Abc_TtWordNum(p->nVars) ) )
-    {
-        int s;
-//        Kit_DsdPrintFromTruth( pTruthOne, p->nVars );  printf( "\n" );
-//        Kit_DsdPrintFromTruth( pTruth, p->nVars );     printf( "\n" );
-        printf( "Verification failed.\n" );
-        s = 0;
-    }
 
+
+    if ( fCheck )
+    {
+        pTruthOne = Dss_ManComputeTruth( p, pFun->iDsd, p->nVars, pPermResInt );
+        if ( !Abc_TtEqual( pTruthOne, pTruth, Abc_TtWordNum(p->nVars) ) )
+        {
+            int s;
+    //        Kit_DsdPrintFromTruth( pTruthOne, p->nVars );  printf( "\n" );
+    //        Kit_DsdPrintFromTruth( pTruth, p->nVars );     printf( "\n" );
+            printf( "Verification failed.\n" );
+            s = 0;
+        }
+    }
     return pFun->iDsd;
 }
 
@@ -1617,11 +1744,11 @@ void Dau_DsdTest()
 {
     int nVars = 8;
     Vec_Vec_t * vFuncs;
-    Vec_Int_t * vOne, * vTwo, * vThree, * vRes;
+    Vec_Int_t * vOne, * vTwo, * vRes;//, * vThree;
     Dss_Man_t * p;
     int pEntries[3];
-    int e0, e1, e2, iLit;
-    int i, j, k, s;
+    int iLit, e0, e1;//, e2;
+    int i, k, s;//, j;
 
     return;
 

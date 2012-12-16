@@ -39,7 +39,7 @@
 
 ABC_NAMESPACE_HEADER_START
 
-#define DAU_MAX_VAR    16 // should be 6 or more
+#define DAU_MAX_VAR    12 // should be 6 or more
 #define DAU_MAX_STR  1000
 #define DAU_MAX_WORD  (1<<(DAU_MAX_VAR-6))
 
