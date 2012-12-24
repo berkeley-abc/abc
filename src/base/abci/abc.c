@@ -30355,7 +30355,8 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    extern void Gia_IsoTest( Gia_Man_t * p, int fVerbose );
 //    extern void Ga2_ManComputeTest( Gia_Man_t * p );
 //    extern void Bmc_CexTest( Gia_Man_t * p, Abc_Cex_t * pCex, int fVerbose );
-    extern void Gia_IsoTest( Gia_Man_t * p, Abc_Cex_t * pCex, int fVerbose );
+//    extern void Gia_IsoTest( Gia_Man_t * p, Abc_Cex_t * pCex, int fVerbose );
+    extern void Unr_ManTest( Gia_Man_t * pGia );
 
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "svh" ) ) != EOF )
@@ -30379,11 +30380,13 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Test(): There is no AIG.\n" );
         return 1;
     }
+/*
     if ( pAbc->pCex == NULL )
     {
         Abc_Print( -1, "Abc_CommandAbc9Test(): There is no CEX.\n" );
         return 1;
     }
+*/
 //    Gia_ManFrontTest( pAbc->pGia );
 //    Gia_ManReduceConst( pAbc->pGia, 1 );
 //    Sat_ManTest( pAbc->pGia, Gia_ManCo(pAbc->pGia, 0), 0 );
@@ -30401,7 +30404,8 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    Gia_IsoTest( pAbc->pGia, fVerbose );
 //    Ga2_ManComputeTest( pAbc->pGia );
 //    Bmc_CexTest( pAbc->pGia, pAbc->pCex, fVerbose );
-    Gia_IsoTest( pAbc->pGia, pAbc->pCex, 0 );
+//    Gia_IsoTest( pAbc->pGia, pAbc->pCex, 0 );
+    Unr_ManTest( pAbc->pGia );
     return 0;
 usage:
     Abc_Print( -2, "usage: &test [-svh]\n" );
