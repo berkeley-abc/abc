@@ -170,6 +170,87 @@ Abc_Ntk_t * Abc_NtkStartFrom( Abc_Ntk_t * pNtk, Abc_NtkType_t Type, Abc_NtkFunc_
   SeeAlso     []
 
 ***********************************************************************/
+Abc_Ntk_t * Abc_NtkStartFromWithLatches( Abc_Ntk_t * pNtk, Abc_NtkType_t Type, Abc_NtkFunc_t Func, int nLatches )
+{
+    Abc_Ntk_t * pNtkNew; 
+    Abc_Obj_t * pObj, * pNode0, * pNode1;
+    int fCopyNames, i;
+    if ( pNtk == NULL )
+        return NULL;
+    assert( Abc_NtkLatchNum(pNtk) == 0 );
+    // decide whether to copy the names
+    fCopyNames = ( Type != ABC_NTK_NETLIST );
+    // start the network
+    pNtkNew = Abc_NtkAlloc( Type, Func, 1 );
+    pNtkNew->nConstrs   = pNtk->nConstrs;
+    pNtkNew->nRealPos   = pNtk->nRealPos;
+    pNtkNew->nRealDelay = pNtk->nRealDelay;
+    pNtkNew->nRealLuts  = pNtk->nRealLuts;
+    pNtkNew->nRealArea  = pNtk->nRealArea;
+    pNtkNew->vRealPos   = pNtk->vRealPos ? Vec_VecDup( pNtk->vRealPos ) : NULL;
+    // duplicate the name and the spec
+    pNtkNew->pName = Extra_UtilStrsav(pNtk->pName);
+    pNtkNew->pSpec = Extra_UtilStrsav(pNtk->pSpec);
+    // clean the node copy fields
+    Abc_NtkCleanCopy( pNtk );
+    // map the constant nodes
+    if ( Abc_NtkIsStrash(pNtk) && Abc_NtkIsStrash(pNtkNew) )
+        Abc_AigConst1(pNtk)->pCopy = Abc_AigConst1(pNtkNew);
+    // clone CIs/CIs/boxes
+    for ( i = 0; i < Abc_NtkPiNum(pNtk)-nLatches; i++ )
+        Abc_NtkDupObj( pNtkNew, Abc_NtkPi(pNtk, i), fCopyNames );
+    for ( i = 0; i < Abc_NtkPoNum(pNtk)-nLatches; i++ )
+        Abc_NtkDupObj( pNtkNew, Abc_NtkPo(pNtk, i), fCopyNames );
+    for ( i = 0; i < nLatches; i++ )
+    {
+        pObj = Abc_NtkCreateLatch(pNtkNew);
+        Abc_LatchSetInit0( pObj );
+        pNode0 = Abc_NtkCreateBi(pNtkNew);
+        Abc_NtkPo(pNtk, Abc_NtkPoNum(pNtk)-nLatches+i)->pCopy = pNode0;
+        pNode1 = Abc_NtkCreateBo(pNtkNew);
+        Abc_NtkPi(pNtk, Abc_NtkPiNum(pNtk)-nLatches+i)->pCopy = pNode1;
+        Abc_ObjAddFanin( pObj, pNode0 );
+        Abc_ObjAddFanin( pNode1, pObj );
+        Abc_ObjAssignName( pNode0, Abc_ObjName(pNode0), NULL );
+        Abc_ObjAssignName( pNode1, Abc_ObjName(pNode1), NULL );
+    }
+    // transfer logic level
+//    Abc_NtkForEachCi( pNtk, pObj, i )
+//        pObj->pCopy->Level = pObj->Level;
+    // transfer the names
+//    Abc_NtkTrasferNames( pNtk, pNtkNew );
+    Abc_ManTimeDup( pNtk, pNtkNew );
+    if ( pNtk->vOnehots )
+        pNtkNew->vOnehots = (Vec_Ptr_t *)Vec_VecDupInt( (Vec_Vec_t *)pNtk->vOnehots );
+    if ( pNtk->pSeqModel )
+        pNtkNew->pSeqModel = Abc_CexDup( pNtk->pSeqModel, Abc_NtkLatchNum(pNtk) );
+    if ( pNtk->vObjPerm )
+        pNtkNew->vObjPerm = Vec_IntDup( pNtk->vObjPerm );
+    pNtkNew->AndGateDelay = pNtk->AndGateDelay;
+    // initialize logic level of the CIs
+    if ( pNtk->AndGateDelay != 0.0 && pNtk->pManTime != NULL && pNtk->ntkType != ABC_NTK_STRASH && Type == ABC_NTK_STRASH )
+    {
+        Abc_NtkForEachCi( pNtk, pObj, i )
+            pObj->pCopy->Level = (int)(Abc_NodeReadArrivalAve(pObj) / pNtk->AndGateDelay);
+    }
+    // check that the CI/CO/latches are copied correctly
+    assert( Abc_NtkCiNum(pNtk)    == Abc_NtkCiNum(pNtkNew) );
+    assert( Abc_NtkCoNum(pNtk)    == Abc_NtkCoNum(pNtkNew) );
+    assert( nLatches              == Abc_NtkLatchNum(pNtkNew) );
+    return pNtkNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Starts a new network using existing network as a model.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 Abc_Ntk_t * Abc_NtkStartFromNoLatches( Abc_Ntk_t * pNtk, Abc_NtkType_t Type, Abc_NtkFunc_t Func )
 {
     Abc_Ntk_t * pNtkNew; 
@@ -438,6 +519,41 @@ Abc_Ntk_t * Abc_NtkDupDfs( Abc_Ntk_t * pNtk )
         fprintf( stdout, "Abc_NtkDup(): Network check has failed.\n" );
     pNtk->pCopy = pNtkNew;
     return pNtkNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Duplicate the AIG while adding latches.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkRestrashWithLatches( Abc_Ntk_t * pNtk, int nLatches )
+{
+    Abc_Ntk_t * pNtkAig;
+    Abc_Obj_t * pObj;
+    int i;
+    assert( Abc_NtkIsStrash(pNtk) );
+    // start the new network (constants and CIs of the old network will point to the their counterparts in the new network)
+    pNtkAig = Abc_NtkStartFromWithLatches( pNtk, ABC_NTK_STRASH, ABC_FUNC_AIG, nLatches );
+    // restrash the nodes (assuming a topological order of the old network)
+    Abc_NtkForEachNode( pNtk, pObj, i )
+        pObj->pCopy = Abc_AigAnd( (Abc_Aig_t *)pNtkAig->pManFunc, Abc_ObjChild0Copy(pObj), Abc_ObjChild1Copy(pObj) );
+    // finalize the network
+    Abc_NtkFinalize( pNtk, pNtkAig );
+    // make sure everything is okay
+    if ( !Abc_NtkCheck( pNtkAig ) )
+    {
+        printf( "Abc_NtkStrash: The network check has failed.\n" );
+        Abc_NtkDelete( pNtkAig );
+        return NULL;
+    }
+    return pNtkAig;
+
 }
 
 /**Function*************************************************************

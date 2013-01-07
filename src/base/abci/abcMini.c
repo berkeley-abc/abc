@@ -33,6 +33,7 @@ ABC_NAMESPACE_IMPL_START
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
+
 /**Function*************************************************************
 
   Synopsis    [Converts the network from the AIG manager into ABC.]
@@ -89,6 +90,14 @@ Abc_Ntk_t * Abc_NtkFromMiniAig( Mini_Aig_t * p )
     Abc_NtkAddDummyPoNames( pNtk );
     if ( !Abc_NtkCheck( pNtk ) )
         fprintf( stdout, "Abc_NtkFromMini(): Network check has failed.\n" );
+    // add latches
+    if ( Mini_AigRegNum(p) > 0 )
+    {
+        extern Abc_Ntk_t * Abc_NtkRestrashWithLatches( Abc_Ntk_t * pNtk, int nLatches );
+        Abc_Ntk_t * pTemp;
+        pNtk = Abc_NtkRestrashWithLatches( pTemp = pNtk, Mini_AigRegNum(p) );
+        Abc_NtkDelete( pTemp );
+    }
     return pNtk;
 }
 
@@ -131,6 +140,8 @@ Mini_Aig_t * Abc_NtkToMiniAig( Abc_Ntk_t * pNtk )
     // create primary outputs
     Abc_NtkForEachCo( pNtk, pObj, i )
         pObj->iTemp = Mini_AigCreatePo( p, Abc_NodeFanin0Copy2(pObj) );
+    // set registers
+    Mini_AigSetRegNum( p, Abc_NtkLatchNum(pNtk) );
     return p;
 }
 
