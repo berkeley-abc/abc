@@ -1386,13 +1386,13 @@ int Dss_ManOperation( Dss_Man_t * p, int Type, int * pLits, int nLits, unsigned 
     pObj = Dss_ObjFindOrAdd( p, Type, p->vLeaves, pTruth );
     return Abc_Var2Lit( pObj->Id, fCompl );
 }
-Dss_Fun_t * Dss_ManOperationFun( Dss_Man_t * p, int * iDsd, int * nFans )
+Dss_Fun_t * Dss_ManOperationFun( Dss_Man_t * p, int * iDsd, int nFansTot )
 {
     static char Buffer[100];
     Dss_Fun_t * pFun = (Dss_Fun_t *)Buffer;
     pFun->iDsd = Dss_ManOperation( p, DAU_DSD_AND, iDsd, 2, pFun->pFans, NULL );
 //printf( "%d %d -> %d  ", iDsd[0], iDsd[1], pFun->iDsd );
-    pFun->nFans = nFans[0] + nFans[1];
+    pFun->nFans = nFansTot;
     assert( (int)pFun->nFans == Dss_VecLitSuppSize(p->vObjs, pFun->iDsd) );
     return pFun;
 }
@@ -1430,7 +1430,7 @@ void Dss_EntPrint( Dss_Ent_t * p, Dss_Fun_t * pFun )
   SeeAlso     []
 
 ***********************************************************************/
-Dss_Fun_t * Dss_ManBooleanAnd( Dss_Man_t * p, Dss_Ent_t * pEnt, int * nFans, int Counter )
+Dss_Fun_t * Dss_ManBooleanAnd( Dss_Man_t * p, Dss_Ent_t * pEnt, int Counter )
 {
     static char Buffer[100];
     Dss_Fun_t * pFun = (Dss_Fun_t *)Buffer;
@@ -1441,6 +1441,9 @@ Dss_Fun_t * Dss_ManBooleanAnd( Dss_Man_t * p, Dss_Ent_t * pEnt, int * nFans, int
     int pPermLits[DAU_MAX_VAR];
     int pPermDsd[DAU_MAX_VAR];
     int i, nNonDec, nSuppSize = 0;
+    int nFans[2];
+    nFans[0] = Dss_VecLitSuppSize( p->vObjs, pEnt->iDsd0 );
+    nFans[1] = Dss_VecLitSuppSize( p->vObjs, pEnt->iDsd1 );
     // create first truth table
     for ( i = 0; i < nFans[0]; i++ )
     {
@@ -1578,9 +1581,9 @@ p->timeBeg += clock() - clk;
     {
 clk = clock();
         if ( uSharedMask == 0 )
-            pFun = Dss_ManOperationFun( p, iDsd, nFans );
+            pFun = Dss_ManOperationFun( p, iDsd, nFans[0] + nFans[1] );
         else
-            pFun = Dss_ManBooleanAnd( p, pEnt, nFans, 0 );
+            pFun = Dss_ManBooleanAnd( p, pEnt, 0 );
         if ( pFun == NULL )
             return -1;
         assert( (int)pFun->nFans == Dss_VecLitSuppSize(p->vObjs, pFun->iDsd) );
@@ -1596,9 +1599,9 @@ clk = clock();
         if ( *ppSpot == NULL )
         {
             if ( uSharedMask == 0 )
-                pFun = Dss_ManOperationFun( p, iDsd, nFans );
+                pFun = Dss_ManOperationFun( p, iDsd, nFans[0] + nFans[1] );
             else
-                pFun = Dss_ManBooleanAnd( p, pEnt, nFans, 0 );
+                pFun = Dss_ManBooleanAnd( p, pEnt, 0 );
             if ( pFun == NULL )
                 return -1;
             assert( (int)pFun->nFans == Dss_VecLitSuppSize(p->vObjs, pFun->iDsd) );
@@ -1660,6 +1663,101 @@ if ( Counter == 43418 )
             s = 0;
         }
     }
+    return pFun->iDsd;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Dss_Ent_t * Dss_ManSharedMapDerive( Dss_Man_t * p, int iDsd0, int iDsd1, Vec_Str_t * vShared )
+{
+    static char Buffer[100];
+    Dss_Ent_t * pEnt = (Dss_Ent_t *)Buffer;
+    pEnt->iDsd0 = iDsd0;
+    pEnt->iDsd1 = iDsd1;
+    pEnt->nShared = Vec_StrSize(vShared)/2;
+    memcpy( pEnt->pShared, (unsigned char *)Vec_StrArray(vShared), sizeof(char) * Vec_StrSize(vShared) );
+    pEnt->nWords = Dss_EntWordNum( pEnt );
+    return pEnt;
+}
+
+int Mpm_FuncCompute( Dss_Man_t * p, int iDsd0, int iDsd1, Vec_Str_t * vShared, int * pPerm, int * pnLeaves )
+{
+    int fVerbose = 0;
+    int fCheck = 0;
+    Dss_Ent_t * pEnt, ** ppSpot;
+    Dss_Fun_t * pFun;
+    int iDsd[2] = { iDsd0, iDsd1 };
+    int i;
+    clock_t clk;
+
+    assert( iDsd0 <= iDsd1 );
+    if ( DAU_MAX_VAR < *pnLeaves )
+    {
+        printf( "Paramater DAU_MAX_VAR (%d) smaller than LUT size (%d).\n", DAU_MAX_VAR, *pnLeaves );
+        return -1;
+    }
+    if ( fVerbose )
+    {
+        Dss_ManPrintOne( stdout, p, iDsd0, NULL );
+        Dss_ManPrintOne( stdout, p, iDsd1, NULL );
+    } 
+
+clk = clock();
+    pEnt = Dss_ManSharedMapDerive( p, iDsd0, iDsd1, vShared );
+    ppSpot = Dss_ManCacheLookup( p, pEnt );
+p->timeLook += clock() - clk;
+
+clk = clock();
+    if ( *ppSpot == NULL )
+    {
+        if ( Vec_StrSize(vShared) == 0 )
+            pFun = Dss_ManOperationFun( p, iDsd, *pnLeaves );
+        else
+            pFun = Dss_ManBooleanAnd( p, pEnt, 0 );
+        if ( pFun == NULL )
+            return -1;
+        assert( (int)pFun->nFans == Dss_VecLitSuppSize(p->vObjs, pFun->iDsd) );
+        assert( (int)pFun->nFans <= *pnLeaves );
+        // create cache entry
+        *ppSpot = Dss_ManCacheCreate( p, pEnt, pFun );
+    }
+    pFun = (*ppSpot)->pFunc;
+p->timeDec += clock() - clk;
+
+    *pnLeaves = (int)pFun->nFans;
+    for ( i = 0; i < (int)pFun->nFans; i++ )
+        pPerm[i] = (int)pFun->pFans[i];
+
+    if ( fVerbose )
+    {
+        Dss_ManPrintOne( stdout, p, pFun->iDsd, NULL );
+        printf( "\n" );
+    }
+
+/*
+    if ( fCheck )
+    {
+        pTruthOne = Dss_ManComputeTruth( p, pFun->iDsd, p->nVars, pPermResInt );
+        if ( !Abc_TtEqual( pTruthOne, pTruth, Abc_TtWordNum(p->nVars) ) )
+        {
+            int s;
+    //        Kit_DsdPrintFromTruth( pTruthOne, p->nVars );  printf( "\n" );
+    //        Kit_DsdPrintFromTruth( pTruth, p->nVars );     printf( "\n" );
+            printf( "Verification failed.\n" );
+            s = 0;
+        }
+    }
+*/
     return pFun->iDsd;
 }
 

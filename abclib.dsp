@@ -2933,6 +2933,10 @@ SOURCE=.\src\misc\mem\mem.c
 
 SOURCE=.\src\misc\mem\mem.h
 # End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\mem\mem2.h
+# End Source File
 # End Group
 # Begin Group "tim"
 
@@ -3556,6 +3560,10 @@ SOURCE=.\src\aig\gia\giaSupMin.c
 # Begin Source File
 
 SOURCE=.\src\aig\gia\giaSwitch.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\gia\giaTest.c
 # End Source File
 # Begin Source File
 

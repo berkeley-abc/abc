@@ -30356,7 +30356,8 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    extern void Ga2_ManComputeTest( Gia_Man_t * p );
 //    extern void Bmc_CexTest( Gia_Man_t * p, Abc_Cex_t * pCex, int fVerbose );
 //    extern void Gia_IsoTest( Gia_Man_t * p, Abc_Cex_t * pCex, int fVerbose );
-    extern void Unr_ManTest( Gia_Man_t * pGia );
+//    extern void Unr_ManTest( Gia_Man_t * pGia );
+    extern void Mig_ManTest( Gia_Man_t * pGia );
 
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "svh" ) ) != EOF )
@@ -30405,7 +30406,8 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    Ga2_ManComputeTest( pAbc->pGia );
 //    Bmc_CexTest( pAbc->pGia, pAbc->pCex, fVerbose );
 //    Gia_IsoTest( pAbc->pGia, pAbc->pCex, 0 );
-    Unr_ManTest( pAbc->pGia );
+//    Unr_ManTest( pAbc->pGia );
+    Mig_ManTest( pAbc->pGia );
     return 0;
 usage:
     Abc_Print( -2, "usage: &test [-svh]\n" );
