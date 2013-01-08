@@ -679,9 +679,9 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fSkipS
 
     if ( fHieOnly )
     {
-        Tim_ManPrint( pNew->pManTime );
-        Tim_ManCreate( pNew->pManTime, Abc_FrameReadLibBox(), pNew->vInArrs, pNew->vOutReqs );
-        Tim_ManPrint( pNew->pManTime );
+        Tim_ManPrint( (Tim_Man_t *)pNew->pManTime );
+        Tim_ManCreate( (Tim_Man_t *)pNew->pManTime, Abc_FrameReadLibBox(), pNew->vInArrs, pNew->vOutReqs );
+        Tim_ManPrint( (Tim_Man_t *)pNew->pManTime );
         Vec_FltFreeP( &pNew->vInArrs );
         Vec_FltFreeP( &pNew->vOutReqs );
     }
@@ -1060,14 +1060,14 @@ void Gia_AigerWrite( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
         if ( Tim_ManGetArrsReqs( p->pManTime, &vArrTimes, &vReqTimes ) )
         {
             fprintf( pFile, "i" );
-            Gia_FileWriteBufferSize( pFile, 4*Tim_ManPiNum(p->pManTime) );
-            assert( Vec_FltSize(vArrTimes) == Tim_ManPiNum(p->pManTime) );
-            fwrite( Vec_FltArray(vArrTimes), 1, 4*Gia_ManPiNum(p->pManTime), pFile );
+            Gia_FileWriteBufferSize( pFile, 4*Tim_ManPiNum((Tim_Man_t *)p->pManTime) );
+            assert( Vec_FltSize(vArrTimes) == Tim_ManPiNum((Tim_Man_t *)p->pManTime) );
+            fwrite( Vec_FltArray(vArrTimes), 1, 4*Gia_ManPiNum(p), pFile );
 
             fprintf( pFile, "o" );
-            Gia_FileWriteBufferSize( pFile, 4*Tim_ManPoNum(p->pManTime) );
-            assert( Vec_FltSize(vReqTimes) == Tim_ManPoNum(p->pManTime) );
-            fwrite( Vec_FltArray(vReqTimes), 1, 4*Gia_ManPoNum(p->pManTime), pFile );
+            Gia_FileWriteBufferSize( pFile, 4*Tim_ManPoNum((Tim_Man_t *)p->pManTime) );
+            assert( Vec_FltSize(vReqTimes) == Tim_ManPoNum((Tim_Man_t *)p->pManTime) );
+            fwrite( Vec_FltArray(vReqTimes), 1, 4*Gia_ManPoNum(p), pFile );
 
             Vec_FltFree( vArrTimes );
             Vec_FltFree( vReqTimes );
