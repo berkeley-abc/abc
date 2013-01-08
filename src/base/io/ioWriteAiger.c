@@ -783,9 +783,12 @@ void Io_WriteAiger( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols, int f
     ABC_FREE(b.buf);
 }
 
+ABC_NAMESPACE_IMPL_END
 
 #include "aig/gia/giaAig.h"
 #include "aig/saig/saig.h"
+
+ABC_NAMESPACE_IMPL_START
 
 /**Function*************************************************************
 
