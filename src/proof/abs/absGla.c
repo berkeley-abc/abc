@@ -1484,7 +1484,6 @@ void Ga2_GlaDumpAbsracted( Ga2_Man_t * p, int fVerbose )
 ***********************************************************************/
 void Gia_Ga2SendAbsracted( Ga2_Man_t * p, int fVerbose )
 {
-    extern int Gia_ManToBridgeAbsNetlist( FILE * pFile, Gia_Man_t * p );
     Gia_Man_t * pAbs;
     Vec_Int_t * vGateClasses;
     assert( Abc_FrameIsBridgeMode() );

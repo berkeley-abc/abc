@@ -11678,7 +11678,6 @@ usage:
 ***********************************************************************/
 int Abc_CommandSendAig( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern int Gia_ManToBridgeAbsNetlist( FILE * pFile, Gia_Man_t * p, int msg_type );
     const int BRIDGE_NETLIST = 106;
     const int BRIDGE_ABS_NETLIST = 107;
 

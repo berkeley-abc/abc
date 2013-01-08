@@ -1573,7 +1573,6 @@ void Gla_ManReportMemory( Gla_Man_t * p )
 ***********************************************************************/
 void Gia_GlaSendAbsracted( Gla_Man_t * p, int fVerbose )
 {
-    extern int Gia_ManToBridgeAbsNetlist( FILE * pFile, Gia_Man_t * p );
     Gia_Man_t * pAbs;
     Vec_Int_t * vGateClasses;
     assert( Abc_FrameIsBridgeMode() );

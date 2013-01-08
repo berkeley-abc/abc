@@ -647,7 +647,7 @@ static inline void If_TruthStretch2( word * pTruth, int nVars, int * pPerm, int 
         if ( i < pPerm[i] )
             Abc_TtSwapVars( pTruth, nVars, i, pPerm[i] );
 }
-inline int If_CutComputeTruth2( If_Man_t * p, If_Cut_t * pCut, If_Cut_t * pCut0, If_Cut_t * pCut1, int fCompl0, int fCompl1 )
+int If_CutComputeTruth2( If_Man_t * p, If_Cut_t * pCut, If_Cut_t * pCut0, If_Cut_t * pCut1, int fCompl0, int fCompl1 )
 {
     int nWords;
     if ( pCut->nLimit < 7 )

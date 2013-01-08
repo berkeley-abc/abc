@@ -1383,7 +1383,6 @@ void Vga_ManRollBack( Vta_Man_t * p, int nObjOld )
 ***********************************************************************/
 void Gia_VtaSendAbsracted( Vta_Man_t * p, int fVerbose )
 {
-    extern int Gia_ManToBridgeAbsNetlist( FILE * pFile, Gia_Man_t * p );
     Gia_Man_t * pAbs;
     assert( Abc_FrameIsBridgeMode() );
 //    if ( fVerbose )
