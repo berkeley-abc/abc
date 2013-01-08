@@ -1106,9 +1106,12 @@ Au_Ntk_t * Au_NtkParseCBlif( char * pFileName )
     return pRoot;
 }
 
+ABC_NAMESPACE_IMPL_END
 
 #include "abc.h"
 #include "aig/gia/gia.h"
+
+ABC_NAMESPACE_IMPL_START
 
 extern Vec_Ptr_t * Abc_NtkDfsBoxes( Abc_Ntk_t * pNtk );
 extern int Abc_NtkDeriveFlatGiaSop( Gia_Man_t * pGia, int * gFanins, char * pSop );
