@@ -826,7 +826,7 @@ void Dss_ManHashProfile( Dss_Man_t * p )
     for ( i = 0; i < p->nBins; i++ )
     {
         Counter = 0;
-        for ( pSpot = p->pBins + i; *pSpot; pSpot = Vec_IntEntryP(p->vNexts, pObj->Id), Counter++ )
+        for ( pSpot = p->pBins + i; *pSpot; pSpot = (unsigned *)Vec_IntEntryP(p->vNexts, pObj->Id), Counter++ )
              pObj = Dss_VecObj( p->vObjs, *pSpot );
         if ( Counter )
             printf( "%d ", Counter );
@@ -854,7 +854,7 @@ unsigned * Dss_ObjHashLookup( Dss_Man_t * p, int Type, Vec_Int_t * vFaninLits, w
 {
     Dss_Obj_t * pObj;
     unsigned * pSpot = p->pBins + Dss_ObjHashKey(p, Type, vFaninLits, pTruth);
-    for ( ; *pSpot; pSpot = Vec_IntEntryP(p->vNexts, pObj->Id) )
+    for ( ; *pSpot; pSpot = (unsigned *)Vec_IntEntryP(p->vNexts, pObj->Id) )
     {
         pObj = Dss_VecObj( p->vObjs, *pSpot );
         if ( (int)pObj->Type == Type && 
