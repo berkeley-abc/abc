@@ -574,8 +574,11 @@ Aig_Man_t * Saig_ManIsoReduce( Aig_Man_t * pAig, Vec_Ptr_t ** pvPosEquivs, int f
     return pPart;
 }
 
+ABC_NAMESPACE_IMPL_END
 
 #include "base/abc/abc.h"
+
+ABC_NAMESPACE_IMPL_START
 
 /**Function*************************************************************
 
