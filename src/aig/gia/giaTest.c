@@ -179,15 +179,15 @@ static inline int          Mig_ObjIsTravIdCurrentId( Mig_Man_t * p, int Id )   {
 // iterators over objects
 #define Mig_ManForEachObj( p, pObj )                                    \
     for ( p->iPage = 0; p->iPage < Vec_PtrSize(&p->vPages) &&           \
-        ((p->pPage) = Vec_PtrEntry(&p->vPages, p->iPage)); p->iPage++ ) \
+        ((p->pPage) = (Mig_Obj_t *)Vec_PtrEntry(&p->vPages, p->iPage)); p->iPage++ ) \
         for ( pObj = p->pPage; !Mig_ObjIsNone(pObj); pObj++ )
 #define Mig_ManForEachObj1( p, pObj )                                   \
     for ( p->iPage = 0; p->iPage < Vec_PtrSize(&p->vPages) &&           \
-        ((p->pPage) = Vec_PtrEntry(&p->vPages, p->iPage)); p->iPage++ ) \
+        ((p->pPage) = (Mig_Obj_t *)Vec_PtrEntry(&p->vPages, p->iPage)); p->iPage++ ) \
         for ( pObj = p->pPage + (p->iPage == 0); !Mig_ObjIsNone(pObj); pObj++ )
 #define Mig_ManForEachObjReverse( p, pObj )                             \
     for ( p->iPage = Vec_PtrSize(&p->vPages) - 1; p->iPage >= 0 &&      \
-        ((p->pPage) = Vec_PtrEntry(&p->vPages, p->iPage)); p->iPage-- ) \
+        ((p->pPage) = (Mig_Obj_t *)Vec_PtrEntry(&p->vPages, p->iPage)); p->iPage-- ) \
         for ( pObj = (p->iPage == Vec_PtrSize(&p->vPages) - 1) ?        \
             Mig_ManObj(p, Mig_ManObjNum(p)-1) :  p->pPage + MIG_BASE;   \
                 pObj - p->pPage >= 0; pObj-- )
