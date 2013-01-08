@@ -632,7 +632,7 @@ Gia_Man_t * Gia_ManPerformMapping( Gia_Man_t * p, void * pp )
     if ( pIfMan == NULL )
         return NULL;
     if ( p->pManTime )
-        pIfMan->pManTim = Tim_ManDup( p->pManTime, 0 );
+        pIfMan->pManTim = Tim_ManDup( (Tim_Man_t *)p->pManTime, 0 );
     if ( !If_ManPerformMapping( pIfMan ) )
     {
         If_ManStop( pIfMan );
