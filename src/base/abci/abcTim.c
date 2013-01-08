@@ -381,9 +381,9 @@ Gia_Man_t * Abc_NtkTestTimDeriveGia( Abc_Ntk_t * pNtk, int fVerbose )
     vArrTimes = Abc_NtkTestCreateArrivals( Abc_NtkPiNum(pNtk) );
     vReqTimes = Abc_NtkTestCreateRequired( Abc_NtkPoNum(pNtk) );
 
-    Tim_ManPrint( pGia->pManTime );
-    Tim_ManCreate( pGia->pManTime, Abc_FrameReadLibBox(), vArrTimes, vReqTimes );
-    Tim_ManPrint( pGia->pManTime );
+    Tim_ManPrint( (Tim_Man_t *)pGia->pManTime );
+    Tim_ManCreate( (Tim_Man_t *)pGia->pManTime, Abc_FrameReadLibBox(), vArrTimes, vReqTimes );
+    Tim_ManPrint( (Tim_Man_t *)pGia->pManTime );
 
     Vec_FltFree( vArrTimes );
     Vec_FltFree( vReqTimes );
