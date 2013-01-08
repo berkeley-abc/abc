@@ -268,10 +268,14 @@ enum Abc_VerbLevel
     ABC_VERBOSE  =  2
 };
 
+#define BRIDGE_NETLIST           106
+#define BRIDGE_ABS_NETLIST       107
+
 // string printing
 extern char * vnsprintf(const char* format, va_list args);
 extern char * nsprintf(const char* format, ...);
 extern int Gia_ManToBridgeText( FILE * pFile, int Size, unsigned char * pBuffer );
+extern int Gia_ManToBridgeAbsNetlist( FILE * pFile, void * p, int pkg_type );
 
 // misc printing procedures
 static inline void Abc_Print( int level, const char * format, ... )

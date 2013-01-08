@@ -33,8 +33,8 @@ ABC_NAMESPACE_IMPL_START
 
 #define BRIDGE_TEXT_MESSAGE   999996
 #define BRIDGE_RESULTS           101
-#define BRIDGE_NETLIST           106
-#define BRIDGE_ABS_NETLIST       107
+//#define BRIDGE_NETLIST           106
+//#define BRIDGE_ABS_NETLIST       107
 #define BRIDGE_BAD_ABS           105
 
 #define BRIDGE_VALUE_X             0
@@ -146,10 +146,10 @@ int Gia_ManToBridgeText( FILE * pFile, int Size, unsigned char * pBuffer )
     Gia_CreateHeader( pFile, BRIDGE_TEXT_MESSAGE, Size, pBuffer );
     return 1;
 }
-int Gia_ManToBridgeAbsNetlist( FILE * pFile, Gia_Man_t * p, int pkg_type )
+int Gia_ManToBridgeAbsNetlist( FILE * pFile, void * p, int pkg_type )
 {
     Vec_Str_t * vBuffer;
-    vBuffer = Gia_ManToBridgeVec( p );
+    vBuffer = Gia_ManToBridgeVec( (Gia_Man_t *)p );
     Gia_CreateHeader( pFile, pkg_type, Vec_StrSize(vBuffer), (unsigned char *)Vec_StrArray(vBuffer) );
     Vec_StrFree( vBuffer );
     return 1;

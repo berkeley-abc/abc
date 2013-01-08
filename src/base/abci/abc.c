@@ -11678,8 +11678,8 @@ usage:
 ***********************************************************************/
 int Abc_CommandSendAig( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    const int BRIDGE_NETLIST = 106;
-    const int BRIDGE_ABS_NETLIST = 107;
+//    const int BRIDGE_NETLIST = 106;
+//    const int BRIDGE_ABS_NETLIST = 107;
 
     int c, fAndSpace = 1, fAbsNetlist = 0;
     Extra_UtilGetoptReset();

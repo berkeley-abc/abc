@@ -1495,7 +1495,7 @@ void Gia_Ga2SendAbsracted( Ga2_Man_t * p, int fVerbose )
     Vec_IntFreeP( &vGateClasses );
     Gia_ManCleanValue( p->pGia );
     // send it out
-    Gia_ManToBridgeAbsNetlist( stdout, pAbs );
+    Gia_ManToBridgeAbsNetlist( stdout, pAbs, BRIDGE_ABS_NETLIST );
     Gia_ManStop( pAbs );
 }
 void Gia_Ga2SendCancel( Ga2_Man_t * p, int fVerbose )

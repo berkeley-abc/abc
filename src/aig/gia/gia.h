@@ -1028,8 +1028,6 @@ extern void                Tas_ManSatPrintStats( Tas_Man_t * p );
 extern int                 Tas_ManSolve( Tas_Man_t * p, Gia_Obj_t * pObj, Gia_Obj_t * pObj2 );
 extern int                 Tas_ManSolveArray( Tas_Man_t * p, Vec_Ptr_t * vObjs );
 
-extern int                 Gia_ManToBridgeAbsNetlist( FILE * pFile, Gia_Man_t * p );
-
 
 ABC_NAMESPACE_HEADER_END
 

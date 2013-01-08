@@ -1398,7 +1398,7 @@ void Gia_VtaSendAbsracted( Vta_Man_t * p, int fVerbose )
     pAbs = Gia_ManDupAbsGates( p->pGia, p->pGia->vGateClasses );
     Vec_IntFreeP( &p->pGia->vGateClasses );
     // send it out
-    Gia_ManToBridgeAbsNetlist( stdout, pAbs );
+    Gia_ManToBridgeAbsNetlist( stdout, pAbs, BRIDGE_ABS_NETLIST );
     Gia_ManStop( pAbs );
 }
 void Gia_VtaSendCancel( Vta_Man_t * p, int fVerbose )

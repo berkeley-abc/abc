@@ -1583,7 +1583,7 @@ void Gia_GlaSendAbsracted( Gla_Man_t * p, int fVerbose )
     pAbs = Gia_ManDupAbsGates( p->pGia0, vGateClasses );
     Vec_IntFreeP( &vGateClasses );
     // send it out
-    Gia_ManToBridgeAbsNetlist( stdout, pAbs );
+    Gia_ManToBridgeAbsNetlist( stdout, pAbs, BRIDGE_ABS_NETLIST );
     Gia_ManStop( pAbs );
 }
 void Gia_GlaSendCancel( Gla_Man_t * p, int fVerbose )
