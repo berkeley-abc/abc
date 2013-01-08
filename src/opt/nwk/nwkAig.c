@@ -104,8 +104,11 @@ Vec_Ptr_t * Nwk_ManDeriveRetimingCut( Aig_Man_t * p, int fForward, int fVerbose 
 }
 
 
+ABC_NAMESPACE_IMPL_END
 
 #include "proof/abs/abs.h"
+
+ABC_NAMESPACE_IMPL_START
 
 /**Function*************************************************************
 
