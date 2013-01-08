@@ -38,6 +38,40 @@ ABC_NAMESPACE_IMPL_START
 
 /**Function*************************************************************
 
+  Synopsis    [This procedure sets default parameters.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManAbsSetDefaultParams( Gia_ParAbs_t * p )
+{
+    memset( p, 0, sizeof(Gia_ParAbs_t) );
+    p->Algo        =        0;    // algorithm: CBA
+    p->nFramesMax  =       10;    // timeframes for PBA
+    p->nConfMax    =    10000;    // conflicts for PBA
+    p->fDynamic    =        1;    // dynamic unfolding for PBA
+    p->fConstr     =        0;    // use constraints
+    p->nFramesBmc  =      250;    // timeframes for BMC
+    p->nConfMaxBmc =     5000;    // conflicts for BMC
+    p->nStableMax  =  1000000;    // the number of stable frames to quit
+    p->nRatio      =       10;    // ratio of flops to quit
+    p->nBobPar     =  1000000;    // the number of frames before trying to quit
+    p->fUseBdds    =        0;    // use BDDs to refine abstraction
+    p->fUseDprove  =        0;    // use 'dprove' to refine abstraction
+    p->fUseStart   =        1;    // use starting frame
+    p->fVerbose    =        0;    // verbose output
+    p->fVeryVerbose=        0;    // printing additional information
+    p->Status      =       -1;    // the problem status
+    p->nFramesDone =       -1;    // the number of rames covered
+}
+
+
+/**Function*************************************************************
+
   Synopsis    [Derive a new counter-example.]
 
   Description []
@@ -358,6 +392,76 @@ int Gia_ManCexAbstractionRefine( Gia_Man_t * pGia, Abc_Cex_t * pCex, int nFfToAd
     Vec_IntFree( vFlops );
     Aig_ManStop( pNew );
     return -1;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Computes the flops to remain after abstraction.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+ 
+***********************************************************************/
+Vec_Int_t * Saig_ManCexAbstractionFlops( Aig_Man_t * p, Gia_ParAbs_t * pPars )
+{
+    int nUseStart = 0;
+    Aig_Man_t * pAbs, * pTemp;
+    Vec_Int_t * vFlops;
+    int Iter, clk = clock(), clk2 = clock();//, iFlop;
+    assert( Aig_ManRegNum(p) > 0 );
+    if ( pPars->fVerbose )
+        printf( "Performing counter-example-based refinement.\n" );
+    Aig_ManSetCioIds( p );
+    vFlops = Vec_IntStartNatural( 1 );
+/*
+    iFlop = Saig_ManFindFirstFlop( p );
+    assert( iFlop >= 0 );
+    vFlops = Vec_IntAlloc( 1 );
+    Vec_IntPush( vFlops, iFlop );
+*/
+    // create the resulting AIG
+    pAbs = Saig_ManDupAbstraction( p, vFlops );
+    if ( !pPars->fVerbose )
+    {
+        printf( "Init : " );
+        Aig_ManPrintStats( pAbs );
+    }
+    printf( "Refining abstraction...\n" );
+    for ( Iter = 0; ; Iter++ )
+    {
+        pTemp = Saig_ManCexRefine( p, pAbs, vFlops, pPars->nFramesBmc, pPars->nConfMaxBmc, pPars->fUseBdds, pPars->fUseDprove, pPars->fVerbose, pPars->fUseStart?&nUseStart:NULL, &pPars->Status, &pPars->nFramesDone );
+        if ( pTemp == NULL )
+        {
+            ABC_FREE( p->pSeqModel );
+            p->pSeqModel = pAbs->pSeqModel;
+            pAbs->pSeqModel = NULL;
+            Aig_ManStop( pAbs );
+            break;
+        }
+        Aig_ManStop( pAbs );
+        pAbs = pTemp;
+        printf( "ITER %4d : ", Iter );
+        if ( !pPars->fVerbose )
+            Aig_ManPrintStats( pAbs );
+        // output the intermediate result of abstraction
+        Ioa_WriteAiger( pAbs, "gabs.aig", 0, 0 );
+//            printf( "Intermediate abstracted model was written into file \"%s\".\n", "gabs.aig" );
+        // check if the ratio is reached
+        if ( 100.0*(Aig_ManRegNum(p)-Aig_ManRegNum(pAbs))/Aig_ManRegNum(p) < 1.0*pPars->nRatio )
+        {
+            printf( "Refinements is stopped because flop reduction is less than %d%%\n", pPars->nRatio );
+            Aig_ManStop( pAbs );
+            pAbs = NULL;
+            Vec_IntFree( vFlops );
+            vFlops = NULL;
+            break;
+        }
+    }
+    return vFlops;
 }
 
 

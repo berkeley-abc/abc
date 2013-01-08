@@ -46,37 +46,62 @@ ABC_NAMESPACE_HEADER_START
 typedef struct Abs_Par_t_ Abs_Par_t;
 struct Abs_Par_t_
 {
-    int                  nFramesMax;         // maximum frames
-    int                  nFramesStart;       // starting frame 
-    int                  nFramesPast;        // overlap frames
-    int                  nConfLimit;         // conflict limit
-    int                  nLearnedMax;        // max number of learned clauses
-    int                  nLearnedStart;      // max number of learned clauses
-    int                  nLearnedDelta;      // delta increase of learned clauses
-    int                  nLearnedPerce;      // percentage of clauses to leave
-    int                  nTimeOut;           // timeout in seconds
-    int                  nRatioMin;          // stop when less than this % of object is abstracted
-    int                  nRatioMax;          // restart when the number of abstracted object is more than this
-    int                  fUseTermVars;       // use terminal variables
-    int                  fUseRollback;       // use rollback to the starting number of frames
-    int                  fPropFanout;        // propagate fanout implications
-    int                  fAddLayer;          // refinement strategy by adding layers
-    int                  fNewRefine;         // uses new refinement heuristics
-    int                  fUseSkip;           // skip proving intermediate timeframes
-    int                  fUseSimple;         // use simple CNF construction
-    int                  fSkipHash;          // skip hashing CNF while unrolling
-    int                  fUseFullProof;      // use full proof for UNSAT cores
-    int                  fDumpVabs;          // dumps the abstracted model
-    int                  fDumpMabs;          // dumps the original AIG with abstraction map
-    int                  fCallProver;        // calls the prover
-    int                  fSimpProver;        // calls simplification before prover
-    char *               pFileVabs;          // dumps the abstracted model into this file
-    int                  fVerbose;           // verbose flag
-    int                  fVeryVerbose;       // print additional information
-    int                  iFrame;             // the number of frames covered
-    int                  iFrameProved;       // the number of frames proved
-    int                  nFramesNoChange;    // the number of last frames without changes
-    int                  nFramesNoChangeLim; // the number of last frames without changes to dump abstraction
+    int            nFramesMax;         // maximum frames
+    int            nFramesStart;       // starting frame 
+    int            nFramesPast;        // overlap frames
+    int            nConfLimit;         // conflict limit
+    int            nLearnedMax;        // max number of learned clauses
+    int            nLearnedStart;      // max number of learned clauses
+    int            nLearnedDelta;      // delta increase of learned clauses
+    int            nLearnedPerce;      // percentage of clauses to leave
+    int            nTimeOut;           // timeout in seconds
+    int            nRatioMin;          // stop when less than this % of object is abstracted
+    int            nRatioMax;          // restart when the number of abstracted object is more than this
+    int            fUseTermVars;       // use terminal variables
+    int            fUseRollback;       // use rollback to the starting number of frames
+    int            fPropFanout;        // propagate fanout implications
+    int            fAddLayer;          // refinement strategy by adding layers
+    int            fNewRefine;         // uses new refinement heuristics
+    int            fUseSkip;           // skip proving intermediate timeframes
+    int            fUseSimple;         // use simple CNF construction
+    int            fSkipHash;          // skip hashing CNF while unrolling
+    int            fUseFullProof;      // use full proof for UNSAT cores
+    int            fDumpVabs;          // dumps the abstracted model
+    int            fDumpMabs;          // dumps the original AIG with abstraction map
+    int            fCallProver;        // calls the prover
+    int            fSimpProver;        // calls simplification before prover
+    char *         pFileVabs;          // dumps the abstracted model into this file
+    int            fVerbose;           // verbose flag
+    int            fVeryVerbose;       // print additional information
+    int            iFrame;             // the number of frames covered
+    int            iFrameProved;       // the number of frames proved
+    int            nFramesNoChange;    // the number of last frames without changes
+    int            nFramesNoChangeLim; // the number of last frames without changes to dump abstraction
+};
+
+// old abstraction parameters
+typedef struct Gia_ParAbs_t_ Gia_ParAbs_t;
+struct Gia_ParAbs_t_
+{
+    int            Algo;               // the algorithm to be used
+    int            nFramesMax;         // timeframes for PBA
+    int            nConfMax;           // conflicts for PBA
+    int            fDynamic;           // dynamic unfolding for PBA
+    int            fConstr;            // use constraints
+    int            nFramesBmc;         // timeframes for BMC
+    int            nConfMaxBmc;        // conflicts for BMC
+    int            nStableMax;         // the number of stable frames to quit
+    int            nRatio;             // ratio of flops to quit
+    int            TimeOut;            // approximate timeout in seconds
+    int            TimeOutVT;          // approximate timeout in seconds
+    int            nBobPar;            // Bob's parameter
+    int            fUseBdds;           // use BDDs to refine abstraction
+    int            fUseDprove;         // use 'dprove' to refine abstraction
+    int            fUseStart;          // use starting frame
+    int            fVerbose;           // verbose output
+    int            fVeryVerbose;       // printing additional information
+    int            Status;             // the problem status
+    int            nFramesDone;        // the number of frames covered
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -127,6 +152,8 @@ extern int               Gia_GlaCountNodes( Gia_Man_t * p, Vec_Int_t * vGla );
 extern Gia_Man_t *       Abs_RpmPerform( Gia_Man_t * p, int nCutMax, int fVerbose, int fVeryVerbose );
 /*=== absRpmOld.c =========================================================*/
 extern Gia_Man_t *       Abs_RpmPerformOld( Gia_Man_t * p, int fVerbose );
+extern void              Gia_ManAbsSetDefaultParams( Gia_ParAbs_t * p );
+extern Vec_Int_t *       Saig_ManCexAbstractionFlops( Aig_Man_t * p, Gia_ParAbs_t * pPars );
 
 /*=== absOldCex.c ==========================================================*/
 extern Vec_Int_t *       Saig_ManCbaFilterFlops( Aig_Man_t * pAig, Abc_Cex_t * pAbsCex, Vec_Int_t * vFlopClasses, Vec_Int_t * vAbsFfsToAdd, int nFfsToSelect );
