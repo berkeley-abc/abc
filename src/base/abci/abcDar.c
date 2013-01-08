@@ -726,7 +726,7 @@ Abc_Ntk_t * Abc_NtkFromMappedGia( Gia_Man_t * p )
         pObjNew = Abc_NtkCreateNode( pNtkNew );
         Gia_LutForEachFanin( p, i, iFan, k )
             Abc_ObjAddFanin( pObjNew, Abc_NtkObj(pNtkNew, Gia_ObjValue(Gia_ManObj(p, iFan))) );
-        pObjNew->pData = Abc_ObjHopFromGia( pNtkNew->pManFunc, p, i, vReflect );
+        pObjNew->pData = Abc_ObjHopFromGia( (Hop_Man_t *)pNtkNew->pManFunc, p, i, vReflect );
         pObj->Value = Abc_ObjId( pObjNew );
     }
     Vec_PtrFree( vReflect );
