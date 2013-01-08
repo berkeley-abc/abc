@@ -1057,7 +1057,7 @@ void Gia_AigerWrite( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
     if ( p->pManTime )
     {
         Vec_Flt_t * vArrTimes, * vReqTimes;
-        if ( Tim_ManGetArrsReqs( p->pManTime, &vArrTimes, &vReqTimes ) )
+        if ( Tim_ManGetArrsReqs( (Tim_Man_t *)p->pManTime, &vArrTimes, &vReqTimes ) )
         {
             fprintf( pFile, "i" );
             Gia_FileWriteBufferSize( pFile, 4*Tim_ManPiNum((Tim_Man_t *)p->pManTime) );
