@@ -756,14 +756,16 @@ static inline int Vec_StrCompareVec( Vec_Str_t * p1, Vec_Str_t * p2 )
 static inline void Vec_StrPutI_ne( Vec_Str_t * vOut, int Val )
 {
     int i;
-    for ( i = 0; i < 4; i++ )
+//    for ( i = 0; i < 4; i++ )
+    for ( i = 3; i >= 0; i-- )
         Vec_StrPush( vOut, (char)(Val >> (8*i)) );
 }
 static inline int Vec_StrGetI_ne( Vec_Str_t * vOut, int * pPos )
 {
     int i;
     int Val = 0;
-    for ( i = 0; i < 4; i++ )
+//    for ( i = 0; i < 4; i++ )
+    for ( i = 3; i >= 0; i-- )
         Val |= ((int)(unsigned char)Vec_StrEntry(vOut, (*pPos)++) << (8*i));
     return Val;
 }
