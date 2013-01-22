@@ -17747,8 +17747,9 @@ int Abc_CommandSim3( Abc_Frame_t * pAbc, int argc, char ** argv )
     int nRestart;
     int nRandSeed;
     int TimeOut;
+    int fSolveAll;
     int fVerbose;
-    extern int Abc_NtkDarSeqSim3( Abc_Ntk_t * pNtk, int nFrames, int nWords, int nBinSize, int nRounds, int nRestart, int nRandSeed, int TimeOut, int fVerbose );
+    extern int Abc_NtkDarSeqSim3( Abc_Ntk_t * pNtk, int nFrames, int nWords, int nBinSize, int nRounds, int nRestart, int nRandSeed, int TimeOut, int fSolveAll, int fVerbose );
     // set defaults
     nFrames    =  20;
     nWords     =  50;
@@ -17757,10 +17758,11 @@ int Abc_CommandSim3( Abc_Frame_t * pAbc, int argc, char ** argv )
     nRestart   = 100;
     nRandSeed  =   0;
     TimeOut    =   0;
+    fSolveAll  =   0;
     fVerbose   =   0;
     // parse command line
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FWBRSNTvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FWBRSNTavh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -17841,6 +17843,9 @@ int Abc_CommandSim3( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( TimeOut < 0 )
                 goto usage;
             break;
+        case 'a':
+            fSolveAll ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -17861,13 +17866,13 @@ int Abc_CommandSim3( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     ABC_FREE( pNtk->pSeqModel );
-    pAbc->Status = Abc_NtkDarSeqSim3( pNtk, nFrames, nWords, nBinSize, nRounds, nRestart, nRandSeed, TimeOut, fVerbose );
+    pAbc->Status = Abc_NtkDarSeqSim3( pNtk, nFrames, nWords, nBinSize, nRounds, nRestart, nRandSeed, TimeOut, fSolveAll, fVerbose );
 //    pAbc->nFrames = pAbc->pCex->iFrame;
     Abc_FrameReplaceCex( pAbc, &pNtk->pSeqModel );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: sim3 [-FWBRSNT num] [-vh]\n" );
+    Abc_Print( -2, "usage: sim3 [-FWBRSNT num] [-avh]\n" );
     Abc_Print( -2, "\t         performs random simulation of the sequential miter\n" );
     Abc_Print( -2, "\t-F num : the number of frames to simulate [default = %d]\n", nFrames );
     Abc_Print( -2, "\t-W num : the number of words to simulate [default = %d]\n",  nWords );
@@ -17876,6 +17881,7 @@ usage:
     Abc_Print( -2, "\t-S num : the number of rounds before a restart [default = %d]\n",  nRestart );
     Abc_Print( -2, "\t-N num : random number seed (1 <= num <= 1000) [default = %d]\n", nRandSeed );
     Abc_Print( -2, "\t-T num : approximate runtime limit in seconds [default = %d]\n", TimeOut );
+    Abc_Print( -2, "\t-a     : solve all outputs (do not stop when one is SAT) [default = %s]\n", fSolveAll? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
