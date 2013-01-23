@@ -591,6 +591,7 @@ Gia_Man_t * Gia_ManFromIf( If_Man_t * pIfMan )
 */
         }
     }
+    pNew->nOffset = iOffset;
     Gia_ManCleanMark0( pNew );
 //    assert( iOffset == Gia_ManObjNum(pNew) + nItems );
     if ( pIfMan->pManTim )

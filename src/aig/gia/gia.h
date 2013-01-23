@@ -128,6 +128,7 @@ struct Gia_Man_t_
     Vec_Int_t *    vFanoutNums;   // static fanout
     Vec_Int_t *    vFanout;       // static fanout
     int *          pMapping;      // mapping for each node
+    int            nOffset;       // mapping offset
     Vec_Int_t *    vMapping;
     Vec_Int_t *    vLutConfigs;   // LUT configurations
     Abc_Cex_t *    pCexComb;      // combinational counter-example

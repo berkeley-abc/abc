@@ -207,6 +207,32 @@ Vec_Str_t * Gia_AigerWriteMapping( Gia_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Read/write mapping information.]
+
+  Description []
+  
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int * Gia_AigerReadMappingSimple( unsigned char ** ppPos, int nSize )
+{
+    int * pMapping = ABC_ALLOC( int, nSize/4 );
+    memcpy( pMapping, *ppPos, nSize );
+    assert( nSize % 4 == 0 );
+    return pMapping;
+}
+Vec_Str_t * Gia_AigerWriteMappingSimple( Gia_Man_t * p )
+{
+    unsigned char * pBuffer = ABC_ALLOC( unsigned char, 4*p->nOffset );
+    memcpy( pBuffer, p->pMapping, 4*p->nOffset );
+    assert( p->pMapping != NULL && p->nOffset >= Gia_ManObjNum(p) );
+    return Vec_StrAllocArray( (char *)pBuffer, 4*p->nOffset );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Read/write packing information.]
 
   Description []
