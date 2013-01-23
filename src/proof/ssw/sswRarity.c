@@ -549,44 +549,40 @@ int Ssw_RarManObjWhichOne( Ssw_RarMan_t * p, Aig_Obj_t * pObj )
 int Ssw_RarManCheckNonConstOutputs( Ssw_RarMan_t * p, int * pnSolvedNow, int iFrame, int fNotVerbose, clock_t Time )
 {
     Aig_Obj_t * pObj;
-    int i;
+    int i, RetValue = 0;
     p->iFailPo  = -1;
     p->iFailPat = -1;
     Saig_ManForEachPo( p->pAig, pObj, i )
     {
         if ( p->pAig->nConstrs && i >= Saig_ManPoNum(p->pAig) - p->pAig->nConstrs )
-            return 0;
+            break;
         if ( p->vCexes && Vec_PtrEntry(p->vCexes, i) )
             continue;
-        if ( !Ssw_RarManObjIsConst(p, pObj) )
+        if ( Ssw_RarManObjIsConst(p, pObj) )
+            continue;
+        RetValue = 1;
+        p->iFailPo  = i;
+        p->iFailPat = Ssw_RarManObjWhichOne( p, pObj );
+        if ( pnSolvedNow == NULL )
+            break;
+        // remember the one solved
+        (*pnSolvedNow)++;
+        if ( p->vCexes == NULL )
+            p->vCexes = Vec_PtrStart( Saig_ManPoNum(p->pAig) );
+        assert( Vec_PtrEntry(p->vCexes, p->iFailPo) == NULL );
+        Vec_PtrWriteEntry( p->vCexes, p->iFailPo, (void *)(ABC_PTRINT_T)1 );
+        // print final report
+        if ( !fNotVerbose )
         {
-            p->iFailPo  = i;
-            p->iFailPat = Ssw_RarManObjWhichOne( p, pObj );
-
-            // remember the one solved
-            if ( pnSolvedNow )
-            {
-                (*pnSolvedNow)++;
-                if ( p->vCexes == NULL )
-                    p->vCexes = Vec_PtrStart( Saig_ManPoNum(p->pAig) );
-                assert( Vec_PtrEntry(p->vCexes, p->iFailPo) == NULL );
-                Vec_PtrWriteEntry( p->vCexes, p->iFailPo, (void *)(ABC_PTRINT_T)1 );
-                // print final report
-                if ( !fNotVerbose )
-                {
-                    int nOutDigits = Abc_Base10Log( Saig_ManPoNum(p->pAig) );
-                    Abc_Print( 1, "Output %*d was asserted in frame %4d (solved %*d out of %*d outputs).  ", 
-                        nOutDigits, p->iFailPo, iFrame, 
-                        nOutDigits, *pnSolvedNow, 
-                        nOutDigits, Saig_ManPoNum(p->pAig) );
-                    Abc_PrintTime( 1, "Time", Time );
-                }
-                continue;
-            }
-            return 1;
+            int nOutDigits = Abc_Base10Log( Saig_ManPoNum(p->pAig) );
+            Abc_Print( 1, "Output %*d was asserted in frame %4d (solved %*d out of %*d outputs).  ", 
+                nOutDigits, p->iFailPo, iFrame, 
+                nOutDigits, *pnSolvedNow, 
+                nOutDigits, Saig_ManPoNum(p->pAig) );
+            Abc_PrintTime( 1, "Time", Time );
         }
     }
-    return 0;
+    return RetValue;
 }
 
 /**Function*************************************************************

@@ -238,6 +238,8 @@ Abc_Cex_t* _cex_get_vec(int i)
 		return NULL;
 	}
 
+    if ( pCex == (Abc_Cex_t *)1 )
+        return pCex;
     return Abc_CexDup( pCex, -1 ); 
 }
 
