@@ -546,7 +546,7 @@ int Ssw_RarManObjWhichOne( Ssw_RarMan_t * p, Aig_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
-int Ssw_RarManCheckNonConstOutputs( Ssw_RarMan_t * p )
+int Ssw_RarManCheckNonConstOutputs( Ssw_RarMan_t * p, int * pnSolvedNow, int iFrame, int fNotVerbose, clock_t Time )
 {
     Aig_Obj_t * pObj;
     int i;
@@ -556,12 +556,33 @@ int Ssw_RarManCheckNonConstOutputs( Ssw_RarMan_t * p )
     {
         if ( p->pAig->nConstrs && i >= Saig_ManPoNum(p->pAig) - p->pAig->nConstrs )
             return 0;
-        if ( Vec_PtrEntry(p->vCexes, i) )
+        if ( p->vCexes && Vec_PtrEntry(p->vCexes, i) )
             continue;
         if ( !Ssw_RarManObjIsConst(p, pObj) )
         {
             p->iFailPo  = i;
             p->iFailPat = Ssw_RarManObjWhichOne( p, pObj );
+
+            // remember the one solved
+            if ( pnSolvedNow )
+            {
+                (*pnSolvedNow)++;
+                if ( p->vCexes == NULL )
+                    p->vCexes = Vec_PtrStart( Saig_ManPoNum(p->pAig) );
+                assert( Vec_PtrEntry(p->vCexes, p->iFailPo) == NULL );
+                Vec_PtrWriteEntry( p->vCexes, p->iFailPo, (void *)(ABC_PTRINT_T)1 );
+                // print final report
+                if ( !fNotVerbose )
+                {
+                    int nOutDigits = Abc_Base10Log( Saig_ManPoNum(p->pAig) );
+                    Abc_Print( 1, "Output %*d was asserted in frame %4d (solved %*d out of %*d outputs).  ", 
+                        nOutDigits, p->iFailPo, iFrame, 
+                        nOutDigits, *pnSolvedNow, 
+                        nOutDigits, Saig_ManPoNum(p->pAig) );
+                    Abc_PrintTime( 1, "Time", Time );
+                }
+                continue;
+            }
             return 1;
         }
     }
@@ -697,7 +718,6 @@ static Ssw_RarMan_t * Ssw_RarManStart( Aig_Man_t * pAig, int nWords, int nFrames
     p->vUpdConst = Vec_PtrAlloc( 100 );
     p->vUpdClass = Vec_PtrAlloc( 100 );
     p->vPatBests = Vec_IntAlloc( 100 );
-    p->vCexes    = Vec_PtrStart( Saig_ManPoNum(pAig) );
     return p;
 }
 
@@ -714,7 +734,13 @@ static Ssw_RarMan_t * Ssw_RarManStart( Aig_Man_t * pAig, int nWords, int nFrames
 ***********************************************************************/
 static void Ssw_RarManStop( Ssw_RarMan_t * p )
 {
-    Vec_PtrFreeP( &p->vCexes );
+//    Vec_PtrFreeP( &p->vCexes );
+    if ( p->vCexes )
+    {
+        assert( p->pAig->vSeqModelVec == NULL );
+        p->pAig->vSeqModelVec = p->vCexes;
+        p->vCexes = NULL;
+    }
     if ( p->ppClasses ) Ssw_ClassesStop( p->ppClasses );
     Vec_IntFreeP( &p->vInits );
     Vec_IntFreeP( &p->vPatBests );
@@ -897,7 +923,7 @@ int Ssw_RarCheckTrivial( Aig_Man_t * pAig, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-int Ssw_RarSimulate( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSize, int nRounds, int nRestart, int nRandSeed, int TimeOut, int fSolveAll, int fVerbose )
+int Ssw_RarSimulate( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSize, int nRounds, int nRestart, int nRandSeed, int TimeOut, int fSolveAll, int fVerbose, int fNotVerbose )
 {
     int fTryBmc = 0;
     int fMiter = 1;
@@ -905,7 +931,6 @@ int Ssw_RarSimulate( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSize, in
     int r, f = -1;
     clock_t clk, clkTotal = clock();
     clock_t nTimeToStop = TimeOut ? TimeOut * CLOCKS_PER_SEC + clock(): 0;
-    int nOutDigits = Abc_Base10Log( Saig_ManPoNum(pAig) );
     int nNumRestart = 0;
     int nSavedSeed = nRandSeed;
     int RetValue = -1;
@@ -913,6 +938,7 @@ int Ssw_RarSimulate( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSize, in
     int nSolved = 0;
     assert( Aig_ManRegNum(pAig) > 0 );
     assert( Aig_ManConstrNum(pAig) == 0 );
+    ABC_FREE( pAig->pSeqModel );
     // consider the case of empty AIG
     if ( Aig_ManNodeNum(pAig) == 0 )
         return -1;
@@ -945,13 +971,13 @@ int Ssw_RarSimulate( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSize, in
         for ( f = 0; f < nFrames; f++ )
         {
             Ssw_RarManSimulate( p, f ? NULL : p->vInits, 0, 0 );
-            if ( fMiter && Ssw_RarManCheckNonConstOutputs(p) )
+            if ( fMiter && Ssw_RarManCheckNonConstOutputs(p, fSolveAll ? &nSolved : NULL, r * p->nFrames + f, fNotVerbose, clock() - clkTotal) )
             {
+                RetValue = 0;
                 if ( !fSolveAll )
                 {
                     if ( fVerbose ) Abc_Print( 1, "\n" );
     //                Abc_Print( 1, "Simulation asserted a PO in frame f: %d <= f < %d.\n", r * nFrames, (r+1) * nFrames );
-                    ABC_FREE( pAig->pSeqModel );
                     Ssw_RarManPrepareRandom( nSavedSeed );
                     if ( fVerbose )
                         Abc_Print( 1, "Simulated %d frames for %d rounds with %d restarts.\n", nFrames, nNumRestart * nRestart + r, nNumRestart );
@@ -959,23 +985,8 @@ int Ssw_RarSimulate( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSize, in
                     // print final report
                     Abc_Print( 1, "Output %d of miter \"%s\" was asserted in frame %d.  ", pAig->pSeqModel->iPo, pAig->pName, pAig->pSeqModel->iFrame );
                     Abc_PrintTime( 1, "Time", clock() - clkTotal );
-                    RetValue = 0;
                     goto finish;
                 }
-                else
-                {
-                    nSolved++;
-                    assert( Vec_PtrEntry(p->vCexes, p->iFailPo) == NULL );
-                    Vec_PtrWriteEntry( p->vCexes, p->iFailPo, p->vCexes );
-                    // print final report
-                    ABC_FREE( pAig->pSeqModel );
-                    Abc_Print( 1, "Output %*d was asserted in frame %4d (solved %*d out of %*d outputs).  ", 
-                        nOutDigits, p->iFailPo, r * p->nFrames + f, 
-                        nOutDigits, nSolved, nOutDigits, Saig_ManPoNum(p->pAig) );
-                    Abc_PrintTime( 1, "Time", clock() - clkTotal );
-                    RetValue = 0;
-                }
-
             }
             // check timeout
             if ( TimeOut && clock() > nTimeToStop )
@@ -985,6 +996,9 @@ int Ssw_RarSimulate( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSize, in
                 Abc_Print( 1, "Reached timeout (%d sec).\n",  TimeOut );
                 goto finish;
             }
+            // check if all outputs are solved by now
+            if ( fSolveAll && p->vCexes && Vec_PtrCountZero(p->vCexes) == 0 )
+                goto finish;
         }
         // get initialization patterns
         if ( nRestart && r == nRestart )
@@ -1012,7 +1026,7 @@ finish:
     if ( nSolved )
     {
         if ( fVerbose && !fSolveAll ) Abc_Print( 1, "\n" );
-        Abc_Print( 1, "Simulation of %d frames for %d rounds with %d restarts asserted %d POs.    ", nFrames, nNumRestart * nRestart + r, nNumRestart, nSolved );
+        Abc_Print( 1, "Simulation of %d frames for %d rounds with %d restarts asserted %d (out of %d) POs.    ", nFrames, nNumRestart * nRestart + r, nNumRestart, nSolved, Saig_ManPoNum(p->pAig) );
         Abc_PrintTime( 1, "Time", clock() - clkTotal );
     }
     else if ( r == nRounds && f == nFrames )
@@ -1041,10 +1055,11 @@ finish:
 int Ssw_RarSimulateGia( Gia_Man_t * p, int nFrames, int nWords, int nBinSize, int nRounds, int nRestart, int nRandSeed, int TimeOut, int fVerbose )
 {
     int fSolveAll = 0;
+    int fNotVerbose = 0;
     Aig_Man_t * pAig;
     int RetValue;
     pAig = Gia_ManToAigSimple( p );
-    RetValue = Ssw_RarSimulate( pAig, nFrames, nWords, nBinSize, nRounds, nRestart, nRandSeed, TimeOut, fSolveAll, fVerbose );
+    RetValue = Ssw_RarSimulate( pAig, nFrames, nWords, nBinSize, nRounds, nRestart, nRandSeed, TimeOut, fSolveAll, fVerbose, fNotVerbose );
     // save counter-example
     Abc_CexFree( p->pCexSeq );
     p->pCexSeq = pAig->pSeqModel; pAig->pSeqModel = NULL;
@@ -1128,7 +1143,7 @@ int Ssw_RarSignalFilter( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSize
         for ( f = 0; f < nFrames; f++ )
         {
             Ssw_RarManSimulate( p, f ? NULL : p->vInits, 1, !r && !f );
-            if ( fMiter && Ssw_RarManCheckNonConstOutputs(p) )
+            if ( fMiter && Ssw_RarManCheckNonConstOutputs(p, NULL, -1, -1, 0) )
             {
                 if ( !fVerbose )
                     Abc_Print( 1, "%s", Abc_FrameIsBatchMode() ? "\n" : "\r" );

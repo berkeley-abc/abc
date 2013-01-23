@@ -53,6 +53,7 @@ struct Pdr_Par_t_
     int fSkipGeneral;     // skips expensive generalization step
     int fVerbose;         // verbose output`
     int fVeryVerbose;     // very verbose output
+    int fNotVerbose;      // not printing line by line progress
     int fSilent;          // totally silent execution
     int fSolveAll;        // do not stop when found a SAT output
     int nFailOuts;        // the number of failed outputs

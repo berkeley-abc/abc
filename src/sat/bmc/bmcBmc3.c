@@ -1305,6 +1305,7 @@ void Saig_ParBmcSetDefaultParams( Saig_ParBmc_t * p )
     p->fSolveAll      =     0;    // stops on the first SAT instance
     p->fDropSatOuts   =     0;    // replace sat outputs by constant 0
     p->fVerbose       =     0;    // verbose 
+    p->fNotVerbose    =     0;    // skip line-by-line print-out 
     p->iFrame         =    -1;    // explored up to this frame
     p->nFailOuts      =     0;    // the number of failed outputs
 }
@@ -1425,8 +1426,9 @@ clkOther += clock() - clk2;
                     return 0;
                 }
                 pPars->nFailOuts++;
-                Abc_Print( 1, "Output %*d was asserted in frame %2d (solved %*d out of %*d outputs).\n",  
-                    nOutDigits, i, f, nOutDigits, pPars->nFailOuts, nOutDigits, Saig_ManPoNum(pAig) );
+                if ( !pPars->fNotVerbose )
+                    Abc_Print( 1, "Output %*d was asserted in frame %2d (solved %*d out of %*d outputs).\n",  
+                        nOutDigits, i, f, nOutDigits, pPars->nFailOuts, nOutDigits, Saig_ManPoNum(pAig) );
                 if ( p->vCexes == NULL )
                     p->vCexes = Vec_PtrStart( Saig_ManPoNum(pAig) );
                 Vec_PtrWriteEntry( p->vCexes, i, pCex );
@@ -1498,8 +1500,9 @@ clkOther += clock() - clk2;
                     return 0;
                 }
                 pPars->nFailOuts++;
-                Abc_Print( 1, "Output %*d was asserted in frame %2d (solved %*d out of %*d outputs).\n",  
-                    nOutDigits, i, f, nOutDigits, pPars->nFailOuts, nOutDigits, Saig_ManPoNum(pAig) );
+                if ( !pPars->fNotVerbose )
+                    Abc_Print( 1, "Output %*d was asserted in frame %2d (solved %*d out of %*d outputs).\n",  
+                        nOutDigits, i, f, nOutDigits, pPars->nFailOuts, nOutDigits, Saig_ManPoNum(pAig) );
                 if ( p->vCexes == NULL )
                     p->vCexes = Vec_PtrStart( Saig_ManPoNum(pAig) );
                 Vec_PtrWriteEntry( p->vCexes, i, pCex );

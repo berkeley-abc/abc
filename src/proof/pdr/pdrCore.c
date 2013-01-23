@@ -57,6 +57,7 @@ void Pdr_ManSetDefaultParams( Pdr_Par_t * pPars )
     pPars->fShortest     =       0;  // forces bug traces to be shortest
     pPars->fVerbose      =       0;  // verbose output
     pPars->fVeryVerbose  =       0;  // very verbose output
+    pPars->fNotVerbose   =       0;  // not printing line-by-line progress
     pPars->iFrame        =      -1;  // explored up to this frame
 }
 
@@ -645,8 +646,9 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
                         assert( Vec_PtrEntry(p->vCexes, p->iOutCur) == NULL );
                         pCex = Pdr_ManDeriveCex(p);
                         Vec_PtrWriteEntry( p->vCexes, p->iOutCur, pCex );
-                        Abc_Print( 1, "Output %*d was asserted in frame %2d (%2d) (solved %*d out of %*d outputs).\n",  
-                            nOutDigits, p->iOutCur, pCex->iFrame, k, nOutDigits, p->pPars->nFailOuts, nOutDigits, Saig_ManPoNum(p->pAig) );
+                        if ( !p->pPars->fNotVerbose )
+                            Abc_Print( 1, "Output %*d was asserted in frame %2d (%2d) (solved %*d out of %*d outputs).\n",  
+                                nOutDigits, p->iOutCur, pCex->iFrame, k, nOutDigits, p->pPars->nFailOuts, nOutDigits, Saig_ManPoNum(p->pAig) );
                         if ( p->pPars->nFailOuts == Saig_ManPoNum(p->pAig) )
                             return 0; // all SAT
                         Pdr_QueueClean( p );

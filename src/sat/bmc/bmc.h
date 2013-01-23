@@ -54,6 +54,7 @@ struct Saig_ParBmc_t_
     int         nFfToAddMax;    // max number of flops to add during CBA
     int         fSkipRand;      // skip random decisions
     int         fVerbose;       // verbose 
+    int         fNotVerbose;    // skip line-by-line print-out 
     int         iFrame;         // explored up to this frame
     int         nFailOuts;      // the number of failed outputs
 };

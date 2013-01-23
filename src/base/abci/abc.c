@@ -2301,10 +2301,24 @@ int Abc_CommandPrintStatus( Abc_Frame_t * pAbc, int argc, char ** argv )
         if ( pAbc->vCexVec )
         {
             Abc_Cex_t * pTemp;
+            int nCexes = 0;
+            int Counter = 0;
             printf( "\n" );
             Vec_PtrForEachEntry( Abc_Cex_t *, pAbc->vCexVec, pTemp, c )
+            {
+                if ( pTemp == (void *)(ABC_PTRINT_T)1 )
+                {
+                    Counter++;
+                    continue;
+                }
                 if ( pTemp )
+                {
+                    printf( "%4d : ", ++nCexes );
                     Abc_CexPrintStats( pTemp );
+                }
+            }
+            if ( Counter )
+                printf( "In total, %d (out of %d) outputs are \"sat\" but CEXes are not recorded.\n", Counter, Vec_PtrSize(pAbc->vCexVec) );
         }
     }
     return 0;
@@ -17749,7 +17763,8 @@ int Abc_CommandSim3( Abc_Frame_t * pAbc, int argc, char ** argv )
     int TimeOut;
     int fSolveAll;
     int fVerbose;
-    extern int Abc_NtkDarSeqSim3( Abc_Ntk_t * pNtk, int nFrames, int nWords, int nBinSize, int nRounds, int nRestart, int nRandSeed, int TimeOut, int fSolveAll, int fVerbose );
+    int fNotVerbose;
+    extern int Abc_NtkDarSeqSim3( Abc_Ntk_t * pNtk, int nFrames, int nWords, int nBinSize, int nRounds, int nRestart, int nRandSeed, int TimeOut, int fSolveAll, int fVerbose, int fNotVerbose );
     // set defaults
     nFrames    =  20;
     nWords     =  50;
@@ -17760,9 +17775,10 @@ int Abc_CommandSim3( Abc_Frame_t * pAbc, int argc, char ** argv )
     TimeOut    =   0;
     fSolveAll  =   0;
     fVerbose   =   0;
+    fNotVerbose=   0;
     // parse command line
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FWBRSNTavh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FWBRSNTavzh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -17849,6 +17865,9 @@ int Abc_CommandSim3( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'v':
             fVerbose ^= 1;
             break;
+        case 'z':
+            fNotVerbose ^= 1;
+            break;
         case 'h':
             goto usage;
         default:
@@ -17866,13 +17885,18 @@ int Abc_CommandSim3( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     ABC_FREE( pNtk->pSeqModel );
-    pAbc->Status = Abc_NtkDarSeqSim3( pNtk, nFrames, nWords, nBinSize, nRounds, nRestart, nRandSeed, TimeOut, fSolveAll, fVerbose );
+    pAbc->Status = Abc_NtkDarSeqSim3( pNtk, nFrames, nWords, nBinSize, nRounds, nRestart, nRandSeed, TimeOut, fSolveAll, fVerbose, fNotVerbose );
 //    pAbc->nFrames = pAbc->pCex->iFrame;
     Abc_FrameReplaceCex( pAbc, &pNtk->pSeqModel );
+    if ( pNtk->vSeqModelVec )
+    {
+        Abc_FrameReplaceCexVec( pAbc, &pNtk->vSeqModelVec );
+        pAbc->nFrames = -1;
+    }
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: sim3 [-FWBRSNT num] [-avh]\n" );
+    Abc_Print( -2, "usage: sim3 [-FWBRSNT num] [-avzh]\n" );
     Abc_Print( -2, "\t         performs random simulation of the sequential miter\n" );
     Abc_Print( -2, "\t-F num : the number of frames to simulate [default = %d]\n", nFrames );
     Abc_Print( -2, "\t-W num : the number of words to simulate [default = %d]\n",  nWords );
@@ -17883,6 +17907,7 @@ usage:
     Abc_Print( -2, "\t-T num : approximate runtime limit in seconds [default = %d]\n", TimeOut );
     Abc_Print( -2, "\t-a     : solve all outputs (do not stop when one is SAT) [default = %s]\n", fSolveAll? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-z     : toggle suppressing report about solved outputs [default = %s]\n", fNotVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
@@ -20781,7 +20806,7 @@ int Abc_CommandBmc3( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     Saig_ParBmcSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "SFTCDJILadruvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "SFTCDJILadruvzh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -20883,6 +20908,9 @@ int Abc_CommandBmc3( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'v':
             pPars->fVerbose ^= 1;
             break;
+        case 'z':
+            pPars->fNotVerbose ^= 1;
+            break;
         case 'h':
             goto usage;
         default:
@@ -20941,7 +20969,7 @@ int Abc_CommandBmc3( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: bmc3 [-SFTCDJI num] [-L file] [-aduvh]\n" );
+    Abc_Print( -2, "usage: bmc3 [-SFTCDJI num] [-L file] [-aduvzh]\n" );
     Abc_Print( -2, "\t         performs bounded model checking with dynamic unrolling\n" );
     Abc_Print( -2, "\t-S num : the starting time frame [default = %d]\n", pPars->nStart );
     Abc_Print( -2, "\t-F num : the max number of time frames (0 = unused) [default = %d]\n", pPars->nFramesMax );
@@ -20955,6 +20983,7 @@ usage:
     Abc_Print( -2, "\t-d     : drops (replaces by 0) satisfiable outputs [default = %s]\n", pPars->fDropSatOuts? "yes": "no" );
     Abc_Print( -2, "\t-u     : toggle performing structural OR-decomposition [default = %s]\n", fOrDecomp? "yes": "not" );
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-z     : toggle suppressing report about solved outputs [default = %s]\n", pPars->fNotVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
@@ -22337,7 +22366,7 @@ int Abc_CommandPdr( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     Pdr_ManSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "MFCRTarmsdgvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "MFCRTarmsdgvwzh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -22433,6 +22462,9 @@ int Abc_CommandPdr( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'w':
             pPars->fVeryVerbose ^= 1;
             break;
+        case 'z':
+            pPars->fNotVerbose ^= 1;
+            break;
         case 'h':
         default:
             goto usage;
@@ -22465,7 +22497,7 @@ int Abc_CommandPdr( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: pdr [-MFCRT<num] [-armsdgvwh]\n" );
+    Abc_Print( -2, "usage: pdr [-MFCRT<num] [-armsdgvwzh]\n" );
     Abc_Print( -2, "\t         model checking using property directed reachability (aka IC3)\n" );
     Abc_Print( -2, "\t         pioneered by Aaron Bradley (http://ecee.colorado.edu/~bradleya/ic3/)\n" );
     Abc_Print( -2, "\t         with improvements by Niklas Een (http://een.se/niklas/)\n" );
@@ -22483,6 +22515,7 @@ usage:
     Abc_Print( -2, "\t-g     : toggle skipping expensive generalization step [default = %s]\n", pPars->fSkipGeneral? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing optimization summary [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w     : toggle printing detailed stats default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-z     : toggle suppressing report about solved outputs [default = %s]\n", pPars->fNotVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }

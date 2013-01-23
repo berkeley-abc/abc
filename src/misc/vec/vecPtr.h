@@ -554,7 +554,8 @@ static inline void Vec_PtrFreeFree( Vec_Ptr_t * p )
     int i;
     if ( p == NULL ) return;
     Vec_PtrForEachEntry( void *, p, pTemp, i )
-        ABC_FREE( pTemp );
+        if ( pTemp != (void *)(ABC_PTRINT_T)1 && pTemp != (void *)(ABC_PTRINT_T)2 )
+            ABC_FREE( pTemp );
     Vec_PtrFree( p );
 }
 
