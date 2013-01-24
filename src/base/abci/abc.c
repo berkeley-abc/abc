@@ -17884,6 +17884,11 @@ int Abc_CommandSim3( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Only works for strashed networks.\n" );
         return 1;
     }
+    if ( Abc_NtkLatchNum(pNtk) == 0 )
+    {
+        Abc_Print( -1, "Only works for sequential networks.\n" );
+        return 1;
+    }
     ABC_FREE( pNtk->pSeqModel );
     pAbc->Status = Abc_NtkDarSeqSim3( pNtk, nFrames, nWords, nBinSize, nRounds, nRestart, nRandSeed, TimeOut, fSolveAll, fVerbose, fNotVerbose );
 //    pAbc->nFrames = pAbc->pCex->iFrame;

@@ -432,6 +432,28 @@ void Ssw_RarManInitialize( Ssw_RarMan_t * p, Vec_Int_t * vInit )
   SeeAlso     []
 
 ***********************************************************************/
+int Ssw_RarManPoIsConst0( void * pMan, Aig_Obj_t * pObj )
+{
+    Ssw_RarMan_t * p = (Ssw_RarMan_t *)pMan;
+    word * pSim = Ssw_RarObjSim( p, Aig_ObjId(pObj) );
+    int w;
+    for ( w = 0; w < p->nWords; w++ )
+        if ( pSim[w] )
+            return 0;
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns 1 if simulation info is composed of all zeros.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Ssw_RarManObjIsConst( void * pMan, Aig_Obj_t * pObj )
 {
     Ssw_RarMan_t * p = (Ssw_RarMan_t *)pMan;
@@ -558,7 +580,7 @@ int Ssw_RarManCheckNonConstOutputs( Ssw_RarMan_t * p, int * pnSolvedNow, int iFr
             break;
         if ( p->vCexes && Vec_PtrEntry(p->vCexes, i) )
             continue;
-        if ( Ssw_RarManObjIsConst(p, pObj) )
+        if ( Ssw_RarManPoIsConst0(p, pObj) )
             continue;
         RetValue = 1;
         p->iFailPo  = i;
@@ -936,11 +958,11 @@ int Ssw_RarSimulate( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSize, in
     assert( Aig_ManConstrNum(pAig) == 0 );
     ABC_FREE( pAig->pSeqModel );
     // consider the case of empty AIG
-    if ( Aig_ManNodeNum(pAig) == 0 )
-        return -1;
+//    if ( Aig_ManNodeNum(pAig) == 0 )
+//        return -1;
     // check trivially SAT miters
-    if ( fMiter && Ssw_RarCheckTrivial( pAig, fVerbose ) )
-        return 0;
+//    if ( fMiter && Ssw_RarCheckTrivial( pAig, fVerbose ) )
+//        return 0;
     if ( fVerbose )
         Abc_Print( 1, "Rarity simulation with %d words, %d frames, %d rounds, %d seed, and %d sec timeout.\n",
             nWords, nFrames, nRounds, nRandSeed, TimeOut );
