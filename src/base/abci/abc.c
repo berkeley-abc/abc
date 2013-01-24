@@ -24324,15 +24324,27 @@ int Abc_CommandAbc9Trim( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Gia_Man_t * pTemp, * pTemp2;
     int c;
+    int OutValue = -1;
     int fTrimCis = 1;
     int fTrimCos = 1;
     int fDualOut = 0;
     int fPoFedByPi = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "iocdh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Viocdh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'V':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-V\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            OutValue = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( OutValue < 0 )
+                goto usage;
+            break;
         case 'i':
             fTrimCis ^= 1;
             break;
@@ -24356,7 +24368,7 @@ int Abc_CommandAbc9Trim( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Trim(): There is no AIG.\n" );
         return 1;
     }
-    pTemp = Gia_ManDupTrimmed( pAbc->pGia, fTrimCis, fTrimCos, fDualOut );
+    pTemp = Gia_ManDupTrimmed( pAbc->pGia, fTrimCis, fTrimCos, fDualOut, OutValue );
     if ( fPoFedByPi )
     {
         extern Gia_Man_t * Gia_ManDupTrimmed2( Gia_Man_t * p );
@@ -24367,8 +24379,9 @@ int Abc_CommandAbc9Trim( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &trim [-iocdh]\n" );
+    Abc_Print( -2, "usage: &trim [-V num] [-iocdh]\n" );
     Abc_Print( -2, "\t         removes PIs without fanout and PO driven by constants\n" );
+    Abc_Print( -2, "\t-V num : the value (0 or 1) of POs to remove [default = both]\n" );
     Abc_Print( -2, "\t-i     : toggle removing PIs [default = %s]\n", fTrimCis? "yes": "no" );
     Abc_Print( -2, "\t-o     : toggle removing POs [default = %s]\n", fTrimCos? "yes": "no" );
     Abc_Print( -2, "\t-c     : toggle additionally removing POs fed by PIs [default = %s]\n", fPoFedByPi? "yes": "no" );

@@ -1175,7 +1175,27 @@ Vec_Int_t * Gia_ManDupTrimmedNonZero( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManDupTrimmed( Gia_Man_t * p, int fTrimCis, int fTrimCos, int fDualOut )
+int Gia_ManPoIsToRemove( Gia_Man_t * p, Gia_Obj_t * pObj, int Value )
+{
+    assert( Gia_ObjIsCo(pObj) );
+    if ( Value == -1 )
+        return Gia_ObjIsConst0(Gia_ObjFanin0(pObj));
+    assert( Value == 0 || Value == 1 );
+    return Value == Gia_ObjFaninC0(pObj);
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Duplicates AIG in the DFS order while putting CIs first.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManDupTrimmed( Gia_Man_t * p, int fTrimCis, int fTrimCos, int fDualOut, int OutValue )
 {
     Vec_Int_t * vNonZero = NULL;
     Gia_Man_t * pNew, * pTemp;
@@ -1231,12 +1251,12 @@ Gia_Man_t * Gia_ManDupTrimmed( Gia_Man_t * p, int fTrimCis, int fTrimCos, int fD
     {
         // check if there are POs to be added
         Gia_ManForEachPo( p, pObj, i )
-            if ( !fTrimCos || !Gia_ObjIsConst0(Gia_ObjFanin0(pObj)) )
+            if ( !fTrimCos || !Gia_ManPoIsToRemove(p, pObj, OutValue) )
                 break;
         if ( i == Gia_ManPoNum(p) ) // there is no POs - add dummy PO
             Gia_ManAppendCo( pNew, 0 );
         Gia_ManForEachCo( p, pObj, i )
-            if ( !fTrimCos || !Gia_ObjIsConst0(Gia_ObjFanin0(pObj)) || Gia_ObjIsRi(p, pObj) )
+            if ( !fTrimCos || !Gia_ManPoIsToRemove(p, pObj, OutValue) || Gia_ObjIsRi(p, pObj) )
                 Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
         Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
     }

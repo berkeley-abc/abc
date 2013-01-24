@@ -151,7 +151,7 @@ Gia_Man_t * Abs_RpmPerformOld( Gia_Man_t * p, int fVerbose )
     }
 
     // perform input trimming
-    pNew = Gia_ManDupTrimmed( p, 1, 0, 0 );
+    pNew = Gia_ManDupTrimmed( p, 1, 0, 0, -1 );
     if ( fVerbose )
     {
         printf( "After PI trimming:\n" );
