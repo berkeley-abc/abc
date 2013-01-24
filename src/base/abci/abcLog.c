@@ -156,10 +156,16 @@ int Abc_NtkReadLogFile( char * pFileName, Abc_Cex_t ** ppCex, int * pnFrames )
         nFrames = atoi( pToken ); 
         pToken  = strtok( NULL, " \t\n" );
         pToken  = strtok( NULL, " \t\n" );
-        iPo     = atoi( pToken ); 
-        pToken  = strtok( NULL, " \t\n" );
-        if ( pToken )
-            nFrames2 = atoi( pToken ); 
+        if ( pToken != NULL )
+        {
+            iPo     = atoi( pToken ); 
+            pToken  = strtok( NULL, " \t\n" );
+            if ( pToken )
+                nFrames2 = atoi( pToken ); 
+        }
+        else
+            printf( "Warning! The current status is SAT but the current CEX is not given.\n"  );
+
     }
     else if ( !strncmp( Buffer, "snl_UNK", strlen("snl_UNK") ) )
     {
@@ -193,16 +199,19 @@ int Abc_NtkReadLogFile( char * pFileName, Abc_Cex_t ** ppCex, int * pnFrames )
         if ( nRegs < 0 )
         {
             printf( "Cannot read register number.\n" );
+            Vec_IntFree( vNums );
             return -1;
         }
         if ( Vec_IntSize(vNums)-nRegs == 0 )
         {
             printf( "Cannot read counter example.\n" );
+            Vec_IntFree( vNums );
             return -1;
         }
         if ( (Vec_IntSize(vNums)-nRegs) % (iFrameCex + 1) != 0 )
         {
             printf( "Incorrect number of bits.\n" );
+            Vec_IntFree( vNums );
             return -1;
         }
         pCex = Abc_CexAlloc( nRegs, (Vec_IntSize(vNums)-nRegs)/(iFrameCex + 1), iFrameCex + 1 );
@@ -218,6 +227,8 @@ int Abc_NtkReadLogFile( char * pFileName, Abc_Cex_t ** ppCex, int * pnFrames )
         else
             ABC_FREE( pCex );
     }
+    else
+        Vec_IntFree( vNums );
     if ( pnFrames )
         *pnFrames = nFrames;
     return Status;
