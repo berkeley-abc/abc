@@ -115,9 +115,11 @@ Tim_Man_t * Tim_ManDup( Tim_Man_t * p, int fUnitDelay )
     // duplicate delay tables
     if ( Tim_ManDelayTableNum(p) > 0 )
     {
-        pNew->vDelayTables = Vec_PtrAlloc( Vec_PtrSize(p->vDelayTables) );
+        pNew->vDelayTables = Vec_PtrStart( Vec_PtrSize(p->vDelayTables) );
         Tim_ManForEachTable( p, pDelayTable, i )
         {
+            if ( pDelayTable == NULL )
+                continue;
             assert( i == (int)pDelayTable[0] );
             nInputs   = (int)pDelayTable[1];
             nOutputs  = (int)pDelayTable[2];
@@ -127,8 +129,10 @@ Tim_Man_t * Tim_ManDup( Tim_Man_t * p, int fUnitDelay )
             pDelayTableNew[2] = (int)pDelayTable[2];
             for ( k = 0; k < nInputs * nOutputs; k++ )
                 pDelayTableNew[3+k] = fUnitDelay ? 1.0 : pDelayTable[3+k];
-            assert( (int)pDelayTableNew[0] == Vec_PtrSize(pNew->vDelayTables) );
-            Vec_PtrPush( pNew->vDelayTables, pDelayTableNew );
+//            assert( (int)pDelayTableNew[0] == Vec_PtrSize(pNew->vDelayTables) );
+            assert( Vec_PtrEntry(pNew->vDelayTables, i) == NULL );
+            Vec_PtrWriteEntry( pNew->vDelayTables, i, pDelayTableNew );
+printf( "Finished duplicating delay table %d.\n", i );
         }
     }
     // duplicate boxes
@@ -358,6 +362,9 @@ void Tim_ManPrint( Tim_Man_t * p )
         else
             Tim_ManBoxForEachOutput( p, pBox, pObj, k )
                 printf( "box-out%3d :  arr = %5.3f  req = %5.3f\n", k, pObj->timeArr, pObj->timeReq );
+
+        if ( i > 2 )
+            break;
     }
 
     // print delay tables
