@@ -146,6 +146,8 @@ Abc_Cex_t * Abc_CexDup( Abc_Cex_t * p, int nRegsNew )
 {
     Abc_Cex_t * pCex;
     int i;
+    if ( p == (Abc_Cex_t *)(ABC_PTRINT_T)1 )
+        return p;
     if ( nRegsNew == -1 )
         nRegsNew = p->nRegs;
     pCex = Abc_CexAlloc( nRegsNew, p->nPis, p->iFrame+1 );
@@ -259,6 +261,11 @@ void Abc_CexPrintStats( Abc_Cex_t * p )
         printf( "The counter example is NULL.\n" );
         return;
     }
+    if ( p == (Abc_Cex_t *)(ABC_PTRINT_T)1 )
+    {
+        printf( "The counter example is present but not available (pointer has value \"1\").\n" );
+        return;
+    }
     for ( k = 0; k < p->nBits; k++ )
         Counter += Abc_InfoHasBit(p->pData, k);
     printf( "CEX: Po =%4d  Frame =%4d  FF = %d  PI = %d  Bit =%8d  1s =%8d (%5.2f %%)\n", 
@@ -271,6 +278,11 @@ void Abc_CexPrintStatsInputs( Abc_Cex_t * p, int nInputs )
     if ( p == NULL )
     {
         printf( "The counter example is NULL.\n" );
+        return;
+    }
+    if ( p == (Abc_Cex_t *)(ABC_PTRINT_T)1 )
+    {
+        printf( "The counter example is present but not available (pointer has value \"1\").\n" );
         return;
     }
     for ( k = 0; k < p->nBits; k++ )
@@ -302,6 +314,11 @@ void Abc_CexPrint( Abc_Cex_t * p )
     if ( p == NULL )
     {
         printf( "The counter example is NULL.\n" );
+        return;
+    }
+    if ( p == (Abc_Cex_t *)(ABC_PTRINT_T)1 )
+    {
+        printf( "The counter example is present but not available (pointer has value \"1\").\n" );
         return;
     }
     Abc_CexPrintStats( p );
@@ -350,6 +367,8 @@ void Abc_CexFreeP( Abc_Cex_t ** p )
 ***********************************************************************/
 void Abc_CexFree( Abc_Cex_t * p )
 {
+    if ( p == (Abc_Cex_t *)(ABC_PTRINT_T)1 )
+        return;
     ABC_FREE( p );
 }
 
