@@ -217,32 +217,32 @@ Abc_Cex_t* _cex_get()
 int _cex_get_vec_len()
 {
     Abc_Frame_t* pAbc = Abc_FrameGetGlobalFrame();
-	Vec_Ptr_t* vCexVec = Abc_FrameReadCexVec(pAbc);
-	
-	if( ! vCexVec )
-	{
-		return 0;
-	}
-	
-	return Vec_PtrSize(vCexVec);
+    Vec_Ptr_t* vCexVec = Abc_FrameReadCexVec(pAbc);
+    
+    if( ! vCexVec )
+    {
+        return 0;
+    }
+    
+    return Vec_PtrSize(vCexVec);
 }
 
 Abc_Cex_t* _cex_get_vec(int i)
 {
     Abc_Frame_t* pAbc = Abc_FrameGetGlobalFrame();
-	Vec_Ptr_t* vCexVec = Abc_FrameReadCexVec(pAbc);
-    
-	if( ! vCexVec )
-	{
-		return NULL;
-	}
+    Vec_Ptr_t* vCexVec = Abc_FrameReadCexVec(pAbc);
 
-	Abc_Cex_t* pCex = Vec_PtrEntry( vCexVec, i );
+    if( ! vCexVec )
+    {
+        return NULL;
+    }
 
-	if ( ! pCex )
-	{
-		return NULL;
-	}
+    Abc_Cex_t* pCex = Vec_PtrEntry( vCexVec, i );
+
+    if ( ! pCex )
+    {
+        return NULL;
+    }
 
     return Abc_CexDup( pCex, -1 ); 
 }
@@ -254,7 +254,7 @@ void _cex_put(Abc_Cex_t* pCex)
         pCex = Abc_CexDup(pCex, -1);
     }
     
-    Abc_FrameSetCex( Abc_CexDup(pCex, -1) );
+    Abc_FrameSetCex( pCex );
 }
 
 void _cex_free(Abc_Cex_t* pCex)
