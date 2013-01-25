@@ -648,6 +648,40 @@ void Abc_FrameSetSave2( void * pAig )
 void * Abc_FrameReadSave1()  { void * pAig = Abc_FrameGetGlobalFrame()->pSave1; Abc_FrameGetGlobalFrame()->pSave1 = NULL; return pAig; }
 void * Abc_FrameReadSave2()  { void * pAig = Abc_FrameGetGlobalFrame()->pSave2; Abc_FrameGetGlobalFrame()->pSave2 = NULL; return pAig; }
 
+/**Function*************************************************************
+
+  Synopsis    [Returns 0/1 if pNtkCur is an AIG and PO is 0/1; -1 otherwise.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_FrameCheckPoConst( Abc_Frame_t * p, int iPoNum )
+{
+    Abc_Obj_t * pObj;
+    if ( p->pNtkCur == NULL )
+        return -1;
+    if ( !Abc_NtkIsStrash(p->pNtkCur) )
+        return -1;
+    if ( iPoNum < 0 || iPoNum >= Abc_NtkPoNum(p->pNtkCur) )
+        return -1;
+    pObj = Abc_NtkPo( p->pNtkCur, iPoNum );
+    if ( !Abc_AigNodeIsConst(Abc_ObjFanin0(pObj)) )
+        return -1;
+    return !Abc_ObjFaninC0(pObj);
+}
+void Abc_FrameCheckPoConstTest( Abc_Frame_t * p )
+{
+    Abc_Obj_t * pObj;
+    int i;
+    Abc_NtkForEachPo( p->pNtkCur, pObj, i )
+        printf( "%d = %d\n", i, Abc_FrameCheckPoConst(p, i) );
+}
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

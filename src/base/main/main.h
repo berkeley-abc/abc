@@ -133,10 +133,9 @@ extern ABC_DLL void            Abc_FrameSetCex( Abc_Cex_t * pCex );
 extern ABC_DLL void            Abc_FrameSetNFrames( int nFrames );
 extern ABC_DLL void            Abc_FrameSetStatus( int Status );
 
+extern ABC_DLL int             Abc_FrameCheckPoConst( Abc_Frame_t * p, int iPoNum );
 
 ABC_NAMESPACE_HEADER_END
-
-
 
 #endif
 

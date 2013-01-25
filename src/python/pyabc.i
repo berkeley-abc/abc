@@ -195,6 +195,12 @@ int n_phases()
     return pNtk ? Abc_NtkPhaseFrameNum(pNtk) : 1;
 }
 
+int is_const_po( int iPoNum )
+{
+    Abc_Frame_t* pAbc = Abc_FrameGetGlobalFrame();
+    return Abc_FrameCheckPoConst( pAbc, iPoNum );
+}
+
 Abc_Cex_t* _cex_get()
 {
     Abc_Frame_t* pAbc = Abc_FrameGetGlobalFrame();
@@ -626,6 +632,7 @@ int  cex_po();
 int  cex_frame();
 
 int  n_phases();
+int  is_const_po( int iPoNum );
 
 Abc_Cex_t* _cex_get();
 int _cex_get_vec_len();
