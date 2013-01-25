@@ -1166,7 +1166,7 @@ Vec_Int_t * Gia_ManDupTrimmedNonZero( Gia_Man_t * p )
 
 /**Function*************************************************************
 
-  Synopsis    [Duplicates AIG in the DFS order while putting CIs first.]
+  Synopsis    [Returns 1 if PO can be removed.]
 
   Description []
                
@@ -1181,7 +1181,7 @@ int Gia_ManPoIsToRemove( Gia_Man_t * p, Gia_Obj_t * pObj, int Value )
     if ( Value == -1 )
         return Gia_ObjIsConst0(Gia_ObjFanin0(pObj));
     assert( Value == 0 || Value == 1 );
-    return Value == Gia_ObjFaninC0(pObj);
+    return Gia_ObjIsConst0(Gia_ObjFanin0(pObj)) && Value == Gia_ObjFaninC0(pObj);
 }
 
 /**Function*************************************************************
