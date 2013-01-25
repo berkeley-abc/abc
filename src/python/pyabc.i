@@ -244,8 +244,6 @@ Abc_Cex_t* _cex_get_vec(int i)
 		return NULL;
 	}
 
-    if ( pCex == (Abc_Cex_t *)1 )
-        return pCex;
     return Abc_CexDup( pCex, -1 ); 
 }
 
@@ -669,6 +667,11 @@ void _set_death_signal();
 
 class _Cex(object):
 
+    def __new__(cls, pCex):
+        if not pCex:
+            return None        
+        return object.__new__(cls)
+
     def __init__(self, pCex):
         self.pCex = pCex
         
@@ -689,27 +692,12 @@ class _Cex(object):
        
 def cex_get_vector():
     
-    res = []
-    
-    for i in xrange(_cex_get_vec_len()):
-        cex = _cex_get_vec(i)
-
-        if cex is None:
-            res.append(None)
-        else:
-            res.append(_Cex(cex))
-    
-    return res
+    return [ _Cex(_cex_get_vec(i)) for i in xrange(_cex_get_vec_len()) ]
        
 def cex_get():
 
-    cex = _cex_get()
+    return _Cex( _cex_get() )
     
-    if cex is None:
-        return None
-        
-    return _Cex(cex)
-
 def cex_put(cex):
 
     assert cex is not None
