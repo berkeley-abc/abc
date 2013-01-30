@@ -955,7 +955,7 @@ void Gia_AigerWrite( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
     int i, nBufferSize, Pos;
     unsigned char * pBuffer;
     unsigned uLit0, uLit1, uLit;
-    assert( Gia_ManIsNormalized(pInit) );
+//    assert( Gia_ManIsNormalized(pInit) );
 
     if ( Gia_ManCoNum(pInit) == 0 )
     {
