@@ -138,12 +138,12 @@ void Cnf_CollectVolume( Aig_Man_t * p, Aig_Obj_t * pRoot, Vec_Ptr_t * vLeaves, V
 word Cnf_CutDeriveTruth( Aig_Man_t * p, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vNodes )
 {
     static word Truth6[6] = {
-        0xAAAAAAAAAAAAAAAA,
-        0xCCCCCCCCCCCCCCCC,
-        0xF0F0F0F0F0F0F0F0,
-        0xFF00FF00FF00FF00,
-        0xFFFF0000FFFF0000,
-        0xFFFFFFFF00000000
+        ABC_CONST(0xAAAAAAAAAAAAAAAA),
+        ABC_CONST(0xCCCCCCCCCCCCCCCC),
+        ABC_CONST(0xF0F0F0F0F0F0F0F0),
+        ABC_CONST(0xFF00FF00FF00FF00),
+        ABC_CONST(0xFFFF0000FFFF0000),
+        ABC_CONST(0xFFFFFFFF00000000)
     };
     static word C[2] = { 0, ~(word)0 };
     static word S[256];

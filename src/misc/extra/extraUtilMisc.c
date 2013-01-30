@@ -2260,11 +2260,11 @@ static inline word Extra_Truth6SwapAdjacent( word t, int v )
 {
     // variable swapping code
     static word PMasks[5][3] = {
-        { 0x9999999999999999, 0x2222222222222222, 0x4444444444444444 },
-        { 0xC3C3C3C3C3C3C3C3, 0x0C0C0C0C0C0C0C0C, 0x3030303030303030 },
-        { 0xF00FF00FF00FF00F, 0x00F000F000F000F0, 0x0F000F000F000F00 },
-        { 0xFF0000FFFF0000FF, 0x0000FF000000FF00, 0x00FF000000FF0000 },
-        { 0xFFFF00000000FFFF, 0x00000000FFFF0000, 0x0000FFFF00000000 }
+        { ABC_CONST(0x9999999999999999), ABC_CONST(0x2222222222222222), ABC_CONST(0x4444444444444444) },
+        { ABC_CONST(0xC3C3C3C3C3C3C3C3), ABC_CONST(0x0C0C0C0C0C0C0C0C), ABC_CONST(0x3030303030303030) },
+        { ABC_CONST(0xF00FF00FF00FF00F), ABC_CONST(0x00F000F000F000F0), ABC_CONST(0x0F000F000F000F00) },
+        { ABC_CONST(0xFF0000FFFF0000FF), ABC_CONST(0x0000FF000000FF00), ABC_CONST(0x00FF000000FF0000) },
+        { ABC_CONST(0xFFFF00000000FFFF), ABC_CONST(0x00000000FFFF0000), ABC_CONST(0x0000FFFF00000000) }
     };
     assert( v < 5 );
     return (t & PMasks[v][0]) | ((t & PMasks[v][1]) << (1 << v)) | ((t & PMasks[v][2]) >> (1 << v));
@@ -2273,12 +2273,12 @@ static inline word Extra_Truth6ChangePhase( word t, int v )
 {
     // elementary truth tables
     static word Truth6[6] = {
-        0xAAAAAAAAAAAAAAAA,
-        0xCCCCCCCCCCCCCCCC,
-        0xF0F0F0F0F0F0F0F0,
-        0xFF00FF00FF00FF00,
-        0xFFFF0000FFFF0000,
-        0xFFFFFFFF00000000
+        ABC_CONST(0xAAAAAAAAAAAAAAAA),
+        ABC_CONST(0xCCCCCCCCCCCCCCCC),
+        ABC_CONST(0xF0F0F0F0F0F0F0F0),
+        ABC_CONST(0xFF00FF00FF00FF00),
+        ABC_CONST(0xFFFF0000FFFF0000),
+        ABC_CONST(0xFFFFFFFF00000000)
     };
     assert( v < 6 );
     return ((t & ~Truth6[v]) << (1 << v)) | ((t & Truth6[v]) >> (1 << v));
@@ -2323,12 +2323,12 @@ word Extra_Truth6MinimumExact( word t, int * pComp, int * pPerm )
 ***********************************************************************/
 static inline int Extra_Truth6Ones( word t )
 {
-    t =    (t & 0x5555555555555555) + ((t>> 1) & 0x5555555555555555);
-    t =    (t & 0x3333333333333333) + ((t>> 2) & 0x3333333333333333);
-    t =    (t & 0x0F0F0F0F0F0F0F0F) + ((t>> 4) & 0x0F0F0F0F0F0F0F0F);
-    t =    (t & 0x00FF00FF00FF00FF) + ((t>> 8) & 0x00FF00FF00FF00FF);
-    t =    (t & 0x0000FFFF0000FFFF) + ((t>>16) & 0x0000FFFF0000FFFF);
-    return (t & 0x00000000FFFFFFFF) +  (t>>32);
+    t =    (t & ABC_CONST(0x5555555555555555)) + ((t>> 1) & ABC_CONST(0x5555555555555555));
+    t =    (t & ABC_CONST(0x3333333333333333)) + ((t>> 2) & ABC_CONST(0x3333333333333333));
+    t =    (t & ABC_CONST(0x0F0F0F0F0F0F0F0F)) + ((t>> 4) & ABC_CONST(0x0F0F0F0F0F0F0F0F));
+    t =    (t & ABC_CONST(0x00FF00FF00FF00FF)) + ((t>> 8) & ABC_CONST(0x00FF00FF00FF00FF));
+    t =    (t & ABC_CONST(0x0000FFFF0000FFFF)) + ((t>>16) & ABC_CONST(0x0000FFFF0000FFFF));
+    return (t & ABC_CONST(0x00000000FFFFFFFF)) +  (t>>32);
 }
 static inline word Extra_Truth6MinimumRoundOne( word t, int v )
 {
@@ -2385,7 +2385,7 @@ word Extra_Truth6MinimumHeuristic( word t )
 }
 void Extra_Truth6MinimumHeuristicTest()
 {
-    word t = 0x5555555555555555 & ~(0x3333333333333333 & 0x0F0F0F0F0F0F0F0F);
+    word t = ABC_CONST(0x5555555555555555) & ~(ABC_CONST(0x3333333333333333) & ABC_CONST(0x0F0F0F0F0F0F0F0F));
     Extra_Truth6MinimumRoundMany( t );
     t = 0;
 }
@@ -2465,7 +2465,7 @@ void Extra_NpnTest1()
 void Extra_NpnTest2()
 {
     int * pComp, * pPerm;
-    word tMin, t = 0xa2222aaa08888000;
+    word tMin, t = ABC_CONST(0xa2222aaa08888000);
     pComp = Extra_GreyCodeSchedule( 6 );
     pPerm = Extra_PermSchedule( 6 );
     tMin  = Extra_Truth6MinimumExact( t, pComp, pPerm );

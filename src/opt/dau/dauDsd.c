@@ -868,7 +868,7 @@ void Dau_DsdTest3()
 //    word t = 0xF3F5030503050305;
 //    word t = (s_Truths6[0] & s_Truths6[1] & (s_Truths6[2] ^ s_Truths6[4])) | (~s_Truths6[0] & ~s_Truths6[1] & ~(s_Truths6[2] ^ s_Truths6[4]));
 //    word t = 0x05050500f5f5f5f3;
-    word t = 0x9ef7a8d9c7193a0f;
+    word t = ABC_CONST(0x9ef7a8d9c7193a0f);
     char * p = Dau_DsdPerform( t );
     word t2 = Dau_Dsd6ToTruth( p );
     if ( t != t2 )

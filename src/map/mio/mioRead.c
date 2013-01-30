@@ -605,8 +605,8 @@ void Mio_LibraryDetectSpecialGates( Mio_Library_t * pLib )
 
     Mio_LibrarySortGates( pLib );
 
-    uFuncBuf   = 0xAAAAAAAAAAAAAAAA;
-    uFuncAnd2  = 0xAAAAAAAAAAAAAAAA & 0xCCCCCCCCCCCCCCCC;
+    uFuncBuf   = ABC_CONST(0xAAAAAAAAAAAAAAAA);
+    uFuncAnd2  = ABC_CONST(0xAAAAAAAAAAAAAAAA) & ABC_CONST(0xCCCCCCCCCCCCCCCC);
     uFuncInv   = ~uFuncBuf;
     uFuncNand2 = ~uFuncAnd2;
 

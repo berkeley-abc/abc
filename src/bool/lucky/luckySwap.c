@@ -20,7 +20,7 @@
 ABC_NAMESPACE_IMPL_START
 
 
-static word mask0[6] = { 0x5555555555555555,0x3333333333333333, 0x0F0F0F0F0F0F0F0F,0x00FF00FF00FF00FF,0x0000FFFF0000FFFF, 0x00000000FFFFFFFF};  
+static word mask0[6] = { ABC_CONST(0x5555555555555555),ABC_CONST(0x3333333333333333), ABC_CONST(0x0F0F0F0F0F0F0F0F),ABC_CONST(0x00FF00FF00FF00FF),ABC_CONST(0x0000FFFF0000FFFF), ABC_CONST(0x00000000FFFFFFFF)};  
 /*
 static word mask1[6] = { 0xAAAAAAAAAAAAAAAA,0xCCCCCCCCCCCCCCCC, 0xF0F0F0F0F0F0F0F0,0xFF00FF00FF00FF00,0xFFFF0000FFFF0000, 0xFFFFFFFF00000000 };
 static word mask[6][2] =   {
@@ -37,9 +37,9 @@ int Kit_TruthWordNum_64bit( int nVars )  { return nVars <= 6 ? 1 : (1 << (nVars 
 
 int Kit_WordCountOnes_64bit(word x)
 {
-    x = x - ((x >> 1) & 0x5555555555555555);   
-    x = (x & 0x3333333333333333) + ((x >> 2) & 0x3333333333333333);    
-    x = (x + (x >> 4)) & 0x0F0F0F0F0F0F0F0F;    
+    x = x - ((x >> 1) & ABC_CONST(0x5555555555555555));   
+    x = (x & ABC_CONST(0x3333333333333333)) + ((x >> 2) & ABC_CONST(0x3333333333333333));    
+    x = (x + (x >> 4)) & ABC_CONST(0x0F0F0F0F0F0F0F0F);    
     x = x + (x >> 8);
     x = x + (x >> 16);
     x = x + (x >> 32); 
@@ -62,17 +62,17 @@ void Kit_TruthCountOnesInCofs_64bit( word * pTruth, int nVars, int * pStore )
     if ( nVars <= 6 )
     {
         if ( nVars > 0 )        
-            pStore[0] = Kit_WordCountOnes_64bit( pTruth[0] & 0x5555555555555555 );  
+            pStore[0] = Kit_WordCountOnes_64bit( pTruth[0] & ABC_CONST(0x5555555555555555) );  
         if ( nVars > 1 )       
-            pStore[1] = Kit_WordCountOnes_64bit( pTruth[0] & 0x3333333333333333 );     
+            pStore[1] = Kit_WordCountOnes_64bit( pTruth[0] & ABC_CONST(0x3333333333333333) );     
         if ( nVars > 2 )       
-            pStore[2] = Kit_WordCountOnes_64bit( pTruth[0] & 0x0F0F0F0F0F0F0F0F );   
+            pStore[2] = Kit_WordCountOnes_64bit( pTruth[0] & ABC_CONST(0x0F0F0F0F0F0F0F0F) );   
         if ( nVars > 3 )       
-            pStore[3] = Kit_WordCountOnes_64bit( pTruth[0] & 0x00FF00FF00FF00FF );     
+            pStore[3] = Kit_WordCountOnes_64bit( pTruth[0] & ABC_CONST(0x00FF00FF00FF00FF) );     
         if ( nVars > 4 )       
-            pStore[4] = Kit_WordCountOnes_64bit( pTruth[0] & 0x0000FFFF0000FFFF ); 
+            pStore[4] = Kit_WordCountOnes_64bit( pTruth[0] & ABC_CONST(0x0000FFFF0000FFFF) ); 
         if ( nVars > 5 )       
-            pStore[5] = Kit_WordCountOnes_64bit( pTruth[0] & 0x00000000FFFFFFFF );      
+            pStore[5] = Kit_WordCountOnes_64bit( pTruth[0] & ABC_CONST(0x00000000FFFFFFFF) );      
         return;
     }
     // nVars > 6
@@ -87,12 +87,12 @@ void Kit_TruthCountOnesInCofs_64bit( word * pTruth, int nVars, int * pStore )
     // count 1's for the first six variables
     for ( k = nWords/2; k>0; k-- )
     {
-        pStore[0] += Kit_WordCountOnes_64bit( (pTruth[0] & 0x5555555555555555) | ((pTruth[1] & 0x5555555555555555) <<  1) );
-        pStore[1] += Kit_WordCountOnes_64bit( (pTruth[0] & 0x3333333333333333) | ((pTruth[1] & 0x3333333333333333) <<  2) );
-        pStore[2] += Kit_WordCountOnes_64bit( (pTruth[0] & 0x0F0F0F0F0F0F0F0F) | ((pTruth[1] & 0x0F0F0F0F0F0F0F0F) <<  4) );
-        pStore[3] += Kit_WordCountOnes_64bit( (pTruth[0] & 0x00FF00FF00FF00FF) | ((pTruth[1] & 0x00FF00FF00FF00FF) <<  8) );
-        pStore[4] += Kit_WordCountOnes_64bit( (pTruth[0] & 0x0000FFFF0000FFFF) | ((pTruth[1] & 0x0000FFFF0000FFFF) <<  16) );
-        pStore[5] += Kit_WordCountOnes_64bit( (pTruth[0] & 0x00000000FFFFFFFF) | ((pTruth[1] & 0x00000000FFFFFFFF) <<  32) );  
+        pStore[0] += Kit_WordCountOnes_64bit( (pTruth[0] & ABC_CONST(0x5555555555555555)) | ((pTruth[1] & ABC_CONST(0x5555555555555555)) <<  1) );
+        pStore[1] += Kit_WordCountOnes_64bit( (pTruth[0] & ABC_CONST(0x3333333333333333)) | ((pTruth[1] & ABC_CONST(0x3333333333333333)) <<  2) );
+        pStore[2] += Kit_WordCountOnes_64bit( (pTruth[0] & ABC_CONST(0x0F0F0F0F0F0F0F0F)) | ((pTruth[1] & ABC_CONST(0x0F0F0F0F0F0F0F0F)) <<  4) );
+        pStore[3] += Kit_WordCountOnes_64bit( (pTruth[0] & ABC_CONST(0x00FF00FF00FF00FF)) | ((pTruth[1] & ABC_CONST(0x00FF00FF00FF00FF)) <<  8) );
+        pStore[4] += Kit_WordCountOnes_64bit( (pTruth[0] & ABC_CONST(0x0000FFFF0000FFFF)) | ((pTruth[1] & ABC_CONST(0x0000FFFF0000FFFF)) <<  16) );
+        pStore[5] += Kit_WordCountOnes_64bit( (pTruth[0] & ABC_CONST(0x00000000FFFFFFFF)) | ((pTruth[1] & ABC_CONST(0x00000000FFFFFFFF)) <<  32) );  
         pTruth += 2;
     }
 }
@@ -143,11 +143,11 @@ void Kit_TruthSwapAdjacentVars_64bit( word * pInOut, int nVars, int iVar )
     int i, Step, Shift, SizeOfBlock;                   //
     word temp[256];                   // to make only pInOut possible
     static word PMasks[5][3] = {
-        { 0x9999999999999999, 0x2222222222222222, 0x4444444444444444 },
-        { 0xC3C3C3C3C3C3C3C3, 0x0C0C0C0C0C0C0C0C, 0x3030303030303030 },
-        { 0xF00FF00FF00FF00F, 0x00F000F000F000F0, 0x0F000F000F000F00 },
-        { 0xFF0000FFFF0000FF, 0x0000FF000000FF00, 0x00FF000000FF0000 },
-        { 0xFFFF00000000FFFF, 0x00000000FFFF0000, 0x0000FFFF00000000 }
+        { ABC_CONST(0x9999999999999999), ABC_CONST(0x2222222222222222), ABC_CONST(0x4444444444444444) },
+        { ABC_CONST(0xC3C3C3C3C3C3C3C3), ABC_CONST(0x0C0C0C0C0C0C0C0C), ABC_CONST(0x3030303030303030) },
+        { ABC_CONST(0xF00FF00FF00FF00F), ABC_CONST(0x00F000F000F000F0), ABC_CONST(0x0F000F000F000F00) },
+        { ABC_CONST(0xFF0000FFFF0000FF), ABC_CONST(0x0000FF000000FF00), ABC_CONST(0x00FF000000FF0000) },
+        { ABC_CONST(0xFFFF00000000FFFF), ABC_CONST(0x00000000FFFF0000), ABC_CONST(0x0000FFFF00000000) }
     };
     int nWords = Kit_TruthWordNum_64bit( nVars ); 
     

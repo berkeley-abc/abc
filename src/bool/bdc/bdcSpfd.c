@@ -43,22 +43,22 @@ struct Bdc_Nod_t_
 };
 
 static word Truths[6] = {
-    0xAAAAAAAAAAAAAAAA,
-    0xCCCCCCCCCCCCCCCC,
-    0xF0F0F0F0F0F0F0F0,
-    0xFF00FF00FF00FF00,
-    0xFFFF0000FFFF0000,
-    0xFFFFFFFF00000000
+    ABC_CONST(0xAAAAAAAAAAAAAAAA),
+    ABC_CONST(0xCCCCCCCCCCCCCCCC),
+    ABC_CONST(0xF0F0F0F0F0F0F0F0),
+    ABC_CONST(0xFF00FF00FF00FF00),
+    ABC_CONST(0xFFFF0000FFFF0000),
+    ABC_CONST(0xFFFFFFFF00000000)
 };
 
 static inline int Bdc_CountOnes( word t )
 {
-    t =    (t & 0x5555555555555555) + ((t>> 1) & 0x5555555555555555);
-    t =    (t & 0x3333333333333333) + ((t>> 2) & 0x3333333333333333);
-    t =    (t & 0x0F0F0F0F0F0F0F0F) + ((t>> 4) & 0x0F0F0F0F0F0F0F0F);
-    t =    (t & 0x00FF00FF00FF00FF) + ((t>> 8) & 0x00FF00FF00FF00FF);
-    t =    (t & 0x0000FFFF0000FFFF) + ((t>>16) & 0x0000FFFF0000FFFF);
-    return (t & 0x00000000FFFFFFFF) +  (t>>32);
+    t =    (t & ABC_CONST(0x5555555555555555)) + ((t>> 1) & ABC_CONST(0x5555555555555555));
+    t =    (t & ABC_CONST(0x3333333333333333)) + ((t>> 2) & ABC_CONST(0x3333333333333333));
+    t =    (t & ABC_CONST(0x0F0F0F0F0F0F0F0F)) + ((t>> 4) & ABC_CONST(0x0F0F0F0F0F0F0F0F));
+    t =    (t & ABC_CONST(0x00FF00FF00FF00FF)) + ((t>> 8) & ABC_CONST(0x00FF00FF00FF00FF));
+    t =    (t & ABC_CONST(0x0000FFFF0000FFFF)) + ((t>>16) & ABC_CONST(0x0000FFFF0000FFFF));
+    return (t & ABC_CONST(0x00000000FFFFFFFF)) +  (t>>32);
 }
 
 static inline int Bdc_CountSpfd( word t, word f )
@@ -359,7 +359,7 @@ void Bdc_SpfdDecomposeTest_()
 //    word Truth    = (Truths[0] & Truths[1]) | (Truths[2] & Truths[3]);
 //    word Truth = 0x9ef7a8d9c7193a0f;  // AAFFAAFF0A0F0A0F
 //    word Truth = 0x34080226CD163000;
-    word Truth = 0x5052585a0002080a;
+    word Truth = ABC_CONST(0x5052585a0002080a);
     int nVars     =    6;
     int nCands    =  200;// 75;
     int nGatesMax =   20;
@@ -905,7 +905,7 @@ void Bdc_SpfdDecomposeTest44()
 {
 //    word t = 0x5052585a0002080a;
 
-    word t = 0x9ef7a8d9c7193a0f;
+    word t = ABC_CONST(0x9ef7a8d9c7193a0f);
 //    word t = 0x6BFDA276C7193A0F;
 //    word t = 0xA3756AFE0B1DF60B;
 
@@ -1080,7 +1080,7 @@ void Bdc_SpfdDecomposeTest8()
 {
 //    word t = 0x9ef7a8d9c7193a0f;
 //    word t = 0x9EF7FDBFC77F6F0F;
-    word t = 0x513B57150819050F;
+    word t = ABC_CONST(0x513B57150819050F);
 
     Vec_Int_t * vWeights;
     Vec_Wrd_t * vDivs;

@@ -197,6 +197,12 @@ typedef unsigned __int64 ABC_UINT64_T;
    #error unknown platform
 #endif /* defined(PLATFORM) */
 
+#ifdef LIN
+  #define ABC_CONST(number) number ## ULL 
+#else // LIN64 and windows
+  #define ABC_CONST(number) number
+#endif
+
 typedef ABC_UINT64_T word;
 typedef ABC_INT64_T iword;
 

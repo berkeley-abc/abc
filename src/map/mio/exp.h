@@ -183,12 +183,12 @@ static inline word Exp_Truth6Lit( int nVars, int Lit, word * puFanins, word * pu
 static inline word Exp_Truth6( int nVars, Vec_Int_t * p, word * puFanins )
 {
     static word Truth6[6] = {
-        0xAAAAAAAAAAAAAAAA,
-        0xCCCCCCCCCCCCCCCC,
-        0xF0F0F0F0F0F0F0F0,
-        0xFF00FF00FF00FF00,
-        0xFFFF0000FFFF0000,
-        0xFFFFFFFF00000000
+        ABC_CONST(0xAAAAAAAAAAAAAAAA),
+        ABC_CONST(0xCCCCCCCCCCCCCCCC),
+        ABC_CONST(0xF0F0F0F0F0F0F0F0),
+        ABC_CONST(0xFF00FF00FF00FF00),
+        ABC_CONST(0xFFFF0000FFFF0000),
+        ABC_CONST(0xFFFFFFFF00000000)
     };
     word * puNodes, Res;
     int i;

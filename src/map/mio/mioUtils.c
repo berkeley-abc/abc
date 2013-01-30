@@ -315,9 +315,9 @@ Mio_Gate_t ** Mio_CollectRoots( Mio_Library_t * pLib, int nInputs, float tDelay,
             continue;
         if ( pGate->uTruth == 0 || pGate->uTruth == ~0 )
             continue;
-        if ( pGate->uTruth == 0xAAAAAAAAAAAAAAAA )
+        if ( pGate->uTruth == ABC_CONST(0xAAAAAAAAAAAAAAAA) )
             continue;
-        if ( pGate->uTruth == ~0xAAAAAAAAAAAAAAAA && fSkipInv )
+        if ( pGate->uTruth == ~ABC_CONST(0xAAAAAAAAAAAAAAAA) && fSkipInv )
             continue;
         if ( pGate->pTwin ) // skip multi-output gates for now
             continue;

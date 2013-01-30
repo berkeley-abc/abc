@@ -69,12 +69,12 @@ void Gia_ObjComputeTruthTable6_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Wrd_t *
 word Gia_ObjComputeTruthTable6( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vSupp, Vec_Wrd_t * vTruths )
 {
     static word s_Truth6[6] = {
-        0xAAAAAAAAAAAAAAAA,
-        0xCCCCCCCCCCCCCCCC,
-        0xF0F0F0F0F0F0F0F0,
-        0xFF00FF00FF00FF00,
-        0xFFFF0000FFFF0000,
-        0xFFFFFFFF00000000
+        ABC_CONST(0xAAAAAAAAAAAAAAAA),
+        ABC_CONST(0xCCCCCCCCCCCCCCCC),
+        ABC_CONST(0xF0F0F0F0F0F0F0F0),
+        ABC_CONST(0xFF00FF00FF00FF00),
+        ABC_CONST(0xFFFF0000FFFF0000),
+        ABC_CONST(0xFFFFFFFF00000000)
     };
     Gia_Obj_t * pLeaf;
     int i;

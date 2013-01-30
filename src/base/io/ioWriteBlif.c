@@ -1004,12 +1004,12 @@ void Io_NtkWriteNodeIntStruct( FILE * pFile, Abc_Obj_t * pNode, Vec_Int_t * vCov
         if ( TruthStore[0][0] == 0 )
         {
             static word Truth6[6] = {
-                0xAAAAAAAAAAAAAAAA,
-                0xCCCCCCCCCCCCCCCC,
-                0xF0F0F0F0F0F0F0F0,
-                0xFF00FF00FF00FF00,
-                0xFFFF0000FFFF0000,
-                0xFFFFFFFF00000000
+                ABC_CONST(0xAAAAAAAAAAAAAAAA),
+                ABC_CONST(0xCCCCCCCCCCCCCCCC),
+                ABC_CONST(0xF0F0F0F0F0F0F0F0),
+                ABC_CONST(0xFF00FF00FF00FF00),
+                ABC_CONST(0xFFFF0000FFFF0000),
+                ABC_CONST(0xFFFFFFFF00000000)
             };
             int nVarsMax = 16;
             int nWordsMax = (1 << 10);
@@ -1177,12 +1177,12 @@ void Io_NtkWriteModelIntStruct( FILE * pFile, Abc_Obj_t * pNode, Vec_Int_t * vCo
         if ( TruthStore[0][0] == 0 )
         {
             static word Truth6[6] = {
-                0xAAAAAAAAAAAAAAAA,
-                0xCCCCCCCCCCCCCCCC,
-                0xF0F0F0F0F0F0F0F0,
-                0xFF00FF00FF00FF00,
-                0xFFFF0000FFFF0000,
-                0xFFFFFFFF00000000
+                ABC_CONST(0xAAAAAAAAAAAAAAAA),
+                ABC_CONST(0xCCCCCCCCCCCCCCCC),
+                ABC_CONST(0xF0F0F0F0F0F0F0F0),
+                ABC_CONST(0xFF00FF00FF00FF00),
+                ABC_CONST(0xFFFF0000FFFF0000),
+                ABC_CONST(0xFFFFFFFF00000000)
             };
             int nVarsMax = 16;
             int nWordsMax = (1 << 10);

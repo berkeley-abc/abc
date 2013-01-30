@@ -57,14 +57,14 @@ word If_AndVerifyArray( Vec_Wrd_t * vAnds, int nVars )
     word Entry, Truth0, Truth1, TruthR = 0;
     int i;
     static word Truth[8] = {
-        0xAAAAAAAAAAAAAAAA,
-        0xCCCCCCCCCCCCCCCC,
-        0xF0F0F0F0F0F0F0F0,
-        0xFF00FF00FF00FF00,
-        0xFFFF0000FFFF0000,
-        0xFFFFFFFF00000000,
-        0x0000000000000000,
-        0xFFFFFFFFFFFFFFFF
+        ABC_CONST(0xAAAAAAAAAAAAAAAA),
+        ABC_CONST(0xCCCCCCCCCCCCCCCC),
+        ABC_CONST(0xF0F0F0F0F0F0F0F0),
+        ABC_CONST(0xFF00FF00FF00FF00),
+        ABC_CONST(0xFFFF0000FFFF0000),
+        ABC_CONST(0xFFFFFFFF00000000),
+        ABC_CONST(0x0000000000000000),
+        ABC_CONST(0xFFFFFFFFFFFFFFFF)
     };
     if ( Vec_WrdSize(vAnds) == 0 )
         return Truth[6];
