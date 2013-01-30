@@ -309,6 +309,8 @@ void Tim_ManPrint( Tim_Man_t * p )
     if ( p == NULL )
         return;
     printf( "TIMING MANAGER:\n" );
+    printf( "PI = %d. CI = %d. PO = %d. CO = %d. Box = %d.\n", 
+        Tim_ManPiNum(p), Tim_ManCiNum(p), Tim_ManPoNum(p), Tim_ManCoNum(p), Tim_ManBoxNum(p) );
 
     // print CI info
     pPrev = p->pCis;

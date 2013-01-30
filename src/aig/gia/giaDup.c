@@ -1131,6 +1131,140 @@ Gia_Man_t * Gia_ManDupUnnomalize( Gia_Man_t * p )
     return pNew;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Find the ordering of AIG objects.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManDupFindOrderWithHie_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vNodes )
+{
+    if ( Gia_ObjIsTravIdCurrent(p, pObj) )
+        return;
+    Gia_ObjSetTravIdCurrent(p, pObj);
+    assert( Gia_ObjIsAnd(pObj) );
+    Gia_ManDupFindOrderWithHie_rec( p, Gia_ObjFanin0(pObj), vNodes );
+    Gia_ManDupFindOrderWithHie_rec( p, Gia_ObjFanin1(pObj), vNodes );
+    Vec_IntPush( vNodes, Gia_ObjId(p, pObj) );
+}
+Vec_Int_t * Gia_ManDupFindOrderWithHie( Gia_Man_t * p )
+{
+    Tim_Man_t * pTime = (Tim_Man_t *)p->pManTime;
+    Vec_Int_t * vNodes;
+    Gia_Obj_t * pObj;
+    int i, k, curCi, curCo;
+    assert( p->pManTime != NULL );
+    assert( Gia_ManIsNormalized( p ) );
+    // start trav IDs
+    Gia_ManIncrementTravId( p );
+    // start the array
+    vNodes = Vec_IntAlloc( Gia_ManObjNum(p) );
+    // include constant
+    Vec_IntPush( vNodes, 0 );
+    Gia_ObjSetTravIdCurrent( p, Gia_ManConst0(p) );
+    // include primary inputs
+    for ( i = 0; i < Tim_ManPiNum(pTime); i++ )
+    {
+        pObj = Gia_ManPi( p, i );
+        Vec_IntPush( vNodes, Gia_ObjId(p, pObj) );
+        Gia_ObjSetTravIdCurrent( p, pObj );
+        assert( Gia_ObjId(p, pObj) == i+1 );
+//printf( "%d ", Gia_ObjId(p, pObj) );
+    }
+    // for each box, include box nodes
+    curCi = Tim_ManPiNum(pTime);
+    curCo = 0;
+    for ( i = 0; i < Tim_ManBoxNum(pTime); i++ )
+    {
+        // add internal nodes
+        for ( k = 0; k < Tim_ManBoxInputNum(pTime, i); k++ )
+        {
+            pObj = Gia_ManPo( p, curCo + k );
+//Gia_ObjPrint( p, pObj );
+//Gia_ObjPrint( p, Gia_ObjFanin0(pObj) );
+            Gia_ManDupFindOrderWithHie_rec( p, Gia_ObjFanin0(pObj), vNodes );
+        }
+        // add POs corresponding to box inputs
+        for ( k = 0; k < Tim_ManBoxInputNum(pTime, i); k++ )
+        {
+            pObj = Gia_ManPo( p, curCo + k );
+            Vec_IntPush( vNodes, Gia_ObjId(p, pObj) );
+        }
+        curCo += Tim_ManBoxInputNum(pTime, i);
+        // add PIs corresponding to box outputs
+        for ( k = 0; k < Tim_ManBoxOutputNum(pTime, i); k++ )
+        {
+            pObj = Gia_ManPi( p, curCi + k );
+            Vec_IntPush( vNodes, Gia_ObjId(p, pObj) );
+        }
+        curCi += Tim_ManBoxOutputNum(pTime, i);
+    }
+    // add remaining nodes
+    for ( i = Tim_ManCoNum(pTime) - Tim_ManPoNum(pTime); i < Tim_ManCoNum(pTime); i++ )
+    {
+        pObj = Gia_ManPo( p, i );
+        Gia_ManDupFindOrderWithHie_rec( p, Gia_ObjFanin0(pObj), vNodes );
+    }
+    // add POs
+    for ( i = Tim_ManCoNum(pTime) - Tim_ManPoNum(pTime); i < Tim_ManCoNum(pTime); i++ )
+    {
+        pObj = Gia_ManPo( p, i );
+        Vec_IntPush( vNodes, Gia_ObjId(p, pObj) );
+    }
+    curCo += Tim_ManPoNum(pTime);
+    // verify counts
+    assert( curCi == Gia_ManPiNum(p) );
+    assert( curCo == Gia_ManPoNum(p) );
+    assert( Vec_IntSize(vNodes) == Gia_ManObjNum(p) );
+    return vNodes;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Duplicates AIG according to the timing manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManDupWithHierarchy( Gia_Man_t * p )
+{
+    Vec_Int_t * vNodes;
+    Gia_Man_t * pNew;
+    Gia_Obj_t * pObj;
+    int i;
+    Gia_ManFillValue( p );
+    pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    vNodes = Gia_ManDupFindOrderWithHie( p );
+    Gia_ManForEachObjVec( vNodes, p, pObj, i )
+    {
+        if ( Gia_ObjIsAnd(pObj) )
+            pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        else if ( Gia_ObjIsCi(pObj) )
+            pObj->Value = Gia_ManAppendCi( pNew );
+        else if ( Gia_ObjIsCo(pObj) )
+            pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+        else if ( Gia_ObjIsConst0(pObj) )
+            pObj->Value = 0;
+        else assert( 0 );
+    }
+    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    Vec_IntFree( vNodes );
+    return pNew;
+}
+
+
 /**Function*************************************************************
 
   Synopsis    [Returns the array of non-const-0 POs of the dual-output miter.]

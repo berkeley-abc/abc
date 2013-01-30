@@ -624,6 +624,11 @@ Gia_Man_t * Gia_ManPerformMapping( Gia_Man_t * p, void * pp )
     Gia_Man_t * pNew;
     If_Man_t * pIfMan;
     If_Par_t * pPars = (If_Par_t *)pp;
+    // reconstruct GIA according to the hierarchy manager
+    if ( p->pManTime )
+        p = Gia_ManDupWithHierarchy( p );
+    else 
+        p = Gia_ManDup( p );
     // set the arrival times
     assert( pPars->pTimesArr == NULL );
     pPars->pTimesArr = ABC_ALLOC( float, Gia_ManCiNum(p) );
@@ -631,12 +636,16 @@ Gia_Man_t * Gia_ManPerformMapping( Gia_Man_t * p, void * pp )
     // translate into the mapper
     pIfMan = Gia_ManToIf( p, pPars );    
     if ( pIfMan == NULL )
+    {
+        Gia_ManStop( p );
         return NULL;
+    }
     if ( p->pManTime )
         pIfMan->pManTim = Tim_ManDup( (Tim_Man_t *)p->pManTime, 0 );
     if ( !If_ManPerformMapping( pIfMan ) )
     {
         If_ManStop( pIfMan );
+        Gia_ManStop( p );
         return NULL;
     }
     // transform the result of mapping into the new network
