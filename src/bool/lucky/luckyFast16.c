@@ -85,13 +85,13 @@ inline int firstShiftWithOneBit(word x, int blockSize)
 {
     int n = 0;
     if(blockSize == 16){ return 0;}     
-    if (x >= 0x0000000100000000) {n = n + 32; x = x >> 32;} 
+    if (x >= ABC_CONST(0x0000000100000000)) {n = n + 32; x = x >> 32;} 
     if(blockSize == 8){ return (64-n)/32;}  
-    if (x >= 0x0000000000010000) {n = n + 16; x = x >> 16;} 
+    if (x >= ABC_CONST(0x0000000000010000)) {n = n + 16; x = x >> 16;} 
     if(blockSize == 4){ return (64-n)/16;}
-    if (x >= 0x0000000000000100) {n = n + 8; x = x >> 8;}
+    if (x >= ABC_CONST(0x0000000000000100)) {n = n + 8; x = x >> 8;}
     if(blockSize == 2){ return (64-n)/8;}
-    if (x >= 0x0000000000000010) {n = n + 4; x = x >> 4;} 
+    if (x >= ABC_CONST(0x0000000000000010)) {n = n + 4; x = x >> 4;} 
     return (64-n)/4;    
     
 }
