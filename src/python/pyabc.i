@@ -755,6 +755,16 @@ def _retry_read(fd):
                 continue
             raise
 
+def _retry_os_read(fd):
+
+    while True:
+        try:
+            return os.read(fd, 1)
+        except OSError as e:
+            if e.errno == errno.EINTR:
+                continue
+            raise
+
 def _retry_wait():
 
     while True:
@@ -817,6 +827,7 @@ def _child_wait_thread_func(fd):
                     _active_pids.remove(pid)
                     
                 _terminated_pids[pid] = status
+                os.write(_wait_fd_write, "1")
                 _terminated_pids_cond.notifyAll()
 
 _sigint_pipe_read_fd = -1
@@ -825,7 +836,13 @@ _sigint_pipe_write_fd = -1
 _sigchld_pipe_read_fd = -1
 _sigchld_pipe_write_fd = -1
 
+wait_fd = -1
+_wait_fd_write = -1
+
 def _start_threads():
+
+    global wait_fd, _wait_fd_write
+    wait_fd, _wait_fd_write = os.pipe()
 
     global _sigint_pipe_read_fd, _sigint_pipe_write_fd
     
@@ -864,6 +881,9 @@ def after_fork():
         os.close(fd)
         
     _close_on_fork = []
+
+    os.close(wait_fd)
+    os.close(_wait_fd_write)
 
     os.close(_sigint_pipe_read_fd)
     os.close(_sigint_pipe_write_fd)
@@ -934,6 +954,7 @@ def _waitpid(pid, options=0):
         with _active_lock:
         
             if pid in _terminated_pids:
+                _retry_os_read(wait_fd)
                 status = _terminated_pids[pid]
                 del _terminated_pids[pid]
                 return pid, status
@@ -950,6 +971,7 @@ def _wait(options=0):
         with _active_lock:
         
             for pid, status in _terminated_pids.iteritems():
+                _retry_os_read(wait_fd)
                 del _terminated_pids[pid]
                 return pid, status
             
