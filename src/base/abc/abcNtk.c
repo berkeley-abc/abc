@@ -1711,7 +1711,7 @@ void Abc_NtkDropSatOutputs( Abc_Ntk_t * pNtk, Vec_Ptr_t * vCexes, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkDropOneOutput( Abc_Ntk_t * pNtk, int iOutput )
+void Abc_NtkDropOneOutput( Abc_Ntk_t * pNtk, int iOutput, int fSkipSweep )
 {
     Abc_Obj_t * pObj, * pConst0, * pFaninNew;
     pObj = Abc_NtkPo( pNtk, iOutput );
@@ -1725,6 +1725,8 @@ void Abc_NtkDropOneOutput( Abc_Ntk_t * pNtk, int iOutput )
     pFaninNew = Abc_ObjNotCond( pConst0, Abc_ObjFaninC0(pObj) );
     Abc_ObjPatchFanin( pObj, Abc_ObjFanin0(pObj), pFaninNew );
     assert( Abc_ObjChild0(pObj) == pConst0 );
+    if ( fSkipSweep )
+        return;
     Abc_AigCleanup( (Abc_Aig_t *)pNtk->pManFunc );
 }
 

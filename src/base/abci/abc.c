@@ -6295,11 +6295,12 @@ int Abc_CommandZeroPo( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);//, * pNtkRes = NULL;
     int c, iOutput = -1;
-    extern void Abc_NtkDropOneOutput( Abc_Ntk_t * pNtk, int iOutput );
+    int fSkipSweep = 0;
+    extern void Abc_NtkDropOneOutput( Abc_Ntk_t * pNtk, int iOutput, int fSkipSweep );
 
     // set defaults
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Nh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Nsh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -6313,6 +6314,9 @@ int Abc_CommandZeroPo( Abc_Frame_t * pAbc, int argc, char ** argv )
             globalUtilOptind++;
             if ( iOutput < 0 )
                 goto usage;
+            break;
+        case 's':
+            fSkipSweep ^= 1;
             break;
         default:
             goto usage;
@@ -6345,13 +6349,14 @@ int Abc_CommandZeroPo( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    pNtkRes = Abc_NtkDup( pNtk );
 //    Abc_NtkDropOneOutput( pNtkRes, iOutput );
 //    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
-    Abc_NtkDropOneOutput( pNtk, iOutput );
+    Abc_NtkDropOneOutput( pNtk, iOutput, fSkipSweep );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: zeropo [-N <num>] [-h]\n" );
+    Abc_Print( -2, "usage: zeropo [-N <num>] [-sh]\n" );
     Abc_Print( -2, "\t           replaces the PO driver by constant 0\n" );
     Abc_Print( -2, "\t-N <num> : the zero-based index of the PO to replace [default = %d]\n", iOutput );
+    Abc_Print( -2, "\t-s       : performs comb sweep after removimg a PO [default = %s]\n", !fSkipSweep? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;
 }
