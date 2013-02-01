@@ -594,8 +594,8 @@ Gia_Man_t * Gia_ManFromIf( If_Man_t * pIfMan )
     pNew->nOffset = iOffset;
     Gia_ManCleanMark0( pNew );
 //    assert( iOffset == Gia_ManObjNum(pNew) + nItems );
-    if ( pIfMan->pManTim )
-        pNew->pManTime = Tim_ManDup( pIfMan->pManTim, 0 );
+//    if ( pIfMan->pManTim )
+//        pNew->pManTime = Tim_ManDup( pIfMan->pManTim, 0 );
     // verify that COs have mapping
     {
         Gia_Obj_t * pObj;
@@ -607,6 +607,110 @@ Gia_Man_t * Gia_ManFromIf( If_Man_t * pIfMan )
     }
     return pNew;
 }
+
+/**Function*************************************************************
+
+  Synopsis    [Verifies mapping.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManMappingVerify_rec( Gia_Man_t * p, Gia_Obj_t * pObj )
+{
+    int Id, iFan, k, Result = 1;
+    if ( Gia_ObjIsTravIdCurrent(p, pObj) )
+        return 1;
+    Gia_ObjSetTravIdCurrent(p, pObj);
+    if ( !Gia_ObjIsAnd(pObj) )
+        return 1;
+    if ( !Gia_ObjIsLut(p, Gia_ObjId(p, pObj)) )
+    {
+        Abc_Print( -1, "Gia_ManMappingVerify: Internal node %d does not have mapping.\n", Gia_ObjId(p, pObj) );
+        return 0;
+    }
+    Id = Gia_ObjId(p, pObj);
+    Gia_LutForEachFanin( p, Id, iFan, k )
+        if ( Result )
+            Result &= Gia_ManMappingVerify_rec( p, Gia_ManObj(p, iFan) );
+    return Result;
+}
+void Gia_ManMappingVerify( Gia_Man_t * p )
+{
+    Gia_Obj_t * pObj, * pFanin;
+    int i, Result = 1;
+/*
+    if ( p->pMapping )
+    {
+        assert( p->nOffset != 0 );
+        Vec_IntFreeP( p->vMapping );
+        Vec_IntAlloc( p->vMapping, p->nOffset );
+        memmove( Vec_IntArray(p->vMapping), p->pMapping, p->nOffset );
+    }
+    assert( p->vMapping );
+*/
+    assert( p->pMapping );
+    Gia_ManIncrementTravId( p );
+    Gia_ManForEachCo( p, pObj, i )
+    {
+        pFanin = Gia_ObjFanin0(pObj);
+        if ( !Gia_ObjIsAnd(pFanin) )
+            continue;
+        if ( !Gia_ObjIsLut(p, Gia_ObjId(p, pFanin)) )
+        {
+            Abc_Print( -1, "Gia_ManMappingVerify: CO driver %d does not have mapping.\n", Gia_ObjId(p, pFanin) );
+            Result = 0;
+            continue;
+        }
+        Result &= Gia_ManMappingVerify_rec( p, pFanin );
+    }
+//    if ( Result && Gia_NtkIsRoot(p) )
+//        Abc_Print( 1, "Mapping verified correctly.\n" );
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Transfers mapping from hie GIA to normalized GIA.]
+
+  Description [Hie GIA (pGia) points to normalized GIA (p).]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManTransferMapping( Gia_Man_t * pGia, Gia_Man_t * p )
+{
+    Gia_Obj_t * pObj;
+    int i, k, iFan;
+    assert( pGia->pMapping != NULL );
+    Gia_ManMappingVerify( pGia );
+    Vec_IntFreeP( &p->vMapping );
+    p->vMapping = Vec_IntAlloc( 2 * Gia_ManObjNum(p) );
+    Vec_IntFill( p->vMapping, Gia_ManObjNum(p), 0 );
+    Gia_ManForEachLut( pGia, i )
+    {
+        assert( !Abc_LitIsCompl(Gia_ObjValue(Gia_ManObj(pGia, i))) );
+        pObj = Gia_ManObj( p, Abc_Lit2Var(Gia_ObjValue(Gia_ManObj(pGia, i))) );
+        Vec_IntWriteEntry( p->vMapping, Gia_ObjId(p, pObj), Vec_IntSize(p->vMapping) );
+        Vec_IntPush( p->vMapping, Gia_ObjLutSize(pGia, i) );
+        Gia_LutForEachFanin( pGia, i, iFan, k )
+            Vec_IntPush( p->vMapping, Abc_Lit2Var(Gia_ObjValue(Gia_ManObj(pGia, iFan))) );
+        Vec_IntPush( p->vMapping, Gia_ObjId(p, pObj) );
+    }
+    // create standard mapping
+    assert( p->pMapping == NULL );
+    p->pMapping = Vec_IntArray( p->vMapping );
+    p->vMapping->pArray = NULL;
+    p->nOffset = Vec_IntSize(p->vMapping);
+    p->vMapping->nSize = 0;
+    Gia_ManMappingVerify( p );
+}
+
 
 /**Function*************************************************************
 
@@ -624,15 +728,20 @@ Gia_Man_t * Gia_ManPerformMapping( Gia_Man_t * p, void * pp )
     Gia_Man_t * pNew;
     If_Man_t * pIfMan;
     If_Par_t * pPars = (If_Par_t *)pp;
+    Vec_Int_t * vNodes = NULL;
     // reconstruct GIA according to the hierarchy manager
     if ( p->pManTime )
-        p = Gia_ManDupWithHierarchy( p );
+    {
+        pNew = Gia_ManDupWithHierarchy( p, &vNodes );
+        pNew->pManTime = p->pManTime; p->pManTime = NULL;
+        p = pNew;
+    }
     else 
         p = Gia_ManDup( p );
+    Vec_IntFreeP( &vNodes );
     // set the arrival times
     assert( pPars->pTimesArr == NULL );
-    pPars->pTimesArr = ABC_ALLOC( float, Gia_ManCiNum(p) );
-    memset( pPars->pTimesArr, 0, sizeof(float) * Gia_ManCiNum(p) );
+    pPars->pTimesArr = ABC_CALLOC( float, Gia_ManCiNum(p) );
     // translate into the mapper
     pIfMan = Gia_ManToIf( p, pPars );    
     if ( pIfMan == NULL )
@@ -659,7 +768,14 @@ Gia_Man_t * Gia_ManPerformMapping( Gia_Man_t * p, void * pp )
     // unmap in case of SOP balancing
 //    if ( pIfMan->pPars->fDelayOpt )
 //        Vec_IntFreeP( &pNew->vMapping );
-    return pNew;
+    // return the original (unmodified by the mapper) timing manager
+    pNew->pManTime = p->pManTime; p->pManTime = NULL;
+    Gia_ManStop( p );
+    // normalize and transfer mapping
+    p = Gia_ManDupNormalize( pNew );
+    Gia_ManTransferMapping( pNew, p );
+    Gia_ManStop( pNew );
+    return p;
 }
 
 ////////////////////////////////////////////////////////////////////////

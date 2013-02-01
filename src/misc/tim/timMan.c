@@ -195,6 +195,7 @@ void Tim_ManCreate( Tim_Man_t * p, void * pLib, Vec_Flt_t * vInArrs, Vec_Flt_t *
     int i, k;
     assert( p->vDelayTables == NULL );
     p->vDelayTables = Vec_PtrStart( Vec_PtrSize(pLibBox->vBoxes) );
+    if ( p->vBoxes )
     Tim_ManForEachBox( p, pBox, i )
     {
         if ( pBox->iDelayTable == -1 )

@@ -701,13 +701,14 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fSkipS
 
     if ( fHieOnly )
     {
-        Tim_ManPrint( (Tim_Man_t *)pNew->pManTime );
+//        Tim_ManPrint( (Tim_Man_t *)pNew->pManTime );
         if ( Abc_FrameReadLibBox() == NULL )
             printf( "Cannot create TIM manager because box library is not available.\n" );
         else
         {
             Tim_ManCreate( (Tim_Man_t *)pNew->pManTime, Abc_FrameReadLibBox(), pNew->vInArrs, pNew->vOutReqs );
-            Tim_ManPrint( (Tim_Man_t *)pNew->pManTime );
+//            Tim_ManPrint( (Tim_Man_t *)pNew->pManTime );
+            printf( "Created timing manager using Tim_ManCreate().\n" );
         }
     }
     Vec_FltFreeP( &pNew->vInArrs );
@@ -1089,12 +1090,12 @@ void Gia_AigerWrite( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
             fprintf( pFile, "i" );
             Gia_FileWriteBufferSize( pFile, 4*Tim_ManPiNum((Tim_Man_t *)p->pManTime) );
             assert( Vec_FltSize(vArrTimes) == Tim_ManPiNum((Tim_Man_t *)p->pManTime) );
-            fwrite( Vec_FltArray(vArrTimes), 1, 4*Gia_ManPiNum(p), pFile );
+            fwrite( Vec_FltArray(vArrTimes), 1, 4*Tim_ManPiNum((Tim_Man_t *)p->pManTime), pFile );
 
             fprintf( pFile, "o" );
             Gia_FileWriteBufferSize( pFile, 4*Tim_ManPoNum((Tim_Man_t *)p->pManTime) );
             assert( Vec_FltSize(vReqTimes) == Tim_ManPoNum((Tim_Man_t *)p->pManTime) );
-            fwrite( Vec_FltArray(vReqTimes), 1, 4*Gia_ManPoNum(p), pFile );
+            fwrite( Vec_FltArray(vReqTimes), 1, 4*Tim_ManPoNum((Tim_Man_t *)p->pManTime), pFile );
 
             Vec_FltFree( vArrTimes );
             Vec_FltFree( vReqTimes );

@@ -1182,11 +1182,13 @@ Vec_Int_t * Gia_ManDupFindOrderWithHie( Gia_Man_t * p )
     curCo = 0;
     for ( i = 0; i < Tim_ManBoxNum(pTime); i++ )
     {
+//printf( "Box %d:\n", i );
         // add internal nodes
         for ( k = 0; k < Tim_ManBoxInputNum(pTime, i); k++ )
         {
             pObj = Gia_ManPo( p, curCo + k );
 //Gia_ObjPrint( p, pObj );
+//printf( "Fanin " );
 //Gia_ObjPrint( p, Gia_ObjFanin0(pObj) );
             Gia_ManDupFindOrderWithHie_rec( p, Gia_ObjFanin0(pObj), vNodes );
         }
@@ -1201,7 +1203,9 @@ Vec_Int_t * Gia_ManDupFindOrderWithHie( Gia_Man_t * p )
         for ( k = 0; k < Tim_ManBoxOutputNum(pTime, i); k++ )
         {
             pObj = Gia_ManPi( p, curCi + k );
+//Gia_ObjPrint( p, pObj );
             Vec_IntPush( vNodes, Gia_ObjId(p, pObj) );
+            Gia_ObjSetTravIdCurrent( p, pObj );
         }
         curCi += Tim_ManBoxOutputNum(pTime, i);
     }
@@ -1236,7 +1240,7 @@ Vec_Int_t * Gia_ManDupFindOrderWithHie( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManDupWithHierarchy( Gia_Man_t * p )
+Gia_Man_t * Gia_ManDupWithHierarchy( Gia_Man_t * p, Vec_Int_t ** pvNodes )
 {
     Vec_Int_t * vNodes;
     Gia_Man_t * pNew;
@@ -1260,7 +1264,10 @@ Gia_Man_t * Gia_ManDupWithHierarchy( Gia_Man_t * p )
         else assert( 0 );
     }
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
-    Vec_IntFree( vNodes );
+    if ( pvNodes )
+        *pvNodes = vNodes;
+    else
+        Vec_IntFree( vNodes );
     return pNew;
 }
 
