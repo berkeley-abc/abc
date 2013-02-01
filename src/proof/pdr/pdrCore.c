@@ -552,7 +552,7 @@ int Pdr_ManBlockCube( Pdr_Man_t * p, Pdr_Set_t * pCube )
 int Pdr_ManSolveInt( Pdr_Man_t * p )
 {
     int fPrintClauses = 0;
-    Pdr_Set_t * pCube;
+    Pdr_Set_t * pCube = NULL;
     Aig_Obj_t * pObj;
     int k, RetValue = -1;
     int nOutDigits = Abc_Base10Log( Saig_ManPoNum(p->pAig) );
