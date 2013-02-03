@@ -351,6 +351,7 @@ static int Abc_CommandAbc9Filter             ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9Reduce             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9EquivMark          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Cec                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Verify             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Force              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Embed              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9If                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -811,6 +812,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&reduce",       Abc_CommandAbc9Reduce,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&equiv_mark",   Abc_CommandAbc9EquivMark,    0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&cec",          Abc_CommandAbc9Cec,          0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&verify",       Abc_CommandAbc9Verify,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&force",        Abc_CommandAbc9Force,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&embed",        Abc_CommandAbc9Embed,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&if",           Abc_CommandAbc9If,           0 );
@@ -27221,6 +27223,71 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
+int Abc_CommandAbc9Verify( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Cec_ParCec_t ParsCec, * pPars = &ParsCec;
+    int c;
+    Cec_ManCecSetDefaultParams( pPars );
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "CTvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-C\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nBTLimit = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nBTLimit < 0 )
+                goto usage;
+            break;
+        case 'T':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-T\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->TimeLimit = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->TimeLimit < 0 )
+                goto usage;
+            break;
+        case 'v':
+            pPars->fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    Gia_ManVerifyWithBoxes( pAbc->pGia, pPars );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &verify [-CT num] [-vh]\n" );
+    Abc_Print( -2, "\t         performs verification of combinational design\n" );
+    Abc_Print( -2, "\t-C num : the max number of conflicts at a node [default = %d]\n", pPars->nBTLimit );
+    Abc_Print( -2, "\t-T num : approximate runtime limit in seconds [default = %d]\n", pPars->TimeLimit );
+    Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", pPars->fVerbose? "yes":"no");
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Abc_CommandAbc9Force( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     int nIters     = 20;
@@ -27399,6 +27466,7 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "LUT library is not given. Using default LUT library.\n" );
         pAbc->pLibLut = If_LibLutSetSimple( 6 );
     }
+    pPars->pLutLib = pAbc->pLibLut;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "KCFAGDEWSqaflepmrsdbgyojikcvh" ) ) != EOF )
     {
@@ -27714,6 +27782,11 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( pPars->fTruth && pPars->nLutSize > IF_MAX_FUNC_LUTSIZE )
     {
         Abc_Print( -1, "Truth tables cannot be computed for LUT larger than %d inputs.\n", IF_MAX_FUNC_LUTSIZE );
+        return 1;
+    }
+    if ( pAbc->pGia->pManTime && pAbc->pLibBox == NULL )
+    {
+        Abc_Print( -1, "Design has boxes but box library is not entered.\n" );
         return 1;
     }
 
@@ -30418,7 +30491,8 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    extern void Bmc_CexTest( Gia_Man_t * p, Abc_Cex_t * pCex, int fVerbose );
 //    extern void Gia_IsoTest( Gia_Man_t * p, Abc_Cex_t * pCex, int fVerbose );
 //    extern void Unr_ManTest( Gia_Man_t * pGia );
-    extern void Mig_ManTest( Gia_Man_t * pGia );
+//    extern void Mig_ManTest( Gia_Man_t * pGia );
+//    extern int Gia_ManVerify( Gia_Man_t * pGia );
 
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "svh" ) ) != EOF )
@@ -30468,7 +30542,8 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    Bmc_CexTest( pAbc->pGia, pAbc->pCex, fVerbose );
 //    Gia_IsoTest( pAbc->pGia, pAbc->pCex, 0 );
 //    Unr_ManTest( pAbc->pGia );
-    Mig_ManTest( pAbc->pGia );
+//    Mig_ManTest( pAbc->pGia );
+//    Gia_ManVerifyWithBoxes( pAbc->pGia );
     return 0;
 usage:
     Abc_Print( -2, "usage: &test [-svh]\n" );

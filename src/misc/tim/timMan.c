@@ -132,7 +132,7 @@ Tim_Man_t * Tim_ManDup( Tim_Man_t * p, int fUnitDelay )
 //            assert( (int)pDelayTableNew[0] == Vec_PtrSize(pNew->vDelayTables) );
             assert( Vec_PtrEntry(pNew->vDelayTables, i) == NULL );
             Vec_PtrWriteEntry( pNew->vDelayTables, i, pDelayTableNew );
-printf( "Finished duplicating delay table %d.\n", i );
+//printf( "Finished duplicating delay table %d.\n", i );
         }
     }
     // duplicate boxes

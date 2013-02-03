@@ -720,7 +720,7 @@ void Gia_ManTransferMapping( Gia_Man_t * pGia, Gia_Man_t * p )
                
   SideEffects []
 
-  SeeAlso     []
+  SeeAlso     [] 
 
 ***********************************************************************/
 Gia_Man_t * Gia_ManPerformMapping( Gia_Man_t * p, void * pp )
@@ -733,7 +733,8 @@ Gia_Man_t * Gia_ManPerformMapping( Gia_Man_t * p, void * pp )
     if ( p->pManTime )
     {
         pNew = Gia_ManDupWithHierarchy( p, &vNodes );
-        pNew->pManTime = p->pManTime; p->pManTime = NULL;
+        pNew->pManTime  = p->pManTime;  p->pManTime  = NULL;
+        pNew->pAigExtra = p->pAigExtra; p->pAigExtra = NULL;
         p = pNew;
     }
     else 
@@ -769,13 +770,20 @@ Gia_Man_t * Gia_ManPerformMapping( Gia_Man_t * p, void * pp )
 //    if ( pIfMan->pPars->fDelayOpt )
 //        Vec_IntFreeP( &pNew->vMapping );
     // return the original (unmodified by the mapper) timing manager
-    pNew->pManTime = p->pManTime; p->pManTime = NULL;
+    pNew->pManTime  = p->pManTime;  p->pManTime  = NULL;
+    pNew->pAigExtra = p->pAigExtra; p->pAigExtra = NULL;
     Gia_ManStop( p );
     // normalize and transfer mapping
-    p = Gia_ManDupNormalize( pNew );
-    Gia_ManTransferMapping( pNew, p );
-    Gia_ManStop( pNew );
-    return p;
+    pNew = Gia_ManDupNormalize( p = pNew );
+    Gia_ManTransferMapping( p, pNew );
+    pNew->pManTime  = p->pManTime;  p->pManTime  = NULL;
+    pNew->pAigExtra = p->pAigExtra; p->pAigExtra = NULL;
+    Gia_ManStop( p );
+
+//    printf( "PERFORMING VERIFICATION:\n" );
+//    Gia_ManVerifyWithBoxes( pNew, NULL );
+
+    return pNew;
 }
 
 ////////////////////////////////////////////////////////////////////////

@@ -284,6 +284,7 @@ Aig_Man_t * Gia_ManToAig( Gia_Man_t * p, int fChoices )
     // create the new manager
     pNew = Aig_ManStart( Gia_ManAndNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     pNew->nConstrs = p->nConstrs;
 //    pNew->pSpec = Abc_UtilStrsav( p->pName );
     // duplicate representation of choice nodes
@@ -331,6 +332,7 @@ Aig_Man_t * Gia_ManToAigSkip( Gia_Man_t * p, int nOutDelta )
     // create the new manager
     pNew = Aig_ManStart( Gia_ManAndNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     pNew->nConstrs = p->nConstrs;
 //    pNew->pSpec = Abc_UtilStrsav( p->pName );
     // create the PIs
@@ -372,6 +374,7 @@ Aig_Man_t * Gia_ManToAigSimple( Gia_Man_t * p )
     // create the new manager
     pNew = Aig_ManStart( Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     pNew->nConstrs = p->nConstrs;
     // create the PIs
     Gia_ManForEachObj( p, pObj, i )
@@ -550,11 +553,16 @@ Gia_Man_t * Gia_ManCompress2( Gia_Man_t * p, int fUpdateLevel, int fVerbose )
 //    extern Aig_Man_t * Dar_ManCompress2( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, int fFanout, int fPower, int fVerbose );
     Gia_Man_t * pGia;
     Aig_Man_t * pNew, * pTemp;
+    if ( p->pManTime && p->vLevels == NULL )
+        Gia_ManLevelWithBoxes( p );
     pNew = Gia_ManToAig( p, 0 );
     pNew = Dar_ManCompress2( pTemp = pNew, 1, fUpdateLevel, 1, 0, fVerbose );
     Aig_ManStop( pTemp );
     pGia = Gia_ManFromAig( pNew );
     Aig_ManStop( pNew );
+    pGia->pManTime  = p->pManTime;  p->pManTime  = NULL;
+    pGia->pAigExtra = p->pAigExtra; p->pAigExtra = NULL;
+//    Gia_ManLevelWithBoxes( pGia );
     return pGia;
 }
 
@@ -578,6 +586,8 @@ Gia_Man_t * Gia_ManPerformDch( Gia_Man_t * p, void * pPars )
 //    pGia = Gia_ManFromAig( pNew );
     pGia = Gia_ManFromAigChoices( pNew );
     Aig_ManStop( pNew );
+    pGia->pManTime  = p->pManTime;  p->pManTime  = NULL;
+    pGia->pAigExtra = p->pAigExtra; p->pAigExtra = NULL;
     return pGia;
 }
 

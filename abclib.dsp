@@ -3567,6 +3567,10 @@ SOURCE=.\src\aig\gia\giaTest.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\gia\giaTim.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\gia\giaTruth.c
 # End Source File
 # Begin Source File

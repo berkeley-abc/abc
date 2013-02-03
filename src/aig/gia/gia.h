@@ -806,6 +806,7 @@ extern int                 Gia_ManConeSize( Gia_Man_t * p, int * pNodes, int nNo
 extern Vec_Vec_t *         Gia_ManLevelize( Gia_Man_t * p );
 extern Vec_Int_t *         Gia_ManOrderReverse( Gia_Man_t * p );
 /*=== giaDup.c ============================================================*/
+extern void                Gia_ManDupRemapEquiv( Gia_Man_t * pNew, Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManDupOrderDfs( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManDupOrderDfsChoices( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManDupOrderDfsReverse( Gia_Man_t * p );
@@ -824,9 +825,6 @@ extern Gia_Man_t *         Gia_ManDupDfs( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManDupDfsSkip( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManDupDfsCone( Gia_Man_t * p, Gia_Obj_t * pObj );
 extern Gia_Man_t *         Gia_ManDupDfsLitArray( Gia_Man_t * p, Vec_Int_t * vLits );
-extern Gia_Man_t *         Gia_ManDupNormalize( Gia_Man_t * p );
-extern Gia_Man_t *         Gia_ManDupUnnomalize( Gia_Man_t * p );
-extern Gia_Man_t *         Gia_ManDupWithHierarchy( Gia_Man_t * p, Vec_Int_t ** pvNodes );
 extern Gia_Man_t *         Gia_ManDupTrimmed( Gia_Man_t * p, int fTrimCis, int fTrimCos, int fDualOut, int OutValue );
 extern Gia_Man_t *         Gia_ManDupOntop( Gia_Man_t * p, Gia_Man_t * p2 );
 extern Gia_Man_t *         Gia_ManDupWithNewPo( Gia_Man_t * p1, Gia_Man_t * p2 );
@@ -970,6 +968,13 @@ extern Gia_Man_t *         Gia_ManSpeedup( Gia_Man_t * p, int Percentage, int De
 /*=== giaSwitch.c ============================================================*/
 extern float               Gia_ManEvaluateSwitching( Gia_Man_t * p );
 extern float               Gia_ManComputeSwitching( Gia_Man_t * p, int nFrames, int nPref, int fProbOne );
+/*=== giaTim.c ===========================================================*/
+extern Gia_Man_t *         Gia_ManDupNormalize( Gia_Man_t * p );
+extern Gia_Man_t *         Gia_ManDupUnnomalize( Gia_Man_t * p );
+extern Gia_Man_t *         Gia_ManDupWithHierarchy( Gia_Man_t * p, Vec_Int_t ** pvNodes );
+extern Gia_Man_t *         Gia_ManDupWithBoxes( Gia_Man_t * p, Gia_Man_t * pBoxes );
+extern int                 Gia_ManLevelWithBoxes( Gia_Man_t * p );
+extern int                 Gia_ManVerifyWithBoxes( Gia_Man_t * pGia, void * pParsInit );
 /*=== giaTruth.c ===========================================================*/
 extern word                Gia_ObjComputeTruthTable6( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vSupp, Vec_Wrd_t * vTruths );
 extern int                 Gia_ObjCollectInternal( Gia_Man_t * p, Gia_Obj_t * pObj );

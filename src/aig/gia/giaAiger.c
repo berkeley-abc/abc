@@ -495,7 +495,7 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fSkipS
     // check if there are other types of information to read
     if ( pCur + 1 < (unsigned char *)pContents + nFileSize && *pCur == 'c' )
     {
-        int fVerbose = 1;
+        int fVerbose = 0;
         Vec_Str_t * vStr;
         unsigned char * pCurTemp;
         pCur++;
@@ -619,7 +619,6 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fSkipS
                     pNew->pName = Abc_UtilStrsav( (char *)pCur );       pCur += strlen(pNew->pName) + 1;
                     assert( pCur == pCurTemp );
                 }
-                if ( fVerbose ) printf( "Finished reading extension \"n\".\n" );
             }
             // read placement
             else if ( *pCur == 'p' )
@@ -708,7 +707,7 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fSkipS
         {
             Tim_ManCreate( (Tim_Man_t *)pNew->pManTime, Abc_FrameReadLibBox(), pNew->vInArrs, pNew->vOutReqs );
 //            Tim_ManPrint( (Tim_Man_t *)pNew->pManTime );
-            printf( "Created timing manager using Tim_ManCreate().\n" );
+//            printf( "Created timing manager using Tim_ManCreate().\n" );
         }
     }
     Vec_FltFreeP( &pNew->vInArrs );
@@ -767,11 +766,11 @@ Gia_Man_t * Gia_AigerRead( char * pFileName, int fSkipStrash, int fCheck )
         ABC_FREE( pNew->pName );
         pName = Gia_FileNameGeneric( pFileName );
         pNew->pName = Abc_UtilStrsav( pName );
-//        pNew->pSpec = Ioa_UtilStrsav( pFileName );
         ABC_FREE( pName );
+
+        assert( pNew->pSpec == NULL );
+        pNew->pSpec = Abc_UtilStrsav( pFileName );
     }
-    assert( pNew->pSpec == NULL );
-    pNew->pSpec = Abc_UtilStrsav( pFileName );
     return pNew;
 }
 
@@ -949,6 +948,7 @@ Vec_Str_t * Gia_AigerWriteIntoMemoryStrPart( Gia_Man_t * p, Vec_Int_t * vCis, Ve
 ***********************************************************************/
 void Gia_AigerWrite( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int fCompact )
 {
+    int fVerbose = 0;
     FILE * pFile;
     Gia_Man_t * p;
     Gia_Obj_t * pObj;
@@ -1071,6 +1071,7 @@ void Gia_AigerWrite( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
         Gia_FileWriteBufferSize( pFile, Vec_StrSize(vStrExt) );
         fwrite( Vec_StrArray(vStrExt), 1, Vec_StrSize(vStrExt), pFile );
         Vec_StrFree( vStrExt );
+        if ( fVerbose ) printf( "Finished writing extension \"a\".\n" );
     }
 /*
     // write constraints
@@ -1099,6 +1100,8 @@ void Gia_AigerWrite( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
 
             Vec_FltFree( vArrTimes );
             Vec_FltFree( vReqTimes );
+            if ( fVerbose ) printf( "Finished writing extension \"i\".\n" );
+            if ( fVerbose ) printf( "Finished writing extension \"o\".\n" );
         }
     }
     // write equivalences
@@ -1135,6 +1138,7 @@ void Gia_AigerWrite( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
         Gia_FileWriteBufferSize( pFile, Vec_StrSize(vStrExt) );
         fwrite( Vec_StrArray(vStrExt), 1, Vec_StrSize(vStrExt), pFile );
         Vec_StrFree( vStrExt );
+        if ( fVerbose ) printf( "Finished writing extension \"h\".\n" );
     }
     // write packing
     if ( p->vPacking )
@@ -1145,6 +1149,7 @@ void Gia_AigerWrite( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
         Gia_FileWriteBufferSize( pFile, Vec_StrSize(vStrExt) );
         fwrite( Vec_StrArray(vStrExt), 1, Vec_StrSize(vStrExt), pFile );
         Vec_StrFree( vStrExt );
+        if ( fVerbose ) printf( "Finished writing extension \"k\".\n" );
     }
     // write mapping
     if ( p->pMapping )
@@ -1156,6 +1161,7 @@ void Gia_AigerWrite( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
         Gia_FileWriteBufferSize( pFile, Vec_StrSize(vStrExt) );
         fwrite( Vec_StrArray(vStrExt), 1, Vec_StrSize(vStrExt), pFile );
         Vec_StrFree( vStrExt );
+        if ( fVerbose ) printf( "Finished writing extension \"m\".\n" );
     }
     // write placement
     if ( p->pPlacement )
