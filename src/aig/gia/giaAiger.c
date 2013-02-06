@@ -629,7 +629,27 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fSkipS
                 pPlacement = ABC_ALLOC( Gia_Plc_t, Gia_ManObjNum(pNew) );
                 memcpy( pPlacement, pCur, 4*Gia_ManObjNum(pNew) );      pCur += 4*Gia_ManObjNum(pNew);
                 assert( pCur == pCurTemp );
+                pNew->pPlacement = pPlacement;
                 if ( fVerbose ) printf( "Finished reading extension \"p\".\n" );
+            }
+            // read choices
+            else if ( *pCur == 'q' )
+            {
+                int i, nPairs, iRepr, iNode;
+                assert( pNew->pSibls == NULL );
+                pNew->pSibls = ABC_CALLOC( int, Gia_ManObjNum(pNew) );
+                pCur++;
+                pCurTemp = pCur + Gia_AigerReadInt(pCur) + 4;           pCur += 4;
+                nPairs = Gia_AigerReadInt(pCur);                        pCur += 4;
+                for ( i = 0; i < nPairs; i++ )
+                {
+                    iRepr = Gia_AigerReadInt(pCur);                     pCur += 4;
+                    iNode = Gia_AigerReadInt(pCur);                     pCur += 4;
+                    pNew->pSibls[iRepr] = iNode;
+                    assert( iRepr > iNode );
+                }
+                assert( pCur == pCurTemp );
+                if ( fVerbose ) printf( "Finished reading extension \"q\".\n" );
             }
             // read switching activity
             else if ( *pCur == 's' )
@@ -1169,6 +1189,24 @@ void Gia_AigerWrite( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
         fprintf( pFile, "p" );
         Gia_FileWriteBufferSize( pFile, 4*Gia_ManObjNum(p) );
         fwrite( p->pPlacement, 1, 4*Gia_ManObjNum(p), pFile );
+    }
+    // write choices
+    if ( p->pSibls )
+    {
+        int i, nPairs = 0;
+        fprintf( pFile, "q" );
+        for ( i = 0; i < Gia_ManObjNum(p); i++ )
+            nPairs += (Gia_ObjSibl(p, i) > 0);
+        Gia_FileWriteBufferSize( pFile, 4*(nPairs * 2 + 1) );
+        Gia_FileWriteBufferSize( pFile, nPairs );
+        for ( i = 0; i < Gia_ManObjNum(p); i++ )
+            if ( Gia_ObjSibl(p, i) )
+            {
+                assert( i > Gia_ObjSibl(p, i) );
+                Gia_FileWriteBufferSize( pFile, i );
+                Gia_FileWriteBufferSize( pFile, Gia_ObjSibl(p, i) );
+            }
+        if ( fVerbose ) printf( "Finished writing extension \"q\".\n" );
     }
     // write switching activity
     if ( p->pSwitching )

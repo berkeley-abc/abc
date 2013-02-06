@@ -91,6 +91,8 @@ Gia_Man_t * Gia_ManDupUnnomalize( Gia_Man_t * p )
     pNew->pName = Abc_UtilStrsav( p->pName );
     pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     Gia_ManConst0(p)->Value = 0;
+    if ( p->pSibls )
+        pNew->pSibls = ABC_CALLOC( int, Gia_ManObjNum(p) );
     // copy primary inputs
     for ( k = 0; k < Tim_ManPiNum(pTime); k++ )
         Gia_ManPi(p, k)->Value = Gia_ManAppendCi(pNew);
@@ -175,6 +177,8 @@ void Gia_ManDupFindOrderWithHie_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t 
         return;
     Gia_ObjSetTravIdCurrent(p, pObj);
     assert( Gia_ObjIsAnd(pObj) );
+    if ( Gia_ObjSibl(p, Gia_ObjId(p, pObj)) )
+        Gia_ManDupFindOrderWithHie_rec( p, Gia_ObjSiblObj(p, Gia_ObjId(p, pObj)), vNodes );
     Gia_ManDupFindOrderWithHie_rec( p, Gia_ObjFanin0(pObj), vNodes );
     Gia_ManDupFindOrderWithHie_rec( p, Gia_ObjFanin1(pObj), vNodes );
     Vec_IntPush( vNodes, Gia_ObjId(p, pObj) );
@@ -276,11 +280,17 @@ Gia_Man_t * Gia_ManDupWithHierarchy( Gia_Man_t * p, Vec_Int_t ** pvNodes )
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
     pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    if ( p->pSibls )
+        pNew->pSibls = ABC_CALLOC( int, Gia_ManObjNum(p) );
     vNodes = Gia_ManDupFindOrderWithHie( p );
     Gia_ManForEachObjVec( vNodes, p, pObj, i )
     {
         if ( Gia_ObjIsAnd(pObj) )
+        {
             pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+            if ( Gia_ObjSibl(p, Gia_ObjId(p, pObj)) )
+                pNew->pSibls[Abc_Lit2Var(pObj->Value)] = Abc_Lit2Var(Gia_ObjSiblObj(p, Gia_ObjId(p, pObj))->Value);        
+        }
         else if ( Gia_ObjIsCi(pObj) )
             pObj->Value = Gia_ManAppendCi( pNew );
         else if ( Gia_ObjIsCo(pObj) )
@@ -315,10 +325,14 @@ void Gia_ManDupWithBoxes_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Gia_Man_t * pNew 
         return;
     Gia_ObjSetTravIdCurrent(p, pObj);
     assert( Gia_ObjIsAnd(pObj) );
+    if ( Gia_ObjSibl(p, Gia_ObjId(p, pObj)) )
+        Gia_ManDupWithBoxes_rec( p, Gia_ObjSiblObj(p, Gia_ObjId(p, pObj)), pNew );
     Gia_ManDupWithBoxes_rec( p, Gia_ObjFanin0(pObj), pNew );
     Gia_ManDupWithBoxes_rec( p, Gia_ObjFanin1(pObj), pNew );
 //    assert( !~pObj->Value );
     pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    if ( Gia_ObjSibl(p, Gia_ObjId(p, pObj)) )
+        pNew->pSibls[Abc_Lit2Var(pObj->Value)] = Abc_Lit2Var(Gia_ObjSiblObj(p, Gia_ObjId(p, pObj))->Value);        
 }
 Gia_Man_t * Gia_ManDupWithBoxes( Gia_Man_t * p, Gia_Man_t * pBoxes )
 {
@@ -331,6 +345,8 @@ Gia_Man_t * Gia_ManDupWithBoxes( Gia_Man_t * p, Gia_Man_t * pBoxes )
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
     pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    if ( p->pSibls )
+        pNew->pSibls = ABC_CALLOC( int, Gia_ManObjNum(p) );
     Gia_ManHashAlloc( pNew );
     // copy const and real PIs
     Gia_ManFillValue( p );
@@ -414,6 +430,8 @@ void Gia_ManLevelWithBoxes_rec( Gia_Man_t * p, Gia_Obj_t * pObj )
         return;
     Gia_ObjSetTravIdCurrent(p, pObj);
     assert( Gia_ObjIsAnd(pObj) );
+    if ( Gia_ObjSibl(p, Gia_ObjId(p, pObj)) )
+        Gia_ManLevelWithBoxes_rec( p, Gia_ObjSiblObj(p, Gia_ObjId(p, pObj)) );
     Gia_ManLevelWithBoxes_rec( p, Gia_ObjFanin0(pObj) );
     Gia_ManLevelWithBoxes_rec( p, Gia_ObjFanin1(pObj) );
     Gia_ObjSetAndLevel( p, pObj );

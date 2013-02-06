@@ -412,11 +412,17 @@ Gia_Man_t * Gia_ManDup( Gia_Man_t * p )
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
     pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    if ( p->pSibls )
+        pNew->pSibls = ABC_CALLOC( int, Gia_ManObjNum(p) );
     Gia_ManConst0(p)->Value = 0;
     Gia_ManForEachObj1( p, pObj, i )
     {
         if ( Gia_ObjIsAnd(pObj) )
+        {
             pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+            if ( Gia_ObjSibl(p, Gia_ObjId(p, pObj)) )
+                pNew->pSibls[Abc_Lit2Var(pObj->Value)] = Abc_Lit2Var(Gia_ObjSiblObj(p, Gia_ObjId(p, pObj))->Value);  
+        }
         else if ( Gia_ObjIsCi(pObj) )
             pObj->Value = Gia_ManAppendCi( pNew );
         else if ( Gia_ObjIsCo(pObj) )
