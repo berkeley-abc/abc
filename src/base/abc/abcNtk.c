@@ -1538,7 +1538,8 @@ void Abc_NtkMakeSeq( Abc_Ntk_t * pNtk, int nLatchesToAdd )
 Abc_Ntk_t * Abc_NtkMakeOnePo( Abc_Ntk_t * pNtkInit, int Output, int nRange )
 {
     Abc_Ntk_t * pNtk;
-    Vec_Ptr_t * vPosToRemove;
+    Vec_Ptr_t * vPosLeft;
+    Vec_Ptr_t * vCosLeft;
     Abc_Obj_t * pNodePo;
     int i;
     assert( !Abc_NtkIsNetlist(pNtkInit) );
@@ -1556,17 +1557,22 @@ Abc_Ntk_t * Abc_NtkMakeOnePo( Abc_Ntk_t * pNtkInit, int Output, int nRange )
     if ( nRange < 1 )
         nRange = 1;
 
-    // collect POs to remove
-    vPosToRemove = Vec_PtrAlloc( 100 );
+    // filter POs
+    vPosLeft = Vec_PtrAlloc( nRange );
     Abc_NtkForEachPo( pNtk, pNodePo, i )
         if ( i < Output || i >= Output + nRange )
-            Vec_PtrPush( vPosToRemove, pNodePo );
+            Abc_NtkDeleteObjPo( pNodePo );
+        else
+            Vec_PtrPush( vPosLeft, pNodePo );
+    // filter COs
+    vCosLeft = Vec_PtrDup( vPosLeft );
+    for ( i = Abc_NtkPoNum(pNtk); i < Abc_NtkCoNum(pNtk); i++ )
+        Vec_PtrPush( vCosLeft, Abc_NtkCo(pNtk, i) );
+    // update arrays
+    Vec_PtrFree( pNtk->vPos );  pNtk->vPos = vPosLeft;
+    Vec_PtrFree( pNtk->vCos );  pNtk->vCos = vCosLeft;
 
-    // remove the POs
-    Vec_PtrForEachEntry( Abc_Obj_t *, vPosToRemove, pNodePo, i )
-        Abc_NtkDeleteObj( pNodePo );
-    Vec_PtrFree( vPosToRemove );
-
+    // clean the network
     if ( Abc_NtkIsStrash(pNtk) )
     {
         Abc_AigCleanup( (Abc_Aig_t *)pNtk->pManFunc );

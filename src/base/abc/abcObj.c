@@ -230,6 +230,35 @@ void Abc_NtkDeleteObj( Abc_Obj_t * pObj )
 
 /**Function*************************************************************
 
+  Synopsis    [Deletes the PO from the network.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkDeleteObjPo( Abc_Obj_t * pObj )
+{
+    assert( Abc_ObjIsPo(pObj) );
+    // remove from the table of names
+    if ( Nm_ManFindNameById(pObj->pNtk->pManName, pObj->Id) )
+        Nm_ManDeleteIdName(pObj->pNtk->pManName, pObj->Id);
+    // delete fanins
+    Abc_ObjDeleteFanin( pObj, Abc_ObjFanin0(pObj) );
+    // remove from the list of objects
+    Vec_PtrWriteEntry( pObj->pNtk->vObjs, pObj->Id, NULL );
+    pObj->Id = (1<<26)-1;
+    pObj->pNtk->nObjCounts[pObj->Type]--;
+    pObj->pNtk->nObjs--;
+    // recycle the object memory
+    Abc_ObjRecycle( pObj );
+}
+
+
+/**Function*************************************************************
+
   Synopsis    [Deletes the node and MFFC of the node.]
 
   Description []

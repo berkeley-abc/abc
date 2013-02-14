@@ -727,6 +727,7 @@ extern ABC_DLL Abc_Obj_t *        Abc_ObjAlloc( Abc_Ntk_t * pNtk, Abc_ObjType_t 
 extern ABC_DLL void               Abc_ObjRecycle( Abc_Obj_t * pObj );
 extern ABC_DLL Abc_Obj_t *        Abc_NtkCreateObj( Abc_Ntk_t * pNtk, Abc_ObjType_t Type );
 extern ABC_DLL void               Abc_NtkDeleteObj( Abc_Obj_t * pObj );
+extern ABC_DLL void               Abc_NtkDeleteObjPo( Abc_Obj_t * pObj );
 extern ABC_DLL void               Abc_NtkDeleteObj_rec( Abc_Obj_t * pObj, int fOnlyNodes );
 extern ABC_DLL void               Abc_NtkDeleteAll_rec( Abc_Obj_t * pObj );
 extern ABC_DLL Abc_Obj_t *        Abc_NtkDupObj( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj, int fCopyName );
