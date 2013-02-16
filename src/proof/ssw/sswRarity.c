@@ -975,6 +975,7 @@ int Ssw_RarSimulate( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSize, in
     p->vInits = Vec_IntStart( Aig_ManRegNum(pAig) * nWords );
 
     // perform simulation rounds
+    timeLastSolved = clock();
     for ( r = 0; !nRounds || (nNumRestart * nRestart + r < nRounds); r++ )
     {
         clk = clock();

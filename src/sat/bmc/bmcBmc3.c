@@ -1349,6 +1349,7 @@ int Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars )
         sat_solver_set_runtime_limit( p->pSat, nTimeToStop );
     // perform frames
     Aig_ManRandom( 1 );
+    pPars->timeLastSolved = clock();
     for ( f = 0; f < pPars->nFramesMax; f++ )
     {
         // stop BMC after exploring all reachable states
