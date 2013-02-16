@@ -46,6 +46,7 @@ struct Pdr_Par_t_
     int nConfLimit;       // limit on SAT solver conflicts
     int nRestLimit;       // limit on the number of proof-obligations
     int nTimeOut;         // timeout in seconds
+    int nTimeOutGap;      // approximate timeout in seconds since the last change
     int fTwoRounds;       // use two rounds for generalization
     int fMonoCnf;         // monolythic CNF
     int fDumpInv;         // dump inductive invariant
@@ -60,6 +61,7 @@ struct Pdr_Par_t_
     int iFrame;           // explored up to this frame
     int RunId;            // PDR id in this run 
     int(*pFuncStop)(int); // callback to terminate
+    clock_t timeLastSolved; // the time when the last output was solved
 };
 
 ////////////////////////////////////////////////////////////////////////
