@@ -48,6 +48,7 @@ struct Saig_ParBmc_t_
     int         nConfLimitJump; // maximum number of conflicts after jumping
     int         nFramesJump;    // the number of tiemframes to jump
     int         nTimeOut;       // approximate timeout in seconds
+    int         nTimeOutGap;    // approximate timeout in seconds since the last change
     int         nPisAbstract;   // the number of PIs to abstract
     int         fSolveAll;      // does not stop at the first SAT output
     int         fDropSatOuts;   // replace sat outputs by constant 0
@@ -57,6 +58,7 @@ struct Saig_ParBmc_t_
     int         fNotVerbose;    // skip line-by-line print-out 
     int         iFrame;         // explored up to this frame
     int         nFailOuts;      // the number of failed outputs
+    clock_t     timeLastSolved; // the time when the last output was solved
 };
 
 

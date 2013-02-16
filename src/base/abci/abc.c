@@ -17768,10 +17768,11 @@ int Abc_CommandSim3( Abc_Frame_t * pAbc, int argc, char ** argv )
     int nRestart;
     int nRandSeed;
     int TimeOut;
+    int TimeOutGap;
     int fSolveAll;
     int fVerbose;
     int fNotVerbose;
-    extern int Abc_NtkDarSeqSim3( Abc_Ntk_t * pNtk, int nFrames, int nWords, int nBinSize, int nRounds, int nRestart, int nRandSeed, int TimeOut, int fSolveAll, int fVerbose, int fNotVerbose );
+    extern int Abc_NtkDarSeqSim3( Abc_Ntk_t * pNtk, int nFrames, int nWords, int nBinSize, int nRounds, int nRestart, int nRandSeed, int TimeOut, int TimeOutGap, int fSolveAll, int fVerbose, int fNotVerbose );
     // set defaults
     nFrames    =  20;
     nWords     =  50;
@@ -17780,12 +17781,13 @@ int Abc_CommandSim3( Abc_Frame_t * pAbc, int argc, char ** argv )
     nRestart   = 100;
     nRandSeed  =   0;
     TimeOut    =   0;
+    TimeOutGap =   0;
     fSolveAll  =   0;
     fVerbose   =   0;
     fNotVerbose=   0;
     // parse command line
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FWBRSNTavzh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FWBRSNTGavzh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -17866,6 +17868,17 @@ int Abc_CommandSim3( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( TimeOut < 0 )
                 goto usage;
             break;
+        case 'G':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-G\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            TimeOutGap = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( TimeOutGap < 0 )
+                goto usage;
+            break;
         case 'a':
             fSolveAll ^= 1;
             break;
@@ -17897,7 +17910,7 @@ int Abc_CommandSim3( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     ABC_FREE( pNtk->pSeqModel );
-    pAbc->Status = Abc_NtkDarSeqSim3( pNtk, nFrames, nWords, nBinSize, nRounds, nRestart, nRandSeed, TimeOut, fSolveAll, fVerbose, fNotVerbose );
+    pAbc->Status = Abc_NtkDarSeqSim3( pNtk, nFrames, nWords, nBinSize, nRounds, nRestart, nRandSeed, TimeOut, TimeOutGap, fSolveAll, fVerbose, fNotVerbose );
 //    pAbc->nFrames = pAbc->pCex->iFrame;
     Abc_FrameReplaceCex( pAbc, &pNtk->pSeqModel );
     if ( pNtk->vSeqModelVec )
@@ -17908,7 +17921,7 @@ int Abc_CommandSim3( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: sim3 [-FWBRSNT num] [-avzh]\n" );
+    Abc_Print( -2, "usage: sim3 [-FWBRSNTG num] [-avzh]\n" );
     Abc_Print( -2, "\t         performs random simulation of the sequential miter\n" );
     Abc_Print( -2, "\t-F num : the number of frames to simulate [default = %d]\n", nFrames );
     Abc_Print( -2, "\t-W num : the number of words to simulate [default = %d]\n",  nWords );
@@ -17917,6 +17930,7 @@ usage:
     Abc_Print( -2, "\t-S num : the number of rounds before a restart [default = %d]\n",  nRestart );
     Abc_Print( -2, "\t-N num : random number seed (1 <= num <= 1000) [default = %d]\n", nRandSeed );
     Abc_Print( -2, "\t-T num : approximate runtime limit in seconds [default = %d]\n", TimeOut );
+    Abc_Print( -2, "\t-G num : approximate runtime gap in seconds since the last CEX [default = %d]\n", TimeOutGap );
     Abc_Print( -2, "\t-a     : solve all outputs (do not stop when one is SAT) [default = %s]\n", fSolveAll? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-z     : toggle suppressing report about solved outputs [default = %s]\n", fNotVerbose? "yes": "no" );
@@ -20818,7 +20832,7 @@ int Abc_CommandBmc3( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     Saig_ParBmcSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "SFTCDJILadruvzh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "SFTGCDJILadruvzh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -20853,6 +20867,17 @@ int Abc_CommandBmc3( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->nTimeOut = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( pPars->nTimeOut < 0 )
+                goto usage;
+            break;
+        case 'G':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-G\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nTimeOutGap = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nTimeOutGap < 0 )
                 goto usage;
             break;
         case 'C':
@@ -20981,21 +21006,22 @@ int Abc_CommandBmc3( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: bmc3 [-SFTCDJI num] [-L file] [-aduvzh]\n" );
+    Abc_Print( -2, "usage: bmc3 [-SFTGCDJI num] [-L file] [-aduvzh]\n" );
     Abc_Print( -2, "\t         performs bounded model checking with dynamic unrolling\n" );
     Abc_Print( -2, "\t-S num : the starting time frame [default = %d]\n", pPars->nStart );
-    Abc_Print( -2, "\t-F num : the max number of time frames (0 = unused) [default = %d]\n", pPars->nFramesMax );
-    Abc_Print( -2, "\t-T num : approximate runtime limit in seconds [default = %d]\n", pPars->nTimeOut );
-    Abc_Print( -2, "\t-C num : max conflicts at an output [default = %d]\n", pPars->nConfLimit );
-    Abc_Print( -2, "\t-D num : max conflicts after jumping (0 = infinity) [default = %d]\n", pPars->nConfLimitJump );
+    Abc_Print( -2, "\t-F num : the max number of time frames (0 = unused) [default = %d]\n",      pPars->nFramesMax );
+    Abc_Print( -2, "\t-T num : approximate runtime limit in seconds [default = %d]\n",            pPars->nTimeOut );
+    Abc_Print( -2, "\t-G num : approximate runtime gap since the last CEX [default = %d]\n",      pPars->nTimeOutGap );
+    Abc_Print( -2, "\t-C num : max conflicts at an output [default = %d]\n",                      pPars->nConfLimit );
+    Abc_Print( -2, "\t-D num : max conflicts after jumping (0 = infinity) [default = %d]\n",      pPars->nConfLimitJump );
     Abc_Print( -2, "\t-J num : the number of timeframes to jump (0 = not used) [default = %d]\n", pPars->nFramesJump );
-    Abc_Print( -2, "\t-I num : the number of PIs to abstract [default = %d]\n", pPars->nPisAbstract );
-    Abc_Print( -2, "\t-L file: the log file name [default = %s]\n", pLogFileName ? pLogFileName : "no logging" );
+    Abc_Print( -2, "\t-I num : the number of PIs to abstract [default = %d]\n",                   pPars->nPisAbstract );
+    Abc_Print( -2, "\t-L file: the log file name [default = %s]\n",                               pLogFileName ? pLogFileName : "no logging" );
     Abc_Print( -2, "\t-a     : solve all outputs (do not stop when one is SAT) [default = %s]\n", pPars->fSolveAll? "yes": "no" );
-    Abc_Print( -2, "\t-d     : drops (replaces by 0) satisfiable outputs [default = %s]\n", pPars->fDropSatOuts? "yes": "no" );
-    Abc_Print( -2, "\t-u     : toggle performing structural OR-decomposition [default = %s]\n", fOrDecomp? "yes": "not" );
-    Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );
-    Abc_Print( -2, "\t-z     : toggle suppressing report about solved outputs [default = %s]\n", pPars->fNotVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-d     : drops (replaces by 0) satisfiable outputs [default = %s]\n",       pPars->fDropSatOuts? "yes": "no" );
+    Abc_Print( -2, "\t-u     : toggle performing structural OR-decomposition [default = %s]\n",   fOrDecomp? "yes": "not" );
+    Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n",                           pPars->fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-z     : toggle suppressing report about solved outputs [default = %s]\n",  pPars->fNotVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
@@ -24608,8 +24634,9 @@ int Abc_CommandAbc9Sim3( Abc_Frame_t * pAbc, int argc, char ** argv )
     int nRestart;
     int nRandSeed;
     int TimeOut;
+    int TimeOutGap;
     int fVerbose;
-    extern int Ssw_RarSimulateGia( Gia_Man_t * p, int nFrames, int nWords, int nBinSize, int nRounds, int nRestart, int nRandSeed, int TimeOut, int fVerbose );
+    extern int Ssw_RarSimulateGia( Gia_Man_t * p, int nFrames, int nWords, int nBinSize, int nRounds, int nRestart, int nRandSeed, int TimeOut, int TimeOutGap, int fVerbose );
     // set defaults
     nFrames    =  20;
     nWords     =  50;
@@ -24618,10 +24645,11 @@ int Abc_CommandAbc9Sim3( Abc_Frame_t * pAbc, int argc, char ** argv )
     nRestart   = 100;
     nRandSeed  =   0;
     TimeOut    =   0;
+    TimeOutGap =   0;
     fVerbose   =   0;
     // parse command line
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FWBRSNTvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FWBRSNTGvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -24702,6 +24730,17 @@ int Abc_CommandAbc9Sim3( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( TimeOut < 0 )
                 goto usage;
             break;
+        case 'G':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-G\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            TimeOutGap = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( TimeOutGap < 0 )
+                goto usage;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -24716,7 +24755,7 @@ int Abc_CommandAbc9Sim3( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Sim3(): There is no AIG.\n" );
         return 1;
     }
-    pAbc->Status = Ssw_RarSimulateGia( pAbc->pGia, nFrames, nWords, nBinSize, nRounds, nRestart, nRandSeed, TimeOut, fVerbose );
+    pAbc->Status = Ssw_RarSimulateGia( pAbc->pGia, nFrames, nWords, nBinSize, nRounds, nRestart, nRandSeed, TimeOut, TimeOutGap, fVerbose );
 //    pAbc->nFrames = pAbc->pGia->pCexSeq->iFrame;
     Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexSeq );
     return 0;
@@ -24731,6 +24770,7 @@ usage:
     Abc_Print( -2, "\t-S num : the number of rounds before a restart [default = %d]\n",  nRestart );
     Abc_Print( -2, "\t-N num : random number seed (1 <= num <= 1000) [default = %d]\n", nRandSeed );
     Abc_Print( -2, "\t-T num : approximate runtime limit in seconds [default = %d]\n", TimeOut );
+//    Abc_Print( -2, "\t-G num : approximate runtime gap in seconds since the last CEX [default = %d]\n", TimeOutGap );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;

@@ -941,7 +941,7 @@ int Ssw_RarCheckTrivial( Aig_Man_t * pAig, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-int Ssw_RarSimulate( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSize, int nRounds, int nRestart, int nRandSeed, int TimeOut, int fSolveAll, int fVerbose, int fNotVerbose )
+int Ssw_RarSimulate( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSize, int nRounds, int nRestart, int nRandSeed, int TimeOut, int TimeOutGap, int fSolveAll, int fVerbose, int fNotVerbose )
 {
     int fTryBmc = 0;
     int fMiter = 1;
@@ -949,6 +949,7 @@ int Ssw_RarSimulate( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSize, in
     int r, f = -1;
     clock_t clk, clkTotal = clock();
     clock_t nTimeToStop = TimeOut ? TimeOut * CLOCKS_PER_SEC + clock(): 0;
+    clock_t timeLastSolved = 0;
     int nNumRestart = 0;
     int nSavedSeed = nRandSeed;
     int RetValue = -1;
@@ -1005,6 +1006,7 @@ int Ssw_RarSimulate( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSize, in
                     Abc_PrintTime( 1, "Time", clock() - clkTotal );
                     goto finish;
                 }
+                timeLastSolved = clock();
             }
             // check timeout
             if ( TimeOut && clock() > nTimeToStop )
@@ -1012,6 +1014,13 @@ int Ssw_RarSimulate( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSize, in
                 if ( fVerbose && !fSolveAll ) Abc_Print( 1, "\n" );
                 Abc_Print( 1, "Simulated %d frames for %d rounds with %d restarts.  ", nFrames, nNumRestart * nRestart + r, nNumRestart );
                 Abc_Print( 1, "Reached timeout (%d sec).\n",  TimeOut );
+                goto finish;
+            }
+            if ( TimeOutGap && timeLastSolved && clock() > timeLastSolved + TimeOutGap * CLOCKS_PER_SEC )
+            {
+                if ( fVerbose && !fSolveAll ) Abc_Print( 1, "\n" );
+                Abc_Print( 1, "Simulated %d frames for %d rounds with %d restarts.  ", nFrames, nNumRestart * nRestart + r, nNumRestart );
+                Abc_Print( 1, "Reached gap timeout (%d sec).\n",  TimeOutGap );
                 goto finish;
             }
             // check if all outputs are solved by now
@@ -1070,14 +1079,14 @@ finish:
   SeeAlso     []
 
 ***********************************************************************/
-int Ssw_RarSimulateGia( Gia_Man_t * p, int nFrames, int nWords, int nBinSize, int nRounds, int nRestart, int nRandSeed, int TimeOut, int fVerbose )
+int Ssw_RarSimulateGia( Gia_Man_t * p, int nFrames, int nWords, int nBinSize, int nRounds, int nRestart, int nRandSeed, int TimeOut, int TimeOutGap, int fVerbose )
 {
     int fSolveAll = 0;
     int fNotVerbose = 0;
     Aig_Man_t * pAig;
     int RetValue;
     pAig = Gia_ManToAigSimple( p );
-    RetValue = Ssw_RarSimulate( pAig, nFrames, nWords, nBinSize, nRounds, nRestart, nRandSeed, TimeOut, fSolveAll, fVerbose, fNotVerbose );
+    RetValue = Ssw_RarSimulate( pAig, nFrames, nWords, nBinSize, nRounds, nRestart, nRandSeed, TimeOut, TimeOutGap, fSolveAll, fVerbose, fNotVerbose );
     // save counter-example
     Abc_CexFree( p->pCexSeq );
     p->pCexSeq = pAig->pSeqModel; pAig->pSeqModel = NULL;

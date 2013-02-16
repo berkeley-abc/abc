@@ -1301,6 +1301,7 @@ void Saig_ParBmcSetDefaultParams( Saig_ParBmc_t * p )
     p->nConfLimitJump =     0;    // maximum number of conflicts after jumping
     p->nFramesJump    =     0;    // the number of tiemframes to jump
     p->nTimeOut       =     0;    // approximate timeout in seconds
+    p->nTimeOutGap    =     0;    // time since the last CEX found
     p->nPisAbstract   =     0;    // the number of PIs to abstract
     p->fSolveAll      =     0;    // stops on the first SAT instance
     p->fDropSatOuts   =     0;    // replace sat outputs by constant 0
@@ -1308,6 +1309,7 @@ void Saig_ParBmcSetDefaultParams( Saig_ParBmc_t * p )
     p->fNotVerbose    =     0;    // skip line-by-line print-out 
     p->iFrame         =    -1;    // explored up to this frame
     p->nFailOuts      =     0;    // the number of failed outputs
+    p->timeLastSolved =     0;    // time when the last one was solved
 }
 
 /**Function*************************************************************
@@ -1405,6 +1407,12 @@ int Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars )
                 Saig_Bmc3ManStop( p );
                 return RetValue;
             }
+            if ( pPars->nTimeOutGap && pPars->timeLastSolved && clock() > pPars->timeLastSolved + pPars->nTimeOutGap * CLOCKS_PER_SEC )
+            {
+                printf( "Reached gap timeout (%d seconds).\n",  pPars->nTimeOutGap );
+                Saig_Bmc3ManStop( p );
+                return RetValue;
+            }
             // skip solved outputs
             if ( p->vCexes && Vec_PtrEntry(p->vCexes, i) )
                 continue;
@@ -1433,6 +1441,7 @@ clkOther += clock() - clk2;
                     p->vCexes = Vec_PtrStart( Saig_ManPoNum(pAig) );
                 Vec_PtrWriteEntry( p->vCexes, i, pCex );
                 RetValue = 0;
+                pPars->timeLastSolved = clock();
                 continue;
             }
             // solve th is output
@@ -1507,6 +1516,7 @@ clkOther += clock() - clk2;
                     p->vCexes = Vec_PtrStart( Saig_ManPoNum(pAig) );
                 Vec_PtrWriteEntry( p->vCexes, i, pCex );
                 RetValue = 0;
+                pPars->timeLastSolved = clock();
             }
             else 
             {
