@@ -253,7 +253,7 @@ Vec_Int_t * Gia_AigerReadPacking( unsigned char ** ppPos, int nSize )
 Vec_Str_t * Gia_WritePacking( Vec_Int_t * vPacking )
 {
     Vec_Str_t * vBuffer = Vec_StrStart( 4*Vec_IntSize(vPacking) );
-    memcpy( Vec_StrArray(vBuffer), Vec_IntArray(vPacking), 4*sizeof(int) );
+    memcpy( Vec_StrArray(vBuffer), Vec_IntArray(vPacking), 4*Vec_IntSize(vPacking) );
     return vBuffer;
 }
 

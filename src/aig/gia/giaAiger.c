@@ -582,9 +582,11 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fSkipS
             else if ( *pCur == 'k' )
             {
                 extern Vec_Int_t * Gia_AigerReadPacking( unsigned char ** ppPos, int nSize );
+                int nSize;
                 pCur++;
-                pCurTemp = pCur + Gia_AigerReadInt(pCur) + 4;           pCur += 4;
-                pNew->vPacking = Gia_AigerReadPacking( &pCur, pCurTemp - pCur ); 
+                nSize = Gia_AigerReadInt(pCur);
+                pCurTemp = pCur + nSize + 4;                            pCur += 4;
+                pNew->vPacking = Gia_AigerReadPacking( &pCur, nSize ); 
                 assert( pCur == pCurTemp );
                 if ( fVerbose ) printf( "Finished reading extension \"k\".\n" );
             }

@@ -330,6 +330,8 @@ void Gia_ManPrintStats( Gia_Man_t * p, int fTents, int fSwitch, int fCut )
         Gia_ManPrintChoiceStats( p );
     if ( p->pMapping )
         Gia_ManPrintMappingStats( p );
+    if ( p->vPacking )
+        Gia_ManPrintPackingStats( p );
     if ( p->pPlacement )
         Gia_ManPrintPlacement( p );
     // print register classes

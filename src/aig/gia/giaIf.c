@@ -237,6 +237,53 @@ void Gia_ManPrintMappingStats( Gia_Man_t * p )
     Abc_Print( 1, "\n" );
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Prints mapping statistics.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManPrintPackingStats( Gia_Man_t * p )
+{
+    int fVerbose = 0;
+    int nObjToShow = 200;
+    int nNumStr[5] = {0};
+    int i, k, Entry, nEntries, nEntries2, MaxSize = -1;
+    if ( p->vPacking == NULL )
+        return;
+    nEntries = Vec_IntEntry( p->vPacking, 0 );
+    nEntries2 = 0;
+    Vec_IntForEachEntryStart( p->vPacking, Entry, i, 1 )
+    {
+        assert( Entry > 0 && Entry < 4 );
+        nNumStr[Entry]++;
+        i++;
+        if ( fVerbose && nEntries2 < nObjToShow ) Abc_Print( 1, "{ " );
+        for ( k = 0; k < Entry; k++, i++ )
+            if ( fVerbose && nEntries2 < nObjToShow ) Abc_Print( 1, "%d ", Vec_IntEntry(p->vPacking, i) );
+        if ( fVerbose && nEntries2 < nObjToShow ) Abc_Print( 1, "}\n" );
+        i--;
+        nEntries2++;
+    }
+    assert( nEntries == nEntries2 );
+    if ( nNumStr[3] > 0 )
+        MaxSize = 3;
+    else if ( nNumStr[2] > 0 )
+        MaxSize = 2;
+    else if ( nNumStr[1] > 0 )
+        MaxSize = 1;
+    Abc_Print( 1, "packing (N=%d)  :  ", MaxSize );
+    for ( i = 1; i <= MaxSize; i++ )
+        Abc_Print( 1, "%d x LUT = %d   ", i, nNumStr[i] );
+    Abc_Print( 1, "Total = %d", nEntries2 );
+    Abc_Print( 1, "\n" );
+}
+
 
 
 /**Function*************************************************************
@@ -455,6 +502,7 @@ Gia_Man_t * Gia_ManFromIf( If_Man_t * pIfMan )
     unsigned * pTruth;
     int Counter, iOffset, nItems = 0;
     int i, k, w, GiaId;
+    assert( pIfMan->pPars->pLutStruct == NULL );
     // create new manager
     pNew = Gia_ManStart( If_ManObjNum(pIfMan) );
     Gia_ManHashAlloc( pNew );
@@ -608,6 +656,325 @@ Gia_Man_t * Gia_ManFromIf( If_Man_t * pIfMan )
     return pNew;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Write mapping for LUT with given fanins.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManFromIfStrCreateLut( Gia_Man_t * pNew, word * pRes, Vec_Int_t * vLeaves, Vec_Int_t * vCover, Vec_Int_t * vMapping, Vec_Int_t * vMapping2 )
+{
+    int i, iLit, iObjLit1;
+    iObjLit1 = Kit_TruthToGia( pNew, (unsigned *)pRes, Vec_IntSize(vLeaves), vCover, vLeaves, 0 );
+    // write mapping
+    Vec_IntSetEntry( vMapping, Abc_Lit2Var(iObjLit1), Vec_IntSize(vMapping2) );
+    Vec_IntPush( vMapping2, Vec_IntSize(vLeaves) );
+    Vec_IntForEachEntry( vLeaves, iLit, i )
+        assert( Abc_Lit2Var(iLit) < Abc_Lit2Var(iObjLit1) );
+    Vec_IntForEachEntry( vLeaves, iLit, i )
+        Vec_IntPush( vMapping2, Abc_Lit2Var(iLit)  );
+    Vec_IntPush( vMapping2, Abc_Lit2Var(iObjLit1) );
+    return iObjLit1;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Write the node into a file.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManFromIfStrNode( Gia_Man_t * pNew, int iObj, Vec_Int_t * vLeaves, Vec_Int_t * vLeavesTemp, 
+    word * pRes, char * pStr, Vec_Int_t * vCover, Vec_Int_t * vMapping, Vec_Int_t * vMapping2, Vec_Int_t * vPacking )
+{
+    int nLeaves = Vec_IntSize(vLeaves);
+    int i, Length, nLutLeaf, nLutLeaf2, nLutRoot, iObjLit1, iObjLit2, iObjLit3;
+
+    // quit if parameters are wrong
+    Length = strlen(pStr);
+    if ( Length != 2 && Length != 3 )
+    {
+        printf( "Wrong LUT struct (%s)\n", pStr );
+        return -1;
+    }
+    for ( i = 0; i < Length; i++ )
+        if ( pStr[i] - '0' < 3 || pStr[i] - '0' > 6 )
+        {
+            printf( "The LUT size (%d) should belong to {3,4,5,6}.\n", pStr[i] - '0' );
+            return -1;
+        }
+
+    nLutLeaf  =                   pStr[0] - '0';
+    nLutLeaf2 = ( Length == 3 ) ? pStr[1] - '0' : 0;
+    nLutRoot  =                   pStr[Length-1] - '0';
+    if ( nLeaves > nLutLeaf - 1 + (nLutLeaf2 ? nLutLeaf2 - 1 : 0) + nLutRoot )
+    {
+        printf( "The node size (%d) is too large for the LUT structure %s.\n", nLeaves, pStr );
+        return -1;
+    }
+
+    // consider easy case
+    if ( nLeaves <= Abc_MaxInt( nLutLeaf2, Abc_MaxInt(nLutLeaf, nLutRoot) ) )
+    {
+        // create mapping
+        iObjLit1 = Gia_ManFromIfStrCreateLut( pNew, pRes, vLeaves, vCover, vMapping, vMapping2 );
+        // write packing
+        Vec_IntPush( vPacking, 1 );
+        Vec_IntPush( vPacking, Abc_Lit2Var(iObjLit1) );
+        Vec_IntAddToEntry( vPacking, 0, 1 );
+        return iObjLit1;
+    }
+    else
+    {
+        extern int If_CluMinimumBase( word * t, int * pSupp, int nVarsAll, int * pnVars );
+
+        static word TruthStore[16][1<<10] = {{0}}, * pTruths[16];
+        word Func0, Func1, Func2;
+        char pLut0[32], pLut1[32], pLut2[32] = {0};
+
+        if ( TruthStore[0][0] == 0 )
+        {
+            static word Truth6[6] = {
+                0xAAAAAAAAAAAAAAAA,
+                0xCCCCCCCCCCCCCCCC,
+                0xF0F0F0F0F0F0F0F0,
+                0xFF00FF00FF00FF00,
+                0xFFFF0000FFFF0000,
+                0xFFFFFFFF00000000
+            };
+            int nVarsMax = 16;
+            int nWordsMax = (1 << 10);
+            int i, k;
+            assert( nVarsMax <= 16 );
+            for ( i = 0; i < nVarsMax; i++ )
+                pTruths[i] = TruthStore[i];
+            for ( i = 0; i < 6; i++ )
+                for ( k = 0; k < nWordsMax; k++ )
+                    pTruths[i][k] = Truth6[i];
+            for ( i = 6; i < nVarsMax; i++ )
+                for ( k = 0; k < nWordsMax; k++ )
+                    pTruths[i][k] = ((k >> (i-6)) & 1) ? ~(word)0 : 0;
+        }
+        // derive truth table
+        if ( Kit_TruthIsConst0((unsigned *)pRes, nLeaves) || Kit_TruthIsConst1((unsigned *)pRes, nLeaves) )
+        {
+            assert( 0 );
+//            fprintf( pFile, ".names %s\n %d\n", Abc_ObjName(Abc_ObjFanout0(pObj)), Kit_TruthIsConst1((unsigned *)pRes, nLeaves) );
+            return -1;
+        }
+
+        // perform decomposition
+        if ( Length == 2 )
+        {
+            if ( !If_CluCheckExt( NULL, pRes, nLeaves, nLutLeaf, nLutRoot, pLut0, pLut1, &Func0, &Func1 ) )
+            {
+                Extra_PrintHex( stdout, (unsigned *)pRes, nLeaves );  printf( "    " );
+                Kit_DsdPrintFromTruth( (unsigned*)pRes, nLeaves );  printf( "\n" );
+                printf( "Node %d is not decomposable. Deriving LUT structures has failed.\n", iObj );
+                return -1;
+            }
+        }
+        else
+        {
+            if ( !If_CluCheckExt3( NULL, pRes, nLeaves, nLutLeaf, nLutLeaf2, nLutRoot, pLut0, pLut1, pLut2, &Func0, &Func1, &Func2 ) )
+            {
+                Extra_PrintHex( stdout, (unsigned *)pRes, nLeaves );  printf( "    " );
+                Kit_DsdPrintFromTruth( (unsigned*)pRes, nLeaves );  printf( "\n" );
+                printf( "Node %d is not decomposable. Deriving LUT structures has failed.\n", iObj );
+                return -1;
+            }
+        }
+
+/*
+        // write leaf node
+        Id = Abc2_NtkAllocObj( pNew, pLut1[0], Abc2_ObjType(pObj) );
+        iObjLit1 = Abc_Var2Lit( Id, 0 );
+        pObjNew = Abc2_NtkObj( pNew, Id );
+        for ( i = 0; i < pLut1[0]; i++ )
+            Abc2_ObjSetFaninLit( pObjNew, i, Abc2_ObjFaninCopy(pObj, pLut1[2+i]) );
+        Abc2_ObjSetTruth( pObjNew, Func1 );
+*/
+        // write leaf node
+        Vec_IntClear( vLeavesTemp );
+        for ( i = 0; i < pLut1[0]; i++ )
+            Vec_IntPush( vLeavesTemp, Vec_IntEntry(vLeaves, pLut1[2+i]) );
+        iObjLit1 = Gia_ManFromIfStrCreateLut( pNew, &Func1, vLeavesTemp, vCover, vMapping, vMapping2 );
+
+        if ( Length == 3 && pLut2[0] > 0 )
+        {
+        /*
+            Id = Abc2_NtkAllocObj( pNew, pLut2[0], Abc2_ObjType(pObj) );
+            iObjLit2 = Abc_Var2Lit( Id, 0 );
+            pObjNew = Abc2_NtkObj( pNew, Id );
+            for ( i = 0; i < pLut2[0]; i++ )
+                if ( pLut2[2+i] == nLeaves )
+                    Abc2_ObjSetFaninLit( pObjNew, i, iObjLit1 );
+                else
+                    Abc2_ObjSetFaninLit( pObjNew, i, Abc2_ObjFaninCopy(pObj, pLut2[2+i]) );
+            Abc2_ObjSetTruth( pObjNew, Func2 );
+        */
+
+            // write leaf node
+            Vec_IntClear( vLeavesTemp );
+            for ( i = 0; i < pLut2[0]; i++ )
+                if ( pLut2[2+i] == nLeaves )
+                    Vec_IntPush( vLeavesTemp, iObjLit1 );
+                else
+                    Vec_IntPush( vLeavesTemp, Vec_IntEntry(vLeaves, pLut2[2+i]) );
+            iObjLit2 = Gia_ManFromIfStrCreateLut( pNew, &Func2, vLeavesTemp, vCover, vMapping, vMapping2 );
+
+            // write packing
+            Vec_IntPush( vPacking, 3 );
+            Vec_IntPush( vPacking, Abc_Lit2Var(iObjLit1) );
+            Vec_IntPush( vPacking, Abc_Lit2Var(iObjLit2) );
+        }
+        else
+        {
+            // write packing
+            Vec_IntPush( vPacking, 2 );
+            Vec_IntPush( vPacking, Abc_Lit2Var(iObjLit1) );
+        }
+/*
+        // write root node
+        Id = Abc2_NtkAllocObj( pNew, pLut0[0], Abc2_ObjType(pObj) );
+        iObjLit3 = Abc_Var2Lit( Id, 0 );
+        pObjNew = Abc2_NtkObj( pNew, Id );
+        for ( i = 0; i < pLut0[0]; i++ )
+            if ( pLut0[2+i] == nLeaves )
+                Abc2_ObjSetFaninLit( pObjNew, i, iObjLit1 );
+            else if ( pLut0[2+i] == nLeaves+1 )
+                Abc2_ObjSetFaninLit( pObjNew, i, iObjLit2 );
+            else
+                Abc2_ObjSetFaninLit( pObjNew, i, Abc2_ObjFaninCopy(pObj, pLut0[2+i]) );
+        Abc2_ObjSetTruth( pObjNew, Func0 );
+        Abc2_ObjSetCopy( pObj, iObjLit3 );
+*/
+        // write root node
+        Vec_IntClear( vLeavesTemp );
+        for ( i = 0; i < pLut0[0]; i++ )
+            if ( pLut0[2+i] == nLeaves )
+                Vec_IntPush( vLeavesTemp, iObjLit1 );
+            else if ( pLut0[2+i] == nLeaves+1 )
+                Vec_IntPush( vLeavesTemp, iObjLit2 );
+            else
+                Vec_IntPush( vLeavesTemp, Vec_IntEntry(vLeaves, pLut0[2+i]) );
+        iObjLit3 = Gia_ManFromIfStrCreateLut( pNew, &Func0, vLeavesTemp, vCover, vMapping, vMapping2 );
+
+        // write packing
+        Vec_IntPush( vPacking, Abc_Lit2Var(iObjLit3) );
+        Vec_IntAddToEntry( vPacking, 0, 1 );
+    }
+    return iObjLit3;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Converts IF into GIA manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManFromIfStr( If_Man_t * pIfMan )
+{
+    Gia_Man_t * pNew;
+    If_Cut_t * pCutBest;
+    If_Obj_t * pIfObj, * pIfLeaf;
+    Vec_Int_t * vMapping, * vMapping2, * vPacking;
+    Vec_Int_t * vLeaves, * vLeaves2, * vCover;
+    int i, k, Entry;
+    assert( pIfMan->pPars->pLutStruct != NULL );
+    assert( pIfMan->pPars->nLutSize >= 6 ); // if 5, need to change (word *)If_CutTruth(pCutBest) below
+    // start mapping and packing
+    vMapping  = Vec_IntStart( If_ManObjNum(pIfMan) );
+    vMapping2 = Vec_IntStart( 1 );
+    vPacking  = Vec_IntAlloc( 1000 );
+    Vec_IntPush( vPacking, 0 );
+    // create new manager
+    pNew = Gia_ManStart( If_ManObjNum(pIfMan) );
+    // iterate through nodes used in the mapping
+    vCover   = Vec_IntAlloc( 1 << 16 );
+    vLeaves  = Vec_IntAlloc( 16 );
+    vLeaves2 = Vec_IntAlloc( 16 );
+    If_ManCleanCutData( pIfMan );
+    If_ManForEachObj( pIfMan, pIfObj, i )
+    {
+        if ( pIfObj->nRefs == 0 && !If_ObjIsTerm(pIfObj) )
+            continue;
+        if ( If_ObjIsAnd(pIfObj) )
+        {
+            pCutBest = If_ObjCutBest( pIfObj );
+            // collect leaves of the best cut
+            Vec_IntClear( vLeaves );
+            If_CutForEachLeaf( pIfMan, pCutBest, pIfLeaf, k )
+                Vec_IntPush( vLeaves, pIfLeaf->iCopy );
+            // perform decomposition of the cut
+            pIfObj->iCopy = Gia_ManFromIfStrNode( pNew, i, vLeaves, vLeaves2, (word *)If_CutTruth(pCutBest), pIfMan->pPars->pLutStruct, vCover, vMapping, vMapping2, vPacking );
+            pIfObj->iCopy = Abc_LitNotCond( pIfObj->iCopy, pCutBest->fCompl );
+        }
+        else if ( If_ObjIsCi(pIfObj) )
+            pIfObj->iCopy = Gia_ManAppendCi(pNew);
+        else if ( If_ObjIsCo(pIfObj) )
+            pIfObj->iCopy = Gia_ManAppendCo( pNew, Abc_LitNotCond(If_ObjFanin0(pIfObj)->iCopy, If_ObjFaninC0(pIfObj)) );
+        else if ( If_ObjIsConst1(pIfObj) )
+        {
+            pIfObj->iCopy = 1;
+            // create const LUT
+            Vec_IntWriteEntry( vMapping, 0, Vec_IntSize(vMapping2) );
+            Vec_IntPush( vMapping2, 0 );
+            Vec_IntPush( vMapping2, 0 );
+        }
+        else assert( 0 );
+    }
+    Vec_IntFree( vCover );
+    Vec_IntFree( vLeaves );
+    Vec_IntFree( vLeaves2 );
+    printf( "Mapping array size:  IfMan = %d. Gia = %d. Increase = %.2f\n", 
+        If_ManObjNum(pIfMan), Gia_ManObjNum(pNew), 1.0 * Gia_ManObjNum(pNew) / If_ManObjNum(pIfMan) );
+    // finish mapping 
+    if ( Vec_IntSize(vMapping) > Gia_ManObjNum(pNew) )
+        Vec_IntShrink( vMapping, Gia_ManObjNum(pNew) );
+    else
+        Vec_IntFillExtra( vMapping, Gia_ManObjNum(pNew), 0 );
+    assert( Vec_IntSize(vMapping) == Gia_ManObjNum(pNew) );
+    Vec_IntForEachEntry( vMapping, Entry, i )
+        if ( Entry > 0 )
+            Vec_IntAddToEntry( vMapping, i, Gia_ManObjNum(pNew) );
+    Vec_IntAppend( vMapping, vMapping2 );
+    Vec_IntFree( vMapping2 );
+    // attach mapping and packing
+    pNew->nOffset  = Vec_IntSize(vMapping);
+    pNew->pMapping = Vec_IntReleaseArray(vMapping);
+    pNew->vPacking = vPacking;
+    Vec_IntFree( vMapping );
+    // verify that COs have mapping
+    {
+        Gia_Obj_t * pObj;
+        Gia_ManForEachCo( pNew, pObj, i )
+        {
+            if ( Gia_ObjIsAnd(Gia_ObjFanin0(pObj)) )
+                assert( pNew->pMapping[Gia_ObjFaninId0p(pNew, pObj)] != 0 );
+        }
+    }
+    return pNew;
+}
+
+
 /**Function*************************************************************
 
   Synopsis    [Verifies mapping.]
@@ -711,6 +1078,52 @@ void Gia_ManTransferMapping( Gia_Man_t * pGia, Gia_Man_t * p )
     Gia_ManMappingVerify( p );
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Transfers packing from hie GIA to normalized GIA.]
+
+  Description [Hie GIA (pGia) points to normalized GIA (p).]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManTransferPacking( Gia_Man_t * pGia, Gia_Man_t * p )
+{
+    Vec_Int_t * vPackingNew;
+    Gia_Obj_t * pObj, * pObjNew;
+    int i, k, Entry, nEntries, nEntries2, MaxSize = -1;
+    if ( pGia->vPacking == NULL )
+        return;
+    nEntries = Vec_IntEntry( pGia->vPacking, 0 );
+    nEntries2 = 0;
+    // create new packing info
+    vPackingNew = Vec_IntAlloc( Vec_IntSize(pGia->vPacking) );
+    Vec_IntPush( vPackingNew, nEntries );
+    Vec_IntForEachEntryStart( pGia->vPacking, Entry, i, 1 )
+    {
+        assert( Entry > 0 && Entry < 4 );
+        Vec_IntPush( vPackingNew, Entry );
+        i++;
+        for ( k = 0; k < Entry; k++, i++ )
+        {
+            pObj = Gia_ManObj(pGia, Vec_IntEntry(pGia->vPacking, i));
+            pObjNew = Gia_ManObj(p, Abc_Lit2Var(Gia_ObjValue(pObj)));
+            assert( Gia_ObjIsLut(pGia, Gia_ObjId(pGia, pObj)) );
+            assert( Gia_ObjIsLut(p, Gia_ObjId(p, pObjNew)) );
+            Vec_IntPush( vPackingNew, Gia_ObjId(p, pObjNew) );
+//            printf( "%d -> %d  ", Vec_IntEntry(pGia->vPacking, i), Gia_ObjId(p, pObjNew) );
+        }
+        i--;
+        nEntries2++;
+    }
+    assert( nEntries == nEntries2 );
+    // attach packing info
+    assert( p->vPacking == NULL );
+    p->vPacking = vPackingNew;
+}
+
 
 /**Function*************************************************************
 
@@ -759,7 +1172,10 @@ Gia_Man_t * Gia_ManPerformMapping( Gia_Man_t * p, void * pp )
         return NULL;
     }
     // transform the result of mapping into the new network
-    pNew = Gia_ManFromIf( pIfMan );
+    if ( pIfMan->pPars->pLutStruct )
+        pNew = Gia_ManFromIfStr( pIfMan );
+    else
+        pNew = Gia_ManFromIf( pIfMan );
     If_ManStop( pIfMan );
     // transfer name
     assert( pNew->pName == NULL );
@@ -776,8 +1192,10 @@ Gia_Man_t * Gia_ManPerformMapping( Gia_Man_t * p, void * pp )
     // normalize and transfer mapping
     pNew = Gia_ManDupNormalize( p = pNew );
     Gia_ManTransferMapping( p, pNew );
+    Gia_ManTransferPacking( p, pNew );
     pNew->pManTime  = p->pManTime;  p->pManTime  = NULL;
     pNew->pAigExtra = p->pAigExtra; p->pAigExtra = NULL;
+//    pNew->vPacking  = p->vPacking;  p->vPacking = NULL;
     Gia_ManStop( p );
 
 //    printf( "PERFORMING VERIFICATION:\n" );

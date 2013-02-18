@@ -900,6 +900,7 @@ extern void                Gia_ManHashProfile( Gia_Man_t * p );
 extern int                 Gia_ManHashLookup( Gia_Man_t * p, Gia_Obj_t * p0, Gia_Obj_t * p1 );
 /*=== giaIf.c ===========================================================*/
 extern void                Gia_ManPrintMappingStats( Gia_Man_t * p );
+extern void                Gia_ManPrintPackingStats( Gia_Man_t * p );
 extern int                 Gia_ManLutFaninCount( Gia_Man_t * p );
 extern int                 Gia_ManLutSizeMax( Gia_Man_t * p );
 extern int                 Gia_ManLutNum( Gia_Man_t * p );
