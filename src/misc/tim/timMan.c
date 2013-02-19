@@ -90,16 +90,16 @@ Tim_Man_t * Tim_ManDup( Tim_Man_t * p, int fUnitDelay )
     Tim_Obj_t * pObj;
     float * pDelayTable, * pDelayTableNew;
     int i, k, nInputs, nOutputs;
+    // clear traversal IDs
+    Tim_ManForEachCi( p, pObj, i ) 
+        pObj->TravId = 0;          
+    Tim_ManForEachCo( p, pObj, i ) 
+        pObj->TravId = 0;          
     // create new manager
     pNew = Tim_ManStart( p->nCis, p->nCos );
     // copy box connectivity information
-    memcpy( pNew->pCis, p->pCis, sizeof(Tim_Obj_t) * p->nCis ); // why do we need this?
-    memcpy( pNew->pCos, p->pCos, sizeof(Tim_Obj_t) * p->nCos ); // why do we need this?
-    // clear traversal IDs
-    Tim_ManForEachCi( p, pObj, i ) // why do we need this?
-        pObj->TravId = 0;          // why do we need this?
-    Tim_ManForEachCo( p, pObj, i ) // why do we need this?
-        pObj->TravId = 0;          // why do we need this?
+    memcpy( pNew->pCis, p->pCis, sizeof(Tim_Obj_t) * p->nCis ); 
+    memcpy( pNew->pCos, p->pCos, sizeof(Tim_Obj_t) * p->nCos ); 
     if ( fUnitDelay )
     {
         // discretize PI arrival times
@@ -163,29 +163,31 @@ Tim_Man_t * Tim_ManTrim( Tim_Man_t * p, Vec_Int_t * vBoxPres )
     Tim_Box_t * pBox;
     Tim_Obj_t * pObj;
     float * pDelayTable, * pDelayTableNew;
-    int i, k, nInputs, nOutputs, nRemCis, nRemCos;
+    int i, k, nNewCis, nNewCos, nInputs, nOutputs;
     assert( Vec_IntSize(vBoxPres) == Tim_ManBoxNum(p) );
-    // count the number of CIs and COs due to removed boxes
+    // count the number of CIs and COs in the trimmed manager
+    nNewCis = Tim_ManPiNum(p);
+    nNewCos = Tim_ManPoNum(p);
     Tim_ManForEachBox( p, pBox, i )
-        if ( Vec_IntEntry(vBoxPres, i) == 0 )
+        if ( Vec_IntEntry(vBoxPres, i) )
         {
-            nRemCis += pBox->nOutputs;
-            nRemCos += pBox->nInputs;
+            nNewCis += pBox->nOutputs;
+            nNewCos += pBox->nInputs;
         }
-    if ( nRemCos == 0 && nRemCis == 0 )
+    if ( nNewCis == Tim_ManCiNum(p) && nNewCos == Tim_ManCoNum(p) )
         return Tim_ManDup( p, 0 );
-    assert( Tim_ManCiNum(p) - Tim_ManPiNum(p) >= nRemCis );
-    assert( Tim_ManCoNum(p) - Tim_ManPoNum(p) >= nRemCos );
-    // create new manager
-    pNew = Tim_ManStart( p->nCis - nRemCis, p->nCos - nRemCos );
-    // copy box connectivity information
-    memcpy( pNew->pCis, p->pCis, sizeof(Tim_Obj_t) * p->nCis ); // why do we need this?
-    memcpy( pNew->pCos, p->pCos, sizeof(Tim_Obj_t) * p->nCos ); // why do we need this?
+    assert( nNewCis < Tim_ManCiNum(p) );
+    assert( nNewCos < Tim_ManCoNum(p) );
     // clear traversal IDs
-    Tim_ManForEachCi( p, pObj, i ) // why do we need this?
-        pObj->TravId = 0;          // why do we need this?
-    Tim_ManForEachCo( p, pObj, i ) // why do we need this?
-        pObj->TravId = 0;          // why do we need this?
+    Tim_ManForEachCi( p, pObj, i ) 
+        pObj->TravId = 0;          
+    Tim_ManForEachCo( p, pObj, i ) 
+        pObj->TravId = 0;          
+    // create new manager
+    pNew = Tim_ManStart( p->nCis - nNewCis, p->nCos - nNewCos );
+    // copy box connectivity information
+    memcpy( pNew->pCis, p->pCis, sizeof(Tim_Obj_t) * Tim_ManPiNum(p) );
+    memcpy( pNew->pCos, p->pCos, sizeof(Tim_Obj_t) * Tim_ManPoNum(p) );
     // duplicate delay tables
     if ( Tim_ManDelayTableNum(p) > 0 )
     {
@@ -206,20 +208,26 @@ Tim_Man_t * Tim_ManTrim( Tim_Man_t * p, Vec_Int_t * vBoxPres )
 //            assert( (int)pDelayTableNew[0] == Vec_PtrSize(pNew->vDelayTables) );
             assert( Vec_PtrEntry(pNew->vDelayTables, i) == NULL );
             Vec_PtrWriteEntry( pNew->vDelayTables, i, pDelayTableNew );
-//printf( "Finished duplicating delay table %d.\n", i );
         }
     }
     // duplicate boxes
     if ( Tim_ManBoxNum(p) > 0 )
     {
+        int curPi = Tim_ManPiNum(p);
+        int curPo = 0;
         pNew->vBoxes = Vec_PtrAlloc( Tim_ManBoxNum(p) );
         Tim_ManForEachBox( p, pBox, i )
             if ( Vec_IntEntry(vBoxPres, i) )
-                Tim_ManCreateBox( pNew, pBox->Inouts[0], pBox->nInputs, 
-                    pBox->Inouts[pBox->nInputs], pBox->nOutputs, pBox->iDelayTable );
+            {
+                Tim_ManCreateBox( pNew, curPo, pBox->nInputs, curPi, pBox->nOutputs, pBox->iDelayTable );
+                curPi += pBox->nOutputs;
+                curPo += pBox->nInputs;
+            }
+        curPo += Tim_ManPoNum(p);
+        assert( curPi == Tim_ManCiNum(pNew) );
+        assert( curPo == Tim_ManCoNum(pNew) );
     }
     return pNew;
-
 }
 
 

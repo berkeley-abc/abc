@@ -146,6 +146,61 @@ Gia_Man_t * Gia_ManFraigCreateGia( Gia_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Duplicates the AIG in the DFS order.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ObjFanin0CopyRepr( Gia_Man_t * p, Gia_Obj_t * pObj, int * pReprs )
+{
+    int faninId = Gia_ObjFaninId0p( p, pObj );
+    if ( pReprs[faninId] == -1 )
+        return Gia_ObjFanin0Copy( pObj );
+    assert( Abc_Lit2Var(pReprs[faninId]) < Gia_ObjId(p, pObj) );
+    return Abc_LitNotCond( Gia_ObjValue(Gia_ManObj(p, Abc_Lit2Var(pReprs[faninId]))), Abc_LitIsCompl(pReprs[faninId]) );
+}
+int Gia_ObjFanin1CopyRepr( Gia_Man_t * p, Gia_Obj_t * pObj, int * pReprs )
+{
+    int faninId = Gia_ObjFaninId1p( p, pObj );
+    if ( pReprs[faninId] == -1 )
+        return Gia_ObjFanin1Copy( pObj );
+    assert( Abc_Lit2Var(pReprs[faninId]) < Gia_ObjId(p, pObj) );
+    return Abc_LitNotCond( Gia_ObjValue(Gia_ManObj(p, Abc_Lit2Var(pReprs[faninId]))), Abc_LitIsCompl(pReprs[faninId]) );
+}
+Gia_Man_t * Gia_ManFraigReduceGia( Gia_Man_t * p, int * pReprs )
+{
+    Gia_Man_t * pNew;
+    Gia_Obj_t * pObj;
+    int i;
+    assert( pReprs != NULL );
+    assert( Gia_ManRegNum(p) == 0 );
+    pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    Gia_ManFillValue( p );
+    Gia_ManHashAlloc( pNew );
+    Gia_ManForEachObj( p, pObj, i )
+    {
+        if ( Gia_ObjIsAnd(pObj) )
+            pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0CopyRepr(p, pObj, pReprs), Gia_ObjFanin1CopyRepr(p, pObj, pReprs) );
+        else if ( Gia_ObjIsCi(pObj) )
+            pObj->Value = Gia_ManAppendCi( pNew );
+        else if ( Gia_ObjIsCo(pObj) )
+            pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0CopyRepr(p, pObj, pReprs) );
+        else if ( Gia_ObjIsConst0(pObj) )
+            pObj->Value = 0;
+        else assert( 0 );
+    }
+    Gia_ManHashStop( pNew );
+    return pNew;
+}
+
+/**Function*************************************************************
+
   Synopsis    []
 
   Description []
@@ -155,7 +210,7 @@ Gia_Man_t * Gia_ManFraigCreateGia( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManFraigExtractGia( Gia_Man_t * p, int * pReprs )
+Gia_Man_t * Gia_ManFraigReduceGia2( Gia_Man_t * p, int * pReprs )
 {
     Gia_Man_t * pNew;
     Gia_Obj_t * pObj;
@@ -300,7 +355,7 @@ Gia_Man_t * Gia_ManFraigSweep( Gia_Man_t * p, void * pPars )
     pReprs = Gia_ManFraigSelectReprs( pNew, pGia, ((Dch_Pars_t *)pPars)->fVerbose );
     Gia_ManStop( pGia );
     // reduce AIG
-    pNew = Gia_ManFraigExtractGia( pTemp = pNew, pReprs );
+    pNew = Gia_ManFraigReduceGia( pTemp = pNew, pReprs );
     Gia_ManStop( pTemp );
     ABC_FREE( pReprs );
     // order reduced AIG
