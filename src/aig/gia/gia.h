@@ -976,6 +976,7 @@ extern Gia_Man_t *         Gia_ManDupWithHierarchy( Gia_Man_t * p, Vec_Int_t ** 
 extern Gia_Man_t *         Gia_ManDupWithBoxes( Gia_Man_t * p, Gia_Man_t * pBoxes );
 extern int                 Gia_ManLevelWithBoxes( Gia_Man_t * p );
 extern int                 Gia_ManVerifyWithBoxes( Gia_Man_t * pGia, void * pParsInit );
+extern void *              Gia_ManUpdateTimMan( Gia_Man_t * p, Vec_Int_t * vBoxPres );
 /*=== giaTruth.c ===========================================================*/
 extern word                Gia_ObjComputeTruthTable6( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vSupp, Vec_Wrd_t * vTruths );
 extern int                 Gia_ObjCollectInternal( Gia_Man_t * p, Gia_Obj_t * pObj );

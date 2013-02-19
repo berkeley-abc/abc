@@ -3559,6 +3559,10 @@ SOURCE=.\src\aig\gia\giaSupMin.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\gia\giaSweep.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\gia\giaSwitch.c
 # End Source File
 # Begin Source File

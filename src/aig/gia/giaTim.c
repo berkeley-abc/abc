@@ -559,6 +559,25 @@ int Gia_ManVerifyWithBoxes( Gia_Man_t * pGia, void * pParsInit )
     return Status;
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void * Gia_ManUpdateTimMan( Gia_Man_t * p, Vec_Int_t * vBoxPres )
+{
+    assert( p->pManTime != NULL );
+    assert( Tim_ManBoxNum(p->pManTime) == Vec_IntSize(vBoxPres) );
+    return Tim_ManTrim( p->pManTime, vBoxPres );
+
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

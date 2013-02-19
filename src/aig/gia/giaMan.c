@@ -334,6 +334,8 @@ void Gia_ManPrintStats( Gia_Man_t * p, int fTents, int fSwitch, int fCut )
         Gia_ManPrintPackingStats( p );
     if ( p->pPlacement )
         Gia_ManPrintPlacement( p );
+    if ( p->pManTime )
+        Tim_ManPrintStats( p->pManTime );
     // print register classes
     Gia_ManPrintFlopClasses( p );
     Gia_ManPrintGateClasses( p );
