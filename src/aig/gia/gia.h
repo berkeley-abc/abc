@@ -966,6 +966,9 @@ extern int                 Gia_ManSimSimulate( Gia_Man_t * pAig, Gia_ParSim_t * 
 extern float               Gia_ManDelayTraceLut( Gia_Man_t * p );
 extern float               Gia_ManDelayTraceLutPrint( Gia_Man_t * p, int fVerbose );
 extern Gia_Man_t *         Gia_ManSpeedup( Gia_Man_t * p, int Percentage, int Degree, int fVerbose, int fVeryVerbose );
+/*=== giaStg.c ============================================================*/
+extern void                Gia_ManStgPrint( FILE * pFile, Vec_Int_t * vLines, int nIns, int nOuts, int nStates );
+extern Gia_Man_t *         Gia_ManStgRead( char * pFileName, int fOneHot, int fLogar );
 /*=== giaSweep.c ============================================================*/
 extern Gia_Man_t *         Gia_ManFraigSweep( Gia_Man_t * p, void * pPars );
 /*=== giaSwitch.c ============================================================*/

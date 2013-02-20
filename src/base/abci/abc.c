@@ -311,6 +311,7 @@ static int Abc_CommandAbc9Put                ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9Read               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9ReadBlif           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9ReadCBlif          ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9ReadStg            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Write              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Ps                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9PFan               ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -773,6 +774,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&r",            Abc_CommandAbc9Read,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&read_blif",    Abc_CommandAbc9ReadBlif,     0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&read_cblif",   Abc_CommandAbc9ReadCBlif,    0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&read_stg",     Abc_CommandAbc9ReadStg,      0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&w",            Abc_CommandAbc9Write,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&ps",           Abc_CommandAbc9Ps,           0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&pfan",         Abc_CommandAbc9PFan,         0 );
@@ -23693,6 +23695,66 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
+int Abc_CommandAbc9ReadStg( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Gia_Man_t * pAig;
+    FILE * pFile;
+    char * FileName, ** pArgvNew;
+    int c, nArgcNew;
+    int fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        default:
+            goto usage;
+        }
+    }
+    pArgvNew = argv + globalUtilOptind;
+    nArgcNew = argc - globalUtilOptind;
+    if ( nArgcNew != 1 )
+    {
+        Abc_Print( -1, "There is no file name.\n" );
+        return 1;
+    }
+
+    // get the input file name
+    FileName = pArgvNew[0];
+    if ( (pFile = fopen( FileName, "r" )) == NULL )
+    {
+        Abc_Print( -1, "Cannot open input file \"%s\". ", FileName );
+        return 1;
+    }
+    fclose( pFile );
+
+    pAig = Gia_ManStgRead( FileName, 1, 0 );
+    Abc_CommandUpdate9( pAbc, pAig );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &read_stg [-vh] <file>\n" );
+    Abc_Print( -2, "\t         reads STG file and generates encoded AIG\n" );
+    Abc_Print( -2, "\t-v     : toggles additional verbose output [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    Abc_Print( -2, "\t<file> : the file name\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Abc_CommandAbc9Get( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
@@ -28158,13 +28220,14 @@ int Abc_CommandAbc9Era( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    Gia_Man_t * pTemp = NULL;
     int c, fVerbose = 0;
     int fUseCubes = 1;
+    int fDumpFile = 0;
     int fMiter = 0;
     int nStatesMax = 1000000000;
-    extern int Gia_ManCollectReachable( Gia_Man_t * pAig, int nStatesMax, int fMiter, int fVerbose );
+    extern int Gia_ManCollectReachable( Gia_Man_t * pAig, int nStatesMax, int fMiter, int fDumpFile, int fVerbose );
     extern int Gia_ManArePerform( Gia_Man_t * pAig, int nStatesMax, int fMiter, int fVerbose );
 
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Smcvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Smcdvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -28184,6 +28247,9 @@ int Abc_CommandAbc9Era( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'c':
             fUseCubes ^= 1;
+            break;
+        case 'd':
+            fDumpFile ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -28209,20 +28275,20 @@ int Abc_CommandAbc9Era( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Era(): The number of PIs (%d) should be no more than 12 when cubes are not used.\n", Gia_ManPiNum(pAbc->pGia) );
         return 1;
     }
-    if ( fUseCubes )
+    if ( fUseCubes && !fDumpFile )
         pAbc->Status = Gia_ManArePerform( pAbc->pGia, nStatesMax, fMiter, fVerbose );
     else
-        pAbc->Status = Gia_ManCollectReachable( pAbc->pGia, nStatesMax, fMiter, fVerbose );
+        pAbc->Status = Gia_ManCollectReachable( pAbc->pGia, nStatesMax, fMiter, fDumpFile, fVerbose );
     Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexSeq );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &era [-S num] [-mcvh]\n" );
-//    Abc_Print( -2, "usage: &era [-S num] [-mvh]\n" );
+    Abc_Print( -2, "usage: &era [-S num] [-mcdvh]\n" );
     Abc_Print( -2, "\t          explicit reachability analysis for small sequential AIGs\n" );
     Abc_Print( -2, "\t-S num  : the max number of states (num > 0) [default = %d]\n", nStatesMax );
     Abc_Print( -2, "\t-m      : stop when the miter output is 1 [default = %s]\n", fMiter? "yes": "no" );
     Abc_Print( -2, "\t-c      : use state cubes instead of state minterms [default = %s]\n", fUseCubes? "yes": "no" );
+    Abc_Print( -2, "\t-d      : toggle dumping STG into a file [default = %s]\n", fDumpFile? "yes": "no" );
     Abc_Print( -2, "\t-v      : print verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h      : print the command usage\n");
     return 1;

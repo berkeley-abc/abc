@@ -52,6 +52,7 @@ struct Gia_ManEra_t_
     Gia_ObjEra_t * pStateNew;    // temporary state
     int            iCurState;    // the current state
     Vec_Int_t *    vBugTrace;    // the sequence of transitions
+    Vec_Int_t *    vStgDump;     // STG written into a file
     // hash table for states
     int            nBins;         
     unsigned *     pBins;
@@ -102,6 +103,7 @@ Gia_ManEra_t * Gia_ManEraCreate( Gia_Man_t * pAig )
     // assign constant zero node
     pSimInfo = Gia_ManEraData( p, 0 );
     memset( pSimInfo, 0, sizeof(unsigned) * p->nWordsSim );
+    p->vStgDump = Vec_IntAlloc( 1000 );
     return p;
 }
 
@@ -119,6 +121,7 @@ Gia_ManEra_t * Gia_ManEraCreate( Gia_Man_t * pAig )
 void Gia_ManEraFree( Gia_ManEra_t * p )
 {
     Mem_FixedStop( p->pMemory, 0 );
+    Vec_IntFree( p->vStgDump );
     Vec_PtrFree( p->vStates );
     if ( p->vBugTrace ) Vec_IntFree( p->vBugTrace );
     ABC_FREE( p->pDataSim );
@@ -195,14 +198,20 @@ int Gia_ManEraStateHash( unsigned * pState, int nWordsSim, int nTableSize )
   SeeAlso     []
 
 ***********************************************************************/
-static inline unsigned * Gia_ManEraHashFind( Gia_ManEra_t * p, Gia_ObjEra_t * pState )
+static inline unsigned * Gia_ManEraHashFind( Gia_ManEra_t * p, Gia_ObjEra_t * pState, int * pStateNum )
 {
     Gia_ObjEra_t * pThis;
     unsigned * pPlace = p->pBins + Gia_ManEraStateHash( pState->pData, p->nWordsDat, p->nBins );
     for ( pThis = (*pPlace)? Gia_ManEraState(p, *pPlace) : NULL; pThis; 
           pPlace = (unsigned *)&pThis->iNext, pThis = (*pPlace)? Gia_ManEraState(p, *pPlace) : NULL )
               if ( !memcmp( pState->pData, pThis->pData, sizeof(unsigned) * p->nWordsDat ) )
+              {
+                  if ( pStateNum )
+                      *pStateNum = pThis->Num;
                   return NULL;
+              }
+    if ( pStateNum )
+      *pStateNum = -1;
     return pPlace;
 }
 
@@ -238,7 +247,7 @@ void Gia_ManEraHashResize( Gia_ManEra_t * p )
     {
         assert( pThis->Num );
         pThis->iNext = 0;
-        piPlace = Gia_ManEraHashFind( p, pThis );
+        piPlace = Gia_ManEraHashFind( p, pThis, NULL );
         assert( *piPlace == 0 ); // should not be there
         *piPlace = pThis->Num;
         Counter++;
@@ -437,11 +446,11 @@ int Gia_ManCountDepth( Gia_ManEra_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Gia_ManAnalyzeResult( Gia_ManEra_t * p, Gia_ObjEra_t * pState, int fMiter )
+int Gia_ManAnalyzeResult( Gia_ManEra_t * p, Gia_ObjEra_t * pState, int fMiter, int fStgDump )
 {
     Gia_Obj_t * pObj;
-    unsigned * pSimInfo, * piPlace;
-    int i, k, iCond, nMints;
+    unsigned * pSimInfo, * piPlace, uOutput = 0;
+    int i, k, iCond, nMints, iNextState;
     // check if the miter is asserted
     if ( fMiter )
     {
@@ -468,9 +477,27 @@ int Gia_ManAnalyzeResult( Gia_ManEra_t * p, Gia_ObjEra_t * pState, int fMiter )
             if ( Abc_InfoHasBit(p->pStateNew->pData, i) != Abc_InfoHasBit(pSimInfo, k) )
                 Abc_InfoXorBit( p->pStateNew->pData, i );
         }
-        piPlace = Gia_ManEraHashFind( p, p->pStateNew );
+        if ( fStgDump )
+        {
+            uOutput = 0;
+            Gia_ManForEachPo( p->pAig, pObj, i )
+            {
+                pSimInfo = Gia_ManEraData( p, Gia_ObjId(p->pAig, pObj) );
+                if ( Abc_InfoHasBit(pSimInfo, k) && i < 32 )
+                    Abc_InfoXorBit( &uOutput, i );
+            }
+        }
+        piPlace = Gia_ManEraHashFind( p, p->pStateNew, &iNextState );
+        if ( fStgDump ) Vec_IntPush( p->vStgDump, k );
+        if ( fStgDump ) Vec_IntPush( p->vStgDump, pState->Num );
         if ( piPlace == NULL )
+        {
+            if ( fStgDump ) Vec_IntPush( p->vStgDump, iNextState );
+            if ( fStgDump ) Vec_IntPush( p->vStgDump, uOutput );
             continue;
+        }
+        if ( fStgDump ) Vec_IntPush( p->vStgDump, p->pStateNew->Num );
+        if ( fStgDump ) Vec_IntPush( p->vStgDump, uOutput );
 //printf( "Inserting %d ", Vec_PtrSize(p->vStates) );
 //Extra_PrintBinary( stdout, p->pStateNew->pData, Gia_ManRegNum(p->pAig) );  printf( "\n" );
         assert( *piPlace == 0 );
@@ -497,7 +524,7 @@ int Gia_ManAnalyzeResult( Gia_ManEra_t * p, Gia_ObjEra_t * pState, int fMiter )
   SeeAlso     []
 
 ***********************************************************************/
-int Gia_ManCollectReachable( Gia_Man_t * pAig, int nStatesMax, int fMiter, int fVerbose )
+int Gia_ManCollectReachable( Gia_Man_t * pAig, int nStatesMax, int fMiter, int fDumpFile, int fVerbose )
 { 
     Gia_ManEra_t * p;
     Gia_ObjEra_t * pState;
@@ -531,7 +558,7 @@ int Gia_ManCollectReachable( Gia_Man_t * pAig, int nStatesMax, int fMiter, int f
 //Extra_PrintBinary( stdout, p->pStateNew->pData, Gia_ManRegNum(p->pAig) );  printf( "\n" );
         Gia_ManInsertState( p, pState );
         Gia_ManPerformOneIter( p );
-        if ( Gia_ManAnalyzeResult( p, pState, fMiter ) && fMiter )
+        if ( Gia_ManAnalyzeResult( p, pState, fMiter, fDumpFile ) && fMiter )
         {
             RetValue = 0;
             printf( "Miter failed in state %d after %d transitions.  ", 
@@ -549,6 +576,19 @@ int Gia_ManCollectReachable( Gia_Man_t * pAig, int nStatesMax, int fMiter, int f
     }
     printf( "Reachability analysis traversed %d states with depth %d.  ", p->iCurState-1, Gia_ManCountDepth(p) );
     ABC_PRT( "Time", clock() - clk );
+    if ( fDumpFile )
+    {
+        char * pFileName = "test.stg";
+        FILE * pFile = fopen( pFileName, "wb" );
+        if ( pFile == NULL )
+            printf( "Cannot open file \"%s\" for writing.\n", pFileName );
+        else
+        {
+            Gia_ManStgPrint( pFile, p->vStgDump, Gia_ManPiNum(pAig), Gia_ManPoNum(pAig), p->iCurState-1 );
+            fclose( pFile );
+            printf( "Extracted STG was written into file \"%s\".\n", pFileName );
+        }
+    }
     Gia_ManEraFree( p );
     return RetValue;
 }
