@@ -1146,6 +1146,8 @@ Gia_Man_t * Gia_ManPerformMapping( Gia_Man_t * p, void * pp )
     if ( p->pManTime )
     {
         pNew = Gia_ManDupWithHierarchy( p, &vNodes );
+        if ( pNew == NULL )
+            return NULL;
         pNew->pManTime  = p->pManTime;  p->pManTime  = NULL;
         pNew->pAigExtra = p->pAigExtra; p->pAigExtra = NULL;
         p = pNew;

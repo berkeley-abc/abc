@@ -243,6 +243,29 @@ void Tim_ManBoxSetCopy( Tim_Man_t * p, int iBox, int iCopy )
     Tim_ManBox(p, iBox)->iCopy = iCopy;
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Tim_ManBoxFindFromCiNum( Tim_Man_t * p, int iCiNum )
+{
+    Tim_Box_t * pBox;
+    int i;
+    assert( iCiNum >= 0 && iCiNum < Tim_ManCiNum(p) );
+    if ( iCiNum < Tim_ManPiNum(p) )
+        return -1;
+    Tim_ManForEachBox( p, pBox, i )
+        if ( iCiNum < Tim_ManBoxOutputFirst(p, i) )
+            return i - 1;
+    return -2;
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

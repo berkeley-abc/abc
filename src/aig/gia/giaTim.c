@@ -171,17 +171,26 @@ Gia_Man_t * Gia_ManDupUnnomalize( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManDupFindOrderWithHie_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vNodes )
+int Gia_ManDupFindOrderWithHie_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vNodes )
 {
     if ( Gia_ObjIsTravIdCurrent(p, pObj) )
-        return;
+        return 0;
     Gia_ObjSetTravIdCurrent(p, pObj);
+    if ( Gia_ObjIsCi(pObj) )
+    {
+        p->pData2 = (void *)(ABC_PTRUINT_T)Gia_ObjCioId(pObj);
+        return 1;
+    }
     assert( Gia_ObjIsAnd(pObj) );
     if ( Gia_ObjSibl(p, Gia_ObjId(p, pObj)) )
-        Gia_ManDupFindOrderWithHie_rec( p, Gia_ObjSiblObj(p, Gia_ObjId(p, pObj)), vNodes );
-    Gia_ManDupFindOrderWithHie_rec( p, Gia_ObjFanin0(pObj), vNodes );
-    Gia_ManDupFindOrderWithHie_rec( p, Gia_ObjFanin1(pObj), vNodes );
+        if ( Gia_ManDupFindOrderWithHie_rec( p, Gia_ObjSiblObj(p, Gia_ObjId(p, pObj)), vNodes ) )
+            return 1;
+    if ( Gia_ManDupFindOrderWithHie_rec( p, Gia_ObjFanin0(pObj), vNodes ) )
+        return 1;
+    if ( Gia_ManDupFindOrderWithHie_rec( p, Gia_ObjFanin1(pObj), vNodes ) )
+        return 1;
     Vec_IntPush( vNodes, Gia_ObjId(p, pObj) );
+    return 0;
 }
 Vec_Int_t * Gia_ManDupFindOrderWithHie( Gia_Man_t * p )
 {
@@ -220,7 +229,22 @@ Vec_Int_t * Gia_ManDupFindOrderWithHie( Gia_Man_t * p )
 //Gia_ObjPrint( p, pObj );
 //printf( "Fanin " );
 //Gia_ObjPrint( p, Gia_ObjFanin0(pObj) );
-            Gia_ManDupFindOrderWithHie_rec( p, Gia_ObjFanin0(pObj), vNodes );
+            if ( Gia_ManDupFindOrderWithHie_rec( p, Gia_ObjFanin0(pObj), vNodes ) )
+            {
+                int iCiNum = (int)(ABC_PTRUINT_T)p->pData2;
+                int iBoxNum = Tim_ManBoxFindFromCiNum( p->pManTime, iCiNum );
+                printf( "Boxes are not in a topological order. The program has to terminate.\n" );
+                printf( "The following information about the network may help the debugging:\n" );
+                printf( "Input %d of BoxA %d (1CI = %d; 1CO = %d) has TFI with CI %d,\n", 
+                    k, i, Tim_ManBoxOutputFirst(p->pManTime, i), Tim_ManBoxInputFirst(p->pManTime, i), iCiNum );
+                printf( "which corresponds to output %d of BoxB %d (1CI = %d; 1CO = %d).\n", 
+                    iCiNum - Tim_ManBoxOutputFirst(p->pManTime, iBoxNum), iBoxNum, 
+                    Tim_ManBoxOutputFirst(p->pManTime, iBoxNum), Tim_ManBoxInputFirst(p->pManTime, iBoxNum) );
+                printf( "In a correct topological order, BoxB preceeds BoxA (numbers are 0-based).\n" );
+                Vec_IntFree( vNodes );
+                p->pData2 = NULL;
+                return NULL;
+            }
         }
         // add POs corresponding to box inputs
         for ( k = 0; k < Tim_ManBoxInputNum(pTime, i); k++ )
@@ -276,13 +300,15 @@ Gia_Man_t * Gia_ManDupWithHierarchy( Gia_Man_t * p, Vec_Int_t ** pvNodes )
     Gia_Man_t * pNew;
     Gia_Obj_t * pObj;
     int i;
+    vNodes = Gia_ManDupFindOrderWithHie( p );
+    if ( vNodes == NULL )
+        return NULL;
     Gia_ManFillValue( p );
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
     pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     if ( p->pSibls )
         pNew->pSibls = ABC_CALLOC( int, Gia_ManObjNum(p) );
-    vNodes = Gia_ManDupFindOrderWithHie( p );
     Gia_ManForEachObjVec( vNodes, p, pObj, i )
     {
         if ( Gia_ObjIsAnd(pObj) )
@@ -424,17 +450,22 @@ Gia_Man_t * Gia_ManDupWithBoxes( Gia_Man_t * p, Gia_Man_t * pBoxes )
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManLevelWithBoxes_rec( Gia_Man_t * p, Gia_Obj_t * pObj )
+int Gia_ManLevelWithBoxes_rec( Gia_Man_t * p, Gia_Obj_t * pObj )
 {
     if ( Gia_ObjIsTravIdCurrent(p, pObj) )
-        return;
+        return 0;
     Gia_ObjSetTravIdCurrent(p, pObj);
+    if ( Gia_ObjIsCi(pObj) )
+        return 1;
     assert( Gia_ObjIsAnd(pObj) );
     if ( Gia_ObjSibl(p, Gia_ObjId(p, pObj)) )
         Gia_ManLevelWithBoxes_rec( p, Gia_ObjSiblObj(p, Gia_ObjId(p, pObj)) );
-    Gia_ManLevelWithBoxes_rec( p, Gia_ObjFanin0(pObj) );
-    Gia_ManLevelWithBoxes_rec( p, Gia_ObjFanin1(pObj) );
+    if ( Gia_ManLevelWithBoxes_rec( p, Gia_ObjFanin0(pObj) ) )
+        return 1;
+    if ( Gia_ManLevelWithBoxes_rec( p, Gia_ObjFanin1(pObj) ) )
+        return 1;
     Gia_ObjSetAndLevel( p, pObj );
+    return 0;
 }
 int Gia_ManLevelWithBoxes( Gia_Man_t * p )
 {
@@ -463,7 +494,11 @@ int Gia_ManLevelWithBoxes( Gia_Man_t * p )
         for ( k = 0; k < Tim_ManBoxInputNum(pTime, i); k++ )
         {
             pObj = Gia_ManPo( p, curCo + k );
-            Gia_ManLevelWithBoxes_rec( p, Gia_ObjFanin0(pObj) );
+            if ( Gia_ManLevelWithBoxes_rec( p, Gia_ObjFanin0(pObj) ) )
+            {
+                printf( "Boxes are not in a topological order. Switching to level computation without boxes.\n" );
+                return Gia_ManLevelNum( p );
+            }
             Gia_ObjSetCoLevel( p, pObj );
             LevelMax = Abc_MaxInt( LevelMax, Gia_ObjLevel(p, pObj) );
         }

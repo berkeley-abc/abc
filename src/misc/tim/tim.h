@@ -121,6 +121,7 @@ extern int             Tim_ManBoxDelayTableId( Tim_Man_t * p, int iBox );
 extern float *         Tim_ManBoxDelayTable( Tim_Man_t * p, int iBox );
 extern int             Tim_ManBoxCopy( Tim_Man_t * p, int iBox );
 extern void            Tim_ManBoxSetCopy( Tim_Man_t * p, int iBox, int iCopy );
+extern int             Tim_ManBoxFindFromCiNum( Tim_Man_t * p, int iCiNum );
 /*=== timDump.c ===========================================================*/
 extern Vec_Str_t *     Tim_ManSave( Tim_Man_t * p, int fHieOnly );
 extern Tim_Man_t *     Tim_ManLoad( Vec_Str_t * p, int fHieOnly );

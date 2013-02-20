@@ -347,11 +347,14 @@ Gia_Man_t * Gia_ManFraigSweep( Gia_Man_t * p, void * pPars )
         printf( "Timing manager is given but there is no GIA of boxes.\n" );
         return NULL;
     }
+    // ordering AIG objects
+    pNew = Gia_ManDupWithHierarchy( p, NULL );
+    if ( pNew == NULL )
+        return NULL;
     // find global equivalences
     pGia = Gia_ManDupWithBoxes( p, p->pAigExtra );
     Gia_ManFraigSweepPerform( pGia, pPars );
     // transfer equivalences
-    pNew = Gia_ManDupWithHierarchy( p, NULL );
     pReprs = Gia_ManFraigSelectReprs( pNew, pGia, ((Dch_Pars_t *)pPars)->fVerbose );
     Gia_ManStop( pGia );
     // reduce AIG
