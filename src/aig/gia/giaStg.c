@@ -43,10 +43,42 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
+int Gia_ManCreateOrGate( Gia_Man_t * p, Vec_Int_t * vLits )
+{
+    if ( Vec_IntSize(vLits) == 0 )
+        return 0;
+    while ( Vec_IntSize(vLits) > 1 )
+    {
+        int i, k = 0, Lit1, Lit2, LitRes;
+        Vec_IntForEachEntryDouble( vLits, Lit1, Lit2, i )
+        {
+            LitRes = Gia_ManHashOr( p, Lit1, Lit2 );
+            Vec_IntWriteEntry( vLits, k++, LitRes );
+        }
+        if ( Vec_IntSize(vLits) & 1 )
+            Vec_IntWriteEntry( vLits, k++, Vec_IntEntryLast(vLits) );
+        Vec_IntShrink( vLits, k );
+    }
+    assert( Vec_IntSize(vLits) == 1 );
+    return Vec_IntEntry(vLits, 0);
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 Gia_Man_t * Gia_ManStgOneHot( Vec_Int_t * vLines, int nIns, int nOuts, int nStates )
 {
     Gia_Man_t * p;
-    Vec_Int_t * vInMints, * vCurs, * vOuts, * vNexts;
+    Vec_Int_t * vInMints, * vCurs, * vVec;
+    Vec_Vec_t * vLitsNext, * vLitsOuts;
     int i, b, LitC, Lit;
     assert( Vec_IntSize(vLines) % 4 == 0 );
 
@@ -71,11 +103,9 @@ Gia_Man_t * Gia_ManStgOneHot( Vec_Int_t * vLines, int nIns, int nOuts, int nStat
     for ( i = 0; i < nStates; i++ )
         Vec_IntPush( vCurs, Abc_Var2Lit( 1+nIns+i, !i ) );
 
-    // start outputs and current states
-    vOuts  = Vec_IntStart( nOuts );
-    vNexts = Vec_IntStart( nStates );
-
     // go through the lines
+    vLitsNext = Vec_VecStart( nStates );
+    vLitsOuts = Vec_VecStart( nOuts );
     for ( i = 0; i < Vec_IntSize(vLines); )
     {
         int iMint = Vec_IntEntry(vLines, i++);
@@ -89,32 +119,33 @@ Gia_Man_t * Gia_ManStgOneHot( Vec_Int_t * vLines, int nIns, int nOuts, int nStat
         // create condition
         LitC = Gia_ManHashAnd( p, Vec_IntEntry(vInMints, iMint), Vec_IntEntry(vCurs, iCur) );
         // update next state
-        Lit = Gia_ManHashOr( p, LitC, Vec_IntEntry(vNexts, iNext) );
-        Vec_IntWriteEntry( vNexts, iNext, Lit );
+//        Lit = Gia_ManHashOr( p, LitC, Vec_IntEntry(vNexts, iNext) );
+//        Vec_IntWriteEntry( vNexts, iNext, Lit );
+        Vec_VecPushInt( vLitsNext, iNext, LitC );
         // update outputs
         for ( b = 0; b < nOuts; b++ )
             if ( (iOut >> b) & 1 ) 
             {
-                Lit = Gia_ManHashOr( p, LitC, Vec_IntEntry(vOuts, b) );
-                Vec_IntWriteEntry( vOuts, b, Lit );
+//                Lit = Gia_ManHashOr( p, LitC, Vec_IntEntry(vOuts, b) );
+//                Vec_IntWriteEntry( vOuts, b, Lit );
+                Vec_VecPushInt( vLitsOuts, b, LitC );
             }
     }
+    Vec_IntFree( vInMints );
+    Vec_IntFree( vCurs );
 
     // create POs
-    Vec_IntForEachEntry( vOuts, Lit, i )
-        Gia_ManAppendCo( p, Lit );
+    Vec_VecForEachLevelInt( vLitsOuts, vVec, i )
+        Gia_ManAppendCo( p, Gia_ManCreateOrGate(p, vVec) );
+    Vec_VecFree( vLitsOuts );
 
     // create next states
-    Vec_IntForEachEntry( vNexts, Lit, i )
-        Gia_ManAppendCo( p, Abc_LitNotCond(Lit, !i) );
+    Vec_VecForEachLevelInt( vLitsNext, vVec, i )
+        Gia_ManAppendCo( p, Abc_LitNotCond( Gia_ManCreateOrGate(p, vVec), !i ) );
+    Vec_VecFree( vLitsNext );
 
     Gia_ManSetRegNum( p, nStates );
     Gia_ManHashStop( p );
-
-    Vec_IntFree( vInMints );
-    Vec_IntFree( vCurs );
-    Vec_IntFree( vOuts );
-    Vec_IntFree( vNexts );
 
     assert( !Gia_ManHasDangling(p) );
     return p;
@@ -171,6 +202,11 @@ Vec_Int_t * Gia_ManStgReadLines( char * pFileName, int * pnIns, int * pnOuts, in
     char * pToken;
     int Number, nInputs = -1, nOutputs = -1, nStates = 1;
     FILE * pFile;
+    if ( !strcmp(pFileName + strlen(pFileName) - 3, "aig") )
+    {
+        printf( "Input file \"%s\" has extension \"aig\".\n", pFileName, "aig" );
+        return NULL;
+    }
     pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
     {
