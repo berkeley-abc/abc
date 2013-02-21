@@ -24,7 +24,6 @@
 
 ABC_NAMESPACE_IMPL_START
 
-
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -62,7 +61,10 @@ Gia_Obj_t * Gia_ManFraigMarkCos( Gia_Man_t * p, Gia_Obj_t * pObj, int fMark )
 {
     for ( assert( Gia_ObjIsCo(pObj) ); Gia_ObjIsCo(pObj); pObj-- )
         if ( fMark )
+        {
             Gia_ObjSetTravIdCurrent( p, pObj );
+            Gia_ObjSetTravIdCurrent( p, Gia_ObjFanin0(pObj) );
+        }
     return pObj;
 }
 Gia_Obj_t * Gia_ManFraigMarkAnd( Gia_Man_t * p, Gia_Obj_t * pObj )
@@ -133,6 +135,9 @@ Gia_Man_t * Gia_ManFraigCreateGia( Gia_Man_t * p )
     assert( pNew->pAigExtra == NULL );
     pNew->pAigExtra = Gia_ManUpdateExtraAig( p->pManTime, p->pAigExtra, vBoxPres );
     Vec_IntFree( vBoxPres );
+//    assert( Gia_ManPiNum(pNew) == Tim_ManCiNum(pNew->pManTime) );
+//    assert( Gia_ManPoNum(pNew) == Tim_ManCoNum(pNew->pManTime) );
+//    assert( Gia_ManPiNum(pNew) == Tim_ManPiNum(pNew->pManTime) + Gia_ManPoNum(pNew->pAigExtra) );
     return pNew;
 }
 
@@ -149,19 +154,19 @@ Gia_Man_t * Gia_ManFraigCreateGia( Gia_Man_t * p )
 ***********************************************************************/
 int Gia_ObjFanin0CopyRepr( Gia_Man_t * p, Gia_Obj_t * pObj, int * pReprs )
 {
-    int faninId = Gia_ObjFaninId0p( p, pObj );
-    if ( pReprs[faninId] == -1 )
+    int fanId = Gia_ObjFaninId0p( p, pObj );
+    if ( pReprs[fanId] == -1 )
         return Gia_ObjFanin0Copy( pObj );
-    assert( Abc_Lit2Var(pReprs[faninId]) < Gia_ObjId(p, pObj) );
-    return Abc_LitNotCond( Gia_ObjValue(Gia_ManObj(p, Abc_Lit2Var(pReprs[faninId]))), Gia_ObjFaninC0(pObj) ^ Abc_LitIsCompl(pReprs[faninId]) );
+    assert( Abc_Lit2Var(pReprs[fanId]) < Gia_ObjId(p, pObj) );
+    return Abc_LitNotCond( Gia_ObjValue(Gia_ManObj(p, Abc_Lit2Var(pReprs[fanId]))), Gia_ObjFaninC0(pObj) ^ Abc_LitIsCompl(pReprs[fanId]) );
 }
 int Gia_ObjFanin1CopyRepr( Gia_Man_t * p, Gia_Obj_t * pObj, int * pReprs )
 {
-    int faninId = Gia_ObjFaninId1p( p, pObj );
-    if ( pReprs[faninId] == -1 )
+    int fanId = Gia_ObjFaninId1p( p, pObj );
+    if ( pReprs[fanId] == -1 )
         return Gia_ObjFanin1Copy( pObj );
-    assert( Abc_Lit2Var(pReprs[faninId]) < Gia_ObjId(p, pObj) );
-    return Abc_LitNotCond( Gia_ObjValue(Gia_ManObj(p, Abc_Lit2Var(pReprs[faninId]))), Gia_ObjFaninC1(pObj) ^ Abc_LitIsCompl(pReprs[faninId]) );
+    assert( Abc_Lit2Var(pReprs[fanId]) < Gia_ObjId(p, pObj) );
+    return Abc_LitNotCond( Gia_ObjValue(Gia_ManObj(p, Abc_Lit2Var(pReprs[fanId]))), Gia_ObjFaninC1(pObj) ^ Abc_LitIsCompl(pReprs[fanId]) );
 }
 Gia_Man_t * Gia_ManFraigReduceGia( Gia_Man_t * p, int * pReprs )
 {
@@ -188,15 +193,6 @@ Gia_Man_t * Gia_ManFraigReduceGia( Gia_Man_t * p, int * pReprs )
         else assert( 0 );
     }
     Gia_ManHashStop( pNew );
-/*
-    {
-        Gia_Man_t * pTemp;
-        Gia_ManPrintStats( pNew, 0, 0, 0 );
-        pNew = Gia_ManCleanup( pTemp = pNew );
-        Gia_ManStop( pTemp );
-        Gia_ManPrintStats( pNew, 0, 0, 0 );
-    }
-*/
     return pNew;
 }
 
@@ -233,23 +229,21 @@ int * Gia_ManFraigSelectReprs( Gia_Man_t * p, Gia_Man_t * pGia, int fVerbose )
             pGia2Abc[iReprGia] = i;
         else
         { 
-//            iLitGia2 = Abc2_ObjCopyId( p, pGia2Abc[iReprGia] );
             iLitGia2 = Gia_ObjValue( Gia_ManObj(p, pGia2Abc[iReprGia]) );
             assert( Gia_ObjReprSelf(pGia, Abc_Lit2Var(iLitGia)) == Gia_ObjReprSelf(pGia, Abc_Lit2Var(iLitGia2)) );
             fCompl  = Abc_LitIsCompl(iLitGia) ^ Abc_LitIsCompl(iLitGia2);
             fCompl ^= Gia_ManObj(pGia, Abc_Lit2Var(iLitGia))->fPhase;
             fCompl ^= Gia_ManObj(pGia, Abc_Lit2Var(iLitGia2))->fPhase;
             pReprs[i] = Abc_Var2Lit( pGia2Abc[iReprGia], fCompl );
+            assert( Abc_Lit2Var(pReprs[i]) < i );
             if ( pGia2Abc[iReprGia] == 0 )
                 nConsts++;
             else
                 nReprs++;
-            assert( Abc_Lit2Var(pReprs[i]) < i );
-//            printf( "%d -> %d\n", i, Abc_Lit2Var(pReprs[i]) ); 
         }
     }
     ABC_FREE( pGia2Abc );
-//    if ( fVerbose )
+    if ( fVerbose )
         printf( "Found %d const reprs and %d other reprs.\n", nConsts, nReprs );
     return pReprs;
 }
@@ -305,12 +299,12 @@ Gia_Man_t * Gia_ManFraigSweep( Gia_Man_t * p, void * pPars )
         return NULL;
     }
     // ordering AIG objects
-    pNew = Gia_ManDupWithHierarchy( p, NULL );
+    pNew = Gia_ManDupUnnormalize( p );
     if ( pNew == NULL )
         return NULL;
     // find global equivalences
     pNew->pManTime = p->pManTime;
-    pGia = Gia_ManDupWithBoxes( pNew, p->pAigExtra );
+    pGia = Gia_ManDupCollapse( pNew, p->pAigExtra );
     pNew->pManTime = NULL;
     Gia_ManFraigSweepPerform( pGia, pPars );
     // transfer equivalences

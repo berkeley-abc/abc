@@ -726,22 +726,10 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fSkipS
         if ( Abc_FrameReadLibBox() == NULL )
             printf( "Cannot create TIM manager because box library is not available.\n" );
         else
-        {
             Tim_ManCreate( (Tim_Man_t *)pNew->pManTime, Abc_FrameReadLibBox(), pNew->vInArrs, pNew->vOutReqs );
-//            Tim_ManPrint( (Tim_Man_t *)pNew->pManTime );
-//            printf( "Created timing manager using Tim_ManCreate().\n" );
-        }
     }
     Vec_FltFreeP( &pNew->vInArrs );
     Vec_FltFreeP( &pNew->vOutReqs );
-
-/*
-    if ( pNew->pManTime )
-    {
-        pNew = Gia_ManDupUnnomalize( pTemp = pNew );
-        Gia_ManStop( pTemp );
-    }
-*/
 /*
     // check the result
     if ( fCheck && !Gia_ManCheck( pNew ) )

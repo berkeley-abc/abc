@@ -229,7 +229,7 @@ void Gia_ManPrintMappingStats( Gia_Man_t * p )
         LevelMax = Abc_MaxInt( LevelMax, pLevels[i] );
     }
     ABC_FREE( pLevels );
-    Abc_Print( 1, "mapping (K=%d)  :  ", nLutSize );
+    Abc_Print( 1, "Mapping (K=%d)  :  ", nLutSize );
     Abc_Print( 1, "lut =%7d  ", nLuts );
     Abc_Print( 1, "edge =%8d  ", nFanins );
     Abc_Print( 1, "lev =%5d  ", LevelMax );
@@ -277,7 +277,7 @@ void Gia_ManPrintPackingStats( Gia_Man_t * p )
         MaxSize = 2;
     else if ( nNumStr[1] > 0 )
         MaxSize = 1;
-    Abc_Print( 1, "packing (N=%d)  :  ", MaxSize );
+    Abc_Print( 1, "Packing (N=%d)  :  ", MaxSize );
     for ( i = 1; i <= MaxSize; i++ )
         Abc_Print( 1, "%d x LUT = %d   ", i, nNumStr[i] );
     Abc_Print( 1, "Total = %d", nEntries2 );
@@ -1141,11 +1141,10 @@ Gia_Man_t * Gia_ManPerformMapping( Gia_Man_t * p, void * pp )
     Gia_Man_t * pNew;
     If_Man_t * pIfMan;
     If_Par_t * pPars = (If_Par_t *)pp;
-    Vec_Int_t * vNodes = NULL;
     // reconstruct GIA according to the hierarchy manager
     if ( p->pManTime )
     {
-        pNew = Gia_ManDupWithHierarchy( p, &vNodes );
+        pNew = Gia_ManDupUnnormalize( p );
         if ( pNew == NULL )
             return NULL;
         pNew->pManTime  = p->pManTime;  p->pManTime  = NULL;
@@ -1154,7 +1153,6 @@ Gia_Man_t * Gia_ManPerformMapping( Gia_Man_t * p, void * pp )
     }
     else 
         p = Gia_ManDup( p );
-    Vec_IntFreeP( &vNodes );
     // set the arrival times
     assert( pPars->pTimesArr == NULL );
     pPars->pTimesArr = ABC_CALLOC( float, Gia_ManCiNum(p) );

@@ -245,7 +245,7 @@ Gia_Man_t * Gia_ManDupOutputVec( Gia_Man_t * p, Vec_Int_t * vOutPres )
         pObj->Value = Gia_ManAppendCi(pNew);
     Gia_ManForEachPo( p, pObj, i )
         if ( Vec_IntEntry(vOutPres, i) )
-            Gia_ManDupOrderDfs_rec( pNew, p, pObj );
+            Gia_ManDupOrderDfs_rec( pNew, p, Gia_ObjFanin0(pObj) );
     Gia_ManForEachPo( p, pObj, i )
         if ( Vec_IntEntry(vOutPres, i) )
             pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );

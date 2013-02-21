@@ -978,9 +978,8 @@ extern float               Gia_ManEvaluateSwitching( Gia_Man_t * p );
 extern float               Gia_ManComputeSwitching( Gia_Man_t * p, int nFrames, int nPref, int fProbOne );
 /*=== giaTim.c ===========================================================*/
 extern Gia_Man_t *         Gia_ManDupNormalize( Gia_Man_t * p );
-extern Gia_Man_t *         Gia_ManDupUnnomalize( Gia_Man_t * p );
-extern Gia_Man_t *         Gia_ManDupWithHierarchy( Gia_Man_t * p, Vec_Int_t ** pvNodes );
-extern Gia_Man_t *         Gia_ManDupWithBoxes( Gia_Man_t * p, Gia_Man_t * pBoxes );
+extern Gia_Man_t *         Gia_ManDupUnnormalize( Gia_Man_t * p );
+extern Gia_Man_t *         Gia_ManDupCollapse( Gia_Man_t * p, Gia_Man_t * pBoxes );
 extern int                 Gia_ManLevelWithBoxes( Gia_Man_t * p );
 extern int                 Gia_ManVerifyWithBoxes( Gia_Man_t * pGia, void * pParsInit );
 extern void *              Gia_ManUpdateTimMan( Gia_Man_t * p, Vec_Int_t * vBoxPres );

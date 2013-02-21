@@ -168,12 +168,13 @@ Tim_Man_t * Tim_ManTrim( Tim_Man_t * p, Vec_Int_t * vBoxPres )
     // count the number of CIs and COs in the trimmed manager
     nNewCis = Tim_ManPiNum(p);
     nNewCos = Tim_ManPoNum(p);
-    Tim_ManForEachBox( p, pBox, i )
-        if ( Vec_IntEntry(vBoxPres, i) )
-        {
-            nNewCis += pBox->nOutputs;
-            nNewCos += pBox->nInputs;
-        }
+    if ( Tim_ManBoxNum(p) )
+        Tim_ManForEachBox( p, pBox, i )
+            if ( Vec_IntEntry(vBoxPres, i) )
+            {
+                nNewCis += pBox->nOutputs;
+                nNewCos += pBox->nInputs;
+            }
     if ( nNewCis == Tim_ManCiNum(p) && nNewCos == Tim_ManCoNum(p) )
         return Tim_ManDup( p, 0 );
     assert( nNewCis < Tim_ManCiNum(p) );
@@ -494,7 +495,7 @@ void Tim_ManPrintStats( Tim_Man_t * p )
     int i, Count, IdMax;
     if ( p == NULL )
         return;
-    Abc_Print( 1, "hierarchy      :  " );
+    Abc_Print( 1, "Hierarchy      :  " );
     printf( "PI/CI = %d/%d   PO/CO = %d/%d   Box = %d", 
         Tim_ManPiNum(p), Tim_ManCiNum(p), 
         Tim_ManPoNum(p), Tim_ManCoNum(p), 
