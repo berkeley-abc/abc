@@ -46,22 +46,23 @@ ABC_NAMESPACE_IMPL_START
 void Inter_ManSetDefaultParams( Inter_ManParams_t * p )
 { 
     memset( p, 0, sizeof(Inter_ManParams_t) );
-    p->nBTLimit     = 0;     // limit on the number of conflicts
-    p->nFramesMax   = 0;     // the max number timeframes to unroll
-    p->nSecLimit    = 0;     // time limit in seconds
-    p->nFramesK     = 1;     // the number of timeframes to use in induction
-    p->fRewrite     = 0;     // use additional rewriting to simplify timeframes
-    p->fTransLoop   = 0;     // add transition into the init state under new PI var
-    p->fUsePudlak   = 0;     // use Pudluk interpolation procedure
-    p->fUseOther    = 0;     // use other undisclosed option
-    p->fUseMiniSat  = 0;     // use MiniSat-1.14p instead of internal proof engine
-    p->fCheckKstep  = 1;     // check using K-step induction
-    p->fUseBias     = 0;     // bias decisions to global variables
-    p->fUseBackward = 0;     // perform backward interpolation
-    p->fUseSeparate = 0;     // solve each output separately
-    p->fDropSatOuts = 0;     // replace by 1 the solved outputs
-    p->fVerbose     = 0;     // print verbose statistics
-    p->iFrameMax    =-1;
+    p->nBTLimit      = 0;     // limit on the number of conflicts
+    p->nFramesMax    = 0;     // the max number timeframes to unroll
+    p->nSecLimit     = 0;     // time limit in seconds
+    p->nFramesK      = 1;     // the number of timeframes to use in induction
+    p->fRewrite      = 0;     // use additional rewriting to simplify timeframes
+    p->fTransLoop    = 0;     // add transition into the init state under new PI var
+    p->fUsePudlak    = 0;     // use Pudluk interpolation procedure
+    p->fUseOther     = 0;     // use other undisclosed option
+    p->fUseMiniSat   = 0;     // use MiniSat-1.14p instead of internal proof engine
+    p->fCheckKstep   = 1;     // check using K-step induction
+    p->fUseBias      = 0;     // bias decisions to global variables
+    p->fUseBackward  = 0;     // perform backward interpolation
+    p->fUseSeparate  = 0;     // solve each output separately
+    p->fUseTwoFrames = 0;     // create OR of two last timeframes
+    p->fDropSatOuts  = 0;     // replace by 1 the solved outputs
+    p->fVerbose      = 0;     // print verbose statistics
+    p->iFrameMax     =-1;
 }
 
 /**Function*************************************************************
@@ -146,7 +147,7 @@ clk = clock();
         p->pCnfInter = Cnf_Derive( p->pInter, 0 );  
 p->timeCnf += clock() - clk;    
         // timeframes
-        p->pFrames = Inter_ManFramesInter( pAig, p->nFrames, pPars->fUseBackward );
+        p->pFrames = Inter_ManFramesInter( pAig, p->nFrames, pPars->fUseBackward, pPars->fUseTwoFrames );
 clk = clock();
         if ( pPars->fRewrite )
         {

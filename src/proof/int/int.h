@@ -61,6 +61,7 @@ struct Inter_ManParams_t_
     int  fUseBias;      // bias decisions to global variables
     int  fUseBackward;  // perform backward interpolation
     int  fUseSeparate;  // solve each output separately
+    int  fUseTwoFrames; // create the OR of two last timeframes
     int  fDropSatOuts;  // replace by 1 the solved outputs
     int  fDropInvar;    // dump inductive invariant into file
     int  fVerbose;      // print verbose statistics

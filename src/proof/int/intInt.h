@@ -109,7 +109,7 @@ extern Aig_Man_t *     Inter_ManStartDuplicated( Aig_Man_t * p );
 extern Aig_Man_t *     Inter_ManStartOneOutput( Aig_Man_t * p, int fAddFirstPo );
 
 /*=== intFrames.c ============================================================*/
-extern Aig_Man_t *     Inter_ManFramesInter( Aig_Man_t * pAig, int nFrames, int fAddRegOuts );
+extern Aig_Man_t *     Inter_ManFramesInter( Aig_Man_t * pAig, int nFrames, int fAddRegOuts, int fUseTwoFrames );
 
 /*=== intMan.c ============================================================*/
 extern Inter_Man_t *   Inter_ManCreate( Aig_Man_t * pAig, Inter_ManParams_t * pPars );

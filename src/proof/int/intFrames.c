@@ -44,10 +44,11 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Inter_ManFramesInter( Aig_Man_t * pAig, int nFrames, int fAddRegOuts )
+Aig_Man_t * Inter_ManFramesInter( Aig_Man_t * pAig, int nFrames, int fAddRegOuts, int fUseTwoFrames )
 {
     Aig_Man_t * pFrames;
     Aig_Obj_t * pObj, * pObjLi, * pObjLo;
+    Aig_Obj_t * pLastPo = NULL;
     int i, f;
     assert( Saig_ManRegNum(pAig) > 0 );
     assert( Saig_ManPoNum(pAig)-Saig_ManConstrNum(pAig) == 1 );
@@ -83,6 +84,9 @@ Aig_Man_t * Inter_ManFramesInter( Aig_Man_t * pAig, int nFrames, int fAddRegOuts
         }
         if ( f == nFrames - 1 )
             break;
+        // remember the last PO
+        pObj = Aig_ManCo( pAig, 0 );
+        pLastPo = Aig_ObjChild0Copy(pObj);
         // save register inputs
         Saig_ManForEachLi( pAig, pObj, i )
             pObj->pData = Aig_ObjChild0Copy(pObj);
@@ -100,7 +104,12 @@ Aig_Man_t * Inter_ManFramesInter( Aig_Man_t * pAig, int nFrames, int fAddRegOuts
     else
     {
         pObj = Aig_ManCo( pAig, 0 );
-        Aig_ObjCreateCo( pFrames, Aig_ObjChild0Copy(pObj) );
+        // add the last PO
+        if ( pLastPo == NULL || !fUseTwoFrames )
+            pLastPo = Aig_ObjChild0Copy(pObj);
+        else
+            pLastPo = Aig_Or( pFrames, pLastPo, Aig_ObjChild0Copy(pObj) );
+        Aig_ObjCreateCo( pFrames, pLastPo );
     }
     Aig_ManCleanup( pFrames );
     return pFrames;
