@@ -233,14 +233,14 @@ Vec_Int_t * Gia_ManDupFindOrderWithHie( Gia_Man_t * p )
             {
                 int iCiNum = (int)(ABC_PTRUINT_T)p->pData2;
                 int iBoxNum = Tim_ManBoxFindFromCiNum( p->pManTime, iCiNum );
-                printf( "Boxes are not in a topological order. The program has to terminate.\n" );
-                printf( "The following information about the network may help the debugging:\n" );
-                printf( "Input %d of BoxA %d (1CI = %d; 1CO = %d) has TFI with CI %d,\n", 
+                printf( "Boxes are not in a topological order. The command has to terminate.\n" );
+                printf( "The following information may help debugging (numbers are 0-based):\n" );
+                printf( "Input %d of BoxA %d (1stCI = %d; 1stCO = %d) has TFI with CI %d,\n", 
                     k, i, Tim_ManBoxOutputFirst(p->pManTime, i), Tim_ManBoxInputFirst(p->pManTime, i), iCiNum );
-                printf( "which corresponds to output %d of BoxB %d (1CI = %d; 1CO = %d).\n", 
+                printf( "which corresponds to output %d of BoxB %d (1stCI = %d; 1stCO = %d).\n", 
                     iCiNum - Tim_ManBoxOutputFirst(p->pManTime, iBoxNum), iBoxNum, 
                     Tim_ManBoxOutputFirst(p->pManTime, iBoxNum), Tim_ManBoxInputFirst(p->pManTime, iBoxNum) );
-                printf( "In a correct topological order, BoxB preceeds BoxA (numbers are 0-based).\n" );
+                printf( "In a correct topological order, BoxB should preceed BoxA.\n" );
                 Vec_IntFree( vNodes );
                 p->pData2 = NULL;
                 return NULL;
@@ -333,6 +333,34 @@ Gia_Man_t * Gia_ManDupWithHierarchy( Gia_Man_t * p, Vec_Int_t ** pvNodes )
     return pNew;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Remaps the AIG from the old manager into the new manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManCleanupRemap( Gia_Man_t * p, Gia_Man_t * pGia )
+{
+    Gia_Obj_t * pObj, * pObjGia;
+    int i, iPrev;
+    Gia_ManForEachObj1( p, pObj, i )
+    {
+        iPrev = Gia_ObjValue(pObj);
+        if ( iPrev == ~0 )
+            continue;
+        pObjGia = Gia_ManObj( pGia, Abc_Lit2Var(iPrev) );
+        if ( pObjGia->Value == ~0 )
+            Gia_ObjSetValue( pObj, pObjGia->Value ); 
+        else
+            Gia_ObjSetValue( pObj, Abc_LitNotCond(pObjGia->Value, Abc_LitIsCompl(iPrev)) );
+    }
+}
 
 /**Function*************************************************************
 
@@ -433,6 +461,7 @@ Gia_Man_t * Gia_ManDupWithBoxes( Gia_Man_t * p, Gia_Man_t * pBoxes )
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
     Gia_ManHashStop( pNew );
     pNew = Gia_ManCleanup( pTemp = pNew );
+    Gia_ManCleanupRemap( p, pTemp );
     Gia_ManStop( pTemp );
     assert( Tim_ManPoNum(pTime) == Gia_ManPoNum(pNew) );
     assert( Tim_ManPiNum(pTime) == Gia_ManPiNum(pNew) );
@@ -611,6 +640,38 @@ void * Gia_ManUpdateTimMan( Gia_Man_t * p, Vec_Int_t * vBoxPres )
     assert( Tim_ManBoxNum(p->pManTime) == Vec_IntSize(vBoxPres) );
     return Tim_ManTrim( p->pManTime, vBoxPres );
 
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManUpdateExtraAig( void * pTime, Gia_Man_t * pAig, Vec_Int_t * vBoxPres )
+{
+    Gia_Man_t * pNew;
+    Vec_Int_t * vOutPres;
+    Tim_Man_t * pManTime = (Tim_Man_t *)pTime;
+    int i, k, curPo;
+    assert( Vec_IntSize(vBoxPres) == Tim_ManBoxNum(pManTime) );
+    assert( Gia_ManPoNum(pAig) == Tim_ManCoNum(pManTime) - Tim_ManPoNum(pManTime) );
+    vOutPres = Vec_IntAlloc( 100 );
+    for ( curPo = i = 0; i < Tim_ManBoxNum(pManTime); i++, curPo += Tim_ManBoxInputNum(pManTime, i) )
+        if ( Vec_IntEntry(vBoxPres, i) )
+            for ( k = 0; k < Tim_ManBoxInputNum(pManTime, i); k++ )
+                Vec_IntPush( vOutPres, curPo + k );
+    assert( curPo == Tim_ManCoNum(pManTime) - Tim_ManPoNum(pManTime) );
+    for ( k = curPo; k < Tim_ManCoNum(pManTime); k++ )
+        Vec_IntPush( vOutPres, k );
+    pNew = Gia_ManDupOutputVec( pAig, vOutPres );
+    Vec_IntFree( vOutPres );
+    return pNew;
 }
 
 ////////////////////////////////////////////////////////////////////////

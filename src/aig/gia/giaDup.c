@@ -220,6 +220,40 @@ Gia_Man_t * Gia_ManDupOutputGroup( Gia_Man_t * p, int iOutStart, int iOutStop )
 
 /**Function*************************************************************
 
+  Synopsis    [Duplicates AIG while putting objects in the DFS order.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManDupOutputVec( Gia_Man_t * p, Vec_Int_t * vOutPres )
+{
+    Gia_Man_t * pNew;
+    Gia_Obj_t * pObj;
+    int i;
+    assert( Gia_ManRegNum(p) == 0 );
+    assert( Gia_ManPoNum(p) == Vec_IntSize(vOutPres) );
+    Gia_ManFillValue( p );
+    pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManForEachPi( p, pObj, i )
+        pObj->Value = Gia_ManAppendCi(pNew);
+    Gia_ManForEachPo( p, pObj, i )
+        if ( Vec_IntEntry(vOutPres, i) )
+            Gia_ManDupOrderDfs_rec( pNew, p, pObj );
+    Gia_ManForEachPo( p, pObj, i )
+        if ( Vec_IntEntry(vOutPres, i) )
+            pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    return pNew;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Duplicates the AIG in the DFS order.]
 
   Description []

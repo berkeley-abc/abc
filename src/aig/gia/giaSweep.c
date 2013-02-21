@@ -35,18 +35,6 @@ ABC_NAMESPACE_IMPL_START
 
 /**Function*************************************************************
 
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-
-/**Function*************************************************************
-
   Synopsis    [Mark GIA nodes that feed into POs.]
 
   Description []
@@ -140,6 +128,10 @@ Gia_Man_t * Gia_ManFraigCreateGia( Gia_Man_t * p )
     }
     // update timing manager
     pNew->pManTime = Gia_ManUpdateTimMan( p, vBoxPres );
+    // update extra STG
+    assert( p->pAigExtra != NULL );
+    assert( pNew->pAigExtra == NULL );
+    pNew->pAigExtra = Gia_ManUpdateExtraAig( p->pManTime, p->pAigExtra, vBoxPres );
     Vec_IntFree( vBoxPres );
     return pNew;
 }
@@ -161,7 +153,7 @@ int Gia_ObjFanin0CopyRepr( Gia_Man_t * p, Gia_Obj_t * pObj, int * pReprs )
     if ( pReprs[faninId] == -1 )
         return Gia_ObjFanin0Copy( pObj );
     assert( Abc_Lit2Var(pReprs[faninId]) < Gia_ObjId(p, pObj) );
-    return Abc_LitNotCond( Gia_ObjValue(Gia_ManObj(p, Abc_Lit2Var(pReprs[faninId]))), Abc_LitIsCompl(pReprs[faninId]) );
+    return Abc_LitNotCond( Gia_ObjValue(Gia_ManObj(p, Abc_Lit2Var(pReprs[faninId]))), Gia_ObjFaninC0(pObj) ^ Abc_LitIsCompl(pReprs[faninId]) );
 }
 int Gia_ObjFanin1CopyRepr( Gia_Man_t * p, Gia_Obj_t * pObj, int * pReprs )
 {
@@ -169,7 +161,7 @@ int Gia_ObjFanin1CopyRepr( Gia_Man_t * p, Gia_Obj_t * pObj, int * pReprs )
     if ( pReprs[faninId] == -1 )
         return Gia_ObjFanin1Copy( pObj );
     assert( Abc_Lit2Var(pReprs[faninId]) < Gia_ObjId(p, pObj) );
-    return Abc_LitNotCond( Gia_ObjValue(Gia_ManObj(p, Abc_Lit2Var(pReprs[faninId]))), Abc_LitIsCompl(pReprs[faninId]) );
+    return Abc_LitNotCond( Gia_ObjValue(Gia_ManObj(p, Abc_Lit2Var(pReprs[faninId]))), Gia_ObjFaninC1(pObj) ^ Abc_LitIsCompl(pReprs[faninId]) );
 }
 Gia_Man_t * Gia_ManFraigReduceGia( Gia_Man_t * p, int * pReprs )
 {
@@ -201,52 +193,6 @@ Gia_Man_t * Gia_ManFraigReduceGia( Gia_Man_t * p, int * pReprs )
 
 /**Function*************************************************************
 
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Gia_Man_t * Gia_ManFraigReduceGia2( Gia_Man_t * p, int * pReprs )
-{
-    Gia_Man_t * pNew;
-    Gia_Obj_t * pObj;
-    int i;
-    assert( p->pSibls == NULL );
-    assert( Gia_ManRegNum(p) == 0 );
-    pNew = Gia_ManStart( Gia_ManObjNum(p) );
-    pNew->pName = Abc_UtilStrsav( p->pName );
-    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
-    Gia_ManHashAlloc( pNew );
-    // copy const and real PIs
-    Gia_ManFillValue( p );
-    Gia_ManForEachObj( p, pObj, i )
-    {
-        if ( Gia_ObjIsAnd(pObj) )
-        {
-            assert( pReprs[i] == -1 || Abc_Lit2Var(pReprs[i]) < i );
-            if ( pReprs[i] == -1 )
-                pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
-            else
-                pObj->Value = Abc_LitNotCond( Gia_ObjValue(Gia_ManObj(p, Abc_Lit2Var(pReprs[i]))), Abc_LitIsCompl(pReprs[i]) );
-        }
-        else if ( Gia_ObjIsCi(pObj) )
-            pObj->Value = Gia_ManAppendCi( pNew );
-        else if ( Gia_ObjIsCo(pObj) )
-            pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
-        else if ( Gia_ObjIsConst0(pObj) )
-            pObj->Value = 0;
-        else assert( 0 );
-    }
-    Gia_ManHashStop( pNew );
-    return pNew;
-}
-
-/**Function*************************************************************
-
   Synopsis    [Computes representatives in terms of the original objects.]
 
   Description []
@@ -264,6 +210,17 @@ int * Gia_ManFraigSelectReprs( Gia_Man_t * p, Gia_Man_t * pGia, int fVerbose )
     int i, iLitGia, iLitGia2, iReprGia, fCompl;
     int nConsts = 0, nReprs = 0;
     pGia2Abc[0] = 0;
+/*
+    Gia_ManForEachObj( p, pObj, i )
+        printf( "%d %d  ", i, Gia_ObjValue(pObj) );
+    printf( "\n" );
+    printf( "\n" );
+
+    Gia_ManForEachObj( pGia, pObj, i )
+        printf( "%d %d  ", i, Gia_ObjReprSelf(pGia, i) );
+    printf( "\n" );
+    printf( "\n" );
+*/
     Gia_ManSetPhase( pGia );
     Gia_ManForEachObj1( p, pObj, i )
     {
@@ -292,7 +249,7 @@ int * Gia_ManFraigSelectReprs( Gia_Man_t * p, Gia_Man_t * pGia, int fVerbose )
         }
     }
     ABC_FREE( pGia2Abc );
-    if ( fVerbose )
+//    if ( fVerbose )
         printf( "Found %d const reprs and %d other reprs.\n", nConsts, nReprs );
     return pReprs;
 }
@@ -351,8 +308,13 @@ Gia_Man_t * Gia_ManFraigSweep( Gia_Man_t * p, void * pPars )
     pNew = Gia_ManDupWithHierarchy( p, NULL );
     if ( pNew == NULL )
         return NULL;
+    // normalizing AIG
+    pNew = Gia_ManDupNormalize( pTemp = pNew );
+    Gia_ManStop( pTemp );
     // find global equivalences
-    pGia = Gia_ManDupWithBoxes( p, p->pAigExtra );
+    pNew->pManTime = p->pManTime;
+    pGia = Gia_ManDupWithBoxes( pNew, p->pAigExtra );
+    pNew->pManTime = NULL;
     Gia_ManFraigSweepPerform( pGia, pPars );
     // transfer equivalences
     pReprs = Gia_ManFraigSelectReprs( pNew, pGia, ((Dch_Pars_t *)pPars)->fVerbose );
@@ -366,11 +328,22 @@ Gia_Man_t * Gia_ManFraigSweep( Gia_Man_t * p, void * pPars )
     pNew = Gia_ManDupWithHierarchy( pTemp = pNew, NULL );
     pTemp->pManTime = NULL;
     Gia_ManStop( pTemp );
+    if ( pNew == NULL )
+        return NULL;
     // derive new AIG
-    assert( pTemp->pManTime == NULL );
+    assert( pNew->pManTime  == NULL );
+    assert( pNew->pAigExtra == NULL );
+    pNew->pManTime  = p->pManTime;
+    pNew->pAigExtra = p->pAigExtra;
     pNew = Gia_ManFraigCreateGia( pTemp = pNew );
-    assert( pNew->pManTime != NULL );
+    assert( pTemp->pManTime  == p->pManTime );
+    assert( pTemp->pAigExtra == p->pAigExtra );
+    pTemp->pManTime = NULL;
+    pTemp->pAigExtra = NULL;
     Gia_ManStop( pTemp );
+    // return the result
+    assert( pNew->pManTime  != NULL );
+    assert( pNew->pAigExtra != NULL );
     return pNew;
 }
 

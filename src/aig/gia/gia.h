@@ -811,6 +811,7 @@ extern Gia_Man_t *         Gia_ManDupOrderDfs( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManDupOrderDfsChoices( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManDupOrderDfsReverse( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManDupOutputGroup( Gia_Man_t * p, int iOutStart, int iOutStop );
+extern Gia_Man_t *         Gia_ManDupOutputVec( Gia_Man_t * p, Vec_Int_t * vOutPres );
 extern Gia_Man_t *         Gia_ManDupOrderAiger( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManDupFlip( Gia_Man_t * p, int * pInitState );
 extern Gia_Man_t *         Gia_ManDupCycled( Gia_Man_t * pAig, int nFrames );
@@ -983,6 +984,7 @@ extern Gia_Man_t *         Gia_ManDupWithBoxes( Gia_Man_t * p, Gia_Man_t * pBoxe
 extern int                 Gia_ManLevelWithBoxes( Gia_Man_t * p );
 extern int                 Gia_ManVerifyWithBoxes( Gia_Man_t * pGia, void * pParsInit );
 extern void *              Gia_ManUpdateTimMan( Gia_Man_t * p, Vec_Int_t * vBoxPres );
+extern Gia_Man_t *         Gia_ManUpdateExtraAig( void * pTime, Gia_Man_t * pAig, Vec_Int_t * vBoxPres );
 /*=== giaTruth.c ===========================================================*/
 extern word                Gia_ObjComputeTruthTable6( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vSupp, Vec_Wrd_t * vTruths );
 extern int                 Gia_ObjCollectInternal( Gia_Man_t * p, Gia_Obj_t * pObj );
