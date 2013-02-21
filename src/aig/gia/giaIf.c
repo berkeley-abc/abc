@@ -944,8 +944,8 @@ Gia_Man_t * Gia_ManFromIfStr( If_Man_t * pIfMan )
     Vec_IntFree( vCover );
     Vec_IntFree( vLeaves );
     Vec_IntFree( vLeaves2 );
-    printf( "Mapping array size:  IfMan = %d. Gia = %d. Increase = %.2f\n", 
-        If_ManObjNum(pIfMan), Gia_ManObjNum(pNew), 1.0 * Gia_ManObjNum(pNew) / If_ManObjNum(pIfMan) );
+//    printf( "Mapping array size:  IfMan = %d. Gia = %d. Increase = %.2f\n", 
+//        If_ManObjNum(pIfMan), Gia_ManObjNum(pNew), 1.0 * Gia_ManObjNum(pNew) / If_ManObjNum(pIfMan) );
     // finish mapping 
     if ( Vec_IntSize(vMapping) > Gia_ManObjNum(pNew) )
         Vec_IntShrink( vMapping, Gia_ManObjNum(pNew) );
