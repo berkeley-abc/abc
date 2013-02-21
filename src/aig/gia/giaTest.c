@@ -126,7 +126,7 @@ static inline void         Mig_ObjSetId( Mig_Obj_t * p, int v )                {
 static inline int          Mig_ObjCioId( Mig_Obj_t * p )                       { assert( Mig_ObjIsTerm(p) ); return Mig_FanId( p, 2 );      }
 static inline void         Mig_ObjSetCioId( Mig_Obj_t * p, int v )             { assert( Mig_ObjIsTerm(p) ); Mig_FanSetId( p, 2, v );       }
 static inline int          Mig_ObjPhase( Mig_Obj_t * p )                       { return Mig_FanCompl( p, 2 );                               }
-static inline int          Mig_ObjSetPhase( Mig_Obj_t * p, int v )             { Mig_FanSetCompl( p, 2, 1 );                                }
+static inline void         Mig_ObjSetPhase( Mig_Obj_t * p, int v )             { Mig_FanSetCompl( p, 2, 1 );                                }
 
 static inline Mig_Man_t *  Mig_ObjMan( Mig_Obj_t * p )                         { return *((Mig_Man_t**)(p - Mig_IdCell(Mig_ObjId(p)) - 1)); }
 static inline Mig_Obj_t ** Mig_ObjPageP( Mig_Obj_t * p )                       { return *((Mig_Obj_t***)(p - Mig_IdCell(Mig_ObjId(p))) - 1);} 
@@ -803,7 +803,7 @@ static inline int Mpm_ObjDeriveCut( Mpm_Man_t * p, Mpm_Cut_t * pCut0, Mpm_Cut_t 
         }
     }
     pCut->hNext    =  0;
-    pCut->iFunc    = ~(unsigned)0;
+    pCut->iFunc    =  0;  pCut->iFunc = ~pCut->iFunc;
     pCut->fUseless =  0;
     return 1;
 }

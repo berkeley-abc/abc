@@ -204,7 +204,7 @@ Vec_Int_t * Gia_ManStgReadLines( char * pFileName, int * pnIns, int * pnOuts, in
     FILE * pFile;
     if ( !strcmp(pFileName + strlen(pFileName) - 3, "aig") )
     {
-        printf( "Input file \"%s\" has extension \"aig\".\n", pFileName, "aig" );
+        printf( "Input file \"%s\" has extension \"%s\".\n", pFileName, "aig" );
         return NULL;
     }
     pFile = fopen( pFileName, "rb" );

@@ -411,7 +411,7 @@ Vec_Int_t * Saig_ManCexAbstractionFlops( Aig_Man_t * p, Gia_ParAbs_t * pPars )
     int nUseStart = 0;
     Aig_Man_t * pAbs, * pTemp;
     Vec_Int_t * vFlops;
-    int Iter, clk = clock(), clk2 = clock();//, iFlop;
+    int Iter;//, clk = clock(), clk2 = clock();//, iFlop;
     assert( Aig_ManRegNum(p) > 0 );
     if ( pPars->fVerbose )
         printf( "Performing counter-example-based refinement.\n" );

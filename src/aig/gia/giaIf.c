@@ -844,6 +844,7 @@ int Gia_ManFromIfStrNode( Gia_Man_t * pNew, int iObj, Vec_Int_t * vLeaves, Vec_I
             // write packing
             Vec_IntPush( vPacking, 2 );
             Vec_IntPush( vPacking, Abc_Lit2Var(iObjLit1) );
+            iObjLit2 = -1;
         }
 /*
         // write root node
@@ -1093,7 +1094,7 @@ void Gia_ManTransferPacking( Gia_Man_t * pGia, Gia_Man_t * p )
 {
     Vec_Int_t * vPackingNew;
     Gia_Obj_t * pObj, * pObjNew;
-    int i, k, Entry, nEntries, nEntries2, MaxSize = -1;
+    int i, k, Entry, nEntries, nEntries2;
     if ( pGia->vPacking == NULL )
         return;
     nEntries = Vec_IntEntry( pGia->vPacking, 0 );
