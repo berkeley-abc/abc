@@ -199,7 +199,7 @@ Vec_Int_t * Gia_ManDupFindOrderWithHie( Gia_Man_t * p )
     Gia_Obj_t * pObj;
     int i, k, curCi, curCo;
     assert( p->pManTime != NULL );
-    assert( Gia_ManIsNormalized( p ) );
+//    assert( Gia_ManIsNormalized( p ) );
     // start trav IDs
     Gia_ManIncrementTravId( p );
     // start the array
@@ -655,21 +655,22 @@ void * Gia_ManUpdateTimMan( Gia_Man_t * p, Vec_Int_t * vBoxPres )
 ***********************************************************************/
 Gia_Man_t * Gia_ManUpdateExtraAig( void * pTime, Gia_Man_t * pAig, Vec_Int_t * vBoxPres )
 {
-    Gia_Man_t * pNew;
+    Gia_Man_t * pNew = NULL;
     Vec_Int_t * vOutPres;
     Tim_Man_t * pManTime = (Tim_Man_t *)pTime;
-    int i, k, curPo;
+    int i, k, curPo = 0;
     assert( Vec_IntSize(vBoxPres) == Tim_ManBoxNum(pManTime) );
-    assert( Gia_ManPoNum(pAig) == Tim_ManCoNum(pManTime) - Tim_ManPoNum(pManTime) );
+    assert( Gia_ManPoNum(pAig) == Tim_ManCiNum(pManTime) - Tim_ManPiNum(pManTime) );
     vOutPres = Vec_IntAlloc( 100 );
-    for ( curPo = i = 0; i < Tim_ManBoxNum(pManTime); i++, curPo += Tim_ManBoxInputNum(pManTime, i) )
-        if ( Vec_IntEntry(vBoxPres, i) )
-            for ( k = 0; k < Tim_ManBoxInputNum(pManTime, i); k++ )
-                Vec_IntPush( vOutPres, curPo + k );
-    assert( curPo == Tim_ManCoNum(pManTime) - Tim_ManPoNum(pManTime) );
-    for ( k = curPo; k < Tim_ManCoNum(pManTime); k++ )
-        Vec_IntPush( vOutPres, k );
-    pNew = Gia_ManDupOutputVec( pAig, vOutPres );
+    for ( i = 0; i < Tim_ManBoxNum(pManTime); i++ )
+    {
+        for ( k = 0; k < Tim_ManBoxOutputNum(pManTime, i); k++ )
+            Vec_IntPush( vOutPres, Vec_IntEntry(vBoxPres, i) );
+        curPo += Tim_ManBoxOutputNum(pManTime, i);
+    }
+    assert( curPo == Gia_ManPoNum(pAig) );
+    if ( Vec_IntSize(vOutPres) > 0 )
+        pNew = Gia_ManDupOutputVec( pAig, vOutPres );
     Vec_IntFree( vOutPres );
     return pNew;
 }

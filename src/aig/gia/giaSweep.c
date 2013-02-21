@@ -178,7 +178,7 @@ Gia_Man_t * Gia_ManFraigReduceGia( Gia_Man_t * p, int * pReprs )
     Gia_ManForEachObj( p, pObj, i )
     {
         if ( Gia_ObjIsAnd(pObj) )
-            pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0CopyRepr(p, pObj, pReprs), Gia_ObjFanin1CopyRepr(p, pObj, pReprs) );
+            pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0CopyRepr(p, pObj, pReprs), Gia_ObjFanin1CopyRepr(p, pObj, pReprs) );
         else if ( Gia_ObjIsCi(pObj) )
             pObj->Value = Gia_ManAppendCi( pNew );
         else if ( Gia_ObjIsCo(pObj) )
@@ -188,6 +188,15 @@ Gia_Man_t * Gia_ManFraigReduceGia( Gia_Man_t * p, int * pReprs )
         else assert( 0 );
     }
     Gia_ManHashStop( pNew );
+/*
+    {
+        Gia_Man_t * pTemp;
+        Gia_ManPrintStats( pNew, 0, 0, 0 );
+        pNew = Gia_ManCleanup( pTemp = pNew );
+        Gia_ManStop( pTemp );
+        Gia_ManPrintStats( pNew, 0, 0, 0 );
+    }
+*/
     return pNew;
 }
 
@@ -210,17 +219,6 @@ int * Gia_ManFraigSelectReprs( Gia_Man_t * p, Gia_Man_t * pGia, int fVerbose )
     int i, iLitGia, iLitGia2, iReprGia, fCompl;
     int nConsts = 0, nReprs = 0;
     pGia2Abc[0] = 0;
-/*
-    Gia_ManForEachObj( p, pObj, i )
-        printf( "%d %d  ", i, Gia_ObjValue(pObj) );
-    printf( "\n" );
-    printf( "\n" );
-
-    Gia_ManForEachObj( pGia, pObj, i )
-        printf( "%d %d  ", i, Gia_ObjReprSelf(pGia, i) );
-    printf( "\n" );
-    printf( "\n" );
-*/
     Gia_ManSetPhase( pGia );
     Gia_ManForEachObj1( p, pObj, i )
     {
@@ -246,6 +244,8 @@ int * Gia_ManFraigSelectReprs( Gia_Man_t * p, Gia_Man_t * pGia, int fVerbose )
                 nConsts++;
             else
                 nReprs++;
+            assert( Abc_Lit2Var(pReprs[i]) < i );
+//            printf( "%d -> %d\n", i, Abc_Lit2Var(pReprs[i]) ); 
         }
     }
     ABC_FREE( pGia2Abc );
@@ -308,9 +308,6 @@ Gia_Man_t * Gia_ManFraigSweep( Gia_Man_t * p, void * pPars )
     pNew = Gia_ManDupWithHierarchy( p, NULL );
     if ( pNew == NULL )
         return NULL;
-    // normalizing AIG
-    pNew = Gia_ManDupNormalize( pTemp = pNew );
-    Gia_ManStop( pTemp );
     // find global equivalences
     pNew->pManTime = p->pManTime;
     pGia = Gia_ManDupWithBoxes( pNew, p->pAigExtra );
@@ -323,13 +320,6 @@ Gia_Man_t * Gia_ManFraigSweep( Gia_Man_t * p, void * pPars )
     pNew = Gia_ManFraigReduceGia( pTemp = pNew, pReprs );
     Gia_ManStop( pTemp );
     ABC_FREE( pReprs );
-    // order reduced AIG
-    pNew->pManTime = p->pManTime;
-    pNew = Gia_ManDupWithHierarchy( pTemp = pNew, NULL );
-    pTemp->pManTime = NULL;
-    Gia_ManStop( pTemp );
-    if ( pNew == NULL )
-        return NULL;
     // derive new AIG
     assert( pNew->pManTime  == NULL );
     assert( pNew->pAigExtra == NULL );

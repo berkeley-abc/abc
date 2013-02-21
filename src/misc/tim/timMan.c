@@ -184,7 +184,7 @@ Tim_Man_t * Tim_ManTrim( Tim_Man_t * p, Vec_Int_t * vBoxPres )
     Tim_ManForEachCo( p, pObj, i ) 
         pObj->TravId = 0;          
     // create new manager
-    pNew = Tim_ManStart( p->nCis - nNewCis, p->nCos - nNewCos );
+    pNew = Tim_ManStart( nNewCis, nNewCos );
     // copy box connectivity information
     memcpy( pNew->pCis, p->pCis, sizeof(Tim_Obj_t) * Tim_ManPiNum(p) );
     memcpy( pNew->pCos, p->pCos, sizeof(Tim_Obj_t) * Tim_ManPoNum(p) );
