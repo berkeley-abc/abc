@@ -298,7 +298,7 @@ Gia_Man_t * Gia_ManFraigSweep( Gia_Man_t * p, void * pPars )
         printf( "Timing manager is given but there is no GIA of boxes.\n" );
         return NULL;
     }
-    // ordering AIG objects
+    // order AIG objects
     pNew = Gia_ManDupUnnormalize( p );
     if ( pNew == NULL )
         return NULL;

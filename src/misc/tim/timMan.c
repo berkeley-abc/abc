@@ -221,6 +221,7 @@ Tim_Man_t * Tim_ManTrim( Tim_Man_t * p, Vec_Int_t * vBoxPres )
             if ( Vec_IntEntry(vBoxPres, i) )
             {
                 Tim_ManCreateBox( pNew, curPo, pBox->nInputs, curPi, pBox->nOutputs, pBox->iDelayTable );
+                Tim_ManBoxSetCopy( pNew, Tim_ManBoxNum(pNew) - 1, i );
                 curPi += pBox->nOutputs;
                 curPo += pBox->nInputs;
             }
