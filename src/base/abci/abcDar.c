@@ -193,6 +193,29 @@ Aig_Man_t * Abc_NtkToDarBmc( Abc_Ntk_t * pNtk, Vec_Int_t ** pvMap )
 
 /**Function*************************************************************
 
+  Synopsis    [Collects information about what flops have unknown values.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Abc_NtkFindDcLatches( Abc_Ntk_t * pNtk )
+{
+    Vec_Int_t * vUnknown;
+    Abc_Obj_t * pObj;
+    int i;
+    vUnknown = Vec_IntStart( Abc_NtkLatchNum(pNtk) );
+    Abc_NtkForEachLatch( pNtk, pObj, i )
+        if ( Abc_LatchIsInitDc(pObj) )
+            Vec_IntWriteEntry( vUnknown, i, 1 );
+    return vUnknown;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Converts the network from the AIG manager into ABC.]
 
   Description [Assumes that registers are ordered after PIs/POs.]

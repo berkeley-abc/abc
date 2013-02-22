@@ -78,7 +78,7 @@ static inline void        Saig_ObjDualFanin( Aig_Man_t * pAigNew, Vec_Ptr_t * vC
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Saig_ManDupDual( Aig_Man_t * pAig, int nDualPis, int fDualFfs, int fMiterFfs, int fComplPo )
+Aig_Man_t * Saig_ManDupDual( Aig_Man_t * pAig, Vec_Int_t * vDcFlops, int nDualPis, int fDualFfs, int fMiterFfs, int fComplPo, int fCheckZero, int fCheckOne )
 {
     Vec_Ptr_t * vCopies;
     Aig_Man_t * pAigNew;
@@ -86,6 +86,7 @@ Aig_Man_t * Saig_ManDupDual( Aig_Man_t * pAig, int nDualPis, int fDualFfs, int f
     int i;
     assert( Saig_ManPoNum(pAig) > 0 );
     assert( nDualPis >= 0 && nDualPis <= Saig_ManPiNum(pAig) );
+    assert( vDcFlops == NULL || Vec_IntSize(vDcFlops) == Aig_ManRegNum(pAig) );
     vCopies = Vec_PtrStart( 2*Aig_ManObjNum(pAig) );
     // start the new manager
     pAigNew = Aig_ManStart( Aig_ManNodeNum(pAig) );
@@ -110,7 +111,10 @@ Aig_Man_t * Saig_ManDupDual( Aig_Man_t * pAig, int nDualPis, int fDualFfs, int f
         {
             pTemp0 = Aig_ObjCreateCi( pAigNew );
             pTemp1 = Aig_ObjCreateCi( pAigNew );
-            pTemp0 = Aig_NotCond( pTemp0, !fDualFfs );
+            if ( vDcFlops )
+                pTemp0 = Aig_NotCond( pTemp0, !Vec_IntEntry(vDcFlops, i-Saig_ManPiNum(pAig)) );
+            else
+                pTemp0 = Aig_NotCond( pTemp0, !fDualFfs );
         }
         Saig_ObjSetDual( vCopies, Aig_ObjId(pObj), 0, Aig_And(pAigNew, pTemp0, Aig_Not(pTemp1)) );
         Saig_ObjSetDual( vCopies, Aig_ObjId(pObj), 1, Aig_And(pAigNew, pTemp1, Aig_Not(pTemp0)) );
@@ -130,8 +134,21 @@ Aig_Man_t * Saig_ManDupDual( Aig_Man_t * pAig, int nDualPis, int fDualFfs, int f
         Saig_ManForEachLi( pAig, pObj, i )
         {
             Saig_ObjDualFanin( pAigNew, vCopies, pObj, 0, &pTemp0, &pTemp1 );
-            pCare  = Aig_Or( pAigNew, pTemp0, pTemp1 );
-            pMiter = Aig_Or( pAigNew, pMiter, Aig_Not(pCare) );
+            if ( fCheckZero )
+            {
+                pCare  = Aig_And( pAigNew, pTemp0, Aig_Not(pTemp1) );
+                pMiter = Aig_Or( pAigNew, pMiter, pCare );
+            }
+            else if ( fCheckOne )
+            {
+                pCare  = Aig_And( pAigNew, Aig_Not(pTemp0), pTemp1 );
+                pMiter = Aig_Or( pAigNew, pMiter, pCare );
+            }
+            else // check X
+            {
+                pCare  = Aig_And( pAigNew, Aig_Not(pTemp0), Aig_Not(pTemp1) );
+                pMiter = Aig_Or( pAigNew, pMiter, pCare );
+            }
         }
     }
     else
@@ -139,8 +156,21 @@ Aig_Man_t * Saig_ManDupDual( Aig_Man_t * pAig, int nDualPis, int fDualFfs, int f
         Saig_ManForEachPo( pAig, pObj, i )
         {
             Saig_ObjDualFanin( pAigNew, vCopies, pObj, 0, &pTemp0, &pTemp1 );
-            pCare  = Aig_Or( pAigNew, pTemp0, pTemp1 );
-            pMiter = Aig_Or( pAigNew, pMiter, Aig_Not(pCare) );
+            if ( fCheckZero )
+            {
+                pCare  = Aig_And( pAigNew, pTemp0, Aig_Not(pTemp1) );
+                pMiter = Aig_Or( pAigNew, pMiter, pCare );
+            }
+            else if ( fCheckOne )
+            {
+                pCare  = Aig_And( pAigNew, Aig_Not(pTemp0), pTemp1 );
+                pMiter = Aig_Or( pAigNew, pMiter, pCare );
+            }
+            else // check X
+            {
+                pCare  = Aig_And( pAigNew, Aig_Not(pTemp0), Aig_Not(pTemp1) );
+                pMiter = Aig_Or( pAigNew, pMiter, pCare );
+            }
         }
     }
     // create PO
@@ -150,7 +180,10 @@ Aig_Man_t * Saig_ManDupDual( Aig_Man_t * pAig, int nDualPis, int fDualFfs, int f
     Saig_ManForEachLi( pAig, pObj, i )
     {
         Saig_ObjDualFanin( pAigNew, vCopies, pObj, 0, &pTemp0, &pTemp1 );
-        pTemp0 = Aig_NotCond( pTemp0, !fDualFfs );
+        if ( vDcFlops )
+            pTemp0 = Aig_NotCond( pTemp0, !Vec_IntEntry(vDcFlops, i) );
+        else
+            pTemp0 = Aig_NotCond( pTemp0, !fDualFfs );
         Aig_ObjCreateCo( pAigNew, pTemp0 );
         Aig_ObjCreateCo( pAigNew, pTemp1 );
     }

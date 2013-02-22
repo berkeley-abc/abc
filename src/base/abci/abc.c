@@ -23110,18 +23110,23 @@ usage:
 ***********************************************************************/
 int Abc_CommandDualRail( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
+    extern Vec_Int_t * Abc_NtkFindDcLatches( Abc_Ntk_t * pNtk );
     extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
     extern Abc_Ntk_t * Abc_NtkFromAigPhase( Aig_Man_t * pMan );
     Abc_Ntk_t * pNtk, * pNtkNew = NULL;
     Aig_Man_t * pAig, * pAigNew;
+    Vec_Int_t * vDcFlops = NULL;
     int c;
-    int nDualPis  = 0;
-    int fDualFfs  = 0;
-    int fMiterFfs = 0;
-    int fComplPo  = 0;
-    int fVerbose  = 0;
+    int nDualPis   = 0;
+    int fDualFfs   = 0;
+    int fDualDcFfs = 0;
+    int fMiterFfs  = 0;
+    int fComplPo   = 0;
+    int fCheckZero = 0;
+    int fCheckOne  = 0;
+    int fVerbose   = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Itfcvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Itxfczovh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -23139,11 +23144,20 @@ int Abc_CommandDualRail( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 't':
             fDualFfs ^= 1;
             break;
+        case 'x':
+            fDualDcFfs ^= 1;
+            break;
         case 'f':
             fMiterFfs ^= 1;
             break;
         case 'c':
             fComplPo ^= 1;
+            break;
+        case 'z':
+            fCheckZero ^= 1;
+            break;
+        case 'o':
+            fCheckOne ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -23169,27 +23183,34 @@ int Abc_CommandDualRail( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
 
-    // tranform
+    if ( fDualDcFfs )
+        vDcFlops = Abc_NtkFindDcLatches( pNtk );
+
+    // transform
     pAig = Abc_NtkToDar( pNtk, 0, 1 );
-    pAigNew = Saig_ManDupDual( pAig, nDualPis, fDualFfs, fMiterFfs, fComplPo );
+    pAigNew = Saig_ManDupDual( pAig, vDcFlops, nDualPis, fDualFfs, fMiterFfs, fComplPo, fCheckZero, fCheckOne );
     Aig_ManStop( pAig );
     pNtkNew = Abc_NtkFromAigPhase( pAigNew );
     pNtkNew->pName = Extra_UtilStrsav(pNtk->pName);
     Aig_ManStop( pAigNew );
+    Vec_IntFreeP( &vDcFlops );
 
     // replace the current network
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkNew );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: dualrail [-I num] [-tfcvh]\n" );
+    Abc_Print( -2, "usage: dualrail [-I num] [-txfczovh]\n" );
     Abc_Print( -2, "\t         transforms the current AIG into a dual-rail miter\n" );
     Abc_Print( -2, "\t         expressing the property \"at least one PO has ternary value\"\n" );
     Abc_Print( -2, "\t         (to compute an initialization sequence, use switches \"-tfc\")\n" );
     Abc_Print( -2, "\t-I num : the number of first PIs interpreted as ternary [default = %d]\n", nDualPis );
-    Abc_Print( -2, "\t-t     : toggle ternary flop init values [default = %s]\n", fDualFfs? "yes": "const0 init values" );
+    Abc_Print( -2, "\t-t     : toggle ternary flop init values for all flops [default = %s]\n", fDualFfs? "yes": "const0 init values" );
+    Abc_Print( -2, "\t-x     : toggle ternary flop init values for DC-valued flops [default = %s]\n", fDualDcFfs? "yes": "const0 init values" );
     Abc_Print( -2, "\t-f     : toggle mitering flops instead of POs [default = %s]\n", fMiterFfs? "flops": "POs" );
     Abc_Print( -2, "\t-c     : toggle complementing the miter output [default = %s]\n", fComplPo? "yes": "no" );
+    Abc_Print( -2, "\t-z     : toggle checking PO==0 instead of PO==X [default = %s]\n", fCheckZero? "yes": "no" );
+    Abc_Print( -2, "\t-o     : toggle checking PO==1 instead of PO==X [default = %s]\n", fCheckOne? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing optimization summary [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
