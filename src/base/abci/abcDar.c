@@ -210,7 +210,10 @@ Vec_Int_t * Abc_NtkFindDcLatches( Abc_Ntk_t * pNtk )
     vUnknown = Vec_IntStart( Abc_NtkLatchNum(pNtk) );
     Abc_NtkForEachLatch( pNtk, pObj, i )
         if ( Abc_LatchIsInitDc(pObj) )
+        {
             Vec_IntWriteEntry( vUnknown, i, 1 );
+            Abc_LatchSetInit0(pObj);
+        }
     return vUnknown;
 }
 
