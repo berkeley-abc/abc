@@ -359,9 +359,15 @@ int Abc_NamStrFind( Abc_Nam_t * p, char * pStr )
 ***********************************************************************/
 int Abc_NamStrFindOrAdd( Abc_Nam_t * p, char * pStr, int * pfFound )
 {
-    int iHandleNew;
+    int i, iHandleNew;
     int *piPlace;
-    assert( pStr[0] != '\\' || pStr[strlen(pStr)-1] == ' ' );
+    if ( !(pStr[0] != '\\' || pStr[strlen(pStr)-1] == ' ') )
+    {
+        for ( i = strlen(pStr) - 1; i >= 0; i-- )
+            if ( *pStr == ' ' )
+                break;
+        assert( i < (int)strlen(pStr) );
+    }
     piPlace = Abc_NamStrHashFind( p, pStr );
     if ( *piPlace )
     {
