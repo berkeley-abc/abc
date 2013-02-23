@@ -74,6 +74,182 @@ int Gia_ManCreateOrGate( Gia_Man_t * p, Vec_Int_t * vLits )
   SeeAlso     []
 
 ***********************************************************************/
+Vec_Vec_t * Gia_ManAssignCodes( int kHot, int nStates, int * pnBits )
+{
+    Vec_Vec_t * vCodes;
+    int s, i1, i2, i3, i4, nBits;
+    assert( nStates > 0 );
+    vCodes = Vec_VecStart( nStates );
+    *pnBits = -1;
+    if ( kHot == 1 )
+    {
+        for ( i1 = 0; i1 < nStates; i1++ )
+            Vec_VecPushInt( vCodes, i1, i1 );
+        *pnBits = nStates;
+        return vCodes;
+    }
+    if ( kHot == 2 )
+    {
+        for ( nBits = kHot; nBits < ABC_INFINITY; nBits++ )
+            if ( nBits * (nBits-1) / 2 >= nStates )
+                break;
+        *pnBits = nBits;
+        s = 0;
+        for ( i1 = 0; i1 < nBits; i1++ )
+        for ( i2 = i1 + 1; i2 < nBits; i2++ )
+        {
+            Vec_VecPushInt( vCodes, s, i1 );
+            Vec_VecPushInt( vCodes, s, i2 );
+            if ( ++s == nStates )
+                return vCodes;
+        }
+    }
+    if ( kHot == 3 )
+    {
+        for ( nBits = kHot; nBits < ABC_INFINITY; nBits++ )
+            if ( nBits * (nBits-1) * (nBits-2) / 6 >= nStates )
+                break;       
+        *pnBits = nBits;
+        s = 0;
+        for ( i1 = 0; i1 < nBits; i1++ )
+        for ( i2 = i1 + 1; i2 < nBits; i2++ )
+        for ( i3 = i2 + 1; i3 < nBits; i3++ )
+        {
+            Vec_VecPushInt( vCodes, s, i1 );
+            Vec_VecPushInt( vCodes, s, i2 );
+            Vec_VecPushInt( vCodes, s, i3 );
+            if ( ++s == nStates )
+                return vCodes;
+        }
+    }
+    if ( kHot == 4 )
+    {
+        for ( nBits = kHot; nBits < ABC_INFINITY; nBits++ )
+            if ( nBits * (nBits-1) * (nBits-2) * (nBits-3) / 24 >= nStates )
+                break;       
+        *pnBits = nBits;
+        s = 0;
+        for ( i1 = 0; i1 < nBits; i1++ )
+        for ( i2 = i1 + 1; i2 < nBits; i2++ )
+        for ( i3 = i2 + 1; i3 < nBits; i3++ )
+        for ( i4 = i3 + 1; i4 < nBits; i4++ )
+        {
+            Vec_VecPushInt( vCodes, s, i1 );
+            Vec_VecPushInt( vCodes, s, i2 );
+            Vec_VecPushInt( vCodes, s, i3 );
+            Vec_VecPushInt( vCodes, s, i4 );
+            if ( ++s == nStates )
+                return vCodes;
+        }
+    }
+    assert( 0 );
+    return NULL;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManStgKHot( Vec_Int_t * vLines, int nIns, int nOuts, int nStates, int kHot )
+{
+    Gia_Man_t * p;
+    Vec_Int_t * vInMints, * vCurs, * vVec;
+    Vec_Vec_t * vLitsNext, * vLitsOuts, * vCodes;
+    int i, b, k, nBits, LitC, Lit;
+    assert( Vec_IntSize(vLines) % 4 == 0 );
+    vCodes = Gia_ManAssignCodes( kHot, nStates, &nBits );
+
+    // start manager
+    p = Gia_ManStart( 10000 );
+    p->pName = Abc_UtilStrsav( "stg" );
+    for ( i = 0; i < nIns + nBits; i++ )
+        Gia_ManAppendCi(p);
+
+    // create input minterms
+    Gia_ManHashAlloc( p );
+    vInMints = Vec_IntAlloc( 1 << nIns );
+    for ( i = 0; i < (1 << nIns); i++ )
+    {
+        for ( Lit = 1, b = 0; b < nIns; b++ )
+            Lit = Gia_ManHashAnd( p, Lit, Abc_Var2Lit( b+1, !((i >> b) & 1) ) );
+        Vec_IntPush( vInMints, Lit );
+    } 
+
+    // create current states
+    vCurs  = Vec_IntAlloc( nStates );
+    assert( Vec_VecSize(vCodes) == nStates );
+    Vec_VecForEachLevelInt( vCodes, vVec, i )
+    {
+        Lit = 1;
+        Vec_IntForEachEntry( vVec, b, k )
+            Lit = Gia_ManHashAnd( p, Lit, Abc_Var2Lit(b+1+nIns,!i) );
+        Vec_IntPush( vCurs, Lit );
+    }
+
+    // go through the lines
+    vLitsNext = Vec_VecStart( nBits );
+    vLitsOuts = Vec_VecStart( nOuts );
+    for ( i = 0; i < Vec_IntSize(vLines); )
+    {
+        int iMint = Vec_IntEntry(vLines, i++);
+        int iCur  = Vec_IntEntry(vLines, i++) - 1;
+        int iNext = Vec_IntEntry(vLines, i++) - 1;
+        int iOut  = Vec_IntEntry(vLines, i++);
+        assert( iMint >= 0 && iMint < (1<<nIns)  );
+        assert( iCur  >= 0 && iCur  < nStates    );
+        assert( iNext >= 0 && iNext < nStates    );
+        assert( iOut  >= 0 && iOut  < (1<<nOuts) );
+        // create condition
+        LitC = Gia_ManHashAnd( p, Vec_IntEntry(vInMints, iMint), Vec_IntEntry(vCurs, iCur) );
+        // update next state
+//        Vec_VecPushInt( vLitsNext, iNext, LitC );
+        vVec = (Vec_Int_t *)Vec_VecEntryInt( vCodes, iNext );
+        Vec_IntForEachEntry( vVec, b, k )
+            Vec_VecPushInt( vLitsNext, b, LitC );
+        // update outputs
+        for ( b = 0; b < nOuts; b++ )
+            if ( (iOut >> b) & 1 ) 
+                Vec_VecPushInt( vLitsOuts, b, LitC );
+    }
+    Vec_IntFree( vInMints );
+    Vec_IntFree( vCurs );
+    Vec_VecFree( vCodes );
+
+    // create POs
+    Vec_VecForEachLevelInt( vLitsOuts, vVec, i )
+        Gia_ManAppendCo( p, Gia_ManCreateOrGate(p, vVec) );
+    Vec_VecFree( vLitsOuts );
+
+    // create next states
+    Vec_VecForEachLevelInt( vLitsNext, vVec, i )
+        Gia_ManAppendCo( p, Abc_LitNotCond( Gia_ManCreateOrGate(p, vVec), !(i<kHot) ) );
+    Vec_VecFree( vLitsNext );
+
+    Gia_ManSetRegNum( p, nBits );
+    Gia_ManHashStop( p );
+
+    assert( !Gia_ManHasDangling(p) );
+    return p;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 Gia_Man_t * Gia_ManStgOneHot( Vec_Int_t * vLines, int nIns, int nOuts, int nStates )
 {
     Gia_Man_t * p;
@@ -269,7 +445,8 @@ Gia_Man_t * Gia_ManStgRead( char * pFileName, int fOneHot, int fLogar )
     vLines = Gia_ManStgReadLines( pFileName, &nIns, &nOuts, &nStates );
     if ( vLines == NULL )
         return NULL;
-    p = Gia_ManStgOneHot( vLines, nIns, nOuts, nStates );
+//    p = Gia_ManStgOneHot( vLines, nIns, nOuts, nStates );
+    p = Gia_ManStgKHot( vLines, nIns, nOuts, nStates, 2 );
     Vec_IntFree( vLines );
     return p;
 }
