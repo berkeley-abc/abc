@@ -203,6 +203,7 @@ static void sat_solver_compress(sat_solver* s)
     {
         int RetValue = sat_solver_simplify(s);
         assert( RetValue != 0 );
+        (void) RetValue;
     }
 }
 

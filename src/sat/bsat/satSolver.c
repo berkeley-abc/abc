@@ -546,6 +546,7 @@ static void sat_solver_record(sat_solver* s, veci* cls)
     {
         int RetValue = Sto_ManAddClause( (Sto_Man_t *)s->pStore, begin, end );
         assert( RetValue );
+        (void) RetValue;
     }
     ///////////////////////////////////
 /*
@@ -1333,6 +1334,7 @@ int sat_solver_addclause(sat_solver* s, lit* begin, lit* end)
     {
         int RetValue = Sto_ManAddClause( (Sto_Man_t *)s->pStore, begin, end );
         assert( RetValue );
+        (void) RetValue;
     }
     ///////////////////////////////////
 
@@ -1522,6 +1524,7 @@ int sat_solver_solve(sat_solver* s, lit* begin, lit* end, ABC_INT64_T nConfLimit
         {
             int RetValue = Sto_ManAddClause( (Sto_Man_t *)s->pStore, NULL, NULL );
             assert( RetValue );
+            (void) RetValue;
         }
         return l_False;
     }
@@ -1692,6 +1695,7 @@ int sat_solver_solve(sat_solver* s, lit* begin, lit* end, ABC_INT64_T nConfLimit
     {
         int RetValue = Sto_ManAddClause( (Sto_Man_t *)s->pStore, NULL, NULL );
         assert( RetValue );
+        (void) RetValue;
     }
     ////////////////////////////////////////////////
     return status;

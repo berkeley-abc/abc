@@ -86,6 +86,7 @@ static inline int Pdr_ObjSatVar2FindOrAdd( Pdr_Man_t * p, int k, Aig_Obj_t * pOb
             int Lit = toLitCond( iVarNew, 1 );
             int RetValue = sat_solver_addclause( pSat, &Lit, &Lit + 1 );
             assert( RetValue == 1 );
+            (void) RetValue;
             sat_solver_compress( pSat );
         }
     }
@@ -131,6 +132,7 @@ int Pdr_ObjSatVar2( Pdr_Man_t * p, int k, Aig_Obj_t * pObj )
         }
         RetValue = sat_solver_addclause( pSat, Vec_IntArray(vLits), Vec_IntArray(vLits)+Vec_IntSize(vLits) );
         assert( RetValue );
+        (void) RetValue;
     }
     Vec_IntFree( vLits );
     return iVarThis;
