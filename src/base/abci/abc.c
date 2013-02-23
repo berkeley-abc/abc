@@ -23728,12 +23728,24 @@ int Abc_CommandAbc9ReadStg( Abc_Frame_t * pAbc, int argc, char ** argv )
     FILE * pFile;
     char * FileName, ** pArgvNew;
     int c, nArgcNew;
+    int kHot = 1;
     int fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Kvh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'K':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-K\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            kHot = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( kHot < 1 || kHot > 5 )
+                goto usage;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -23758,14 +23770,15 @@ int Abc_CommandAbc9ReadStg( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     fclose( pFile );
 
-    pAig = Gia_ManStgRead( FileName, 1, 0 );
+    pAig = Gia_ManStgRead( FileName, kHot, fVerbose );
     Abc_CommandUpdate9( pAbc, pAig );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &read_stg [-vh] <file>\n" );
-    Abc_Print( -2, "\t         reads STG file and generates encoded AIG\n" );
-    Abc_Print( -2, "\t-v     : toggles additional verbose output [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "usage: &read_stg [-K <num>] [-vh] <file>\n" );
+    Abc_Print( -2, "\t         reads STG file and generates K-hot-encoded AIG\n" );
+    Abc_Print( -2, "\t-K num : the K parameter for hotness of the encoding (1 <= K <= 5) [default = %d]\n", kHot );
+    Abc_Print( -2, "\t-v     : toggles printing state codes [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     Abc_Print( -2, "\t<file> : the file name\n");
     return 1;

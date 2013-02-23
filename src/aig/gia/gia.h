@@ -970,7 +970,7 @@ extern float               Gia_ManDelayTraceLutPrint( Gia_Man_t * p, int fVerbos
 extern Gia_Man_t *         Gia_ManSpeedup( Gia_Man_t * p, int Percentage, int Degree, int fVerbose, int fVeryVerbose );
 /*=== giaStg.c ============================================================*/
 extern void                Gia_ManStgPrint( FILE * pFile, Vec_Int_t * vLines, int nIns, int nOuts, int nStates );
-extern Gia_Man_t *         Gia_ManStgRead( char * pFileName, int fOneHot, int fLogar );
+extern Gia_Man_t *         Gia_ManStgRead( char * pFileName, int kHot, int fVerbose );
 /*=== giaSweep.c ============================================================*/
 extern Gia_Man_t *         Gia_ManFraigSweep( Gia_Man_t * p, void * pPars );
 /*=== giaSwitch.c ============================================================*/
