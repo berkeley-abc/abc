@@ -84,7 +84,7 @@ int Gia_ManOrderWithBoxes_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vNod
     Gia_ObjSetTravIdCurrent(p, pObj);
     if ( Gia_ObjIsCi(pObj) )
     {
-        p->pData2 = (void *)(ABC_PTRUINT_T)Gia_ObjCioId(pObj);
+        p->iData2 = Gia_ObjCioId(pObj);
         return 1;
     }
     assert( Gia_ObjIsAnd(pObj) );
@@ -132,7 +132,7 @@ Vec_Int_t * Gia_ManOrderWithBoxes( Gia_Man_t * p )
             pObj = Gia_ManPo( p, curCo + k );
             if ( Gia_ManOrderWithBoxes_rec( p, Gia_ObjFanin0(pObj), vNodes ) )
             {
-                int iCiNum = (int)(ABC_PTRUINT_T)p->pData2;
+                int iCiNum  = p->iData2;
                 int iBoxNum = Tim_ManBoxFindFromCiNum( p->pManTime, iCiNum );
                 printf( "Boxes are not in a topological order. The command has to terminate.\n" );
                 printf( "The following information may help debugging (numbers are 0-based):\n" );
@@ -143,7 +143,7 @@ Vec_Int_t * Gia_ManOrderWithBoxes( Gia_Man_t * p )
                     Tim_ManBoxOutputFirst(p->pManTime, iBoxNum), Tim_ManBoxInputFirst(p->pManTime, iBoxNum) );
                 printf( "In a correct topological order, BoxB should preceed BoxA.\n" );
                 Vec_IntFree( vNodes );
-                p->pData2 = NULL;
+                p->iData2 = 0;
                 return NULL;
             }
         }
@@ -395,9 +395,10 @@ int Gia_ManLevelWithBoxes_rec( Gia_Man_t * p, Gia_Obj_t * pObj )
 }
 int Gia_ManLevelWithBoxes( Gia_Man_t * p )
 {
+    int nAnd2Delay = p->nAnd2Delay ? p->nAnd2Delay : 1;
     Tim_Man_t * pTime = (Tim_Man_t *)p->pManTime;
-    Gia_Obj_t * pObj;
-    int i, k, curCi, curCo, LevelMax;
+    Gia_Obj_t * pObj, * pObjIn;
+    int i, k, j, curCi, curCo, LevelMax;
     assert( Gia_ManRegNum(p) == 0 );
     // copy const and real PIs
     Gia_ManCleanLevels( p, Gia_ManObjNum(p) );
@@ -407,8 +408,7 @@ int Gia_ManLevelWithBoxes( Gia_Man_t * p )
     for ( i = 0; i < Tim_ManPiNum(pTime); i++ )
     {
         pObj = Gia_ManPi( p, i );
-//        Gia_ObjSetLevel( p, pObj, Tim_ManGetCiArrival(pTime, i) );
-        Gia_ObjSetLevel( p, pObj, 0 );
+        Gia_ObjSetLevel( p, pObj, Tim_ManGetCiArrival(pTime, i) / nAnd2Delay );
         Gia_ObjSetTravIdCurrent( p, pObj );
     }
     // create logic for each box
@@ -416,8 +416,11 @@ int Gia_ManLevelWithBoxes( Gia_Man_t * p )
     curCo = 0;
     for ( i = 0; i < Tim_ManBoxNum(pTime); i++ )
     {
-        LevelMax = 0;
-        for ( k = 0; k < Tim_ManBoxInputNum(pTime, i); k++ )
+        int nBoxInputs  = Tim_ManBoxInputNum( pTime, i );
+        int nBoxOutputs = Tim_ManBoxOutputNum( pTime, i );
+        float * pDelayTable = Tim_ManBoxDelayTable( pTime, i );
+        // compute level for TFI of box inputs
+        for ( k = 0; k < nBoxInputs; k++ )
         {
             pObj = Gia_ManPo( p, curCo + k );
             if ( Gia_ManLevelWithBoxes_rec( p, Gia_ObjFanin0(pObj) ) )
@@ -425,18 +428,25 @@ int Gia_ManLevelWithBoxes( Gia_Man_t * p )
                 printf( "Boxes are not in a topological order. Switching to level computation without boxes.\n" );
                 return Gia_ManLevelNum( p );
             }
+            // set box input level
             Gia_ObjSetCoLevel( p, pObj );
-            LevelMax = Abc_MaxInt( LevelMax, Gia_ObjLevel(p, pObj) );
         }
-        curCo += Tim_ManBoxInputNum(pTime, i);
-        LevelMax++;
-        for ( k = 0; k < Tim_ManBoxOutputNum(pTime, i); k++ )
+        // compute level for box outputs
+        for ( k = 0; k < nBoxOutputs; k++ )
         {
             pObj = Gia_ManPi( p, curCi + k );
-            Gia_ObjSetLevel( p, pObj, LevelMax );
             Gia_ObjSetTravIdCurrent( p, pObj );
+            // evaluate delay of this output
+            LevelMax = 0;
+            assert( nBoxInputs == (int)pDelayTable[1] );
+            for ( j = 0; j < nBoxInputs && (pObjIn = Gia_ManPo(p, curCo + j)); j++ )
+                if ( (int)pDelayTable[3+k*nBoxInputs+j] != -ABC_INFINITY )
+                    LevelMax = Abc_MaxInt( LevelMax, Gia_ObjLevel(p, pObjIn) + ((int)pDelayTable[3+k*nBoxInputs+j] / nAnd2Delay) );
+            // set box output level
+            Gia_ObjSetLevel( p, pObj, LevelMax );
         }
-        curCi += Tim_ManBoxOutputNum(pTime, i);
+        curCo += nBoxInputs;
+        curCi += nBoxOutputs;
     }
     // add remaining nodes
     p->nLevels = 0;

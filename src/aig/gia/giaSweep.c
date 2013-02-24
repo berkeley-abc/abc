@@ -317,12 +317,13 @@ Gia_Man_t * Gia_ManFraigSweep( Gia_Man_t * p, void * pPars )
     // derive new AIG
     assert( pNew->pManTime  == NULL );
     assert( pNew->pAigExtra == NULL );
-    pNew->pManTime  = p->pManTime;
-    pNew->pAigExtra = p->pAigExtra;
+    pNew->pManTime   = p->pManTime;
+    pNew->pAigExtra  = p->pAigExtra;
+    pNew->nAnd2Delay = p->nAnd2Delay;
     pNew = Gia_ManFraigCreateGia( pTemp = pNew );
     assert( pTemp->pManTime  == p->pManTime );
     assert( pTemp->pAigExtra == p->pAigExtra );
-    pTemp->pManTime = NULL;
+    pTemp->pManTime  = NULL;
     pTemp->pAigExtra = NULL;
     Gia_ManStop( pTemp );
     // return the result

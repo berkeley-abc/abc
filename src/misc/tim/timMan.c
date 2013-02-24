@@ -488,7 +488,7 @@ void Tim_ManPrint( Tim_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Tim_ManPrintStats( Tim_Man_t * p )
+void Tim_ManPrintStats( Tim_Man_t * p, int nAnd2Delay )
 {
     Tim_Box_t * pBox;
     Vec_Int_t * vCounts;
@@ -497,10 +497,12 @@ void Tim_ManPrintStats( Tim_Man_t * p )
     if ( p == NULL )
         return;
     Abc_Print( 1, "Hierarchy      :  " );
-    printf( "PI/CI = %d/%d   PO/CO = %d/%d   Box = %d", 
+    printf( "PI/CI = %d/%d   PO/CO = %d/%d   Box = %d   ", 
         Tim_ManPiNum(p), Tim_ManCiNum(p), 
         Tim_ManPoNum(p), Tim_ManCoNum(p), 
         Tim_ManBoxNum(p) );
+    if ( nAnd2Delay )
+        printf( "delay(AND2) = %d", nAnd2Delay );
     printf( "\n" );
     if ( Tim_ManBoxNum(p) == 0 )
         return;

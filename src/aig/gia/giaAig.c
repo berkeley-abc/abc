@@ -550,7 +550,6 @@ void Gia_ManReprFromAigRepr2( Aig_Man_t * pAig, Gia_Man_t * pGia )
 ***********************************************************************/
 Gia_Man_t * Gia_ManCompress2( Gia_Man_t * p, int fUpdateLevel, int fVerbose )
 {
-//    extern Aig_Man_t * Dar_ManCompress2( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, int fFanout, int fPower, int fVerbose );
     Gia_Man_t * pGia;
     Aig_Man_t * pNew, * pTemp;
     if ( p->pManTime && p->vLevels == NULL )
@@ -560,9 +559,9 @@ Gia_Man_t * Gia_ManCompress2( Gia_Man_t * p, int fUpdateLevel, int fVerbose )
     Aig_ManStop( pTemp );
     pGia = Gia_ManFromAig( pNew );
     Aig_ManStop( pNew );
-    pGia->pManTime  = p->pManTime;  p->pManTime  = NULL;
-    pGia->pAigExtra = p->pAigExtra; p->pAigExtra = NULL;
-//    Gia_ManLevelWithBoxes( pGia );
+    pGia->pManTime   = p->pManTime;   p->pManTime   = NULL;
+    pGia->pAigExtra  = p->pAigExtra;  p->pAigExtra  = NULL;
+    pGia->nAnd2Delay = p->nAnd2Delay; p->nAnd2Delay = 0;
     return pGia;
 }
 
@@ -581,13 +580,16 @@ Gia_Man_t * Gia_ManPerformDch( Gia_Man_t * p, void * pPars )
 {
     Gia_Man_t * pGia;
     Aig_Man_t * pNew;
+    if ( p->pManTime && p->vLevels == NULL )
+        Gia_ManLevelWithBoxes( p );
     pNew = Gia_ManToAig( p, 0 );
     pNew = Dar_ManChoiceNew( pNew, (Dch_Pars_t *)pPars );
 //    pGia = Gia_ManFromAig( pNew );
     pGia = Gia_ManFromAigChoices( pNew );
     Aig_ManStop( pNew );
-    pGia->pManTime  = p->pManTime;  p->pManTime  = NULL;
-    pGia->pAigExtra = p->pAigExtra; p->pAigExtra = NULL;
+    pGia->pManTime   = p->pManTime;   p->pManTime   = NULL;
+    pGia->pAigExtra  = p->pAigExtra;  p->pAigExtra  = NULL;
+    pGia->nAnd2Delay = p->nAnd2Delay; p->nAnd2Delay = 0;
     return pGia;
 }
 

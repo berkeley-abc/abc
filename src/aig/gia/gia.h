@@ -160,7 +160,11 @@ struct Gia_Man_t_
     void *         pLutLib;       // LUT library
     word           nHashHit;      // hash table hit
     word           nHashMiss;     // hash table miss
-    unsigned *     pData2;        // storage for object values
+    unsigned *     pData;         // various user data
+    unsigned *     pData2;        // various user data
+    int            iData;         // various user data
+    int            iData2;        // various user data
+    int            nAnd2Delay;    // AND2 delay scaled to match delay numbers used
     int            fVerbose;      // verbose reports
     // truth table computation for small functions
     int            nTtVars;       // truth table variables

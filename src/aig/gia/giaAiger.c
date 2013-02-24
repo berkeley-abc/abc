@@ -521,6 +521,13 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fSkipS
                 if ( fVerbose ) printf( "Finished reading extension \"c\".\n" );
             }
             // read delay information
+            else if ( *pCur == 'd' )
+            {
+                pCur++;
+                assert( Gia_AigerReadInt(pCur) == 4 );                     pCur += 4;
+                pNew->nAnd2Delay = Gia_AigerReadInt(pCur);                 pCur += 4;
+                if ( fVerbose ) printf( "Finished reading extension \"d\".\n" );
+            }
             else if ( *pCur == 'i' )
             {
                 pCur++;
@@ -739,6 +746,8 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fSkipS
         return NULL;
     }
 */
+
+//    pNew->nAnd2Delay = 5;
     return pNew;
 }
 
@@ -1092,7 +1101,13 @@ void Gia_AigerWrite( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
         Gia_FileWriteBufferSize( pFile, p->nConstrs );
     }
 */
-    // write gate classes
+    // write timing information
+    if ( p->nAnd2Delay )
+    {
+        fprintf( pFile, "d" );
+        Gia_FileWriteBufferSize( pFile, 4 );
+        Gia_FileWriteBufferSize( pFile, p->nAnd2Delay );
+    }
     if ( p->pManTime )
     {
         Vec_Flt_t * vArrTimes, * vReqTimes;

@@ -134,7 +134,7 @@ extern int             Tim_ManGetArrsReqs( Tim_Man_t * p, Vec_Flt_t ** pvInArrs,
 extern void            Tim_ManStop( Tim_Man_t * p );
 extern void            Tim_ManStopP( Tim_Man_t ** p );
 extern void            Tim_ManPrint( Tim_Man_t * p );
-extern void            Tim_ManPrintStats( Tim_Man_t * p );
+extern void            Tim_ManPrintStats( Tim_Man_t * p, int nAnd2Delay );
 extern int             Tim_ManCiNum( Tim_Man_t * p );
 extern int             Tim_ManCoNum( Tim_Man_t * p );
 extern int             Tim_ManPiNum( Tim_Man_t * p );

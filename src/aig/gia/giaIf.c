@@ -1148,8 +1148,9 @@ Gia_Man_t * Gia_ManPerformMapping( Gia_Man_t * p, void * pp )
         pNew = Gia_ManDupUnnormalize( p );
         if ( pNew == NULL )
             return NULL;
-        pNew->pManTime  = p->pManTime;  p->pManTime  = NULL;
-        pNew->pAigExtra = p->pAigExtra; p->pAigExtra = NULL;
+        pNew->pManTime   = p->pManTime;   p->pManTime  = NULL;
+        pNew->pAigExtra  = p->pAigExtra;  p->pAigExtra = NULL;
+        pNew->nAnd2Delay = p->nAnd2Delay; p->nAnd2Delay = 0;
         p = pNew;
     }
     else 
@@ -1187,15 +1188,17 @@ Gia_Man_t * Gia_ManPerformMapping( Gia_Man_t * p, void * pp )
 //    if ( pIfMan->pPars->fDelayOpt )
 //        Vec_IntFreeP( &pNew->vMapping );
     // return the original (unmodified by the mapper) timing manager
-    pNew->pManTime  = p->pManTime;  p->pManTime  = NULL;
-    pNew->pAigExtra = p->pAigExtra; p->pAigExtra = NULL;
+    pNew->pManTime   = p->pManTime;   p->pManTime   = NULL;
+    pNew->pAigExtra  = p->pAigExtra;  p->pAigExtra  = NULL;
+    pNew->nAnd2Delay = p->nAnd2Delay; p->nAnd2Delay = 0;
     Gia_ManStop( p );
     // normalize and transfer mapping
     pNew = Gia_ManDupNormalize( p = pNew );
     Gia_ManTransferMapping( p, pNew );
     Gia_ManTransferPacking( p, pNew );
-    pNew->pManTime  = p->pManTime;  p->pManTime  = NULL;
-    pNew->pAigExtra = p->pAigExtra; p->pAigExtra = NULL;
+    pNew->pManTime   = p->pManTime;   p->pManTime   = NULL;
+    pNew->pAigExtra  = p->pAigExtra;  p->pAigExtra  = NULL;
+    pNew->nAnd2Delay = p->nAnd2Delay; p->nAnd2Delay = 0;
 //    pNew->vPacking  = p->vPacking;  p->vPacking = NULL;
     Gia_ManStop( p );
 
