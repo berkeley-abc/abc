@@ -25,6 +25,7 @@
 
 ABC_NAMESPACE_IMPL_START
 
+#define XAIG_VERBOSE 0
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -495,7 +496,7 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fSkipS
     // check if there are other types of information to read
     if ( pCur + 1 < (unsigned char *)pContents + nFileSize && *pCur == 'c' )
     {
-        int fVerbose = 0;
+        int fVerbose = XAIG_VERBOSE;
         Vec_Str_t * vStr;
         unsigned char * pCurTemp;
         pCur++;
@@ -967,7 +968,7 @@ Vec_Str_t * Gia_AigerWriteIntoMemoryStrPart( Gia_Man_t * p, Vec_Int_t * vCis, Ve
 ***********************************************************************/
 void Gia_AigerWrite( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int fCompact )
 {
-    int fVerbose = 0;
+    int fVerbose = XAIG_VERBOSE;
     FILE * pFile;
     Gia_Man_t * p;
     Gia_Obj_t * pObj;
@@ -996,9 +997,11 @@ void Gia_AigerWrite( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
     {
 //        printf( "Gia_AigerWrite(): Normalizing AIG for writing.\n" );
         p = Gia_ManDupNormalize( pInit );
-        p->pManTime  = pInit->pManTime;  pInit->pManTime = NULL;
-        p->vNamesIn  = pInit->vNamesIn;  pInit->vNamesIn = NULL;
-        p->vNamesOut = pInit->vNamesOut; pInit->vNamesOut = NULL;
+        p->pManTime   = pInit->pManTime;   pInit->pManTime   = NULL;
+        p->vNamesIn   = pInit->vNamesIn;   pInit->vNamesIn   = NULL;
+        p->vNamesOut  = pInit->vNamesOut;  pInit->vNamesOut  = NULL;
+        p->pAigExtra  = pInit->pAigExtra;  pInit->pAigExtra  = NULL;
+        p->nAnd2Delay = pInit->nAnd2Delay; pInit->nAnd2Delay = 0;
     }
     else
         p = pInit;

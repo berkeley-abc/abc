@@ -188,7 +188,9 @@ Tim_Man_t * Tim_ManTrim( Tim_Man_t * p, Vec_Int_t * vBoxPres )
     pNew = Tim_ManStart( nNewCis, nNewCos );
     // copy box connectivity information
     memcpy( pNew->pCis, p->pCis, sizeof(Tim_Obj_t) * Tim_ManPiNum(p) );
-    memcpy( pNew->pCos, p->pCos, sizeof(Tim_Obj_t) * Tim_ManPoNum(p) );
+    memcpy( pNew->pCos + nNewCos - Tim_ManPoNum(p), 
+            p->pCos + Tim_ManCoNum(p) - Tim_ManPoNum(p), 
+            sizeof(Tim_Obj_t) * Tim_ManPoNum(p) );
     // duplicate delay tables
     if ( Tim_ManDelayTableNum(p) > 0 )
     {
