@@ -3443,6 +3443,10 @@ SOURCE=.\src\aig\gia\giaCof.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\gia\giaCone.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\gia\giaCSat.c
 # End Source File
 # Begin Source File

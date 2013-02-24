@@ -372,6 +372,7 @@ static int Abc_CommandAbc9Undo               ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9Iso                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9CexInfo            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Cycle              ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Cone               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 //static int Abc_CommandAbc9CexCut             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 //static int Abc_CommandAbc9CexMerge           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 //static int Abc_CommandAbc9CexMin             ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -836,6 +837,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&iso",          Abc_CommandAbc9Iso,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&cexinfo",      Abc_CommandAbc9CexInfo,      0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&cycle",        Abc_CommandAbc9Cycle,        0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&cone",         Abc_CommandAbc9Cone,         0 );
 //    Cmd_CommandAdd( pAbc, "ABC9",         "&cexcut",       Abc_CommandAbc9CexCut,       0 );
 //    Cmd_CommandAdd( pAbc, "ABC9",         "&cexmerge",     Abc_CommandAbc9CexMerge,     0 );
 //    Cmd_CommandAdd( pAbc, "ABC9",         "&cexmin",       Abc_CommandAbc9CexMin,       0 );
@@ -29507,6 +29509,102 @@ usage:
     return 1;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Cone( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern Gia_Man_t * Gia_ManConeExtract( Gia_Man_t * p, int iOut, int nDelta, int nOutsMin, int nOutsMax );
+    Gia_Man_t * pTemp;
+    int c, iOutNum = 0, nDelta = 10, nOutsMin = 100, nOutsMax = 1000, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "ODLUvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'O':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-O\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            iOutNum = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( iOutNum < 0 )
+                goto usage;
+            break;
+        case 'D':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-D\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nDelta = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nDelta < 0 )
+                goto usage;
+            break;
+        case 'L':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-L\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nOutsMin = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nOutsMin < 0 )
+                goto usage;
+            break;
+        case 'U':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-U\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nOutsMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nOutsMax < 0 )
+                goto usage;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Cycle(): There is no AIG.\n" );
+        return 1;
+    }
+    pTemp = Gia_ManConeExtract( pAbc->pGia, iOutNum, nDelta, nOutsMin, nOutsMax );
+    if ( pTemp )
+        Abc_CommandUpdate9( pAbc, pTemp );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &cone [-ODLU num] [-vh]\n" );
+    Abc_Print( -2, "\t         extracting multi-output sequential logic cones\n" );
+    Abc_Print( -2, "\t-O num : the index of the PO to start the cluster [default = %d]\n", iOutNum );
+    Abc_Print( -2, "\t-D num : the max increase in flop count after adding one PO [default = %d]\n", nDelta );
+    Abc_Print( -2, "\t-L num : the minimum number of POs in a cluster [default = %d]\n", nOutsMin );
+    Abc_Print( -2, "\t-U num : the maximum number of POs in a cluster [default = %d]\n", nOutsMin );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
 
 
 /**Function*************************************************************
