@@ -28,6 +28,8 @@ Using GIA Package in ABC
 - Add #include "gia.h".
 - Start the AIG package using Gia_ManStart( int nObjMax ).
 (Parameter 'nNodeMax' should approximately reflect the expected number of objects, including PIs, POs, flop inputs, and flop outputs.  If the number of objects is more, memory will be automatically reallocated.)
+- If structural hashing is to be used, start hash table by calling Gia_ManHashStart().
+- Similarly, whenever structural hashingn is no longer needed, deallocate hash table by calling Gia_ManHashStop().
 - Assign primary inputs using Gia_ManAppendCi().
 - Assign flop outputs using Gia_ManAppendCi().
 (It is important to create all PIs first, before creating flop outputs).
@@ -40,6 +42,6 @@ Using GIA Package in ABC
 - Set the number of flops by calling Gia_ManSetRegNum().
 - Remove dangling AIG nodes (produced by structural hashing) by running Gia_ManCleanup(), which will return a new AIG.  If object mapping is defined for the original AIG, it should be remapped into the new AIG.
 - Dump AIG into an AIGER file use Gia_DumpAiger().
-- For each object in the design annotated with the constructed AIG node (pNode), remember its AIG node ID by calling Gia_ObjId(pNode).
+- For each object in the design annotated with the constructed AIG node (pNode), remember its AIG node ID by calling Gia_ObjId(pMan,pNode).
 - Quit the AIG package using Gia_ManStop().
 The above process should not produce memory leaks.
