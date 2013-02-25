@@ -39,6 +39,7 @@ SRC +=    src/aig/gia/gia.c \
     src/aig/gia/giaStg.c \
     src/aig/gia/giaSupMin.c \
     src/aig/gia/giaSweep.c \
+    src/aig/gia/giaSweeper.c \
     src/aig/gia/giaSwitch.c \
     src/aig/gia/giaTest.c \
     src/aig/gia/giaTim.c \

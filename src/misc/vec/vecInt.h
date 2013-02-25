@@ -609,6 +609,11 @@ static inline void Vec_IntSetEntry( Vec_Int_t * p, int i, int Entry )
     Vec_IntFillExtra( p, i + 1, 0 );
     Vec_IntWriteEntry( p, i, Entry );
 }
+static inline void Vec_IntSetEntryFull( Vec_Int_t * p, int i, int Entry )
+{
+    Vec_IntFillExtra( p, i + 1, -1 );
+    Vec_IntWriteEntry( p, i, Entry );
+}
 
 /**Function*************************************************************
 

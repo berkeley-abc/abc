@@ -3571,6 +3571,10 @@ SOURCE=.\src\aig\gia\giaSweep.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\gia\giaSweeper.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\gia\giaSwitch.c
 # End Source File
 # Begin Source File

@@ -160,7 +160,7 @@ struct Gia_Man_t_
     void *         pLutLib;       // LUT library
     word           nHashHit;      // hash table hit
     word           nHashMiss;     // hash table miss
-    unsigned *     pData;         // various user data
+    void *         pData;         // various user data
     unsigned *     pData2;        // various user data
     int            iData;         // various user data
     int            iData2;        // various user data
@@ -277,6 +277,12 @@ static inline void Gia_ManTruthNot( unsigned * pOut, unsigned * pIn, int nVars )
     for ( w = Abc_TruthWordNum(nVars)-1; w >= 0; w-- )
         pOut[w] = ~pIn[w];
 }
+
+static inline int          Gia_ManConst0Lit()                  { return 0; }
+static inline int          Gia_ManConst1Lit()                  { return 1; }
+static inline int          Gia_ManIsConst0Lit( int iLit )      { return (iLit == 0); }
+static inline int          Gia_ManIsConst1Lit( int iLit )      { return (iLit == 1); }
+static inline int          Gia_ManIsConstLit( int iLit )       { return (iLit <= 1); }
 
 static inline Gia_Obj_t *  Gia_Regular( Gia_Obj_t * p )        { return (Gia_Obj_t *)((ABC_PTRUINT_T)(p) & ~01);                           }
 static inline Gia_Obj_t *  Gia_Not( Gia_Obj_t * p )            { return (Gia_Obj_t *)((ABC_PTRUINT_T)(p) ^  01);                           }
