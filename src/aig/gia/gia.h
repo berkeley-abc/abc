@@ -991,8 +991,16 @@ extern Gia_Man_t *         Gia_ManStgRead( char * pFileName, int kHot, int fVerb
 /*=== giaSweep.c ============================================================*/
 extern Gia_Man_t *         Gia_ManFraigSweep( Gia_Man_t * p, void * pPars );
 /*=== giaSweeper.c ============================================================*/
-extern Gia_Man_t *         Gia_ManStartSweeper();
-extern void                Gia_ManStopSweeper( Gia_Man_t * p );
+extern Gia_Man_t *         Gia_SweeperStart();
+extern void                Gia_SweeperStop( Gia_Man_t * p );
+extern int                 Gia_SweeperProbeCreate( Gia_Man_t * p, int iLit );
+extern int                 Gia_SweeperProbeFind( Gia_Man_t * p, int iLit );
+extern void                Gia_SweeperProbeDeref( Gia_Man_t * p, int ProbeId );
+extern int                 Gia_SweeperProbeLit( Gia_Man_t * p, int ProbeId );
+extern int                 Gia_SweeperCondPop( Gia_Man_t * p );
+extern void                Gia_SweeperCondPush( Gia_Man_t * p, int ProbeId );
+extern Gia_Man_t *         Gia_SweeperExtractUserLogic( Gia_Man_t * p, Vec_Int_t * vProbeIds, Vec_Ptr_t * vOutNames );
+extern int                 Gia_SweeperCheckEquiv( Gia_Man_t * pGia, int ProbeId1, int ProbeId2 );
 /*=== giaSwitch.c ============================================================*/
 extern float               Gia_ManEvaluateSwitching( Gia_Man_t * p );
 extern float               Gia_ManComputeSwitching( Gia_Man_t * p, int nFrames, int nPref, int fProbOne );

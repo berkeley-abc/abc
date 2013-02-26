@@ -31,18 +31,18 @@ SAT sweeping/equivalence checking requires the following steps:
       - nodes representing conditions to be used as constraints
       - nodes representing functions to be equivalence checked
       - nodes representing functions needed by the user at the end of SAT sweeping
-  Creating new probe using Gia_ManCreateProbe():  int Gia_ManCreateProbe( Gia_Man_t * p, int iLit );
-  Find existing probe using Gia_ManFindProbe():   int Gia_ManFindProbe( Gia_Man_t * p, int iLit );
+  Creating new probe using Gia_SweeperProbeCreate():  int Gia_SweeperProbeCreate( Gia_Man_t * p, int iLit );
+  Find existing probe using Gia_SweeperProbeFind():   int Gia_SweeperProbeFind( Gia_Man_t * p, int iLit );
       If probe with this literal (iLit) exists, this procedure increments its reference counter and returns it.
       If probe with this literal does not exist, it creates new probe and sets is reference counter to 1.
-  Dereference probe using Gia_ManDerefProbe():    void Gia_ManDerefProbe( Gia_Man_t * p, int ProbeId );
+  Dereference probe using Gia_SweeperProbeDeref():    void Gia_SweeperProbeDeref( Gia_Man_t * p, int ProbeId );
       Dereferences probe with the given ID. If ref counter become 0, recycles the logic cone of the given probe.
       Recycling of probe IDs can be added later.
   Comments:
       - a probe is identified by its 0-based ID, which is returned by above procedures
-- Adding/removing conditions on the current path by calling Gia_ManCondPush() and Gia_ManCondPop()
-      extern void Gia_ManCondPush( Gia_Man_t * p, int ProbeId );
-      extern void Gia_ManCondPop( Gia_Man_t * p );
+- Adding/removing conditions on the current path by calling Gia_SweeperCondPush() and Gia_SweeperCondPop()
+      extern void Gia_SweeperCondPush( Gia_Man_t * p, int ProbeId );
+      extern void Gia_SweeperCondPop( Gia_Man_t * p );
 - Performing equivalence checking by calling Gia_ManCheckConst() and Gia_ManCheckEquiv()
       extern int Gia_ManCheckConst( Gia_Man_t * p, int ProbeId, int Const1 ); // Const1 can be 0 or 1
       extern int Gia_ManCheckEquiv( Gia_Man_t * p, int ProbeId1, int ProbeId2 );
@@ -97,6 +97,8 @@ static inline int Swp_ManLit2Lit( Gia_Man_t * p, int Lit )
 { 
     return Abc_Lit2LitL( Vec_IntArray(((Swp_Man_t *)p->pData)->vId2Lit), Lit );
 }
+
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -157,7 +159,7 @@ static inline void Swp_ManStop( Gia_Man_t * pGia )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManStartSweeper()
+Gia_Man_t * Gia_SweeperStart()
 {
     Gia_Man_t * pGia;
     pGia = Gia_ManStart( 10000 );
@@ -166,7 +168,7 @@ Gia_Man_t * Gia_ManStartSweeper()
     pGia->fSweeper = 1;
     return pGia;
 }
-void Gia_ManStopSweeper( Gia_Man_t * pGia )
+void Gia_SweeperStop( Gia_Man_t * pGia )
 {
     pGia->fSweeper = 0;
     Swp_ManStop( pGia );
@@ -185,14 +187,8 @@ void Gia_ManStopSweeper( Gia_Man_t * pGia )
   SeeAlso     []
 
 ***********************************************************************/
-// returns literal of the probe
-int Gia_ManProbeLit( Gia_Man_t * p, int ProbeId )
-{
-    Swp_Man_t * pSwp = (Swp_Man_t *)p->pData;
-    return Vec_IntEntry( pSwp->vProbes, ProbeId );
-}
 // create new probe
-int Gia_ManCreateProbe( Gia_Man_t * p, int iLit )
+int Gia_SweeperProbeCreate( Gia_Man_t * p, int iLit )
 {
     Swp_Man_t * pSwp = (Swp_Man_t *)p->pData;
     int ProbeId = Vec_IntSize(pSwp->vProbes);
@@ -203,24 +199,30 @@ int Gia_ManCreateProbe( Gia_Man_t * p, int iLit )
 }
 // if probe with this literal (iLit) exists, this procedure increments its reference counter and returns it.
 // if probe with this literal does not exist, it creates new probe and sets is reference counter to 1.
-int Gia_ManFindProbe( Gia_Man_t * p, int iLit )
+int Gia_SweeperProbeFind( Gia_Man_t * p, int iLit )
 {
     Swp_Man_t * pSwp = (Swp_Man_t *)p->pData;
     if ( iLit >= Vec_IntSize(pSwp->vLit2Prob) || Vec_IntEntry(pSwp->vLit2Prob, iLit) >= 0 )
         return Vec_IntEntry(pSwp->vLit2Prob, iLit);
-    return Gia_ManCreateProbe( p, iLit );
+    return Gia_SweeperProbeCreate( p, iLit );
 }
 // dereferences the probe
-void Gia_ManDerefProbe( Gia_Man_t * p, int ProbeId )
+void Gia_SweeperProbeDeref( Gia_Man_t * p, int ProbeId )
 {
     Swp_Man_t * pSwp = (Swp_Man_t *)p->pData;
     assert( Vec_IntEntry(pSwp->vProbRefs, ProbeId) > 0 );
     Vec_IntAddToEntry( pSwp->vProbRefs, ProbeId, -1 );
     if ( Vec_IntEntry(pSwp->vProbRefs, ProbeId) == 0 )
     {
-        int iLit = Gia_ManProbeLit( p, ProbeId );
+        int iLit = Gia_SweeperProbeLit( p, ProbeId );
         Vec_IntWriteEntry( pSwp->vLit2Prob, iLit, -1 );
     }
+}
+// returns literal associated with the probe
+int Gia_SweeperProbeLit( Gia_Man_t * p, int ProbeId )
+{
+    Swp_Man_t * pSwp = (Swp_Man_t *)p->pData;
+    return Vec_IntEntry( pSwp->vProbes, ProbeId );
 }
 
 /**Function*************************************************************
@@ -234,13 +236,13 @@ void Gia_ManDerefProbe( Gia_Man_t * p, int ProbeId )
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManCondPush( Gia_Man_t * p, int ProbeId )
+void Gia_SweeperCondPush( Gia_Man_t * p, int ProbeId )
 {
     Swp_Man_t * pSwp = (Swp_Man_t *)p->pData;
     Vec_IntPush( pSwp->vCondProbes, ProbeId );
-    Vec_IntPush( pSwp->vCondLits, Gia_ManProbeLit(p, ProbeId) );
+    Vec_IntPush( pSwp->vCondLits, Gia_SweeperProbeLit(p, ProbeId) );
 }
-int Gia_ManCondPop( Gia_Man_t * p )
+int Gia_SweeperCondPop( Gia_Man_t * p )
 {
     Swp_Man_t * pSwp = (Swp_Man_t *)p->pData;
     int ProbId = Vec_IntPop( pSwp->vCondProbes );
@@ -259,7 +261,7 @@ int Gia_ManCondPop( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManExtract_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vObjIds )
+static void Gia_ManExtract_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vObjIds )
 {
     if ( !Gia_ObjIsAnd(pObj) )
         return;
@@ -270,17 +272,18 @@ void Gia_ManExtract_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vObjIds )
     Gia_ManExtract_rec( p, Gia_ObjFanin1(pObj), vObjIds );
     Vec_IntPush( vObjIds, Gia_ObjId(p, pObj) );
 }
-Gia_Man_t * Gia_ManExtractUserLogic( Gia_Man_t * p, int * pProbeIds, int nProbeIds )
+Gia_Man_t * Gia_SweeperExtractUserLogic( Gia_Man_t * p, Vec_Int_t * vProbeIds, Vec_Ptr_t * vOutNames )
 {
     Gia_Man_t * pNew;
     Gia_Obj_t * pObj;
     Vec_Int_t * vObjIds;
-    int i;
-    vObjIds = Vec_IntAlloc( 1000 );
+    int i, ProbeId;
+    assert( Vec_IntSize(vProbeIds) == Vec_PtrSize(vOutNames) );
     Gia_ManIncrementTravId( p );
-    for ( i = 0; i < nProbeIds; i++ )
+    vObjIds = Vec_IntAlloc( 1000 );
+    Vec_IntForEachEntry( vProbeIds, ProbeId, i )
     {
-        pObj = Gia_Lit2Obj( p, Gia_ManProbeLit(p, pProbeIds[i]) );
+        pObj = Gia_Lit2Obj( p, Gia_SweeperProbeLit(p, ProbeId) );
         Gia_ManExtract_rec( p, Gia_Regular(pObj), vObjIds );
     }
     // create new manager
@@ -293,16 +296,19 @@ Gia_Man_t * Gia_ManExtractUserLogic( Gia_Man_t * p, int * pProbeIds, int nProbeI
     Gia_ManForEachObjVec( vObjIds, p, pObj, i )
         pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
     Vec_IntFree( vObjIds );
-    for ( i = 0; i < nProbeIds; i++ )
+    Vec_IntForEachEntry( vProbeIds, ProbeId, i )
     {
-        pObj = Gia_Lit2Obj( p, Gia_ManProbeLit(p, pProbeIds[i]) );
+        pObj = Gia_Lit2Obj( p, Gia_SweeperProbeLit(p, ProbeId) );
         Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(Gia_Regular(pObj)) ^ Gia_IsComplement(pObj) );
     }
+    // copy names if present
+    if ( p->vNamesIn )
+        pNew->vNamesIn = Vec_PtrDup( p->vNamesIn );
+    if ( vOutNames )
+        pNew->vNamesOut = Vec_PtrDup( vOutNames );
     return pNew;
 }
 
-
-//#if 0
 
 /**Function*************************************************************
 
@@ -315,7 +321,7 @@ Gia_Man_t * Gia_ManExtractUserLogic( Gia_Man_t * p, int * pProbeIds, int nProbeI
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManAddClausesMux( Gia_Man_t * pGia, Gia_Obj_t * pNode )
+static void Gia_ManAddClausesMux( Gia_Man_t * pGia, Gia_Obj_t * pNode )
 {
     Swp_Man_t * p = (Swp_Man_t *)pGia->pData;
     Gia_Obj_t * pNodeI, * pNodeT, * pNodeE;
@@ -395,7 +401,7 @@ void Gia_ManAddClausesMux( Gia_Man_t * pGia, Gia_Obj_t * pNode )
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManAddClausesSuper( Gia_Man_t * pGia, Gia_Obj_t * pNode, Vec_Int_t * vSuper )
+static void Gia_ManAddClausesSuper( Gia_Man_t * pGia, Gia_Obj_t * pNode, Vec_Int_t * vSuper )
 {
     Swp_Man_t * p = (Swp_Man_t *)pGia->pData;
     int i, RetValue, Lit, LitNode, pLits[2];
@@ -431,7 +437,7 @@ void Gia_ManAddClausesSuper( Gia_Man_t * pGia, Gia_Obj_t * pNode, Vec_Int_t * vS
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManCollectSuper_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vSuper )
+static void Gia_ManCollectSuper_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vSuper )
 {
     // stop at complements, shared, PIs, and MUXes
     if ( Gia_IsComplement(pObj) || pObj->fMark0 || Gia_ObjIsCi(pObj) || Gia_ObjIsMuxType(pObj) )
@@ -442,7 +448,7 @@ void Gia_ManCollectSuper_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vSupe
     Gia_ManCollectSuper_rec( p, Gia_ObjChild0(pObj), vSuper );
     Gia_ManCollectSuper_rec( p, Gia_ObjChild1(pObj), vSuper );
 }
-void Gia_ManCollectSuper( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vSuper )
+static void Gia_ManCollectSuper( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vSuper )
 {
     assert( !Gia_IsComplement(pObj) );
     assert( Gia_ObjIsAnd(pObj) );
@@ -462,7 +468,7 @@ void Gia_ManCollectSuper( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vSuper )
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManObjAddToFrontier( Gia_Man_t * pGia, int Id, Vec_Int_t * vFront )
+static void Gia_ManObjAddToFrontier( Gia_Man_t * pGia, int Id, Vec_Int_t * vFront )
 {
     Swp_Man_t * p = (Swp_Man_t *)pGia->pData;
     Gia_Obj_t * pObj;
@@ -476,7 +482,7 @@ void Gia_ManObjAddToFrontier( Gia_Man_t * pGia, int Id, Vec_Int_t * vFront )
     if ( Gia_ObjIsAnd(pObj) )
         Vec_IntPush( vFront, Id );
 }
-void Gia_ManCnfNodeAddToSolver( Gia_Man_t * p, int NodeId )
+static void Gia_ManCnfNodeAddToSolver( Gia_Man_t * p, int NodeId )
 {
     Vec_Int_t * vFront, * vFanins;
     Gia_Obj_t * pNode;
@@ -530,11 +536,13 @@ void Gia_ManCnfNodeAddToSolver( Gia_Man_t * p, int NodeId )
   SeeAlso     []
 
 ***********************************************************************/
-int Gia_ManNodesAreEquiv( Gia_Man_t * pGia, int iOld, int iNew )
+int Gia_SweeperCheckEquiv( Gia_Man_t * pGia, int Probe1, int Probe2 )
 {
     Swp_Man_t * p = (Swp_Man_t *)pGia->pData;
-    Gia_Obj_t * pOld = Gia_Lit2Obj( pGia, iOld );
-    Gia_Obj_t * pNew = Gia_Lit2Obj( pGia, iNew );
+    int iLitOld = Gia_SweeperProbeLit( pGia, Probe1 );
+    int iLitNew = Gia_SweeperProbeLit( pGia, Probe2 );
+    Gia_Obj_t * pOld = Gia_Lit2Obj( pGia, iLitOld );
+    Gia_Obj_t * pNew = Gia_Lit2Obj( pGia, iLitNew );
     int Lit, RetValue, RetValue1;
     clock_t clk;
     p->nSatCalls++;
@@ -544,16 +552,16 @@ int Gia_ManNodesAreEquiv( Gia_Man_t * pGia, int iOld, int iNew )
     assert( p->pSat != NULL );
 
     // if the nodes do not have SAT variables, allocate them
-    Gia_ManCnfNodeAddToSolver( pGia, Abc_Lit2Var(iOld) );
-    Gia_ManCnfNodeAddToSolver( pGia, Abc_Lit2Var(iNew) );
+    Gia_ManCnfNodeAddToSolver( pGia, Abc_Lit2Var(iLitOld) );
+    Gia_ManCnfNodeAddToSolver( pGia, Abc_Lit2Var(iLitNew) );
     sat_solver_compress( p->pSat );
 
     // solve under assumptions
     // A = 1; B = 0     OR     A = 1; B = 1 
-    Lit = Swp_ManLit2Lit( pGia, iOld );
+    Lit = Swp_ManLit2Lit( pGia, iLitOld );
     Vec_IntPush( p->vCondLits, Lit );
 
-    Lit = Swp_ManLit2Lit( pGia, iNew );
+    Lit = Swp_ManLit2Lit( pGia, iLitNew );
     Vec_IntPush( p->vCondLits, Abc_LitNot(Lit) );
 
 clk = clock();
@@ -587,7 +595,7 @@ p->timeSatUndec += clock() - clk;
     }
 
     // if the old node was constant 0, we already know the answer
-    if ( Gia_ManIsConstLit(iNew) )
+    if ( Gia_ManIsConstLit(iLitNew) )
     {
         p->nSatProofs++;
         return 1;
@@ -595,10 +603,10 @@ p->timeSatUndec += clock() - clk;
 
     // solve under assumptions
     // A = 0; B = 1     OR     A = 0; B = 0 
-    Lit = Swp_ManLit2Lit( pGia, iOld );
+    Lit = Swp_ManLit2Lit( pGia, iLitOld );
     Vec_IntPush( p->vCondLits, Abc_LitNot(Lit) );
 
-    Lit = Swp_ManLit2Lit( pGia, iNew );
+    Lit = Swp_ManLit2Lit( pGia, iLitNew );
     Vec_IntPush( p->vCondLits, Lit );
 
 clk = clock();
@@ -635,28 +643,7 @@ p->timeSatUndec += clock() - clk;
     return 1;
 }
 
-//#endif
 
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Gia_ManCheckConst( Gia_Man_t * p, int ProbeId, int Const1 )
-{
-    return -1;
-}
-
-int Gia_ManCheckEquiv( Gia_Man_t * p, int ProbeId1, int ProbeId2 )
-{
-    return -1;
-}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
