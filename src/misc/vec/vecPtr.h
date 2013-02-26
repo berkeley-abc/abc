@@ -174,6 +174,14 @@ static inline Vec_Ptr_t * Vec_PtrDup( Vec_Ptr_t * pVec )
     memcpy( p->pArray, pVec->pArray, sizeof(void *) * pVec->nSize );
     return p;
 }
+static inline Vec_Ptr_t * Vec_PtrDupStr( Vec_Ptr_t * pVec )
+{
+    int i;
+    Vec_Ptr_t * p = Vec_PtrDup( pVec );
+    for ( i = 0; i < p->nSize; i++ )
+        p->pArray[i] = Abc_UtilStrsav( (char *)p->pArray[i] );
+    return p;
+}
 
 /**Function*************************************************************
 

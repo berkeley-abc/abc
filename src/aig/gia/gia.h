@@ -995,6 +995,7 @@ extern Gia_Man_t *         Gia_ManFraigSweep( Gia_Man_t * p, void * pPars );
 /*=== giaSweeper.c ============================================================*/
 extern Gia_Man_t *         Gia_SweeperStart();
 extern void                Gia_SweeperStop( Gia_Man_t * p );
+extern void                Gia_SweeperPrintStats( Gia_Man_t * p );
 extern void                Gia_SweeperSetConflictLimit( Gia_Man_t * p, int nConfMax );
 extern void                Gia_SweeperSetRuntimeLimit( Gia_Man_t * p, int nSeconds );
 extern Vec_Int_t *         Gia_SweeperGetCex( Gia_Man_t * p );

@@ -66,7 +66,6 @@ struct Swp_Man_t_
     Vec_Int_t *    vLit2Prob;   // mapping of literal into its probe
 //    Vec_Int_t *    vFreeProb;   // recycled probe IDs
     Vec_Int_t *    vCondProbes; // conditions as probes
-    Vec_Int_t *    vCondLits;   // conditions as literals
     Vec_Int_t *    vCondAssump; // conditions as SAT solver literals
     // equivalence checking
     sat_solver *   pSat;        // SAT solver 
@@ -80,8 +79,11 @@ struct Swp_Man_t_
     int            nSatCalls;
     int            nSatCallsSat;
     int            nSatCallsUnsat;
-    int            nSatFails;
+    int            nSatCallsUndec;
     int            nSatProofs;
+    clock_t        timeStart;
+    clock_t        timeTotal;
+    clock_t        timeCnf;
     clock_t        timeSat;
     clock_t        timeSatSat;
     clock_t        timeSatUnsat;
@@ -89,8 +91,8 @@ struct Swp_Man_t_
 };
 
 static inline int  Swp_ManObj2Lit( Swp_Man_t * p, int Id )              { return Vec_IntGetEntry( p->vId2Lit, Id );              }
-static inline int  Swp_ManLit2Lit( Swp_Man_t * p, int Lit )             { return Abc_Lit2LitL( Vec_IntArray(p->vId2Lit), Lit );  }
-static inline void Swp_ManSetObj2Lit( Swp_Man_t * p, int Id, int Lit )  { Vec_IntSetEntry( p->vId2Lit, Id, Lit );                }
+static inline int  Swp_ManLit2Lit( Swp_Man_t * p, int Lit )             { assert( Vec_IntEntry(p->vId2Lit, Abc_Lit2Var(Lit)) ); return Abc_Lit2LitL( Vec_IntArray(p->vId2Lit), Lit );  }
+static inline void Swp_ManSetObj2Lit( Swp_Man_t * p, int Id, int Lit )  { assert( Lit > 0 ); Vec_IntSetEntry( p->vId2Lit, Id, Lit );                }
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -118,7 +120,6 @@ static inline Swp_Man_t * Swp_ManStart( Gia_Man_t * pGia )
     p->vProbRefs    = Vec_IntAlloc( 100 );
     p->vLit2Prob    = Vec_IntStartFull( 10000 );
     p->vCondProbes  = Vec_IntAlloc( 100 );
-    p->vCondLits    = Vec_IntAlloc( 100 );
     p->vCondAssump  = Vec_IntAlloc( 100 );
     p->vId2Lit      = Vec_IntAlloc( 10000 );
     p->vFront       = Vec_IntAlloc( 100 );
@@ -130,6 +131,7 @@ static inline Swp_Man_t * Swp_ManStart( Gia_Man_t * pGia )
     Swp_ManSetObj2Lit( p, 0, (Lit = Abc_Var2Lit(p->nSatVars++, 0)) );
     Lit = Abc_LitNot(Lit);
     sat_solver_addclause( p->pSat, &Lit, &Lit + 1 );
+    p->timeStart    = clock();
     return p;
 }
 static inline void Swp_ManStop( Gia_Man_t * pGia )
@@ -144,7 +146,6 @@ static inline void Swp_ManStop( Gia_Man_t * pGia )
     Vec_IntFree( p->vProbRefs );
     Vec_IntFree( p->vLit2Prob );
     Vec_IntFree( p->vCondProbes );
-    Vec_IntFree( p->vCondLits );
     Vec_IntFree( p->vCondAssump );
     ABC_FREE( p );
     pGia->pData = NULL;
@@ -164,6 +165,48 @@ void Gia_SweeperStop( Gia_Man_t * pGia )
     Swp_ManStop( pGia );
     Gia_ManHashStop( pGia );
     Gia_ManStop( pGia );
+}
+double Gia_SweeperMemUsage( Gia_Man_t * pGia )
+{
+    Swp_Man_t * p = (Swp_Man_t *)pGia->pData;
+    double nMem = sizeof(Swp_Man_t);
+    nMem += Vec_IntCap(p->vProbes);
+    nMem += Vec_IntCap(p->vProbRefs);
+    nMem += Vec_IntCap(p->vLit2Prob);
+    nMem += Vec_IntCap(p->vCondProbes);
+    nMem += Vec_IntCap(p->vCondAssump);
+    nMem += Vec_IntCap(p->vId2Lit);
+    nMem += Vec_IntCap(p->vFront);
+    nMem += Vec_IntCap(p->vFanins);
+    nMem += Vec_IntCap(p->vCexSwp);
+    return 4.0 * nMem;
+}
+void Gia_SweeperPrintStats( Gia_Man_t * pGia )
+{
+    Swp_Man_t * p = (Swp_Man_t *)pGia->pData;
+    double nMemSwp = Gia_SweeperMemUsage(pGia)/(1<<20);
+    double nMemGia = (double)Gia_ManObjNum(pGia)*(sizeof(Gia_Obj_t) + sizeof(int))/(1<<20);
+    double nMemSat = sat_solver_memory(p->pSat)/(1<<20);
+    double nMemTot = nMemSwp + nMemGia + nMemSat;
+    printf( "SAT sweeper statistics:\n" );
+    printf( "Memory usage:\n" );
+    ABC_PRMP( "Sweeper         ", nMemSwp, nMemTot );
+    ABC_PRMP( "AIG manager     ", nMemGia, nMemTot );
+    ABC_PRMP( "SAT solver      ", nMemSat, nMemTot );
+    ABC_PRMP( "TOTAL           ", nMemTot, nMemTot );
+    printf( "Runtime usage:\n" );
+    p->timeTotal = clock() - p->timeStart;
+    ABC_PRTP( "CNF construction", p->timeCnf,      p->timeTotal );
+    ABC_PRTP( "SAT solving     ", p->timeSat,      p->timeTotal );
+    ABC_PRTP( "    Sat         ", p->timeSatSat,   p->timeTotal );
+    ABC_PRTP( "    Unsat       ", p->timeSatUnsat, p->timeTotal );
+    ABC_PRTP( "    Undecided   ", p->timeSatUndec, p->timeTotal );
+    ABC_PRTP( "TOTAL RUNTIME   ", p->timeTotal,    p->timeTotal );
+    printf( "GIA: " );
+    Gia_ManPrintStats( pGia, 0, 0, 0 );
+    printf( "SAT calls = %d. Sat = %d. Unsat = %d. Undecided = %d.  Proofs = %d.\n", 
+        p->nSatCalls, p->nSatCallsSat, p->nSatCallsSat, p->nSatCallsUndec, p->nSatProofs );
+    Sat_SolverPrintStats( stdout, p->pSat );
 }
 
 /**Function*************************************************************
@@ -264,37 +307,13 @@ void Gia_SweeperCondPush( Gia_Man_t * p, int ProbeId )
 {
     Swp_Man_t * pSwp = (Swp_Man_t *)p->pData;
     Vec_IntPush( pSwp->vCondProbes, ProbeId );
-    Vec_IntPush( pSwp->vCondLits, Gia_SweeperProbeLit(p, ProbeId) );
 }
 int Gia_SweeperCondPop( Gia_Man_t * p )
 {
     Swp_Man_t * pSwp = (Swp_Man_t *)p->pData;
-    int ProbId = Vec_IntPop( pSwp->vCondProbes );
-    Vec_IntPop( pSwp->vCondLits );
-    return ProbId;
+    return Vec_IntPop( pSwp->vCondProbes );
 }
 
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-static inline Vec_Ptr_t * Vec_PtrDupStr( Vec_Ptr_t * pVec )
-{
-    char * pName;
-    int i;
-    Vec_Ptr_t * p = Vec_PtrDup( pVec );
-    Vec_PtrForEachEntry( char *, p, pName, i )
-        Vec_PtrWriteEntry( p, i, Abc_UtilStrsav(pName) );
-    return p;
-}
 
 /**Function*************************************************************
 
@@ -320,19 +339,11 @@ static void Gia_ManExtract_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vOb
 }
 Gia_Man_t * Gia_SweeperExtractUserLogic( Gia_Man_t * p, Vec_Int_t * vProbeIds, Vec_Ptr_t * vOutNames )
 {
+    Vec_Int_t * vObjIds, * vValues;
     Gia_Man_t * pNew, * pTemp;
     Gia_Obj_t * pObj;
-    Vec_Int_t * vObjIds;
-    Vec_Int_t * vValues;
     int i, ProbeId;
     assert( Vec_IntSize(vProbeIds) == Vec_PtrSize(vOutNames) );
-    // save values
-    vValues = Vec_IntAlloc( Gia_ManObjNum(p) );
-    Gia_ManForEachObj( p, pObj, i )
-    {
-        Vec_IntPush( vValues, pObj->Value );
-        pObj->Value = ~0;
-    }
     // create new
     Gia_ManIncrementTravId( p );
     vObjIds = Vec_IntAlloc( 1000 );
@@ -342,7 +353,7 @@ Gia_Man_t * Gia_SweeperExtractUserLogic( Gia_Man_t * p, Vec_Int_t * vProbeIds, V
         Gia_ManExtract_rec( p, Gia_Regular(pObj), vObjIds );
     }
     // create new manager
-    pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew = Gia_ManStart( 1 + Gia_ManPiNum(p) + Vec_IntSize(vObjIds) + Vec_IntSize(vProbeIds) + 100 );
     pNew->pName = Abc_UtilStrsav( p->pName );
     pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     Gia_ManConst0(p)->Value = 0;
@@ -350,16 +361,26 @@ Gia_Man_t * Gia_SweeperExtractUserLogic( Gia_Man_t * p, Vec_Int_t * vProbeIds, V
         pObj->Value = Gia_ManAppendCi(pNew);
     // create internal nodes
     Gia_ManHashStart( pNew );
+    vValues = Vec_IntAlloc( Vec_IntSize(vObjIds) );
     Gia_ManForEachObjVec( vObjIds, p, pObj, i )
+    {
+        Vec_IntPush( vValues, pObj->Value );
         pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    }
     Gia_ManHashStop( pNew );
-    Vec_IntFree( vObjIds );
     // create outputs
     Vec_IntForEachEntry( vProbeIds, ProbeId, i )
     {
         pObj = Gia_Lit2Obj( p, Gia_SweeperProbeLit(p, ProbeId) );
         Gia_ManAppendCo( pNew, Gia_Regular(pObj)->Value ^ Gia_IsComplement(pObj) );
     }
+    // return the values back
+    Gia_ManForEachPi( p, pObj, i )
+        pObj->Value = 0;
+    Gia_ManForEachObjVec( vObjIds, p, pObj, i )
+        pObj->Value = Vec_IntEntry( vValues, i );
+    Vec_IntFree( vObjIds );
+    Vec_IntFree( vValues );
     // duplicated if needed
     if ( Gia_ManHasDangling(pNew) )
     {
@@ -371,11 +392,6 @@ Gia_Man_t * Gia_SweeperExtractUserLogic( Gia_Man_t * p, Vec_Int_t * vProbeIds, V
         pNew->vNamesIn = Vec_PtrDupStr( p->vNamesIn );
     if ( vOutNames )
         pNew->vNamesOut = Vec_PtrDupStr( vOutNames );
-//Gia_ManPrintStats( pNew, 0, 0, 0 );
-    // reset values
-    Gia_ManForEachObj( p, pObj, i )
-        pObj->Value = Vec_IntEntry( vValues, i );
-    Vec_IntFree( vValues );
     return pNew;
 }
 
@@ -553,9 +569,11 @@ static void Gia_ManCnfNodeAddToSolver( Swp_Man_t * p, int NodeId )
 {
     Gia_Obj_t * pNode;
     int i, k, Id, Lit;
+    clock_t clk;
     // quit if CNF is ready
     if ( NodeId == 0 || Swp_ManObj2Lit(p, NodeId) )
         return;
+clk = clock();
     // start the frontier
     Vec_IntClear( p->vFront );
     Gia_ManObjAddToFrontier( p, NodeId, p->vFront );
@@ -584,6 +602,7 @@ static void Gia_ManCnfNodeAddToSolver( Swp_Man_t * p, int NodeId )
         }
         assert( Vec_IntSize(p->vFanins) > 1 );
     }
+p->timeCnf += clock() - clk;
 }
 
 
@@ -632,7 +651,7 @@ static Vec_Int_t * Gia_ManGetCex( Gia_Man_t * pGia, Vec_Int_t * vId2Lit, sat_sol
 int Gia_SweeperCheckEquiv( Gia_Man_t * pGia, int Probe1, int Probe2 )
 {
     Swp_Man_t * p = (Swp_Man_t *)pGia->pData;
-    int iLitOld, iLitNew, pLitsSat[2], RetValue, RetValue1, iLitAig, i;
+    int iLitOld, iLitNew, iLitAig, pLitsSat[2], RetValue, RetValue1, ProbeId, i;
     clock_t clk;
     p->nSatCalls++;
     assert( p->pSat != NULL );
@@ -647,7 +666,7 @@ int Gia_SweeperCheckEquiv( Gia_Man_t * pGia, int Probe1, int Probe2 )
     // if the literals are opposites, the probes are not equivalent
     if ( Abc_LitRegular(iLitOld) == Abc_LitRegular(iLitNew) )
     {
-        Vec_IntFill( p->vCexSwp, Gia_ManPiNum(pGia), 0 );
+        Vec_IntFill( p->vCexSwp, Gia_ManPiNum(pGia), 2 );
         p->vCexUser = p->vCexSwp;
         return 0;
     }
@@ -656,10 +675,11 @@ int Gia_SweeperCheckEquiv( Gia_Man_t * pGia, int Probe1, int Probe2 )
         ABC_SWAP( int, iLitOld, iLitNew );
     assert( iLitOld > iLitNew );
 
-    // if the nodes do not have SAT variables, allocate them
+    // create logic cones and the array of assumptions
     Vec_IntClear( p->vCondAssump );
-    Vec_IntForEachEntry( p->vCondLits, iLitAig, i )
+    Vec_IntForEachEntry( p->vCondProbes, ProbeId, i )
     {
+        iLitAig = Gia_SweeperProbeLit( pGia, ProbeId );
         Gia_ManCnfNodeAddToSolver( p, Abc_Lit2Var(iLitAig) );
         Vec_IntPush( p->vCondAssump, Swp_ManLit2Lit(p, iLitAig) );
     }
@@ -684,11 +704,9 @@ p->timeSat += clock() - clk;
     if ( RetValue1 == l_False )
     {
         pLitsSat[0] = Abc_LitNot( pLitsSat[0] );
-        pLitsSat[1] = Abc_LitNot( pLitsSat[1] );
         RetValue = sat_solver_addclause( p->pSat, pLitsSat, pLitsSat + 2 );
         assert( RetValue );
         pLitsSat[0] = Abc_LitNot( pLitsSat[0] );
-        pLitsSat[1] = Abc_LitNot( pLitsSat[1] );
 p->timeSatUnsat += clock() - clk;
         p->nSatCallsUnsat++;
     }
@@ -702,7 +720,7 @@ p->timeSatSat += clock() - clk;
     else // if ( RetValue1 == l_Undef )
     {
 p->timeSatUndec += clock() - clk;
-        p->nSatFails++;
+        p->nSatCallsUndec++;
         return -1;
     }
 
@@ -725,11 +743,9 @@ clk = clock();
 p->timeSat += clock() - clk;
     if ( RetValue1 == l_False )
     {
-        pLitsSat[0] = Abc_LitNot( pLitsSat[0] );
         pLitsSat[1] = Abc_LitNot( pLitsSat[1] );
         RetValue = sat_solver_addclause( p->pSat, pLitsSat, pLitsSat + 2 );
         assert( RetValue );
-        pLitsSat[0] = Abc_LitNot( pLitsSat[0] );
         pLitsSat[1] = Abc_LitNot( pLitsSat[1] );
 p->timeSatUnsat += clock() - clk;
         p->nSatCallsUnsat++;
@@ -744,7 +760,7 @@ p->timeSatSat += clock() - clk;
     else // if ( RetValue1 == l_Undef )
     {
 p->timeSatUndec += clock() - clk;
-        p->nSatFails++;
+        p->nSatCallsUndec++;
         return -1;
     }
     // return SAT proof
@@ -766,15 +782,17 @@ p->timeSatUndec += clock() - clk;
 int Gia_SweeperCondCheckUnsat( Gia_Man_t * pGia )
 {
     Swp_Man_t * p = (Swp_Man_t *)pGia->pData;
-    int RetValue, iLitAig, i;
+    int RetValue, ProbeId, iLitAig, i;
     clock_t clk;
-    p->nSatCalls++;
     assert( p->pSat != NULL );
+    p->nSatCalls++;
     p->vCexUser = NULL;
 
+    // create logic cones and the array of assumptions
     Vec_IntClear( p->vCondAssump );
-    Vec_IntForEachEntry( p->vCondLits, iLitAig, i )
+    Vec_IntForEachEntry( p->vCondProbes, ProbeId, i )
     {
+        iLitAig = Gia_SweeperProbeLit( pGia, ProbeId );
         Gia_ManCnfNodeAddToSolver( p, Abc_Lit2Var(iLitAig) );
         Vec_IntPush( p->vCondAssump, Swp_ManLit2Lit(p, iLitAig) );
     }
@@ -786,9 +804,10 @@ clk = clock();
 p->timeSat += clock() - clk;
     if ( RetValue == l_False )
     {
-        assert( Vec_IntSize(p->vCondLits) > 0 );
+        assert( Vec_IntSize(p->vCondProbes) > 0 );
 p->timeSatUnsat += clock() - clk;
         p->nSatCallsUnsat++;
+        p->nSatProofs++;
         return 1;
     }
     else if ( RetValue == l_True )
@@ -801,7 +820,7 @@ p->timeSatSat += clock() - clk;
     else // if ( RetValue1 == l_Undef )
     {
 p->timeSatUndec += clock() - clk;
-        p->nSatFails++;
+        p->nSatCallsUndec++;
         return -1;
     }
 }
