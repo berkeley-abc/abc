@@ -623,7 +623,7 @@ static Vec_Int_t * Gia_ManGetCex( Gia_Man_t * pGia, Vec_Int_t * vId2Lit, sat_sol
 int Gia_SweeperCheckEquiv( Gia_Man_t * pGia, int Probe1, int Probe2 )
 {
     Swp_Man_t * p = (Swp_Man_t *)pGia->pData;
-    int iLitOld, iLitNew, pLitsSat[2], RetValue, RetValue1;
+    int iLitOld, iLitNew, pLitsSat[2], RetValue, RetValue1, LitSat, i;
     clock_t clk;
     p->nSatCalls++;
     assert( p->pSat != NULL );
@@ -648,6 +648,8 @@ int Gia_SweeperCheckEquiv( Gia_Man_t * pGia, int Probe1, int Probe2 )
     assert( iLitOld > iLitNew );
 
     // if the nodes do not have SAT variables, allocate them
+    Vec_IntForEachEntry( p->vCondLits, LitSat, i )
+        Gia_ManCnfNodeAddToSolver( p, Abc_Lit2Var(LitSat) );
     Gia_ManCnfNodeAddToSolver( p, Abc_Lit2Var(iLitOld) );
     Gia_ManCnfNodeAddToSolver( p, Abc_Lit2Var(iLitNew) );
     sat_solver_compress( p->pSat );
@@ -751,11 +753,15 @@ p->timeSatUndec += clock() - clk;
 int Gia_SweeperCondCheckUnsat( Gia_Man_t * pGia )
 {
     Swp_Man_t * p = (Swp_Man_t *)pGia->pData;
-    int RetValue;
+    int RetValue, LitSat, i;
     clock_t clk;
     p->nSatCalls++;
     assert( p->pSat != NULL );
     p->vCexUser = NULL;
+
+    Vec_IntForEachEntry( p->vCondLits, LitSat, i )
+        Gia_ManCnfNodeAddToSolver( p, Abc_Lit2Var(LitSat) );
+    sat_solver_compress( p->pSat );
 
 clk = clock();
     RetValue = sat_solver_solve( p->pSat, Vec_IntArray(p->vCondLits), Vec_IntArray(p->vCondLits) + Vec_IntSize(p->vCondLits), 
