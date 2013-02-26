@@ -118,6 +118,7 @@ static inline Swp_Man_t * Swp_ManStart( Gia_Man_t * pGia )
     p->vLit2Prob   = Vec_IntStartFull( 10000 );
     p->vCondProbes = Vec_IntAlloc( 100 );
     p->vCondLits   = Vec_IntAlloc( 100 );
+    p->vId2Lit     = Vec_IntAlloc( 10000 );
     p->vFront      = Vec_IntAlloc( 100 );
     p->vFanins     = Vec_IntAlloc( 100 );
     p->vCexSwp     = Vec_IntAlloc( 100 );
@@ -131,8 +132,10 @@ static inline Swp_Man_t * Swp_ManStart( Gia_Man_t * pGia )
 static inline void Swp_ManStop( Gia_Man_t * pGia )
 {
     Swp_Man_t * p = (Swp_Man_t *)pGia->pData;
+    sat_solver_delete( p->pSat );
     Vec_IntFree( p->vFanins );
     Vec_IntFree( p->vCexSwp );
+    Vec_IntFree( p->vId2Lit );
     Vec_IntFree( p->vFront );
     Vec_IntFree( p->vProbes );
     Vec_IntFree( p->vProbRefs );
