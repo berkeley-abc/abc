@@ -87,20 +87,9 @@ struct Swp_Man_t_
     clock_t        timeSatUndec;
 };
 
-static inline int Swp_ManObj2Lit( Gia_Man_t * p, int Id ) 
-{ 
-    return Vec_IntGetEntry( ((Swp_Man_t *)p->pData)->vId2Lit, Id );
-}
-static inline void Swp_ManSetObj2Lit( Gia_Man_t * p, int Id, int Lit ) 
-{ 
-    Vec_IntSetEntry( ((Swp_Man_t *)p->pData)->vId2Lit, Id, Lit );
-}
-static inline int Swp_ManLit2Lit( Gia_Man_t * p, int Lit ) 
-{ 
-    return Abc_Lit2LitL( Vec_IntArray(((Swp_Man_t *)p->pData)->vId2Lit), Lit );
-}
-
-
+static inline int  Swp_ManObj2Lit( Swp_Man_t * p, int Id )              { return Vec_IntGetEntry( p->vId2Lit, Id );              }
+static inline int  Swp_ManLit2Lit( Swp_Man_t * p, int Lit )             { return Abc_Lit2LitL( Vec_IntArray(p->vId2Lit), Lit );  }
+static inline void Swp_ManSetObj2Lit( Swp_Man_t * p, int Id, int Lit )  { Vec_IntSetEntry( p->vId2Lit, Id, Lit );                }
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -120,6 +109,7 @@ static inline int Swp_ManLit2Lit( Gia_Man_t * p, int Lit )
 static inline Swp_Man_t * Swp_ManStart( Gia_Man_t * pGia )
 {
     Swp_Man_t * p;
+    int Lit;
     p = ABC_CALLOC( Swp_Man_t, 1 );
     p->pGia        = pGia;
     p->nConfMax    = 1000;
@@ -133,7 +123,8 @@ static inline Swp_Man_t * Swp_ManStart( Gia_Man_t * pGia )
     p->vCexSwp     = Vec_IntAlloc( 100 );
     p->pSat        = sat_solver_new();
     p->nSatVars    = 1;
-    Swp_ManSetObj2Lit( pGia, 0, Abc_Var2Lit(p->nSatVars++, 0) );
+    Swp_ManSetObj2Lit( p, 0, (Lit = Abc_Var2Lit(p->nSatVars++, 1)) );
+    sat_solver_addclause( p->pSat, &Lit, &Lit + 1 );
     pGia->pData    = p;
     return p;
 }
@@ -189,6 +180,8 @@ void Gia_SweeperSetRuntimeLimit( Gia_Man_t * p, int nSeconds )
 {
     Swp_Man_t * pSwp = (Swp_Man_t *)p->pData;
     pSwp->nTimeOut = nSeconds;
+    if ( nSeconds )
+        sat_solver_set_runtime_limit( pSwp->pSat, nSeconds * CLOCKS_PER_SEC + clock() );
 }
 Vec_Int_t * Gia_SweeperGetCex( Gia_Man_t * p )
 {
@@ -214,7 +207,7 @@ int Gia_SweeperProbeCreate( Gia_Man_t * p, int iLit )
     int ProbeId = Vec_IntSize(pSwp->vProbes);
     Vec_IntPush( pSwp->vProbes, iLit );
     Vec_IntPush( pSwp->vProbRefs, 1 );
-    Vec_IntSetEntryFull( pSwp->vLit2Prob, iLit, ProbeId );
+    Vec_IntSetEntryFull( pSwp->vLit2Prob, iLit, ProbeId ); // consider hash table in the future
     return ProbeId;
 }
 // if probe with this literal (iLit) exists, this procedure increments its reference counter and returns it.
@@ -222,7 +215,7 @@ int Gia_SweeperProbeCreate( Gia_Man_t * p, int iLit )
 int Gia_SweeperProbeFind( Gia_Man_t * p, int iLit )
 {
     Swp_Man_t * pSwp = (Swp_Man_t *)p->pData;
-    if ( iLit >= Vec_IntSize(pSwp->vLit2Prob) || Vec_IntEntry(pSwp->vLit2Prob, iLit) >= 0 )
+    if ( iLit < Vec_IntSize(pSwp->vLit2Prob) && Vec_IntEntry(pSwp->vLit2Prob, iLit) >= 0 )
         return Vec_IntEntry(pSwp->vLit2Prob, iLit);
     return Gia_SweeperProbeCreate( p, iLit );
 }
@@ -231,11 +224,12 @@ void Gia_SweeperProbeDeref( Gia_Man_t * p, int ProbeId )
 {
     Swp_Man_t * pSwp = (Swp_Man_t *)p->pData;
     assert( Vec_IntEntry(pSwp->vProbRefs, ProbeId) > 0 );
-    Vec_IntAddToEntry( pSwp->vProbRefs, ProbeId, -1 );
-    if ( Vec_IntEntry(pSwp->vProbRefs, ProbeId) == 0 )
+    if ( Vec_IntAddToEntry( pSwp->vProbRefs, ProbeId, -1 ) == 0 )
     {
         int iLit = Gia_SweeperProbeLit( p, ProbeId );
         Vec_IntWriteEntry( pSwp->vLit2Prob, iLit, -1 );
+        Vec_IntWriteEntry( pSwp->vProbes, ProbeId, 0 );
+        // TODO: recycle probe ID
     }
 }
 // returns literal associated with the probe
@@ -269,11 +263,6 @@ int Gia_SweeperCondPop( Gia_Man_t * p )
     Vec_IntPop( pSwp->vCondLits );
     return ProbId;
 }
-// returns 1 if the set of conditions is UNSAT (0 if SAT; -1 if undecided)
-int Gia_SweeperCondCheckUnsat( Gia_Man_t * p )
-{
-    return 0;
-}
 
 /**Function*************************************************************
 
@@ -299,7 +288,7 @@ static void Gia_ManExtract_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vOb
 }
 Gia_Man_t * Gia_SweeperExtractUserLogic( Gia_Man_t * p, Vec_Int_t * vProbeIds, Vec_Ptr_t * vOutNames )
 {
-    Gia_Man_t * pNew;
+    Gia_Man_t * pNew, * pTemp;
     Gia_Obj_t * pObj;
     Vec_Int_t * vObjIds;
     int i, ProbeId;
@@ -319,12 +308,18 @@ Gia_Man_t * Gia_SweeperExtractUserLogic( Gia_Man_t * p, Vec_Int_t * vProbeIds, V
     Gia_ManForEachPi( p, pObj, i )
         pObj->Value = Gia_ManAppendCi(pNew);
     Gia_ManForEachObjVec( vObjIds, p, pObj, i )
-        pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
     Vec_IntFree( vObjIds );
     Vec_IntForEachEntry( vProbeIds, ProbeId, i )
     {
         pObj = Gia_Lit2Obj( p, Gia_SweeperProbeLit(p, ProbeId) );
         Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(Gia_Regular(pObj)) ^ Gia_IsComplement(pObj) );
+    }
+    // duplicated if needed
+    if ( Gia_ManHasDangling(pNew) )
+    {
+        pNew = Gia_ManCleanup( pTemp = pNew );
+        Gia_ManStop( pTemp );
     }
     // copy names if present
     if ( p->vNamesIn )
@@ -346,9 +341,8 @@ Gia_Man_t * Gia_SweeperExtractUserLogic( Gia_Man_t * p, Vec_Int_t * vProbeIds, V
   SeeAlso     []
 
 ***********************************************************************/
-static void Gia_ManAddClausesMux( Gia_Man_t * pGia, Gia_Obj_t * pNode )
+static void Gia_ManAddClausesMux( Swp_Man_t * p, Gia_Obj_t * pNode )
 {
-    Swp_Man_t * p = (Swp_Man_t *)pGia->pData;
     Gia_Obj_t * pNodeI, * pNodeT, * pNodeE;
     int pLits[4], LitF, LitI, LitT, LitE, RetValue;
     assert( !Gia_IsComplement( pNode ) );
@@ -356,10 +350,10 @@ static void Gia_ManAddClausesMux( Gia_Man_t * pGia, Gia_Obj_t * pNode )
     // get nodes (I = if, T = then, E = else)
     pNodeI = Gia_ObjRecognizeMux( pNode, &pNodeT, &pNodeE );
     // get the Litiable numbers
-    LitF = Swp_ManLit2Lit( pGia, Gia_Obj2Lit(pGia,pNode) );
-    LitI = Swp_ManLit2Lit( pGia, Gia_Obj2Lit(pGia,pNodeI) );
-    LitT = Swp_ManLit2Lit( pGia, Gia_Obj2Lit(pGia,pNodeT) );
-    LitE = Swp_ManLit2Lit( pGia, Gia_Obj2Lit(pGia,pNodeE) );
+    LitF = Swp_ManLit2Lit( p, Gia_Obj2Lit(p->pGia,pNode) );
+    LitI = Swp_ManLit2Lit( p, Gia_Obj2Lit(p->pGia,pNodeI) );
+    LitT = Swp_ManLit2Lit( p, Gia_Obj2Lit(p->pGia,pNodeT) );
+    LitE = Swp_ManLit2Lit( p, Gia_Obj2Lit(p->pGia,pNodeE) );
 
     // f = ITE(i, t, e)
 
@@ -426,22 +420,23 @@ static void Gia_ManAddClausesMux( Gia_Man_t * pGia, Gia_Obj_t * pNode )
   SeeAlso     []
 
 ***********************************************************************/
-static void Gia_ManAddClausesSuper( Gia_Man_t * pGia, Gia_Obj_t * pNode, Vec_Int_t * vSuper )
+static void Gia_ManAddClausesSuper( Swp_Man_t * p, Gia_Obj_t * pNode, Vec_Int_t * vSuper )
 {
-    Swp_Man_t * p = (Swp_Man_t *)pGia->pData;
     int i, RetValue, Lit, LitNode, pLits[2];
     assert( !Gia_IsComplement(pNode) );
     assert( Gia_ObjIsAnd( pNode ) );
     // suppose AND-gate is A & B = C
     // add !A => !C   or   A + !C
-    LitNode = Swp_ManObj2Lit( pGia, Gia_ObjId(pGia, pNode) );
+    // add !B => !C   or   B + !C
+    LitNode = Swp_ManLit2Lit( p, Gia_Obj2Lit(p->pGia,pNode) );
     Vec_IntForEachEntry( vSuper, Lit, i )
     {
-        pLits[0] = Abc_LitNot( LitNode );
-        pLits[1] = Swp_ManLit2Lit( pGia, Lit );
-        Vec_IntWriteEntry( vSuper, i, Abc_LitNot(pLits[1]) );
+        pLits[0] = Swp_ManLit2Lit( p, Lit );
+        pLits[1] = Abc_LitNot( LitNode );
         RetValue = sat_solver_addclause( p->pSat, pLits, pLits + 2 );
         assert( RetValue );
+        // update literals
+        Vec_IntWriteEntry( vSuper, i, Abc_LitNot(pLits[0]) );
     }
     // add A & B => C   or   !A + !B + C
     Vec_IntPush( vSuper, LitNode );
@@ -465,7 +460,7 @@ static void Gia_ManAddClausesSuper( Gia_Man_t * pGia, Gia_Obj_t * pNode, Vec_Int
 static void Gia_ManCollectSuper_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vSuper )
 {
     // stop at complements, shared, PIs, and MUXes
-    if ( Gia_IsComplement(pObj) || pObj->fMark0 || Gia_ObjIsCi(pObj) || Gia_ObjIsMuxType(pObj) )
+    if ( Gia_IsComplement(pObj) || pObj->fMark1 || Gia_ObjIsCi(pObj) || Gia_ObjIsMuxType(pObj) )
     {
         Vec_IntPushUnique( vSuper, Gia_ObjId(p, pObj) );
         return;
@@ -493,62 +488,80 @@ static void Gia_ManCollectSuper( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vS
   SeeAlso     []
 
 ***********************************************************************/
-static void Gia_ManObjAddToFrontier( Gia_Man_t * pGia, int Id, Vec_Int_t * vFront )
+static void Gia_ManObjAddToFrontier( Swp_Man_t * p, int Id, Vec_Int_t * vFront )
 {
-    Swp_Man_t * p = (Swp_Man_t *)pGia->pData;
     Gia_Obj_t * pObj;
-    if ( Id == 0 )
+    if ( Id == 0 || Swp_ManObj2Lit(p, Id) )
         return;
-    if ( Swp_ManObj2Lit(pGia, Id) )
-        return;
-    pObj = Gia_ManObj( pGia, Id );
-    Swp_ManSetObj2Lit( pGia, Id, Abc_Var2Lit(p->nSatVars++, pObj->fPhase) );
+    pObj = Gia_ManObj( p->pGia, Id );
+    Swp_ManSetObj2Lit( p, Id, Abc_Var2Lit(p->nSatVars++, pObj->fPhase) );
     sat_solver_setnvars( p->pSat, p->nSatVars + 100 );
     if ( Gia_ObjIsAnd(pObj) )
         Vec_IntPush( vFront, Id );
 }
-static void Gia_ManCnfNodeAddToSolver( Gia_Man_t * p, int NodeId )
+static void Gia_ManCnfNodeAddToSolver( Swp_Man_t * p, int NodeId )
 {
-    Vec_Int_t * vFront, * vFanins;
     Gia_Obj_t * pNode;
     int i, k, Id;
     // quit if CNF is ready
-    if ( NodeId == 0 )
-        return;
-    if ( Swp_ManObj2Lit(p, NodeId) )
+    if ( NodeId == 0 || Swp_ManObj2Lit(p, NodeId) )
         return;
     // start the frontier
-    vFront = ((Swp_Man_t *)p->pData)->vFront;
-    Vec_IntClear( vFront );
-    Gia_ManObjAddToFrontier( p, NodeId, vFront );
+    Vec_IntClear( p->vFront );
+    Gia_ManObjAddToFrontier( p, NodeId, p->vFront );
     // explore nodes in the frontier
-    Gia_ManForEachObjVec( vFront, p, pNode, i )
+    Gia_ManForEachObjVec( p->vFront, p->pGia, pNode, i )
     {
-        vFanins = ((Swp_Man_t *)p->pData)->vFanins;
         // create the supergate
-        assert( Swp_ManObj2Lit(p,Gia_ObjId(p, pNode)) );
+        assert( Swp_ManObj2Lit(p, Gia_ObjId(p->pGia, pNode)) );
         if ( Gia_ObjIsMuxType(pNode) )
         {
-            Vec_IntClear( vFanins );
-            Vec_IntPushUnique( vFanins, Gia_ObjFaninId0p( p, Gia_ObjFanin0(pNode) ) );
-            Vec_IntPushUnique( vFanins, Gia_ObjFaninId0p( p, Gia_ObjFanin1(pNode) ) );
-            Vec_IntPushUnique( vFanins, Gia_ObjFaninId1p( p, Gia_ObjFanin0(pNode) ) );
-            Vec_IntPushUnique( vFanins, Gia_ObjFaninId1p( p, Gia_ObjFanin1(pNode) ) );
-            Vec_IntForEachEntry( vFanins, Id, k )
-                Gia_ManObjAddToFrontier( p, Id, vFront );
+            Vec_IntClear( p->vFanins );
+            Vec_IntPushUnique( p->vFanins, Gia_ObjFaninId0p( p->pGia, Gia_ObjFanin0(pNode) ) );
+            Vec_IntPushUnique( p->vFanins, Gia_ObjFaninId0p( p->pGia, Gia_ObjFanin1(pNode) ) );
+            Vec_IntPushUnique( p->vFanins, Gia_ObjFaninId1p( p->pGia, Gia_ObjFanin0(pNode) ) );
+            Vec_IntPushUnique( p->vFanins, Gia_ObjFaninId1p( p->pGia, Gia_ObjFanin1(pNode) ) );
+            Vec_IntForEachEntry( p->vFanins, Id, k )
+                Gia_ManObjAddToFrontier( p, Id, p->vFront );
             Gia_ManAddClausesMux( p, pNode );
         }
         else
         {
-            Gia_ManCollectSuper( p, pNode, vFanins );
-            Vec_IntForEachEntry( vFanins, Id, k )
-                Gia_ManObjAddToFrontier( p, Id, vFront );
-            Gia_ManAddClausesSuper( p, pNode, vFanins );
+            Gia_ManCollectSuper( p->pGia, pNode, p->vFanins );
+            Vec_IntForEachEntry( p->vFanins, Id, k )
+                Gia_ManObjAddToFrontier( p, Id, p->vFront );
+            Gia_ManAddClausesSuper( p, pNode, p->vFanins );
         }
-        assert( Vec_IntSize(vFanins) > 1 );
+        assert( Vec_IntSize(p->vFanins) > 1 );
     }
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static Vec_Int_t * Gia_ManGetCex( Gia_Man_t * pGia, Vec_Int_t * vId2Lit, sat_solver * pSat, Vec_Int_t * vCex )
+{
+    Gia_Obj_t * pObj;
+    int i, LitSat, Value;
+    Vec_IntClear( vCex );
+    Gia_ManForEachPi( pGia, pObj, i )
+    {
+        LitSat = Vec_IntEntry( vId2Lit, Gia_ObjId(pGia, pObj) );
+        assert( LitSat > 0 );
+        Value = sat_solver_var_value(pSat, Abc_Lit2Var(LitSat)) ^ Abc_LitIsCompl(LitSat);
+        Vec_IntPush( vCex, Value );
+    }
+    return vCex;
+}
 
 /**Function*************************************************************
 
@@ -576,10 +589,11 @@ int Gia_SweeperCheckEquiv( Gia_Man_t * pGia, int Probe1, int Probe2 )
     // if the literals are identical, the probes are equivalent
     if ( iLitOld == iLitNew )
         return 1;
-    // if the literals are opposites, the probes are 
+    // if the literals are opposites, the probes are not equivalent
     if ( Abc_LitRegular(iLitOld) == Abc_LitRegular(iLitNew) )
     {
         Vec_IntFill( p->vCexSwp, Gia_ManPiNum(pGia), 0 );
+        p->vCexUser = p->vCexSwp;
         return 0;
     }
     // order the literals
@@ -588,13 +602,13 @@ int Gia_SweeperCheckEquiv( Gia_Man_t * pGia, int Probe1, int Probe2 )
     assert( iLitOld > iLitNew );
 
     // if the nodes do not have SAT variables, allocate them
-    Gia_ManCnfNodeAddToSolver( pGia, Abc_Lit2Var(iLitOld) );
-    Gia_ManCnfNodeAddToSolver( pGia, Abc_Lit2Var(iLitNew) );
+    Gia_ManCnfNodeAddToSolver( p, Abc_Lit2Var(iLitOld) );
+    Gia_ManCnfNodeAddToSolver( p, Abc_Lit2Var(iLitNew) );
     sat_solver_compress( p->pSat );
 
     // set the SAT literals
-    pLitsSat[0] = Swp_ManLit2Lit( pGia, iLitOld );
-    pLitsSat[1] = Swp_ManLit2Lit( pGia, iLitNew );
+    pLitsSat[0] = Swp_ManLit2Lit( p, iLitOld );
+    pLitsSat[1] = Swp_ManLit2Lit( p, iLitNew );
 
     // solve under assumptions
     // A = 1; B = 0     OR     A = 1; B = 1 
@@ -619,6 +633,7 @@ p->timeSatUnsat += clock() - clk;
     }
     else if ( RetValue1 == l_True )
     {
+        p->vCexUser = Gia_ManGetCex( p->pGia, p->vId2Lit, p->pSat, p->vCexSwp );
 p->timeSatSat += clock() - clk;
         p->nSatCallsSat++;
         return 0;
@@ -660,6 +675,7 @@ p->timeSatUnsat += clock() - clk;
     }
     else if ( RetValue1 == l_True )
     {
+        p->vCexUser = Gia_ManGetCex( p->pGia, p->vId2Lit, p->pSat, p->vCexSwp );
 p->timeSatSat += clock() - clk;
         p->nSatCallsSat++;
         return 0;
@@ -675,7 +691,51 @@ p->timeSatUndec += clock() - clk;
     return 1;
 }
 
+/**Function*************************************************************
 
+  Synopsis    [Returns 1 if the set of conditions is UNSAT (0 if SAT; -1 if undecided).]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_SweeperCondCheckUnsat( Gia_Man_t * pGia )
+{
+    Swp_Man_t * p = (Swp_Man_t *)pGia->pData;
+    int RetValue;
+    clock_t clk;
+    p->nSatCalls++;
+    assert( p->pSat != NULL );
+    p->vCexUser = NULL;
+
+clk = clock();
+    RetValue = sat_solver_solve( p->pSat, Vec_IntArray(p->vCondLits), Vec_IntArray(p->vCondLits) + Vec_IntSize(p->vCondLits), 
+        (ABC_INT64_T)p->nConfMax, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
+p->timeSat += clock() - clk;
+    if ( RetValue == l_False )
+    {
+        assert( Vec_IntSize(p->vCondLits) > 0 );
+p->timeSatUnsat += clock() - clk;
+        p->nSatCallsUnsat++;
+        return 1;
+    }
+    else if ( RetValue == l_True )
+    {
+        p->vCexUser = Gia_ManGetCex( p->pGia, p->vId2Lit, p->pSat, p->vCexSwp );
+p->timeSatSat += clock() - clk;
+        p->nSatCallsSat++;
+        return 0;
+    }
+    else // if ( RetValue1 == l_Undef )
+    {
+p->timeSatUndec += clock() - clk;
+        p->nSatFails++;
+        return -1;
+    }
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

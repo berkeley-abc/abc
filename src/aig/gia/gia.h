@@ -476,9 +476,11 @@ static inline int Gia_ManAppendAnd( Gia_Man_t * p, int iLit0, int iLit1 )
     }
     if ( p->fSweeper )
     {
-        Gia_ObjFanin0(pObj)->fMark0 = Gia_ObjFanin1(pObj)->fMark0 = 1;
-        pObj->fPhase = (Gia_ObjPhase(Gia_ObjFanin0(pObj)) ^ Gia_ObjFaninC0(pObj)) & 
-                       (Gia_ObjPhase(Gia_ObjFanin1(pObj)) ^ Gia_ObjFaninC1(pObj));
+        Gia_Obj_t * pFan0 = Gia_ObjFanin0(pObj);
+        Gia_Obj_t * pFan1 = Gia_ObjFanin1(pObj);
+        if ( pFan0->fMark0 ) pFan0->fMark1 = 1; else pFan0->fMark0 = 1;
+        if ( pFan1->fMark0 ) pFan1->fMark1 = 1; else pFan1->fMark0 = 1;
+        pObj->fPhase = (Gia_ObjPhase(pFan0) ^ Gia_ObjFaninC0(pObj)) & (Gia_ObjPhase(pFan1) ^ Gia_ObjFaninC1(pObj));
     }
     return Gia_ObjId( p, pObj ) << 1;
 }
