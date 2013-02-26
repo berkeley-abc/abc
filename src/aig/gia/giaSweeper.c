@@ -211,6 +211,7 @@ int Gia_SweeperProbeCreate( Gia_Man_t * p, int iLit )
     Vec_IntPush( pSwp->vProbes, iLit );
     Vec_IntPush( pSwp->vProbRefs, 1 );
     Vec_IntSetEntryFull( pSwp->vLit2Prob, iLit, ProbeId ); // consider hash table in the future
+printf( "Creating probe %d with literal %d.\n", ProbeId, iLit );
     return ProbeId;
 }
 // if probe with this literal (iLit) exists, this procedure increments its reference counter and returns it.
@@ -233,6 +234,7 @@ void Gia_SweeperProbeDeref( Gia_Man_t * p, int ProbeId )
         Vec_IntWriteEntry( pSwp->vLit2Prob, iLit, -1 );
         Vec_IntWriteEntry( pSwp->vProbes, ProbeId, 0 );
         // TODO: recycle probe ID
+printf( "Deleteing probe %d with literal %d.\n", ProbeId, iLit );
     }
 }
 // returns literal associated with the probe
