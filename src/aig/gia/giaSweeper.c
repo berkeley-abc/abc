@@ -193,6 +193,7 @@ void Gia_SweeperSetRuntimeLimit( Gia_Man_t * p, int nSeconds )
 Vec_Int_t * Gia_SweeperGetCex( Gia_Man_t * p )
 {
     Swp_Man_t * pSwp = (Swp_Man_t *)p->pData;
+    assert( pSwp->vCexUser == NULL || Vec_IntSize(pSwp->vCexUser) == Gia_ManPiNum(p) );
     return pSwp->vCexUser;
 }
     
@@ -605,6 +606,11 @@ static Vec_Int_t * Gia_ManGetCex( Gia_Man_t * pGia, Vec_Int_t * vId2Lit, sat_sol
     Gia_ManForEachPi( pGia, pObj, i )
     {
         LitSat = Vec_IntEntry( vId2Lit, Gia_ObjId(pGia, pObj) );
+        if ( LitSat == 0 )
+        {
+            Vec_IntPush( vCex, 2 );
+            continue;
+        }
         assert( LitSat > 0 );
         Value = sat_solver_var_value(pSat, Abc_Lit2Var(LitSat)) ^ Abc_LitIsCompl(LitSat);
         Vec_IntPush( vCex, Value );
