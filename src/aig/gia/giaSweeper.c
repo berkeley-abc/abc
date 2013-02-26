@@ -184,9 +184,9 @@ double Gia_SweeperMemUsage( Gia_Man_t * pGia )
 void Gia_SweeperPrintStats( Gia_Man_t * pGia )
 {
     Swp_Man_t * p = (Swp_Man_t *)pGia->pData;
-    double nMemSwp = Gia_SweeperMemUsage(pGia)/(1<<20);
-    double nMemGia = (double)Gia_ManObjNum(pGia)*(sizeof(Gia_Obj_t) + sizeof(int))/(1<<20);
-    double nMemSat = sat_solver_memory(p->pSat)/(1<<20);
+    double nMemSwp = Gia_SweeperMemUsage(pGia);
+    double nMemGia = (double)Gia_ManObjNum(pGia)*(sizeof(Gia_Obj_t) + sizeof(int));
+    double nMemSat = sat_solver_memory(p->pSat);
     double nMemTot = nMemSwp + nMemGia + nMemSat;
     printf( "SAT sweeper statistics:\n" );
     printf( "Memory usage:\n" );
@@ -205,7 +205,7 @@ void Gia_SweeperPrintStats( Gia_Man_t * pGia )
     printf( "GIA: " );
     Gia_ManPrintStats( pGia, 0, 0, 0 );
     printf( "SAT calls = %d. Sat = %d. Unsat = %d. Undecided = %d.  Proofs = %d.\n", 
-        p->nSatCalls, p->nSatCallsSat, p->nSatCallsSat, p->nSatCallsUndec, p->nSatProofs );
+        p->nSatCalls, p->nSatCallsSat, p->nSatCallsUnsat, p->nSatCallsUndec, p->nSatProofs );
     Sat_SolverPrintStats( stdout, p->pSat );
 }
 

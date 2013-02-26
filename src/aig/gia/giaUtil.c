@@ -461,15 +461,15 @@ int Gia_ManLevelNum( Gia_Man_t * p )
     Gia_ManCleanLevels( p, Gia_ManObjNum(p) );
     p->nLevels = 0;
     Gia_ManForEachObj( p, pObj, i )
+    {
         if ( Gia_ObjIsAnd(pObj) )
             Gia_ObjSetAndLevel( p, pObj );
         else if ( Gia_ObjIsCo(pObj) )
-        {
             Gia_ObjSetCoLevel( p, pObj );
-            p->nLevels = Abc_MaxInt( p->nLevels, Gia_ObjLevel(p, pObj) );
-        }
         else
             Gia_ObjSetLevel( p, pObj, 0 );
+        p->nLevels = Abc_MaxInt( p->nLevels, Gia_ObjLevel(p, pObj) );
+    }
     return p->nLevels;
 }
 
