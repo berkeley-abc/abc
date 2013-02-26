@@ -68,12 +68,12 @@ struct Swp_Man_t_
     Vec_Int_t *    vCondProbes; // conditions as probes
     Vec_Int_t *    vCondLits;   // conditions as literals
     // equivalence checking
+    sat_solver *   pSat;        // SAT solver 
     Vec_Int_t *    vId2Lit;     // mapping of Obj IDs into SAT literal
     Vec_Int_t *    vFront;      // temporary frontier
     Vec_Int_t *    vFanins;     // temporary fanins
     Vec_Int_t *    vCexSwp;     // sweeper counter-example
     Vec_Int_t *    vCexUser;    // user-visible counter-example
-    sat_solver *   pSat;        // SAT solver 
     int            nSatVars;    // counter of SAT variables
     // statistics
     int            nSatCalls;
@@ -124,7 +124,8 @@ static inline Swp_Man_t * Swp_ManStart( Gia_Man_t * pGia )
     p->vCexSwp     = Vec_IntAlloc( 100 );
     p->pSat        = sat_solver_new();
     p->nSatVars    = 1;
-    Swp_ManSetObj2Lit( p, 0, (Lit = Abc_Var2Lit(p->nSatVars++, 1)) );
+    Swp_ManSetObj2Lit( p, 0, (Lit = Abc_Var2Lit(p->nSatVars++, 0)) );
+    Lit = Abc_LitNot(Lit);
     sat_solver_addclause( p->pSat, &Lit, &Lit + 1 );
     pGia->pData    = p;
     return p;
@@ -310,9 +311,13 @@ Gia_Man_t * Gia_SweeperExtractUserLogic( Gia_Man_t * p, Vec_Int_t * vProbeIds, V
     Gia_ManConst0(p)->Value = 0;
     Gia_ManForEachPi( p, pObj, i )
         pObj->Value = Gia_ManAppendCi(pNew);
+    // create internal nodes
+    Gia_ManHashStart( pNew );
     Gia_ManForEachObjVec( vObjIds, p, pObj, i )
         pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    Gia_ManHashStop( pNew );
     Vec_IntFree( vObjIds );
+    // create outputs
     Vec_IntForEachEntry( vProbeIds, ProbeId, i )
     {
         pObj = Gia_Lit2Obj( p, Gia_SweeperProbeLit(p, ProbeId) );
