@@ -31,7 +31,7 @@ SAT sweeping/equivalence checking requires the following steps:
       - nodes representing conditions to be used as constraints
       - nodes representing functions to be equivalence checked
       - nodes representing functions needed by the user at the end of SAT sweeping
-  Creating new probe using Gia_SweeperProbeCreate():  int Gia_SweeperProbeCreate( Gia_Man_t * p, int iLit );
+  Creating new probe using  Gia_SweeperProbeCreate(): int Gia_SweeperProbeCreate( Gia_Man_t * p, int iLit );
   Find existing probe using Gia_SweeperProbeFind():   int Gia_SweeperProbeFind( Gia_Man_t * p, int iLit );
       If probe with this literal (iLit) exists, this procedure increments its reference counter and returns it.
       If probe with this literal does not exist, it creates new probe and sets is reference counter to 1.
@@ -40,15 +40,14 @@ SAT sweeping/equivalence checking requires the following steps:
       Recycling of probe IDs can be added later.
   Comments:
       - a probe is identified by its 0-based ID, which is returned by above procedures
+      - GIA literal of the probe is returned by       int Gia_SweeperProbeLit( Gia_Man_t * p, int ProbeId )
 - Adding/removing conditions on the current path by calling Gia_SweeperCondPush() and Gia_SweeperCondPop()
       extern void Gia_SweeperCondPush( Gia_Man_t * p, int ProbeId );
       extern void Gia_SweeperCondPop( Gia_Man_t * p );
-- Performing equivalence checking by calling Gia_ManCheckConst() and Gia_ManCheckEquiv()
-      extern int Gia_ManCheckConst( Gia_Man_t * p, int ProbeId, int Const1 ); // Const1 can be 0 or 1
-      extern int Gia_ManCheckEquiv( Gia_Man_t * p, int ProbeId1, int ProbeId2 );
+- Performing equivalence checking by calling     int Gia_SweeperCheckEquiv( Gia_Man_t * pGia, int Probe1, int Probe2 )
       (resource limits, such as the number of conflicts, will be controllable by dedicated GIA APIs)
-- Extracting the resulting AIG to be returned to the user by calling Gia_ManExtractUserLogic()
-      extern Gia_Man_t * Gia_ManExtractUserLogic( Gia_Man_t * p, int * ProbeIds, int nProbeIds );
+- The resulting AIG to be returned to the user by calling Gia_SweeperExtractUserLogic()
+      Gia_Man_t * Gia_SweeperExtractUserLogic( Gia_Man_t * p, Vec_Int_t * vProbeIds, Vec_Ptr_t * vOutNames )
 
 */
 
@@ -59,8 +58,9 @@ SAT sweeping/equivalence checking requires the following steps:
 typedef struct Swp_Man_t_ Swp_Man_t;
 struct Swp_Man_t_
 {
-    Gia_Man_t *    pGia;
-    int            nBTLimit;
+    Gia_Man_t *    pGia;        // GIA manager under construction
+    int            nConfMax;    // conflict limit in seconds
+    int            nTimeOut;    // runtime limit in seconds
     Vec_Int_t *    vProbes;     // probes
     Vec_Int_t *    vProbRefs;   // probe reference counters
     Vec_Int_t *    vLit2Prob;   // mapping of literal into its probe
@@ -71,6 +71,8 @@ struct Swp_Man_t_
     Vec_Int_t *    vId2Lit;     // mapping of Obj IDs into SAT literal
     Vec_Int_t *    vFront;      // temporary frontier
     Vec_Int_t *    vFanins;     // temporary fanins
+    Vec_Int_t *    vCexSwp;     // sweeper counter-example
+    Vec_Int_t *    vCexUser;    // user-visible counter-example
     sat_solver *   pSat;        // SAT solver 
     int            nSatVars;    // counter of SAT variables
     // statistics
@@ -106,7 +108,7 @@ static inline int Swp_ManLit2Lit( Gia_Man_t * p, int Lit )
     
 /**Function*************************************************************
 
-  Synopsis    []
+  Synopsis    [Creating/deleting the manager.]
 
   Description []
                
@@ -120,7 +122,7 @@ static inline Swp_Man_t * Swp_ManStart( Gia_Man_t * pGia )
     Swp_Man_t * p;
     p = ABC_CALLOC( Swp_Man_t, 1 );
     p->pGia        = pGia;
-    p->nBTLimit    = 1000;
+    p->nConfMax    = 1000;
     p->vProbes     = Vec_IntAlloc( 100 );
     p->vProbRefs   = Vec_IntAlloc( 100 );
     p->vLit2Prob   = Vec_IntStartFull( 10000 );
@@ -128,6 +130,7 @@ static inline Swp_Man_t * Swp_ManStart( Gia_Man_t * pGia )
     p->vCondLits   = Vec_IntAlloc( 100 );
     p->vFront      = Vec_IntAlloc( 100 );
     p->vFanins     = Vec_IntAlloc( 100 );
+    p->vCexSwp     = Vec_IntAlloc( 100 );
     p->pSat        = sat_solver_new();
     p->nSatVars    = 1;
     Swp_ManSetObj2Lit( pGia, 0, Abc_Var2Lit(p->nSatVars++, 0) );
@@ -137,8 +140,9 @@ static inline Swp_Man_t * Swp_ManStart( Gia_Man_t * pGia )
 static inline void Swp_ManStop( Gia_Man_t * pGia )
 {
     Swp_Man_t * p = (Swp_Man_t *)pGia->pData;
-    Vec_IntFree( p->vFront );
     Vec_IntFree( p->vFanins );
+    Vec_IntFree( p->vCexSwp );
+    Vec_IntFree( p->vFront );
     Vec_IntFree( p->vProbes );
     Vec_IntFree( p->vProbRefs );
     Vec_IntFree( p->vLit2Prob );
@@ -147,18 +151,6 @@ static inline void Swp_ManStop( Gia_Man_t * pGia )
     ABC_FREE( p );
     pGia->pData = NULL;
 }
-    
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
 Gia_Man_t * Gia_SweeperStart()
 {
     Gia_Man_t * pGia;
@@ -176,6 +168,32 @@ void Gia_SweeperStop( Gia_Man_t * pGia )
     Gia_ManStop( pGia );
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Setting resource limits.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_SweeperSetConflictLimit( Gia_Man_t * p, int nConfMax )
+{
+    p->nConfMax = nConfMax;
+}
+
+void Gia_SweeperSetRuntimeLimit( Gia_Man_t * p, int nSeconds )
+{
+    p->nTimeOut = nSeconds;
+}
+Vec_Int_t * Gia_SweeperGetCex( Gia_Man_t * pGia )
+{
+    Swp_Man_t * pSwp = (Swp_Man_t *)p->pData;
+    return pSwp->vCexUser;
+}
+    
 /**Function*************************************************************
 
   Synopsis    []
@@ -223,6 +241,10 @@ int Gia_SweeperProbeLit( Gia_Man_t * p, int ProbeId )
 {
     Swp_Man_t * pSwp = (Swp_Man_t *)p->pData;
     return Vec_IntEntry( pSwp->vProbes, ProbeId );
+}
+// returns 1 if the set of conditions is UNSAT (0 if SAT; -1 if undecided)
+int Gia_SweeperProbeCheckUnsat( Gia_Man_t * p )
+{
 }
 
 /**Function*************************************************************
@@ -527,9 +549,9 @@ static void Gia_ManCnfNodeAddToSolver( Gia_Man_t * p, int NodeId )
 
 /**Function*************************************************************
 
-  Synopsis    [Runs equivalence test for the two nodes.]
+  Synopsis    [Runs equivalence test for probes.]
 
-  Description [Both nodes should be regular and different from each other.]
+  Description []
                
   SideEffects []
 
@@ -539,58 +561,68 @@ static void Gia_ManCnfNodeAddToSolver( Gia_Man_t * p, int NodeId )
 int Gia_SweeperCheckEquiv( Gia_Man_t * pGia, int Probe1, int Probe2 )
 {
     Swp_Man_t * p = (Swp_Man_t *)pGia->pData;
-    int iLitOld = Gia_SweeperProbeLit( pGia, Probe1 );
-    int iLitNew = Gia_SweeperProbeLit( pGia, Probe2 );
-    Gia_Obj_t * pOld = Gia_Lit2Obj( pGia, iLitOld );
-    Gia_Obj_t * pNew = Gia_Lit2Obj( pGia, iLitNew );
-    int Lit, RetValue, RetValue1;
+    int iLitOld, iLitNew, pLitsSat[2], RetValue, RetValue1;
     clock_t clk;
     p->nSatCalls++;
-
-    // sanity checks
-    assert( pOld != pNew );
     assert( p->pSat != NULL );
+
+    // get the literals
+    iLitOld = Gia_SweeperProbeLit( pGia, Probe1 );
+    iLitNew = Gia_SweeperProbeLit( pGia, Probe2 );
+    // if the literals are identical, the probes are equivalent
+    if ( iLitOld == iLitNew )
+        return 1;
+    // if the literals are opposites, the probes are 
+    if ( Abc_LitRegular(iLitOld) == Abc_LitRegular(iLitNew) )
+    {
+        Vec_IntFill( p->vSwpCex, Gia_ManPiNum(pGia), 0 );
+        return 0;
+    }
+    // order the literals
+    if ( iLitOld < iLitNew )
+        ABC_SWAP( int, iLitOld, iLitNew );
+    assert( iLitOld > iLitNew );
 
     // if the nodes do not have SAT variables, allocate them
     Gia_ManCnfNodeAddToSolver( pGia, Abc_Lit2Var(iLitOld) );
     Gia_ManCnfNodeAddToSolver( pGia, Abc_Lit2Var(iLitNew) );
     sat_solver_compress( p->pSat );
 
+    // set the SAT literals
+    pLitsSat[0] = Swp_ManLit2Lit( pGia, iLitOld );
+    pLitsSat[1] = Swp_ManLit2Lit( pGia, iLitNew );
+
     // solve under assumptions
     // A = 1; B = 0     OR     A = 1; B = 1 
-    Lit = Swp_ManLit2Lit( pGia, iLitOld );
-    Vec_IntPush( p->vCondLits, Lit );
-
-    Lit = Swp_ManLit2Lit( pGia, iLitNew );
-    Vec_IntPush( p->vCondLits, Abc_LitNot(Lit) );
+    Vec_IntPush( p->vCondLits, pLitsSat[0] );
+    Vec_IntPush( p->vCondLits, Abc_LitNot(pLitsSat[1]) );
 
 clk = clock();
     RetValue1 = sat_solver_solve( p->pSat, Vec_IntArray(p->vCondLits), Vec_IntArray(p->vCondLits) + Vec_IntSize(p->vCondLits), 
-        (ABC_INT64_T)p->nBTLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
+        (ABC_INT64_T)p->nConfMax, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
+    Vec_IntShrink( p->vCondLits, Vec_IntSize(p->vCondLits) - 2 );
 p->timeSat += clock() - clk;
     if ( RetValue1 == l_False )
     {
-        int * pLits = Vec_IntArray(p->vCondLits) + Vec_IntSize(p->vCondLits) - 2;
-        pLits[0] = Abc_LitNot( pLits[0] );
-        pLits[1] = Abc_LitNot( pLits[1] );
-        RetValue = sat_solver_addclause( p->pSat, pLits, pLits + 2 );
+        pLitsSat[0] = Abc_LitNot( pLitsSat[0] );
+        pLitsSat[1] = Abc_LitNot( pLitsSat[1] );
+        RetValue = sat_solver_addclause( p->pSat, pLitsSat, pLitsSat + 2 );
         assert( RetValue );
+        pLitsSat[0] = Abc_LitNot( pLitsSat[0] );
+        pLitsSat[1] = Abc_LitNot( pLitsSat[1] );
 p->timeSatUnsat += clock() - clk;
         p->nSatCallsUnsat++;
-        Vec_IntShrink( p->vCondLits, Vec_IntSize(p->vCondLits) - 2 );
     }
     else if ( RetValue1 == l_True )
     {
 p->timeSatSat += clock() - clk;
         p->nSatCallsSat++;
-        Vec_IntShrink( p->vCondLits, Vec_IntSize(p->vCondLits) - 2 );
         return 0;
     }
     else // if ( RetValue1 == l_Undef )
     {
 p->timeSatUndec += clock() - clk;
         p->nSatFails++;
-        Vec_IntShrink( p->vCondLits, Vec_IntSize(p->vCondLits) - 2 );
         return -1;
     }
 
@@ -603,39 +635,35 @@ p->timeSatUndec += clock() - clk;
 
     // solve under assumptions
     // A = 0; B = 1     OR     A = 0; B = 0 
-    Lit = Swp_ManLit2Lit( pGia, iLitOld );
-    Vec_IntPush( p->vCondLits, Abc_LitNot(Lit) );
-
-    Lit = Swp_ManLit2Lit( pGia, iLitNew );
-    Vec_IntPush( p->vCondLits, Lit );
+    Vec_IntPush( p->vCondLits, Abc_LitNot(pLitsSat[0]) );
+    Vec_IntPush( p->vCondLits, pLitsSat[1] );
 
 clk = clock();
     RetValue1 = sat_solver_solve( p->pSat, Vec_IntArray(p->vCondLits), Vec_IntArray(p->vCondLits) + Vec_IntSize(p->vCondLits), 
-        (ABC_INT64_T)p->nBTLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
+        (ABC_INT64_T)p->nConfMax, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
+    Vec_IntShrink( p->vCondLits, Vec_IntSize(p->vCondLits) - 2 );
 p->timeSat += clock() - clk;
     if ( RetValue1 == l_False )
     {
-        int * pLits = Vec_IntArray(p->vCondLits) + Vec_IntSize(p->vCondLits) - 2;
-        pLits[0] = Abc_LitNot( pLits[0] );
-        pLits[1] = Abc_LitNot( pLits[1] );
-        RetValue = sat_solver_addclause( p->pSat, pLits, pLits + 2 );
+        pLitsSat[0] = Abc_LitNot( pLitsSat[0] );
+        pLitsSat[1] = Abc_LitNot( pLitsSat[1] );
+        RetValue = sat_solver_addclause( p->pSat, pLitsSat, pLitsSat + 2 );
         assert( RetValue );
+        pLitsSat[0] = Abc_LitNot( pLitsSat[0] );
+        pLitsSat[1] = Abc_LitNot( pLitsSat[1] );
 p->timeSatUnsat += clock() - clk;
         p->nSatCallsUnsat++;
-        Vec_IntShrink( p->vCondLits, Vec_IntSize(p->vCondLits) - 2 );
     }
     else if ( RetValue1 == l_True )
     {
 p->timeSatSat += clock() - clk;
         p->nSatCallsSat++;
-        Vec_IntShrink( p->vCondLits, Vec_IntSize(p->vCondLits) - 2 );
         return 0;
     }
     else // if ( RetValue1 == l_Undef )
     {
 p->timeSatUndec += clock() - clk;
         p->nSatFails++;
-        Vec_IntShrink( p->vCondLits, Vec_IntSize(p->vCondLits) - 2 );
         return -1;
     }
     // return SAT proof
