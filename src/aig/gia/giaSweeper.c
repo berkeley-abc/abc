@@ -181,14 +181,16 @@ void Gia_SweeperStop( Gia_Man_t * pGia )
 ***********************************************************************/
 void Gia_SweeperSetConflictLimit( Gia_Man_t * p, int nConfMax )
 {
-    p->nConfMax = nConfMax;
+    Swp_Man_t * pSwp = (Swp_Man_t *)p->pData;
+    pSwp->nConfMax = nConfMax;
 }
 
 void Gia_SweeperSetRuntimeLimit( Gia_Man_t * p, int nSeconds )
 {
-    p->nTimeOut = nSeconds;
+    Swp_Man_t * pSwp = (Swp_Man_t *)p->pData;
+    pSwp->nTimeOut = nSeconds;
 }
-Vec_Int_t * Gia_SweeperGetCex( Gia_Man_t * pGia )
+Vec_Int_t * Gia_SweeperGetCex( Gia_Man_t * p )
 {
     Swp_Man_t * pSwp = (Swp_Man_t *)p->pData;
     return pSwp->vCexUser;
@@ -242,10 +244,6 @@ int Gia_SweeperProbeLit( Gia_Man_t * p, int ProbeId )
     Swp_Man_t * pSwp = (Swp_Man_t *)p->pData;
     return Vec_IntEntry( pSwp->vProbes, ProbeId );
 }
-// returns 1 if the set of conditions is UNSAT (0 if SAT; -1 if undecided)
-int Gia_SweeperProbeCheckUnsat( Gia_Man_t * p )
-{
-}
 
 /**Function*************************************************************
 
@@ -270,6 +268,11 @@ int Gia_SweeperCondPop( Gia_Man_t * p )
     int ProbId = Vec_IntPop( pSwp->vCondProbes );
     Vec_IntPop( pSwp->vCondLits );
     return ProbId;
+}
+// returns 1 if the set of conditions is UNSAT (0 if SAT; -1 if undecided)
+int Gia_SweeperCondCheckUnsat( Gia_Man_t * p )
+{
+    return 0;
 }
 
 /**Function*************************************************************
@@ -565,6 +568,7 @@ int Gia_SweeperCheckEquiv( Gia_Man_t * pGia, int Probe1, int Probe2 )
     clock_t clk;
     p->nSatCalls++;
     assert( p->pSat != NULL );
+    p->vCexUser = NULL;
 
     // get the literals
     iLitOld = Gia_SweeperProbeLit( pGia, Probe1 );
@@ -575,7 +579,7 @@ int Gia_SweeperCheckEquiv( Gia_Man_t * pGia, int Probe1, int Probe2 )
     // if the literals are opposites, the probes are 
     if ( Abc_LitRegular(iLitOld) == Abc_LitRegular(iLitNew) )
     {
-        Vec_IntFill( p->vSwpCex, Gia_ManPiNum(pGia), 0 );
+        Vec_IntFill( p->vCexSwp, Gia_ManPiNum(pGia), 0 );
         return 0;
     }
     // order the literals
