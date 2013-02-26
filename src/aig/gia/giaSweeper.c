@@ -267,6 +267,28 @@ int Gia_SweeperCondPop( Gia_Man_t * p )
     return ProbId;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline Vec_Ptr_t * Vec_PtrDupStr( Vec_Ptr_t * pVec )
+{
+    char * pName;
+    int i;
+    Vec_Ptr_t * p = Vec_PtrDup( pVec );
+    Vec_PtrForEachEntry( char *, p, pName, i )
+        Vec_PtrWriteEntry( p, i, Abc_UtilStrsav(pName) );
+    return p;
+}
+
 /**Function*************************************************************
 
   Synopsis    []
@@ -330,10 +352,10 @@ Gia_Man_t * Gia_SweeperExtractUserLogic( Gia_Man_t * p, Vec_Int_t * vProbeIds, V
     }
     // copy names if present
     if ( p->vNamesIn )
-        pNew->vNamesIn = Vec_PtrDup( p->vNamesIn );
+        pNew->vNamesIn = Vec_PtrDupStr( p->vNamesIn );
     if ( vOutNames )
-        pNew->vNamesOut = Vec_PtrDup( vOutNames );
-Gia_ManPrintStats( pNew, 0, 0, 0 );
+        pNew->vNamesOut = Vec_PtrDupStr( vOutNames );
+//Gia_ManPrintStats( pNew, 0, 0, 0 );
     return pNew;
 }
 
