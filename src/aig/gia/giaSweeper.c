@@ -124,6 +124,7 @@ static inline Swp_Man_t * Swp_ManStart( Gia_Man_t * pGia )
     p->vCexSwp      = Vec_IntAlloc( 100 );
     p->pSat         = sat_solver_new();
     p->nSatVars     = 1;
+    sat_solver_setnvars( p->pSat, 1000 );
     Swp_ManSetObj2Lit( p, 0, (Lit = Abc_Var2Lit(p->nSatVars++, 0)) );
     Lit = Abc_LitNot(Lit);
     sat_solver_addclause( p->pSat, &Lit, &Lit + 1 );
@@ -324,7 +325,10 @@ Gia_Man_t * Gia_SweeperExtractUserLogic( Gia_Man_t * p, Vec_Int_t * vProbeIds, V
     // save values
     vValues = Vec_IntAlloc( Gia_ManObjNum(p) );
     Gia_ManForEachObj( p, pObj, i )
+    {
         Vec_IntPush( vValues, pObj->Value );
+        pObj->Value = ~0;
+    }
     // create new
     Gia_ManIncrementTravId( p );
     vObjIds = Vec_IntAlloc( 1000 );
@@ -350,7 +354,7 @@ Gia_Man_t * Gia_SweeperExtractUserLogic( Gia_Man_t * p, Vec_Int_t * vProbeIds, V
     Vec_IntForEachEntry( vProbeIds, ProbeId, i )
     {
         pObj = Gia_Lit2Obj( p, Gia_SweeperProbeLit(p, ProbeId) );
-        Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(Gia_Regular(pObj)) ^ Gia_IsComplement(pObj) );
+        Gia_ManAppendCo( pNew, Gia_Regular(pObj)->Value ^ Gia_IsComplement(pObj) );
     }
     // duplicated if needed
     if ( Gia_ManHasDangling(pNew) )
@@ -504,7 +508,7 @@ static void Gia_ManCollectSuper_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t 
     // stop at complements, shared, PIs, and MUXes
     if ( Gia_IsComplement(pObj) || pObj->fMark1 || Gia_ObjIsCi(pObj) || Gia_ObjIsMuxType(pObj) )
     {
-        Vec_IntPushUnique( vSuper, Gia_ObjId(p, pObj) );
+        Vec_IntPushUnique( vSuper, Gia_Obj2Lit(p, pObj) );
         return;
     }
     Gia_ManCollectSuper_rec( p, Gia_ObjChild0(pObj), vSuper );
