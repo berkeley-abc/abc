@@ -110,24 +110,23 @@ static inline Swp_Man_t * Swp_ManStart( Gia_Man_t * pGia )
 {
     Swp_Man_t * p;
     int Lit;
-    p = ABC_CALLOC( Swp_Man_t, 1 );
-    p->pGia        = pGia;
-    p->nConfMax    = 1000;
-    p->vProbes     = Vec_IntAlloc( 100 );
-    p->vProbRefs   = Vec_IntAlloc( 100 );
-    p->vLit2Prob   = Vec_IntStartFull( 10000 );
-    p->vCondProbes = Vec_IntAlloc( 100 );
-    p->vCondLits   = Vec_IntAlloc( 100 );
-    p->vId2Lit     = Vec_IntAlloc( 10000 );
-    p->vFront      = Vec_IntAlloc( 100 );
-    p->vFanins     = Vec_IntAlloc( 100 );
-    p->vCexSwp     = Vec_IntAlloc( 100 );
-    p->pSat        = sat_solver_new();
-    p->nSatVars    = 1;
+    pGia->pData = p = ABC_CALLOC( Swp_Man_t, 1 );
+    p->pGia         = pGia;
+    p->nConfMax     = 1000;
+    p->vProbes      = Vec_IntAlloc( 100 );
+    p->vProbRefs    = Vec_IntAlloc( 100 );
+    p->vLit2Prob    = Vec_IntStartFull( 10000 );
+    p->vCondProbes  = Vec_IntAlloc( 100 );
+    p->vCondLits    = Vec_IntAlloc( 100 );
+    p->vId2Lit      = Vec_IntAlloc( 10000 );
+    p->vFront       = Vec_IntAlloc( 100 );
+    p->vFanins      = Vec_IntAlloc( 100 );
+    p->vCexSwp      = Vec_IntAlloc( 100 );
+    p->pSat         = sat_solver_new();
+    p->nSatVars     = 1;
     Swp_ManSetObj2Lit( p, 0, (Lit = Abc_Var2Lit(p->nSatVars++, 0)) );
     Lit = Abc_LitNot(Lit);
     sat_solver_addclause( p->pSat, &Lit, &Lit + 1 );
-    pGia->pData    = p;
     return p;
 }
 static inline void Swp_ManStop( Gia_Man_t * pGia )
@@ -334,6 +333,7 @@ Gia_Man_t * Gia_SweeperExtractUserLogic( Gia_Man_t * p, Vec_Int_t * vProbeIds, V
         pNew->vNamesIn = Vec_PtrDup( p->vNamesIn );
     if ( vOutNames )
         pNew->vNamesOut = Vec_PtrDup( vOutNames );
+Gia_ManPrintStats( pNew, 0, 0, 0 );
     return pNew;
 }
 
