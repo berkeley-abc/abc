@@ -211,7 +211,7 @@ int Gia_SweeperProbeCreate( Gia_Man_t * p, int iLit )
     Vec_IntPush( pSwp->vProbes, iLit );
     Vec_IntPush( pSwp->vProbRefs, 1 );
     Vec_IntSetEntryFull( pSwp->vLit2Prob, iLit, ProbeId ); // consider hash table in the future
-printf( "Creating probe %d with literal %d.\n", ProbeId, iLit );
+//printf( "Creating probe %d with literal %d.\n", ProbeId, iLit );
     return ProbeId;
 }
 // if probe with this literal (iLit) exists, this procedure increments its reference counter and returns it.
@@ -234,7 +234,7 @@ void Gia_SweeperProbeDeref( Gia_Man_t * p, int ProbeId )
         Vec_IntWriteEntry( pSwp->vLit2Prob, iLit, -1 );
         Vec_IntWriteEntry( pSwp->vProbes, ProbeId, 0 );
         // TODO: recycle probe ID
-printf( "Deleteing probe %d with literal %d.\n", ProbeId, iLit );
+//printf( "Deleteing probe %d with literal %d.\n", ProbeId, iLit );
     }
 }
 // returns literal associated with the probe
@@ -318,8 +318,14 @@ Gia_Man_t * Gia_SweeperExtractUserLogic( Gia_Man_t * p, Vec_Int_t * vProbeIds, V
     Gia_Man_t * pNew, * pTemp;
     Gia_Obj_t * pObj;
     Vec_Int_t * vObjIds;
+    Vec_Int_t * vValues;
     int i, ProbeId;
     assert( Vec_IntSize(vProbeIds) == Vec_PtrSize(vOutNames) );
+    // save values
+    vValues = Vec_IntAlloc( Gia_ManObjNum(p) );
+    Gia_ManForEachObj( p, pObj, i )
+        Vec_IntPush( vValues, pObj->Value );
+    // create new
     Gia_ManIncrementTravId( p );
     vObjIds = Vec_IntAlloc( 1000 );
     Vec_IntForEachEntry( vProbeIds, ProbeId, i )
@@ -358,6 +364,10 @@ Gia_Man_t * Gia_SweeperExtractUserLogic( Gia_Man_t * p, Vec_Int_t * vProbeIds, V
     if ( vOutNames )
         pNew->vNamesOut = Vec_PtrDupStr( vOutNames );
 //Gia_ManPrintStats( pNew, 0, 0, 0 );
+    // reset values
+    Gia_ManForEachObj( p, pObj, i )
+        pObj->Value = Vec_IntEntry( vValues, i );
+    Vec_IntFree( vValues );
     return pNew;
 }
 
