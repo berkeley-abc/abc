@@ -1489,7 +1489,7 @@ if ( Counter )
     // translate this map into the one that maps vars of iDsdRes into literals of cut
     pFun->nFans = Dss_VecLitSuppSize( p->vObjs, pFun->iDsd );
     for ( i = 0; i < (int)pFun->nFans; i++ )
-        pFun->pFans[i] = (unsigned char)Abc_Lit2Lit( pMapDsd2Truth, pPermDsd[i] );
+        pFun->pFans[i] = (unsigned char)Abc_Lit2LitV( pMapDsd2Truth, pPermDsd[i] );
 
 //    Dss_EntPrint( pEnt, pFun );
     return pFun;

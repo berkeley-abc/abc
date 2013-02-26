@@ -263,7 +263,8 @@ static inline int      Abc_LitIsCompl( int Lit )              { return Lit & 1; 
 static inline int      Abc_LitNot( int Lit )                  { return Lit ^ 1;            }
 static inline int      Abc_LitNotCond( int Lit, int c )       { return Lit ^ (int)(c > 0); }
 static inline int      Abc_LitRegular( int Lit )              { return Lit & ~01;          }
-static inline int      Abc_Lit2Lit( int * pMap, int Lit )     { return Abc_Var2Lit( pMap[Abc_Lit2Var(Lit)], Abc_LitIsCompl(Lit) );   }
+static inline int      Abc_Lit2LitV( int * pMap, int Lit )    { return Abc_Var2Lit( pMap[Abc_Lit2Var(Lit)], Abc_LitIsCompl(Lit) );   }
+static inline int      Abc_Lit2LitL( int * pMap, int Lit )    { return Abc_LitNotCond( pMap[Abc_Lit2Var(Lit)], Abc_LitIsCompl(Lit) );   }
 
 enum Abc_VerbLevel
 {

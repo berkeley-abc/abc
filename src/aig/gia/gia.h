@@ -108,6 +108,7 @@ struct Gia_Man_t_
     int *          pHTable;       // hash table
     int            nHTable;       // hash table size 
     int            fAddStrash;    // performs additional structural hashing
+    int            fSweeper;      // sweeper is running
     int *          pRefs;         // the reference count
     Vec_Int_t *    vLevels;       // levels of the nodes
     int            nLevels;       // the mamixum level
@@ -472,6 +473,12 @@ static inline int Gia_ManAppendAnd( Gia_Man_t * p, int iLit0, int iLit1 )
     {
         Gia_ObjAddFanout( p, Gia_ObjFanin0(pObj), pObj );
         Gia_ObjAddFanout( p, Gia_ObjFanin1(pObj), pObj );
+    }
+    if ( p->fSweeper )
+    {
+        Gia_ObjFanin0(pObj)->fMark0 = Gia_ObjFanin1(pObj)->fMark0 = 1;
+        pObj->fPhase = (Gia_ObjPhase(Gia_ObjFanin0(pObj)) ^ Gia_ObjFaninC0(pObj)) & 
+                       (Gia_ObjPhase(Gia_ObjFanin1(pObj)) ^ Gia_ObjFaninC1(pObj));
     }
     return Gia_ObjId( p, pObj ) << 1;
 }
@@ -983,6 +990,9 @@ extern void                Gia_ManStgPrint( FILE * pFile, Vec_Int_t * vLines, in
 extern Gia_Man_t *         Gia_ManStgRead( char * pFileName, int kHot, int fVerbose );
 /*=== giaSweep.c ============================================================*/
 extern Gia_Man_t *         Gia_ManFraigSweep( Gia_Man_t * p, void * pPars );
+/*=== giaSweeper.c ============================================================*/
+extern Gia_Man_t *         Gia_ManStartSweeper();
+extern void                Gia_ManStopSweeper( Gia_Man_t * p );
 /*=== giaSwitch.c ============================================================*/
 extern float               Gia_ManEvaluateSwitching( Gia_Man_t * p );
 extern float               Gia_ManComputeSwitching( Gia_Man_t * p, int nFrames, int nPref, int fProbOne );

@@ -68,18 +68,35 @@ struct Swp_Man_t_
     Vec_Int_t *    vCondProbes; // conditions as probes
     Vec_Int_t *    vCondLits;   // conditions as literals
     // equivalence checking
-    int            nSatVars;    // counter of SAT variables
-    Vec_Int_t *    vId2Sat;     // mapping of Obj IDs into SAT vars
+    Vec_Int_t *    vId2Lit;     // mapping of Obj IDs into SAT literal
+    Vec_Int_t *    vFront;      // temporary frontier
+    Vec_Int_t *    vFanins;     // temporary fanins
     sat_solver *   pSat;        // SAT solver 
+    int            nSatVars;    // counter of SAT variables
     // statistics
     int            nSatCalls;
     int            nSatCallsSat;
     int            nSatCallsUnsat;
     int            nSatFails;
     int            nSatProofs;
-
-
+    clock_t        timeSat;
+    clock_t        timeSatSat;
+    clock_t        timeSatUnsat;
+    clock_t        timeSatUndec;
 };
+
+static inline int Swp_ManObj2Lit( Gia_Man_t * p, int Id ) 
+{ 
+    return Vec_IntGetEntry( ((Swp_Man_t *)p->pData)->vId2Lit, Id );
+}
+static inline void Swp_ManSetObj2Lit( Gia_Man_t * p, int Id, int Lit ) 
+{ 
+    Vec_IntSetEntry( ((Swp_Man_t *)p->pData)->vId2Lit, Id, Lit );
+}
+static inline int Swp_ManLit2Lit( Gia_Man_t * p, int Lit ) 
+{ 
+    return Abc_Lit2LitL( Vec_IntArray(((Swp_Man_t *)p->pData)->vId2Lit), Lit );
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -107,12 +124,19 @@ static inline Swp_Man_t * Swp_ManStart( Gia_Man_t * pGia )
     p->vLit2Prob   = Vec_IntStartFull( 10000 );
     p->vCondProbes = Vec_IntAlloc( 100 );
     p->vCondLits   = Vec_IntAlloc( 100 );
+    p->vFront      = Vec_IntAlloc( 100 );
+    p->vFanins     = Vec_IntAlloc( 100 );
+    p->pSat        = sat_solver_new();
+    p->nSatVars    = 1;
+    Swp_ManSetObj2Lit( pGia, 0, Abc_Var2Lit(p->nSatVars++, 0) );
     pGia->pData    = p;
     return p;
 }
 static inline void Swp_ManStop( Gia_Man_t * pGia )
 {
     Swp_Man_t * p = (Swp_Man_t *)pGia->pData;
+    Vec_IntFree( p->vFront );
+    Vec_IntFree( p->vFanins );
     Vec_IntFree( p->vProbes );
     Vec_IntFree( p->vProbRefs );
     Vec_IntFree( p->vLit2Prob );
@@ -120,6 +144,34 @@ static inline void Swp_ManStop( Gia_Man_t * pGia )
     Vec_IntFree( p->vCondLits );
     ABC_FREE( p );
     pGia->pData = NULL;
+}
+    
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManStartSweeper()
+{
+    Gia_Man_t * pGia;
+    pGia = Gia_ManStart( 10000 );
+    Gia_ManHashStart( pGia );
+    Swp_ManStart( pGia );
+    pGia->fSweeper = 1;
+    return pGia;
+}
+void Gia_ManStopSweeper( Gia_Man_t * pGia )
+{
+    pGia->fSweeper = 0;
+    Swp_ManStop( pGia );
+    Gia_ManHashStop( pGia );
+    Gia_ManStop( pGia );
 }
 
 /**Function*************************************************************
@@ -250,7 +302,340 @@ Gia_Man_t * Gia_ManExtractUserLogic( Gia_Man_t * p, int * pProbeIds, int nProbeI
 }
 
 
+//#if 0
 
+/**Function*************************************************************
+
+  Synopsis    [Addes clauses to the solver.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManAddClausesMux( Gia_Man_t * pGia, Gia_Obj_t * pNode )
+{
+    Swp_Man_t * p = (Swp_Man_t *)pGia->pData;
+    Gia_Obj_t * pNodeI, * pNodeT, * pNodeE;
+    int pLits[4], LitF, LitI, LitT, LitE, RetValue;
+    assert( !Gia_IsComplement( pNode ) );
+    assert( Gia_ObjIsMuxType( pNode ) );
+    // get nodes (I = if, T = then, E = else)
+    pNodeI = Gia_ObjRecognizeMux( pNode, &pNodeT, &pNodeE );
+    // get the Litiable numbers
+    LitF = Swp_ManLit2Lit( pGia, Gia_Obj2Lit(pGia,pNode) );
+    LitI = Swp_ManLit2Lit( pGia, Gia_Obj2Lit(pGia,pNodeI) );
+    LitT = Swp_ManLit2Lit( pGia, Gia_Obj2Lit(pGia,pNodeT) );
+    LitE = Swp_ManLit2Lit( pGia, Gia_Obj2Lit(pGia,pNodeE) );
+
+    // f = ITE(i, t, e)
+
+    // i' + t' + f
+    // i' + t  + f'
+    // i  + e' + f
+    // i  + e  + f'
+
+    // create four clauses
+    pLits[0] = Abc_LitNotCond(LitI, 1);
+    pLits[1] = Abc_LitNotCond(LitT, 1);
+    pLits[2] = Abc_LitNotCond(LitF, 0);
+    RetValue = sat_solver_addclause( p->pSat, pLits, pLits + 3 );
+    assert( RetValue );
+    pLits[0] = Abc_LitNotCond(LitI, 1);
+    pLits[1] = Abc_LitNotCond(LitT, 0);
+    pLits[2] = Abc_LitNotCond(LitF, 1);
+    RetValue = sat_solver_addclause( p->pSat, pLits, pLits + 3 );
+    assert( RetValue );
+    pLits[0] = Abc_LitNotCond(LitI, 0);
+    pLits[1] = Abc_LitNotCond(LitE, 1);
+    pLits[2] = Abc_LitNotCond(LitF, 0);
+    RetValue = sat_solver_addclause( p->pSat, pLits, pLits + 3 );
+    assert( RetValue );
+    pLits[0] = Abc_LitNotCond(LitI, 0);
+    pLits[1] = Abc_LitNotCond(LitE, 0);
+    pLits[2] = Abc_LitNotCond(LitF, 1);
+    RetValue = sat_solver_addclause( p->pSat, pLits, pLits + 3 );
+    assert( RetValue );
+
+    // two additional clauses
+    // t' & e' -> f'
+    // t  & e  -> f
+
+    // t  + e   + f'
+    // t' + e'  + f
+
+    if ( LitT == LitE )
+    {
+//        assert( fCompT == !fCompE );
+        return;
+    }
+
+    pLits[0] = Abc_LitNotCond(LitT, 0);
+    pLits[1] = Abc_LitNotCond(LitE, 0);
+    pLits[2] = Abc_LitNotCond(LitF, 1);
+    RetValue = sat_solver_addclause( p->pSat, pLits, pLits + 3 );
+    assert( RetValue );
+    pLits[0] = Abc_LitNotCond(LitT, 1);
+    pLits[1] = Abc_LitNotCond(LitE, 1);
+    pLits[2] = Abc_LitNotCond(LitF, 0);
+    RetValue = sat_solver_addclause( p->pSat, pLits, pLits + 3 );
+    assert( RetValue );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Addes clauses to the solver.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManAddClausesSuper( Gia_Man_t * pGia, Gia_Obj_t * pNode, Vec_Int_t * vSuper )
+{
+    Swp_Man_t * p = (Swp_Man_t *)pGia->pData;
+    int i, RetValue, Lit, LitNode, pLits[2];
+    assert( !Gia_IsComplement(pNode) );
+    assert( Gia_ObjIsAnd( pNode ) );
+    // suppose AND-gate is A & B = C
+    // add !A => !C   or   A + !C
+    LitNode = Swp_ManObj2Lit( pGia, Gia_ObjId(pGia, pNode) );
+    Vec_IntForEachEntry( vSuper, Lit, i )
+    {
+        pLits[0] = Abc_LitNot( LitNode );
+        pLits[1] = Swp_ManLit2Lit( pGia, Lit );
+        Vec_IntWriteEntry( vSuper, i, Abc_LitNot(pLits[1]) );
+        RetValue = sat_solver_addclause( p->pSat, pLits, pLits + 2 );
+        assert( RetValue );
+    }
+    // add A & B => C   or   !A + !B + C
+    Vec_IntPush( vSuper, LitNode );
+    RetValue = sat_solver_addclause( p->pSat, Vec_IntArray(vSuper), Vec_IntArray(vSuper) + Vec_IntSize(vSuper) );
+    assert( RetValue );
+    (void) RetValue;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Collects the supergate.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManCollectSuper_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vSuper )
+{
+    // stop at complements, shared, PIs, and MUXes
+    if ( Gia_IsComplement(pObj) || pObj->fMark0 || Gia_ObjIsCi(pObj) || Gia_ObjIsMuxType(pObj) )
+    {
+        Vec_IntPushUnique( vSuper, Gia_ObjId(p, pObj) );
+        return;
+    }
+    Gia_ManCollectSuper_rec( p, Gia_ObjChild0(pObj), vSuper );
+    Gia_ManCollectSuper_rec( p, Gia_ObjChild1(pObj), vSuper );
+}
+void Gia_ManCollectSuper( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vSuper )
+{
+    assert( !Gia_IsComplement(pObj) );
+    assert( Gia_ObjIsAnd(pObj) );
+    Vec_IntClear( vSuper );
+    Gia_ManCollectSuper_rec( p, Gia_ObjChild0(pObj), vSuper );
+    Gia_ManCollectSuper_rec( p, Gia_ObjChild1(pObj), vSuper );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Updates the solver clause database.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManObjAddToFrontier( Gia_Man_t * pGia, int Id, Vec_Int_t * vFront )
+{
+    Swp_Man_t * p = (Swp_Man_t *)pGia->pData;
+    Gia_Obj_t * pObj;
+    if ( Id == 0 )
+        return;
+    if ( Swp_ManObj2Lit(pGia, Id) )
+        return;
+    pObj = Gia_ManObj( pGia, Id );
+    Swp_ManSetObj2Lit( pGia, Id, Abc_Var2Lit(p->nSatVars++, pObj->fPhase) );
+    sat_solver_setnvars( p->pSat, p->nSatVars + 100 );
+    if ( Gia_ObjIsAnd(pObj) )
+        Vec_IntPush( vFront, Id );
+}
+void Gia_ManCnfNodeAddToSolver( Gia_Man_t * p, int NodeId )
+{
+    Vec_Int_t * vFront, * vFanins;
+    Gia_Obj_t * pNode;
+    int i, k, Id;
+    // quit if CNF is ready
+    if ( NodeId == 0 )
+        return;
+    if ( Swp_ManObj2Lit(p, NodeId) )
+        return;
+    // start the frontier
+    vFront = ((Swp_Man_t *)p->pData)->vFront;
+    Vec_IntClear( vFront );
+    Gia_ManObjAddToFrontier( p, NodeId, vFront );
+    // explore nodes in the frontier
+    Gia_ManForEachObjVec( vFront, p, pNode, i )
+    {
+        vFanins = ((Swp_Man_t *)p->pData)->vFanins;
+        // create the supergate
+        assert( Swp_ManObj2Lit(p,Gia_ObjId(p, pNode)) );
+        if ( Gia_ObjIsMuxType(pNode) )
+        {
+            Vec_IntClear( vFanins );
+            Vec_IntPushUnique( vFanins, Gia_ObjFaninId0p( p, Gia_ObjFanin0(pNode) ) );
+            Vec_IntPushUnique( vFanins, Gia_ObjFaninId0p( p, Gia_ObjFanin1(pNode) ) );
+            Vec_IntPushUnique( vFanins, Gia_ObjFaninId1p( p, Gia_ObjFanin0(pNode) ) );
+            Vec_IntPushUnique( vFanins, Gia_ObjFaninId1p( p, Gia_ObjFanin1(pNode) ) );
+            Vec_IntForEachEntry( vFanins, Id, k )
+                Gia_ManObjAddToFrontier( p, Id, vFront );
+            Gia_ManAddClausesMux( p, pNode );
+        }
+        else
+        {
+            Gia_ManCollectSuper( p, pNode, vFanins );
+            Vec_IntForEachEntry( vFanins, Id, k )
+                Gia_ManObjAddToFrontier( p, Id, vFront );
+            Gia_ManAddClausesSuper( p, pNode, vFanins );
+        }
+        assert( Vec_IntSize(vFanins) > 1 );
+    }
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Runs equivalence test for the two nodes.]
+
+  Description [Both nodes should be regular and different from each other.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManNodesAreEquiv( Gia_Man_t * pGia, int iOld, int iNew )
+{
+    Swp_Man_t * p = (Swp_Man_t *)pGia->pData;
+    Gia_Obj_t * pOld = Gia_Lit2Obj( pGia, iOld );
+    Gia_Obj_t * pNew = Gia_Lit2Obj( pGia, iNew );
+    int Lit, RetValue, RetValue1;
+    clock_t clk;
+    p->nSatCalls++;
+
+    // sanity checks
+    assert( pOld != pNew );
+    assert( p->pSat != NULL );
+
+    // if the nodes do not have SAT variables, allocate them
+    Gia_ManCnfNodeAddToSolver( pGia, Abc_Lit2Var(iOld) );
+    Gia_ManCnfNodeAddToSolver( pGia, Abc_Lit2Var(iNew) );
+    sat_solver_compress( p->pSat );
+
+    // solve under assumptions
+    // A = 1; B = 0     OR     A = 1; B = 1 
+    Lit = Swp_ManLit2Lit( pGia, iOld );
+    Vec_IntPush( p->vCondLits, Lit );
+
+    Lit = Swp_ManLit2Lit( pGia, iNew );
+    Vec_IntPush( p->vCondLits, Abc_LitNot(Lit) );
+
+clk = clock();
+    RetValue1 = sat_solver_solve( p->pSat, Vec_IntArray(p->vCondLits), Vec_IntArray(p->vCondLits) + Vec_IntSize(p->vCondLits), 
+        (ABC_INT64_T)p->nBTLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
+p->timeSat += clock() - clk;
+    if ( RetValue1 == l_False )
+    {
+        int * pLits = Vec_IntArray(p->vCondLits) + Vec_IntSize(p->vCondLits) - 2;
+        pLits[0] = Abc_LitNot( pLits[0] );
+        pLits[1] = Abc_LitNot( pLits[1] );
+        RetValue = sat_solver_addclause( p->pSat, pLits, pLits + 2 );
+        assert( RetValue );
+p->timeSatUnsat += clock() - clk;
+        p->nSatCallsUnsat++;
+        Vec_IntShrink( p->vCondLits, Vec_IntSize(p->vCondLits) - 2 );
+    }
+    else if ( RetValue1 == l_True )
+    {
+p->timeSatSat += clock() - clk;
+        p->nSatCallsSat++;
+        Vec_IntShrink( p->vCondLits, Vec_IntSize(p->vCondLits) - 2 );
+        return 0;
+    }
+    else // if ( RetValue1 == l_Undef )
+    {
+p->timeSatUndec += clock() - clk;
+        p->nSatFails++;
+        Vec_IntShrink( p->vCondLits, Vec_IntSize(p->vCondLits) - 2 );
+        return -1;
+    }
+
+    // if the old node was constant 0, we already know the answer
+    if ( Gia_ManIsConstLit(iNew) )
+    {
+        p->nSatProofs++;
+        return 1;
+    }
+
+    // solve under assumptions
+    // A = 0; B = 1     OR     A = 0; B = 0 
+    Lit = Swp_ManLit2Lit( pGia, iOld );
+    Vec_IntPush( p->vCondLits, Abc_LitNot(Lit) );
+
+    Lit = Swp_ManLit2Lit( pGia, iNew );
+    Vec_IntPush( p->vCondLits, Lit );
+
+clk = clock();
+    RetValue1 = sat_solver_solve( p->pSat, Vec_IntArray(p->vCondLits), Vec_IntArray(p->vCondLits) + Vec_IntSize(p->vCondLits), 
+        (ABC_INT64_T)p->nBTLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
+p->timeSat += clock() - clk;
+    if ( RetValue1 == l_False )
+    {
+        int * pLits = Vec_IntArray(p->vCondLits) + Vec_IntSize(p->vCondLits) - 2;
+        pLits[0] = Abc_LitNot( pLits[0] );
+        pLits[1] = Abc_LitNot( pLits[1] );
+        RetValue = sat_solver_addclause( p->pSat, pLits, pLits + 2 );
+        assert( RetValue );
+p->timeSatUnsat += clock() - clk;
+        p->nSatCallsUnsat++;
+        Vec_IntShrink( p->vCondLits, Vec_IntSize(p->vCondLits) - 2 );
+    }
+    else if ( RetValue1 == l_True )
+    {
+p->timeSatSat += clock() - clk;
+        p->nSatCallsSat++;
+        Vec_IntShrink( p->vCondLits, Vec_IntSize(p->vCondLits) - 2 );
+        return 0;
+    }
+    else // if ( RetValue1 == l_Undef )
+    {
+p->timeSatUndec += clock() - clk;
+        p->nSatFails++;
+        Vec_IntShrink( p->vCondLits, Vec_IntSize(p->vCondLits) - 2 );
+        return -1;
+    }
+    // return SAT proof
+    p->nSatProofs++;
+    return 1;
+}
+
+//#endif
 
 /**Function*************************************************************
 

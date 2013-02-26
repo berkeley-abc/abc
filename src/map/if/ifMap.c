@@ -286,9 +286,9 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
                 int Fans[2][DAU_MAX_VAR], * pFans[2] = { Fans[0], Fans[1] };
                 // create fanins
                 for ( j = 0; j < (int)pCut0->nLeaves; j++ )
-                    pFans[0][j] = Abc_Lit2Lit( p->pPerm[0], (int)pCut0->pPerm[j] );
+                    pFans[0][j] = Abc_Lit2LitV( p->pPerm[0], (int)pCut0->pPerm[j] );
                 for ( j = 0; j < (int)pCut1->nLeaves; j++ )
-                    pFans[1][j] = Abc_Lit2Lit( p->pPerm[1], (int)pCut1->pPerm[j] );
+                    pFans[1][j] = Abc_Lit2LitV( p->pPerm[1], (int)pCut1->pPerm[j] );
                 // canonicize
                 if ( iDsd[0] > iDsd[1] )
                 {
