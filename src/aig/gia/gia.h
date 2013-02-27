@@ -995,7 +995,7 @@ extern Gia_Man_t *         Gia_ManFraigSweep( Gia_Man_t * p, void * pPars );
 /*=== giaSweeper.c ============================================================*/
 extern Gia_Man_t *         Gia_SweeperStart( Gia_Man_t * p );
 extern void                Gia_SweeperStop( Gia_Man_t * p );
-extern int                 Gia_SweeperIsRunning( Gia_Man_t * pGia );
+extern int                 Gia_SweeperIsRunning( Gia_Man_t * p );
 extern void                Gia_SweeperPrintStats( Gia_Man_t * p );
 extern void                Gia_SweeperSetConflictLimit( Gia_Man_t * p, int nConfMax );
 extern void                Gia_SweeperSetRuntimeLimit( Gia_Man_t * p, int nSeconds );
@@ -1008,10 +1008,11 @@ extern int                 Gia_SweeperCondPop( Gia_Man_t * p );
 extern void                Gia_SweeperCondPush( Gia_Man_t * p, int ProbeId );
 extern Vec_Int_t *         Gia_SweeperCondVector( Gia_Man_t * p );
 extern int                 Gia_SweeperCondCheckUnsat( Gia_Man_t * p );
-extern int                 Gia_SweeperCheckEquiv( Gia_Man_t * pGia, int ProbeId1, int ProbeId2 );
+extern int                 Gia_SweeperCheckEquiv( Gia_Man_t * p, int ProbeId1, int ProbeId2 );
 extern Gia_Man_t *         Gia_SweeperExtractUserLogic( Gia_Man_t * p, Vec_Int_t * vProbeIds, Vec_Ptr_t * vInNames, Vec_Ptr_t * vOutNames );
 extern Vec_Int_t *         Gia_SweeperGraft( Gia_Man_t * pDst, Vec_Int_t * vProbes, Gia_Man_t * pSrc );
-extern Gia_Man_t *         Gia_SweeperSweep( Gia_Man_t * p, Vec_Int_t * vProbeOuts );
+extern Gia_Man_t *         Gia_SweeperCleanup( Gia_Man_t * p, char * pCommLime );
+extern Vec_Int_t *         Gia_SweeperFraig( Gia_Man_t * p, Vec_Int_t * vProbes, char * pCommLime );
 /*=== giaSwitch.c ============================================================*/
 extern float               Gia_ManEvaluateSwitching( Gia_Man_t * p );
 extern float               Gia_ManComputeSwitching( Gia_Man_t * p, int nFrames, int nPref, int fProbOne );

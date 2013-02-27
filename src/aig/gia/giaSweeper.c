@@ -859,10 +859,13 @@ Vec_Int_t * Gia_SweeperGraft( Gia_Man_t * pDst, Vec_Int_t * vProbes, Gia_Man_t *
     Vec_Int_t * vOutLits;
     Gia_Obj_t * pObj;
     int i;
-    assert( Vec_IntSize(vProbes) == Gia_ManPiNum(pSrc) );
-    assert( pDst->pHTable != NULL );
+    assert( Gia_SweeperIsRunning(pDst) );
+    if ( vProbes )
+        assert( Vec_IntSize(vProbes) == Gia_ManPiNum(pSrc) );
+    else
+        assert( Gia_ManPiNum(pDst) == Gia_ManPiNum(pSrc) );
     Gia_ManForEachPi( pSrc, pObj, i )
-        pObj->Value = Gia_SweeperProbeLit( pDst, Vec_IntEntry(vProbes, i) );
+        pObj->Value = Gia_SweeperProbeLit( pDst, vProbes ? Vec_IntEntry(vProbes, i) : Gia_Obj2Lit(pDst,Gia_ManPi(pDst, i)) );
     Gia_ManForEachAnd( pSrc, pObj, i )
         pObj->Value = Gia_ManHashAnd( pDst, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
     vOutLits = Vec_IntAlloc( Gia_ManPoNum(pSrc) );
@@ -976,6 +979,45 @@ Gia_Man_t * Gia_SweeperSweep( Gia_Man_t * p, Vec_Int_t * vProbeOuts )
 
 /**Function*************************************************************
 
+  Synopsis    [Procedure to perform conditional fraig sweeping on separate logic cones..]
+
+  Description [The procedure takes GIA with the sweeper defined. The sweeper
+  is assumed to have some conditions currently pushed, which will be used
+  as constraints for fraig sweeping. The second argument (vProbes) contains
+  the array of probe IDs pointing to the user's logic cones to be SAT swept.
+  Finally, the optional command line (pCommLine) is an ABC command line
+  to be applied to the resulting GIA after SAT sweeping before it is 
+  grafted back into the original GIA manager. The return value is the array
+  of literals in the original GIA manager, corresponding to the user's
+  logic cones after sweeping, synthesis and grafting.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Gia_SweeperFraig( Gia_Man_t * p, Vec_Int_t * vProbes, char * pCommLime )
+{
+    Gia_Man_t * pNew;
+    Vec_Int_t * vLits;
+    // sweeper is running
+    assert( Gia_SweeperIsRunning(p) );
+    // sweep the logic
+    pNew = Gia_SweeperSweep( p, vProbes );
+    // execute command line
+    if ( pCommLime )
+    {
+    // set pNew to be current GIA in ABC
+    // execute command line pCommLine using Abc_CmdCommandExecute()
+    // get pNew to be current GIA in ABC     
+    }
+    vLits = Gia_SweeperGraft( p, NULL, pNew );
+    Gia_ManStop( pNew );
+    return vLits;
+}
+
+/**Function*************************************************************
+
   Synopsis    []
 
   Description []
@@ -1055,6 +1097,26 @@ Gia_Man_t * Gia_SweeperFraigTest( Gia_Man_t * p, int nWords, int nConfs, int fVe
     Gia_SweeperStop( p );
     return pGia;
 }
+
+/**Function*************************************************************
+
+  Synopsis    [Sweeper cleanup.]
+
+  Description [Returns new GIA with sweeper defined, which is the same
+  as the original sweeper, with all the dangling logic removed and SAT 
+  solver restarted. The probe IDs are guaranteed to have the same logic
+  functions as in the original manager.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_SweeperCleanup( Gia_Man_t * p, char * pCommLime )
+{
+    return NULL;
+}
+
 
 
 ////////////////////////////////////////////////////////////////////////
