@@ -1008,6 +1008,8 @@ extern void                Gia_SweeperCondPush( Gia_Man_t * p, int ProbeId );
 extern int                 Gia_SweeperCondCheckUnsat( Gia_Man_t * p );
 extern int                 Gia_SweeperCheckEquiv( Gia_Man_t * pGia, int ProbeId1, int ProbeId2 );
 extern Gia_Man_t *         Gia_SweeperExtractUserLogic( Gia_Man_t * p, Vec_Int_t * vProbeIds, Vec_Ptr_t * vOutNames );
+extern Vec_Int_t *         Gia_SweeperGraft( Gia_Man_t * pDst, Vec_Int_t * vProbes, Gia_Man_t * pSrc );
+extern Gia_Man_t *         Gia_SweeperSweep( Gia_Man_t * p, Vec_Int_t * vProbeConds, Vec_Int_t * vProbeOuts );
 /*=== giaSwitch.c ============================================================*/
 extern float               Gia_ManEvaluateSwitching( Gia_Man_t * p );
 extern float               Gia_ManComputeSwitching( Gia_Man_t * p, int nFrames, int nPref, int fProbOne );

@@ -230,8 +230,6 @@ void Gia_SweeperSetRuntimeLimit( Gia_Man_t * p, int nSeconds )
 {
     Swp_Man_t * pSwp = (Swp_Man_t *)p->pData;
     pSwp->nTimeOut = nSeconds;
-    if ( nSeconds )
-        sat_solver_set_runtime_limit( pSwp->pSat, nSeconds * CLOCKS_PER_SEC + clock() );
 }
 Vec_Int_t * Gia_SweeperGetCex( Gia_Man_t * p )
 {
@@ -696,6 +694,10 @@ int Gia_SweeperCheckEquiv( Gia_Man_t * pGia, int Probe1, int Probe2 )
     Vec_IntPush( p->vCondAssump, pLitsSat[0] );
     Vec_IntPush( p->vCondAssump, Abc_LitNot(pLitsSat[1]) );
 
+    // set runtime limit for this call
+    if ( p->nTimeOut )
+        sat_solver_set_runtime_limit( p->pSat, p->nTimeOut * CLOCKS_PER_SEC + clock() );
+
 clk = clock();
     RetValue1 = sat_solver_solve( p->pSat, Vec_IntArray(p->vCondAssump), Vec_IntArray(p->vCondAssump) + Vec_IntSize(p->vCondAssump), 
         (ABC_INT64_T)p->nConfMax, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
@@ -798,6 +800,10 @@ int Gia_SweeperCondCheckUnsat( Gia_Man_t * pGia )
     }
     sat_solver_compress( p->pSat );
 
+    // set runtime limit for this call
+    if ( p->nTimeOut )
+        sat_solver_set_runtime_limit( p->pSat, p->nTimeOut * CLOCKS_PER_SEC + clock() );
+
 clk = clock();
     RetValue = sat_solver_solve( p->pSat, Vec_IntArray(p->vCondAssump), Vec_IntArray(p->vCondAssump) + Vec_IntSize(p->vCondAssump), 
         (ABC_INT64_T)p->nConfMax, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
@@ -824,6 +830,52 @@ p->timeSatUndec += clock() - clk;
         return -1;
     }
 }
+
+/**Function*************************************************************
+
+  Synopsis    [Performs grafting from another manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Gia_SweeperGraft( Gia_Man_t * pDst, Vec_Int_t * vProbes, Gia_Man_t * pSrc )
+{
+    Vec_Int_t * vOutLits;
+    Gia_Obj_t * pObj;
+    int i;
+    assert( Vec_IntSize(vProbes) == Gia_ManPiNum(pSrc) );
+    assert( pDst->pHTable != NULL );
+    Gia_ManForEachPi( pSrc, pObj, i )
+        pObj->Value = Gia_SweeperProbeLit( pDst, Vec_IntEntry(vProbes, i) );
+    Gia_ManForEachAnd( pSrc, pObj, i )
+        pObj->Value = Gia_ManHashAnd( pDst, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    vOutLits = Vec_IntAlloc( Gia_ManPoNum(pSrc) );
+    Gia_ManForEachPo( pSrc, pObj, i )
+        Vec_IntPush( vOutLits, Gia_ObjFanin0Copy(pObj) );
+    return vOutLits;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs conditional sweeping of the cone.]
+
+  Description [Returns the result as a new GIA manager with as many inputs 
+  as the original manager and as many outputs as there are logic cones.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_SweeperSweep( Gia_Man_t * p, Vec_Int_t * vProbeConds, Vec_Int_t * vProbeOuts )
+{
+    return NULL;
+}
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
