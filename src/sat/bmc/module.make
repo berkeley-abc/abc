@@ -1,5 +1,4 @@
-SRC +=    src/sat/bmc/bmc.c \
-    src/sat/bmc/bmcBmc.c \
+SRC +=    src/sat/bmc/bmcBmc.c \
     src/sat/bmc/bmcBmc2.c \
     src/sat/bmc/bmcBmc3.c \
     src/sat/bmc/bmcCexCut.c \

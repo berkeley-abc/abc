@@ -113,6 +113,7 @@ static inline Swp_Man_t * Swp_ManStart( Gia_Man_t * pGia )
 {
     Swp_Man_t * p;
     int Lit;
+    assert( pGia->pHTable != NULL );
     pGia->pData = p = ABC_CALLOC( Swp_Man_t, 1 );
     p->pGia         = pGia;
     p->nConfMax     = 1000;
@@ -150,11 +151,12 @@ static inline void Swp_ManStop( Gia_Man_t * pGia )
     ABC_FREE( p );
     pGia->pData = NULL;
 }
-Gia_Man_t * Gia_SweeperStart()
+Gia_Man_t * Gia_SweeperStart( Gia_Man_t * pGia )
 {
-    Gia_Man_t * pGia;
-    pGia = Gia_ManStart( 10000 );
-    Gia_ManHashStart( pGia );
+    if ( pGia == NULL )
+        pGia = Gia_ManStart( 10000 );
+    if ( pGia->pHTable == NULL )
+        Gia_ManHashStart( pGia );
     Swp_ManStart( pGia );
     pGia->fSweeper = 1;
     return pGia;
@@ -164,7 +166,11 @@ void Gia_SweeperStop( Gia_Man_t * pGia )
     pGia->fSweeper = 0;
     Swp_ManStop( pGia );
     Gia_ManHashStop( pGia );
-    Gia_ManStop( pGia );
+//    Gia_ManStop( pGia );
+}
+int Gia_SweeperIsRunning( Gia_Man_t * pGia )
+{
+    return (pGia->pData != NULL);
 }
 double Gia_SweeperMemUsage( Gia_Man_t * pGia )
 {
@@ -311,6 +317,11 @@ int Gia_SweeperCondPop( Gia_Man_t * p )
     Swp_Man_t * pSwp = (Swp_Man_t *)p->pData;
     return Vec_IntPop( pSwp->vCondProbes );
 }
+Vec_Int_t * Gia_SweeperCondVector( Gia_Man_t * p )
+{
+    Swp_Man_t * pSwp = (Swp_Man_t *)p->pData;
+    return pSwp->vCondProbes;
+}
 
 
 /**Function*************************************************************
@@ -335,13 +346,14 @@ static void Gia_ManExtract_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vOb
     Gia_ManExtract_rec( p, Gia_ObjFanin1(pObj), vObjIds );
     Vec_IntPush( vObjIds, Gia_ObjId(p, pObj) );
 }
-Gia_Man_t * Gia_SweeperExtractUserLogic( Gia_Man_t * p, Vec_Int_t * vProbeIds, Vec_Ptr_t * vOutNames )
+Gia_Man_t * Gia_SweeperExtractUserLogic( Gia_Man_t * p, Vec_Int_t * vProbeIds, Vec_Ptr_t * vInNames, Vec_Ptr_t * vOutNames )
 {
     Vec_Int_t * vObjIds, * vValues;
     Gia_Man_t * pNew, * pTemp;
     Gia_Obj_t * pObj;
     int i, ProbeId;
-    assert( Vec_IntSize(vProbeIds) == Vec_PtrSize(vOutNames) );
+    assert( vInNames  == NULL || Gia_ManPiNum(p) == Vec_PtrSize(vInNames) );
+    assert( vOutNames == NULL || Vec_IntSize(vProbeIds) == Vec_PtrSize(vOutNames) );
     // create new
     Gia_ManIncrementTravId( p );
     vObjIds = Vec_IntAlloc( 1000 );
@@ -386,8 +398,8 @@ Gia_Man_t * Gia_SweeperExtractUserLogic( Gia_Man_t * p, Vec_Int_t * vProbeIds, V
         Gia_ManStop( pTemp );
     }
     // copy names if present
-    if ( p->vNamesIn )
-        pNew->vNamesIn = Vec_PtrDupStr( p->vNamesIn );
+    if ( vInNames )
+        pNew->vNamesIn = Vec_PtrDupStr( vInNames );
     if ( vOutNames )
         pNew->vNamesOut = Vec_PtrDupStr( vOutNames );
     return pNew;
@@ -861,6 +873,62 @@ Vec_Int_t * Gia_SweeperGraft( Gia_Man_t * pDst, Vec_Int_t * vProbes, Gia_Man_t *
 
 /**Function*************************************************************
 
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_SweeperGen64Patterns( Gia_Man_t * pGiaCond, Vec_Wrd_t * vSim )
+{
+    Vec_Int_t * vCex;
+    int i, k;
+    for ( i = 0; i < 64; i++ )
+    {
+        if ( Gia_SweeperCondCheckUnsat( pGiaCond ) != 0 )
+            return 0;
+        vCex = Gia_SweeperGetCex( pGiaCond );
+        for ( k = 0; k < Gia_ManPiNum(pGiaCond); k++ )
+        {
+            if ( Vec_IntEntry(vCex, k) )
+                Abc_InfoXorBit( (unsigned *)Vec_WrdEntryP(vSim, i), k );
+            printf( "%d", Vec_IntEntry(vCex, k) );
+        }
+        printf( "\n" );
+    }
+    return 1;
+}
+int Gia_SweeperSimulate( Gia_Man_t * p, Vec_Wrd_t * vSim )
+{
+    Gia_Obj_t * pObj;
+    word Sim, Sim0, Sim1;
+    int i, Count = 0;
+    assert( Vec_WrdEntry(vSim, 0) == 0 );
+//    assert( Vec_WrdEntry(vSim, 1) != 0 ); // may not hold
+    Gia_ManForEachAnd( p, pObj, i )
+    {
+        Sim0 = Vec_WrdEntry( vSim, Gia_ObjFaninId0p( p, pObj ) );
+        Sim1 = Vec_WrdEntry( vSim, Gia_ObjFaninId1p( p, pObj ) );
+        Sim  = (Gia_ObjFaninC0(pObj) ? ~Sim0 : Sim0) & (Gia_ObjFaninC1(pObj) ? ~Sim1 : Sim1);
+        Vec_WrdWriteEntry( vSim, i, Sim );
+        if ( pObj->fMark0 == 1 ) // considered
+            continue;
+        if ( pObj->fMark1 == 1 ) // non-constant
+            continue;
+        if ( (pObj->fPhase ? ~Sim : Sim) != 0 )
+        {
+            pObj->fMark1 = 1;
+            Count++;
+        }
+    }
+    return Count;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Performs conditional sweeping of the cone.]
 
   Description [Returns the result as a new GIA manager with as many inputs 
@@ -871,9 +939,121 @@ Vec_Int_t * Gia_SweeperGraft( Gia_Man_t * pDst, Vec_Int_t * vProbes, Gia_Man_t *
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_SweeperSweep( Gia_Man_t * p, Vec_Int_t * vProbeConds, Vec_Int_t * vProbeOuts )
+void Gia_SweeperSweepInt( Gia_Man_t * pGiaCond, Gia_Man_t * pGiaOuts, Vec_Wrd_t * vSim )
 {
-    return NULL;
+}
+Gia_Man_t * Gia_SweeperSweep( Gia_Man_t * p, Vec_Int_t * vProbeOuts )
+{
+    Gia_Man_t * pGiaCond, * pGiaOuts;
+    Vec_Int_t * vProbeConds;
+    Vec_Wrd_t * vSim;
+    Gia_Obj_t * pObj;
+    int i, Count;
+    // sweeper is running
+    assert( Gia_SweeperIsRunning(p) );
+    // extract conditions and logic cones
+    vProbeConds = Gia_SweeperCondVector( p );
+    pGiaCond = Gia_SweeperExtractUserLogic( p, vProbeConds, NULL, NULL );
+    pGiaOuts = Gia_SweeperExtractUserLogic( p, vProbeOuts, NULL, NULL );
+    Gia_ManSetPhase( pGiaOuts );
+    // start the sweeper for the conditions
+    Gia_SweeperStart( pGiaCond );
+    Gia_ManForEachPo( pGiaCond, pObj, i )
+        Gia_SweeperCondPush( pGiaCond, Gia_SweeperProbeCreate(pGiaCond, Gia_ObjFaninLit0p(pGiaCond, pObj)) );
+    // generate 64 patterns that satisfy the conditions
+    vSim = Vec_WrdStart( Gia_ManObjNum(pGiaOuts) );
+    Gia_SweeperGen64Patterns( pGiaCond, vSim );
+    Count = Gia_SweeperSimulate( pGiaOuts, vSim );
+    printf( "Disproved %d nodes.\n", Count );
+
+    // consider the remaining ones
+//    Gia_SweeperSweepInt( pGiaCond, pGiaOuts, vSim );
+    Vec_WrdFree( vSim );
+    Gia_ManStop( pGiaOuts );
+    Gia_SweeperStop( pGiaCond );
+    return pGiaCond;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManCreateAndGate( Gia_Man_t * p, Vec_Int_t * vLits )
+{
+    if ( Vec_IntSize(vLits) == 0 )
+        return 0;
+    while ( Vec_IntSize(vLits) > 1 )
+    {
+        int i, k = 0, Lit1, Lit2, LitRes;
+        Vec_IntForEachEntryDouble( vLits, Lit1, Lit2, i )
+        {
+            LitRes = Gia_ManHashAnd( p, Lit1, Lit2 );
+            Vec_IntWriteEntry( vLits, k++, LitRes );
+        }
+        if ( Vec_IntSize(vLits) & 1 )
+            Vec_IntWriteEntry( vLits, k++, Vec_IntEntryLast(vLits) );
+        Vec_IntShrink( vLits, k );
+    }
+    assert( Vec_IntSize(vLits) == 1 );
+    return Vec_IntEntry(vLits, 0);
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Sweeper sweeper test.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_SweeperFraigTest( Gia_Man_t * p, int nWords, int nConfs, int fVerbose )
+{
+    Gia_Man_t * pGia;
+    Gia_Obj_t * pObj;
+    Vec_Int_t * vLits, * vOuts;
+    int i, k, Lit;
+
+    // create sweeper
+    Gia_SweeperStart( p );
+
+    // create 1-hot constraint
+    vLits = Vec_IntAlloc( 1000 );
+    for ( i = 0; i < Gia_ManPiNum(p); i++ )
+        for ( k = i+1; k < Gia_ManPiNum(p); k++ )
+        {
+            int Lit0 = Gia_Obj2Lit(p, Gia_ManPi(p, i));
+            int Lit1 = Gia_Obj2Lit(p, Gia_ManPi(p, k));
+            Vec_IntPush( vLits, Abc_LitNot(Gia_ManHashAnd(p, Lit0, Lit1)) );
+        }
+    Lit = 0;
+    for ( i = 0; i < Gia_ManPiNum(p); i++ )
+        Lit = Gia_ManHashOr( p, Lit, Gia_Obj2Lit(p, Gia_ManPi(p, i)) );
+    Vec_IntPush( vLits, Lit );
+    Gia_SweeperCondPush( p, Gia_SweeperProbeCreate( p, Gia_ManCreateAndGate( p, vLits ) ) );
+    Vec_IntFree( vLits );
+//Gia_ManPrint( p );
+
+    // create outputs
+    vOuts = Vec_IntAlloc( Gia_ManPoNum(p) );
+    Gia_ManForEachPo( p, pObj, i )
+        Vec_IntPush( vOuts, Gia_SweeperProbeCreate( p,  Gia_ObjFaninLit0p(p, pObj) ) );
+
+    // perform the sweeping
+    pGia = Gia_SweeperSweep( p, vOuts );
+    Vec_IntFree( vOuts );
+
+    Gia_SweeperStop( p );
+    return pGia;
 }
 
 

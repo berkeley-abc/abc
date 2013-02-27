@@ -346,6 +346,7 @@ static int Abc_CommandAbc9Scorr              ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9Choice             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Sat                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Fraig              ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9CFraig             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Srm                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Srm2               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Filter             ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -811,6 +812,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&choice",       Abc_CommandAbc9Choice,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&sat",          Abc_CommandAbc9Sat,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&fraig",        Abc_CommandAbc9Fraig,        0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&cfraig",       Abc_CommandAbc9CFraig,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&srm",          Abc_CommandAbc9Srm,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&srm2",         Abc_CommandAbc9Srm2,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&filter",       Abc_CommandAbc9Filter,       0 );
@@ -26820,6 +26822,78 @@ usage:
     Abc_Print( -2, "\t-d     : toggle using double output miters [default = %s]\n", pPars->fDualOut? "yes": "no" );
     Abc_Print( -2, "\t-w     : toggle printing even more verbose information [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9CFraig( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern Gia_Man_t * Gia_SweeperFraigTest( Gia_Man_t * p, int nWords, int nConfs, int fVerbose );
+    Gia_Man_t * pTemp;
+    int c;
+    int nWords   = 1;
+    int nConfs   = 0;
+    int fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "WCvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'W':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-W\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nWords = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nWords < 0 )
+                goto usage;
+            break;
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-C\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nConfs = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nConfs < 0 )
+                goto usage;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9CFraig(): There is no AIG.\n" );
+        return 1;
+    }
+    pTemp = Gia_SweeperFraigTest( pAbc->pGia, nWords, nConfs, fVerbose );
+    Abc_CommandUpdate9( pAbc, pTemp );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &cfraig [-WC <num>] [-rmdwvh]\n" );
+    Abc_Print( -2, "\t         performs conditional combinational SAT sweeping\n" );
+    Abc_Print( -2, "\t-W num : the number of simulation words [default = %d]\n", nWords );
+    Abc_Print( -2, "\t-C num : the max number of conflicts at a node [default = %d]\n", nConfs );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }

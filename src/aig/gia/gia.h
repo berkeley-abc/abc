@@ -993,8 +993,9 @@ extern Gia_Man_t *         Gia_ManStgRead( char * pFileName, int kHot, int fVerb
 /*=== giaSweep.c ============================================================*/
 extern Gia_Man_t *         Gia_ManFraigSweep( Gia_Man_t * p, void * pPars );
 /*=== giaSweeper.c ============================================================*/
-extern Gia_Man_t *         Gia_SweeperStart();
+extern Gia_Man_t *         Gia_SweeperStart( Gia_Man_t * p );
 extern void                Gia_SweeperStop( Gia_Man_t * p );
+extern int                 Gia_SweeperIsRunning( Gia_Man_t * pGia );
 extern void                Gia_SweeperPrintStats( Gia_Man_t * p );
 extern void                Gia_SweeperSetConflictLimit( Gia_Man_t * p, int nConfMax );
 extern void                Gia_SweeperSetRuntimeLimit( Gia_Man_t * p, int nSeconds );
@@ -1005,11 +1006,12 @@ extern void                Gia_SweeperProbeDeref( Gia_Man_t * p, int ProbeId );
 extern int                 Gia_SweeperProbeLit( Gia_Man_t * p, int ProbeId );
 extern int                 Gia_SweeperCondPop( Gia_Man_t * p );
 extern void                Gia_SweeperCondPush( Gia_Man_t * p, int ProbeId );
+extern Vec_Int_t *         Gia_SweeperCondVector( Gia_Man_t * p );
 extern int                 Gia_SweeperCondCheckUnsat( Gia_Man_t * p );
 extern int                 Gia_SweeperCheckEquiv( Gia_Man_t * pGia, int ProbeId1, int ProbeId2 );
-extern Gia_Man_t *         Gia_SweeperExtractUserLogic( Gia_Man_t * p, Vec_Int_t * vProbeIds, Vec_Ptr_t * vOutNames );
+extern Gia_Man_t *         Gia_SweeperExtractUserLogic( Gia_Man_t * p, Vec_Int_t * vProbeIds, Vec_Ptr_t * vInNames, Vec_Ptr_t * vOutNames );
 extern Vec_Int_t *         Gia_SweeperGraft( Gia_Man_t * pDst, Vec_Int_t * vProbes, Gia_Man_t * pSrc );
-extern Gia_Man_t *         Gia_SweeperSweep( Gia_Man_t * p, Vec_Int_t * vProbeConds, Vec_Int_t * vProbeOuts );
+extern Gia_Man_t *         Gia_SweeperSweep( Gia_Man_t * p, Vec_Int_t * vProbeOuts );
 /*=== giaSwitch.c ============================================================*/
 extern float               Gia_ManEvaluateSwitching( Gia_Man_t * p );
 extern float               Gia_ManComputeSwitching( Gia_Man_t * p, int nFrames, int nPref, int fProbOne );

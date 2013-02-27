@@ -1,5 +1,4 @@
-SRC +=    src/proof/llb/llb.c \
-    src/proof/llb/llb1Cluster.c \
+SRC +=    src/proof/llb/llb1Cluster.c \
     src/proof/llb/llb1Constr.c \
     src/proof/llb/llb1Core.c \
     src/proof/llb/llb1Group.c \

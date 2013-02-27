@@ -6,5 +6,4 @@ SRC +=    src/opt/dar/darBalance.c \
     src/opt/dar/darMan.c \
     src/opt/dar/darPrec.c \
     src/opt/dar/darRefact.c \
-    src/opt/dar/darResub.c \
     src/opt/dar/darScript.c

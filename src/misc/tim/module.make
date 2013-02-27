@@ -1,5 +1,4 @@
-SRC +=    src/misc/tim/tim.c \
-    src/misc/tim/timBox.c \
+SRC +=    src/misc/tim/timBox.c \
     src/misc/tim/timDump.c \
     src/misc/tim/timMan.c \
     src/misc/tim/timTime.c \

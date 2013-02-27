@@ -1,5 +1,4 @@
-SRC +=    src/proof/abs/abs.c \
-    src/proof/abs/absDup.c \
+SRC +=    src/proof/abs/absDup.c \
     src/proof/abs/absGla.c \
     src/proof/abs/absGlaOld.c \
     src/proof/abs/absIter.c \
