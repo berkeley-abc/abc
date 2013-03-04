@@ -493,11 +493,11 @@ void Abc_FrameClearDesign()
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_CommandUpdate9( Abc_Frame_t * pAbc, Gia_Man_t * pNew )
+void Abc_FrameUpdateGia( Abc_Frame_t * pAbc, Gia_Man_t * pNew )
 {
     if ( pNew == NULL )
     {
-        Abc_Print( -1, "Abc_CommandUpdate9(): Tranformation has failed.\n" );
+        Abc_Print( -1, "Abc_FrameUpdateGia(): Tranformation has failed.\n" );
         return;
     }
     // transfer names
@@ -516,6 +516,28 @@ void Abc_CommandUpdate9( Abc_Frame_t * pAbc, Gia_Man_t * pNew )
         Gia_ManStop( pAbc->pGia2 );
     pAbc->pGia2 = pAbc->pGia;
     pAbc->pGia  = pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Abc_FrameGetGia( Abc_Frame_t * pAbc )
+{
+    Gia_Man_t * pGia;
+    if ( pAbc->pGia2 )
+        Gia_ManStop( pAbc->pGia2 );
+    pAbc->pGia2 = NULL;
+    pGia = pAbc->pGia;
+    pAbc->pGia = NULL;
+    return pGia;
 }
 
 
@@ -22879,7 +22901,7 @@ int Abc_CommandCexCut( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( 1, "Command has failed.\n");
         return 0;
     }
-    Abc_CommandUpdate9( pAbc, pGiaNew );
+    Abc_FrameUpdateGia( pAbc, pGiaNew );
 */
     return 0;
 
@@ -23553,7 +23575,7 @@ int Abc_CommandAbc9Read( Abc_Frame_t * pAbc, int argc, char ** argv )
     fclose( pFile );
 
     pAig = Gia_AigerRead( FileName, fSkipStrash, 0 );
-    Abc_CommandUpdate9( pAbc, pAig );
+    Abc_FrameUpdateGia( pAbc, pAig );
     return 0;
 
 usage:
@@ -23623,7 +23645,7 @@ int Abc_CommandAbc9ReadBlif( Abc_Frame_t * pAbc, int argc, char ** argv )
     fclose( pFile );
 
     pAig = Abc_NtkHieCecTest( FileName, fVerbose );
-    Abc_CommandUpdate9( pAbc, pAig );
+    Abc_FrameUpdateGia( pAbc, pAig );
     return 0;
 
 usage:
@@ -23702,7 +23724,7 @@ int Abc_CommandAbc9ReadCBlif( Abc_Frame_t * pAbc, int argc, char ** argv )
     fclose( pFile );
 
     pAig = Abc_NtkHieCecTest2( FileName, pModelName, fVerbose );
-    Abc_CommandUpdate9( pAbc, pAig );
+    Abc_FrameUpdateGia( pAbc, pAig );
     return 0;
 
 usage:
@@ -23775,7 +23797,7 @@ int Abc_CommandAbc9ReadStg( Abc_Frame_t * pAbc, int argc, char ** argv )
     fclose( pFile );
 
     pAig = Gia_ManStgRead( FileName, kHot, fVerbose );
-    Abc_CommandUpdate9( pAbc, pAig );
+    Abc_FrameUpdateGia( pAbc, pAig );
     return 0;
 
 usage:
@@ -23845,7 +23867,7 @@ int Abc_CommandAbc9Get( Abc_Frame_t * pAbc, int argc, char ** argv )
         pMan = Abc_NtkToDar( pAbc->pNtkCur, 0, 1 );
     pAig = Gia_ManFromAig( pMan );
     Aig_ManStop( pMan );
-    Abc_CommandUpdate9( pAbc, pAig );
+    Abc_FrameUpdateGia( pAbc, pAig );
     if ( fNames )
     {
         pAig->vNamesIn  = Abc_NtkCollectCiNames( pAbc->pNtkCur );
@@ -24305,7 +24327,7 @@ int Abc_CommandAbc9Hash( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     pTemp = Gia_ManRehash( pAbc->pGia, fAddStrash );
-    Abc_CommandUpdate9( pAbc, pTemp );
+    Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 
 usage:
@@ -24356,7 +24378,7 @@ int Abc_CommandAbc9Topand( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     pTemp = Gia_ManDupTopAnd( pAbc->pGia, fVerbose );
-    Abc_CommandUpdate9( pAbc, pTemp );
+    Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 
 usage:
@@ -24428,13 +24450,13 @@ int Abc_CommandAbc9Cof( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Print( -1, "Cofactoring all variables whose fanout count is higher than %d.\n", nLimFan );
         pTemp = Gia_ManDupCofAll( pAbc->pGia, nLimFan, fVerbose );
-        Abc_CommandUpdate9( pAbc, pTemp );
+        Abc_FrameUpdateGia( pAbc, pTemp );
     }
     else if ( iVar )
     {
         Abc_Print( -1, "Cofactoring one variable with object ID %d.\n", iVar );
         pTemp = Gia_ManDupCof( pAbc->pGia, iVar );
-        Abc_CommandUpdate9( pAbc, pTemp );
+        Abc_FrameUpdateGia( pAbc, pTemp );
     }
     else
     {
@@ -24519,7 +24541,7 @@ int Abc_CommandAbc9Trim( Abc_Frame_t * pAbc, int argc, char ** argv )
         pTemp = Gia_ManDupTrimmed2( pTemp2 = pTemp );
         Gia_ManStop( pTemp2 );
     }
-    Abc_CommandUpdate9( pAbc, pTemp );
+    Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 
 usage:
@@ -24595,7 +24617,7 @@ int Abc_CommandAbc9Dfs( Abc_Frame_t * pAbc, int argc, char ** argv )
         if ( fVerbose )
             Abc_Print( -1, "AIG objects are reordered in the DFS order.\n" );
     }
-    Abc_CommandUpdate9( pAbc, pTemp );
+    Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 
 usage:
@@ -25666,7 +25688,7 @@ int Abc_CommandAbc9Times( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     pTemp = Gia_ManDupTimes( pAbc->pGia, nTimes );
-    Abc_CommandUpdate9( pAbc, pTemp );
+    Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 
 usage:
@@ -25763,7 +25785,7 @@ int Abc_CommandAbc9Frames( Abc_Frame_t * pAbc, int argc, char ** argv )
         pTemp = Gia_ManFrames2( pAbc->pGia, pPars );
     else
         pTemp = Gia_ManFrames( pAbc->pGia, pPars );
-    Abc_CommandUpdate9( pAbc, pTemp );
+    Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 
 usage:
@@ -25832,7 +25854,7 @@ int Abc_CommandAbc9Retime( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
     pTemp = Gia_ManRetimeForward( pAbc->pGia, nMaxIters, fVerbose );
-    Abc_CommandUpdate9( pAbc, pTemp );
+    Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 
 usage:
@@ -25887,7 +25909,7 @@ int Abc_CommandAbc9Enable( Abc_Frame_t * pAbc, int argc, char ** argv )
         pTemp = Gia_ManRemoveEnables( pAbc->pGia );
     else
         pTemp = Gia_ManDupSelf( pAbc->pGia );
-    Abc_CommandUpdate9( pAbc, pTemp );
+    Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 
 usage:
@@ -25938,7 +25960,7 @@ int Abc_CommandAbc9Dc2( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     pTemp = Gia_ManCompress2( pAbc->pGia, fUpdateLevel, fVerbose );
-    Abc_CommandUpdate9( pAbc, pTemp );
+    Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 
 usage:
@@ -25994,7 +26016,7 @@ int Abc_CommandAbc9Bidec( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     pTemp = Gia_ManPerformBidec( pAbc->pGia, fVerbose );
-    Abc_CommandUpdate9( pAbc, pTemp );
+    Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 
 usage:
@@ -26050,7 +26072,7 @@ int Abc_CommandAbc9Shrink( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     pTemp = Gia_ManPerformMapShrink( pAbc->pGia, fKeepLevel, fVerbose );
-    Abc_CommandUpdate9( pAbc, pTemp );
+    Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 
 usage:
@@ -26122,7 +26144,7 @@ int Abc_CommandAbc9Miter( Abc_Frame_t * pAbc, int argc, char ** argv )
             return 1;
         }
         pAux = Gia_ManTransformMiter( pAbc->pGia );
-        Abc_CommandUpdate9( pAbc, pAux );
+        Abc_FrameUpdateGia( pAbc, pAux );
         Abc_Print( 1, "The miter (current AIG) is transformed by XORing POs pair-wise.\n" );
         return 0;
     }
@@ -26159,7 +26181,7 @@ int Abc_CommandAbc9Miter( Abc_Frame_t * pAbc, int argc, char ** argv )
     // compute the miter
     pAux = Gia_ManMiter( pAbc->pGia, pSecond, fDualOut, fSeq, fVerbose );
     Gia_ManStop( pSecond );
-    Abc_CommandUpdate9( pAbc, pAux );
+    Abc_FrameUpdateGia( pAbc, pAux );
     return 0;
 
 usage:
@@ -26294,7 +26316,7 @@ int Abc_CommandAbc9Scl( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     pTemp = Gia_ManSeqStructSweep( pAbc->pGia, fConst, fEquiv, fVerbose );
-    Abc_CommandUpdate9( pAbc, pTemp );
+    Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 
 usage:
@@ -26387,7 +26409,7 @@ int Abc_CommandAbc9Lcorr( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
     pTemp = Cec_ManLSCorrespondence( pAbc->pGia, pPars );
-    Abc_CommandUpdate9( pAbc, pTemp );
+    Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 
 usage:
@@ -26494,7 +26516,7 @@ int Abc_CommandAbc9Scorr( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
     pTemp = Cec_ManLSCorrespondence( pAbc->pGia, pPars );
-    Abc_CommandUpdate9( pAbc, pTemp );
+    Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 
 usage:
@@ -26563,7 +26585,7 @@ int Abc_CommandAbc9Choice( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     pTemp = Cec_ManChoiceComputation( pAbc->pGia, pPars );
-    Abc_CommandUpdate9( pAbc, pTemp );
+    Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 
 usage:
@@ -26672,7 +26694,7 @@ int Abc_CommandAbc9Sat( Abc_Frame_t * pAbc, int argc, char ** argv )
     else
     {
         pTemp = Cec_ManSatSolving( pAbc->pGia, pPars );
-        Abc_CommandUpdate9( pAbc, pTemp );
+        Abc_FrameUpdateGia( pAbc, pTemp );
     }
     return 0;
 
@@ -26805,7 +26827,7 @@ int Abc_CommandAbc9Fraig( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     pTemp = Cec_ManSatSweeping( pAbc->pGia, pPars );
-    Abc_CommandUpdate9( pAbc, pTemp );
+    Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 
 usage:
@@ -26885,7 +26907,7 @@ int Abc_CommandAbc9CFraig( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     pTemp = Gia_SweeperFraigTest( pAbc->pGia, nWords, nConfs, fVerbose );
-    Abc_CommandUpdate9( pAbc, pTemp );
+    Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 
 usage:
@@ -27229,7 +27251,7 @@ int Abc_CommandAbc9Reduce( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     else
         pTemp = Gia_ManEquivReduceAndRemap( pAbc->pGia, 1, fDualOut );
-    Abc_CommandUpdate9( pAbc, pTemp );
+    Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 
 usage:
@@ -27578,7 +27600,7 @@ int Abc_CommandAbc9Sweep( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     pTemp = Gia_ManFraigSweep( pAbc->pGia, pPars );
-    Abc_CommandUpdate9( pAbc, pTemp );
+    Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 
 usage:
@@ -28117,7 +28139,7 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9If(): Mapping of the AIG has failed.\n" );
         return 1;
     }
-    Abc_CommandUpdate9( pAbc, pNew );
+    Abc_FrameUpdateGia( pAbc, pNew );
     return 0;
 
 usage:
@@ -28304,7 +28326,7 @@ int Abc_CommandAbc9Speedup( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     pAbc->pGia->pLutLib = fUseLutLib ? pAbc->pLibLut : NULL;
     pTemp = Gia_ManSpeedup( pAbc->pGia, Percentage, Degree, fVerbose, fVeryVerbose );
-    Abc_CommandUpdate9( pAbc, pTemp );
+    Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 
 usage:
@@ -28493,7 +28515,7 @@ int Abc_CommandAbc9Dch( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     pTemp = Gia_ManPerformDch( pAbc->pGia, pPars );
-    Abc_CommandUpdate9( pAbc, pTemp );
+    Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 
 usage:
@@ -28570,7 +28592,7 @@ int Abc_CommandAbc9Rpm( Abc_Frame_t * pAbc, int argc, char ** argv )
         pTemp = Abs_RpmPerformOld( pAbc->pGia, fVerbose );
     else
         pTemp = Abs_RpmPerform( pAbc->pGia, nCutMax, fVerbose, fVeryVerbose );
-    Abc_CommandUpdate9( pAbc, pTemp );
+    Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 
 usage:
@@ -28662,7 +28684,7 @@ int Abc_CommandAbc9BackReach( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     pTemp = Gia_ManCofTest( pAbc->pGia, nFrameMax, nConfMax, nTimeMax, fVerbose );
-    Abc_CommandUpdate9( pAbc, pTemp );
+    Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 
 usage:
@@ -28730,7 +28752,7 @@ int Abc_CommandAbc9Posplit( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         pTemp = Gia_ManFromAigSimple( pMan );
         Aig_ManStop( pMan );
-        Abc_CommandUpdate9( pAbc, pTemp );
+        Abc_FrameUpdateGia( pAbc, pTemp );
     }
     return 0;
 
@@ -29459,7 +29481,7 @@ int Abc_CommandAbc9Iso( Abc_Frame_t * pAbc, int argc, char ** argv )
     // update the internal storage of PO equivalences
     Abc_FrameReplacePoEquivs( pAbc, &vPosEquivs );
     // update the AIG
-    Abc_CommandUpdate9( pAbc, pAig );
+    Abc_FrameUpdateGia( pAbc, pAig );
     return 0;
 
 usage:
@@ -29570,7 +29592,7 @@ int Abc_CommandAbc9Cycle( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     pTemp = Gia_ManDupCycled( pAbc->pGia, nFrames );
-    Abc_CommandUpdate9( pAbc, pTemp );
+    Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 
 usage:
@@ -29665,7 +29687,7 @@ int Abc_CommandAbc9Cone( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     pTemp = Gia_ManConeExtract( pAbc->pGia, iOutNum, nDelta, nOutsMin, nOutsMax );
     if ( pTemp )
-        Abc_CommandUpdate9( pAbc, pTemp );
+        Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 
 usage:
@@ -29930,7 +29952,7 @@ int Abc_CommandAbc9AbsDerive( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
     pTemp = Gia_ManDupAbsFlops( pAbc->pGia, pAbc->pGia->vFlopClasses );
-    Abc_CommandUpdate9( pAbc, pTemp );
+    Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 
 usage:
@@ -30072,7 +30094,7 @@ int Abc_CommandAbc9GlaDerive( Abc_Frame_t * pAbc, int argc, char ** argv )
     pTemp = Gia_ManDupAbsGates( pAbc->pGia, pAbc->pGia->vGateClasses );
     Gia_ManStop( pTemp );
     pTemp = Gia_ManDupAbsGates( pAbc->pGia, pAbc->pGia->vGateClasses );
-    Abc_CommandUpdate9( pAbc, pTemp );
+    Abc_FrameUpdateGia( pAbc, pTemp );
 //    Abc_Print( 1,"This command is currently not enabled.\n" );
     return 0;
 

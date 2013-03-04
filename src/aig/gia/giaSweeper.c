@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "gia.h"
+#include "base/main/main.h"
 #include "sat/bsat/satSolver.h"
 
 ABC_NAMESPACE_IMPL_START
@@ -404,6 +405,92 @@ Gia_Man_t * Gia_SweeperExtractUserLogic( Gia_Man_t * p, Vec_Int_t * vProbeIds, V
         pNew->vNamesIn = Vec_PtrDupStr( vInNames );
     if ( vOutNames )
         pNew->vNamesOut = Vec_PtrDupStr( vOutNames );
+    return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Sweeper cleanup.]
+
+  Description [Returns new GIA with sweeper defined, which is the same
+  as the original sweeper, with all the dangling logic removed and SAT 
+  solver restarted. The probe IDs are guaranteed to have the same logic
+  functions as in the original manager.]
+               
+  SideEffects [The input manager is deleted inside this procedure.]
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_SweeperCleanup( Gia_Man_t * p, char * pCommLime )
+{
+    Swp_Man_t * pSwp = (Swp_Man_t *)p->pData;
+    Vec_Int_t * vObjIds;
+    Gia_Man_t * pNew, * pTemp;
+    Gia_Obj_t * pObj;
+    int i, iLit, ProbeId;
+
+    // collect all internal nodes pointed to by currently-used probes
+    Gia_ManIncrementTravId( p );
+    vObjIds = Vec_IntAlloc( 1000 );
+    Vec_IntForEachEntry( pSwp->vProbes, iLit, ProbeId )
+    {
+        if ( iLit < 0 ) continue;
+        pObj = Gia_Lit2Obj( p, iLit );
+        Gia_ManExtract_rec( p, Gia_Regular(pObj), vObjIds );
+    }
+    // create new manager
+    pNew = Gia_ManStart( 1 + Gia_ManPiNum(p) + Vec_IntSize(vObjIds) + 100 );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManForEachPi( p, pObj, i )
+        pObj->Value = Gia_ManAppendCi(pNew);
+    // create internal nodes
+    Gia_ManHashStart( pNew );
+    Gia_ManForEachObjVec( vObjIds, p, pObj, i )
+        pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    Gia_ManHashStop( pNew );
+    // create outputs
+    Vec_IntFill( pSwp->vLit2Prob, 2*Gia_ManObjNum(pNew), -1 );
+    Vec_IntForEachEntry( pSwp->vProbes, iLit, ProbeId )
+    {
+        if ( iLit < 0 ) continue;
+        pObj = Gia_Lit2Obj( p, iLit );
+        iLit = Gia_Regular(pObj)->Value ^ Gia_IsComplement(pObj);
+        Vec_IntWriteEntry( pSwp->vProbes, ProbeId, iLit );
+        Vec_IntSetEntryFull( pSwp->vLit2Prob, iLit, ProbeId ); // consider hash table in the future
+    }
+    Vec_IntFree( vObjIds );
+    // duplicated if needed
+    if ( Gia_ManHasDangling(pNew) )
+    {
+        pNew = Gia_ManCleanup( pTemp = pNew );
+        Gia_ManStop( pTemp );
+    }
+    // execute command line
+    if ( pCommLime )
+    {
+        // set pNew to be current GIA in ABC
+        Abc_FrameUpdateGia( Abc_FrameGetGlobalFrame(), pNew );
+        // execute command line pCommLine using Abc_CmdCommandExecute()
+        Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), pCommLime );
+        // get pNew to be current GIA in ABC     
+        pNew = Abc_FrameGetGia( Abc_FrameGetGlobalFrame() );
+    }
+    // restart the SAT solver
+    Vec_IntClear( pSwp->vId2Lit );
+    sat_solver_delete( pSwp->pSat );
+    pSwp->pSat         = sat_solver_new();
+    pSwp->nSatVars     = 1;
+    sat_solver_setnvars( pSwp->pSat, 1000 );
+    Swp_ManSetObj2Lit( pSwp, 0, (iLit = Abc_Var2Lit(pSwp->nSatVars++, 0)) );
+    iLit = Abc_LitNot(iLit);
+    sat_solver_addclause( pSwp->pSat, &iLit, &iLit + 1 );
+    pSwp->timeStart    = clock();
+    // return the result
+    pNew = p->pData; p->pData = NULL;
+    Gia_ManStop( p );
     return pNew;
 }
 
@@ -1009,9 +1096,12 @@ Vec_Int_t * Gia_SweeperFraig( Gia_Man_t * p, Vec_Int_t * vProbeIds, char * pComm
     // execute command line
     if ( pCommLime )
     {
-    // set pNew to be current GIA in ABC
-    // execute command line pCommLine using Abc_CmdCommandExecute()
-    // get pNew to be current GIA in ABC     
+        // set pNew to be current GIA in ABC
+        Abc_FrameUpdateGia( Abc_FrameGetGlobalFrame(), pNew );
+        // execute command line pCommLine using Abc_CmdCommandExecute()
+        Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), pCommLime );
+        // get pNew to be current GIA in ABC     
+        pNew = Abc_FrameGetGia( Abc_FrameGetGlobalFrame() );
     }
     vLits = Gia_SweeperGraft( p, NULL, pNew );
     Gia_ManStop( pNew );
@@ -1099,81 +1189,6 @@ Gia_Man_t * Gia_SweeperFraigTest( Gia_Man_t * p, int nWords, int nConfs, int fVe
     Gia_SweeperStop( p );
     return pGia;
 }
-
-/**Function*************************************************************
-
-  Synopsis    [Sweeper cleanup.]
-
-  Description [Returns new GIA with sweeper defined, which is the same
-  as the original sweeper, with all the dangling logic removed and SAT 
-  solver restarted. The probe IDs are guaranteed to have the same logic
-  functions as in the original manager.]
-               
-  SideEffects [The input manager is deleted inside this procedure.]
-
-  SeeAlso     []
-
-***********************************************************************/
-#if 0
-Gia_Man_t * Gia_SweeperCleanup( Gia_Man_t * p, char * pCommLime )
-{
-    Vec_Int_t * vObjIds;
-    Gia_Man_t * pNew, * pTemp;
-    Gia_Obj_t * pObj;
-    int i, ProbeId;
-
-    // collect all internal nodes pointed to by used probes
-    Gia_ManIncrementTravId( p );
-    vObjIds = Vec_IntAlloc( 1000 );
-    Vec_IntForEachEntry( p->vProbes, ProbeId, i )
-    {
-        if ( ProbeId < 0 ) continue;
-        pObj = Gia_Lit2Obj( p, Gia_SweeperProbeLit(p, ProbeId) );
-        Gia_ManExtract_rec( p, Gia_Regular(pObj), vObjIds );
-    }
-    // create new manager
-    pNew = Gia_ManStart( 1 + Gia_ManPiNum(p) + Vec_IntSize(vObjIds) + 100 );
-    pNew->pName = Abc_UtilStrsav( p->pName );
-    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
-    Gia_ManConst0(p)->Value = 0;
-    Gia_ManForEachPi( p, pObj, i )
-        pObj->Value = Gia_ManAppendCi(pNew);
-    // create internal nodes
-    Gia_ManHashStart( pNew );
-    Gia_ManForEachObjVec( vObjIds, p, pObj, i )
-        pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
-    Gia_ManHashStop( pNew );
-    // create outputs
-    Vec_IntForEachEntry( p->vProbes, ProbeId, i )
-    {
-
-    Vec_IntPush( pSwp->vProbes, iLit );
-    Vec_IntPush( pSwp->vProbRefs, 1 );
-    Vec_IntSetEntryFull( pSwp->vLit2Prob, iLit, ProbeId ); // consider hash table in the future
-
-
-
-        pObj = Gia_Lit2Obj( p, Gia_SweeperProbeLit(p, ProbeId) );
-        Gia_ManAppendCo( pNew, Gia_Regular(pObj)->Value ^ Gia_IsComplement(pObj) );
-    }
-    // return the values back
-    Gia_ManForEachPi( p, pObj, i )
-        pObj->Value = 0;
-    Gia_ManForEachObjVec( vObjIds, p, pObj, i )
-        pObj->Value = Vec_IntEntry( vValues, i );
-    Vec_IntFree( vObjIds );
-    Vec_IntFree( vValues );
-    // duplicated if needed
-    if ( Gia_ManHasDangling(pNew) )
-    {
-        pNew = Gia_ManCleanup( pTemp = pNew );
-        Gia_ManStop( pTemp );
-    }
-
-    return pNew;
-}
-
-#endif
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
