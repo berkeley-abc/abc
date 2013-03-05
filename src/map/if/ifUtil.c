@@ -156,23 +156,27 @@ void If_ManComputeRequired( If_Man_t * p )
     if ( p->pManTim == NULL )
     {
         // consider the case when the required times are given
-        if ( p->pPars->pTimesReq )
+        if ( p->pPars->pTimesReq && !p->pPars->fAreaOnly )
         {
-            assert( !p->pPars->fAreaOnly );
             // make sure that the required time hold
             Counter = 0;
             If_ManForEachCo( p, pObj, i )
             {
                 if ( If_ObjArrTime(If_ObjFanin0(pObj)) > p->pPars->pTimesReq[i] + p->fEpsilon )
                 {
+                    If_ObjFanin0(pObj)->Required = If_ObjArrTime(If_ObjFanin0(pObj));
                     Counter++;
     //                Abc_Print( 0, "Required times are violated for output %d (arr = %d; req = %d).\n", 
     //                    i, (int)If_ObjArrTime(If_ObjFanin0(pObj)), (int)p->pPars->pTimesReq[i] );
                 }
-                If_ObjFanin0(pObj)->Required = p->pPars->pTimesReq[i];
+                else
+                    If_ObjFanin0(pObj)->Required = p->pPars->pTimesReq[i];
             }
-            if ( Counter )
-                Abc_Print( 0, "Required times are violated for %d outputs.\n", Counter );
+            if ( Counter && !p->fReqTimeWarn )
+            {
+                Abc_Print( 0, "Required times are exceeded at %d output%s. The earliest arrival times are used.\n", Counter, Counter > 1 ? "s":"" );
+                p->fReqTimeWarn = 1;
+            }
         }
         else
         {

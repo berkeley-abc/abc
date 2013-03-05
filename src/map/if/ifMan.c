@@ -189,10 +189,8 @@ void If_ManStop( If_Man_t * p )
     ABC_FREE( p->puTemp[0] );
     ABC_FREE( p->pCutTemp );
     // free pars memory
-    if ( p->pPars->pTimesArr )
-        ABC_FREE( p->pPars->pTimesArr );
-    if ( p->pPars->pTimesReq )
-        ABC_FREE( p->pPars->pTimesReq );
+    ABC_FREE( p->pPars->pTimesArr );
+    ABC_FREE( p->pPars->pTimesReq );
     if ( p->pManTim )
         Tim_ManStop( p->pManTim );
     if ( p->vSwitching )

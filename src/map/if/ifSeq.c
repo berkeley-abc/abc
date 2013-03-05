@@ -294,6 +294,7 @@ void If_ManPerformMappingSeqPost( If_Man_t * p )
 {
     If_Obj_t * pObjLi, * pObjLo, * pObj;
     int i;
+    assert( 0 );
 
     // set arrival times
     assert( p->pPars->pTimesArr != NULL );

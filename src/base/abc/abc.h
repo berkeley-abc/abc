@@ -907,6 +907,7 @@ extern ABC_DLL void               Abc_ManTimeStop( Abc_ManTime_t * p );
 extern ABC_DLL void               Abc_ManTimeDup( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtkNew );
 extern ABC_DLL void               Abc_NtkSetNodeLevelsArrival( Abc_Ntk_t * pNtk );
 extern ABC_DLL float *            Abc_NtkGetCiArrivalFloats( Abc_Ntk_t * pNtk );
+extern ABC_DLL float *            Abc_NtkGetCoRequiredFloats( Abc_Ntk_t * pNtk );
 extern ABC_DLL Abc_Time_t *       Abc_NtkGetCiArrivalTimes( Abc_Ntk_t * pNtk );
 extern ABC_DLL Abc_Time_t *       Abc_NtkGetCoRequiredTimes( Abc_Ntk_t * pNtk );
 extern ABC_DLL float              Abc_NtkDelayTrace( Abc_Ntk_t * pNtk, Abc_Obj_t * pOut, Abc_Obj_t * pIn, int fPrint );

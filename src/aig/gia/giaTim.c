@@ -285,7 +285,7 @@ void Gia_ManDupCollapse_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Gia_Man_t * pNew )
     if ( Gia_ObjSibl(p, Gia_ObjId(p, pObj)) )
         pNew->pSibls[Abc_Lit2Var(pObj->Value)] = Abc_Lit2Var(Gia_ObjSiblObj(p, Gia_ObjId(p, pObj))->Value);        
 }
-Gia_Man_t * Gia_ManDupCollapse( Gia_Man_t * p, Gia_Man_t * pBoxes )
+Gia_Man_t * Gia_ManDupCollapse( Gia_Man_t * p, Gia_Man_t * pBoxes, Vec_Int_t * vBoxPres )
 {
     Tim_Man_t * pTime = (Tim_Man_t *)p->pManTime;
     Gia_Man_t * pNew, * pTemp;
@@ -320,28 +320,46 @@ Gia_Man_t * Gia_ManDupCollapse( Gia_Man_t * p, Gia_Man_t * pBoxes )
         Gia_ObjSetTravIdCurrent( pBoxes, Gia_ManConst0(pBoxes) );
         Gia_ManConst0(pBoxes)->Value = 0;
         // add internal nodes
-        for ( k = 0; k < Tim_ManBoxInputNum(pTime, i); k++ )
+        if ( Tim_ManBoxIsBlack(pTime, i) )
         {
-            // build logic
-            pObj = Gia_ManPo( p, curCo + k );
-            Gia_ManDupCollapse_rec( p, Gia_ObjFanin0(pObj), pNew );
-            // transfer to the PI
-            pObjBox = Gia_ManPi( pBoxes, k );
-            pObjBox->Value = Gia_ObjFanin0Copy(pObj);
-            Gia_ObjSetTravIdCurrent( pBoxes, pObjBox );
+            int fSkip = (vBoxPres != NULL && !Vec_IntEntry(vBoxPres, i));
+            for ( k = 0; k < Tim_ManBoxInputNum(pTime, i); k++ )
+            {
+                pObj = Gia_ManPo( p, curCo + k );
+                Gia_ManDupCollapse_rec( p, Gia_ObjFanin0(pObj), pNew );
+                pObj->Value = fSkip ? -1 : Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+            }
+            for ( k = 0; k < Tim_ManBoxOutputNum(pTime, i); k++ )
+            {
+                pObj = Gia_ManPi( p, curCi + k );
+                pObj->Value = fSkip ? 0 : Gia_ManAppendCi(pNew);
+                Gia_ObjSetTravIdCurrent( p, pObj );
+            }
+        }
+        else
+        {
+            for ( k = 0; k < Tim_ManBoxInputNum(pTime, i); k++ )
+            {
+                // build logic
+                pObj = Gia_ManPo( p, curCo + k );
+                Gia_ManDupCollapse_rec( p, Gia_ObjFanin0(pObj), pNew );
+                // transfer to the PI
+                pObjBox = Gia_ManPi( pBoxes, k );
+                pObjBox->Value = Gia_ObjFanin0Copy(pObj);
+                Gia_ObjSetTravIdCurrent( pBoxes, pObjBox );
+            }
+            for ( k = 0; k < Tim_ManBoxOutputNum(pTime, i); k++ )
+            {
+                // build logic
+                pObjBox = Gia_ManPo( pBoxes, curCi - Tim_ManPiNum(pTime) + k );
+                Gia_ManDupCollapse_rec( pBoxes, Gia_ObjFanin0(pObjBox), pNew );
+                // transfer to the PI
+                pObj = Gia_ManPi( p, curCi + k );
+                pObj->Value = Gia_ObjFanin0Copy(pObjBox);
+                Gia_ObjSetTravIdCurrent( p, pObj );
+            }
         }
         curCo += Tim_ManBoxInputNum(pTime, i);
-        // add internal nodes
-        for ( k = 0; k < Tim_ManBoxOutputNum(pTime, i); k++ )
-        {
-            // build logic
-            pObjBox = Gia_ManPo( pBoxes, curCi - Tim_ManPiNum(pTime) + k );
-            Gia_ManDupCollapse_rec( pBoxes, Gia_ObjFanin0(pObjBox), pNew );
-            // transfer to the PI
-            pObj = Gia_ManPi( p, curCi + k );
-            pObj->Value = Gia_ObjFanin0Copy(pObjBox);
-            Gia_ObjSetTravIdCurrent( p, pObj );
-        }
         curCi += Tim_ManBoxOutputNum(pTime, i);
     }
     // add remaining nodes
@@ -481,6 +499,7 @@ int Gia_ManVerifyWithBoxes( Gia_Man_t * pGia, void * pParsInit )
     int fVerbose =  1;
     int Status   = -1;
     Gia_Man_t * pSpec, * pGia0, * pGia1, * pMiter;
+    Vec_Int_t * vBoxPres = NULL;
     if ( pGia->pSpec == NULL )
     {
         printf( "Spec file is not given. Use standard flow.\n" );
@@ -508,8 +527,29 @@ int Gia_ManVerifyWithBoxes( Gia_Man_t * pGia, void * pParsInit )
         printf( "Spec has no box logic. Use standard flow.\n" );
         return Status;
     }
-    pGia0 = Gia_ManDupCollapse( pSpec, pSpec->pAigExtra );
-    pGia1 = Gia_ManDupCollapse( pGia,  pGia->pAigExtra  );
+    // if timing managers have different number of black boxes,
+    // it is possible that some of the boxes are swept away
+    // but specification cannot have fewer boxes than implementation
+    if ( Tim_ManBoxNum( (Tim_Man_t *)pSpec->pManTime ) < Tim_ManBoxNum( (Tim_Man_t *)pGia->pManTime ) )
+    {
+        printf( "Spec has more boxes than the design. Cannot proceed.\n" );
+        return Status;
+    }
+    // in this case, it is expected that the boxes can be aligned
+    // find what boxes of pSpec are dropped in pGia
+    if ( Tim_ManBoxNum( (Tim_Man_t *)pSpec->pManTime ) != Tim_ManBoxNum( (Tim_Man_t *)pGia->pManTime ) )
+    {
+        vBoxPres = Tim_ManAlignTwo( (Tim_Man_t *)pSpec->pManTime, (Tim_Man_t *)pGia->pManTime );
+        if ( vBoxPres == NULL )
+        {
+            printf( "Boxes of spec and design cannot be aligned. Cannot proceed.\n" );
+            return Status;
+        }
+    }
+    // collapse two designs
+    pGia0 = Gia_ManDupCollapse( pSpec, pSpec->pAigExtra, vBoxPres );
+    pGia1 = Gia_ManDupCollapse( pGia,  pGia->pAigExtra,  NULL  );
+    Vec_IntFreeP( &vBoxPres );
     // compute the miter
     pMiter = Gia_ManMiter( pGia0, pGia1, 1, 0, fVerbose );
     if ( pMiter )

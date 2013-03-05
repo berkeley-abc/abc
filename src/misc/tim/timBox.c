@@ -213,6 +213,23 @@ float * Tim_ManBoxDelayTable( Tim_Man_t * p, int iBox )
 
 /**Function*************************************************************
 
+  Synopsis    [Return 1 if the box is black.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Tim_ManBoxIsBlack( Tim_Man_t * p, int iBox )
+{
+    return Tim_ManBox(p, iBox)->fBlack;
+}
+
+
+/**Function*************************************************************
+
   Synopsis    [Returns the copy of the box.]
 
   Description []

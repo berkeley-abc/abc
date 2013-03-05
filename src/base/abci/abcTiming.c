@@ -557,18 +557,6 @@ Abc_Time_t * Abc_NtkGetCiArrivalTimes( Abc_Ntk_t * pNtk )
         p[i] = *Abc_NodeArrival(pNode);
     return p;
 }
-
-/**Function*************************************************************
-
-  Synopsis    [Sets the CI node levels according to the arrival info.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
 Abc_Time_t * Abc_NtkGetCoRequiredTimes( Abc_Ntk_t * pNtk )
 {
     Abc_Time_t * p;
@@ -606,6 +594,19 @@ float * Abc_NtkGetCiArrivalFloats( Abc_Ntk_t * pNtk )
     // set the PI arrival times
     Abc_NtkForEachPi( pNtk, pNode, i )
         p[i] = Abc_NodeArrival(pNode)->Worst;
+    return p;
+}
+float * Abc_NtkGetCoRequiredFloats( Abc_Ntk_t * pNtk )
+{
+    float * p;
+    Abc_Obj_t * pNode;
+    int i;
+    if ( pNtk->pManTime == NULL )
+        return NULL;
+    // set the PO required times
+    p = ABC_CALLOC( float, Abc_NtkCoNum(pNtk) );
+    Abc_NtkForEachPo( pNtk, pNode, i )
+        p[i] = Abc_NodeRequired(pNode)->Worst;
     return p;
 }
 

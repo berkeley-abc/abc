@@ -68,7 +68,7 @@ Vec_Int_t * Llb_AigMap( Aig_Man_t * pAig, int nLutSize, int nLutMin )
 
     // get timing information
     pPars->pTimesArr = Abc_NtkGetCiArrivalFloats(pNtk);
-    pPars->pTimesReq = NULL;
+    pPars->pTimesReq = Abc_NtkGetCoRequiredFloats(pNtk);
 
     // perform LUT mapping
     pIfMan = Abc_NtkToIf( pNtk, pPars );    

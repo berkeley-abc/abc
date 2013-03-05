@@ -1113,22 +1113,23 @@ void Gia_AigerWrite( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
     }
     if ( p->pManTime )
     {
-        Vec_Flt_t * vArrTimes, * vReqTimes;
-        if ( Tim_ManGetArrsReqs( (Tim_Man_t *)p->pManTime, &vArrTimes, &vReqTimes ) )
+        float * pTimes;
+        pTimes = Tim_ManGetArrTimes( p->pManTime );
+        if ( pTimes )
         {
             fprintf( pFile, "i" );
             Gia_FileWriteBufferSize( pFile, 4*Tim_ManPiNum((Tim_Man_t *)p->pManTime) );
-            assert( Vec_FltSize(vArrTimes) == Tim_ManPiNum((Tim_Man_t *)p->pManTime) );
-            fwrite( Vec_FltArray(vArrTimes), 1, 4*Tim_ManPiNum((Tim_Man_t *)p->pManTime), pFile );
-
+            fwrite( pTimes, 1, 4*Tim_ManPiNum((Tim_Man_t *)p->pManTime), pFile );
+            ABC_FREE( pTimes );
+            if ( fVerbose ) printf( "Finished writing extension \"i\".\n" );
+        }
+        pTimes = Tim_ManGetReqTimes( p->pManTime );
+        if ( pTimes )
+        {
             fprintf( pFile, "o" );
             Gia_FileWriteBufferSize( pFile, 4*Tim_ManPoNum((Tim_Man_t *)p->pManTime) );
-            assert( Vec_FltSize(vReqTimes) == Tim_ManPoNum((Tim_Man_t *)p->pManTime) );
-            fwrite( Vec_FltArray(vReqTimes), 1, 4*Tim_ManPoNum((Tim_Man_t *)p->pManTime), pFile );
-
-            Vec_FltFree( vArrTimes );
-            Vec_FltFree( vReqTimes );
-            if ( fVerbose ) printf( "Finished writing extension \"i\".\n" );
+            fwrite( pTimes, 1, 4*Tim_ManPoNum((Tim_Man_t *)p->pManTime), pFile );
+            ABC_FREE( pTimes );
             if ( fVerbose ) printf( "Finished writing extension \"o\".\n" );
         }
     }

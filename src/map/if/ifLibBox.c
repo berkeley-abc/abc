@@ -45,13 +45,13 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
-If_Box_t * If_BoxStart( char * pName, int Id, int fWhite, int nPis, int nPos )
+If_Box_t * If_BoxStart( char * pName, int Id, int fBlack, int nPis, int nPos )
 {
     If_Box_t * p;
     p = ABC_CALLOC( If_Box_t, 1 );
     p->pName   = pName; // consumes memory
     p->Id      = Id;
-    p->fWhite  = fWhite;
+    p->fBlack  = fBlack;
     p->nPis    = nPis;
     p->nPos    = nPos;
     p->pDelays = ABC_CALLOC( int, nPis * nPos );
@@ -202,7 +202,7 @@ If_LibBox_t * If_LibBoxRead( char * pFileName )
         pToken = If_LibBoxGetToken( pFile );
         nPos   = atoi( pToken );
         // create box
-        pBox   = If_BoxStart( pName, Id, fWhite, nPis, nPos );
+        pBox   = If_BoxStart( pName, Id, !fWhite, nPis, nPos );
         If_LibBoxAdd( p, pBox );
         // read the table
         for ( i = 0; i < nPis * nPos; i++ )
@@ -224,7 +224,7 @@ void If_LibBoxPrint( FILE * pFile, If_LibBox_t * p )
     fprintf( pFile, "# <Name> <ID> <Type> <I> <O>\n" );
     If_LibBoxForEachBox( p, pBox, i )
     {
-        fprintf( pFile, "%s %d %d %d %d\n", pBox->pName, pBox->Id, pBox->fWhite, pBox->nPis, pBox->nPos );
+        fprintf( pFile, "%s %d %d %d %d\n", pBox->pName, pBox->Id, !pBox->fBlack, pBox->nPis, pBox->nPos );
         for ( j = 0; j < pBox->nPos; j++, printf("\n") )
             for ( k = 0; k < pBox->nPis; k++ )
                 if ( pBox->pDelays[j * pBox->nPis + k] == -1 )

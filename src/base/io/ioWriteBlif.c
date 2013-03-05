@@ -712,6 +712,8 @@ void Io_WriteTimingInfo( FILE * pFile, Abc_Ntk_t * pNtk )
             continue;
         fprintf( pFile, ".output_required %s %g %g\n", Abc_ObjName(Abc_ObjFanin0(pNode)), pTime->Rise, pTime->Fall );
     }
+
+    fprintf( pFile, "\n" );
 }
 
 

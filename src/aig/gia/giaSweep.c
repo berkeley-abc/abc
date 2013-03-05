@@ -304,7 +304,7 @@ Gia_Man_t * Gia_ManFraigSweep( Gia_Man_t * p, void * pPars )
         return NULL;
     // find global equivalences
     pNew->pManTime = p->pManTime;
-    pGia = Gia_ManDupCollapse( pNew, p->pAigExtra );
+    pGia = Gia_ManDupCollapse( pNew, p->pAigExtra, NULL );
     pNew->pManTime = NULL;
     Gia_ManFraigSweepPerform( pGia, pPars );
     // transfer equivalences

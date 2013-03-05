@@ -82,7 +82,7 @@ void Gia_ManSetIfParsDefault( void * pp )
     p->fUseCoAttrs =  1;   // use CO attributes
     p->pLutLib     =  NULL;
     p->pTimesArr   =  NULL; 
-    p->pTimesArr   =  NULL;   
+    p->pTimesReq   =  NULL;   
     p->pFuncCost   =  NULL;   
 }
 
@@ -1143,8 +1143,11 @@ Gia_Man_t * Gia_ManPerformMapping( Gia_Man_t * p, void * pp )
     If_Man_t * pIfMan;
     If_Par_t * pPars = (If_Par_t *)pp;
     // reconstruct GIA according to the hierarchy manager
+    assert( pPars->pTimesArr == NULL );
+    assert( pPars->pTimesReq == NULL );
     if ( p->pManTime )
     {
+        Vec_Flt_t * vArrTimes = NULL, * vReqTimes = NULL;
         pNew = Gia_ManDupUnnormalize( p );
         if ( pNew == NULL )
             return NULL;
@@ -1152,12 +1155,12 @@ Gia_Man_t * Gia_ManPerformMapping( Gia_Man_t * p, void * pp )
         pNew->pAigExtra  = p->pAigExtra;  p->pAigExtra = NULL;
         pNew->nAnd2Delay = p->nAnd2Delay; p->nAnd2Delay = 0;
         p = pNew;
+        // set arrival and required times
+        pPars->pTimesArr = Tim_ManGetArrTimes( (Tim_Man_t *)p->pManTime );
+        pPars->pTimesReq = Tim_ManGetReqTimes( (Tim_Man_t *)p->pManTime );
     }
     else 
         p = Gia_ManDup( p );
-    // set the arrival times
-    assert( pPars->pTimesArr == NULL );
-    pPars->pTimesArr = ABC_CALLOC( float, Gia_ManCiNum(p) );
     // translate into the mapper
     pIfMan = Gia_ManToIf( p, pPars );    
     if ( pIfMan == NULL )

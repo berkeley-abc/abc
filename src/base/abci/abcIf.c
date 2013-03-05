@@ -123,7 +123,7 @@ Abc_Ntk_t * Abc_NtkIf( Abc_Ntk_t * pNtk, If_Par_t * pPars )
 
     // get timing information
     pPars->pTimesArr = Abc_NtkGetCiArrivalFloats(pNtk);
-    pPars->pTimesReq = NULL;
+    pPars->pTimesReq = Abc_NtkGetCoRequiredFloats(pNtk);
 
     // set the latch paths
     if ( pPars->fLatchPaths && pPars->pTimesArr )

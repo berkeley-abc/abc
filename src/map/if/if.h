@@ -193,6 +193,7 @@ struct If_Man_t_
     int                pPerm[3][IF_MAX_LUTSIZE]; // permutations
     unsigned           uSharedMask;   // mask of shared variables
     int                nShared;       // the number of shared variables
+    int                fReqTimeWarn;  // warning about exceeding required times was printed
     // SOP balancing
     Vec_Int_t *        vCover;        // used to compute ISOP
     Vec_Wrd_t *        vAnds;         // intermediate storage
@@ -318,7 +319,7 @@ struct If_Box_t_
 {
     char *             pName;
     int                Id;
-    int                fWhite;
+    int                fBlack;
     int                nPis;
     int                nPos;
     int *              pDelays;

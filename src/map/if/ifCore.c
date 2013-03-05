@@ -86,7 +86,7 @@ int If_ManPerformMappingComb( If_Man_t * p )
     // set arrival times and fanout estimates
     If_ManForEachCi( p, pObj, i )
     {
-        If_ObjSetArrTime( pObj, p->pPars->pTimesArr[i] );
+        If_ObjSetArrTime( pObj, p->pPars->pTimesArr ? p->pPars->pTimesArr[i] : (float)0.0 );
         pObj->EstRefs = (float)1.0;
     }
 

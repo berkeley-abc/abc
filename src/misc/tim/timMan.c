@@ -234,6 +234,36 @@ Tim_Man_t * Tim_ManTrim( Tim_Man_t * p, Vec_Int_t * vBoxPres )
     return pNew;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Aligns two sets of boxes using the copy field.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Tim_ManAlignTwo( Tim_Man_t * pSpec, Tim_Man_t * pImpl )
+{
+    Vec_Int_t * vBoxPres;
+    Tim_Box_t * pBox;
+    int i;
+    assert( Tim_ManBoxNum(pSpec) > Tim_ManBoxNum(pImpl) );
+    // check if boxes of pImpl can be aligned
+    Tim_ManForEachBox( pImpl, pBox, i )
+        if ( pBox->iCopy < 0 || pBox->iCopy >= Tim_ManBoxNum(pSpec) ) 
+            return NULL;
+    // map dropped boxes into 1, others into 0
+    vBoxPres = Vec_IntStart( Tim_ManBoxNum(pSpec) );
+    Tim_ManForEachBox( pImpl, pBox, i )
+    {
+        assert( !Vec_IntEntry(vBoxPres, pBox->iCopy) );
+        Vec_IntWriteEntry( vBoxPres, pBox->iCopy, 1 );
+    }
+    return vBoxPres;
+}
 
 /**Function*************************************************************
 
@@ -306,6 +336,7 @@ void Tim_ManCreate( Tim_Man_t * p, void * pLib, Vec_Flt_t * vInArrs, Vec_Flt_t *
         assert( pIfBox != NULL );
         assert( pIfBox->nPis == pBox->nInputs );
         assert( pIfBox->nPos == pBox->nOutputs );
+        pBox->fBlack = pIfBox->fBlack;
         if ( Vec_PtrEntry( p->vDelayTables, pBox->iDelayTable ) != NULL )
             continue;
         // create table of boxes
@@ -349,33 +380,36 @@ void Tim_ManCreate( Tim_Man_t * p, void * pLib, Vec_Flt_t * vInArrs, Vec_Flt_t *
   SeeAlso     []
 
 ***********************************************************************/
-int Tim_ManGetArrsReqs( Tim_Man_t * p, Vec_Flt_t ** pvInArrs, Vec_Flt_t ** pvOutReqs )
+float * Tim_ManGetArrTimes( Tim_Man_t * p )
 {
+    float * pTimes;
     Tim_Obj_t * pObj;
-    int i, fTrivial = 1;
-    *pvInArrs = NULL;
-    *pvOutReqs = NULL;
+    int i;
     Tim_ManForEachPi( p, pObj, i )
         if ( pObj->timeArr != 0.0 )
-        {
-            fTrivial = 0;
             break;
-        }
+    if ( i == Tim_ManPiNum(p) )
+        return NULL;
+    pTimes  = ABC_ALLOC( float, Tim_ManPiNum(p) );
+    Tim_ManForEachPi( p, pObj, i )
+        pTimes[i] = pObj->timeArr;
+    return pTimes;
+}
+float * Tim_ManGetReqTimes( Tim_Man_t * p )
+{
+    float * pTimes;
+    Tim_Obj_t * pObj;
+    int i, k = 0;
     Tim_ManForEachPo( p, pObj, i )
         if ( pObj->timeReq != TIM_ETERNITY )
-        {
-            fTrivial = 0;
             break;
-        }
-    if ( fTrivial )
-        return 0;
-    *pvInArrs  = Vec_FltAlloc( Tim_ManPiNum(p) );
-    Tim_ManForEachPi( p, pObj, i )
-        Vec_FltPush( *pvInArrs, pObj->timeArr );
-    *pvOutReqs = Vec_FltAlloc( Tim_ManPoNum(p) );
+    if ( i == Tim_ManPoNum(p) )
+        return NULL;
+    pTimes  = ABC_ALLOC( float, Tim_ManPoNum(p) );
     Tim_ManForEachPo( p, pObj, i )
-        Vec_FltPush( *pvOutReqs, pObj->timeReq );
-    return 1;
+        pTimes[k++] = pObj->timeArr;
+    assert( k == Tim_ManPoNum(p) );
+    return pTimes;
 }
 
 
@@ -421,8 +455,11 @@ void Tim_ManPrint( Tim_Man_t * p )
     if ( i == Tim_ManCoNum(p) )
         printf( "All POs :  arr = %5.3f  req = %5.3f\n", pPrev->timeArr, pPrev->timeReq );
     else
+    {
+        int k = 0;
         Tim_ManForEachPo( p, pObj, i )
-            printf( "PO%5d :  arr = %5.3f  req = %5.3f\n", i, pObj->timeArr, pObj->timeReq );
+            printf( "PO%5d :  arr = %5.3f  req = %5.3f\n", k++, pObj->timeArr, pObj->timeReq );
+    }
 
     // print box info
     if ( Tim_ManBoxNum(p) > 0 )
