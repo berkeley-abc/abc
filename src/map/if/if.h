@@ -318,8 +318,11 @@ typedef struct If_Box_t_ If_Box_t;
 struct If_Box_t_
 {
     char *             pName;
+    char               fSeq;
+    char               fBlack;
+    char               fOuter;
+    char               fUnused;
     int                Id;
-    int                fBlack;
     int                nPis;
     int                nPos;
     int *              pDelays;
@@ -506,8 +509,10 @@ extern float           If_LibLutSlowestPinDelay( If_LibLut_t * p );
 extern If_LibBox_t *   If_LibBoxStart();
 extern void            If_LibBoxFree( If_LibBox_t * p );
 extern If_Box_t *      If_LibBoxReadBox( If_LibBox_t * p, int Id );
+extern If_Box_t *      If_LibBoxFindBox( If_LibBox_t * p, char * pName );
 extern void            If_LibBoxAdd( If_LibBox_t * p, If_Box_t * pBox );
 extern If_LibBox_t *   If_LibBoxRead( char * pFileName );
+extern If_LibBox_t *   If_LibBoxRead2( char * pFileName );
 extern void            If_LibBoxPrint( FILE * pFile, If_LibBox_t * p );
 extern void            If_LibBoxWrite( char * pFileName, If_LibBox_t * p );
 /*=== ifMan.c =============================================================*/

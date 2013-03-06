@@ -529,21 +529,23 @@ int Gia_ManVerifyWithBoxes( Gia_Man_t * pGia, void * pParsInit )
     }
     // if timing managers have different number of black boxes,
     // it is possible that some of the boxes are swept away
-    // but specification cannot have fewer boxes than implementation
-    if ( Tim_ManBoxNum( (Tim_Man_t *)pSpec->pManTime ) < Tim_ManBoxNum( (Tim_Man_t *)pGia->pManTime ) )
+    if ( Tim_ManBlackBoxNum( (Tim_Man_t *)pSpec->pManTime ) > 0 )
     {
-        printf( "Spec has more boxes than the design. Cannot proceed.\n" );
-        return Status;
-    }
-    // in this case, it is expected that the boxes can be aligned
-    // find what boxes of pSpec are dropped in pGia
-    if ( Tim_ManBoxNum( (Tim_Man_t *)pSpec->pManTime ) != Tim_ManBoxNum( (Tim_Man_t *)pGia->pManTime ) )
-    {
-        vBoxPres = Tim_ManAlignTwo( (Tim_Man_t *)pSpec->pManTime, (Tim_Man_t *)pGia->pManTime );
-        if ( vBoxPres == NULL )
+        // specification cannot have fewer boxes than implementation
+        if ( Tim_ManBoxNum( (Tim_Man_t *)pSpec->pManTime ) < Tim_ManBoxNum( (Tim_Man_t *)pGia->pManTime ) )
         {
-            printf( "Boxes of spec and design cannot be aligned. Cannot proceed.\n" );
+            printf( "Spec has more boxes than the design. Cannot proceed.\n" );
             return Status;
+        }
+        // to align the boxes, find what boxes of pSpec are dropped in pGia
+        if ( Tim_ManBoxNum( (Tim_Man_t *)pSpec->pManTime ) != Tim_ManBoxNum( (Tim_Man_t *)pGia->pManTime ) )
+        {
+            vBoxPres = Tim_ManAlignTwo( (Tim_Man_t *)pSpec->pManTime, (Tim_Man_t *)pGia->pManTime );
+            if ( vBoxPres == NULL )
+            {
+                printf( "Boxes of spec and design cannot be aligned. Cannot proceed.\n" );
+                return Status;
+            }
         }
     }
     // collapse two designs

@@ -143,6 +143,7 @@ extern int             Tim_ManCoNum( Tim_Man_t * p );
 extern int             Tim_ManPiNum( Tim_Man_t * p );
 extern int             Tim_ManPoNum( Tim_Man_t * p );
 extern int             Tim_ManBoxNum( Tim_Man_t * p );
+extern int             Tim_ManBlackBoxNum( Tim_Man_t * p );
 extern int             Tim_ManDelayTableNum( Tim_Man_t * p );
 extern void            Tim_ManSetDelayTables( Tim_Man_t * p, Vec_Ptr_t * vDelayTables );
 extern void            Tim_ManTravIdDisable( Tim_Man_t * p );

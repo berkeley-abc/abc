@@ -241,6 +241,7 @@ int If_CommandReadBox( Abc_Frame_t * pAbc, int argc, char **argv )
     If_LibBox_t * pLib;
     Abc_Ntk_t * pNet;
     char * FileName;
+    int fExtended;
     int fVerbose;
     int c;
 
@@ -249,12 +250,16 @@ int If_CommandReadBox( Abc_Frame_t * pAbc, int argc, char **argv )
     pErr = Abc_FrameReadErr(pAbc);
 
     // set the defaults
+    fExtended = 0;
     fVerbose = 1;
     Extra_UtilGetoptReset();
-    while ( (c = Extra_UtilGetopt(argc, argv, "vh")) != EOF ) 
+    while ( (c = Extra_UtilGetopt(argc, argv, "evh")) != EOF ) 
     {
         switch (c) 
         {
+            case 'e':
+                fExtended ^= 1;
+                break;
             case 'v':
                 fVerbose ^= 1;
                 break;
@@ -282,7 +287,7 @@ int If_CommandReadBox( Abc_Frame_t * pAbc, int argc, char **argv )
     fclose( pFile );
 
     // set the new network
-    pLib = If_LibBoxRead( FileName );
+    pLib = fExtended ? If_LibBoxRead2( FileName ) : If_LibBoxRead( FileName );
     if ( pLib == NULL )
     {
         fprintf( pErr, "Reading LUT library has failed.\n" );
@@ -294,8 +299,9 @@ int If_CommandReadBox( Abc_Frame_t * pAbc, int argc, char **argv )
     return 0;
 
 usage:
-    fprintf( pErr, "\nusage: read_box [-vh]\n");
+    fprintf( pErr, "\nusage: read_box [-evh]\n");
     fprintf( pErr, "\t          read the box library from the file\n" );  
+    fprintf( pErr, "\t-e      : toggles reading extended format [default = %s]\n", (fExtended? "yes" : "no") );
     fprintf( pErr, "\t-v      : toggles enabling of verbose output [default = %s]\n", (fVerbose? "yes" : "no") );
     fprintf( pErr, "\t-h      : print the command usage\n");
     return 1;       /* error exit */

@@ -607,6 +607,15 @@ int Tim_ManBoxNum( Tim_Man_t * p )
 {
     return p->vBoxes ? Vec_PtrSize(p->vBoxes) : 0;
 }
+int Tim_ManBlackBoxNum( Tim_Man_t * p )
+{
+    Tim_Box_t * pBox;
+    int i, Counter = 0;
+    if ( Tim_ManBoxNum(p) )
+        Tim_ManForEachBox( p, pBox, i )
+            Counter += pBox->fBlack;
+    return Counter;
+}
 int Tim_ManDelayTableNum( Tim_Man_t * p )
 {
     return p->vDelayTables ? Vec_PtrSize(p->vDelayTables) : 0;
