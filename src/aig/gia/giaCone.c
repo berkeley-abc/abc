@@ -169,12 +169,20 @@ void Opa_ManPerform( Gia_Man_t * pGia )
 {
     Opa_Man_t * p;
     Gia_Obj_t * pObj;
-    int i;
-
+    int i, Limit, Count = 0;
+ 
     p = Opa_ManStart( pGia );
+    Limit = Vec_IntSize(p->vFront);
 //Opa_ManPrint2( p );
     Gia_ManForEachObjVec( p->vFront, pGia, pObj, i )
     {
+        if ( i == Limit )
+        {
+            printf( "%6d : %6d -> %6d\n", ++Count, i, p->nParts );
+            Limit = Vec_IntSize(p->vFront);
+            if ( Count > 1 )
+                Opa_ManPrint2( p );
+        }
 //        printf( "*** Object %d  ", Gia_ObjId(pGia, pObj) );
         if ( Gia_ObjIsAnd(pObj) )
         {
@@ -184,10 +192,11 @@ void Opa_ManPerform( Gia_Man_t * pGia )
         else if ( Gia_ObjIsCo(pObj) )
             Opa_ManMoveOne( p, pObj, Gia_ObjFanin0(pObj) );
         else assert( 0 );
-        if ( i % 10 == 0 )
-            printf( "%d   ", p->nParts );
-//Opa_ManPrint2( p );
+//        if ( i % 10 == 0 )
+//            printf( "%d   ", p->nParts );
         if ( p->nParts == 1 )
+            break;
+        if ( Count == 5 )
             break;
     }
     printf( "\n" );
