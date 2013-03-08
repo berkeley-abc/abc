@@ -1425,9 +1425,9 @@ clkOther += clock() - clk2;
                 continue;
             if ( Lit == 1 )
             {
-                Abc_Cex_t * pCex = Abc_CexMakeTriv( Aig_ManRegNum(pAig), Saig_ManPiNum(pAig), Saig_ManPoNum(pAig), f*Saig_ManPoNum(pAig)+i );
                 if ( !pPars->fSolveAll )
                 {
+                    Abc_Cex_t * pCex = Abc_CexMakeTriv( Aig_ManRegNum(pAig), Saig_ManPiNum(pAig), Saig_ManPoNum(pAig), f*Saig_ManPoNum(pAig)+i );
                     printf( "Output %d is trivially SAT in frame %d.\n", i, f );
                     ABC_FREE( pAig->pSeqModel );
                     pAig->pSeqModel = pCex;
@@ -1440,7 +1440,7 @@ clkOther += clock() - clk2;
                         nOutDigits, i, f, nOutDigits, pPars->nFailOuts, nOutDigits, Saig_ManPoNum(pAig) );
                 if ( p->vCexes == NULL )
                     p->vCexes = Vec_PtrStart( Saig_ManPoNum(pAig) );
-                Vec_PtrWriteEntry( p->vCexes, i, pCex );
+                Vec_PtrWriteEntry( p->vCexes, i, (void *)(ABC_PTRINT_T)1 );
                 RetValue = 0;
                 pPars->timeLastSolved = clock();
                 continue;
@@ -1471,19 +1471,19 @@ clkOther += clock() - clk2;
             }
             else if ( status == l_True )
             {
-                Aig_Obj_t * pObjPi;
-                Abc_Cex_t * pCex = Abc_CexMakeTriv( Aig_ManRegNum(pAig), Saig_ManPiNum(pAig), Saig_ManPoNum(pAig), f*Saig_ManPoNum(pAig)+i );
-                int j, iBit = Saig_ManRegNum(pAig);
-                for ( j = 0; j <= f; j++, iBit += Saig_ManPiNum(pAig) )
-                    Saig_ManForEachPi( p->pAig, pObjPi, k )
-                    {
-                        int iLit = Saig_ManBmcLiteral( p, pObjPi, j );
-                        if ( iLit != ~0 && sat_solver_var_value(p->pSat, lit_var(iLit)) )
-                            Abc_InfoSetBit( pCex->pData, iBit + k );
-                    }
                 fFirst = 0;
                 if ( !pPars->fSolveAll )
                 {
+                    Aig_Obj_t * pObjPi;
+                    Abc_Cex_t * pCex = Abc_CexMakeTriv( Aig_ManRegNum(pAig), Saig_ManPiNum(pAig), Saig_ManPoNum(pAig), f*Saig_ManPoNum(pAig)+i );
+                    int j, iBit = Saig_ManRegNum(pAig);
+                    for ( j = 0; j <= f; j++, iBit += Saig_ManPiNum(pAig) )
+                        Saig_ManForEachPi( p->pAig, pObjPi, k )
+                        {
+                            int iLit = Saig_ManBmcLiteral( p, pObjPi, j );
+                            if ( iLit != ~0 && sat_solver_var_value(p->pSat, lit_var(iLit)) )
+                                Abc_InfoSetBit( pCex->pData, iBit + k );
+                        }
                     if ( pPars->fVerbose )
                     {
                         printf( "%4d %s : ", f,  fUnfinished ? "-" : "+" );
@@ -1515,7 +1515,7 @@ clkOther += clock() - clk2;
                         nOutDigits, i, f, nOutDigits, pPars->nFailOuts, nOutDigits, Saig_ManPoNum(pAig) );
                 if ( p->vCexes == NULL )
                     p->vCexes = Vec_PtrStart( Saig_ManPoNum(pAig) );
-                Vec_PtrWriteEntry( p->vCexes, i, pCex );
+                Vec_PtrWriteEntry( p->vCexes, i, (void *)(ABC_PTRINT_T)1 );
                 RetValue = 0;
                 pPars->timeLastSolved = clock();
             }
