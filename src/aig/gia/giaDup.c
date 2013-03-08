@@ -1650,7 +1650,7 @@ int Gia_ManMiter_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManMiter( Gia_Man_t * p0, Gia_Man_t * p1, int fDualOut, int fSeq, int fVerbose )
+Gia_Man_t * Gia_ManMiter( Gia_Man_t * p0, Gia_Man_t * p1, int nInsDup, int fDualOut, int fSeq, int fVerbose )
 {
     Gia_Man_t * pNew, * pTemp;
     Gia_Obj_t * pObj;
@@ -1702,7 +1702,10 @@ Gia_Man_t * Gia_ManMiter( Gia_Man_t * p0, Gia_Man_t * p1, int fDualOut, int fSeq
         Gia_ManForEachPi( p0, pObj, i )
             pObj->Value = Gia_ManAppendCi( pNew );
         Gia_ManForEachPi( p1, pObj, i )
-            pObj->Value = Gia_ObjToLit( pNew, Gia_ManPi(pNew, i) );
+            if ( i < Gia_ManPiNum(p1) - nInsDup )
+                pObj->Value = Gia_ObjToLit( pNew, Gia_ManPi(pNew, i) );
+            else
+                pObj->Value = Gia_ManAppendCi( pNew );
         // create latch outputs
         Gia_ManForEachRo( p0, pObj, i )
             pObj->Value = Gia_ManAppendCi( pNew );
@@ -1743,7 +1746,10 @@ Gia_Man_t * Gia_ManMiter( Gia_Man_t * p0, Gia_Man_t * p1, int fDualOut, int fSeq
         Gia_ManForEachCi( p0, pObj, i )
             pObj->Value = Gia_ManAppendCi( pNew );
         Gia_ManForEachCi( p1, pObj, i )
-            pObj->Value = Gia_ObjToLit( pNew, Gia_ManCi(pNew, i) );
+            if ( i < Gia_ManPiNum(p1) - nInsDup )
+                pObj->Value = Gia_ObjToLit( pNew, Gia_ManCi(pNew, i) );
+            else
+                pObj->Value = Gia_ManAppendCi( pNew );
         // create combinational outputs
         Gia_ManForEachCo( p0, pObj, i )
         {

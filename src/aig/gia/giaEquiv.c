@@ -1775,7 +1775,7 @@ int Gia_ManFilterEquivsForSpeculation( Gia_Man_t * pGia, char * pName1, char * p
         Abc_Print( 1, "Cannot read second file %s.\n", pName2 );
         return 0;
     }
-    pMiter = Gia_ManMiter( pGia1, pGia2, 0, 1, 0 );
+    pMiter = Gia_ManMiter( pGia1, pGia2, 0, 0, 1, 0 );
     if ( pMiter == NULL )
     {
         Gia_ManStop( pGia1 );
@@ -1914,7 +1914,7 @@ int Gia_ManFilterEquivsUsingParts( Gia_Man_t * pGia, char * pName1, char * pName
         Abc_Print( 1, "Cannot read second file %s.\n", pName2 );
         return 0;
     }
-    pMiter = Gia_ManMiter( pGia1, pGia2, 0, 1, 0 );
+    pMiter = Gia_ManMiter( pGia1, pGia2, 0, 0, 1, 0 );
     if ( pMiter == NULL )
     {
         Gia_ManStop( pGia1 );

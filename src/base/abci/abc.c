@@ -15249,16 +15249,27 @@ int Abc_CommandInit( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fOnes;
     int fRandom;
     int fDontCare;
+    char * pInitStr;
     // set defaults
     fZeros    = 0;
     fOnes     = 0;
     fRandom   = 0;
     fDontCare = 0;
+    pInitStr  = NULL;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "zordh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Szordh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'S':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-S\" should be followed by a file name.\n" );
+                goto usage;
+            }
+            pInitStr = argv[globalUtilOptind];
+            globalUtilOptind++;
+            break;
         case 'z':
             fZeros ^= 1;
             break;
@@ -15287,6 +15298,23 @@ int Abc_CommandInit( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( Abc_NtkIsComb(pNtk) )
     {
         Abc_Print( -1, "The current network is combinational.\n" );
+        return 0;
+    }
+
+    if ( pInitStr != NULL )
+    {
+        if ( (int)strlen(pInitStr) != Abc_NtkLatchNum(pNtk) )
+        {
+            Abc_Print( -1, "The length of init string (%d) differs from the number of flops (%d).\n", strlen(pInitStr), Abc_NtkLatchNum(pNtk) );
+            return 1;
+        }
+        Abc_NtkForEachLatch( pNtk, pObj, i )
+            if ( pInitStr[i] == '0' )
+                Abc_LatchSetInit0( pObj );
+            else if ( pInitStr[i] == '1' )
+                Abc_LatchSetInit1( pObj );
+            else 
+                Abc_LatchSetInitDc( pObj );
         return 0;
     }
 
@@ -15319,13 +15347,14 @@ int Abc_CommandInit( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: init [-zordh]\n" );
-    Abc_Print( -2, "\t        resets initial states of all latches\n" );
-    Abc_Print( -2, "\t-z    : set zeros initial states [default = %s]\n", fZeros? "yes": "no" );
-    Abc_Print( -2, "\t-o    : set ones initial states [default = %s]\n", fOnes? "yes": "no" );
-    Abc_Print( -2, "\t-d    : set don't-care initial states [default = %s]\n", fDontCare? "yes": "no" );
-    Abc_Print( -2, "\t-r    : set random initial states [default = %s]\n", fRandom? "yes": "no" );
-    Abc_Print( -2, "\t-h    : print the command usage\n");
+    Abc_Print( -2, "usage: init [-zordh] [-S <init_string>]\n" );
+    Abc_Print( -2, "\t         resets initial states of all latches\n" );
+    Abc_Print( -2, "\t-z     : set zeros initial states [default = %s]\n", fZeros? "yes": "no" );
+    Abc_Print( -2, "\t-o     : set ones initial states [default = %s]\n", fOnes? "yes": "no" );
+    Abc_Print( -2, "\t-d     : set don't-care initial states [default = %s]\n", fDontCare? "yes": "no" );
+    Abc_Print( -2, "\t-r     : set random initial states [default = %s]\n", fRandom? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    Abc_Print( -2, "\t-S str : (optional) initial state  [default = unused]\n" );
     return 1;
 }
 
@@ -26104,15 +26133,27 @@ int Abc_CommandAbc9Miter( Abc_Frame_t * pAbc, int argc, char ** argv )
     char ** pArgvNew;
     int nArgcNew;
     int c;
+    int nInsDup  = 0;
     int fDualOut = 0;
     int fSeq     = 0;
     int fTrans   = 0;
     int fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "dstvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Idstvh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'I':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-I\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nInsDup = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nInsDup < 0 )
+                goto usage;
+            break;
         case 'd':
             fDualOut ^= 1;
             break;
@@ -26179,14 +26220,15 @@ int Abc_CommandAbc9Miter( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
     // compute the miter
-    pAux = Gia_ManMiter( pAbc->pGia, pSecond, fDualOut, fSeq, fVerbose );
+    pAux = Gia_ManMiter( pAbc->pGia, pSecond, nInsDup, fDualOut, fSeq, fVerbose );
     Gia_ManStop( pSecond );
     Abc_FrameUpdateGia( pAbc, pAux );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &miter [-dstvh] <file>\n" );
+    Abc_Print( -2, "usage: &miter [-I num] [-dstvh] <file>\n" );
     Abc_Print( -2, "\t         creates miter of two designs (current AIG vs. <file>)\n" );
+    Abc_Print( -2, "\t-I num : the number of last PIs to replicate [default = %d]\n", nInsDup );
     Abc_Print( -2, "\t-d     : toggle creating dual-output miter [default = %s]\n", fDualOut? "yes": "no" );
     Abc_Print( -2, "\t-s     : toggle creating sequential miter [default = %s]\n", fSeq? "yes": "no" );
     Abc_Print( -2, "\t-t     : toggle XORing pair-wise POs of the miter [default = %s]\n", fTrans? "yes": "no" );
@@ -27431,7 +27473,7 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
     // compute the miter
-    pMiter = Gia_ManMiter( pAbc->pGia, pSecond, 1, 0, pPars->fVerbose );
+    pMiter = Gia_ManMiter( pAbc->pGia, pSecond, 0, 1, 0, pPars->fVerbose );
     if ( pMiter )
     {
         pAbc->Status = Cec_ManVerify( pMiter, pPars );

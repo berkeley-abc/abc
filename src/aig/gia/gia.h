@@ -852,7 +852,7 @@ extern Gia_Man_t *         Gia_ManDupWithNewPo( Gia_Man_t * p1, Gia_Man_t * p2 )
 extern Gia_Man_t *         Gia_ManDupDfsCiMap( Gia_Man_t * p, int * pCi2Lit, Vec_Int_t * vLits );
 extern Gia_Man_t *         Gia_ManDupDfsClasses( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManDupTopAnd( Gia_Man_t * p, int fVerbose );
-extern Gia_Man_t *         Gia_ManMiter( Gia_Man_t * pAig0, Gia_Man_t * pAig1, int fDualOut, int fSeq, int fVerbose );
+extern Gia_Man_t *         Gia_ManMiter( Gia_Man_t * pAig0, Gia_Man_t * pAig1, int nInsDup, int fDualOut, int fSeq, int fVerbose );
 extern Gia_Man_t *         Gia_ManTransformMiter( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManChoiceMiter( Vec_Ptr_t * vGias );
 extern Gia_Man_t *         Gia_ManDupWithConstraints( Gia_Man_t * p, Vec_Int_t * vPoTypes );

@@ -301,7 +301,7 @@ int Cec_ManVerifyTwo( Gia_Man_t * p0, Gia_Man_t * p1, int fVerbose )
     int RetValue;
     Cec_ManCecSetDefaultParams( pPars );
     pPars->fVerbose = fVerbose;
-    pMiter = Gia_ManMiter( p0, p1, 1, 0, pPars->fVerbose );
+    pMiter = Gia_ManMiter( p0, p1, 0, 1, 0, pPars->fVerbose );
     if ( pMiter == NULL )
         return -1;
     RetValue = Cec_ManVerify( pMiter, pPars );
