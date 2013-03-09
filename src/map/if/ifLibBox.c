@@ -20,6 +20,7 @@
 
 #include "if.h"
 #include "misc/extra/extra.h"
+#include "base/main/main.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -358,6 +359,37 @@ void If_LibBoxWrite( char * pFileName, If_LibBox_t * p )
     If_LibBoxPrint( pFile, p );
     fclose( pFile );
 }
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int If_LibBoxLoad( char * pFileName )
+{
+    FILE * pFile;
+    If_LibBox_t * pLib;
+    char * pFileNameOther;
+    // check if library can be read
+    pFileNameOther = Extra_FileNameGenericAppend( pFileName, ".cdl" );
+    pFile = fopen( pFileNameOther, "r" );
+    if ( pFile == NULL )
+        return 0;
+    fclose( pFile );
+    // read library
+    pLib = If_LibBoxRead2( pFileNameOther );
+    // replace the current library
+    If_LibBoxFree( (If_LibBox_t *)Abc_FrameReadLibBox() );
+    Abc_FrameSetLibBox( pLib );
+    return 1;
+}
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

@@ -146,6 +146,7 @@ char * Extra_FileNameExtension( char * FileName )
 char * Extra_FileNameAppend( char * pBase, char * pSuffix )
 {
     static char Buffer[500];
+    assert( strlen(pBase) + strlen(pSuffix) < 500 );
     sprintf( Buffer, "%s%s", pBase, pSuffix );
     return Buffer;
 }

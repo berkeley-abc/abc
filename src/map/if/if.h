@@ -515,6 +515,7 @@ extern If_LibBox_t *   If_LibBoxRead( char * pFileName );
 extern If_LibBox_t *   If_LibBoxRead2( char * pFileName );
 extern void            If_LibBoxPrint( FILE * pFile, If_LibBox_t * p );
 extern void            If_LibBoxWrite( char * pFileName, If_LibBox_t * p );
+extern int             If_LibBoxLoad( char * pFileName );
 /*=== ifMan.c =============================================================*/
 extern If_Man_t *      If_ManStart( If_Par_t * pPars );
 extern void            If_ManRestart( If_Man_t * p );
