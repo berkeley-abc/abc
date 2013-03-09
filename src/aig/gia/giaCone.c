@@ -336,7 +336,7 @@ Gia_Man_t * Gia_ManFindPoPartition3( Gia_Man_t * p, int iOut, int nDelta, int nO
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Gia_ManFindPivots( Gia_Man_t * p, int SelectShift, int fVerbose )
+Vec_Int_t * Gia_ManFindPivots( Gia_Man_t * p, int SelectShift, int fOnlyCis, int fVerbose )
 {
     Vec_Int_t * vPivots, * vWeights;
     Vec_Int_t * vCount, * vResult;
@@ -364,13 +364,15 @@ Vec_Int_t * Gia_ManFindPivots( Gia_Man_t * p, int SelectShift, int fVerbose )
     Vec_IntForEachEntry( vCount, Count, i )
     {
         if ( Count < 2 ) continue;
+        if ( fOnlyCis && !Gia_ObjIsCi(Gia_ManObj(p, i)) )
+            continue;
         Vec_IntPush( vPivots, i );
         Vec_IntPush( vWeights, Count );
     }
     Vec_IntFree( vCount );
 
     if ( fVerbose )
-        printf( "Selected %d nodes (out of %d) with more than one fanout.\n", Vec_IntSize(vWeights), Gia_ManPiNum(p) + Gia_ManAndNum(p) );
+        printf( "Selected %d pivots with more than one fanout (out of %d CIs and ANDs).\n", Vec_IntSize(vWeights), Gia_ManCiNum(p) + Gia_ManAndNum(p) );
 
     // permute
     Gia_ManRandom(1);
@@ -479,7 +481,8 @@ Vec_Ptr_t * Gia_ManHashOutputs( Gia_Man_t * p, Vec_Wrd_t * vSigns, int fVerbose 
     Gia_ManForEachPo( p, pObj, i )
     {
         word Sign = Vec_WrdEntry( vSigns, Gia_ObjId(p, pObj) );
-        int Offset = (int)(Sign % nBins);
+//        int Offset = (int)(Sign % nBins);
+        int Offset = (int)(((Sign & 0xFFFF) * 709 + ((Sign >> 16) & 0xFFFF) * 797 + ((Sign >> 32) & 0xFFFF) * 881 + ((Sign >> 48) & 0xFFFF) * 907) % nBins);
         if ( pBins[Offset] == -1 )
         {
             pBins[Offset] = Vec_PtrSize( vBins );
@@ -550,14 +553,15 @@ Gia_Man_t * Gia_ManFindPoPartition2( Gia_Man_t * p, int iStartNum, int nDelta, i
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManFindPoPartition( Gia_Man_t * p, int SelectShift, int fSetLargest, int fVerbose, Vec_Ptr_t ** pvPosEquivs )
+Gia_Man_t * Gia_ManFindPoPartition( Gia_Man_t * p, int SelectShift, int fOnlyCis, int fSetLargest, int fVerbose, Vec_Ptr_t ** pvPosEquivs )
 {
     Gia_Man_t * pGia = NULL;
     Vec_Int_t * vPivots;
     Vec_Wrd_t * vSigns;
     Vec_Ptr_t * vParts;
     Vec_Int_t * vPart;
-    vPivots = Gia_ManFindPivots( p, SelectShift, fVerbose );
+    clock_t clk = clock();
+    vPivots = Gia_ManFindPivots( p, SelectShift, fOnlyCis, fVerbose );
     vSigns = Gia_ManDeriveSigns( p, vPivots, fVerbose );
     Vec_IntFree( vPivots );
     vParts = Gia_ManHashOutputs( p, vSigns, fVerbose );
@@ -570,7 +574,8 @@ Gia_Man_t * Gia_ManFindPoPartition( Gia_Man_t * p, int SelectShift, int fSetLarg
     if ( pvPosEquivs )
     {
         *pvPosEquivs = vParts;
-        printf( "Partitioning algorithm divided %d POs into %d groups.\n", Gia_ManPoNum(p), Vec_PtrSize(vParts) );
+        printf( "The algorithm divided %d POs into %d partitions.   ", Gia_ManPoNum(p), Vec_PtrSize(vParts) );
+        Abc_PrintTime( 1, "Time", clock() - clk );
     }
     else
         Vec_VecFree( (Vec_Vec_t *)vParts );

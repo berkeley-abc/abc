@@ -29667,9 +29667,9 @@ int Abc_CommandAbc9Cone( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Gia_Man_t * pTemp;
     Vec_Int_t * vPos;
-    int c, iOutNum = -1, nOutRange = 1, fUseAllCis = 0, fVerbose = 0;
+    int c, iOutNum = -1, nOutRange = 1, iPartNum = -1, fUseAllCis = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "ORavh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "ORPavh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -29695,6 +29695,17 @@ int Abc_CommandAbc9Cone( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( nOutRange < 0 )
                 goto usage;
             break;
+        case 'P':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-P\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            iPartNum = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( iPartNum < 0 )
+                goto usage;
+            break;
         case 'a':
             fUseAllCis ^= 1;
             break;
@@ -29712,6 +29723,26 @@ int Abc_CommandAbc9Cone( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Cone(): There is no AIG.\n" );
         return 1;
     }
+    if ( iPartNum >= 0 )
+    {
+        Vec_Int_t * vClass;
+        Vec_Vec_t * vClasses = (Vec_Vec_t *)pAbc->vPoEquivs;
+        if ( vClasses == NULL )
+        {
+            Abc_Print( -1, "Abc_CommandAbc9Cone(): Partitions are not defined.\n" );
+            return 1;
+        }
+        if ( iPartNum >= Vec_VecSize(vClasses) )
+        {
+            Abc_Print( -1, "Abc_CommandAbc9Cone(): Partition index exceed the array size.\n" );
+            return 1;
+        }
+        vClass = Vec_VecEntryInt( vClasses, iPartNum );
+        pTemp = Gia_ManDupCones( pAbc->pGia, Vec_IntArray(vClass), Vec_IntSize(vClass), !fUseAllCis );
+        if ( pTemp )
+            Abc_FrameUpdateGia( pAbc, pTemp );
+        return 0;
+    }
     if ( iOutNum < 0 || iOutNum + nOutRange >= Gia_ManPoNum(pAbc->pGia) )
     {
         Abc_Print( -1, "Abc_CommandAbc9Cone(): Range of outputs to extract is incorrect.\n" );
@@ -29725,10 +29756,11 @@ int Abc_CommandAbc9Cone( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &cone [-OR num] [-avh]\n" );
+    Abc_Print( -2, "usage: &cone [-ORP num] [-avh]\n" );
     Abc_Print( -2, "\t         extracting multi-output sequential logic cones\n" );
     Abc_Print( -2, "\t-O num : the index of first PO to extract [default = %d]\n", iOutNum );
-    Abc_Print( -2, "\t-R num : (optional) the number of outputs to extract\n");
+    Abc_Print( -2, "\t-R num : (optional) the number of outputs to extract [default = %d]\n", nOutRange );
+    Abc_Print( -2, "\t-P num : (optional) the partition number to extract [default = %d]\n", iPartNum );
     Abc_Print( -2, "\t-a     : toggle keeping all CIs or structral support only [default = %s]\n", fUseAllCis? "all": "structural" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
@@ -29748,12 +29780,12 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9PoPart( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Gia_Man_t * Gia_ManFindPoPartition( Gia_Man_t * p, int SelectShift, int fSetLargest, int fVerbose, Vec_Ptr_t ** pvPosEquivs );
+    extern Gia_Man_t * Gia_ManFindPoPartition( Gia_Man_t * p, int SelectShift, int fOnlyCis, int fSetLargest, int fVerbose, Vec_Ptr_t ** pvPosEquivs );
     Gia_Man_t * pTemp;
     Vec_Ptr_t * vPosEquivs = NULL;
-    int c, SelectShift = 0, fSetLargest = 0, fVerbose = 0;
+    int c, SelectShift = 0, fOnlyCis = 0, fSetLargest = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Smvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Simvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -29767,6 +29799,9 @@ int Abc_CommandAbc9PoPart( Abc_Frame_t * pAbc, int argc, char ** argv )
             globalUtilOptind++;
             if ( SelectShift < 0 )
                 goto usage;
+            break;
+        case 'i':
+            fOnlyCis ^= 1;
             break;
         case 'm':
             fSetLargest ^= 1;
@@ -29785,16 +29820,17 @@ int Abc_CommandAbc9PoPart( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9PoPart(): There is no AIG.\n" );
         return 1;
     }
-    pTemp = Gia_ManFindPoPartition( pAbc->pGia, SelectShift, fSetLargest, fVerbose, &vPosEquivs );
+    pTemp = Gia_ManFindPoPartition( pAbc->pGia, SelectShift, fOnlyCis, fSetLargest, fVerbose, &vPosEquivs );
     if ( pTemp )
         Abc_FrameUpdateGia( pAbc, pTemp );
     Abc_FrameReplacePoEquivs( pAbc, &vPosEquivs );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &popart [-S num] [-mvh]\n" );
+    Abc_Print( -2, "usage: &popart [-S num] [-imvh]\n" );
     Abc_Print( -2, "\t         partitioning of POs into equivalence classes\n" );
     Abc_Print( -2, "\t-S num : selection point shift to randomize the solution [default = %d]\n", SelectShift );
+    Abc_Print( -2, "\t-i     : toggle using only CIs as support pivots [default = %s]\n", fOnlyCis? "yes": "no" );
     Abc_Print( -2, "\t-m     : toggle selecting the largest cluster [default = %s]\n", fSetLargest? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
