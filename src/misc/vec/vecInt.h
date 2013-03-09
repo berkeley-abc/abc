@@ -114,24 +114,22 @@ static inline Vec_Int_t * Vec_IntStart( int nSize )
     memset( p->pArray, 0, sizeof(int) * nSize );
     return p;
 }
-
-/**Function*************************************************************
-
-  Synopsis    [Allocates a vector with the given size and cleans it.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
 static inline Vec_Int_t * Vec_IntStartFull( int nSize )
 {
     Vec_Int_t * p;
     p = Vec_IntAlloc( nSize );
     p->nSize = nSize;
     memset( p->pArray, 0xff, sizeof(int) * nSize );
+    return p;
+}
+static inline Vec_Int_t * Vec_IntStartRange( int First, int Range )
+{
+    Vec_Int_t * p;
+    int i;
+    p = Vec_IntAlloc( Range );
+    p->nSize = Range;
+    for ( i = 0; i < Range; i++ )
+        p->pArray[i] = First + i;
     return p;
 }
 
