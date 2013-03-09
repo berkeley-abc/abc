@@ -296,7 +296,7 @@ static PyObject* VecInt_To_PyList(Vec_Int_t* v)
     return pylist;
 }
 
-PyObject* iso_eq_classes()
+PyObject* eq_classes()
 {
     Abc_Frame_t* pAbc = Abc_FrameGetGlobalFrame();
     Vec_Ptr_t *vPoEquivs = Abc_FrameReadPoEquivs(pAbc);
@@ -642,7 +642,7 @@ int _cex_n_pis(Abc_Cex_t* pCex);
 int _cex_get_po(Abc_Cex_t* pCex);
 int _cex_get_frame(Abc_Cex_t* pCex);
 
-PyObject* iso_eq_classes();
+PyObject* eq_classes();
 
 void pyabc_internal_set_command_callback( PyObject* callback );
 void pyabc_internal_register_command( char * sGroup, char * sName, int fChanges );
