@@ -505,7 +505,7 @@ Vec_Ptr_t * Gia_ManHashOutputs( Gia_Man_t * p, Vec_Wrd_t * vSigns, int fVerbose 
             int Offset = Vec_IntEntry( vBin, 0 );
             word Sign = Vec_WrdEntry( vSigns, Offset );
             printf( "%3d ", i );
-            Extra_PrintBinary( stdout, &Offset, 64 );
+            Extra_PrintBinary( stdout, (unsigned *)&Sign, 64 );
             printf( "  " );
         }
 
