@@ -390,7 +390,7 @@ Vec_Int_t * Gia_ManFindPivots( Gia_Man_t * p, int SelectShift, int fVerbose )
     {
         j = (i + SelectShift) % Vec_IntSize(vWeights);
         if ( fVerbose )
-            printf( "%6d : Pivot = %6d  Weight = %6d\n", j, Vec_IntEntry(vPivots, pPerm[j]), Vec_IntEntry(vWeights, pPerm[j]) );
+            printf( "%2d : Pivot =%7d  Fanout =%7d\n", j, Vec_IntEntry(vPivots, pPerm[j]), Vec_IntEntry(vWeights, pPerm[j]) );
         Vec_IntPush( vResult, Vec_IntEntry(vPivots, pPerm[j]) );
     }
 
@@ -501,9 +501,9 @@ Vec_Ptr_t * Gia_ManHashOutputs( Gia_Man_t * p, Vec_Wrd_t * vSigns, int fVerbose 
         {
             int Offset = Vec_IntEntry( vBin, 0 );
             word Sign = Vec_WrdEntry( vSigns, Offset );
-            printf( "%6d : Support ", i );
+            printf( "%3d ", i );
             Extra_PrintBinary( stdout, &Offset, 64 );
-            printf( "   " );
+            printf( "  " );
         }
 
         // remove the first item
@@ -513,8 +513,8 @@ Vec_Ptr_t * Gia_ManHashOutputs( Gia_Man_t * p, Vec_Wrd_t * vSigns, int fVerbose 
 
         if ( fVerbose )
         {
-            printf( "PO = %7d  ", Vec_IntSize(vBin) );
-            printf( "FF = %7d", Gia_ManCountFlops(p, vBin) );
+            printf( "PO =%5d  ", Vec_IntSize(vBin) );
+            printf( "FF =%5d", Gia_ManCountFlops(p, vBin) );
             printf( "\n" );
         }
     }
