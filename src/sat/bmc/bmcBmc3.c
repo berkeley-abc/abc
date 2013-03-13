@@ -1314,6 +1314,30 @@ void Saig_ParBmcSetDefaultParams( Saig_ParBmc_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Returns time to stop.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+clock_t Saig_ManBmcTimeToStop( Saig_ParBmc_t * pPars, clock_t nTimeToStopNG )
+{
+    clock_t nTimeToStopGap = pPars->nTimeOutGap ? pPars->nTimeOutGap * CLOCKS_PER_SEC + clock(): 0;
+    clock_t nTimeToStop = 0;
+    if ( nTimeToStopNG && nTimeToStopGap )
+        nTimeToStop = Abc_MinInt( nTimeToStopNG, nTimeToStopGap );
+    else if ( nTimeToStopNG )
+        nTimeToStop = nTimeToStopNG;
+    else if ( nTimeToStopGap )
+        nTimeToStop = nTimeToStopGap;
+    return nTimeToStop;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Bounded model checking engine.]
 
   Description []
@@ -1332,7 +1356,9 @@ int Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars )
     int nOutDigits = Abc_Base10Log( Saig_ManPoNum(pAig) );
     int i, f, k, Lit, status;
     clock_t clk, clk2, clkOther = 0, clkTotal = clock();
-    clock_t nTimeToStop = pPars->nTimeOut ? pPars->nTimeOut * CLOCKS_PER_SEC + clock(): 0;
+    clock_t nTimeToStopNG = pPars->nTimeOut ? pPars->nTimeOut * CLOCKS_PER_SEC + clock(): 0;
+    clock_t nTimeToStop   = Saig_ManBmcTimeToStop( pPars, nTimeToStopNG );
+    // create BMC manager
     p = Saig_Bmc3ManStart( pAig );
     p->pPars = pPars;
     if ( pPars->fVerbose )
@@ -1345,7 +1371,7 @@ int Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars )
     } 
     pPars->nFramesMax = pPars->nFramesMax ? pPars->nFramesMax : ABC_INFINITY;
     // set runtime limit
-    if ( p->pPars->nTimeOut )
+    if ( nTimeToStop )
         sat_solver_set_runtime_limit( p->pSat, nTimeToStop );
     // perform frames
     Aig_ManRandom( 1 );
@@ -1402,15 +1428,15 @@ int Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars )
             if ( i >= Saig_ManPoNum(pAig) )
                 break;
             // check for timeout
-            if ( pPars->nTimeOut && clock() > nTimeToStop )
-            {
-                printf( "Reached timeout (%d seconds).\n",  pPars->nTimeOut );
-                Saig_Bmc3ManStop( p );
-                return RetValue;
-            }
             if ( pPars->nTimeOutGap && pPars->timeLastSolved && clock() > pPars->timeLastSolved + pPars->nTimeOutGap * CLOCKS_PER_SEC )
             {
                 printf( "Reached gap timeout (%d seconds).\n",  pPars->nTimeOutGap );
+                Saig_Bmc3ManStop( p );
+                return RetValue;
+            }
+            if ( nTimeToStop && clock() > nTimeToStop )
+            {
+                printf( "Reached timeout (%d seconds).\n",  pPars->nTimeOut );
                 Saig_Bmc3ManStop( p );
                 return RetValue;
             }
@@ -1442,7 +1468,11 @@ clkOther += clock() - clk2;
                     p->vCexes = Vec_PtrStart( Saig_ManPoNum(pAig) );
                 Vec_PtrWriteEntry( p->vCexes, i, (void *)(ABC_PTRINT_T)1 );
                 RetValue = 0;
+                // reset the timeout
                 pPars->timeLastSolved = clock();
+                nTimeToStop = Saig_ManBmcTimeToStop( pPars, nTimeToStopNG );
+                if ( nTimeToStop )
+                    sat_solver_set_runtime_limit( p->pSat, nTimeToStop );
                 continue;
             }
             // solve th is output
@@ -1517,7 +1547,11 @@ clkOther += clock() - clk2;
                     p->vCexes = Vec_PtrStart( Saig_ManPoNum(pAig) );
                 Vec_PtrWriteEntry( p->vCexes, i, (void *)(ABC_PTRINT_T)1 );
                 RetValue = 0;
+                // reset the timeout
                 pPars->timeLastSolved = clock();
+                nTimeToStop = Saig_ManBmcTimeToStop( pPars, nTimeToStopNG );
+                if ( nTimeToStop )
+                    sat_solver_set_runtime_limit( p->pSat, nTimeToStop );
             }
             else 
             {
