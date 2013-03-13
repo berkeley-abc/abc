@@ -21967,11 +21967,6 @@ int Abc_CommandConstr( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Empty network.\n" );
         return 1;
     }
-    if ( Abc_NtkIsComb(pNtk) )
-    {
-        Abc_Print( -1, "The network is combinational.\n" );
-        return 0;
-    }
     if ( !Abc_NtkIsStrash(pNtk) )
     {
         Abc_Print( -1, "Currently only works for structurally hashed circuits.\n" );
@@ -22007,6 +22002,8 @@ int Abc_CommandConstr( Abc_Frame_t * pAbc, int argc, char ** argv )
     // consider the case of manual constraint definition
     if ( nConstrs > 0 )
     {
+        if ( Abc_NtkIsComb(pNtk) )
+            Abc_Print( -1, "The network is combinational.\n" );
         if ( Abc_NtkConstrNum(pNtk) > 0 )
         {
             Abc_Print( -1, "The network already has constraints.\n" );
@@ -22019,6 +22016,11 @@ int Abc_CommandConstr( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
         Abc_Print( 0, "Considering the last %d POs as constraint outputs.\n", nConstrs );
         pNtk->nConstrs = nConstrs;
+        return 0;
+    }
+    if ( Abc_NtkIsComb(pNtk) )
+    {
+        Abc_Print( -1, "The network is combinational.\n" );
         return 0;
     }
     // detect constraints using functional/structural methods
@@ -22217,11 +22219,6 @@ int Abc_CommandFold( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Empty network.\n" );
         return 1;
     }
-    if ( Abc_NtkIsComb(pNtk) )
-    {
-        Abc_Print( -1, "The network is combinational.\n" );
-        return 0;
-    }
     if ( !Abc_NtkIsStrash(pNtk) )
     {
         Abc_Print( -1, "Currently only works for structurally hashed circuits.\n" );
@@ -22232,6 +22229,8 @@ int Abc_CommandFold( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "The network has no constraints.\n" );
         return 0;
     }
+    if ( Abc_NtkIsComb(pNtk) )
+        Abc_Print( 0, "The network is combinational.\n" );
     // modify the current network
     pNtkRes = Abc_NtkDarFold( pNtk, fCompl, fVerbose );
     if ( pNtkRes == NULL )

@@ -944,7 +944,6 @@ Aig_Man_t * Saig_ManDupFoldConstrsFunc( Aig_Man_t * pAig, int fCompl, int fVerbo
     Aig_Man_t * pAigNew;
     Aig_Obj_t * pMiter, * pFlopOut, * pFlopIn, * pObj;
     int i;
-    assert( Saig_ManRegNum(pAig) > 0 );
     if ( Aig_ManConstrNum(pAig) == 0 )
         return Aig_ManDupDfs( pAig );
     assert( Aig_ManConstrNum(pAig) < Saig_ManPoNum(pAig) );
@@ -969,9 +968,15 @@ Aig_Man_t * Saig_ManDupFoldConstrsFunc( Aig_Man_t * pAig, int fCompl, int fVerbo
             continue;
         pMiter = Aig_Or( pAigNew, pMiter, Aig_NotCond( Aig_ObjChild0Copy(pObj), fCompl ) );
     }
+
     // create additional flop
-    pFlopOut = Aig_ObjCreateCi( pAigNew );
-    pFlopIn  = Aig_Or( pAigNew, pMiter, pFlopOut );
+    if ( Saig_ManRegNum(pAig) > 0 )
+    {
+        pFlopOut = Aig_ObjCreateCi( pAigNew );
+        pFlopIn  = Aig_Or( pAigNew, pMiter, pFlopOut );
+    }
+    else 
+        pFlopIn = pMiter;
 
     // create primary output
     Saig_ManForEachPo( pAig, pObj, i )
@@ -985,10 +990,15 @@ Aig_Man_t * Saig_ManDupFoldConstrsFunc( Aig_Man_t * pAig, int fCompl, int fVerbo
     // transfer to register outputs
     Saig_ManForEachLi( pAig, pObj, i )
         Aig_ObjCreateCo( pAigNew, Aig_ObjChild0Copy(pObj) );
-    // create additional flop 
-    Aig_ObjCreateCo( pAigNew, pFlopIn );
 
-    Aig_ManSetRegNum( pAigNew, Aig_ManRegNum(pAig)+1 );
+    // create additional flop 
+    if ( Saig_ManRegNum(pAig) > 0 )
+    {
+        Aig_ObjCreateCo( pAigNew, pFlopIn );
+        Aig_ManSetRegNum( pAigNew, Aig_ManRegNum(pAig)+1 );
+    }
+
+    // perform cleanup
     Aig_ManCleanup( pAigNew );
     Aig_ManSeqCleanup( pAigNew );
     return pAigNew;
