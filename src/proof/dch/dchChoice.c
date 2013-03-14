@@ -457,7 +457,7 @@ void Dch_DeriveChoiceAigNode( Aig_Man_t * pAigNew, Aig_Man_t * pAigOld, Aig_Obj_
         Aig_ObjChild0CopyRepr(pAigNew, pObj), 
         Aig_ObjChild1CopyRepr(pAigNew, pObj) );
     pObjNew = Aig_ObjGetRepr( pAigNew, pObjNew );
-    assert( Aig_ObjRepr( pAigNew, pObjNew ) == NULL );
+//    assert( Aig_ObjRepr( pAigNew, pObjNew ) == NULL );
     // assign the copy
     assert( pObj->pData == NULL );
     pObj->pData = pObjNew;
