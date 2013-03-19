@@ -1317,12 +1317,12 @@ void Aig_ManCounterExampleValueStart( Aig_Man_t * pAig, Abc_Cex_t * pCex )
     assert( Aig_ManRegNum(pAig) > 0 ); // makes sense only for sequential AIGs
     assert( pAig->pData2 == NULL );    // if this fail, there may be a memory leak
     // allocate memory to store simulation bits for internal nodes
-    pAig->pData2 = ABC_CALLOC( unsigned, Abc_BitWordNum( (pCex->iFrame + 1) * Aig_ManObjNum(pAig) ) );
+    pAig->pData2 = ABC_CALLOC( unsigned, Abc_BitWordNum( (pCex->iFrame + 1) * Aig_ManObjNumMax(pAig) ) );
     // the register values in the counter-example should be zero
     Saig_ManForEachLo( pAig, pObj, k )
         assert( Abc_InfoHasBit(pCex->pData, iBit++) == 0 );
     // iterate through the timeframes
-    nObjs = Aig_ManObjNum(pAig);
+    nObjs = Aig_ManObjNumMax(pAig);
     for ( i = 0; i <= pCex->iFrame; i++ )
     {
         // set constant 1 node
@@ -1391,8 +1391,8 @@ void Aig_ManCounterExampleValueStop( Aig_Man_t * pAig )
 ***********************************************************************/
 int Aig_ManCounterExampleValueLookup(  Aig_Man_t * pAig, int Id, int iFrame )
 {
-    assert( Id >= 0 && Id < Aig_ManObjNum(pAig) );
-    return Abc_InfoHasBit( (unsigned *)pAig->pData2, Aig_ManObjNum(pAig) * iFrame + Id );
+    assert( Id >= 0 && Id < Aig_ManObjNumMax(pAig) );
+    return Abc_InfoHasBit( (unsigned *)pAig->pData2, Aig_ManObjNumMax(pAig) * iFrame + Id );
 }
 
 /**Function*************************************************************
@@ -1408,7 +1408,7 @@ int Aig_ManCounterExampleValueLookup(  Aig_Man_t * pAig, int Id, int iFrame )
 ***********************************************************************/
 void Aig_ManCounterExampleValueTest( Aig_Man_t * pAig, Abc_Cex_t * pCex )
 {
-    Aig_Obj_t * pObj = Aig_ManObj( pAig, Aig_ManObjNum(pAig)/2 );
+    Aig_Obj_t * pObj = Aig_ManObj( pAig, Aig_ManObjNumMax(pAig)/2 );
     int iFrame = Abc_MaxInt( 0, pCex->iFrame - 1 );
     printf( "\nUsing counter-example, which asserts output %d in frame %d.\n", pCex->iPo, pCex->iFrame );
     Aig_ManCounterExampleValueStart( pAig, pCex );
