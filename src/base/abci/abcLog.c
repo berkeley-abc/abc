@@ -163,9 +163,8 @@ int Abc_NtkReadLogFile( char * pFileName, Abc_Cex_t ** ppCex, int * pnFrames )
             if ( pToken )
                 nFrames2 = atoi( pToken ); 
         }
-        else
-            printf( "Warning! The current status is SAT but the current CEX is not given.\n"  );
-
+//        else
+//            printf( "Warning! The current status is SAT but the current CEX is not given.\n"  );
     }
     else if ( !strncmp( Buffer, "snl_UNK", strlen("snl_UNK") ) )
     {

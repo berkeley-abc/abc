@@ -71,7 +71,7 @@ void Abc_NtkQbf( Abc_Ntk_t * pNtk, int nPars, int nItersMax, int fVerbose )
     assert( Abc_NtkIsComb(pNtk) );
     assert( Abc_NtkPoNum(pNtk) == 1 );
     assert( nPars > 0 && nPars < Abc_NtkPiNum(pNtk) );
-    assert( Abc_NtkPiNum(pNtk)-nPars < 32 );
+//    assert( Abc_NtkPiNum(pNtk)-nPars < 32 );
     nInputs = Abc_NtkPiNum(pNtk) - nPars;
 
     // initialize the synthesized network with 0000-combination
