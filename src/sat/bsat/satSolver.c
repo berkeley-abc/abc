@@ -401,6 +401,7 @@ static inline int sat_clause_compute_lbd( sat_solver* s, clause* c )
  */
 static int clause_create_new(sat_solver* s, lit* begin, lit* end, int learnt)
 {
+    int fUseBinaryClauses = 1;
     int size;
     clause* c;
     int h;
@@ -410,7 +411,7 @@ static int clause_create_new(sat_solver* s, lit* begin, lit* end, int learnt)
     size           = end - begin;
 
     // do not allocate memory for the two-literal problem clause
-    if ( size == 2 && !learnt )
+    if ( fUseBinaryClauses && size == 2 && !learnt )
     {
         veci_push(sat_solver_read_wlist(s,lit_neg(begin[0])),(clause_from_lit(begin[1])));
         veci_push(sat_solver_read_wlist(s,lit_neg(begin[1])),(clause_from_lit(begin[0])));

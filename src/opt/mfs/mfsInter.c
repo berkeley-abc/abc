@@ -329,7 +329,8 @@ int Abc_NtkMfsInterplateEval( Mfs_Man_t * p, int * pCands, int nCands )
 Hop_Obj_t * Abc_NtkMfsInterplate( Mfs_Man_t * p, int * pCands, int nCands )
 {
     extern Hop_Obj_t * Kit_GraphToHop( Hop_Man_t * pMan, Kit_Graph_t * pGraph );
-
+    int fDumpFile = 0;
+    char FileName[32];
     sat_solver * pSat;
     Sto_Man_t * pCnf = NULL;
     unsigned * puTruth;
@@ -338,14 +339,23 @@ Hop_Obj_t * Abc_NtkMfsInterplate( Mfs_Man_t * p, int * pCands, int nCands )
     int nFanins, status;
     int c, i, * pGloVars;
 //    clock_t clk = clock();
-
 //    p->nDcMints += Abc_NtkMfsInterplateEval( p, pCands, nCands );
 
     // derive the SAT solver for interpolation
     pSat = Abc_MfsCreateSolverResub( p, pCands, nCands, 0 );
 
+    // dump CNF file (remember to uncomment two-lit clases in clause_create_new() in 'satSolver.c')
+    if ( fDumpFile )
+    {
+        static int Counter = 0;
+        sprintf( FileName, "cnf\\pj1_if6_mfs%03d.cnf", Counter++ );
+        Sat_SolverWriteDimacs( pSat, FileName, NULL, NULL, 1 );
+    }
+
     // solve the problem
     status = sat_solver_solve( pSat, NULL, NULL, (ABC_INT64_T)p->pPars->nBTLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
+    if ( fDumpFile )
+        printf( "File %s has UNSAT problem with %d conflicts.\n", FileName, (int)pSat->stats.conflicts );
     if ( status != l_False )
     {
         p->nTimeOuts++;
