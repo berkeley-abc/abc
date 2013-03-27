@@ -1818,6 +1818,158 @@ Gia_Man_t * Gia_ManTransformMiter( Gia_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Performs 'zero' and 'undc' operation.]
+
+  Description [The init string specifies 0/1/X for each flop.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManDupZeroUndc( Gia_Man_t * p, char * pInit )
+{
+    Gia_Man_t * pNew;
+    Gia_Obj_t * pObj;
+    int CountPis = Gia_ManPiNum(p), * pPiLits;
+    int i, iResetFlop = -1;
+    // map X-valued flops into new PIs
+    assert( (int)strlen(pInit) == Gia_ManRegNum(p) );
+    pPiLits = ABC_FALLOC( int, Gia_ManRegNum(p) );
+    for ( i = 0; i < Gia_ManRegNum(p); i++ )
+        if ( pInit[i] == 'x' || pInit[i] == 'X' )
+            pPiLits[i] = CountPis++;
+    // create new manager
+    pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    Gia_ManConst0(p)->Value = 0;
+    // create primary inputs
+    Gia_ManForEachPi( p, pObj, i )
+        pObj->Value = Gia_ManAppendCi( pNew );
+    // create additional primary inputs
+    for ( i = Gia_ManPiNum(p); i < CountPis; i++ )
+        Gia_ManAppendCi( pNew );
+    // create flop outputs
+    Gia_ManForEachRo( p, pObj, i )
+        pObj->Value = Gia_ManAppendCi( pNew );
+    // create reset flop output
+    if ( CountPis > Gia_ManPiNum(p) )
+        iResetFlop = Gia_ManAppendCi( pNew );
+    // update flop outputs
+    Gia_ManForEachRo( p, pObj, i )
+    {
+        if ( pInit[i] == '1' )
+            pObj->Value = Abc_LitNot(pObj->Value);
+        else if ( pInit[i] == 'x' || pInit[i] == 'X' )
+            pObj->Value = Gia_ManAppendMux( pNew, iResetFlop, pObj->Value, Gia_Obj2Lit(pNew, Gia_ManPi(pNew, pPiLits[i])) );
+        else if ( pInit[i] != '0' )
+            assert( 0 );
+    }
+    ABC_FREE( pPiLits );
+    // build internal nodes
+    Gia_ManForEachAnd( p, pObj, i )
+        pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    // create POs
+    Gia_ManForEachPo( p, pObj, i )
+        pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    // create flop inputs
+    Gia_ManForEachRi( p, pObj, i )
+        if ( pInit[i] == '1' )
+            pObj->Value = Gia_ManAppendCo( pNew, Abc_LitNot(Gia_ObjFanin0Copy(pObj)) );
+        else
+            pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    // create reset flop input
+    if ( CountPis > Gia_ManPiNum(p) )
+        Gia_ManAppendCo( pNew, 1 );
+    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) + (int)(CountPis > Gia_ManPiNum(p)) );
+    return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Creates miter of two designs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManMiter2( Gia_Man_t * pStart, char * pInit, int fVerbose )
+{
+    Vec_Int_t * vCoValues0, * vCoValues1;
+    Gia_Man_t * pNew, * pUndc, * pTemp;
+    Gia_Obj_t * pObj;
+    char * pInitNew;
+    int i, k;
+    // normalize the manager
+    pUndc = Gia_ManDupZeroUndc( pStart, pInit + Gia_ManRegNum(pStart) );
+    // create new init string
+    pInitNew = ABC_ALLOC( char, Gia_ManPiNum(pUndc) );
+    for ( i = 0; i < Gia_ManPiNum(pUndc); i++ )
+    {
+        assert( pInit[i] == 'x' || pInit[i] == 'X' );
+        pInitNew[i] = pInit[i];
+    }
+    for ( i = k = Gia_ManPiNum(pUndc); i < Gia_ManCiNum(pUndc); i++ )
+        if ( pInit[i] == 'x' || pInit[i] == 'X' )
+            pInitNew[k++] = pInit[i];
+    pInitNew[k] = 0;
+    assert( k == Gia_ManPiNum(pUndc) );
+    // derive miter
+    pNew = Gia_ManStart( Gia_ManObjNum(pUndc) );
+    pNew->pName = Abc_UtilStrsav( pUndc->pName );
+    pNew->pSpec = Abc_UtilStrsav( pUndc->pSpec );
+    Gia_ManConst0(pUndc)->Value = 0;
+    Gia_ManHashAlloc( pNew );
+    // build one side
+    Gia_ManForEachPi( pUndc, pObj, i )
+        pObj->Value = Gia_ManAppendCi( pNew );
+    Gia_ManForEachRo( pUndc, pObj, i )
+        pObj->Value = Gia_ManAppendCi( pNew );
+    Gia_ManForEachAnd( pUndc, pObj, i )
+        pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    // collect CO values
+    vCoValues0 = Vec_IntAlloc( Gia_ManPoNum(pUndc) );
+    Gia_ManForEachCo( pUndc, pObj, i )
+        Vec_IntPush( vCoValues0, Gia_ObjFanin0Copy(pObj) );
+    // build the other side
+    Gia_ManForEachPi( pUndc, pObj, i )
+        if ( pInitNew[i] == 'x' )
+            pObj->Value = Gia_Obj2Lit( pNew, Gia_ManPi(pNew, i) );
+        else
+            pObj->Value = Gia_ManAppendCi( pNew );
+    Gia_ManForEachRo( pUndc, pObj, i )
+        pObj->Value = Gia_ManAppendCi( pNew );
+    Gia_ManForEachAnd( pUndc, pObj, i )
+        pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    // collect CO values
+    vCoValues1 = Vec_IntAlloc( Gia_ManPoNum(pUndc) );
+    Gia_ManForEachCo( pUndc, pObj, i )
+        Vec_IntPush( vCoValues1, Gia_ObjFanin0Copy(pObj) );
+    // create POs
+    Gia_ManForEachPo( pUndc, pObj, i )
+        pObj->Value = Gia_ManAppendCo( pNew, Gia_ManHashXor( pNew, Vec_IntEntry(vCoValues0, i), Vec_IntEntry(vCoValues1, i) ) );
+    // create flop inputs
+    Gia_ManForEachRi( pUndc, pObj, i )
+        pObj->Value = Gia_ManAppendCo( pNew, Vec_IntEntry(vCoValues0, Gia_ManPiNum(pUndc)+i) );
+    Gia_ManForEachRi( pUndc, pObj, i )
+        pObj->Value = Gia_ManAppendCo( pNew, Vec_IntEntry(vCoValues1, Gia_ManPiNum(pUndc)+i) );
+    Vec_IntFree( vCoValues0 );
+    Vec_IntFree( vCoValues1 );
+    ABC_FREE( pInitNew );
+    // cleanup
+    Gia_ManHashStop( pNew );
+    Gia_ManSetRegNum( pNew, 2*Gia_ManRegNum(pUndc) );
+    pNew = Gia_ManCleanup( pTemp = pNew );
+    Gia_ManStop( pTemp );
+    return pNew;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Duplicates the AIG in the DFS order.]
 
   Description []

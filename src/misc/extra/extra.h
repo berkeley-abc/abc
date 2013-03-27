@@ -112,6 +112,7 @@ extern char *       Extra_FileReadContents2( char * pFileName, char * pFileName2
 extern int          Extra_FileIsType( char * pFileName, char * pS1, char * pS2, char * pS3 );
 extern char *       Extra_TimeStamp();
 extern char *       Extra_StringAppend( char * pStrGiven, char * pStrAdd );
+extern void         Extra_StringClean( char * pStrGiven, char * pCharKeep );
 extern unsigned     Extra_ReadBinary( char * Buffer );
 extern void         Extra_PrintBinary( FILE * pFile, unsigned Sign[], int nBits );
 extern int          Extra_ReadHex( unsigned Sign[], char * pString, int nDigits );

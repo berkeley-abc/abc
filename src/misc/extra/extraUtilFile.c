@@ -630,6 +630,32 @@ char * Extra_StringAppend( char * pStrGiven, char * pStrAdd )
 
 /**Function*************************************************************
 
+  Synopsis    [Only keep characters belonging to the second string.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Extra_StringClean( char * pStrGiven, char * pCharKeep )
+{
+    char * pTemp, * pChar, * pSave = pStrGiven;
+    for ( pTemp = pStrGiven; *pTemp; pTemp++ )
+    {
+        for ( pChar = pCharKeep; *pChar; pChar++ )
+            if ( *pTemp == *pChar )
+                break;
+        if ( *pChar == 0 )
+            continue;
+        *pSave++ = *pTemp;
+    }
+    *pSave = 0;
+}
+
+/**Function*************************************************************
+
   Synopsis    [String comparison procedure.]
 
   Description []
