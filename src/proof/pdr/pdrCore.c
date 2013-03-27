@@ -606,7 +606,7 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
                     if ( !p->pPars->fSilent )
                         Abc_Print( 1, "Reached gap timeout (%d seconds).\n",  p->pPars->nTimeOutGap );
                     p->pPars->iFrame = k;
-                    return p->vCexes ? 0 : -1;
+                    return -1;
                 }
                 RetValue = Pdr_ManCheckCube( p, k, NULL, &pCube, p->pPars->nConfLimit );
                 if ( RetValue == 1 )
@@ -620,7 +620,7 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
                     else if ( p->pPars->fVerbose ) 
                         Abc_Print( 1, "Computation cancelled by the callback.\n" );
                     p->pPars->iFrame = k;
-                    return p->vCexes ? 0 : -1;
+                    return -1;
                 }
                 if ( RetValue == 0 )
                 {
@@ -636,7 +636,7 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
                         else if ( p->pPars->fVerbose ) 
                             Abc_Print( 1, "Computation cancelled by the callback.\n" );
                         p->pPars->iFrame = k;
-                        return p->vCexes ? 0 : -1;
+                        return -1;
                     }
                     if ( RetValue == 0 )
                     {
@@ -702,7 +702,7 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
                     Abc_Print( 1, "Reached conflict limit (%d).\n",  p->pPars->nConfLimit );
             }
             p->pPars->iFrame = k;
-            return p->vCexes ? 0 : -1;
+            return -1;
         }
         if ( RetValue )
         {
@@ -722,7 +722,7 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
         if ( p->pPars->pFuncStop && p->pPars->pFuncStop(p->pPars->RunId) )
         {
             p->pPars->iFrame = k;
-            return p->vCexes ? 0 : -1;
+            return -1;
         }
         if ( p->timeToStop && clock() > p->timeToStop )
         {
@@ -736,7 +736,7 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
             if ( !p->pPars->fSilent )
                 Abc_Print( 1, "Reached timeout (%d seconds).\n",  p->pPars->nTimeOut );
             p->pPars->iFrame = k;
-            return p->vCexes ? 0 : -1;
+            return -1;
         }
         if ( p->pPars->nTimeOutGap && p->pPars->timeLastSolved && clock() > p->pPars->timeLastSolved + p->pPars->nTimeOutGap * CLOCKS_PER_SEC )
         {
@@ -750,7 +750,7 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
             if ( !p->pPars->fSilent )
                 Abc_Print( 1, "Reached gap timeout (%d seconds).\n",  p->pPars->nTimeOutGap );
             p->pPars->iFrame = k;
-            return p->vCexes ? 0 : -1;
+            return -1;
         }
         if ( p->pPars->nFrameMax && k >= p->pPars->nFrameMax )
         {
@@ -759,10 +759,11 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
             if ( !p->pPars->fSilent )
                 Abc_Print( 1, "Reached limit on the number of timeframes (%d).\n", p->pPars->nFrameMax );
             p->pPars->iFrame = k;
-            return p->vCexes ? 0 : -1;
+            return -1;
         } 
     }
-    return p->vCexes ? 0 : RetValue;
+    assert( 0 );
+    return -1;
 }
 
 /**Function*************************************************************

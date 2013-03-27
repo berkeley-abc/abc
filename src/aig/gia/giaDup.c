@@ -442,13 +442,12 @@ void Gia_ManCycle( Gia_Man_t * p, int nFrames )
 {
     Gia_Obj_t * pObj, * pObjRi, * pObjRo;
     int i, k;
-//    Gia_ManRandom( 1 );
-    // assign random primary inputs
-    Gia_ManForEachPi( p, pObj, k )
-        pObj->fMark0 = (1 & Gia_ManRandom(0));
+    Gia_ManRandom( 1 );
     // iterate for the given number of frames
     for ( i = 0; i < nFrames; i++ )
     {
+        Gia_ManForEachPi( p, pObj, k )
+            pObj->fMark0 = (1 & Gia_ManRandom(0));
         Gia_ManForEachAnd( p, pObj, k )
             pObj->fMark0 = (Gia_ObjFanin0(pObj)->fMark0 ^ Gia_ObjFaninC0(pObj)) & 
                            (Gia_ObjFanin1(pObj)->fMark0 ^ Gia_ObjFaninC1(pObj));
@@ -461,16 +460,16 @@ void Gia_ManCycle( Gia_Man_t * p, int nFrames )
 Gia_Man_t * Gia_ManDupCycled( Gia_Man_t * p, int nFrames )
 {
     Gia_Man_t * pNew;
-    Vec_Int_t * vInits;
+    Vec_Bit_t * vInits;
     Gia_Obj_t * pObj;
     int i;
     Gia_ManCleanMark0(p);
     Gia_ManCycle( p, nFrames );
-    vInits = Vec_IntAlloc( Gia_ManRegNum(p) );
+    vInits = Vec_BitAlloc( Gia_ManRegNum(p) );
     Gia_ManForEachRo( p, pObj, i )
-        Vec_IntPush( vInits, pObj->fMark0 );
-    pNew = Gia_ManDupFlip( p, Vec_IntArray(vInits) );
-    Vec_IntFree( vInits );
+        Vec_BitPush( vInits, pObj->fMark0 );
+    pNew = Gia_ManDupFlip( p, Vec_BitArray(vInits) );
+    Vec_BitFree( vInits );
     Gia_ManCleanMark0(p);
     return pNew;
 }
