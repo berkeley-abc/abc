@@ -41,7 +41,7 @@ ABC_NAMESPACE_HEADER_START
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
-#define ABC_SCL_CUR_VERSION 5
+#define ABC_SCL_CUR_VERSION 6
 
 typedef enum  
 {

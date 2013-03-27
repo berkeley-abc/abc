@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "sclInt.h"
+#include "map/mio/mio.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -74,7 +75,7 @@ static void Abc_SclReadLibrary( Vec_Str_t * vOut, int * pPos, SC_Lib * p )
 {
     int i, j, k, n;
     int version = Vec_StrGetI( vOut, pPos );
-    assert( version == ABC_SCL_CUR_VERSION ); // wrong version of the file
+    assert( version == 5 || version == ABC_SCL_CUR_VERSION ); // wrong version of the file
 
     // Read non-composite fields:
     p->pName                 = Vec_StrGetS(vOut, pPos);
@@ -137,7 +138,7 @@ static void Abc_SclReadLibrary( Vec_Str_t * vOut, int * pPos, SC_Lib * p )
             Vec_PtrPush( pCell->vPins, pPin );
 
             pPin->dir      = sc_dir_Input;
-            pPin->pName     = Vec_StrGetS(vOut, pPos); 
+            pPin->pName    = Vec_StrGetS(vOut, pPos); 
             pPin->rise_cap = Vec_StrGetF(vOut, pPos);
             pPin->fall_cap = Vec_StrGetF(vOut, pPos);
         }
@@ -148,18 +149,53 @@ static void Abc_SclReadLibrary( Vec_Str_t * vOut, int * pPos, SC_Lib * p )
             Vec_PtrPush( pCell->vPins, pPin );
 
             pPin->dir          = sc_dir_Output;
-            pPin->pName         = Vec_StrGetS(vOut, pPos); 
+            pPin->pName        = Vec_StrGetS(vOut, pPos); 
             pPin->max_out_cap  = Vec_StrGetF(vOut, pPos);
             pPin->max_out_slew = Vec_StrGetF(vOut, pPos);
 
             k = Vec_StrGetI(vOut, pPos);
             assert( k == pCell->n_inputs );
 
-            // read functions
-            assert( Vec_WrdSize(pPin->vFunc) == 0 );
-            Vec_WrdGrow( pPin->vFunc, Abc_Truth6WordNum(pCell->n_inputs) );
-            for ( k = 0; k < Vec_WrdCap(pPin->vFunc); k++ )
-                Vec_WrdPush( pPin->vFunc, Vec_StrGetW(vOut, pPos) );
+            // read function
+            if ( version == 5 )
+            { 
+                // formula is not given
+                assert( Vec_WrdSize(pPin->vFunc) == 0 );
+                Vec_WrdGrow( pPin->vFunc, Abc_Truth6WordNum(pCell->n_inputs) );
+                for ( k = 0; k < Vec_WrdCap(pPin->vFunc); k++ )
+                    Vec_WrdPush( pPin->vFunc, Vec_StrGetW(vOut, pPos) );
+            }
+            else
+            {
+                // (possibly empty) formula is always given
+                assert( version == ABC_SCL_CUR_VERSION );
+                assert( pPin->func_text == NULL );
+                pPin->func_text = Vec_StrGetS(vOut, pPos); 
+                if ( pPin->func_text[0] == 0 )
+                {
+                    // formula is not given - read truth table
+                    ABC_FREE( pPin->func_text );
+                    assert( Vec_WrdSize(pPin->vFunc) == 0 );
+                    Vec_WrdGrow( pPin->vFunc, Abc_Truth6WordNum(pCell->n_inputs) );
+                    for ( k = 0; k < Vec_WrdCap(pPin->vFunc); k++ )
+                        Vec_WrdPush( pPin->vFunc, Vec_StrGetW(vOut, pPos) );
+                }
+                else
+                {
+                    // formula is given - derive truth table
+                    SC_Pin * pPin2;
+                    Vec_Ptr_t * vNames;
+                    // collect input names
+                    vNames = Vec_PtrAlloc( pCell->n_inputs );
+                    SC_CellForEachPinIn( pCell, pPin2, n )
+                        Vec_PtrPush( vNames, pPin2->pName );
+                    // derive truth table
+                    assert( Vec_WrdSize(pPin->vFunc) == 0 );
+                    Vec_WrdFree( pPin->vFunc );
+                    pPin->vFunc = Mio_ParseFormulaTruth( pPin->func_text, (char **)Vec_PtrArray(vNames), pCell->n_inputs );
+                    Vec_PtrFree( vNames );
+                }
+            }
 
             // Read 'rtiming': (pin-to-pin timing tables for this particular output)
             for ( k = 0; k < pCell->n_inputs; k++ )
@@ -361,10 +397,18 @@ static void Abc_SclWriteLibrary( Vec_Str_t * vOut, SC_Lib * p )
             Vec_StrPutF( vOut, pPin->max_out_slew );
 
             // write function
-            assert( Vec_WrdSize(pPin->vFunc) == Abc_Truth6WordNum(pCell->n_inputs) );
-            Vec_StrPutI( vOut, pCell->n_inputs );
-            Vec_WrdForEachEntry( pPin->vFunc, uWord, k ) // -- 'size = 1u << (n_vars - 6)'
-                Vec_StrPutW( vOut, uWord );  // -- 64-bit number, written uncompressed (low-byte first)
+            if ( pPin->func_text == NULL )
+            {
+                // formula is not given - write empty string
+                Vec_StrPutS( vOut, "" );
+                // write truth table
+                assert( Vec_WrdSize(pPin->vFunc) == Abc_Truth6WordNum(pCell->n_inputs) );
+                Vec_StrPutI( vOut, pCell->n_inputs );
+                Vec_WrdForEachEntry( pPin->vFunc, uWord, k ) // -- 'size = 1u << (n_vars - 6)'
+                    Vec_StrPutW( vOut, uWord );  // -- 64-bit number, written uncompressed (low-byte first)
+            }
+            else // formula is given
+                Vec_StrPutS( vOut, pPin->func_text );
 
             // Write 'rtiming': (pin-to-pin timing tables for this particular output)
             assert( Vec_PtrSize(pPin->vRTimings) == pCell->n_inputs );

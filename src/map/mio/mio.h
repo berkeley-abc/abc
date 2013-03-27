@@ -136,6 +136,7 @@ extern int               Mio_LibraryReadExclude( char * ExcludeFile, st__table *
 extern int               Mio_LibraryParseFormulas( Mio_Library_t * pLib );
 /*=== mioParse.c =============================================================*/
 extern Vec_Int_t *       Mio_ParseFormula( char * pFormInit, char ** ppVarNames, int nVars );
+extern Vec_Wrd_t *       Mio_ParseFormulaTruth( char * pFormInit, char ** ppVarNames, int nVars );
 extern int               Mio_ParseCheckFormula( Mio_Gate_t * pGate, char * pForm );
 /*=== mioSop.c =============================================================*/
 extern char *            Mio_LibDeriveSop( int nVars, Vec_Int_t * vExpr, Vec_Str_t * vStr );

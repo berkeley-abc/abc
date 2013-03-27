@@ -257,12 +257,14 @@ int Mio_GateParseFormula( Mio_Gate_t * pGate )
 
     // derive expression 
     pGate->vExpr = Mio_ParseFormula( pGate->pForm, (char **)pPinNames, nPins );
+//    Mio_ParseFormulaTruthTest( pGate->pForm, (char **)pPinNames, nPins );
     // derive cover
     pGate->pSop = Mio_LibDeriveSop( nPins, pGate->vExpr, pGate->pLib->vCube );
     pGate->pSop = Mio_SopRegister( (Mem_Flex_t *)pGate->pLib->pMmFlex, pGate->pSop );
     // derive truth table
     if ( nPins <= 6 )
         pGate->uTruth = Exp_Truth6( nPins, pGate->vExpr, NULL );
+
 /*
     // verify
     if ( pGate->nInputs <= 6 )

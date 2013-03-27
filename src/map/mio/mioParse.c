@@ -384,6 +384,37 @@ Vec_Int_t * Mio_ParseFormula( char * pFormInit, char ** ppVarNames, int nVars )
 
 /**Function*************************************************************
 
+  Synopsis    [Derives the TT corresponding to the equation.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Wrd_t * Mio_ParseFormulaTruth( char * pFormInit, char ** ppVarNames, int nVars )
+{
+    Vec_Int_t * vExpr;
+    Vec_Wrd_t * vTruth;
+    // derive expression
+    vExpr = Mio_ParseFormula( pFormInit, ppVarNames, nVars );
+    // convert it into a truth table
+    vTruth = Vec_WrdStart( Abc_Truth6WordNum(nVars) );
+    Exp_Truth( nVars, vExpr, Vec_WrdArray(vTruth) );
+    Vec_IntFree( vExpr );
+    return vTruth;
+}
+void Mio_ParseFormulaTruthTest( char * pFormInit, char ** ppVarNames, int nVars )
+{
+    Vec_Wrd_t * vTruth;
+    vTruth = Mio_ParseFormulaTruth( pFormInit, ppVarNames, nVars );
+//    Kit_DsdPrintFromTruth( (unsigned *)Vec_WrdArray(vTruth), nVars ); printf( "\n" );
+    Vec_WrdFree( vTruth );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Checks if the gate's formula essentially depends on all variables.]
 
   Description []

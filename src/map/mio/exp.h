@@ -177,7 +177,7 @@ static inline word Exp_Truth6Lit( int nVars, int Lit, word * puFanins, word * pu
     if ( Lit == EXP_CONST1 )
         return ~0;
     if ( Lit < 2 * nVars )
-        return (Lit&1) ? ~puFanins[Lit/2] : puFanins[Lit/2];
+        return  (Lit&1) ? ~puFanins[Lit/2] : puFanins[Lit/2];
     return (Lit&1) ? ~puNodes[Lit/2-nVars] : puNodes[Lit/2-nVars];
 }
 static inline word Exp_Truth6( int nVars, Vec_Int_t * p, word * puFanins )
@@ -197,10 +197,76 @@ static inline word Exp_Truth6( int nVars, Vec_Int_t * p, word * puFanins )
     puNodes = ABC_CALLOC( word, Exp_NodeNum(p) );
     for ( i = 0; i < Exp_NodeNum(p); i++ )
         puNodes[i] = Exp_Truth6Lit( nVars, Vec_IntEntry(p, 2*i+0), puFanins, puNodes ) & 
-                  Exp_Truth6Lit( nVars, Vec_IntEntry(p, 2*i+1), puFanins, puNodes );
+                     Exp_Truth6Lit( nVars, Vec_IntEntry(p, 2*i+1), puFanins, puNodes );
     Res = Exp_Truth6Lit( nVars, Vec_IntEntryLast(p), puFanins, puNodes );
     ABC_FREE( puNodes );
     return Res;
+}
+static inline void Exp_TruthLit( int nVars, int Lit, word ** puFanins, word ** puNodes, word * pRes, int nWords )
+{
+    int w;
+    if ( Lit == EXP_CONST0 )
+        for ( w = 0; w < nWords; w++ )
+            pRes[w] = 0;
+    else if ( Lit == EXP_CONST1 )
+        for ( w = 0; w < nWords; w++ )
+            pRes[w] = ~(word)0;
+    else if ( Lit < 2 * nVars )
+        for ( w = 0; w < nWords; w++ )
+            pRes[w] = (Lit&1) ? ~puFanins[Lit/2][w] : puFanins[Lit/2][w];
+    else
+        for ( w = 0; w < nWords; w++ )
+            pRes[w] = (Lit&1) ? ~puNodes[Lit/2-nVars][w] : puNodes[Lit/2-nVars][w];
+}
+static inline void Exp_Truth( int nVars, Vec_Int_t * p, word * pRes )
+{
+    static word Truth6[6] = {
+        ABC_CONST(0xAAAAAAAAAAAAAAAA),
+        ABC_CONST(0xCCCCCCCCCCCCCCCC),
+        ABC_CONST(0xF0F0F0F0F0F0F0F0),
+        ABC_CONST(0xFF00FF00FF00FF00),
+        ABC_CONST(0xFFFF0000FFFF0000),
+        ABC_CONST(0xFFFFFFFF00000000)
+    };
+    word ** puFanins, ** puNodes, * pTemp0, * pTemp1;
+    int i, w, nWords = (nVars <= 6 ? 1 : 1 << (nVars-6));
+    // create elementary variables
+    puFanins = ABC_ALLOC( word *, nVars );
+    for ( i = 0; i < nVars; i++ )
+        puFanins[i] = ABC_ALLOC( word, nWords );
+    // assign elementary truth tables
+    for ( i = 0; i < nVars; i++ )
+        if ( i < 6 )
+            for ( w = 0; w < nWords; w++ )
+                puFanins[i][w] = Truth6[i];
+        else
+            for ( w = 0; w < nWords; w++ )
+                puFanins[i][w] = (w & (1 << (i-6))) ? ~(word)0 : 0;
+    // create intermediate nodes
+    puNodes = ABC_ALLOC( word *, Exp_NodeNum(p) );
+    for ( i = 0; i < Exp_NodeNum(p); i++ )
+        puNodes[i] = ABC_ALLOC( word, nWords );
+    // evaluate the expression
+    pTemp0 = ABC_ALLOC( word, nWords );
+    pTemp1 = ABC_ALLOC( word, nWords );
+    for ( i = 0; i < Exp_NodeNum(p); i++ )
+    {
+        Exp_TruthLit( nVars, Vec_IntEntry(p, 2*i+0), puFanins, puNodes, pTemp0, nWords );
+        Exp_TruthLit( nVars, Vec_IntEntry(p, 2*i+1), puFanins, puNodes, pTemp1, nWords );
+        for ( w = 0; w < nWords; w++ )
+            puNodes[i][w] = pTemp0[w] & pTemp1[w];
+    }
+    ABC_FREE( pTemp0 );
+    ABC_FREE( pTemp1 );
+    // copy the final result
+    Exp_TruthLit( nVars, Vec_IntEntryLast(p), puFanins, puNodes, pRes, nWords );
+    // cleanup
+    for ( i = 0; i < nVars; i++ )
+        ABC_FREE( puFanins[i] );
+    ABC_FREE( puFanins );
+    for ( i = 0; i < Exp_NodeNum(p); i++ )
+        ABC_FREE( puNodes[i] );
+    ABC_FREE( puNodes );
 }
 
 ////////////////////////////////////////////////////////////////////////
