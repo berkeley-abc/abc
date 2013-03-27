@@ -11564,9 +11564,9 @@ int Abc_CommandQbf( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     extern void Abc_NtkQbf( Abc_Ntk_t * pNtk, int nPars, int nIters, int fVerbose );
     // set defaults
-    nPars    = -1;
-    nIters   = -1;
-    fVerbose =  1;
+    nPars    =  -1;
+    nIters   = 500;
+    fVerbose =   1;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "PIvh" ) ) != EOF )
     {

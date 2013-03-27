@@ -65,7 +65,7 @@ void Abc_NtkQbf( Abc_Ntk_t * pNtk, int nPars, int nItersMax, int fVerbose )
     Abc_Ntk_t * pNtkVer, * pNtkSyn, * pNtkSyn2, * pNtkTemp;
     Vec_Int_t * vPiValues;
     clock_t clkTotal = clock(), clkS, clkV;
-    int nIters, nIterMax = 500, nInputs, RetValue, fFound = 0;
+    int nIters, nInputs, RetValue, fFound = 0;
 
     assert( Abc_NtkIsStrash(pNtk) );
     assert( Abc_NtkIsComb(pNtk) );
@@ -96,7 +96,7 @@ void Abc_NtkQbf( Abc_Ntk_t * pNtk, int nPars, int nItersMax, int fVerbose )
     }
 
     // iteratively solve
-    for ( nIters = 0; nIters < nIterMax; nIters++ )
+    for ( nIters = 0; nIters < nItersMax; nIters++ )
     {
         // solve the synthesis instance
 clkS = clock();
@@ -170,7 +170,7 @@ clkV = clock() - clkV;
         printf( "\n" );
         printf( "Solved after %d interations.  ", nIters );
     }
-    else if ( nIters == nIterMax )
+    else if ( nIters == nItersMax )
         printf( "Unsolved after %d interations.  ", nIters );
     else if ( nIters == nItersMax )
         printf( "Quit after %d interatios.  ", nItersMax );
