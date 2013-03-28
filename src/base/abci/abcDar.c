@@ -1562,7 +1562,7 @@ Abc_Ntk_t * Abc_NtkDarToCnf( Abc_Ntk_t * pNtk, char * pFileName, int fFastAlgo, 
     Vec_PtrFree( vMapped );
 */
     // write CNF into a file
-    Cnf_DataWriteIntoFile( pCnf, pFileName, 0 );
+    Cnf_DataWriteIntoFile( pCnf, pFileName, 0, NULL, NULL );
     Cnf_DataFree( pCnf );
     Cnf_ManFree();
     Aig_ManStop( pMan );

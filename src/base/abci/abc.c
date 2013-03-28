@@ -11560,15 +11560,17 @@ int Abc_CommandQbf( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     int nPars;
     int nIters;
+    int fDumpCnf;
     int fVerbose;
 
-    extern void Abc_NtkQbf( Abc_Ntk_t * pNtk, int nPars, int nIters, int fVerbose );
+    extern void Abc_NtkQbf( Abc_Ntk_t * pNtk, int nPars, int nIters, int fDumpCnf, int fVerbose );
     // set defaults
     nPars    =  -1;
     nIters   = 500;
+    fDumpCnf =   0;
     fVerbose =   1;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "PIvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "PIdvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -11593,6 +11595,9 @@ int Abc_CommandQbf( Abc_Frame_t * pAbc, int argc, char ** argv )
             globalUtilOptind++;
             if ( nIters < 0 )
                 goto usage;
+            break;
+        case 'd':
+            fDumpCnf ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -11624,20 +11629,21 @@ int Abc_CommandQbf( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     if ( Abc_NtkIsStrash(pNtk) )
-        Abc_NtkQbf( pNtk, nPars, nIters, fVerbose );
+        Abc_NtkQbf( pNtk, nPars, nIters, fDumpCnf, fVerbose );
     else
     {
         pNtk = Abc_NtkStrash( pNtk, 0, 1, 0 );
-        Abc_NtkQbf( pNtk, nPars, nIters, fVerbose );
+        Abc_NtkQbf( pNtk, nPars, nIters, fDumpCnf, fVerbose );
         Abc_NtkDelete( pNtk );
     }
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: qbf [-PI num] [-vh]\n" );
+    Abc_Print( -2, "usage: qbf [-PI num] [-dvh]\n" );
     Abc_Print( -2, "\t         solves QBF problem EpVxM(p,x)\n" );
     Abc_Print( -2, "\t-P num : number of parameters p (should be the first PIs) [default = %d]\n", nPars );
     Abc_Print( -2, "\t-I num : quit after the given iteration even if unsolved [default = %d]\n", nIters );
+    Abc_Print( -2, "\t-d     : toggle dumping QDIMACS file instead of solving [default = %s]\n", fDumpCnf? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
