@@ -1827,12 +1827,12 @@ Gia_Man_t * Gia_ManTransformMiter( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManDupZeroUndc( Gia_Man_t * p, char * pInit )
+Gia_Man_t * Gia_ManDupZeroUndc( Gia_Man_t * p, char * pInit, int fVerbose )
 {
     Gia_Man_t * pNew;
     Gia_Obj_t * pObj;
     int CountPis = Gia_ManPiNum(p), * pPiLits;
-    int i, iResetFlop = -1;
+    int i, iResetFlop = -1, Count1 = 0;
     // map X-valued flops into new PIs
     assert( (int)strlen(pInit) == Gia_ManRegNum(p) );
     pPiLits = ABC_FALLOC( int, Gia_ManRegNum(p) );
@@ -1860,7 +1860,7 @@ Gia_Man_t * Gia_ManDupZeroUndc( Gia_Man_t * p, char * pInit )
     Gia_ManForEachRo( p, pObj, i )
     {
         if ( pInit[i] == '1' )
-            pObj->Value = Abc_LitNot(pObj->Value);
+            pObj->Value = Abc_LitNot(pObj->Value), Count1++;
         else if ( pInit[i] == 'x' || pInit[i] == 'X' )
             pObj->Value = Gia_ManAppendMux( pNew, iResetFlop, pObj->Value, Gia_Obj2Lit(pNew, Gia_ManPi(pNew, pPiLits[i])) );
         else if ( pInit[i] != '0' )
@@ -1883,6 +1883,8 @@ Gia_Man_t * Gia_ManDupZeroUndc( Gia_Man_t * p, char * pInit )
     if ( CountPis > Gia_ManPiNum(p) )
         Gia_ManAppendCo( pNew, 1 );
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) + (int)(CountPis > Gia_ManPiNum(p)) );
+    if ( fVerbose )
+        printf( "Converted %d 1-valued FFs and %d DC-valued FFs.\n", Count1, CountPis-Gia_ManPiNum(p) );
     return pNew;
 }
 
@@ -1899,21 +1901,21 @@ Gia_Man_t * Gia_ManDupZeroUndc( Gia_Man_t * p, char * pInit )
 ***********************************************************************/
 Gia_Man_t * Gia_ManMiter2( Gia_Man_t * pStart, char * pInit, int fVerbose )
 {
-    Vec_Int_t * vCoValues0, * vCoValues1;
+    Vec_Int_t * vCiValues, * vCoValues0, * vCoValues1;
     Gia_Man_t * pNew, * pUndc, * pTemp;
     Gia_Obj_t * pObj;
     char * pInitNew;
     int i, k;
-    // normalize the manager
-    pUndc = Gia_ManDupZeroUndc( pStart, pInit + Gia_ManRegNum(pStart) );
-    // create new init string
-    pInitNew = ABC_ALLOC( char, Gia_ManPiNum(pUndc) );
-    for ( i = 0; i < Gia_ManPiNum(pUndc); i++ )
-    {
+    // check PI values
+    for ( i = 0; i < Gia_ManPiNum(pStart); i++ )
         assert( pInit[i] == 'x' || pInit[i] == 'X' );
+    // normalize the manager
+    pUndc = Gia_ManDupZeroUndc( pStart, pInit + Gia_ManPiNum(pStart), fVerbose );
+    // create new init string
+    pInitNew = ABC_ALLOC( char, Gia_ManPiNum(pUndc)+1 );
+    for ( i = 0; i < Gia_ManPiNum(pStart); i++ )
         pInitNew[i] = pInit[i];
-    }
-    for ( i = k = Gia_ManPiNum(pUndc); i < Gia_ManCiNum(pUndc); i++ )
+    for ( i = k = Gia_ManPiNum(pStart); i < Gia_ManCiNum(pStart); i++ )
         if ( pInit[i] == 'x' || pInit[i] == 'X' )
             pInitNew[k++] = pInit[i];
     pInitNew[k] = 0;
@@ -1924,9 +1926,18 @@ Gia_Man_t * Gia_ManMiter2( Gia_Man_t * pStart, char * pInit, int fVerbose )
     pNew->pSpec = Abc_UtilStrsav( pUndc->pSpec );
     Gia_ManConst0(pUndc)->Value = 0;
     Gia_ManHashAlloc( pNew );
-    // build one side
+    // add PIs of the first side
     Gia_ManForEachPi( pUndc, pObj, i )
         pObj->Value = Gia_ManAppendCi( pNew );
+    // add PIs of the second side
+    vCiValues = Vec_IntAlloc( Gia_ManPiNum(pUndc) );
+    Gia_ManForEachPi( pUndc, pObj, i )
+        if ( pInitNew[i] == 'x' )
+            Vec_IntPush( vCiValues, Gia_Obj2Lit( pNew, Gia_ManPi(pNew, i) ) );
+        else if ( pInitNew[i] == 'X' ) 
+            Vec_IntPush( vCiValues, Gia_ManAppendCi( pNew ) );
+        else assert( 0 );
+    // build flops and internal nodes
     Gia_ManForEachRo( pUndc, pObj, i )
         pObj->Value = Gia_ManAppendCi( pNew );
     Gia_ManForEachAnd( pUndc, pObj, i )
@@ -1937,10 +1948,7 @@ Gia_Man_t * Gia_ManMiter2( Gia_Man_t * pStart, char * pInit, int fVerbose )
         Vec_IntPush( vCoValues0, Gia_ObjFanin0Copy(pObj) );
     // build the other side
     Gia_ManForEachPi( pUndc, pObj, i )
-        if ( pInitNew[i] == 'x' )
-            pObj->Value = Gia_Obj2Lit( pNew, Gia_ManPi(pNew, i) );
-        else
-            pObj->Value = Gia_ManAppendCi( pNew );
+        pObj->Value = Vec_IntEntry( vCiValues, i );
     Gia_ManForEachRo( pUndc, pObj, i )
         pObj->Value = Gia_ManAppendCi( pNew );
     Gia_ManForEachAnd( pUndc, pObj, i )
@@ -1954,15 +1962,17 @@ Gia_Man_t * Gia_ManMiter2( Gia_Man_t * pStart, char * pInit, int fVerbose )
         pObj->Value = Gia_ManAppendCo( pNew, Gia_ManHashXor( pNew, Vec_IntEntry(vCoValues0, i), Vec_IntEntry(vCoValues1, i) ) );
     // create flop inputs
     Gia_ManForEachRi( pUndc, pObj, i )
-        pObj->Value = Gia_ManAppendCo( pNew, Vec_IntEntry(vCoValues0, Gia_ManPiNum(pUndc)+i) );
+        pObj->Value = Gia_ManAppendCo( pNew, Vec_IntEntry(vCoValues0, Gia_ManPoNum(pUndc)+i) );
     Gia_ManForEachRi( pUndc, pObj, i )
-        pObj->Value = Gia_ManAppendCo( pNew, Vec_IntEntry(vCoValues1, Gia_ManPiNum(pUndc)+i) );
+        pObj->Value = Gia_ManAppendCo( pNew, Vec_IntEntry(vCoValues1, Gia_ManPoNum(pUndc)+i) );
     Vec_IntFree( vCoValues0 );
     Vec_IntFree( vCoValues1 );
+    Vec_IntFree( vCiValues );
     ABC_FREE( pInitNew );
     // cleanup
     Gia_ManHashStop( pNew );
     Gia_ManSetRegNum( pNew, 2*Gia_ManRegNum(pUndc) );
+    Gia_ManStop( pUndc );
     pNew = Gia_ManCleanup( pTemp = pNew );
     Gia_ManStop( pTemp );
     return pNew;

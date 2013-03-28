@@ -23867,10 +23867,11 @@ int Abc_CommandAbc9Get( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern Aig_Man_t * Abc_NtkToDarChoices( Abc_Ntk_t * pNtk );
     extern Vec_Ptr_t * Abc_NtkCollectCiNames( Abc_Ntk_t * pNtk );
     extern Vec_Ptr_t * Abc_NtkCollectCoNames( Abc_Ntk_t * pNtk );
-    Gia_Man_t * pAig;
-    Aig_Man_t * pMan;
-    int c, fVerbose = 0;
-    int fNames = 0;
+    Abc_Ntk_t * pStrash;
+    Aig_Man_t * pAig;
+    Gia_Man_t * pGia, * pTemp;
+    char * pInits;
+    int c, fNames = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "nvh" ) ) != EOF )
     {
@@ -23893,31 +23894,41 @@ int Abc_CommandAbc9Get( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( !Abc_NtkIsStrash( pAbc->pNtkCur ) )
     {
-        Abc_Print( -1, "The current network should be strashed.\n" );
-        return 1;
+        // derive comb GIA
+        pStrash = Abc_NtkStrash( pAbc->pNtkCur, 0, 1, 0 );
+        pAig = Abc_NtkToDar( pStrash, 0, 0 );
+        Abc_NtkDelete( pStrash );
+        pGia = Gia_ManFromAig( pAig );
+        Aig_ManStop( pAig );
+        // perform undc/zero
+        pInits = Abc_NtkCollectLatchValuesStr( pAbc->pNtkCur );
+        pGia = Gia_ManDupZeroUndc( pTemp = pGia, pInits, fVerbose );
+        Gia_ManStop( pTemp );
+        ABC_FREE( pInits );
     }
-//    if ( Abc_NtkGetChoiceNum(pAbc->pNtkCur) )
-//    {
-//        Abc_Print( -1, "Removing %d choices from the AIG.\n", Abc_NtkGetChoiceNum(pAbc->pNtkCur) );
-//        Abc_AigCleanup(pAbc->pNtkCur->pManFunc);
-//    }
-    if ( Abc_NtkGetChoiceNum(pAbc->pNtkCur) )
-        pMan = Abc_NtkToDarChoices( pAbc->pNtkCur );
     else
-        pMan = Abc_NtkToDar( pAbc->pNtkCur, 0, 1 );
-    pAig = Gia_ManFromAig( pMan );
-    Aig_ManStop( pMan );
-    Abc_FrameUpdateGia( pAbc, pAig );
+    {
+        if ( Abc_NtkGetChoiceNum(pAbc->pNtkCur) )
+            pAig = Abc_NtkToDarChoices( pAbc->pNtkCur );
+        else
+            pAig = Abc_NtkToDar( pAbc->pNtkCur, 0, 1 );
+        pGia = Gia_ManFromAig( pAig );
+        Aig_ManStop( pAig );
+    }
+    // replace
     if ( fNames )
     {
-        pAig->vNamesIn  = Abc_NtkCollectCiNames( pAbc->pNtkCur );
-        pAig->vNamesOut = Abc_NtkCollectCoNames( pAbc->pNtkCur );
+        pGia->vNamesIn  = Abc_NtkCollectCiNames( pAbc->pNtkCur );
+        pGia->vNamesOut = Abc_NtkCollectCoNames( pAbc->pNtkCur );
     }
+    Abc_FrameUpdateGia( pAbc, pGia );
     return 0;
 
 usage:
     Abc_Print( -2, "usage: &get [-nvh] <file>\n" );
-    Abc_Print( -2, "\t         converts the network into an AIG and moves to the new ABC\n" );
+    Abc_Print( -2, "\t         converts the current network into GIA and moves it to the &-space\n" );
+    Abc_Print( -2, "\t         (if the network is a sequential logic network, normalizes the flops\n" );
+    Abc_Print( -2, "\t         to have const-0 initial values, equivalent to \"undc; st; zero\")\n" );
     Abc_Print( -2, "\t-n     : toggles saving CI/CO names of the AIG [default = %s]\n", fNames? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggles additional verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
@@ -26307,9 +26318,9 @@ int Abc_CommandAbc9Miter2( Abc_Frame_t * pAbc, int argc, char ** argv )
     // extract string
     pInit = Extra_FileReadContents( FileName );
     Extra_StringClean( pInit, "01xX" );
-    if ( (int)strlen(pInit) != Gia_ManCoNum(pAbc->pGia) )
+    if ( (int)strlen(pInit) != Gia_ManCiNum(pAbc->pGia) )
     {
-        Abc_Print( -1, "Init string length (%d) differs from PI and flop count (%d).\n", strlen(pInit), Gia_ManCoNum(pAbc->pGia) );
+        Abc_Print( -1, "Init string length (%d) differs from PI and flop count (%d).\n", strlen(pInit), Gia_ManCiNum(pAbc->pGia) );
         ABC_FREE( pInit );
         return 1;
     }
@@ -26324,7 +26335,7 @@ usage:
     Abc_Print( -2, "\t         creates miter of two copies of the design\n" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
-    Abc_Print( -2, "\t<file> : file name with initialiation string [default = none]\n" );
+    Abc_Print( -2, "\t<file> : file name with flop initial values (0/1/x/X) [default = required]\n" );
     return 1;
 }
 

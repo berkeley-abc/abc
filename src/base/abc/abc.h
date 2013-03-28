@@ -639,6 +639,7 @@ extern ABC_DLL int                Abc_NtkLatchIsSelfFeed( Abc_Obj_t * pLatch );
 extern ABC_DLL int                Abc_NtkCountSelfFeedLatches( Abc_Ntk_t * pNtk );
 extern ABC_DLL int                Abc_NtkRemoveSelfFeedLatches( Abc_Ntk_t * pNtk );
 extern ABC_DLL Vec_Int_t *        Abc_NtkCollectLatchValues( Abc_Ntk_t * pNtk );
+extern ABC_DLL char *             Abc_NtkCollectLatchValuesStr( Abc_Ntk_t * pNtk );
 extern ABC_DLL void               Abc_NtkInsertLatchValues( Abc_Ntk_t * pNtk, Vec_Int_t * vValues );
 extern ABC_DLL Abc_Obj_t *        Abc_NtkAddLatch( Abc_Ntk_t * pNtk, Abc_Obj_t * pDriver, Abc_InitType_t Init );
 extern ABC_DLL void               Abc_NtkConvertDcLatches( Abc_Ntk_t * pNtk );

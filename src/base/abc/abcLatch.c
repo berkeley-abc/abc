@@ -197,6 +197,38 @@ Vec_Int_t * Abc_NtkCollectLatchValues( Abc_Ntk_t * pNtk )
 
 /**Function*************************************************************
 
+  Synopsis    [Derives latch init string.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+char * Abc_NtkCollectLatchValuesStr( Abc_Ntk_t * pNtk )
+{
+    char * pInits;
+    Abc_Obj_t * pLatch;
+    int i;
+    pInits = ABC_ALLOC( char, Abc_NtkLatchNum(pNtk) + 1 );
+    Abc_NtkForEachLatch( pNtk, pLatch, i )
+    {
+        if ( Abc_LatchIsInit0(pLatch) )
+            pInits[i] = '0';
+        else if ( Abc_LatchIsInit1(pLatch) )
+            pInits[i] = '1';
+        else if ( Abc_LatchIsInitDc(pLatch) )
+            pInits[i] = 'x';
+        else
+            assert( 0 );
+    }
+    pInits[i] = 0;
+    return pInits;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Strashes one logic node using its SOP.]
 
   Description []
