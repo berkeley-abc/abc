@@ -770,7 +770,7 @@ extern ABC_DLL void               Abc_NtkPrintFanioNew( FILE * pFile, Abc_Ntk_t 
 extern ABC_DLL void               Abc_NodePrintFanio( FILE * pFile, Abc_Obj_t * pNode );
 extern ABC_DLL void               Abc_NtkPrintFactor( FILE * pFile, Abc_Ntk_t * pNtk, int fUseRealNames );
 extern ABC_DLL void               Abc_NodePrintFactor( FILE * pFile, Abc_Obj_t * pNode, int fUseRealNames );
-extern ABC_DLL void               Abc_NtkPrintLevel( FILE * pFile, Abc_Ntk_t * pNtk, int fProfile, int fListNodes );
+extern ABC_DLL void               Abc_NtkPrintLevel( FILE * pFile, Abc_Ntk_t * pNtk, int fProfile, int fListNodes, int fVerbose );
 extern ABC_DLL void               Abc_NodePrintLevel( FILE * pFile, Abc_Obj_t * pNode );
 extern ABC_DLL void               Abc_NtkPrintSkews( FILE * pFile, Abc_Ntk_t * pNtk, int fPrintAll );
 extern ABC_DLL void               Abc_ObjPrint( FILE * pFile, Abc_Obj_t * pObj );

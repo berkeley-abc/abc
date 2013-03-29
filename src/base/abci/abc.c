@@ -1463,12 +1463,14 @@ int Abc_CommandPrintLevel( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     int fListNodes;
     int fProfile;
+    int fVerbose;
 
     // set defaults
     fListNodes = 0;
     fProfile   = 1;
+    fVerbose   = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "nph" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "npvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -1477,6 +1479,9 @@ int Abc_CommandPrintLevel( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'p':
             fProfile ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
             break;
         case 'h':
             goto usage;
@@ -1515,14 +1520,15 @@ int Abc_CommandPrintLevel( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
     // process all COs
-    Abc_NtkPrintLevel( stdout, pNtk, fProfile, fListNodes );
+    Abc_NtkPrintLevel( stdout, pNtk, fProfile, fListNodes, fVerbose );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: print_level [-nph] <node>\n" );
+    Abc_Print( -2, "usage: print_level [-npvh] <node>\n" );
     Abc_Print( -2, "\t        prints information about node level and cone size\n" );
     Abc_Print( -2, "\t-n    : toggles printing nodes by levels [default = %s]\n", fListNodes? "yes": "no" );
     Abc_Print( -2, "\t-p    : toggles printing level profile [default = %s]\n", fProfile? "yes": "no" );
+    Abc_Print( -2, "\t-v    : enable verbose output [default = %s].\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
     Abc_Print( -2, "\tnode  : (optional) one node to consider\n");
     return 1;

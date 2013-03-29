@@ -811,7 +811,7 @@ void Abc_NodePrintFactor( FILE * pFile, Abc_Obj_t * pNode, int fUseRealNames )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkPrintLevel( FILE * pFile, Abc_Ntk_t * pNtk, int fProfile, int fListNodes )
+void Abc_NtkPrintLevel( FILE * pFile, Abc_Ntk_t * pNtk, int fProfile, int fListNodes, int fVerbose )
 {
     Abc_Obj_t * pNode;
     int i, k, Length;
@@ -901,18 +901,21 @@ void Abc_NtkPrintLevel( FILE * pFile, Abc_Ntk_t * pNtk, int fProfile, int fListN
     }
     assert( Abc_NtkIsStrash(pNtk) );
 
-    // find the longest name
-    Length = 0;
-    Abc_NtkForEachCo( pNtk, pNode, i )
-        if ( Length < (int)strlen(Abc_ObjName(pNode)) )
-            Length = strlen(Abc_ObjName(pNode));
-    if ( Length < 5 )
-        Length = 5;
-    // print stats for each output
-    Abc_NtkForEachCo( pNtk, pNode, i )
+    if ( fVerbose )
     {
-        fprintf( pFile, "CO %4d :  %*s    ", i, Length, Abc_ObjName(pNode) );
-        Abc_NodePrintLevel( pFile, pNode );
+        // find the longest name
+        Length = 0;
+        Abc_NtkForEachCo( pNtk, pNode, i )
+            if ( Length < (int)strlen(Abc_ObjName(pNode)) )
+                Length = strlen(Abc_ObjName(pNode));
+        if ( Length < 5 )
+            Length = 5;
+        // print stats for each output
+        Abc_NtkForEachCo( pNtk, pNode, i )
+        {
+            fprintf( pFile, "CO %4d :  %*s    ", i, Length, Abc_ObjName(pNode) );
+            Abc_NodePrintLevel( pFile, pNode );
+    }
     }
 }
 
