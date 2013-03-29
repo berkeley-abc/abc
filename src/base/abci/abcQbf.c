@@ -75,39 +75,41 @@ void Abc_NtkQbf( Abc_Ntk_t * pNtk, int nPars, int nItersMax, int fDumpCnf, int f
 //    assert( Abc_NtkPiNum(pNtk)-nPars < 32 );
     nInputs = Abc_NtkPiNum(pNtk) - nPars;
 
-    Abc_ObjXorFaninC( Abc_NtkPo(pNtk,0), 0 );    
     if ( fDumpCnf )
     {
+        // original problem: \exists p \forall x \exists y.  M(p,x,y)
+        // negated problem:  \forall p \exists x \exists y. !M(p,x,y)
         extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
         Aig_Man_t * pMan = Abc_NtkToDar( pNtk, 0, 0 );
-        Cnf_Dat_t * pCnf = Cnf_DeriveSimple( pMan, 0 );
+        Cnf_Dat_t * pCnf = Cnf_Derive( pMan, 0 );
         Vec_Int_t * vVarMap, * vForAlls, * vExists;
         Aig_Obj_t * pObj;
+        char * pFileName;
         int i, Entry;
         // create var map
         vVarMap = Vec_IntStart( pCnf->nVars );
         Aig_ManForEachCi( pMan, pObj, i )
-            if ( i >= nPars )
+            if ( i < nPars )
                 Vec_IntWriteEntry( vVarMap, pCnf->pVarNums[Aig_ObjId(pObj)], 1 );
         // create various maps
+        vForAlls = Vec_IntAlloc( nPars );
         vExists = Vec_IntAlloc( Abc_NtkPiNum(pNtk) - nPars );
-        vForAlls = Vec_IntAlloc( pCnf->nVars );
         Vec_IntForEachEntry( vVarMap, Entry, i )
             if ( Entry )
-                Vec_IntPush( vExists, i );
-            else
                 Vec_IntPush( vForAlls, i );
+            else
+                Vec_IntPush( vExists, i );
         // generate CNF
-        Cnf_DataWriteIntoFile( pCnf, "test.qdimacs", 0, vForAlls, vExists );
+        pFileName = Extra_FileNameGenericAppend( pNtk->pSpec, ".qdimacs" );
+        Cnf_DataWriteIntoFile( pCnf, pFileName, 0, vForAlls, vExists );
         Aig_ManStop( pMan );
         Cnf_DataFree( pCnf );
         Vec_IntFree( vForAlls );
         Vec_IntFree( vExists );
         Vec_IntFree( vVarMap );
-        Abc_ObjXorFaninC( Abc_NtkPo(pNtk,0), 0 );    
+        printf( "The 2QBF formula was written into file \"%s\".\n", pFileName );
         return;
     }
-    Abc_ObjXorFaninC( Abc_NtkPo(pNtk,0), 0 );    
 
     // initialize the synthesized network with 0000-combination
     vPiValues = Vec_IntStart( Abc_NtkPiNum(pNtk) );
