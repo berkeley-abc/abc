@@ -647,7 +647,7 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
                             Pdr_ManPrintClauses( p, 0 );
                         }
                         if ( p->pPars->fVerbose ) 
-                            Pdr_ManPrintProgress( p, 1, clock() - clkStart );
+                            Pdr_ManPrintProgress( p, !p->pPars->fSolveAll, clock() - clkStart );
                         p->pPars->iFrame = k;
 
                         if ( !p->pPars->fSolveAll )

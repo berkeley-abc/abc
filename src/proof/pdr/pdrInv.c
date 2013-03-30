@@ -81,6 +81,8 @@ void Pdr_ManPrintProgress( Pdr_Man_t * p, int fClose, clock_t Time )
         Abc_Print( 1, " " );
     Abc_Print( 1, "%6d", p->nQueMax );
     Abc_Print( 1, "%10.2f sec", 1.0*Time/CLOCKS_PER_SEC );
+    if ( p->pPars->fSolveAll )
+        Abc_Print( 1, "  CEX =%4d", p->pPars->nFailOuts );
     Abc_Print( 1, "%s", fClose ? "\n":"\r" );
     if ( fClose )
         p->nQueMax = 0;
