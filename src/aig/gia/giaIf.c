@@ -1147,7 +1147,6 @@ Gia_Man_t * Gia_ManPerformMapping( Gia_Man_t * p, void * pp )
     assert( pPars->pTimesReq == NULL );
     if ( p->pManTime )
     {
-        Vec_Flt_t * vArrTimes = NULL, * vReqTimes = NULL;
         pNew = Gia_ManDupUnnormalize( p );
         if ( pNew == NULL )
             return NULL;

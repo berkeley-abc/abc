@@ -221,7 +221,7 @@ If_LibBox_t * If_LibBoxRead2( char * pFileName )
         {
             while ( pToken == NULL )
             {
-                fgets( pBuffer, nSize, pFile );
+                (void) fgets( pBuffer, nSize, pFile );
                 pToken = strtok( pBuffer, " \n\r\t" );
             }
             pBox->pDelays[i] = (pToken[0] == '-') ? -1 : atoi(pToken);

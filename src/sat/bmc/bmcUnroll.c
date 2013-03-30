@@ -26,7 +26,7 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-#define UNR_DIFF_NULL 0xFFFF
+#define UNR_DIFF_NULL 0x7FFF
 
 typedef struct Unr_Obj_t_ Unr_Obj_t; // 24 bytes + (RankMax-1) * 4 bytes
 struct Unr_Obj_t_
@@ -210,7 +210,7 @@ void Unr_ManSetup( Unr_Man_t * p )
     // create const0 node
     pUnrObj = Unr_ManObj( p, pInts - p->pObjs );
     pUnrObj->RankMax = 1;
-    pUnrObj->uRDiff0 = pUnrObj->uRDiff1 = (unsigned)UNR_DIFF_NULL;
+    pUnrObj->uRDiff0 = pUnrObj->uRDiff1 = UNR_DIFF_NULL;
     pUnrObj->Res[0]  = 0; // const0
     pInts += sizeof(Unr_Obj_t) / sizeof(int);
     // mark up the entries
@@ -224,7 +224,7 @@ void Unr_ManSetup( Unr_Man_t * p )
         {
             pObj = Gia_ManObj( p->pGia, iObj );
             pUnrObj = Unr_ManObj( p, pInts - p->pObjs );
-            pUnrObj->uRDiff0 = pUnrObj->uRDiff1 = (unsigned)UNR_DIFF_NULL;
+            pUnrObj->uRDiff0 = pUnrObj->uRDiff1 = UNR_DIFF_NULL;
             if ( Gia_ObjIsAnd(pObj) || Gia_ObjIsCo(pObj) )
             {
                 pUnrObj->hFan0   = Vec_IntEntry( vMap, Gia_ObjFaninId0(pObj, iObj) );
