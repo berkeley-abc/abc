@@ -965,8 +965,8 @@ int Ssw_RarSimulate( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSize, in
 //    if ( fMiter && Ssw_RarCheckTrivial( pAig, fVerbose ) )
 //        return 0;
     if ( fVerbose )
-        Abc_Print( 1, "Rarity simulation with %d words, %d frames, %d rounds, %d seed, and %d sec timeout.\n",
-            nWords, nFrames, nRounds, nRandSeed, TimeOut );
+        Abc_Print( 1, "Rarity simulation with %d words, %d frames, %d rounds, %d restart, %d seed, and %d sec timeout.\n",
+            nWords, nFrames, nRounds, nRestart, nRandSeed, TimeOut );
     // reset random numbers
     Ssw_RarManPrepareRandom( nSavedSeed );
 
@@ -1043,12 +1043,20 @@ int Ssw_RarSimulate( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSize, in
         else
             Ssw_RarTransferPatterns( p, p->vInits );
         // printout
-        if ( fVerbose && !fSolveAll )
+        if ( fVerbose )
         {
-//            Abc_Print( 1, "Round %3d:  ", r );
-//            Abc_PrintTime( 1, "Time", clock() - clk );
-            Abc_Print( 1, "." );
+            if ( fSolveAll )
+            {
+                Abc_Print( 1, "Starts =%6d   ",  nNumRestart );
+                Abc_Print( 1, "Rounds =%6d   ",  nNumRestart * nRestart + ((r==-1)?0:r) );
+                Abc_Print( 1, "Frames =%6d   ", (nNumRestart * nRestart + r) * nFrames );
+                Abc_Print( 1, "CEX =%6d (%6.2f %%)   ", nSolved, 100.0*nSolved/Saig_ManPoNum(p->pAig) );
+                Abc_PrintTime( 1, "Time", clock() - clkTotal );
+            }
+            else
+                Abc_Print( 1, "." );
         }
+
     }
 finish:
     if ( nSolved )

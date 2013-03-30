@@ -17904,7 +17904,7 @@ int Abc_CommandSim3( Abc_Frame_t * pAbc, int argc, char ** argv )
     int nWords       =  50;
     int nBinSize     =   8;
     int nRounds      =   0;
-    int nRestart     = 100;
+    int nRestart     =   0;
     int nRandSeed    =   0;
     int TimeOut      =   0;
     int TimeOutGap   =   0;
@@ -24884,7 +24884,7 @@ int Abc_CommandAbc9Sim3( Abc_Frame_t * pAbc, int argc, char ** argv )
     nWords     =  50;
     nBinSize   =   8;
     nRounds    =   0;
-    nRestart   = 100;
+    nRestart   =   0;
     nRandSeed  =   0;
     TimeOut    =   0;
     TimeOutGap =   0;
@@ -25449,7 +25449,7 @@ int Abc_CommandAbc9Equiv3( Abc_Frame_t * pAbc, int argc, char ** argv )
     int nWords     =   50;
     int nBinSize   =    8;
     int nRounds    =    0;
-    int nRestart   =  100;
+    int nRestart   =    0;
     int nRandSeed  =    0;
     int TimeOut    =    0;
     int fMiter     =    0;
