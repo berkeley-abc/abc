@@ -400,6 +400,9 @@ extern int Abc_CommandAbcLivenessToSafety    ( Abc_Frame_t * pAbc, int argc, cha
 extern int Abc_CommandAbcLivenessToSafetySim ( Abc_Frame_t * pAbc, int argc, char ** argv );
 extern int Abc_CommandAbcLivenessToSafetyWithLTL( Abc_Frame_t * pAbc, int argc, char ** argv );
 
+extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
+extern Abc_Ntk_t * Abc_NtkFromAigPhase( Aig_Man_t * pMan );
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -6214,8 +6217,6 @@ int Abc_CommandOrPos( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( fReverse )
     {
         extern Aig_Man_t * Abc_NtkToDarBmc( Abc_Ntk_t * pNtk, Vec_Int_t ** pvMap );
-        extern Abc_Ntk_t * Abc_NtkFromAigPhase( Aig_Man_t * pMan );
-
         Aig_Man_t * pMan = Abc_NtkToDarBmc( pNtk, NULL );
         Abc_Ntk_t * pNtkRes = Abc_NtkFromAigPhase( pMan );
         Aig_ManStop( pMan );
@@ -8062,7 +8063,6 @@ usage:
 ***********************************************************************/
 int Abc_CommandTrim( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
     Abc_Ntk_t * pNtk, * pNtkRes;
     Gia_Man_t * pGia, * pNew;
     Aig_Man_t * pAig;
@@ -11847,7 +11847,6 @@ int Abc_CommandSendAig( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     else
     {
-        extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
         Aig_Man_t * pAig;
         Gia_Man_t * pGia;
         if ( pAbc->pNtkCur == NULL )
@@ -21358,7 +21357,6 @@ int Abc_CommandBmcInter( Abc_Frame_t * pAbc, int argc, char ** argv )
             pAbc->Status = Abc_NtkDarBmcInter( pNtkNew, pPars, NULL );
             if ( pAbc->Status == 0 )
             {
-                extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
                 Aig_Man_t * pMan = Abc_NtkToDar( pNtk, 0, 1 );
                 pNtkNew->pSeqModel->iPo = Saig_ManFindFailedPoCex( pMan, pNtkNew->pSeqModel );
                 Aig_ManStop( pMan );
@@ -22487,7 +22485,6 @@ int Abc_CommandTestCex( Abc_Frame_t * pAbc, int argc, char ** argv )
 //          Abc_Print( 1, "Main AIG: The number of POs (%d) is less than the PO index in cex (%d).\n", Abc_NtkPoNum(pNtk), pAbc->pCex->iPo );
         else
         {
-            extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
             Aig_Man_t * pAig = Abc_NtkToDar( pNtk, 0, 1 );
             Gia_Man_t * pGia = Gia_ManFromAigSimple( pAig );
     //        if ( !Gia_ManVerifyCex( pGia, pAbc->pCex, 0 ) )
@@ -22728,7 +22725,6 @@ usage:
 ***********************************************************************/
 int Abc_CommandReconcile( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
     extern Abc_Cex_t * Llb4_Nonlin4NormalizeCex( Aig_Man_t * pAigOrg, Aig_Man_t * pAigRpm, Abc_Cex_t * pCexRpm );
     Abc_Cex_t * pCex;
     Abc_Ntk_t * pNtk1 = NULL, * pNtk2 = NULL;
@@ -22927,13 +22923,13 @@ usage:
 ***********************************************************************/
 int Abc_CommandCexCut( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    int c;
-    int iFrStart   = 0;
-    int iFrStop    = ABC_INFINITY;
-    int fCombOnly  = 0;
-    int fUseOne    = 0;
-    int fAllFrames = 0;
-    int fVerbose   = 0;
+    Abc_Ntk_t * pNtkNew;
+    int c, iFrStart = 0;
+    int iFrStop     = ABC_INFINITY;
+    int fCombOnly   = 0;
+    int fUseOne     = 0;
+    int fAllFrames  = 0;
+    int fVerbose    = 0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "FGcnmvh" ) ) != EOF )
     {
@@ -23000,9 +22996,6 @@ int Abc_CommandCexCut( Abc_Frame_t * pAbc, int argc, char ** argv )
         iFrStop = pAbc->pCex->iFrame;
 
     {
-        extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
-        extern Abc_Ntk_t * Abc_NtkFromAigPhase( Aig_Man_t * pMan );
-        Abc_Ntk_t * pNtkNew;
         Aig_Man_t * pAig = Abc_NtkToDar( pAbc->pNtkCur, 0, 1 );
         Aig_Man_t * pAigNew = Bmc_AigTargetStates( pAig, pAbc->pCex, iFrStart, iFrStop, fCombOnly, fUseOne, fAllFrames, fVerbose );
         Aig_ManStop( pAig );
@@ -23211,7 +23204,6 @@ int Abc_CommandCexMin( Abc_Frame_t * pAbc, int argc, char ** argv )
 //          Abc_Print( 1, "Main AIG: The number of POs (%d) is less than the PO index in cex (%d).\n", Abc_NtkPoNum(pNtk), pAbc->pCex->iPo );
     else
     {
-        extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
         Aig_Man_t * pAig = Abc_NtkToDar( pNtk, 0, 1 );
         Gia_Man_t * pGia = Gia_ManFromAigSimple( pAig );
 //        if ( !Gia_ManVerifyCex( pGia, pAbc->pCex, 0 ) )
@@ -23260,8 +23252,6 @@ usage:
 int Abc_CommandDualRail( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern Vec_Int_t * Abc_NtkFindDcLatches( Abc_Ntk_t * pNtk );
-    extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
-    extern Abc_Ntk_t * Abc_NtkFromAigPhase( Aig_Man_t * pMan );
     Abc_Ntk_t * pNtk, * pNtkNew = NULL;
     Aig_Man_t * pAig, * pAigNew;
     Vec_Int_t * vDcFlops = NULL;
@@ -23378,8 +23368,6 @@ usage:
 ***********************************************************************/
 int Abc_CommandBlockPo( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
-    extern Abc_Ntk_t * Abc_NtkFromAigPhase( Aig_Man_t * pMan );
     Abc_Ntk_t * pNtk, * pNtkNew = NULL;
     Aig_Man_t * pAig;
     int c;
@@ -23462,8 +23450,6 @@ usage:
 ***********************************************************************/
 int Abc_CommandIso( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
-    extern Abc_Ntk_t * Abc_NtkFromAigPhase( Aig_Man_t * pMan );
     Abc_Ntk_t * pNtk, * pNtkNew = NULL;
     Aig_Man_t * pAig, * pTemp;
     Vec_Ptr_t * vPosEquivs = NULL;
@@ -23946,7 +23932,6 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Get( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
     extern Aig_Man_t * Abc_NtkToDarChoices( Abc_Ntk_t * pNtk );
     extern Vec_Ptr_t * Abc_NtkCollectCiNames( Abc_Ntk_t * pNtk );
     extern Vec_Ptr_t * Abc_NtkCollectCoNames( Abc_Ntk_t * pNtk );
@@ -24032,7 +24017,6 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Put( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Abc_Ntk_t * Abc_NtkFromAigPhase( Aig_Man_t * pMan );
     extern Abc_Ntk_t * Abc_NtkFromDarChoices( Abc_Ntk_t * pNtkOld, Aig_Man_t * pMan );
     Aig_Man_t * pMan;
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
