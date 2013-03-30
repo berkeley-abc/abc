@@ -20906,6 +20906,7 @@ int Abc_CommandBmc3( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern int Abc_NtkDarBmc3( Abc_Ntk_t * pNtk, Saig_ParBmc_t * pPars, int fOrDecomp );
     Saig_ParBmc_t Pars, * pPars = &Pars;
     Abc_Ntk_t * pNtkRes, * pNtk = Abc_FrameReadNtk(pAbc);
+    Vec_Ptr_t * vSeqModelVec = NULL;
     char * pLogFileName = NULL;
     int fOrDecomp = 0;
     int c;
@@ -21056,18 +21057,19 @@ int Abc_CommandBmc3( Abc_Frame_t * pAbc, int argc, char ** argv )
     pAbc->Status = Abc_NtkDarBmc3( pNtk, pPars, fOrDecomp );
     pAbc->nFrames = pPars->iFrame;
     Abc_FrameReplaceCex( pAbc, &pNtk->pSeqModel );
+    vSeqModelVec = pNtk->vSeqModelVec;  pNtk->vSeqModelVec = NULL;
     if ( pLogFileName )
         Abc_NtkWriteLogFile( pLogFileName, pAbc->pCex, pAbc->Status, pAbc->nFrames, "bmc3" );
     if ( pPars->fSolveAll && pPars->fDropSatOuts )
     {
-        if ( pNtk->vSeqModelVec == NULL )
+        if ( vSeqModelVec == NULL )
             Abc_Print( 1,"The array of counter-examples is not available.\n" );
-        else if ( Vec_PtrSize(pNtk->vSeqModelVec) != Abc_NtkPoNum(pNtk) )
+        else if ( Vec_PtrSize(vSeqModelVec) != Abc_NtkPoNum(pNtk) )
             Abc_Print( 1,"The array size does not match the number of outputs.\n" );
         else
         {
             extern void Abc_NtkDropSatOutputs( Abc_Ntk_t * pNtk, Vec_Ptr_t * vCexes, int fVerbose );
-            Abc_NtkDropSatOutputs( pNtk, pNtk->vSeqModelVec, pPars->fVerbose );
+            Abc_NtkDropSatOutputs( pNtk, vSeqModelVec, pPars->fVerbose );
             pNtkRes = Abc_NtkDarLatchSweep( pNtk, 1, 1, 1, 0, -1, -1, 0, 0 );
             if ( pNtkRes == NULL )
             {
@@ -21077,9 +21079,9 @@ int Abc_CommandBmc3( Abc_Frame_t * pAbc, int argc, char ** argv )
             Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
         }
     }
-    if ( pNtk->vSeqModelVec )
+    if ( vSeqModelVec )
     {
-        Abc_FrameReplaceCexVec( pAbc, &pNtk->vSeqModelVec );
+        Abc_FrameReplaceCexVec( pAbc, &vSeqModelVec );
         pAbc->nFrames = -1;
     }
     return 0;

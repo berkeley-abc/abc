@@ -1358,6 +1358,7 @@ int Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars )
     clock_t clk, clk2, clkOther = 0, clkTotal = clock();
     clock_t nTimeToStopNG = pPars->nTimeOut ? pPars->nTimeOut * CLOCKS_PER_SEC + clock(): 0;
     clock_t nTimeToStop   = Saig_ManBmcTimeToStop( pPars, nTimeToStopNG );
+    clock_t nTimeUnsat = 0, nTimeSat = 0, nTimeUndec = 0;
     // create BMC manager
     p = Saig_Bmc3ManStart( pAig );
     p->pPars = pPars;
@@ -1478,9 +1479,11 @@ clkOther += clock() - clk2;
             // solve th is output
             fUnfinished = 0;
             sat_solver_compress( p->pSat );
+clk2 = clock();
             status = sat_solver_solve( p->pSat, &Lit, &Lit + 1, (ABC_INT64_T)pPars->nConfLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
             if ( status == l_False )
             {
+nTimeUnsat += clock() - clk2;
                 if ( 1 )
                 {
                     // add final unit clause
@@ -1501,6 +1504,7 @@ clkOther += clock() - clk2;
             }
             else if ( status == l_True )
             {
+nTimeSat += clock() - clk2;
                 fFirst = 0;
                 if ( !pPars->fSolveAll )
                 {
@@ -1555,6 +1559,7 @@ clkOther += clock() - clk2;
             }
             else 
             {
+nTimeUndec += clock() - clk2;
                 assert( status == l_Undef );
                 if ( pPars->nFramesJump )
                 {
@@ -1605,11 +1610,12 @@ clkOther += clock() - clk2;
 //ABC_PRT( "CNF generation runtime", clkOther );
     if ( pPars->fVerbose )
     {
-//    ABC_PRMn( "Id2Var", (f+1)*p->nObjNums*4 );
-//    ABC_PRMn( "SAT", 48 * p->pSat->size + 16 * (int)p->pSat->stats.clauses + 4 * (int)p->pSat->stats.clauses_literals );
-//    printf( "Simples = %6d. ", p->nBufNum );
-//    printf( "Dups = %6d. ", p->nDupNum );
-//    printf( "\n" );
+        printf( "Runtime:  " );
+        printf( "CNF = %.1f sec (%.1f %%)  ",   1.0*clkOther/CLOCKS_PER_SEC,   100.0*clkOther/(clock() - clkTotal)   );
+        printf( "UNSAT = %.1f sec (%.1f %%)  ", 1.0*nTimeUnsat/CLOCKS_PER_SEC, 100.0*nTimeUnsat/(clock() - clkTotal) );
+        printf( "SAT = %.1f sec (%.1f %%)  ",   1.0*nTimeSat/CLOCKS_PER_SEC,   100.0*nTimeSat/(clock() - clkTotal)   );
+        printf( "UNDEC = %.1f sec (%.1f %%)",   1.0*nTimeUndec/CLOCKS_PER_SEC, 100.0*nTimeUndec/(clock() - clkTotal) );
+        printf( "\n" );
     }
     Saig_Bmc3ManStop( p );
     fflush( stdout );
