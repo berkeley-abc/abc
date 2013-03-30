@@ -128,6 +128,7 @@ static int Abc_CommandAndPos                 ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandZeroPo                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandSwapPos                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRemovePo               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandDropSat                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAddPi                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAppend                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandFrames                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -623,6 +624,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Various",      "zeropo",        Abc_CommandZeroPo,           1 );
     Cmd_CommandAdd( pAbc, "Various",      "swappos",       Abc_CommandSwapPos,          1 );
     Cmd_CommandAdd( pAbc, "Various",      "removepo",      Abc_CommandRemovePo,         1 );
+    Cmd_CommandAdd( pAbc, "Various",      "dropsat",       Abc_CommandDropSat,          1 );
     Cmd_CommandAdd( pAbc, "Various",      "addpi",         Abc_CommandAddPi,            1 );
     Cmd_CommandAdd( pAbc, "Various",      "append",        Abc_CommandAppend,           1 );
     Cmd_CommandAdd( pAbc, "Various",      "frames",        Abc_CommandFrames,           1 );
@@ -6574,6 +6576,74 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
+int Abc_CommandDropSat( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern Abc_Ntk_t * Abc_NtkDarLatchSweep( Abc_Ntk_t * pNtk, int fLatchConst, int fLatchEqual, int fSaveNames, int fUseMvSweep, int nFramesSymb, int nFramesSatur, int fVerbose, int fVeryVerbose );
+    extern void Abc_NtkDropSatOutputs( Abc_Ntk_t * pNtk, Vec_Ptr_t * vCexes, int fVerbose );
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc), * pNtkRes = NULL;
+    int c, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+        default:
+            goto usage;
+        }
+    }
+    if ( pNtk == NULL )
+    {
+        Abc_Print( -1, "Empty network.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        Abc_Print( -1, "This command works only for AIGs (run \"strash\").\n" );
+        return 1;
+    }
+    if ( pAbc->vCexVec == NULL )
+    {
+        Abc_Print( -1, "CEX array is not defined. Run \"bmc3 -az\", \"sim3 -az\", or \"pdr -az\".\n" );
+        return 1;
+    }
+    if ( Vec_PtrSize(pAbc->vCexVec) != Abc_NtkPoNum(pNtk) )
+    {
+        Abc_Print( -1, "CEX array size (%d) does not match the number of outputs (%d).\n", Vec_PtrSize(pAbc->vCexVec), Abc_NtkPoNum(pNtk) );
+        return 1;
+    }
+    Abc_NtkDropSatOutputs( pNtk, pAbc->vCexVec, fVerbose );
+    pNtkRes = Abc_NtkDarLatchSweep( pNtk, 1, 1, 1, 0, -1, -1, 0, 0 );
+    if ( pNtkRes == NULL )
+    {
+        Abc_Print( -1, "Removing SAT outputs has failed.\n" );
+        return 1;
+    }
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: dropsat [-h]\n" );
+    Abc_Print( -2, "\t         replaces satisfiable POs by constant 0 and cleans up the AIG\n" );
+    Abc_Print( -2, "\t-v     : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Abc_CommandAddPi( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc), * pNtkRes;
@@ -7992,63 +8062,56 @@ usage:
 ***********************************************************************/
 int Abc_CommandTrim( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
+    extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
     Abc_Ntk_t * pNtk, * pNtkRes;
-    int c, nLevels;
-    extern Abc_Ntk_t * Abc_NtkTrim( Abc_Ntk_t * pNtk );
-
+    Gia_Man_t * pGia, * pNew;
+    Aig_Man_t * pAig;
+    int c;
     pNtk = Abc_FrameReadNtk(pAbc);
-    // set defaults
-    nLevels = 10;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "Nh" ) ) != EOF )
     {
         switch ( c )
         {
-/*
-        case 'N':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-N\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            nLevels = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( nLevels < 0 )
-                goto usage;
-            break;
-*/
         case 'h':
             goto usage;
         default:
             goto usage;
         }
     }
-
     if ( pNtk == NULL )
     {
         Abc_Print( -1, "Empty network.\n" );
         return 1;
     }
-    if ( Abc_NtkIsStrash(pNtk) )
+    if ( !Abc_NtkIsStrash(pNtk) )
     {
-        Abc_Print( -1, "Currently only works for logic circuits.\n" );
-        return 0;
-    }
-
-    pNtkRes = Abc_NtkTrim( pNtk );
-    if ( pNtkRes == NULL )
-    {
-        Abc_Print( -1, "The command has failed.\n" );
+        Abc_Print( -1, "Trimming works only for AIGs (run \"strash\").\n" );
         return 1;
     }
-    // replace the current network
+    // convert to GIA
+    pAig = Abc_NtkToDar( pNtk, 0, 1 );
+    pGia = Gia_ManFromAigSimple( pAig );
+    Aig_ManStop( pAig );
+    // perform trimming
+    pNew = Gia_ManDupTrimmed( pGia, 1, 1, 0, -1 );
+    Gia_ManStop( pGia );
+    // convert back
+    pAig = Gia_ManToAigSimple( pNew );
+    Gia_ManStop( pNew );
+    pNtkRes = Abc_NtkFromAigPhase( pAig );
+    Aig_ManStop( pAig );
+    // duplicate the name and the spec
+    ABC_FREE( pNtkRes->pName );
+    ABC_FREE( pNtkRes->pSpec );
+    pNtkRes->pName = Extra_UtilStrsav(pNtk->pName);
+    pNtkRes->pSpec = Extra_UtilStrsav(pNtk->pSpec);
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
     return 0;
 
 usage:
     Abc_Print( -2, "usage: trim [-h]\n" );
-    Abc_Print( -2, "\t         removes POs fed by PIs and constants, and PIs w/o fanout\n" );
-//    Abc_Print( -2, "\t-N num : max number of levels [default = %d]\n", nLevels );
+    Abc_Print( -2, "\t         removes POs fed by constants and PIs w/o fanout\n" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
@@ -17838,35 +17901,24 @@ usage:
 ***********************************************************************/
 int Abc_CommandSim3( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
-    int c;
-    int nFrames;
-    int nWords;
-    int nBinSize;
-    int nRounds;
-    int nRestart;
-    int nRandSeed;
-    int TimeOut;
-    int TimeOutGap;
-    int fSolveAll;
-    int fVerbose;
-    int fNotVerbose;
     extern int Abc_NtkDarSeqSim3( Abc_Ntk_t * pNtk, int nFrames, int nWords, int nBinSize, int nRounds, int nRestart, int nRandSeed, int TimeOut, int TimeOutGap, int fSolveAll, int fVerbose, int fNotVerbose );
-    // set defaults
-    nFrames    =  20;
-    nWords     =  50;
-    nBinSize   =   8;
-    nRounds    =   0;
-    nRestart   = 100;
-    nRandSeed  =   0;
-    TimeOut    =   0;
-    TimeOutGap =   0;
-    fSolveAll  =   0;
-    fVerbose   =   0;
-    fNotVerbose=   0;
-    // parse command line
+    Abc_Ntk_t * pNtkRes, * pNtk = Abc_FrameReadNtk(pAbc);
+    Vec_Ptr_t * vSeqModelVec; 
+    int nFrames      =  20;
+    int nWords       =  50;
+    int nBinSize     =   8;
+    int nRounds      =   0;
+    int nRestart     = 100;
+    int nRandSeed    =   0;
+    int TimeOut      =   0;
+    int TimeOutGap   =   0;
+    int fSolveAll    =   0;
+    int fDropSatOuts =   0;
+    int fVerbose     =   0;
+    int fNotVerbose  =   0;
+    int c;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FWBRSNTGavzh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FWBRSNTGadvzh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -17961,6 +18013,9 @@ int Abc_CommandSim3( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'a':
             fSolveAll ^= 1;
             break;
+        case 'd':
+            fDropSatOuts ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -17990,17 +18045,36 @@ int Abc_CommandSim3( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     ABC_FREE( pNtk->pSeqModel );
     pAbc->Status = Abc_NtkDarSeqSim3( pNtk, nFrames, nWords, nBinSize, nRounds, nRestart, nRandSeed, TimeOut, TimeOutGap, fSolveAll, fVerbose, fNotVerbose );
-//    pAbc->nFrames = pAbc->pCex->iFrame;
     Abc_FrameReplaceCex( pAbc, &pNtk->pSeqModel );
-    if ( pNtk->vSeqModelVec )
+    vSeqModelVec = pNtk->vSeqModelVec;  pNtk->vSeqModelVec = NULL;
+    if ( fSolveAll && fDropSatOuts )
     {
-        Abc_FrameReplaceCexVec( pAbc, &pNtk->vSeqModelVec );
+        if ( vSeqModelVec == NULL )
+            Abc_Print( 1,"The array of counter-examples is not available.\n" );
+        else if ( Vec_PtrSize(vSeqModelVec) != Abc_NtkPoNum(pNtk) )
+            Abc_Print( 1,"The array size does not match the number of outputs.\n" );
+        else
+        {
+            extern void Abc_NtkDropSatOutputs( Abc_Ntk_t * pNtk, Vec_Ptr_t * vCexes, int fVerbose );
+            Abc_NtkDropSatOutputs( pNtk, vSeqModelVec, fVerbose );
+            pNtkRes = Abc_NtkDarLatchSweep( pNtk, 1, 1, 1, 0, -1, -1, 0, 0 );
+            if ( pNtkRes == NULL )
+            {
+                Abc_Print( -1, "Removing SAT outputs has failed.\n" );
+                return 1;
+            }
+            Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+        }
+    }
+    if ( vSeqModelVec )
+    {
+        Abc_FrameReplaceCexVec( pAbc, &vSeqModelVec );
         pAbc->nFrames = -1;
     }
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: sim3 [-FWBRSNTG num] [-avzh]\n" );
+    Abc_Print( -2, "usage: sim3 [-FWBRSNTG num] [-advzh]\n" );
     Abc_Print( -2, "\t         performs random simulation of the sequential miter\n" );
     Abc_Print( -2, "\t-F num : the number of frames to simulate [default = %d]\n", nFrames );
     Abc_Print( -2, "\t-W num : the number of words to simulate [default = %d]\n",  nWords );
@@ -18009,10 +18083,11 @@ usage:
     Abc_Print( -2, "\t-S num : the number of rounds before a restart [default = %d]\n",  nRestart );
     Abc_Print( -2, "\t-N num : random number seed (1 <= num <= 1000) [default = %d]\n", nRandSeed );
     Abc_Print( -2, "\t-T num : approximate runtime limit in seconds [default = %d]\n", TimeOut );
-    Abc_Print( -2, "\t-G num : approximate runtime gap in seconds since the last CEX [default = %d]\n", TimeOutGap );
-    Abc_Print( -2, "\t-a     : solve all outputs (do not stop when one is SAT) [default = %s]\n", fSolveAll? "yes": "no" );
-    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
-    Abc_Print( -2, "\t-z     : toggle suppressing report about solved outputs [default = %s]\n", fNotVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-G num : approximate runtime gap in seconds since the last CEX [default = %d]\n",    TimeOutGap );
+    Abc_Print( -2, "\t-a     : toggle solving all outputs (do not stop when one is SAT) [default = %s]\n", fSolveAll?    "yes": "no" );
+    Abc_Print( -2, "\t-d     : toggle dropping (replacing by 0) SAT outputs [default = %s]\n",             fDropSatOuts? "yes": "no" );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n",                      fVerbose?     "yes": "no" );
+    Abc_Print( -2, "\t-z     : toggle suppressing report about solved outputs [default = %s]\n",           fNotVerbose?  "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
@@ -21057,9 +21132,9 @@ int Abc_CommandBmc3( Abc_Frame_t * pAbc, int argc, char ** argv )
     pAbc->Status = Abc_NtkDarBmc3( pNtk, pPars, fOrDecomp );
     pAbc->nFrames = pPars->iFrame;
     Abc_FrameReplaceCex( pAbc, &pNtk->pSeqModel );
-    vSeqModelVec = pNtk->vSeqModelVec;  pNtk->vSeqModelVec = NULL;
     if ( pLogFileName )
         Abc_NtkWriteLogFile( pLogFileName, pAbc->pCex, pAbc->Status, pAbc->nFrames, "bmc3" );
+    vSeqModelVec = pNtk->vSeqModelVec;  pNtk->vSeqModelVec = NULL;
     if ( pPars->fSolveAll && pPars->fDropSatOuts )
     {
         if ( vSeqModelVec == NULL )
@@ -21099,7 +21174,7 @@ usage:
     Abc_Print( -2, "\t-I num : the number of PIs to abstract [default = %d]\n",                   pPars->nPisAbstract );
     Abc_Print( -2, "\t-L file: the log file name [default = %s]\n",                               pLogFileName ? pLogFileName : "no logging" );
     Abc_Print( -2, "\t-a     : solve all outputs (do not stop when one is SAT) [default = %s]\n", pPars->fSolveAll? "yes": "no" );
-    Abc_Print( -2, "\t-d     : drops (replaces by 0) satisfiable outputs [default = %s]\n",       pPars->fDropSatOuts? "yes": "no" );
+    Abc_Print( -2, "\t-d     : toggle dropping (replacing by 0) SAT outputs [default = %s]\n",    pPars->fDropSatOuts? "yes": "no" );
     Abc_Print( -2, "\t-u     : toggle performing structural OR-decomposition [default = %s]\n",   fOrDecomp? "yes": "not" );
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n",                           pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-z     : toggle suppressing report about solved outputs [default = %s]\n",  pPars->fNotVerbose? "yes": "no" );
@@ -21322,7 +21397,7 @@ usage:
     Abc_Print( -2, "\t-b     : toggle using backward interpolation (works with -t) [default = %s]\n", pPars->fUseBackward? "yes": "no" );
     Abc_Print( -2, "\t-q     : toggle using property in two last timeframes [default = %s]\n", pPars->fUseTwoFrames? "yes": "no" );
     Abc_Print( -2, "\t-k     : toggle solving each output separately [default = %s]\n", pPars->fUseSeparate? "yes": "no" );
-    Abc_Print( -2, "\t-d     : drops (replaces by 0) sat outputs (with -k is used) [default = %s]\n", pPars->fDropSatOuts? "yes": "no" );
+    Abc_Print( -2, "\t-d     : toggle dropping (replacing by 0) SAT outputs (with -k is used) [default = %s]\n", pPars->fDropSatOuts? "yes": "no" );
     Abc_Print( -2, "\t-f     : toggle dumping inductive invariant into a file [default = %s]\n", pPars->fDropInvar? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
