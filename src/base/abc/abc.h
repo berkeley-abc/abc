@@ -575,6 +575,7 @@ extern ABC_DLL void               Abc_NodeFreeCuts( void * p, Abc_Obj_t * pObj )
 extern ABC_DLL int                Abc_NtkPhaseFrameNum( Abc_Ntk_t * pNtk );
 extern ABC_DLL int                Abc_NtkDarPrintCone( Abc_Ntk_t * pNtk );
 extern ABC_DLL Abc_Ntk_t *        Abc_NtkBalanceExor( Abc_Ntk_t * pNtk, int fUpdateLevel, int fVerbose );
+extern ABC_DLL Abc_Ntk_t *        Abc_NtkDarLatchSweep( Abc_Ntk_t * pNtk, int fLatchConst, int fLatchEqual, int fSaveNames, int fUseMvSweep, int nFramesSymb, int nFramesSatur, int fVerbose, int fVeryVerbose );
 /*=== abcDelay.c ==========================================================*/
 extern ABC_DLL float              Abc_NtkDelayTraceLut( Abc_Ntk_t * pNtk, int fUseLutLib );
 /*=== abcDfs.c ==========================================================*/

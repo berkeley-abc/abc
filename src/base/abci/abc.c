@@ -6579,7 +6579,6 @@ usage:
 ***********************************************************************/
 int Abc_CommandDropSat( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Abc_Ntk_t * Abc_NtkDarLatchSweep( Abc_Ntk_t * pNtk, int fLatchConst, int fLatchEqual, int fSaveNames, int fUseMvSweep, int nFramesSymb, int nFramesSatur, int fVerbose, int fVeryVerbose );
     extern void Abc_NtkDropSatOutputs( Abc_Ntk_t * pNtk, Vec_Ptr_t * vCexes, int fVerbose );
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc), * pNtkRes = NULL;
     int c, fVerbose = 0;
@@ -17479,8 +17478,6 @@ int Abc_CommandSeqCleanup( Abc_Frame_t * pAbc, int argc, char ** argv )
     int nFramesSatur = 512;
     int fVerbose     =   0;
     int fVeryVerbose =   0;
-    extern Abc_Ntk_t * Abc_NtkDarLatchSweep( Abc_Ntk_t * pNtk, int fLatchConst, int fLatchEqual, int fSaveNames, int fUseMvSweep, int nFramesSymb, int nFramesSatur, int fVerbose, int fVeryVerbose );
-
     pNtk = Abc_FrameReadNtk(pAbc);
 
     // set defaults
@@ -20976,7 +20973,6 @@ usage:
 ***********************************************************************/
 int Abc_CommandBmc3( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Abc_Ntk_t * Abc_NtkDarLatchSweep( Abc_Ntk_t * pNtk, int fLatchConst, int fLatchEqual, int fSaveNames, int fUseMvSweep, int nFramesSymb, int nFramesSatur, int fVerbose, int fVeryVerbose );
     extern int Abc_NtkDarBmc3( Abc_Ntk_t * pNtk, Saig_ParBmc_t * pPars, int fOrDecomp );
     Saig_ParBmc_t Pars, * pPars = &Pars;
     Abc_Ntk_t * pNtkRes, * pNtk = Abc_FrameReadNtk(pAbc);
