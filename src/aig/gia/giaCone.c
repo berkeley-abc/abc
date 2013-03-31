@@ -498,28 +498,26 @@ Vec_Ptr_t * Gia_ManHashOutputs( Gia_Man_t * p, Vec_Wrd_t * vSigns, int fVerbose 
 
     if ( fVerbose )
         printf( "Computed %d partitions:\n", Vec_PtrSize(vBins) );
-    if ( fVerbose )
-        printf( "Listing only partitions with more than 100 outputs:\n" );
+    if ( !fVerbose )
+        printf( "Listing partitions with more than 100 outputs:\n" );
     Vec_PtrForEachEntry( Vec_Int_t *, vBins, vBin, i )
     {
-        if ( fVerbose && Vec_IntSize(vBin) > 100 )
-        {
-            int PoNum = Vec_IntEntry( vBin, 1 );
-            word Sign = Vec_WrdEntry( vSigns, PoNum );
-            printf( "%3d ", i );
-            Extra_PrintBinary( stdout, (unsigned *)&Sign, 64 );
-            printf( "  " );
-        }
-
         // remove the first item
         ABC_SWAP( int, vBin->pArray[0], vBin->pArray[Vec_IntSize(vBin)-1] );
         Vec_IntPop( vBin );
         Vec_IntSort( vBin, 0 );
-
-        if ( fVerbose && Vec_IntSize(vBin) > 100 )
+        assert( Vec_IntSize(vBin) > 0 );
+        if ( fVerbose || Vec_IntSize(vBin) > 100 )
         {
-            printf( "PO =%5d  ", Vec_IntSize(vBin) );
-            printf( "FF =%5d", Gia_ManCountFlops(p, vBin) );
+            int PoNum = Vec_IntEntry( vBin, 0 );
+            Gia_Obj_t * pObj = Gia_ManPo( p, PoNum );
+            word Sign = Vec_WrdEntry( vSigns, Gia_ObjId(p, pObj) );
+            // print
+            printf( "%3d ", i );
+            Extra_PrintBinary( stdout, (unsigned *)&Sign, 64 );
+            printf( "  " );
+            printf( "PO =%7d  ", Vec_IntSize(vBin) );
+            printf( "FF =%7d", Gia_ManCountFlops(p, vBin) );
             printf( "\n" );
         }
     }
