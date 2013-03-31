@@ -1382,14 +1382,14 @@ int Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars )
         // stop BMC after exploring all reachable states
         if ( !pPars->nFramesJump && Aig_ManRegNum(pAig) < 30 && f == (1 << Aig_ManRegNum(pAig)) )
         {
-            Saig_Bmc3ManStop( p );
-            return pPars->nFailOuts ? 0 : 1;
+            RetValue = pPars->nFailOuts ? 0 : 1;
+            goto finish;
         }
         // stop BMC if all targets are solved
         if ( pPars->fSolveAll && pPars->nFailOuts == Saig_ManPoNum(pAig) )
         {
-            Saig_Bmc3ManStop( p );
-            return 0;
+            RetValue = 0;
+            goto finish;
         }
         // consider the next timeframe
         if ( RetValue == -1 && pPars->nStart == 0 && !nJumpFrame )
@@ -1432,14 +1432,12 @@ int Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars )
             if ( pPars->nTimeOutGap && pPars->timeLastSolved && clock() > pPars->timeLastSolved + pPars->nTimeOutGap * CLOCKS_PER_SEC )
             {
                 printf( "Reached gap timeout (%d seconds).\n",  pPars->nTimeOutGap );
-                Saig_Bmc3ManStop( p );
-                return RetValue;
+                goto finish;
             }
             if ( nTimeToStop && clock() > nTimeToStop )
             {
                 printf( "Reached timeout (%d seconds).\n",  pPars->nTimeOut );
-                Saig_Bmc3ManStop( p );
-                return RetValue;
+                goto finish;
             }
             // skip solved outputs
             if ( p->vCexes && Vec_PtrEntry(p->vCexes, i) )
@@ -1458,8 +1456,8 @@ clkOther += clock() - clk2;
                     printf( "Output %d is trivially SAT in frame %d.\n", i, f );
                     ABC_FREE( pAig->pSeqModel );
                     pAig->pSeqModel = pCex;
-                    Saig_Bmc3ManStop( p );
-                    return 0;
+                    RetValue = 0;
+                    goto finish;
                 }
                 pPars->nFailOuts++;
                 if ( !pPars->fNotVerbose )
@@ -1540,8 +1538,8 @@ nTimeSat += clock() - clk2;
                     }
                     ABC_FREE( pAig->pSeqModel );
                     pAig->pSeqModel = pCex;
-                    Saig_Bmc3ManStop( p );
-                    return 0;
+                    RetValue = 0;
+                    goto finish;
                 }
                 pPars->nFailOuts++;
                 if ( !pPars->fNotVerbose )
@@ -1568,8 +1566,7 @@ nTimeUndec += clock() - clk2;
                     fUnfinished = 1;
                     break;
                 }
-                Saig_Bmc3ManStop( p );
-                return RetValue;
+                goto finish;
             }
         }
         if ( pPars->fVerbose ) 
@@ -1608,6 +1605,7 @@ nTimeUndec += clock() - clk2;
     else if ( RetValue == -1 && pPars->nStart == 0 )
         pPars->iFrame = f-1;
 //ABC_PRT( "CNF generation runtime", clkOther );
+finish:
     if ( pPars->fVerbose )
     {
         printf( "Runtime:  " );
