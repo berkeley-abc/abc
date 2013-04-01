@@ -1693,7 +1693,7 @@ Dss_Ent_t * Dss_ManSharedMapDerive( Dss_Man_t * p, int iDsd0, int iDsd1, Vec_Str
 int Mpm_FuncCompute( Dss_Man_t * p, int iDsd0, int iDsd1, Vec_Str_t * vShared, int * pPerm, int * pnLeaves )
 {
     int fVerbose = 0;
-    int fCheck = 0;
+//    int fCheck = 0;
     Dss_Ent_t * pEnt, ** ppSpot;
     Dss_Fun_t * pFun;
     int iDsd[2] = { iDsd0, iDsd1 };

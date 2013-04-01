@@ -637,10 +637,6 @@ if ( fVerbose )
 Rsb_DecPrintTable( pCexes, nGs, nGsAll, vTries );
 if ( fVerbose )
 Vec_IntFree( vTries );
-    if ( fVerbose && Vec_IntSize(p->vFaninsOld) && Vec_IntSize(p->vFaninsOld) <= 4 && Vec_IntSize(p->vFaninsOld) > Vec_IntSize(p->vFanins) )
-    {
-        int s = 0;
-    }
     return uTruth;
 }
 
