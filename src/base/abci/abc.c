@@ -26155,7 +26155,8 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Shrink( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    Gia_Man_t * pTemp;
+    Gia_Man_t * pTemp = NULL;
+    int nLutSize;
     int c,fVerbose = 0;
     int fKeepLevel = 0;
     Extra_UtilGetoptReset();
@@ -26185,8 +26186,15 @@ int Abc_CommandAbc9Shrink( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Shrink(): Mapping of the AIG is not defined.\n" );
         return 1;
     }
-    pTemp = Gia_ManPerformMapShrink( pAbc->pGia, fKeepLevel, fVerbose );
-    Abc_FrameUpdateGia( pAbc, pTemp );
+    nLutSize = Gia_ManLutSizeMax( pAbc->pGia );
+    if ( nLutSize <= 4 )
+        pTemp = Gia_ManPerformMapShrink( pAbc->pGia, fKeepLevel, fVerbose );
+    else if ( nLutSize <= 6 )
+        pTemp = Gia_ManMapShrink6( pAbc->pGia, fKeepLevel, fVerbose );
+    else
+        Abc_Print( -1, "Abc_CommandAbc9Shrink(): Works only for 4-LUTs and 6-LUTs.\n" );
+    if ( pTemp )
+        Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 
 usage:

@@ -85,7 +85,8 @@ Gia_Man_t * Gia_ManPerformMapShrink( Gia_Man_t * p, int fKeepLevel, int fVerbose
         if ( Gia_ObjIsCi(pObj) )
         {
             pObj->Value = Gia_ManAppendCi( pNew );
-            Gia_ObjSetLevel( pNew, Gia_ObjFromLit(pNew, Gia_ObjValue(pObj)), Gia_ObjLevel(p, pObj) );
+            if ( p->vLevels )
+                Gia_ObjSetLevel( pNew, Gia_ObjFromLit(pNew, Gia_ObjValue(pObj)), Gia_ObjLevel(p, pObj) );
         }
         else if ( Gia_ObjIsCo(pObj) )
         {

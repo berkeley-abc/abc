@@ -3543,6 +3543,10 @@ SOURCE=.\src\aig\gia\giaShrink.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\gia\giaShrink6.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\gia\giaSim.c
 # End Source File
 # Begin Source File
@@ -3784,6 +3788,26 @@ SOURCE=.\src\bool\lucky\luckySwap.c
 # Begin Source File
 
 SOURCE=.\src\bool\lucky\luckySwapIJ.c
+# End Source File
+# End Group
+# Begin Group "rsb"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\bool\rsb\rsb.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bool\rsb\rsbDec6.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bool\rsb\rsbInt.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bool\rsb\rsbMan.c
 # End Source File
 # End Group
 # End Group

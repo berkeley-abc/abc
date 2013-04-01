@@ -980,6 +980,7 @@ extern Gia_Man_t *         Gia_ManSeqCleanup( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManSeqStructSweep( Gia_Man_t * p, int fConst, int fEquiv, int fVerbose );
 /*=== giaShrink.c ===========================================================*/
 extern Gia_Man_t *         Gia_ManPerformMapShrink( Gia_Man_t * p, int fKeepLevel, int fVerbose );
+extern Gia_Man_t *         Gia_ManMapShrink6( Gia_Man_t * p, int fKeepLevel, int fVerbose );
 /*=== giaSort.c ============================================================*/
 extern int *               Gia_SortFloats( float * pArray, int * pPerm, int nSize );
 /*=== giaSim.c ============================================================*/

@@ -31,6 +31,7 @@ SRC +=    src/aig/gia/giaAig.c \
     src/aig/gia/giaRetime.c \
     src/aig/gia/giaScl.c \
     src/aig/gia/giaShrink.c \
+    src/aig/gia/giaShrink6.c \
     src/aig/gia/giaSim.c \
     src/aig/gia/giaSim2.c \
     src/aig/gia/giaSort.c \

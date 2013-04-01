@@ -116,6 +116,18 @@ static inline int  Abc_TtHexDigitNum( int nVars ) { return nVars <= 2 ? 1 : 1 <<
   SeeAlso     []
 
 ***********************************************************************/
+static inline void Abc_TtClear( word * pOut, int nWords )
+{
+    int w;
+    for ( w = 0; w < nWords; w++ )
+        pOut[w] = 0;
+}
+static inline void Abc_TtFill( word * pOut, int nWords )
+{
+    int w;
+    for ( w = 0; w < nWords; w++ )
+        pOut[w] = ~(word)0;
+}
 static inline void Abc_TtNot( word * pOut, int nWords )
 {
     int w;
@@ -141,6 +153,18 @@ static inline void Abc_TtAnd( word * pOut, word * pIn1, word * pIn2, int nWords,
     else
         for ( w = 0; w < nWords; w++ )
             pOut[w] = pIn1[w] & pIn2[w];
+}
+static inline void Abc_TtSharp( word * pOut, word * pIn1, word * pIn2, int nWords )
+{
+    int w;
+    for ( w = 0; w < nWords; w++ )
+        pOut[w] = pIn1[w] & ~pIn2[w];
+}
+static inline void Abc_TtOr( word * pOut, word * pIn1, word * pIn2, int nWords )
+{
+    int w;
+    for ( w = 0; w < nWords; w++ )
+        pOut[w] = pIn1[w] | pIn2[w];
 }
 static inline void Abc_TtXor( word * pOut, word * pIn1, word * pIn2, int nWords, int fCompl )
 {
@@ -756,10 +780,10 @@ static inline int Abc_TtReadHex( word * pTruth, char * pString )
 static inline void Abc_TtPrintBinary( word * pTruth, int nVars )
 {
     word * pThis, * pLimit = pTruth + Abc_TtWordNum(nVars);
-    int k;
+    int k, Limit = Abc_MinInt( 64, (1 << nVars) );
     assert( nVars >= 2 );
     for ( pThis = pTruth; pThis < pLimit; pThis++ )
-        for ( k = 0; k < 64; k++ )
+        for ( k = 0; k < Limit; k++ )
             printf( "%d", Abc_InfoHasBit( (unsigned *)pThis, k ) );
     printf( "\n" );
 }
@@ -1109,6 +1133,75 @@ static inline int Abc_TtCountOnes( word x )
   SeeAlso     []
 
 ***********************************************************************/
+static inline int Abc_Tt6FirstBit( word t )
+{
+    int n = 0;
+    if ( t == 0 ) return -1;
+    if ( (t & 0x00000000FFFFFFFF) == 0 ) { n += 32; t >>= 32; }
+    if ( (t & 0x000000000000FFFF) == 0 ) { n += 16; t >>= 16; }
+    if ( (t & 0x00000000000000FF) == 0 ) { n +=  8; t >>=  8; }
+    if ( (t & 0x000000000000000F) == 0 ) { n +=  4; t >>=  4; }
+    if ( (t & 0x0000000000000003) == 0 ) { n +=  2; t >>=  2; }
+    if ( (t & 0x0000000000000001) == 0 ) { n++; }
+    return n;
+}
+static inline int Abc_Tt6LastBit( word t )
+{
+    int n = 0;
+    if ( t == 0 ) return -1;
+    if ( (t & 0xFFFFFFFF00000000) == 0 ) { n += 32; t <<= 32; }
+    if ( (t & 0xFFFF000000000000) == 0 ) { n += 16; t <<= 16; }
+    if ( (t & 0xFF00000000000000) == 0 ) { n +=  8; t <<=  8; }
+    if ( (t & 0xF000000000000000) == 0 ) { n +=  4; t <<=  4; }
+    if ( (t & 0xC000000000000000) == 0 ) { n +=  2; t <<=  2; }
+    if ( (t & 0x8000000000000000) == 0 ) { n++; }
+    return 63-n;
+}
+static inline int Abc_TtFindFirstBit( word * pIn, int nVars )
+{
+    int w, nWords = Abc_TtWordNum(nVars);
+    for ( w = 0; w < nWords; w++ )
+        if ( pIn[w] )
+            return 64*w + Abc_Tt6FirstBit(pIn[w]);
+    return -1;
+}
+static inline int Abc_TtFindFirstZero( word * pIn, int nVars )
+{
+    int w, nWords = Abc_TtWordNum(nVars);
+    for ( w = 0; w < nWords; w++ )
+        if ( ~pIn[w] )
+            return 64*w + Abc_Tt6FirstBit(~pIn[w]);
+    return -1;
+}
+static inline int Abc_TtFindLastBit( word * pIn, int nVars )
+{
+    int w, nWords = Abc_TtWordNum(nVars);
+    for ( w = nWords - 1; w >= 0; w-- )
+        if ( pIn[w] )
+            return 64*w + Abc_Tt6LastBit(pIn[w]);
+    return -1;
+}
+static inline int Abc_TtFindLastZero( word * pIn, int nVars )
+{
+    int w, nWords = Abc_TtWordNum(nVars);
+    for ( w = nWords - 1; w >= 0; w-- )
+        if ( ~pIn[w] )
+            return 64*w + Abc_Tt6LastBit(~pIn[w]);
+    return -1;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 static inline void Abc_TtReverseVars( word * pTruth, int nVars )
 {
     int k;
@@ -1145,6 +1238,49 @@ static inline void Abc_TtReverseBits( word * pTruth, int nVars )
     }
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Computes ISOP for 6 variables or less.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline word Abc_Tt6Isop( word uOn, word uOnDc, int nVars )
+{
+    word uOn0, uOn1, uOnDc0, uOnDc1, uRes0, uRes1, uRes2;
+    int Var;
+    assert( nVars <= 5 );
+    assert( (uOn & ~uOnDc) == 0 );
+    if ( uOn == 0 )
+        return 0;
+    if ( uOnDc == ~(word)0 )
+        return ~(word)0;
+    assert( nVars > 0 );
+    // find the topmost var
+    for ( Var = nVars-1; Var >= 0; Var-- )
+        if ( Abc_Tt6HasVar( uOn, Var ) || Abc_Tt6HasVar( uOnDc, Var ) )
+             break;
+    assert( Var >= 0 );
+    // cofactor
+    uOn0   = Abc_Tt6Cofactor0( uOn,   Var );
+    uOn1   = Abc_Tt6Cofactor1( uOn  , Var );
+    uOnDc0 = Abc_Tt6Cofactor0( uOnDc, Var );
+    uOnDc1 = Abc_Tt6Cofactor1( uOnDc, Var );
+    // solve for cofactors
+    uRes0 = Abc_Tt6Isop( uOn0 & ~uOnDc1, uOnDc0, Var );
+    uRes1 = Abc_Tt6Isop( uOn1 & ~uOnDc0, uOnDc1, Var );
+    uRes2 = Abc_Tt6Isop( (uOn0 & ~uRes0) | (uOn1 & ~uRes1), uOnDc0 & uOnDc1, Var );
+    // derive the final truth table
+    uRes2 |= (uRes0 & s_Truths6Neg[Var]) | (uRes1 & s_Truths6[Var]);
+    assert( (uOn & ~uRes2) == 0 );
+    assert( (uRes2 & ~uOnDc) == 0 );
+    return uRes2;
+}
 
 /*=== utilTruth.c ===========================================================*/
 
