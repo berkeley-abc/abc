@@ -72,6 +72,7 @@ struct Shr_Man_t_
     Rsb_Man_t *        pManRsb;
     Bdc_Man_t *        pManDec;       
     Bdc_Par_t          Pars;
+    // statistics 
 };
 
 #define Shr_ObjForEachFanout( p, iNode, iFan )                      \
@@ -206,7 +207,7 @@ static inline int Shr_ManDivPushOrderByLevel( Shr_Man_t * p, int iDiv )
     int iPlace, * pArray;
     Vec_IntPush( p->vPrio, iDiv );
     if ( Vec_IntSize(p->vPrio) == 1 )
-        return 0;
+        return 0; 
     pArray = Vec_IntArray(p->vPrio);
     for ( iPlace = Vec_IntSize(p->vPrio) - 1; iPlace > 0; iPlace-- )
         if ( Gia_ObjLevel(p->pNew, Gia_ManObj(p->pNew, pArray[iPlace-1])) > 
@@ -216,10 +217,10 @@ static inline int Shr_ManDivPushOrderByLevel( Shr_Man_t * p, int iDiv )
             break;
     return iPlace; // the place of the new divisor
 }
-static inline int Shr_ManCollectDivisors( Shr_Man_t * p, Vec_Int_t * vLeaves, int Limit )
+static inline int Shr_ManCollectDivisors( Shr_Man_t * p, Vec_Int_t * vLeaves, int Limit, int nFanoutMax )
 {
     Gia_Obj_t * pFan;
-    int i, iDiv, iFan, iPlace;
+    int i, c, iDiv, iFan, iPlace;
     assert( Limit > 6 );
     Vec_IntClear( p->vDivs );
     Vec_IntClear( p->vPrio );
@@ -232,9 +233,12 @@ static inline int Shr_ManCollectDivisors( Shr_Man_t * p, Vec_Int_t * vLeaves, in
     }
     Vec_IntForEachEntry( p->vPrio, iDiv, i )
     {
+        c = 0;
         assert( Gia_ObjIsTravIdCurrentId(p->pNew, iDiv) );
         Shr_ObjForEachFanout( p, iDiv, iFan )
         {
+            if ( c++ == nFanoutMax )
+                break;
             if ( Gia_ObjIsTravIdCurrentId(p->pNew, iFan) )
                 continue;
             pFan = Gia_ManObj( p->pNew, iFan );
@@ -391,14 +395,15 @@ void Shr_ManComputeTruths( Gia_Man_t * p, int nVars, Vec_Int_t * vDivs, Vec_Wrd_
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManMapShrink6( Gia_Man_t * p, int fKeepLevel, int fVerbose )
+Gia_Man_t * Gia_ManMapShrink6( Gia_Man_t * p, int nFanoutMax, int fKeepLevel, int fVerbose )
 {
     Shr_Man_t * pMan;
     Gia_Obj_t * pObj, * pFanin;
     word uTruth, uTruth0, uTruth1;
     int i, k, nDivs, iNode;
     int RetValue, Counter1 = 0, Counter2 = 0;
-    clock_t clk = clock();
+    clock_t clk2, clk = clock();
+    clock_t timeFanout = 0;
     assert( p->pMapping != NULL );
     pMan = Shr_ManAlloc( p );
     Gia_ManFillValue( p );
@@ -441,8 +446,10 @@ Gia_Man_t * Gia_ManMapShrink6( Gia_Man_t * p, int fKeepLevel, int fVerbose )
                 Vec_IntWriteEntry( pMan->vLeaves, k, Abc_Lit2Var(pFanin->Value) );
             }
             // compute divisors
-            nDivs = Shr_ManCollectDivisors( pMan, pMan->vLeaves, pMan->nDivMax );
+            clk2 = clock();
+            nDivs = Shr_ManCollectDivisors( pMan, pMan->vLeaves, pMan->nDivMax, nFanoutMax );
             assert( nDivs <= pMan->nDivMax );
+            timeFanout += clock() - clk2;
             // compute truth tables
             Shr_ManComputeTruths( pMan->pNew, Vec_IntSize(pMan->vLeaves), pMan->vDivs, pMan->vDivTruths, pMan->vTruths );
             // perform resubstitution
@@ -468,6 +475,7 @@ Gia_Man_t * Gia_ManMapShrink6( Gia_Man_t * p, int fKeepLevel, int fVerbose )
         printf( "Performed %d resubs and %d decomps.  ", Counter1, Counter2 );
         printf( "Gain in AIG nodes = %d.  ", Gia_ManObjNum(p)-Gia_ManObjNum(pMan->pNew) );
         ABC_PRT( "Runtime", clock() - clk );
+        ABC_PRT( "Divisors", timeFanout );        
     }
     return Shr_ManFree( pMan );
 }

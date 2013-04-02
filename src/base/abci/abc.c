@@ -26187,11 +26187,23 @@ int Abc_CommandAbc9Shrink( Abc_Frame_t * pAbc, int argc, char ** argv )
     int nLutSize;
     int c,fVerbose = 0;
     int fKeepLevel = 0;
+    int nFanoutMax = 50;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "lvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Nlvh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-N\" should be followed by a char string.\n" );
+                goto usage;
+            }
+            nFanoutMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nFanoutMax < 0 )
+                goto usage;
+            break;
         case 'l':
             fKeepLevel ^= 1;
             break;
@@ -26218,7 +26230,7 @@ int Abc_CommandAbc9Shrink( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( nLutSize <= 4 )
         pTemp = Gia_ManPerformMapShrink( pAbc->pGia, fKeepLevel, fVerbose );
     else if ( nLutSize <= 6 )
-        pTemp = Gia_ManMapShrink6( pAbc->pGia, fKeepLevel, fVerbose );
+        pTemp = Gia_ManMapShrink6( pAbc->pGia, nFanoutMax, fKeepLevel, fVerbose );
     else
         Abc_Print( -1, "Abc_CommandAbc9Shrink(): Works only for 4-LUTs and 6-LUTs.\n" );
     if ( pTemp )
@@ -26226,8 +26238,9 @@ int Abc_CommandAbc9Shrink( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &shrink [-lvh]\n" );
+    Abc_Print( -2, "usage: &shrink [-N num] [-lvh]\n" );
     Abc_Print( -2, "\t         performs fast shrinking using current mapping\n" );
+    Abc_Print( -2, "\t-N num : the max fanout count to skip a divisor [default = %d]\n", nFanoutMax );
     Abc_Print( -2, "\t-l     : toggle level update during shrinking [default = %s]\n", fKeepLevel? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
