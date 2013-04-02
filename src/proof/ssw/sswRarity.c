@@ -591,8 +591,8 @@ int Ssw_RarManCheckNonConstOutputs( Ssw_RarMan_t * p, int * pnSolvedNow, int iFr
         (*pnSolvedNow)++;
         if ( p->vCexes == NULL )
             p->vCexes = Vec_PtrStart( Saig_ManPoNum(p->pAig) );
-        assert( Vec_PtrEntry(p->vCexes, p->iFailPo) == NULL );
-        Vec_PtrWriteEntry( p->vCexes, p->iFailPo, (void *)(ABC_PTRINT_T)1 );
+        assert( Vec_PtrEntry(p->vCexes, i) == NULL );
+        Vec_PtrWriteEntry( p->vCexes, i, (void *)(ABC_PTRINT_T)1 );
         // print final report
         if ( !fNotVerbose )
         {
@@ -657,6 +657,8 @@ void Ssw_RarManSimulate( Ssw_RarMan_t * p, Vec_Int_t * vInit, int fUpdate, int f
         Flip1 = Aig_ObjFaninC1(pObj) ? ~(word)0 : 0;
         for ( w = 0; w < p->nWords; w++ )
             pSim[w] = (Flip0 ^ pSim0[w]) & (Flip1 ^ pSim1[w]);
+
+
         if ( !fUpdate )
             continue;
         // check classes
@@ -941,7 +943,7 @@ int Ssw_RarCheckTrivial( Aig_Man_t * pAig, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-int Ssw_RarSimulate( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSize, int nRounds, int nRestart, int nRandSeed, int TimeOut, int TimeOutGap, int fSolveAll, int fVerbose, int fNotVerbose )
+int Ssw_RarSimulate( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSize, int nRounds, int nRestart, int nRandSeed, int TimeOut, int TimeOutGap, int fSolveAll, int fSetLastState, int fVerbose, int fNotVerbose )
 {
     int fTryBmc = 0;
     int fMiter = 1;
@@ -1059,6 +1061,12 @@ int Ssw_RarSimulate( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSize, in
 
     }
 finish:
+    if ( fSetLastState && p->vInits )
+    {
+        assert( Vec_IntSize(p->vInits) % Aig_ManRegNum(pAig) == 0 );
+        Vec_IntShrink( p->vInits, Aig_ManRegNum(pAig) );
+        pAig->pData = p->vInits;  p->vInits = NULL;
+    }
     if ( nSolved )
     {
         if ( fVerbose && !fSolveAll ) Abc_Print( 1, "\n" );
@@ -1095,7 +1103,7 @@ int Ssw_RarSimulateGia( Gia_Man_t * p, int nFrames, int nWords, int nBinSize, in
     Aig_Man_t * pAig;
     int RetValue;
     pAig = Gia_ManToAigSimple( p );
-    RetValue = Ssw_RarSimulate( pAig, nFrames, nWords, nBinSize, nRounds, nRestart, nRandSeed, TimeOut, TimeOutGap, fSolveAll, fVerbose, fNotVerbose );
+    RetValue = Ssw_RarSimulate( pAig, nFrames, nWords, nBinSize, nRounds, nRestart, nRandSeed, TimeOut, TimeOutGap, fSolveAll, 0, fVerbose, fNotVerbose );
     // save counter-example
     Abc_CexFree( p->pCexSeq );
     p->pCexSeq = pAig->pSeqModel; pAig->pSeqModel = NULL;

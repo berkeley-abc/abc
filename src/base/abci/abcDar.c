@@ -3299,7 +3299,7 @@ int Abc_NtkDarSeqSim( Abc_Ntk_t * pNtk, int nFrames, int nWords, int TimeOut, in
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkDarSeqSim3( Abc_Ntk_t * pNtk, int nFrames, int nWords, int nBinSize, int nRounds, int nRestart, int nRandSeed, int TimeOut, int TimeOutGap, int fSolveAll, int fVerbose, int fNotVerbose )
+int Abc_NtkDarSeqSim3( Abc_Ntk_t * pNtk, int nFrames, int nWords, int nBinSize, int nRounds, int nRestart, int nRandSeed, int TimeOut, int TimeOutGap, int fSolveAll, int fSetLastState, int fVerbose, int fNotVerbose )
 {
     Aig_Man_t * pMan;
     int status, RetValue = -1;
@@ -3310,7 +3310,7 @@ int Abc_NtkDarSeqSim3( Abc_Ntk_t * pNtk, int nFrames, int nWords, int nBinSize, 
         Abc_AigCleanup((Abc_Aig_t *)pNtk->pManFunc);
     }
     pMan = Abc_NtkToDar( pNtk, 0, 1 );
-    if ( Ssw_RarSimulate( pMan, nFrames, nWords, nBinSize, nRounds, nRestart, nRandSeed, TimeOut, TimeOutGap, fSolveAll, fVerbose, fNotVerbose ) == 0 )
+    if ( Ssw_RarSimulate( pMan, nFrames, nWords, nBinSize, nRounds, nRestart, nRandSeed, TimeOut, TimeOutGap, fSolveAll, fSetLastState, fVerbose, fNotVerbose ) == 0 )
     { 
         if ( pMan->pSeqModel )
         {
@@ -3334,6 +3334,7 @@ int Abc_NtkDarSeqSim3( Abc_Ntk_t * pNtk, int nFrames, int nWords, int nBinSize, 
         Vec_PtrFreeFree( pNtk->vSeqModelVec );
     pNtk->vSeqModelVec = pMan->vSeqModelVec;  pMan->vSeqModelVec = NULL;
 //    ABC_PRT( "Time", clock() - clk );
+    pNtk->pData = pMan->pData; pMan->pData = NULL;
     Aig_ManStop( pMan );
     return RetValue;
 }

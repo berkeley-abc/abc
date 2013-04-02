@@ -6581,12 +6581,16 @@ int Abc_CommandDropSat( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern void Abc_NtkDropSatOutputs( Abc_Ntk_t * pNtk, Vec_Ptr_t * vCexes, int fVerbose );
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc), * pNtkRes = NULL;
+    int fNoSweep = 0;
     int c, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "svh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 's':
+            fNoSweep ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -6616,18 +6620,22 @@ int Abc_CommandDropSat( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     Abc_NtkDropSatOutputs( pNtk, pAbc->vCexVec, fVerbose );
-    pNtkRes = Abc_NtkDarLatchSweep( pNtk, 1, 1, 1, 0, -1, -1, 0, 0 );
-    if ( pNtkRes == NULL )
+    if ( !fNoSweep )
     {
-        Abc_Print( -1, "Removing SAT outputs has failed.\n" );
-        return 1;
+        pNtkRes = Abc_NtkDarLatchSweep( pNtk, 1, 1, 1, 0, -1, -1, 0, 0 );
+        if ( pNtkRes == NULL )
+        {
+            Abc_Print( -1, "Removing SAT outputs has failed.\n" );
+            return 1;
+        }
+        Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
     }
-    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: dropsat [-h]\n" );
+    Abc_Print( -2, "usage: dropsat [-sh]\n" );
     Abc_Print( -2, "\t         replaces satisfiable POs by constant 0 and cleans up the AIG\n" );
+    Abc_Print( -2, "\t-s     : toggles skipping sequential sweep [default = %s]\n", fNoSweep? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
@@ -17897,24 +17905,25 @@ usage:
 ***********************************************************************/
 int Abc_CommandSim3( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern int Abc_NtkDarSeqSim3( Abc_Ntk_t * pNtk, int nFrames, int nWords, int nBinSize, int nRounds, int nRestart, int nRandSeed, int TimeOut, int TimeOutGap, int fSolveAll, int fVerbose, int fNotVerbose );
+    extern int Abc_NtkDarSeqSim3( Abc_Ntk_t * pNtk, int nFrames, int nWords, int nBinSize, int nRounds, int nRestart, int nRandSeed, int TimeOut, int TimeOutGap, int fSolveAll, int fSetLastState, int fVerbose, int fNotVerbose );
     Abc_Ntk_t * pNtkRes, * pNtk = Abc_FrameReadNtk(pAbc);
     Vec_Ptr_t * vSeqModelVec; 
-    int nFrames      =  20;
-    int nWords       =  50;
-    int nBinSize     =   8;
-    int nRounds      =   0;
-    int nRestart     =   0;
-    int nRandSeed    =   0;
-    int TimeOut      =   0;
-    int TimeOutGap   =   0;
-    int fSolveAll    =   0;
-    int fDropSatOuts =   0;
-    int fVerbose     =   0;
-    int fNotVerbose  =   0;
+    int nFrames       =  20;
+    int nWords        =  50;
+    int nBinSize      =   8;
+    int nRounds       =   0;
+    int nRestart      =   0;
+    int nRandSeed     =   0;
+    int TimeOut       =   0;
+    int TimeOutGap    =   0;
+    int fSolveAll     =   0;
+    int fDropSatOuts  =   0;
+    int fSetLastState =   0;
+    int fVerbose      =   0;
+    int fNotVerbose   =   0;
     int c;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FWBRSNTGadvzh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FWBRSNTGadivzh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -18012,6 +18021,9 @@ int Abc_CommandSim3( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'd':
             fDropSatOuts ^= 1;
             break;
+        case 'i':
+            fSetLastState ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -18040,9 +18052,27 @@ int Abc_CommandSim3( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     ABC_FREE( pNtk->pSeqModel );
-    pAbc->Status = Abc_NtkDarSeqSim3( pNtk, nFrames, nWords, nBinSize, nRounds, nRestart, nRandSeed, TimeOut, TimeOutGap, fSolveAll, fVerbose, fNotVerbose );
+    pAbc->Status = Abc_NtkDarSeqSim3( pNtk, nFrames, nWords, nBinSize, nRounds, nRestart, nRandSeed, TimeOut, TimeOutGap, fSolveAll, fSetLastState, fVerbose, fNotVerbose );
     Abc_FrameReplaceCex( pAbc, &pNtk->pSeqModel );
     vSeqModelVec = pNtk->vSeqModelVec;  pNtk->vSeqModelVec = NULL;
+    if ( fSetLastState && pAbc->pNtkCur->pData )
+    {
+        Abc_Obj_t * pObj;
+        Vec_Int_t * vInit = (Vec_Int_t *)pAbc->pNtkCur->pData;
+        pAbc->pNtkCur->pData = NULL;
+        Abc_NtkForEachLatch( pAbc->pNtkCur, pObj, c )
+            if ( Vec_IntEntry(vInit, c) )
+                Abc_LatchSetInit1( pObj );
+        Vec_IntFree( vInit );
+        pNtkRes = Abc_NtkRestrashZero( pAbc->pNtkCur, 0 );
+        if ( pNtkRes == NULL )
+        {
+            Abc_Print( -1, "Removing SAT outputs has failed.\n" );
+            return 1;
+        }
+        Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+        pNtk = Abc_FrameReadNtk(pAbc);
+    }
     if ( fSolveAll && fDropSatOuts )
     {
         if ( vSeqModelVec == NULL )
@@ -18082,6 +18112,7 @@ usage:
     Abc_Print( -2, "\t-G num : approximate runtime gap in seconds since the last CEX [default = %d]\n",    TimeOutGap );
     Abc_Print( -2, "\t-a     : toggle solving all outputs (do not stop when one is SAT) [default = %s]\n", fSolveAll?    "yes": "no" );
     Abc_Print( -2, "\t-d     : toggle dropping (replacing by 0) SAT outputs [default = %s]\n",             fDropSatOuts? "yes": "no" );
+    Abc_Print( -2, "\t-i     : toggle changing init state to a last rare state [default = %s]\n",          fVerbose?     "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n",                      fVerbose?     "yes": "no" );
     Abc_Print( -2, "\t-z     : toggle suppressing report about solved outputs [default = %s]\n",           fNotVerbose?  "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
