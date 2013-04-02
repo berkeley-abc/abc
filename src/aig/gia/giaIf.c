@@ -31,7 +31,7 @@ ABC_NAMESPACE_IMPL_START
 ////////////////////////////////////////////////////////////////////////
 
 extern int Kit_TruthToGia( Gia_Man_t * pMan, unsigned * pTruth, int nVars, Vec_Int_t * vMemory, Vec_Int_t * vLeaves, int fHash );
-extern int Abc_RecToGia2( Gia_Man_t * pMan, If_Man_t * pIfMan, If_Cut_t * pCut, If_Obj_t * pIfObj, Vec_Int_t * vLeaves, int fHash );
+extern int Abc_RecToGia3( Gia_Man_t * pMan, If_Man_t * pIfMan, If_Cut_t * pCut, Vec_Int_t * vLeaves, int fHash );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -387,6 +387,8 @@ int Gia_ManNodeIfSopToGiaInt( Gia_Man_t * pNew, Vec_Wrd_t * vAnds, int nVars, Ve
         iRes1 = Abc_LitNotCond( Vec_IntEntry(vResults, This.iFan1), This.fCompl1 ); 
         if ( fHash )
             iRes  = Gia_ManHashAnd( pNew, iRes0, iRes1 );
+        else if ( iRes0 == iRes1 )
+            iRes = iRes0;
         else
             iRes  = Gia_ManAppendAnd( pNew, iRes0, iRes1 );
         Vec_IntPush( vResults, iRes );
@@ -527,7 +529,7 @@ Gia_Man_t * Gia_ManFromIf( If_Man_t * pIfMan )
             else if ( pIfMan->pPars->fDelayOpt )
                 pIfObj->iCopy = Gia_ManNodeIfSopToGia( pNew, pIfMan, pCutBest, vLeaves, fHash );
             else if ( pIfMan->pPars->fUserRecLib )
-                pIfObj->iCopy = Abc_RecToGia2( pNew, pIfMan, pCutBest, pIfObj, vLeaves, fHash );
+                pIfObj->iCopy = Abc_RecToGia3( pNew, pIfMan, pCutBest, vLeaves, fHash );
             else
                 pIfObj->iCopy = Gia_ManNodeIfToGia( pNew, pIfMan, pIfObj, vLeaves, fHash );
             // complement the node if the TT was used and the cut was complemented

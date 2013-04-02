@@ -1084,7 +1084,7 @@ Hop_Obj_t * Abc_RecToHop3( Hop_Man_t * pMan, If_Man_t * pIfMan, If_Cut_t * pCut,
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_RecToGia3( Gia_Man_t * pMan, If_Man_t * pIfMan, If_Cut_t * pCut, If_Obj_t * pIfObj, Vec_Int_t * vLeaves, int fHash )
+int Abc_RecToGia3( Gia_Man_t * pMan, If_Man_t * pIfMan, If_Cut_t * pCut, Vec_Int_t * vLeaves, int fHash )
 {
     Lms_Man_t * p = s_pMan3;
     char pCanonPerm[LMS_VAR_MAX];
