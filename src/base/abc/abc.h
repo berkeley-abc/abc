@@ -883,6 +883,7 @@ extern ABC_DLL void               Abc_SopToTruth7( char * pSop, int nInputs, wor
 extern ABC_DLL void               Abc_SopToTruthBig( char * pSop, int nInputs, word ** pVars, word * pCube, word * pRes );
 /*=== abcStrash.c ==========================================================*/
 extern ABC_DLL Abc_Ntk_t *        Abc_NtkRestrash( Abc_Ntk_t * pNtk, int fCleanup );
+extern ABC_DLL Abc_Ntk_t *        Abc_NtkRestrashZero( Abc_Ntk_t * pNtk, int fCleanup );
 extern ABC_DLL Abc_Ntk_t *        Abc_NtkStrash( Abc_Ntk_t * pNtk, int fAllNodes, int fCleanup, int fRecord );
 extern ABC_DLL Abc_Obj_t *        Abc_NodeStrash( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode, int fRecord );
 extern ABC_DLL int                Abc_NtkAppend( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fAddPos );
