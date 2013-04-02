@@ -475,7 +475,7 @@ Gia_Man_t * Gia_ManMapShrink6( Gia_Man_t * p, int nFanoutMax, int fKeepLevel, in
         printf( "Performed %d resubs and %d decomps.  ", Counter1, Counter2 );
         printf( "Gain in AIG nodes = %d.  ", Gia_ManObjNum(p)-Gia_ManObjNum(pMan->pNew) );
         ABC_PRT( "Runtime", clock() - clk );
-        ABC_PRT( "Divisors", timeFanout );        
+//        ABC_PRT( "Divisors", timeFanout );        
     }
     return Shr_ManFree( pMan );
 }

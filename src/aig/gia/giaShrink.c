@@ -46,7 +46,7 @@ extern int  Dar_LibEvalBuild( Gia_Man_t * p, Vec_Int_t * vCut, unsigned uTruth, 
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManPerformMapShrink( Gia_Man_t * p, int fKeepLevel, int fVerbose )
+Gia_Man_t * Gia_ManMapShrink4( Gia_Man_t * p, int fKeepLevel, int fVerbose )
 {
     Vec_Int_t * vLeaves, * vTruth, * vVisited, * vLeavesBest;
     Gia_Man_t * pNew, * pTemp;
@@ -128,7 +128,7 @@ Gia_Man_t * Gia_ManPerformMapShrink( Gia_Man_t * p, int fKeepLevel, int fVerbose
     {
         pNew = Gia_ManCleanup( pTemp = pNew );
         if ( Gia_ManAndNum(pNew) != Gia_ManAndNum(pTemp) )
-            printf( "Gia_ManPerformMapShrink() node reduction after sweep %6d -> %6d.\n", Gia_ManAndNum(pTemp), Gia_ManAndNum(pNew) );
+            printf( "Gia_ManMapShrink4() node reduction after sweep %6d -> %6d.\n", Gia_ManAndNum(pTemp), Gia_ManAndNum(pNew) );
         Gia_ManStop( pTemp );
     }
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );

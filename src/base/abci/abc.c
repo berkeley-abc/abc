@@ -26228,7 +26228,7 @@ int Abc_CommandAbc9Shrink( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     nLutSize = Gia_ManLutSizeMax( pAbc->pGia );
     if ( nLutSize <= 4 )
-        pTemp = Gia_ManPerformMapShrink( pAbc->pGia, fKeepLevel, fVerbose );
+        pTemp = Gia_ManMapShrink4( pAbc->pGia, fKeepLevel, fVerbose );
     else if ( nLutSize <= 6 )
         pTemp = Gia_ManMapShrink6( pAbc->pGia, nFanoutMax, fKeepLevel, fVerbose );
     else
