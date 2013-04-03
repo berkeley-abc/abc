@@ -51,7 +51,7 @@ Sfm_Ntk_t * Sfm_NtkAlloc( int nPis, int nPos, int nNodes, Vec_Int_t * vFanins, V
     int iFanin, iOffset = 2, iFanOffset = 0;
     int nEdges = Vec_IntSize(vEdges);
     int nObjs  = nPis + nPos + nNodes;
-    int nSize  = 2 + nObjs + nObjs * nStructSize + 2 * nEdges + AddOn * (nObjs - Vec_IntSum(vOpts));
+    int nSize  = 2 + nObjs * (nStructSize + 1) + 2 * nEdges + AddOn * (nPis + Vec_IntSum(vOpts));
     assert( sizeof(Sfm_Obj_t) % sizeof(int) == 0 );
     assert( nEdges == Vec_IntSum(vFanins) );
     assert( nEdges == Vec_IntSum(vFanouts) );
@@ -91,7 +91,7 @@ Sfm_Ntk_t * Sfm_NtkAlloc( int nPis, int nPos, int nNodes, Vec_Int_t * vFanins, V
             }
         }
         // add node size
-        nObjSize  = nStructSize + Vec_IntEntry(vFanins, i) + Vec_IntEntry(vFanouts, i) + AddOn * pObj->fOpt;
+        nObjSize  = nStructSize + Vec_IntEntry(vFanins, i) + Vec_IntEntry(vFanouts, i) + AddOn * (pObj->Type==1 || pObj->fOpt);
         nObjSize += (int)( nObjSize & 1 );
         assert( (nObjSize & 1) == 0 );
         iOffset  += nObjSize;
