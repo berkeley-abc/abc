@@ -42,13 +42,71 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
-Sfm_Ntk_t * Sfm_NtkAlloc( int nPis, int nPos, int nNodes, int nEdges )
+Sfm_Ntk_t * Sfm_NtkAlloc( int nPis, int nPos, int nNodes, Vec_Int_t * vFanins, Vec_Int_t * vFanouts, Vec_Int_t * vEdges, Vec_Int_t * vOpts )
 {
     Sfm_Ntk_t * p;
-    int AddOn = 2;
-    int nSize = (nPis + nPos + nNodes) * (sizeof(Sfm_Obj_t) / sizeof(int) + AddOn) + 2 * nEdges;
+    Sfm_Obj_t * pObj, * pFan;
+    int i, k, nObjSize, AddOn = 2;
+    int nStructSize = sizeof(Sfm_Obj_t) / sizeof(int);
+    int iFanin, iOffset = 2, iFanOffset = 0;
+    int nEdges = Vec_IntSize(vEdges);
+    int nObjs  = nPis + nPos + nNodes;
+    int nSize  = 2 + nObjs + nObjs * nStructSize + 2 * nEdges + AddOn * (nObjs - Vec_IntSum(vOpts));
+    assert( sizeof(Sfm_Obj_t) % sizeof(int) == 0 );
+    assert( nEdges == Vec_IntSum(vFanins) );
+    assert( nEdges == Vec_IntSum(vFanouts) );
     p = ABC_CALLOC( Sfm_Ntk_t, 1 );
     p->pMem = ABC_CALLOC( int, nSize );
+    for ( i = 0; i < nObjs; i++ )
+    {
+        Vec_IntPush( &p->vObjs, iOffset );
+        pObj = Sfm_ManObj( p, i );
+        pObj->Id  = i;
+        if ( i < nPis )
+        {
+            pObj->Type = 1;
+            assert( Vec_IntEntry(vFanins, i) == 0 );
+            assert( Vec_IntEntry(vOpts, i) == 0 );
+            Vec_IntPush( &p->vPis, iOffset );
+        }
+        else 
+        {
+            pObj->Type = 2;
+            pObj->fOpt = Vec_IntEntry(vOpts, i);
+            if ( i >= nPis + nNodes ) // PO
+            {
+                pObj->Type = 3;
+                assert( Vec_IntEntry(vFanins, i) == 1 );
+                assert( Vec_IntEntry(vFanouts, i) == 0 );
+                assert( Vec_IntEntry(vOpts, i) == 0 );
+                Vec_IntPush( &p->vPos, iOffset );
+            }
+            for ( k = 0; k < Vec_IntEntry(vFanins, i); k++ )
+            {
+                iFanin = Vec_IntEntry( vEdges, iFanOffset++ );
+                pFan = Sfm_ManObj( p, iFanin );
+                assert( iFanin < i );
+                pObj->Fanio[ pObj->nFanis++ ] = iFanin;
+                pFan->Fanio[ pFan->nFanis + pFan->nFanos++ ] = i;
+            }
+        }
+        // add node size
+        nObjSize  = nStructSize + Vec_IntEntry(vFanins, i) + Vec_IntEntry(vFanouts, i) + AddOn * pObj->fOpt;
+        nObjSize += (int)( nObjSize & 1 );
+        assert( (nObjSize & 1) == 0 );
+        iOffset  += nObjSize;
+    }
+    assert( iOffSet <= nSize );
+    assert( iFanOffset == Vec_IntSize(vEdges) );
+    iFanOffset = 0;
+    Sfm_ManForEachObj( p, pObj, i )
+    {
+        assert( Vec_IntEntry(vFanins, i) == pObj->nFanis );
+        assert( Vec_IntEntry(vFanouts, i) == pObj->nFanos );
+        for ( k = 0; k < (int)pObj->nFanis; k++ )
+            assert( pObj->Fanio[k] == Vec_IntEntry(vEdges, iFanOffset++) );
+    }
+    assert( iFanOffset == Vec_IntSize(vEdges) );
     return p;
 }
 void Sfm_NtkFree( Sfm_Ntk_t * p )

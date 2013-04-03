@@ -65,7 +65,7 @@ struct Sfm_Obj_t_
 {
     unsigned          Type   :  2;
     unsigned          Id     : 30;
-    unsigned          fFixed :  1;
+    unsigned          fOpt   :  1;
     unsigned          fTfo   :  1;
     unsigned          nFanis :  4;
     unsigned          nFanos : 26;
@@ -88,12 +88,21 @@ struct Sfm_Man_t_
 ///                      MACRO DEFINITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
+static inline Sfm_Obj_t * Sfm_ManObj( Sfm_Ntk_t * p, int Id ) { return (Sfm_Obj_t *)Vec_IntEntryP( &p->vObjs, Id ); }
+
+#define Sfm_ManForEachObj( p, pObj, i )                                \
+    for ( i = 0; (i < Vec_IntSize(&p->vObjs) && ((pObj) = Sfm_ManObj(p, i))); i++ )
+#define Sfm_ManForEachPi( p, pObj, i )                                 \
+    for ( i = 0; (i < Vec_IntSize(&p->vPis) && ((pObj) = Sfm_ManObj(p, Vec_IntEntry(&p->vPis, i)))); i++ )
+#define Sfm_ManForEachPo( p, pObj, i )                                 \
+    for ( i = 0; (i < Vec_IntSize(&p->vPos) && ((pObj) = Sfm_ManObj(p, Vec_IntEntry(&p->vPos, i)))); i++ )
+
 ////////////////////////////////////////////////////////////////////////
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /*=== sfmCnf.c ==========================================================*/
-extern Vec_Int_t *  Sfm_TruthToCnf( word Truth );
+extern int          Sfm_DeriveCnfs( Vec_Wrd_t * vTruths, Vec_Int_t * vFanins, Vec_Str_t ** pvCnfs, Vec_Int_t ** pvOffsets );
 /*=== sfmCore.c ==========================================================*/
 /*=== sfmMan.c ==========================================================*/
 /*=== sfmNtk.c ==========================================================*/

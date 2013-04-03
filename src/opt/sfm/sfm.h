@@ -75,7 +75,7 @@ extern int          Sfm_ManPerform( Sfm_Ntk_t * p, Sfm_Par_t * pPars );
 extern Sfm_Man_t *  Sfm_ManAlloc( Sfm_Ntk_t * p );
 extern void         Sfm_ManFree( Sfm_Man_t * p );
 /*=== sfmNtk.c ==========================================================*/
-extern Sfm_Ntk_t *  Sfm_NtkAlloc( int nPis, int nPos, int nNodes, int nEdges );
+extern Sfm_Ntk_t *  Sfm_NtkAlloc( int nPis, int nPos, int nNodes, Vec_Int_t * vFanins, Vec_Int_t * vFanouts, Vec_Int_t * vEdges, Vec_Int_t * vOpts );
 extern void         Sfm_NtkFree( Sfm_Ntk_t * p );
 /*=== sfmSat.c ==========================================================*/
 
