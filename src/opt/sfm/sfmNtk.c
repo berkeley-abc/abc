@@ -96,13 +96,13 @@ Sfm_Ntk_t * Sfm_NtkAlloc( int nPis, int nPos, int nNodes, Vec_Int_t * vFanins, V
         assert( (nObjSize & 1) == 0 );
         iOffset  += nObjSize;
     }
-    assert( iOffSet <= nSize );
+    assert( iOffset <= nSize );
     assert( iFanOffset == Vec_IntSize(vEdges) );
     iFanOffset = 0;
     Sfm_ManForEachObj( p, pObj, i )
     {
-        assert( Vec_IntEntry(vFanins, i) == pObj->nFanis );
-        assert( Vec_IntEntry(vFanouts, i) == pObj->nFanos );
+        assert( Vec_IntEntry(vFanins, i)  == (int)pObj->nFanis );
+        assert( Vec_IntEntry(vFanouts, i) == (int)pObj->nFanos );
         for ( k = 0; k < (int)pObj->nFanis; k++ )
             assert( pObj->Fanio[k] == Vec_IntEntry(vEdges, iFanOffset++) );
     }
