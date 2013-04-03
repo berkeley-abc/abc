@@ -2046,6 +2046,38 @@ SOURCE=.\src\opt\dau\dauMerge.c
 SOURCE=.\src\opt\dau\dauTree.c
 # End Source File
 # End Group
+# Begin Group "sfm"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\opt\sfm\sfm.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\sfm\sfmCnf.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\sfm\sfmCore.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\sfm\sfmInt.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\sfm\sfmMan.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\sfm\sfmNtk.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\sfm\sfmSat.c
+# End Source File
+# End Group
 # End Group
 # Begin Group "map"
 

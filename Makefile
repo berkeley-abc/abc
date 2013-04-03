@@ -18,7 +18,7 @@ MODULES := \
 	src/misc/mem src/misc/bar src/misc/bbl \
 	src/opt/cut src/opt/fxu src/opt/rwr src/opt/mfs src/opt/sim \
 	src/opt/ret src/opt/res src/opt/lpk src/opt/nwk src/opt/rwt \
-	src/opt/cgt src/opt/csw src/opt/dar src/opt/dau \
+	src/opt/cgt src/opt/csw src/opt/dar src/opt/dau src/opt/sfm \
 	src/sat/bsat src/sat/csat src/sat/msat src/sat/psat src/sat/cnf src/sat/bmc \
 	src/bool/bdc src/bool/deco src/bool/dec src/bool/kit src/bool/lucky src/bool/rsb \
 	src/proof/pdr src/proof/int src/proof/bbr src/proof/llb src/proof/live \
