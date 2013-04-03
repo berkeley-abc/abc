@@ -603,14 +603,17 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fSkipS
             {
                 extern int * Gia_AigerReadMapping( unsigned char ** ppPos, int nSize );
                 extern int * Gia_AigerReadMappingSimple( unsigned char ** ppPos, int nSize );
-                int nSize;
+                extern int * Gia_AigerReadMappingDoc( unsigned char ** ppPos, int nObjs, int * pOffset );
+                int nSize, nOffset;
                 pCur++;
                 nSize = Gia_AigerReadInt(pCur);
                 pCurTemp = pCur + nSize + 4;           pCur += 4;
 //                pNew->pMapping = Gia_AigerReadMapping( &pCur, Gia_ManObjNum(pNew) );
-                pNew->pMapping = Gia_AigerReadMappingSimple( &pCur, nSize );
-                pNew->nOffset = nSize / 4;
-                pCur += nSize;
+//                pNew->pMapping = Gia_AigerReadMappingSimple( &pCur, nSize );
+//                pNew->nOffset = nSize / 4;
+//                pCur += nSize;
+                pNew->pMapping = Gia_AigerReadMappingDoc( &pCur, Gia_ManObjNum(pNew), &nOffset );
+                pNew->nOffset = nOffset;
                 assert( pCur == pCurTemp );
                 if ( fVerbose ) printf( "Finished reading extension \"m\".\n" );
             }
@@ -1185,8 +1188,9 @@ void Gia_AigerWrite( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
     {
         extern Vec_Str_t * Gia_AigerWriteMapping( Gia_Man_t * p );
         extern Vec_Str_t * Gia_AigerWriteMappingSimple( Gia_Man_t * p );
+        extern Vec_Str_t * Gia_AigerWriteMappingDoc( Gia_Man_t * p );
         fprintf( pFile, "m" );
-        vStrExt = Gia_AigerWriteMappingSimple( p );
+        vStrExt = Gia_AigerWriteMappingDoc( p );
         Gia_FileWriteBufferSize( pFile, Vec_StrSize(vStrExt) );
         fwrite( Vec_StrArray(vStrExt), 1, Vec_StrSize(vStrExt), pFile );
         Vec_StrFree( vStrExt );

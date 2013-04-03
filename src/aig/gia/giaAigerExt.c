@@ -233,6 +233,63 @@ Vec_Str_t * Gia_AigerWriteMappingSimple( Gia_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Read/write mapping information.]
+
+  Description []
+  
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int * Gia_AigerReadMappingDoc( unsigned char ** ppPos, int nObjs, int * pOffset )
+{
+    int * pMapping, nLuts, LutSize, iRoot, nFanins, i, k;
+    nLuts    = Gia_AigerReadInt( *ppPos ); *ppPos += 4;
+    LutSize  = Gia_AigerReadInt( *ppPos ); *ppPos += 4;
+    pMapping = ABC_CALLOC( int, nObjs + (LutSize + 2) * nLuts );
+    *pOffset = nObjs;
+    for ( i = 0; i < nLuts; i++ )
+    {
+        iRoot   = Gia_AigerReadInt( *ppPos ); *ppPos += 4;
+        nFanins = Gia_AigerReadInt( *ppPos ); *ppPos += 4;
+        pMapping[iRoot] = *pOffset;
+        // write one
+        pMapping[ (*pOffset)++ ] = nFanins; 
+        for ( k = 0; k < nFanins; k++ )
+        {
+            pMapping[ (*pOffset)++ ] = Gia_AigerReadInt( *ppPos ); *ppPos += 4;
+        }
+        pMapping[ (*pOffset)++ ] = iRoot; 
+    }
+    return pMapping;
+}
+Vec_Str_t * Gia_AigerWriteMappingDoc( Gia_Man_t * p )
+{
+    unsigned char * pBuffer;
+    int i, k, iFan, nLuts = 0, LutSize = 0, nSize = 2, nSize2 = 0;
+    Gia_ManForEachLut( p, i )
+    {
+        nLuts++;
+        nSize += Gia_ObjLutSize(p, i) + 2;
+        LutSize = Abc_MaxInt( LutSize, Gia_ObjLutSize(p, i) );
+    }
+    pBuffer = ABC_ALLOC( unsigned char, 4 * nSize );
+    Gia_AigerWriteInt( pBuffer + 4 * nSize2++, nLuts );  
+    Gia_AigerWriteInt( pBuffer + 4 * nSize2++, LutSize );
+    Gia_ManForEachLut( p, i )
+    {
+        Gia_AigerWriteInt( pBuffer + 4 * nSize2++, i );
+        Gia_AigerWriteInt( pBuffer + 4 * nSize2++, Gia_ObjLutSize(p, i) );
+        Gia_LutForEachFanin( p, i, iFan, k )
+            Gia_AigerWriteInt( pBuffer + 4 * nSize2++, iFan );
+    }
+    assert( nSize2 == nSize );
+    return Vec_StrAllocArray( (char *)pBuffer, 4*nSize );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Read/write packing information.]
 
   Description []
