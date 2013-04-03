@@ -129,69 +129,7 @@ alias src_rws     "st; rw -l; rs -K 6 -N 2 -l; rwz -l; rs -K 9 -N 2 -l; rwz -l; 
 alias resyn2rs    "b; rs -K 6; rw; rs -K 6 -N 2; rf; rs -K 8; b; rs -K 8 -N 2; rw; rs -K 10; rwz; rs -K 10 -N 2; b; rs -K 12; rfz; rs -K 12 -N 2; rwz; b"
 alias compress2rs "b -l; rs -K 6 -l; rw -l; rs -K 6 -N 2 -l; rf -l; rs -K 8 -l; b -l; rs -K 8 -N 2 -l; rw -l; rs -K 10 -l; rwz -l; rs -K 10 -N 2 -l; b -l; rs -K 12 -l; rfz -l; rs -K 12 -N 2 -l; rwz -l; b -l"
 
-# experimental implementation of don't-cares
-alias resyn2rsdc    "b; rs -K 6 -F 2; rw; rs -K 6 -N 2 -F 2; rf; rs -K 8 -F 2; b; rs -K 8 -N 2 -F 2; rw; rs -K 10 -F 2; rwz; rs -K 10 -N 2 -F 2; b; rs -K 12 -F 2; rfz; rs -K 12 -N 2 -F 2; rwz; b"
-alias compress2rsdc "b -l; rs -K 6 -F 2 -l; rw -l; rs -K 6 -N 2 -F 2 -l; rf -l; rs -K 8 -F 2 -l; b -l; rs -K 8 -N 2 -F 2 -l; rw -l; rs -K 10 -F 2 -l; rwz -l; rs -K 10 -N 2 -F 2 -l; b -l; rs -K 12 -F 2 -l; rfz -l; rs -K 12 -N 2 -F 2 -l; rwz -l; b -l"
-
-# temporaries
-alias reachable "st; ps; compress2; ps; qrel; ps; compress2; ps; qreach -v; ps"
-alias chnew     "st; haig_start; resyn2; haig_use"
-alias chnewrs   "st; haig_start; resyn2rs; haig_use"
-alias stdsd     "r test/6in.blif; st; ps; u; bdd; dsd -g; st; ps"
-alias trec      "rec_start; r c.blif; st; rec_add; rec_use"
-alias trec4     "rec_start -K 4; r i10.blif; st; rec_add; rec_use"
-alias bmcf      "frames -i -F 10; orpos; iprove"
-
-alias pjsolve   "scl; dc2; fr; dc2; ic; ic -t; if -a; cs tacas/005_care.aig; mfs; lp; st; ic"
-
-alias t0        "r test/mc1.blif; st; test"
-alias t1        "r s27mc2.blif; st; test"
-alias t2        "r i/intel_001.aig; ps; indcut -v"
-#alias t         "r c\s\0\000.aig; int"
-#alias t         "r test/interpol.blif; st; int"
-alias t         "&r s444.aig; &ps; &era -v"
-
-
-alias spec "&r 1.aig;&srm -s;r gsrm.aig; bmc2 -F 1000 -C 10000; &resim; &w 1.aig; &ps "
-alias spech "&r 1.aig;&srm -s;r gsrm.aig;scl;ps; bmc2 -F 1000 -C 25000; &resim; &w 1.aig; &ps "
-alias spechx "&r 1.aig;&srm ;r gsrm.aig;smp;bmc2 -F 5000 -C 75000; &resim; &w 1.aig; &ps "
-alias specb "&r 1.aig;&srm ;r gsrm.aig;smp;ps; reach -o -B 1000000 -F 2000; &resim; &w 1.aig; &ps "
-alias specp "&r 1.aig;&srm ;r gsrm.aig;scorr -F 2;ps; simpk ; &resim; &w 1.aig; &ps "
-alias sprb "ua; &get; eclassh; specb"
-alias sprh "ua; &get; eclassh; spech"
-
-alias eclass "&equiv -smf -W 255 -F 1000; &w 1.aig"
-alias transfer "w 1.aig; &r 1.aig"
-alias &ua "set autoexec "
-alias scr "&get; &scorr; &put"
-alias lcr "&get; &lcorr; &put"
-alias trm "logic;trim;st;ps"
-alias inth "int -rv -C 25000"
-
-alias spr "ua; &get; eclass; spech"
-alias reachx "reach -o -B 1000000000 -F 5000"
-alias dc2rs "ua; compress2rs; ps"
-alias simp "dprove -vrcbju -C 5000 -V 1"
-alias simpk "dprove -vrcbkmfiu -B 10 -D 1000"
-alias indh "ind -v -F 50 -C 10000"
-
-alias eclassh "&equiv -smf -W 512 -F 2000; &w 1.aig"
-alias ffx "ps;orpos;qua_ffix"
-alias bfx "ps;orpos;qua_bfix"
-alias smp "ua;ps;scl;rw;dr;lcorr;rw;dr;scorr;fraig;dc2;dr;scorr -F 2;dc2rs;w temp.aig"
-
-alias s "w temp.aig"
-
-alias absh "abs -se -D 25000"
-alias absr "abs -ser -G 2000"
-alias absp "abs -sep -G 2000"
-
-alias spechi "ua; &get; &equiv -smf -W 512 -F 2000; &ps; &speci; &srm; r gsrm.aig;&ps;&w 1.aig"
-alias spechis "ua; &get; &equiv -s -W 512 -F 2000; &ps; &speci; &srm -s; r gsrm.aig; &ps; &w 1.aig"
-alias absh1 "absh -R 1"
-alias simpkh "simpk -D 25000"
-
-alias spechisf "ua; &get; &equiv -smf -W 512 -F 2000; &ps; &semi -R 5; &srm; r gsrm.aig;&ps;&w 1.aig"
-alias spechissf "ua; &get; &equiv -s -W 512 -F 2000; &ps; &semi; &srm -s; r gsrm.aig; &ps; &w 1.aig"
+# lazy man's synthesis
+alias recadd3     "st; rec_add3; b; rec_add3; dc2; rec_add3; if -K 8; bidec; st; rec_add3; dc2; rec_add3; if -g -K 6; st; rec_add3"
 
 
