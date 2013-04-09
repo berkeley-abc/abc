@@ -1338,6 +1338,33 @@ clock_t Saig_ManBmcTimeToStop( Saig_ParBmc_t * pPars, clock_t nTimeToStopNG )
 
 /**Function*************************************************************
 
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Cex_t * Saig_ManGenerateCex( Gia_ManBmc_t * p, int f, int i )
+{
+    Aig_Obj_t * pObjPi;
+    Abc_Cex_t * pCex = Abc_CexMakeTriv( Aig_ManRegNum(p->pAig), Saig_ManPiNum(p->pAig), Saig_ManPoNum(p->pAig), f*Saig_ManPoNum(p->pAig)+i );
+    int j, k, iBit = Saig_ManRegNum(p->pAig);
+    for ( j = 0; j <= f; j++, iBit += Saig_ManPiNum(p->pAig) )
+        Saig_ManForEachPi( p->pAig, pObjPi, k )
+        {
+            int iLit = Saig_ManBmcLiteral( p, pObjPi, j );
+            if ( iLit != ~0 && sat_solver_var_value(p->pSat, lit_var(iLit)) )
+                Abc_InfoSetBit( pCex->pData, iBit + k );
+        }
+    return pCex;
+}
+
+
+/**Function*************************************************************
+
   Synopsis    [Bounded model checking engine.]
 
   Description []
@@ -1465,7 +1492,10 @@ clkOther += clock() - clk2;
                         nOutDigits, i, f, nOutDigits, pPars->nFailOuts, nOutDigits, Saig_ManPoNum(pAig) );
                 if ( p->vCexes == NULL )
                     p->vCexes = Vec_PtrStart( Saig_ManPoNum(pAig) );
-                Vec_PtrWriteEntry( p->vCexes, i, (void *)(ABC_PTRINT_T)1 );
+                if ( pPars->fStoreCex )
+                    Vec_PtrWriteEntry( p->vCexes, i, Abc_CexMakeTriv( Aig_ManRegNum(pAig), Saig_ManPiNum(pAig), Saig_ManPoNum(pAig), f*Saig_ManPoNum(pAig)+i ) );
+                else
+                    Vec_PtrWriteEntry( p->vCexes, i, (void *)(ABC_PTRINT_T)1 );
                 RetValue = 0;
                 // reset the timeout
                 pPars->timeLastSolved = clock();
@@ -1506,16 +1536,6 @@ nTimeSat += clock() - clk2;
                 fFirst = 0;
                 if ( !pPars->fSolveAll )
                 {
-                    Aig_Obj_t * pObjPi;
-                    Abc_Cex_t * pCex = Abc_CexMakeTriv( Aig_ManRegNum(pAig), Saig_ManPiNum(pAig), Saig_ManPoNum(pAig), f*Saig_ManPoNum(pAig)+i );
-                    int j, iBit = Saig_ManRegNum(pAig);
-                    for ( j = 0; j <= f; j++, iBit += Saig_ManPiNum(pAig) )
-                        Saig_ManForEachPi( p->pAig, pObjPi, k )
-                        {
-                            int iLit = Saig_ManBmcLiteral( p, pObjPi, j );
-                            if ( iLit != ~0 && sat_solver_var_value(p->pSat, lit_var(iLit)) )
-                                Abc_InfoSetBit( pCex->pData, iBit + k );
-                        }
                     if ( pPars->fVerbose )
                     {
                         printf( "%4d %s : ", f,  fUnfinished ? "-" : "+" );
@@ -1537,7 +1557,7 @@ nTimeSat += clock() - clk2;
                         fflush( stdout );
                     }
                     ABC_FREE( pAig->pSeqModel );
-                    pAig->pSeqModel = pCex;
+                    pAig->pSeqModel = Saig_ManGenerateCex( p, f, i );
                     RetValue = 0;
                     goto finish;
                 }
@@ -1547,7 +1567,7 @@ nTimeSat += clock() - clk2;
                         nOutDigits, i, f, nOutDigits, pPars->nFailOuts, nOutDigits, Saig_ManPoNum(pAig) );
                 if ( p->vCexes == NULL )
                     p->vCexes = Vec_PtrStart( Saig_ManPoNum(pAig) );
-                Vec_PtrWriteEntry( p->vCexes, i, (void *)(ABC_PTRINT_T)1 );
+                Vec_PtrWriteEntry( p->vCexes, i, pPars->fStoreCex? Saig_ManGenerateCex( p, f, i ) : (void *)(ABC_PTRINT_T)1 );
                 RetValue = 0;
                 // reset the timeout
                 pPars->timeLastSolved = clock();

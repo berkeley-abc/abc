@@ -590,7 +590,7 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
                 if ( p->vCexes == NULL )
                     p->vCexes = Vec_PtrStart( Saig_ManPoNum(p->pAig) );
                 assert( Vec_PtrEntry(p->vCexes, p->iOutCur) == NULL );
-                Vec_PtrWriteEntry( p->vCexes, p->iOutCur, Pdr_ManDeriveCex(p) );
+                Vec_PtrWriteEntry( p->vCexes, p->iOutCur, p->pPars->fStoreCex ? Pdr_ManDeriveCex(p) : (void *)(ABC_PTRINT_T)1 );
                 if ( p->pPars->nFailOuts == Saig_ManPoNum(p->pAig) )
                     return 0; // all SAT
                 p->pPars->timeLastSolved = clock();
@@ -640,7 +640,6 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
                     }
                     if ( RetValue == 0 )
                     {
-                        Abc_Cex_t * pCex;
                         if ( fPrintClauses )
                         {
                             Abc_Print( 1, "*** Clauses after frame %d:\n", k );
@@ -659,11 +658,10 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
                         if ( p->vCexes == NULL )
                             p->vCexes = Vec_PtrStart( Saig_ManPoNum(p->pAig) );
                         assert( Vec_PtrEntry(p->vCexes, p->iOutCur) == NULL );
-                        pCex = Pdr_ManDeriveCex(p);
-                        Vec_PtrWriteEntry( p->vCexes, p->iOutCur, pCex );
+                        Vec_PtrWriteEntry( p->vCexes, p->iOutCur, p->pPars->fStoreCex ? Pdr_ManDeriveCex(p) : (void *)(ABC_PTRINT_T)1 );
                         if ( !p->pPars->fNotVerbose )
                             Abc_Print( 1, "Output %*d was asserted in frame %2d (%2d) (solved %*d out of %*d outputs).\n",  
-                                nOutDigits, p->iOutCur, pCex->iFrame, k, nOutDigits, p->pPars->nFailOuts, nOutDigits, Saig_ManPoNum(p->pAig) );
+                                nOutDigits, p->iOutCur, k, k, nOutDigits, p->pPars->nFailOuts, nOutDigits, Saig_ManPoNum(p->pAig) );
                         if ( p->pPars->nFailOuts == Saig_ManPoNum(p->pAig) )
                             return 0; // all SAT
                         Pdr_QueueClean( p );

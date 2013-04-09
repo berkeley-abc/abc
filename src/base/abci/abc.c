@@ -21010,7 +21010,7 @@ int Abc_CommandBmc3( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     Saig_ParBmcSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "SFTGCDJILadruvzh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "SFTGCDJILaxdruvzh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -21114,6 +21114,9 @@ int Abc_CommandBmc3( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'a':
             pPars->fSolveAll ^= 1;
             break;
+        case 'x':
+            pPars->fStoreCex ^= 1;
+            break;
         case 'd':
             pPars->fDropSatOuts ^= 1;
             break;
@@ -21185,7 +21188,7 @@ int Abc_CommandBmc3( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: bmc3 [-SFTGCDJI num] [-L file] [-aduvzh]\n" );
+    Abc_Print( -2, "usage: bmc3 [-SFTGCDJI num] [-L file] [-axduvzh]\n" );
     Abc_Print( -2, "\t         performs bounded model checking with dynamic unrolling\n" );
     Abc_Print( -2, "\t-S num : the starting time frame [default = %d]\n", pPars->nStart );
     Abc_Print( -2, "\t-F num : the max number of time frames (0 = unused) [default = %d]\n",      pPars->nFramesMax );
@@ -21197,6 +21200,7 @@ usage:
     Abc_Print( -2, "\t-I num : the number of PIs to abstract [default = %d]\n",                   pPars->nPisAbstract );
     Abc_Print( -2, "\t-L file: the log file name [default = %s]\n",                               pLogFileName ? pLogFileName : "no logging" );
     Abc_Print( -2, "\t-a     : solve all outputs (do not stop when one is SAT) [default = %s]\n", pPars->fSolveAll? "yes": "no" );
+    Abc_Print( -2, "\t-x     : toggle storing CEXes when solving all outputs [default = %s]\n",   pPars->fStoreCex? "yes": "no" );
     Abc_Print( -2, "\t-d     : toggle dropping (replacing by 0) SAT outputs [default = %s]\n",    pPars->fDropSatOuts? "yes": "no" );
     Abc_Print( -2, "\t-u     : toggle performing structural OR-decomposition [default = %s]\n",   fOrDecomp? "yes": "not" );
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n",                           pPars->fVerbose? "yes": "no" );
@@ -22584,7 +22588,7 @@ int Abc_CommandPdr( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     Pdr_ManSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "MFCRTGarmsdgvwzh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "MFCRTGaxrmsdgvwzh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -22657,6 +22661,9 @@ int Abc_CommandPdr( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'a':
             pPars->fSolveAll ^= 1;
             break;
+        case 'x':
+            pPars->fStoreCex ^= 1;
+            break;
         case 'r':
             pPars->fTwoRounds ^= 1;
             break;
@@ -22713,7 +22720,7 @@ int Abc_CommandPdr( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: pdr [-MFCRTG <num>] [-armsdgvwzh]\n" );
+    Abc_Print( -2, "usage: pdr [-MFCRTG <num>] [-axrmsdgvwzh]\n" );
     Abc_Print( -2, "\t         model checking using property directed reachability (aka IC3)\n" );
     Abc_Print( -2, "\t         pioneered by Aaron Bradley (http://ecee.colorado.edu/~bradleya/ic3/)\n" );
     Abc_Print( -2, "\t         with improvements by Niklas Een (http://een.se/niklas/)\n" );
@@ -22724,6 +22731,7 @@ usage:
     Abc_Print( -2, "\t-T num : approximate timeout in seconds (0 = no limit) [default = %d]\n",              pPars->nTimeOut );
     Abc_Print( -2, "\t-G num : approximate runtime gap since the last CEX (0 = no limit) [default = %d]\n",  pPars->nTimeOutGap );
     Abc_Print( -2, "\t-a     : toggle solving all outputs even if one of them is SAT [default = %s]\n",      pPars->fSolveAll? "yes": "no" );
+    Abc_Print( -2, "\t-x     : toggle storing CEXes when solving all outputs [default = %s]\n",              pPars->fStoreCex? "yes": "no" );
     Abc_Print( -2, "\t-r     : toggle using more effort in generalization [default = %s]\n",                 pPars->fTwoRounds? "yes": "no" );
     Abc_Print( -2, "\t-m     : toggle using monolythic CNF computation [default = %s]\n",                    pPars->fMonoCnf? "yes": "no" );
     Abc_Print( -2, "\t-s     : toggle creating only shortest counter-examples [default = %s]\n",             pPars->fShortest? "yes": "no" );
@@ -31437,7 +31445,7 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    extern void Ga2_ManComputeTest( Gia_Man_t * p );
 //    extern void Bmc_CexTest( Gia_Man_t * p, Abc_Cex_t * pCex, int fVerbose );
 //    extern void Gia_IsoTest( Gia_Man_t * p, Abc_Cex_t * pCex, int fVerbose );
-//    extern void Unr_ManTest( Gia_Man_t * pGia );
+//     extern void Unr_ManTest( Gia_Man_t * pGia );
 //    extern void Mig_ManTest( Gia_Man_t * pGia );
 //    extern int Gia_ManVerify( Gia_Man_t * pGia );
 

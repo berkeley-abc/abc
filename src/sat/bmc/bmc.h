@@ -51,6 +51,7 @@ struct Saig_ParBmc_t_
     int         nTimeOutGap;    // approximate timeout in seconds since the last change
     int         nPisAbstract;   // the number of PIs to abstract
     int         fSolveAll;      // does not stop at the first SAT output
+    int         fStoreCex;      // enable storing CEXes in the MO mode
     int         fDropSatOuts;   // replace sat outputs by constant 0
     int         nFfToAddMax;    // max number of flops to add during CBA
     int         fSkipRand;      // skip random decisions

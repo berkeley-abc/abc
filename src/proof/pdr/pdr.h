@@ -57,6 +57,7 @@ struct Pdr_Par_t_
     int fNotVerbose;      // not printing line by line progress
     int fSilent;          // totally silent execution
     int fSolveAll;        // do not stop when found a SAT output
+    int fStoreCex;        // enable storing counter-examples in MO mode
     int nFailOuts;        // the number of failed outputs
     int iFrame;           // explored up to this frame
     int RunId;            // PDR id in this run 
