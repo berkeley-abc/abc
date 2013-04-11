@@ -208,7 +208,7 @@ Aig_Man_t * Saig_ManDupDual( Aig_Man_t * pAig, Vec_Int_t * vDcFlops, int nDualPi
 ***********************************************************************/
 void Saig_ManBlockPo( Aig_Man_t * pAig, int nCycles )
 {
-    Aig_Obj_t * pObj, * pCond, * pPrev;
+    Aig_Obj_t * pObj, * pCond, * pPrev, * pTemp;
     int i;
     assert( nCycles > 0 );
     // add N flops (assuming 1-hot encoding of cycles)
@@ -223,8 +223,8 @@ void Saig_ManBlockPo( Aig_Man_t * pAig, int nCycles )
     // update the POs
     Saig_ManForEachPo( pAig, pObj, i )
     {
-        pCond = Aig_And( pAig, Aig_ObjChild0(pObj), pCond );
-        Aig_ObjPatchFanin0( pAig, pObj, pCond );
+        pTemp = Aig_And( pAig, Aig_ObjChild0(pObj), pCond );
+        Aig_ObjPatchFanin0( pAig, pObj, pTemp );
     }
     // set the flops
     Aig_ManSetRegNum( pAig, Aig_ManRegNum(pAig) + nCycles );
