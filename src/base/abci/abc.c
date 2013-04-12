@@ -23455,7 +23455,9 @@ int Abc_CommandBlockPo( Abc_Frame_t * pAbc, int argc, char ** argv )
     Saig_ManBlockPo( pAig, nCycles );
     pNtkNew = Abc_NtkFromAigPhase( pAig );
     Aig_ManStop( pAig );
-
+    // transfer the name
+    pNtkNew->pName = Extra_UtilStrsav(pNtk->pName);
+    pNtkNew->pSpec = Extra_UtilStrsav(pNtk->pSpec);
     // replace the current network
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkNew );
     return 0;
