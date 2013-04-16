@@ -378,7 +378,7 @@ void Io_Write( Abc_Ntk_t * pNtk, char * pFileName, Io_FileType_t FileType )
             pNtkTemp = Abc_NtkToNetlist( pNtk );
             Abc_NtkDelete( pNtkCopy );
         }
-        if ( !Abc_NtkToSop( pNtk, 1 ) )
+        if ( !Abc_NtkToSop( pNtkTemp, 1 ) )
             return;
     }
     else if ( FileType == IO_FILE_BENCH )
