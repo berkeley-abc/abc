@@ -62,6 +62,7 @@ struct Pdr_Par_t_
     int iFrame;           // explored up to this frame
     int RunId;            // PDR id in this run 
     int(*pFuncStop)(int); // callback to terminate
+    int(*pFuncOnFail)(int,Abc_Cex_t*); // called for a failed output in MO mode
     clock_t timeLastSolved; // the time when the last output was solved
 };
 

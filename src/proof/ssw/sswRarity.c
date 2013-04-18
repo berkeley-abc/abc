@@ -34,10 +34,7 @@ typedef struct Ssw_RarMan_t_ Ssw_RarMan_t;
 struct Ssw_RarMan_t_
 {
     // parameters
-    int            nWords;       // the number of words to simulate
-    int            nFrames;      // the number of frames to simulate
-    int            nBinSize;     // the number of flops in one group
-    int            fVerbose;     // the verbosiness flag
+    Ssw_RarPars_t* pPars;
     int            nGroups;      // the number of flop groups
     int            nWordsReg;    // the number of words in the registers
     // internal data
@@ -64,27 +61,27 @@ struct Ssw_RarMan_t_
 
 static inline int  Ssw_RarGetBinPat( Ssw_RarMan_t * p, int iBin, int iPat )
 {
-    assert( iBin >= 0 && iBin < Aig_ManRegNum(p->pAig) / p->nBinSize );
-    assert( iPat >= 0 && iPat < (1 << p->nBinSize) );
-    return p->pRarity[iBin * (1 << p->nBinSize) + iPat];
+    assert( iBin >= 0 && iBin < Aig_ManRegNum(p->pAig) / p->pPars->nBinSize );
+    assert( iPat >= 0 && iPat < (1 << p->pPars->nBinSize) );
+    return p->pRarity[iBin * (1 << p->pPars->nBinSize) + iPat];
 }
 static inline void Ssw_RarSetBinPat( Ssw_RarMan_t * p, int iBin, int iPat, int Value )
 {
-    assert( iBin >= 0 && iBin < Aig_ManRegNum(p->pAig) / p->nBinSize );
-    assert( iPat >= 0 && iPat < (1 << p->nBinSize) );
-    p->pRarity[iBin * (1 << p->nBinSize) + iPat] = Value;
+    assert( iBin >= 0 && iBin < Aig_ManRegNum(p->pAig) / p->pPars->nBinSize );
+    assert( iPat >= 0 && iPat < (1 << p->pPars->nBinSize) );
+    p->pRarity[iBin * (1 << p->pPars->nBinSize) + iPat] = Value;
 }
 static inline void Ssw_RarAddToBinPat( Ssw_RarMan_t * p, int iBin, int iPat )
 {
-    assert( iBin >= 0 && iBin < Aig_ManRegNum(p->pAig) / p->nBinSize );
-    assert( iPat >= 0 && iPat < (1 << p->nBinSize) );
-    p->pRarity[iBin * (1 << p->nBinSize) + iPat]++;
+    assert( iBin >= 0 && iBin < Aig_ManRegNum(p->pAig) / p->pPars->nBinSize );
+    assert( iPat >= 0 && iPat < (1 << p->pPars->nBinSize) );
+    p->pRarity[iBin * (1 << p->pPars->nBinSize) + iPat]++;
 }
 
 static inline int    Ssw_RarBitWordNum( int nBits )             { return (nBits>>6) + ((nBits&63) > 0);  }
 
-static inline word * Ssw_RarObjSim( Ssw_RarMan_t * p, int Id )  { assert( Id < Aig_ManObjNumMax(p->pAig) ); return p->pObjData + p->nWords * Id;    }
-static inline word * Ssw_RarPatSim( Ssw_RarMan_t * p, int Id )  { assert( Id < 64 * p->nWords );            return p->pPatData + p->nWordsReg * Id; }
+static inline word * Ssw_RarObjSim( Ssw_RarMan_t * p, int Id )  { assert( Id < Aig_ManObjNumMax(p->pAig) ); return p->pObjData + p->pPars->nWords * Id;    }
+static inline word * Ssw_RarPatSim( Ssw_RarMan_t * p, int Id )  { assert( Id < 64 * p->pPars->nWords );     return p->pPatData + p->nWordsReg * Id;        }
 
 
 ////////////////////////////////////////////////////////////////////////
@@ -158,7 +155,7 @@ void Ssw_RarManAssingRandomPis( Ssw_RarMan_t * p )
     Saig_ManForEachPi( p->pAig, pObj, i )
     {
         pSim = Ssw_RarObjSim( p, Aig_ObjId(pObj) );
-        for ( w = 0; w < p->nWords; w++ )
+        for ( w = 0; w < p->pPars->nWords; w++ )
             pSim[w] = Aig_ManRandom64(0);
 //        pSim[0] <<= 1;
 //        pSim[0] = (pSim[0] << 2) | 2;
@@ -186,11 +183,11 @@ Abc_Cex_t * Ssw_RarDeriveCex( Ssw_RarMan_t * p, int iFrame, int iPo, int iPatFin
     int i, r, f, iBit, iPatThis;
     // compute the pattern sequence
     iPatThis = iPatFinal;
-    vTrace = Vec_IntStartFull( iFrame / p->nFrames + 1 );
-    Vec_IntWriteEntry( vTrace, iFrame / p->nFrames, iPatThis );
-    for ( r = iFrame / p->nFrames - 1; r >= 0; r-- )
+    vTrace = Vec_IntStartFull( iFrame / p->pPars->nFrames + 1 );
+    Vec_IntWriteEntry( vTrace, iFrame / p->pPars->nFrames, iPatThis );
+    for ( r = iFrame / p->pPars->nFrames - 1; r >= 0; r-- )
     {
-        iPatThis = Vec_IntEntry( p->vPatBests, r * p->nWords + iPatThis / 64 );
+        iPatThis = Vec_IntEntry( p->vPatBests, r * p->pPars->nWords + iPatThis / 64 );
         Vec_IntWriteEntry( vTrace, r, iPatThis );
     }
     // create counter-example
@@ -202,7 +199,7 @@ Abc_Cex_t * Ssw_RarDeriveCex( Ssw_RarMan_t * p, int iFrame, int iPo, int iPatFin
     for ( f = 0; f <= iFrame; f++ )
     {
         Ssw_RarManAssingRandomPis( p );
-        iPatThis = Vec_IntEntry( vTrace, f / p->nFrames );
+        iPatThis = Vec_IntEntry( vTrace, f / p->pPars->nFrames );
         Saig_ManForEachPi( p->pAig, pObj, i )
         {
             pSim = Ssw_RarObjSim( p, Aig_ObjId(pObj) );
@@ -365,7 +362,7 @@ void Ssw_RarTranspose( Ssw_RarMan_t * p )
     Aig_Obj_t * pObj;
     word M[64];
     int w, r, i;
-    for ( w = 0; w < p->nWords; w++ )
+    for ( w = 0; w < p->pPars->nWords; w++ )
     for ( r = 0; r < p->nWordsReg; r++ )
     {
         // save input
@@ -389,10 +386,10 @@ void Ssw_RarTranspose( Ssw_RarMan_t * p )
     Saig_ManForEachLi( p->pAig, pObj, i )
     {
         word * pBitData = Ssw_RarObjSim( p, Aig_ObjId(pObj) );
-        Extra_PrintBinary( stdout, (unsigned *)pBitData, 64*p->nWords ); Abc_Print( 1, "\n" );
+        Extra_PrintBinary( stdout, (unsigned *)pBitData, 64*p->pPars->nWords ); Abc_Print( 1, "\n" );
     }
     Abc_Print( 1, "\n" );
-    for ( i = 0; i < p->nWords*64; i++ )
+    for ( i = 0; i < p->pPars->nWords*64; i++ )
     {
         word * pBitData = Ssw_RarPatSim( p, i );
         Extra_PrintBinary( stdout, (unsigned *)pBitData, Aig_ManRegNum(p->pAig) ); Abc_Print( 1, "\n" );
@@ -423,18 +420,18 @@ void Ssw_RarManInitialize( Ssw_RarMan_t * p, Vec_Int_t * vInit )
     // constant
     pObj = Aig_ManConst1( p->pAig );
     pSim = Ssw_RarObjSim( p, Aig_ObjId(pObj) );
-    for ( w = 0; w < p->nWords; w++ )
+    for ( w = 0; w < p->pPars->nWords; w++ )
         pSim[w] = ~(word)0;
     // primary inputs
     Ssw_RarManAssingRandomPis( p );
     // flop outputs
     if ( vInit )
     {
-        assert( Vec_IntSize(vInit) == Saig_ManRegNum(p->pAig) * p->nWords );
+        assert( Vec_IntSize(vInit) == Saig_ManRegNum(p->pAig) * p->pPars->nWords );
         Saig_ManForEachLo( p->pAig, pObj, i )
         {
             pSim = Ssw_RarObjSim( p, Aig_ObjId(pObj) );
-            for ( w = 0; w < p->nWords; w++ )
+            for ( w = 0; w < p->pPars->nWords; w++ )
                 pSim[w] = Vec_IntEntry(vInit, w * Saig_ManRegNum(p->pAig) + i) ? ~(word)0 : (word)0;
         }
     }
@@ -444,7 +441,7 @@ void Ssw_RarManInitialize( Ssw_RarMan_t * p, Vec_Int_t * vInit )
         {
             pSimLi = Ssw_RarObjSim( p, Aig_ObjId(pObjLi) );
             pSim   = Ssw_RarObjSim( p, Aig_ObjId(pObj) );
-            for ( w = 0; w < p->nWords; w++ )
+            for ( w = 0; w < p->pPars->nWords; w++ )
                 pSim[w] = pSimLi[w];
         }
     }
@@ -466,7 +463,7 @@ int Ssw_RarManPoIsConst0( void * pMan, Aig_Obj_t * pObj )
     Ssw_RarMan_t * p = (Ssw_RarMan_t *)pMan;
     word * pSim = Ssw_RarObjSim( p, Aig_ObjId(pObj) );
     int w;
-    for ( w = 0; w < p->nWords; w++ )
+    for ( w = 0; w < p->pPars->nWords; w++ )
         if ( pSim[w] )
             return 0;
     return 1;
@@ -489,7 +486,7 @@ int Ssw_RarManObjIsConst( void * pMan, Aig_Obj_t * pObj )
     word * pSim = Ssw_RarObjSim( p, Aig_ObjId(pObj) );
     word Flip = pObj->fPhase ? ~(word)0 : 0;
     int w;
-    for ( w = 0; w < p->nWords; w++ )
+    for ( w = 0; w < p->pPars->nWords; w++ )
         if ( pSim[w] ^ Flip )
             return 0;
     return 1;
@@ -513,7 +510,7 @@ int Ssw_RarManObjsAreEqual( void * pMan, Aig_Obj_t * pObj0, Aig_Obj_t * pObj1 )
     word * pSim1 = Ssw_RarObjSim( p, pObj1->Id );
     word Flip = (pObj0->fPhase != pObj1->fPhase) ? ~(word)0 : 0;
     int w;
-    for ( w = 0; w < p->nWords; w++ )
+    for ( w = 0; w < p->pPars->nWords; w++ )
         if ( pSim0[w] ^ pSim1[w] ^ Flip )
             return 0;
     return 1;
@@ -553,7 +550,7 @@ unsigned Ssw_RarManObjHashWord( void * pMan, Aig_Obj_t * pObj )
     int i;
     uHash = 0;
     pSims = (unsigned *)Ssw_RarObjSim( p, pObj->Id );
-    for ( i = 0; i < 2 * p->nWords; i++ )
+    for ( i = 0; i < 2 * p->pPars->nWords; i++ )
         uHash ^= pSims[i] * s_SPrimes[i & 0x7F];
     return uHash;
 }
@@ -574,7 +571,7 @@ int Ssw_RarManObjWhichOne( Ssw_RarMan_t * p, Aig_Obj_t * pObj )
     word * pSim = Ssw_RarObjSim( p, Aig_ObjId(pObj) );
     word Flip = pObj->fPhase ? ~(word)0 : 0;
     int w, i;
-    for ( w = 0; w < p->nWords; w++ )
+    for ( w = 0; w < p->pPars->nWords; w++ )
         if ( pSim[w] ^ Flip )
         {
             for ( i = 0; i < 64; i++ )
@@ -597,10 +594,10 @@ int Ssw_RarManObjWhichOne( Ssw_RarMan_t * p, Aig_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
-int Ssw_RarManCheckNonConstOutputs( Ssw_RarMan_t * p, int * pnSolvedNow, int iFrame, int fNotVerbose, clock_t Time )
+int Ssw_RarManCheckNonConstOutputs( Ssw_RarMan_t * p, int iFrame, clock_t Time )
 {
     Aig_Obj_t * pObj;
-    int i, RetValue = 0;
+    int i;
     p->iFailPo  = -1;
     p->iFailPat = -1;
     Saig_ManForEachPo( p->pAig, pObj, i )
@@ -611,29 +608,33 @@ int Ssw_RarManCheckNonConstOutputs( Ssw_RarMan_t * p, int * pnSolvedNow, int iFr
             continue;
         if ( Ssw_RarManPoIsConst0(p, pObj) )
             continue;
-        RetValue = 1;
         p->iFailPo  = i;
         p->iFailPat = Ssw_RarManObjWhichOne( p, pObj );
-        if ( pnSolvedNow == NULL )
+        if ( !p->pPars->fSolveAll )
             break;
         // remember the one solved
-        (*pnSolvedNow)++;
+        p->pPars->nSolved++;
         if ( p->vCexes == NULL )
             p->vCexes = Vec_PtrStart( Saig_ManPoNum(p->pAig) );
         assert( Vec_PtrEntry(p->vCexes, i) == NULL );
         Vec_PtrWriteEntry( p->vCexes, i, (void *)(ABC_PTRINT_T)1 );
+        if ( p->pPars->pFuncOnFail && p->pPars->pFuncOnFail(i, NULL) )
+            return 2; // quitting due to callback
         // print final report
-        if ( !fNotVerbose )
+        if ( !p->pPars->fNotVerbose )
         {
             int nOutDigits = Abc_Base10Log( Saig_ManPoNum(p->pAig) );
             Abc_Print( 1, "Output %*d was asserted in frame %4d (solved %*d out of %*d outputs).  ", 
                 nOutDigits, p->iFailPo, iFrame, 
-                nOutDigits, *pnSolvedNow, 
+                nOutDigits, p->pPars->nSolved, 
                 nOutDigits, Saig_ManPoNum(p->pAig) );
             Abc_PrintTime( 1, "Time", Time );
         }
     }
-    return RetValue;
+    if ( p->iFailPo >= 0 ) // found CEX
+        return 1;
+    else
+        return 0;
 }
 
 /**Function*************************************************************
@@ -684,7 +685,7 @@ void Ssw_RarManSimulate( Ssw_RarMan_t * p, Vec_Int_t * vInit, int fUpdate, int f
         pSim1 = Ssw_RarObjSim( p, Aig_ObjFaninId1(pObj) );
         Flip0 = Aig_ObjFaninC0(pObj) ? ~(word)0 : 0;
         Flip1 = Aig_ObjFaninC1(pObj) ? ~(word)0 : 0;
-        for ( w = 0; w < p->nWords; w++ )
+        for ( w = 0; w < p->pPars->nWords; w++ )
             pSim[w] = (Flip0 ^ pSim0[w]) & (Flip1 ^ pSim1[w]);
 
 
@@ -711,7 +712,7 @@ void Ssw_RarManSimulate( Ssw_RarMan_t * p, Vec_Int_t * vInit, int fUpdate, int f
         pSim  = Ssw_RarObjSim( p, Aig_ObjId(pObj) );
         pSim0 = Ssw_RarObjSim( p, Aig_ObjFaninId0(pObj) );
         Flip  = Aig_ObjFaninC0(pObj) ? ~(word)0 : 0;
-        for ( w = 0; w < p->nWords; w++ )
+        for ( w = 0; w < p->pPars->nWords; w++ )
             pSim[w] = Flip ^ pSim0[w];
     }
     // refine classes
@@ -747,23 +748,20 @@ void Ssw_RarManSimulate( Ssw_RarMan_t * p, Vec_Int_t * vInit, int fUpdate, int f
   SeeAlso     []
 
 ***********************************************************************/
-static Ssw_RarMan_t * Ssw_RarManStart( Aig_Man_t * pAig, int nWords, int nFrames, int nBinSize, int fVerbose )
+static Ssw_RarMan_t * Ssw_RarManStart( Aig_Man_t * pAig, Ssw_RarPars_t * pPars )
 {
     Ssw_RarMan_t * p;
 //    if ( Aig_ManRegNum(pAig) < nBinSize || nBinSize <= 0 )
 //        return NULL;
     p = ABC_CALLOC( Ssw_RarMan_t, 1 );
     p->pAig      = pAig;
-    p->nWords    = nWords;
-    p->nFrames   = nFrames;
-    p->nBinSize  = nBinSize;
-    p->fVerbose  = fVerbose;
-    p->nGroups   = Aig_ManRegNum(pAig) / nBinSize;
-    p->pRarity   = ABC_CALLOC( int, (1 << nBinSize) * p->nGroups );
-    p->pPatCosts = ABC_CALLOC( double, p->nWords * 64 );
+    p->pPars     = pPars;
+    p->nGroups   = Aig_ManRegNum(pAig) / pPars->nBinSize;
+    p->pRarity   = ABC_CALLOC( int, (1 << pPars->nBinSize) * p->nGroups );
+    p->pPatCosts = ABC_CALLOC( double, p->pPars->nWords * 64 );
     p->nWordsReg = Ssw_RarBitWordNum( Aig_ManRegNum(pAig) );
-    p->pObjData  = ABC_ALLOC( word, Aig_ManObjNumMax(pAig) * p->nWords );
-    p->pPatData  = ABC_ALLOC( word, 64 * p->nWords * p->nWordsReg );
+    p->pObjData  = ABC_ALLOC( word, Aig_ManObjNumMax(pAig) * p->pPars->nWords );
+    p->pPatData  = ABC_ALLOC( word, 64 * p->pPars->nWords * p->nWordsReg );
     p->vUpdConst = Vec_PtrAlloc( 100 );
     p->vUpdClass = Vec_PtrAlloc( 100 );
     p->vPatBests = Vec_IntAlloc( 100 );
@@ -824,7 +822,7 @@ static void Ssw_RarTransferPatterns( Ssw_RarMan_t * p, Vec_Int_t * vInits )
     Ssw_RarTranspose( p );
 
     // update counters
-    for ( k = 0; k < p->nWords * 64; k++ )
+    for ( k = 0; k < p->pPars->nWords * 64; k++ )
     {
         pData = (unsigned char *)Ssw_RarPatSim( p, k );
         for ( i = 0; i < p->nGroups; i++ )
@@ -832,7 +830,7 @@ static void Ssw_RarTransferPatterns( Ssw_RarMan_t * p, Vec_Int_t * vInits )
     }
 
     // for each pattern
-    for ( k = 0; k < p->nWords * 64; k++ )
+    for ( k = 0; k < p->pPars->nWords * 64; k++ )
     {
         pData = (unsigned char *)Ssw_RarPatSim( p, k );
         // find the cost of its values
@@ -849,12 +847,12 @@ static void Ssw_RarTransferPatterns( Ssw_RarMan_t * p, Vec_Int_t * vInits )
 
     // choose as many as there are words
     Vec_IntClear( vInits );
-    for ( i = 0; i < p->nWords; i++ )
+    for ( i = 0; i < p->pPars->nWords; i++ )
     {
         // select the best
         int iPatBest = -1;
         double iCostBest = -ABC_INFINITY;
-        for ( k = 0; k < p->nWords * 64; k++ )
+        for ( k = 0; k < p->pPars->nWords * 64; k++ )
             if ( iCostBest < p->pPatCosts[k] )
             {
                 iCostBest = p->pPatCosts[k];
@@ -870,7 +868,7 @@ static void Ssw_RarTransferPatterns( Ssw_RarMan_t * p, Vec_Int_t * vInits )
 //Abc_Print( 1, "Best pattern %5d\n", iPatBest );
         Vec_IntPush( p->vPatBests, iPatBest );
     }
-    assert( Vec_IntSize(vInits) == Aig_ManRegNum(p->pAig) * p->nWords );
+    assert( Vec_IntSize(vInits) == Aig_ManRegNum(p->pAig) * p->pPars->nWords );
 }
 
 
@@ -985,7 +983,6 @@ int Ssw_RarSimulate( Aig_Man_t * pAig, Ssw_RarPars_t * pPars )
     int nSavedSeed = pPars->nRandSeed;
     int RetValue = -1;
     int iFrameFail = -1;
-    int nSolved = 0;
     assert( Aig_ManRegNum(pAig) > 0 );
     assert( Aig_ManConstrNum(pAig) == 0 );
     ABC_FREE( pAig->pSeqModel );
@@ -1002,10 +999,11 @@ int Ssw_RarSimulate( Aig_Man_t * pAig, Ssw_RarPars_t * pPars )
     Ssw_RarManPrepareRandom( nSavedSeed );
 
     // create manager
-    p = Ssw_RarManStart( pAig, pPars->nWords, pPars->nFrames, pPars->nBinSize, pPars->fVerbose );
+    p = Ssw_RarManStart( pAig, pPars );
     p->vInits = Vec_IntStart( Aig_ManRegNum(pAig) * pPars->nWords );
 
     // perform simulation rounds
+    pPars->nSolved = 0;
     timeLastSolved = clock();
     for ( r = 0; !pPars->nRounds || (nNumRestart * pPars->nRestart + r < pPars->nRounds); r++ )
     {
@@ -1022,23 +1020,33 @@ int Ssw_RarSimulate( Aig_Man_t * pAig, Ssw_RarPars_t * pPars )
         for ( f = 0; f < pPars->nFrames; f++ )
         {
             Ssw_RarManSimulate( p, f ? NULL : p->vInits, 0, 0 );
-            if ( fMiter && Ssw_RarManCheckNonConstOutputs(p, pPars->fSolveAll ? &nSolved : NULL, r * p->nFrames + f, pPars->fNotVerbose, clock() - clkTotal) )
+            if ( fMiter )
             {
-                RetValue = 0;
-                if ( !pPars->fSolveAll )
+                int Status = Ssw_RarManCheckNonConstOutputs(p, r * p->pPars->nFrames + f, clock() - clkTotal);
+                if ( Status == 2 )
                 {
-                    if ( pPars->fVerbose ) Abc_Print( 1, "\n" );
-    //                Abc_Print( 1, "Simulation asserted a PO in frame f: %d <= f < %d.\n", r * nFrames, (r+1) * nFrames );
-                    Ssw_RarManPrepareRandom( nSavedSeed );
-                    if ( pPars->fVerbose )
-                        Abc_Print( 1, "Simulated %d frames for %d rounds with %d restarts.\n", pPars->nFrames, nNumRestart * pPars->nRestart + r, nNumRestart );
-                    pAig->pSeqModel = Ssw_RarDeriveCex( p, r * p->nFrames + f, p->iFailPo, p->iFailPat, pPars->fVerbose );
-                    // print final report
-                    Abc_Print( 1, "Output %d of miter \"%s\" was asserted in frame %d.  ", pAig->pSeqModel->iPo, pAig->pName, pAig->pSeqModel->iFrame );
-                    Abc_PrintTime( 1, "Time", clock() - clkTotal );
+                    Abc_Print( 1, "Quitting due to callback on fail.\n" );
                     goto finish;
                 }
-                timeLastSolved = clock();
+                if ( Status == 1 ) // found CEX
+                {
+                    RetValue = 0;
+                    if ( !pPars->fSolveAll )
+                    {
+                        if ( pPars->fVerbose ) Abc_Print( 1, "\n" );
+        //                Abc_Print( 1, "Simulation asserted a PO in frame f: %d <= f < %d.\n", r * nFrames, (r+1) * nFrames );
+                        Ssw_RarManPrepareRandom( nSavedSeed );
+                        if ( pPars->fVerbose )
+                            Abc_Print( 1, "Simulated %d frames for %d rounds with %d restarts.\n", pPars->nFrames, nNumRestart * pPars->nRestart + r, nNumRestart );
+                        pAig->pSeqModel = Ssw_RarDeriveCex( p, r * p->pPars->nFrames + f, p->iFailPo, p->iFailPat, pPars->fVerbose );
+                        // print final report
+                        Abc_Print( 1, "Output %d of miter \"%s\" was asserted in frame %d.  ", pAig->pSeqModel->iPo, pAig->pName, pAig->pSeqModel->iFrame );
+                        Abc_PrintTime( 1, "Time", clock() - clkTotal );
+                        goto finish;
+                    }
+                    timeLastSolved = clock();
+                }
+                // else - did not find a counter example
             }
             // check timeout
             if ( pPars->TimeOut && clock() > nTimeToStop )
@@ -1081,7 +1089,7 @@ int Ssw_RarSimulate( Aig_Man_t * pAig, Ssw_RarPars_t * pPars )
                 Abc_Print( 1, "Starts =%6d   ",  nNumRestart );
                 Abc_Print( 1, "Rounds =%6d   ",  nNumRestart * pPars->nRestart + ((r==-1)?0:r) );
                 Abc_Print( 1, "Frames =%6d   ", (nNumRestart * pPars->nRestart + r) * pPars->nFrames );
-                Abc_Print( 1, "CEX =%6d (%6.2f %%)   ", nSolved, 100.0*nSolved/Saig_ManPoNum(p->pAig) );
+                Abc_Print( 1, "CEX =%6d (%6.2f %%)   ", pPars->nSolved, 100.0*pPars->nSolved/Saig_ManPoNum(p->pAig) );
                 Abc_PrintTime( 1, "Time", clock() - clkTotal );
             }
             else
@@ -1096,10 +1104,10 @@ finish:
         Vec_IntShrink( p->vInits, Aig_ManRegNum(pAig) );
         pAig->pData = p->vInits;  p->vInits = NULL;
     }
-    if ( nSolved )
+    if ( pPars->nSolved )
     {
         if ( pPars->fVerbose && !pPars->fSolveAll ) Abc_Print( 1, "\n" );
-        Abc_Print( 1, "Simulation of %d frames for %d rounds with %d restarts asserted %d (out of %d) POs.    ", pPars->nFrames, nNumRestart * pPars->nRestart + r, nNumRestart, nSolved, Saig_ManPoNum(p->pAig) );
+        Abc_Print( 1, "Simulation of %d frames for %d rounds with %d restarts asserted %d (out of %d) POs.    ", pPars->nFrames, nNumRestart * pPars->nRestart + r, nNumRestart, pPars->nSolved, Saig_ManPoNum(p->pAig) );
         Abc_PrintTime( 1, "Time", clock() - clkTotal );
     }
     else if ( r == pPars->nRounds && f == pPars->nFrames )
@@ -1175,7 +1183,7 @@ int Ssw_RarSignalFilter( Aig_Man_t * pAig, Ssw_RarPars_t * pPars )
     Ssw_RarManPrepareRandom( nSavedSeed );
 
     // create manager
-    p = Ssw_RarManStart( pAig, pPars->nWords, pPars->nFrames, pPars->nBinSize, pPars->fVerbose );
+    p = Ssw_RarManStart( pAig, pPars );
     // compute starting state if needed
     assert( p->vInits == NULL );
     if ( pPars->pCex )
@@ -1216,7 +1224,7 @@ int Ssw_RarSignalFilter( Aig_Man_t * pAig, Ssw_RarPars_t * pPars )
         for ( f = 0; f < pPars->nFrames; f++ )
         {
             Ssw_RarManSimulate( p, f ? NULL : p->vInits, 1, !r && !f );
-            if ( pPars->fMiter && Ssw_RarManCheckNonConstOutputs(p, NULL, -1, -1, 0) )
+            if ( pPars->fMiter && Ssw_RarManCheckNonConstOutputs(p, -1, 0) )
             {
                 if ( !pPars->fVerbose )
                     Abc_Print( 1, "%s", Abc_FrameIsBatchMode() ? "\n" : "\r" );
@@ -1225,7 +1233,7 @@ int Ssw_RarSignalFilter( Aig_Man_t * pAig, Ssw_RarPars_t * pPars )
                     Abc_Print( 1, "Simulated %d frames for %d rounds with %d restarts.\n", pPars->nFrames, nNumRestart * pPars->nRestart + r, nNumRestart );
                 Ssw_RarManPrepareRandom( nSavedSeed );
                 Abc_CexFree( pAig->pSeqModel );
-                pAig->pSeqModel = Ssw_RarDeriveCex( p, r * p->nFrames + f, p->iFailPo, p->iFailPat, 1 );
+                pAig->pSeqModel = Ssw_RarDeriveCex( p, r * p->pPars->nFrames + f, p->iFailPo, p->iFailPat, 1 );
                 // print final report
                 Abc_Print( 1, "Output %d of miter \"%s\" was asserted in frame %d.  ", pAig->pSeqModel->iPo, pAig->pName, pAig->pSeqModel->iFrame );
                 Abc_PrintTime( 1, "Time", clock() - clkTotal );

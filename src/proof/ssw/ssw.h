@@ -105,7 +105,9 @@ struct Ssw_RarPars_t_
     int              fMiter;
     int              fUseCex;
     int              fLatchOnly;
+    int              nSolved;
     Abc_Cex_t *      pCex;
+    int(*pFuncOnFail)(int,Abc_Cex_t*); // called for a failed output in MO mode
 };
 
 typedef struct Ssw_Sml_t_ Ssw_Sml_t; // sequential simulation manager

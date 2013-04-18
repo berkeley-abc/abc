@@ -591,6 +591,15 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
                     p->vCexes = Vec_PtrStart( Saig_ManPoNum(p->pAig) );
                 assert( Vec_PtrEntry(p->vCexes, p->iOutCur) == NULL );
                 Vec_PtrWriteEntry( p->vCexes, p->iOutCur, p->pPars->fStoreCex ? Pdr_ManDeriveCex(p) : (void *)(ABC_PTRINT_T)1 );
+                if ( p->pPars->pFuncOnFail && p->pPars->pFuncOnFail(p->iOutCur, p->pPars->fStoreCex ? (Abc_Cex_t *)Vec_PtrEntry(p->vCexes, p->iOutCur) : NULL) )
+                {
+                    if ( p->pPars->fVerbose ) 
+                        Pdr_ManPrintProgress( p, 1, clock() - clkStart );
+                    if ( !p->pPars->fSilent )
+                        Abc_Print( 1, "Quitting due to callback on fail.\n" );
+                    p->pPars->iFrame = k;
+                    return -1;
+                }
                 if ( p->pPars->nFailOuts == Saig_ManPoNum(p->pAig) )
                     return 0; // all SAT
                 p->pPars->timeLastSolved = clock();
@@ -659,6 +668,15 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
                             p->vCexes = Vec_PtrStart( Saig_ManPoNum(p->pAig) );
                         assert( Vec_PtrEntry(p->vCexes, p->iOutCur) == NULL );
                         Vec_PtrWriteEntry( p->vCexes, p->iOutCur, p->pPars->fStoreCex ? Pdr_ManDeriveCex(p) : (void *)(ABC_PTRINT_T)1 );
+                        if ( p->pPars->pFuncOnFail && p->pPars->pFuncOnFail(p->iOutCur, p->pPars->fStoreCex ? (Abc_Cex_t *)Vec_PtrEntry(p->vCexes, p->iOutCur) : NULL) )
+                        {
+                            if ( p->pPars->fVerbose ) 
+                                Pdr_ManPrintProgress( p, 1, clock() - clkStart );
+                            if ( !p->pPars->fSilent )
+                                Abc_Print( 1, "Quitting due to callback on fail.\n" );
+                            p->pPars->iFrame = k;
+                            return -1;
+                        }
                         if ( !p->pPars->fNotVerbose )
                             Abc_Print( 1, "Output %*d was asserted in frame %2d (%2d) (solved %*d out of %*d outputs).\n",  
                                 nOutDigits, p->iOutCur, k, k, nOutDigits, p->pPars->nFailOuts, nOutDigits, Saig_ManPoNum(p->pAig) );

@@ -1477,13 +1477,13 @@ clkOther += clock() - clk2;
                 continue;
             if ( Lit == 1 )
             {
+                RetValue = 0;
                 if ( !pPars->fSolveAll )
                 {
                     Abc_Cex_t * pCex = Abc_CexMakeTriv( Aig_ManRegNum(pAig), Saig_ManPiNum(pAig), Saig_ManPoNum(pAig), f*Saig_ManPoNum(pAig)+i );
                     printf( "Output %d is trivially SAT in frame %d.\n", i, f );
                     ABC_FREE( pAig->pSeqModel );
                     pAig->pSeqModel = pCex;
-                    RetValue = 0;
                     goto finish;
                 }
                 pPars->nFailOuts++;
@@ -1492,11 +1492,12 @@ clkOther += clock() - clk2;
                         nOutDigits, i, f, nOutDigits, pPars->nFailOuts, nOutDigits, Saig_ManPoNum(pAig) );
                 if ( p->vCexes == NULL )
                     p->vCexes = Vec_PtrStart( Saig_ManPoNum(pAig) );
-                if ( pPars->fStoreCex )
-                    Vec_PtrWriteEntry( p->vCexes, i, Abc_CexMakeTriv( Aig_ManRegNum(pAig), Saig_ManPiNum(pAig), Saig_ManPoNum(pAig), f*Saig_ManPoNum(pAig)+i ) );
-                else
-                    Vec_PtrWriteEntry( p->vCexes, i, (void *)(ABC_PTRINT_T)1 );
-                RetValue = 0;
+                Vec_PtrWriteEntry( p->vCexes, i, pPars->fStoreCex ? Abc_CexMakeTriv( Aig_ManRegNum(pAig), Saig_ManPiNum(pAig), Saig_ManPoNum(pAig), f*Saig_ManPoNum(pAig)+i ) : (void *)(ABC_PTRINT_T)1 );
+                if ( pPars->pFuncOnFail && pPars->pFuncOnFail(i, pPars->fStoreCex ? (Abc_Cex_t *)Vec_PtrEntry(p->vCexes, i) : NULL) )
+                {
+                    Abc_Print( 1, "Quitting due to callback on fail.\n" );
+                    goto finish;
+                }
                 // reset the timeout
                 pPars->timeLastSolved = clock();
                 nTimeToStop = Saig_ManBmcTimeToStop( pPars, nTimeToStopNG );
@@ -1533,6 +1534,7 @@ nTimeUnsat += clock() - clk2;
             else if ( status == l_True )
             {
 nTimeSat += clock() - clk2;
+                RetValue = 0;
                 fFirst = 0;
                 if ( !pPars->fSolveAll )
                 {
@@ -1558,7 +1560,6 @@ nTimeSat += clock() - clk2;
                     }
                     ABC_FREE( pAig->pSeqModel );
                     pAig->pSeqModel = Saig_ManGenerateCex( p, f, i );
-                    RetValue = 0;
                     goto finish;
                 }
                 pPars->nFailOuts++;
@@ -1568,7 +1569,11 @@ nTimeSat += clock() - clk2;
                 if ( p->vCexes == NULL )
                     p->vCexes = Vec_PtrStart( Saig_ManPoNum(pAig) );
                 Vec_PtrWriteEntry( p->vCexes, i, pPars->fStoreCex? Saig_ManGenerateCex( p, f, i ) : (void *)(ABC_PTRINT_T)1 );
-                RetValue = 0;
+                if ( pPars->pFuncOnFail && pPars->pFuncOnFail(i, pPars->fStoreCex ? (Abc_Cex_t *)Vec_PtrEntry(p->vCexes, i) : NULL) )
+                {
+                    Abc_Print( 1, "Quitting due to callback on fail.\n" );
+                    goto finish;
+                }
                 // reset the timeout
                 pPars->timeLastSolved = clock();
                 nTimeToStop = Saig_ManBmcTimeToStop( pPars, nTimeToStopNG );
