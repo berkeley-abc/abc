@@ -328,7 +328,7 @@ Abc_Ntk_t * Io_ReadAiger( char * pFileName, int fCheck )
     }
     if ( nJust || nFair )
     {
-        fprintf( stdout, "Reading AIGER files with liveness properties are currently not supported.\n" );
+        fprintf( stdout, "Reading AIGER files with liveness properties is currently not supported.\n" );
         ABC_FREE( pContents );
         return NULL;
     }
@@ -424,10 +424,10 @@ Abc_Ntk_t * Io_ReadAiger( char * pFileName, int fCheck )
             if ( *pCur == ' ' ) // read initial value
             {
                 pCur++;
-                if ( atoi( pCur ) == 1 )
-                    Abc_LatchSetInit1( Abc_NtkBox(pNtkNew, i) );
-                else if ( atoi( pCur ) == 0 )
+                if ( atoi( pCur ) == 0 )
                     Abc_LatchSetInit0( Abc_NtkBox(pNtkNew, i) );
+                else if ( atoi( pCur ) == 1 )
+                    Abc_LatchSetInit1( Abc_NtkBox(pNtkNew, i) );
                 else 
                     Abc_LatchSetInitDc( Abc_NtkBox(pNtkNew, i) );
                 while ( *pCur != ' ' && *pCur != '\n' ) pCur++;

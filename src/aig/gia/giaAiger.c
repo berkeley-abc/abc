@@ -177,11 +177,11 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fSkipS
 {
     Gia_Man_t * pNew, * pTemp;
     Vec_Int_t * vLits = NULL, * vPoTypes = NULL;
-    Vec_Int_t * vNodes, * vDrivers;//, * vTerms;
+    Vec_Int_t * vNodes, * vDrivers, * vInits = NULL;
     int iObj, iNode0, iNode1, fHieOnly = 0;
-    int nTotal, nInputs, nOutputs, nLatches, nAnds, i;//, iTerm, nDigits;
+    int nTotal, nInputs, nOutputs, nLatches, nAnds, i;
     int nBad = 0, nConstr = 0, nJust = 0, nFair = 0;
-    unsigned char * pDrivers, * pSymbols, * pCur;//, * pType;
+    unsigned char * pDrivers, * pSymbols, * pCur;
     unsigned uLit0, uLit1, uLit;
 
     // read the parameters (M I L O A + B C J F)
@@ -240,7 +240,7 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fSkipS
     }
     if ( nJust || nFair )
     {
-        fprintf( stdout, "Reading AIGER files with liveness properties are currently not supported.\n" );
+        fprintf( stdout, "Reading AIGER files with liveness properties is currently not supported.\n" );
         return NULL;
     }
 
@@ -313,17 +313,31 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fSkipS
     vDrivers = Vec_IntAlloc( nLatches + nOutputs );
     if ( pContents[3] == ' ' ) // standard AIGER
     {
+        vInits = Vec_IntAlloc( nLatches );
         pCur = pDrivers;
         for ( i = 0; i < nLatches; i++ )
         {
-            uLit0 = atoi( (char *)pCur );  while ( *pCur++ != '\n' );
+            uLit0 = atoi( (char *)pCur );   
+            while ( *pCur != ' ' && *pCur != '\n' ) 
+                pCur++;
+            if ( *pCur == ' ' )
+            {
+                pCur++;
+                Vec_IntPush( vInits, atoi( (char *)pCur ) );
+                while ( *pCur++ != '\n' );
+            }
+            else
+            {
+                pCur++;
+                Vec_IntPush( vInits, 0 );
+            }
             iNode0 = Abc_LitNotCond( Vec_IntEntry(vNodes, uLit0 >> 1), (uLit0 & 1) );
             Vec_IntPush( vDrivers, iNode0 );
         }
         // read the PO driver literals
         for ( i = 0; i < nOutputs; i++ )
         {
-            uLit0 = atoi( (char *)pCur );  while ( *pCur++ != '\n' );
+            uLit0 = atoi( (char *)pCur );   while ( *pCur++ != '\n' );
             iNode0 = Abc_LitNotCond( Vec_IntEntry(vNodes, uLit0 >> 1), (uLit0 & 1) );
             Vec_IntPush( vDrivers, iNode0 );
         }
@@ -751,7 +765,31 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fSkipS
     }
 */
 
-//    pNew->nAnd2Delay = 5;
+    if ( vInits && Vec_IntSum(vInits) )
+    {
+        char * pInit = ABC_ALLOC( char, Vec_IntSize(vInits) + 1 );
+        Gia_Obj_t * pObj;
+        int i;
+        assert( Vec_IntSize(vInits) == Gia_ManRegNum(pNew) );
+        Gia_ManForEachRo( pNew, pObj, i )
+        {
+            if ( Vec_IntEntry(vInits, i) == 0 )
+                pInit[i] = '0';
+            else if ( Vec_IntEntry(vInits, i) == 1 )
+                pInit[i] = '1';
+            else 
+            {
+                assert( Vec_IntEntry(vInits, i) == Abc_Var2Lit(Gia_ObjId(pNew, pObj), 0) );
+                pInit[i] = 'X';
+            }
+        }
+        pInit[i] = 0;
+        pNew = Gia_ManDupZeroUndc( pTemp = pNew, pInit, 1 );
+        pNew->nConstrs = pTemp->nConstrs; pTemp->nConstrs = 0;
+        Gia_ManStop( pTemp );
+        ABC_FREE( pInit );
+    }
+    Vec_IntFreeP( &vInits );
     return pNew;
 }
 
