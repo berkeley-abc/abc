@@ -1135,8 +1135,6 @@ finish:
 ***********************************************************************/
 int Ssw_RarSimulateGia( Gia_Man_t * p, Ssw_RarPars_t * pPars )
 {
-    int fSolveAll = 0;
-    int fNotVerbose = 0;
     Aig_Man_t * pAig;
     int RetValue;
     pAig = Gia_ManToAigSimple( p );
