@@ -721,6 +721,13 @@ def cex_put(cex):
     assert cex.pCex is not None
     
     return _cex_put(cex.pCex)
+    
+    
+def create_abc_array(List):
+    _pyabc_array_clear()
+    for ObjId in List:
+        _pyabc_array_push(ObjId)       
+        
         
 import threading
 import select
@@ -1185,9 +1192,5 @@ def cmd_python(cmd_args):
     
 add_abc_command(cmd_python, "Python", "python", 0) 
 
-def create_abc_array(List):
-    _pyabc_array_clear()
-    for ObjId in List:
-        _pyabc_array_push(ObjId)
 
 %}
