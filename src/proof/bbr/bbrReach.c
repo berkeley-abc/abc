@@ -249,6 +249,7 @@ int Aig_ManComputeReachable( DdManager * dd, Aig_Man_t * p, DdNode ** pbParts, D
     int nThreshold = 10000;
     clock_t clk = clock();
     Vec_Ptr_t * vOnionRings;
+    int fixedPoint = 0;
 
     status = Cudd_ReorderingStatus( dd, &method );
     if ( status )
@@ -318,8 +319,10 @@ int Aig_ManComputeReachable( DdManager * dd, Aig_Man_t * p, DdNode ** pbParts, D
         bNext = Cudd_bddVarMap( dd, bTemp = bNext );                    Cudd_Ref( bNext );
         Cudd_RecursiveDeref( dd, bTemp );
         // check if there are any new states
-        if ( Cudd_bddLeq( dd, bNext, bReached ) )
+        if ( Cudd_bddLeq( dd, bNext, bReached ) ) {
+            fixedPoint = 1;
             break;
+        }
         // check the BDD size
         nBddSize = Cudd_DagSize(bNext);
         if ( nBddSize > pPars->nBddMax )
@@ -405,16 +408,20 @@ int Aig_ManComputeReachable( DdManager * dd, Aig_Man_t * p, DdNode ** pbParts, D
     }
 //ABC_PRB( dd, bReached );
     Cudd_RecursiveDeref( dd, bReached );
-    if ( nIters > pPars->nIterMax || nBddSize > pPars->nBddMax )
-    {
-        if ( !pPars->fSilent )
-            printf( "Verified only for states reachable in %d frames.  ", nIters );
-        return -1; // undecided
-    }
-    if ( !pPars->fSilent )
+    // SPG
+    //
+    if ( fixedPoint ) {
+      if ( !pPars->fSilent ) {
         printf( "The miter is proved unreachable after %d iterations.  ", nIters );
+      }
+      pPars->iFrame = nIters - 1;
+      return 1;
+    }
+    assert(nIters >= pPars->nIterMax || nBddSize >= pPars->nBddMax);
+    if ( !pPars->fSilent )
+      printf( "Verified only for states reachable in %d frames.  ", nIters );
     pPars->iFrame = nIters - 1;
-    return 1; // unreachable
+    return -1; // undecided
 }
 
 /**Function*************************************************************
