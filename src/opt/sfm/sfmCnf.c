@@ -45,7 +45,6 @@ ABC_NAMESPACE_IMPL_START
 ***********************************************************************/
 int Sfm_TruthToCnf( word Truth, int nVars, Vec_Int_t * vCover, Vec_Str_t * vCnf )
 {
-    int nCubes = 0;
     Vec_StrClear( vCnf );
     if ( Truth == 0 || ~Truth == 0 )
     {
