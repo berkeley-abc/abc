@@ -86,6 +86,28 @@ struct Ssw_Pars_t_
     void *           pFunc;
 };
 
+typedef struct Ssw_RarPars_t_ Ssw_RarPars_t;
+struct Ssw_RarPars_t_
+{
+    int              nFrames;
+    int              nWords;
+    int              nBinSize;
+    int              nRounds;
+    int              nRestart;
+    int              nRandSeed;
+    int              TimeOut;
+    int              TimeOutGap;
+    int              fSolveAll;
+    int              fSetLastState;
+    int              fVerbose;
+    int              fNotVerbose;
+    int              fDropSatOuts;
+    int              fMiter;
+    int              fUseCex;
+    int              fLatchOnly;
+    Abc_Cex_t *      pCex;
+};
+
 typedef struct Ssw_Sml_t_ Ssw_Sml_t; // sequential simulation manager
 
 ////////////////////////////////////////////////////////////////////////
@@ -117,8 +139,9 @@ extern int           Ssw_SecWithPairs( Aig_Man_t * pAig1, Aig_Man_t * pAig2, Vec
 extern int           Ssw_SecGeneral( Aig_Man_t * pAig1, Aig_Man_t * pAig2, Ssw_Pars_t * pPars );
 extern int           Ssw_SecGeneralMiter( Aig_Man_t * pMiter, Ssw_Pars_t * pPars );
 /*=== sswRarity.c ===================================================*/
-extern int           Ssw_RarSignalFilter( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSize, int nRounds, int nRestart, int nRandSeed, int TimeOut, int fMiter, Abc_Cex_t * pCex, int fLatchOnly, int fVerbose );
-extern int           Ssw_RarSimulate( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSize, int nRounds, int nRestart, int nRandSeed, int TimeOut, int TimeOutGap, int fSolveAll, int fSetLastState, int fVerbose, int fNotVerbose );
+extern void          Ssw_RarSetDefaultParams( Ssw_RarPars_t * p );
+extern int           Ssw_RarSignalFilter( Aig_Man_t * pAig, Ssw_RarPars_t * pPars );
+extern int           Ssw_RarSimulate( Aig_Man_t * pAig, Ssw_RarPars_t * pPars );
 /*=== sswSim.c ===================================================*/
 extern Ssw_Sml_t *   Ssw_SmlSimulateComb( Aig_Man_t * pAig, int nWords );
 extern Ssw_Sml_t *   Ssw_SmlSimulateSeq( Aig_Man_t * pAig, int nPref, int nFrames, int nWords );
