@@ -101,6 +101,7 @@ struct Abc_Frame_t_
     Abc_Cex_t *     pCex2;         // copy of the above
     Vec_Ptr_t *     vCexVec;       // a vector of counter-examples if more than one PO fails
     Vec_Ptr_t *     vPoEquivs;     // equivalence classes of isomorphic primary outputs
+    Vec_Int_t *     vAbcObjIds;    // object IDs
     int             Status;                // the status of verification problem (proved=1, disproved=0, undecided=-1)
     int             nFrames;               // the number of time frames completed by BMC
     Vec_Ptr_t *     vPlugInComBinPairs;    // pairs of command and its binary name

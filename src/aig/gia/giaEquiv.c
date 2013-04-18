@@ -724,7 +724,7 @@ int Gia_ManEquivSetColors( Gia_Man_t * p, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-static inline void Gia_ManSpecBuild( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vXorLits, int fDualOut, int fSpeculate, Vec_Int_t * vTrace, Vec_Int_t * vGuide )
+static inline void Gia_ManSpecBuild( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vXorLits, int fDualOut, int fSpeculate, Vec_Int_t * vTrace, Vec_Int_t * vGuide, Vec_Int_t * vMap )
 {
     Gia_Obj_t * pRepr;
     unsigned iLitNew;
@@ -740,7 +740,11 @@ static inline void Gia_ManSpecBuild( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t 
         if ( vTrace )
             Vec_IntPush( vTrace, 1 );
         if ( vGuide == NULL || Vec_IntEntry( vGuide, Vec_IntSize(vTrace)-1 ) )
+        {
+            if ( vMap )  
+                Vec_IntPush( vMap, Gia_ObjId(p, pObj) );
             Vec_IntPush( vXorLits, Gia_ManHashXor(pNew, pObj->Value, iLitNew) );
+        }
     }
     else
     {
@@ -749,29 +753,6 @@ static inline void Gia_ManSpecBuild( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t 
     }
     if ( fSpeculate )
         pObj->Value = iLitNew;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Returns 1 if AIG has dangling nodes.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Gia_ManHasNoEquivs( Gia_Man_t * p )
-{
-    Gia_Obj_t * pObj;
-    int i;
-    if ( p->pReprs == NULL )
-        return 1;
-    Gia_ManForEachObj( p, pObj, i )
-        if ( Gia_ObjReprObj(p, i) != NULL )
-            break;
-    return i == Gia_ManObjNum(p);
 }
 
 /**Function*************************************************************
@@ -785,15 +766,15 @@ int Gia_ManHasNoEquivs( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManSpecReduce_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vXorLits, int fDualOut, int fSpeculate, Vec_Int_t * vTrace, Vec_Int_t * vGuide )
+void Gia_ManSpecReduce_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vXorLits, int fDualOut, int fSpeculate, Vec_Int_t * vTrace, Vec_Int_t * vGuide, Vec_Int_t * vMap )
 {
     if ( ~pObj->Value )
         return;
     assert( Gia_ObjIsAnd(pObj) );
-    Gia_ManSpecReduce_rec( pNew, p, Gia_ObjFanin0(pObj), vXorLits, fDualOut, fSpeculate, vTrace, vGuide );
-    Gia_ManSpecReduce_rec( pNew, p, Gia_ObjFanin1(pObj), vXorLits, fDualOut, fSpeculate, vTrace, vGuide );
+    Gia_ManSpecReduce_rec( pNew, p, Gia_ObjFanin0(pObj), vXorLits, fDualOut, fSpeculate, vTrace, vGuide, vMap );
+    Gia_ManSpecReduce_rec( pNew, p, Gia_ObjFanin1(pObj), vXorLits, fDualOut, fSpeculate, vTrace, vGuide, vMap );
     pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
-    Gia_ManSpecBuild( pNew, p, pObj, vXorLits, fDualOut, fSpeculate, vTrace, vGuide );
+    Gia_ManSpecBuild( pNew, p, pObj, vXorLits, fDualOut, fSpeculate, vTrace, vGuide, vMap );
 }
 
 /**Function*************************************************************
@@ -807,7 +788,7 @@ void Gia_ManSpecReduce_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj, V
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManSpecReduceTrace( Gia_Man_t * p, Vec_Int_t * vTrace )
+Gia_Man_t * Gia_ManSpecReduceTrace( Gia_Man_t * p, Vec_Int_t * vTrace, Vec_Int_t * vMap )
 {
     Vec_Int_t * vXorLits;
     Gia_Man_t * pNew, * pTemp;
@@ -830,9 +811,9 @@ Gia_Man_t * Gia_ManSpecReduceTrace( Gia_Man_t * p, Vec_Int_t * vTrace )
     Gia_ManForEachCi( p, pObj, i )
         pObj->Value = Gia_ManAppendCi(pNew);
     Gia_ManForEachRo( p, pObj, i )
-        Gia_ManSpecBuild( pNew, p, pObj, vXorLits, 0, 1, vTrace, NULL );
+        Gia_ManSpecBuild( pNew, p, pObj, vXorLits, 0, 1, vTrace, NULL, vMap );
     Gia_ManForEachCo( p, pObj, i )
-        Gia_ManSpecReduce_rec( pNew, p, Gia_ObjFanin0(pObj), vXorLits, 0, 1, vTrace, NULL );
+        Gia_ManSpecReduce_rec( pNew, p, Gia_ObjFanin0(pObj), vXorLits, 0, 1, vTrace, NULL, vMap );
     Gia_ManForEachPo( p, pObj, i )
         Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
     Vec_IntForEachEntry( vXorLits, iLitNew, i )
@@ -883,7 +864,7 @@ Gia_Man_t * Gia_ManSpecReduce( Gia_Man_t * p, int fDualOut, int fSynthesis, int 
     if ( fSkipSome )
     {
         vGuide = Vec_IntAlloc( 100 );
-        pTemp  = Gia_ManSpecReduceTrace( p, vGuide );
+        pTemp  = Gia_ManSpecReduceTrace( p, vGuide, NULL );
         Gia_ManStop( pTemp );
         assert( Vec_IntSize(vGuide) == Gia_ManEquivCountLitsAll(p) );
         vTrace = Vec_IntAlloc( 100 );
@@ -901,9 +882,9 @@ Gia_Man_t * Gia_ManSpecReduce( Gia_Man_t * p, int fDualOut, int fSynthesis, int 
     Gia_ManForEachCi( p, pObj, i )
         pObj->Value = Gia_ManAppendCi(pNew);
     Gia_ManForEachRo( p, pObj, i )
-        Gia_ManSpecBuild( pNew, p, pObj, vXorLits, fDualOut, fSpeculate, vTrace, vGuide );
+        Gia_ManSpecBuild( pNew, p, pObj, vXorLits, fDualOut, fSpeculate, vTrace, vGuide, NULL );
     Gia_ManForEachCo( p, pObj, i )
-        Gia_ManSpecReduce_rec( pNew, p, Gia_ObjFanin0(pObj), vXorLits, fDualOut, fSpeculate, vTrace, vGuide );
+        Gia_ManSpecReduce_rec( pNew, p, Gia_ObjFanin0(pObj), vXorLits, fDualOut, fSpeculate, vTrace, vGuide, NULL );
     if ( !fSynthesis )
     {
         Gia_ManForEachPo( p, pObj, i )
@@ -1212,7 +1193,7 @@ void Gia_ManEquivMark( Gia_Man_t * p, char * pFileName, int fSkipSome, int fVerb
     if ( fSkipSome )
     {
         Vec_Int_t * vTrace = Vec_IntAlloc( 100 );
-        pTemp = Gia_ManSpecReduceTrace( p, vTrace );
+        pTemp = Gia_ManSpecReduceTrace( p, vTrace, NULL );
         Gia_ManStop( pTemp );
         assert( Vec_IntSize(vTrace) == nLitsAll );
         // count the number of non-zero entries
@@ -1275,6 +1256,74 @@ void Gia_ManEquivMark( Gia_Man_t * p, char * pFileName, int fSkipSome, int fVerb
     if ( fVerbose )
         Abc_Print( 1, "Set %d equivalences as proved.\n", Counter );
     Gia_ManStop( pMiter );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Transforms equiv classes by filtering those that correspond to disproved outputs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManEquivFilter( Gia_Man_t * p, Vec_Int_t * vPoIds, int fVerbose )
+{
+    Gia_Man_t * pSrm;
+    Vec_Int_t * vTrace, * vMap;
+    int i, iObjId, Entry, Prev = -1;
+    // check if there are equivalences
+    if ( p->pReprs == NULL || p->pNexts == NULL )
+    {
+        Abc_Print( 1, "Gia_ManEquivFilter(): Equivalence classes are not defined.\n" );
+        return;
+    }
+    // check if PO indexes are available
+    if ( vPoIds == NULL )
+    {
+        Abc_Print( 1, "Gia_ManEquivFilter(): Array of disproved POs is not available.\n" );
+        return;
+    }
+    if ( Vec_IntSize(vPoIds) == 0 )
+        return;
+    // create SRM with mapping into POs
+    vMap = Vec_IntAlloc( 1000 );
+    vTrace = Vec_IntAlloc( 1000 );
+    pSrm = Gia_ManSpecReduceTrace( p, vTrace, vMap );
+    // the resulting array (vMap) maps PO indexes of the SRM into object IDs
+    assert( Vec_IntSize(vMap) == Gia_ManPoNum(pSrm) );
+    Vec_IntFree( vTrace );
+    Gia_ManStop( pSrm );
+    // check if disproved POs satisfy the range
+    Vec_IntSort( vPoIds, 0 );
+    Vec_IntForEachEntry( vPoIds, Entry, i )
+    {
+        if ( Entry < 0 || Entry >= Gia_ManPoNum(p) )
+        {
+            Abc_Print( 1, "Gia_ManEquivFilter(): Array of disproved POs contains PO index (%d),\n", Entry );
+            Abc_Print( 1, "which does not fit into the range of available PO indexes of the SRM: [%d; %d].\n", Entry, 0, Vec_IntSize(vMap)-1 );
+            Vec_IntFree( vMap );
+            return;
+        }
+        if ( Prev == Entry )
+        {
+            Abc_Print( 1, "Gia_ManEquivFilter(): Array of disproved POs contains at least one duplicate entry (%d),\n", Entry );
+            Vec_IntFree( vMap );
+            return;
+        }
+        Prev = Entry;
+    }
+    // perform the reduction of the equivalence classes
+    Vec_IntForEachEntry( vPoIds, Entry, i )
+    {
+        iObjId = Vec_IntEntry( vMap, Entry );
+        Gia_ObjUnsetRepr( p, iObjId );
+//        Gia_ObjSetNext( p, iObjId, 0 );
+    }
+    ABC_FREE( p->pNexts );
+    p->pNexts = Gia_ManDeriveNexts( p );
 }
 
 /**Function*************************************************************
@@ -1641,6 +1690,29 @@ ABC_NAMESPACE_IMPL_END
 
 ABC_NAMESPACE_IMPL_START
 
+
+/**Function*************************************************************
+
+  Synopsis    [Returns 1 if AIG has dangling nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManHasNoEquivs( Gia_Man_t * p )
+{
+    Gia_Obj_t * pObj;
+    int i;
+    if ( p->pReprs == NULL )
+        return 1;
+    Gia_ManForEachObj( p, pObj, i )
+        if ( Gia_ObjReprObj(p, i) != NULL )
+            break;
+    return i == Gia_ManObjNum(p);
+}
 
 /**Function*************************************************************
 

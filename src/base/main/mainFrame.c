@@ -65,6 +65,7 @@ int         Abc_FrameReadProbStatus( Abc_Frame_t * p )       { return s_GlobalFr
 Abc_Cex_t * Abc_FrameReadCex( Abc_Frame_t * p )              { return s_GlobalFrame->pCex;         }        
 Vec_Ptr_t * Abc_FrameReadCexVec( Abc_Frame_t * p )           { return s_GlobalFrame->vCexVec;      }        
 Vec_Ptr_t * Abc_FrameReadPoEquivs( Abc_Frame_t * p )         { return s_GlobalFrame->vPoEquivs;    }        
+Vec_Int_t * Abc_FrameReadObjIds( Abc_Frame_t * p )           { return s_GlobalFrame->vAbcObjIds;   }        
        
 int         Abc_FrameReadCexPiNum( Abc_Frame_t * p )         { return s_GlobalFrame->pCex->nPis;   }               
 int         Abc_FrameReadCexRegNum( Abc_Frame_t * p )        { return s_GlobalFrame->pCex->nRegs;  }               
@@ -142,6 +143,7 @@ Abc_Frame_t * Abc_FrameAllocate()
     p->fBatchMode =  0;
     // networks to be used by choice
     p->vStore = Vec_PtrAlloc( 16 );
+    p->vAbcObjIds = Vec_IntAlloc( 0 );
     // initialize decomposition manager
 //    define_cube_size(20);
 //    set_espresso_flags();
@@ -172,6 +174,7 @@ void Abc_FrameDeallocate( Abc_Frame_t * p )
 //    undefine_cube_size();
     Rwt_ManGlobalStop();
 //    Ivy_TruthManStop();
+    if ( p->vAbcObjIds)  Vec_IntFree( p->vAbcObjIds );
     if ( p->vCexVec   )  Vec_PtrFreeFree( p->vCexVec );
     if ( p->vPoEquivs )  Vec_VecFree( (Vec_Vec_t *)p->vPoEquivs );
     if ( p->pLibVer   )  Abc_LibFree( (Abc_Lib_t *)p->pLibVer, NULL );

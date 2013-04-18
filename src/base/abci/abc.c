@@ -354,6 +354,7 @@ static int Abc_CommandAbc9Srm2               ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9Filter             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Reduce             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9EquivMark          ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9EquivFilter        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Cec                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Verify             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Sweep              ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -849,6 +850,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&filter",       Abc_CommandAbc9Filter,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&reduce",       Abc_CommandAbc9Reduce,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&equiv_mark",   Abc_CommandAbc9EquivMark,    0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&equiv_filter", Abc_CommandAbc9EquivFilter,  0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&cec",          Abc_CommandAbc9Cec,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&verify",       Abc_CommandAbc9Verify,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&sweep",        Abc_CommandAbc9Sweep,        0 );
@@ -27518,7 +27520,7 @@ int Abc_CommandAbc9EquivMark( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( pAbc->pGia == NULL )
     {
-        Abc_Print( -1, "Abc_CommandAbc9Reduce(): There is no AIG.\n" );
+        Abc_Print( -1, "Abc_CommandAbc9EquivMark(): There is no AIG.\n" );
         return 1;
     }
     if ( argc != globalUtilOptind + 1 )
@@ -27544,6 +27546,52 @@ usage:
     Abc_Print( -2, "\t              the number of equivalences in the current AIG.\n" );
     Abc_Print( -2, "\t              If some POs are proved, the corresponding equivs\n" );
     Abc_Print( -2, "\t              are marked as proved, to be reduced by &reduce.\n" );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9EquivFilter( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Gia_ManEquivFilter( Gia_Man_t * p, Vec_Int_t * vPoIds, int fVerbose );
+    int c, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9EquivFilter(): There is no AIG.\n" );
+        return 1;
+    }
+    Gia_ManEquivFilter( pAbc->pGia, pAbc->vAbcObjIds, fVerbose );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &equiv_filter [-vh]\n" );
+    Abc_Print( -2, "\t              filters equivalence candidates after disproving some SRM outputs\n" );
+    Abc_Print( -2, "\t              (the array of disproved outputs should be given as pAbc->vAbcObjIds)\n" );
+    Abc_Print( -2, "\t-v          : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h          : print the command usage\n");
     return 1;
 }
 

@@ -320,6 +320,20 @@ PyObject* eq_classes()
     return eq_classes;    
 }
 
+void _pyabc_array_clear()
+{
+    Abc_Frame_t* pAbc = Abc_FrameGetGlobalFrame();
+    Vec_Int_t *vObjIds = Abc_FrameReadObjIds(pAbc);
+    Vec_IntClear( vObjIds );
+}
+
+void _pyabc_array_push(int i)
+{
+    Abc_Frame_t* pAbc = Abc_FrameGetGlobalFrame();
+    Vec_Int_t *vObjIds = Abc_FrameReadObjIds(pAbc);
+    Vec_IntPush( vObjIds, i );
+}
+
 static PyObject* pyabc_internal_python_command_callback = 0;
 
 void pyabc_internal_set_command_callback( PyObject* callback )
@@ -643,6 +657,9 @@ int _cex_get_po(Abc_Cex_t* pCex);
 int _cex_get_frame(Abc_Cex_t* pCex);
 
 PyObject* eq_classes();
+
+void _pyabc_array_clear();
+void _pyabc_array_push(int i);
 
 void pyabc_internal_set_command_callback( PyObject* callback );
 void pyabc_internal_register_command( char * sGroup, char * sName, int fChanges );
@@ -1167,5 +1184,10 @@ def cmd_python(cmd_args):
     return 0
     
 add_abc_command(cmd_python, "Python", "python", 0) 
+
+def create_abc_array(List):
+    _pyabc_array_clear()
+    for ObjId in List:
+        _pyabc_array_push(ObjId)
 
 %}
