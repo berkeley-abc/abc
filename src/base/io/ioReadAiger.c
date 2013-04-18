@@ -423,13 +423,19 @@ Abc_Ntk_t * Io_ReadAiger( char * pFileName, int fCheck )
             uLit0 = atoi( pCur );  while ( *pCur != ' ' && *pCur != '\n' ) pCur++; 
             if ( *pCur == ' ' ) // read initial value
             {
+                int Init;
                 pCur++;
-                if ( atoi( pCur ) == 0 )
+                Init = atoi( pCur );
+                if ( Init == 0 )
                     Abc_LatchSetInit0( Abc_NtkBox(pNtkNew, i) );
-                else if ( atoi( pCur ) == 1 )
+                else if ( Init == 1 )
                     Abc_LatchSetInit1( Abc_NtkBox(pNtkNew, i) );
                 else 
+                {
+                    assert( Init == Abc_Var2Lit(1+Abc_NtkPiNum(pNtkNew)+i, 0) ); 
+                    // unitialized value of the latch is the latch literal according to http://fmv.jku.at/hwmcc11/beyond1.pdf
                     Abc_LatchSetInitDc( Abc_NtkBox(pNtkNew, i) );
+                }
                 while ( *pCur != ' ' && *pCur != '\n' ) pCur++;
             }
             if ( *pCur != '\n' )

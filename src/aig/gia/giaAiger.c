@@ -780,6 +780,7 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fSkipS
             else 
             {
                 assert( Vec_IntEntry(vInits, i) == Abc_Var2Lit(Gia_ObjId(pNew, pObj), 0) );
+                // unitialized value of the latch is the latch literal according to http://fmv.jku.at/hwmcc11/beyond1.pdf
                 pInit[i] = 'X';
             }
         }
