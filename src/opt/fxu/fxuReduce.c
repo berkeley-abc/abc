@@ -97,7 +97,7 @@ int Fxu_PreprocessCubePairs( Fxu_Matrix * p, Vec_Ptr_t * vCovers, int nPairsTota
     {
         ABC_FREE( pnLitsDiff );
         ABC_FREE( pnPairCounters );
-        printf( "The SOPs of the nodes are not cube-free. Run \"bdd; sop\" before \"fx\".\n" );
+        printf( "The SOPs of the nodes contain duplicated cubes. Run \"bdd; sop\" before \"fx\".\n" );
         return 0;
     }
     if ( pnPairCounters[1] != 0 )
