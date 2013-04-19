@@ -97,18 +97,18 @@ int Fxu_PreprocessCubePairs( Fxu_Matrix * p, Vec_Ptr_t * vCovers, int nPairsTota
     {
         ABC_FREE( pnLitsDiff );
         ABC_FREE( pnPairCounters );
-        printf( "The SOPs of the nodes are not cube-ABC_FREE. Run \"bdd; sop\" before \"fx\".\n" );
+        printf( "The SOPs of the nodes are not cube-free. Run \"bdd; sop\" before \"fx\".\n" );
         return 0;
     }
     if ( pnPairCounters[1] != 0 )
     {
         ABC_FREE( pnLitsDiff );
         ABC_FREE( pnPairCounters );
-        printf( "The SOPs of the nodes are not SCC-ABC_FREE. Run \"bdd; sop\" before \"fx\".\n" );
+        printf( "The SOPs of the nodes are not SCC-free. Run \"bdd; sop\" before \"fx\".\n" );
         return 0;
     }
-    assert( pnPairCounters[0] == 0 ); // otherwise, covers are not dup-ABC_FREE
-    assert( pnPairCounters[1] == 0 ); // otherwise, covers are not SCC-ABC_FREE
+    assert( pnPairCounters[0] == 0 ); // otherwise, covers are not dup-free
+    assert( pnPairCounters[1] == 0 ); // otherwise, covers are not SCC-free
     nSum = 0;
     for ( k = 0; k < 2 * nBitsMax; k++ )
     {
@@ -178,7 +178,7 @@ int Fxu_PreprocessCubePairs( Fxu_Matrix * p, Vec_Ptr_t * vCovers, int nPairsTota
   entries as there are different pairs of cubes in the cover: n(n-1)/2.
   Fills out the array pDiffs with the following info: For each cube
   pair, included in the array is the number of literals in both cubes
-  after they are made cube ABC_FREE.]
+  after they are made cube free.]
                
   SideEffects []
 
