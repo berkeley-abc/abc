@@ -249,7 +249,8 @@ void Abc_NtkPrintStats( Abc_Ntk_t * pNtk, int fFactored, int fSaveBest, int fDum
     {
 
         Abc_Print( 1,"  cube =%6d",  Abc_NtkGetCubeNum(pNtk) );
-//        Abc_Print( 1,"  lit(sop) = %5d",  Abc_NtkGetLitNum(pNtk) );
+        if ( fFactored )
+            Abc_Print( 1,"  lit(sop) =%6d",  Abc_NtkGetLitNum(pNtk) );
         if ( fFactored )
             Abc_Print( 1,"  lit(fac) =%6d",  Abc_NtkGetLitFactNum(pNtk) );
     }
