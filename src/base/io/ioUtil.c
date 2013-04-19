@@ -229,9 +229,9 @@ Abc_Ntk_t * Io_Read( char * pFileName, Io_FileType_t FileType, int fCheck )
     Vec_Ptr_t * vLtl;
     // get the netlist
     pNtk = Io_ReadNetlist( pFileName, FileType, fCheck );
-    vLtl = temporaryLtlStore( pNtk );
     if ( pNtk == NULL )
         return NULL;
+    vLtl = temporaryLtlStore( pNtk );
     if ( !Abc_NtkIsNetlist(pNtk) )
         return pNtk;
     // flatten logic hierarchy

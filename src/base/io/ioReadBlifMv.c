@@ -143,7 +143,7 @@ Abc_Ntk_t * Io_ReadBlifMv( char * pFileName, int fBlifMv, int fCheck )
 {
     FILE * pFile;
     Io_MvMan_t * p;
-    Abc_Ntk_t * pNtk;
+    Abc_Ntk_t * pNtk, * pExdc;
     Abc_Lib_t * pDesign = NULL; 
     char * pDesignName;
     int RetValue, i;
@@ -204,6 +204,23 @@ Abc_Ntk_t * Io_ReadBlifMv( char * pFileName, int fBlifMv, int fCheck )
     }
 
 //Abc_LibPrint( pDesign );
+
+    // check if there is an EXDC network
+    if ( Vec_PtrSize(pDesign->vModules) > 1 )
+    {
+        pNtk = (Abc_Ntk_t *)Vec_PtrEntry(pDesign->vModules, 0);
+        Vec_PtrForEachEntryStart( Abc_Ntk_t *, pDesign->vModules, pExdc, i, 1 )
+            if ( !strcmp(pExdc->pName, "exdc") )
+            {
+                assert( pNtk->pExdc == NULL );
+                pNtk->pExdc = pExdc;
+                Vec_PtrRemove(pDesign->vModules, pExdc);
+                pExdc->pDesign = NULL;
+                i--;
+            }
+            else
+                pNtk = pExdc;
+    }
 
     // detect top-level model
     RetValue = Abc_LibFindTopLevelModels( pDesign );
@@ -661,11 +678,12 @@ static void Io_MvReadPreparse( Io_MvMan_t * p )
         }
         else if ( !strncmp(pCur, "exdc", 4) )
         {
-            fprintf( stdout, "Line %d: Skipping EXDC network.\n", Io_MvGetLine(p, pCur) );
-//            break;
+            fprintf( stdout, "Line %d: The design contains EXDC network (warning only).\n", Io_MvGetLine(p, pCur) );
             if ( p->pLatest )
                 Vec_PtrPush( p->vModels, p->pLatest );
-            p->pLatest = NULL;
+            p->pLatest = Io_MvModAlloc();
+            p->pLatest->pName = NULL;
+            p->pLatest->pMan = p;
         }
         else if ( !strncmp(pCur, "attrib", 6) )
         {}
@@ -907,6 +925,12 @@ static int Io_MvParseLineModel( Io_MvMod_t * p, char * pLine )
 {
     Vec_Ptr_t * vTokens = p->pMan->vTokens;
     char * pToken, * pPivot;
+    if ( pLine == NULL )
+    {
+        p->pNtk = Abc_NtkAlloc( ABC_NTK_NETLIST, ABC_FUNC_SOP, 1 );
+        p->pNtk->pName = Extra_UtilStrsav( "exdc" );
+        return 1;
+    }
     Io_MvSplitIntoTokens( vTokens, pLine, '\0' );
     pToken = (char *)Vec_PtrEntry( vTokens, 0 );
     assert( !strcmp(pToken, "model") );
