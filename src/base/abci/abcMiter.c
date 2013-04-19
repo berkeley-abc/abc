@@ -60,7 +60,7 @@ Abc_Ntk_t * Abc_NtkMiter( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fComb, int n
     assert( Abc_NtkHasOnlyLatchBoxes(pNtk1) );
     assert( Abc_NtkHasOnlyLatchBoxes(pNtk2) );
     // check that the networks have the same PIs/POs/latches
-    if ( !Abc_NtkCompareSignals( pNtk1, pNtk2, 0, fComb ) )
+    if ( !Abc_NtkCompareSignals( pNtk1, pNtk2, fImplic, fComb ) )
         return NULL;
     // make sure the circuits are strashed 
     fRemove1 = (!Abc_NtkIsStrash(pNtk1) || Abc_NtkGetChoiceNum(pNtk1)) && (pNtk1 = Abc_NtkStrash(pNtk1, 0, 0, 0));

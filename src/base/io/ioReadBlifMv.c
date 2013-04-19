@@ -210,7 +210,7 @@ Abc_Ntk_t * Io_ReadBlifMv( char * pFileName, int fBlifMv, int fCheck )
     {
         pNtk = (Abc_Ntk_t *)Vec_PtrEntry(pDesign->vModules, 0);
         Vec_PtrForEachEntryStart( Abc_Ntk_t *, pDesign->vModules, pExdc, i, 1 )
-            if ( !strcmp(pExdc->pName, "exdc") )
+            if ( !strcmp(pExdc->pName, "EXDC") )
             {
                 assert( pNtk->pExdc == NULL );
                 pNtk->pExdc = pExdc;
@@ -678,7 +678,8 @@ static void Io_MvReadPreparse( Io_MvMan_t * p )
         }
         else if ( !strncmp(pCur, "exdc", 4) )
         {
-            fprintf( stdout, "Line %d: The design contains EXDC network (warning only).\n", Io_MvGetLine(p, pCur) );
+//            fprintf( stdout, "Line %d: The design contains EXDC network (warning only).\n", Io_MvGetLine(p, pCur) );
+            fprintf( stdout, "Warning: The design contains EXDC network.\n" );
             if ( p->pLatest )
                 Vec_PtrPush( p->vModels, p->pLatest );
             p->pLatest = Io_MvModAlloc();
@@ -928,7 +929,7 @@ static int Io_MvParseLineModel( Io_MvMod_t * p, char * pLine )
     if ( pLine == NULL )
     {
         p->pNtk = Abc_NtkAlloc( ABC_NTK_NETLIST, ABC_FUNC_SOP, 1 );
-        p->pNtk->pName = Extra_UtilStrsav( "exdc" );
+        p->pNtk->pName = Extra_UtilStrsav( "EXDC" );
         return 1;
     }
     Io_MvSplitIntoTokens( vTokens, pLine, '\0' );

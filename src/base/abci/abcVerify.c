@@ -125,8 +125,31 @@ void Abc_NtkCecFraig( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, int fV
     Prove_Params_t Params, * pParams = &Params;
 //    Fraig_Params_t Params;
 //    Fraig_Man_t * pMan;
-    Abc_Ntk_t * pMiter;
+    Abc_Ntk_t * pMiter, * pTemp;
+    Abc_Ntk_t * pExdc = NULL;
     int RetValue;
+
+    if ( pNtk1->pExdc != NULL || pNtk2->pExdc != NULL )
+    {
+        if ( pNtk1->pExdc != NULL && pNtk2->pExdc != NULL )
+        {
+            printf( "Comparing EXDC of the two networks:\n" );
+            Abc_NtkCecFraig( pNtk1->pExdc, pNtk2->pExdc, nSeconds, fVerbose );
+            printf( "Comparing networks under EXDC of the first network.\n" );
+            pExdc = pNtk1->pExdc;
+        }
+        else if ( pNtk1->pExdc != NULL )
+        {
+            printf( "Second network has no EXDC. Comparing main networks under EXDC of the first network.\n" );
+            pExdc = pNtk1->pExdc;
+        }
+        else if ( pNtk2->pExdc != NULL ) 
+        {
+            printf( "First network has no EXDC. Comparing main networks under EXDC of the second network.\n" );
+            pExdc = pNtk2->pExdc;
+        }
+        else assert( 0 );
+    }
 
     // get the miter of the two networks
     pMiter = Abc_NtkMiter( pNtk1, pNtk2, 1, 0, 0, 0 );
@@ -135,6 +158,15 @@ void Abc_NtkCecFraig( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, int fV
         printf( "Miter computation has failed.\n" );
         return;
     }
+    // add EXDC to the miter
+    if ( pExdc )
+    {
+        assert( Abc_NtkPoNum(pMiter) == 1 );
+        assert( Abc_NtkPoNum(pExdc) == 1 );
+        pMiter = Abc_NtkMiter( pTemp = pMiter, pExdc, 1, 0, 1, 0 );
+        Abc_NtkDelete( pTemp );
+    }
+    // handle trivial case
     RetValue = Abc_NtkMiterIsConstant( pMiter );
     if ( RetValue == 0 )
     {
