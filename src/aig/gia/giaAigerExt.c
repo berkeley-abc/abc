@@ -301,17 +301,20 @@ Vec_Str_t * Gia_AigerWriteMappingDoc( Gia_Man_t * p )
 ***********************************************************************/
 Vec_Int_t * Gia_AigerReadPacking( unsigned char ** ppPos, int nSize )
 {
-    Vec_Int_t * vPacking = Vec_IntStart( nSize/4 );
+    Vec_Int_t * vPacking = Vec_IntAlloc( nSize/4 );
+    int i;
     assert( nSize % 4 == 0 );
-    memcpy( Vec_IntArray(vPacking), *ppPos, nSize );
-    *ppPos += nSize;
+    for ( i = 0; i < nSize/4; i++, *ppPos += 4 )
+        Vec_IntPush( vPacking, Gia_AigerReadInt( *ppPos ) );
     return vPacking;
 }
 Vec_Str_t * Gia_WritePacking( Vec_Int_t * vPacking )
 {
-    Vec_Str_t * vBuffer = Vec_StrStart( 4*Vec_IntSize(vPacking) );
-    memcpy( Vec_StrArray(vBuffer), Vec_IntArray(vPacking), 4*Vec_IntSize(vPacking) );
-    return vBuffer;
+    unsigned char * pBuffer = ABC_ALLOC( unsigned char, 4*Vec_IntSize(vPacking) );
+    int i, Entry, nSize = 0;
+    Vec_IntForEachEntry( vPacking, Entry, i )
+        Gia_AigerWriteInt( pBuffer + 4 * nSize++, Entry );
+    return Vec_StrAllocArray( (char *)pBuffer, 4*Vec_IntSize(vPacking) );
 }
 
 ////////////////////////////////////////////////////////////////////////
