@@ -1292,21 +1292,26 @@ void Gia_ManEquivFilter( Gia_Man_t * p, Vec_Int_t * vPoIds, int fVerbose )
     vMap = Vec_IntAlloc( 1000 );
     vTrace = Vec_IntAlloc( 1000 );
     pSrm = Gia_ManSpecReduceTrace( p, vTrace, vMap );
-    // the resulting array (vMap) maps PO indexes of the SRM into object IDs
-    assert( Vec_IntSize(vMap) == Gia_ManPoNum(pSrm) );
     Vec_IntFree( vTrace );
+    // the resulting array (vMap) maps PO indexes of the SRM into object IDs
+    assert( Gia_ManPoNum(pSrm) == Gia_ManPoNum(p) + Vec_IntSize(vMap) );
     Gia_ManStop( pSrm );
+    if ( fVerbose )
+        printf( "Design POs = %d. SRM POs = %d. Spec POs = %d. Disproved POs = %d.\n", 
+            Gia_ManPoNum(p), Gia_ManPoNum(p) + Vec_IntSize(vMap), Vec_IntSize(vMap), Vec_IntSize(vPoIds) );
     // check if disproved POs satisfy the range
     Vec_IntSort( vPoIds, 0 );
     Vec_IntForEachEntry( vPoIds, Entry, i )
     {
-        if ( Entry < 0 || Entry >= Gia_ManPoNum(p) )
+        if ( Entry < 0 || Entry >= Gia_ManPoNum(p) + Vec_IntSize(vMap) )
         {
             Abc_Print( 1, "Gia_ManEquivFilter(): Array of disproved POs contains PO index (%d),\n", Entry );
-            Abc_Print( 1, "which does not fit into the range of available PO indexes of the SRM: [%d; %d].\n", Entry, 0, Vec_IntSize(vMap)-1 );
+            Abc_Print( 1, "which does not fit into the range of available PO indexes of the SRM: [%d; %d].\n", 0, Gia_ManPoNum(p) + Vec_IntSize(vMap)-1 );
             Vec_IntFree( vMap );
             return;
         }
+        if ( Entry < Gia_ManPoNum(p) )
+            Abc_Print( 0, "Gia_ManEquivFilter(): One of the original POs (%d) have failed.\n", Entry );
         if ( Prev == Entry )
         {
             Abc_Print( 1, "Gia_ManEquivFilter(): Array of disproved POs contains at least one duplicate entry (%d),\n", Entry );
@@ -1318,12 +1323,41 @@ void Gia_ManEquivFilter( Gia_Man_t * p, Vec_Int_t * vPoIds, int fVerbose )
     // perform the reduction of the equivalence classes
     Vec_IntForEachEntry( vPoIds, Entry, i )
     {
-        iObjId = Vec_IntEntry( vMap, Entry );
+        if ( Entry < Gia_ManPoNum(p) )
+            continue;
+        iObjId = Vec_IntEntry( vMap, Entry - Gia_ManPoNum(p) );
         Gia_ObjUnsetRepr( p, iObjId );
 //        Gia_ObjSetNext( p, iObjId, 0 );
     }
+    Vec_IntFree( vMap );
     ABC_FREE( p->pNexts );
     p->pNexts = Gia_ManDeriveNexts( p );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Transforms equiv classes by filtering those that correspond to disproved outputs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManEquivFilterTest( Gia_Man_t * p )
+{
+    Vec_Int_t * vPoIds;
+    int i;
+    vPoIds = Vec_IntAlloc( 1000 );
+    for ( i = 0; i < 10; i++ )
+    {
+        Vec_IntPush( vPoIds, Gia_ManPoNum(p) + 2 * i + 2 );
+        printf( "%d ", Gia_ManPoNum(p) + 2*i + 2 );
+    }
+    printf( "\n" );
+    Gia_ManEquivFilter( p, vPoIds, 1 );
+    Vec_IntFree( vPoIds );
 }
 
 /**Function*************************************************************
