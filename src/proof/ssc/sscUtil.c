@@ -45,7 +45,7 @@ struct Hsh_Man_t_
     int              nTableSize;
 };
 
-static inline int *        Hsh_ObjData( Hsh_Man_t * p, int iThis )      { return p->pData + p->nSize * iThis;         }
+static inline unsigned *   Hsh_ObjData( Hsh_Man_t * p, int iThis )      { return p->pData + p->nSize * iThis;         }
 static inline Hsh_Obj_t *  Hsh_ObjGet( Hsh_Man_t * p, int iObj )        { return iObj == -1 ? NULL : p->pObjs + iObj;  }
 
 ////////////////////////////////////////////////////////////////////////
@@ -104,10 +104,10 @@ static inline int Hsh_ManHash( unsigned * pData, int nSize, int nTableSize )
 int Hsh_ManAdd( Hsh_Man_t * p, int iThis )
 {
     Hsh_Obj_t * pObj;
-    int * pThis = Hsh_ObjData( p, iThis );
+    unsigned * pThis = Hsh_ObjData( p, iThis );
     int * pPlace = p->pTable + Hsh_ManHash( pThis, p->nSize, p->nTableSize );
     for ( pObj = Hsh_ObjGet(p, *pPlace); pObj; pObj = Hsh_ObjGet(p, pObj->iNext) )
-        if ( !memcmp( pThis, Hsh_ObjData(p, pObj->iThis), sizeof(int) * p->nSize ) )
+        if ( !memcmp( pThis, Hsh_ObjData(p, pObj->iThis), sizeof(unsigned) * p->nSize ) )
             return pObj - p->pObjs;
     assert( p->nObjs < p->nTableSize );
     pObj = p->pObjs + p->nObjs;
