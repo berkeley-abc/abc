@@ -127,7 +127,7 @@ int Hsh_ManAdd( Hsh_Man_t * p, int iThis )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Hsh_ManHashData( int * pData, int nDatas, int nSize, int nInts )
+Vec_Int_t * Hsh_ManHashData( unsigned * pData, int nDatas, int nSize, int nInts )
 {
     Vec_Int_t * vRes;
     Hsh_Man_t * p;
