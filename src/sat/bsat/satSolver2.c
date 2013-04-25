@@ -1638,7 +1638,7 @@ void sat_solver2_rollback( sat_solver2* s )
     //    s->cap                    = 0;
         s->qhead                  = 0;
         s->qtail                  = 0;
-#ifdef USE_FLOAT_ACTIVITY
+#ifdef USE_FLOAT_ACTIVITY2
         s->var_inc                = 1;
         s->cla_inc                = 1;
         s->var_decay              = (float)(1 / 0.95  );
@@ -1689,7 +1689,7 @@ double sat_solver2_memory( sat_solver2* s, int fAll )
     Mem += s->cap * sizeof(varinfo2); // ABC_FREE(s->vi       );
     Mem += s->cap * sizeof(int);      // ABC_FREE(s->levels   );
     Mem += s->cap * sizeof(char);     // ABC_FREE(s->assigns  );
-#ifdef USE_FLOAT_ACTIVITY
+#ifdef USE_FLOAT_ACTIVITY2
     Mem += s->cap * sizeof(double);   // ABC_FREE(s->activity );
 #else
     Mem += s->cap * sizeof(unsigned); // ABC_FREE(s->activity );

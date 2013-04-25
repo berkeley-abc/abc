@@ -47,6 +47,7 @@ extern void        sat_solver_delete(sat_solver* s);
 extern int         sat_solver_addclause(sat_solver* s, lit* begin, lit* end);
 extern int         sat_solver_simplify(sat_solver* s);
 extern int         sat_solver_solve(sat_solver* s, lit* begin, lit* end, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimit, ABC_INT64_T nConfLimitGlobal, ABC_INT64_T nInsLimitGlobal);
+extern void        sat_solver_restart( sat_solver* s );
 extern void        sat_solver_rollback( sat_solver* s );
 
 extern int         sat_solver_nvars(sat_solver* s);
@@ -101,6 +102,11 @@ struct sat_solver_t
     veci*       wlists;        // watcher lists
     veci        act_clas;      // contain clause activities
 
+    // rollback
+    int         iVarPivot;     // the pivot for variables
+    int         iTrailPivot;   // the pivot for trail
+    int         hProofPivot;   // the pivot for proof records
+
     // activities
 #ifdef USE_FLOAT_ACTIVITY
     double      var_inc;       // Amount to bump next variable with.
@@ -110,8 +116,10 @@ struct sat_solver_t
     double*     activity;      // A heuristic measurement of the activity of a variable.
 #else
     int         var_inc;       // Amount to bump next variable with.
+    int         var_inc2;      // Amount to bump next variable with.
     int         cla_inc;       // Amount to bump next clause with.
     unsigned*   activity;      // A heuristic measurement of the activity of a variable.
+    unsigned*   activity2;     // backup variable activity
 #endif
 
 //    varinfo *   vi;            // variable information
@@ -225,6 +233,19 @@ static int sat_solver_set_random(sat_solver* s, int fNotUseRandom)
     int fNotUseRandomOld = s->fNotUseRandom;
     s->fNotUseRandom = fNotUseRandom;
     return fNotUseRandomOld;
+}
+
+static inline void sat_solver_bookmark(sat_solver* s)
+{
+    assert( s->qhead == s->qtail );
+    s->iVarPivot    = s->size;
+    s->iTrailPivot  = s->qhead;
+    Sat_MemBookMark( &s->Mem );
+    if ( s->activity2 )
+    {
+        s->var_inc2 = s->var_inc;
+        memcpy( s->activity2, s->activity, sizeof(unsigned) * s->iVarPivot );
+    }
 }
 
 static inline int sat_solver_add_const( sat_solver * pSat, int iVar, int fCompl )

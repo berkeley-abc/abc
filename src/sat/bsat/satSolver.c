@@ -531,6 +531,26 @@ static void sat_solver_canceluntil(sat_solver* s, int level) {
     veci_resize(&s->trail_lim,level);
 }
 
+static void sat_solver_canceluntil_rollback(sat_solver* s, int NewBound) {
+    int      c, x;
+   
+    assert( sat_solver_dl(s) == 0 );
+    assert( s->qtail == s->qhead );
+    assert( s->qtail >= NewBound );
+
+    for (c = s->qtail-1; c >= NewBound; c--) 
+    {
+        x = lit_var(s->trail[c]);
+        var_set_value(s, x, varX);
+        s->reasons[x] = 0;
+    }
+
+    for (c = s->qhead-1; c >= NewBound; c--)
+        order_unassigned(s,lit_var(s->trail[c]));
+
+    s->qhead = s->qtail = NewBound;
+}
+
 static void sat_solver_record(sat_solver* s, veci* cls)
 {
     lit*    begin = veci_begin(cls);
@@ -1011,6 +1031,7 @@ void sat_solver_setnvars(sat_solver* s,int n)
         s->activity  = ABC_REALLOC(double,   s->activity, s->cap);
 #else
         s->activity  = ABC_REALLOC(unsigned, s->activity, s->cap);
+        s->activity2 = ABC_REALLOC(unsigned, s->activity2,s->cap);
 #endif
         if ( s->factors )
         s->factors   = ABC_REALLOC(double, s->factors,  s->cap);
@@ -1084,6 +1105,7 @@ void sat_solver_delete(sat_solver* s)
         ABC_FREE(s->polarity );
         ABC_FREE(s->tags     );
         ABC_FREE(s->activity );
+        ABC_FREE(s->activity2);
         ABC_FREE(s->factors  );
         ABC_FREE(s->orderpos );
         ABC_FREE(s->reasons  );
@@ -1095,7 +1117,7 @@ void sat_solver_delete(sat_solver* s)
     ABC_FREE(s);
 }
 
-void sat_solver_rollback( sat_solver* s )
+void sat_solver_restart( sat_solver* s )
 {
     int i;
     Sat_MemRestart( &s->Mem );
@@ -1160,6 +1182,8 @@ double sat_solver_memory( sat_solver* s )
     Mem += s->cap * sizeof(double);   // ABC_FREE(s->activity );
 #else
     Mem += s->cap * sizeof(unsigned); // ABC_FREE(s->activity );
+    if ( s->activity2 )
+    Mem += s->cap * sizeof(unsigned); // ABC_FREE(s->activity2);
 #endif
     if ( s->factors )
     Mem += s->cap * sizeof(double);   // ABC_FREE(s->factors  );
@@ -1304,6 +1328,99 @@ void sat_solver_reducedb(sat_solver* s)
     Abc_PrintTime( 1, "Time", TimeTotal );
     }
 }
+
+
+// reverses to the previously bookmarked point
+void sat_solver_rollback( sat_solver* s )
+{
+    Sat_Mem_t * pMem = &s->Mem;
+    int i, k, j;
+    static int Count = 0;
+    Count++;
+    assert( s->iVarPivot >= 0 && s->iVarPivot <= s->size );
+    assert( s->iTrailPivot >= 0 && s->iTrailPivot <= s->qtail );
+    // reset implication queue
+    sat_solver_canceluntil_rollback( s, s->iTrailPivot );
+    // update order 
+    if ( s->iVarPivot < s->size )
+    { 
+        if ( s->activity2 )
+        {
+            s->var_inc = s->var_inc2;
+            memcpy( s->activity, s->activity2, sizeof(unsigned) * s->iVarPivot );
+        }
+        veci_resize(&s->order, 0);
+        for ( i = 0; i < s->iVarPivot; i++ )
+        {
+            if ( var_value(s, i) != varX )
+                continue;
+            s->orderpos[i] = veci_size(&s->order);
+            veci_push(&s->order,i);
+            order_update(s, i);
+        }
+    }
+    // compact watches
+    for ( i = 0; i < s->iVarPivot*2; i++ )
+    {
+        cla* pArray = veci_begin(&s->wlists[i]);
+        for ( j = k = 0; k < veci_size(&s->wlists[i]); k++ )
+            if ( Sat_MemClauseUsed(pMem, pArray[k]) )
+                pArray[j++] = pArray[k];
+        veci_resize(&s->wlists[i],j);
+    }
+    // reset watcher lists
+    for ( i = 2*s->iVarPivot; i < 2*s->size; i++ )
+        s->wlists[i].size = 0;
+
+    // reset clause counts
+    s->stats.clauses = pMem->BookMarkE[0];
+    s->stats.learnts = pMem->BookMarkE[1];
+    // rollback clauses
+    Sat_MemRollBack( pMem );
+
+    // resize learned arrays
+    veci_resize(&s->act_clas,  s->stats.learnts);
+
+    // initialize other vars
+    s->size = s->iVarPivot;
+    if ( s->size == 0 )
+    {
+    //    s->size                   = 0;
+    //    s->cap                    = 0;
+        s->qhead                  = 0;
+        s->qtail                  = 0;
+#ifdef USE_FLOAT_ACTIVITY
+        s->var_inc                = 1;
+        s->cla_inc                = 1;
+        s->var_decay              = (float)(1 / 0.95  );
+        s->cla_decay              = (float)(1 / 0.999 );
+#else
+        s->var_inc                = (1 <<  5);
+        s->cla_inc                = (1 << 11);
+#endif
+        s->root_level             = 0;
+        s->random_seed            = 91648253;
+        s->progress_estimate      = 0;
+        s->verbosity              = 0;
+
+        s->stats.starts           = 0;
+        s->stats.decisions        = 0;
+        s->stats.propagations     = 0;
+        s->stats.inspects         = 0;
+        s->stats.conflicts        = 0;
+        s->stats.clauses          = 0;
+        s->stats.clauses_literals = 0;
+        s->stats.learnts          = 0;
+        s->stats.learnts_literals = 0;
+        s->stats.tot_literals     = 0;
+
+        // initialize rollback
+        s->iVarPivot              =  0; // the pivot for variables
+        s->iTrailPivot            =  0; // the pivot for trail
+        s->hProofPivot            =  1; // the pivot for proof records
+    }
+}
+
 
 int sat_solver_addclause(sat_solver* s, lit* begin, lit* end)
 {
