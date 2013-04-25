@@ -167,6 +167,12 @@ struct Gia_Man_t_
     int            iData2;        // various user data
     int            nAnd2Delay;    // AND2 delay scaled to match delay numbers used
     int            fVerbose;      // verbose reports
+    // bit-parallel simulation
+    int            iPatsPi;
+    Vec_Wrd_t *    vSims;
+    Vec_Wrd_t *    vSimsPi;
+    Vec_Int_t *    vClassOld;
+    Vec_Int_t *    vClassNew;
     // truth table computation for small functions
     int            nTtVars;       // truth table variables
     int            nTtWords;      // truth table words
@@ -379,7 +385,7 @@ static inline int          Gia_ObjFanin1CopyF( Gia_Man_t * p, int f, Gia_Obj_t *
 
 static inline Gia_Obj_t *  Gia_ObjFromLit( Gia_Man_t * p, int iLit )           { return Gia_NotCond( Gia_ManObj(p, Abc_Lit2Var(iLit)), Abc_LitIsCompl(iLit) );  }
 static inline int          Gia_ObjToLit( Gia_Man_t * p, Gia_Obj_t * pObj )     { return Abc_Var2Lit( Gia_ObjId(p, Gia_Regular(pObj)), Gia_IsComplement(pObj) ); }
-static inline int          Gia_ObjPhaseRealLit( Gia_Man_t * p, int iLit )      { return Gia_ObjPhaseReal( Gia_ObjFromLit(p, iLit) );        }
+static inline int          Gia_ObjPhaseRealLit( Gia_Man_t * p, int iLit )      { return Gia_ObjPhaseReal( Gia_ObjFromLit(p, iLit) );                            }
 
 static inline int          Gia_ObjLevelId( Gia_Man_t * p, int Id )             { return Vec_IntGetEntry(p->vLevels, Id);                    }
 static inline int          Gia_ObjLevel( Gia_Man_t * p, Gia_Obj_t * pObj )     { return Gia_ObjLevelId( p, Gia_ObjId(p,pObj) );             }
@@ -422,6 +428,11 @@ static inline void         Gia_ObjSetTimeSlack( Gia_Man_t * p, int Id, float t )
 static inline void         Gia_ObjSetTimeArrivalObj( Gia_Man_t * p, Gia_Obj_t * pObj, float t )  { Gia_ObjSetTimeArrival( p, Gia_ObjId(p, pObj), t );                               }
 static inline void         Gia_ObjSetTimeRequiredObj( Gia_Man_t * p, Gia_Obj_t * pObj, float t ) { Gia_ObjSetTimeRequired( p, Gia_ObjId(p, pObj), t );                              }
 static inline void         Gia_ObjSetTimeSlackObj( Gia_Man_t * p, Gia_Obj_t * pObj, float t )    { Gia_ObjSetTimeSlack( p, Gia_ObjId(p, pObj), t );                                 }
+
+static inline int          Gia_ObjSimWords( Gia_Man_t * p )                    { return Vec_WrdSize( p->vSimsPi ) / Gia_ManPiNum( p );          }
+static inline word *       Gia_ObjSimPi( Gia_Man_t * p, int PiId )             { return Vec_WrdEntryP( p->vSimsPi, PiId * Gia_ObjSimWords(p) ); }
+static inline word *       Gia_ObjSim( Gia_Man_t * p, int Id )                 { return Vec_WrdEntryP( p->vSims, Id * Gia_ObjSimWords(p) );     }
+static inline word *       Gia_ObjSimObj( Gia_Man_t * p, Gia_Obj_t * pObj )    { return Gia_ObjSim( p, Gia_ObjId(p, pObj) );                    }
 
 // AIG construction
 extern void Gia_ObjAddFanout( Gia_Man_t * p, Gia_Obj_t * pObj, Gia_Obj_t * pFanout );
@@ -755,6 +766,8 @@ static inline int         Gia_ObjLutFanin( Gia_Man_t * p, int Id, int i )   { re
     for ( i = p->nObjs - 1; (i > 0) && ((pObj) = Gia_ManObj(p, i)); i-- )
 #define Gia_ManForEachAnd( p, pObj, i )                                 \
     for ( i = 0; (i < p->nObjs) && ((pObj) = Gia_ManObj(p, i)); i++ )      if ( !Gia_ObjIsAnd(pObj) ) {} else
+#define Gia_ManForEachCand( p, pObj, i )                                 \
+    for ( i = 0; (i < p->nObjs) && ((pObj) = Gia_ManObj(p, i)); i++ )      if ( !Gia_ObjIsCand(pObj) ) {} else
 #define Gia_ManForEachAndReverse( p, pObj, i )                          \
     for ( i = p->nObjs - 1; (i > 0) && ((pObj) = Gia_ManObj(p, i)); i-- )  if ( !Gia_ObjIsAnd(pObj) ) {} else
 #define Gia_ManForEachCi( p, pObj, i )                                  \
@@ -837,6 +850,7 @@ extern Gia_Man_t *         Gia_ManDupCycled( Gia_Man_t * pAig, int nFrames );
 extern Gia_Man_t *         Gia_ManDup( Gia_Man_t * p );  
 extern Gia_Man_t *         Gia_ManDupPerm( Gia_Man_t * p, Vec_Int_t * vPiPerm );
 extern void                Gia_ManDupAppend( Gia_Man_t * p, Gia_Man_t * pTwo );
+extern void                Gia_ManDupAppendShare( Gia_Man_t * p, Gia_Man_t * pTwo );
 extern Gia_Man_t *         Gia_ManDupAppendNew( Gia_Man_t * pOne, Gia_Man_t * pTwo );
 extern Gia_Man_t *         Gia_ManDupSelf( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManDupFlopClass( Gia_Man_t * p, int iClass );
@@ -859,6 +873,7 @@ extern Gia_Man_t *         Gia_ManTransformMiter( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManChoiceMiter( Vec_Ptr_t * vGias );
 extern Gia_Man_t *         Gia_ManDupWithConstraints( Gia_Man_t * p, Vec_Int_t * vPoTypes );
 extern Gia_Man_t *         Gia_ManDupCones( Gia_Man_t * p, int * pPos, int nPos, int fTrimPis );
+extern Gia_Man_t *         Gia_ManDupOneHot( Gia_Man_t * p );
 /*=== giaEnable.c ==========================================================*/
 extern void                Gia_ManDetectSeqSignals( Gia_Man_t * p, int fSetReset, int fVerbose );
 extern Gia_Man_t *         Gia_ManUnrollAndCofactor( Gia_Man_t * p, int nFrames, int nFanMax, int fVerbose );
@@ -921,6 +936,7 @@ extern int                 Gia_ManHashAndTry( Gia_Man_t * p, int iLit0, int iLit
 extern Gia_Man_t *         Gia_ManRehash( Gia_Man_t * p, int fAddStrash );
 extern void                Gia_ManHashProfile( Gia_Man_t * p );
 extern int                 Gia_ManHashLookup( Gia_Man_t * p, Gia_Obj_t * p0, Gia_Obj_t * p1 );
+extern int                 Gia_ManHashAndMulti( Gia_Man_t * p, Vec_Int_t * vLits );
 /*=== giaIf.c ===========================================================*/
 extern void                Gia_ManPrintMappingStats( Gia_Man_t * p );
 extern void                Gia_ManPrintPackingStats( Gia_Man_t * p );
@@ -1015,7 +1031,7 @@ extern int                 Gia_SweeperCheckEquiv( Gia_Man_t * p, int ProbeId1, i
 extern Gia_Man_t *         Gia_SweeperExtractUserLogic( Gia_Man_t * p, Vec_Int_t * vProbeIds, Vec_Ptr_t * vInNames, Vec_Ptr_t * vOutNames );
 extern Gia_Man_t *         Gia_SweeperCleanup( Gia_Man_t * p, char * pCommLime );
 extern Vec_Int_t *         Gia_SweeperGraft( Gia_Man_t * pDst, Vec_Int_t * vProbes, Gia_Man_t * pSrc );
-extern Vec_Int_t *         Gia_SweeperFraig( Gia_Man_t * p, Vec_Int_t * vProbeIds, char * pCommLime );
+extern Vec_Int_t *         Gia_SweeperFraig( Gia_Man_t * p, Vec_Int_t * vProbeIds, char * pCommLime, int nWords, int nConfs, int fVerbose );
 /*=== giaSwitch.c ============================================================*/
 extern float               Gia_ManEvaluateSwitching( Gia_Man_t * p );
 extern float               Gia_ManComputeSwitching( Gia_Man_t * p, int nFrames, int nPref, int fProbOne );
@@ -1075,6 +1091,7 @@ extern void                Gia_ObjPrint( Gia_Man_t * p, Gia_Obj_t * pObj );
 extern void                Gia_ManPrint( Gia_Man_t * p );
 extern void                Gia_ManPrintCo( Gia_Man_t * p, Gia_Obj_t * pObj );
 extern void                Gia_ManInvertConstraints( Gia_Man_t * pAig );
+extern void                Gia_ManInvertPos( Gia_Man_t * pAig );
 extern int                 Gia_ManCompare( Gia_Man_t * p1, Gia_Man_t * p2 );
 extern void                Gia_ManMarkFanoutDrivers( Gia_Man_t * p );
 

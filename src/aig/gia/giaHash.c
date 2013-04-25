@@ -625,6 +625,37 @@ Gia_Man_t * Gia_ManRehash( Gia_Man_t * p, int fAddStrash )
 }
 
 
+/**Function*************************************************************
+
+  Synopsis    [Creates well-balanced AND gate.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManHashAndMulti( Gia_Man_t * p, Vec_Int_t * vLits )
+{
+    if ( Vec_IntSize(vLits) == 0 )
+        return 0;
+    while ( Vec_IntSize(vLits) > 1 )
+    {
+        int i, k = 0, Lit1, Lit2, LitRes;
+        Vec_IntForEachEntryDouble( vLits, Lit1, Lit2, i )
+        {
+            LitRes = Gia_ManHashAnd( p, Lit1, Lit2 );
+            Vec_IntWriteEntry( vLits, k++, LitRes );
+        }
+        if ( Vec_IntSize(vLits) & 1 )
+            Vec_IntWriteEntry( vLits, k++, Vec_IntEntryLast(vLits) );
+        Vec_IntShrink( vLits, k );
+    }
+    assert( Vec_IntSize(vLits) == 1 );
+    return Vec_IntEntry(vLits, 0);
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

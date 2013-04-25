@@ -577,7 +577,7 @@ void Gia_ManDupAppend( Gia_Man_t * pNew, Gia_Man_t * pTwo )
     if ( pNew->nRegs > 0 )
         pNew->nRegs = 0;
     if ( pNew->pHTable == NULL )
-        Gia_ManHashAlloc( pNew );
+        Gia_ManHashStart( pNew );
     Gia_ManConst0(pTwo)->Value = 0;
     Gia_ManForEachObj1( pTwo, pObj, i )
     {
@@ -589,19 +589,24 @@ void Gia_ManDupAppend( Gia_Man_t * pNew, Gia_Man_t * pTwo )
             pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
     }
 }
-
-
-/**Function*************************************************************
-
-  Synopsis    [Append second AIG on top of the first with the permutation.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
+void Gia_ManDupAppendShare( Gia_Man_t * pNew, Gia_Man_t * pTwo )
+{
+    Gia_Obj_t * pObj;
+    int i;
+    assert( Gia_ManCiNum(pNew) == Gia_ManCiNum(pTwo) );
+    if ( pNew->pHTable == NULL )
+        Gia_ManHashStart( pNew );
+    Gia_ManConst0(pTwo)->Value = 0;
+    Gia_ManForEachObj1( pTwo, pObj, i )
+    {
+        if ( Gia_ObjIsAnd(pObj) )
+            pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        else if ( Gia_ObjIsCi(pObj) )
+            pObj->Value = Gia_Obj2Lit( pNew, Gia_ManCi( pNew, Gia_ObjCioId(pObj) ) );
+        else if ( Gia_ObjIsCo(pObj) )
+            pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    }
+}
 Gia_Man_t * Gia_ManDupAppendNew( Gia_Man_t * pOne, Gia_Man_t * pTwo )
 {
     Gia_Man_t * pNew;
@@ -2185,6 +2190,58 @@ Gia_Man_t * Gia_ManDupCones( Gia_Man_t * p, int * pPos, int nPos, int fTrimPis )
 
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Generates AIG representing 1-hot condition for N inputs.]
+
+  Description [The condition is true of all POs are 0.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManOneHot( int nSkips, int nVars )
+{
+    Gia_Man_t * p;
+    int i, b, Shift, iGiaLit, nLogVars = Abc_Base2Log( nVars );
+    int * pTemp = ABC_CALLOC( int, (1 << nLogVars) );
+    p = Gia_ManStart( nSkips + 4 * nVars + 1 );
+    p->pName = Abc_UtilStrsav( "onehot" );
+    for ( i = 0; i < nSkips; i++ )
+        Gia_ManAppendCi( p );
+    for ( i = 0; i < nVars; i++ )
+        pTemp[i] = Gia_ManAppendCi( p );
+    Gia_ManHashStart( p );
+    for ( b = 0; b < nLogVars; b++ )
+        for ( i = 0, Shift = (1<<b); i < (1 << nLogVars); i += 2*Shift )
+        {
+            iGiaLit = Gia_ManHashAnd( p, pTemp[i], pTemp[i + Shift] );
+            if ( iGiaLit )
+                Gia_ManAppendCo( p, iGiaLit );
+            pTemp[i] = Gia_ManHashOr( p, pTemp[i], pTemp[i + Shift] );
+        }
+    Gia_ManHashStop( p );
+    Gia_ManAppendCo( p, Abc_LitNot(pTemp[0]) );
+    ABC_FREE( pTemp );
+    assert( Gia_ManObjNum(p) <= nSkips + 4 * nVars + 1 );
+    return p;
+}
+Gia_Man_t * Gia_ManDupOneHot( Gia_Man_t * p )
+{
+    Gia_Man_t * pOneHot, * pNew = Gia_ManDup( p );
+    if ( Gia_ManRegNum(pNew) == 0 )
+    {
+        Abc_Print( 0, "Appending 1-hotness constraints to the PIs.\n" );
+        pOneHot = Gia_ManOneHot( 0, Gia_ManCiNum(pNew) );
+    }
+    else
+        pOneHot = Gia_ManOneHot( Gia_ManPiNum(pNew), Gia_ManRegNum(pNew) );
+    Gia_ManDupAppendShare( pNew, pOneHot );
+    pNew->nConstrs += Gia_ManPoNum(pOneHot);
+    Gia_ManStop( pOneHot );
+    return pNew;
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

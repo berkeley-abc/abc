@@ -4522,6 +4522,38 @@ SOURCE=.\src\proof\abs\absUtil.c
 SOURCE=.\src\proof\abs\absVta.c
 # End Source File
 # End Group
+# Begin Group "ssc"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\proof\ssc\ssc.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\ssc\sscClass.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\ssc\sscCore.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\ssc\sscInt.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\ssc\sscSat.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\ssc\sscSim.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\ssc\sscUtil.c
+# End Source File
+# End Group
 # End Group
 # End Group
 # Begin Group "Header Files"

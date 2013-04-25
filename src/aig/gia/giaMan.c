@@ -77,6 +77,10 @@ void Gia_ManStop( Gia_Man_t * p )
     assert( p->pManTime == NULL );
     Vec_PtrFreeFree( p->vNamesIn );
     Vec_PtrFreeFree( p->vNamesOut );
+    Vec_IntFreeP( &p->vClassNew );
+    Vec_IntFreeP( &p->vClassOld );
+    Vec_WrdFreeP( &p->vSims );
+    Vec_WrdFreeP( &p->vSimsPi );
     Vec_FltFreeP( &p->vTiming );
     Vec_VecFreeP( &p->vClockDoms );
     Vec_IntFreeP( &p->vLutConfigs );

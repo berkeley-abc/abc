@@ -23,7 +23,7 @@ MODULES := \
 	src/bool/bdc src/bool/deco src/bool/dec src/bool/kit src/bool/lucky src/bool/rsb \
 	src/proof/pdr src/proof/int src/proof/bbr src/proof/llb src/proof/live \
 	src/proof/cec src/proof/dch src/proof/fraig src/proof/fra src/proof/ssw \
-	src/proof/abs \
+	src/proof/abs src/proof/ssc \
 	src/aig/aig src/aig/saig src/aig/gia src/aig/ioa src/aig/ivy src/aig/hop \
 	src/aig/miniaig \
 	src/python 

@@ -89,6 +89,10 @@ LINK32=link.exe
 
 SOURCE=.\src\base\main\main.c
 # End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\bsat\satSolver.c
+# End Source File
 # End Group
 # Begin Group "Header Files"
 

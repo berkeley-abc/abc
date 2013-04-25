@@ -51,6 +51,7 @@
 #include "base/cmd/cmd.h"
 #include "proof/abs/abs.h"
 #include "sat/bmc/bmc.h"
+#include "proof/ssc/ssc.h"
 
 #ifndef _WIN32
 #include <unistd.h>
@@ -321,6 +322,7 @@ static int Abc_CommandAbc9Status             ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9Show               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Hash               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Topand             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Add1Hot            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Cof                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Trim               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Dfs                ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -817,6 +819,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&show",         Abc_CommandAbc9Show,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&st",           Abc_CommandAbc9Hash,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&topand",       Abc_CommandAbc9Topand,       0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&add1hot",      Abc_CommandAbc9Add1Hot,      0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&cof",          Abc_CommandAbc9Cof,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&trim",         Abc_CommandAbc9Trim,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&dfs",          Abc_CommandAbc9Dfs,          0 );
@@ -24543,6 +24546,52 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
+int Abc_CommandAbc9Add1Hot( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Gia_Man_t * pTemp;
+    int c, fVerbose = 1;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Add1Hot(): There is no AIG.\n" );
+        return 1;
+    }
+    pTemp = Gia_ManDupOneHot( pAbc->pGia );
+    Abc_FrameUpdateGia( pAbc, pTemp );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &add1hot [-vh]\n" );
+    Abc_Print( -2, "\t        adds 1-hotness constraints as additional primary outputs\n" );
+    Abc_Print( -2, "\t-v    : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Abc_CommandAbc9Cof( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Gia_Man_t * pTemp;
@@ -27081,12 +27130,10 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9CFraig( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Gia_Man_t * Gia_SweeperFraigTest( Gia_Man_t * p, int nWords, int nConfs, int fVerbose );
     Gia_Man_t * pTemp;
     int c;
-    int nWords   = 1;
-    int nConfs   = 0;
-    int fVerbose = 0;
+    Ssc_Pars_t Pars, * pPars = &Pars;
+    Ssc_ManSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "WCvh" ) ) != EOF )
     {
@@ -27098,9 +27145,9 @@ int Abc_CommandAbc9CFraig( Abc_Frame_t * pAbc, int argc, char ** argv )
                 Abc_Print( -1, "Command line switch \"-W\" should be followed by an integer.\n" );
                 goto usage;
             }
-            nWords = atoi(argv[globalUtilOptind]);
+            pPars->nWords = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nWords < 0 )
+            if ( pPars->nWords < 0 )
                 goto usage;
             break;
         case 'C':
@@ -27109,13 +27156,13 @@ int Abc_CommandAbc9CFraig( Abc_Frame_t * pAbc, int argc, char ** argv )
                 Abc_Print( -1, "Command line switch \"-C\" should be followed by an integer.\n" );
                 goto usage;
             }
-            nConfs = atoi(argv[globalUtilOptind]);
+            pPars->nBTLimit = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nConfs < 0 )
+            if ( pPars->nBTLimit < 0 )
                 goto usage;
             break;
         case 'v':
-            fVerbose ^= 1;
+            pPars->fVerbose ^= 1;
             break;
         default:
             goto usage;
@@ -27126,16 +27173,17 @@ int Abc_CommandAbc9CFraig( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9CFraig(): There is no AIG.\n" );
         return 1;
     }
-    pTemp = Gia_SweeperFraigTest( pAbc->pGia, nWords, nConfs, fVerbose );
+    Abc_Print( 0, "Current AIG contains %d constraints.\n", pAbc->pGia->nConstrs );
+    pTemp = Ssc_PerformSweepingConstr( pAbc->pGia, pPars );
     Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 
 usage:
     Abc_Print( -2, "usage: &cfraig [-WC <num>] [-rmdwvh]\n" );
     Abc_Print( -2, "\t         performs conditional combinational SAT sweeping\n" );
-    Abc_Print( -2, "\t-W num : the number of simulation words [default = %d]\n", nWords );
-    Abc_Print( -2, "\t-C num : the max number of conflicts at a node [default = %d]\n", nConfs );
-    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-W num : the number of simulation words [default = %d]\n", pPars->nWords );
+    Abc_Print( -2, "\t-C num : the max number of conflicts at a node [default = %d]\n", pPars->nBTLimit );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
@@ -31438,7 +31486,7 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-//    Gia_Man_t * pTemp = NULL;
+    Gia_Man_t * pTemp = NULL;
     int c, fVerbose = 0;
     int fSwitch = 0;
 //    extern Gia_Man_t * Gia_VtaTest( Gia_Man_t * p );
@@ -31451,6 +31499,7 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //     extern void Unr_ManTest( Gia_Man_t * pGia );
 //    extern void Mig_ManTest( Gia_Man_t * pGia );
 //    extern int Gia_ManVerify( Gia_Man_t * pGia );
+    extern Gia_Man_t * Gia_SweeperFraigTest( Gia_Man_t * p, int nWords, int nConfs, int fVerbose );
 
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "svh" ) ) != EOF )
@@ -31502,6 +31551,8 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    Unr_ManTest( pAbc->pGia );
 //    Mig_ManTest( pAbc->pGia );
 //    Gia_ManVerifyWithBoxes( pAbc->pGia );
+    pTemp = Gia_SweeperFraigTest( pAbc->pGia, 4, 1000, 0 );
+    Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 usage:
     Abc_Print( -2, "usage: &test [-svh]\n" );

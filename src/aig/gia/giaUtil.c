@@ -1163,10 +1163,15 @@ void Gia_ManInvertConstraints( Gia_Man_t * pAig )
     if ( Gia_ManConstrNum(pAig) == 0 )
         return;
     Gia_ManForEachPo( pAig, pObj, i )
-    {
         if ( i >= Gia_ManPoNum(pAig) - Gia_ManConstrNum(pAig) )
             Gia_ObjFlipFaninC0( pObj );
-    }
+}
+void Gia_ManInvertPos( Gia_Man_t * pAig )
+{
+    Gia_Obj_t * pObj;
+    int i;
+    Gia_ManForEachPo( pAig, pObj, i )
+        Gia_ObjFlipFaninC0( pObj );
 }
 
 /**Function*************************************************************
