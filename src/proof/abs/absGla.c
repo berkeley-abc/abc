@@ -1153,27 +1153,6 @@ void Ga2_ManRestart( Ga2_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Vec_IntCheckUnique( Vec_Int_t * p )
-{
-    int RetValue;
-    Vec_Int_t * pDup = Vec_IntDup( p );
-    Vec_IntUniqify( pDup );
-    RetValue = Vec_IntSize(p) - Vec_IntSize(pDup);
-    Vec_IntFree( pDup );
-    return RetValue;
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
 static inline int Ga2_ObjSatValue( Ga2_Man_t * p, Gia_Obj_t * pObj, int f )
 {
     int Lit = Ga2_ObjFindLit( p, pObj, f );

@@ -17,6 +17,7 @@ SRC +=    src/base/abci/abc.c \
     src/base/abci/abcDsd.c \
     src/base/abci/abcExtract.c \
     src/base/abci/abcFraig.c \
+        src/base/abci/abcFx.c \
         src/base/abci/abcFxu.c \
         src/base/abci/abcGen.c \
     src/base/abci/abcHaig.c \

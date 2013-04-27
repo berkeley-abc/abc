@@ -253,6 +253,7 @@ static inline int Vec_VecCap( Vec_Vec_t * p )
 ***********************************************************************/
 static inline int Vec_VecLevelSize( Vec_Vec_t * p, int i )
 {
+    assert( i >= 0 && i < p->nSize );
     return Vec_PtrSize( (Vec_Ptr_t *)p->pArray[i] );
 }
 
@@ -617,7 +618,7 @@ static inline void Vec_VecPrintInt( Vec_Vec_t * p, int fSkipSingles )
     int i, k, Entry;
     Vec_VecForEachEntryInt( p, Entry, i, k )
     {
-        if ( Vec_VecLevelSize(p, i) == 1 )
+        if ( fSkipSingles && Vec_VecLevelSize(p, i) == 1 )
             break;
         if ( k == 0 )
             printf( " %4d : {", i );

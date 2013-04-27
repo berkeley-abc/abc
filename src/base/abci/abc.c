@@ -3527,13 +3527,14 @@ usage:
 ***********************************************************************/
 int Abc_CommandFastExtract( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
+    extern int Abc_NtkFxPerform( Abc_Ntk_t * pNtk, int fVerbose );
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     Fxu_Data_t Params, * p = &Params;
-    int c;
+    int c, fNewAlgo = 0;
     // set the defaults
     Abc_NtkSetDefaultParams( p );
     Extra_UtilGetoptReset();
-    while ( (c = Extra_UtilGetopt(argc, argv, "SDNWsdzcvh")) != EOF )
+    while ( (c = Extra_UtilGetopt(argc, argv, "SDNWsdzcnvh")) != EOF )
     {
         switch (c)
         {
@@ -3593,6 +3594,9 @@ int Abc_CommandFastExtract( Abc_Frame_t * pAbc, int argc, char ** argv )
             case 'c':
                 p->fUseCompl ^= 1;
                 break;
+            case 'n':
+                fNewAlgo ^= 1;
+                break;
             case 'v':
                 p->fVerbose ^= 1;
                 break;
@@ -3615,17 +3619,25 @@ int Abc_CommandFastExtract( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( !Abc_NtkIsLogic(pNtk) )
     {
-        Abc_Print( -1, "Fast extract can only be applied to a logic network (run \"renode\").\n" );
+        Abc_Print( -1, "Fast extract can only be applied to a logic network (run \"renode\" or \"if\").\n" );
+        return 1;
+    }
+    if ( !Abc_NtkIsSopLogic(pNtk) )
+    {
+        Abc_Print( -1, "Fast extract can only be applied to a logic network with SOP local functions (run \"bdd; sop\").\n" );
         return 1;
     }
 
     // the nodes to be merged are linked into the special linked list
-    Abc_NtkFastExtract( pNtk, p );
+    if ( fNewAlgo )
+        Abc_NtkFxPerform( pNtk, p->fVerbose );
+    else
+        Abc_NtkFastExtract( pNtk, p );
     Abc_NtkFxuFreeInfo( p );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: fx [-SDNW <num>] [-sdzcvh]\n");
+    Abc_Print( -2, "usage: fx [-SDNW <num>] [-sdzcnvh]\n");
     Abc_Print( -2, "\t           performs unate fast extract on the current network\n");
     Abc_Print( -2, "\t-S <num> : max number of single-cube divisors to consider [default = %d]\n", p->nSingleMax );
     Abc_Print( -2, "\t-D <num> : max number of double-cube divisors to consider [default = %d]\n", p->nPairsMax );
@@ -3635,6 +3647,7 @@ usage:
     Abc_Print( -2, "\t-d       : use only double-cube divisors [default = %s]\n", p->fOnlyD? "yes": "no" );
     Abc_Print( -2, "\t-z       : use zero-weight divisors [default = %s]\n", p->fUse0? "yes": "no" );
     Abc_Print( -2, "\t-c       : use complement in the binary case [default = %s]\n", p->fUseCompl? "yes": "no" );
+    Abc_Print( -2, "\t-n       : use new implementation of fast extract [default = %s]\n", fNewAlgo? "yes": "no" );
     Abc_Print( -2, "\t-v       : print verbose information [default = %s]\n", p->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;

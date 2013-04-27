@@ -259,6 +259,10 @@ SOURCE=.\src\base\abci\abcFraig.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\abci\abcFx.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\abci\abcFxu.c
 # End Source File
 # Begin Source File
@@ -2651,6 +2655,10 @@ SOURCE=.\src\misc\vec\vecFlt.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\misc\vec\vecHsh.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\misc\vec\vecInt.h
 # End Source File
 # Begin Source File
@@ -2676,6 +2684,10 @@ SOURCE=.\src\misc\vec\vecStr.h
 # Begin Source File
 
 SOURCE=.\src\misc\vec\vecVec.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\vec\vecWec.h
 # End Source File
 # Begin Source File
 

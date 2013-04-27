@@ -140,6 +140,10 @@ static inline int Vec_QueTop( Vec_Que_t * p )
 {
     return Vec_QueSize(p) > 0 ? p->pHeap[1] : -1;
 }
+static inline float Vec_QueTopCost( Vec_Que_t * p )
+{
+    return Vec_QueSize(p) > 0 ? Vec_QueCost(p, p->pHeap[1]) : -ABC_INFINITY;
+}
 
 /**Function*************************************************************
 

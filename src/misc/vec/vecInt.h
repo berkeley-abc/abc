@@ -1193,6 +1193,24 @@ static inline int Vec_IntUniqify( Vec_Int_t * p )
     p->nSize = k;
     return RetValue;
 }
+static inline int Vec_IntCountDuplicates( Vec_Int_t * p )
+{
+    int RetValue;
+    Vec_Int_t * pDup = Vec_IntDup( p );
+    Vec_IntUniqify( pDup );
+    RetValue = Vec_IntSize(p) - Vec_IntSize(pDup);
+    Vec_IntFree( pDup );
+    return RetValue;
+}
+static inline int Vec_IntCheckUniqueSmall( Vec_Int_t * p )
+{
+    int i, k;
+    for ( i = 0; i < p->nSize; i++ )
+        for ( k = i+1; k < p->nSize; k++ )
+            if ( p->pArray[i] == p->pArray[k] )
+                return 0;
+    return 1;
+}
 
 /**Function*************************************************************
 
