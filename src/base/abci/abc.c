@@ -27186,14 +27186,15 @@ int Abc_CommandAbc9CFraig( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9CFraig(): There is no AIG.\n" );
         return 1;
     }
-    Abc_Print( 0, "Current AIG contains %d constraints.\n", pAbc->pGia->nConstrs );
     pTemp = Ssc_PerformSweepingConstr( pAbc->pGia, pPars );
     Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 
 usage:
     Abc_Print( -2, "usage: &cfraig [-WC <num>] [-rmdwvh]\n" );
-    Abc_Print( -2, "\t         performs conditional combinational SAT sweeping\n" );
+    Abc_Print( -2, "\t         performs combinational SAT sweeping under constraints\n" );
+    Abc_Print( -2, "\t         which are present in the AIG or set manually using \"constr\"\n" );
+    Abc_Print( -2, "\t         (constraints are listed as last POs and true when they are 0)\n" );
     Abc_Print( -2, "\t-W num : the number of simulation words [default = %d]\n", pPars->nWords );
     Abc_Print( -2, "\t-C num : the max number of conflicts at a node [default = %d]\n", pPars->nBTLimit );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );

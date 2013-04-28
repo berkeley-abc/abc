@@ -210,8 +210,9 @@ static void Ssc_ManCnfNodeAddToSolver( Ssc_Man_t * p, int NodeId )
     Gia_Obj_t * pNode;
     int i, k, Id, Lit;
     clock_t clk;
+    assert( NodeId > 0 );
     // quit if CNF is ready
-    if ( NodeId == 0 || Ssc_ObjSatVar(p, NodeId) )
+    if ( Ssc_ObjSatVar(p, NodeId) )
         return;
 clk = clock();
     // start the frontier
@@ -345,33 +346,24 @@ Vec_Int_t * Ssc_ManFindPivotSat( Ssc_Man_t * p )
 int Ssc_ManCheckEquivalence( Ssc_Man_t * p, int iRepr, int iNode, int fCompl )
 {
     int pLitsSat[2], RetValue;
+    clock_t clk;
+    assert( iRepr < iNode );
 //    if ( p->nTimeOut )
 //        sat_solver_set_runtime_limit( p->pSat, p->nTimeOut * CLOCKS_PER_SEC + clock() );
 
     // create CNF
+    if ( iRepr )
     Ssc_ManCnfNodeAddToSolver( p, iRepr );
     Ssc_ManCnfNodeAddToSolver( p, iNode );
     sat_solver_compress( p->pSat );
 
     // order the literals
     pLitsSat[0] = Abc_Var2Lit( Ssc_ObjSatVar(p, iRepr), 0 );
-    pLitsSat[1] = Abc_Var2Lit( Ssc_ObjSatVar(p, iNode), 0 );
-    if ( pLitsSat[0] < pLitsSat[1] )
-        ABC_SWAP( int, pLitsSat[0], pLitsSat[1] );
-
-    // correct polarity
-    pLitsSat[1] = Abc_LitNotCond( pLitsSat[1], !fCompl ); // extra complement!
-    if ( !Abc_LitIsCompl(pLitsSat[1]) )
-    {
-        pLitsSat[0] = Abc_LitNot( pLitsSat[0] );
-        pLitsSat[1] = Abc_LitNot( pLitsSat[1] );
-    }
-    assert( pLitsSat[0] > pLitsSat[1] );
-    assert( Abc_LitIsCompl(pLitsSat[1]) );
-    assert( pLitsSat[1] != 0 );
+    pLitsSat[1] = Abc_Var2Lit( Ssc_ObjSatVar(p, iNode), fCompl ^ (int)(iRepr > 0) );
 
     // solve under assumptions
-    // A = 1; B = 0     OR     A = 1; B = 1 
+    // A = 1; B = 0
+    clk = clock();
     RetValue = sat_solver_solve( p->pSat, pLitsSat, pLitsSat + 2, (ABC_INT64_T)p->pPars->nBTLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
     if ( RetValue == l_False )
     {
@@ -379,22 +371,27 @@ int Ssc_ManCheckEquivalence( Ssc_Man_t * p, int iRepr, int iNode, int fCompl )
         pLitsSat[1] = Abc_LitNot( pLitsSat[1] ); // compl
         RetValue = sat_solver_addclause( p->pSat, pLitsSat, pLitsSat + 2 );
         assert( RetValue );
+        p->timeSatUnsat += clock() - clk;
     }
     else if ( RetValue == l_True )
     {
         Ssc_ManCollectSatPattern( p, p->vPattern );
+        p->timeSatSat += clock() - clk;
         return l_True;
     }
     else // if ( RetValue1 == l_Undef )
+    {
+        p->timeSatUndec += clock() - clk;
         return l_Undef;
+    }
 
     // if the old node was constant 0, we already know the answer
-    if ( pLitsSat[1] == 0 )
+    if ( iRepr == 0 )
         return l_False;
-    assert( pLitsSat[1] > 1 );
 
     // solve under assumptions
-    // A = 0; B = 1     OR     A = 0; B = 0 
+    // A = 0; B = 1
+    clk = clock();
     RetValue = sat_solver_solve( p->pSat, pLitsSat, pLitsSat + 2, (ABC_INT64_T)p->pPars->nBTLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
     if ( RetValue == l_False )
     {
@@ -402,14 +399,19 @@ int Ssc_ManCheckEquivalence( Ssc_Man_t * p, int iRepr, int iNode, int fCompl )
         pLitsSat[1] = Abc_LitNot( pLitsSat[1] );
         RetValue = sat_solver_addclause( p->pSat, pLitsSat, pLitsSat + 2 );
         assert( RetValue );
+        p->timeSatUnsat += clock() - clk;
     }
     else if ( RetValue == l_True )
     {
         Ssc_ManCollectSatPattern( p, p->vPattern );
+        p->timeSatSat += clock() - clk;
         return l_True;
     }
     else // if ( RetValue1 == l_Undef )
+    {
+        p->timeSatUndec += clock() - clk;
         return l_Undef;
+    }
     return l_False;
 }
 

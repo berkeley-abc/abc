@@ -64,6 +64,7 @@ struct Ssc_Man_t_
     Vec_Int_t *      vPattern;       // counter-example
     Vec_Int_t *      vDisPairs;      // disproved pairs
     // SAT calls statistics
+    int              nSimRounds;     // the number of simulation rounds
     int              nRecycles;      // the number of times SAT solver was recycled
     int              nCallsSince;    // the number of calls since the last recycle
     int              nSatCalls;      // the number of SAT calls
@@ -74,6 +75,7 @@ struct Ssc_Man_t_
     clock_t          timeSimInit;    // simulation and class computation
     clock_t          timeSimSat;     // simulation of the counter-examples
     clock_t          timeCnfGen;     // generation of CNF
+    clock_t          timeSat;        // total SAT time
     clock_t          timeSatSat;     // sat
     clock_t          timeSatUnsat;   // unsat
     clock_t          timeSatUndec;   // undecided

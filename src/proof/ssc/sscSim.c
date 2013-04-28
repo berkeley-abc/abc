@@ -212,6 +212,7 @@ void Ssc_GiaSimRound( Gia_Man_t * p )
         assert( pSim == Gia_ObjSimObj( p, pObj ) );
         pSim0 = pSim - pObj->iDiff0 * nWords;
         Ssc_SimDup( pSim, pSim0, nWords, Gia_ObjFaninC0(pObj) );
+//        Extra_PrintBinary( stdout, pSim, 64 ), printf( "\n" );
         pSim += nWords;
     }
 }

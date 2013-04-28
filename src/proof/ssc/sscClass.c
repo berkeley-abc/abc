@@ -257,8 +257,8 @@ void Ssc_GiaClassesCheckPairs( Gia_Man_t * p, Vec_Int_t * vDisPairs )
     Vec_IntForEachEntryDouble( vDisPairs, iRepr, iObj, i )
         if ( iRepr == Gia_ObjRepr(p, iObj) )
             printf( "Pair (%d, %d) are still equivalent.\n", iRepr, iObj ), Result = 0;
-    if ( Result )
-        printf( "Classes are refined correctly.\n" );
+//    if ( Result )
+//        printf( "Classes are refined correctly.\n" );
 }
 
 

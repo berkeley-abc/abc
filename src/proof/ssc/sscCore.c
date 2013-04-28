@@ -52,7 +52,6 @@ void Ssc_ManSetDefaultParams( Ssc_Pars_t * p )
     p->fVerbose       =     0;  // verbose stats
 }
 
-
 /**Function*************************************************************
 
   Synopsis    []
@@ -104,7 +103,7 @@ Ssc_Man_t * Ssc_ManStart( Gia_Man_t * pAig, Gia_Man_t * pCare, Ssc_Pars_t * pPar
         return NULL;
     }
     sat_solver_bookmark( p->pSat );
-    Vec_IntPrint( p->vPivot );
+//    Vec_IntPrint( p->vPivot );
     Gia_ManSetPhasePattern( p->pAig, p->vPivot );
     Gia_ManSetPhasePattern( p->pCare, p->vPivot );
     if ( Gia_ManCheckCoPhase(p->pCare) )
@@ -120,6 +119,26 @@ Ssc_Man_t * Ssc_ManStart( Gia_Man_t * pAig, Gia_Man_t * pCare, Ssc_Pars_t * pPar
     p->vFront = Vec_IntAlloc( 100 );
     Ssc_GiaClassesInit( pAig );
     return p;
+}
+void Ssc_ManPrintStats( Ssc_Man_t * p )
+{
+    Abc_Print( 1, "Parameters: SimWords = %d. SatConfs = %d. SatVarMax = %d. CallsRec = %d. Verbose = %d.\n",
+        p->pPars->nWords, p->pPars->nBTLimit, p->pPars->nSatVarMax, p->pPars->nCallsRecycle, p->pPars->fVerbose );
+    Abc_Print( 1, "SAT calls : Total = %d. Proof = %d. Cex = %d. Undec = %d.\n",
+        p->nSatCalls, p->nSatCallsUnsat, p->nSatCallsSat, p->nSatCallsUndec );
+    Abc_Print( 1, "SAT solver: Vars = %d. Clauses = %d. Recycles = %d. Sim rounds = %d.\n",
+        sat_solver_nvars(p->pSat), sat_solver_nclauses(p->pSat), p->nRecycles, p->nSimRounds );
+
+    p->timeOther = p->timeTotal - p->timeSimInit - p->timeSimSat - p->timeCnfGen - p->timeSatSat - p->timeSatUnsat - p->timeSatUndec;
+    ABC_PRTP( "Initialization ", p->timeSimInit,            p->timeTotal );
+    ABC_PRTP( "SAT simulation ", p->timeSimSat,             p->timeTotal );
+    ABC_PRTP( "CNF generation ", p->timeSimSat,             p->timeTotal );
+    ABC_PRTP( "SAT solving    ", p->timeSat-p->timeCnfGen,  p->timeTotal );
+    ABC_PRTP( "  unsat        ", p->timeSatUnsat,           p->timeTotal );
+    ABC_PRTP( "  sat          ", p->timeSatSat,             p->timeTotal );
+    ABC_PRTP( "  undecided    ", p->timeSatUndec,           p->timeTotal );
+    ABC_PRTP( "Other          ", p->timeOther,              p->timeTotal );
+    ABC_PRTP( "TOTAL          ", p->timeTotal,              p->timeTotal );
 }
 
 /**Function*************************************************************
@@ -140,6 +159,7 @@ Gia_Man_t * Ssc_PerformSweeping( Gia_Man_t * pAig, Gia_Man_t * pCare, Ssc_Pars_t
     Gia_Obj_t * pObj, * pRepr;
     clock_t clk, clkTotal = clock();
     int i, fCompl, status;
+clk = clock();
     assert( Gia_ManRegNum(pCare) == 0 );
     assert( Gia_ManCiNum(pAig) == Gia_ManCiNum(pCare) );
     assert( Gia_ManIsNormalized(pAig) );
@@ -151,14 +171,14 @@ Gia_Man_t * Ssc_PerformSweeping( Gia_Man_t * pAig, Gia_Man_t * pCare, Ssc_Pars_t
     if ( p == NULL )
         return Gia_ManDup( pAig );
     // perform simulation 
-clk = clock();
     if ( Gia_ManAndNum(pCare) == 0 ) // no constraints
     {
         for ( i = 0; i < 16; i++ )
         {
             Ssc_GiaRandomPiPattern( pAig, 10, NULL );
             Ssc_GiaSimRound( pAig );
-            Ssc_GiaClassesRefine( pAig );
+            if ( pPars->fVerbose ) 
+                Ssc_GiaClassesRefine( pAig );
             Gia_ManEquivPrintClasses( pAig, 0, 0 );
         }
     }
@@ -176,63 +196,86 @@ p->timeSimInit += clock() - clk;
     {
         if ( pAig->iPatsPi == 64 * pPars->nWords )
         {
+clk = clock();
             Ssc_GiaSimRound( pAig );
             Ssc_GiaClassesRefine( pAig );
-            Gia_ManEquivPrintClasses( pAig, 0, 0 );
+            if ( pPars->fVerbose ) 
+                Gia_ManEquivPrintClasses( pAig, 0, 0 );
             Ssc_GiaClassesCheckPairs( pAig, p->vDisPairs );
+            Vec_IntClear( p->vDisPairs );
+            // prepare next patterns
             Ssc_GiaResetPiPattern( pAig, pPars->nWords );
             Ssc_GiaSavePiPattern( pAig, p->vPivot );
-            Vec_IntClear( p->vDisPairs );
+p->timeSimSat += clock() - clk;
         }
         if ( Gia_ObjIsAnd(pObj) )
             pObj->Value = Gia_ManHashAnd( p->pFraig, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
         if ( !Gia_ObjHasRepr(pAig, i) )
             continue;
         pRepr = Gia_ObjReprObj(pAig, i);
-        if ( pRepr->Value == pObj->Value )
+        if ( (int)pObj->Value == Abc_LitNotCond( pRepr->Value, pRepr->fPhase ^ pObj->fPhase ) )
             continue;
         assert( Abc_Lit2Var(pRepr->Value) != Abc_Lit2Var(pObj->Value) );
         fCompl = pRepr->fPhase ^ pObj->fPhase ^ Abc_LitIsCompl(pRepr->Value) ^ Abc_LitIsCompl(pObj->Value);
 
         // perform SAT call
-        clk = clock();
+clk = clock();
         p->nSatCalls++;
         status = Ssc_ManCheckEquivalence( p, Abc_Lit2Var(pRepr->Value), Abc_Lit2Var(pObj->Value), fCompl );
         if ( status == l_False )
         {
             p->nSatCallsUnsat++;
-            p->timeSatUnsat += clock() - clk;
             pObj->Value = Abc_LitNotCond( pRepr->Value, pRepr->fPhase ^ pObj->fPhase );
         }
         else if ( status == l_True )
         {
             p->nSatCallsSat++;
-            p->timeSatSat += clock() - clk;
             Ssc_GiaSavePiPattern( pAig, p->vPattern );
             Vec_IntPush( p->vDisPairs, Gia_ObjRepr(p->pAig, i) );
             Vec_IntPush( p->vDisPairs, i );
+//            printf( "Try %2d and %2d: ", Gia_ObjRepr(p->pAig, i), i );
+//            Vec_IntPrint( p->vPattern );
         }
         else if ( status == l_Undef )
-        {
             p->nSatCallsUndec++;
-            p->timeSatUndec += clock() - clk;
-        }
         else assert( 0 );
+p->timeSat += clock() - clk;
     }
+    if ( pAig->iPatsPi > 1 )
+    {
+clk = clock();
+        while ( pAig->iPatsPi < 64 * pPars->nWords )
+            Ssc_GiaSavePiPattern( pAig, p->vPivot );
+        Ssc_GiaSimRound( pAig );
+        Ssc_GiaClassesRefine( pAig );
+        if ( pPars->fVerbose ) 
+            Gia_ManEquivPrintClasses( pAig, 0, 0 );
+        Ssc_GiaClassesCheckPairs( pAig, p->vDisPairs );
+        Vec_IntClear( p->vDisPairs );
+p->timeSimSat += clock() - clk;
+    }
+//    Gia_ManEquivPrintClasses( pAig, 1, 0 );
 
-    // remember the resulting AIG
+    // generate the resulting AIG
     pResult = Gia_ManEquivReduce( pAig, 1, 0, 0 );
     if ( pResult == NULL )
     {
         printf( "There is no equivalences.\n" );
+        ABC_FREE( pAig->pReprs );
+        ABC_FREE( pAig->pNexts );
         pResult = Gia_ManDup( pAig );
     }
+    p->timeTotal = clock() - clkTotal;
+    if ( pPars->fVerbose )
+        Ssc_ManPrintStats( p );
     Ssc_ManStop( p );
     // count the number of representatives
     if ( pPars->fVerbose ) 
     {
-        Gia_ManEquivPrintClasses( pAig, 0, 0 );
-        Abc_Print( 1, "Reduction in AIG nodes:%8d  ->%8d.  ", Gia_ManAndNum(pAig), Gia_ManAndNum(pResult) );
+//        Gia_ManEquivPrintClasses( pAig, 0, 0 );
+        Abc_Print( 1, "Reduction in AIG nodes:%8d  ->%8d (%6.2f %%).  ", 
+            Gia_ManAndNum(pAig), Gia_ManAndNum(pResult), 
+            100.0 - 100.0 * Gia_ManAndNum(pResult) / Gia_ManAndNum(pAig) );
         Abc_PrintTime( 1, "Time", clock() - clkTotal );
     }
     return pResult;
@@ -241,6 +284,8 @@ Gia_Man_t * Ssc_PerformSweepingConstr( Gia_Man_t * p, Ssc_Pars_t * pPars )
 {
     Gia_Man_t * pAig, * pCare, * pResult;
     int i;
+    if ( pPars->fVerbose )
+        Abc_Print( 0, "SAT sweeping AIG with %d constraints.\n", p->nConstrs );
     if ( p->nConstrs == 0 )
     {
         pAig = Gia_ManDup( p );
@@ -257,6 +302,14 @@ Gia_Man_t * Ssc_PerformSweepingConstr( Gia_Man_t * p, Ssc_Pars_t * pPars )
         pCare = Gia_ManDupCones( p, Vec_IntArray(vOuts) + Gia_ManPoNum(p) - p->nConstrs, p->nConstrs, 0 );
         Vec_IntFree( vOuts );
     }
+    if ( pPars->fVerbose )
+    {
+        printf( "User AIG: " );
+        Gia_ManPrintStats( pAig, 0, 0, 0 );
+        printf( "Care AIG: " );
+        Gia_ManPrintStats( pCare, 0, 0, 0 );
+    }
+
     pAig = Gia_ManDupLevelized( pResult = pAig );
     Gia_ManStop( pResult );
     pResult = Ssc_PerformSweeping( pAig, pCare, pPars );
