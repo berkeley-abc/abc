@@ -52,7 +52,7 @@ Gia_Man_t * Gia_ManDropContained( Gia_Man_t * p )
     Gia_Obj_t * pObj;
     Vec_Int_t * vLits, * vKeep;
     sat_solver * pSat;
-    int i, status, Count = 0;
+    int i, status;//, Count = 0;
     Aig_ManStop( pMan );
 
     vLits = Vec_IntAlloc( Gia_ManPoNum(p) );
@@ -150,7 +150,7 @@ Gia_Man_t * Gia_ManOptimizeRing( Gia_Man_t * p )
         pTemp = Gia_ManDupNormalize( pAux = pTemp );
         Gia_ManStop( pAux );
         Gia_ManSwapPos( pTemp, i );
-        printf( "AIG%3d  : " );
+        printf( "AIG%3d  : ", i );
         Gia_ManPrintStats( pTemp, 0, 0, 0 );
     }
     return pTemp;
