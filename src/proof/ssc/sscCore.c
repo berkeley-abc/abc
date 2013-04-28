@@ -313,6 +313,11 @@ Gia_Man_t * Ssc_PerformSweepingConstr( Gia_Man_t * p, Ssc_Pars_t * pPars )
     pAig = Gia_ManDupLevelized( pResult = pAig );
     Gia_ManStop( pResult );
     pResult = Ssc_PerformSweeping( pAig, pCare, pPars );
+    if ( pPars->fAppend )
+    {
+        Gia_ManDupAppendShare( pResult, pCare );
+        pResult->nConstrs = Gia_ManPoNum(pCare);
+    }
     Gia_ManStop( pAig );
     Gia_ManStop( pCare );
     return pResult;

@@ -61,6 +61,7 @@ Gia_Man_t * Gia_ManDupNormalize( Gia_Man_t * p )
     Gia_ManForEachCo( p, pObj, i )
         pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    pNew->nConstrs = p->nConstrs;
     assert( Gia_ManIsNormalized(pNew) );
     Gia_ManDupRemapEquiv( pNew, p );
     return pNew;

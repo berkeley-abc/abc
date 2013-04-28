@@ -47,6 +47,7 @@ struct Ssc_Pars_t_
     int              nBTLimit;      // conflict limit at a node
     int              nSatVarMax;    // the max number of SAT variables
     int              nCallsRecycle; // calls to perform before recycling SAT solver
+    int              fAppend;       // append constraints to the resulting AIG
     int              fVerbose;      // verbose stats
 };
 

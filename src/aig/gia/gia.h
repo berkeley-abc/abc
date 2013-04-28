@@ -1097,6 +1097,7 @@ extern void                Gia_ManInvertConstraints( Gia_Man_t * pAig );
 extern void                Gia_ManInvertPos( Gia_Man_t * pAig );
 extern int                 Gia_ManCompare( Gia_Man_t * p1, Gia_Man_t * p2 );
 extern void                Gia_ManMarkFanoutDrivers( Gia_Man_t * p );
+extern void                Gia_ManSwapPos( Gia_Man_t * p, int i );
 
 /*=== giaCTas.c ===========================================================*/
 typedef struct Tas_Man_t_  Tas_Man_t;

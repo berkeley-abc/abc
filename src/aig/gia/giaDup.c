@@ -600,7 +600,7 @@ void Gia_ManDupAppendShare( Gia_Man_t * pNew, Gia_Man_t * pTwo )
     Gia_ManForEachObj1( pTwo, pObj, i )
     {
         if ( Gia_ObjIsAnd(pObj) )
-            pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+            pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
         else if ( Gia_ObjIsCi(pObj) )
             pObj->Value = Gia_Obj2Lit( pNew, Gia_ManCi( pNew, Gia_ObjCioId(pObj) ) );
         else if ( Gia_ObjIsCo(pObj) )

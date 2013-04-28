@@ -260,7 +260,7 @@ p->timeCnfGen += clock() - clk;
 ***********************************************************************/
 void Ssc_ManStartSolver( Ssc_Man_t * p )
 {
-    Aig_Man_t * pMan = Gia_ManToAig( p->pFraig, 0 );
+    Aig_Man_t * pMan = Gia_ManToAigSimple( p->pFraig );
     Cnf_Dat_t * pDat = Cnf_Derive( pMan, 0 );
     Gia_Obj_t * pObj;
     sat_solver * pSat;

@@ -888,6 +888,26 @@ static inline int Vec_IntRemove( Vec_Int_t * p, int Entry )
 
 /**Function*************************************************************
 
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Vec_IntDrop( Vec_Int_t * p, int i )
+{
+    int k;
+    assert( i >= 0 && i < Vec_IntSize(p) );
+    p->nSize--;
+    for ( k = i; k < p->nSize; k++ )
+        p->pArray[k] = p->pArray[k+1];
+}
+
+/**Function*************************************************************
+
   Synopsis    [Interts entry at the index iHere. Shifts other entries.]
 
   Description []

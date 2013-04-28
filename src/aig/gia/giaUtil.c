@@ -1338,6 +1338,31 @@ void Gia_ManMarkFanoutDrivers( Gia_Man_t * p )
         else if ( Gia_ObjIsCo(pObj) )
             Gia_ObjFanin0(pObj)->fMark0 = 1;
 }
+
+
+/**Function*************************************************************
+
+  Synopsis    [Swaps PO number 0 with PO number i.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManSwapPos( Gia_Man_t * p, int i )
+{
+    int Lit0, LitI;
+    assert( i >= 0 && i < Gia_ManPoNum(p) );
+    if ( i == 0 )
+        return;
+    Lit0 = Gia_ObjFaninLit0p( p, Gia_ManPo(p, 0) );
+    LitI = Gia_ObjFaninLit0p( p, Gia_ManPo(p, i) );
+    Gia_ManPatchCoDriver( p, 0, LitI );
+    Gia_ManPatchCoDriver( p, i, Lit0 );
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
