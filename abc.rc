@@ -30,6 +30,7 @@ alias cg clockgate
 alias cl cleanup
 alias clp collapse
 alias cs care_set
+alias el eliminate
 alias esd ext_seq_dcs
 alias f fraig
 alias fs fraig_sweep

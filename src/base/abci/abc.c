@@ -3811,7 +3811,7 @@ int Abc_CommandDisjoint( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     if ( fGlobal )
     {
-//        Abc_Print( -1, "Performing DSD of global functions of the network.\n" );
+//        Abc_Print( 0, "Performing DSD of global functions of the network.\n" );
         // get the new network
         if ( !Abc_NtkIsStrash(pNtk) )
         {
@@ -3838,7 +3838,7 @@ int Abc_CommandDisjoint( Abc_Frame_t * pAbc, int argc, char ** argv )
             Abc_Print( -1, "This command is only applicable to logic BDD networks.\n" );
             return 1;
         }
-        Abc_Print( -1, "Performing recursive DSD and MUX decomposition of local functions.\n" );
+        Abc_Print( 1, "Performing recursive DSD and MUX decomposition of local functions.\n" );
         if ( !Abc_NtkDsdLocal( pNtk, fVerbose, fRecursive ) )
             Abc_Print( -1, "Recursive DSD has failed.\n" );
     }
@@ -3849,7 +3849,7 @@ int Abc_CommandDisjoint( Abc_Frame_t * pAbc, int argc, char ** argv )
             Abc_Print( -1, "This command is only applicable to logic BDD networks (run \"bdd\").\n" );
             return 1;
         }
-        Abc_Print( -1, "Performing simple non-recursive DSD of local functions.\n" );
+        Abc_Print( 1, "Performing simple non-recursive DSD of local functions.\n" );
         if ( !Abc_NtkDsdLocal( pNtk, fVerbose, fRecursive ) )
             Abc_Print( -1, "Simple DSD of local functions has failed.\n" );
     }
