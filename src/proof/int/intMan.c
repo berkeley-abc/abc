@@ -52,6 +52,7 @@ Inter_Man_t * Inter_ManCreate( Aig_Man_t * pAig, Inter_ManParams_t * pPars )
     p->vVarsAB = Vec_IntAlloc( Aig_ManRegNum(pAig) );
     p->nConfLimit = pPars->nBTLimit;
     p->fVerbose = pPars->fVerbose;
+    p->pFileName = pPars->pFileName;
     p->pAig = pAig;
     if ( pPars->fDropInvar )
         p->vInters = Vec_PtrAlloc( 100 );
@@ -102,14 +103,15 @@ void Inter_ManClean( Inter_Man_t * p )
 ***********************************************************************/
 void Inter_ManInterDump( Inter_Man_t * p, int fProved )
 {
+    char * pFileName = p->pFileName ? p->pFileName : "invar.aig";
     Aig_Man_t * pMan;
     pMan = Aig_ManDupArray( p->vInters );
-    Ioa_WriteAiger( pMan, "invar.aig", 0, 0 );
+    Ioa_WriteAiger( pMan, pFileName, 0, 0 );
     Aig_ManStop( pMan );
     if ( fProved )
-        printf( "Inductive invariant is dumped into file \"invar.aig\".\n" );
+        printf( "Inductive invariant is dumped into file \"%s\".\n", pFileName );
     else
-        printf( "Interpolants are dumped into file \"inter.aig\".\n" );
+        printf( "Interpolants are dumped into file \"%s\".\n", pFileName );
 }
 
 /**Function*************************************************************

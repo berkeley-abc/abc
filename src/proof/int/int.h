@@ -66,6 +66,7 @@ struct Inter_ManParams_t_
     int  fDropInvar;    // dump inductive invariant into file
     int  fVerbose;      // print verbose statistics
     int  iFrameMax;     // the time frame reached
+    char * pFileName;   // file name to dump interpolant
 };
 
 ////////////////////////////////////////////////////////////////////////

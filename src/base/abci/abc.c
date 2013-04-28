@@ -21262,7 +21262,7 @@ int Abc_CommandBmcInter( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set defaults
     Inter_ManSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "CFTKLrtpomcgbqkdfvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "CFTKLIrtpomcgbqkdivh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -21319,6 +21319,15 @@ int Abc_CommandBmcInter( Abc_Frame_t * pAbc, int argc, char ** argv )
             pLogFileName = argv[globalUtilOptind];
             globalUtilOptind++;
             break;
+        case 'I':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-I\" should be followed by a file name.\n" );
+                goto usage;
+            }
+            pPars->pFileName = argv[globalUtilOptind];
+            globalUtilOptind++;
+            break;
         case 'r':
             pPars->fRewrite ^= 1;
             break;
@@ -21352,7 +21361,7 @@ int Abc_CommandBmcInter( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'd':
             pPars->fDropSatOuts ^= 1;
             break;
-        case 'f':
+        case 'i':
             pPars->fDropInvar ^= 1;
             break;
         case 'v':
@@ -21436,7 +21445,7 @@ int Abc_CommandBmcInter( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: int [-CFTK num] [-L file] [-rtpomcgbqkdfvh]\n" );
+    Abc_Print( -2, "usage: int [-CFTK num] [-LI file] [-irtpomcgbqkdvh]\n" );
     Abc_Print( -2, "\t         uses interpolation to prove the property\n" );
     Abc_Print( -2, "\t-C num : the limit on conflicts for one SAT run [default = %d]\n", pPars->nBTLimit );
     Abc_Print( -2, "\t-F num : the limit on number of frames to unroll [default = %d]\n", pPars->nFramesMax );
@@ -21444,6 +21453,8 @@ usage:
     Abc_Print( -2, "\t-K num : the number of steps in inductive checking [default = %d]\n", pPars->nFramesK );
     Abc_Print( -2, "\t         (K = 1 works in all cases; K > 1 works without -t and -b)\n" );
     Abc_Print( -2, "\t-L file: the log file name [default = %s]\n", pLogFileName ? pLogFileName : "no logging" );
+    Abc_Print( -2, "\t-I file: the file name for dumping interpolant [default = \"%s\"]\n", pPars->pFileName ? pPars->pFileName : "invar.aig" );
+    Abc_Print( -2, "\t-i     : toggle dumping interpolant/invariant into a file [default = %s]\n", pPars->fDropInvar? "yes": "no" );
     Abc_Print( -2, "\t-r     : toggle rewriting of the unrolled timeframes [default = %s]\n", pPars->fRewrite? "yes": "no" );
     Abc_Print( -2, "\t-t     : toggle adding transition into the initial state [default = %s]\n", pPars->fTransLoop? "yes": "no" );
     Abc_Print( -2, "\t-p     : toggle using original Pudlak's interpolation procedure [default = %s]\n", pPars->fUsePudlak? "yes": "no" );
@@ -21455,7 +21466,6 @@ usage:
     Abc_Print( -2, "\t-q     : toggle using property in two last timeframes [default = %s]\n", pPars->fUseTwoFrames? "yes": "no" );
     Abc_Print( -2, "\t-k     : toggle solving each output separately [default = %s]\n", pPars->fUseSeparate? "yes": "no" );
     Abc_Print( -2, "\t-d     : toggle dropping (replacing by 0) SAT outputs (with -k is used) [default = %s]\n", pPars->fDropSatOuts? "yes": "no" );
-    Abc_Print( -2, "\t-f     : toggle dumping inductive invariant into a file [default = %s]\n", pPars->fDropInvar? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;

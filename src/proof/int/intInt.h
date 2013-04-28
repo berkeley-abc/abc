@@ -69,6 +69,7 @@ struct Inter_Man_t_
     int              nConfCur;     // the current number of conflicts
     int              nConfLimit;   // the limit on the number of conflicts
     int              fVerbose;     // the verbosiness flag
+    char *           pFileName;
     // runtime
     clock_t          timeRwr;
     clock_t          timeCnf;
