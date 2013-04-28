@@ -511,6 +511,14 @@ int Abc_NodeCountAppearances( Abc_Obj_t * pFanin, Abc_Obj_t * pFanout )
     assert( iFanin >= 0 && iFanin < Hop_ManPiNum(pMan) );
     return Hop_ObjFanoutCount( (Hop_Obj_t *)pFanout->pData, Hop_IthVar(pMan, iFanin) );
 }
+int Abc_NodeCountAppearancesAll( Abc_Obj_t * pNode )
+{
+    Abc_Obj_t * pFanout;
+    int i, Count = 0;
+    Abc_ObjForEachFanout( pNode, pFanout, i )
+        Count += Abc_NodeCountAppearances( pNode, pFanout );
+    return Count;
+}
 
 /**Function*************************************************************
 
@@ -570,7 +578,7 @@ int Abc_NodeCollapse1( Abc_Obj_t * pFanin, Abc_Obj_t * pFanout, Vec_Ptr_t * vFan
     Abc_NtkDeleteObj_rec( pFanout, 1 );
     return 1;
 }
-int Abc_NtkEliminate1( Abc_Ntk_t * pNtk, int nMaxSize, int fReverse, int fVerbose )
+int Abc_NtkEliminate1One( Abc_Ntk_t * pNtk, int ElimValue, int nMaxSize, int fReverse, int fVerbose )
 {
     Vec_Ptr_t * vFanouts, * vFanins, * vNodes;
     Abc_Obj_t * pNode, * pFanout;
@@ -600,10 +608,10 @@ int Abc_NtkEliminate1( Abc_Ntk_t * pNtk, int nMaxSize, int fReverse, int fVerbos
         if ( Abc_ObjFaninNum(pNode) > nMaxSize )
             continue;
         // skip nodes with more than one fanout
-        if ( Abc_ObjFanoutNum(pNode) != 1 ) 
-            continue;
+//        if ( Abc_ObjFanoutNum(pNode) != 1 ) 
+//            continue;
         // skip nodes that appear in the FF of their fanout more than once
-        if ( Abc_NodeCountAppearances( pNode, Abc_ObjFanout(pNode, 0) ) != 1 ) 
+        if ( Abc_NodeCountAppearancesAll( pNode ) > ElimValue + 2 ) 
             continue;       
         Abc_ObjForEachFanout( pNode, pFanout, k )
             if ( Abc_NodeCollapseSuppSize(pNode, pFanout, vFanins) > nMaxSize )
@@ -632,6 +640,20 @@ int Abc_NtkEliminate1( Abc_Ntk_t * pNtk, int nMaxSize, int fReverse, int fVerbos
     Vec_PtrFree( vNodes );
     ABC_FREE( pPermFanin );
     ABC_FREE( pPermFanout );
+    return 1;
+}
+int Abc_NtkEliminate1( Abc_Ntk_t * pNtk, int ElimValue, int nMaxSize, int fReverse, int fVerbose )
+{
+    int i;
+    for ( i = 0; i < 3; i++ )
+    {
+        int nNodes = Abc_NtkNodeNum(pNtk);
+//        printf( "%d ", nNodes );
+        if ( !Abc_NtkEliminate1One(pNtk, ElimValue, nMaxSize, fReverse, fVerbose) )
+            return 0;
+        if ( nNodes == Abc_NtkNodeNum(pNtk) )
+            break;
+    }
     return 1;
 }
 
