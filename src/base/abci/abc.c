@@ -3641,8 +3641,8 @@ usage:
     Abc_Print( -2, "\t           performs unate fast extract on the current network\n");
     Abc_Print( -2, "\t-S <num> : max number of single-cube divisors to consider [default = %d]\n", p->nSingleMax );
     Abc_Print( -2, "\t-D <num> : max number of double-cube divisors to consider [default = %d]\n", p->nPairsMax );
-    Abc_Print( -2, "\t-N <num> : the maximum number of divisors to extract [default = %d]\n", p->nNodesExt );
-    Abc_Print( -2, "\t-W <num> : only extract divisors with weight more than this [default = %d]\n", p->nSingleMax );
+    Abc_Print( -2, "\t-N <num> : max number of divisors to extract during this run [default = %d]\n", p->nNodesExt );
+    Abc_Print( -2, "\t-W <num> : only extract divisors with weight more than this [default = %d]\n", p->WeightMax );
     Abc_Print( -2, "\t-s       : use only single-cube divisors [default = %s]\n", p->fOnlyS? "yes": "no" );
     Abc_Print( -2, "\t-d       : use only double-cube divisors [default = %s]\n", p->fOnlyD? "yes": "no" );
     Abc_Print( -2, "\t-z       : use zero-weight divisors [default = %s]\n", p->fUse0? "yes": "no" );
@@ -3668,17 +3668,20 @@ int Abc_CommandEliminate( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     int nMaxSize;
+    int fGreedy;
     int fReverse;
     int fVerbose;
     int c;
     extern int Abc_NtkEliminate( Abc_Ntk_t * pNtk, int nMaxSize, int fReverse, int fVerbose );
+    extern int Abc_NtkEliminate1( Abc_Ntk_t * pNtk, int nMaxSize, int fReverse, int fVerbose );
 
     // set the defaults
-    nMaxSize  = 8;
-    fReverse  = 0;
-    fVerbose  = 0;
+    nMaxSize = 30;
+    fGreedy  =  0;
+    fReverse =  0;
+    fVerbose =  0;
     Extra_UtilGetoptReset();
-    while ( (c = Extra_UtilGetopt(argc, argv, "Nrvh")) != EOF )
+    while ( (c = Extra_UtilGetopt(argc, argv, "Ngrvh")) != EOF )
     {
         switch (c)
         {
@@ -3692,6 +3695,9 @@ int Abc_CommandEliminate( Abc_Frame_t * pAbc, int argc, char ** argv )
                 globalUtilOptind++;
                 if ( nMaxSize <= 0 )
                     goto usage;
+                break;
+            case 'g':
+                fGreedy ^= 1;
                 break;
             case 'r':
                 fReverse ^= 1;
@@ -3725,14 +3731,18 @@ int Abc_CommandEliminate( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
-    // the nodes to be merged are linked into the special linked list
-    Abc_NtkEliminate( pNtk, nMaxSize, fReverse, fVerbose );
+    if ( fGreedy )
+        Abc_NtkEliminate( pNtk, nMaxSize, fReverse, fVerbose );
+    else
+        Abc_NtkEliminate1( pNtk, nMaxSize, fReverse, fVerbose );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: eliminate [-N <num>] [-rvh]\n");
-    Abc_Print( -2, "\t           greedily eliminates nodes by collapsing them into fanouts\n");
-    Abc_Print( -2, "\t-N <num> : the maximum support size after collapsing [default = %d]\n", nMaxSize );
+    Abc_Print( -2, "usage: eliminate [-N <num>] [-grvh]\n");
+    Abc_Print( -2, "\t           traditional \"eliminate -1\", which collapses the node into its fanout\n");
+    Abc_Print( -2, "\t           if the node's variable appears in the fanout's factored form only once\n");
+    Abc_Print( -2, "\t-N <num> : the maximum node support after collapsing [default = %d]\n", nMaxSize );
+    Abc_Print( -2, "\t-g       : toggle using greedy eliminate (without \"value\") [default = %s]\n", fGreedy? "yes": "no" );
     Abc_Print( -2, "\t-r       : use the reverse topological order [default = %s]\n", fReverse? "yes": "no" );
     Abc_Print( -2, "\t-v       : print verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");

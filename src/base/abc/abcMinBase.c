@@ -354,9 +354,10 @@ int Abc_NodeCollapsePermMap( Abc_Obj_t * pNode, Abc_Obj_t * pSkip, Vec_Ptr_t * v
 }
 
 
+
 /**Function*************************************************************
 
-  Synopsis    [Computes support of the node.]
+  Synopsis    [Eliminates the nodes into their fanouts if the node size does not exceed this number.]
 
   Description []
                
@@ -400,18 +401,6 @@ DdNode * Abc_NodeCollapseFunc( Abc_Obj_t * pFanin, Abc_Obj_t * pFanout, Vec_Ptr_
     Cudd_Deref( bFanout );
     return bFanout;
 }
-
-/**Function*************************************************************
-
-  Synopsis    [Collapses one node into its fanout.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
 int Abc_NodeCollapse( Abc_Obj_t * pFanin, Abc_Obj_t * pFanout, Vec_Ptr_t * vFanins, int * pPermFanin, int * pPermFanout )
 {
     Abc_Obj_t * pFanoutNew, * pObj;
@@ -437,18 +426,6 @@ int Abc_NodeCollapse( Abc_Obj_t * pFanin, Abc_Obj_t * pFanout, Vec_Ptr_t * vFani
     Abc_NtkDeleteObj_rec( pFanout, 1 );
     return 1;
 }
-
-/**Function*************************************************************
-
-  Synopsis    [Eliminates the nodes into their fanouts if the node size does not exceed this number.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
 int Abc_NtkEliminate( Abc_Ntk_t * pNtk, int nMaxSize, int fReverse, int fVerbose )
 {
     extern void Abc_NtkBddReorder( Abc_Ntk_t * pNtk, int fVerbose );
@@ -471,12 +448,14 @@ int Abc_NtkEliminate( Abc_Ntk_t * pNtk, int nMaxSize, int fReverse, int fVerbose
     // get the nodes in the given order
     vNodes = fReverse? Abc_NtkDfsReverse( pNtk ) : Abc_NtkDfs( pNtk, 0 );
     // go through the nodes and decide is they can be eliminated
-    pPermFanin = ABC_ALLOC( int, nMaxSize + 100 );
-    pPermFanout = ABC_ALLOC( int, nMaxSize + 100 );
-    vFanins = Vec_PtrAlloc( 100 );
-    vFanouts = Vec_PtrAlloc( 100 );
+    pPermFanin = ABC_ALLOC( int, nMaxSize + 1000 );
+    pPermFanout = ABC_ALLOC( int, nMaxSize + 1000 );
+    vFanins = Vec_PtrAlloc( 1000 );
+    vFanouts = Vec_PtrAlloc( 1000 );
     Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNode, i )
     {
+        if ( !Abc_ObjIsNode(pNode) ) // skip deleted nodes
+            continue;
         if ( Abc_NodeFindCoFanout(pNode) != NULL )
             continue;
         if ( Abc_ObjFaninNum(pNode) > nMaxSize )
@@ -490,11 +469,164 @@ int Abc_NtkEliminate( Abc_Ntk_t * pNtk, int nMaxSize, int fReverse, int fVerbose
         Abc_NodeCollectFanouts( pNode, vFanouts );
         Vec_PtrForEachEntry( Abc_Obj_t *, vFanouts, pFanout, k )
         {
+            if ( fVerbose )
+                printf( "Collapsing fanin %5d (supp =%2d) into fanout %5d (supp =%2d) ",
+                    Abc_ObjId(pNode), Abc_ObjFaninNum(pNode), Abc_ObjId(pFanout), Abc_ObjFaninNum(pFanout) ); 
             RetValue = Abc_NodeCollapse( pNode, pFanout, vFanins, pPermFanin, pPermFanout );
             assert( RetValue );
+            if ( fVerbose )
+            {
+                Abc_Obj_t * pNodeNew = Abc_NtkObj( pNtk, Abc_NtkObjNumMax(pNtk) - 1 );
+                if ( pNodeNew )
+                    printf( "resulting in node %5d (supp =%2d).\n", Abc_ObjId(pNodeNew), Abc_ObjFaninNum(pNodeNew) );
+            }
         }
     }
     Abc_NtkBddReorder( pNtk, 0 );
+    Vec_PtrFree( vFanins );
+    Vec_PtrFree( vFanouts );
+    Vec_PtrFree( vNodes );
+    ABC_FREE( pPermFanin );
+    ABC_FREE( pPermFanout );
+    return 1;
+}
+
+
+
+/**Function*************************************************************
+
+  Synopsis    [Check how many times fanin appears in the FF of the fanout.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NodeCountAppearances( Abc_Obj_t * pFanin, Abc_Obj_t * pFanout )
+{
+    Hop_Man_t * pMan = (Hop_Man_t *)pFanin->pNtk->pManFunc;
+    int iFanin = Abc_NodeFindFanin( pFanout, pFanin );
+    assert( iFanin >= 0 && iFanin < Hop_ManPiNum(pMan) );
+    return Hop_ObjFanoutCount( (Hop_Obj_t *)pFanout->pData, Hop_IthVar(pMan, iFanin) );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs traditional eliminate -1.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Hop_Obj_t * Abc_NodeCollapseFunc1( Abc_Obj_t * pFanin, Abc_Obj_t * pFanout, Vec_Ptr_t * vFanins, int * pPermFanin, int * pPermFanout )
+{
+    Hop_Man_t * pMan = (Hop_Man_t *)pFanin->pNtk->pManFunc;
+    Hop_Obj_t * bFanin, * bFanout;
+    int RetValue, nSize, iFanin;
+    // can only eliminate if fanin occurs in the fanin list of the fanout exactly once
+    if ( Abc_NodeCheckDupFanin( pFanin, pFanout, &iFanin ) != 1 )
+        return NULL;
+    // find the new number of fanins after collapsing
+    nSize = Abc_NodeCollapseSuppSize( pFanin, pFanout, vFanins );
+    Hop_IthVar( pMan, nSize ); // use additional var for fanin variable
+    assert( nSize + 1 <= Hop_ManPiNum(pMan) );
+    // find the permutation after collapsing
+    RetValue = Abc_NodeCollapsePermMap( pFanin, NULL, vFanins, pPermFanin );
+    assert( RetValue );
+    RetValue = Abc_NodeCollapsePermMap( pFanout, pFanin, vFanins, pPermFanout );
+    assert( RetValue );
+    // include fanin's variable
+    pPermFanout[iFanin] = nSize;
+    // create new function of fanin and fanout
+    bFanin  = Hop_Permute( pMan, (Hop_Obj_t *)pFanin->pData,  Abc_ObjFaninNum(pFanin),  pPermFanin );
+    bFanout = Hop_Permute( pMan, (Hop_Obj_t *)pFanout->pData, Abc_ObjFaninNum(pFanout), pPermFanout );
+    // compose fanin into fanout
+    return Hop_Compose( pMan, bFanout, bFanin, nSize );
+}
+int Abc_NodeCollapse1( Abc_Obj_t * pFanin, Abc_Obj_t * pFanout, Vec_Ptr_t * vFanins, int * pPermFanin, int * pPermFanout )
+{
+    Abc_Obj_t * pFanoutNew, * pObj;
+    Hop_Obj_t * bFanoutNew;
+    int i;
+    assert( Abc_NtkIsAigLogic(pFanin->pNtk) );
+    assert( Abc_ObjIsNode(pFanin) );
+    assert( Abc_ObjIsNode(pFanout) );
+    bFanoutNew = Abc_NodeCollapseFunc1( pFanin, pFanout, vFanins, pPermFanin, pPermFanout );  
+    if ( bFanoutNew == NULL )
+        return 0;
+    // create the new node
+    pFanoutNew = Abc_NtkCreateNode( pFanin->pNtk );
+    Vec_PtrForEachEntry( Abc_Obj_t *, vFanins, pObj, i )
+        Abc_ObjAddFanin( pFanoutNew, pObj );
+    pFanoutNew->pData = bFanoutNew;
+    // transfer the fanout
+    Abc_ObjTransferFanout( pFanout, pFanoutNew );
+    assert( Abc_ObjFanoutNum( pFanout ) == 0 );
+    Abc_NtkDeleteObj_rec( pFanout, 1 );
+    return 1;
+}
+int Abc_NtkEliminate1( Abc_Ntk_t * pNtk, int nMaxSize, int fReverse, int fVerbose )
+{
+    Vec_Ptr_t * vFanouts, * vFanins, * vNodes;
+    Abc_Obj_t * pNode, * pFanout;
+    int * pPermFanin, * pPermFanout;
+    int RetValue, i, k;
+    assert( nMaxSize > 0 );
+    assert( Abc_NtkIsLogic(pNtk) ); 
+    // convert network to BDD representation
+    if ( !Abc_NtkToAig(pNtk) )
+    {
+        fprintf( stdout, "Converting to AIG has failed.\n" );
+        return 0;
+    }
+    // get the nodes in the given order
+    vNodes = fReverse? Abc_NtkDfsReverse( pNtk ) : Abc_NtkDfs( pNtk, 0 );
+    // go through the nodes and decide is they can be eliminated
+    pPermFanin = ABC_ALLOC( int, nMaxSize + 1000 );
+    pPermFanout = ABC_ALLOC( int, nMaxSize + 1000 );
+    vFanins = Vec_PtrAlloc( 1000 );
+    vFanouts = Vec_PtrAlloc( 1000 );
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNode, i )
+    {
+        if ( !Abc_ObjIsNode(pNode) ) // skip deleted nodes
+            continue;
+        if ( Abc_NodeFindCoFanout(pNode) != NULL )
+            continue;
+        if ( Abc_ObjFaninNum(pNode) > nMaxSize )
+            continue;
+        // skip nodes with more than one fanout
+        if ( Abc_ObjFanoutNum(pNode) != 1 ) 
+            continue;
+        // skip nodes that appear in the FF of their fanout more than once
+        if ( Abc_NodeCountAppearances( pNode, Abc_ObjFanout(pNode, 0) ) != 1 ) 
+            continue;       
+        Abc_ObjForEachFanout( pNode, pFanout, k )
+            if ( Abc_NodeCollapseSuppSize(pNode, pFanout, vFanins) > nMaxSize )
+                break;
+        if ( k < Abc_ObjFanoutNum(pNode) )
+            continue;
+        // perform elimination
+        Abc_NodeCollectFanouts( pNode, vFanouts );
+        Vec_PtrForEachEntry( Abc_Obj_t *, vFanouts, pFanout, k )
+        {
+            if ( fVerbose )
+                printf( "Collapsing fanin %5d (supp =%2d) into fanout %5d (supp =%2d) ",
+                    Abc_ObjId(pNode), Abc_ObjFaninNum(pNode), Abc_ObjId(pFanout), Abc_ObjFaninNum(pFanout) ); 
+            RetValue = Abc_NodeCollapse1( pNode, pFanout, vFanins, pPermFanin, pPermFanout );
+            assert( RetValue );
+            if ( fVerbose )
+            {
+                Abc_Obj_t * pNodeNew = Abc_NtkObj( pNtk, Abc_NtkObjNumMax(pNtk) - 1 );
+                if ( pNodeNew )
+                    printf( "resulting in node %5d (supp =%2d).\n", Abc_ObjId(pNodeNew), Abc_ObjFaninNum(pNodeNew) );
+            }
+        }
+    }
     Vec_PtrFree( vFanins );
     Vec_PtrFree( vFanouts );
     Vec_PtrFree( vNodes );

@@ -281,11 +281,13 @@ extern Vec_Ptr_t *     Hop_ManDfsNode( Hop_Man_t * p, Hop_Obj_t * pNode );
 extern int             Hop_ManCountLevels( Hop_Man_t * p );
 extern void            Hop_ManCreateRefs( Hop_Man_t * p );
 extern int             Hop_DagSize( Hop_Obj_t * pObj );
+extern int             Hop_ObjFanoutCount( Hop_Obj_t * pObj, Hop_Obj_t * pPivot );
 extern void            Hop_ConeUnmark_rec( Hop_Obj_t * pObj );
 extern Hop_Obj_t *     Hop_Transfer( Hop_Man_t * pSour, Hop_Man_t * pDest, Hop_Obj_t * pObj, int nVars );
 extern Hop_Obj_t *     Hop_Compose( Hop_Man_t * p, Hop_Obj_t * pRoot, Hop_Obj_t * pFunc, int iVar );
 extern Hop_Obj_t *     Hop_Complement( Hop_Man_t * p, Hop_Obj_t * pRoot, int iVar );
 extern Hop_Obj_t *     Hop_Remap( Hop_Man_t * p, Hop_Obj_t * pRoot, unsigned uSupp, int nVars );
+extern Hop_Obj_t *     Hop_Permute( Hop_Man_t * p, Hop_Obj_t * pRoot, int nRootVars, int * pPermute );
 /*=== hopMan.c ==========================================================*/
 extern Hop_Man_t *     Hop_ManStart();
 extern Hop_Man_t *     Hop_ManDup( Hop_Man_t * p );
