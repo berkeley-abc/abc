@@ -35,7 +35,6 @@
 ////////////////////////////////////////////////////////////////////////
 
 
-
 ABC_NAMESPACE_HEADER_START
 
 
@@ -47,33 +46,37 @@ ABC_NAMESPACE_HEADER_START
 typedef struct Ssc_Man_t_ Ssc_Man_t;
 struct Ssc_Man_t_
 {
-    // parameters
+    // user data
     Ssc_Pars_t *     pPars;          // choicing parameters
     Gia_Man_t *      pAig;           // subject AIG
     Gia_Man_t *      pCare;          // care set AIG
+    // internal data
     Gia_Man_t *      pFraig;         // resulting AIG
-    Vec_Int_t *      vPivot;         // one SAT pattern
-    // SAT solving
     sat_solver *     pSat;           // recyclable SAT solver
-    Vec_Int_t *      vSatVars;       // mapping of each node into its SAT var
-    Vec_Int_t *      vUsedNodes;     // nodes whose SAT vars are assigned
+    Vec_Int_t *      vId2Var;        // mapping of each node into its SAT var
+    Vec_Int_t *      vVar2Id;        // mapping of each SAT var into its node
+    Vec_Int_t *      vPivot;         // one SAT pattern
+    int              nSatVarsPivot;  // the number of variables for constraints
+    int              nSatVars;       // the current number of variables  
+    // temporary storage
+    Vec_Int_t *      vFront;         // supergate fanins
+    Vec_Int_t *      vFanins;        // supergate fanins
+    Vec_Int_t *      vPattern;       // counter-example
+    Vec_Int_t *      vDisPairs;      // disproved pairs
+    // SAT calls statistics
     int              nRecycles;      // the number of times SAT solver was recycled
     int              nCallsSince;    // the number of calls since the last recycle
-    Vec_Int_t *      vFanins;        // fanins of the CNF node
-    // SAT calls statistics
     int              nSatCalls;      // the number of SAT calls
-    int              nSatProof;      // the number of proofs
-    int              nSatFailsReal;  // the number of timeouts
     int              nSatCallsUnsat; // the number of unsat SAT calls
     int              nSatCallsSat;   // the number of sat SAT calls
+    int              nSatCallsUndec; // the number of undec SAT calls
     // runtime stats
     clock_t          timeSimInit;    // simulation and class computation
     clock_t          timeSimSat;     // simulation of the counter-examples
-    clock_t          timeSat;        // solving SAT
+    clock_t          timeCnfGen;     // generation of CNF
     clock_t          timeSatSat;     // sat
     clock_t          timeSatUnsat;   // unsat
     clock_t          timeSatUndec;   // undecided
-    clock_t          timeChoice;     // choice computation
     clock_t          timeOther;      // other runtime
     clock_t          timeTotal;      // total runtime
 };
@@ -82,28 +85,33 @@ struct Ssc_Man_t_
 ///                      MACRO DEFINITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
-static inline int  Ssc_ObjSatNum( Ssc_Man_t * p, Gia_Obj_t * pObj )             { return Vec_IntEntry(p->vSatVars, Gia_ObjId(p->pFraig, pObj));     }
-static inline void Ssc_ObjSetSatNum( Ssc_Man_t * p, Gia_Obj_t * pObj, int Num ) { Vec_IntWriteEntry(p->vSatVars, Gia_ObjId(p->pFraig, pObj), Num);  }
+static inline int    Ssc_ObjSatVar( Ssc_Man_t * p, int iObj )             { return Vec_IntEntry(p->vId2Var, iObj);     }
+static inline void   Ssc_ObjSetSatVar( Ssc_Man_t * p, int iObj, int Num ) { Vec_IntWriteEntry(p->vId2Var, iObj, Num);  Vec_IntWriteEntry(p->vVar2Id, Num, iObj);  }
+static inline void   Ssc_ObjCleanSatVar( Ssc_Man_t * p, int Num )         { Vec_IntWriteEntry(p->vId2Var, Vec_IntEntry(p->vVar2Id, Num), Num);  Vec_IntWriteEntry(p->vVar2Id, Num, 0);                        }
 
-static inline int  Ssc_ObjFraig( Ssc_Man_t * p, Gia_Obj_t * pObj )              { return pObj->Value;           }
-static inline void Ssc_ObjSetFraig( Gia_Obj_t * pObj, int iNode )               { pObj->Value = iNode;          }
+static inline int    Ssc_ObjFraig( Ssc_Man_t * p, Gia_Obj_t * pObj )      { return pObj->Value;           }
+static inline void   Ssc_ObjSetFraig( Gia_Obj_t * pObj, int iNode )       { pObj->Value = iNode;          }
 
 ////////////////////////////////////////////////////////////////////////
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /*=== sscClass.c =================================================*/
+extern void          Ssc_GiaClassesInit( Gia_Man_t * p );
 extern int           Ssc_GiaClassesRefine( Gia_Man_t * p );
+extern void          Ssc_GiaClassesCheckPairs( Gia_Man_t * p, Vec_Int_t * vDisPairs );
 /*=== sscCnf.c ===================================================*/
 extern void          Ssc_CnfNodeAddToSolver( Ssc_Man_t * p, Gia_Obj_t * pObj );
 /*=== sscCore.c ==================================================*/
 /*=== sscSat.c ===================================================*/
-extern int           Ssc_NodesAreEquiv( Ssc_Man_t * p, Gia_Obj_t * pObj1, Gia_Obj_t * pObj2 );
 extern void          Ssc_ManSatSolverRecycle( Ssc_Man_t * p );
 extern void          Ssc_ManStartSolver( Ssc_Man_t * p );
 extern Vec_Int_t *   Ssc_ManFindPivotSat( Ssc_Man_t * p );
+extern int           Ssc_ManCheckEquivalence( Ssc_Man_t * p, int iRepr, int iObj, int fCompl );
 /*=== sscSim.c ===================================================*/
+extern void          Ssc_GiaResetPiPattern( Gia_Man_t * p, int nWords );
 extern void          Ssc_GiaRandomPiPattern( Gia_Man_t * p, int nWords, Vec_Int_t * vPivot );
+extern void          Ssc_GiaSavePiPattern( Gia_Man_t * p, Vec_Int_t * vPat );
 extern void          Ssc_GiaSimRound( Gia_Man_t * p );
 extern Vec_Int_t *   Ssc_GiaFindPivotSim( Gia_Man_t * p );
 /*=== sscUtil.c ===================================================*/

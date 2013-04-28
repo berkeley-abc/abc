@@ -34,51 +34,31 @@ static inline word Ssc_Random2()           { return ((word)Gia_ManRandom(0) << 3
 static inline void Ssc_SimAnd( word * pSim, word * pSim0, word * pSim1, int nWords, int fComp0, int fComp1 )
 {
     int w;
-    if ( fComp0 && fComp1 )
-        for ( w = 0; w < nWords; w++ )
-            pSim[w] = ~(pSim0[w] | pSim1[w]);
-    else if ( fComp0 )
-        for ( w = 0; w < nWords; w++ )
-            pSim[w] = ~pSim0[w] & pSim1[w];
-    else if ( fComp1 )
-        for ( w = 0; w < nWords; w++ )
-            pSim[w] = pSim0[w] & ~pSim1[w];
-    else
-        for ( w = 0; w < nWords; w++ )
-            pSim[w] = pSim0[w] & pSim1[w];
+    if ( fComp0 && fComp1 ) for ( w = 0; w < nWords; w++ )  pSim[w] = ~(pSim0[w] | pSim1[w]);
+    else if ( fComp0 )      for ( w = 0; w < nWords; w++ )  pSim[w] =  ~pSim0[w] & pSim1[w];
+    else if ( fComp1 )      for ( w = 0; w < nWords; w++ )  pSim[w] =   pSim0[w] &~pSim1[w];
+    else                    for ( w = 0; w < nWords; w++ )  pSim[w] =   pSim0[w] & pSim1[w];
 }
 
 static inline void Ssc_SimDup( word * pSim, word * pSim0, int nWords, int fComp0 )
 {
     int w;
-    if ( fComp0 )
-        for ( w = 0; w < nWords; w++ )
-            pSim[w] = ~pSim0[w];
-    else
-        for ( w = 0; w < nWords; w++ )
-            pSim[w] = pSim0[w];
+    if ( fComp0 ) for ( w = 0; w < nWords; w++ )  pSim[w] = ~pSim0[w];
+    else          for ( w = 0; w < nWords; w++ )  pSim[w] =  pSim0[w];
 }
 
 static inline void Ssc_SimConst( word * pSim, int nWords, int fComp0 )
 {
     int w;
-    if ( fComp0 )
-        for ( w = 0; w < nWords; w++ )
-            pSim[w] = ~(word)0;
-    else
-        for ( w = 0; w < nWords; w++ )
-            pSim[w] = 0;
+    if ( fComp0 ) for ( w = 0; w < nWords; w++ )  pSim[w] = ~(word)0;
+    else          for ( w = 0; w < nWords; w++ )  pSim[w] = 0;
 }
 
 static inline void Ssc_SimOr( word * pSim, word * pSim0, int nWords, int fComp0 )
 {
     int w;
-    if ( fComp0 )
-        for ( w = 0; w < nWords; w++ )
-            pSim[w] |= ~pSim0[w];
-    else
-        for ( w = 0; w < nWords; w++ )
-            pSim[w] |= pSim0[w];
+    if ( fComp0 ) for ( w = 0; w < nWords; w++ )  pSim[w] |= ~pSim0[w];
+    else          for ( w = 0; w < nWords; w++ )  pSim[w] |=  pSim0[w];
 }
 
 static inline int Ssc_SimFindBitWord( word t )
@@ -145,8 +125,22 @@ void Ssc_GiaResetPiPattern( Gia_Man_t * p, int nWords )
     p->iPatsPi = 0;
     if ( p->vSimsPi == NULL )
         p->vSimsPi = Vec_WrdStart(0);
-    Vec_WrdFill( p->vSimsPi, nWords * Gia_ManPiNum(p), 0 );
+    Vec_WrdFill( p->vSimsPi, nWords * Gia_ManCiNum(p), 0 );
     assert( nWords == Gia_ObjSimWords( p ) );
+}
+void Ssc_GiaSavePiPattern( Gia_Man_t * p, Vec_Int_t * vPat )
+{
+    word * pSimPi;
+    int i;
+    assert( Vec_IntSize(vPat) == Gia_ManCiNum(p) );
+    if ( p->iPatsPi == 64 * Gia_ObjSimWords(p) )
+        Vec_WrdDoubleSimInfo( p->vSimsPi, Gia_ManCiNum(p) );
+    assert( p->iPatsPi < 64 * Gia_ObjSimWords(p) );
+    pSimPi = Gia_ObjSimPi( p, 0 );
+    for ( i = 0; i < Gia_ManCiNum(p); i++, pSimPi += Gia_ObjSimWords(p) )
+        if ( Vec_IntEntry(vPat, i) )
+            Abc_InfoSetBit( (unsigned *)pSimPi, p->iPatsPi );
+    p->iPatsPi++;
 }
 void Ssc_GiaRandomPiPattern( Gia_Man_t * p, int nWords, Vec_Int_t * vPivot )
 {
@@ -163,20 +157,6 @@ void Ssc_GiaRandomPiPattern( Gia_Man_t * p, int nWords, Vec_Int_t * vPivot )
 //            Extra_PrintBinary( stdout, (unsigned *)pSimPi, 64 ), printf( "\n" );
     }
 }
-void Ssc_GiaSavePiPattern( Gia_Man_t * p, Vec_Int_t * vPat )
-{
-    word * pSimPi;
-    int i;
-    assert( Vec_IntSize(vPat) == Gia_ManPiNum(p) );
-    if ( p->iPatsPi == 64 * Gia_ObjSimWords(p) )
-        Vec_WrdDoubleSimInfo( p->vSimsPi, Gia_ManPiNum(p) );
-    assert( p->iPatsPi < 64 * Gia_ObjSimWords(p) );
-    pSimPi = Gia_ObjSimPi( p, 0 );
-    for ( i = 0; i < Gia_ManPiNum(p); i++, pSimPi += Gia_ObjSimWords(p) )
-        if ( Vec_IntEntry(vPat, i) )
-            Abc_InfoSetBit( (unsigned *)pSimPi, p->iPatsPi );
-    p->iPatsPi++;
-}
 
 /**Function*************************************************************
 
@@ -191,7 +171,7 @@ void Ssc_GiaSavePiPattern( Gia_Man_t * p, Vec_Int_t * vPat )
 ***********************************************************************/
 void Ssc_GiaResetSimInfo( Gia_Man_t * p )
 {
-    assert( Vec_WrdSize(p->vSimsPi) % Gia_ManPiNum(p) == 0 );
+    assert( Vec_WrdSize(p->vSimsPi) % Gia_ManCiNum(p) == 0 );
     if ( p->vSims == NULL )
         p->vSims = Vec_WrdAlloc(0);
     Vec_WrdFill( p->vSims, Gia_ObjSimWords(p) * Gia_ManObjNum(p), 0 );
@@ -208,7 +188,7 @@ void Ssc_GiaSimRound( Gia_Man_t * p )
     // primary inputs
     pSim = Gia_ObjSim( p, 1 );
     pSim0 = Gia_ObjSimPi( p, 0 );
-    Gia_ManForEachPi( p, pObj, i )
+    Gia_ManForEachCi( p, pObj, i )
     {
         assert( pSim == Gia_ObjSimObj( p, pObj ) );
         Ssc_SimDup( pSim, pSim0, nWords, 0 );
@@ -216,7 +196,7 @@ void Ssc_GiaSimRound( Gia_Man_t * p )
         pSim0 += nWords;
     }
     // intermediate nodes
-    pSim = Gia_ObjSim( p, 1+Gia_ManPiNum(p) );
+    pSim = Gia_ObjSim( p, 1+Gia_ManCiNum(p) );
     Gia_ManForEachAnd( p, pObj, i )
     {
         assert( pSim == Gia_ObjSim( p, i ) );
@@ -260,7 +240,7 @@ Vec_Int_t * Ssc_GiaGetOneSim( Gia_Man_t * p )
     if ( iBit == -1 )
         return NULL;
     vInit = Vec_IntAlloc( 100 );
-    Gia_ManForEachPi( p, pObj, i )
+    Gia_ManForEachCi( p, pObj, i )
         Vec_IntPush( vInit, Abc_InfoHasBit((unsigned *)Gia_ObjSimObj(p, pObj), iBit) );
     return vInit;
 }

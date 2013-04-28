@@ -1044,6 +1044,7 @@ void Gia_AigerWrite( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
         p->vNamesOut  = pInit->vNamesOut;  pInit->vNamesOut  = NULL;
         p->pAigExtra  = pInit->pAigExtra;  pInit->pAigExtra  = NULL;
         p->nAnd2Delay = pInit->nAnd2Delay; pInit->nAnd2Delay = 0;
+        p->nConstrs   = pInit->nConstrs;   pInit->nConstrs   = 0;
     }
     else
         p = pInit;
@@ -1137,7 +1138,6 @@ void Gia_AigerWrite( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
         Vec_StrFree( vStrExt );
         if ( fVerbose ) printf( "Finished writing extension \"a\".\n" );
     }
-/*
     // write constraints
     if ( p->nConstrs )
     {
@@ -1145,7 +1145,6 @@ void Gia_AigerWrite( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
         Gia_FileWriteBufferSize( pFile, 4 );
         Gia_FileWriteBufferSize( pFile, p->nConstrs );
     }
-*/
     // write timing information
     if ( p->nAnd2Delay )
     {

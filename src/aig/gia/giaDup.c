@@ -2243,6 +2243,47 @@ Gia_Man_t * Gia_ManDupOneHot( Gia_Man_t * p )
     return pNew;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Duplicates the AIG with nodes ordered by level.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManDupLevelized( Gia_Man_t * p )
+{
+    Gia_Man_t * pNew;
+    Gia_Obj_t * pObj;
+    int i, nLevels = Gia_ManLevelNum( p );
+    int * pCounts = ABC_CALLOC( int, nLevels + 1 );
+    int * pNodes = ABC_ALLOC( int, Gia_ManAndNum(p) );
+    Gia_ManForEachAnd( p, pObj, i )
+        pCounts[Gia_ObjLevel(p, pObj)]++;
+    for ( i = 1; i <= nLevels; i++ )
+        pCounts[i] += pCounts[i-1];
+    Gia_ManForEachAnd( p, pObj, i )
+        pNodes[pCounts[Gia_ObjLevel(p, pObj)-1]++] = i;
+    // duplicate
+    pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManForEachCi( p, pObj, i )
+        pObj->Value = Gia_ManAppendCi( pNew );
+    for ( i = 0; i < Gia_ManAndNum(p) && (pObj = Gia_ManObj(p, pNodes[i])); i++ )
+        pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    Gia_ManForEachCo( p, pObj, i )
+        pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    ABC_FREE( pCounts );
+    ABC_FREE( pNodes );
+    return pNew;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

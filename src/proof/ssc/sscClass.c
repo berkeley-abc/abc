@@ -208,23 +208,26 @@ void Ssc_GiaSimProcessRefined( Gia_Man_t * p, Vec_Int_t * vRefined )
   SeeAlso     []
 
 ***********************************************************************/
+void Ssc_GiaClassesInit( Gia_Man_t * p )
+{
+    Gia_Obj_t * pObj;
+    int i;
+    assert( p->pReprs == NULL );
+    p->pReprs = ABC_CALLOC( Gia_Rpr_t, Gia_ManObjNum(p) );
+    p->pNexts = ABC_CALLOC( int, Gia_ManObjNum(p) );
+    Gia_ManForEachObj( p, pObj, i )
+        Gia_ObjSetRepr( p, i, Gia_ObjIsCand(pObj) ? 0 : GIA_VOID );
+    if ( p->vClassOld == NULL )
+        p->vClassOld = Vec_IntAlloc( 100 );
+    if ( p->vClassNew == NULL )
+        p->vClassNew = Vec_IntAlloc( 100 );
+}
 int Ssc_GiaClassesRefine( Gia_Man_t * p )
 {
     Vec_Int_t * vRefinedC;
     Gia_Obj_t * pObj;
     int i;
-    if ( p->pReprs == NULL )
-    {
-        assert( p->pReprs == NULL );
-        p->pReprs = ABC_CALLOC( Gia_Rpr_t, Gia_ManObjNum(p) );
-        p->pNexts = ABC_CALLOC( int, Gia_ManObjNum(p) );
-        Gia_ManForEachObj( p, pObj, i )
-            Gia_ObjSetRepr( p, i, Gia_ObjIsCand(pObj) ? 0 : GIA_VOID );
-        if ( p->vClassOld == NULL )
-            p->vClassOld = Vec_IntAlloc( 100 );
-        if ( p->vClassNew == NULL )
-            p->vClassNew = Vec_IntAlloc( 100 );
-    }
+    if ( p->pReprs != NULL );
     vRefinedC = Vec_IntAlloc( 100 );
     Gia_ManForEachCand( p, pObj, i )
         if ( Gia_ObjIsTail(p, i) )
@@ -235,6 +238,29 @@ int Ssc_GiaClassesRefine( Gia_Man_t * p )
     Vec_IntFree( vRefinedC );
     return 0;
 }
+
+
+/**Function*************************************************************
+
+  Synopsis    [Check if the pairs have been disproved.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ssc_GiaClassesCheckPairs( Gia_Man_t * p, Vec_Int_t * vDisPairs )
+{
+    int i, iRepr, iObj, Result = 1;
+    Vec_IntForEachEntryDouble( vDisPairs, iRepr, iObj, i )
+        if ( iRepr == Gia_ObjRepr(p, iObj) )
+            printf( "Pair (%d, %d) are still equivalent.\n", iRepr, iObj ), Result = 0;
+    if ( Result )
+        printf( "Classes are refined correctly.\n" );
+}
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

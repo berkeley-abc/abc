@@ -874,6 +874,7 @@ extern Gia_Man_t *         Gia_ManChoiceMiter( Vec_Ptr_t * vGias );
 extern Gia_Man_t *         Gia_ManDupWithConstraints( Gia_Man_t * p, Vec_Int_t * vPoTypes );
 extern Gia_Man_t *         Gia_ManDupCones( Gia_Man_t * p, int * pPos, int nPos, int fTrimPis );
 extern Gia_Man_t *         Gia_ManDupOneHot( Gia_Man_t * p );
+extern Gia_Man_t *         Gia_ManDupLevelized( Gia_Man_t * p );
 /*=== giaEnable.c ==========================================================*/
 extern void                Gia_ManDetectSeqSignals( Gia_Man_t * p, int fSetReset, int fVerbose );
 extern Gia_Man_t *         Gia_ManUnrollAndCofactor( Gia_Man_t * p, int nFrames, int nFanMax, int fVerbose );
@@ -1071,8 +1072,10 @@ extern void                Gia_ManCleanTruth( Gia_Man_t * p );
 extern void                Gia_ManFillValue( Gia_Man_t * p );
 extern void                Gia_ObjSetPhase( Gia_Obj_t * pObj );
 extern void                Gia_ManSetPhase( Gia_Man_t * p );
+extern void                Gia_ManSetPhasePattern( Gia_Man_t * p, Vec_Int_t * vCiValues );
 extern void                Gia_ManSetPhase1( Gia_Man_t * p );
 extern void                Gia_ManCleanPhase( Gia_Man_t * p );
+extern int                 Gia_ManCheckCoPhase( Gia_Man_t * p );
 extern int                 Gia_ManLevelNum( Gia_Man_t * p );
 extern void                Gia_ManCreateValueRefs( Gia_Man_t * p );
 extern void                Gia_ManCreateRefs( Gia_Man_t * p );

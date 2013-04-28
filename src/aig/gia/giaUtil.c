@@ -366,6 +366,16 @@ void Gia_ManSetPhase( Gia_Man_t * p )
     Gia_ManForEachObj( p, pObj, i )
         Gia_ObjSetPhase( pObj );
 }
+void Gia_ManSetPhasePattern( Gia_Man_t * p, Vec_Int_t * vCiValues )  
+{
+    Gia_Obj_t * pObj;
+    int i;
+    Gia_ManForEachObj( p, pObj, i )
+        if ( Gia_ObjIsCi(pObj) )
+            pObj->fPhase = Vec_IntEntry( vCiValues, Gia_ObjCioId(pObj) );
+        else
+            Gia_ObjSetPhase( pObj );
+}
 
 /**Function*************************************************************
 
@@ -406,6 +416,26 @@ void Gia_ManCleanPhase( Gia_Man_t * p )
     int i;
     Gia_ManForEachObj( p, pObj, i )
         pObj->fPhase = 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the number of COs whose value is 1.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManCheckCoPhase( Gia_Man_t * p )
+{
+    Gia_Obj_t * pObj;
+    int i, Counter = 0;
+    Gia_ManForEachCo( p, pObj, i )
+        Counter += pObj->fPhase;
+    return Counter;
 }
 
 /**Function*************************************************************
