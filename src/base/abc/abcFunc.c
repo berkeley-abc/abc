@@ -1029,7 +1029,10 @@ int Abc_NtkToBdd( Abc_Ntk_t * pNtk )
         return Abc_NtkSopToBdd(pNtk);
     }
     if ( Abc_NtkHasSop(pNtk) )
-        return Abc_NtkSopToBdd(pNtk);
+    {
+        Abc_NtkSopToAig(pNtk);
+        return Abc_NtkAigToBdd(pNtk);
+    }
     if ( Abc_NtkHasAig(pNtk) )
         return Abc_NtkAigToBdd(pNtk);
     assert( 0 );
