@@ -113,8 +113,9 @@ DdNode * Abc_ConvertSopToBdd( DdManager * dd, char * pSop, DdNode ** pbVars )
 int Abc_NtkSopToBdd( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pNode;
-    DdManager * dd;
-    int nFaninsMax, i;
+    DdManager * dd, * ddTemp = NULL;
+    Vec_Int_t * vFanins = NULL;
+    int nFaninsMax, i, k, iVar;
  
     assert( Abc_NtkHasSop(pNtk) ); 
 
@@ -122,22 +123,65 @@ int Abc_NtkSopToBdd( Abc_Ntk_t * pNtk )
     nFaninsMax = Abc_NtkGetFaninMax( pNtk );
     if ( nFaninsMax == 0 )
         printf( "Warning: The network has only constant nodes.\n" );
-
     dd = Cudd_Init( nFaninsMax, 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
+
+    // start temporary manager for reordered local functions
+    if ( nFaninsMax > 10 )
+    {
+        ddTemp = Cudd_Init( nFaninsMax, 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
+        Cudd_AutodynEnable( ddTemp,  CUDD_REORDER_SYMM_SIFT );
+        vFanins = Vec_IntAlloc( nFaninsMax );
+    }
 
     // convert each node from SOP to BDD
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
         assert( pNode->pData );
-        pNode->pData = Abc_ConvertSopToBdd( dd, (char *)pNode->pData, NULL );
-        if ( pNode->pData == NULL )
+        if ( Abc_ObjFaninNum(pNode) > 10 )
         {
-            printf( "Abc_NtkSopToBdd: Error while converting SOP into BDD.\n" );
-            return 0;
+            DdNode * pFunc = Abc_ConvertSopToBdd( ddTemp, (char *)pNode->pData, NULL );
+            if ( pFunc == NULL )
+            {
+                printf( "Abc_NtkSopToBdd: Error while converting SOP into BDD.\n" );
+                return 0;
+            }
+            Cudd_Ref( pFunc );
+            // find variable mapping
+            Vec_IntFill( vFanins, Abc_ObjFaninNum(pNode), -1 );
+            for ( k = iVar = 0; k < nFaninsMax; k++ )
+                if ( ddTemp->invperm[k] < Abc_ObjFaninNum(pNode) )
+                    Vec_IntWriteEntry( vFanins, ddTemp->invperm[k], iVar++ );
+            assert( iVar == Abc_ObjFaninNum(pNode) );
+            // transfer to the main manager
+            pNode->pData = Extra_TransferPermute( ddTemp, dd, pFunc, Vec_IntArray(vFanins) );
+            Cudd_Ref( (DdNode *)pNode->pData );
+            Cudd_RecursiveDeref( ddTemp, pFunc );
+            // update variable order
+            Vec_IntClear( vFanins );
+            for ( k = 0; k < nFaninsMax; k++ )
+                if ( ddTemp->invperm[k] < Abc_ObjFaninNum(pNode) )
+                    Vec_IntPush( vFanins, Vec_IntEntry(&pNode->vFanins, ddTemp->invperm[k]) );
+            for ( k = 0; k < Abc_ObjFaninNum(pNode); k++ )
+                Vec_IntWriteEntry( &pNode->vFanins, k, Vec_IntEntry(vFanins, k) );
         }
-        Cudd_Ref( (DdNode *)pNode->pData );
+        else
+        {
+            pNode->pData = Abc_ConvertSopToBdd( dd, (char *)pNode->pData, NULL );
+            if ( pNode->pData == NULL )
+            {
+                printf( "Abc_NtkSopToBdd: Error while converting SOP into BDD.\n" );
+                return 0;
+            }
+            Cudd_Ref( (DdNode *)pNode->pData );
+        }
     }
 
+    if ( ddTemp )
+    {
+//        printf( "Reorderings performed = %d.\n", Cudd_ReadReorderings(ddTemp) );
+        Extra_StopManager( ddTemp );
+    }
+    Vec_IntFreeP( &vFanins );
     Mem_FlexStop( (Mem_Flex_t *)pNtk->pManFunc, 0 );
     pNtk->pManFunc = dd;
 
@@ -675,8 +719,9 @@ int Abc_NtkAigToBdd( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pNode;
     Hop_Man_t * pMan;
-    DdManager * dd;
-    int nFaninsMax, i;
+    DdManager * dd, * ddTemp = NULL;
+    Vec_Int_t * vFanins = NULL;
+    int nFaninsMax, i, k, iVar;
 
     assert( Abc_NtkHasAig(pNtk) ); 
 
@@ -687,32 +732,49 @@ int Abc_NtkAigToBdd( Abc_Ntk_t * pNtk )
 
     dd = Cudd_Init( nFaninsMax, 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
 
+    // start temporary manager for reordered local functions
+    ddTemp = Cudd_Init( nFaninsMax, 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
+    Cudd_AutodynEnable( ddTemp,  CUDD_REORDER_SYMM_SIFT );
+    vFanins = Vec_IntAlloc( nFaninsMax );
+
     // set the mapping of elementary AIG nodes into the elementary BDD nodes
     pMan = (Hop_Man_t *)pNtk->pManFunc;
     assert( Hop_ManPiNum(pMan) >= nFaninsMax ); 
     for ( i = 0; i < nFaninsMax; i++ )
-    {
-        Hop_ManPi(pMan, i)->pData = Cudd_bddIthVar(dd, i);
-        Cudd_Ref( (DdNode *)Hop_ManPi(pMan, i)->pData );
-    }
+        Hop_ManPi(pMan, i)->pData = Cudd_bddIthVar(ddTemp, i);
 
     // convert each node from SOP to BDD
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
-        assert( pNode->pData );
-        pNode->pData = Abc_ConvertAigToBdd( dd, (Hop_Obj_t *)pNode->pData );
-        if ( pNode->pData == NULL )
+        DdNode * pFunc = Abc_ConvertAigToBdd( ddTemp, (Hop_Obj_t *)pNode->pData );
+        if ( pFunc == NULL )
         {
-            printf( "Abc_NtkSopToBdd: Error while converting SOP into BDD.\n" );
+            printf( "Abc_NtkAigToBdd: Error while converting AIG into BDD.\n" );
             return 0;
         }
+        Cudd_Ref( pFunc );
+        // find variable mapping
+        Vec_IntFill( vFanins, Abc_ObjFaninNum(pNode), -1 );
+        for ( k = iVar = 0; k < nFaninsMax; k++ )
+            if ( ddTemp->invperm[k] < Abc_ObjFaninNum(pNode) )
+                Vec_IntWriteEntry( vFanins, ddTemp->invperm[k], iVar++ );
+        assert( iVar == Abc_ObjFaninNum(pNode) );
+        // transfer to the main manager
+        pNode->pData = Extra_TransferPermute( ddTemp, dd, pFunc, Vec_IntArray(vFanins) );
         Cudd_Ref( (DdNode *)pNode->pData );
+        Cudd_RecursiveDeref( ddTemp, pFunc );
+        // update variable order
+        Vec_IntClear( vFanins );
+        for ( k = 0; k < nFaninsMax; k++ )
+            if ( ddTemp->invperm[k] < Abc_ObjFaninNum(pNode) )
+                Vec_IntPush( vFanins, Vec_IntEntry(&pNode->vFanins, ddTemp->invperm[k]) );
+        for ( k = 0; k < Abc_ObjFaninNum(pNode); k++ )
+            Vec_IntWriteEntry( &pNode->vFanins, k, Vec_IntEntry(vFanins, k) );
     }
 
-    // dereference intermediate BDD nodes
-    for ( i = 0; i < nFaninsMax; i++ )
-        Cudd_RecursiveDeref( dd, (DdNode *) Hop_ManPi(pMan, i)->pData );
-
+//    printf( "Reorderings performed = %d.\n", Cudd_ReadReorderings(ddTemp) );
+    Extra_StopManager( ddTemp );
+    Vec_IntFreeP( &vFanins );
     Hop_ManStop( (Hop_Man_t *)pNtk->pManFunc );
     pNtk->pManFunc = dd;
 
