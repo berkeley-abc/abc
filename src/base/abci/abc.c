@@ -22161,7 +22161,7 @@ int Abc_CommandConstr( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( nConstrs > 0 )
     {
         if ( Abc_NtkIsComb(pNtk) )
-            Abc_Print( -1, "The network is combinational.\n" );
+            Abc_Print( 0, "The network is combinational.\n" );
         if ( Abc_NtkConstrNum(pNtk) > 0 )
         {
             Abc_Print( -1, "The network already has constraints.\n" );
@@ -22172,7 +22172,7 @@ int Abc_CommandConstr( Abc_Frame_t * pAbc, int argc, char ** argv )
             Abc_Print( -1, "The number of constraints specified (%d) should be less than POs (%d).\n", nConstrs, Abc_NtkPoNum(pNtk) );
             return 0;
         }
-        Abc_Print( 0, "Considering the last %d POs as constraint outputs.\n", nConstrs );
+        Abc_Print( 1, "Setting the last %d POs as constraint outputs.\n", nConstrs );
         pNtk->nConstrs = nConstrs;
         return 0;
     }

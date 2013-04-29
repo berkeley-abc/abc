@@ -82,6 +82,24 @@ static inline int Ssc_SimFindBit( word * pSim, int nWords )
     return -1;
 }
 
+static inline int Ssc_SimCountBitsWord( word x )
+{
+    x = x - ((x >> 1) & ABC_CONST(0x5555555555555555));   
+    x = (x & ABC_CONST(0x3333333333333333)) + ((x >> 2) & ABC_CONST(0x3333333333333333));    
+    x = (x + (x >> 4)) & ABC_CONST(0x0F0F0F0F0F0F0F0F);    
+    x = x + (x >> 8);
+    x = x + (x >> 16);
+    x = x + (x >> 32); 
+    return (int)(x & 0xFF);
+}
+static inline int Ssc_SimCountBits( word * pSim, int nWords )
+{
+    int w, Counter = 0;
+    for ( w = 0; w < nWords; w++ )
+        Counter += Ssc_SimCountBitsWord(pSim[w]);
+    return Counter;
+}
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -245,6 +263,14 @@ Vec_Int_t * Ssc_GiaGetOneSim( Gia_Man_t * p )
         Vec_IntPush( vInit, Abc_InfoHasBit((unsigned *)Gia_ObjSimObj(p, pObj), iBit) );
     return vInit;
 }
+Vec_Int_t * Ssc_GiaFindPivotSim( Gia_Man_t * p )
+{
+    Vec_Int_t * vInit;
+    Ssc_GiaRandomPiPattern( p, 1, NULL );
+    Ssc_GiaSimRound( p );
+    vInit = Ssc_GiaGetOneSim( p );
+    return vInit;
+}
 
 /**Function*************************************************************
 
@@ -257,13 +283,22 @@ Vec_Int_t * Ssc_GiaGetOneSim( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Ssc_GiaFindPivotSim( Gia_Man_t * p )
+int Ssc_GiaCountCaresSim( Gia_Man_t * p )
 {
-    Vec_Int_t * vInit;
-    Ssc_GiaRandomPiPattern( p, 1, NULL );
+    Gia_Obj_t * pObj;
+    int i, Count, nWords = Gia_ObjSimWords( p );
+    word * pRes = ABC_FALLOC( word, nWords );
+    Gia_ManForEachPo( p, pObj, i )
+        Ssc_SimAnd( pRes, pRes, Gia_ObjSimObj(p, pObj), nWords, 0, 0 );
+    Count = Ssc_SimCountBits( pRes, nWords );
+    ABC_FREE( pRes );
+    return Count;
+}
+int Ssc_GiaEstimateCare( Gia_Man_t * p, int nWords )
+{
+    Ssc_GiaRandomPiPattern( p, nWords, NULL );
     Ssc_GiaSimRound( p );
-    vInit = Ssc_GiaGetOneSim( p );
-    return vInit;
+    return Ssc_GiaCountCaresSim( p );
 }
 
 ////////////////////////////////////////////////////////////////////////

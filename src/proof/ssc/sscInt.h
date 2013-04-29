@@ -116,6 +116,7 @@ extern void          Ssc_GiaRandomPiPattern( Gia_Man_t * p, int nWords, Vec_Int_
 extern void          Ssc_GiaSavePiPattern( Gia_Man_t * p, Vec_Int_t * vPat );
 extern void          Ssc_GiaSimRound( Gia_Man_t * p );
 extern Vec_Int_t *   Ssc_GiaFindPivotSim( Gia_Man_t * p );
+extern int           Ssc_GiaEstimateCare( Gia_Man_t * p, int nWords );
 /*=== sscUtil.c ===================================================*/
 extern Gia_Man_t *   Ssc_GenerateOneHot( int nVars );
 

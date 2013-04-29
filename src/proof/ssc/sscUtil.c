@@ -52,6 +52,7 @@ Gia_Man_t * Gia_ManDropContained( Gia_Man_t * p )
     Gia_Obj_t * pObj;
     Vec_Int_t * vLits, * vKeep;
     sat_solver * pSat;
+    int ConstLit = Abc_Var2Lit(pDat->pVarNums[0], 0);
     int i, status;//, Count = 0;
     Aig_ManStop( pMan );
 
@@ -75,10 +76,10 @@ Gia_Man_t * Gia_ManDropContained( Gia_Man_t * p )
             return NULL;
         }
     }
+    Cnf_DataFree( pDat );
     status = sat_solver_simplify( pSat );
     if ( status == 0 )
     {
-        Cnf_DataFree( pDat );
         sat_solver_delete( pSat );
         Vec_IntFree( vLits );
         return NULL;
@@ -92,17 +93,15 @@ Gia_Man_t * Gia_ManDropContained( Gia_Man_t * p )
         status = sat_solver_solve( pSat, Vec_IntArray(vLits), Vec_IntArray(vLits) + Vec_IntSize(vLits), 0, 0, 0, 0 );
         Vec_IntWriteEntry( vLits, i, Abc_LitNot(Vec_IntEntry(vLits,i)) );
         if ( status == l_False )
-            Vec_IntWriteEntry( vLits, i, Abc_Var2Lit(pDat->pVarNums[0], 0) ); // const1 SAT var is always true
+            Vec_IntWriteEntry( vLits, i, ConstLit ); // const1 SAT var is always true
         else 
         {
             assert( status = l_True );
             Vec_IntPush( vKeep, i );
         }
     }
-    Cnf_DataFree( pDat );
     sat_solver_delete( pSat );
     Vec_IntFree( vLits );
-
     if ( Vec_IntSize(vKeep) == Gia_ManPoNum(p) )
     {
         Vec_IntFree( vKeep );
@@ -140,19 +139,28 @@ Gia_Man_t * Gia_ManOptimizeRing( Gia_Man_t * p )
         return pTemp;
     Ssc_ManSetDefaultParams( pPars );
     pPars->fAppend  = 1;
-    pPars->fVerbose = 1;
+    pPars->fVerbose = 0;
     pTemp->nConstrs = Gia_ManPoNum(pTemp) - 1;    
     for ( i = 0; i < Gia_ManPoNum(pTemp); i++ )
     {
+        // move i-th PO forward
         Gia_ManSwapPos( pTemp, i );
+        pTemp = Gia_ManDupDfs( pAux = pTemp );
+        Gia_ManStop( pAux );
+        // minimize this PO
         pTemp = Ssc_PerformSweepingConstr( pAux = pTemp, pPars );
         Gia_ManStop( pAux );
-        pTemp = Gia_ManDupNormalize( pAux = pTemp );
+        pTemp = Gia_ManDupDfs( pAux = pTemp );
         Gia_ManStop( pAux );
+        // move i-th PO back
         Gia_ManSwapPos( pTemp, i );
+        pTemp = Gia_ManDupDfs( pAux = pTemp );
+        Gia_ManStop( pAux );
+        // report results
         printf( "AIG%3d  : ", i );
         Gia_ManPrintStats( pTemp, 0, 0, 0 );
     }
+    pTemp->nConstrs = 0;
     return pTemp;
 }
 

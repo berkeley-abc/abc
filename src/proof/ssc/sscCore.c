@@ -83,8 +83,9 @@ Ssc_Man_t * Ssc_ManStart( Gia_Man_t * pAig, Gia_Man_t * pCare, Ssc_Pars_t * pPar
     p->pPars  = pPars;
     p->pAig   = pAig;
     p->pCare  = pCare;
-    p->pFraig = Gia_ManDup( p->pCare );
-    Gia_ManHashStart( p->pFraig );
+    p->pFraig = Gia_ManDupDfs( p->pCare );
+    assert( p->pFraig->pHTable == NULL );
+    assert( !Gia_ManHasDangling(p->pFraig) );
     Gia_ManInvertPos( p->pFraig );
     Ssc_ManStartSolver( p );
     if ( p->pSat == NULL )
@@ -170,6 +171,8 @@ clk = clock();
     p = Ssc_ManStart( pAig, pCare, pPars );
     if ( p == NULL )
         return Gia_ManDup( pAig );
+    if ( p->pPars->fVerbose )
+        printf( "Care set produced %d hits out of %d.\n", Ssc_GiaEstimateCare(p->pFraig, 10), 640 );
     // perform simulation 
     if ( Gia_ManAndNum(pCare) == 0 ) // no constraints
     {
@@ -189,6 +192,9 @@ p->timeSimInit += clock() - clk;
     Gia_ManConst0(pAig)->Value = 0;
     Gia_ManForEachCi( pAig, pObj, i )
         pObj->Value = Gia_Obj2Lit( p->pFraig, Gia_ManCi(p->pFraig, i) );
+//    Gia_ManLevelNum(pAig);
+    // prepare swept AIG (should be done after starting SAT solver in Ssc_ManStart)
+    Gia_ManHashStart( p->pFraig );
     // perform sweeping
     Ssc_GiaResetPiPattern( pAig, pPars->nWords );
     Ssc_GiaSavePiPattern( pAig, p->vPivot );
@@ -207,6 +213,7 @@ clk = clock();
             Ssc_GiaResetPiPattern( pAig, pPars->nWords );
             Ssc_GiaSavePiPattern( pAig, p->vPivot );
 p->timeSimSat += clock() - clk;
+//printf( "\n" );
         }
         if ( Gia_ObjIsAnd(pObj) )
             pObj->Value = Gia_ManHashAnd( p->pFraig, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
@@ -272,7 +279,6 @@ p->timeSimSat += clock() - clk;
     // count the number of representatives
     if ( pPars->fVerbose ) 
     {
-//        Gia_ManEquivPrintClasses( pAig, 0, 0 );
         Abc_Print( 1, "Reduction in AIG nodes:%8d  ->%8d (%6.2f %%).  ", 
             Gia_ManAndNum(pAig), Gia_ManAndNum(pResult), 
             100.0 - 100.0 * Gia_ManAndNum(pResult) / Gia_ManAndNum(pAig) );
