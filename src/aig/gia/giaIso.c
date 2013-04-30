@@ -1080,9 +1080,8 @@ Vec_Str_t * Gia_ManIsoFindString( Gia_Man_t * p, int iPo, int fVerbose, Vec_Int_
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManIsoReduce( Gia_Man_t * pInit, Vec_Ptr_t ** pvPosEquivs, Vec_Ptr_t ** pvPiPerms, int fDualOut, int fVerbose )
+Gia_Man_t * Gia_ManIsoReduce( Gia_Man_t * pInit, Vec_Ptr_t ** pvPosEquivs, Vec_Ptr_t ** pvPiPerms, int fDualOut, int fVerbose, int fVeryVerbose )
 { 
-    int fVeryVerbose = 0;
     Gia_Man_t * p, * pPart;
     Vec_Ptr_t * vEquivs, * vEquivs2, * vStrings;
     Vec_Int_t * vRemain, * vLevel, * vLevel2;
@@ -1118,8 +1117,8 @@ Gia_Man_t * Gia_ManIsoReduce( Gia_Man_t * pInit, Vec_Ptr_t ** pvPosEquivs, Vec_P
             Gia_ManStop( p );
         return NULL;
     }
-//    printf( "Reduced %d outputs to %d outputs.  ", Gia_ManPoNum(p), Vec_PtrSize(vEquivs) );
-//    Abc_PrintTime( 1, "Time", clock() - clk );
+    printf( "Reduced %d outputs to %d candidate classes.  ", Gia_ManPoNum(p), Vec_PtrSize(vEquivs) );
+    Abc_PrintTime( 1, "Time", clock() - clk );
 
     // perform refinement of equivalence classes
     Counter = 0;
@@ -1134,6 +1133,16 @@ Gia_Man_t * Gia_ManIsoReduce( Gia_Man_t * pInit, Vec_Ptr_t ** pvPosEquivs, Vec_P
                     printf( "%6d finished...\r", Counter );
             continue;
         }
+
+        if ( fVerbose )
+        {
+            iPo = Vec_IntEntry(vLevel, 0);
+            printf( "%6d %6d %6d : ", i, Vec_IntSize(vLevel), iPo );
+            pPart = Gia_ManDupCones( p, &iPo, 1, 1 );
+            Gia_ManPrintStats(pPart, 0, 0, 0);
+            Gia_ManStop( pPart );
+        }
+
         sStart = Vec_PtrSize( vEquivs2 ); 
         vStrings = Vec_PtrAlloc( 100 );
         Vec_IntForEachEntry( vLevel, iPo, k )
@@ -1283,7 +1292,7 @@ void Gia_IsoTest( Gia_Man_t * p, Abc_Cex_t * pCex, int fVerbose )
 //Gia_AigerWrite( pDouble, "test.aig", 0, 0 );
 
     // analyze the two-output miter
-    pAig = Gia_ManIsoReduce( pDouble, &vPosEquivs, &vPisPerm, 0, 0 );
+    pAig = Gia_ManIsoReduce( pDouble, &vPosEquivs, &vPisPerm, 0, 0, 0 );
     Vec_VecFree( (Vec_Vec_t *)vPosEquivs );
 
     // given CEX for output 0, derive CEX for output 1
