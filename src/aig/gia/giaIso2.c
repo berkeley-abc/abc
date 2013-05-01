@@ -291,7 +291,7 @@ int Gia_Iso2ManUniqify( Gia_Iso2Man_t * p )
     Gia_ManForEachObjVec( p->vTied, p->pGia, pObj, i )
     {
         printf( "%3d : ", Gia_ObjId(p->pGia, pObj) );
-//        Extra_PrintBinary( stdout, &pObj->Value, 32 );
+        Extra_PrintBinary( stdout, &pObj->Value, 32 );
         printf( "\n" );
     }
 #endif
@@ -300,8 +300,7 @@ int Gia_Iso2ManUniqify( Gia_Iso2Man_t * p )
     Vec_IntClear( p->vPlaces );
     Gia_ManForEachObjVec( p->vTied, p->pGia, pObj, i )
     {
-        int iObjId = Gia_ObjId(p->pGia, pObj);
-        for ( k = pObj->Value % nSize; pTemp = pTable[k] ? Gia_ManObj(p->pGia, pTable[k]) : NULL; k = (k + 1) % nSize )
+        for ( k = pObj->Value % nSize; (pTemp = pTable[k] ? Gia_ManObj(p->pGia, pTable[k]) : NULL); k = (k + 1) % nSize )
             if ( pTemp->Value == pObj->Value )
             {
                 pTemp->fMark0 = 1;
