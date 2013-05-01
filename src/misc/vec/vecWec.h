@@ -458,12 +458,103 @@ static inline void Vec_WecPrint( Vec_Wec_t * p, int fSkipSingles )
     Vec_WecForEachLevel( p, vVec, i )
     {
         if ( fSkipSingles && Vec_IntSize(vVec) == 1 )
-            break;
+            continue;
         printf( " %4d : {", i );
         Vec_IntForEachEntry( vVec, Entry, k )
             printf( " %d", Entry );
         printf( " }\n" );
     }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Derives the set of equivalence classes.]
+
+  Description []
+  
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline Vec_Wec_t * Vec_WecCreateClasses( Vec_Int_t * vMap )
+{
+    Vec_Wec_t * vClasses;
+    int i, Entry;
+    vClasses = Vec_WecStart( Vec_IntFindMax(vMap) + 1 );
+    Vec_IntForEachEntry( vMap, Entry, i )
+        Vec_WecPush( vClasses, Entry, i );
+    return vClasses;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Vec_WecCountNonTrivial( Vec_Wec_t * p, int * pnUsed )
+{
+    Vec_Int_t * vClass;
+    int i, nClasses = 0;
+    *pnUsed = 0;
+    Vec_WecForEachLevel( p, vClass, i )
+    {
+        if ( Vec_IntSize(vClass) < 2 )
+            continue;
+        nClasses++;
+        (*pnUsed) += Vec_IntSize(vClass);
+    }
+    return nClasses;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline Vec_Int_t * Vec_WecCollectFirsts( Vec_Wec_t * p )
+{
+    Vec_Int_t * vFirsts, * vLevel;
+    int i;
+    vFirsts = Vec_IntAlloc( Vec_WecSize(p) );
+    Vec_WecForEachLevel( p, vLevel, i )
+        if ( Vec_IntSize(vLevel) > 0 )
+            Vec_IntPush( vFirsts, Vec_IntEntry(vLevel, 0) );
+    return vFirsts;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline Vec_Ptr_t * Vec_WecConvertToVecPtr( Vec_Wec_t * p )
+{
+    Vec_Ptr_t * vCopy;
+    Vec_Int_t * vLevel;
+    int i;
+    vCopy = Vec_PtrAlloc( Vec_WecSize(p) );
+    Vec_WecForEachLevel( p, vLevel, i )
+        Vec_PtrPush( vCopy, Vec_IntDup(vLevel) );
+    return vCopy;
 }
 
 ABC_NAMESPACE_HEADER_END

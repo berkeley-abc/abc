@@ -431,6 +431,76 @@ Vec_Int_t * Gia_ManOrderReverse( Gia_Man_t * p )
     return vResult;
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManCollectSeq_rec( Gia_Man_t * p, int Id, Vec_Int_t * vRoots, Vec_Int_t * vObjs )
+{
+    Gia_Obj_t * pObj;
+    if ( Gia_ObjIsTravIdCurrentId( p, Id ) )
+        return;
+    Gia_ObjSetTravIdCurrentId( p, Id );
+    pObj = Gia_ManObj( p, Id );
+    if ( Gia_ObjIsAnd(pObj) )
+    {
+        Gia_ManCollectSeq_rec( p, Gia_ObjFaninId0(pObj, Id), vRoots, vObjs );
+        Gia_ManCollectSeq_rec( p, Gia_ObjFaninId1(pObj, Id), vRoots, vObjs );
+    }
+    else if ( Gia_ObjIsCi(pObj) )
+    {
+        if ( Gia_ObjIsRo(p, pObj) )
+            Vec_IntPush( vRoots, Gia_ObjId(p, Gia_ObjRoToRi(p, pObj)) );
+    }
+    else if ( Gia_ObjIsCo(pObj) )
+        Gia_ManCollectSeq_rec( p, Gia_ObjFaninId0(pObj, Id), vRoots, vObjs );
+    else assert( 0 );
+    Vec_IntPush( vObjs, Id );
+}
+Vec_Int_t * Gia_ManCollectSeq( Gia_Man_t * p, int * pPos, int nPos )
+{
+    Vec_Int_t * vObjs, * vRoots;
+    int i, iRoot;
+    // collect roots
+    vRoots = Vec_IntAlloc( 100 );
+    for ( i = 0; i < nPos; i++ )
+        Vec_IntPush( vRoots, Gia_ObjId(p, Gia_ManPo(p, pPos[i])) );
+    // start trav IDs
+    Gia_ManIncrementTravId( p );
+    Gia_ObjSetTravIdCurrentId( p, 0 );
+    // collect objects
+    vObjs = Vec_IntAlloc( 1000 );
+    Vec_IntPush( vObjs, 0 );
+    Vec_IntForEachEntry( vRoots, iRoot, i )
+        Gia_ManCollectSeq_rec( p, iRoot, vRoots, vObjs );
+    Vec_IntFree( vRoots );
+    return vObjs;
+}
+void Gia_ManCollectSeqTest( Gia_Man_t * p )
+{
+    Vec_Int_t * vObjs;
+    int i;
+    clock_t clk = clock();
+    for ( i = 0; i < Gia_ManPoNum(p); i++ )
+    {
+        if ( i % 10000 == 0 )
+            printf( "%8d finished...\r", i );
+
+        vObjs = Gia_ManCollectSeq( p, &i, 1 );
+//        printf( "%d ", Vec_IntSize(vObjs) );
+        Vec_IntFree( vObjs );
+    }
+    Abc_PrintTime( 1, "Time", clock() - clk );
+
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

@@ -29808,12 +29808,18 @@ int Abc_CommandAbc9Iso( Abc_Frame_t * pAbc, int argc, char ** argv )
     Gia_Man_t * pAig;
     Vec_Ptr_t * vPosEquivs;
 //    Vec_Ptr_t * vPiPerms;
-    int c, fDualOut = 0, fVerbose = 0, fVeryVerbose = 0;
+    int c, fNewAlgo = 1, fEstimate = 0, fDualOut = 0, fVerbose = 0, fVeryVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "dvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "nedvwh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'n':
+            fNewAlgo ^= 1;
+            break;
+        case 'e':
+            fEstimate ^= 1;
+            break;
         case 'd':
             fDualOut ^= 1;
             break;
@@ -29839,8 +29845,11 @@ int Abc_CommandAbc9Iso( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Iso(): The AIG has only one PO. Isomorphism detection is not performed.\n" );
         return 1;
     }
-    pAig = Gia_ManIsoReduce( pAbc->pGia, &vPosEquivs, NULL, fDualOut, fVerbose, fVeryVerbose );
-//    pAig = Gia_ManIsoReduce( pAbc->pGia, &vPosEquivs, &vPiPerms, fDualOut, fVerbose, fVeryVerbose );
+    if ( fNewAlgo )
+        pAig = Gia_ManIsoReduce2( pAbc->pGia, &vPosEquivs, NULL, fEstimate, fDualOut, fVerbose, fVeryVerbose );
+    else
+        pAig = Gia_ManIsoReduce( pAbc->pGia, &vPosEquivs, NULL, fEstimate, fDualOut, fVerbose, fVeryVerbose );
+//    pAig = Gia_ManIsoReduce( pAbc->pGia, &vPosEquivs, &vPiPerms, 0, fDualOut, fVerbose, fVeryVerbose );
 //    Vec_VecFree( (Vec_Vec_t *)vPiPerms );
     if ( pAig == NULL )
     {
@@ -29854,9 +29863,11 @@ int Abc_CommandAbc9Iso( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &iso [-dvwh]\n" );
+    Abc_Print( -2, "usage: &iso [-nedvwh]\n" );
     Abc_Print( -2, "\t         removes POs with isomorphic sequential COI\n" );
-    Abc_Print( -2, "\t-d     : treat the current AIG as a dual-output miter [default = %s]\n", fDualOut? "yes": "no" );
+    Abc_Print( -2, "\t-n     : toggle using new fast algorithm [default = %s]\n", fNewAlgo? "yes": "no" );
+    Abc_Print( -2, "\t-e     : toggle computing lower bound on equivalence classes [default = %s]\n", fEstimate? "yes": "no" );
+    Abc_Print( -2, "\t-d     : toggle treating the current AIG as a dual-output miter [default = %s]\n", fDualOut? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w     : toggle printing very verbose information [default = %s]\n", fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
@@ -31556,7 +31567,8 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    extern void Mig_ManTest( Gia_Man_t * pGia );
 //    extern int Gia_ManVerify( Gia_Man_t * pGia );
 //    extern Gia_Man_t * Gia_SweeperFraigTest( Gia_Man_t * p, int nWords, int nConfs, int fVerbose );
-    extern Gia_Man_t * Gia_ManOptimizeRing( Gia_Man_t * p );
+//    extern Gia_Man_t * Gia_ManOptimizeRing( Gia_Man_t * p );
+//    extern void Gia_ManCollectSeqTest( Gia_Man_t * p );
 
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "svh" ) ) != EOF )
@@ -31609,8 +31621,9 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    Mig_ManTest( pAbc->pGia );
 //    Gia_ManVerifyWithBoxes( pAbc->pGia );
 //    pTemp = Gia_SweeperFraigTest( pAbc->pGia, 4, 1000, 0 );
-    pTemp = Gia_ManOptimizeRing( pAbc->pGia );
-    Abc_FrameUpdateGia( pAbc, pTemp );
+//    pTemp = Gia_ManOptimizeRing( pAbc->pGia );
+//    Abc_FrameUpdateGia( pAbc, pTemp );
+//    Gia_ManCollectSeqTest( pAbc->pGia );
     return 0;
 usage:
     Abc_Print( -2, "usage: &test [-svh]\n" );
