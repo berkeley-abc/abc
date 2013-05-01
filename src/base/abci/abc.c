@@ -380,7 +380,7 @@ static int Abc_CommandAbc9CexInfo            ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9Cycle              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Cone               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9PoPart             ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc9PoPart2            ( Abc_Frame_t * pAbc, int argc, char ** argv );
+//static int Abc_CommandAbc9PoPart2            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 //static int Abc_CommandAbc9CexCut             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 //static int Abc_CommandAbc9CexMerge           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 //static int Abc_CommandAbc9CexMin             ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -877,7 +877,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&cycle",        Abc_CommandAbc9Cycle,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&cone",         Abc_CommandAbc9Cone,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&popart",       Abc_CommandAbc9PoPart,       0 );
-    Cmd_CommandAdd( pAbc, "ABC9",         "&popart2",      Abc_CommandAbc9PoPart2,      0 );
+//    Cmd_CommandAdd( pAbc, "ABC9",         "&popart2",      Abc_CommandAbc9PoPart2,      0 );
 //    Cmd_CommandAdd( pAbc, "ABC9",         "&cexcut",       Abc_CommandAbc9CexCut,       0 );
 //    Cmd_CommandAdd( pAbc, "ABC9",         "&cexmerge",     Abc_CommandAbc9CexMerge,     0 );
 //    Cmd_CommandAdd( pAbc, "ABC9",         "&cexmin",       Abc_CommandAbc9CexMin,       0 );
@@ -30164,9 +30164,10 @@ int Abc_CommandAbc9PoPart( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     Abc_Print( -2, "usage: &popart [-S num] [-imvh]\n" );
     Abc_Print( -2, "\t         partitioning of POs into equivalence classes\n" );
-    Abc_Print( -2, "\t-S num : selection point shift to randomize the solution [default = %d]\n", SelectShift );
-    Abc_Print( -2, "\t-i     : toggle using only CIs as support pivots [default = %s]\n", fOnlyCis? "yes": "no" );
-    Abc_Print( -2, "\t-m     : toggle selecting the largest cluster [default = %s]\n", fSetLargest? "yes": "no" );
+    Abc_Print( -2, "\t-S num : random seed to select the set of pivot nodes [default = %d]\n", SelectShift );
+    Abc_Print( -2, "\t       : (if the seed is 0, the nodes with max fanout counts are used)\n" );
+    Abc_Print( -2, "\t-i     : toggle allowing only CIs to be the pivots [default = %s]\n", fOnlyCis? "yes": "no" );
+    Abc_Print( -2, "\t-m     : toggle using the largest part as the current network [default = %s]\n", fSetLargest? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
@@ -30186,7 +30187,7 @@ usage:
 int Abc_CommandAbc9PoPart2( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern Gia_Man_t * Gia_ManFindPoPartition2( Gia_Man_t * p, int iStartNum, int nDelta, int nOutsMin, int nOutsMax, int fSetLargest, int fVerbose, Vec_Ptr_t ** pvPosEquivs );
-    Gia_Man_t * pTemp;
+    Gia_Man_t * pTemp = NULL;
     Vec_Ptr_t * vPosEquivs = NULL;
     int c, iStartNum = 0, nDelta = 10, nOutsMin = 100, nOutsMax = 1000, fSetLargest = 0, fVerbose = 0;
     Extra_UtilGetoptReset();

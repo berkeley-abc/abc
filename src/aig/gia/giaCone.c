@@ -20,6 +20,8 @@
 
 #include "gia.h"
 #include "misc/extra/extra.h"
+#include "misc/vec/vecHsh.h"
+#include "misc/vec/vecWec.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -384,7 +386,15 @@ Vec_Int_t * Gia_ManFindPivots( Gia_Man_t * p, int SelectShift, int fOnlyCis, int
         ABC_SWAP( int, vWeights->pArray[i], vWeights->pArray[j] );
     }
     // sort
-    pPerm = Abc_QuickSortCost( Vec_IntArray(vWeights), Vec_IntSize(vWeights), 1 );
+    if ( SelectShift == 0 )
+        pPerm = Abc_QuickSortCost( Vec_IntArray(vWeights), Vec_IntSize(vWeights), 1 );
+    else
+    {
+        Vec_Int_t * vTemp = Vec_IntStartNatural( Vec_IntSize(vWeights) );
+        pPerm = Vec_IntReleaseArray( vTemp );
+        Vec_IntFree( vTemp );
+    }
+
     // select    
     Limit = Abc_MinInt( 64, Vec_IntSize(vWeights) );
     vResult = Vec_IntAlloc( Limit );
@@ -471,29 +481,23 @@ Vec_Wrd_t * Gia_ManDeriveSigns( Gia_Man_t * p, Vec_Int_t * vPivots, int fVerbose
 ***********************************************************************/
 Vec_Ptr_t * Gia_ManHashOutputs( Gia_Man_t * p, Vec_Wrd_t * vSigns, int fVerbose )
 {
-    Gia_Obj_t * pObj;
     Vec_Ptr_t * vBins;
-    Vec_Int_t * vBin;
-    int i, nBins = Abc_PrimeCudd( Gia_ManPoNum(p) );
-    int * pBins = ABC_FALLOC( int, nBins );
-    // create hash table of outputs
-    vBins = Vec_PtrAlloc( 1000 );
+    Vec_Wec_t * vClasses;
+    Vec_Wrd_t * vSignsPo;
+    Vec_Int_t * vPriority, * vBin;
+    Gia_Obj_t * pObj;
+    int i;
+    // collect PO signatures
+    vSignsPo = Vec_WrdAlloc( Gia_ManPoNum(p) );
     Gia_ManForEachPo( p, pObj, i )
-    {
-        word Sign = Vec_WrdEntry( vSigns, Gia_ObjId(p, pObj) );
-//        int Offset = (int)(Sign % nBins);
-        int Offset = (int)(((Sign & 0xFFFF) * 709 + ((Sign >> 16) & 0xFFFF) * 797 + ((Sign >> 32) & 0xFFFF) * 881 + ((Sign >> 48) & 0xFFFF) * 907) % nBins);
-        if ( pBins[Offset] == -1 )
-        {
-            pBins[Offset] = Vec_PtrSize( vBins );
-            vBin = Vec_IntAlloc( 4 );
-            Vec_IntPush( vBin, Offset );
-            Vec_PtrPush( vBins, vBin );
-        }
-        vBin = (Vec_Int_t *)Vec_PtrEntry( vBins, pBins[Offset] );
-        Vec_IntPush( vBin, i );
-    }
-    ABC_FREE( pBins );
+        Vec_WrdPush( vSignsPo, Vec_WrdEntry(vSigns, Gia_ObjId(p, pObj)) );
+    // find equivalence classes
+    vPriority = Hsh_WrdManHashArray( vSignsPo, 1 );
+    Vec_WrdFree( vSignsPo );
+    vClasses = Vec_WecCreateClasses( vPriority );
+    Vec_IntFree( vPriority );
+    vBins = (Vec_Ptr_t *)Vec_WecConvertToVecPtr( vClasses );
+    Vec_WecFree( vClasses );
     Vec_VecSort( (Vec_Vec_t *)vBins, 1 );
 
     if ( fVerbose )
@@ -502,10 +506,6 @@ Vec_Ptr_t * Gia_ManHashOutputs( Gia_Man_t * p, Vec_Wrd_t * vSigns, int fVerbose 
         printf( "Listing partitions with more than 100 outputs:\n" );
     Vec_PtrForEachEntry( Vec_Int_t *, vBins, vBin, i )
     {
-        // remove the first item
-        ABC_SWAP( int, vBin->pArray[0], vBin->pArray[Vec_IntSize(vBin)-1] );
-        Vec_IntPop( vBin );
-        Vec_IntSort( vBin, 0 );
         assert( Vec_IntSize(vBin) > 0 );
         if ( fVerbose || Vec_IntSize(vBin) > 100 )
         {
@@ -521,7 +521,6 @@ Vec_Ptr_t * Gia_ManHashOutputs( Gia_Man_t * p, Vec_Wrd_t * vSigns, int fVerbose 
             printf( "\n" );
         }
     }
-//    printf( "\n" );
     return vBins;
 }
 
