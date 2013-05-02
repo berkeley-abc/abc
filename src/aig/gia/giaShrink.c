@@ -127,7 +127,7 @@ Gia_Man_t * Gia_ManMapShrink4( Gia_Man_t * p, int fKeepLevel, int fVerbose )
     if ( Gia_ManHasDangling(pNew) )
     {
         pNew = Gia_ManCleanup( pTemp = pNew );
-        if ( Gia_ManAndNum(pNew) != Gia_ManAndNum(pTemp) )
+        if ( fVerbose && Gia_ManAndNum(pNew) != Gia_ManAndNum(pTemp) )
             printf( "Gia_ManMapShrink4() node reduction after sweep %6d -> %6d.\n", Gia_ManAndNum(pTemp), Gia_ManAndNum(pNew) );
         Gia_ManStop( pTemp );
     }
