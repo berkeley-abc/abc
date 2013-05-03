@@ -955,41 +955,6 @@ void Gia_ManFindCaninicalOrder( Gia_Man_t * p, Vec_Int_t * vCis, Vec_Int_t * vAn
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManDupFromVecs( Gia_Man_t * p, Vec_Int_t * vCis, Vec_Int_t * vAnds, Vec_Int_t * vCos, int nRegs )
-{
-    Gia_Man_t * pNew;
-    Gia_Obj_t * pObj;
-    int i;
-    // start the new manager
-    pNew = Gia_ManStart( 5000 );
-    pNew->pName = Abc_UtilStrsav( p->pName );
-    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
-    // create constant
-    Gia_ManConst0(p)->Value = 0;
-    // create PIs
-    Gia_ManForEachObjVec( vCis, p, pObj, i )
-        pObj->Value = Gia_ManAppendCi( pNew );
-    // create internal nodes
-    Gia_ManForEachObjVec( vAnds, p, pObj, i )
-        pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
-    // create ROs
-    Gia_ManForEachObjVec( vCos, p, pObj, i )
-        pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
-    Gia_ManSetRegNum( pNew, nRegs );
-    return pNew;
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
 Gia_Man_t * Gia_ManIsoCanonicize( Gia_Man_t * p, int fVerbose )
 {
     Gia_Man_t * pRes = NULL;

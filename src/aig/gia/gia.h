@@ -876,6 +876,7 @@ extern Gia_Man_t *         Gia_ManDupWithConstraints( Gia_Man_t * p, Vec_Int_t *
 extern Gia_Man_t *         Gia_ManDupCones( Gia_Man_t * p, int * pPos, int nPos, int fTrimPis );
 extern Gia_Man_t *         Gia_ManDupOneHot( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManDupLevelized( Gia_Man_t * p );
+extern Gia_Man_t *         Gia_ManDupFromVecs( Gia_Man_t * p, Vec_Int_t * vCis, Vec_Int_t * vAnds, Vec_Int_t * vCos, int nRegs );
 /*=== giaEnable.c ==========================================================*/
 extern void                Gia_ManDetectSeqSignals( Gia_Man_t * p, int fSetReset, int fVerbose );
 extern Gia_Man_t *         Gia_ManUnrollAndCofactor( Gia_Man_t * p, int nFrames, int nFanMax, int fVerbose );
@@ -984,6 +985,9 @@ extern void                Gia_MmStepStop( Gia_MmStep_t * p, int fVerbose );
 extern char *              Gia_MmStepEntryFetch( Gia_MmStep_t * p, int nBytes );
 extern void                Gia_MmStepEntryRecycle( Gia_MmStep_t * p, char * pEntry, int nBytes );
 extern int                 Gia_MmStepReadMemUsage( Gia_MmStep_t * p );
+/*=== giaMini.c ===========================================================*/
+extern Gia_Man_t *         Gia_ManReadMiniAig( char * pFileName );
+extern void                Gia_ManWriteMiniAig( Gia_Man_t * pGia, char * pFileName );
 /*=== giaPat.c ===========================================================*/
 extern void                Gia_SatVerifyPattern( Gia_Man_t * p, Gia_Obj_t * pRoot, Vec_Int_t * vCex, Vec_Int_t * vVisit );
 /*=== giaRetime.c ===========================================================*/
@@ -1100,6 +1104,9 @@ extern void                Gia_ManInvertPos( Gia_Man_t * pAig );
 extern int                 Gia_ManCompare( Gia_Man_t * p1, Gia_Man_t * p2 );
 extern void                Gia_ManMarkFanoutDrivers( Gia_Man_t * p );
 extern void                Gia_ManSwapPos( Gia_Man_t * p, int i );
+extern Vec_Int_t *         Gia_ManSaveValue( Gia_Man_t * p );
+extern void                Gia_ManLoadValue( Gia_Man_t * p, Vec_Int_t * vValues );
+
 
 /*=== giaCTas.c ===========================================================*/
 typedef struct Tas_Man_t_  Tas_Man_t;

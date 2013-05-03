@@ -23716,16 +23716,20 @@ int Abc_CommandAbc9Read( Abc_Frame_t * pAbc, int argc, char ** argv )
     FILE * pFile;
     char ** pArgvNew;
     char * FileName, * pTemp;
-    int nArgcNew;
-    int c, fVerbose = 0;
+    int c, nArgcNew;
+    int fUseMini = 0;
+    int fVerbose = 0;
     int fSkipStrash = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "svh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "smvh" ) ) != EOF )
     {
         switch ( c )
         {
         case 's':
             fSkipStrash ^= 1;
+            break;
+        case 'm':
+            fUseMini ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -23758,14 +23762,18 @@ int Abc_CommandAbc9Read( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     fclose( pFile );
 
-    pAig = Gia_AigerRead( FileName, fSkipStrash, 0 );
+    if ( fUseMini )
+        pAig = Gia_ManReadMiniAig( FileName );
+    else
+        pAig = Gia_AigerRead( FileName, fSkipStrash, 0 );
     Abc_FrameUpdateGia( pAbc, pAig );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &r [-svh] <file>\n" );
+    Abc_Print( -2, "usage: &r [-smvh] <file>\n" );
     Abc_Print( -2, "\t         reads the current AIG from the AIGER file\n" );
     Abc_Print( -2, "\t-s     : toggles structural hashing while reading [default = %s]\n", !fSkipStrash? "yes": "no" );
+    Abc_Print( -2, "\t-m     : toggles reading MiniAIG rather than AIGER file [default = %s]\n", fUseMini? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggles additional verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     Abc_Print( -2, "\t<file> : the file name\n");
@@ -24192,14 +24200,18 @@ int Abc_CommandAbc9Write( Abc_Frame_t * pAbc, int argc, char ** argv )
     char ** pArgvNew;
     int c, nArgcNew;
     int fUnique = 0;
+    int fMiniAig = 0;
     int fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "uvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "umvh" ) ) != EOF )
     {
         switch ( c )
         {
         case 'u':
             fUnique ^= 1;
+            break;
+        case 'm':
+            fMiniAig ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -24229,14 +24241,17 @@ int Abc_CommandAbc9Write( Abc_Frame_t * pAbc, int argc, char ** argv )
         Gia_AigerWriteSimple( pGia, pFileName );
         Gia_ManStop( pGia );
     }
+    else if ( fMiniAig )
+        Gia_ManWriteMiniAig( pAbc->pGia, pFileName );
     else
         Gia_AigerWrite( pAbc->pGia, pFileName, 0, 0 );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &w [-uvh] <file>\n" );
+    Abc_Print( -2, "usage: &w [-umvh] <file>\n" );
     Abc_Print( -2, "\t         writes the current AIG into the AIGER file\n" );
     Abc_Print( -2, "\t-u     : toggle writing canonical AIG structure [default = %s]\n", fUnique? "yes" : "no" );
+    Abc_Print( -2, "\t-m     : toggle writing MiniAIG rather than AIGER [default = %s]\n", fMiniAig? "yes" : "no" );
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     Abc_Print( -2, "\t<file> : the file name\n");

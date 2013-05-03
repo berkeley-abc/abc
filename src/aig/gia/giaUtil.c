@@ -1363,6 +1363,35 @@ void Gia_ManSwapPos( Gia_Man_t * p, int i )
     Gia_ManPatchCoDriver( p, i, Lit0 );
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Save/load value from file.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Gia_ManSaveValue( Gia_Man_t * p )
+{
+    Vec_Int_t * vValues;
+    Gia_Obj_t * pObj;
+    int i;
+    vValues = Vec_IntAlloc( Gia_ManObjNum(p) );
+    Gia_ManForEachObj( p, pObj, i )
+        Vec_IntPush( vValues, pObj->Value );
+    return vValues;
+}
+void Gia_ManLoadValue( Gia_Man_t * p, Vec_Int_t * vValues )
+{
+    Gia_Obj_t * pObj;
+    int i;
+    Gia_ManForEachObj( p, pObj, i )
+        pObj->Value = Vec_IntEntry(vValues, i);
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
