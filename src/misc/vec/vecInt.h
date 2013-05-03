@@ -1304,7 +1304,6 @@ static inline int Vec_IntTwoFindCommon( Vec_Int_t * vArr1, Vec_Int_t * vArr2, Ve
     int * pBeg2 = vArr2->pArray;
     int * pEnd1 = vArr1->pArray + vArr1->nSize;
     int * pEnd2 = vArr2->pArray + vArr2->nSize;
-    int Counter = 0;
     Vec_IntClear( vArr );
     while ( pBeg1 < pEnd1 && pBeg2 < pEnd2 )
     {
