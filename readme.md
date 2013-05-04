@@ -93,6 +93,9 @@ from sunfreeware.com and installed it locally. Also modified CFLAGS to add the l
 include files for readline and LIBS to add the local libreadline.a. Perhaps you can 
 add these steps in the readme to help folks compiling this on Solaris."
 
+The following tutorial is kindly offered by Ana Petkovska from EPFL:
+https://www.dropbox.com/s/qrl9svlf0ylxy8p/ABC_GettingStarted.pdf
+
 ## Final remarks:
 
 Unfortunately, there is no comprehensive regression test. Good luck!                                
