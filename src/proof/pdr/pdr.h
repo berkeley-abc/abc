@@ -47,6 +47,7 @@ struct Pdr_Par_t_
     int nRestLimit;       // limit on the number of proof-obligations
     int nTimeOut;         // timeout in seconds
     int nTimeOutGap;      // approximate timeout in seconds since the last change
+    int nTimeOutOne;      // approximate timeout in seconds per one output
     int fTwoRounds;       // use two rounds for generalization
     int fMonoCnf;         // monolythic CNF
     int fDumpInv;         // dump inductive invariant
@@ -59,11 +60,14 @@ struct Pdr_Par_t_
     int fSolveAll;        // do not stop when found a SAT output
     int fStoreCex;        // enable storing counter-examples in MO mode
     int nFailOuts;        // the number of failed outputs
+    int nDropOuts;        // the number of timed out outputs
+    int nProveOuts;       // the number of proved outputs
     int iFrame;           // explored up to this frame
     int RunId;            // PDR id in this run 
     int(*pFuncStop)(int); // callback to terminate
     int(*pFuncOnFail)(int,Abc_Cex_t*); // called for a failed output in MO mode
     clock_t timeLastSolved; // the time when the last output was solved
+    int * pOutMap;        // in the multi-output mode, contains status for each PO (0 = sat; 1 = unsat; negative = undecided)
 };
 
 ////////////////////////////////////////////////////////////////////////

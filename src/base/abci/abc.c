@@ -22641,7 +22641,7 @@ int Abc_CommandPdr( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     Pdr_ManSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "MFCRTGaxrmsdgvwzh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "MFCRTGHaxrmsdgvwzh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -22711,6 +22711,17 @@ int Abc_CommandPdr( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( pPars->nTimeOutGap < 0 )
                 goto usage;
             break;
+        case 'H':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-H\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nTimeOutOne = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nTimeOutOne < 0 )
+                goto usage;
+            break;
         case 'a':
             pPars->fSolveAll ^= 1;
             break;
@@ -22773,7 +22784,7 @@ int Abc_CommandPdr( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: pdr [-MFCRTG <num>] [-axrmsdgvwzh]\n" );
+    Abc_Print( -2, "usage: pdr [-MFCRTGH <num>] [-axrmsdgvwzh]\n" );
     Abc_Print( -2, "\t         model checking using property directed reachability (aka IC3)\n" );
     Abc_Print( -2, "\t         pioneered by Aaron Bradley (http://ecee.colorado.edu/~bradleya/ic3/)\n" );
     Abc_Print( -2, "\t         with improvements by Niklas Een (http://een.se/niklas/)\n" );
@@ -22783,6 +22794,7 @@ usage:
     Abc_Print( -2, "\t-R num : limit on proof obligations before a restart (0 = no limit) [default = %d]\n", pPars->nRestLimit );
     Abc_Print( -2, "\t-T num : approximate timeout in seconds (0 = no limit) [default = %d]\n",              pPars->nTimeOut );
     Abc_Print( -2, "\t-G num : approximate runtime gap since the last CEX (0 = no limit) [default = %d]\n",  pPars->nTimeOutGap );
+    Abc_Print( -2, "\t-H num : approximate runtime per output (with \"-a\") [default = %d]\n",               pPars->nTimeOutOne );
     Abc_Print( -2, "\t-a     : toggle solving all outputs even if one of them is SAT [default = %s]\n",      pPars->fSolveAll? "yes": "no" );
     Abc_Print( -2, "\t-x     : toggle storing CEXes when solving all outputs [default = %s]\n",              pPars->fStoreCex? "yes": "no" );
     Abc_Print( -2, "\t-r     : toggle using more effort in generalization [default = %s]\n",                 pPars->fTwoRounds? "yes": "no" );

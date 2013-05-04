@@ -97,6 +97,7 @@ struct Pdr_Man_t_
     Vec_Int_t * vRes;      // final result
     Vec_Int_t * vSuppLits; // support literals
     Pdr_Set_t * pCubeJust; // justification
+    clock_t *   pTime4Outs;// timeout per output
     // statistics
     int         nBlocks;   // the number of times blockState was called
     int         nObligs;   // the number of proof obligations derived
@@ -115,6 +116,7 @@ struct Pdr_Man_t_
     int         nQueLim;
     // runtime
     time_t      timeToStop;
+    time_t      timeToStopOne;
     // time stats
     clock_t     tSat;
     clock_t     tSatSat;

@@ -1393,10 +1393,12 @@ int Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars )
     int nOutDigits = Abc_Base10Log( Saig_ManPoNum(pAig) );
     int i, f, k, Lit, status;
     clock_t clk, clk2, clkOther = 0, clkTotal = clock();
-    clock_t nTimeUnsat = 0, nTimeSat = 0, nTimeUndec = 0, clkOne;
+    clock_t nTimeUnsat = 0, nTimeSat = 0, nTimeUndec = 0, clkOne = 0;
     clock_t nTimeToStopNG, nTimeToStop;
     if ( pPars->nTimeOutOne )
         pPars->nTimeOut = pPars->nTimeOutOne * Saig_ManPoNum(pAig);
+    if ( pPars->nTimeOutOne && !pPars->fSolveAll )
+        pPars->nTimeOutOne = 0;
     nTimeToStopNG = pPars->nTimeOut ? pPars->nTimeOut * CLOCKS_PER_SEC + clock(): 0;
     nTimeToStop   = Saig_ManBmcTimeToStop( pPars, nTimeToStopNG );
     // create BMC manager

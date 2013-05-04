@@ -73,6 +73,21 @@ Pdr_Man_t * Pdr_ManStart( Aig_Man_t * pAig, Pdr_Par_t * pPars, Vec_Int_t * vPrio
         Aig_ManFanoutStart( pAig );
     if ( pAig->pTerSimData == NULL )
         pAig->pTerSimData = ABC_CALLOC( unsigned, 1 + (Aig_ManObjNumMax(pAig) / 16) );
+    // time spent on each outputs
+    if ( pPars->nTimeOutOne )
+    {
+        int i;
+        p->pTime4Outs = ABC_ALLOC( clock_t, Saig_ManPoNum(pAig) );
+        for ( i = 0; i < Saig_ManPoNum(pAig); i++ )
+            p->pTime4Outs[i] = pPars->nTimeOutOne * CLOCKS_PER_SEC;
+    }
+    if ( pPars->fSolveAll )
+    {
+        int i;
+        pPars->pOutMap = ABC_ALLOC( int, Saig_ManPoNum(pAig) );
+        for ( i = 0; i < Saig_ManPoNum(pAig); i++ )
+            pPars->pOutMap[i] = -2; // unknown
+    }
     return p;
 }
 
@@ -144,6 +159,7 @@ void Pdr_ManStop( Pdr_Man_t * p )
     Vec_IntFree( p->vRes      );  // final result
     Vec_IntFree( p->vSuppLits );  // support literals
     ABC_FREE( p->pCubeJust );
+    ABC_FREE( p->pTime4Outs );
     if ( p->vCexes )
         Vec_PtrFreeFree( p->vCexes );
     // additional AIG data-members
