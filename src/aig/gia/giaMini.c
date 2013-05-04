@@ -168,6 +168,8 @@ Gia_Man_t * Gia_ManReadMiniAig( char * pFileName )
 {
     Mini_Aig_t * p = Mini_AigLoad( pFileName );
     Gia_Man_t * pGia = Gia_ManFromMiniAig( p );
+    ABC_FREE( pGia->pName );
+    pGia->pName = Extra_FileNameGeneric( pFileName ); 
     Mini_AigStop( p );
     return pGia;
 }
