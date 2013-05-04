@@ -38,12 +38,12 @@ struct Ver_Stream_t_
     // the input file
     char *           pFileName;     // the input file name
     FILE *           pFile;         // the input file pointer
-    int              nFileSize;     // the total number of bytes in the file
-    int              nFileRead;     // the number of bytes currently read from file
-    int              nLineCounter;  // the counter of lines processed
+    iword            nFileSize;     // the total number of bytes in the file
+    iword            nFileRead;     // the number of bytes currently read from file
+    iword            nLineCounter;  // the counter of lines processed
     // temporary storage for data 
+    iword            nBufferSize;   // the size of the buffer
     char *           pBuffer;       // the buffer
-    int              nBufferSize;   // the size of the buffer
     char *           pBufferCur;    // the current reading position
     char *           pBufferEnd;    // the first position not used by currently loaded data
     char *           pBufferStop;   // the position where loading new data will be done

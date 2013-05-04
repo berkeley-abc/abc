@@ -46,8 +46,8 @@ ABC_NAMESPACE_HEADER_START
 typedef struct Nm_Entry_t_ Nm_Entry_t;
 struct Nm_Entry_t_
 {
-    unsigned         Type   :  4;   // object type
-    unsigned         ObjId  : 28;   // object ID
+    unsigned         Type;          // object type
+    unsigned         ObjId;         // object ID
     Nm_Entry_t *     pNextI2N;      // the next entry in the ID hash table
     Nm_Entry_t *     pNextN2I;      // the next entry in the name hash table
     Nm_Entry_t *     pNameSake;     // the next entry with the same name
