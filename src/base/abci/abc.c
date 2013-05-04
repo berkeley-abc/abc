@@ -22061,7 +22061,7 @@ int Abc_CommandConstr( Abc_Frame_t * pAbc, int argc, char ** argv )
     fInvert   =      0;
     fOldAlgo  =      0;
     fVerbose  =      0;
-    nConstrs  =      0;
+    nConstrs  =     -1;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "FCPNrsiavh" ) ) != EOF )
     {
@@ -22153,6 +22153,22 @@ int Abc_CommandConstr( Abc_Frame_t * pAbc, int argc, char ** argv )
         pNtk->nConstrs = 0;
         return 0;
     }
+    // consider the case of manual constraint definition
+    if ( nConstrs >= 0 )
+    {
+        if ( Abc_NtkIsComb(pNtk) )
+            Abc_Print( 0, "The network is combinational.\n" );
+        if ( Abc_NtkConstrNum(pNtk) > 0 )
+            Abc_Print( 0, "The network currently has %d constraints.\n", Abc_NtkConstrNum(pNtk) );
+        if ( nConstrs >= Abc_NtkPoNum(pNtk) )
+        {
+            Abc_Print( -1, "The number of constraints specified (%d) should be less than POs (%d).\n", nConstrs, Abc_NtkPoNum(pNtk) );
+            return 0;
+        }
+        Abc_Print( 1, "Setting the last %d POs as constraint outputs.\n", nConstrs );
+        pNtk->nConstrs = nConstrs;
+        return 0;
+    }
     // consider the case of already defined constraints
     if ( Abc_NtkConstrNum(pNtk) > 0 )
     {
@@ -22167,25 +22183,6 @@ int Abc_CommandConstr( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
         if ( fVerbose )
             Abc_NtkDarConstrProfile( pNtk, fVerbose );
-        return 0;
-    }
-    // consider the case of manual constraint definition
-    if ( nConstrs > 0 )
-    {
-        if ( Abc_NtkIsComb(pNtk) )
-            Abc_Print( 0, "The network is combinational.\n" );
-        if ( Abc_NtkConstrNum(pNtk) > 0 )
-        {
-            Abc_Print( -1, "The network already has constraints.\n" );
-            return 0;
-        }
-        if ( nConstrs >= Abc_NtkPoNum(pNtk) )
-        {
-            Abc_Print( -1, "The number of constraints specified (%d) should be less than POs (%d).\n", nConstrs, Abc_NtkPoNum(pNtk) );
-            return 0;
-        }
-        Abc_Print( 1, "Setting the last %d POs as constraint outputs.\n", nConstrs );
-        pNtk->nConstrs = nConstrs;
         return 0;
     }
     if ( Abc_NtkIsComb(pNtk) )
@@ -22781,6 +22778,7 @@ int Abc_CommandPdr( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_FrameReplaceCexVec( pAbc, &pNtk->vSeqModelVec );
         pAbc->nFrames = -1;
     }
+    ABC_FREE( pPars->pOutMap ); // cleanup after PDR
     return 0;
 
 usage:
