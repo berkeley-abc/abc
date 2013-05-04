@@ -21041,7 +21041,7 @@ int Abc_CommandBmc3( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     Saig_ParBmcSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "SFTGCDJILaxdruvzh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "SFTGHCDJILaxdruvzh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -21087,6 +21087,17 @@ int Abc_CommandBmc3( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->nTimeOutGap = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( pPars->nTimeOutGap < 0 )
+                goto usage;
+            break;
+        case 'H':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-H\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nTimeOutOne = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nTimeOutOne < 0 )
                 goto usage;
             break;
         case 'C':
@@ -21219,12 +21230,13 @@ int Abc_CommandBmc3( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: bmc3 [-SFTGCDJI num] [-L file] [-axduvzh]\n" );
+    Abc_Print( -2, "usage: bmc3 [-SFTGHCDJI num] [-L file] [-axduvzh]\n" );
     Abc_Print( -2, "\t         performs bounded model checking with dynamic unrolling\n" );
     Abc_Print( -2, "\t-S num : the starting time frame [default = %d]\n", pPars->nStart );
     Abc_Print( -2, "\t-F num : the max number of time frames (0 = unused) [default = %d]\n",      pPars->nFramesMax );
     Abc_Print( -2, "\t-T num : approximate runtime limit in seconds [default = %d]\n",            pPars->nTimeOut );
     Abc_Print( -2, "\t-G num : approximate runtime gap since the last CEX [default = %d]\n",      pPars->nTimeOutGap );
+    Abc_Print( -2, "\t-H num : approximate runtime per output (with \"-a\") [default = %d]\n",    pPars->nTimeOutOne );
     Abc_Print( -2, "\t-C num : max conflicts at an output [default = %d]\n",                      pPars->nConfLimit );
     Abc_Print( -2, "\t-D num : max conflicts after jumping (0 = infinity) [default = %d]\n",      pPars->nConfLimitJump );
     Abc_Print( -2, "\t-J num : the number of timeframes to jump (0 = not used) [default = %d]\n", pPars->nFramesJump );

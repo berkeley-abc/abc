@@ -43,6 +43,7 @@ struct Gia_ManBmc_t_
     Vec_Int_t *       vId2Num;     // number of each node 
     Vec_Ptr_t *       vTerInfo;    // ternary information
     Vec_Ptr_t *       vId2Var;     // SAT vars for each object
+    clock_t *         pTime4Outs;  // timeout per output
     // hash table
     int *             pTable;
     int               nTable;
@@ -700,7 +701,7 @@ Vec_Int_t * Saig_ManBmcComputeMappingRefs( Aig_Man_t * p, Vec_Int_t * vMap )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_ManBmc_t * Saig_Bmc3ManStart( Aig_Man_t * pAig )
+Gia_ManBmc_t * Saig_Bmc3ManStart( Aig_Man_t * pAig, int nTimeOutOne )
 {
     Gia_ManBmc_t * p;
     Aig_Obj_t * pObj;
@@ -736,6 +737,13 @@ Gia_ManBmc_t * Saig_Bmc3ManStart( Aig_Man_t * pAig )
     // hash table
     p->nTable = 1000003;
     p->pTable = ABC_CALLOC( int, 6 * p->nTable ); // 2.4 MB
+    // time spent on each outputs
+    if ( nTimeOutOne )
+    {
+        p->pTime4Outs = ABC_ALLOC( clock_t, Saig_ManPoNum(pAig) );
+        for ( i = 0; i < Saig_ManPoNum(pAig); i++ )
+            p->pTime4Outs[i] = nTimeOutOne * CLOCKS_PER_SEC;
+    }
     return p;
 }
 
@@ -770,6 +778,7 @@ void Saig_Bmc3ManStop( Gia_ManBmc_t * p )
     Vec_VecFree( (Vec_Vec_t *)p->vId2Var );
     Vec_PtrFreeFree( p->vTerInfo );
     sat_solver_delete( p->pSat );
+    ABC_FREE( p->pTime4Outs );
     ABC_FREE( p->pTable );
     ABC_FREE( p->pSopSizes );
     ABC_FREE( p->pSops[1] );
@@ -1309,6 +1318,7 @@ void Saig_ParBmcSetDefaultParams( Saig_ParBmc_t * p )
     p->fNotVerbose    =     0;    // skip line-by-line print-out 
     p->iFrame         =    -1;    // explored up to this frame
     p->nFailOuts      =     0;    // the number of failed outputs
+    p->nDropOuts      =     0;    // the number of timed out outputs
     p->timeLastSolved =     0;    // time when the last one was solved
 }
 
@@ -1383,11 +1393,14 @@ int Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars )
     int nOutDigits = Abc_Base10Log( Saig_ManPoNum(pAig) );
     int i, f, k, Lit, status;
     clock_t clk, clk2, clkOther = 0, clkTotal = clock();
-    clock_t nTimeToStopNG = pPars->nTimeOut ? pPars->nTimeOut * CLOCKS_PER_SEC + clock(): 0;
-    clock_t nTimeToStop   = Saig_ManBmcTimeToStop( pPars, nTimeToStopNG );
-    clock_t nTimeUnsat = 0, nTimeSat = 0, nTimeUndec = 0;
+    clock_t nTimeUnsat = 0, nTimeSat = 0, nTimeUndec = 0, clkOne;
+    clock_t nTimeToStopNG, nTimeToStop;
+    if ( pPars->nTimeOutOne )
+        pPars->nTimeOut = pPars->nTimeOutOne * Saig_ManPoNum(pAig);
+    nTimeToStopNG = pPars->nTimeOut ? pPars->nTimeOut * CLOCKS_PER_SEC + clock(): 0;
+    nTimeToStop   = Saig_ManBmcTimeToStop( pPars, nTimeToStopNG );
     // create BMC manager
-    p = Saig_Bmc3ManStart( pAig );
+    p = Saig_Bmc3ManStart( pAig, pPars->nTimeOutOne );
     p->pPars = pPars;
     if ( pPars->fVerbose )
     {
@@ -1413,9 +1426,9 @@ int Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars )
             goto finish;
         }
         // stop BMC if all targets are solved
-        if ( pPars->fSolveAll && pPars->nFailOuts == Saig_ManPoNum(pAig) )
+        if ( pPars->fSolveAll && pPars->nFailOuts + pPars->nDropOuts >= Saig_ManPoNum(pAig) )
         {
-            RetValue = 0;
+            RetValue = pPars->nFailOuts ? 0 : 1;
             goto finish;
         }
         // consider the next timeframe
@@ -1469,6 +1482,9 @@ int Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars )
             // skip solved outputs
             if ( p->vCexes && Vec_PtrEntry(p->vCexes, i) )
                 continue;
+            // skip output whose time has run out
+            if ( p->pTime4Outs && p->pTime4Outs[i] == 0 )
+                continue;
             // add constraints for this output
 clk2 = clock();
             Lit = Saig_ManBmcCreateCnf( p, pObj, f );
@@ -1505,11 +1521,25 @@ clkOther += clock() - clk2;
                     sat_solver_set_runtime_limit( p->pSat, nTimeToStop );
                 continue;
             }
-            // solve th is output
+            // solve this output
             fUnfinished = 0;
             sat_solver_compress( p->pSat );
 clk2 = clock();
+            if ( p->pTime4Outs )
+            {
+                assert( p->pTime4Outs[i] > 0 );
+                clkOne = clock();
+                sat_solver_set_runtime_limit( p->pSat, p->pTime4Outs[i] + clock() );
+            }
             status = sat_solver_solve( p->pSat, &Lit, &Lit + 1, (ABC_INT64_T)pPars->nConfLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
+            if ( p->pTime4Outs )
+            {
+                clock_t timeSince = clock() - clkOne;
+                assert( p->pTime4Outs[i] > 0 );
+                p->pTime4Outs[i] = (p->pTime4Outs[i] > timeSince) ? p->pTime4Outs[i] - timeSince : 0;
+                if ( p->pTime4Outs[i] == 0 && status != l_True )
+                    pPars->nDropOuts++;
+            }
             if ( status == l_False )
             {
 nTimeUnsat += clock() - clk2;
@@ -1591,7 +1621,8 @@ nTimeUndec += clock() - clk2;
                     fUnfinished = 1;
                     break;
                 }
-                goto finish;
+                if ( p->pTime4Outs == NULL )
+                    goto finish;
             }
         }
         if ( pPars->fVerbose ) 
@@ -1608,7 +1639,9 @@ nTimeUndec += clock() - clk2;
 //            printf( "Imp =%10.0f. ", (double)p->pSat->stats.propagations );
             printf( "Uni =%7.0f. ",(double)sat_solver_count_assigned(p->pSat) );
             if ( pPars->fSolveAll )
-                printf( "CEX =%7d. ", pPars->nFailOuts );
+                printf( "CEX =%5d. ", pPars->nFailOuts );
+            if ( pPars->nTimeOutOne )
+                printf( "T/O =%4d. ", pPars->nDropOuts );
 //            ABC_PRT( "Time", clock() - clk );
 //            printf( "%4.0f MB",     4.0*Vec_IntSize(p->vVisited) /(1<<20) );
             printf( "%4.0f MB",     4.0*(f+1)*p->nObjNums /(1<<20) );

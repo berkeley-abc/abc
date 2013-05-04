@@ -49,6 +49,7 @@ struct Saig_ParBmc_t_
     int         nFramesJump;    // the number of tiemframes to jump
     int         nTimeOut;       // approximate timeout in seconds
     int         nTimeOutGap;    // approximate timeout in seconds since the last change
+    int         nTimeOutOne;    // timeout per output in multi-output solving
     int         nPisAbstract;   // the number of PIs to abstract
     int         fSolveAll;      // does not stop at the first SAT output
     int         fStoreCex;      // enable storing CEXes in the MO mode
@@ -59,6 +60,7 @@ struct Saig_ParBmc_t_
     int         fNotVerbose;    // skip line-by-line print-out 
     int         iFrame;         // explored up to this frame
     int         nFailOuts;      // the number of failed outputs
+    int         nDropOuts;      // the number of dropped outputs
     clock_t     timeLastSolved; // the time when the last output was solved
     int(*pFuncOnFail)(int,Abc_Cex_t*); // called for a failed output in MO mode
 };
