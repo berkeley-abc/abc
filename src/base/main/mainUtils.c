@@ -21,11 +21,6 @@
 #include "base/abc/abc.h"
 #include "mainInt.h"
 
-#if !defined(_WIN32) && !defined(AIX) 
-// comment out the following line if 'readline' is not available
-#define ABC_USE_READLINE
-#endif
-
 #ifdef ABC_USE_READLINE
 #include <readline/readline.h>
 #include <readline/history.h>

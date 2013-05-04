@@ -37,11 +37,26 @@ arch_flags : arch_flags.c
 ARCHFLAGS := $(shell $(CC) arch_flags.c -o arch_flags && ./arch_flags)
 OPTFLAGS  := -g -O #-DABC_NAMESPACE=xxx
 
-CFLAGS   += -Wall -Wno-unused-function -Wno-unused-but-set-variable $(OPTFLAGS) $(ARCHFLAGS) -I$(PWD)/src
-CXXFLAGS += $(CFLAGS) 
+CFLAGS   += -Wall -Wno-unused-function $(OPTFLAGS) $(ARCHFLAGS) -I$(PWD)/src
 
-#LIBS := -m32 -ldl -rdynamic -lreadline -ltermcap
-LIBS := -ldl -lreadline -lpthread
+ifeq ($(shell $(CC) -dumpversion | awk '{FS="."; print ($$1>=4 && $$2>=6)}'),1)
+# Set -Wno-unused-bug-set-variable for GCC 4.6.0 and greater only
+CFLAGS += -Wno-unused-but-set-variable
+endif
+
+LIBS := -ldl
+
+ifneq ($(READLINE),0)
+CFLAGS += -DABC_USE_READLINE
+LIBS += -lreadline
+endif
+
+ifneq ($(PTHREADS),0)
+CFLAGS += -DABC_USE_PTHREADS
+LIBS += -lpthread
+endif
+
+CXXFLAGS += $(CFLAGS) 
 
 SRC  := 
 GARBAGE := core core.* *.stackdump ./tags $(PROG) arch_flags
@@ -65,7 +80,7 @@ DEP := $(OBJ:.o=.d)
 
 %.o: %.cc
 	@echo "\`\` Compiling:" $(LOCAL_PATH)/$<
-	@$(CC) -c $(CXXFLAGS) $< -o $@
+	@$(CXX) -c $(CXXFLAGS) $< -o $@
 
 %.d: %.c
 	@echo "\`\` Dependency:" $(LOCAL_PATH)/$<
@@ -73,7 +88,7 @@ DEP := $(OBJ:.o=.d)
 
 %.d: %.cc
 	@echo "\`\` Generating dependency:" $(LOCAL_PATH)/$<
-	@./depends.sh $(CXX) `dirname $*.cc` $(CXXFLAGS) $(CFLAGS) $*.cc > $@
+	@./depends.sh $(CXX) `dirname $*.cc` $(CXXFLAGS) $*.cc > $@
 
 -include $(DEP)
 

@@ -25,12 +25,9 @@
 #include "misc/util/abc_global.h"
 #include "misc/extra/extra.h"
 
-// comment out this line to disable pthreads
-#define ABC_USE_PTHREADS
-
 #ifdef ABC_USE_PTHREADS
 
-#ifdef WIN32
+#ifdef _WIN32
 #include "../lib/pthread.h"
 #else
 #include <pthread.h>
