@@ -39,10 +39,10 @@ OPTFLAGS  := -g -O #-DABC_NAMESPACE=xxx
 
 CFLAGS   += -Wall -Wno-unused-function $(OPTFLAGS) $(ARCHFLAGS) -I$(PWD)/src
 
-ifeq ($(shell $(CC) -dumpversion | awk '{FS="."; print ($$1>=4 && $$2>=6)}'),1)
+#ifeq ($(shell $(CC) -dumpversion | awk '{FS="."; print ($$1>=4 && $$2>=6)}'),1)
 # Set -Wno-unused-bug-set-variable for GCC 4.6.0 and greater only
 CFLAGS += -Wno-unused-but-set-variable
-endif
+#endif
 
 LIBS := -ldl
 
