@@ -678,7 +678,6 @@ Gia_Man_t * Gia_ManIsoReduce2( Gia_Man_t * pGia, Vec_Ptr_t ** pvPosEquivs, Vec_P
     printf( "Reduced %d outputs to %d equivalence classes (%d outputs are in %d non-trivial classes).  ", 
         Gia_ManPoNum(pGia), Vec_WecSize(vEquivs), nUsedPos, nClasses );
     Abc_PrintTime( 1, "Time", clock() - clk );
-    Vec_WecFree( vEquivs );
     if ( fVerbose )
     { 
         printf( "Nontrivial classes:\n" );
@@ -688,6 +687,7 @@ Gia_Man_t * Gia_ManIsoReduce2( Gia_Man_t * pGia, Vec_Ptr_t ** pvPosEquivs, Vec_P
         *pvPiPerms = NULL;
     if ( pvPosEquivs )
         *pvPosEquivs = Vec_WecConvertToVecPtr( vEquivs );
+    Vec_WecFree( vEquivs );
 //    Gia_ManStopP( &pPart );
     return pPart;
 }
