@@ -23,7 +23,7 @@ To build the demo program
 
 To run the demo program, give it a file with the logic network in AIGER or BLIF. For example:
 
-    [alanmi@mima] ~/abc> demo i10.aig
+    [...] ~/abc> demo i10.aig
     i10          : i/o =  257/  224  lat =    0  and =   2396  lev = 37
     i10          : i/o =  257/  224  lat =    0  and =   1851  lev = 35
     Networks are equivalent.
@@ -31,7 +31,7 @@ To run the demo program, give it a file with the logic network in AIGER or BLIF.
 
 The same can be produced by running the binary in the command-line mode:
 
-    [alanmi@mima] ~/abc> ./abc
+    [...] ~/abc> ./abc
     UC Berkeley, ABC 1.01 (compiled Oct  6 2012 19:05:18)
     abc 01> r i10.aig; b; ps; b; rw -l; rw -lz; b; rw -lz; b; ps; cec
     i10          : i/o =  257/  224  lat =    0  and =   2396  lev = 37
@@ -40,7 +40,7 @@ The same can be produced by running the binary in the command-line mode:
 
 or in the batch mode:
 
-    [alanmi@mima] ~/abc> ./abc -c "r i10.aig; b; ps; b; rw -l; rw -lz; b; rw -lz; b; ps; cec"
+    [...] ~/abc> ./abc -c "r i10.aig; b; ps; b; rw -l; rw -lz; b; rw -lz; b; ps; cec"
     ABC command line: "r i10.aig; b; ps; b; rw -l; rw -lz; b; rw -lz; b; ps; cec".
     i10          : i/o =  257/  224  lat =    0  and =   2396  lev = 37
     i10          : i/o =  257/  224  lat =    0  and =   1851  lev = 35
