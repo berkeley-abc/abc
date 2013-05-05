@@ -28211,7 +28211,7 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "LUT library is not given. Using default LUT library.\n" );
         pAbc->pLibLut = If_LibLutSetSimple( 6 );
     }
-    pPars->pLutLib = pAbc->pLibLut;
+    pPars->pLutLib = (If_LibLut_t *)pAbc->pLibLut;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "KCFAGDEWSqaflepmrsdbgyojikcvh" ) ) != EOF )
     {
