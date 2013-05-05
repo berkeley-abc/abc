@@ -6,7 +6,7 @@
 
   PackageName [Network and node package.]
 
-  Synopsis    [Interface with the fast extract package.]
+  Synopsis    [Interface with the fast_extract package.]
 
   Author      [Alan Mishchenko]
   
@@ -219,7 +219,7 @@ void Abc_NtkFxInsert( Abc_Ntk_t * pNtk, Vec_Wec_t * vCubes )
             }
             pCube += Abc_ObjFaninNum(pNode) + 3;
         }
-        if ( Abc_SopIsComplement((char *)pNode->pData) )
+        if ( pNode->pData && Abc_SopIsComplement((char *)pNode->pData) )
             Abc_SopComplement( pSop );
         pNode->pData = pSop;
         // clean fanins
@@ -302,19 +302,35 @@ int Abc_NtkFxPerform( Abc_Ntk_t * pNtk, int fVerbose )
 typedef struct Fx_Man_t_ Fx_Man_t;
 struct Fx_Man_t_
 {
-    int             nVars;   // original problem variables
-    int             nPairsS; // number of lit pairs
-    int             nPairsD; // number of cube pairs
-    int             nDivsS;  // single cube divisors
-    Vec_Wec_t *     vCubes;  // cube -> lit (user data)
-    Vec_Wec_t *     vLits;   // lit -> cube
-    Vec_Int_t *     vCounts; // literal counts
-    Hsh_VecMan_t *  pHash;   // divisors 
-    Vec_Flt_t *     vWeights;// divisor weights
-    Vec_Que_t *     vPrio;   // priority queue
-    // temporary variables
-    Vec_Int_t *     vCube; 
+    Vec_Wec_t *     vCubes;   // cube -> lit (user data)
+    Vec_Wec_t *     vLits;    // lit -> cube
+    Vec_Int_t *     vCounts;  // literal counts
+    Hsh_VecMan_t *  pHash;    // divisors 
+    Vec_Flt_t *     vWeights; // divisor weights
+    Vec_Que_t *     vPrio;    // priority queue
+    Vec_Int_t *     vVarCube; // mapping var into its first cube
+    // temporary arrays used for updating
+    Vec_Int_t *     vCubesS;  // single cube divisors
+    Vec_Int_t *     vCubesD;  // double cube divisors
+    Vec_Int_t *     vPart0;   // cubes of given literal
+    Vec_Int_t *     vPart1;   // cubes of given literal
+    Vec_Int_t *     vFree;    // cube-free divisor
+    Vec_Int_t *     vCube;    // one cube
+    Vec_Int_t *     vDiv;     // divisor
+    // statistics 
+    int             nVars;    // original problem variables
+    int             nLits;    // the number of SOP literals
+    int             nPairsS;  // number of lit pairs
+    int             nPairsD;  // number of cube pairs
+    int             nDivsS;   // single cube divisors
 };
+
+static inline int Fx_ManGetFirstVarCube( Fx_Man_t * p, Vec_Int_t * vCube ) { return Vec_IntEntry( p->vVarCube, Vec_IntEntry(vCube, 0) ); }
+
+#define Fx_ManForEachCubeVec( vVec, vCubes, vCube, i )           \
+    for ( i = 0; (i < Vec_IntSize(vVec)) && ((vCube) = Vec_WecEntry(vCubes, Vec_IntEntry(vVec, i))); i++ )
+#define Fx_ManForEachPairVec( vVec, vCubes, vCube1, vCube2, i )  \
+    for ( i = 0; (i+1 < Vec_IntSize(vVec)) && ((vCube) = Vec_WecEntry(vCubes, Vec_IntEntry(vVec, i))) && ((vCube2) = Vec_WecEntry(vCubes, Vec_IntEntry(vVec, i+1))); i += 2 )
 
 /**Function*************************************************************
 
@@ -389,275 +405,17 @@ int Fx_ManDivCanonicize( Vec_Int_t * vFree ) // return 1 if complemented
   SeeAlso     []
 
 ***********************************************************************/
-int Fx_ManDivFindCubeFree( Vec_Int_t * vArr1, Vec_Int_t * vArr2, Vec_Int_t * vFree )
-{
-    int * pBeg1 = vArr1->pArray + 1;
-    int * pBeg2 = vArr2->pArray + 1;
-    int * pEnd1 = vArr1->pArray + vArr1->nSize;
-    int * pEnd2 = vArr2->pArray + vArr2->nSize;
-    int Counter = 0, fAttr0 = 0, fAttr1 = 1;
-    Vec_IntClear( vFree );
-    while ( pBeg1 < pEnd1 && pBeg2 < pEnd2 )
-    {
-        if ( *pBeg1 == *pBeg2 )
-            pBeg1++, pBeg2++, Counter++;
-        else if ( *pBeg1 < *pBeg2 )
-            Vec_IntPush( vFree, Abc_Var2Lit(*pBeg1++, fAttr0) );
-        else 
-        {
-            if ( Vec_IntSize(vFree) == 0 )
-                fAttr0 = 1, fAttr1 = 0;
-            Vec_IntPush( vFree, Abc_Var2Lit(*pBeg2++, fAttr1) );
-        }
-    }
-    while ( pBeg1 < pEnd1 )
-        Vec_IntPush( vFree, Abc_Var2Lit(*pBeg1++, fAttr0) );
-    while ( pBeg2 < pEnd2 )
-        Vec_IntPush( vFree, Abc_Var2Lit(*pBeg2++, fAttr1) );
-    assert( Vec_IntSize(vFree) > 1 );
-    assert( !Abc_LitIsCompl(Vec_IntEntry(vFree, 0)) );
-    return Counter;
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Vec_Wec_t * Fx_ManCreateLiterals( Vec_Wec_t * vCubes, Vec_Int_t ** pvCounts )
-{
-    Vec_Wec_t * vLits;
-    Vec_Int_t * vCube, * vCounts;
-    int i, k, Count, Lit, LitMax = 0;
-    // find max literal
-    Vec_WecForEachLevel( vCubes, vCube, i )
-        Vec_IntForEachEntry( vCube, Lit, k )
-            LitMax = Abc_MaxInt( LitMax, Lit );
-    // count literals
-    vCounts = Vec_IntStart( LitMax + 2 );
-    Vec_WecForEachLevel( vCubes, vCube, i )
-        Vec_IntForEachEntryStart( vCube, Lit, k, 1 )
-            Vec_IntAddToEntry( vCounts, Lit, 1 );
-    // start literals
-    vLits = Vec_WecStart( 2 * LitMax );
-    Vec_IntForEachEntry( vCounts, Count, Lit )
-        Vec_IntGrow( Vec_WecEntry(vLits, Lit), Count );
-    // fill out literals
-    Vec_WecForEachLevel( vCubes, vCube, i )
-        Vec_IntForEachEntryStart( vCube, Lit, k, 1 )
-            Vec_WecPush( vLits, Lit, i );
-    *pvCounts = vCounts;
-    return vLits;
-}
-Hsh_VecMan_t * Fx_ManCreateDivisors( Vec_Wec_t * vCubes, Vec_Flt_t ** pvWeights, int * pnPairsS, int * pnPairsD, int * pnDivsS )
-{
-    Hsh_VecMan_t * p;
-    Vec_Flt_t * vWeights;
-    Vec_Int_t * vCube, * vCube2, * vFree;
-    int i, k, n, Lit, Lit2, iDiv, Base;
-    p = Hsh_VecManStart( 10000 );
-    vWeights = Vec_FltAlloc( 10000 );
-    vFree = Vec_IntAlloc( 100 );
-    // create two-literal divisors
-    Vec_WecForEachLevel( vCubes, vCube, i )
-        Vec_IntForEachEntryStart( vCube, Lit, k, 1 )
-            Vec_IntForEachEntryStart( vCube, Lit2, n, k+1 )
-            {
-                assert( Lit < Lit2 );
-                Vec_IntClear( vFree );
-                Vec_IntPush( vFree, Abc_Var2Lit(Abc_LitNot(Lit), 0) );
-                Vec_IntPush( vFree, Abc_Var2Lit(Abc_LitNot(Lit2), 1) );
-                iDiv = Hsh_VecManAdd( p, vFree );
-                if ( Vec_FltSize(vWeights) == iDiv )
-                    Vec_FltPush(vWeights, -2);
-                assert( iDiv < Vec_FltSize(vWeights) );
-                Vec_FltAddToEntry( vWeights, iDiv, 1 );
-                (*pnPairsS)++;
-            }
-    *pnDivsS = Vec_FltSize(vWeights);
-    // create two-cube divisors
-    Vec_WecForEachLevel( vCubes, vCube, i )
-    {
-        Vec_WecForEachLevelStart( vCubes, vCube2, k, i+1 )
-            if ( Vec_IntEntry(vCube, 0) == Vec_IntEntry(vCube2, 0) )
-            {
-//                extern void Fx_PrintDivOne( Vec_Int_t * p );
-                Base = Fx_ManDivFindCubeFree( vCube, vCube2, vFree );
-//                printf( "Cubes %2d %2d : ", i, k );
-//                Fx_PrintDivOne( vFree ); printf( "\n" );
-
-//                if ( Vec_IntSize(vFree) == 4 )
-//                    Fx_ManDivCanonicize( vFree );
-                iDiv = Hsh_VecManAdd( p, vFree );
-                if ( Vec_FltSize(vWeights) == iDiv )
-                    Vec_FltPush(vWeights, -Vec_IntSize(vFree));
-                assert( iDiv < Vec_FltSize(vWeights) );
-                Vec_FltAddToEntry( vWeights, iDiv, Base + Vec_IntSize(vFree) - 1 );
-                (*pnPairsD)++;
-            }
-            else
-                break;
-    }
-    Vec_IntFree( vFree );
-    *pvWeights = vWeights;
-    return p;
-}
-Vec_Que_t * Fx_ManCreateQueue( Vec_Flt_t * vWeights )
-{
-    Vec_Que_t * p;
-    float Weight;
-    int i;
-    p = Vec_QueAlloc( Vec_FltSize(vWeights) );
-    Vec_QueSetCosts( p, Vec_FltArray(vWeights) );
-    Vec_FltForEachEntry( vWeights, Weight, i )
-        if ( Weight > 0.0 )
-            Vec_QuePush( p, i );
-    return p;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Removes 0-size cubes and sorts them by the first entry.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Vec_WecSortSpecial( Vec_Wec_t * vCubes )
-{
-    Vec_Int_t * vCube;
-    int i, k = 0;
-    Vec_WecForEachLevel( vCubes, vCube, i )
-        if ( Vec_IntSize(vCube) > 0 )
-            vCubes->pArray[k++] = *vCube;
-        else
-            ABC_FREE( vCube->pArray );
-    Vec_WecShrink( vCubes, k );
-    Vec_WecSortByFirstInt( vCubes, 0 );
-}
-
-
-/**Function*************************************************************
-
-  Synopsis    [Updates the data-structure when divisor is selected.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Fx_ManUpdate( Fx_Man_t * p, int iDiv )
-{
-//    Vec_Int_t * vDiv = Hsh_VecReadEntry( p->pHash, iDiv );
-
-    // select pivot variables
-
-    // collect single-cube-divisor cubes
-
-    // collect double-cube-divisor cube pairs
-
-    // subtract old costs
-
-    // create updated single-cube divisor cubes
-
-    // create updated double-cube-divisor cube pairs
-
-    // add new costs
-
-    // assert (divisor weight == old cost - new cost)
-}
-
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Fx_Man_t * Fx_ManStart( Vec_Wec_t * vCubes, int nVars )
-{
-    Fx_Man_t * p;
-    p = ABC_CALLOC( Fx_Man_t, 1 );
-    p->nVars  = nVars;
-    p->vCubes = vCubes;
-    p->vLits  = Fx_ManCreateLiterals( vCubes, &p->vCounts );
-    p->pHash  = Fx_ManCreateDivisors( vCubes, &p->vWeights, &p->nPairsS, &p->nPairsD, &p->nDivsS );
-    p->vPrio  = Fx_ManCreateQueue( p->vWeights );
-    p->vCube  = Vec_IntAlloc( 100 );
-    return p;
-}
-void Fx_ManStop( Fx_Man_t * p )
-{
-//    Vec_WecFree( p->vCubes );
-    Vec_WecFree( p->vLits );
-    Vec_IntFree( p->vCounts );
-    Hsh_VecManStop( p->pHash );
-    Vec_FltFree( p->vWeights );
-    Vec_QueFree( p->vPrio );
-    Vec_IntFree( p->vCube );
-    ABC_FREE( p );
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-static void Fx_PrintMatrix( Vec_Wec_t * vCubes, int nObjs )
-{
-    Vec_Int_t * vCube;
-    char * pLine;
-    int i, v, Lit;
-    printf( "         " );
-    for ( i = 0; i < Abc_MinInt(nObjs, 26); i++ )
-        printf( "%c", 'a' + i );
-    printf( "\n" );
-    pLine = ABC_CALLOC( char, nObjs + 1 );
-    Vec_WecForEachLevel( vCubes, vCube, i )
-    {
-        memset( pLine, '-', nObjs );
-        Vec_IntForEachEntryStart( vCube, Lit, v, 1 )
-        {
-            assert( Abc_Lit2Var(Lit) < nObjs );
-            pLine[Abc_Lit2Var(Lit)] = Abc_LitIsCompl(Lit) ? '0' : '1';
-        }
-        printf( "%6d : %s %4d\n", i, pLine, Vec_IntEntry(vCube, 0) );
-    }
-    ABC_FREE( pLine );
-}
-static inline char Fx_PrintDivLit( int Lit ) { return (Abc_LitIsCompl(Abc_Lit2Var(Lit)) ? 'A' : 'a') + Abc_Lit2Var(Abc_Lit2Var(Lit)); }
+static inline char Fx_PrintDivLit( int Lit ) { return (Abc_LitIsCompl(Lit) ? 'A' : 'a') + Abc_Lit2Var(Lit); }
 static inline void Fx_PrintDivOne( Vec_Int_t * vDiv )
 {
     int i, Lit;
     Vec_IntForEachEntry( vDiv, Lit, i )
         if ( !Abc_LitIsCompl(Lit) )
-            printf( "%c", Fx_PrintDivLit(Lit) );
+            printf( "%c", Fx_PrintDivLit(Abc_Lit2Var(Lit)) );
     printf( " + " );
     Vec_IntForEachEntry( vDiv, Lit, i )
         if ( Abc_LitIsCompl(Lit) )
-            printf( "%c", Fx_PrintDivLit(Lit) );
+            printf( "%c", Fx_PrintDivLit(Abc_Lit2Var(Lit)) );
 }
 static inline void Fx_PrintDiv( Fx_Man_t * p, int iDiv )
 {
@@ -671,6 +429,43 @@ static void Fx_PrintDivisors( Fx_Man_t * p )
     int iDiv;
     for ( iDiv = 0; iDiv < Vec_FltSize(p->vWeights); iDiv++ )
         Fx_PrintDiv( p, iDiv );
+}
+static void Fx_PrintLiterals( Fx_Man_t * p )
+{
+    Vec_Int_t * vTemp;
+    int i;
+    Vec_WecForEachLevel( p->vLits, vTemp, i )
+    {
+        printf( "%c : ", Fx_PrintDivLit(i) );
+        Vec_IntPrint( vTemp );
+    }
+}
+static void Fx_PrintMatrix( Fx_Man_t * p )
+{
+    Vec_Int_t * vCube;
+    int i, v, Lit, nObjs;
+    char * pLine;
+    printf( "         " );
+    nObjs = Vec_WecSize(p->vLits)/2;
+    for ( i = 0; i < Abc_MinInt(nObjs, 26); i++ )
+        printf( "%c", 'a' + i );
+    printf( "\n" );
+    pLine = ABC_CALLOC( char, nObjs+1 );
+    Vec_WecForEachLevel( p->vCubes, vCube, i )
+    {
+        if ( Vec_IntSize(vCube) == 0 )
+            continue;
+        memset( pLine, '-', nObjs );
+        Vec_IntForEachEntryStart( vCube, Lit, v, 1 )
+        {
+            assert( Abc_Lit2Var(Lit) < nObjs );
+            pLine[Abc_Lit2Var(Lit)] = Abc_LitIsCompl(Lit) ? '0' : '1';
+        }
+        printf( "%6d : %s %4d\n", i, pLine, Vec_IntEntry(vCube, 0) );
+    }
+    ABC_FREE( pLine );
+    Fx_PrintLiterals( p );
+    Fx_PrintDivisors( p );
 }
 static void Fx_PrintStats( Fx_Man_t * p, clock_t clk )
 {
@@ -696,29 +491,566 @@ static void Fx_PrintStats( Fx_Man_t * p, clock_t clk )
   SeeAlso     []
 
 ***********************************************************************/
-int Fx_FastExtract( Vec_Wec_t * vCubes, int nVars, int fVerbose )
+int Fx_ManDivFindCubeFree( Vec_Int_t * vArr1, Vec_Int_t * vArr2, Vec_Int_t * vFree )
+{
+    int * pBeg1 = vArr1->pArray + 1;
+    int * pBeg2 = vArr2->pArray + 1;
+    int * pEnd1 = vArr1->pArray + vArr1->nSize;
+    int * pEnd2 = vArr2->pArray + vArr2->nSize;
+    int Counter = 0, fAttr0 = 0, fAttr1 = 1;
+    Vec_IntClear( vFree );
+    while ( pBeg1 < pEnd1 && pBeg2 < pEnd2 )
+    {
+        if ( *pBeg1 == *pBeg2 )
+            pBeg1++, pBeg2++, Counter++;
+        else if ( *pBeg1 < *pBeg2 )
+            Vec_IntPush( vFree, Abc_Var2Lit(*pBeg1++, fAttr0) );
+        else 
+        {
+            if ( Vec_IntSize(vFree) == 0 )
+                fAttr0 = 1, fAttr1 = 0;
+            Vec_IntPush( vFree, Abc_Var2Lit(*pBeg2++, fAttr1) );
+        }
+    }
+    while ( pBeg1 < pEnd1 )
+        Vec_IntPush( vFree, Abc_Var2Lit(*pBeg1++, fAttr0) );
+    while ( pBeg2 < pEnd2 )
+        Vec_IntPush( vFree, Abc_Var2Lit(*pBeg2++, fAttr1) );
+    assert( Vec_IntSize(vFree) > 1 ); // the cover is not SCC-free
+    assert( !Abc_LitIsCompl(Vec_IntEntry(vFree, 0)) );
+    return Counter;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Fx_ManDivFindPivots( Vec_Int_t * vDiv, int * pLit0, int * pLit1 )
+{
+    int i, Lit;
+    *pLit0 = -1;
+    *pLit1 = -1;
+    Vec_IntForEachEntry( vDiv, Lit, i )
+    {
+        if ( Abc_LitIsCompl(Lit) )
+        {
+            if ( *pLit1 == -1 )
+                *pLit1 = Abc_Lit2Var(Lit);
+        }
+        else
+        {
+            if ( *pLit0 == -1 )
+                *pLit0 = Abc_Lit2Var(Lit);
+        }
+        if ( *pLit0 >= 0 && *pLit1 >= 0 )
+            return;
+    }
+}
+static inline int Fx_ManDivRemoveLits( Vec_Int_t * vCube, Vec_Int_t * vDiv )
+{
+    int i, Lit, Count = 0;
+    Vec_IntForEachEntry( vDiv, Lit, i )
+        Count += Vec_IntRemove1( vCube, Abc_Lit2Var(Lit) );
+    return Count;
+}
+static inline void Fx_ManDivAddLits( Vec_Int_t * vCube, Vec_Int_t * vCube2, Vec_Int_t * vDiv )
+{
+    int i, Lit;
+//    Vec_IntClear( vCube );
+//    Vec_IntClear( vCube2 );
+    Vec_IntForEachEntry( vDiv, Lit, i )
+        if ( Abc_LitIsCompl(Lit) )
+            Vec_IntPush( vCube2, Abc_Lit2Var(Lit) );
+        else
+            Vec_IntPush( vCube, Abc_Lit2Var(Lit) );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Fx_ManCreateLiterals( Fx_Man_t * p, int nVars )
+{
+    Vec_Int_t * vCube;
+    int i, k, Lit, Count;
+    // find the number of variables
+    p->nVars = p->nLits = 0;
+    Vec_WecForEachLevel( p->vCubes, vCube, i )
+    {
+        assert( Vec_IntSize(vCube) > 0 );
+        p->nVars = Abc_MaxInt( p->nVars, Vec_IntEntry(vCube, 0) );
+        p->nLits += Vec_IntSize(vCube) - 1;
+        Vec_IntForEachEntryStart( vCube, Lit, k, 1 )
+            p->nVars = Abc_MaxInt( p->nVars, Abc_Lit2Var(Lit) );
+    }
+//    p->nVars++;
+    assert( p->nVars < nVars );
+    p->nVars = nVars;
+    // count literals
+    p->vCounts = Vec_IntStart( 2*p->nVars );
+    Vec_WecForEachLevel( p->vCubes, vCube, i )
+        Vec_IntForEachEntryStart( vCube, Lit, k, 1 )
+            Vec_IntAddToEntry( p->vCounts, Lit, 1 );
+    // start literals
+    p->vLits = Vec_WecStart( 2*p->nVars );
+    Vec_IntForEachEntry( p->vCounts, Count, Lit )
+        Vec_IntGrow( Vec_WecEntry(p->vLits, Lit), Count );
+    // fill out literals
+    Vec_WecForEachLevel( p->vCubes, vCube, i )
+        Vec_IntForEachEntryStart( vCube, Lit, k, 1 )
+            Vec_WecPush( p->vLits, Lit, i );
+    // create mapping of variable into the first cube
+    p->vVarCube = Vec_IntStartFull( p->nVars );
+    Vec_WecForEachLevel( p->vCubes, vCube, i )
+        if ( Vec_IntEntry(p->vVarCube, Vec_IntEntry(vCube, 0)) == -1 )
+            Vec_IntWriteEntry( p->vVarCube, Vec_IntEntry(vCube, 0), i );
+}
+int Fx_ManCubeSingleCubeDivisors( Fx_Man_t * p, Vec_Int_t * vPivot, int fRemove, int fUpdate )
+{
+    int k, n, Lit, Lit2, iDiv;
+    if ( Vec_IntSize(vPivot) < 2 )
+        return 0;
+    Vec_IntForEachEntryStart( vPivot, Lit, k, 1 )
+    Vec_IntForEachEntryStart( vPivot, Lit2, n, k+1 )
+    {
+        assert( Lit < Lit2 );
+        Vec_IntClear( p->vFree );
+        Vec_IntPush( p->vFree, Abc_Var2Lit(Abc_LitNot(Lit), 0) );
+        Vec_IntPush( p->vFree, Abc_Var2Lit(Abc_LitNot(Lit2), 1) );
+        iDiv = Hsh_VecManAdd( p->pHash, p->vFree );
+        if ( !fRemove )
+        {
+            if ( Vec_FltSize(p->vWeights) == iDiv )
+            {
+                float * pArray = Vec_FltArray(p->vWeights);
+                Vec_FltPush(p->vWeights, -2);
+                if ( p->vPrio && pArray != Vec_FltArray(p->vWeights) )
+                    Vec_QueSetCosts( p->vPrio, Vec_FltArray(p->vWeights) );
+                p->nDivsS++;
+            }
+            assert( iDiv < Vec_FltSize(p->vWeights) );
+            Vec_FltAddToEntry( p->vWeights, iDiv, 1 );
+            p->nPairsS++;
+        }
+        else
+        {
+            assert( iDiv < Vec_FltSize(p->vWeights) );
+            Vec_FltAddToEntry( p->vWeights, iDiv, -1 );
+            p->nPairsS--;
+        }
+        if ( fUpdate )
+        {
+            if ( Vec_QueIsMember(p->vPrio, iDiv) )
+                Vec_QueUpdate( p->vPrio, iDiv );
+            else if ( !fRemove )
+                Vec_QuePush( p->vPrio, iDiv );
+        }
+    }
+    return Vec_IntSize(vPivot) * (Vec_IntSize(vPivot) - 1) / 2;
+}
+void Fx_ManCubeDoubleCubeDivisors( Fx_Man_t * p, int iFirst, Vec_Int_t * vPivot, int fRemove, int fUpdate )
+{
+    Vec_Int_t * vCube;
+    int i, iDiv, Base;
+    Vec_WecForEachLevelStart( p->vCubes, vCube, i, iFirst )
+    {
+        if ( Vec_IntSize(vCube) == 0 || vCube == vPivot )
+            continue;
+        if ( Vec_WecIntHasMark(vCube) && Vec_WecIntHasMark(vPivot) && vCube > vPivot )
+            continue;
+        if ( Vec_IntEntry(vCube, 0) != Vec_IntEntry(vPivot, 0) )
+            break;
+        Base = Fx_ManDivFindCubeFree( vCube, vPivot, p->vFree );
+/*
+        if ( fUpdate )
+        {
+            printf( "Cubes %2d %2d : ", Vec_WecLevelId(p->vCubes, vCube), Vec_WecLevelId(p->vCubes, vPivot) );
+            if ( fRemove )
+                printf( "Rem " );
+            else
+                printf( "Add " );
+            Fx_PrintDivOne( p->vFree ); printf( "\n" );
+        }
+*/
+//        if ( Vec_IntSize(p->vFree) == 4 )
+//            Fx_ManDivCanonicize( p->vFree );
+        iDiv = Hsh_VecManAdd( p->pHash, p->vFree );
+        if ( !fRemove )
+        {
+            if ( iDiv == Vec_FltSize(p->vWeights) )
+            {
+                float * pArray = Vec_FltArray(p->vWeights);
+                Vec_FltPush(p->vWeights, -Vec_IntSize(p->vFree));
+                if ( p->vPrio && pArray != Vec_FltArray(p->vWeights) )
+                    Vec_QueSetCosts( p->vPrio, Vec_FltArray(p->vWeights) );
+            }
+            assert( iDiv < Vec_FltSize(p->vWeights) );
+            Vec_FltAddToEntry( p->vWeights, iDiv, Base + Vec_IntSize(p->vFree) - 1 );
+            p->nPairsD++;
+        }
+        else
+        {
+            assert( iDiv < Vec_FltSize(p->vWeights) );
+            Vec_FltAddToEntry( p->vWeights, iDiv, -(Base + Vec_IntSize(p->vFree) - 1) );
+            p->nPairsD--;
+        }
+        if ( fUpdate )
+        {
+            if ( Vec_QueIsMember(p->vPrio, iDiv) )
+                Vec_QueUpdate( p->vPrio, iDiv );
+            else if ( !fRemove )
+                Vec_QuePush( p->vPrio, iDiv );
+        }
+    }
+}
+void Fx_ManCreateDivisors( Fx_Man_t * p )
+{
+    Vec_Int_t * vCube;
+    float Weight;
+    int i;
+    // alloc hash table
+    assert( p->pHash == NULL );
+    p->pHash = Hsh_VecManStart( 1000 );
+    p->vWeights = Vec_FltAlloc( 1000 );
+    // create single-cube two-literal divisors
+    Vec_WecForEachLevel( p->vCubes, vCube, i )
+        Fx_ManCubeSingleCubeDivisors( p, vCube, 0, 0 ); // add - no update
+    assert( p->nDivsS == Vec_FltSize(p->vWeights) );
+    // create two-cube divisors
+    Vec_WecForEachLevel( p->vCubes, vCube, i )
+        Fx_ManCubeDoubleCubeDivisors( p, i+1, vCube, 0, 0 ); // add - no update
+    // create queue with all divisors
+    p->vPrio = Vec_QueAlloc( Vec_FltSize(p->vWeights) );
+    Vec_QueSetCosts( p->vPrio, Vec_FltArray(p->vWeights) );
+    Vec_FltForEachEntry( p->vWeights, Weight, i )
+        if ( Weight > 0.0 )
+            Vec_QuePush( p->vPrio, i );
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Fx_Man_t * Fx_ManStart( Vec_Wec_t * vCubes )
 {
     Fx_Man_t * p;
-    clock_t clk = clock();
-    p = Fx_ManStart( vCubes, nVars );
+    p = ABC_CALLOC( Fx_Man_t, 1 );
+    p->vCubes   = vCubes;
+    // temporary data
+    p->vCubesS  = Vec_IntAlloc( 100 );
+    p->vCubesD  = Vec_IntAlloc( 100 );
+    p->vPart0   = Vec_IntAlloc( 100 );
+    p->vPart1   = Vec_IntAlloc( 100 );
+    p->vFree    = Vec_IntAlloc( 100 );
+    p->vCube    = Vec_IntAlloc( 100 );
+    p->vDiv     = Vec_IntAlloc( 100 );
+    return p;
+}
+void Fx_ManStop( Fx_Man_t * p )
+{
+//    Vec_WecFree( p->vCubes );
+    Vec_WecFree( p->vLits );
+    Vec_IntFree( p->vCounts );
+    Hsh_VecManStop( p->pHash );
+    Vec_FltFree( p->vWeights );
+    Vec_QueFree( p->vPrio );
+    Vec_IntFree( p->vVarCube );
+    // temporary data
+    Vec_IntFree( p->vCubesS );
+    Vec_IntFree( p->vCubesD );
+    Vec_IntFree( p->vPart0 );
+    Vec_IntFree( p->vPart1 );
+    Vec_IntFree( p->vFree );
+    Vec_IntFree( p->vCube );
+    Vec_IntFree( p->vDiv );
+    ABC_FREE( p );
+}
 
-    if ( fVerbose )
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Fx_ManCompressCubes( Vec_Wec_t * vCubes, Vec_Int_t * vLit2Cube )
+{
+    int i, CubeId, k = 0;
+    Vec_IntForEachEntry( vLit2Cube, CubeId, i )
+        if ( Vec_IntSize(Vec_WecEntry(vCubes, CubeId)) > 0 )
+            Vec_IntWriteEntry( vLit2Cube, k++, CubeId );
+    Vec_IntShrink( vLit2Cube, k );
+}
+static inline int Fx_ManGetCubeVar( Vec_Wec_t * vCubes, int iCube )        { return Vec_IntEntry( Vec_WecEntry(vCubes, iCube), 0 );      }
+void Fx_ManFindCommonPairs( Vec_Wec_t * vCubes, Vec_Int_t * vPart0, Vec_Int_t * vPart1, Vec_Int_t * vPairs, Vec_Int_t * vDiv, Vec_Int_t * vFree )
+{
+    int * pBeg1 = vPart0->pArray;
+    int * pBeg2 = vPart1->pArray;
+    int * pEnd1 = vPart0->pArray + vPart0->nSize;
+    int * pEnd2 = vPart1->pArray + vPart1->nSize;
+    int i, k, i_, k_, Counter = 0;
+    Vec_IntClear( vPairs );
+    while ( pBeg1 < pEnd1 && pBeg2 < pEnd2 )
     {
-        Fx_PrintMatrix( vCubes, nVars );
-        Fx_PrintDivisors( p );
-        printf( "Selecting divisors:\n" );
+        int CubeId1 = Fx_ManGetCubeVar(vCubes, *pBeg1);
+        int CubeId2 = Fx_ManGetCubeVar(vCubes, *pBeg2);
+        if ( CubeId1 == CubeId2 )
+        {
+            for ( i = 1; pBeg1+i < pEnd1; i++ )
+                if ( CubeId1 != Fx_ManGetCubeVar(vCubes, pBeg1[i]) )
+                    break;
+            for ( k = 1; pBeg2+k < pEnd2; k++ )
+                if ( CubeId1 != Fx_ManGetCubeVar(vCubes, pBeg2[k]) )
+                    break;
+            for ( i_ = 0; i_ < i; i_++ )
+            for ( k_ = 0; k_ < k; k_++ )
+            {
+                if ( pBeg1[i_] == pBeg2[k_] )
+                    continue;
+                Fx_ManDivFindCubeFree( Vec_WecEntry(vCubes, pBeg1[i_]), Vec_WecEntry(vCubes, pBeg2[k_]), vFree );
+                if ( !Vec_IntEqual( vDiv, vFree ) )
+                    continue;
+                Vec_IntPush( vPairs, pBeg1[i_] );
+                Vec_IntPush( vPairs, pBeg2[k_] );
+            }
+            pBeg1 += i;
+            pBeg2 += k;
+        }
+        else if ( CubeId1 < CubeId2 )
+            pBeg1++;
+        else 
+            pBeg2++;
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Updates the data-structure when divisor is selected.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Fx_ManUpdate( Fx_Man_t * p, int iDiv )
+{
+    Vec_Int_t * vCube, * vCube2, * vLitP, * vLitN;
+    Vec_Int_t * vDiv = p->vDiv;
+    int nLitsNew = p->nLits - (int)Vec_FltEntry(p->vWeights, iDiv);
+    int i, k, Lit0, Lit1, iVarNew, RetValue;
+    // get the divisor
+    Vec_IntClear( vDiv );
+    Vec_IntAppend( vDiv, Hsh_VecReadEntry(p->pHash, iDiv) );
+    // select pivot variables
+    Fx_ManDivFindPivots( vDiv, &Lit0, &Lit1 );
+    assert( Lit0 >= 0 && Lit1 >= 0 );
+
+    // collect single-cube-divisor cubes
+    Vec_IntClear( p->vCubesS );
+    if ( Vec_IntSize(vDiv) == 2 )
+    {
+        Fx_ManCompressCubes( p->vCubes, Vec_WecEntry(p->vLits, Abc_LitNot(Lit0)) );
+        Fx_ManCompressCubes( p->vCubes, Vec_WecEntry(p->vLits, Abc_LitNot(Lit1)) );
+        Vec_IntTwoRemoveCommon( Vec_WecEntry(p->vLits, Abc_LitNot(Lit0)), Vec_WecEntry(p->vLits, Abc_LitNot(Lit1)), p->vCubesS );
+    }
+//Vec_IntPrint( p->vCubesS );
+
+    // collect double-cube-divisor cube pairs
+    Fx_ManCompressCubes( p->vCubes, Vec_WecEntry(p->vLits, Lit0) );
+    Fx_ManCompressCubes( p->vCubes, Vec_WecEntry(p->vLits, Lit1) );
+    Fx_ManFindCommonPairs( p->vCubes, Vec_WecEntry(p->vLits, Lit0), Vec_WecEntry(p->vLits, Lit1), p->vCubesD, vDiv, p->vFree );
+//Vec_IntPrint( p->vCubesD );
+
+    // subtract cost of single-cube divisors
+    Fx_ManForEachCubeVec( p->vCubesS, p->vCubes, vCube, i )
+        Fx_ManCubeSingleCubeDivisors( p, vCube, 1, 1 );  // remove - update
+    Fx_ManForEachCubeVec( p->vCubesD, p->vCubes, vCube, i )
+        Fx_ManCubeSingleCubeDivisors( p, vCube, 1, 1 );  // remove - update
+
+    // mark the cubes to be removed
+    Vec_WecMarkLevels( p->vCubes, p->vCubesS );
+    Vec_WecMarkLevels( p->vCubes, p->vCubesD );
+
+    // subtract cost of double-cube divisors
+    Fx_ManForEachCubeVec( p->vCubesS, p->vCubes, vCube, i )
+        Fx_ManCubeDoubleCubeDivisors( p, Fx_ManGetFirstVarCube(p, vCube), vCube, 1, 1 );  // remove - update
+    Fx_ManForEachCubeVec( p->vCubesD, p->vCubes, vCube, i )
+        Fx_ManCubeDoubleCubeDivisors( p, Fx_ManGetFirstVarCube(p, vCube), vCube, 1, 1 );  // remove - update
+
+    // unmark the cubes to be removed
+    Vec_WecUnmarkLevels( p->vCubes, p->vCubesS );
+    Vec_WecUnmarkLevels( p->vCubes, p->vCubesD );
+
+    // create new divisor
+    iVarNew = Vec_WecSize( p->vLits ) / 2;
+    assert( Vec_IntSize(p->vVarCube) == iVarNew );
+    Vec_IntPush( p->vVarCube, Vec_WecSize(p->vCubes) );
+    vCube = Vec_WecPushLevel( p->vCubes );
+    Vec_IntPush( vCube, iVarNew );
+    if ( Vec_IntSize(vDiv) == 2 )
+    {
+        Vec_IntPush( vCube, Abc_LitNot(Lit0) );
+        Vec_IntPush( vCube, Abc_LitNot(Lit1) );
+    }
+    else
+    {
+        vCube2 = Vec_WecPushLevel( p->vCubes );
+        vCube = Vec_WecEntry( p->vCubes, Vec_WecSize(p->vCubes) - 2 );
+        Vec_IntPush( vCube2, iVarNew );
+        Fx_ManDivAddLits( vCube, vCube2, vDiv );
+    }
+    // do not add new cubes to the matrix 
+    p->nLits += Vec_IntSize( vDiv );
+    // create new literals
+    vLitP = Vec_WecPushLevel( p->vLits );
+    vLitN = Vec_WecPushLevel( p->vLits );
+    vLitP = Vec_WecEntry( p->vLits, Vec_WecSize(p->vLits) - 2 );
+    // create updated single-cube divisor cubes
+    Fx_ManForEachCubeVec( p->vCubesS, p->vCubes, vCube, i )
+    {
+        RetValue  = Vec_IntRemove1( vCube, Abc_LitNot(Lit0) );
+        RetValue += Vec_IntRemove1( vCube, Abc_LitNot(Lit1) );
+        assert( RetValue == 2 );
+        Vec_IntPush( vCube, Abc_Var2Lit(iVarNew, 0) );
+        Vec_IntPush( vLitP, Vec_WecLevelId(p->vCubes, vCube) );
+        p->nLits--;
+    }
+    // create updated double-cube divisor cube pairs
+    k = 0;
+    assert( Vec_IntSize(p->vCubesD) % 2 == 0 );
+    Fx_ManForEachPairVec( p->vCubesD, p->vCubes, vCube, vCube2, i )
+    {
+        RetValue  = Fx_ManDivRemoveLits( vCube, vDiv );  // cube 2*i
+        RetValue += Fx_ManDivRemoveLits( vCube2, vDiv ); // cube 2*i+1
+        assert( RetValue == Vec_IntSize(vDiv) );
+        if ( Vec_IntSize(vDiv) == 2 )
+        {
+            Vec_IntPush( vCube, Abc_Var2Lit(iVarNew, 1) );
+            Vec_IntPush( vLitN, Vec_WecLevelId(p->vCubes, vCube) );
+        }
+        else
+        {
+            Vec_IntPush( vCube, Abc_Var2Lit(iVarNew, 0) );
+            Vec_IntPush( vLitP, Vec_WecLevelId(p->vCubes, vCube) );
+        }
+        p->nLits -= Vec_IntSize(vDiv) + Vec_IntSize(vCube2) - 2;
+        // remove second cube
+        Vec_IntWriteEntry( p->vCubesD, k++, Vec_WecLevelId(p->vCubes, vCube) );
+        Vec_IntClear( vCube2 ); 
+    }
+    assert( k == Vec_IntSize(p->vCubesD) / 2 );
+    Vec_IntShrink( p->vCubesD, k );
+    Vec_IntSort( p->vCubesD, 0 );
+
+    // add cost of single-cube divisors
+    Fx_ManForEachCubeVec( p->vCubesS, p->vCubes, vCube, i )
+        Fx_ManCubeSingleCubeDivisors( p, vCube, 0, 1 );  // add - update
+    Fx_ManForEachCubeVec( p->vCubesD, p->vCubes, vCube, i )
+        Fx_ManCubeSingleCubeDivisors( p, vCube, 0, 1 );  // add - update
+
+    // mark the cubes to be removed
+    Vec_WecMarkLevels( p->vCubes, p->vCubesS );
+    Vec_WecMarkLevels( p->vCubes, p->vCubesD );
+
+    // add cost of double-cube divisors
+    Fx_ManForEachCubeVec( p->vCubesS, p->vCubes, vCube, i )
+        Fx_ManCubeDoubleCubeDivisors( p, Fx_ManGetFirstVarCube(p, vCube), vCube, 0, 1 );  // add - update
+    Fx_ManForEachCubeVec( p->vCubesD, p->vCubes, vCube, i )
+        Fx_ManCubeDoubleCubeDivisors( p, Fx_ManGetFirstVarCube(p, vCube), vCube, 0, 1 );  // add - update
+
+    // unmark the cubes to be removed
+    Vec_WecUnmarkLevels( p->vCubes, p->vCubesS );
+    Vec_WecUnmarkLevels( p->vCubes, p->vCubesD );
+
+    // add cost of the new divisor
+    if ( Vec_IntSize(vDiv) > 2 )
+    {
+        vCube  = Vec_WecEntry( p->vCubes, Vec_WecSize(p->vCubes) - 2 );
+        vCube2 = Vec_WecEntry( p->vCubes, Vec_WecSize(p->vCubes) - 1 );
+        Fx_ManCubeSingleCubeDivisors( p, vCube,  0, 1 );  // add - update
+        Fx_ManCubeSingleCubeDivisors( p, vCube2, 0, 1 );  // add - update
+        Vec_IntForEachEntryStart( vCube, Lit0, i, 1 )
+            Vec_WecPush( p->vLits, Lit0, Vec_WecLevelId(p->vCubes, vCube) );
+        Vec_IntForEachEntryStart( vCube2, Lit0, i, 1 )
+            Vec_WecPush( p->vLits, Lit0, Vec_WecLevelId(p->vCubes, vCube2) );
     }
 
-    Fx_PrintStats( p, clock() - clk );
+    // remove these cubes from the lit array of the divisor
+    Vec_IntForEachEntry( vDiv, Lit0, i )
+        Vec_IntTwoRemove( Vec_WecEntry(p->vLits, Abc_Lit2Var(Lit0)), p->vCubesD );
+
+    assert( p->nLits == nLitsNew ); // new SOP lits == old SOP lits - divisor weight
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Implements the traditional fast_extract algorithm.]
+
+  Description [J. Rajski and J. Vasudevamurthi, "The testability-
+  preserving concurrent decomposition and factorization of Boolean
+  expressions", IEEE TCAD, Vol. 11, No. 6, June 1992, pp. 778-793.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Fx_FastExtract( Vec_Wec_t * vCubes, int nVars, int fVerbose )
+{
+    int fVeryVerbose = 0;
+    Fx_Man_t * p;
+    clock_t clk = clock();
+    // initialize the data-structure
+    p = Fx_ManStart( vCubes );
+    Fx_ManCreateLiterals( p, nVars );
+    Fx_ManCreateDivisors( p );
+    if ( fVeryVerbose )
+        Fx_PrintMatrix( p );
+    if ( fVerbose )
+        Fx_PrintStats( p, clock() - clk );
+    // perform extraction
     while ( Vec_QueTopCost(p->vPrio) > 0.0 )
     {
         int iDiv = Vec_QuePop(p->vPrio);
         if ( fVerbose )
             Fx_PrintDiv( p, iDiv );
         Fx_ManUpdate( p, iDiv );
+        if ( fVeryVerbose )
+            Fx_PrintMatrix( p );
+        if ( fVerbose )
+            Fx_PrintStats( p, clock() - clk );
     }
-
     Fx_ManStop( p );
+    // return the result
+    Vec_WecRemoveEmpty( vCubes );
     return 1;
 }
 

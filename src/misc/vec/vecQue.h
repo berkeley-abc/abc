@@ -94,7 +94,7 @@ static inline void Vec_QueFreeP( Vec_Que_t ** p )
 }
 static inline void Vec_QueSetCosts( Vec_Que_t * p, float * pCosts )
 {
-    assert( p->pCostsFlt == NULL );
+//    assert( p->pCostsFlt == NULL );
     p->pCostsFlt = pCosts;
 }
 static inline void Vec_QueGrow( Vec_Que_t * p, int nCapMin )
@@ -215,12 +215,15 @@ static inline void Vec_QueUpdate( Vec_Que_t * p, int v )
 ***********************************************************************/
 static inline int Vec_QueIsMember( Vec_Que_t * p, int v )
 {
-    return (int)( p->pOrder[v] >= 0 );
+    assert( v >= 0 );
+    return (int)( v < p->nCap && p->pOrder[v] >= 0 );
 }
 static inline void Vec_QuePush( Vec_Que_t * p, int v )
 {
-    if ( p->nSize == p->nCap )
-        Vec_QueGrow( p, 2 * p->nCap );
+    if ( p->nSize >= p->nCap )
+        Vec_QueGrow( p, Abc_MaxInt(p->nSize+1, 2*p->nCap) );
+    if ( v >= p->nCap )
+        Vec_QueGrow( p, Abc_MaxInt(v+1, 2*p->nCap) );
     assert( p->nSize < p->nCap );
     assert( p->pOrder[v] == -1 );
     assert( p->pHeap[p->nSize] == -1 );

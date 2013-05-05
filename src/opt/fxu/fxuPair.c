@@ -89,7 +89,7 @@ void Fxu_PairCanonicize( Fxu_Cube ** ppCube1, Fxu_Cube ** ppCube2 )
             pLit2 = pLit2->pHNext;
             continue;
         }
-        assert( pLit1 && pLit2 ); // this is true if the covers are SCC-ABC_FREE
+        assert( pLit1 && pLit2 ); // this is true if the covers are SCC-free
         if ( pLit1->iVar > pLit2->iVar )
         { // swap the cubes
             pCubeTemp = *ppCube1;
@@ -152,7 +152,7 @@ unsigned Fxu_PairHashKeyArray( Fxu_Matrix * p, int piVarsC1[], int piVarsC2[], i
   Synopsis    [Computes the hash key of the divisor represented by the pair of cubes.]
 
   Description [Goes through the variables in both cubes. Skips the identical
-  ones (this corresponds to making the cubes cube-ABC_FREE). Computes the hash 
+  ones (this corresponds to making the cubes cube-free). Computes the hash 
   value of the cubes. Assigns the number of literals in the base and in the 
   cubes without base.]
                
@@ -181,7 +181,7 @@ unsigned Fxu_PairHashKey( Fxu_Matrix * p, Fxu_Cube * pCube1, Fxu_Cube * pCube2,
         if ( pLit1 && pLit2 )
         {
             if ( pLit1->iVar == pLit2->iVar )
-            { // ensure cube-ABC_FREE
+            { // ensure cube-free
                 pLit1 = pLit1->pHNext;
                 pLit2 = pLit2->pHNext;
                 // add this literal to the base

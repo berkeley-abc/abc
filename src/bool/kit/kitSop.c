@@ -299,7 +299,7 @@ static inline unsigned Kit_SopCommonCube( Kit_Sop_t * cSop )
 
 /**Function*************************************************************
 
-  Synopsis    [Makes the cover cube-ABC_FREE.]
+  Synopsis    [Makes the cover cube-free.]
 
   Description []
                
@@ -322,7 +322,7 @@ void Kit_SopMakeCubeFree( Kit_Sop_t * cSop )
 
 /**Function*************************************************************
 
-  Synopsis    [Checks if the cover is cube-ABC_FREE.]
+  Synopsis    [Checks if the cover is cube-free.]
 
   Description []
                

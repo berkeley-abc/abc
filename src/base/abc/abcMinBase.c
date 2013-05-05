@@ -104,7 +104,7 @@ int Abc_NodeMinimumBase( Abc_Obj_t * pNode )
 
 /**Function*************************************************************
 
-  Synopsis    [Makes nodes of the network fanin-dup-ABC_FREE.]
+  Synopsis    [Makes nodes of the network fanin-dup-free.]
 
   Description [Returns the number of pairs of duplicated fanins.]
                

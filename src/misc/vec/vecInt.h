@@ -885,6 +885,20 @@ static inline int Vec_IntRemove( Vec_Int_t * p, int Entry )
     p->nSize--;
     return 1;
 }
+static inline int Vec_IntRemove1( Vec_Int_t * p, int Entry )
+{
+    int i;
+    for ( i = 1; i < p->nSize; i++ )
+        if ( p->pArray[i] == Entry )
+            break;
+    if ( i >= p->nSize )
+        return 0;
+    assert( i < p->nSize );
+    for ( i++; i < p->nSize; i++ )
+        p->pArray[i-1] = p->pArray[i];
+    p->nSize--;
+    return 1;
+}
 
 /**Function*************************************************************
 
@@ -1298,6 +1312,18 @@ static inline int Vec_IntTwoCountCommon( Vec_Int_t * vArr1, Vec_Int_t * vArr2 )
     }
     return Counter;
 }
+
+/**Function*************************************************************
+
+  Synopsis    [Collects common entries.]
+
+  Description [Assumes that the vectors are sorted in the increasing order.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 static inline int Vec_IntTwoFindCommon( Vec_Int_t * vArr1, Vec_Int_t * vArr2, Vec_Int_t * vArr )
 {
     int * pBeg1 = vArr1->pArray;
@@ -1315,6 +1341,77 @@ static inline int Vec_IntTwoFindCommon( Vec_Int_t * vArr1, Vec_Int_t * vArr2, Ve
             pBeg2++;
     }
     return Vec_IntSize(vArr);
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Collects and removes common entries]
+
+  Description [Assumes that the vectors are sorted in the increasing order.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Vec_IntTwoRemoveCommon( Vec_Int_t * vArr1, Vec_Int_t * vArr2, Vec_Int_t * vArr )
+{
+    int * pBeg1 = vArr1->pArray;
+    int * pBeg2 = vArr2->pArray;
+    int * pEnd1 = vArr1->pArray + vArr1->nSize;
+    int * pEnd2 = vArr2->pArray + vArr2->nSize;
+    int * pBeg1New = vArr1->pArray;
+    int * pBeg2New = vArr2->pArray;
+    Vec_IntClear( vArr );
+    while ( pBeg1 < pEnd1 && pBeg2 < pEnd2 )
+    {
+        if ( *pBeg1 == *pBeg2 )
+            Vec_IntPush( vArr, *pBeg1 ), pBeg1++, pBeg2++;
+        else if ( *pBeg1 < *pBeg2 )
+            *pBeg1New++ = *pBeg1++;
+        else 
+            *pBeg2New++ = *pBeg2++;
+    }
+    while ( pBeg1 < pEnd1 )
+        *pBeg1New++ = *pBeg1++;
+    while ( pBeg2 < pEnd2 )
+        *pBeg2New++ = *pBeg2++;
+    Vec_IntShrink( vArr1, pBeg1New - vArr1->pArray );
+    Vec_IntShrink( vArr2, pBeg2New - vArr2->pArray );
+    return Vec_IntSize(vArr);
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Removes entries of the second one from the first one.]
+
+  Description [Assumes that the vectors are sorted in the increasing order.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Vec_IntTwoRemove( Vec_Int_t * vArr1, Vec_Int_t * vArr2 )
+{
+    int * pBeg1 = vArr1->pArray;
+    int * pBeg2 = vArr2->pArray;
+    int * pEnd1 = vArr1->pArray + vArr1->nSize;
+    int * pEnd2 = vArr2->pArray + vArr2->nSize;
+    int * pBeg1New = vArr1->pArray;
+    while ( pBeg1 < pEnd1 && pBeg2 < pEnd2 )
+    {
+        if ( *pBeg1 == *pBeg2 )
+            pBeg1++, pBeg2++;
+        else if ( *pBeg1 < *pBeg2 )
+            *pBeg1New++ = *pBeg1++;
+        else 
+            pBeg2++;
+    }
+    while ( pBeg1 < pEnd1 )
+        *pBeg1New++ = *pBeg1++;
+    Vec_IntShrink( vArr1, pBeg1New - vArr1->pArray );
+    return Vec_IntSize(vArr1);
 }
 
 /**Function*************************************************************
@@ -1358,7 +1455,7 @@ static inline Vec_Int_t * Vec_IntTwoMerge( Vec_Int_t * vArr1, Vec_Int_t * vArr2 
 
 /**Function*************************************************************
 
-  Synopsis    [Returns the result of merging the two vectors.]
+  Synopsis    [Returns the result of splitting of the two vectors.]
 
   Description [Assumes that the vectors are sorted in the increasing order.]
                

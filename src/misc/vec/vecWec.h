@@ -54,6 +54,8 @@ struct Vec_Wec_t_
 // iterators through levels 
 #define Vec_WecForEachLevel( vGlob, vVec, i )                                              \
     for ( i = 0; (i < Vec_WecSize(vGlob)) && (((vVec) = Vec_WecEntry(vGlob, i)), 1); i++ )
+#define Vec_WecForEachLevelVec( vLevels, vGlob, vVec, i )                                  \
+    for ( i = 0; (i < Vec_IntSize(vLevels)) && (((vVec) = Vec_WecEntry(vGlob, Vec_IntEntry(vLevels, i))), 1); i++ )
 #define Vec_WecForEachLevelStart( vGlob, vVec, i, LevelStart )                             \
     for ( i = LevelStart; (i < Vec_WecSize(vGlob)) && (((vVec) = Vec_WecEntry(vGlob, i)), 1); i++ )
 #define Vec_WecForEachLevelStop( vGlob, vVec, i, LevelStop )                               \
@@ -158,6 +160,27 @@ static inline int Vec_WecEntryEntry( Vec_Wec_t * p, int i, int k )
   SeeAlso     []
 
 ***********************************************************************/
+static inline Vec_Int_t * Vec_WecArray( Vec_Wec_t * p )
+{
+    return p->pArray;
+}
+static inline int Vec_WecLevelId( Vec_Wec_t * p, Vec_Int_t * vLevel )
+{
+    assert( p->pArray <= vLevel && vLevel < p->pArray + p->nSize );
+    return vLevel - p->pArray;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 static inline int Vec_WecCap( Vec_Wec_t * p )
 {
     return p->nCap;
@@ -239,14 +262,21 @@ static inline void Vec_WecPush( Vec_Wec_t * p, int Level, int Entry )
 {
     if ( p->nSize < Level + 1 )
     {
-        Vec_WecGrow( p, Level + 1 );
+        Vec_WecGrow( p, Abc_MaxInt(2*p->nCap, Level + 1) );
         p->nSize = Level + 1;
     }
     Vec_IntPush( Vec_WecEntry(p, Level), Entry );
 }
 static inline Vec_Int_t * Vec_WecPushLevel( Vec_Wec_t * p )
 {
-    Vec_WecGrow( p, ++p->nSize );
+    if ( p->nSize == p->nCap )
+    {
+        if ( p->nCap < 16 )
+            Vec_WecGrow( p, 16 );
+        else
+            Vec_WecGrow( p, 2 * p->nCap );
+    }
+    ++p->nSize;
     return Vec_WecEntryLast( p );
 }
 
@@ -556,6 +586,67 @@ static inline Vec_Ptr_t * Vec_WecConvertToVecPtr( Vec_Wec_t * p )
         Vec_PtrPush( vCopy, Vec_IntDup(vLevel) );
     return vCopy;
 }
+
+
+/**Function*************************************************************
+
+  Synopsis    [Temporary vector marking.]
+
+  Description [The vector should be static when the marking is used.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int  Vec_WecIntHasMark( Vec_Int_t * vVec ) { return (vVec->nCap >> 30) & 1; }
+static inline void Vec_WecIntSetMark( Vec_Int_t * vVec ) { vVec->nCap |= (1<<30);         }
+static inline void Vec_WecIntXorMark( Vec_Int_t * vVec ) { vVec->nCap ^= (1<<30);         }
+static inline void Vec_WecMarkLevels( Vec_Wec_t * vCubes, Vec_Int_t * vLevels )
+{
+    Vec_Int_t * vCube;
+    int i;
+    Vec_WecForEachLevelVec( vLevels, vCubes, vCube, i )
+    {
+        assert( !Vec_WecIntHasMark( vCube ) );
+        Vec_WecIntXorMark( vCube );
+    }
+}
+static inline void Vec_WecUnmarkLevels( Vec_Wec_t * vCubes, Vec_Int_t * vLevels )
+{
+    Vec_Int_t * vCube;
+    int i;
+    Vec_WecForEachLevelVec( vLevels, vCubes, vCube, i )
+    {
+        assert( Vec_WecIntHasMark( vCube ) );
+        Vec_WecIntXorMark( vCube );
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Removes 0-size vectors.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Vec_WecRemoveEmpty( Vec_Wec_t * vCubes )
+{
+    Vec_Int_t * vCube;
+    int i, k = 0;
+    Vec_WecForEachLevel( vCubes, vCube, i )
+        if ( Vec_IntSize(vCube) > 0 )
+            vCubes->pArray[k++] = *vCube;
+        else
+            ABC_FREE( vCube->pArray );
+    Vec_WecShrink( vCubes, k );
+//    Vec_WecSortByFirstInt( vCubes, 0 );
+}
+
 
 ABC_NAMESPACE_HEADER_END
 

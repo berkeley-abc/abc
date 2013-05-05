@@ -47,7 +47,7 @@ static int s_MemoryPeak;
   The entries corresponding to the PI and objects with trivial covers are NULL.
   The number of extracted covers (not exceeding p->nNodesExt) is returned. 
   Two other things are important for the correct operation of this procedure:
-  (1) The input covers do not have duplicated fanins and are SCC-ABC_FREE. 
+  (1) The input covers do not have duplicated fanins and are SCC-free. 
   (2) The fanins array contains the numbers of the fanin objects.]
                
   SideEffects []
