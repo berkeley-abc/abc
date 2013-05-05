@@ -103,7 +103,7 @@ void Inter_ManClean( Inter_Man_t * p )
 ***********************************************************************/
 void Inter_ManInterDump( Inter_Man_t * p, int fProved )
 {
-    char * pFileName = p->pFileName ? p->pFileName : "invar.aig";
+    char * pFileName = p->pFileName ? p->pFileName : (char *)"invar.aig";
     Aig_Man_t * pMan;
     pMan = Aig_ManDupArray( p->vInters );
     Ioa_WriteAiger( pMan, pFileName, 0, 0 );
