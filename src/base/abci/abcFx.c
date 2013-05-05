@@ -65,7 +65,7 @@ void Abc_NtkOrderFanins( Abc_Ntk_t * pNtk )
             Vec_IntPush( vOrder, v );
         pOrder = Vec_IntArray(vOrder);
         Vec_IntSelectSortCost( pOrder, nVars, &pNode->vFanins );
-        pSopNew = pCubeNew = Abc_SopStart( pNtk->pManFunc, Abc_SopGetCubeNum(pSop), nVars );
+        pSopNew = pCubeNew = Abc_SopStart( (Mem_Flex_t *)pNtk->pManFunc, Abc_SopGetCubeNum(pSop), nVars );
         Abc_SopForEachCube( pSop, nVars, pCube )
         {
             for ( v = 0; v < nVars; v++ )
@@ -205,7 +205,7 @@ void Abc_NtkFxInsert( Abc_Ntk_t * pNtk, Vec_Wec_t * vCubes )
             }
         }
         // create SOP
-        pSop = pCube = Abc_SopStart( pNtk->pManFunc, Vec_IntEntry(vCount, i), Abc_ObjFaninNum(pNode) );
+        pSop = pCube = Abc_SopStart( (Mem_Flex_t *)pNtk->pManFunc, Vec_IntEntry(vCount, i), Abc_ObjFaninNum(pNode) );
         for ( k = 0; k < Vec_IntEntry(vCount, i); k++ )
         {
             vCube = Vec_WecEntry( vCubes, Vec_IntEntry(vFirst, i) + k );
