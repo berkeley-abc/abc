@@ -1155,7 +1155,7 @@ void Gia_AigerWrite( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
     if ( p->pManTime )
     {
         float * pTimes;
-        pTimes = Tim_ManGetArrTimes( p->pManTime );
+        pTimes = Tim_ManGetArrTimes( (Tim_Man_t *)p->pManTime );
         if ( pTimes )
         {
             fprintf( pFile, "i" );
@@ -1164,7 +1164,7 @@ void Gia_AigerWrite( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
             ABC_FREE( pTimes );
             if ( fVerbose ) printf( "Finished writing extension \"i\".\n" );
         }
-        pTimes = Tim_ManGetReqTimes( p->pManTime );
+        pTimes = Tim_ManGetReqTimes( (Tim_Man_t *)p->pManTime );
         if ( pTimes )
         {
             fprintf( pFile, "o" );
