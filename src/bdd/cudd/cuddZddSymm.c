@@ -1590,7 +1590,7 @@ zdd_group_move_backward(
   int  x,
   int  y)
 {
-    int        size;
+    int        size = -1;
     int        i, temp, gxtop, gxbot, gybot, yprev;
 
 #ifdef DD_DEBUG

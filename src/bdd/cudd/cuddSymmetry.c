@@ -1558,7 +1558,7 @@ ddSymmGroupMoveBackward(
   int  x,
   int  y)
 {
-    int size;
+    int size = -1;
     int i,j;
     int xtop,xbot,xsize,ytop,ybot,ysize,newxtop;
 
