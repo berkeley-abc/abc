@@ -814,7 +814,7 @@ void Fx_ManFindCommonPairs( Vec_Wec_t * vCubes, Vec_Int_t * vPart0, Vec_Int_t * 
     int * pBeg2 = vPart1->pArray;
     int * pEnd1 = vPart0->pArray + vPart0->nSize;
     int * pEnd2 = vPart1->pArray + vPart1->nSize;
-    int i, k, i_, k_, Counter = 0;
+    int i, k, i_, k_;
     Vec_IntClear( vPairs );
     while ( pBeg1 < pEnd1 && pBeg2 < pEnd2 )
     {
