@@ -2684,6 +2684,53 @@ int Abc_NtkIsTopo( Abc_Ntk_t * pNtk )
     return (int)(Counter == 0);
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Reroders fanins of the network.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkOrderFanins( Abc_Ntk_t * pNtk )
+{
+    Vec_Int_t * vOrder;
+    Abc_Obj_t * pNode;
+    char * pSop, * pSopNew;
+    char * pCube, * pCubeNew;
+    int nVars, i, v, * pOrder;
+    assert( Abc_NtkIsSopLogic(pNtk) );
+    vOrder = Vec_IntAlloc( 100 );
+    Abc_NtkForEachNode( pNtk, pNode, i )
+    {
+        pSop = (char *)pNode->pData;
+        nVars = Abc_SopGetVarNum(pSop);
+        assert( nVars == Abc_ObjFaninNum(pNode) );
+        Vec_IntClear( vOrder );
+        for ( v = 0; v < nVars; v++ )
+            Vec_IntPush( vOrder, v );
+        pOrder = Vec_IntArray(vOrder);
+        Vec_IntSelectSortCost( pOrder, nVars, &pNode->vFanins );
+        pSopNew = pCubeNew = Abc_SopStart( (Mem_Flex_t *)pNtk->pManFunc, Abc_SopGetCubeNum(pSop), nVars );
+        Abc_SopForEachCube( pSop, nVars, pCube )
+        {
+            for ( v = 0; v < nVars; v++ )
+                if ( pCube[pOrder[v]] == '0' )
+                    pCubeNew[v] = '0';
+                else if ( pCube[pOrder[v]] == '1' )
+                    pCubeNew[v] = '1';
+            pCubeNew += nVars + 3;
+        }
+        pNode->pData = pSopNew;
+        Vec_IntSort( &pNode->vFanins, 0 );
+//        Vec_IntPrint( vOrder );
+    }
+    Vec_IntFree( vOrder );
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

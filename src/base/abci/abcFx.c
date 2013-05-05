@@ -29,7 +29,41 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-extern int Fx_FastExtract( Vec_Wec_t * vCubes, int nVars, int fVerbose );
+typedef struct Fx_Man_t_ Fx_Man_t;
+struct Fx_Man_t_
+{
+    // user's data
+    Vec_Wec_t *     vCubes;     // cube -> lit
+    // internal data
+    Vec_Wec_t *     vLits;      // lit -> cube
+    Vec_Int_t *     vCounts;    // literal counts (currently unused)
+    Hsh_VecMan_t *  pHash;      // hash table of divisors
+    Vec_Flt_t *     vWeights;   // divisor weights
+    Vec_Que_t *     vPrio;      // priority queue
+    Vec_Int_t *     vVarCube;   // mapping var into its first cube
+    // temporary arrays used for updating data-structure after one extraction
+    Vec_Int_t *     vCubesS;    // single cubes for the given divisor
+    Vec_Int_t *     vCubesD;    // cube pairs for the given divisor
+    Vec_Int_t *     vCompls;    // complements of cube pairs
+    Vec_Int_t *     vCubeFree;  // cube-free divisor
+    Vec_Int_t *     vDiv;       // divisor
+    // statistics 
+    clock_t         timeStart;  // starting time
+    int             nVars;      // original problem variables
+    int             nLits;      // the number of SOP literals
+    int             nDivs;      // the number of extracted divisors
+    int             nPairsS;    // number of lit pairs
+    int             nPairsD;    // number of cube pairs
+    int             nDivsS;     // single cube divisors
+    int             nDivMux[3]; // 0 = mux, 1 = compl mux, 2 = no mux
+};
+
+static inline int Fx_ManGetFirstVarCube( Fx_Man_t * p, Vec_Int_t * vCube ) { return Vec_IntEntry( p->vVarCube, Vec_IntEntry(vCube, 0) ); }
+
+#define Fx_ManForEachCubeVec( vVec, vCubes, vCube, i )           \
+    for ( i = 0; (i < Vec_IntSize(vVec)) && ((vCube) = Vec_WecEntry(vCubes, Vec_IntEntry(vVec, i))); i++ )
+
+static int Fx_FastExtract( Vec_Wec_t * vCubes, int nVars, int fVerbose );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -37,7 +71,7 @@ extern int Fx_FastExtract( Vec_Wec_t * vCubes, int nVars, int fVerbose );
 
 /**Function*************************************************************
 
-  Synopsis    [Reroders fanins of the network.]
+  Synopsis    [Retrieves SOP information for fast_extract.]
 
   Description []
                
@@ -46,54 +80,7 @@ extern int Fx_FastExtract( Vec_Wec_t * vCubes, int nVars, int fVerbose );
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkOrderFanins( Abc_Ntk_t * pNtk )
-{
-    Vec_Int_t * vOrder;
-    Abc_Obj_t * pNode;
-    char * pSop, * pSopNew;
-    char * pCube, * pCubeNew;
-    int nVars, i, v, * pOrder;
-    assert( Abc_NtkIsSopLogic(pNtk) );
-    vOrder = Vec_IntAlloc( 100 );
-    Abc_NtkForEachNode( pNtk, pNode, i )
-    {
-        pSop = (char *)pNode->pData;
-        nVars = Abc_SopGetVarNum(pSop);
-        assert( nVars == Abc_ObjFaninNum(pNode) );
-        Vec_IntClear( vOrder );
-        for ( v = 0; v < nVars; v++ )
-            Vec_IntPush( vOrder, v );
-        pOrder = Vec_IntArray(vOrder);
-        Vec_IntSelectSortCost( pOrder, nVars, &pNode->vFanins );
-        pSopNew = pCubeNew = Abc_SopStart( (Mem_Flex_t *)pNtk->pManFunc, Abc_SopGetCubeNum(pSop), nVars );
-        Abc_SopForEachCube( pSop, nVars, pCube )
-        {
-            for ( v = 0; v < nVars; v++ )
-                if ( pCube[pOrder[v]] == '0' )
-                    pCubeNew[v] = '0';
-                else if ( pCube[pOrder[v]] == '1' )
-                    pCubeNew[v] = '1';
-            pCubeNew += nVars + 3;
-        }
-        pNode->pData = pSopNew;
-        Vec_IntSort( &pNode->vFanins, 0 );
-//        Vec_IntPrint( vOrder );
-    }
-    Vec_IntFree( vOrder );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Extracts SOP information.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Vec_Wec_t * Abc_NtkFxExtract( Abc_Ntk_t * pNtk )
+Vec_Wec_t * Abc_NtkFxRetrieve( Abc_Ntk_t * pNtk )
 {
     Vec_Wec_t * vCubes;
     Vec_Int_t * vCube;
@@ -107,8 +94,7 @@ Vec_Wec_t * Abc_NtkFxExtract( Abc_Ntk_t * pNtk )
         pSop = (char *)pNode->pData;
         nVars = Abc_SopGetVarNum(pSop);
         assert( nVars == Abc_ObjFaninNum(pNode) );
-        if ( nVars < 2 )
-            continue;
+//        if ( nVars < 2 ) continue;
         Abc_SopForEachCube( pSop, nVars, pCube )
         {
             vCube = Vec_WecPushLevel( vCubes );
@@ -128,7 +114,7 @@ Vec_Wec_t * Abc_NtkFxExtract( Abc_Ntk_t * pNtk )
 
 /**Function*************************************************************
 
-  Synopsis    [Inserts SOP information.]
+  Synopsis    [Inserts SOP information after fast_extract.]
 
   Description []
                
@@ -155,14 +141,12 @@ void Abc_NtkFxInsert( Abc_Ntk_t * pNtk, Vec_Wec_t * vCubes )
     // find the largest index
     Vec_WecForEachLevel( vCubes, vCube, i )
         iNodeMax = Abc_MaxInt( iNodeMax, Vec_IntEntry(vCube, 0) );
-    // quit if nothing new
-/*
+    // quit if nothing changes
     if ( iNodeMax < Abc_NtkObjNumMax(pNtk) )
     {
         printf( "The network is unchanged by fast extract.\n" );
         return;
     }
-*/
     // create new nodes
     for ( i = Abc_NtkObjNumMax(pNtk); i <= iNodeMax; i++ )
     {
@@ -183,11 +167,7 @@ void Abc_NtkFxInsert( Abc_Ntk_t * pNtk, Vec_Wec_t * vCubes )
     vPres = Vec_IntStartFull( Abc_NtkObjNumMax(pNtk) );
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
-        if ( Vec_IntEntry(vCount, i) == 0 )
-        {
-            assert( Abc_ObjFaninNum(pNode) < 2 );
-            continue;
-        }
+//        if ( Vec_IntEntry(vCount, i) == 0 ) continue;
         Abc_ObjRemoveFanins( pNode );
         // create fanins
         assert( Vec_IntEntry(vCount, i) > 0 );
@@ -219,6 +199,7 @@ void Abc_NtkFxInsert( Abc_Ntk_t * pNtk, Vec_Wec_t * vCubes )
             }
             pCube += Abc_ObjFaninNum(pNode) + 3;
         }
+        // complement SOP if the original one was complemented
         if ( pNode->pData && Abc_SopIsComplement((char *)pNode->pData) )
             Abc_SopComplement( pSop );
         pNode->pData = pSop;
@@ -279,7 +260,7 @@ int Abc_NtkFxPerform( Abc_Ntk_t * pNtk, int fVerbose )
     Abc_NtkCleanup( pNtk, 0 );
 //    Abc_NtkOrderFanins( pNtk );
     // collect information about the covers
-    vCubes = Abc_NtkFxExtract( pNtk );
+    vCubes = Abc_NtkFxRetrieve( pNtk );
     // call the fast extract procedure
     if ( Fx_FastExtract( vCubes, Abc_NtkObjNumMax(pNtk), fVerbose ) > 0 )
     {
@@ -298,43 +279,9 @@ int Abc_NtkFxPerform( Abc_Ntk_t * pNtk, int fVerbose )
 
 
 
-
-typedef struct Fx_Man_t_ Fx_Man_t;
-struct Fx_Man_t_
-{
-    Vec_Wec_t *     vCubes;   // cube -> lit (user data)
-    Vec_Wec_t *     vLits;    // lit -> cube
-    Vec_Int_t *     vCounts;  // literal counts
-    Hsh_VecMan_t *  pHash;    // divisors 
-    Vec_Flt_t *     vWeights; // divisor weights
-    Vec_Que_t *     vPrio;    // priority queue
-    Vec_Int_t *     vVarCube; // mapping var into its first cube
-    // temporary arrays used for updating
-    Vec_Int_t *     vCubesS;  // single cube divisors
-    Vec_Int_t *     vCubesD;  // double cube divisors
-    Vec_Int_t *     vPart0;   // cubes of given literal
-    Vec_Int_t *     vPart1;   // cubes of given literal
-    Vec_Int_t *     vFree;    // cube-free divisor
-    Vec_Int_t *     vCube;    // one cube
-    Vec_Int_t *     vDiv;     // divisor
-    // statistics 
-    int             nVars;    // original problem variables
-    int             nLits;    // the number of SOP literals
-    int             nPairsS;  // number of lit pairs
-    int             nPairsD;  // number of cube pairs
-    int             nDivsS;   // single cube divisors
-};
-
-static inline int Fx_ManGetFirstVarCube( Fx_Man_t * p, Vec_Int_t * vCube ) { return Vec_IntEntry( p->vVarCube, Vec_IntEntry(vCube, 0) ); }
-
-#define Fx_ManForEachCubeVec( vVec, vCubes, vCube, i )           \
-    for ( i = 0; (i < Vec_IntSize(vVec)) && ((vCube) = Vec_WecEntry(vCubes, Vec_IntEntry(vVec, i))); i++ )
-#define Fx_ManForEachPairVec( vVec, vCubes, vCube1, vCube2, i )  \
-    for ( i = 0; (i+1 < Vec_IntSize(vVec)) && ((vCube) = Vec_WecEntry(vCubes, Vec_IntEntry(vVec, i))) && ((vCube2) = Vec_WecEntry(vCubes, Vec_IntEntry(vVec, i+1))); i += 2 )
-
 /**Function*************************************************************
 
-  Synopsis    [Create literals.]
+  Synopsis    [Starting the manager.]
 
   Description []
                
@@ -343,60 +290,40 @@ static inline int Fx_ManGetFirstVarCube( Fx_Man_t * p, Vec_Int_t * vCube ) { ret
   SeeAlso     []
 
 ***********************************************************************/
-int Fx_ManDivCanonicize( Vec_Int_t * vFree ) // return 1 if complemented
+Fx_Man_t * Fx_ManStart( Vec_Wec_t * vCubes )
 {
-    int * A = Vec_IntArray(vFree);
-    int C[4] = { Abc_Lit2Var(A[0]), Abc_Lit2Var(A[1]), Abc_Lit2Var(A[2]), Abc_Lit2Var(A[3]) };
-    int L[4] = { Abc_Lit2Var(A[0]), Abc_Lit2Var(A[1]), Abc_Lit2Var(A[2]), Abc_Lit2Var(A[3]) };
-    int V[4] = { Abc_Lit2Var(L[0]), Abc_Lit2Var(L[1]), Abc_Lit2Var(L[2]), Abc_Lit2Var(L[3]) };
-    assert( Vec_IntSize(vFree) == 4 );
-    if ( V[0] == V[1] && V[2] == V[3] ) // 2,2,2
-    {
-        assert( !Abc_LitIsCompl(L[0]) );
-        assert(  Abc_LitIsCompl(L[1]) );
-        if ( !Abc_LitIsCompl(L[2]) )
-        {
-            C[2] ^= 2;
-            C[3] ^= 2;
-            return 1;
-        }
-        return 0;
-    }
-    if ( V[0] == V[1] )
-    {
-        assert( V[0] != V[2] && V[0] != V[3] );
-        if ( Abc_LitIsCompl(L[0]) == Abc_LitIsCompl(L[2]) && Abc_LitIsCompl(L[1]) == Abc_LitIsCompl(L[3]) )  // 2,2,3
-        {
-            if ( Abc_LitIsCompl(Abc_Lit2Var(L[0])) == Abc_LitIsCompl(Abc_Lit2Var(L[2])) )
-            {
-                L[2] = Abc_LitNot(L[2]);
-                L[3] = Abc_LitNot(L[3]);
-                return 1;
-            }
-            return 0;
-        }
-    }
-    if ( V[0] == V[2] )
-    {
-    }
-    if ( V[0] == V[3] )
-    {
-    }
-    if ( V[1] == V[2] )
-    {
-    }
-    if ( V[1] == V[3] )
-    {
-    }
-    if ( V[2] == V[3] )
-    {
-    }
-    return 0;
+    Fx_Man_t * p;
+    p = ABC_CALLOC( Fx_Man_t, 1 );
+    p->vCubes   = vCubes;
+    // temporary data
+    p->vCubesS   = Vec_IntAlloc( 100 );
+    p->vCubesD   = Vec_IntAlloc( 100 );
+    p->vCompls   = Vec_IntAlloc( 100 );
+    p->vCubeFree = Vec_IntAlloc( 100 );
+    p->vDiv      = Vec_IntAlloc( 100 );
+    return p;
+}
+void Fx_ManStop( Fx_Man_t * p )
+{
+//    Vec_WecFree( p->vCubes );
+    Vec_WecFree( p->vLits );
+    Vec_IntFree( p->vCounts );
+    Hsh_VecManStop( p->pHash );
+    Vec_FltFree( p->vWeights );
+    Vec_QueFree( p->vPrio );
+    Vec_IntFree( p->vVarCube );
+    // temporary data
+    Vec_IntFree( p->vCubesS );
+    Vec_IntFree( p->vCubesD );
+    Vec_IntFree( p->vCompls );
+    Vec_IntFree( p->vCubeFree );
+    Vec_IntFree( p->vDiv );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************
 
-  Synopsis    []
+  Synopsis    [Printing procedures.]
 
   Description []
                
@@ -406,7 +333,7 @@ int Fx_ManDivCanonicize( Vec_Int_t * vFree ) // return 1 if complemented
 
 ***********************************************************************/
 static inline char Fx_PrintDivLit( int Lit ) { return (Abc_LitIsCompl(Lit) ? 'A' : 'a') + Abc_Lit2Var(Lit); }
-static inline void Fx_PrintDivOne( Vec_Int_t * vDiv )
+static inline void Fx_PrintDivOneReal( Vec_Int_t * vDiv )
 {
     int i, Lit;
     Vec_IntForEachEntry( vDiv, Lit, i )
@@ -417,12 +344,40 @@ static inline void Fx_PrintDivOne( Vec_Int_t * vDiv )
         if ( Abc_LitIsCompl(Lit) )
             printf( "%c", Fx_PrintDivLit(Abc_Lit2Var(Lit)) );
 }
+static inline void Fx_PrintDivOne( Vec_Int_t * vDiv )
+{
+    int i, Lit;
+    Vec_IntForEachEntry( vDiv, Lit, i )
+        if ( !Abc_LitIsCompl(Lit) )
+            printf( "%c", Fx_PrintDivLit( Abc_Var2Lit(i, Abc_LitIsCompl(Lit)) ) );
+    printf( " + " );
+    Vec_IntForEachEntry( vDiv, Lit, i )
+        if ( Abc_LitIsCompl(Lit) )
+            printf( "%c", Fx_PrintDivLit( Abc_Var2Lit(i, Abc_LitIsCompl(Lit)) ) );
+}
+static inline void Fx_PrintDivArray( Vec_Int_t * vDiv )
+{
+    int i, Lit;
+    Vec_IntForEachEntry( vDiv, Lit, i )
+        if ( !Abc_LitIsCompl(Lit) )
+            printf( "%d(1) ", Abc_Lit2Var(Lit) );
+    printf( " + " );
+    Vec_IntForEachEntry( vDiv, Lit, i )
+        if ( Abc_LitIsCompl(Lit) )
+            printf( "%d(2) ", Abc_Lit2Var(Lit) );
+}
 static inline void Fx_PrintDiv( Fx_Man_t * p, int iDiv )
 {
-    printf( "Div %6d : ", iDiv );
-    printf( "Cost %4d  ", (int)Vec_FltEntry(p->vWeights, iDiv) );
+    int i;
+    printf( "%4d : ", p->nDivs );
+    printf( "Div %7d : ", iDiv );
+    printf( "Weight %5d  ", (int)Vec_FltEntry(p->vWeights, iDiv) );
     Fx_PrintDivOne( Hsh_VecReadEntry(p->pHash, iDiv) );
-    printf( "\n" );
+    for ( i = Vec_IntSize(Hsh_VecReadEntry(p->pHash, iDiv)) + 3; i < 20; i++ )
+        printf( " " );
+    printf( "Lits =%7d  ", p->nLits );
+    printf( "Divs =%8d  ", Hsh_VecSize(p->pHash) );
+    Abc_PrintTime( 1, "Time", clock() - p->timeStart );
 }
 static void Fx_PrintDivisors( Fx_Man_t * p )
 {
@@ -469,20 +424,103 @@ static void Fx_PrintMatrix( Fx_Man_t * p )
 }
 static void Fx_PrintStats( Fx_Man_t * p, clock_t clk )
 {
-    printf( "Cubes =%6d  ", Vec_WecSizeUsed(p->vCubes) );
-    printf( "Lits  =%6d  ", Vec_WecSizeUsed(p->vLits) );
-    printf( "Divs  =%6d  ", Hsh_VecSize(p->pHash) );
-    printf( "Divs+ =%6d  ", Vec_QueSize(p->vPrio) );
-    printf( "DivsS =%6d  ", p->nDivsS );
-    printf( "PairS =%6d  ", p->nPairsS );
-    printf( "PairD =%6d  ", p->nPairsD );
+    printf( "Cubes =%7d  ", Vec_WecSizeUsed(p->vCubes) );
+    printf( "Lits  =%7d  ", Vec_WecSizeUsed(p->vLits) );
+    printf( "Divs  =%7d  ", Hsh_VecSize(p->pHash) );
+    printf( "Divs+ =%7d  ", Vec_QueSize(p->vPrio) );
+    printf( "Compl =%6d  ", p->nDivMux[1] );
+//    printf( "DivsS =%6d  ", p->nDivsS );
+//    printf( "PairS =%6d  ", p->nPairsS );
+//    printf( "PairD =%6d  ", p->nPairsD );
     Abc_PrintTime( 1, "Time", clk );
 //    printf( "\n" );
 }
 
 /**Function*************************************************************
 
-  Synopsis    []
+  Synopsis    [Returns 1 if the divisor should be complemented.]
+
+  Description [Normalizes the divisor by putting, first, positive control 
+  literal first and, second, positive data1 literal. As the result, 
+  a MUX divisor is (ab + !ac) and an XOR divisor is (ab + !a!b).]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static int Fx_ManDivNormalize( Vec_Int_t * vCubeFree ) // return 1 if complemented
+{
+    int * L = Vec_IntArray(vCubeFree);
+    int RetValue = 0, LitA0 = -1, LitB0 = -1, LitA1 = -1, LitB1 = -1;
+    assert( Vec_IntSize(vCubeFree) == 4 );
+    if ( Abc_LitIsCompl(L[0]) != Abc_LitIsCompl(L[1]) && (L[0] >> 2) == (L[1] >> 2) ) // diff cubes, same vars
+    {
+        if ( Abc_LitIsCompl(L[2]) == Abc_LitIsCompl(L[3]) )
+            return -1;
+        LitA0 = Abc_Lit2Var(L[0]), LitB0 = Abc_Lit2Var(L[1]);
+        if ( Abc_LitIsCompl(L[0]) == Abc_LitIsCompl(L[2]) )
+        {
+            assert( Abc_LitIsCompl(L[1]) == Abc_LitIsCompl(L[3]) );
+            LitA1 = Abc_Lit2Var(L[2]), LitB1 = Abc_Lit2Var(L[3]);
+        }
+        else
+        {
+            assert( Abc_LitIsCompl(L[0]) == Abc_LitIsCompl(L[3]) );
+            assert( Abc_LitIsCompl(L[1]) == Abc_LitIsCompl(L[2]) );
+            LitA1 = Abc_Lit2Var(L[3]), LitB1 = Abc_Lit2Var(L[2]);
+        }
+    }
+    else if ( Abc_LitIsCompl(L[1]) != Abc_LitIsCompl(L[2]) && (L[1] >> 2) == (L[2] >> 2) )
+    {
+        if ( Abc_LitIsCompl(L[0]) == Abc_LitIsCompl(L[3]) )
+            return -1;
+        LitA0 = Abc_Lit2Var(L[1]), LitB0 = Abc_Lit2Var(L[2]);
+        if ( Abc_LitIsCompl(L[1]) == Abc_LitIsCompl(L[0]) )
+            LitA1 = Abc_Lit2Var(L[0]), LitB1 = Abc_Lit2Var(L[3]);
+        else
+            LitA1 = Abc_Lit2Var(L[3]), LitB1 = Abc_Lit2Var(L[0]);
+    }
+    else if ( Abc_LitIsCompl(L[2]) != Abc_LitIsCompl(L[3]) && (L[2] >> 2) == (L[3] >> 2) )
+    {
+        if ( Abc_LitIsCompl(L[0]) == Abc_LitIsCompl(L[1]) )
+            return -1;
+        LitA0 = Abc_Lit2Var(L[2]), LitB0 = Abc_Lit2Var(L[3]);
+        if ( Abc_LitIsCompl(L[2]) == Abc_LitIsCompl(L[0]) )
+            LitA1 = Abc_Lit2Var(L[0]), LitB1 = Abc_Lit2Var(L[1]);
+        else
+            LitA1 = Abc_Lit2Var(L[1]), LitB1 = Abc_Lit2Var(L[0]);
+    }
+    else 
+        return -1;
+    assert( LitA0 == Abc_LitNot(LitB0) );
+    if ( Abc_LitIsCompl(LitA0) )
+    {
+        ABC_SWAP( int, LitA0, LitB0 );
+        ABC_SWAP( int, LitA1, LitB1 );
+    }
+    assert( !Abc_LitIsCompl(LitA0) );
+    if ( Abc_LitIsCompl(LitA1) )
+    {
+        LitA1 = Abc_LitNot(LitA1);
+        LitB1 = Abc_LitNot(LitB1);
+        RetValue = 1;
+    }
+    assert( !Abc_LitIsCompl(LitA1) );
+    // arrange literals in such as a way that
+    // - the first two literals are control literals from different cubes
+    // - the third literal is non-complented data input
+    // - the forth literal is possibly complemented data input
+    L[0] = Abc_Var2Lit( LitA0, 0 );
+    L[1] = Abc_Var2Lit( LitB0, 1 );
+    L[2] = Abc_Var2Lit( LitA1, 0 );
+    L[3] = Abc_Var2Lit( LitB1, 1 );
+    return RetValue;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Find a cube-free divisor of the two cubes.]
 
   Description []
                
@@ -491,39 +529,39 @@ static void Fx_PrintStats( Fx_Man_t * p, clock_t clk )
   SeeAlso     []
 
 ***********************************************************************/
-int Fx_ManDivFindCubeFree( Vec_Int_t * vArr1, Vec_Int_t * vArr2, Vec_Int_t * vFree )
+int Fx_ManDivFindCubeFree( Vec_Int_t * vArr1, Vec_Int_t * vArr2, Vec_Int_t * vCubeFree )
 {
-    int * pBeg1 = vArr1->pArray + 1;
-    int * pBeg2 = vArr2->pArray + 1;
+    int * pBeg1 = vArr1->pArray + 1;  // skip variable ID
+    int * pBeg2 = vArr2->pArray + 1;  // skip variable ID
     int * pEnd1 = vArr1->pArray + vArr1->nSize;
     int * pEnd2 = vArr2->pArray + vArr2->nSize;
     int Counter = 0, fAttr0 = 0, fAttr1 = 1;
-    Vec_IntClear( vFree );
+    Vec_IntClear( vCubeFree );
     while ( pBeg1 < pEnd1 && pBeg2 < pEnd2 )
     {
         if ( *pBeg1 == *pBeg2 )
             pBeg1++, pBeg2++, Counter++;
         else if ( *pBeg1 < *pBeg2 )
-            Vec_IntPush( vFree, Abc_Var2Lit(*pBeg1++, fAttr0) );
+            Vec_IntPush( vCubeFree, Abc_Var2Lit(*pBeg1++, fAttr0) );
         else 
         {
-            if ( Vec_IntSize(vFree) == 0 )
+            if ( Vec_IntSize(vCubeFree) == 0 )
                 fAttr0 = 1, fAttr1 = 0;
-            Vec_IntPush( vFree, Abc_Var2Lit(*pBeg2++, fAttr1) );
+            Vec_IntPush( vCubeFree, Abc_Var2Lit(*pBeg2++, fAttr1) );
         }
     }
     while ( pBeg1 < pEnd1 )
-        Vec_IntPush( vFree, Abc_Var2Lit(*pBeg1++, fAttr0) );
+        Vec_IntPush( vCubeFree, Abc_Var2Lit(*pBeg1++, fAttr0) );
     while ( pBeg2 < pEnd2 )
-        Vec_IntPush( vFree, Abc_Var2Lit(*pBeg2++, fAttr1) );
-    assert( Vec_IntSize(vFree) > 1 ); // the cover is not SCC-free
-    assert( !Abc_LitIsCompl(Vec_IntEntry(vFree, 0)) );
+        Vec_IntPush( vCubeFree, Abc_Var2Lit(*pBeg2++, fAttr1) );
+    assert( Vec_IntSize(vCubeFree) > 1 ); // the cover is not SCC-free
+    assert( !Abc_LitIsCompl(Vec_IntEntry(vCubeFree, 0)) );
     return Counter;
 }
 
 /**Function*************************************************************
 
-  Synopsis    []
+  Synopsis    [Procedures operating on a two-cube divisor.]
 
   Description []
                
@@ -553,16 +591,17 @@ static inline void Fx_ManDivFindPivots( Vec_Int_t * vDiv, int * pLit0, int * pLi
             return;
     }
 }
-static inline int Fx_ManDivRemoveLits( Vec_Int_t * vCube, Vec_Int_t * vDiv )
+static inline int Fx_ManDivRemoveLits( Vec_Int_t * vCube, Vec_Int_t * vDiv, int fCompl )
 {
     int i, Lit, Count = 0;
+    assert( !fCompl || Vec_IntSize(vDiv) == 4 );
     Vec_IntForEachEntry( vDiv, Lit, i )
-        Count += Vec_IntRemove1( vCube, Abc_Lit2Var(Lit) );
+        Count += Vec_IntRemove1( vCube, Abc_Lit2Var(Lit) ^ (fCompl && i > 1) );  // the last two lits can be complemented
     return Count;
 }
 static inline void Fx_ManDivAddLits( Vec_Int_t * vCube, Vec_Int_t * vCube2, Vec_Int_t * vDiv )
 {
-    int i, Lit;
+    int i, Lit, * pArray;
 //    Vec_IntClear( vCube );
 //    Vec_IntClear( vCube2 );
     Vec_IntForEachEntry( vDiv, Lit, i )
@@ -570,11 +609,21 @@ static inline void Fx_ManDivAddLits( Vec_Int_t * vCube, Vec_Int_t * vCube2, Vec_
             Vec_IntPush( vCube2, Abc_Lit2Var(Lit) );
         else
             Vec_IntPush( vCube, Abc_Lit2Var(Lit) );
+    if ( Vec_IntSize(vDiv) == 4 && Vec_IntSize(vCube) == 3 )
+    {
+        assert( Vec_IntSize(vCube2) == 3 );
+        pArray = Vec_IntArray(vCube);
+        if ( pArray[1] > pArray[2] )
+            ABC_SWAP( int, pArray[1], pArray[2] );
+        pArray = Vec_IntArray(vCube2);
+        if ( pArray[1] > pArray[2] )
+            ABC_SWAP( int, pArray[1], pArray[2] );
+    }
 }
 
 /**Function*************************************************************
 
-  Synopsis    []
+  Synopsis    [Setting up the data-structure.]
 
   Description []
                
@@ -628,10 +677,10 @@ int Fx_ManCubeSingleCubeDivisors( Fx_Man_t * p, Vec_Int_t * vPivot, int fRemove,
     Vec_IntForEachEntryStart( vPivot, Lit2, n, k+1 )
     {
         assert( Lit < Lit2 );
-        Vec_IntClear( p->vFree );
-        Vec_IntPush( p->vFree, Abc_Var2Lit(Abc_LitNot(Lit), 0) );
-        Vec_IntPush( p->vFree, Abc_Var2Lit(Abc_LitNot(Lit2), 1) );
-        iDiv = Hsh_VecManAdd( p->pHash, p->vFree );
+        Vec_IntClear( p->vCubeFree );
+        Vec_IntPush( p->vCubeFree, Abc_Var2Lit(Abc_LitNot(Lit), 0) );
+        Vec_IntPush( p->vCubeFree, Abc_Var2Lit(Abc_LitNot(Lit2), 1) );
+        iDiv = Hsh_VecManAdd( p->pHash, p->vCubeFree );
         if ( !fRemove )
         {
             if ( Vec_FltSize(p->vWeights) == iDiv )
@@ -671,33 +720,30 @@ void Fx_ManCubeDoubleCubeDivisors( Fx_Man_t * p, int iFirst, Vec_Int_t * vPivot,
             continue;
         if ( Vec_IntEntry(vCube, 0) != Vec_IntEntry(vPivot, 0) )
             break;
-        Base = Fx_ManDivFindCubeFree( vCube, vPivot, p->vFree );
-/*
-        if ( fUpdate )
-        {
-            printf( "Cubes %2d %2d : ", Vec_WecLevelId(p->vCubes, vCube), Vec_WecLevelId(p->vCubes, vPivot) );
-            if ( fRemove )
-                printf( "Rem " );
+        Base = Fx_ManDivFindCubeFree( vCube, vPivot, p->vCubeFree );
+        if ( Vec_IntSize(p->vCubeFree) == 4 )
+        { 
+            int Value = Fx_ManDivNormalize( p->vCubeFree );
+            if ( Value == 0 )
+                p->nDivMux[0]++;
+            else if ( Value == 1 )
+                p->nDivMux[1]++;
             else
-                printf( "Add " );
-            Fx_PrintDivOne( p->vFree ); printf( "\n" );
+                p->nDivMux[2]++;
         }
-*/
-//        if ( Vec_IntSize(p->vFree) == 4 )
-//            Fx_ManDivCanonicize( p->vFree );
-        iDiv = Hsh_VecManAdd( p->pHash, p->vFree );
+        iDiv = Hsh_VecManAdd( p->pHash, p->vCubeFree );
         if ( !fRemove )
         {
             if ( iDiv == Vec_FltSize(p->vWeights) )
-                Vec_FltPush(p->vWeights, -Vec_IntSize(p->vFree));
+                Vec_FltPush(p->vWeights, -Vec_IntSize(p->vCubeFree));
             assert( iDiv < Vec_FltSize(p->vWeights) );
-            Vec_FltAddToEntry( p->vWeights, iDiv, Base + Vec_IntSize(p->vFree) - 1 );
+            Vec_FltAddToEntry( p->vWeights, iDiv, Base + Vec_IntSize(p->vCubeFree) - 1 );
             p->nPairsD++;
         }
         else
         {
             assert( iDiv < Vec_FltSize(p->vWeights) );
-            Vec_FltAddToEntry( p->vWeights, iDiv, -(Base + Vec_IntSize(p->vFree) - 1) );
+            Vec_FltAddToEntry( p->vWeights, iDiv, -(Base + Vec_IntSize(p->vCubeFree) - 1) );
             p->nPairsD--;
         }
         if ( fUpdate )
@@ -736,53 +782,7 @@ void Fx_ManCreateDivisors( Fx_Man_t * p )
 
 /**Function*************************************************************
 
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Fx_Man_t * Fx_ManStart( Vec_Wec_t * vCubes )
-{
-    Fx_Man_t * p;
-    p = ABC_CALLOC( Fx_Man_t, 1 );
-    p->vCubes   = vCubes;
-    // temporary data
-    p->vCubesS  = Vec_IntAlloc( 100 );
-    p->vCubesD  = Vec_IntAlloc( 100 );
-    p->vPart0   = Vec_IntAlloc( 100 );
-    p->vPart1   = Vec_IntAlloc( 100 );
-    p->vFree    = Vec_IntAlloc( 100 );
-    p->vCube    = Vec_IntAlloc( 100 );
-    p->vDiv     = Vec_IntAlloc( 100 );
-    return p;
-}
-void Fx_ManStop( Fx_Man_t * p )
-{
-//    Vec_WecFree( p->vCubes );
-    Vec_WecFree( p->vLits );
-    Vec_IntFree( p->vCounts );
-    Hsh_VecManStop( p->pHash );
-    Vec_FltFree( p->vWeights );
-    Vec_QueFree( p->vPrio );
-    Vec_IntFree( p->vVarCube );
-    // temporary data
-    Vec_IntFree( p->vCubesS );
-    Vec_IntFree( p->vCubesD );
-    Vec_IntFree( p->vPart0 );
-    Vec_IntFree( p->vPart1 );
-    Vec_IntFree( p->vFree );
-    Vec_IntFree( p->vCube );
-    Vec_IntFree( p->vDiv );
-    ABC_FREE( p );
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
+  Synopsis    [Compress the cubes by removing unused ones.]
 
   Description []
                
@@ -799,19 +799,33 @@ static inline void Fx_ManCompressCubes( Vec_Wec_t * vCubes, Vec_Int_t * vLit2Cub
             Vec_IntWriteEntry( vLit2Cube, k++, CubeId );
     Vec_IntShrink( vLit2Cube, k );
 }
-static inline int Fx_ManGetCubeVar( Vec_Wec_t * vCubes, int iCube )        { return Vec_IntEntry( Vec_WecEntry(vCubes, iCube), 0 );      }
-void Fx_ManFindCommonPairs( Vec_Wec_t * vCubes, Vec_Int_t * vPart0, Vec_Int_t * vPart1, Vec_Int_t * vPairs, Vec_Int_t * vDiv, Vec_Int_t * vFree )
+
+
+/**Function*************************************************************
+
+  Synopsis    [Find command cube pairs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Fx_ManGetCubeVar( Vec_Wec_t * vCubes, int iCube )  { return Vec_IntEntry( Vec_WecEntry(vCubes, iCube), 0 );      }
+void Fx_ManFindCommonPairs( Vec_Wec_t * vCubes, Vec_Int_t * vPart0, Vec_Int_t * vPart1, Vec_Int_t * vPairs, Vec_Int_t * vCompls, Vec_Int_t * vDiv, Vec_Int_t * vCubeFree )
 {
     int * pBeg1 = vPart0->pArray;
     int * pBeg2 = vPart1->pArray;
     int * pEnd1 = vPart0->pArray + vPart0->nSize;
     int * pEnd2 = vPart1->pArray + vPart1->nSize;
-    int i, k, i_, k_;
+    int i, k, i_, k_, fCompl, CubeId1, CubeId2;
     Vec_IntClear( vPairs );
+    Vec_IntClear( vCompls );
     while ( pBeg1 < pEnd1 && pBeg2 < pEnd2 )
     {
-        int CubeId1 = Fx_ManGetCubeVar(vCubes, *pBeg1);
-        int CubeId2 = Fx_ManGetCubeVar(vCubes, *pBeg2);
+        CubeId1 = Fx_ManGetCubeVar(vCubes, *pBeg1);
+        CubeId2 = Fx_ManGetCubeVar(vCubes, *pBeg2);
         if ( CubeId1 == CubeId2 )
         {
             for ( i = 1; pBeg1+i < pEnd1; i++ )
@@ -825,11 +839,13 @@ void Fx_ManFindCommonPairs( Vec_Wec_t * vCubes, Vec_Int_t * vPart0, Vec_Int_t * 
             {
                 if ( pBeg1[i_] == pBeg2[k_] )
                     continue;
-                Fx_ManDivFindCubeFree( Vec_WecEntry(vCubes, pBeg1[i_]), Vec_WecEntry(vCubes, pBeg2[k_]), vFree );
-                if ( !Vec_IntEqual( vDiv, vFree ) )
+                Fx_ManDivFindCubeFree( Vec_WecEntry(vCubes, pBeg1[i_]), Vec_WecEntry(vCubes, pBeg2[k_]), vCubeFree );
+                fCompl = (Vec_IntSize(vCubeFree) == 4 && Fx_ManDivNormalize(vCubeFree) == 1);
+                if ( !Vec_IntEqual( vDiv, vCubeFree ) )
                     continue;
                 Vec_IntPush( vPairs, pBeg1[i_] );
                 Vec_IntPush( vPairs, pBeg2[k_] );
+                Vec_IntPush( vCompls, fCompl );
             }
             pBeg1 += i;
             pBeg2 += k;
@@ -843,7 +859,7 @@ void Fx_ManFindCommonPairs( Vec_Wec_t * vCubes, Vec_Int_t * vPart0, Vec_Int_t * 
 
 /**Function*************************************************************
 
-  Synopsis    [Updates the data-structure when divisor is selected.]
+  Synopsis    [Updates the data-structure when one divisor is selected.]
 
   Description []
                
@@ -857,11 +873,12 @@ void Fx_ManUpdate( Fx_Man_t * p, int iDiv )
     Vec_Int_t * vCube, * vCube2, * vLitP, * vLitN;
     Vec_Int_t * vDiv = p->vDiv;
     int nLitsNew = p->nLits - (int)Vec_FltEntry(p->vWeights, iDiv);
-    int i, k, Lit0, Lit1, iVarNew, RetValue;
-    // get the divisor
+    int i, k, Lit0, Lit1, iVarNew, fComplAny, RetValue;
+
+    // get the divisor and select pivot variables
+    p->nDivs++;
     Vec_IntClear( vDiv );
     Vec_IntAppend( vDiv, Hsh_VecReadEntry(p->pHash, iDiv) );
-    // select pivot variables
     Fx_ManDivFindPivots( vDiv, &Lit0, &Lit1 );
     assert( Lit0 >= 0 && Lit1 >= 0 );
 
@@ -873,13 +890,11 @@ void Fx_ManUpdate( Fx_Man_t * p, int iDiv )
         Fx_ManCompressCubes( p->vCubes, Vec_WecEntry(p->vLits, Abc_LitNot(Lit1)) );
         Vec_IntTwoRemoveCommon( Vec_WecEntry(p->vLits, Abc_LitNot(Lit0)), Vec_WecEntry(p->vLits, Abc_LitNot(Lit1)), p->vCubesS );
     }
-//Vec_IntPrint( p->vCubesS );
 
     // collect double-cube-divisor cube pairs
     Fx_ManCompressCubes( p->vCubes, Vec_WecEntry(p->vLits, Lit0) );
     Fx_ManCompressCubes( p->vCubes, Vec_WecEntry(p->vLits, Lit1) );
-    Fx_ManFindCommonPairs( p->vCubes, Vec_WecEntry(p->vLits, Lit0), Vec_WecEntry(p->vLits, Lit1), p->vCubesD, vDiv, p->vFree );
-//Vec_IntPrint( p->vCubesD );
+    Fx_ManFindCommonPairs( p->vCubes, Vec_WecEntry(p->vLits, Lit0), Vec_WecEntry(p->vLits, Lit1), p->vCubesD, p->vCompls, vDiv, p->vCubeFree );
 
     // subtract cost of single-cube divisors
     Fx_ManForEachCubeVec( p->vCubesS, p->vCubes, vCube, i )
@@ -937,18 +952,24 @@ void Fx_ManUpdate( Fx_Man_t * p, int iDiv )
     }
     // create updated double-cube divisor cube pairs
     k = 0;
+    fComplAny = 0;
     assert( Vec_IntSize(p->vCubesD) % 2 == 0 );
-    Fx_ManForEachPairVec( p->vCubesD, p->vCubes, vCube, vCube2, i )
+    assert( Vec_IntSize(p->vCubesD) == 2 * Vec_IntSize(p->vCompls) );
+    for ( i = 0; i < Vec_IntSize(p->vCubesD); i += 2 )
     {
-        RetValue  = Fx_ManDivRemoveLits( vCube, vDiv );  // cube 2*i
-        RetValue += Fx_ManDivRemoveLits( vCube2, vDiv ); // cube 2*i+1
+        int fCompl = Vec_IntEntry(p->vCompls, i/2);
+        fComplAny |= fCompl;
+        vCube  = Vec_WecEntry( p->vCubes, Vec_IntEntry(p->vCubesD, i) );
+        vCube2 = Vec_WecEntry( p->vCubes, Vec_IntEntry(p->vCubesD, i+1) );
+        RetValue  = Fx_ManDivRemoveLits( vCube, vDiv, fCompl );  // cube 2*i
+        RetValue += Fx_ManDivRemoveLits( vCube2, vDiv, fCompl ); // cube 2*i+1
         assert( RetValue == Vec_IntSize(vDiv) );
-        if ( Vec_IntSize(vDiv) == 2 )
+        if ( Vec_IntSize(vDiv) == 2 || fCompl )
         {
             Vec_IntPush( vCube, Abc_Var2Lit(iVarNew, 1) );
             Vec_IntPush( vLitN, Vec_WecLevelId(p->vCubes, vCube) );
         }
-        else
+        else 
         {
             Vec_IntPush( vCube, Abc_Var2Lit(iVarNew, 0) );
             Vec_IntPush( vLitP, Vec_WecLevelId(p->vCubes, vCube) );
@@ -997,9 +1018,14 @@ void Fx_ManUpdate( Fx_Man_t * p, int iDiv )
 
     // remove these cubes from the lit array of the divisor
     Vec_IntForEachEntry( vDiv, Lit0, i )
+    {
         Vec_IntTwoRemove( Vec_WecEntry(p->vLits, Abc_Lit2Var(Lit0)), p->vCubesD );
-
-    assert( p->nLits == nLitsNew ); // new SOP lits == old SOP lits - divisor weight
+        if ( fComplAny && i > 1 ) // the last two lits are possibly complemented
+            Vec_IntTwoRemove( Vec_WecEntry(p->vLits, Abc_LitNot(Abc_Lit2Var(Lit0))), p->vCubesD );
+    }
+    
+    // check predicted improvement: (new SOP lits == old SOP lits - divisor weight)
+    assert( p->nLits == nLitsNew );
 }
 
 /**Function*************************************************************
@@ -1029,6 +1055,7 @@ int Fx_FastExtract( Vec_Wec_t * vCubes, int nVars, int fVerbose )
     if ( fVerbose )
         Fx_PrintStats( p, clock() - clk );
     // perform extraction
+    p->timeStart = clock();
     while ( Vec_QueTopCost(p->vPrio) > 0.0 )
     {
         int iDiv = Vec_QuePop(p->vPrio);
@@ -1037,8 +1064,6 @@ int Fx_FastExtract( Vec_Wec_t * vCubes, int nVars, int fVerbose )
         Fx_ManUpdate( p, iDiv );
         if ( fVeryVerbose )
             Fx_PrintMatrix( p );
-        if ( fVerbose )
-            Fx_PrintStats( p, clock() - clk );
     }
     Fx_ManStop( p );
     // return the result

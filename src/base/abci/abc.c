@@ -3530,7 +3530,7 @@ int Abc_CommandFastExtract( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern int Abc_NtkFxPerform( Abc_Ntk_t * pNtk, int fVerbose );
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     Fxu_Data_t Params, * p = &Params;
-    int c, fNewAlgo = 0;
+    int c, fNewAlgo = 1;
     // set the defaults
     Abc_NtkSetDefaultParams( p );
     Extra_UtilGetoptReset();
