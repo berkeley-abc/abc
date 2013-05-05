@@ -213,6 +213,10 @@ static inline void Vec_QueUpdate( Vec_Que_t * p, int v )
   SeeAlso     []
 
 ***********************************************************************/
+static inline int Vec_QueIsMember( Vec_Que_t * p, int v )
+{
+    return (int)( p->pOrder[v] >= 0 );
+}
 static inline void Vec_QuePush( Vec_Que_t * p, int v )
 {
     if ( p->nSize == p->nCap )
