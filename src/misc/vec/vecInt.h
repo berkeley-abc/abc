@@ -321,6 +321,10 @@ static inline int * Vec_IntArray( Vec_Int_t * p )
 {
     return p->pArray;
 }
+static inline int ** Vec_IntArrayP( Vec_Int_t * p )
+{
+    return &p->pArray;
+}
 
 /**Function*************************************************************
 

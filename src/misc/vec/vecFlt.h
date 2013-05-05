@@ -267,6 +267,10 @@ static inline float * Vec_FltArray( Vec_Flt_t * p )
 {
     return p->pArray;
 }
+static inline float ** Vec_FltArrayP( Vec_Flt_t * p )
+{
+    return &p->pArray;
+}
 
 /**Function*************************************************************
 

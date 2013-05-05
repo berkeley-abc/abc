@@ -44,10 +44,10 @@ struct Vec_Que_t_
     int             nSize;
     int *           pHeap;
     int *           pOrder;
-    float *         pCostsFlt;  // owned by the caller
+    float **        pCostsFlt;  // owned by the caller
 };
 
-static inline float Vec_QueCost( Vec_Que_t * p, int v ) { return p->pCostsFlt ? p->pCostsFlt[v] : v; }
+static inline float Vec_QueCost( Vec_Que_t * p, int v ) { return *p->pCostsFlt ? (*p->pCostsFlt)[v] : v; }
 
 ////////////////////////////////////////////////////////////////////////
 ///                      MACRO DEFINITIONS                           ///
@@ -92,9 +92,9 @@ static inline void Vec_QueFreeP( Vec_Que_t ** p )
         Vec_QueFree( *p );
     *p = NULL;
 }
-static inline void Vec_QueSetCosts( Vec_Que_t * p, float * pCosts )
+static inline void Vec_QueSetCosts( Vec_Que_t * p, float ** pCosts )
 {
-//    assert( p->pCostsFlt == NULL );
+    assert( p->pCostsFlt == NULL );
     p->pCostsFlt = pCosts;
 }
 static inline void Vec_QueGrow( Vec_Que_t * p, int nCapMin )
@@ -333,7 +333,7 @@ static inline void Vec_QueTest( Vec_Flt_t * vCosts )
 
     // start the queue
     p = Vec_QueAlloc( Vec_FltSize(vCosts) );
-    Vec_QueSetCosts( p, Vec_FltArray(vCosts) );
+    Vec_QueSetCosts( p, Vec_FltArrayP(vCosts) );
     for ( i = 0; i < Vec_FltSize(vCosts); i++ )
         Vec_QuePush( p, i );
 //    Vec_QuePrint( p );

@@ -636,10 +636,7 @@ int Fx_ManCubeSingleCubeDivisors( Fx_Man_t * p, Vec_Int_t * vPivot, int fRemove,
         {
             if ( Vec_FltSize(p->vWeights) == iDiv )
             {
-                float * pArray = Vec_FltArray(p->vWeights);
                 Vec_FltPush(p->vWeights, -2);
-                if ( p->vPrio && pArray != Vec_FltArray(p->vWeights) )
-                    Vec_QueSetCosts( p->vPrio, Vec_FltArray(p->vWeights) );
                 p->nDivsS++;
             }
             assert( iDiv < Vec_FltSize(p->vWeights) );
@@ -692,12 +689,7 @@ void Fx_ManCubeDoubleCubeDivisors( Fx_Man_t * p, int iFirst, Vec_Int_t * vPivot,
         if ( !fRemove )
         {
             if ( iDiv == Vec_FltSize(p->vWeights) )
-            {
-                float * pArray = Vec_FltArray(p->vWeights);
                 Vec_FltPush(p->vWeights, -Vec_IntSize(p->vFree));
-                if ( p->vPrio && pArray != Vec_FltArray(p->vWeights) )
-                    Vec_QueSetCosts( p->vPrio, Vec_FltArray(p->vWeights) );
-            }
             assert( iDiv < Vec_FltSize(p->vWeights) );
             Vec_FltAddToEntry( p->vWeights, iDiv, Base + Vec_IntSize(p->vFree) - 1 );
             p->nPairsD++;
@@ -735,7 +727,7 @@ void Fx_ManCreateDivisors( Fx_Man_t * p )
         Fx_ManCubeDoubleCubeDivisors( p, i+1, vCube, 0, 0 ); // add - no update
     // create queue with all divisors
     p->vPrio = Vec_QueAlloc( Vec_FltSize(p->vWeights) );
-    Vec_QueSetCosts( p->vPrio, Vec_FltArray(p->vWeights) );
+    Vec_QueSetCosts( p->vPrio, Vec_FltArrayP(p->vWeights) );
     Vec_FltForEachEntry( p->vWeights, Weight, i )
         if ( Weight > 0.0 )
             Vec_QuePush( p->vPrio, i );

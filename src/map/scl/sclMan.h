@@ -152,7 +152,7 @@ static inline SC_Man * Abc_SclManAlloc( SC_Lib * pLib, Abc_Ntk_t * pNtk )
     p->pSlack    = ABC_FALLOC( float, p->nObjs );
     p->vTimesOut = Vec_FltStart( Abc_NtkCoNum(pNtk) );
     p->vQue      = Vec_QueAlloc( Abc_NtkCoNum(pNtk) );
-    Vec_QueSetCosts( p->vQue, Vec_FltArray(p->vTimesOut) );
+    Vec_QueSetCosts( p->vQue, Vec_FltArrayP(p->vTimesOut) );
     for ( i = 0; i < Abc_NtkCoNum(pNtk); i++ )
         Vec_QuePush( p->vQue, i );
     p->vUpdates  = Vec_IntAlloc( 1000 );
@@ -160,7 +160,7 @@ static inline SC_Man * Abc_SclManAlloc( SC_Lib * pLib, Abc_Ntk_t * pNtk )
     p->vNode2Gain  = Vec_FltStart( p->nObjs );
     p->vNode2Gate  = Vec_IntStart( p->nObjs );
     p->vNodeByGain = Vec_QueAlloc( p->nObjs );
-    Vec_QueSetCosts( p->vNodeByGain, Vec_FltArray(p->vNode2Gain) );
+    Vec_QueSetCosts( p->vNodeByGain, Vec_FltArrayP(p->vNode2Gain) );
     p->vNodeIter   = Vec_IntStartFull( p->nObjs );
     return p;
 }
