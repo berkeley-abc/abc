@@ -490,7 +490,7 @@ Gia_Man_t * Gia_SweeperCleanup( Gia_Man_t * p, char * pCommLime )
     sat_solver_addclause( pSwp->pSat, &iLit, &iLit + 1 );
     pSwp->timeStart    = clock();
     // return the result
-    pNew = p->pData; p->pData = NULL;
+    pNew->pData = p->pData; p->pData = NULL;
     Gia_ManStop( p );
     return pNew;
 }
