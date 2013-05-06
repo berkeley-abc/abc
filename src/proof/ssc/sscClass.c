@@ -107,6 +107,12 @@ static inline int Ssc_GiaSimAreEqual( Gia_Man_t * p, int iObj0, int iObj1 )
     }
     return 1;
 }
+static inline int Ssc_GiaSimAreEqualBit( Gia_Man_t * p, int iObj0, int iObj1 )
+{
+    Gia_Obj_t * pObj0 = Gia_ManObj( p, iObj0 );
+    Gia_Obj_t * pObj1 = Gia_ManObj( p, iObj1 );
+    return (pObj0->fPhase ^ pObj0->fMark0) == (pObj1->fPhase ^ pObj1->fMark0);
+}
 
 /**Function*************************************************************
 
@@ -141,10 +147,58 @@ void Ssc_GiaSimClassCreate( Gia_Man_t * p, Vec_Int_t * vClass )
     }
     Gia_ObjSetNext( p, EntPrev, 0 );
 }
+
+/**Function*************************************************************
+
+  Synopsis    [Refines one equivalence class using individual bit-pattern.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ssc_GiaSimClassRefineOneBit( Gia_Man_t * p, int i )
+{
+    Gia_Obj_t * pObj;
+    int Ent;
+    assert( Gia_ObjIsHead( p, i ) );
+    Vec_IntClear( p->vClassOld );
+    Vec_IntClear( p->vClassNew );
+    Vec_IntPush( p->vClassOld, i );
+    pObj = Gia_ManObj(p, i);
+    Gia_ClassForEachObj1( p, i, Ent )
+    {
+        if ( Ssc_GiaSimAreEqualBit( p, i, Ent ) )
+            Vec_IntPush( p->vClassOld, Ent );
+        else
+            Vec_IntPush( p->vClassNew, Ent );
+    }
+    if ( Vec_IntSize( p->vClassNew ) == 0 )
+        return 0;
+    Ssc_GiaSimClassCreate( p, p->vClassOld );
+    Ssc_GiaSimClassCreate( p, p->vClassNew );
+    return 1;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Refines one class using simulation patterns.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Ssc_GiaSimClassRefineOne( Gia_Man_t * p, int i )
 {
     Gia_Obj_t * pObj;
     int Ent;
+    assert( Gia_ObjIsHead( p, i ) );
     Vec_IntClear( p->vClassOld );
     Vec_IntClear( p->vClassNew );
     Vec_IntPush( p->vClassOld, i );
@@ -226,17 +280,18 @@ int Ssc_GiaClassesRefine( Gia_Man_t * p )
 {
     Vec_Int_t * vRefinedC;
     Gia_Obj_t * pObj;
-    int i;
+    int i, Counter = 0;
     if ( p->pReprs != NULL );
     vRefinedC = Vec_IntAlloc( 100 );
     Gia_ManForEachCand( p, pObj, i )
         if ( Gia_ObjIsTail(p, i) )
-            Ssc_GiaSimClassRefineOne( p, Gia_ObjRepr(p, i) );
+            Counter += Ssc_GiaSimClassRefineOne( p, Gia_ObjRepr(p, i) );
         else if ( Gia_ObjIsConst(p, i) && !Ssc_GiaSimIsConst0(p, i) )
             Vec_IntPush( vRefinedC, i );
     Ssc_GiaSimProcessRefined( p, vRefinedC );
+    Counter += Vec_IntSize( vRefinedC );
     Vec_IntFree( vRefinedC );
-    return 0;
+    return Counter;
 }
 
 

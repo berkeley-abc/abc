@@ -370,6 +370,7 @@ void Gia_ManSetPhasePattern( Gia_Man_t * p, Vec_Int_t * vCiValues )
 {
     Gia_Obj_t * pObj;
     int i;
+    assert( Gia_ManCiNum(p) == Vec_IntSize(vCiValues) );
     Gia_ManForEachObj( p, pObj, i )
         if ( Gia_ObjIsCi(pObj) )
             pObj->fPhase = Vec_IntEntry( vCiValues, Gia_ObjCioId(pObj) );

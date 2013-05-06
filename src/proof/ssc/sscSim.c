@@ -175,6 +175,56 @@ void Ssc_GiaRandomPiPattern( Gia_Man_t * p, int nWords, Vec_Int_t * vPivot )
 //            Extra_PrintBinary( stdout, (unsigned *)pSimPi, 64 ), printf( "\n" );
     }
 }
+void Ssc_GiaPrintPiPatterns( Gia_Man_t * p )
+{
+    Gia_Obj_t * pObj;
+    word * pSimAig;
+    int i, nWords = Gia_ObjSimWords( p );
+    Gia_ManForEachCi( p, pObj, i )
+    {
+        pSimAig = Gia_ObjSimObj( p, pObj );
+//        Extra_PrintBinary( stdout, pSimAig, 64 * nWords );
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Transfer the simulation pattern from pCare to pAig.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ssc_GiaTransferPiPattern( Gia_Man_t * pAig, Gia_Man_t * pCare, Vec_Int_t * vPivot )
+{
+    extern word * Ssc_GiaGetCareMask( Gia_Man_t * p );
+    Gia_Obj_t * pObj;
+    int i, w, nWords = Gia_ObjSimWords( pCare );
+    word * pCareMask = Ssc_GiaGetCareMask( pCare );
+    int Count = Ssc_SimCountBits( pCareMask, nWords );
+    word * pSimPiCare, * pSimPiAig;
+    if ( Count == 0 )
+    {
+        ABC_FREE( pCareMask );
+        return 0;
+    }
+    Ssc_GiaResetPiPattern( pAig, nWords );
+    Gia_ManForEachCi( pCare, pObj, i )
+    {
+        pSimPiAig  = Gia_ObjSimPi( pAig, i );
+        pSimPiCare = Gia_ObjSimObj( pCare, pObj );
+        for ( w = 0; w < nWords; w++ )
+            if ( Vec_IntEntry(vPivot, i) )
+                pSimPiAig[w] = pSimPiCare[w] | ~pCareMask[w];
+            else
+                pSimPiAig[w] = pSimPiCare[w] & pCareMask[w];
+    }
+    ABC_FREE( pCareMask );
+    return Count;
+}
 
 /**Function*************************************************************
 
@@ -246,14 +296,21 @@ void Ssc_GiaSimRound( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
+word * Ssc_GiaGetCareMask( Gia_Man_t * p )
+{
+    Gia_Obj_t * pObj;
+    int i, nWords = Gia_ObjSimWords( p );
+    word * pRes = ABC_FALLOC( word, nWords );
+    Gia_ManForEachPo( p, pObj, i )
+        Ssc_SimAnd( pRes, pRes, Gia_ObjSimObj(p, pObj), nWords, 0, 0 );
+    return pRes;
+}
 Vec_Int_t * Ssc_GiaGetOneSim( Gia_Man_t * p )
 {
     Vec_Int_t * vInit;
     Gia_Obj_t * pObj;
     int i, iBit, nWords = Gia_ObjSimWords( p );
-    word * pRes = ABC_FALLOC( word, nWords );
-    Gia_ManForEachPo( p, pObj, i )
-        Ssc_SimAnd( pRes, pRes, Gia_ObjSimObj(p, pObj), nWords, 0, 0 );
+    word * pRes = Ssc_GiaGetCareMask( p );
     iBit = Ssc_SimFindBit( pRes, nWords );
     ABC_FREE( pRes );
     if ( iBit == -1 )
@@ -285,12 +342,9 @@ Vec_Int_t * Ssc_GiaFindPivotSim( Gia_Man_t * p )
 ***********************************************************************/
 int Ssc_GiaCountCaresSim( Gia_Man_t * p )
 {
-    Gia_Obj_t * pObj;
-    int i, Count, nWords = Gia_ObjSimWords( p );
-    word * pRes = ABC_FALLOC( word, nWords );
-    Gia_ManForEachPo( p, pObj, i )
-        Ssc_SimAnd( pRes, pRes, Gia_ObjSimObj(p, pObj), nWords, 0, 0 );
-    Count = Ssc_SimCountBits( pRes, nWords );
+    word * pRes = Ssc_GiaGetCareMask( p );
+    int nWords = Gia_ObjSimWords( p );
+    int Count = Ssc_SimCountBits( pRes, nWords );
     ABC_FREE( pRes );
     return Count;
 }

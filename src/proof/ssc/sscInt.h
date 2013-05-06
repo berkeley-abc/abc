@@ -102,6 +102,7 @@ static inline void   Ssc_ObjSetFraig( Gia_Obj_t * pObj, int iNode )       { pObj
 extern void          Ssc_GiaClassesInit( Gia_Man_t * p );
 extern int           Ssc_GiaClassesRefine( Gia_Man_t * p );
 extern void          Ssc_GiaClassesCheckPairs( Gia_Man_t * p, Vec_Int_t * vDisPairs );
+extern int           Ssc_GiaSimClassRefineOneBit( Gia_Man_t * p, int i );
 /*=== sscCnf.c ===================================================*/
 extern void          Ssc_CnfNodeAddToSolver( Ssc_Man_t * p, Gia_Obj_t * pObj );
 /*=== sscCore.c ==================================================*/
@@ -113,6 +114,7 @@ extern int           Ssc_ManCheckEquivalence( Ssc_Man_t * p, int iRepr, int iObj
 /*=== sscSim.c ===================================================*/
 extern void          Ssc_GiaResetPiPattern( Gia_Man_t * p, int nWords );
 extern void          Ssc_GiaRandomPiPattern( Gia_Man_t * p, int nWords, Vec_Int_t * vPivot );
+extern int           Ssc_GiaTransferPiPattern( Gia_Man_t * pAig, Gia_Man_t * pCare, Vec_Int_t * vPivot );
 extern void          Ssc_GiaSavePiPattern( Gia_Man_t * p, Vec_Int_t * vPat );
 extern void          Ssc_GiaSimRound( Gia_Man_t * p );
 extern Vec_Int_t *   Ssc_GiaFindPivotSim( Gia_Man_t * p );
