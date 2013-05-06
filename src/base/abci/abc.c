@@ -402,6 +402,8 @@ static int Abc_CommandAbc9Test               ( Abc_Frame_t * pAbc, int argc, cha
 extern int Abc_CommandAbcLivenessToSafety    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 extern int Abc_CommandAbcLivenessToSafetySim ( Abc_Frame_t * pAbc, int argc, char ** argv );
 extern int Abc_CommandAbcLivenessToSafetyWithLTL( Abc_Frame_t * pAbc, int argc, char ** argv );
+extern int Abc_CommandCS_kLiveness           ( Abc_Frame_t * pAbc, int argc, char ** argv );
+extern int Abc_CommandNChooseK               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
 extern Abc_Ntk_t * Abc_NtkFromAigPhase( Aig_Man_t * pMan );
@@ -894,9 +896,11 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Abstraction",  "&fla_gla",      Abc_CommandAbc9Fla2Gla,      0 );
     Cmd_CommandAdd( pAbc, "Abstraction",  "&gla_fla",      Abc_CommandAbc9Gla2Fla,      0 );
 
-    Cmd_CommandAdd( pAbc, "Liveness",     "l2s",           Abc_CommandAbcLivenessToSafety,           0 );
-    Cmd_CommandAdd( pAbc, "Liveness",     "l2ssim",        Abc_CommandAbcLivenessToSafetySim,        0 );
-    Cmd_CommandAdd( pAbc, "Liveness",     "l3s",           Abc_CommandAbcLivenessToSafetyWithLTL,    0 );
+    Cmd_CommandAdd( pAbc, "Liveness",     "l2s",           Abc_CommandAbcLivenessToSafety,        0 );
+    Cmd_CommandAdd( pAbc, "Liveness",     "l2ssim",        Abc_CommandAbcLivenessToSafetySim,     0 );
+    Cmd_CommandAdd( pAbc, "Liveness",     "l3s",           Abc_CommandAbcLivenessToSafetyWithLTL, 0 );
+    Cmd_CommandAdd( pAbc, "Liveness",     "kcs",           Abc_CommandCS_kLiveness,               0 );
+    Cmd_CommandAdd( pAbc, "Liveness",     "nck",           Abc_CommandNChooseK,                   0 );
 
     Cmd_CommandAdd( pAbc, "ABC9",         "&test",         Abc_CommandAbc9Test,         0 );
 
