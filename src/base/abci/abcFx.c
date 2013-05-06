@@ -6,7 +6,7 @@
 
   PackageName [Network and node package.]
 
-  Synopsis    [Interface with the fast_extract package.]
+  Synopsis    [Implementation of traditional "fast_extract" algorithm.]
 
   Author      [Alan Mishchenko]
   
@@ -29,6 +29,59 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
+/*
+    The code in this file implements the traditional "fast_extract" algorithm, 
+    which extracts two-cube divisors concurrently with single-cube two-literal divisors,
+    as proposed in the TCAD'92 paper by J. Rajski and J. Vasudevamurthi.
+
+    Integration notes:
+
+    It is assumed that each object (primary input or internal node) in the original network 
+    is associated with a unique integer number, called object identifier (ObjId, for short).
+
+    The user's input data given to 'fast_extract" is an array of cubes (pMan->vCubes).
+    Each cube is an array of integers, in which the first entry contains ObjId of the node, 
+    to which this cube belongs in the original network. The following entries of a cube are 
+    SOP literals of this cube.  Each literal is represtned as 2*FaninId + ComplAttr, where FaninId 
+    is ObjId of the fanin node and ComplAttr is 1 if literal is complemented, and 0 otherwise.
+
+    The user's output data produced by 'fast_extract' is also an array of cubes (pMan->vCubes).
+    If no divisors have been extracted, the output array is the same as the input array.
+    If some divisors have been extracted, the output array contains updated old cubes and new cubes 
+    representing the extracted divisors. The new divisors have their ObjId starting from the 
+    largest ObjId used in the cubes. To give the user more flexibility, which may be needed when some 
+    ObjIds are already used for primary output nodes, which do not participate in fast_extract,
+    the parameter ObjIdMax is passed to procedure Fx_FastExtract().  The new divisors will receive
+    their ObjId starting from ObjIdMax onward, as divisor extaction proceeds.
+
+    The following two requirements are imposed on the input and output array of cubes:
+    (1) The array of cubes should be sorted by the first entry in each cube (that is, cubes belonging 
+    to the same node should form a contiguous range). 
+    (2) Literals in a cube should be sorted in the increasing order of the integer numbers.
+    
+    To integrate this code into a calling application, such as ABC, the input cube array should 
+    be generated (below this is done by the procedure Abc_NtkFxRetrieve) and the output cube array
+    should be incorporated into the current network (below this is done by the procedure Abc_NtkFxInsert).
+    In essence, the latter procedure performs the following:
+    - removes the current fanins and SOPs of each node in the network
+    - adds new nodes for each new divisor introduced by "fast_extract"
+    - populates fanins and SOPs of each node, both old and new, as indicaded by the resulting cube array.
+
+    Implementation notes:
+
+    The implementation is optimized for simplicity and speed of computation.
+    (1) Main input/output data-structure (pMan->vCubes) is the array of cubes which is dynamically updated by the algorithm.
+    (2) Auxiliary data-structure (pMan->vLits) is the array of arrays. The i-th array contains IDs of cubes which have literal i.
+    It may be convenient to think about the first (second) array as rows (columns) of a sparse matrix, 
+    although the sparse matrix data-structure is not used in the proposed implementation.
+    (3) Hash table (pMan->pHash) hashes the normalized divisors (represented as integer arrays) into integer numbers.
+    (4) Array of divisor weights (pMan->vWeights), that is, the number of SOP literals to be saved by extacting each divisor.
+    (5) Priority queue (pMan->vPrio), which sorts divisor (integer numbers) by their weight
+    (6) Integer array (pMan->vVarCube), which maps each ObjId into the first cube of this object, 
+    or -1, if there is no cubes as in the case of a primary input.
+
+*/
+
 typedef struct Fx_Man_t_ Fx_Man_t;
 struct Fx_Man_t_
 {
@@ -36,22 +89,23 @@ struct Fx_Man_t_
     Vec_Wec_t *     vCubes;     // cube -> lit
     // internal data
     Vec_Wec_t *     vLits;      // lit -> cube
-    Vec_Int_t *     vCounts;    // literal counts (currently unused)
-    Hsh_VecMan_t *  pHash;      // hash table of divisors
+    Vec_Int_t *     vCounts;    // literal counts (currently not used)
+    Hsh_VecMan_t *  pHash;      // hash table for normalized divisors
     Vec_Flt_t *     vWeights;   // divisor weights
-    Vec_Que_t *     vPrio;      // priority queue
-    Vec_Int_t *     vVarCube;   // mapping var into its first cube
-    // temporary arrays used for updating data-structure after one extraction
+    Vec_Que_t *     vPrio;      // priority queue for divisors by weight
+    Vec_Int_t *     vVarCube;   // mapping ObjId into its first cube
+    // temporary data to update the data-structure when a divisor is extracted
     Vec_Int_t *     vCubesS;    // single cubes for the given divisor
     Vec_Int_t *     vCubesD;    // cube pairs for the given divisor
-    Vec_Int_t *     vCompls;    // complements of cube pairs
+    Vec_Int_t *     vCompls;    // complemented attribute of each cube pair
     Vec_Int_t *     vCubeFree;  // cube-free divisor
-    Vec_Int_t *     vDiv;       // divisor
+    Vec_Int_t *     vDiv;       // selected divisor
     // statistics 
     clock_t         timeStart;  // starting time
     int             nVars;      // original problem variables
     int             nLits;      // the number of SOP literals
     int             nDivs;      // the number of extracted divisors
+    int             nCompls;    // the number of complements
     int             nPairsS;    // number of lit pairs
     int             nPairsD;    // number of cube pairs
     int             nDivsS;     // single cube divisors
@@ -62,8 +116,6 @@ static inline int Fx_ManGetFirstVarCube( Fx_Man_t * p, Vec_Int_t * vCube ) { ret
 
 #define Fx_ManForEachCubeVec( vVec, vCubes, vCube, i )           \
     for ( i = 0; (i < Vec_IntSize(vVec)) && ((vCube) = Vec_WecEntry(vCubes, Vec_IntEntry(vVec, i))); i++ )
-
-static int Fx_FastExtract( Vec_Wec_t * vCubes, int nVars, int fVerbose );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -248,6 +300,7 @@ int Abc_NtkFxCheck( Abc_Ntk_t * pNtk )
 ***********************************************************************/
 int Abc_NtkFxPerform( Abc_Ntk_t * pNtk, int fVerbose )
 {
+    extern int Fx_FastExtract( Vec_Wec_t * vCubes, int ObjIdMax, int fVerbose );
     Vec_Wec_t * vCubes;
     assert( Abc_NtkIsSopLogic(pNtk) );
     // check unique fanins
@@ -372,8 +425,9 @@ static inline void Fx_PrintDiv( Fx_Man_t * p, int iDiv )
     printf( "%4d : ", p->nDivs );
     printf( "Div %7d : ", iDiv );
     printf( "Weight %5d  ", (int)Vec_FltEntry(p->vWeights, iDiv) );
+//    printf( "Compl %4d  ", p->nCompls );
     Fx_PrintDivOne( Hsh_VecReadEntry(p->pHash, iDiv) );
-    for ( i = Vec_IntSize(Hsh_VecReadEntry(p->pHash, iDiv)) + 3; i < 20; i++ )
+    for ( i = Vec_IntSize(Hsh_VecReadEntry(p->pHash, iDiv)) + 3; i < 16; i++ )
         printf( " " );
     printf( "Lits =%7d  ", p->nLits );
     printf( "Divs =%8d  ", Hsh_VecSize(p->pHash) );
@@ -873,7 +927,7 @@ void Fx_ManUpdate( Fx_Man_t * p, int iDiv )
     Vec_Int_t * vCube, * vCube2, * vLitP, * vLitN;
     Vec_Int_t * vDiv = p->vDiv;
     int nLitsNew = p->nLits - (int)Vec_FltEntry(p->vWeights, iDiv);
-    int i, k, Lit0, Lit1, iVarNew, fComplAny, RetValue;
+    int i, k, Lit0, Lit1, iVarNew, RetValue;
 
     // get the divisor and select pivot variables
     p->nDivs++;
@@ -952,13 +1006,13 @@ void Fx_ManUpdate( Fx_Man_t * p, int iDiv )
     }
     // create updated double-cube divisor cube pairs
     k = 0;
-    fComplAny = 0;
+    p->nCompls = 0;
     assert( Vec_IntSize(p->vCubesD) % 2 == 0 );
     assert( Vec_IntSize(p->vCubesD) == 2 * Vec_IntSize(p->vCompls) );
     for ( i = 0; i < Vec_IntSize(p->vCubesD); i += 2 )
     {
         int fCompl = Vec_IntEntry(p->vCompls, i/2);
-        fComplAny |= fCompl;
+        p->nCompls += fCompl;
         vCube  = Vec_WecEntry( p->vCubes, Vec_IntEntry(p->vCubesD, i) );
         vCube2 = Vec_WecEntry( p->vCubes, Vec_IntEntry(p->vCubesD, i+1) );
         RetValue  = Fx_ManDivRemoveLits( vCube, vDiv, fCompl );  // cube 2*i
@@ -1020,7 +1074,7 @@ void Fx_ManUpdate( Fx_Man_t * p, int iDiv )
     Vec_IntForEachEntry( vDiv, Lit0, i )
     {
         Vec_IntTwoRemove( Vec_WecEntry(p->vLits, Abc_Lit2Var(Lit0)), p->vCubesD );
-        if ( fComplAny && i > 1 ) // the last two lits are possibly complemented
+        if ( p->nCompls && i > 1 ) // the last two lits are possibly complemented
             Vec_IntTwoRemove( Vec_WecEntry(p->vLits, Abc_LitNot(Abc_Lit2Var(Lit0))), p->vCubesD );
     }
     
@@ -1041,14 +1095,14 @@ void Fx_ManUpdate( Fx_Man_t * p, int iDiv )
   SeeAlso     []
 
 ***********************************************************************/
-int Fx_FastExtract( Vec_Wec_t * vCubes, int nVars, int fVerbose )
+int Fx_FastExtract( Vec_Wec_t * vCubes, int ObjIdMax, int fVerbose )
 {
     int fVeryVerbose = 0;
     Fx_Man_t * p;
     clock_t clk = clock();
     // initialize the data-structure
     p = Fx_ManStart( vCubes );
-    Fx_ManCreateLiterals( p, nVars );
+    Fx_ManCreateLiterals( p, ObjIdMax );
     Fx_ManCreateDivisors( p );
     if ( fVeryVerbose )
         Fx_PrintMatrix( p );
