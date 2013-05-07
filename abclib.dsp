@@ -115,6 +115,10 @@ SOURCE=.\src\base\abc\abcFanio.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\abc\abcFanOrder.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\abc\abcFunc.c
 # End Source File
 # Begin Source File
@@ -4199,6 +4203,26 @@ SOURCE=.\src\proof\int\intUtil.c
 # PROP Default_Filter ""
 # Begin Source File
 
+SOURCE=.\src\proof\live\arenaViolation.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\live\combination.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\live\disjunctiveMonotone.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\live\kLiveConstraints.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\live\kliveness.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\proof\live\liveness.c
 # End Source File
 # Begin Source File
@@ -4208,6 +4232,10 @@ SOURCE=.\src\proof\live\liveness_sim.c
 # Begin Source File
 
 SOURCE=.\src\proof\live\ltl_parser.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\live\monotone.c
 # End Source File
 # End Group
 # Begin Group "llb"

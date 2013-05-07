@@ -3,6 +3,7 @@ SRC +=    src/base/abc/abcAig.c \
     src/base/abc/abcCheck.c \
     src/base/abc/abcDfs.c \
     src/base/abc/abcFanio.c \
+    src/base/abc/abcFanOrder.c \
     src/base/abc/abcFunc.c \
     src/base/abc/abcHie.c \
     src/base/abc/abcHieCec.c \

@@ -7091,14 +7091,18 @@ usage:
 int Abc_CommandBdd( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+    int fReorder = 1;
     int c;
 
     // set defaults
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "rh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'r':
+            fReorder ^= 1;
+            break;
         case 'h':
             goto usage;
         default:
@@ -7128,8 +7132,9 @@ int Abc_CommandBdd( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: bdd [-h]\n" );
+    Abc_Print( -2, "usage: bdd [-rh]\n" );
     Abc_Print( -2, "\t         converts node functions to BDD\n" );
+    Abc_Print( -2, "\t-r     : toggles enabling dynamic variable reordering [default = %s]\n", fReorder? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
@@ -9609,19 +9614,18 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
         Aig_ManStop( pAig );
     }
 */
-
+/*
     if ( !Abc_NtkIsTopo(pNtk) )
     {
         Abc_Print( -1, "Current network is not in a topological order.\n" );
         return 1;
     }
-
+*/
     if ( pNtk )
-    {
+    { 
         extern void Abc_NtkTestTim( Abc_Ntk_t * pNtk, int fVerbose );
-        Abc_NtkTestTim( pNtk, fVerbose );
+        Abc_NtkTestTim( pNtk, fVerbose ); 
     }
-
     return 0;
 usage:
     Abc_Print( -2, "usage: test [-CKDN] [-aovwh] <file_name>\n" );
