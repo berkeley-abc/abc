@@ -332,10 +332,13 @@ int Abc_NtkDsdLocal( Abc_Ntk_t * pNtk, int fVerbose, int fRecursive )
         Abc_NodeDecompDsdAndMux( (Abc_Obj_t *)vNodes->pArray[i], vNodes, pManDsd, fRecursive, pCounters );
     Vec_PtrFree( vNodes );
 
-    printf( "Number of non-decomposable functions:\n" );
-    for ( i = 3; i < 10; i++ )
-        printf( "Inputs = %d.  Functions = %6d.\n", i, pCounters[i] );
-    printf( "Inputs > %d.  Functions = %6d.\n", 9, pCounters[10] );
+    if ( fVerbose )
+    {
+        printf( "Number of non-decomposable functions:\n" );
+        for ( i = 3; i < 10; i++ )
+            printf( "Inputs = %d.  Functions = %6d.\n", i, pCounters[i] );
+        printf( "Inputs > %d.  Functions = %6d.\n", 9, pCounters[10] );
+    }
 
     // stop the DSD manager
     Dsd_ManagerStop( pManDsd );

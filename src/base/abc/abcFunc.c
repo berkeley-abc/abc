@@ -356,6 +356,7 @@ char * Abc_ConvertBddToSop( Mem_Flex_t * pMan, DdManager * dd, DdNode * bFuncOn,
 ***********************************************************************/
 int Abc_NtkBddToSop( Abc_Ntk_t * pNtk, int fDirect )
 {
+    extern void Abc_NtkSortSops( Abc_Ntk_t * pNtk );
     Abc_Obj_t * pNode;
     Mem_Flex_t * pManNew;
     DdManager * dd = (DdManager *)pNtk->pManFunc;
@@ -406,6 +407,9 @@ int Abc_NtkBddToSop( Abc_Ntk_t * pNtk, int fDirect )
 
     // check for remaining references in the package
     Extra_StopManager( dd );
+
+    // reorder fanins and cubes to make SOPs more human-readable
+    Abc_NtkSortSops( pNtk );
     return 1;
 }
 
