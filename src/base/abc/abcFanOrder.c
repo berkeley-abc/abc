@@ -50,7 +50,7 @@ void Abc_NtkOrderFaninsById( Abc_Ntk_t * pNtk )
     char * pSop, * pSopNew;
     char * pCube, * pCubeNew;
     int nVars, i, v, * pOrder;
-    assert( Abc_NtkIsSopLogic(pNtk) );
+    assert( Abc_NtkHasSop(pNtk) );
     vOrder = Vec_IntAlloc( 100 );
     vStore = Vec_StrAlloc( 100 );
     Abc_NtkForEachNode( pNtk, pNode, i )
@@ -97,7 +97,7 @@ void Abc_NtkOrderFaninsByLitCount( Abc_Ntk_t * pNtk )
     char * pSop, * pSopNew;
     char * pCube, * pCubeNew;
     int nVars, i, v, * pOrder;
-    assert( Abc_NtkIsSopLogic(pNtk) );
+    assert( Abc_NtkHasSop(pNtk) );
     vOrder = Vec_IntAlloc( 100 );
     vStore = Vec_StrAlloc( 100 );
     vCounts = Vec_IntAlloc( 100 );
@@ -162,7 +162,7 @@ void Abc_NtkOrderFaninsByLitCountAndCubeCount( Abc_Ntk_t * pNtk )
     char * pSop, * pSopNew;
     char * pCube, * pCubeNew;
     int nVars, i, v, iCube, * pOrder;
-    assert( Abc_NtkIsSopLogic(pNtk) );
+    assert( Abc_NtkHasSop(pNtk) );
     vStore = Vec_StrAlloc( 100 );
     vOrder = Vec_IntAlloc( 100 );
     vCounts = Vec_IntAlloc( 100 );
@@ -291,7 +291,7 @@ void Abc_NtkMakeSCCFree( Abc_Ntk_t * pNtk )
     Vec_Ptr_t * vCubes;
     Abc_Obj_t * pNode;
     int i;
-    assert( Abc_NtkIsSopLogic(pNtk) );
+    assert( Abc_NtkHasSop(pNtk) );
     vCubes = Vec_PtrAlloc( 1000 );
     Abc_NtkForEachNode( pNtk, pNode, i )
         if ( Abc_NodeMakeSCCFree( pNode, vCubes ) )
@@ -340,7 +340,7 @@ void Abc_NtkSplitLarge( Abc_Ntk_t * pNtk, int nFaninsMax, int nCubesMax )
     Abc_Obj_t * pNode;
     int nObjOld = Abc_NtkObjNumMax(pNtk);
     int i, nCubes;
-    assert( Abc_NtkIsSopLogic(pNtk) );
+    assert( Abc_NtkHasSop(pNtk) );
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
         if ( i == nObjOld )
@@ -396,7 +396,7 @@ void Abc_NtkSortCubes( Abc_Ntk_t * pNtk )
     Vec_Str_t * vStore;
     Abc_Obj_t * pNode;
     int i;
-    assert( Abc_NtkIsSopLogic(pNtk) );
+    assert( Abc_NtkHasSop(pNtk) );
     vCubes = Vec_PtrAlloc( 1000 );
     vStore = Vec_StrAlloc( 1000 );
     Abc_NtkForEachNode( pNtk, pNode, i )
