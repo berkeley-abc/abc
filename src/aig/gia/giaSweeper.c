@@ -275,8 +275,12 @@ int Gia_SweeperProbeCreate( Gia_Man_t * p, int iLit )
 int Gia_SweeperProbeFind( Gia_Man_t * p, int iLit )
 {
     Swp_Man_t * pSwp = (Swp_Man_t *)p->pData;
-    if ( iLit < Vec_IntSize(pSwp->vLit2Prob) && Vec_IntEntry(pSwp->vLit2Prob, iLit) >= 0 )
-        return Vec_IntEntry(pSwp->vLit2Prob, iLit);
+    int ProbeId = -1;
+    if ( iLit < Vec_IntSize(pSwp->vLit2Prob) && (ProbeId = Vec_IntEntry(pSwp->vLit2Prob, iLit)) >= 0 )
+    {
+        Vec_IntAddToEntry( pSwp->vProbRefs, ProbeId, 1 );
+        return ProbeId;
+    }
     return Gia_SweeperProbeCreate( p, iLit );
 }
 // dereferences the probe
