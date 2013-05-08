@@ -216,7 +216,7 @@ int Ssc_GiaResimulateOneClass( Ssc_Man_t * p, int iRepr, int iObj )
 Gia_Man_t * Ssc_PerformSweeping( Gia_Man_t * pAig, Gia_Man_t * pCare, Ssc_Pars_t * pPars )
 {
     Ssc_Man_t * p;
-    Gia_Man_t * pResult;
+    Gia_Man_t * pResult, * pTemp;
     Gia_Obj_t * pObj, * pRepr;
     clock_t clk, clkTotal = clock();
     int i, fCompl, nRefined, status;
@@ -341,6 +341,8 @@ p->timeSimSat += clock() - clk;
         ABC_FREE( pAig->pNexts );
         pResult = Gia_ManDup( pAig );
     }
+    pResult = Gia_ManCleanup( pTemp = pResult );
+    Gia_ManStop( pTemp );
     p->timeTotal = clock() - clkTotal;
     if ( pPars->fVerbose )
         Ssc_ManPrintStats( p );

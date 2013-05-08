@@ -959,7 +959,7 @@ Vec_Int_t * Gia_SweeperGraft( Gia_Man_t * pDst, Vec_Int_t * vProbes, Gia_Man_t *
     else
         assert( Gia_ManPiNum(pDst) == Gia_ManPiNum(pSrc) );
     Gia_ManForEachPi( pSrc, pObj, i )
-        pObj->Value = Gia_SweeperProbeLit( pDst, vProbes ? Vec_IntEntry(vProbes, i) : Gia_Obj2Lit(pDst,Gia_ManPi(pDst, i)) );
+        pObj->Value = vProbes ? Gia_SweeperProbeLit(pDst, Vec_IntEntry(vProbes, i)) : Gia_Obj2Lit(pDst,Gia_ManPi(pDst, i));
     Gia_ManForEachAnd( pSrc, pObj, i )
         pObj->Value = Gia_ManHashAnd( pDst, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
     vOutLits = Vec_IntAlloc( Gia_ManPoNum(pSrc) );
@@ -996,6 +996,9 @@ Gia_Man_t * Gia_SweeperSweep( Gia_Man_t * p, Vec_Int_t * vProbeOuts, int nWords,
     pGiaCond = Gia_SweeperExtractUserLogic( p, vProbeConds, NULL, NULL );
     pGiaOuts = Gia_SweeperExtractUserLogic( p, vProbeOuts, NULL, NULL );
     Gia_ManSetPhase( pGiaOuts );
+    // if there is no conditions, define constant true constrain (constant 0 output)
+    if ( Gia_ManPoNum(pGiaCond) == 0 )
+        Gia_ManAppendCo( pGiaCond, Gia_ManConst0Lit() );
     // perform sweeping under constraints
     pGiaRes = Ssc_PerformSweeping( pGiaOuts, pGiaCond, pPars );
     Gia_ManStop( pGiaCond );
@@ -1082,6 +1085,7 @@ Gia_Man_t * Gia_SweeperFraigTest( Gia_Man_t * pInit, int nWords, int nConfs, int
     Gia_ManStop( p );
     return pGia;
 }
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
