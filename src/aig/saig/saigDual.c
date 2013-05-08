@@ -228,6 +228,7 @@ void Saig_ManBlockPo( Aig_Man_t * pAig, int nCycles )
     }
     // set the flops
     Aig_ManSetRegNum( pAig, Aig_ManRegNum(pAig) + nCycles );
+    Aig_ManCleanup( pAig );
 }
 
 ////////////////////////////////////////////////////////////////////////
