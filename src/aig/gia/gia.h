@@ -891,7 +891,7 @@ extern int                 Gia_ManEquivCountLitsAll( Gia_Man_t * p );
 extern int                 Gia_ManEquivCountClasses( Gia_Man_t * p );
 extern void                Gia_ManEquivPrintOne( Gia_Man_t * p, int i, int Counter );
 extern void                Gia_ManEquivPrintClasses( Gia_Man_t * p, int fVerbose, float Mem );
-extern Gia_Man_t *         Gia_ManEquivReduce( Gia_Man_t * p, int fUseAll, int fDualOut, int fVerbose );
+extern Gia_Man_t *         Gia_ManEquivReduce( Gia_Man_t * p, int fUseAll, int fDualOut, int fSkipPhase, int fVerbose );
 extern Gia_Man_t *         Gia_ManEquivReduceAndRemap( Gia_Man_t * p, int fSeq, int fMiterPairs );
 extern int                 Gia_ManEquivSetColors( Gia_Man_t * p, int fVerbose );
 extern Gia_Man_t *         Gia_ManSpecReduce( Gia_Man_t * p, int fDualOut, int fSynthesis, int fReduce, int fSkipSome, int fVerbose );

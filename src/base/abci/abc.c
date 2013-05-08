@@ -27365,7 +27365,7 @@ int Abc_CommandAbc9Srm( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( fSynthesis )
     {
-        pTemp = Gia_ManEquivReduce( pAbc->pGia, 1, fDualOut, fVerbose );
+        pTemp = Gia_ManEquivReduce( pAbc->pGia, 1, fDualOut, 0, fVerbose );
         if ( pTemp )
         {
             pTemp = Gia_ManSeqStructSweep( pAux = pTemp, 1, 1, 0 );
@@ -27612,7 +27612,7 @@ int Abc_CommandAbc9Reduce( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( fUseAll )
     {
-        pTemp = Gia_ManEquivReduce( pAbc->pGia, fUseAll, fDualOut, fVerbose );
+        pTemp = Gia_ManEquivReduce( pAbc->pGia, fUseAll, fDualOut, 0, fVerbose );
         pTemp = Gia_ManSeqStructSweep( pTemp2 = pTemp, 1, 1, 0 );
         Gia_ManStop( pTemp2 );
     }
@@ -31601,7 +31601,7 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-//    Gia_Man_t * pTemp = NULL;
+    Gia_Man_t * pTemp = NULL;
     int c, fVerbose = 0;
     int fSwitch = 0;
 //    extern Gia_Man_t * Gia_VtaTest( Gia_Man_t * p );
@@ -31614,9 +31614,9 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //     extern void Unr_ManTest( Gia_Man_t * pGia );
 //    extern void Mig_ManTest( Gia_Man_t * pGia );
 //    extern int Gia_ManVerify( Gia_Man_t * pGia );
-//    extern Gia_Man_t * Gia_SweeperFraigTest( Gia_Man_t * p, int nWords, int nConfs, int fVerbose );
 //    extern Gia_Man_t * Gia_ManOptimizeRing( Gia_Man_t * p );
 //    extern void Gia_ManCollectSeqTest( Gia_Man_t * p );
+    extern Gia_Man_t * Gia_SweeperFraigTest( Gia_Man_t * p, int nWords, int nConfs, int fVerbose );
 
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "svh" ) ) != EOF )
@@ -31668,10 +31668,10 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    Unr_ManTest( pAbc->pGia );
 //    Mig_ManTest( pAbc->pGia );
 //    Gia_ManVerifyWithBoxes( pAbc->pGia );
-//    pTemp = Gia_SweeperFraigTest( pAbc->pGia, 4, 1000, 0 );
-//    pTemp = Gia_ManOptimizeRing( pAbc->pGia );
-//    Abc_FrameUpdateGia( pAbc, pTemp );
 //    Gia_ManCollectSeqTest( pAbc->pGia );
+//    pTemp = Gia_ManOptimizeRing( pAbc->pGia );
+    pTemp = Gia_SweeperFraigTest( pAbc->pGia, 4, 1000, 0 );
+    Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 usage:
     Abc_Print( -2, "usage: &test [-svh]\n" );

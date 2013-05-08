@@ -288,7 +288,7 @@ Gia_Man_t * Gia_ManFraigSweep( Gia_Man_t * p, void * pPars )
     if ( p->pManTime == NULL )
     {
         Gia_ManFraigSweepPerform( p, pPars );
-        pNew = Gia_ManEquivReduce( p, 1, 0, 0 );
+        pNew = Gia_ManEquivReduce( p, 1, 0, 0, 0 );
         if ( pNew == NULL )
             return Gia_ManDup(p);
         return pNew;

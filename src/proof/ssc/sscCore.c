@@ -298,6 +298,7 @@ clk = clock();
         {
             p->nSatCallsUnsat++;
             pObj->Value = Abc_LitNotCond( pRepr->Value, pRepr->fPhase ^ pObj->fPhase );
+            Gia_ObjSetProved( pAig, i );
         }
         else if ( status == l_True )
         {
@@ -329,9 +330,10 @@ clk = clock();
 p->timeSimSat += clock() - clk;
     }
 //    Gia_ManEquivPrintClasses( pAig, 1, 0 );
+//    Gia_ManPrint( pAig );
 
     // generate the resulting AIG
-    pResult = Gia_ManEquivReduce( pAig, 1, 0, 0 );
+    pResult = Gia_ManEquivReduce( pAig, 0, 0, 1, 0 );
     if ( pResult == NULL )
     {
         printf( "There is no equivalences.\n" );

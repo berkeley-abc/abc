@@ -414,7 +414,7 @@ void Gia_ManEquivReduce_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj, 
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManEquivReduce( Gia_Man_t * p, int fUseAll, int fDualOut, int fVerbose )
+Gia_Man_t * Gia_ManEquivReduce( Gia_Man_t * p, int fUseAll, int fDualOut, int fSkipPhase, int fVerbose )
 {
     Gia_Man_t * pNew;
     Gia_Obj_t * pObj;
@@ -445,7 +445,8 @@ Gia_Man_t * Gia_ManEquivReduce( Gia_Man_t * p, int fUseAll, int fDualOut, int fV
         return NULL;
     }
 */
-    Gia_ManSetPhase( p );
+    if ( !fSkipPhase )
+        Gia_ManSetPhase( p );
     if ( fDualOut )
         Gia_ManEquivSetColors( p, fVerbose );
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
@@ -637,7 +638,7 @@ Gia_Man_t * Gia_ManEquivRemapDfs( Gia_Man_t * p )
 Gia_Man_t * Gia_ManEquivReduceAndRemap( Gia_Man_t * p, int fSeq, int fMiterPairs )
 {
     Gia_Man_t * pNew, * pFinal;
-    pNew = Gia_ManEquivReduce( p, 0, 0, 0 );
+    pNew = Gia_ManEquivReduce( p, 0, 0, 0, 0 );
     if ( pNew == NULL )
         return NULL;
     if ( fMiterPairs )
