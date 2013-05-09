@@ -79,7 +79,7 @@ Pdr_Man_t * Pdr_ManStart( Aig_Man_t * pAig, Pdr_Par_t * pPars, Vec_Int_t * vPrio
         int i;
         p->pTime4Outs = ABC_ALLOC( clock_t, Saig_ManPoNum(pAig) );
         for ( i = 0; i < Saig_ManPoNum(pAig); i++ )
-            p->pTime4Outs[i] = pPars->nTimeOutOne * CLOCKS_PER_SEC;
+            p->pTime4Outs[i] = pPars->nTimeOutOne * CLOCKS_PER_SEC / 1000 + 1;
     }
     if ( pPars->fSolveAll )
     {

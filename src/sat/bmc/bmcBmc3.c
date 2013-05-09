@@ -742,7 +742,7 @@ Gia_ManBmc_t * Saig_Bmc3ManStart( Aig_Man_t * pAig, int nTimeOutOne )
     {
         p->pTime4Outs = ABC_ALLOC( clock_t, Saig_ManPoNum(pAig) );
         for ( i = 0; i < Saig_ManPoNum(pAig); i++ )
-            p->pTime4Outs[i] = nTimeOutOne * CLOCKS_PER_SEC;
+            p->pTime4Outs[i] = nTimeOutOne * CLOCKS_PER_SEC / 1000 + 1;
     }
     return p;
 }
@@ -1396,7 +1396,7 @@ int Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars )
     clock_t nTimeUnsat = 0, nTimeSat = 0, nTimeUndec = 0, clkOne = 0;
     clock_t nTimeToStopNG, nTimeToStop;
     if ( pPars->nTimeOutOne )
-        pPars->nTimeOut = pPars->nTimeOutOne * Saig_ManPoNum(pAig);
+        pPars->nTimeOut = pPars->nTimeOutOne * Saig_ManPoNum(pAig) / 1000 + 1;
     if ( pPars->nTimeOutOne && !pPars->fSolveAll )
         pPars->nTimeOutOne = 0;
     nTimeToStopNG = pPars->nTimeOut ? pPars->nTimeOut * CLOCKS_PER_SEC + clock(): 0;

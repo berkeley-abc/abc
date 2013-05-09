@@ -21051,7 +21051,7 @@ int Abc_CommandBmc3( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     Saig_ParBmcSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "SFTGHCDJILaxdruvzh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "SFTHGCDJILaxdruvzh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -21088,17 +21088,6 @@ int Abc_CommandBmc3( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( pPars->nTimeOut < 0 )
                 goto usage;
             break;
-        case 'G':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-G\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            pPars->nTimeOutGap = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( pPars->nTimeOutGap < 0 )
-                goto usage;
-            break;
         case 'H':
             if ( globalUtilOptind >= argc )
             {
@@ -21108,6 +21097,17 @@ int Abc_CommandBmc3( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->nTimeOutOne = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( pPars->nTimeOutOne < 0 )
+                goto usage;
+            break;
+        case 'G':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-G\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nTimeOutGap = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nTimeOutGap < 0 )
                 goto usage;
             break;
         case 'C':
@@ -21240,13 +21240,13 @@ int Abc_CommandBmc3( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: bmc3 [-SFTGHCDJI num] [-L file] [-axduvzh]\n" );
+    Abc_Print( -2, "usage: bmc3 [-SFTHGCDJI num] [-L file] [-axduvzh]\n" );
     Abc_Print( -2, "\t         performs bounded model checking with dynamic unrolling\n" );
     Abc_Print( -2, "\t-S num : the starting time frame [default = %d]\n", pPars->nStart );
     Abc_Print( -2, "\t-F num : the max number of time frames (0 = unused) [default = %d]\n",      pPars->nFramesMax );
-    Abc_Print( -2, "\t-T num : approximate runtime limit in seconds [default = %d]\n",            pPars->nTimeOut );
-    Abc_Print( -2, "\t-G num : approximate runtime gap since the last CEX [default = %d]\n",      pPars->nTimeOutGap );
-    Abc_Print( -2, "\t-H num : approximate runtime per output (with \"-a\") [default = %d]\n",    pPars->nTimeOutOne );
+    Abc_Print( -2, "\t-T num : runtime limit, in seconds [default = %d]\n",                       pPars->nTimeOut );
+    Abc_Print( -2, "\t-H num : runtime limit per output, in miliseconds (with \"-a\") [default = %d]\n",    pPars->nTimeOutOne );
+    Abc_Print( -2, "\t-G num : runtime gap since the last CEX, in seconds [default = %d]\n",      pPars->nTimeOutGap );
     Abc_Print( -2, "\t-C num : max conflicts at an output [default = %d]\n",                      pPars->nConfLimit );
     Abc_Print( -2, "\t-D num : max conflicts after jumping (0 = infinity) [default = %d]\n",      pPars->nConfLimitJump );
     Abc_Print( -2, "\t-J num : the number of timeframes to jump (0 = not used) [default = %d]\n", pPars->nFramesJump );
@@ -22648,7 +22648,7 @@ int Abc_CommandPdr( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     Pdr_ManSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "MFCRTGHaxrmsdgvwzh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "MFCRTHGaxrmsdgvwzh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -22707,17 +22707,6 @@ int Abc_CommandPdr( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( pPars->nTimeOut < 0 )
                 goto usage;
             break;
-        case 'G':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-G\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            pPars->nTimeOutGap = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( pPars->nTimeOutGap < 0 )
-                goto usage;
-            break;
         case 'H':
             if ( globalUtilOptind >= argc )
             {
@@ -22727,6 +22716,17 @@ int Abc_CommandPdr( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->nTimeOutOne = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( pPars->nTimeOutOne < 0 )
+                goto usage;
+            break;
+        case 'G':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-G\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nTimeOutGap = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nTimeOutGap < 0 )
                 goto usage;
             break;
         case 'a':
@@ -22792,7 +22792,7 @@ int Abc_CommandPdr( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: pdr [-MFCRTGH <num>] [-axrmsdgvwzh]\n" );
+    Abc_Print( -2, "usage: pdr [-MFCRTHG <num>] [-axrmsdgvwzh]\n" );
     Abc_Print( -2, "\t         model checking using property directed reachability (aka IC3)\n" );
     Abc_Print( -2, "\t         pioneered by Aaron Bradley (http://ecee.colorado.edu/~bradleya/ic3/)\n" );
     Abc_Print( -2, "\t         with improvements by Niklas Een (http://een.se/niklas/)\n" );
@@ -22800,9 +22800,9 @@ usage:
     Abc_Print( -2, "\t-F num : limit on timeframes explored to stop computation [default = %d]\n",           pPars->nFrameMax );
     Abc_Print( -2, "\t-C num : limit on conflicts in one SAT call (0 = no limit) [default = %d]\n",          pPars->nConfLimit );
     Abc_Print( -2, "\t-R num : limit on proof obligations before a restart (0 = no limit) [default = %d]\n", pPars->nRestLimit );
-    Abc_Print( -2, "\t-T num : approximate timeout in seconds (0 = no limit) [default = %d]\n",              pPars->nTimeOut );
-    Abc_Print( -2, "\t-G num : approximate runtime gap since the last CEX (0 = no limit) [default = %d]\n",  pPars->nTimeOutGap );
-    Abc_Print( -2, "\t-H num : approximate runtime per output (with \"-a\") [default = %d]\n",               pPars->nTimeOutOne );
+    Abc_Print( -2, "\t-T num : runtime limit, in seconds (0 = no limit) [default = %d]\n",                   pPars->nTimeOut );
+    Abc_Print( -2, "\t-H num : runtime limit per output, in miliseconds (with \"-a\") [default = %d]\n",     pPars->nTimeOutOne );
+    Abc_Print( -2, "\t-G num : runtime gap since the last CEX (0 = no limit) [default = %d]\n",              pPars->nTimeOutGap );
     Abc_Print( -2, "\t-a     : toggle solving all outputs even if one of them is SAT [default = %s]\n",      pPars->fSolveAll? "yes": "no" );
     Abc_Print( -2, "\t-x     : toggle storing CEXes when solving all outputs [default = %s]\n",              pPars->fStoreCex? "yes": "no" );
     Abc_Print( -2, "\t-r     : toggle using more effort in generalization [default = %s]\n",                 pPars->fTwoRounds? "yes": "no" );
