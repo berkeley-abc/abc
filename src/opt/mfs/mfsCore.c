@@ -392,7 +392,7 @@ int Abc_NtkMfs( Abc_Ntk_t * pNtk, Mfs_Par_t * pPars )
     {
         if ( nFaninMax > 8 )
         {
-            printf( "Nodes with more than %d fanins will node be processed.\n", 8 );
+            printf( "Nodes with more than %d fanins will not be processed.\n", 8 );
             nFaninMax = 8;
         }
     }
@@ -400,7 +400,7 @@ int Abc_NtkMfs( Abc_Ntk_t * pNtk, Mfs_Par_t * pPars )
     {
         if ( nFaninMax > MFS_FANIN_MAX )
         {
-            printf( "Nodes with more than %d fanins will node be processed.\n", MFS_FANIN_MAX );
+            printf( "Nodes with more than %d fanins will not be processed.\n", MFS_FANIN_MAX );
             nFaninMax = MFS_FANIN_MAX;
         }
     }
