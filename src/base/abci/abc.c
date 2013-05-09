@@ -19626,9 +19626,9 @@ usage:
     Abc_Print( -2, "\t-v     : toggles verbose output [default = %s]\n", pSecPar->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w     : toggles additional verbose output [default = %s]\n", pSecPar->fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
+    Abc_Print( -2, "\tCommand \"dprove\" can also be used for sequential synthesis (dprove -brjopu)\n");
     return 1;
 }
-
 
 /**Function*************************************************************
 
