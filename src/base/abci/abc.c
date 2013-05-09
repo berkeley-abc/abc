@@ -3531,7 +3531,7 @@ usage:
 ***********************************************************************/
 int Abc_CommandFastExtract( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern int Abc_NtkFxPerform( Abc_Ntk_t * pNtk, int fVerbose );
+    extern int Abc_NtkFxPerform( Abc_Ntk_t * pNtk, int nNewNodesMax, int fVerbose );
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     Fxu_Data_t Params, * p = &Params;
     int c, fNewAlgo = 1;
@@ -3634,7 +3634,7 @@ int Abc_CommandFastExtract( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // the nodes to be merged are linked into the special linked list
     if ( fNewAlgo )
-        Abc_NtkFxPerform( pNtk, p->fVerbose );
+        Abc_NtkFxPerform( pNtk, p->nNodesExt, p->fVerbose );
     else
         Abc_NtkFastExtract( pNtk, p );
     Abc_NtkFxuFreeInfo( p );

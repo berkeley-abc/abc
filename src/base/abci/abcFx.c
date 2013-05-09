@@ -298,9 +298,9 @@ int Abc_NtkFxCheck( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkFxPerform( Abc_Ntk_t * pNtk, int fVerbose )
+int Abc_NtkFxPerform( Abc_Ntk_t * pNtk, int nNewNodesMax, int fVerbose )
 {
-    extern int Fx_FastExtract( Vec_Wec_t * vCubes, int ObjIdMax, int fVerbose );
+    extern int Fx_FastExtract( Vec_Wec_t * vCubes, int ObjIdMax, int nNewNodesMax, int fVerbose );
     Vec_Wec_t * vCubes;
     assert( Abc_NtkIsSopLogic(pNtk) );
     // check unique fanins
@@ -315,7 +315,7 @@ int Abc_NtkFxPerform( Abc_Ntk_t * pNtk, int fVerbose )
     // collect information about the covers
     vCubes = Abc_NtkFxRetrieve( pNtk );
     // call the fast extract procedure
-    if ( Fx_FastExtract( vCubes, Abc_NtkObjNumMax(pNtk), fVerbose ) > 0 )
+    if ( Fx_FastExtract( vCubes, Abc_NtkObjNumMax(pNtk), nNewNodesMax, fVerbose ) > 0 )
     {
         // update the network
         Abc_NtkFxInsert( pNtk, vCubes );
@@ -1095,9 +1095,10 @@ void Fx_ManUpdate( Fx_Man_t * p, int iDiv )
   SeeAlso     []
 
 ***********************************************************************/
-int Fx_FastExtract( Vec_Wec_t * vCubes, int ObjIdMax, int fVerbose )
+int Fx_FastExtract( Vec_Wec_t * vCubes, int ObjIdMax, int nNewNodesMax, int fVerbose )
 {
     int fVeryVerbose = 0;
+    int i, iDiv;
     Fx_Man_t * p;
     clock_t clk = clock();
     // initialize the data-structure
@@ -1110,9 +1111,9 @@ int Fx_FastExtract( Vec_Wec_t * vCubes, int ObjIdMax, int fVerbose )
         Fx_PrintStats( p, clock() - clk );
     // perform extraction
     p->timeStart = clock();
-    while ( Vec_QueTopCost(p->vPrio) > 0.0 )
+    for ( i = 0; i < nNewNodesMax && Vec_QueTopCost(p->vPrio) > 0.0; i++ )
     {
-        int iDiv = Vec_QuePop(p->vPrio);
+        iDiv = Vec_QuePop(p->vPrio);
         if ( fVerbose )
             Fx_PrintDiv( p, iDiv );
         Fx_ManUpdate( p, iDiv );
