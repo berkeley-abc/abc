@@ -286,7 +286,10 @@ p->timeSimSat += clock() - clk;
             continue;
         pRepr = Gia_ObjReprObj(pAig, i);
         if ( (int)pObj->Value == Abc_LitNotCond( pRepr->Value, pRepr->fPhase ^ pObj->fPhase ) )
+        {
+            Gia_ObjSetProved( pAig, i );
             continue;
+        }
         assert( Abc_Lit2Var(pRepr->Value) != Abc_Lit2Var(pObj->Value) );
         fCompl = pRepr->fPhase ^ pObj->fPhase ^ Abc_LitIsCompl(pRepr->Value) ^ Abc_LitIsCompl(pObj->Value);
 
