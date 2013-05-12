@@ -233,77 +233,6 @@ void Abc_NtkOrderFaninsByLitCountAndCubeCount( Abc_Ntk_t * pNtk )
 
 /**Function*************************************************************
 
-  Synopsis    [Checks if the network is SCC-free.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-static inline int Abc_CubeContain( char * pCube1, char * pCube2, int nVars )
-{
-    int v, fCont12 = 1, fCont21 = 1;
-    for ( v = 0; v < nVars; v++ )
-    {
-        if ( pCube1[v] == pCube2[v] )
-            continue;
-        if ( pCube1[v] == '-' )
-            fCont21 = 0;
-        else if ( pCube2[v] == '-' )
-            fCont12 = 0;
-        else
-            return 0;
-        if ( !fCont21 && !fCont21 )
-            return 0;
-    }
-    assert( fCont21 || fCont12 );
-    return (fCont21 << 1) | fCont12;
-}
-int Abc_NodeMakeSCCFree( Abc_Obj_t * pNode, Vec_Ptr_t * vCubes )
-{
-    char * pSop = (char *)pNode->pData;
-    char * pCube, * pCube2;
-    int i, k, Status, nCount = 0;
-    int nVars = Abc_ObjFaninNum(pNode);
-    Vec_PtrClear( vCubes );
-    Abc_SopForEachCube( pSop, nVars, pCube )
-        Vec_PtrPush( vCubes, pCube );
-    Vec_PtrForEachEntry( char *, vCubes, pCube, i )
-    if ( pCube != NULL )
-        Vec_PtrForEachEntryStart( char *, vCubes, pCube2, k, i+1 )
-        if ( pCube2 != NULL )
-        {
-            Status = Abc_CubeContain( pCube, pCube2, nVars );
-            nCount += (int)(Status > 0);
-            if ( Status & 1 )
-                Vec_PtrWriteEntry( vCubes, k, NULL );
-            else if ( Status & 2 )
-                Vec_PtrWriteEntry( vCubes, i, NULL );
-        }
-    if ( nCount == 0 )
-        return 0;
-    return 1;
-}
-void Abc_NtkMakeSCCFree( Abc_Ntk_t * pNtk )
-{
-    Vec_Ptr_t * vCubes;
-    Abc_Obj_t * pNode;
-    int i;
-    assert( Abc_NtkHasSop(pNtk) );
-    vCubes = Vec_PtrAlloc( 1000 );
-    Abc_NtkForEachNode( pNtk, pNode, i )
-        if ( Abc_NodeMakeSCCFree( pNode, vCubes ) )
-        {
-            printf( "Node %d is not SCC-free.\n", i );
-            break;
-        }
-    Vec_PtrFree( vCubes );
-}
-
-/**Function*************************************************************
-
   Synopsis    [Split large nodes by dividing their SOPs in half.]
 
   Description []
@@ -422,6 +351,123 @@ void Abc_NtkSortSops( Abc_Ntk_t * pNtk )
     Abc_NtkSortCubes( pNtk );
     Abc_NtkOrderFaninsByLitCountAndCubeCount( pNtk );
     Abc_NtkSortCubes( pNtk );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Makes cover legitimate for "fast_extract".]
+
+  Description [Iteratively removes distance-1 and contained cubes.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Abc_CubeContain( char * pCube1, char * pCube2, int nVars )
+{
+    int v, fCont12 = 1, fCont21 = 1;
+    for ( v = 0; v < nVars; v++ )
+    {
+        if ( pCube1[v] == pCube2[v] )
+            continue;
+        if ( pCube1[v] == '-' )
+            fCont21 = 0;
+        else if ( pCube2[v] == '-' )
+            fCont12 = 0;
+        else
+            return 0;
+        if ( !fCont21 && !fCont21 )
+            return 0;
+    }
+    assert( fCont21 || fCont12 );
+    return (fCont21 << 1) | fCont12;
+}
+int Abc_NodeMakeSCCFree( Abc_Obj_t * pNode )
+{
+    char * pSop = (char *)pNode->pData;
+    char * pCube, * pCube2, * pSopNew;
+    int nVars = Abc_ObjFaninNum(pNode);
+    int Status, nCount = 0;
+    Abc_SopForEachCubePair( pSop, nVars, pCube, pCube2 )
+    {
+        if ( pCube[0] == 'z' || pCube2[0] == 'z' )
+            continue;
+        Status = Abc_CubeContain( pCube, pCube2, nVars );
+        nCount += (int)(Status > 0);
+        if ( Status & 1 )
+            pCube2[0] = 'z';
+        else if ( Status & 2 )
+            pCube[0] = 'z';
+    }
+    if ( nCount == 0 )
+        return 0;
+    // create new cover
+    pSopNew = (char *)pNode->pData;
+    Abc_SopForEachCube( pSop, nVars, pCube )
+    {
+        if ( pCube[0] == 'z' )
+            continue;
+        memcpy( pSopNew, pCube, nVars + 3 );
+        pSopNew += nVars + 3;
+    }
+    *pSopNew = 0;
+    return 1;
+}
+void Abc_NodeMakeDist1Free( Abc_Obj_t * pNode )
+{
+    char * pSop = (char *)pNode->pData;
+    char * pCube, * pCube2;
+    int i, nVars = Abc_ObjFaninNum(pNode);
+    Abc_SopForEachCube( pSop, nVars, pCube )
+    Abc_SopForEachCube( pCube + nVars + 3, nVars, pCube2 )
+    {
+        int Counter = 0, iDiff = -1;
+        for ( i = 0; i < nVars; i++ )
+            if ( pCube[i] != pCube2[i] )
+                Counter++, iDiff = i;
+        if ( Counter == 1 && ((pCube[iDiff] == '0' && pCube2[iDiff] == '1') || (pCube[iDiff] == '1' && pCube2[iDiff] == '0')) )
+            pCube[iDiff] = pCube2[iDiff] = '-';
+    }
+}
+void Abc_NodeCheckDist1Free( Abc_Obj_t * pNode )
+{
+    char * pSop = (char *)pNode->pData;
+    char * pCube, * pCube2;
+    int i, nVars = Abc_ObjFaninNum(pNode);
+    Abc_SopForEachCube( pSop, nVars, pCube )
+    Abc_SopForEachCube( pSop, nVars, pCube2 )
+    {
+        int Counter = 0;
+        if ( pCube == pCube2 )
+            continue;
+        for ( i = 0; i < nVars; i++ )
+            if ( pCube[i] != pCube2[i] )
+                Counter++;
+        assert( Counter > 1 );
+    }
+}
+int Abc_NodeMakeLegit( Abc_Obj_t * pNode )
+{
+    int i, fChanges = 1;
+    for ( i = 0; fChanges; i++ )
+    {
+        Abc_NodeMakeDist1Free( pNode );
+        fChanges = Abc_NodeMakeSCCFree( pNode );
+    }
+//    Abc_NodeCheckDist1Free( pNode );
+    return i > 1;
+}
+int Abc_NtkMakeLegit( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pNode;
+    int i, Counter = 0;
+    assert( Abc_NtkHasSop(pNtk) );
+    Abc_NtkForEachNode( pNtk, pNode, i )
+        Counter += Abc_NodeMakeLegit( pNode );
+    if ( Counter )
+        Abc_Print( 1, "%d nodes were made dist1-cube-free and/or single-cube-containment-free.\n", Counter );
+    return 1;
 }
 
 ////////////////////////////////////////////////////////////////////////

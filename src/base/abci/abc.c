@@ -9625,8 +9625,8 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 */
     if ( pNtk )
     { 
-        extern void Abc_NtkTestTim( Abc_Ntk_t * pNtk, int fVerbose );
-        Abc_NtkTestTim( pNtk, fVerbose ); 
+        extern void Abc_NtkMakeLegit( Abc_Ntk_t * pNtk );
+        Abc_NtkMakeLegit( pNtk ); 
     }
     return 0;
 usage:

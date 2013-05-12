@@ -134,12 +134,14 @@ static inline int Fx_ManGetFirstVarCube( Fx_Man_t * p, Vec_Int_t * vCube ) { ret
 ***********************************************************************/
 Vec_Wec_t * Abc_NtkFxRetrieve( Abc_Ntk_t * pNtk )
 {
+    extern int Abc_NtkMakeLegit( Abc_Ntk_t * pNtk );
     Vec_Wec_t * vCubes;
     Vec_Int_t * vCube;
     Abc_Obj_t * pNode;
     char * pCube, * pSop;
     int nVars, i, v, Lit;
     assert( Abc_NtkIsSopLogic(pNtk) );
+    Abc_NtkMakeLegit( pNtk );
     vCubes = Vec_WecAlloc( 1000 );
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
@@ -597,7 +599,7 @@ int Fx_ManDivFindCubeFree( Vec_Int_t * vArr1, Vec_Int_t * vArr2, Vec_Int_t * vCu
             pBeg1++, pBeg2++, Counter++;
         else if ( *pBeg1 < *pBeg2 )
             Vec_IntPush( vCubeFree, Abc_Var2Lit(*pBeg1++, fAttr0) );
-        else 
+        else  
         {
             if ( Vec_IntSize(vCubeFree) == 0 )
                 fAttr0 = 1, fAttr1 = 0;
@@ -608,7 +610,12 @@ int Fx_ManDivFindCubeFree( Vec_Int_t * vArr1, Vec_Int_t * vArr2, Vec_Int_t * vCu
         Vec_IntPush( vCubeFree, Abc_Var2Lit(*pBeg1++, fAttr0) );
     while ( pBeg2 < pEnd2 )
         Vec_IntPush( vCubeFree, Abc_Var2Lit(*pBeg2++, fAttr1) );
-    assert( Vec_IntSize(vCubeFree) > 1 ); // the cover is not SCC-free
+    if ( Vec_IntSize(vCubeFree) == 0 )
+        printf( "The SOP has duplicated cubes.\n" );
+    else if ( Vec_IntSize(vCubeFree) == 1 )
+        printf( "The SOP has contained cubes.\n" );
+    else if ( Vec_IntSize(vCubeFree) == 2 && Abc_Lit2Var(Abc_Lit2Var(Vec_IntEntry(vCubeFree, 0))) == Abc_Lit2Var(Abc_Lit2Var(Vec_IntEntry(vCubeFree, 1))) )
+        printf( "The SOP has distance-1 cubes or it is not a prime cover.  Please make sure the result verifies.\n" );
     assert( !Abc_LitIsCompl(Vec_IntEntry(vCubeFree, 0)) );
     return Counter;
 }
@@ -807,7 +814,7 @@ void Fx_ManCubeDoubleCubeDivisors( Fx_Man_t * p, int iFirst, Vec_Int_t * vPivot,
             else if ( !fRemove )
                 Vec_QuePush( p->vPrio, iDiv );
         }
-    }
+    } 
 }
 void Fx_ManCreateDivisors( Fx_Man_t * p )
 {
@@ -935,6 +942,11 @@ void Fx_ManUpdate( Fx_Man_t * p, int iDiv )
     Vec_IntAppend( vDiv, Hsh_VecReadEntry(p->pHash, iDiv) );
     Fx_ManDivFindPivots( vDiv, &Lit0, &Lit1 );
     assert( Lit0 >= 0 && Lit1 >= 0 );
+
+    // if the input cover is not prime, it may happen that we are extracting divisor (x + !x)
+    // although it is not strictly correct, it seems to be fine to just skip such divisors
+    if ( Abc_Lit2Var(Lit0) == Abc_Lit2Var(Lit1) )
+        return;
 
     // collect single-cube-divisor cubes
     Vec_IntClear( p->vCubesS );

@@ -503,11 +503,13 @@ static inline void        Abc_ObjSetMvVar( Abc_Obj_t * pObj, void * pV) { Vec_At
 #define Abc_ObjForEachFanout( pObj, pFanout, i )                                                   \
     for ( i = 0; (i < Abc_ObjFanoutNum(pObj)) && (((pFanout) = Abc_ObjFanout(pObj, i)), 1); i++ )
 // cubes and literals
-#define Abc_SopForEachCube( pSop, nFanins, pCube )                                                 \
-    for ( pCube = (pSop); *pCube; pCube += (nFanins) + 3 )
 #define Abc_CubeForEachVar( pCube, Value, i )                                                      \
     for ( i = 0; (pCube[i] != ' ') && (Value = pCube[i]); i++ )           
-
+#define Abc_SopForEachCube( pSop, nFanins, pCube )                                                 \
+    for ( pCube = (pSop); *pCube; pCube += (nFanins) + 3 )
+#define Abc_SopForEachCubePair( pSop, nFanins, pCube, pCube2 )                                     \
+    Abc_SopForEachCube( pSop, nFanins, pCube )                                                     \
+    Abc_SopForEachCube( pCube + (nFanins) + 3, nFanins, pCube2 )
 
 ////////////////////////////////////////////////////////////////////////
 ///                    FUNCTION DECLARATIONS                         ///
