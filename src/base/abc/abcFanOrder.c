@@ -466,7 +466,7 @@ int Abc_NtkMakeLegit( Abc_Ntk_t * pNtk )
     Abc_NtkForEachNode( pNtk, pNode, i )
         Counter += Abc_NodeMakeLegit( pNode );
     if ( Counter )
-        Abc_Print( 1, "%d nodes were made dist1-cube-free and/or single-cube-containment-free.\n", Counter );
+        Abc_Print( 0, "%d nodes were made dist1-cube-free and/or single-cube-containment-free.\n", Counter );
     return 1;
 }
 
