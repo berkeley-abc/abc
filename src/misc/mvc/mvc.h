@@ -63,11 +63,11 @@ typedef struct MvcManagerStruct    Mvc_Manager_t;
 struct MvcCubeStruct
 {
     Mvc_Cube_t *    pNext;        // the next cube in the linked list
-    unsigned        iLast   :  8; // the index of the last word
+    unsigned        iLast   : 24; // the index of the last word
     unsigned        nUnused :  6; // the number of unused bits in the last word
     unsigned        fPrime  :  1; // marks the prime cube
     unsigned        fEssen  :  1; // marks the essential cube
-    unsigned        nOnes   : 16; // the number of 1's in the bit data
+    unsigned        nOnes;        // the number of 1's in the bit data
     Mvc_CubeWord_t  pData[1];     // the first Mvc_CubeWord_t filled with bit data
 };
 
@@ -82,9 +82,9 @@ struct MvcListStruct
 // the cover data structure
 struct MvcCoverStruct
 {
-    char            nWords;       // the number of machine words
-    char            nUnused;      // the number of unused bits in the last word
-    short           nBits;        // the number of used data bits in the cube
+    int             nWords;       // the number of machine words
+    int             nUnused;      // the number of unused bits in the last word
+    int             nBits;        // the number of used data bits in the cube
     Mvc_List_t      lCubes;       // the single-linked list of cubes
     Mvc_Cube_t **   pCubes;       // the array of cubes (for sorting)
     int             nCubesAlloc;  // the size of allocated storage

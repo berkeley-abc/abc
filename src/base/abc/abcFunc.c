@@ -605,11 +605,15 @@ int Abc_CountZddCubes( DdManager * dd, DdNode * zCover )
 ***********************************************************************/
 int Abc_NtkSopToAig( Abc_Ntk_t * pNtk )
 {
+    extern int Abc_NtkMakeLegit( Abc_Ntk_t * pNtk );
     Abc_Obj_t * pNode;
     Hop_Man_t * pMan;
     int i;
 
     assert( Abc_NtkHasSop(pNtk) ); 
+
+    // make dist1-free and SCC-free
+//    Abc_NtkMakeLegit( pNtk );
 
     // start the functionality manager
     pMan = Hop_ManStart();
