@@ -42,87 +42,202 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
-Sfm_Ntk_t * Sfm_NtkAlloc( int nPis, int nPos, int nNodes, Vec_Int_t * vFanins, Vec_Int_t * vFanouts, Vec_Int_t * vEdges, Vec_Int_t * vOpts )
+void Sfm_CheckConsistency( Vec_Wec_t * vFanins, int nPis, int nPos, Vec_Str_t * vFixed )
+{
+    Vec_Int_t * vArray;
+    int i, k, Fanin;
+    // check entries
+    Vec_WecForEachLevel( vFanins, vArray, i )
+    {
+        // PIs have no fanins
+        if ( i < nPis )
+            assert( Vec_IntSize(vArray) == 0 && Vec_StrEntry(vFixed, i) == (char)0 );
+        // nodes are in a topo order; POs cannot be fanins
+        Vec_IntForEachEntry( vArray, Fanin, k )
+            assert( Fanin < i && Fanin + nPos < Vec_WecSize(vFanins) );
+        // POs have one fanout
+        if ( i + nPos >= Vec_WecSize(vFanins) )
+            assert( Vec_IntSize(vArray) == 1 && Vec_StrEntry(vFixed, i) == (char)0 );
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Wec_t * Sfm_CreateFanout( Vec_Wec_t * vFanins )
+{
+    Vec_Wec_t * vFanouts;
+    Vec_Int_t * vArray;
+    int i, k, Fanin;
+    // count fanouts
+    vFanouts = Vec_WecStart( Vec_WecSize(vFanins) );
+    Vec_WecForEachLevel( vFanins, vArray, i )
+        Vec_IntForEachEntry( vArray, Fanin, k )
+            Vec_WecEntry( vFanouts, Fanin )->nSize++;
+    // allocate fanins
+    Vec_WecForEachLevel( vFanouts, vArray, i )
+    {
+        k = vArray->nSize; vArray->nSize = 0;
+        Vec_IntGrow( vArray, k );
+    }
+    // add fanouts
+    Vec_WecForEachLevel( vFanins, vArray, i )
+        Vec_IntForEachEntry( vArray, Fanin, k )
+            Vec_IntPush( Vec_WecEntry( vFanouts, Fanin ), i );
+    // verify
+    Vec_WecForEachLevel( vFanins, vArray, i )
+        assert( Vec_IntSize(vArray) == Vec_IntCap(vArray) );
+    return vFanouts;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Sfm_CreateLevel( Vec_Wec_t * vFanins )
+{
+    Vec_Int_t * vLevels;
+    Vec_Int_t * vArray;
+    int i, k, Fanin, * pLevels;
+    vLevels = Vec_IntStart( Vec_WecSize(vFanins) );
+    pLevels = Vec_IntArray( vLevels );
+    Vec_WecForEachLevel( vFanins, vArray, i )
+        Vec_IntForEachEntry( vArray, Fanin, k )
+            pLevels[i] = Abc_MaxInt( pLevels[i], pLevels[Fanin] + 1 );
+    return vLevels;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Wec_t * Sfm_CreateCnf( Sfm_Ntk_t * p )
+{
+    Vec_Wec_t * vCnfs;
+    Vec_Str_t * vCnf, * vCnfBase;
+    word uTruth;
+    int i;
+    vCnf = Vec_StrAlloc( 100 );
+    vCnfs = Vec_WecStart( p->nObjs );
+    Vec_WrdForEachEntryStartStop( p->vTruths, uTruth, i, p->nPis, Vec_WrdSize(p->vTruths)-p->nPos )
+    {
+        Sfm_TruthToCnf( uTruth, Vec_IntSize(Vec_WecEntry(p->vFanins, i)), p->vCover, vCnf );
+        vCnfBase = (Vec_Str_t *)Vec_WecEntry( vCnfs, i );
+        Vec_StrGrow( vCnfBase, Vec_StrSize(vCnf) );
+        memcpy( Vec_StrArray(vCnfBase), Vec_StrArray(vCnf), Vec_StrSize(vCnf) );
+        vCnfBase->nSize = Vec_StrSize(vCnf);
+    }
+    Vec_StrFree( vCnf );
+    return vCnfs;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Sfm_Ntk_t * Sfm_NtkConstruct( Vec_Wec_t * vFanins, int nPis, int nPos, Vec_Str_t * vFixed, Vec_Wrd_t * vTruths )
 {
     Sfm_Ntk_t * p;
-    Sfm_Obj_t * pObj, * pFan;
-    int i, k, nObjSize, AddOn = 2;
-    int nStructSize = sizeof(Sfm_Obj_t) / sizeof(int);
-    int iFanin, iOffset = 2, iFanOffset = 0;
-    int nEdges = Vec_IntSize(vEdges);
-    int nObjs  = nPis + nPos + nNodes;
-    int nSize  = 2 + nObjs * (nStructSize + 1) + 2 * nEdges + AddOn * (nPis + Vec_IntSum(vOpts));
-    assert( sizeof(Sfm_Obj_t) % sizeof(int) == 0 );
-    assert( nEdges == Vec_IntSum(vFanins) );
-    assert( nEdges == Vec_IntSum(vFanouts) );
+    Sfm_CheckConsistency( vFanins, nPis, nPos, vFixed );
     p = ABC_CALLOC( Sfm_Ntk_t, 1 );
-    p->pMem = ABC_CALLOC( int, nSize );
-    for ( i = 0; i < nObjs; i++ )
-    {
-        Vec_IntPush( &p->vObjs, iOffset );
-        pObj = Sfm_ManObj( p, i );
-        pObj->Id  = i;
-        if ( i < nPis )
-        {
-            pObj->Type = 1;
-            assert( Vec_IntEntry(vFanins, i) == 0 );
-            assert( Vec_IntEntry(vOpts, i) == 0 );
-            Vec_IntPush( &p->vPis, iOffset );
-        }
-        else 
-        {
-            pObj->Type = 2;
-            pObj->fOpt = Vec_IntEntry(vOpts, i);
-            if ( i >= nPis + nNodes ) // PO
-            {
-                pObj->Type = 3;
-                assert( Vec_IntEntry(vFanins, i) == 1 );
-                assert( Vec_IntEntry(vFanouts, i) == 0 );
-                assert( Vec_IntEntry(vOpts, i) == 0 );
-                Vec_IntPush( &p->vPos, iOffset );
-            }
-            for ( k = 0; k < Vec_IntEntry(vFanins, i); k++ )
-            {
-                iFanin = Vec_IntEntry( vEdges, iFanOffset++ );
-                pFan = Sfm_ManObj( p, iFanin );
-                assert( iFanin < i );
-                pObj->Fanio[ pObj->nFanis++ ] = iFanin;
-                pFan->Fanio[ pFan->nFanis + pFan->nFanos++ ] = i;
-            }
-        }
-        // add node size
-        nObjSize  = nStructSize + Vec_IntEntry(vFanins, i) + Vec_IntEntry(vFanouts, i) + AddOn * (pObj->Type==1 || pObj->fOpt);
-        nObjSize += (int)( nObjSize & 1 );
-        assert( (nObjSize & 1) == 0 );
-        iOffset  += nObjSize;
-    }
-    assert( iOffset <= nSize );
-    assert( iFanOffset == Vec_IntSize(vEdges) );
-    iFanOffset = 0;
-    Sfm_ManForEachObj( p, pObj, i )
-    {
-        assert( Vec_IntEntry(vFanins, i)  == (int)pObj->nFanis );
-        assert( Vec_IntEntry(vFanouts, i) == (int)pObj->nFanos );
-        for ( k = 0; k < (int)pObj->nFanis; k++ )
-            assert( pObj->Fanio[k] == Vec_IntEntry(vEdges, iFanOffset++) );
-    }
-    assert( iFanOffset == Vec_IntSize(vEdges) );
+    p->nObjs    = Vec_WecSize( vFanins );
+    p->nPis     = nPis;
+    p->nPos     = nPos;
+    p->nNodes   = p->nObjs - p->nPis - p->nPos;
+    p->vFanins  = vFanins;
+    // user data
+    p->vFixed   = vFixed;
+    p->vTruths  = vTruths;
+    // attributes
+    p->vFanouts = Sfm_CreateFanout( vFanins );
+    p->vLevels  = Sfm_CreateLevel( vFanins );
+    Vec_IntFill( &p->vTravIds, p->nObjs, 0 );
+    Vec_IntFill( &p->vId2Var, p->nObjs, -1 );
+    Vec_IntFill( &p->vVar2Id, p->nObjs, -1 );
+    p->vCover   = Vec_IntAlloc( 1 << 16 );
+    p->vCnfs    = Sfm_CreateCnf( p );
     return p;
 }
 void Sfm_NtkFree( Sfm_Ntk_t * p )
 {
-    ABC_FREE( p->pMem );
-    ABC_FREE( p->vObjs.pArray );
-    ABC_FREE( p->vPis.pArray );
-    ABC_FREE( p->vPos.pArray );
-    ABC_FREE( p->vMem.pArray );
-    ABC_FREE( p->vLevels.pArray );
+    // user data
+    Vec_WecFree( p->vFanins );
+    Vec_StrFree( p->vFixed );
+    Vec_WrdFree( p->vTruths );
+    // attributes
+    Vec_WecFree( p->vFanouts );
+    Vec_IntFree( p->vLevels );
     ABC_FREE( p->vTravIds.pArray );
-    ABC_FREE( p->vSatVars.pArray );
-    ABC_FREE( p->vTruths.pArray );
+    ABC_FREE( p->vId2Var.pArray );
+    ABC_FREE( p->vVar2Id.pArray );
+    Vec_WecFree( p->vCnfs );
+    Vec_IntFree( p->vCover );
+    // other data
+    Vec_IntFreeP( &p->vLeaves );
+    Vec_IntFreeP( &p->vRoots );
+    Vec_IntFreeP( &p->vNodes );
+    Vec_IntFreeP( &p->vTfo   );
+    Vec_IntFreeP( &p->vDivs  );
+    Vec_IntFreeP( &p->vLits  );
+    Vec_WecFreeP( &p->vClauses );
+    Vec_IntFreeP( &p->vFaninMap );
+    if ( p->pSat0 ) sat_solver_delete( p->pSat0 );
+    if ( p->pSat1 ) sat_solver_delete( p->pSat1 );
     ABC_FREE( p );
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Public APIs of this network.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t *  Sfm_NodeReadFanins( Sfm_Ntk_t * p, int i )
+{
+    return Vec_WecEntry( p->vFanins, i );
+}
+word Sfm_NodeReadTruth( Sfm_Ntk_t * p, int i )
+{
+    return Vec_WrdEntry( p->vTruths, i );
+}
+int Sfm_NodeReadFixed( Sfm_Ntk_t * p, int i )
+{
+    return (int)Vec_StrEntry( p->vFixed, i );
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

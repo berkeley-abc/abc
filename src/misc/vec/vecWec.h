@@ -245,6 +245,7 @@ static inline void Vec_WecClear( Vec_Wec_t * p )
     int i;
     Vec_WecForEachLevel( p, vVec, i )
         Vec_IntClear( vVec );
+    p->nSize = 0;
 }
 
 /**Function*************************************************************
@@ -315,10 +316,9 @@ static inline double Vec_WecMemory( Vec_Wec_t * p )
 ***********************************************************************/
 static inline void Vec_WecFree( Vec_Wec_t * p )
 {
-    Vec_Int_t * vVec;
     int i;
-    Vec_WecForEachLevel( p, vVec, i )
-        ABC_FREE( vVec->pArray );
+    for ( i = 0; i < p->nCap; i++ )
+        ABC_FREE( p->pArray[i].pArray );
     ABC_FREE( p->pArray );
     ABC_FREE( p );
 }
@@ -643,6 +643,8 @@ static inline void Vec_WecRemoveEmpty( Vec_Wec_t * vCubes )
             vCubes->pArray[k++] = *vCube;
         else
             ABC_FREE( vCube->pArray );
+    for ( i = k; i < Vec_WecSize(vCubes); i++ )
+        Vec_IntZero( Vec_WecEntry(vCubes, i) );
     Vec_WecShrink( vCubes, k );
 //    Vec_WecSortByFirstInt( vCubes, 0 );
 }

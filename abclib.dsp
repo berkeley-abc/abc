@@ -323,6 +323,10 @@ SOURCE=.\src\base\abci\abcMffc.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\abci\abcMfs.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\abci\abcMini.c
 # End Source File
 # Begin Source File
@@ -2075,15 +2079,15 @@ SOURCE=.\src\opt\sfm\sfmInt.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\opt\sfm\sfmMan.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\src\opt\sfm\sfmNtk.c
 # End Source File
 # Begin Source File
 
 SOURCE=.\src\opt\sfm\sfmSat.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\sfm\sfmWin.c
 # End Source File
 # End Group
 # End Group

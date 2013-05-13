@@ -255,6 +255,12 @@ static inline Vec_Int_t * Vec_IntDupArray( Vec_Int_t * pVec )
   SeeAlso     []
 
 ***********************************************************************/
+static inline void Vec_IntZero( Vec_Int_t * p )
+{
+    p->pArray = NULL;
+    p->nSize = 0;
+    p->nCap = 0;
+}
 static inline void Vec_IntErase( Vec_Int_t * p )
 {
     ABC_FREE( p->pArray );

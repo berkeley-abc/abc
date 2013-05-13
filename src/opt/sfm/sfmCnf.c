@@ -43,13 +43,38 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
+void Sfm_PrintCnf( Vec_Str_t * vCnf )
+{
+    char Entry;
+    int i, Lit;
+    Vec_StrForEachEntry( vCnf, Entry, i )
+    {
+        Lit = (int)Entry;
+        if ( Lit == -1 )
+            printf( "\n" );
+        else
+            printf( "%s%d ", Abc_LitIsCompl(Lit) ? "-":"", Abc_Lit2Var(Lit) );
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Sfm_TruthToCnf( word Truth, int nVars, Vec_Int_t * vCover, Vec_Str_t * vCnf )
 {
     Vec_StrClear( vCnf );
     if ( Truth == 0 || ~Truth == 0 )
     {
         Vec_StrPush( vCnf, (char)(Truth == 0) );
-        Vec_StrPush( vCnf, -1 );
+        Vec_StrPush( vCnf, (char)-1 );
         return 1;
     }
     else 
@@ -74,7 +99,7 @@ int Sfm_TruthToCnf( word Truth, int nVars, Vec_Int_t * vCover, Vec_Str_t * vCnf 
                         assert( 0 );
                 }
                 Vec_StrPush( vCnf, (char)Abc_Var2Lit(nVars, c) );
-                Vec_StrPush( vCnf, -1 );
+                Vec_StrPush( vCnf, (char)-1 );
             }
         }
         return nCubes;
@@ -92,29 +117,24 @@ int Sfm_TruthToCnf( word Truth, int nVars, Vec_Int_t * vCover, Vec_Str_t * vCnf 
   SeeAlso     []
 
 ***********************************************************************/
-int Sfm_DeriveCnfs( Vec_Wrd_t * vTruths, Vec_Int_t * vFanins, Vec_Str_t ** pvCnfs, Vec_Int_t ** pvOffsets )
+void Sfm_TranslateCnf( Vec_Wec_t * vRes, Vec_Str_t * vCnf, Vec_Int_t * vFaninMap )
 {
-    Vec_Str_t * vCnfs, * vCnf;
-    Vec_Int_t * vOffsets, * vCover;
-    int i, k, nFanins, nClauses = 0;
-    vCnf     = Vec_StrAlloc( 1000 );
-    vCnfs    = Vec_StrAlloc( 1000 );
-    vOffsets = Vec_IntAlloc( Vec_IntSize(vFanins) );
-    vCover   = Vec_IntAlloc( 1 << 16 );
-    assert( Vec_WrdSize(vTruths) == Vec_IntSize(vFanins) );
-    Vec_IntForEachEntry( vFanins, nFanins, i )
+    Vec_Int_t * vClause;
+    int i, Lit;
+    char Entry;
+    Vec_WecClear( vRes );
+    vClause = Vec_WecPushLevel( vRes );
+    Vec_StrForEachEntry( vCnf, Entry, i )
     {
-        nClauses += Sfm_TruthToCnf( Vec_WrdEntry(vTruths, i), nFanins, vCover, vCnf );
-        Vec_IntPush( vOffsets, Vec_StrSize(vCnfs) );
-        for ( k = 0; k < Vec_StrSize(vCnf); k++ )
-            Vec_StrPush( vCnfs, Vec_StrEntry(vCnf, k) );
+        Lit = (int)Entry;
+        if ( Lit == -1 )
+        {
+            vClause = Vec_WecPushLevel( vRes );
+            continue;
+        }
+        Vec_IntPush( vClause, Abc_Lit2LitV( Vec_IntArray(vFaninMap), Lit ) );
     }
-    Vec_IntPush( vOffsets, Vec_StrSize(vCnfs) );
-    Vec_StrFree( vCnf );
-    Vec_IntFree( vCover );
-    return nClauses;
 }
-
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
