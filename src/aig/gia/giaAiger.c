@@ -198,7 +198,7 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fSkipS
     nAnds = atoi( (const char *)pCur );     while ( *pCur != ' ' && *pCur != '\n' ) pCur++; 
     if ( *pCur == ' ' )
     {
-        assert( nOutputs == 0 );
+//        assert( nOutputs == 0 );
         // read the number of properties
         pCur++;
         nBad = atoi( (const char *)pCur );     while ( *pCur != ' ' && *pCur != '\n' ) pCur++; 

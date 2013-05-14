@@ -284,7 +284,7 @@ Abc_Ntk_t * Io_ReadAiger( char * pFileName, int fCheck )
     nAnds = atoi( pCur );     while ( *pCur != ' ' && *pCur != '\n' ) pCur++; 
     if ( *pCur == ' ' )
     {
-        assert( nOutputs == 0 );
+//        assert( nOutputs == 0 );
         // read the number of properties
         pCur++;
         nBad = atoi( pCur );     while ( *pCur != ' ' && *pCur != '\n' ) pCur++; 
