@@ -1393,6 +1393,95 @@ void Gia_ManLoadValue( Gia_Man_t * p, Vec_Int_t * vValues )
         pObj->Value = Vec_IntEntry(vValues, i);
 }
 
+
+#include "base/main/mainInt.h"
+
+/**Function*************************************************************
+
+  Synopsis    [Proving multi-output properties.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Gia_ManMultiProve( Gia_Man_t * pInit, char * pCommLine, int nGroupSize, int fVerbose )
+{
+    Abc_Frame_t * pAbc = Abc_FrameReadGlobalFrame();
+    Gia_Man_t * p = Gia_ManDup( pInit );
+    Gia_Man_t * pGroup;
+    Vec_Int_t * vOuts;
+    Vec_Int_t * vOutMap;
+    Vec_Ptr_t * vCexes;
+    int i, k, nGroupCur, nGroups;
+    clock_t clk, timeComm = 0;
+    clock_t timeStart = clock();
+    // pre-conditions
+    assert( nGroupSize > 0 );
+    assert( pCommLine != NULL );
+    assert( p->nConstrs == 0 );
+    Abc_Print( 1, "RUNNING MultiProve: Group size = %d. Command line = \"%s\".\n", nGroupSize, pCommLine );
+    // create output map
+    vOuts   = Vec_IntStartNatural( Gia_ManPoNum(p) );
+    vOutMap = Vec_IntAlloc( Gia_ManPoNum(p) );
+    vCexes  = Vec_PtrAlloc( Gia_ManPoNum(p) );
+    nGroups = Gia_ManPoNum(p) / nGroupSize + (int)((Gia_ManPoNum(p) % nGroupSize) > 0);
+    for ( i = 0; i < nGroups; i++ )
+    {
+        // derive the group
+        nGroupCur = ((i + 1) * nGroupSize < Gia_ManPoNum(p)) ? nGroupSize : Gia_ManPoNum(p) - i * nGroupSize;
+        pGroup = Gia_ManDupCones( p, Vec_IntArray(vOuts) + i * nGroupSize, nGroupCur, 0 );
+        Abc_Print( 1, "GROUP %4d : %4d <= PoId < %4d : ", i, i * nGroupSize, i * nGroupSize + nGroupCur );
+        // set the current GIA
+        Abc_FrameUpdateGia( pAbc, pGroup );
+        // solve the group
+        clk = clock();
+        Cmd_CommandExecute( pAbc, pCommLine );
+        timeComm += clock() - clk;
+        // get the solution status
+        if ( nGroupSize == 1 )
+        {
+            Vec_IntPush( vOutMap, Abc_FrameReadProbStatus(pAbc) );
+            Vec_PtrPush( vCexes, Abc_FrameReadCex(pAbc) );
+        }
+        else // if ( nGroupSize > 1 )  
+        {
+            Vec_Int_t * vStatusCur = Abc_FrameReadPoStatuses( pAbc );
+            Vec_Ptr_t * vCexesCur = Abc_FrameReadCexVec( pAbc );
+            assert( vStatusCur != NULL ); // only works for "bmc3" and "pdr"
+            assert( vCexesCur != NULL );
+            for ( k = 0; k < nGroupCur; k++ )
+            {
+                Vec_IntPush( vOutMap, Vec_IntEntry(vStatusCur, k) );
+                Vec_PtrPush( vCexes, Vec_PtrEntry(vCexesCur, k) );
+            }
+        }
+    }
+    assert( Vec_PtrSize(vCexes) == Gia_ManPoNum(p) );
+    assert( Vec_IntSize(vOutMap) == Gia_ManPoNum(p) );
+    // set CEXes
+    if ( Vec_PtrCountZero(vCexes) < Vec_PtrSize(vCexes) )
+        Abc_FrameReplaceCexVec( pAbc, &vCexes );
+    else  // there is no CEXes
+        Vec_PtrFree( vCexes );
+    // report the result
+    Abc_Print( 1, "SUMMARY:  " );
+    Abc_Print( 1, "Properties = %6d. ", Gia_ManPoNum(p) );
+    Abc_Print( 1, "UNSAT = %6d. ",      Vec_IntCountEntry(vOutMap, 1) );
+    Abc_Print( 1, "SAT = %6d. ",        Vec_IntCountEntry(vOutMap, 0) );
+    Abc_Print( 1, "UNDEC = %6d. ",      Vec_IntCountEntry(vOutMap, -1) );
+    Abc_Print( 1, "\n" );
+    Abc_PrintTime( 1, "Command time", timeComm );
+    Abc_PrintTime( 1, "Total time  ", clock() - timeStart );
+    // cleanup
+    Vec_IntFree( vOuts );
+    Gia_ManStop( p );
+    return vOutMap;
+}
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

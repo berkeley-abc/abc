@@ -372,6 +372,9 @@ static inline int          Gia_ObjFaninLit1p( Gia_Man_t * p, Gia_Obj_t * pObj) {
 static inline void         Gia_ObjFlipFaninC0( Gia_Obj_t * pObj )              { assert( Gia_ObjIsCo(pObj) ); pObj->fCompl0 ^= 1;          }
 static inline int          Gia_ObjWhatFanin( Gia_Obj_t * pObj, Gia_Obj_t * pFanin )  { return Gia_ObjFanin0(pObj) == pFanin ? 0 : (Gia_ObjFanin1(pObj) == pFanin ? 1 : -1); }
 
+static inline int          Gia_ManPoIsConst0( Gia_Man_t * p, int iPoIndex )    { return Gia_ManIsConst0Lit( Gia_ObjFaninLit0p(p, Gia_ManPo(p, iPoIndex)) ); }
+static inline int          Gia_ManPoIsConst1( Gia_Man_t * p, int iPoIndex )    { return Gia_ManIsConst1Lit( Gia_ObjFaninLit0p(p, Gia_ManPo(p, iPoIndex)) ); }
+
 static inline Gia_Obj_t *  Gia_ObjCopy( Gia_Man_t * p, Gia_Obj_t * pObj )      { return Gia_ManObj( p, Abc_Lit2Var(pObj->Value) );                              }
 
 static inline int          Gia_ObjFanin0Copy( Gia_Obj_t * pObj )               { return Abc_LitNotCond( Gia_ObjFanin0(pObj)->Value, Gia_ObjFaninC0(pObj) );     }

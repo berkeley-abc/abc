@@ -116,6 +116,7 @@ extern ABC_DLL int             Abc_FrameReadProbStatus( Abc_Frame_t * p );
 extern ABC_DLL Abc_Cex_t *     Abc_FrameReadCex( Abc_Frame_t * p );              
 extern ABC_DLL Vec_Ptr_t *     Abc_FrameReadCexVec( Abc_Frame_t * p );  
 extern ABC_DLL Vec_Ptr_t *     Abc_FrameReadPoEquivs( Abc_Frame_t * p );  
+extern ABC_DLL Vec_Int_t *     Abc_FrameReadPoStatuses( Abc_Frame_t * p );  
 extern ABC_DLL Vec_Int_t *     Abc_FrameReadObjIds( Abc_Frame_t * p );
 
 extern ABC_DLL int             Abc_FrameReadCexPiNum( Abc_Frame_t * p );              
@@ -137,6 +138,11 @@ extern ABC_DLL void            Abc_FrameSetNFrames( int nFrames );
 extern ABC_DLL void            Abc_FrameSetStatus( int Status );
 
 extern ABC_DLL int             Abc_FrameCheckPoConst( Abc_Frame_t * p, int iPoNum );
+
+extern ABC_DLL void            Abc_FrameReplaceCex( Abc_Frame_t * pAbc, Abc_Cex_t ** ppCex );
+extern ABC_DLL void            Abc_FrameReplaceCexVec( Abc_Frame_t * pAbc, Vec_Ptr_t ** pvCexVec );
+extern ABC_DLL void            Abc_FrameReplacePoEquivs( Abc_Frame_t * pAbc, Vec_Ptr_t ** pvPoEquivs );
+extern ABC_DLL void            Abc_FrameReplacePoStatuses( Abc_Frame_t * pAbc, Vec_Int_t ** pvStatuses );
 
 ABC_NAMESPACE_HEADER_END
 

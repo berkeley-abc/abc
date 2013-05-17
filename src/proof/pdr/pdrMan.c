@@ -83,10 +83,8 @@ Pdr_Man_t * Pdr_ManStart( Aig_Man_t * pAig, Pdr_Par_t * pPars, Vec_Int_t * vPrio
     }
     if ( pPars->fSolveAll )
     {
-        int i;
-        pPars->pOutMap = ABC_ALLOC( int, Saig_ManPoNum(pAig) );
-        for ( i = 0; i < Saig_ManPoNum(pAig); i++ )
-            pPars->pOutMap[i] = -2; // unknown
+        p->pPars->vOutMap = Vec_IntAlloc( Saig_ManPoNum(pAig) );
+        Vec_IntFill( p->pPars->vOutMap, Saig_ManPoNum(pAig), -2 );
     }
     return p;
 }

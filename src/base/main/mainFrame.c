@@ -65,6 +65,7 @@ int         Abc_FrameReadProbStatus( Abc_Frame_t * p )       { return s_GlobalFr
 Abc_Cex_t * Abc_FrameReadCex( Abc_Frame_t * p )              { return s_GlobalFrame->pCex;         }        
 Vec_Ptr_t * Abc_FrameReadCexVec( Abc_Frame_t * p )           { return s_GlobalFrame->vCexVec;      }        
 Vec_Ptr_t * Abc_FrameReadPoEquivs( Abc_Frame_t * p )         { return s_GlobalFrame->vPoEquivs;    }        
+Vec_Int_t * Abc_FrameReadPoStatuses( Abc_Frame_t * p )       { return s_GlobalFrame->vStatuses;    }        
 Vec_Int_t * Abc_FrameReadObjIds( Abc_Frame_t * p )           { return s_GlobalFrame->vAbcObjIds;   }        
        
 int         Abc_FrameReadCexPiNum( Abc_Frame_t * p )         { return s_GlobalFrame->pCex->nPis;   }               
@@ -177,6 +178,7 @@ void Abc_FrameDeallocate( Abc_Frame_t * p )
     if ( p->vAbcObjIds)  Vec_IntFree( p->vAbcObjIds );
     if ( p->vCexVec   )  Vec_PtrFreeFree( p->vCexVec );
     if ( p->vPoEquivs )  Vec_VecFree( (Vec_Vec_t *)p->vPoEquivs );
+    if ( p->vStatuses )  Vec_IntFree( p->vStatuses );
     if ( p->pLibVer   )  Abc_LibFree( (Abc_Lib_t *)p->pLibVer, NULL );
     if ( p->pManDec   )  Dec_ManStop( (Dec_Man_t *)p->pManDec );
     if ( p->dd        )  Extra_StopManager( p->dd );

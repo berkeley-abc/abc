@@ -382,6 +382,7 @@ static int Abc_CommandAbc9CexInfo            ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9Cycle              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Cone               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9PoPart             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9MultiProve         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 //static int Abc_CommandAbc9PoPart2            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 //static int Abc_CommandAbc9CexCut             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 //static int Abc_CommandAbc9CexMerge           ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -474,11 +475,55 @@ void Abc_FrameReplaceCexVec( Abc_Frame_t * pAbc, Vec_Ptr_t ** pvCexVec )
 ***********************************************************************/
 void Abc_FrameReplacePoEquivs( Abc_Frame_t * pAbc, Vec_Ptr_t ** pvPoEquivs )
 {
-    // update the array vector
     if ( pAbc->vPoEquivs )
         Vec_VecFree( (Vec_Vec_t *)pAbc->vPoEquivs );
     pAbc->vPoEquivs = *pvPoEquivs;
     *pvPoEquivs = NULL;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_FrameReplacePoStatuses( Abc_Frame_t * pAbc, Vec_Int_t ** pvStatuses )
+{
+    if ( pAbc->vStatuses )
+        Vec_IntFree( pAbc->vStatuses );
+    pAbc->vStatuses = *pvStatuses;
+    *pvStatuses = NULL;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Derives array of statuses from the array of CEXes.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Abc_FrameDeriveStatusArray( Vec_Ptr_t * vCexes )
+{
+    Vec_Int_t * vStatuses;
+    Abc_Cex_t * pCex;
+    int i;
+    if ( vCexes == NULL )
+        return NULL;
+    vStatuses = Vec_IntAlloc( Vec_PtrSize(vCexes) );
+    Vec_IntFill( vStatuses, Vec_PtrSize(vCexes), -1 ); // assume UNDEC
+    Vec_PtrForEachEntry( Abc_Cex_t *, vCexes, pCex, i )
+        if ( pCex != NULL )
+            Vec_IntWriteEntry( vStatuses, i, 0 ); // set this output as SAT
+    return vStatuses;    
 }
 
 /**Function*************************************************************
@@ -882,6 +927,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&cycle",        Abc_CommandAbc9Cycle,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&cone",         Abc_CommandAbc9Cone,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&popart",       Abc_CommandAbc9PoPart,       0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&mprove",       Abc_CommandAbc9MultiProve,   0 );
 //    Cmd_CommandAdd( pAbc, "ABC9",         "&popart2",      Abc_CommandAbc9PoPart2,      0 );
 //    Cmd_CommandAdd( pAbc, "ABC9",         "&cexcut",       Abc_CommandAbc9CexCut,       0 );
 //    Cmd_CommandAdd( pAbc, "ABC9",         "&cexmerge",     Abc_CommandAbc9CexMerge,     0 );
@@ -21194,6 +21240,7 @@ int Abc_CommandBmc3( Abc_Frame_t * pAbc, int argc, char ** argv )
     Saig_ParBmc_t Pars, * pPars = &Pars;
     Abc_Ntk_t * pNtkRes, * pNtk = Abc_FrameReadNtk(pAbc);
     Vec_Ptr_t * vSeqModelVec = NULL;
+    Vec_Int_t * vStatuses = NULL;
     char * pLogFileName = NULL;
     int fOrDecomp = 0;
     int c;
@@ -21356,7 +21403,7 @@ int Abc_CommandBmc3( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
     pAbc->Status = Abc_NtkDarBmc3( pNtk, pPars, fOrDecomp );
-    pAbc->nFrames = pPars->iFrame;
+    pAbc->nFrames = pNtk->vSeqModelVec ? -1 : pPars->iFrame;
     Abc_FrameReplaceCex( pAbc, &pNtk->pSeqModel );
     if ( pLogFileName )
         Abc_NtkWriteLogFile( pLogFileName, pAbc->pCex, pAbc->Status, pAbc->nFrames, "bmc3" );
@@ -21380,11 +21427,9 @@ int Abc_CommandBmc3( Abc_Frame_t * pAbc, int argc, char ** argv )
             Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
         }
     }
-    if ( vSeqModelVec )
-    {
-        Abc_FrameReplaceCexVec( pAbc, &vSeqModelVec );
-        pAbc->nFrames = -1;
-    }
+    vStatuses = Abc_FrameDeriveStatusArray( vSeqModelVec );
+    Abc_FrameReplacePoStatuses( pAbc, &vStatuses );        
+    Abc_FrameReplaceCexVec( pAbc, &vSeqModelVec );
     return 0;
 
 usage:
@@ -22929,14 +22974,10 @@ int Abc_CommandPdr( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     // run the procedure
     pAbc->Status  = Abc_NtkDarPdr( pNtk, pPars );
-    pAbc->nFrames = pPars->iFrame;
+    pAbc->nFrames = pNtk->vSeqModelVec ? -1 : pPars->iFrame;
     Abc_FrameReplaceCex( pAbc, &pNtk->pSeqModel );
-    if ( pNtk->vSeqModelVec )
-    {
-        Abc_FrameReplaceCexVec( pAbc, &pNtk->vSeqModelVec );
-        pAbc->nFrames = -1;
-    }
-    ABC_FREE( pPars->pOutMap ); // cleanup after PDR
+    Abc_FrameReplaceCexVec( pAbc, &pNtk->vSeqModelVec );
+    Abc_FrameReplacePoStatuses( pAbc, &pPars->vOutMap );
     return 0;
 
 usage:
@@ -30470,6 +30511,75 @@ usage:
     return 1;
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9MultiProve( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern Vec_Int_t * Gia_ManMultiProve( Gia_Man_t * p, char * pCommLine, int nGroupSize, int fVerbose );
+    Vec_Int_t * vStatus;
+    char * pCommLine = NULL;
+    int c, nGroupSize = 1, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "GSvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'G':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-G\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nGroupSize = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nGroupSize <= 0 )
+                goto usage;
+            break;
+        case 'S':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-S\" should be followed by a file name.\n" );
+                goto usage;
+            }
+            pCommLine = argv[globalUtilOptind];
+            globalUtilOptind++;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9PoPart(): There is no AIG.\n" );
+        return 1;
+    }
+    vStatus = Gia_ManMultiProve( pAbc->pGia, pCommLine, nGroupSize, fVerbose );
+    Vec_IntFree( vStatus );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &mprove [-GS num] [-vh]\n" );
+    Abc_Print( -2, "\t         proves multi-output testcase by splitting outputs into groups\n" );
+    Abc_Print( -2, "\t         (currently, group size more than one works only for \"bmc3\" and \"pdr\")\n" );
+    Abc_Print( -2, "\t-G num : the size of one group [default = %d]\n", nGroupSize );
+    Abc_Print( -2, "\t-S str : the command line to be executed for each group [default = %s]\n", pCommLine ? pCommLine : "none" );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
 
 /**Function*************************************************************
 

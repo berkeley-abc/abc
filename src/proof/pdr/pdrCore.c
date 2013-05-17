@@ -592,7 +592,7 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
                     return 0; // SAT
                 }
                 p->pPars->nFailOuts++;
-                if ( p->pPars->pOutMap ) p->pPars->pOutMap[p->iOutCur] = 0;
+                if ( p->pPars->vOutMap ) Vec_IntWriteEntry( p->pPars->vOutMap, p->iOutCur, 0 );
                 Abc_Print( 1, "Output %*d was trivially asserted in frame %2d (solved %*d out of %*d outputs).\n",  
                     nOutDigits, p->iOutCur, k, nOutDigits, p->pPars->nFailOuts, nOutDigits, Saig_ManPoNum(p->pAig) );
                 if ( p->vCexes == NULL )
@@ -684,7 +684,7 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
                             return 0; // SAT
                         }
                         p->pPars->nFailOuts++;
-                        if ( p->pPars->pOutMap ) p->pPars->pOutMap[p->iOutCur] = 0;
+                        if ( p->pPars->vOutMap ) Vec_IntWriteEntry( p->pPars->vOutMap, p->iOutCur, 0 );
                         if ( p->vCexes == NULL )
                             p->vCexes = Vec_PtrStart( Saig_ManPoNum(p->pAig) );
                         assert( Vec_PtrEntry(p->vCexes, p->iOutCur) == NULL );
@@ -719,7 +719,7 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
                 if ( p->pTime4Outs[p->iOutCur] == 0 && p->vCexes && Vec_PtrEntry(p->vCexes, p->iOutCur) == NULL )
                 {
                     p->pPars->nDropOuts++;
-                    if ( p->pPars->pOutMap ) p->pPars->pOutMap[p->iOutCur] = -1;
+                    if ( p->pPars->vOutMap ) Vec_IntWriteEntry( p->pPars->vOutMap, p->iOutCur, -1 );
 //                    printf( "Dropping output %d.\n", p->iOutCur );
                 }
             }
@@ -765,10 +765,10 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
             // count the number of UNSAT outputs
             p->pPars->nProveOuts = Saig_ManPoNum(p->pAig) - p->pPars->nFailOuts - p->pPars->nDropOuts;
             // convert previously 'unknown' into 'unsat'
-            if ( p->pPars->pOutMap )
+            if ( p->pPars->vOutMap )
                 for ( k = 0; k < Saig_ManPoNum(p->pAig); k++ )
-                    if ( p->pPars->pOutMap[k] == -2 ) // unknown
-                        p->pPars->pOutMap[k] = 1; // unsat
+                    if ( Vec_IntEntry(p->pPars->vOutMap, k) == -2 ) // unknown
+                        Vec_IntWriteEntry( p->pPars->vOutMap, k, 1 ); // unsat
             return p->vCexes ? 0 : 1; // UNSAT
         }
         if ( p->pPars->fVerbose ) 
@@ -836,7 +836,7 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
 int Pdr_ManSolve( Aig_Man_t * pAig, Pdr_Par_t * pPars )
 {
     Pdr_Man_t * p;
-    int RetValue;
+    int k, RetValue;
     clock_t clk = clock();
     if ( pPars->nTimeOutOne )
         pPars->nTimeOut = pPars->nTimeOutOne * Saig_ManPoNum(pAig) / 1000 + 1;
@@ -871,6 +871,11 @@ int Pdr_ManSolve( Aig_Man_t * pAig, Pdr_Par_t * pPars )
     p->tTotal += clock() - clk;
     Pdr_ManStop( p );
     pPars->iFrame--;
+    // convert all -2 (unknown) entries into -1 (undec)
+    if ( pPars->vOutMap )
+        for ( k = 0; k < Saig_ManPoNum(pAig); k++ )
+            if ( Vec_IntEntry(pPars->vOutMap, k) == -2 ) // unknown
+                Vec_IntWriteEntry( pPars->vOutMap, k, -1 ); // undec
     return RetValue;
 }
 
