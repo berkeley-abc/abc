@@ -761,9 +761,7 @@ Gia_Man_t * Gia_ManDupMarked( Gia_Man_t * p )
         if ( pObj->fMark0 )
             continue;
         pObj->fMark0 = 0;
-        if ( p->nPinTypes && Gia_ObjIsPinType(pObj) )
-            pObj->Value = Gia_ManAppendPinType( pNew, Gia_ObjFanin0Copy(pObj) );
-        else if ( Gia_ObjIsAnd(pObj) )
+        if ( Gia_ObjIsAnd(pObj) )
             pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
         else if ( Gia_ObjIsCi(pObj) )
         {

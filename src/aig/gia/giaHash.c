@@ -193,7 +193,7 @@ void Gia_ManHashResize( Gia_Man_t * p )
         Counter++;
     }
     Counter2 = Gia_ManAndNum(p);
-    assert( p->nPinTypes || Counter == Counter2 );
+    assert( Counter == Counter2 );
     ABC_FREE( pHTableOld );
 //    if ( p->fVerbose )
 //        printf( "Resizing GIA hash table: %d -> %d.\n", nHTableOld, p->nHTable );

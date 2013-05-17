@@ -87,6 +87,8 @@ int Abc_NtkTestTimNodeStrash( Gia_Man_t * pGia, Abc_Obj_t * pNode )
 }
 
 
+#if 0 
+
 /**Function*************************************************************
 
   Synopsis    [Derives GIA manager using special pins to denote box boundaries.]
@@ -174,6 +176,7 @@ void Abc_NtkTestPinGia( Abc_Ntk_t * pNtk, int fWhiteBoxOnly, int fVerbose )
         Abc_NtkName(pNtk), pFileName );
 }
 
+#endif
 
 /**Function*************************************************************
 

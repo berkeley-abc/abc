@@ -294,12 +294,7 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fSkipS
         iNode1 = Abc_LitNotCond( Vec_IntEntry(vNodes, uLit1 >> 1), uLit1 & 1 );
         assert( Vec_IntSize(vNodes) == i + 1 + nInputs + nLatches );
         if ( fSkipStrash )
-        {
-            if ( iNode0 == 1 && iNode1 == 1 )
-                Vec_IntPush( vNodes, Gia_ManAppendPinType(pNew, 1) );
-            else
-                Vec_IntPush( vNodes, Gia_ManAppendAnd(pNew, iNode0, iNode1) );
-        }
+            Vec_IntPush( vNodes, Gia_ManAppendAnd(pNew, iNode0, iNode1) );
         else
             Vec_IntPush( vNodes, Gia_ManHashAnd(pNew, iNode0, iNode1) );
     }
@@ -1091,7 +1086,7 @@ void Gia_AigerWrite( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
         uLit  = Abc_Var2Lit( i, 0 );
         uLit0 = Gia_ObjFaninLit0( pObj, i );
         uLit1 = Gia_ObjFaninLit1( pObj, i );
-        assert( p->nPinTypes || uLit0 < uLit1 );
+        assert( uLit0 < uLit1 );
         Pos = Gia_AigerWriteUnsignedBuffer( pBuffer, Pos, uLit  - uLit1 );
         Pos = Gia_AigerWriteUnsignedBuffer( pBuffer, Pos, uLit1 - uLit0 );
         if ( Pos > nBufferSize - 10 )
