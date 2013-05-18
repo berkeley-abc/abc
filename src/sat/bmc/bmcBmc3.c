@@ -1636,7 +1636,6 @@ nTimeUndec += clock() - clk2;
             }
             printf( "%4d %s : ", f, fUnfinished ? "-" : "+" );
             printf( "Var =%8.0f. ", (double)p->nSatVars );
-            printf( "Var2 =%8.0f. ", (double)p->pSat->nVarUsed );
             printf( "Cla =%9.0f. ", (double)p->pSat->stats.clauses );
             printf( "Cnf =%7.0f. ",(double)p->pSat->stats.conflicts );
 //            printf( "Imp =%10.0f. ", (double)p->pSat->stats.propagations );
@@ -1658,8 +1657,6 @@ nTimeUndec += clock() - clk2;
 //            printf( "Dups = %6d. ", p->nDupNum );
             printf( "\n" );
             fflush( stdout );
-            memset( p->pSat->pFreqs, 0, sizeof(int) * p->pSat->size );
-            p->pSat->nVarUsed = 0;
         }
     }
     // consider the next timeframe

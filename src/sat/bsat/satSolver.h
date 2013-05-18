@@ -121,8 +121,6 @@ struct sat_solver_t
     unsigned*   activity;      // A heuristic measurement of the activity of a variable.
     unsigned*   activity2;     // backup variable activity
 #endif
-    int *       pFreqs;
-    int         nVarUsed;
 
 //    varinfo *   vi;            // variable information
     int*        levels;        //
