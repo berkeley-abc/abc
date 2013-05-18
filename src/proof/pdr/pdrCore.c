@@ -540,6 +540,8 @@ int Pdr_ManBlockCube( Pdr_Man_t * p, Pdr_Set_t * pCube )
             return -1;
         if ( p->timeToStopOne && clock() > p->timeToStopOne )
             return -1;
+        if ( p->pPars->nTimeOutGap && p->pPars->timeLastSolved && clock() > p->pPars->timeLastSolved + p->pPars->nTimeOutGap * CLOCKS_PER_SEC )
+            return -1;
     }
     return 1;
 }
@@ -656,6 +658,8 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
                             Abc_Print( 1, "Reached conflict limit (%d).\n",  p->pPars->nConfLimit );
                         else if ( p->timeToStop && clock() > p->timeToStop )
                             Abc_Print( 1, "Reached timeout (%d seconds).\n",  p->pPars->nTimeOut );
+                        else if ( p->pPars->nTimeOutGap && p->pPars->timeLastSolved && clock() > p->pPars->timeLastSolved + p->pPars->nTimeOutGap * CLOCKS_PER_SEC )
+                            Abc_Print( 1, "Reached gap timeout (%d seconds).\n",  p->pPars->nTimeOutGap );
                         else if ( p->timeToStopOne && clock() > p->timeToStopOne )
                         {
                             Pdr_QueueClean( p );
