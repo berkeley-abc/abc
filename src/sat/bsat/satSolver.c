@@ -466,6 +466,12 @@ static int clause_create_new(sat_solver* s, lit* begin, lit* end, int learnt)
 static inline int sat_solver_enqueue(sat_solver* s, lit l, int from)
 {
     int v  = lit_var(l);
+    if ( s->pFreqs[v] == 0 )
+//    {
+        s->pFreqs[v] = 1;
+//        s->nVarUsed++;
+//    }
+
 #ifdef VERBOSEDEBUG
     printf(L_IND"enqueue("L_LIT")\n", L_ind, L_lit(l));
 #endif
@@ -1033,6 +1039,8 @@ void sat_solver_setnvars(sat_solver* s,int n)
         s->activity  = ABC_REALLOC(unsigned, s->activity, s->cap);
         s->activity2 = ABC_REALLOC(unsigned, s->activity2,s->cap);
 #endif
+        s->pFreqs    = ABC_REALLOC(char,   s->tags,     s->cap);
+
         if ( s->factors )
         s->factors   = ABC_REALLOC(double, s->factors,  s->cap);
         s->orderpos  = ABC_REALLOC(int,    s->orderpos, s->cap);
@@ -1054,6 +1062,7 @@ void sat_solver_setnvars(sat_solver* s,int n)
 #else
         s->activity[var] = (1<<10);
 #endif
+        s->pFreqs[var]   = 0;
         if ( s->factors )
         s->factors [var] = 0;
 //        *((int*)s->vi + var) = 0; s->vi[var].val = varX;
@@ -1106,6 +1115,7 @@ void sat_solver_delete(sat_solver* s)
         ABC_FREE(s->tags     );
         ABC_FREE(s->activity );
         ABC_FREE(s->activity2);
+        ABC_FREE(s->pFreqs   );
         ABC_FREE(s->factors  );
         ABC_FREE(s->orderpos );
         ABC_FREE(s->reasons  );
@@ -1321,7 +1331,7 @@ void sat_solver_reducedb(sat_solver* s)
 
     // report the results
     TimeTotal += clock() - clk;
-    if ( s->fVerbose )
+//    if ( s->fVerbose )
     {
     Abc_Print(1, "reduceDB: Keeping %7d out of %7d clauses (%5.2f %%)  ",
         s->stats.learnts, nLearnedOld, 100.0 * s->stats.learnts / nLearnedOld );

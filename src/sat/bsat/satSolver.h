@@ -121,6 +121,8 @@ struct sat_solver_t
     unsigned*   activity;      // A heuristic measurement of the activity of a variable.
     unsigned*   activity2;     // backup variable activity
 #endif
+    char *      pFreqs;        // how many times this variable was assigned a value
+    int         nVarUsed;
 
 //    varinfo *   vi;            // variable information
     int*        levels;        //
@@ -246,6 +248,18 @@ static inline void sat_solver_bookmark(sat_solver* s)
         s->var_inc2 = s->var_inc;
         memcpy( s->activity2, s->activity, sizeof(unsigned) * s->iVarPivot );
     }
+}
+
+static inline int sat_solver_count_usedvars(sat_solver* s)
+{
+    int i, nVars = 0;
+    for ( i = 0; i < s->size; i++ )
+        if ( s->pFreqs[i] )
+        {
+            s->pFreqs[i] = 0;
+            nVars++;
+        }
+    return nVars;
 }
 
 static inline int sat_solver_add_const( sat_solver * pSat, int iVar, int fCompl )

@@ -35,8 +35,8 @@ ABC_NAMESPACE_HEADER_START
 
 //#define LEARNT_MAX_START_DEFAULT  0
 #define LEARNT_MAX_START_DEFAULT  10000
-#define LEARNT_MAX_INCRE_DEFAULT   1000
-#define LEARNT_MAX_RATIO_DEFAULT     50
+#define LEARNT_MAX_INCRE_DEFAULT   2000
+#define LEARNT_MAX_RATIO_DEFAULT     80
 
 ////////////////////////////////////////////////////////////////////////
 ///                    STRUCTURE DEFINITIONS                         ///
