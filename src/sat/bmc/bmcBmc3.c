@@ -1416,6 +1416,7 @@ int Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars )
     p->pSat->nLearntStart = p->pPars->nLearnedStart;
     p->pSat->nLearntDelta = p->pPars->nLearnedDelta;
     p->pSat->nLearntRatio = p->pPars->nLearnedPerce;
+    p->pSat->nLearntMax   = p->pSat->nLearntStart;
     if ( pPars->fVerbose )
     {
         printf( "Running \"bmc3\". PI/PO/Reg = %d/%d/%d. And =%7d. Lev =%6d. ObjNums =%6d. Sect =%3d.\n", 
