@@ -304,6 +304,10 @@ Saig_Bmc_t * Saig_BmcManStart( Aig_Man_t * pAig, int nFramesMax, int nNodesMax, 
     // create SAT solver
     p->nSatVars     = 1;
     p->pSat         = sat_solver_new();
+    p->pSat->nLearntStart = 10000;//p->pPars->nLearnedStart;
+    p->pSat->nLearntDelta =  5000;//p->pPars->nLearnedDelta;
+    p->pSat->nLearntRatio =    75;//p->pPars->nLearnedPerce;
+    p->pSat->nLearntMax   = p->pSat->nLearntStart;
     sat_solver_setnvars( p->pSat, 2000 );
     Lit = toLit( p->nSatVars );
     sat_solver_addclause( p->pSat, &Lit, &Lit + 1 );
