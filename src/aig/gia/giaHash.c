@@ -33,28 +33,6 @@ ABC_NAMESPACE_IMPL_START
 
 /**Function*************************************************************
 
-  Synopsis    [Hashing the node.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-static inline int Gia_ManHashOne( int iLit0, int iLit1, int TableSize ) 
-{
-    unsigned Key = 0;
-    assert( iLit0 < iLit1 );
-    Key ^= Abc_Lit2Var(iLit0) * 7937;
-    Key ^= Abc_Lit2Var(iLit1) * 2971;
-    Key ^= Abc_LitIsCompl(iLit0) * 911;
-    Key ^= Abc_LitIsCompl(iLit1) * 353;
-    return (int)(Key % TableSize);
-}
-
-/**Function*************************************************************
-
   Synopsis    [Returns the place where this node is stored (or should be stored).]
 
   Description []
@@ -64,13 +42,25 @@ static inline int Gia_ManHashOne( int iLit0, int iLit1, int TableSize )
   SeeAlso     []
 
 ***********************************************************************/
-static inline int * Gia_ManHashFind( Gia_Man_t * p, int iLit0, int iLit1 )
+static inline int Gia_ManHashOne( int iLit0, int iLit1, int iLitC, int TableSize ) 
+{
+    unsigned Key = iLitC * 2011;
+    Key += Abc_Lit2Var(iLit0) * 7937;
+    Key += Abc_Lit2Var(iLit1) * 2971;
+    Key += Abc_LitIsCompl(iLit0) * 911;
+    Key += Abc_LitIsCompl(iLit1) * 353;
+    return (int)(Key % TableSize);
+}
+static inline int * Gia_ManHashFind( Gia_Man_t * p, int iLit0, int iLit1, int iLitC )
 {
     Gia_Obj_t * pThis;
-    int * pPlace = p->pHTable + Gia_ManHashOne( iLit0, iLit1, p->nHTable );
+    int * pPlace = p->pHTable + Gia_ManHashOne( iLit0, iLit1, iLitC, p->nHTable );
+    assert( p->pMuxes || iLit0 < iLit1 );
+    assert( iLit0 < iLit1 || (!Abc_LitIsCompl(iLit0) && !Abc_LitIsCompl(iLit1)) );
+    assert( iLitC == -1 || !Abc_LitIsCompl(iLit1) );
     for ( pThis = (*pPlace)? Gia_ManObj(p, Abc_Lit2Var(*pPlace)) : NULL; pThis; 
           pPlace = (int *)&pThis->Value, pThis = (*pPlace)? Gia_ManObj(p, Abc_Lit2Var(*pPlace)) : NULL )
-              if ( Gia_ObjFaninLit0p(p, pThis) == iLit0 && Gia_ObjFaninLit1p(p, pThis) == iLit1 )
+              if ( Gia_ObjFaninLit0p(p, pThis) == iLit0 && Gia_ObjFaninLit1p(p, pThis) == iLit1 && (p->pMuxes == NULL || Gia_ObjFaninLit2p(p, pThis) == iLitC) )
                   break;
     return pPlace;
 }
@@ -92,7 +82,7 @@ int Gia_ManHashLookup( Gia_Man_t * p, Gia_Obj_t * p0, Gia_Obj_t * p1 )
     int iLit1 = Gia_ObjToLit( p, p1 );
     if ( iLit0 > iLit1 )
         iLit0 ^= iLit1, iLit1 ^= iLit0, iLit0 ^= iLit1;
-    return *Gia_ManHashFind( p, iLit0, iLit1 );
+    return *Gia_ManHashFind( p, iLit0, iLit1, -1 );
 }
 
 /**Function*************************************************************
@@ -132,7 +122,7 @@ void Gia_ManHashStart( Gia_Man_t * p )
     Gia_ManCleanValue( p );
     Gia_ManForEachAnd( p, pObj, i )
     {
-        pPlace = Gia_ManHashFind( p, Gia_ObjFaninLit0(pObj, i), Gia_ObjFaninLit1(pObj, i) );
+        pPlace = Gia_ManHashFind( p, Gia_ObjFaninLit0(pObj, i), Gia_ObjFaninLit1(pObj, i), Gia_ObjFaninLit2(p, i) );
         assert( *pPlace == 0 );
         *pPlace = Abc_Var2Lit( i, 0 );
     }
@@ -186,7 +176,7 @@ void Gia_ManHashResize( Gia_Man_t * p )
           iNext = (pThis? pThis->Value : 0)  )
     {
         pThis->Value = 0;
-        pPlace = Gia_ManHashFind( p, Gia_ObjFaninLit0p(p, pThis), Gia_ObjFaninLit1p(p, pThis) );
+        pPlace = Gia_ManHashFind( p, Gia_ObjFaninLit0p(p, pThis), Gia_ObjFaninLit1p(p, pThis), Gia_ObjFaninLit2p(p, pThis) );
         assert( *pPlace == 0 ); // should not be there
         *pPlace = Abc_Var2Lit( Gia_ObjId(p, pThis), 0 );
         assert( *pPlace != 0 );
@@ -463,7 +453,104 @@ static inline Gia_Obj_t * Gia_ManAddStrash( Gia_Man_t * p, Gia_Obj_t * p0, Gia_O
 
 /**Function*************************************************************
 
-  Synopsis    [Rehashes AIG with mapping.]
+  Synopsis    [Hashes XOR gate.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManHashXorReal( Gia_Man_t * p, int iLit0, int iLit1 )  
+{ 
+    int fCompl = 0;
+    assert( p->fAddStrash == 0 );
+    if ( iLit0 < 2 )
+        return iLit0 ? Abc_LitNot(iLit1) : iLit1;
+    if ( iLit1 < 2 )
+        return iLit1 ? Abc_LitNot(iLit0) : iLit0;
+    if ( iLit0 == iLit1 )
+        return 0;
+    if ( iLit0 == Abc_LitNot(iLit1) )
+        return 1;
+    if ( (p->nObjs & 0xFF) == 0 && 2 * p->nHTable < Gia_ManAndNum(p) )
+        Gia_ManHashResize( p );
+    if ( iLit0 < iLit1 )
+        iLit0 ^= iLit1, iLit1 ^= iLit0, iLit0 ^= iLit1;
+    if ( Abc_LitIsCompl(iLit0) )
+        iLit0 = Abc_LitNot(iLit0), fCompl ^= 1;
+    if ( Abc_LitIsCompl(iLit1) )
+        iLit1 = Abc_LitNot(iLit1), fCompl ^= 1;
+    {
+        int *pPlace = Gia_ManHashFind( p, iLit0, iLit1, -1 );
+        if ( *pPlace )
+        {
+            p->nHashHit++;
+            return Abc_LitNotCond( *pPlace, fCompl );
+        }
+        p->nHashMiss++;
+        if ( p->nObjs < p->nObjsAlloc )
+            *pPlace = Gia_ManAppendXorReal( p, iLit0, iLit1 );
+        else
+        {
+            int iNode = Gia_ManAppendXorReal( p, iLit0, iLit1 );
+            pPlace = Gia_ManHashFind( p, iLit0, iLit1, -1 );
+            assert( *pPlace == 0 );
+            *pPlace = iNode;
+        }
+        return Abc_LitNotCond( *pPlace, fCompl );
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Hashes MUX gate.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManHashMuxReal( Gia_Man_t * p, int iLitC, int iLit1, int iLit0 )  
+{
+    int fCompl = 0;
+    assert( p->fAddStrash == 0 );
+    assert( iLit0 > 1 && iLit1 > 1 && iLitC > 1 );
+    if ( iLit0 == iLit1 )
+        return iLit0;
+    if ( Abc_Lit2Var(iLit0) == Abc_Lit2Var(iLit1) )
+        return Gia_ManHashXorReal( p, iLitC, iLit0 );
+    if ( iLit0 > iLit1 )
+        iLit0 ^= iLit1, iLit1 ^= iLit0, iLit0 ^= iLit1, iLitC = Abc_LitNot(iLitC);
+    if ( Abc_LitIsCompl(iLit1) )
+        iLit0 = Abc_LitNot(iLit0), iLit1 = Abc_LitNot(iLit1), fCompl = 1;
+    {
+        int *pPlace = Gia_ManHashFind( p, iLit0, iLit1, iLitC );
+        if ( *pPlace )
+        {
+            p->nHashHit++;
+            return Abc_LitNotCond( *pPlace, fCompl );
+        }
+        p->nHashMiss++;
+        if ( p->nObjs < p->nObjsAlloc )
+            *pPlace = Gia_ManAppendMuxReal( p, iLitC, iLit1, iLit0 );
+        else
+        {
+            int iNode = Gia_ManAppendMuxReal( p, iLitC, iLit1, iLit0 );
+            pPlace = Gia_ManHashFind( p, iLit0, iLit1, iLitC );
+            assert( *pPlace == 0 );
+            *pPlace = iNode;
+        }
+        return Abc_LitNotCond( *pPlace, fCompl );
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Hashes AND gate.]
 
   Description []
                
@@ -493,7 +580,7 @@ int Gia_ManHashAnd( Gia_Man_t * p, int iLit0, int iLit1 )
     if ( iLit0 > iLit1 )
         iLit0 ^= iLit1, iLit1 ^= iLit0, iLit0 ^= iLit1;
     {
-        int * pPlace = Gia_ManHashFind( p, iLit0, iLit1 );
+        int * pPlace = Gia_ManHashFind( p, iLit0, iLit1, -1 );
         if ( *pPlace )
         {
             p->nHashHit++;
@@ -505,7 +592,7 @@ int Gia_ManHashAnd( Gia_Man_t * p, int iLit0, int iLit1 )
         else
         {
             int iNode = Gia_ManAppendAnd( p, iLit0, iLit1 );
-            pPlace = Gia_ManHashFind( p, iLit0, iLit1 );
+            pPlace = Gia_ManHashFind( p, iLit0, iLit1, -1 );
             assert( *pPlace == 0 );
             return *pPlace = iNode;
         }
@@ -518,7 +605,7 @@ int Gia_ManHashOr( Gia_Man_t * p, int iLit0, int iLit1 )
 
 /**Function*************************************************************
 
-  Synopsis    [Rehashes AIG with mapping.]
+  Synopsis    []
 
   Description []
                
@@ -540,7 +627,7 @@ int Gia_ManHashAndTry( Gia_Man_t * p, int iLit0, int iLit1 )
     if ( iLit0 > iLit1 )
         iLit0 ^= iLit1, iLit1 ^= iLit0, iLit0 ^= iLit1;
     {
-        int * pPlace = Gia_ManHashFind( p, iLit0, iLit1 );
+        int * pPlace = Gia_ManHashFind( p, iLit0, iLit1, -1 );
         if ( *pPlace ) 
             return *pPlace;
         return -1;
@@ -549,7 +636,7 @@ int Gia_ManHashAndTry( Gia_Man_t * p, int iLit0, int iLit1 )
 
 /**Function*************************************************************
 
-  Synopsis    [Rehashes AIG with mapping.]
+  Synopsis    []
 
   Description []
                
@@ -568,7 +655,7 @@ int Gia_ManHashXor( Gia_Man_t * p, int iLit0, int iLit1 )
 
 /**Function*************************************************************
 
-  Synopsis    [Rehashes AIG with mapping.]
+  Synopsis    []
 
   Description []
                
@@ -586,7 +673,7 @@ int Gia_ManHashMux( Gia_Man_t * p, int iCtrl, int iData1, int iData0 )
 
 /**Function*************************************************************
 
-  Synopsis    [Rehashes AIG with mapping.]
+  Synopsis    [Rehashes AIG.]
 
   Description []
                

@@ -52,7 +52,8 @@ int Gia_ManCombMarkUsed_rec( Gia_Man_t * p, Gia_Obj_t * pObj )
     assert( Gia_ObjIsAnd(pObj) );
     return 1 + Gia_ManCombMarkUsed_rec( p, Gia_ObjFanin0(pObj) )
              + Gia_ManCombMarkUsed_rec( p, Gia_ObjFanin1(pObj) )
-             + (p->pNexts ? Gia_ManCombMarkUsed_rec( p, Gia_ObjNextObj(p, Gia_ObjId(p, pObj)) ) : 0);
+             + (p->pNexts ? Gia_ManCombMarkUsed_rec( p, Gia_ObjNextObj(p, Gia_ObjId(p, pObj)) ) : 0)
+             + (p->pMuxes ? Gia_ManCombMarkUsed_rec( p, Gia_ObjFanin2(p, pObj) ) : 0);
 }
 
 /**Function*************************************************************

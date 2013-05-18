@@ -1120,6 +1120,15 @@ void Gia_ObjPrint( Gia_Man_t * p, Gia_Obj_t * pObj )
         printf( "RI( %4d%s )", Gia_ObjFaninId0p(p, pObj), (Gia_ObjFaninC0(pObj)? "\'" : " ") );
 //    else if ( Gia_ObjIsBuf(pObj) )
 //        printf( "BUF( %d%s )", Gia_ObjFaninId0p(p, pObj), (Gia_ObjFaninC0(pObj)? "\'" : " ") );
+    else if ( Gia_ObjIsXor(pObj) )
+        printf( "XOR( %4d%s, %4d%s )", 
+            Gia_ObjFaninId0p(p, pObj), (Gia_ObjFaninC0(pObj)? "\'" : " "), 
+            Gia_ObjFaninId1p(p, pObj), (Gia_ObjFaninC1(pObj)? "\'" : " ") );
+    else if ( Gia_ObjIsMux(p, pObj) )
+        printf( "MUX( %4d%s, %4d%s, %4d%s )", 
+            Gia_ObjFaninId2p(p, pObj), (Gia_ObjFaninC2(p, pObj)? "\'" : " "), 
+            Gia_ObjFaninId1p(p, pObj), (Gia_ObjFaninC1(pObj)? "\'" : " "), 
+            Gia_ObjFaninId0p(p, pObj), (Gia_ObjFaninC0(pObj)? "\'" : " ") );
     else
         printf( "AND( %4d%s, %4d%s )", 
             Gia_ObjFaninId0p(p, pObj), (Gia_ObjFaninC0(pObj)? "\'" : " "), 
@@ -1156,6 +1165,8 @@ void Gia_ManPrint( Gia_Man_t * p )
 {
     Gia_Obj_t * pObj;
     int i;
+    printf( "GIA manage has %d ANDs, %d XORs, %d MUXes.\n", 
+        Gia_ManAndNum(p) - Gia_ManXorNum(p) - Gia_ManMuxNum(p), Gia_ManXorNum(p), Gia_ManMuxNum(p) ); 
     Gia_ManForEachObj( p, pObj, i )
         Gia_ObjPrint( p, pObj );
 }

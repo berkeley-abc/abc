@@ -752,6 +752,8 @@ Gia_Man_t * Gia_ManDupMarked( Gia_Man_t * p )
     int i, nRos = 0, nRis = 0;
     Gia_ManFillValue( p );
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    if ( p->pMuxes )
+        pNew->pMuxes = ABC_CALLOC( unsigned, pNew->nObjsAlloc );
     pNew->nConstrs = p->nConstrs;
     pNew->pName = Abc_UtilStrsav( p->pName );
     pNew->pSpec = Abc_UtilStrsav( p->pSpec );
@@ -762,7 +764,14 @@ Gia_Man_t * Gia_ManDupMarked( Gia_Man_t * p )
             continue;
         pObj->fMark0 = 0;
         if ( Gia_ObjIsAnd(pObj) )
-            pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        {
+            if ( Gia_ObjIsXor(pObj) )
+                pObj->Value = Gia_ManAppendXorReal( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+            else if ( Gia_ObjIsMux(p, pObj) )
+                pObj->Value = Gia_ManAppendMuxReal( pNew, Gia_ObjFanin2Copy(p, pObj), Gia_ObjFanin1Copy(pObj), Gia_ObjFanin0Copy(pObj) );
+            else
+                pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        }
         else if ( Gia_ObjIsCi(pObj) )
         {
             pObj->Value = Gia_ManAppendCi( pNew );
@@ -2349,6 +2358,132 @@ Gia_Man_t * Gia_ManDupFromVecs( Gia_Man_t * p, Vec_Int_t * vCis, Vec_Int_t * vAn
     Gia_ManSetRegNum( pNew, nRegs );
     return pNew;
 }
+
+/**Function*************************************************************
+
+  Synopsis    [Derives GIA with MUXes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManDupMuxes( Gia_Man_t * p )
+{
+    Gia_Man_t * pNew, * pTemp;
+    Gia_Obj_t * pObj, * pFan0, * pFan1, * pFanC;
+    int i;
+    assert( p->pMuxes == NULL );
+    // start the new manager
+    pNew = Gia_ManStart( 5000 );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    pNew->pMuxes = ABC_CALLOC( unsigned, pNew->nObjsAlloc );
+    // create constant
+    Gia_ManConst0(p)->Value = 0;
+    // create PIs
+    Gia_ManForEachCi( p, pObj, i )
+        pObj->Value = Gia_ManAppendCi( pNew );
+    // create internal nodes
+    Gia_ManHashStart( pNew );
+    Gia_ManForEachAnd( p, pObj, i )
+    {
+        if ( !Gia_ObjIsMuxType(pObj) )
+            pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        else if ( Gia_ObjRecognizeExor(pObj, &pFan0, &pFan1) )
+            pObj->Value = Gia_ManHashXorReal( pNew, Gia_ObjLitCopy(p, Gia_ObjToLit(p, pFan0)), Gia_ObjLitCopy(p, Gia_ObjToLit(p, pFan1)) );
+        else
+        {
+            pFanC = Gia_ObjRecognizeMux( pObj, &pFan1, &pFan0 );
+            pObj->Value = Gia_ManHashMuxReal( pNew, Gia_ObjLitCopy(p, Gia_ObjToLit(p, pFanC)), Gia_ObjLitCopy(p, Gia_ObjToLit(p, pFan1)), Gia_ObjLitCopy(p, Gia_ObjToLit(p, pFan0)) );
+        }
+    }
+    Gia_ManHashStop( pNew );
+    // create ROs
+    Gia_ManForEachCo( p, pObj, i )
+        pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    // perform cleanup
+    pNew = Gia_ManCleanup( pTemp = pNew );
+    Gia_ManStop( pTemp );
+    return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Derives GIA without MUXes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManDupNoMuxes( Gia_Man_t * p )
+{
+    Gia_Man_t * pNew, * pTemp;
+    Gia_Obj_t * pObj;
+    int i;
+    assert( p->pMuxes != NULL );
+    // start the new manager
+    pNew = Gia_ManStart( 5000 );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    // create constant
+    Gia_ManConst0(p)->Value = 0;
+    // create PIs
+    Gia_ManForEachCi( p, pObj, i )
+        pObj->Value = Gia_ManAppendCi( pNew );
+    // create internal nodes
+    Gia_ManHashStart( pNew );
+    Gia_ManForEachAnd( p, pObj, i )
+    {
+        if ( Gia_ObjIsMux(p, pObj) )
+            pObj->Value = Gia_ManHashMux( pNew, Gia_ObjFanin2Copy(p, pObj), Gia_ObjFanin1Copy(pObj), Gia_ObjFanin0Copy(pObj) );
+        else if ( Gia_ObjIsXor(pObj) )
+            pObj->Value = Gia_ManHashXor( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        else 
+            pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    }
+    Gia_ManHashStop( pNew );
+    // create ROs
+    Gia_ManForEachCo( p, pObj, i )
+        pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    // perform cleanup
+    pNew = Gia_ManCleanup( pTemp = pNew );
+    Gia_ManStop( pTemp );
+    return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Test these procedures.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManDupMuxesTest( Gia_Man_t * p )
+{
+    Gia_Man_t * pNew, * pNew2;
+    pNew = Gia_ManDupMuxes( p );
+    pNew2 = Gia_ManDupNoMuxes( pNew );
+    Gia_ManPrintStats( p, 0, 0, 0 );
+    Gia_ManPrintStats( pNew, 0, 0, 0 );
+    Gia_ManPrintStats( pNew2, 0, 0, 0 );
+    Gia_ManStop( pNew );
+//    Gia_ManStop( pNew2 );
+    return pNew2;
+}
+
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

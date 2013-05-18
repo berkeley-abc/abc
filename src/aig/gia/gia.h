@@ -89,8 +89,6 @@ struct Gia_Obj_t_
 // Value is currently used to store several types of information
 // - pointer to the next node in the hash table during structural hashing
 // - pointer to the node copy during duplication 
-// - traversal ID of the node during traversal
-// - reference counter of the node (will not be used in the future)
 
 // new AIG manager
 typedef struct Gia_Man_t_ Gia_Man_t;
@@ -103,6 +101,9 @@ struct Gia_Man_t_
     int            nObjs;         // number of objects
     int            nObjsAlloc;    // number of allocated objects
     Gia_Obj_t *    pObjs;         // the array of objects
+    unsigned *     pMuxes;        // control signals of MUXes
+    int            nXors;         // the number of XORs
+    int            nMuxes;        // the number of MUXes 
     Vec_Int_t *    vCis;          // the vector of CIs (PIs + LOs)
     Vec_Int_t *    vCos;          // the vector of COs (POs + LIs)
     int *          pHTable;       // hash table
@@ -302,6 +303,8 @@ static inline int          Gia_ManPoNum( Gia_Man_t * p )       { return Vec_IntS
 static inline int          Gia_ManRegNum( Gia_Man_t * p )      { return p->nRegs;                                                          }
 static inline int          Gia_ManObjNum( Gia_Man_t * p )      { return p->nObjs;                                                          }
 static inline int          Gia_ManAndNum( Gia_Man_t * p )      { return p->nObjs - Vec_IntSize(p->vCis) - Vec_IntSize(p->vCos) - 1;        }
+static inline int          Gia_ManXorNum( Gia_Man_t * p )      { return p->nXors;                                                          }
+static inline int          Gia_ManMuxNum( Gia_Man_t * p )      { return p->nMuxes;                                                         }
 static inline int          Gia_ManCandNum( Gia_Man_t * p )     { return Gia_ManCiNum(p) + Gia_ManAndNum(p);                                }
 static inline int          Gia_ManConstrNum( Gia_Man_t * p )   { return p->nConstrs;                                                       }
 static inline void         Gia_ManFlipVerbose( Gia_Man_t * p ) { p->fVerbose ^= 1;                                                         } 
@@ -317,22 +320,24 @@ static inline Gia_Obj_t *  Gia_ManPo( Gia_Man_t * p, int v )   { assert( v < Gia
 static inline Gia_Obj_t *  Gia_ManRo( Gia_Man_t * p, int v )   { assert( v < Gia_ManRegNum(p) ); return Gia_ManCi( p, Gia_ManPiNum(p)+v ); }
 static inline Gia_Obj_t *  Gia_ManRi( Gia_Man_t * p, int v )   { assert( v < Gia_ManRegNum(p) ); return Gia_ManCo( p, Gia_ManPoNum(p)+v ); }
 
+static inline int          Gia_ObjId( Gia_Man_t * p, Gia_Obj_t * pObj )        { assert( p->pObjs <= pObj && pObj < p->pObjs + p->nObjs ); return pObj - p->pObjs; }
+static inline int          Gia_ObjCioId( Gia_Obj_t * pObj )                    { assert( pObj->fTerm ); return pObj->iDiff1;                 }
+static inline void         Gia_ObjSetCioId( Gia_Obj_t * pObj, int v )          { assert( pObj->fTerm ); pObj->iDiff1 = v;                    }
+static inline int          Gia_ObjValue( Gia_Obj_t * pObj )                    { return pObj->Value;                                         }
+static inline void         Gia_ObjSetValue( Gia_Obj_t * pObj, int i )          { pObj->Value = i;                                            }
+static inline int          Gia_ObjPhase( Gia_Obj_t * pObj )                    { return pObj->fPhase;                                        }
+static inline int          Gia_ObjPhaseReal( Gia_Obj_t * pObj )                { return Gia_Regular(pObj)->fPhase ^ Gia_IsComplement(pObj);  }
+
 static inline int          Gia_ObjIsTerm( Gia_Obj_t * pObj )                   { return pObj->fTerm;                             } 
 static inline int          Gia_ObjIsAndOrConst0( Gia_Obj_t * pObj )            { return!pObj->fTerm;                             } 
 static inline int          Gia_ObjIsCi( Gia_Obj_t * pObj )                     { return pObj->fTerm && pObj->iDiff0 == GIA_NONE; } 
 static inline int          Gia_ObjIsCo( Gia_Obj_t * pObj )                     { return pObj->fTerm && pObj->iDiff0 != GIA_NONE; } 
 static inline int          Gia_ObjIsAnd( Gia_Obj_t * pObj )                    { return!pObj->fTerm && pObj->iDiff0 != GIA_NONE; } 
+static inline int          Gia_ObjIsXor( Gia_Obj_t * pObj )                    { return Gia_ObjIsAnd(pObj) && pObj->iDiff0 < pObj->iDiff1; } 
+static inline int          Gia_ObjIsMux( Gia_Man_t * p, Gia_Obj_t * pObj )     { return p->pMuxes && p->pMuxes[Gia_ObjId(p, pObj)] > 0;    } 
 static inline int          Gia_ObjIsCand( Gia_Obj_t * pObj )                   { return Gia_ObjIsAnd(pObj) || Gia_ObjIsCi(pObj); } 
 static inline int          Gia_ObjIsConst0( Gia_Obj_t * pObj )                 { return pObj->iDiff0 == GIA_NONE && pObj->iDiff1 == GIA_NONE; } 
 static inline int          Gia_ManObjIsConst0( Gia_Man_t * p, Gia_Obj_t * pObj){ return pObj == p->pObjs;                        } 
-
-static inline int          Gia_ObjId( Gia_Man_t * p, Gia_Obj_t * pObj )        { assert( p->pObjs <= pObj && pObj < p->pObjs + p->nObjs ); return pObj - p->pObjs; }
-static inline int          Gia_ObjCioId( Gia_Obj_t * pObj )                    { assert( Gia_ObjIsTerm(pObj) ); return pObj->iDiff1;         }
-static inline void         Gia_ObjSetCioId( Gia_Obj_t * pObj, int v )          { assert( Gia_ObjIsTerm(pObj) ); pObj->iDiff1 = v;            }
-static inline int          Gia_ObjValue( Gia_Obj_t * pObj )                    { return pObj->Value;                                         }
-static inline void         Gia_ObjSetValue( Gia_Obj_t * pObj, int i )          { pObj->Value = i;                                            }
-static inline int          Gia_ObjPhase( Gia_Obj_t * pObj )                    { return pObj->fPhase;                                        }
-static inline int          Gia_ObjPhaseReal( Gia_Obj_t * pObj )                { return Gia_Regular(pObj)->fPhase ^ Gia_IsComplement(pObj);  }
 
 static inline int          Gia_Obj2Lit( Gia_Man_t * p, Gia_Obj_t * pObj )      { return Abc_Var2Lit(Gia_ObjId(p, Gia_Regular(pObj)), Gia_IsComplement(pObj)); }
 static inline Gia_Obj_t *  Gia_Lit2Obj( Gia_Man_t * p, int iLit )              { return Gia_NotCond(Gia_ManObj(p, Abc_Lit2Var(iLit)), Abc_LitIsCompl(iLit));  }
@@ -353,18 +358,25 @@ static inline int          Gia_ObjDiff0( Gia_Obj_t * pObj )                    {
 static inline int          Gia_ObjDiff1( Gia_Obj_t * pObj )                    { return pObj->iDiff1;         }
 static inline int          Gia_ObjFaninC0( Gia_Obj_t * pObj )                  { return pObj->fCompl0;        }
 static inline int          Gia_ObjFaninC1( Gia_Obj_t * pObj )                  { return pObj->fCompl1;        }
+static inline int          Gia_ObjFaninC2( Gia_Man_t * p, Gia_Obj_t * pObj )   { return p->pMuxes && Abc_LitIsCompl(p->pMuxes[Gia_ObjId(p, pObj)]);  }
 static inline Gia_Obj_t *  Gia_ObjFanin0( Gia_Obj_t * pObj )                   { return pObj - pObj->iDiff0;  }
 static inline Gia_Obj_t *  Gia_ObjFanin1( Gia_Obj_t * pObj )                   { return pObj - pObj->iDiff1;  }
+static inline Gia_Obj_t *  Gia_ObjFanin2( Gia_Man_t * p, Gia_Obj_t * pObj )    { return p->pMuxes ? Gia_ManObj(p, Abc_Lit2Var(p->pMuxes[Gia_ObjId(p, pObj)])) : NULL;  }
 static inline Gia_Obj_t *  Gia_ObjChild0( Gia_Obj_t * pObj )                   { return Gia_NotCond( Gia_ObjFanin0(pObj), Gia_ObjFaninC0(pObj) ); }
 static inline Gia_Obj_t *  Gia_ObjChild1( Gia_Obj_t * pObj )                   { return Gia_NotCond( Gia_ObjFanin1(pObj), Gia_ObjFaninC1(pObj) ); }
+static inline Gia_Obj_t *  Gia_ObjChild2( Gia_Man_t * p, Gia_Obj_t * pObj )    { return Gia_NotCond( Gia_ObjFanin2(p, pObj), Gia_ObjFaninC2(p, pObj) ); }
 static inline int          Gia_ObjFaninId0( Gia_Obj_t * pObj, int ObjId )      { return ObjId - pObj->iDiff0;    }
 static inline int          Gia_ObjFaninId1( Gia_Obj_t * pObj, int ObjId )      { return ObjId - pObj->iDiff1;    }
+static inline int          Gia_ObjFaninId2( Gia_Man_t * p, int ObjId )         { return (p->pMuxes && p->pMuxes[ObjId]) ? Abc_Lit2Var(p->pMuxes[ObjId]) : -1; }
 static inline int          Gia_ObjFaninId0p( Gia_Man_t * p, Gia_Obj_t * pObj ) { return Gia_ObjFaninId0( pObj, Gia_ObjId(p, pObj) );              }
 static inline int          Gia_ObjFaninId1p( Gia_Man_t * p, Gia_Obj_t * pObj ) { return Gia_ObjFaninId1( pObj, Gia_ObjId(p, pObj) );              }
+static inline int          Gia_ObjFaninId2p( Gia_Man_t * p, Gia_Obj_t * pObj ) { return (p->pMuxes && p->pMuxes[Gia_ObjId(p, pObj)]) ? Abc_Lit2Var(p->pMuxes[Gia_ObjId(p, pObj)]) : -1; }
 static inline int          Gia_ObjFaninLit0( Gia_Obj_t * pObj, int ObjId )     { return Abc_Var2Lit( Gia_ObjFaninId0(pObj, ObjId), Gia_ObjFaninC0(pObj) ); }
 static inline int          Gia_ObjFaninLit1( Gia_Obj_t * pObj, int ObjId )     { return Abc_Var2Lit( Gia_ObjFaninId1(pObj, ObjId), Gia_ObjFaninC1(pObj) ); }
+static inline int          Gia_ObjFaninLit2( Gia_Man_t * p, int ObjId )        { return (p->pMuxes && p->pMuxes[ObjId]) ? p->pMuxes[ObjId] : -1;           }
 static inline int          Gia_ObjFaninLit0p( Gia_Man_t * p, Gia_Obj_t * pObj) { return Abc_Var2Lit( Gia_ObjFaninId0p(p, pObj), Gia_ObjFaninC0(pObj) );    }
 static inline int          Gia_ObjFaninLit1p( Gia_Man_t * p, Gia_Obj_t * pObj) { return Abc_Var2Lit( Gia_ObjFaninId1p(p, pObj), Gia_ObjFaninC1(pObj) );    }
+static inline int          Gia_ObjFaninLit2p( Gia_Man_t * p, Gia_Obj_t * pObj) { return (p->pMuxes && p->pMuxes[Gia_ObjId(p, pObj)]) ? p->pMuxes[Gia_ObjId(p, pObj)] : -1;    }
 static inline void         Gia_ObjFlipFaninC0( Gia_Obj_t * pObj )              { assert( Gia_ObjIsCo(pObj) ); pObj->fCompl0 ^= 1;          }
 static inline int          Gia_ObjWhatFanin( Gia_Obj_t * pObj, Gia_Obj_t * pFanin )  { return Gia_ObjFanin0(pObj) == pFanin ? 0 : (Gia_ObjFanin1(pObj) == pFanin ? 1 : -1); }
 
@@ -372,9 +384,11 @@ static inline int          Gia_ManPoIsConst0( Gia_Man_t * p, int iPoIndex )    {
 static inline int          Gia_ManPoIsConst1( Gia_Man_t * p, int iPoIndex )    { return Gia_ManIsConst1Lit( Gia_ObjFaninLit0p(p, Gia_ManPo(p, iPoIndex)) ); }
 
 static inline Gia_Obj_t *  Gia_ObjCopy( Gia_Man_t * p, Gia_Obj_t * pObj )      { return Gia_ManObj( p, Abc_Lit2Var(pObj->Value) );                              }
+static inline int          Gia_ObjLitCopy( Gia_Man_t * p, int iLit )           { return Abc_LitNotCond( Gia_ManObj(p, Abc_Lit2Var(iLit))->Value, Abc_LitIsCompl(iLit));     }
 
 static inline int          Gia_ObjFanin0Copy( Gia_Obj_t * pObj )               { return Abc_LitNotCond( Gia_ObjFanin0(pObj)->Value, Gia_ObjFaninC0(pObj) );     }
 static inline int          Gia_ObjFanin1Copy( Gia_Obj_t * pObj )               { return Abc_LitNotCond( Gia_ObjFanin1(pObj)->Value, Gia_ObjFaninC1(pObj) );     }
+static inline int          Gia_ObjFanin2Copy( Gia_Man_t * p, Gia_Obj_t * pObj ){ return Abc_LitNotCond(Gia_ObjFanin2(p, pObj)->Value, Gia_ObjFaninC2(p, pObj)); }
 
 static inline int          Gia_ObjCopyF( Gia_Man_t * p, int f, Gia_Obj_t * pObj )               { return p->pCopies[Gia_ManObjNum(p) * f + Gia_ObjId(p,pObj)];  }
 static inline void         Gia_ObjSetCopyF( Gia_Man_t * p, int f, Gia_Obj_t * pObj, int iLit )  { p->pCopies[Gia_ManObjNum(p) * f + Gia_ObjId(p,pObj)] = iLit;  }
@@ -446,6 +460,11 @@ static inline Gia_Obj_t * Gia_ManAppendObj( Gia_Man_t * p )
         assert( p->nObjsAlloc > 0 );
         p->pObjs = ABC_REALLOC( Gia_Obj_t, p->pObjs, 2 * p->nObjsAlloc );
         memset( p->pObjs + p->nObjsAlloc, 0, sizeof(Gia_Obj_t) * p->nObjsAlloc );
+        if ( p->pMuxes )
+        {
+            p->pMuxes = ABC_REALLOC( unsigned, p->pMuxes, 2 * p->nObjsAlloc );
+            memset( p->pMuxes + p->nObjsAlloc, 0, sizeof(unsigned) * p->nObjsAlloc );
+        }
         p->nObjsAlloc *= 2;
     }
     return Gia_ManObj( p, p->nObjs++ );
@@ -464,7 +483,7 @@ static inline int Gia_ManAppendAnd( Gia_Man_t * p, int iLit0, int iLit1 )
     Gia_Obj_t * pObj = Gia_ManAppendObj( p );
     assert( iLit0 >= 0 && Abc_Lit2Var(iLit0) < Gia_ManObjNum(p) );
     assert( iLit1 >= 0 && Abc_Lit2Var(iLit1) < Gia_ManObjNum(p) );
-    assert( iLit0 != iLit1 );
+    assert( Abc_Lit2Var(iLit0) != Abc_Lit2Var(iLit1) );
     if ( iLit0 < iLit1 )
     {
         pObj->iDiff0  = Gia_ObjId(p, pObj) - Abc_Lit2Var(iLit0);
@@ -492,6 +511,42 @@ static inline int Gia_ManAppendAnd( Gia_Man_t * p, int iLit0, int iLit1 )
         if ( pFan1->fMark0 ) pFan1->fMark1 = 1; else pFan1->fMark0 = 1;
         pObj->fPhase = (Gia_ObjPhase(pFan0) ^ Gia_ObjFaninC0(pObj)) & (Gia_ObjPhase(pFan1) ^ Gia_ObjFaninC1(pObj));
     }
+    return Gia_ObjId( p, pObj ) << 1;
+}
+static inline int Gia_ManAppendXorReal( Gia_Man_t * p, int iLit0, int iLit1 )  
+{ 
+    Gia_Obj_t * pObj = Gia_ManAppendObj( p );
+    assert( iLit0 >= 0 && Abc_Lit2Var(iLit0) < Gia_ManObjNum(p) );
+    assert( iLit1 >= 0 && Abc_Lit2Var(iLit1) < Gia_ManObjNum(p) );
+    assert( Abc_Lit2Var(iLit0) != Abc_Lit2Var(iLit1) );
+    assert( !Abc_LitIsCompl(iLit0) );
+    assert( !Abc_LitIsCompl(iLit1) );
+    assert( Abc_Lit2Var(iLit0) > Abc_Lit2Var(iLit1) );
+    pObj->iDiff0  = Gia_ObjId(p, pObj) - Abc_Lit2Var(iLit0);
+    pObj->fCompl0 = Abc_LitIsCompl(iLit0);
+    pObj->iDiff1  = Gia_ObjId(p, pObj) - Abc_Lit2Var(iLit1);
+    pObj->fCompl1 = Abc_LitIsCompl(iLit1);
+    p->nXors++;
+    return Gia_ObjId( p, pObj ) << 1;
+}
+static inline int Gia_ManAppendMuxReal( Gia_Man_t * p, int iLitC, int iLit1, int iLit0 )  
+{ 
+    Gia_Obj_t * pObj = Gia_ManAppendObj( p );
+    assert( p->pMuxes != NULL );
+    assert( iLit0 >= 0 && Abc_Lit2Var(iLit0) < Gia_ManObjNum(p) );
+    assert( iLit1 >= 0 && Abc_Lit2Var(iLit1) < Gia_ManObjNum(p) );
+    assert( iLitC >= 0 && Abc_Lit2Var(iLitC) < Gia_ManObjNum(p) );
+    assert( Abc_Lit2Var(iLit0) != Abc_Lit2Var(iLit1) );
+    assert( Abc_Lit2Var(iLitC) != Abc_Lit2Var(iLit0) );
+    assert( Abc_Lit2Var(iLitC) != Abc_Lit2Var(iLit1) );
+    assert( Abc_Lit2Var(iLit0) < Abc_Lit2Var(iLit1) );
+    assert( !Abc_LitIsCompl(iLit1) );
+    pObj->iDiff0  = Gia_ObjId(p, pObj) - Abc_Lit2Var(iLit0);
+    pObj->fCompl0 = Abc_LitIsCompl(iLit0);
+    pObj->iDiff1  = Gia_ObjId(p, pObj) - Abc_Lit2Var(iLit1);
+    pObj->fCompl1 = Abc_LitIsCompl(iLit1);
+    p->pMuxes[Gia_ObjId(p, pObj)] = iLitC;
+    p->nMuxes++;
     return Gia_ObjId( p, pObj ) << 1;
 }
 static inline int Gia_ManAppendCo( Gia_Man_t * p, int iLit0 )  
@@ -913,7 +968,9 @@ extern void                Gia_ManFrontTest( Gia_Man_t * p );
 /*=== giaHash.c ===========================================================*/
 extern void                Gia_ManHashAlloc( Gia_Man_t * p ); 
 extern void                Gia_ManHashStart( Gia_Man_t * p ); 
-extern void                Gia_ManHashStop( Gia_Man_t * p );  
+extern void                Gia_ManHashStop( Gia_Man_t * p );
+extern int                 Gia_ManHashXorReal( Gia_Man_t * p, int iLit0, int iLit1 );
+extern int                 Gia_ManHashMuxReal( Gia_Man_t * p, int iLitC, int iLit1, int iLit0 );
 extern int                 Gia_ManHashAnd( Gia_Man_t * p, int iLit0, int iLit1 ); 
 extern int                 Gia_ManHashOr( Gia_Man_t * p, int iLit0, int iLit1 ); 
 extern int                 Gia_ManHashXor( Gia_Man_t * p, int iLit0, int iLit1 ); 
