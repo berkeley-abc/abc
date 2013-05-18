@@ -1165,7 +1165,7 @@ void Gia_ManPrint( Gia_Man_t * p )
 {
     Gia_Obj_t * pObj;
     int i;
-    printf( "GIA manage has %d ANDs, %d XORs, %d MUXes.\n", 
+    printf( "GIA manager has %d ANDs, %d XORs, %d MUXes.\n", 
         Gia_ManAndNum(p) - Gia_ManXorNum(p) - Gia_ManMuxNum(p), Gia_ManXorNum(p), Gia_ManMuxNum(p) ); 
     Gia_ManForEachObj( p, pObj, i )
         Gia_ObjPrint( p, pObj );
