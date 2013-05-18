@@ -21479,7 +21479,7 @@ usage:
     Abc_Print( -2, "\t-I num : the number of PIs to abstract [default = %d]\n",                   pPars->nPisAbstract );
     Abc_Print( -2, "\t-P num : the max number of learned clauses to keep (0=unused) [default = %d]\n", pPars->nLearnedStart );
     Abc_Print( -2, "\t-Q num : delta value for learned clause removal [default = %d]\n",               pPars->nLearnedDelta );
-    Abc_Print( -2, "\t-R num : ratio percentage for learned clause removal [default = %d]\n",          pPars->nLearnedPerce );
+    Abc_Print( -2, "\t-R num : percentage to keep for learned clause removal [default = %d]\n",          pPars->nLearnedPerce );
     Abc_Print( -2, "\t-L file: the log file name [default = %s]\n",                               pLogFileName ? pLogFileName : "no logging" );
     Abc_Print( -2, "\t-a     : solve all outputs (do not stop when one is SAT) [default = %s]\n", pPars->fSolveAll? "yes": "no" );
     Abc_Print( -2, "\t-x     : toggle storing CEXes when solving all outputs [default = %s]\n",   pPars->fStoreCex? "yes": "no" );

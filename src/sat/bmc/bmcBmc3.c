@@ -761,8 +761,14 @@ Gia_ManBmc_t * Saig_Bmc3ManStart( Aig_Man_t * pAig, int nTimeOutOne )
 void Saig_Bmc3ManStop( Gia_ManBmc_t * p )
 {
     if ( p->pPars->fVerbose )
-    printf( "Buffs = %d. Dups = %d.   Hash hits = %d.  Hash misses = %d.  Hash overs = %d.  UniProps = %d.\n", 
-        p->nBufNum, p->nDupNum, p->nHashHit, p->nHashMiss, p->nHashOver, p->nUniProps );
+    {
+        int nUsedVars = sat_solver_count_usedvars(p->pSat);
+        printf( "LStart(P) = %d  LDelta(Q) = %d  LRatio(R) = %d  ReduceDB = %d  Vars = %d  Used = %d (%.2f %%)\n", 
+            p->pSat->nLearntStart, p->pSat->nLearntDelta, p->pSat->nLearntRatio, 
+            p->pSat->nDBreduces, p->pSat->size, nUsedVars, 100.0*nUsedVars/p->pSat->size );
+        printf( "Buffs = %d. Dups = %d.   Hash hits = %d.  Hash misses = %d.  Hash overs = %d.  UniProps = %d.\n", 
+            p->nBufNum, p->nDupNum, p->nHashHit, p->nHashMiss, p->nHashOver, p->nUniProps );
+    }
 //    Aig_ManCleanMarkA( p->pAig );
     if ( p->vCexes )
     {
@@ -1642,7 +1648,7 @@ nTimeUndec += clock() - clk2;
             }
             printf( "%4d %s : ", f, fUnfinished ? "-" : "+" );
             printf( "Var =%8.0f. ", (double)p->nSatVars );
-            printf( "Used =%8.0f. ", (double)sat_solver_count_usedvars(p->pSat) );
+//            printf( "Used =%8.0f. ", (double)sat_solver_count_usedvars(p->pSat) );
             printf( "Cla =%9.0f. ", (double)p->pSat->stats.clauses );
             printf( "Conf =%7.0f. ",(double)p->pSat->stats.conflicts );
 //            printf( "Imp =%10.0f. ", (double)p->pSat->stats.propagations );
