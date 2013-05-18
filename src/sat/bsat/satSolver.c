@@ -466,6 +466,10 @@ static int clause_create_new(sat_solver* s, lit* begin, lit* end, int learnt)
 static inline int sat_solver_enqueue(sat_solver* s, lit l, int from)
 {
     int v  = lit_var(l);
+
+    if ( s->pFreqs[v]++ == 0 )
+        s->nVarUsed++;
+
 #ifdef VERBOSEDEBUG
     printf(L_IND"enqueue("L_LIT")\n", L_ind, L_lit(l));
 #endif
@@ -957,6 +961,8 @@ sat_solver* sat_solver_new(void)
     s->nLearntRatio = LEARNT_MAX_RATIO_DEFAULT;  // ratio of learned clause limit
     s->nLearntMax   = s->nLearntStart;
 
+    s->pFreqs  = ABC_CALLOC( int, 10000000 );
+
     // initialize vectors
     veci_new(&s->order);
     veci_new(&s->trail_lim);
@@ -1077,6 +1083,14 @@ void sat_solver_setnvars(sat_solver* s,int n)
 
 void sat_solver_delete(sat_solver* s)
 {
+    int i, nVars = 0;
+    // count non-zero entries
+    for ( i = 0; i < s->size; i++ )
+        nVars += (s->pFreqs[i] > 0);
+    printf( "Assigned = %d.  Total = %d.  (%6.2f %%)\n", nVars, s->size, 100.0 * nVars/s->size );
+    ABC_FREE( s->pFreqs );
+
+
 //    Vec_SetFree_( &s->Mem );
     Sat_MemFree_( &s->Mem );
 
