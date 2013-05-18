@@ -21,6 +21,7 @@
 #include "proof/fra/fra.h"
 #include "sat/cnf/cnf.h"
 #include "sat/bsat/satStore.h"
+#include "misc/vec/vecHsh.h"
 #include "bmc.h"
 
 ABC_NAMESPACE_IMPL_START
@@ -45,11 +46,17 @@ struct Gia_ManBmc_t_
     Vec_Ptr_t *       vId2Var;     // SAT vars for each object
     clock_t *         pTime4Outs;  // timeout per output
     // hash table
+/*
     int *             pTable;
     int               nTable;
+*/
+    Vec_Int_t *       vData;
+    Hsh_IntMan_t *    vHash;
+    Vec_Int_t *       vId2Lit;
     int               nHashHit;
     int               nHashMiss;
     int               nHashOver;
+
     int               nBufNum;     // the number of simple nodes
     int               nDupNum;     // the number of simple nodes
     int               nUniProps;   // propagating learned clause values
@@ -735,8 +742,11 @@ Gia_ManBmc_t * Saig_Bmc3ManStart( Aig_Man_t * pAig, int nTimeOutOne )
     // terminary simulation 
     p->nWordNum = Abc_BitWordNum( 2 * Aig_ManObjNumMax(pAig) );
     // hash table
-    p->nTable = 1000003;
-    p->pTable = ABC_CALLOC( int, 6 * p->nTable ); // 2.4 MB
+//    p->nTable = Abc_PrimeCudd( 10000000 );
+//    p->pTable = ABC_CALLOC( int, 6 * p->nTable ); // 2.4 MB
+    p->vData = Vec_IntAlloc( 5 * 10000 );
+    p->vHash = Hsh_IntManStart( p->vData, 5, 10000 );
+    p->vId2Lit = Vec_IntAlloc( 10000 );
     // time spent on each outputs
     if ( nTimeOutOne )
     {
@@ -785,7 +795,11 @@ void Saig_Bmc3ManStop( Gia_ManBmc_t * p )
     Vec_PtrFreeFree( p->vTerInfo );
     sat_solver_delete( p->pSat );
     ABC_FREE( p->pTime4Outs );
-    ABC_FREE( p->pTable );
+//    ABC_FREE( p->pTable );
+    Vec_IntFree( p->vData );
+    Hsh_IntManStop( p->vHash );
+    Vec_IntFree( p->vId2Lit );
+
     ABC_FREE( p->pSopSizes );
     ABC_FREE( p->pSops[1] );
     ABC_FREE( p->pSops );
@@ -1058,6 +1072,7 @@ static inline void Saig_ManBmcAddClauses( Gia_ManBmc_t * p, int uTruth, int Lits
   SeeAlso     []
 
 ***********************************************************************/
+#if 0
 static inline unsigned Saig_ManBmcHashKey( int * pArray )
 {
     static int s_Primes[5] = { 12582917, 25165843, 50331653, 100663319, 201326611 };
@@ -1083,6 +1098,7 @@ static inline int * Saig_ManBmcLookup( Gia_ManBmc_t * p, int * pArray )
     assert( pTable + 5 < pTable + 6 * p->nTable );
     return pTable + 5;
 }
+#endif
 
 /**Function*************************************************************
 
@@ -1098,7 +1114,7 @@ static inline int * Saig_ManBmcLookup( Gia_ManBmc_t * p, int * pArray )
 int Saig_ManBmcCreateCnf_rec( Gia_ManBmc_t * p, Aig_Obj_t * pObj, int iFrame )
 {
     extern unsigned Dar_CutSortVars( unsigned uTruth, int * pVars );
-    int * pMapping, * pLookup, i, iLit, Lits[5], uTruth;
+    int * pMapping, i, iLit, Lits[5], uTruth;
     iLit = Saig_ManBmcLiteral( p, pObj, iFrame );
     if ( iLit != ~0 )
         return iLit; 
@@ -1143,12 +1159,21 @@ int Saig_ManBmcCreateCnf_rec( Gia_ManBmc_t * p, Aig_Obj_t * pObj, int iFrame )
     }
     else 
     {
+        int iEntry, iRes;
+
+        int fCompl = 0;
+        if ( uTruth & 1 )
+        {
+            fCompl = 1;
+            uTruth = 0xffff & ~uTruth;
+        }
         assert( !(uTruth == 0xAAAA || (0xffff & ~uTruth) == 0xAAAA ||
                   uTruth == 0xCCCC || (0xffff & ~uTruth) == 0xCCCC ||
                   uTruth == 0xF0F0 || (0xffff & ~uTruth) == 0xF0F0 ||
                   uTruth == 0xFF00 || (0xffff & ~uTruth) == 0xFF00) );
 
         Lits[4] = uTruth;
+#if 0
         pLookup = Saig_ManBmcLookup( p, Lits );
         if ( *pLookup == 0 )
         {
@@ -1162,6 +1187,29 @@ int Saig_ManBmcCreateCnf_rec( Gia_ManBmc_t * p, Aig_Obj_t * pObj, int iFrame )
 */
         }
         iLit = *pLookup;
+#endif
+
+        iEntry = Vec_IntSize(p->vData) / 5;
+        assert( iEntry * 5 == Vec_IntSize(p->vData) );
+        for ( i = 0; i < 5; i++ )
+            Vec_IntPush( p->vData, Lits[i] );
+        iRes = Hsh_IntManAdd( p->vHash, iEntry );
+        if ( iRes == iEntry )
+        {
+            iLit = toLit( p->nSatVars++ );
+            Saig_ManBmcAddClauses( p, uTruth, Lits, iLit );
+            assert( iEntry == Vec_IntSize(p->vId2Lit) );
+            Vec_IntPush( p->vId2Lit, iLit );
+            p->nHashMiss++;
+        }
+        else
+        {
+            Vec_IntShrink( p->vData, Vec_IntSize(p->vData) - 5 );
+            iLit = Vec_IntEntry( p->vId2Lit, iRes );
+            p->nHashHit++;
+        }
+
+        iLit = Abc_LitNotCond( iLit, fCompl );
     }
     return Saig_ManBmcSetLiteral( p, pObj, iFrame, iLit );
 }
@@ -1588,7 +1636,7 @@ nTimeSat += clock() - clk2;
                         printf( "%4d %s : ", f,  fUnfinished ? "-" : "+" );
                         printf( "Var =%8.0f. ",  (double)p->nSatVars );
                         printf( "Cla =%9.0f. ",  (double)p->pSat->stats.clauses );
-                        printf( "Cnf =%7.0f. ", (double)p->pSat->stats.conflicts );
+                        printf( "Conf =%7.0f. ", (double)p->pSat->stats.conflicts );
 //                        printf( "Imp =%10.0f. ", (double)p->pSat->stats.propagations );
                         printf( "Uni =%7.0f. ",(double)sat_solver_count_assigned(p->pSat) );
 //                        ABC_PRT( "Time", clock() - clk );
