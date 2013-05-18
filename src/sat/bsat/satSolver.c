@@ -1039,7 +1039,7 @@ void sat_solver_setnvars(sat_solver* s,int n)
         s->activity  = ABC_REALLOC(unsigned, s->activity, s->cap);
         s->activity2 = ABC_REALLOC(unsigned, s->activity2,s->cap);
 #endif
-        s->pFreqs    = ABC_REALLOC(char,   s->tags,     s->cap);
+        s->pFreqs    = ABC_REALLOC(char,   s->pFreqs,   s->cap);
 
         if ( s->factors )
         s->factors   = ABC_REALLOC(double, s->factors,  s->cap);
@@ -1331,7 +1331,7 @@ void sat_solver_reducedb(sat_solver* s)
 
     // report the results
     TimeTotal += clock() - clk;
-//    if ( s->fVerbose )
+    if ( s->fVerbose )
     {
     Abc_Print(1, "reduceDB: Keeping %7d out of %7d clauses (%5.2f %%)  ",
         s->stats.learnts, nLearnedOld, 100.0 * s->stats.learnts / nLearnedOld );

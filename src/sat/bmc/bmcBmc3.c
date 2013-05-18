@@ -1314,6 +1314,9 @@ void Saig_ParBmcSetDefaultParams( Saig_ParBmc_t * p )
     p->nPisAbstract   =     0;    // the number of PIs to abstract
     p->fSolveAll      =     0;    // stops on the first SAT instance
     p->fDropSatOuts   =     0;    // replace sat outputs by constant 0
+    p->nLearnedStart  = 10000;    // starting learned clause limit
+    p->nLearnedDelta  =  2000;    // delta of learned clause limit
+    p->nLearnedPerce  =    80;    // ratio of learned clause limit
     p->fVerbose       =     0;    // verbose 
     p->fNotVerbose    =     0;    // skip line-by-line print-out 
     p->iFrame         =    -1;    // explored up to this frame
@@ -1404,6 +1407,9 @@ int Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars )
     // create BMC manager
     p = Saig_Bmc3ManStart( pAig, pPars->nTimeOutOne );
     p->pPars = pPars;
+    p->pSat->nLearntStart = p->pPars->nLearnedStart;
+    p->pSat->nLearntDelta = p->pPars->nLearnedDelta;
+    p->pSat->nLearntRatio = p->pPars->nLearnedPerce;
     if ( pPars->fVerbose )
     {
         printf( "Running \"bmc3\". PI/PO/Reg = %d/%d/%d. And =%7d. Lev =%6d. ObjNums =%6d. Sect =%3d.\n", 
@@ -1636,9 +1642,9 @@ nTimeUndec += clock() - clk2;
             }
             printf( "%4d %s : ", f, fUnfinished ? "-" : "+" );
             printf( "Var =%8.0f. ", (double)p->nSatVars );
-            printf( "Var2 =%8.0f. ", (double)sat_solver_count_usedvars(p->pSat) );
+            printf( "Used =%8.0f. ", (double)sat_solver_count_usedvars(p->pSat) );
             printf( "Cla =%9.0f. ", (double)p->pSat->stats.clauses );
-            printf( "Cnf =%7.0f. ",(double)p->pSat->stats.conflicts );
+            printf( "Conf =%7.0f. ",(double)p->pSat->stats.conflicts );
 //            printf( "Imp =%10.0f. ", (double)p->pSat->stats.propagations );
             printf( "Uni =%7.0f. ",(double)sat_solver_count_assigned(p->pSat) );
             if ( pPars->fSolveAll )
