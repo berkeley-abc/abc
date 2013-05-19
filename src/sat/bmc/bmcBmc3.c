@@ -46,17 +46,11 @@ struct Gia_ManBmc_t_
     Vec_Ptr_t *       vId2Var;     // SAT vars for each object
     clock_t *         pTime4Outs;  // timeout per output
     // hash table
-/*
-    int *             pTable;
-    int               nTable;
-*/
-    Vec_Int_t *       vData;
-    Hsh_IntMan_t *    vHash;
-    Vec_Int_t *       vId2Lit;
-    int               nHashHit;
-    int               nHashMiss;
-    int               nHashOver;
-
+    Vec_Int_t *       vData;       // storage for cuts
+    Hsh_IntMan_t *    vHash;       // hash table
+    Vec_Int_t *       vId2Lit;     // mapping cuts into literals
+    int               nHashHit;    // hash table hits
+    int               nHashMiss;   // hash table misses
     int               nBufNum;     // the number of simple nodes
     int               nDupNum;     // the number of simple nodes
     int               nUniProps;   // propagating learned clause values
@@ -742,8 +736,6 @@ Gia_ManBmc_t * Saig_Bmc3ManStart( Aig_Man_t * pAig, int nTimeOutOne )
     // terminary simulation 
     p->nWordNum = Abc_BitWordNum( 2 * Aig_ManObjNumMax(pAig) );
     // hash table
-//    p->nTable = Abc_PrimeCudd( 10000000 );
-//    p->pTable = ABC_CALLOC( int, 6 * p->nTable ); // 2.4 MB
     p->vData = Vec_IntAlloc( 5 * 10000 );
     p->vHash = Hsh_IntManStart( p->vData, 5, 10000 );
     p->vId2Lit = Vec_IntAlloc( 10000 );
@@ -776,8 +768,8 @@ void Saig_Bmc3ManStop( Gia_ManBmc_t * p )
         printf( "LStart(P) = %d  LDelta(Q) = %d  LRatio(R) = %d  ReduceDB = %d  Vars = %d  Used = %d (%.2f %%)\n", 
             p->pSat->nLearntStart, p->pSat->nLearntDelta, p->pSat->nLearntRatio, 
             p->pSat->nDBreduces, p->pSat->size, nUsedVars, 100.0*nUsedVars/p->pSat->size );
-        printf( "Buffs = %d. Dups = %d.   Hash hits = %d.  Hash misses = %d.  Hash overs = %d.  UniProps = %d.\n", 
-            p->nBufNum, p->nDupNum, p->nHashHit, p->nHashMiss, p->nHashOver, p->nUniProps );
+        printf( "Buffs = %d. Dups = %d.   Hash hits = %d.  Hash misses = %d.  UniProps = %d.\n", 
+            p->nBufNum, p->nDupNum, p->nHashHit, p->nHashMiss, p->nUniProps );
     }
 //    Aig_ManCleanMarkA( p->pAig );
     if ( p->vCexes )
@@ -795,11 +787,9 @@ void Saig_Bmc3ManStop( Gia_ManBmc_t * p )
     Vec_PtrFreeFree( p->vTerInfo );
     sat_solver_delete( p->pSat );
     ABC_FREE( p->pTime4Outs );
-//    ABC_FREE( p->pTable );
     Vec_IntFree( p->vData );
     Hsh_IntManStop( p->vHash );
     Vec_IntFree( p->vId2Lit );
-
     ABC_FREE( p->pSopSizes );
     ABC_FREE( p->pSops[1] );
     ABC_FREE( p->pSops );
@@ -945,75 +935,6 @@ static inline int Saig_ManBmcReduceTruth( int uTruth, int Lits[] )
     return uTruth;
 }
 
-/*
-void Cnf_SopConvertToVector( char * pSop, int nCubes, Vec_Int_t * vCover )
-{
-    int Lits[4], Cube, iCube, i, b;
-    Vec_IntClear( vCover );
-    for ( i = 0; i < nCubes; i++ )
-    {
-        Cube = pSop[i];
-        for ( b = 0; b < 4; b++ )
-        {
-            if ( Cube % 3 == 0 )
-                Lits[b] = 1;
-            else if ( Cube % 3 == 1 )
-                Lits[b] = 2;
-            else
-                Lits[b] = 0;
-            Cube = Cube / 3;
-        }
-        iCube = 0;
-        for ( b = 0; b < 4; b++ )
-            iCube = (iCube << 2) | Lits[b];
-        Vec_IntPush( vCover, iCube );
-    }
-}
-
-        Vec_IntForEachEntry( vCover, Cube, k )
-        {
-            *pClas++ = pLits;
-            *pLits++ = 2 * OutVar; 
-            pLits += Cnf_IsopWriteCube( Cube, pCut->nFanins, pVars, pLits );
-        }
-
-
-int Cnf_IsopWriteCube( int Cube, int nVars, int * pVars, int * pLiterals )
-{
-    int nLits = nVars, b;
-    for ( b = 0; b < nVars; b++ )
-    {
-        if ( (Cube & 3) == 1 ) // value 0 --> write positive literal
-            *pLiterals++ = 2 * pVars[b];
-        else if ( (Cube & 3) == 2 ) // value 1 --> write negative literal
-            *pLiterals++ = 2 * pVars[b] + 1;
-        else
-            nLits--;
-        Cube >>= 2;
-    }
-    return nLits;
-}
-
-        iTruth = pData[0] & 0xffff;
-        for ( k = 0; k < pSopSizes[iTruth]; k++ )
-        {
-            int Lit = pSops[iTruth][k];
-            for ( b = 3; b >= 0; b-- )
-            {
-                if ( Lit % 3 == 0 )
-                    Vals[b] = '0';
-                else if ( Lit % 3 == 1 )
-                    Vals[b] = '1';
-                else
-                    Vals[b] = '-';
-                Lit = Lit / 3;
-            }
-            for ( b = 0; b < iFan; b++ )
-                fprintf( pFile, "%c", Vals[b] );
-            fprintf( pFile, " 1\n" );
-        }
-*/
-
 /**Function*************************************************************
 
   Synopsis    [Derives CNF for one node.]
@@ -1059,46 +980,6 @@ static inline void Saig_ManBmcAddClauses( Gia_ManBmc_t * p, int uTruth, int Lits
         }
     }
 }
-
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-#if 0
-static inline unsigned Saig_ManBmcHashKey( int * pArray )
-{
-    static int s_Primes[5] = { 12582917, 25165843, 50331653, 100663319, 201326611 };
-    unsigned i, Key = 0;
-    for ( i = 0; i < 5; i++ )
-        Key += pArray[i] * s_Primes[i];
-    return Key;
-}
-static inline int * Saig_ManBmcLookup( Gia_ManBmc_t * p, int * pArray )
-{
-    int * pTable = p->pTable + 6 * (Saig_ManBmcHashKey(pArray) % p->nTable);
-    if ( memcmp( pTable, pArray, 20 ) )
-    {
-        if ( pTable[0] == 0 )
-            p->nHashMiss++;
-        else
-            p->nHashOver++;
-        memcpy( pTable, pArray, 20 );
-        pTable[5] = 0;
-    }
-    else
-        p->nHashHit++;
-    assert( pTable + 5 < pTable + 6 * p->nTable );
-    return pTable + 5;
-}
-#endif
 
 /**Function*************************************************************
 
@@ -1160,35 +1041,8 @@ int Saig_ManBmcCreateCnf_rec( Gia_ManBmc_t * p, Aig_Obj_t * pObj, int iFrame )
     else 
     {
         int iEntry, iRes;
-
-        int fCompl = 0;
-        if ( uTruth & 1 )
-        {
-            fCompl = 1;
-            uTruth = 0xffff & ~uTruth;
-        }
-        assert( !(uTruth == 0xAAAA || (0xffff & ~uTruth) == 0xAAAA ||
-                  uTruth == 0xCCCC || (0xffff & ~uTruth) == 0xCCCC ||
-                  uTruth == 0xF0F0 || (0xffff & ~uTruth) == 0xF0F0 ||
-                  uTruth == 0xFF00 || (0xffff & ~uTruth) == 0xFF00) );
-
-        Lits[4] = uTruth;
-#if 0
-        pLookup = Saig_ManBmcLookup( p, Lits );
-        if ( *pLookup == 0 )
-        {
-            *pLookup = toLit( p->nSatVars++ );
-            Saig_ManBmcAddClauses( p, uTruth, Lits, *pLookup );
-/*
-            if ( (Lits[0] > 1 && (Lits[0] == Lits[1] || Lits[0] == Lits[2] || Lits[0] == Lits[3]))   ||
-                 (Lits[1] > 1 && (Lits[1] == Lits[2] || Lits[1] == Lits[2]))                         ||
-                 (Lits[2] > 1 && (Lits[2] == Lits[3]))    )
-                       p->nDupNum++;
-*/
-        }
-        iLit = *pLookup;
-#endif
-
+        int fCompl = (uTruth & 1);
+        Lits[4] = (uTruth & 1) ? 0xffff & ~uTruth : uTruth;
         iEntry = Vec_IntSize(p->vData) / 5;
         assert( iEntry * 5 == Vec_IntSize(p->vData) );
         for ( i = 0; i < 5; i++ )
@@ -1197,18 +1051,17 @@ int Saig_ManBmcCreateCnf_rec( Gia_ManBmc_t * p, Aig_Obj_t * pObj, int iFrame )
         if ( iRes == iEntry )
         {
             iLit = toLit( p->nSatVars++ );
-            Saig_ManBmcAddClauses( p, uTruth, Lits, iLit );
+            Saig_ManBmcAddClauses( p, Lits[4], Lits, iLit );
             assert( iEntry == Vec_IntSize(p->vId2Lit) );
             Vec_IntPush( p->vId2Lit, iLit );
             p->nHashMiss++;
         }
         else
         {
-            Vec_IntShrink( p->vData, Vec_IntSize(p->vData) - 5 );
             iLit = Vec_IntEntry( p->vId2Lit, iRes );
+            Vec_IntShrink( p->vData, Vec_IntSize(p->vData) - 5 );
             p->nHashHit++;
         }
-
         iLit = Abc_LitNotCond( iLit, fCompl );
     }
     return Saig_ManBmcSetLiteral( p, pObj, iFrame, iLit );
