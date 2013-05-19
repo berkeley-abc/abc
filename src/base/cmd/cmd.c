@@ -344,50 +344,33 @@ int CmdCommandHistory( Abc_Frame_t * pAbc, int argc, char **argv )
 {
     char * pName;
     int i, c;
-    int nPrints = 25;
-    int iRepeat = -1;
+    int nPrints = 20;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Nh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
     {
         switch ( c )
         {
-            case 'N':
-                if ( globalUtilOptind >= argc )
-                {
-                    Abc_Print( -1, "Command line switch \"-N\" should be followed by an integer.\n" );
-                    goto usage;
-                }
-                nPrints = atoi(argv[globalUtilOptind]);
-                globalUtilOptind++;
-                if ( nPrints < 0 ) 
-                    goto usage;
-                break;
             case 'h':
                 goto usage;
             default :
                 goto usage;
         }
     }
-//    if ( argc > globalUtilOptind + 1 )
-    if ( argc >= globalUtilOptind + 1 )
+    if ( argc > globalUtilOptind + 1 )
         goto usage;
     // get the number from the command line
-//    if ( argc == globalUtilOptind + 1 )
-//        iRepeat = atoi(argv[globalUtilOptind]);
+    if ( argc == globalUtilOptind + 1 )
+        nPrints = atoi(argv[globalUtilOptind]);
     // print the commands
-    if ( iRepeat >= 0 && iRepeat < Vec_PtrSize(pAbc->aHistory) )
-        fprintf( pAbc->Out, "%s", (char *)Vec_PtrEntry(pAbc->aHistory, Vec_PtrSize(pAbc->aHistory)-1-iRepeat) );
-    else if ( nPrints > 0 )
-        Vec_PtrForEachEntryStart( char *, pAbc->aHistory, pName, i, Abc_MaxInt(0, Vec_PtrSize(pAbc->aHistory)-nPrints) )
-            fprintf( pAbc->Out, "%2d : %s\n", Vec_PtrSize(pAbc->aHistory)-i, pName );
+    Vec_PtrForEachEntryStart( char *, pAbc->aHistory, pName, i, Abc_MaxInt(0, Vec_PtrSize(pAbc->aHistory)-nPrints) )
+        fprintf( pAbc->Out, "%2d : %s\n", Vec_PtrSize(pAbc->aHistory)-i, pName );
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: history [-N <num>] [-h]\n" );
-    fprintf( pAbc->Err, "          lists the last commands entered on the command line\n" );
-    fprintf( pAbc->Err, " -N num : the maximum number of entries to show [default = %d]\n", nPrints );
-    fprintf( pAbc->Err, " -h     : print the command usage\n" );
-//    fprintf( pAbc->Err, " <this> : the history entry to repeat to the command line\n" );
+    fprintf( pAbc->Err, "usage: history [-h] <num>\n" );
+    fprintf( pAbc->Err, "\t        lists the last commands entered on the command line\n" );
+    fprintf( pAbc->Err, "\t-h    : print the command usage\n" );
+    fprintf( pAbc->Err, "\t<num> : the maximum number of entries to show [default = %d]\n", nPrints );
     return ( 1 );
 }
 
