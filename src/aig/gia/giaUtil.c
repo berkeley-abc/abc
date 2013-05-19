@@ -1462,11 +1462,11 @@ Vec_Int_t * Gia_ManMultiProve( Gia_Man_t * pInit, char * pCommLine, int nGroupSi
             Vec_Int_t * vStatusCur = Abc_FrameReadPoStatuses( pAbc );
             Vec_Ptr_t * vCexesCur = Abc_FrameReadCexVec( pAbc );
             assert( vStatusCur != NULL ); // only works for "bmc3" and "pdr"
-            assert( vCexesCur != NULL );
+//            assert( vCexesCur != NULL );
             for ( k = 0; k < nGroupCur; k++ )
             {
                 Vec_IntPush( vOutMap, Vec_IntEntry(vStatusCur, k) );
-                Vec_PtrPush( vCexes, Vec_PtrEntry(vCexesCur, k) );
+                Vec_PtrPush( vCexes, vCexesCur ? Vec_PtrEntry(vCexesCur, k) : NULL );
             }
         }
     }
