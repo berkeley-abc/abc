@@ -663,6 +663,101 @@ int Gia_ManSimSimulate( Gia_Man_t * pAig, Gia_ParSim_t * pPars )
     return RetValue;
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Gia_ManSimReadFile( char * pFileIn )
+{
+    int c;
+    Vec_Int_t * vPat;
+    FILE * pFile = fopen( pFileIn, "rb" );
+    if ( pFile == NULL )
+    {
+        printf( "Cannot open input file.\n" );
+        return NULL;
+    }
+    vPat = Vec_IntAlloc( 1000 );
+    while ( (c = fgetc(pFile)) != EOF )
+        if ( c == '0' || c == '1' )
+            Vec_IntPush( vPat, c - '0' );
+    fclose( pFile );
+    return vPat;
+}
+int Gia_ManSimWriteFile( char * pFileOut, Vec_Int_t * vPat, int nOuts )
+{
+    int c, i;
+    FILE * pFile = fopen( pFileOut, "wb" );
+    if ( pFile == NULL )
+    {
+        printf( "Cannot open output file.\n" );
+        return 0;
+    }
+    assert( Vec_IntSize(vPat) % nOuts == 0 );
+    Vec_IntForEachEntry( vPat, c, i )
+    {
+        fputc( '0' + c, pFile );
+        if ( i % nOuts == nOuts - 1 )
+            fputc( '\n', pFile );
+    }
+    fclose( pFile );
+    return 1;
+}
+Vec_Int_t * Gia_ManSimSimulateOne( Gia_Man_t * p, Vec_Int_t * vPat )
+{
+    Vec_Int_t * vPatOut;
+    Gia_Obj_t * pObj, * pObjRo;
+    int i, k, f;
+    assert( Vec_IntSize(vPat) % Gia_ManPiNum(p) == 0 );
+    Gia_ManConst0(p)->fMark1 = 0;
+    Gia_ManForEachRo( p, pObj, i )
+        pObj->fMark1 = 0;
+    vPatOut = Vec_IntAlloc( 1000 );
+    for ( k = f = 0; f < Vec_IntSize(vPat) / Gia_ManPiNum(p); f++ )
+    {
+        Gia_ManForEachPi( p, pObj, i )
+            pObj->fMark1 = Vec_IntEntry( vPat, k++ );
+        Gia_ManForEachAnd( p, pObj, i )
+            pObj->fMark1 = (Gia_ObjFanin0(pObj)->fMark1 ^ Gia_ObjFaninC0(pObj)) & (Gia_ObjFanin1(pObj)->fMark1 ^ Gia_ObjFaninC1(pObj));
+        Gia_ManForEachCo( p, pObj, i )
+            pObj->fMark1 = (Gia_ObjFanin0(pObj)->fMark1 ^ Gia_ObjFaninC0(pObj));
+        Gia_ManForEachPo( p, pObj, i )
+            Vec_IntPush( vPatOut, pObj->fMark1 );
+        Gia_ManForEachRiRo( p, pObj, pObjRo, i )
+            pObjRo->fMark1 = pObj->fMark1;
+    }
+    assert( k == Vec_IntSize(vPat) );
+    Gia_ManForEachObj( p, pObj, i )
+        pObj->fMark1 = 0;
+    return vPatOut;
+}
+void Gia_ManSimSimulatePattern( Gia_Man_t * p, char * pFileIn, char * pFileOut )
+{
+    Vec_Int_t * vPat, * vPatOut;
+    vPat = Gia_ManSimReadFile( pFileIn );
+    if ( vPat == NULL )
+        return;
+    if ( Vec_IntSize(vPat) % Gia_ManPiNum(p) )
+    {
+        printf( "The number of 0s and 1s in the input file (%d) does not evenly divide by the number of primary inputs (%d).\n", 
+            Vec_IntSize(vPat), Gia_ManPiNum(p) );
+        Vec_IntFree( vPat );
+        return;
+    }
+    vPatOut = Gia_ManSimSimulateOne( p, vPat );
+    if ( Gia_ManSimWriteFile( pFileOut, vPatOut, Gia_ManPoNum(p) ) )
+        printf( "Output patterns are written into file \"%s\".\n", pFileOut );
+    Vec_IntFree( vPat );
+    Vec_IntFree( vPatOut );
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

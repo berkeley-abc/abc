@@ -25155,10 +25155,11 @@ usage:
 int Abc_CommandAbc9Sim( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Gia_ParSim_t Pars, * pPars = &Pars;
+    char * pFileName = NULL;
     int c;
     Gia_ManSimSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FWNTmvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FWNTImvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -25206,6 +25207,17 @@ int Abc_CommandAbc9Sim( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( pPars->TimeLimit < 0 )
                 goto usage;
             break;
+        case 'I':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-I\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pFileName = argv[globalUtilOptind];
+            globalUtilOptind++;
+            if ( pFileName == NULL )
+                goto usage;
+            break;
         case 'm':
             pPars->fCheckMiter ^= 1;
             break;
@@ -25228,6 +25240,18 @@ int Abc_CommandAbc9Sim( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "The network is combinational.\n" );
         return 0;
     }
+    if ( pFileName != NULL )
+    {
+        extern void Gia_ManSimSimulatePattern( Gia_Man_t * p, char * pFileIn, char * pFileOut );
+        char pFileNameOut[1000];
+        char * pNameGeneric = Extra_FileNameGeneric(pFileName);
+        assert( strlen(pNameGeneric) < 900 );
+        sprintf( pFileNameOut, "%s_out.%s", pNameGeneric, Extra_FileNameExtension(pFileName) );
+        ABC_FREE( pNameGeneric );
+        Gia_ManSimSimulatePattern( pAbc->pGia, pFileName, pFileNameOut );
+        return 1;
+    }
+
     pAbc->nFrames = -1;
     if ( Gia_ManSimSimulate( pAbc->pGia, pPars ) )
         pAbc->Status =  0;
@@ -25239,7 +25263,7 @@ int Abc_CommandAbc9Sim( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &sim [-FWNT num] [-mvh]\n" );
+    Abc_Print( -2, "usage: &sim [-FWNT num] [-mvh] -I <file>\n" );
     Abc_Print( -2, "\t         performs random simulation of the sequential miter\n" );
     Abc_Print( -2, "\t         (if candidate equivalences are defined, performs refinement)\n" );
     Abc_Print( -2, "\t-F num : the number of frames to simulate [default = %d]\n", pPars->nIters );
@@ -25249,6 +25273,7 @@ usage:
     Abc_Print( -2, "\t-m     : toggle miter vs. any circuit [default = %s]\n", pPars->fCheckMiter? "miter": "circuit" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
+    Abc_Print( -2, "\t-I file: (optional) file with input patterns (one line per frame, as many as PIs)\n");
     return 1;
 }
 
