@@ -26219,11 +26219,11 @@ int Abc_CommandAbc9Frames( Abc_Frame_t * pAbc, int argc, char ** argv )
     Gia_ParFra_t Pars, * pPars = &Pars;
     int c;
     int nCofFanLit = 0;
-    int fNewAlgo = 1;
+    int fNewAlgo = 0;
     int fInitSpecial = 0;
     Gia_ManFraSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FLiasvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FLsoibavh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -26249,14 +26249,20 @@ int Abc_CommandAbc9Frames( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( nCofFanLit < 0 )
                 goto usage;
             break;
+        case 's':
+            pPars->fDisableSt ^= 1;
+            break;
+        case 'o':
+            pPars->fOrPos ^= 1;
+            break;
         case 'i':
             pPars->fInit ^= 1;
             break;
+        case 'b':
+            fInitSpecial ^= 1;
+            break;
         case 'a':
             fNewAlgo ^= 1;
-            break;
-        case 's':
-            fInitSpecial ^= 1;
             break;
         case 'v':
             pPars->fVerbose ^= 1;
@@ -26289,13 +26295,15 @@ int Abc_CommandAbc9Frames( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &frames [-FL <num>] [-iasvh]\n" );
+    Abc_Print( -2, "usage: &frames [-FL <num>] [-soibavh]\n" );
     Abc_Print( -2, "\t         unrolls the design for several timeframes\n" );
     Abc_Print( -2, "\t-F num : the number of frames to unroll [default = %d]\n", pPars->nFrames );
     Abc_Print( -2, "\t-L num : the limit on fanout count of resets/enables to cofactor [default = %d]\n", nCofFanLit );
+    Abc_Print( -2, "\t-s     : toggle disabling structural hashing [default = %s]\n", pPars->fDisableSt? "yes": "no" );
+    Abc_Print( -2, "\t-o     : toggle ORing corresponding POs [default = %s]\n", pPars->fOrPos? "yes": "no" );
     Abc_Print( -2, "\t-i     : toggle initializing registers [default = %s]\n", pPars->fInit? "yes": "no" );
+    Abc_Print( -2, "\t-b     : toggle computing special AIG for BMC [default = %s]\n", fInitSpecial? "yes": "no" );
     Abc_Print( -2, "\t-a     : toggle using new algorithm [default = %s]\n", fNewAlgo? "yes": "no" );
-    Abc_Print( -2, "\t-s     : toggle computing special AIG for BMC [default = %s]\n", fInitSpecial? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;

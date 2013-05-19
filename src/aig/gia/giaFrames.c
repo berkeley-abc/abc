@@ -864,15 +864,19 @@ Gia_Man_t * Gia_ManFrames( Gia_Man_t * pAig, Gia_ParFra_t * pPars )
 {
     Gia_Man_t * pFrames, * pTemp;
     Gia_Obj_t * pObj;
+    Vec_Int_t * vPoLits = NULL;
     int i, f;
     assert( Gia_ManRegNum(pAig) > 0 );
     assert( pPars->nFrames > 0 );
     if ( pPars->fInit )
         return Gia_ManFramesInit( pAig, pPars );
+    if ( pPars->fOrPos )
+        vPoLits = Vec_IntStart( Gia_ManPoNum(pAig) );
     pFrames = Gia_ManStart( pPars->nFrames * Gia_ManObjNum(pAig) );
     pFrames->pName = Abc_UtilStrsav( pAig->pName );
     pFrames->pSpec = Abc_UtilStrsav( pAig->pSpec );
-    Gia_ManHashAlloc( pFrames );
+    if ( !pPars->fDisableSt )
+        Gia_ManHashAlloc( pFrames );
     Gia_ManConst0(pAig)->Value = 0;
     for ( f = 0; f < pPars->nFrames; f++ )
     {
@@ -888,12 +892,31 @@ Gia_Man_t * Gia_ManFrames( Gia_Man_t * pAig, Gia_ParFra_t * pPars )
         }
         Gia_ManForEachPi( pAig, pObj, i )
             pObj->Value = Gia_ManAppendCi( pFrames );
-        Gia_ManForEachAnd( pAig, pObj, i )
-            pObj->Value = Gia_ManHashAnd( pFrames, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
-        Gia_ManForEachPo( pAig, pObj, i )
-            pObj->Value = Gia_ManAppendCo( pFrames, Gia_ObjFanin0Copy(pObj) );
+        if ( !pPars->fDisableSt )
+            Gia_ManForEachAnd( pAig, pObj, i )
+                pObj->Value = Gia_ManHashAnd( pFrames, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        else
+            Gia_ManForEachAnd( pAig, pObj, i )
+                pObj->Value = Gia_ManAppendAnd2( pFrames, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        if ( vPoLits )
+        {
+            if ( !pPars->fDisableSt )
+                Gia_ManForEachPo( pAig, pObj, i )
+                    Vec_IntWriteEntry( vPoLits, i, Gia_ManHashOr(pFrames, Vec_IntEntry(vPoLits, i), Gia_ObjFanin0Copy(pObj)) );
+            else
+                Gia_ManForEachPo( pAig, pObj, i )
+                    Vec_IntWriteEntry( vPoLits, i, Abc_LitNot(Gia_ManAppendAnd2(pFrames, Abc_LitNot(Vec_IntEntry(vPoLits, i)), Abc_LitNot(Gia_ObjFanin0Copy(pObj)))) );
+        }
+        else
+        {
+            Gia_ManForEachPo( pAig, pObj, i )
+                pObj->Value = Gia_ManAppendCo( pFrames, Gia_ObjFanin0Copy(pObj) );
+        }
         if ( f == pPars->nFrames - 1 )
         {
+            if ( vPoLits )
+                Gia_ManForEachPo( pAig, pObj, i )
+                    pObj->Value = Gia_ManAppendCo( pFrames, Vec_IntEntry(vPoLits, i) );
             Gia_ManForEachRi( pAig, pObj, i )
                 pObj->Value = Gia_ManAppendCo( pFrames, Gia_ObjFanin0Copy(pObj) );
         }
@@ -903,7 +926,9 @@ Gia_Man_t * Gia_ManFrames( Gia_Man_t * pAig, Gia_ParFra_t * pPars )
                 pObj->Value = Gia_ObjFanin0Copy(pObj);
         }
     }
-    Gia_ManHashStop( pFrames );
+    Vec_IntFreeP( &vPoLits );
+    if ( !pPars->fDisableSt )
+        Gia_ManHashStop( pFrames );
     Gia_ManFraTransformCis( pAig, pFrames->vCis );
     Gia_ManSetRegNum( pFrames, Gia_ManRegNum(pAig) );
     if ( Gia_ManCombMarkUsed(pFrames) < Gia_ManAndNum(pFrames) )

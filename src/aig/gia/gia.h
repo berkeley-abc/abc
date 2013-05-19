@@ -205,6 +205,8 @@ struct Gia_ParFra_t_
     int            nFrames;       // the number of frames to unroll
     int            fInit;         // initialize the timeframes
     int            fSaveLastLit;  // adds POs for outputs of each frame
+    int            fDisableSt;    // disables strashing
+    int            fOrPos;        // ORs respective POs in each timeframe
     int            fVerbose;      // enables verbose output
 };
 
@@ -512,6 +514,18 @@ static inline int Gia_ManAppendAnd( Gia_Man_t * p, int iLit0, int iLit1 )
         pObj->fPhase = (Gia_ObjPhase(pFan0) ^ Gia_ObjFaninC0(pObj)) & (Gia_ObjPhase(pFan1) ^ Gia_ObjFaninC1(pObj));
     }
     return Gia_ObjId( p, pObj ) << 1;
+}
+static inline int Gia_ManAppendAnd2( Gia_Man_t * p, int iLit0, int iLit1 )  
+{ 
+    if ( iLit0 < 2 )
+        return iLit0 ? iLit1 : 0;
+    if ( iLit1 < 2 )
+        return iLit1 ? iLit0 : 0;
+    if ( iLit0 == iLit1 )
+        return iLit1;
+    if ( iLit0 == Abc_LitNot(iLit1) )
+        return 0;
+    return Gia_ManAppendAnd( p, iLit0, iLit1 );
 }
 static inline int Gia_ManAppendXorReal( Gia_Man_t * p, int iLit0, int iLit1 )  
 { 
