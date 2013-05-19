@@ -827,6 +827,76 @@ void Cec_ManLSCorrespondenceBmc( Gia_Man_t * pAig, Cec_ParCor_t * pPars, int nPr
 
 /**Function*************************************************************
 
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Cec_ManLSCorrAnalyzeDependence( Gia_Man_t * p, Vec_Int_t * vEquivs, Vec_Str_t * vStatus )
+{
+    Gia_Obj_t * pObj, * pObjRo;
+    int i, Iter, iObj, iRepr, fPrev, Total, Count0, Count1;
+    assert( Vec_StrSize(vStatus) * 2 == Vec_IntSize(vEquivs) );
+    Total = 0;
+    Gia_ManForEachObj( p, pObj, i )
+    {
+        assert( pObj->fMark1 == 0 );
+        if ( Gia_ObjHasRepr(p, i) )
+            Total++;
+    }
+    Count0 = 0;
+    for ( i = 0; i < Vec_StrSize(vStatus); i++ )
+    {
+        iRepr = Vec_IntEntry(vEquivs, 2*i);
+        iObj = Vec_IntEntry(vEquivs, 2*i+1);
+        assert( iRepr == Gia_ObjRepr(p, iObj) );
+        if ( Vec_StrEntry(vStatus, i) != 1 ) // disproved or undecided
+        {
+            Gia_ManObj(p, iObj)->fMark1 = 1;
+            Count0++;
+        }
+    }
+    for ( Iter = 0; Iter < 100; Iter++ )
+    {
+        int fChanges = 0;
+        Gia_ManForEachObj1( p, pObj, i )
+        {
+            if ( Gia_ObjIsCi(pObj) )
+                continue;
+            assert( Gia_ObjIsAnd(pObj) || Gia_ObjIsCo(pObj) );
+//            fPrev = pObj->fMark1;
+            if ( Gia_ObjIsAnd(pObj) )
+                pObj->fMark1 |= Gia_ObjFanin0(pObj)->fMark1 | Gia_ObjFanin1(pObj)->fMark1;
+            else
+                pObj->fMark1 |= Gia_ObjFanin0(pObj)->fMark1;
+//            fChanges += fPrev ^ pObj->fMark1;
+        }
+        Gia_ManForEachRiRo( p, pObj, pObjRo, i )
+        {
+            fPrev = pObjRo->fMark1;
+            pObjRo->fMark1 = pObj->fMark1;
+            fChanges += fPrev ^ pObjRo->fMark1;
+        }
+        if ( fChanges == 0 )
+            break;
+    }
+    Count1 = 0;
+    Gia_ManForEachObj( p, pObj, i )
+    {
+        if ( pObj->fMark1 && Gia_ObjHasRepr(p, i) )
+            Count1++;
+        pObj->fMark1 = 0;
+    }
+    printf( "%5d -> %5d (%3d)  ", Count0, Count1, Iter );
+    return 0;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Internal procedure for register correspondence.]
 
   Description []
@@ -938,6 +1008,8 @@ int Cec_ManLSCorrespondenceClasses( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
             Vec_IntFree( vOutputs );
             break;
         }
+//        Cec_ManLSCorrAnalyzeDependence( pAig, vOutputs, vStatus );        
+
         // refine classes with these counter-examples
         clk2 = clock();
         RetValue = Cec_ManResimulateCounterExamples( pSim, vCexStore, pPars->nFrames + 1 + nAddFrames );
