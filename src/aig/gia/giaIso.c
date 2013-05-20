@@ -511,7 +511,7 @@ void Gia_IsoSimulateBack( Gia_IsoMan_t * p, int Iter )
 ***********************************************************************/
 void Gia_IsoAssignOneClass2( Gia_IsoMan_t * p )
 {
-    int i, iBegin, nSize = -1;
+    int i, iBegin = -1, nSize = -1;
     // find two variable class
     assert( Vec_IntSize(p->vClasses) > 0 );
     Vec_IntForEachEntryDouble( p->vClasses, iBegin, nSize, i )

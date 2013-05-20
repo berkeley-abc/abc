@@ -523,7 +523,7 @@ void Llb_ManCutPrint( Aig_Man_t * p, Vec_Ptr_t * vLower, Vec_Ptr_t * vUpper )
 ***********************************************************************/
 void Llb_ManResultPrint( Aig_Man_t * p, Vec_Ptr_t * vResult )
 {
-    Vec_Ptr_t * vLower, * vUpper;
+    Vec_Ptr_t * vLower, * vUpper = NULL;
     int i;
     Vec_PtrForEachEntryReverse( Vec_Ptr_t *, vResult, vLower, i )
     {

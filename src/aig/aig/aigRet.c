@@ -277,7 +277,7 @@ void Rtm_ObjAddFirst2( Rtm_Man_t * p, Rtm_Edg_t * pEdge, Rtm_Init_t Val )
 void Rtm_PrintEdge( Rtm_Man_t * p, Rtm_Edg_t * pEdge ) 
 {
 //    unsigned LData = pEdge->LData;
-    printf( "%d : ", pEdge->nLats );
+    printf( "%d : ", (int)pEdge->nLats );
 /*
     if ( pEdge->nLats > 10 )
         Extra_PrintBinary( stdout, p->pExtra + pEdge->LData, 2*(pEdge->nLats+1) );

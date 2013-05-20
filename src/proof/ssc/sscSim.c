@@ -179,7 +179,7 @@ void Ssc_GiaPrintPiPatterns( Gia_Man_t * p )
 {
     Gia_Obj_t * pObj;
     word * pSimAig;
-    int i, nWords = Gia_ObjSimWords( p );
+    int i;//, nWords = Gia_ObjSimWords( p );
     Gia_ManForEachCi( p, pObj, i )
     {
         pSimAig = Gia_ObjSimObj( p, pObj );

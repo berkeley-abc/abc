@@ -147,7 +147,7 @@ word Cnf_CutDeriveTruth( Aig_Man_t * p, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vNodes 
     };
     static word C[2] = { 0, ~(word)0 };
     static word S[256];
-    Aig_Obj_t * pObj;
+    Aig_Obj_t * pObj = NULL;
     int i;
     assert( Vec_PtrSize(vLeaves) <= 6 && Vec_PtrSize(vNodes) > 0 );
     assert( Vec_PtrSize(vLeaves) + Vec_PtrSize(vNodes) <= 256 );

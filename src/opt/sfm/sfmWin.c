@@ -112,7 +112,7 @@ int Sfm_NtkWindow( Sfm_Ntk_t * p, int iNode )
 void Sfm_NtkWin2Sat( Sfm_Ntk_t * p )
 {
     Vec_Int_t * vClause;
-    int RetValue, Lit, iNode, iFanin, i, k;
+    int RetValue, Lit, iNode = -1, iFanin, i, k;
     sat_solver * pSat0 = sat_solver_new();
     sat_solver * pSat1 = sat_solver_new();
     sat_solver_setnvars( pSat0, 1 + Vec_IntSize(p->vLeaves) + Vec_IntSize(p->vNodes) + 2 * Vec_IntSize(p->vTfo) + Vec_IntSize(p->vRoots) );
