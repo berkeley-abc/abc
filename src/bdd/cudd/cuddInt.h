@@ -247,6 +247,7 @@ typedef struct DdHook {         /* hook list element */
     struct DdHook *next;        /* next element in the list */
 } DdHook;
 
+/*
 #if SIZEOF_VOID_P == 8 && SIZEOF_INT == 4
 typedef long ptrint;
 typedef unsigned long ptruint;
@@ -254,6 +255,10 @@ typedef unsigned long ptruint;
 typedef int ptrint;
 typedef unsigned int ptruint;
 #endif
+*/
+
+typedef ABC_PTRINT_T ptrint;
+typedef ABC_PTRUINT_T ptruint;
 
 #ifdef __osf__
 #pragma pointer_size save
