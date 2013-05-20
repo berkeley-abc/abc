@@ -715,29 +715,6 @@ void Gia_ManFraSupports( Gia_ManFra_t * p )
 
 /**Function*************************************************************
 
-  Synopsis    [Moves the first nRegs entries to the end.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Gia_ManFraTransformCis( Gia_Man_t * pAig, Vec_Int_t * vCis )
-{
-    int i, k = 0, Entry;
-    Vec_IntForEachEntryStop( vCis, Entry, i, Gia_ManRegNum(pAig) )
-        assert( Entry == i+1 );
-    Vec_IntForEachEntryStart( vCis, Entry, i, Gia_ManRegNum(pAig) )
-        Vec_IntWriteEntry( vCis, k++, Entry );
-    for ( i = 0; i < Gia_ManRegNum(pAig); i++ )
-        Vec_IntWriteEntry( vCis, k++, i+1 );
-    assert( k == Vec_IntSize(vCis) );
-}
-
-/**Function*************************************************************
-
   Synopsis    []
 
   Description []
@@ -878,6 +855,11 @@ Gia_Man_t * Gia_ManFrames( Gia_Man_t * pAig, Gia_ParFra_t * pPars )
     if ( !pPars->fDisableSt )
         Gia_ManHashAlloc( pFrames );
     Gia_ManConst0(pAig)->Value = 0;
+    // create primary inputs
+    for ( f = 0; f < pPars->nFrames; f++ )
+        Gia_ManForEachPi( pAig, pObj, i )
+            pObj->Value = Gia_ManAppendCi( pFrames );
+    // add internal nodes for each timeframe
     for ( f = 0; f < pPars->nFrames; f++ )
     {
         if ( f == 0 )
@@ -891,7 +873,7 @@ Gia_Man_t * Gia_ManFrames( Gia_Man_t * pAig, Gia_ParFra_t * pPars )
                 pObj->Value = Gia_ObjRoToRi( pAig, pObj )->Value;
         }
         Gia_ManForEachPi( pAig, pObj, i )
-            pObj->Value = Gia_ManAppendCi( pFrames );
+            pObj->Value = Gia_Obj2Lit( pFrames, Gia_ManPi(pFrames, f * Gia_ManPiNum(pAig) + i) );
         if ( !pPars->fDisableSt )
             Gia_ManForEachAnd( pAig, pObj, i )
                 pObj->Value = Gia_ManHashAnd( pFrames, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
@@ -929,7 +911,6 @@ Gia_Man_t * Gia_ManFrames( Gia_Man_t * pAig, Gia_ParFra_t * pPars )
     Vec_IntFreeP( &vPoLits );
     if ( !pPars->fDisableSt )
         Gia_ManHashStop( pFrames );
-    Gia_ManFraTransformCis( pAig, pFrames->vCis );
     Gia_ManSetRegNum( pFrames, Gia_ManRegNum(pAig) );
     if ( Gia_ManCombMarkUsed(pFrames) < Gia_ManAndNum(pFrames) )
     {
