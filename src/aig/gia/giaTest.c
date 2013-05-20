@@ -825,7 +825,7 @@ static inline word Mpm_CutGetSign( Mpm_Cut_t * pCut )
     int i;
     word uSign = 0;
     for ( i = 0; i < (int)pCut->nLeaves; i++ )
-        uSign |= (1 << (Abc_Lit2Var(pCut->pLeaves[i]) & 0x3F));
+        uSign |= ((word)1 << (Abc_Lit2Var(pCut->pLeaves[i]) & 0x3F));
     return uSign;
 }
 static inline int  Mpm_CutGetArrTime( Mpm_Man_t * p, Mpm_Cut_t * pCut )  
@@ -869,7 +869,7 @@ static inline void Mpm_CutSetupInfo( Mpm_Man_t * p, Mpm_Cut_t * pCut, int ArrTim
             pInfo->mEdge += pLeaf->mEdge / pLeaf->nEstRefs;
             pInfo->mAveRefs += MPM_UNIT_EDGE * pLeaf->nMapRefs;
         }
-        pInfo->uSign |= (1 << Abc_Lit2Var(pCut->pLeaves[i]));
+        pInfo->uSign |= ((word)1 << Abc_Lit2Var(pCut->pLeaves[i]));
     }
     pInfo->mAveRefs /= pCut->nLeaves;
 }

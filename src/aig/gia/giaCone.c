@@ -445,7 +445,7 @@ Vec_Wrd_t * Gia_ManDeriveSigns( Gia_Man_t * p, Vec_Int_t * vPivots, int fVerbose
             if ( ~pObj->Value )
             {
                 assert( pObj->Value >= 0 && pObj->Value < 64 );
-                *Vec_WrdEntryP( vSigns, i ) |= ( 1 << pObj->Value );
+                *Vec_WrdEntryP( vSigns, i ) |= ( (word)1 << pObj->Value );
             }
             if ( Gia_ObjIsAnd(pObj) )
                 *Vec_WrdEntryP( vSigns, i ) |= Vec_WrdEntry(vSigns, Gia_ObjFaninId0(pObj, i)) | Vec_WrdEntry(vSigns, Gia_ObjFaninId1(pObj, i));

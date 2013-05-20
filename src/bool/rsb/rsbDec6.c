@@ -484,7 +484,7 @@ void Rsb_DecPrintFunc( Rsb_Man_t * p, unsigned Truth4, word * f, word ** ppGs, i
 
     printf( "Offset : " );
     Abc_TtPrintBinary( &Copy, nVars );  //printf( "\n" );
-    Copy >>= (1 << nVars);
+    Copy >>= ((word)1 << nVars);
     printf( "Onset  : " );
     Abc_TtPrintBinary( &Copy, nVars );  //printf( "\n" );
     printf( "Result : " );
