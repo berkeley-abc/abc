@@ -1,11 +1,15 @@
-CC   := gcc
+CC   := g++
 CXX  := g++
-LD   := g++
+LD   := $(CXX)
+
+$(info Using CC=$(CC))
+$(info Using CXX=$(CXX))
+$(info Using LD=$(LD))
 
 PROG := abc
 
 MODULES := \
-        $(wildcard src/ext) src/misc/ext \
+	$(wildcard src/ext) src/misc/ext \
 	src/base/abc src/base/abci src/base/cmd src/base/io \
 	src/base/main src/base/ver src/base/test \
 	src/bdd/cudd src/bdd/dsd src/bdd/epd src/bdd/mtr src/bdd/parse \
@@ -36,12 +40,27 @@ arch_flags : arch_flags.c
 ARCHFLAGS := $(shell $(CC) arch_flags.c -o arch_flags && ./arch_flags)
 OPTFLAGS  := -g -O #-DABC_NAMESPACE=xxx
 
-CFLAGS   += -Wall -Wno-unused-function $(OPTFLAGS) $(ARCHFLAGS) -I$(PWD)/src
+CFLAGS   += -Wall -Wno-unused-function -Wno-write-strings -Wno-sign-compare $(OPTFLAGS) $(ARCHFLAGS) -I$(PWD)/src
 
-#ifeq ($(shell $(CC) -dumpversion | awk '{FS="."; print ($$1>=4 && $$2>=6)}'),1)
-# Set -Wno-unused-but-set-variable for GCC 4.6.0 and greater only
+# Set -Wno-unused-bug-set-variable for GCC 4.6.0 and greater only
+ifneq ($(or $(findstring gcc,$(CC)),$(findstring g++,$(CC))),)
+empty:=
+space:=$(empty) $(empty)
+
+GCC_VERSION=$(shell $(CC) -dumpversion)
+GCC_MAJOR=$(word 1,$(subst .,$(space),$(GCC_VERSION)))
+GCC_MINOR=$(word 2,$(subst .,$(space),$(GCC_VERSION)))
+
+$(info Found GCC_VERSION $(GCC_VERSION))
+ifeq ($(findstring $(GCC_MAJOR),0 1 2 3),)
+$(info Found GCC_MAJOR>=4)
+ifeq ($(findstring $(GCC_MINOR),0 1 2 3 4 5),)
+$(info Found GCC_MINOR>=6)
 CFLAGS += -Wno-unused-but-set-variable
-#endif
+endif
+endif
+
+endif
 
 LIBS := -ldl
 
@@ -55,12 +74,13 @@ CFLAGS += -DABC_USE_PTHREADS
 LIBS += -lpthread
 endif
 
+$(info Using CFLAGS=$(CFLAGS))
 CXXFLAGS += $(CFLAGS) 
 
 SRC  := 
 GARBAGE := core core.* *.stackdump ./tags $(PROG) arch_flags
 
-.PHONY: tags clean docs
+.PHONY: all default tags clean docs
 
 include $(patsubst %, %/module.make, $(MODULES))
 
