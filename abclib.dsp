@@ -1411,6 +1411,10 @@ SOURCE=.\src\sat\bmc\bmcCexCut.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\sat\bmc\bmcCexDepth.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\sat\bmc\bmcCexMin1.c
 # End Source File
 # Begin Source File
