@@ -21460,9 +21460,11 @@ int Abc_CommandBmc3( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
     }
     vStatuses = Abc_FrameDeriveStatusArray( vSeqModelVec );
-    Abc_FrameReplacePoStatuses( pAbc, &vStatuses );        
-    Abc_FrameReplaceCexVec( pAbc, &vSeqModelVec );
-    Abc_FrameReplaceCex( pAbc, &pNtk->pSeqModel );
+    Abc_FrameReplacePoStatuses( pAbc, &vStatuses );
+    if ( vSeqModelVec )
+        Abc_FrameReplaceCexVec( pAbc, &vSeqModelVec );
+    else
+        Abc_FrameReplaceCex( pAbc, &pNtk->pSeqModel );
     return 0;
 
 usage:
@@ -23011,8 +23013,10 @@ int Abc_CommandPdr( Abc_Frame_t * pAbc, int argc, char ** argv )
     // run the procedure
     pAbc->Status  = Abc_NtkDarPdr( pNtk, pPars );
     pAbc->nFrames = pNtk->vSeqModelVec ? -1 : pPars->iFrame;
-    Abc_FrameReplaceCex( pAbc, &pNtk->pSeqModel );
-    Abc_FrameReplaceCexVec( pAbc, &pNtk->vSeqModelVec );
+    if ( pNtk->vSeqModelVec )
+        Abc_FrameReplaceCexVec( pAbc, &pNtk->vSeqModelVec );
+    else
+        Abc_FrameReplaceCex( pAbc, &pNtk->pSeqModel );
     Abc_FrameReplacePoStatuses( pAbc, &pPars->vOutMap );
     return 0;
 
