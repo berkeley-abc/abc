@@ -343,6 +343,7 @@ static inline int          Gia_ManObjIsConst0( Gia_Man_t * p, Gia_Obj_t * pObj){
 
 static inline int          Gia_Obj2Lit( Gia_Man_t * p, Gia_Obj_t * pObj )      { return Abc_Var2Lit(Gia_ObjId(p, Gia_Regular(pObj)), Gia_IsComplement(pObj)); }
 static inline Gia_Obj_t *  Gia_Lit2Obj( Gia_Man_t * p, int iLit )              { return Gia_NotCond(Gia_ManObj(p, Abc_Lit2Var(iLit)), Abc_LitIsCompl(iLit));  }
+static inline int          Gia_ManCiLit( Gia_Man_t * p, int CiId )             { return Gia_Obj2Lit( p, Gia_ManCi(p, CiId) );                }
 
 static inline int          Gia_ManIdToCioId( Gia_Man_t * p, int Id )           { return Gia_ObjCioId( Gia_ManObj(p, Id) );                   }
 static inline int          Gia_ManCiIdToId( Gia_Man_t * p, int CiId )          { return Gia_ObjId( p, Gia_ManCi(p, CiId) );                  }
@@ -897,13 +898,15 @@ extern Gia_Man_t *         Gia_ManDupOrderDfsReverse( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManDupOutputGroup( Gia_Man_t * p, int iOutStart, int iOutStop );
 extern Gia_Man_t *         Gia_ManDupOutputVec( Gia_Man_t * p, Vec_Int_t * vOutPres );
 extern Gia_Man_t *         Gia_ManDupOrderAiger( Gia_Man_t * p );
+extern Gia_Man_t *         Gia_ManDupLastPis( Gia_Man_t * p, int nLastPis );
 extern Gia_Man_t *         Gia_ManDupFlip( Gia_Man_t * p, int * pInitState );
-extern Gia_Man_t *         Gia_ManDupCycled( Gia_Man_t * pAig, int nFrames );
+extern Gia_Man_t *         Gia_ManDupCycled( Gia_Man_t * pAig, Abc_Cex_t * pCex, int nFrames );
 extern Gia_Man_t *         Gia_ManDup( Gia_Man_t * p );  
 extern Gia_Man_t *         Gia_ManDupPerm( Gia_Man_t * p, Vec_Int_t * vPiPerm );
 extern void                Gia_ManDupAppend( Gia_Man_t * p, Gia_Man_t * pTwo );
 extern void                Gia_ManDupAppendShare( Gia_Man_t * p, Gia_Man_t * pTwo );
 extern Gia_Man_t *         Gia_ManDupAppendNew( Gia_Man_t * pOne, Gia_Man_t * pTwo );
+extern Gia_Man_t *         Gia_ManDupAppendCones( Gia_Man_t * p, Gia_Man_t ** ppCones, int nCones, int fOnlyRegs );
 extern Gia_Man_t *         Gia_ManDupSelf( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManDupFlopClass( Gia_Man_t * p, int iClass );
 extern Gia_Man_t *         Gia_ManDupMarked( Gia_Man_t * p );

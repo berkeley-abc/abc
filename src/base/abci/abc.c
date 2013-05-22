@@ -21460,7 +21460,7 @@ int Abc_CommandBmc3( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
     }
     vStatuses = Abc_FrameDeriveStatusArray( vSeqModelVec );
-    Abc_FrameReplacePoStatuses( pAbc, &vStatuses );
+    Abc_FrameReplacePoStatuses( pAbc, &vStatuses );        
     if ( vSeqModelVec )
         Abc_FrameReplaceCexVec( pAbc, &vSeqModelVec );
     else
@@ -23013,11 +23013,11 @@ int Abc_CommandPdr( Abc_Frame_t * pAbc, int argc, char ** argv )
     // run the procedure
     pAbc->Status  = Abc_NtkDarPdr( pNtk, pPars );
     pAbc->nFrames = pNtk->vSeqModelVec ? -1 : pPars->iFrame;
+    Abc_FrameReplacePoStatuses( pAbc, &pPars->vOutMap );
     if ( pNtk->vSeqModelVec )
         Abc_FrameReplaceCexVec( pAbc, &pNtk->vSeqModelVec );
     else
         Abc_FrameReplaceCex( pAbc, &pNtk->pSeqModel );
-    Abc_FrameReplacePoStatuses( pAbc, &pPars->vOutMap );
     return 0;
 
 usage:
@@ -30250,9 +30250,9 @@ usage:
 int Abc_CommandAbc9Cycle( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Gia_Man_t * pTemp;
-    int c, nFrames = 10, fVerbose = 0;
+    int c, nFrames = 10, fUseCex = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Fvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Fcvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -30266,6 +30266,9 @@ int Abc_CommandAbc9Cycle( Abc_Frame_t * pAbc, int argc, char ** argv )
             globalUtilOptind++;
             if ( nFrames < 0 )
                 goto usage;
+            break;
+        case 'c':
+            fUseCex ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -30281,15 +30284,16 @@ int Abc_CommandAbc9Cycle( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Cycle(): There is no AIG.\n" );
         return 1;
     }
-    pTemp = Gia_ManDupCycled( pAbc->pGia, nFrames );
+    pTemp = Gia_ManDupCycled( pAbc->pGia, fUseCex ? pAbc->pCex : NULL, nFrames );
     Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &cycle [-F num] [-vh]\n" );
+    Abc_Print( -2, "usage: &cycle [-F num] [-cvh]\n" );
     Abc_Print( -2, "\t         cycles sequential circuit for the given number of timeframes\n" );
     Abc_Print( -2, "\t         to derive a new initial state (which may be on the envelope)\n" );
     Abc_Print( -2, "\t-F num : the number of frames to simulate [default = %d]\n", nFrames );
+    Abc_Print( -2, "\t-c     : toggle using PI values from the current CEX [default = %s]\n", fUseCex? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
@@ -31934,6 +31938,7 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Gia_Man_t * pTemp = NULL;
     int c, fVerbose = 0;
+    int nFrames = 3;
     int fSwitch = 0;
 //    extern Gia_Man_t * Gia_VtaTest( Gia_Man_t * p );
 //    extern int Gia_ManSuppSizeTest( Gia_Man_t * p );
@@ -31947,13 +31952,26 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    extern int Gia_ManVerify( Gia_Man_t * pGia );
 //    extern Gia_Man_t * Gia_ManOptimizeRing( Gia_Man_t * p );
 //    extern void Gia_ManCollectSeqTest( Gia_Man_t * p );
-    extern Gia_Man_t * Gia_SweeperFraigTest( Gia_Man_t * p, int nWords, int nConfs, int fVerbose );
+//    extern Gia_Man_t * Gia_SweeperFraigTest( Gia_Man_t * p, int nWords, int nConfs, int fVerbose );
+    extern Gia_Man_t * Bmc_CexDepthTest( Gia_Man_t * p, Abc_Cex_t * pCex, int nFrames, int fVerbose );
+    extern Gia_Man_t * Bmc_CexTarget( Gia_Man_t * p, int nFrames );
 
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "svh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Fsvh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'F':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-F\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nFrames = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nFrames < 0 )
+                goto usage;
+            break;
         case 's':
             fSwitch ^= 1;
             break;
@@ -32001,12 +32019,16 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    Gia_ManVerifyWithBoxes( pAbc->pGia );
 //    Gia_ManCollectSeqTest( pAbc->pGia );
 //    pTemp = Gia_ManOptimizeRing( pAbc->pGia );
-    pTemp = Gia_SweeperFraigTest( pAbc->pGia, 4, 1000, 0 );
+//    pTemp = Gia_SweeperFraigTest( pAbc->pGia, 4, 1000, 0 );
+//    Abc_FrameUpdateGia( pAbc, pTemp );
+    pTemp = Bmc_CexDepthTest( pAbc->pGia, pAbc->pCex, nFrames, fVerbose );
+//    pTemp = Bmc_CexTarget( pAbc->pGia, nFrames );
     Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 usage:
-    Abc_Print( -2, "usage: &test [-svh]\n" );
+    Abc_Print( -2, "usage: &test [-F num] [-svh]\n" );
     Abc_Print( -2, "\t        testing various procedures\n" );
+    Abc_Print( -2, "\t-F num: the number of timeframes [default = %d]\n", nFrames );
     Abc_Print( -2, "\t-s    : toggle enable (yes) vs. disable (no) [default = %s]\n", fSwitch? "yes": "no" );
     Abc_Print( -2, "\t-v    : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h    : print the command usage\n");

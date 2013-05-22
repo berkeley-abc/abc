@@ -385,6 +385,36 @@ Gia_Man_t * Gia_ManDupOrderAiger( Gia_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Duplicates AIG while putting first PIs, then nodes, then POs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManDupLastPis( Gia_Man_t * p, int nLastPis )
+{
+    Gia_Man_t * pNew;
+    Gia_Obj_t * pObj;
+    int i;
+    assert( Gia_ManRegNum(p) == 0 );
+    pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManForEachCi( p, pObj, i )
+        pObj->Value = (i < Gia_ManCiNum(p) - nLastPis) ? ~0 : Gia_ManAppendCi(pNew);
+    Gia_ManForEachAnd( p, pObj, i )
+        pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    Gia_ManForEachCo( p, pObj, i )
+        pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    return pNew;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Duplicates AIG while complementing the flops.]
 
   Description [The array of initial state contains the init state
@@ -438,16 +468,17 @@ Gia_Man_t * Gia_ManDupFlip( Gia_Man_t * p, int * pInitState )
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManCycle( Gia_Man_t * p, int nFrames )
+void Gia_ManCycle( Gia_Man_t * p, Abc_Cex_t * pCex, int nFrames )
 {
     Gia_Obj_t * pObj, * pObjRi, * pObjRo;
     int i, k;
     Gia_ManRandom( 1 );
+    assert( pCex == NULL || nFrames <= pCex->iFrame );
     // iterate for the given number of frames
     for ( i = 0; i < nFrames; i++ )
     {
         Gia_ManForEachPi( p, pObj, k )
-            pObj->fMark0 = (1 & Gia_ManRandom(0));
+            pObj->fMark0 = pCex ? Abc_InfoHasBit(pCex->pData, pCex->nRegs+i*pCex->nPis+k) : (1 & Gia_ManRandom(0));
         Gia_ManForEachAnd( p, pObj, k )
             pObj->fMark0 = (Gia_ObjFanin0(pObj)->fMark0 ^ Gia_ObjFaninC0(pObj)) & 
                            (Gia_ObjFanin1(pObj)->fMark0 ^ Gia_ObjFaninC1(pObj));
@@ -457,14 +488,14 @@ void Gia_ManCycle( Gia_Man_t * p, int nFrames )
             pObjRo->fMark0 = pObjRi->fMark0;
     }
 }
-Gia_Man_t * Gia_ManDupCycled( Gia_Man_t * p, int nFrames )
+Gia_Man_t * Gia_ManDupCycled( Gia_Man_t * p, Abc_Cex_t * pCex, int nFrames )
 {
     Gia_Man_t * pNew;
     Vec_Bit_t * vInits;
     Gia_Obj_t * pObj;
     int i;
     Gia_ManCleanMark0(p);
-    Gia_ManCycle( p, nFrames );
+    Gia_ManCycle( p, pCex, nFrames );
     vInits = Vec_BitAlloc( Gia_ManRegNum(p) );
     Gia_ManForEachRo( p, pObj, i )
         Vec_BitPush( vInits, pObj->fMark0 );
@@ -648,6 +679,60 @@ Gia_Man_t * Gia_ManDupAppendNew( Gia_Man_t * pOne, Gia_Man_t * pTwo )
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(pOne) + Gia_ManRegNum(pTwo) );
     return pNew;
 }
+
+/**Function*************************************************************
+
+  Synopsis    [Appends logic cones as additional property outputs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManDupAppendCones( Gia_Man_t * p, Gia_Man_t ** ppCones, int nCones, int fOnlyRegs )
+{
+    Gia_Man_t * pNew, * pOne;
+    Gia_Obj_t * pObj;
+    int i, k;
+    pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    Gia_ManHashAlloc( pNew );
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManForEachCi( p, pObj, i )
+        pObj->Value = Gia_ManAppendCi( pNew );
+    Gia_ManForEachAnd( p, pObj, i )
+        pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    Gia_ManForEachPo( p, pObj, i )
+        pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    for ( k = 0; k < nCones; k++ )
+    {
+        pOne = ppCones[k];
+        assert( Gia_ManPoNum(pOne) == 1 );
+        assert( Gia_ManRegNum(pOne) == 0 );
+        if ( fOnlyRegs )
+            assert( Gia_ManPiNum(pOne) == Gia_ManRegNum(p) );
+        else
+            assert( Gia_ManPiNum(pOne) == Gia_ManCiNum(p) );
+        Gia_ManConst0(pOne)->Value = 0;
+        Gia_ManForEachPi( pOne, pObj, i )
+            pObj->Value = Gia_ManCiLit( pNew, fOnlyRegs ? Gia_ManPiNum(p) + i : i );
+        Gia_ManForEachAnd( pOne, pObj, i )
+            pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        Gia_ManForEachPo( pOne, pObj, i )
+            pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    }
+    Gia_ManForEachRi( p, pObj, i )
+        pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    Gia_ManHashStop( pNew );
+    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    pNew = Gia_ManCleanup( pOne = pNew );
+    Gia_ManStop( pOne );
+    return pNew;
+}
+
 
 /**Function*************************************************************
 

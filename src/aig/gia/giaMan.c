@@ -245,11 +245,15 @@ void Gia_ManPrintTents( Gia_Man_t * p )
     printf( "Tents:  " );
     for ( t = 1; nSizePrev < Vec_IntSize(vObjs); t++ )
     {
+        int nPis = 0;
         nSizeCurr = Vec_IntSize(vObjs);
         Vec_IntForEachEntryStartStop( vObjs, iObjId, i, nSizePrev, nSizeCurr )
+        {
+            nPis += Gia_ObjIsPi(p, Gia_ManObj(p, iObjId));
             if ( Gia_ObjIsRo(p, Gia_ManObj(p, iObjId)) )
                 Gia_ManPrintTents_rec( p, Gia_ObjRoToRi(p, Gia_ManObj(p, iObjId)), vObjs );
-        printf( "%d=%d  ", t, nSizeCurr - nSizePrev );
+        }
+        printf( "%d=%d(%d)  ", t, nSizeCurr - nSizePrev, nPis );
         nSizePrev = nSizeCurr;
     }
     printf( " Unused=%d\n", Gia_ManObjNum(p) - Vec_IntSize(vObjs) );
