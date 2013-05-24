@@ -42,9 +42,103 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
-static inline void  Sfm_NtkIncrementTravId( Sfm_Ntk_t * p )            { p->nTravIds++;                                           }       
-static inline void  Sfm_ObjSetTravIdCurrent( Sfm_Ntk_t * p, int Id )   { Vec_IntWriteEntry( &p->vTravIds, Id, p->nTravIds );      }
-static inline int   Sfm_ObjIsTravIdCurrent( Sfm_Ntk_t * p, int Id )    { return (Vec_IntEntry(&p->vTravIds, Id) == p->nTravIds);  }   
+static inline void  Sfm_NtkIncrementTravId( Sfm_Ntk_t * p )            { p->nTravIds++;                                            }       
+static inline void  Sfm_ObjSetTravIdCurrent( Sfm_Ntk_t * p, int Id )   { Vec_IntWriteEntry( &p->vTravIds, Id, p->nTravIds );       }
+static inline int   Sfm_ObjIsTravIdCurrent( Sfm_Ntk_t * p, int Id )    { return (Vec_IntEntry(&p->vTravIds, Id) == p->nTravIds);   }   
+
+static inline void  Sfm_NtkIncrementTravId2( Sfm_Ntk_t * p )           { p->nTravIds2++;                                           }       
+static inline void  Sfm_ObjSetTravIdCurrent2( Sfm_Ntk_t * p, int Id )  { Vec_IntWriteEntry( &p->vTravIds2, Id, p->nTravIds2 );     }
+static inline int   Sfm_ObjIsTravIdCurrent2( Sfm_Ntk_t * p, int Id )   { return (Vec_IntEntry(&p->vTravIds2, Id) == p->nTravIds2); }   
+
+
+/**Function*************************************************************
+
+  Synopsis    [Check if this fanout overlaps with TFI cone of the node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Sfm_NtkCheckOverlap_rec( Sfm_Ntk_t * p, int iThis, int iNode )
+{
+    int i, iFanin;
+    if ( Sfm_ObjIsTravIdCurrent2(p, iThis) || iThis == iNode )
+        return 0;
+    if ( Sfm_ObjIsTravIdCurrent(p, iThis) )
+        return 1;
+    Sfm_ObjSetTravIdCurrent2(p, iThis);
+    Sfm_NodeForEachFanin( p, iThis, iFanin, i )
+        if ( Sfm_NtkCheckOverlap_rec(p, iFanin, iNode) )
+            return 1;
+    return 0;
+}
+int Sfm_NtkCheckOverlap( Sfm_Ntk_t * p, int iFan, int iNode )
+{
+    Sfm_NtkIncrementTravId2( p );
+    return Sfm_NtkCheckOverlap_rec( p, iFan, iNode );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Check fanouts of the node.]
+
+  Description [Returns 1 if they can be used instead of the node.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Sfm_NtkCheckFanouts( Sfm_Ntk_t * p, int iNode )
+{
+    int i, iFanout;
+    if ( Sfm_ObjFanoutNum(p, iNode) >= p->pPars->nFanoutMax )
+        return 0;
+    Sfm_NodeForEachFanout( p, iNode, iFanout, i )
+        if ( !Sfm_NtkCheckOverlap( p, iFanout, iNode ) )
+            return 0;
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Collects divisors of the node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Sfm_NtkAddDivisors( Sfm_Ntk_t * p, int iNode )
+{
+    int i, iFanout;
+    Sfm_NodeForEachFanout( p, iNode, iFanout, i )
+    {
+        // skip TFI nodes, PO nodes, and nodes with high fanout or nodes with high logic level
+        if ( Sfm_ObjIsTravIdCurrent(p, iFanout) || Sfm_ObjIsPo(p, iFanout) || 
+            Sfm_ObjFanoutNum(p, iFanout) >= p->pPars->nFanoutMax ||
+            (p->pPars->fFixLevel && Sfm_ObjLevel(p, iFanout) >= Sfm_ObjLevel(p, iNode)) )
+            continue;
+        // handle single-input nodes
+        if ( Sfm_ObjFaninNum(p, iFanout) == 1 )
+            Vec_IntPush( p->vDivs, iFanout );
+        // visit node for the first time
+        else if ( !Sfm_ObjIsTravIdCurrent2(p, iFanout) )
+        {
+            assert( Sfm_ObjFaninNum(p, iFanout) > 1 );
+            Sfm_ObjSetTravIdCurrent2( p, iFanout );
+            Sfm_ObjResetFaninCount( p, iFanout );
+        }
+        // visit node again
+        else if ( Sfm_ObjUpdateFaninCount(p, iFanout) == 0 )
+            Vec_IntPush( p->vDivs, iFanout );
+    }
+}
 
 /**Function*************************************************************
 
@@ -72,94 +166,63 @@ void Sfm_NtkCollectTfi_rec( Sfm_Ntk_t * p, int iNode )
         Sfm_NtkCollectTfi_rec( p, iFanin );
     Vec_IntPush( p->vNodes, iNode );
 }
-int Sfm_NtkWindow( Sfm_Ntk_t * p, int iNode )
+int Sfm_NtkWindow( Sfm_Ntk_t * p, int iNode, int fVerbose )
 {
-//    int i, iRoot;
+    int i, iTemp;
+/*
+    if ( iNode == 7 )
+    {
+        int iLevel = Sfm_ObjLevel(p, iNode);
+        int s = 0;
+    }
+*/
     assert( Sfm_ObjIsNode( p, iNode ) );
-    Sfm_NtkIncrementTravId( p );
     Vec_IntClear( p->vLeaves ); // leaves 
     Vec_IntClear( p->vNodes );  // internal
     // collect transitive fanin
+    Sfm_NtkIncrementTravId( p );
     Sfm_NtkCollectTfi_rec( p, iNode );
-    // collect TFO
+    // collect TFO (currently use only one level of TFO)
     Vec_IntClear( p->vRoots );  // roots
     Vec_IntClear( p->vTfo );    // roots
-    Vec_IntPush( p->vRoots, iNode );
-/*
-    Vec_IntForEachEntry( p->vRoots, iRoot, i )
+    if ( Sfm_NtkCheckFanouts(p, iNode) )
     {
-        assert( Sfm_ObjIsNode(p, iRoot) );
-        if ( Sfm_ObjIsTravIdCurrent(p, iRoot) )
-            continue;
-        if ( Sfm_ObjFanoutNum(p, iRoot) >= p->pPars->nFanoutMax )
-            continue;
-    }
-*/
-    return 1;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Converts a window into a SAT solver.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Sfm_NtkWin2Sat( Sfm_Ntk_t * p )
-{
-    Vec_Int_t * vClause;
-    int RetValue, Lit, iNode = -1, iFanin, i, k;
-    sat_solver * pSat0 = sat_solver_new();
-    sat_solver * pSat1 = sat_solver_new();
-    sat_solver_setnvars( pSat0, 1 + Vec_IntSize(p->vLeaves) + Vec_IntSize(p->vNodes) + 2 * Vec_IntSize(p->vTfo) + Vec_IntSize(p->vRoots) );
-    sat_solver_setnvars( pSat1, 1 + Vec_IntSize(p->vLeaves) + Vec_IntSize(p->vNodes) + 2 * Vec_IntSize(p->vTfo) + Vec_IntSize(p->vRoots) );
-    // create SAT variables
-    p->nSatVars = 1;
-    Vec_IntForEachEntryReverse( p->vNodes, iNode, i )
-        Sfm_ObjSetSatVar( p, iNode, p->nSatVars++ );
-    Vec_IntForEachEntryReverse( p->vLeaves, iNode, i )
-        Sfm_ObjSetSatVar( p, iNode, p->nSatVars++ );
-    // add CNF clauses
-    Vec_IntForEachEntryReverse( p->vNodes, iNode, i )
-    {
-        // collect fanin variables
-        Vec_IntClear( p->vFaninMap );
-        Sfm_NodeForEachFanin( p, iNode, iFanin, k )
-            Vec_IntPush( p->vFaninMap, Sfm_ObjSatVar(p, iFanin) );
-        Vec_IntPush( p->vFaninMap, Sfm_ObjSatVar(p, iNode) );
-        // generate CNF 
-        Sfm_TranslateCnf( p->vClauses, (Vec_Str_t *)Vec_WecEntry(p->vCnfs, iNode), p->vFaninMap );
-        // add clauses
-        Vec_WecForEachLevel( p->vClauses, vClause, k )
+        Sfm_NodeForEachFanout( p, iNode, iTemp, i )
         {
-            if ( Vec_IntSize(vClause) == 0 )
-                break;
-            RetValue = sat_solver_addclause( pSat0, Vec_IntArray(vClause), Vec_IntArray(vClause) + Vec_IntSize(vClause) );
-            assert( RetValue );
-            RetValue = sat_solver_addclause( pSat1, Vec_IntArray(vClause), Vec_IntArray(vClause) + Vec_IntSize(vClause) );
-            assert( RetValue );
+            if ( Sfm_ObjIsPo(p, iTemp) )
+                continue;
+            Vec_IntPush( p->vRoots, iTemp );
+            Vec_IntPush( p->vTfo, iTemp );
         }
     }
-    // add unit clause
-    Lit = Abc_Var2Lit( Sfm_ObjSatVar(p, iNode), 1 );
-    RetValue = sat_solver_addclause( pSat0, &Lit, &Lit + 1 );
-    assert( RetValue );
-    // add unit clause
-    Lit = Abc_Var2Lit( Sfm_ObjSatVar(p, iNode), 0 );
-    RetValue = sat_solver_addclause( pSat1, &Lit, &Lit + 1 );
-    assert( RetValue );
-    // finalize
-    sat_solver_compress( p->pSat0 );
-    sat_solver_compress( p->pSat1 );
-    // return the result
-    assert( p->pSat0 == NULL );
-    assert( p->pSat1 == NULL );
-    p->pSat0 = pSat0;
-    p->pSat1 = pSat1;
+    else
+        Vec_IntPush( p->vRoots, iNode );
+    // collect divisors of the TFI nodes
+    Vec_IntClear( p->vDivs );
+    Sfm_NtkIncrementTravId2( p );
+    Vec_IntForEachEntry( p->vLeaves, iTemp, i )
+        Sfm_NtkAddDivisors( p, iTemp );
+    Vec_IntForEachEntry( p->vNodes, iTemp, i )
+        Sfm_NtkAddDivisors( p, iTemp );
+    Vec_IntForEachEntry( p->vDivs, iTemp, i )
+        Sfm_NtkAddDivisors( p, iTemp );
+    if ( !fVerbose )
+        return 1;
+
+    // print stats about the window
+    printf( "%6d : ", iNode );
+    printf( "Leaves = %5d. ", Vec_IntSize(p->vLeaves) );
+    printf( "Nodes = %5d. ",  Vec_IntSize(p->vNodes) );
+    printf( "Roots = %5d. ",  Vec_IntSize(p->vRoots) );
+    printf( "Divs = %5d. ",   Vec_IntSize(p->vDivs) );
+    printf( "\n" );
+    return 1;
+}
+void Sfm_NtkWindowTest( Sfm_Ntk_t * p, int iNode )
+{
+    int i;
+    Sfm_NtkForEachNode( p, i )
+        Sfm_NtkWindow( p, i, 1 );
 }
 
 ////////////////////////////////////////////////////////////////////////

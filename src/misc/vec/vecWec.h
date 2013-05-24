@@ -122,6 +122,11 @@ static inline void Vec_WecGrow( Vec_Wec_t * p, int nCapMin )
     memset( p->pArray + p->nCap, 0, sizeof(Vec_Int_t) * (nCapMin - p->nCap) );
     p->nCap   = nCapMin;
 }
+static inline void Vec_WecInit( Vec_Wec_t * p, int nSize )
+{
+    Vec_WecGrow( p, nSize );
+    p->nSize = nSize;
+}
 
 /**Function*************************************************************
 
@@ -314,12 +319,24 @@ static inline double Vec_WecMemory( Vec_Wec_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-static inline void Vec_WecFree( Vec_Wec_t * p )
+static inline void Vec_WecZero( Vec_Wec_t * p )
+{
+    p->pArray = NULL;
+    p->nSize = 0;
+    p->nCap = 0;
+}
+static inline void Vec_WecErase( Vec_Wec_t * p )
 {
     int i;
     for ( i = 0; i < p->nCap; i++ )
         ABC_FREE( p->pArray[i].pArray );
     ABC_FREE( p->pArray );
+    p->nSize = 0;
+    p->nCap = 0;
+}
+static inline void Vec_WecFree( Vec_Wec_t * p )
+{
+    Vec_WecErase( p );
     ABC_FREE( p );
 }
 static inline void Vec_WecFreeP( Vec_Wec_t ** p )

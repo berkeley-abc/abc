@@ -75,6 +75,8 @@ void Sfm_NtkPrepare( Sfm_Ntk_t * p )
     p->vNodes  = Vec_IntAlloc( 1000 );
     p->vTfo    = Vec_IntAlloc( 1000 );
     p->vDivs   = Vec_IntAlloc( 100 );
+    p->vDivIds = Vec_IntAlloc( 1000 );
+    p->vDiffs  = Vec_IntAlloc( 1000 );
     p->vLits   = Vec_IntAlloc( 100 );
     p->vClauses  = Vec_WecAlloc( 100 );
     p->vFaninMap = Vec_IntAlloc( 10 );
@@ -94,15 +96,19 @@ void Sfm_NtkPrepare( Sfm_Ntk_t * p )
 ***********************************************************************/
 int Sfm_NtkPerform( Sfm_Ntk_t * p, Sfm_Par_t * pPars )
 {
-    int i;
+//    int i;
     p->pPars = pPars;
     Sfm_NtkPrepare( p );
+    Sfm_ComputeInterpolantCheck( p );
+/*
     Sfm_NtkForEachNode( p, i )
     {
-        printf( "Node %d:\n", i );
-        Sfm_PrintCnf( (Vec_Str_t *)Vec_WecEntry(p->vCnfs, i) );
-        printf( "\n" );
+//        printf( "Node %d:\n", i );
+//        Sfm_PrintCnf( (Vec_Str_t *)Vec_WecEntry(p->vCnfs, i) );
+//        printf( "\n" );
+        Sfm_NtkWindow( p, i, 1 );
     }
+*/
     return 0;
 }
 
