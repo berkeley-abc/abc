@@ -48,8 +48,8 @@ void Sfm_ParSetDefault( Sfm_Par_t * pPars )
     pPars->nTfoLevMax   =    2;  // the maximum fanout levels
     pPars->nFanoutMax   =   10;  // the maximum number of fanouts
     pPars->nDepthMax    =    0;  // the maximum depth to try  
-    pPars->nDivNumMax   =  200;  // the maximum number of divisors
-    pPars->nWinSizeMax  =  500;  // the maximum window size
+    pPars->nDivNumMax   =  300;  // the maximum number of divisors
+    pPars->nWinSizeMax  =  300;  // the maximum window size
     pPars->nBTLimit     =    0;  // the maximum number of conflicts in one SAT run
     pPars->fFixLevel    =    1;  // does not allow level to increase
     pPars->fArea        =    0;  // performs optimization for area
@@ -111,14 +111,18 @@ int Sfm_NodeResubSolve( Sfm_Ntk_t * p, int iNode, int f, int fRemoveOnly )
     clock_t clk;
     assert( Sfm_ObjIsNode(p, iNode) );
     assert( f >= 0 && f < Sfm_ObjFaninNum(p, iNode) );
+    if ( iNode == 211 )
+    {
+        int i = 0;
+    }
     if ( fRemoveOnly )
         p->nTryRemoves++;
     else
         p->nTryResubs++;
     // report init stats
     if ( p->pPars->fVeryVerbose )
-        printf( "Node %5d : Level = %2d. Divs = %3d.  Fanin = %d (out of %d). MFFC = %d\n", 
-            iNode, Sfm_ObjLevel(p, iNode), Vec_IntSize(p->vDivs), f, Sfm_ObjFaninNum(p, iNode), 
+        printf( "%5d : Lev =%3d. Leaf =%3d.  Node =%3d.  Div=%3d.  Fanin = %d/%d. MFFC = %d\n", 
+            iNode, Sfm_ObjLevel(p, iNode), Vec_IntSize(p->vLeaves), Vec_IntSize(p->vNodes), Vec_IntSize(p->vDivs), f, Sfm_ObjFaninNum(p, iNode), 
             Sfm_ObjFanoutNum(p, Sfm_ObjFanin(p, iNode, f)) == 1 ? Sfm_ObjMffcSize(p, iNode) : 0 );
     // clean simulation info
     p->nCexes = 0;
@@ -187,9 +191,9 @@ finish:
     if ( p->pPars->fVeryVerbose )
     {
         if ( iVar == -1 )
-            printf( "Node %d: Fanin %d can be removed.  ", iNode, f );
+            printf( "Node %d: Fanin %d (%d) can be removed.  ", iNode, f, Sfm_ObjFanin(p, iNode, f) );
         else
-            printf( "Node %d: Fanin %d can be replaced by divisor %d.   ", iNode, f, iVar );
+            printf( "Node %d: Fanin %d (%d) can be replaced by divisor %d.   ", iNode, f, Sfm_ObjFanin(p, iNode, f), iVar );
         Kit_DsdPrintFromTruth( (unsigned *)&uTruth, Vec_IntSize(p->vDivIds) ); printf( "\n" );
     }
     if ( iVar == -1 )
@@ -205,9 +209,10 @@ finish:
 int Sfm_NodeResub( Sfm_Ntk_t * p, int iNode )
 {
     int i, iFanin;
-    p->nNodesTried++;
     // prepare SAT solver
-    Sfm_NtkCreateWindow( p, iNode, p->pPars->fVeryVerbose );
+    if ( !Sfm_NtkCreateWindow( p, iNode, p->pPars->fVeryVerbose ) )
+        return 0;
+    p->nNodesTried++;
     Sfm_NtkWindowToSolver( p );
     Sfm_NtkPrepareDivisors( p, iNode );
     // try replacing area critical fanins

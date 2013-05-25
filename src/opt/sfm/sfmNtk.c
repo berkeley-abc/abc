@@ -243,6 +243,10 @@ void Sfm_NtkAddFanin( Sfm_Ntk_t * p, int iNode, int iFanin )
 void Sfm_NtkDeleteObj_rec( Sfm_Ntk_t * p, int iNode )
 {
     int i, iFanin;
+    if ( iNode == 202 )
+    {
+        int s = 0;
+    }
     if ( Sfm_ObjFanoutNum(p, iNode) > 0 || Sfm_ObjIsPi(p, iNode) )
         return;
     assert( Sfm_ObjIsNode(p, iNode) );
@@ -303,6 +307,10 @@ word * Sfm_NodeReadTruth( Sfm_Ntk_t * p, int i )
 int Sfm_NodeReadFixed( Sfm_Ntk_t * p, int i )
 {
     return (int)Vec_StrEntry( p->vFixed, i );
+}
+int Sfm_NodeReadUsed( Sfm_Ntk_t * p, int i )
+{
+    return (Sfm_ObjFaninNum(p, i) > 0) || (Sfm_ObjFanoutNum(p, i) > 0);
 }
 
 ////////////////////////////////////////////////////////////////////////

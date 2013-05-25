@@ -101,7 +101,7 @@ int Abc_WinNode(Mfs_Man_t * p, Abc_Obj_t *pNode)
         return 1;
     // compute the divisors of the window
     p->vDivs  = Abc_MfsComputeDivisors( p, pNode, Abc_ObjRequiredLevel(pNode) - 1 );
-    p->nTotalDivs += Vec_PtrSize(p->vDivs);
+    p->nTotalDivs += Vec_PtrSize(p->vDivs) - Abc_ObjFaninNum(pNode);
     // construct AIG for the window
     p->pAigWin = Abc_NtkConstructAig( p, pNode );
     // translate it into CNF
@@ -250,7 +250,7 @@ p->timeWin += clock() - clk;
     // compute the divisors of the window
 clk = clock();
     p->vDivs  = Abc_MfsComputeDivisors( p, pNode, Abc_ObjRequiredLevel(pNode) - 1 );
-    p->nTotalDivs += Vec_PtrSize(p->vDivs);
+    p->nTotalDivs += Vec_PtrSize(p->vDivs) - Abc_ObjFaninNum(pNode);
 p->timeDiv += clock() - clk;
     // construct AIG for the window
 clk = clock();

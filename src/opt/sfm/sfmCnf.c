@@ -122,12 +122,12 @@ Vec_Wec_t * Sfm_CreateCnf( Sfm_Ntk_t * p )
     Vec_Wec_t * vCnfs;
     Vec_Str_t * vCnf, * vCnfBase;
     word uTruth;
-    int i;
+    int i, nCubes;
     vCnf = Vec_StrAlloc( 100 );
     vCnfs = Vec_WecStart( p->nObjs );
     Vec_WrdForEachEntryStartStop( p->vTruths, uTruth, i, p->nPis, Vec_WrdSize(p->vTruths)-p->nPos )
     {
-        Sfm_TruthToCnf( uTruth, Sfm_ObjFaninNum(p, i), p->vCover, vCnf );
+        nCubes = Sfm_TruthToCnf( uTruth, Sfm_ObjFaninNum(p, i), p->vCover, vCnf );
         vCnfBase = (Vec_Str_t *)Vec_WecEntry( vCnfs, i );
         Vec_StrGrow( vCnfBase, Vec_StrSize(vCnf) );
         memcpy( Vec_StrArray(vCnfBase), Vec_StrArray(vCnf), Vec_StrSize(vCnf) );

@@ -53,7 +53,11 @@ Vec_Ptr_t * Abc_NtkAssignIDs( Abc_Ntk_t * pNtk )
     Abc_NtkForEachPi( pNtk, pObj, i )
         pObj->iTemp = i;
     Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
+    {
         pObj->iTemp = Abc_NtkPiNum(pNtk) + i;
+//printf( "%d->%d ", pObj->Id, pObj->iTemp );
+    }
+//printf( "\n" );
     Abc_NtkForEachPo( pNtk, pObj, i )
         pObj->iTemp = Abc_NtkPiNum(pNtk) + Vec_PtrSize(vNodes) + i;
     return vNodes;
@@ -119,6 +123,7 @@ void Abc_NtkInsertMfs( Abc_Ntk_t * pNtk, Sfm_Ntk_t * p )
     Vec_Int_t * vMap, * vArray;
     Abc_Obj_t * pNode;
     int i, k, Fanin;
+    word * pTruth;
     // map new IDs into old nodes
     vMap = Vec_IntStart( Abc_NtkObjNumMax(pNtk) );
     Abc_NtkForEachPi( pNtk, pNode, i )
@@ -131,18 +136,27 @@ void Abc_NtkInsertMfs( Abc_Ntk_t * pNtk, Sfm_Ntk_t * p )
         Abc_ObjRemoveFanins( pNode );
     // create new fanins
     Abc_NtkForEachNode( pNtk, pNode, i )
-        if ( pNode->iTemp > 0 && !Sfm_NodeReadFixed(p, pNode->iTemp) )
+    {
+        if ( pNode->iTemp == 0 || Sfm_NodeReadFixed(p, pNode->iTemp) )
+            continue;
+        if ( !Sfm_NodeReadUsed(p, pNode->iTemp) )
         {
-            vArray = Sfm_NodeReadFanins( p, pNode->iTemp );
-            if ( Vec_IntSize(vArray) == 0 )
-            {
-                Abc_NtkDeleteObj( pNode );
-                continue;
-            }
-            Vec_IntForEachEntry( vArray, Fanin, k )
-                Abc_ObjAddFanin( pNode, Abc_NtkObj(pNtk, Vec_IntEntry(vMap, Fanin)) );
-            pNode->pData = Abc_SopCreateFromTruth( (Mem_Flex_t *)pNtk->pManFunc, Vec_IntSize(vArray), (unsigned *)Sfm_NodeReadTruth(p, pNode->iTemp) );
+            Abc_NtkDeleteObj( pNode );
+            continue;
         }
+        // update fanins
+        vArray = Sfm_NodeReadFanins( p, pNode->iTemp );
+        Vec_IntForEachEntry( vArray, Fanin, k )
+            Abc_ObjAddFanin( pNode, Abc_NtkObj(pNtk, Vec_IntEntry(vMap, Fanin)) );
+        // update function
+        pTruth = Sfm_NodeReadTruth( p, pNode->iTemp );
+        if ( pTruth[0] == 0 )
+            pNode->pData = Abc_SopRegister( (Mem_Flex_t *)pNtk->pManFunc, " 0\n" );
+        else if ( ~pTruth[0] == 0 )
+            pNode->pData = Abc_SopRegister( (Mem_Flex_t *)pNtk->pManFunc, " 1\n" );
+        else
+            pNode->pData = Abc_SopCreateFromTruth( (Mem_Flex_t *)pNtk->pManFunc, Vec_IntSize(vArray), (unsigned *)pTruth );
+    }
     Vec_IntFree( vMap );
 }
 

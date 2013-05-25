@@ -179,7 +179,7 @@ int Sfm_NtkCheckFanouts( Sfm_Ntk_t * p, int iNode )
   SeeAlso     []
 
 ***********************************************************************/
-void Sfm_NtkAddDivisors( Sfm_Ntk_t * p, int iNode )
+void Sfm_NtkAddDivisors( Sfm_Ntk_t * p, int iNode, int nLevelMax )
 {
     int i, iFanout;
     Sfm_ObjForEachFanout( p, iNode, iFanout, i )
@@ -187,7 +187,7 @@ void Sfm_NtkAddDivisors( Sfm_Ntk_t * p, int iNode )
         // skip TFI nodes, PO nodes, and nodes with high fanout or nodes with high logic level
         if ( Sfm_ObjIsTravIdCurrent(p, iFanout) || Sfm_ObjIsPo(p, iFanout) || 
             Sfm_ObjFanoutNum(p, iFanout) >= p->pPars->nFanoutMax ||
-            (p->pPars->fFixLevel && Sfm_ObjLevel(p, iFanout) >= Sfm_ObjLevel(p, iNode)) )
+            (p->pPars->fFixLevel && Sfm_ObjLevel(p, iFanout) >= nLevelMax) )
             continue;
         // handle single-input nodes
         if ( Sfm_ObjFaninNum(p, iFanout) == 1 )
@@ -235,23 +235,18 @@ int Sfm_NtkCreateWindow( Sfm_Ntk_t * p, int iNode, int fVerbose )
 {
     int i, iTemp;
     clock_t clk = clock();
-/*
-    if ( iNode == 7 )
-    {
-        int iLevel = Sfm_ObjLevel(p, iNode);
-        int s = 0;
-    }
-*/
     assert( Sfm_ObjIsNode( p, iNode ) );
     Vec_IntClear( p->vLeaves ); // leaves 
     Vec_IntClear( p->vNodes );  // internal
     Vec_IntClear( p->vDivs );   // divisors
+    Vec_IntClear( p->vRoots );  // roots
+    Vec_IntClear( p->vTfo );    // roots
     // collect transitive fanin
     Sfm_NtkIncrementTravId( p );
     Sfm_NtkCollectTfi_rec( p, iNode );
+    if ( Vec_IntSize(p->vLeaves) + Vec_IntSize(p->vNodes) > p->pPars->nWinSizeMax )
+        return 0;
     // collect TFO (currently use only one level of TFO)
-    Vec_IntClear( p->vRoots );  // roots
-    Vec_IntClear( p->vTfo );    // roots
     if ( Sfm_NtkCheckFanouts(p, iNode) )
     {
         Sfm_ObjForEachFanout( p, iNode, iTemp, i )
@@ -271,8 +266,8 @@ int Sfm_NtkCreateWindow( Sfm_Ntk_t * p, int iNode, int fVerbose )
     Vec_IntAppend( p->vDivs, p->vNodes );
     Sfm_NtkIncrementTravId2( p );
     Vec_IntForEachEntry( p->vDivs, iTemp, i )
-        if ( Vec_IntSize(p->vDivs) < p->pPars->nDivNumMax )
-            Sfm_NtkAddDivisors( p, iTemp );
+        if ( iTemp != iNode && Vec_IntSize(p->vDivs) < p->pPars->nDivNumMax )
+            Sfm_NtkAddDivisors( p, iTemp, Sfm_ObjLevel(p, iNode) );
     p->nTotalDivs += Vec_IntSize(p->vDivs);
     p->timeDiv += clock() - clk;
     if ( !fVerbose )

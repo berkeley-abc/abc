@@ -123,8 +123,14 @@ void Sfm_NtkWindowToSolver( Sfm_Ntk_t * p )
     RetValue = sat_solver_addclause( pSat1, &Lit, &Lit + 1 );
     assert( RetValue );
     // finalize
-    sat_solver_compress( pSat0 );
-    sat_solver_compress( pSat1 );
+    RetValue = sat_solver_simplify( pSat0 );
+    assert( RetValue );
+    RetValue = sat_solver_simplify( pSat1 );
+    if ( RetValue == 0 )
+    {
+        Sat_SolverWriteDimacs( pSat1, "test.cnf", NULL, NULL, 0 );
+    }
+    assert( RetValue );
     // return the result
     if ( p->pSat0 ) sat_solver_delete( p->pSat0 );
     if ( p->pSat1 ) sat_solver_delete( p->pSat1 );
