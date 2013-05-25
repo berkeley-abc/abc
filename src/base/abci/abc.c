@@ -4469,7 +4469,7 @@ int Abc_CommandMfs2( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set defaults
     Sfm_ParSetDefault( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "WFDMClaevwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "WFDMNClaevwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -4515,6 +4515,17 @@ int Abc_CommandMfs2( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->nWinSizeMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( pPars->nWinSizeMax < 0 )
+                goto usage;
+            break;
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-N\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nDivNumMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nDivNumMax < 0 )
                 goto usage;
             break;
         case 'C':
@@ -4573,12 +4584,13 @@ int Abc_CommandMfs2( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: mfs2 [-WFDMC <num>] [-laevwh]\n" );
+    Abc_Print( -2, "usage: mfs2 [-WFDMNC <num>] [-laevwh]\n" );
     Abc_Print( -2, "\t           performs don't-care-based optimization of logic networks\n" );
     Abc_Print( -2, "\t-W <num> : the number of levels in the TFO cone (0 <= num) [default = %d]\n", pPars->nTfoLevMax );
     Abc_Print( -2, "\t-F <num> : the max number of fanouts to skip (1 <= num) [default = %d]\n", pPars->nFanoutMax );
     Abc_Print( -2, "\t-D <num> : the max depth nodes to try (0 = no limit) [default = %d]\n", pPars->nDepthMax );
     Abc_Print( -2, "\t-M <num> : the max node count of windows to consider (0 = no limit) [default = %d]\n", pPars->nWinSizeMax );
+    Abc_Print( -2, "\t-N <num> : the max number of divisors to consider (0 = no limit) [default = %d]\n", pPars->nDivNumMax );
     Abc_Print( -2, "\t-C <num> : the max number of conflicts in one SAT run (0 = no limit) [default = %d]\n", pPars->nBTLimit );
     Abc_Print( -2, "\t-l       : allow logic level to increase [default = %s]\n", !pPars->fFixLevel? "yes": "no" );
     Abc_Print( -2, "\t-a       : toggle minimizing area or area+edges [default = %s]\n", pPars->fArea? "area": "area+edges" );

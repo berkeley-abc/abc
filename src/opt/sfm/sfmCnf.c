@@ -117,6 +117,37 @@ int Sfm_TruthToCnf( word Truth, int nVars, Vec_Int_t * vCover, Vec_Str_t * vCnf 
   SeeAlso     []
 
 ***********************************************************************/
+Vec_Wec_t * Sfm_CreateCnf( Sfm_Ntk_t * p )
+{
+    Vec_Wec_t * vCnfs;
+    Vec_Str_t * vCnf, * vCnfBase;
+    word uTruth;
+    int i;
+    vCnf = Vec_StrAlloc( 100 );
+    vCnfs = Vec_WecStart( p->nObjs );
+    Vec_WrdForEachEntryStartStop( p->vTruths, uTruth, i, p->nPis, Vec_WrdSize(p->vTruths)-p->nPos )
+    {
+        Sfm_TruthToCnf( uTruth, Sfm_ObjFaninNum(p, i), p->vCover, vCnf );
+        vCnfBase = (Vec_Str_t *)Vec_WecEntry( vCnfs, i );
+        Vec_StrGrow( vCnfBase, Vec_StrSize(vCnf) );
+        memcpy( Vec_StrArray(vCnfBase), Vec_StrArray(vCnf), Vec_StrSize(vCnf) );
+        vCnfBase->nSize = Vec_StrSize(vCnf);
+    }
+    Vec_StrFree( vCnf );
+    return vCnfs;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 void Sfm_TranslateCnf( Vec_Wec_t * vRes, Vec_Str_t * vCnf, Vec_Int_t * vFaninMap )
 {
     Vec_Int_t * vClause;

@@ -45,7 +45,8 @@ struct Sfm_Par_t_
     int           nTfoLevMax;    // the maximum fanout levels
     int           nFanoutMax;    // the maximum number of fanouts
     int           nDepthMax;     // the maximum depth to try
-    int           nWinSizeMax;   // the maximum number of divisors
+    int           nDivNumMax;    // the maximum number of divisors
+    int           nWinSizeMax;   // the maximum window size
     int           nBTLimit;      // the maximum number of conflicts in one SAT run
     int           fFixLevel;     // does not allow level to increase
     int           fArea;         // performs optimization for area

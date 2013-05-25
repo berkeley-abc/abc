@@ -42,6 +42,28 @@ static word s_Truths6[6] = {
 
 /**Function*************************************************************
 
+  Synopsis    [Creates order of objects in the SAT solver.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Sfm_NtkOrderObjects( Sfm_Ntk_t * p )
+{
+    int i, iNode;
+    assert( Vec_IntEntryLast(p->vNodes) == Vec_IntEntry(p->vDivs, Vec_IntSize(p->vLeaves) + Vec_IntSize(p->vNodes)) );
+    Vec_IntClear( p->vOrder );
+    Vec_IntForEachEntryReverse( p->vNodes, iNode, i )
+        Vec_IntPush( p->vOrder, iNode );
+    Vec_IntForEachEntryStart( p->vDivs, iNode, i, Vec_IntSize(p->vLeaves) + Vec_IntSize(p->vNodes) )
+        Vec_IntPush( p->vOrder, iNode );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Converts a window into a SAT solver.]
 
   Description []
@@ -51,14 +73,15 @@ static word s_Truths6[6] = {
   SeeAlso     []
 
 ***********************************************************************/
-void Sfm_NtkWin2Sat( Sfm_Ntk_t * p )
+void Sfm_NtkWindowToSolver( Sfm_Ntk_t * p )
 {
     Vec_Int_t * vClause;
-    int RetValue, Lit, iNode = -1, iFanin, i, k, c;
+    int RetValue, Lit, iNode = -1, iFanin, i, k;
+    clock_t clk = clock();
     sat_solver * pSat0 = sat_solver_new();
     sat_solver * pSat1 = sat_solver_new();
-    sat_solver_setnvars( pSat0, 1 + Vec_IntSize(p->vLeaves) + Vec_IntSize(p->vNodes) + 2 * Vec_IntSize(p->vTfo) + Vec_IntSize(p->vRoots) );
-    sat_solver_setnvars( pSat1, 1 + Vec_IntSize(p->vLeaves) + Vec_IntSize(p->vNodes) + 2 * Vec_IntSize(p->vTfo) + Vec_IntSize(p->vRoots) );
+    sat_solver_setnvars( pSat0, 1 + Vec_IntSize(p->vDivs) + 2 * Vec_IntSize(p->vTfo) + Vec_IntSize(p->vRoots) + 100 );
+    sat_solver_setnvars( pSat1, 1 + Vec_IntSize(p->vDivs) + 2 * Vec_IntSize(p->vTfo) + Vec_IntSize(p->vRoots) + 100 );
     // create SAT variables
     p->nSatVars = 1;
     Vec_IntForEachEntryReverse( p->vNodes, iNode, i )
@@ -67,29 +90,26 @@ void Sfm_NtkWin2Sat( Sfm_Ntk_t * p )
         Sfm_ObjSetSatVar( p, iNode, p->nSatVars++ );
     Vec_IntForEachEntryReverse( p->vDivs, iNode, i )
         Sfm_ObjSetSatVar( p, iNode, p->nSatVars++ );
-    // add CNF clauses
-    for ( c = 0; c < 2; c++ )
+    // add CNF clauses for the TFI
+    Sfm_NtkOrderObjects( p );
+    Vec_IntForEachEntry( p->vOrder, iNode, i )
     {
-        Vec_Int_t * vObjs = c ? p->vDivs : p->vNodes;
-        Vec_IntForEachEntryReverse( vObjs, iNode, i )
+        // collect fanin variables
+        Vec_IntClear( p->vFaninMap );
+        Sfm_ObjForEachFanin( p, iNode, iFanin, k )
+            Vec_IntPush( p->vFaninMap, Sfm_ObjSatVar(p, iFanin) );
+        Vec_IntPush( p->vFaninMap, Sfm_ObjSatVar(p, iNode) );
+        // generate CNF 
+        Sfm_TranslateCnf( p->vClauses, (Vec_Str_t *)Vec_WecEntry(p->vCnfs, iNode), p->vFaninMap );
+        // add clauses
+        Vec_WecForEachLevel( p->vClauses, vClause, k )
         {
-            // collect fanin variables
-            Vec_IntClear( p->vFaninMap );
-            Sfm_NodeForEachFanin( p, iNode, iFanin, k )
-                Vec_IntPush( p->vFaninMap, Sfm_ObjSatVar(p, iFanin) );
-            Vec_IntPush( p->vFaninMap, Sfm_ObjSatVar(p, iNode) );
-            // generate CNF 
-            Sfm_TranslateCnf( p->vClauses, (Vec_Str_t *)Vec_WecEntry(p->vCnfs, iNode), p->vFaninMap );
-            // add clauses
-            Vec_WecForEachLevel( p->vClauses, vClause, k )
-            {
-                if ( Vec_IntSize(vClause) == 0 )
-                    break;
-                RetValue = sat_solver_addclause( pSat0, Vec_IntArray(vClause), Vec_IntArray(vClause) + Vec_IntSize(vClause) );
-                assert( RetValue );
-                RetValue = sat_solver_addclause( pSat1, Vec_IntArray(vClause), Vec_IntArray(vClause) + Vec_IntSize(vClause) );
-                assert( RetValue );
-            }
+            if ( Vec_IntSize(vClause) == 0 )
+                break;
+            RetValue = sat_solver_addclause( pSat0, Vec_IntArray(vClause), Vec_IntArray(vClause) + Vec_IntSize(vClause) );
+            assert( RetValue );
+            RetValue = sat_solver_addclause( pSat1, Vec_IntArray(vClause), Vec_IntArray(vClause) + Vec_IntSize(vClause) );
+            assert( RetValue );
         }
     }
     // get the last node
@@ -110,70 +130,73 @@ void Sfm_NtkWin2Sat( Sfm_Ntk_t * p )
     assert( p->pSat1 == NULL );
     p->pSat0 = pSat0;
     p->pSat1 = pSat1;
+    p->timeCnf += clock() - clk;
 }
 
 /**Function*************************************************************
 
   Synopsis    [Takes SAT solver and returns interpolant.]
 
-  Description [If interpolant does not exist, returns diff SAT variables.]
+  Description [If interpolant does not exist, records difference variables.]
                
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
-word Sfm_ComputeInterpolant( sat_solver * pSatOn, sat_solver * pSatOff, Vec_Int_t * vDivIds, Vec_Int_t * vLits, Vec_Int_t * vDiffs, int nBTLimit )
+word Sfm_ComputeInterpolant( Sfm_Ntk_t * p )
 {
-    word uTruth = 0, uCube;
+    word * pSign, uCube, uTruth = 0;
     int status, i, Div, iVar, nFinal, * pFinal;
-    int nVars = sat_solver_nvars(pSatOn);
+    int nVars = sat_solver_nvars( p->pSat1 );
     int iNewLit = Abc_Var2Lit( nVars, 0 );
-    int RetValue;
-    sat_solver_setnvars( pSatOn, nVars + 1 );
+    sat_solver_setnvars( p->pSat1, nVars + 1 );
     while ( 1 ) 
     {
         // find onset minterm
-        status = sat_solver_solve( pSatOn, &iNewLit, &iNewLit + 1, nBTLimit, 0, 0, 0 );
+        status = sat_solver_solve( p->pSat1, &iNewLit, &iNewLit + 1, p->pPars->nBTLimit, 0, 0, 0 );
         if ( status == l_Undef )
             return SFM_SAT_UNDEC;
         if ( status == l_False )
             return uTruth;
         assert( status == l_True );
-        // collect literals
-        Vec_IntClear( vLits );
-        Vec_IntForEachEntry( vDivIds, Div, i )
-//            Vec_IntPush( vLits, Abc_LitNot(sat_solver_var_literal(pSatOn, Div)) );
-            Vec_IntPush( vLits, sat_solver_var_literal(pSatOn, Div) );
+        // collect divisor literals
+        Vec_IntClear( p->vLits );
+        Vec_IntForEachEntry( p->vDivIds, Div, i )
+            Vec_IntPush( p->vLits, sat_solver_var_literal(p->pSat1, Div) );
         // check against offset
-        status = sat_solver_solve( pSatOff, Vec_IntArray(vLits), Vec_IntArray(vLits) + Vec_IntSize(vLits), nBTLimit, 0, 0, 0 );
+        status = sat_solver_solve( p->pSat0, Vec_IntArray(p->vLits), Vec_IntArray(p->vLits) + Vec_IntSize(p->vLits), p->pPars->nBTLimit, 0, 0, 0 );
         if ( status == l_Undef )
             return SFM_SAT_UNDEC;
         if ( status == l_True )
-        {
-            Vec_IntClear( vDiffs );
-            for ( i = 0; i < nVars; i++ )
-                Vec_IntPush( vDiffs, sat_solver_var_value(pSatOn, i) ^ sat_solver_var_value(pSatOff, i) );
-            return SFM_SAT_SAT;
-        }
+            break;
         assert( status == l_False );
         // compute cube and add clause
-        nFinal = sat_solver_final( pSatOff, &pFinal );
+        nFinal = sat_solver_final( p->pSat0, &pFinal );
         uCube = ~(word)0;
-        Vec_IntClear( vLits );
-        Vec_IntPush( vLits, Abc_LitNot(iNewLit) );
+        Vec_IntClear( p->vLits );
+        Vec_IntPush( p->vLits, Abc_LitNot(iNewLit) );
         for ( i = 0; i < nFinal; i++ )
         {
-            Vec_IntPush( vLits, pFinal[i] );
-            iVar = Vec_IntFind( vDivIds, Abc_Lit2Var(pFinal[i]) );   assert( iVar >= 0 );
+            Vec_IntPush( p->vLits, pFinal[i] );
+            iVar = Vec_IntFind( p->vDivIds, Abc_Lit2Var(pFinal[i]) );   assert( iVar >= 0 );
             uCube &= Abc_LitIsCompl(pFinal[i]) ? s_Truths6[iVar] : ~s_Truths6[iVar];
         }
         uTruth |= uCube;
-        RetValue = sat_solver_addclause( pSatOn, Vec_IntArray(vLits), Vec_IntArray(vLits) + Vec_IntSize(vLits) );
-        assert( RetValue );
+        status = sat_solver_addclause( p->pSat1, Vec_IntArray(p->vLits), Vec_IntArray(p->vLits) + Vec_IntSize(p->vLits) );
+        assert( status );
     }
-    assert( 0 );
-    return 0;
+    assert( status == l_True );
+    // store the counter-example
+    Vec_IntForEachEntry( p->vDivVars, iVar, i )
+        if ( sat_solver_var_value(p->pSat1, iVar) ^ sat_solver_var_value(p->pSat0, iVar) ) // insert 1
+        {
+            pSign = Vec_WrdEntryP( p->vDivCexes, i );
+            assert( !Abc_InfoHasBit( (unsigned *)pSign, p->nCexes) );
+            Abc_InfoXorBit( (unsigned *)pSign, p->nCexes );
+        }
+    p->nCexes++;
+    return SFM_SAT_SAT;
 }
 
 /**Function*************************************************************
@@ -187,6 +210,7 @@ word Sfm_ComputeInterpolant( sat_solver * pSatOn, sat_solver * pSatOff, Vec_Int_
   SeeAlso     []
 
 ***********************************************************************/
+/*
 void Sfm_ComputeInterpolantCheck( Sfm_Ntk_t * p )
 {
     int iNode = 3;
@@ -196,8 +220,8 @@ void Sfm_ComputeInterpolantCheck( Sfm_Ntk_t * p )
 //    int i;
 //    Sfm_NtkForEachNode( p, i )
     {
-        Sfm_NtkWindow( p, iNode, 1 );
-        Sfm_NtkWin2Sat( p );
+        Sfm_NtkCreateWindow( p, iNode, 1 );
+        Sfm_NtkWindowToSolver( p );
 
         // collect SAT variables of divisors
         Vec_IntClear( p->vDivIds );
@@ -218,6 +242,7 @@ void Sfm_ComputeInterpolantCheck( Sfm_Ntk_t * p )
         sat_solver_delete( p->pSat1 );  p->pSat1 = NULL;
     }
 }
+*/
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

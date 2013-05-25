@@ -164,7 +164,7 @@ p->timeGia += clock() - clk;
 ***********************************************************************/
 int Abc_NtkMfsSolveSatResub( Mfs_Man_t * p, Abc_Obj_t * pNode, int iFanin, int fOnlyRemove, int fSkipUpdate )
 {
-    int fVeryVerbose = p->pPars->fVeryVerbose && Vec_PtrSize(p->vDivs) < 80;// || pNode->Id == 556;
+    int fVeryVerbose = p->pPars->fVeryVerbose && Vec_PtrSize(p->vDivs) < 200;// || pNode->Id == 556;
     unsigned * pData;
     int pCands[MFS_FANIN_MAX];
     int RetValue, iVar, i, nCands, nWords, w;
@@ -176,9 +176,9 @@ int Abc_NtkMfsSolveSatResub( Mfs_Man_t * p, Abc_Obj_t * pNode, int iFanin, int f
     // clean simulation info
     Vec_PtrFillSimInfo( p->vDivCexes, 0, p->nDivWords ); 
     p->nCexes = 0;
-    if ( fVeryVerbose )
+    if ( p->pPars->fVeryVerbose )
     {
-        printf( "\n" );
+//        printf( "\n" );
         printf( "Node %5d : Level = %2d. Divs = %3d.  Fanin = %d (out of %d). MFFC = %d\n", 
             pNode->Id, pNode->Level, Vec_PtrSize(p->vDivs)-Abc_ObjFaninNum(pNode), 
             iFanin, Abc_ObjFaninNum(pNode), 
@@ -201,8 +201,8 @@ int Abc_NtkMfsSolveSatResub( Mfs_Man_t * p, Abc_Obj_t * pNode, int iFanin, int f
         return 0;
     if ( RetValue == 1 )
     {
-        if ( fVeryVerbose )
-        printf( "Node %d: Fanin %d can be removed.\n", pNode->Id, iFanin );
+        if ( p->pPars->fVeryVerbose )
+            printf( "Node %d: Fanin %d can be removed.\n", pNode->Id, iFanin );
         p->nNodesResub++;
         p->nNodesGainedLevel++;
         if ( fSkipUpdate )
@@ -223,7 +223,7 @@ p->timeInt += clock() - clk;
 
     if ( fVeryVerbose )
     {
-        for ( i = 0; i < 8; i++ )
+        for ( i = 0; i < 9; i++ )
             printf( " " );
         for ( i = 0; i < Vec_PtrSize(p->vDivs)-Abc_ObjFaninNum(pNode); i++ )
             printf( "%d", i % 10 );
@@ -239,7 +239,7 @@ p->timeInt += clock() - clk;
     {
         if ( fVeryVerbose )
         {
-            printf( "%3d: %2d ", p->nCexes, iVar );
+            printf( "%3d: %3d ", p->nCexes, iVar );
             for ( i = 0; i < Vec_PtrSize(p->vDivs); i++ )
             {
                 pData = (unsigned *)Vec_PtrEntry( p->vDivCexes, i );
@@ -276,8 +276,8 @@ p->timeInt += clock() - clk;
             return 0;
         if ( RetValue == 1 )
         {
-            if ( fVeryVerbose )
-            printf( "Node %d: Fanin %d can be replaced by divisor %d.\n", pNode->Id, iFanin, iVar );
+            if ( p->pPars->fVeryVerbose )
+                printf( "Node %d: Fanin %d can be replaced by divisor %d.\n", pNode->Id, iFanin, iVar );
             p->nNodesResub++;
             p->nNodesGainedLevel++;
             if ( fSkipUpdate )
@@ -296,6 +296,8 @@ p->timeInt += clock() - clk;
         if ( p->nCexes >= p->pPars->nDivMax )
             break;
     }
+    if ( p->pPars->fVeryVerbose )
+        printf( "Node %d: Cannot find replacement for fanin %d.\n", pNode->Id, iFanin );
     return 0;
 }
 
