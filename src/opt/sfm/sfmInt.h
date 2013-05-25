@@ -43,6 +43,9 @@ ABC_NAMESPACE_HEADER_START
 
 #define SFM_FANIN_MAX 6
 
+#define SFM_SAT_UNDEC 0x1234567812345678
+#define SFM_SAT_SAT   0x8765432187654321
+
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -76,10 +79,10 @@ struct Sfm_Ntk_t_
     // window
     int               iNode;
     Vec_Int_t *       vLeaves;     // leaves 
-    Vec_Int_t *       vRoots;      // roots
     Vec_Int_t *       vNodes;      // internal
-    Vec_Int_t *       vTfo;        // TFO (excluding iNode)
     Vec_Int_t *       vDivs;       // divisors
+    Vec_Int_t *       vRoots;      // roots
+    Vec_Int_t *       vTfo;        // TFO (excluding iNode)
     // SAT solving
     sat_solver *      pSat0;       // SAT solver for the off-set
     sat_solver *      pSat1;       // SAT solver for the on-set
@@ -92,7 +95,7 @@ struct Sfm_Ntk_t_
     int               nCexes;      // number of CEXes
     Vec_Wrd_t *       vDivCexes;   // counter-examples
     // intermediate data
-    Vec_Int_t *       vFans;       // current fanins
+//    Vec_Int_t *       vFans;       // current fanins
     Vec_Int_t *       vOrder;      // object order
     Vec_Int_t *       vDivVars;    // divisor SAT variables
     Vec_Int_t *       vDivIds;     // divisors indexes
@@ -104,6 +107,10 @@ struct Sfm_Ntk_t_
     int               nTotalEdgesBeg;
     int               nTotalNodesEnd;
     int               nTotalEdgesEnd;
+    int               nNodesTried;
+    int               nTotalDivs;
+    int               nSatCalls;
+    int               nTimeOuts;
     // runtime
     clock_t           timeWin;
     clock_t           timeDiv;
@@ -112,10 +119,6 @@ struct Sfm_Ntk_t_
     clock_t           timeTotal;
 };
 
-#define SFM_SAT_UNDEC 0x1234567812345678
-#define SFM_SAT_SAT   0x8765432187654321
-
-
 static inline int  Sfm_NtkPiNum( Sfm_Ntk_t * p )                        { return p->nPis;                                   }
 static inline int  Sfm_NtkPoNum( Sfm_Ntk_t * p )                        { return p->nPos;                                   }
 static inline int  Sfm_NtkNodeNum( Sfm_Ntk_t * p )                      { return p->nObjs - p->nPis - p->nPos;              }
@@ -123,6 +126,7 @@ static inline int  Sfm_NtkNodeNum( Sfm_Ntk_t * p )                      { return
 static inline int  Sfm_ObjIsPi( Sfm_Ntk_t * p, int i )                  { return i < p->nPis;                               }
 static inline int  Sfm_ObjIsPo( Sfm_Ntk_t * p, int i )                  { return i + p->nPos >= p->nObjs;                   }
 static inline int  Sfm_ObjIsNode( Sfm_Ntk_t * p, int i )                { return i >= p->nPis && i + p->nPos < p->nObjs;    }
+static inline int  Sfm_ObjIsFixed( Sfm_Ntk_t * p, int i )               { return Vec_StrEntry(p->vFixed, i);                }
 
 static inline Vec_Int_t * Sfm_ObjFiArray( Sfm_Ntk_t * p, int i )        { return Vec_WecEntry(&p->vFanins, i);              }
 static inline Vec_Int_t * Sfm_ObjFoArray( Sfm_Ntk_t * p, int i )        { return Vec_WecEntry(&p->vFanouts, i);             }
@@ -136,10 +140,10 @@ static inline int  Sfm_ObjRefDecrement( Sfm_Ntk_t * p, int iObj )       { return
 static inline int  Sfm_ObjFanin( Sfm_Ntk_t * p, int i, int k )          { return Vec_IntEntry(Sfm_ObjFiArray(p, i), k);     }
 static inline int  Sfm_ObjFanout( Sfm_Ntk_t * p, int i, int k )         { return Vec_IntEntry(Sfm_ObjFoArray(p, i), k);     }
 
-static inline int  Sfm_ObjSatVar( Sfm_Ntk_t * p, int iObj )             { return Vec_IntEntry(&p->vId2Var, iObj);           }
-static inline void Sfm_ObjSetSatVar( Sfm_Ntk_t * p, int iObj, int Num ) { assert(Sfm_ObjSatVar(p, iObj) == -1); Vec_IntWriteEntry(&p->vId2Var, iObj, Num);  Vec_IntWriteEntry(&p->vVar2Id, Num, iObj);                            }
-static inline void Sfm_ObjCleanSatVar( Sfm_Ntk_t * p, int Num )         { assert(Sfm_ObjSatVar(p, Vec_IntEntry(&p->vVar2Id, Num)) != -1); Vec_IntWriteEntry(&p->vId2Var, Vec_IntEntry(&p->vVar2Id, Num), Num);  Vec_IntWriteEntry(&p->vVar2Id, Num, -1);    }
-static inline void Sfm_NtkCleanVars( Sfm_Ntk_t * p, int nSize )         { int i; for ( i = 1; i < nSize; i++ )  Sfm_ObjCleanSatVar( p, i ); }
+static inline int  Sfm_ObjSatVar( Sfm_Ntk_t * p, int iObj )             { assert(Vec_IntEntry(&p->vId2Var, iObj) > 0); return Vec_IntEntry(&p->vId2Var, iObj);  }
+static inline void Sfm_ObjSetSatVar( Sfm_Ntk_t * p, int iObj, int Num ) { assert(Vec_IntEntry(&p->vId2Var, iObj) == -1); Vec_IntWriteEntry(&p->vId2Var, iObj, Num);  Vec_IntWriteEntry(&p->vVar2Id, Num, iObj);  }
+static inline void Sfm_ObjCleanSatVar( Sfm_Ntk_t * p, int Num )         { int iObj = Vec_IntEntry(&p->vVar2Id, Num); assert(Vec_IntEntry(&p->vId2Var, iObj) > 0); Vec_IntWriteEntry(&p->vId2Var, iObj, -1);  Vec_IntWriteEntry(&p->vVar2Id, Num, -1); }
+static inline void Sfm_NtkCleanVars( Sfm_Ntk_t * p )                    { int i; for ( i = 1; i < p->nSatVars; i++ )  Sfm_ObjCleanSatVar( p, i ); }
 
 static inline int  Sfm_ObjLevel( Sfm_Ntk_t * p, int iObj )              { return Vec_IntEntry( &p->vLevels, iObj );                         }
 static inline void Sfm_ObjSetLevel( Sfm_Ntk_t * p, int iObj, int Lev )  { Vec_IntWriteEntry( &p->vLevels, iObj, Lev );                      }

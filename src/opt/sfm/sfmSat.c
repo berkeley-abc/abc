@@ -54,7 +54,7 @@ static word s_Truths6[6] = {
 void Sfm_NtkOrderObjects( Sfm_Ntk_t * p )
 {
     int i, iNode;
-    assert( Vec_IntEntryLast(p->vNodes) == Vec_IntEntry(p->vDivs, Vec_IntSize(p->vLeaves) + Vec_IntSize(p->vNodes)) );
+    assert( Vec_IntEntryLast(p->vNodes) == Vec_IntEntry(p->vDivs, Vec_IntSize(p->vLeaves) + Vec_IntSize(p->vNodes) - 1) );
     Vec_IntClear( p->vOrder );
     Vec_IntForEachEntryReverse( p->vNodes, iNode, i )
         Vec_IntPush( p->vOrder, iNode );
@@ -83,15 +83,14 @@ void Sfm_NtkWindowToSolver( Sfm_Ntk_t * p )
     sat_solver_setnvars( pSat0, 1 + Vec_IntSize(p->vDivs) + 2 * Vec_IntSize(p->vTfo) + Vec_IntSize(p->vRoots) + 100 );
     sat_solver_setnvars( pSat1, 1 + Vec_IntSize(p->vDivs) + 2 * Vec_IntSize(p->vTfo) + Vec_IntSize(p->vRoots) + 100 );
     // create SAT variables
+    Sfm_NtkCleanVars( p );
     p->nSatVars = 1;
-    Vec_IntForEachEntryReverse( p->vNodes, iNode, i )
+    Sfm_NtkOrderObjects( p );
+    Vec_IntForEachEntry( p->vOrder, iNode, i )
         Sfm_ObjSetSatVar( p, iNode, p->nSatVars++ );
-    Vec_IntForEachEntryReverse( p->vLeaves, iNode, i )
-        Sfm_ObjSetSatVar( p, iNode, p->nSatVars++ );
-    Vec_IntForEachEntryReverse( p->vDivs, iNode, i )
+    Vec_IntForEachEntry( p->vLeaves, iNode, i )
         Sfm_ObjSetSatVar( p, iNode, p->nSatVars++ );
     // add CNF clauses for the TFI
-    Sfm_NtkOrderObjects( p );
     Vec_IntForEachEntry( p->vOrder, iNode, i )
     {
         // collect fanin variables
@@ -112,6 +111,7 @@ void Sfm_NtkWindowToSolver( Sfm_Ntk_t * p )
             assert( RetValue );
         }
     }
+//    Sat_SolverWriteDimacs( pSat0, "test.cnf", NULL, NULL, 0 );
     // get the last node
     iNode = Vec_IntEntryLast( p->vNodes );
     // add unit clause
@@ -126,8 +126,8 @@ void Sfm_NtkWindowToSolver( Sfm_Ntk_t * p )
     sat_solver_compress( pSat0 );
     sat_solver_compress( pSat1 );
     // return the result
-    assert( p->pSat0 == NULL );
-    assert( p->pSat1 == NULL );
+    if ( p->pSat0 ) sat_solver_delete( p->pSat0 );
+    if ( p->pSat1 ) sat_solver_delete( p->pSat1 );
     p->pSat0 = pSat0;
     p->pSat1 = pSat1;
     p->timeCnf += clock() - clk;
@@ -147,24 +147,29 @@ void Sfm_NtkWindowToSolver( Sfm_Ntk_t * p )
 word Sfm_ComputeInterpolant( Sfm_Ntk_t * p )
 {
     word * pSign, uCube, uTruth = 0;
-    int status, i, Div, iVar, nFinal, * pFinal;
+    int status, i, Div, iVar, nFinal, * pFinal, nIter = 0;
     int nVars = sat_solver_nvars( p->pSat1 );
     int iNewLit = Abc_Var2Lit( nVars, 0 );
     sat_solver_setnvars( p->pSat1, nVars + 1 );
     while ( 1 ) 
     {
         // find onset minterm
+        p->nSatCalls++;
         status = sat_solver_solve( p->pSat1, &iNewLit, &iNewLit + 1, p->pPars->nBTLimit, 0, 0, 0 );
         if ( status == l_Undef )
             return SFM_SAT_UNDEC;
         if ( status == l_False )
+        {
+//            printf( "+%d ", nIter );
             return uTruth;
+        }
         assert( status == l_True );
         // collect divisor literals
         Vec_IntClear( p->vLits );
         Vec_IntForEachEntry( p->vDivIds, Div, i )
             Vec_IntPush( p->vLits, sat_solver_var_literal(p->pSat1, Div) );
         // check against offset
+        p->nSatCalls++;
         status = sat_solver_solve( p->pSat0, Vec_IntArray(p->vLits), Vec_IntArray(p->vLits) + Vec_IntSize(p->vLits), p->pPars->nBTLimit, 0, 0, 0 );
         if ( status == l_Undef )
             return SFM_SAT_UNDEC;
@@ -185,7 +190,9 @@ word Sfm_ComputeInterpolant( Sfm_Ntk_t * p )
         uTruth |= uCube;
         status = sat_solver_addclause( p->pSat1, Vec_IntArray(p->vLits), Vec_IntArray(p->vLits) + Vec_IntSize(p->vLits) );
         assert( status );
+        nIter++;
     }
+//    printf( "-%d ", nIter );
     assert( status == l_True );
     // store the counter-example
     Vec_IntForEachEntry( p->vDivVars, iVar, i )
@@ -210,12 +217,11 @@ word Sfm_ComputeInterpolant( Sfm_Ntk_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-/*
 void Sfm_ComputeInterpolantCheck( Sfm_Ntk_t * p )
 {
     int iNode = 3;
-    int iDiv0 = 6;
-    int iDiv1 = 7;
+    int iDiv0 = 5;
+    int iDiv1 = 4;
     word uTruth;
 //    int i;
 //    Sfm_NtkForEachNode( p, i )
@@ -228,7 +234,7 @@ void Sfm_ComputeInterpolantCheck( Sfm_Ntk_t * p )
         Vec_IntPush( p->vDivIds, Sfm_ObjSatVar(p, iDiv0) );
         Vec_IntPush( p->vDivIds, Sfm_ObjSatVar(p, iDiv1) );
 
-        uTruth = Sfm_ComputeInterpolant( p->pSat1, p->pSat0, p->vDivIds, p->vLits, p->vDiffs, 0 );
+        uTruth = Sfm_ComputeInterpolant( p );
 
         if ( uTruth == SFM_SAT_SAT )
             printf( "The problem is SAT.\n" );
@@ -236,13 +242,8 @@ void Sfm_ComputeInterpolantCheck( Sfm_Ntk_t * p )
             printf( "The problem is UNDEC.\n" );
         else
             Kit_DsdPrintFromTruth( (unsigned *)&uTruth, 2 ); printf( "\n" );
-
-        Sfm_NtkCleanVars( p, p->nSatVars );
-        sat_solver_delete( p->pSat0 );  p->pSat0 = NULL;
-        sat_solver_delete( p->pSat1 );  p->pSat1 = NULL;
     }
 }
-*/
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

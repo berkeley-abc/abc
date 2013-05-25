@@ -134,6 +134,11 @@ void Abc_NtkInsertMfs( Abc_Ntk_t * pNtk, Sfm_Ntk_t * p )
         if ( pNode->iTemp > 0 && !Sfm_NodeReadFixed(p, pNode->iTemp) )
         {
             vArray = Sfm_NodeReadFanins( p, pNode->iTemp );
+            if ( Vec_IntSize(vArray) == 0 )
+            {
+                Abc_NtkDeleteObj( pNode );
+                continue;
+            }
             Vec_IntForEachEntry( vArray, Fanin, k )
                 Abc_ObjAddFanin( pNode, Abc_NtkObj(pNtk, Vec_IntEntry(vMap, Fanin)) );
             pNode->pData = Abc_SopCreateFromTruth( (Mem_Flex_t *)pNtk->pManFunc, Vec_IntSize(vArray), (unsigned *)Sfm_NodeReadTruth(p, pNode->iTemp) );
@@ -170,11 +175,11 @@ int Abc_NtkPerformMfs( Abc_Ntk_t * pNtk, Sfm_Par_t * pPars )
     nNodes = Sfm_NtkPerform( p, pPars );
     // call the fast extract procedure
     if ( nNodes == 0 )
-        Abc_Print( 1, "The networks is not changed by \"mfs\".\n" );
+        Abc_Print( 1, "The network is not changed by \"mfs\".\n" );
     else
     {
         Abc_NtkInsertMfs( pNtk, p );
-        Abc_Print( 1, "The networks has %d nodes changed by \"mfs\".\n", nNodes );
+        Abc_Print( 1, "The network has %d nodes changed by \"mfs\".\n", nNodes );
     }
     Sfm_NtkFree( p );
     return 1;

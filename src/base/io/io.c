@@ -2663,22 +2663,22 @@ int IoCommandWriteTruth( Abc_Frame_t * pAbc, int argc, char **argv )
     }
     if ( pAbc->pNtkCur == NULL )
     {
-        printf( "Current networks is not available.\n" );
+        printf( "Current network is not available.\n" );
         return 0;
     }
     if ( !Abc_NtkIsLogic(pNtk) )
     {
-        printf( "Current networks should not an AIG. Run \"logic\".\n" );
+        printf( "Current network should not an AIG. Run \"logic\".\n" );
         return 0;
     }
     if ( Abc_NtkPoNum(pNtk) != 1 )
     {
-        printf( "Current networks should have exactly one primary output.\n" );
+        printf( "Current network should have exactly one primary output.\n" );
         return 0;
     }
     if ( Abc_NtkNodeNum(pNtk) != 1 )
     {
-        printf( "Current networks should have exactly one node.\n" );
+        printf( "Current network should have exactly one node.\n" );
         return 0;
     }
     pNode = Abc_ObjFanin0( Abc_NtkPo(pNtk, 0) );

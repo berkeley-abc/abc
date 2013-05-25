@@ -163,15 +163,15 @@ Sfm_Ntk_t * Sfm_NtkConstruct( Vec_Wec_t * vFanins, int nPis, int nPos, Vec_Str_t
 }
 void Sfm_NtkPrepare( Sfm_Ntk_t * p )
 {
-    p->vDivCexes = Vec_WrdStart( p->pPars->nDivNumMax );
     p->vLeaves   = Vec_IntAlloc( 1000 );
-    p->vRoots    = Vec_IntAlloc( 1000 );
     p->vNodes    = Vec_IntAlloc( 1000 );
+    p->vDivs     = Vec_IntAlloc( 100 );
+    p->vRoots    = Vec_IntAlloc( 1000 );
     p->vTfo      = Vec_IntAlloc( 1000 );
-    p->vFans     = Vec_IntAlloc( 100 );
+    p->vDivCexes = Vec_WrdStart( p->pPars->nDivNumMax );
+//    p->vFans     = Vec_IntAlloc( 100 );
     p->vOrder    = Vec_IntAlloc( 100 );
     p->vDivVars  = Vec_IntAlloc( 100 );
-    p->vDivs     = Vec_IntAlloc( 100 );
     p->vDivIds   = Vec_IntAlloc( 1000 );
     p->vLits     = Vec_IntAlloc( 100 );
     p->vClauses  = Vec_WecAlloc( 100 );
@@ -194,15 +194,15 @@ void Sfm_NtkFree( Sfm_Ntk_t * p )
     Vec_WecFree( p->vCnfs );
     Vec_IntFree( p->vCover );
     // other data
-    Vec_WrdFreeP( &p->vDivCexes );
     Vec_IntFreeP( &p->vLeaves );
-    Vec_IntFreeP( &p->vRoots );
     Vec_IntFreeP( &p->vNodes );
+    Vec_IntFreeP( &p->vDivs  );
+    Vec_IntFreeP( &p->vRoots );
     Vec_IntFreeP( &p->vTfo   );
-    Vec_IntFreeP( &p->vFans );
+    Vec_WrdFreeP( &p->vDivCexes );
+//    Vec_IntFreeP( &p->vFans );
     Vec_IntFreeP( &p->vOrder );
     Vec_IntFreeP( &p->vDivVars );
-    Vec_IntFreeP( &p->vDivs  );
     Vec_IntFreeP( &p->vDivIds );
     Vec_IntFreeP( &p->vLits  );
     Vec_WecFreeP( &p->vClauses );
@@ -243,8 +243,9 @@ void Sfm_NtkAddFanin( Sfm_Ntk_t * p, int iNode, int iFanin )
 void Sfm_NtkDeleteObj_rec( Sfm_Ntk_t * p, int iNode )
 {
     int i, iFanin;
-    if ( Sfm_ObjFanoutNum(p, iNode) > 0 )
+    if ( Sfm_ObjFanoutNum(p, iNode) > 0 || Sfm_ObjIsPi(p, iNode) )
         return;
+    assert( Sfm_ObjIsNode(p, iNode) );
     Sfm_ObjForEachFanin( p, iNode, iFanin, i )
     {
         int RetValue = Vec_IntRemove( Sfm_ObjFoArray(p, iFanin), iNode );  assert( RetValue );
@@ -260,13 +261,15 @@ void Sfm_NtkUpdateLevel_rec( Sfm_Ntk_t * p, int iNode )
     if ( LevelNew == Sfm_ObjLevel(p, iNode) )
         return;
     Sfm_ObjSetLevel( p, iNode, LevelNew );
-    Sfm_ObjForEachFanout( p, iNode, iFanout, i )
-        Sfm_NtkUpdateLevel_rec( p, iFanout );
+    if ( Sfm_ObjIsNode(p, iNode) )
+        Sfm_ObjForEachFanout( p, iNode, iFanout, i )
+            Sfm_NtkUpdateLevel_rec( p, iFanout );
 }
 void Sfm_NtkUpdate( Sfm_Ntk_t * p, int iNode, int f, int iFaninNew, word uTruth )
 {
     int iFanin = Sfm_ObjFanin( p, iNode, f );
     // replace old fanin by new fanin
+    assert( Sfm_ObjIsNode(p, iNode) );
     Sfm_NtkRemoveFanin( p, iNode, iFanin );
     Sfm_NtkAddFanin( p, iNode, iFaninNew );
     // recursively remove MFFC
@@ -293,9 +296,9 @@ Vec_Int_t *  Sfm_NodeReadFanins( Sfm_Ntk_t * p, int i )
 {
     return Vec_WecEntry( &p->vFanins, i );
 }
-word Sfm_NodeReadTruth( Sfm_Ntk_t * p, int i )
+word * Sfm_NodeReadTruth( Sfm_Ntk_t * p, int i )
 {
-    return Vec_WrdEntry( p->vTruths, i );
+    return Vec_WrdEntryP( p->vTruths, i );
 }
 int Sfm_NodeReadFixed( Sfm_Ntk_t * p, int i )
 {

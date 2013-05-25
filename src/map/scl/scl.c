@@ -339,7 +339,7 @@ int Scl_CommandStime( Abc_Frame_t * pAbc, int argc, char **argv )
     }
     if ( !Abc_SclCheckNtk(Abc_FrameReadNtk(pAbc), 0) )
     {
-        fprintf( pAbc->Err, "The current networks is not in a topo order (run \"topo\").\n" );
+        fprintf( pAbc->Err, "The current network is not in a topo order (run \"topo\").\n" );
         return 1;
     }
     if ( pAbc->pLibScl == NULL )
@@ -541,7 +541,7 @@ int Scl_CommandMinsize( Abc_Frame_t * pAbc, int argc, char **argv )
     }
     if ( !Abc_SclCheckNtk(Abc_FrameReadNtk(pAbc), 0) )
     {
-        fprintf( pAbc->Err, "The current networks is not in a topo order (run \"topo\").\n" );
+        fprintf( pAbc->Err, "The current network is not in a topo order (run \"topo\").\n" );
         return 1;
     }
     if ( pAbc->pLibScl == NULL )
@@ -670,7 +670,7 @@ int Scl_CommandGsize( Abc_Frame_t * pAbc, int argc, char **argv )
     }
     if ( !Abc_SclCheckNtk(Abc_FrameReadNtk(pAbc), 0) )
     {
-        fprintf( pAbc->Err, "The current networks is not in a topo order (run \"topo\").\n" );
+        fprintf( pAbc->Err, "The current network is not in a topo order (run \"topo\").\n" );
         return 1;
     }
     if ( pAbc->pLibScl == NULL )
@@ -827,7 +827,7 @@ int Scl_CommandUpsize( Abc_Frame_t * pAbc, int argc, char **argv )
     }
     if ( !Abc_SclCheckNtk(Abc_FrameReadNtk(pAbc), 0) )
     {
-        fprintf( pAbc->Err, "The current networks is not in a topo order (run \"topo\").\n" );
+        fprintf( pAbc->Err, "The current network is not in a topo order (run \"topo\").\n" );
         return 1;
     }
     if ( pAbc->pLibScl == NULL )

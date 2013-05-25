@@ -245,6 +245,7 @@ int Sfm_NtkCreateWindow( Sfm_Ntk_t * p, int iNode, int fVerbose )
     assert( Sfm_ObjIsNode( p, iNode ) );
     Vec_IntClear( p->vLeaves ); // leaves 
     Vec_IntClear( p->vNodes );  // internal
+    Vec_IntClear( p->vDivs );   // divisors
     // collect transitive fanin
     Sfm_NtkIncrementTravId( p );
     Sfm_NtkCollectTfi_rec( p, iNode );
@@ -266,12 +267,13 @@ int Sfm_NtkCreateWindow( Sfm_Ntk_t * p, int iNode, int fVerbose )
     p->timeWin += clock() - clk;
     // collect divisors of the TFI nodes
     clk = clock();
-    Vec_IntClear( p->vDivs );
     Vec_IntAppend( p->vDivs, p->vLeaves );
     Vec_IntAppend( p->vDivs, p->vNodes );
     Sfm_NtkIncrementTravId2( p );
     Vec_IntForEachEntry( p->vDivs, iTemp, i )
-        Sfm_NtkAddDivisors( p, iTemp );
+        if ( Vec_IntSize(p->vDivs) < p->pPars->nDivNumMax )
+            Sfm_NtkAddDivisors( p, iTemp );
+    p->nTotalDivs += Vec_IntSize(p->vDivs);
     p->timeDiv += clock() - clk;
     if ( !fVerbose )
         return 1;
