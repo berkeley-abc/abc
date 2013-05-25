@@ -71,6 +71,7 @@ void Sfm_ParSetDefault( Sfm_Par_t * pPars )
 ***********************************************************************/
 void Sfm_NtkPrintStats( Sfm_Ntk_t * p )
 {
+    p->timeOther = p->timeTotal - p->timeWin - p->timeDiv - p->timeCnf - p->timeSat;
     printf( "Nodes = %d. Try = %d. Resub = %d. Div = %d. SAT calls = %d. Timeouts = %d.\n",
         Sfm_NtkNodeNum(p), p->nNodesTried, p->nRemoves + p->nResubs, p->nTotalDivs, p->nSatCalls, p->nTimeOuts );
 
@@ -88,6 +89,7 @@ void Sfm_NtkPrintStats( Sfm_Ntk_t * p )
     ABC_PRTP( "Div", p->timeDiv  ,  p->timeTotal );
     ABC_PRTP( "Cnf", p->timeCnf  ,  p->timeTotal );
     ABC_PRTP( "Sat", p->timeSat  ,  p->timeTotal );
+    ABC_PRTP( "Oth", p->timeOther,  p->timeTotal );
     ABC_PRTP( "ALL", p->timeTotal,  p->timeTotal );
 }
 
@@ -145,6 +147,8 @@ p->timeSat += clock() - clk;
         goto finish;
     if ( fRemoveOnly || Vec_IntSize(p->vDivs) == 0 )
         return 0;
+//    return 0;
+
     if ( fVeryVerbose )
     {
         for ( i = 0; i < 9; i++ )
@@ -209,10 +213,10 @@ finish:
 int Sfm_NodeResub( Sfm_Ntk_t * p, int iNode )
 {
     int i, iFanin;
+    p->nNodesTried++;
     // prepare SAT solver
     if ( !Sfm_NtkCreateWindow( p, iNode, p->pPars->fVeryVerbose ) )
         return 0;
-    p->nNodesTried++;
     Sfm_NtkWindowToSolver( p );
     Sfm_NtkPrepareDivisors( p, iNode );
     // try replacing area critical fanins
@@ -271,7 +275,8 @@ int Sfm_NtkPerform( Sfm_Ntk_t * p, Sfm_Par_t * pPars )
             continue;
         if ( Sfm_ObjFaninNum(p, i) < 2 || Sfm_ObjFaninNum(p, i) > 6 )
             continue;
-        Counter += Sfm_NodeResub( p, i );
+        while ( Sfm_NodeResub(p, i) )
+            Counter++;
     }
     p->nTotalNodesEnd = Vec_WecSizeUsed(&p->vFanins) - Sfm_NtkPoNum(p);
     p->nTotalEdgesEnd = Vec_WecSizeSize(&p->vFanins);

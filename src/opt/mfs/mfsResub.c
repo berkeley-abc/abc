@@ -220,6 +220,7 @@ p->timeInt += clock() - clk;
 
     if ( fOnlyRemove )
         return 0;
+//    return 0;
 
     if ( fVeryVerbose )
     {

@@ -182,11 +182,12 @@ int Sfm_NtkCheckFanouts( Sfm_Ntk_t * p, int iNode )
 void Sfm_NtkAddDivisors( Sfm_Ntk_t * p, int iNode, int nLevelMax )
 {
     int i, iFanout;
+    if ( Sfm_ObjFanoutNum(p, iNode) > p->pPars->nFanoutMax )
+        return;
     Sfm_ObjForEachFanout( p, iNode, iFanout, i )
     {
-        // skip TFI nodes, PO nodes, and nodes with high fanout or nodes with high logic level
+        // skip TFI nodes, PO nodes, or nodes with high logic level
         if ( Sfm_ObjIsTravIdCurrent(p, iFanout) || Sfm_ObjIsPo(p, iFanout) || 
-            Sfm_ObjFanoutNum(p, iFanout) >= p->pPars->nFanoutMax ||
             (p->pPars->fFixLevel && Sfm_ObjLevel(p, iFanout) >= nLevelMax) )
             continue;
         // handle single-input nodes
@@ -216,20 +217,22 @@ void Sfm_NtkAddDivisors( Sfm_Ntk_t * p, int iNode, int nLevelMax )
   SeeAlso     []
 
 ***********************************************************************/
-void Sfm_NtkCollectTfi_rec( Sfm_Ntk_t * p, int iNode )
+int Sfm_NtkCollectTfi_rec( Sfm_Ntk_t * p, int iNode, int nWinSizeMax )
 {
     int i, iFanin;
     if ( Sfm_ObjIsTravIdCurrent( p, iNode ) )
-        return;
+        return 0;
     Sfm_ObjSetTravIdCurrent( p, iNode );
     if ( Sfm_ObjIsPi( p, iNode ) )
     {
         Vec_IntPush( p->vLeaves, iNode );
-        return;
+        return 0;
     }
     Sfm_ObjForEachFanin( p, iNode, iFanin, i )
-        Sfm_NtkCollectTfi_rec( p, iFanin );
+        if ( Sfm_NtkCollectTfi_rec( p, iFanin, nWinSizeMax ) )
+            return 1;
     Vec_IntPush( p->vNodes, iNode );
+    return nWinSizeMax && (Vec_IntSize(p->vNodes) > nWinSizeMax);
 }
 int Sfm_NtkCreateWindow( Sfm_Ntk_t * p, int iNode, int fVerbose )
 {
@@ -243,9 +246,11 @@ int Sfm_NtkCreateWindow( Sfm_Ntk_t * p, int iNode, int fVerbose )
     Vec_IntClear( p->vTfo );    // roots
     // collect transitive fanin
     Sfm_NtkIncrementTravId( p );
-    Sfm_NtkCollectTfi_rec( p, iNode );
-    if ( Vec_IntSize(p->vLeaves) + Vec_IntSize(p->vNodes) > p->pPars->nWinSizeMax )
+    if ( Sfm_NtkCollectTfi_rec( p, iNode, p->pPars->nWinSizeMax ) )
+    {
+        p->timeWin += clock() - clk;
         return 0;
+    }
     // collect TFO (currently use only one level of TFO)
     if ( Sfm_NtkCheckFanouts(p, iNode) )
     {

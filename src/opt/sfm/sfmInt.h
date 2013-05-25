@@ -116,6 +116,7 @@ struct Sfm_Ntk_t_
     clock_t           timeDiv;
     clock_t           timeCnf;
     clock_t           timeSat;
+    clock_t           timeOther;
     clock_t           timeTotal;
 };
 
