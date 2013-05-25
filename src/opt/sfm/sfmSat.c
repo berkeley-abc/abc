@@ -42,28 +42,6 @@ static word s_Truths6[6] = {
 
 /**Function*************************************************************
 
-  Synopsis    [Creates order of objects in the SAT solver.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Sfm_NtkOrderObjects( Sfm_Ntk_t * p )
-{
-    int i, iNode;
-    assert( Vec_IntEntryLast(p->vNodes) == Vec_IntEntry(p->vDivs, Vec_IntSize(p->vLeaves) + Vec_IntSize(p->vNodes) - 1) );
-    Vec_IntClear( p->vOrder );
-    Vec_IntForEachEntryReverse( p->vNodes, iNode, i )
-        Vec_IntPush( p->vOrder, iNode );
-    Vec_IntForEachEntryStart( p->vDivs, iNode, i, Vec_IntSize(p->vLeaves) + Vec_IntSize(p->vNodes) )
-        Vec_IntPush( p->vOrder, iNode );
-}
-
-/**Function*************************************************************
-
   Synopsis    [Converts a window into a SAT solver.]
 
   Description []
@@ -85,14 +63,17 @@ void Sfm_NtkWindowToSolver( Sfm_Ntk_t * p )
     // create SAT variables
     Sfm_NtkCleanVars( p );
     p->nSatVars = 1;
-    Sfm_NtkOrderObjects( p );
     Vec_IntForEachEntry( p->vOrder, iNode, i )
         Sfm_ObjSetSatVar( p, iNode, p->nSatVars++ );
-    Vec_IntForEachEntry( p->vLeaves, iNode, i )
-        Sfm_ObjSetSatVar( p, iNode, p->nSatVars++ );
+    // create divisor variables
+    Vec_IntClear( p->vDivVars );
+    Vec_IntForEachEntry( p->vDivs, iNode, i )
+        Vec_IntPush( p->vDivVars, Sfm_ObjSatVar(p, iNode) );
     // add CNF clauses for the TFI
     Vec_IntForEachEntry( p->vOrder, iNode, i )
     {
+        if ( Sfm_ObjIsPi(p, iNode) )
+            continue;
         // collect fanin variables
         Vec_IntClear( p->vFaninMap );
         Sfm_ObjForEachFanin( p, iNode, iFanin, k )

@@ -172,6 +172,7 @@ int Abc_NtkMfsSolveSatResub( Mfs_Man_t * p, Abc_Obj_t * pNode, int iFanin, int f
     Abc_Obj_t * pFanin;
     Hop_Obj_t * pFunc;
     assert( iFanin >= 0 );
+    p->nTryRemoves++;
 
     // clean simulation info
     Vec_PtrFillSimInfo( p->vDivCexes, 0, p->nDivWords ); 
@@ -215,13 +216,14 @@ clk = clock();
         // update the network
         Abc_NtkMfsUpdateNetwork( p, pNode, p->vMfsFanins, pFunc );
 p->timeInt += clock() - clk;
+        p->nRemoves++;
         return 1;
     }
 
-    if ( fOnlyRemove )
+    if ( fOnlyRemove || p->pPars->fRrOnly )
         return 0;
-//    return 0;
 
+    p->nTryResubs++;
     if ( fVeryVerbose )
     {
         for ( i = 0; i < 9; i++ )
@@ -292,6 +294,7 @@ clk = clock();
             Vec_PtrPush( p->vMfsFanins, Vec_PtrEntry(p->vDivs, iVar) );
             Abc_NtkMfsUpdateNetwork( p, pNode, p->vMfsFanins, pFunc );
 p->timeInt += clock() - clk;
+            p->nResubs++;
             return 1;
         }
         if ( p->nCexes >= p->pPars->nDivMax )

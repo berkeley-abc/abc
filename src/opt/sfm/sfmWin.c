@@ -265,14 +265,51 @@ int Sfm_NtkCreateWindow( Sfm_Ntk_t * p, int iNode, int fVerbose )
     else
         Vec_IntPush( p->vRoots, iNode );
     p->timeWin += clock() - clk;
-    // collect divisors of the TFI nodes
     clk = clock();
-    Vec_IntAppend( p->vDivs, p->vLeaves );
-    Vec_IntAppend( p->vDivs, p->vNodes );
+    // create ordering of the nodes
+    Vec_IntClear( p->vOrder );
+    Vec_IntForEachEntryReverse( p->vNodes, iNode, i )
+        Vec_IntPush( p->vOrder, iNode );
+    Vec_IntForEachEntry( p->vLeaves, iNode, i )
+        Vec_IntPush( p->vOrder, iNode );
+    // mark fanins
     Sfm_NtkIncrementTravId2( p );
-    Vec_IntForEachEntry( p->vDivs, iTemp, i )
-        if ( iTemp != iNode && Vec_IntSize(p->vDivs) < p->pPars->nDivNumMax )
-            Sfm_NtkAddDivisors( p, iTemp, Sfm_ObjLevel(p, iNode) );
+    Sfm_ObjSetTravIdCurrent2( p, iNode );
+    Sfm_ObjForEachFanin( p, iNode, iTemp, i )
+        Sfm_ObjSetTravIdCurrent2( p, iTemp );
+    // compact divisors
+    Vec_IntClear( p->vDivs );
+    Vec_IntForEachEntry( p->vLeaves, iTemp, i )
+        if ( !Sfm_ObjIsTravIdCurrent2( p, iTemp ) )
+            Vec_IntPush( p->vDivs, iTemp );
+    Vec_IntForEachEntry( p->vNodes, iTemp, i )
+        if ( !Sfm_ObjIsTravIdCurrent2( p, iTemp ) )
+            Vec_IntPush( p->vDivs, iTemp );
+    // if we exceed the limit, remove the first few
+    if ( Vec_IntSize(p->vDivs) > p->pPars->nDivNumMax )
+    {
+        int k = 0;
+        Vec_IntForEachEntryStart( p->vDivs, iTemp, i, Vec_IntSize(p->vDivs) - p->pPars->nDivNumMax )
+            Vec_IntWriteEntry( p->vDivs, k++, iTemp );
+        Vec_IntShrink( p->vDivs, k );
+        assert( Vec_IntSize(p->vDivs) == p->pPars->nDivNumMax );
+    }
+    // collect additional divisors of the TFI nodes
+    if ( Vec_IntSize(p->vDivs) < p->pPars->nDivNumMax )
+    {
+        int nStartNew = Vec_IntSize(p->vDivs);
+        Sfm_NtkIncrementTravId2( p );
+        Vec_IntForEachEntry( p->vDivs, iTemp, i )
+            if ( Vec_IntSize(p->vDivs) < p->pPars->nDivNumMax )
+                Sfm_NtkAddDivisors( p, iTemp, Sfm_ObjLevel(p, iNode) );
+        if ( Vec_IntSize(p->vDivs) > p->pPars->nDivNumMax )
+            Vec_IntShrink( p->vDivs, p->pPars->nDivNumMax );
+        // add new divisor variable to the order
+        Vec_IntForEachEntryStart( p->vDivs, iTemp, i, nStartNew )
+            Vec_IntPush( p->vOrder, iTemp );
+    }
+    assert( Vec_IntSize(p->vDivs) <= p->pPars->nDivNumMax );
+    // statistics
     p->nTotalDivs += Vec_IntSize(p->vDivs);
     p->timeDiv += clock() - clk;
     if ( !fVerbose )
@@ -292,41 +329,6 @@ void Sfm_NtkWindowTest( Sfm_Ntk_t * p, int iNode )
     int i;
     Sfm_NtkForEachNode( p, i )
         Sfm_NtkCreateWindow( p, i, 1 );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Removes node and its fanins from the array of divisors.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Sfm_NtkPrepareDivisors( Sfm_Ntk_t * p, int iNode )
-{
-    int i, iFanin, k = 0;
-    // mark fanins
-    Sfm_NtkIncrementTravId( p );
-    Sfm_ObjSetTravIdCurrent( p, iNode );
-    Sfm_ObjForEachFanin( p, iNode, iFanin, i )
-        Sfm_ObjSetTravIdCurrent( p, iFanin );
-    // compact divisors
-    Vec_IntClear( p->vDivVars );
-    Vec_IntForEachEntry( p->vDivs, iFanin, i )
-        if ( !Sfm_ObjIsTravIdCurrent( p, iFanin ) )
-        {
-            Vec_IntPush( p->vDivVars, Sfm_ObjSatVar(p, iFanin) );
-            Vec_IntWriteEntry( p->vDivs, k++, iFanin );
-        }
-    assert( Vec_IntSize(p->vDivs) == k + Sfm_ObjFaninNum(p, iNode) + 1 );
-    Vec_IntShrink( p->vDivs, k );
-    // collect fanins
-//    Vec_IntClear( p->vFans );
-//    Sfm_ObjForEachFanin( p, iNode, iFanin, i )
-//        Vec_IntPush( p->vFans, iFanin );
 }
 
 ////////////////////////////////////////////////////////////////////////

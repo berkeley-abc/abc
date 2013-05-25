@@ -47,11 +47,12 @@ void Sfm_ParSetDefault( Sfm_Par_t * pPars )
     memset( pPars, 0, sizeof(Sfm_Par_t) );
     pPars->nTfoLevMax   =    2;  // the maximum fanout levels
     pPars->nFanoutMax   =   10;  // the maximum number of fanouts
-    pPars->nDepthMax    =    0;  // the maximum depth to try  
-    pPars->nDivNumMax   =  300;  // the maximum number of divisors
+    pPars->nDepthMax    =   20;  // the maximum depth to try  
     pPars->nWinSizeMax  =  300;  // the maximum window size
+    pPars->nDivNumMax   =  300;  // the maximum number of divisors
     pPars->nBTLimit     =    0;  // the maximum number of conflicts in one SAT run
     pPars->fFixLevel    =    1;  // does not allow level to increase
+    pPars->fRrOnly      =    0;  // perform redundancy removal
     pPars->fArea        =    0;  // performs optimization for area
     pPars->fMoreEffort  =    0;  // performs high-affort minimization
     pPars->fVerbose     =    0;  // enable basic stats
@@ -76,13 +77,13 @@ void Sfm_NtkPrintStats( Sfm_Ntk_t * p )
         Sfm_NtkNodeNum(p), p->nNodesTried, p->nRemoves + p->nResubs, p->nTotalDivs, p->nSatCalls, p->nTimeOuts );
 
     printf( "Attempts :   " );
-    printf( "Remove %6d -> %6d (%6.2f %%)   ", p->nTryRemoves, p->nRemoves, 100.0*p->nRemoves/Abc_MaxInt(1, p->nTryRemoves) );
-    printf( "Resub  %6d -> %6d (%6.2f %%)   ", p->nTryResubs,  p->nResubs,  100.0*p->nResubs /Abc_MaxInt(1, p->nTryResubs)  );
+    printf( "Remove %6d out of %6d (%6.2f %%)   ", p->nRemoves, p->nTryRemoves, p->nRemoves, 100.0*p->nRemoves/Abc_MaxInt(1, p->nTryRemoves) );
+    printf( "Resub  %6d out of %6d (%6.2f %%)   ", p->nResubs,  p->nTryResubs,  p->nResubs,  100.0*p->nResubs /Abc_MaxInt(1, p->nTryResubs)  );
     printf( "\n" );
 
     printf( "Reduction:   " );
-    printf( "Nodes  %6d -> %6d (%6.2f %%)   ", p->nTotalNodesBeg, p->nTotalNodesEnd, 100.0*(p->nTotalNodesBeg-p->nTotalNodesEnd)/Abc_MaxInt(1, p->nTotalNodesBeg) );
-    printf( "Edges  %6d -> %6d (%6.2f %%)   ", p->nTotalEdgesBeg, p->nTotalEdgesEnd, 100.0*(p->nTotalEdgesBeg-p->nTotalEdgesEnd)/Abc_MaxInt(1, p->nTotalEdgesBeg) );
+    printf( "Nodes  %6d out of %6d (%6.2f %%)   ", p->nTotalNodesBeg-p->nTotalNodesEnd, p->nTotalNodesEnd, 100.0*(p->nTotalNodesBeg-p->nTotalNodesEnd)/Abc_MaxInt(1, p->nTotalNodesBeg) );
+    printf( "Edges  %6d out of %6d (%6.2f %%)   ", p->nTotalEdgesBeg-p->nTotalEdgesEnd, p->nTotalEdgesEnd, 100.0*(p->nTotalEdgesBeg-p->nTotalEdgesEnd)/Abc_MaxInt(1, p->nTotalEdgesBeg) );
     printf( "\n" );
 
     ABC_PRTP( "Win", p->timeWin  ,  p->timeTotal );
@@ -117,10 +118,7 @@ int Sfm_NodeResubSolve( Sfm_Ntk_t * p, int iNode, int f, int fRemoveOnly )
     {
         int i = 0;
     }
-    if ( fRemoveOnly )
-        p->nTryRemoves++;
-    else
-        p->nTryResubs++;
+    p->nTryRemoves++;
     // report init stats
     if ( p->pPars->fVeryVerbose )
         printf( "%5d : Lev =%3d. Leaf =%3d.  Node =%3d.  Div=%3d.  Fanin = %d/%d. MFFC = %d\n", 
@@ -145,10 +143,10 @@ p->timeSat += clock() - clk;
     }
     if ( uTruth != SFM_SAT_SAT )
         goto finish;
-    if ( fRemoveOnly || Vec_IntSize(p->vDivs) == 0 )
+    if ( fRemoveOnly || p->pPars->fRrOnly || Vec_IntSize(p->vDivs) == 0 )
         return 0;
-//    return 0;
 
+    p->nTryResubs++;
     if ( fVeryVerbose )
     {
         for ( i = 0; i < 9; i++ )
@@ -197,7 +195,8 @@ finish:
         if ( iVar == -1 )
             printf( "Node %d: Fanin %d (%d) can be removed.  ", iNode, f, Sfm_ObjFanin(p, iNode, f) );
         else
-            printf( "Node %d: Fanin %d (%d) can be replaced by divisor %d.   ", iNode, f, Sfm_ObjFanin(p, iNode, f), iVar );
+            printf( "Node %d: Fanin %d (%d) can be replaced by divisor %d (%d).   ", 
+            iNode, f, Sfm_ObjFanin(p, iNode, f), iVar, Vec_IntEntry(p->vDivs, iVar) );
         Kit_DsdPrintFromTruth( (unsigned *)&uTruth, Vec_IntSize(p->vDivIds) ); printf( "\n" );
     }
     if ( iVar == -1 )
@@ -218,7 +217,6 @@ int Sfm_NodeResub( Sfm_Ntk_t * p, int iNode )
     if ( !Sfm_NtkCreateWindow( p, iNode, p->pPars->fVeryVerbose ) )
         return 0;
     Sfm_NtkWindowToSolver( p );
-    Sfm_NtkPrepareDivisors( p, iNode );
     // try replacing area critical fanins
     Sfm_ObjForEachFanin( p, iNode, iFanin, i )
         if ( Sfm_ObjIsNode(p, iFanin) && Sfm_ObjFanoutNum(p, iFanin) == 1 )

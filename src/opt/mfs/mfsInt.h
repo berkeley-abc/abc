@@ -101,6 +101,10 @@ struct Mfs_Man_t_
     int                 nCares;    // the number of care minterms
     unsigned            uCare[(MFS_FANIN_MAX<=5)?1:1<<(MFS_FANIN_MAX-5)];  // the computed care-set
     // performance statistics
+    int                 nTryRemoves; // number of fanin removals
+    int                 nTryResubs;  // number of resubstitutions
+    int                 nRemoves;    // number of fanin removals
+    int                 nResubs;     // number of resubstitutions
     int                 nNodesTried;
     int                 nNodesResub;
     int                 nMintsCare;

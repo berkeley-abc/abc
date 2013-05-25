@@ -152,6 +152,7 @@ static inline void Sfm_ObjSetLevel( Sfm_Ntk_t * p, int iObj, int Lev )  { Vec_In
 static inline int  Sfm_ObjUpdateFaninCount( Sfm_Ntk_t * p, int iObj )   { return Vec_IntAddToEntry(&p->vCounts, iObj, -1);                  }
 static inline void Sfm_ObjResetFaninCount( Sfm_Ntk_t * p, int iObj )    { Vec_IntWriteEntry(&p->vCounts, iObj, Sfm_ObjFaninNum(p, iObj)-1); }
 
+extern void        Kit_DsdPrintFromTruth( unsigned * pTruth, int nVars );
 
 ////////////////////////////////////////////////////////////////////////
 ///                      MACRO DEFINITIONS                           ///
@@ -181,8 +182,6 @@ extern word         Sfm_ComputeInterpolant( Sfm_Ntk_t * p );
 /*=== sfmWin.c ==========================================================*/
 extern int          Sfm_ObjMffcSize( Sfm_Ntk_t * p, int iObj );
 extern int          Sfm_NtkCreateWindow( Sfm_Ntk_t * p, int iNode, int fVerbose );
-extern void         Sfm_NtkPrepareDivisors( Sfm_Ntk_t * p, int iNode );
-
 
 ABC_NAMESPACE_HEADER_END
 
