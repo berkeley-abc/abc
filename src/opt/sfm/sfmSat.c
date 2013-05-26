@@ -59,7 +59,7 @@ void Sfm_NtkWindowToSolver( Sfm_Ntk_t * p )
 //    if ( p->pSat )
 //        printf( "%d  ", p->pSat->stats.learnts );
     sat_solver_restart( p->pSat );
-    sat_solver_setnvars( p->pSat, 1 + Vec_IntSize(p->vDivs) + 2 * Vec_IntSize(p->vTfo) + Vec_IntSize(p->vRoots) + 100 );
+    sat_solver_setnvars( p->pSat, 1 + Vec_IntSize(p->vDivs) + 2 * Vec_IntSize(p->vTfo) + Vec_IntSize(p->vRoots) + 50 );
     // create SAT variables
     Sfm_NtkCleanVars( p );
     p->nSatVars = 1;

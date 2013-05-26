@@ -168,7 +168,7 @@ void Sfm_NtkPrepare( Sfm_Ntk_t * p )
     p->vDivs     = Vec_IntAlloc( 100 );
     p->vRoots    = Vec_IntAlloc( 1000 );
     p->vTfo      = Vec_IntAlloc( 1000 );
-    p->vDivCexes = Vec_WrdStart( p->pPars->nDivNumMax );
+    p->vDivCexes = Vec_WrdStart( p->pPars->nWinSizeMax );
     p->vOrder    = Vec_IntAlloc( 100 );
     p->vDivVars  = Vec_IntAlloc( 100 );
     p->vDivIds   = Vec_IntAlloc( 1000 );
@@ -177,6 +177,7 @@ void Sfm_NtkPrepare( Sfm_Ntk_t * p )
     p->vClauses  = Vec_WecAlloc( 100 );
     p->vFaninMap = Vec_IntAlloc( 10 );
     p->pSat      = sat_solver_new();
+    sat_solver_setnvars( p->pSat, p->pPars->nWinSizeMax );
 }
 void Sfm_NtkFree( Sfm_Ntk_t * p )
 {
@@ -226,6 +227,8 @@ void Sfm_NtkFree( Sfm_Ntk_t * p )
 void Sfm_NtkRemoveFanin( Sfm_Ntk_t * p, int iNode, int iFanin )
 {
     int RetValue;
+    assert( Sfm_ObjIsNode(p, iNode) );
+    assert( !Sfm_ObjIsPo(p, iFanin) );
     RetValue = Vec_IntRemove( Sfm_ObjFiArray(p, iNode), iFanin );
     assert( RetValue );
     RetValue = Vec_IntRemove( Sfm_ObjFoArray(p, iFanin), iNode );
@@ -235,6 +238,8 @@ void Sfm_NtkAddFanin( Sfm_Ntk_t * p, int iNode, int iFanin )
 {
     if ( iFanin < 0 )
         return;
+    assert( Sfm_ObjIsNode(p, iNode) );
+    assert( !Sfm_ObjIsPo(p, iFanin) );
     assert( Vec_IntFind( Sfm_ObjFiArray(p, iNode), iFanin ) == -1 );
     assert( Vec_IntFind( Sfm_ObjFoArray(p, iFanin), iNode ) == -1 );
     Vec_IntPush( Sfm_ObjFiArray(p, iNode), iFanin );
@@ -268,13 +273,26 @@ void Sfm_NtkUpdateLevel_rec( Sfm_Ntk_t * p, int iNode )
 void Sfm_NtkUpdate( Sfm_Ntk_t * p, int iNode, int f, int iFaninNew, word uTruth )
 {
     int iFanin = Sfm_ObjFanin( p, iNode, f );
-    assert( iFanin != iFaninNew );
-    // replace old fanin by new fanin
     assert( Sfm_ObjIsNode(p, iNode) );
-    Sfm_NtkRemoveFanin( p, iNode, iFanin );
-    Sfm_NtkAddFanin( p, iNode, iFaninNew );
-    // recursively remove MFFC
-    Sfm_NtkDeleteObj_rec( p, iFanin );
+    assert( iFanin != iFaninNew );
+    if ( uTruth == 0 || ~uTruth == 0 )
+    {
+        Sfm_ObjForEachFanin( p, iNode, iFanin, f )
+        {
+            int RetValue = Vec_IntRemove( Sfm_ObjFoArray(p, iFanin), iNode );  assert( RetValue );
+            if ( Sfm_ObjFanoutNum(p, iFanin) == 0 )
+                Sfm_NtkDeleteObj_rec( p, iFanin );
+        }
+        Vec_IntClear( Sfm_ObjFiArray(p, iNode) );
+    }
+    else
+    {
+        // replace old fanin by new fanin
+        Sfm_NtkRemoveFanin( p, iNode, iFanin );
+        Sfm_NtkAddFanin( p, iNode, iFaninNew );
+        // recursively remove MFFC
+        Sfm_NtkDeleteObj_rec( p, iFanin );
+    }
     // update logic level
     Sfm_NtkUpdateLevel_rec( p, iNode );
     // update truth table

@@ -51,16 +51,16 @@ Vec_Ptr_t * Abc_NtkAssignIDs( Abc_Ntk_t * pNtk )
     int i;
     vNodes = Abc_NtkDfs( pNtk, 0 );
     Abc_NtkCleanCopy( pNtk );
-    Abc_NtkForEachPi( pNtk, pObj, i )
+    Abc_NtkForEachCi( pNtk, pObj, i )
         pObj->iTemp = i;
     Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
     {
-        pObj->iTemp = Abc_NtkPiNum(pNtk) + i;
+        pObj->iTemp = Abc_NtkCiNum(pNtk) + i;
 //printf( "%d->%d ", pObj->Id, pObj->iTemp );
     }
 //printf( "\n" );
-    Abc_NtkForEachPo( pNtk, pObj, i )
-        pObj->iTemp = Abc_NtkPiNum(pNtk) + Vec_PtrSize(vNodes) + i;
+    Abc_NtkForEachCo( pNtk, pObj, i )
+        pObj->iTemp = Abc_NtkCiNum(pNtk) + Vec_PtrSize(vNodes) + i;
     return vNodes;
 }
 Vec_Ptr_t * Abc_NtkAssignIDs2( Abc_Ntk_t * pNtk )
@@ -69,16 +69,16 @@ Vec_Ptr_t * Abc_NtkAssignIDs2( Abc_Ntk_t * pNtk )
     Abc_Obj_t * pObj;
     int i;
     Abc_NtkCleanCopy( pNtk );
-    Abc_NtkForEachPi( pNtk, pObj, i )
+    Abc_NtkForEachCi( pNtk, pObj, i )
         pObj->iTemp = i;
     vNodes = Vec_PtrAlloc( Abc_NtkNodeNum(pNtk) );
     Abc_NtkForEachNode( pNtk, pObj, i )
     {
         Vec_PtrPush( vNodes, pObj );
-        pObj->iTemp = Abc_NtkPiNum(pNtk) + i;
+        pObj->iTemp = Abc_NtkCiNum(pNtk) + i;
     }
-    Abc_NtkForEachPo( pNtk, pObj, i )
-        pObj->iTemp = Abc_NtkPiNum(pNtk) + Vec_PtrSize(vNodes) + i;
+    Abc_NtkForEachCo( pNtk, pObj, i )
+        pObj->iTemp = Abc_NtkCiNum(pNtk) + Vec_PtrSize(vNodes) + i;
     return vNodes;
 }
 
@@ -103,19 +103,22 @@ Sfm_Ntk_t * Abc_NtkExtractMfs( Abc_Ntk_t * pNtk, int nFirstFixed )
     Abc_Obj_t * pObj, * pFanin;
     int i, k, nObjs;
     vNodes  = nFirstFixed ? Abc_NtkAssignIDs2(pNtk) : Abc_NtkAssignIDs(pNtk);
-    nObjs   = Abc_NtkPiNum(pNtk) + Vec_PtrSize(vNodes) + Abc_NtkPoNum(pNtk);
+    nObjs   = Abc_NtkCiNum(pNtk) + Vec_PtrSize(vNodes) + Abc_NtkCoNum(pNtk);
     vFanins = Vec_WecStart( nObjs );
     vFixed  = Vec_StrStart( nObjs );
     vTruths = Vec_WrdStart( nObjs );
     Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
     {
+        word uTruth = Abc_SopToTruth((char *)pObj->pData, Abc_ObjFaninNum(pObj));
+        Vec_WrdWriteEntry( vTruths, pObj->iTemp, uTruth );
         vArray = Vec_WecEntry( vFanins, pObj->iTemp );
+        if ( uTruth == 0 || ~uTruth == 0 )
+            continue;
         Vec_IntGrow( vArray, Abc_ObjFaninNum(pObj) );
         Abc_ObjForEachFanin( pObj, pFanin, k )
             Vec_IntPush( vArray, pFanin->iTemp );
-        Vec_WrdWriteEntry( vTruths, pObj->iTemp, Abc_SopToTruth((char *)pObj->pData, Abc_ObjFaninNum(pObj)) );
     }
-    Abc_NtkForEachPo( pNtk, pObj, i )
+    Abc_NtkForEachCo( pNtk, pObj, i )
     {
         vArray = Vec_WecEntry( vFanins, pObj->iTemp );
         Vec_IntGrow( vArray, Abc_ObjFaninNum(pObj) );
@@ -125,9 +128,9 @@ Sfm_Ntk_t * Abc_NtkExtractMfs( Abc_Ntk_t * pNtk, int nFirstFixed )
     Vec_PtrFree( vNodes );
     // update fixed
     assert( nFirstFixed >= 0 && nFirstFixed < Abc_NtkNodeNum(pNtk) );
-    for ( i = Abc_NtkPiNum(pNtk); i < Abc_NtkPiNum(pNtk) + nFirstFixed; i++ )
+    for ( i = Abc_NtkCiNum(pNtk); i < Abc_NtkCiNum(pNtk) + nFirstFixed; i++ )
         Vec_StrWriteEntry( vFixed, i, (char)1 );
-    return Sfm_NtkConstruct( vFanins, Abc_NtkPiNum(pNtk), Abc_NtkPoNum(pNtk), vFixed, vTruths );
+    return Sfm_NtkConstruct( vFanins, Abc_NtkCiNum(pNtk), Abc_NtkCoNum(pNtk), vFixed, vTruths );
 }
 
 /**Function*************************************************************
@@ -150,7 +153,7 @@ void Abc_NtkInsertMfs( Abc_Ntk_t * pNtk, Sfm_Ntk_t * p )
     word * pTruth;
     // map new IDs into old nodes
     vMap = Vec_IntStart( Abc_NtkObjNumMax(pNtk) );
-    Abc_NtkForEachPi( pNtk, pNode, i )
+    Abc_NtkForEachCi( pNtk, pNode, i )
         Vec_IntWriteEntry( vMap, pNode->iTemp, Abc_ObjId(pNode) );
     Abc_NtkForEachNode( pNtk, pNode, i )
         if ( pNode->iTemp > 0 )
@@ -180,13 +183,14 @@ void Abc_NtkInsertMfs( Abc_Ntk_t * pNtk, Sfm_Ntk_t * p )
             pNode->pData = Abc_SopRegister( (Mem_Flex_t *)pNtk->pManFunc, " 1\n" );
         else
         {
-//            pNode->pData = Abc_SopCreateFromTruth( (Mem_Flex_t *)pNtk->pManFunc, Vec_IntSize(vArray), (unsigned *)pTruth );
             int RetValue = Kit_TruthIsop( (unsigned *)pTruth, Vec_IntSize(vArray), vCover, 1 );
+            assert( Vec_IntSize(vArray) > 0 );
             assert( RetValue == 0 || RetValue == 1 );
             pNode->pData = Abc_SopCreateFromIsop( (Mem_Flex_t *)pNtk->pManFunc, Vec_IntSize(vArray), vCover );
             if ( RetValue )
                 Abc_SopComplement( (char *)pNode->pData );
         }
+        assert( Abc_SopGetVarNum((char *)pNode->pData) == Vec_IntSize(vArray) );
     }
     Vec_IntFree( vMap );
 }
@@ -206,7 +210,7 @@ int Abc_NtkPerformMfs( Abc_Ntk_t * pNtk, Sfm_Par_t * pPars )
 {
     Sfm_Ntk_t * p;
     int nFaninMax, nNodes;
-    assert( Abc_NtkIsSopLogic(pNtk) );
+    assert( Abc_NtkIsLogic(pNtk) );
     // count fanouts
     nFaninMax = Abc_NtkGetFaninMax( pNtk );
     if ( nFaninMax > 6 )
@@ -214,6 +218,8 @@ int Abc_NtkPerformMfs( Abc_Ntk_t * pNtk, Sfm_Par_t * pPars )
         Abc_Print( 1, "Currently \"mfs\" cannot process the network containing nodes with more than 6 fanins.\n" );
         return 0;
     }
+    if ( !Abc_NtkHasSop(pNtk) )
+        Abc_NtkToSop( pNtk, 0 );
     // collect information
     p = Abc_NtkExtractMfs( pNtk, pPars->nFirstFixed );
     // perform optimization
@@ -224,7 +230,8 @@ int Abc_NtkPerformMfs( Abc_Ntk_t * pNtk, Sfm_Par_t * pPars )
     else
     {
         Abc_NtkInsertMfs( pNtk, p );
-        Abc_Print( 1, "The network has %d nodes changed by \"mfs\".\n", nNodes );
+        if( pPars->fVerbose )
+            Abc_Print( 1, "The network has %d nodes changed by \"mfs\".\n", nNodes );
     }
     Sfm_NtkFree( p );
     return 1;

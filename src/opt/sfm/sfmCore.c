@@ -49,7 +49,6 @@ void Sfm_ParSetDefault( Sfm_Par_t * pPars )
     pPars->nFanoutMax   =   30;  // the maximum number of fanouts
     pPars->nDepthMax    =   20;  // the maximum depth to try  
     pPars->nWinSizeMax  =  300;  // the maximum window size
-    pPars->nDivNumMax   =  300;  // the maximum number of divisors
     pPars->nBTLimit     =    0;  // the maximum number of conflicts in one SAT run
     pPars->fFixLevel    =    1;  // does not allow level to increase
     pPars->fRrOnly      =    0;  // perform redundancy removal
@@ -82,8 +81,8 @@ void Sfm_NtkPrintStats( Sfm_Ntk_t * p )
     printf( "\n" );
 
     printf( "Reduction:   " );
-    printf( "Nodes  %6d out of %6d (%6.2f %%)   ", p->nTotalNodesBeg-p->nTotalNodesEnd, p->nTotalNodesEnd, 100.0*(p->nTotalNodesBeg-p->nTotalNodesEnd)/Abc_MaxInt(1, p->nTotalNodesBeg) );
-    printf( "Edges  %6d out of %6d (%6.2f %%)   ", p->nTotalEdgesBeg-p->nTotalEdgesEnd, p->nTotalEdgesEnd, 100.0*(p->nTotalEdgesBeg-p->nTotalEdgesEnd)/Abc_MaxInt(1, p->nTotalEdgesBeg) );
+    printf( "Nodes  %6d out of %6d (%6.2f %%)   ", p->nTotalNodesBeg-p->nTotalNodesEnd, p->nTotalNodesBeg, 100.0*(p->nTotalNodesBeg-p->nTotalNodesEnd)/Abc_MaxInt(1, p->nTotalNodesBeg) );
+    printf( "Edges  %6d out of %6d (%6.2f %%)   ", p->nTotalEdgesBeg-p->nTotalEdgesEnd, p->nTotalEdgesBeg, 100.0*(p->nTotalEdgesBeg-p->nTotalEdgesEnd)/Abc_MaxInt(1, p->nTotalEdgesBeg) );
     printf( "\n" );
 
     ABC_PRTP( "Win", p->timeWin  ,  p->timeTotal );
@@ -254,14 +253,14 @@ int Sfm_NodeResub( Sfm_Ntk_t * p, int iNode )
 ***********************************************************************/
 int Sfm_NtkPerform( Sfm_Ntk_t * p, Sfm_Par_t * pPars )
 {
-    int i, Counter = 0;
+    int i, k, Counter = 0;
     p->timeTotal = clock();
     p->pPars = pPars;
     Sfm_NtkPrepare( p );
 //    Sfm_ComputeInterpolantCheck( p );
 //    return 0;
-    p->nTotalNodesBeg = Vec_WecSizeUsed(&p->vFanins) - Sfm_NtkPoNum(p);
-    p->nTotalEdgesBeg = Vec_WecSizeSize(&p->vFanins);
+    p->nTotalNodesBeg = Vec_WecSize(&p->vFanins) - Sfm_NtkPiNum(p) - Sfm_NtkPoNum(p);
+    p->nTotalEdgesBeg = Vec_WecSizeSize(&p->vFanins) - Sfm_NtkPoNum(p);
     Sfm_NtkForEachNode( p, i )
     {
         if ( Sfm_ObjIsFixed( p, i ) )
@@ -270,11 +269,12 @@ int Sfm_NtkPerform( Sfm_Ntk_t * p, Sfm_Par_t * pPars )
             continue;
         if ( Sfm_ObjFaninNum(p, i) < 2 || Sfm_ObjFaninNum(p, i) > 6 )
             continue;
-        while ( Sfm_NodeResub(p, i) )
-            Counter++;
+        for ( k = 0; Sfm_NodeResub(p, i); k++ )
+            ;
+        Counter += (k > 0);
     }
     p->nTotalNodesEnd = Vec_WecSizeUsed(&p->vFanins) - Sfm_NtkPoNum(p);
-    p->nTotalEdgesEnd = Vec_WecSizeSize(&p->vFanins);
+    p->nTotalEdgesEnd = Vec_WecSizeSize(&p->vFanins) - Sfm_NtkPoNum(p);
     p->timeTotal = clock() - p->timeTotal;
     if ( pPars->fVerbose )
         Sfm_NtkPrintStats( p );

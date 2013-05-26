@@ -73,6 +73,7 @@ int Sfm_TruthToCnf( word Truth, int nVars, Vec_Int_t * vCover, Vec_Str_t * vCnf 
     Vec_StrClear( vCnf );
     if ( Truth == 0 || ~Truth == 0 )
     {
+//        assert( nVars == 0 );
         Vec_StrPush( vCnf, (char)(Truth == 0) );
         Vec_StrPush( vCnf, (char)-1 );
         return 1;
@@ -80,6 +81,7 @@ int Sfm_TruthToCnf( word Truth, int nVars, Vec_Int_t * vCover, Vec_Str_t * vCnf 
     else 
     {
         int i, k, c, RetValue, Literal, Cube, nCubes = 0;
+        assert( nVars > 0 );
         for ( c = 0; c < 2; c ++ )
         {
             Truth = c ? ~Truth : Truth;
@@ -159,11 +161,9 @@ void Sfm_TranslateCnf( Vec_Wec_t * vRes, Vec_Str_t * vCnf, Vec_Int_t * vFaninMap
     {
         Lit = (int)Entry;
         if ( Lit == -1 )
-        {
             vClause = Vec_WecPushLevel( vRes );
-            continue;
-        }
-        Vec_IntPush( vClause, Abc_Lit2LitV( Vec_IntArray(vFaninMap), Lit ) );
+        else
+            Vec_IntPush( vClause, Abc_Lit2LitV( Vec_IntArray(vFaninMap), Lit ) );
     }
 }
 

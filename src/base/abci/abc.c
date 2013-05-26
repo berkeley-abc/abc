@@ -4475,7 +4475,7 @@ int Abc_CommandMfs2( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set defaults
     Sfm_ParSetDefault( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "WFDMNCZdlaevwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "WFDMCZdlaevwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -4521,17 +4521,6 @@ int Abc_CommandMfs2( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->nWinSizeMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( pPars->nWinSizeMax < 0 )
-                goto usage;
-            break;
-        case 'N':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-N\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            pPars->nDivNumMax = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( pPars->nDivNumMax < 0 )
                 goto usage;
             break;
         case 'C':
@@ -4590,11 +4579,6 @@ int Abc_CommandMfs2( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "This command can only be applied to a logic network.\n" );
         return 1;
     }
-    if ( !Abc_NtkIsSopLogic(pNtk) )
-    {
-        Abc_Print( -1, "Currently this command works only for SOP logic networks (run \"sop\").\n" );
-        return 1;
-    }
     // modify the current network
     if ( !Abc_NtkPerformMfs( pNtk, pPars ) )
     {
@@ -4604,13 +4588,12 @@ int Abc_CommandMfs2( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: mfs2 [-WFDMNCZ <num>] [-dlaevwh]\n" );
+    Abc_Print( -2, "usage: mfs2 [-WFDMCZ <num>] [-dlaevwh]\n" );
     Abc_Print( -2, "\t           performs don't-care-based optimization of logic networks\n" );
     Abc_Print( -2, "\t-W <num> : the number of levels in the TFO cone (0 <= num) [default = %d]\n", pPars->nTfoLevMax );
     Abc_Print( -2, "\t-F <num> : the max number of fanouts to skip (1 <= num) [default = %d]\n", pPars->nFanoutMax );
     Abc_Print( -2, "\t-D <num> : the max depth nodes to try (0 = no limit) [default = %d]\n", pPars->nDepthMax );
     Abc_Print( -2, "\t-M <num> : the max node count of windows to consider (0 = no limit) [default = %d]\n", pPars->nWinSizeMax );
-    Abc_Print( -2, "\t-N <num> : the max number of divisors to consider (0 = no limit) [default = %d]\n", pPars->nDivNumMax );
     Abc_Print( -2, "\t-C <num> : the max number of conflicts in one SAT run (0 = no limit) [default = %d]\n", pPars->nBTLimit );
     Abc_Print( -2, "\t-Z <num> : treat the first <num> logic nodes as fixed (0 = none) [default = %d]\n", pPars->nFirstFixed );
     Abc_Print( -2, "\t-d       : toggle performing redundancy removal [default = %s]\n", pPars->fRrOnly? "yes": "no" );

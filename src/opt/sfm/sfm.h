@@ -46,7 +46,6 @@ struct Sfm_Par_t_
     int             nFanoutMax;    // the maximum number of fanouts
     int             nDepthMax;     // the maximum depth to try
     int             nWinSizeMax;   // the maximum window size
-    int             nDivNumMax;    // the maximum number of divisors
     int             nBTLimit;      // the maximum number of conflicts in one SAT run
     int             nFirstFixed;   // the number of first nodes to be treated as fixed
     int             fFixLevel;     // does not allow level to increase

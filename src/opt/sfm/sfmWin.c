@@ -192,7 +192,7 @@ void Sfm_NtkAddDivisors( Sfm_Ntk_t * p, int iNode, int nLevelMax )
         if ( p->pPars->nFanoutMax && i > p->pPars->nFanoutMax )
             break;
         // skip TFI nodes, PO nodes, or nodes with high logic level
-        if ( Sfm_ObjIsTravIdCurrent(p, iFanout) || Sfm_ObjIsPo(p, iFanout) || 
+        if ( Sfm_ObjIsTravIdCurrent(p, iFanout) || Sfm_ObjIsPo(p, iFanout) || Sfm_ObjIsFixed(p, iFanout) ||
             (p->pPars->fFixLevel && Sfm_ObjLevel(p, iFanout) >= nLevelMax) )
             continue;
         // handle single-input nodes
@@ -241,7 +241,7 @@ int Sfm_NtkCollectTfi_rec( Sfm_Ntk_t * p, int iNode, int nWinSizeMax )
 }
 int Sfm_NtkCreateWindow( Sfm_Ntk_t * p, int iNode, int fVerbose )
 {
-    int i, iTemp;
+    int i, k, iTemp, nDivStart;
     clock_t clk = clock();
     assert( Sfm_ObjIsNode( p, iNode ) );
     Vec_IntClear( p->vLeaves ); // leaves 
@@ -272,56 +272,47 @@ int Sfm_NtkCreateWindow( Sfm_Ntk_t * p, int iNode, int fVerbose )
         Vec_IntPush( p->vRoots, iNode );
     p->timeWin += clock() - clk;
     clk = clock();
+    // create divisors
+    Vec_IntClear( p->vDivs );
+    Vec_IntForEachEntry( p->vLeaves, iTemp, i )
+        Vec_IntPush( p->vDivs, iTemp );
+    Vec_IntForEachEntry( p->vNodes, iTemp, i )
+        Vec_IntPush( p->vDivs, iTemp );
+    Vec_IntPop( p->vDivs );
+    // add non-topological divisors
+    nDivStart = Vec_IntSize(p->vDivs);
+    if ( Vec_IntSize(p->vDivs) < p->pPars->nWinSizeMax )
+    {
+        Sfm_NtkIncrementTravId2( p );
+        Vec_IntForEachEntry( p->vDivs, iTemp, i )
+            if ( Vec_IntSize(p->vDivs) < p->pPars->nWinSizeMax )
+                Sfm_NtkAddDivisors( p, iTemp, Sfm_ObjLevel(p, iNode) );
+    }
+    if ( Vec_IntSize(p->vDivs) > p->pPars->nWinSizeMax )
+        Vec_IntShrink( p->vDivs, p->pPars->nWinSizeMax );
+    assert( Vec_IntSize(p->vDivs) <= p->pPars->nWinSizeMax );
+    p->nMaxDivs += (Vec_IntSize(p->vDivs) == p->pPars->nWinSizeMax);
     // create ordering of the nodes
     Vec_IntClear( p->vOrder );
     Vec_IntForEachEntryReverse( p->vNodes, iTemp, i )
         Vec_IntPush( p->vOrder, iTemp );
     Vec_IntForEachEntry( p->vLeaves, iTemp, i )
         Vec_IntPush( p->vOrder, iTemp );
+    Vec_IntForEachEntryStart( p->vDivs, iTemp, i, nDivStart )
+        Vec_IntPush( p->vOrder, iTemp );
+    // remove fanins from divisors
     // mark fanins
     Sfm_NtkIncrementTravId2( p );
     Sfm_ObjSetTravIdCurrent2( p, iNode );
     Sfm_ObjForEachFanin( p, iNode, iTemp, i )
         Sfm_ObjSetTravIdCurrent2( p, iTemp );
     // compact divisors
-    Vec_IntClear( p->vDivs );
-    Vec_IntForEachEntry( p->vLeaves, iTemp, i )
+    k = 0;
+    Vec_IntForEachEntry( p->vDivs, iTemp, i )
         if ( !Sfm_ObjIsTravIdCurrent2( p, iTemp ) )
-            Vec_IntPush( p->vDivs, iTemp );
-    Vec_IntForEachEntry( p->vNodes, iTemp, i )
-        if ( !Sfm_ObjIsTravIdCurrent2( p, iTemp ) )
-            Vec_IntPush( p->vDivs, iTemp );
-    // if we exceed the limit, remove the first few
-    if ( Vec_IntSize(p->vDivs) > p->pPars->nDivNumMax )
-    {
-        int k = 0;
-        Vec_IntForEachEntryStart( p->vDivs, iTemp, i, Vec_IntSize(p->vDivs) - p->pPars->nDivNumMax )
             Vec_IntWriteEntry( p->vDivs, k++, iTemp );
-        Vec_IntShrink( p->vDivs, k );
-        assert( Vec_IntSize(p->vDivs) == p->pPars->nDivNumMax );
-    }
-//Vec_IntPrint( p->vLeaves );
-//Vec_IntPrint( p->vNodes );
-//Vec_IntPrint( p->vDivs );
-    // collect additional divisors of the TFI nodes
-    if ( Vec_IntSize(p->vDivs) < p->pPars->nDivNumMax )
-    {
-        int nStartNew = Vec_IntSize(p->vDivs);
-        Sfm_NtkIncrementTravId2( p );
-        Sfm_ObjForEachFanin( p, iNode, iTemp, i )
-            if ( Vec_IntSize(p->vDivs) < p->pPars->nDivNumMax )
-                Sfm_NtkAddDivisors( p, iTemp, Sfm_ObjLevel(p, iNode) );
-        Vec_IntForEachEntry( p->vDivs, iTemp, i )
-            if ( Vec_IntSize(p->vDivs) < p->pPars->nDivNumMax )
-                Sfm_NtkAddDivisors( p, iTemp, Sfm_ObjLevel(p, iNode) );
-        if ( Vec_IntSize(p->vDivs) > p->pPars->nDivNumMax )
-            Vec_IntShrink( p->vDivs, p->pPars->nDivNumMax );
-        // add new divisor variable to the order
-        Vec_IntForEachEntryStart( p->vDivs, iTemp, i, nStartNew )
-            Vec_IntPush( p->vOrder, iTemp );
-    }
-    assert( Vec_IntSize(p->vDivs) <= p->pPars->nDivNumMax );
-    p->nMaxDivs += (Vec_IntSize(p->vDivs) == p->pPars->nDivNumMax);
+    Vec_IntShrink( p->vDivs, k );
+    assert( Vec_IntSize(p->vDivs) <= p->pPars->nWinSizeMax );
     // statistics
     p->nTotalDivs += Vec_IntSize(p->vDivs);
     p->timeDiv += clock() - clk;
