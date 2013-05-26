@@ -770,6 +770,67 @@ void Abc_NtkWriteAig( Abc_Ntk_t * pNtk, char * pFileName )
     Vec_IntFree( vId2Num );
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkPutOnTop( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtk2 )
+{
+    Vec_Ptr_t * vNodes;
+    Abc_Ntk_t * pNtkNew;
+    Abc_Obj_t * pObj, * pFanin;
+    int i, k;
+    assert( Abc_NtkIsLogic(pNtk) );
+    assert( Abc_NtkIsLogic(pNtk2) );
+    assert( Abc_NtkPoNum(pNtk) == Abc_NtkPiNum(pNtk2) );
+    // clean the node copy fields
+    Abc_NtkCleanCopy( pNtk );
+    Abc_NtkCleanCopy( pNtk2 );
+    // duplicate the name and the spec
+    pNtkNew = Abc_NtkAlloc( pNtk->ntkType, pNtk->ntkFunc, 1 );
+    pNtkNew->pName = Extra_UtilStrsav(pNtk->pName);
+    pNtkNew->pSpec = Extra_UtilStrsav(pNtk->pSpec);
+    // clone CIs/CIs/boxes
+    Abc_NtkForEachPi( pNtk, pObj, i )
+        Abc_NtkDupObj( pNtkNew, pObj, 1 );
+    // add internal nodes
+    vNodes = Abc_NtkDfs( pNtk, 0 );
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
+    {
+        Abc_NtkDupObj( pNtkNew, pObj, 0 );
+        Abc_ObjForEachFanin( pObj, pFanin, k )
+            Abc_ObjAddFanin( pObj->pCopy, pFanin->pCopy );
+    }
+    Vec_PtrFree( vNodes );
+    // transfer to the POs
+    Abc_NtkForEachPi( pNtk2, pObj, i )
+        pObj->pCopy = Abc_ObjChild0Copy( Abc_NtkPo(pNtk, i) );
+    // add internal nodes
+    vNodes = Abc_NtkDfs( pNtk2, 0 );
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
+    {
+        Abc_NtkDupObj( pNtkNew, pObj, 0 );
+        Abc_ObjForEachFanin( pObj, pFanin, k )
+            Abc_ObjAddFanin( pObj->pCopy, pFanin->pCopy );
+    }
+    Vec_PtrFree( vNodes );
+    // clone CIs/CIs/boxes
+    Abc_NtkForEachPo( pNtk2, pObj, i )
+    {
+        Abc_NtkDupObj( pNtkNew, pObj, 1 );
+        Abc_ObjAddFanin( pObj->pCopy, Abc_ObjChild0Copy(pObj) );
+    }
+    if ( !Abc_NtkCheck( pNtkNew ) )
+        fprintf( stdout, "Abc_NtkPutOnTop(): Network check has failed.\n" );
+    return pNtkNew;
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

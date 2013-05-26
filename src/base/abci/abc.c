@@ -134,6 +134,7 @@ static int Abc_CommandRemovePo               ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandDropSat                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAddPi                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAppend                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandPutOnTop               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandFrames                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandDFrames                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandSop                    ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -683,6 +684,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Various",      "dropsat",       Abc_CommandDropSat,          1 );
     Cmd_CommandAdd( pAbc, "Various",      "addpi",         Abc_CommandAddPi,            1 );
     Cmd_CommandAdd( pAbc, "Various",      "append",        Abc_CommandAppend,           1 );
+    Cmd_CommandAdd( pAbc, "Various",      "putontop",      Abc_CommandPutOnTop,         1 );
     Cmd_CommandAdd( pAbc, "Various",      "frames",        Abc_CommandFrames,           1 );
     Cmd_CommandAdd( pAbc, "Various",      "dframes",       Abc_CommandDFrames,          1 );
     Cmd_CommandAdd( pAbc, "Various",      "sop",           Abc_CommandSop,              0 );
@@ -4473,7 +4475,7 @@ int Abc_CommandMfs2( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set defaults
     Sfm_ParSetDefault( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "WFDMNCdlaevwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "WFDMNCZdlaevwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -4543,6 +4545,17 @@ int Abc_CommandMfs2( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( pPars->nBTLimit < 0 )
                 goto usage;
             break;
+        case 'Z':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-Z\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nFirstFixed = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nFirstFixed < 0 )
+                goto usage;
+            break;
         case 'd':
             pPars->fRrOnly ^= 1;
             break;
@@ -4591,7 +4604,7 @@ int Abc_CommandMfs2( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: mfs2 [-WFDMNC <num>] [-dlaevwh]\n" );
+    Abc_Print( -2, "usage: mfs2 [-WFDMNCZ <num>] [-dlaevwh]\n" );
     Abc_Print( -2, "\t           performs don't-care-based optimization of logic networks\n" );
     Abc_Print( -2, "\t-W <num> : the number of levels in the TFO cone (0 <= num) [default = %d]\n", pPars->nTfoLevMax );
     Abc_Print( -2, "\t-F <num> : the max number of fanouts to skip (1 <= num) [default = %d]\n", pPars->nFanoutMax );
@@ -4599,6 +4612,7 @@ usage:
     Abc_Print( -2, "\t-M <num> : the max node count of windows to consider (0 = no limit) [default = %d]\n", pPars->nWinSizeMax );
     Abc_Print( -2, "\t-N <num> : the max number of divisors to consider (0 = no limit) [default = %d]\n", pPars->nDivNumMax );
     Abc_Print( -2, "\t-C <num> : the max number of conflicts in one SAT run (0 = no limit) [default = %d]\n", pPars->nBTLimit );
+    Abc_Print( -2, "\t-Z <num> : treat the first <num> logic nodes as fixed (0 = none) [default = %d]\n", pPars->nFirstFixed );
     Abc_Print( -2, "\t-d       : toggle performing redundancy removal [default = %s]\n", pPars->fRrOnly? "yes": "no" );
     Abc_Print( -2, "\t-l       : allow logic level to increase [default = %s]\n", !pPars->fFixLevel? "yes": "no" );
     Abc_Print( -2, "\t-a       : toggle minimizing area or area+edges [default = %s]\n", pPars->fArea? "area": "area+edges" );
@@ -7033,6 +7047,97 @@ usage:
     Abc_Print( -2, "usage: append [-h] <file>\n" );
     Abc_Print( -2, "\t         appends a combinational network on top of the current network\n" );
 //    Abc_Print( -2, "\t-c     : computes combinational miter (latches as POs) [default = %s]\n", fComb? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    Abc_Print( -2, "\t<file> : file name with the second network\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandPutOnTop( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern Abc_Ntk_t * Abc_NtkPutOnTop( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtk2 );
+
+    Abc_Ntk_t * pNtk, * pNtk2, * pNtkRes;
+    char * FileName;
+    int fComb = 0;
+    int c;
+    pNtk = Abc_FrameReadNtk(pAbc);
+
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "ch" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'c':
+            fComb ^= 1;
+            break;
+        default:
+            goto usage;
+        }
+    }
+
+    // get the second network
+    if ( argc != globalUtilOptind + 1 )
+    {
+        Abc_Print( -1, "The network to append is not given.\n" );
+        return 1;
+    }
+
+    if ( !Abc_NtkIsLogic(pNtk) )
+    {
+        Abc_Print( -1, "The base network should be in the logic form.\n" );
+        return 1;
+    }
+
+    // check if the second network is combinational
+    if ( Abc_NtkLatchNum(pNtk) )
+    {
+        Abc_Print( -1, "The current network has latches. This command does not work for such networks.\n" );
+        return 0;
+    }
+
+    // read the second network
+    FileName = argv[globalUtilOptind];
+    pNtk2 = Io_Read( FileName, Io_ReadFileType(FileName), 1 );
+    if ( pNtk2 == NULL )
+        return 1;
+
+    // check if the second network is combinational
+    if ( Abc_NtkLatchNum(pNtk2) )
+    {
+        Abc_NtkDelete( pNtk2 );
+        Abc_Print( -1, "The second network has latches. This command does not work for such networks.\n" );
+        return 0;
+    }
+    // compare inputs/outputs
+    if ( Abc_NtkPoNum(pNtk) != Abc_NtkPiNum(pNtk2) )
+    {
+        Abc_NtkDelete( pNtk2 );
+        Abc_Print( -1, "The PO count (%d) of the first network is not equal to PI count (%d) of the second network.\n", Abc_NtkPoNum(pNtk), Abc_NtkPiNum(pNtk2) );
+        return 0;
+    }
+
+    // get the new network
+    pNtkRes = Abc_NtkPutOnTop( pNtk, pNtk2 );
+    Abc_NtkDelete( pNtk2 );
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: putontop [-h] <file>\n" );
+    Abc_Print( -2, "\t         connects PIs of network in <file> to POs of current network\n" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     Abc_Print( -2, "\t<file> : file name with the second network\n");
     return 1;

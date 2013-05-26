@@ -212,8 +212,8 @@ void Abc_NtkPrintStats( Abc_Ntk_t * pNtk, int fFactored, int fSaveBest, int fDum
     Abc_Print( 1," i/o =%5d/%5d", Abc_NtkPiNum(pNtk), Abc_NtkPoNum(pNtk) );
     if ( Abc_NtkConstrNum(pNtk) )
         Abc_Print( 1,"(c=%d)", Abc_NtkConstrNum(pNtk) );
-    if ( pNtk->nRealPos )
-        Abc_Print( 1,"(p=%d)", Abc_NtkPoNum(pNtk) - pNtk->nRealPos );
+//    if ( pNtk->nRealPos )
+//        Abc_Print( 1,"(p=%d)", Abc_NtkPoNum(pNtk) - pNtk->nRealPos );
     Abc_Print( 1,"  lat =%5d", Abc_NtkLatchNum(pNtk) );
     if ( Abc_NtkIsNetlist(pNtk) )
     {

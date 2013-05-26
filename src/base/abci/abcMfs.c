@@ -63,6 +63,24 @@ Vec_Ptr_t * Abc_NtkAssignIDs( Abc_Ntk_t * pNtk )
         pObj->iTemp = Abc_NtkPiNum(pNtk) + Vec_PtrSize(vNodes) + i;
     return vNodes;
 }
+Vec_Ptr_t * Abc_NtkAssignIDs2( Abc_Ntk_t * pNtk )
+{
+    Vec_Ptr_t * vNodes;
+    Abc_Obj_t * pObj;
+    int i;
+    Abc_NtkCleanCopy( pNtk );
+    Abc_NtkForEachPi( pNtk, pObj, i )
+        pObj->iTemp = i;
+    vNodes = Vec_PtrAlloc( Abc_NtkNodeNum(pNtk) );
+    Abc_NtkForEachNode( pNtk, pObj, i )
+    {
+        Vec_PtrPush( vNodes, pObj );
+        pObj->iTemp = Abc_NtkPiNum(pNtk) + i;
+    }
+    Abc_NtkForEachPo( pNtk, pObj, i )
+        pObj->iTemp = Abc_NtkPiNum(pNtk) + Vec_PtrSize(vNodes) + i;
+    return vNodes;
+}
 
 /**Function*************************************************************
 
@@ -75,7 +93,7 @@ Vec_Ptr_t * Abc_NtkAssignIDs( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-Sfm_Ntk_t * Abc_NtkExtractMfs( Abc_Ntk_t * pNtk )
+Sfm_Ntk_t * Abc_NtkExtractMfs( Abc_Ntk_t * pNtk, int nFirstFixed )
 {
     Vec_Ptr_t * vNodes;
     Vec_Wec_t * vFanins;
@@ -84,7 +102,7 @@ Sfm_Ntk_t * Abc_NtkExtractMfs( Abc_Ntk_t * pNtk )
     Vec_Int_t * vArray;
     Abc_Obj_t * pObj, * pFanin;
     int i, k, nObjs;
-    vNodes  = Abc_NtkAssignIDs( pNtk );
+    vNodes  = nFirstFixed ? Abc_NtkAssignIDs2(pNtk) : Abc_NtkAssignIDs(pNtk);
     nObjs   = Abc_NtkPiNum(pNtk) + Vec_PtrSize(vNodes) + Abc_NtkPoNum(pNtk);
     vFanins = Vec_WecStart( nObjs );
     vFixed  = Vec_StrStart( nObjs );
@@ -105,6 +123,10 @@ Sfm_Ntk_t * Abc_NtkExtractMfs( Abc_Ntk_t * pNtk )
             Vec_IntPush( vArray, pFanin->iTemp );
     }
     Vec_PtrFree( vNodes );
+    // update fixed
+    assert( nFirstFixed >= 0 && nFirstFixed < Abc_NtkNodeNum(pNtk) );
+    for ( i = Abc_NtkPiNum(pNtk); i < Abc_NtkPiNum(pNtk) + nFirstFixed; i++ )
+        Vec_StrWriteEntry( vFixed, i, (char)1 );
     return Sfm_NtkConstruct( vFanins, Abc_NtkPiNum(pNtk), Abc_NtkPoNum(pNtk), vFixed, vTruths );
 }
 
@@ -193,7 +215,7 @@ int Abc_NtkPerformMfs( Abc_Ntk_t * pNtk, Sfm_Par_t * pPars )
         return 0;
     }
     // collect information
-    p = Abc_NtkExtractMfs( pNtk );
+    p = Abc_NtkExtractMfs( pNtk, pPars->nFirstFixed );
     // perform optimization
     nNodes = Sfm_NtkPerform( p, pPars );
     // call the fast extract procedure
