@@ -111,9 +111,9 @@ Sfm_Ntk_t * Abc_NtkExtractMfs( Abc_Ntk_t * pNtk, int nFirstFixed )
     {
         word uTruth = Abc_SopToTruth((char *)pObj->pData, Abc_ObjFaninNum(pObj));
         Vec_WrdWriteEntry( vTruths, pObj->iTemp, uTruth );
-        vArray = Vec_WecEntry( vFanins, pObj->iTemp );
         if ( uTruth == 0 || ~uTruth == 0 )
             continue;
+        vArray = Vec_WecEntry( vFanins, pObj->iTemp );
         Vec_IntGrow( vArray, Abc_ObjFaninNum(pObj) );
         Abc_ObjForEachFanin( pObj, pFanin, k )
             Vec_IntPush( vArray, pFanin->iTemp );
@@ -146,11 +146,10 @@ Sfm_Ntk_t * Abc_NtkExtractMfs( Abc_Ntk_t * pNtk, int nFirstFixed )
 ***********************************************************************/
 void Abc_NtkInsertMfs( Abc_Ntk_t * pNtk, Sfm_Ntk_t * p )
 {
-    Vec_Int_t * vCover = Sfm_NodeReadCover(p);
-    Vec_Int_t * vMap, * vArray;
+    Vec_Int_t * vCover, * vMap, * vArray;
     Abc_Obj_t * pNode;
-    int i, k, Fanin;
     word * pTruth;
+    int i, k, Fanin;
     // map new IDs into old nodes
     vMap = Vec_IntStart( Abc_NtkObjNumMax(pNtk) );
     Abc_NtkForEachCi( pNtk, pNode, i )
@@ -162,6 +161,7 @@ void Abc_NtkInsertMfs( Abc_Ntk_t * pNtk, Sfm_Ntk_t * p )
     Abc_NtkForEachNode( pNtk, pNode, i )
         Abc_ObjRemoveFanins( pNode );
     // create new fanins
+    vCover = Vec_IntAlloc( 1 << 16 );
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
         if ( pNode->iTemp == 0 || Sfm_NodeReadFixed(p, pNode->iTemp) )
@@ -192,6 +192,7 @@ void Abc_NtkInsertMfs( Abc_Ntk_t * pNtk, Sfm_Ntk_t * p )
         }
         assert( Abc_SopGetVarNum((char *)pNode->pData) == Vec_IntSize(vArray) );
     }
+    Vec_IntFree( vCover );
     Vec_IntFree( vMap );
 }
 

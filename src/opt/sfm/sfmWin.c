@@ -190,9 +190,9 @@ void Sfm_NtkAddDivisors( Sfm_Ntk_t * p, int iNode, int nLevelMax )
     {
         // skip some of the fanouts if the number is large
         if ( p->pPars->nFanoutMax && i > p->pPars->nFanoutMax )
-            break;
+            return;
         // skip TFI nodes, PO nodes, or nodes with high logic level
-        if ( Sfm_ObjIsTravIdCurrent(p, iFanout) || Sfm_ObjIsPo(p, iFanout) || Sfm_ObjIsFixed(p, iFanout) ||
+        if ( Sfm_ObjIsTravIdCurrent(p, iFanout) || Sfm_ObjIsPo(p, iFanout) ||
             (p->pPars->fFixLevel && Sfm_ObjLevel(p, iFanout) >= nLevelMax) )
             continue;
         // handle single-input nodes
@@ -209,6 +209,28 @@ void Sfm_NtkAddDivisors( Sfm_Ntk_t * p, int iNode, int nLevelMax )
         else if ( Sfm_ObjUpdateFaninCount(p, iFanout) == 0 )
             Vec_IntPush( p->vDivs, iFanout );
     }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Fixed object is useful when it has a non-fixed fanout.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Sfm_ObjIsUseful( Sfm_Ntk_t * p, int iNode )
+{
+    int i, iFanout;
+    if ( !Sfm_ObjIsFixed(p, iNode) )
+        return 1;
+    Sfm_ObjForEachFanout( p, iNode, iFanout, i )
+        if ( !Sfm_ObjIsFixed(p, iFanout) )
+            return 1;
+    return 0;
 }
 
 /**Function*************************************************************
@@ -309,7 +331,7 @@ int Sfm_NtkCreateWindow( Sfm_Ntk_t * p, int iNode, int fVerbose )
     // compact divisors
     k = 0;
     Vec_IntForEachEntry( p->vDivs, iTemp, i )
-        if ( !Sfm_ObjIsTravIdCurrent2( p, iTemp ) )
+        if ( !Sfm_ObjIsTravIdCurrent2(p, iTemp) && Sfm_ObjIsUseful(p, iTemp) )
             Vec_IntWriteEntry( p->vDivs, k++, iTemp );
     Vec_IntShrink( p->vDivs, k );
     assert( Vec_IntSize(p->vDivs) <= p->pPars->nWinSizeMax );

@@ -75,7 +75,6 @@ extern Vec_Int_t *  Sfm_NodeReadFanins( Sfm_Ntk_t * p, int i );
 extern word *       Sfm_NodeReadTruth( Sfm_Ntk_t * p, int i );
 extern int          Sfm_NodeReadFixed( Sfm_Ntk_t * p, int i );
 extern int          Sfm_NodeReadUsed( Sfm_Ntk_t * p, int i );
-extern Vec_Int_t *  Sfm_NodeReadCover( Sfm_Ntk_t * p );
 /*=== sfmSat.c ==========================================================*/
 
 

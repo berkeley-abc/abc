@@ -57,7 +57,7 @@ void Sfm_CheckConsistency( Vec_Wec_t * vFanins, int nPis, int nPos, Vec_Str_t * 
             assert( Fanin < i && Fanin + nPos < Vec_WecSize(vFanins) );
         // POs have one fanout
         if ( i + nPos >= Vec_WecSize(vFanins) )
-            assert( Vec_IntSize(vArray) == 1 && Vec_StrEntry(vFixed, i) == (char)0 );
+            assert( Vec_StrEntry(vFixed, i) == (char)0 );
     }
 }
 
@@ -248,7 +248,7 @@ void Sfm_NtkAddFanin( Sfm_Ntk_t * p, int iNode, int iFanin )
 void Sfm_NtkDeleteObj_rec( Sfm_Ntk_t * p, int iNode )
 {
     int i, iFanin;
-    if ( Sfm_ObjFanoutNum(p, iNode) > 0 || Sfm_ObjIsPi(p, iNode) )
+    if ( Sfm_ObjFanoutNum(p, iNode) > 0 || Sfm_ObjIsPi(p, iNode) || Sfm_ObjIsFixed(p, iNode) )
         return;
     assert( Sfm_ObjIsNode(p, iNode) );
     Sfm_ObjForEachFanin( p, iNode, iFanin, i )
@@ -258,6 +258,7 @@ void Sfm_NtkDeleteObj_rec( Sfm_Ntk_t * p, int iNode )
             Sfm_NtkDeleteObj_rec( p, iFanin );
     }
     Vec_IntClear( Sfm_ObjFiArray(p, iNode) );
+    Vec_WrdWriteEntry( p->vTruths, iNode, (word)0 );
 }
 void Sfm_NtkUpdateLevel_rec( Sfm_Ntk_t * p, int iNode )
 {
@@ -326,10 +327,6 @@ int Sfm_NodeReadFixed( Sfm_Ntk_t * p, int i )
 int Sfm_NodeReadUsed( Sfm_Ntk_t * p, int i )
 {
     return (Sfm_ObjFaninNum(p, i) > 0) || (Sfm_ObjFanoutNum(p, i) > 0);
-}
-Vec_Int_t * Sfm_NodeReadCover( Sfm_Ntk_t * p )
-{
-    return p->vCover;
 }
 
 ////////////////////////////////////////////////////////////////////////

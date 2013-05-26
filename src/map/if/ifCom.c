@@ -290,7 +290,7 @@ int If_CommandReadBox( Abc_Frame_t * pAbc, int argc, char **argv )
     pLib = fExtended ? If_LibBoxRead2( FileName ) : If_LibBoxRead( FileName );
     if ( pLib == NULL )
     {
-        fprintf( pErr, "Reading LUT library has failed.\n" );
+        fprintf( pErr, "Reading box library has failed.\n" );
         goto usage;
     }
     // replace the current library
