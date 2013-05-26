@@ -33,7 +33,7 @@ ABC_NAMESPACE_IMPL_START
 
 /**Function*************************************************************
 
-  Synopsis    []
+  Synopsis    [Setup parameter structure.]
 
   Description []
 
@@ -46,7 +46,7 @@ void Sfm_ParSetDefault( Sfm_Par_t * pPars )
 {
     memset( pPars, 0, sizeof(Sfm_Par_t) );
     pPars->nTfoLevMax   =    2;  // the maximum fanout levels
-    pPars->nFanoutMax   =   10;  // the maximum number of fanouts
+    pPars->nFanoutMax   =   30;  // the maximum number of fanouts
     pPars->nDepthMax    =   20;  // the maximum depth to try  
     pPars->nWinSizeMax  =  300;  // the maximum window size
     pPars->nDivNumMax   =  300;  // the maximum number of divisors
@@ -61,7 +61,7 @@ void Sfm_ParSetDefault( Sfm_Par_t * pPars )
 
 /**Function*************************************************************
 
-  Synopsis    []
+  Synopsis    [Prints statistics.]
 
   Description []
 
@@ -73,12 +73,12 @@ void Sfm_ParSetDefault( Sfm_Par_t * pPars )
 void Sfm_NtkPrintStats( Sfm_Ntk_t * p )
 {
     p->timeOther = p->timeTotal - p->timeWin - p->timeDiv - p->timeCnf - p->timeSat;
-    printf( "Nodes = %d. Try = %d. Resub = %d. Div = %d. SAT calls = %d. Timeouts = %d.\n",
-        Sfm_NtkNodeNum(p), p->nNodesTried, p->nRemoves + p->nResubs, p->nTotalDivs, p->nSatCalls, p->nTimeOuts );
+    printf( "Nodes = %d. Try = %d. Resub = %d. Div = %d. SAT calls = %d. Timeouts = %d. MaxDivs = %d.\n",
+        Sfm_NtkNodeNum(p), p->nNodesTried, p->nRemoves + p->nResubs, p->nTotalDivs, p->nSatCalls, p->nTimeOuts, p->nMaxDivs );
 
     printf( "Attempts :   " );
-    printf( "Remove %6d out of %6d (%6.2f %%)   ", p->nRemoves, p->nTryRemoves, p->nRemoves, 100.0*p->nRemoves/Abc_MaxInt(1, p->nTryRemoves) );
-    printf( "Resub  %6d out of %6d (%6.2f %%)   ", p->nResubs,  p->nTryResubs,  p->nResubs,  100.0*p->nResubs /Abc_MaxInt(1, p->nTryResubs)  );
+    printf( "Remove %6d out of %6d (%6.2f %%)   ", p->nRemoves, p->nTryRemoves, 100.0*p->nRemoves/Abc_MaxInt(1, p->nTryRemoves) );
+    printf( "Resub  %6d out of %6d (%6.2f %%)   ", p->nResubs,  p->nTryResubs,  100.0*p->nResubs /Abc_MaxInt(1, p->nTryResubs)  );
     printf( "\n" );
 
     printf( "Reduction:   " );
@@ -92,6 +92,7 @@ void Sfm_NtkPrintStats( Sfm_Ntk_t * p )
     ABC_PRTP( "Sat", p->timeSat  ,  p->timeTotal );
     ABC_PRTP( "Oth", p->timeOther,  p->timeTotal );
     ABC_PRTP( "ALL", p->timeTotal,  p->timeTotal );
+//    ABC_PRTP( "   ", p->time1    ,  p->timeTotal );
 }
 
 /**Function*************************************************************
@@ -108,22 +109,18 @@ void Sfm_NtkPrintStats( Sfm_Ntk_t * p )
 int Sfm_NodeResubSolve( Sfm_Ntk_t * p, int iNode, int f, int fRemoveOnly )
 {
     int fSkipUpdate  = 0;
-    int fVeryVerbose = p->pPars->fVeryVerbose && Vec_IntSize(p->vDivs) < 200;// || pNode->Id == 556;
+    int fVeryVerbose = 0;//p->pPars->fVeryVerbose && Vec_IntSize(p->vDivs) < 200;// || pNode->Id == 556;
     int i, iFanin, iVar = -1;
     word uTruth, uSign, uMask;
     clock_t clk;
     assert( Sfm_ObjIsNode(p, iNode) );
     assert( f >= 0 && f < Sfm_ObjFaninNum(p, iNode) );
-    if ( iNode == 211 )
-    {
-        int i = 0;
-    }
     p->nTryRemoves++;
     // report init stats
     if ( p->pPars->fVeryVerbose )
-        printf( "%5d : Lev =%3d. Leaf =%3d.  Node =%3d.  Div=%3d.  Fanin = %d/%d. MFFC = %d\n", 
-            iNode, Sfm_ObjLevel(p, iNode), Vec_IntSize(p->vLeaves), Vec_IntSize(p->vNodes), Vec_IntSize(p->vDivs), f, Sfm_ObjFaninNum(p, iNode), 
-            Sfm_ObjFanoutNum(p, Sfm_ObjFanin(p, iNode, f)) == 1 ? Sfm_ObjMffcSize(p, iNode) : 0 );
+        printf( "%5d : Lev =%3d. Leaf =%3d.  Node =%3d.  Div=%3d.  Fanin =%4d (%d/%d). MFFC = %d\n", 
+            iNode, Sfm_ObjLevel(p, iNode), Vec_IntSize(p->vLeaves), Vec_IntSize(p->vNodes), Vec_IntSize(p->vDivs), 
+            Sfm_ObjFanin(p, iNode, f), f, Sfm_ObjFaninNum(p, iNode), Sfm_ObjMffcSize(p, Sfm_ObjFanin(p, iNode, f)) );
     // clean simulation info
     p->nCexes = 0;
     Vec_WrdFill( p->vDivCexes, Vec_IntSize(p->vDivs), 0 );

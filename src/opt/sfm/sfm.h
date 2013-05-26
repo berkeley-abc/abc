@@ -42,18 +42,18 @@ typedef struct Sfm_Ntk_t_ Sfm_Ntk_t;
 typedef struct Sfm_Par_t_ Sfm_Par_t;
 struct Sfm_Par_t_
 {
-    int           nTfoLevMax;    // the maximum fanout levels
-    int           nFanoutMax;    // the maximum number of fanouts
-    int           nDepthMax;     // the maximum depth to try
-    int           nWinSizeMax;   // the maximum window size
-    int           nDivNumMax;    // the maximum number of divisors
-    int           nBTLimit;      // the maximum number of conflicts in one SAT run
-    int           fFixLevel;     // does not allow level to increase
-    int           fRrOnly;       // perform redundance removal
-    int           fArea;         // performs optimization for area
-    int           fMoreEffort;   // performs high-affort minimization
-    int           fVerbose;      // enable basic stats
-    int           fVeryVerbose;  // enable detailed stats
+    int             nTfoLevMax;    // the maximum fanout levels
+    int             nFanoutMax;    // the maximum number of fanouts
+    int             nDepthMax;     // the maximum depth to try
+    int             nWinSizeMax;   // the maximum window size
+    int             nDivNumMax;    // the maximum number of divisors
+    int             nBTLimit;      // the maximum number of conflicts in one SAT run
+    int             fFixLevel;     // does not allow level to increase
+    int             fRrOnly;       // perform redundance removal
+    int             fArea;         // performs optimization for area
+    int             fMoreEffort;   // performs high-affort minimization
+    int             fVerbose;      // enable basic stats
+    int             fVeryVerbose;  // enable detailed stats
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -75,6 +75,7 @@ extern Vec_Int_t *  Sfm_NodeReadFanins( Sfm_Ntk_t * p, int i );
 extern word *       Sfm_NodeReadTruth( Sfm_Ntk_t * p, int i );
 extern int          Sfm_NodeReadFixed( Sfm_Ntk_t * p, int i );
 extern int          Sfm_NodeReadUsed( Sfm_Ntk_t * p, int i );
+extern Vec_Int_t *  Sfm_NodeReadCover( Sfm_Ntk_t * p );
 /*=== sfmSat.c ==========================================================*/
 
 

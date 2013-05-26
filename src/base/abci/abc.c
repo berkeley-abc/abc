@@ -4327,7 +4327,7 @@ int Abc_CommandMfs( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nFanoutsMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nFanoutsMax < 1 )
+            if ( pPars->nFanoutsMax < 0 )
                 goto usage;
             break;
         case 'D':
@@ -4496,7 +4496,7 @@ int Abc_CommandMfs2( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nFanoutMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nFanoutMax < 1 )
+            if ( pPars->nFanoutMax < 0 )
                 goto usage;
             break;
         case 'D':

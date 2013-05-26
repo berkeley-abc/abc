@@ -48,7 +48,7 @@ void Abc_NtkMfsParsDefault( Mfs_Par_t * pPars )
 {
     memset( pPars, 0, sizeof(Mfs_Par_t) );
     pPars->nWinTfoLevs  =    2;
-    pPars->nFanoutsMax  =   10;
+    pPars->nFanoutsMax  =   30;
     pPars->nDepthMax    =   20;
     pPars->nDivMax      =  250;
     pPars->nWinSizeMax  =  300;
@@ -406,7 +406,7 @@ int Abc_NtkMfs( Abc_Ntk_t * pNtk, Mfs_Par_t * pPars )
         }
     }
     // perform the network sweep
-    Abc_NtkSweep( pNtk, 0 );
+//    Abc_NtkSweep( pNtk, 0 );
     // convert into the AIG
     if ( !Abc_NtkToAig(pNtk) )
     {

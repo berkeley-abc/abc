@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "base/abc/abc.h"
+#include "bool/kit/kit.h"
 #include "opt/sfm/sfm.h"
 
 ABC_NAMESPACE_IMPL_START
@@ -120,6 +121,7 @@ Sfm_Ntk_t * Abc_NtkExtractMfs( Abc_Ntk_t * pNtk )
 ***********************************************************************/
 void Abc_NtkInsertMfs( Abc_Ntk_t * pNtk, Sfm_Ntk_t * p )
 {
+    Vec_Int_t * vCover = Sfm_NodeReadCover(p);
     Vec_Int_t * vMap, * vArray;
     Abc_Obj_t * pNode;
     int i, k, Fanin;
@@ -155,7 +157,14 @@ void Abc_NtkInsertMfs( Abc_Ntk_t * pNtk, Sfm_Ntk_t * p )
         else if ( ~pTruth[0] == 0 )
             pNode->pData = Abc_SopRegister( (Mem_Flex_t *)pNtk->pManFunc, " 1\n" );
         else
-            pNode->pData = Abc_SopCreateFromTruth( (Mem_Flex_t *)pNtk->pManFunc, Vec_IntSize(vArray), (unsigned *)pTruth );
+        {
+//            pNode->pData = Abc_SopCreateFromTruth( (Mem_Flex_t *)pNtk->pManFunc, Vec_IntSize(vArray), (unsigned *)pTruth );
+            int RetValue = Kit_TruthIsop( (unsigned *)pTruth, Vec_IntSize(vArray), vCover, 1 );
+            assert( RetValue == 0 || RetValue == 1 );
+            pNode->pData = Abc_SopCreateFromIsop( (Mem_Flex_t *)pNtk->pManFunc, Vec_IntSize(vArray), vCover );
+            if ( RetValue )
+                Abc_SopComplement( (char *)pNode->pData );
+        }
     }
     Vec_IntFree( vMap );
 }

@@ -214,7 +214,7 @@ Vec_Ptr_t * Abc_MfsComputeDivisors( Mfs_Man_t * p, Abc_Obj_t * pNode, int nLevDi
     // (3) the node's fanins (these are treated as a special case)
     Abc_NtkIncrementTravId( pNode->pNtk );
     Abc_MfsWinSweepLeafTfo_rec( pNode, nLevDivMax );
-    Abc_MfsWinVisitMffc( pNode );
+//    Abc_MfsWinVisitMffc( pNode );
     Abc_ObjForEachFanin( pNode, pObj, k )
         Abc_NodeSetTravIdCurrent( pObj );
 
@@ -244,7 +244,7 @@ Vec_Ptr_t * Abc_MfsComputeDivisors( Mfs_Man_t * p, Abc_Obj_t * pNode, int nLevDi
         Abc_ObjForEachFanout( pObj, pFanout, f )
         {
             // stop if there are too many fanouts
-            if ( f > 20 )
+            if ( p->pPars->nFanoutsMax && f > p->pPars->nFanoutsMax )
                 break;
             // skip nodes that are already added
             if ( Abc_NodeIsTravIdPrevious(pFanout) )

@@ -54,18 +54,18 @@ static word s_Truths6[6] = {
 void Sfm_NtkWindowToSolver( Sfm_Ntk_t * p )
 {
     Vec_Int_t * vClause;
-    int RetValue, Lit, iNode = -1, iFanin, i, k;
+    int RetValue, iNode = -1, iFanin, i, k;
     clock_t clk = clock();
-    sat_solver * pSat0 = sat_solver_new();
-    sat_solver * pSat1 = sat_solver_new();
-    sat_solver_setnvars( pSat0, 1 + Vec_IntSize(p->vDivs) + 2 * Vec_IntSize(p->vTfo) + Vec_IntSize(p->vRoots) + 100 );
-    sat_solver_setnvars( pSat1, 1 + Vec_IntSize(p->vDivs) + 2 * Vec_IntSize(p->vTfo) + Vec_IntSize(p->vRoots) + 100 );
+//    if ( p->pSat )
+//        printf( "%d  ", p->pSat->stats.learnts );
+    sat_solver_restart( p->pSat );
+    sat_solver_setnvars( p->pSat, 1 + Vec_IntSize(p->vDivs) + 2 * Vec_IntSize(p->vTfo) + Vec_IntSize(p->vRoots) + 100 );
     // create SAT variables
     Sfm_NtkCleanVars( p );
     p->nSatVars = 1;
     Vec_IntForEachEntry( p->vOrder, iNode, i )
         Sfm_ObjSetSatVar( p, iNode, p->nSatVars++ );
-    // create divisor variables
+    // collect divisor variables
     Vec_IntClear( p->vDivVars );
     Vec_IntForEachEntry( p->vDivs, iNode, i )
         Vec_IntPush( p->vDivVars, Sfm_ObjSatVar(p, iNode) );
@@ -86,39 +86,15 @@ void Sfm_NtkWindowToSolver( Sfm_Ntk_t * p )
         {
             if ( Vec_IntSize(vClause) == 0 )
                 break;
-            RetValue = sat_solver_addclause( pSat0, Vec_IntArray(vClause), Vec_IntArray(vClause) + Vec_IntSize(vClause) );
-            assert( RetValue );
-            RetValue = sat_solver_addclause( pSat1, Vec_IntArray(vClause), Vec_IntArray(vClause) + Vec_IntSize(vClause) );
+            RetValue = sat_solver_addclause( p->pSat, Vec_IntArray(vClause), Vec_IntArray(vClause) + Vec_IntSize(vClause) );
             assert( RetValue );
         }
     }
-//    Sat_SolverWriteDimacs( pSat0, "test.cnf", NULL, NULL, 0 );
-    // get the last node
-    iNode = Vec_IntEntryLast( p->vNodes );
-    // add unit clause
-    Lit = Abc_Var2Lit( Sfm_ObjSatVar(p, iNode), 1 );
-    RetValue = sat_solver_addclause( pSat0, &Lit, &Lit + 1 );
-    assert( RetValue );
-    // add unit clause
-    Lit = Abc_Var2Lit( Sfm_ObjSatVar(p, iNode), 0 );
-    RetValue = sat_solver_addclause( pSat1, &Lit, &Lit + 1 );
-    assert( RetValue );
     // finalize
-    RetValue = sat_solver_simplify( pSat0 );
+    RetValue = sat_solver_simplify( p->pSat );
     assert( RetValue );
-    RetValue = sat_solver_simplify( pSat1 );
-    if ( RetValue == 0 )
-    {
-        Sat_SolverWriteDimacs( pSat1, "test.cnf", NULL, NULL, 0 );
-    }
-    assert( RetValue );
-    // return the result
-    if ( p->pSat0 ) sat_solver_delete( p->pSat0 );
-    if ( p->pSat1 ) sat_solver_delete( p->pSat1 );
-    p->pSat0 = pSat0;
-    p->pSat1 = pSat1;
     p->timeCnf += clock() - clk;
-}
+} 
 
 /**Function*************************************************************
 
@@ -135,55 +111,59 @@ word Sfm_ComputeInterpolant( Sfm_Ntk_t * p )
 {
     word * pSign, uCube, uTruth = 0;
     int status, i, Div, iVar, nFinal, * pFinal, nIter = 0;
-    int nVars = sat_solver_nvars( p->pSat1 );
-    int iNewLit = Abc_Var2Lit( nVars, 0 );
-    sat_solver_setnvars( p->pSat1, nVars + 1 );
+    int pLits[2], nVars = sat_solver_nvars( p->pSat );
+    sat_solver_setnvars( p->pSat, nVars + 1 );
+    pLits[0] = Abc_Var2Lit( Sfm_ObjSatVar(p, Vec_IntEntryLast(p->vNodes)), 0 ); // F = 1
+    pLits[1] = Abc_Var2Lit( nVars, 0 ); // iNewLit
     while ( 1 ) 
     {
         // find onset minterm
         p->nSatCalls++;
-        status = sat_solver_solve( p->pSat1, &iNewLit, &iNewLit + 1, p->pPars->nBTLimit, 0, 0, 0 );
+        status = sat_solver_solve( p->pSat, pLits, pLits + 2, p->pPars->nBTLimit, 0, 0, 0 );
         if ( status == l_Undef )
             return SFM_SAT_UNDEC;
         if ( status == l_False )
-        {
-//            printf( "+%d ", nIter );
             return uTruth;
-        }
         assert( status == l_True );
+        // remember variable values
+        Vec_IntClear( p->vValues );
+        Vec_IntForEachEntry( p->vDivVars, iVar, i )
+            Vec_IntPush( p->vValues, sat_solver_var_value(p->pSat, iVar) );
         // collect divisor literals
         Vec_IntClear( p->vLits );
+        Vec_IntPush( p->vLits, Abc_LitNot(pLits[0]) ); // F = 0
         Vec_IntForEachEntry( p->vDivIds, Div, i )
-            Vec_IntPush( p->vLits, sat_solver_var_literal(p->pSat1, Div) );
+            Vec_IntPush( p->vLits, sat_solver_var_literal(p->pSat, Div) );
         // check against offset
         p->nSatCalls++;
-        status = sat_solver_solve( p->pSat0, Vec_IntArray(p->vLits), Vec_IntArray(p->vLits) + Vec_IntSize(p->vLits), p->pPars->nBTLimit, 0, 0, 0 );
+        status = sat_solver_solve( p->pSat, Vec_IntArray(p->vLits), Vec_IntArray(p->vLits) + Vec_IntSize(p->vLits), p->pPars->nBTLimit, 0, 0, 0 );
         if ( status == l_Undef )
             return SFM_SAT_UNDEC;
         if ( status == l_True )
             break;
         assert( status == l_False );
         // compute cube and add clause
-        nFinal = sat_solver_final( p->pSat0, &pFinal );
+        nFinal = sat_solver_final( p->pSat, &pFinal );
         uCube = ~(word)0;
         Vec_IntClear( p->vLits );
-        Vec_IntPush( p->vLits, Abc_LitNot(iNewLit) );
+        Vec_IntPush( p->vLits, Abc_LitNot(pLits[1]) ); // NOT(iNewLit)
         for ( i = 0; i < nFinal; i++ )
         {
+            if ( pFinal[i] == pLits[0] )
+                continue;
             Vec_IntPush( p->vLits, pFinal[i] );
             iVar = Vec_IntFind( p->vDivIds, Abc_Lit2Var(pFinal[i]) );   assert( iVar >= 0 );
             uCube &= Abc_LitIsCompl(pFinal[i]) ? s_Truths6[iVar] : ~s_Truths6[iVar];
         }
         uTruth |= uCube;
-        status = sat_solver_addclause( p->pSat1, Vec_IntArray(p->vLits), Vec_IntArray(p->vLits) + Vec_IntSize(p->vLits) );
+        status = sat_solver_addclause( p->pSat, Vec_IntArray(p->vLits), Vec_IntArray(p->vLits) + Vec_IntSize(p->vLits) );
         assert( status );
         nIter++;
     }
-//    printf( "-%d ", nIter );
     assert( status == l_True );
     // store the counter-example
     Vec_IntForEachEntry( p->vDivVars, iVar, i )
-        if ( sat_solver_var_value(p->pSat1, iVar) ^ sat_solver_var_value(p->pSat0, iVar) ) // insert 1
+        if ( Vec_IntEntry(p->vValues, i) ^ sat_solver_var_value(p->pSat, iVar) ) // insert 1
         {
             pSign = Vec_WrdEntryP( p->vDivCexes, i );
             assert( !Abc_InfoHasBit( (unsigned *)pSign, p->nCexes) );
@@ -207,8 +187,8 @@ word Sfm_ComputeInterpolant( Sfm_Ntk_t * p )
 void Sfm_ComputeInterpolantCheck( Sfm_Ntk_t * p )
 {
     int iNode = 3;
-    int iDiv0 = 5;
-    int iDiv1 = 4;
+    int iDiv0 = 6;
+    int iDiv1 = 7;
     word uTruth;
 //    int i;
 //    Sfm_NtkForEachNode( p, i )

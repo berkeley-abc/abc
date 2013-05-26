@@ -164,7 +164,7 @@ p->timeGia += clock() - clk;
 ***********************************************************************/
 int Abc_NtkMfsSolveSatResub( Mfs_Man_t * p, Abc_Obj_t * pNode, int iFanin, int fOnlyRemove, int fSkipUpdate )
 {
-    int fVeryVerbose = p->pPars->fVeryVerbose && Vec_PtrSize(p->vDivs) < 200;// || pNode->Id == 556;
+    int fVeryVerbose = 0;//p->pPars->fVeryVerbose && Vec_PtrSize(p->vDivs) < 200;// || pNode->Id == 556;
     unsigned * pData;
     int pCands[MFS_FANIN_MAX];
     int RetValue, iVar, i, nCands, nWords, w;
@@ -180,9 +180,9 @@ int Abc_NtkMfsSolveSatResub( Mfs_Man_t * p, Abc_Obj_t * pNode, int iFanin, int f
     if ( p->pPars->fVeryVerbose )
     {
 //        printf( "\n" );
-        printf( "Node %5d : Level = %2d. Divs = %3d.  Fanin = %d (out of %d). MFFC = %d\n", 
-            pNode->Id, pNode->Level, Vec_PtrSize(p->vDivs)-Abc_ObjFaninNum(pNode), 
-            iFanin, Abc_ObjFaninNum(pNode), 
+        printf( "%5d : Lev =%3d. Leaf =%3d. Node =%3d. Divs =%3d.  Fanin = %4d (%d/%d), MFFC = %d\n", 
+            pNode->Id, pNode->Level, Vec_PtrSize(p->vSupp), Vec_PtrSize(p->vNodes), Vec_PtrSize(p->vDivs)-Abc_ObjFaninNum(pNode), 
+            Abc_ObjFaninId(pNode, iFanin), iFanin, Abc_ObjFaninNum(pNode), 
             Abc_ObjFanoutNum(Abc_ObjFanin(pNode, iFanin)) == 1 ? Abc_NodeMffcLabel(Abc_ObjFanin(pNode, iFanin)) : 0 );
     }
 

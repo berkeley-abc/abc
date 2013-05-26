@@ -169,13 +169,14 @@ void Sfm_NtkPrepare( Sfm_Ntk_t * p )
     p->vRoots    = Vec_IntAlloc( 1000 );
     p->vTfo      = Vec_IntAlloc( 1000 );
     p->vDivCexes = Vec_WrdStart( p->pPars->nDivNumMax );
-//    p->vFans     = Vec_IntAlloc( 100 );
     p->vOrder    = Vec_IntAlloc( 100 );
     p->vDivVars  = Vec_IntAlloc( 100 );
     p->vDivIds   = Vec_IntAlloc( 1000 );
     p->vLits     = Vec_IntAlloc( 100 );
+    p->vValues   = Vec_IntAlloc( 100 );
     p->vClauses  = Vec_WecAlloc( 100 );
     p->vFaninMap = Vec_IntAlloc( 10 );
+    p->pSat      = sat_solver_new();
 }
 void Sfm_NtkFree( Sfm_Ntk_t * p )
 {
@@ -200,15 +201,14 @@ void Sfm_NtkFree( Sfm_Ntk_t * p )
     Vec_IntFreeP( &p->vRoots );
     Vec_IntFreeP( &p->vTfo   );
     Vec_WrdFreeP( &p->vDivCexes );
-//    Vec_IntFreeP( &p->vFans );
     Vec_IntFreeP( &p->vOrder );
     Vec_IntFreeP( &p->vDivVars );
     Vec_IntFreeP( &p->vDivIds );
     Vec_IntFreeP( &p->vLits  );
+    Vec_IntFreeP( &p->vValues );
     Vec_WecFreeP( &p->vClauses );
     Vec_IntFreeP( &p->vFaninMap );
-    if ( p->pSat0 ) sat_solver_delete( p->pSat0 );
-    if ( p->pSat1 ) sat_solver_delete( p->pSat1 );
+    if ( p->pSat  ) sat_solver_delete( p->pSat );
     ABC_FREE( p );
 }
 
@@ -243,10 +243,6 @@ void Sfm_NtkAddFanin( Sfm_Ntk_t * p, int iNode, int iFanin )
 void Sfm_NtkDeleteObj_rec( Sfm_Ntk_t * p, int iNode )
 {
     int i, iFanin;
-    if ( iNode == 202 )
-    {
-        int s = 0;
-    }
     if ( Sfm_ObjFanoutNum(p, iNode) > 0 || Sfm_ObjIsPi(p, iNode) )
         return;
     assert( Sfm_ObjIsNode(p, iNode) );
@@ -272,6 +268,7 @@ void Sfm_NtkUpdateLevel_rec( Sfm_Ntk_t * p, int iNode )
 void Sfm_NtkUpdate( Sfm_Ntk_t * p, int iNode, int f, int iFaninNew, word uTruth )
 {
     int iFanin = Sfm_ObjFanin( p, iNode, f );
+    assert( iFanin != iFaninNew );
     // replace old fanin by new fanin
     assert( Sfm_ObjIsNode(p, iNode) );
     Sfm_NtkRemoveFanin( p, iNode, iFanin );
@@ -311,6 +308,10 @@ int Sfm_NodeReadFixed( Sfm_Ntk_t * p, int i )
 int Sfm_NodeReadUsed( Sfm_Ntk_t * p, int i )
 {
     return (Sfm_ObjFaninNum(p, i) > 0) || (Sfm_ObjFanoutNum(p, i) > 0);
+}
+Vec_Int_t * Sfm_NodeReadCover( Sfm_Ntk_t * p )
+{
+    return p->vCover;
 }
 
 ////////////////////////////////////////////////////////////////////////

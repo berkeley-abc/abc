@@ -113,7 +113,7 @@ void Mfs_ManPrint( Mfs_Man_t * p )
     if ( p->pPars->fResub )
     {
         printf( "Nodes = %d. Try = %d. Resub = %d. Div = %d. SAT calls = %d. Timeouts = %d.\n",
-            Abc_NtkNodeNum(p->pNtk), p->nNodesTried, p->nNodesResub, p->nTotalDivs, p->nSatCalls, p->nTimeOuts );
+            p->nTotalNodesBeg, p->nNodesTried, p->nNodesResub, p->nTotalDivs, p->nSatCalls, p->nTimeOuts );
 
         printf( "Attempts :   " );
         printf( "Remove %6d out of %6d (%6.2f %%)   ", p->nRemoves, p->nTryRemoves, 100.0*p->nRemoves/Abc_MaxInt(1, p->nTryRemoves) );
@@ -137,7 +137,7 @@ void Mfs_ManPrint( Mfs_Man_t * p )
     else
     {
         printf( "Nodes = %d. Try = %d. Total mints = %d. Local DC mints = %d. Ratio = %5.2f.\n", 
-            Abc_NtkNodeNum(p->pNtk), p->nNodesTried, p->nMintsTotal, p->nMintsTotal-p->nMintsCare, 
+            p->nTotalNodesBeg, p->nNodesTried, p->nMintsTotal, p->nMintsTotal-p->nMintsCare, 
             1.0 * (p->nMintsTotal-p->nMintsCare) / p->nMintsTotal );
 //        printf( "Average ratio of sequential DCs in the global space = %5.2f.\n", 
 //            1.0-(p->dTotalRatios/p->nNodesTried) );
