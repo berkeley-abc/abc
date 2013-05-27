@@ -268,7 +268,7 @@ static inline int      Abc_Lit2LitL( int * pMap, int Lit )    { return Abc_LitNo
 
 
 // time counting
-typedef ABC_UINT64_T abctime;
+typedef ABC_INT64_T abctime;
 static inline abctime Abc_Clock()
 {
     static abctime PeriodNum = 0;

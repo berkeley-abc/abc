@@ -1248,7 +1248,7 @@ abctime Saig_ManBmcTimeToStop( Saig_ParBmc_t * pPars, abctime nTimeToStopNG )
     abctime nTimeToStopGap = pPars->nTimeOutGap ? pPars->nTimeOutGap * CLOCKS_PER_SEC + Abc_Clock(): 0;
     abctime nTimeToStop = 0;
     if ( nTimeToStopNG && nTimeToStopGap )
-        nTimeToStop = Abc_MinInt( nTimeToStopNG, nTimeToStopGap );
+        nTimeToStop = nTimeToStopNG < nTimeToStopGap ? nTimeToStopNG : nTimeToStopGap;
     else if ( nTimeToStopNG )
         nTimeToStop = nTimeToStopNG;
     else if ( nTimeToStopGap )
