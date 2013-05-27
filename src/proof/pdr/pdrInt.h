@@ -135,6 +135,17 @@ struct Pdr_Man_t_
 
 static inline sat_solver * Pdr_ManSolver( Pdr_Man_t * p, int k )  { return (sat_solver *)Vec_PtrEntry(p->vSolvers, k); }
 
+static inline clock_t      Pdr_ManTimeLimit( Pdr_Man_t * p )
+{
+    if ( p->timeToStop == 0 )
+        return p->timeToStopOne;
+    if ( p->timeToStopOne == 0 )
+        return p->timeToStop;
+    if ( p->timeToStop < p->timeToStopOne )
+        return p->timeToStop;
+    return p->timeToStopOne;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////

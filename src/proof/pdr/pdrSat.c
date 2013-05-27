@@ -256,10 +256,13 @@ int Pdr_ManCheckCubeCs( Pdr_Man_t * p, int k, Pdr_Set_t * pCube )
 { 
     sat_solver * pSat;
     Vec_Int_t * vLits;
+    clock_t Limit;
     int RetValue;
     pSat = Pdr_ManFetchSolver( p, k );
     vLits = Pdr_ManCubeToLits( p, k, pCube, 0, 0 );
+    Limit = sat_solver_set_runtime_limit( pSat, Pdr_ManTimeLimit(p) );
     RetValue = sat_solver_solve( pSat, Vec_IntArray(vLits), Vec_IntArray(vLits) + Vec_IntSize(vLits), 0, 0, 0, 0 );
+    sat_solver_set_runtime_limit( pSat, Limit );
     if ( RetValue == l_Undef )
         return -1;
     return (RetValue == l_False);
@@ -284,14 +287,16 @@ int Pdr_ManCheckCube( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppPr
     sat_solver * pSat;
     Vec_Int_t * vLits;
     int Lit, RetValue;
-    clock_t clk;
+    clock_t clk, Limit;
     p->nCalls++;
     pSat = Pdr_ManFetchSolver( p, k );
     if ( pCube == NULL ) // solve the property
     {
         clk = clock();
         Lit = toLit( Pdr_ObjSatVar(p, k, Aig_ManCo(p->pAig, p->iOutCur)) ); // pos literal (property fails)
+        Limit = sat_solver_set_runtime_limit( pSat, Pdr_ManTimeLimit(p) );
         RetValue = sat_solver_solve( pSat, &Lit, &Lit + 1, nConfLimit, 0, 0, 0 );
+        sat_solver_set_runtime_limit( pSat, Limit );
         if ( RetValue == l_Undef )
             return -1;
     }
@@ -320,7 +325,9 @@ int Pdr_ManCheckCube( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppPr
 
         // solve 
         clk = clock();
+        Limit = sat_solver_set_runtime_limit( pSat, Pdr_ManTimeLimit(p) );
         RetValue = sat_solver_solve( pSat, Vec_IntArray(vLits), Vec_IntArray(vLits) + Vec_IntSize(vLits), nConfLimit, 0, 0, 0 );
+        sat_solver_set_runtime_limit( pSat, Limit );
         if ( RetValue == l_Undef )
             return -1;
 /*
