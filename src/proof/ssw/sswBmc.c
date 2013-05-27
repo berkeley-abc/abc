@@ -129,7 +129,7 @@ int Ssw_BmcDynamic( Aig_Man_t * pAig, int nFramesMax, int nConfLimit, int fVerbo
     Ssw_Sat_t * pSat;
     Aig_Obj_t * pObj, * pObjFrame;
     int status, Lit, i, f, RetValue;
-    clock_t clkPart;
+    abctime clkPart;
 
     // start managers
     assert( Saig_ManRegNum(pAig) > 0 );
@@ -149,7 +149,7 @@ int Ssw_BmcDynamic( Aig_Man_t * pAig, int nFramesMax, int nConfLimit, int fVerbo
     RetValue = -1;
     for ( f = 0; f < nFramesMax; f++ )
     {
-        clkPart = clock();
+        clkPart = Abc_Clock();
         Saig_ManForEachPo( pAig, pObj, i )
         {
             // unroll the circuit for this output
@@ -203,8 +203,8 @@ int Ssw_BmcDynamic( Aig_Man_t * pAig, int nFramesMax, int nConfLimit, int fVerbo
             Abc_Print( 1, "Conf =%8.0f. Var =%8d. AIG=%9d. ",
                 (double)pSat->pSat->stats.conflicts,
                 pSat->nSatVars, Aig_ManNodeNum(pFrm->pFrames) );
-            ABC_PRT( "T", clock() - clkPart );
-            clkPart = clock();
+            ABC_PRT( "T", Abc_Clock() - clkPart );
+            clkPart = Abc_Clock();
             fflush( stdout );
         }
         if ( RetValue != 1 )

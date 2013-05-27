@@ -290,11 +290,11 @@ struct Iso_Man_t_
     Vec_Ptr_t *   vClasses;       // other classes
     Vec_Ptr_t *   vTemp1;         // other classes
     Vec_Ptr_t *   vTemp2;         // other classes
-    clock_t       timeHash;
-    clock_t       timeFout;
-    clock_t       timeSort;
-    clock_t       timeOther;
-    clock_t       timeTotal;
+    abctime       timeHash;
+    abctime       timeFout;
+    abctime       timeSort;
+    abctime       timeOther;
+    abctime       timeTotal;
 };
 
 static inline Iso_Obj_t *  Iso_ManObj( Iso_Man_t * p, int i )            { assert( i >= 0 && i < p->nObjs ); return i ? p->pObjs + i : NULL;                }
@@ -557,7 +557,7 @@ void Iso_ManCollectClasses( Iso_Man_t * p )
 {
     Iso_Obj_t * pIso;
     int i;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     Vec_PtrClear( p->vSingles );
     Vec_PtrClear( p->vClasses );
     for ( i = 0; i < p->nBins; i++ )
@@ -571,10 +571,10 @@ void Iso_ManCollectClasses( Iso_Man_t * p )
                 Vec_PtrPush( p->vSingles, pIso );
         }
     }
-    clk = clock();
+    clk = Abc_Clock();
     Vec_PtrSort( p->vSingles, (int (*)(void))Iso_ObjCompare );
     Vec_PtrSort( p->vClasses, (int (*)(void))Iso_ObjCompare );
-    p->timeSort += clock() - clk;
+    p->timeSort += Abc_Clock() - clk;
     assert( Vec_PtrSize(p->vSingles) == p->nSingles );
     assert( Vec_PtrSize(p->vClasses) == p->nClasses );
     // assign IDs to singletons
@@ -1172,20 +1172,20 @@ Vec_Int_t * Saig_ManFindIsoPerm( Aig_Man_t * pAig, int fVerbose )
     int fVeryVerbose = 0;
     Vec_Int_t * vRes;
     Iso_Man_t * p;
-    clock_t clk = clock(), clk2 = clock();
+    abctime clk = Abc_Clock(), clk2 = Abc_Clock();
     p = Iso_ManCreate( pAig );
-    p->timeFout += clock() - clk;
+    p->timeFout += Abc_Clock() - clk;
     Iso_ManPrintClasses( p, fVerbose, fVeryVerbose );
     while ( p->nClasses )
     {
         // assign adjacency to classes
-        clk = clock();
+        clk = Abc_Clock();
         Iso_ManAssignAdjacency( p );
-        p->timeFout += clock() - clk;
+        p->timeFout += Abc_Clock() - clk;
         // rehash the class nodes
-        clk = clock();
+        clk = Abc_Clock();
         Iso_ManRehashClassNodes( p );
-        p->timeHash += clock() - clk;
+        p->timeHash += Abc_Clock() - clk;
         Iso_ManPrintClasses( p, fVerbose, fVeryVerbose );
         // force refinement
         while ( p->nSingles == 0 && p->nClasses )
@@ -1194,17 +1194,17 @@ Vec_Int_t * Saig_ManFindIsoPerm( Aig_Man_t * pAig, int fVerbose )
             // assign IDs to the topmost level of classes
             Iso_ManBreakTies( p, fVerbose );
             // assign adjacency to classes
-            clk = clock();
+            clk = Abc_Clock();
             Iso_ManAssignAdjacency( p );
-            p->timeFout += clock() - clk;
+            p->timeFout += Abc_Clock() - clk;
             // rehash the class nodes
-            clk = clock();
+            clk = Abc_Clock();
             Iso_ManRehashClassNodes( p );
-            p->timeHash += clock() - clk;
+            p->timeHash += Abc_Clock() - clk;
             Iso_ManPrintClasses( p, fVerbose, fVeryVerbose );
         }
     }
-    p->timeTotal = clock() - clk2;
+    p->timeTotal = Abc_Clock() - clk2;
 //    printf( "IDs assigned = %d.  Objects = %d.\n", p->nObjIds, 1+Aig_ManCiNum(p->pAig)+Aig_ManNodeNum(p->pAig) );
     assert( p->nObjIds == 1+Aig_ManCiNum(p->pAig)+Aig_ManNodeNum(p->pAig) );
 //    if ( p->nClasses )

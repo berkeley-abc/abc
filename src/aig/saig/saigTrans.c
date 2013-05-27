@@ -379,18 +379,18 @@ Aig_Man_t * Saig_ManTimeframeSimplify( Aig_Man_t * pAig, int nFrames, int nFrame
 {
 //    extern Aig_Man_t * Fra_FraigEquivence( Aig_Man_t * pManAig, int nConfMax, int fProve );
     Aig_Man_t * pFrames, * pFraig, * pRes1, * pRes2;
-    clock_t clk;
+    abctime clk;
     // create uninitialized timeframes with map1
     pFrames = Saig_ManFramesNonInitial( pAig, nFrames );
     // perform fraiging for the unrolled timeframes
-clk = clock();
+clk = Abc_Clock();
     pFraig = Fra_FraigEquivence( pFrames, 1000, 0 );
     // report the results
     if ( fVerbose )
     {
         Aig_ManPrintStats( pFrames );
         Aig_ManPrintStats( pFraig );
-ABC_PRT( "Fraiging", clock() - clk );
+ABC_PRT( "Fraiging", Abc_Clock() - clk );
     }
     Aig_ManStop( pFraig );
     assert( pFrames->pReprs != NULL );
@@ -399,14 +399,14 @@ ABC_PRT( "Fraiging", clock() - clk );
     Aig_ManStop( pFrames );
     Saig_ManStopMap1( pAig );
     // create reduced initialized timeframes
-clk = clock();
+clk = Abc_Clock();
     pRes2 = Saig_ManFramesInitialMapped( pAig, nFrames, nFramesMax, fInit );
-ABC_PRT( "Mapped", clock() - clk );
+ABC_PRT( "Mapped", Abc_Clock() - clk );
     // free mapping
     Saig_ManStopMap2( pAig );
-clk = clock();
+clk = Abc_Clock();
     pRes1 = Saig_ManFramesInitialMapped( pAig, nFrames, nFramesMax, fInit );
-ABC_PRT( "Normal", clock() - clk );
+ABC_PRT( "Normal", Abc_Clock() - clk );
     // report the results
     if ( fVerbose )
     {

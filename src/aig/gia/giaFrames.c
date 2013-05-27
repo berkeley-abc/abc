@@ -227,7 +227,7 @@ Gia_ManUnr_t * Gia_ManUnrStart( Gia_Man_t * pAig, Gia_ParFra_t * pPars )
     Gia_ManUnr_t * p;
     Gia_Obj_t * pObj;
     int i, k, iRank, iFanin, Degree, Shift;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
 
     p = ABC_CALLOC( Gia_ManUnr_t, 1 );
     p->pAig   = pAig;
@@ -291,7 +291,7 @@ Gia_ManUnr_t * Gia_ManUnrStart( Gia_Man_t * pAig, Gia_ParFra_t * pPars )
             Vec_IntSize(p->vLimit) - 1,
             Gia_ManObjNum(pAig) - Gia_ManObjNum(p->pOrder),
             1.0*Vec_IntSize(p->vStore)/Gia_ManObjNum(p->pOrder) - 1.0  );
-        Abc_PrintTime( 1, "Time", clock() - clk );
+        Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     }
     return p;
 }
@@ -608,10 +608,10 @@ Gia_Man_t * Gia_ManUnroll( Gia_ManUnr_t * p )
 Gia_Man_t * Gia_ManFrames2( Gia_Man_t * pAig, Gia_ParFra_t * pPars )
 {
     Gia_Man_t * pNew;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     pNew = Gia_ManUnroll( pAig, pPars );
     if ( pPars->fVerbose )
-        Abc_PrintTime( 1, "Time", clock() - clk );
+        Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     return pNew;
 }
 

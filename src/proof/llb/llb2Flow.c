@@ -1227,7 +1227,7 @@ Vec_Ptr_t * Llb_ManComputeCuts( Aig_Man_t * p, int Num, int fVerbose, int fVeryV
     int nVolMax = Aig_ManNodeNum(p) / Num;
     Vec_Ptr_t * vResult, * vMinCut = NULL, * vLower, * vUpper;
     int i, k, nVol;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     vResult = Vec_PtrAlloc( 100 );
     Vec_PtrPush( vResult, Llb_ManComputeCutLo(p) );
     Vec_PtrPush( vResult, Llb_ManComputeCutLi(p) );
@@ -1277,7 +1277,7 @@ Vec_Ptr_t * Llb_ManComputeCuts( Aig_Man_t * p, int Num, int fVerbose, int fVeryV
     if ( fVerbose )
     {
         printf( "Finished computing %d partitions.  ", Vec_PtrSize(vResult) - 1 );
-        Abc_PrintTime( 1, "Time", clock() - clk );
+        Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
         Llb_ManResultPrint( p, vResult );
     }
     return vResult;

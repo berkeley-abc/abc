@@ -254,7 +254,7 @@ void Aig_ManJustExperiment( Aig_Man_t * pAig )
     Vec_Int_t * vSuppLits, * vNodes;
     Aig_Obj_t * pObj;
     int i;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     int Count0 = 0, Count0f = 0, Count1 = 0, Count1f = 0;
     int nTotalLits = 0;
     vSuppLits = Vec_IntAlloc( 100 );
@@ -295,7 +295,7 @@ void Aig_ManJustExperiment( Aig_Man_t * pAig )
     Vec_IntFree( vSuppLits );
     printf( "PO =%6d. C0 =%6d. C0f =%6d. C1 =%6d. C1f =%6d. (%6.2f %%) Ave =%4.1f ", 
         Aig_ManCoNum(pAig), Count0, Count0f, Count1, Count1f, 100.0*(Count0+Count1)/Aig_ManCoNum(pAig), 1.0*nTotalLits/(Count0+Count1) );
-    Abc_PrintTime( 1, "T", clock() - clk );
+    Abc_PrintTime( 1, "T", Abc_Clock() - clk );
     Aig_ManCleanMarkAB( pAig );
     Aig_ManPackStop( pPack );
     Vec_IntFree( vNodes );

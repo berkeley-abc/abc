@@ -124,14 +124,14 @@ struct Mfs_Man_t_
     float               TotalSwitchingBeg;
     float               TotalSwitchingEnd;
     // statistics
-    clock_t             timeWin;
-    clock_t             timeDiv;
-    clock_t             timeAig;
-    clock_t             timeGia;
-    clock_t             timeCnf;
-    clock_t             timeSat;
-    clock_t             timeInt;
-    clock_t             timeTotal;
+    abctime             timeWin;
+    abctime             timeDiv;
+    abctime             timeAig;
+    abctime             timeGia;
+    abctime             timeCnf;
+    abctime             timeSat;
+    abctime             timeInt;
+    abctime             timeTotal;
 };
 
 static inline float Abc_MfsObjProb( Mfs_Man_t * p, Abc_Obj_t * pObj ) { return (p->vProbs && pObj->Id < Vec_IntSize(p->vProbs))? Abc_Int2Float(Vec_IntEntry(p->vProbs,pObj->Id)) : 0.0; }

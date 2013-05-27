@@ -444,7 +444,7 @@ Vec_Int_t * Saig_ManExtendCounterExampleTest2( Aig_Man_t * p, int iFirstFlopPi, 
 {
     Vec_Int_t * vRes;
     Vec_Ptr_t * vSimInfo;
-    clock_t clk;
+    abctime clk;
     if ( Saig_ManPiNum(p) != pCex->nPis )
     {
         printf( "Saig_ManExtendCounterExampleTest2(): The PI count of AIG (%d) does not match that of cex (%d).\n", 
@@ -455,12 +455,12 @@ Vec_Int_t * Saig_ManExtendCounterExampleTest2( Aig_Man_t * p, int iFirstFlopPi, 
     vSimInfo = Vec_PtrAllocSimInfo( Aig_ManObjNumMax(p), Abc_BitWordNum(2*(pCex->iFrame+1)) );
     Vec_PtrCleanSimInfo( vSimInfo, 0, Abc_BitWordNum(2*(pCex->iFrame+1)) );
 
-clk = clock();
+clk = Abc_Clock();
     vRes = Saig_ManProcessCex( p, iFirstFlopPi, pCex, vSimInfo, fVerbose );
     if ( fVerbose )
     {
         printf( "Total new PIs = %3d. Non-removable PIs = %3d.  ", Saig_ManPiNum(p)-iFirstFlopPi, Vec_IntSize(vRes) );
-ABC_PRT( "Time", clock() - clk );
+ABC_PRT( "Time", Abc_Clock() - clk );
     }
     Vec_PtrFree( vSimInfo );
     Aig_ManFanoutStop( p );

@@ -373,7 +373,7 @@ extern unsigned    Extra_TruthSemiCanonicize( unsigned * pInOut, unsigned * pAux
 
 /*=== extraUtilUtil.c ================================================================*/
 
-extern clock_t       Extra_CpuTime();
+extern abctime       Extra_CpuTime();
 extern double        Extra_CpuTimeDouble();
 extern int           Extra_GetSoftDataLimit();
 extern ABC_DLL void  Extra_UtilGetoptReset();

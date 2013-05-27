@@ -114,7 +114,7 @@ void Dsd_Decompose( Dsd_Manager_t * pDsdMan, DdNode ** pbFuncs, int nFuncs )
 {
     DdManager * dd = pDsdMan->dd;
     int i;
-    clock_t clk;
+    abctime clk;
     Dsd_Node_t * pTemp;
     int SumMaxGateSize = 0;
     int nDecOutputs = 0;
@@ -144,7 +144,7 @@ s_Loops2Useless = 0;
     s_nDecBlocks = 0;
 
     // perform decomposition for all outputs
-    clk = clock();
+    clk = Abc_Clock();
     pDsdMan->nRoots = 0;
     s_nCascades = 0;
     for ( i = 0; i < nFuncs; i++ )
@@ -156,9 +156,9 @@ s_Loops2Useless = 0;
         int nCascades;
         int MaxBlock;
         int nPrimeBlocks;
-        clock_t clk;
+        abctime clk;
 
-        clk = clock();
+        clk = Abc_Clock();
         nLiteralsPrev     = s_nLiterals;
         nDecBlocksPrev    = s_nDecBlocks;
         nExorGatesPrev    = s_nExorGates;
@@ -185,7 +185,7 @@ s_Loops2Useless = 0;
             printf("Max=%3d. ", MaxBlock ); 
             printf("Reuse=%2d. ", s_nReusedBlocks-nReusedBlocksPres ); 
             printf("Csc=%2d. ", nCascades ); 
-            printf("T= %.2f s. ", (float)(clock()-clk)/(float)(CLOCKS_PER_SEC) ) ;
+            printf("T= %.2f s. ", (float)(Abc_Clock()-clk)/(float)(CLOCKS_PER_SEC) ) ;
             printf("Bdd=%2d. ", Cudd_DagSize(pbFuncs[i]) ); 
             printf("\n");
             fflush( stdout );
@@ -203,7 +203,7 @@ s_Loops2Useless = 0;
         printf( "  The sum of max gate sizes                 = %5d\n", SumMaxGateSize );
         printf( "  Shared BDD size                           = %5d\n", Cudd_SharingSize( pbFuncs, nFuncs ) );
         printf( "  Decomposition entries                     = %5d\n", st__count( pDsdMan->Table ) );
-        printf( "  Pure decomposition time                   =  %.2f sec\n", (float)(clock() - clk)/(float)(CLOCKS_PER_SEC) );
+        printf( "  Pure decomposition time                   =  %.2f sec\n", (float)(Abc_Clock() - clk)/(float)(CLOCKS_PER_SEC) );
     }
 /*
     printf( "s_Loops1 = %d.\n", s_Loops1 );

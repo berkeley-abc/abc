@@ -263,7 +263,7 @@ void Ssw_ManSweepTransferDyn( Ssw_Man_t * p )
 int Ssw_ManSweepResimulateDyn( Ssw_Man_t * p, int f )
 {
     int RetValue1, RetValue2;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     // transfer PI simulation information from storage
 //    Ssw_SmlAssignDist1Plus( p->pSml, p->pPatWords );
     Ssw_ManSweepTransferDyn( p );
@@ -277,7 +277,7 @@ int Ssw_ManSweepResimulateDyn( Ssw_Man_t * p, int f )
     Vec_PtrCleanSimInfo( p->vSimInfo, 0, 1 );
     p->nPatterns = 0;
     p->nSimRounds++;
-p->timeSimSat += clock() - clk;
+p->timeSimSat += Abc_Clock() - clk;
     return RetValue1 > 0 || RetValue2 > 0;
 }
 
@@ -296,7 +296,7 @@ int Ssw_ManSweepResimulateDynLocal( Ssw_Man_t * p, int f )
 {
     Aig_Obj_t * pObj, * pRepr, ** ppClass;
     int i, k, nSize, RetValue1, RetValue2;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     p->nSimRounds++;
     // transfer PI simulation information from storage
 //    Ssw_SmlAssignDist1Plus( p->pSml, p->pPatWords );
@@ -355,7 +355,7 @@ int Ssw_ManSweepResimulateDynLocal( Ssw_Man_t * p, int f )
     Vec_PtrCleanSimInfo( p->vSimInfo, 0, 1 );
     p->nPatterns = 0;
     p->nSimRounds++;
-p->timeSimSat += clock() - clk;
+p->timeSimSat += Abc_Clock() - clk;
     return RetValue1 > 0 || RetValue2 > 0;
 }
 
@@ -375,10 +375,10 @@ int Ssw_ManSweepDyn( Ssw_Man_t * p )
     Bar_Progress_t * pProgress = NULL;
     Aig_Obj_t * pObj, * pObjNew;
     int i, f;
-    clock_t clk;
+    abctime clk;
 
     // perform speculative reduction
-clk = clock();
+clk = Abc_Clock();
     // create timeframes
     p->pFrames = Ssw_FramesWithClasses( p );
     Aig_ManFanoutStart( p->pFrames );
@@ -392,7 +392,7 @@ clk = clock();
     Aig_ManSetCioIds( p->pFrames );
     // label nodes corresponding to primary inputs
     Ssw_ManLabelPiNodes( p );
-p->timeReduce += clock() - clk;
+p->timeReduce += Abc_Clock() - clk;
 
     // prepare simulation info
     assert( p->vSimInfo == NULL );

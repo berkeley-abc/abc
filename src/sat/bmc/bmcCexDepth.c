@@ -343,7 +343,7 @@ Gia_Man_t * Bmc_CexBuildNetwork2Test( Gia_Man_t * p, Abc_Cex_t * pCex, int nFram
 {
     Gia_Man_t * pNew, * pTemp;
     Vec_Ptr_t * vCones;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     int i;
     nFramesMax = Abc_MinInt( nFramesMax, pCex->iFrame );
     printf( "Processing CEX in frame %d (max frames %d).\n", pCex->iFrame, nFramesMax );
@@ -357,13 +357,13 @@ Gia_Man_t * Bmc_CexBuildNetwork2Test( Gia_Man_t * p, Abc_Cex_t * pCex, int nFram
     }
     pNew = Gia_ManDupAppendCones( p, (Gia_Man_t **)Vec_PtrArray(vCones), Vec_PtrSize(vCones), 1 );
     Gia_AigerWrite( pNew, "miter2.aig", 0, 0 );
-//Bmc_CexDumpAogStats( pNew, clock() - clk );
+//Bmc_CexDumpAogStats( pNew, Abc_Clock() - clk );
     Vec_PtrForEachEntry( Gia_Man_t *, vCones, pTemp, i )
         Gia_ManStop( pTemp );
     Vec_PtrFree( vCones );
     printf( "GIA with additional properties is written into \"miter2.aig\".\n" );
 //    printf( "CE-induced network is written into file \"unate.aig\".\n" );
-    Abc_PrintTime( 1, "Time", clock() - clk );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 //    Gia_ManStop( pNew );
     return pNew;
 }
@@ -383,7 +383,7 @@ Gia_Man_t * Bmc_CexBuildNetwork2Test( Gia_Man_t * p, Abc_Cex_t * pCex, int nFram
 Gia_Man_t * Bmc_CexDepthTest( Gia_Man_t * p, Abc_Cex_t * pCex, int nFrames, int fVerbose )
 {
     Gia_Man_t * pNew;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     Abc_Cex_t * pCexImpl   = NULL;
     Abc_Cex_t * pCexStates = Bmc_CexInnerStates( p, pCex, &pCexImpl, fVerbose );
     Abc_Cex_t * pCexCare   = Bmc_CexCareBits( p, pCexStates, pCexImpl, NULL, 1, fVerbose );
@@ -398,9 +398,9 @@ Gia_Man_t * Bmc_CexDepthTest( Gia_Man_t * p, Abc_Cex_t * pCex, int nFrames, int 
 //    if ( !Bmc_CexVerify( p, pCex, pCexMin ) )
 //        printf( "Counter-example min-set verification has failed.\n" );
 
-//    Bmc_CexDumpStats( p, pCex, pCexCare, pCexEss, pCexMin, clock() - clk );
+//    Bmc_CexDumpStats( p, pCex, pCexCare, pCexEss, pCexMin, Abc_Clock() - clk );
 
-    Abc_PrintTime( 1, "Time", clock() - clk );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     pNew = Bmc_CexBuildNetwork2Test( p, pCexStates, nFrames );
 //    Bmc_CexPerformUnrollingTest( p, pCex );
 

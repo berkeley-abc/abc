@@ -878,7 +878,7 @@ Vec_Int_t * Saig_StrSimPerformMatching( Aig_Man_t * p0, Aig_Man_t * p1, int nDis
     Aig_Man_t * pPart0, * pPart1;
     Aig_Obj_t * pObj0, * pObj1;
     int i, nMatches;
-    clock_t clk, clkTotal = clock();
+    abctime clk, clkTotal = Abc_Clock();
     Aig_ManRandom( 1 );
     // consider the case when a miter is given
     if ( p1 == NULL )
@@ -919,7 +919,7 @@ Vec_Int_t * Saig_StrSimPerformMatching( Aig_Man_t * p0, Aig_Man_t * p1, int nDis
     nMatches = 1;
     for ( i = 0; nMatches > 0; i++ )
     {
-        clk = clock();
+        clk = Abc_Clock();
         Saig_StrSimulateRound( pPart0, pPart1 );
         nMatches = Saig_StrSimDetectUnique( pPart0, pPart1 );
         if ( fVerbose )
@@ -930,7 +930,7 @@ Vec_Int_t * Saig_StrSimPerformMatching( Aig_Man_t * p0, Aig_Man_t * p1, int nDis
                 i, nMatches,
                 nFlops, 100.0*nFlops/Aig_ManRegNum(pPart0),
                 nNodes, 100.0*nNodes/Aig_ManNodeNum(pPart0) );
-            ABC_PRT( "Time", clock() - clk );
+            ABC_PRT( "Time", Abc_Clock() - clk );
         }
         if ( i == 20 )
             break;
@@ -963,7 +963,7 @@ Vec_Int_t * Saig_StrSimPerformMatching( Aig_Man_t * p0, Aig_Man_t * p1, int nDis
     Aig_ManFanoutStop( pPart1 );
     Aig_ManStop( pPart0 );
     Aig_ManStop( pPart1 );
-    ABC_PRT( "Total runtime", clock() - clkTotal );
+    ABC_PRT( "Total runtime", Abc_Clock() - clkTotal );
     return vPairs;
 }
 

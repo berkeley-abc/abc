@@ -304,15 +304,15 @@ static inline void act_var_rescale(sat_solver2* s)  {
     s->var_inc *= 1e-100;
 }
 static inline void act_clause2_rescale(sat_solver2* s) {
-    static clock_t Total = 0;
+    static abctime Total = 0;
     float * act_clas = (float *)veci_begin(&s->act_clas);
     int i;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     for (i = 0; i < veci_size(&s->act_clas); i++)
         act_clas[i] *= (float)1e-20;
     s->cla_inc *= (float)1e-20;
 
-    Total += clock() - clk;
+    Total += Abc_Clock() - clk;
     Abc_Print(1, "Rescaling...   Cla inc = %10.3f  Conf = %10d   ", s->cla_inc,  s->stats.conflicts );
     Abc_PrintTime( 1, "Time", Total );
 }
@@ -344,15 +344,15 @@ static inline void act_var_rescale(sat_solver2* s) {
     s->var_inc = Abc_MaxInt( s->var_inc, (1<<4) );
 }
 static inline void act_clause2_rescale(sat_solver2* s) {
-//    static clock_t Total = 0;
-//    clock_t clk = clock();
+//    static abctime Total = 0;
+//    abctime clk = Abc_Clock();
     int i;
     unsigned * act_clas = (unsigned *)veci_begin(&s->act_clas);
     for (i = 0; i < veci_size(&s->act_clas); i++)
         act_clas[i] >>= 14;
     s->cla_inc >>= 14;
     s->cla_inc = Abc_MaxInt( s->cla_inc, (1<<10) );
-//    Total += clock() - clk;
+//    Total += Abc_Clock() - clk;
 //    Abc_Print(1, "Rescaling...   Cla inc = %5d  Conf = %10d   ", s->cla_inc,  s->stats.conflicts );
 //    Abc_PrintTime( 1, "Time", Total );
 }
@@ -1037,7 +1037,7 @@ static lbool solver2_search(sat_solver2* s, ABC_INT64_T nof_conflicts)
             // NO CONFLICT
             int next;
 
-            if ((nof_conflicts >= 0 && conflictC >= nof_conflicts) || (s->nRuntimeLimit && clock() > s->nRuntimeLimit)){
+            if ((nof_conflicts >= 0 && conflictC >= nof_conflicts) || (s->nRuntimeLimit && Abc_Clock() > s->nRuntimeLimit)){
                 // Reached bound on number of conflicts:
                 s->progress_estimate = solver2_progress(s);
                 solver2_canceluntil(s,s->root_level);
@@ -1390,7 +1390,7 @@ void luby2_test()
 // updates clauses, watches, units, and proof
 void sat_solver2_reducedb(sat_solver2* s)
 {
-    static clock_t TimeTotal = 0;
+    static abctime TimeTotal = 0;
     Sat_Mem_t * pMem = &s->Mem;
     clause * c = NULL;
     int nLearnedOld = veci_size(&s->act_clas);
@@ -1398,7 +1398,7 @@ void sat_solver2_reducedb(sat_solver2* s)
     int * pPerm, * pSortValues, nCutoffValue, * pClaProofs;
     int i, j, k, Id, nSelected;//, LastSize = 0;
     int Counter, CounterStart;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     static int Count = 0;
     Count++;
     assert( s->nLearntMax );
@@ -1558,7 +1558,7 @@ void sat_solver2_reducedb(sat_solver2* s)
     }
 
     // report the results
-    TimeTotal += clock() - clk;
+    TimeTotal += Abc_Clock() - clk;
     if ( s->fVerbose )
     {
         Abc_Print(1, "reduceDB: Keeping %7d out of %7d clauses (%5.2f %%)  ",
@@ -1943,7 +1943,7 @@ int sat_solver2_solve(sat_solver2* s, lit* begin, lit* end, ABC_INT64_T nConfLim
                 s->progress_estimate*100);
             fflush(stdout);
         }
-        if ( s->nRuntimeLimit && clock() > s->nRuntimeLimit )
+        if ( s->nRuntimeLimit && Abc_Clock() > s->nRuntimeLimit )
             break;
         // reduce the set of learnt clauses
         if ( s->nLearntMax && veci_size(&s->act_clas) >= s->nLearntMax && s->pPrf2 == NULL )

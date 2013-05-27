@@ -493,7 +493,7 @@ void Au_ManCountThings( Au_Man_t * p )
 {
     Au_Ntk_t * pNtk, * pBoxModel;
     Au_Obj_t * pBox;
-    int i, k;//, clk = clock();
+    int i, k;//, clk = Abc_Clock();
     Au_ManForEachNtkReverse( p, pNtk, i )
     {
         pNtk->nBoxes = Au_NtkBoxNum(pNtk);
@@ -533,7 +533,7 @@ void Au_ManCountThings( Au_Man_t * p )
     printf( "Total ANDs  = %15.0f.\n", pNtk->nNodeAnds );
     printf( "Total XORs  = %15.0f.\n", pNtk->nNodeXors );
     printf( "Total MUXes = %15.0f.\n", pNtk->nNodeMuxs );
-//    Abc_PrintTime( 1, "Time", clock() - clk );
+//    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 }
 
 int Au_NtkCompareNames( Au_Ntk_t ** p1, Au_Ntk_t ** p2 )
@@ -1494,24 +1494,24 @@ Gia_Man_t * Au_ManDeriveTest( Abc_Ntk_t * pRoot )
     Abc_Ntk_t * pMod;
     Au_Man_t * pMan;
     Au_Ntk_t * pNtk = NULL;
-    clock_t clk1, clk2 = 0, clk3 = 0, clk = clock();
+    abctime clk1, clk2 = 0, clk3 = 0, clk = Abc_Clock();
     int i;
 
-    clk1 = clock();
+    clk1 = Abc_Clock();
     pMan = Au_ManAlloc( pRoot->pDesign ? pRoot->pDesign->pName : pRoot->pName );
     pMan->pFuncs = Abc_NamStart( 100, 16 );
-    clk2 += clock() - clk1;
+    clk2 += Abc_Clock() - clk1;
 
     vModels = Abc_NtkCollectHie( pRoot );
     Vec_PtrForEachEntry( Abc_Ntk_t *, vModels, pMod, i )
     {
         vOrder = Abc_NtkDfsBoxes( pMod );
 
-        clk1 = clock();
+        clk1 = Abc_Clock();
         pNtk = Au_NtkDerive( pMan, pMod, vOrder );
         pMod->iStep = pNtk->Id;
         pMod->pData = pNtk;
-        clk2 += clock() - clk1;
+        clk2 += Abc_Clock() - clk1;
 
         Vec_PtrFree( vOrder );
     }
@@ -1536,21 +1536,21 @@ Gia_Man_t * Au_ManDeriveTest( Abc_Ntk_t * pRoot )
   
 //    if ( !Abc_NtkCheckRecursive(pRoot) )
     {
-        clk1 = clock();
+        clk1 = Abc_Clock();
         pGia = Au_NtkDeriveFlatGia( pNtk );
-        clk3 = clock() - clk1;
+        clk3 = Abc_Clock() - clk1;
 //        printf( "GIA objects max = %d.\n", pMan->nGiaObjMax );
     }
 
-//    clk1 = clock();
+//    clk1 = Abc_Clock();
 //    Au_NtkSuppSizeTest( (Au_Ntk_t *)pRoot->pData );
-//    clk4 = clock() - clk1;
+//    clk4 = Abc_Clock() - clk1;
 
-    clk1 = clock();
+    clk1 = Abc_Clock();
     Au_ManDelete( pMan );
-    clk2 += clock() - clk1;
+    clk2 += Abc_Clock() - clk1;
     
-    Abc_PrintTime( 1, "Time all ", clock() - clk );
+    Abc_PrintTime( 1, "Time all ", Abc_Clock() - clk );
     Abc_PrintTime( 1, "Time new ", clk2 );
     Abc_PrintTime( 1, "Time GIA ", clk3 );
 //    Abc_PrintTime( 1, "Time supp", clk4 );
@@ -1573,7 +1573,7 @@ Gia_Man_t * Abc_NtkHieCecTest2( char * pFileName, char * pModelName, int fVerbos
     int fSimulation = 0;
     Gia_Man_t * pGia = NULL;
     Au_Ntk_t * pNtk, * pNtkClp = NULL;
-    clock_t clk1 = 0, clk = clock();
+    abctime clk1 = 0, clk = Abc_Clock();
 
     // read hierarchical netlist
     pNtk = Au_NtkParseCBlif( pFileName );
@@ -1588,7 +1588,7 @@ Gia_Man_t * Abc_NtkHieCecTest2( char * pFileName, char * pModelName, int fVerbos
         Au_NtkFree( pNtk );
         return NULL;
     }
-    Abc_PrintTime( 1, "Reading file", clock() - clk );
+    Abc_PrintTime( 1, "Reading file", Abc_Clock() - clk );
 
     if ( fVerbose )
     {
@@ -1608,21 +1608,21 @@ Gia_Man_t * Abc_NtkHieCecTest2( char * pFileName, char * pModelName, int fVerbos
     Au_NtkCheckRecursive( pNtkClp );
 
     // collapse
-    clk1 = clock();
+    clk1 = Abc_Clock();
     if ( fSimulation )
     {
         Au_NtkTerSimulate( pNtkClp );
-        Abc_PrintTime( 1, "Time sim ", clock() - clk1 );
+        Abc_PrintTime( 1, "Time sim ", Abc_Clock() - clk1 );
     }
     else
     {
         pGia = Au_NtkDeriveFlatGia( pNtkClp );
-        Abc_PrintTime( 1, "Time GIA ", clock() - clk1 );
+        Abc_PrintTime( 1, "Time GIA ", Abc_Clock() - clk1 );
     }
 
     // delete
     Au_ManDelete( pNtk->pMan );
-    Abc_PrintTime( 1, "Time all ", clock() - clk );
+    Abc_PrintTime( 1, "Time all ", Abc_Clock() - clk );
     return pGia;
 }
 

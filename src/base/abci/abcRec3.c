@@ -84,13 +84,13 @@ struct Lms_Man_t_
     int               nAddedFuncs;
     int               nHoleInTheWall;
     // runtime
-    clock_t           timeTruth;
-    clock_t           timeCanon;
-    clock_t           timeBuild;
-    clock_t           timeCheck;
-    clock_t           timeInsert;
-    clock_t           timeOther;
-    clock_t           timeTotal;
+    abctime           timeTruth;
+    abctime           timeCanon;
+    abctime           timeBuild;
+    abctime           timeCheck;
+    abctime           timeInsert;
+    abctime           timeOther;
+    abctime           timeTotal;
 };
 
 static Lms_Man_t * s_pMan3 = NULL;
@@ -305,7 +305,7 @@ void Lms_GiaPrintSubgraph( Gia_Man_t * p, Gia_Obj_t * pObj )
 Lms_Man_t * Lms_ManStart( Gia_Man_t * pGia, int nVars, int nCuts, int fFuncOnly, int fVerbose )
 {
     Lms_Man_t * p;
-    clock_t clk, clk2 = clock();
+    abctime clk, clk2 = Abc_Clock();
     // if GIA is given, use the number of variables from GIA
     nVars = pGia ? Gia_ManCiNum(pGia) : nVars;
     assert( nVars >= 6 && nVars <= LMS_VAR_MAX );
@@ -342,12 +342,12 @@ Lms_Man_t * Lms_ManStart( Gia_Man_t * pGia, int nVars, int nCuts, int fFuncOnly,
         p->nAdded = Gia_ManCoNum( p->pGia );
         Gia_ManForEachCo( p->pGia, pObj, i )
         {
-            clk = clock();
+            clk = Abc_Clock();
             pTruth = Gia_ObjComputeTruthTable( p->pGia, pObj );
-            p->timeTruth += clock() - clk;
-            clk = clock();
+            p->timeTruth += Abc_Clock() - clk;
+            clk = Abc_Clock();
             Index = Vec_MemHashInsert( p->vTtMem, pTruth );
-            p->timeInsert += clock() - clk;
+            p->timeInsert += Abc_Clock() - clk;
             assert( Index == Prev || Index == Prev + 1 ); // GIA subgraphs should be ordered
             Vec_IntPush( p->vTruthIds, Index );
             Prev = Index;
@@ -357,7 +357,7 @@ Lms_Man_t * Lms_ManStart( Gia_Man_t * pGia, int nVars, int nCuts, int fFuncOnly,
     p->vNodes    = Vec_PtrAlloc( 1000 );
     p->vLabelsP  = Vec_PtrAlloc( 1000 );
     p->vLabels   = Vec_IntAlloc( 1000 );
-p->timeTotal += clock() - clk2;
+p->timeTotal += Abc_Clock() - clk2;
     return p;    
 }
 void Lms_ManStop( Lms_Man_t * p )
@@ -575,7 +575,7 @@ void Abc_NtkRecLibMerge3( Gia_Man_t * pLib )
     word * pTruth;
     int i, k, Index, iFanin0, iFanin1, nLeaves;
     Gia_Obj_t * pObjPo, * pDriver, * pTemp = NULL;
-    clock_t clk, clk2 = clock();
+    abctime clk, clk2 = Abc_Clock();
 
     if ( Gia_ManCiNum(pLib) != Gia_ManCiNum(pGia) )
     {
@@ -597,11 +597,11 @@ void Abc_NtkRecLibMerge3( Gia_Man_t * pLib )
         assert( nLeaves > 1 );
 
         // compute the truth table
-clk = clock();
+clk = Abc_Clock();
         pTruth = Gia_ObjComputeTruthTable( pLib, Gia_ObjFanin0(pObjPo) );
-p->timeTruth += clock() - clk;
+p->timeTruth += Abc_Clock() - clk;
         // semi-canonicize
-clk = clock();
+clk = Abc_Clock();
         memcpy( p->pTemp1, pTruth, p->nWords * sizeof(word) );
 #ifdef LMS_USE_OLD_FORM
         uCanonPhase = Kit_TruthSemiCanonicize( (unsigned *)p->pTemp1, (unsigned *)p->pTemp2, nLeaves, pCanonPerm );
@@ -609,12 +609,12 @@ clk = clock();
         uCanonPhase = Abc_TtCanonicize( p->pTemp1, nLeaves, pCanonPerm );
 #endif
         Abc_TtStretch5( (unsigned *)p->pTemp1, nLeaves, p->nVars );
-p->timeCanon += clock() - clk;
+p->timeCanon += Abc_Clock() - clk;
         // pCanonPerm and uCanonPhase show what was the variable corresponding to each var in the current truth
         if ( nLeaves == 2 && Abc_TtSupportSize(pTruth, 2) != 2 )
             continue;
 
-clk = clock();
+clk = Abc_Clock();
         // map cut leaves into elementary variables of GIA
         for ( i = 0; i < nLeaves; i++ )
             Gia_ManCi( pLib, pCanonPerm[i] )->Value = Abc_Var2Lit( Gia_ObjId(pGia, Gia_ManPi(pGia, i)), (uCanonPhase >> i) & 1 );
@@ -626,7 +626,7 @@ clk = clock();
             iFanin1 = Abc_LitNotCond( Gia_ObjFanin1(pTemp)->Value, Gia_ObjFaninC1(pTemp) );
             pTemp->Value = Gia_ManHashAnd( pGia, iFanin0, iFanin1 );
         }
-p->timeBuild += clock() - clk;
+p->timeBuild += Abc_Clock() - clk;
 
         // check if this node is already driving a PO
         assert( Gia_ObjIsAnd(pTemp) );
@@ -643,10 +643,10 @@ p->timeBuild += clock() - clk;
         // verify truth table
         if ( fCheck )
         {
-clk = clock();
+clk = Abc_Clock();
         pTemp = Gia_ManCo(pGia, Gia_ManCoNum(pGia)-1);
         pTruth = Gia_ObjComputeTruthTable( pGia, Gia_ManCo(pGia, Gia_ManCoNum(pGia)-1) );
-p->timeCheck += clock() - clk;
+p->timeCheck += Abc_Clock() - clk;
         if ( memcmp( p->pTemp1, pTruth, p->nWords * sizeof(word) ) != 0 )
         {
     
@@ -663,17 +663,17 @@ p->timeCheck += clock() - clk;
         }
         }
 
-clk = clock();
+clk = Abc_Clock();
         // add the resulting truth table to the hash table 
         Index = Vec_MemHashInsert( p->vTtMem, p->pTemp1 );
         // save truth table ID
         Vec_IntPush( p->vTruthIds, Index );
         assert( Gia_ManCoNum(pGia) == Vec_IntSize(p->vTruthIds) );
         p->nAdded++;
-p->timeInsert += clock() - clk;
+p->timeInsert += Abc_Clock() - clk;
     }
     Vec_StrFree( vSupps );
-p->timeTotal += clock() - clk2;
+p->timeTotal += Abc_Clock() - clk2;
 }
 
 
@@ -700,7 +700,7 @@ int Abc_NtkRecAddCut3( If_Man_t * pIfMan, If_Obj_t * pRoot, If_Cut_t * pCut )
     Gia_Obj_t * pDriver;
     If_Obj_t * pIfObj = NULL;
     word * pTruth;
-    clock_t clk;
+    abctime clk;
     p->nTried++;
 
     // skip small cuts
@@ -715,7 +715,7 @@ int Abc_NtkRecAddCut3( If_Man_t * pIfMan, If_Obj_t * pRoot, If_Cut_t * pCut )
 //        Vec_MemHashInsert( p->vTtMem2, If_CutTruthW(pCut) );
 
     // semi-canonicize truth table
-clk = clock();
+clk = Abc_Clock();
     memcpy( p->pTemp1, If_CutTruthW(pCut), p->nWords * sizeof(word) );
 #ifdef LMS_USE_OLD_FORM
     uCanonPhase = Kit_TruthSemiCanonicize( (unsigned *)p->pTemp1, (unsigned *)p->pTemp2, nLeaves, pCanonPerm );
@@ -723,12 +723,12 @@ clk = clock();
     uCanonPhase = Abc_TtCanonicize( p->pTemp1, nLeaves, pCanonPerm );
 #endif
     Abc_TtStretch5( (unsigned *)p->pTemp1, nLeaves, p->nVars );
-p->timeCanon += clock() - clk;
+p->timeCanon += Abc_Clock() - clk;
     // pCanonPerm and uCanonPhase show what was the variable corresponding to each var in the current truth
 
     if ( p->pGia == NULL )
     {
-clk = clock();
+clk = Abc_Clock();
         // add the resulting truth table to the hash table 
         Index = Vec_MemHashInsert( p->vTtMem, p->pTemp1 );
 /*
@@ -741,21 +741,21 @@ clk = clock();
             Vec_IntPush( p->vTruthFreqs, 1 );
 */
         p->nAdded++;
-p->timeInsert += clock() - clk;
+p->timeInsert += Abc_Clock() - clk;
         return 1;
     }
 
     // collect internal nodes and skip redundant cuts
-clk = clock();
+clk = Abc_Clock();
     If_CutTraverse( pIfMan, pRoot, pCut, vNodes );
-p->timeTruth += clock() - clk;
+p->timeTruth += Abc_Clock() - clk;
     if ( Vec_PtrSize(vNodes) > 253 )
     {
         p->nFilterSize++;
         return 1;
     }
 
-clk = clock();
+clk = Abc_Clock();
     // map cut leaves into elementary variables of GIA
     for ( i = 0; i < nLeaves; i++ )
         If_ManObj( pIfMan, pCut->pLeaves[(int)pCanonPerm[i]] )->iCopy = Abc_Var2Lit( Gia_ObjId(pGia, Gia_ManPi(pGia, i)), (uCanonPhase >> i) & 1 );
@@ -775,7 +775,7 @@ clk = clock();
         pIfObj->iCopy = Gia_ManHashAnd( pGia, iFanin0, iFanin1 );
     }
     p->nHoleInTheWall += fHole;
-p->timeBuild += clock() - clk;
+p->timeBuild += Abc_Clock() - clk;
 
     // check if this node is already driving a PO
     assert( If_ObjIsAnd(pIfObj) );
@@ -790,9 +790,9 @@ p->timeBuild += clock() - clk;
     Gia_ManAppendCo( pGia, Abc_LitNotCond( pIfObj->iCopy, (uCanonPhase >> nLeaves) & 1 ) );
 
     // verify truth table
-clk = clock();
+clk = Abc_Clock();
     pTruth = Gia_ObjComputeTruthTable( pGia, Gia_ManCo(pGia, Gia_ManCoNum(pGia)-1) );
-p->timeCheck += clock() - clk;
+p->timeCheck += Abc_Clock() - clk;
     if ( memcmp( p->pTemp1, pTruth, p->nWords * sizeof(word) ) != 0 )
     {
 /*
@@ -808,14 +808,14 @@ p->timeCheck += clock() - clk;
         return 1;
     }
 
-clk = clock();
+clk = Abc_Clock();
     // add the resulting truth table to the hash table 
     Index = Vec_MemHashInsert( p->vTtMem, p->pTemp1 );
     // save truth table ID
     Vec_IntPush( p->vTruthIds, Index );
     assert( Gia_ManCoNum(pGia) == Vec_IntSize(p->vTruthIds) );
     p->nAdded++;
-p->timeInsert += clock() - clk;
+p->timeInsert += Abc_Clock() - clk;
     return 1;
 }
 
@@ -835,7 +835,7 @@ void Abc_NtkRecAdd3( Abc_Ntk_t * pNtk, int fUseSOPB )
     extern Abc_Ntk_t * Abc_NtkIf( Abc_Ntk_t * pNtk, If_Par_t * pPars );
     If_Par_t Pars, * pPars = &Pars;
     Abc_Ntk_t * pNtkNew;
-    int clk = clock();
+    int clk = Abc_Clock();
     if ( Abc_NtkGetChoiceNum( pNtk ) )
         printf( "Performing recoding structures with choices.\n" );
     // remember that the manager was used for library construction
@@ -873,7 +873,7 @@ void Abc_NtkRecAdd3( Abc_Ntk_t * pNtk, int fUseSOPB )
     // perform recording
     pNtkNew = Abc_NtkIf( pNtk, pPars );
     Abc_NtkDelete( pNtkNew );
-s_pMan3->timeTotal += clock() - clk;
+s_pMan3->timeTotal += Abc_Clock() - clk;
 }
 
  /**Function*************************************************************
@@ -907,7 +907,7 @@ static inline int If_CutFindBestStruct( If_Man_t * pIfMan, If_Cut_t * pCut, char
     int BestDelay = ABC_INFINITY, BestArea = ABC_INFINITY, Delay, Area;
     int uSupport, nLeaves = If_CutLeaveNum( pCut );
     word DelayProfile;
-    clock_t clk;
+    abctime clk;
     assert( nLeaves > 1 );
     pCut->fUser = 1;
     // compute support
@@ -931,7 +931,7 @@ static inline int If_CutFindBestStruct( If_Man_t * pIfMan, If_Cut_t * pCut, char
     assert( Gia_WordCountOnes(uSupport) == nLeaves );
 
     // semicanonicize the function
-clk = clock();
+clk = Abc_Clock();
     memcpy( p->pTemp1, If_CutTruthW(pCut), p->nWords * sizeof(word) );
 #ifdef LMS_USE_OLD_FORM
     *puCanonPhase = Kit_TruthSemiCanonicize( (unsigned *)p->pTemp1, (unsigned *)p->pTemp2, nLeaves, pCanonPerm );
@@ -939,7 +939,7 @@ clk = clock();
     *puCanonPhase = Abc_TtCanonicize( p->pTemp1, nLeaves, pCanonPerm );
 #endif
     Abc_TtStretch5( (unsigned *)p->pTemp1, nLeaves, p->nVars );
-p->timeCanon += clock() - clk;
+p->timeCanon += Abc_Clock() - clk;
 
     // get TT ID for the given class
     pTruthId = Vec_MemHashLookup( p->vTtMem, p->pTemp1 );
@@ -1381,13 +1381,13 @@ int Abc_NtkRecIsRunning3()
 }
 Gia_Man_t * Abc_NtkRecGetGia3()
 {
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     printf( "Before normalizing: Library has %d classes and %d AIG subgraphs with %d AND nodes.\n", 
         Vec_MemEntryNum(s_pMan3->vTtMem), Gia_ManPoNum(s_pMan3->pGia), Gia_ManAndNum(s_pMan3->pGia) );
     Lms_GiaNormalize( s_pMan3 );
     printf( "After normalizing:  Library has %d classes and %d AIG subgraphs with %d AND nodes.\n", 
         Vec_MemEntryNum(s_pMan3->vTtMem), Gia_ManPoNum(s_pMan3->pGia), Gia_ManAndNum(s_pMan3->pGia) );
-    Abc_PrintTime( 1, "Normalization runtime", clock() - clk );
+    Abc_PrintTime( 1, "Normalization runtime", Abc_Clock() - clk );
     s_pMan3->fLibConstr = 0;
     return s_pMan3->pGia;
 }

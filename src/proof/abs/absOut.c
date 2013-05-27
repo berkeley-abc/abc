@@ -97,7 +97,7 @@ int Gia_ManGlaRefine( Gia_Man_t * p, Abc_Cex_t * pCex, int fMinCut, int fVerbose
     Abc_Cex_t * pCare;
     Vec_Int_t * vPis, * vPPis;
     int f, i, iObjId;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     int nOnes = 0, Counter = 0;
     if ( p->vGateClasses == NULL )
     {
@@ -175,7 +175,7 @@ int Gia_ManGlaRefine( Gia_Man_t * p, Abc_Cex_t * pCex, int fMinCut, int fVerbose
             if ( fVerbose )
             {
                 Abc_Print( 1, "Additional objects = %d.  ", Vec_IntSize(vPPis) );
-                Abc_PrintTime( 1, "Time", clock() - clk );
+                Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
             }
         }
     }
@@ -209,7 +209,7 @@ int Gia_ManGlaRefine( Gia_Man_t * p, Abc_Cex_t * pCex, int fMinCut, int fVerbose
         if ( fVerbose )
         {
             Abc_Print( 1, "Essential bits = %d.  Additional objects = %d.  ", nOnes, Counter );
-            Abc_PrintTime( 1, "Time", clock() - clk );
+            Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
         }
         // consider the case of SAT
         if ( iObjId == -1 )
@@ -375,7 +375,7 @@ int Gia_ManNewRefine( Gia_Man_t * p, Abc_Cex_t * pCex, int iFrameStart, int iFra
     Gia_Man_t * pAbs, * pNew;
     Vec_Int_t * vFlops, * vInit;
     Vec_Int_t * vCopy;
-//    clock_t clk = clock();
+//    abctime clk = Abc_Clock();
     int RetValue;
     ABC_FREE( p->pCexSeq );
     if ( p->vGateClasses == NULL )

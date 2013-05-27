@@ -69,7 +69,7 @@ DdNode * Llb_CoreComputeCube( DdManager * dd, Vec_Int_t * vVars, int fUseVarInde
 {
     DdNode * bRes, * bVar, * bTemp;
     int i, iVar, Index;
-    clock_t TimeStop;
+    abctime TimeStop;
     TimeStop = dd->TimeStop; dd->TimeStop = 0;
     bRes = Cudd_ReadOne( dd );   Cudd_Ref( bRes );
     Vec_IntForEachEntry( vVars, Index, i )
@@ -210,17 +210,17 @@ int Llb_CoreReachability_int( Llb_Img_t * p, Vec_Ptr_t * vQuant0, Vec_Ptr_t * vQ
     int * pLoc2GloR = p->pPars->fBackward? Vec_IntArray( p->vNs2Glo ) : Vec_IntArray( p->vCs2Glo );
     int * pGlo2Loc  = p->pPars->fBackward? Vec_IntArray( p->vGlo2Ns ) : Vec_IntArray( p->vGlo2Cs );
     DdNode * bCurrent, * bReached, * bNext, * bTemp;
-    clock_t clk2, clk = clock();
+    abctime clk2, clk = Abc_Clock();
     int nIters, nBddSize;//, iOutFail = -1;
 /*
     // compute time to stop
     if ( p->pPars->TimeLimit )
-        p->pPars->TimeTarget = clock() + p->pPars->TimeLimit * CLOCKS_PER_SEC;
+        p->pPars->TimeTarget = Abc_Clock() + p->pPars->TimeLimit * CLOCKS_PER_SEC;
     else
         p->pPars->TimeTarget = 0;
 */
 
-    if ( clock() > p->pPars->TimeTarget )
+    if ( Abc_Clock() > p->pPars->TimeTarget )
     {
         if ( !p->pPars->fSilent )
             printf( "Reached timeout (%d seconds) before image computation.\n", p->pPars->TimeLimit );
@@ -286,9 +286,9 @@ int Llb_CoreReachability_int( Llb_Img_t * p, Vec_Ptr_t * vQuant0, Vec_Ptr_t * vQ
     // compute onion rings
     for ( nIters = 0; nIters < p->pPars->nIterMax; nIters++ )
     { 
-        clk2 = clock();
+        clk2 = Abc_Clock();
         // check the runtime limit
-        if ( p->pPars->TimeLimit && clock() > p->pPars->TimeTarget )
+        if ( p->pPars->TimeLimit && Abc_Clock() > p->pPars->TimeTarget )
         {
             if ( !p->pPars->fSilent )
                 printf( "Reached timeout (%d seconds) during image computation.\n",  p->pPars->TimeLimit );
@@ -326,7 +326,7 @@ int Llb_CoreReachability_int( Llb_Img_t * p, Vec_Ptr_t * vQuant0, Vec_Ptr_t * vQ
                     Abc_Print( 1, "Output %d of miter \"%s\" was asserted in frame %d.  ", p->pInit->pSeqModel->iPo, p->pInit->pName, nIters );
                 else
                     Abc_Print( 1, "Output ??? was asserted in frame %d (counter-example is not produced).  ", nIters );
-                Abc_PrintTime( 1, "Time", clock() - clk );
+                Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
             }
             p->pPars->iFrame = nIters - 1;
             return 0;
@@ -428,7 +428,7 @@ int Llb_CoreReachability_int( Llb_Img_t * p, Vec_Ptr_t * vQuant0, Vec_Ptr_t * vQ
             fprintf( stdout, "Reach =%6d  ", Cudd_DagSize(bReached) );
             fprintf( stdout, "(%4d%4d)  ", 
                 Cudd_ReadReorderings(p->ddG), Cudd_ReadGarbageCollections(p->ddG) );
-            Abc_PrintTime( 1, "Time", clock() - clk2 );
+            Abc_PrintTime( 1, "Time", Abc_Clock() - clk2 );
         }
 
         // check timeframe limit
@@ -471,7 +471,7 @@ int Llb_CoreReachability_int( Llb_Img_t * p, Vec_Ptr_t * vQuant0, Vec_Ptr_t * vQ
         if ( !p->pPars->fSilent )
         {
             printf( "Verified only for states reachable in %d frames.  ", nIters );
-            Abc_PrintTime( 1, "Time", clock() - clk );
+            Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
         }
         p->pPars->iFrame = p->pPars->nIterMax;
         return -1; // undecided
@@ -479,7 +479,7 @@ int Llb_CoreReachability_int( Llb_Img_t * p, Vec_Ptr_t * vQuant0, Vec_Ptr_t * vQ
     if ( !p->pPars->fSilent )
     {
         printf( "The miter is proved unreachable after %d iterations.  ", nIters );
-        Abc_PrintTime( 1, "Time", clock() - clk );
+        Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     }
     p->pPars->iFrame = nIters - 1;
     return 1; // unreachable
@@ -531,7 +531,7 @@ int Llb_CoreReachability( Llb_Img_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Ptr_t * Llb_CoreConstructAll( Aig_Man_t * p, Vec_Ptr_t * vResult, Vec_Int_t * vVarsNs, clock_t TimeTarget )
+Vec_Ptr_t * Llb_CoreConstructAll( Aig_Man_t * p, Vec_Ptr_t * vResult, Vec_Int_t * vVarsNs, abctime TimeTarget )
 {
     DdManager * dd;
     Vec_Ptr_t * vDdMans;
@@ -691,7 +691,7 @@ void Llb_CoreStop( Llb_Img_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Llb_CoreExperiment( Aig_Man_t * pInit, Aig_Man_t * pAig, Gia_ParLlb_t * pPars, Vec_Ptr_t * vResult, clock_t TimeTarget )
+int Llb_CoreExperiment( Aig_Man_t * pInit, Aig_Man_t * pAig, Gia_ParLlb_t * pPars, Vec_Ptr_t * vResult, abctime TimeTarget )
 {
     int RetValue;
     Llb_Img_t * p;
@@ -728,10 +728,10 @@ int Llb_ManReachMinCut( Aig_Man_t * pAig, Gia_ParLlb_t * pPars )
     Vec_Ptr_t * vResult;
     Aig_Man_t * p;
     int RetValue = -1;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
 
     // compute time to stop
-    pPars->TimeTarget = pPars->TimeLimit ? pPars->TimeLimit * CLOCKS_PER_SEC + clock(): 0;
+    pPars->TimeTarget = pPars->TimeLimit ? pPars->TimeLimit * CLOCKS_PER_SEC + Abc_Clock(): 0;
 
     p = Aig_ManDupFlopsOnly( pAig );
 //Aig_ManShow( p, 0, NULL );
@@ -743,7 +743,7 @@ int Llb_ManReachMinCut( Aig_Man_t * pAig, Gia_ParLlb_t * pPars )
 
     vResult = Llb_ManComputeCuts( p, pPars->nPartValue, pPars->fVerbose, pPars->fVeryVerbose );
 
-    if ( pPars->TimeLimit && clock() > pPars->TimeTarget )
+    if ( pPars->TimeLimit && Abc_Clock() > pPars->TimeTarget )
     {
         if ( !pPars->fSilent )
             printf( "Reached timeout (%d seconds) after partitioning.\n", pPars->TimeLimit );
@@ -764,7 +764,7 @@ int Llb_ManReachMinCut( Aig_Man_t * pAig, Gia_ParLlb_t * pPars )
     Aig_ManStop( p );
 
     if ( RetValue == -1 )
-        Abc_PrintTime( 1, "Total runtime of the min-cut-based reachability engine", clock() - clk );
+        Abc_PrintTime( 1, "Total runtime of the min-cut-based reachability engine", Abc_Clock() - clk );
     return RetValue;
 }
 

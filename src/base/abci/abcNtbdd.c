@@ -572,8 +572,8 @@ void Abc_NtkBddImplicationTest()
     int nVars = 200;
     int nImps = 200;
     int i;
-    clock_t clk;
-clk = clock();
+    abctime clk;
+clk = Abc_Clock();
     dd = Cudd_Init( nVars, 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
     Cudd_AutodynEnable( dd, CUDD_REORDER_SIFT );
     bSum = b0;   Cudd_Ref( bSum );
@@ -588,7 +588,7 @@ clk = clock();
     printf( "The BDD before = %d.\n", Cudd_DagSize(bSum) );
     Cudd_ReduceHeap( dd, CUDD_REORDER_SIFT, 1 );
     printf( "The BDD after  = %d.\n", Cudd_DagSize(bSum) );
-ABC_PRT( "Time", clock() - clk );
+ABC_PRT( "Time", Abc_Clock() - clk );
     Cudd_RecursiveDeref( dd, bSum );
     Cudd_Quit( dd );
 }

@@ -781,12 +781,12 @@ int Aig_SupportSizeTest( Aig_Man_t * p )
 {
     Aig_Obj_t * pObj;
     int i, Counter = 0;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     Aig_ManForEachObj( p, pObj, i )
         if ( Aig_ObjIsNode(pObj) )
             Counter += (Aig_SupportSize(p, pObj) <= 16);
     printf( "Nodes with small support %d (out of %d)\n", Counter, Aig_ManNodeNum(p) );
-    Abc_PrintTime( 1, "Time", clock() - clk );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     return Counter;
 }
 

@@ -505,9 +505,9 @@ Aig_Man_t * Saig_SynchSequenceApply( Aig_Man_t * pAig, int nWords, int fVerbose 
     Vec_Str_t * vSequence;
     Vec_Ptr_t * vSimInfo;
     int RetValue;
-    clock_t clk;
+    abctime clk;
 
-clk = clock();
+clk = Abc_Clock();
     // derive synchronization sequence
     vSequence = Saig_SynchSequence( pAig, nWords );
     if ( vSequence == NULL )
@@ -516,7 +516,7 @@ clk = clock();
         printf( "Design 1: Synchronizing sequence of length %4d is found. ", Vec_StrSize(vSequence) / Saig_ManPiNum(pAig) );
     if ( fVerbose )
     {
-        ABC_PRT( "Time", clock() - clk );
+        ABC_PRT( "Time", Abc_Clock() - clk );
     }
     else
         printf( "\n" );
@@ -559,7 +559,7 @@ Aig_Man_t * Saig_Synchronize( Aig_Man_t * pAig1, Aig_Man_t * pAig2, int nWords, 
     Vec_Str_t * vSeq1, * vSeq2;
     Vec_Ptr_t * vSimInfo;
     int RetValue;
-    clock_t clk;
+    abctime clk;
 /*
     {
         unsigned u = Saig_SynchRandomTernary();
@@ -585,7 +585,7 @@ Aig_Man_t * Saig_Synchronize( Aig_Man_t * pAig1, Aig_Man_t * pAig2, int nWords, 
     }
 
     // synchronize the first design
-    clk = clock();
+    clk = Abc_Clock();
     vSeq1 = Saig_SynchSequence( pAig1, nWords );
     if ( vSeq1 == NULL )
         printf( "Design 1: Synchronizing sequence is not found. " );
@@ -593,13 +593,13 @@ Aig_Man_t * Saig_Synchronize( Aig_Man_t * pAig1, Aig_Man_t * pAig2, int nWords, 
         printf( "Design 1: Synchronizing sequence of length %4d is found. ", Vec_StrSize(vSeq1) / Saig_ManPiNum(pAig1) );
     if ( fVerbose )
     {
-        ABC_PRT( "Time", clock() - clk );
+        ABC_PRT( "Time", Abc_Clock() - clk );
     }
     else
         printf( "\n" );
 
     // synchronize the first design
-    clk = clock();
+    clk = Abc_Clock();
     vSeq2 = Saig_SynchSequence( pAig2, nWords );
     if ( vSeq2 == NULL )
         printf( "Design 2: Synchronizing sequence is not found. " );
@@ -607,7 +607,7 @@ Aig_Man_t * Saig_Synchronize( Aig_Man_t * pAig1, Aig_Man_t * pAig2, int nWords, 
         printf( "Design 2: Synchronizing sequence of length %4d is found. ", Vec_StrSize(vSeq2) / Saig_ManPiNum(pAig2) );
     if ( fVerbose )
     {
-        ABC_PRT( "Time", clock() - clk );
+        ABC_PRT( "Time", Abc_Clock() - clk );
     }
     else
         printf( "\n" );
@@ -620,7 +620,7 @@ Aig_Man_t * Saig_Synchronize( Aig_Man_t * pAig1, Aig_Man_t * pAig2, int nWords, 
         if ( vSeq2 ) Vec_StrFree( vSeq2 );
         return NULL;
     }
-    clk = clock();
+    clk = Abc_Clock();
     vSimInfo = Vec_PtrAllocSimInfo( Abc_MaxInt( Aig_ManObjNumMax(pAig1), Aig_ManObjNumMax(pAig2) ), 1 );
 
     // process Design 1
@@ -651,7 +651,7 @@ Aig_Man_t * Saig_Synchronize( Aig_Man_t * pAig1, Aig_Man_t * pAig2, int nWords, 
     if ( fVerbose )
     {
         printf( "Miter of the synchronized designs is constructed.         " );
-        ABC_PRT( "Time", clock() - clk );
+        ABC_PRT( "Time", Abc_Clock() - clk );
     }
     return pMiter;
 }

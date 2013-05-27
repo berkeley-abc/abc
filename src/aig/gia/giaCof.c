@@ -672,7 +672,7 @@ void Cof_ManPrintFanio( Cof_Man_t * p )
 void Gia_ManPrintFanio( Gia_Man_t * pGia, int nNodes )
 {
     Cof_Man_t * p;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     p = Cof_ManCreateLogicSimple( pGia );
     p->nLevels = 1 + Gia_ManLevelNum( pGia );
     p->pLevels = ABC_CALLOC( int, p->nLevels );
@@ -683,7 +683,7 @@ void Gia_ManPrintFanio( Gia_Man_t * pGia, int nNodes )
     Cof_ManPrintHighFanout( p, nNodes );
     Gia_ManHashStop( pGia );
 ABC_PRMn( "Memory for logic network", 4*p->nObjData );
-ABC_PRT( "Time", clock() - clk );
+ABC_PRT( "Time", Abc_Clock() - clk );
     Cof_ManStop( p );
 }
 

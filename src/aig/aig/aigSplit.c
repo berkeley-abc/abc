@@ -259,7 +259,7 @@ Aig_Man_t * Aig_ManSplit( Aig_Man_t * p, int nVars, int fVerbose )
     DdManager * dd;
     Vec_Ptr_t * vSupp, * vSubs, * vCofs;
     int i;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     if ( Saig_ManPoNum(p) != 1 )
     {
         printf( "Currently works only for one primary output.\n" );
@@ -297,7 +297,7 @@ Aig_Man_t * Aig_ManSplit( Aig_Man_t * p, int nVars, int fVerbose )
     if ( fVerbose )
         printf( "Created %d cofactors (out of %d).  ", Saig_ManPoNum(pRes), Vec_PtrSize(vCofs) );
     if ( fVerbose )
-        Abc_PrintTime( 1, "Time", clock() - clk );
+        Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     // dereference
     Cudd_RecursiveDeref( dd, bFunc );
     Vec_PtrForEachEntry( DdNode *, vCofs, bFunc, i )

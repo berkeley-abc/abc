@@ -144,7 +144,7 @@ Vec_Int_t * Pdr_ManCubeToLits( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, int fCom
 {
     Aig_Obj_t * pObj;
     int i, iVar, iVarMax = 0;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     Vec_IntClear( p->vLits );
     for ( i = 0; i < pCube->nLits; i++ )
     {
@@ -159,7 +159,7 @@ Vec_Int_t * Pdr_ManCubeToLits( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, int fCom
         Vec_IntPush( p->vLits, toLitCond( iVar, fCompl ^ lit_sign(pCube->Lits[i]) ) );
     }
 //    sat_solver_setnvars( Pdr_ManSolver(p, k), iVarMax + 1 );
-    p->tCnf += clock() - clk;
+    p->tCnf += Abc_Clock() - clk;
     return p->vLits;
 }
 
@@ -256,7 +256,7 @@ int Pdr_ManCheckCubeCs( Pdr_Man_t * p, int k, Pdr_Set_t * pCube )
 { 
     sat_solver * pSat;
     Vec_Int_t * vLits;
-    clock_t Limit;
+    abctime Limit;
     int RetValue;
     pSat = Pdr_ManFetchSolver( p, k );
     vLits = Pdr_ManCubeToLits( p, k, pCube, 0, 0 );
@@ -287,12 +287,12 @@ int Pdr_ManCheckCube( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppPr
     sat_solver * pSat;
     Vec_Int_t * vLits;
     int Lit, RetValue;
-    clock_t clk, Limit;
+    abctime clk, Limit;
     p->nCalls++;
     pSat = Pdr_ManFetchSolver( p, k );
     if ( pCube == NULL ) // solve the property
     {
-        clk = clock();
+        clk = Abc_Clock();
         Lit = toLit( Pdr_ObjSatVar(p, k, Aig_ManCo(p->pAig, p->iOutCur)) ); // pos literal (property fails)
         Limit = sat_solver_set_runtime_limit( pSat, Pdr_ManTimeLimit(p) );
         RetValue = sat_solver_solve( pSat, &Lit, &Lit + 1, nConfLimit, 0, 0, 0 );
@@ -324,7 +324,7 @@ int Pdr_ManCheckCube( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppPr
             vLits = Pdr_ManCubeToLits( p, k, pCube, 0, 1 );
 
         // solve 
-        clk = clock();
+        clk = Abc_Clock();
         Limit = sat_solver_set_runtime_limit( pSat, Pdr_ManTimeLimit(p) );
         RetValue = sat_solver_solve( pSat, Vec_IntArray(vLits), Vec_IntArray(vLits) + Vec_IntSize(vLits), nConfLimit, 0, 0, 0 );
         sat_solver_set_runtime_limit( pSat, Limit );
@@ -349,7 +349,7 @@ int Pdr_ManCheckCube( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppPr
         }
 */
     }
-    clk = clock() - clk;
+    clk = Abc_Clock() - clk;
     p->tSat += clk;
     assert( RetValue != l_Undef );
     if ( RetValue == l_False )

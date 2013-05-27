@@ -1525,7 +1525,7 @@ int If_CutGetCones( If_Man_t * p )
 {
     If_Obj_t * pObj;
     int i, Counter = 0;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     If_ManForEachObj( p, pObj, i )
     {
         if ( If_ObjIsAnd(pObj) && pObj->nRefs )
@@ -1535,7 +1535,7 @@ int If_CutGetCones( If_Man_t * p )
         }
     }
     Abc_Print( 1, "Cound not find boundary for %d nodes.\n", Counter );
-    Abc_PrintTime( 1, "Cones", clock() - clk );
+    Abc_PrintTime( 1, "Cones", Abc_Clock() - clk );
     return 1;
 }
 
@@ -1578,7 +1578,7 @@ int If_CutCountTotalFanins( If_Man_t * p )
     If_Obj_t * pObj;
     Vec_Int_t * vLeaves;
     int i, nFaninsTotal = 0, Counter = 0;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     vLeaves = Vec_IntAlloc( 100 );
     If_ManForEachObj( p, pObj, i )
     {
@@ -1592,7 +1592,7 @@ int If_CutCountTotalFanins( If_Man_t * p )
         }
     }
     Abc_Print( 1, "Total cut inputs = %d. Total fanins incremental = %d.\n", nFaninsTotal, Counter );
-    Abc_PrintTime( 1, "Fanins", clock() - clk );
+    Abc_PrintTime( 1, "Fanins", Abc_Clock() - clk );
     Vec_IntFree( vLeaves );
     return 1;
 }

@@ -360,20 +360,20 @@ void Cec_ManPatSavePattern( Cec_ManPat_t * pMan, Cec_ManSat_t *  p, Gia_Obj_t * 
 {
     Vec_Int_t * vPat;
     int nPatLits;
-    clock_t clk, clkTotal = clock();
+    abctime clk, clkTotal = Abc_Clock();
     assert( Gia_ObjIsCo(pObj) );
     pMan->nPats++;
     pMan->nPatsAll++;
     // compute values in the cone of influence
-clk = clock();
+clk = Abc_Clock();
     Gia_ManIncrementTravId( p->pAig );
     nPatLits = Cec_ManPatComputePattern_rec( p, p->pAig, Gia_ObjFanin0(pObj) );
     assert( (Gia_ObjFanin0(pObj)->fMark1 ^ Gia_ObjFaninC0(pObj)) == 1 );
     pMan->nPatLits += nPatLits;
     pMan->nPatLitsAll += nPatLits;
-pMan->timeFind += clock() - clk;
+pMan->timeFind += Abc_Clock() - clk;
     // compute sensitizing path
-clk = clock();
+clk = Abc_Clock();
     Vec_IntClear( pMan->vPattern1 );
     Gia_ManIncrementTravId( p->pAig );
     Cec_ManPatComputePattern1_rec( p->pAig, Gia_ObjFanin0(pObj), pMan->vPattern1 );
@@ -385,18 +385,18 @@ clk = clock();
     vPat = Vec_IntSize(pMan->vPattern1) < Vec_IntSize(pMan->vPattern2) ? pMan->vPattern1 : pMan->vPattern2;
     pMan->nPatLitsMin += Vec_IntSize(vPat);
     pMan->nPatLitsMinAll += Vec_IntSize(vPat);
-pMan->timeShrink += clock() - clk;
+pMan->timeShrink += Abc_Clock() - clk;
     // verify pattern using ternary simulation
-clk = clock();
+clk = Abc_Clock();
     Cec_ManPatVerifyPattern( p->pAig, pObj, vPat );
-pMan->timeVerify += clock() - clk;
+pMan->timeVerify += Abc_Clock() - clk;
     // sort pattern
-clk = clock();
+clk = Abc_Clock();
     Vec_IntSort( vPat, 0 );
-pMan->timeSort += clock() - clk;
+pMan->timeSort += Abc_Clock() - clk;
     // save pattern
     Cec_ManPatStore( pMan, vPat );
-    pMan->timeTotal += clock() - clkTotal;
+    pMan->timeTotal += Abc_Clock() - clkTotal;
 }
 
 /**Function*************************************************************
@@ -452,7 +452,7 @@ Vec_Ptr_t * Cec_ManPatCollectPatterns( Cec_ManPat_t *  pMan, int nInputs, int nW
     int iStartOld = pMan->iStart;
     int nWords = nWordsInit;
     int nBits = 32 * nWords;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     vInfo = Vec_PtrAllocSimInfo( nInputs, nWords );
     Gia_ManRandomInfo( vInfo, 0, 0, nWords );
     vPres = Vec_PtrAllocSimInfo( nInputs, nWords );
@@ -477,14 +477,14 @@ Vec_Ptr_t * Cec_ManPatCollectPatterns( Cec_ManPat_t *  pMan, int nInputs, int nW
     }
     Vec_PtrFree( vPres );
     pMan->nSeries = Vec_PtrReadWordsSimInfo(vInfo) / nWordsInit;
-    pMan->timePack += clock() - clk;
-    pMan->timeTotal += clock() - clk;
+    pMan->timePack += Abc_Clock() - clk;
+    pMan->timeTotal += Abc_Clock() - clk;
     pMan->iStart = iStartOld;
     if ( pMan->fVerbose )
     {
         Abc_Print( 1, "Total = %5d. Max used = %5d. Full = %5d. Series = %d. ", 
             nPatterns, kMax, nWordsInit*32, pMan->nSeries );
-        ABC_PRT( "Time", clock() - clk );
+        ABC_PRT( "Time", Abc_Clock() - clk );
         Cec_ManPatPrintStats( pMan );
     }
     return vInfo;

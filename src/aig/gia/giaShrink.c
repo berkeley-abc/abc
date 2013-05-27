@@ -53,7 +53,7 @@ Gia_Man_t * Gia_ManMapShrink4( Gia_Man_t * p, int fKeepLevel, int fVerbose )
     Gia_Obj_t * pObj, * pFanin;
     unsigned * pTruth;
     int i, k, iFan;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
 //    int ClassCounts[222] = {0};
     int * pLutClass, Counter = 0;
     assert( p->pMapping != NULL );
@@ -139,7 +139,7 @@ Gia_Man_t * Gia_ManMapShrink4( Gia_Man_t * p, int fKeepLevel, int fVerbose )
     if ( fVerbose )
     {
         printf( "Total gain in AIG nodes = %d.  ", Gia_ManObjNum(p)-Gia_ManObjNum(pNew) );
-        ABC_PRT( "Total runtime", clock() - clk );
+        ABC_PRT( "Total runtime", Abc_Clock() - clk );
     }
     ABC_FREE( pLutClass );
     return pNew;

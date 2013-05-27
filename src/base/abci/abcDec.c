@@ -464,7 +464,7 @@ void Abc_TtStoreTest( char * pFileName )
 ***********************************************************************/
 void Abc_TruthDecPerform( Abc_TtStore_t * p, int DecType, int fVerbose )
 {
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     int i, nNodes = 0;
 
     char * pAlgoName = NULL;
@@ -556,7 +556,7 @@ void Abc_TruthDecPerform( Abc_TtStore_t * p, int DecType, int fVerbose )
     else assert( 0 );
 
     printf( "AIG nodes =%9d  ", nNodes );
-    Abc_PrintTime( 1, "Time", clock() - clk );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 }
 
 /**Function*************************************************************

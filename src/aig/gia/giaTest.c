@@ -379,7 +379,7 @@ void Mig_ManSetRefs( Mig_Man_t * p )
 {
     Mig_Obj_t * pObj;
     int i, iFanin;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     Vec_IntFill( &p->vRefs, Mig_ManObjNum(p), 0 );
     // increment references
     Mig_ManForEachObj( p, pObj )
@@ -389,7 +389,7 @@ void Mig_ManSetRefs( Mig_Man_t * p )
     // check that internal nodes have fanins
     Mig_ManForEachNode( p, pObj )
         assert( Vec_IntEntry(&p->vRefs, Mig_ObjId(pObj)) > 0 );
-    Abc_PrintTime( 1, "Time", clock() - clk );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 }
 
 /**Function*************************************************************
@@ -443,12 +443,12 @@ int Mig_ManSuppSizeTest( Mig_Man_t * p )
 {
     Mig_Obj_t * pObj;
     int Counter = 0;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     Mig_ManForEachObj( p, pObj )
         if ( Mig_ObjIsNode(pObj) )
             Counter += (Mig_ManSuppSizeOne(pObj) <= 16);
     printf( "Nodes with small support %d (out of %d)\n", Counter, Mig_ManNodeNum(p) );
-    Abc_PrintTime( 1, "Time", clock() - clk );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     return Counter;
 }
 
@@ -1343,13 +1343,13 @@ finish:
 void Mpm_ManPerform( Mpm_Man_t * p )
 {
     Mig_Obj_t * pObj;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     int i;
     Mig_ManForEachCi( p->pMig, pObj, i )
         Mpm_ManObj(p, pObj)->iCutList = Mpm_CutCreateUnit( p, pObj );
     Mig_ManForEachNode( p->pMig, pObj )
         Mpm_ManDeriveCuts( p, pObj );
-    Abc_PrintTime( 1, "Time", clock() - clk );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 }
 void Mpm_ManPerformTest( Mig_Man_t * pMig )
 {

@@ -185,7 +185,7 @@ int Cec_ManSeqResimulateInfo( Gia_Man_t * pAig, Vec_Ptr_t * vSimInfo, Abc_Cex_t 
 {
     Cec_ParSim_t ParsSim, * pParsSim = &ParsSim;
     Cec_ManSim_t * pSim;
-    int RetValue;//, clkTotal = clock();
+    int RetValue;//, clkTotal = Abc_Clock();
     assert( (Vec_PtrSize(vSimInfo) - Gia_ManRegNum(pAig)) % Gia_ManPiNum(pAig) == 0 );
     Cec_ManSimSetDefaultParams( pParsSim );
     pParsSim->nFrames = (Vec_PtrSize(vSimInfo) - Gia_ManRegNum(pAig)) / Gia_ManPiNum(pAig);
@@ -216,7 +216,7 @@ int Cec_ManSeqResimulateCounter( Gia_Man_t * pAig, Cec_ParSim_t * pPars, Abc_Cex
 {
     Vec_Ptr_t * vSimInfo;
     int RetValue;
-    clock_t clkTotal = clock();
+    abctime clkTotal = Abc_Clock();
     if ( pCex == NULL )
     {
         Abc_Print( 1, "Cec_ManSeqResimulateCounter(): Counter-example is not available.\n" );
@@ -251,7 +251,7 @@ int Cec_ManSeqResimulateCounter( Gia_Man_t * pAig, Cec_ParSim_t * pPars, Abc_Cex
         Gia_ManEquivPrintClasses( pAig, 0, 0 );
     Vec_PtrFree( vSimInfo );
     if ( pPars->fVerbose )
-        ABC_PRT( "Time", clock() - clkTotal );
+        ABC_PRT( "Time", Abc_Clock() - clkTotal );
 //    if ( RetValue && pPars->fCheckMiter )
 //        Abc_Print( 1, "Cec_ManSeqResimulateCounter(): An output of the miter is asserted!\n" );
     return RetValue;

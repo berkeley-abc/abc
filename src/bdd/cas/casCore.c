@@ -81,7 +81,7 @@ int Abc_CascadeExperiment( char * pFileGeneric, DdManager * dd, DdNode ** pOutpu
     int i;
     int nVars = nInputs;
     int nOuts = nOutputs;
-    clock_t clk1;
+    abctime clk1;
 
     int      nVarsEnc;              // the number of additional variables to encode outputs
     DdNode * pbVarsEnc[MAXOUTPUTS]; // the BDDs of the encoding vars
@@ -140,11 +140,11 @@ int Abc_CascadeExperiment( char * pFileGeneric, DdManager * dd, DdNode ** pOutpu
 //  printf( "\n" );
 
     // derive the single-output function
-    clk1 = clock();
+    clk1 = Abc_Clock();
     aFunc = GetSingleOutputFunction( dd, pOutputs, nOuts, pbVarsEnc, nVarsEnc, fVerbose );  Cudd_Ref( aFunc );
 //  aFunc = GetSingleOutputFunctionRemapped( dd, pOutputs, nOuts, pbVarsEnc, nVarsEnc );  Cudd_Ref( aFunc );
 //  if ( fVerbose )
-//  printf( "Single-output function computation time = %.2f sec\n", (float)(clock() - clk1)/(float)(CLOCKS_PER_SEC) );
+//  printf( "Single-output function computation time = %.2f sec\n", (float)(Abc_Clock() - clk1)/(float)(CLOCKS_PER_SEC) );
  
 //fprintf( pTable, "%d ", Cudd_SharingSize( pOutputs, nOutputs ) );
 //fprintf( pTable, "%d ", Extra_ProfileWidthSharingMax(dd, pOutputs, nOutputs) );
@@ -155,7 +155,7 @@ int Abc_CascadeExperiment( char * pFileGeneric, DdManager * dd, DdNode ** pOutpu
     // reorder the single output function
 //    if ( fVerbose )
 //  printf( "Reordering variables...\n");
-    clk1 = clock();
+    clk1 = Abc_Clock();
 //  if ( fVerbose )
 //  printf( "Node count before = %6d\n", Cudd_DagSize( aFunc ) );
 //  Cudd_ReduceHeap(dd, CUDD_REORDER_SIFT,1);
@@ -168,7 +168,7 @@ int Abc_CascadeExperiment( char * pFileGeneric, DdManager * dd, DdNode ** pOutpu
     if ( fVerbose )
     printf( "MTBDD reordered = %6d nodes\n", Cudd_DagSize( aFunc ) );
     if ( fVerbose )
-    printf( "Variable reordering time = %.2f sec\n", (float)(clock() - clk1)/(float)(CLOCKS_PER_SEC) );
+    printf( "Variable reordering time = %.2f sec\n", (float)(Abc_Clock() - clk1)/(float)(CLOCKS_PER_SEC) );
 //  printf( "\n" );
 //  printf( "Variable order is: " );
 //  for ( i = 0; i < dd->size; i++ )
@@ -178,16 +178,16 @@ int Abc_CascadeExperiment( char * pFileGeneric, DdManager * dd, DdNode ** pOutpu
 //fprintf( pTable, "%d ", Extra_ProfileWidthMax(dd, aFunc) );
 
     // write the single-output function into BLIF for verification
-    clk1 = clock();
+    clk1 = Abc_Clock();
     if ( fCheck )
     WriteSingleOutputFunctionBlif( dd, aFunc, pNames, nNames, FileNameIni );
 //    if ( fVerbose )
-//  printf( "Single-output function writing time = %.2f sec\n", (float)(clock() - clk1)/(float)(CLOCKS_PER_SEC) );
+//  printf( "Single-output function writing time = %.2f sec\n", (float)(Abc_Clock() - clk1)/(float)(CLOCKS_PER_SEC) );
 
 /*
     ///////////////////////////////////////////////////////////////////
     // verification of single output function
-    clk1 = clock();
+    clk1 = Abc_Clock();
     {
         BFunc g_Func;
         DdNode * aRes;
@@ -214,7 +214,7 @@ int Abc_CascadeExperiment( char * pFileGeneric, DdManager * dd, DdNode ** pOutpu
         // delocate
         Extra_Dissolve( &g_Func );
     }
-    printf( "Preliminary verification time = %.2f sec\n", (float)(clock() - clk1)/(float)(CLOCKS_PER_SEC) );
+    printf( "Preliminary verification time = %.2f sec\n", (float)(Abc_Clock() - clk1)/(float)(CLOCKS_PER_SEC) );
     ///////////////////////////////////////////////////////////////////
 */
 
@@ -224,7 +224,7 @@ int Abc_CascadeExperiment( char * pFileGeneric, DdManager * dd, DdNode ** pOutpu
 /*
     ///////////////////////////////////////////////////////////////////
     // verification of the decomposed LUT network
-    clk1 = clock();
+    clk1 = Abc_Clock();
     {
         BFunc g_Func;
         DdNode * aRes;
@@ -251,7 +251,7 @@ int Abc_CascadeExperiment( char * pFileGeneric, DdManager * dd, DdNode ** pOutpu
         // delocate 
         Extra_Dissolve( &g_Func );
     }
-    printf( "Final verification time = %.2f sec\n", (float)(clock() - clk1)/(float)(CLOCKS_PER_SEC) );
+    printf( "Final verification time = %.2f sec\n", (float)(Abc_Clock() - clk1)/(float)(CLOCKS_PER_SEC) );
     ///////////////////////////////////////////////////////////////////
 */
  
@@ -325,24 +325,24 @@ void Experiment2( BFunc * pFunc )
     strcat( FileNameFin, "_LUT.blif" );
 
     // derive the single-output function IN THE NEW MANAGER
-    clk1 = clock();
+    clk1 = Abc_Clock();
 //  aFunc = GetSingleOutputFunction( dd, pFunc->pOutputs, nOuts, pbVarsEnc, nVarsEnc );  Cudd_Ref( aFunc );
     aFunc = GetSingleOutputFunctionRemappedNewDD( dd, pFunc->pOutputs, nOuts, &DdNew );  Cudd_Ref( aFunc );
-    printf( "Single-output function derivation time = %.2f sec\n", (float)(clock() - clk1)/(float)(CLOCKS_PER_SEC) );
-//  s_RemappingTime = clock() - clk1;
+    printf( "Single-output function derivation time = %.2f sec\n", (float)(Abc_Clock() - clk1)/(float)(CLOCKS_PER_SEC) );
+//  s_RemappingTime = Abc_Clock() - clk1;
 
     // dispose of the multiple-output function
     Extra_Dissolve( pFunc );
 
     // reorder the single output function
     printf( "\nReordering variables in the new manager...\n");
-    clk1 = clock();
+    clk1 = Abc_Clock();
     printf( "Node count before = %d\n", Cudd_DagSize( aFunc ) );
 //  Cudd_ReduceHeap(DdNew, CUDD_REORDER_SIFT,1);
     Cudd_ReduceHeap(DdNew, CUDD_REORDER_SYMM_SIFT,1);
 //  Cudd_ReduceHeap(DdNew, CUDD_REORDER_SYMM_SIFT,1);
     printf( "Node count after  = %d\n", Cudd_DagSize( aFunc ) );
-    printf( "Variable reordering time = %.2f sec\n", (float)(clock() - clk1)/(float)(CLOCKS_PER_SEC) );
+    printf( "Variable reordering time = %.2f sec\n", (float)(Abc_Clock() - clk1)/(float)(CLOCKS_PER_SEC) );
     printf( "\n" );
 
 //fprintf( pTable, "%d ", Cudd_DagSize( aFunc ) );
@@ -360,14 +360,14 @@ void Experiment2( BFunc * pFunc )
 
 
     // write the single-output function into BLIF for verification
-    clk1 = clock();
+    clk1 = Abc_Clock();
     WriteSingleOutputFunctionBlif( DdNew, aFunc, pNames, nNames, FileNameIni );
-    printf( "Single-output function writing time = %.2f sec\n", (float)(clock() - clk1)/(float)(CLOCKS_PER_SEC) );
+    printf( "Single-output function writing time = %.2f sec\n", (float)(Abc_Clock() - clk1)/(float)(CLOCKS_PER_SEC) );
 
 
     ///////////////////////////////////////////////////////////////////
     // verification of single output function
-    clk1 = clock();
+    clk1 = Abc_Clock();
     {
         BFunc g_Func;
         DdNode * aRes;
@@ -394,7 +394,7 @@ void Experiment2( BFunc * pFunc )
         // delocate
         Extra_Dissolve( &g_Func );
     }
-    printf( "Preliminary verification time = %.2f sec\n", (float)(clock() - clk1)/(float)(CLOCKS_PER_SEC) );
+    printf( "Preliminary verification time = %.2f sec\n", (float)(Abc_Clock() - clk1)/(float)(CLOCKS_PER_SEC) );
     ///////////////////////////////////////////////////////////////////
 
 
@@ -403,7 +403,7 @@ void Experiment2( BFunc * pFunc )
 /*
     ///////////////////////////////////////////////////////////////////
     // verification of the decomposed LUT network
-    clk1 = clock();
+    clk1 = Abc_Clock();
     {
         BFunc g_Func;
         DdNode * aRes;
@@ -430,7 +430,7 @@ void Experiment2( BFunc * pFunc )
         // delocate
         Extra_Dissolve( &g_Func );
     }
-    printf( "Final verification time = %.2f sec\n", (float)(clock() - clk1)/(float)(CLOCKS_PER_SEC) );
+    printf( "Final verification time = %.2f sec\n", (float)(Abc_Clock() - clk1)/(float)(CLOCKS_PER_SEC) );
     ///////////////////////////////////////////////////////////////////
 */
 
@@ -954,12 +954,12 @@ void WriteDDintoBLIFfileReorder( DdManager * dd, FILE * pFile, DdNode * Func, ch
 
     ///////////////////////////////////////////////////////////////
     DdNode * bFmin;
-    clock_t clk1;
+    abctime clk1;
 
     if ( s_ddmin == NULL )
         s_ddmin = Cudd_Init( dd->size, 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0);
 
-    clk1 = clock();
+    clk1 = Abc_Clock();
     bFmin = Cudd_bddTransfer( dd, s_ddmin, Func );  Cudd_Ref( bFmin );
 
     // reorder

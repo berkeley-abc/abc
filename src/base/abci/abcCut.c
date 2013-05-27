@@ -128,7 +128,7 @@ Cut_Man_t * Abc_NtkCuts( Abc_Ntk_t * pNtk, Cut_Params_t * pParams )
     Vec_Ptr_t * vNodes;
     Vec_Int_t * vChoices;
     int i;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
 
     extern void Abc_NtkBalanceAttach( Abc_Ntk_t * pNtk );
     extern void Abc_NtkBalanceDetach( Abc_Ntk_t * pNtk );
@@ -201,10 +201,10 @@ Cut_Man_t * Abc_NtkCuts( Abc_Ntk_t * pNtk, Cut_Params_t * pParams )
     Vec_PtrFree( vNodes );
     Vec_IntFree( vChoices );
     Cut_ManPrintStats( p );
-ABC_PRT( "TOTAL", clock() - clk );
+ABC_PRT( "TOTAL", Abc_Clock() - clk );
 //    printf( "Area = %d.\n", Abc_NtkComputeArea( pNtk, p ) );
 //Abc_NtkPrintCuts( p, pNtk, 0 );
-//    Cut_ManPrintStatsToFile( p, pNtk->pSpec, clock() - clk );
+//    Cut_ManPrintStatsToFile( p, pNtk->pSpec, Abc_Clock() - clk );
 
     // temporary printout of stats
     if ( nTotal )
@@ -229,7 +229,7 @@ void Abc_NtkCutsOracle( Abc_Ntk_t * pNtk, Cut_Oracle_t * p )
 {
     Abc_Obj_t * pObj;
     Vec_Ptr_t * vNodes;
-    int i; //, clk = clock();
+    int i; //, clk = Abc_Clock();
     int fDrop = Cut_OracleReadDrop(p);
 
     assert( Abc_NtkIsStrash(pNtk) );
@@ -268,7 +268,7 @@ void Abc_NtkCutsOracle( Abc_Ntk_t * pNtk, Cut_Oracle_t * p )
         }
     }
     Vec_PtrFree( vNodes );
-//ABC_PRT( "Total", clock() - clk );
+//ABC_PRT( "Total", Abc_Clock() - clk );
 //Abc_NtkPrintCuts_( p, pNtk, 0 );
 }
 
@@ -291,7 +291,7 @@ Cut_Man_t * Abc_NtkSeqCuts( Abc_Ntk_t * pNtk, Cut_Params_t * pParams )
     Abc_Obj_t * pObj, * pNode;
     int i, nIters, fStatus;
     Vec_Int_t * vChoices;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
 
     assert( Abc_NtkIsSeq(pNtk) );
     assert( pParams->fSeq );
@@ -368,7 +368,7 @@ Cut_Man_t * Abc_NtkSeqCuts( Abc_Ntk_t * pNtk, Cut_Params_t * pParams )
 if ( pParams->fVerbose )
 {
     Cut_ManPrintStats( p );
-ABC_PRT( "TOTAL ", clock() - clk );
+ABC_PRT( "TOTAL ", Abc_Clock() - clk );
 printf( "Converged after %d iterations.\n", nIters );
 }
 //Abc_NtkPrintCuts( p, pNtk, 1 );

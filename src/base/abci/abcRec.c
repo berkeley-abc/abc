@@ -106,23 +106,23 @@ struct Abc_ManRec_t_
     int               nFunsDelayComput;         // the times delay computed, just for statistics
     int               nNoBetter;                // the number of functions found but no better than the current structures.
     // rewriting runtime
-    clock_t           timeIfTotal;              // time used on the whole process of rewriting a structure.
-    clock_t           timeIfComputDelay;        // time used on the structure's delay computation.
-    clock_t           timeIfCanonicize;         // time used on canonicize the function
-    clock_t           timeIfDerive;             // time used on derive the final network;
-    clock_t           timeIfCopmutCur;          // time used on compute the current structures info
-    clock_t           timeIfOther;              // time used on other things
+    abctime           timeIfTotal;              // time used on the whole process of rewriting a structure.
+    abctime           timeIfComputDelay;        // time used on the structure's delay computation.
+    abctime           timeIfCanonicize;         // time used on canonicize the function
+    abctime           timeIfDerive;             // time used on derive the final network;
+    abctime           timeIfCopmutCur;          // time used on compute the current structures info
+    abctime           timeIfOther;              // time used on other things
     // record runtime
-    clock_t           timeTrim;                 // the runtime to filter the library
-    clock_t           timeCollect;              // the runtime to collect the node of a structure.
-    clock_t           timeTruth;                // the runtime to compute truth table.
-    clock_t           timeCanon;                // the runtime to canonicize
-    clock_t           timeInsert;               // the runtime to insert a structure.
-    clock_t           timeBuild;                // the runtime to build a new structure in the library.
-    clock_t           timeMerge;                // the runtime to merge libraries;
-    clock_t           timeReHash;                // the runtime to resize the hash table.
-    clock_t           timeOther;                // the runtime of other
-    clock_t           timeTotal;                // the runtime to total.
+    abctime           timeTrim;                 // the runtime to filter the library
+    abctime           timeCollect;              // the runtime to collect the node of a structure.
+    abctime           timeTruth;                // the runtime to compute truth table.
+    abctime           timeCanon;                // the runtime to canonicize
+    abctime           timeInsert;               // the runtime to insert a structure.
+    abctime           timeBuild;                // the runtime to build a new structure in the library.
+    abctime           timeMerge;                // the runtime to merge libraries;
+    abctime           timeReHash;                // the runtime to resize the hash table.
+    abctime           timeOther;                // the runtime of other
+    abctime           timeTotal;                // the runtime to total.
 };
 
 
@@ -859,7 +859,7 @@ Hop_Obj_t * Abc_RecToHop( Hop_Man_t * pMan, If_Man_t * pIfMan, If_Cut_t * pCut, 
     char pCanonPerm[16];
     unsigned *pInOut = s_pMan->pTemp1;
     unsigned *pTemp = s_pMan->pTemp2;
-    clock_t time = clock();
+    abctime time = Abc_Clock();
     int fCompl;
     int * pCompl = &fCompl;
     nLeaves = If_CutLeaveNum(pCut);
@@ -895,8 +895,8 @@ Hop_Obj_t * Abc_RecToHop( Hop_Man_t * pMan, If_Man_t * pIfMan, If_Cut_t * pCut, 
     Abc_NtkIncrementTravId(pAig);
     //derive the best structure in the library.
     pHopObj = Abc_NtkRecBuildUp_rec(pMan, pCandMin->obj, s_pMan->vLabels);
-    s_pMan->timeIfDerive += clock() - time;
-    s_pMan->timeIfTotal += clock() - time;
+    s_pMan->timeIfDerive += Abc_Clock() - time;
+    s_pMan->timeIfTotal += Abc_Clock() - time;
     return Hop_NotCond(pHopObj, (pCut->fCompl)^(((uCanonPhase & (1 << nLeaves)) > 0)) ^ fCompl);    
 }
 
@@ -1007,7 +1007,7 @@ void Abc_NtkRecFilter(int nLimit)
     Rec_Obj_t * previous = NULL, * entry = NULL, * pTemp;
     int i;
     Abc_Ntk_t * pNtk = s_pMan->pNtk;
-    clock_t time = clock();
+    abctime time = Abc_Clock();
     if (nLimit > 0)
     {
         for ( i = 0; i < s_pMan->nBins; i++ )
@@ -1048,8 +1048,8 @@ void Abc_NtkRecFilter(int nLimit)
     Abc_NtkDelete( pNtk );
 
     // collect runtime stats
-    s_pMan->timeTrim += clock() - time;
-    s_pMan->timeTotal += clock() - time;
+    s_pMan->timeTrim += Abc_Clock() - time;
+    s_pMan->timeTotal += Abc_Clock() - time;
 }
 
 
@@ -1134,7 +1134,7 @@ void Abc_NtkRecLibMerge(Abc_Ntk_t* pNtk)
     int i;
     Abc_Obj_t * pObj;
     Abc_ManRec_t * p = s_pMan;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     if ( Abc_NtkPiNum(pNtk) > s_pMan->nVars )
     {
         printf( "The library has more inputs than the record.\n");
@@ -1162,8 +1162,8 @@ void Abc_NtkRecLibMerge(Abc_Ntk_t* pNtk)
     {
         Abc_ObjClearMax( pObj );
     }
-    s_pMan->timeMerge += clock() - clk;
-    s_pMan->timeTotal += clock() - clk;
+    s_pMan->timeMerge += Abc_Clock() - clk;
+    s_pMan->timeTotal += Abc_Clock() - clk;
 }
 
 /**Function*************************************************************
@@ -1182,7 +1182,7 @@ void Abc_NtkRecRezieHash(Abc_ManRec_t* p)
     Rec_Obj_t ** pBinsNew, **ppSpot;
     Rec_Obj_t * pEntry, * pTemp;
     int nBinsNew, Counter, i;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     // get the new table size
     nBinsNew = Cudd_Prime( 3 * p->nBins ); 
     printf("Hash table resize from %d to %d.\n", p->nBins, nBinsNew);
@@ -1206,8 +1206,8 @@ void Abc_NtkRecRezieHash(Abc_ManRec_t* p)
     ABC_FREE( p->pBins );
     p->pBins = pBinsNew;
     p->nBins = nBinsNew;
-    p->timeReHash += clock() - clk;
-    p->timeTotal += clock() - clk;
+    p->timeReHash += Abc_Clock() - clk;
+    p->timeTotal += Abc_Clock() - clk;
 
 }
 
@@ -1231,7 +1231,7 @@ void Abc_NtkRecStart( Abc_Ntk_t * pNtk, int nVars, int nCuts, int fTrim )
     char Buffer[10];
     unsigned * pTruth;
     int i, RetValue;
-    clock_t clkTotal = clock(), clk, timeInsert;
+    abctime clkTotal = Abc_Clock(), clk, timeInsert;
     //int testNum = 0;
 
     assert( s_pMan == NULL );
@@ -1308,14 +1308,14 @@ void Abc_NtkRecStart( Abc_Ntk_t * pNtk, int nVars, int nCuts, int fTrim )
         Kit_TruthCopy( (unsigned *)Vec_PtrEntry(p->vTtNodes, pObj->Id), (unsigned *)Vec_PtrEntry(p->vTtElems, i), p->nVars );
 
     // compute the tables
-clk = clock();
+clk = Abc_Clock();
     
     Abc_AigForEachAnd( pNtk, pObj, i )
     {
         RetValue = Abc_NtkRecComputeTruth( pObj, p->vTtNodes, p->nVars );
         assert( RetValue );
     }
-p->timeTruth += clock() - clk;
+p->timeTruth += Abc_Clock() - clk;
 
     Abc_NtkForEachPi( pNtk, pObj, i )
         Abc_ObjSetMax( pObj, i+1 );
@@ -1323,7 +1323,7 @@ p->timeTruth += clock() - clk;
         Abc_ObjSetMax( pObj, Abc_MaxInt( Abc_ObjGetMax(Abc_ObjFanin0(pObj)), Abc_ObjGetMax(Abc_ObjFanin1(pObj)) ) );
 
     // insert the PO nodes into the table
-    timeInsert = clock();
+    timeInsert = Abc_Clock();
     Abc_NtkForEachPo( pNtk, pObj, i )
     {
         p->nTried++;
@@ -1341,7 +1341,7 @@ p->timeTruth += clock() - clk;
         ppSpot = Abc_NtkRecTableLookup(p, p->pBins, p->nBins, pTruth, p->nVars );
         Abc_NtkRecInsertToLookUpTable(p, ppSpot, pObj, Abc_ObjGetMax(pObj), p->fTrim);       
     }
-    p->timeInsert += clock() - timeInsert;
+    p->timeInsert += Abc_Clock() - timeInsert;
     Abc_NtkForEachObj( pNtk, pObj, i )
     {
         Abc_ObjClearMax( pObj );
@@ -1361,7 +1361,7 @@ p->timeTruth += clock() - clk;
 
     // set the manager
     s_pMan = p;
-    p->timeTotal += clock() - clkTotal;
+    p->timeTotal += Abc_Clock() - clkTotal;
 }
 
 /**Function*************************************************************
@@ -1688,7 +1688,7 @@ void Abc_NtkRecAdd( Abc_Ntk_t * pNtk, int fUseSOPB)
 
     If_Par_t Pars, * pPars = &Pars;
     Abc_Ntk_t * pNtkNew;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
 
     if ( Abc_NtkGetChoiceNum( pNtk ) )
         printf( "Performing renoding with choices.\n" );
@@ -1739,7 +1739,7 @@ void Abc_NtkRecAdd( Abc_Ntk_t * pNtk, int fUseSOPB)
     // perform recording
     pNtkNew = Abc_NtkIf( pNtk, pPars );
     Abc_NtkDelete( pNtkNew );
-s_pMan->timeTotal += clock() - clk;
+s_pMan->timeTotal += Abc_Clock() - clk;
 
 //    if ( !Abc_NtkCheck( s_pMan->pNtk ) )
 //        printf( "Abc_NtkRecAdd: The network check has failed.\n" );
@@ -2066,7 +2066,7 @@ void Abc_NtkRecAddSOPB( If_Man_t * pIfMan, If_Cut_t * pCut, unsigned* pInOut, ch
     If_And_t This;
     Rec_Obj_t ** ppSpot;
     char Buffer[40], Name[20], Truth[20];
-    clock_t timeBuild = clock();
+    abctime timeBuild = Abc_Clock();
     unsigned * pTruth;
     vAnds = If_CutDelaySopArray( pIfMan, pCut );
     if(Vec_WrdSize(vAnds) > nLeaves + 3*(nLeaves-1) + s_MaxSize[nLeaves])
@@ -2129,7 +2129,7 @@ void Abc_NtkRecAddSOPB( If_Man_t * pIfMan, If_Cut_t * pCut, unsigned* pInOut, ch
         printf( "F" );
         return;
     }
-    s_pMan->timeBuild = clock() - timeBuild;
+    s_pMan->timeBuild = Abc_Clock() - timeBuild;
     //    Extra_PrintBinary( stdout, pInOut, 8 ); printf( "\n" );
 
     // look up in the hash table and increase the hit number of the functional class
@@ -2164,11 +2164,11 @@ void Abc_NtkRecAddSOPB( If_Man_t * pIfMan, If_Cut_t * pCut, unsigned* pInOut, ch
     Abc_ObjAssignName( pObjPo, Buffer, NULL );
 
     // add the resulting truth table to the hash table 
-    timeInsert = clock();
+    timeInsert = Abc_Clock();
     ppSpot = Abc_NtkRecTableLookup(s_pMan, s_pMan->pBins, s_pMan->nBins, pTruth, s_pMan->nVars );
     Abc_NtkRecInsertToLookUpTable(s_pMan, ppSpot, pObj, nLeaves, s_pMan->fTrim); 
-    s_pMan->timeInsert += clock() - timeInsert;
-    s_pMan->timeTotal = clock() - timeBuild;
+    s_pMan->timeInsert += Abc_Clock() - timeInsert;
+    s_pMan->timeTotal = Abc_Clock() - timeBuild;
     return;
    
 }
@@ -2199,8 +2199,8 @@ int Abc_NtkRecAddCut( If_Man_t * pIfMan, If_Obj_t * pRoot, If_Cut_t * pCut )
     unsigned * pTruth;
     int i, RetValue, nNodes, nNodesBeg, nInputs = s_pMan->nVars, nLeaves = If_CutLeaveNum(pCut);
     unsigned uCanonPhase;
-    clock_t clk, timeInsert, timeBuild;
-    //int begin = clock();
+    abctime clk, timeInsert, timeBuild;
+    //int begin = Abc_Clock();
     assert( nInputs <= 16 );
     assert( nInputs == (int)pCut->nLimit );
     s_pMan->nTried++;
@@ -2212,10 +2212,10 @@ int Abc_NtkRecAddCut( If_Man_t * pIfMan, If_Obj_t * pRoot, If_Cut_t * pCut )
      }
     
     // collect internal nodes and skip redundant cuts
-clk = clock();
+clk = Abc_Clock();
     RetValue = Abc_NtkRecCollectNodes( pIfMan, pRoot, pCut, vNodes );
 
-s_pMan->timeCollect += clock() - clk;
+s_pMan->timeCollect += Abc_Clock() - clk;
     if ( !RetValue )
     {
         s_pMan->nFilterRedund++;
@@ -2230,9 +2230,9 @@ s_pMan->timeCollect += clock() - clk;
     }
 
     // compute truth table and skip the redundant structures
-clk = clock();
+clk = Abc_Clock();
     RetValue = Abc_NtkRecCutTruth( vNodes, nLeaves, s_pMan->vTtTemps, s_pMan->vTtElems );
-    s_pMan->timeTruth += clock() - clk;
+    s_pMan->timeTruth += Abc_Clock() - clk;
     if ( !RetValue )
     {
         //fprintf(file,"redundant structures\n");
@@ -2249,14 +2249,14 @@ clk = clock();
         pCanonPerm[i] = i;
 
     // semi-canonicize the truth table
-clk = clock();
+clk = Abc_Clock();
     uCanonPhase = Kit_TruthSemiCanonicize( pInOut, pTemp, nLeaves, pCanonPerm );
     If_CutTruthStretch(pInOut, nLeaves, s_pMan->nVars);
-    s_pMan->timeCanon += clock() - clk;
+    s_pMan->timeCanon += Abc_Clock() - clk;
     // pCanonPerm and uCanonPhase show what was the variable corresponding to each var in the current truth
 
     // go through the variables in the new truth table
-    timeBuild = clock();
+    timeBuild = Abc_Clock();
     for ( i = 0; i < nLeaves; i++ )
     {
         // get hold of the corresponding leaf
@@ -2300,7 +2300,7 @@ clk = clock();
         }
     }
     assert(pObj);
-    s_pMan->timeBuild += clock() - timeBuild;
+    s_pMan->timeBuild += Abc_Clock() - timeBuild;
     pTruth = (unsigned *)Vec_PtrEntry( s_pMan->vTtNodes, pObj->Id );
     if ( Kit_TruthSupport(pTruth, nInputs) != Kit_BitMask(nLeaves) )
     {
@@ -2350,9 +2350,9 @@ clk = clock();
     Abc_ObjAssignName( pObjPo, Buffer, NULL );
 
     // add the resulting truth table to the hash table 
-    timeInsert = clock();
+    timeInsert = Abc_Clock();
     Abc_NtkRecInsertToLookUpTable(s_pMan, ppSpot, pObj, nLeaves, s_pMan->fTrim);
-    s_pMan->timeInsert += clock() - timeInsert;
+    s_pMan->timeInsert += Abc_Clock() - timeInsert;
     if (pIfMan->pPars->fDelayOpt)
         Abc_NtkRecAddSOPB(pIfMan, pCut, pTruth, pCanonPerm, uCanonPhase );
     return 1;
@@ -2776,7 +2776,7 @@ void SetUseCut(If_Cut_t* pCut, Rec_Obj_t * pRecObj, char * pCanonPerm)
 int If_CutDelayRecCost(If_Man_t* p, If_Cut_t* pCut, If_Obj_t * pObj)
 {
     //int fVerbose = 0;
-    clock_t timeDelayComput, timeTotal = clock(), timeCanonicize;
+    abctime timeDelayComput, timeTotal = Abc_Clock(), timeCanonicize;
     int nLeaves, i, DelayMin = ABC_INFINITY , * pDelayBest = &DelayMin;
     char pCanonPerm[16];
     unsigned uCanonPhase;
@@ -2813,17 +2813,17 @@ int If_CutDelayRecCost(If_Man_t* p, If_Cut_t* pCut, If_Obj_t * pObj)
             
         return DelayMin;
     }
-    timeCanonicize = clock();
+    timeCanonicize = Abc_Clock();
     //canonicize
     for (i = 0; i < nLeaves; i++)
         pCanonPerm[i] = i;
     uCanonPhase = Kit_TruthSemiCanonicize(pInOut, pTemp, nLeaves, pCanonPerm);
     If_CutTruthStretch(pInOut, nLeaves, nVars);
-    s_pMan->timeIfCanonicize += clock() - timeCanonicize;   
-    timeDelayComput = clock();
+    s_pMan->timeIfCanonicize += Abc_Clock() - timeCanonicize;   
+    timeDelayComput = Abc_Clock();
     pCandMin = Abc_NtkRecLookUpBest(p, pCut, pInOut, pCanonPerm, NULL,pDelayBest);
     assert (!(pCandMin == NULL && nLeaves == 2));
-    s_pMan->timeIfComputDelay += clock() - timeDelayComput;
+    s_pMan->timeIfComputDelay += Abc_Clock() - timeDelayComput;
     //functional class not found in the library.
     if ( pCandMin == NULL )
     {
@@ -2882,7 +2882,7 @@ int If_CutDelayRecCost(If_Man_t* p, If_Cut_t* pCut, If_Obj_t * pObj)
     {
         pCut->pPerm[(int)pCanonPerm[i]] = pCandMin->pinToPinDelay[i];
     }
-    s_pMan->timeIfTotal += clock() - timeTotal;
+    s_pMan->timeIfTotal += Abc_Clock() - timeTotal;
     pCut->Cost = pCandMin->cost;
         return DelayMin;
     

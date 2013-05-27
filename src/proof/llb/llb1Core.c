@@ -114,7 +114,7 @@ int Llb_ManModelCheckAig( Aig_Man_t * pAigGlo, Gia_ParLlb_t * pPars, Vec_Int_t *
     Llb_Man_t * p = NULL; 
     Aig_Man_t * pAig;
     int RetValue = -1;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
 
     if ( pPars->fIndConstr )
     {
@@ -176,7 +176,7 @@ int Llb_ManModelCheckAig( Aig_Man_t * pAigGlo, Gia_ParLlb_t * pPars, Vec_Int_t *
         RetValue = Llb_ManReachability( p, vHints, pddGlo );
     Llb_ManStop( p );
 
-    Abc_PrintTime( 1, "Time", clock() - clk );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 
     if ( pPars->fIndConstr )
         Vec_IntFreeP( &vHints );

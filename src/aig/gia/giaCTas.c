@@ -108,10 +108,10 @@ struct Tas_Man_t_
     int           nConfSat;     // conflicts in sat problems
     int           nConfUndec;   // conflicts in undec problems
     // runtime stats
-    clock_t       timeSatUnsat; // unsat
-    clock_t       timeSatSat;   // sat
-    clock_t       timeSatUndec; // undecided
-    clock_t       timeTotal;    // total runtime
+    abctime       timeSatUnsat; // unsat
+    abctime       timeSatSat;   // sat
+    abctime       timeSatUndec; // undecided
+    abctime       timeTotal;    // total runtime
 };
 
 static inline int   Tas_VarIsAssigned( Gia_Obj_t * pVar )      { return pVar->fMark0;                        }
@@ -1525,7 +1525,7 @@ Vec_Int_t * Tas_ManSolveMiterNc( Gia_Man_t * pAig, int nConfs, Vec_Str_t ** pvSt
 //    Gia_Man_t * pAigCopy = Gia_ManDup( pAig ), * pAigTemp;
 
     int i, status;
-    clock_t clk, clkTotal = clock();
+    abctime clk, clkTotal = Abc_Clock();
     assert( Gia_ManRegNum(pAig) == 0 );
 //    Gia_ManCollectTest( pAig );
     // prepare AIG
@@ -1563,7 +1563,7 @@ Vec_Int_t * Tas_ManSolveMiterNc( Gia_Man_t * pAig, int nConfs, Vec_Str_t ** pvSt
             }
             continue;
         } 
-        clk = clock();
+        clk = Abc_Clock();
 //        p->Pars.fUseActive  = 1;
         p->Pars.fUseHighest = 1;
         p->Pars.fUseLowest  = 0;
@@ -1585,7 +1585,7 @@ Vec_Int_t * Tas_ManSolveMiterNc( Gia_Man_t * pAig, int nConfs, Vec_Str_t ** pvSt
             p->nSatUndec++;
             p->nConfUndec += p->Pars.nBTThis;
             Cec_ManSatAddToStore( vCexStore, NULL, i ); // timeout
-            p->timeSatUndec += clock() - clk;
+            p->timeSatUndec += Abc_Clock() - clk;
             continue;
         }
 
@@ -1597,14 +1597,14 @@ Vec_Int_t * Tas_ManSolveMiterNc( Gia_Man_t * pAig, int nConfs, Vec_Str_t ** pvSt
         {
             p->nSatUnsat++;
             p->nConfUnsat += p->Pars.nBTThis;
-            p->timeSatUnsat += clock() - clk;
+            p->timeSatUnsat += Abc_Clock() - clk;
             continue;
         }
         p->nSatSat++;
         p->nConfSat += p->Pars.nBTThis;
 //        Gia_SatVerifyPattern( pAig, pRoot, vCex, vVisit );
         Cec_ManSatAddToStore( vCexStore, vCex, i );
-        p->timeSatSat += clock() - clk;
+        p->timeSatSat += Abc_Clock() - clk;
 
 //        printf( "%d ", Vec_IntSize(vCex) );
     }
@@ -1615,7 +1615,7 @@ Vec_Int_t * Tas_ManSolveMiterNc( Gia_Man_t * pAig, int nConfs, Vec_Str_t ** pvSt
 
     Vec_IntFree( vVisit );
     p->nSatTotal = Gia_ManPoNum(pAig);
-    p->timeTotal = clock() - clkTotal;
+    p->timeTotal = Abc_Clock() - clkTotal;
     if ( fVerbose )
         Tas_ManSatPrintStats( p );
 //    printf( "RecCalls = %8d.  RecClause = %8d.  RecNonChro = %8d.\n", p->nRecCall, p->nRecClause, p->nRecNonChro );
@@ -1705,7 +1705,7 @@ void Tas_ManSolveMiterNc2( Gia_Man_t * pAig, int nConfs, Gia_Man_t * pAigOld, Ve
     Vec_Str_t * vStatus;
     Gia_Obj_t * pRoot, * pOldRoot; 
     int i, status;
-    clock_t clk, clkTotal = clock();
+    abctime clk, clkTotal = Abc_Clock();
     int Tried = 0, Stored = 0, Step = Gia_ManCoNum(pAig) / nPatMax;
     assert( Gia_ManRegNum(pAig) == 0 );
 //    Gia_ManCollectTest( pAig );
@@ -1731,7 +1731,7 @@ void Tas_ManSolveMiterNc2( Gia_Man_t * pAig, int nConfs, Gia_Man_t * pAigOld, Ve
     {
         assert( !Gia_ObjIsConst0(Gia_ObjFanin0(pRoot)) );
         Vec_IntClear( vCex );
-        clk = clock();
+        clk = Abc_Clock();
         p->Pars.fUseHighest = 1;
         p->Pars.fUseLowest  = 0;
         status = Tas_ManSolve( p, Gia_ObjChild0(pRoot), NULL );
@@ -1741,7 +1741,7 @@ void Tas_ManSolveMiterNc2( Gia_Man_t * pAig, int nConfs, Gia_Man_t * pAigOld, Ve
             p->nSatUndec++;
             p->nConfUndec += p->Pars.nBTThis;
 //            Cec_ManSatAddToStore( vCexStore, NULL, i ); // timeout
-            p->timeSatUndec += clock() - clk;
+            p->timeSatUndec += Abc_Clock() - clk;
 
             i += Step;
             continue;
@@ -1750,7 +1750,7 @@ void Tas_ManSolveMiterNc2( Gia_Man_t * pAig, int nConfs, Gia_Man_t * pAigOld, Ve
         {
             p->nSatUnsat++;
             p->nConfUnsat += p->Pars.nBTThis;
-            p->timeSatUnsat += clock() - clk;
+            p->timeSatUnsat += Abc_Clock() - clk;
             // record proved
             pOldRoot = (Gia_Obj_t *)Vec_PtrEntry( vOldRoots, i );
             assert( !Gia_ObjProved( pAigOld, Gia_ObjId(pAigOld, pOldRoot) ) );
@@ -1767,13 +1767,13 @@ void Tas_ManSolveMiterNc2( Gia_Man_t * pAig, int nConfs, Gia_Man_t * pAigOld, Ve
         // save pattern
         Tried++;
         Stored += Tas_StorePattern( vSimInfo, vPres, vCex );
-        p->timeSatSat += clock() - clk;
+        p->timeSatSat += Abc_Clock() - clk;
         i += Step;
     }
     printf( "Tried = %d  Stored = %d\n", Tried, Stored );
     Vec_IntFree( vVisit );
     p->nSatTotal = Gia_ManPoNum(pAig);
-    p->timeTotal = clock() - clkTotal;
+    p->timeTotal = Abc_Clock() - clkTotal;
     if ( fVerbose )
         Tas_ManSatPrintStats( p );
     Tas_ManStop( p );

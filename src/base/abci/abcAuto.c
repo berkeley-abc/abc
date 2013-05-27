@@ -128,14 +128,14 @@ void Abc_NtkAutoPrintAll( DdManager * dd, int nInputs, DdNode * pbOutputs[], int
     int nAutoSymsMaxSupp;
     int nAutoSymOuts;
     int nSuppSizeMax;
-    clock_t clk;
+    abctime clk;
     
     nAutoSymOuts = 0;
     nAutoSyms    = 0;
     nAutoSymsMax = 0;
     nAutoSymsMaxSupp = 0;
     nSuppSizeMax = 0;
-    clk = clock();
+    clk = Abc_Clock();
 
     SigCounter = 0;
     for ( o = 0; o < nOutputs; o++ )
@@ -196,7 +196,7 @@ void Abc_NtkAutoPrintAll( DdManager * dd, int nInputs, DdNode * pbOutputs[], int
     printf( "SumK=%3d ",     nAutoSyms );
     printf( "KMax=%2d ",     nAutoSymsMax );
     printf( "Supp=%3d   ",   nAutoSymsMaxSupp );
-    printf( "Time=%4.2f ", (float)(clock() - clk)/(float)(CLOCKS_PER_SEC) );
+    printf( "Time=%4.2f ", (float)(Abc_Clock() - clk)/(float)(CLOCKS_PER_SEC) );
     printf( "\n" );
 }
 

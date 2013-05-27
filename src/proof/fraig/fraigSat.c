@@ -86,12 +86,12 @@ void Fraig_ManProveMiter( Fraig_Man_t * p )
 {
     Fraig_Node_t * pNode;
     int i;
-    clock_t clk;
+    abctime clk;
 
     if ( !p->fTryProve )
         return;
  
-    clk = clock();
+    clk = Abc_Clock();
     // consider all outputs of the multi-output miter
     for ( i = 0; i < p->vOutputs->nSize; i++ )
     {
@@ -112,7 +112,7 @@ void Fraig_ManProveMiter( Fraig_Man_t * p )
     }
     if ( p->fVerboseP ) 
     {
-//        ABC_PRT( "Final miter proof time", clock() - clk );
+//        ABC_PRT( "Final miter proof time", Abc_Clock() - clk );
     }
 }
 
@@ -302,7 +302,7 @@ void Fraig_VarsStudy( Fraig_Man_t * p, Fraig_Node_t * pOld, Fraig_Node_t * pNew 
 int Fraig_NodeIsEquivalent( Fraig_Man_t * p, Fraig_Node_t * pOld, Fraig_Node_t * pNew, int nBTLimit, int nTimeLimit )
 {
     int RetValue, RetValue1, i, fComp;
-    clock_t clk;
+    abctime clk;
     int fVerbose = 0;
     int fSwitch = 0;
 
@@ -349,14 +349,14 @@ int Fraig_NodeIsEquivalent( Fraig_Man_t * p, Fraig_Node_t * pOld, Fraig_Node_t *
 
 
     // get the logic cone
-clk = clock();
+clk = Abc_Clock();
 //    Fraig_VarsStudy( p, pOld, pNew );
     Fraig_OrderVariables( p, pOld, pNew );
 //    Fraig_PrepareCones( p, pOld, pNew );
-p->timeTrav += clock() - clk;
+p->timeTrav += Abc_Clock() - clk;
 
 //    printf( "The number of MUXes detected = %d (%5.2f %% of logic).  ", nMuxes, 300.0*nMuxes/(p->vNodes->nSize - p->vInputs->nSize) );
-//    ABC_PRT( "Time", clock() - clk );
+//    ABC_PRT( "Time", Abc_Clock() - clk );
 
 if ( fVerbose )
     printf( "%d(%d) - ", Fraig_CountPis(p,p->vVarsInt), Msat_IntVecReadSize(p->vVarsInt) );
@@ -371,9 +371,9 @@ if ( fVerbose )
 
     ////////////////////////////////////////////
     // prepare the solver to run incrementally on these variables
-//clk = clock();
+//clk = Abc_Clock();
     Msat_SolverPrepare( p->pSat, p->vVarsInt );
-//p->time3 += clock() - clk;
+//p->time3 += Abc_Clock() - clk;
 
 
     // solve under assumptions
@@ -385,18 +385,18 @@ if ( fVerbose )
 //Msat_SolverWriteDimacs( p->pSat, "temp_fraig.cnf" );
 
     // run the solver
-clk = clock();
+clk = Abc_Clock();
     RetValue1 = Msat_SolverSolve( p->pSat, p->vProj, nBTLimit, nTimeLimit );
-p->timeSat += clock() - clk;
+p->timeSat += Abc_Clock() - clk;
 
     if ( RetValue1 == MSAT_FALSE )
     {
-//p->time1 += clock() - clk;
+//p->time1 += Abc_Clock() - clk;
 
 if ( fVerbose )
 {
 //    printf( "unsat  %d  ", Msat_SolverReadBackTracks(p->pSat) );
-//ABC_PRT( "time", clock() - clk );
+//ABC_PRT( "time", Abc_Clock() - clk );
 }
 
         // add the clause
@@ -409,12 +409,12 @@ if ( fVerbose )
     }
     else if ( RetValue1 == MSAT_TRUE )
     {
-//p->time2 += clock() - clk;
+//p->time2 += Abc_Clock() - clk;
 
 if ( fVerbose )
 {
 //    printf( "sat  %d  ", Msat_SolverReadBackTracks(p->pSat) );
-//ABC_PRT( "time", clock() - clk );
+//ABC_PRT( "time", Abc_Clock() - clk );
 }
 
         // record the counter example
@@ -430,7 +430,7 @@ if ( fVerbose )
     }
     else // if ( RetValue1 == MSAT_UNKNOWN )
     {
-p->time3 += clock() - clk;
+p->time3 += Abc_Clock() - clk;
 
 //        if ( pOld->fFailTfo || pNew->fFailTfo )
 //            printf( "*" );
@@ -453,27 +453,27 @@ p->time3 += clock() - clk;
 
     ////////////////////////////////////////////
     // prepare the solver to run incrementally 
-//clk = clock();
+//clk = Abc_Clock();
     Msat_SolverPrepare( p->pSat, p->vVarsInt );
-//p->time3 += clock() - clk;
+//p->time3 += Abc_Clock() - clk;
     // solve under assumptions
     // A = 0; B = 1     OR     A = 0; B = 0 
     Msat_IntVecClear( p->vProj );
     Msat_IntVecPush( p->vProj, MSAT_VAR2LIT(pOld->Num, 1) );
     Msat_IntVecPush( p->vProj, MSAT_VAR2LIT(pNew->Num, fComp) );
     // run the solver
-clk = clock();
+clk = Abc_Clock();
     RetValue1 = Msat_SolverSolve( p->pSat, p->vProj, nBTLimit, nTimeLimit );
-p->timeSat += clock() - clk;
+p->timeSat += Abc_Clock() - clk;
 
     if ( RetValue1 == MSAT_FALSE )
     {
-//p->time1 += clock() - clk;
+//p->time1 += Abc_Clock() - clk;
 
 if ( fVerbose )
 {
 //    printf( "unsat  %d  ", Msat_SolverReadBackTracks(p->pSat) );
-//ABC_PRT( "time", clock() - clk );
+//ABC_PRT( "time", Abc_Clock() - clk );
 }
 
         // add the clause
@@ -486,12 +486,12 @@ if ( fVerbose )
     }
     else if ( RetValue1 == MSAT_TRUE )
     {
-//p->time2 += clock() - clk;
+//p->time2 += Abc_Clock() - clk;
 
 if ( fVerbose )
 {
 //    printf( "sat  %d  ", Msat_SolverReadBackTracks(p->pSat) );
-//ABC_PRT( "time", clock() - clk );
+//ABC_PRT( "time", Abc_Clock() - clk );
 }
 
         // record the counter example
@@ -507,7 +507,7 @@ if ( fVerbose )
     }
     else // if ( RetValue1 == MSAT_UNKNOWN )
     {
-p->time3 += clock() - clk;
+p->time3 += Abc_Clock() - clk;
 
 //        if ( pOld->fFailTfo || pNew->fFailTfo )
 //            printf( "*" );
@@ -551,7 +551,7 @@ p->time3 += clock() - clk;
 int Fraig_NodeIsImplication( Fraig_Man_t * p, Fraig_Node_t * pOld, Fraig_Node_t * pNew, int nBTLimit )
 {
     int RetValue, RetValue1, i, fComp;
-    clock_t clk;
+    abctime clk;
     int fVerbose = 0;
 
     // make sure the nodes are not complemented
@@ -569,10 +569,10 @@ int Fraig_NodeIsImplication( Fraig_Man_t * p, Fraig_Node_t * pOld, Fraig_Node_t 
         Msat_SolverAddVar( p->pSat, p->vNodes->pArray[i]->Level );
 
    // get the logic cone
-clk = clock();
+clk = Abc_Clock();
     Fraig_OrderVariables( p, pOld, pNew );
 //    Fraig_PrepareCones( p, pOld, pNew );
-p->timeTrav += clock() - clk;
+p->timeTrav += Abc_Clock() - clk;
 
 if ( fVerbose )
     printf( "%d(%d) - ", Fraig_CountPis(p,p->vVarsInt), Msat_IntVecReadSize(p->vVarsInt) );
@@ -584,9 +584,9 @@ if ( fVerbose )
 
     ////////////////////////////////////////////
     // prepare the solver to run incrementally on these variables
-//clk = clock();
+//clk = Abc_Clock();
     Msat_SolverPrepare( p->pSat, p->vVarsInt );
-//p->time3 += clock() - clk;
+//p->time3 += Abc_Clock() - clk;
 
     // solve under assumptions
     // A = 1; B = 0     OR     A = 1; B = 1 
@@ -594,18 +594,18 @@ if ( fVerbose )
     Msat_IntVecPush( p->vProj, MSAT_VAR2LIT(pOld->Num, 0) );
     Msat_IntVecPush( p->vProj, MSAT_VAR2LIT(pNew->Num, !fComp) );
     // run the solver
-clk = clock();
+clk = Abc_Clock();
     RetValue1 = Msat_SolverSolve( p->pSat, p->vProj, nBTLimit, 1000000 );
-p->timeSat += clock() - clk;
+p->timeSat += Abc_Clock() - clk;
 
     if ( RetValue1 == MSAT_FALSE )
     {
-//p->time1 += clock() - clk;
+//p->time1 += Abc_Clock() - clk;
 
 if ( fVerbose )
 {
 //    printf( "unsat  %d  ", Msat_SolverReadBackTracks(p->pSat) );
-//ABC_PRT( "time", clock() - clk );
+//ABC_PRT( "time", Abc_Clock() - clk );
 }
 
         // add the clause
@@ -619,12 +619,12 @@ if ( fVerbose )
     }
     else if ( RetValue1 == MSAT_TRUE )
     {
-//p->time2 += clock() - clk;
+//p->time2 += Abc_Clock() - clk;
 
 if ( fVerbose )
 {
 //    printf( "sat  %d  ", Msat_SolverReadBackTracks(p->pSat) );
-//ABC_PRT( "time", clock() - clk );
+//ABC_PRT( "time", Abc_Clock() - clk );
 }
         // record the counter example
         Fraig_FeedBack( p, Msat_SolverReadModelArray(p->pSat), p->vVarsInt, pOld, pNew );
@@ -633,7 +633,7 @@ if ( fVerbose )
     }
     else // if ( RetValue1 == MSAT_UNKNOWN )
     {
-p->time3 += clock() - clk;
+p->time3 += Abc_Clock() - clk;
         p->nSatFailsImp++;
         return 0;
     }
@@ -654,7 +654,7 @@ int Fraig_ManCheckClauseUsingSat( Fraig_Man_t * p, Fraig_Node_t * pNode1, Fraig_
 {
     Fraig_Node_t * pNode1R, * pNode2R;
     int RetValue, RetValue1, i;
-    clock_t clk;
+    abctime clk;
     int fVerbose = 0;
 
     pNode1R = Fraig_Regular(pNode1);
@@ -669,16 +669,16 @@ int Fraig_ManCheckClauseUsingSat( Fraig_Man_t * p, Fraig_Node_t * pNode1, Fraig_
         Msat_SolverAddVar( p->pSat, p->vNodes->pArray[i]->Level );
 
    // get the logic cone
-clk = clock();
+clk = Abc_Clock();
     Fraig_OrderVariables( p, pNode1R, pNode2R );
 //    Fraig_PrepareCones( p, pNode1R, pNode2R );
-p->timeTrav += clock() - clk;
+p->timeTrav += Abc_Clock() - clk;
 
     ////////////////////////////////////////////
     // prepare the solver to run incrementally on these variables
-//clk = clock();
+//clk = Abc_Clock();
     Msat_SolverPrepare( p->pSat, p->vVarsInt );
-//p->time3 += clock() - clk;
+//p->time3 += Abc_Clock() - clk;
 
     // solve under assumptions
     // A = 1; B = 0     OR     A = 1; B = 1 
@@ -686,18 +686,18 @@ p->timeTrav += clock() - clk;
     Msat_IntVecPush( p->vProj, MSAT_VAR2LIT(pNode1R->Num, !Fraig_IsComplement(pNode1)) );
     Msat_IntVecPush( p->vProj, MSAT_VAR2LIT(pNode2R->Num, !Fraig_IsComplement(pNode2)) );
     // run the solver
-clk = clock();
+clk = Abc_Clock();
     RetValue1 = Msat_SolverSolve( p->pSat, p->vProj, nBTLimit, 1000000 );
-p->timeSat += clock() - clk;
+p->timeSat += Abc_Clock() - clk;
 
     if ( RetValue1 == MSAT_FALSE )
     {
-//p->time1 += clock() - clk;
+//p->time1 += Abc_Clock() - clk;
 
 if ( fVerbose )
 {
 //    printf( "unsat  %d  ", Msat_SolverReadBackTracks(p->pSat) );
-//ABC_PRT( "time", clock() - clk );
+//ABC_PRT( "time", Abc_Clock() - clk );
 }
 
         // add the clause
@@ -711,12 +711,12 @@ if ( fVerbose )
     }
     else if ( RetValue1 == MSAT_TRUE )
     {
-//p->time2 += clock() - clk;
+//p->time2 += Abc_Clock() - clk;
 
 if ( fVerbose )
 {
 //    printf( "sat  %d  ", Msat_SolverReadBackTracks(p->pSat) );
-//ABC_PRT( "time", clock() - clk );
+//ABC_PRT( "time", Abc_Clock() - clk );
 }
         // record the counter example
 //        Fraig_FeedBack( p, Msat_SolverReadModelArray(p->pSat), p->vVarsInt, pNode1R, pNode2R );
@@ -725,7 +725,7 @@ if ( fVerbose )
     }
     else // if ( RetValue1 == MSAT_UNKNOWN )
     {
-p->time3 += clock() - clk;
+p->time3 += Abc_Clock() - clk;
         p->nSatFailsImp++;
         return 0;
     }

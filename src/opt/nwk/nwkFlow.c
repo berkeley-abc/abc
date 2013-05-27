@@ -444,7 +444,7 @@ Vec_Ptr_t * Nwk_ManRetimeCutForward( Nwk_Man_t * pMan, int nLatches, int fVerbos
     Vec_Ptr_t * vNodes;
     Nwk_Obj_t * pObj;
     int i, RetValue, Counter = 0, Counter2 = 0;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     // set the sequential parameters
     pMan->nLatches = nLatches;
     pMan->nTruePis = Nwk_ManCiNum(pMan) - nLatches;
@@ -504,7 +504,7 @@ Vec_Ptr_t * Nwk_ManRetimeCutForward( Nwk_Man_t * pMan, int nLatches, int fVerbos
     if ( fVerbose )
     {
     printf( "Min-cut = %4d.  Unmoved = %4d. ", Vec_PtrSize(vNodes), Counter );
-    ABC_PRT( "Time", clock() - clk );
+    ABC_PRT( "Time", Abc_Clock() - clk );
     }
     return vNodes;
 }
@@ -525,7 +525,7 @@ Vec_Ptr_t * Nwk_ManRetimeCutBackward( Nwk_Man_t * pMan, int nLatches, int fVerbo
     Vec_Ptr_t * vNodes;
     Nwk_Obj_t * pObj;
     int i, RetValue, Counter = 0, Counter2 = 0;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     // set the sequential parameters
     pMan->nLatches = nLatches;
     pMan->nTruePis = Nwk_ManCiNum(pMan) - nLatches;
@@ -591,7 +591,7 @@ Vec_Ptr_t * Nwk_ManRetimeCutBackward( Nwk_Man_t * pMan, int nLatches, int fVerbo
     if ( fVerbose )
     {
     printf( "Min-cut = %4d.  Unmoved = %4d. ", Vec_PtrSize(vNodes), Counter );
-    ABC_PRT( "Time", clock() - clk );
+    ABC_PRT( "Time", Abc_Clock() - clk );
     }
     return vNodes;
 }

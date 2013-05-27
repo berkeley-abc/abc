@@ -1348,9 +1348,9 @@ extraTransferPermuteRecur(
     if ( st__lookup( table, ( char * ) f, ( char ** ) &res ) )
         return ( Cudd_NotCond( res, comple ) );
 
-    if ( ddS->TimeStop && clock() > ddS->TimeStop )
+    if ( ddS->TimeStop && Abc_Clock() > ddS->TimeStop )
         return NULL;
-    if ( ddD->TimeStop && clock() > ddD->TimeStop )
+    if ( ddD->TimeStop && Abc_Clock() > ddD->TimeStop )
         return NULL;
 
     /* Recursive step. */
@@ -1909,9 +1909,9 @@ DdNode * extraBddAndPermute( DdHashTable * table, DdManager * ddF, DdNode * bF, 
         return bRes;
     Counter++;
 
-    if ( ddF->TimeStop && clock() > ddF->TimeStop )
+    if ( ddF->TimeStop && Abc_Clock() > ddF->TimeStop )
         return NULL;
-    if ( ddG->TimeStop && clock() > ddG->TimeStop )
+    if ( ddG->TimeStop && Abc_Clock() > ddG->TimeStop )
         return NULL;
 
     // find the topmost variable in F and G using var order of F
@@ -1982,7 +1982,7 @@ void Extra_TestAndPerm( DdManager * ddF, DdNode * bF, DdNode * bG )
 {
     DdManager * ddG;
     DdNode * bG2, * bRes1, * bRes2;
-    clock_t clk;
+    abctime clk;
     // disable variable ordering in ddF
     Cudd_AutodynDisable( ddF );
 
@@ -1995,15 +1995,15 @@ void Extra_TestAndPerm( DdManager * ddF, DdNode * bF, DdNode * bG )
     Cudd_ReduceHeap( ddG, CUDD_REORDER_SYMM_SIFT, 1 );
 
     // compute the result
-clk = clock();
+clk = Abc_Clock();
     bRes1 = Cudd_bddAnd( ddF, bF, bG );                 Cudd_Ref( bRes1 );
-Abc_PrintTime( 1, "Runtime of Cudd_bddAnd  ", clock() - clk );
+Abc_PrintTime( 1, "Runtime of Cudd_bddAnd  ", Abc_Clock() - clk );
 
     // compute the result
 Counter = 0;
-clk = clock();
+clk = Abc_Clock();
     bRes2 = Extra_bddAndPermute( ddF, bF, ddG, bG2, NULL );      Cudd_Ref( bRes2 );
-Abc_PrintTime( 1, "Runtime of new procedure", clock() - clk );
+Abc_PrintTime( 1, "Runtime of new procedure", Abc_Clock() - clk );
 printf( "Recursive calls = %d\n", Counter );
 printf( "|F| =%6d  |G| =%6d  |H| =%6d  |F|*|G| =%9d  ", 
        Cudd_DagSize(bF), Cudd_DagSize(bG), Cudd_DagSize(bRes2), 

@@ -179,7 +179,7 @@ void Llb_ImgSchedule( Vec_Ptr_t * vSupps, Vec_Ptr_t ** pvQuant0, Vec_Ptr_t ** pv
   SeeAlso     []
 
 ***********************************************************************/
-DdManager * Llb_ImgPartition( Aig_Man_t * p, Vec_Ptr_t * vLower, Vec_Ptr_t * vUpper, clock_t TimeTarget )
+DdManager * Llb_ImgPartition( Aig_Man_t * p, Vec_Ptr_t * vLower, Vec_Ptr_t * vUpper, abctime TimeTarget )
 {
     Vec_Ptr_t * vNodes, * vRange;
     Aig_Obj_t * pObj;
@@ -260,7 +260,7 @@ DdNode * Llb_ImgComputeCube( Aig_Man_t * pAig, Vec_Int_t * vNodeIds, DdManager *
     DdNode * bProd, * bTemp;
     Aig_Obj_t * pObj;
     int i;
-    clock_t TimeStop;
+    abctime TimeStop;
     TimeStop = dd->TimeStop; dd->TimeStop = 0;
     bProd = Cudd_ReadOne(dd);   Cudd_Ref( bProd );
     Aig_ManForEachObjVec( vNodeIds, pAig, pObj, i )
@@ -289,7 +289,7 @@ void Llb_ImgQuantifyFirst( Aig_Man_t * pAig, Vec_Ptr_t * vDdMans, Vec_Ptr_t * vQ
     DdManager * dd;
     DdNode * bProd, * bRes, * bTemp;
     int i;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     Vec_PtrForEachEntry( DdManager *, vDdMans, dd, i )
     {
         // remember unquantified ones
@@ -320,7 +320,7 @@ void Llb_ImgQuantifyFirst( Aig_Man_t * pAig, Vec_Ptr_t * vDdMans, Vec_Ptr_t * vQ
         if ( fVerbose ) 
             Abc_Print( 1, "Supp = %3d.  ", Cudd_SupportSize(dd, bRes) );
         if ( fVerbose ) 
-            Abc_PrintTime( 1, "Time", clock() - clk );
+            Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 
     }
 }
@@ -362,13 +362,13 @@ void Llb_ImgQuantifyReset( Vec_Ptr_t * vDdMans )
 ***********************************************************************/
 DdNode * Llb_ImgComputeImage( Aig_Man_t * pAig, Vec_Ptr_t * vDdMans, DdManager * dd, DdNode * bInit, 
     Vec_Ptr_t * vQuant0, Vec_Ptr_t * vQuant1, Vec_Int_t * vDriRefs, 
-    clock_t TimeTarget, int fBackward, int fReorder, int fVerbose )
+    abctime TimeTarget, int fBackward, int fReorder, int fVerbose )
 {
 //    int fCheckSupport = 0;
     DdManager * ddPart;
     DdNode * bImage, * bGroup, * bCube, * bTemp;
     int i;
-    clock_t clk, clk0 = clock();
+    abctime clk, clk0 = Abc_Clock();
 
     bImage = bInit;  Cudd_Ref( bImage );
     if ( fBackward )
@@ -397,7 +397,7 @@ DdNode * Llb_ImgComputeImage( Aig_Man_t * pAig, Vec_Ptr_t * vDdMans, DdManager *
     // perform image computation
     Vec_PtrForEachEntry( DdManager *, vDdMans, ddPart, i )
     {
-        clk = clock();
+        clk = Abc_Clock();
 if ( fVerbose )
 printf( "   %2d : ", i );
         // transfer the BDD from the group manager to the main manager
@@ -434,7 +434,7 @@ printf( "Im0 =%6d. Im1 =%6d. ", Cudd_DagSize(bTemp), Cudd_DagSize(bImage) );
 if ( fVerbose )
 printf( "Supp =%3d. ", Cudd_SupportSize(dd, bImage) );
 if ( fVerbose )
-Abc_PrintTime( 1, "T", clock() - clk );
+Abc_PrintTime( 1, "T", Abc_Clock() - clk );
     }
 
     if ( !fBackward )
@@ -464,7 +464,7 @@ Abc_PrintTime( 1, "T", clock() - clk );
 //    Cudd_ReduceHeap( dd, CUDD_REORDER_SYMM_SIFT, 100 );
 //    Abc_Print( 1, "After =%5d.  ", Cudd_DagSize(bImage) );
     if ( fVerbose )
-    Abc_PrintTime( 1, "Time", clock() - clk0 );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk0 );
 //    Abc_Print( 1, "\n" );
     }
 

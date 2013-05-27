@@ -160,27 +160,27 @@ void Gia_SortTest()
 {
     int nSize = 100000000;
     int * pArray;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
 
     printf( "Sorting %d integers\n", nSize );
     pArray = Gia_SortGetTest( nSize );
-clk = clock();
+clk = Abc_Clock();
     qsort( pArray, nSize, 4, (int (*)(const void *, const void *)) num_cmp1 );
-ABC_PRT( "qsort  ", clock() - clk );
+ABC_PRT( "qsort  ", Abc_Clock() - clk );
     Gia_SortVerifySorted( pArray, nSize );
     ABC_FREE( pArray );
 
     pArray = Gia_SortGetTest( nSize );
-clk = clock();
+clk = Abc_Clock();
     minisat_sort( pArray, nSize, (int (*)(const void *, const void *)) num_cmp2 );
-ABC_PRT( "minisat", clock() - clk );
+ABC_PRT( "minisat", Abc_Clock() - clk );
     Gia_SortVerifySorted( pArray, nSize );
     ABC_FREE( pArray );
 
     pArray = Gia_SortGetTest( nSize );
-clk = clock();
+clk = Abc_Clock();
     minisat_sort2( pArray, nSize );
-ABC_PRT( "minisat with inlined comparison", clock() - clk );
+ABC_PRT( "minisat with inlined comparison", Abc_Clock() - clk );
     Gia_SortVerifySorted( pArray, nSize );
     ABC_FREE( pArray );
 }

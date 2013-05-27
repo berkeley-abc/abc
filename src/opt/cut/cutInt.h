@@ -92,12 +92,12 @@ struct Cut_ManStruct_t_
     int                nNodesDag;
     int                nNodesNoCuts;
     // runtime
-    clock_t            timeMerge;
-    clock_t            timeUnion;
-    clock_t            timeTruth;
-    clock_t            timeFilter;
-    clock_t            timeHash;
-    clock_t            timeMap;
+    abctime            timeMerge;
+    abctime            timeUnion;
+    abctime            timeTruth;
+    abctime            timeFilter;
+    abctime            timeHash;
+    abctime            timeMap;
 };
 
 // iterator through all the cuts of the list

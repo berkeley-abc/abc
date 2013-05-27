@@ -720,9 +720,9 @@ Abc_Cex_t * Saig_ManCbaFindCexCareBits( Aig_Man_t * pAig, Abc_Cex_t * pCex, int 
     Saig_ManCba_t * p;
     Vec_Int_t * vReasons;
     Abc_Cex_t * pCare;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
 
-    clk = clock();
+    clk = Abc_Clock();
     p = Saig_ManCbaStart( pAig, pCex, nInputs, fVerbose );
 
 //    p->vReg2Frame = Vec_VecStart( pCex->iFrame );
@@ -743,7 +743,7 @@ Abc_Cex_t * Saig_ManCbaFindCexCareBits( Aig_Man_t * pAig, Abc_Cex_t * pCex, int 
             Aig_ManCiNum(p->pFrames), Vec_IntSize(vReasons), 
             Saig_ManPiNum(p->pAig) - p->nInputs, Vec_IntSize(vRes) );
         Vec_IntFree( vRes );
-ABC_PRT( "Time", clock() - clk );
+ABC_PRT( "Time", Abc_Clock() - clk );
     }
 
     pCare = Saig_ManCbaReason2Cex( p, vReasons );
@@ -786,7 +786,7 @@ Vec_Int_t * Saig_ManCbaFilterInputs( Aig_Man_t * pAig, int iFirstFlopPi, Abc_Cex
 {
     Saig_ManCba_t * p;
     Vec_Int_t * vRes, * vReasons;
-    clock_t clk;
+    abctime clk;
     if ( Saig_ManPiNum(pAig) != pCex->nPis )
     {
         printf( "Saig_ManCbaFilterInputs(): The PI count of AIG (%d) does not match that of cex (%d).\n", 
@@ -794,7 +794,7 @@ Vec_Int_t * Saig_ManCbaFilterInputs( Aig_Man_t * pAig, int iFirstFlopPi, Abc_Cex
         return NULL;
     }
 
-clk = clock();
+clk = Abc_Clock();
     p = Saig_ManCbaStart( pAig, pCex, iFirstFlopPi, fVerbose );
     p->pFrames = Saig_ManCbaUnrollWithCex( pAig, pCex, iFirstFlopPi, &p->vMapPiF2A, &p->vReg2Frame );
     vReasons = Saig_ManCbaFindReason( p );
@@ -804,7 +804,7 @@ clk = clock();
         printf( "Frame PIs = %4d (essential = %4d)   AIG PIs = %4d (essential = %4d)   ",
             Aig_ManCiNum(p->pFrames), Vec_IntSize(vReasons), 
             Saig_ManPiNum(p->pAig) - p->nInputs, Vec_IntSize(vRes) );
-ABC_PRT( "Time", clock() - clk );
+ABC_PRT( "Time", Abc_Clock() - clk );
     }
 
     Vec_IntFree( vReasons );
@@ -831,7 +831,7 @@ Vec_Int_t * Saig_ManCbaPerform( Aig_Man_t * pAbs, int nInputs, Saig_ParBmc_t * p
 {
     Vec_Int_t * vAbsFfsToAdd;
     int RetValue;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
 //    assert( pAbs->nRegs > 0 );
     // perform BMC
     RetValue = Saig_ManBmcScalable( pAbs, pPars );
@@ -859,7 +859,7 @@ Vec_Int_t * Saig_ManCbaPerform( Aig_Man_t * pAbs, int nInputs, Saig_ParBmc_t * p
     {
         printf( "Adding %d registers to the abstraction (total = %d).  ", 
             Vec_IntSize(vAbsFfsToAdd), Aig_ManRegNum(pAbs)+Vec_IntSize(vAbsFfsToAdd) );
-        Abc_PrintTime( 1, "Time", clock() - clk );
+        Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     }
     return vAbsFfsToAdd;
 }

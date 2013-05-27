@@ -606,10 +606,10 @@ int Fra_ClausProcessClauses( Clu_Man_t * p, int fRefs )
     Aig_Obj_t * pObj;
     Dar_Cut_t * pCut;
     int Scores[16], uScores, i, k, j, nCuts = 0;
-    clock_t clk;
+    abctime clk;
 
     // simulate the AIG
-clk = clock();
+clk = Abc_Clock();
 //    srand( 0xAABBAABB );
     Aig_ManRandom(1);
     pSeq = Fra_SmlSimulateSeq( p->pAig, 0, p->nPref + p->nSimFrames, p->nSimWords/p->nSimFrames, 1 );
@@ -621,32 +621,32 @@ clk = clock();
     }
 if ( p->fVerbose )
 {
-ABC_PRT( "Sim-seq", clock() - clk );
+ABC_PRT( "Sim-seq", Abc_Clock() - clk );
 }
 
 
-clk = clock();
+clk = Abc_Clock();
     if ( fRefs )
     {
     Fra_ClausCollectLatchClauses( p, pSeq );
 if ( p->fVerbose )
 {
-ABC_PRT( "Lat-cla", clock() - clk );
+ABC_PRT( "Lat-cla", Abc_Clock() - clk );
 }
     }
 
 
     // generate cuts for all nodes, assign cost, and find best cuts
-clk = clock();
+clk = Abc_Clock();
     pMemCuts = Dar_ManComputeCuts( p->pAig, 10, 0, 1 );
 //    pManCut = Aig_ComputeCuts( p->pAig, 10, 4, 0, 1 );
 if ( p->fVerbose )
 {
-ABC_PRT( "Cuts   ", clock() - clk );
+ABC_PRT( "Cuts   ", Abc_Clock() - clk );
 }
 
     // collect sequential info for each cut
-clk = clock();
+clk = Abc_Clock();
     Aig_ManForEachNode( p->pAig, pObj, i )
         Dar_ObjForEachCut( pObj, pCut, k )
             if ( pCut->nLeaves > 1 )
@@ -660,22 +660,22 @@ clk = clock();
             }
 if ( p->fVerbose )
 {
-ABC_PRT( "Infoseq", clock() - clk );
+ABC_PRT( "Infoseq", Abc_Clock() - clk );
 }
     Fra_SmlStop( pSeq );
 
     // perform combinational simulation
-clk = clock();
+clk = Abc_Clock();
 //    srand( 0xAABBAABB );
     Aig_ManRandom(1);
     pComb = Fra_SmlSimulateComb( p->pAig, p->nSimWords + p->nSimWordsPref, 0 );
 if ( p->fVerbose )
 {
-ABC_PRT( "Sim-cmb", clock() - clk );
+ABC_PRT( "Sim-cmb", Abc_Clock() - clk );
 }
 
     // collect combinational info for each cut
-clk = clock();
+clk = Abc_Clock();
     Aig_ManForEachNode( p->pAig, pObj, i )
         Dar_ObjForEachCut( pObj, pCut, k )
             if ( pCut->nLeaves > 1 )
@@ -696,7 +696,7 @@ clk = clock();
 //    Aig_ManCutStop( pManCut );
 if ( p->fVerbose )
 {
-ABC_PRT( "Infocmb", clock() - clk );
+ABC_PRT( "Infocmb", Abc_Clock() - clk );
 }
 
     if ( p->fVerbose )
@@ -729,12 +729,12 @@ int Fra_ClausProcessClauses2( Clu_Man_t * p, int fRefs )
     Aig_Obj_t * pObj;
     Aig_Cut_t * pCut;
     int i, k, j, nCuts = 0;
-    clock_t clk;
+    abctime clk;
     int ScoresSeq[1<<12], ScoresComb[1<<12];
     assert( p->nLutSize < 13 );
 
     // simulate the AIG
-clk = clock();
+clk = Abc_Clock();
 //    srand( 0xAABBAABB );
     Aig_ManRandom(1);
     pSeq = Fra_SmlSimulateSeq( p->pAig, 0, p->nPref + p->nSimFrames, p->nSimWords/p->nSimFrames, 1  );
@@ -746,42 +746,42 @@ clk = clock();
     }
 if ( p->fVerbose )
 {
-//ABC_PRT( "Sim-seq", clock() - clk );
+//ABC_PRT( "Sim-seq", Abc_Clock() - clk );
 }
 
     // perform combinational simulation
-clk = clock();
+clk = Abc_Clock();
 //    srand( 0xAABBAABB );
     Aig_ManRandom(1);
     pComb = Fra_SmlSimulateComb( p->pAig, p->nSimWords + p->nSimWordsPref, 0 );
 if ( p->fVerbose )
 {
-//ABC_PRT( "Sim-cmb", clock() - clk );
+//ABC_PRT( "Sim-cmb", Abc_Clock() - clk );
 }
 
 
-clk = clock();
+clk = Abc_Clock();
     if ( fRefs )
     {
     Fra_ClausCollectLatchClauses( p, pSeq );
 if ( p->fVerbose )
 {
-//ABC_PRT( "Lat-cla", clock() - clk );
+//ABC_PRT( "Lat-cla", Abc_Clock() - clk );
 }
     }
 
 
     // generate cuts for all nodes, assign cost, and find best cuts
-clk = clock();
+clk = Abc_Clock();
 //    pMemCuts = Dar_ManComputeCuts( p->pAig, 10, 0, 1 );
     pManCut = Aig_ComputeCuts( p->pAig, p->nCutsMax, p->nLutSize, 0, p->fVerbose );
 if ( p->fVerbose )
 {
-//ABC_PRT( "Cuts   ", clock() - clk );
+//ABC_PRT( "Cuts   ", Abc_Clock() - clk );
 }
 
     // collect combinational info for each cut
-clk = clock();
+clk = Abc_Clock();
     Aig_ManForEachNode( p->pAig, pObj, i )
     {
         if ( pObj->Level > (unsigned)p->nLevels )
@@ -810,7 +810,7 @@ clk = clock();
     {
     printf( "Node = %5d. Cuts = %7d. Clauses = %6d. Clause/cut = %6.2f.\n", 
         Aig_ManNodeNum(p->pAig), nCuts, Vec_IntSize(p->vClauses), 1.0*Vec_IntSize(p->vClauses)/nCuts );
-    ABC_PRT( "Processing sim-info to find candidate clauses (unoptimized)", clock() - clk );
+    ABC_PRT( "Processing sim-info to find candidate clauses (unoptimized)", Abc_Clock() - clk );
     }
 
     // filter out clauses that are contained in the already proven clauses
@@ -1624,7 +1624,7 @@ void Fra_ClausEstimateCoverage( Clu_Man_t * p )
     unsigned * pResultTot, * pResultOne;
     int nCovered, Beg, End, i, w;
     int * pStart, * pVar2Id; 
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     // simulate the circuit with nCombSimWords * 32 = 64K patterns
 //    srand( 0xAABBAABB );
     Aig_ManRandom(1);
@@ -1664,7 +1664,7 @@ void Fra_ClausEstimateCoverage( Clu_Man_t * p )
     // print the result
     printf( "Care states ratio = %f. ", 1.0 * (nCombSimWords * 32 - nCovered) / (nCombSimWords * 32) );
     printf( "(%d out of %d patterns)  ", nCombSimWords * 32 - nCovered, nCombSimWords * 32 );
-    ABC_PRT( "Time", clock() - clk );
+    ABC_PRT( "Time", Abc_Clock() - clk );
 }
 
 
@@ -1682,7 +1682,7 @@ void Fra_ClausEstimateCoverage( Clu_Man_t * p )
 int Fra_Claus( Aig_Man_t * pAig, int nFrames, int nPref, int nClausesMax, int nLutSize, int nLevels, int nCutsMax, int nBatches, int fStepUp, int fBmc, int fRefs, int fTarget, int fVerbose, int fVeryVerbose )
 {
     Clu_Man_t * p;
-    clock_t clk, clkTotal = clock(), clkInd;
+    abctime clk, clkTotal = Abc_Clock(), clkInd;
     int b, Iter, Counter, nPrefOld;
     int nClausesBeg = 0;
 
@@ -1692,12 +1692,12 @@ if ( p->fVerbose )
 {
     printf( "PARAMETERS: Frames = %d. Pref = %d. Clauses max = %d. Cut size = %d.\n", nFrames, nPref, nClausesMax, nLutSize );
     printf( "Level max = %d. Cuts max = %d. Batches = %d. Increment cut size = %s.\n", nLevels, nCutsMax, nBatches, fStepUp? "yes":"no" );
-//ABC_PRT( "Sim-seq", clock() - clk );
+//ABC_PRT( "Sim-seq", Abc_Clock() - clk );
 }
 
     assert( !p->fTarget || Aig_ManCoNum(pAig) - Aig_ManRegNum(pAig) == 1 );
 
-clk = clock();
+clk = Abc_Clock();
     // derive CNF
 //    if ( p->fTarget )
 //        p->pAig->nRegs++;
@@ -1706,11 +1706,11 @@ clk = clock();
 //        p->pAig->nRegs--;
 if ( fVerbose )
 {
-//ABC_PRT( "CNF    ", clock() - clk );
+//ABC_PRT( "CNF    ", Abc_Clock() - clk );
 }
 
     // check BMC
-clk = clock();
+clk = Abc_Clock();
     p->pSatBmc = (sat_solver *)Cnf_DataWriteIntoSolver( p->pCnf, p->nPref + p->nFrames, 1 );
     if ( p->pSatBmc == NULL )
     {
@@ -1726,11 +1726,11 @@ clk = clock();
     }
 if ( fVerbose )
 {
-//ABC_PRT( "SAT-bmc", clock() - clk );
+//ABC_PRT( "SAT-bmc", Abc_Clock() - clk );
 }
 
     // start the SAT solver
-clk = clock();
+clk = Abc_Clock();
     p->pSatMain = (sat_solver *)Cnf_DataWriteIntoSolver( p->pCnf, p->nFrames+1, 0 );
     if ( p->pSatMain == NULL )
     {
@@ -1757,11 +1757,11 @@ clk = clock();
         }
         if ( fVerbose )
         {
-//        ABC_PRT( "SAT-ind", clock() - clk );
+//        ABC_PRT( "SAT-ind", Abc_Clock() - clk );
         }
  
         // collect the candidate inductive clauses using 4-cuts
-        clk = clock();
+        clk = Abc_Clock();
         nPrefOld = p->nPref; p->nPref = 0; p->nSimWordsPref = 0;
     //    Fra_ClausProcessClauses( p, fRefs );
         Fra_ClausProcessClauses2( p, fRefs );
@@ -1769,25 +1769,25 @@ clk = clock();
         p->nSimWordsPref = p->nPref*p->nSimWords/p->nSimFrames;
         nClausesBeg = p->nClauses;
 
-    //ABC_PRT( "Clauses", clock() - clk );
+    //ABC_PRT( "Clauses", Abc_Clock() - clk );
 
 
         // check clauses using BMC
         if ( fBmc ) 
         {
-            clk = clock();
+            clk = Abc_Clock();
             Counter = Fra_ClausBmcClauses( p );
             p->nClauses -= Counter;
             if ( fVerbose )
             {
                 printf( "BMC disproved %d clauses.  ", Counter );
-                ABC_PRT( "Time", clock() - clk );
+                ABC_PRT( "Time", Abc_Clock() - clk );
             }
         }
 
 
         // prove clauses inductively
-        clkInd = clk = clock();
+        clkInd = clk = Abc_Clock();
         Counter = 1;
         for ( Iter = 0; Counter > 0; Iter++ )
         {
@@ -1800,9 +1800,9 @@ clk = clock();
             {
             printf( "End = %5d. Exs = %5d.  ", p->nClauses, p->nCexes );
     //        printf( "\n" );
-            ABC_PRT( "Time", clock() - clk );
+            ABC_PRT( "Time", Abc_Clock() - clk );
             }
-            clk = clock();
+            clk = Abc_Clock();
         }
         // add proved clauses to storage
         Fra_ClausAddToStorage( p );
@@ -1815,14 +1815,14 @@ clk = clock();
                 printf( "Property FAILS during refinement.  " );
             else
                 printf( "Property HOLDS inductively after strengthening.  " );
-            ABC_PRT( "Time  ", clock() - clkTotal );
+            ABC_PRT( "Time  ", Abc_Clock() - clkTotal );
             if ( !p->fFail )
                 break;
         }
         else
         {
             printf( "Finished proving inductive clauses. " );
-            ABC_PRT( "Time  ", clock() - clkTotal );
+            ABC_PRT( "Time  ", Abc_Clock() - clkTotal );
         }
     }
 
@@ -1857,8 +1857,8 @@ clk = clock();
         fprintf( pTable, "%d ",  p->nClauses );
         fprintf( pTable, "%d ",  Iter );
         fprintf( pTable, "%.2f ", (float)(clkInd-clkTotal)/(float)(CLOCKS_PER_SEC) );
-        fprintf( pTable, "%.2f ", (float)(clock()-clkInd)/(float)(CLOCKS_PER_SEC) );
-        fprintf( pTable, "%.2f ", (float)(clock()-clkTotal)/(float)(CLOCKS_PER_SEC) );
+        fprintf( pTable, "%.2f ", (float)(Abc_Clock()-clkInd)/(float)(CLOCKS_PER_SEC) );
+        fprintf( pTable, "%.2f ", (float)(Abc_Clock()-clkTotal)/(float)(CLOCKS_PER_SEC) );
         fprintf( pTable, "\n" );
         fclose( pTable );
     }

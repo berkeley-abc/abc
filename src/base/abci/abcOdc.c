@@ -86,14 +86,14 @@ struct Odc_Man_t_
     int                     nTotalDcs;   // total percentage of DCs
 
     // runtime
-    clock_t                 timeClean;   // windowing
-    clock_t                 timeWin;     // windowing
-    clock_t                 timeMiter;   // computing the miter
-    clock_t                 timeSim;     // simulation
-    clock_t                 timeQuant;   // quantification
-    clock_t                 timeTruth;   // truth table
-    clock_t                 timeTotal;   // useful runtime
-    clock_t                 timeAbort;   // aborted runtime
+    abctime                 timeClean;   // windowing
+    abctime                 timeWin;     // windowing
+    abctime                 timeMiter;   // computing the miter
+    abctime                 timeSim;     // simulation
+    abctime                 timeQuant;   // quantification
+    abctime                 timeTruth;   // truth table
+    abctime                 timeTotal;   // useful runtime
+    abctime                 timeAbort;   // aborted runtime
 };
 
 
@@ -241,7 +241,7 @@ Odc_Man_t * Abc_NtkDontCareAlloc( int nVarsMax, int nLevels, int fVerbose, int f
 ***********************************************************************/
 void Abc_NtkDontCareClear( Odc_Man_t * p )
 {
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     // clean the structural hashing table
     if ( Vec_IntSize(p->vUsedSpots) > p->nTableSize/3 ) // more than one third
         memset( p->pTable, 0, sizeof(Odc_Lit_t) * p->nTableSize );
@@ -257,7 +257,7 @@ void Abc_NtkDontCareClear( Odc_Man_t * p )
     // reset the root node
     p->iRoot = 0xffff;
 
-p->timeClean += clock() - clk;
+p->timeClean += Abc_Clock() - clk;
 }
 
 /**Function*************************************************************
@@ -1033,7 +1033,7 @@ int Abc_NtkDontCareSimulateBefore( Odc_Man_t * p, unsigned * puTruth )
 int Abc_NtkDontCareCompute( Odc_Man_t * p, Abc_Obj_t * pNode, Vec_Ptr_t * vLeaves, unsigned * puTruth )
 {
     int nMints, RetValue;
-    clock_t clk, clkTotal = clock();
+    abctime clk, clkTotal = Abc_Clock();
 
     p->nWins++;
     
@@ -1045,12 +1045,12 @@ int Abc_NtkDontCareCompute( Odc_Man_t * p, Abc_Obj_t * pNode, Vec_Ptr_t * vLeave
     p->pNode = pNode;
 
     // compute the window
-clk = clock();
+clk = Abc_Clock();
     RetValue = Abc_NtkDontCareWindow( p );
-p->timeWin += clock() - clk;
+p->timeWin += Abc_Clock() - clk;
     if ( !RetValue )
     {
-p->timeAbort += clock() - clkTotal;
+p->timeAbort += Abc_Clock() - clkTotal;
         Abc_InfoFill( puTruth, p->nWords );
         p->nWinsEmpty++;        
         return 0;
@@ -1066,14 +1066,14 @@ p->timeAbort += clock() - clkTotal;
     }
 
     // transfer the window into the AIG package
-clk = clock();
+clk = Abc_Clock();
     Abc_NtkDontCareTransfer( p );
-p->timeMiter += clock() - clk;
+p->timeMiter += Abc_Clock() - clk;
 
     // simulate to estimate the amount of don't-cares
-clk = clock();
+clk = Abc_Clock();
     nMints = Abc_NtkDontCareSimulateBefore( p, puTruth );
-p->timeSim += clock() - clk;
+p->timeSim += Abc_Clock() - clk;
     if ( p->fVeryVerbose )
     {
         printf( "AIG = %5d ", Odc_NodeNum(p) );
@@ -1083,7 +1083,7 @@ p->timeSim += clock() - clk;
     // if there is less then the given percentage of don't-cares, skip
     if ( 100.0 * (p->nBits - nMints) / p->nBits < 1.0 * p->nPercCutoff )
     {
-p->timeAbort += clock() - clkTotal;
+p->timeAbort += Abc_Clock() - clkTotal;
         if ( p->fVeryVerbose )
             printf( "Simulation cutoff.\n" );
         Abc_InfoFill( puTruth, p->nWords );
@@ -1092,12 +1092,12 @@ p->timeAbort += clock() - clkTotal;
     }
 
     // quantify external variables
-clk = clock();
+clk = Abc_Clock();
     RetValue = Abc_NtkDontCareQuantify( p );
-p->timeQuant += clock() - clk;
+p->timeQuant += Abc_Clock() - clk;
     if ( !RetValue )
     {
-p->timeAbort += clock() - clkTotal;
+p->timeAbort += Abc_Clock() - clkTotal;
         if ( p->fVeryVerbose )
             printf( "=== Overflow! ===\n" );
         Abc_InfoFill( puTruth, p->nWords );
@@ -1106,17 +1106,17 @@ p->timeAbort += clock() - clkTotal;
     }
 
     // get the truth table
-clk = clock();
+clk = Abc_Clock();
     Abc_NtkDontCareSimulateSetElem( p );
     nMints = Abc_NtkDontCareSimulate( p, puTruth );
-p->timeTruth += clock() - clk;
+p->timeTruth += Abc_Clock() - clk;
     if ( p->fVeryVerbose )
     {
         printf( "AIG = %5d ", Odc_NodeNum(p) );
         printf( "%6.2f %%  ", 100.0 * (p->nBits - nMints) / p->nBits );
         printf( "\n" );
     }
-p->timeTotal += clock() - clkTotal;
+p->timeTotal += Abc_Clock() - clkTotal;
     p->nWinsFinish++;
     p->nTotalDcs += (int)(100.0 * (p->nBits - nMints) / p->nBits);
     return nMints;

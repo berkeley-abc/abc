@@ -71,13 +71,13 @@ struct Inter_Man_t_
     int              fVerbose;     // the verbosiness flag
     char *           pFileName;
     // runtime
-    clock_t          timeRwr;
-    clock_t          timeCnf;
-    clock_t          timeSat;
-    clock_t          timeInt;
-    clock_t          timeEqu;
-    clock_t          timeOther;
-    clock_t          timeTotal;
+    abctime          timeRwr;
+    abctime          timeCnf;
+    abctime          timeSat;
+    abctime          timeInt;
+    abctime          timeEqu;
+    abctime          timeOther;
+    abctime          timeTotal;
 };
 
 // containment checking manager
@@ -94,7 +94,7 @@ typedef struct Inter_Check_t_ Inter_Check_t;
 /*=== intCheck.c ============================================================*/
 extern Inter_Check_t * Inter_CheckStart( Aig_Man_t * pTrans, int nFramesK );
 extern void            Inter_CheckStop( Inter_Check_t * p );
-extern int             Inter_CheckPerform( Inter_Check_t * p, Cnf_Dat_t * pCnf, clock_t nTimeNewOut );
+extern int             Inter_CheckPerform( Inter_Check_t * p, Cnf_Dat_t * pCnf, abctime nTimeNewOut );
 
 /*=== intContain.c ============================================================*/
 extern int             Inter_ManCheckContainment( Aig_Man_t * pNew, Aig_Man_t * pOld );
@@ -118,7 +118,7 @@ extern void            Inter_ManClean( Inter_Man_t * p );
 extern void            Inter_ManStop( Inter_Man_t * p, int fProved );
 
 /*=== intM114.c ============================================================*/
-extern int             Inter_ManPerformOneStep( Inter_Man_t * p, int fUseBias, int fUseBackward, clock_t nTimeNewOut );
+extern int             Inter_ManPerformOneStep( Inter_Man_t * p, int fUseBias, int fUseBackward, abctime nTimeNewOut );
 
 /*=== intM114p.c ============================================================*/
 #ifdef ABC_USE_LIBRARIES

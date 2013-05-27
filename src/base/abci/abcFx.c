@@ -102,7 +102,7 @@ struct Fx_Man_t_
     Vec_Int_t *     vCubeFree;  // cube-free divisor
     Vec_Int_t *     vDiv;       // selected divisor
     // statistics 
-    clock_t         timeStart;  // starting time
+    abctime         timeStart;  // starting time
     int             nVars;      // original problem variables
     int             nLits;      // the number of SOP literals
     int             nDivs;      // the number of extracted divisors
@@ -435,7 +435,7 @@ static inline void Fx_PrintDiv( Fx_Man_t * p, int iDiv )
         printf( " " );
     printf( "Lits =%7d  ", p->nLits );
     printf( "Divs =%8d  ", Hsh_VecSize(p->pHash) );
-    Abc_PrintTime( 1, "Time", clock() - p->timeStart );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - p->timeStart );
 }
 static void Fx_PrintDivisors( Fx_Man_t * p )
 {
@@ -480,7 +480,7 @@ static void Fx_PrintMatrix( Fx_Man_t * p )
     Fx_PrintLiterals( p );
     Fx_PrintDivisors( p );
 }
-static void Fx_PrintStats( Fx_Man_t * p, clock_t clk )
+static void Fx_PrintStats( Fx_Man_t * p, abctime clk )
 {
     printf( "Cubes =%7d  ", Vec_WecSizeUsed(p->vCubes) );
     printf( "Lits  =%7d  ", Vec_WecSizeUsed(p->vLits) );
@@ -1116,7 +1116,7 @@ int Fx_FastExtract( Vec_Wec_t * vCubes, int ObjIdMax, int nNewNodesMax, int LitC
     int fVeryVerbose = 0;
     int i, iDiv;
     Fx_Man_t * p;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     // initialize the data-structure
     p = Fx_ManStart( vCubes );
     p->LitCountMax = LitCountMax;
@@ -1125,9 +1125,9 @@ int Fx_FastExtract( Vec_Wec_t * vCubes, int ObjIdMax, int nNewNodesMax, int LitC
     if ( fVeryVerbose )
         Fx_PrintMatrix( p );
     if ( fVerbose )
-        Fx_PrintStats( p, clock() - clk );
+        Fx_PrintStats( p, Abc_Clock() - clk );
     // perform extraction
-    p->timeStart = clock();
+    p->timeStart = Abc_Clock();
     for ( i = 0; i < nNewNodesMax && Vec_QueTopCost(p->vPrio) > 0.0; i++ )
     {
         iDiv = Vec_QuePop(p->vPrio);

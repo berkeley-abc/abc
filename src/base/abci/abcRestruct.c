@@ -107,7 +107,7 @@ int Abc_NtkRestructure( Abc_Ntk_t * pNtk, int nCutMax, int fUpdateLevel, int fUs
     Cut_Cut_t * pCutList;
     Dec_Graph_t * pGraph;
     Abc_Obj_t * pNode;
-    clock_t clk, clkStart = clock();
+    abctime clk, clkStart = Abc_Clock();
     int fMulti = 1;
     int fResub = 0;
     int i, nNodes;
@@ -125,9 +125,9 @@ int Abc_NtkRestructure( Abc_Ntk_t * pNtk, int nCutMax, int fUpdateLevel, int fUs
     pManRst = Abc_NtkManRstStart( nCutMax, fUpdateLevel, fUseZeros, fVerbose );
     pManRst->pNtk = pNtk;
     // start the cut manager
-clk = clock();
+clk = Abc_Clock();
     pManCut = Abc_NtkStartCutManForRestruct( pNtk, nCutMax, fMulti );
-pManRst->timeCut += clock() - clk;
+pManRst->timeCut += Abc_Clock() - clk;
 //    pNtk->pManCut = pManCut;
 
     // resynthesize each node once
@@ -152,28 +152,28 @@ pManRst->timeCut += clock() - clk;
         if ( i >= nNodes )
             break;
         // get the cuts for the given node
-clk = clock();
+clk = Abc_Clock();
         pCutList = (Cut_Cut_t *)Abc_NodeGetCutsRecursive( pManCut, pNode, fMulti, 0 ); 
-pManRst->timeCut += clock() - clk;
+pManRst->timeCut += Abc_Clock() - clk;
 
         // perform restructuring
-clk = clock();
+clk = Abc_Clock();
         if ( fResub )
             pGraph = Abc_NodeResubstitute( pManRst, pNode, pCutList );
         else
             pGraph = Abc_NodeRestructure( pManRst, pNode, pCutList );
-pManRst->timeRes += clock() - clk;
+pManRst->timeRes += Abc_Clock() - clk;
         if ( pGraph == NULL )
             continue;
 
         // acceptable replacement found, update the graph
-clk = clock();
+clk = Abc_Clock();
         Dec_GraphUpdateNetwork( pNode, pGraph, fUpdateLevel, pManRst->nLastGain );
-pManRst->timeNtk += clock() - clk;
+pManRst->timeNtk += Abc_Clock() - clk;
         Dec_GraphFree( pGraph );
     }
     Extra_ProgressBarStop( pProgress );
-pManRst->timeTotal = clock() - clkStart;
+pManRst->timeTotal = Abc_Clock() - clkStart;
 
     // print statistics of the manager
 //    if ( fVerbose )
@@ -342,12 +342,12 @@ Dec_Graph_t * Abc_NodeRestructureCut( Abc_ManRst_t * p, Abc_Obj_t * pRoot, Cut_C
         Vec_PtrPush( p->vLeaves, pLeaf );
     }
 
-clk = clock();
+clk = Abc_Clock();
     // collect the internal nodes of the cut
 //    Abc_NodeConeCollect( &pRoot, 1, p->vLeaves, p->vVisited, 0 );
     // derive the BDD of the cut
     bFunc = Abc_NodeConeBdd( p->dd, p->dd->vars, pRoot, p->vLeaves, p->vVisited );  Cudd_Ref( bFunc );
-p->timeBdd += clock() - clk;
+p->timeBdd += Abc_Clock() - clk;
 
     // consider the special case, when the function is a constant
     if ( Cudd_IsConstant(bFunc) )
@@ -361,10 +361,10 @@ p->timeBdd += clock() - clk;
         return Dec_GraphCreateConst1();
     }
 
-clk = clock();
+clk = Abc_Clock();
     // try disjoint support decomposition
     pNodeDsd = Dsd_DecomposeOne( p->pManDsd, bFunc );
-p->timeDsd += clock() - clk;
+p->timeDsd += Abc_Clock() - clk;
 
     // skip nodes with non-decomposable blocks
     Dsd_TreeNodeGetInfoOne( pNodeDsd, NULL, &nMaxSize );
@@ -421,13 +421,13 @@ p->timeDsd += clock() - clk;
 
 
     // detect how many new nodes will be added (while taking into account reused nodes)
-clk = clock();
+clk = Abc_Clock();
     if ( nMaxSize > 3 )
         pGraph = NULL;
     else
         pGraph = Abc_NodeEvaluateDsd( p, pNodeDsd, pRoot, Required, nNodesSaved, &nNodesAdded );
 //    pGraph = NULL;
-p->timeEval += clock() - clk;
+p->timeEval += Abc_Clock() - clk;
 
     // quit if there is no improvement
     if ( pGraph == NULL || nNodesAdded == -1 || (nNodesAdded == nNodesSaved && !p->fUseZeros) )

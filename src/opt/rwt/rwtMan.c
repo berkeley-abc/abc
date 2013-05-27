@@ -87,8 +87,8 @@ void Rwt_ManGlobalStop()
 Rwt_Man_t * Rwt_ManStart( int fPrecompute )
 {
     Rwt_Man_t * p;
-    clock_t clk = clock();
-clk = clock();
+    abctime clk = Abc_Clock();
+clk = Abc_Clock();
     p = ABC_ALLOC( Rwt_Man_t, 1 );
     memset( p, 0, sizeof(Rwt_Man_t) );
     p->nFuncs = (1<<16);
@@ -131,7 +131,7 @@ clk = clock();
 //        Rwt_ManPrint( p );
         Rwt_ManPreprocess( p );
     }
-p->timeStart = clock() - clk;
+p->timeStart = Abc_Clock() - clk;
     return p;
 }
 
@@ -298,7 +298,7 @@ int Rwt_ManReadCompl( Rwt_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Rwt_ManAddTimeCuts( Rwt_Man_t * p, clock_t Time )
+void Rwt_ManAddTimeCuts( Rwt_Man_t * p, abctime Time )
 {
     p->timeCut += Time;
 }
@@ -314,7 +314,7 @@ void Rwt_ManAddTimeCuts( Rwt_Man_t * p, clock_t Time )
   SeeAlso     []
 
 ***********************************************************************/
-void Rwt_ManAddTimeUpdate( Rwt_Man_t * p, clock_t Time )
+void Rwt_ManAddTimeUpdate( Rwt_Man_t * p, abctime Time )
 {
     p->timeUpdate += Time;
 }
@@ -330,7 +330,7 @@ void Rwt_ManAddTimeUpdate( Rwt_Man_t * p, clock_t Time )
   SeeAlso     []
 
 ***********************************************************************/
-void Rwt_ManAddTimeTotal( Rwt_Man_t * p, clock_t Time )
+void Rwt_ManAddTimeTotal( Rwt_Man_t * p, abctime Time )
 {
     p->timeTotal += Time;
 }

@@ -462,13 +462,13 @@ void Amap_LibParseTest( char * pFileName )
 {
     int fVerbose = 0;
     Amap_Lib_t * p;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     p = Amap_LibReadFile( pFileName, fVerbose );
     if ( p == NULL )
         return;
     Amap_LibParseEquations( p, fVerbose );
     Amap_LibFree( p );
-    ABC_PRT( "Total time", clock() - clk );
+    ABC_PRT( "Total time", Abc_Clock() - clk );
 }
 
 ////////////////////////////////////////////////////////////////////////

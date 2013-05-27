@@ -160,7 +160,7 @@ void Iso_StoCollectInfo_rec( Aig_Man_t * p, Aig_Obj_t * pObj, int fCompl, Vec_In
     Vec_IntPush( vVisited, Aig_ObjId(pObj) );
 }
 
-//static clock_t time_Trav = 0;
+//static abctime time_Trav = 0;
 
 /**Function*************************************************************
 
@@ -181,7 +181,7 @@ Vec_Int_t * Iso_StoCollectInfo( Iso_Sto_t * p, Aig_Obj_t * pPo )
     Aig_Man_t * pAig = p->pAig;
     Aig_Obj_t * pObj;
     int i, Value, Entry, * pPerm;
-//    clock_t clk = clock();
+//    abctime clk = Abc_Clock();
 
     assert( Aig_ObjIsCo(pPo) );
 
@@ -194,7 +194,7 @@ Vec_Int_t * Iso_StoCollectInfo( Iso_Sto_t * p, Aig_Obj_t * pPo )
     Vec_PtrForEachEntry( Aig_Obj_t *, p->vRoots, pObj, i )
         if ( !Aig_ObjIsConst1(Aig_ObjFanin0(pObj)) )
             Iso_StoCollectInfo_rec( pAig, Aig_ObjFanin0(pObj), Aig_ObjFaninC0(pObj), p->vVisited, p->pData, p->vRoots );
-//    time_Trav += clock() - clk;
+//    time_Trav += Abc_Clock() - clk;
 
     // count how many times each data entry appears
     Vec_IntClear( p->vPlaces );
@@ -287,7 +287,7 @@ Vec_Vec_t * Saig_IsoDetectFast( Aig_Man_t * pAig )
     Vec_Ptr_t * vClasses, * vInfos;
     Vec_Int_t * vInfo, * vPrev, * vLevel;
     int i, Number, nUnique = 0;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
 
     // collect infos and remember their number
     pMan = Iso_StoStart( pAig );
@@ -299,14 +299,14 @@ Vec_Vec_t * Saig_IsoDetectFast( Aig_Man_t * pAig )
         Vec_PtrPush( vInfos, vInfo );
     }
     Iso_StoStop( pMan );
-    Abc_PrintTime( 1, "Info computation time", clock() - clk );
+    Abc_PrintTime( 1, "Info computation time", Abc_Clock() - clk );
 
     // sort the infos
-    clk = clock();
+    clk = Abc_Clock();
     Vec_PtrSort( vInfos, (int (*)(void))Iso_StoCompareVecInt );
 
     // create classes
-    clk = clock();
+    clk = Abc_Clock();
     vClasses = Vec_PtrAlloc( Saig_ManPoNum(pAig) );
     // start the first class
     Vec_PtrPush( vClasses, (vLevel = Vec_IntAlloc(4)) );
@@ -323,7 +323,7 @@ Vec_Vec_t * Saig_IsoDetectFast( Aig_Man_t * pAig )
         vPrev = vInfo;
     }
     Vec_VecFree( (Vec_Vec_t *)vInfos );
-    Abc_PrintTime( 1, "Sorting time", clock() - clk );
+    Abc_PrintTime( 1, "Sorting time", Abc_Clock() - clk );
 //    Abc_PrintTime( 1, "Traversal time", time_Trav );
 
     // report the results

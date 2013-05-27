@@ -55,7 +55,7 @@ struct Dch_Pars_t_
     int              fLightSynth;   // uses lighter version of synthesis
     int              fSkipRedSupp;  // skip choices with redundant support vars
     int              fVerbose;      // verbose stats
-    clock_t          timeSynth;     // synthesis runtime
+    abctime          timeSynth;     // synthesis runtime
     int              nNodesAhead;   // the lookahead in terms of nodes
     int              nCallsRecycle; // calls to perform before recycling SAT solver
 };

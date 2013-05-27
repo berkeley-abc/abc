@@ -364,9 +364,9 @@ Aig_Man_t * Dar_ManChoice( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, int
     Aig_Man_t * pMan, * pTemp;
     Vec_Ptr_t * vAigs;
     int i;
-    clock_t clk;
+    abctime clk;
 
-clk = clock();
+clk = Abc_Clock();
 //    vAigs = Dar_ManChoiceSynthesisExt();
     vAigs = Dar_ManChoiceSynthesis( pAig, fBalance, fUpdateLevel, 0, fVerbose );
 
@@ -382,9 +382,9 @@ clk = clock();
 
 if ( fVerbose )
 {
-ABC_PRT( "Synthesis time", clock() - clk );
+ABC_PRT( "Synthesis time", Abc_Clock() - clk );
 }
-clk = clock();
+clk = Abc_Clock();
     if ( fConstruct )
         pMan = Aig_ManChoiceConstructive( vAigs, fVerbose );
     else
@@ -394,7 +394,7 @@ clk = clock();
     Vec_PtrFree( vAigs );
 if ( fVerbose )
 {
-ABC_PRT( "Choicing time ", clock() - clk );
+ABC_PRT( "Choicing time ", Abc_Clock() - clk );
 }
     return pMan;
 //    return NULL;
@@ -687,9 +687,9 @@ Aig_Man_t * Dar_ManChoiceNew( Aig_Man_t * pAig, Dch_Pars_t * pPars )
     Aig_Man_t * pMan, * pTemp;
     Vec_Ptr_t * vAigs;
     int i;
-    clock_t clk;
+    abctime clk;
 
-clk = clock();
+clk = Abc_Clock();
 //    vAigs = Dar_ManChoiceSynthesisExt();
 //    vAigs = Dar_ManChoiceSynthesis( pAig, 1, 1, pPars->fPower, fVerbose );
     vAigs = Dar_ManChoiceSynthesis( pAig, 1, 1, pPars->fPower, 0 );
@@ -706,11 +706,11 @@ clk = clock();
 
 if ( fVerbose )
 {
-//ABC_PRT( "Synthesis time", clock() - clk );
+//ABC_PRT( "Synthesis time", Abc_Clock() - clk );
 }
-    pPars->timeSynth = clock() - clk;
+    pPars->timeSynth = Abc_Clock() - clk;
 
-clk = clock();
+clk = Abc_Clock();
     // perform choice computation
     if ( pPars->fUseGia )
         pMan = Cec_ComputeChoices( vAigs, pPars );
@@ -741,7 +741,7 @@ clk = clock();
 
 if ( fVerbose )
 {
-//ABC_PRT( "Choicing time ", clock() - clk );
+//ABC_PRT( "Choicing time ", Abc_Clock() - clk );
 }
     return pMan;
 //    return NULL;
@@ -770,11 +770,11 @@ Aig_Man_t * Dar_ManChoiceNewAig( Aig_Man_t * pAig, Dch_Pars_t * pPars )
     void * pManTime;
     char * pName, * pSpec;
     int i;
-    clock_t clk;
+    abctime clk;
 
-clk = clock();
+clk = Abc_Clock();
     vAigs = Dar_ManChoiceSynthesis( pAig, 1, 1, pPars->fPower, fVerbose );
-pPars->timeSynth = clock() - clk;
+pPars->timeSynth = Abc_Clock() - clk;
     // swap the first and last network
     // this should lead to the primary choice being "better" because of synthesis
     // (it is also important when constructing choices)
@@ -841,7 +841,7 @@ Aig_Man_t * Dar_ManChoiceNew( Aig_Man_t * pAig, Dch_Pars_t * pPars )
     Vec_Ptr_t * vPios;
     void * pManTime;
     char * pName, * pSpec;
-    clock_t clk;
+    abctime clk;
 
     // save useful things
     pManTime = pAig->pManTime; pAig->pManTime = NULL;
@@ -849,9 +849,9 @@ Aig_Man_t * Dar_ManChoiceNew( Aig_Man_t * pAig, Dch_Pars_t * pPars )
     pSpec = Abc_UtilStrsav( pAig->pSpec );
 
     // perform synthesis
-clk = clock();
+clk = Abc_Clock();
     pGia = Dar_NewChoiceSynthesis( Aig_ManDupDfs(pAig), 1, 1, pPars->fPower, pPars->fLightSynth, pPars->fVerbose );
-pPars->timeSynth = clock() - clk;
+pPars->timeSynth = Abc_Clock() - clk;
 
     // perform choice computation
     if ( pPars->fUseGia )

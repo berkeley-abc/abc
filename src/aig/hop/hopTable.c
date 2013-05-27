@@ -168,8 +168,8 @@ void Hop_TableResize( Hop_Man_t * p )
     Hop_Obj_t * pEntry, * pNext;
     Hop_Obj_t ** pTableOld, ** ppPlace;
     int nTableSizeOld, Counter, nEntries, i;
-    clock_t clk;
-clk = clock();
+    abctime clk;
+clk = Abc_Clock();
     // save the old table
     pTableOld = p->pTable;
     nTableSizeOld = p->nTableSize;
@@ -193,7 +193,7 @@ clk = clock();
     nEntries = Hop_ManNodeNum(p);
     assert( Counter == nEntries );
 //    printf( "Increasing the structural table size from %6d to %6d. ", nTableSizeOld, p->nTableSize );
-//    ABC_PRT( "Time", clock() - clk );
+//    ABC_PRT( "Time", Abc_Clock() - clk );
     // replace the table and the parameters
     ABC_FREE( pTableOld );
 }

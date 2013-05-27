@@ -88,10 +88,10 @@ struct Pr_Man_t_
     int             nResLits;     // the number of literals of the resolvent
     int             nResLitsAlloc;// the number of literals of the resolvent
     // runtime stats
-    clock_t         timeBcp;
-    clock_t         timeTrace;
-    clock_t         timeRead;
-    clock_t         timeTotal;
+    abctime         timeBcp;
+    abctime         timeTrace;
+    abctime         timeRead;
+    abctime         timeTotal;
 };
 
 // variable assignments 
@@ -578,17 +578,17 @@ Pr_Cls_t * Pr_ManPropagate( Pr_Man_t * p, int Start )
 {
     Pr_Cls_t * pClause;
     int i;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     for ( i = Start; i < p->nTrailSize; i++ )
     {
         pClause = Pr_ManPropagateOne( p, p->pTrail[i] );
         if ( pClause )
         {
-p->timeBcp += clock() - clk;
+p->timeBcp += Abc_Clock() - clk;
             return pClause;
         }
     }
-p->timeBcp += clock() - clk;
+p->timeBcp += Abc_Clock() - clk;
     return NULL;
 }
 
@@ -674,7 +674,7 @@ int Pr_ManProofTraceOne( Pr_Man_t * p, Pr_Cls_t * pConflict, Pr_Cls_t * pFinal )
     Pr_Cls_t * pReason;
     int i, v, Var, PrevId;
     int fPrint = 0;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
 
     // collect resolvent literals
     if ( p->fProofVerif )
@@ -805,7 +805,7 @@ int Pr_ManProofTraceOne( Pr_Man_t * p, Pr_Cls_t * pConflict, Pr_Cls_t * pFinal )
             Pr_ManPrintClause( pFinal );
         }
     }
-p->timeTrace += clock() - clk;
+p->timeTrace += Abc_Clock() - clk;
 
     // return the proof pointer 
     if ( p->nClausesA )
@@ -1226,11 +1226,11 @@ int Pr_ManProofCount_rec( Pr_Cls_t * pClause )
 int Pr_ManProofTest( char * pFileName )
 {
     Pr_Man_t * p;
-    clock_t clk, clkTotal = clock();
+    abctime clk, clkTotal = Abc_Clock();
 
-clk = clock();
+clk = Abc_Clock();
     p = Pr_ManProofRead( pFileName );
-p->timeRead = clock() - clk;
+p->timeRead = Abc_Clock() - clk;
     if ( p == NULL )
         return 0;
 
@@ -1249,7 +1249,7 @@ p->timeRead = clock() - clk;
         1.0*(p->Counter-p->nRoots)/(p->nClauses-p->nRoots), 
         1.0*Pr_ManMemoryReport(p)/(1<<20) );
 
-p->timeTotal = clock() - clkTotal;
+p->timeTotal = Abc_Clock() - clkTotal;
     Pr_ManFree( p );
     return 1;
 }

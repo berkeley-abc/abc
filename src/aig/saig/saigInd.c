@@ -152,7 +152,7 @@ int Saig_ManInduction( Aig_Man_t * p, int nFramesMax, int nConfMax, int fUnique,
     Aig_Obj_t * pObjPi, * pObjPiCopy, * pObjPo;
     int i, k, f, Lits[2], status = -1, RetValue, nSatVarNum, nConfPrev;
     int nOldSize, iReg, iLast, fAdded, nConstrs = 0, nClauses = 0;
-    clock_t clk;
+    abctime clk;
     assert( fUnique == 0 || fUniqueAll == 0 );
     assert( Saig_ManPoNum(p) == 1 );
     Aig_ManSetCioIds( p );
@@ -180,7 +180,7 @@ int Saig_ManInduction( Aig_Man_t * p, int nFramesMax, int nConfMax, int fUnique,
             Aig_ManStop( pAigPart );
             Cnf_DataFree( pCnfPart );
         }
-        clk = clock();
+        clk = Abc_Clock();
         // get the bottom
         Aig_SupportNodes( p, (Aig_Obj_t **)Vec_PtrArray(vTop), Vec_PtrSize(vTop), vBot );
         // derive AIG for the part between top and bottom
@@ -289,7 +289,7 @@ nextrun:
             printf( "%4d : PI =%5d. PO =%5d. AIG =%5d. Var =%7d. Clau =%7d. Conf =%7d. ",
                 f, Aig_ManCiNum(pAigPart), Aig_ManCoNum(pAigPart), Aig_ManNodeNum(pAigPart), 
                 nSatVarNum, nClauses, (int)pSat->stats.conflicts-nConfPrev );
-            ABC_PRT( "Time", clock() - clk );
+            ABC_PRT( "Time", Abc_Clock() - clk );
         }
         if ( status == l_Undef )
             break;

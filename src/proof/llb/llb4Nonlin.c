@@ -47,11 +47,11 @@ struct Llb_Mnx_t_
     Vec_Int_t *     vOrder;         // for each object ID, its BDD variable number or -1
     Vec_Int_t *     vVars2Q;        // 1 if variable is quantifiable; 0 othervise
 
-    clock_t         timeImage;
-    clock_t         timeRemap;
-    clock_t         timeReo;
-    clock_t         timeOther;
-    clock_t         timeTotal;
+    abctime         timeImage;
+    abctime         timeRemap;
+    abctime         timeReo;
+    abctime         timeOther;
+    abctime         timeTotal;
 };
 
 //extern int timeBuild, timeAndEx, timeOther;
@@ -447,7 +447,7 @@ DdNode * Llb_Nonlin4ComputeInitState( DdManager * dd, Aig_Man_t * pAig, Vec_Int_
     Aig_Obj_t * pObjLi, * pObjLo;
     DdNode * bRes, * bVar, * bTemp;
     int i;
-    clock_t TimeStop;
+    abctime TimeStop;
     TimeStop = dd->TimeStop;  dd->TimeStop = 0;
     bRes = Cudd_ReadOne( dd );   Cudd_Ref( bRes );
     Saig_ManForEachLiLo( pAig, pObjLi, pObjLo, i )
@@ -477,7 +477,7 @@ DdNode * Llb_Nonlin4ComputeCube( DdManager * dd, Aig_Man_t * pAig, Vec_Int_t * v
     Aig_Obj_t * pObjLo, * pObjLi, * pObjTemp;
     DdNode * bRes, * bVar, * bTemp;
     int i;
-    clock_t TimeStop;
+    abctime TimeStop;
     TimeStop = dd->TimeStop;  dd->TimeStop = 0;
     bRes = Cudd_ReadOne( dd );   Cudd_Ref( bRes );
     Saig_ManForEachLiLo( pAig, pObjLi, pObjLo, i )
@@ -579,7 +579,7 @@ Vec_Ptr_t * Llb_Nonlin4DeriveCex( Llb_Mnx_t * p, int fBackward, int fVerbose )
     Vec_Ptr_t * vStates, * vRootsNew;
     Aig_Obj_t * pObj;
     DdNode * bState = NULL, * bImage, * bOneCube, * bRing;
-    int i, v, RetValue;//, clk = clock();
+    int i, v, RetValue;//, clk = Abc_Clock();
     char * pValues;
     assert( Vec_PtrSize(p->vRings) > 0 );
     // disable the timeout
@@ -649,7 +649,7 @@ Vec_Ptr_t * Llb_Nonlin4DeriveCex( Llb_Mnx_t * p, int fBackward, int fVerbose )
     if ( fBackward )
         Vec_PtrReverseOrder( vStates );
 //    if ( fVerbose )
-//        Abc_PrintTime( 1, "BDD-based cex generation time", clock() - clk );
+//        Abc_PrintTime( 1, "BDD-based cex generation time", Abc_Clock() - clk );
     return vStates;
 }
 
@@ -669,7 +669,7 @@ int Llb_Nonlin4Reachability( Llb_Mnx_t * p )
 { 
     DdNode * bAux;
     int nIters, nBddSizeFr = 0, nBddSizeTo = 0, nBddSizeTo2 = 0;
-    clock_t clkTemp, clkIter, clk = clock();
+    abctime clkTemp, clkIter, clk = Abc_Clock();
     assert( Aig_ManRegNum(p->pAig) > 0 );
 
     if ( p->pPars->fBackward )
@@ -736,9 +736,9 @@ int Llb_Nonlin4Reachability( Llb_Mnx_t * p )
     p->bReached = p->bCurrent; Cudd_Ref( p->bReached );
     for ( nIters = 0; nIters < p->pPars->nIterMax; nIters++ )
     { 
-        clkIter = clock();
+        clkIter = Abc_Clock();
         // check the runtime limit
-        if ( p->pPars->TimeLimit && clock() > p->pPars->TimeTarget )
+        if ( p->pPars->TimeLimit && Abc_Clock() > p->pPars->TimeTarget )
         {
             if ( !p->pPars->fSilent )
                 printf( "Reached timeout (%d seconds) during image computation.\n",  p->pPars->TimeLimit );
@@ -760,14 +760,14 @@ int Llb_Nonlin4Reachability( Llb_Mnx_t * p )
             if ( !p->pPars->fSilent )
             {
                 Abc_Print( 1, "Output %d of miter \"%s\" was asserted in frame %d.  ", p->pAig->pSeqModel->iPo, p->pAig->pName, nIters );
-                Abc_PrintTime( 1, "Time", clock() - clk );
+                Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
             }
             p->pPars->iFrame = nIters - 1;
             return 0;
         }
 
         // compute the next states
-        clkTemp = clock();
+        clkTemp = Abc_Clock();
         p->bNext = Llb_Nonlin4Image( p->dd, p->vRoots, p->bCurrent, p->vVars2Q );
         if ( p->bNext == NULL )
         {
@@ -777,10 +777,10 @@ int Llb_Nonlin4Reachability( Llb_Mnx_t * p )
             return -1;
         }
         Cudd_Ref( p->bNext );
-        p->timeImage += clock() - clkTemp;
+        p->timeImage += Abc_Clock() - clkTemp;
 
         // remap into current states
-        clkTemp = clock();
+        clkTemp = Abc_Clock();
         p->bNext = Cudd_bddVarMap( p->dd, bAux = p->bNext );
         if ( p->bNext == NULL )
         {
@@ -792,7 +792,7 @@ int Llb_Nonlin4Reachability( Llb_Mnx_t * p )
         }
         Cudd_Ref( p->bNext );
         Cudd_RecursiveDeref( p->dd, bAux );
-        p->timeRemap += clock() - clkTemp;
+        p->timeRemap += Abc_Clock() - clkTemp;
 
         // collect statistics
         if ( p->pPars->fVerbose )
@@ -847,7 +847,7 @@ printf( "Before = %d.  After = %d.\n", Cudd_DagSize(bAux), Cudd_DagSize(p->bCurr
             printf( "ImCs =%7d  ", nBddSizeTo2 );
             printf( "Rea =%7d   ", Cudd_DagSize(p->bReached) );
             printf( "(%4d %4d)  ", Cudd_ReadReorderings(p->dd), Cudd_ReadGarbageCollections(p->dd) );
-            Abc_PrintTime( 1, "T", clock() - clkIter );
+            Abc_PrintTime( 1, "T", Abc_Clock() - clkIter );
         }
 /*
         if ( pPars->fVerbose )
@@ -889,7 +889,7 @@ printf( "Before = %d.  After = %d.\n", Cudd_DagSize(bAux), Cudd_DagSize(p->bCurr
     if ( !p->pPars->fSilent )
         printf( "The miter is proved unreachable after %d iterations.  ", nIters );
     p->pPars->iFrame = nIters - 1;
-    Abc_PrintTime( 1, "Time", clock() - clk );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     return 1; // unreachable
 }
 
@@ -906,7 +906,7 @@ printf( "Before = %d.  After = %d.\n", Cudd_DagSize(bAux), Cudd_DagSize(p->bCurr
 ***********************************************************************/
 void Llb_Nonlin4Reorder( DdManager * dd, int fTwice, int fVerbose )
 {
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     if ( fVerbose )
         Abc_Print( 1, "Reordering... Before =%5d. ", Cudd_ReadKeys(dd) - Cudd_ReadDead(dd) );
     Cudd_ReduceHeap( dd, CUDD_REORDER_SYMM_SIFT, 100 );
@@ -919,7 +919,7 @@ void Llb_Nonlin4Reorder( DdManager * dd, int fTwice, int fVerbose )
             Abc_Print( 1, "After =%5d. ", Cudd_ReadKeys(dd) - Cudd_ReadDead(dd) );
     }
     if ( fVerbose )
-        Abc_PrintTime( 1, "Time", clock() - clk );
+        Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 }
  
 /**Function*************************************************************
@@ -942,7 +942,7 @@ Llb_Mnx_t * Llb_MnxStart( Aig_Man_t * pAig, Gia_ParLlb_t * pPars )
     p->pPars   = pPars;
 
     // compute time to stop
-    p->pPars->TimeTarget = p->pPars->TimeLimit ? p->pPars->TimeLimit * CLOCKS_PER_SEC + clock(): 0;
+    p->pPars->TimeTarget = p->pPars->TimeLimit ? p->pPars->TimeLimit * CLOCKS_PER_SEC + Abc_Clock(): 0;
 
     if ( pPars->fCluster )
     {
@@ -1073,12 +1073,12 @@ int Llb_Nonlin4CoreReach( Aig_Man_t * pAig, Gia_ParLlb_t * pPars )
         return RetValue;
     }
     {
-        clock_t clk = clock();
+        abctime clk = Abc_Clock();
         pMnn = Llb_MnxStart( pAig, pPars );
 //Llb_MnxCheckNextStateVars( pMnn );
         if ( !pPars->fSkipReach )
             RetValue = Llb_Nonlin4Reachability( pMnn );
-        pMnn->timeTotal = clock() - clk;
+        pMnn->timeTotal = Abc_Clock() - clk;
         Llb_MnxStop( pMnn );
     }
     return RetValue;

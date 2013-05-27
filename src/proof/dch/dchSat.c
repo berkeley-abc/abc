@@ -46,7 +46,7 @@ int Dch_NodesAreEquiv( Dch_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew )
 {
     int nBTLimit = p->pPars->nBTLimit;
     int pLits[2], RetValue, RetValue1, status;
-    clock_t clk;
+    abctime clk;
     p->nSatCalls++;
 
     // sanity checks
@@ -85,13 +85,13 @@ int Dch_NodesAreEquiv( Dch_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew )
         if ( pNew->fPhase )  pLits[1] = lit_neg( pLits[1] );
     }
 //Sat_SolverWriteDimacs( p->pSat, "temp.cnf", pLits, pLits + 2, 1 );
-clk = clock();
+clk = Abc_Clock();
     RetValue1 = sat_solver_solve( p->pSat, pLits, pLits + 2, 
         (ABC_INT64_T)nBTLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
-p->timeSat += clock() - clk;
+p->timeSat += Abc_Clock() - clk;
     if ( RetValue1 == l_False )
     {
-p->timeSatUnsat += clock() - clk;
+p->timeSatUnsat += Abc_Clock() - clk;
         pLits[0] = lit_neg( pLits[0] );
         pLits[1] = lit_neg( pLits[1] );
         RetValue = sat_solver_addclause( p->pSat, pLits, pLits + 2 );
@@ -100,13 +100,13 @@ p->timeSatUnsat += clock() - clk;
     }
     else if ( RetValue1 == l_True )
     {
-p->timeSatSat += clock() - clk;
+p->timeSatSat += Abc_Clock() - clk;
         p->nSatCallsSat++;
         return 0;
     }
     else // if ( RetValue1 == l_Undef )
     {
-p->timeSatUndec += clock() - clk;
+p->timeSatUndec += Abc_Clock() - clk;
         p->nSatFailsReal++;
         return -1;
     }
@@ -127,13 +127,13 @@ p->timeSatUndec += clock() - clk;
         if ( pOld->fPhase )  pLits[0] = lit_neg( pLits[0] );
         if ( pNew->fPhase )  pLits[1] = lit_neg( pLits[1] );
     }
-clk = clock();
+clk = Abc_Clock();
     RetValue1 = sat_solver_solve( p->pSat, pLits, pLits + 2, 
         (ABC_INT64_T)nBTLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
-p->timeSat += clock() - clk;
+p->timeSat += Abc_Clock() - clk;
     if ( RetValue1 == l_False )
     {
-p->timeSatUnsat += clock() - clk;
+p->timeSatUnsat += Abc_Clock() - clk;
         pLits[0] = lit_neg( pLits[0] );
         pLits[1] = lit_neg( pLits[1] );
         RetValue = sat_solver_addclause( p->pSat, pLits, pLits + 2 );
@@ -142,13 +142,13 @@ p->timeSatUnsat += clock() - clk;
     }
     else if ( RetValue1 == l_True )
     {
-p->timeSatSat += clock() - clk;
+p->timeSatSat += Abc_Clock() - clk;
         p->nSatCallsSat++;
         return 0;
     }
     else // if ( RetValue1 == l_Undef )
     {
-p->timeSatUndec += clock() - clk;
+p->timeSatUndec += Abc_Clock() - clk;
         p->nSatFailsReal++;
         return -1;
     }

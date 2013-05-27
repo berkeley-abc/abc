@@ -70,7 +70,7 @@ Gia_Man_t * Gia_ManShrinkGla( Gia_Man_t * p, int nFrameMax, int nTimeOut, int fU
     int i, iFrame0, iFrame;
     int nTotal = 0, nRemoved = 0;
     Vec_Int_t * vGScopy;
-    clock_t clk, clkTotal = clock();
+    abctime clk, clkTotal = Abc_Clock();
     assert( Gia_ManPoNum(p) == 1 );
     assert( p->vGateClasses != NULL );
     vGScopy = Vec_IntDup( p->vGateClasses );
@@ -99,7 +99,7 @@ Gia_Man_t * Gia_ManShrinkGla( Gia_Man_t * p, int nFrameMax, int nTimeOut, int fU
                 if ( Gia_ObjIsInGla(p, Gia_ObjFanin0(Gia_ObjRoToRi(p, pObj))) )
                     continue;
             }        
-            clk = clock();
+            clk = Abc_Clock();
             printf( "%5d : ", nTotal );
             printf( "Obj =%7d   ", i );
             Gia_ObjRemFromGla( p, pObj );
@@ -122,7 +122,7 @@ Gia_Man_t * Gia_ManShrinkGla( Gia_Man_t * p, int nFrameMax, int nTimeOut, int fU
                 printf( "Removing   " );
                 Vec_IntWriteEntry( vGScopy, Gia_ObjId(p, pObj), 0 );
             }
-            Abc_PrintTime( 1, "Time", clock() - clk );
+            Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
             nTotal++;
             // update the classes
             Vec_IntFreeP( &p->vGateClasses );
@@ -135,7 +135,7 @@ Gia_Man_t * Gia_ManShrinkGla( Gia_Man_t * p, int nFrameMax, int nTimeOut, int fU
     Vec_IntFree( vGScopy );
     printf( "Tried = %d.  ",     nTotal );
     printf( "Removed = %d. (%.2f %%)  ",  nRemoved, 100.0 * nRemoved / Vec_IntCountPositive(p->vGateClasses) );
-    Abc_PrintTime( 1, "Time",  clock() - clkTotal );
+    Abc_PrintTime( 1, "Time",  Abc_Clock() - clkTotal );
     return NULL;
 }
 

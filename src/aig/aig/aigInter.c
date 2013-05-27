@@ -29,9 +29,9 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-extern clock_t timeCnf;
-extern clock_t timeSat;
-extern clock_t timeInt;
+extern abctime timeCnf;
+extern abctime timeSat;
+extern abctime timeInt;
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -54,7 +54,7 @@ void Aig_ManInterFast( Aig_Man_t * pManOn, Aig_Man_t * pManOff, int fVerbose )
     Cnf_Dat_t * pCnfOn, * pCnfOff;
     Aig_Obj_t * pObj, * pObj2;
     int Lits[3], status, i;
-//    clock_t clk = clock();
+//    abctime clk = Abc_Clock();
 
     assert( Aig_ManCiNum(pManOn) == Aig_ManCiNum(pManOff) );
     assert( Aig_ManCoNum(pManOn) == Aig_ManCoNum(pManOff) );
@@ -132,7 +132,7 @@ void Aig_ManInterFast( Aig_Man_t * pManOn, Aig_Man_t * pManOff, int fVerbose )
     Cnf_DataFree( pCnfOn );
     Cnf_DataFree( pCnfOff );
     sat_solver_delete( pSat );
-//    ABC_PRT( "Fast interpolation time", clock() - clk );
+//    ABC_PRT( "Fast interpolation time", Abc_Clock() - clk );
 }
 
 /**Function*************************************************************
@@ -156,21 +156,21 @@ Aig_Man_t * Aig_ManInter( Aig_Man_t * pManOn, Aig_Man_t * pManOff, int fRelation
     Vec_Int_t * vVarsAB;
     Aig_Obj_t * pObj, * pObj2;
     int Lits[3], status, i;
-    clock_t clk;
+    abctime clk;
     int iLast = -1; // Suppress "might be used uninitialized"
 
     assert( Aig_ManCiNum(pManOn) == Aig_ManCiNum(pManOff) );
 
-clk = clock();
+clk = Abc_Clock();
     // derive CNFs
 //    pCnfOn  = Cnf_Derive( pManOn, 0 );
 //    pCnfOff = Cnf_Derive( pManOff, 0 );
     pCnfOn  = Cnf_DeriveSimple( pManOn, 0 );
     pCnfOff = Cnf_DeriveSimple( pManOff, 0 );
     Cnf_DataLift( pCnfOff, pCnfOn->nVars );
-timeCnf += clock() - clk;
+timeCnf += Abc_Clock() - clk;
 
-clk = clock();
+clk = Abc_Clock();
     // start the solver
     pSat = sat_solver_new();
     sat_solver_store_alloc( pSat );
@@ -246,7 +246,7 @@ clk = clock();
 
     // solve the problem
     status = sat_solver_solve( pSat, NULL, NULL, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
-timeSat += clock() - clk;
+timeSat += Abc_Clock() - clk;
     if ( status == l_False )
     {
         pSatCnf = sat_solver_store_release( pSat );
@@ -269,11 +269,11 @@ timeSat += clock() - clk;
     }
 
     // create the resulting manager
-clk = clock();
+clk = Abc_Clock();
     pManInter = Inta_ManAlloc();
     pRes = (Aig_Man_t *)Inta_ManInterpolate( pManInter, (Sto_Man_t *)pSatCnf, vVarsAB, fVerbose );
     Inta_ManFree( pManInter );
-timeInt += clock() - clk;
+timeInt += Abc_Clock() - clk;
 /*
     // test UNSAT core computation
     {

@@ -148,7 +148,7 @@ int Lpk_Decompose_rec( Lpk_Man_t * pMan, Lpk_Fun_t * p )
 {
     Lpk_Res_t * pResMux, * pResDsd;
     Lpk_Fun_t * p2;
-    clock_t clk;
+    abctime clk;
 
     // is only called for non-trivial blocks
     assert( p->nLutK >= 3 && p->nLutK <= 6 );
@@ -165,15 +165,15 @@ int Lpk_Decompose_rec( Lpk_Man_t * pMan, Lpk_Fun_t * p )
         Lpk_FunComputeCofSupps( p );
 
     // check DSD decomposition
-clk = clock();
+clk = Abc_Clock();
     pResDsd = Lpk_DsdAnalize( pMan, p, pMan->pPars->nVarsShared );
-pMan->timeEvalDsdAn += clock() - clk;
+pMan->timeEvalDsdAn += Abc_Clock() - clk;
     if ( pResDsd && (pResDsd->nBSVars == (int)p->nLutK || pResDsd->nBSVars == (int)p->nLutK - 1) && 
           pResDsd->AreaEst <= (int)p->nAreaLim && pResDsd->DelayEst <= (int)p->nDelayLim )
     {
-clk = clock();
+clk = Abc_Clock();
         p2 = Lpk_DsdSplit( pMan, p, pResDsd->pCofVars, pResDsd->nCofVars, pResDsd->BSVars );
-pMan->timeEvalDsdSp += clock() - clk;
+pMan->timeEvalDsdSp += Abc_Clock() - clk;
         assert( p2->nVars <= (int)p->nLutK );
         if ( p->nVars > p->nLutK && !Lpk_Decompose_rec( pMan, p ) )
             return 0;
@@ -181,9 +181,9 @@ pMan->timeEvalDsdSp += clock() - clk;
     }
 
     // check MUX decomposition
-clk = clock();
+clk = Abc_Clock();
     pResMux = Lpk_MuxAnalize( pMan, p );
-pMan->timeEvalMuxAn += clock() - clk;
+pMan->timeEvalMuxAn += Abc_Clock() - clk;
 //    pResMux = NULL;
     assert( !pResMux || (pResMux->DelayEst <= (int)p->nDelayLim && pResMux->AreaEst <= (int)p->nAreaLim) );
     // accept MUX decomposition if it is "good"
@@ -202,9 +202,9 @@ pMan->timeEvalMuxAn += clock() - clk;
     assert( pResMux == NULL || pResDsd == NULL );
     if ( pResMux )
     {
-clk = clock();
+clk = Abc_Clock();
         p2 = Lpk_MuxSplit( pMan, p, pResMux->Variable, pResMux->Polarity );
-pMan->timeEvalMuxSp += clock() - clk;
+pMan->timeEvalMuxSp += Abc_Clock() - clk;
         if ( p2->nVars > p->nLutK && !Lpk_Decompose_rec( pMan, p2 ) )
             return 0;
         if ( p->nVars > p->nLutK && !Lpk_Decompose_rec( pMan, p ) )
@@ -213,9 +213,9 @@ pMan->timeEvalMuxSp += clock() - clk;
     }
     if ( pResDsd )
     {
-clk = clock();
+clk = Abc_Clock();
         p2 = Lpk_DsdSplit( pMan, p, pResDsd->pCofVars, pResDsd->nCofVars, pResDsd->BSVars );
-pMan->timeEvalDsdSp += clock() - clk;
+pMan->timeEvalDsdSp += Abc_Clock() - clk;
         assert( p2->nVars <= (int)p->nLutK );
         if ( p->nVars > p->nLutK && !Lpk_Decompose_rec( pMan, p ) )
             return 0;

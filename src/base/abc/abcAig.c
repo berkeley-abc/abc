@@ -584,10 +584,10 @@ void Abc_AigResize( Abc_Aig_t * pMan )
     Abc_Obj_t ** pBinsNew;
     Abc_Obj_t * pEnt, * pEnt2;
     int nBinsNew, Counter, i;
-    clock_t clk;
+    abctime clk;
     unsigned Key;
 
-clk = clock();
+clk = Abc_Clock();
     // get the new table size
     nBinsNew = Abc_PrimeCudd( 3 * pMan->nBins ); 
     // allocate a new array
@@ -605,7 +605,7 @@ clk = clock();
         }
     assert( Counter == pMan->nEntries );
 //    printf( "Increasing the structural table size from %6d to %6d. ", pMan->nBins, nBinsNew );
-//    ABC_PRT( "Time", clock() - clk );
+//    ABC_PRT( "Time", Abc_Clock() - clk );
     // replace the table and the parameters
     ABC_FREE( pMan->pBins );
     pMan->pBins = pBinsNew;

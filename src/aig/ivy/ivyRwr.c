@@ -57,7 +57,7 @@ int Ivy_ManRewritePre( Ivy_Man_t * p, int fUpdateLevel, int fUseZeroCost, int fV
     Rwt_Man_t * pManRwt;
     Ivy_Obj_t * pNode;
     int i, nNodes, nGain;
-    clock_t clk, clkStart = clock();
+    abctime clk, clkStart = Abc_Clock();
     // start the rewriting manager
     pManRwt = Rwt_ManStart( 0 );
     p->pData = pManRwt;
@@ -105,14 +105,14 @@ int Ivy_ManRewritePre( Ivy_Man_t * p, int fUpdateLevel, int fUseZeroCost, int fV
             }
 */
             // complement the FF if needed
-clk = clock();
+clk = Abc_Clock();
             if ( fCompl ) Dec_GraphComplement( pGraph );
             Ivy_GraphUpdateNetwork( p, pNode, pGraph, fUpdateLevel, nGain );
             if ( fCompl ) Dec_GraphComplement( pGraph );
-Rwt_ManAddTimeUpdate( pManRwt, clock() - clk );
+Rwt_ManAddTimeUpdate( pManRwt, Abc_Clock() - clk );
         }
     }
-Rwt_ManAddTimeTotal( pManRwt, clock() - clkStart );
+Rwt_ManAddTimeTotal( pManRwt, Abc_Clock() - clkStart );
     // print stats
     if ( fVerbose )
         Rwt_ManPrintStats( pManRwt );
@@ -164,18 +164,18 @@ int Ivy_NodeRewrite( Ivy_Man_t * pMan, Rwt_Man_t * p, Ivy_Obj_t * pNode, int fUp
     int Required, nNodesSaved;
     int nNodesSaveCur = -1; // Suppress "might be used uninitialized"
     int i, c, GainCur, GainBest = -1;
-    clock_t clk, clk2;
+    abctime clk, clk2;
 
     p->nNodesConsidered++;
     // get the required times
     Required = fUpdateLevel? Vec_IntEntry( pMan->vRequired, pNode->Id ) : 1000000;
     // get the node's cuts
-clk = clock();
+clk = Abc_Clock();
     pStore = Ivy_NodeFindCutsAll( pMan, pNode, 5 );
-p->timeCut += clock() - clk;
+p->timeCut += Abc_Clock() - clk;
 
     // go through the cuts
-clk = clock();
+clk = Abc_Clock();
     for ( c = 1; c < pStore->nCuts; c++ )
     {
         pCut = pStore->pCuts + c;
@@ -193,9 +193,9 @@ clk = clock();
         }
         p->nCutsGood++;
         // get the fanin permutation
-clk2 = clock();
+clk2 = Abc_Clock();
         uTruth = 0xFFFF & Ivy_NodeGetTruth( pNode, pCut->pArray, pCut->nSize );  // truth table
-p->timeTruth += clock() - clk2;
+p->timeTruth += Abc_Clock() - clk2;
         pPerm = p->pPerms4[ (int) p->pPerms[uTruth] ];
         uPhase = p->pPhases[uTruth];
         // collect fanins with the corresponding permutation/phase
@@ -208,7 +208,7 @@ p->timeTruth += clock() - clk2;
             pFanin = Ivy_NotCond(pFanin, ((uPhase & (1<<i)) > 0) );
             Vec_PtrWriteEntry( p->vFaninsCur, i, pFanin );
         }
-clk2 = clock();
+clk2 = Abc_Clock();
 /*
         printf( "Considering: (" );
         Vec_PtrForEachEntry( Ivy_Obj_t *, p->vFaninsCur, pFanin, i )
@@ -224,12 +224,12 @@ clk2 = clock();
         // unmark the fanin boundary
         Vec_PtrForEachEntry( Ivy_Obj_t *, p->vFaninsCur, pFanin, i )
             Ivy_ObjRefsDec( Ivy_Regular(pFanin) );
-p->timeMffc += clock() - clk2;
+p->timeMffc += Abc_Clock() - clk2;
 
         // evaluate the cut
-clk2 = clock();
+clk2 = Abc_Clock();
         pGraph = Rwt_CutEvaluate( pMan, p, pNode, p->vFaninsCur, nNodesSaved, Required, &GainCur, uTruth );
-p->timeEval += clock() - clk2;
+p->timeEval += Abc_Clock() - clk2;
 
         // check if the cut is better than the current best one
         if ( pGraph != NULL && GainBest < GainCur )
@@ -246,7 +246,7 @@ p->timeEval += clock() - clk2;
                 Vec_PtrPush( p->vFanins, pFanin );
         }
     }
-p->timeRes += clock() - clk;
+p->timeRes += Abc_Clock() - clk;
 
     if ( GainBest == -1 )
         return -1;

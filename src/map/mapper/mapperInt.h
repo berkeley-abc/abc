@@ -149,17 +149,17 @@ struct Map_ManStruct_t_
     int                 nFanoutViolations;  // the number of nodes in mapped circuit violating fanout
 
     // runtime statistics
-    clock_t             timeToMap;     // time to transfer to the mapping structure
-    clock_t             timeCuts;      // time to compute k-feasible cuts
-    clock_t             timeTruth;     // time to compute the truth table for each cut
-    clock_t             timeMatch;     // time to perform matching for each node
-    clock_t             timeArea;      // time to recover area after delay oriented mapping
-    clock_t             timeSweep;     // time to perform technology dependent sweep
-    clock_t             timeToNet;     // time to transfer back to the network
-    clock_t             timeTotal;     // the total mapping time
-    clock_t             time1;         // time to transfer to the mapping structure
-    clock_t             time2;         // time to transfer to the mapping structure
-    clock_t             time3;         // time to transfer to the mapping structure
+    abctime             timeToMap;     // time to transfer to the mapping structure
+    abctime             timeCuts;      // time to compute k-feasible cuts
+    abctime             timeTruth;     // time to compute the truth table for each cut
+    abctime             timeMatch;     // time to perform matching for each node
+    abctime             timeArea;      // time to recover area after delay oriented mapping
+    abctime             timeSweep;     // time to perform technology dependent sweep
+    abctime             timeToNet;     // time to transfer back to the network
+    abctime             timeTotal;     // the total mapping time
+    abctime             time1;         // time to transfer to the mapping structure
+    abctime             time2;         // time to transfer to the mapping structure
+    abctime             time3;         // time to transfer to the mapping structure
 };
 
 // the supergate library

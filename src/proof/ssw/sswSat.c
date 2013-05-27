@@ -46,7 +46,7 @@ int Ssw_NodesAreEquiv( Ssw_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew )
 {
     int nBTLimit = p->pPars->nBTLimit;
     int pLits[3], nLits, RetValue, RetValue1;
-    clock_t clk;//, status;
+    abctime clk;//, status;
     p->nSatCalls++;
     p->pMSat->nSolverCalls++;
 
@@ -80,13 +80,13 @@ int Ssw_NodesAreEquiv( Ssw_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew )
         assert( RetValue != 0 );
     }
 
-clk = clock();
+clk = Abc_Clock();
     RetValue1 = sat_solver_solve( p->pMSat->pSat, pLits, pLits + nLits, 
         (ABC_INT64_T)nBTLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
-p->timeSat += clock() - clk;
+p->timeSat += Abc_Clock() - clk;
     if ( RetValue1 == l_False )
     {
-p->timeSatUnsat += clock() - clk;
+p->timeSatUnsat += Abc_Clock() - clk;
         if ( nLits == 2 )
         {
             pLits[0] = lit_neg( pLits[0] );
@@ -105,13 +105,13 @@ p->timeSatUnsat += clock() - clk;
     }
     else if ( RetValue1 == l_True )
     {
-p->timeSatSat += clock() - clk;
+p->timeSatSat += Abc_Clock() - clk;
         p->nSatCallsSat++;
         return 0;
     }
     else // if ( RetValue1 == l_Undef )
     {
-p->timeSatUndec += clock() - clk;
+p->timeSatUndec += Abc_Clock() - clk;
         p->nSatFailsReal++;
         return -1;
     }
@@ -142,13 +142,13 @@ p->timeSatUndec += clock() - clk;
         assert( RetValue != 0 );
     }
 
-clk = clock();
+clk = Abc_Clock();
     RetValue1 = sat_solver_solve( p->pMSat->pSat, pLits, pLits + nLits, 
         (ABC_INT64_T)nBTLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
-p->timeSat += clock() - clk;
+p->timeSat += Abc_Clock() - clk;
     if ( RetValue1 == l_False )
     {
-p->timeSatUnsat += clock() - clk;
+p->timeSatUnsat += Abc_Clock() - clk;
         if ( nLits == 2 )
         {
             pLits[0] = lit_neg( pLits[0] );
@@ -167,13 +167,13 @@ p->timeSatUnsat += clock() - clk;
     }
     else if ( RetValue1 == l_True )
     {
-p->timeSatSat += clock() - clk;
+p->timeSatSat += Abc_Clock() - clk;
         p->nSatCallsSat++;
         return 0;
     }
     else // if ( RetValue1 == l_Undef )
     {
-p->timeSatUndec += clock() - clk;
+p->timeSatUndec += Abc_Clock() - clk;
         p->nSatFailsReal++;
         return -1;
     }

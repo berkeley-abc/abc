@@ -593,7 +593,7 @@ void Rwt_ManLoadFromArray( Rwt_Man_t * p, int fVerbose )
     unsigned Entry0, Entry1;
     int Level, Volume, nEntries, fExor;
     int i;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
 
     // reconstruct the forest
     for ( i = 0; ; i++ )
@@ -622,7 +622,7 @@ void Rwt_ManLoadFromArray( Rwt_Man_t * p, int fVerbose )
     if ( fVerbose )
     {
         printf( "The number of classes = %d. Canonical nodes = %d.\n", p->nClasses, p->nAdded );
-        printf( "The number of nodes loaded = %d.  ", nEntries );  ABC_PRT( "Loading", clock() - clk );
+        printf( "The number of nodes loaded = %d.  ", nEntries );  ABC_PRT( "Loading", Abc_Clock() - clk );
     }
 }
 

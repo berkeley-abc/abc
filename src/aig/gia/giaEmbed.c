@@ -839,12 +839,12 @@ void Gia_ManTestDistanceInternal( Emb_Man_t * p )
 {
     int nAttempts = 20;
     int i, iNode, Dist;
-    clock_t clk;
+    abctime clk;
     Emb_Obj_t * pPivot, * pNext;
     Gia_ManRandom( 1 );
     Emb_ManResetTravId( p );
     // compute distances from several randomly selected PIs
-    clk = clock();
+    clk = Abc_Clock();
     printf( "From inputs: " );
     for ( i = 0; i < nAttempts; i++ )
     {
@@ -858,9 +858,9 @@ void Gia_ManTestDistanceInternal( Emb_Man_t * p )
         Dist = Emb_ManComputeDistance_old( p, pPivot );
         printf( "%d ", Dist );
     }
-    ABC_PRT( "Time", clock() - clk );
+    ABC_PRT( "Time", Abc_Clock() - clk );
     // compute distances from several randomly selected POs
-    clk = clock();
+    clk = Abc_Clock();
     printf( "From outputs: " );
     for ( i = 0; i < nAttempts; i++ )
     {
@@ -872,9 +872,9 @@ void Gia_ManTestDistanceInternal( Emb_Man_t * p )
         Dist = Emb_ManComputeDistance_old( p, pPivot );
         printf( "%d ", Dist );
     }
-    ABC_PRT( "Time", clock() - clk );
+    ABC_PRT( "Time", Abc_Clock() - clk );
     // compute distances from several randomly selected nodes
-    clk = clock();
+    clk = Abc_Clock();
     printf( "From nodes: " );
     for ( i = 0; i < nAttempts; i++ )
     {
@@ -887,7 +887,7 @@ void Gia_ManTestDistanceInternal( Emb_Man_t * p )
         Dist = Emb_ManComputeDistance_old( p, pPivot );
         printf( "%d ", Dist );
     }
-    ABC_PRT( "Time", clock() - clk );
+    ABC_PRT( "Time", Abc_Clock() - clk );
 }
 
 /**Function*************************************************************
@@ -904,11 +904,11 @@ void Gia_ManTestDistanceInternal( Emb_Man_t * p )
 void Gia_ManTestDistance( Gia_Man_t * pGia )
 {
     Emb_Man_t * p;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     p = Emb_ManStart( pGia );
 //    Emb_ManPrintFanio( p );
     Emb_ManPrintStats( p );
-ABC_PRT( "Time", clock() - clk );
+ABC_PRT( "Time", Abc_Clock() - clk );
     Gia_ManTestDistanceInternal( p );
     Emb_ManStop( p );
 }
@@ -1530,7 +1530,7 @@ void Emb_ManPlacementRefine( Emb_Man_t * p, int nIters, int fVerbose )
     float VertX, VertY;
     int * pPermX, * pPermY;
     int i, k, Iter, iMinX, iMaxX, iMinY, iMaxY;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     if ( p->pPlacement == NULL )
         return;
     pEdgeX = ABC_ALLOC( float, p->nObjs );
@@ -1585,7 +1585,7 @@ void Emb_ManPlacementRefine( Emb_Man_t * p, int nIters, int fVerbose )
         if ( fVerbose )
         {
         printf( "%2d : HPWL = %e  ", Iter+1, CostThis );
-        ABC_PRT( "Time", clock() - clk );
+        ABC_PRT( "Time", Abc_Clock() - clk );
         }
     }
     ABC_FREE( pEdgeX );
@@ -1792,12 +1792,12 @@ void Gia_ManSolveProblem( Gia_Man_t * pGia, Emb_Par_t * pPars )
 {
     Emb_Man_t * p;
     int i;
-    clock_t clkSetup;
-    clock_t clk;
+    abctime clkSetup;
+    abctime clk;
 //   Gia_ManTestDistance( pGia );
 
     // transform AIG into internal data-structure
-clk = clock();
+clk = Abc_Clock();
     if ( pPars->fCluster )
     {
         p = Emb_ManStart( pGia );
@@ -1816,41 +1816,41 @@ clk = clock();
     Gia_ManRandom( 1 );  // reset random numbers for deterministic behavior
     Emb_ManResetTravId( p );
     Emb_ManSetValue( p );
-clkSetup = clock() - clk;
+clkSetup = Abc_Clock() - clk;
 
-clk = clock();
+clk = Abc_Clock();
     Emb_ManComputeDimensions( p, pPars->nDims );
 if ( pPars->fVerbose )
 ABC_PRT( "Setup     ", clkSetup );
 if ( pPars->fVerbose )
-ABC_PRT( "Dimensions", clock() - clk );
+ABC_PRT( "Dimensions", Abc_Clock() - clk );
 
-clk = clock();
+clk = Abc_Clock();
     Emb_ManComputeCovariance( p, pPars->nDims );
 if ( pPars->fVerbose )
-ABC_PRT( "Matrix    ", clock() - clk );
+ABC_PRT( "Matrix    ", Abc_Clock() - clk );
 
-clk = clock();
+clk = Abc_Clock();
     Emb_ManComputeEigenvectors( p, pPars->nDims, pPars->nSols );
     Emb_ManComputeSolutions( p, pPars->nDims, pPars->nSols );
     Emb_ManDerivePlacement( p, pPars->nSols );
 if ( pPars->fVerbose )
-ABC_PRT( "Eigenvecs ", clock() - clk );
+ABC_PRT( "Eigenvecs ", Abc_Clock() - clk );
 
     if ( pPars->fRefine )
     {
-clk = clock();
+clk = Abc_Clock();
     Emb_ManPlacementRefine( p, pPars->nIters, pPars->fVerbose );
 if ( pPars->fVerbose )
-ABC_PRT( "Refinement", clock() - clk );
+ABC_PRT( "Refinement", Abc_Clock() - clk );
     }
 
     if ( (pPars->fDump || pPars->fDumpLarge) && pPars->nSols == 2 )
     {
-clk = clock();
+clk = Abc_Clock();
         Emb_ManDumpGnuplot( p, pGia->pName, pPars->fDumpLarge, pPars->fShowImage );
 if ( pPars->fVerbose )
-ABC_PRT( "Image dump", clock() - clk );
+ABC_PRT( "Image dump", Abc_Clock() - clk );
     }
 
     // transfer placement

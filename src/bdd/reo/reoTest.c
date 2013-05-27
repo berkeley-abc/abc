@@ -182,21 +182,21 @@ int Extra_bddReorderTest( DdManager * dd, DdNode * bF )
     static DdManager * s_ddmin;
     DdNode * bFmin;
     int  nNodes;
-//    clock_t clk1;
+//    abctime clk1;
 
     if ( s_ddmin == NULL )
         s_ddmin = Cudd_Init( dd->size, 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0);
 
 //    Cudd_ShuffleHeap( s_ddmin, dd->invperm );
 
-//    clk1 = clock();
+//    clk1 = Abc_Clock();
     bFmin = Cudd_bddTransfer( dd, s_ddmin, bF );  Cudd_Ref( bFmin );
     Cudd_ReduceHeap(s_ddmin,CUDD_REORDER_SIFT,1);
 //    Cudd_ReduceHeap(s_ddmin,CUDD_REORDER_SYMM_SIFT,1);
     nNodes = Cudd_DagSize( bFmin );
     Cudd_RecursiveDeref( s_ddmin, bFmin );
 
-//    printf( "Classical variable reordering time = %.2f sec\n", (float)(clock() - clk1)/(float)(CLOCKS_PER_SEC) );
+//    printf( "Classical variable reordering time = %.2f sec\n", (float)(Abc_Clock() - clk1)/(float)(CLOCKS_PER_SEC) );
     return nNodes;
 }
 
@@ -222,14 +222,14 @@ int Extra_addReorderTest( DdManager * dd, DdNode * aF )
     DdNode * aFmin;
     int  nNodesBeg;
     int  nNodesEnd;
-    clock_t clk1;
+    abctime clk1;
 
     if ( s_ddmin == NULL )
         s_ddmin = Cudd_Init( dd->size, 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0);
 
 //    Cudd_ShuffleHeap( s_ddmin, dd->invperm );
 
-    clk1 = clock();
+    clk1 = Abc_Clock();
     bF    = Cudd_addBddPattern( dd, aF );         Cudd_Ref( bF );
     bFmin = Cudd_bddTransfer( dd, s_ddmin, bF );  Cudd_Ref( bFmin );
     Cudd_RecursiveDeref( dd, bF );
@@ -243,7 +243,7 @@ int Extra_addReorderTest( DdManager * dd, DdNode * aF )
     Cudd_RecursiveDeref( s_ddmin, aFmin );
 
     printf( "Classical reordering of ADDs: Before = %d. After = %d.\n", nNodesBeg, nNodesEnd );
-    printf( "Classical variable reordering time = %.2f sec\n", (float)(clock() - clk1)/(float)(CLOCKS_PER_SEC) );
+    printf( "Classical variable reordering time = %.2f sec\n", (float)(Abc_Clock() - clk1)/(float)(CLOCKS_PER_SEC) );
     return nNodesEnd;
 }
 

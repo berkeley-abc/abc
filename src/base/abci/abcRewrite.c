@@ -68,7 +68,7 @@ int Abc_NtkRewrite( Abc_Ntk_t * pNtk, int fUpdateLevel, int fUseZeros, int fVerb
 //    Vec_Ptr_t * vAddedCells = NULL, * vUpdatedNets = NULL;
     Dec_Graph_t * pGraph;
     int i, nNodes, nGain, fCompl;
-    clock_t clk, clkStart = clock();
+    abctime clk, clkStart = Abc_Clock();
 
     assert( Abc_NtkIsStrash(pNtk) );
     // cleanup the AIG
@@ -96,9 +96,9 @@ int Abc_NtkRewrite( Abc_Ntk_t * pNtk, int fUpdateLevel, int fUseZeros, int fVerb
     if ( fUpdateLevel )
         Abc_NtkStartReverseLevels( pNtk, 0 );
     // start the cut manager
-clk = clock();
+clk = Abc_Clock();
     pManCut = Abc_NtkStartCutManForRewrite( pNtk );
-Rwr_ManAddTimeCuts( pManRwr, clock() - clk );
+Rwr_ManAddTimeCuts( pManRwr, Abc_Clock() - clk );
     pNtk->pManCut = pManCut;
 
     if ( fVeryVerbose )
@@ -137,9 +137,9 @@ Rwr_ManAddTimeCuts( pManRwr, clock() - clk );
 
         // complement the FF if needed
         if ( fCompl ) Dec_GraphComplement( pGraph );
-clk = clock();
+clk = Abc_Clock();
         Dec_GraphUpdateNetwork( pNode, pGraph, fUpdateLevel, nGain );
-Rwr_ManAddTimeUpdate( pManRwr, clock() - clk );
+Rwr_ManAddTimeUpdate( pManRwr, Abc_Clock() - clk );
         if ( fCompl ) Dec_GraphComplement( pGraph );
 
         // use the array of changed nodes to update placement
@@ -147,7 +147,7 @@ Rwr_ManAddTimeUpdate( pManRwr, clock() - clk );
 //            Abc_PlaceUpdate( vAddedCells, vUpdatedNets );
     }
     Extra_ProgressBarStop( pProgress );
-Rwr_ManAddTimeTotal( pManRwr, clock() - clkStart );
+Rwr_ManAddTimeTotal( pManRwr, Abc_Clock() - clkStart );
     // print stats
     pManRwr->nNodesEnd = Abc_NtkNodeNum(pNtk);
     if ( fVerbose )
@@ -169,9 +169,9 @@ Rwr_ManAddTimeTotal( pManRwr, clock() - clkStart );
 
     // put the nodes into the DFS order and reassign their IDs
     {
-//        clock_t clk = clock();
+//        abctime clk = Abc_Clock();
     Abc_NtkReassignIds( pNtk );
-//        ABC_PRT( "time", clock() - clk );
+//        ABC_PRT( "time", Abc_Clock() - clk );
     }
 //    Abc_AigCheckFaninOrder( pNtk->pManFunc );
     // fix the levels

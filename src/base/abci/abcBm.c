@@ -871,7 +871,7 @@ int Abc_NtkMiterSatBm( Abc_Ntk_t * pNtk, ABC_INT64_T nConfLimit, ABC_INT64_T nIn
     static sat_solver * pSat = NULL;
     lbool   status;
     int RetValue;
-    clock_t clk;    
+    abctime clk;    
 
     extern int Abc_NodeAddClausesTop( sat_solver * pSat, Abc_Obj_t * pNode, Vec_Int_t * vVars );
     extern Vec_Int_t * Abc_NtkGetCiSatVarNums( Abc_Ntk_t * pNtk );    
@@ -887,7 +887,7 @@ int Abc_NtkMiterSatBm( Abc_Ntk_t * pNtk, ABC_INT64_T nConfLimit, ABC_INT64_T nIn
 //        fprintf( stdout, "Warning: The miter has %d outputs. SAT will try to prove all of them.\n", Abc_NtkPoNum(pNtk) );
 
     // load clauses into the sat_solver
-    clk = clock();
+    clk = Abc_Clock();
 
             
         
@@ -900,13 +900,13 @@ int Abc_NtkMiterSatBm( Abc_Ntk_t * pNtk, ABC_INT64_T nConfLimit, ABC_INT64_T nIn
 //return 1;
 
 //    printf( "Created SAT problem with %d variable and %d clauses. ", sat_solver_nvars(pSat), sat_solver_nclauses(pSat) );
-//    PRT( "Time", clock() - clk );
+//    PRT( "Time", Abc_Clock() - clk );
 
     // simplify the problem
-    clk = clock();
+    clk = Abc_Clock();
     status = sat_solver_simplify(pSat);
 //    printf( "Simplified the problem to %d variables and %d clauses. ", sat_solver_nvars(pSat), sat_solver_nclauses(pSat) );
-//    PRT( "Time", clock() - clk );
+//    PRT( "Time", Abc_Clock() - clk );
     if ( status == 0 )
     {
         sat_solver_delete( pSat );
@@ -915,7 +915,7 @@ int Abc_NtkMiterSatBm( Abc_Ntk_t * pNtk, ABC_INT64_T nConfLimit, ABC_INT64_T nIn
     }
 
     // solve the miter
-    clk = clock();
+    clk = Abc_Clock();
     if ( fVerbose )
         pSat->verbosity = 1;
     status = sat_solver_solve( pSat, NULL, NULL, (ABC_INT64_T)nConfLimit, (ABC_INT64_T)nInsLimit, (ABC_INT64_T)0, (ABC_INT64_T)0 );
@@ -936,7 +936,7 @@ int Abc_NtkMiterSatBm( Abc_Ntk_t * pNtk, ABC_INT64_T nConfLimit, ABC_INT64_T nIn
     }
     else
         assert( 0 );
-//    PRT( "SAT sat_solver time", clock() - clk );
+//    PRT( "SAT sat_solver time", Abc_Clock() - clk );
 //    printf( "The number of conflicts = %d.\n", (int)pSat->sat_solver_stats.conflicts );
 
     // if the problem is SAT, get the counterexample
@@ -1583,7 +1583,7 @@ float refineBySAT(Abc_Ntk_t * pNtk1, Vec_Int_t ** iMatch1, int * iGroup1, Vec_In
     Vec_Int_t * oMatchedGroups;
     FILE *result;    
     int matchFound;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     float satTime = 0.0;
 
     /*matchFile = fopen("satmatch.txt", "w");*/
@@ -1712,7 +1712,7 @@ float refineBySAT(Abc_Ntk_t * pNtk1, Vec_Int_t ** iMatch1, int * iGroup1, Vec_In
         Abc_NtkDelete(subNtk2);
     }
 
-    satTime = (float)(clock() - clk)/(float)(CLOCKS_PER_SEC);    
+    satTime = (float)(Abc_Clock() - clk)/(float)(CLOCKS_PER_SEC);    
 
     if( matchFound )
     {
@@ -1788,7 +1788,7 @@ void bmGateWay( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int p_equivalence )
     
     char * vPiValues1, * vPiValues2;
     int * observability1, * observability2;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     float initTime;
     float simulTime;
     float satTime;
@@ -1930,8 +1930,8 @@ void bmGateWay( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int p_equivalence )
 
     printf(" done!\n");
 
-    initTime = ((float)(clock() - clk)/(float)(CLOCKS_PER_SEC));    
-    clk = clock();
+    initTime = ((float)(Abc_Clock() - clk)/(float)(CLOCKS_PER_SEC));    
+    clk = Abc_Clock();
 
     topOrder1 = findTopologicalOrder(pNtk1);
     topOrder2 = findTopologicalOrder(pNtk2);
@@ -1982,7 +1982,7 @@ void bmGateWay( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int p_equivalence )
 
     printf(" done!\n");
     
-    simulTime = (float)(clock() - clk)/(float)(CLOCKS_PER_SEC);
+    simulTime = (float)(Abc_Clock() - clk)/(float)(CLOCKS_PER_SEC);
     printf("SAT-based search started ...\n");
 
     satTime = refineBySAT(pNtk1, iMatch1, iGroup1, iDep1, &iLastItem1, oMatch1, oGroup1, oDep1, &oLastItem1, observability1,

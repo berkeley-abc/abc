@@ -280,31 +280,31 @@ void Kit_PermComputeTest()
     word * T = (word *)malloc( 8 * NFUNCS );
     word i, o, w = 0;
     int k, b;
-    clock_t clk;
+    abctime clk;
 
     srand( 0 );
 
-    clk = clock();
+    clk = Abc_Clock();
     for ( k = 0; k < NFUNCS; k++ )
         for ( b = 0; b < 8; b++ )
             ((byte *)(T + k))[b] = (byte)(rand() & 0xFF);
-    ABC_PRT( "Assign", clock() - clk );
+    ABC_PRT( "Assign", Abc_Clock() - clk );
 
 //    T[0] = 0xacaccacaaccaacca;
 //    Kit_DsdPrintFromTruth( T, 6 );
 
     // perform measurements
-    clk = clock();
+    clk = Abc_Clock();
     for ( k = 0; k < NFUNCS; k++ )
     {
         i = T[k];
 //        Kit_PermComputeNaive( &i, 6 );
         Tf( i, 6 );
     }
-    ABC_PRT( "Perm1 ", clock() - clk );
+    ABC_PRT( "Perm1 ", Abc_Clock() - clk );
 
     // perform measurements
-    clk = clock();
+    clk = Abc_Clock();
     for ( k = 0; k < NFUNCS; k++ )
     {
         i = T[k];
@@ -314,7 +314,7 @@ void Kit_PermComputeTest()
 //        Kit_PermComputeNaive( &w, 6 );
 //        assert( w == o );
     }
-    ABC_PRT( "Perm2 ", clock() - clk );
+    ABC_PRT( "Perm2 ", Abc_Clock() - clk );
 
     assert( w == 0 );
     free( T );

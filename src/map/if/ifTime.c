@@ -250,7 +250,7 @@ Vec_Wrd_t * If_CutDelaySopAnds( If_Man_t * p, If_Cut_t * pCut, Vec_Int_t * vCove
 ***********************************************************************/
 Vec_Wrd_t * If_CutDelaySopArray( If_Man_t * p, If_Cut_t * pCut )
 {
-    clock_t clk;
+    abctime clk;
     Vec_Wrd_t * vAnds;
     int RetValue;
     if ( p->vCover == NULL )
@@ -266,9 +266,9 @@ Vec_Wrd_t * If_CutDelaySopArray( If_Man_t * p, If_Cut_t * pCut )
         return NULL;
     assert( RetValue == 0 || RetValue == 1 );
 
-    clk = clock();
+    clk = Abc_Clock();
     vAnds = If_CutDelaySopAnds( p, pCut, p->vCover, RetValue ^ pCut->fCompl );
-    s_timeOld += clock() - clk;
+    s_timeOld += Abc_Clock() - clk;
 /*
     if ( pCut->nLeaves <= 5 )
     {
@@ -491,7 +491,7 @@ int If_CutDelaySopAnds2( If_Man_t * p, If_Cut_t * pCut, Vec_Int_t * vCover, int 
 }
 int If_CutDelaySopArray2( If_Man_t * p, If_Cut_t * pCut, int * pArea )
 {
-    clock_t clk;
+    abctime clk;
     int RetValue;
     if ( p->vCover == NULL )
         p->vCover = Vec_IntAlloc(0);
@@ -504,10 +504,10 @@ int If_CutDelaySopArray2( If_Man_t * p, If_Cut_t * pCut, int * pArea )
         return -1;
     assert( RetValue == 0 || RetValue == 1 );
 
-    clk = clock();
+    clk = Abc_Clock();
     RetValue = If_CutDelaySopAnds2( p, pCut, p->vCover, RetValue ^ pCut->fCompl, pArea );
 //    RetValue = If_CutDelaySopAnds2_( p, pCut, p->vCover, RetValue ^ pCut->fCompl, pArea );
-    s_timeNew += clock() - clk;
+    s_timeNew += Abc_Clock() - clk;
     return RetValue;
 }
 int If_CutDelaySopCost2( If_Man_t * p, If_Cut_t * pCut )

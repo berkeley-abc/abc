@@ -44,7 +44,7 @@ struct Gia_ManBmc_t_
     Vec_Int_t *       vId2Num;     // number of each node 
     Vec_Ptr_t *       vTerInfo;    // ternary information
     Vec_Ptr_t *       vId2Var;     // SAT vars for each object
-    clock_t *         pTime4Outs;  // timeout per output
+    abctime *         pTime4Outs;  // timeout per output
     // hash table
     Vec_Int_t *       vData;       // storage for cuts
     Hsh_IntMan_t *    vHash;       // hash table
@@ -742,7 +742,7 @@ Gia_ManBmc_t * Saig_Bmc3ManStart( Aig_Man_t * pAig, int nTimeOutOne )
     // time spent on each outputs
     if ( nTimeOutOne )
     {
-        p->pTime4Outs = ABC_ALLOC( clock_t, Saig_ManPoNum(pAig) );
+        p->pTime4Outs = ABC_ALLOC( abctime, Saig_ManPoNum(pAig) );
         for ( i = 0; i < Saig_ManPoNum(pAig); i++ )
             p->pTime4Outs[i] = nTimeOutOne * CLOCKS_PER_SEC / 1000 + 1;
     }
@@ -1243,10 +1243,10 @@ void Saig_ParBmcSetDefaultParams( Saig_ParBmc_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-clock_t Saig_ManBmcTimeToStop( Saig_ParBmc_t * pPars, clock_t nTimeToStopNG )
+abctime Saig_ManBmcTimeToStop( Saig_ParBmc_t * pPars, abctime nTimeToStopNG )
 {
-    clock_t nTimeToStopGap = pPars->nTimeOutGap ? pPars->nTimeOutGap * CLOCKS_PER_SEC + clock(): 0;
-    clock_t nTimeToStop = 0;
+    abctime nTimeToStopGap = pPars->nTimeOutGap ? pPars->nTimeOutGap * CLOCKS_PER_SEC + Abc_Clock(): 0;
+    abctime nTimeToStop = 0;
     if ( nTimeToStopNG && nTimeToStopGap )
         nTimeToStop = Abc_MinInt( nTimeToStopNG, nTimeToStopGap );
     else if ( nTimeToStopNG )
@@ -1302,14 +1302,14 @@ int Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars )
     int RetValue = -1, fFirst = 1, nJumpFrame = 0, fUnfinished = 0;
     int nOutDigits = Abc_Base10Log( Saig_ManPoNum(pAig) );
     int i, f, k, Lit, status;
-    clock_t clk, clk2, clkOther = 0, clkTotal = clock();
-    clock_t nTimeUnsat = 0, nTimeSat = 0, nTimeUndec = 0, clkOne = 0;
-    clock_t nTimeToStopNG, nTimeToStop;
+    abctime clk, clk2, clkOther = 0, clkTotal = Abc_Clock();
+    abctime nTimeUnsat = 0, nTimeSat = 0, nTimeUndec = 0, clkOne = 0;
+    abctime nTimeToStopNG, nTimeToStop;
     if ( pPars->nTimeOutOne )
         pPars->nTimeOut = pPars->nTimeOutOne * Saig_ManPoNum(pAig) / 1000 + 1;
     if ( pPars->nTimeOutOne && !pPars->fSolveAll )
         pPars->nTimeOutOne = 0;
-    nTimeToStopNG = pPars->nTimeOut ? pPars->nTimeOut * CLOCKS_PER_SEC + clock(): 0;
+    nTimeToStopNG = pPars->nTimeOut ? pPars->nTimeOut * CLOCKS_PER_SEC + Abc_Clock(): 0;
     nTimeToStop   = Saig_ManBmcTimeToStop( pPars, nTimeToStopNG );
     // create BMC manager
     p = Saig_Bmc3ManStart( pAig, pPars->nTimeOutOne );
@@ -1332,7 +1332,7 @@ int Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars )
         sat_solver_set_runtime_limit( p->pSat, nTimeToStop );
     // perform frames
     Aig_ManRandom( 1 );
-    pPars->timeLastSolved = clock();
+    pPars->timeLastSolved = Abc_Clock();
     for ( f = 0; f < pPars->nFramesMax; f++ )
     {
         // stop BMC after exploring all reachable states
@@ -1379,18 +1379,18 @@ int Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars )
         if ( (pPars->nStart && f < pPars->nStart) || (nJumpFrame && f < nJumpFrame) )
             continue;
         // solve SAT
-        clk = clock(); 
+        clk = Abc_Clock(); 
         Saig_ManForEachPo( pAig, pObj, i )
         {
             if ( i >= Saig_ManPoNum(pAig) )
                 break;
             // check for timeout
-            if ( pPars->nTimeOutGap && pPars->timeLastSolved && clock() > pPars->timeLastSolved + pPars->nTimeOutGap * CLOCKS_PER_SEC )
+            if ( pPars->nTimeOutGap && pPars->timeLastSolved && Abc_Clock() > pPars->timeLastSolved + pPars->nTimeOutGap * CLOCKS_PER_SEC )
             {
                 printf( "Reached gap timeout (%d seconds).\n",  pPars->nTimeOutGap );
                 goto finish;
             }
-            if ( nTimeToStop && clock() > nTimeToStop )
+            if ( nTimeToStop && Abc_Clock() > nTimeToStop )
             {
                 printf( "Reached timeout (%d seconds).\n",  pPars->nTimeOut );
                 goto finish;
@@ -1402,9 +1402,9 @@ int Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars )
             if ( p->pTime4Outs && p->pTime4Outs[i] == 0 )
                 continue;
             // add constraints for this output
-clk2 = clock();
+clk2 = Abc_Clock();
             Lit = Saig_ManBmcCreateCnf( p, pObj, f );
-clkOther += clock() - clk2;
+clkOther += Abc_Clock() - clk2;
             if ( Lit == 0 )
                 continue;
             if ( Lit == 1 )
@@ -1431,7 +1431,7 @@ clkOther += clock() - clk2;
                     goto finish;
                 }
                 // reset the timeout
-                pPars->timeLastSolved = clock();
+                pPars->timeLastSolved = Abc_Clock();
                 nTimeToStop = Saig_ManBmcTimeToStop( pPars, nTimeToStopNG );
                 if ( nTimeToStop )
                     sat_solver_set_runtime_limit( p->pSat, nTimeToStop );
@@ -1440,17 +1440,17 @@ clkOther += clock() - clk2;
             // solve this output
             fUnfinished = 0;
             sat_solver_compress( p->pSat );
-clk2 = clock();
+clk2 = Abc_Clock();
             if ( p->pTime4Outs )
             {
                 assert( p->pTime4Outs[i] > 0 );
-                clkOne = clock();
-                sat_solver_set_runtime_limit( p->pSat, p->pTime4Outs[i] + clock() );
+                clkOne = Abc_Clock();
+                sat_solver_set_runtime_limit( p->pSat, p->pTime4Outs[i] + Abc_Clock() );
             }
             status = sat_solver_solve( p->pSat, &Lit, &Lit + 1, (ABC_INT64_T)pPars->nConfLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
             if ( p->pTime4Outs )
             {
-                clock_t timeSince = clock() - clkOne;
+                abctime timeSince = Abc_Clock() - clkOne;
                 assert( p->pTime4Outs[i] > 0 );
                 p->pTime4Outs[i] = (p->pTime4Outs[i] > timeSince) ? p->pTime4Outs[i] - timeSince : 0;
                 if ( p->pTime4Outs[i] == 0 && status != l_True )
@@ -1458,7 +1458,7 @@ clk2 = clock();
             }
             if ( status == l_False )
             {
-nTimeUnsat += clock() - clk2;
+nTimeUnsat += Abc_Clock() - clk2;
                 if ( 1 )
                 {
                     // add final unit clause
@@ -1479,7 +1479,7 @@ nTimeUnsat += clock() - clk2;
             }
             else if ( status == l_True )
             {
-nTimeSat += clock() - clk2;
+nTimeSat += Abc_Clock() - clk2;
                 RetValue = 0;
                 fFirst = 0;
                 if ( !pPars->fSolveAll )
@@ -1492,10 +1492,10 @@ nTimeSat += clock() - clk2;
                         printf( "Conf =%7.0f. ", (double)p->pSat->stats.conflicts );
 //                        printf( "Imp =%10.0f. ", (double)p->pSat->stats.propagations );
                         printf( "Uni =%7.0f. ",(double)sat_solver_count_assigned(p->pSat) );
-//                        ABC_PRT( "Time", clock() - clk );
+//                        ABC_PRT( "Time", Abc_Clock() - clk );
                         printf( "%4.0f MB",      4.25*(f+1)*p->nObjNums /(1<<20) );
                         printf( "%4.0f MB",      1.0*sat_solver_memory(p->pSat)/(1<<20) );
-                        printf( "%9.2f sec  ",   (float)(clock() - clkTotal)/(float)(CLOCKS_PER_SEC) );
+                        printf( "%9.2f sec  ",   (float)(Abc_Clock() - clkTotal)/(float)(CLOCKS_PER_SEC) );
 //                        printf( "\n" );
 //                        ABC_PRMn( "Id2Var", (f+1)*p->nObjNums*4 );
 //                        ABC_PRMn( "SAT", 42 * p->pSat->size + 16 * (int)p->pSat->stats.clauses + 4 * (int)p->pSat->stats.clauses_literals );
@@ -1521,14 +1521,14 @@ nTimeSat += clock() - clk2;
                     goto finish;
                 }
                 // reset the timeout
-                pPars->timeLastSolved = clock();
+                pPars->timeLastSolved = Abc_Clock();
                 nTimeToStop = Saig_ManBmcTimeToStop( pPars, nTimeToStopNG );
                 if ( nTimeToStop )
                     sat_solver_set_runtime_limit( p->pSat, nTimeToStop );
             }
             else 
             {
-nTimeUndec += clock() - clk2;
+nTimeUndec += Abc_Clock() - clk2;
                 assert( status == l_Undef );
                 if ( pPars->nFramesJump )
                 {
@@ -1559,12 +1559,12 @@ nTimeUndec += clock() - clk2;
                 printf( "CEX =%5d. ", pPars->nFailOuts );
             if ( pPars->nTimeOutOne )
                 printf( "T/O =%4d. ", pPars->nDropOuts );
-//            ABC_PRT( "Time", clock() - clk );
+//            ABC_PRT( "Time", Abc_Clock() - clk );
 //            printf( "%4.0f MB",     4.0*Vec_IntSize(p->vVisited) /(1<<20) );
             printf( "%4.0f MB",     4.0*(f+1)*p->nObjNums /(1<<20) );
             printf( "%4.0f MB",     1.0*sat_solver_memory(p->pSat)/(1<<20) );
 //            printf( " %6d %6d ",   p->nLitUsed, p->nLitUseless );
-            printf( "%9.2f sec ",  1.0*(clock() - clkTotal)/CLOCKS_PER_SEC );
+            printf( "%9.2f sec ",  1.0*(Abc_Clock() - clkTotal)/CLOCKS_PER_SEC );
 //            printf( "\n" );
 //            ABC_PRMn( "Id2Var", (f+1)*p->nObjNums*4 );
 //            ABC_PRMn( "SAT", 42 * p->pSat->size + 16 * (int)p->pSat->stats.clauses + 4 * (int)p->pSat->stats.clauses_literals );
@@ -1584,10 +1584,10 @@ finish:
     if ( pPars->fVerbose )
     {
         printf( "Runtime:  " );
-        printf( "CNF = %.1f sec (%.1f %%)  ",   1.0*clkOther/CLOCKS_PER_SEC,   100.0*clkOther/(clock() - clkTotal)   );
-        printf( "UNSAT = %.1f sec (%.1f %%)  ", 1.0*nTimeUnsat/CLOCKS_PER_SEC, 100.0*nTimeUnsat/(clock() - clkTotal) );
-        printf( "SAT = %.1f sec (%.1f %%)  ",   1.0*nTimeSat/CLOCKS_PER_SEC,   100.0*nTimeSat/(clock() - clkTotal)   );
-        printf( "UNDEC = %.1f sec (%.1f %%)",   1.0*nTimeUndec/CLOCKS_PER_SEC, 100.0*nTimeUndec/(clock() - clkTotal) );
+        printf( "CNF = %.1f sec (%.1f %%)  ",   1.0*clkOther/CLOCKS_PER_SEC,   100.0*clkOther/(Abc_Clock() - clkTotal)   );
+        printf( "UNSAT = %.1f sec (%.1f %%)  ", 1.0*nTimeUnsat/CLOCKS_PER_SEC, 100.0*nTimeUnsat/(Abc_Clock() - clkTotal) );
+        printf( "SAT = %.1f sec (%.1f %%)  ",   1.0*nTimeSat/CLOCKS_PER_SEC,   100.0*nTimeSat/(Abc_Clock() - clkTotal)   );
+        printf( "UNDEC = %.1f sec (%.1f %%)",   1.0*nTimeUndec/CLOCKS_PER_SEC, 100.0*nTimeUndec/(Abc_Clock() - clkTotal) );
         printf( "\n" );
     }
     Saig_Bmc3ManStop( p );

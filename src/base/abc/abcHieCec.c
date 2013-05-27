@@ -670,7 +670,7 @@ Gia_Man_t * Abc_NtkHieCecTest( char * pFileName, int fVerbose )
     Abc_Ntk_t * pNtk, * pModel;
     Gia_Man_t * pGia;
     int i;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
 
     // read hierarchical netlist
     pNtk = Io_ReadBlifMv( pFileName, 0, fCheck );
@@ -685,16 +685,16 @@ Gia_Man_t * Abc_NtkHieCecTest( char * pFileName, int fVerbose )
 //        Abc_NtkDelete( pNtk );
 //        return NULL;
     }
-    Abc_PrintTime( 1, "Reading file", clock() - clk );
+    Abc_PrintTime( 1, "Reading file", Abc_Clock() - clk );
 
     assert( Abc_NtkIsNetlist(pNtk) );
     assert( !Abc_NtkLatchNum(pNtk) );
 /*
     if ( pNtk->pDesign != NULL )
     {
-        clk = clock();
+        clk = Abc_Clock();
         Abc_NtkCountNodes( pNtk );
-        Abc_PrintTime( 1, "Count nodes", clock() - clk );
+        Abc_PrintTime( 1, "Count nodes", Abc_Clock() - clk );
     }
 */
     // print stats
@@ -716,14 +716,14 @@ Gia_Man_t * Abc_NtkHieCecTest( char * pFileName, int fVerbose )
 
     if ( fUseNew )
     {
-        clk = clock();
+        clk = Abc_Clock();
         vOrder = Abc_NtkCollectHie( pNtk );
-        Abc_PrintTime( 1, "Collect DFS ", clock() - clk );
+        Abc_PrintTime( 1, "Collect DFS ", Abc_Clock() - clk );
 
         // derive GIA
-        clk = clock();
+        clk = Abc_Clock();
         pGia = Abc_NtkDeriveFlatGia2( pNtk, vOrder );
-        Abc_PrintTime( 1, "Deriving GIA", clock() - clk );
+        Abc_PrintTime( 1, "Deriving GIA", Abc_Clock() - clk );
         Gia_ManPrintStats( pGia, 0, 0, 0 );
     //    Gia_ManStop( pGia );
  
@@ -737,9 +737,9 @@ Gia_Man_t * Abc_NtkHieCecTest( char * pFileName, int fVerbose )
             pModel->pData = Abc_NtkDfsBoxes( pModel );
 
         // derive GIA
-        clk = clock();
+        clk = Abc_Clock();
         pGia = Abc_NtkDeriveFlatGia( pNtk );
-        Abc_PrintTime( 1, "Deriving GIA", clock() - clk );
+        Abc_PrintTime( 1, "Deriving GIA", Abc_Clock() - clk );
         Gia_ManPrintStats( pGia, 0, 0, 0 );
 
         // clean nodes/boxes of all nodes
@@ -747,9 +747,9 @@ Gia_Man_t * Abc_NtkHieCecTest( char * pFileName, int fVerbose )
             Vec_PtrFree( (Vec_Ptr_t *)pModel->pData );
     }
 
-    clk = clock();
+    clk = Abc_Clock();
     Abc_NtkCountInst( pNtk );
-    Abc_PrintTime( 1, "Gather stats", clock() - clk );
+    Abc_PrintTime( 1, "Gather stats", Abc_Clock() - clk );
 
     Abc_NtkDelete( pNtk );
     return pGia;

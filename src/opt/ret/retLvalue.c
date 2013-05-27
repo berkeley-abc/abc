@@ -94,7 +94,7 @@ Vec_Int_t * Abc_NtkRetimeGetLags( Abc_Ntk_t * pNtk, int nIterLimit, int fVerbose
     Vec_Ptr_t * vNodes, * vLatches;
     Abc_Obj_t * pNode;
     int i, FiMax, FiBest, RetValue;
-    clock_t clk, clkIter;
+    abctime clk, clkIter;
     char NodeLag;
 
     // get the upper bound on the clock period
@@ -112,9 +112,9 @@ Vec_Int_t * Abc_NtkRetimeGetLags( Abc_Ntk_t * pNtk, int nIterLimit, int fVerbose
     }
  
     // search for the optimal clock period between 0 and nLevelMax
-clk = clock();
+clk = Abc_Clock();
     FiBest = Abc_NtkRetimeSearch_rec( pNtk, vNodes, vLatches, 0, FiMax, nIterLimit, fVerbose );
-clkIter = clock() - clk;
+clkIter = Abc_Clock() - clk;
 
     // recompute the best l-values
     RetValue = Abc_NtkRetimeForPeriod( pNtk, vNodes, vLatches, FiBest, nIterLimit, fVerbose );

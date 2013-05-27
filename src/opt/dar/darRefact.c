@@ -61,10 +61,10 @@ struct Ref_Man_t_
     int              nCutsUsed;      // the number of rewriting steps
     int              nCutsTried;     // the number of cuts tries
     // timing statistics
-    clock_t          timeCuts;
-    clock_t          timeEval;
-    clock_t          timeOther;
-    clock_t          timeTotal;
+    abctime          timeCuts;
+    abctime          timeEval;
+    abctime          timeOther;
+    abctime          timeTotal;
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -501,7 +501,7 @@ int Dar_ManRefactor( Aig_Man_t * pAig, Dar_RefPar_t * pPars )
     Aig_Obj_t * pObj, * pObjNew;
     int nNodesOld, nNodeBefore, nNodeAfter, nNodesSaved, nNodesSaved2;
     int i, Required, nLevelMin;
-    clock_t clkStart, clk;
+    abctime clkStart, clk;
 
     // start the manager
     p = Dar_ManRefStart( pAig, pPars );
@@ -513,7 +513,7 @@ int Dar_ManRefactor( Aig_Man_t * pAig, Dar_RefPar_t * pPars )
         Aig_ManStartReverseLevels( pAig, 0 );
 
     // resynthesize each node once
-    clkStart = clock();
+    clkStart = Abc_Clock();
     vCut = Vec_VecEntry( p->vCuts, 0 );
     vCut2 = Vec_VecEntry( p->vCuts, 1 );
     p->nNodesInit = Aig_ManNodeNum(pAig);
@@ -530,12 +530,12 @@ int Dar_ManRefactor( Aig_Man_t * pAig, Dar_RefPar_t * pPars )
 
 //printf( "\nConsidering node %d.\n", pObj->Id );
         // get the bounded MFFC size
-clk = clock();
+clk = Abc_Clock();
         nLevelMin = Abc_MaxInt( 0, Aig_ObjLevel(pObj) - 10 );
         nNodesSaved = Aig_NodeMffcSupp( pAig, pObj, nLevelMin, vCut );
         if ( nNodesSaved < p->pPars->nMffcMin ) // too small to consider
         {
-p->timeCuts += clock() - clk;
+p->timeCuts += Abc_Clock() - clk;
             continue; 
         }
         p->nNodesTried++;
@@ -564,13 +564,13 @@ p->timeCuts += clock() - clk;
             else
                 p->nNodesBelow++;
         }
-p->timeCuts += clock() - clk;
+p->timeCuts += Abc_Clock() - clk;
 
         // try the cuts
-clk = clock();
+clk = Abc_Clock();
         Required = pAig->vLevelR? Aig_ObjRequiredLevel(pAig, pObj) : ABC_INFINITY;
         Dar_ManRefactorTryCuts( p, pObj, nNodesSaved, Required );
-p->timeEval += clock() - clk;
+p->timeEval += Abc_Clock() - clk;
 
         // check the best gain
         if ( !(p->GainBest > 0 || (p->GainBest == 0 && p->pPars->fUseZeros)) )
@@ -594,7 +594,7 @@ p->timeEval += clock() - clk;
         p->nCutsUsed++;
 //        break;
     }
-p->timeTotal = clock() - clkStart;
+p->timeTotal = Abc_Clock() - clkStart;
 p->timeOther = p->timeTotal - p->timeCuts - p->timeEval;
 
 //    Bar_ProgressStop( pProgress );

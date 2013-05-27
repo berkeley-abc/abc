@@ -55,7 +55,7 @@ Abc_Cex_t * Aig_ManVerifyUsingBddsCountExample( Aig_Man_t * p, DdManager * dd,
     DdNode * bTemp, * bVar, * bRing;
     int i, v, RetValue, nPiOffset;
     char * pValues;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
 //printf( "\nDeriving counter-example.\n" );
 
     // allocate room for the counter-example
@@ -158,7 +158,7 @@ Abc_Cex_t * Aig_ManVerifyUsingBddsCountExample( Aig_Man_t * p, DdManager * dd,
     }
     if ( fVerbose && !fSilent )
     {
-    ABC_PRT( "Counter-example generation time", clock() - clk );
+    ABC_PRT( "Counter-example generation time", Abc_Clock() - clk );
     }
     return pCex;
 }

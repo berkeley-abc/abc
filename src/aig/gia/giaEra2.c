@@ -1537,13 +1537,13 @@ int Gia_ManAreDeriveNexts_rec( Gia_ManAre_t * p, Gia_PtrAre_t Sta )
     Vec_Int_t * vLits, * vTfos;
     Gia_Obj_t * pObj;
     int i;
-    clock_t clk;
+    abctime clk;
     if ( ++p->nRecCalls == MAX_CALL_NUM )
         return 0;
     if ( (pPivot = Gia_ManAreMostUsedPi(p)) == NULL )
     {
         Gia_StaAre_t * pNew;
-        clk = clock();
+        clk = Abc_Clock();
         pNew = Gia_ManAreCreateStaNew( p );
         pNew->iPrev = Sta;
         p->fStopped = (p->fMiter && (Gia_ManCheckPOstatus(p) & 1));
@@ -1554,7 +1554,7 @@ int Gia_ManAreDeriveNexts_rec( Gia_ManAre_t * p, Gia_PtrAre_t Sta )
             return 1;
         }
         Gia_ManAreCubeProcess( p, pNew );
-        p->timeCube += clock() - clk;
+        p->timeCube += Abc_Clock() - clk;
         return p->fStopped;
     }
     // remember values in the cone and perform update
@@ -1613,7 +1613,7 @@ int Gia_ManAreDeriveNexts( Gia_ManAre_t * p, Gia_PtrAre_t Sta )
     Gia_StaAre_t * pSta;
     Gia_Obj_t * pObj;
     int i, RetValue;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     pSta = Gia_ManAreSta( p, Sta );
     if ( Gia_StaIsUnused(pSta) )
         return 0;
@@ -1657,7 +1657,7 @@ int Gia_ManAreDeriveNexts( Gia_ManAre_t * p, Gia_PtrAre_t Sta )
     }
 //    printf( "%d ", p->nRecCalls );
 //printf( "%d ", Gia_ManObjNum(p->pNew) );
-    p->timeAig += clock() - clk;
+    p->timeAig += Abc_Clock() - clk;
     return RetValue;
 }
 
@@ -1673,7 +1673,7 @@ int Gia_ManAreDeriveNexts( Gia_ManAre_t * p, Gia_PtrAre_t Sta )
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManArePrintReport( Gia_ManAre_t * p, clock_t Time, int fFinal )
+void Gia_ManArePrintReport( Gia_ManAre_t * p, abctime Time, int fFinal )
 {
     printf( "States =%10d. Reached =%10d. R = %5.3f. Depth =%6d. Mem =%9.2f MB.  ", 
         p->iStaCur, p->nStas, 1.0*p->iStaCur/p->nStas, Gia_ManAreDepth(p, p->iStaCur), 
@@ -1681,11 +1681,11 @@ void Gia_ManArePrintReport( Gia_ManAre_t * p, clock_t Time, int fFinal )
          4.0*p->nStaPages*p->nSize*MAX_ITEM_NUM + 16.0*p->nObjPages*MAX_ITEM_NUM)/(1<<20) );
     if ( fFinal )
     {
-        ABC_PRT( "Time", clock() - Time );
+        ABC_PRT( "Time", Abc_Clock() - Time );
     }
     else
     {
-        ABC_PRTr( "Time", clock() - Time );
+        ABC_PRTr( "Time", Abc_Clock() - Time );
     }
 }
  
@@ -1705,7 +1705,7 @@ int Gia_ManArePerform( Gia_Man_t * pAig, int nStatesMax, int fMiter, int fVerbos
 //    extern Gia_Man_t * Gia_ManCompress2( Gia_Man_t * p, int fUpdateLevel, int fVerbose );
     extern Abc_Cex_t * Gia_ManAreDeriveCex( Gia_ManAre_t * p, Gia_StaAre_t * pLast );
     Gia_ManAre_t * p;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     int RetValue = 1;
     if ( Gia_ManRegNum(pAig) > MAX_VARS_NUM )
     {
@@ -1734,22 +1734,22 @@ int Gia_ManArePerform( Gia_Man_t * pAig, int nStatesMax, int fMiter, int fVerbos
         p->fStopped ? "Stopped" : "Completed", 
         p->nStas, Gia_ManAreListCountUsed(p), 
         Gia_ManAreDepth(p, p->iStaCur-1) );
-    ABC_PRT( "Time", clock() - clk );
+    ABC_PRT( "Time", Abc_Clock() - clk );
     if ( pAig->pCexSeq != NULL )
         Abc_Print( 1, "Output %d of miter \"%s\" was asserted in frame %d.\n", 
             p->iStaCur, pAig->pName, Gia_ManAreDepth(p, p->iStaCur)-1 );
     if ( fVerbose )
     {
-        ABC_PRTP( "Cofactoring", p->timeAig - p->timeCube,    clock() - clk );
-        ABC_PRTP( "Containment", p->timeCube,                 clock() - clk );
-        ABC_PRTP( "Other      ", clock() - clk - p->timeAig,  clock() - clk );
-        ABC_PRTP( "TOTAL      ", clock() - clk,               clock() - clk );
+        ABC_PRTP( "Cofactoring", p->timeAig - p->timeCube,    Abc_Clock() - clk );
+        ABC_PRTP( "Containment", p->timeCube,                 Abc_Clock() - clk );
+        ABC_PRTP( "Other      ", Abc_Clock() - clk - p->timeAig,  Abc_Clock() - clk );
+        ABC_PRTP( "TOTAL      ", Abc_Clock() - clk,               Abc_Clock() - clk );
     }
     if ( Gia_ManRegNum(pAig) <= 30 )
     {
-        clk = clock();
+        clk = Abc_Clock();
         printf( "The number of unique state minterms in computed state cubes is %d.   ", Gia_ManCountMinterms(p) );
-        ABC_PRT( "Time", clock() - clk );
+        ABC_PRT( "Time", Abc_Clock() - clk );
     }
 //    printf( "Compares = %d.  Equals = %d.  Disj = %d.  Disj2 = %d.  Disj3 = %d.\n", 
 //        p->nCompares, p->nEquals, p->nDisjs, p->nDisjs2, p->nDisjs3 );

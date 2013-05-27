@@ -223,14 +223,14 @@ void Gia_ObjComputeTruthTableTest( Gia_Man_t * p )
 {
     Gia_Obj_t * pObj;
     unsigned * pTruth;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     int i;
     Gia_ManForEachPo( p, pObj, i )
     {
         pTruth = (unsigned *)Gia_ObjComputeTruthTable( p, pObj );
 //        Extra_PrintHex( stdout, pTruth, Gia_ManPiNum(p) ); printf( "\n" );
     }
-    Abc_PrintTime( 1, "Time", clock() - clk );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 }
 
 

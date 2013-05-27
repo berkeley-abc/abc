@@ -37,10 +37,10 @@ ABC_NAMESPACE_IMPL_START
 //extern int s_TotalNodes = 0;
 //extern int s_TotalChanges = 0;
 
-clock_t s_MappingTime = 0;
+abctime s_MappingTime = 0;
 int s_MappingMem = 0;
-clock_t s_ResubTime = 0;
-clock_t s_ResynTime = 0;
+abctime s_ResubTime = 0;
+abctime s_ResynTime = 0;
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -1303,7 +1303,7 @@ void Abc_NtkPrintMiter( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pObj, * pChild, * pConst1 = Abc_AigConst1(pNtk);
     int i, iOut = -1;
-    clock_t Time = clock();
+    abctime Time = Abc_Clock();
     int nUnsat = 0;
     int nSat   = 0;
     int nUndec = 0;
@@ -1345,7 +1345,7 @@ void Abc_NtkPrintMiter( Abc_Ntk_t * pNtk )
     printf( "  ? =%7d", nUndec );
     printf( "  U =%6d", nUnsat );
     printf( "  S =%6d", nSat );
-    Time = clock() - Time;
+    Time = Abc_Clock() - Time;
     printf(" %7.2f sec\n", (float)(Time)/(float)(CLOCKS_PER_SEC));
     if ( iOut >= 0 )
         printf( "The first satisfiable output is number %d (%s).\n", iOut, Abc_ObjName( Abc_NtkPo(pNtk, iOut) ) );

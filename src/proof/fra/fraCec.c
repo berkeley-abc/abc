@@ -54,7 +54,7 @@ int Fra_FraigSat( Aig_Man_t * pMan, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimi
         sat_solver2 * pSat;
         Cnf_Dat_t * pCnf;
         int status, RetValue;
-        clock_t clk = clock();
+        abctime clk = Abc_Clock();
         Vec_Int_t * vCiIds;
 
         assert( Aig_ManRegNum(pMan) == 0 );
@@ -100,13 +100,13 @@ int Fra_FraigSat( Aig_Man_t * pMan, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimi
 
 
         printf( "Created SAT problem with %d variable and %d clauses. ", sat_solver2_nvars(pSat), sat_solver2_nclauses(pSat) );
-        ABC_PRT( "Time", clock() - clk );
+        ABC_PRT( "Time", Abc_Clock() - clk );
 
         // simplify the problem
-        clk = clock();
+        clk = Abc_Clock();
         status = sat_solver2_simplify(pSat);
 //        printf( "Simplified the problem to %d variables and %d clauses. ", sat_solver2_nvars(pSat), sat_solver2_nclauses(pSat) );
-//        ABC_PRT( "Time", clock() - clk );
+//        ABC_PRT( "Time", Abc_Clock() - clk );
         if ( status == 0 )
         {
             Vec_IntFree( vCiIds );
@@ -116,7 +116,7 @@ int Fra_FraigSat( Aig_Man_t * pMan, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimi
         }
 
         // solve the miter
-        clk = clock();
+        clk = Abc_Clock();
         if ( fVerbose )
             pSat->verbosity = 1;
         status = sat_solver2_solve( pSat, NULL, NULL, (ABC_INT64_T)nConfLimit, (ABC_INT64_T)nInsLimit, (ABC_INT64_T)0, (ABC_INT64_T)0 );
@@ -139,7 +139,7 @@ int Fra_FraigSat( Aig_Man_t * pMan, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimi
             assert( 0 );
 
     //    Abc_Print( 1, "The number of conflicts = %6d.  ", (int)pSat->stats.conflicts );
-    //    Abc_PrintTime( 1, "Solving time", clock() - clk );
+    //    Abc_PrintTime( 1, "Solving time", Abc_Clock() - clk );
  
         // if the problem is SAT, get the counterexample
         if ( status == l_True )
@@ -160,7 +160,7 @@ int Fra_FraigSat( Aig_Man_t * pMan, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimi
         sat_solver * pSat;
         Cnf_Dat_t * pCnf;
         int status, RetValue;
-        clock_t clk = clock();
+        abctime clk = Abc_Clock();
         Vec_Int_t * vCiIds;
 
         assert( Aig_ManRegNum(pMan) == 0 );
@@ -215,13 +215,13 @@ int Fra_FraigSat( Aig_Man_t * pMan, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimi
 
 
     //    printf( "Created SAT problem with %d variable and %d clauses. ", sat_solver_nvars(pSat), sat_solver_nclauses(pSat) );
-    //    ABC_PRT( "Time", clock() - clk );
+    //    ABC_PRT( "Time", Abc_Clock() - clk );
 
         // simplify the problem
-        clk = clock();
+        clk = Abc_Clock();
         status = sat_solver_simplify(pSat);
     //    printf( "Simplified the problem to %d variables and %d clauses. ", sat_solver_nvars(pSat), sat_solver_nclauses(pSat) );
-    //    ABC_PRT( "Time", clock() - clk );
+    //    ABC_PRT( "Time", Abc_Clock() - clk );
         if ( status == 0 )
         {
             Vec_IntFree( vCiIds );
@@ -231,7 +231,7 @@ int Fra_FraigSat( Aig_Man_t * pMan, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimi
         }
 
         // solve the miter
-        clk = clock();
+        clk = Abc_Clock();
 //        if ( fVerbose )
 //            pSat->verbosity = 1;
         status = sat_solver_solve( pSat, NULL, NULL, (ABC_INT64_T)nConfLimit, (ABC_INT64_T)nInsLimit, (ABC_INT64_T)0, (ABC_INT64_T)0 );
@@ -254,7 +254,7 @@ int Fra_FraigSat( Aig_Man_t * pMan, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimi
             assert( 0 );
 
     //    Abc_Print( 1, "The number of conflicts = %6d.  ", (int)pSat->stats.conflicts );
-    //    Abc_PrintTime( 1, "Solving time", clock() - clk );
+    //    Abc_PrintTime( 1, "Solving time", Abc_Clock() - clk );
  
         // if the problem is SAT, get the counterexample
         if ( status == l_True )
@@ -292,7 +292,7 @@ int Fra_FraigCec( Aig_Man_t ** ppAig, int nConfLimit, int fVerbose )
     Fra_Par_t Params, * pParams = &Params;
     Aig_Man_t * pAig = *ppAig, * pTemp;
     int i, RetValue;
-    clock_t clk;
+    abctime clk;
 
     // report the original miter
     if ( fVerbose )
@@ -309,24 +309,24 @@ int Fra_FraigCec( Aig_Man_t ** ppAig, int nConfLimit, int fVerbose )
     }
 
     // if SAT only, solve without iteration
-clk = clock();
+clk = Abc_Clock();
     RetValue = Fra_FraigSat( pAig, (ABC_INT64_T)2*nBTLimitStart, (ABC_INT64_T)0, 0, 0, 0, 1, 0, 0, 0 );
     if ( fVerbose )
     {
         printf( "Initial SAT:      Nodes = %6d.  ", Aig_ManNodeNum(pAig) );
-ABC_PRT( "Time", clock() - clk );
+ABC_PRT( "Time", Abc_Clock() - clk );
     }
     if ( RetValue >= 0 )
         return RetValue;
 
     // duplicate the AIG
-clk = clock();
+clk = Abc_Clock();
     pAig = Dar_ManRwsat( pTemp = pAig, 1, 0 );
     Aig_ManStop( pTemp );
     if ( fVerbose )
     {
         printf( "Rewriting:        Nodes = %6d.  ", Aig_ManNodeNum(pAig) );
-ABC_PRT( "Time", clock() - clk );
+ABC_PRT( "Time", Abc_Clock() - clk );
     }
 
     // perform the loop
@@ -339,13 +339,13 @@ ABC_PRT( "Time", clock() - clk );
     {
 //printf( "Running fraiging with %d BTnode and %d BTmiter.\n", pParams->nBTLimitNode, pParams->nBTLimitMiter );
         // run fraiging
-clk = clock();
+clk = Abc_Clock();
         pAig = Fra_FraigPerform( pTemp = pAig, pParams );
         Aig_ManStop( pTemp );
         if ( fVerbose )
         {
             printf( "Fraiging (i=%d):   Nodes = %6d.  ", i+1, Aig_ManNodeNum(pAig) );
-ABC_PRT( "Time", clock() - clk );
+ABC_PRT( "Time", Abc_Clock() - clk );
         }
 
         // check the miter status
@@ -354,13 +354,13 @@ ABC_PRT( "Time", clock() - clk );
             break;
 
         // perform rewriting
-clk = clock();
+clk = Abc_Clock();
         pAig = Dar_ManRewriteDefault( pTemp = pAig );
         Aig_ManStop( pTemp );
         if ( fVerbose )
         {
             printf( "Rewriting:        Nodes = %6d.  ", Aig_ManNodeNum(pAig) );
-ABC_PRT( "Time", clock() - clk );
+ABC_PRT( "Time", Abc_Clock() - clk );
         } 
 
         // check the miter status
@@ -377,12 +377,12 @@ ABC_PRT( "Time", clock() - clk );
     // if still unsolved try last gasp
     if ( RetValue == -1 )
     {
-clk = clock();
+clk = Abc_Clock();
         RetValue = Fra_FraigSat( pAig, (ABC_INT64_T)nBTLimitLast, (ABC_INT64_T)0, 0, 0, 0, 1, 0, 0, 0 );
         if ( fVerbose )
         {
             printf( "Final SAT:            Nodes = %6d.  ", Aig_ManNodeNum(pAig) );
-ABC_PRT( "Time", clock() - clk );
+ABC_PRT( "Time", Abc_Clock() - clk );
         }
     }
 
@@ -468,7 +468,7 @@ int Fra_FraigCecTop( Aig_Man_t * pMan1, Aig_Man_t * pMan2, int nConfLimit, int n
     Aig_Man_t * pTemp;
     //Abc_NtkDarCec( pNtk1, pNtk2, fPartition, fVerbose );
     int RetValue;
-    clock_t clkTotal = clock();
+    abctime clkTotal = Abc_Clock();
 
     if ( Aig_ManCiNum(pMan1) != Aig_ManCiNum(pMan1) )
     {
@@ -501,17 +501,17 @@ int Fra_FraigCecTop( Aig_Man_t * pMan1, Aig_Man_t * pMan2, int nConfLimit, int n
     if ( RetValue == 1 )
     {
         printf( "Networks are equivalent.   " );
-ABC_PRT( "Time", clock() - clkTotal );
+ABC_PRT( "Time", Abc_Clock() - clkTotal );
     }
     else if ( RetValue == 0 )
     {
         printf( "Networks are NOT EQUIVALENT.   " );
-ABC_PRT( "Time", clock() - clkTotal );
+ABC_PRT( "Time", Abc_Clock() - clkTotal );
     }
     else
     {
         printf( "Networks are UNDECIDED.   " );
-ABC_PRT( "Time", clock() - clkTotal );
+ABC_PRT( "Time", Abc_Clock() - clkTotal );
     }
     fflush( stdout );
     return RetValue;

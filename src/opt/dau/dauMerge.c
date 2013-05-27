@@ -571,7 +571,7 @@ void Dau_DsdRemoveBraces( char * pDsd, int * pMatches )
 }
 
 
-clock_t s_TimeComp[4] = {0};
+abctime s_TimeComp[4] = {0};
 
 /**Function*************************************************************
 
@@ -605,7 +605,7 @@ char * Dau_DsdMerge( char * pDsd0i, int * pPerm0, char * pDsd1i, int * pPerm1, i
     word * pTruth, * pt = NULL, * pt0 = NULL, * pt1 = NULL;
     word pParts[3][DAU_MAX_WORD];
     int Status;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     Counter++;
     // create local copies
     Dau_DsdMergeCopy( pDsd0i, fCompl0, pDsd0 );
@@ -675,10 +675,10 @@ printf( "Normalized:\n" );
 if ( fVerbose )
 printf( "%s\n", pRes );
 
-        s_TimeComp[0] += clock() - clk;
+        s_TimeComp[0] += Abc_Clock() - clk;
         return pRes;
     }
-s_TimeComp[3] += clock() - clk;
+s_TimeComp[3] += Abc_Clock() - clk;
     // create variable mapping
     nVarsTotal = Dau_DsdMergeCreateMaps( pVarPres, nVarsShared, pOld2New, pNew2Old );
     // perform variable replacement
@@ -761,9 +761,9 @@ printf( "%s\n", pRes );
     }
 
     if ( Status == 0 )
-        s_TimeComp[1] += clock() - clk;
+        s_TimeComp[1] += Abc_Clock() - clk;
     else
-        s_TimeComp[2] += clock() - clk;
+        s_TimeComp[2] += Abc_Clock() - clk;
     return pRes;
 }
 

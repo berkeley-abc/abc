@@ -182,7 +182,7 @@ void Bdc_SpfdDecompose( word Truth, int nVars, int nCands, int nGatesMax )
     Bdc_Nod_t * pNode, * pNode0, * pNode1, * pNode2;
     int Count0, Count1, * pPerm;
     int i, j, k, c, n;
-    clock_t clk;
+    abctime clk;
     assert( nGatesMax < (1<<8) );
     assert( nCands < (1<<12) );
     assert( (1<<(nVars-1))*(1<<(nVars-1)) < (1<<12) ); // max SPFD
@@ -219,7 +219,7 @@ void Bdc_SpfdDecompose( word Truth, int nVars, int nCands, int nGatesMax )
     Vec_IntPush( vBegs, nVars );
 
     // the next level
-clk = clock();
+clk = Abc_Clock();
     pNode0 = pNode;
     pNode  = ABC_CALLOC( Bdc_Nod_t, 5 * nVars * (nVars - 1) / 2 );
     for ( c = i = 0; i < nVars; i++ )
@@ -246,14 +246,14 @@ clk = clock();
         }
     }
 printf( "Selected %6d gates on level %2d.   ", c, 1 );
-Abc_PrintTime( 1, "Time", clock() - clk );
+Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 
 
     // iterate through levels
     pNode = ABC_CALLOC( Bdc_Nod_t, nSize );
     for ( n = 2; n <= nGatesMax; n++ )
     {
-clk = clock();
+clk = Abc_Clock();
         c = 0;
         pNode1 = (Bdc_Nod_t *)Vec_PtrEntry( vLevels, n-1 );
         Count1 = Vec_IntEntry( vBegs, n-1 );
@@ -320,7 +320,7 @@ Bdc_SpfdPrint( pNode + i, 1, vLevels, Truth );
         Vec_IntPush( vBegs, j );
 
 printf( "Selected %6d gates (out of %6d) on level %2d.   ", j, c, n );
-Abc_PrintTime( 1, "Time", clock() - clk );
+Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 
         for ( i = 0; i < 10; i++ )
             Bdc_SpfdPrint( pNode2 + i, n, vLevels, Truth );
@@ -588,7 +588,7 @@ Vec_Wrd_t * Bdc_SpfdDecomposeTest__( Vec_Int_t ** pvWeights )
     int Limit  = 6;
 
     int * pPlace, i, n, m, k, s, fCompl;
-    clock_t clk = clock(), clk2;
+    abctime clk = Abc_Clock(), clk2;
     Vec_Int_t * vStops;
     Vec_Wrd_t * vTruths;
     Vec_Int_t * vWeights;
@@ -644,7 +644,7 @@ Vec_Wrd_t * Bdc_SpfdDecomposeTest__( Vec_Int_t ** pvWeights )
             pBeg1 = p + Vec_IntEntry( vStops, m );
             pEnd1 = p + Vec_IntEntry( vStops, m+1 );
 
-            clk2 = clock();
+            clk2 = Abc_Clock();
             printf( "Trying %7d  x %7d.  ", (int)(pEnd0-pBeg0), (int)(pEnd1-pBeg1) );
             for ( pThis0 = pBeg0; pThis0 < pEnd0; pThis0++ )
             for ( pThis1 = pBeg1; pThis1 < pEnd1; pThis1++ )
@@ -682,11 +682,11 @@ Vec_Wrd_t * Bdc_SpfdDecomposeTest__( Vec_Int_t ** pvWeights )
                 }
             }
             printf( "Added %d + %d + 1 = %d. Total = %8d.   ", k, m, n+1, (int)(q-p) );
-            Abc_PrintTime( 1, "Time", clock() - clk2 );
+            Abc_PrintTime( 1, "Time", Abc_Clock() - clk2 );
         }
         Vec_IntPush( vStops, q-p );
     }
-    Abc_PrintTime( 1, "Time", clock() - clk );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 
 
     {
@@ -921,7 +921,7 @@ void Bdc_SpfdDecomposeTest44()
     Vec_Wrd_t * vDivs;
     word c0, c1, s, tt, tbest;
     int i, j, Cost, CostBest = 100000;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
 
     return;
 
@@ -1007,7 +1007,7 @@ void Bdc_SpfdDecomposeTest44()
 
     printf( "Best solution found with cost %d.  ", CostBest );
     Extra_PrintHex( stdout, (unsigned *)&tbest, 6 ); //printf( "\n" );
-    Abc_PrintTime( 1, "  Time", clock() - clk );
+    Abc_PrintTime( 1, "  Time", Abc_Clock() - clk );
 
     Vec_WrdFree( vDivs );
     Vec_IntFree( vWeights );
@@ -1031,7 +1031,7 @@ void Bdc_SpfdDecomposeTest3()
     Vec_Wrd_t * v1M;
     Vec_Wrd_t * v1K;
     int i, k, Counter;
-    clock_t clk;
+    abctime clk;
 //    int EntryM, EntryK;
     Aig_ManRandom64( 1 );
 
@@ -1043,7 +1043,7 @@ void Bdc_SpfdDecomposeTest3()
     for ( i = 0; i < nSizeK; i++ )
         Vec_WrdPush( v1K, Aig_ManRandom64(0) );
 
-    clk = clock();
+    clk = Abc_Clock();
     Counter = 0;
     for ( i = 0; i < nSizeM; i++ )
     for ( k = 0; k < nSizeK; k++ )
@@ -1053,15 +1053,15 @@ void Bdc_SpfdDecomposeTest3()
 //        Counter += ((EntryM & EntryK) == EntryK);
 
     printf( "Total = %8d.  ", Counter );
-    Abc_PrintTime( 1, "Time", clock() - clk );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 
-    clk = clock();
+    clk = Abc_Clock();
     Counter = 0;
     for ( k = 0; k < nSizeK; k++ )
     for ( i = 0; i < nSizeM; i++ )
         Counter += ((v1M->pArray[i] & v1K->pArray[k]) == v1K->pArray[k]);
     printf( "Total = %8d.  ", Counter );
-    Abc_PrintTime( 1, "Time", clock() - clk );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 
 }
 
@@ -1087,7 +1087,7 @@ void Bdc_SpfdDecomposeTest8()
     word Func, FuncBest;
     int Cost, CostBest = ABC_INFINITY;
     int i;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
 
 //    return;
 
@@ -1095,7 +1095,7 @@ void Bdc_SpfdDecomposeTest8()
 
     printf( "Best init = %4d.  ", Bdc_SpfdAdjCost(t) );
     Extra_PrintHex( stdout, (unsigned *)&t, 6 ); //printf( "\n" );
-    Abc_PrintTime( 1, "  Time", clock() - clk );
+    Abc_PrintTime( 1, "  Time", Abc_Clock() - clk );
 
     Vec_WrdForEachEntry( vDivs, Func, i )
     {
@@ -1109,7 +1109,7 @@ void Bdc_SpfdDecomposeTest8()
 
     printf( "Best cost = %4d.  ", CostBest );
     Extra_PrintHex( stdout, (unsigned *)&FuncBest, 6 ); //printf( "\n" );
-    Abc_PrintTime( 1, "  Time", clock() - clk );
+    Abc_PrintTime( 1, "  Time", Abc_Clock() - clk );
 
 Abc_Show6VarFunc( 0, t );
 Abc_Show6VarFunc( 0, FuncBest );
@@ -1138,7 +1138,7 @@ void Bdc_SpfdDecomposeTest()
   Vec_Wrd_t * v1M, * v1K;
   int EntryM, EntryK;
   int i, k, Counter;
-  clock_t clk;
+  abctime clk;
 
   Aig_ManRandom64( 1 );
 
@@ -1150,7 +1150,7 @@ void Bdc_SpfdDecomposeTest()
   for ( i = 0; i < nSizeK; i++ )
       Vec_WrdPush( v1K, Aig_ManRandom64(0) );
 
-  clk = clock();
+  clk = Abc_Clock();
   Counter = 0;
 //  for ( i = 0; i < nSizeM; i++ )
 //  for ( k = 0; k < nSizeK; k++ )
@@ -1159,9 +1159,9 @@ void Bdc_SpfdDecomposeTest()
   Vec_WrdForEachEntry( v1K, EntryK, k )
       Counter += ((EntryM & EntryK) == EntryK);
   printf( "Total = %8d.  ", Counter );
-  Abc_PrintTime( 1, "Time", clock() - clk );
+  Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 
-  clk = clock();
+  clk = Abc_Clock();
   Counter = 0;
 //  for ( k = 0; k < nSizeK; k++ )
 //  for ( i = 0; i < nSizeM; i++ )
@@ -1170,7 +1170,7 @@ void Bdc_SpfdDecomposeTest()
   Vec_WrdForEachEntry( v1M, EntryM, i )
       Counter += ((EntryM & EntryK) == EntryK);
   printf( "Total = %8d.  ", Counter );
-  Abc_PrintTime( 1, "Time", clock() - clk );
+  Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 }
 
 

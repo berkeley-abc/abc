@@ -77,7 +77,7 @@ static inline Llb_Prt_t * Llb_MgrPart( Llb_Mgr_t * p, int i )  { return p->pPart
     for ( i = 0; (i < Vec_IntSize(pVar->vParts)) && (((pPart) = Llb_MgrPart(p, Vec_IntEntry(pVar->vParts,i))), 1); i++ )
 
 // statistics
-//clock_t timeBuild, timeAndEx, timeOther;
+//abctime timeBuild, timeAndEx, timeOther;
 //int nSuppMax;
 
 ////////////////////////////////////////////////////////////////////////
@@ -140,7 +140,7 @@ DdNode * Llb_Nonlin4CreateCube1( Llb_Mgr_t * p, Llb_Prt_t * pPart )
     DdNode * bCube, * bTemp;
     Llb_Var_t * pVar;
     int i;
-    clock_t TimeStop;
+    abctime TimeStop;
     TimeStop = p->dd->TimeStop; p->dd->TimeStop = 0;
     bCube = Cudd_ReadOne(p->dd);   Cudd_Ref( bCube );
     Llb_PartForEachVar( p, pPart, pVar, i )
@@ -173,7 +173,7 @@ DdNode * Llb_Nonlin4CreateCube2( Llb_Mgr_t * p, Llb_Prt_t * pPart1, Llb_Prt_t * 
     DdNode * bCube, * bTemp;
     Llb_Var_t * pVar;
     int i;
-    clock_t TimeStop;
+    abctime TimeStop;
     TimeStop = p->dd->TimeStop; p->dd->TimeStop = 0;
     bCube = Cudd_ReadOne(p->dd);   Cudd_Ref( bCube );
     Llb_PartForEachVar( p, pPart1, pVar, i )
@@ -808,7 +808,7 @@ Vec_Ptr_t * Llb_Nonlin4Group( DdManager * dd, Vec_Ptr_t * vParts, Vec_Int_t * vV
     Vec_Ptr_t * vGroups;
     Llb_Prt_t * pPart, * pPart1, * pPart2;
     Llb_Mgr_t * p;
-    int i, nReorders;//, clk = clock();
+    int i, nReorders;//, clk = Abc_Clock();
     // start the manager
     p = Llb_Nonlin4Alloc( dd, vParts, NULL, vVars2Q, nSizeMax );
     // remove singles
@@ -849,7 +849,7 @@ Vec_Ptr_t * Llb_Nonlin4Group( DdManager * dd, Vec_Ptr_t * vParts, Vec_Int_t * vV
 //Extra_bddPrintSupport( p->dd, pPart->bFunc ); printf( "\n" );
     }
     Llb_Nonlin4Free( p );
-//Abc_PrintTime( 1, "Reparametrization time", clock() - clk );
+//Abc_PrintTime( 1, "Reparametrization time", Abc_Clock() - clk );
     return vGroups;
 }
 

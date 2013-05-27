@@ -639,9 +639,9 @@ int Gia_ManSimSimulateEquiv( Gia_Man_t * pAig, Gia_ParSim_t * pPars )
 {
     Gia_Sim2_t * p;
     Gia_Obj_t * pObj;
-    clock_t clkTotal = clock();
+    abctime clkTotal = Abc_Clock();
     int i, RetValue = 0, iOut, iPat;
-    clock_t nTimeToStop = pPars->TimeLimit ? pPars->TimeLimit * CLOCKS_PER_SEC + clock(): 0;
+    abctime nTimeToStop = pPars->TimeLimit ? pPars->TimeLimit * CLOCKS_PER_SEC + Abc_Clock(): 0;
     assert( pAig->pReprs && pAig->pNexts );
     ABC_FREE( pAig->pCexSeq );
     p = Gia_Sim2Create( pAig, pPars );
@@ -656,7 +656,7 @@ int Gia_ManSimSimulateEquiv( Gia_Man_t * pAig, Gia_ParSim_t * pPars )
             Abc_Print( 1, "Frame %4d out of %4d and timeout %3d sec. ", i+1, pPars->nIters, pPars->TimeLimit );
             if ( pAig->pReprs && pAig->pNexts )
                 Abc_Print( 1, "Lits = %4d. ", Gia_ManEquivCountLitsAll(pAig) );
-            Abc_Print( 1, "Time = %7.2f sec\r", (1.0*clock()-clkTotal)/CLOCKS_PER_SEC );
+            Abc_Print( 1, "Time = %7.2f sec\r", (1.0*Abc_Clock()-clkTotal)/CLOCKS_PER_SEC );
         }
         if ( pPars->fCheckMiter && Gia_Sim2CheckPos( p, &iOut, &iPat ) )
         {
@@ -682,7 +682,7 @@ int Gia_ManSimSimulateEquiv( Gia_Man_t * pAig, Gia_ParSim_t * pPars )
         }
         if ( pAig->pReprs && pAig->pNexts )
             Gia_Sim2InfoRefineEquivs( p );
-        if ( clock() > nTimeToStop )
+        if ( Abc_Clock() > nTimeToStop )
         {
             i++;
             break;
@@ -693,7 +693,7 @@ int Gia_ManSimSimulateEquiv( Gia_Man_t * pAig, Gia_ParSim_t * pPars )
     Gia_Sim2Delete( p );
     if ( pAig->pCexSeq == NULL )
         Abc_Print( 1, "No bug detected after simulating %d frames with %d words.  ", i, pPars->nWords );
-    Abc_PrintTime( 1, "Time", clock() - clkTotal );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clkTotal );
     return RetValue;
 }
 

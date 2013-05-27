@@ -290,7 +290,7 @@ void Rnm_ManStop( Rnm_Man_t * p, int fProfile )
     {
         double MemGia = sizeof(Gia_Man_t) + sizeof(Gia_Obj_t) * p->pGia->nObjsAlloc + sizeof(int) * p->pGia->nTravIdsAlloc;
         double MemOther = sizeof(Rnm_Man_t) + sizeof(Rnm_Obj_t) * p->nObjsAlloc + sizeof(int) * Vec_IntCap(p->vObjs);
-        clock_t timeOther = p->timeTotal - p->timeFwd - p->timeBwd - p->timeVer;
+        abctime timeOther = p->timeTotal - p->timeFwd - p->timeBwd - p->timeVer;
         printf( "Abstraction refinement runtime statistics:\n" );
         ABC_PRTP( "Sensetization", p->timeFwd,   p->timeTotal );
         ABC_PRTP( "Justification", p->timeBwd,   p->timeTotal );
@@ -674,7 +674,7 @@ Vec_Int_t * Rnm_ManRefine( Rnm_Man_t * p, Abc_Cex_t * pCex, Vec_Int_t * vMap, in
 {
     int fVerify = 1;
     Vec_Int_t * vGoodPPis, * vNewPPis;
-    clock_t clk, clk2 = clock();
+    abctime clk, clk2 = Abc_Clock();
     int RetValue;
     p->nCalls++;
 //    Gia_ManCleanValue( p->pGia );
@@ -692,27 +692,27 @@ Vec_Int_t * Rnm_ManRefine( Rnm_Man_t * p, Abc_Cex_t * pCex, Vec_Int_t * vMap, in
         p->pObjs = ABC_REALLOC( Rnm_Obj_t, p->pObjs, (p->nObjsAlloc = p->nObjs + 10000) );
     memset( p->pObjs, 0, sizeof(Rnm_Obj_t) * p->nObjs );
     // propagate priorities
-    clk = clock();
+    clk = Abc_Clock();
     vGoodPPis = Vec_IntAlloc( 100 );
     if ( Rnm_ManSensitize( p ) ) // the CEX is not a true CEX
     {
-        p->timeFwd += clock() - clk;
+        p->timeFwd += Abc_Clock() - clk;
         // select refinement
-        clk = clock();
+        clk = Abc_Clock();
         p->nVisited = 0;
         Rnm_ManJustify_rec( p, Gia_ObjFanin0(Gia_ManPo(p->pGia, 0)), pCex->iFrame, vGoodPPis );
         RetValue = Vec_IntUniqify( vGoodPPis );
 //        assert( RetValue == 0 );
-        p->timeBwd += clock() - clk;
+        p->timeBwd += Abc_Clock() - clk;
     }
 
     // verify (empty) refinement
     // (only works when post-processing is not applied)
     if ( fVerify )
     {
-        clk = clock();
+        clk = Abc_Clock();
         Rnm_ManVerifyUsingTerSim( p->pGia, p->pCex, p->vMap, p->vObjs, vGoodPPis );
-        p->timeVer += clock() - clk;
+        p->timeVer += Abc_Clock() - clk;
     }
 
     // at this point array vGoodPPis contains the set of important PPIs
@@ -737,7 +737,7 @@ Vec_Int_t * Rnm_ManRefine( Rnm_Man_t * p, Abc_Cex_t * pCex, Vec_Int_t * vMap, in
     Rnm_ManCleanValues( p );
 
 //    Vec_IntReverseOrder( vGoodPPis );
-    p->timeTotal += clock() - clk2;
+    p->timeTotal += Abc_Clock() - clk2;
     p->nRefines += Vec_IntSize(vGoodPPis);
     return vGoodPPis;
 }

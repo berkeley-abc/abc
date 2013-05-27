@@ -538,7 +538,7 @@ void Abc_NtkRecFilter2(int nLimit)
     int  previous = REC_EMPTY_ID,  entry = REC_EMPTY_ID,  pTemp;
     int i;
     Gia_Man_t * pGia = s_pMan->pGia, *newPGia;
-    //int time = clock();
+    //int time = Abc_Clock();
     Abc_ManRec_t2 *p = s_pMan;
 //    Gia_Obj_t * pObj;
     char fileName[256];
@@ -588,8 +588,8 @@ void Abc_NtkRecFilter2(int nLimit)
     Abc_NtkRecStop2();
     Abc_Print(1, "Record stopped.");
     // collect runtime stats
-    //s_pMan->timeTrim += clock() - time;
-   //s_pMan->timeTotal += clock() - time;
+    //s_pMan->timeTrim += Abc_Clock() - time;
+   //s_pMan->timeTotal += Abc_Clock() - time;
 }
 
 
@@ -652,7 +652,7 @@ static void Abc_NtkRecResizeHash2(Abc_ManRec_t2* p)
     int * pBinsNew, *ppSpot;
     int pEntry, pTemp;
     int nBinsNew, Counter, i;
-    int clk = clock();
+    int clk = Abc_Clock();
     // get the new table size
     nBinsNew = Cudd_Prime( 2 * p->nBins ); 
     printf("Hash table resize from %d to %d.\n", p->nBins, nBinsNew);
@@ -677,8 +677,8 @@ static void Abc_NtkRecResizeHash2(Abc_ManRec_t2* p)
         ABC_FREE( p->pBins );
         p->pBins = pBinsNew;
         p->nBins = nBinsNew;
-        p->timeReHash += clock() - clk;
-        p->timeTotal += clock() - clk;
+        p->timeReHash += Abc_Clock() - clk;
+        p->timeTotal += Abc_Clock() - clk;
 
 }
 
@@ -1032,7 +1032,7 @@ void Abc_NtkRecStart2( Gia_Man_t * pGia, int nVars, int nCuts, int fTrim )
     int * ppSpot;
     unsigned * pTruth;
     int i;//, j = 0;
-    int clkTotal = clock(), clk, timeInsert;
+    int clkTotal = Abc_Clock(), clk, timeInsert;
 
     assert( s_pMan == NULL );
     if ( pGia == NULL )
@@ -1104,7 +1104,7 @@ void Abc_NtkRecStart2( Gia_Man_t * pGia, int nVars, int nCuts, int fTrim )
     p->pBins = ABC_ALLOC( int, p->nBins );
     memset( p->pBins, -1, sizeof(int) * p->nBins );
 
-clk = clock();
+clk = Abc_Clock();
 //     Gia_ManForEachPo( pGia, pObj, i )
 //     {
 //         pTruthSrc = (unsigned *)Gia_ObjComputeTruthTable(pGia, pObj);
@@ -1112,10 +1112,10 @@ clk = clock();
 // //        Kit_TruthCopy(pTruthDst, pTruthSrc, p->nVars);
 //         Rec_MemSetEntry( p, Gia_ObjCioId(pObj), pTruthSrc );
 //     }
-p->timeTruth += clock() - clk;  
+p->timeTruth += Abc_Clock() - clk;  
 
     // insert the PO nodes into the table
-timeInsert = clock();
+timeInsert = Abc_Clock();
     Abc_NtkRecMarkInputs(p, pGia);
     Gia_ManForEachPo( pGia, pObj, i )
     {
@@ -1134,7 +1134,7 @@ timeInsert = clock();
         ppSpot = Abc_NtkRecTableLookup2(p, p->pBins, p->nBins, pTruth, p->nVars );
         Abc_NtkRecInsertToLookUpTable2(p, ppSpot, pObj, Abc_ObjGetMax2(p->vInputs, pGia, pFanin), pTruth, p->fTrim);       
     }
-p->timeInsert += clock() - timeInsert;
+p->timeInsert += Abc_Clock() - timeInsert;
 
     // temporaries
     p->pBytes = ABC_ALLOC( int, 4*p->nWords );
@@ -1147,7 +1147,7 @@ p->timeInsert += clock() - timeInsert;
     p->vLabelsInt = Vec_IntStart( 1000 );
 
 
- p->timeTotal += clock() - clkTotal;  
+ p->timeTotal += Abc_Clock() - clkTotal;  
 }
 
 /**Function*************************************************************
@@ -1482,7 +1482,7 @@ int Abc_NtkRecAddCut2( If_Man_t * pIfMan, If_Obj_t * pRoot, If_Cut_t * pCut )
     int i, RetValue, nNodes, nNodesBeg, nInputs = s_pMan->nVars, nLeaves = If_CutLeaveNum(pCut);
     unsigned uCanonPhase;
     int clk, timeInsert, timeBuild;
-    //int begin = clock();
+    //int begin = Abc_Clock();
     assert( nInputs <= 16 );
     assert( nInputs == (int)pCut->nLimit );
     s_pMan->nTried++;
@@ -1493,10 +1493,10 @@ int Abc_NtkRecAddCut2( If_Man_t * pIfMan, If_Obj_t * pRoot, If_Cut_t * pCut )
         return 1;
      }
     // collect internal nodes and skip redundant cuts
-clk = clock();
+clk = Abc_Clock();
     RetValue = Abc_NtkRecCollectNodes( pIfMan, pRoot, pCut, vNodes );
 
-s_pMan->timeCollect += clock() - clk;
+s_pMan->timeCollect += Abc_Clock() - clk;
     if ( !RetValue )
     {
         s_pMan->nFilterRedund++;
@@ -1512,9 +1512,9 @@ s_pMan->timeCollect += clock() - clk;
    
 
     // compute truth table and skip the redundant structures
-clk = clock();
+clk = Abc_Clock();
     RetValue = Abc_NtkRecCutTruth( vNodes, nLeaves, s_pMan->vTtTemps, s_pMan->vTtElems );
-    s_pMan->timeTruth += clock() - clk;
+    s_pMan->timeTruth += Abc_Clock() - clk;
     if ( !RetValue )
     {
         //fprintf(file,"redundant structures\n");
@@ -1531,15 +1531,15 @@ clk = clock();
         pCanonPerm[i] = i;
 
     // semi-canonicize the truth table
-clk = clock();
+clk = Abc_Clock();
     //uCanonPhase = Kit_TruthSemiCanonicize( pInOut, pTemp, nLeaves, pCanonPerm );
     uCanonPhase = Kit_TruthSemiCanonicize_new( pInOut, pTemp, nLeaves, pCanonPerm );
     If_CutTruthStretch(pInOut, nLeaves, s_pMan->nVars);
-    s_pMan->timeCanon += clock() - clk;
+    s_pMan->timeCanon += Abc_Clock() - clk;
     // pCanonPerm and uCanonPhase show what was the variable corresponding to each var in the current truth
 
     // go through the variables in the new truth table
-timeBuild = clock();
+timeBuild = Abc_Clock();
     for ( i = 0; i < nLeaves; i++ )
     {
         // get hold of the corresponding leaf
@@ -1570,7 +1570,7 @@ timeBuild = clock();
     //assert(pObj);
     pObj = Gia_ManObj(pAig, Abc_Lit2Var(iRecObj));
     pTruth = (unsigned *)Gia_ObjComputeTruthTable(pAig, pObj);
-s_pMan->timeBuild += clock() - timeBuild;
+s_pMan->timeBuild += Abc_Clock() - timeBuild;
     
     if ( Kit_TruthSupport(pTruth, nInputs) != Kit_BitMask(nLeaves) )
     {
@@ -1620,9 +1620,9 @@ s_pMan->timeBuild += clock() - timeBuild;
     //Rec_MemSetEntry( s_pMan, Gia_ObjCioId(pPO), pTruthSrc );
 
     // add the resulting truth table to the hash table 
-    timeInsert = clock();
+    timeInsert = Abc_Clock();
     Abc_NtkRecInsertToLookUpTable2(s_pMan, ppSpot, pPO, nLeaves, pTruth, s_pMan->fTrim);
-    s_pMan->timeInsert += clock() - timeInsert;
+    s_pMan->timeInsert += Abc_Clock() - timeInsert;
 //  if (pIfMan->pPars->fDelayOpt)
 //      Abc_NtkRecAddSOPB(pIfMan, pCut, pTruth, pCanonPerm, uCanonPhase );
     return 1;
@@ -1646,7 +1646,7 @@ void Abc_NtkRecAdd2( Abc_Ntk_t * pNtk, int fUseSOPB)
 
     If_Par_t Pars, * pPars = &Pars;
     Abc_Ntk_t * pNtkNew;
-    int clk = clock();
+    int clk = Abc_Clock();
 
     if ( Abc_NtkGetChoiceNum( pNtk ) )
         printf( "Performing recoding structures with choices.\n" );
@@ -1701,7 +1701,7 @@ void Abc_NtkRecAdd2( Abc_Ntk_t * pNtk, int fUseSOPB)
     // perform recording
     pNtkNew = Abc_NtkIf( pNtk, pPars );
     Abc_NtkDelete( pNtkNew );
-s_pMan->timeTotal += clock() - clk;
+s_pMan->timeTotal += Abc_Clock() - clk;
 
 //    if ( !Abc_NtkCheck( s_pMan->pNtk ) )
 //        printf( "Abc_NtkRecAdd: The network check has failed.\n" );
@@ -1843,7 +1843,7 @@ static inline int If_CutComputDelay(If_Man_t* p, Rec_Obj_t2* entry, If_Cut_t* pC
 int If_CutDelayRecCost2(If_Man_t* p, If_Cut_t* pCut, If_Obj_t * pObj)
 {
     //int fVerbose = 0;
-    int timeDelayComput, timeTotal = clock(), timeCanonicize;
+    int timeDelayComput, timeTotal = Abc_Clock(), timeCanonicize;
     int nLeaves, i, DelayMin = ABC_INFINITY , * pDelayBest = &DelayMin;
     char pCanonPerm[16];
     unsigned uCanonPhase;
@@ -1880,17 +1880,17 @@ int If_CutDelayRecCost2(If_Man_t* p, If_Cut_t* pCut, If_Obj_t * pObj)
             
         return DelayMin;
     }
-    timeCanonicize = clock();
+    timeCanonicize = Abc_Clock();
     //canonicize
     for (i = 0; i < nLeaves; i++)
         pCanonPerm[i] = i;
     uCanonPhase = Kit_TruthSemiCanonicize_new(pInOut, pTemp, nLeaves, pCanonPerm);
     If_CutTruthStretch(pInOut, nLeaves, nVars);
-    s_pMan->timeIfCanonicize += clock() - timeCanonicize;   
-    timeDelayComput = clock();
+    s_pMan->timeIfCanonicize += Abc_Clock() - timeCanonicize;   
+    timeDelayComput = Abc_Clock();
     pCandMin = Abc_NtkRecLookUpBest(p, pCut, pInOut, pCanonPerm, NULL,pDelayBest);
     assert (!(pCandMin == NULL && nLeaves == 2));
-    s_pMan->timeIfComputDelay += clock() - timeDelayComput;
+    s_pMan->timeIfComputDelay += Abc_Clock() - timeDelayComput;
     //functional class not found in the library.
     if ( pCandMin == NULL )
     {
@@ -1918,7 +1918,7 @@ int If_CutDelayRecCost2(If_Man_t* p, If_Cut_t* pCut, If_Obj_t * pObj)
     {
         pCut->pPerm[(int)pCanonPerm[i]] = pCandMin->pinToPinDelay[i];
     }
-    s_pMan->timeIfTotal += clock() - timeTotal;
+    s_pMan->timeIfTotal += Abc_Clock() - timeTotal;
     pCut->Cost = pCandMin->cost;
         return DelayMin;
     
@@ -1974,7 +1974,7 @@ Hop_Obj_t * Abc_RecToHop2( Hop_Man_t * pMan, If_Man_t * pIfMan, If_Cut_t * pCut,
     char pCanonPerm[16];
     unsigned *pInOut = s_pMan->pTemp1;
     unsigned *pTemp = s_pMan->pTemp2;
-    int time = clock();
+    int time = Abc_Clock();
     int fCompl;
     int * pCompl = &fCompl;
     nLeaves = If_CutLeaveNum(pCut);
@@ -2058,8 +2058,8 @@ Hop_Obj_t * Abc_RecToHop2( Hop_Man_t * pMan, If_Man_t * pIfMan, If_Cut_t * pCut,
     else assert( 0 );
 
     
-    s_pMan->timeIfDerive += clock() - time;
-    s_pMan->timeIfTotal += clock() - time;
+    s_pMan->timeIfDerive += Abc_Clock() - time;
+    s_pMan->timeIfTotal += Abc_Clock() - time;
     // complement the result if needed
     return Hop_NotCond(pHopObj, (pCut->fCompl)^(((uCanonPhase & (1 << nLeaves)) > 0)) ^ fCompl);    
 }
@@ -2087,7 +2087,7 @@ int Abc_RecToGia2( Gia_Man_t * pMan, If_Man_t * pIfMan, If_Cut_t * pCut, If_Obj_
     char pCanonPerm[16];
     unsigned *pInOut = s_pMan->pTemp1;
     unsigned *pTemp = s_pMan->pTemp2;
-    int time = clock();
+    int time = Abc_Clock();
     int fCompl;
     int * pCompl = &fCompl;
     nLeaves = If_CutLeaveNum(pCut);
@@ -2157,8 +2157,8 @@ int Abc_RecToGia2( Gia_Man_t * pMan, If_Man_t * pIfMan, If_Cut_t * pCut, If_Obj_
         pHopObj = Vec_IntEntry(s_pMan->vLabelsInt, Gia_ObjCioId(pGiaObj));
     else assert( 0 );
     
-    s_pMan->timeIfDerive += clock() - time;
-    s_pMan->timeIfTotal += clock() - time;
+    s_pMan->timeIfDerive += Abc_Clock() - time;
+    s_pMan->timeIfTotal += Abc_Clock() - time;
     // complement the result if needed
     return Abc_LitNotCond(pHopObj, (pCut->fCompl)^(((uCanonPhase & (1 << nLeaves)) > 0)) ^ fCompl);    
 }
@@ -2405,7 +2405,7 @@ void Abc_NtkRecLibMerge2(Gia_Man_t* pGia2)
     int i;
     Gia_Obj_t * pObj;
     Abc_ManRec_t2 * p = s_pMan;
-    int clk = clock();
+    int clk = Abc_Clock();
     if ( Gia_ManPiNum(pGia2) > s_pMan->nVars )
     {
         printf( "The library has more inputs than the record.\n");
@@ -2432,8 +2432,8 @@ void Abc_NtkRecLibMerge2(Gia_Man_t* pGia2)
     }
     ABC_FREE(pGia2->pCopies);
 
-    s_pMan->timeMerge += clock() - clk;
-    s_pMan->timeTotal += clock() - clk;
+    s_pMan->timeMerge += Abc_Clock() - clk;
+    s_pMan->timeTotal += Abc_Clock() - clk;
 }
 
 

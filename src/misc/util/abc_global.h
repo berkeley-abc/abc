@@ -266,6 +266,35 @@ static inline int      Abc_LitRegular( int Lit )              { return Lit & ~01
 static inline int      Abc_Lit2LitV( int * pMap, int Lit )    { return Abc_Var2Lit( pMap[Abc_Lit2Var(Lit)], Abc_LitIsCompl(Lit) );   }
 static inline int      Abc_Lit2LitL( int * pMap, int Lit )    { return Abc_LitNotCond( pMap[Abc_Lit2Var(Lit)], Abc_LitIsCompl(Lit) );   }
 
+
+// time counting
+typedef ABC_UINT64_T abctime;
+static inline abctime Abc_Clock()
+{
+    static abctime PeriodNum = 0;
+    static clock_t Period = ((abctime)1 << 30);
+    clock_t ClockTime = clock();
+    if ( ClockTime >= Period )
+    {
+        ClockTime -= Period;
+        PeriodNum++;
+    }
+    return PeriodNum * Period + ClockTime;
+}
+
+
+// bridge communication
+#define BRIDGE_NETLIST           106
+#define BRIDGE_ABS_NETLIST       107
+extern int Gia_ManToBridgeText( FILE * pFile, int Size, unsigned char * pBuffer );
+extern int Gia_ManToBridgeAbsNetlist( FILE * pFile, void * p, int pkg_type );
+
+// string printing
+extern char * vnsprintf(const char* format, va_list args);
+extern char * nsprintf(const char* format, ...);
+
+
+// misc printing procedures
 enum Abc_VerbLevel
 {
     ABC_PROMPT   = -2,
@@ -274,17 +303,6 @@ enum Abc_VerbLevel
     ABC_STANDARD =  1,
     ABC_VERBOSE  =  2
 };
-
-#define BRIDGE_NETLIST           106
-#define BRIDGE_ABS_NETLIST       107
-
-// string printing
-extern char * vnsprintf(const char* format, va_list args);
-extern char * nsprintf(const char* format, ...);
-extern int Gia_ManToBridgeText( FILE * pFile, int Size, unsigned char * pBuffer );
-extern int Gia_ManToBridgeAbsNetlist( FILE * pFile, void * p, int pkg_type );
-
-// misc printing procedures
 static inline void Abc_Print( int level, const char * format, ... )
 {
     extern ABC_DLL int Abc_FrameIsBridgeMode();
@@ -339,12 +357,12 @@ static inline void Abc_PrintInt( int i )
         Abc_Print( 1, "%4.0fm", v6 );
 }
 
-static inline void Abc_PrintTime( int level, const char * pStr, clock_t time )
+static inline void Abc_PrintTime( int level, const char * pStr, abctime time )
 {
     ABC_PRT( pStr, time );
 }
 
-static inline void Abc_PrintTimeP( int level, const char * pStr, clock_t time, clock_t Time )
+static inline void Abc_PrintTimeP( int level, const char * pStr, abctime time, abctime Time )
 {
     ABC_PRTP( pStr, time, Time );
 }
@@ -381,6 +399,7 @@ static inline int Abc_PrimeCudd( unsigned int p )
 
 } // end of Cudd_Prime 
 
+
 // sorting
 extern void   Abc_MergeSort( int * pInput, int nSize );
 extern int *  Abc_MergeSortCost( int * pCosts, int nSize );
@@ -389,7 +408,6 @@ extern void   Abc_QuickSort2( word * pData, int nSize, int fDecrease );
 extern void   Abc_QuickSort3( word * pData, int nSize, int fDecrease );
 extern void   Abc_QuickSortCostData( int * pCosts, int nSize, int fDecrease, word * pData, int * pResult );
 extern int *  Abc_QuickSortCost( int * pCosts, int nSize, int fDecrease );
-
 
 
 ABC_NAMESPACE_HEADER_END

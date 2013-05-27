@@ -328,7 +328,7 @@ Vec_Int_t * Fra_ImpDerive( Fra_Man_t * p, int nImpMaxLimit, int nImpUseLimit, in
     int nImpsTotal = 0, nImpsTried = 0, nImpsNonSeq = 0, nImpsComb = 0, nImpsCollected = 0;
     int CostMin = ABC_INFINITY, CostMax = 0;
     int i, k, Imp, CostRange;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     assert( Aig_ManObjNumMax(p->pManAig) < (1 << 15) );
     assert( nImpMaxLimit > 0 && nImpUseLimit > 0 && nImpUseLimit <= nImpMaxLimit );
     // normalize both managers
@@ -403,7 +403,7 @@ printf( "Implications: All = %d. Try = %d. NonSeq = %d. Comb = %d. Res = %d.\n",
     nImpsTotal, nImpsTried, nImpsNonSeq, nImpsComb, nImpsCollected );
 printf( "Implication weight: Min = %d. Pivot = %d. Max = %d.   ", 
        CostMin, CostRange, CostMax );
-ABC_PRT( "Time", clock() - clk );
+ABC_PRT( "Time", Abc_Clock() - clk );
 }
     return vImps;
 }

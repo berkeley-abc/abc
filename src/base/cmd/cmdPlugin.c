@@ -418,7 +418,7 @@ int Cmd_CommandAbcPlugIn( Abc_Frame_t * pAbc, int argc, char ** argv )
     FILE * pFile;
     Gia_Man_t * pGia;
     int i, fd;
-    clock_t clk;
+    abctime clk;
     int fLeaveFiles;
 /*
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
@@ -536,14 +536,14 @@ int Cmd_CommandAbcPlugIn( Abc_Frame_t * pAbc, int argc, char ** argv )
     // run the command line
 //printf( "Running command line: %s\n", Vec_StrArray(vCommand) ); 
 
-    clk = clock();
+    clk = Abc_Clock();
     if ( Util_SignalSystem( Vec_StrArray(vCommand) ) )
     {
         Abc_Print( -1, "The following command has returned non-zero exit status:\n" );
         Abc_Print( -1, "\"%s\"\n", Vec_StrArray(vCommand) );
         return 1;
     }
-    clk = clock() - clk;
+    clk = Abc_Clock() - clk;
     Vec_StrFree( vCommand );
 
     // check if the output file exists

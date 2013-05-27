@@ -741,7 +741,7 @@ void Gli_ManSetPiRandomSeq( Gli_Man_t * p, float PiTransProb )
 void Gli_ManSwitchesAndGlitches( Gli_Man_t * p, int nPatterns, float PiTransProb, int fVerbose )
 {
     int i, k;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     Gia_ManRandom( 1 );
     Gli_ManFinalize( p );
     if ( p->nRegs == 0 )
@@ -774,7 +774,7 @@ void Gli_ManSwitchesAndGlitches( Gli_Man_t * p, int nPatterns, float PiTransProb
     {
         printf( "\nSimulated %d patterns.  ", nPatterns );
         ABC_PRMn( "Memory", 4*p->nObjData );
-        ABC_PRT( "Time", clock() - clk );
+        ABC_PRT( "Time", Abc_Clock() - clk );
     }
 }
 

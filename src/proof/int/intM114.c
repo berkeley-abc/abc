@@ -200,7 +200,7 @@ sat_solver * Inter_ManDeriveSatSolver(
   SeeAlso     []
 
 ***********************************************************************/
-int Inter_ManPerformOneStep( Inter_Man_t * p, int fUseBias, int fUseBackward, clock_t nTimeNewOut )
+int Inter_ManPerformOneStep( Inter_Man_t * p, int fUseBias, int fUseBackward, abctime nTimeNewOut )
 {
     sat_solver * pSat;
     void * pSatCnf = NULL;
@@ -209,7 +209,7 @@ int Inter_ManPerformOneStep( Inter_Man_t * p, int fUseBias, int fUseBackward, cl
     int * pGlobalVars;
     int status, RetValue;
     int i, Var;
-    clock_t clk;
+    abctime clk;
 //    assert( p->pInterNew == NULL );
 
     // derive the SAT solver
@@ -231,10 +231,10 @@ int Inter_ManPerformOneStep( Inter_Man_t * p, int fUseBias, int fUseBackward, cl
     pSat->pGlobalVars = fUseBias? pGlobalVars : NULL;
 
     // solve the problem
-clk = clock();
+clk = Abc_Clock();
     status = sat_solver_solve( pSat, NULL, NULL, (ABC_INT64_T)p->nConfLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
     p->nConfCur = pSat->stats.conflicts;
-p->timeSat += clock() - clk;
+p->timeSat += Abc_Clock() - clk;
 
     pSat->pGlobalVars = NULL;
     ABC_FREE( pGlobalVars );
@@ -256,7 +256,7 @@ p->timeSat += clock() - clk;
         return RetValue;
 
     // create the resulting manager
-clk = clock();
+clk = Abc_Clock();
 /*
     if ( !fUseIp )
     {
@@ -307,7 +307,7 @@ clk = clock();
     p->pInterNew = (Aig_Man_t *)Inta_ManInterpolate( pManInterA, (Sto_Man_t *)pSatCnf, p->vVarsAB, 0 );
     Inta_ManFree( pManInterA );
 
-p->timeInt += clock() - clk;
+p->timeInt += Abc_Clock() - clk;
     Sto_ManFree( (Sto_Man_t *)pSatCnf );
     return RetValue;
 }

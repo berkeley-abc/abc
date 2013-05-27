@@ -844,7 +844,7 @@ int Fraig_ManPrintRefs( Fraig_Man_t * pMan )
     Fraig_NodeVec_t * vPivots;
     Fraig_Node_t * pNode, * pNode2;
     int i, k, Counter, nProved;
-    clock_t clk;
+    abctime clk;
 
     vPivots = Fraig_NodeVecAlloc( 1000 );
     for ( i = 0; i < pMan->vNodes->nSize; i++ )
@@ -862,7 +862,7 @@ int Fraig_ManPrintRefs( Fraig_Man_t * pMan )
     }
     printf( "Total nodes = %d. Referenced nodes = %d.\n", pMan->vNodes->nSize, vPivots->nSize );
 
-clk = clock();
+clk = Abc_Clock();
     // count implications
     Counter = nProved = 0;
     for ( i = 0; i < vPivots->nSize; i++ )
@@ -884,7 +884,7 @@ clk = clock();
             }
         }
     printf( "Number of candidate pairs = %d.  Proved = %d.\n", Counter, nProved );
-//ABC_PRT( "Time", clock() - clk );
+//ABC_PRT( "Time", Abc_Clock() - clk );
     return 0;
 }
 

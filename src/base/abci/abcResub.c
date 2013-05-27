@@ -62,18 +62,18 @@ struct Abc_ManRes_t_
     // other data
     Vec_Ptr_t        * vTemp;      // temporary array of nodes
     // runtime statistics
-    clock_t            timeCut;
-    clock_t            timeTruth;
-    clock_t            timeRes;
-    clock_t            timeDiv;
-    clock_t            timeMffc;
-    clock_t            timeSim;
-    clock_t            timeRes1;
-    clock_t            timeResD;
-    clock_t            timeRes2;
-    clock_t            timeRes3;
-    clock_t            timeNtk;
-    clock_t            timeTotal;
+    abctime            timeCut;
+    abctime            timeTruth;
+    abctime            timeRes;
+    abctime            timeDiv;
+    abctime            timeMffc;
+    abctime            timeSim;
+    abctime            timeRes1;
+    abctime            timeResD;
+    abctime            timeRes2;
+    abctime            timeRes3;
+    abctime            timeNtk;
+    abctime            timeTotal;
     // improvement statistics
     int                nUsedNodeC;
     int                nUsedNode0;
@@ -117,7 +117,7 @@ static Dec_Graph_t * Abc_ManResubDivs3( Abc_ManRes_t * p, int Required );
 static Vec_Ptr_t *   Abc_CutFactorLarge( Abc_Obj_t * pNode, int nLeavesMax );
 static int           Abc_CutVolumeCheck( Abc_Obj_t * pNode, Vec_Ptr_t * vLeaves );
 
-extern clock_t s_ResubTime;
+extern abctime s_ResubTime;
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -144,7 +144,7 @@ int Abc_NtkResubstitute( Abc_Ntk_t * pNtk, int nCutMax, int nStepsMax, int nLeve
     Dec_Graph_t * pFForm;
     Vec_Ptr_t * vLeaves;
     Abc_Obj_t * pNode;
-    clock_t clk, clkStart = clock();
+    abctime clk, clkStart = Abc_Clock();
     int i, nNodes;
 
     assert( Abc_NtkIsStrash(pNtk) );
@@ -187,10 +187,10 @@ int Abc_NtkResubstitute( Abc_Ntk_t * pNtk, int nCutMax, int nStepsMax, int nLeve
             break;
 
         // compute a reconvergence-driven cut
-clk = clock();
+clk = Abc_Clock();
         vLeaves = Abc_NodeFindCut( pManCut, pNode, 0 );
 //        vLeaves = Abc_CutFactorLarge( pNode, nCutMax );
-pManRes->timeCut += clock() - clk;
+pManRes->timeCut += Abc_Clock() - clk;
 /*
         if ( fVerbose && vLeaves )
         printf( "Node %6d : Leaves = %3d. Volume = %3d.\n", pNode->Id, Vec_PtrSize(vLeaves), Abc_CutVolumeCheck(pNode, vLeaves) );
@@ -200,18 +200,18 @@ pManRes->timeCut += clock() - clk;
         // get the don't-cares
         if ( pManOdc )
         {
-clk = clock();
+clk = Abc_Clock();
             Abc_NtkDontCareClear( pManOdc );
             Abc_NtkDontCareCompute( pManOdc, pNode, vLeaves, pManRes->pCareSet );
-pManRes->timeTruth += clock() - clk;
+pManRes->timeTruth += Abc_Clock() - clk;
         }
 
         // evaluate this cut
-clk = clock();
+clk = Abc_Clock();
         pFForm = Abc_ManResubEval( pManRes, pNode, vLeaves, nStepsMax, fUpdateLevel, fVerbose );
 //        Vec_PtrFree( vLeaves );
 //        Abc_ManResubCleanup( pManRes );
-pManRes->timeRes += clock() - clk;
+pManRes->timeRes += Abc_Clock() - clk;
         if ( pFForm == NULL )
             continue;
         pManRes->nTotalGain += pManRes->nLastGain;
@@ -225,13 +225,13 @@ pManRes->timeRes += clock() - clk;
         }
 */
         // acceptable replacement found, update the graph
-clk = clock();
+clk = Abc_Clock();
         Dec_GraphUpdateNetwork( pNode, pFForm, fUpdateLevel, pManRes->nLastGain );
-pManRes->timeNtk += clock() - clk;
+pManRes->timeNtk += Abc_Clock() - clk;
         Dec_GraphFree( pFForm );
     }
     Extra_ProgressBarStop( pProgress );
-pManRes->timeTotal = clock() - clkStart;
+pManRes->timeTotal = Abc_Clock() - clkStart;
     pManRes->nNodesEnd = Abc_NtkNodeNum(pNtk);
 
     // print statistics
@@ -266,7 +266,7 @@ pManRes->timeTotal = clock() - clkStart;
         printf( "Abc_NtkRefactor: The network check has failed.\n" );
         return 0;
     }
-s_ResubTime = clock() - clkStart;
+s_ResubTime = Abc_Clock() - clkStart;
     return 1;
 }
 
@@ -1624,7 +1624,7 @@ Dec_Graph_t * Abc_ManResubEval( Abc_ManRes_t * p, Abc_Obj_t * pRoot, Vec_Ptr_t *
     extern int Abc_NodeMffcInside( Abc_Obj_t * pNode, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vInside );
     Dec_Graph_t * pGraph;
     int Required;
-    clock_t clk;
+    abctime clk;
 
     Required = fUpdateLevel? Abc_ObjRequiredLevel(pRoot) : ABC_INFINITY;
 
@@ -1635,26 +1635,26 @@ Dec_Graph_t * Abc_ManResubEval( Abc_ManRes_t * p, Abc_Obj_t * pRoot, Vec_Ptr_t *
     p->nLastGain = -1;
 
     // collect the MFFC
-clk = clock();
+clk = Abc_Clock();
     p->nMffc = Abc_NodeMffcInside( pRoot, vLeaves, p->vTemp );
-p->timeMffc += clock() - clk;
+p->timeMffc += Abc_Clock() - clk;
     assert( p->nMffc > 0 );
 
     // collect the divisor nodes
-clk = clock();
+clk = Abc_Clock();
     if ( !Abc_ManResubCollectDivs( p, pRoot, vLeaves, Required ) )
         return NULL;
-    p->timeDiv += clock() - clk;
+    p->timeDiv += Abc_Clock() - clk;
 
     p->nTotalDivs   += p->nDivs;
     p->nTotalLeaves += p->nLeaves;
 
     // simulate the nodes
-clk = clock();
+clk = Abc_Clock();
     Abc_ManResubSimulate( p->vDivs, p->nLeaves, p->vSims, p->nLeavesMax, p->nWords );
-p->timeSim += clock() - clk;
+p->timeSim += Abc_Clock() - clk;
 
-clk = clock();
+clk = Abc_Clock();
     // consider constants
     if ( (pGraph = Abc_ManResubQuit( p )) )
     {
@@ -1666,14 +1666,14 @@ clk = clock();
     // consider equal nodes
     if ( (pGraph = Abc_ManResubDivs0( p )) )
     {
-p->timeRes1 += clock() - clk;
+p->timeRes1 += Abc_Clock() - clk;
         p->nUsedNode0++;
         p->nLastGain = p->nMffc;
         return pGraph;
     }
     if ( nSteps == 0 || p->nMffc == 1 )
     {
-p->timeRes1 += clock() - clk;
+p->timeRes1 += Abc_Clock() - clk;
         return NULL;
     }
 
@@ -1683,50 +1683,50 @@ p->timeRes1 += clock() - clk;
     // consider one node
     if ( (pGraph = Abc_ManResubDivs1( p, Required )) )
     {
-p->timeRes1 += clock() - clk;
+p->timeRes1 += Abc_Clock() - clk;
         p->nLastGain = p->nMffc - 1;
         return pGraph;
     }
-p->timeRes1 += clock() - clk;
+p->timeRes1 += Abc_Clock() - clk;
     if ( nSteps == 1 || p->nMffc == 2 )
         return NULL;
 
-clk = clock();
+clk = Abc_Clock();
     // consider triples
     if ( (pGraph = Abc_ManResubDivs12( p, Required )) )
     {
-p->timeRes2 += clock() - clk;
+p->timeRes2 += Abc_Clock() - clk;
         p->nLastGain = p->nMffc - 2;
         return pGraph;
     }
-p->timeRes2 += clock() - clk;
+p->timeRes2 += Abc_Clock() - clk;
 
     // get the two level divisors
-clk = clock();
+clk = Abc_Clock();
     Abc_ManResubDivsD( p, Required );
-p->timeResD += clock() - clk;
+p->timeResD += Abc_Clock() - clk;
 
     // consider two nodes
-clk = clock();
+clk = Abc_Clock();
     if ( (pGraph = Abc_ManResubDivs2( p, Required )) )
     {
-p->timeRes2 += clock() - clk;
+p->timeRes2 += Abc_Clock() - clk;
         p->nLastGain = p->nMffc - 2;
         return pGraph;
     }
-p->timeRes2 += clock() - clk;
+p->timeRes2 += Abc_Clock() - clk;
     if ( nSteps == 2 || p->nMffc == 3 )
         return NULL;
 
     // consider two nodes
-clk = clock();
+clk = Abc_Clock();
     if ( (pGraph = Abc_ManResubDivs3( p, Required )) )
     {
-p->timeRes3 += clock() - clk;
+p->timeRes3 += Abc_Clock() - clk;
         p->nLastGain = p->nMffc - 3;
         return pGraph;
     }
-p->timeRes3 += clock() - clk;
+p->timeRes3 += Abc_Clock() - clk;
     if ( nSteps == 3 || p->nLeavesMax == 4 )
         return NULL;
     return NULL;

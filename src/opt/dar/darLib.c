@@ -129,7 +129,7 @@ Dar_Lib_t * Dar_LibAlloc( int nObjs )
 {
     unsigned uTruths[4] = { 0xAAAA, 0xCCCC, 0xF0F0, 0xFF00 };
     Dar_Lib_t * p;
-    int i;//, clk = clock();
+    int i;//, clk = Abc_Clock();
     p = ABC_ALLOC( Dar_Lib_t, 1 );
     memset( p, 0, sizeof(Dar_Lib_t) );
     // allocate objects
@@ -146,7 +146,7 @@ Dar_Lib_t * Dar_LibAlloc( int nObjs )
         p->pObjs[i].fTerm = 1;
         p->pObjs[i].Num = uTruths[i];
     }
-//    ABC_PRT( "Library start", clock() - clk );
+//    ABC_PRT( "Library start", Abc_Clock() - clk );
     return p;
 }
 
@@ -592,11 +592,11 @@ Dar_Lib_t * Dar_LibRead()
 ***********************************************************************/
 void Dar_LibStart()
 {
-//    clock_t clk = clock();
+//    abctime clk = Abc_Clock();
     assert( s_DarLib == NULL );
     s_DarLib = Dar_LibRead();
 //    printf( "The 4-input library started with %d nodes and %d subgraphs. ", s_DarLib->nObjs - 4, s_DarLib->nSubgrTotal );
-//    ABC_PRT( "Time", clock() - clk );
+//    ABC_PRT( "Time", Abc_Clock() - clk );
 }
 
 /**Function*************************************************************
@@ -921,7 +921,7 @@ void Dar_LibEval( Dar_Man_t * p, Aig_Obj_t * pRoot, Dar_Cut_t * pCut, int Requir
     float PowerSaved, PowerAdded;
     Dar_LibObj_t * pObj;
     int Out, k, Class, nNodesSaved, nNodesAdded, nNodesGained;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     if ( pCut->nLeaves != 4 )
         return;
     // check if the cut exits and assigns leaves and their levels
@@ -963,7 +963,7 @@ void Dar_LibEval( Dar_Man_t * p, Aig_Obj_t * pRoot, Dar_Cut_t * pCut, int Requir
         assert( p->LevelBest <= Required );
         *pnMffcSize   = nNodesSaved;
     }
-clk = clock() - clk;
+clk = Abc_Clock() - clk;
 p->ClassTimes[Class] += clk;
 p->timeEval += clk;
 }
@@ -1189,7 +1189,7 @@ int Dar2_LibEval( Gia_Man_t * p, Vec_Int_t * vCutLits, unsigned uTruth, int fKee
 //    int fTraining    =  0;
     Dar_LibObj_t * pObj;
     int Out, k, Class, nNodesSaved, nNodesAdded, nNodesGained;
-//    clock_t clk = clock();
+//    abctime clk = Abc_Clock();
     assert( Vec_IntSize(vCutLits) == 4 );
     assert( (uTruth >> 16) == 0 );
     // check if the cut exits and assigns leaves and their levels
@@ -1233,7 +1233,7 @@ int Dar2_LibEval( Gia_Man_t * p, Vec_Int_t * vCutLits, unsigned uTruth, int fKee
         p_ClassBest  = Class;
 //        assert( p_LevelBest <= Required );
     }
-//clk = clock() - clk;
+//clk = Abc_Clock() - clk;
 //p->ClassTimes[Class] += clk;
 //p->timeEval += clk;
     assert( p_OutBest != -1 );

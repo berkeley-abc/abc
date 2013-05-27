@@ -49,7 +49,7 @@ int Sim_ComputeTwoVarSymms( Abc_Ntk_t * pNtk, int fVerbose )
     Vec_Ptr_t * vResult;
     int Result;
     int i;
-    clock_t clk, clkTotal = clock();
+    abctime clk, clkTotal = Abc_Clock();
 
     srand( 0xABC );
 
@@ -61,9 +61,9 @@ int Sim_ComputeTwoVarSymms( Abc_Ntk_t * pNtk, int fVerbose )
                p->nPairsTotal, p->nPairsSymm, p->nPairsNonSymm, p->nPairsRem );
 
     // detect symmetries using circuit structure
-clk = clock();
+clk = Abc_Clock();
     Sim_SymmsStructCompute( pNtk, p->vMatrSymms, p->vSuppFun );
-p->timeStruct = clock() - clk;
+p->timeStruct = Abc_Clock() - clk;
 
     Sim_UtilCountPairsAll( p );
     p->nPairsSymmStr = p->nPairsSymm;
@@ -133,7 +133,7 @@ p->timeStruct = clock() - clk;
 
     Result = p->nPairsSymm;
     vResult = p->vMatrSymms;  
-p->timeTotal = clock() - clkTotal;
+p->timeTotal = Abc_Clock() - clkTotal;
     //  p->vMatrSymms = NULL;
     Sym_ManStop( p );
     return Result;

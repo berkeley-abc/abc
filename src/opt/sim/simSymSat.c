@@ -138,7 +138,7 @@ int Sim_SymmsSatProveOne( Sym_Man_t * p, int Out, int Var1, int Var2, unsigned *
     Fraig_Man_t * pMan;
     Abc_Ntk_t * pMiter;
     int RetValue, i;
-    clock_t clk;
+    abctime clk;
     int * pModel;
 
     // get the miter for this problem
@@ -150,12 +150,12 @@ int Sim_SymmsSatProveOne( Sym_Man_t * p, int Out, int Var1, int Var2, unsigned *
     Params.nPatsDyna = 512;
     Params.nSeconds = ABC_INFINITY;
 
-clk = clock();
+clk = Abc_Clock();
     pMan = (Fraig_Man_t *)Abc_NtkToFraig( pMiter, &Params, 0, 0 ); 
-p->timeFraig += clock() - clk;
-clk = clock();
+p->timeFraig += Abc_Clock() - clk;
+clk = Abc_Clock();
     Fraig_ManProveMiter( pMan );
-p->timeSat += clock() - clk;
+p->timeSat += Abc_Clock() - clk;
 
     // analyze the result
     RetValue = Fraig_ManCheckMiter( pMan );

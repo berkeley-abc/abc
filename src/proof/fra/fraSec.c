@@ -99,7 +99,7 @@ int Fra_FraigSec( Aig_Man_t * p, Fra_Sec_t * pParSec, Aig_Man_t ** ppResult )
     Fra_Sml_t * pSml;
     Aig_Man_t * pNew, * pTemp;
     int nFrames, RetValue, nIter;
-    clock_t clk, clkTotal = clock();
+    abctime clk, clkTotal = Abc_Clock();
     int TimeOut = 0;
     int fLatchCorr = 0;
     float TimeLeft = 0.0;
@@ -123,7 +123,7 @@ int Fra_FraigSec( Aig_Man_t * p, Fra_Sec_t * pParSec, Aig_Man_t ** ppResult )
 //Aig_ManDumpBlif( pNew, "after.blif", NULL, NULL );
 
     // perform sequential cleanup
-clk = clock();
+clk = Abc_Clock();
     if ( pNew->nRegs )
     pNew = Aig_ManReduceLaches( pNew, 0 );
     if ( pNew->nRegs )
@@ -132,14 +132,14 @@ clk = clock();
     {
         printf( "Sequential cleanup:   Latches = %5d. Nodes = %6d. ", 
             Aig_ManRegNum(pNew), Aig_ManNodeNum(pNew) );
-ABC_PRT( "Time", clock() - clk );
+ABC_PRT( "Time", Abc_Clock() - clk );
     }
     RetValue = Fra_FraigMiterStatus( pNew );
     if ( RetValue >= 0 )
         goto finish;
 
     // perform phase abstraction
-clk = clock();
+clk = Abc_Clock();
     if ( pParSec->fPhaseAbstract )
     {
         extern Aig_Man_t * Saig_ManPhaseAbstractAuto( Aig_Man_t * p, int fVerbose );
@@ -151,14 +151,14 @@ clk = clock();
         {
             printf( "Phase abstraction:    Latches = %5d. Nodes = %6d. ", 
                 Aig_ManRegNum(pNew), Aig_ManNodeNum(pNew) );
-ABC_PRT( "Time", clock() - clk );
+ABC_PRT( "Time", Abc_Clock() - clk );
         }
     }
 
     // perform forward retiming
     if ( pParSec->fRetimeFirst && pNew->nRegs )
     {
-clk = clock();
+clk = Abc_Clock();
 //    pNew = Rtm_ManRetime( pTemp = pNew, 1, 1000, 0 );
     pNew = Saig_ManRetimeForward( pTemp = pNew, 100, 0 );
     Aig_ManStop( pTemp );
@@ -166,12 +166,12 @@ clk = clock();
     {
         printf( "Forward retiming:     Latches = %5d. Nodes = %6d. ", 
             Aig_ManRegNum(pNew), Aig_ManNodeNum(pNew) );
-ABC_PRT( "Time", clock() - clk );
+ABC_PRT( "Time", Abc_Clock() - clk );
     }
     }
      
     // run latch correspondence
-clk = clock();
+clk = Abc_Clock();
     if ( pNew->nRegs )
     {
     pNew = Aig_ManDupOrdered( pTemp = pNew );
@@ -180,7 +180,7 @@ clk = clock();
 /*
     if ( RetValue == -1 && pParSec->TimeLimit )
     {
-        TimeLeft = (float)pParSec->TimeLimit - ((float)(clock()-clkTotal)/(float)(CLOCKS_PER_SEC));
+        TimeLeft = (float)pParSec->TimeLimit - ((float)(Abc_Clock()-clkTotal)/(float)(CLOCKS_PER_SEC));
         TimeLeft = Abc_MaxInt( TimeLeft, 0.0 );
         if ( TimeLeft == 0.0 )
         {
@@ -223,12 +223,12 @@ clk = clock();
             if ( !pParSec->fSilent )
             {
                 printf( "Networks are NOT EQUIVALENT after simulation.   " );
-ABC_PRT( "Time", clock() - clkTotal );
+ABC_PRT( "Time", Abc_Clock() - clkTotal );
             }
             if ( pParSec->fReportSolution && !pParSec->fRecursive )
             {
             printf( "SOLUTION: FAIL       " );
-ABC_PRT( "Time", clock() - clkTotal );
+ABC_PRT( "Time", Abc_Clock() - clkTotal );
             }
             Aig_ManStop( pTemp );
             return RetValue;
@@ -244,13 +244,13 @@ ABC_PRT( "Time", clock() - clkTotal );
     {
         printf( "Latch-corr (I=%3d):   Latches = %5d. Nodes = %6d. ", 
             nIter, Aig_ManRegNum(pNew), Aig_ManNodeNum(pNew) );
-ABC_PRT( "Time", clock() - clk );
+ABC_PRT( "Time", Abc_Clock() - clk );
     }
     }
 /*
     if ( RetValue == -1 && pParSec->TimeLimit )
     {
-        TimeLeft = (float)pParSec->TimeLimit - ((float)(clock()-clkTotal)/(float)(CLOCKS_PER_SEC));
+        TimeLeft = (float)pParSec->TimeLimit - ((float)(Abc_Clock()-clkTotal)/(float)(CLOCKS_PER_SEC));
         TimeLeft = Abc_MaxInt( TimeLeft, 0.0 );
         if ( TimeLeft == 0.0 )
         {
@@ -265,14 +265,14 @@ ABC_PRT( "Time", clock() - clk );
     // perform fraiging
     if ( pParSec->fFraiging )
     {
-clk = clock();
+clk = Abc_Clock();
     pNew = Fra_FraigEquivence( pTemp = pNew, 100, 0 );
     Aig_ManStop( pTemp );
     if ( pParSec->fVerbose )
     {
         printf( "Fraiging:             Latches = %5d. Nodes = %6d. ", 
             Aig_ManRegNum(pNew), Aig_ManNodeNum(pNew) );
-ABC_PRT( "Time", clock() - clk );
+ABC_PRT( "Time", Abc_Clock() - clk );
     }
     }
 
@@ -285,7 +285,7 @@ ABC_PRT( "Time", clock() - clk );
 /*
     if ( RetValue == -1 && pParSec->TimeLimit )
     {
-        TimeLeft = (float)pParSec->TimeLimit - ((float)(clock()-clkTotal)/(float)(CLOCKS_PER_SEC));
+        TimeLeft = (float)pParSec->TimeLimit - ((float)(Abc_Clock()-clkTotal)/(float)(CLOCKS_PER_SEC));
         TimeLeft = Abc_MaxInt( TimeLeft, 0.0 );
         if ( TimeLeft == 0.0 )
         {
@@ -301,7 +301,7 @@ ABC_PRT( "Time", clock() - clk );
     if ( pParSec->fRetimeRegs && pNew->nRegs )
     {
 //    extern Aig_Man_t * Saig_ManRetimeMinArea( Aig_Man_t * p, int nMaxIters, int fForwardOnly, int fBackwardOnly, int fInitial, int fVerbose );
-clk = clock();
+clk = Abc_Clock();
     pNew->nTruePis = Aig_ManCiNum(pNew) - Aig_ManRegNum(pNew); 
     pNew->nTruePos = Aig_ManCoNum(pNew) - Aig_ManRegNum(pNew); 
 //        pNew = Rtm_ManRetime( pTemp = pNew, 1, 1000, 0 );
@@ -313,7 +313,7 @@ clk = clock();
     {
     printf( "Min-reg retiming:     Latches = %5d. Nodes = %6d. ", 
         Aig_ManRegNum(pNew), Aig_ManNodeNum(pNew) );
-ABC_PRT( "Time", clock() - clk );
+ABC_PRT( "Time", Abc_Clock() - clk );
     }
     }
 
@@ -325,7 +325,7 @@ ABC_PRT( "Time", clock() - clk );
 /*
         if ( RetValue == -1 && pParSec->TimeLimit )
         {
-            TimeLeft = (float)pParSec->TimeLimit - ((float)(clock()-clkTotal)/(float)(CLOCKS_PER_SEC));
+            TimeLeft = (float)pParSec->TimeLimit - ((float)(Abc_Clock()-clkTotal)/(float)(CLOCKS_PER_SEC));
             TimeLeft = Abc_MaxInt( TimeLeft, 0.0 );
             if ( TimeLeft == 0.0 )
             {
@@ -338,7 +338,7 @@ ABC_PRT( "Time", clock() - clk );
         }
 */ 
 
-clk = clock();
+clk = Abc_Clock();
         pPars->nFramesK = nFrames;
         pPars->TimeLimit = TimeLeft;
         pPars->fSilent = pParSec->fSilent;
@@ -381,7 +381,7 @@ clk = clock();
         { 
             printf( "K-step (K=%2d,I=%3d):  Latches = %5d. Nodes = %6d. ", 
                 nFrames, pPars2->nIters, Aig_ManRegNum(pNew), Aig_ManNodeNum(pNew) );
-ABC_PRT( "Time", clock() - clk );
+ABC_PRT( "Time", Abc_Clock() - clk );
         }
         if ( RetValue != -1 )
             break;
@@ -391,7 +391,7 @@ ABC_PRT( "Time", clock() - clk );
         if ( pNew->nRegs )
         {
 //        extern Aig_Man_t * Saig_ManRetimeMinArea( Aig_Man_t * p, int nMaxIters, int fForwardOnly, int fBackwardOnly, int fInitial, int fVerbose );
-clk = clock();
+clk = Abc_Clock();
         pNew->nTruePis = Aig_ManCiNum(pNew) - Aig_ManRegNum(pNew); 
         pNew->nTruePos = Aig_ManCoNum(pNew) - Aig_ManRegNum(pNew); 
 //        pNew = Rtm_ManRetime( pTemp = pNew, 1, 1000, 0 );
@@ -403,7 +403,7 @@ clk = clock();
         {
             printf( "Min-reg retiming:     Latches = %5d. Nodes = %6d. ", 
                 Aig_ManRegNum(pNew), Aig_ManNodeNum(pNew) );
-ABC_PRT( "Time", clock() - clk );
+ABC_PRT( "Time", Abc_Clock() - clk );
         }
         }  
 
@@ -411,7 +411,7 @@ ABC_PRT( "Time", clock() - clk );
             pNew = Aig_ManConstReduce( pNew, 0, -1, -1, 0, 0 );
 
         // perform rewriting
-clk = clock();
+clk = Abc_Clock();
         pNew = Aig_ManDupOrdered( pTemp = pNew );
         Aig_ManStop( pTemp );
 //        pNew = Dar_ManRewriteDefault( pTemp = pNew );
@@ -421,19 +421,19 @@ clk = clock();
         {
             printf( "Rewriting:            Latches = %5d. Nodes = %6d. ", 
                 Aig_ManRegNum(pNew), Aig_ManNodeNum(pNew) );
-ABC_PRT( "Time", clock() - clk );
+ABC_PRT( "Time", Abc_Clock() - clk );
         } 
 
         // perform sequential simulation
         if ( pNew->nRegs )
         {
-clk = clock();
+clk = Abc_Clock();
         pSml = Fra_SmlSimulateSeq( pNew, 0, 128 * nFrames, 1 + 16/(1+Aig_ManNodeNum(pNew)/1000), 1  ); 
         if ( pParSec->fVerbose )
         {
             printf( "Seq simulation  :     Latches = %5d. Nodes = %6d. ", 
                 Aig_ManRegNum(pNew), Aig_ManNodeNum(pNew) );
-ABC_PRT( "Time", clock() - clk );
+ABC_PRT( "Time", Abc_Clock() - clk );
         }
         if ( pSml->fNonConstOut )
         {
@@ -454,12 +454,12 @@ ABC_PRT( "Time", clock() - clk );
             if ( !pParSec->fSilent )
             {
                 printf( "Networks are NOT EQUIVALENT after simulation.   " );
-ABC_PRT( "Time", clock() - clkTotal );
+ABC_PRT( "Time", Abc_Clock() - clkTotal );
             }
             if ( pParSec->fReportSolution && !pParSec->fRecursive )
             {
             printf( "SOLUTION: FAIL       " );
-ABC_PRT( "Time", clock() - clkTotal );
+ABC_PRT( "Time", Abc_Clock() - clkTotal );
             }
             return RetValue;
         }
@@ -471,7 +471,7 @@ ABC_PRT( "Time", clock() - clkTotal );
     RetValue = Fra_FraigMiterStatus( pNew );
 
     // try interplation
-clk = clock();
+clk = Abc_Clock();
     Aig_ManSetRegNum( pNew, Aig_ManRegNum(pNew) );
     if ( pParSec->fInterpolation && RetValue == -1 && Aig_ManRegNum(pNew) > 0 )
     {
@@ -564,7 +564,7 @@ clk = clock();
             printf( "Property UNDECIDED after interpolation.  " );
         else
             assert( 0 ); 
-ABC_PRT( "Time", clock() - clk );
+ABC_PRT( "Time", Abc_Clock() - clk );
         }
     }
 
@@ -607,12 +607,12 @@ finish:
         if ( !pParSec->fSilent )
         {
             printf( "Networks are equivalent.   " );
-ABC_PRT( "Time", clock() - clkTotal );
+ABC_PRT( "Time", Abc_Clock() - clkTotal );
         }
         if ( pParSec->fReportSolution && !pParSec->fRecursive )
         {
         printf( "SOLUTION: PASS       " );
-ABC_PRT( "Time", clock() - clkTotal );
+ABC_PRT( "Time", Abc_Clock() - clkTotal );
         }
     }
     else if ( RetValue == 0 )
@@ -631,12 +631,12 @@ ABC_PRT( "Time", clock() - clkTotal );
         if ( !pParSec->fSilent )
         {
             printf( "Networks are NOT EQUIVALENT.   " );
-ABC_PRT( "Time", clock() - clkTotal );
+ABC_PRT( "Time", Abc_Clock() - clkTotal );
         }
         if ( pParSec->fReportSolution && !pParSec->fRecursive )
         {
         printf( "SOLUTION: FAIL       " );
-ABC_PRT( "Time", clock() - clkTotal );
+ABC_PRT( "Time", Abc_Clock() - clkTotal );
         }
     }
     else 
@@ -649,12 +649,12 @@ ABC_PRT( "Time", clock() - clkTotal );
         if ( !pParSec->fSilent )
         {
             printf( "Networks are UNDECIDED.   " );
-ABC_PRT( "Time", clock() - clkTotal );
+ABC_PRT( "Time", Abc_Clock() - clkTotal );
         }
         if ( pParSec->fReportSolution && !pParSec->fRecursive )
         {
         printf( "SOLUTION: UNDECIDED  " );
-ABC_PRT( "Time", clock() - clkTotal );
+ABC_PRT( "Time", Abc_Clock() - clkTotal );
         }
         if ( !TimeOut && !pParSec->fSilent )
         {

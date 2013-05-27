@@ -180,8 +180,8 @@ int Ssw_ManFilterBmc( Ssw_Sem_t * pBmc, int iPat, int fCheckTargets )
     Aig_Obj_t * pObj, * pObjNew, * pObjLi, * pObjLo;
     unsigned * pInfo;
     int i, f, RetValue, fFirst = 0;
-    clock_t clk;
-clk = clock();
+    abctime clk;
+clk = Abc_Clock();
 
     // start initialized timeframes
     p->pFrames = Aig_ManStart( Aig_ManObjNumMax(p->pAig) * 3 );
@@ -243,7 +243,7 @@ clk = clock();
 
     // cleanup
     Ssw_ClassesCheck( p->ppClasses );
-p->timeBmc += clock() - clk;
+p->timeBmc += Abc_Clock() - clk;
     return RetValue;
 }
 
@@ -262,7 +262,7 @@ int Ssw_FilterUsingSemi( Ssw_Man_t * pMan, int fCheckTargets, int nConfMax, int 
 {
     Ssw_Sem_t * p;
     int RetValue, Frames, Iter;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     p = Ssw_SemManStart( pMan, nConfMax, fVerbose );
     if ( fCheckTargets && Ssw_SemCheckTargets( p ) )
     {
@@ -279,7 +279,7 @@ int Ssw_FilterUsingSemi( Ssw_Man_t * pMan, int fCheckTargets, int nConfMax, int 
     RetValue = 0;
     for ( Iter = 0; Iter < p->nPatterns; Iter++ )
     {
-clk = clock();
+clk = Abc_Clock();
         pMan->pMSat = Ssw_SatStart( 0 );
         Frames = Ssw_ManFilterBmc( p, Iter, fCheckTargets );
         if ( fVerbose )
@@ -288,7 +288,7 @@ clk = clock();
                 Iter, Ssw_ClassesCand1Num(p->pMan->ppClasses), Ssw_ClassesClassNum(p->pMan->ppClasses),
                 Aig_ManNodeNum(p->pMan->pFrames), Frames, (int)p->pMan->pMSat->pSat->stats.conflicts, p->nPatterns,
                 p->pMan->nSatFailsReal? "f" : " " );
-            ABC_PRT( "T", clock() - clk );
+            ABC_PRT( "T", Abc_Clock() - clk );
         }
         Ssw_ManCleanup( p->pMan );
         if ( fCheckTargets && Ssw_SemCheckTargets( p ) )

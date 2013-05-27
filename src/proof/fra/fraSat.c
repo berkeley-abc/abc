@@ -48,7 +48,7 @@ static int Fra_SetActivityFactors( Fra_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * 
 int Fra_NodesAreEquiv( Fra_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew )
 {
     int pLits[4], RetValue, RetValue1, nBTLimit;
-    clock_t clk;//, clk2 = clock();
+    abctime clk;//, clk2 = Abc_Clock();
     int status;
 
     // make sure the nodes are not complemented
@@ -100,17 +100,17 @@ int Fra_NodesAreEquiv( Fra_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew )
 
     // solve under assumptions
     // A = 1; B = 0     OR     A = 1; B = 1 
-clk = clock();
+clk = Abc_Clock();
     pLits[0] = toLitCond( Fra_ObjSatNum(pOld), 0 );
     pLits[1] = toLitCond( Fra_ObjSatNum(pNew), pOld->fPhase == pNew->fPhase );
 //Sat_SolverWriteDimacs( p->pSat, "temp.cnf", pLits, pLits + 2, 1 );
     RetValue1 = sat_solver_solve( p->pSat, pLits, pLits + 2, 
         (ABC_INT64_T)nBTLimit, (ABC_INT64_T)0, 
         p->nBTLimitGlobal, p->nInsLimitGlobal );
-p->timeSat += clock() - clk;
+p->timeSat += Abc_Clock() - clk;
     if ( RetValue1 == l_False )
     {
-p->timeSatUnsat += clock() - clk;
+p->timeSatUnsat += Abc_Clock() - clk;
         pLits[0] = lit_neg( pLits[0] );
         pLits[1] = lit_neg( pLits[1] );
         RetValue = sat_solver_addclause( p->pSat, pLits, pLits + 2 );
@@ -120,14 +120,14 @@ p->timeSatUnsat += clock() - clk;
     }
     else if ( RetValue1 == l_True )
     {
-p->timeSatSat += clock() - clk;
+p->timeSatSat += Abc_Clock() - clk;
         Fra_SmlSavePattern( p );
         p->nSatCallsSat++;
         return 0;
     }
     else // if ( RetValue1 == l_Undef )
     {
-p->timeSatFail += clock() - clk;
+p->timeSatFail += Abc_Clock() - clk;
         // mark the node as the failed node
         if ( pOld != p->pManFraig->pConst1 ) 
             pOld->fMarkB = 1;
@@ -145,16 +145,16 @@ p->timeSatFail += clock() - clk;
 
     // solve under assumptions
     // A = 0; B = 1     OR     A = 0; B = 0 
-clk = clock();
+clk = Abc_Clock();
     pLits[0] = toLitCond( Fra_ObjSatNum(pOld), 1 );
     pLits[1] = toLitCond( Fra_ObjSatNum(pNew), pOld->fPhase ^ pNew->fPhase );
     RetValue1 = sat_solver_solve( p->pSat, pLits, pLits + 2, 
         (ABC_INT64_T)nBTLimit, (ABC_INT64_T)0, 
         p->nBTLimitGlobal, p->nInsLimitGlobal );
-p->timeSat += clock() - clk;
+p->timeSat += Abc_Clock() - clk;
     if ( RetValue1 == l_False )
     {
-p->timeSatUnsat += clock() - clk;
+p->timeSatUnsat += Abc_Clock() - clk;
         pLits[0] = lit_neg( pLits[0] );
         pLits[1] = lit_neg( pLits[1] );
         RetValue = sat_solver_addclause( p->pSat, pLits, pLits + 2 );
@@ -163,14 +163,14 @@ p->timeSatUnsat += clock() - clk;
     }
     else if ( RetValue1 == l_True )
     {
-p->timeSatSat += clock() - clk;
+p->timeSatSat += Abc_Clock() - clk;
         Fra_SmlSavePattern( p );
         p->nSatCallsSat++;
         return 0;
     }
     else // if ( RetValue1 == l_Undef )
     {
-p->timeSatFail += clock() - clk;
+p->timeSatFail += Abc_Clock() - clk;
         // mark the node as the failed node
         pOld->fMarkB = 1;
         pNew->fMarkB = 1;
@@ -181,12 +181,12 @@ p->timeSatFail += clock() - clk;
     // check BDD proof
     {
         int RetVal;
-        ABC_PRT( "Sat", clock() - clk2 );
-        clk2 = clock();
+        ABC_PRT( "Sat", Abc_Clock() - clk2 );
+        clk2 = Abc_Clock();
         RetVal = Fra_NodesAreEquivBdd( pOld, pNew );
 //        printf( "%d ", RetVal );
         assert( RetVal );
-        ABC_PRT( "Bdd", clock() - clk2 );
+        ABC_PRT( "Bdd", Abc_Clock() - clk2 );
         printf( "\n" );
     }
 */
@@ -209,7 +209,7 @@ p->timeSatFail += clock() - clk;
 int Fra_NodesAreImp( Fra_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew, int fComplL, int fComplR )
 {
     int pLits[4], RetValue, RetValue1, nBTLimit;
-    clock_t clk;//, clk2 = clock();
+    abctime clk;//, clk2 = Abc_Clock();
     int status;
 
     // make sure the nodes are not complemented
@@ -261,7 +261,7 @@ int Fra_NodesAreImp( Fra_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew, int fCom
 
     // solve under assumptions
     // A = 1; B = 0     OR     A = 1; B = 1 
-clk = clock();
+clk = Abc_Clock();
 //    pLits[0] = toLitCond( Fra_ObjSatNum(pOld), 0 );
 //    pLits[1] = toLitCond( Fra_ObjSatNum(pNew), pOld->fPhase == pNew->fPhase );
     pLits[0] = toLitCond( Fra_ObjSatNum(pOld),  fComplL );
@@ -270,10 +270,10 @@ clk = clock();
     RetValue1 = sat_solver_solve( p->pSat, pLits, pLits + 2, 
         (ABC_INT64_T)nBTLimit, (ABC_INT64_T)0, 
         p->nBTLimitGlobal, p->nInsLimitGlobal );
-p->timeSat += clock() - clk;
+p->timeSat += Abc_Clock() - clk;
     if ( RetValue1 == l_False )
     {
-p->timeSatUnsat += clock() - clk;
+p->timeSatUnsat += Abc_Clock() - clk;
         pLits[0] = lit_neg( pLits[0] );
         pLits[1] = lit_neg( pLits[1] );
         RetValue = sat_solver_addclause( p->pSat, pLits, pLits + 2 );
@@ -283,14 +283,14 @@ p->timeSatUnsat += clock() - clk;
     }
     else if ( RetValue1 == l_True )
     {
-p->timeSatSat += clock() - clk;
+p->timeSatSat += Abc_Clock() - clk;
         Fra_SmlSavePattern( p );
         p->nSatCallsSat++;
         return 0;
     }
     else // if ( RetValue1 == l_Undef )
     {
-p->timeSatFail += clock() - clk;
+p->timeSatFail += Abc_Clock() - clk;
         // mark the node as the failed node
         if ( pOld != p->pManFraig->pConst1 ) 
             pOld->fMarkB = 1;
@@ -317,7 +317,7 @@ p->timeSatFail += clock() - clk;
 int Fra_NodesAreClause( Fra_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew, int fComplL, int fComplR )
 {
     int pLits[4], RetValue, RetValue1, nBTLimit;
-    clock_t clk;//, clk2 = clock();
+    abctime clk;//, clk2 = Abc_Clock();
     int status;
 
     // make sure the nodes are not complemented
@@ -369,7 +369,7 @@ int Fra_NodesAreClause( Fra_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew, int f
 
     // solve under assumptions
     // A = 1; B = 0     OR     A = 1; B = 1 
-clk = clock();
+clk = Abc_Clock();
 //    pLits[0] = toLitCond( Fra_ObjSatNum(pOld), 0 );
 //    pLits[1] = toLitCond( Fra_ObjSatNum(pNew), pOld->fPhase == pNew->fPhase );
     pLits[0] = toLitCond( Fra_ObjSatNum(pOld), !fComplL );
@@ -378,10 +378,10 @@ clk = clock();
     RetValue1 = sat_solver_solve( p->pSat, pLits, pLits + 2, 
         (ABC_INT64_T)nBTLimit, (ABC_INT64_T)0, 
         p->nBTLimitGlobal, p->nInsLimitGlobal );
-p->timeSat += clock() - clk;
+p->timeSat += Abc_Clock() - clk;
     if ( RetValue1 == l_False )
     {
-p->timeSatUnsat += clock() - clk;
+p->timeSatUnsat += Abc_Clock() - clk;
         pLits[0] = lit_neg( pLits[0] );
         pLits[1] = lit_neg( pLits[1] );
         RetValue = sat_solver_addclause( p->pSat, pLits, pLits + 2 );
@@ -391,14 +391,14 @@ p->timeSatUnsat += clock() - clk;
     }
     else if ( RetValue1 == l_True )
     {
-p->timeSatSat += clock() - clk;
+p->timeSatSat += Abc_Clock() - clk;
         Fra_SmlSavePattern( p );
         p->nSatCallsSat++;
         return 0;
     }
     else // if ( RetValue1 == l_Undef )
     {
-p->timeSatFail += clock() - clk;
+p->timeSatFail += Abc_Clock() - clk;
         // mark the node as the failed node
         if ( pOld != p->pManFraig->pConst1 ) 
             pOld->fMarkB = 1;
@@ -425,7 +425,7 @@ p->timeSatFail += clock() - clk;
 int Fra_NodeIsConst( Fra_Man_t * p, Aig_Obj_t * pNew )
 {
     int pLits[2], RetValue1, RetValue;
-    clock_t clk;
+    abctime clk;
 
     // make sure the nodes are not complemented
     assert( !Aig_IsComplement(pNew) );
@@ -451,15 +451,15 @@ int Fra_NodeIsConst( Fra_Man_t * p, Aig_Obj_t * pNew )
         Fra_SetActivityFactors( p, NULL, pNew ); 
 
     // solve under assumptions
-clk = clock();
+clk = Abc_Clock();
     pLits[0] = toLitCond( Fra_ObjSatNum(pNew), pNew->fPhase );
     RetValue1 = sat_solver_solve( p->pSat, pLits, pLits + 1, 
         (ABC_INT64_T)p->pPars->nBTLimitMiter, (ABC_INT64_T)0, 
         p->nBTLimitGlobal, p->nInsLimitGlobal );
-p->timeSat += clock() - clk;
+p->timeSat += Abc_Clock() - clk;
     if ( RetValue1 == l_False )
     {
-p->timeSatUnsat += clock() - clk;
+p->timeSatUnsat += Abc_Clock() - clk;
         pLits[0] = lit_neg( pLits[0] );
         RetValue = sat_solver_addclause( p->pSat, pLits, pLits + 1 );
         assert( RetValue );
@@ -468,7 +468,7 @@ p->timeSatUnsat += clock() - clk;
     }
     else if ( RetValue1 == l_True )
     {
-p->timeSatSat += clock() - clk;
+p->timeSatSat += Abc_Clock() - clk;
         if ( p->pPatWords )
             Fra_SmlSavePattern( p );
         p->nSatCallsSat++;
@@ -476,7 +476,7 @@ p->timeSatSat += clock() - clk;
     }
     else // if ( RetValue1 == l_Undef )
     {
-p->timeSatFail += clock() - clk;
+p->timeSatFail += Abc_Clock() - clk;
         // mark the node as the failed node
         pNew->fMarkB = 1;
         p->nSatFailsReal++;
@@ -540,9 +540,9 @@ int Fra_SetActivityFactors_rec( Fra_Man_t * p, Aig_Obj_t * pObj, int LevelMin, i
 int Fra_SetActivityFactors( Fra_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew )
 {
     int LevelMin, LevelMax;
-    clock_t clk;
+    abctime clk;
     assert( pOld || pNew );
-clk = clock(); 
+clk = Abc_Clock(); 
     // reset the active variables
     veci_resize(&p->pSat->act_vars, 0);
     // prepare for traversal
@@ -557,7 +557,7 @@ clk = clock();
     if ( pNew && !Aig_ObjIsConst1(pNew) )
         Fra_SetActivityFactors_rec( p, pNew, LevelMin, LevelMax );
 //Fra_PrintActivity( p );
-p->timeTrav += clock() - clk;
+p->timeTrav += Abc_Clock() - clk;
     return 1;
 }
 

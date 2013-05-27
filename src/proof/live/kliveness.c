@@ -534,7 +534,7 @@ int Abc_CommandCS_kLiveness( Abc_Frame_t * pAbc, int argc, char ** argv )
     int directive = -1;
     int c;
     int safetyInvariantPO = -1;
-    clock_t beginTime, endTime;
+    abctime beginTime, endTime;
     double time_spent;
     Vec_Ptr_t *vMasterBarrierDisjuncts = NULL;
     Aig_Man_t *pWorkingAig;
@@ -606,9 +606,9 @@ int Abc_CommandCS_kLiveness( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     if(directive == kCS_WITH_DISCOVER_MONOTONE_SIGNALS)
     {
-        beginTime = clock();
+        beginTime = Abc_Clock();
         vMasterBarrierDisjuncts = findDisjunctiveMonotoneSignals( pNtk );
-        endTime = clock();
+        endTime = Abc_Clock();
         time_spent = (double)(endTime - beginTime)/CLOCKS_PER_SEC;
         printf("pre-processing time = %f\n",time_spent); 
         return 0;
@@ -619,9 +619,9 @@ int Abc_CommandCS_kLiveness( Abc_Frame_t * pAbc, int argc, char ** argv )
         safetyInvariantPO = collectSafetyInvariantPOIndex(pNtkTemp);            
         assert( safetyInvariantPO != -1 );
 
-        beginTime = clock();
+        beginTime = Abc_Clock();
         vMasterBarrierDisjuncts = findDisjunctiveMonotoneSignals( pNtk );
-        endTime = clock();
+        endTime = Abc_Clock();
         time_spent = (double)(endTime - beginTime)/CLOCKS_PER_SEC;
         printf("pre-processing time = %f\n",time_spent); 
 
@@ -634,9 +634,9 @@ int Abc_CommandCS_kLiveness( Abc_Frame_t * pAbc, int argc, char ** argv )
         safetyInvariantPO = collectSafetyInvariantPOIndex(pNtkTemp);            
         assert( safetyInvariantPO != -1 );
 
-        beginTime = clock();
+        beginTime = Abc_Clock();
         vMasterBarrierDisjuncts = collectUserGivenDisjunctiveMonotoneSignals( pNtk );
-        endTime = clock();
+        endTime = Abc_Clock();
         time_spent = (double)(endTime - beginTime)/CLOCKS_PER_SEC;
         printf("pre-processing time = %f\n",time_spent); 
 

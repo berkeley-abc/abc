@@ -54,18 +54,18 @@ struct Llb_Mnn_t_
     int             ddLocReos;
     int             ddLocGrbs;
 
-    clock_t         timeImage;
-    clock_t         timeTran1;
-    clock_t         timeTran2;
-    clock_t         timeGloba;
-    clock_t         timeOther;
-    clock_t         timeTotal;
-    clock_t         timeReo;
-    clock_t         timeReoG;
+    abctime         timeImage;
+    abctime         timeTran1;
+    abctime         timeTran2;
+    abctime         timeGloba;
+    abctime         timeOther;
+    abctime         timeTotal;
+    abctime         timeReo;
+    abctime         timeReoG;
 
 };
 
-extern clock_t timeBuild, timeAndEx, timeOther;
+extern abctime timeBuild, timeAndEx, timeOther;
 extern int nSuppMax;
 
 ////////////////////////////////////////////////////////////////////////
@@ -90,7 +90,7 @@ int Llb_NonlinFindBestVar( DdManager * dd, DdNode * bFunc, Aig_Man_t * pAig )
     DdNode * bCof, * bVar;
     int i, iVar, iVarBest = -1, iValue, iValueBest = ABC_INFINITY, Size0Best = -1;
     int Size, Size0, Size1;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     Size = Cudd_DagSize(bFunc);
 //    printf( "Original = %6d.  SuppSize = %3d. Vars = %3d.\n", 
 //        Size = Cudd_DagSize(bFunc), Cudd_SupportSize(dd, bFunc), Aig_ManRegNum(pAig) );
@@ -134,7 +134,7 @@ printf( "S =%6d\n", iValue );
     }
     printf( "BestVar = %4d/%4d.  Value =%6d.  Orig =%6d. Size0 =%6d. ", 
         iVarBest, Aig_ObjId(Saig_ManLo(pAig,iVarBest)), iValueBest, Size, Size0Best );
-    Abc_PrintTime( 1, "Time", clock() - clk );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     return iVarBest;
 }
 
@@ -216,7 +216,7 @@ DdNode * Llb_NonlinComputeInitState( Aig_Man_t * pAig, DdManager * dd )
     Aig_Obj_t * pObj;
     DdNode * bRes, * bVar, * bTemp;
     int i, iVar;
-    clock_t TimeStop;
+    abctime TimeStop;
     TimeStop = dd->TimeStop;  dd->TimeStop = 0;
     bRes = Cudd_ReadOne( dd );   Cudd_Ref( bRes );
     Saig_ManForEachLo( pAig, pObj, i )
@@ -430,11 +430,11 @@ int Llb_NonlinReachability( Llb_Mnn_t * p )
 { 
     DdNode * bTemp, * bNext;
     int nIters, nBddSize0, nBddSize = -1, NumCmp;//, Limit = p->pPars->nBddMax;
-    clock_t clk2, clk3, clk = clock();
+    abctime clk2, clk3, clk = Abc_Clock();
     assert( Aig_ManRegNum(p->pAig) > 0 );
 
     // compute time to stop
-    p->pPars->TimeTarget = p->pPars->TimeLimit ? p->pPars->TimeLimit * CLOCKS_PER_SEC + clock(): 0;
+    p->pPars->TimeTarget = p->pPars->TimeLimit ? p->pPars->TimeLimit * CLOCKS_PER_SEC + Abc_Clock(): 0;
 
     // set the stop time parameter
     p->dd->TimeStop  = p->pPars->TimeTarget;
@@ -472,8 +472,8 @@ int Llb_NonlinReachability( Llb_Mnn_t * p )
     for ( nIters = 0; nIters < p->pPars->nIterMax; nIters++ )
     { 
         // check the runtime limit
-        clk2 = clock();
-        if ( p->pPars->TimeLimit && clock() > p->pPars->TimeTarget )
+        clk2 = Abc_Clock();
+        if ( p->pPars->TimeLimit && Abc_Clock() > p->pPars->TimeTarget )
         {
             if ( !p->pPars->fSilent )
                 printf( "Reached timeout (%d seconds) during image computation.\n",  p->pPars->TimeLimit );
@@ -507,7 +507,7 @@ int Llb_NonlinReachability( Llb_Mnn_t * p )
                     Abc_Print( 1, "Output %d of miter \"%s\" was asserted in frame %d.  ", p->pInit->pSeqModel->iPo, nIters );
                 else
                     Abc_Print( 1, "Output ??? was asserted in frame %d (counter-example is not produced).  ", nIters );
-                Abc_PrintTime( 1, "Time", clock() - clk );
+                Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
             }
             p->pPars->iFrame = nIters - 1;
             Llb_NonlinImageQuit();
@@ -515,7 +515,7 @@ int Llb_NonlinReachability( Llb_Mnn_t * p )
         }
 
         // compute the next states
-        clk3 = clock();
+        clk3 = Abc_Clock();
         nBddSize0 = Cudd_DagSize( p->dd->bFunc );
         bNext = Llb_NonlinImageCompute( p->dd->bFunc, p->pPars->fReorder, 0, 1, p->pOrderL ); // consumes ref   
 //        bNext = Llb_NonlinImage( p->pAig, p->vLeaves, p->vRoots, p->pVars2Q, p->dd, bCurrent, 
@@ -530,11 +530,11 @@ int Llb_NonlinReachability( Llb_Mnn_t * p )
         }
         Cudd_Ref( bNext );
         nBddSize = Cudd_DagSize( bNext );
-        p->timeImage += clock() - clk3;
+        p->timeImage += Abc_Clock() - clk3;
 
 
         // transfer to the state manager
-        clk3 = clock();
+        clk3 = Abc_Clock();
         Cudd_RecursiveDeref( p->ddG, p->ddG->bFunc2 );
         p->ddG->bFunc2 = Extra_TransferPermute( p->dd, p->ddG, bNext, Vec_IntArray(p->vNs2Glo) );    
 //        p->ddG->bFunc2 = Extra_bddAndPermute( p->ddG, Cudd_Not(p->ddG->bFunc), p->dd, bNext, Vec_IntArray(p->vNs2Glo) );    
@@ -549,7 +549,7 @@ int Llb_NonlinReachability( Llb_Mnn_t * p )
         }
         Cudd_Ref( p->ddG->bFunc2 );
         Cudd_RecursiveDeref( p->dd, bNext );
-        p->timeTran1 += clock() - clk3;
+        p->timeTran1 += Abc_Clock() - clk3;
 
         // save permutation
         NumCmp = Llb_NonlinCompPerms( p->dd, p->pOrderL2 );
@@ -571,7 +571,7 @@ int Llb_NonlinReachability( Llb_Mnn_t * p )
         //Extra_TestAndPerm( p->ddG, Cudd_Not(p->ddG->bFunc), p->ddG->bFunc2 );    
 
         // derive new states
-        clk3 = clock();
+        clk3 = Abc_Clock();
         p->ddG->bFunc2 = Cudd_bddAnd( p->ddG, bTemp = p->ddG->bFunc2, Cudd_Not(p->ddG->bFunc) );     
         if ( p->ddG->bFunc2 == NULL )
         {
@@ -584,12 +584,12 @@ int Llb_NonlinReachability( Llb_Mnn_t * p )
         }
         Cudd_Ref( p->ddG->bFunc2 );
         Cudd_RecursiveDeref( p->ddG, bTemp );
-        p->timeGloba += clock() - clk3;
+        p->timeGloba += Abc_Clock() - clk3;
 
         if ( Cudd_IsConstant(p->ddG->bFunc2) )
             break;
         // add to the reached set
-        clk3 = clock();
+        clk3 = Abc_Clock();
         p->ddG->bFunc = Cudd_bddOr( p->ddG, bTemp = p->ddG->bFunc, p->ddG->bFunc2 );                 
         if ( p->ddG->bFunc == NULL )
         {
@@ -602,7 +602,7 @@ int Llb_NonlinReachability( Llb_Mnn_t * p )
         }
         Cudd_Ref( p->ddG->bFunc );
         Cudd_RecursiveDeref( p->ddG, bTemp );
-        p->timeGloba += clock() - clk3;
+        p->timeGloba += Abc_Clock() - clk3;
 
         // reset permutation
 //        RetValue = Cudd_CheckZeroRef( dd );
@@ -610,7 +610,7 @@ int Llb_NonlinReachability( Llb_Mnn_t * p )
 //        Cudd_ShuffleHeap( dd, pOrderG );
 
         // move new states to the working manager
-        clk3 = clock();
+        clk3 = Abc_Clock();
         p->dd->bFunc = Extra_TransferPermute( p->ddG, p->dd, p->ddG->bFunc2, Vec_IntArray(p->vGlo2Cs) ); 
         if ( p->dd->bFunc == NULL )
         {
@@ -621,7 +621,7 @@ int Llb_NonlinReachability( Llb_Mnn_t * p )
             return -1;
         }
         Cudd_Ref( p->dd->bFunc );
-        p->timeTran2 += clock() - clk3;
+        p->timeTran2 += Abc_Clock() - clk3;
 
         // report the results
         if ( p->pPars->fVerbose )
@@ -635,7 +635,7 @@ int Llb_NonlinReachability( Llb_Mnn_t * p )
             printf( "S =%4d ",     nSuppMax );
             printf( "cL =%5d ",    NumCmp );
             printf( "cG =%5d ",    Llb_NonlinCompPerms( p->ddG, p->pOrderG ) );
-            Abc_PrintTime( 1, "T", clock() - clk2 );
+            Abc_PrintTime( 1, "T", Abc_Clock() - clk2 );
             memcpy( p->pOrderG, p->ddG->perm, sizeof(int) * p->ddG->size );
         }
 /*
@@ -680,7 +680,7 @@ int Llb_NonlinReachability( Llb_Mnn_t * p )
     if ( !p->pPars->fSilent )
         printf( "The miter is proved unreachable after %d iterations.  ", nIters );
     p->pPars->iFrame = nIters - 1;
-    Abc_PrintTime( 1, "Time", clock() - clk );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     return 1; // unreachable
 }
 
@@ -808,7 +808,7 @@ void Llb_NonlinExperiment( Aig_Man_t * pAig, int Num )
     Llb_Mnn_t * pMnn;
     Gia_ParLlb_t Pars, * pPars = &Pars;
     Aig_Man_t * p;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
 
     Llb_ManSetDefaultParams( pPars );
     pPars->fVerbose = 1;
@@ -820,7 +820,7 @@ void Llb_NonlinExperiment( Aig_Man_t * pAig, int Num )
 
     pMnn = Llb_MnnStart( pAig, p, pPars );
     Llb_NonlinReachability( pMnn );
-    pMnn->timeTotal = clock() - clk;
+    pMnn->timeTotal = Abc_Clock() - clk;
     Llb_MnnStop( pMnn );
 
     Aig_ManStop( p );
@@ -852,10 +852,10 @@ int Llb_NonlinCoreReach( Aig_Man_t * pAig, Gia_ParLlb_t * pPars )
 
     if ( !pPars->fSkipReach )
     {
-        clock_t clk = clock();
+        abctime clk = Abc_Clock();
         pMnn = Llb_MnnStart( pAig, p, pPars );
         RetValue = Llb_NonlinReachability( pMnn );
-        pMnn->timeTotal = clock() - clk;
+        pMnn->timeTotal = Abc_Clock() - clk;
         Llb_MnnStop( pMnn );
     }
 

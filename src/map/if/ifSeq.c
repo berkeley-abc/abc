@@ -27,7 +27,7 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-extern clock_t s_MappingTime;
+extern abctime s_MappingTime;
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -124,7 +124,7 @@ int If_ManPerformMappingRoundSeq( If_Man_t * p, int nIter )
 {
     If_Obj_t * pObj;
     int i;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     int fVeryVerbose = 0;
     int fChange = 0;
 
@@ -179,7 +179,7 @@ int If_ManPerformMappingRoundSeq( If_Man_t * p, int nIter )
 //        p->AreaGlo = If_ManScanMapping(p);
         Abc_Print( 1, "S%d:  Fi = %6.2f. Del = %6.2f. Area = %8.2f. Cuts = %8d. ", 
              nIter, (float)p->Period, p->RequiredGlo, p->AreaGlo, p->nCutsMerged );
-        Abc_PrintTime( 1, "T", clock() - clk );
+        Abc_PrintTime( 1, "T", Abc_Clock() - clk );
     }
     return fChange;
 }
@@ -339,7 +339,7 @@ void If_ManPerformMappingSeqPost( If_Man_t * p )
 ***********************************************************************/
 int If_ManPerformMappingSeq( If_Man_t * p )
 {
-    clock_t clkTotal = clock();
+    abctime clkTotal = Abc_Clock();
     int PeriodBest;
 
     p->SortMode = 0;
@@ -384,13 +384,13 @@ int If_ManPerformMappingSeq( If_Man_t * p )
 //    if ( p->pPars->fVerbose )
     {
         Abc_Print( 1, "The best clock period is %3d.  ", p->Period );
-        Abc_PrintTime( 1, "Time", clock() - clkTotal );
+        Abc_PrintTime( 1, "Time", Abc_Clock() - clkTotal );
     }
     p->RequiredGlo = (float)(PeriodBest);
 
     // postprocess it using combinational mapping
     If_ManPerformMappingSeqPost( p );
-    s_MappingTime = clock() - clkTotal;
+    s_MappingTime = Abc_Clock() - clkTotal;
     return 1;
 }
 

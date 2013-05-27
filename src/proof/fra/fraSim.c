@@ -664,8 +664,8 @@ void Fra_SmlSimulateOne( Fra_Sml_t * p )
 {
     Aig_Obj_t * pObj, * pObjLi, * pObjLo;
     int f, i;
-    clock_t clk;
-clk = clock();
+    abctime clk;
+clk = Abc_Clock();
     for ( f = 0; f < p->nFrames; f++ )
     {
         // simulate the nodes
@@ -684,7 +684,7 @@ clk = clock();
         Aig_ManForEachLiLoSeq( p->pAig, pObjLi, pObjLo, i )
             Fra_SmlNodeTransferNext( p, pObjLi, pObjLo, f );
     }
-p->timeSim += clock() - clk;
+p->timeSim += Abc_Clock() - clk;
 p->nSimRounds++;
 }
 
@@ -703,21 +703,21 @@ p->nSimRounds++;
 void Fra_SmlResimulate( Fra_Man_t * p )
 {
     int nChanges;
-    clock_t clk;
+    abctime clk;
     Fra_SmlAssignDist1( p->pSml, p->pPatWords );
     Fra_SmlSimulateOne( p->pSml );
 //    if ( p->pPars->fPatScores )
 //        Fra_CleanPatScores( p );
     if ( p->pPars->fProve && Fra_SmlCheckOutput(p) )
         return;
-clk = clock();
+clk = Abc_Clock();
     nChanges = Fra_ClassesRefine( p->pCla );
     nChanges += Fra_ClassesRefine1( p->pCla, 1, NULL );
     if ( p->pCla->vImps )
         nChanges += Fra_ImpRefineUsingCex( p, p->pCla->vImps );
     if ( p->vOneHots )
         nChanges += Fra_OneHotRefineUsingCex( p, p->vOneHots );
-p->timeRef += clock() - clk;
+p->timeRef += Abc_Clock() - clk;
     if ( !p->pPars->nFramesK && nChanges < 1 )
         printf( "Error: A counter-example did not refine classes!\n" );
 //    assert( nChanges >= 1 );
@@ -739,7 +739,7 @@ void Fra_SmlSimulate( Fra_Man_t * p, int fInit )
 {
     int fVerbose = 0;
     int nChanges, nClasses;
-    clock_t clk;
+    abctime clk;
     assert( !fInit || Aig_ManRegNum(p->pManAig) );
     // start the classes
     Fra_SmlInitialize( p->pSml, fInit );
@@ -759,10 +759,10 @@ printf( "Starting classes = %5d.   Lits = %6d.\n", Vec_PtrSize(p->pCla->vClasses
     Fra_SmlSimulateOne( p->pSml );
     if ( p->pPars->fProve && Fra_SmlCheckOutput(p) )
         return;
-clk = clock();
+clk = Abc_Clock();
     nChanges = Fra_ClassesRefine( p->pCla );
     nChanges += Fra_ClassesRefine1( p->pCla, 1, NULL );
-p->timeRef += clock() - clk;
+p->timeRef += Abc_Clock() - clk;
 if ( fVerbose )
 printf( "Refined classes  = %5d.   Changes = %4d.   Lits = %6d.\n", Vec_PtrSize(p->pCla->vClasses), nChanges, Fra_ClassesCountLits(p->pCla) );
     Fra_SmlSavePattern1( p, fInit );
@@ -770,10 +770,10 @@ printf( "Refined classes  = %5d.   Changes = %4d.   Lits = %6d.\n", Vec_PtrSize(
     Fra_SmlSimulateOne( p->pSml );
     if ( p->pPars->fProve && Fra_SmlCheckOutput(p) )
         return;
-clk = clock();
+clk = Abc_Clock();
     nChanges = Fra_ClassesRefine( p->pCla );
     nChanges += Fra_ClassesRefine1( p->pCla, 1, NULL );
-p->timeRef += clock() - clk;
+p->timeRef += Abc_Clock() - clk;
 
 if ( fVerbose )
 printf( "Refined classes  = %5d.   Changes = %4d.   Lits = %6d.\n", Vec_PtrSize(p->pCla->vClasses), nChanges, Fra_ClassesCountLits(p->pCla) );
@@ -784,10 +784,10 @@ printf( "Refined classes  = %5d.   Changes = %4d.   Lits = %6d.\n", Vec_PtrSize(
         nClasses = Vec_PtrSize(p->pCla->vClasses);
         if ( p->pPars->fProve && Fra_SmlCheckOutput(p) )
             return;
-clk = clock();
+clk = Abc_Clock();
         nChanges = Fra_ClassesRefine( p->pCla );
         nChanges += Fra_ClassesRefine1( p->pCla, 1, NULL );
-p->timeRef += clock() - clk;
+p->timeRef += Abc_Clock() - clk;
 if ( fVerbose )
 printf( "Refined classes  = %5d.   Changes = %4d.   Lits = %6d.\n", Vec_PtrSize(p->pCla->vClasses), nChanges, Fra_ClassesCountLits(p->pCla) );
     } while ( (double)nChanges / nClasses > p->pPars->dSimSatur );

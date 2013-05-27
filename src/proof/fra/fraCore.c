@@ -376,10 +376,10 @@ Aig_Man_t * Fra_FraigPerform( Aig_Man_t * pManAig, Fra_Par_t * pPars )
 {
     Fra_Man_t * p;
     Aig_Man_t * pManAigNew;
-    clock_t clk;
+    abctime clk;
     if ( Aig_ManNodeNum(pManAig) == 0 )
         return Aig_ManDupOrdered(pManAig);
-clk = clock();
+clk = Abc_Clock();
     p = Fra_ManStart( pManAig, pPars );
     p->pManFraig = Fra_ManPrepareComb( p );
     p->pSml = Fra_SmlStart( pManAig, 0, 1, pPars->nSimWords );
@@ -402,7 +402,7 @@ Fra_ClassesPrint( p->pCla, 1 );
     Fra_ManFinalizeComb( p );
     if ( p->pPars->fChoicing )
     { 
-clock_t clk2 = clock();
+abctime clk2 = Abc_Clock();
         Fra_ClassesCopyReprs( p->pCla, p->vTimeouts );
         pManAigNew = Aig_ManDupRepr( p->pManAig, 1 );
         Aig_ManReprStart( pManAigNew, Aig_ManObjNumMax(pManAigNew) );
@@ -410,7 +410,7 @@ clock_t clk2 = clock();
         Aig_ManMarkValidChoices( pManAigNew );
         Aig_ManStop( p->pManFraig );
         p->pManFraig = NULL;
-p->timeTrav += clock() - clk2;
+p->timeTrav += Abc_Clock() - clk2;
     }
     else
     {
@@ -419,7 +419,7 @@ p->timeTrav += clock() - clk2;
         pManAigNew = p->pManFraig;
         p->pManFraig = NULL;
     }
-p->timeTotal = clock() - clk;
+p->timeTotal = Abc_Clock() - clk;
     // collect final stats
     p->nLitsEnd  = Fra_ClassesCountLits( p->pCla );
     p->nNodesEnd = Aig_ManNodeNum(pManAigNew);

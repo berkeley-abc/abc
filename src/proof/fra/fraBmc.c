@@ -312,7 +312,7 @@ void Fra_BmcPerform( Fra_Man_t * p, int nPref, int nDepth )
 {
     Aig_Obj_t * pObj;
     int i, nImpsOld = 0;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     assert( p->pBmc == NULL );
     // derive and fraig the frames
     p->pBmc = Fra_BmcStart( p->pManAig, nPref, nDepth );
@@ -337,7 +337,7 @@ void Fra_BmcPerform( Fra_Man_t * p, int nPref, int nDepth )
         printf( "Original AIG = %d. Init %d frames = %d. Fraig = %d.  ", 
             Aig_ManNodeNum(p->pBmc->pAig), p->pBmc->nFramesAll, 
             Aig_ManNodeNum(p->pBmc->pAigFrames), Aig_ManNodeNum(p->pBmc->pAigFraig) );
-        ABC_PRT( "Time", clock() - clk );
+        ABC_PRT( "Time", Abc_Clock() - clk );
         printf( "Before BMC: " );  
 //        Fra_ClassesPrint( p->pCla, 0 );
         printf( "Const = %5d. Class = %5d. Lit = %5d. ", 
@@ -386,10 +386,10 @@ void Fra_BmcPerformSimple( Aig_Man_t * pAig, int nFrames, int nBTLimit, int fRew
     Fra_Man_t * pTemp;
     Fra_Bmc_t * pBmc;
     Aig_Man_t * pAigTemp;
-    clock_t clk;
+    abctime clk;
     int iOutput;
     // derive and fraig the frames
-    clk = clock();
+    clk = Abc_Clock();
     pBmc = Fra_BmcStart( pAig, 0, nFrames );
     pTemp = Fra_LcrAigPrepare( pAig );
     pTemp->pBmc = pBmc;
@@ -402,21 +402,21 @@ void Fra_BmcPerformSimple( Aig_Man_t * pAig, int nFrames, int nBTLimit, int fRew
         printf( "Time-frames (%d):  PI/PO = %d/%d.  Node = %6d. Lev = %5d.  ", 
             nFrames, Aig_ManCiNum(pBmc->pAigFrames), Aig_ManCoNum(pBmc->pAigFrames), 
             Aig_ManNodeNum(pBmc->pAigFrames), Aig_ManLevelNum(pBmc->pAigFrames) );
-        ABC_PRT( "Time", clock() - clk );
+        ABC_PRT( "Time", Abc_Clock() - clk );
     }
     if ( fRewrite )
     {
-        clk = clock();
+        clk = Abc_Clock();
         pBmc->pAigFrames = Dar_ManRwsat( pAigTemp = pBmc->pAigFrames, 1, 0 );
         Aig_ManStop( pAigTemp );
         if ( fVerbose )
         {
             printf( "Time-frames after rewriting:  Node = %6d. Lev = %5d.  ", 
                 Aig_ManNodeNum(pBmc->pAigFrames), Aig_ManLevelNum(pBmc->pAigFrames) );
-            ABC_PRT( "Time", clock() - clk );
+            ABC_PRT( "Time", Abc_Clock() - clk );
         }
     }
-    clk = clock();
+    clk = Abc_Clock();
     iOutput = Fra_FraigMiterAssertedOutput( pBmc->pAigFrames );
     if ( iOutput >= 0 )
         pAig->pSeqModel = Abc_CexMakeTriv( Aig_ManRegNum(pAig), Aig_ManCiNum(pAig)-Aig_ManRegNum(pAig), Aig_ManCoNum(pAig)-Aig_ManRegNum(pAig), iOutput );
@@ -437,7 +437,7 @@ void Fra_BmcPerformSimple( Aig_Man_t * pAig, int nFrames, int nBTLimit, int fRew
         printf( "Fraiged init frames: Node = %6d. Lev = %5d.  ", 
             pBmc->pAigFraig? Aig_ManNodeNum(pBmc->pAigFraig) : -1,
             pBmc->pAigFraig? Aig_ManLevelNum(pBmc->pAigFraig) : -1 );
-        ABC_PRT( "Time", clock() - clk );
+        ABC_PRT( "Time", Abc_Clock() - clk );
     }
     Fra_BmcStop( pBmc );  
     ABC_FREE( pTemp );

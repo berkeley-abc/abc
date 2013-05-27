@@ -69,9 +69,9 @@ struct Cut_CMan_t_
     int                nVarCounts[CUT_CELL_MVAR+1];
     int                nSymGroups[CUT_CELL_MVAR+1];
     int                nSymGroupsE[CUT_CELL_MVAR+1];
-    clock_t            timeCanon;
-    clock_t            timeSupp;
-    clock_t            timeTable;
+    abctime            timeCanon;
+    abctime            timeSupp;
+    abctime            timeTable;
     int                nCellFound;
     int                nCellNotFound;
 };
@@ -235,7 +235,7 @@ void Cut_CellPrecompute()
     Cut_CMan_t * p;
     Cut_Cell_t * pCell, * pTemp;
     int i1, i2, i3, i, j, k, c;
-    clock_t clk = clock(); //, clk2 = clock();
+    abctime clk = Abc_Clock(); //, clk2 = Abc_Clock();
 
     p = Cut_CManStart();
 
@@ -402,7 +402,7 @@ void Cut_CellPrecompute()
     }
 
     printf( "BASIC: Total = %d. Good = %d. Entry = %d. ", (int)p->nTotal, (int)p->nGood, (int)sizeof(Cut_Cell_t) );
-    ABC_PRT( "Time", clock() - clk );
+    ABC_PRT( "Time", Abc_Clock() - clk );
     printf( "Cells:  " );
     for ( i = 0; i <= 9; i++ )
         printf( "%d=%d ", i, p->nVarCounts[i] );
@@ -438,16 +438,16 @@ void Cut_CellPrecompute()
             pCell->CrossBarPhase = c;
             Cut_CellCrossBar( pCell );
             // minimize the support
-//clk2 = clock();
+//clk2 = Abc_Clock();
             Cut_CellSuppMin( pCell );
-//p->timeSupp += clock() - clk2;
+//p->timeSupp += Abc_Clock() - clk2;
             // canonicize
-//clk2 = clock();
+//clk2 = Abc_Clock();
             pCell->CanonPhase = Extra_TruthSemiCanonicize( pCell->uTruth, p->puAux, pCell->nVars, pCell->CanonPerm, pCell->Store );
-//p->timeCanon += clock() - clk2;
+//p->timeCanon += Abc_Clock() - clk2;
 
             // add to the table
-//clk2 = clock();
+//clk2 = Abc_Clock();
             p->nTotal++;
             if ( Cut_CellTableLookup( p, pCell ) ) // already exists
                 Extra_MmFixedEntryRecycle( p->pMem, (char *)pCell );
@@ -482,11 +482,11 @@ void Cut_CellPrecompute()
                 }
 */
             }
-//p->timeTable += clock() - clk2;
+//p->timeTable += Abc_Clock() - clk2;
         }
 
         printf( "VAR %d: Total = %d. Good = %d. Entry = %d. ", k, p->nTotal, p->nGood, (int)sizeof(Cut_Cell_t) );
-        ABC_PRT( "Time", clock() - clk );
+        ABC_PRT( "Time", Abc_Clock() - clk );
         printf( "Cells:  " );
         for ( i = 0; i <= 9; i++ )
             printf( "%d=%d ", i, p->nVarCounts[i] );
@@ -841,7 +841,7 @@ void Cut_CellDumpToFile()
     int NumUsed[10][5] = {{0}};
     int BoxUsed[22][5] = {{0}};
     int i, k, Counter;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
 
     if ( p == NULL )
     {
@@ -920,7 +920,7 @@ void Cut_CellDumpToFile()
 
     printf( "Library composed of %d functions is written into file \"%s\".  ", Counter, pFileName );
 
-    ABC_PRT( "Time", clock() - clk );
+    ABC_PRT( "Time", Abc_Clock() - clk );
 }
 
 

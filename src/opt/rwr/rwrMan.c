@@ -48,8 +48,8 @@ Rwr_Man_t * Rwr_ManStart( int  fPrecompute )
 {
     Dec_Man_t * pManDec;
     Rwr_Man_t * p;
-    clock_t clk = clock();
-clk = clock();
+    abctime clk = Abc_Clock();
+clk = Abc_Clock();
     p = ABC_ALLOC( Rwr_Man_t, 1 );
     memset( p, 0, sizeof(Rwr_Man_t) );
     p->nFuncs = (1<<16);
@@ -91,7 +91,7 @@ clk = clock();
 //        Rwr_ManPrint( p );
         Rwr_ManPreprocess( p );
     }
-p->timeStart = clock() - clk;
+p->timeStart = Abc_Clock() - clk;
     return p;
 }
 
@@ -258,7 +258,7 @@ int Rwr_ManReadCompl( Rwr_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Rwr_ManAddTimeCuts( Rwr_Man_t * p, clock_t Time )
+void Rwr_ManAddTimeCuts( Rwr_Man_t * p, abctime Time )
 {
     p->timeCut += Time;
 }
@@ -274,7 +274,7 @@ void Rwr_ManAddTimeCuts( Rwr_Man_t * p, clock_t Time )
   SeeAlso     []
 
 ***********************************************************************/
-void Rwr_ManAddTimeUpdate( Rwr_Man_t * p, clock_t Time )
+void Rwr_ManAddTimeUpdate( Rwr_Man_t * p, abctime Time )
 {
     p->timeUpdate += Time;
 }
@@ -290,7 +290,7 @@ void Rwr_ManAddTimeUpdate( Rwr_Man_t * p, clock_t Time )
   SeeAlso     []
 
 ***********************************************************************/
-void Rwr_ManAddTimeTotal( Rwr_Man_t * p, clock_t Time )
+void Rwr_ManAddTimeTotal( Rwr_Man_t * p, abctime Time )
 {
     p->timeTotal += Time;
 }

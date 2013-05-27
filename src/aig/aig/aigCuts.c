@@ -633,7 +633,7 @@ Aig_ManCut_t * Aig_ComputeCuts( Aig_Man_t * pAig, int nCutsMax, int nLeafMax, in
     Aig_ManCut_t * p;
     Aig_Obj_t * pObj;
     int i;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     assert( pAig->pManCuts == NULL );
     // start the manager
     p = Aig_ManCutStart( pAig, nCutsMax, nLeafMax, fTruth, fVerbose );
@@ -652,7 +652,7 @@ Aig_ManCut_t * Aig_ComputeCuts( Aig_Man_t * pAig, int nCutsMax, int nLeafMax, in
             Aig_ManObjNum(pAig), nCuts, nLeafMax, nCutsK );
         printf( "Cut size = %2d. Truth size = %2d. Total mem = %5.2f MB  ",
             p->nCutSize, 4*p->nTruthWords, 1.0*Aig_MmFixedReadMemUsage(p->pMemCuts)/(1<<20) );
-        ABC_PRT( "Runtime", clock() - clk );
+        ABC_PRT( "Runtime", Abc_Clock() - clk );
 /*
         Aig_ManForEachNode( pAig, pObj, i )
             if ( i % 300 == 0 )

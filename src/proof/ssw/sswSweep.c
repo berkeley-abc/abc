@@ -188,7 +188,7 @@ int Ssw_ManSweepNode( Ssw_Man_t * p, Aig_Obj_t * pObj, int f, int fBmc, Vec_Int_
 {
     Aig_Obj_t * pObjRepr, * pObjFraig, * pObjFraig2, * pObjReprFraig;
     int RetValue;
-    clock_t clk;
+    abctime clk;
     // get representative of this class
     pObjRepr = Aig_ObjRepr( p->pAig, pObj );
     if ( pObjRepr == NULL )
@@ -206,10 +206,10 @@ int Ssw_ManSweepNode( Ssw_Man_t * p, Aig_Obj_t * pObj, int f, int fBmc, Vec_Int_
     // add constraints on demand
     if ( !fBmc && p->pPars->fDynamic )
     {
-clk = clock();
+clk = Abc_Clock();
         Ssw_ManLoadSolver( p, pObjRepr, pObj );
         p->nRecycleCalls++;
-p->timeMarkCones += clock() - clk;
+p->timeMarkCones += Abc_Clock() - clk;
     }
     // call equivalence checking
     if ( Aig_Regular(pObjFraig) != Aig_ManConst1(p->pFrames) )
@@ -269,8 +269,8 @@ int Ssw_ManSweepBmc( Ssw_Man_t * p )
     Bar_Progress_t * pProgress = NULL;
     Aig_Obj_t * pObj, * pObjNew, * pObjLi, * pObjLo;
     int i, f;
-    clock_t clk;
-clk = clock();
+    abctime clk;
+clk = Abc_Clock();
 
     // start initialized timeframes
     p->pFrames = Aig_ManStart( Aig_ManObjNumMax(p->pAig) * p->pPars->nFramesK );
@@ -315,7 +315,7 @@ clk = clock();
 
     // cleanup
 //    Ssw_ClassesCheck( p->ppClasses );
-p->timeBmc += clock() - clk;
+p->timeBmc += Abc_Clock() - clk;
     return p->fRefined;
 }
 
@@ -368,11 +368,11 @@ int Ssw_ManSweep( Ssw_Man_t * p )
     Bar_Progress_t * pProgress = NULL;
     Aig_Obj_t * pObj, * pObj2, * pObjNew;
     int nConstrPairs, i, f;
-    clock_t clk;
+    abctime clk;
     Vec_Int_t * vDisproved;
 
     // perform speculative reduction
-clk = clock();
+clk = Abc_Clock();
     // create timeframes
     p->pFrames = Ssw_FramesWithClasses( p );
     // add constants
@@ -397,7 +397,7 @@ clk = clock();
     Ssw_ObjSetFrame( p, Aig_ManConst1(p->pAig), f, Aig_ManConst1(p->pFrames) );
     Saig_ManForEachPi( p->pAig, pObj, i )
         Ssw_ObjSetFrame( p, pObj, f, Aig_ObjCreateCi(p->pFrames) );
-p->timeReduce += clock() - clk;
+p->timeReduce += Abc_Clock() - clk;
 
     // sweep internal nodes
     p->fRefined = 0;

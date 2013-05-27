@@ -247,7 +247,7 @@ int Aig_ManComputeReachable( DdManager * dd, Aig_Man_t * p, DdNode ** pbParts, D
     Cudd_ReorderingType method;
     int i, nIters, nBddSize = 0, status;
     int nThreshold = 10000;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     Vec_Ptr_t * vOnionRings;
     int fixedPoint = 0;
 
@@ -282,7 +282,7 @@ int Aig_ManComputeReachable( DdManager * dd, Aig_Man_t * p, DdNode ** pbParts, D
     for ( nIters = 0; nIters < pPars->nIterMax; nIters++ )
     { 
         // check the runtime limit
-        if ( pPars->TimeLimit && pPars->TimeLimit <= (clock()-clk)/CLOCKS_PER_SEC )
+        if ( pPars->TimeLimit && pPars->TimeLimit <= (Abc_Clock()-clk)/CLOCKS_PER_SEC )
         {
             printf( "Reached timeout after image computation (%d seconds).\n",  pPars->TimeLimit );
             Vec_PtrFree( vOnionRings );
@@ -442,7 +442,7 @@ int Aig_ManVerifyUsingBdds_int( Aig_Man_t * p, Saig_ParBbr_t * pPars )
     DdNode ** pbParts, ** pbOutputs;
     DdNode * bInitial, * bTemp;
     int RetValue, i;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     Vec_Ptr_t * vOnionRings;
 
     assert( Saig_ManRegNum(p) > 0 );
@@ -459,7 +459,7 @@ int Aig_ManVerifyUsingBdds_int( Aig_Man_t * p, Saig_ParBbr_t * pPars )
         printf( "Shared BDD size is %6d nodes.\n", Cudd_ReadKeys(dd) - Cudd_ReadDead(dd) );
 
     // check the runtime limit
-    if ( pPars->TimeLimit && pPars->TimeLimit <= (clock()-clk)/CLOCKS_PER_SEC )
+    if ( pPars->TimeLimit && pPars->TimeLimit <= (Abc_Clock()-clk)/CLOCKS_PER_SEC )
     {
         printf( "Reached timeout after constructing global BDDs (%d seconds).\n",  pPars->TimeLimit );
         Cudd_Quit( dd );
@@ -524,7 +524,7 @@ int Aig_ManVerifyUsingBdds_int( Aig_Man_t * p, Saig_ParBbr_t * pPars )
     // report the runtime
     if ( !pPars->fSilent )
     {
-    ABC_PRT( "Time", clock() - clk );
+    ABC_PRT( "Time", Abc_Clock() - clk );
     fflush( stdout );
     }
     return RetValue;

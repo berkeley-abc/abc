@@ -11692,7 +11692,7 @@ int Abc_CommandIProve( Abc_Frame_t * pAbc, int argc, char ** argv )
     Prove_Params_t Params, * pParams = &Params;
     Abc_Ntk_t * pNtk, * pNtkTemp;
     int c, RetValue, iOut = -1;
-    clock_t clk;
+    abctime clk;
 
     extern int Abc_NtkIvyProve( Abc_Ntk_t ** ppNtk, void * pPars );
 
@@ -11802,7 +11802,7 @@ int Abc_CommandIProve( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
-    clk = clock();
+    clk = Abc_Clock();
 
     if ( Abc_NtkIsStrash(pNtk) )
         pNtkTemp = Abc_NtkDup( pNtk );
@@ -11836,7 +11836,7 @@ int Abc_CommandIProve( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( 1, "UNSATISFIABLE  " );
     //Abc_Print( -1, "\n" );
 
-    Abc_PrintTime( 1, "Time", clock() - clk );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     // replace the current network
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkTemp );
     // update counter example
@@ -20308,7 +20308,7 @@ int Abc_CommandSat( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fVerbose;
     int nConfLimit;
     int nInsLimit;
-    clock_t clk;
+    abctime clk;
     // set defaults
     fVerbose   = 0;
     nConfLimit = 0;
@@ -20361,7 +20361,7 @@ int Abc_CommandSat( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
 
-    clk = clock();
+    clk = Abc_Clock();
     if ( Abc_NtkIsStrash(pNtk) )
     {
         RetValue = Abc_NtkMiterSat( pNtk, (ABC_INT64_T)nConfLimit, (ABC_INT64_T)nInsLimit, fVerbose, NULL, NULL );
@@ -20401,7 +20401,7 @@ int Abc_CommandSat( Abc_Frame_t * pAbc, int argc, char ** argv )
     else
         Abc_Print( 1, "UNSATISFIABLE  " );
     //Abc_Print( -1, "\n" );
-    Abc_PrintTime( 1, "Time", clock() - clk );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     return 0;
 
 usage:
@@ -20441,7 +20441,7 @@ int Abc_CommandDSat( Abc_Frame_t * pAbc, int argc, char ** argv )
     int nLearnedDelta;
     int nLearnedPerce;
     int nInsLimit;
-    clock_t clk;
+    abctime clk;
 
     extern int Abc_NtkDSat( Abc_Ntk_t * pNtk, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimit, int nLearnedStart, int nLearnedDelta, int nLearnedPerce, int fAlignPol, int fAndOuts, int fNewSolver, int fVerbose );
     // set defaults
@@ -20556,7 +20556,7 @@ int Abc_CommandDSat( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
 
-    clk = clock();
+    clk = Abc_Clock();
     RetValue = Abc_NtkDSat( pNtk, (ABC_INT64_T)nConfLimit, (ABC_INT64_T)nInsLimit, nLearnedStart, nLearnedDelta, nLearnedPerce, fAlignPol, fAndOuts, fNewSolver, fVerbose );
     // verify that the pattern is correct
     if ( RetValue == 0 && Abc_NtkPoNum(pNtk) == 1 )
@@ -20575,7 +20575,7 @@ int Abc_CommandDSat( Abc_Frame_t * pAbc, int argc, char ** argv )
     else
         Abc_Print( 1, "UNSATISFIABLE  " );
     //Abc_Print( -1, "\n" );
-    Abc_PrintTime( 1, "Time", clock() - clk );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     return 0;
 
 usage:
@@ -20618,7 +20618,7 @@ int Abc_CommandPSat( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fAlignPol;
     int fSynthesize;
     int fVerbose;
-    clock_t clk;
+    abctime clk;
 
     extern int Abc_NtkPartitionedSat( Abc_Ntk_t * pNtk, int nAlgo, int nPartSize, int nConfPart, int nConfTotal, int fAlignPol, int fSynthesize, int fVerbose );
     // set defaults
@@ -20699,7 +20699,7 @@ int Abc_CommandPSat( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
 
-    clk = clock();
+    clk = Abc_Clock();
     RetValue = Abc_NtkPartitionedSat( pNtk, nAlgo, nPartSize, nConfPart, nConfTotal, fAlignPol, fSynthesize, fVerbose );
     // verify that the pattern is correct
     if ( RetValue == 0 && Abc_NtkPoNum(pNtk) == 1 )
@@ -20729,7 +20729,7 @@ int Abc_CommandPSat( Abc_Frame_t * pAbc, int argc, char ** argv )
     else
         Abc_Print( 1, "UNSATISFIABLE  " );
     //Abc_Print( -1, "\n" );
-    Abc_PrintTime( 1, "Time", clock() - clk );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     return 0;
 
 usage:
@@ -20770,7 +20770,7 @@ int Abc_CommandProve( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_Ntk_t * pNtk, * pNtkTemp;
     Prove_Params_t Params, * pParams = &Params;
     int c, RetValue;
-    clock_t clk;
+    abctime clk;
 
     pNtk = Abc_FrameReadNtk(pAbc);
     // set defaults
@@ -20880,7 +20880,7 @@ int Abc_CommandProve( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Currently can only solve the miter with one output.\n" );
         return 0;
     }
-    clk = clock();
+    clk = Abc_Clock();
 
     if ( Abc_NtkIsStrash(pNtk) )
         pNtkTemp = Abc_NtkDup( pNtk );
@@ -20906,7 +20906,7 @@ int Abc_CommandProve( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( 1, "UNSATISFIABLE  " );
     //Abc_Print( -1, "\n" );
 
-    Abc_PrintTime( 1, "Time", clock() - clk );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     // replace the current network
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkTemp );
     return 0;

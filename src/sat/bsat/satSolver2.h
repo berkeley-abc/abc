@@ -161,7 +161,7 @@ struct sat_solver2_t
     stats_t         stats;
     ABC_INT64_T     nConfLimit;     // external limit on the number of conflicts
     ABC_INT64_T     nInsLimit;      // external limit on the number of implications
-    clock_t         nRuntimeLimit;  // external limit on runtime
+    abctime         nRuntimeLimit;  // external limit on runtime
 };
 
 static inline clause * clause2_read( sat_solver2 * s, cla h )                  { return Sat_MemClauseHand( &s->Mem, h ); }
@@ -220,9 +220,9 @@ static inline int sat_solver2_final(sat_solver2* s, int ** ppArray)
     return s->conf_final.size;
 }
 
-static inline clock_t sat_solver2_set_runtime_limit(sat_solver2* s, clock_t Limit)
+static inline abctime sat_solver2_set_runtime_limit(sat_solver2* s, abctime Limit)
 {
-    clock_t temp = s->nRuntimeLimit;
+    abctime temp = s->nRuntimeLimit;
     s->nRuntimeLimit = Limit;
     return temp;
 }

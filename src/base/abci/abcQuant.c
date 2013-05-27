@@ -331,7 +331,7 @@ Abc_Ntk_t * Abc_NtkReachability( Abc_Ntk_t * pNtkRel, int nIters, int fVerbose )
     int fFixedPoint = 0;
     int fSynthesis  = 1;
     int fMoreEffort = 1;
-    clock_t clk;
+    abctime clk;
 
     assert( Abc_NtkIsStrash(pNtkRel) );
     assert( Abc_NtkLatchNum(pNtkRel) == 0 );
@@ -350,7 +350,7 @@ Abc_Ntk_t * Abc_NtkReachability( Abc_Ntk_t * pNtkRel, int nIters, int fVerbose )
     nVars = Abc_NtkPiNum(pNtkRel)/2;
     for ( i = 0; i < nIters; i++ )
     {
-        clk = clock();
+        clk = Abc_Clock();
         // get the set of next states
         pNtkNext = Abc_NtkMiterAnd( pNtkRel, pNtkFront, 0, 0 );
         Abc_NtkDelete( pNtkFront );
@@ -399,7 +399,7 @@ Abc_Ntk_t * Abc_NtkReachability( Abc_Ntk_t * pNtkRel, int nIters, int fVerbose )
         {
             printf( "I = %3d : Reach = %6d  Fr = %6d  FrM = %6d  %7.2f %%   ", 
                 i + 1, Abc_NtkNodeNum(pNtkReached), nNodesOld, nNodesNew, 100.0*(nNodesNew-nNodesPrev)/nNodesPrev );
-            ABC_PRT( "T", clock() - clk );
+            ABC_PRT( "T", Abc_Clock() - clk );
         }
         nNodesPrev = Abc_NtkNodeNum(pNtkFront);
     }

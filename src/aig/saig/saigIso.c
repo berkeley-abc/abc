@@ -427,8 +427,8 @@ Aig_Man_t * Iso_ManFilterPos( Aig_Man_t * pAig, Vec_Ptr_t ** pvPosEquivs, int fV
     Vec_Int_t * vLevel, * vRemain;
     Vec_Str_t * vStr, * vPrev;
     int i, nPos;
-    clock_t clk = clock();
-    clock_t clkDup = 0, clkAig = 0, clkIso = 0, clk2;
+    abctime clk = Abc_Clock();
+    abctime clkDup = 0, clkAig = 0, clkIso = 0, clk2;
     *pvPosEquivs = NULL;
 
     // derive AIG for each PO
@@ -439,17 +439,17 @@ Aig_Man_t * Iso_ManFilterPos( Aig_Man_t * pAig, Vec_Ptr_t ** pvPosEquivs, int fV
         if ( i % 100 == 0 )
             printf( "%6d finished...\r", i );
 
-        clk2 = clock();
+        clk2 = Abc_Clock();
         pPart = Saig_ManDupCones( pAig, &i, 1 );
-        clkDup += clock() - clk2;
+        clkDup += Abc_Clock() - clk2;
 
-        clk2 = clock();
+        clk2 = Abc_Clock();
         pTemp = Saig_ManDupIsoCanonical( pPart, 0 );
-        clkIso += clock() - clk2;
+        clkIso += Abc_Clock() - clk2;
 
-        clk2 = clock();
+        clk2 = Abc_Clock();
         vStr  = Ioa_WriteAigerIntoMemoryStr( pTemp );
-        clkAig += clock() - clk2;
+        clkAig += Abc_Clock() - clk2;
 
         Vec_PtrPush( vBuffers, vStr );
         Aig_ManStop( pTemp );
@@ -466,11 +466,11 @@ Aig_Man_t * Iso_ManFilterPos( Aig_Man_t * pAig, Vec_Ptr_t ** pvPosEquivs, int fV
     }
 
     // sort the infos
-    clk = clock();
+    clk = Abc_Clock();
     Vec_PtrSort( vBuffers, (int (*)(void))Iso_StoCompareVecStr );
 
     // create classes
-    clk = clock();
+    clk = Abc_Clock();
     vClasses = Vec_PtrAlloc( Saig_ManPoNum(pAig) );
     // start the first class
     Vec_PtrPush( vClasses, (vLevel = Vec_IntAlloc(4)) );
@@ -488,7 +488,7 @@ Aig_Man_t * Iso_ManFilterPos( Aig_Man_t * pAig, Vec_Ptr_t ** pvPosEquivs, int fV
     Vec_VecFree( (Vec_Vec_t *)vBuffers );
 
     if ( fVerbose )
-    Abc_PrintTime( 1, "Sorting   time", clock() - clk );
+    Abc_PrintTime( 1, "Sorting   time", Abc_Clock() - clk );
 //    Abc_PrintTime( 1, "Traversal time", time_Trav );
 
     // report the results
@@ -540,10 +540,10 @@ Aig_Man_t * Iso_ManFilterPos( Aig_Man_t * pAig, Vec_Ptr_t ** pvPosEquivs, int fV
 Aig_Man_t * Iso_ManTest( Aig_Man_t * pAig, int fVerbose )
 {
     Vec_Int_t * vPerm;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     vPerm = Saig_ManFindIsoPerm( pAig, fVerbose );
     Vec_IntFree( vPerm );
-    Abc_PrintTime( 1, "Time", clock() - clk );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     return NULL;
 }
 
@@ -561,10 +561,10 @@ Aig_Man_t * Iso_ManTest( Aig_Man_t * pAig, int fVerbose )
 Aig_Man_t * Saig_ManIsoReduce( Aig_Man_t * pAig, Vec_Ptr_t ** pvPosEquivs, int fVerbose )
 { 
     Aig_Man_t * pPart;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     pPart = Iso_ManFilterPos( pAig, pvPosEquivs, fVerbose );
     printf( "Reduced %d outputs to %d outputs.  ", Saig_ManPoNum(pAig), Saig_ManPoNum(pPart) );
-    Abc_PrintTime( 1, "Time", clock() - clk );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     if ( fVerbose && *pvPosEquivs && Saig_ManPoNum(pAig) != Vec_PtrSize(*pvPosEquivs) )
     {
         printf( "Nontrivial classes:\n" );

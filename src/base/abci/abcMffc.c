@@ -546,7 +546,7 @@ void Abc_NktMffcTestSuper( Abc_Ntk_t * pNtk )
     Vec_Int_t * vCounts, * vNumbers, * vSizes, * vMarks;
     Vec_Int_t * vNode1, * vNode2;
     int i, k, Entry, nSizes;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     vRoots   = Abc_NktMffcMarkRoots( pNtk, 1 );
     vFanins  = Vec_PtrStart( Abc_NtkObjNumMax(pNtk) );
     vFanouts = Vec_PtrStart( Abc_NtkObjNumMax(pNtk) );
@@ -658,7 +658,7 @@ if ( Entry == 2 )
     if ( Vec_IntEntry(vNumbers,31) )
     printf( "       n >  1000   %6d\n", Vec_IntEntry(vNumbers,30) );
     printf( "Total MFFCs = %d. ", Vec_PtrSize(vRoots) );
-    Abc_PrintTime( 1, "Time", clock() - clk );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     Vec_IntFree( vNumbers );
     Vec_PtrFree( vNodes );
     Vec_PtrFree( vLeaves );
@@ -894,7 +894,7 @@ Vec_Ptr_t * Abc_NktMffcDerive( Abc_Ntk_t * pNtk, Vec_Ptr_t ** pvFanins, Vec_Ptr_
     Vec_Ptr_t * vRoots, * vFanins, * vFanouts, * vVolumes, * vNodes, * vLeaves;
     Abc_Obj_t * pObj, * pFanin; 
     int i, k;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     // create roots
     vRoots   = Abc_NktMffcMarkRoots( pNtk, 0 );
     // create fanins/fanouts/volumes
@@ -1208,7 +1208,7 @@ void Abc_NktMffcServerTest( Abc_Ntk_t * pNtk )
     Vec_Int_t * vGlob, * vLeaves, * vRoots;
     double Cost, CostAll = 0.0;
     int i, k, Entry, nNodes = 0;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     vGlobs  = Abc_NktMffcServer( pNtk, 18, 3 );
     vLeaves = Vec_IntAlloc( 100 );
     vRoots  = Vec_IntAlloc( 100 );
@@ -1240,7 +1240,7 @@ void Abc_NktMffcServerTest( Abc_Ntk_t * pNtk )
     Vec_PtrFree( vGlobs );
     printf( "Total = %6d.  Nodes = %6d.  ", Abc_NtkNodeNum(pNtk), nNodes );
     printf( "Cost = %6.2f  ", CostAll );
-    Abc_PrintTime( 1, "Time", clock() - clk );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 }
 
 ABC_NAMESPACE_IMPL_END

@@ -86,13 +86,13 @@ struct Rwr_Man_t_
     int                nCutsBad;
     int                nSubgraphs;
     // runtime statistics
-    clock_t            timeStart;
-    clock_t            timeCut;
-    clock_t            timeRes;
-    clock_t            timeEval;
-    clock_t            timeMffc;
-    clock_t            timeUpdate;
-    clock_t            timeTotal;
+    abctime            timeStart;
+    abctime            timeCut;
+    abctime            timeRes;
+    abctime            timeEval;
+    abctime            timeMffc;
+    abctime            timeUpdate;
+    abctime            timeTotal;
 };
 
 struct Rwr_Node_t_ // 24 bytes
@@ -146,9 +146,9 @@ extern void              Rwr_ManPrintStatsFile( Rwr_Man_t * p );
 extern void *            Rwr_ManReadDecs( Rwr_Man_t * p );
 extern Vec_Ptr_t *       Rwr_ManReadLeaves( Rwr_Man_t * p );
 extern int               Rwr_ManReadCompl( Rwr_Man_t * p );
-extern void              Rwr_ManAddTimeCuts( Rwr_Man_t * p, clock_t Time );
-extern void              Rwr_ManAddTimeUpdate( Rwr_Man_t * p, clock_t Time );
-extern void              Rwr_ManAddTimeTotal( Rwr_Man_t * p, clock_t Time );
+extern void              Rwr_ManAddTimeCuts( Rwr_Man_t * p, abctime Time );
+extern void              Rwr_ManAddTimeUpdate( Rwr_Man_t * p, abctime Time );
+extern void              Rwr_ManAddTimeTotal( Rwr_Man_t * p, abctime Time );
 /*=== rwrPrint.c ========================================================*/
 extern void              Rwr_ManPrint( Rwr_Man_t * p );
 /*=== rwrUtil.c ========================================================*/

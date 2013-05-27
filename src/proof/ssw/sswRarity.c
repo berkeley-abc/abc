@@ -314,7 +314,7 @@ void TransposeTest()
 {
     word M[64], N[64];
     int i;
-    clock_t clk;
+    abctime clk;
     Aig_ManRandom64( 1 );
 //    for ( i = 0; i < 64; i++ )
 //        M[i] = Aig_ManRandom64( 0 );
@@ -323,15 +323,15 @@ void TransposeTest()
 //    for ( i = 0; i < 64; i++ )
 //        Extra_PrintBinary( stdout, (unsigned *)&M[i], 64 ), Abc_Print( 1, "\n" );
 
-    clk = clock();
+    clk = Abc_Clock();
     for ( i = 0; i < 100001; i++ )
         transpose64Simple( M, N );
-    Abc_PrintTime( 1, "Time", clock() - clk );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 
-    clk = clock();
+    clk = Abc_Clock();
     for ( i = 0; i < 100001; i++ )
         transpose64( M );
-    Abc_PrintTime( 1, "Time", clock() - clk );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 
     for ( i = 0; i < 64; i++ )
         if ( M[i] != N[i] )
@@ -594,7 +594,7 @@ int Ssw_RarManObjWhichOne( Ssw_RarMan_t * p, Aig_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
-int Ssw_RarManCheckNonConstOutputs( Ssw_RarMan_t * p, int iFrame, clock_t Time )
+int Ssw_RarManCheckNonConstOutputs( Ssw_RarMan_t * p, int iFrame, abctime Time )
 {
     Aig_Obj_t * pObj;
     int i;
@@ -976,9 +976,9 @@ int Ssw_RarSimulate( Aig_Man_t * pAig, Ssw_RarPars_t * pPars )
     int fMiter = 1;
     Ssw_RarMan_t * p;
     int r, f = -1;
-    clock_t clk, clkTotal = clock();
-    clock_t nTimeToStop = pPars->TimeOut ? pPars->TimeOut * CLOCKS_PER_SEC + clock(): 0;
-    clock_t timeLastSolved = 0;
+    abctime clk, clkTotal = Abc_Clock();
+    abctime nTimeToStop = pPars->TimeOut ? pPars->TimeOut * CLOCKS_PER_SEC + Abc_Clock(): 0;
+    abctime timeLastSolved = 0;
     int nNumRestart = 0;
     int nSavedSeed = pPars->nRandSeed;
     int RetValue = -1;
@@ -1004,10 +1004,10 @@ int Ssw_RarSimulate( Aig_Man_t * pAig, Ssw_RarPars_t * pPars )
 
     // perform simulation rounds
     pPars->nSolved = 0;
-    timeLastSolved = clock();
+    timeLastSolved = Abc_Clock();
     for ( r = 0; !pPars->nRounds || (nNumRestart * pPars->nRestart + r < pPars->nRounds); r++ )
     {
-        clk = clock();
+        clk = Abc_Clock();
         if ( fTryBmc )
         {
             Aig_Man_t * pNewAig = Saig_ManDupWithPhase( pAig, p->vInits );
@@ -1022,7 +1022,7 @@ int Ssw_RarSimulate( Aig_Man_t * pAig, Ssw_RarPars_t * pPars )
             Ssw_RarManSimulate( p, f ? NULL : p->vInits, 0, 0 );
             if ( fMiter )
             {
-                int Status = Ssw_RarManCheckNonConstOutputs(p, r * p->pPars->nFrames + f, clock() - clkTotal);
+                int Status = Ssw_RarManCheckNonConstOutputs(p, r * p->pPars->nFrames + f, Abc_Clock() - clkTotal);
                 if ( Status == 2 )
                 {
                     Abc_Print( 1, "Quitting due to callback on fail.\n" );
@@ -1041,22 +1041,22 @@ int Ssw_RarSimulate( Aig_Man_t * pAig, Ssw_RarPars_t * pPars )
                         pAig->pSeqModel = Ssw_RarDeriveCex( p, r * p->pPars->nFrames + f, p->iFailPo, p->iFailPat, pPars->fVerbose );
                         // print final report
                         Abc_Print( 1, "Output %d of miter \"%s\" was asserted in frame %d.  ", pAig->pSeqModel->iPo, pAig->pName, pAig->pSeqModel->iFrame );
-                        Abc_PrintTime( 1, "Time", clock() - clkTotal );
+                        Abc_PrintTime( 1, "Time", Abc_Clock() - clkTotal );
                         goto finish;
                     }
-                    timeLastSolved = clock();
+                    timeLastSolved = Abc_Clock();
                 }
                 // else - did not find a counter example
             }
             // check timeout
-            if ( pPars->TimeOut && clock() > nTimeToStop )
+            if ( pPars->TimeOut && Abc_Clock() > nTimeToStop )
             {
                 if ( pPars->fVerbose && !pPars->fSolveAll ) Abc_Print( 1, "\n" );
                 Abc_Print( 1, "Simulated %d frames for %d rounds with %d restarts.  ", pPars->nFrames, nNumRestart * pPars->nRestart + r, nNumRestart );
                 Abc_Print( 1, "Reached timeout (%d sec).\n",  pPars->TimeOut );
                 goto finish;
             }
-            if ( pPars->TimeOutGap && timeLastSolved && clock() > timeLastSolved + pPars->TimeOutGap * CLOCKS_PER_SEC )
+            if ( pPars->TimeOutGap && timeLastSolved && Abc_Clock() > timeLastSolved + pPars->TimeOutGap * CLOCKS_PER_SEC )
             {
                 if ( pPars->fVerbose && !pPars->fSolveAll ) Abc_Print( 1, "\n" );
                 Abc_Print( 1, "Simulated %d frames for %d rounds with %d restarts.  ", pPars->nFrames, nNumRestart * pPars->nRestart + r, nNumRestart );
@@ -1090,7 +1090,7 @@ int Ssw_RarSimulate( Aig_Man_t * pAig, Ssw_RarPars_t * pPars )
                 Abc_Print( 1, "Rounds =%6d   ",  nNumRestart * pPars->nRestart + ((r==-1)?0:r) );
                 Abc_Print( 1, "Frames =%6d   ", (nNumRestart * pPars->nRestart + r) * pPars->nFrames );
                 Abc_Print( 1, "CEX =%6d (%6.2f %%)   ", pPars->nSolved, 100.0*pPars->nSolved/Saig_ManPoNum(p->pAig) );
-                Abc_PrintTime( 1, "Time", clock() - clkTotal );
+                Abc_PrintTime( 1, "Time", Abc_Clock() - clkTotal );
             }
             else
                 Abc_Print( 1, "." );
@@ -1108,13 +1108,13 @@ finish:
     {
         if ( pPars->fVerbose && !pPars->fSolveAll ) Abc_Print( 1, "\n" );
         Abc_Print( 1, "Simulation of %d frames for %d rounds with %d restarts asserted %d (out of %d) POs.    ", pPars->nFrames, nNumRestart * pPars->nRestart + r, nNumRestart, pPars->nSolved, Saig_ManPoNum(p->pAig) );
-        Abc_PrintTime( 1, "Time", clock() - clkTotal );
+        Abc_PrintTime( 1, "Time", Abc_Clock() - clkTotal );
     }
     else if ( r == pPars->nRounds && f == pPars->nFrames )
     {
         if ( pPars->fVerbose ) Abc_Print( 1, "\n" );
         Abc_Print( 1, "Simulation of %d frames for %d rounds with %d restarts did not assert POs.    ", pPars->nFrames, nNumRestart * pPars->nRestart + r, nNumRestart );
-        Abc_PrintTime( 1, "Time", clock() - clkTotal );
+        Abc_PrintTime( 1, "Time", Abc_Clock() - clkTotal );
     }
     // cleanup
     Ssw_RarManStop( p );
@@ -1161,8 +1161,8 @@ int Ssw_RarSignalFilter( Aig_Man_t * pAig, Ssw_RarPars_t * pPars )
 {
     Ssw_RarMan_t * p;
     int r, f = -1, i, k;
-    clock_t clkTotal = clock();
-    clock_t nTimeToStop = pPars->TimeOut ? pPars->TimeOut * CLOCKS_PER_SEC + clock(): 0;
+    abctime clkTotal = Abc_Clock();
+    abctime nTimeToStop = pPars->TimeOut ? pPars->TimeOut * CLOCKS_PER_SEC + Abc_Clock(): 0;
     int nNumRestart = 0;
     int nSavedSeed = pPars->nRandSeed;
     int RetValue = -1;
@@ -1234,12 +1234,12 @@ int Ssw_RarSignalFilter( Aig_Man_t * pAig, Ssw_RarPars_t * pPars )
                 pAig->pSeqModel = Ssw_RarDeriveCex( p, r * p->pPars->nFrames + f, p->iFailPo, p->iFailPat, 1 );
                 // print final report
                 Abc_Print( 1, "Output %d of miter \"%s\" was asserted in frame %d.  ", pAig->pSeqModel->iPo, pAig->pName, pAig->pSeqModel->iFrame );
-                Abc_PrintTime( 1, "Time", clock() - clkTotal );
+                Abc_PrintTime( 1, "Time", Abc_Clock() - clkTotal );
                 RetValue = 0;
                 goto finish;
             }
             // check timeout
-            if ( pPars->TimeOut && clock() > nTimeToStop )
+            if ( pPars->TimeOut && Abc_Clock() > nTimeToStop )
             {
                 if ( pPars->fVerbose ) Abc_Print( 1, "\n" );
                 Abc_Print( 1, "Simulated %d frames for %d rounds with %d restarts.  ", pPars->nFrames, nNumRestart * pPars->nRestart + r, nNumRestart );
@@ -1279,7 +1279,7 @@ finish:
         if ( !pPars->fVerbose )
             Abc_Print( 1, "%s", Abc_FrameIsBatchMode() ? "\n" : "\r" );
         Abc_Print( 1, "Simulation of %d frames for %d rounds with %d restarts did not assert POs.    ", pPars->nFrames, nNumRestart * pPars->nRestart + r, nNumRestart );
-        Abc_PrintTime( 1, "Time", clock() - clkTotal );
+        Abc_PrintTime( 1, "Time", Abc_Clock() - clkTotal );
     }
     // cleanup
     Ssw_RarManStop( p );

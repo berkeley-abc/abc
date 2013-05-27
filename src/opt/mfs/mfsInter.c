@@ -338,7 +338,7 @@ Hop_Obj_t * Abc_NtkMfsInterplate( Mfs_Man_t * p, int * pCands, int nCands )
     Hop_Obj_t * pFunc;
     int nFanins, status;
     int c, i, * pGloVars;
-//    clock_t clk = clock();
+//    abctime clk = Abc_Clock();
 //    p->nDcMints += Abc_NtkMfsInterplateEval( p, pCands, nCands );
 
     // derive the SAT solver for interpolation
@@ -362,7 +362,7 @@ Hop_Obj_t * Abc_NtkMfsInterplate( Mfs_Man_t * p, int * pCands, int nCands )
         return NULL;
     }
 //printf( "%d\n", pSat->stats.conflicts );
-//    ABC_PRT( "S", clock() - clk );
+//    ABC_PRT( "S", Abc_Clock() - clk );
     // get the learned clauses
     pCnf = (Sto_Man_t *)sat_solver_store_release( pSat );
     sat_solver_delete( pSat );

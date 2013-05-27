@@ -53,16 +53,16 @@ void Fra_ManPartitionTest( Aig_Man_t * p, int nComLim )
     int i, k, nCommon, CountOver, CountQuant;
     int nTotalSupp, nTotalSupp2, Entry, Largest;//, iVar;
     double Ratio, R;
-    clock_t clk;
+    abctime clk;
 
     nTotalSupp = 0;
     nTotalSupp2 = 0;
     Ratio = 0.0;
  
     // compute supports
-clk = clock();
+clk = Abc_Clock();
     vSupps = (Vec_Vec_t *)Aig_ManSupports( p );
-ABC_PRT( "Supports", clock() - clk );
+ABC_PRT( "Supports", Abc_Clock() - clk );
     // remove last entry
     Aig_ManForEachCo( p, pObj, i )
     {
@@ -73,7 +73,7 @@ ABC_PRT( "Supports", clock() - clk );
     }
 
     // create reverse supports
-clk = clock();
+clk = Abc_Clock();
     vSuppsIn = Vec_VecStart( Aig_ManCiNum(p) );
     Aig_ManForEachCo( p, pObj, i )
     {
@@ -81,9 +81,9 @@ clk = clock();
         Vec_IntForEachEntry( vSup, Entry, k )
             Vec_VecPush( vSuppsIn, Entry, (void *)(ABC_PTRUINT_T)i );
     }
-ABC_PRT( "Inverse ", clock() - clk );
+ABC_PRT( "Inverse ", Abc_Clock() - clk );
 
-clk = clock();
+clk = Abc_Clock();
     // compute extended supports
     Largest = 0;
     vSuppsNew = Vec_PtrAlloc( Aig_ManCoNum(p) );
@@ -156,7 +156,7 @@ clk = clock();
 */
     }
 //    Bar_ProgressStop( pProgress );
-ABC_PRT( "Scanning", clock() - clk );
+ABC_PRT( "Scanning", Abc_Clock() - clk );
 
     // print cumulative statistics
     printf( "PIs = %6d. POs = %6d. Lim = %3d.   AveS = %3d. SN = %3d. R = %4.2f Max = %5d.\n",
@@ -191,13 +191,13 @@ void Fra_ManPartitionTest2( Aig_Man_t * p )
     Aig_Obj_t * pObj;
     int Entry, Entry2, Entry3, Counter;
     int i, k, m, n;
-    clock_t clk;
+    abctime clk;
     char * pSupp;
  
     // compute supports
-clk = clock();
+clk = Abc_Clock();
     vSupps = (Vec_Vec_t *)Aig_ManSupports( p );
-ABC_PRT( "Supports", clock() - clk );
+ABC_PRT( "Supports", Abc_Clock() - clk );
     // remove last entry
     Aig_ManForEachCo( p, pObj, i )
     {
@@ -208,7 +208,7 @@ ABC_PRT( "Supports", clock() - clk );
     }
 
     // create reverse supports
-clk = clock();
+clk = Abc_Clock();
     vSuppsIn = Vec_VecStart( Aig_ManCiNum(p) );
     Aig_ManForEachCo( p, pObj, i )
     {
@@ -218,10 +218,10 @@ clk = clock();
         Vec_IntForEachEntry( vSup, Entry, k )
             Vec_VecPush( vSuppsIn, Entry, (void *)(ABC_PTRUINT_T)i );
     }
-ABC_PRT( "Inverse ", clock() - clk );
+ABC_PRT( "Inverse ", Abc_Clock() - clk );
 
     // create affective supports
-clk = clock();
+clk = Abc_Clock();
     pSupp = ABC_ALLOC( char, Aig_ManCiNum(p) );
     Aig_ManForEachCo( p, pObj, i )
     {
@@ -252,7 +252,7 @@ clk = clock();
         printf( "%d(%d) ", Vec_IntSize(vSup), Counter );
     }
     printf( "\n" );
-ABC_PRT( "Extension ", clock() - clk );
+ABC_PRT( "Extension ", Abc_Clock() - clk );
 
     ABC_FREE( pSupp );
     Vec_VecFree( vSupps );

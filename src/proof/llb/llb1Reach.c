@@ -48,7 +48,7 @@ DdNode * Llb_ManConstructOutBdd( Aig_Man_t * pAig, Aig_Obj_t * pNode, DdManager 
     Vec_Ptr_t * vNodes;
     Aig_Obj_t * pObj;
     int i;
-    clock_t TimeStop;
+    abctime TimeStop;
     if ( Aig_ObjFanin0(pNode) == Aig_ManConst1(pAig) )
         return Cudd_NotCond( Cudd_ReadOne(dd), Aig_ObjFaninC0(pNode) );
     TimeStop = dd->TimeStop;  dd->TimeStop = 0;
@@ -157,7 +157,7 @@ DdNode * Llb_ManConstructQuantCubeIntern( Llb_Man_t * p, Llb_Grp_t * pGroup, int
     Aig_Obj_t * pObj;
     DdNode * bRes, * bTemp, * bVar;
     int i, iGroupFirst, iGroupLast;
-    clock_t TimeStop;
+    abctime TimeStop;
     TimeStop = p->dd->TimeStop; p->dd->TimeStop = 0;
     bRes = Cudd_ReadOne( p->dd );   Cudd_Ref( bRes );
     Vec_PtrForEachEntry( Aig_Obj_t *, pGroup->vIns, pObj, i )
@@ -207,7 +207,7 @@ DdNode * Llb_ManConstructQuantCubeFwd( Llb_Man_t * p, Llb_Grp_t * pGroup, int iG
     Aig_Obj_t * pObj;
     DdNode * bRes, * bTemp, * bVar;
     int i, iGroupLast;
-    clock_t TimeStop;
+    abctime TimeStop;
     TimeStop = p->dd->TimeStop; p->dd->TimeStop = 0;
     bRes = Cudd_ReadOne( p->dd );   Cudd_Ref( bRes );
     Vec_PtrForEachEntry( Aig_Obj_t *, pGroup->vIns, pObj, i )
@@ -251,7 +251,7 @@ DdNode * Llb_ManConstructQuantCubeBwd( Llb_Man_t * p, Llb_Grp_t * pGroup, int iG
     Aig_Obj_t * pObj;
     DdNode * bRes, * bTemp, * bVar;
     int i, iGroupFirst;
-    clock_t TimeStop;
+    abctime TimeStop;
     TimeStop = p->dd->TimeStop; p->dd->TimeStop = 0;
     bRes = Cudd_ReadOne( p->dd );   Cudd_Ref( bRes );
     Vec_PtrForEachEntry( Aig_Obj_t *, pGroup->vIns, pObj, i )
@@ -299,7 +299,7 @@ DdNode * Llb_ManComputeInitState( Llb_Man_t * p, DdManager * dd )
     Aig_Obj_t * pObj;
     DdNode * bRes, * bVar, * bTemp;
     int i, iVar;
-    clock_t TimeStop;
+    abctime TimeStop;
     TimeStop = dd->TimeStop; dd->TimeStop = 0;
     bRes = Cudd_ReadOne( dd );   Cudd_Ref( bRes );
     Saig_ManForEachLo( p->pAig, pObj, i )
@@ -414,7 +414,7 @@ DdNode * Llb_ManCreateConstraints( Llb_Man_t * p, Vec_Int_t * vHints, int fUseNs
     DdNode * bConstr, * bFunc, * bTemp;
     Aig_Obj_t * pObj;
     int i, Entry;
-    clock_t TimeStop;
+    abctime TimeStop;
     if ( vHints == NULL )
         return Cudd_ReadOne( p->dd );
     TimeStop = p->dd->TimeStop; p->dd->TimeStop = 0;
@@ -586,12 +586,12 @@ int Llb_ManReachability( Llb_Man_t * p, Vec_Int_t * vHints, DdManager ** pddGlo 
     int * pGlo2Cs = Vec_IntArray( p->vGlo2Cs );
     DdNode * bCurrent, * bReached, * bNext, * bTemp, * bCube;
     DdNode * bConstrCs, * bConstrNs;
-    clock_t clk2, clk = clock();
+    abctime clk2, clk = Abc_Clock();
     int nIters, nBddSize = 0;
 //    int nThreshold = 10000;
 
     // compute time to stop
-    p->pPars->TimeTarget = p->pPars->TimeLimit ? p->pPars->TimeLimit * CLOCKS_PER_SEC + clock(): 0;
+    p->pPars->TimeTarget = p->pPars->TimeLimit ? p->pPars->TimeLimit * CLOCKS_PER_SEC + Abc_Clock(): 0;
 
     // define variable limits
     Llb_ManPrepareVarLimits( p );
@@ -660,9 +660,9 @@ int Llb_ManReachability( Llb_Man_t * p, Vec_Int_t * vHints, DdManager ** pddGlo 
 //Extra_bddPrintSupport( p->dd, bCurrent ); printf( "\n" );
     for ( nIters = 0; nIters < p->pPars->nIterMax; nIters++ )
     { 
-        clk2 = clock();
+        clk2 = Abc_Clock();
         // check the runtime limit
-        if ( p->pPars->TimeLimit && clock() > p->pPars->TimeTarget )
+        if ( p->pPars->TimeLimit && Abc_Clock() > p->pPars->TimeTarget )
         {
             if ( !p->pPars->fSilent )
                 printf( "Reached timeout during image computation (%d seconds).\n",  p->pPars->TimeLimit );
@@ -702,7 +702,7 @@ int Llb_ManReachability( Llb_Man_t * p, Vec_Int_t * vHints, DdManager ** pddGlo 
                     Abc_Print( 1, "Output %d of miter \"%s\" was asserted in frame %d.  ", p->pAigGlo->pSeqModel->iPo, p->pAigGlo->pName, p->pAigGlo->pName, nIters );
                 else
                     Abc_Print( 1, "Output ??? of miter \"%s\" was asserted in frame %d (counter-example is not produced).  ", p->pAigGlo->pName, nIters );
-                Abc_PrintTime( 1, "Time", clock() - clk );
+                Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
             }
             p->pPars->iFrame = nIters - 1;
             Cudd_RecursiveDeref( p->dd,  bCurrent );  bCurrent = NULL;
@@ -839,7 +839,7 @@ int Llb_ManReachability( Llb_Man_t * p, Vec_Int_t * vHints, DdManager ** pddGlo 
             fprintf( stdout, "(%4d %3d)   ", Cudd_ReadReorderings(p->dd),  Cudd_ReadGarbageCollections(p->dd) );
             fprintf( stdout, "Rea =%6d  ",   Cudd_DagSize(bReached) );
             fprintf( stdout, "(%4d%4d)   ",  Cudd_ReadReorderings(p->ddG), Cudd_ReadGarbageCollections(p->ddG) );
-            Abc_PrintTime( 1, "Time", clock() - clk2 );
+            Abc_PrintTime( 1, "Time", Abc_Clock() - clk2 );
         }
 /*
         if ( p->pPars->fVerbose )

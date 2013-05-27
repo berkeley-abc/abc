@@ -54,7 +54,7 @@ Abc_Ntk_t * Abc_NtkRestrash( Abc_Ntk_t * pNtk, int fCleanup )
     Abc_Obj_t * pObj;
     int i, nNodes;//, RetValue;
     assert( Abc_NtkIsStrash(pNtk) );
-//timeRetime = clock();
+//timeRetime = Abc_Clock();
     // print warning about choice nodes
     if ( Abc_NtkGetChoiceNum( pNtk ) )
         printf( "Warning: The choice nodes in the original AIG are removed by strashing.\n" );
@@ -85,7 +85,7 @@ Abc_Ntk_t * Abc_NtkRestrash( Abc_Ntk_t * pNtk, int fCleanup )
         Abc_NtkDelete( pNtkAig );
         return NULL;
     }
-//timeRetime = clock() - timeRetime;
+//timeRetime = Abc_Clock() - timeRetime;
 //    if ( RetValue = Abc_NtkRemoveSelfFeedLatches(pNtkAig) )
 //        printf( "Modified %d self-feeding latches. The result may not verify.\n", RetValue );
     return pNtkAig;
@@ -186,7 +186,7 @@ Abc_Ntk_t * Abc_NtkRestrashZero( Abc_Ntk_t * pNtk, int fCleanup )
     int i, nNodes;//, RetValue;
     int Counter = 0;
     assert( Abc_NtkIsStrash(pNtk) );
-//timeRetime = clock();
+//timeRetime = Abc_Clock();
     // print warning about choice nodes
     if ( Abc_NtkGetChoiceNum( pNtk ) )
         printf( "Warning: The choice nodes in the original AIG are removed by strashing.\n" );
@@ -239,7 +239,7 @@ Abc_Ntk_t * Abc_NtkRestrashZero( Abc_Ntk_t * pNtk, int fCleanup )
         Abc_NtkDelete( pNtkAig );
         return NULL;
     }
-//timeRetime = clock() - timeRetime;
+//timeRetime = Abc_Clock() - timeRetime;
 //    if ( RetValue = Abc_NtkRemoveSelfFeedLatches(pNtkAig) )
 //        printf( "Modified %d self-feeding latches. The result may not verify.\n", RetValue );
     return pNtkAig;
@@ -407,13 +407,13 @@ void Abc_NtkStrashPerform( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtkNew, int fAllNod
 //    ProgressBar * pProgress;
     Vec_Ptr_t * vNodes;
     Abc_Obj_t * pNodeOld;
-    int i; //, clk = clock();
+    int i; //, clk = Abc_Clock();
     assert( Abc_NtkIsLogic(pNtkOld) );
     assert( Abc_NtkIsStrash(pNtkNew) );
 //    vNodes = Abc_NtkDfs( pNtkOld, fAllNodes );
     vNodes = Abc_NtkDfsIter( pNtkOld, fAllNodes );
 //printf( "Nodes = %d. ", Vec_PtrSize(vNodes) );
-//ABC_PRT( "Time", clock() - clk );
+//ABC_PRT( "Time", Abc_Clock() - clk );
 //    pProgress = Extra_ProgressBarStart( stdout, vNodes->nSize );
     Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNodeOld, i )
     {

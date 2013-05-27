@@ -1077,7 +1077,7 @@ int Ssw_SecSpecial( Aig_Man_t * pPart0, Aig_Man_t * pPart1, int nFrames, int fVe
     int iOut, nOuts;
     Aig_Man_t * pMiterCec;
     int RetValue;
-    clock_t clkTotal = clock();
+    abctime clkTotal = Abc_Clock();
     if ( fVerbose )
     {
         Aig_ManPrintStats( pPart0 );
@@ -1112,12 +1112,12 @@ int Ssw_SecSpecial( Aig_Man_t * pPart0, Aig_Man_t * pPart1, int nFrames, int fVe
     if ( RetValue == 1 )
     {
         printf( "Networks are equivalent.   " );
-ABC_PRT( "Time", clock() - clkTotal );
+ABC_PRT( "Time", Abc_Clock() - clkTotal );
     }
     else if ( RetValue == 0 )
     {
         printf( "Networks are NOT EQUIVALENT.   " );
-ABC_PRT( "Time", clock() - clkTotal );
+ABC_PRT( "Time", Abc_Clock() - clkTotal );
         if ( pMiterCec->pData == NULL )
             printf( "Counter-example is not available.\n" );
         else
@@ -1140,7 +1140,7 @@ ABC_PRT( "Time", clock() - clkTotal );
     else
     {
         printf( "Networks are UNDECIDED.   " );
-ABC_PRT( "Time", clock() - clkTotal );
+ABC_PRT( "Time", Abc_Clock() - clkTotal );
     }
     fflush( stdout );
     Aig_ManStop( pMiterCec );

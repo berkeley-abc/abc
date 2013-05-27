@@ -93,10 +93,10 @@ struct Csw_Man_t_
     int             nNodesTriv2;     // the number of trivial nodes
     int             nNodesCuts;      // the number of rewritten nodes
     int             nNodesTried;     // the number of nodes tried
-    clock_t         timeCuts;        // time to compute the cut and its truth table
-    clock_t         timeHash;        // time for hashing cuts
-    clock_t         timeOther;       // other time
-    clock_t         timeTotal;       // total time
+    abctime         timeCuts;        // time to compute the cut and its truth table
+    abctime         timeHash;        // time for hashing cuts
+    abctime         timeOther;       // other time
+    abctime         timeTotal;       // total time
 };
 
 static inline int          Csw_CutLeaveNum( Csw_Cut_t * pCut )          { return pCut->nFanins;                                   }

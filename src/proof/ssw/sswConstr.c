@@ -409,8 +409,8 @@ int Ssw_ManSweepBmcConstr_old( Ssw_Man_t * p )
     Bar_Progress_t * pProgress = NULL;
     Aig_Obj_t * pObj, * pObjNew, * pObjLi, * pObjLo;
     int i, f, iLits;
-    clock_t clk;
-clk = clock();
+    abctime clk;
+clk = Abc_Clock();
 
     // start initialized timeframes
     p->pFrames = Aig_ManStart( Aig_ManObjNumMax(p->pAig) * p->pPars->nFramesK );
@@ -480,7 +480,7 @@ clk = clock();
 
     // cleanup
 //    Ssw_ClassesCheck( p->ppClasses );
-p->timeBmc += clock() - clk;
+p->timeBmc += Abc_Clock() - clk;
     return p->fRefined;
 }
 
@@ -499,8 +499,8 @@ int Ssw_ManSweepBmcConstr( Ssw_Man_t * p )
 {
     Aig_Obj_t * pObj, * pObjNew, * pObjLi, * pObjLo;
     int i, f, iLits;
-    clock_t clk;
-clk = clock();
+    abctime clk;
+clk = Abc_Clock();
 
     // start initialized timeframes
     p->pFrames = Aig_ManStart( Aig_ManObjNumMax(p->pAig) * p->pPars->nFramesK );
@@ -560,7 +560,7 @@ clk = clock();
 
     // cleanup
 //    Ssw_ClassesCheck( p->ppClasses );
-p->timeBmc += clock() - clk;
+p->timeBmc += Abc_Clock() - clk;
     return p->fRefined;
 }
 
@@ -621,11 +621,11 @@ int Ssw_ManSweepConstr( Ssw_Man_t * p )
     Bar_Progress_t * pProgress = NULL;
     Aig_Obj_t * pObj, * pObj2, * pObjNew;
     int nConstrPairs, i, f, iLits;
-    clock_t clk;
+    abctime clk;
 //Ssw_ManPrintPolarity( p->pAig );
 
     // perform speculative reduction
-clk = clock();
+clk = Abc_Clock();
     // create timeframes
     p->pFrames = Ssw_FramesWithClasses( p );
     // add constants
@@ -656,7 +656,7 @@ clk = clock();
         Ssw_ObjSetFrame( p, pObj, f, pObjNew );
     }
     assert( Vec_IntSize(p->vInits) == iLits );
-p->timeReduce += clock() - clk;
+p->timeReduce += Abc_Clock() - clk;
 
     // add constraints to all timeframes
     for ( f = 0; f <= p->pPars->nFramesK; f++ )

@@ -401,7 +401,7 @@ void Abc_SortTest()
     int i, nSize = 50000000;
     int * pArray = (int *)malloc( sizeof(int) * nSize );
     int * pPerm;
-    clock_t clk;
+    abctime clk;
     // generate numbers
     srand( 1000 );
     for ( i = 0; i < nSize; i++ )
@@ -413,9 +413,9 @@ void Abc_SortTest()
         int fUseCost = 1;
         if ( fUseCost )
         {
-            clk = clock();
+            clk = Abc_Clock();
             pPerm = Abc_MergeSortCost( pArray, nSize );
-            Abc_PrintTime( 1, "New sort", clock() - clk );
+            Abc_PrintTime( 1, "New sort", Abc_Clock() - clk );
             // check
             for ( i = 1; i < nSize; i++ )
                 assert( pArray[pPerm[i-1]] <= pArray[pPerm[i]] );
@@ -423,9 +423,9 @@ void Abc_SortTest()
         }
         else
         {
-            clk = clock();
+            clk = Abc_Clock();
             Abc_MergeSort( pArray, nSize );
-            Abc_PrintTime( 1, "New sort", clock() - clk );
+            Abc_PrintTime( 1, "New sort", Abc_Clock() - clk );
             // check
             for ( i = 1; i < nSize; i++ )
                 assert( pArray[i-1] <= pArray[i] );
@@ -433,9 +433,9 @@ void Abc_SortTest()
     }
     else
     {
-        clk = clock();
+        clk = Abc_Clock();
         qsort( (void *)pArray, nSize, sizeof(int), (int (*)(const void *, const void *)) Abc_SortNumCompare );
-        Abc_PrintTime( 1, "Old sort", clock() - clk );
+        Abc_PrintTime( 1, "Old sort", Abc_Clock() - clk );
         // check
         for ( i = 1; i < nSize; i++ )
             assert( pArray[i-1] <= pArray[i] );
@@ -745,18 +745,18 @@ void Abc_QuickSortTest()
     int fVerbose = 0;
     word * pData1, * pData2;
     int i;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     // generate numbers
     pData1 = ABC_ALLOC( word, nSize );
     pData2 = ABC_ALLOC( word, nSize );
     srand( 1111 );
     for ( i = 0; i < nSize; i++ )
         pData2[i] = pData1[i] = ((word)i << 32) | rand();
-    Abc_PrintTime( 1, "Prepare ", clock() - clk );
+    Abc_PrintTime( 1, "Prepare ", Abc_Clock() - clk );
     // perform sorting
-    clk = clock();
+    clk = Abc_Clock();
     Abc_QuickSort3( pData1, nSize, 1 );
-    Abc_PrintTime( 1, "Sort new", clock() - clk );
+    Abc_PrintTime( 1, "Sort new", Abc_Clock() - clk );
     // print the result
     if ( fVerbose )
     {
@@ -765,9 +765,9 @@ void Abc_QuickSortTest()
         printf( "\n" );
     }
     // create new numbers
-    clk = clock();
+    clk = Abc_Clock();
     Abc_QuickSort1( pData2, nSize, 1 );
-    Abc_PrintTime( 1, "Sort old", clock() - clk );
+    Abc_PrintTime( 1, "Sort old", Abc_Clock() - clk );
     // print the result
     if ( fVerbose )
     {

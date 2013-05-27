@@ -90,10 +90,10 @@ typedef struct
 static inline void TimePrint( char* Message )
 {
     static int timeBegin;
-    double time = 1.0*(clock() - timeBegin)/CLOCKS_PER_SEC ;
+    double time = 1.0*(Abc_Clock() - timeBegin)/CLOCKS_PER_SEC ;
     if ( Message != NULL)
         printf("%s = %f sec.\n", Message, time);
-    timeBegin = clock();
+    timeBegin = Abc_Clock();
 }
 
 static inline int CompareWords( word x, word y)

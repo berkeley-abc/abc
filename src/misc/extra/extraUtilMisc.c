@@ -2480,7 +2480,7 @@ void Extra_NpnTest()
 //    int nFuncs = 5687661; 
 //    int nFuncs = 400777;
     int nFuncs = 10;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     word * pFuncs;
     int * pComp, * pPerm;
     int i;//, k, nUnique = 0;
@@ -2528,7 +2528,7 @@ void Extra_NpnTest()
     ABC_FREE( pPerm );
     ABC_FREE( pComp );
     ABC_FREE( pFuncs );
-    Abc_PrintTime( 1, "Time", clock() - clk );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 }
 
 

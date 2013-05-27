@@ -485,7 +485,7 @@ void Amap_ManMatch( Amap_Man_t * p, int fFlow, int fRefs )
     Amap_Obj_t * pObj;
     float Area;
     int i, nInvs;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     pMemOld = p->pMemCutBest;
     p->pMemCutBest = Aig_MmFlexStart();
     Amap_ManForEachNode( p, pObj, i )
@@ -500,7 +500,7 @@ if ( p->pPars->fVerbose )
         Area + nInvs * p->fAreaInv, 
         Area, nInvs * p->fAreaInv, nInvs,
         Amap_ManMaxDelay(p) );
-ABC_PRT( "Time ", clock() - clk );
+ABC_PRT( "Time ", Abc_Clock() - clk );
 }
     // test procedures
 //    Amap_ManForEachNode( p, pObj, i )

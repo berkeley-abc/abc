@@ -689,20 +689,20 @@ Vec_Ptr_t * Aig_ManPartitionSmart( Aig_Man_t * p, int nSuppSizeLimit, int fVerbo
     Vec_Ptr_t * vSupports, * vPartsAll, * vPartsAll2, * vPartSuppsAll;//, * vPartPtr;
     Vec_Int_t * vOne, * vPart, * vPartSupp, * vTemp;
     int i, iPart, iOut;
-    clock_t clk;
+    abctime clk;
 
     // compute the supports for all outputs
-clk = clock();
+clk = Abc_Clock();
     vSupports = Aig_ManSupports( p );
 if ( fVerbose )
 {
-ABC_PRT( "Supps", clock() - clk );
+ABC_PRT( "Supps", Abc_Clock() - clk );
 }
     // start char-based support representation
     vPartSuppsBit = Vec_PtrAlloc( 1000 );
 
     // create partitions
-clk = clock();
+clk = Abc_Clock();
     vPartsAll = Vec_PtrAlloc( 256 );
     vPartSuppsAll = Vec_PtrAlloc( 256 );
     Vec_PtrForEachEntry( Vec_Int_t *, vSupports, vOne, i )
@@ -748,10 +748,10 @@ clk = clock();
 //printf( "\n" );
 if ( fVerbose )
 {
-ABC_PRT( "Parts", clock() - clk );
+ABC_PRT( "Parts", Abc_Clock() - clk );
 }
 
-clk = clock();
+clk = Abc_Clock();
     // reorder partitions in the decreasing order of support sizes
     // remember partition number in each partition support
     Vec_PtrForEachEntry( Vec_Int_t *, vPartSuppsAll, vOne, i )
@@ -774,7 +774,7 @@ clk = clock();
 
 if ( fVerbose )
 {
-//ABC_PRT( "Comps", clock() - clk );
+//ABC_PRT( "Comps", Abc_Clock() - clk );
 }
 
     // cleanup
@@ -814,24 +814,24 @@ Vec_Ptr_t * Aig_ManPartitionSmartRegisters( Aig_Man_t * pAig, int nSuppSizeLimit
     Vec_Ptr_t * vSupports, * vPartsAll, * vPartsAll2, * vPartSuppsAll;
     Vec_Int_t * vOne, * vPart, * vPartSupp, * vTemp;
     int i, iPart, iOut;
-    clock_t clk;
+    abctime clk;
 
     // add output number to each
-clk = clock();
+clk = Abc_Clock();
     vSupports = Aig_ManSupportsRegisters( pAig );
     assert( Vec_PtrSize(vSupports) == Aig_ManRegNum(pAig) );
     Vec_PtrForEachEntry( Vec_Int_t *, vSupports, vOne, i )
         Vec_IntPush( vOne, i );
 if ( fVerbose )
 {
-ABC_PRT( "Supps", clock() - clk );
+ABC_PRT( "Supps", Abc_Clock() - clk );
 }
 
     // start char-based support representation
     vPartSuppsBit = Vec_PtrAlloc( 1000 );
 
     // create partitions
-clk = clock();
+clk = Abc_Clock();
     vPartsAll = Vec_PtrAlloc( 256 );
     vPartSuppsAll = Vec_PtrAlloc( 256 );
     Vec_PtrForEachEntry( Vec_Int_t *, vSupports, vOne, i )
@@ -877,10 +877,10 @@ clk = clock();
 //printf( "\n" );
 if ( fVerbose )
 {
-ABC_PRT( "Parts", clock() - clk );
+ABC_PRT( "Parts", Abc_Clock() - clk );
 }
 
-clk = clock();
+clk = Abc_Clock();
     // reorder partitions in the decreasing order of support sizes
     // remember partition number in each partition support
     Vec_PtrForEachEntry( Vec_Int_t *, vPartSuppsAll, vOne, i )
@@ -903,7 +903,7 @@ clk = clock();
 
 if ( fVerbose )
 {
-//ABC_PRT( "Comps", clock() - clk );
+//ABC_PRT( "Comps", Abc_Clock() - clk );
 }
 
     // cleanup

@@ -309,8 +309,8 @@ int Ssw_RarSimulate2( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSize, i
     int fMiter = 1;
     Ssw_RarMan_t * p;
     int r;
-    clock_t clk, clkTotal = clock();
-    clock_t nTimeToStop = TimeOut ? TimeOut * CLOCKS_PER_SEC + clock(): 0;
+    abctime clk, clkTotal = Abc_Clock();
+    abctime nTimeToStop = TimeOut ? TimeOut * CLOCKS_PER_SEC + Abc_Clock(): 0;
     int RetValue = -1;
     assert( Aig_ManRegNum(pAig) > 0 );
     assert( Aig_ManConstrNum(pAig) == 0 );
@@ -331,7 +331,7 @@ int Ssw_RarSimulate2( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSize, i
     // perform simulation rounds
     for ( r = 0; r < nRounds; r++ )
     {
-        clk = clock();
+        clk = Abc_Clock();
         // simulate
         Ssw_SmlSimulateOne( p->pSml );
         if ( fMiter && Ssw_SmlCheckNonConstOutputs(p->pSml) )
@@ -349,11 +349,11 @@ int Ssw_RarSimulate2( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSize, i
         if ( fVerbose )
         {
 //            Abc_Print( 1, "Round %3d:  ", r );
-//            Abc_PrintTime( 1, "Time", clock() - clk );
+//            Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
             Abc_Print( 1, "." );
         }
         // check timeout
-        if ( TimeOut && clock() > nTimeToStop )
+        if ( TimeOut && Abc_Clock() > nTimeToStop )
         {
             if ( fVerbose ) Abc_Print( 1, "\n" );
             Abc_Print( 1, "Reached timeout (%d seconds).\n",  TimeOut );
@@ -364,7 +364,7 @@ int Ssw_RarSimulate2( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSize, i
     {
         if ( fVerbose ) Abc_Print( 1, "\n" );
         Abc_Print( 1, "Simulation did not assert POs in the first %d frames.  ", nRounds * nFrames );
-        Abc_PrintTime( 1, "Time", clock() - clkTotal );
+        Abc_PrintTime( 1, "Time", Abc_Clock() - clkTotal );
     }
     // cleanup
     Ssw_RarManStop( p );
@@ -388,8 +388,8 @@ int Ssw_RarSignalFilter2( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSiz
     int fMiter = 0;
     Ssw_RarMan_t * p;
     int r, i, k;
-    clock_t clkTotal = clock();
-    clock_t nTimeToStop = TimeOut ? TimeOut * CLOCKS_PER_SEC + clock(): 0;
+    abctime clkTotal = Abc_Clock();
+    abctime nTimeToStop = TimeOut ? TimeOut * CLOCKS_PER_SEC + Abc_Clock(): 0;
     int RetValue = -1;
     assert( Aig_ManRegNum(pAig) > 0 );
     assert( Aig_ManConstrNum(pAig) == 0 );
@@ -462,7 +462,7 @@ int Ssw_RarSignalFilter2( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSiz
         Ssw_RarTransferPatterns( p, p->vInits );
         Ssw_SmlInitializeSpecial( p->pSml, p->vInits );
         // check timeout
-        if ( TimeOut && clock() > nTimeToStop )
+        if ( TimeOut && Abc_Clock() > nTimeToStop )
         {
             if ( fVerbose ) Abc_Print( 1, "\n" );
             Abc_Print( 1, "Reached timeout (%d seconds).\n",  TimeOut );
@@ -472,7 +472,7 @@ int Ssw_RarSignalFilter2( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSiz
     if ( r == nRounds )
     {
         Abc_Print( 1, "Simulation did not assert POs in the first %d frames.  ", nRounds * nFrames );
-        Abc_PrintTime( 1, "Time", clock() - clkTotal );
+        Abc_PrintTime( 1, "Time", Abc_Clock() - clkTotal );
     }
     // cleanup
     Ssw_RarManStop( p );

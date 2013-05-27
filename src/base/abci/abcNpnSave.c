@@ -393,9 +393,9 @@ void Npn_ManResize( Npn_Man_t * p )
     Npn_Obj_t * pEntry, * pNext;
     int * pBinsOld, * ppPlace;
     int nBinsOld, Counter, i;
-    clock_t clk;
+    abctime clk;
     assert( p->pBins != NULL );
-clk = clock();
+clk = Abc_Clock();
     // save the old Bins
     pBinsOld = p->pBins;
     nBinsOld = p->nBins;
@@ -420,7 +420,7 @@ clk = clock();
     }
     assert( Counter == p->nEntries );
     ABC_FREE( pBinsOld );
-//ABC_PRT( "Hash table resizing time", clock() - clk );
+//ABC_PRT( "Hash table resizing time", Abc_Clock() - clk );
 }
 
 /**Function*************************************************************

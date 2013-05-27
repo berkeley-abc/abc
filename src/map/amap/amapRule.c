@@ -338,7 +338,7 @@ void Amap_LibCreateRules( Amap_Lib_t * pLib, int fVeryVerbose )
 {
     Amap_Gat_t * pGate;
     int i, nGates = 0;
-//    clock_t clk = clock();
+//    abctime clk = Abc_Clock();
     pLib->fVerbose = fVeryVerbose;
     pLib->vRules   = Vec_PtrAlloc( 100 );
     pLib->vRulesX  = Vec_PtrAlloc( 100 );

@@ -100,7 +100,7 @@ void * Inter_ManGetCounterExample( Aig_Man_t * pAig, int nFrames, int fVerbose )
     sat_solver * pSat;
     Cnf_Dat_t * pCnf;
     int status;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     Vec_Int_t * vCiIds;
     // create timeframes
     assert( Saig_ManPoNum(pAig) == 1 );
@@ -152,7 +152,7 @@ void * Inter_ManGetCounterExample( Aig_Man_t * pAig, int nFrames, int fVerbose )
     // report the results
     if ( fVerbose )
     {
-        ABC_PRT( "Total ctrex generation time", clock() - clk );
+        ABC_PRT( "Total ctrex generation time", Abc_Clock() - clk );
     }
     return pCtrex;
 

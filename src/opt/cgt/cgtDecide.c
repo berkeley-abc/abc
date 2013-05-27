@@ -193,7 +193,7 @@ Vec_Vec_t * Cgt_ManDecideSimple( Aig_Man_t * pAig, Vec_Vec_t * vGatesAll, int nO
     Vec_Ptr_t * vCands;
     Aig_Obj_t * pObjLi, * pObjLo, * pCand, * pCandBest;
     int i, k, nHitsCur, nHitsMax, Counter = 0;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     int nTransTotal = 0, nTransSaved = 0;
     vGates = Vec_VecStart( Saig_ManRegNum(pAig) );
     pSml = Ssw_SmlSimulateSeq( pAig, 0, nFrames, nWords );
@@ -231,7 +231,7 @@ Vec_Vec_t * Cgt_ManDecideSimple( Aig_Man_t * pAig, Vec_Vec_t * vGatesAll, int nO
 //        printf( "Gated transitions = %5.2f %%. (%5.2f %%.) ", 
 //            100.0*nTransSaved/nTransTotal, Cgt_ManComputeCoverage(pAig, vGates) );
         printf( "Gated transitions = %5.2f %%. ", Cgt_ManComputeCoverage(pAig, vGates) );
-        ABC_PRT( "Time", clock() - clk );
+        ABC_PRT( "Time", Abc_Clock() - clk );
     }
 /*
     {
@@ -261,7 +261,7 @@ Vec_Vec_t * Cgt_ManDecideArea( Aig_Man_t * pAig, Vec_Vec_t * vGatesAll, int nOdc
     Vec_Ptr_t * vCompletes, * vOne;
     Aig_Obj_t * pGate;
     int i, k, Counter = 0;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     // derive and label complete gates
     vCompletes = Cgt_ManCompleteGates( pAig, vGatesAll, nOdcMax, fVerbose );
     // label complete gates
@@ -288,7 +288,7 @@ Vec_Vec_t * Cgt_ManDecideArea( Aig_Man_t * pAig, Vec_Vec_t * vGatesAll, int nOdc
             Vec_VecSizeSize(vGatesAll), Counter, Saig_ManRegNum(pAig) );
         printf( "Complete gates = %6d. Gated transitions = %5.2f %%. ", 
             Vec_PtrSize(vCompletes), Cgt_ManComputeCoverage(pAig, vGates) );
-        ABC_PRT( "Time", clock() - clk );
+        ABC_PRT( "Time", Abc_Clock() - clk );
     }
     Vec_PtrFree( vCompletes );
     return vGates;

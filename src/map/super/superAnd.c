@@ -115,7 +115,7 @@ void Super2_Precompute( int nInputs, int nLevels, int fVerbose )
     Super2_Man_t * pMan;
     Super2_Lib_t * pLibCur, * pLibNext;
     int Level;
-    clock_t clk;
+    abctime clk;
 
     assert( nInputs < 6 );
 
@@ -129,13 +129,13 @@ void Super2_Precompute( int nInputs, int nLevels, int fVerbose )
 printf( "Computing supergates for %d inputs and %d levels:\n", nInputs, nLevels );
     for ( Level = 1; Level <= nLevels; Level++ )
     {
-clk = clock();
+clk = Abc_Clock();
         pLibNext = Super2_LibCompute( pMan, pLibCur );
         pLibNext->nLevels = Level;
         Super2_LibStop( pLibCur );
         pLibCur = pLibNext;
 printf( "Level %d:  Tried = %7d.  Computed = %7d.  ", Level, pMan->nTried, pLibCur->nGates );
-ABC_PRT( "Runtime", clock() - clk );
+ABC_PRT( "Runtime", Abc_Clock() - clk );
 fflush( stdout );
     }
 
@@ -463,7 +463,7 @@ void Super2_LibWrite( Super2_Lib_t * pLib )
     Super2_Gate_t * pGate;
     FILE * pFile;
     char FileName[100];
-    clock_t clk;
+    abctime clk;
 
     if ( pLib->nLevels > 5 )
     {
@@ -471,14 +471,14 @@ void Super2_LibWrite( Super2_Lib_t * pLib )
         return;
     }
 
-clk = clock();
+clk = Abc_Clock();
     // sort the supergates by truth table
     s_uMaskBit = pLib->uMaskBit;
     s_uMaskAll = SUPER_MASK(pLib->nMints);
     qsort( (void *)pLib->pGates, pLib->nGates, sizeof(Super2_Gate_t *), 
             (int (*)(const void *, const void *)) Super2_LibCompareGates );
     assert( Super2_LibCompareGates( pLib->pGates, pLib->pGates + pLib->nGates - 1 ) < 0 );
-ABC_PRT( "Sorting", clock() - clk );
+ABC_PRT( "Sorting", Abc_Clock() - clk );
 
 
     // start the file

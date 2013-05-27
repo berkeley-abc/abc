@@ -60,7 +60,7 @@ int Ssw_ManProfileConstraints( Aig_Man_t * p, int nWords, int nFrames, int fVerb
     Aig_Obj_t * pObj, * pObjLi;
     unsigned * pInfo, * pInfo0, * pInfo1, * pInfoMask, * pInfoMask2;
     int i, w, f, RetValue = 1;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     if ( fVerbose )
         printf( "Simulating %d nodes and %d flops for %d frames with %d words... ", 
             Aig_ManNodeNum(p), Aig_ManRegNum(p), nFrames, nWords );
@@ -196,7 +196,7 @@ int Ssw_ManProfileConstraints( Aig_Man_t * p, int nWords, int nFrames, int fVerb
         }
     }
     if ( fVerbose )
-        Abc_PrintTime( 1, "T", clock() - clk );
+        Abc_PrintTime( 1, "T", Abc_Clock() - clk );
     // print the state
     if ( fVerbose )
     {

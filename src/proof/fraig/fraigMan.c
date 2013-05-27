@@ -25,8 +25,8 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-clock_t timeSelect;
-clock_t timeAssign;
+abctime timeSelect;
+abctime timeAssign;
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -324,8 +324,8 @@ void Fraig_ManFree( Fraig_Man_t * p )
 ***********************************************************************/
 void Fraig_ManCreateSolver( Fraig_Man_t * p )
 {
-    extern clock_t timeSelect;
-    extern clock_t timeAssign;
+    extern abctime timeSelect;
+    extern abctime timeAssign;
     assert( p->pSat == NULL );
     // allocate data for SAT solving
     p->pSat       = Msat_SolverAlloc( 500, 1, 1, 1, 1, 0 );

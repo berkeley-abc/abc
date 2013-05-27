@@ -69,17 +69,17 @@ int Rwr_NodeRewrite( Rwr_Man_t * p, Cut_Man_t * pManCut, Abc_Obj_t * pNode, int 
     int Required, nNodesSaved;
     int nNodesSaveCur = -1; // Suppress "might be used uninitialized"
     int i, GainCur, GainBest = -1;
-    clock_t clk, clk2;//, Counter;
+    abctime clk, clk2;//, Counter;
 
     p->nNodesConsidered++;
     // get the required times
     Required = fUpdateLevel? Abc_ObjRequiredLevel(pNode) : ABC_INFINITY;
 
     // get the node's cuts
-clk = clock();
+clk = Abc_Clock();
     pCut = (Cut_Cut_t *)Abc_NodeGetCutsRecursive( pManCut, pNode, 0, 0 );
     assert( pCut != NULL );
-p->timeCut += clock() - clk;
+p->timeCut += Abc_Clock() - clk;
 
 //printf( " %d", Rwr_CutCountNumNodes(pNode, pCut) );
 /*
@@ -89,7 +89,7 @@ p->timeCut += clock() - clk;
     printf( "%d ", Counter );
 */
     // go through the cuts
-clk = clock();
+clk = Abc_Clock();
     for ( pCut = pCut->pNext; pCut; pCut = pCut->pNext )
     {
         // consider only 4-input cuts
@@ -128,7 +128,7 @@ clk = clock();
                 continue;
         }
 
-clk2 = clock();
+clk2 = Abc_Clock();
 /*
         printf( "Considering: (" );
         Vec_PtrForEachEntry( Abc_Obj_t *, p->vFaninsCur, pFanin, i )
@@ -145,12 +145,12 @@ clk2 = clock();
         // unmark the fanin boundary
         Vec_PtrForEachEntry( Abc_Obj_t *, p->vFaninsCur, pFanin, i )
             Abc_ObjRegular(pFanin)->vFanouts.nSize--;
-p->timeMffc += clock() - clk2;
+p->timeMffc += Abc_Clock() - clk2;
 
         // evaluate the cut
-clk2 = clock();
+clk2 = Abc_Clock();
         pGraph = Rwr_CutEvaluate( p, pNode, pCut, p->vFaninsCur, nNodesSaved, Required, &GainCur, fPlaceEnable );
-p->timeEval += clock() - clk2;
+p->timeEval += Abc_Clock() - clk2;
 
         // check if the cut is better than the current best one
         if ( pGraph != NULL && GainBest < GainCur )
@@ -167,7 +167,7 @@ p->timeEval += clock() - clk2;
                 Vec_PtrPush( p->vFanins, pFanin );
         }
     }
-p->timeRes += clock() - clk;
+p->timeRes += Abc_Clock() - clk;
 
     if ( GainBest == -1 )
         return -1;

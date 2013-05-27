@@ -133,7 +133,7 @@ void Nwk_ManBidecResyn( Nwk_Man_t * pNtk, int fVerbose )
     Nwk_Obj_t * pObj;
     Vec_Int_t * vTruth;
     int i, nGainTotal = 0, nNodes1, nNodes2;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     pPars->nVarsMax = Nwk_ManGetFaninMax( pNtk );
     pPars->fVerbose = fVerbose;
     if ( pPars->nVarsMax < 2 )
@@ -163,7 +163,7 @@ void Nwk_ManBidecResyn( Nwk_Man_t * pNtk, int fVerbose )
     if ( fVerbose )
     {
     printf( "Total gain in AIG nodes = %d.  ", nGainTotal );
-    ABC_PRT( "Total runtime", clock() - clk );
+    ABC_PRT( "Total runtime", Abc_Clock() - clk );
     }
 }
 

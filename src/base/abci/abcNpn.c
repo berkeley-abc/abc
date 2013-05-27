@@ -177,7 +177,7 @@ void Abc_TruthNpnPerform( Abc_TtStore_t * p, int NpnType, int fVerbose )
     word pAuxWord[1024], pAuxWord1[1024];
     char pCanonPerm[16];
     unsigned uCanonPhase=0;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     int i;
 
     char * pAlgoName = NULL;
@@ -274,7 +274,7 @@ void Abc_TruthNpnPerform( Abc_TtStore_t * p, int NpnType, int fVerbose )
         }
     }
     else assert( 0 );
-    clk = clock() - clk;
+    clk = Abc_Clock() - clk;
     printf( "Classes =%9d  ", Abc_TruthNpnCountUnique(p) );
     Abc_PrintTime( 1, "Time", clk );
 }

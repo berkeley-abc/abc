@@ -58,7 +58,7 @@ ABC_NAMESPACE_IMPL_START
 Map_SuperLib_t * Map_SuperLibCreate( Vec_Str_t * vStr, char * pFileName, char * pExcludeFile, int fAlgorithm, int fVerbose )
 {
     Map_SuperLib_t * p;
-    clock_t clk;
+    abctime clk;
 
     // start the supergate library
     p = ABC_ALLOC( Map_SuperLib_t, 1 );
@@ -75,7 +75,7 @@ Map_SuperLib_t * Map_SuperLibCreate( Vec_Str_t * vStr, char * pFileName, char * 
     p->tTable  = Map_SuperTableCreate( p );
 
     // read the supergate library from file
-clk = clock();
+clk = Abc_Clock();
     if ( vStr != NULL )
     {
         // read the supergate library from file
@@ -123,7 +123,7 @@ clk = clock();
     {
         printf( "Loaded %d unique %d-input supergates from \"%s\".  ", 
             p->nSupersReal, p->nVarsMax, pFileName );
-        ABC_PRT( "Time", clock() - clk );
+        ABC_PRT( "Time", Abc_Clock() - clk );
     }
 
     // assign the interver parameters

@@ -48,8 +48,8 @@ Aig_Man_t * Csw_Sweep( Aig_Man_t * pAig, int nCutsMax, int nLeafMax, int fVerbos
     Aig_Man_t * pRes;
     Aig_Obj_t * pObj, * pObjNew, * pObjRes;
     int i;
-    clock_t clk;
-clk = clock();
+    abctime clk;
+clk = Abc_Clock();
     // start the manager
     p = Csw_ManStart( pAig, nCutsMax, nLeafMax, fVerbose );
     // set elementary cuts at the PIs
@@ -83,7 +83,7 @@ clk = clock();
     // remove dangling nodes 
     Aig_ManCleanup( p->pManRes );
     // return the resulting manager
-p->timeTotal = clock() - clk;
+p->timeTotal = Abc_Clock() - clk;
 p->timeOther = p->timeTotal - p->timeCuts - p->timeHash;
     pRes = p->pManRes;
     Csw_ManStop( p );

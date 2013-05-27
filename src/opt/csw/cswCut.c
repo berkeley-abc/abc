@@ -498,7 +498,7 @@ Aig_Obj_t * Csw_ObjSweep( Csw_Man_t * p, Aig_Obj_t * pObj, int fTriv )
     Aig_Obj_t * pObjNew;
     unsigned * pTruth;
     int i, k, nVars, nFanins, iVar;
-    clock_t clk;
+    abctime clk;
 
     assert( !Aig_IsComplement(pObj) );
     if ( !Aig_ObjIsNode(pObj) )
@@ -523,7 +523,7 @@ Aig_Obj_t * Csw_ObjSweep( Csw_Man_t * p, Aig_Obj_t * pObj, int fTriv )
             continue;
         // get the next cut of this node
         pCut = Csw_CutFindFree( p, pObj );
-clk = clock();
+clk = Abc_Clock();
         // assemble the new cut
         if ( !Csw_CutMerge( p, pCut0, pCut1, pCut ) )
         {
@@ -542,7 +542,7 @@ clk = clock();
         nFanins = pCut->nFanins;
 //        nVars = Csw_CutSupportMinimize( p, pCut ); // leads to quality degradation
         nVars = Kit_TruthSupportSize( pTruth, p->nLeafMax );
-p->timeCuts += clock() - clk;
+p->timeCuts += Abc_Clock() - clk;
 
         // check for trivial truth tables
         if ( nVars == 0 )
@@ -567,9 +567,9 @@ p->timeCuts += clock() - clk;
         }
 
         // check if an equivalent node with the same cut exists
-clk = clock();
+clk = Abc_Clock();
         pObjNew = pCut->nFanins > 2 ? Csw_TableCutLookup( p, pCut ) : NULL;
-p->timeHash += clock() - clk;
+p->timeHash += Abc_Clock() - clk;
         if ( pObjNew )
         {
             p->nNodesCuts++;
@@ -584,7 +584,7 @@ p->timeHash += clock() - clk;
     p->nNodesTried++;
 
     // load the resulting cuts into the table
-clk = clock();
+clk = Abc_Clock();
     Csw_ObjForEachCut( p, pObj, pCut, i )
     {
         if ( pCut->nFanins > 2 )
@@ -593,7 +593,7 @@ clk = clock();
             Csw_TableCutInsert( p, pCut );
         }
     }
-p->timeHash += clock() - clk;
+p->timeHash += Abc_Clock() - clk;
 
     // return the node if could not replace it
     return pObj;

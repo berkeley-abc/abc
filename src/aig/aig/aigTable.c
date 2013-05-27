@@ -71,9 +71,9 @@ void Aig_TableResize( Aig_Man_t * p )
     Aig_Obj_t * pEntry, * pNext;
     Aig_Obj_t ** pTableOld, ** ppPlace;
     int nTableSizeOld, Counter, i;
-    clock_t clk;
+    abctime clk;
     assert( p->pTable != NULL );
-clk = clock();
+clk = Abc_Clock();
     // save the old table
     pTableOld = p->pTable;
     nTableSizeOld = p->nTableSize;
@@ -97,7 +97,7 @@ clk = clock();
     }
     assert( Counter == Aig_ManNodeNum(p) );
 //    printf( "Increasing the structural table size from %6d to %6d. ", nTableSizeOld, p->nTableSize );
-//    ABC_PRT( "Time", clock() - clk );
+//    ABC_PRT( "Time", Abc_Clock() - clk );
     // replace the table and the parameters
     ABC_FREE( pTableOld );
 }

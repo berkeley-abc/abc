@@ -298,7 +298,7 @@ int Cec_SequentialSynthesisPart( Gia_Man_t * p, Cec_ParSeq_t * pPars )
     int * pMapBack, * pReprs;
     int i, nCountPis, nCountRegs;
     int nClasses;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
 
     // save parameters
     if ( fPrintParts )
@@ -367,7 +367,7 @@ int Cec_SequentialSynthesisPart( Gia_Man_t * p, Cec_ParSeq_t * pPars )
     ABC_FREE( pReprs );
     if ( pPars->fVerbose )
     {
-        Abc_PrintTime( 1, "Total time", clock() - clk );
+        Abc_PrintTime( 1, "Total time", Abc_Clock() - clk );
     }
     return 1;
 }

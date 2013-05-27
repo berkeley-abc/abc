@@ -72,7 +72,7 @@ Vec_Ptr_t * Amap_ManTest( Aig_Man_t * pAig, Amap_Par_t * pPars )
     Vec_Ptr_t * vRes;
     Amap_Man_t * p;
     Amap_Lib_t * pLib;
-    clock_t clkTotal = clock();
+    abctime clkTotal = Abc_Clock();
     pLib = (Amap_Lib_t *)Abc_FrameReadLibGen2();
     if ( pLib == NULL )
     {
@@ -94,7 +94,7 @@ Vec_Ptr_t * Amap_ManTest( Aig_Man_t * pAig, Amap_Par_t * pPars )
     Amap_ManStop( p );
 if ( pPars->fVerbose )
 {
-ABC_PRT( "Total runtime", clock() - clkTotal );
+ABC_PRT( "Total runtime", Abc_Clock() - clkTotal );
 }
     return vRes;
 }

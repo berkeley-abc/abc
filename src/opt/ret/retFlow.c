@@ -145,7 +145,7 @@ Vec_Ptr_t * Abc_NtkMaxFlow( Abc_Ntk_t * pNtk, int fForward, int fVerbose )
     Vec_Ptr_t * vMinCut;
     Abc_Obj_t * pLatch;
     int Flow, FlowCur, RetValue, i;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     int fUseDirectedFlow = 1;
 
     // find the max-flow
@@ -231,7 +231,7 @@ Vec_Ptr_t * Abc_NtkMaxFlow( Abc_Ntk_t * pNtk, int fForward, int fVerbose )
     {
     printf( "L = %6d. %s max-flow = %6d.  Min-cut = %6d.  ", 
         Abc_NtkLatchNum(pNtk), fForward? "Forward " : "Backward", Flow, Vec_PtrSize(vMinCut) );
-ABC_PRT( "Time", clock() - clk );
+ABC_PRT( "Time", Abc_Clock() - clk );
     }
 
 //    Abc_NtkMaxFlowPrintCut( pNtk, vMinCut );

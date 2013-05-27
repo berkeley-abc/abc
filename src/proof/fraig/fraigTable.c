@@ -261,10 +261,10 @@ void Fraig_TableResizeS( Fraig_HashTable_t * p )
     Fraig_Node_t ** pBinsNew;
     Fraig_Node_t * pEnt, * pEnt2;
     int nBinsNew, Counter, i;
-    clock_t clk;
+    abctime clk;
     unsigned Key;
 
-clk = clock();
+clk = Abc_Clock();
     // get the new table size
     nBinsNew = Abc_PrimeCudd(2 * p->nBins); 
     // allocate a new array
@@ -282,7 +282,7 @@ clk = clock();
         }
     assert( Counter == p->nEntries );
 //    printf( "Increasing the structural table size from %6d to %6d. ", p->nBins, nBinsNew );
-//    ABC_PRT( "Time", clock() - clk );
+//    ABC_PRT( "Time", Abc_Clock() - clk );
     // replace the table and the parameters
     ABC_FREE( p->pBins );
     p->pBins = pBinsNew;
@@ -305,10 +305,10 @@ void Fraig_TableResizeF( Fraig_HashTable_t * p, int fUseSimR )
     Fraig_Node_t ** pBinsNew;
     Fraig_Node_t * pEnt, * pEnt2;
     int nBinsNew, Counter, i;
-    clock_t clk;
+    abctime clk;
     unsigned Key;
 
-clk = clock();
+clk = Abc_Clock();
     // get the new table size
     nBinsNew = Abc_PrimeCudd(2 * p->nBins); 
     // allocate a new array
@@ -329,7 +329,7 @@ clk = clock();
         }
     assert( Counter == p->nEntries );
 //    printf( "Increasing the functional table size from %6d to %6d. ", p->nBins, nBinsNew );
-//    ABC_PRT( "Time", clock() - clk );
+//    ABC_PRT( "Time", Abc_Clock() - clk );
     // replace the table and the parameters
     ABC_FREE( p->pBins );
     p->pBins = pBinsNew;

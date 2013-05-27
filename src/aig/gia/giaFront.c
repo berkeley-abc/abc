@@ -151,7 +151,7 @@ Gia_Man_t * Gia_ManFront( Gia_Man_t * p )
     char * pFront;    // places used for the frontier
     int i, iLit, nCrossCut = 0, nCrossCutMax = 0;
     int nCrossCutMaxInit = Gia_ManCrossCutSimple( p );
-    int iFront = 0;//, clk = clock(); 
+    int iFront = 0;//, clk = Abc_Clock(); 
     // set references for all objects
     Gia_ManCreateValueRefs( p );
     // start the new manager
@@ -243,7 +243,7 @@ Gia_Man_t * Gia_ManFront( Gia_Man_t * p )
         assert( pFront[i] == 0 );
     ABC_FREE( pFront );
 //printf( "Crosscut = %6d. Frontier = %6d. ", nCrossCutMaxInit, pNew->nFront );
-//ABC_PRT( "Time", clock() - clk );
+//ABC_PRT( "Time", Abc_Clock() - clk );
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
     return pNew;
 }

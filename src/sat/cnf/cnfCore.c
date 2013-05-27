@@ -81,30 +81,30 @@ Vec_Int_t * Cnf_DeriveMappingArray( Aig_Man_t * pAig )
     Cnf_Man_t * p;
     Vec_Ptr_t * vMapped;
     Aig_MmFixed_t * pMemCuts;
-    clock_t clk;
+    abctime clk;
     // allocate the CNF manager
     p = Cnf_ManStart();
     p->pManAig = pAig;
 
     // generate cuts for all nodes, assign cost, and find best cuts
-clk = clock();
+clk = Abc_Clock();
     pMemCuts = Dar_ManComputeCuts( pAig, 10, 0, 0 );
-p->timeCuts = clock() - clk;
+p->timeCuts = Abc_Clock() - clk;
 
     // find the mapping
-clk = clock();
+clk = Abc_Clock();
     Cnf_DeriveMapping( p );
-p->timeMap = clock() - clk;
+p->timeMap = Abc_Clock() - clk;
 //    Aig_ManScanMapping( p, 1 );
 
     // convert it into CNF
-clk = clock();
+clk = Abc_Clock();
     Cnf_ManTransferCuts( p );
     vMapped = Cnf_ManScanMapping( p, 1, 0 );
     vResult = Cnf_ManWriteCnfMapping( p, vMapped );
     Vec_PtrFree( vMapped );
     Aig_MmFixedStop( pMemCuts, 0 );
-p->timeSave = clock() - clk;
+p->timeSave = Abc_Clock() - clk;
 
    // reset reference counters
     Aig_ManResetRefs( pAig );
@@ -131,29 +131,29 @@ Cnf_Dat_t * Cnf_DeriveWithMan( Cnf_Man_t * p, Aig_Man_t * pAig, int nOutputs )
     Cnf_Dat_t * pCnf;
     Vec_Ptr_t * vMapped;
     Aig_MmFixed_t * pMemCuts;
-    clock_t clk;
+    abctime clk;
     // connect the managers
     p->pManAig = pAig;
 
     // generate cuts for all nodes, assign cost, and find best cuts
-clk = clock();
+clk = Abc_Clock();
     pMemCuts = Dar_ManComputeCuts( pAig, 10, 0, 0 );
-p->timeCuts = clock() - clk;
+p->timeCuts = Abc_Clock() - clk;
 
     // find the mapping
-clk = clock();
+clk = Abc_Clock();
     Cnf_DeriveMapping( p );
-p->timeMap = clock() - clk;
+p->timeMap = Abc_Clock() - clk;
 //    Aig_ManScanMapping( p, 1 );
 
     // convert it into CNF
-clk = clock();
+clk = Abc_Clock();
     Cnf_ManTransferCuts( p );
     vMapped = Cnf_ManScanMapping( p, 1, 1 );
     pCnf = Cnf_ManWriteCnf( p, vMapped, nOutputs );
     Vec_PtrFree( vMapped );
     Aig_MmFixedStop( pMemCuts, 0 );
-p->timeSave = clock() - clk;
+p->timeSave = Abc_Clock() - clk;
 
    // reset reference counters
     Aig_ManResetRefs( pAig );
@@ -184,30 +184,30 @@ Cnf_Dat_t * Cnf_DeriveOtherWithMan( Cnf_Man_t * p, Aig_Man_t * pAig, int fSkipTt
     Cnf_Dat_t * pCnf;
     Vec_Ptr_t * vMapped;
     Aig_MmFixed_t * pMemCuts;
-    clock_t clk;
+    abctime clk;
     // connect the managers
     p->pManAig = pAig;
 
     // generate cuts for all nodes, assign cost, and find best cuts
-clk = clock();
+clk = Abc_Clock();
     pMemCuts = Dar_ManComputeCuts( pAig, 10, fSkipTtMin, 0 );
-p->timeCuts = clock() - clk;
+p->timeCuts = Abc_Clock() - clk;
 
     // find the mapping
-clk = clock();
+clk = Abc_Clock();
     Cnf_DeriveMapping( p );
-p->timeMap = clock() - clk;
+p->timeMap = Abc_Clock() - clk;
 //    Aig_ManScanMapping( p, 1 );
 
     // convert it into CNF
-clk = clock();
+clk = Abc_Clock();
     Cnf_ManTransferCuts( p );
     vMapped = Cnf_ManScanMapping( p, 1, 1 );
     pCnf = Cnf_ManWriteCnfOther( p, vMapped );
     pCnf->vMapping = Cnf_ManWriteCnfMapping( p, vMapped );
     Vec_PtrFree( vMapped );
     Aig_MmFixedStop( pMemCuts, 0 );
-p->timeSave = clock() - clk;
+p->timeSave = Abc_Clock() - clk;
 
    // reset reference counters
     Aig_ManResetRefs( pAig );
@@ -241,17 +241,17 @@ Cnf_Dat_t * Cnf_Derive_old( Aig_Man_t * pAig )
     // iteratively improve area flow
     for ( i = 0; i < nIters; i++ )
     {
-clk = clock();
+clk = Abc_Clock();
         Cnf_ManScanMapping( p, 0 );
         Cnf_ManMapForCnf( p );
-ABC_PRT( "iter ", clock() - clk );
+ABC_PRT( "iter ", Abc_Clock() - clk );
     }
 */
     // write the file
     vMapped = Aig_ManScanMapping( p, 1 );
     Vec_PtrFree( vMapped );
 
-clk = clock();
+clk = Abc_Clock();
     Cnf_ManTransferCuts( p );
 
     Cnf_ManPostprocess( p );
@@ -262,7 +262,7 @@ clk = clock();
     Cnf_ManPostprocess( p );
     Cnf_ManScanMapping( p, 0 );
 */
-ABC_PRT( "Ext ", clock() - clk );
+ABC_PRT( "Ext ", Abc_Clock() - clk );
 
 /*
     vMapped = Cnf_ManScanMapping( p, 1 );

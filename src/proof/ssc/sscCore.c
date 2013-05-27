@@ -218,9 +218,9 @@ Gia_Man_t * Ssc_PerformSweeping( Gia_Man_t * pAig, Gia_Man_t * pCare, Ssc_Pars_t
     Ssc_Man_t * p;
     Gia_Man_t * pResult, * pTemp;
     Gia_Obj_t * pObj, * pRepr;
-    clock_t clk, clkTotal = clock();
+    abctime clk, clkTotal = Abc_Clock();
     int i, fCompl, nRefined, status;
-clk = clock();
+clk = Abc_Clock();
     assert( Gia_ManRegNum(pCare) == 0 );
     assert( Gia_ManCiNum(pAig) == Gia_ManCiNum(pCare) );
     assert( Gia_ManIsNormalized(pAig) );
@@ -250,7 +250,7 @@ clk = clock();
         if ( nRefined <= Gia_ManCandNum(pAig) / 100 )
             break;
     }
-p->timeSimInit += clock() - clk;
+p->timeSimInit += Abc_Clock() - clk;
 
     // prepare user's AIG
     Gia_ManFillValue(pAig);
@@ -267,7 +267,7 @@ p->timeSimInit += clock() - clk;
     {
         if ( pAig->iPatsPi == 64 * pPars->nWords )
         {
-clk = clock();
+clk = Abc_Clock();
             Ssc_GiaSimRound( pAig );
             Ssc_GiaClassesRefine( pAig );
             if ( pPars->fVerbose ) 
@@ -277,7 +277,7 @@ clk = clock();
             // prepare next patterns
             Ssc_GiaResetPiPattern( pAig, pPars->nWords );
             Ssc_GiaSavePiPattern( pAig, p->vPivot );
-p->timeSimSat += clock() - clk;
+p->timeSimSat += Abc_Clock() - clk;
 //printf( "\n" );
         }
         if ( Gia_ObjIsAnd(pObj) )
@@ -294,7 +294,7 @@ p->timeSimSat += clock() - clk;
         fCompl = pRepr->fPhase ^ pObj->fPhase ^ Abc_LitIsCompl(pRepr->Value) ^ Abc_LitIsCompl(pObj->Value);
 
         // perform SAT call
-clk = clock();
+clk = Abc_Clock();
         p->nSatCalls++;
         status = Ssc_ManCheckEquivalence( p, Abc_Lit2Var(pRepr->Value), Abc_Lit2Var(pObj->Value), fCompl );
         if ( status == l_False )
@@ -317,11 +317,11 @@ clk = clock();
         else if ( status == l_Undef )
             p->nSatCallsUndec++;
         else assert( 0 );
-p->timeSat += clock() - clk;
+p->timeSat += Abc_Clock() - clk;
     }
     if ( pAig->iPatsPi > 1 )
     {
-clk = clock();
+clk = Abc_Clock();
         while ( pAig->iPatsPi < 64 * pPars->nWords )
             Ssc_GiaSavePiPattern( pAig, p->vPivot );
         Ssc_GiaSimRound( pAig );
@@ -330,7 +330,7 @@ clk = clock();
             Gia_ManEquivPrintClasses( pAig, 0, 0 );
         Ssc_GiaClassesCheckPairs( pAig, p->vDisPairs );
         Vec_IntClear( p->vDisPairs );
-p->timeSimSat += clock() - clk;
+p->timeSimSat += Abc_Clock() - clk;
     }
 //    Gia_ManEquivPrintClasses( pAig, 1, 0 );
 //    Gia_ManPrint( pAig );
@@ -346,7 +346,7 @@ p->timeSimSat += clock() - clk;
     }
     pResult = Gia_ManCleanup( pTemp = pResult );
     Gia_ManStop( pTemp );
-    p->timeTotal = clock() - clkTotal;
+    p->timeTotal = Abc_Clock() - clkTotal;
     if ( pPars->fVerbose )
         Ssc_ManPrintStats( p );
     Ssc_ManStop( p );
@@ -356,7 +356,7 @@ p->timeSimSat += clock() - clk;
         Abc_Print( 1, "Reduction in AIG nodes:%8d  ->%8d (%6.2f %%).  ", 
             Gia_ManAndNum(pAig), Gia_ManAndNum(pResult), 
             100.0 - 100.0 * Gia_ManAndNum(pResult) / Gia_ManAndNum(pAig) );
-        Abc_PrintTime( 1, "Time", clock() - clkTotal );
+        Abc_PrintTime( 1, "Time", Abc_Clock() - clkTotal );
     }
     return pResult;
 }

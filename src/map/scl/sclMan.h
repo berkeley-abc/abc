@@ -80,11 +80,11 @@ struct SC_Man_
     float          MaxDelay0;     // max delay at the begining
     float          BestDelay;     // best delay in the middle
     // runtime statistics
-    clock_t        timeTotal;     // starting/total time
-    clock_t        timeCone;      // critical path selection 
-    clock_t        timeSize;      // incremental sizing
-    clock_t        timeTime;      // timing update
-    clock_t        timeOther;     // everything else
+    abctime        timeTotal;     // starting/total time
+    abctime        timeCone;      // critical path selection 
+    abctime        timeSize;      // incremental sizing
+    abctime        timeTime;      // timing update
+    abctime        timeOther;     // everything else
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -340,7 +340,7 @@ static inline SC_Cell * Abc_SclObjResiable( SC_Man * p, Abc_Obj_t * pObj, int fU
   SeeAlso     []
 
 ***********************************************************************/
-static inline void Abc_SclDumpStats( SC_Man * p, char * pFileName, clock_t Time )
+static inline void Abc_SclDumpStats( SC_Man * p, char * pFileName, abctime Time )
 {
     FILE * pTable;
     pTable = fopen( pFileName, "a+" );

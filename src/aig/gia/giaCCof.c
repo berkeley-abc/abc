@@ -221,7 +221,7 @@ int Gia_ManCofGetReachable( Ccf_Man_t * p, int Lit )
 {
     int ObjPrev = 0, ConfPrev = 0;
     int Count = 0, LitOut, RetValue;
-    clock_t clk;
+    abctime clk;
     // try solving for the first time and quit if converged
     RetValue = sat_solver_solve( p->pSat, &Lit, &Lit + 1, p->nConfMax, 0, 0, 0 );
     if ( RetValue == l_False )
@@ -229,7 +229,7 @@ int Gia_ManCofGetReachable( Ccf_Man_t * p, int Lit )
     // iterate circuit cofactoring
     while ( RetValue == l_True )
     {
-        clk = clock();
+        clk = Abc_Clock();
         // derive cofactor
         LitOut = Gia_ManCofOneDerive( p, Lit );
         // add the blocking clause
@@ -242,7 +242,7 @@ int Gia_ManCofGetReachable( Ccf_Man_t * p, int Lit )
         {
             printf( "%3d : AIG =%7d  Conf =%7d.  ", Count++, 
                 Gia_ManObjNum(p->pFrames) - ObjPrev, sat_solver_nconflicts(p->pSat) - ConfPrev );
-            Abc_PrintTime( 1, "Time", clock() - clk );
+            Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
             ObjPrev = Gia_ManObjNum(p->pFrames);
             ConfPrev = sat_solver_nconflicts(p->pSat);
         }
@@ -269,8 +269,8 @@ Gia_Man_t * Gia_ManCofTest( Gia_Man_t * pGia, int nFrameMax, int nConfMax, int n
     Ccf_Man_t * p;
     Gia_Obj_t * pObj;
     int f, i, Lit, RetValue = -1, fFailed = 0;
-    clock_t nTimeToStop = clock() + nTimeMax * CLOCKS_PER_SEC;
-    clock_t clk = clock();
+    abctime nTimeToStop = Abc_Clock() + nTimeMax * CLOCKS_PER_SEC;
+    abctime clk = Abc_Clock();
     assert( Gia_ManPoNum(pGia) == 1 );
 
     // create reachability manager
@@ -310,7 +310,7 @@ Gia_Man_t * Gia_ManCofTest( Gia_Man_t * pGia, int nFrameMax, int nConfMax, int n
     }
 
     // report the result
-    if ( nTimeToStop && clock() > nTimeToStop )
+    if ( nTimeToStop && Abc_Clock() > nTimeToStop )
         printf( "Runtime limit (%d sec) is reached after %d frames.  ", nTimeMax, f );
     else if ( f == nFrameMax )
         printf( "Completed %d frames without converging.  ", f );
@@ -318,7 +318,7 @@ Gia_Man_t * Gia_ManCofTest( Gia_Man_t * pGia, int nFrameMax, int nConfMax, int n
         printf( "Backward reachability converged after %d iterations.  ", f-1 );
     else if ( RetValue == -1 )
         printf( "Conflict limit or timeout is reached after %d frames.  ", f-1 );
-    Abc_PrintTime( 1, "Runtime", clock() - clk );
+    Abc_PrintTime( 1, "Runtime", Abc_Clock() - clk );
 
     if ( !fFailed && RetValue == 1 )
         printf( "Property holds.\n" );

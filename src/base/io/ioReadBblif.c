@@ -165,15 +165,15 @@ Abc_Ntk_t * Bbl_ManToAig( Bbl_Man_t * p )
     Vec_Ptr_t * vCopy, * vNodes, * vFaninAigs;
     Dec_Graph_t ** pFForms;
     int i;
-    clock_t clk;
-clk = clock();
+    abctime clk;
+clk = Abc_Clock();
     // map SOP handles into factored forms
     pFForms = ABC_CALLOC( Dec_Graph_t *, Bbl_ManFncSize(p) );
     Bbl_ManForEachObj( p, pObj )
         if ( pFForms[Bbl_ObjFncHandle(pObj)] == NULL )
             pFForms[Bbl_ObjFncHandle(pObj)] = Dec_Factor( Bbl_ObjSop(p, pObj) );
 if ( fVerbose )
-ABC_PRT( "Fct", clock() - clk );
+ABC_PRT( "Fct", Abc_Clock() - clk );
     // start the network
     pNtk = Abc_NtkAlloc( ABC_NTK_STRASH, ABC_FUNC_AIG, 1 );
     pNtk->pName = Extra_UtilStrsav( Bbl_ManName(p) );
@@ -185,7 +185,7 @@ ABC_PRT( "Fct", clock() - clk );
             continue;
         Vec_PtrSetEntry( vCopy, Bbl_ObjId(pObj), Abc_NtkCreatePi(pNtk) );
     }
-clk = clock();
+clk = Abc_Clock();
     // create internal nodes
     vNodes = Bbl_ManDfs( p );
     vFaninAigs = Vec_PtrAlloc( 100 );
@@ -202,7 +202,7 @@ clk = clock();
     Vec_PtrFree( vFaninAigs );
     Vec_PtrFree( vNodes );
 if ( fVerbose )
-ABC_PRT( "AIG", clock() - clk );
+ABC_PRT( "AIG", Abc_Clock() - clk );
     // create COs
     Bbl_ManForEachObj( p, pObj )
     {
@@ -218,12 +218,12 @@ ABC_PRT( "AIG", clock() - clk );
             Dec_GraphFree( pFForms[i] );
     ABC_FREE( pFForms );
     // finalize
-clk = clock();
+clk = Abc_Clock();
     Vec_PtrFree( vCopy );
     Abc_NtkAddDummyPiNames( pNtk );
     Abc_NtkAddDummyPoNames( pNtk );
 if ( fVerbose )
-ABC_PRT( "Nam", clock() - clk );
+ABC_PRT( "Nam", Abc_Clock() - clk );
 //    if ( !Abc_NtkCheck( pNtk ) )
 //        printf( "Bbl_ManToAig(): Network check has failed.\n" );
     return pNtk;
@@ -271,36 +271,36 @@ void Bbl_ManTest( Abc_Ntk_t * pNtk )
     Abc_Ntk_t * pNtkNew;
     Bbl_Man_t * p, * pNew;
     char * pFileName = "test.bblif";
-    clock_t clk, clk1, clk2, clk3, clk4, clk5;
-clk = clock();
+    abctime clk, clk1, clk2, clk3, clk4, clk5;
+clk = Abc_Clock();
     p = Bbl_ManFromAbc( pNtk );
     Bbl_ManPrintStats( p );
-clk1 = clock() - clk;
+clk1 = Abc_Clock() - clk;
 //Bbl_ManDumpBlif( p, "test_bbl.blif" );
 
     // write into file and back
-clk = clock();
+clk = Abc_Clock();
     Bbl_ManDumpBinaryBlif( p, pFileName );
-clk2 = clock() - clk;
+clk2 = Abc_Clock() - clk;
 
     // read from file
-clk = clock();
+clk = Abc_Clock();
     pNew = Bbl_ManReadBinaryBlif( pFileName );
     Bbl_ManStop( p ); p = pNew;
-clk3 = clock() - clk;
+clk3 = Abc_Clock() - clk;
 
     // generate ABC network
-clk = clock();
+clk = Abc_Clock();
     pNtkNew = Bbl_ManToAig( p );
 //    pNtkNew = Bbl_ManToAbc( p );
     Bbl_ManStop( p );
-clk4 = clock() - clk;
+clk4 = Abc_Clock() - clk;
 
     // equivalence check
-clk = clock();
+clk = Abc_Clock();
 //    Bbl_ManVerify( pNtk, pNtkNew );
     Abc_NtkDelete( pNtkNew );
-clk5 = clock() - clk;
+clk5 = Abc_Clock() - clk;
 
 printf( "Runtime stats:\n" );
 ABC_PRT( "ABC to Man", clk1 );

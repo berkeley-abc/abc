@@ -73,12 +73,12 @@ struct Ga2_Man_t_
     Vec_Int_t *    vIsopMem;
     char * pSopSizes, ** pSops;  // CNF representation
     // statistics  
-    clock_t        timeStart;
-    clock_t        timeInit;
-    clock_t        timeSat;
-    clock_t        timeUnsat;
-    clock_t        timeCex;
-    clock_t        timeOther;
+    abctime        timeStart;
+    abctime        timeInit;
+    abctime        timeSat;
+    abctime        timeUnsat;
+    abctime        timeCex;
+    abctime        timeOther;
 };
 
 static inline int         Ga2_ObjId( Ga2_Man_t * p, Gia_Obj_t * pObj )           { return Vec_IntEntry(p->vIds, Gia_ObjId(p->pGia, pObj));                                                  }
@@ -243,7 +243,7 @@ void Ga2_ManCollectLeaves_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vLea
 int Ga2_ManMarkup( Gia_Man_t * p, int N, int fSimple )
 {
     static unsigned uTruth5[5] = { 0xAAAAAAAA, 0xCCCCCCCC, 0xF0F0F0F0, 0xFF00FF00, 0xFFFF0000 };
-//    clock_t clk = clock();
+//    abctime clk = Abc_Clock();
     Vec_Int_t * vLeaves;
     Gia_Obj_t * pObj;
     int i, k, Leaf, CountMarks;
@@ -330,20 +330,20 @@ int Ga2_ManMarkup( Gia_Man_t * p, int N, int fSimple )
         Vec_IntPush( p->vMapping, -1 );  // placeholder for ref counter
         CountMarks++;
     }
-//    Abc_PrintTime( 1, "Time", clock() - clk );
+//    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     Vec_IntFree( vLeaves );
     Gia_ManCleanValue( p );
     return CountMarks;
 }
 void Ga2_ManComputeTest( Gia_Man_t * p )
 {
-    clock_t clk;
+    abctime clk;
 //    unsigned uTruth;
     Gia_Obj_t * pObj;
     int i, Counter = 0;
-    clk = clock();
+    clk = Abc_Clock();
     Ga2_ManMarkup( p, 5, 0 );
-    Abc_PrintTime( 1, "Time", clock() - clk );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     Gia_ManForEachAnd( p, pObj, i )
     {
         if ( !pObj->fPhase )
@@ -355,7 +355,7 @@ void Ga2_ManComputeTest( Gia_Man_t * p )
         Counter++;
     }
     Abc_Print( 1, "Marked AND nodes = %6d.  ", Counter );
-    Abc_PrintTime( 1, "Time", clock() - clk );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 }
 
 /**Function*************************************************************
@@ -373,7 +373,7 @@ Ga2_Man_t * Ga2_ManStart( Gia_Man_t * pGia, Abs_Par_t * pPars )
 {
     Ga2_Man_t * p;
     p = ABC_CALLOC( Ga2_Man_t, 1 );
-    p->timeStart = clock();
+    p->timeStart = Abc_Clock();
     p->fUseNewLine = 1;
     // user data
     p->pGia      = pGia;
@@ -1366,7 +1366,7 @@ int Ga2_GlaAbsCount( Ga2_Man_t * p, int fRo, int fAnd )
   SeeAlso     []
 
 ***********************************************************************/
-void Ga2_ManAbsPrintFrame( Ga2_Man_t * p, int nFrames, int nConfls, int nCexes, clock_t Time, int fFinal )
+void Ga2_ManAbsPrintFrame( Ga2_Man_t * p, int nFrames, int nConfls, int nCexes, abctime Time, int fFinal )
 {
     int fUseNewLine = ((fFinal && nCexes) || p->pPars->fVeryVerbose);
     if ( Abc_FrameIsBatchMode() && !fUseNewLine )
@@ -1502,7 +1502,7 @@ int Gia_ManPerformGla( Gia_Man_t * pAig, Abs_Par_t * pPars )
     int fUseSecondCore = 1;
     Ga2_Man_t * p;
     Vec_Int_t * vCore, * vPPis;
-    clock_t clk2, clk = clock();
+    abctime clk2, clk = Abc_Clock();
     int Status = l_Undef, RetValue = -1, iFrameTryToProve = -1, fOneIsSent = 0;
     int i, c, f, Lit;
     pPars->iFrame = -1;
@@ -1529,7 +1529,7 @@ int Gia_ManPerformGla( Gia_Man_t * pAig, Abs_Par_t * pPars )
     }
     // start the manager
     p = Ga2_ManStart( pAig, pPars );
-    p->timeInit = clock() - clk;
+    p->timeInit = Abc_Clock() - clk;
     // perform initial abstraction
     if ( p->pPars->fVerbose )
     {
@@ -1600,12 +1600,12 @@ int Gia_ManPerformGla( Gia_Man_t * pAig, Abs_Par_t * pPars )
                     break;
                 }
                 // perform SAT solving
-                clk2 = clock();
+                clk2 = Abc_Clock();
                 Status = sat_solver2_solve( p->pSat, &Lit, &Lit+1, (ABC_INT64_T)pPars->nConfLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
                 if ( Status == l_True ) // perform refinement
                 {
                     p->nCexes++;
-                    p->timeSat += clock() - clk2;
+                    p->timeSat += Abc_Clock() - clk2;
 
                     // cancel old one if it was sent
                     if ( Abc_FrameIsBridgeMode() && fOneIsSent )
@@ -1620,14 +1620,14 @@ int Gia_ManPerformGla( Gia_Man_t * pAig, Abs_Par_t * pPars )
                     }
 
                     // perform refinement
-                    clk2 = clock();
+                    clk2 = Abc_Clock();
                     Rnm_ManSetRefId( p->pRnm, c );
                     vPPis = Ga2_ManRefine( p );
-                    p->timeCex += clock() - clk2;
+                    p->timeCex += Abc_Clock() - clk2;
                     if ( vPPis == NULL )
                     {
                         if ( pPars->fVerbose )
-                            Ga2_ManAbsPrintFrame( p, f, sat_solver2_nconflicts(p->pSat)-nConflsBeg, c, clock() - clk, 1 );
+                            Ga2_ManAbsPrintFrame( p, f, sat_solver2_nconflicts(p->pSat)-nConflsBeg, c, Abc_Clock() - clk, 1 );
                         goto finish;
                     }
 
@@ -1657,13 +1657,13 @@ int Gia_ManPerformGla( Gia_Man_t * pAig, Abs_Par_t * pPars )
                     Ga2_ManAddToAbs( p, vPPis );
                     Vec_IntFree( vPPis );
                     if ( pPars->fVerbose )
-                        Ga2_ManAbsPrintFrame( p, f, sat_solver2_nconflicts(p->pSat)-nConflsBeg, c+1, clock() - clk, 0 );
+                        Ga2_ManAbsPrintFrame( p, f, sat_solver2_nconflicts(p->pSat)-nConflsBeg, c+1, Abc_Clock() - clk, 0 );
                     continue;
                 }
-                p->timeUnsat += clock() - clk2;
+                p->timeUnsat += Abc_Clock() - clk2;
                 if ( Status == l_Undef ) // ran out of resources
                     goto finish;
-                if ( p->pSat->nRuntimeLimit && clock() > p->pSat->nRuntimeLimit ) // timeout
+                if ( p->pSat->nRuntimeLimit && Abc_Clock() > p->pSat->nRuntimeLimit ) // timeout
                     goto finish;
                 if ( c == 0 )
                 {
@@ -1706,12 +1706,12 @@ int Gia_ManPerformGla( Gia_Man_t * pAig, Abs_Par_t * pPars )
                         Vec_IntFree( vCore );
                     }
                     // run SAT solver
-                    clk2 = clock();
+                    clk2 = Abc_Clock();
                     Status = sat_solver2_solve( p->pSat, &Lit, &Lit+1, (ABC_INT64_T)pPars->nConfLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
                     if ( Status == l_Undef )
                         goto finish;
                     assert( Status == l_False );
-                    p->timeUnsat += clock() - clk2;
+                    p->timeUnsat += Abc_Clock() - clk2;
 
                     // derive the core
                     assert( p->pSat->pPrf2 != NULL );
@@ -1734,7 +1734,7 @@ int Gia_ManPerformGla( Gia_Man_t * pAig, Abs_Par_t * pPars )
                 p->pPars->iFrameProved = f;
             // print statistics
             if ( pPars->fVerbose )
-                Ga2_ManAbsPrintFrame( p, f, sat_solver2_nconflicts(p->pSat)-nConflsBeg, c, clock() - clk, 1 );
+                Ga2_ManAbsPrintFrame( p, f, sat_solver2_nconflicts(p->pSat)-nConflsBeg, c, Abc_Clock() - clk, 1 );
             // check if abstraction was proved
             if ( Gia_GlaProveCheck( pPars->fVerbose ) )
             {
@@ -1817,7 +1817,7 @@ finish:
     {
         Vec_IntFreeP( &pAig->vGateClasses );
         pAig->vGateClasses = Ga2_ManAbsTranslate( p );
-        if ( p->pPars->nTimeOut && clock() >= p->pSat->nRuntimeLimit ) 
+        if ( p->pPars->nTimeOut && Abc_Clock() >= p->pSat->nRuntimeLimit ) 
             Abc_Print( 1, "GLA reached timeout %d sec in frame %d with a %d-stable abstraction.    ", p->pPars->nTimeOut, p->pPars->iFrameProved+1, p->pPars->nFramesNoChange );
         else if ( pPars->nConfLimit && sat_solver2_nconflicts(p->pSat) >= pPars->nConfLimit )
             Abc_Print( 1, "GLA exceeded %d conflicts in frame %d with a %d-stable abstraction.  ", pPars->nConfLimit, p->pPars->iFrameProved+1, p->pPars->nFramesNoChange );
@@ -1838,16 +1838,16 @@ finish:
         Vec_IntFreeP( &pAig->vGateClasses );
         RetValue = 0;
     }
-    Abc_PrintTime( 1, "Time", clock() - clk );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     if ( p->pPars->fVerbose )
     {
-        p->timeOther = (clock() - clk) - p->timeUnsat - p->timeSat - p->timeCex - p->timeInit;
-        ABC_PRTP( "Runtime: Initializing", p->timeInit,   clock() - clk );
-        ABC_PRTP( "Runtime: Solver UNSAT", p->timeUnsat,  clock() - clk );
-        ABC_PRTP( "Runtime: Solver SAT  ", p->timeSat,    clock() - clk );
-        ABC_PRTP( "Runtime: Refinement  ", p->timeCex,    clock() - clk );
-        ABC_PRTP( "Runtime: Other       ", p->timeOther,  clock() - clk );
-        ABC_PRTP( "Runtime: TOTAL       ", clock() - clk, clock() - clk );
+        p->timeOther = (Abc_Clock() - clk) - p->timeUnsat - p->timeSat - p->timeCex - p->timeInit;
+        ABC_PRTP( "Runtime: Initializing", p->timeInit,   Abc_Clock() - clk );
+        ABC_PRTP( "Runtime: Solver UNSAT", p->timeUnsat,  Abc_Clock() - clk );
+        ABC_PRTP( "Runtime: Solver SAT  ", p->timeSat,    Abc_Clock() - clk );
+        ABC_PRTP( "Runtime: Refinement  ", p->timeCex,    Abc_Clock() - clk );
+        ABC_PRTP( "Runtime: Other       ", p->timeOther,  Abc_Clock() - clk );
+        ABC_PRTP( "Runtime: TOTAL       ", Abc_Clock() - clk, Abc_Clock() - clk );
         Ga2_ManReportMemory( p );
     }
 //    Ga2_ManDumpStats( p->pGia, p->pPars, p->pSat, p->pPars->iFrameProved, 0 );

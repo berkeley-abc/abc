@@ -65,7 +65,7 @@ Abc_Ntk_t * Abc_NtkMap( Abc_Ntk_t * pNtk, double DelayTarget, double AreaMulti, 
     Map_Man_t * pMan;
     Vec_Int_t * vSwitching = NULL;
     float * pSwitching = NULL;
-    clock_t clk, clkTotal = clock();
+    abctime clk, clkTotal = Abc_Clock();
     Mio_Library_t * pLib = (Mio_Library_t *)Abc_FrameReadLibGen();
 
     assert( Abc_NtkIsStrash(pNtk) );
@@ -124,14 +124,14 @@ Abc_Ntk_t * Abc_NtkMap( Abc_Ntk_t * pNtk, double DelayTarget, double AreaMulti, 
     if ( pSwitching ) Vec_IntFree( vSwitching );
     if ( pMan == NULL )
         return NULL;
-clk = clock();
+clk = Abc_Clock();
     Map_ManSetSwitching( pMan, fSwitching );
     if ( !Map_Mapping( pMan ) )
     {
         Map_ManFree( pMan );
         return NULL;
     }
-//    Map_ManPrintStatsToFile( pNtk->pSpec, Map_ManReadAreaFinal(pMan), Map_ManReadRequiredGlo(pMan), clock()-clk );
+//    Map_ManPrintStatsToFile( pNtk->pSpec, Map_ManReadAreaFinal(pMan), Map_ManReadRequiredGlo(pMan), Abc_Clock()-clk );
 
     // reconstruct the network after mapping
     pNtkNew = Abc_NtkFromMap( pMan, pNtk );
@@ -143,7 +143,7 @@ clk = clock();
         pNtkNew->pExdc = Abc_NtkDup( pNtk->pExdc );
 if ( fVerbose )
 {
-ABC_PRT( "Total runtime", clock() - clkTotal );
+ABC_PRT( "Total runtime", Abc_Clock() - clkTotal );
 }
 
     // make sure that everything is okay

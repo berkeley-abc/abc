@@ -114,7 +114,7 @@ void Abc_NtkBidecResyn( Abc_Ntk_t * pNtk, int fVerbose )
     Abc_Obj_t * pObj;
     Vec_Int_t * vTruth;
     int i, nGainTotal = 0, nNodes1, nNodes2;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     assert( Abc_NtkIsLogic(pNtk) );
     if ( !Abc_NtkToAig(pNtk) )
         return;
@@ -142,7 +142,7 @@ void Abc_NtkBidecResyn( Abc_Ntk_t * pNtk, int fVerbose )
     if ( fVerbose )
     {
     printf( "Total gain in AIG nodes = %d.  ", nGainTotal );
-    ABC_PRT( "Total runtime", clock() - clk );
+    ABC_PRT( "Total runtime", Abc_Clock() - clk );
     }
 }
 

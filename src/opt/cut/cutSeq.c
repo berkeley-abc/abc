@@ -73,7 +73,7 @@ void Cut_NodeComputeCutsSeq( Cut_Man_t * p, int Node, int Node0, int Node1, int 
 {
     Cut_List_t Super, * pSuper = &Super;
     Cut_Cut_t * pListNew;
-    clock_t clk;
+    abctime clk;
     
     // get the number of cuts at the node
     p->nNodeCuts = Cut_CutCountList( Cut_NodeReadCutsOld(p, Node) );
@@ -110,13 +110,13 @@ void Cut_NodeComputeCutsSeq( Cut_Man_t * p, int Node, int Node0, int Node1, int 
     p->pCompareNew = Cut_NodeReadCutsNew( p, Node );
 
     // merge the old and the new
-clk = clock();
+clk = Abc_Clock();
     Cut_ListStart( pSuper );
     Cut_NodeDoComputeCuts( p, pSuper, Node, fCompl0, fCompl1, p->pStore0[0], p->pStore1[1], 0, 0 );
     Cut_NodeDoComputeCuts( p, pSuper, Node, fCompl0, fCompl1, p->pStore0[1], p->pStore1[0], 0, 0 );
     Cut_NodeDoComputeCuts( p, pSuper, Node, fCompl0, fCompl1, p->pStore0[1], p->pStore1[1], fTriv, 0 );
     pListNew = Cut_ListFinish( pSuper );
-p->timeMerge += clock() - clk;
+p->timeMerge += Abc_Clock() - clk;
 
     // shift the cuts by as many latches and recompute signatures
     if ( Node == Node0 || Node == Node1 || Node0 == Node1 )

@@ -279,7 +279,7 @@ int Ssw_ManSweepBmcFilter( Ssw_Man_t * p, int TimeLimit )
 {
     Aig_Obj_t * pObj, * pObjNew, * pObjLi, * pObjLo;
     int f, f1, i;
-    clock_t clkTotal = clock();
+    abctime clkTotal = Abc_Clock();
     // start initialized timeframes
     p->pFrames = Aig_ManStart( Aig_ManObjNumMax(p->pAig) * p->pPars->nFramesK );
     Saig_ManForEachLo( p->pAig, pObj, i )
@@ -349,7 +349,7 @@ int Ssw_ManSweepBmcFilter( Ssw_Man_t * p, int TimeLimit )
             break;
         }
         // check timeout
-        if ( TimeLimit && ((float)TimeLimit <= (float)(clock()-clkTotal)/(float)(CLOCKS_PER_SEC)) )
+        if ( TimeLimit && ((float)TimeLimit <= (float)(Abc_Clock()-clkTotal)/(float)(CLOCKS_PER_SEC)) )
             break;
         // transfer latch input to the latch outputs 
         Aig_ManForEachCo( p->pAig, pObj, i )
@@ -383,8 +383,8 @@ void Ssw_SignalFilter( Aig_Man_t * pAig, int nFramesMax, int nConfMax, int nRoun
 {
     Ssw_Pars_t Pars, * pPars = &Pars;
     Ssw_Man_t * p;
-    int r, TimeLimitPart;//, clkTotal = clock();
-    clock_t nTimeToStop = TimeLimit ? TimeLimit * CLOCKS_PER_SEC + clock(): 0;
+    int r, TimeLimitPart;//, clkTotal = Abc_Clock();
+    abctime nTimeToStop = TimeLimit ? TimeLimit * CLOCKS_PER_SEC + Abc_Clock(): 0;
     assert( Aig_ManRegNum(pAig) > 0 );
     assert( Aig_ManConstrNum(pAig) == 0 );
     // consider the case of empty AIG
@@ -430,7 +430,7 @@ void Ssw_SignalFilter( Aig_Man_t * pAig, int nFramesMax, int nConfMax, int nRoun
             Ssw_ClassesPrint( p->ppClasses, 0 );
         }
         p->pMSat = Ssw_SatStart( 0 );
-        TimeLimitPart = TimeLimit ? (nTimeToStop - clock()) / CLOCKS_PER_SEC : 0;
+        TimeLimitPart = TimeLimit ? (nTimeToStop - Abc_Clock()) / CLOCKS_PER_SEC : 0;
         if ( TimeLimit2 )
         {
             if ( TimeLimitPart )
@@ -445,7 +445,7 @@ void Ssw_SignalFilter( Aig_Man_t * pAig, int nFramesMax, int nConfMax, int nRoun
         // simulate pattern forward
         Ssw_ManRollForward( p, p->pPars->nFramesK );
         // check timeout
-        if ( TimeLimit && clock() > nTimeToStop )
+        if ( TimeLimit && Abc_Clock() > nTimeToStop )
         {
             Abc_Print( 1, "Reached timeout (%d seconds).\n",  TimeLimit );
             break;

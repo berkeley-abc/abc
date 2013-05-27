@@ -670,10 +670,10 @@ Gia_ManTer_t * Gia_ManTerSimulate( Gia_Man_t * pAig, int fVerbose )
     Gia_ManTer_t * p;
     unsigned * pState, * pPrev, * pLoop;
     int i, Counter;
-    clock_t clk, clkTotal = clock();
+    abctime clk, clkTotal = Abc_Clock();
     assert( Gia_ManRegNum(pAig) > 0 );
     // create manager
-    clk = clock();
+    clk = Abc_Clock();
     p = Gia_ManTerCreate( pAig );
     if ( 0 )
     {
@@ -683,7 +683,7 @@ Gia_ManTer_t * Gia_ManTerSimulate( Gia_Man_t * pAig, int fVerbose )
             12.0*Gia_ManObjNum(p->pAig)/(1<<20), 
             4.0*Abc_BitWordNum(2 * p->pAig->nFront)/(1<<20), 
             4.0*Abc_BitWordNum(2 * (Gia_ManCiNum(pAig) + Gia_ManCoNum(pAig)))/(1<<20) );
-        ABC_PRT( "Time", clock() - clk );
+        ABC_PRT( "Time", Abc_Clock() - clk );
     }
     // perform simulation
     Gia_ManTerSimInfoInit( p );
@@ -718,7 +718,7 @@ Gia_ManTer_t * Gia_ManTerSimulate( Gia_Man_t * pAig, int fVerbose )
     if ( fVerbose )
     {
         printf( "Ternary simulation saturated after %d iterations. ", i+1 );
-        ABC_PRT( "Time", clock() - clkTotal );
+        ABC_PRT( "Time", Abc_Clock() - clkTotal );
     }
     return p;
 }

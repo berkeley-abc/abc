@@ -2543,7 +2543,7 @@ void Abc_NtkReverseTopoOrderTest( Abc_Ntk_t * p )
     Vec_Int_t * vVisited;
     Abc_Obj_t * pObj;
     int i;//, k, iBeg, iEnd;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     Abc_NtkReverseTopoOrder( p );
 /*
     printf( "Reverse topological order for nodes:\n" );
@@ -2558,9 +2558,9 @@ void Abc_NtkReverseTopoOrderTest( Abc_Ntk_t * p )
     }
 */
     Vec_IntFreeP( &p->vTopo );
-    Abc_PrintTime( 1, "Time", clock() - clk );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     // compute regular fanout orders
-    clk = clock();
+    clk = Abc_Clock();
     vVisited = Vec_IntAlloc( 1000 );
     Abc_NtkForEachNode( p, pObj, i )
     {
@@ -2569,7 +2569,7 @@ void Abc_NtkReverseTopoOrderTest( Abc_Ntk_t * p )
         Abc_NtkReverse_rec( pObj, vVisited );
     }
     Vec_IntFree( vVisited );
-    Abc_PrintTime( 1, "Time", clock() - clk );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 }
 
 /**Function*************************************************************

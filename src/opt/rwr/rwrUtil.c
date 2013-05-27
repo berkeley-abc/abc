@@ -429,7 +429,7 @@ void Rwr_ManWriteToArray( Rwr_Man_t * p )
     Rwr_Node_t * pNode;
     unsigned Entry0, Entry1;
     int i, nEntries;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     // prepare the buffer
     nEntries = p->vForest->nSize - 5;
     pFile = fopen( "npn4_aig_array.txt", "w" );
@@ -455,7 +455,7 @@ void Rwr_ManWriteToArray( Rwr_Man_t * p )
     Extra_PrintHex( pFile, &Entry0, 4 );
     fprintf( pFile, " \n};\n" );
     fclose( pFile );
-    printf( "The number of nodes saved = %d.   ", nEntries );  ABC_PRT( "Saving", clock() - clk );
+    printf( "The number of nodes saved = %d.   ", nEntries );  ABC_PRT( "Saving", Abc_Clock() - clk );
 }
 
 /**Function*************************************************************
@@ -476,7 +476,7 @@ void Rwr_ManLoadFromArray( Rwr_Man_t * p, int fVerbose )
     unsigned Entry0, Entry1;
     int Level, Volume, nEntries, fExor;
     int i;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
 
     // reconstruct the forest
     for ( i = 0; ; i++ )
@@ -505,7 +505,7 @@ void Rwr_ManLoadFromArray( Rwr_Man_t * p, int fVerbose )
     if ( fVerbose )
     {
         printf( "The number of classes = %d. Canonical nodes = %d.\n", p->nClasses, p->nAdded );
-        printf( "The number of nodes loaded = %d.  ", nEntries );  ABC_PRT( "Loading", clock() - clk );
+        printf( "The number of nodes loaded = %d.  ", nEntries );  ABC_PRT( "Loading", Abc_Clock() - clk );
     }
 }
 
@@ -527,7 +527,7 @@ void Rwr_ManWriteToFile( Rwr_Man_t * p, char * pFileName )
     Rwr_Node_t * pNode;
     unsigned * pBuffer;
     int i, nEntries;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     // prepare the buffer
     nEntries = p->vForest->nSize - 5;
     pBuffer = ABC_ALLOC( unsigned, nEntries * 2 );
@@ -545,7 +545,7 @@ void Rwr_ManWriteToFile( Rwr_Man_t * p, char * pFileName )
     fwrite( pBuffer, sizeof(unsigned), nEntries * 2, pFile );
     ABC_FREE( pBuffer );
     fclose( pFile );
-    printf( "The number of nodes saved = %d.   ", nEntries );  ABC_PRT( "Saving", clock() - clk );
+    printf( "The number of nodes saved = %d.   ", nEntries );  ABC_PRT( "Saving", Abc_Clock() - clk );
 }
 
 /**Function*************************************************************
@@ -566,7 +566,7 @@ void Rwr_ManLoadFromFile( Rwr_Man_t * p, char * pFileName )
     unsigned * pBuffer;
     int Level, Volume, nEntries, fExor;
     int i;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     int RetValue;
 
     // load the data
@@ -601,7 +601,7 @@ void Rwr_ManLoadFromFile( Rwr_Man_t * p, char * pFileName )
     }
     ABC_FREE( pBuffer );
     printf( "The number of classes = %d. Canonical nodes = %d.\n", p->nClasses, p->nAdded );
-    printf( "The number of nodes loaded = %d.   ", nEntries );  ABC_PRT( "Loading", clock() - clk );
+    printf( "The number of nodes loaded = %d.   ", nEntries );  ABC_PRT( "Loading", Abc_Clock() - clk );
 }
 
 

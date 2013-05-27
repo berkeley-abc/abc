@@ -269,12 +269,12 @@ Vec_Int_t * Saig_ManComputeSwitchProb4s( Aig_Man_t * p, int nFrames, int nPref, 
     Vec_Int_t * vSwitching;
     float * pSwitching;
     int nFramesReal;
-    clock_t clk;//, clkTotal = clock();
+    abctime clk;//, clkTotal = Abc_Clock();
     vSwitching = Vec_IntStart( Aig_ManObjNumMax(p) );
     pSwitching = (float *)vSwitching->pArray;
-clk = clock();
+clk = Abc_Clock();
     pAig = Saig_ManCreateMan( p );
-//ABC_PRT( "\nCreation  ", clock() - clk );
+//ABC_PRT( "\nCreation  ", Abc_Clock() - clk );
 
     Aig_ManRandom( 1 );
     // get the number of  frames to simulate
@@ -290,10 +290,10 @@ clk = clock();
         nFramesReal = nFrames;
     }
 //printf( "Simulating %d frames.\n", nFramesReal );
-clk = clock();
+clk = Abc_Clock();
     Saig_ManSimulateFrames( pAig, nFramesReal, nPref );
-//ABC_PRT( "Simulation", clock() - clk );
-clk = clock();
+//ABC_PRT( "Simulation", Abc_Clock() - clk );
+clk = Abc_Clock();
     for ( pEntry = pAig; pEntry->Type != AIG_OBJ_VOID; pEntry++ )
     {
 /*
@@ -318,8 +318,8 @@ clk = clock();
 //printf( "%3d : %7.2f\n", pEntry-pAig, pSwitching[pEntry-pAig] );
     }
     ABC_FREE( pAig );
-//ABC_PRT( "Switch    ", clock() - clk );
-//ABC_PRT( "TOTAL     ", clock() - clkTotal );
+//ABC_PRT( "Switch    ", Abc_Clock() - clk );
+//ABC_PRT( "TOTAL     ", Abc_Clock() - clkTotal );
 
 //    Aig_CManCreate( p );
     return vSwitching;

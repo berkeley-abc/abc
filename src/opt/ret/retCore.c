@@ -27,7 +27,7 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-clock_t timeRetime = 0;
+abctime timeRetime = 0;
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -49,7 +49,7 @@ int Abc_NtkRetime( Abc_Ntk_t * pNtk, int Mode, int nDelayLim, int fForwardOnly, 
     int nLatches = Abc_NtkLatchNum(pNtk);
     int nLevels  = Abc_NtkLevel(pNtk);
     int RetValue = 0;
-    clock_t clkTotal = clock();
+    abctime clkTotal = Abc_Clock();
     int nNodesOld, nLatchesOld;
     assert( Mode > 0 && Mode < 7 );
     assert( !fForwardOnly || !fBackwardOnly );
@@ -98,9 +98,9 @@ int Abc_NtkRetime( Abc_Ntk_t * pNtk, int Mode, int nDelayLim, int fForwardOnly, 
     {
         printf( "Reduction in area = %3d. Reduction in delay = %3d. ", 
             nLatches - Abc_NtkLatchNum(pNtk), nLevels - Abc_NtkLevel(pNtk) );
-        ABC_PRT( "Total runtime", clock() - clkTotal );
+        ABC_PRT( "Total runtime", Abc_Clock() - clkTotal );
     }
-    timeRetime = clock() - clkTotal;
+    timeRetime = Abc_Clock() - clkTotal;
     return RetValue;
 }
 

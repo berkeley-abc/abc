@@ -207,8 +207,8 @@ void Ivy_TableResize( Ivy_Man_t * p )
 {
     int * pTableOld, * pPlace;
     int nTableSizeOld, Counter, nEntries, e;
-    clock_t clk;
-clk = clock();
+    abctime clk;
+clk = Abc_Clock();
     // save the old table
     pTableOld = p->pTable;
     nTableSizeOld = p->nTableSize;
@@ -231,7 +231,7 @@ clk = clock();
     nEntries = Ivy_ManHashObjNum(p);
 //    assert( Counter == nEntries );
 //    printf( "Increasing the structural table size from %6d to %6d. ", nTableSizeOld, p->nTableSize );
-//    ABC_PRT( "Time", clock() - clk );
+//    ABC_PRT( "Time", Abc_Clock() - clk );
     // replace the table and the parameters
     ABC_FREE( pTableOld );
 }

@@ -84,7 +84,7 @@ extern int timeRetime;
 Ivy_Man_t * Abc_NtkIvyBefore( Abc_Ntk_t * pNtk, int fSeq, int fUseDc )
 {
     Ivy_Man_t * pMan;
-//timeRetime = clock();
+//timeRetime = Abc_Clock();
     assert( !Abc_NtkIsNetlist(pNtk) );
     if ( Abc_NtkIsBddLogic(pNtk) )
     {
@@ -119,7 +119,7 @@ Ivy_Man_t * Abc_NtkIvyBefore( Abc_Ntk_t * pNtk, int fSeq, int fUseDc )
         Vec_IntFree( vInit );
 //        Ivy_ManPrintStats( pMan );
     }
-//timeRetime = clock() - timeRetime;
+//timeRetime = Abc_Clock() - timeRetime;
     return pMan;
 }
 
@@ -197,7 +197,7 @@ Abc_Ntk_t * Abc_NtkIvyHaig( Abc_Ntk_t * pNtk, int nIters, int fUseZeroCost, int 
 {
     Abc_Ntk_t * pNtkAig;
     Ivy_Man_t * pMan;
-    clock_t clk;
+    abctime clk;
 //    int i;
 /*
 extern int nMoves;
@@ -213,9 +213,9 @@ timeInv = 0;
     pMan = Abc_NtkIvyBefore( pNtk, 1, 1 );
     if ( pMan == NULL )
         return NULL;
-//timeRetime = clock();
+//timeRetime = Abc_Clock();
 
-clk = clock();
+clk = Abc_Clock();
     Ivy_ManHaigStart( pMan, fVerbose );
 //    Ivy_ManRewriteSeq( pMan, 0, 0 );
 //    for ( i = 0; i < nIters; i++ )
@@ -227,7 +227,7 @@ clk = clock();
     Ivy_ManRewriteSeq( pMan, 1, 0 );
 //printf( "%d ", Ivy_ManNodeNum(pMan) );
 //printf( "%d ", Ivy_ManNodeNum(pMan->pHaig) );
-//ABC_PRT( " ", clock() - clk );
+//ABC_PRT( " ", Abc_Clock() - clk );
 //printf( "\n" );
 /*
     printf( "Moves = %d.  ", nMoves );
@@ -238,7 +238,7 @@ clk = clock();
 //    Ivy_ManRewriteSeq( pMan, 1, 0 );
 //printf( "Haig size = %d.\n", Ivy_ManNodeNum(pMan->pHaig) );
 //    Ivy_ManHaigPostprocess( pMan, fVerbose );
-//timeRetime = clock() - timeRetime;
+//timeRetime = Abc_Clock() - timeRetime;
 
     // write working AIG into the current network
 //    pNtkAig = Abc_NtkIvyAfter( pNtk, pMan, 1, 0 ); 
@@ -289,9 +289,9 @@ Abc_Ntk_t * Abc_NtkIvyRewrite( Abc_Ntk_t * pNtk, int fUpdateLevel, int fUseZeroC
     pMan = Abc_NtkIvyBefore( pNtk, 0, 0 );
     if ( pMan == NULL )
         return NULL;
-//timeRetime = clock();
+//timeRetime = Abc_Clock();
     Ivy_ManRewritePre( pMan, fUpdateLevel, fUseZeroCost, fVerbose );
-//timeRetime = clock() - timeRetime;
+//timeRetime = Abc_Clock() - timeRetime;
     pNtkAig = Abc_NtkIvyAfter( pNtk, pMan, 0, 0 );
     Ivy_ManStop( pMan );
     return pNtkAig;
@@ -315,9 +315,9 @@ Abc_Ntk_t * Abc_NtkIvyRewriteSeq( Abc_Ntk_t * pNtk, int fUseZeroCost, int fVerbo
     pMan = Abc_NtkIvyBefore( pNtk, 1, 1 );
     if ( pMan == NULL )
         return NULL;
-//timeRetime = clock();
+//timeRetime = Abc_Clock();
     Ivy_ManRewriteSeq( pMan, fUseZeroCost, fVerbose );
-//timeRetime = clock() - timeRetime;
+//timeRetime = Abc_Clock() - timeRetime;
 //    Ivy_ManRewriteSeq( pMan, 1, 0 );
 //    Ivy_ManRewriteSeq( pMan, 1, 0 );
     pNtkAig = Abc_NtkIvyAfter( pNtk, pMan, 1, 0 );
@@ -543,7 +543,7 @@ int Abc_NtkIvyProve( Abc_Ntk_t ** ppNtk, void * pPars )
     // apply AIG rewriting
     if ( pParams->fUseRewriting && Abc_NtkNodeNum(pNtk) > 500 )
     {
-//        clock_t clk = clock();
+//        abctime clk = Abc_Clock();
 //printf( "Before rwsat = %d. ", Abc_NtkNodeNum(pNtk) );
         pParams->fUseRewriting = 0;
         pNtk = Abc_NtkBalance( pNtkTemp = pNtk, 0, 0, 0 );          
@@ -554,7 +554,7 @@ int Abc_NtkIvyProve( Abc_Ntk_t ** ppNtk, void * pPars )
         Abc_NtkRewrite( pNtk, 0, 0, 0, 0, 0 );
         Abc_NtkRefactor( pNtk, 10, 16, 0, 0, 0, 0 );
 //printf( "After rwsat = %d. ", Abc_NtkNodeNum(pNtk) );
-//ABC_PRT( "Time", clock() - clk );
+//ABC_PRT( "Time", Abc_Clock() - clk );
     }
 
     // convert ABC network into IVY network

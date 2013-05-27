@@ -56,11 +56,11 @@ struct Abc_RRMan_t_
     int              nLevelsOld;       // the old number of levels
     int              nEdgesTried;      // the number of nodes tried
     int              nEdgesRemoved;    // the number of nodes proved
-    clock_t          timeWindow;       // the time to construct the window
-    clock_t          timeMiter;        // the time to construct the miter
-    clock_t          timeProve;        // the time to prove the miter
-    clock_t          timeUpdate;       // the network update time
-    clock_t          timeTotal;        // the total runtime
+    abctime          timeWindow;       // the time to construct the window
+    abctime          timeMiter;        // the time to construct the miter
+    abctime          timeProve;        // the time to prove the miter
+    abctime          timeUpdate;       // the network update time
+    abctime          timeTotal;        // the total runtime
 };
 
 static Abc_RRMan_t * Abc_RRManStart();
@@ -101,7 +101,7 @@ int Abc_NtkRR( Abc_Ntk_t * pNtk, int nFaninLevels, int nFanoutLevels, int fUseFa
     Abc_RRMan_t * p;
     Abc_Obj_t * pNode, * pFanin, * pFanout;
     int i, k, m, nNodes, RetValue;
-    clock_t clk, clkTotal = clock();
+    abctime clk, clkTotal = Abc_Clock();
     // start the manager
     p = Abc_RRManStart();
     p->pNtk          = pNtk;
@@ -152,9 +152,9 @@ int Abc_NtkRR( Abc_Ntk_t * pNtk, int nFaninLevels, int nFanoutLevels, int fUseFa
                 p->pFanin  = pFanin;
                 p->pFanout = NULL;
 
-                clk = clock();
+                clk = Abc_Clock();
                 RetValue = Abc_NtkRRWindow( p );
-                p->timeWindow += clock() - clk;
+                p->timeWindow += Abc_Clock() - clk;
                 if ( !RetValue )
                     continue;
 /*
@@ -163,16 +163,16 @@ int Abc_NtkRR( Abc_Ntk_t * pNtk, int nFaninLevels, int nFanoutLevels, int fUseFa
                     Abc_NtkShowAig( p->pWnd, 0 );
                 }
 */
-                clk = clock();
+                clk = Abc_Clock();
                 RetValue = Abc_NtkRRProve( p );
-                p->timeMiter += clock() - clk;
+                p->timeMiter += Abc_Clock() - clk;
                 if ( !RetValue )
                     continue;
 //printf( "%d -> %d (%d)\n", pFanin->Id, pNode->Id, k );
 
-                clk = clock();
+                clk = Abc_Clock();
                 Abc_NtkRRUpdate( pNtk, p->pNode, p->pFanin, p->pFanout );
-                p->timeUpdate += clock() - clk;
+                p->timeUpdate += Abc_Clock() - clk;
 
                 p->nEdgesRemoved++;
                 break;
@@ -193,21 +193,21 @@ int Abc_NtkRR( Abc_Ntk_t * pNtk, int nFaninLevels, int nFanoutLevels, int fUseFa
             p->pFanin  = pFanin;
             p->pFanout = pFanout;
 
-            clk = clock();
+            clk = Abc_Clock();
             RetValue = Abc_NtkRRWindow( p );
-            p->timeWindow += clock() - clk;
+            p->timeWindow += Abc_Clock() - clk;
             if ( !RetValue )
                 continue;
 
-            clk = clock();
+            clk = Abc_Clock();
             RetValue = Abc_NtkRRProve( p );
-            p->timeMiter += clock() - clk;
+            p->timeMiter += Abc_Clock() - clk;
             if ( !RetValue )
                 continue;
 
-            clk = clock();
+            clk = Abc_Clock();
             Abc_NtkRRUpdate( pNtk, p->pNode, p->pFanin, p->pFanout );
-            p->timeUpdate += clock() - clk;
+            p->timeUpdate += Abc_Clock() - clk;
 
             p->nEdgesRemoved++;
             break;
@@ -215,7 +215,7 @@ int Abc_NtkRR( Abc_Ntk_t * pNtk, int nFaninLevels, int nFanoutLevels, int fUseFa
     }
     Abc_NtkRRSimulateStop(pNtk);
     Extra_ProgressBarStop( pProgress );
-    p->timeTotal = clock() - clkTotal;
+    p->timeTotal = Abc_Clock() - clkTotal;
     if ( fVerbose )
         Abc_RRManPrintStats( p );
     Abc_RRManStop( p );
@@ -353,7 +353,7 @@ int Abc_NtkRRProve( Abc_RRMan_t * p )
 {
     Abc_Ntk_t * pWndCopy;
     int RetValue;
-    clock_t clk;
+    abctime clk;
 //    Abc_NtkShowAig( p->pWnd, 0 );
     pWndCopy = Abc_NtkDup( p->pWnd );
     Abc_NtkRRUpdate( pWndCopy, p->pNode->pCopy->pCopy, p->pFanin->pCopy->pCopy, p->pFanout? p->pFanout->pCopy->pCopy : NULL );
@@ -361,9 +361,9 @@ int Abc_NtkRRProve( Abc_RRMan_t * p )
         Abc_NtkReassignIds(pWndCopy);
     p->pMiter = Abc_NtkMiter( p->pWnd, pWndCopy, 1, 0, 0, 0 );
     Abc_NtkDelete( pWndCopy );
-clk = clock();
+clk = Abc_Clock();
     RetValue  = Abc_NtkMiterProve( &p->pMiter, p->pParams );
-p->timeProve += clock() - clk;
+p->timeProve += Abc_Clock() - clk;
     if ( RetValue == 1 )
         return 1;
     return 0;

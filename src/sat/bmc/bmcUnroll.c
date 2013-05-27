@@ -177,7 +177,7 @@ void Unr_ManSetup( Unr_Man_t * p )
     Gia_Obj_t * pObj, * pObjRi;
     Unr_Obj_t * pUnrObj;
     int i, k, t, iObj, nInts, * pInts;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     vRoots  = Vec_IntAlloc( 100 );
     vRoots2 = Vec_IntAlloc( 100 );
     // create zero rank
@@ -268,7 +268,7 @@ Unr_ManProfileRanks( p->vRanks );
     Vec_IntFreeP( &vMap );
 
     printf( "Memory usage = %6.2f MB\n", 4.0 * nInts / (1<<20) );
-    Abc_PrintTime( 1, "Time", clock() - clk );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 }
 
 

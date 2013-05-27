@@ -236,7 +236,7 @@ Aig_Man_t * Ssw_SignalCorrespondenceRefine( Ssw_Man_t * p )
     int nSatProof, nSatCallsSat, nRecycles, nSatFailsReal, nUniques;
     Aig_Man_t * pAigNew;
     int RetValue, nIter = -1;
-    clock_t clk, clkTotal = clock();
+    abctime clk, clkTotal = Abc_Clock();
     // get the starting stats
     p->nLitsBeg  = Ssw_ClassesLitNum( p->ppClasses );
     p->nNodesBeg = Aig_ManNodeNum(p->pAig);
@@ -306,7 +306,7 @@ Aig_Man_t * Ssw_SignalCorrespondenceRefine( Ssw_Man_t * p )
             break;
         }
 
-clk = clock();
+clk = Abc_Clock();
         p->pMSat = Ssw_SatStart( 0 );
         if ( p->pPars->fLatchCorrOpt )
         {
@@ -317,7 +317,7 @@ clk = clock();
                     nIter, Ssw_ClassesCand1Num(p->ppClasses), Ssw_ClassesClassNum(p->ppClasses),
                     p->nSatProof-nSatProof, p->nSatCallsSat-nSatCallsSat,
                     p->nRecycles-nRecycles, p->nSatFailsReal-nSatFailsReal );
-                ABC_PRT( "T", clock() - clk );
+                ABC_PRT( "T", Abc_Clock() - clk );
             }
         }
         else
@@ -342,7 +342,7 @@ clk = clock();
                 }
                 Abc_Print( 1, "F =%5d. %s ", p->nSatFailsReal-nSatFailsReal,
                     (Saig_ManPoNum(p->pAig)==1 && Ssw_ObjIsConst1Cand(p->pAig,Aig_ObjFanin0(Aig_ManCo(p->pAig,0))))? "+" : "-" );
-                ABC_PRT( "T", clock() - clk );
+                ABC_PRT( "T", Abc_Clock() - clk );
             }
 //            if ( p->pPars->fDynamic && p->nSatCallsSat-nSatCallsSat < 100 )
 //                p->pPars->nBTLimit = 10000;
@@ -384,7 +384,7 @@ clk = clock();
 
 finalize:
     p->pPars->nIters = nIter + 1;
-p->timeTotal = clock() - clkTotal;
+p->timeTotal = Abc_Clock() - clkTotal;
 
     Ssw_ManUpdateEquivs( p, p->pAig, p->pPars->fVerbose );
     pAigNew = Aig_ManDupRepr( p->pAig, 0 );

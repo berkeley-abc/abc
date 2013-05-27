@@ -97,7 +97,7 @@ struct Pdr_Man_t_
     Vec_Int_t * vRes;      // final result
     Vec_Int_t * vSuppLits; // support literals
     Pdr_Set_t * pCubeJust; // justification
-    clock_t *   pTime4Outs;// timeout per output
+    abctime *   pTime4Outs;// timeout per output
     // statistics
     int         nBlocks;   // the number of times blockState was called
     int         nObligs;   // the number of proof obligations derived
@@ -115,18 +115,18 @@ struct Pdr_Man_t_
     int         nQueMax;
     int         nQueLim;
     // runtime
-    time_t      timeToStop;
-    time_t      timeToStopOne;
+    abctime     timeToStop;
+    abctime     timeToStopOne;
     // time stats
-    clock_t     tSat;
-    clock_t     tSatSat;
-    clock_t     tSatUnsat;
-    clock_t     tGeneral;
-    clock_t     tPush;
-    clock_t     tTsim;
-    clock_t     tContain;
-    clock_t     tCnf;
-    clock_t     tTotal;
+    abctime     tSat;
+    abctime     tSatSat;
+    abctime     tSatUnsat;
+    abctime     tGeneral;
+    abctime     tPush;
+    abctime     tTsim;
+    abctime     tContain;
+    abctime     tCnf;
+    abctime     tTotal;
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -135,7 +135,7 @@ struct Pdr_Man_t_
 
 static inline sat_solver * Pdr_ManSolver( Pdr_Man_t * p, int k )  { return (sat_solver *)Vec_PtrEntry(p->vSolvers, k); }
 
-static inline clock_t      Pdr_ManTimeLimit( Pdr_Man_t * p )
+static inline abctime      Pdr_ManTimeLimit( Pdr_Man_t * p )
 {
     if ( p->timeToStop == 0 )
         return p->timeToStopOne;
@@ -160,7 +160,7 @@ extern sat_solver *    Pdr_ManNewSolver( sat_solver * pSat, Pdr_Man_t * p, int k
 /*=== pdrCore.c ==========================================================*/
 extern int             Pdr_ManCheckContainment( Pdr_Man_t * p, int k, Pdr_Set_t * pSet );
 /*=== pdrInv.c ==========================================================*/
-extern void            Pdr_ManPrintProgress( Pdr_Man_t * p, int fClose, clock_t Time );
+extern void            Pdr_ManPrintProgress( Pdr_Man_t * p, int fClose, abctime Time );
 extern void            Pdr_ManPrintClauses( Pdr_Man_t * p, int kStart );
 extern void            Pdr_ManDumpClauses( Pdr_Man_t * p, char * pFileName, int fProved );
 extern void            Pdr_ManReportInvariant( Pdr_Man_t * p );

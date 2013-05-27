@@ -70,11 +70,11 @@ struct Super_ManStruct_t_
     int                 nAliases;     // the number of hash table lookups thrown away due to aliasing
 
     // runtime
-    clock_t             Time;         // the runtime of the generation procedure
+    abctime             Time;         // the runtime of the generation procedure
     int                 TimeLimit;    // the runtime limit (in seconds)
     int                 TimeSec;      // the time passed (in seconds)
-    clock_t             TimeStop;     // the time to stop computation (in miliseconds)
-    clock_t             TimePrint;    // the time to print message
+    abctime             TimeStop;     // the time to stop computation (in miliseconds)
+    abctime             TimePrint;    // the time to print message
 };
 
 struct Super_GateStruct_t_
@@ -175,7 +175,7 @@ Vec_Str_t * Super_PrecomputeStr( Mio_Library_t * pLibGen, int nVarsMax, int nLev
     Super_Man_t * pMan;
     Mio_Gate_t ** ppGates;
     int nGates, Level;
-    clock_t clk, clockStart;
+    abctime clk, clockStart;
 
     assert( nVarsMax < 7 );
     if ( nGatesMax && nGatesMax < nVarsMax )
@@ -201,7 +201,7 @@ Vec_Str_t * Super_PrecomputeStr( Mio_Library_t * pLibGen, int nVarsMax, int nLev
     pMan->tDelayMax = tDelayMax;
     pMan->tAreaMax  = tAreaMax;
     pMan->TimeLimit = TimeLimit; // in seconds
-    pMan->TimeStop  = TimeLimit ? TimeLimit * CLOCKS_PER_SEC + clock() : 0; // in CPU ticks
+    pMan->TimeStop  = TimeLimit ? TimeLimit * CLOCKS_PER_SEC + Abc_Clock() : 0; // in CPU ticks
     pMan->fVerbose  = fVerbose;
 
     if ( nGates == 0 )
@@ -221,7 +221,7 @@ Vec_Str_t * Super_PrecomputeStr( Mio_Library_t * pLibGen, int nVarsMax, int nLev
     Super_First( pMan, nVarsMax );
 
     // perform the computation of supergates
-    clockStart = clock();
+    clockStart = Abc_Clock();
 if ( fVerbose )
 {
     printf( "Computing supergates with %d inputs, %d levels, and %d max gates.\n", 
@@ -232,20 +232,20 @@ if ( fVerbose )
 
     for ( Level = 1; Level <= nLevels; Level++ )
     {
-        if ( pMan->TimeStop && clock() > pMan->TimeStop )
+        if ( pMan->TimeStop && Abc_Clock() > pMan->TimeStop )
             break;
-clk = clock();
+clk = Abc_Clock();
         Super_Compute( pMan, ppGates, nGates, nGatesMax, fSkipInv );
         pMan->nLevels = Level;
 if ( fVerbose )
 {
         printf( "Lev %d: Try =%12d. Add =%6d. Rem =%5d. Save =%6d. Lookups =%12d. Aliases =%12d. ",
            Level, pMan->nTried, pMan->nAdded, pMan->nRemoved, pMan->nAdded - pMan->nRemoved, pMan->nLookups, pMan->nAliases );
-ABC_PRT( "Time", clock() - clk );
+ABC_PRT( "Time", Abc_Clock() - clk );
 fflush( stdout );
 }
     }
-    pMan->Time = clock() - clockStart;
+    pMan->Time = Abc_Clock() - clockStart;
 
 if ( fVerbose )
 {
@@ -377,7 +377,7 @@ Super_Man_t * Super_Compute( Super_Man_t * pMan, Mio_Gate_t ** ppGates, int nGat
     }
 
     pProgress = Extra_ProgressBarStart( stdout, pMan->TimeLimit );
-    pMan->TimePrint = clock() + CLOCKS_PER_SEC;
+    pMan->TimePrint = Abc_Clock() + CLOCKS_PER_SEC;
     ppGatesLimit = ABC_ALLOC( Super_Gate_t *, pMan->nGates );
     // go through the root gates
     // the root gates are sorted in the increasing gelay
@@ -736,11 +736,11 @@ done:
 ***********************************************************************/
 int Super_CheckTimeout( ProgressBar * pPro, Super_Man_t * pMan )
 {
-    clock_t TimeNow = clock();
+    abctime TimeNow = Abc_Clock();
     if ( TimeNow > pMan->TimePrint )
     {
         Extra_ProgressBarUpdate( pPro, ++pMan->TimeSec, NULL );
-        pMan->TimePrint = clock() + CLOCKS_PER_SEC;
+        pMan->TimePrint = Abc_Clock() + CLOCKS_PER_SEC;
     }
     if ( pMan->TimeStop && TimeNow > pMan->TimeStop )
     {
@@ -982,7 +982,7 @@ Vec_Str_t * Super_Write( Super_Man_t * pMan )
     Super_Gate_t * pGateRoot, * pGate;
     stmm_generator * gen;
     int fZeroFound, v;
-    clock_t clk;
+    abctime clk;
     ABC_PTRUINT_T Key;
 
     if ( pMan->nGates < 1 )
@@ -1019,32 +1019,32 @@ Vec_Str_t * Super_Write( Super_Man_t * pMan )
         }
     }
 
-clk = clock();
+clk = Abc_Clock();
     // sort the supergates by truth table
     qsort( (void *)pMan->pGates, pMan->nGates, sizeof(Super_Gate_t *), 
             (int (*)(const void *, const void *)) Super_WriteCompare );
     assert( Super_WriteCompare( pMan->pGates, pMan->pGates + pMan->nGates - 1 ) <= 0 );
 if ( pMan->fVerbose )
 {
-ABC_PRT( "Sorting", clock() - clk );
+ABC_PRT( "Sorting", Abc_Clock() - clk );
 }
 
 
     // write library in the old format
-clk = clock();
+clk = Abc_Clock();
     if ( pMan->fWriteOldFormat )
         Super_WriteLibrary( pMan );
 if ( pMan->fVerbose )
 {
-ABC_PRT( "Writing old format", clock() - clk );
+ABC_PRT( "Writing old format", Abc_Clock() - clk );
 }
 
     // write the tree-like structure of supergates
-clk = clock();
+clk = Abc_Clock();
     vStr = Super_WriteLibraryTreeStr( pMan );
 if ( pMan->fVerbose )
 {
-ABC_PRT( "Writing new format", clock() - clk );
+ABC_PRT( "Writing new format", Abc_Clock() - clk );
 }
     return vStr;
 }

@@ -286,7 +286,7 @@ Vec_Int_t * Abc_NtkLutMerge( Abc_Ntk_t * pNtk, Nwk_LMPars_t * pPars )
     Vec_Ptr_t * vStart, * vNext, * vCands1, * vCands2;
     Abc_Obj_t * pLut, * pCand;
     int i, k, nVertsMax, nCands;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     // count the number of vertices
     nVertsMax = 0;
     Abc_NtkForEachNode( pNtk, pLut, i )
@@ -326,16 +326,16 @@ Vec_Int_t * Abc_NtkLutMerge( Abc_Ntk_t * pNtk, Nwk_LMPars_t * pPars )
     if ( pPars->fVerbose )
     {
         printf( "Mergable LUTs = %6d. Total cands = %6d. ", p->nVertsMax, nCands );
-        ABC_PRT( "Deriving graph", clock() - clk );
+        ABC_PRT( "Deriving graph", Abc_Clock() - clk );
     }
     // solve the graph problem
-    clk = clock();
+    clk = Abc_Clock();
     Nwk_ManGraphSolve( p );
     if ( pPars->fVerbose )
     {
         printf( "GRAPH: Nodes = %6d. Edges = %6d.  Pairs = %6d.  ", 
             p->nVerts, p->nEdges, Vec_IntSize(p->vPairs)/2 );
-        ABC_PRT( "Solving", clock() - clk );
+        ABC_PRT( "Solving", Abc_Clock() - clk );
         Nwk_ManGraphReportMemoryUsage( p );
     }
     vResult = p->vPairs; p->vPairs = NULL;

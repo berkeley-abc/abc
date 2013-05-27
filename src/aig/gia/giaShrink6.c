@@ -402,8 +402,8 @@ Gia_Man_t * Gia_ManMapShrink6( Gia_Man_t * p, int nFanoutMax, int fKeepLevel, in
     word uTruth, uTruth0, uTruth1;
     int i, k, nDivs, iNode;
     int RetValue, Counter1 = 0, Counter2 = 0;
-    clock_t clk2, clk = clock();
-    clock_t timeFanout = 0;
+    abctime clk2, clk = Abc_Clock();
+    abctime timeFanout = 0;
     assert( p->pMapping != NULL );
     pMan = Shr_ManAlloc( p );
     Gia_ManFillValue( p );
@@ -446,10 +446,10 @@ Gia_Man_t * Gia_ManMapShrink6( Gia_Man_t * p, int nFanoutMax, int fKeepLevel, in
                 Vec_IntWriteEntry( pMan->vLeaves, k, Abc_Lit2Var(pFanin->Value) );
             }
             // compute divisors
-            clk2 = clock();
+            clk2 = Abc_Clock();
             nDivs = Shr_ManCollectDivisors( pMan, pMan->vLeaves, pMan->nDivMax, nFanoutMax );
             assert( nDivs <= pMan->nDivMax );
-            timeFanout += clock() - clk2;
+            timeFanout += Abc_Clock() - clk2;
             // compute truth tables
             Shr_ManComputeTruths( pMan->pNew, Vec_IntSize(pMan->vLeaves), pMan->vDivs, pMan->vDivTruths, pMan->vTruths );
             // perform resubstitution
@@ -474,7 +474,7 @@ Gia_Man_t * Gia_ManMapShrink6( Gia_Man_t * p, int nFanoutMax, int fKeepLevel, in
     {
         printf( "Performed %d resubs and %d decomps.  ", Counter1, Counter2 );
         printf( "Gain in AIG nodes = %d.  ", Gia_ManObjNum(p)-Gia_ManObjNum(pMan->pNew) );
-        ABC_PRT( "Runtime", clock() - clk );
+        ABC_PRT( "Runtime", Abc_Clock() - clk );
 //        ABC_PRT( "Divisors", timeFanout );        
     }
     return Shr_ManFree( pMan );

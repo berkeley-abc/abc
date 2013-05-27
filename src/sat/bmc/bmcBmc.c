@@ -191,10 +191,10 @@ int Saig_ManBmcSimple( Aig_Man_t * pAig, int nFrames, int nSizeMax, int nConfLim
     Aig_Man_t * pFrames, * pAigTemp;
     Aig_Obj_t * pObj;
     int status, Lit, i, RetValue = -1;
-    clock_t clk;
+    abctime clk;
 
     // derive the timeframes
-    clk = clock();
+    clk = Abc_Clock();
     if ( nCofFanLit )
     {
         pFrames = Gia_ManCofactorAig( pAig, nFrames, nCofFanLit );
@@ -218,13 +218,13 @@ int Saig_ManBmcSimple( Aig_Man_t * pAig, int nFrames, int nSizeMax, int nConfLim
         printf( "Time-frames (%d):  PI/PO = %d/%d.  Node = %6d. Lev = %5d.  ", 
             nFrames, Aig_ManCiNum(pFrames), Aig_ManCoNum(pFrames), 
             Aig_ManNodeNum(pFrames), Aig_ManLevelNum(pFrames) );
-        ABC_PRT( "Time", clock() - clk );
+        ABC_PRT( "Time", Abc_Clock() - clk );
         fflush( stdout );
     }
     // rewrite the timeframes
     if ( fRewrite )
     {
-        clk = clock();
+        clk = Abc_Clock();
 //        pFrames = Dar_ManBalance( pAigTemp = pFrames, 0 );
         pFrames = Dar_ManRwsat( pAigTemp = pFrames, 1, 0 );
         Aig_ManStop( pAigTemp );
@@ -232,12 +232,12 @@ int Saig_ManBmcSimple( Aig_Man_t * pAig, int nFrames, int nSizeMax, int nConfLim
         {
             printf( "Time-frames after rewriting:  Node = %6d. Lev = %5d.  ", 
                 Aig_ManNodeNum(pFrames), Aig_ManLevelNum(pFrames) );
-            ABC_PRT( "Time", clock() - clk );
+            ABC_PRT( "Time", Abc_Clock() - clk );
             fflush( stdout );
         }
     }
     // create the SAT solver
-    clk = clock();
+    clk = Abc_Clock();
     pCnf = Cnf_Derive( pFrames, Aig_ManCoNum(pFrames) );  
 //if ( s_fInterrupt )
 //return -1;
@@ -251,7 +251,7 @@ int Saig_ManBmcSimple( Aig_Man_t * pAig, int nFrames, int nSizeMax, int nConfLim
     if ( fVerbose )
     {
         printf( "CNF: Variables = %6d. Clauses = %7d. Literals = %8d. ", pCnf->nVars, pCnf->nClauses, pCnf->nLiterals );
-        ABC_PRT( "Time", clock() - clk );
+        ABC_PRT( "Time", Abc_Clock() - clk );
         fflush( stdout );
     }
     status = sat_solver_simplify(pSat);
@@ -265,7 +265,7 @@ int Saig_ManBmcSimple( Aig_Man_t * pAig, int nFrames, int nSizeMax, int nConfLim
     }
     else
     {
-        clock_t clkPart = clock();
+        abctime clkPart = Abc_Clock();
         Aig_ManForEachCo( pFrames, pObj, i )
         {
 //if ( s_fInterrupt )
@@ -276,15 +276,15 @@ int Saig_ManBmcSimple( Aig_Man_t * pAig, int nFrames, int nSizeMax, int nConfLim
                 printf( "Solving output %2d of frame %3d ... \r", 
                     i % Saig_ManPoNum(pAig), i / Saig_ManPoNum(pAig) );
             }
-            clk = clock();
+            clk = Abc_Clock();
             status = sat_solver_solve( pSat, &Lit, &Lit + 1, (ABC_INT64_T)nConfLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
             if ( fVerbose && (i % Saig_ManPoNum(pAig) == Saig_ManPoNum(pAig) - 1) )
             {
                 printf( "Solved %2d outputs of frame %3d.  ", 
                     Saig_ManPoNum(pAig), i / Saig_ManPoNum(pAig) );
                 printf( "Conf =%8.0f. Imp =%11.0f. ", (double)pSat->stats.conflicts, (double)pSat->stats.propagations );
-                ABC_PRT( "T", clock() - clkPart );
-                clkPart = clock();
+                ABC_PRT( "T", Abc_Clock() - clkPart );
+                clkPart = Abc_Clock();
                 fflush( stdout );
             }
             if ( status == l_False )

@@ -224,8 +224,8 @@ cuddBddAndRecurTime(
     if (r != NULL) return(r);
     }
 
-//    if ( TimeOut && ((*pRecCalls)++ % CHECK_FACTOR) == 0 && TimeOut < clock() )
-    if ( TimeOut && clock() > TimeOut )
+//    if ( TimeOut && ((*pRecCalls)++ % CHECK_FACTOR) == 0 && TimeOut < Abc_Clock() )
+    if ( TimeOut && Abc_Clock() > TimeOut )
         return NULL;
 
     /* Here we can skip the use of cuddI, because the operands are known
@@ -378,8 +378,8 @@ cuddBddAndAbstractRecurTime(
     }
     }
 
-//    if ( TimeOut && ((*pRecCalls)++ % CHECK_FACTOR) == 0 && TimeOut < clock() )
-    if ( TimeOut && clock() > TimeOut )
+//    if ( TimeOut && ((*pRecCalls)++ % CHECK_FACTOR) == 0 && TimeOut < Abc_Clock() )
+    if ( TimeOut && Abc_Clock() > TimeOut )
         return NULL;
 
     if (topf == top) {
@@ -596,7 +596,7 @@ extraTransferPermuteRecurTime(
     if ( st__lookup( table, ( char * ) f, ( char ** ) &res ) )
         return ( Cudd_NotCond( res, comple ) );
 
-    if ( TimeOut && clock() > TimeOut )
+    if ( TimeOut && Abc_Clock() > TimeOut )
         return NULL;
 
     /* Recursive step. */

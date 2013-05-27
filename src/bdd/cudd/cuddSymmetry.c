@@ -367,7 +367,7 @@ cuddSymmSifting(
         if (ddTotalNumberSwapping >= table->siftMaxSwap)
             break;
         // enable timeout during variable reodering - alanmi 2/13/11
-        if ( table->TimeStop && clock() > table->TimeStop )
+        if ( table->TimeStop && Abc_Clock() > table->TimeStop )
             break;
         x = table->perm[var[i]];
 #ifdef DD_STATS

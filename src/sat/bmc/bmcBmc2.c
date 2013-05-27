@@ -202,7 +202,7 @@ Vec_Ptr_t * Abs_ManTernarySimulate( Aig_Man_t * p, int nFramesMax, int fVerbose 
     Vec_Ptr_t * vSimInfo;
     Aig_Obj_t * pObj;
     int i, f, nFramesLimit, nFrameWords;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     assert( Aig_ManRegNum(p) > 0 );
     // the maximum number of frames will be determined to use at most 200Mb of RAM
     nFramesLimit = 1 + (200000000 * 4)/Aig_ManObjNum(p);
@@ -231,7 +231,7 @@ Vec_Ptr_t * Abs_ManTernarySimulate( Aig_Man_t * p, int nFramesMax, int fVerbose 
                 {
                     printf( "Ternary sim found non-zero output in frame %d.  Used %5.2f MB.  ", 
                         f, 0.25 * (f+1) * Aig_ManObjNum(p) / (1<<20) );
-                    ABC_PRT( "Time", clock() - clk );
+                    ABC_PRT( "Time", Abc_Clock() - clk );
                 }
                 return vSimInfo;
             }
@@ -240,7 +240,7 @@ Vec_Ptr_t * Abs_ManTernarySimulate( Aig_Man_t * p, int nFramesMax, int fVerbose 
     {
         printf( "Ternary sim proved all outputs in the first %d frames.  Used %5.2f MB.  ", 
             nFramesLimit, 0.25 * nFramesLimit * Aig_ManObjNum(p) / (1<<20) );
-        ABC_PRT( "Time", clock() - clk );
+        ABC_PRT( "Time", Abc_Clock() - clk );
     }
     return vSimInfo;
 }
@@ -765,8 +765,8 @@ int Saig_BmcPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nNodesMax
     Cnf_Dat_t * pCnf;
     int nOutsSolved = 0;
     int Iter, RetValue = -1;
-    clock_t nTimeToStop = nTimeOut ? nTimeOut * CLOCKS_PER_SEC + clock(): 0;
-    clock_t clk = clock(), clk2, clkTotal = clock();
+    abctime nTimeToStop = nTimeOut ? nTimeOut * CLOCKS_PER_SEC + Abc_Clock(): 0;
+    abctime clk = Abc_Clock(), clk2, clkTotal = Abc_Clock();
     int Status = -1;
 /*
     Vec_Ptr_t * vSimInfo;
@@ -788,7 +788,7 @@ int Saig_BmcPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nNodesMax
         sat_solver_set_runtime_limit( p->pSat, nTimeToStop );
     for ( Iter = 0; ; Iter++ )
     {
-        clk2 = clock();
+        clk2 = Abc_Clock();
         // add new logic interval to frames
         Saig_BmcInterval( p );
 //        Saig_BmcAddTargetsAsPos( p );
@@ -812,14 +812,14 @@ int Saig_BmcPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nNodesMax
             printf( "%4d : F =%5d. O =%4d.  And =%8d. Var =%8d. Conf =%7d. ", 
                 Iter, p->iFrameLast, p->iOutputLast, Aig_ManNodeNum(p->pFrm), p->nSatVars, (int)p->pSat->stats.conflicts );   
             printf( "%4.0f MB",     4.0*(p->iFrameLast+1)*p->nObjs/(1<<20) );
-            printf( "%9.2f sec", (float)(clock() - clkTotal)/(float)(CLOCKS_PER_SEC) );
+            printf( "%9.2f sec", (float)(Abc_Clock() - clkTotal)/(float)(CLOCKS_PER_SEC) );
             printf( "\n" );
             fflush( stdout );
         }
         if ( RetValue != l_False )
             break;
         // check the timeout
-        if ( nTimeOut && clock() > nTimeToStop )
+        if ( nTimeOut && Abc_Clock() > nTimeToStop )
         {
             if ( !fSilent )
                 printf( "Reached timeout (%d seconds).\n",  nTimeOut );
@@ -855,11 +855,11 @@ int Saig_BmcPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nNodesMax
     {
         if ( fVerbOverwrite )
         {
-            ABC_PRTr( "Time", clock() - clk );
+            ABC_PRTr( "Time", Abc_Clock() - clk );
         }
         else
         {
-            ABC_PRT( "Time", clock() - clk );
+            ABC_PRT( "Time", Abc_Clock() - clk );
         }
         if ( RetValue != l_True )
         {
@@ -867,7 +867,7 @@ int Saig_BmcPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nNodesMax
                 printf( "Reached limit on the number of timeframes (%d).\n", p->nFramesMax );
             else if ( p->nConfMaxAll && p->pSat->stats.conflicts > p->nConfMaxAll )
                 printf( "Reached global conflict limit (%d).\n", p->nConfMaxAll );
-            else if ( nTimeOut && clock() > nTimeToStop )
+            else if ( nTimeOut && Abc_Clock() > nTimeToStop )
                 printf( "Reached timeout (%d seconds).\n", nTimeOut );
             else
                 printf( "Reached local conflict limit (%d).\n", p->nConfMaxOne );

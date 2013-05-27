@@ -55,7 +55,7 @@ void Sfm_NtkWindowToSolver( Sfm_Ntk_t * p )
 {
     Vec_Int_t * vClause;
     int RetValue, iNode = -1, iFanin, i, k;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
 //    if ( p->pSat )
 //        printf( "%d  ", p->pSat->stats.learnts );
     sat_solver_restart( p->pSat );
@@ -93,7 +93,7 @@ void Sfm_NtkWindowToSolver( Sfm_Ntk_t * p )
     // finalize
     RetValue = sat_solver_simplify( p->pSat );
     assert( RetValue );
-    p->timeCnf += clock() - clk;
+    p->timeCnf += Abc_Clock() - clk;
 } 
 
 /**Function*************************************************************

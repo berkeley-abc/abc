@@ -66,7 +66,7 @@ struct Pdr_Par_t_
     int RunId;            // PDR id in this run 
     int(*pFuncStop)(int); // callback to terminate
     int(*pFuncOnFail)(int,Abc_Cex_t*); // called for a failed output in MO mode
-    clock_t timeLastSolved; // the time when the last output was solved
+    abctime timeLastSolved; // the time when the last output was solved
     Vec_Int_t * vOutMap;  // in the multi-output mode, contains status for each PO (0 = sat; 1 = unsat; negative = undecided)
 };
 

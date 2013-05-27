@@ -81,10 +81,10 @@ struct Cbs_Man_t_
     int           nConfSat;     // conflicts in sat problems
     int           nConfUndec;   // conflicts in undec problems
     // runtime stats
-    clock_t       timeSatUnsat; // unsat
-    clock_t       timeSatSat;   // sat
-    clock_t       timeSatUndec; // undecided
-    clock_t       timeTotal;    // total runtime
+    abctime       timeSatUnsat; // unsat
+    abctime       timeSatSat;   // sat
+    abctime       timeSatUndec; // undecided
+    abctime       timeTotal;    // total runtime
 };
 
 static inline int   Cbs_VarIsAssigned( Gia_Obj_t * pVar )      { return pVar->fMark0;                        }
@@ -1004,7 +1004,7 @@ Vec_Int_t * Cbs_ManSolveMiterNc( Gia_Man_t * pAig, int nConfs, Vec_Str_t ** pvSt
     Vec_Str_t * vStatus;
     Gia_Obj_t * pRoot; 
     int i, status;
-    clock_t clk, clkTotal = clock();
+    abctime clk, clkTotal = Abc_Clock();
     assert( Gia_ManRegNum(pAig) == 0 );
 //    Gia_ManCollectTest( pAig );
     // prepare AIG
@@ -1043,7 +1043,7 @@ Vec_Int_t * Cbs_ManSolveMiterNc( Gia_Man_t * pAig, int nConfs, Vec_Str_t ** pvSt
             }
             continue;
         }
-        clk = clock();
+        clk = Abc_Clock();
         p->Pars.fUseHighest = 1;
         p->Pars.fUseLowest  = 0;
         status = Cbs_ManSolve( p, Gia_ObjChild0(pRoot) );
@@ -1062,25 +1062,25 @@ Vec_Int_t * Cbs_ManSolveMiterNc( Gia_Man_t * pAig, int nConfs, Vec_Str_t ** pvSt
             p->nSatUndec++;
             p->nConfUndec += p->Pars.nBTThis;
             Cec_ManSatAddToStore( vCexStore, NULL, i ); // timeout
-            p->timeSatUndec += clock() - clk;
+            p->timeSatUndec += Abc_Clock() - clk;
             continue;
         }
         if ( status == 1 )
         {
             p->nSatUnsat++;
             p->nConfUnsat += p->Pars.nBTThis;
-            p->timeSatUnsat += clock() - clk;
+            p->timeSatUnsat += Abc_Clock() - clk;
             continue;
         }
         p->nSatSat++;
         p->nConfSat += p->Pars.nBTThis;
 //        Gia_SatVerifyPattern( pAig, pRoot, vCex, vVisit );
         Cec_ManSatAddToStore( vCexStore, vCex, i );
-        p->timeSatSat += clock() - clk;
+        p->timeSatSat += Abc_Clock() - clk;
     }
     Vec_IntFree( vVisit );
     p->nSatTotal = Gia_ManPoNum(pAig);
-    p->timeTotal = clock() - clkTotal;
+    p->timeTotal = Abc_Clock() - clkTotal;
     if ( fVerbose )
         Cbs_ManSatPrintStats( p );
 //    printf( "RecCalls = %8d.  RecClause = %8d.  RecNonChro = %8d.\n", p->nRecCall, p->nRecClause, p->nRecNonChro );

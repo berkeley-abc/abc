@@ -268,27 +268,27 @@ Gia_Man_t * Gia_ManRetimeForward( Gia_Man_t * p, int nMaxIters, int fVerbose )
 {
     Gia_Man_t * pNew, * pTemp;
     int i, nRegFixed, nRegMoves = 1;
-    clock_t clk;
+    abctime clk;
     pNew = p;
     for ( i = 0; i < nMaxIters && nRegMoves > 0; i++ )
     {
-        clk = clock();
+        clk = Abc_Clock();
         pNew = Gia_ManRetimeForwardOne( pTemp = pNew, &nRegFixed, &nRegMoves );
         if ( fVerbose )
         {
             printf( "%2d : And = %6d. Reg = %5d. Unret = %5d. Move = %6d. ", 
                 i + 1, Gia_ManAndNum(pTemp), Gia_ManRegNum(pTemp), nRegFixed, nRegMoves );
-            ABC_PRT( "Time", clock() - clk );
+            ABC_PRT( "Time", Abc_Clock() - clk );
         }
         if ( pTemp != p )
             Gia_ManStop( pTemp );
     }
 /*
-    clk = clock();
+    clk = Abc_Clock();
     pNew = Gia_ManReduceLaches( pNew, fVerbose );
     if ( fVerbose )
     {
-        ABC_PRT( "Register sharing time", clock() - clk );
+        ABC_PRT( "Register sharing time", Abc_Clock() - clk );
     }
 */
     return pNew;

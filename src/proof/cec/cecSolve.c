@@ -472,7 +472,7 @@ int Cec_ManSatCheckNode( Cec_ManSat_t * p, Gia_Obj_t * pObj )
     Gia_Obj_t * pObjR = Gia_Regular(pObj);
     int nBTLimit = p->pPars->nBTLimit;
     int Lit, RetValue, status, nConflicts;
-    clock_t clk, clk2;
+    abctime clk, clk2;
 
     if ( pObj == Gia_ManConst0(p->pAig) )
         return 1;
@@ -493,14 +493,14 @@ int Cec_ManSatCheckNode( Cec_ManSat_t * p, Gia_Obj_t * pObj )
         Cec_ManSatSolverRecycle( p );
 
     // if the nodes do not have SAT variables, allocate them
-clk2 = clock();
+clk2 = Abc_Clock();
     Cec_CnfNodeAddToSolver( p, pObjR );
-//ABC_PRT( "cnf", clock() - clk2 );
+//ABC_PRT( "cnf", Abc_Clock() - clk2 );
 //Abc_Print( 1, "%d \n", p->pSat->size );
 
-clk2 = clock();
+clk2 = Abc_Clock();
 //    Cec_SetActivityFactors( p, pObjR ); 
-//ABC_PRT( "act", clock() - clk2 );
+//ABC_PRT( "act", Abc_Clock() - clk2 );
 
     // propage unit clauses
     if ( p->pSat->qtail != p->pSat->qhead )
@@ -518,17 +518,17 @@ clk2 = clock();
         if ( pObjR->fPhase )  Lit = lit_neg( Lit );
     }
 //Sat_SolverWriteDimacs( p->pSat, "temp.cnf", pLits, pLits + 2, 1 );
-clk = clock();
+clk = Abc_Clock();
     nConflicts = p->pSat->stats.conflicts;
 
-clk2 = clock();
+clk2 = Abc_Clock();
     RetValue = sat_solver_solve( p->pSat, &Lit, &Lit + 1, 
         (ABC_INT64_T)nBTLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
-//ABC_PRT( "sat", clock() - clk2 );
+//ABC_PRT( "sat", Abc_Clock() - clk2 );
 
     if ( RetValue == l_False )
     {
-p->timeSatUnsat += clock() - clk;
+p->timeSatUnsat += Abc_Clock() - clk;
         Lit = lit_neg( Lit );
         RetValue = sat_solver_addclause( p->pSat, &Lit, &Lit + 1 );
         assert( RetValue );
@@ -539,7 +539,7 @@ p->timeSatUnsat += clock() - clk;
     }
     else if ( RetValue == l_True )
     {
-p->timeSatSat += clock() - clk;
+p->timeSatSat += Abc_Clock() - clk;
         p->nSatSat++;
         p->nConfSat += p->pSat->stats.conflicts - nConflicts;
 //Abc_Print( 1, "SAT after %d conflicts\n", p->pSat->stats.conflicts - nConflicts );
@@ -547,7 +547,7 @@ p->timeSatSat += clock() - clk;
     }
     else // if ( RetValue == l_Undef )
     {
-p->timeSatUndec += clock() - clk;
+p->timeSatUndec += Abc_Clock() - clk;
         p->nSatUndec++;
         p->nConfUndec += p->pSat->stats.conflicts - nConflicts;
 //Abc_Print( 1, "UNDEC after %d conflicts\n", p->pSat->stats.conflicts - nConflicts );
@@ -572,7 +572,7 @@ int Cec_ManSatCheckNodeTwo( Cec_ManSat_t * p, Gia_Obj_t * pObj1, Gia_Obj_t * pOb
     Gia_Obj_t * pObjR2 = Gia_Regular(pObj2);
     int nBTLimit = p->pPars->nBTLimit;
     int Lits[2], RetValue, status, nConflicts;
-    clock_t clk, clk2;
+    abctime clk, clk2;
 
     if ( pObj1 == Gia_ManConst0(p->pAig) || pObj2 == Gia_ManConst0(p->pAig) || pObj1 == Gia_Not(pObj2) )
         return 1;
@@ -593,16 +593,16 @@ int Cec_ManSatCheckNodeTwo( Cec_ManSat_t * p, Gia_Obj_t * pObj1, Gia_Obj_t * pOb
         Cec_ManSatSolverRecycle( p );
 
     // if the nodes do not have SAT variables, allocate them
-clk2 = clock();
+clk2 = Abc_Clock();
     Cec_CnfNodeAddToSolver( p, pObjR1 );
     Cec_CnfNodeAddToSolver( p, pObjR2 );
-//ABC_PRT( "cnf", clock() - clk2 );
+//ABC_PRT( "cnf", Abc_Clock() - clk2 );
 //Abc_Print( 1, "%d \n", p->pSat->size );
 
-clk2 = clock();
+clk2 = Abc_Clock();
 //    Cec_SetActivityFactors( p, pObjR1 ); 
 //    Cec_SetActivityFactors( p, pObjR2 ); 
-//ABC_PRT( "act", clock() - clk2 );
+//ABC_PRT( "act", Abc_Clock() - clk2 );
 
     // propage unit clauses
     if ( p->pSat->qtail != p->pSat->qhead )
@@ -622,17 +622,17 @@ clk2 = clock();
         if ( pObjR2->fPhase )  Lits[1] = lit_neg( Lits[1] );
     }
 //Sat_SolverWriteDimacs( p->pSat, "temp.cnf", pLits, pLits + 2, 1 );
-clk = clock();
+clk = Abc_Clock();
     nConflicts = p->pSat->stats.conflicts;
 
-clk2 = clock();
+clk2 = Abc_Clock();
     RetValue = sat_solver_solve( p->pSat, Lits, Lits + 2, 
         (ABC_INT64_T)nBTLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
-//ABC_PRT( "sat", clock() - clk2 );
+//ABC_PRT( "sat", Abc_Clock() - clk2 );
 
     if ( RetValue == l_False )
     {
-p->timeSatUnsat += clock() - clk;
+p->timeSatUnsat += Abc_Clock() - clk;
         Lits[0] = lit_neg( Lits[0] );
         Lits[1] = lit_neg( Lits[1] );
         RetValue = sat_solver_addclause( p->pSat, Lits, Lits + 2 );
@@ -644,7 +644,7 @@ p->timeSatUnsat += clock() - clk;
     }
     else if ( RetValue == l_True )
     {
-p->timeSatSat += clock() - clk;
+p->timeSatSat += Abc_Clock() - clk;
         p->nSatSat++;
         p->nConfSat += p->pSat->stats.conflicts - nConflicts;
 //Abc_Print( 1, "SAT after %d conflicts\n", p->pSat->stats.conflicts - nConflicts );
@@ -652,7 +652,7 @@ p->timeSatSat += clock() - clk;
     }
     else // if ( RetValue == l_Undef )
     {
-p->timeSatUndec += clock() - clk;
+p->timeSatUndec += Abc_Clock() - clk;
         p->nSatUndec++;
         p->nConfUndec += p->pSat->stats.conflicts - nConflicts;
 //Abc_Print( 1, "UNDEC after %d conflicts\n", p->pSat->stats.conflicts - nConflicts );
@@ -679,7 +679,7 @@ void Cec_ManSatSolve( Cec_ManPat_t * pPat, Gia_Man_t * pAig, Cec_ParSat_t * pPar
     Cec_ManSat_t * p;
     Gia_Obj_t * pObj;
     int i, status;
-    clock_t clk = clock(), clk2;
+    abctime clk = Abc_Clock(), clk2;
     // reset the manager
     if ( pPat )
     {
@@ -702,7 +702,7 @@ void Cec_ManSatSolve( Cec_ManPat_t * pPat, Gia_Man_t * pAig, Cec_ParSat_t * pPar
             continue;
         }
         Bar_ProgressUpdate( pProgress, i, "SAT..." );
-clk2 = clock();
+clk2 = Abc_Clock();
         status = Cec_ManSatCheckNode( p, Gia_ObjChild0(pObj) );
         pObj->fMark0 = (status == 0);
         pObj->fMark1 = (status == 1);
@@ -720,15 +720,15 @@ clk2 = clock();
         // save the pattern
         if ( pPat )
         {
-            clock_t clk3 = clock();
+            abctime clk3 = Abc_Clock();
             Cec_ManPatSavePattern( pPat, p, pObj );
-            pPat->timeTotalSave += clock() - clk3;
+            pPat->timeTotalSave += Abc_Clock() - clk3;
         }
         // quit if one of them is solved
         if ( pPars->fCheckMiter )
             break;
     }
-    p->timeTotal = clock() - clk;
+    p->timeTotal = Abc_Clock() - clk;
     Bar_ProgressStop( pProgress );
     if ( pPars->fVerbose )
         Cec_ManSatPrintStats( p );
@@ -803,7 +803,7 @@ Vec_Str_t * Cec_ManSatSolveSeq( Vec_Ptr_t * vPatts, Gia_Man_t * pAig, Cec_ParSat
     Gia_Obj_t * pObj;
     int iPat = 0, nPatsInit, nPats;
     int i, status;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     nPatsInit = nPats = 32 * Vec_PtrReadWordsSimInfo(vPatts);
     Gia_ManSetPhase( pAig );
     Gia_ManLevelNum( pAig );
@@ -857,7 +857,7 @@ Vec_Str_t * Cec_ManSatSolveSeq( Vec_Ptr_t * vPatts, Gia_Man_t * pAig, Cec_ParSat
 //        if ( iPat == 32 * 15 * 16 - 1 )
 //            break;
     }
-    p->timeTotal = clock() - clk;
+    p->timeTotal = Abc_Clock() - clk;
     Bar_ProgressStop( pProgress );
     if ( pPars->fVerbose )
         Cec_ManSatPrintStats( p );
@@ -962,7 +962,7 @@ Vec_Int_t * Cec_ManSatSolveMiter( Gia_Man_t * pAig, Cec_ParSat_t * pPars, Vec_St
     Cec_ManSat_t * p;
     Gia_Obj_t * pObj;
     int i, status;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     // prepare AIG
     Gia_ManSetPhase( pAig );
     Gia_ManLevelNum( pAig );
@@ -1009,7 +1009,7 @@ Vec_Int_t * Cec_ManSatSolveMiter( Gia_Man_t * pAig, Cec_ParSat_t * pPars, Vec_St
 //        Gia_SatVerifyPattern( pAig, pObj, p->vCex, p->vVisits );
         Cec_ManSatAddToStore( vCexStore, p->vCex, i );
     }
-    p->timeTotal = clock() - clk;
+    p->timeTotal = Abc_Clock() - clk;
     Bar_ProgressStop( pProgress );
 //    if ( pPars->fVerbose )
 //        Cec_ManSatPrintStats( p );

@@ -52,7 +52,7 @@ Abc_Cex_t * Llb4_Nonlin4TransformCex( Aig_Man_t * pAig, Vec_Ptr_t * vStates, int
     sat_solver * pSat;
     Aig_Obj_t * pObj;
     unsigned * pNext, * pThis;
-    int i, k, iBit, status, nRegs;//, clk = clock();
+    int i, k, iBit, status, nRegs;//, clk = Abc_Clock();
 /*
     Vec_PtrForEachEntry( unsigned *, vStates, pNext, i )
     {
@@ -187,7 +187,7 @@ Abc_Cex_t * Llb4_Nonlin4TransformCex( Aig_Man_t * pAig, Vec_Ptr_t * vStates, int
     }
     // report the results
 //    if ( fVerbose )
-//       Abc_PrintTime( 1, "SAT-based cex generation time", clock() - clk );
+//       Abc_PrintTime( 1, "SAT-based cex generation time", Abc_Clock() - clk );
     return pCex;
 }
 

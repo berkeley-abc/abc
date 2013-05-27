@@ -46,7 +46,7 @@ struct Cut_OracleStruct_t_
     int                EntrySize;
     int                nTruthWords;
     // stats
-    clock_t            timeTotal;
+    abctime            timeTotal;
     int                nCuts;
     int                nCutsTriv;
 };
@@ -322,7 +322,7 @@ Cut_Cut_t * Cut_OracleComputeCuts( Cut_Oracle_t * p, int Node, int Node0, int No
     Cut_Cut_t * pList = NULL, ** ppTail = &pList;
     Cut_Cut_t * pCut, * pCut0, * pCut1, * pList0, * pList1;
     int iCutStart, nCuts, i, Entry;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
 
     // get the cuts of the children
     pList0 = (Cut_Cut_t *)Vec_PtrEntry( p->vCutsNew, Node0 );
@@ -367,7 +367,7 @@ Cut_Cut_t * Cut_OracleComputeCuts( Cut_Oracle_t * p, int Node, int Node0, int No
     // write the new cut
     assert( Vec_PtrEntry( p->vCutsNew, Node ) == NULL );
     Vec_PtrWriteEntry( p->vCutsNew, Node, pList );
-p->timeTotal += clock() - clk;
+p->timeTotal += Abc_Clock() - clk;
     return pList;
 }
 

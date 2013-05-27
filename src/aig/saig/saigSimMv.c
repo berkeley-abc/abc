@@ -882,13 +882,13 @@ Vec_Ptr_t * Saig_MvManSimulate( Aig_Man_t * pAig, int nFramesSymb, int nFramesSa
     Saig_MvMan_t * p;
     Saig_MvObj_t * pEntry;
     int f, i, iState;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     assert( nFramesSymb >= 1 && nFramesSymb <= nFramesSatur );
 
     // start manager
     p = Saig_MvManStart( pAig, nFramesSatur );
 if ( fVerbose )
-ABC_PRT( "Constructing the problem", clock() - clk );
+ABC_PRT( "Constructing the problem", Abc_Clock() - clk );
 
     // initialize registers
     Vec_PtrForEachEntry( Saig_MvObj_t *, p->vFlops, pEntry, i )
@@ -897,7 +897,7 @@ ABC_PRT( "Constructing the problem", clock() - clk );
     if ( fVeryVerbose )
         Saig_MvPrintState( 0, p );
     // simulate until convergence
-    clk = clock();
+    clk = Abc_Clock();
     for ( f = 0; ; f++ )
     { 
         if ( f == nFramesSatur )
@@ -937,7 +937,7 @@ ABC_PRT( "Constructing the problem", clock() - clk );
     }
 //    printf( "Coverged after %d frames.\n", f );
 if ( fVerbose )
-ABC_PRT( "Multi-valued simulation", clock() - clk );
+ABC_PRT( "Multi-valued simulation", Abc_Clock() - clk );
     // implement equivalences
 //    Saig_MvManPostProcess( p, iState-1 );
     vMap = Saig_MvManDeriveMap( p, fVerbose );

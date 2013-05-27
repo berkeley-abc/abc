@@ -65,7 +65,7 @@ int Ivy_ManRewriteSeq( Ivy_Man_t * p, int fUseZeroCost, int fVerbose )
     Rwt_Man_t * pManRwt;
     Ivy_Obj_t * pNode;
     int i, nNodes, nGain;
-    clock_t clk, clkStart = clock();
+    abctime clk, clkStart = Abc_Clock();
 
     // set the DC latch values
     Ivy_ManForEachLatch( p, pNode, i )
@@ -99,14 +99,14 @@ int Ivy_ManRewriteSeq( Ivy_Man_t * p, int fUseZeroCost, int fVerbose )
             Dec_Graph_t * pGraph = (Dec_Graph_t *)Rwt_ManReadDecs(pManRwt);
             int fCompl           = Rwt_ManReadCompl(pManRwt);
             // complement the FF if needed
-clk = clock();
+clk = Abc_Clock();
             if ( fCompl ) Dec_GraphComplement( pGraph );
             Ivy_GraphUpdateNetworkSeq( p, pNode, pGraph, nGain );
             if ( fCompl ) Dec_GraphComplement( pGraph );
-Rwt_ManAddTimeUpdate( pManRwt, clock() - clk );
+Rwt_ManAddTimeUpdate( pManRwt, Abc_Clock() - clk );
         }
     }
-Rwt_ManAddTimeTotal( pManRwt, clock() - clkStart );
+Rwt_ManAddTimeTotal( pManRwt, Abc_Clock() - clkStart );
     // print stats
     if ( fVerbose )
         Rwt_ManPrintStats( pManRwt );
@@ -157,16 +157,16 @@ int Ivy_NodeRewriteSeq( Ivy_Man_t * pMan, Rwt_Man_t * p, Ivy_Obj_t * pNode, int 
     int nNodesSaved;
     int nNodesSaveCur = -1; // Suppress "might be used uninitialized"
     int i, c, GainCur, GainBest = -1;
-    clock_t clk, clk2;//, clk3;
+    abctime clk, clk2;//, clk3;
 
     p->nNodesConsidered++;
     // get the node's cuts
-clk = clock();
+clk = Abc_Clock();
     pStore = Ivy_CutComputeForNode( pMan, pNode, 5 );
-p->timeCut += clock() - clk;
+p->timeCut += Abc_Clock() - clk;
 
     // go through the cuts
-clk = clock();
+clk = Abc_Clock();
     vFanout = Vec_PtrAlloc( 100 );
     for ( c = 1; c < pStore->nCuts; c++ )
     {
@@ -185,9 +185,9 @@ clk = clock();
         }
         p->nCutsGood++;
         // get the fanin permutation
-clk2 = clock();
+clk2 = Abc_Clock();
         uTruth = 0xFFFF & Ivy_CutGetTruth( pMan, pNode, pCut->pArray, pCut->nSize );  // truth table
-p->timeTruth += clock() - clk2;
+p->timeTruth += Abc_Clock() - clk2;
         pPerm = p->pPerms4[ (int)p->pPerms[uTruth] ];
         uPhase = p->pPhases[uTruth];
         // collect fanins with the corresponding permutation/phase
@@ -200,7 +200,7 @@ p->timeTruth += clock() - clk2;
             pFanin = Ivy_NotCond(pFanin, ((uPhase & (1<<i)) > 0) );
             Vec_PtrWriteEntry( p->vFaninsCur, i, pFanin );
         }
-clk2 = clock();
+clk2 = Abc_Clock();
         // mark the fanin boundary 
         Vec_PtrForEachEntry( Ivy_Obj_t *, p->vFaninsCur, pFanin, i )
             Ivy_ObjRefsInc( Ivy_Regular(pFanin) );
@@ -213,12 +213,12 @@ clk2 = clock();
         // unmark the fanin boundary
         Vec_PtrForEachEntry( Ivy_Obj_t *, p->vFaninsCur, pFanin, i )
             Ivy_ObjRefsDec( Ivy_Regular(pFanin) );
-p->timeMffc += clock() - clk2;
+p->timeMffc += Abc_Clock() - clk2;
 
         // evaluate the cut
-clk2 = clock();
+clk2 = Abc_Clock();
         pGraph = Rwt_CutEvaluateSeq( pMan, p, pNode, pCut, pPerm, p->vFaninsCur, nNodesSaved, &GainCur, uTruth );
-p->timeEval += clock() - clk2;
+p->timeEval += Abc_Clock() - clk2;
 
 
         // check if the cut is better than the current best one
@@ -239,7 +239,7 @@ p->timeEval += clock() - clk2;
         }
     }
     Vec_PtrFree( vFanout );
-p->timeRes += clock() - clk;
+p->timeRes += Abc_Clock() - clk;
 
     if ( GainBest == -1 )
         return -1;
@@ -253,9 +253,9 @@ p->timeRes += clock() - clk;
     }
 */
 
-//clk3 = clock();
+//clk3 = Abc_Clock();
 //nNewClauses = Ivy_CutTruthPrint( pMan, p->pCut, uTruth );
-//timeInv += clock() - clk;
+//timeInv += Abc_Clock() - clk;
 
 //    nClauses += nNewClauses;
 //    nMoves++;
@@ -1110,7 +1110,7 @@ void Ivy_CutComputeAll( Ivy_Man_t * p, int nInputs )
     Ivy_Store_t * pStore;
     Ivy_Obj_t * pObj;
     int i, nCutsTotal, nCutsTotalM, nNodeTotal, nNodeOver;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     if ( nInputs > IVY_CUT_INPUT )
     {
         printf( "Cannot compute cuts for more than %d inputs.\n", IVY_CUT_INPUT );
@@ -1130,7 +1130,7 @@ void Ivy_CutComputeAll( Ivy_Man_t * p, int nInputs )
     }
     printf( "All = %6d. Minus = %6d. Triv = %6d.   Node = %6d. Satur = %6d.  ", 
         nCutsTotal, nCutsTotalM, Ivy_ManPiNum(p) + Ivy_ManNodeNum(p), nNodeTotal, nNodeOver );
-    ABC_PRT( "Time", clock() - clk );
+    ABC_PRT( "Time", Abc_Clock() - clk );
 }
 
 ////////////////////////////////////////////////////////////////////////

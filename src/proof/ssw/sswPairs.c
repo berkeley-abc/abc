@@ -321,7 +321,7 @@ Aig_Man_t * Ssw_SignalCorrespondeceTestPairs( Aig_Man_t * pAig )
     Vec_Int_t * vIds1, * vIds2;
     Aig_Obj_t * pObj, * pRepr;
     int RetValue, i;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     Ssw_ManSetDefaultParams( pPars );
     pPars->fVerbose = 1;
     pAigNew = Ssw_SignalCorrespondence( pAig, pPars );
@@ -360,7 +360,7 @@ Aig_Man_t * Ssw_SignalCorrespondeceTestPairs( Aig_Man_t * pAig )
     else
         Abc_Print( 1, "Verification UNDECIDED. Remaining registers %d (total %d).  ",
             Aig_ManRegNum(pAigRes), Aig_ManRegNum(pAig) + Aig_ManRegNum(pAigNew) );
-    ABC_PRT( "Time", clock() - clk );
+    ABC_PRT( "Time", Abc_Clock() - clk );
     // cleanup
     Aig_ManStop( pAigNew );
     return pAigRes;
@@ -381,7 +381,7 @@ int Ssw_SecWithPairs( Aig_Man_t * pAig1, Aig_Man_t * pAig2, Vec_Int_t * vIds1, V
 {
     Aig_Man_t * pAigRes;
     int RetValue;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     assert( vIds1 != NULL && vIds2 != NULL );
     // try the new AIGs
     Abc_Print( 1, "Performing specialized verification with node pairs.\n" );
@@ -395,7 +395,7 @@ int Ssw_SecWithPairs( Aig_Man_t * pAig1, Aig_Man_t * pAig2, Vec_Int_t * vIds1, V
     else
         Abc_Print( 1, "Verification UNDECIDED. The number of remaining regs = %d (total = %d).  ",
             Aig_ManRegNum(pAigRes), Aig_ManRegNum(pAig1) + Aig_ManRegNum(pAig2) );
-    ABC_PRT( "Time", clock() - clk );
+    ABC_PRT( "Time", Abc_Clock() - clk );
     // cleanup
     Aig_ManStop( pAigRes );
     return RetValue;
@@ -416,7 +416,7 @@ int Ssw_SecGeneral( Aig_Man_t * pAig1, Aig_Man_t * pAig2, Ssw_Pars_t * pPars )
 {
     Aig_Man_t * pAigRes, * pMiter;
     int RetValue;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     // try the new AIGs
     Abc_Print( 1, "Performing general verification without node pairs.\n" );
     pMiter = Saig_ManCreateMiter( pAig1, pAig2, 0 );
@@ -432,7 +432,7 @@ int Ssw_SecGeneral( Aig_Man_t * pAig1, Aig_Man_t * pAig2, Ssw_Pars_t * pPars )
     else
         Abc_Print( 1, "Verification UNDECIDED. The number of remaining regs = %d (total = %d).  ",
             Aig_ManRegNum(pAigRes), Aig_ManRegNum(pAig1) + Aig_ManRegNum(pAig2) );
-    ABC_PRT( "Time", clock() - clk );
+    ABC_PRT( "Time", Abc_Clock() - clk );
     // cleanup
     Aig_ManStop( pAigRes );
     return RetValue;
@@ -453,7 +453,7 @@ int Ssw_SecGeneralMiter( Aig_Man_t * pMiter, Ssw_Pars_t * pPars )
 {
     Aig_Man_t * pAigRes;
     int RetValue;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     // try the new AIGs
 //    Abc_Print( 1, "Performing general verification without node pairs.\n" );
     pAigRes = Ssw_SignalCorrespondence( pMiter, pPars );
@@ -466,7 +466,7 @@ int Ssw_SecGeneralMiter( Aig_Man_t * pMiter, Ssw_Pars_t * pPars )
     else
         Abc_Print( 1, "Verification UNDECIDED. The number of remaining regs = %d (total = %d).  ",
             Aig_ManRegNum(pAigRes), Aig_ManRegNum(pMiter) );
-    ABC_PRT( "Time", clock() - clk );
+    ABC_PRT( "Time", Abc_Clock() - clk );
     // cleanup
     Aig_ManStop( pAigRes );
     return RetValue;

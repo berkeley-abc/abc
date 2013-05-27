@@ -258,14 +258,14 @@ int Cec_ManSimulationOne( Gia_Man_t * pAig, Cec_ParSim_t * pPars )
 {
     Cec_ManSim_t * pSim;
     int RetValue = 0;
-    clock_t clkTotal = clock();
+    abctime clkTotal = Abc_Clock();
     pSim = Cec_ManSimStart( pAig, pPars );
     if ( (pAig->pReprs == NULL && (RetValue = Cec_ManSimClassesPrepare( pSim, -1 ))) ||
          (RetValue == 0 &&        (RetValue = Cec_ManSimClassesRefine( pSim ))) )
         Abc_Print( 1, "The number of failed outputs of the miter = %6d. (Words = %4d. Frames = %4d.)\n", 
             pSim->nOuts, pPars->nWords, pPars->nFrames );
     if ( pPars->fVerbose )
-        Abc_PrintTime( 1, "Time", clock() - clkTotal );
+        Abc_PrintTime( 1, "Time", Abc_Clock() - clkTotal );
     Cec_ManSimStop( pSim );
     return RetValue;
 }
@@ -344,7 +344,7 @@ Gia_Man_t * Cec_ManSatSweeping( Gia_Man_t * pAig, Cec_ParFra_t * pPars )
     Cec_ManSim_t * pSim;
     Cec_ManPat_t * pPat;
     int i, fTimeOut = 0, nMatches = 0;
-    clock_t clk, clk2, clkTotal = clock();
+    abctime clk, clk2, clkTotal = Abc_Clock();
 
     // duplicate AIG and transfer equivalence classes
     Gia_ManRandom( 1 );
@@ -374,7 +374,7 @@ Gia_Man_t * Cec_ManSatSweeping( Gia_Man_t * pAig, Cec_ParFra_t * pPars )
     pPat->fVerbose = pPars->fVeryVerbose;
 
     // start equivalence classes
-clk = clock();
+clk = Abc_Clock();
     if ( p->pAig->pReprs == NULL )
     {
         if ( Cec_ManSimClassesPrepare(pSim, -1) || Cec_ManSimClassesRefine(pSim) )
@@ -384,11 +384,11 @@ clk = clock();
             goto finalize;
         }
     }
-p->timeSim += clock() - clk;
+p->timeSim += Abc_Clock() - clk;
     // perform solving
     for ( i = 1; i <= pPars->nItersMax; i++ )
     {
-        clk2 = clock();
+        clk2 = Abc_Clock();
         nMatches = 0;
         if ( pPars->fDualOut )
         {
@@ -425,9 +425,9 @@ p->timeSim += clock() - clk;
             }
             break;
         }
-clk = clock();
+clk = Abc_Clock();
         Cec_ManSatSolve( pPat, pSrm, pParsSat ); 
-p->timeSat += clock() - clk;
+p->timeSat += Abc_Clock() - clk;
         if ( Cec_ManFraClassesUpdate( p, pSim, pPat, pSrm ) )
         {
             Gia_ManStop( pSrm );
@@ -449,7 +449,7 @@ p->timeSat += clock() - clk;
         {
             Abc_Print( 1, "%3d : P =%7d. D =%7d. F =%6d. M = %7d. And =%8d. ", 
                 i, p->nAllProved, p->nAllDisproved, p->nAllFailed, nMatches, Gia_ManAndNum(p->pAig) );
-            Abc_PrintTime( 1, "Time", clock() - clk2 );
+            Abc_PrintTime( 1, "Time", Abc_Clock() - clk2 );
         }
         if ( Gia_ManAndNum(p->pAig) == 0 )
         {
@@ -458,7 +458,7 @@ p->timeSat += clock() - clk;
             break;
         }
         // check resource limits
-        if ( p->pPars->TimeLimit && (clock() - clkTotal)/CLOCKS_PER_SEC >= p->pPars->TimeLimit )
+        if ( p->pPars->TimeLimit && (Abc_Clock() - clkTotal)/CLOCKS_PER_SEC >= p->pPars->TimeLimit )
         {
             fTimeOut = 1;
             break;
@@ -509,10 +509,10 @@ finalize:
             100.0*(Gia_ManAndNum(pAig)-Gia_ManAndNum(p->pAig))/(Gia_ManAndNum(pAig)?Gia_ManAndNum(pAig):1), 
             Gia_ManRegNum(pAig), Gia_ManRegNum(p->pAig), 
             100.0*(Gia_ManRegNum(pAig)-Gia_ManRegNum(p->pAig))/(Gia_ManRegNum(pAig)?Gia_ManRegNum(pAig):1) );
-        Abc_PrintTimeP( 1, "Sim ", p->timeSim, clock() - (int)clkTotal );
-        Abc_PrintTimeP( 1, "Sat ", p->timeSat-pPat->timeTotalSave, clock() - (int)clkTotal );
-        Abc_PrintTimeP( 1, "Pat ", p->timePat+pPat->timeTotalSave, clock() - (int)clkTotal );
-        Abc_PrintTime( 1, "Time", (int)(clock() - clkTotal) );
+        Abc_PrintTimeP( 1, "Sim ", p->timeSim, Abc_Clock() - (int)clkTotal );
+        Abc_PrintTimeP( 1, "Sat ", p->timeSat-pPat->timeTotalSave, Abc_Clock() - (int)clkTotal );
+        Abc_PrintTimeP( 1, "Pat ", p->timePat+pPat->timeTotalSave, Abc_Clock() - (int)clkTotal );
+        Abc_PrintTime( 1, "Time", (int)(Abc_Clock() - clkTotal) );
     }
 
     pTemp = p->pAig; p->pAig = NULL;
@@ -524,7 +524,7 @@ finalize:
     else if ( pSim->pCexes )
         Abc_Print( 1, "Disproved %d outputs of the miter.\n", pSim->nOuts );
     if ( fTimeOut )
-        Abc_Print( 1, "Timed out after %d seconds.\n", (int)((double)clock() - clkTotal)/CLOCKS_PER_SEC );
+        Abc_Print( 1, "Timed out after %d seconds.\n", (int)((double)Abc_Clock() - clkTotal)/CLOCKS_PER_SEC );
 
     pAig->pCexComb = pSim->pCexComb; pSim->pCexComb = NULL;
     Cec_ManSimStop( pSim );

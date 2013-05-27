@@ -714,7 +714,7 @@ Vec_Int_t * Frc_ManCollectCos( Frc_Man_t * p )
 void Frc_ManCrossCutTest( Frc_Man_t * p, Vec_Int_t * vOrderInit )
 {
     Vec_Int_t * vOrder;
-//    clock_t clk = clock();
+//    abctime clk = Abc_Clock();
     vOrder = vOrderInit? vOrderInit : Frc_ManCollectCos( p );
     printf( "CrossCut = %6d\n", Frc_ManCrossCut( p, vOrder, 0 ) );
     printf( "CrossCut = %6d\n", Frc_ManCrossCut( p, vOrder, 1 ) );
@@ -724,7 +724,7 @@ void Frc_ManCrossCutTest( Frc_Man_t * p, Vec_Int_t * vOrderInit )
     Vec_IntReverseOrder( vOrder );
     if ( vOrder != vOrderInit )
         Vec_IntFree( vOrder );
-//    ABC_PRT( "Time", clock() - clk );
+//    ABC_PRT( "Time", Abc_Clock() - clk );
 }
 
 
@@ -892,7 +892,7 @@ void Frc_ManPlacementRefine( Frc_Man_t * p, int nIters, int fVerbose )
     float * pVertX, VertX;
     int * pPermX, * pHandles;
     int k, h, Iter, iMinX, iMaxX, Counter, nCutStart, nCutCur, nCutCur2, nCutPrev;
-    clock_t clk = clock(), clk2, clk2Total = 0;
+    abctime clk = Abc_Clock(), clk2, clk2Total = 0;
     // create starting one-dimensional placement
     vCoOrder = Frc_ManCollectCos( p );
     if ( fRandomize )
@@ -930,9 +930,9 @@ void Frc_ManPlacementRefine( Frc_Man_t * p, int nIters, int fVerbose )
         }
         assert( Counter == Frc_ManObjNum(p) );
         // sort these numbers
-        clk2 = clock();
+        clk2 = Abc_Clock();
         pPermX = Gia_SortFloats( pVertX, pHandles, p->nObjs );
-        clk2Total += clock() - clk2;
+        clk2Total += Abc_Clock() - clk2;
         assert( pPermX == pHandles );
         Vec_IntClear( vCoOrder );
         for ( k = 0; k < p->nObjs; k++ )
@@ -954,7 +954,7 @@ void Frc_ManPlacementRefine( Frc_Man_t * p, int nIters, int fVerbose )
         {
             printf( "%2d : Span = %e  ", Iter+1, CostThis );
             printf( "Cut = %6d  (%5.2f %%)  CutR = %6d  ", nCutCur, 100.0*(nCutStart-nCutCur)/nCutStart, nCutCur2 );
-            ABC_PRTn( "Total", clock() - clk );
+            ABC_PRTn( "Total", Abc_Clock() - clk );
             ABC_PRT( "Sort", clk2Total );
 //        Frc_ManCrossCutTest( p, vCoOrder );
         }
@@ -1068,7 +1068,7 @@ void For_ManFileExperiment()
     FILE * pFile;
     int * pBuffer;
     int i, Size, Exp = 25;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     int RetValue;
 
     Size = (1 << Exp);
@@ -1077,19 +1077,19 @@ void For_ManFileExperiment()
     pBuffer = ABC_ALLOC( int, Size );
     for ( i = 0; i < Size; i++ )
         pBuffer[i] = i;
-ABC_PRT( "Fillup", clock() - clk );
+ABC_PRT( "Fillup", Abc_Clock() - clk );
 
-clk = clock();
+clk = Abc_Clock();
     pFile = fopen( "test.txt", "rb" );
     RetValue = fread( pBuffer, 1, sizeof(int) * Size, pFile );
     fclose( pFile );
-ABC_PRT( "Read  ", clock() - clk );
+ABC_PRT( "Read  ", Abc_Clock() - clk );
 
-clk = clock();
+clk = Abc_Clock();
     pFile = fopen( "test.txt", "wb" );
     fwrite( pBuffer, 1, sizeof(int) * Size, pFile );
     fclose( pFile );
-ABC_PRT( "Write ", clock() - clk );
+ABC_PRT( "Write ", Abc_Clock() - clk );
 /*
 2^25 machine words (134217728 bytes).
 Fillup =    0.06 sec

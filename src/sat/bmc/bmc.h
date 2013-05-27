@@ -64,7 +64,7 @@ struct Saig_ParBmc_t_
     int         iFrame;         // explored up to this frame
     int         nFailOuts;      // the number of failed outputs
     int         nDropOuts;      // the number of dropped outputs
-    clock_t     timeLastSolved; // the time when the last output was solved
+    abctime     timeLastSolved; // the time when the last output was solved
     int(*pFuncOnFail)(int,Abc_Cex_t*); // called for a failed output in MO mode
 };
 

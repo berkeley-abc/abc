@@ -50,21 +50,21 @@ void Sim_SymmsSimulate( Sym_Man_t * p, unsigned * pPat, Vec_Ptr_t * vMatrsNonSym
 {
     Abc_Obj_t * pNode;
     int i, nPairsTotal, nPairsSym, nPairsNonSym;
-    clock_t clk;
+    abctime clk;
 
     // create the simulation matrix
     Sim_SymmsCreateSquare( p, pPat );
     // simulate each node in the DFS order
-clk = clock();
+clk = Abc_Clock();
     Vec_PtrForEachEntry( Abc_Obj_t *, p->vNodes, pNode, i )
     {
 //        if ( Abc_NodeIsConst(pNode) )
 //            continue;
         Sim_UtilSimulateNodeOne( pNode, p->vSim, p->nSimWords, 0 );
     }
-p->timeSim += clock() - clk;
+p->timeSim += Abc_Clock() - clk;
     // collect info into the CO matrices
-clk = clock();
+clk = Abc_Clock();
     Abc_NtkForEachCo( p->pNtk, pNode, i )
     {
         pNode = Abc_ObjFanin0(pNode);
@@ -78,7 +78,7 @@ clk = clock();
             continue;
         Sim_SymmsDeriveInfo( p, pPat, pNode, vMatrsNonSym, i );
     }
-p->timeMatr += clock() - clk;
+p->timeMatr += Abc_Clock() - clk;
 }
 
 /**Function*************************************************************

@@ -78,7 +78,7 @@ void Ssw_ManSweepTransfer( Ssw_Man_t * p )
 int Ssw_ManSweepResimulate( Ssw_Man_t * p )
 {
     int RetValue1, RetValue2;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     // transfer PI simulation information from storage
     Ssw_ManSweepTransfer( p );
     // simulate internal nodes
@@ -90,7 +90,7 @@ int Ssw_ManSweepResimulate( Ssw_Man_t * p )
     Vec_PtrCleanSimInfo( p->vSimInfo, 0, 1 );
     p->nPatterns = 0;
     p->nSimRounds++;
-p->timeSimSat += clock() - clk;
+p->timeSimSat += Abc_Clock() - clk;
     return RetValue1 > 0 || RetValue2 > 0;
 }
 
@@ -161,7 +161,7 @@ void Ssw_ManSweepLatchOne( Ssw_Man_t * p, Aig_Obj_t * pObjRepr, Aig_Obj_t * pObj
 {
     Aig_Obj_t * pObjFraig, * pObjReprFraig, * pObjLi;
     int RetValue;
-    clock_t clk;
+    abctime clk;
     assert( Aig_ObjIsCi(pObj) );
     assert( Aig_ObjIsCi(pObjRepr) || Aig_ObjIsConst1(pObjRepr) );
     // check if it makes sense to skip some calls
@@ -171,7 +171,7 @@ void Ssw_ManSweepLatchOne( Ssw_Man_t * p, Aig_Obj_t * pObjRepr, Aig_Obj_t * pObj
             return;
     }
     p->nCallsDelta = 0;
-clk = clock();
+clk = Abc_Clock();
     // get the fraiged node
     pObjLi = Saig_ObjLoToLi( p->pAig, pObj );
     Ssw_ManBuildCone_rec( p, Aig_ObjFanin0(pObjLi) );
@@ -185,7 +185,7 @@ clk = clock();
     }
     else
         pObjReprFraig = Ssw_ObjFrame( p, pObjRepr, 0 );
-p->timeReduce += clock() - clk;
+p->timeReduce += Abc_Clock() - clk;
     // if the fraiged nodes are the same, return
     if ( Aig_Regular(pObjFraig) == Aig_Regular(pObjReprFraig) )
         return;

@@ -698,7 +698,7 @@ Abc_Ntk_t * Abc_NtkFraigRestore()
     Vec_Ptr_t * vStore;
     Abc_Ntk_t * pNtk, * pFraig;
     int nWords1, nWords2, nWordsMin;
-//    clock_t clk = clock();
+//    abctime clk = Abc_Clock();
 
     // get the stored network
     vStore = Abc_FrameReadStore();
@@ -744,7 +744,7 @@ Abc_Ntk_t * Abc_NtkFraigRestore()
     // perform partitioned computation of structural choices
     pFraig = Abc_NtkFraigPartitioned( vStore, &Params );
     Abc_NtkFraigStoreClean();
-//ABC_PRT( "Total choicing time", clock() - clk );
+//ABC_PRT( "Total choicing time", Abc_Clock() - clk );
     return pFraig;
 }
 

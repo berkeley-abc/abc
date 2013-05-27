@@ -190,11 +190,11 @@ int Cec_ManFraClassesUpdate( Cec_ManFra_t * p, Cec_ManSim_t * pSim, Cec_ManPat_t
     Vec_Ptr_t * vInfo;
     Gia_Obj_t * pObj, * pObjOld, * pReprOld;
     int i, k, iRepr, iNode;
-    clock_t clk;
-clk = clock();
+    abctime clk;
+clk = Abc_Clock();
     vInfo = Cec_ManPatCollectPatterns( pPat, Gia_ManCiNum(p->pAig), pSim->nWords );
-p->timePat += clock() - clk;
-clk = clock();
+p->timePat += Abc_Clock() - clk;
+clk = Abc_Clock();
     if ( vInfo != NULL )
     {
         Gia_ManCreateValueRefs( p->pAig );
@@ -209,7 +209,7 @@ clk = clock();
         }
         Vec_PtrFree( vInfo );
     }
-p->timeSim += clock() - clk;
+p->timeSim += Abc_Clock() - clk;
     assert( Vec_IntSize(p->vXorNodes) == 2*Gia_ManCoNum(pNew) );
     // mark the transitive fanout of failed nodes
     if ( p->pPars->nDepthMax != 1 )

@@ -75,7 +75,7 @@ int Bmc_CexBitCount( Abc_Cex_t * p, int nInputs )
   SeeAlso     []
 
 ***********************************************************************/
-void Bmc_CexDumpStats( Gia_Man_t * p, Abc_Cex_t * pCex, Abc_Cex_t * pCexCare, Abc_Cex_t * pCexEss, Abc_Cex_t * pCexMin, clock_t clk )
+void Bmc_CexDumpStats( Gia_Man_t * p, Abc_Cex_t * pCex, Abc_Cex_t * pCexCare, Abc_Cex_t * pCexEss, Abc_Cex_t * pCexMin, abctime clk )
 {
     int nInputs    = Gia_ManPiNum(p);
     int nBitsTotal = (pCex->iFrame + 1) * nInputs;
@@ -112,7 +112,7 @@ void Bmc_CexDumpStats( Gia_Man_t * p, Abc_Cex_t * pCex, Abc_Cex_t * pCexCare, Ab
   SeeAlso     []
 
 ***********************************************************************/
-void Bmc_CexDumpAogStats( Gia_Man_t * p, clock_t clk )
+void Bmc_CexDumpAogStats( Gia_Man_t * p, abctime clk )
 {
     FILE * pTable  = fopen( "cex/aig_stats.txt", "a+" );
     fprintf( pTable, "%s ", p->pName );
@@ -170,14 +170,14 @@ Gia_Man_t * Bmc_CexPerformUnrolling( Gia_Man_t * p, Abc_Cex_t * pCex )
 void Bmc_CexPerformUnrollingTest( Gia_Man_t * p, Abc_Cex_t * pCex )
 {
     Gia_Man_t * pNew;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     pNew = Bmc_CexPerformUnrolling( p, pCex );
     Gia_ManPrintStats( pNew, 0, 0, 0 );
     Gia_AigerWrite( pNew, "unroll.aig", 0, 0 );
-//Bmc_CexDumpAogStats( pNew, clock() - clk );
+//Bmc_CexDumpAogStats( pNew, Abc_Clock() - clk );
     Gia_ManStop( pNew );
     printf( "CE-induced network is written into file \"unroll.aig\".\n" );
-    Abc_PrintTime( 1, "Time", clock() - clk );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 }
 
 
@@ -282,14 +282,14 @@ Gia_Man_t * Bmc_CexBuildNetwork( Gia_Man_t * p, Abc_Cex_t * pCex )
 void Bmc_CexBuildNetworkTest( Gia_Man_t * p, Abc_Cex_t * pCex )
 {
     Gia_Man_t * pNew;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     pNew = Bmc_CexBuildNetwork( p, pCex );
     Gia_ManPrintStats( pNew, 0, 0, 0 );
     Gia_AigerWrite( pNew, "unate.aig", 0, 0 );
-//Bmc_CexDumpAogStats( pNew, clock() - clk );
+//Bmc_CexDumpAogStats( pNew, Abc_Clock() - clk );
     Gia_ManStop( pNew );
     printf( "CE-induced network is written into file \"unate.aig\".\n" );
-    Abc_PrintTime( 1, "Time", clock() - clk );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 }
 
 
@@ -756,7 +756,7 @@ Abc_Cex_t * Bmc_CexEssentialBits( Gia_Man_t * p, Abc_Cex_t * pCexState, Abc_Cex_
 {
     Abc_Cex_t * pNew, * pTemp, * pPrev = NULL;
     int b, fEqual = 0, fPrevStatus = 0;
-//    clock_t clk = clock();
+//    abctime clk = Abc_Clock();
     assert( pCexState->nBits == pCexCare->nBits );
     // start the counter-example
     pNew = Abc_CexAlloc( 0, Gia_ManCiNum(p), pCexState->iFrame + 1 );
@@ -795,7 +795,7 @@ Abc_Cex_t * Bmc_CexEssentialBits( Gia_Man_t * p, Abc_Cex_t * pCexState, Abc_Cex_
             Abc_InfoSetBit( pNew->pData, b );
     }
     Abc_CexFreeP( &pPrev );
-//    Abc_PrintTime( 1, "Time", clock() - clk );
+//    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     printf( "Essentials:   " );
     Bmc_CexPrint( pNew, Gia_ManPiNum(p), fVerbose );
     return pNew;
@@ -815,7 +815,7 @@ Abc_Cex_t * Bmc_CexEssentialBits( Gia_Man_t * p, Abc_Cex_t * pCexState, Abc_Cex_
 ***********************************************************************/
 void Bmc_CexTest( Gia_Man_t * p, Abc_Cex_t * pCex, int fVerbose )
 {
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     Abc_Cex_t * pCexImpl   = NULL;
     Abc_Cex_t * pCexStates = Bmc_CexInnerStates( p, pCex, &pCexImpl, fVerbose );
     Abc_Cex_t * pCexCare   = Bmc_CexCareBits( p, pCexStates, pCexImpl, NULL, 1, fVerbose );
@@ -830,7 +830,7 @@ void Bmc_CexTest( Gia_Man_t * p, Abc_Cex_t * pCex, int fVerbose )
     if ( !Bmc_CexVerify( p, pCex, pCexMin ) )
         printf( "Counter-example min-set verification has failed.\n" );
 
-//    Bmc_CexDumpStats( p, pCex, pCexCare, pCexEss, pCexMin, clock() - clk );
+//    Bmc_CexDumpStats( p, pCex, pCexCare, pCexEss, pCexMin, Abc_Clock() - clk );
 
     Abc_CexFreeP( &pCexStates );
     Abc_CexFreeP( &pCexImpl );
@@ -838,7 +838,7 @@ void Bmc_CexTest( Gia_Man_t * p, Abc_Cex_t * pCex, int fVerbose )
     Abc_CexFreeP( &pCexEss );
     Abc_CexFreeP( &pCexMin );
 
-    Abc_PrintTime( 1, "Time", clock() - clk );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 //    Bmc_CexBuildNetworkTest( p, pCex );
 //    Bmc_CexPerformUnrollingTest( p, pCex );
 }

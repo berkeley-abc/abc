@@ -111,7 +111,7 @@ int Sfm_NodeResubSolve( Sfm_Ntk_t * p, int iNode, int f, int fRemoveOnly )
     int fVeryVerbose = 0;//p->pPars->fVeryVerbose && Vec_IntSize(p->vDivs) < 200;// || pNode->Id == 556;
     int i, iFanin, iVar = -1;
     word uTruth, uSign, uMask;
-    clock_t clk;
+    abctime clk;
     assert( Sfm_ObjIsNode(p, iNode) );
     assert( f >= 0 && f < Sfm_ObjFaninNum(p, iNode) );
     p->nTryRemoves++;
@@ -128,9 +128,9 @@ int Sfm_NodeResubSolve( Sfm_Ntk_t * p, int iNode, int f, int fRemoveOnly )
     Sfm_ObjForEachFanin( p, iNode, iFanin, i )
         if ( i != f )
             Vec_IntPush( p->vDivIds, Sfm_ObjSatVar(p, iFanin) );
-clk = clock();
+clk = Abc_Clock();
     uTruth = Sfm_ComputeInterpolant( p );
-p->timeSat += clock() - clk;
+p->timeSat += Abc_Clock() - clk;
     // analyze outcomes
     if ( uTruth == SFM_SAT_UNDEC )
     {
@@ -169,9 +169,9 @@ p->timeSat += clock() - clk;
             return 0;
         // try replacing the critical fanin
         Vec_IntPush( p->vDivIds, Sfm_ObjSatVar(p, Vec_IntEntry(p->vDivs, iVar)) );
-clk = clock();
+clk = Abc_Clock();
         uTruth = Sfm_ComputeInterpolant( p );
-p->timeSat += clock() - clk;
+p->timeSat += Abc_Clock() - clk;
         // analyze outcomes
         if ( uTruth == SFM_SAT_UNDEC )
         {
@@ -254,7 +254,7 @@ int Sfm_NodeResub( Sfm_Ntk_t * p, int iNode )
 int Sfm_NtkPerform( Sfm_Ntk_t * p, Sfm_Par_t * pPars )
 {
     int i, k, Counter = 0;
-    p->timeTotal = clock();
+    p->timeTotal = Abc_Clock();
     if ( pPars->fVerbose )
         printf( "Performing MFS with %d fixed objects.\n", Vec_StrSum(p->vFixed) );
     p->pPars = pPars;
@@ -280,7 +280,7 @@ int Sfm_NtkPerform( Sfm_Ntk_t * p, Sfm_Par_t * pPars )
     }
     p->nTotalNodesEnd = Vec_WecSizeUsed(&p->vFanins) - Sfm_NtkPoNum(p);
     p->nTotalEdgesEnd = Vec_WecSizeSize(&p->vFanins) - Sfm_NtkPoNum(p);
-    p->timeTotal = clock() - p->timeTotal;
+    p->timeTotal = Abc_Clock() - p->timeTotal;
     if ( pPars->fVerbose )
         Sfm_NtkPrintStats( p );
     return Counter;

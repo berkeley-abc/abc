@@ -216,7 +216,7 @@ int Res_SatSimulate( Res_Sim_t * p, int nPatsLimit, int fOnSet )
     sat_solver * pSat;
     int RetValue = -1; // Suppress "might be used uninitialized"
     int i, k, value, status, Lit, Var, iPat;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
 
 //printf( "Looking for %s:  ", fOnSet? "onset " : "offset" );
 
@@ -319,7 +319,7 @@ int Res_SatSimulate( Res_Sim_t * p, int nPatsLimit, int fOnSet )
 finish:
 
     sat_solver_delete( pSat );
-p->timeSat += clock() - clk;
+p->timeSat += Abc_Clock() - clk;
     return RetValue;
 }
 

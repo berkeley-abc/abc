@@ -88,7 +88,7 @@ Fraig_Node_t * Fraig_NodeCreatePi( Fraig_Man_t * p )
 {
     Fraig_Node_t * pNode, * pNodeRes;
     int i;
-    clock_t clk;
+    abctime clk;
 
     // create the node
     pNode = (Fraig_Node_t *)Fraig_MemFixedEntryFetch( p->mmNodes );
@@ -110,7 +110,7 @@ Fraig_Node_t * Fraig_NodeCreatePi( Fraig_Man_t * p )
     pNode->fInv  =  0;  // the simulation info of the PI is not complemented
 
     // derive the simulation info for the new node
-clk = clock();
+clk = Abc_Clock();
     // set the random simulation info for the primary input
     pNode->uHashR = 0;
     for ( i = 0; i < p->nWordsRand; i++ )
@@ -136,7 +136,7 @@ clk = clock();
         // compute the hash key
         pNode->uHashD ^= pNode->puSimD[i] * s_FraigPrimes[i];
     }
-p->timeSims += clock() - clk;
+p->timeSims += Abc_Clock() - clk;
 
     // insert it into the hash table
     pNodeRes = Fraig_HashTableLookupF( p, pNode );
@@ -160,7 +160,7 @@ p->timeSims += clock() - clk;
 Fraig_Node_t * Fraig_NodeCreate( Fraig_Man_t * p, Fraig_Node_t * p1, Fraig_Node_t * p2 )
 {
     Fraig_Node_t * pNode;
-    clock_t clk;
+    abctime clk;
 
     // create the node
     pNode = (Fraig_Node_t *)Fraig_MemFixedEntryFetch( p->mmNodes );
@@ -183,7 +183,7 @@ Fraig_Node_t * Fraig_NodeCreate( Fraig_Man_t * p, Fraig_Node_t * p1, Fraig_Node_
     pNode->fFailTfo = Fraig_Regular(p1)->fFailTfo | Fraig_Regular(p2)->fFailTfo;
 
     // derive the simulation info 
-clk = clock();
+clk = Abc_Clock();
     // allocate memory for the simulation info
     pNode->puSimR = (unsigned *)Fraig_MemFixedEntryFetch( p->mmSims );
     pNode->puSimD = pNode->puSimR + p->nWordsRand;
@@ -198,7 +198,7 @@ clk = clock();
     if ( pNode->fInv )
         pNode->nOnes = p->nWordsRand * 32 - pNode->nOnes;
     // add to the runtime of simulation
-p->timeSims += clock() - clk;
+p->timeSims += Abc_Clock() - clk;
 
 #ifdef FRAIG_ENABLE_FANOUTS
     // create the fanout info

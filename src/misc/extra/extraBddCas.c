@@ -192,7 +192,7 @@ Extra_bddEncodingNonStrict(
 {
     DdNode * bEncoded, * bResult;
     int nVarsCol = Cudd_SupportSize(dd,bVarsCol);
-    clock_t clk;
+    abctime clk;
 
     // cannot work with more that 32-bit codes
     assert( nMulti < 32 );
@@ -221,19 +221,19 @@ Extra_bddEncodingNonStrict(
     s_MultiStart  = nMulti;
 
 
-    clk = clock();
+    clk = Abc_Clock();
     // find the simplest encoding
     if ( nColumns > 2 )
     EvaluateEncodings_rec( dd, bVarsCol, nVarsCol, nMulti, 1 );
 //  printf( "The number of backtracks = %d\n", s_BackTracks );
-//  s_EncSearchTime += clock() - clk;
+//  s_EncSearchTime += Abc_Clock() - clk;
 
     // allocate the temporary storage for the columns
     s_pbTemp = (DdNode **)ABC_ALLOC( char, nColumns * sizeof(DdNode *) );
 
-//  clk = clock();
+//  clk = Abc_Clock();
     bResult = CreateTheCodes_rec( dd, bEncoded, 0, pCVars );   Cudd_Ref( bResult );
-//  s_EncComputeTime += clock() - clk;
+//  s_EncComputeTime += Abc_Clock() - clk;
     
     // delocate the preliminarily encoded set
     Cudd_RecursiveDeref( dd, bEncoded );

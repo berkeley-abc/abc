@@ -726,21 +726,21 @@ Vec_Ptr_t * Abc_NtkPartitionSmart( Abc_Ntk_t * pNtk, int nSuppSizeLimit, int fVe
     Vec_Ptr_t * vSupps, * vPartsAll, * vPartsAll2, * vPartSuppsAll;
     Vec_Int_t * vOne, * vPart, * vPartSupp, * vTemp;
     int i, iPart, iOut, timeFind = 0;
-    clock_t clk, clk2;
+    abctime clk, clk2;
 
     // compute the supports for all outputs
-clk = clock();
+clk = Abc_Clock();
 //    vSupps = Abc_NtkComputeSupportsNaive( pNtk );
     vSupps = Abc_NtkComputeSupportsSmart( pNtk );
 if ( fVerbose )
 {
-ABC_PRT( "Supps", clock() - clk );
+ABC_PRT( "Supps", Abc_Clock() - clk );
 }
     // start char-based support representation
     vPartSuppsChar = Vec_PtrAlloc( 1000 );
 
     // create partitions
-clk = clock();
+clk = Abc_Clock();
     vPartsAll = Vec_PtrAlloc( 256 );
     vPartSuppsAll = Vec_PtrAlloc( 256 );
     pProgress = Extra_ProgressBarStart( stdout, Vec_PtrSize(vSupps) );
@@ -753,9 +753,9 @@ clk = clock();
         // get the output number
         iOut = Vec_IntPop(vOne);
         // find closely matching part
-clk2 = clock();
+clk2 = Abc_Clock();
         iPart = Abc_NtkPartitionSmartFindPart( vPartSuppsAll, vPartsAll, vPartSuppsChar, nSuppSizeLimit, vOne );
-timeFind += clock() - clk2;
+timeFind += Abc_Clock() - clk2;
         if ( iPart == -1 )
         {
             // create new partition
@@ -794,11 +794,11 @@ timeFind += clock() - clk2;
 //printf( "\n" );
 if ( fVerbose )
 {
-ABC_PRT( "Parts", clock() - clk );
+ABC_PRT( "Parts", Abc_Clock() - clk );
 //ABC_PRT( "Find ", timeFind );
 }
 
-clk = clock();
+clk = Abc_Clock();
     // remember number of supports
     Vec_PtrForEachEntry( Vec_Int_t *, vPartSuppsAll, vOne, i )
         Vec_IntPush( vOne, i );
@@ -817,7 +817,7 @@ clk = clock();
 
 if ( fVerbose )
 {
-ABC_PRT( "Comps", clock() - clk );
+ABC_PRT( "Comps", Abc_Clock() - clk );
 }
     if ( fVerbose )
     printf( "Created %d partitions.\n", Vec_PtrSize(vPartsAll) );
@@ -1163,7 +1163,7 @@ void Abc_NtkFraigPartitionedTime( Abc_Ntk_t * pNtk, void * pParams )
     Vec_Int_t * vOne;
     Abc_Ntk_t * pNtkAig, * pNtkFraig;
     int i;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
 
     // perform partitioning
     assert( Abc_NtkIsStrash(pNtk) );
@@ -1194,7 +1194,7 @@ void Abc_NtkFraigPartitionedTime( Abc_Ntk_t * pNtk, void * pParams )
         Abc_NtkDelete( pNtkAig );
     Vec_PtrFree( vFraigs );
     Vec_PtrFree( vOnePtr );
-    ABC_PRT( "Partitioned fraiging time", clock() - clk );
+    ABC_PRT( "Partitioned fraiging time", Abc_Clock() - clk );
 }
 
 ////////////////////////////////////////////////////////////////////////

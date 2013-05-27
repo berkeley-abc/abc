@@ -161,8 +161,8 @@ struct Aig_Man_t_
     Vec_Int_t *      vCiNumsOrig;    // original CI names
     int              nComplEdges;    // complemented edges
     // timing statistics
-    clock_t          time1;
-    clock_t          time2;
+    abctime          time1;
+    abctime          time2;
 };
 
 // cut computation

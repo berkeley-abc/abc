@@ -257,7 +257,7 @@ int Saig_ManCexRefineStep( Aig_Man_t * p, Vec_Int_t * vFlops, Vec_Int_t * vFlopC
     Aig_Man_t * pAbs;
     Vec_Int_t * vFlopsNew;
     int i, Entry;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     pAbs = Saig_ManDupAbstraction( p, vFlops );
     if ( fSensePath )
         vFlopsNew = Saig_ManExtendCounterExampleTest2( pAbs, Saig_ManCexFirstFlopPi(p, pAbs), pCex, fVerbose );
@@ -281,7 +281,7 @@ int Saig_ManCexRefineStep( Aig_Man_t * p, Vec_Int_t * vFlops, Vec_Int_t * vFlopC
     if ( fVerbose )
     {
         printf( "Adding %d registers to the abstraction (total = %d).  ", Vec_IntSize(vFlopsNew), Aig_ManRegNum(p)+Vec_IntSize(vFlopsNew) );
-        Abc_PrintTime( 1, "Time", clock() - clk );
+        Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     }
     // vFlopsNew contains PI numbers that should be kept in pAbs
     // select the most useful flops among those to be added
@@ -411,7 +411,7 @@ Vec_Int_t * Saig_ManCexAbstractionFlops( Aig_Man_t * p, Gia_ParAbs_t * pPars )
     int nUseStart = 0;
     Aig_Man_t * pAbs, * pTemp;
     Vec_Int_t * vFlops;
-    int Iter;//, clk = clock(), clk2 = clock();//, iFlop;
+    int Iter;//, clk = Abc_Clock(), clk2 = Abc_Clock();//, iFlop;
     assert( Aig_ManRegNum(p) > 0 );
     if ( pPars->fVerbose )
         printf( "Performing counter-example-based refinement.\n" );

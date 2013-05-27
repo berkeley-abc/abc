@@ -839,10 +839,10 @@ Aig_Man_t * Rtm_ManRetime( Aig_Man_t * p, int fForward, int nStepsMax, int fVerb
     Rtm_Obj_t * pObj, * pNext;
     Aig_Obj_t * pObjAig;
     int i, k, nAutos, Degree, DegreeMax = 0; 
-    clock_t clk;
+    abctime clk;
 
     // create the retiming manager
-clk = clock();
+clk = Abc_Clock();
     pRtm = Rtm_ManFromAig( p );
     // set registers
     Aig_ManForEachLoSeq( p, pObjAig, i )
@@ -855,7 +855,7 @@ clk = clock();
     if ( fVerbose )
     {
         printf( "Detected %d autonomous objects. ", nAutos );
-        ABC_PRT( "Time", clock() - clk );
+        ABC_PRT( "Time", Abc_Clock() - clk );
     }
 
     // set the current retiming number
@@ -866,7 +866,7 @@ clk = clock();
         pObj->Num = 0;
     }
 
-clk = clock();
+clk = Abc_Clock();
     // put the LOs on the queue
     vQueue = Vec_PtrAlloc( 1000 );
     if ( fForward )
@@ -946,7 +946,7 @@ clk = clock();
         printf( "Performed %d %s latch moves of max depth %d and max latch count %d.\n", 
             Vec_PtrSize(vQueue), fForward? "fwd":"bwd", DegreeMax, Rtm_ManLatchMax(pRtm) );
         printf( "Memory usage = %d.  ", pRtm->nExtraCur );
-        ABC_PRT( "Time", clock() - clk );
+        ABC_PRT( "Time", Abc_Clock() - clk );
     }
     Vec_PtrFree( vQueue );
 
@@ -956,11 +956,11 @@ clk = clock();
     pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     Rtm_ManFree( pRtm );
     // group the registers
-clk = clock();
+clk = Abc_Clock();
     pNew = Aig_ManReduceLaches( pNew, fVerbose );
     if ( fVerbose )
     {
-        ABC_PRT( "Register sharing time", clock() - clk );
+        ABC_PRT( "Register sharing time", Abc_Clock() - clk );
     }
     return pNew;
 }

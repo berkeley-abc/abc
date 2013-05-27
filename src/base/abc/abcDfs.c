@@ -836,12 +836,12 @@ int Abc_NtkSuppSizeTest( Abc_Ntk_t * p )
 {
     Abc_Obj_t * pObj;
     int i, Counter = 0;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     Abc_NtkForEachObj( p, pObj, i )
         if ( Abc_ObjIsNode(pObj) )
             Counter += (Abc_ObjSuppSize(pObj) <= 16);
     printf( "Nodes with small support %d (out of %d)\n", Counter, Abc_NtkNodeNum(p) );
-    Abc_PrintTime( 1, "Time", clock() - clk );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     return Counter;
 }
 

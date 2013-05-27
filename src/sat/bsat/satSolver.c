@@ -224,16 +224,16 @@ static inline void act_var_rescale(sat_solver* s)  {
     s->var_inc *= 1e-100;
 }
 static inline void act_clause_rescale(sat_solver* s) {
-//    static clock_t Total = 0;
+//    static abctime Total = 0;
     clause** cs = (clause**)veci_begin(&s->learnts);
-    int i;//, clk = clock();
+    int i;//, clk = Abc_Clock();
     for (i = 0; i < veci_size(&s->learnts); i++){
         float a = clause_activity(cs[i]);
         clause_setactivity(cs[i], a * (float)1e-20);
     }
     s->cla_inc *= (float)1e-20;
 
-    Total += clock() - clk;
+    Total += Abc_Clock() - clk;
 //    printf( "Rescaling...   Cla inc = %10.3f  Conf = %10d   ", s->cla_inc,  s->stats.conflicts );
 //    Abc_PrintTime( 1, "Time", Total );
 }
@@ -282,15 +282,15 @@ static inline void act_var_rescale(sat_solver* s) {
 }
 
 static inline void act_clause_rescale(sat_solver* s) {
-    static clock_t Total = 0;
-    clock_t clk = clock();
+    static abctime Total = 0;
+    abctime clk = Abc_Clock();
     unsigned* activity = (unsigned *)veci_begin(&s->act_clas);
     int i;
     for (i = 0; i < veci_size(&s->act_clas); i++)
         activity[i] >>= 14;
     s->cla_inc >>= 14;
     s->cla_inc = Abc_MaxInt( s->cla_inc, (1<<10) );
-    Total += clock() - clk;
+    Total += Abc_Clock() - clk;
 //    printf( "Rescaling...   Cla inc = %5d  Conf = %10d   ", s->cla_inc,  s->stats.conflicts );
 //    Abc_PrintTime( 1, "Time", Total );
 }
@@ -1226,8 +1226,8 @@ int sat_solver_simplify(sat_solver* s)
 
 void sat_solver_reducedb(sat_solver* s)
 {
-    static clock_t TimeTotal = 0;
-    clock_t clk = clock();
+    static abctime TimeTotal = 0;
+    abctime clk = Abc_Clock();
     Sat_Mem_t * pMem = &s->Mem;
     int nLearnedOld = veci_size(&s->act_clas);
     int * act_clas = veci_begin(&s->act_clas);
@@ -1330,7 +1330,7 @@ void sat_solver_reducedb(sat_solver* s)
     assert( Counter == (int)s->stats.learnts );
 
     // report the results
-    TimeTotal += clock() - clk;
+    TimeTotal += Abc_Clock() - clk;
     if ( s->fVerbose )
     {
     Abc_Print(1, "reduceDB: Keeping %7d out of %7d clauses (%5.2f %%)  ",
@@ -1576,7 +1576,7 @@ static lbool sat_solver_search(sat_solver* s, ABC_INT64_T nof_conflicts)
             int next;
  
             // Reached bound on number of conflicts:
-            if ((nof_conflicts >= 0 && conflictC >= nof_conflicts) || (s->nRuntimeLimit && clock() > s->nRuntimeLimit)){
+            if ((nof_conflicts >= 0 && conflictC >= nof_conflicts) || (s->nRuntimeLimit && Abc_Clock() > s->nRuntimeLimit)){
                 s->progress_estimate = sat_solver_progress(s);
                 sat_solver_canceluntil(s,s->root_level);
                 veci_delete(&learnt_clause);
@@ -1786,7 +1786,7 @@ int sat_solver_solve(sat_solver* s, lit* begin, lit* end, ABC_INT64_T nConfLimit
     while (status == l_Undef){
         double Ratio = (s->stats.learnts == 0)? 0.0 :
             s->stats.learnts_literals / (double)s->stats.learnts;
-        if ( s->nRuntimeLimit && clock() > s->nRuntimeLimit )
+        if ( s->nRuntimeLimit && Abc_Clock() > s->nRuntimeLimit )
             break;
         if (s->verbosity >= 1)
         {
@@ -1810,7 +1810,7 @@ int sat_solver_solve(sat_solver* s, lit* begin, lit* end, ABC_INT64_T nConfLimit
             break;
         if ( s->nInsLimit  && s->stats.propagations > s->nInsLimit )
             break;
-        if ( s->nRuntimeLimit && clock() > s->nRuntimeLimit )
+        if ( s->nRuntimeLimit && Abc_Clock() > s->nRuntimeLimit )
             break;
     }
     if (s->verbosity >= 1)

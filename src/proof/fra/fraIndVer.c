@@ -50,7 +50,7 @@ int Fra_InvariantVerify( Aig_Man_t * pAig, int nFrames, Vec_Int_t * vClauses, Ve
     int * pStart;
     int RetValue, Beg, End, i, k;
     int CounterBase = 0, CounterInd = 0;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
 
     if ( nFrames != 1 )
     {
@@ -153,7 +153,7 @@ int Fra_InvariantVerify( Aig_Man_t * pAig, int nFrames, Vec_Int_t * vClauses, Ve
     if ( CounterBase || CounterInd )
         return 0;
     printf( "Invariant verification: %d clauses verified correctly.  ", Vec_IntSize(vClauses) );
-    ABC_PRT( "Time", clock() - clk );
+    ABC_PRT( "Time", Abc_Clock() - clk );
     return 1;
 }
 

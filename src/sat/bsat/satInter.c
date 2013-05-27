@@ -71,9 +71,9 @@ struct Int_Man_t_
     int             nResLits;     // the number of literals of the resolvent
     int             nResLitsAlloc;// the number of literals of the resolvent
     // runtime stats
-    clock_t         timeBcp;      // the runtime for BCP
-    clock_t         timeTrace;    // the runtime of trace construction
-    clock_t         timeTotal;    // the total runtime of interpolation
+    abctime         timeBcp;      // the runtime for BCP
+    abctime         timeTrace;    // the runtime of trace construction
+    abctime         timeTotal;    // the total runtime of interpolation
 };
 
 // procedure to get hold of the clauses' truth table 
@@ -535,17 +535,17 @@ Sto_Cls_t * Int_ManPropagate( Int_Man_t * p, int Start )
 {
     Sto_Cls_t * pClause;
     int i;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     for ( i = Start; i < p->nTrailSize; i++ )
     {
         pClause = Int_ManPropagateOne( p, p->pTrail[i] );
         if ( pClause )
         {
-p->timeBcp += clock() - clk;
+p->timeBcp += Abc_Clock() - clk;
             return pClause;
         }
     }
-p->timeBcp += clock() - clk;
+p->timeBcp += Abc_Clock() - clk;
     return NULL;
 }
 
@@ -591,7 +591,7 @@ int Int_ManProofTraceOne( Int_Man_t * p, Sto_Cls_t * pConflict, Sto_Cls_t * pFin
     Sto_Cls_t * pReason;
     int i, v, Var, PrevId;
     int fPrint = 0;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
 
     // collect resolvent literals
     if ( p->fProofVerif )
@@ -743,7 +743,7 @@ int Int_ManProofTraceOne( Int_Man_t * p, Sto_Cls_t * pConflict, Sto_Cls_t * pFin
             assert( p->nResLits == (int)pFinal->nLits );
         }
     }
-p->timeTrace += clock() - clk;
+p->timeTrace += Abc_Clock() - clk;
 
     // return the proof pointer 
     if ( p->pCnf->nClausesA )
@@ -1006,7 +1006,7 @@ int Int_ManInterpolate( Int_Man_t * p, Sto_Man_t * pCnf, int fVerbose, unsigned 
 {
     Sto_Cls_t * pClause;
     int RetValue = 1;
-    clock_t clkTotal = clock();
+    abctime clkTotal = Abc_Clock();
 
     // check that the CNF makes sense
     assert( pCnf->nVars > 0 && pCnf->nClauses > 0 );
@@ -1061,7 +1061,7 @@ int Int_ManInterpolate( Int_Man_t * p, Sto_Man_t * pCnf, int fVerbose, unsigned 
         p->pCnf->nVars, p->pCnf->nRoots, p->pCnf->nClauses-p->pCnf->nRoots, p->Counter,  
         1.0*(p->Counter-p->pCnf->nRoots)/(p->pCnf->nClauses-p->pCnf->nRoots), 
         1.0*Sto_ManMemoryReport(p->pCnf)/(1<<20) );
-p->timeTotal += clock() - clkTotal;
+p->timeTotal += Abc_Clock() - clkTotal;
     }
 
     *ppResult = Int_ManTruthRead( p, p->pCnf->pTail );

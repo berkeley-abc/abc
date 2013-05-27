@@ -165,7 +165,7 @@ int Llb_ManModelCheckAigWithHints( Aig_Man_t * pAigGlo, Gia_ParLlb_t * pPars )
     Vec_Int_t * vHints;
     Vec_Int_t * vHFCands;
     int i, Entry, RetValue = -1;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     assert( pPars->nHintDepth > 0 );
 /*
     // perform reachability without hints
@@ -212,7 +212,7 @@ Finish:
     Vec_IntFreeP( &vHFCands );
     Vec_IntFreeP( &vHints );
     if ( pPars->fVerbose )
-        Abc_PrintTime( 1, "Total runtime", clock() - clk );
+        Abc_PrintTime( 1, "Total runtime", Abc_Clock() - clk );
     return RetValue;
 }
 

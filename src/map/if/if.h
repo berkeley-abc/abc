@@ -235,7 +235,7 @@ struct If_Man_t_
     void **            pHashTable[2];    // hash table bins
     Mem_Fixed_t *      pMemEntries;      // memory manager for hash table entries
     // statistics 
-//    clock_t                timeTruth;
+//    abctime                timeTruth;
 };
 
 // priority cut

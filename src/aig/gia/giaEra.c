@@ -529,7 +529,7 @@ int Gia_ManCollectReachable( Gia_Man_t * pAig, int nStatesMax, int fMiter, int f
     Gia_ManEra_t * p;
     Gia_ObjEra_t * pState;
     int Hash;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     int RetValue = 1;
     assert( Gia_ManPiNum(pAig) <= 12 );
     assert( Gia_ManRegNum(pAig) > 0 );
@@ -571,11 +571,11 @@ int Gia_ManCollectReachable( Gia_Man_t * pAig, int nStatesMax, int fMiter, int f
                 p->iCurState, Vec_PtrSize(p->vStates), 1.0*p->iCurState/Vec_PtrSize(p->vStates), Gia_ManCountDepth(p), 
                 (1.0/(1<<20))*(1.0*Vec_PtrSize(p->vStates)*(sizeof(Gia_ObjEra_t) + sizeof(unsigned) * p->nWordsDat) + 
                    1.0*p->nBins*sizeof(unsigned) + 1.0*p->vStates->nCap * sizeof(void*)) );
-            ABC_PRT( "Time", clock() - clk );
+            ABC_PRT( "Time", Abc_Clock() - clk );
         }
     }
     printf( "Reachability analysis traversed %d states with depth %d.  ", p->iCurState-1, Gia_ManCountDepth(p) );
-    ABC_PRT( "Time", clock() - clk );
+    ABC_PRT( "Time", Abc_Clock() - clk );
     if ( fDumpFile )
     {
         char * pFileName = "test.stg";

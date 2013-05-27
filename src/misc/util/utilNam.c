@@ -302,7 +302,7 @@ void Abc_NamStrHashResize( Abc_Nam_t * p )
 {
     Vec_Int_t * vInt2HandleOld;
     char * pThis;
-    int * piPlace, * pBinsOld, iHandleOld, i;//, clk = clock();
+    int * piPlace, * pBinsOld, iHandleOld, i;//, clk = Abc_Clock();
     assert( p->pBins != NULL );
 //    Abc_Print( 1, "Resizing names manager hash table from %6d to %6d. ", p->nBins, Abc_PrimeCudd( 3 * p->nBins ) );
     // replace the table
@@ -327,7 +327,7 @@ void Abc_NamStrHashResize( Abc_Nam_t * p )
     }
     Vec_IntFree( vInt2HandleOld );
     ABC_FREE( pBinsOld );
-//    Abc_PrintTime( 1, "Time", clock() - clk );
+//    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 }
 
 /**Function*************************************************************

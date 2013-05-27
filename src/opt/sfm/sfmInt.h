@@ -112,13 +112,13 @@ struct Sfm_Ntk_t_
     int               nTimeOuts;
     int               nMaxDivs;
     // runtime
-    clock_t           timeWin;
-    clock_t           timeDiv;
-    clock_t           timeCnf;
-    clock_t           timeSat;
-    clock_t           timeOther;
-    clock_t           timeTotal;
-//    clock_t           time1;
+    abctime           timeWin;
+    abctime           timeDiv;
+    abctime           timeCnf;
+    abctime           timeSat;
+    abctime           timeOther;
+    abctime           timeTotal;
+//    abctime           time1;
 };
 
 static inline int  Sfm_NtkPiNum( Sfm_Ntk_t * p )                        { return p->nPis;                                   }

@@ -969,7 +969,7 @@ void Ivy_ManTestCutsAll( Ivy_Man_t * p )
 {
     Ivy_Obj_t * pObj;
     int i, nCutsCut, nCutsTotal, nNodeTotal, nNodeOver;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     nNodeTotal = nNodeOver = 0;
     nCutsTotal = -Ivy_ManNodeNum(p);
     Ivy_ManForEachObj( p, pObj, i )
@@ -983,7 +983,7 @@ void Ivy_ManTestCutsAll( Ivy_Man_t * p )
     }
     printf( "Total cuts = %6d. Trivial = %6d.   Nodes = %6d. Satur = %6d.  ", 
         nCutsTotal, Ivy_ManPiNum(p) + Ivy_ManNodeNum(p), nNodeTotal, nNodeOver );
-    ABC_PRT( "Time", clock() - clk );
+    ABC_PRT( "Time", Abc_Clock() - clk );
 }
 
 ////////////////////////////////////////////////////////////////////////

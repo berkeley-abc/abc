@@ -49,7 +49,7 @@ Vec_Int_t * Abc_NtkRetimeInitialValues( Abc_Ntk_t * pNtkCone, Vec_Int_t * vValue
     Vec_Int_t * vSolution;
     Abc_Ntk_t * pNtkMiter, * pNtkLogic;
     int RetValue;
-    clock_t clk;
+    abctime clk;
     if ( pNtkCone == NULL )
         return Vec_IntDup( vValues );
     // convert the target network to AIG
@@ -60,10 +60,10 @@ Vec_Int_t * Abc_NtkRetimeInitialValues( Abc_Ntk_t * pNtkCone, Vec_Int_t * vValue
     if ( fVerbose )
         printf( "The miter for initial state computation has %d AIG nodes. ", Abc_NtkNodeNum(pNtkMiter) );
     // solve the miter
-    clk = clock();
+    clk = Abc_Clock();
     RetValue = Abc_NtkMiterSat( pNtkMiter, (ABC_INT64_T)500000, (ABC_INT64_T)50000000, 0, NULL, NULL );
     if ( fVerbose ) 
-        { ABC_PRT( "SAT solving time", clock() - clk ); }
+        { ABC_PRT( "SAT solving time", Abc_Clock() - clk ); }
     // analyze the result
     if ( RetValue == 1 )
         printf( "Abc_NtkRetimeInitialValues(): The problem is unsatisfiable. DC latch values are used.\n" );

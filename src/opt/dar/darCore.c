@@ -83,7 +83,7 @@ int Dar_ManRewrite( Aig_Man_t * pAig, Dar_RwrPar_t * pPars )
     Dar_Cut_t * pCut;
     Aig_Obj_t * pObj, * pObjNew;
     int i, k, nNodesOld, nNodeBefore, nNodeAfter, Required;
-    clock_t clk = 0, clkStart;
+    abctime clk = 0, clkStart;
     int Counter = 0;
     int nMffcSize;//, nMffcGains[MAX_VAL+1][MAX_VAL+1] = {{0}};
     // prepare the library
@@ -102,7 +102,7 @@ int Dar_ManRewrite( Aig_Man_t * pAig, Dar_RwrPar_t * pPars )
     // set elementary cuts for the PIs
 //    Dar_ManCutsStart( p );
     // resynthesize each node once
-    clkStart = clock();
+    clkStart = Abc_Clock();
     p->nNodesInit = Aig_ManNodeNum(pAig);
     nNodesOld = Vec_PtrSize( pAig->vObjs );
 
@@ -133,10 +133,10 @@ int Dar_ManRewrite( Aig_Man_t * pAig, Dar_RwrPar_t * pPars )
 
         // compute cuts for the node
         p->nNodesTried++;
-clk = clock();
+clk = Abc_Clock();
         Dar_ObjSetCuts( pObj, NULL );
         Dar_ObjComputeCuts_rec( p, pObj );
-p->timeCuts += clock() - clk;
+p->timeCuts += Abc_Clock() - clk;
 
         // check if there is a trivial cut
         Dar_ObjForEachCut( pObj, pCut, k )
@@ -210,7 +210,7 @@ p->timeCuts += clock() - clk;
     }
 */
 
-p->timeTotal = clock() - clkStart;
+p->timeTotal = Abc_Clock() - clkStart;
 p->timeOther = p->timeTotal - p->timeCuts - p->timeEval;
 
 //    Bar_ProgressStop( pProgress );
@@ -289,7 +289,7 @@ Aig_MmFixed_t * Dar_ManComputeCuts( Aig_Man_t * pAig, int nCutsMax, int fSkipTtM
     Aig_Obj_t * pObj;
     Aig_MmFixed_t * pMemCuts;
     int i, nNodes;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     // remove dangling nodes
     if ( (nNodes = Aig_ManCleanup( pAig )) )
     {
@@ -319,7 +319,7 @@ Aig_MmFixed_t * Dar_ManComputeCuts( Aig_Man_t * pAig, int nCutsMax, int fSkipTtM
             Aig_ManObjNum(pAig), nCuts, nCutsK );
         printf( "Cut size = %2d. Truth size = %2d. Total mem = %5.2f MB  ",
             (int)sizeof(Dar_Cut_t), (int)4, 1.0*Aig_MmFixedReadMemUsage(p->pMemCuts)/(1<<20) );
-        ABC_PRT( "Runtime", clock() - clk );
+        ABC_PRT( "Runtime", Abc_Clock() - clk );
 /*
         Aig_ManForEachNode( pAig, pObj, i )
             if ( i % 300 == 0 )

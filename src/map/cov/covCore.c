@@ -109,7 +109,7 @@ void Abc_NtkCovCovers( Cov_Man_t * p, Abc_Ntk_t * pNtk, int fVerbose )
 {
     Abc_Obj_t * pObj;
     int i;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
 
     // start the manager
     p->vFanCounts = Abc_NtkFanoutCounts(pNtk);
@@ -135,7 +135,7 @@ void Abc_NtkCovCovers( Cov_Man_t * p, Abc_Ntk_t * pNtk, int fVerbose )
 
 if ( fVerbose )
 {
-ABC_PRT( "Total", clock() - clk );
+ABC_PRT( "Total", Abc_Clock() - clk );
 }
 }
 
@@ -156,7 +156,7 @@ int Abc_NtkCovCoversOne( Cov_Man_t * p, Abc_Ntk_t * pNtk, int fVerbose )
     Abc_Obj_t * pObj;
     Vec_Ptr_t * vBoundary;
     int i;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     int Counter = 0;
     int fStop = 1;
 
@@ -221,7 +221,7 @@ if ( fVerbose )
 {
     printf( "Outs = %4d (%4d) Node = %6d (%6d) Max = %6d  Bound = %4d  ", 
         Counter, Abc_NtkCoNum(pNtk), p->nSupps, Abc_NtkNodeNum(pNtk), p->nSuppsMax, p->nBoundary );
-ABC_PRT( "T", clock() - clk );
+ABC_PRT( "T", Abc_Clock() - clk );
 }
     return fStop;
 }

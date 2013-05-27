@@ -81,7 +81,7 @@ void Fraig_FeedBack( Fraig_Man_t * p, int * pModel, Msat_IntVec_t * vVars, Fraig
 {
     int nVarsPi, nWords;
     int i;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
 
     // get the number of PI vars in the feedback (also sets the PI values)
     nVarsPi = Fraig_FeedBackPrepare( p, pModel, vVars );
@@ -107,7 +107,7 @@ void Fraig_FeedBack( Fraig_Man_t * p, int * pModel, Msat_IntVec_t * vVars, Fraig
     else  // otherwise, update the starting word
         p->iWordStart += nWords;
 
-p->timeFeed += clock() - clk;
+p->timeFeed += Abc_Clock() - clk;
 }
 
 /**Function*************************************************************

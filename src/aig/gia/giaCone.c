@@ -559,7 +559,7 @@ Gia_Man_t * Gia_ManFindPoPartition( Gia_Man_t * p, int SelectShift, int fOnlyCis
     Vec_Wrd_t * vSigns;
     Vec_Ptr_t * vParts;
     Vec_Int_t * vPart;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     vPivots = Gia_ManFindPivots( p, SelectShift, fOnlyCis, fVerbose );
     vSigns = Gia_ManDeriveSigns( p, vPivots, fVerbose );
     Vec_IntFree( vPivots );
@@ -574,7 +574,7 @@ Gia_Man_t * Gia_ManFindPoPartition( Gia_Man_t * p, int SelectShift, int fOnlyCis
     {
         *pvPosEquivs = vParts;
         printf( "The algorithm divided %d POs into %d partitions.   ", Gia_ManPoNum(p), Vec_PtrSize(vParts) );
-        Abc_PrintTime( 1, "Time", clock() - clk );
+        Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     }
     else
         Vec_VecFree( (Vec_Vec_t *)vParts );

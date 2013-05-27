@@ -83,13 +83,13 @@ struct Swp_Man_t_
     int            nSatCallsUnsat;
     int            nSatCallsUndec;
     int            nSatProofs;
-    clock_t        timeStart;
-    clock_t        timeTotal;
-    clock_t        timeCnf;
-    clock_t        timeSat;
-    clock_t        timeSatSat;
-    clock_t        timeSatUnsat;
-    clock_t        timeSatUndec;
+    abctime        timeStart;
+    abctime        timeTotal;
+    abctime        timeCnf;
+    abctime        timeSat;
+    abctime        timeSatSat;
+    abctime        timeSatUnsat;
+    abctime        timeSatUndec;
 };
 
 static inline int  Swp_ManObj2Lit( Swp_Man_t * p, int Id )              { return Vec_IntGetEntry( p->vId2Lit, Id );              }
@@ -134,7 +134,7 @@ static inline Swp_Man_t * Swp_ManStart( Gia_Man_t * pGia )
     Swp_ManSetObj2Lit( p, 0, (Lit = Abc_Var2Lit(p->nSatVars++, 0)) );
     Lit = Abc_LitNot(Lit);
     sat_solver_addclause( p->pSat, &Lit, &Lit + 1 );
-    p->timeStart    = clock();
+    p->timeStart    = Abc_Clock();
     return p;
 }
 static inline void Swp_ManStop( Gia_Man_t * pGia )
@@ -205,7 +205,7 @@ void Gia_SweeperPrintStats( Gia_Man_t * pGia )
     ABC_PRMP( "SAT solver      ", nMemSat, nMemTot );
     ABC_PRMP( "TOTAL           ", nMemTot, nMemTot );
     printf( "Runtime usage:\n" );
-    p->timeTotal = clock() - p->timeStart;
+    p->timeTotal = Abc_Clock() - p->timeStart;
     ABC_PRTP( "CNF construction", p->timeCnf,      p->timeTotal );
     ABC_PRTP( "SAT solving     ", p->timeSat,      p->timeTotal );
     ABC_PRTP( "    Sat         ", p->timeSatSat,   p->timeTotal );
@@ -492,7 +492,7 @@ Gia_Man_t * Gia_SweeperCleanup( Gia_Man_t * p, char * pCommLime )
     Swp_ManSetObj2Lit( pSwp, 0, (iLit = Abc_Var2Lit(pSwp->nSatVars++, 0)) );
     iLit = Abc_LitNot(iLit);
     sat_solver_addclause( pSwp->pSat, &iLit, &iLit + 1 );
-    pSwp->timeStart    = clock();
+    pSwp->timeStart    = Abc_Clock();
     // return the result
     pNew->pData = p->pData; p->pData = NULL;
     Gia_ManStop( p );
@@ -673,11 +673,11 @@ static void Gia_ManCnfNodeAddToSolver( Swp_Man_t * p, int NodeId )
 {
     Gia_Obj_t * pNode;
     int i, k, Id, Lit;
-    clock_t clk;
+    abctime clk;
     // quit if CNF is ready
     if ( NodeId == 0 || Swp_ManObj2Lit(p, NodeId) )
         return;
-clk = clock();
+clk = Abc_Clock();
     // start the frontier
     Vec_IntClear( p->vFront );
     Gia_ManObjAddToFrontier( p, NodeId, p->vFront );
@@ -706,7 +706,7 @@ clk = clock();
         }
         assert( Vec_IntSize(p->vFanins) > 1 );
     }
-p->timeCnf += clock() - clk;
+p->timeCnf += Abc_Clock() - clk;
 }
 
 
@@ -756,7 +756,7 @@ int Gia_SweeperCheckEquiv( Gia_Man_t * pGia, int Probe1, int Probe2 )
 {
     Swp_Man_t * p = (Swp_Man_t *)pGia->pData;
     int iLitOld, iLitNew, iLitAig, pLitsSat[2], RetValue, RetValue1, ProbeId, i;
-    clock_t clk;
+    abctime clk;
     p->nSatCalls++;
     assert( p->pSat != NULL );
     p->vCexUser = NULL;
@@ -802,32 +802,32 @@ int Gia_SweeperCheckEquiv( Gia_Man_t * pGia, int Probe1, int Probe2 )
 
     // set runtime limit for this call
     if ( p->nTimeOut )
-        sat_solver_set_runtime_limit( p->pSat, p->nTimeOut * CLOCKS_PER_SEC + clock() );
+        sat_solver_set_runtime_limit( p->pSat, p->nTimeOut * CLOCKS_PER_SEC + Abc_Clock() );
 
-clk = clock();
+clk = Abc_Clock();
     RetValue1 = sat_solver_solve( p->pSat, Vec_IntArray(p->vCondAssump), Vec_IntArray(p->vCondAssump) + Vec_IntSize(p->vCondAssump), 
         (ABC_INT64_T)p->nConfMax, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
     Vec_IntShrink( p->vCondAssump, Vec_IntSize(p->vCondAssump) - 2 );
-p->timeSat += clock() - clk;
+p->timeSat += Abc_Clock() - clk;
     if ( RetValue1 == l_False )
     {
         pLitsSat[0] = Abc_LitNot( pLitsSat[0] );
         RetValue = sat_solver_addclause( p->pSat, pLitsSat, pLitsSat + 2 );
         assert( RetValue );
         pLitsSat[0] = Abc_LitNot( pLitsSat[0] );
-p->timeSatUnsat += clock() - clk;
+p->timeSatUnsat += Abc_Clock() - clk;
         p->nSatCallsUnsat++;
     }
     else if ( RetValue1 == l_True )
     {
         p->vCexUser = Gia_ManGetCex( p->pGia, p->vId2Lit, p->pSat, p->vCexSwp );
-p->timeSatSat += clock() - clk;
+p->timeSatSat += Abc_Clock() - clk;
         p->nSatCallsSat++;
         return 0;
     }
     else // if ( RetValue1 == l_Undef )
     {
-p->timeSatUndec += clock() - clk;
+p->timeSatUndec += Abc_Clock() - clk;
         p->nSatCallsUndec++;
         return -1;
     }
@@ -844,30 +844,30 @@ p->timeSatUndec += clock() - clk;
     Vec_IntPush( p->vCondAssump, Abc_LitNot(pLitsSat[0]) );
     Vec_IntPush( p->vCondAssump, pLitsSat[1] );
 
-clk = clock();
+clk = Abc_Clock();
     RetValue1 = sat_solver_solve( p->pSat, Vec_IntArray(p->vCondAssump), Vec_IntArray(p->vCondAssump) + Vec_IntSize(p->vCondAssump), 
         (ABC_INT64_T)p->nConfMax, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
     Vec_IntShrink( p->vCondAssump, Vec_IntSize(p->vCondAssump) - 2 );
-p->timeSat += clock() - clk;
+p->timeSat += Abc_Clock() - clk;
     if ( RetValue1 == l_False )
     {
         pLitsSat[1] = Abc_LitNot( pLitsSat[1] );
         RetValue = sat_solver_addclause( p->pSat, pLitsSat, pLitsSat + 2 );
         assert( RetValue );
         pLitsSat[1] = Abc_LitNot( pLitsSat[1] );
-p->timeSatUnsat += clock() - clk;
+p->timeSatUnsat += Abc_Clock() - clk;
         p->nSatCallsUnsat++;
     }
     else if ( RetValue1 == l_True )
     {
         p->vCexUser = Gia_ManGetCex( p->pGia, p->vId2Lit, p->pSat, p->vCexSwp );
-p->timeSatSat += clock() - clk;
+p->timeSatSat += Abc_Clock() - clk;
         p->nSatCallsSat++;
         return 0;
     }
     else // if ( RetValue1 == l_Undef )
     {
-p->timeSatUndec += clock() - clk;
+p->timeSatUndec += Abc_Clock() - clk;
         p->nSatCallsUndec++;
         return -1;
     }
@@ -891,7 +891,7 @@ int Gia_SweeperCondCheckUnsat( Gia_Man_t * pGia )
 {
     Swp_Man_t * p = (Swp_Man_t *)pGia->pData;
     int RetValue, ProbeId, iLitAig, i;
-    clock_t clk;
+    abctime clk;
     assert( p->pSat != NULL );
     p->nSatCalls++;
     p->vCexUser = NULL;
@@ -908,16 +908,16 @@ int Gia_SweeperCondCheckUnsat( Gia_Man_t * pGia )
 
     // set runtime limit for this call
     if ( p->nTimeOut )
-        sat_solver_set_runtime_limit( p->pSat, p->nTimeOut * CLOCKS_PER_SEC + clock() );
+        sat_solver_set_runtime_limit( p->pSat, p->nTimeOut * CLOCKS_PER_SEC + Abc_Clock() );
 
-clk = clock();
+clk = Abc_Clock();
     RetValue = sat_solver_solve( p->pSat, Vec_IntArray(p->vCondAssump), Vec_IntArray(p->vCondAssump) + Vec_IntSize(p->vCondAssump), 
         (ABC_INT64_T)p->nConfMax, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
-p->timeSat += clock() - clk;
+p->timeSat += Abc_Clock() - clk;
     if ( RetValue == l_False )
     {
         assert( Vec_IntSize(p->vCondProbes) > 0 );
-p->timeSatUnsat += clock() - clk;
+p->timeSatUnsat += Abc_Clock() - clk;
         p->nSatCallsUnsat++;
         p->nSatProofs++;
         return 1;
@@ -925,13 +925,13 @@ p->timeSatUnsat += clock() - clk;
     else if ( RetValue == l_True )
     {
         p->vCexUser = Gia_ManGetCex( p->pGia, p->vId2Lit, p->pSat, p->vCexSwp );
-p->timeSatSat += clock() - clk;
+p->timeSatSat += Abc_Clock() - clk;
         p->nSatCallsSat++;
         return 0;
     }
     else // if ( RetValue1 == l_Undef )
     {
-p->timeSatUndec += clock() - clk;
+p->timeSatUndec += Abc_Clock() - clk;
         p->nSatCallsUndec++;
         return -1;
     }

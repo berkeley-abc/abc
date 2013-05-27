@@ -86,7 +86,7 @@ void Abc_NtkCheckAbsorb( Abc_Ntk_t * pNtk, int nLutSize )
     Vec_Ptr_t * vFanins;
     Abc_Obj_t * pObj, * pFanin;
     int i, k, Counter = 0, Counter2 = 0;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     vCounts = Vec_IntStart( Abc_NtkObjNumMax(pNtk) );
     vFanins = Vec_PtrAlloc( 100 );
     Abc_NtkForEachNode( pNtk, pObj, i )
@@ -106,7 +106,7 @@ void Abc_NtkCheckAbsorb( Abc_Ntk_t * pNtk, int nLutSize )
     printf( "Absorted = %6d. (%6.2f %%)   Fully = %6d. (%6.2f %%)  ", 
         Counter,  100.0 * Counter  / Abc_NtkNodeNum(pNtk), 
         Counter2, 100.0 * Counter2 / Abc_NtkNodeNum(pNtk) );
-    Abc_PrintTime( 1, "Time", clock() - clk );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 }
 
 /**Function*************************************************************

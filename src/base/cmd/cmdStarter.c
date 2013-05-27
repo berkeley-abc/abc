@@ -111,7 +111,7 @@ void Cmd_RunStarter( char * pFileName, char * pBinary, char * pCommand, int nCor
     char * BufferCopy, * Buffer;
     int nLines, LineMax, Line, Len;
     int i, c, status, Counter;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
 
     // check the number of cores
     if ( nCores < 2 )
@@ -244,7 +244,7 @@ void Cmd_RunStarter( char * pFileName, char * pBinary, char * pCommand, int nCor
 //    status = pthread_mutex_destroy(&mutex);   assert(status == 0);
 //    mutex = PTHREAD_MUTEX_INITIALIZER;
     fprintf( stdout, "Finished processing commands in file \"%s\".  ", pFileName );
-    Abc_PrintTime( 1, "Total wall time", clock() - clk );
+    Abc_PrintTime( 1, "Total wall time", Abc_Clock() - clk );
     fflush( stdout );
 }
 

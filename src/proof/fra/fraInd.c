@@ -50,7 +50,7 @@ void Fra_FraigInductionRewrite( Fra_Man_t * p )
     Aig_Man_t * pTemp;
     Aig_Obj_t * pObj, * pObjPo;
     int nTruePis, k, i;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     // perform AIG rewriting on the speculated frames
 //    pTemp = Dar_ManRwsat( pTemp, 1, 0 );
     pTemp = Dar_ManRewriteDefault( p->pManFraig );
@@ -77,7 +77,7 @@ void Fra_FraigInductionRewrite( Fra_Man_t * p )
     // exchange
     Aig_ManStop( p->pManFraig );
     p->pManFraig = pTemp;
-p->timeRwr += clock() - clk;
+p->timeRwr += Abc_Clock() - clk;
 }
 
 /**Function*************************************************************
@@ -260,7 +260,7 @@ Aig_Man_t * Fra_FraigInductionPart( Aig_Man_t * pAig, Fra_Ssw_t * pPars )
     int * pMapBack;
     int i, nCountPis, nCountRegs;
     int nClasses, nPartSize, fVerbose;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
 
     // save parameters
     nPartSize = pPars->nPartSize; pPars->nPartSize = 0;
@@ -325,7 +325,7 @@ Aig_Man_t * Fra_FraigInductionPart( Aig_Man_t * pAig, Fra_Ssw_t * pPars )
     pPars->fVerbose = fVerbose;
     if ( fVerbose )
     {
-        ABC_PRT( "Total time", clock() - clk );
+        ABC_PRT( "Total time", Abc_Clock() - clk );
     }
     return pNew;
 }
@@ -359,8 +359,8 @@ Aig_Man_t * Fra_FraigInduction( Aig_Man_t * pManAig, Fra_Ssw_t * pParams )
     int nNodesBeg, nRegsBeg;
     int nIter = -1; // Suppress "might be used uninitialized"
     int i;
-    clock_t clk = clock(), clk2;
-    clock_t TimeToStop = pParams->TimeLimit ? pParams->TimeLimit * CLOCKS_PER_SEC + clock() : 0;
+    abctime clk = Abc_Clock(), clk2;
+    abctime TimeToStop = pParams->TimeLimit ? pParams->TimeLimit * CLOCKS_PER_SEC + Abc_Clock() : 0;
 
     if ( Aig_ManNodeNum(pManAig) == 0 )
     {
@@ -429,7 +429,7 @@ printf( "Simulating %d AIG nodes for %d cycles ... ", Aig_ManNodeNum(pManAig), p
         p->pSml = Fra_SmlSimulateSeq( pManAig, pPars->nFramesP, 32, 1, 1  ); //pPars->nFramesK + 1, 1 );  
 if ( pPars->fVerbose ) 
 {
-ABC_PRT( "Time", clock() - clk );
+ABC_PRT( "Time", Abc_Clock() - clk );
 }
         Fra_ClassesPrepare( p->pCla, p->pPars->fLatchCorr, p->pPars->nMaxLevs );
 //        Fra_ClassesPostprocess( p->pCla );
@@ -445,7 +445,7 @@ ABC_PRT( "Time", clock() - clk );
     if ( pPars->fUseImps )
         p->pCla->vImps = Fra_ImpDerive( p, 5000000, pPars->nMaxImps, pPars->fLatchCorr );
 
-    if ( pParams->TimeLimit != 0.0 && clock() > TimeToStop )
+    if ( pParams->TimeLimit != 0.0 && Abc_Clock() > TimeToStop )
     {
         if ( !pParams->fSilent )
             printf( "Fra_FraigInduction(): Runtime limit exceeded.\n" );
@@ -475,9 +475,9 @@ ABC_PRT( "Time", clock() - clk );
         int nLitsOld = Fra_ClassesCountLits(p->pCla);
         int nImpsOld = p->pCla->vImps? Vec_IntSize(p->pCla->vImps) : 0;
         int nHotsOld = p->vOneHots? Fra_OneHotCount(p, p->vOneHots) : 0;
-        clock_t clk3 = clock();
+        abctime clk3 = Abc_Clock();
 
-        if ( pParams->TimeLimit != 0.0 && clock() > TimeToStop )
+        if ( pParams->TimeLimit != 0.0 && Abc_Clock() > TimeToStop )
         {
             if ( !pParams->fSilent )
                 printf( "Fra_FraigInduction(): Runtime limit exceeded.\n" );
@@ -487,9 +487,9 @@ ABC_PRT( "Time", clock() - clk );
         // mark the classes as non-refined
         p->pCla->fRefinement = 0;
         // derive non-init K-timeframes while implementing e-classes
-clk2 = clock();
+clk2 = Abc_Clock();
         p->pManFraig = Fra_FramesWithClasses( p );
-p->timeTrav += clock() - clk2;
+p->timeTrav += Abc_Clock() - clk2;
 //Aig_ManDumpBlif( p->pManFraig, "testaig.blif", NULL, NULL );
 
         // perform AIG rewriting
@@ -556,13 +556,13 @@ p->timeTrav += clock() - clk2;
         // perform sweeping
         p->nSatCallsRecent = 0;
         p->nSatCallsSkipped = 0;
-clk2 = clock();
+clk2 = Abc_Clock();
         if ( p->pPars->fUse1Hot )
             Fra_OneHotCheck( p, p->vOneHots );
         Fra_FraigSweep( p );
         if ( pPars->fVerbose )
         {
-            ABC_PRT( "T", clock() - clk3 );
+            ABC_PRT( "T", Abc_Clock() - clk3 );
         } 
 
 //        Sat_SolverPrintStats( stdout, p->pSat );
@@ -591,17 +591,17 @@ clk2 = clock();
     if ( p->pCla->vImps && Vec_IntSize(p->pCla->vImps) )
     {
         int Temp;
-        clock_t clk = clock();
+        abctime clk = Abc_Clock();
         if ( Temp = Fra_ImpVerifyUsingSimulation( p ) )
             printf( "Implications failing the simulation test = %d (out of %d).  ", Temp, Vec_IntSize(p->pCla->vImps) );
         else
             printf( "All %d implications have passed the simulation test.  ", Vec_IntSize(p->pCla->vImps) );
-        ABC_PRT( "Time", clock() - clk );
+        ABC_PRT( "Time", Abc_Clock() - clk );
     }
 */
 
     // move the classes into representatives and reduce AIG
-clk2 = clock();
+clk2 = Abc_Clock();
     if ( p->pPars->fWriteImps && p->vOneHots && Fra_OneHotCount(p, p->vOneHots) )
     {
         extern void Ioa_WriteAiger( Aig_Man_t * pMan, char * pFileName, int fWriteSymbols, int fCompact );
@@ -630,8 +630,8 @@ clk2 = clock();
 //        if ( pObj->pData && Aig_ObjIsNone(pObj->pData) )
 //            pObj->pData = NULL;
 //    Aig_ManCountMergeRegs( pManAigNew );
-p->timeTrav += clock() - clk2;
-p->timeTotal = clock() - clk;
+p->timeTrav += Abc_Clock() - clk2;
+p->timeTotal = Abc_Clock() - clk;
     // get the final stats
     p->nLitsEnd  = Fra_ClassesCountLits( p->pCla );
     p->nNodesEnd = Aig_ManNodeNum(pManAigNew);

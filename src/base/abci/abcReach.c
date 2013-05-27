@@ -259,7 +259,7 @@ void Abc_NtkVerifyUsingBdds( Abc_Ntk_t * pNtk, int nBddMax, int nIterMax, int fP
     DdNode ** pbParts;
     DdNode * bOutput, * bReached, * bInitial;
     int i;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
 
     assert( Abc_NtkIsStrash(pNtk) );
     assert( Abc_NtkPoNum(pNtk) == 1 );
@@ -307,7 +307,7 @@ void Abc_NtkVerifyUsingBdds( Abc_Ntk_t * pNtk, int nBddMax, int nIterMax, int fP
     Extra_StopManager( dd );
 
     // report the runtime
-    ABC_PRT( "Time", clock() - clk );
+    ABC_PRT( "Time", Abc_Clock() - clk );
     fflush( stdout );
 }
 

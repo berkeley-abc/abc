@@ -89,22 +89,22 @@ void Abc_NtkSymmetriesUsingSandS( Abc_Ntk_t * pNtk, int fVerbose )
 void Abc_NtkSymmetriesUsingBdds( Abc_Ntk_t * pNtk, int fNaive, int fReorder, int fVerbose )
 {
     DdManager * dd;
-    clock_t clk, clkBdd, clkSym;
+    abctime clk, clkBdd, clkSym;
     int fGarbCollect = 1;
 
     // compute the global functions
-clk = clock();
+clk = Abc_Clock();
     dd = (DdManager *)Abc_NtkBuildGlobalBdds( pNtk, 10000000, 1, fReorder, fVerbose );
     printf( "Shared BDD size = %d nodes.\n", Abc_NtkSizeOfGlobalBdds(pNtk) ); 
     Cudd_AutodynDisable( dd );
     if ( !fGarbCollect )
         Cudd_DisableGarbageCollection( dd );
     Cudd_zddVarsFromBddVars( dd, 2 );
-clkBdd = clock() - clk;
+clkBdd = Abc_Clock() - clk;
     // create the collapsed network
-clk = clock();
+clk = Abc_Clock();
     Ntk_NetworkSymmsBdd( dd, pNtk, fNaive, fVerbose );
-clkSym = clock() - clk;
+clkSym = Abc_Clock() - clk;
     // undo the global functions
     Abc_NtkFreeGlobalBdds( pNtk, 1 );
 printf( "Statistics of BDD-based symmetry detection:\n" );

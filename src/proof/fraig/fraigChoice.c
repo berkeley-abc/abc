@@ -45,7 +45,7 @@ void Fraig_ManAddChoices( Fraig_Man_t * pMan, int fVerbose, int nLimit )
 {
 //    ProgressBar * pProgress;
     char Buffer[100];
-    clock_t clkTotal = clock();
+    abctime clkTotal = Abc_Clock();
     int i, nNodesBefore, nNodesAfter, nInputs, nMaxNodes;
     int /*nMaxLevel,*/ nDistributive;
     Fraig_Node_t *pNode, *pRepr;

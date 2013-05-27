@@ -146,7 +146,7 @@ Vec_Int_t * Proof_CollectUsedIter( Vec_Set_t * vProof, Vec_Int_t * vRoots, int f
 {
     int fVerify = 0;
     Vec_Int_t * vUsed, * vStack;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     int i, Entry, iPrev = 0;
     vUsed = Vec_IntAlloc( 1000 );
     vStack = Vec_IntAlloc( 1000 );
@@ -154,10 +154,10 @@ Vec_Int_t * Proof_CollectUsedIter( Vec_Set_t * vProof, Vec_Int_t * vRoots, int f
         if ( Entry >= 0 )
             Proof_CollectUsed_iter( vProof, Entry, vUsed, vStack );
     Vec_IntFree( vStack );
-//    Abc_PrintTime( 1, "Iterative clause collection time", clock() - clk );
-    clk = clock();
+//    Abc_PrintTime( 1, "Iterative clause collection time", Abc_Clock() - clk );
+    clk = Abc_Clock();
     Abc_MergeSort( Vec_IntArray(vUsed), Vec_IntSize(vUsed) );
-//    Abc_PrintTime( 1, "Postprocessing with sorting time", clock() - clk );
+//    Abc_PrintTime( 1, "Postprocessing with sorting time", Abc_Clock() - clk );
     // verify topological order
     if ( fVerify )
     {
@@ -314,8 +314,8 @@ void Sat_ProofReduce2( sat_solver2 * s )
     Vec_Int_t * vUsed;
     satset * pNode, * pFanin, * pPivot;
     int i, k, hTemp;
-    clock_t clk = clock();
-    static clock_t TimeTotal = 0;
+    abctime clk = Abc_Clock();
+    static abctime TimeTotal = 0;
 
     // collect visited nodes
     vUsed = Proof_CollectUsedIter( vProof, vRoots, 1 );
@@ -359,7 +359,7 @@ void Sat_ProofReduce2( sat_solver2 * s )
         printf( "The proof was reduced from %6.2f MB to %6.2f MB (by %6.2f %%)  ", 
             1.0 * Vec_SetMemory(vProof) / (1<<20), 1.0 * Vec_SetMemoryS(vProof) / (1<<20), 
             100.0 * (Vec_SetMemory(vProof) - Vec_SetMemoryS(vProof)) / Vec_SetMemory(vProof) );
-        TimeTotal += clock() - clk;
+        TimeTotal += Abc_Clock() - clk;
         Abc_PrintTime( 1, "Time", TimeTotal );
     }
     Vec_SetShrink( vProof, Vec_SetHandCurrentS(vProof) );
@@ -390,8 +390,8 @@ int Sat_ProofReduce( Vec_Set_t * vProof, void * pRoots, int hProofPivot )
     Vec_Ptr_t * vUsed;
     satset * pNode, * pFanin, * pPivot;
     int i, j, k, hTemp, nSize;
-    clock_t clk = clock();
-    static clock_t TimeTotal = 0;
+    abctime clk = Abc_Clock();
+    static abctime TimeTotal = 0;
     int RetValue;
 //Sat_ProofCheck0( vProof );
 
@@ -448,7 +448,7 @@ int Sat_ProofReduce( Vec_Set_t * vProof, void * pRoots, int hProofPivot )
         printf( "The proof was reduced from %6.2f MB to %6.2f MB (by %6.2f %%)  ", 
             1.0 * Vec_SetMemory(vProof) / (1<<20), 1.0 * Vec_SetMemoryS(vProof) / (1<<20), 
             100.0 * (Vec_SetMemory(vProof) - Vec_SetMemoryS(vProof)) / Vec_SetMemory(vProof) );
-        TimeTotal += clock() - clk;
+        TimeTotal += Abc_Clock() - clk;
         Abc_PrintTime( 1, "Time", TimeTotal );
     }
     Vec_SetShrink( vProof, Vec_SetHandCurrentS(vProof) );
@@ -554,7 +554,7 @@ void Sat_ProofCheck( sat_solver2 * s )
     Vec_Int_t * vUsed, * vTemp;
     satset * pSet, * pSet0 = NULL, * pSet1;
     int i, k, hRoot, Handle, Counter = 0;
-    clock_t clk = clock(); 
+    abctime clk = Abc_Clock(); 
     hRoot = s->hProofLast;
     if ( hRoot == -1 )
         return;
@@ -586,7 +586,7 @@ void Sat_ProofCheck( sat_solver2 * s )
         printf( "Derived clause with %d lits instead of the empty clause.  ", pSet0->nEnts );
     else
         printf( "Proof verification successful.  " );
-    Abc_PrintTime( 1, "Time", clock() - clk );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     // cleanup
     Vec_SetFree( vResolves );
     Vec_IntFree( vUsed );

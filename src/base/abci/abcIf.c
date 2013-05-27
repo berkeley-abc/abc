@@ -71,7 +71,7 @@ void Abc_NtkIfComputeSwitching( Abc_Ntk_t * pNtk, If_Man_t * pIfMan )
     Aig_Man_t * pAig;
     If_Obj_t * pObjIf;
     int i;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     // map IF objects into old network
     Abc_NtkForEachObj( pNtk, pObjAbc, i )
         if ( (pObjIf = (If_Obj_t *)pObjAbc->pTemp) )
@@ -99,7 +99,7 @@ void Abc_NtkIfComputeSwitching( Abc_Ntk_t * pNtk, If_Man_t * pIfMan )
             pSwitching[i] = pObjAbc->dTemp;
 if ( pIfMan->pPars->fVerbose )
 {
-    ABC_PRT( "Computing switching activity", clock() - clk );
+    ABC_PRT( "Computing switching activity", Abc_Clock() - clk );
 }
 }
 

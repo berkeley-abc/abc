@@ -46,7 +46,7 @@ void Ssw_ManResimulateBit( Ssw_Man_t * p, Aig_Obj_t * pCand, Aig_Obj_t * pRepr )
 {
     Aig_Obj_t * pObj;
     int i, RetValue1, RetValue2;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     // set the PI simulation information
     Aig_ManConst1(p->pAig)->fMarkB = 1;
     Aig_ManForEachCi( p->pAig, pObj, i )
@@ -75,7 +75,7 @@ void Ssw_ManResimulateBit( Ssw_Man_t * p, Aig_Obj_t * pCand, Aig_Obj_t * pRepr )
                 Abc_Print( 1, "\nSsw_ManResimulateBit() Error: RetValue2 does not hold.\n" );
         }
     }
-p->timeSimSat += clock() - clk;
+p->timeSimSat += Abc_Clock() - clk;
 }
 
 /**Function*************************************************************
@@ -92,7 +92,7 @@ p->timeSimSat += clock() - clk;
 void Ssw_ManResimulateWord( Ssw_Man_t * p, Aig_Obj_t * pCand, Aig_Obj_t * pRepr, int f )
 {
     int RetValue1, RetValue2;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     // set the PI simulation information
     Ssw_SmlAssignDist1Plus( p->pSml, p->pPatWords );
     // simulate internal nodes
@@ -113,7 +113,7 @@ void Ssw_ManResimulateWord( Ssw_Man_t * p, Aig_Obj_t * pCand, Aig_Obj_t * pRepr,
         if ( RetValue2 == 0 )
             Abc_Print( 1, "\nSsw_ManResimulateWord() Error: RetValue2 does not hold.\n" );
     }
-p->timeSimSat += clock() - clk;
+p->timeSimSat += Abc_Clock() - clk;
 }
 
 ////////////////////////////////////////////////////////////////////////

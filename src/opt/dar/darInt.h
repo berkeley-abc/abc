@@ -96,12 +96,12 @@ struct Dar_Man_t_
     int              nCutsGood;      // good cuts
     int              nCutsSkipped;   // skipped bad cuts
     // timing statistics
-    clock_t          timeCuts;
-    clock_t          timeEval;
-    clock_t          timeOther;
-    clock_t          timeTotal;
-    clock_t          time1;
-    clock_t          time2;
+    abctime          timeCuts;
+    abctime          timeEval;
+    abctime          timeOther;
+    abctime          timeTotal;
+    abctime          time1;
+    abctime          time2;
 };
 
 static inline Dar_Cut_t *  Dar_ObjCuts( Aig_Obj_t * pObj )                         { return (Dar_Cut_t *)pObj->pData;    }

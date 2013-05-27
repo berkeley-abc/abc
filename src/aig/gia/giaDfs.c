@@ -210,7 +210,7 @@ void Gia_ManCollectTest( Gia_Man_t * p )
     Vec_Int_t * vNodes;
     Gia_Obj_t * pObj;
     int i, iNode;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     vNodes = Vec_IntAlloc( 100 );
     Gia_ManIncrementTravId( p );
     Gia_ManForEachCo( p, pObj, i )
@@ -219,7 +219,7 @@ void Gia_ManCollectTest( Gia_Man_t * p )
         Gia_ManCollectAnds( p, &iNode, 1, vNodes );
     }
     Vec_IntFree( vNodes );
-    ABC_PRT( "DFS from each output", clock() - clk );
+    ABC_PRT( "DFS from each output", Abc_Clock() - clk );
 }
 
 /**Function*************************************************************
@@ -277,12 +277,12 @@ int Gia_ManSuppSizeTest( Gia_Man_t * p )
 {
     Gia_Obj_t * pObj;
     int i, Counter = 0;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     Gia_ManForEachObj( p, pObj, i )
         if ( Gia_ObjIsAnd(pObj) )
             Counter += (Gia_ManSuppSizeOne(p, pObj) <= 16);
     printf( "Nodes with small support %d (out of %d)\n", Counter, Gia_ManAndNum(p) );
-    Abc_PrintTime( 1, "Time", clock() - clk );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     return Counter;
 }
 
@@ -487,7 +487,7 @@ void Gia_ManCollectSeqTest( Gia_Man_t * p )
 {
     Vec_Int_t * vObjs;
     int i;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     for ( i = 0; i < Gia_ManPoNum(p); i++ )
     {
         if ( i % 10000 == 0 )
@@ -497,7 +497,7 @@ void Gia_ManCollectSeqTest( Gia_Man_t * p )
 //        printf( "%d ", Vec_IntSize(vObjs) );
         Vec_IntFree( vObjs );
     }
-    Abc_PrintTime( 1, "Time", clock() - clk );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 
 }
 

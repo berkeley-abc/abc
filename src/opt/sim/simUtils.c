@@ -634,15 +634,15 @@ int Sim_UtilCountPairsOnePrint( Extra_BitMat_t * pMat, Vec_Int_t * vSupport )
 void Sim_UtilCountPairsAllPrint( Sym_Man_t * p )
 {
     int i;
-    clock_t clk;
-clk = clock();
+    abctime clk;
+clk = Abc_Clock();
     for ( i = 0; i < p->nOutputs; i++ )
     {
         printf( "Output %2d :", i );
         Sim_UtilCountPairsOnePrint( (Extra_BitMat_t *)Vec_PtrEntry(p->vMatrSymms, i), Vec_VecEntryInt(p->vSupports, i) );
         printf( "\n" );
     }
-p->timeCount += clock() - clk;
+p->timeCount += Abc_Clock() - clk;
 }
 
 /**Function*************************************************************
@@ -659,8 +659,8 @@ p->timeCount += clock() - clk;
 void Sim_UtilCountPairsAll( Sym_Man_t * p )
 {
     int nPairsTotal, nPairsSym, nPairsNonSym, i;
-    clock_t clk;
-clk = clock();
+    abctime clk;
+clk = Abc_Clock();
     p->nPairsSymm    = 0;
     p->nPairsNonSymm = 0;
     for ( i = 0; i < p->nOutputs; i++ )
@@ -686,7 +686,7 @@ clk = clock();
     }
 //printf( "\n" );
     p->nPairsRem = p->nPairsTotal-p->nPairsSymm-p->nPairsNonSymm;
-p->timeCount += clock() - clk;
+p->timeCount += Abc_Clock() - clk;
 }
 
 /**Function*************************************************************

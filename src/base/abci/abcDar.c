@@ -1225,7 +1225,7 @@ Abc_Ntk_t * Abc_NtkDRewrite( Abc_Ntk_t * pNtk, Dar_RwrPar_t * pPars )
 {
     Aig_Man_t * pMan, * pTemp;
     Abc_Ntk_t * pNtkAig;
-    clock_t clk;
+    abctime clk;
     assert( Abc_NtkIsStrash(pNtk) );
     pMan = Abc_NtkToDar( pNtk, 0, 0 );
     if ( pMan == NULL )
@@ -1243,10 +1243,10 @@ Abc_Ntk_t * Abc_NtkDRewrite( Abc_Ntk_t * pNtk, Dar_RwrPar_t * pPars )
 //    pMan = Dar_ManBalance( pTemp = pMan, pPars->fUpdateLevel );
 //    Aig_ManStop( pTemp );
 
-clk = clock();
+clk = Abc_Clock();
     pMan = Aig_ManDupDfs( pTemp = pMan ); 
     Aig_ManStop( pTemp );
-//ABC_PRT( "time", clock() - clk );
+//ABC_PRT( "time", Abc_Clock() - clk );
 
 //    Aig_ManPrintStats( pMan );
     pNtkAig = Abc_NtkFromDar( pNtk, pMan );
@@ -1269,7 +1269,7 @@ Abc_Ntk_t * Abc_NtkDRefactor( Abc_Ntk_t * pNtk, Dar_RefPar_t * pPars )
 {
     Aig_Man_t * pMan, * pTemp;
     Abc_Ntk_t * pNtkAig;
-    clock_t clk;
+    abctime clk;
     assert( Abc_NtkIsStrash(pNtk) );
     pMan = Abc_NtkToDar( pNtk, 0, 0 );
     if ( pMan == NULL )
@@ -1280,10 +1280,10 @@ Abc_Ntk_t * Abc_NtkDRefactor( Abc_Ntk_t * pNtk, Dar_RefPar_t * pPars )
 //    pMan = Dar_ManBalance( pTemp = pMan, pPars->fUpdateLevel );
 //    Aig_ManStop( pTemp );
 
-clk = clock();
+clk = Abc_Clock();
     pMan = Aig_ManDupDfs( pTemp = pMan ); 
     Aig_ManStop( pTemp );
-//ABC_PRT( "time", clock() - clk );
+//ABC_PRT( "time", Abc_Clock() - clk );
 
 //    Aig_ManPrintStats( pMan );
     pNtkAig = Abc_NtkFromDar( pNtk, pMan );
@@ -1306,17 +1306,17 @@ Abc_Ntk_t * Abc_NtkDC2( Abc_Ntk_t * pNtk, int fBalance, int fUpdateLevel, int fF
 {
     Aig_Man_t * pMan, * pTemp;
     Abc_Ntk_t * pNtkAig;
-    clock_t clk;
+    abctime clk;
     assert( Abc_NtkIsStrash(pNtk) );
     pMan = Abc_NtkToDar( pNtk, 0, 0 );
     if ( pMan == NULL )
         return NULL;
 //    Aig_ManPrintStats( pMan );
 
-clk = clock();
+clk = Abc_Clock();
     pMan = Dar_ManCompress2( pTemp = pMan, fBalance, fUpdateLevel, fFanout, fPower, fVerbose ); 
     Aig_ManStop( pTemp );
-//ABC_PRT( "time", clock() - clk );
+//ABC_PRT( "time", Abc_Clock() - clk );
 
 //    Aig_ManPrintStats( pMan );
     pNtkAig = Abc_NtkFromDar( pNtk, pMan );
@@ -1369,12 +1369,12 @@ Abc_Ntk_t * Abc_NtkDch( Abc_Ntk_t * pNtk, Dch_Pars_t * pPars )
     Aig_Man_t * pMan, * pTemp;
     Abc_Ntk_t * pNtkAig;
     Gia_Man_t * pGia;
-    clock_t clk;
+    abctime clk;
     assert( Abc_NtkIsStrash(pNtk) );
     pMan = Abc_NtkToDar( pNtk, 0, 0 );
     if ( pMan == NULL )
         return NULL;
-clk = clock();
+clk = Abc_Clock();
     if ( pPars->fSynthesis )
         pGia = Dar_NewChoiceSynthesis( pMan, 1, 1, pPars->fPower, pPars->fLightSynth, pPars->fVerbose );
     else
@@ -1382,7 +1382,7 @@ clk = clock();
         pGia = Gia_ManFromAig( pMan );
         Aig_ManStop( pMan );
     }
-pPars->timeSynth = clock() - clk;
+pPars->timeSynth = Abc_Clock() - clk;
     if ( pPars->fUseGia )
         pMan = Cec_ComputeChoices( pGia, pPars );
     else
@@ -1412,17 +1412,17 @@ Abc_Ntk_t * Abc_NtkDrwsat( Abc_Ntk_t * pNtk, int fBalance, int fVerbose )
 {
     Aig_Man_t * pMan, * pTemp;
     Abc_Ntk_t * pNtkAig;
-    clock_t clk;
+    abctime clk;
     assert( Abc_NtkIsStrash(pNtk) );
     pMan = Abc_NtkToDar( pNtk, 0, 0 );
     if ( pMan == NULL )
         return NULL;
 //    Aig_ManPrintStats( pMan );
 
-clk = clock();
+clk = Abc_Clock();
     pMan = Dar_ManRwsat( pTemp = pMan, fBalance, fVerbose ); 
     Aig_ManStop( pTemp );
-//ABC_PRT( "time", clock() - clk );
+//ABC_PRT( "time", Abc_Clock() - clk );
 
 //    Aig_ManPrintStats( pMan );
     pNtkAig = Abc_NtkFromDar( pNtk, pMan );
@@ -1520,7 +1520,7 @@ Abc_Ntk_t * Abc_NtkDarToCnf( Abc_Ntk_t * pNtk, char * pFileName, int fFastAlgo, 
 //    Cnf_Man_t * pManCnf = NULL;
     Cnf_Dat_t * pCnf;
     Abc_Ntk_t * pNtkNew = NULL;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     assert( Abc_NtkIsStrash(pNtk) );
 
     // convert to the AIG manager
@@ -1551,7 +1551,7 @@ Abc_Ntk_t * Abc_NtkDarToCnf( Abc_Ntk_t * pNtk, char * pFileName, int fFastAlgo, 
     if ( fVerbose )
     {
         Abc_Print( 1, "Vars = %6d. Clauses = %7d. Literals = %8d.   ", pCnf->nVars, pCnf->nClauses, pCnf->nLiterals );
-        Abc_PrintTime( 1, "Time", clock() - clk );
+        Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     }
 
 /*
@@ -1584,7 +1584,7 @@ Abc_Ntk_t * Abc_NtkDarToCnf( Abc_Ntk_t * pNtk, char * pFileName, int fFastAlgo, 
 int Abc_NtkDSat( Abc_Ntk_t * pNtk, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimit, int nLearnedStart, int nLearnedDelta, int nLearnedPerce, int fAlignPol, int fAndOuts, int fNewSolver, int fVerbose )
 {
     Aig_Man_t * pMan;
-    int RetValue;//, clk = clock();
+    int RetValue;//, clk = Abc_Clock();
     assert( Abc_NtkIsStrash(pNtk) );
     assert( Abc_NtkLatchNum(pNtk) == 0 );
 //    assert( Abc_NtkPoNum(pNtk) == 1 );
@@ -1610,7 +1610,7 @@ int Abc_NtkPartitionedSat( Abc_Ntk_t * pNtk, int nAlgo, int nPartSize, int nConf
 {
     extern int Aig_ManPartitionedSat( Aig_Man_t * pNtk, int nAlgo, int nPartSize, int nConfPart, int nConfTotal, int fAlignPol, int fSynthesize, int fVerbose );
     Aig_Man_t * pMan;
-    int RetValue;//, clk = clock();
+    int RetValue;//, clk = Abc_Clock();
     assert( Abc_NtkIsStrash(pNtk) );
     assert( Abc_NtkLatchNum(pNtk) == 0 );
     pMan = Abc_NtkToDar( pNtk, 0, 0 );
@@ -1636,7 +1636,7 @@ int Abc_NtkDarCec( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nConfLimit, int fPa
     Aig_Man_t * pMan, * pMan1, * pMan2;
     Abc_Ntk_t * pMiter;
     int RetValue;
-    clock_t clkTotal = clock();
+    abctime clkTotal = Abc_Clock();
 /*
     {
     extern void Cec_ManVerifyTwoAigs( Aig_Man_t * pAig0, Aig_Man_t * pAig1, int fVerbose );
@@ -1721,17 +1721,17 @@ finish:
     if ( RetValue == 1 )
     {
         Abc_Print( 1, "Networks are equivalent.   " );
-ABC_PRT( "Time", clock() - clkTotal );
+ABC_PRT( "Time", Abc_Clock() - clkTotal );
     }
     else if ( RetValue == 0 )
     {
         Abc_Print( 1, "Networks are NOT EQUIVALENT.   " );
-ABC_PRT( "Time", clock() - clkTotal );
+ABC_PRT( "Time", Abc_Clock() - clkTotal );
     }
     else
     {
         Abc_Print( 1, "Networks are UNDECIDED.   " );
-ABC_PRT( "Time", clock() - clkTotal );
+ABC_PRT( "Time", Abc_Clock() - clkTotal );
     }
     fflush( stdout );
     return RetValue;
@@ -1753,7 +1753,7 @@ Abc_Ntk_t * Abc_NtkDarSeqSweep( Abc_Ntk_t * pNtk, Fra_Ssw_t * pPars )
     Fraig_Params_t Params;
     Abc_Ntk_t * pNtkAig = NULL, * pNtkFraig;
     Aig_Man_t * pMan, * pTemp;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
 
     // preprocess the miter by fraiging it
     // (note that for each functional class, fraiging leaves one representative;
@@ -1765,7 +1765,7 @@ Abc_Ntk_t * Abc_NtkDarSeqSweep( Abc_Ntk_t * pNtk, Fra_Ssw_t * pPars )
         pNtkFraig = Abc_NtkFraig( pNtk, &Params, 0, 0 );
 if ( pPars->fVerbose ) 
 {
-ABC_PRT( "Initial fraiging time", clock() - clk );
+ABC_PRT( "Initial fraiging time", Abc_Clock() - clk );
 }
     }
     else
@@ -2037,8 +2037,8 @@ int Abc_NtkDarBmc( Abc_Ntk_t * pNtk, int nStart, int nFrames, int nSizeMax, int 
     Aig_Man_t * pMan;
     Vec_Int_t * vMap = NULL;
     int status, RetValue = -1;
-    clock_t clk = clock();
-    clock_t nTimeLimit = nTimeOut ? nTimeOut * CLOCKS_PER_SEC + clock(): 0;
+    abctime clk = Abc_Clock();
+    abctime nTimeLimit = nTimeOut ? nTimeOut * CLOCKS_PER_SEC + Abc_Clock(): 0;
     // derive the AIG manager
     if ( fOrDecomp )
         pMan = Abc_NtkToDarBmc( pNtk, &vMap );
@@ -2069,7 +2069,7 @@ int Abc_NtkDarBmc( Abc_Ntk_t * pNtk, int nStart, int nFrames, int nSizeMax, int 
         else if ( RetValue == -1 )
         {
             Abc_Print( 1, "No output asserted in %d frames. Resource limit reached ", Abc_MaxInt(iFrame,0) );
-            if ( nTimeLimit && clock() > nTimeLimit )
+            if ( nTimeLimit && Abc_Clock() > nTimeLimit )
                 Abc_Print( 1, "(timeout %d sec). ", nTimeLimit );
             else
                 Abc_Print( 1, "(conf limit %d). ", nBTLimit );
@@ -2079,7 +2079,7 @@ int Abc_NtkDarBmc( Abc_Ntk_t * pNtk, int nStart, int nFrames, int nSizeMax, int 
             Abc_Cex_t * pCex = pNtk->pSeqModel;
             Abc_Print( 1, "Output %d of miter \"%s\" was asserted in frame %d. ", pCex->iPo, pNtk->pName, pCex->iFrame );
         }
-ABC_PRT( "Time", clock() - clk );
+ABC_PRT( "Time", Abc_Clock() - clk );
     }
     else
     { 
@@ -2119,8 +2119,8 @@ int Abc_NtkDarBmc3( Abc_Ntk_t * pNtk, Saig_ParBmc_t * pPars, int fOrDecomp )
     Aig_Man_t * pMan;
     Vec_Int_t * vMap = NULL;
     int status, RetValue = -1;
-    clock_t clk = clock();
-    clock_t nTimeOut = pPars->nTimeOut ? pPars->nTimeOut * CLOCKS_PER_SEC + clock(): 0;
+    abctime clk = Abc_Clock();
+    abctime nTimeOut = pPars->nTimeOut ? pPars->nTimeOut * CLOCKS_PER_SEC + Abc_Clock(): 0;
     if ( fOrDecomp && !pPars->fSolveAll )
         pMan = Abc_NtkToDarBmc( pNtk, &vMap );
     else
@@ -2147,7 +2147,7 @@ int Abc_NtkDarBmc3( Abc_Ntk_t * pNtk, Saig_ParBmc_t * pPars, int fOrDecomp )
         if ( pPars->nFailOuts == 0 )
         {
             Abc_Print( 1, "No output asserted in %d frames. Resource limit reached ", Abc_MaxInt(pPars->iFrame,0) );
-            if ( nTimeOut && clock() > nTimeOut )
+            if ( nTimeOut && Abc_Clock() > nTimeOut )
                 Abc_Print( 1, "(timeout %d sec). ", pPars->nTimeOut );
             else
                 Abc_Print( 1, "(conf limit %d). ", pPars->nConfLimit );
@@ -2155,7 +2155,7 @@ int Abc_NtkDarBmc3( Abc_Ntk_t * pNtk, Saig_ParBmc_t * pPars, int fOrDecomp )
         else
         {
             Abc_Print( 1, "The total of %d outputs asserted in %d frames. Resource limit reached ", pPars->nFailOuts, pPars->iFrame );
-            if ( clock() > nTimeOut )
+            if ( Abc_Clock() > nTimeOut )
                 Abc_Print( 1, "(timeout %d sec). ", pPars->nTimeOut );
             else
                 Abc_Print( 1, "(conf limit %d). ", pPars->nConfLimit );
@@ -2187,7 +2187,7 @@ int Abc_NtkDarBmc3( Abc_Ntk_t * pNtk, Saig_ParBmc_t * pPars, int fOrDecomp )
             pNtk->vSeqModelVec = pMan->vSeqModelVec;  pMan->vSeqModelVec = NULL;
         }
     }
-    ABC_PRT( "Time", clock() - clk );
+    ABC_PRT( "Time", Abc_Clock() - clk );
     if ( pNtk->pSeqModel ) 
     {
         status = Saig_ManVerifyCex( pMan, pNtk->pSeqModel );
@@ -2216,7 +2216,7 @@ int Abc_NtkDarBmc3( Abc_Ntk_t * pNtk, Saig_ParBmc_t * pPars, int fOrDecomp )
 int Abc_NtkDarBmcInter_int( Aig_Man_t * pMan, Inter_ManParams_t * pPars, Aig_Man_t ** ppNtkRes )
 {
     int RetValue = -1, iFrame;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     int nTotalProvedSat = 0;
     assert( pMan->nRegs > 0 );
     if ( ppNtkRes )
@@ -2307,7 +2307,7 @@ int Abc_NtkDarBmcInter_int( Aig_Man_t * pMan, Inter_ManParams_t * pPars, Aig_Man
         Abc_Print( 1, "Property UNDECIDED.  " );
     else
         assert( 0 );
-ABC_PRT( "Time", clock() - clk );
+ABC_PRT( "Time", Abc_Clock() - clk );
     return RetValue;
 }
 
@@ -2541,13 +2541,13 @@ int Abc_NtkDarProve( Abc_Ntk_t * pNtk, Fra_Sec_t * pSecPar, int nBmcFramesMax, i
 {
     Aig_Man_t * pMan;
     int iFrame = -1, RetValue = -1;
-    clock_t clkTotal = clock();
+    abctime clkTotal = Abc_Clock();
     if ( pSecPar->fTryComb || Abc_NtkLatchNum(pNtk) == 0 )
     {
         Prove_Params_t Params, * pParams = &Params;
         Abc_Ntk_t * pNtkComb;
         int RetValue;
-        clock_t clk = clock();
+        abctime clk = Abc_Clock();
         if ( Abc_NtkLatchNum(pNtk) == 0 )
             Abc_Print( 1, "The network has no latches. Running CEC.\n" );
         // create combinational network
@@ -2563,11 +2563,11 @@ int Abc_NtkDarProve( Abc_Ntk_t * pNtk, Fra_Sec_t * pSecPar, int nBmcFramesMax, i
         {
             pNtk->pModel = pNtkComb->pModel; pNtkComb->pModel = NULL;
             Abc_Print( 1, "Networks are not equivalent.\n" );
-            ABC_PRT( "Time", clock() - clk );
+            ABC_PRT( "Time", Abc_Clock() - clk );
             if ( pSecPar->fReportSolution )
             {
                 Abc_Print( 1, "SOLUTION: FAIL       " );
-                ABC_PRT( "Time", clock() - clkTotal );
+                ABC_PRT( "Time", Abc_Clock() - clkTotal );
             }
             return RetValue;
         }
@@ -2576,11 +2576,11 @@ int Abc_NtkDarProve( Abc_Ntk_t * pNtk, Fra_Sec_t * pSecPar, int nBmcFramesMax, i
         if ( RetValue == 1 )
         {
             Abc_Print( 1, "Networks are equivalent after CEC.   " );
-            ABC_PRT( "Time", clock() - clk );
+            ABC_PRT( "Time", Abc_Clock() - clk );
             if ( pSecPar->fReportSolution )
             {
             Abc_Print( 1, "SOLUTION: PASS       " );
-            ABC_PRT( "Time", clock() - clkTotal );
+            ABC_PRT( "Time", Abc_Clock() - clkTotal );
             }
             return RetValue;
         }
@@ -2603,7 +2603,7 @@ int Abc_NtkDarProve( Abc_Ntk_t * pNtk, Fra_Sec_t * pSecPar, int nBmcFramesMax, i
             if ( pSecPar->fReportSolution )
             {
                 Abc_Print( 1, "SOLUTION: FAIL       " );
-                ABC_PRT( "Time", clock() - clkTotal );
+                ABC_PRT( "Time", Abc_Clock() - clkTotal );
             }
             // return the counter-example generated
             ABC_FREE( pNtk->pModel );
@@ -2738,7 +2738,7 @@ int Abc_NtkDarSec( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, Fra_Sec_t * pSecPar )
 int Abc_NtkDarPdr( Abc_Ntk_t * pNtk, Pdr_Par_t * pPars )
 {
     int RetValue = -1;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     Aig_Man_t * pMan;
     pMan = Abc_NtkToDar( pNtk, 0, 1 );
     if ( pMan == NULL )
@@ -2773,7 +2773,7 @@ int Abc_NtkDarPdr( Abc_Ntk_t * pNtk, Pdr_Par_t * pPars )
             else
                 assert( 0 );
         }
-        ABC_PRT( "Time", clock() - clk );
+        ABC_PRT( "Time", Abc_Clock() - clk );
 /*
         Abc_Print( 1, "Status: " );
         if ( pPars->pOutMap )
@@ -3219,7 +3219,7 @@ int Abc_NtkDarSeqSim( Abc_Ntk_t * pNtk, int nFrames, int nWords, int TimeOut, in
     Aig_Man_t * pMan;
     Abc_Cex_t * pCex;
     int status, RetValue = -1;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     if ( Abc_NtkGetChoiceNum(pNtk) )
     {
         Abc_Print( 1, "Removing %d choices from the AIG.\n", Abc_NtkGetChoiceNum(pNtk) );
@@ -3296,7 +3296,7 @@ int Abc_NtkDarSeqSim( Abc_Ntk_t * pNtk, int nFrames, int nWords, int TimeOut, in
         }
         Fra_SmlStop( pSml );
     }
-    ABC_PRT( "Time", clock() - clk );
+    ABC_PRT( "Time", Abc_Clock() - clk );
     Aig_ManStop( pMan );
     return RetValue;
 }
@@ -3316,7 +3316,7 @@ int Abc_NtkDarSeqSim3( Abc_Ntk_t * pNtk, Ssw_RarPars_t * pPars )
 {
     Aig_Man_t * pMan;
     int status, RetValue = -1;
-//    clock_t clk = clock();
+//    abctime clk = Abc_Clock();
     if ( Abc_NtkGetChoiceNum(pNtk) )
     {
         Abc_Print( 1, "Removing %d choices from the AIG.\n", Abc_NtkGetChoiceNum(pNtk) );
@@ -3346,7 +3346,7 @@ int Abc_NtkDarSeqSim3( Abc_Ntk_t * pNtk, Ssw_RarPars_t * pPars )
     if ( pNtk->vSeqModelVec )
         Vec_PtrFreeFree( pNtk->vSeqModelVec );
     pNtk->vSeqModelVec = pMan->vSeqModelVec;  pMan->vSeqModelVec = NULL;
-//    ABC_PRT( "Time", clock() - clk );
+//    ABC_PRT( "Time", Abc_Clock() - clk );
     pNtk->pData = pMan->pData; pMan->pData = NULL;
     Aig_ManStop( pMan );
     return RetValue;
@@ -3454,7 +3454,7 @@ Abc_Ntk_t * Abc_NtkDarTempor( Abc_Ntk_t * pNtk, int nFrames, int TimeOut, int nC
 int Abc_NtkDarInduction( Abc_Ntk_t * pNtk, int nFramesMax, int nConfMax, int fUnique, int fUniqueAll, int fGetCex, int fVerbose, int fVeryVerbose )
 { 
     Aig_Man_t * pMan;
-    clock_t clkTotal = clock();
+    abctime clkTotal = Abc_Clock();
     int RetValue;
     pMan = Abc_NtkToDar( pNtk, 0, 1 );
     if ( pMan == NULL )
@@ -3463,17 +3463,17 @@ int Abc_NtkDarInduction( Abc_Ntk_t * pNtk, int nFramesMax, int nConfMax, int fUn
     if ( RetValue == 1 )
     {
         Abc_Print( 1, "Networks are equivalent.   " );
-ABC_PRT( "Time", clock() - clkTotal );
+ABC_PRT( "Time", Abc_Clock() - clkTotal );
     }
     else if ( RetValue == 0 )
     {
         Abc_Print( 1, "Networks are NOT EQUIVALENT.   " );
-ABC_PRT( "Time", clock() - clkTotal );
+ABC_PRT( "Time", Abc_Clock() - clkTotal );
     }
     else
     {
         Abc_Print( 1, "Networks are UNDECIDED.   " );
-ABC_PRT( "Time", clock() - clkTotal );
+ABC_PRT( "Time", Abc_Clock() - clkTotal );
     }
     if ( fGetCex )
     {
@@ -3568,9 +3568,9 @@ void Abc_NtkInterFast( Abc_Ntk_t * pNtkOn, Abc_Ntk_t * pNtkOff, int fVerbose )
     Aig_ManStop( pManOff );
 }
 
-clock_t timeCnf;
-clock_t timeSat;
-clock_t timeInt;
+abctime timeCnf;
+abctime timeSat;
+abctime timeInt;
 
 /**Function*************************************************************
 
@@ -3587,7 +3587,7 @@ Abc_Ntk_t * Abc_NtkInter( Abc_Ntk_t * pNtkOn, Abc_Ntk_t * pNtkOff, int fRelation
 {
     Abc_Ntk_t * pNtkOn1, * pNtkOff1, * pNtkInter1, * pNtkInter;
     Abc_Obj_t * pObj;
-    int i; //, clk = clock();
+    int i; //, clk = Abc_Clock();
     if ( Abc_NtkCoNum(pNtkOn) != Abc_NtkCoNum(pNtkOff) )
     {
         Abc_Print( 1, "Currently works only for networks with equal number of POs.\n" );
@@ -3639,7 +3639,7 @@ timeInt = 0;
 //    ABC_PRT( "CNF", timeCnf );
 //    ABC_PRT( "SAT", timeSat );
 //    ABC_PRT( "Int", timeInt );
-//    ABC_PRT( "Slow interpolation time", clock() - clk );
+//    ABC_PRT( "Slow interpolation time", Abc_Clock() - clk );
 
     // return the network
     if ( !Abc_NtkCheck( pNtkInter ) )

@@ -83,8 +83,8 @@ int Inter_ManPerformInterpolation( Aig_Man_t * pAig, Inter_ManParams_t * pPars, 
     Inter_Check_t * pCheck = NULL;
     Aig_Man_t * pAigTemp;
     int s, i, RetValue, Status;
-    clock_t clk, clk2, clkTotal = clock(), timeTemp = 0;
-    clock_t nTimeNewOut = pPars->nSecLimit ? pPars->nSecLimit * CLOCKS_PER_SEC + clock() : 0;
+    abctime clk, clk2, clkTotal = Abc_Clock(), timeTemp = 0;
+    abctime nTimeNewOut = pPars->nSecLimit ? pPars->nSecLimit * CLOCKS_PER_SEC + Abc_Clock() : 0;
 
     // enable ORing of the interpolants, if containment check is performed inductively with K > 1
     if ( pPars->nFramesK > 1 )
@@ -118,9 +118,9 @@ int Inter_ManPerformInterpolation( Aig_Man_t * pAig, Inter_ManParams_t * pPars, 
     else
         p->pAigTrans = Inter_ManStartDuplicated( pAig );
     // derive CNF for the transformed AIG
-clk = clock();
+clk = Abc_Clock();
     p->pCnfAig = Cnf_Derive( p->pAigTrans, Aig_ManRegNum(p->pAigTrans) ); 
-p->timeCnf += clock() - clk;    
+p->timeCnf += Abc_Clock() - clk;    
     if ( pPars->fVerbose )
     { 
         printf( "AIG: PI/PO/Reg = %d/%d/%d. And = %d. Lev = %d.  CNF: Var/Cla = %d/%d.\n",
@@ -136,19 +136,19 @@ p->timeCnf += clock() - clk;
     {
         Cnf_Dat_t * pCnfInter2;
 
-clk2 = clock();
+clk2 = Abc_Clock();
         // initial state
         if ( pPars->fUseBackward )
             p->pInter = Inter_ManStartOneOutput( pAig, 1 );
         else
             p->pInter = Inter_ManStartInitState( Aig_ManRegNum(pAig) );
         assert( Aig_ManCoNum(p->pInter) == 1 );
-clk = clock();
+clk = Abc_Clock();
         p->pCnfInter = Cnf_Derive( p->pInter, 0 );  
-p->timeCnf += clock() - clk;    
+p->timeCnf += Abc_Clock() - clk;    
         // timeframes
         p->pFrames = Inter_ManFramesInter( pAig, p->nFrames, pPars->fUseBackward, pPars->fUseTwoFrames );
-clk = clock();
+clk = Abc_Clock();
         if ( pPars->fRewrite )
         {
             p->pFrames = Dar_ManRwsat( pAigTemp = p->pFrames, 1, 0 );
@@ -156,21 +156,21 @@ clk = clock();
 //        p->pFrames = Fra_FraigEquivence( pAigTemp = p->pFrames, 100, 0 );
 //        Aig_ManStop( pAigTemp );
         }
-p->timeRwr += clock() - clk;
+p->timeRwr += Abc_Clock() - clk;
         // can also do SAT sweeping on the timeframes...
-clk = clock();
+clk = Abc_Clock();
         if ( pPars->fUseBackward )
             p->pCnfFrames = Cnf_Derive( p->pFrames, Aig_ManCoNum(p->pFrames) );  
         else
 //            p->pCnfFrames = Cnf_Derive( p->pFrames, 0 );  
             p->pCnfFrames = Cnf_DeriveSimple( p->pFrames, 0 );  
-p->timeCnf += clock() - clk;    
+p->timeCnf += Abc_Clock() - clk;    
         // report statistics
         if ( pPars->fVerbose )
         {
             printf( "Step = %2d. Frames = 1 + %d. And = %5d. Lev = %5d.  ", 
                 s+1, p->nFrames, Aig_ManNodeNum(p->pFrames), Aig_ManLevelNum(p->pFrames) );
-            ABC_PRT( "Time", clock() - clk2 );
+            ABC_PRT( "Time", Abc_Clock() - clk2 );
         }
 
 
@@ -180,12 +180,12 @@ p->timeCnf += clock() - clk;
         {
             pCheck = Inter_CheckStart( p->pAigTrans, pPars->nFramesK );
             // try new containment check for the initial state
-clk = clock();
+clk = Abc_Clock();
             pCnfInter2 = Cnf_Derive( p->pInter, 1 );  
-p->timeCnf += clock() - clk;    
-clk = clock();
+p->timeCnf += Abc_Clock() - clk;    
+clk = Abc_Clock();
             RetValue = Inter_CheckPerform( pCheck, pCnfInter2, nTimeNewOut );
-p->timeEqu += clock() - clk;
+p->timeEqu += Abc_Clock() - clk;
 //            assert( RetValue == 0 );
             Cnf_DataFree( pCnfInter2 );
             if ( p->vInters )
@@ -200,14 +200,14 @@ p->timeEqu += clock() - clk;
             { 
                 if ( pPars->fVerbose )
                     printf( "Reached limit (%d) on the number of timeframes.\n", pPars->nFramesMax );
-                p->timeTotal = clock() - clkTotal;
+                p->timeTotal = Abc_Clock() - clkTotal;
                 Inter_ManStop( p, 0 );
                 Inter_CheckStop( pCheck );
                 return -1;
             }
 
             // perform interpolation
-            clk = clock();
+            clk = Abc_Clock();
 #ifdef ABC_USE_LIBRARIES
             if ( pPars->fUseMiniSat )
             {
@@ -222,7 +222,7 @@ p->timeEqu += clock() - clk;
             {
                 printf( "   I = %2d. Bmc =%3d. IntAnd =%6d. IntLev =%5d. Conf =%6d.  ", 
                     i+1, i + 1 + p->nFrames, Aig_ManNodeNum(p->pInter), Aig_ManLevelNum(p->pInter), p->nConfCur );
-                ABC_PRT( "Time", clock() - clk );
+                ABC_PRT( "Time", Abc_Clock() - clk );
             }
             // remember the number of timeframes completed
             pPars->iFrameMax = i - 1 + p->nFrames;
@@ -232,7 +232,7 @@ p->timeEqu += clock() - clk;
                 {
                     if ( pPars->fVerbose )
                         printf( "Found a real counterexample in frame %d.\n", p->nFrames );
-                    p->timeTotal = clock() - clkTotal;
+                    p->timeTotal = Abc_Clock() - clkTotal;
                     *piFrame = p->nFrames;
 //                    pAig->pSeqModel = (Abc_Cex_t *)Inter_ManGetCounterExample( pAig, p->nFrames+1, pPars->fVerbose );
                     {
@@ -259,7 +259,7 @@ p->timeEqu += clock() - clk;
             }
             else if ( RetValue == -1 ) 
             {
-                if ( pPars->nSecLimit && clock() > nTimeNewOut ) // timed out
+                if ( pPars->nSecLimit && Abc_Clock() > nTimeNewOut ) // timed out
                 {
                     if ( pPars->fVerbose )
                         printf( "Reached timeout (%d seconds).\n",  pPars->nSecLimit );
@@ -270,14 +270,14 @@ p->timeEqu += clock() - clk;
                     if ( pPars->fVerbose )
                         printf( "Reached limit (%d) on the number of conflicts.\n", p->nConfLimit );
                 }
-                p->timeTotal = clock() - clkTotal;
+                p->timeTotal = Abc_Clock() - clkTotal;
                 Inter_ManStop( p, 0 );
                 Inter_CheckStop( pCheck );
                 return -1;
             }
             assert( RetValue == 1 ); // found new interpolant
             // compress the interpolant
-clk = clock();
+clk = Abc_Clock();
             if ( p->pInterNew )
             {
 //                Ioa_WriteAiger( p->pInterNew, "interpol.aig", 0, 0 );
@@ -285,7 +285,7 @@ clk = clock();
 //                p->pInterNew = Dar_ManRwsat( pAigTemp = p->pInterNew, 0, 0 );
                 Aig_ManStop( pAigTemp );
             }
-p->timeRwr += clock() - clk;
+p->timeRwr += Abc_Clock() - clk;
 
             // check if interpolant is trivial
             if ( p->pInterNew == NULL || Aig_ObjChild0(Aig_ManCo(p->pInterNew,0)) == Aig_ManConst0(p->pInterNew) )
@@ -293,30 +293,30 @@ p->timeRwr += clock() - clk;
 //                printf( "interpolant is constant 0\n" );
                 if ( pPars->fVerbose )
                     printf( "The problem is trivially true for all states.\n" );
-                p->timeTotal = clock() - clkTotal;
+                p->timeTotal = Abc_Clock() - clkTotal;
                 Inter_ManStop( p, 1 );
                 Inter_CheckStop( pCheck );
                 return 1;
             }
 
             // check containment of interpolants
-clk = clock();
+clk = Abc_Clock();
             if ( pPars->fCheckKstep ) // k-step unique-state induction
             {
                 if ( Aig_ManCiNum(p->pInterNew) == Aig_ManCiNum(p->pInter) )
                 {
                     if ( pPars->fTransLoop || pPars->fUseBackward || pPars->nFramesK > 1 )
                     {
-clk2 = clock();
+clk2 = Abc_Clock();
                         Status = Inter_ManCheckInductiveContainment( p->pAigTrans, p->pInterNew, Abc_MinInt(i + 1, pPars->nFramesK), pPars->fUseBackward );
-timeTemp = clock() - clk2;
+timeTemp = Abc_Clock() - clk2;
                     }
                     else
                     {   // new containment check
-clk2 = clock();
+clk2 = Abc_Clock();
                         pCnfInter2 = Cnf_Derive( p->pInterNew, 1 );  
-p->timeCnf += clock() - clk2;
-timeTemp = clock() - clk2;
+p->timeCnf += Abc_Clock() - clk2;
+timeTemp = Abc_Clock() - clk2;
             
                         Status = Inter_CheckPerform( pCheck, pCnfInter2, nTimeNewOut );
                         Cnf_DataFree( pCnfInter2 );
@@ -334,20 +334,20 @@ timeTemp = clock() - clk2;
                 else
                     Status = 0;
             }
-p->timeEqu += clock() - clk - timeTemp;
+p->timeEqu += Abc_Clock() - clk - timeTemp;
             if ( Status ) // contained
             {
                 if ( pPars->fVerbose )
                     printf( "Proved containment of interpolants.\n" );
-                p->timeTotal = clock() - clkTotal;
+                p->timeTotal = Abc_Clock() - clkTotal;
                 Inter_ManStop( p, 1 );
                 Inter_CheckStop( pCheck );
                 return 1;
             }
-            if ( pPars->nSecLimit && clock() > nTimeNewOut )
+            if ( pPars->nSecLimit && Abc_Clock() > nTimeNewOut )
             {
                 printf( "Reached timeout (%d seconds).\n",  pPars->nSecLimit );
-                p->timeTotal = clock() - clkTotal;
+                p->timeTotal = Abc_Clock() - clkTotal;
                 Inter_ManStop( p, 1 );
                 Inter_CheckStop( pCheck );
                 return -1;
@@ -366,10 +366,10 @@ p->timeEqu += clock() - clk - timeTemp;
                     Aig_ManStop( pAigTemp );
                     Aig_ManStop( p->pInterNew );
                     // compress the interpolant
-clk = clock();
+clk = Abc_Clock();
                     p->pInter = Dar_ManRwsat( pAigTemp = p->pInter, 1, 0 );
                     Aig_ManStop( pAigTemp );
-p->timeRwr += clock() - clk;
+p->timeRwr += Abc_Clock() - clk;
                 }
                 else // forward with the new containment checking (using only the frontier)
                 {
@@ -379,9 +379,9 @@ p->timeRwr += clock() - clk;
             }
             p->pInterNew = NULL;
             Cnf_DataFree( p->pCnfInter );
-clk = clock();
+clk = Abc_Clock();
             p->pCnfInter = Cnf_Derive( p->pInter, 0 );  
-p->timeCnf += clock() - clk;
+p->timeCnf += Abc_Clock() - clk;
         }
 
         // start containment checking

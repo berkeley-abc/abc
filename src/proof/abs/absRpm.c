@@ -110,7 +110,7 @@ void Gia_ManTestDoms2( Gia_Man_t * p )
 {
     Vec_Int_t * vNodes;
     Gia_Obj_t * pObj, * pDom;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     int i;
     assert( p->vDoms == NULL );
     Gia_ManComputeDoms( p );
@@ -119,7 +119,7 @@ void Gia_ManTestDoms2( Gia_Man_t * p )
         if ( Gia_ObjId(p, pObj) != Gia_ObjDom(p, pObj) )
             printf( "PI =%6d  Id =%8d. Dom =%8d.\n", i, Gia_ObjId(p, pObj), Gia_ObjDom(p, pObj) );
 */
-    Abc_PrintTime( 1, "Time", clock() - clk );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     // for each dominated PI, when if the PIs is in a leaf of the MFFC of the dominator
     Gia_ManCleanMark1( p );
     Gia_ManForEachPi( p, pObj, i )

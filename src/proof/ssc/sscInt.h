@@ -72,15 +72,15 @@ struct Ssc_Man_t_
     int              nSatCallsSat;   // the number of sat SAT calls
     int              nSatCallsUndec; // the number of undec SAT calls
     // runtime stats
-    clock_t          timeSimInit;    // simulation and class computation
-    clock_t          timeSimSat;     // simulation of the counter-examples
-    clock_t          timeCnfGen;     // generation of CNF
-    clock_t          timeSat;        // total SAT time
-    clock_t          timeSatSat;     // sat
-    clock_t          timeSatUnsat;   // unsat
-    clock_t          timeSatUndec;   // undecided
-    clock_t          timeOther;      // other runtime
-    clock_t          timeTotal;      // total runtime
+    abctime          timeSimInit;    // simulation and class computation
+    abctime          timeSimSat;     // simulation of the counter-examples
+    abctime          timeCnfGen;     // generation of CNF
+    abctime          timeSat;        // total SAT time
+    abctime          timeSatSat;     // sat
+    abctime          timeSatUnsat;   // unsat
+    abctime          timeSatUndec;   // undecided
+    abctime          timeOther;      // other runtime
+    abctime          timeTotal;      // total runtime
 };
 
 ////////////////////////////////////////////////////////////////////////

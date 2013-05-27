@@ -949,7 +949,7 @@ struct Dau_Dsd_t_
     char     pOutput[DAU_MAX_STR]; // output stream
 };
 
-static clock_t s_Times[3] = {0};
+static abctime s_Times[3] = {0};
 
 /**Function*************************************************************
 
@@ -1155,7 +1155,7 @@ finish:
 }
 int Dau_Dsd6DecomposeSingleVar( Dau_Dsd_t * p, word * pTruth, int * pVars, int nVars )
 {
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     assert( nVars > 1 );
     while ( 1 )
     {
@@ -1171,7 +1171,7 @@ int Dau_Dsd6DecomposeSingleVar( Dau_Dsd_t * p, word * pTruth, int * pVars, int n
     }
     if ( nVars == 1 )
         Dau_DsdWriteVar( p, pVars[--nVars], (int)(pTruth[0] & 1) );
-    s_Times[0] += clock() - clk;
+    s_Times[0] += Abc_Clock() - clk;
     return nVars;
 }
 static inline int Dau_Dsd6FindSupportOne( Dau_Dsd_t * p, word tCof0, word tCof1, int * pVars, int nVars, int v, int u )
@@ -1284,7 +1284,7 @@ finish:
 }
 int Dau_Dsd6DecomposeDoubleVars( Dau_Dsd_t * p, word  * pTruth, int * pVars, int nVars )
 {
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     while ( 1 )
     {
         int v, u, nVarsOld;
@@ -1298,7 +1298,7 @@ int Dau_Dsd6DecomposeDoubleVars( Dau_Dsd_t * p, word  * pTruth, int * pVars, int
                 nVars = Dau_Dsd6DecomposeDoubleVarsOne( p, pTruth, pVars, nVars, v, u );
                 if ( nVars == 0 )
                 {
-                    s_Times[1] += clock() - clk;
+                    s_Times[1] += Abc_Clock() - clk;
                     return 0;
                 }
                 if ( nVarsOld > nVars )
@@ -1310,7 +1310,7 @@ int Dau_Dsd6DecomposeDoubleVars( Dau_Dsd_t * p, word  * pTruth, int * pVars, int
         if ( v == 0 ) // not found
             break;
     }
-    s_Times[1] += clock() - clk;
+    s_Times[1] += Abc_Clock() - clk;
     return nVars;
 }
 
@@ -1382,7 +1382,7 @@ static inline int Dau_Dsd6DecomposeTripleVarsInner( Dau_Dsd_t * p, word  * pTrut
 }
 int Dau_Dsd6DecomposeTripleVars( Dau_Dsd_t * p, word  * pTruth, int * pVars, int nVars )
 {
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     while ( 1 )
     {
         int v;
@@ -1401,13 +1401,13 @@ int Dau_Dsd6DecomposeTripleVars( Dau_Dsd_t * p, word  * pTruth, int * pVars, int
                     continue;
                 if ( nVarsNew == 0 )
                 {
-                    s_Times[2] += clock() - clk;
+                    s_Times[2] += Abc_Clock() - clk;
                     return 0;
                 }
                 nVars = Dau_Dsd6DecomposeDoubleVars( p, pTruth, pVars, nVarsNew );
                 if ( nVars == 0 )
                 {
-                    s_Times[2] += clock() - clk;
+                    s_Times[2] += Abc_Clock() - clk;
                     return 0;
                 }
                 break;
@@ -1415,7 +1415,7 @@ int Dau_Dsd6DecomposeTripleVars( Dau_Dsd_t * p, word  * pTruth, int * pVars, int
         }
         if ( v == -1 )
         {
-            s_Times[2] += clock() - clk;
+            s_Times[2] += Abc_Clock() - clk;
             return nVars;
         }
     }
@@ -1513,7 +1513,7 @@ finish:
 }
 int Dau_DsdDecomposeSingleVar( Dau_Dsd_t * p, word * pTruth, int * pVars, int nVars )
 {
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     assert( nVars > 1 );
     while ( 1 )
     {
@@ -1529,7 +1529,7 @@ int Dau_DsdDecomposeSingleVar( Dau_Dsd_t * p, word * pTruth, int * pVars, int nV
     }
     if ( nVars == 1 )
         Dau_DsdWriteVar( p, pVars[--nVars], (int)(pTruth[0] & 1) );
-    s_Times[0] += clock() - clk;
+    s_Times[0] += Abc_Clock() - clk;
     return nVars;
 }
 
@@ -1660,7 +1660,7 @@ finish:
 }
 int Dau_DsdDecomposeDoubleVars( Dau_Dsd_t * p, word  * pTruth, int * pVars, int nVars )
 {
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     while ( 1 )
     {
         int v, u, nVarsOld;
@@ -1674,7 +1674,7 @@ int Dau_DsdDecomposeDoubleVars( Dau_Dsd_t * p, word  * pTruth, int * pVars, int 
                 nVars = Dau_DsdDecomposeDoubleVarsOne( p, pTruth, pVars, nVars, v, u );
                 if ( nVars == 0 )
                 {
-                    s_Times[1] += clock() - clk;
+                    s_Times[1] += Abc_Clock() - clk;
                     return 0;
                 }
                 if ( nVarsOld > nVars )
@@ -1686,7 +1686,7 @@ int Dau_DsdDecomposeDoubleVars( Dau_Dsd_t * p, word  * pTruth, int * pVars, int 
         if ( v == 0 ) // not found
             break;
     }
-    s_Times[1] += clock() - clk;
+    s_Times[1] += Abc_Clock() - clk;
     return nVars;
 }
 
@@ -1775,7 +1775,7 @@ static inline int Dau_DsdDecomposeTripleVarsInner( Dau_Dsd_t * p, word  * pTruth
 }
 int Dau_DsdDecomposeTripleVars( Dau_Dsd_t * p, word  * pTruth, int * pVars, int nVars )
 {
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     while ( 1 )
     {
         int v;
@@ -1794,13 +1794,13 @@ int Dau_DsdDecomposeTripleVars( Dau_Dsd_t * p, word  * pTruth, int * pVars, int 
                     continue;
                 if ( nVarsNew == 0 )
                 {
-                    s_Times[2] += clock() - clk;
+                    s_Times[2] += Abc_Clock() - clk;
                     return 0;
                 }
                 nVars = Dau_DsdDecomposeDoubleVars( p, pTruth, pVars, nVarsNew );
                 if ( nVars == 0 )
                 {
-                    s_Times[2] += clock() - clk;
+                    s_Times[2] += Abc_Clock() - clk;
                     return 0;
                 }
                 break;
@@ -1808,7 +1808,7 @@ int Dau_DsdDecomposeTripleVars( Dau_Dsd_t * p, word  * pTruth, int * pVars, int 
         }
         if ( v == -1 )
         {
-            s_Times[2] += clock() - clk;
+            s_Times[2] += Abc_Clock() - clk;
             return nVars;
         }
     }
@@ -1969,7 +1969,7 @@ void Dau_DsdTest555()
     char pRes[DAU_MAX_STR];
     int nSizeNonDec;
     int i, Counter = 0;
-    clock_t clk = clock(), clkDec = 0, clk2;
+    abctime clk = Abc_Clock(), clkDec = 0, clk2;
 //    return;
 
     while ( fgets( pBuffer, DAU_MAX_STR, pFile ) != NULL )
@@ -1989,9 +1989,9 @@ void Dau_DsdTest555()
             pTruth = Dau_DsdToTruth( pBuffer[0] == '*' ? pBuffer + 1 : pBuffer, nVars );
             Abc_TtCopy( Tru[0], pTruth, nWords, 0 );
             Abc_TtCopy( Tru[1], pTruth, nWords, 0 );
-            clk2 = clock();
+            clk2 = Abc_Clock();
             nSizeNonDec = Dau_DsdDecompose( Tru[1], nVars, 0, 1, pRes );
-            clkDec += clock() - clk2;
+            clkDec += Abc_Clock() - clk2;
             Dau_DsdNormalize( pRes );
 //            pStr2 = Dau_DsdPerform( t ); nSizeNonDec = 0;
             assert( nSizeNonDec == 0 );
@@ -2008,7 +2008,7 @@ void Dau_DsdTest555()
     }
     printf( "Finished trying %d decompositions.  ", Counter );
     Abc_PrintTime( 1, "Time", clkDec );
-    Abc_PrintTime( 1, "Total", clock() - clk );
+    Abc_PrintTime( 1, "Total", Abc_Clock() - clk );
 
     Abc_PrintTime( 1, "Time1", s_Times[0] );
     Abc_PrintTime( 1, "Time2", s_Times[1] );

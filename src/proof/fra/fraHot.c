@@ -332,7 +332,7 @@ void Fra_OneHotEstimateCoverage( Fra_Man_t * p, Vec_Int_t * vOneHots )
     Vec_Ptr_t * vSimInfo;
     unsigned * pSim1, * pSim2, * pSimTot;
     int i, w, Out1, Out2, nCovered, Counter = 0;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
 
     // generate random sim-info at register outputs
     vSimInfo = Vec_PtrAllocSimInfo( nRegs + 1, nSimWords );
@@ -381,7 +381,7 @@ void Fra_OneHotEstimateCoverage( Fra_Man_t * p, Vec_Int_t * vOneHots )
     // print the result
     printf( "Care states ratio = %f. ", 1.0 * (nSimWords * 32 - nCovered) / (nSimWords * 32) );
     printf( "(%d out of %d patterns)  ", nSimWords * 32 - nCovered, nSimWords * 32 );
-    ABC_PRT( "Time", clock() - clk );
+    ABC_PRT( "Time", Abc_Clock() - clk );
 }
 
 /**Function*************************************************************

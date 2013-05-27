@@ -264,7 +264,7 @@ int Sfm_NtkCollectTfi_rec( Sfm_Ntk_t * p, int iNode, int nWinSizeMax )
 int Sfm_NtkCreateWindow( Sfm_Ntk_t * p, int iNode, int fVerbose )
 {
     int i, k, iTemp, nDivStart;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     assert( Sfm_ObjIsNode( p, iNode ) );
     Vec_IntClear( p->vLeaves ); // leaves 
     Vec_IntClear( p->vNodes );  // internal
@@ -276,7 +276,7 @@ int Sfm_NtkCreateWindow( Sfm_Ntk_t * p, int iNode, int fVerbose )
     if ( Sfm_NtkCollectTfi_rec( p, iNode, p->pPars->nWinSizeMax ) )
     {
         p->nMaxDivs++;
-        p->timeWin += clock() - clk;
+        p->timeWin += Abc_Clock() - clk;
         return 0;
     }
     // collect TFO (currently use only one level of TFO)
@@ -293,8 +293,8 @@ int Sfm_NtkCreateWindow( Sfm_Ntk_t * p, int iNode, int fVerbose )
     }
     else
         Vec_IntPush( p->vRoots, iNode );
-    p->timeWin += clock() - clk;
-    clk = clock();
+    p->timeWin += Abc_Clock() - clk;
+    clk = Abc_Clock();
     // create divisors
     Vec_IntClear( p->vDivs );
     Vec_IntForEachEntry( p->vLeaves, iTemp, i )
@@ -338,7 +338,7 @@ int Sfm_NtkCreateWindow( Sfm_Ntk_t * p, int iNode, int fVerbose )
     assert( Vec_IntSize(p->vDivs) <= p->pPars->nWinSizeMax );
     // statistics
     p->nTotalDivs += Vec_IntSize(p->vDivs);
-    p->timeDiv += clock() - clk;
+    p->timeDiv += Abc_Clock() - clk;
     if ( !fVerbose )
         return 1;
 

@@ -624,7 +624,7 @@ Aig_Sto_t * Aig_ManComputeDomsFlops( Aig_Man_t * pAig, int Limit )
     Vec_Ptr_t * vNodes;
     Aig_Obj_t * pObj;
     int i;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     pSto = Aig_ManDomStart( pAig, Limit );
     // initialize flop inputs
     Saig_ManForEachLi( pAig, pObj, i )
@@ -644,7 +644,7 @@ Aig_Sto_t * Aig_ManComputeDomsFlops( Aig_Man_t * pAig, int Limit )
         pSto->nDomNodes, Aig_ManRegNum(pSto->pAig), pSto->nDomsTotal, 
 //        pSto->nDomsFilter1, pSto->nDomsFilter2,
         1.0 * pSto->nDomsTotal / (pSto->nDomNodes + Aig_ManRegNum(pSto->pAig)) );
-    Abc_PrintTime( 1, "Time", clock() - clk );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     return pSto;
 }
 
@@ -665,7 +665,7 @@ Aig_Sto_t * Aig_ManComputeDomsPis( Aig_Man_t * pAig, int Limit )
     Vec_Ptr_t * vNodes;
     Aig_Obj_t * pObj;
     int i;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     pSto = Aig_ManDomStart( pAig, Limit );
     // initialize flop inputs
     Aig_ManForEachCo( pAig, pObj, i )
@@ -685,7 +685,7 @@ Aig_Sto_t * Aig_ManComputeDomsPis( Aig_Man_t * pAig, int Limit )
         pSto->nDomNodes, Saig_ManPiNum(pSto->pAig), pSto->nDomsTotal, 
 //        pSto->nDomsFilter1, pSto->nDomsFilter2,
         1.0 * pSto->nDomsTotal / (pSto->nDomNodes + Saig_ManPiNum(pSto->pAig)) );
-    Abc_PrintTime( 1, "Time", clock() - clk );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     return pSto;
 }
 
@@ -706,7 +706,7 @@ Aig_Sto_t * Aig_ManComputeDomsNodes( Aig_Man_t * pAig, int Limit )
     Vec_Ptr_t * vNodes;
     Aig_Obj_t * pObj;
     int i;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     pSto = Aig_ManDomStart( pAig, Limit );
     // initialize flop inputs
     Aig_ManForEachCo( pAig, pObj, i )
@@ -724,7 +724,7 @@ Aig_Sto_t * Aig_ManComputeDomsNodes( Aig_Man_t * pAig, int Limit )
         pSto->nDomNodes, pSto->nDomsTotal, 
 //        pSto->nDomsFilter1, pSto->nDomsFilter2,
         1.0 * pSto->nDomsTotal / pSto->nDomNodes );
-    Abc_PrintTime( 1, "Time", clock() - clk );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     return pSto;
 }
 

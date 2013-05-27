@@ -54,12 +54,12 @@ struct Fra_Lcr_t_
     int              nRegsBeg;
     int              nRegsEnd;
     // runtime
-    clock_t          timeSim;
-    clock_t          timePart;
-    clock_t          timeTrav;
-    clock_t          timeFraig;
-    clock_t          timeUpdate;
-    clock_t          timeTotal;
+    abctime          timeSim;
+    abctime          timePart;
+    abctime          timeTrav;
+    abctime          timeFraig;
+    abctime          timeUpdate;
+    abctime          timeTotal;
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -538,8 +538,8 @@ Aig_Man_t * Fra_FraigLatchCorrespondence( Aig_Man_t * pAig, int nFramesP, int nC
     Aig_Man_t * pAigPart, * pAigTemp, * pAigNew = NULL;
     Vec_Int_t * vPart;
     int i, nIter;
-    clock_t timeSim, clk2, clk3, clk = clock();
-    clock_t TimeToStop = TimeLimit ? TimeLimit * CLOCKS_PER_SEC + clock() : 0;
+    abctime timeSim, clk2, clk3, clk = Abc_Clock();
+    abctime TimeToStop = TimeLimit ? TimeLimit * CLOCKS_PER_SEC + Abc_Clock() : 0;
     if ( Aig_ManNodeNum(pAig) == 0 )
     {
         if ( pnIter ) *pnIter = 0;
@@ -550,15 +550,15 @@ Aig_Man_t * Fra_FraigLatchCorrespondence( Aig_Man_t * pAig, int nFramesP, int nC
     assert( Aig_ManRegNum(pAig) > 0 ); 
 
     // simulate the AIG 
-clk2 = clock();
+clk2 = Abc_Clock();
 if ( fVerbose )
 printf( "Simulating AIG with %d nodes for %d cycles ...  ", Aig_ManNodeNum(pAig), nFramesP + 32 );
     pSml = Fra_SmlSimulateSeq( pAig, nFramesP, 32, 1, 1  ); 
 if ( fVerbose ) 
 {
-ABC_PRT( "Time", clock() - clk2 );
+ABC_PRT( "Time", Abc_Clock() - clk2 );
 }
-timeSim = clock() - clk2;
+timeSim = Abc_Clock() - clk2;
 
     // check if simulation discovered non-constant-0 POs
     if ( fProve && pSml->fNonConstOut )
@@ -586,7 +586,7 @@ timeSim = clock() - clk2;
     Fra_SmlStop( pTemp->pSml );
 
     // partition the AIG for latch correspondence computation
-clk2 = clock();
+clk2 = Abc_Clock();
 if ( fVerbose )
 printf( "Partitioning AIG ...  " );
     pAigPart = Fra_LcrDeriveAigForPartitioning( p );
@@ -595,8 +595,8 @@ printf( "Partitioning AIG ...  " );
     Aig_ManStop( pAigPart );
 if ( fVerbose ) 
 {
-ABC_PRT( "Time", clock() - clk2 );
-p->timePart += clock() - clk2;
+ABC_PRT( "Time", Abc_Clock() - clk2 );
+p->timePart += Abc_Clock() - clk2;
 }
 
     // get the initial stats
@@ -609,13 +609,13 @@ p->timePart += clock() - clk2;
     for ( nIter = 0; p->fRefining; nIter++ )
     {
         p->fRefining = 0;
-        clk3 = clock();
+        clk3 = Abc_Clock();
         // derive AIGs for each partition
         Fra_ClassNodesMark( p );
         Vec_PtrClear( p->vFraigs );
         Vec_PtrForEachEntry( Vec_Int_t *, p->vParts, vPart, i )
         {
-            if ( TimeLimit != 0.0 && clock() > TimeToStop )
+            if ( TimeLimit != 0.0 && Abc_Clock() > TimeToStop )
             {
                 Vec_PtrForEachEntry( Aig_Man_t *, p->vFraigs, pAigPart, i )
                     Aig_ManStop( pAigPart );
@@ -624,12 +624,12 @@ p->timePart += clock() - clk2;
                 printf( "Fra_FraigLatchCorrespondence(): Runtime limit exceeded.\n" );
                 goto finish;
             }
-clk2 = clock();
+clk2 = Abc_Clock();
             pAigPart = Fra_LcrCreatePart( p, vPart );
-p->timeTrav += clock() - clk2;
-clk2 = clock();
+p->timeTrav += Abc_Clock() - clk2;
+clk2 = Abc_Clock();
             pAigTemp  = Fra_FraigEquivence( pAigPart, nConfMax, 0 );
-p->timeFraig += clock() - clk2;
+p->timeFraig += Abc_Clock() - clk2;
             Vec_PtrPush( p->vFraigs, pAigTemp );
 /*
             {
@@ -638,7 +638,7 @@ p->timeFraig += clock() - clk2;
                 Aig_ManDumpBlif( pAigPart, Name, NULL, NULL );
             }
 printf( "Finished part %4d (out of %4d).  ", i, Vec_PtrSize(p->vParts) );
-ABC_PRT( "Time", clock() - clk3 );
+ABC_PRT( "Time", Abc_Clock() - clk3 );
 */
 
             Aig_ManStop( pAigPart );
@@ -650,7 +650,7 @@ ABC_PRT( "Time", clock() - clk3 );
             printf( "%3d : Const = %6d. Class = %6d.  L = %6d. Part = %3d.  ", 
                 nIter, Vec_PtrSize(p->pCla->vClasses1), Vec_PtrSize(p->pCla->vClasses), 
                 Fra_ClassesCountLits(p->pCla), Vec_PtrSize(p->vParts) );
-            ABC_PRT( "T", clock() - clk3 );
+            ABC_PRT( "T", Abc_Clock() - clk3 );
         }
         // refine the classes
         Fra_LcrAigPrepareTwo( p->pAig, pTemp );
@@ -665,19 +665,19 @@ ABC_PRT( "Time", clock() - clk3 );
         // repartition if needed
         if ( 1 )
         {
-clk2 = clock();
+clk2 = Abc_Clock();
             Vec_VecFree( (Vec_Vec_t *)p->vParts );
             pAigPart = Fra_LcrDeriveAigForPartitioning( p );
             p->vParts = (Vec_Ptr_t *)Aig_ManPartitionSmart( pAigPart, nPartSize, 0, NULL );
             Fra_LcrRemapPartitions( p->vParts, p->pCla, p->pInToOutPart, p->pInToOutNum );
             Aig_ManStop( pAigPart );
-p->timePart += clock() - clk2;
+p->timePart += Abc_Clock() - clk2;
         }
     }
     p->nIters = nIter;
 
     // move the classes into representatives and reduce AIG
-clk2 = clock();
+clk2 = Abc_Clock();
 //    Fra_ClassesPrint( p->pCla, 1 );
     if ( fReprSelect )
         Fra_ClassesSelectRepr( p->pCla );
@@ -685,8 +685,8 @@ clk2 = clock();
     pAigNew = Aig_ManDupRepr( p->pAig, 0 );
     Aig_ManSeqCleanup( pAigNew );
 //    Aig_ManCountMergeRegs( pAigNew );
-p->timeUpdate += clock() - clk2;
-p->timeTotal = clock() - clk;
+p->timeUpdate += Abc_Clock() - clk2;
+p->timeTotal = Abc_Clock() - clk;
     // get the final stats
     p->nLitsEnd  = Fra_ClassesCountLits( p->pCla );
     p->nNodesEnd = Aig_ManNodeNum(pAigNew);

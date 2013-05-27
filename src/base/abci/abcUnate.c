@@ -74,14 +74,14 @@ void Abc_NtkPrintUnateBdd( Abc_Ntk_t * pNtk, int fUseNaive, int fVerbose )
     int TotalSupps = 0;
     int TotalUnate = 0;
     int i;
-    clock_t clk = clock();
-    clock_t clkBdd, clkUnate;
+    abctime clk = Abc_Clock();
+    abctime clkBdd, clkUnate;
 
     // compute the global BDDs
     dd = (DdManager *)Abc_NtkBuildGlobalBdds(pNtk, 10000000, 1, 1, fVerbose);
     if ( dd == NULL )
         return;
-clkBdd = clock() - clk;
+clkBdd = Abc_Clock() - clk;
 
     // get information about the network
 //    dd       = pNtk->pManGlob;
@@ -121,14 +121,14 @@ clkBdd = clock() - clk;
             Extra_UnateInfoDissolve( p );
         }
     }
-clkUnate = clock() - clk - clkBdd;
+clkUnate = Abc_Clock() - clk - clkBdd;
 
     // print stats
     printf( "Ins/Outs = %4d/%4d.  Total supp = %5d.  Total unate = %5d.\n",
         Abc_NtkCiNum(pNtk), Abc_NtkCoNum(pNtk), TotalSupps, TotalUnate );
     ABC_PRT( "Glob BDDs", clkBdd );
     ABC_PRT( "Unateness", clkUnate );
-    ABC_PRT( "Total    ", clock() - clk );
+    ABC_PRT( "Total    ", Abc_Clock() - clk );
 
     // deref the PO functions
 //    Abc_NtkFreeGlobalBdds( pNtk );

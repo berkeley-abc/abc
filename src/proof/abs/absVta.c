@@ -71,10 +71,10 @@ struct Vta_Man_t_
     sat_solver2 * pSat;         // incremental SAT solver
     Vec_Int_t *   vAddedNew;    // the IDs of variables added to the solver
     // statistics 
-    clock_t       timeSat;
-    clock_t       timeUnsat;
-    clock_t       timeCex;
-    clock_t       timeOther;
+    abctime       timeSat;
+    abctime       timeUnsat;
+    abctime       timeCex;
+    abctime       timeOther;
 };
 
 
@@ -1082,7 +1082,7 @@ static inline int Vga_ManGetOutLit( Vta_Man_t * p, int f )
 ***********************************************************************/
 Vec_Int_t * Vta_ManUnsatCore( int iLit, sat_solver2 * pSat, int nConfMax, int fVerbose, int * piRetValue, int * pnConfls )
 {
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     Vec_Int_t * vCore;
     int RetValue, nConfPrev = pSat->stats.conflicts;
     if ( piRetValue )
@@ -1115,16 +1115,16 @@ Vec_Int_t * Vta_ManUnsatCore( int iLit, sat_solver2 * pSat, int nConfMax, int fV
     {
 //        Abc_Print( 1, "%6d", (int)pSat->stats.conflicts - nConfPrev );
 //        Abc_Print( 1, "UNSAT after %7d conflicts.      ", pSat->stats.conflicts );
-//        Abc_PrintTime( 1, "Time", clock() - clk );
+//        Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     }
     assert( RetValue == l_False );
     // derive the UNSAT core
-    clk = clock();
+    clk = Abc_Clock();
     vCore = (Vec_Int_t *)Sat_ProofCore( pSat );
     if ( fVerbose )
     {
 //        Abc_Print( 1, "Core is %8d vars    (out of %8d).   ", Vec_IntSize(vCore), sat_solver2_nvars(pSat) );
-//        Abc_PrintTime( 1, "Time", clock() - clk );
+//        Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     }
     return vCore;
 }
@@ -1140,7 +1140,7 @@ Vec_Int_t * Vta_ManUnsatCore( int iLit, sat_solver2 * pSat, int nConfMax, int fV
   SeeAlso     []
 
 ***********************************************************************/
-int Vta_ManAbsPrintFrame( Vta_Man_t * p, Vec_Int_t * vCore, int nFrames, int nConfls, int nCexes, clock_t Time, int fVerbose )
+int Vta_ManAbsPrintFrame( Vta_Man_t * p, Vec_Int_t * vCore, int nFrames, int nConfls, int nCexes, abctime Time, int fVerbose )
 {
     unsigned * pInfo;
     int * pCountAll = NULL, * pCountUni = NULL;
@@ -1495,7 +1495,7 @@ int Gia_VtaPerformInt( Gia_Man_t * pAig, Abs_Par_t * pPars )
     Vec_Int_t * vCore;
     Abc_Cex_t * pCex = NULL;
     int i, f, nConfls, Status, nObjOld, RetValue = -1, nCountNoChange = 0, fOneIsSent = 0;
-    clock_t clk = clock(), clk2;
+    abctime clk = Abc_Clock(), clk2;
     // preconditions
     assert( Gia_ManPoNum(pAig) == 1 );
     assert( pPars->nFramesMax == 0 || pPars->nFramesStart <= pPars->nFramesMax );
@@ -1525,7 +1525,7 @@ int Gia_VtaPerformInt( Gia_Man_t * pAig, Abs_Par_t * pPars )
     p = Vga_ManStart( pAig, pPars );
     // set runtime limit
     if ( p->pPars->nTimeOut )
-        sat_solver2_set_runtime_limit( p->pSat, p->pPars->nTimeOut * CLOCKS_PER_SEC + clock() );
+        sat_solver2_set_runtime_limit( p->pSat, p->pPars->nTimeOut * CLOCKS_PER_SEC + Abc_Clock() );
     // perform initial abstraction
     if ( p->pPars->fVerbose )
     {
@@ -1564,7 +1564,7 @@ int Gia_VtaPerformInt( Gia_Man_t * pAig, Abs_Par_t * pPars )
         // iterate as long as there are counter-examples
         for ( i = 0; ; i++ )
         { 
-            clk2 = clock();
+            clk2 = Abc_Clock();
             vCore = Vta_ManUnsatCore( Vga_ManGetOutLit(p, f), p->pSat, pPars->nConfLimit, pPars->fVerbose, &Status, &nConfls );
             assert( (vCore != NULL) == (Status == 1) );
             if ( Status == -1 ) // resource limit is reached
@@ -1573,27 +1573,27 @@ int Gia_VtaPerformInt( Gia_Man_t * pAig, Abs_Par_t * pPars )
                 goto finish;
             }
             // check timeout
-            if ( p->pSat->nRuntimeLimit && clock() > p->pSat->nRuntimeLimit )
+            if ( p->pSat->nRuntimeLimit && Abc_Clock() > p->pSat->nRuntimeLimit )
             {
                 Vga_ManRollBack( p, nObjOld );
                 goto finish;
             }
             if ( vCore != NULL )
             {
-                p->timeUnsat += clock() - clk2;
+                p->timeUnsat += Abc_Clock() - clk2;
                 break;
             }
-            p->timeSat += clock() - clk2;
+            p->timeSat += Abc_Clock() - clk2;
             assert( Status == 0 );
             p->nCexes++;
             // perform the refinement
-            clk2 = clock();
+            clk2 = Abc_Clock();
             pCex = Vta_ManRefineAbstraction( p, f );
-            p->timeCex += clock() - clk2;
+            p->timeCex += Abc_Clock() - clk2;
             if ( pCex != NULL )
                 goto finish;
             // print the result (do not count it towards change)
-            Vta_ManAbsPrintFrame( p, NULL, f+1, sat_solver2_nconflicts(p->pSat)-nConflsBeg, i, clock() - clk, p->pPars->fVerbose );
+            Vta_ManAbsPrintFrame( p, NULL, f+1, sat_solver2_nconflicts(p->pSat)-nConflsBeg, i, Abc_Clock() - clk, p->pPars->fVerbose );
         }
         assert( Status == 1 );
         // valid core is obtained
@@ -1608,9 +1608,9 @@ int Gia_VtaPerformInt( Gia_Man_t * pAig, Abs_Par_t * pPars )
         Vec_IntFree( vCore );
 
         // run SAT solver
-        clk2 = clock();
+        clk2 = Abc_Clock();
         vCore = Vta_ManUnsatCore( Vga_ManGetOutLit(p, f), p->pSat, pPars->nConfLimit, p->pPars->fVerbose, &Status, &nConfls );
-        p->timeUnsat += clock() - clk2;
+        p->timeUnsat += Abc_Clock() - clk2;
         assert( (vCore != NULL) == (Status == 1) );
         if ( Status == -1 ) // resource limit is reached
             break;
@@ -1628,7 +1628,7 @@ int Gia_VtaPerformInt( Gia_Man_t * pAig, Abs_Par_t * pPars )
         Vec_IntSort( vCore, 1 );
         Vec_PtrPush( p->vCores, vCore );
         // print the result
-        if ( Vta_ManAbsPrintFrame( p, vCore, f+1, sat_solver2_nconflicts(p->pSat)-nConflsBeg, i, clock() - clk, p->pPars->fVerbose ) )
+        if ( Vta_ManAbsPrintFrame( p, vCore, f+1, sat_solver2_nconflicts(p->pSat)-nConflsBeg, i, Abc_Clock() - clk, p->pPars->fVerbose ) )
         {
             // reset the counter of frames without change
             nCountNoChange = 1;
@@ -1682,7 +1682,7 @@ finish:
             pAig->vObjClasses = Gia_VtaFramesToAbs( (Vec_Vec_t *)p->vCores );
             if ( Status == -1 )
             {
-                if ( p->pPars->nTimeOut && clock() >= p->pSat->nRuntimeLimit ) 
+                if ( p->pPars->nTimeOut && Abc_Clock() >= p->pSat->nRuntimeLimit ) 
                     Abc_Print( 1, "Timeout %d sec in frame %d with a %d-stable abstraction.    ", p->pPars->nTimeOut, f, p->pPars->nFramesNoChange );
                 else if ( pPars->nConfLimit && sat_solver2_nconflicts(p->pSat) >= pPars->nConfLimit )
                     Abc_Print( 1, "Exceeded %d conflicts in frame %d with a %d-stable abstraction.  ", pPars->nConfLimit, f, p->pPars->nFramesNoChange );
@@ -1711,16 +1711,16 @@ finish:
         Vec_IntFreeP( &pAig->vObjClasses );
         RetValue = 0;
     }
-    Abc_PrintTime( 1, "Time", clock() - clk );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 
     if ( p->pPars->fVerbose )
     {
-        p->timeOther = (clock() - clk) - p->timeUnsat - p->timeSat - p->timeCex;
-        ABC_PRTP( "Runtime: Solver UNSAT", p->timeUnsat,  clock() - clk );
-        ABC_PRTP( "Runtime: Solver SAT  ", p->timeSat,    clock() - clk );
-        ABC_PRTP( "Runtime: Refinement  ", p->timeCex,    clock() - clk );
-        ABC_PRTP( "Runtime: Other       ", p->timeOther,  clock() - clk );
-        ABC_PRTP( "Runtime: TOTAL       ", clock() - clk, clock() - clk );
+        p->timeOther = (Abc_Clock() - clk) - p->timeUnsat - p->timeSat - p->timeCex;
+        ABC_PRTP( "Runtime: Solver UNSAT", p->timeUnsat,  Abc_Clock() - clk );
+        ABC_PRTP( "Runtime: Solver SAT  ", p->timeSat,    Abc_Clock() - clk );
+        ABC_PRTP( "Runtime: Refinement  ", p->timeCex,    Abc_Clock() - clk );
+        ABC_PRTP( "Runtime: Other       ", p->timeOther,  Abc_Clock() - clk );
+        ABC_PRTP( "Runtime: TOTAL       ", Abc_Clock() - clk, Abc_Clock() - clk );
         Gia_VtaPrintMemory( p );
     }
 

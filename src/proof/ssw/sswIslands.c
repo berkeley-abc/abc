@@ -480,7 +480,7 @@ int Ssw_SecWithSimilarityPairs( Aig_Man_t * p0, Aig_Man_t * p1, Vec_Int_t * vPai
     Ssw_Pars_t Pars;
     Aig_Man_t * pAigRes;
     int RetValue;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     // derive parameters if not given
     if ( pPars == NULL )
         Ssw_ManSetDefaultParams( pPars = &Pars );
@@ -495,7 +495,7 @@ int Ssw_SecWithSimilarityPairs( Aig_Man_t * p0, Aig_Man_t * p1, Vec_Int_t * vPai
     else
         Abc_Print( 1, "Verification UNDECIDED. The number of remaining regs = %d (total = %d).  ",
             Aig_ManRegNum(pAigRes), Aig_ManRegNum(p0)+Aig_ManRegNum(p1) );
-    ABC_PRT( "Time", clock() - clk );
+    ABC_PRT( "Time", Abc_Clock() - clk );
     Aig_ManStop( pAigRes );
     return RetValue;
 }

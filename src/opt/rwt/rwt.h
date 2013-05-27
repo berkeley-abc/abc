@@ -94,14 +94,14 @@ struct Rwt_Man_t_
     int                nCutsBad;
     int                nSubgraphs;
     // runtime statistics
-    clock_t            timeStart;
-    clock_t            timeTruth;
-    clock_t            timeCut;
-    clock_t            timeRes;
-    clock_t            timeEval;
-    clock_t            timeMffc;
-    clock_t            timeUpdate;
-    clock_t            timeTotal;
+    abctime            timeStart;
+    abctime            timeTruth;
+    abctime            timeCut;
+    abctime            timeRes;
+    abctime            timeEval;
+    abctime            timeMffc;
+    abctime            timeUpdate;
+    abctime            timeTotal;
 };
 
 struct Rwt_Node_t_ // 24 bytes
@@ -142,9 +142,9 @@ extern void              Rwt_ManPrintStatsFile( Rwt_Man_t * p );
 extern void *            Rwt_ManReadDecs( Rwt_Man_t * p );
 extern Vec_Ptr_t *       Rwt_ManReadLeaves( Rwt_Man_t * p );
 extern int               Rwt_ManReadCompl( Rwt_Man_t * p );
-extern void              Rwt_ManAddTimeCuts( Rwt_Man_t * p, clock_t Time );
-extern void              Rwt_ManAddTimeUpdate( Rwt_Man_t * p, clock_t Time );
-extern void              Rwt_ManAddTimeTotal( Rwt_Man_t * p, clock_t Time );
+extern void              Rwt_ManAddTimeCuts( Rwt_Man_t * p, abctime Time );
+extern void              Rwt_ManAddTimeUpdate( Rwt_Man_t * p, abctime Time );
+extern void              Rwt_ManAddTimeTotal( Rwt_Man_t * p, abctime Time );
 /*=== rwrUtil.c ========================================================*/
 extern void              Rwt_ManLoadFromArray( Rwt_Man_t * p, int fVerbose );
 extern char *            Rwt_ManGetPractical( Rwt_Man_t * p );

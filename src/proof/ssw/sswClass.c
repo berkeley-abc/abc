@@ -611,25 +611,25 @@ Ssw_Cla_t * Ssw_ClassesPrepare( Aig_Man_t * pAig, int nFramesK, int fLatchCorr, 
     Vec_Ptr_t * vCands;
     Aig_Obj_t * pObj;
     int i, k, RetValue;
-    clock_t clk;
+    abctime clk;
 
     // start the classes
     p = Ssw_ClassesStart( pAig );
     p->fConstCorr = fConstCorr;
 
     // perform sequential simulation
-clk = clock();
+clk = Abc_Clock();
     pSml = Ssw_SmlSimulateSeq( pAig, 0, nFrames, nWords );
 if ( fVerbose )
 {
     Abc_Print( 1, "Allocated %.2f MB to store simulation information.\n",
         1.0*(sizeof(unsigned) * Aig_ManObjNumMax(pAig) * nFrames * nWords)/(1<<20) );
     Abc_Print( 1, "Initial simulation of %d frames with %d words.     ", nFrames, nWords );
-    ABC_PRT( "Time", clock() - clk );
+    ABC_PRT( "Time", Abc_Clock() - clk );
 }
 
     // set comparison procedures
-clk = clock();
+clk = Abc_Clock();
     Ssw_ClassesSetData( p, pSml, (unsigned(*)(void *,Aig_Obj_t *))Ssw_SmlObjHashWord, (int(*)(void *,Aig_Obj_t *))Ssw_SmlObjIsConstWord, (int(*)(void *,Aig_Obj_t *,Aig_Obj_t *))Ssw_SmlObjsAreEqualWord );
 
     // collect nodes to be considered as candidates
@@ -677,10 +677,10 @@ clk = clock();
 if ( fVerbose )
 {
     Abc_Print( 1, "Collecting candidate equivalence classes.        " );
-ABC_PRT( "Time", clock() - clk );
+ABC_PRT( "Time", Abc_Clock() - clk );
 }
 
-clk = clock();
+clk = Abc_Clock();
     // perform iterative refinement using simulation
     for ( i = 1; i < nIters; i++ )
     {
@@ -703,7 +703,7 @@ if ( fVerbose )
 {
     Abc_Print( 1, "Simulation of %d frames with %d words (%2d rounds). ",
         nFrames, nWords, i-1 );
-    ABC_PRT( "Time", clock() - clk );
+    ABC_PRT( "Time", Abc_Clock() - clk );
 }
     Ssw_ClassesCheck( p );
 //    Ssw_ClassesPrint( p, 0 );

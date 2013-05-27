@@ -456,7 +456,7 @@ int Raig_ManSimulate( Aig_Man_t * pAig, int nWords, int nIters, int TimeLimit, i
     Raig_Man_t * p;
     Sec_MtrStatus_t Status;
     int i, iPat, RetValue = 0;
-    clock_t clk, clkTotal = clock();
+    abctime clk, clkTotal = Abc_Clock();
     assert( Aig_ManRegNum(pAig) > 0 );
     Status = Sec_MiterStatus( pAig );
     if ( Status.nSat > 0 )
@@ -475,12 +475,12 @@ int Raig_ManSimulate( Aig_Man_t * pAig, int nWords, int nIters, int TimeLimit, i
     // iterate through objects
     for ( i = 0; i < nIters; i++ )
     {
-        clk = clock();
+        clk = Abc_Clock();
         RetValue = Raig_ManSimulateRound( p, fMiter, i==0, &iPat );
         if ( fVerbose )
         {
             printf( "Frame %4d out of %4d and timeout %3d sec. ", i+1, nIters, TimeLimit );
-            printf("Time = %7.2f sec\r", (1.0*clock()-clkTotal)/CLOCKS_PER_SEC);
+            printf("Time = %7.2f sec\r", (1.0*Abc_Clock()-clkTotal)/CLOCKS_PER_SEC);
         }
         if ( RetValue > 0 )
         {
@@ -491,7 +491,7 @@ int Raig_ManSimulate( Aig_Man_t * pAig, int nWords, int nIters, int TimeLimit, i
             printf( "Miter is satisfiable after simulation (output %d).\n", iOut );
             break;
         }
-        if ( (clock() - clk)/CLOCKS_PER_SEC >= TimeLimit )
+        if ( (Abc_Clock() - clk)/CLOCKS_PER_SEC >= TimeLimit )
         {
             printf( "No bug detected after %d frames with time limit %d seconds.\n", i+1, TimeLimit );
             break;
@@ -503,7 +503,7 @@ int Raig_ManSimulate( Aig_Man_t * pAig, int nWords, int nIters, int TimeLimit, i
             p->nMemsMax, 
             1.0*(p->nObjs * 16)/(1<<20), 
             1.0*(p->nMemsMax * 4 * (nWords+1))/(1<<20) );
-        ABC_PRT( "Total time", clock() - clkTotal );
+        ABC_PRT( "Total time", Abc_Clock() - clkTotal );
     }
     Raig_ManDelete( p );
     return RetValue > 0;

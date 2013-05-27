@@ -89,12 +89,12 @@ struct Gia_Iso2Man_t_
     Vec_Int_t *      vMap1;         // isomorphism map
     // statistics 
     int              nIters;
-    clock_t          timeStart;
-    clock_t          timeSim;
-    clock_t          timeRefine;
-    clock_t          timeSort;
-    clock_t          timeOther;
-    clock_t          timeTotal;
+    abctime          timeStart;
+    abctime          timeSim;
+    abctime          timeRefine;
+    abctime          timeSort;
+    abctime          timeOther;
+    abctime          timeTotal;
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -245,7 +245,7 @@ void Gia_Iso2ManStop( Gia_Iso2Man_t * p )
     Vec_IntFree( p->vVec1 );
     ABC_FREE( p );
 }
-void Gia_Iso2ManPrint( Gia_Iso2Man_t * p, clock_t Time, int fVerbose )
+void Gia_Iso2ManPrint( Gia_Iso2Man_t * p, abctime Time, int fVerbose )
 {
     if ( !fVerbose )
         return;
@@ -611,25 +611,25 @@ Vec_Wec_t * Gia_Iso2ManCheckIsoClasses( Gia_Man_t * p, Vec_Wec_t * vEquivs )
 Vec_Wec_t * Gia_Iso2ManPerform( Gia_Man_t * pGia, int fVerbose )
 {
     Gia_Iso2Man_t * p;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     p = Gia_Iso2ManStart( pGia );
     Gia_Iso2ManPrepare( pGia );
     Gia_Iso2ManPropagate( pGia );
-    Gia_Iso2ManPrint( p, clock() - clk, fVerbose );
+    Gia_Iso2ManPrint( p, Abc_Clock() - clk, fVerbose );
     while ( Gia_Iso2ManUniqify( p ) )
     {
-        Gia_Iso2ManPrint( p, clock() - clk, fVerbose );
+        Gia_Iso2ManPrint( p, Abc_Clock() - clk, fVerbose );
         Gia_Iso2ManPropagate( pGia );
     }
-    Gia_Iso2ManPrint( p, clock() - clk, fVerbose );
+    Gia_Iso2ManPrint( p, Abc_Clock() - clk, fVerbose );
 /*
     Gia_Iso2ManUpdate( p, 20 );
     while ( Gia_Iso2ManUniqify( p ) )
     {
-        Gia_Iso2ManPrint( p, clock() - clk, fVerbose );
+        Gia_Iso2ManPrint( p, Abc_Clock() - clk, fVerbose );
         Gia_Iso2ManPropagate( pGia );
     }
-    Gia_Iso2ManPrint( p, clock() - clk, fVerbose );
+    Gia_Iso2ManPrint( p, Abc_Clock() - clk, fVerbose );
 */
     Gia_Iso2ManStop( p );
     return Gia_Iso2ManDerivePoClasses( pGia );
@@ -652,13 +652,13 @@ Gia_Man_t * Gia_ManIsoReduce2( Gia_Man_t * pGia, Vec_Ptr_t ** pvPosEquivs, Vec_P
     Vec_Wec_t * vEquivs, * vEquivs2;
     Vec_Int_t * vRemains;
     int nClasses, nUsedPos;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     vEquivs = Gia_Iso2ManPerform( pGia, fVeryVerbose );
     // report class stats
     nClasses = Vec_WecCountNonTrivial( vEquivs, &nUsedPos );
     printf( "Reduced %d outputs to %d candidate   classes (%d outputs are in %d non-trivial classes).  ", 
         Gia_ManPoNum(pGia), Vec_WecSize(vEquivs), nUsedPos, nClasses );
-    Abc_PrintTime( 1, "Time", clock() - clk );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     if ( fEstimate )
     {
         Vec_WecFree( vEquivs );
@@ -677,7 +677,7 @@ Gia_Man_t * Gia_ManIsoReduce2( Gia_Man_t * pGia, Vec_Ptr_t ** pvPosEquivs, Vec_P
     nClasses = Vec_WecCountNonTrivial( vEquivs, &nUsedPos );
     printf( "Reduced %d outputs to %d equivalence classes (%d outputs are in %d non-trivial classes).  ", 
         Gia_ManPoNum(pGia), Vec_WecSize(vEquivs), nUsedPos, nClasses );
-    Abc_PrintTime( 1, "Time", clock() - clk );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     if ( fVerbose )
     { 
         printf( "Nontrivial classes:\n" );

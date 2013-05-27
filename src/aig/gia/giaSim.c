@@ -109,7 +109,7 @@ Vec_Int_t * Gia_ManSimDeriveResets( Gia_Man_t * pGia )
     int i, k, Lit, Count;
     int Counter0 = 0, Counter1 = 0;
     int CounterPi0 = 0, CounterPi1 = 0;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
 
     // create reset counters for each literal
     vCountLits = Vec_IntStart( 2 * Gia_ManObjNum(pGia) );
@@ -155,7 +155,7 @@ Vec_Int_t * Gia_ManSimDeriveResets( Gia_Man_t * pGia )
     Vec_IntFree( vCountLits );
 
     printf( "Logic0 = %d (%d). Logic1 = %d (%d). ", Counter0, CounterPi0, Counter1, CounterPi1 );
-    Abc_PrintTime( 1, "Time", clock() - clk );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     return vResult;
 }
 
@@ -609,9 +609,9 @@ int Gia_ManSimSimulate( Gia_Man_t * pAig, Gia_ParSim_t * pPars )
 {
     extern int Gia_ManSimSimulateEquiv( Gia_Man_t * pAig, Gia_ParSim_t * pPars );
     Gia_ManSim_t * p;
-    clock_t clkTotal = clock();
+    abctime clkTotal = Abc_Clock();
     int i, iOut, iPat, RetValue = 0;
-    clock_t nTimeToStop = pPars->TimeLimit ? pPars->TimeLimit * CLOCKS_PER_SEC + clock(): 0;
+    abctime nTimeToStop = pPars->TimeLimit ? pPars->TimeLimit * CLOCKS_PER_SEC + Abc_Clock(): 0;
     if ( pAig->pReprs && pAig->pNexts )
         return Gia_ManSimSimulateEquiv( pAig, pPars );
     ABC_FREE( pAig->pCexSeq );
@@ -624,7 +624,7 @@ int Gia_ManSimSimulate( Gia_Man_t * pAig, Gia_ParSim_t * pPars )
         if ( pPars->fVerbose )
         {
             Abc_Print( 1, "Frame %4d out of %4d and timeout %3d sec. ", i+1, pPars->nIters, pPars->TimeLimit );
-            Abc_Print( 1, "Time = %7.2f sec\r", (1.0*clock()-clkTotal)/CLOCKS_PER_SEC );
+            Abc_Print( 1, "Time = %7.2f sec\r", (1.0*Abc_Clock()-clkTotal)/CLOCKS_PER_SEC );
         }
         if ( pPars->fCheckMiter && Gia_ManCheckPos( p, &iOut, &iPat ) )
         {
@@ -648,7 +648,7 @@ int Gia_ManSimSimulate( Gia_Man_t * pAig, Gia_ParSim_t * pPars )
             RetValue = 1;
             break;
         }
-        if ( clock() > nTimeToStop )
+        if ( Abc_Clock() > nTimeToStop )
         {
             i++;
             break;
@@ -659,7 +659,7 @@ int Gia_ManSimSimulate( Gia_Man_t * pAig, Gia_ParSim_t * pPars )
     Gia_ManSimDelete( p );
     if ( pAig->pCexSeq == NULL )
         Abc_Print( 1, "No bug detected after simulating %d frames with %d words.  ", i, pPars->nWords );
-    Abc_PrintTime( 1, "Time", clock() - clkTotal );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clkTotal );
     return RetValue;
 }
 

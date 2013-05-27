@@ -370,7 +370,7 @@ Cut_Cut_t * Cut_NodeComputeCuts( Cut_Man_t * p, int Node, int Node0, int Node1, 
 {
     Cut_List_t Super, * pSuper = &Super;
     Cut_Cut_t * pList, * pCut;
-    clock_t clk;
+    abctime clk;
     // start the number of cuts at the node
     p->nNodes++;
     p->nNodeCuts = 0;
@@ -381,11 +381,11 @@ Cut_Cut_t * Cut_NodeComputeCuts( Cut_Man_t * p, int Node, int Node0, int Node1, 
         Cut_CutNumberList( Cut_NodeReadCutsNew(p, Node1) );
     }
     // compute the cuts
-clk = clock();
+clk = Abc_Clock();
     Cut_ListStart( pSuper );
     Cut_NodeDoComputeCuts( p, pSuper, Node, fCompl0, fCompl1, Cut_NodeReadCutsNew(p, Node0), Cut_NodeReadCutsNew(p, Node1), fTriv, TreeCode );
     pList = Cut_ListFinish( pSuper );
-p->timeMerge += clock() - clk;
+p->timeMerge += Abc_Clock() - clk;
     // verify the result of cut computation
 //    Cut_CutListVerify( pList );
     // performing the recording
@@ -414,12 +414,12 @@ p->timeMerge += clock() - clk;
     /////
     Cut_NodeWriteCutsNew( p, Node, pList );
     // filter the cuts
-//clk = clock();
+//clk = Abc_Clock();
 //    if ( p->pParams->fFilter )
 //        Cut_CutFilter( p, pList0 );
-//p->timeFilter += clock() - clk;
+//p->timeFilter += Abc_Clock() - clk;
     // perform mapping of this node with these cuts
-clk = clock();
+clk = Abc_Clock();
     if ( p->pParams->fMap && !p->pParams->fSeq )
     {
 //        int Delay1, Delay2;
@@ -428,7 +428,7 @@ clk = clock();
 //        assert( Delay1 >= Delay2 );
         Cut_NodeMapping( p, pList, Node, Node0, Node1 );
     }
-p->timeMap += clock() - clk;
+p->timeMap += Abc_Clock() - clk;
     return pList;
 }
 
@@ -681,7 +681,7 @@ Cut_Cut_t * Cut_NodeUnionCuts( Cut_Man_t * p, Vec_Int_t * vNodes )
     Cut_Cut_t * pList, * pListStart, * pCut, * pCut2;
     Cut_Cut_t * pTop = NULL; // Suppress "might be used uninitialized"
     int i, k, Node, Root, Limit = p->pParams->nVarsMax;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
 
     // start the new list
     Cut_ListStart( pSuper );
@@ -771,12 +771,12 @@ finish :
     assert( Cut_NodeReadCutsNew(p, Root) == NULL );
     pList = Cut_ListFinish( pSuper );
     Cut_NodeWriteCutsNew( p, Root, pList );
-p->timeUnion += clock() - clk;
+p->timeUnion += Abc_Clock() - clk;
     // filter the cuts
-//clk = clock();
+//clk = Abc_Clock();
 //    if ( p->pParams->fFilter )
 //        Cut_CutFilter( p, pList );
-//p->timeFilter += clock() - clk;
+//p->timeFilter += Abc_Clock() - clk;
     p->nNodes -= vNodes->nSize - 1;
     return pList;
 }
@@ -797,7 +797,7 @@ Cut_Cut_t * Cut_NodeUnionCutsSeq( Cut_Man_t * p, Vec_Int_t * vNodes, int CutSetN
     Cut_List_t Super, * pSuper = &Super;
     Cut_Cut_t * pList, * pListStart, * pCut, * pCut2, * pTop;
     int i, k, Node, Root, Limit = p->pParams->nVarsMax;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
 
     // start the new list
     Cut_ListStart( pSuper );
@@ -953,12 +953,12 @@ finish :
         Cut_NodeWriteCutsNew( p, Root, pList );
     }
 
-p->timeUnion += clock() - clk;
+p->timeUnion += Abc_Clock() - clk;
     // filter the cuts
-//clk = clock();
+//clk = Abc_Clock();
 //    if ( p->pParams->fFilter )
 //        Cut_CutFilter( p, pList );
-//p->timeFilter += clock() - clk;
+//p->timeFilter += Abc_Clock() - clk;
 //    if ( fFirst )
 //        p->nNodes -= vNodes->nSize - 1;
     return pList;

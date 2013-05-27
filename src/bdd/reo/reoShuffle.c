@@ -162,7 +162,7 @@ void Extra_ShuffleTest( reo_man * pReo, DdManager * dd, DdNode * Func )
 
     DdNode * Temp, * bRemap;
     int nSuppSize, OffSet, Num, i;
-    clock_t clk;
+    abctime clk;
     int pOrder[1000], pOrderInv[1000];
     assert( dd->size < 1000 );
 
@@ -198,17 +198,17 @@ void Extra_ShuffleTest( reo_man * pReo, DdManager * dd, DdNode * Func )
 //    Extra_ReorderSetVerification( pReo, 1 );
     bRemap = Extra_bddRemapUp( dd, Func );  Cudd_Ref( bRemap );
 
-clk = clock();
+clk = Abc_Clock();
     Temp  = reoShuffle( pReo, dd, bRemap, pOrder, pOrderInv );  Cudd_Ref( Temp );
-//runtime1 += clock() - clk;
+//runtime1 += Abc_Clock() - clk;
 
 //printf( "Initial = %d. Final = %d.\n", Cudd_DagSize(bRemap), Cudd_DagSize(Temp)  );
 
     {
         DdNode * bFuncPerm;
-clk = clock();
+clk = Abc_Clock();
         bFuncPerm = Cudd_bddPermute( dd, bRemap, pOrderInv );  Cudd_Ref( bFuncPerm );
-//runtime2 += clock() - clk;
+//runtime2 += Abc_Clock() - clk;
         if ( bFuncPerm != Temp )
         {
             printf( "REO: Internal verification has failed!\n" );

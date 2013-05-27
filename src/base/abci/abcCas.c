@@ -61,7 +61,7 @@ Abc_Ntk_t * Abc_NtkCascade( Abc_Ntk_t * pNtk, int nLutSize, int fCheck, int fVer
     char * pFileGeneric;
     int fBddSizeMax = 500000;
     int i, fReorder = 1;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
 
     assert( Abc_NtkIsStrash(pNtk) );
     // compute the global BDDs
@@ -72,7 +72,7 @@ Abc_Ntk_t * Abc_NtkCascade( Abc_Ntk_t * pNtk, int nLutSize, int fCheck, int fVer
     {
         DdManager * dd = (DdManager *)Abc_NtkGlobalBddMan( pNtk );
         printf( "Shared BDD size = %6d nodes.  ", Cudd_ReadKeys(dd) - Cudd_ReadDead(dd) );
-        ABC_PRT( "BDD construction time", clock() - clk );
+        ABC_PRT( "BDD construction time", Abc_Clock() - clk );
     }
 
     // collect global BDDs

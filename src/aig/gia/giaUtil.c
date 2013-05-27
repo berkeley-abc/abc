@@ -1255,7 +1255,7 @@ unsigned * Gia_ManComputePoTruthTables( Gia_Man_t * p, int nBytesMax )
     int nTotalNodes = 0, nRounds = 0;
     Vec_Int_t * vObjs;
     Gia_Obj_t * pObj;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     int i;
     printf( "Var = %d. Words = %d. Truths = %d.\n", nVars, nTruthWords, nTruths );
     vObjs = Vec_IntAlloc( nTruths );
@@ -1277,7 +1277,7 @@ unsigned * Gia_ManComputePoTruthTables( Gia_Man_t * p, int nBytesMax )
     Vec_IntFree( vObjs );
 
     printf( "Rounds = %d. Objects = %d. Total = %d.   ", nRounds, Gia_ManObjNum(p), nTotalNodes );
-    Abc_PrintTime( 1, "Time", clock() - clk );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 
     return NULL;
 }
@@ -1427,8 +1427,8 @@ Vec_Int_t * Gia_ManMultiProve( Gia_Man_t * pInit, char * pCommLine, int nGroupSi
     Vec_Int_t * vOutMap;
     Vec_Ptr_t * vCexes;
     int i, k, nGroupCur, nGroups;
-    clock_t clk, timeComm = 0;
-    clock_t timeStart = clock();
+    abctime clk, timeComm = 0;
+    abctime timeStart = Abc_Clock();
     // pre-conditions
     assert( nGroupSize > 0 );
     assert( pCommLine != NULL );
@@ -1448,9 +1448,9 @@ Vec_Int_t * Gia_ManMultiProve( Gia_Man_t * pInit, char * pCommLine, int nGroupSi
         // set the current GIA
         Abc_FrameUpdateGia( pAbc, pGroup );
         // solve the group
-        clk = clock();
+        clk = Abc_Clock();
         Cmd_CommandExecute( pAbc, pCommLine );
-        timeComm += clock() - clk;
+        timeComm += Abc_Clock() - clk;
         // get the solution status
         if ( nGroupSize == 1 )
         {
@@ -1485,7 +1485,7 @@ Vec_Int_t * Gia_ManMultiProve( Gia_Man_t * pInit, char * pCommLine, int nGroupSi
     Abc_Print( 1, "UNDEC = %6d. ",      Vec_IntCountEntry(vOutMap, -1) );
     Abc_Print( 1, "\n" );
     Abc_PrintTime( 1, "Command time", timeComm );
-    Abc_PrintTime( 1, "Total time  ", clock() - timeStart );
+    Abc_PrintTime( 1, "Total time  ", Abc_Clock() - timeStart );
     // cleanup
     Vec_IntFree( vOuts );
     Gia_ManStop( p );

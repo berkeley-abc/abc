@@ -55,7 +55,7 @@ int Abc_NtkMiterSat( Abc_Ntk_t * pNtk, ABC_INT64_T nConfLimit, ABC_INT64_T nInsL
     sat_solver * pSat;
     lbool   status;
     int RetValue;
-    clock_t clk;
+    abctime clk;
  
     if ( pNumConfs )
         *pNumConfs = 0;
@@ -68,7 +68,7 @@ int Abc_NtkMiterSat( Abc_Ntk_t * pNtk, ABC_INT64_T nConfLimit, ABC_INT64_T nInsL
 //        fprintf( stdout, "Warning: The miter has %d outputs. SAT will try to prove all of them.\n", Abc_NtkPoNum(pNtk) );
 
     // load clauses into the sat_solver
-    clk = clock();
+    clk = Abc_Clock();
     pSat = (sat_solver *)Abc_NtkMiterSatCreate( pNtk, 0 );
     if ( pSat == NULL )
         return 1;
@@ -77,13 +77,13 @@ int Abc_NtkMiterSat( Abc_Ntk_t * pNtk, ABC_INT64_T nConfLimit, ABC_INT64_T nInsL
 //return 1;
 
 //    printf( "Created SAT problem with %d variable and %d clauses. ", sat_solver_nvars(pSat), sat_solver_nclauses(pSat) );
-//    ABC_PRT( "Time", clock() - clk );
+//    ABC_PRT( "Time", Abc_Clock() - clk );
 
     // simplify the problem
-    clk = clock();
+    clk = Abc_Clock();
     status = sat_solver_simplify(pSat);
 //    printf( "Simplified the problem to %d variables and %d clauses. ", sat_solver_nvars(pSat), sat_solver_nclauses(pSat) );
-//    ABC_PRT( "Time", clock() - clk );
+//    ABC_PRT( "Time", Abc_Clock() - clk );
     if ( status == 0 )
     {
         sat_solver_delete( pSat );
@@ -92,7 +92,7 @@ int Abc_NtkMiterSat( Abc_Ntk_t * pNtk, ABC_INT64_T nConfLimit, ABC_INT64_T nInsL
     }
 
     // solve the miter
-    clk = clock();
+    clk = Abc_Clock();
     if ( fVerbose )
         pSat->verbosity = 1;
     status = sat_solver_solve( pSat, NULL, NULL, (ABC_INT64_T)nConfLimit, (ABC_INT64_T)nInsLimit, (ABC_INT64_T)0, (ABC_INT64_T)0 );
@@ -113,7 +113,7 @@ int Abc_NtkMiterSat( Abc_Ntk_t * pNtk, ABC_INT64_T nConfLimit, ABC_INT64_T nInsL
     }
     else
         assert( 0 );
-//    ABC_PRT( "SAT sat_solver time", clock() - clk );
+//    ABC_PRT( "SAT sat_solver time", Abc_Clock() - clk );
 //    printf( "The number of conflicts = %d.\n", (int)pSat->sat_solver_stats.conflicts );
 
     // if the problem is SAT, get the counterexample
@@ -630,7 +630,7 @@ void * Abc_NtkMiterSatCreate( Abc_Ntk_t * pNtk, int fAllPrimes )
 {
     sat_solver * pSat;
     Abc_Obj_t * pNode;
-    int RetValue, i; //, clk = clock();
+    int RetValue, i; //, clk = Abc_Clock();
 
     assert( Abc_NtkIsStrash(pNtk) || Abc_NtkIsBddLogic(pNtk) );
     if ( Abc_NtkIsBddLogic(pNtk) )
@@ -651,7 +651,7 @@ sat_solver_store_mark_roots( pSat );
         return NULL;
     }
 //    printf( "Ands = %6d.  Muxes = %6d (%5.2f %%).  ", Abc_NtkNodeNum(pNtk), nMuxes, 300.0*nMuxes/Abc_NtkNodeNum(pNtk) );
-//    ABC_PRT( "Creating sat_solver", clock() - clk );
+//    ABC_PRT( "Creating sat_solver", Abc_Clock() - clk );
     return pSat;
 }
 

@@ -50,15 +50,15 @@ struct Abc_ManRef_t_
     int              nNodesBeg;
     int              nNodesEnd;
     // runtime statistics
-    clock_t          timeCut;
-    clock_t          timeBdd;
-    clock_t          timeDcs;
-    clock_t          timeSop;
-    clock_t          timeFact;
-    clock_t          timeEval;
-    clock_t          timeRes;
-    clock_t          timeNtk;
-    clock_t          timeTotal;
+    abctime          timeCut;
+    abctime          timeBdd;
+    abctime          timeDcs;
+    abctime          timeSop;
+    abctime          timeFact;
+    abctime          timeEval;
+    abctime          timeRes;
+    abctime          timeNtk;
+    abctime          timeTotal;
 };
  
 static void           Abc_NtkManRefPrintStats( Abc_ManRef_t * p );
@@ -95,7 +95,7 @@ int Abc_NtkRefactor( Abc_Ntk_t * pNtk, int nNodeSizeMax, int nConeSizeMax, int f
     Dec_Graph_t * pFForm;
     Vec_Ptr_t * vFanins;
     Abc_Obj_t * pNode;
-    clock_t clk, clkStart = clock();
+    abctime clk, clkStart = Abc_Clock();
     int i, nNodes;
 
     assert( Abc_NtkIsStrash(pNtk) );
@@ -129,19 +129,19 @@ int Abc_NtkRefactor( Abc_Ntk_t * pNtk, int nNodeSizeMax, int nConeSizeMax, int f
         if ( i >= nNodes )
             break;
         // compute a reconvergence-driven cut
-clk = clock();
+clk = Abc_Clock();
         vFanins = Abc_NodeFindCut( pManCut, pNode, fUseDcs );
-pManRef->timeCut += clock() - clk;
+pManRef->timeCut += Abc_Clock() - clk;
         // evaluate this cut
-clk = clock();
+clk = Abc_Clock();
         pFForm = Abc_NodeRefactor( pManRef, pNode, vFanins, fUpdateLevel, fUseZeros, fUseDcs, fVerbose );
-pManRef->timeRes += clock() - clk;
+pManRef->timeRes += Abc_Clock() - clk;
         if ( pFForm == NULL )
             continue;
         // acceptable replacement found, update the graph
-clk = clock();
+clk = Abc_Clock();
         Dec_GraphUpdateNetwork( pNode, pFForm, fUpdateLevel, pManRef->nLastGain );
-pManRef->timeNtk += clock() - clk;
+pManRef->timeNtk += Abc_Clock() - clk;
         Dec_GraphFree( pFForm );
 //    {
 //        extern int s_TotalChanges;
@@ -149,7 +149,7 @@ pManRef->timeNtk += clock() - clk;
 //    }
     }
     Extra_ProgressBarStop( pProgress );
-pManRef->timeTotal = clock() - clkStart;
+pManRef->timeTotal = Abc_Clock() - clkStart;
     pManRef->nNodesEnd = Abc_NtkNodeNum(pNtk);
 
     // print statistics of the manager
@@ -197,7 +197,7 @@ Dec_Graph_t * Abc_NodeRefactor( Abc_ManRef_t * p, Abc_Obj_t * pNode, Vec_Ptr_t *
     Dec_Graph_t * pFForm;
     DdNode * bNodeFunc;
     int nNodesSaved, nNodesAdded, i;
-    clock_t clk;
+    abctime clk;
     char * pSop;
     int Required;
 
@@ -206,16 +206,16 @@ Dec_Graph_t * Abc_NodeRefactor( Abc_ManRef_t * p, Abc_Obj_t * pNode, Vec_Ptr_t *
     p->nNodesConsidered++;
 
     // get the function of the cut
-clk = clock();
+clk = Abc_Clock();
     bNodeFunc = Abc_NodeConeBdd( p->dd, p->dd->vars, pNode, vFanins, p->vVisited );  Cudd_Ref( bNodeFunc );
-p->timeBdd += clock() - clk;
+p->timeBdd += Abc_Clock() - clk;
 
     // if don't-care are used, transform the function into ISOP
     if ( fUseDcs )
     {
         DdNode * bNodeDc, * bNodeOn, * bNodeOnDc;
         int nMints, nMintsDc;
-clk = clock();
+clk = Abc_Clock();
         // get the don't-cares
         bNodeDc = Abc_NodeConeDcs( p->dd, p->dd->vars + vFanins->nSize, p->dd->vars, p->vLeaves, vFanins, p->vVisited ); Cudd_Ref( bNodeDc );
         nMints = (1 << vFanins->nSize);
@@ -230,7 +230,7 @@ clk = clock();
         bNodeFunc = Cudd_bddIsop( p->dd, bNodeOn, bNodeOnDc );            Cudd_Ref( bNodeFunc );
         Cudd_RecursiveDeref( p->dd, bNodeOn );
         Cudd_RecursiveDeref( p->dd, bNodeOnDc );
-p->timeDcs += clock() - clk;
+p->timeDcs += Abc_Clock() - clk;
     }
 
     // always accept the case of constant node
@@ -246,15 +246,15 @@ p->timeDcs += clock() - clk;
     }
 
     // get the SOP of the cut
-clk = clock();
+clk = Abc_Clock();
     pSop = Abc_ConvertBddToSop( NULL, p->dd, bNodeFunc, bNodeFunc, vFanins->nSize, 0, p->vCube, -1 );
-p->timeSop += clock() - clk;
+p->timeSop += Abc_Clock() - clk;
 
     // get the factored form
-clk = clock();
+clk = Abc_Clock();
     pFForm = Dec_Factor( pSop );
     ABC_FREE( pSop );
-p->timeFact += clock() - clk;
+p->timeFact += Abc_Clock() - clk;
 
     // mark the fanin boundary 
     // (can mark only essential fanins, belonging to bNodeFunc!)
@@ -271,9 +271,9 @@ p->timeFact += clock() - clk;
     }
 
     // detect how many new nodes will be added (while taking into account reused nodes)
-clk = clock();
+clk = Abc_Clock();
     nNodesAdded = Dec_GraphToNetworkCount( pNode, pFForm, nNodesSaved, Required );
-p->timeEval += clock() - clk;
+p->timeEval += Abc_Clock() - clk;
     // quit if there is no improvement
     if ( nNodesAdded == -1 || (nNodesAdded == nNodesSaved && !fUseZeros) )
     {

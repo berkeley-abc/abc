@@ -666,20 +666,20 @@ Cnf_Dat_t * Cnf_DeriveFastClauses( Aig_Man_t * p, int nOutputs )
 Cnf_Dat_t * Cnf_DeriveFast( Aig_Man_t * p, int nOutputs )
 {
     Cnf_Dat_t * pCnf = NULL;
-    clock_t clk;//, clkTotal = clock();
+    abctime clk;//, clkTotal = Abc_Clock();
 //    printf( "\n" );
     Aig_ManCleanMarkAB( p );
     // create initial marking
-    clk = clock();
+    clk = Abc_Clock();
     Cnf_DeriveFastMark( p );
-//    Abc_PrintTime( 1, "Marking", clock() - clk );
+//    Abc_PrintTime( 1, "Marking", Abc_Clock() - clk );
     // compute CNF size
-    clk = clock();
+    clk = Abc_Clock();
     pCnf = Cnf_DeriveFastClauses( p, nOutputs );
-//    Abc_PrintTime( 1, "Clauses", clock() - clk );
+//    Abc_PrintTime( 1, "Clauses", Abc_Clock() - clk );
     // derive the resulting CNF
     Aig_ManCleanMarkA( p );
-//    Abc_PrintTime( 1, "TOTAL  ", clock() - clkTotal );
+//    Abc_PrintTime( 1, "TOTAL  ", Abc_Clock() - clkTotal );
 
 //    printf( "Vars = %6d. Clauses = %7d. Literals = %8d.   \n", pCnf->nVars, pCnf->nClauses, pCnf->nLiterals );
 

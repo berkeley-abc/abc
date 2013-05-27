@@ -178,7 +178,7 @@ void Dch_ManResimulateCex( Dch_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pRepr )
 {
     Aig_Obj_t * pRoot, ** ppClass;
     int i, k, nSize, RetValue1, RetValue2;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     // get the equivalence classes
     Dch_ManCollectTfoCands( p, pObj, pRepr );
     // resimulate the cone of influence of the solved nodes
@@ -208,7 +208,7 @@ void Dch_ManResimulateCex( Dch_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pRepr )
         assert( RetValue1 );
     else
         assert( RetValue2 );
-p->timeSimSat += clock() - clk;
+p->timeSimSat += Abc_Clock() - clk;
 }
 
 /**Function*************************************************************
@@ -226,7 +226,7 @@ void Dch_ManResimulateCex2( Dch_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pRepr )
 {
     Aig_Obj_t * pRoot;
     int i, RetValue;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     // get the equivalence class
     if ( Dch_ObjIsConst1Cand(p->pAigTotal, pObj) )
         Dch_ClassesCollectConst1Group( p->ppClasses, pObj, 500, p->vSimRoots );
@@ -248,7 +248,7 @@ void Dch_ManResimulateCex2( Dch_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pRepr )
     else
         RetValue = Dch_ClassesRefineOneClass( p->ppClasses, pRepr, 0 );
     assert( RetValue );
-p->timeSimSat += clock() - clk;
+p->timeSimSat += Abc_Clock() - clk;
 }
 
 ////////////////////////////////////////////////////////////////////////

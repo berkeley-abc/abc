@@ -259,10 +259,10 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
         pCut->fCompl = 0;
         if ( p->pPars->fTruth )
         {
-//            clock_t clk = clock();
+//            abctime clk = Abc_Clock();
 //            int RetValue = If_CutComputeTruth( p, pCut, pCut0, pCut1, pObj->fCompl0, pObj->fCompl1 );
             int RetValue = If_CutComputeTruth2( p, pCut, pCut0, pCut1, pObj->fCompl0, pObj->fCompl1 );
-//            p->timeTruth += clock() - clk;
+//            p->timeTruth += Abc_Clock() - clk;
 
             pCut->fUseless = 0;
             if ( p->pPars->pFuncCell && RetValue < 2 )
@@ -491,7 +491,7 @@ int If_ManPerformMappingRound( If_Man_t * p, int nCutsUsed, int Mode, int fPrepr
 //    ProgressBar * pProgress;
     If_Obj_t * pObj;
     int i;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     float arrTime;
     assert( Mode >= 0 && Mode <= 2 );
     // set the sorting function
@@ -561,7 +561,7 @@ int If_ManPerformMappingRound( If_Man_t * p, int nCutsUsed, int Mode, int fPrepr
         char Symb = fPreprocess? 'P' : ((Mode == 0)? 'D' : ((Mode == 1)? 'F' : 'A'));
         Abc_Print( 1, "%c: Del = %7.2f. Ar = %9.1f. Edge = %8d. Switch = %7.2f. Cut = %8d. ", 
             Symb, p->RequiredGlo, p->AreaGlo, p->nNets, p->dPower, p->nCutsMerged );
-        Abc_PrintTime( 1, "T", clock() - clk );
+        Abc_PrintTime( 1, "T", Abc_Clock() - clk );
 //    Abc_Print( 1, "Max number of cuts = %d. Average number of cuts = %5.2f.\n", 
 //        p->nCutsMax, 1.0 * p->nCutsMerged / If_ManAndNum(p) );
     }

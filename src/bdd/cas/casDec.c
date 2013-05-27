@@ -128,14 +128,14 @@ int CreateDecomposedNetwork( DdManager * dd, DdNode * aFunc, char ** pNames, int
     int nLutOutputs = 0;
     int nLutOutputsOrig = 0;
 
-    clock_t clk1;
+    abctime clk1;
 
     s_LutSize = nLutSize;
 
     s_nFuncVars = nNames;
 
     // get the profile
-    clk1 = clock();
+    clk1 = Abc_Clock();
     Extra_ProfileWidth( dd, aFunc, Profile, -1 );
 
 
@@ -284,10 +284,10 @@ int CreateDecomposedNetwork( DdManager * dd, DdNode * aFunc, char ** pNames, int
         }
         else
         {
-            clock_t clk2 = clock();
+            abctime clk2 = Abc_Clock();
 //          p->bRelation = PerformTheEncoding( dd, p->pbCols, p->nCols, bVarsCube, bCVars, p->nMulti, &p->nSimple );  Cudd_Ref( p->bRelation );
             p->bRelation = Extra_bddEncodingNonStrict( dd, p->pbCols, p->nCols, bVarsCube, bCVars, p->nMulti, &p->nSimple );  Cudd_Ref( p->bRelation );
-            s_EncodingTime += clock() - clk2;
+            s_EncodingTime += Abc_Clock() - clk2;
         }
 
         // update the number of LUT outputs
@@ -353,7 +353,7 @@ printf( "Stage %3d: In = %3d  InP = %3d  Cols = %5d  Multi = %2d  Simple = %2d  
 
     if ( fVerbose )
     {
-    printf( "Pure decomposition time   = %.2f sec\n", (float)(clock() - clk1 - s_EncodingTime)/(float)(CLOCKS_PER_SEC) );
+    printf( "Pure decomposition time   = %.2f sec\n", (float)(Abc_Clock() - clk1 - s_EncodingTime)/(float)(CLOCKS_PER_SEC) );
     printf( "Encoding time             = %.2f sec\n", (float)(s_EncodingTime)/(float)(CLOCKS_PER_SEC) );
 //  printf( "Encoding search time      = %.2f sec\n", (float)(s_EncSearchTime)/(float)(CLOCKS_PER_SEC) );
 //  printf( "Encoding compute time     = %.2f sec\n", (float)(s_EncComputeTime)/(float)(CLOCKS_PER_SEC) );
@@ -361,13 +361,13 @@ printf( "Stage %3d: In = %3d  InP = %3d  Cols = %5d  Multi = %2d  Simple = %2d  
 
 
 //fprintf( pTable, "%.2f ", (float)(s_ReadingTime)/(float)(CLOCKS_PER_SEC) );
-//fprintf( pTable, "%.2f ", (float)(clock() - clk1 - s_EncodingTime)/(float)(CLOCKS_PER_SEC) );
+//fprintf( pTable, "%.2f ", (float)(Abc_Clock() - clk1 - s_EncodingTime)/(float)(CLOCKS_PER_SEC) );
 //fprintf( pTable, "%.2f ", (float)(s_EncodingTime)/(float)(CLOCKS_PER_SEC) );
 //fprintf( pTable, "%.2f ", (float)(s_RemappingTime)/(float)(CLOCKS_PER_SEC) );
 
 
     // write LUTs into the BLIF file
-    clk1 = clock();
+    clk1 = Abc_Clock();
     if ( fCheck )
     {
         FILE * pFile;
@@ -388,7 +388,7 @@ printf( "Stage %3d: In = %3d  InP = %3d  Cols = %5d  Multi = %2d  Simple = %2d  
         fprintf( pFile, ".end\n" );
         fclose( pFile );
         if ( fVerbose )
-        printf( "Output file writing time  = %.2f sec\n", (float)(clock() - clk1)/(float)(CLOCKS_PER_SEC) );
+        printf( "Output file writing time  = %.2f sec\n", (float)(Abc_Clock() - clk1)/(float)(CLOCKS_PER_SEC) );
     }
 
 

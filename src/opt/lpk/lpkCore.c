@@ -134,7 +134,7 @@ int Lpk_ExploreCut( Lpk_Man_t * p, Lpk_Cut_t * pCut, Kit_DsdNtk_t * pNtk )
     If_Obj_t * pDriver, * ppLeaves[16];
     Abc_Obj_t * pLeaf, * pObjNew;
     int nGain, i;
-    clock_t clk;
+    abctime clk;
     int nNodesBef;
 //    int nOldShared;
 
@@ -186,9 +186,9 @@ int Lpk_ExploreCut( Lpk_Man_t * p, Lpk_Cut_t * pCut, Kit_DsdNtk_t * pNtk )
 
     // perform mapping
     p->pIfMan->pPars->fAreaOnly = 1;
-clk = clock();
+clk = Abc_Clock();
     If_ManPerformMappingComb( p->pIfMan );
-p->timeMap += clock() - clk;
+p->timeMap += Abc_Clock() - clk;
 
     // compute the gain in area
     nGain = pCut->nNodes - pCut->nNodesDup - (int)p->pIfMan->AreaGlo;
@@ -244,16 +244,16 @@ int Lpk_ResynthesizeNode( Lpk_Man_t * p )
     Lpk_Cut_t * pCut;
     unsigned * pTruth;
     int i, k, nSuppSize, nCutNodes, RetValue;
-    clock_t clk;
+    abctime clk;
 
     // compute the cuts
-clk = clock();
+clk = Abc_Clock();
     if ( !Lpk_NodeCuts( p ) )
     {
-p->timeCuts += clock() - clk;
+p->timeCuts += Abc_Clock() - clk;
         return 0;
     }
-p->timeCuts += clock() - clk;
+p->timeCuts += Abc_Clock() - clk;
 
 //return 0;
 
@@ -283,10 +283,10 @@ p->timeCuts += clock() - clk;
             continue;
 
         // compute the truth table
-clk = clock();
+clk = Abc_Clock();
         pTruth = Lpk_CutTruth( p, pCut, 0 );
         nSuppSize = Extra_TruthSupportSize(pTruth, pCut->nLeaves);
-p->timeTruth += clock() - clk;
+p->timeTruth += Abc_Clock() - clk;
 
         pDsdNtk = Kit_DsdDecompose( pTruth, pCut->nLeaves ); 
 //        Kit_DsdVerify( pDsdNtk, pTruth, pCut->nLeaves ); 
@@ -319,9 +319,9 @@ p->timeTruth += clock() - clk;
         }
 
         // update the network
-clk = clock();
+clk = Abc_Clock();
         RetValue = Lpk_ExploreCut( p, pCut, pDsdNtk );
-p->timeEval += clock() - clk;
+p->timeEval += Abc_Clock() - clk;
         Kit_DsdNtkFree( pDsdNtk );
         if ( RetValue )
             break;
@@ -374,18 +374,18 @@ int Lpk_ResynthesizeNodeNew( Lpk_Man_t * p )
     unsigned * pTruth;
     int nNodesBef, nNodesAft, nCutNodes;
     int i, k;
-    clock_t clk;
+    abctime clk;
     int Required = Abc_ObjRequiredLevel(p->pObj);
 //    CloudNode * pFun2;//, * pFun1;
 
     // compute the cuts
-clk = clock();
+clk = Abc_Clock();
     if ( !Lpk_NodeCuts( p ) )
     {
-p->timeCuts += clock() - clk;
+p->timeCuts += Abc_Clock() - clk;
         return 0;
     }
-p->timeCuts += clock() - clk;
+p->timeCuts += Abc_Clock() - clk;
 
     if ( p->pPars->fVeryVerbose )
         printf( "Node %5d : Mffc size = %5d. Cuts = %5d.  Level = %2d. Req = %2d.\n", 
@@ -421,21 +421,21 @@ p->timeCuts += clock() - clk;
             Vec_PtrPush( p->vLeaves, Abc_NtkObj(p->pNtk, pCut->pLeaves[k]) );
 
         // compute the truth table
-clk = clock();
+clk = Abc_Clock();
         pTruth = Lpk_CutTruth( p, pCut, 0 );
-p->timeTruth += clock() - clk;
-clk = clock();
+p->timeTruth += Abc_Clock() - clk;
+clk = Abc_Clock();
         Lpk_ComputeSupports( p, pCut, pTruth );        
-p->timeSupps += clock() - clk;
-//clk = clock();
+p->timeSupps += Abc_Clock() - clk;
+//clk = Abc_Clock();
 //        pFun1 = Lpk_CutTruthBdd( p, pCut );
-//p->timeTruth2 += clock() - clk;
+//p->timeTruth2 += Abc_Clock() - clk;
 /*
-clk = clock();
+clk = Abc_Clock();
         Cloud_Restart( p->pDsdMan->dd );
         pFun2 = Kit_TruthToCloud( p->pDsdMan->dd, pTruth, pCut->nLeaves );
         RetValue = Kit_CreateCloud( p->pDsdMan->dd, pFun2, p->vBddNodes );
-p->timeTruth3 += clock() - clk;
+p->timeTruth3 += Abc_Clock() - clk;
 */
 //        if ( pFun1 != pFun2 )
 //            printf( "Truth tables do not agree!\n" );
@@ -458,10 +458,10 @@ p->timeTruth3 += clock() - clk;
 
         // update the network
         nNodesBef = Abc_NtkNodeNum(p->pNtk);
-clk = clock();
+clk = Abc_Clock();
         pObjNew = Lpk_Decompose( p, p->pNtk, p->vLeaves, pTruth, p->puSupps, p->pPars->nLutSize,
             (int)pCut->nNodes - (int)pCut->nNodesDup - 1 + (int)(p->pPars->fZeroCost > 0), Required );
-p->timeEval += clock() - clk;
+p->timeEval += Abc_Clock() - clk;
         nNodesAft = Abc_NtkNodeNum(p->pNtk);
 
         // perform replacement
@@ -511,7 +511,7 @@ int Lpk_Resynthesize( Abc_Ntk_t * pNtk, Lpk_Par_t * pPars )
     double Delta;
 //    int * pnFanouts, nObjMax;
     int i, Iter, nNodes, nNodesPrev;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     assert( Abc_NtkIsLogic(pNtk) );
  
     // sweep dangling nodes as a preprocessing step
@@ -659,7 +659,7 @@ int Lpk_Resynthesize( Abc_Ntk_t * pNtk, Lpk_Par_t * pPars )
                 printf( " %d=%d", i, p->nBlocks[i] );
         printf( "\n" );
 
-        p->timeTotal = clock() - clk;
+        p->timeTotal = Abc_Clock() - clk;
         p->timeEval  = p->timeEval  - p->timeMap;
         p->timeOther = p->timeTotal - p->timeCuts - p->timeTruth - p->timeEval - p->timeMap;
         ABC_PRTP( "Cuts  ", p->timeCuts,  p->timeTotal );

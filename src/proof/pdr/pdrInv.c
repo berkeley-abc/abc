@@ -44,7 +44,7 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
-void Pdr_ManPrintProgress( Pdr_Man_t * p, int fClose, clock_t Time )
+void Pdr_ManPrintProgress( Pdr_Man_t * p, int fClose, abctime Time )
 {
     Vec_Ptr_t * vVec;
     int i, ThisSize, Length, LengthStart;
@@ -328,7 +328,7 @@ void Pdr_ManVerifyInvariant( Pdr_Man_t * p )
     Vec_Ptr_t * vCubes;
     Pdr_Set_t * pCube;
     int i, kStart, kThis, RetValue, Counter = 0;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     // collect cubes used in the inductive invariant
     kStart = Pdr_ManFindInvariantStart( p );
     vCubes = Pdr_ManCollectCubes( p, kStart );
@@ -361,7 +361,7 @@ void Pdr_ManVerifyInvariant( Pdr_Man_t * p )
     else
     {
         Abc_Print( 1, "Verification of invariant with %d clauses was successful.  ", Vec_PtrSize(vCubes) );
-        Abc_PrintTime( 1, "Time", clock() - clk );
+        Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     }
 //    sat_solver_delete( pSat );
     Vec_PtrFree( vCubes );

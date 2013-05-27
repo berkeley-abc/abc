@@ -51,38 +51,38 @@ static void If_ManImproveNodeFaninCompact( If_Man_t * p, If_Obj_t * pObj, int nL
 ***********************************************************************/
 void If_ManImproveMapping( If_Man_t * p )
 {
-    clock_t clk;
+    abctime clk;
 
-    clk = clock();
+    clk = Abc_Clock();
     If_ManImproveExpand( p, p->pPars->nLutSize );
     If_ManComputeRequired( p );
     if ( p->pPars->fVerbose )
     {
         Abc_Print( 1, "E: Del = %7.2f. Ar = %9.1f. Edge = %8d. Switch = %7.2f. Cut = %8d. ", 
             p->RequiredGlo, p->AreaGlo, p->nNets, p->dPower, p->nCutsMerged );
-        Abc_PrintTime( 1, "T", clock() - clk );
+        Abc_PrintTime( 1, "T", Abc_Clock() - clk );
     }
  
 /*
-    clk = clock();
+    clk = Abc_Clock();
     If_ManImproveReduce( p, p->pPars->nLutSize );
     If_ManComputeRequired( p, 0 );
     if ( p->pPars->fVerbose )
     {
         Abc_Print( 1, "R:  Del = %6.2f. Area = %8.2f. Nets = %6d. Cuts = %8d. Lim = %2d. Ave = %5.2f. ", 
             p->RequiredGlo, p->AreaGlo, p->nNets, p->nCutsMerged, p->nCutsUsed, 1.0 * p->nCutsMerged / If_ManAndNum(p) );
-        Abc_PrintTime( 1, "T", clock() - clk );
+        Abc_PrintTime( 1, "T", Abc_Clock() - clk );
     }
 */
 /*
-    clk = clock();
+    clk = Abc_Clock();
     If_ManImproveExpand( p, p->pPars->nLutSize );
     If_ManComputeRequired( p, 0 );
     if ( p->pPars->fVerbose )
     {
         Abc_Print( 1, "E:  Del = %6.2f. Area = %8.2f. Nets = %6d. Cuts = %8d. Lim = %2d. Ave = %5.2f. ", 
             p->RequiredGlo, p->AreaGlo, p->nNets, p->nCutsMerged, p->nCutsUsed, 1.0 * p->nCutsMerged / If_ManAndNum(p) );
-        Abc_PrintTime( 1, "T", clock() - clk );
+        Abc_PrintTime( 1, "T", Abc_Clock() - clk );
     }
 */
 }

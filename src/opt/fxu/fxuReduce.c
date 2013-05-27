@@ -60,7 +60,7 @@ int Fxu_PreprocessCubePairs( Fxu_Matrix * p, Vec_Ptr_t * vCovers, int nPairsTota
     int nCubes, nBitsMax, nSum;
     int CutOffNum = -1, CutOffQuant = -1; // Suppress "might be used uninitialized"
     int iPair, iQuant, k, c;
-//    clock_t clk = clock();
+//    abctime clk = Abc_Clock();
     char * pSopCover;
     int nFanins;
 
@@ -164,7 +164,7 @@ int Fxu_PreprocessCubePairs( Fxu_Matrix * p, Vec_Ptr_t * vCovers, int nPairsTota
         }
     assert( iPair == nPairsTotal );
     ABC_FREE( pnLitsDiff );
-//ABC_PRT( "Preprocess", clock() - clk );
+//ABC_PRT( "Preprocess", Abc_Clock() - clk );
     return 1;
 }
 

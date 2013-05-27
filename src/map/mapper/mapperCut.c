@@ -117,7 +117,7 @@ void Map_MappingCuts( Map_Man_t * p )
     Map_Node_t * pNode;
     Map_Cut_t * pCut;
     int nCuts, nNodes, i;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     // set the elementary cuts for the PI variables
     assert( p->nVarsMax > 1 && p->nVarsMax < 7 );
     for ( i = 0; i < p->nInputs; i++ )
@@ -154,7 +154,7 @@ void Map_MappingCuts( Map_Man_t * p )
         nCuts = Map_MappingCountAllCuts(p);
         printf( "Nodes = %6d.  Total %d-feasible cuts = %10d.  Per node = %.1f. ", 
                p->nNodes, p->nVarsMax, nCuts, ((float)nCuts)/p->nNodes );
-        ABC_PRT( "Time", clock() - clk );
+        ABC_PRT( "Time", Abc_Clock() - clk );
     }
 
     // print the cuts for the first primary output
@@ -915,16 +915,16 @@ Map_Cut_t * Map_CutTableConsider( Map_Man_t * pMan, Map_CutTable_t * p, Map_Node
 {
     Map_Cut_t * pCut;
     int Place, i;
-//    clock_t clk;
+//    abctime clk;
     // check the cut
     Place = Map_CutTableLookup( p, ppNodes, nNodes );
     if ( Place == -1 )
         return NULL;
     assert( nNodes > 0 );
     // create the new cut
-//clk = clock();
+//clk = Abc_Clock();
     pCut = Map_CutAlloc( pMan );
-//pMan->time1 += clock() - clk;
+//pMan->time1 += Abc_Clock() - clk;
     pCut->nLeaves = nNodes;
     for ( i = 0; i < nNodes; i++ )
         pCut->ppLeaves[i] = ppNodes[i];
@@ -996,15 +996,15 @@ Map_Cut_t * Map_CutSortCuts( Map_Man_t * pMan, Map_CutTable_t * p, Map_Cut_t * p
 {
     Map_Cut_t * pListNew;
     int nCuts, i;
-//    clock_t clk;
+//    abctime clk;
     // move the cuts from the list into the array
     nCuts = Map_CutList2Array( p->pCuts1, pList );
     assert( nCuts <= MAP_CUTS_MAX_COMPUTE );
     // sort the cuts
-//clk = clock();
+//clk = Abc_Clock();
     qsort( (void *)p->pCuts1, nCuts, sizeof(Map_Cut_t *), 
             (int (*)(const void *, const void *)) Map_CutSortCutsCompare );
-//pMan->time2 += clock() - clk;
+//pMan->time2 += Abc_Clock() - clk;
     // move them back into the list
     if ( nCuts > MAP_CUTS_MAX_USE - 1 )
     {

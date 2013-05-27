@@ -176,9 +176,9 @@ void Aig_RManTableResize( Aig_RMan_t * p )
     Aig_Tru_t * pEntry, * pNext;
     Aig_Tru_t ** pBinsOld, ** ppPlace;
     int nBinsOld, Counter, i;
-    clock_t clk;
+    abctime clk;
     assert( p->pBins != NULL );
-clk = clock();
+clk = Abc_Clock();
     // save the old Bins
     pBinsOld = p->pBins;
     nBinsOld = p->nBins;
@@ -200,7 +200,7 @@ clk = clock();
         Counter++;
     }
     assert( Counter == p->nEntries );
-//    ABC_PRT( "Time", clock() - clk );
+//    ABC_PRT( "Time", Abc_Clock() - clk );
     ABC_FREE( pBinsOld );
 }
 

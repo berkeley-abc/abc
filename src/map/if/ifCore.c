@@ -27,7 +27,7 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-extern clock_t s_MappingTime;
+extern abctime s_MappingTime;
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -80,7 +80,7 @@ int If_ManPerformMapping( If_Man_t * p )
 int If_ManPerformMappingComb( If_Man_t * p )
 {
     If_Obj_t * pObj;
-    clock_t clkTotal = clock();
+    abctime clkTotal = Abc_Clock();
     int i;
 
     // set arrival times and fanout estimates
@@ -134,10 +134,10 @@ int If_ManPerformMappingComb( If_Man_t * p )
 //        Abc_Print( 1, "Total memory = %7.2f MB. Peak cut memory = %7.2f MB.  ", 
 //            1.0 * (p->nObjBytes + 2*sizeof(void *)) * If_ManObjNum(p) / (1<<20), 
 //            1.0 * p->nSetBytes * Mem_FixedReadMaxEntriesUsed(p->pMemSet) / (1<<20) );
-        Abc_PrintTime( 1, "Total time", clock() - clkTotal );
+        Abc_PrintTime( 1, "Total time", Abc_Clock() - clkTotal );
     }
 //    Abc_Print( 1, "Cross cut memory = %d.\n", Mem_FixedReadMaxEntriesUsed(p->pMemSet) );
-    s_MappingTime = clock() - clkTotal;
+    s_MappingTime = Abc_Clock() - clkTotal;
 //    Abc_Print( 1, "Special POs = %d.\n", If_ManCountSpecialPos(p) );
 
 /*

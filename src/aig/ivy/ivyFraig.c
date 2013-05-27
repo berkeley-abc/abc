@@ -93,16 +93,16 @@ struct Ivy_FraigMan_t_
     int                 nSatFails;
     int                 nSatFailsReal;
     // runtime
-    clock_t             timeSim;
-    clock_t             timeTrav;
-    clock_t             timeSat;
-    clock_t             timeSatUnsat;
-    clock_t             timeSatSat;
-    clock_t             timeSatFail;
-    clock_t             timeRef;
-    clock_t             timeTotal;
-    clock_t             time1;
-    clock_t             time2;
+    abctime             timeSim;
+    abctime             timeTrav;
+    abctime             timeSat;
+    abctime             timeSatUnsat;
+    abctime             timeSatSat;
+    abctime             timeSatFail;
+    abctime             timeRef;
+    abctime             timeTotal;
+    abctime             time1;
+    abctime             time2;
 };
 
 typedef struct Prove_ParamsStruct_t_      Prove_Params_t;
@@ -198,7 +198,7 @@ static int           Ivy_FraigSetActivityFactors( Ivy_FraigMan_t * p, Ivy_Obj_t 
 static void          Ivy_FraigAddToPatScores( Ivy_FraigMan_t * p, Ivy_Obj_t * pClass, Ivy_Obj_t * pClassNew );
 static int           Ivy_FraigMiterStatus( Ivy_Man_t * pMan );
 static void          Ivy_FraigMiterProve( Ivy_FraigMan_t * p );
-static void          Ivy_FraigMiterPrint( Ivy_Man_t * pNtk, char * pString, clock_t clk, int fVerbose );
+static void          Ivy_FraigMiterPrint( Ivy_Man_t * pNtk, char * pString, abctime clk, int fVerbose );
 static int *         Ivy_FraigCreateModel( Ivy_FraigMan_t * p );
 
 static int Ivy_FraigNodesAreEquivBdd( Ivy_Obj_t * pObj1, Ivy_Obj_t * pObj2 );
@@ -258,7 +258,7 @@ int Ivy_FraigProve( Ivy_Man_t ** ppManAig, void * pPars )
     Ivy_FraigParams_t Params, * pIvyParams = &Params; 
     Ivy_Man_t * pManAig, * pManTemp;
     int RetValue, nIter;
-    clock_t clk;//, Counter;
+    abctime clk;//, Counter;
     ABC_INT64_T nSatConfs = 0, nSatInspects = 0;
 
     // start the network and parameters
@@ -280,7 +280,7 @@ int Ivy_FraigProve( Ivy_Man_t ** ppManAig, void * pPars )
     // if SAT only, solve without iteration
     if ( !pParams->fUseRewriting && !pParams->fUseFraiging )
     {
-        clk = clock();
+        clk = Abc_Clock();
         pIvyParams->nBTLimitMiter = pParams->nMiteringLimitLast / Ivy_ManPoNum(pManAig);
         pManAig = Ivy_FraigMiter( pManTemp = pManAig, pIvyParams );  Ivy_ManStop( pManTemp );
         RetValue = Ivy_FraigMiterStatus( pManAig );
@@ -292,7 +292,7 @@ int Ivy_FraigProve( Ivy_Man_t ** ppManAig, void * pPars )
     if ( Ivy_ManNodeNum(pManAig) < 500 )
     {
         // run the first mitering
-        clk = clock();
+        clk = Abc_Clock();
         pIvyParams->nBTLimitMiter = pParams->nMiteringLimitStart / Ivy_ManPoNum(pManAig);
         pManAig = Ivy_FraigMiter( pManTemp = pManAig, pIvyParams );  Ivy_ManStop( pManTemp );
         RetValue = Ivy_FraigMiterStatus( pManAig );
@@ -320,7 +320,7 @@ int Ivy_FraigProve( Ivy_Man_t ** ppManAig, void * pPars )
         if ( pParams->fUseRewriting )
         { // bug in Ivy_NodeFindCutsAll() when leaves are identical!
 /*
-            clk = clock();
+            clk = Abc_Clock();
             Counter = (int)(pParams->nRewritingLimitStart * pow(pParams->nRewritingLimitMulti,nIter));
             pManAig = Ivy_ManRwsat( pManAig, 0 );  
             RetValue = Ivy_FraigMiterStatus( pManAig );
@@ -338,7 +338,7 @@ int Ivy_FraigProve( Ivy_Man_t ** ppManAig, void * pPars )
         // try fraiging followed by mitering
         if ( pParams->fUseFraiging )
         {
-            clk = clock();
+            clk = Abc_Clock();
             pIvyParams->nBTLimitNode  = (int)(pParams->nFraigingLimitStart * pow(pParams->nFraigingLimitMulti,nIter));
             pIvyParams->nBTLimitMiter = 1 + (int)(pParams->nMiteringLimitStart * pow(pParams->nMiteringLimitMulti,nIter)) / Ivy_ManPoNum(pManAig);
             pManAig = Ivy_FraigPerform_int( pManTemp = pManAig, pIvyParams, pParams->nTotalBacktrackLimit, pParams->nTotalInspectLimit, &nSatConfs, &nSatInspects );  Ivy_ManStop( pManTemp );
@@ -368,7 +368,7 @@ int Ivy_FraigProve( Ivy_Man_t ** ppManAig, void * pPars )
             printf( "Attempting SAT with conflict limit %d ...\n", pParams->nMiteringLimitLast );
             fflush( stdout );
         }
-        clk = clock();
+        clk = Abc_Clock();
         pIvyParams->nBTLimitMiter = pParams->nMiteringLimitLast / Ivy_ManPoNum(pManAig);
         if ( pParams->nTotalBacktrackLimit )
             s_nBTLimitGlobal  = pParams->nTotalBacktrackLimit - pParams->nTotalBacktracksMade;
@@ -415,10 +415,10 @@ Ivy_Man_t * Ivy_FraigPerform_int( Ivy_Man_t * pManAig, Ivy_FraigParams_t * pPara
 { 
     Ivy_FraigMan_t * p;
     Ivy_Man_t * pManAigNew;
-    clock_t clk;
+    abctime clk;
     if ( Ivy_ManNodeNum(pManAig) == 0 )
         return Ivy_ManDup(pManAig);
-clk = clock();
+clk = Abc_Clock();
     assert( Ivy_ManLatchNum(pManAig) == 0 );
     p = Ivy_FraigStart( pManAig, pParams );
     // set global limits
@@ -428,7 +428,7 @@ clk = clock();
     Ivy_FraigSimulate( p );
     Ivy_FraigSweep( p );
     pManAigNew = p->pManFraig;
-p->timeTotal = clock() - clk;
+p->timeTotal = Abc_Clock() - clk;
     if ( pnSatConfs )
         *pnSatConfs = p->pSat? p->pSat->stats.conflicts : 0;
     if ( pnSatInspects )
@@ -452,16 +452,16 @@ Ivy_Man_t * Ivy_FraigPerform( Ivy_Man_t * pManAig, Ivy_FraigParams_t * pParams )
 {
     Ivy_FraigMan_t * p;
     Ivy_Man_t * pManAigNew;
-    clock_t clk;
+    abctime clk;
     if ( Ivy_ManNodeNum(pManAig) == 0 )
         return Ivy_ManDup(pManAig);
-clk = clock();
+clk = Abc_Clock();
     assert( Ivy_ManLatchNum(pManAig) == 0 );
     p = Ivy_FraigStart( pManAig, pParams );
     Ivy_FraigSimulate( p );
     Ivy_FraigSweep( p );
     pManAigNew = p->pManFraig;
-p->timeTotal = clock() - clk;
+p->timeTotal = Abc_Clock() - clk;
     Ivy_FraigStop( p );
     return pManAigNew;
 }
@@ -483,8 +483,8 @@ Ivy_Man_t * Ivy_FraigMiter( Ivy_Man_t * pManAig, Ivy_FraigParams_t * pParams )
     Ivy_Man_t * pManAigNew;
     Ivy_Obj_t * pObj;
     int i;
-    clock_t clk;
-clk = clock();
+    abctime clk;
+clk = Abc_Clock();
     assert( Ivy_ManLatchNum(pManAig) == 0 );
     p = Ivy_FraigStartSimple( pManAig, pParams );
     // set global limits
@@ -508,7 +508,7 @@ clk = clock();
     // remove dangling nodes 
     Ivy_ManCleanup( p->pManFraig );
     pManAigNew = p->pManFraig;
-p->timeTotal = clock() - clk;
+p->timeTotal = Abc_Clock() - clk;
 
 //printf( "Final nodes = %6d. ", Ivy_ManNodeNum(pManAigNew) );
 //ABC_PRT( "Time", p->timeTotal );
@@ -991,8 +991,8 @@ void Ivy_FraigSimulateOne( Ivy_FraigMan_t * p )
 {
     Ivy_Obj_t * pObj;
     int i;
-    clock_t clk;
-clk = clock();
+    abctime clk;
+clk = Abc_Clock();
     Ivy_ManForEachNode( p->pManAig, pObj, i )
     {
         Ivy_NodeSimulate( p, pObj );
@@ -1005,7 +1005,7 @@ clk = clock();
         printf( "\n" );
 */
     }
-p->timeSim += clock() - clk;
+p->timeSim += Abc_Clock() - clk;
 p->nSimRounds++;
 }
 
@@ -1023,11 +1023,11 @@ p->nSimRounds++;
 void Ivy_FraigSimulateOneSim( Ivy_FraigMan_t * p )
 {
     Ivy_FraigSim_t * pSims;
-    clock_t clk;
-clk = clock();
+    abctime clk;
+clk = Abc_Clock();
     for ( pSims = p->pSimStart; pSims; pSims = pSims->pNext )
         Ivy_NodeSimulateSim( p, pSims );
-p->timeSim += clock() - clk;
+p->timeSim += Abc_Clock() - clk;
 p->nSimRounds++;
 }
 
@@ -1388,7 +1388,7 @@ int Ivy_FraigRefineClasses( Ivy_FraigMan_t * p )
 {
     Ivy_Obj_t * pClass, * pClass2;
     int RetValue, Counter = 0;
-    clock_t clk;
+    abctime clk;
     // check if some outputs already became non-constant
     // this is a special case when computation can be stopped!!!
     if ( p->pParams->fProve )
@@ -1396,7 +1396,7 @@ int Ivy_FraigRefineClasses( Ivy_FraigMan_t * p )
     if ( p->pManFraig->pData )
         return 0;
     // refine the classed
-clk = clock();
+clk = Abc_Clock();
     Ivy_FraigForEachEquivClassSafe( p->lClasses.pHead, pClass, pClass2 )
     {
         if ( pClass->fMarkA )
@@ -1406,9 +1406,9 @@ clk = clock();
 //if ( Ivy_ObjIsConst1(pClass) )
 //printf( "%d ", RetValue );
 //if ( Ivy_ObjIsConst1(pClass) )
-//    p->time1 += clock() - clk;
+//    p->time1 += Abc_Clock() - clk;
     }
-p->timeRef += clock() - clk;
+p->timeRef += Abc_Clock() - clk;
     return Counter;
 }
 
@@ -1793,12 +1793,12 @@ void Ivy_FraigResimulate( Ivy_FraigMan_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Ivy_FraigMiterPrint( Ivy_Man_t * pNtk, char * pString, clock_t clk, int fVerbose )
+void Ivy_FraigMiterPrint( Ivy_Man_t * pNtk, char * pString, abctime clk, int fVerbose )
 {
     if ( !fVerbose )
         return;
     printf( "Nodes = %7d.  Levels = %4d.  ", Ivy_ManNodeNum(pNtk), Ivy_ManLevels(pNtk) );
-    ABC_PRT( pString, clock() - clk );
+    ABC_PRT( pString, Abc_Clock() - clk );
 }
 
 /**Function*************************************************************
@@ -1881,13 +1881,13 @@ void Ivy_FraigMiterProve( Ivy_FraigMan_t * p )
 {
     Ivy_Obj_t * pObj, * pObjNew;
     int i, RetValue;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     int fVerbose = 0;
     Ivy_ManForEachPo( p->pManAig, pObj, i )
     {
         if ( i && fVerbose )
         {
-            ABC_PRT( "Time", clock() -clk );
+            ABC_PRT( "Time", Abc_Clock() -clk );
         }
         pObjNew = Ivy_ObjChild0Equiv(pObj);
         // check if the output is constant 1
@@ -1950,7 +1950,7 @@ void Ivy_FraigMiterProve( Ivy_FraigMan_t * p )
     }
     if ( fVerbose )
     {
-        ABC_PRT( "Time", clock() -clk );
+        ABC_PRT( "Time", Abc_Clock() -clk );
     }
 }
 
@@ -2099,7 +2099,7 @@ void Ivy_FraigPrintActivity( Ivy_FraigMan_t * p )
 int Ivy_FraigNodesAreEquiv( Ivy_FraigMan_t * p, Ivy_Obj_t * pOld, Ivy_Obj_t * pNew )
 {
     int pLits[4], RetValue, RetValue1, nBTLimit;
-    clock_t clk; //, clk2 = clock();
+    abctime clk; //, clk2 = Abc_Clock();
 
     // make sure the nodes are not complemented
     assert( !Ivy_IsComplement(pNew) );
@@ -2141,17 +2141,17 @@ int Ivy_FraigNodesAreEquiv( Ivy_FraigMan_t * p, Ivy_Obj_t * pOld, Ivy_Obj_t * pN
 
     // solve under assumptions
     // A = 1; B = 0     OR     A = 1; B = 1 
-clk = clock();
+clk = Abc_Clock();
     pLits[0] = toLitCond( Ivy_ObjSatNum(pOld), 0 );
     pLits[1] = toLitCond( Ivy_ObjSatNum(pNew), pOld->fPhase == pNew->fPhase );
 //Sat_SolverWriteDimacs( p->pSat, "temp.cnf", pLits, pLits + 2, 1 );
     RetValue1 = sat_solver_solve( p->pSat, pLits, pLits + 2, 
         (ABC_INT64_T)nBTLimit, (ABC_INT64_T)0, 
         p->nBTLimitGlobal, p->nInsLimitGlobal );
-p->timeSat += clock() - clk;
+p->timeSat += Abc_Clock() - clk;
     if ( RetValue1 == l_False )
     {
-p->timeSatUnsat += clock() - clk;
+p->timeSatUnsat += Abc_Clock() - clk;
         pLits[0] = lit_neg( pLits[0] );
         pLits[1] = lit_neg( pLits[1] );
         RetValue = sat_solver_addclause( p->pSat, pLits, pLits + 2 );
@@ -2161,14 +2161,14 @@ p->timeSatUnsat += clock() - clk;
     }
     else if ( RetValue1 == l_True )
     {
-p->timeSatSat += clock() - clk;
+p->timeSatSat += Abc_Clock() - clk;
         Ivy_FraigSavePattern( p );
         p->nSatCallsSat++;
         return 0;
     }
     else // if ( RetValue1 == l_Undef )
     {
-p->timeSatFail += clock() - clk;
+p->timeSatFail += Abc_Clock() - clk;
 /*
         if ( nBTLimit > 1000 )
         {
@@ -2194,16 +2194,16 @@ p->timeSatFail += clock() - clk;
 
     // solve under assumptions
     // A = 0; B = 1     OR     A = 0; B = 0 
-clk = clock();
+clk = Abc_Clock();
     pLits[0] = toLitCond( Ivy_ObjSatNum(pOld), 1 );
     pLits[1] = toLitCond( Ivy_ObjSatNum(pNew), pOld->fPhase ^ pNew->fPhase );
     RetValue1 = sat_solver_solve( p->pSat, pLits, pLits + 2, 
         (ABC_INT64_T)nBTLimit, (ABC_INT64_T)0, 
         p->nBTLimitGlobal, p->nInsLimitGlobal );
-p->timeSat += clock() - clk;
+p->timeSat += Abc_Clock() - clk;
     if ( RetValue1 == l_False )
     {
-p->timeSatUnsat += clock() - clk;
+p->timeSatUnsat += Abc_Clock() - clk;
         pLits[0] = lit_neg( pLits[0] );
         pLits[1] = lit_neg( pLits[1] );
         RetValue = sat_solver_addclause( p->pSat, pLits, pLits + 2 );
@@ -2212,14 +2212,14 @@ p->timeSatUnsat += clock() - clk;
     }
     else if ( RetValue1 == l_True )
     {
-p->timeSatSat += clock() - clk;
+p->timeSatSat += Abc_Clock() - clk;
         Ivy_FraigSavePattern( p );
         p->nSatCallsSat++;
         return 0;
     }
     else // if ( RetValue1 == l_Undef )
     {
-p->timeSatFail += clock() - clk;
+p->timeSatFail += Abc_Clock() - clk;
 /*
         if ( nBTLimit > 1000 )
         {
@@ -2238,12 +2238,12 @@ p->timeSatFail += clock() - clk;
     // check BDD proof
     {
         int RetVal;
-        ABC_PRT( "Sat", clock() - clk2 );
-        clk2 = clock();
+        ABC_PRT( "Sat", Abc_Clock() - clk2 );
+        clk2 = Abc_Clock();
         RetVal = Ivy_FraigNodesAreEquivBdd( pOld, pNew );
 //        printf( "%d ", RetVal );
         assert( RetVal );
-        ABC_PRT( "Bdd", clock() - clk2 );
+        ABC_PRT( "Bdd", Abc_Clock() - clk2 );
         printf( "\n" );
     }
 */
@@ -2266,7 +2266,7 @@ p->timeSatFail += clock() - clk;
 int Ivy_FraigNodeIsConst( Ivy_FraigMan_t * p, Ivy_Obj_t * pNew )
 {
     int pLits[2], RetValue1;
-    clock_t clk;
+    abctime clk;
     int RetValue;
 
     // make sure the nodes are not complemented
@@ -2293,15 +2293,15 @@ int Ivy_FraigNodeIsConst( Ivy_FraigMan_t * p, Ivy_Obj_t * pNew )
     Ivy_FraigSetActivityFactors( p, NULL, pNew ); 
 
     // solve under assumptions
-clk = clock();
+clk = Abc_Clock();
     pLits[0] = toLitCond( Ivy_ObjSatNum(pNew), pNew->fPhase );
     RetValue1 = sat_solver_solve( p->pSat, pLits, pLits + 1, 
         (ABC_INT64_T)p->pParams->nBTLimitMiter, (ABC_INT64_T)0, 
         p->nBTLimitGlobal, p->nInsLimitGlobal );
-p->timeSat += clock() - clk;
+p->timeSat += Abc_Clock() - clk;
     if ( RetValue1 == l_False )
     {
-p->timeSatUnsat += clock() - clk;
+p->timeSatUnsat += Abc_Clock() - clk;
         pLits[0] = lit_neg( pLits[0] );
         RetValue = sat_solver_addclause( p->pSat, pLits, pLits + 1 );
         assert( RetValue );
@@ -2310,7 +2310,7 @@ p->timeSatUnsat += clock() - clk;
     }
     else if ( RetValue1 == l_True )
     {
-p->timeSatSat += clock() - clk;
+p->timeSatSat += Abc_Clock() - clk;
         if ( p->pPatWords )
             Ivy_FraigSavePattern( p );
         p->nSatCallsSat++;
@@ -2318,7 +2318,7 @@ p->timeSatSat += clock() - clk;
     }
     else // if ( RetValue1 == l_Undef )
     {
-p->timeSatFail += clock() - clk;
+p->timeSatFail += Abc_Clock() - clk;
 /*
         if ( p->pParams->nBTLimitMiter > 1000 )
         {
@@ -2636,9 +2636,9 @@ int Ivy_FraigSetActivityFactors_rec( Ivy_FraigMan_t * p, Ivy_Obj_t * pObj, int L
 int Ivy_FraigSetActivityFactors( Ivy_FraigMan_t * p, Ivy_Obj_t * pOld, Ivy_Obj_t * pNew )
 {
     int LevelMin, LevelMax;
-    clock_t clk;
+    abctime clk;
     assert( pOld || pNew );
-clk = clock(); 
+clk = Abc_Clock(); 
     // reset the active variables
     veci_resize(&p->pSat->act_vars, 0);
     // prepare for traversal
@@ -2653,7 +2653,7 @@ clk = clock();
     if ( pNew && !Ivy_ObjIsConst1(pNew) )
         Ivy_FraigSetActivityFactors_rec( p, pNew, LevelMin, LevelMax );
 //Ivy_FraigPrintActivity( p );
-p->timeTrav += clock() - clk;
+p->timeTrav += Abc_Clock() - clk;
     return 1;
 }
 

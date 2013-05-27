@@ -90,21 +90,21 @@ Aig_Man_t * Dch_ComputeChoices( Aig_Man_t * pAig, Dch_Pars_t * pPars )
 {
     Dch_Man_t * p;
     Aig_Man_t * pResult;
-    clock_t clk, clkTotal = clock();
+    abctime clk, clkTotal = Abc_Clock();
     // reset random numbers
     Aig_ManRandom(1);
     // start the choicing manager
     p = Dch_ManCreate( pAig, pPars );
     // compute candidate equivalence classes
-clk = clock(); 
+clk = Abc_Clock(); 
     p->ppClasses = Dch_CreateCandEquivClasses( pAig, pPars->nWords, pPars->fVerbose );
-p->timeSimInit = clock() - clk;
+p->timeSimInit = Abc_Clock() - clk;
 //    Dch_ClassesPrint( p->ppClasses, 0 );
     p->nLits = Dch_ClassesLitNum( p->ppClasses );
     // perform SAT sweeping
     Dch_ManSweep( p );
     // free memory ahead of time
-p->timeTotal = clock() - clkTotal;
+p->timeTotal = Abc_Clock() - clkTotal;
     Dch_ManStop( p );
     // create choices
     ABC_FREE( pAig->pTable );
@@ -134,21 +134,21 @@ p->timeTotal = clock() - clkTotal;
 void Dch_ComputeEquivalences( Aig_Man_t * pAig, Dch_Pars_t * pPars )
 {
     Dch_Man_t * p;
-    clock_t clk, clkTotal = clock();
+    abctime clk, clkTotal = Abc_Clock();
     // reset random numbers
     Aig_ManRandom(1);
     // start the choicing manager
     p = Dch_ManCreate( pAig, pPars );
     // compute candidate equivalence classes
-clk = clock(); 
+clk = Abc_Clock(); 
     p->ppClasses = Dch_CreateCandEquivClasses( pAig, pPars->nWords, pPars->fVerbose );
-p->timeSimInit = clock() - clk;
+p->timeSimInit = Abc_Clock() - clk;
 //    Dch_ClassesPrint( p->ppClasses, 0 );
     p->nLits = Dch_ClassesLitNum( p->ppClasses );
     // perform SAT sweeping
     Dch_ManSweep( p );
     // free memory ahead of time
-p->timeTotal = clock() - clkTotal;
+p->timeTotal = Abc_Clock() - clkTotal;
     Dch_ManStop( p );
 }
 

@@ -86,7 +86,7 @@ int Abc_NtkMfsEdgePower( Mfs_Man_t * p, Abc_Obj_t * pNode )
 
 int Abc_WinNode(Mfs_Man_t * p, Abc_Obj_t *pNode)
 {
-//    clock_t clk;
+//    abctime clk;
 //    Abc_Obj_t * pFanin;
 //    int i;
 
@@ -119,7 +119,7 @@ int Abc_WinNode(Mfs_Man_t * p, Abc_Obj_t *pNode)
 /*
 int Abc_NtkMfsPowerResubNode( Mfs_Man_t * p, Abc_Obj_t * pNode )
 {
-    clock_t clk;
+    abctime clk;
     Abc_Obj_t * pFanin;
     int i;
 
@@ -235,46 +235,46 @@ void Abc_NtkMfsPowerResub( Mfs_Man_t * p, Mfs_Par_t * pPars)
 ***********************************************************************/
 int Abc_NtkMfsResub( Mfs_Man_t * p, Abc_Obj_t * pNode )
 {
-    clock_t clk;
+    abctime clk;
     p->nNodesTried++;
     // prepare data structure for this node
     Mfs_ManClean( p );
     // compute window roots, window support, and window nodes
-clk = clock();
+clk = Abc_Clock();
     p->vRoots = Abc_MfsComputeRoots( pNode, p->pPars->nWinTfoLevs, p->pPars->nFanoutsMax );
     p->vSupp  = Abc_NtkNodeSupport( p->pNtk, (Abc_Obj_t **)Vec_PtrArray(p->vRoots), Vec_PtrSize(p->vRoots) );
     p->vNodes = Abc_NtkDfsNodes( p->pNtk, (Abc_Obj_t **)Vec_PtrArray(p->vRoots), Vec_PtrSize(p->vRoots) );
-p->timeWin += clock() - clk;
+p->timeWin += Abc_Clock() - clk;
     if ( p->pPars->nWinMax && Vec_PtrSize(p->vNodes) > p->pPars->nWinMax )
     {
         p->nMaxDivs++;
         return 1;
     }
     // compute the divisors of the window
-clk = clock();
+clk = Abc_Clock();
     p->vDivs  = Abc_MfsComputeDivisors( p, pNode, Abc_ObjRequiredLevel(pNode) - 1 );
     p->nTotalDivs += Vec_PtrSize(p->vDivs) - Abc_ObjFaninNum(pNode);
-p->timeDiv += clock() - clk;
+p->timeDiv += Abc_Clock() - clk;
     // construct AIG for the window
-clk = clock();
+clk = Abc_Clock();
     p->pAigWin = Abc_NtkConstructAig( p, pNode );
-p->timeAig += clock() - clk;
+p->timeAig += Abc_Clock() - clk;
     // translate it into CNF
-clk = clock();
+clk = Abc_Clock();
     p->pCnf = Cnf_DeriveSimple( p->pAigWin, 1 + Vec_PtrSize(p->vDivs) );
-p->timeCnf += clock() - clk;
+p->timeCnf += Abc_Clock() - clk;
     // create the SAT problem
-clk = clock();
+clk = Abc_Clock();
     p->pSat = Abc_MfsCreateSolverResub( p, NULL, 0, 0 );
     if ( p->pSat == NULL )
     {
         p->nNodesBad++;
         return 1;
     }
-//clk = clock();
+//clk = Abc_Clock();
 //    if ( p->pPars->fGiaSat )
 //        Abc_NtkMfsConstructGia( p );
-//p->timeGia += clock() - clk;
+//p->timeGia += Abc_Clock() - clk;
     // solve the SAT problem
     if ( p->pPars->fPower )
         Abc_NtkMfsEdgePower( p, pNode );
@@ -286,7 +286,7 @@ clk = clock();
         if ( p->pPars->fMoreEffort )
             Abc_NtkMfsResubNode2( p, pNode );
     }
-p->timeSat += clock() - clk;
+p->timeSat += Abc_Clock() - clk;
 //    if ( p->pPars->fGiaSat )
 //        Abc_NtkMfsDeconstructGia( p );
     return 1;
@@ -311,28 +311,28 @@ int Abc_NtkMfsNode( Mfs_Man_t * p, Abc_Obj_t * pNode )
     extern Hop_Obj_t * Abc_NodeIfNodeResyn( Bdc_Man_t * p, Hop_Man_t * pHop, Hop_Obj_t * pRoot, int nVars, Vec_Int_t * vTruth, unsigned * puCare, float dProb );
 
     int nGain;
-    clock_t clk;
+    abctime clk;
     p->nNodesTried++;
     // prepare data structure for this node
     Mfs_ManClean( p );
     // compute window roots, window support, and window nodes
-clk = clock();
+clk = Abc_Clock();
     p->vRoots = Abc_MfsComputeRoots( pNode, p->pPars->nWinTfoLevs, p->pPars->nFanoutsMax );
     p->vSupp  = Abc_NtkNodeSupport( p->pNtk, (Abc_Obj_t **)Vec_PtrArray(p->vRoots), Vec_PtrSize(p->vRoots) );
     p->vNodes = Abc_NtkDfsNodes( p->pNtk, (Abc_Obj_t **)Vec_PtrArray(p->vRoots), Vec_PtrSize(p->vRoots) );
-p->timeWin += clock() - clk;
+p->timeWin += Abc_Clock() - clk;
     // count the number of patterns
 //    p->dTotalRatios += Abc_NtkConstraintRatio( p, pNode );
     // construct AIG for the window
-clk = clock();
+clk = Abc_Clock();
     p->pAigWin = Abc_NtkConstructAig( p, pNode );
-p->timeAig += clock() - clk;
+p->timeAig += Abc_Clock() - clk;
     // translate it into CNF
-clk = clock();
+clk = Abc_Clock();
     p->pCnf = Cnf_DeriveSimple( p->pAigWin, Abc_ObjFaninNum(pNode) );
-p->timeCnf += clock() - clk;
+p->timeCnf += Abc_Clock() - clk;
     // create the SAT problem
-clk = clock();
+clk = Abc_Clock();
     p->pSat = (sat_solver *)Cnf_DataWriteIntoSolver( p->pCnf, 1, 0 );
     if ( p->pSat && p->pPars->fOneHotness )
         Abc_NtkAddOneHotness( p );
@@ -341,7 +341,7 @@ clk = clock();
     // solve the SAT problem
     RetValue = Abc_NtkMfsSolveSat( p, pNode );
     p->nTotConfLevel += p->pSat->stats.conflicts;
-p->timeSat += clock() - clk;
+p->timeSat += Abc_Clock() - clk;
     if ( RetValue == 0 )
     {
         p->nTimeOutsLevel++;
@@ -385,7 +385,7 @@ int Abc_NtkMfs( Abc_Ntk_t * pNtk, Mfs_Par_t * pPars )
     Vec_Vec_t * vLevels;
     Vec_Ptr_t * vNodes;
     int i, k, nNodes, nFaninMax;
-    clock_t clk = clock(), clk2;
+    abctime clk = Abc_Clock(), clk2;
     int nTotalNodesBeg = Abc_NtkNodeNum(pNtk);
     int nTotalEdgesBeg = Abc_NtkGetTotalFanins(pNtk);
 
@@ -520,7 +520,7 @@ int Abc_NtkMfs( Abc_Ntk_t * pNtk, Mfs_Par_t * pPars )
             p->nNodesGainedLevel = 0;
             p->nTotConfLevel = 0;
             p->nTimeOutsLevel = 0;
-            clk2 = clock();
+            clk2 = Abc_Clock();
             Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
             {
                 if ( p->pPars->nDepthMax && (int)pObj->Level > p->pPars->nDepthMax )
@@ -541,7 +541,7 @@ int Abc_NtkMfs( Abc_Ntk_t * pNtk, Mfs_Par_t * pPars )
                 1.0*p->nNodesGainedLevel/Vec_PtrSize(vNodes),
                 1.0*p->nTotConfLevel/Vec_PtrSize(vNodes),
                 100.0*p->nTimeOutsLevel/Vec_PtrSize(vNodes) );
-            ABC_PRT( "Time", clock() - clk2 );
+            ABC_PRT( "Time", Abc_Clock() - clk2 );
             */
             }
         }
@@ -582,7 +582,7 @@ int Abc_NtkMfs( Abc_Ntk_t * pNtk, Mfs_Par_t * pPars )
     }
 
     // free the manager
-    p->timeTotal = clock() - clk;
+    p->timeTotal = Abc_Clock() - clk;
     Mfs_ManStop( p );
     return 1;
 }

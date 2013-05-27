@@ -49,7 +49,7 @@ static Abc_Obj_t * Abc_NodeFromGlobalBdds( Abc_Ntk_t * pNtkNew, DdManager * dd, 
 Abc_Ntk_t * Abc_NtkCollapse( Abc_Ntk_t * pNtk, int fBddSizeMax, int fDualRail, int fReorder, int fVerbose )
 {
     Abc_Ntk_t * pNtkNew;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
 
     assert( Abc_NtkIsStrash(pNtk) );
     // compute the global BDDs
@@ -59,7 +59,7 @@ Abc_Ntk_t * Abc_NtkCollapse( Abc_Ntk_t * pNtk, int fBddSizeMax, int fDualRail, i
     {
         DdManager * dd = (DdManager *)Abc_NtkGlobalBddMan( pNtk );
         printf( "Shared BDD size = %6d nodes.  ", Cudd_ReadKeys(dd) - Cudd_ReadDead(dd) );
-        ABC_PRT( "BDD construction time", clock() - clk );
+        ABC_PRT( "BDD construction time", Abc_Clock() - clk );
     }
 
     // create the new network

@@ -53,7 +53,7 @@ Aig_Man_t * Ssw_SignalCorrespondencePart( Aig_Man_t * pAig, Ssw_Pars_t * pPars )
     int * pMapBack;
     int i, nCountPis, nCountRegs;
     int nClasses, nPartSize, fVerbose;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     if ( pPars->fConstrs )
     {
         Abc_Print( 1, "Cannot use partitioned computation with constraints.\n" );
@@ -126,7 +126,7 @@ Aig_Man_t * Ssw_SignalCorrespondencePart( Aig_Man_t * pAig, Ssw_Pars_t * pPars )
     pPars->fVerbose = fVerbose;
     if ( fVerbose )
     {
-        ABC_PRT( "Total time", clock() - clk );
+        ABC_PRT( "Total time", Abc_Clock() - clk );
     }
     return pNew;
 }

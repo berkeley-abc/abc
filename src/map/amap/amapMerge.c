@@ -515,7 +515,7 @@ void Amap_ManMerge( Amap_Man_t * p )
 {
     Amap_Obj_t * pObj;
     int i;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     p->pCutsPi = Amap_ManSetupPis( p );
     Amap_ManForEachNode( p, pObj, i )
         Amap_ManMergeNodeCuts( p, pObj );
@@ -527,7 +527,7 @@ void Amap_ManMerge( Amap_Man_t * p )
         printf( "Node =%6d. Try =%9d. Try3 =%10d. Used =%7d. R =%6.2f.  ", 
             Amap_ManNodeNum(p), p->nCutsTried, p->nCutsTried3, p->nCutsUsed, 
             1.0*p->nCutsUsed/Amap_ManNodeNum(p) );
-ABC_PRT( "Time ", clock() - clk );
+ABC_PRT( "Time ", Abc_Clock() - clk );
     }
 }
 

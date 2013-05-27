@@ -354,7 +354,7 @@ void Ivy_ObjReplace( Ivy_Man_t * p, Ivy_Obj_t * pObjOld, Ivy_Obj_t * pObjNew, in
     assert( !Ivy_IsComplement(pObjNew) );
     if ( fUpdateLevel )
     {
-//clk = clock();
+//clk = Abc_Clock();
         // if the new node's arrival time is different, recursively update arrival time of the fanouts
         if ( p->fFanout && !Ivy_ObjIsBuf(pObjNew) && pObjOld->Level != pObjNew->Level )
         {
@@ -362,9 +362,9 @@ void Ivy_ObjReplace( Ivy_Man_t * p, Ivy_Obj_t * pObjOld, Ivy_Obj_t * pObjNew, in
             pObjOld->Level = pObjNew->Level;
             Ivy_ObjUpdateLevel_rec( p, pObjOld );
         }
-//p->time1 += clock() - clk;
+//p->time1 += Abc_Clock() - clk;
         // if the new node's required time has changed, recursively update required time of the fanins
-//clk = clock();
+//clk = Abc_Clock();
         if ( p->vRequired )
         {
             int ReqNew = Vec_IntEntry(p->vRequired, pObjOld->Id);
@@ -374,7 +374,7 @@ void Ivy_ObjReplace( Ivy_Man_t * p, Ivy_Obj_t * pObjOld, Ivy_Obj_t * pObjNew, in
                 Ivy_ObjUpdateLevelR_rec( p, pObjNew, ReqNew );
             }
         }
-//p->time2 += clock() - clk;
+//p->time2 += Abc_Clock() - clk;
     }
     // delete the old object
     if ( fDeleteOld )

@@ -188,13 +188,13 @@ int Abc_NtkDoCheck( Abc_Ntk_t * pNtk )
             return 0;
 
     // finally, check for combinational loops
-//  clk = clock();
+//  clk = Abc_Clock();
     if ( !Abc_NtkIsAcyclic( pNtk ) )
     {
         fprintf( stdout, "NetworkCheck: Network contains a combinational loop.\n" );
         return 0;
     }
-//  ABC_PRT( "Acyclic  ", clock() - clk );
+//  ABC_PRT( "Acyclic  ", Abc_Clock() - clk );
 
     // check the EXDC network if present
     if ( pNtk->pExdc )

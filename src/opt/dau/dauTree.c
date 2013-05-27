@@ -91,10 +91,10 @@ struct Dss_Man_t_
     int            nCacheHits[2];
     int            nCacheMisses[2];
     int            nCacheEntries[2];
-    clock_t        timeBeg;
-    clock_t        timeDec;
-    clock_t        timeLook;
-    clock_t        timeEnd;
+    abctime        timeBeg;
+    abctime        timeDec;
+    abctime        timeLook;
+    abctime        timeEnd;
 };
 
 static inline Dss_Obj_t *  Dss_Regular( Dss_Obj_t * p )                            { return (Dss_Obj_t *)((ABC_PTRUINT_T)(p) & ~01);                                    }
@@ -309,16 +309,16 @@ void Dau_DsdTest_()
 */
 }
 
-clock_t if_dec_time;
+abctime if_dec_time;
 
 void Dau_DsdCheckStructOne( word * pTruth, int nVars, int nLeaves )
 {
     extern Dss_Ntk_t * Dss_NtkCreate( char * pDsd, int nVars, word * pTruth );
     extern void Dss_NtkFree( Dss_Ntk_t * p );
 
-    static clock_t timeTt  = 0;
-    static clock_t timeDsd = 0;
-    clock_t clkTt, clkDsd;
+    static abctime timeTt  = 0;
+    static abctime timeDsd = 0;
+    abctime clkTt, clkDsd;
 
     char pDsd[1000];
     word Truth[1024];
@@ -345,14 +345,14 @@ void Dau_DsdCheckStructOne( word * pTruth, int nVars, int nLeaves )
     pNtk = Dss_NtkCreate( pDsd, 16, NULL );
 
     // measure DSD runtime
-    clkDsd = clock();
+    clkDsd = Abc_Clock();
     Status = Dss_ObjCheck666( pNtk );
-    timeDsd += clock() - clkDsd;
+    timeDsd += Abc_Clock() - clkDsd;
 
     Dss_NtkFree( pNtk );
 
     // measure TT runtime
-    clkTt = clock();
+    clkTt = Abc_Clock();
     {
         #define CLU_VAR_MAX  16
 
@@ -381,7 +381,7 @@ void Dau_DsdCheckStructOne( word * pTruth, int nVars, int nLeaves )
         }
 
     }
-    timeTt += clock() - clkTt;
+    timeTt += Abc_Clock() - clkTt;
 }
 
 #endif
@@ -1087,7 +1087,7 @@ void Dss_ManPrint( char * pFileName, Dss_Man_t * p )
 {
     Dss_Obj_t * pObj;
     int CountNonDsd = 0, CountNonDsdStr = 0;
-    int i, clk = clock();
+    int i, clk = Abc_Clock();
     FILE * pFile;
     pFile = pFileName ? fopen( pFileName, "wb" ) : stdout;
     if ( pFileName && pFile == NULL )
@@ -1110,7 +1110,7 @@ void Dss_ManPrint( char * pFileName, Dss_Man_t * p )
     fprintf( pFile, "Cache hits    = %8d %8d\n", p->nCacheHits[0],    p->nCacheHits[1] );
     fprintf( pFile, "Cache misses  = %8d %8d\n", p->nCacheMisses[0],  p->nCacheMisses[1] );
     fprintf( pFile, "Cache entries = %8d %8d\n", p->nCacheEntries[0], p->nCacheEntries[1] );
-    Abc_PrintTime( 1, "Time", clock() - clk );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 //    Dss_ManHashProfile( p );
 //    Dss_ManDump( p );
 //    return;
@@ -1547,7 +1547,7 @@ int Dss_ManMerge( Dss_Man_t * p, int * iDsd, int * nFans, int ** pFans, unsigned
     Dss_Ent_t * pEnt, ** ppSpot;
     Dss_Fun_t * pFun;
     int i;
-    clock_t clk;
+    abctime clk;
     Counter++;
     if ( DAU_MAX_VAR < nKLutSize )
     {
@@ -1569,17 +1569,17 @@ Dss_ManPrintOne( stdout, p, iDsd[1], pFans[1] );
     if ( iDsd[1] == 1 ) return iDsd[0];
 
     // no overlap
-clk = clock();
+clk = Abc_Clock();
     assert( nFans[0] == Dss_VecLitSuppSize(p->vObjs, iDsd[0]) );
     assert( nFans[1] == Dss_VecLitSuppSize(p->vObjs, iDsd[1]) );
     assert( nFans[0] + nFans[1] <= nKLutSize + Dss_WordCountOnes(uSharedMask) );
     // create map of shared variables
     pEnt = Dss_ManSharedMap( p, iDsd, nFans, pFans, uSharedMask );
-p->timeBeg += clock() - clk;
+p->timeBeg += Abc_Clock() - clk;
     // check cache
     if ( p->pCache == NULL )
     {
-clk = clock();
+clk = Abc_Clock();
         if ( uSharedMask == 0 )
             pFun = Dss_ManOperationFun( p, iDsd, nFans[0] + nFans[1] );
         else
@@ -1588,14 +1588,14 @@ clk = clock();
             return -1;
         assert( (int)pFun->nFans == Dss_VecLitSuppSize(p->vObjs, pFun->iDsd) );
         assert( (int)pFun->nFans <= nKLutSize );
-p->timeDec += clock() - clk;
+p->timeDec += Abc_Clock() - clk;
     }
     else
     {
-clk = clock();
+clk = Abc_Clock();
         ppSpot = Dss_ManCacheLookup( p, pEnt );
-p->timeLook += clock() - clk;
-clk = clock();
+p->timeLook += Abc_Clock() - clk;
+clk = Abc_Clock();
         if ( *ppSpot == NULL )
         {
             if ( uSharedMask == 0 )
@@ -1610,10 +1610,10 @@ clk = clock();
             *ppSpot = Dss_ManCacheCreate( p, pEnt, pFun );
         }
         pFun = (*ppSpot)->pFunc;
-p->timeDec += clock() - clk;
+p->timeDec += Abc_Clock() - clk;
     }
 
-clk = clock();
+clk = Abc_Clock();
     for ( i = 0; i < (int)pFun->nFans; i++ )
         if ( pFun->pFans[i] < 2 * nFans[0] ) // first dec
             pPermRes[i] = (unsigned char)Dss_Lit2Lit( pFans[0], pFun->pFans[i] );
@@ -1636,7 +1636,7 @@ clk = clock();
 
     for ( i = 0; i < (int)pFun->nFans; i++ )
         pPermResInt[i] = pPermRes[i];
-p->timeEnd += clock() - clk;
+p->timeEnd += Abc_Clock() - clk;
 
 if ( fVerbose )
 {
@@ -1698,7 +1698,7 @@ int Mpm_FuncCompute( Dss_Man_t * p, int iDsd0, int iDsd1, Vec_Str_t * vShared, i
     Dss_Fun_t * pFun;
     int iDsd[2] = { iDsd0, iDsd1 };
     int i;
-    clock_t clk;
+    abctime clk;
 
     assert( iDsd0 <= iDsd1 );
     if ( DAU_MAX_VAR < *pnLeaves )
@@ -1712,12 +1712,12 @@ int Mpm_FuncCompute( Dss_Man_t * p, int iDsd0, int iDsd1, Vec_Str_t * vShared, i
         Dss_ManPrintOne( stdout, p, iDsd1, NULL );
     } 
 
-clk = clock();
+clk = Abc_Clock();
     pEnt = Dss_ManSharedMapDerive( p, iDsd0, iDsd1, vShared );
     ppSpot = Dss_ManCacheLookup( p, pEnt );
-p->timeLook += clock() - clk;
+p->timeLook += Abc_Clock() - clk;
 
-clk = clock();
+clk = Abc_Clock();
     if ( *ppSpot == NULL )
     {
         if ( Vec_StrSize(vShared) == 0 )
@@ -1732,7 +1732,7 @@ clk = clock();
         *ppSpot = Dss_ManCacheCreate( p, pEnt, pFun );
     }
     pFun = (*ppSpot)->pFunc;
-p->timeDec += clock() - clk;
+p->timeDec += Abc_Clock() - clk;
 
     *pnLeaves = (int)pFun->nFans;
     for ( i = 0; i < (int)pFun->nFans; i++ )

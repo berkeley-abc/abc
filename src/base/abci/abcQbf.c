@@ -65,7 +65,7 @@ void Abc_NtkQbf( Abc_Ntk_t * pNtk, int nPars, int nItersMax, int fDumpCnf, int f
 {
     Abc_Ntk_t * pNtkVer, * pNtkSyn, * pNtkSyn2, * pNtkTemp;
     Vec_Int_t * vPiValues;
-    clock_t clkTotal = clock(), clkS, clkV;
+    abctime clkTotal = Abc_Clock(), clkS, clkV;
     int nIters, nInputs, RetValue, fFound = 0;
 
     assert( Abc_NtkIsStrash(pNtk) );
@@ -136,10 +136,10 @@ void Abc_NtkQbf( Abc_Ntk_t * pNtk, int nPars, int nItersMax, int fDumpCnf, int f
     for ( nIters = 0; nIters < nItersMax; nIters++ )
     {
         // solve the synthesis instance
-clkS = clock();
+clkS = Abc_Clock();
 //        RetValue = Abc_NtkMiterSat( pNtkSyn, 0, 0, 0, NULL, NULL );
         RetValue = Abc_NtkDSat( pNtkSyn, (ABC_INT64_T)0, (ABC_INT64_T)0, 0, 0, 0, 1, 0, 0, 0 );
-clkS = clock() - clkS;
+clkS = Abc_Clock() - clkS;
         if ( RetValue == 0 )
             Abc_NtkModelToVector( pNtkSyn, vPiValues );
         if ( RetValue == 1 )
@@ -160,9 +160,9 @@ clkS = clock() - clkS;
         Abc_ObjXorFaninC( Abc_NtkPo(pNtkVer,0), 0 );
 
         // solve the verification instance
-clkV = clock();
+clkV = Abc_Clock();
         RetValue = Abc_NtkMiterSat( pNtkVer, 0, 0, 0, NULL, NULL );
-clkV = clock() - clkV;
+clkV = Abc_Clock() - clkV;
         if ( RetValue == 0 )
             Abc_NtkModelToVector( pNtkVer, vPiValues );
         Abc_NtkDelete( pNtkVer );
@@ -213,7 +213,7 @@ clkV = clock() - clkV;
         printf( "Quit after %d interatios.  ", nItersMax );
     else
         printf( "Implementation does not exist.  " );
-    ABC_PRT( "Total runtime", clock() - clkTotal );
+    ABC_PRT( "Total runtime", Abc_Clock() - clkTotal );
     Vec_IntFree( vPiValues );
 }
 

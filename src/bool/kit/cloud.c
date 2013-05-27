@@ -71,7 +71,7 @@ CloudManager * Cloud_Init( int nVars, int nBits )
 {
     CloudManager * dd;
     int i;
-    clock_t clk1, clk2;
+    abctime clk1, clk2;
 
     assert( nVars <= 100000 );
     assert( nBits < 32 );
@@ -99,10 +99,10 @@ CloudManager * Cloud_Init( int nVars, int nBits )
     dd->nNodesLimit       = (1 << nBits);       // 2 ^  nBits
 
     // unique table
-clk1 = clock();
+clk1 = Abc_Clock();
     dd->tUnique           = ABC_CALLOC( CloudNode, dd->nNodesAlloc );
     dd->nMemUsed         += sizeof(CloudNode) * dd->nNodesAlloc;
-clk2 = clock();
+clk2 = Abc_Clock();
 //ABC_PRT( "calloc() time", clk2 - clk1 ); 
 
     // set up the constant node (the only node that is not in the hash table)

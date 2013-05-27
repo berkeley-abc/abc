@@ -257,9 +257,9 @@ void Nm_ManResize( Nm_Man_t * p )
 {
     Nm_Entry_t ** pBinsNewI2N, ** pBinsNewN2I, * pEntry, * pEntry2, ** ppSpot;
     int nBinsNew, Counter, e;
-    clock_t clk;
+    abctime clk;
 
-clk = clock();
+clk = Abc_Clock();
     // get the new table size
     nBinsNew = Abc_PrimeCudd( p->nGrowthFactor * p->nBins ); 
     // allocate a new array
@@ -289,7 +289,7 @@ clk = clock();
             }
     assert( Counter == p->nEntries );
 //    printf( "Increasing the structural table size from %6d to %6d. ", p->nBins, nBinsNew );
-//    ABC_PRT( "Time", clock() - clk );
+//    ABC_PRT( "Time", Abc_Clock() - clk );
     // replace the table and the parameters
     ABC_FREE( p->pBinsI2N );
     ABC_FREE( p->pBinsN2I );

@@ -209,8 +209,8 @@ int Cec_ManChoiceComputation_int( Gia_Man_t * pAig, Cec_ParChc_t * pPars )
     Cec_ManSim_t * pSim;
     Gia_Man_t * pSrm;
     int r, RetValue;
-    clock_t clkSat = 0, clkSim = 0, clkSrm = 0, clkTotal = clock();
-    clock_t clk2, clk = clock();
+    abctime clkSat = 0, clkSim = 0, clkSrm = 0, clkTotal = Abc_Clock();
+    abctime clk2, clk = Abc_Clock();
     ABC_FREE( pAig->pReprs );
     ABC_FREE( pAig->pNexts );
     Gia_ManRandom( 1 );
@@ -233,51 +233,51 @@ int Cec_ManChoiceComputation_int( Gia_Man_t * pAig, Cec_ParChc_t * pPars )
     {
         Abc_Print( 1, "Obj = %7d. And = %7d. Conf = %5d. Ring = %d. CSat = %d.\n",
             Gia_ManObjNum(pAig), Gia_ManAndNum(pAig), pPars->nBTLimit, pPars->fUseRings, pPars->fUseCSat );
-        Cec_ManRefinedClassPrintStats( pAig, NULL, 0, clock() - clk );
+        Cec_ManRefinedClassPrintStats( pAig, NULL, 0, Abc_Clock() - clk );
     }
     // perform refinement of equivalence classes
     for ( r = 0; r < nItersMax; r++ )
     { 
-        clk = clock();
+        clk = Abc_Clock();
         // perform speculative reduction
-        clk2 = clock();
+        clk2 = Abc_Clock();
         pSrm = Cec_ManCombSpecReduce( pAig, &vOutputs, pPars->fUseRings );
         assert( Gia_ManRegNum(pSrm) == 0 && Gia_ManCiNum(pSrm) == Gia_ManCiNum(pAig) );
-        clkSrm += clock() - clk2;
+        clkSrm += Abc_Clock() - clk2;
         if ( Gia_ManCoNum(pSrm) == 0 )
         {
             if ( pPars->fVerbose )
-                Cec_ManRefinedClassPrintStats( pAig, NULL, r+1, clock() - clk );
+                Cec_ManRefinedClassPrintStats( pAig, NULL, r+1, Abc_Clock() - clk );
             Vec_IntFree( vOutputs );
             Gia_ManStop( pSrm );            
             break;
         }
 //Gia_DumpAiger( pSrm, "choicesrm", r, 2 );
         // found counter-examples to speculation
-        clk2 = clock();
+        clk2 = Abc_Clock();
         if ( pPars->fUseCSat )
             vCexStore = Cbs_ManSolveMiterNc( pSrm, pPars->nBTLimit, &vStatus, 0 );
         else
             vCexStore = Cec_ManSatSolveMiter( pSrm, pParsSat, &vStatus );
         Gia_ManStop( pSrm );
-        clkSat += clock() - clk2;
+        clkSat += Abc_Clock() - clk2;
         if ( Vec_IntSize(vCexStore) == 0 )
         {
             if ( pPars->fVerbose )
-                Cec_ManRefinedClassPrintStats( pAig, vStatus, r+1, clock() - clk );
+                Cec_ManRefinedClassPrintStats( pAig, vStatus, r+1, Abc_Clock() - clk );
             Vec_IntFree( vCexStore );
             Vec_StrFree( vStatus );
             Vec_IntFree( vOutputs );
             break;
         }
         // refine classes with these counter-examples
-        clk2 = clock();
+        clk2 = Abc_Clock();
         RetValue = Cec_ManResimulateCounterExamplesComb( pSim, vCexStore );
         Vec_IntFree( vCexStore );
-        clkSim += clock() - clk2;
+        clkSim += Abc_Clock() - clk2;
         Gia_ManCheckRefinements( pAig, vStatus, vOutputs, pSim, pPars->fUseRings );
         if ( pPars->fVerbose )
-            Cec_ManRefinedClassPrintStats( pAig, vStatus, r+1, clock() - clk );
+            Cec_ManRefinedClassPrintStats( pAig, vStatus, r+1, Abc_Clock() - clk );
         Vec_StrFree( vStatus );
         Vec_IntFree( vOutputs );
 //Gia_ManEquivPrintClasses( pAig, 1, 0 );
@@ -286,7 +286,7 @@ int Cec_ManChoiceComputation_int( Gia_Man_t * pAig, Cec_ParChc_t * pPars )
     if ( r == nItersMax )
         Abc_Print( 1, "The refinement was not finished. The result may be incorrect.\n" );
     Cec_ManSimStop( pSim );
-    clkTotal = clock() - clkTotal;
+    clkTotal = Abc_Clock() - clkTotal;
     // report the results
     if ( pPars->fVerbose )
     {

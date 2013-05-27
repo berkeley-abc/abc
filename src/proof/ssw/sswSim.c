@@ -38,7 +38,7 @@ struct Ssw_Sml_t_
     int              nWordsPref;        // the number of word in the prefix
     int              fNonConstOut;      // have seen a non-const-0 output during simulation
     int              nSimRounds;        // statistics
-    clock_t          timeSim;           // statistics
+    abctime          timeSim;           // statistics
     unsigned         pData[0];          // simulation data for the nodes
 };
 
@@ -1006,8 +1006,8 @@ void Ssw_SmlSimulateOne( Ssw_Sml_t * p )
 {
     Aig_Obj_t * pObj, * pObjLi, * pObjLo;
     int f, i;
-    clock_t clk;
-clk = clock();
+    abctime clk;
+clk = Abc_Clock();
     for ( f = 0; f < p->nFrames; f++ )
     {
         // simulate the nodes
@@ -1026,7 +1026,7 @@ clk = clock();
         Saig_ManForEachLiLo( p->pAig, pObjLi, pObjLo, i )
             Ssw_SmlNodeTransferNext( p, pObjLi, pObjLo, f );
     }
-p->timeSim += clock() - clk;
+p->timeSim += Abc_Clock() - clk;
 p->nSimRounds++;
 }
 
@@ -1118,8 +1118,8 @@ void Ssw_SmlSimulateOneFrame( Ssw_Sml_t * p )
 {
     Aig_Obj_t * pObj, * pObjLi, * pObjLo;
     int i;
-    clock_t clk;
-clk = clock();
+    abctime clk;
+clk = Abc_Clock();
     // simulate the nodes
     Aig_ManForEachNode( p->pAig, pObj, i )
         Ssw_SmlNodeSimulate( p, pObj, 0 );
@@ -1129,7 +1129,7 @@ clk = clock();
     // copy simulation info into the inputs
     Saig_ManForEachLiLo( p->pAig, pObjLi, pObjLo, i )
         Ssw_SmlNodeTransferNext( p, pObjLi, pObjLo, 0 );
-p->timeSim += clock() - clk;
+p->timeSim += Abc_Clock() - clk;
 p->nSimRounds++;
 }
 

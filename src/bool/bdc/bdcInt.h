@@ -118,11 +118,11 @@ struct Bdc_Man_t_
     int              numWeaks;
     int              numReuse;
     // runtime
-    clock_t          timeCache;
-    clock_t          timeCheck;
-    clock_t          timeMuxes;
-    clock_t          timeSupps;
-    clock_t          timeTotal;
+    abctime          timeCache;
+    abctime          timeCheck;
+    abctime          timeMuxes;
+    abctime          timeSupps;
+    abctime          timeTotal;
 };
 
 static inline Bdc_Fun_t * Bdc_FunNew( Bdc_Man_t * p )                   { Bdc_Fun_t * pRes; if ( p->nNodes >= p->nNodesAlloc || p->nNodesNew >= p->nNodesMax ) return NULL; pRes = p->pNodes + p->nNodes++; p->nNodesNew++; memset( pRes, 0, sizeof(Bdc_Fun_t) ); return pRes; }

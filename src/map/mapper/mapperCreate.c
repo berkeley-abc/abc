@@ -313,7 +313,7 @@ void Map_ManPrintTimeStats( Map_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Map_ManPrintStatsToFile( char * pName, float Area, float Delay, clock_t Time )
+void Map_ManPrintStatsToFile( char * pName, float Area, float Delay, abctime Time )
 {
     FILE * pTable;
     pTable = fopen( "map_stats.txt", "a+" );
@@ -469,10 +469,10 @@ void Map_TableResize( Map_Man_t * pMan )
     Map_Node_t ** pBinsNew;
     Map_Node_t * pEnt, * pEnt2;
     int nBinsNew, Counter, i;
-    clock_t clk;
+    abctime clk;
     unsigned Key;
 
-clk = clock();
+clk = Abc_Clock();
     // get the new table size
     nBinsNew = Abc_PrimeCudd(2 * pMan->nBins); 
     // allocate a new array
@@ -493,7 +493,7 @@ clk = clock();
     if ( pMan->fVerbose )
     {
 //        printf( "Increasing the unique table size from %6d to %6d. ", pMan->nBins, nBinsNew );
-//        ABC_PRT( "Time", clock() - clk );
+//        ABC_PRT( "Time", Abc_Clock() - clk );
     }
     // replace the table and the parameters
     ABC_FREE( pMan->pBins );

@@ -83,10 +83,10 @@ struct Rnm_Man_t_
     int             nRefines;        // total refined objects
     int             nVisited;        // visited during justification
     // statistics  
-    clock_t         timeFwd;         // forward propagation
-    clock_t         timeBwd;         // backward propagation
-    clock_t         timeVer;         // ternary simulation
-    clock_t         timeTotal;       // other time
+    abctime         timeFwd;         // forward propagation
+    abctime         timeBwd;         // backward propagation
+    abctime         timeVer;         // ternary simulation
+    abctime         timeTotal;       // other time
 };
 
 // accessing the refinement object

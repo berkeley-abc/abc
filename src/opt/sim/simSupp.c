@@ -105,7 +105,7 @@ Vec_Ptr_t * Sim_ComputeFunSupp( Abc_Ntk_t * pNtk, int fVerbose )
     Sim_Man_t * p;
     Vec_Ptr_t * vResult;
     int nSolved, i;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
 
     srand( 0xABC );
 
@@ -151,7 +151,7 @@ if ( fVerbose )
     }
 
 exit:
-p->timeTotal = clock() - clk;
+p->timeTotal = Abc_Clock() - clk;
     vResult = p->vSuppFun;  
     //  p->vSuppFun = NULL;
     Sim_ManStop( p );
@@ -173,11 +173,11 @@ int Sim_ComputeSuppRound( Sim_Man_t * p, int  fUseTargets )
 {
     Vec_Int_t * vTargets;
     int i, Counter = 0;
-    clock_t clk;
+    abctime clk;
     // perform one round of random simulation
-clk = clock();
+clk = Abc_Clock();
     Sim_UtilSimulate( p, 0 );
-p->timeSim += clock() - clk;
+p->timeSim += Abc_Clock() - clk;
     // iterate through the CIs and detect COs that depend on them
     for ( i = p->iInput; i < p->nInputs; i++ )
     {
@@ -210,14 +210,14 @@ int Sim_ComputeSuppRoundNode( Sim_Man_t * p, int iNumCi, int  fUseTargets )
     int i, k, v, Output, LuckyPat, fType0, fType1;
     int Counter = 0;
     int fFirst = 1;
-    clock_t clk;
+    abctime clk;
     // collect nodes by level in the TFO of the CI 
     // this proceduredoes not collect the CIs and COs
     // but it increments TravId of the collected nodes and CIs/COs
-clk = clock();
+clk = Abc_Clock();
     pNodeCi       = Abc_NtkCi( p->pNtk, iNumCi );
     vNodesByLevel = Abc_DfsLevelized( pNodeCi, 0 );
-p->timeTrav += clock() - clk;
+p->timeTrav += Abc_Clock() - clk;
     // complement the simulation info of the selected CI
     Sim_UtilInfoFlip( p, pNodeCi );
     // simulate the levelized structure of nodes
@@ -225,9 +225,9 @@ p->timeTrav += clock() - clk;
     {
         fType0 = Abc_NodeIsTravIdCurrent( Abc_ObjFanin0(pNode) );
         fType1 = Abc_NodeIsTravIdCurrent( Abc_ObjFanin1(pNode) );
-clk = clock();
+clk = Abc_Clock();
         Sim_UtilSimulateNode( p, pNode, 1, fType0, fType1 );
-p->timeSim += clock() - clk;
+p->timeSim += Abc_Clock() - clk;
     }
     // set the simulation info of the affected COs
     if ( fUseTargets )
@@ -457,7 +457,7 @@ void Sim_SolveTargetsUsingSat( Sim_Man_t * p, int Limit )
     int * pModel;
     int RetValue, Output, Input, k, v;
     int Counter = 0;
-    clock_t clk;
+    abctime clk;
 
     p->nSatRuns = 0;
     // put targets into one array
@@ -473,12 +473,12 @@ void Sim_SolveTargetsUsingSat( Sim_Man_t * p, int Limit )
         Fraig_ParamsSetDefault( &Params );
         Params.nSeconds = ABC_INFINITY;
         Params.fInternal = 1;
-clk = clock();
+clk = Abc_Clock();
         pMan = (Fraig_Man_t *)Abc_NtkToFraig( pMiter, &Params, 0, 0 ); 
-p->timeFraig += clock() - clk;
-clk = clock();
+p->timeFraig += Abc_Clock() - clk;
+clk = Abc_Clock();
         Fraig_ManProveMiter( pMan );
-p->timeSat += clock() - clk;
+p->timeSat += Abc_Clock() - clk;
 
         // analyze the result
         RetValue = Fraig_ManCheckMiter( pMan );

@@ -237,17 +237,17 @@ struct Fra_Man_t_
     int              nSatCallsRecent;
     int              nSatCallsSkipped;
     // runtime
-    clock_t          timeSim;
-    clock_t          timeTrav;
-    clock_t          timeRwr;
-    clock_t          timeSat;
-    clock_t          timeSatUnsat;
-    clock_t          timeSatSat;
-    clock_t          timeSatFail;
-    clock_t          timeRef;
-    clock_t          timeTotal;
-    clock_t          time1;
-    clock_t          time2;
+    abctime          timeSim;
+    abctime          timeTrav;
+    abctime          timeRwr;
+    abctime          timeSat;
+    abctime          timeSatUnsat;
+    abctime          timeSatSat;
+    abctime          timeSatFail;
+    abctime          timeRef;
+    abctime          timeTotal;
+    abctime          time1;
+    abctime          time2;
 };
 
 ////////////////////////////////////////////////////////////////////////

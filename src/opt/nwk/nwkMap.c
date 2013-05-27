@@ -110,7 +110,7 @@ If_Man_t * Nwk_ManToIf( Aig_Man_t * p, If_Par_t * pPars, Vec_Ptr_t * vAigToIf )
     If_Obj_t * pIfObj;
     Aig_Obj_t * pNode, * pFanin, * pPrev;
     int i;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     // set the number of registers (switch activity will be combinational)
     Aig_ManSetRegNum( p, 0 );
     if ( pPars->fPower )
@@ -118,7 +118,7 @@ If_Man_t * Nwk_ManToIf( Aig_Man_t * p, If_Par_t * pPars, Vec_Ptr_t * vAigToIf )
         vSwitching  = Saig_ManComputeSwitchProbs( p, 48, 16, 0 );
         if ( pPars->fVerbose )
         {
-            ABC_PRT( "Computing switching activity", clock() - clk );
+            ABC_PRT( "Computing switching activity", Abc_Clock() - clk );
         }
         pSwitching  = (float *)vSwitching->pArray;
         vSwitching2 = Vec_IntStart( Aig_ManObjNumMax(p) );

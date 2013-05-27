@@ -544,9 +544,9 @@ int Nwk_ManMinimumBaseInt( Nwk_Man_t * pNtk, int fVerbose )
 void Nwk_ManMinimumBaseRec( Nwk_Man_t * pNtk, int fVerbose )
 {
     int i;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     for ( i = 0; Nwk_ManMinimumBaseInt( pNtk, fVerbose ); i++ );
-    ABC_PRT( "Minbase", clock() - clk );
+    ABC_PRT( "Minbase", Abc_Clock() - clk );
 }
 
 /**Function*************************************************************

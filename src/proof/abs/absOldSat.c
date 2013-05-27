@@ -510,7 +510,7 @@ Abc_Cex_t * Saig_RefManRunSat( Saig_RefMan_t * p, int fNewOrder )
     Vec_Int_t * vAssumps, * vVar2PiId;
     int i, k, Entry, RetValue;//, f = 0, Counter = 0;
     int nCoreLits, * pCoreLits;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     // create CNF
     assert( Aig_ManRegNum(p->pFrames) == 0 );
 //    pCnf = Cnf_Derive( p->pFrames, 0 ); // too slow
@@ -530,7 +530,7 @@ Abc_Cex_t * Saig_RefManRunSat( Saig_RefMan_t * p, int fNewOrder )
         Cnf_DataFree( pCnf );
         return NULL;
     }
-//Abc_PrintTime( 1, "Preparing", clock() - clk );
+//Abc_PrintTime( 1, "Preparing", Abc_Clock() - clk );
     // look for a true counter-example
     if ( p->nInputs > 0 )
     {
@@ -582,10 +582,10 @@ Abc_Cex_t * Saig_RefManRunSat( Saig_RefMan_t * p, int fNewOrder )
     }
 
     // solve
-clk = clock();
+clk = Abc_Clock();
     RetValue = sat_solver_solve( pSat, Vec_IntArray(vAssumps), Vec_IntArray(vAssumps) + Vec_IntSize(vAssumps), 
         (ABC_INT64_T)nConfLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
-//Abc_PrintTime( 1, "Solving", clock() - clk );
+//Abc_PrintTime( 1, "Solving", Abc_Clock() - clk );
     if ( RetValue != l_False )
     {
         if ( RetValue == l_True )
@@ -868,9 +868,9 @@ Abc_Cex_t * Saig_ManFindCexCareBits( Aig_Man_t * pAig, Abc_Cex_t * pCex, int nIn
     Saig_RefMan_t * p;
     Vec_Int_t * vReasons;
     Abc_Cex_t * pCare;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
 
-    clk = clock();
+    clk = Abc_Clock();
     p = Saig_RefManStart( pAig, pCex, nInputs, fVerbose );
     vReasons = Saig_RefManFindReason( p );
 
@@ -883,7 +883,7 @@ Aig_ManPrintStats( p->pFrames );
         printf( "Frame PIs = %4d (essential = %4d)   AIG PIs = %4d (essential = %4d)   ",
             Aig_ManCiNum(p->pFrames), Vec_IntSize(vReasons), 
             Saig_ManPiNum(p->pAig) - p->nInputs, Vec_IntSize(vRes) );
-ABC_PRT( "Time", clock() - clk );
+ABC_PRT( "Time", Abc_Clock() - clk );
 
         Vec_IntFree( vRes );
 
@@ -900,7 +900,7 @@ ABC_PRT( "Time", clock() - clk );
             Saig_ManPiNum(p->pAig) - p->nInputs, Vec_IntSize(vRes) );
 
         Vec_IntFree( vRes );
-ABC_PRT( "Time", clock() - clk );
+ABC_PRT( "Time", Abc_Clock() - clk );
 */
     }
 
@@ -931,7 +931,7 @@ Vec_Int_t * Saig_ManExtendCounterExampleTest3( Aig_Man_t * pAig, int iFirstFlopP
 {
     Saig_RefMan_t * p;
     Vec_Int_t * vRes, * vReasons;
-    clock_t clk;
+    abctime clk;
     if ( Saig_ManPiNum(pAig) != pCex->nPis )
     {
         printf( "Saig_ManExtendCounterExampleTest3(): The PI count of AIG (%d) does not match that of cex (%d).\n", 
@@ -939,7 +939,7 @@ Vec_Int_t * Saig_ManExtendCounterExampleTest3( Aig_Man_t * pAig, int iFirstFlopP
         return NULL;
     }
 
-clk = clock();
+clk = Abc_Clock();
 
     p = Saig_RefManStart( pAig, pCex, iFirstFlopPi, fVerbose );
     vReasons = Saig_RefManFindReason( p );
@@ -950,7 +950,7 @@ clk = clock();
         printf( "Frame PIs = %4d (essential = %4d)   AIG PIs = %4d (essential = %4d)   ",
             Aig_ManCiNum(p->pFrames), Vec_IntSize(vReasons), 
             Saig_ManPiNum(p->pAig) - p->nInputs, Vec_IntSize(vRes) );
-ABC_PRT( "Time", clock() - clk );
+ABC_PRT( "Time", Abc_Clock() - clk );
     }
 
 /*
@@ -967,7 +967,7 @@ ABC_PRT( "Time", clock() - clk );
         printf( "Frame PIs = %4d (essential = %4d)   AIG PIs = %4d (essential = %4d)   ",
             Aig_ManCiNum(p->pFrames), Vec_IntSize(vReasons), 
             Saig_ManPiNum(p->pAig) - p->nInputs, Vec_IntSize(vRes) );
-ABC_PRT( "Time", clock() - clk );
+ABC_PRT( "Time", Abc_Clock() - clk );
     }
 */
 

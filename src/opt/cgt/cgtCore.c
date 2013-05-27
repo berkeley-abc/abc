@@ -201,19 +201,19 @@ void Cgt_ClockGatingRangeCheck( Cgt_Man_t * p, int iStart, int nOutputs )
 int Cgt_ClockGatingRange( Cgt_Man_t * p, int iStart )
 {
     int nOutputs, iStop;
-    clock_t clk, clkTotal = clock();
+    abctime clk, clkTotal = Abc_Clock();
     int nCallsUnsat    = p->nCallsUnsat;
     int nCallsSat      = p->nCallsSat;
     int nCallsUndec    = p->nCallsUndec;
     int nCallsFiltered = p->nCallsFiltered;
-clk = clock();
+clk = Abc_Clock();
     p->pPart = Cgt_ManDupPartition( p->pFrame, p->pPars->nVarsMin, p->pPars->nFlopsMin, iStart, p->pCare, p->vSuppsInv, &nOutputs );
     p->pCnf  = Cnf_DeriveSimple( p->pPart, nOutputs );
     p->pSat  = (sat_solver *)Cnf_DataWriteIntoSolver( p->pCnf, 1, 0 );
     sat_solver_compress( p->pSat );
     p->vPatts = Vec_PtrAllocSimInfo( Aig_ManObjNumMax(p->pPart), p->nPattWords );
     Vec_PtrCleanSimInfo( p->vPatts, 0, p->nPattWords );
-p->timePrepare += clock() - clk;
+p->timePrepare += Abc_Clock() - clk;
     Cgt_ClockGatingRangeCheck( p, iStart, nOutputs );
     iStop = iStart + nOutputs;
     if ( p->pPars->fVeryVerbose )
@@ -224,7 +224,7 @@ p->timePrepare += clock() - clk;
             p->nCallsSat  -nCallsSat, 
             p->nCallsUndec-nCallsUndec,
             p->nCallsFiltered-nCallsFiltered );
-        ABC_PRT( "Time", clock() - clkTotal );
+        ABC_PRT( "Time", Abc_Clock() - clkTotal );
     }
     Cgt_ManClean( p );
     p->nRecycles++;
@@ -249,14 +249,14 @@ Vec_Vec_t * Cgt_ClockGatingCandidates( Aig_Man_t * pAig, Aig_Man_t * pCare, Cgt_
     Cgt_Man_t * p;
     Vec_Vec_t * vGatesAll;
     int iStart;
-    clock_t clk = clock(), clkTotal = clock();
+    abctime clk = Abc_Clock(), clkTotal = Abc_Clock();
     // reset random numbers
     Aig_ManRandom( 1 );
     if ( pPars == NULL )
         Cgt_SetDefaultParams( pPars = &Pars );    
     p = Cgt_ManCreate( pAig, pCare, pPars );
     p->pFrame = Cgt_ManDeriveAigForGating( p );
-p->timeAig += clock() - clk;
+p->timeAig += Abc_Clock() - clk;
     assert( Aig_ManCoNum(p->pFrame) == Saig_ManRegNum(p->pAig) );
     pProgress = Bar_ProgressStart( stdout, Aig_ManCoNum(p->pFrame) );
     for ( iStart = 0; iStart < Aig_ManCoNum(p->pFrame); )
@@ -267,7 +267,7 @@ p->timeAig += clock() - clk;
     Bar_ProgressStop( pProgress );
     vGatesAll = p->vGatesAll;
     p->vGatesAll = NULL;
-p->timeTotal = clock() - clkTotal;
+p->timeTotal = Abc_Clock() - clkTotal;
     Cgt_ManStop( p );
     return vGatesAll;
 }
@@ -288,7 +288,7 @@ Aig_Man_t * Cgt_ClockGating( Aig_Man_t * pAig, Aig_Man_t * pCare, Cgt_Par_t * pP
     Aig_Man_t * pGated;
     Vec_Vec_t * vGatesAll;
     Vec_Vec_t * vGates;
-    int nNodesUsed;//, clk = clock();
+    int nNodesUsed;//, clk = Abc_Clock();
     vGatesAll = Cgt_ClockGatingCandidates( pAig, pCare, pPars );
     if ( pPars->fAreaOnly )
         vGates = Cgt_ManDecideArea( pAig, vGatesAll, pPars->nOdcMax, pPars->fVerbose );

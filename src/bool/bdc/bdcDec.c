@@ -45,9 +45,9 @@ ABC_NAMESPACE_IMPL_START
 void Bdc_SuppMinimize2( Bdc_Man_t * p, Bdc_Isf_t * pIsf )
 {
     int v;
-    clock_t clk = 0; // Suppress "might be used uninitialized"
+    abctime clk = 0; // Suppress "might be used uninitialized"
     if ( p->pPars->fVerbose )
-        clk = clock();
+        clk = Abc_Clock();
     // compute support
     pIsf->uSupp = Kit_TruthSupport( pIsf->puOn, p->nVars ) | 
         Kit_TruthSupport( pIsf->puOff, p->nVars );
@@ -70,7 +70,7 @@ void Bdc_SuppMinimize2( Bdc_Man_t * p, Bdc_Isf_t * pIsf )
         pIsf->uSupp &= ~(1 << v);
     }
     if ( p->pPars->fVerbose )
-        p->timeSupps += clock() - clk;
+        p->timeSupps += Abc_Clock() - clk;
 }
 
 /**Function*************************************************************
@@ -87,9 +87,9 @@ void Bdc_SuppMinimize2( Bdc_Man_t * p, Bdc_Isf_t * pIsf )
 void Bdc_SuppMinimize( Bdc_Man_t * p, Bdc_Isf_t * pIsf )
 {
     int v;
-    clock_t clk = 0; // Suppress "might be used uninitialized"
+    abctime clk = 0; // Suppress "might be used uninitialized"
     if ( p->pPars->fVerbose )
-        clk = clock();
+        clk = Abc_Clock();
     // go through the support variables
     pIsf->uSupp = 0;
     for ( v = 0; v < p->nVars; v++ )
@@ -106,7 +106,7 @@ void Bdc_SuppMinimize( Bdc_Man_t * p, Bdc_Isf_t * pIsf )
         pIsf->uSupp |= (1 << v);
     }
     if ( p->pPars->fVerbose )
-        p->timeSupps += clock() - clk;
+        p->timeSupps += Abc_Clock() - clk;
 }
 
 /**Function*************************************************************
@@ -549,9 +549,9 @@ int Bdc_DecomposeStepMux( Bdc_Man_t * p, Bdc_Isf_t * pIsf, Bdc_Isf_t * pIsfL, Bd
 {
     int Var, VarMin, nSuppMin, nSuppCur;
     unsigned uSupp0, uSupp1;
-    clock_t clk = 0; // Suppress "might be used uninitialized"
+    abctime clk = 0; // Suppress "might be used uninitialized"
     if ( p->pPars->fVerbose )
-        clk = clock();
+        clk = Abc_Clock();
     VarMin = -1;
     nSuppMin = 1000;
     for ( Var = 0; Var < p->nVars; Var++ )
@@ -582,7 +582,7 @@ int Bdc_DecomposeStepMux( Bdc_Man_t * p, Bdc_Isf_t * pIsf, Bdc_Isf_t * pIsfL, Bd
         Bdc_SuppMinimize( p, pIsfR );
     }
     if ( p->pPars->fVerbose )
-        p->timeMuxes += clock() - clk;
+        p->timeMuxes += Abc_Clock() - clk;
     return VarMin;
 }
 
@@ -681,7 +681,7 @@ Bdc_Fun_t * Bdc_ManDecompose_rec( Bdc_Man_t * p, Bdc_Isf_t * pIsf )
     Bdc_Isf_t IsfL, * pIsfL = &IsfL;
     Bdc_Isf_t IsfB, * pIsfR = &IsfB;
     int iVar;
-    clock_t clk = 0; // Suppress "might be used uninitialized"
+    abctime clk = 0; // Suppress "might be used uninitialized"
 /*
 printf( "Init function (%d):\n", LocalCounter );
 Extra_PrintBinary( stdout, pIsf->puOn, 1<<4 );printf("\n");
@@ -690,25 +690,25 @@ Extra_PrintBinary( stdout, pIsf->puOff, 1<<4 );printf("\n");
     // check computed results
     assert( Kit_TruthIsDisjoint(pIsf->puOn, pIsf->puOff, p->nVars) );
     if ( p->pPars->fVerbose )
-        clk = clock();
+        clk = Abc_Clock();
     pFunc = Bdc_TableLookup( p, pIsf );
     if ( p->pPars->fVerbose )
-        p->timeCache += clock() - clk;
+        p->timeCache += Abc_Clock() - clk;
     if ( pFunc )
         return pFunc;
     // decide on the decomposition type
     if ( p->pPars->fVerbose )
-        clk = clock();
+        clk = Abc_Clock();
     Type = Bdc_DecomposeStep( p, pIsf, pIsfL, pIsfR );
     if ( p->pPars->fVerbose )
-        p->timeCheck += clock() - clk;
+        p->timeCheck += Abc_Clock() - clk;
     if ( Type == BDC_TYPE_MUX )
     {
         if ( p->pPars->fVerbose )
-            clk = clock();
+            clk = Abc_Clock();
         iVar = Bdc_DecomposeStepMux( p, pIsf, pIsfL, pIsfR );
         if ( p->pPars->fVerbose )
-            p->timeMuxes += clock() - clk;
+            p->timeMuxes += Abc_Clock() - clk;
         p->numMuxes++;
         pFunc0 = Bdc_ManDecompose_rec( p, pIsfL );
         pFunc1 = Bdc_ManDecompose_rec( p, pIsfR );

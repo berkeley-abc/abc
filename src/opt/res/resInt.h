@@ -91,7 +91,7 @@ struct Res_Sim_t_
     // resub candidates
     Vec_Vec_t *      vCands;       // resubstitution candidates
     // statistics
-    clock_t          timeSat;
+    abctime          timeSat;
 };
 
 ////////////////////////////////////////////////////////////////////////

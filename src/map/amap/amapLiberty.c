@@ -1013,7 +1013,7 @@ int Amap_LibertyParse( char * pFileName, int fVerbose )
 {
     Amap_Tree_t * p;
     char * pPos;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     int RetValue;
     p = Amap_LibertyStart( pFileName );
     if ( p == NULL )
@@ -1039,7 +1039,7 @@ int Amap_LibertyParse( char * pFileName, int fVerbose )
     if ( fVerbose )
     {
     printf( "Memory = %7.2f MB. ", 1.0*(p->nContents+p->nItermAlloc*sizeof(Amap_Item_t))/(1<<20) );
-    ABC_PRT( "Time", clock() - clk );
+    ABC_PRT( "Time", Abc_Clock() - clk );
     }
     Amap_LibertyStop( p );
     return RetValue;
@@ -1061,7 +1061,7 @@ Vec_Str_t * Amap_LibertyParseStr( char * pFileName, int fVerbose )
     Amap_Tree_t * p;
     Vec_Str_t * vStr = NULL;
     char * pPos;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     int RetValue;
     p = Amap_LibertyStart( pFileName );
     if ( p == NULL )
@@ -1087,7 +1087,7 @@ Vec_Str_t * Amap_LibertyParseStr( char * pFileName, int fVerbose )
     if ( fVerbose )
     {
     printf( "Memory = %7.2f MB. ", 1.0*(p->nContents+p->nItermAlloc*sizeof(Amap_Item_t))/(1<<20) );
-    ABC_PRT( "Time", clock() - clk );
+    ABC_PRT( "Time", Abc_Clock() - clk );
     }
     Amap_LibertyStop( p );
     return vStr;

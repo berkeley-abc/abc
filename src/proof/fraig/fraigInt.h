@@ -189,18 +189,18 @@ struct Fraig_ManStruct_t_
     int                   nImplies1;
 
     // runtime statistics
-    clock_t               timeToAig;     // time to transfer to the mapping structure
-    clock_t               timeSims;      // time to compute k-feasible cuts
-    clock_t               timeTrav;      // time to traverse the network
-    clock_t               timeFeed;      // time for solver feedback (recording and resimulating)
-    clock_t               timeImply;     // time to analyze implications
-    clock_t               timeSat;       // time to compute the truth table for each cut
-    clock_t               timeToNet;     // time to transfer back to the network
-    clock_t               timeTotal;     // the total mapping time
-    clock_t               time1;         // time to perform one task
-    clock_t               time2;         // time to perform another task
-    clock_t               time3;         // time to perform another task
-    clock_t               time4;         // time to perform another task
+    abctime               timeToAig;     // time to transfer to the mapping structure
+    abctime               timeSims;      // time to compute k-feasible cuts
+    abctime               timeTrav;      // time to traverse the network
+    abctime               timeFeed;      // time for solver feedback (recording and resimulating)
+    abctime               timeImply;     // time to analyze implications
+    abctime               timeSat;       // time to compute the truth table for each cut
+    abctime               timeToNet;     // time to transfer back to the network
+    abctime               timeTotal;     // the total mapping time
+    abctime               time1;         // time to perform one task
+    abctime               time2;         // time to perform another task
+    abctime               time3;         // time to perform another task
+    abctime               time4;         // time to perform another task
 };
 
 // the mapping node

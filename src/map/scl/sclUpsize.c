@@ -446,7 +446,7 @@ void Abc_SclUpsizePrint( SC_Man * p, int Iter, int win, int nPathPos, int nPathN
     printf( "A: " );
     printf( "%.2f ",         p->SumArea );
     printf( "(%+5.1f %%)",   100.0 * (p->SumArea - p->SumArea0)/ p->SumArea0 );
-    printf( "%8.2f",         1.0*(clock() - p->timeTotal)/(CLOCKS_PER_SEC) );
+    printf( "%8.2f",         1.0*(Abc_Clock() - p->timeTotal)/(CLOCKS_PER_SEC) );
     printf( "    " );
     printf( "%c", fVerbose ? '\n' : '\r' );
 }
@@ -468,7 +468,7 @@ void Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_UpSizePars * pPar
     Vec_Int_t * vPathPos = NULL;    // critical POs
     Vec_Int_t * vPathNodes = NULL;  // critical nodes and PIs
     Vec_Int_t * vTFO;
-    clock_t clk, nRuntimeLimit = pPars->TimeOut ? pPars->TimeOut * CLOCKS_PER_SEC + clock() : 0;
+    abctime clk, nRuntimeLimit = pPars->TimeOut ? pPars->TimeOut * CLOCKS_PER_SEC + Abc_Clock() : 0;
     int i, win, nUpsizes = -1, nFramesNoChange = 0;
     int nAllPos, nAllNodes, nAllTfos, nAllUpsizes;
 
@@ -486,7 +486,7 @@ void Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_UpSizePars * pPar
 
     // prepare the manager; collect init stats
     p = Abc_SclManStart( pLib, pNtk, 1, pPars->fUseDept );
-    p->timeTotal  = clock();
+    p->timeTotal  = Abc_Clock();
     assert( p->vGatesBest == NULL );
     p->vGatesBest = Vec_IntDup( p->vGates );
     p->BestDelay  = p->MaxDelay0;
@@ -498,21 +498,21 @@ void Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_UpSizePars * pPar
         for ( win = pPars->Window; win <= 100;  win *= 2 )
         {
             // detect critical path
-            clk = clock();
+            clk = Abc_Clock();
             vPathPos   = Abc_SclFindCriticalCoWindow( p, win );
             vPathNodes = Abc_SclFindCriticalNodeWindow( p, vPathPos, win, pPars->fUseDept );
-            p->timeCone += clock() - clk;
+            p->timeCone += Abc_Clock() - clk;
 
             // selectively upsize the nodes
-            clk = clock();
+            clk = Abc_Clock();
             nUpsizes   = Abc_SclFindUpsizes( p, vPathNodes, pPars->Ratio, pPars->Notches, i );
-            p->timeSize += clock() - clk;
+            p->timeSize += Abc_Clock() - clk;
 
             // unmark critical path
-            clk = clock();
+            clk = Abc_Clock();
             Abc_SclUnmarkCriticalNodeWindow( p, vPathNodes );
             Abc_SclUnmarkCriticalNodeWindow( p, vPathPos );
-            p->timeCone += clock() - clk;
+            p->timeCone += Abc_Clock() - clk;
             if ( nUpsizes > 0 )
                 break;
             Vec_IntFree( vPathPos );
@@ -522,7 +522,7 @@ void Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_UpSizePars * pPar
             break;
 
         // update timing information
-        clk = clock();
+        clk = Abc_Clock();
         if ( pPars->fUseDept )
         {
             vTFO = Vec_IntAlloc( 0 );
@@ -533,7 +533,7 @@ void Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_UpSizePars * pPar
             vTFO = Abc_SclFindTFO( p->pNtk, vPathNodes );
             Abc_SclTimeCone( p, vTFO );
         }
-        p->timeTime += clock() - clk;
+        p->timeTime += Abc_Clock() - clk;
 //        Abc_SclUpsizePrintDiffs( p, pLib, pNtk );
 
         // save the best network
@@ -564,7 +564,7 @@ void Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_UpSizePars * pPar
         Vec_IntFree( vPathNodes );
         Vec_IntFree( vTFO );
         // check timeout
-        if ( nRuntimeLimit && clock() > nRuntimeLimit )
+        if ( nRuntimeLimit && Abc_Clock() > nRuntimeLimit )
             break;
     }
     // update for best gates and recompute timing
@@ -573,7 +573,7 @@ void Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_UpSizePars * pPar
     if ( pPars->fVerbose )
         Abc_SclUpsizePrint( p, i, pPars->Window, nAllPos/(i?i:1), nAllNodes/(i?i:1), nAllUpsizes/(i?i:1), nAllTfos/(i?i:1), 1 );
     // report runtime
-    p->timeTotal = clock() - p->timeTotal;
+    p->timeTotal = Abc_Clock() - p->timeTotal;
     if ( pPars->fVerbose )
     {
         p->timeOther = p->timeTotal - p->timeCone - p->timeSize - p->timeTime;
@@ -585,7 +585,7 @@ void Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_UpSizePars * pPar
     }
     if ( pPars->fDumpStats )
         Abc_SclDumpStats( p, "stats2.txt", p->timeTotal );
-    if ( nRuntimeLimit && clock() > nRuntimeLimit )
+    if ( nRuntimeLimit && Abc_Clock() > nRuntimeLimit )
         printf( "Gate sizing timed out at %d seconds.\n", pPars->TimeOut );
 
     // save the result and quit

@@ -140,7 +140,7 @@ int  Msat_SolverSolve( Msat_Solver_t * p, Msat_IntVec_t * vAssumps, int nBackTra
     Msat_SearchParams_t Params = { 0.95, 0.999 };
     double nConflictsLimit, nLearnedLimit;
     Msat_Type_t Status;
-    clock_t timeStart = clock();
+    abctime timeStart = Abc_Clock();
 
 //    p->pFreq = ABC_ALLOC( int, p->nVarsAlloc );
 //    memset( p->pFreq, 0, sizeof(int) * p->nVarsAlloc );
@@ -181,13 +181,13 @@ int  Msat_SolverSolve( Msat_Solver_t * p, Msat_IntVec_t * vAssumps, int nBackTra
         if ( nBackTrackLimit > 0 && (int)p->Stats.nConflicts - p->nBackTracks > nBackTrackLimit )
             break;
         // if the runtime limit is exceeded, quit the restart loop
-        if ( nTimeLimit > 0 && clock() - timeStart >= nTimeLimit * CLOCKS_PER_SEC )
+        if ( nTimeLimit > 0 && Abc_Clock() - timeStart >= nTimeLimit * CLOCKS_PER_SEC )
             break;
     }
     Msat_SolverCancelUntil( p, 0 );
     p->nBackTracks = (int)p->Stats.nConflicts - p->nBackTracks;
 /*
-    ABC_PRT( "True solver runtime", clock() - timeStart );
+    ABC_PRT( "True solver runtime", Abc_Clock() - timeStart );
     // print the statistics
     {
         int i, Counter = 0;
@@ -200,7 +200,7 @@ int  Msat_SolverSolve( Msat_Solver_t * p, Msat_IntVec_t * vAssumps, int nBackTra
         if ( Counter )
             printf( "\n" );
         printf( "Total = %d. Used = %d.  Decisions = %d. Imps = %d. Conflicts = %d. ", p->nVars, Counter, (int)p->Stats.nDecisions, (int)p->Stats.nPropagations, (int)p->Stats.nConflicts );
-        ABC_PRT( "Time", clock() - timeStart );
+        ABC_PRT( "Time", Abc_Clock() - timeStart );
     }
 */
     return Status;

@@ -226,7 +226,7 @@ void Rwt_Man5ExplorePrint()
     int * pDistrib;
     unsigned * pReprs;
     unsigned uTruth, uTruthC;
-    clock_t clk = clock();
+    abctime clk = Abc_Clock();
     Vec_Int_t * vClassesNN, * vClassesNPN;
 
     // find the max number of occurences
@@ -285,7 +285,7 @@ void Rwt_Man5ExplorePrint()
     printf( "%d classes written into file \"%s\".\n", vClassesNN->nSize, "nnclass_stats5.txt" );
 
 
-clk = clock();
+clk = Abc_Clock();
     // how many NPN classes exist?
     Vec_IntForEachEntry( vClassesNN, uTruth, i )
     {
@@ -300,7 +300,7 @@ clk = clock();
         (*pCounter) += Counter;
     }
     printf( "The numbe of NPN classes = %d.\n", stmm_count(s_pManRwrExp5->tTableNPN) );
-ABC_PRT( "Computing NPN classes", clock() - clk );
+ABC_PRT( "Computing NPN classes", Abc_Clock() - clk );
 
     // put them into an array
     vClassesNPN = Vec_IntAlloc( stmm_count(s_pManRwrExp5->tTableNPN) );

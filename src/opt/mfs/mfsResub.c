@@ -102,12 +102,12 @@ int Abc_NtkMfsTryResubOnce( Mfs_Man_t * p, int * pCands, int nCands )
 {
     int fVeryVerbose = 0;
     unsigned * pData;
-    int RetValue, RetValue2 = -1, iVar, i;//, clk = clock();
+    int RetValue, RetValue2 = -1, iVar, i;//, clk = Abc_Clock();
 /*
     if ( p->pPars->fGiaSat )
     {
         RetValue2 = Abc_NtkMfsTryResubOnceGia( p, pCands, nCands );
-p->timeGia += clock() - clk;
+p->timeGia += Abc_Clock() - clk;
         return RetValue2;
     }
 */ 
@@ -168,7 +168,7 @@ int Abc_NtkMfsSolveSatResub( Mfs_Man_t * p, Abc_Obj_t * pNode, int iFanin, int f
     unsigned * pData;
     int pCands[MFS_FANIN_MAX];
     int RetValue, iVar, i, nCands, nWords, w;
-    clock_t clk;
+    abctime clk;
     Abc_Obj_t * pFanin;
     Hop_Obj_t * pFunc;
     assert( iFanin >= 0 );
@@ -208,14 +208,14 @@ int Abc_NtkMfsSolveSatResub( Mfs_Man_t * p, Abc_Obj_t * pNode, int iFanin, int f
         p->nNodesGainedLevel++;
         if ( fSkipUpdate )
             return 1;
-clk = clock();
+clk = Abc_Clock();
         // derive the function
         pFunc = Abc_NtkMfsInterplate( p, pCands, nCands );
         if ( pFunc == NULL )
             return 0;
         // update the network
         Abc_NtkMfsUpdateNetwork( p, pNode, p->vMfsFanins, pFunc );
-p->timeInt += clock() - clk;
+p->timeInt += Abc_Clock() - clk;
         p->nRemoves++;
         return 1;
     }
@@ -285,7 +285,7 @@ p->timeInt += clock() - clk;
             p->nNodesGainedLevel++;
             if ( fSkipUpdate )
                 return 1;
-clk = clock();
+clk = Abc_Clock();
             // derive the function
             pFunc = Abc_NtkMfsInterplate( p, pCands, nCands+1 );
             if ( pFunc == NULL )
@@ -293,7 +293,7 @@ clk = clock();
             // update the network
             Vec_PtrPush( p->vMfsFanins, Vec_PtrEntry(p->vDivs, iVar) );
             Abc_NtkMfsUpdateNetwork( p, pNode, p->vMfsFanins, pFunc );
-p->timeInt += clock() - clk;
+p->timeInt += Abc_Clock() - clk;
             p->nResubs++;
             return 1;
         }
@@ -322,7 +322,7 @@ int Abc_NtkMfsSolveSatResub2( Mfs_Man_t * p, Abc_Obj_t * pNode, int iFanin, int 
     unsigned * pData, * pData2;
     int pCands[MFS_FANIN_MAX];
     int RetValue, iVar, iVar2, i, w, nCands, nWords, fBreak;
-    clock_t clk;
+    abctime clk;
     Abc_Obj_t * pFanin;
     Hop_Obj_t * pFunc;
     assert( iFanin >= 0 );
@@ -360,14 +360,14 @@ int Abc_NtkMfsSolveSatResub2( Mfs_Man_t * p, Abc_Obj_t * pNode, int iFanin, int 
         printf( "Node %d: Fanins %d/%d can be removed.\n", pNode->Id, iFanin, iFanin2 );
         p->nNodesResub++;
         p->nNodesGainedLevel++;
-clk = clock();
+clk = Abc_Clock();
         // derive the function
         pFunc = Abc_NtkMfsInterplate( p, pCands, nCands );
         if ( pFunc == NULL )
             return 0;
         // update the network
         Abc_NtkMfsUpdateNetwork( p, pNode, p->vMfsFanins, pFunc );
-p->timeInt += clock() - clk;
+p->timeInt += Abc_Clock() - clk;
         return 1;
     }
 
@@ -454,7 +454,7 @@ p->timeInt += clock() - clk;
             printf( "Node %d: Fanins %d/%d can be replaced by divisors %d/%d.\n", pNode->Id, iFanin, iFanin2, iVar, iVar2 );
             p->nNodesResub++;
             p->nNodesGainedLevel++;
-clk = clock();
+clk = Abc_Clock();
             // derive the function
             pFunc = Abc_NtkMfsInterplate( p, pCands, nCands+2 );
             if ( pFunc == NULL )
@@ -464,7 +464,7 @@ clk = clock();
             Vec_PtrPush( p->vMfsFanins, Vec_PtrEntry(p->vDivs, iVar) );
             assert( Vec_PtrSize(p->vMfsFanins) == nCands + 2 );
             Abc_NtkMfsUpdateNetwork( p, pNode, p->vMfsFanins, pFunc );
-p->timeInt += clock() - clk;
+p->timeInt += Abc_Clock() - clk;
             return 1;
         }
         if ( p->nCexes >= p->pPars->nWinMax )
