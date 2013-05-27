@@ -126,10 +126,13 @@ Sfm_Ntk_t * Abc_NtkExtractMfs( Abc_Ntk_t * pNtk, int nFirstFixed )
             Vec_IntPush( vArray, pFanin->iTemp );
     }
     Vec_PtrFree( vNodes );
-    // update fixed
-    assert( nFirstFixed >= 0 && nFirstFixed < Abc_NtkNodeNum(pNtk) );
     for ( i = Abc_NtkCiNum(pNtk); i < Abc_NtkCiNum(pNtk) + nFirstFixed; i++ )
         Vec_StrWriteEntry( vFixed, i, (char)1 );
+    // update fixed
+    assert( nFirstFixed >= 0 && nFirstFixed < Abc_NtkNodeNum(pNtk) );
+//    for ( i = Abc_NtkCiNum(pNtk); i + Abc_NtkCoNum(pNtk) < Abc_NtkObjNum(pNtk); i++ )
+//        if ( rand() % 10 == 0 )
+//            Vec_StrWriteEntry( vFixed, i, (char)1 );
     return Sfm_NtkConstruct( vFanins, Abc_NtkCiNum(pNtk), Abc_NtkCoNum(pNtk), vFixed, vTruths );
 }
 
@@ -159,7 +162,8 @@ void Abc_NtkInsertMfs( Abc_Ntk_t * pNtk, Sfm_Ntk_t * p )
             Vec_IntWriteEntry( vMap, pNode->iTemp, Abc_ObjId(pNode) );
     // remove old fanins
     Abc_NtkForEachNode( pNtk, pNode, i )
-        Abc_ObjRemoveFanins( pNode );
+        if ( !Sfm_NodeReadFixed(p, pNode->iTemp) )
+            Abc_ObjRemoveFanins( pNode );
     // create new fanins
     vCover = Vec_IntAlloc( 1 << 16 );
     Abc_NtkForEachNode( pNtk, pNode, i )

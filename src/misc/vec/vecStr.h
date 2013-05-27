@@ -638,6 +638,25 @@ static inline void Vec_StrReverseOrder( Vec_Str_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Vec_StrSum( Vec_Str_t * p ) 
+{
+    int i, Counter = 0;
+    for ( i = 0; i < p->nSize; i++ )
+        Counter += (int)p->pArray[i];
+    return Counter;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Compares two strings.]
 
   Description []

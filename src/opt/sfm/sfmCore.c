@@ -255,6 +255,8 @@ int Sfm_NtkPerform( Sfm_Ntk_t * p, Sfm_Par_t * pPars )
 {
     int i, k, Counter = 0;
     p->timeTotal = clock();
+    if ( pPars->fVerbose )
+        printf( "Performing MFS with %d fixed objected.\n", Vec_StrSum(p->vFixed) );
     p->pPars = pPars;
     Sfm_NtkPrepare( p );
 //    Sfm_ComputeInterpolantCheck( p );
@@ -270,7 +272,10 @@ int Sfm_NtkPerform( Sfm_Ntk_t * p, Sfm_Par_t * pPars )
         if ( Sfm_ObjFaninNum(p, i) < 2 || Sfm_ObjFaninNum(p, i) > 6 )
             continue;
         for ( k = 0; Sfm_NodeResub(p, i); k++ )
-            ;
+        {
+//            Counter++;
+//            break;
+        }
         Counter += (k > 0);
     }
     p->nTotalNodesEnd = Vec_WecSizeUsed(&p->vFanins) - Sfm_NtkPoNum(p);
