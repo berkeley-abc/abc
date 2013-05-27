@@ -53,7 +53,8 @@ struct FxuDataStruct
     int               nNodesExt;        // the number of divisors to extract
     int               nSingleMax;       // the max number of single-cube divisors to consider
     int               nPairsMax;        // the max number of double-cube divisors to consider
-    int               WeightMax;        // the max weight of a divisor to extract
+    int               WeightMin;        // the min weight of a divisor to extract
+    int               LitCountMax;      // the max literal count of a divisor to consider
     // the input information
     Vec_Ptr_t *       vSops;            // the SOPs for each node in the network
     Vec_Ptr_t *       vFanins;          // the fanins of each node in the network

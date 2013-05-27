@@ -87,6 +87,7 @@ struct Fx_Man_t_
 {
     // user's data
     Vec_Wec_t *     vCubes;     // cube -> lit
+    int             LitCountMax;// max size of divisor to extract
     // internal data
     Vec_Wec_t *     vLits;      // lit -> cube
     Vec_Int_t *     vCounts;    // literal counts (currently not used)
@@ -141,7 +142,6 @@ Vec_Wec_t * Abc_NtkFxRetrieve( Abc_Ntk_t * pNtk )
     char * pCube, * pSop;
     int nVars, i, v, Lit;
     assert( Abc_NtkIsSopLogic(pNtk) );
-    Abc_NtkMakeLegit( pNtk );
     vCubes = Vec_WecAlloc( 1000 );
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
@@ -300,9 +300,9 @@ int Abc_NtkFxCheck( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkFxPerform( Abc_Ntk_t * pNtk, int nNewNodesMax, int fVerbose )
+int Abc_NtkFxPerform( Abc_Ntk_t * pNtk, int nNewNodesMax, int LitCountMax, int fVerbose )
 {
-    extern int Fx_FastExtract( Vec_Wec_t * vCubes, int ObjIdMax, int nNewNodesMax, int fVerbose );
+    extern int Fx_FastExtract( Vec_Wec_t * vCubes, int ObjIdMax, int nNewNodesMax, int LitCountMax, int fVerbose );
     Vec_Wec_t * vCubes;
     assert( Abc_NtkIsSopLogic(pNtk) );
     // check unique fanins
@@ -314,10 +314,12 @@ int Abc_NtkFxPerform( Abc_Ntk_t * pNtk, int nNewNodesMax, int fVerbose )
     // sweep removes useless nodes
     Abc_NtkCleanup( pNtk, 0 );
 //    Abc_NtkOrderFanins( pNtk );
+    // makes sure the SOPs are SCC-free and D1C-free
+    Abc_NtkMakeLegit( pNtk );
     // collect information about the covers
     vCubes = Abc_NtkFxRetrieve( pNtk );
     // call the fast extract procedure
-    if ( Fx_FastExtract( vCubes, Abc_NtkObjNumMax(pNtk), nNewNodesMax, fVerbose ) > 0 )
+    if ( Fx_FastExtract( vCubes, Abc_NtkObjNumMax(pNtk), nNewNodesMax, LitCountMax, fVerbose ) > 0 )
     {
         // update the network
         Abc_NtkFxInsert( pNtk, vCubes );
@@ -792,6 +794,8 @@ void Fx_ManCubeDoubleCubeDivisors( Fx_Man_t * p, int iFirst, Vec_Int_t * vPivot,
             else
                 p->nDivMux[2]++;
         }
+        if ( p->LitCountMax && p->LitCountMax < Vec_IntSize(p->vCubeFree) )
+            continue;
         iDiv = Hsh_VecManAdd( p->pHash, p->vCubeFree );
         if ( !fRemove )
         {
@@ -1107,7 +1111,7 @@ void Fx_ManUpdate( Fx_Man_t * p, int iDiv )
   SeeAlso     []
 
 ***********************************************************************/
-int Fx_FastExtract( Vec_Wec_t * vCubes, int ObjIdMax, int nNewNodesMax, int fVerbose )
+int Fx_FastExtract( Vec_Wec_t * vCubes, int ObjIdMax, int nNewNodesMax, int LitCountMax, int fVerbose )
 {
     int fVeryVerbose = 0;
     int i, iDiv;
@@ -1115,6 +1119,7 @@ int Fx_FastExtract( Vec_Wec_t * vCubes, int ObjIdMax, int nNewNodesMax, int fVer
     clock_t clk = clock();
     // initialize the data-structure
     p = Fx_ManStart( vCubes );
+    p->LitCountMax = LitCountMax;
     Fx_ManCreateLiterals( p, ObjIdMax );
     Fx_ManCreateDivisors( p );
     if ( fVeryVerbose )

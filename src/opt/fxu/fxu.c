@@ -83,7 +83,7 @@ int Fxu_FastExtract( Fxu_Data_t * pData )
             Weight1 = Fxu_HeapSingleReadMaxWeight( p->pHeapSingle );
             if ( pData->fVerbose )
                 printf( "Div %5d : Best single = %5d.%s", Counter++, Weight1, fScrollLines?"\n":"\r" );
-            if ( Weight1 > pData->WeightMax || (Weight1 == 0 && pData->fUse0) )
+            if ( Weight1 > pData->WeightMin || (Weight1 == 0 && pData->fUse0) )
                 Fxu_UpdateSingle( p );
             else
                 break;
@@ -98,7 +98,7 @@ int Fxu_FastExtract( Fxu_Data_t * pData )
             Weight2 = Fxu_HeapDoubleReadMaxWeight( p->pHeapDouble );
             if ( pData->fVerbose )
                 printf( "Div %5d : Best double = %5d.%s", Counter++, Weight2, fScrollLines?"\n":"\r" );
-            if ( Weight2 > pData->WeightMax || (Weight2 == 0 && pData->fUse0) )
+            if ( Weight2 > pData->WeightMin || (Weight2 == 0 && pData->fUse0) )
                 Fxu_UpdateDouble( p );
             else
                 break;
@@ -119,14 +119,14 @@ int Fxu_FastExtract( Fxu_Data_t * pData )
 
             if ( Weight1 >= Weight2 )
             {
-                if ( Weight1 > pData->WeightMax || (Weight1 == 0 && pData->fUse0) )
+                if ( Weight1 > pData->WeightMin || (Weight1 == 0 && pData->fUse0) )
                     Fxu_UpdateSingle( p );
                 else
                     break;
             }
             else
             {
-                if ( Weight2 > pData->WeightMax || (Weight2 == 0 && pData->fUse0) )
+                if ( Weight2 > pData->WeightMin || (Weight2 == 0 && pData->fUse0) )
                     Fxu_UpdateDouble( p );
                 else
                     break;
@@ -148,7 +148,7 @@ int Fxu_FastExtract( Fxu_Data_t * pData )
                 printf( "Div %5d : Best double = %5d. Best single = %5d. Best complement = %5d.%s", 
                     Counter++, Weight2, Weight1, Weight3, fScrollLines?"\n":"\r" );
 
-            if ( Weight3 > pData->WeightMax || (Weight3 == 0 && pData->fUse0) )
+            if ( Weight3 > pData->WeightMin || (Weight3 == 0 && pData->fUse0) )
                 Fxu_Update( p, pSingle, pDouble );
             else
                 break;
