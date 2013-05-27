@@ -256,7 +256,7 @@ int Sfm_NtkPerform( Sfm_Ntk_t * p, Sfm_Par_t * pPars )
     int i, k, Counter = 0;
     p->timeTotal = clock();
     if ( pPars->fVerbose )
-        printf( "Performing MFS with %d fixed objected.\n", Vec_StrSum(p->vFixed) );
+        printf( "Performing MFS with %d fixed objects.\n", Vec_StrSum(p->vFixed) );
     p->pPars = pPars;
     Sfm_NtkPrepare( p );
 //    Sfm_ComputeInterpolantCheck( p );
