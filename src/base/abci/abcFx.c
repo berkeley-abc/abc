@@ -135,7 +135,6 @@ static inline int Fx_ManGetFirstVarCube( Fx_Man_t * p, Vec_Int_t * vCube ) { ret
 ***********************************************************************/
 Vec_Wec_t * Abc_NtkFxRetrieve( Abc_Ntk_t * pNtk )
 {
-    extern int Abc_NtkMakeLegit( Abc_Ntk_t * pNtk );
     Vec_Wec_t * vCubes;
     Vec_Int_t * vCube;
     Abc_Obj_t * pNode;
