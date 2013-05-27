@@ -47,7 +47,7 @@ struct Mfs_Par_t_
     int           nFanoutsMax;   // the maximum number of fanouts
     int           nDepthMax;     // the maximum number of logic levels
     int           nDivMax;       // the maximum number of divisors
-    int           nWinSizeMax;   // the maximum size of the window
+    int           nWinMax;       // the maximum size of the window
     int           nGrowthLevel;  // the maximum allowed growth in level
     int           nBTLimit;      // the maximum number of conflicts in one SAT run
     int           fRrOnly;       // perform redundance removal

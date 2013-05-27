@@ -52,8 +52,8 @@ Mfs_Man_t * Mfs_ManAlloc( Mfs_Par_t * pPars )
     p->vProjVarsCnf = Vec_IntAlloc( 100 );
     p->vProjVarsSat = Vec_IntAlloc( 100 );
     p->vDivLits  = Vec_IntAlloc( 100 );
-    p->nDivWords = Abc_BitWordNum(p->pPars->nDivMax + MFS_FANIN_MAX);
-    p->vDivCexes = Vec_PtrAllocSimInfo( p->pPars->nDivMax+MFS_FANIN_MAX+1, p->nDivWords );
+    p->nDivWords = Abc_BitWordNum(p->pPars->nWinMax + MFS_FANIN_MAX);
+    p->vDivCexes = Vec_PtrAllocSimInfo( p->pPars->nWinMax + MFS_FANIN_MAX + 1, p->nDivWords );
     p->pMan      = Int_ManAlloc();
     p->vMem      = Vec_IntAlloc( 0 );
     p->vLevels   = Vec_VecStart( 32 );
@@ -112,8 +112,8 @@ void Mfs_ManPrint( Mfs_Man_t * p )
 {
     if ( p->pPars->fResub )
     {
-        printf( "Nodes = %d. Try = %d. Resub = %d. Div = %d. SAT calls = %d. Timeouts = %d.\n",
-            p->nTotalNodesBeg, p->nNodesTried, p->nNodesResub, p->nTotalDivs, p->nSatCalls, p->nTimeOuts );
+        printf( "Nodes = %d. Try = %d. Resub = %d. Div = %d. SAT calls = %d. Timeouts = %d. MaxDivs = %d.\n",
+            p->nTotalNodesBeg, p->nNodesTried, p->nNodesResub, p->nTotalDivs, p->nSatCalls, p->nTimeOuts, p->nMaxDivs );
 
         printf( "Attempts :   " );
         printf( "Remove %6d out of %6d (%6.2f %%)   ", p->nRemoves, p->nTryRemoves, 100.0*p->nRemoves/Abc_MaxInt(1, p->nTryRemoves) );

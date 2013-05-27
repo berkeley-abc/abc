@@ -114,6 +114,7 @@ struct Mfs_Man_t_
     int                 nTimeOuts;
     int                 nTimeOutsLevel;
     int                 nDcMints;
+    int                 nMaxDivs;
     double              dTotalRatios;
     // node/edge stats
     int                 nTotalNodesBeg;

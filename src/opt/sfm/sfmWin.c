@@ -275,6 +275,7 @@ int Sfm_NtkCreateWindow( Sfm_Ntk_t * p, int iNode, int fVerbose )
     Sfm_NtkIncrementTravId( p );
     if ( Sfm_NtkCollectTfi_rec( p, iNode, p->pPars->nWinSizeMax ) )
     {
+        p->nMaxDivs++;
         p->timeWin += clock() - clk;
         return 0;
     }

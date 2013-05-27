@@ -50,8 +50,7 @@ void Abc_NtkMfsParsDefault( Mfs_Par_t * pPars )
     pPars->nWinTfoLevs  =    2;
     pPars->nFanoutsMax  =   30;
     pPars->nDepthMax    =   20;
-    pPars->nDivMax      =  250;
-    pPars->nWinSizeMax  =  300;
+    pPars->nWinMax      =  300;
     pPars->nGrowthLevel =    0;
     pPars->nBTLimit     = 5000;
     pPars->fRrOnly      =    0;
@@ -98,7 +97,7 @@ int Abc_WinNode(Mfs_Man_t * p, Abc_Obj_t *pNode)
     p->vRoots = Abc_MfsComputeRoots( pNode, p->pPars->nWinTfoLevs, p->pPars->nFanoutsMax );
     p->vSupp  = Abc_NtkNodeSupport( p->pNtk, (Abc_Obj_t **)Vec_PtrArray(p->vRoots), Vec_PtrSize(p->vRoots) );
     p->vNodes = Abc_NtkDfsNodes( p->pNtk, (Abc_Obj_t **)Vec_PtrArray(p->vRoots), Vec_PtrSize(p->vRoots) );
-    if ( p->pPars->nWinSizeMax && Vec_PtrSize(p->vNodes) > p->pPars->nWinSizeMax )
+    if ( p->pPars->nWinMax && Vec_PtrSize(p->vNodes) > p->pPars->nWinMax )
         return 1;
     // compute the divisors of the window
     p->vDivs  = Abc_MfsComputeDivisors( p, pNode, Abc_ObjRequiredLevel(pNode) - 1 );
@@ -246,8 +245,11 @@ clk = clock();
     p->vSupp  = Abc_NtkNodeSupport( p->pNtk, (Abc_Obj_t **)Vec_PtrArray(p->vRoots), Vec_PtrSize(p->vRoots) );
     p->vNodes = Abc_NtkDfsNodes( p->pNtk, (Abc_Obj_t **)Vec_PtrArray(p->vRoots), Vec_PtrSize(p->vRoots) );
 p->timeWin += clock() - clk;
-    if ( p->pPars->nWinSizeMax && Vec_PtrSize(p->vNodes) > p->pPars->nWinSizeMax )
+    if ( p->pPars->nWinMax && Vec_PtrSize(p->vNodes) > p->pPars->nWinMax )
+    {
+        p->nMaxDivs++;
         return 1;
+    }
     // compute the divisors of the window
 clk = clock();
     p->vDivs  = Abc_MfsComputeDivisors( p, pNode, Abc_ObjRequiredLevel(pNode) - 1 );

@@ -297,7 +297,7 @@ p->timeInt += clock() - clk;
             p->nResubs++;
             return 1;
         }
-        if ( p->nCexes >= p->pPars->nDivMax )
+        if ( p->nCexes >= p->pPars->nWinMax )
             break;
     }
     if ( p->pPars->fVeryVerbose )
@@ -467,7 +467,7 @@ clk = clock();
 p->timeInt += clock() - clk;
             return 1;
         }
-        if ( p->nCexes >= p->pPars->nDivMax )
+        if ( p->nCexes >= p->pPars->nWinMax )
             break;
     }
     return 0;

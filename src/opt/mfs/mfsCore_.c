@@ -48,7 +48,6 @@ void Abc_NtkMfsParsDefault( Mfs_Par_t * pPars )
     pPars->nWinTfoLevs  =    2;
     pPars->nFanoutsMax  =   10;
     pPars->nDepthMax    =   20;
-    pPars->nDivMax      =  250;
     pPars->nWinSizeMax  =  300;
     pPars->nGrowthLevel =    0;
     pPars->nBTLimit     = 5000;

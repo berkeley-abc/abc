@@ -223,7 +223,7 @@ Vec_Ptr_t * Abc_MfsComputeDivisors( Mfs_Man_t * p, Abc_Obj_t * pNode, int nLevDi
     // nodes to be avoided as divisors are marked with current trav ID
 
     // start collecting the divisors
-    vDivs = Vec_PtrAlloc( p->pPars->nDivMax );
+    vDivs = Vec_PtrAlloc( p->pPars->nWinMax );
     Vec_PtrForEachEntry( Abc_Obj_t *, vCone, pObj, k )
     {
         if ( !Abc_NodeIsTravIdPrevious(pObj) )
@@ -231,13 +231,13 @@ Vec_Ptr_t * Abc_MfsComputeDivisors( Mfs_Man_t * p, Abc_Obj_t * pNode, int nLevDi
         if ( (int)pObj->Level > nLevDivMax )
             continue;
         Vec_PtrPush( vDivs, pObj );
-        if ( Vec_PtrSize(vDivs) >= p->pPars->nDivMax )
+        if ( Vec_PtrSize(vDivs) >= p->pPars->nWinMax )
             break;
     }
     Vec_PtrFree( vCone );
 
     // explore the fanouts of already collected divisors
-    if ( Vec_PtrSize(vDivs) < p->pPars->nDivMax )
+    if ( Vec_PtrSize(vDivs) < p->pPars->nWinMax )
     Vec_PtrForEachEntry( Abc_Obj_t *, vDivs, pObj, k )
     {
         // consider fanouts of this node
@@ -273,12 +273,13 @@ Vec_Ptr_t * Abc_MfsComputeDivisors( Mfs_Man_t * p, Abc_Obj_t * pNode, int nLevDi
             Vec_PtrPushUnique( p->vNodes, pFanout );
             Abc_NodeSetTravIdPrevious( pFanout );
             nDivsPlus++;
-            if ( Vec_PtrSize(vDivs) >= p->pPars->nDivMax )
+            if ( Vec_PtrSize(vDivs) >= p->pPars->nWinMax )
                 break;
         }
-        if ( Vec_PtrSize(vDivs) >= p->pPars->nDivMax )
+        if ( Vec_PtrSize(vDivs) >= p->pPars->nWinMax )
             break;
     }
+    p->nMaxDivs += (Vec_PtrSize(vDivs) >= p->pPars->nWinMax);
 
     // sort the divisors by level in the increasing order
     Vec_PtrSort( vDivs, (int (*)(void))Abc_NodeCompareLevelsIncrease );

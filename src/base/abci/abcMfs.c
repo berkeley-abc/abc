@@ -74,9 +74,10 @@ Vec_Ptr_t * Abc_NtkAssignIDs2( Abc_Ntk_t * pNtk )
     vNodes = Vec_PtrAlloc( Abc_NtkNodeNum(pNtk) );
     Abc_NtkForEachNode( pNtk, pObj, i )
     {
+        pObj->iTemp = Abc_NtkCiNum(pNtk) + Vec_PtrSize(vNodes);
         Vec_PtrPush( vNodes, pObj );
-        pObj->iTemp = Abc_NtkCiNum(pNtk) + i;
     }
+    assert( Vec_PtrSize(vNodes) == Abc_NtkNodeNum(pNtk) );
     Abc_NtkForEachCo( pNtk, pObj, i )
         pObj->iTemp = Abc_NtkCiNum(pNtk) + Vec_PtrSize(vNodes) + i;
     return vNodes;
