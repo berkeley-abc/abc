@@ -336,7 +336,7 @@ static inline int          Gia_ObjIsCi( Gia_Obj_t * pObj )                     {
 static inline int          Gia_ObjIsCo( Gia_Obj_t * pObj )                     { return pObj->fTerm && pObj->iDiff0 != GIA_NONE; } 
 static inline int          Gia_ObjIsAnd( Gia_Obj_t * pObj )                    { return!pObj->fTerm && pObj->iDiff0 != GIA_NONE; } 
 static inline int          Gia_ObjIsXor( Gia_Obj_t * pObj )                    { return Gia_ObjIsAnd(pObj) && pObj->iDiff0 < pObj->iDiff1; } 
-static inline int          Gia_ObjIsMux( Gia_Man_t * p, Gia_Obj_t * pObj )     { return p->pMuxes && p->pMuxes[Gia_ObjId(p, pObj)] > 0;    } 
+static inline int          Gia_ObjIsMux( Gia_Man_t * p, int iObj )             { return p->pMuxes && p->pMuxes[iObj] > 0;        } 
 static inline int          Gia_ObjIsCand( Gia_Obj_t * pObj )                   { return Gia_ObjIsAnd(pObj) || Gia_ObjIsCi(pObj); } 
 static inline int          Gia_ObjIsConst0( Gia_Obj_t * pObj )                 { return pObj->iDiff0 == GIA_NONE && pObj->iDiff1 == GIA_NONE; } 
 static inline int          Gia_ManObjIsConst0( Gia_Man_t * p, Gia_Obj_t * pObj){ return pObj == p->pObjs;                        } 
@@ -419,8 +419,10 @@ static inline int          Gia_ObjRefInc( Gia_Man_t * p, Gia_Obj_t * pObj )    {
 static inline int          Gia_ObjRefDec( Gia_Man_t * p, Gia_Obj_t * pObj )    { assert(p->pRefs); return --p->pRefs[Gia_ObjId(p, pObj)];  }
 static inline void         Gia_ObjRefFanin0Inc(Gia_Man_t * p, Gia_Obj_t * pObj){ assert(p->pRefs); Gia_ObjRefInc(p, Gia_ObjFanin0(pObj));  }
 static inline void         Gia_ObjRefFanin1Inc(Gia_Man_t * p, Gia_Obj_t * pObj){ assert(p->pRefs); Gia_ObjRefInc(p, Gia_ObjFanin1(pObj));  }
+static inline void         Gia_ObjRefFanin2Inc(Gia_Man_t * p, Gia_Obj_t * pObj){ assert(p->pRefs); Gia_ObjRefInc(p, Gia_ObjFanin2(p, pObj));  }
 static inline void         Gia_ObjRefFanin0Dec(Gia_Man_t * p, Gia_Obj_t * pObj){ assert(p->pRefs); Gia_ObjRefDec(p, Gia_ObjFanin0(pObj));  }
 static inline void         Gia_ObjRefFanin1Dec(Gia_Man_t * p, Gia_Obj_t * pObj){ assert(p->pRefs); Gia_ObjRefDec(p, Gia_ObjFanin1(pObj));  }
+static inline void         Gia_ObjRefFanin2Dec(Gia_Man_t * p, Gia_Obj_t * pObj){ assert(p->pRefs); Gia_ObjRefDec(p, Gia_ObjFanin2(p, pObj));  }
 
 static inline void         Gia_ObjSetTravIdCurrent( Gia_Man_t * p, Gia_Obj_t * pObj )         { assert( Gia_ObjId(p, pObj) < p->nTravIdsAlloc ); p->pTravIds[Gia_ObjId(p, pObj)] = p->nTravIds;                    }
 static inline void         Gia_ObjSetTravIdPrevious( Gia_Man_t * p, Gia_Obj_t * pObj )        { assert( Gia_ObjId(p, pObj) < p->nTravIdsAlloc ); p->pTravIds[Gia_ObjId(p, pObj)] = p->nTravIds - 1;                }
@@ -823,6 +825,8 @@ static inline int         Gia_ObjLutFanin( Gia_Man_t * p, int Id, int i )   { re
     for ( i = 0; (i < p->nObjs) && ((pObj) = Gia_ManObj(p, i)); i++ )      if ( !Gia_ObjIsCand(pObj) ) {} else
 #define Gia_ManForEachAndReverse( p, pObj, i )                          \
     for ( i = p->nObjs - 1; (i > 0) && ((pObj) = Gia_ManObj(p, i)); i-- )  if ( !Gia_ObjIsAnd(pObj) ) {} else
+#define Gia_ManForEachMux( p, pObj, i )                                 \
+    for ( i = 0; (i < p->nObjs) && ((pObj) = Gia_ManObj(p, i)); i++ )      if ( !Gia_ObjIsMux(p, i) ) {} else
 #define Gia_ManForEachCi( p, pObj, i )                                  \
     for ( i = 0; (i < Vec_IntSize(p->vCis)) && ((pObj) = Gia_ManCi(p, i)); i++ )
 #define Gia_ManForEachCo( p, pObj, i )                                  \
@@ -1163,6 +1167,7 @@ extern void                Gia_ManMarkFanoutDrivers( Gia_Man_t * p );
 extern void                Gia_ManSwapPos( Gia_Man_t * p, int i );
 extern Vec_Int_t *         Gia_ManSaveValue( Gia_Man_t * p );
 extern void                Gia_ManLoadValue( Gia_Man_t * p, Vec_Int_t * vValues );
+extern Vec_Int_t *         Gia_ManFirstFanouts( Gia_Man_t * p );
 
 
 /*=== giaCTas.c ===========================================================*/
