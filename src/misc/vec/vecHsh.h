@@ -137,10 +137,18 @@ static inline int Hsh_IntManHash( unsigned * pData, int nSize, int nTableSize )
         Key += pDataC[c] * s_Primes[c % 7];
     return (int)(Key % nTableSize);
 }
-static inline int Hsh_IntManAdd( Hsh_IntMan_t * p, int iData )
+static inline int * Hsh_IntManLookup( Hsh_IntMan_t * p, unsigned * pData )
 {
     Hsh_IntObj_t * pObj;
-    unsigned * pData = Hsh_IntData( p, iData );
+    int * pPlace = Vec_IntEntryP( p->vTable, Hsh_IntManHash(pData, p->nSize, Vec_IntSize(p->vTable)) );
+    for ( ; (pObj = Hsh_IntObj(p, *pPlace)); pPlace = &pObj->iNext )
+        if ( !memcmp( pData, Hsh_IntData(p, pObj->iData), sizeof(int) * p->nSize ) )
+            return pPlace;
+    assert( *pPlace == -1 );
+    return pPlace;
+}
+static inline int Hsh_IntManAdd( Hsh_IntMan_t * p, int iData )
+{
     int i, * pPlace;
     if ( Vec_WrdSize(p->vObjs) > Vec_IntSize(p->vTable) )
     {
@@ -151,13 +159,14 @@ static inline int Hsh_IntManAdd( Hsh_IntMan_t * p, int iData )
             Hsh_IntObj(p, i)->iNext = *pPlace;  *pPlace = i;
         }
     }
-    pPlace = Vec_IntEntryP( p->vTable, Hsh_IntManHash(pData, p->nSize, Vec_IntSize(p->vTable)) );
-    for ( ; (pObj = Hsh_IntObj(p, *pPlace)); pPlace = &pObj->iNext )
-        if ( !memcmp( pData, Hsh_IntData(p, pObj->iData), sizeof(int) * p->nSize ) )
-            return (word *)pObj - Vec_WrdArray(p->vObjs);
-    *pPlace = Vec_WrdSize(p->vObjs);
-    Vec_WrdPush( p->vObjs, Hsh_IntWord(iData, -1) );
-    return Vec_WrdSize(p->vObjs)-1;
+    pPlace = Hsh_IntManLookup( p, Hsh_IntData(p, iData) );
+    if ( *pPlace == -1 )
+    {
+        *pPlace = Vec_WrdSize(p->vObjs);
+        Vec_WrdPush( p->vObjs, Hsh_IntWord(iData, -1) );
+        return Vec_WrdSize(p->vObjs) - 1;
+    }
+    return (word *)Hsh_IntObj(p, *pPlace) - Vec_WrdArray(p->vObjs);
 }
 
 /**Function*************************************************************
