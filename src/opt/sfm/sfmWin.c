@@ -266,41 +266,34 @@ static inline int Sfm_ObjIsUseful( Sfm_Ntk_t * p, int iNode )
   SeeAlso     []
 
 ***********************************************************************/
-int Sfm_NtkCollectTfi_rec( Sfm_Ntk_t * p, int iNode, Vec_Int_t * vLeaves, Vec_Int_t * vNodes )
+int Sfm_NtkCollectTfi_rec( Sfm_Ntk_t * p, int iNode, Vec_Int_t * vNodes )
 {
     int i, iFanin;
     if ( Sfm_ObjIsTravIdCurrent( p, iNode ) )
         return 0;
     Sfm_ObjSetTravIdCurrent( p, iNode );
-    if ( Sfm_ObjIsPi( p, iNode ) )
-    {
-        Vec_IntPush( vLeaves, iNode );
-        return 0;
-    }
     Sfm_ObjForEachFanin( p, iNode, iFanin, i )
-        if ( Sfm_NtkCollectTfi_rec( p, iFanin, vLeaves, vNodes ) )
+        if ( Sfm_NtkCollectTfi_rec( p, iFanin, vNodes ) )
             return 1;
     Vec_IntPush( vNodes, iNode );
     return p->pPars->nWinSizeMax && (Vec_IntSize(vNodes) > p->pPars->nWinSizeMax);
 }
 int Sfm_NtkCreateWindow( Sfm_Ntk_t * p, int iNode, int fVerbose )
 {
-    int i, k, iTemp, nDivStart;
+    int i, k, iTemp;
     abctime clkDiv, clkWin = Abc_Clock();
 
     assert( Sfm_ObjIsNode( p, iNode ) );
     p->iPivotNode = iNode;
-    Vec_IntClear( p->vLeaves ); // leaves 
-    Vec_IntClear( p->vLeaves2 );// leaves 
     Vec_IntClear( p->vNodes );  // internal
-    Vec_IntClear( p->vNodes2 ); // internal
     Vec_IntClear( p->vDivs );   // divisors
     Vec_IntClear( p->vRoots );  // roots
     Vec_IntClear( p->vTfo );    // roots
+    Vec_IntClear( p->vOrder );  // variable order
 
     // collect transitive fanin
     Sfm_NtkIncrementTravId( p );
-    if ( Sfm_NtkCollectTfi_rec( p, iNode, p->vLeaves, p->vNodes ) )
+    if ( Sfm_NtkCollectTfi_rec( p, iNode, p->vNodes ) )
     {
         p->nMaxDivs++;
         p->timeWin += Abc_Clock() - clkWin;
@@ -310,13 +303,9 @@ int Sfm_NtkCreateWindow( Sfm_Ntk_t * p, int iNode, int fVerbose )
     // create divisors
     clkDiv = Abc_Clock();
     Vec_IntClear( p->vDivs );
-    Vec_IntForEachEntry( p->vLeaves, iTemp, i )
-        Vec_IntPush( p->vDivs, iTemp );
-    Vec_IntForEachEntry( p->vNodes, iTemp, i )
-        Vec_IntPush( p->vDivs, iTemp );
+    Vec_IntAppend( p->vDivs, p->vNodes );
     Vec_IntPop( p->vDivs );
     // add non-topological divisors
-    nDivStart = Vec_IntSize(p->vDivs);
     if ( Vec_IntSize(p->vDivs) < p->pPars->nWinSizeMax + 0 )
     {
         Sfm_NtkIncrementTravId2( p );
@@ -352,7 +341,7 @@ int Sfm_NtkCreateWindow( Sfm_Ntk_t * p, int iNode, int fVerbose )
     clkDiv = Abc_Clock() - clkDiv;
     p->timeDiv += clkDiv;
     p->nTotalDivs += Vec_IntSize(p->vDivs);
-
+ 
     // collect TFO and window roots
     if ( p->pPars->nTfoLevMax > 0 && !Sfm_NtkCheckRoot(p, iNode, Sfm_ObjLevel(p, iNode) + p->pPars->nTfoLevMax) )
     {
@@ -364,39 +353,34 @@ int Sfm_NtkCreateWindow( Sfm_Ntk_t * p, int iNode, int fVerbose )
         // compute new leaves and nodes
         Sfm_NtkIncrementTravId( p );
         Vec_IntForEachEntry( p->vRoots, iTemp, i )
-            if ( Sfm_NtkCollectTfi_rec( p, iTemp, p->vLeaves2, p->vNodes2 ) )
+            if ( Sfm_NtkCollectTfi_rec( p, iTemp, p->vOrder ) )
+            {
+                Vec_IntClear( p->vRoots );
+                Vec_IntClear( p->vTfo );
+                Vec_IntClear( p->vOrder );
                 break;
-        if ( i == Vec_IntSize(p->vRoots) )
-        {
-//        printf( "%d -> %d   %d -> %d\n", Vec_IntSize(p->vLeaves), Vec_IntSize(p->vLeaves2), Vec_IntSize(p->vNodes), Vec_IntSize(p->vNodes2) );
-            // swap leaves and nodes
-            ABC_SWAP( Vec_Int_t *, p->vLeaves, p->vLeaves2 );
-            ABC_SWAP( Vec_Int_t *, p->vNodes,  p->vNodes2 );
-        }
-        else
-        {
-            Vec_IntClear( p->vRoots );
-            Vec_IntClear( p->vTfo );
-        }
-//        printf( "Roots = %d.  TFO = %d.\n", Vec_IntSize(p->vRoots), Vec_IntSize(p->vTfo) );
+            }
+        if ( Vec_IntSize(p->vRoots) > 0 )
+        Vec_IntForEachEntry( p->vDivs, iTemp, i )
+            if ( Sfm_NtkCollectTfi_rec( p, iTemp, p->vOrder ) )
+            {
+                Vec_IntClear( p->vRoots );
+                Vec_IntClear( p->vTfo );
+                Vec_IntClear( p->vOrder );
+                break;
+            }
     }
 
-    // create ordering of the nodes, leaves and divisors that are not among nodes/leaves
-    Vec_IntClear( p->vOrder );
-    Sfm_NtkIncrementTravId2( p );
-    Vec_IntForEachEntryReverse( p->vNodes, iTemp, i )
+    if ( Vec_IntSize(p->vOrder) == 0 )
     {
-        Sfm_ObjSetTravIdCurrent2( p, iTemp );
-        Vec_IntPush( p->vOrder, iTemp );
+        int Temp = p->pPars->nWinSizeMax;
+        p->pPars->nWinSizeMax = 0;
+        Sfm_NtkIncrementTravId( p );
+        Sfm_NtkCollectTfi_rec( p, iNode, p->vOrder );
+        Vec_IntForEachEntry( p->vDivs, iTemp, i )
+            Sfm_NtkCollectTfi_rec( p, iTemp, p->vOrder );
+        p->pPars->nWinSizeMax = Temp;
     }
-    Vec_IntForEachEntry( p->vLeaves, iTemp, i )
-    {
-        Sfm_ObjSetTravIdCurrent2( p, iTemp );
-        Vec_IntPush( p->vOrder, iTemp );
-    }
-    Vec_IntForEachEntry( p->vDivs, iTemp, i )
-        if ( !Sfm_ObjIsTravIdCurrent2(p, iTemp) )
-            Vec_IntPush( p->vOrder, iTemp );
 
     // statistics
     p->timeWin += Abc_Clock() - clkWin - clkDiv;
@@ -405,7 +389,7 @@ int Sfm_NtkCreateWindow( Sfm_Ntk_t * p, int iNode, int fVerbose )
 
     // print stats about the window
     printf( "%6d : ", iNode );
-    printf( "Leaves = %5d. ", Vec_IntSize(p->vLeaves) );
+    printf( "Leaves = %5d. ", 0 );
     printf( "Nodes = %5d. ",  Vec_IntSize(p->vNodes) );
     printf( "Roots = %5d. ",  Vec_IntSize(p->vRoots) );
     printf( "Divs = %5d. ",   Vec_IntSize(p->vDivs) );

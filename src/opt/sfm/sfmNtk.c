@@ -163,10 +163,7 @@ Sfm_Ntk_t * Sfm_NtkConstruct( Vec_Wec_t * vFanins, int nPis, int nPos, Vec_Str_t
 }
 void Sfm_NtkPrepare( Sfm_Ntk_t * p )
 {
-    p->vLeaves   = Vec_IntAlloc( 1000 );
-    p->vLeaves2  = Vec_IntAlloc( 1000 );
     p->vNodes    = Vec_IntAlloc( 1000 );
-    p->vNodes2   = Vec_IntAlloc( 1000 );
     p->vDivs     = Vec_IntAlloc( 100 );
     p->vRoots    = Vec_IntAlloc( 1000 );
     p->vTfo      = Vec_IntAlloc( 1000 );
@@ -198,10 +195,7 @@ void Sfm_NtkFree( Sfm_Ntk_t * p )
     Vec_WecFree( p->vCnfs );
     Vec_IntFree( p->vCover );
     // other data
-    Vec_IntFreeP( &p->vLeaves );
-    Vec_IntFreeP( &p->vLeaves2 );
     Vec_IntFreeP( &p->vNodes );
-    Vec_IntFreeP( &p->vNodes2 );
     Vec_IntFreeP( &p->vDivs  );
     Vec_IntFreeP( &p->vRoots );
     Vec_IntFreeP( &p->vTfo   );

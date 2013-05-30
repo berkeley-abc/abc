@@ -77,10 +77,7 @@ struct Sfm_Ntk_t_
     int               nTravIds2;   // traversal IDs
     // window
     int               iPivotNode;  // window pivot
-    Vec_Int_t *       vLeaves;     // leaves 
-    Vec_Int_t *       vLeaves2;    // leaves 
     Vec_Int_t *       vNodes;      // internal
-    Vec_Int_t *       vNodes2;     // internal
     Vec_Int_t *       vDivs;       // divisors
     Vec_Int_t *       vRoots;      // roots
     Vec_Int_t *       vTfo;        // TFO (excluding iNode)

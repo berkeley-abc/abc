@@ -118,7 +118,7 @@ int Sfm_NodeResubSolve( Sfm_Ntk_t * p, int iNode, int f, int fRemoveOnly )
     // report init stats
     if ( p->pPars->fVeryVerbose )
         printf( "%5d : Lev =%3d. Leaf =%3d.  Node =%3d.  Div=%3d.  Fanin =%4d (%d/%d). MFFC = %d\n", 
-            iNode, Sfm_ObjLevel(p, iNode), Vec_IntSize(p->vLeaves), Vec_IntSize(p->vNodes), Vec_IntSize(p->vDivs), 
+            iNode, Sfm_ObjLevel(p, iNode), 0, Vec_IntSize(p->vNodes), Vec_IntSize(p->vDivs), 
             Sfm_ObjFanin(p, iNode, f), f, Sfm_ObjFaninNum(p, iNode), Sfm_ObjMffcSize(p, Sfm_ObjFanin(p, iNode, f)) );
     // clean simulation info
     p->nCexes = 0;
