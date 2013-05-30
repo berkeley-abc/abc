@@ -42,7 +42,6 @@
 ABC_NAMESPACE_HEADER_START
 
 #define SFM_FANIN_MAX 6
-
 #define SFM_SAT_UNDEC 0x1234567812345678
 #define SFM_SAT_SAT   0x8765432187654321
 
@@ -77,9 +76,11 @@ struct Sfm_Ntk_t_
     int               nTravIds;    // traversal IDs
     int               nTravIds2;   // traversal IDs
     // window
-    int               iNode;
+    int               iPivotNode;  // window pivot
     Vec_Int_t *       vLeaves;     // leaves 
+    Vec_Int_t *       vLeaves2;    // leaves 
     Vec_Int_t *       vNodes;      // internal
+    Vec_Int_t *       vNodes2;     // internal
     Vec_Int_t *       vDivs;       // divisors
     Vec_Int_t *       vRoots;      // roots
     Vec_Int_t *       vTfo;        // TFO (excluding iNode)
@@ -145,7 +146,7 @@ static inline int  Sfm_ObjFanout( Sfm_Ntk_t * p, int i, int k )         { return
 static inline int  Sfm_ObjSatVar( Sfm_Ntk_t * p, int iObj )             { assert(Vec_IntEntry(&p->vId2Var, iObj) > 0); return Vec_IntEntry(&p->vId2Var, iObj);  }
 static inline void Sfm_ObjSetSatVar( Sfm_Ntk_t * p, int iObj, int Num ) { assert(Vec_IntEntry(&p->vId2Var, iObj) == -1); Vec_IntWriteEntry(&p->vId2Var, iObj, Num);  Vec_IntWriteEntry(&p->vVar2Id, Num, iObj);  }
 static inline void Sfm_ObjCleanSatVar( Sfm_Ntk_t * p, int Num )         { int iObj = Vec_IntEntry(&p->vVar2Id, Num); assert(Vec_IntEntry(&p->vId2Var, iObj) > 0); Vec_IntWriteEntry(&p->vId2Var, iObj, -1);  Vec_IntWriteEntry(&p->vVar2Id, Num, -1); }
-static inline void Sfm_NtkCleanVars( Sfm_Ntk_t * p )                    { int i; for ( i = 1; i < p->nSatVars; i++ )  Sfm_ObjCleanSatVar( p, i ); }
+static inline void Sfm_NtkCleanVars( Sfm_Ntk_t * p )                    { int i; for ( i = 1; i < p->nSatVars; i++ )  if ( Vec_IntEntry(&p->vVar2Id, i) != -1 ) Sfm_ObjCleanSatVar( p, i ); }
 
 static inline int  Sfm_ObjLevel( Sfm_Ntk_t * p, int iObj )              { return Vec_IntEntry( &p->vLevels, iObj );                         }
 static inline void Sfm_ObjSetLevel( Sfm_Ntk_t * p, int iObj, int Lev )  { Vec_IntWriteEntry( &p->vLevels, iObj, Lev );                      }
@@ -171,7 +172,7 @@ extern void        Kit_DsdPrintFromTruth( unsigned * pTruth, int nVars );
 extern void         Sfm_PrintCnf( Vec_Str_t * vCnf );
 extern int          Sfm_TruthToCnf( word Truth, int nVars, Vec_Int_t * vCover, Vec_Str_t * vCnf );
 extern Vec_Wec_t *  Sfm_CreateCnf( Sfm_Ntk_t * p );
-extern void         Sfm_TranslateCnf( Vec_Wec_t * vRes, Vec_Str_t * vCnf, Vec_Int_t * vFaninMap );
+extern void         Sfm_TranslateCnf( Vec_Wec_t * vRes, Vec_Str_t * vCnf, Vec_Int_t * vFaninMap, int iPivotVar );
 /*=== sfmCore.c ==========================================================*/
 /*=== sfmNtk.c ==========================================================*/
 extern Sfm_Ntk_t *  Sfm_ConstructNetwork( Vec_Wec_t * vFanins, int nPis, int nPos );

@@ -150,7 +150,7 @@ Vec_Wec_t * Sfm_CreateCnf( Sfm_Ntk_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Sfm_TranslateCnf( Vec_Wec_t * vRes, Vec_Str_t * vCnf, Vec_Int_t * vFaninMap )
+void Sfm_TranslateCnf( Vec_Wec_t * vRes, Vec_Str_t * vCnf, Vec_Int_t * vFaninMap, int iPivotVar )
 {
     Vec_Int_t * vClause;
     char Entry;
@@ -159,11 +159,14 @@ void Sfm_TranslateCnf( Vec_Wec_t * vRes, Vec_Str_t * vCnf, Vec_Int_t * vFaninMap
     vClause = Vec_WecPushLevel( vRes );
     Vec_StrForEachEntry( vCnf, Entry, i )
     {
-        Lit = (int)Entry;
-        if ( Lit == -1 )
+        if ( (int)Entry == -1 )
+        {
             vClause = Vec_WecPushLevel( vRes );
-        else
-            Vec_IntPush( vClause, Abc_Lit2LitV( Vec_IntArray(vFaninMap), Lit ) );
+            continue;
+        }
+        Lit = Abc_Lit2LitV( Vec_IntArray(vFaninMap), (int)Entry );
+        Lit = Abc_LitNotCond( Lit, Abc_Lit2Var(Lit) == iPivotVar );
+        Vec_IntPush( vClause, Lit );
     }
 }
 

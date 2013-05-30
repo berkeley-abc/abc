@@ -53,13 +53,17 @@ static word s_Truths6[6] = {
 ***********************************************************************/
 void Sfm_NtkWindowToSolver( Sfm_Ntk_t * p )
 {
+    // p->vOrder contains all variables in the window in a good order
+    // p->vDivs is a subset of nodes in p->vOrder used as divisor candidates
+    // p->vTfo contains TFO of the node (does not include node)
+    // p->vRoots contains roots of the TFO of the node (may include node)
     Vec_Int_t * vClause;
     int RetValue, iNode = -1, iFanin, i, k;
     abctime clk = Abc_Clock();
 //    if ( p->pSat )
 //        printf( "%d  ", p->pSat->stats.learnts );
     sat_solver_restart( p->pSat );
-    sat_solver_setnvars( p->pSat, 1 + Vec_IntSize(p->vDivs) + 2 * Vec_IntSize(p->vTfo) + Vec_IntSize(p->vRoots) + 50 );
+    sat_solver_setnvars( p->pSat, 1 + Vec_IntSize(p->vOrder) + Vec_IntSize(p->vTfo) + Vec_IntSize(p->vRoots) + 10 );
     // create SAT variables
     Sfm_NtkCleanVars( p );
     p->nSatVars = 1;
@@ -80,7 +84,7 @@ void Sfm_NtkWindowToSolver( Sfm_Ntk_t * p )
             Vec_IntPush( p->vFaninMap, Sfm_ObjSatVar(p, iFanin) );
         Vec_IntPush( p->vFaninMap, Sfm_ObjSatVar(p, iNode) );
         // generate CNF 
-        Sfm_TranslateCnf( p->vClauses, (Vec_Str_t *)Vec_WecEntry(p->vCnfs, iNode), p->vFaninMap );
+        Sfm_TranslateCnf( p->vClauses, (Vec_Str_t *)Vec_WecEntry(p->vCnfs, iNode), p->vFaninMap, -1 );
         // add clauses
         Vec_WecForEachLevel( p->vClauses, vClause, k )
         {
@@ -89,6 +93,51 @@ void Sfm_NtkWindowToSolver( Sfm_Ntk_t * p )
             RetValue = sat_solver_addclause( p->pSat, Vec_IntArray(vClause), Vec_IntArray(vClause) + Vec_IntSize(vClause) );
             assert( RetValue );
         }
+    }
+    if ( Vec_IntSize(p->vTfo) > 0 )
+    {
+        assert( p->pPars->nTfoLevMax > 0 );
+        assert( Vec_IntSize(p->vRoots) > 0 );
+        assert( Vec_IntEntry(p->vTfo, 0) != p->iPivotNode );
+        // collect variables of root nodes
+        Vec_IntClear( p->vLits );
+        Vec_IntForEachEntry( p->vRoots, iNode, i )
+            Vec_IntPush( p->vLits, Sfm_ObjSatVar(p, iNode) );
+        // assign new variables to the TFO nodes
+        Vec_IntForEachEntry( p->vTfo, iNode, i )
+        {
+            Sfm_ObjCleanSatVar( p, Sfm_ObjSatVar(p, iNode) );
+            Sfm_ObjSetSatVar( p, iNode, p->nSatVars++ );
+        }
+        // add CNF clauses for the TFO
+        Vec_IntForEachEntry( p->vTfo, iNode, i )
+        {
+            assert( Sfm_ObjIsNode(p, iNode) );
+            // collect fanin variables
+            Vec_IntClear( p->vFaninMap );
+            Sfm_ObjForEachFanin( p, iNode, iFanin, k )
+                Vec_IntPush( p->vFaninMap, Sfm_ObjSatVar(p, iFanin) );
+            Vec_IntPush( p->vFaninMap, Sfm_ObjSatVar(p, iNode) );
+            // generate CNF 
+            Sfm_TranslateCnf( p->vClauses, (Vec_Str_t *)Vec_WecEntry(p->vCnfs, iNode), p->vFaninMap, Sfm_ObjSatVar(p, p->iPivotNode) );
+            // add clauses
+            Vec_WecForEachLevel( p->vClauses, vClause, k )
+            {
+                if ( Vec_IntSize(vClause) == 0 )
+                    break;
+                RetValue = sat_solver_addclause( p->pSat, Vec_IntArray(vClause), Vec_IntArray(vClause) + Vec_IntSize(vClause) );
+                assert( RetValue );
+            }
+        }
+        // create XOR clauses for the roots
+        Vec_IntForEachEntry( p->vRoots, iNode, i )
+        {
+            sat_solver_add_xor( p->pSat, Vec_IntEntry(p->vLits, i), Sfm_ObjSatVar(p, iNode), p->nSatVars++, 0 );
+            Vec_IntWriteEntry( p->vLits, i, Abc_Var2Lit(p->nSatVars-1, 0) );
+        }
+        // make OR clause for the last nRoots variables
+        RetValue = sat_solver_addclause( p->pSat, Vec_IntArray(p->vLits), Vec_IntArray(p->vLits) + Vec_IntSize(p->vLits) );
+        assert( RetValue );
     }
     // finalize
     RetValue = sat_solver_simplify( p->pSat );
@@ -113,7 +162,7 @@ word Sfm_ComputeInterpolant( Sfm_Ntk_t * p )
     int status, i, Div, iVar, nFinal, * pFinal, nIter = 0;
     int pLits[2], nVars = sat_solver_nvars( p->pSat );
     sat_solver_setnvars( p->pSat, nVars + 1 );
-    pLits[0] = Abc_Var2Lit( Sfm_ObjSatVar(p, Vec_IntEntryLast(p->vNodes)), 0 ); // F = 1
+    pLits[0] = Abc_Var2Lit( Sfm_ObjSatVar(p, p->iPivotNode), 0 ); // F = 1
     pLits[1] = Abc_Var2Lit( nVars, 0 ); // iNewLit
     while ( 1 ) 
     {

@@ -49,7 +49,7 @@ void Sfm_ParSetDefault( Sfm_Par_t * pPars )
     pPars->nFanoutMax   =   30;  // the maximum number of fanouts
     pPars->nDepthMax    =   20;  // the maximum depth to try  
     pPars->nWinSizeMax  =  300;  // the maximum window size
-    pPars->nBTLimit     =    0;  // the maximum number of conflicts in one SAT run
+    pPars->nBTLimit     = 5000;  // the maximum number of conflicts in one SAT run
     pPars->fFixLevel    =    1;  // does not allow level to increase
     pPars->fRrOnly      =    0;  // perform redundancy removal
     pPars->fArea        =    0;  // performs optimization for area
@@ -255,13 +255,13 @@ int Sfm_NtkPerform( Sfm_Ntk_t * p, Sfm_Par_t * pPars )
 {
     int i, k, Counter = 0;
     p->timeTotal = Abc_Clock();
-    if ( pPars->fVerbose )
+    if ( pPars->fVerbose && Vec_StrSum(p->vFixed) > 0 )
         printf( "Performing MFS with %d fixed objects.\n", Vec_StrSum(p->vFixed) );
     p->pPars = pPars;
     Sfm_NtkPrepare( p );
 //    Sfm_ComputeInterpolantCheck( p );
 //    return 0;
-    p->nTotalNodesBeg = Vec_WecSize(&p->vFanins) - Sfm_NtkPiNum(p) - Sfm_NtkPoNum(p);
+    p->nTotalNodesBeg = Vec_WecSizeUsedLimits( &p->vFanins, Sfm_NtkPiNum(p), Vec_WecSize(&p->vFanins) - Sfm_NtkPoNum(p) );
     p->nTotalEdgesBeg = Vec_WecSizeSize(&p->vFanins) - Sfm_NtkPoNum(p);
     Sfm_NtkForEachNode( p, i )
     {
@@ -278,7 +278,7 @@ int Sfm_NtkPerform( Sfm_Ntk_t * p, Sfm_Par_t * pPars )
         }
         Counter += (k > 0);
     }
-    p->nTotalNodesEnd = Vec_WecSizeUsed(&p->vFanins) - Sfm_NtkPoNum(p);
+    p->nTotalNodesEnd = Vec_WecSizeUsedLimits( &p->vFanins, Sfm_NtkPiNum(p), Vec_WecSize(&p->vFanins) - Sfm_NtkPoNum(p) );
     p->nTotalEdgesEnd = Vec_WecSizeSize(&p->vFanins) - Sfm_NtkPoNum(p);
     p->timeTotal = Abc_Clock() - p->timeTotal;
     if ( pPars->fVerbose )

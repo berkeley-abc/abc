@@ -215,6 +215,14 @@ static inline int Vec_WecSizeUsed( Vec_Wec_t * p )
         Counter += (int)(Vec_IntSize(vVec) > 0);
     return Counter;
 }
+static inline int Vec_WecSizeUsedLimits( Vec_Wec_t * p, int iStart, int iStop )
+{
+    Vec_Int_t * vVec;
+    int i, Counter = 0;
+    Vec_WecForEachLevelStartStop( p, vVec, i, iStart, iStop )
+        Counter += (int)(Vec_IntSize(vVec) > 0);
+    return Counter;
+}
 
 /**Function*************************************************************
 
