@@ -51,7 +51,6 @@ void Sfm_ParSetDefault( Sfm_Par_t * pPars )
     pPars->nWinSizeMax  =  300;  // the maximum window size
     pPars->nGrowthLevel =    0;  // the maximum allowed growth in level
     pPars->nBTLimit     = 5000;  // the maximum number of conflicts in one SAT run
-    pPars->fFixLevel    =    1;  // does not allow level to increase
     pPars->fRrOnly      =    0;  // perform redundancy removal
     pPars->fArea        =    0;  // performs optimization for area
     pPars->fMoreEffort  =    0;  // performs high-affort minimization
@@ -213,7 +212,8 @@ int Sfm_NodeResub( Sfm_Ntk_t * p, int iNode )
     // prepare SAT solver
     if ( !Sfm_NtkCreateWindow( p, iNode, p->pPars->fVeryVerbose ) )
         return 0;
-    Sfm_NtkWindowToSolver( p );
+    if ( !Sfm_NtkWindowToSolver( p ) )
+        return 0;
     // try replacing area critical fanins
     Sfm_ObjForEachFanin( p, iNode, iFanin, i )
         if ( Sfm_ObjIsNode(p, iFanin) && Sfm_ObjFanoutNum(p, iFanin) == 1 )

@@ -51,7 +51,7 @@ static word s_Truths6[6] = {
   SeeAlso     []
 
 ***********************************************************************/
-void Sfm_NtkWindowToSolver( Sfm_Ntk_t * p )
+int Sfm_NtkWindowToSolver( Sfm_Ntk_t * p )
 {
     // p->vOrder contains all variables in the window in a good order
     // p->vDivs is a subset of nodes in p->vOrder used as divisor candidates
@@ -137,12 +137,14 @@ void Sfm_NtkWindowToSolver( Sfm_Ntk_t * p )
         }
         // make OR clause for the last nRoots variables
         RetValue = sat_solver_addclause( p->pSat, Vec_IntArray(p->vLits), Vec_IntArray(p->vLits) + Vec_IntSize(p->vLits) );
-        assert( RetValue );
+        if ( RetValue == 0 )
+            return 0;
     }
     // finalize
     RetValue = sat_solver_simplify( p->pSat );
     assert( RetValue );
     p->timeCnf += Abc_Clock() - clk;
+    return 1;
 } 
 
 /**Function*************************************************************

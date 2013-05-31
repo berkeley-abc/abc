@@ -49,7 +49,6 @@ struct Sfm_Par_t_
     int             nGrowthLevel;  // the maximum allowed growth in level
     int             nBTLimit;      // the maximum number of conflicts in one SAT run
     int             nFirstFixed;   // the number of first nodes to be treated as fixed
-    int             fFixLevel;     // does not allow level to increase
     int             fRrOnly;       // perform redundance removal
     int             fArea;         // performs optimization for area
     int             fMoreEffort;   // performs high-affort minimization

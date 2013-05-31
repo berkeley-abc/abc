@@ -182,7 +182,7 @@ extern Sfm_Ntk_t *  Sfm_ConstructNetwork( Vec_Wec_t * vFanins, int nPis, int nPo
 extern void         Sfm_NtkPrepare( Sfm_Ntk_t * p );
 extern void         Sfm_NtkUpdate( Sfm_Ntk_t * p, int iNode, int f, int iFaninNew, word uTruth );
 /*=== sfmSat.c ==========================================================*/
-extern void         Sfm_NtkWindowToSolver( Sfm_Ntk_t * p );
+extern int          Sfm_NtkWindowToSolver( Sfm_Ntk_t * p );
 extern word         Sfm_ComputeInterpolant( Sfm_Ntk_t * p );
 /*=== sfmWin.c ==========================================================*/
 extern int          Sfm_ObjMffcSize( Sfm_Ntk_t * p, int iObj );
