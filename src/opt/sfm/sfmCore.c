@@ -49,6 +49,7 @@ void Sfm_ParSetDefault( Sfm_Par_t * pPars )
     pPars->nFanoutMax   =   30;  // the maximum number of fanouts
     pPars->nDepthMax    =   20;  // the maximum depth to try  
     pPars->nWinSizeMax  =  300;  // the maximum window size
+    pPars->nGrowthLevel =    0;  // the maximum allowed growth in level
     pPars->nBTLimit     = 5000;  // the maximum number of conflicts in one SAT run
     pPars->fFixLevel    =    1;  // does not allow level to increase
     pPars->fRrOnly      =    0;  // perform redundancy removal

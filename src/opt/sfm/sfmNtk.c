@@ -107,21 +107,49 @@ void Sfm_CreateFanout( Vec_Wec_t * vFanins, Vec_Wec_t * vFanouts )
   SeeAlso     []
 
 ***********************************************************************/
-static inline int Sfm_ObjCreateLevel( Vec_Int_t * vArray, Vec_Int_t * vLevels )
+static inline int Sfm_ObjLevelNew( Vec_Int_t * vArray, Vec_Int_t * vLevels )
 {
     int k, Fanin, Level = 0;
     Vec_IntForEachEntry( vArray, Fanin, k )
-        Level = Abc_MaxInt( Level, Vec_IntEntry(vLevels, Fanin) + 1 );
-    return Level;
+        Level = Abc_MaxInt( Level, Vec_IntEntry(vLevels, Fanin) );
+    return Level + 1;
 }
 void Sfm_CreateLevel( Vec_Wec_t * vFanins, Vec_Int_t * vLevels )
 {
     Vec_Int_t * vArray;
     int i;
     assert( Vec_IntSize(vLevels) == 0 );
-    Vec_IntGrow( vLevels, Vec_WecSize(vFanins) );
+    Vec_IntFill( vLevels, Vec_WecSize(vFanins), 0 );
     Vec_WecForEachLevel( vFanins, vArray, i )
-        Vec_IntPush( vLevels, Sfm_ObjCreateLevel(vArray, vLevels) );
+        Vec_IntWriteEntry( vLevels, i, Sfm_ObjLevelNew(vArray, vLevels) );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Sfm_ObjLevelNewR( Vec_Int_t * vArray, Vec_Int_t * vLevelsR )
+{
+    int k, Fanout, LevelR = 0;
+    Vec_IntForEachEntry( vArray, Fanout, k )
+        LevelR = Abc_MaxInt( LevelR, Vec_IntEntry(vLevelsR, Fanout) );
+    return LevelR + 1;
+}
+void Sfm_CreateLevelR( Vec_Wec_t * vFanouts, Vec_Int_t * vLevelsR )
+{
+    Vec_Int_t * vArray;
+    int i;
+    assert( Vec_IntSize(vLevelsR) == 0 );
+    Vec_IntFill( vLevelsR, Vec_WecSize(vFanouts), 0 );
+    Vec_WecForEachLevelReverse( vFanouts, vArray, i )
+        Vec_IntWriteEntry( vLevelsR, i, Sfm_ObjLevelNewR(vArray, vLevelsR) );
 }
 
 /**Function*************************************************************
@@ -152,6 +180,7 @@ Sfm_Ntk_t * Sfm_NtkConstruct( Vec_Wec_t * vFanins, int nPis, int nPos, Vec_Str_t
     // attributes
     Sfm_CreateFanout( &p->vFanins, &p->vFanouts );
     Sfm_CreateLevel( &p->vFanins, &p->vLevels );
+    Sfm_CreateLevelR( &p->vFanouts, &p->vLevelsR );
     Vec_IntFill( &p->vCounts,   p->nObjs,  0 );
     Vec_IntFill( &p->vTravIds,  p->nObjs,  0 );
     Vec_IntFill( &p->vTravIds2, p->nObjs,  0 );
@@ -163,6 +192,7 @@ Sfm_Ntk_t * Sfm_NtkConstruct( Vec_Wec_t * vFanins, int nPis, int nPos, Vec_Str_t
 }
 void Sfm_NtkPrepare( Sfm_Ntk_t * p )
 {
+    p->nLevelMax = Vec_IntFindMax(&p->vLevels) + p->pPars->nGrowthLevel;
     p->vNodes    = Vec_IntAlloc( 1000 );
     p->vDivs     = Vec_IntAlloc( 100 );
     p->vRoots    = Vec_IntAlloc( 1000 );
@@ -187,6 +217,7 @@ void Sfm_NtkFree( Sfm_Ntk_t * p )
     // attributes
     Vec_WecErase( &p->vFanouts );
     ABC_FREE( p->vLevels.pArray );
+    ABC_FREE( p->vLevelsR.pArray );
     ABC_FREE( p->vCounts.pArray );
     ABC_FREE( p->vTravIds.pArray );
     ABC_FREE( p->vTravIds2.pArray );
@@ -260,13 +291,22 @@ void Sfm_NtkDeleteObj_rec( Sfm_Ntk_t * p, int iNode )
 void Sfm_NtkUpdateLevel_rec( Sfm_Ntk_t * p, int iNode )
 {
     int i, iFanout;
-    int LevelNew = Sfm_ObjCreateLevel( Sfm_ObjFiArray(p, iNode), &p->vLevels );
+    int LevelNew = Sfm_ObjLevelNew( Sfm_ObjFiArray(p, iNode), &p->vLevels );
     if ( LevelNew == Sfm_ObjLevel(p, iNode) )
         return;
     Sfm_ObjSetLevel( p, iNode, LevelNew );
-    if ( Sfm_ObjIsNode(p, iNode) )
-        Sfm_ObjForEachFanout( p, iNode, iFanout, i )
-            Sfm_NtkUpdateLevel_rec( p, iFanout );
+    Sfm_ObjForEachFanout( p, iNode, iFanout, i )
+        Sfm_NtkUpdateLevel_rec( p, iFanout );
+}
+void Sfm_NtkUpdateLevelR_rec( Sfm_Ntk_t * p, int iNode )
+{
+    int i, iFanin;
+    int LevelNew = Sfm_ObjLevelNewR( Sfm_ObjFoArray(p, iNode), &p->vLevelsR );
+    if ( LevelNew == Sfm_ObjLevelR(p, iNode) )
+        return;
+    Sfm_ObjSetLevelR( p, iNode, LevelNew );
+    Sfm_ObjForEachFanin( p, iNode, iFanin, i )
+        Sfm_NtkUpdateLevelR_rec( p, iFanin );
 }
 void Sfm_NtkUpdate( Sfm_Ntk_t * p, int iNode, int f, int iFaninNew, word uTruth )
 {
@@ -292,6 +332,10 @@ void Sfm_NtkUpdate( Sfm_Ntk_t * p, int iNode, int f, int iFaninNew, word uTruth 
     }
     // update logic level
     Sfm_NtkUpdateLevel_rec( p, iNode );
+    if ( iFaninNew != -1 )
+        Sfm_NtkUpdateLevelR_rec( p, iFaninNew );
+    if ( Sfm_ObjFanoutNum(p, iFanin) > 0 )
+        Sfm_NtkUpdateLevelR_rec( p, iFanin );
     // update truth table
     Vec_WrdWriteEntry( p->vTruths, iNode, uTruth );
     Sfm_TruthToCnf( uTruth, Sfm_ObjFaninNum(p, iNode), p->vCover, (Vec_Str_t *)Vec_WecEntry(p->vCnfs, iNode) );

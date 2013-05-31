@@ -215,7 +215,7 @@ void Sfm_NtkAddDivisors( Sfm_Ntk_t * p, int iNode, int nLevelMax )
             return;
         // skip TFI nodes, PO nodes, or nodes with high logic level
         if ( Sfm_ObjIsTravIdCurrent(p, iFanout) || Sfm_ObjIsPo(p, iFanout) ||
-            (p->pPars->fFixLevel && Sfm_ObjLevel(p, iFanout) >= nLevelMax) )
+            (p->pPars->fFixLevel && Sfm_ObjLevel(p, iFanout) > nLevelMax) )
             continue;
         // handle single-input nodes
         if ( Sfm_ObjFaninNum(p, iFanout) == 1 )
@@ -311,7 +311,8 @@ int Sfm_NtkCreateWindow( Sfm_Ntk_t * p, int iNode, int fVerbose )
         Sfm_NtkIncrementTravId2( p );
         Vec_IntForEachEntry( p->vDivs, iTemp, i )
             if ( Vec_IntSize(p->vDivs) < p->pPars->nWinSizeMax + 0 )
-                Sfm_NtkAddDivisors( p, iTemp, Sfm_ObjLevel(p, iNode) );
+//                Sfm_NtkAddDivisors( p, iTemp, Sfm_ObjLevel(p, iNode) - 1 );
+                Sfm_NtkAddDivisors( p, iTemp, p->nLevelMax - Sfm_ObjLevelR(p, iNode) ); 
     }
     if ( Vec_IntSize(p->vDivs) > p->pPars->nWinSizeMax )
     {

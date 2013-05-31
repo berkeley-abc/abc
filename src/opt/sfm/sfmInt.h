@@ -58,6 +58,7 @@ struct Sfm_Ntk_t_
     int               nPos;        // PO count (POs should be last objects)
     int               nNodes;      // internal nodes
     int               nObjs;       // total objects
+    int               nLevelMax;   // maximum level
     // user data
     Vec_Str_t *       vFixed;      // persistent objects
     Vec_Wrd_t *       vTruths;     // truth tables
@@ -65,6 +66,7 @@ struct Sfm_Ntk_t_
     // attributes
     Vec_Wec_t         vFanouts;    // fanouts
     Vec_Int_t         vLevels;     // logic level
+    Vec_Int_t         vLevelsR;    // logic level
     Vec_Int_t         vCounts;     // fanin counters
     Vec_Int_t         vId2Var;     // ObjId -> SatVar
     Vec_Int_t         vVar2Id;     // SatVar -> ObjId
@@ -148,6 +150,9 @@ static inline void Sfm_NtkCleanVars( Sfm_Ntk_t * p )                    { int i;
 static inline int  Sfm_ObjLevel( Sfm_Ntk_t * p, int iObj )              { return Vec_IntEntry( &p->vLevels, iObj );                         }
 static inline void Sfm_ObjSetLevel( Sfm_Ntk_t * p, int iObj, int Lev )  { Vec_IntWriteEntry( &p->vLevels, iObj, Lev );                      }
 
+static inline int  Sfm_ObjLevelR( Sfm_Ntk_t * p, int iObj )             { return Vec_IntEntry( &p->vLevelsR, iObj );                        }
+static inline void Sfm_ObjSetLevelR( Sfm_Ntk_t * p, int iObj, int Lev ) { Vec_IntWriteEntry( &p->vLevelsR, iObj, Lev );                     }
+
 static inline int  Sfm_ObjUpdateFaninCount( Sfm_Ntk_t * p, int iObj )   { return Vec_IntAddToEntry(&p->vCounts, iObj, -1);                  }
 static inline void Sfm_ObjResetFaninCount( Sfm_Ntk_t * p, int iObj )    { Vec_IntWriteEntry(&p->vCounts, iObj, Sfm_ObjFaninNum(p, iObj)-1); }
 
@@ -157,7 +162,8 @@ extern void        Kit_DsdPrintFromTruth( unsigned * pTruth, int nVars );
 ///                      MACRO DEFINITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
-#define Sfm_NtkForEachNode( p, i )                for ( i = p->nPis; i + p->nPos < p->nObjs; i++ )
+#define Sfm_NtkForEachNode( p, i )               for ( i = p->nPis; i + p->nPos < p->nObjs; i++ )
+#define Sfm_NtkForEachNodeReverse( p, i )        for ( i = p->nObjs - p->nPos - 1; i >= p->nPis; i-- )
 #define Sfm_ObjForEachFanin( p, Node, Fan, i )   for ( i = 0; i < Sfm_ObjFaninNum(p, Node)  && ((Fan = Sfm_ObjFanin(p, Node, i)), 1);  i++ )
 #define Sfm_ObjForEachFanout( p, Node, Fan, i )  for ( i = 0; i < Sfm_ObjFanoutNum(p, Node) && ((Fan = Sfm_ObjFanout(p, Node, i)), 1); i++ )
 
