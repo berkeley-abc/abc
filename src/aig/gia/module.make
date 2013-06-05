@@ -28,6 +28,7 @@ SRC +=    src/aig/gia/giaAig.c \
     src/aig/gia/giaIso2.c \
     src/aig/gia/giaMan.c \
     src/aig/gia/giaMem.c \
+    src/aig/gia/giaMfs.c \
     src/aig/gia/giaMini.c \
     src/aig/gia/giaMuxes.c \
     src/aig/gia/giaPat.c \

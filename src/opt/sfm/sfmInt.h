@@ -162,6 +162,8 @@ extern void        Kit_DsdPrintFromTruth( unsigned * pTruth, int nVars );
 ///                      MACRO DEFINITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
+#define Sfm_NtkForEachPi( p, i )                 for ( i = 0; i < p->nPis; i++ )
+#define Sfm_NtkForEachPo( p, i )                 for ( i = p->nObjs - p->nPos; i < p->nObjs; i++ )
 #define Sfm_NtkForEachNode( p, i )               for ( i = p->nPis; i + p->nPos < p->nObjs; i++ )
 #define Sfm_NtkForEachNodeReverse( p, i )        for ( i = p->nObjs - p->nPos - 1; i >= p->nPis; i-- )
 #define Sfm_ObjForEachFanin( p, Node, Fan, i )   for ( i = 0; i < Sfm_ObjFaninNum(p, Node)  && ((Fan = Sfm_ObjFanin(p, Node, i)), 1);  i++ )

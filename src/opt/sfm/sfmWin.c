@@ -123,6 +123,40 @@ static inline int   Sfm_ObjIsTravIdCurrent2( Sfm_Ntk_t * p, int Id )   { return 
 
 /**Function*************************************************************
 
+  Synopsis    [Collects used internal nodes in a topological order.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Sfm_NtkDfs_rec( Sfm_Ntk_t * p, int iNode, Vec_Int_t * vNodes )
+{
+    int i, iFanin;
+    if ( Sfm_ObjIsPi(p, iNode) )
+        return;
+    if ( Sfm_ObjIsTravIdCurrent(p, iNode) )
+        return;
+    Sfm_ObjSetTravIdCurrent(p, iNode);
+    Sfm_ObjForEachFanin( p, iNode, iFanin, i )
+        Sfm_NtkDfs_rec( p, iFanin, vNodes );
+    Vec_IntPush( vNodes, iNode );
+}
+Vec_Int_t * Sfm_NtkDfs( Sfm_Ntk_t * p )
+{
+    Vec_Int_t * vNodes;
+    int i;
+    vNodes = Vec_IntAlloc( p->nObjs );
+    Sfm_NtkIncrementTravId( p );
+    Sfm_NtkForEachPo( p, i )
+        Sfm_NtkDfs_rec( p, Sfm_ObjFanin(p, i, 0), vNodes );
+    return vNodes;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Check if this fanout overlaps with TFI cone of the node.]
 
   Description []

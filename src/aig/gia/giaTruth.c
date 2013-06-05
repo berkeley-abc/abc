@@ -27,6 +27,15 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
+static word s_Truth6[6] = {
+    ABC_CONST(0xAAAAAAAAAAAAAAAA),
+    ABC_CONST(0xCCCCCCCCCCCCCCCC),
+    ABC_CONST(0xF0F0F0F0F0F0F0F0),
+    ABC_CONST(0xFF00FF00FF00FF00),
+    ABC_CONST(0xFFFF0000FFFF0000),
+    ABC_CONST(0xFFFFFFFF00000000)
+};
+
 static inline word * Gla_ObjTruthElem( Gia_Man_t * p, int i )            { return (word *)Vec_PtrEntry( p->vTtInputs, i );                                           }
 static inline word * Gla_ObjTruthNode( Gia_Man_t * p, Gia_Obj_t * pObj ) { return Vec_WrdArray(p->vTtMemory) + p->nTtWords * Gia_ObjNum(p, pObj);                    }
 static inline word * Gla_ObjTruthFree1( Gia_Man_t * p )                  { return Vec_WrdArray(p->vTtMemory) + p->nTtWords * 254;                                    }
@@ -37,6 +46,44 @@ static inline word * Gla_ObjTruthDup( Gia_Man_t * p, word * pDst, word * pSrc, i
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
+
+/**Function*************************************************************
+
+  Synopsis    [Computes truth table of a 6-LUT.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ObjComputeTruthTable6Lut_rec( Gia_Man_t * p, int iObj, Vec_Wrd_t * vTemp )
+{
+    word uTruth0, uTruth1;
+    Gia_Obj_t * pObj = Gia_ManObj( p, iObj );
+    if ( !Gia_ObjIsAnd(pObj) )
+        return;
+    Gia_ObjComputeTruthTable6Lut_rec( p, Gia_ObjFaninId0p(p, pObj), vTemp );
+    Gia_ObjComputeTruthTable6Lut_rec( p, Gia_ObjFaninId1p(p, pObj), vTemp );
+    uTruth0 = Vec_WrdEntry( vTemp, Gia_ObjFanin0(pObj)->Value );
+    uTruth0 = Gia_ObjFaninC0(pObj) ? ~uTruth0 : uTruth0;
+    uTruth1 = Vec_WrdEntry( vTemp, Gia_ObjFanin1(pObj)->Value );
+    uTruth1 = Gia_ObjFaninC1(pObj) ? ~uTruth1 : uTruth1;
+    Vec_WrdWriteEntry( vTemp, iObj, uTruth0 & uTruth1 );
+}
+word Gia_ObjComputeTruthTable6Lut( Gia_Man_t * p, int iObj, Vec_Wrd_t * vTemp )
+{
+    Gia_Obj_t * pObj = Gia_ManObj( p, iObj );
+    int i, Fanin;
+    assert( Vec_WrdSize(vTemp) == Gia_ManObjNum(p) );
+    assert( Gia_ObjIsLut(p, iObj) );
+    Gia_LutForEachFanin( p, iObj, Fanin, i )
+        Vec_WrdWriteEntry( vTemp, Fanin, s_Truth6[i] );
+    assert( i <= 6 );
+    Gia_ObjComputeTruthTable6Lut_rec( p, iObj, vTemp );
+    return Vec_WrdEntry( vTemp, iObj );
+}
 
 /**Function*************************************************************
 
@@ -68,14 +115,6 @@ void Gia_ObjComputeTruthTable6_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Wrd_t *
 }
 word Gia_ObjComputeTruthTable6( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vSupp, Vec_Wrd_t * vTruths )
 {
-    static word s_Truth6[6] = {
-        ABC_CONST(0xAAAAAAAAAAAAAAAA),
-        ABC_CONST(0xCCCCCCCCCCCCCCCC),
-        ABC_CONST(0xF0F0F0F0F0F0F0F0),
-        ABC_CONST(0xFF00FF00FF00FF00),
-        ABC_CONST(0xFFFF0000FFFF0000),
-        ABC_CONST(0xFFFFFFFF00000000)
-    };
     Gia_Obj_t * pLeaf;
     int i;
     assert( Vec_IntSize(vSupp) <= 6 );
