@@ -142,9 +142,8 @@ int Sfm_NtkWindowToSolver( Sfm_Ntk_t * p )
     }
     // finalize
     RetValue = sat_solver_simplify( p->pSat );
-    assert( RetValue );
     p->timeCnf += Abc_Clock() - clk;
-    return 1;
+    return RetValue;
 } 
 
 /**Function*************************************************************
