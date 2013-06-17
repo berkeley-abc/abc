@@ -306,7 +306,7 @@ static inline float Abc_SclGetMaxDelayNodeFanins( SC_Man * p, Abc_Obj_t * pNode 
 }
 static inline float Abc_SclReadMaxDelay( SC_Man * p )
 {
-    return Abc_SclObjTimeMax( p, Abc_NtkPo(p->pNtk, Vec_QueTop(p->vQue)) );
+    return Abc_SclObjTimeMax( p, Abc_NtkCo(p->pNtk, Vec_QueTop(p->vQue)) );
 }
 
 /**Function*************************************************************
