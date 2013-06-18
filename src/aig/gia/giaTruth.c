@@ -74,7 +74,6 @@ void Gia_ObjComputeTruthTable6Lut_rec( Gia_Man_t * p, int iObj, Vec_Wrd_t * vTem
 }
 word Gia_ObjComputeTruthTable6Lut( Gia_Man_t * p, int iObj, Vec_Wrd_t * vTemp )
 {
-    Gia_Obj_t * pObj = Gia_ManObj( p, iObj );
     int i, Fanin;
     assert( Vec_WrdSize(vTemp) == Gia_ManObjNum(p) );
     assert( Gia_ObjIsLut(p, iObj) );

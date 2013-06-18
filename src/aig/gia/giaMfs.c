@@ -317,6 +317,7 @@ Gia_Man_t * Gia_ManInsertMfs( Gia_Man_t * p, Sfm_Ntk_t * pNtk, Vec_Int_t * vId2M
         iLitNew = Vec_IntEntry( vMfs2New, Vec_IntEntry(vArray, 0) );
         assert( iLitNew >= 0 );
         // create CO
+        pTruth = Sfm_NodeReadTruth( pNtk, iMfsId );
         assert( pTruth[0] == s_ElemVar || ~pTruth[0] == s_ElemVar );
         Gia_ManAppendCo( pNew, Abc_LitNotCond(iLitNew, (int)(pTruth[0] != s_ElemVar)) );
     }
