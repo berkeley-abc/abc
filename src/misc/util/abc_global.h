@@ -271,17 +271,17 @@ static inline int      Abc_Lit2LitL( int * pMap, int Lit )    { return Abc_LitNo
 typedef ABC_INT64_T abctime;
 static inline abctime Abc_Clock()
 {
-    static abctime PeriodNum = 0;
-    static clock_t Period = ((abctime)1 << 30);
-    clock_t ClockTime = clock();
-    if ( ClockTime >= Period )
-    {
-        ClockTime -= Period;
-        PeriodNum++;
-    }
-    return PeriodNum * Period + ClockTime;
+#if defined(LIN) || defined(LIN64)
+    struct timespec ts;
+    if ( clock_gettime(CLOCK_THREAD_CPUTIME_ID, &ts) < 0 ) 
+        return (abctime)-1;
+    abctime res = ((abctime) ts.tv_sec) * CLOCKS_PER_SEC;
+    res += (((abctime) ts.tv_nsec) * CLOCKS_PER_SEC) / 1000000000;
+    return res;
+#else
+    return (abctime) clock();
+#endif
 }
-
 
 // bridge communication
 #define BRIDGE_NETLIST           106

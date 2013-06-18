@@ -62,7 +62,7 @@ endif
 
 endif
 
-LIBS := -ldl
+LIBS := -ldl -lrt
 
 ifneq ($(READLINE),0)
 CFLAGS += -DABC_USE_READLINE
