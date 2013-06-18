@@ -640,7 +640,17 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
                 {
                     if ( p->pPars->fVerbose ) 
                         Pdr_ManPrintProgress( p, 1, Abc_Clock() - clkStart );
-                    if ( p->pPars->nConfLimit )
+                    if ( p->timeToStop && Abc_Clock() > p->timeToStop )
+                        Abc_Print( 1, "Reached timeout (%d seconds).\n",  p->pPars->nTimeOut );
+                    else if ( p->pPars->nTimeOutGap && p->pPars->timeLastSolved && Abc_Clock() > p->pPars->timeLastSolved + p->pPars->nTimeOutGap * CLOCKS_PER_SEC )
+                        Abc_Print( 1, "Reached gap timeout (%d seconds).\n",  p->pPars->nTimeOutGap );
+                    else if ( p->timeToStopOne && Abc_Clock() > p->timeToStopOne )
+                    {
+                        Pdr_QueueClean( p );
+                        pCube = NULL;
+                        break; // keep solving
+                    }
+                    else if ( p->pPars->nConfLimit )
                         Abc_Print( 1, "Reached conflict limit (%d).\n",  p->pPars->nConfLimit );
                     else if ( p->pPars->fVerbose ) 
                         Abc_Print( 1, "Computation cancelled by the callback.\n" );
@@ -654,9 +664,7 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
                     {
                         if ( p->pPars->fVerbose ) 
                             Pdr_ManPrintProgress( p, 1, Abc_Clock() - clkStart );
-                        if ( p->pPars->nConfLimit )
-                            Abc_Print( 1, "Reached conflict limit (%d).\n",  p->pPars->nConfLimit );
-                        else if ( p->timeToStop && Abc_Clock() > p->timeToStop )
+                        if ( p->timeToStop && Abc_Clock() > p->timeToStop )
                             Abc_Print( 1, "Reached timeout (%d seconds).\n",  p->pPars->nTimeOut );
                         else if ( p->pPars->nTimeOutGap && p->pPars->timeLastSolved && Abc_Clock() > p->pPars->timeLastSolved + p->pPars->nTimeOutGap * CLOCKS_PER_SEC )
                             Abc_Print( 1, "Reached gap timeout (%d seconds).\n",  p->pPars->nTimeOutGap );
@@ -666,6 +674,8 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
                             pCube = NULL;
                             break; // keep solving
                         }
+                        else if ( p->pPars->nConfLimit )
+                            Abc_Print( 1, "Reached conflict limit (%d).\n",  p->pPars->nConfLimit );
                         else if ( p->pPars->fVerbose ) 
                             Abc_Print( 1, "Computation cancelled by the callback.\n" );
                         p->pPars->iFrame = k;
@@ -720,12 +730,13 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
                 abctime timeSince = Abc_Clock() - clkOne;
                 assert( p->pTime4Outs[p->iOutCur] > 0 );
                 p->pTime4Outs[p->iOutCur] = (p->pTime4Outs[p->iOutCur] > timeSince) ? p->pTime4Outs[p->iOutCur] - timeSince : 0;
-                if ( p->pTime4Outs[p->iOutCur] == 0 && p->vCexes && Vec_PtrEntry(p->vCexes, p->iOutCur) == NULL )
+                if ( p->pTime4Outs[p->iOutCur] == 0 && (p->vCexes == NULL || Vec_PtrEntry(p->vCexes, p->iOutCur) == NULL) )
                 {
                     p->pPars->nDropOuts++;
                     if ( p->pPars->vOutMap ) Vec_IntWriteEntry( p->pPars->vOutMap, p->iOutCur, -1 );
 //                    printf( "Dropping output %d.\n", p->iOutCur );
                 }
+                p->timeToStopOne = 0;
             }
         }
 
@@ -842,10 +853,10 @@ int Pdr_ManSolve( Aig_Man_t * pAig, Pdr_Par_t * pPars )
     Pdr_Man_t * p;
     int k, RetValue;
     abctime clk = Abc_Clock();
-    if ( pPars->nTimeOutOne )
-        pPars->nTimeOut = pPars->nTimeOutOne * Saig_ManPoNum(pAig) / 1000 + 1;
     if ( pPars->nTimeOutOne && !pPars->fSolveAll )
         pPars->nTimeOutOne = 0;
+    if ( pPars->nTimeOutOne )
+        pPars->nTimeOut = pPars->nTimeOutOne * Saig_ManPoNum(pAig) / 1000 + (int)((pPars->nTimeOutOne * Saig_ManPoNum(pAig) % 1000) > 0);
     if ( pPars->fVerbose )
     {
 //    Abc_Print( 1, "Running PDR by Niklas Een (aka IC3 by Aaron Bradley) with these parameters:\n" );
