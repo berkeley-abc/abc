@@ -964,6 +964,20 @@ int Abc_NtkLogicMakeSimpleCos( Abc_Ntk_t * pNtk, int fDuplicate )
     assert( Abc_NtkIsLogic(pNtk) );
     LevelMax = Abc_NtkLevel(pNtk);
 
+    // fix constant drivers
+    Abc_NtkForEachCo( pNtk, pNode, i ) 
+    {
+        pDriver = Abc_ObjFanin0(pNode);
+        if ( !Abc_NodeIsConst(pDriver) )
+            continue;
+        pDriverNew = (Abc_ObjFaninC0(pNode) == Abc_NodeIsConst0(pDriver)) ? Abc_NtkCreateNodeConst1(pNtk) : Abc_NtkCreateNodeConst0(pNtk);
+        if ( Abc_ObjFaninC0(pNode) )
+            Abc_ObjXorFaninC( pNode, 0 );
+        Abc_ObjPatchFanin( pNode, pDriver, pDriverNew );
+        if ( Abc_ObjFanoutNum(pDriver) == 0 )
+            Abc_NtkDeleteObj( pDriver );
+    }
+
     // collect drivers pointed by complemented edges
     vDrivers = Vec_PtrAlloc( 100 );
     Abc_NtkIncrementTravId( pNtk );
