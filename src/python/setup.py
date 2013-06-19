@@ -30,6 +30,7 @@ else:
         define_macros.append( ('LIN', 1) )
 
     libraries.append( 'abc' )
+    libraries.append( 'rt' )
     libraries.append( 'readline' )
     library_dirs.append('./../../')
 
