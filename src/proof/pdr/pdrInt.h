@@ -83,6 +83,7 @@ struct Pdr_Man_t_
     Pdr_Obl_t * pQueue;    // proof obligations
     int *       pOrder;    // ordering of the lits
     Vec_Int_t * vActVars;  // the counter of activation variables
+    int         iUseFrame; // the first used frame
     // internal use
     Vec_Int_t * vPrio;     // priority flops
     Vec_Int_t * vLits;     // array of literals

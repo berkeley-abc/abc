@@ -136,6 +136,7 @@ int Pdr_ManPushClauses( Pdr_Man_t * p )
     int i, j, k, m, RetValue = 0, RetValue2, kMax = Vec_PtrSize(p->vSolvers)-1;
     int Counter = 0;
     abctime clk = Abc_Clock();
+    assert( p->iUseFrame > 0 );
     Vec_VecForEachLevelStartStop( p->vClauses, vArrayK, k, 1, kMax )
     {
         Vec_PtrSort( vArrayK, (int (*)(void))Pdr_SetCompare );
@@ -427,7 +428,7 @@ int Pdr_ManBlockCube( Pdr_Man_t * p, Pdr_Set_t * pCube )
     abctime clk;
     p->nBlocks++;
     // create first proof obligation
-    assert( p->pQueue == NULL );
+//    assert( p->pQueue == NULL );
     pThis = Pdr_OblStart( kMax, Prio--, pCube, NULL ); // consume ref
     Pdr_QueuePush( p, pThis );
     // try to solve it recursively
@@ -437,6 +438,8 @@ int Pdr_ManBlockCube( Pdr_Man_t * p, Pdr_Set_t * pCube )
         pThis = Pdr_QueueHead( p );
         if ( pThis->iFrame == 0 )
             return 0; // SAT
+        if ( pThis->iFrame > kMax ) // finished this level
+            return 1;
         if ( p->nQueLim && p->nQueCur >= p->nQueLim )
         {
             p->nQueLim = p->nQueLim * 3 / 2;
@@ -446,6 +449,7 @@ int Pdr_ManBlockCube( Pdr_Man_t * p, Pdr_Set_t * pCube )
         pThis = Pdr_QueuePop( p );
         assert( pThis->iFrame > 0 );
         assert( !Pdr_SetIsInit(pThis->pState, -1) );
+        p->iUseFrame = Abc_MinInt( p->iUseFrame, pThis->iFrame );
 
         clk = Abc_Clock();
         if ( Pdr_ManCheckContainment( p, pThis->iFrame, pThis->pState ) )
@@ -458,7 +462,7 @@ int Pdr_ManBlockCube( Pdr_Man_t * p, Pdr_Set_t * pCube )
 
         // check if the cube is already contained
         RetValue = Pdr_ManCheckCubeCs( p, pThis->iFrame, pThis->pState );
-        if ( RetValue == -1 ) // cube is blocked by clauses in this frame
+        if ( RetValue == -1 ) // resource limit is reached
         {
             Pdr_OblDeref( pThis );
             return -1;
@@ -472,7 +476,7 @@ int Pdr_ManBlockCube( Pdr_Man_t * p, Pdr_Set_t * pCube )
         // check if the cube holds with relative induction
         pCubeMin = NULL;
         RetValue = Pdr_ManGeneralize( p, pThis->iFrame-1, pThis->pState, &pPred, &pCubeMin );
-        if ( RetValue == -1 )
+        if ( RetValue == -1 ) // resource limit is reached
         {
             Pdr_OblDeref( pThis );
             return -1;
@@ -511,7 +515,7 @@ int Pdr_ManBlockCube( Pdr_Man_t * p, Pdr_Set_t * pCube )
             for ( i = 1; i <= k; i++ )
                 Pdr_ManSolverAddClause( p, i, pCubeMin );
             // schedule proof obligation
-            if ( k < kMax && !p->pPars->fShortest )
+            if ( !p->pPars->fShortest )
             {
                 pThis->iFrame = k+1;
                 pThis->prio   = Prio--;
@@ -574,6 +578,7 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
     {
         p->nFrames = k;
         assert( k == Vec_PtrSize(p->vSolvers)-1 );
+        p->iUseFrame = ABC_INFINITY;
         Saig_ManForEachPo( p->pAig, pObj, p->iOutCur )
         {
             // skip disproved outputs
