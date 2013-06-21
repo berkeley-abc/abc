@@ -1037,7 +1037,7 @@ static lbool solver2_search(sat_solver2* s, ABC_INT64_T nof_conflicts)
             // NO CONFLICT
             int next;
 
-            if ((nof_conflicts >= 0 && conflictC >= nof_conflicts) || (s->nRuntimeLimit && Abc_Clock() > s->nRuntimeLimit)){
+            if ((nof_conflicts >= 0 && conflictC >= nof_conflicts) || (s->nRuntimeLimit && (s->stats.conflicts & 63) == 0 && Abc_Clock() > s->nRuntimeLimit)){
                 // Reached bound on number of conflicts:
                 s->progress_estimate = solver2_progress(s);
                 solver2_canceluntil(s,s->root_level);
