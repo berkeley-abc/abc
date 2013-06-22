@@ -162,6 +162,7 @@ static int Abc_CommandCareSet                ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandCut                    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandEspresso               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandGen                    ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandGenFsm                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandCover                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandDouble                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandInter                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -713,6 +714,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Various",      "cut",           Abc_CommandCut,              0 );
     Cmd_CommandAdd( pAbc, "Various",      "espresso",      Abc_CommandEspresso,         1 );
     Cmd_CommandAdd( pAbc, "Various",      "gen",           Abc_CommandGen,              0 );
+    Cmd_CommandAdd( pAbc, "Various",      "genfsm",        Abc_CommandGenFsm,           0 );
     Cmd_CommandAdd( pAbc, "Various",      "cover",         Abc_CommandCover,            1 );
     Cmd_CommandAdd( pAbc, "Various",      "double",        Abc_CommandDouble,           1 );
     Cmd_CommandAdd( pAbc, "Various",      "inter",         Abc_CommandInter,            1 );
@@ -9399,6 +9401,140 @@ usage:
     Abc_Print( -2, "\t-f     : generate a LUT FPGA structure [default = %s]\n", fFpga? "yes": "no" );
     Abc_Print( -2, "\t-t     : generate one-hotness conditions [default = %s]\n", fOneHot? "yes": "no" );
     Abc_Print( -2, "\t-r     : generate random single-output function [default = %s]\n", fRandom? "yes": "no" );
+    Abc_Print( -2, "\t-v     : prints verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    Abc_Print( -2, "\t<file> : output file name\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandGenFsm( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Abc_GenFsm( char * pFileName, int nIns, int nOuts, int nStates, int nLines, int ProbI, int ProbO );
+    int c, nIns, nOuts, nStates, nLines, ProbI, ProbO, fVerbose;
+    char * FileName;
+    // set defaults
+    nIns     =   30;
+    nOuts    =    1;
+    nStates  =   20;
+    nLines   =  100;
+    ProbI    =   10;
+    ProbO    =  100;
+    fVerbose =    0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "IOSLPQvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'I':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-I\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nIns = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nIns < 0 )
+                goto usage;
+            break;
+        case 'O':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-O\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nOuts = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nOuts < 0 )
+                goto usage;
+            break;
+        case 'S':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-S\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nStates = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nStates < 0 )
+                goto usage;
+            break;
+        case 'L':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-L\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nLines = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nLines < 0 )
+                goto usage;
+            break;
+        case 'P':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-P\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            ProbI = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( ProbI < 0 )
+                goto usage;
+            break;
+        case 'Q':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-Q\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            ProbO = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( ProbO < 0 )
+                goto usage;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( argc != globalUtilOptind + 1 )
+    {
+        goto usage;
+    }
+    if ( nIns < 1 || nStates < 1 || nLines < 1 || ProbI < 1 || ProbO < 1 )
+    {
+        Abc_Print( -1, "The number of inputs. states, lines, and probablity should be positive integers.\n" );
+        goto usage;
+    }
+    // get the input file name
+    FileName = argv[globalUtilOptind];
+    Abc_GenFsm( FileName, nIns, nOuts, nStates, nLines, ProbI, ProbO );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: genfsm [-IOSLPQ num] [-vh] <file>\n" );
+    Abc_Print( -2, "\t         generates random FSM in KISS format\n" );
+    Abc_Print( -2, "\t-I num : the number of input variables [default = %d]\n", nIns );
+    Abc_Print( -2, "\t-O num : the number of output variables [default = %d]\n", nOuts );
+    Abc_Print( -2, "\t-S num : the number of state variables [default = %d]\n", nStates );
+    Abc_Print( -2, "\t-L num : the number of lines (product terms) [default = %d]\n", nLines );
+    Abc_Print( -2, "\t-P num : percentage propability of a variable present in the input cube [default = %d]\n", ProbI );
+    Abc_Print( -2, "\t-Q num : percentage propability of a variable present in the output cube [default = %d]\n", ProbO );
     Abc_Print( -2, "\t-v     : prints verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     Abc_Print( -2, "\t<file> : output file name\n");

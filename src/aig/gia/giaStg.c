@@ -214,7 +214,7 @@ Vec_Vec_t * Gia_ManAssignCodes( int kHot, int nStates, int * pnBits )
 ***********************************************************************/
 Gia_Man_t * Gia_ManStgKHot( Vec_Int_t * vLines, int nIns, int nOuts, int nStates, int kHot, int fVerbose )
 {
-    Gia_Man_t * p;
+    Gia_Man_t * p, * pTemp;
     Vec_Int_t * vInMints, * vCurs, * vVec;
     Vec_Vec_t * vLitsNext, * vLitsOuts, * vCodes;
     int i, b, k, nBits, LitC, Lit;
@@ -261,8 +261,8 @@ Gia_Man_t * Gia_ManStgKHot( Vec_Int_t * vLines, int nIns, int nOuts, int nStates
     for ( i = 0; i < Vec_IntSize(vLines); )
     {
         int iMint = Vec_IntEntry(vLines, i++);
-        int iCur  = Vec_IntEntry(vLines, i++) - 1;
-        int iNext = Vec_IntEntry(vLines, i++) - 1;
+        int iCur  = Vec_IntEntry(vLines, i++);
+        int iNext = Vec_IntEntry(vLines, i++);
         int iOut  = Vec_IntEntry(vLines, i++);
         assert( iMint >= 0 && iMint < (1<<nIns)  );
         assert( iCur  >= 0 && iCur  < nStates    );
@@ -297,6 +297,8 @@ Gia_Man_t * Gia_ManStgKHot( Vec_Int_t * vLines, int nIns, int nOuts, int nStates
     Gia_ManSetRegNum( p, nBits );
     Gia_ManHashStop( p );
 
+    p = Gia_ManCleanup( pTemp = p );
+    Gia_ManStop( pTemp );
     assert( !Gia_ManHasDangling(p) );
     return p;
 }
@@ -314,7 +316,7 @@ Gia_Man_t * Gia_ManStgKHot( Vec_Int_t * vLines, int nIns, int nOuts, int nStates
 ***********************************************************************/
 Gia_Man_t * Gia_ManStgOneHot( Vec_Int_t * vLines, int nIns, int nOuts, int nStates )
 {
-    Gia_Man_t * p;
+    Gia_Man_t * p, * pTemp;
     Vec_Int_t * vInMints, * vCurs, * vVec;
     Vec_Vec_t * vLitsNext, * vLitsOuts;
     int i, b, LitC, Lit;
@@ -385,6 +387,8 @@ Gia_Man_t * Gia_ManStgOneHot( Vec_Int_t * vLines, int nIns, int nOuts, int nStat
     Gia_ManSetRegNum( p, nStates );
     Gia_ManHashStop( p );
 
+    p = Gia_ManCleanup( pTemp = p );
+    Gia_ManStop( pTemp );
     assert( !Gia_ManHasDangling(p) );
     return p;
 }
@@ -454,8 +458,10 @@ Vec_Int_t * Gia_ManStgReadLines( char * pFileName, int * pnIns, int * pnOuts, in
     vLines = Vec_IntAlloc( 1000 );
     while ( fgets( pBuffer, 1000, pFile ) != NULL )
     {
+        if ( pBuffer[0] == '.' || pBuffer[0] == '#' )
+            continue;
         // read condition
-        pToken = strtok( pBuffer, " \n" );
+        pToken = strtok( pBuffer, " \r\n" );
         if ( nInputs == -1 )
             nInputs = strlen(pToken);
         else
@@ -463,14 +469,14 @@ Vec_Int_t * Gia_ManStgReadLines( char * pFileName, int * pnIns, int * pnOuts, in
         Number = Extra_ReadBinary( pToken );
         Vec_IntPush( vLines, Number );
         // read current state
-        pToken = strtok( NULL, " \n" );
+        pToken = strtok( NULL, " \r\n" );
         Vec_IntPush( vLines, atoi(pToken) );
-        nStates = Abc_MaxInt( nStates, Vec_IntEntryLast(vLines) );
+        nStates = Abc_MaxInt( nStates, Vec_IntEntryLast(vLines)+1 );
         // read next state
-        pToken = strtok( NULL, " \n" );
+        pToken = strtok( NULL, " \r\n" );
         Vec_IntPush( vLines, atoi(pToken) );
         // read output
-        pToken = strtok( NULL, " \n" );
+        pToken = strtok( NULL, " \r\n" );
         if ( nOutputs == -1 )
             nOutputs = strlen(pToken);
         else
