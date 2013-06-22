@@ -53,6 +53,7 @@
 #include "sat/bmc/bmc.h"
 #include "proof/ssc/ssc.h"
 #include "opt/sfm/sfm.h"
+#include "bool/rpo/rpo.h"
 
 #ifndef _WIN32
 #include <unistd.h>
@@ -113,6 +114,7 @@ static int Abc_CommandAddBuffs               ( Abc_Frame_t * pAbc, int argc, cha
 //static int Abc_CommandMerge                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandTestDec                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandTestNpn                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandTestRPO                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandRewrite                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRefactor               ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -663,6 +665,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
 //    Cmd_CommandAdd( pAbc, "Synthesis",    "merge",         Abc_CommandMerge,            1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "testdec",       Abc_CommandTestDec,          0 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "testnpn",       Abc_CommandTestNpn,          0 );
+    Cmd_CommandAdd( pAbc, "LogiCS",       "testrpo",       Abc_CommandTestRPO,          0 );
 
     Cmd_CommandAdd( pAbc, "Synthesis",    "rewrite",       Abc_CommandRewrite,          1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "refactor",      Abc_CommandRefactor,         1 );
@@ -5323,6 +5326,81 @@ usage:
     return 1;
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandTestRPO(Abc_Frame_t * pAbc, int argc, char ** argv) {
+    extern int Abc_RpoTest(char * pFileName, int nVarNum, int nThreshold, int fVerbose);
+    char * pFileName;
+    int c;
+    int nVarNum = -1;
+    int fVerbose = 0;
+    int nThreshold = -1;
+    Extra_UtilGetoptReset();
+    while ((c = Extra_UtilGetopt(argc, argv, "TNvh")) != EOF) {
+        switch (c) {
+            case 'N':
+                if (globalUtilOptind >= argc) {
+                    Abc_Print(-1, "Command line switch \"-N\" should be followed by an integer.\n");
+                    goto usage;
+                }
+                nVarNum = atoi(argv[globalUtilOptind]);
+                globalUtilOptind++;
+                if (nVarNum < 0)
+                    goto usage;
+                break;
+            case 'T':
+                if (globalUtilOptind >= argc) {
+                    Abc_Print(-1, "Command line switch \"-T\" should be followed by an integer.\n");
+                    goto usage;
+                }
+                nThreshold = atoi(argv[globalUtilOptind]);
+                globalUtilOptind++;
+                if (nThreshold < 0)
+                    goto usage;
+                break;
+            case 'v':
+                fVerbose ^= 1;
+                break;
+            case 'h':
+                goto usage;
+            default:
+                goto usage;
+        }
+    }
+    if (argc != globalUtilOptind + 1) 
+    {
+        Abc_Print(1, "Input file is not given.\n");
+        goto usage;
+    }
+    // get the output file name
+    pFileName = argv[globalUtilOptind];
+    // call the testbench
+    Abc_RpoTest( pFileName, nVarNum, nThreshold, fVerbose );
+    return 0;
+
+usage:
+    Abc_Print(-2, "usage: testrpo [-NT <num>] [-vh] <file>\n");
+    Abc_Print(-2, "\t           RPO algorithm developed and implemented by Mayler G. A. Martins,\n");
+    Abc_Print(-2, "\t           Vinicius Callegaro, Renato P. Ribas and Andre' I. Reis\n");
+    Abc_Print(-2, "\t           at Federal University of Rio Grande do Sul, Porto Alegre, Brazil\n");
+    Abc_Print(-2, "\t-N <num> : the number of support variables (binary files only) [default = unused]\n");
+    Abc_Print(-2, "\t-T <num> : the number of recursions accepted before abort [default = INFINITE]\n");
+    Abc_Print(-2, "\t-v       : toggle verbose printout [default = %s]\n", fVerbose ? "yes" : "no");
+    Abc_Print(-2, "\t-h       : print the command usage\n");
+    Abc_Print(-2, "\t<file>   : a text file with truth tables in hexadecimal, listed one per line,\n");
+    Abc_Print(-2, "\t           or a binary file with an array of truth tables (in this case,\n");
+    Abc_Print(-2, "\t           -N <num> is required to determine how many functions are stored)\n");
+    return 1;
+}
 
 /**Function*************************************************************
 
