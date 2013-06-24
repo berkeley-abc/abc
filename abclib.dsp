@@ -427,6 +427,10 @@ SOURCE=.\src\base\abci\abcRewrite.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\abci\abcRpo.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\abci\abcRr.c
 # End Source File
 # Begin Source File
@@ -2311,6 +2315,10 @@ SOURCE=.\src\map\if\ifReduce.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\map\if\ifSelect.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\map\if\ifSeq.c
 # End Source File
 # Begin Source File
@@ -3889,6 +3897,18 @@ SOURCE=.\src\bool\rsb\rsbMan.c
 # Begin Group "rpo"
 
 # PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\bool\rpo\literal.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bool\rpo\rpo.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bool\rpo\rpo.h
+# End Source File
 # End Group
 # End Group
 # Begin Group "prove"
