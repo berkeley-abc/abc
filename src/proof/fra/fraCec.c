@@ -274,6 +274,28 @@ int Fra_FraigSat( Aig_Man_t * pMan, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimi
 
 /**Function*************************************************************
 
+  Synopsis    [Recognizes what nodes are inputs of the EXOR.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Aig_ManCountXors( Aig_Man_t * p )
+{
+    Aig_Obj_t * pObj, * pFan0, * pFan1;
+    int i, Counter = 0;
+    Aig_ManForEachNode( p, pObj, i )
+        if ( Aig_ObjIsMuxType(pObj) && Aig_ObjRecognizeExor(pObj, &pFan0, &pFan1) )
+            Counter++;
+    return Counter;
+
+}
+
+/**Function*************************************************************
+
   Synopsis    []
 
   Description []
@@ -338,6 +360,19 @@ ABC_PRT( "Time", Abc_Clock() - clk );
     for ( i = 0; i < 6; i++ )
     {
 //printf( "Running fraiging with %d BTnode and %d BTmiter.\n", pParams->nBTLimitNode, pParams->nBTLimitMiter );
+        // try XOR balancing
+        if ( Aig_ManCountXors(pAig) * 30 > Aig_ManNodeNum(pAig) + 300 )
+        {
+clk = Abc_Clock();
+            pAig = Dar_ManBalanceXor( pTemp = pAig, 1, 0, 0 );
+            Aig_ManStop( pTemp );
+            if ( fVerbose )
+            {
+                printf( "Balance-X:        Nodes = %6d.  ", Aig_ManNodeNum(pAig) );
+ABC_PRT( "Time", Abc_Clock() - clk );
+            } 
+        }
+
         // run fraiging
 clk = Abc_Clock();
         pAig = Fra_FraigPerform( pTemp = pAig, pParams );

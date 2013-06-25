@@ -19731,10 +19731,10 @@ int Abc_CommandDCec( Abc_Frame_t * pAbc, int argc, char ** argv )
             return 1;
     }
 
-    if ( Abc_NtkLatchNum(pNtk1) || Abc_NtkLatchNum(pNtk2) )
+    if ( (pNtk1 && Abc_NtkLatchNum(pNtk1)) || (pNtk2 && Abc_NtkLatchNum(pNtk2)) )
     {
-        if ( fDelete1 ) Abc_NtkDelete( pNtk1 );
-        if ( fDelete2 ) Abc_NtkDelete( pNtk2 );
+        if ( pNtk1 && fDelete1 ) Abc_NtkDelete( pNtk1 );
+        if ( pNtk2 && fDelete2 ) Abc_NtkDelete( pNtk2 );
         Abc_Print( -1, "Currently this command only works for networks without latches. Run \"comb\".\n" );
         return 1;
     }
