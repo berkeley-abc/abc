@@ -416,7 +416,7 @@ clk = Abc_Clock();
         RetValue = Fra_FraigSat( pAig, (ABC_INT64_T)nBTLimitLast, (ABC_INT64_T)0, 0, 0, 0, 1, 0, 0, 0 );
         if ( fVerbose )
         {
-            printf( "Final SAT:            Nodes = %6d.  ", Aig_ManNodeNum(pAig) );
+            printf( "Final SAT:        Nodes = %6d.  ", Aig_ManNodeNum(pAig) );
 ABC_PRT( "Time", Abc_Clock() - clk );
         }
     }
