@@ -171,7 +171,7 @@ unsigned char * Gia_AigerWriteMappingInt( Gia_Man_t * p, int * pMapSize )
 {
     unsigned char * pBuffer;
     int i, k, iPrev, iFan, nItems, iPos = 4;
-    assert( p->pMapping );
+    assert( Gia_ManHasMapping(p) );
     // count the number of entries to be written
     nItems = 0;
     Gia_ManForEachLut( p, i )
@@ -225,10 +225,10 @@ int * Gia_AigerReadMappingSimple( unsigned char ** ppPos, int nSize )
 }
 Vec_Str_t * Gia_AigerWriteMappingSimple( Gia_Man_t * p )
 {
-    unsigned char * pBuffer = ABC_ALLOC( unsigned char, 4*p->nOffset );
-    memcpy( pBuffer, p->pMapping, 4*p->nOffset );
-    assert( p->pMapping != NULL && p->nOffset >= Gia_ManObjNum(p) );
-    return Vec_StrAllocArray( (char *)pBuffer, 4*p->nOffset );
+    unsigned char * pBuffer = ABC_ALLOC( unsigned char, 4*Vec_IntSize(p->vMapping) );
+    memcpy( pBuffer, Vec_IntArray(p->vMapping), 4*Vec_IntSize(p->vMapping) );
+    assert( Vec_IntSize(p->vMapping) >= Gia_ManObjNum(p) );
+    return Vec_StrAllocArray( (char *)pBuffer, 4*Vec_IntSize(p->vMapping) );
 }
 
 /**Function*************************************************************
@@ -242,27 +242,27 @@ Vec_Str_t * Gia_AigerWriteMappingSimple( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int * Gia_AigerReadMappingDoc( unsigned char ** ppPos, int nObjs, int * pOffset )
+Vec_Int_t * Gia_AigerReadMappingDoc( unsigned char ** ppPos, int nObjs )
 {
-    int * pMapping, nLuts, LutSize, iRoot, nFanins, i, k;
+    int * pMapping, nLuts, LutSize, iRoot, nFanins, i, k, nOffset;
     nLuts    = Gia_AigerReadInt( *ppPos ); *ppPos += 4;
     LutSize  = Gia_AigerReadInt( *ppPos ); *ppPos += 4;
     pMapping = ABC_CALLOC( int, nObjs + (LutSize + 2) * nLuts );
-    *pOffset = nObjs;
+    nOffset = nObjs;
     for ( i = 0; i < nLuts; i++ )
     {
         iRoot   = Gia_AigerReadInt( *ppPos ); *ppPos += 4;
         nFanins = Gia_AigerReadInt( *ppPos ); *ppPos += 4;
-        pMapping[iRoot] = *pOffset;
+        pMapping[iRoot] = nOffset;
         // write one
-        pMapping[ (*pOffset)++ ] = nFanins; 
+        pMapping[ nOffset++ ] = nFanins; 
         for ( k = 0; k < nFanins; k++ )
         {
-            pMapping[ (*pOffset)++ ] = Gia_AigerReadInt( *ppPos ); *ppPos += 4;
+            pMapping[ nOffset++ ] = Gia_AigerReadInt( *ppPos ); *ppPos += 4;
         }
-        pMapping[ (*pOffset)++ ] = iRoot; 
+        pMapping[ nOffset++ ] = iRoot; 
     }
-    return pMapping;
+    return Vec_IntAllocArray( pMapping, nOffset );
 }
 Vec_Str_t * Gia_AigerWriteMappingDoc( Gia_Man_t * p )
 {

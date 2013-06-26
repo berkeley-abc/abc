@@ -56,7 +56,7 @@ Gia_Man_t * Gia_ManMapShrink4( Gia_Man_t * p, int fKeepLevel, int fVerbose )
     abctime clk = Abc_Clock();
 //    int ClassCounts[222] = {0};
     int * pLutClass, Counter = 0;
-    assert( p->pMapping != NULL );
+    assert( Gia_ManHasMapping(p) );
     if ( Gia_ManLutSizeMax( p ) > 4 )
     {
         printf( "Resynthesis is not performed when nodes have more than 4 inputs.\n" );

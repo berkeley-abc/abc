@@ -404,7 +404,7 @@ Gia_Man_t * Gia_ManMapShrink6( Gia_Man_t * p, int nFanoutMax, int fKeepLevel, in
     int RetValue, Counter1 = 0, Counter2 = 0;
     abctime clk2, clk = Abc_Clock();
     abctime timeFanout = 0;
-    assert( p->pMapping != NULL );
+    assert( Gia_ManHasMapping(p) );
     pMan = Shr_ManAlloc( p );
     Gia_ManFillValue( p );
     Gia_ManConst0(p)->Value = 0;

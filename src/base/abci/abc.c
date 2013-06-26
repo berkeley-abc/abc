@@ -24728,7 +24728,7 @@ int Abc_CommandAbc9Put( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Empty network.\n" );
         return 1;
     }
-    if ( pAbc->pGia->pMapping )
+    if ( Gia_ManHasMapping(pAbc->pGia) )
     {
         extern Abc_Ntk_t * Abc_NtkFromMappedGia( Gia_Man_t * p );
         pNtk = Abc_NtkFromMappedGia( pAbc->pGia );
@@ -26861,7 +26861,7 @@ int Abc_CommandAbc9Bidec( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Bidec(): There is no AIG.\n" );
         return 1;
     }
-    if ( pAbc->pGia->pMapping == NULL )
+    if ( !Gia_ManHasMapping(pAbc->pGia) )
     {
         Abc_Print( -1, "Abc_CommandAbc9Bidec(): Mapping of the AIG is not defined.\n" );
         return 1;
@@ -26930,7 +26930,7 @@ int Abc_CommandAbc9Shrink( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Shrink(): There is no AIG.\n" );
         return 1;
     }
-    if ( pAbc->pGia->pMapping == NULL )
+    if ( !Gia_ManHasMapping(pAbc->pGia) )
     {
         Abc_Print( -1, "Abc_CommandAbc9Shrink(): Mapping of the AIG is not defined.\n" );
         return 1;
@@ -29256,7 +29256,7 @@ int Abc_CommandAbc9Trace( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Speedup(): There is no AIG to map.\n" );
         return 1;
     }
-    if ( pAbc->pGia->pMapping == NULL )
+    if ( !Gia_ManHasMapping(pAbc->pGia) )
     {
         Abc_Print( -1, "Abc_CommandAbc9Speedup(): Mapping of the AIG is not defined.\n" );
         return 1;
@@ -29347,7 +29347,7 @@ int Abc_CommandAbc9Speedup( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Speedup(): There is no AIG to map.\n" );
         return 1;
     }
-    if ( pAbc->pGia->pMapping == NULL )
+    if ( !Gia_ManHasMapping(pAbc->pGia) )
     {
         Abc_Print( -1, "Abc_CommandAbc9Speedup(): Mapping of the AIG is not defined.\n" );
         return 1;

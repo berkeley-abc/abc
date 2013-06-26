@@ -1443,6 +1443,98 @@ Vec_Int_t * Gia_ManFirstFanouts( Gia_Man_t * p )
     return vFans;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Returns 1 if AIG has choices.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManHasChoices_very_old( Gia_Man_t * p )
+{
+    Gia_Obj_t * pObj;
+    int i, Counter1 = 0, Counter2 = 0;
+    int nFailNoRepr = 0;
+    int nFailHaveRepr = 0;
+    int nChoiceNodes = 0;
+    int nChoices = 0;
+    if ( p->pReprs == NULL || p->pNexts == NULL )
+        return 0;
+    // check if there are any representatives
+    Gia_ManForEachObj( p, pObj, i )
+    {
+        if ( Gia_ObjReprObj( p, Gia_ObjId(p, pObj) ) )
+        {
+//            printf( "%d ", i );
+            Counter1++;
+        }
+//        if ( Gia_ObjNext( p, Gia_ObjId(p, pObj) ) )
+//            Counter2++;
+    }
+//    printf( "\n" );
+    Gia_ManForEachObj( p, pObj, i )
+    {
+//        if ( Gia_ObjReprObj( p, Gia_ObjId(p, pObj) ) )
+//            Counter1++;
+        if ( Gia_ObjNext( p, Gia_ObjId(p, pObj) ) )
+        {
+//            printf( "%d ", i );
+            Counter2++;
+        }
+    }
+//    printf( "\n" );
+    if ( Counter1 == 0 )
+    {
+        printf( "Warning: AIG has repr data-strucure but not reprs.\n" );
+        return 0;
+    }
+    printf( "%d nodes have reprs.\n", Counter1 );
+    printf( "%d nodes have nexts.\n", Counter2 );
+    // check if there are any internal nodes without fanout
+    // make sure all nodes without fanout have representatives
+    // make sure all nodes with fanout have no representatives
+    ABC_FREE( p->pRefs );
+    Gia_ManCreateRefs( p );
+    Gia_ManForEachAnd( p, pObj, i )
+    {
+        if ( Gia_ObjRefNum(p, pObj) == 0 )
+        {
+            if ( Gia_ObjReprObj( p, Gia_ObjId(p, pObj) ) == NULL )
+                nFailNoRepr++;
+            else
+                nChoices++;
+        }
+        else
+        {
+            if ( Gia_ObjReprObj( p, Gia_ObjId(p, pObj) ) != NULL )
+                nFailHaveRepr++;
+            if ( Gia_ObjNextObj( p, Gia_ObjId(p, pObj) ) != NULL )
+                nChoiceNodes++;
+        }
+        if ( Gia_ObjReprObj( p, i ) )
+            assert( Gia_ObjRepr(p, i) < i );
+    }
+    if ( nChoices == 0 )
+        return 0;
+    if ( nFailNoRepr )
+    {
+        printf( "Gia_ManHasChoices_very_old(): Error: %d internal nodes have no fanout and no repr.\n", nFailNoRepr );
+//        return 0;
+    }
+    if ( nFailHaveRepr )
+    {
+        printf( "Gia_ManHasChoices_very_old(): Error: %d internal nodes have both fanout and repr.\n", nFailHaveRepr );
+//        return 0;
+    }
+//    printf( "Gia_ManHasChoices_very_old(): AIG has %d choice nodes with %d choices.\n", nChoiceNodes, nChoices );
+    return 1;
+}
+
+
 #include "base/main/mainInt.h"
 
 /**Function*************************************************************

@@ -431,6 +431,115 @@ Gia_Man_t * Abc_NtkTestTimPerformSynthesis( Gia_Man_t * p, int fChoices )
 
 /**Function*************************************************************
 
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManVerifyChoices( Gia_Man_t * p )
+{
+    Gia_Obj_t * pObj;
+    int i, iRepr, iNode, fProb = 0;
+    assert( p->pReprs );
+
+    // mark nodes 
+    Gia_ManCleanMark0(p);
+    Gia_ManForEachClass( p, iRepr )
+        Gia_ClassForEachObj1( p, iRepr, iNode )
+        {
+            if ( Gia_ObjIsHead(p, iNode) )
+                printf( "Member %d of choice class %d is a representative.\n", iNode, iRepr ), fProb = 1;
+            if ( Gia_ManObj( p, iNode )->fMark0 == 1 )
+                printf( "Node %d participates in more than one choice node.\n", iNode ), fProb = 1;
+            Gia_ManObj( p, iNode )->fMark0 = 1;
+        }
+    Gia_ManCleanMark0(p);
+
+    Gia_ManForEachObj( p, pObj, i )
+    {
+        if ( Gia_ObjIsAnd(pObj) )
+        {
+            if ( Gia_ObjHasRepr(p, Gia_ObjFaninId0(pObj, i)) )
+                printf( "Fanin 0 of AND node %d has a repr.\n", i ), fProb = 1;
+            if ( Gia_ObjHasRepr(p, Gia_ObjFaninId1(pObj, i)) )
+                printf( "Fanin 1 of AND node %d has a repr.\n", i ), fProb = 1;
+        }
+        else if ( Gia_ObjIsCo(pObj) )
+        {
+            if ( Gia_ObjHasRepr(p, Gia_ObjFaninId0(pObj, i)) )
+                printf( "Fanin 0 of CO node %d has a repr.\n", i ), fProb = 1;
+        }
+    }
+//    if ( !fProb )
+//        printf( "GIA with choices is correct.\n" );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Reverse the order of nodes in equiv classes.]
+
+  Description [If the flag is 1, assumed current increasing order ]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManReverseClasses( Gia_Man_t * p, int fNowIncreasing )
+{
+    Vec_Int_t * vCollected;
+    Vec_Int_t * vClass;
+    int i, k, iRepr, iNode, iPrev;
+    // collect classes
+    vCollected = Vec_IntAlloc( 100 );
+    Gia_ManForEachClass( p, iRepr )
+        Vec_IntPush( vCollected, iRepr );
+    // correct each class
+    vClass = Vec_IntAlloc( 100 );
+    Vec_IntForEachEntry( vCollected, iRepr, i )
+    {
+        Vec_IntClear( vClass );
+        Vec_IntPush( vClass, iRepr );
+        Gia_ClassForEachObj1( p, iRepr, iNode )
+        {
+            if ( fNowIncreasing )
+                assert( iRepr < iNode );
+            else
+                assert( iRepr > iNode );
+            Vec_IntPush( vClass, iNode );
+        }
+//        if ( !fNowIncreasing )
+//            Vec_IntSort( vClass, 1 );
+        // reverse the class
+        iPrev = 0;
+        iRepr = Vec_IntEntryLast( vClass );
+        Vec_IntForEachEntry( vClass, iNode, k )
+        {
+            if ( fNowIncreasing )
+                Gia_ObjSetReprRev( p, iNode, iNode == iRepr ? GIA_VOID : iRepr );
+            else
+                Gia_ObjSetRepr( p, iNode, iNode == iRepr ? GIA_VOID : iRepr );
+            Gia_ObjSetNext( p, iNode, iPrev );
+            iPrev = iNode;
+        }
+    }
+    Vec_IntFree( vCollected );
+    Vec_IntFree( vClass );
+    // verify
+    Gia_ManForEachClass( p, iRepr )
+        Gia_ClassForEachObj1( p, iRepr, iNode )
+            if ( fNowIncreasing )
+                assert( Gia_ObjRepr(p, iNode) == iRepr && iRepr > iNode );
+            else
+                assert( Gia_ObjRepr(p, iNode) == iRepr && iRepr < iNode );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Tests the hierarchy-timing manager.]
 
   Description []
@@ -445,7 +554,7 @@ void Abc_NtkTestTimByWritingFile( Gia_Man_t * pGia, char * pFileName )
     Gia_Man_t * pGia2;
 
     // normalize choices
-    if ( Gia_ManWithChoices(pGia) )
+    if ( Gia_ManHasChoices(pGia) )
     {
         Gia_ManVerifyChoices( pGia );
         Gia_ManReverseClasses( pGia, 0 );
@@ -453,14 +562,14 @@ void Abc_NtkTestTimByWritingFile( Gia_Man_t * pGia, char * pFileName )
     // write file
     Gia_AigerWrite( pGia, pFileName, 0, 0 );
     // unnormalize choices
-    if ( Gia_ManWithChoices(pGia) )
+    if ( Gia_ManHasChoices(pGia) )
         Gia_ManReverseClasses( pGia, 1 );
 
     // read file
     pGia2 = Gia_AigerRead( pFileName, 1, 1 );
 
     // normalize choices
-    if ( Gia_ManWithChoices(pGia2) )
+    if ( Gia_ManHasChoices(pGia2) )
     {
         Gia_ManVerifyChoices( pGia2 );
         Gia_ManReverseClasses( pGia2, 1 );

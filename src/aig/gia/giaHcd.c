@@ -642,7 +642,7 @@ Aig_Man_t * Hcd_ComputeChoices( Aig_Man_t * pAig, int nBTLimit, int fSynthesis, 
     Vec_PtrFree( vGias );
     if ( fVerbose )
         ABC_PRT( "Choicing time", clock() - clk );
-    Gia_ManHasChoices( pGia );
+//    Gia_ManHasChoices_very_old( pGia );
     // transform back
     pAigNew = Gia_ManToAig( pGia, 1 );
     Gia_ManStop( pGia );

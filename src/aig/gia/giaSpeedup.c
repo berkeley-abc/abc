@@ -635,7 +635,7 @@ Gia_Man_t * Gia_ManSpeedup( Gia_Man_t * p, int Percentage, int Degree, int fVerb
     int fUseLutLib = (p->pLutLib != NULL);
     void * pTempTim = NULL;
     unsigned * puTCEdges;
-    assert( p->pMapping != NULL );
+    assert( Gia_ManHasMapping(p) );
     if ( !fUseLutLib && p->pManTime )
     {
         pTempTim = p->pManTime;

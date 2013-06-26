@@ -320,7 +320,7 @@ Gia_Man_t * Cec_ManChoiceComputationVec( Gia_Man_t * pGia, int nGias, Cec_ParChc
     RetValue = Cec_ManChoiceComputation_int( pGia, pPars );
     // derive AIG with choices
     pNew = Gia_ManEquivToChoices( pGia, nGias );
-    Gia_ManHasChoices( pNew );
+//    Gia_ManHasChoices_very_old( pNew );
 //    Gia_ManStop( pMiter );
     // report the results
     if ( pPars->fVerbose )

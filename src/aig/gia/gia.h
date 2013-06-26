@@ -127,9 +127,8 @@ struct Gia_Man_t_
     int            nFansAlloc;    // the size of fanout representation
     Vec_Int_t *    vFanoutNums;   // static fanout
     Vec_Int_t *    vFanout;       // static fanout
-    int *          pMapping;      // mapping for each node
-    int            nOffset;       // mapping offset
-    Vec_Int_t *    vMapping;
+    Vec_Int_t *    vMapping;      // mapping for each node
+    Vec_Int_t *    vPacking;      // packing information
     Vec_Int_t *    vLutConfigs;   // LUT configurations
     Abc_Cex_t *    pCexComb;      // combinational counter-example
     Abc_Cex_t *    pCexSeq;       // sequential counter-example
@@ -144,7 +143,6 @@ struct Gia_Man_t_
     Gia_Man_t *    pAigExtra;     // combinational logic of holes
     Vec_Flt_t *    vInArrs;       // PI arrival times
     Vec_Flt_t *    vOutReqs;      // PO required times
-    Vec_Int_t *    vPacking;      // packing information
     int *          pTravIds;      // separate traversal ID representation
     int            nTravIdsAlloc; // the number of trav IDs allocated
     Vec_Ptr_t *    vNamesIn;      // the input names 
@@ -310,7 +308,7 @@ static inline int          Gia_ManMuxNum( Gia_Man_t * p )      { return p->nMuxe
 static inline int          Gia_ManCandNum( Gia_Man_t * p )     { return Gia_ManCiNum(p) + Gia_ManAndNum(p);                                }
 static inline int          Gia_ManConstrNum( Gia_Man_t * p )   { return p->nConstrs;                                                       }
 static inline void         Gia_ManFlipVerbose( Gia_Man_t * p ) { p->fVerbose ^= 1;                                                         } 
-static inline int          Gia_ManWithChoices( Gia_Man_t * p ) { return p->pSibls != NULL;                                                 } 
+static inline int          Gia_ManHasChoices( Gia_Man_t * p )  { return p->pSibls != NULL;                                                 } 
 
 static inline Gia_Obj_t *  Gia_ManConst0( Gia_Man_t * p )      { return p->pObjs;                                                          }
 static inline Gia_Obj_t *  Gia_ManConst1( Gia_Man_t * p )      { return Gia_Not(Gia_ManConst0(p));                                         }
@@ -791,9 +789,10 @@ static inline void        Gia_ObjSetFanout( Gia_Man_t * p, Gia_Obj_t * pObj, int
 #define Gia_ObjForEachFanoutStatic( p, pObj, pFanout, i )      \
     for ( i = 0; (i < Gia_ObjFanoutNum(p, pObj))   && (((pFanout) = Gia_ObjFanout(p, pObj, i)), 1); i++ )
 
-static inline int         Gia_ObjIsLut( Gia_Man_t * p, int Id )             { return p->pMapping[Id] != 0;               }
-static inline int         Gia_ObjLutSize( Gia_Man_t * p, int Id )           { return p->pMapping[p->pMapping[Id]];       }
-static inline int *       Gia_ObjLutFanins( Gia_Man_t * p, int Id )         { return p->pMapping + p->pMapping[Id] + 1;  }
+static inline int         Gia_ManHasMapping( Gia_Man_t * p )                { return p->vMapping != NULL;                }
+static inline int         Gia_ObjIsLut( Gia_Man_t * p, int Id )             { return Vec_IntEntry(p->vMapping, Id) != 0; }
+static inline int         Gia_ObjLutSize( Gia_Man_t * p, int Id )           { return Vec_IntEntry(p->vMapping, Vec_IntEntry(p->vMapping, Id));       }
+static inline int *       Gia_ObjLutFanins( Gia_Man_t * p, int Id )         { return Vec_IntEntryP(p->vMapping, Vec_IntEntry(p->vMapping, Id)) + 1;  }
 static inline int         Gia_ObjLutFanin( Gia_Man_t * p, int Id, int i )   { return Gia_ObjLutFanins(p, Id)[i];         }
 
 #define Gia_ManForEachLut( p, i )                              \
@@ -870,11 +869,6 @@ extern void                Gia_ManCounterExampleValueStop( Gia_Man_t * pGia );
 extern int                 Gia_ManCounterExampleValueLookup( Gia_Man_t * pGia, int Id, int iFrame );
 extern Abc_Cex_t *         Gia_ManCexExtendToIncludeCurrentStates( Gia_Man_t * p, Abc_Cex_t * pCex );
 extern Abc_Cex_t *         Gia_ManCexExtendToIncludeAllObjects( Gia_Man_t * p, Abc_Cex_t * pCex );
-/*=== giaChoice.c ============================================================*/
-extern void                Gia_ManVerifyChoices( Gia_Man_t * p );
-extern void                Gia_ManReverseClasses( Gia_Man_t * p, int fNowIncreasing );
-extern int                 Gia_ManHasChoices( Gia_Man_t * p );
-extern int                 Gia_ManChoiceLevel( Gia_Man_t * p );
 /*=== giaCsatOld.c ============================================================*/
 extern Vec_Int_t *         Cbs_ManSolveMiter( Gia_Man_t * pGia, int nConfs, Vec_Str_t ** pvStatus, int fVerbose );
 /*=== giaCsat.c ============================================================*/
@@ -1169,7 +1163,6 @@ extern void                Gia_ManSwapPos( Gia_Man_t * p, int i );
 extern Vec_Int_t *         Gia_ManSaveValue( Gia_Man_t * p );
 extern void                Gia_ManLoadValue( Gia_Man_t * p, Vec_Int_t * vValues );
 extern Vec_Int_t *         Gia_ManFirstFanouts( Gia_Man_t * p );
-
 
 /*=== giaCTas.c ===========================================================*/
 typedef struct Tas_Man_t_  Tas_Man_t;

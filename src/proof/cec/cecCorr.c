@@ -1188,7 +1188,7 @@ Gia_Man_t * Cec_ManLSCorrespondence( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
     if ( pPars->fMakeChoices )
     {
         pNew = Gia_ManEquivToChoices( pAig, 1 );
-        Gia_ManHasChoices( pNew );
+//        Gia_ManHasChoices_very_old( pNew );
     }
     else
     {

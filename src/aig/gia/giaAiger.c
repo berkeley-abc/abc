@@ -612,17 +612,12 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fSkipS
             {
                 extern int * Gia_AigerReadMapping( unsigned char ** ppPos, int nSize );
                 extern int * Gia_AigerReadMappingSimple( unsigned char ** ppPos, int nSize );
-                extern int * Gia_AigerReadMappingDoc( unsigned char ** ppPos, int nObjs, int * pOffset );
-                int nSize, nOffset;
+                extern Vec_Int_t * Gia_AigerReadMappingDoc( unsigned char ** ppPos, int nObjs );
+                int nSize;
                 pCur++;
                 nSize = Gia_AigerReadInt(pCur);
                 pCurTemp = pCur + nSize + 4;           pCur += 4;
-//                pNew->pMapping = Gia_AigerReadMapping( &pCur, Gia_ManObjNum(pNew) );
-//                pNew->pMapping = Gia_AigerReadMappingSimple( &pCur, nSize );
-//                pNew->nOffset = nSize / 4;
-//                pCur += nSize;
-                pNew->pMapping = Gia_AigerReadMappingDoc( &pCur, Gia_ManObjNum(pNew), &nOffset );
-                pNew->nOffset = nOffset;
+                pNew->vMapping = Gia_AigerReadMappingDoc( &pCur, Gia_ManObjNum(pNew) );
                 assert( pCur == pCurTemp );
                 if ( fVerbose ) printf( "Finished reading extension \"m\".\n" );
             }
@@ -786,6 +781,8 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fSkipS
         ABC_FREE( pInit );
     }
     Vec_IntFreeP( &vInits );
+    if ( !fSkipStrash && pNew->vMapping )
+        Abc_Print( 0, "Structural hashing enabled while reading AIGER may have invalidated the mapping.  Consider using \"&r -s\".\n" );
     return pNew;
 }
 
@@ -1218,7 +1215,7 @@ void Gia_AigerWrite( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
         if ( fVerbose ) printf( "Finished writing extension \"k\".\n" );
     }
     // write mapping
-    if ( p->pMapping )
+    if ( Gia_ManHasMapping(p) )
     {
         extern Vec_Str_t * Gia_AigerWriteMapping( Gia_Man_t * p );
         extern Vec_Str_t * Gia_AigerWriteMappingSimple( Gia_Man_t * p );

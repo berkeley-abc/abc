@@ -711,7 +711,7 @@ Abc_Ntk_t * Abc_NtkFromMappedGia( Gia_Man_t * p )
     Gia_Obj_t * pObj, * pObjLi, * pObjLo;
     Vec_Ptr_t * vReflect;
     int i, k, iFan, nDupGates; 
-    assert( p->pMapping != NULL );
+    assert( Gia_ManHasMapping(p) );
     pNtkNew = Abc_NtkAlloc( ABC_NTK_LOGIC, ABC_FUNC_AIG, 1 );
     // duplicate the name and the spec
     pNtkNew->pName = Extra_UtilStrsav(p->pName);

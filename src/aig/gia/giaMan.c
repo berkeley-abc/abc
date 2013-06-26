@@ -111,7 +111,7 @@ void Gia_ManStop( Gia_Man_t * p )
     ABC_FREE( p->pCexSeq );
     ABC_FREE( p->pCexComb );
     ABC_FREE( p->pIso );
-    ABC_FREE( p->pMapping );
+//    ABC_FREE( p->pMapping );
     ABC_FREE( p->pFanData );
     ABC_FREE( p->pReprsOld );
     ABC_FREE( p->pReprs );
@@ -337,7 +337,7 @@ void Gia_ManPrintStats( Gia_Man_t * p, int fTents, int fSwitch, int fCut )
         Gia_ManEquivPrintClasses( p, 0, 0.0 );
     if ( p->pSibls )
         Gia_ManPrintChoiceStats( p );
-    if ( p->pMapping )
+    if ( Gia_ManHasMapping(p) )
         Gia_ManPrintMappingStats( p );
     if ( p->vPacking )
         Gia_ManPrintPackingStats( p );
@@ -498,7 +498,7 @@ void Gia_ManPrintNpnClasses( Gia_Man_t * p )
     int * pLutClass, ClassCounts[222] = {0};
     int i, k, iFan, Class, OtherClasses, OtherClasses2, nTotal, Counter, Counter2;
     unsigned * pTruth;
-    assert( p->pMapping != NULL );
+    assert( Gia_ManHasMapping(p) );
     assert(  Gia_ManLutSizeMax( p ) <= 4 );
     vLeaves   = Vec_IntAlloc( 100 );
     vVisited  = Vec_IntAlloc( 100 );

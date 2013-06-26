@@ -215,7 +215,7 @@ void Gia_ManPrintMappingStats( Gia_Man_t * p )
 {
     int * pLevels;
     int i, k, iFan, nLutSize = 0, nLuts = 0, nFanins = 0, LevelMax = 0;
-    if ( !p->pMapping )
+    if ( !Gia_ManHasMapping(p) )
         return;
     pLevels = ABC_CALLOC( int, Gia_ManObjNum(p) );
     Gia_ManForEachLut( p, i )
@@ -283,6 +283,107 @@ void Gia_ManPrintPackingStats( Gia_Man_t * p )
     Abc_Print( 1, "Total = %d", nEntries2 );
     Abc_Print( 1, "\n" );
 }
+
+
+/**Function*************************************************************
+
+  Synopsis    [Computes levels for AIG with choices and white boxes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManChoiceLevel_rec( Gia_Man_t * p, Gia_Obj_t * pObj )
+{
+    Tim_Man_t * pManTime = (Tim_Man_t *)p->pManTime;
+    Gia_Obj_t * pNext;
+    int i, iBox, iTerm1, nTerms, LevelMax = 0;
+    if ( Gia_ObjIsTravIdCurrent( p, pObj ) )
+        return;
+    Gia_ObjSetTravIdCurrent( p, pObj );
+    if ( Gia_ObjIsCi(pObj) )
+    {
+        if ( pManTime )
+        {
+            iBox = Tim_ManBoxForCi( pManTime, Gia_ObjCioId(pObj) );
+            if ( iBox >= 0 ) // this is not a true PI
+            {
+                iTerm1 = Tim_ManBoxInputFirst( pManTime, iBox );
+                nTerms = Tim_ManBoxInputNum( pManTime, iBox );
+                for ( i = 0; i < nTerms; i++ )
+                {
+                    pNext = Gia_ManCo( p, iTerm1 + i );
+                    Gia_ManChoiceLevel_rec( p, pNext );
+                    if ( LevelMax < Gia_ObjLevel(p, pNext) )
+                        LevelMax = Gia_ObjLevel(p, pNext);
+                }
+                LevelMax++;
+            }
+        }
+//        Abc_Print( 1, "%d ", pObj->Level );
+    }
+    else if ( Gia_ObjIsCo(pObj) )
+    {
+        pNext = Gia_ObjFanin0(pObj);
+        Gia_ManChoiceLevel_rec( p, pNext );
+        if ( LevelMax < Gia_ObjLevel(p, pNext) )
+            LevelMax = Gia_ObjLevel(p, pNext);
+    }
+    else if ( Gia_ObjIsAnd(pObj) )
+    { 
+        // get the maximum level of the two fanins
+        pNext = Gia_ObjFanin0(pObj);
+        Gia_ManChoiceLevel_rec( p, pNext );
+        if ( LevelMax < Gia_ObjLevel(p, pNext) )
+            LevelMax = Gia_ObjLevel(p, pNext);
+        pNext = Gia_ObjFanin1(pObj);
+        Gia_ManChoiceLevel_rec( p, pNext );
+        if ( LevelMax < Gia_ObjLevel(p, pNext) )
+            LevelMax = Gia_ObjLevel(p, pNext);
+        LevelMax++;
+
+        // get the level of the nodes in the choice node
+        if ( (pNext = Gia_ObjSiblObj(p, Gia_ObjId(p, pObj))) )
+        {
+            Gia_ManChoiceLevel_rec( p, pNext );
+            if ( LevelMax < Gia_ObjLevel(p, pNext) )
+                LevelMax = Gia_ObjLevel(p, pNext);
+        }
+    }
+    else if ( !Gia_ObjIsConst0(pObj) )
+        assert( 0 );
+    Gia_ObjSetLevel( p, pObj, LevelMax );
+}
+int Gia_ManChoiceLevel( Gia_Man_t * p )
+{
+    Gia_Obj_t * pObj;
+    int i, LevelMax = 0;
+//    assert( Gia_ManRegNum(p) == 0 );
+    Gia_ManCleanLevels( p, Gia_ManObjNum(p) );
+    Gia_ManIncrementTravId( p );
+    Gia_ManForEachCo( p, pObj, i )
+    {
+        Gia_ManChoiceLevel_rec( p, pObj );
+        if ( LevelMax < Gia_ObjLevel(p, pObj) )
+            LevelMax = Gia_ObjLevel(p, pObj);
+    }
+    // account for dangling boxes
+    Gia_ManForEachCi( p, pObj, i )
+    {
+        Gia_ManChoiceLevel_rec( p, pObj );
+        if ( LevelMax < Gia_ObjLevel(p, pObj) )
+            LevelMax = Gia_ObjLevel(p, pObj);
+//        Abc_Print( 1, "%d ", Gia_ObjLevel(p, pObj) );
+    }
+//    Abc_Print( 1, "\n" );
+    Gia_ManForEachAnd( p, pObj, i )
+        assert( Gia_ObjLevel(p, pObj) > 0 );
+//    printf( "Max level %d\n", LevelMax );
+    return LevelMax;
+} 
 
 
 
@@ -606,9 +707,16 @@ int Gia_ManFromIfLogicNode( Gia_Man_t * pNew, int iObj, Vec_Int_t * vLeaves, Vec
         // derive truth table
         if ( Kit_TruthIsConst0((unsigned *)pRes, nLeaves) || Kit_TruthIsConst1((unsigned *)pRes, nLeaves) )
         {
-            assert( 0 );
 //            fprintf( pFile, ".names %s\n %d\n", Abc_ObjName(Abc_ObjFanout0(pObj)), Kit_TruthIsConst1((unsigned *)pRes, nLeaves) );
-            return -1;
+            iObjLit1 = Abc_LitNotCond( 0, Kit_TruthIsConst1((unsigned *)pRes, nLeaves) );
+            // write mapping
+            if ( Vec_IntEntry(vMapping, 0) == 0 )
+            {
+                Vec_IntSetEntry( vMapping, 0, Vec_IntSize(vMapping2) );
+                Vec_IntPush( vMapping2, 0 );
+                Vec_IntPush( vMapping2, 0 );
+            }
+            return iObjLit1;
         }
 
         // perform decomposition
@@ -928,18 +1036,15 @@ Gia_Man_t * Gia_ManFromIfLogic( If_Man_t * pIfMan )
     Vec_IntAppend( vMapping, vMapping2 );
     Vec_IntFree( vMapping2 );
     // attach mapping and packing
-    pNew->nOffset  = Vec_IntSize(vMapping);
-    pNew->pMapping = Vec_IntReleaseArray(vMapping);
+    assert( pNew->vMapping == NULL );
+    assert( pNew->vPacking == NULL );
+    pNew->vMapping = vMapping;
     pNew->vPacking = vPacking;
-    Vec_IntFree( vMapping );
     // verify that COs have mapping
     {
         Gia_Obj_t * pObj;
         Gia_ManForEachCo( pNew, pObj, i )
-        {
-            if ( Gia_ObjIsAnd(Gia_ObjFanin0(pObj)) )
-                assert( pNew->pMapping[Gia_ObjFaninId0p(pNew, pObj)] != 0 );
-        }
+           assert( !Gia_ObjIsAnd(Gia_ObjFanin0(pObj)) || Gia_ObjIsLut(pNew, Gia_ObjFaninId0p(pNew, pObj)) );
     }
     return pNew;
 }
@@ -979,17 +1084,7 @@ void Gia_ManMappingVerify( Gia_Man_t * p )
 {
     Gia_Obj_t * pObj, * pFanin;
     int i, Result = 1;
-/*
-    if ( p->pMapping )
-    {
-        assert( p->nOffset != 0 );
-        Vec_IntFreeP( p->vMapping );
-        Vec_IntAlloc( p->vMapping, p->nOffset );
-        memmove( Vec_IntArray(p->vMapping), p->pMapping, p->nOffset );
-    }
-    assert( p->vMapping );
-*/
-    assert( p->pMapping );
+    assert( Gia_ManHasMapping(p) );
     Gia_ManIncrementTravId( p );
     Gia_ManForEachCo( p, pObj, i )
     {
@@ -1024,7 +1119,7 @@ void Gia_ManTransferMapping( Gia_Man_t * pGia, Gia_Man_t * p )
 {
     Gia_Obj_t * pObj;
     int i, k, iFan;
-    if ( pGia->pMapping == NULL )
+    if ( !Gia_ManHasMapping(pGia) )
         return;
     Gia_ManMappingVerify( pGia );
     Vec_IntFreeP( &p->vMapping );
@@ -1040,12 +1135,6 @@ void Gia_ManTransferMapping( Gia_Man_t * pGia, Gia_Man_t * p )
             Vec_IntPush( p->vMapping, Abc_Lit2Var(Gia_ObjValue(Gia_ManObj(pGia, iFan))) );
         Vec_IntPush( p->vMapping, Gia_ObjId(p, pObj) );
     }
-    // create standard mapping
-    assert( p->pMapping == NULL );
-    p->pMapping = Vec_IntArray( p->vMapping );
-    p->vMapping->pArray = NULL;
-    p->nOffset = Vec_IntSize(p->vMapping);
-    p->vMapping->nSize = 0;
     Gia_ManMappingVerify( p );
 }
 
@@ -1112,9 +1201,9 @@ Gia_Man_t * Gia_ManPerformMapping( Gia_Man_t * p, void * pp, int fNormalized )
     Gia_Man_t * pNew;
     If_Man_t * pIfMan;
     If_Par_t * pPars = (If_Par_t *)pp;
-    // disable cut minimization
-    if ( !(pPars->fDelayOpt || pPars->fUserRecLib) && !pPars->fDeriveLuts )//&& Gia_ManWithChoices(p) )
-        pPars->fCutMin = 0; // not compatible with deriving result
+    // disable cut minimization when GIA strucure is needed
+    if ( !pPars->fDelayOpt && !pPars->fUserRecLib && !pPars->fDeriveLuts )
+        pPars->fCutMin = 0;
     // reconstruct GIA according to the hierarchy manager
     assert( pPars->pTimesArr == NULL );
     assert( pPars->pTimesReq == NULL );
