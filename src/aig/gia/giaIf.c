@@ -613,6 +613,7 @@ int Gia_ManFromIfLogicNode( Gia_Man_t * pNew, int iObj, Vec_Int_t * vLeaves, Vec
     int nLeaves = Vec_IntSize(vLeaves);
     int i, Length, nLutLeaf, nLutLeaf2, nLutRoot, iObjLit1, iObjLit2, iObjLit3;
     // check simple case
+/*
     static word s_Truths6[6] = {
         ABC_CONST(0xAAAAAAAAAAAAAAAA),
         ABC_CONST(0xCCCCCCCCCCCCCCCC),
@@ -621,7 +622,6 @@ int Gia_ManFromIfLogicNode( Gia_Man_t * pNew, int iObj, Vec_Int_t * vLeaves, Vec
         ABC_CONST(0xFFFF0000FFFF0000),
         ABC_CONST(0xFFFFFFFF00000000)
     };
-/*
     if ( *pRes == 0 || ~*pRes == 0 )
         return Abc_LitNotCond( 0, ~*pRes == 0 );
     for ( i = 0; i < Vec_IntSize(vLeaves); i++ )
