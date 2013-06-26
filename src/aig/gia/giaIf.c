@@ -1107,7 +1107,7 @@ void Gia_ManTransferPacking( Gia_Man_t * pGia, Gia_Man_t * p )
   SeeAlso     [] 
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManPerformMapping( Gia_Man_t * p, void * pp )
+Gia_Man_t * Gia_ManPerformMapping( Gia_Man_t * p, void * pp, int fNormalized )
 {
     Gia_Man_t * pNew;
     If_Man_t * pIfMan;
@@ -1120,16 +1120,19 @@ Gia_Man_t * Gia_ManPerformMapping( Gia_Man_t * p, void * pp )
     assert( pPars->pTimesReq == NULL );
     if ( p->pManTime )
     {
-        pNew = Gia_ManDupUnnormalize( p );
-        if ( pNew == NULL )
-            return NULL;
-        pNew->pManTime   = p->pManTime;   p->pManTime  = NULL;
-        pNew->pAigExtra  = p->pAigExtra;  p->pAigExtra = NULL;
-        pNew->nAnd2Delay = p->nAnd2Delay; p->nAnd2Delay = 0;
-        p = pNew;
-        // set arrival and required times
-        pPars->pTimesArr = Tim_ManGetArrTimes( (Tim_Man_t *)p->pManTime );
-        pPars->pTimesReq = Tim_ManGetReqTimes( (Tim_Man_t *)p->pManTime );
+        if ( fNormalized )
+        {
+            pNew = Gia_ManDupUnnormalize( p );
+            if ( pNew == NULL )
+                return NULL;
+            pNew->pManTime   = p->pManTime;   p->pManTime  = NULL;
+            pNew->pAigExtra  = p->pAigExtra;  p->pAigExtra = NULL;
+            pNew->nAnd2Delay = p->nAnd2Delay; p->nAnd2Delay = 0;
+            p = pNew;
+            // set arrival and required times
+            pPars->pTimesArr = Tim_ManGetArrTimes( (Tim_Man_t *)p->pManTime );
+            pPars->pTimesReq = Tim_ManGetReqTimes( (Tim_Man_t *)p->pManTime );
+        }
     }
     else 
         p = Gia_ManDup( p );
