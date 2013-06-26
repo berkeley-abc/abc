@@ -119,6 +119,7 @@ struct If_Par_t_
     int                fEnableCheck10;// enable additional checking
     int                fEnableRealPos;// enable additional feature
     int                fUseDsd;       // compute DSD of the cut functions
+    int                fDeriveLuts;   // enables deriving LUT structures
     int                fVerbose;      // the verbosity flag
     char *             pLutStruct;    // LUT structure
     float              WireDelay;     // wire delay

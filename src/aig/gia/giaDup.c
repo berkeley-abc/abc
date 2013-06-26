@@ -1875,7 +1875,7 @@ Gia_Man_t * Gia_ManMiter( Gia_Man_t * p0, Gia_Man_t * p1, int nInsDup, int fDual
         Gia_ManForEachCi( p0, pObj, i )
             pObj->Value = Gia_ManAppendCi( pNew );
         Gia_ManForEachCi( p1, pObj, i )
-            if ( i < Gia_ManPiNum(p1) - nInsDup )
+            if ( i < Gia_ManCiNum(p1) - nInsDup )
                 pObj->Value = Gia_ObjToLit( pNew, Gia_ManCi(pNew, i) );
             else
                 pObj->Value = Gia_ManAppendCi( pNew );

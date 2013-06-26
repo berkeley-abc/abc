@@ -1149,7 +1149,7 @@ int Abc_RecToGia3( Gia_Man_t * pMan, If_Man_t * pIfMan, If_Cut_t * pCut, Vec_Int
     assert( Gia_ObjIsAnd(pGiaTemp) );
     iGiaObj = Vec_IntEntry(p->vLabels, Gia_ObjNum(pGia, pGiaTemp) + nLeaves);
     // complement the result if needed
-    return Abc_LitNotCond( iGiaObj,  Gia_ObjFaninC0(pGiaPo) ^ ((uCanonPhase >> nLeaves) & 1) );    
+    return Abc_LitNotCond( iGiaObj,  Gia_ObjFaninC0(pGiaPo) ^ ((uCanonPhase >> nLeaves) & 1) ^ pCut->fCompl );    
 }
 
 

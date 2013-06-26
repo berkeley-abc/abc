@@ -408,6 +408,316 @@ int Gia_ManNodeIfSopToGia( Gia_Man_t * pNew, If_Man_t * p, If_Cut_t * pCut, Vec_
 
 /**Function*************************************************************
 
+  Synopsis    [Converts IF into GIA manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManFromIfAig( If_Man_t * pIfMan )
+{
+    int fHash = 0;
+    Gia_Man_t * pNew;
+    If_Obj_t * pIfObj, * pIfLeaf;
+    If_Cut_t * pCutBest;
+    Vec_Int_t * vLeaves;
+    Vec_Int_t * vCover;
+    int i, k;
+    assert( pIfMan->pPars->pLutStruct == NULL );
+    assert( pIfMan->pPars->fDelayOpt || pIfMan->pPars->fUserRecLib );
+    // create new manager
+    pNew = Gia_ManStart( If_ManObjNum(pIfMan) );
+    Gia_ManHashAlloc( pNew );
+    // iterate through nodes used in the mapping
+    vCover = Vec_IntAlloc( 1 << 16 );
+    vLeaves = Vec_IntAlloc( 16 );
+    If_ManCleanCutData( pIfMan );
+    If_ManForEachObj( pIfMan, pIfObj, i )
+    {
+        if ( pIfObj->nRefs == 0 && !If_ObjIsTerm(pIfObj) )
+            continue;
+        if ( If_ObjIsAnd(pIfObj) )
+        {
+            pCutBest = If_ObjCutBest( pIfObj );
+            // collect leaves of the best cut
+            Vec_IntClear( vLeaves );
+            If_CutForEachLeaf( pIfMan, pCutBest, pIfLeaf, k )
+                Vec_IntPush( vLeaves, pIfLeaf->iCopy );
+            // get the functionality
+            if ( pIfMan->pPars->fDelayOpt )
+                pIfObj->iCopy = Gia_ManNodeIfSopToGia( pNew, pIfMan, pCutBest, vLeaves, fHash );
+            else if ( pIfMan->pPars->fUserRecLib )
+                pIfObj->iCopy = Abc_RecToGia3( pNew, pIfMan, pCutBest, vLeaves, fHash );
+            else assert( 0 );
+        }
+        else if ( If_ObjIsCi(pIfObj) )
+            pIfObj->iCopy = Gia_ManAppendCi(pNew);
+        else if ( If_ObjIsCo(pIfObj) )
+            pIfObj->iCopy = Gia_ManAppendCo( pNew, Abc_LitNotCond(If_ObjFanin0(pIfObj)->iCopy, If_ObjFaninC0(pIfObj)) );
+        else if ( If_ObjIsConst1(pIfObj) )
+            pIfObj->iCopy = 1;
+        else assert( 0 );
+    }
+    Vec_IntFree( vCover );
+    Vec_IntFree( vLeaves );
+    Gia_ManHashStop( pNew );
+    return pNew;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Write mapping for LUT with given fanins.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManFromIfLogicCreateLut( Gia_Man_t * pNew, word * pRes, Vec_Int_t * vLeaves, Vec_Int_t * vCover, Vec_Int_t * vMapping, Vec_Int_t * vMapping2 )
+{
+    int i, iLit, iObjLit1;
+    iObjLit1 = Kit_TruthToGia( pNew, (unsigned *)pRes, Vec_IntSize(vLeaves), vCover, vLeaves, 0 );
+    // write mapping
+    Vec_IntSetEntry( vMapping, Abc_Lit2Var(iObjLit1), Vec_IntSize(vMapping2) );
+    Vec_IntPush( vMapping2, Vec_IntSize(vLeaves) );
+//    Vec_IntForEachEntry( vLeaves, iLit, i )
+//        assert( Abc_Lit2Var(iLit) < Abc_Lit2Var(iObjLit1) );
+    Vec_IntForEachEntry( vLeaves, iLit, i )
+        Vec_IntPush( vMapping2, Abc_Lit2Var(iLit)  );
+    Vec_IntPush( vMapping2, Abc_Lit2Var(iObjLit1) );
+    return iObjLit1;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Write the node into a file.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManFromIfLogicNode( Gia_Man_t * pNew, int iObj, Vec_Int_t * vLeaves, Vec_Int_t * vLeavesTemp, 
+    word * pRes, char * pStr, Vec_Int_t * vCover, Vec_Int_t * vMapping, Vec_Int_t * vMapping2, Vec_Int_t * vPacking )
+{
+    int nLeaves = Vec_IntSize(vLeaves);
+    int i, Length, nLutLeaf, nLutLeaf2, nLutRoot, iObjLit1, iObjLit2, iObjLit3;
+    // check simple case
+    static word s_Truths6[6] = {
+        ABC_CONST(0xAAAAAAAAAAAAAAAA),
+        ABC_CONST(0xCCCCCCCCCCCCCCCC),
+        ABC_CONST(0xF0F0F0F0F0F0F0F0),
+        ABC_CONST(0xFF00FF00FF00FF00),
+        ABC_CONST(0xFFFF0000FFFF0000),
+        ABC_CONST(0xFFFFFFFF00000000)
+    };
+/*
+    if ( *pRes == 0 || ~*pRes == 0 )
+        return Abc_LitNotCond( 0, ~*pRes == 0 );
+    for ( i = 0; i < Vec_IntSize(vLeaves); i++ )
+        if ( *pRes == s_Truths6[i] || ~*pRes == s_Truths6[i] )
+            return Abc_LitNotCond( Vec_IntEntry(vLeaves, i), ~*pRes == s_Truths6[i] );
+*/
+/*
+    if ( *pRes == 0 || ~*pRes == 0 )
+        printf( "Const\n" );
+    for ( i = 0; i < Vec_IntSize(vLeaves); i++ )
+        if ( *pRes == s_Truths6[i] || ~*pRes == s_Truths6[i] )
+            printf( "Literal\n" );
+*/
+    // check if there is no LUT structures
+    if ( pStr == NULL )
+        return Gia_ManFromIfLogicCreateLut( pNew, pRes, vLeaves, vCover, vMapping, vMapping2 );
+
+    // quit if parameters are wrong
+    Length = strlen(pStr);
+    if ( Length != 2 && Length != 3 )
+    {
+        printf( "Wrong LUT struct (%s)\n", pStr );
+        return -1;
+    }
+    for ( i = 0; i < Length; i++ )
+        if ( pStr[i] - '0' < 3 || pStr[i] - '0' > 6 )
+        {
+            printf( "The LUT size (%d) should belong to {3,4,5,6}.\n", pStr[i] - '0' );
+            return -1;
+        }
+
+    nLutLeaf  =                   pStr[0] - '0';
+    nLutLeaf2 = ( Length == 3 ) ? pStr[1] - '0' : 0;
+    nLutRoot  =                   pStr[Length-1] - '0';
+    if ( nLeaves > nLutLeaf - 1 + (nLutLeaf2 ? nLutLeaf2 - 1 : 0) + nLutRoot )
+    {
+        printf( "The node size (%d) is too large for the LUT structure %s.\n", nLeaves, pStr );
+        return -1;
+    }
+
+    // consider easy case
+    if ( nLeaves <= Abc_MaxInt( nLutLeaf2, Abc_MaxInt(nLutLeaf, nLutRoot) ) )
+    {
+        // create mapping
+        iObjLit1 = Gia_ManFromIfLogicCreateLut( pNew, pRes, vLeaves, vCover, vMapping, vMapping2 );
+        // write packing
+        Vec_IntPush( vPacking, 1 );
+        Vec_IntPush( vPacking, Abc_Lit2Var(iObjLit1) );
+        Vec_IntAddToEntry( vPacking, 0, 1 );
+        return iObjLit1;
+    }
+    else
+    {
+        extern int If_CluMinimumBase( word * t, int * pSupp, int nVarsAll, int * pnVars );
+
+        static word TruthStore[16][1<<10] = {{0}}, * pTruths[16];
+        word Func0, Func1, Func2;
+        char pLut0[32], pLut1[32], pLut2[32] = {0};
+
+        if ( TruthStore[0][0] == 0 )
+        {
+            static word Truth6[6] = {
+                0xAAAAAAAAAAAAAAAA,
+                0xCCCCCCCCCCCCCCCC,
+                0xF0F0F0F0F0F0F0F0,
+                0xFF00FF00FF00FF00,
+                0xFFFF0000FFFF0000,
+                0xFFFFFFFF00000000
+            };
+            int nVarsMax = 16;
+            int nWordsMax = (1 << 10);
+            int i, k;
+            assert( nVarsMax <= 16 );
+            for ( i = 0; i < nVarsMax; i++ )
+                pTruths[i] = TruthStore[i];
+            for ( i = 0; i < 6; i++ )
+                for ( k = 0; k < nWordsMax; k++ )
+                    pTruths[i][k] = Truth6[i];
+            for ( i = 6; i < nVarsMax; i++ )
+                for ( k = 0; k < nWordsMax; k++ )
+                    pTruths[i][k] = ((k >> (i-6)) & 1) ? ~(word)0 : 0;
+        }
+        // derive truth table
+        if ( Kit_TruthIsConst0((unsigned *)pRes, nLeaves) || Kit_TruthIsConst1((unsigned *)pRes, nLeaves) )
+        {
+            assert( 0 );
+//            fprintf( pFile, ".names %s\n %d\n", Abc_ObjName(Abc_ObjFanout0(pObj)), Kit_TruthIsConst1((unsigned *)pRes, nLeaves) );
+            return -1;
+        }
+
+        // perform decomposition
+        if ( Length == 2 )
+        {
+            if ( !If_CluCheckExt( NULL, pRes, nLeaves, nLutLeaf, nLutRoot, pLut0, pLut1, &Func0, &Func1 ) )
+            {
+                Extra_PrintHex( stdout, (unsigned *)pRes, nLeaves );  printf( "    " );
+                Kit_DsdPrintFromTruth( (unsigned*)pRes, nLeaves );  printf( "\n" );
+                printf( "Node %d is not decomposable. Deriving LUT structures has failed.\n", iObj );
+                return -1;
+            }
+        }
+        else
+        {
+            if ( !If_CluCheckExt3( NULL, pRes, nLeaves, nLutLeaf, nLutLeaf2, nLutRoot, pLut0, pLut1, pLut2, &Func0, &Func1, &Func2 ) )
+            {
+                Extra_PrintHex( stdout, (unsigned *)pRes, nLeaves );  printf( "    " );
+                Kit_DsdPrintFromTruth( (unsigned*)pRes, nLeaves );  printf( "\n" );
+                printf( "Node %d is not decomposable. Deriving LUT structures has failed.\n", iObj );
+                return -1;
+            }
+        }
+
+/*
+        // write leaf node
+        Id = Abc2_NtkAllocObj( pNew, pLut1[0], Abc2_ObjType(pObj) );
+        iObjLit1 = Abc_Var2Lit( Id, 0 );
+        pObjNew = Abc2_NtkObj( pNew, Id );
+        for ( i = 0; i < pLut1[0]; i++ )
+            Abc2_ObjSetFaninLit( pObjNew, i, Abc2_ObjFaninCopy(pObj, pLut1[2+i]) );
+        Abc2_ObjSetTruth( pObjNew, Func1 );
+*/
+        // write leaf node
+        Vec_IntClear( vLeavesTemp );
+        for ( i = 0; i < pLut1[0]; i++ )
+            Vec_IntPush( vLeavesTemp, Vec_IntEntry(vLeaves, pLut1[2+i]) );
+        iObjLit1 = Gia_ManFromIfLogicCreateLut( pNew, &Func1, vLeavesTemp, vCover, vMapping, vMapping2 );
+
+        if ( Length == 3 && pLut2[0] > 0 )
+        {
+        /*
+            Id = Abc2_NtkAllocObj( pNew, pLut2[0], Abc2_ObjType(pObj) );
+            iObjLit2 = Abc_Var2Lit( Id, 0 );
+            pObjNew = Abc2_NtkObj( pNew, Id );
+            for ( i = 0; i < pLut2[0]; i++ )
+                if ( pLut2[2+i] == nLeaves )
+                    Abc2_ObjSetFaninLit( pObjNew, i, iObjLit1 );
+                else
+                    Abc2_ObjSetFaninLit( pObjNew, i, Abc2_ObjFaninCopy(pObj, pLut2[2+i]) );
+            Abc2_ObjSetTruth( pObjNew, Func2 );
+        */
+
+            // write leaf node
+            Vec_IntClear( vLeavesTemp );
+            for ( i = 0; i < pLut2[0]; i++ )
+                if ( pLut2[2+i] == nLeaves )
+                    Vec_IntPush( vLeavesTemp, iObjLit1 );
+                else
+                    Vec_IntPush( vLeavesTemp, Vec_IntEntry(vLeaves, pLut2[2+i]) );
+            iObjLit2 = Gia_ManFromIfLogicCreateLut( pNew, &Func2, vLeavesTemp, vCover, vMapping, vMapping2 );
+
+            // write packing
+            Vec_IntPush( vPacking, 3 );
+            Vec_IntPush( vPacking, Abc_Lit2Var(iObjLit1) );
+            Vec_IntPush( vPacking, Abc_Lit2Var(iObjLit2) );
+        }
+        else
+        {
+            // write packing
+            Vec_IntPush( vPacking, 2 );
+            Vec_IntPush( vPacking, Abc_Lit2Var(iObjLit1) );
+            iObjLit2 = -1;
+        }
+/*
+        // write root node
+        Id = Abc2_NtkAllocObj( pNew, pLut0[0], Abc2_ObjType(pObj) );
+        iObjLit3 = Abc_Var2Lit( Id, 0 );
+        pObjNew = Abc2_NtkObj( pNew, Id );
+        for ( i = 0; i < pLut0[0]; i++ )
+            if ( pLut0[2+i] == nLeaves )
+                Abc2_ObjSetFaninLit( pObjNew, i, iObjLit1 );
+            else if ( pLut0[2+i] == nLeaves+1 )
+                Abc2_ObjSetFaninLit( pObjNew, i, iObjLit2 );
+            else
+                Abc2_ObjSetFaninLit( pObjNew, i, Abc2_ObjFaninCopy(pObj, pLut0[2+i]) );
+        Abc2_ObjSetTruth( pObjNew, Func0 );
+        Abc2_ObjSetCopy( pObj, iObjLit3 );
+*/
+        // write root node
+        Vec_IntClear( vLeavesTemp );
+        for ( i = 0; i < pLut0[0]; i++ )
+            if ( pLut0[2+i] == nLeaves )
+                Vec_IntPush( vLeavesTemp, iObjLit1 );
+            else if ( pLut0[2+i] == nLeaves+1 )
+                Vec_IntPush( vLeavesTemp, iObjLit2 );
+            else
+                Vec_IntPush( vLeavesTemp, Vec_IntEntry(vLeaves, pLut0[2+i]) );
+        iObjLit3 = Gia_ManFromIfLogicCreateLut( pNew, &Func0, vLeavesTemp, vCover, vMapping, vMapping2 );
+
+        // write packing
+        Vec_IntPush( vPacking, Abc_Lit2Var(iObjLit3) );
+        Vec_IntAddToEntry( vPacking, 0, 1 );
+    }
+    return iObjLit3;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Recursively derives the local AIG for the cut.]
 
   Description []
@@ -493,394 +803,24 @@ int Gia_ManNodeIfToGia( Gia_Man_t * pNew, If_Man_t * pIfMan, If_Obj_t * pIfObj, 
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManFromIf( If_Man_t * pIfMan )
+static inline word Gia_ManTt6Stretch( word t, int nVars )
 {
-    int fHash = 0;
-    Gia_Man_t * pNew;
-    If_Obj_t * pIfObj, * pIfLeaf;
-    If_Cut_t * pCutBest;
-    Vec_Int_t * vLeaves;
-    Vec_Int_t * vCover;
-    unsigned * pTruth;
-    int Counter, iOffset, nItems = 0;
-    int i, k, w, GiaId;
-    assert( pIfMan->pPars->pLutStruct == NULL );
-    // create new manager
-    pNew = Gia_ManStart( If_ManObjNum(pIfMan) );
-    Gia_ManHashAlloc( pNew );
-    // iterate through nodes used in the mapping
-    vCover = Vec_IntAlloc( 1 << 16 );
-    vLeaves = Vec_IntAlloc( 16 );
-    If_ManCleanCutData( pIfMan );
-    If_ManForEachObj( pIfMan, pIfObj, i )
-    {
-        if ( pIfObj->nRefs == 0 && !If_ObjIsTerm(pIfObj) )
-            continue;
-        if ( If_ObjIsAnd(pIfObj) )
-        {
-            pCutBest = If_ObjCutBest( pIfObj );
-            // collect leaves of the best cut
-            Vec_IntClear( vLeaves );
-            If_CutForEachLeaf( pIfMan, pCutBest, pIfLeaf, k )
-                Vec_IntPush( vLeaves, pIfLeaf->iCopy );
-            // get the functionality
-            if ( pIfMan->pPars->pLutStruct )
-                pIfObj->iCopy = Kit_TruthToGia( pNew, If_CutTruth(pCutBest), If_CutLeaveNum(pCutBest), vCover, vLeaves, fHash );
-            else if ( pIfMan->pPars->fDelayOpt )
-                pIfObj->iCopy = Gia_ManNodeIfSopToGia( pNew, pIfMan, pCutBest, vLeaves, fHash );
-            else if ( pIfMan->pPars->fUserRecLib )
-                pIfObj->iCopy = Abc_RecToGia3( pNew, pIfMan, pCutBest, vLeaves, fHash );
-            else
-                pIfObj->iCopy = Gia_ManNodeIfToGia( pNew, pIfMan, pIfObj, vLeaves, fHash );
-            // complement the node if the TT was used and the cut was complemented
-            if ( pIfMan->pPars->pLutStruct )
-                pIfObj->iCopy = Abc_LitNotCond( pIfObj->iCopy, pCutBest->fCompl );
-            // count entries in the mapping array
-            nItems += 2 + If_CutLeaveNum( pCutBest );
-        }
-        else if ( If_ObjIsCi(pIfObj) )
-            pIfObj->iCopy = Gia_ManAppendCi(pNew);
-        else if ( If_ObjIsCo(pIfObj) )
-            pIfObj->iCopy = Gia_ManAppendCo( pNew, Abc_LitNotCond(If_ObjFanin0(pIfObj)->iCopy, If_ObjFaninC0(pIfObj)) );
-        else if ( If_ObjIsConst1(pIfObj) )
-        {
-            pIfObj->iCopy = 1;
-            nItems += 2; 
-        }
-        else assert( 0 );
-    }
-    Vec_IntFree( vCover );
-    Vec_IntFree( vLeaves );
-    Gia_ManHashStop( pNew );
-
-    // GIA after mapping with choices may end up with dangling nodes
-    // which participate as leaves of some cuts used in the mapping
-    // such nodes are marked here and skipped when mapping is derived
-    Counter = Gia_ManMarkDangling(pNew);
-//    if ( pIfMan->pPars->fVerbose && Counter )
-    if ( Counter )
-        printf( "GIA after mapping has %d dangling nodes.\n", Counter );
-
-    // create mapping
-    iOffset = Gia_ManObjNum(pNew);
-    pNew->pMapping = ABC_CALLOC( int, iOffset + nItems );
-    assert( pNew->vTruths == NULL );
-    if ( pIfMan->pPars->pLutStruct )
-        pNew->vTruths = Vec_IntAlloc( 1000 );
-    If_ManForEachObj( pIfMan, pIfObj, i )
-    {
-        if ( pIfObj->nRefs == 0 && !If_ObjIsTerm(pIfObj) )
-            continue;
-        if ( If_ObjIsAnd(pIfObj) )
-        { 
-            GiaId = Abc_Lit2Var( pIfObj->iCopy );
-            if ( !Gia_ObjIsAnd(Gia_ManObj(pNew, GiaId)) ) // skip trivial node
-                continue;
-            assert( Gia_ObjIsAnd(Gia_ManObj(pNew, GiaId)) );
-            if ( !Gia_ManObj(pNew, GiaId)->fMark0 ) // skip dangling node
-                continue;
-            // get the best cut
-            pCutBest = If_ObjCutBest( pIfObj );
-            // copy the truth tables
-            pTruth = NULL;
-            if ( pNew->vTruths )
-            { 
-                // copy truth table
-                for ( w = 0; w < pIfMan->nTruthWords; w++ )
-                    Vec_IntPush( pNew->vTruths, If_CutTruth(pCutBest)[w] );
-                pTruth = (unsigned *)(Vec_IntArray(pNew->vTruths) + Vec_IntSize(pNew->vTruths) - pIfMan->nTruthWords);
-                // complement 
-                if ( pCutBest->fCompl ^ Abc_LitIsCompl(pIfObj->iCopy) )
-                    for ( w = 0; w < pIfMan->nTruthWords; w++ )
-                        pTruth[w] = ~pTruth[w];
-            }
-            // create node
-            pNew->pMapping[GiaId]     = iOffset;
-            pNew->pMapping[iOffset++] = If_CutLeaveNum(pCutBest);
-            If_CutForEachLeaf( pIfMan, pCutBest, pIfLeaf, k )
-            {
-                int FaninId = Abc_Lit2Var(pIfLeaf->iCopy);
-                if ( pTruth && Abc_LitIsCompl(pIfLeaf->iCopy) )
-                    Kit_TruthChangePhase( pTruth, If_CutLeaveNum(pCutBest), k );
-                if ( !Gia_ManObj(pNew, FaninId)->fMark0 ) // skip dangling node
-                {
-                    // update truth table
-                    if ( pTruth )
-                    {
-                        extern void If_CluSwapVars( word * pTruth, int nVars, int * V2P, int * P2V, int iVar, int jVar );
-                        if ( If_CutLeaveNum(pCutBest) >= 6 )
-                            If_CluSwapVars( (word*)pTruth, If_CutLeaveNum(pCutBest), NULL, NULL, k, If_CutLeaveNum(pCutBest)-1 );
-                        else
-                        {
-                            word Truth = ((word)pTruth[0] << 32) | (word)pTruth[0];
-                            If_CluSwapVars( &Truth, 6, NULL, NULL, k, If_CutLeaveNum(pCutBest)-1 );
-                            pTruth[0] = (Truth & 0xFFFFFFFF);
-                        }
-                    }
-                    pNew->pMapping[iOffset-k-1]--;
-                    continue;
-                }
-                assert( FaninId < GiaId );
-                pNew->pMapping[iOffset++] = FaninId;
-            }
-            pNew->pMapping[iOffset++] = GiaId;
-        }
-        else if ( If_ObjIsConst1(pIfObj) )
-        {
-            // create node
-            pNew->pMapping[0] = iOffset;
-            pNew->pMapping[iOffset++] = 0;
-            pNew->pMapping[iOffset++] = 0;
-/*
-            if ( pNew->vTruths )
-            {
-                printf( "%d ", nLeaves );
-                for ( w = 0; w < pIfMan->nTruthWords; w++ )
-                    Vec_IntPush( pNew->vTruths, 0 );
-            }
-*/
-        }
-    }
-    pNew->nOffset = iOffset;
-    Gia_ManCleanMark0( pNew );
-//    assert( iOffset == Gia_ManObjNum(pNew) + nItems );
-//    if ( pIfMan->pManTim )
-//        pNew->pManTime = Tim_ManDup( pIfMan->pManTim, 0 );
-    // verify that COs have mapping
-    {
-        Gia_Obj_t * pObj;
-        Gia_ManForEachCo( pNew, pObj, i )
-        {
-            if ( Gia_ObjIsAnd(Gia_ObjFanin0(pObj)) )
-                assert( pNew->pMapping[Gia_ObjFaninId0p(pNew, pObj)] != 0 );
-        }
-    }
-    return pNew;
+    assert( nVars >= 0 );
+    if ( nVars == 0 )
+        nVars++, t = (t & 0x1) | ((t & 0x1) << 1);
+    if ( nVars == 1 )
+        nVars++, t = (t & 0x3) | ((t & 0x3) << 2);
+    if ( nVars == 2 )
+        nVars++, t = (t & 0xF) | ((t & 0xF) << 4);
+    if ( nVars == 3 )
+        nVars++, t = (t & 0xFF) | ((t & 0xFF) << 8);
+    if ( nVars == 4 )
+        nVars++, t = (t & 0xFFFF) | ((t & 0xFFFF) << 16);
+    if ( nVars == 5 )
+        nVars++, t = (t & 0xFFFFFFFF) | ((t & 0xFFFFFFFF) << 32);
+    assert( nVars == 6 );
+    return t;
 }
-
-
-/**Function*************************************************************
-
-  Synopsis    [Write mapping for LUT with given fanins.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Gia_ManFromIfStrCreateLut( Gia_Man_t * pNew, word * pRes, Vec_Int_t * vLeaves, Vec_Int_t * vCover, Vec_Int_t * vMapping, Vec_Int_t * vMapping2 )
-{
-    int i, iLit, iObjLit1;
-    iObjLit1 = Kit_TruthToGia( pNew, (unsigned *)pRes, Vec_IntSize(vLeaves), vCover, vLeaves, 0 );
-    // write mapping
-    Vec_IntSetEntry( vMapping, Abc_Lit2Var(iObjLit1), Vec_IntSize(vMapping2) );
-    Vec_IntPush( vMapping2, Vec_IntSize(vLeaves) );
-    Vec_IntForEachEntry( vLeaves, iLit, i )
-        assert( Abc_Lit2Var(iLit) < Abc_Lit2Var(iObjLit1) );
-    Vec_IntForEachEntry( vLeaves, iLit, i )
-        Vec_IntPush( vMapping2, Abc_Lit2Var(iLit)  );
-    Vec_IntPush( vMapping2, Abc_Lit2Var(iObjLit1) );
-    return iObjLit1;
-}
-
-
-/**Function*************************************************************
-
-  Synopsis    [Write the node into a file.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Gia_ManFromIfStrNode( Gia_Man_t * pNew, int iObj, Vec_Int_t * vLeaves, Vec_Int_t * vLeavesTemp, 
-    word * pRes, char * pStr, Vec_Int_t * vCover, Vec_Int_t * vMapping, Vec_Int_t * vMapping2, Vec_Int_t * vPacking )
-{
-    int nLeaves = Vec_IntSize(vLeaves);
-    int i, Length, nLutLeaf, nLutLeaf2, nLutRoot, iObjLit1, iObjLit2, iObjLit3;
-
-    // quit if parameters are wrong
-    Length = strlen(pStr);
-    if ( Length != 2 && Length != 3 )
-    {
-        printf( "Wrong LUT struct (%s)\n", pStr );
-        return -1;
-    }
-    for ( i = 0; i < Length; i++ )
-        if ( pStr[i] - '0' < 3 || pStr[i] - '0' > 6 )
-        {
-            printf( "The LUT size (%d) should belong to {3,4,5,6}.\n", pStr[i] - '0' );
-            return -1;
-        }
-
-    nLutLeaf  =                   pStr[0] - '0';
-    nLutLeaf2 = ( Length == 3 ) ? pStr[1] - '0' : 0;
-    nLutRoot  =                   pStr[Length-1] - '0';
-    if ( nLeaves > nLutLeaf - 1 + (nLutLeaf2 ? nLutLeaf2 - 1 : 0) + nLutRoot )
-    {
-        printf( "The node size (%d) is too large for the LUT structure %s.\n", nLeaves, pStr );
-        return -1;
-    }
-
-    // consider easy case
-    if ( nLeaves <= Abc_MaxInt( nLutLeaf2, Abc_MaxInt(nLutLeaf, nLutRoot) ) )
-    {
-        // create mapping
-        iObjLit1 = Gia_ManFromIfStrCreateLut( pNew, pRes, vLeaves, vCover, vMapping, vMapping2 );
-        // write packing
-        Vec_IntPush( vPacking, 1 );
-        Vec_IntPush( vPacking, Abc_Lit2Var(iObjLit1) );
-        Vec_IntAddToEntry( vPacking, 0, 1 );
-        return iObjLit1;
-    }
-    else
-    {
-        extern int If_CluMinimumBase( word * t, int * pSupp, int nVarsAll, int * pnVars );
-
-        static word TruthStore[16][1<<10] = {{0}}, * pTruths[16];
-        word Func0, Func1, Func2;
-        char pLut0[32], pLut1[32], pLut2[32] = {0};
-
-        if ( TruthStore[0][0] == 0 )
-        {
-            static word Truth6[6] = {
-                0xAAAAAAAAAAAAAAAA,
-                0xCCCCCCCCCCCCCCCC,
-                0xF0F0F0F0F0F0F0F0,
-                0xFF00FF00FF00FF00,
-                0xFFFF0000FFFF0000,
-                0xFFFFFFFF00000000
-            };
-            int nVarsMax = 16;
-            int nWordsMax = (1 << 10);
-            int i, k;
-            assert( nVarsMax <= 16 );
-            for ( i = 0; i < nVarsMax; i++ )
-                pTruths[i] = TruthStore[i];
-            for ( i = 0; i < 6; i++ )
-                for ( k = 0; k < nWordsMax; k++ )
-                    pTruths[i][k] = Truth6[i];
-            for ( i = 6; i < nVarsMax; i++ )
-                for ( k = 0; k < nWordsMax; k++ )
-                    pTruths[i][k] = ((k >> (i-6)) & 1) ? ~(word)0 : 0;
-        }
-        // derive truth table
-        if ( Kit_TruthIsConst0((unsigned *)pRes, nLeaves) || Kit_TruthIsConst1((unsigned *)pRes, nLeaves) )
-        {
-            assert( 0 );
-//            fprintf( pFile, ".names %s\n %d\n", Abc_ObjName(Abc_ObjFanout0(pObj)), Kit_TruthIsConst1((unsigned *)pRes, nLeaves) );
-            return -1;
-        }
-
-        // perform decomposition
-        if ( Length == 2 )
-        {
-            if ( !If_CluCheckExt( NULL, pRes, nLeaves, nLutLeaf, nLutRoot, pLut0, pLut1, &Func0, &Func1 ) )
-            {
-                Extra_PrintHex( stdout, (unsigned *)pRes, nLeaves );  printf( "    " );
-                Kit_DsdPrintFromTruth( (unsigned*)pRes, nLeaves );  printf( "\n" );
-                printf( "Node %d is not decomposable. Deriving LUT structures has failed.\n", iObj );
-                return -1;
-            }
-        }
-        else
-        {
-            if ( !If_CluCheckExt3( NULL, pRes, nLeaves, nLutLeaf, nLutLeaf2, nLutRoot, pLut0, pLut1, pLut2, &Func0, &Func1, &Func2 ) )
-            {
-                Extra_PrintHex( stdout, (unsigned *)pRes, nLeaves );  printf( "    " );
-                Kit_DsdPrintFromTruth( (unsigned*)pRes, nLeaves );  printf( "\n" );
-                printf( "Node %d is not decomposable. Deriving LUT structures has failed.\n", iObj );
-                return -1;
-            }
-        }
-
-/*
-        // write leaf node
-        Id = Abc2_NtkAllocObj( pNew, pLut1[0], Abc2_ObjType(pObj) );
-        iObjLit1 = Abc_Var2Lit( Id, 0 );
-        pObjNew = Abc2_NtkObj( pNew, Id );
-        for ( i = 0; i < pLut1[0]; i++ )
-            Abc2_ObjSetFaninLit( pObjNew, i, Abc2_ObjFaninCopy(pObj, pLut1[2+i]) );
-        Abc2_ObjSetTruth( pObjNew, Func1 );
-*/
-        // write leaf node
-        Vec_IntClear( vLeavesTemp );
-        for ( i = 0; i < pLut1[0]; i++ )
-            Vec_IntPush( vLeavesTemp, Vec_IntEntry(vLeaves, pLut1[2+i]) );
-        iObjLit1 = Gia_ManFromIfStrCreateLut( pNew, &Func1, vLeavesTemp, vCover, vMapping, vMapping2 );
-
-        if ( Length == 3 && pLut2[0] > 0 )
-        {
-        /*
-            Id = Abc2_NtkAllocObj( pNew, pLut2[0], Abc2_ObjType(pObj) );
-            iObjLit2 = Abc_Var2Lit( Id, 0 );
-            pObjNew = Abc2_NtkObj( pNew, Id );
-            for ( i = 0; i < pLut2[0]; i++ )
-                if ( pLut2[2+i] == nLeaves )
-                    Abc2_ObjSetFaninLit( pObjNew, i, iObjLit1 );
-                else
-                    Abc2_ObjSetFaninLit( pObjNew, i, Abc2_ObjFaninCopy(pObj, pLut2[2+i]) );
-            Abc2_ObjSetTruth( pObjNew, Func2 );
-        */
-
-            // write leaf node
-            Vec_IntClear( vLeavesTemp );
-            for ( i = 0; i < pLut2[0]; i++ )
-                if ( pLut2[2+i] == nLeaves )
-                    Vec_IntPush( vLeavesTemp, iObjLit1 );
-                else
-                    Vec_IntPush( vLeavesTemp, Vec_IntEntry(vLeaves, pLut2[2+i]) );
-            iObjLit2 = Gia_ManFromIfStrCreateLut( pNew, &Func2, vLeavesTemp, vCover, vMapping, vMapping2 );
-
-            // write packing
-            Vec_IntPush( vPacking, 3 );
-            Vec_IntPush( vPacking, Abc_Lit2Var(iObjLit1) );
-            Vec_IntPush( vPacking, Abc_Lit2Var(iObjLit2) );
-        }
-        else
-        {
-            // write packing
-            Vec_IntPush( vPacking, 2 );
-            Vec_IntPush( vPacking, Abc_Lit2Var(iObjLit1) );
-            iObjLit2 = -1;
-        }
-/*
-        // write root node
-        Id = Abc2_NtkAllocObj( pNew, pLut0[0], Abc2_ObjType(pObj) );
-        iObjLit3 = Abc_Var2Lit( Id, 0 );
-        pObjNew = Abc2_NtkObj( pNew, Id );
-        for ( i = 0; i < pLut0[0]; i++ )
-            if ( pLut0[2+i] == nLeaves )
-                Abc2_ObjSetFaninLit( pObjNew, i, iObjLit1 );
-            else if ( pLut0[2+i] == nLeaves+1 )
-                Abc2_ObjSetFaninLit( pObjNew, i, iObjLit2 );
-            else
-                Abc2_ObjSetFaninLit( pObjNew, i, Abc2_ObjFaninCopy(pObj, pLut0[2+i]) );
-        Abc2_ObjSetTruth( pObjNew, Func0 );
-        Abc2_ObjSetCopy( pObj, iObjLit3 );
-*/
-        // write root node
-        Vec_IntClear( vLeavesTemp );
-        for ( i = 0; i < pLut0[0]; i++ )
-            if ( pLut0[2+i] == nLeaves )
-                Vec_IntPush( vLeavesTemp, iObjLit1 );
-            else if ( pLut0[2+i] == nLeaves+1 )
-                Vec_IntPush( vLeavesTemp, iObjLit2 );
-            else
-                Vec_IntPush( vLeavesTemp, Vec_IntEntry(vLeaves, pLut0[2+i]) );
-        iObjLit3 = Gia_ManFromIfStrCreateLut( pNew, &Func0, vLeavesTemp, vCover, vMapping, vMapping2 );
-
-        // write packing
-        Vec_IntPush( vPacking, Abc_Lit2Var(iObjLit3) );
-        Vec_IntAddToEntry( vPacking, 0, 1 );
-    }
-    return iObjLit3;
-}
-
 
 /**Function*************************************************************
 
@@ -893,21 +833,24 @@ int Gia_ManFromIfStrNode( Gia_Man_t * pNew, int iObj, Vec_Int_t * vLeaves, Vec_I
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManFromIfStr( If_Man_t * pIfMan )
+Gia_Man_t * Gia_ManFromIfLogic( If_Man_t * pIfMan )
 {
     Gia_Man_t * pNew;
     If_Cut_t * pCutBest;
     If_Obj_t * pIfObj, * pIfLeaf;
-    Vec_Int_t * vMapping, * vMapping2, * vPacking;
+    Vec_Int_t * vMapping, * vMapping2, * vPacking = NULL;
     Vec_Int_t * vLeaves, * vLeaves2, * vCover;
+    word Truth = 0, * pTruthTable;
     int i, k, Entry;
-    assert( pIfMan->pPars->pLutStruct != NULL );
-    assert( pIfMan->pPars->nLutSize >= 6 ); // if 5, need to change (word *)If_CutTruth(pCutBest) below
+    assert( !pIfMan->pPars->fDeriveLuts || pIfMan->pPars->fTruth );
     // start mapping and packing
     vMapping  = Vec_IntStart( If_ManObjNum(pIfMan) );
     vMapping2 = Vec_IntStart( 1 );
-    vPacking  = Vec_IntAlloc( 1000 );
-    Vec_IntPush( vPacking, 0 );
+    if ( pIfMan->pPars->fDeriveLuts && pIfMan->pPars->pLutStruct )
+    {
+        vPacking = Vec_IntAlloc( 1000 );
+        Vec_IntPush( vPacking, 0 );
+    }
     // create new manager
     pNew = Gia_ManStart( If_ManObjNum(pIfMan) );
     // iterate through nodes used in the mapping
@@ -926,9 +869,33 @@ Gia_Man_t * Gia_ManFromIfStr( If_Man_t * pIfMan )
             Vec_IntClear( vLeaves );
             If_CutForEachLeaf( pIfMan, pCutBest, pIfLeaf, k )
                 Vec_IntPush( vLeaves, pIfLeaf->iCopy );
-            // perform decomposition of the cut
-            pIfObj->iCopy = Gia_ManFromIfStrNode( pNew, i, vLeaves, vLeaves2, (word *)If_CutTruth(pCutBest), pIfMan->pPars->pLutStruct, vCover, vMapping, vMapping2, vPacking );
-            pIfObj->iCopy = Abc_LitNotCond( pIfObj->iCopy, pCutBest->fCompl );
+            // perform one of the two types of mapping: with and without structures
+            if ( pIfMan->pPars->fDeriveLuts && pIfMan->pPars->fTruth )
+            {
+                // adjust the truth table
+                int nSize = pIfMan->pPars->nLutSize;
+                pTruthTable = (word *)If_CutTruth(pCutBest);
+                if ( nSize < 6 )
+                {
+                    Truth = Gia_ManTt6Stretch( *pTruthTable, nSize );
+                    pTruthTable = &Truth;
+                }
+                // perform decomposition of the cut
+                pIfObj->iCopy = Gia_ManFromIfLogicNode( pNew, i, vLeaves, vLeaves2, pTruthTable, pIfMan->pPars->pLutStruct, vCover, vMapping, vMapping2, vPacking );
+                pIfObj->iCopy = Abc_LitNotCond( pIfObj->iCopy, pCutBest->fCompl );
+            }
+            else
+            {
+                pIfObj->iCopy = Gia_ManNodeIfToGia( pNew, pIfMan, pIfObj, vLeaves, 0 );
+                // write mapping
+                Vec_IntSetEntry( vMapping, Abc_Lit2Var(pIfObj->iCopy), Vec_IntSize(vMapping2) );
+                Vec_IntPush( vMapping2, Vec_IntSize(vLeaves) );
+                Vec_IntForEachEntry( vLeaves, Entry, k )
+                    assert( Abc_Lit2Var(Entry) < Abc_Lit2Var(pIfObj->iCopy) );
+                Vec_IntForEachEntry( vLeaves, Entry, k )
+                    Vec_IntPush( vMapping2, Abc_Lit2Var(Entry)  );
+                Vec_IntPush( vMapping2, Abc_Lit2Var(pIfObj->iCopy) );
+            }
         }
         else if ( If_ObjIsCi(pIfObj) )
             pIfObj->iCopy = Gia_ManAppendCi(pNew);
@@ -1057,7 +1024,8 @@ void Gia_ManTransferMapping( Gia_Man_t * pGia, Gia_Man_t * p )
 {
     Gia_Obj_t * pObj;
     int i, k, iFan;
-    assert( pGia->pMapping != NULL );
+    if ( pGia->pMapping == NULL )
+        return;
     Gia_ManMappingVerify( pGia );
     Vec_IntFreeP( &p->vMapping );
     p->vMapping = Vec_IntAlloc( 2 * Gia_ManObjNum(p) );
@@ -1144,6 +1112,9 @@ Gia_Man_t * Gia_ManPerformMapping( Gia_Man_t * p, void * pp )
     Gia_Man_t * pNew;
     If_Man_t * pIfMan;
     If_Par_t * pPars = (If_Par_t *)pp;
+    // disable cut minimization
+    if ( !(pPars->fDelayOpt || pPars->fUserRecLib) && !pPars->fDeriveLuts )//&& Gia_ManWithChoices(p) )
+        pPars->fCutMin = 0; // not compatible with deriving result
     // reconstruct GIA according to the hierarchy manager
     assert( pPars->pTimesArr == NULL );
     assert( pPars->pTimesReq == NULL );
@@ -1178,19 +1149,16 @@ Gia_Man_t * Gia_ManPerformMapping( Gia_Man_t * p, void * pp )
         return NULL;
     }
     // transform the result of mapping into the new network
-    if ( pIfMan->pPars->pLutStruct )
-        pNew = Gia_ManFromIfStr( pIfMan );
+    if ( pIfMan->pPars->fDelayOpt || pIfMan->pPars->fUserRecLib )
+        pNew = Gia_ManFromIfAig( pIfMan );
     else
-        pNew = Gia_ManFromIf( pIfMan );
+        pNew = Gia_ManFromIfLogic( pIfMan );
     If_ManStop( pIfMan );
     // transfer name
     assert( pNew->pName == NULL );
     pNew->pName = Abc_UtilStrsav( p->pName );
     pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
-    // unmap in case of SOP balancing
-//    if ( pIfMan->pPars->fDelayOpt )
-//        Vec_IntFreeP( &pNew->vMapping );
     // return the original (unmodified by the mapper) timing manager
     pNew->pManTime   = p->pManTime;   p->pManTime   = NULL;
     pNew->pAigExtra  = p->pAigExtra;  p->pAigExtra  = NULL;
@@ -1203,12 +1171,9 @@ Gia_Man_t * Gia_ManPerformMapping( Gia_Man_t * p, void * pp )
     pNew->pManTime   = p->pManTime;   p->pManTime   = NULL;
     pNew->pAigExtra  = p->pAigExtra;  p->pAigExtra  = NULL;
     pNew->nAnd2Delay = p->nAnd2Delay; p->nAnd2Delay = 0;
-//    pNew->vPacking  = p->vPacking;  p->vPacking = NULL;
     Gia_ManStop( p );
-
 //    printf( "PERFORMING VERIFICATION:\n" );
 //    Gia_ManVerifyWithBoxes( pNew, NULL );
-
     return pNew;
 }
 

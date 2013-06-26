@@ -28362,9 +28362,10 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
     char * FileName, * pTemp;
     char ** pArgvNew;
     int c, nArgcNew, fMiter = 0;
+    int fDumpMiter = 0;
     Cec_ManCecSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "CTmvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "CTmdvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -28392,6 +28393,9 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'm':
             fMiter ^= 1;
+            break;
+        case 'd':
+            fDumpMiter ^= 1;
             break;
         case 'v':
             pPars->fVerbose ^= 1;
@@ -28448,6 +28452,11 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
     pMiter = Gia_ManMiter( pAbc->pGia, pSecond, 0, 1, 0, pPars->fVerbose );
     if ( pMiter )
     {
+        if ( fDumpMiter )
+        {
+            Abc_Print( 0, "The verification miter is written into file \"%s\".\n", "cec_miter.aig" );
+            Gia_AigerWrite( pMiter, "cec_miter.aig", 0, 0 );
+        }
         pAbc->Status = Cec_ManVerify( pMiter, pPars );
         Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexComb );
         Gia_ManStop( pMiter );
@@ -28456,11 +28465,12 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &cec [-CT num] [-mvh]\n" );
+    Abc_Print( -2, "usage: &cec [-CT num] [-mdvh]\n" );
     Abc_Print( -2, "\t         new combinational equivalence checker\n" );
     Abc_Print( -2, "\t-C num : the max number of conflicts at a node [default = %d]\n", pPars->nBTLimit );
     Abc_Print( -2, "\t-T num : approximate runtime limit in seconds [default = %d]\n", pPars->TimeLimit );
     Abc_Print( -2, "\t-m     : toggle miter vs. two circuits [default = %s]\n", fMiter? "miter":"two circuits");
+    Abc_Print( -2, "\t-d     : toggle dumping dual-output miter [default = %s]\n", fDumpMiter? "yes":"no");
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", pPars->fVerbose? "yes":"no");
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
@@ -28824,7 +28834,7 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     pPars->pLutLib = (If_LibLut_t *)pAbc->pLibLut;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KCFAGDEWSqaflepmrsdbgyojikcvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KCFAGDEWSqaflepmrsdbgyojikczvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -28986,6 +28996,9 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'c':
             pPars->fEnableRealPos ^= 1;
             break;
+        case 'z':
+            pPars->fDeriveLuts ^= 1;
+            break;
         case 'v':
             pPars->fVerbose ^= 1;
             break;
@@ -29092,7 +29105,7 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // enable truth table computation if cut minimization is selected
-    if ( pPars->fCutMin )
+    if ( pPars->fCutMin || pPars->fDeriveLuts )
     {
         pPars->fTruth = 1;
         pPars->fExpRed = 0;
@@ -29165,7 +29178,7 @@ usage:
         sprintf(LutSize, "library" );
     else
         sprintf(LutSize, "%d", pPars->nLutSize );
-    Abc_Print( -2, "usage: &if [-KCFAG num] [-DEW float] [-S str] [-qarlepmsdbgyojikcvh]\n" );
+    Abc_Print( -2, "usage: &if [-KCFAG num] [-DEW float] [-S str] [-qarlepmsdbgyojikczvh]\n" );
     Abc_Print( -2, "\t           performs FPGA technology mapping of the network\n" );
     Abc_Print( -2, "\t-K num   : the number of LUT inputs (2 < num < %d) [default = %s]\n", IF_MAX_LUTSIZE+1, LutSize );
     Abc_Print( -2, "\t-C num   : the max number of priority cuts (0 < num < 2^12) [default = %d]\n", pPars->nCutsMax );
@@ -29194,6 +29207,7 @@ usage:
     Abc_Print( -2, "\t-i       : toggles enabling additional check [default = %s]\n", pPars->fEnableCheck08? "yes": "no" );
     Abc_Print( -2, "\t-k       : toggles enabling additional check [default = %s]\n", pPars->fEnableCheck10? "yes": "no" );
     Abc_Print( -2, "\t-c       : toggles enabling additional feature [default = %s]\n", pPars->fEnableRealPos? "yes": "no" );
+    Abc_Print( -2, "\t-z       : toggles deriving LUTs when mapping into LUT structures [default = %s]\n", pPars->fDeriveLuts? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : prints the command usage\n");
     return 1;
