@@ -1,1 +1,1 @@
-SRC +=    src/bool/rpo/rpo.c
+SRC += src/bool/rpo/rpo.c
