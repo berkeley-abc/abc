@@ -32301,14 +32301,14 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    extern void Bmc_CexTest( Gia_Man_t * p, Abc_Cex_t * pCex, int fVerbose );
 //    extern void Gia_IsoTest( Gia_Man_t * p, Abc_Cex_t * pCex, int fVerbose );
 //     extern void Unr_ManTest( Gia_Man_t * pGia );
-//    extern void Mig_ManTest( Gia_Man_t * pGia );
+    extern void Mig_ManTest( Gia_Man_t * pGia );
 //    extern int Gia_ManVerify( Gia_Man_t * pGia );
 //    extern Gia_Man_t * Gia_ManOptimizeRing( Gia_Man_t * p );
 //    extern void Gia_ManCollectSeqTest( Gia_Man_t * p );
 //    extern Gia_Man_t * Gia_SweeperFraigTest( Gia_Man_t * p, int nWords, int nConfs, int fVerbose );
 //    extern Gia_Man_t * Bmc_CexDepthTest( Gia_Man_t * p, Abc_Cex_t * pCex, int nFrames, int fVerbose );
 //    extern Gia_Man_t * Bmc_CexTarget( Gia_Man_t * p, int nFrames );
-    extern void Gia_ManMuxProfiling( Gia_Man_t * p );
+//    extern void Gia_ManMuxProfiling( Gia_Man_t * p );
 
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "Fsvh" ) ) != EOF )
@@ -32369,7 +32369,7 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    Bmc_CexTest( pAbc->pGia, pAbc->pCex, fVerbose );
 //    Gia_IsoTest( pAbc->pGia, pAbc->pCex, 0 );
 //    Unr_ManTest( pAbc->pGia );
-//    Mig_ManTest( pAbc->pGia );
+    Mig_ManTest( pAbc->pGia );
 //    Gia_ManVerifyWithBoxes( pAbc->pGia );
 //    Gia_ManCollectSeqTest( pAbc->pGia );
 //    pTemp = Gia_ManOptimizeRing( pAbc->pGia );
@@ -32378,7 +32378,7 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    pTemp = Bmc_CexDepthTest( pAbc->pGia, pAbc->pCex, nFrames, fVerbose );
 //    pTemp = Bmc_CexTarget( pAbc->pGia, nFrames );
 //    Abc_FrameUpdateGia( pAbc, pTemp );
-    Gia_ManMuxProfiling( pAbc->pGia );
+//    Gia_ManMuxProfiling( pAbc->pGia );
     return 0;
 usage:
     Abc_Print( -2, "usage: &test [-F num] [-svh]\n" );

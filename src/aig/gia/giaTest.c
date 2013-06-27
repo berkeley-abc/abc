@@ -29,18 +29,17 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-#define MIG_NONE 0x3FFFFFFF
+#define MIG_NONE 0x7FFFFFFF
 //#define MIG_MASK 0x0000FFFF
 //#define MIG_BASE 16
-#define MIG_MASK 0x000003FF
-#define MIG_BASE 10
+#define MIG_MASK 0x0000FFF
+#define MIG_BASE 12
 
 typedef struct Mig_Fan_t_ Mig_Fan_t;
 struct Mig_Fan_t_
 {
     unsigned       fCompl :   1;  // the complemented attribute
-    unsigned       fType  :   1;  // the type attribute
-    unsigned       Id     :  30;  // fanin ID
+    unsigned       Id     :  31;  // fanin ID
 };
 
 typedef struct Mig_Obj_t_ Mig_Obj_t;
@@ -52,26 +51,40 @@ struct Mig_Obj_t_
 typedef struct Mig_Man_t_ Mig_Man_t;
 struct Mig_Man_t_
 {
-    char *         pName;         // name
-    int            nObjs;         // number of objects
-    int            nRegs;         // number of flops
-    Vec_Ptr_t      vPages;        // pages
-    Vec_Int_t      vCis;          // CI IDs
-    Vec_Int_t      vCos;          // CO IDs
+    char *         pName;     // name
+    int            nObjs;     // number of objects
+    int            nRegs;     // number of flops
+    Vec_Ptr_t      vPages;    // memory pages
+    Vec_Int_t      vCis;      // CI IDs
+    Vec_Int_t      vCos;      // CO IDs
     // object iterator
-    Mig_Obj_t *    pPage;         // current page
-    int            iPage;         // current page index
+    Mig_Obj_t *    pPage;     // current page
+    int            iPage;     // current page index
     // attributes
-    int            nTravIds;      // traversal ID counter
-    Vec_Int_t      vTravIds;      // traversal IDs
-    Vec_Int_t      vCopies;       // copies
-    Vec_Int_t      vNexts;        // next pointer
-    Vec_Int_t      vLevels;       // levels
-    Vec_Int_t      vRefs;         // ref counters
-    Vec_Int_t      vEquivs;       // equivalent nodes
-    Vec_Int_t      vReprs;        // representatives
+    int            nTravIds;  // traversal ID counter
+    Vec_Int_t      vTravIds;  // traversal IDs
+    Vec_Int_t      vCopies;   // copies
+    Vec_Int_t      vLevels;   // levels
+    Vec_Int_t      vRefs;     // ref counters
+    Vec_Int_t      vSibls;    // choice nodes
 };
 
+/*
+    Usage of fanin atrributes
+    --------------------------------------------------------------------------------------------------------------
+       Const0  Terminal    CI      CO     Buf     Node    Node2   Node3   And2    XOR2    MUX     MAJ    Sentinel
+    --------------------------------------------------------------------------------------------------------------
+    0    -     -/fanin0    -     fanin0  fanin0  fanin0  fanin0  fanin0  fanin0  fanin1  fanin0  fanin1     -
+    1    -        -        -       -       -     fanin1  fanin1  fanin1  fanin1  fanin0  fanin1  fanin0     -
+    2    -      CIO ID   CIO ID  CIO ID    -    -/fanin2    -    fanin2    -       -     fanin2  fanin2     -
+    3    0        ID       ID      ID      ID      ID      ID      ID      ID      ID      ID      ID       -
+    --------------------------------------------------------------------------------------------------------------
+
+    One memory page contain 2^MIG_BASE+2 16-byte objects.
+    - the first object contains the pointer to the manager (8 bytes) followed by the pointer to the page array (8 bytes)
+    - the next 2^MIG_BASE are potentially used as objects
+    - the last object is a sentinel to signal the end of the page
+*/
 
 static inline int          Mig_IdPage( int v )                 { return v >> MIG_BASE;                                                      }
 static inline int          Mig_IdCell( int v )                 { return v & MIG_MASK;                                                       }
@@ -88,7 +101,7 @@ static inline int          Mig_ManCandNum( Mig_Man_t * p )     { return Mig_ManC
 static inline void         Mig_ManSetRegNum( Mig_Man_t * p, int v )   { p->nRegs = v;                                                       }
 
 static inline Mig_Obj_t *  Mig_ManPage( Mig_Man_t * p, int v ) { return (Mig_Obj_t *)Vec_PtrEntry(&p->vPages, Mig_IdPage(v));               }
-static inline Mig_Obj_t *  Mig_ManObj( Mig_Man_t * p, int v )  { assert(v >= 0 && v < p->nObjs); return Mig_ManPage(p, v) + Mig_IdCell(v);  }
+static inline Mig_Obj_t *  Mig_ManObj( Mig_Man_t * p, int v )  { assert(v >= 0 && v < p->nObjs);  return Mig_ManPage(p, v) + Mig_IdCell(v); }
 static inline Mig_Obj_t *  Mig_ManCi( Mig_Man_t * p, int v )   { return Mig_ManObj( p, Vec_IntEntry(&p->vCis,v) );                          }
 static inline Mig_Obj_t *  Mig_ManCo( Mig_Man_t * p, int v )   { return Mig_ManObj( p, Vec_IntEntry(&p->vCos,v) );                          }
 static inline Mig_Obj_t *  Mig_ManPi( Mig_Man_t * p, int v )   { assert( v < Mig_ManPiNum(p) );  return Mig_ManCi( p, v );                  }
@@ -98,35 +111,31 @@ static inline Mig_Obj_t *  Mig_ManRi( Mig_Man_t * p, int v )   { assert( v < Mig
 static inline Mig_Obj_t *  Mig_ManConst0( Mig_Man_t * p )      { return Mig_ManObj(p, 0);                                                   }
 
 static inline int          Mig_FanCompl( Mig_Obj_t * p, int i )                { return p->pFans[i].fCompl;                                 }
-static inline int          Mig_FanType( Mig_Obj_t * p, int i )                 { return p->pFans[i].fType;                                  }
 static inline int          Mig_FanId( Mig_Obj_t * p, int i )                   { return p->pFans[i].Id;                                     }
 static inline int          Mig_FanIsNone( Mig_Obj_t * p, int i )               { return p->pFans[i].Id == MIG_NONE;                         }
 static inline int          Mig_FanSetCompl( Mig_Obj_t * p, int i, int v )      { assert( !(v >> 1) ); return p->pFans[i].fCompl = v;        }
-static inline int          Mig_FanSetType( Mig_Obj_t * p, int i, int v )       { assert( !(v >> 1) ); return p->pFans[i].fType = v;         }
 static inline int          Mig_FanSetId( Mig_Obj_t * p, int i, int v )         { assert(v >= 0 && v < MIG_NONE); return p->pFans[i].Id = v; }
 
 static inline int          Mig_ObjIsNone( Mig_Obj_t * p )                      { return Mig_FanIsNone( p, 3 );                              }
-static inline int          Mig_ObjIsTerm( Mig_Obj_t * p )                      { return Mig_FanIsNone( p, 1 );                              }
+static inline int          Mig_ObjIsConst0( Mig_Obj_t * p )                    { return Mig_FanId( p, 3 ) == 0;                             } 
+static inline int          Mig_ObjIsTerm( Mig_Obj_t * p )                      { return Mig_FanIsNone( p, 1 ) && !Mig_FanIsNone( p, 2 );    }
 static inline int          Mig_ObjIsCi( Mig_Obj_t * p )                        { return Mig_ObjIsTerm(p) &&  Mig_FanIsNone( p, 0 );         } 
 static inline int          Mig_ObjIsCo( Mig_Obj_t * p )                        { return Mig_ObjIsTerm(p) && !Mig_FanIsNone( p, 0 );         } 
-static inline int          Mig_ObjIsNode( Mig_Obj_t * p )                      { return!Mig_FanIsNone( p, 0 ) &&!Mig_FanIsNone( p, 1 );     } 
-static inline int          Mig_ObjIsAnd( Mig_Obj_t * p )                       { return Mig_FanType( p, 0 );                                } 
-static inline int          Mig_ObjIsXor( Mig_Obj_t * p )                       { return Mig_FanType( p, 1 );                                } 
-static inline int          Mig_ObjIsMux( Mig_Obj_t * p )                       { return Mig_FanType( p, 2 );                                } 
-static inline int          Mig_ObjIsMaj( Mig_Obj_t * p )                       { return Mig_FanType( p, 3 );                                } 
-static inline int          Mig_ObjIsConst0( Mig_Obj_t * p )                    { return Mig_FanId( p, 0 ) == 0;                             } 
+static inline int          Mig_ObjIsBuf( Mig_Obj_t * p )                       { return Mig_FanIsNone( p, 1 ) && Mig_FanIsNone( p, 2 ) && !Mig_FanIsNone( p, 0 );     } 
+static inline int          Mig_ObjIsNode( Mig_Obj_t * p )                      { return!Mig_FanIsNone( p, 1 );                              } 
+static inline int          Mig_ObjIsNode2( Mig_Obj_t * p )                     { return Mig_ObjIsNode( p ) &&  Mig_FanIsNone( p, 2 );       } 
+static inline int          Mig_ObjIsNode3( Mig_Obj_t * p )                     { return Mig_ObjIsNode( p ) && !Mig_FanIsNone( p, 2 );       } 
+static inline int          Mig_ObjIsAnd( Mig_Obj_t * p )                       { return Mig_ObjIsNode2( p ) && Mig_FanId(p, 0) < Mig_FanId(p, 1); } 
+static inline int          Mig_ObjIsXor( Mig_Obj_t * p )                       { return Mig_ObjIsNode2( p ) && Mig_FanId(p, 0) > Mig_FanId(p, 1); } 
+static inline int          Mig_ObjIsMux( Mig_Obj_t * p )                       { return Mig_ObjIsNode3( p );                                } 
 static inline int          Mig_ObjIsCand( Mig_Obj_t * p )                      { return Mig_ObjIsNode(p) || Mig_ObjIsCi(p);                 } 
-static inline int          Mig_ObjSetAnd( Mig_Obj_t * p )                      { return Mig_FanSetType( p, 0, 1 );                          } 
-static inline int          Mig_ObjSetXor( Mig_Obj_t * p )                      { return Mig_FanSetType( p, 1, 1 );                          } 
-static inline int          Mig_ObjSetMux( Mig_Obj_t * p )                      { return Mig_FanSetType( p, 2, 1 );                          } 
-static inline int          Mig_ObjSetMaj( Mig_Obj_t * p )                      { return Mig_FanSetType( p, 3, 1 );                          } 
 
 static inline int          Mig_ObjId( Mig_Obj_t * p )                          { return Mig_FanId( p, 3 );                                  }
 static inline void         Mig_ObjSetId( Mig_Obj_t * p, int v )                { Mig_FanSetId( p, 3, v );                                   }
 static inline int          Mig_ObjCioId( Mig_Obj_t * p )                       { assert( Mig_ObjIsTerm(p) ); return Mig_FanId( p, 2 );      }
-static inline void         Mig_ObjSetCioId( Mig_Obj_t * p, int v )             { assert( Mig_ObjIsTerm(p) ); Mig_FanSetId( p, 2, v );       }
-static inline int          Mig_ObjPhase( Mig_Obj_t * p )                       { return Mig_FanCompl( p, 2 );                               }
-static inline void         Mig_ObjSetPhase( Mig_Obj_t * p, int v )             { Mig_FanSetCompl( p, 2, 1 );                                }
+static inline void         Mig_ObjSetCioId( Mig_Obj_t * p, int v )             { assert( Mig_FanIsNone(p, 1) ); Mig_FanSetId( p, 2, v );    }
+static inline int          Mig_ObjPhase( Mig_Obj_t * p )                       { return Mig_FanCompl( p, 3 );                               }
+static inline void         Mig_ObjSetPhase( Mig_Obj_t * p, int v )             { Mig_FanSetCompl( p, 3, 1 );                                }
 
 static inline Mig_Man_t *  Mig_ObjMan( Mig_Obj_t * p )                         { return *((Mig_Man_t**)(p - Mig_IdCell(Mig_ObjId(p)) - 1)); }
 static inline Mig_Obj_t ** Mig_ObjPageP( Mig_Obj_t * p )                       { return *((Mig_Obj_t***)(p - Mig_IdCell(Mig_ObjId(p))) - 1);} 
@@ -149,8 +158,8 @@ static inline int          Mig_ObjFaninId( Mig_Obj_t * p, int i )              {
 static inline int          Mig_ObjFaninId0( Mig_Obj_t * p )                    { return Mig_FanId( p, 0 );                                  }
 static inline int          Mig_ObjFaninId1( Mig_Obj_t * p )                    { return Mig_FanId( p, 1 );                                  }
 static inline int          Mig_ObjFaninId2( Mig_Obj_t * p )                    { return Mig_FanId( p, 2 );                                  }
-//static inline Mig_Obj_t *  Mig_ObjFanin( Mig_Obj_t * p, int i )                { return Mig_ManObj( Mig_ObjMan(p), Mig_ObjFaninId(p, i) );    }
-static inline Mig_Obj_t *  Mig_ObjFanin( Mig_Obj_t * p, int i )                { return Mig_ObjPageP(p)[Mig_IdPage(Mig_ObjFaninId(p, i))] + Mig_IdCell(Mig_ObjFaninId(p, i));    }
+static inline Mig_Obj_t *  Mig_ObjFanin( Mig_Obj_t * p, int i )                { return Mig_ManObj( Mig_ObjMan(p), Mig_ObjFaninId(p, i) );    }
+//static inline Mig_Obj_t *  Mig_ObjFanin( Mig_Obj_t * p, int i )                { return Mig_ObjPageP(p)[Mig_IdPage(Mig_ObjFaninId(p, i))] + Mig_IdCell(Mig_ObjFaninId(p, i));    }
 static inline Mig_Obj_t *  Mig_ObjFanin0( Mig_Obj_t * p )                      { return Mig_FanIsNone(p, 0) ? NULL: Mig_ObjFanin(p, 0);     }
 static inline Mig_Obj_t *  Mig_ObjFanin1( Mig_Obj_t * p )                      { return Mig_FanIsNone(p, 1) ? NULL: Mig_ObjFanin(p, 1);     }
 static inline Mig_Obj_t *  Mig_ObjFanin2( Mig_Obj_t * p )                      { return Mig_FanIsNone(p, 2) ? NULL: Mig_ObjFanin(p, 2);     }
@@ -161,13 +170,13 @@ static inline int          Mig_ObjFaninC2( Mig_Obj_t * p )                     {
 static inline int          Mig_ObjFaninLit( Mig_Obj_t * p, int i )             { return Abc_Var2Lit( Mig_FanId(p, i), Mig_FanCompl(p, i) ); }
 static inline void         Mig_ObjFlipFaninC( Mig_Obj_t * p, int i )           { Mig_FanSetCompl( p, i, !Mig_FanCompl(p, i) );              }
 static inline int          Mig_ObjWhatFanin( Mig_Obj_t * p, int i )            { if (Mig_FanId(p, 0) == i) return 0; if (Mig_FanId(p, 1) == i) return 1; if (Mig_FanId(p, 2) == i) return 2; return -1;           }
-static inline void         Mig_ObjSetFaninLit( Mig_Obj_t * p, int i, int v )   { assert( v >= 0 && (v >> 1) < Mig_ObjId(p) ); Mig_FanSetId(p, i, Abc_Lit2Var(v)); Mig_FanSetCompl(p, i, Abc_LitIsCompl(v));       }
+static inline void         Mig_ObjSetFaninLit( Mig_Obj_t * p, int i, int l )   { assert( l >= 0 && (l >> 1) < Mig_ObjId(p) ); Mig_FanSetId(p, i, Abc_Lit2Var(l)); Mig_FanSetCompl(p, i, Abc_LitIsCompl(l));       }
 
-static inline int          Mig_ObjEquivId( Mig_Obj_t * p )                     { return Vec_IntSize(&Mig_ObjMan(p)->vEquivs) == 0 ? 0: Vec_IntEntry(&Mig_ObjMan(p)->vEquivs, Mig_ObjId(p));  }
-static inline Mig_Obj_t *  Mig_ObjEquiv( Mig_Obj_t * p )                       { return Mig_ObjEquivId(p) == 0 ? NULL: Mig_ObjObj(p, Mig_ObjEquivId(p));                                     }
+static inline int          Mig_ObjSiblId( Mig_Obj_t * p )                      { return Vec_IntSize(&Mig_ObjMan(p)->vSibls) == 0 ? 0: Vec_IntEntry(&Mig_ObjMan(p)->vSibls, Mig_ObjId(p));    }
+static inline Mig_Obj_t *  Mig_ObjSibl( Mig_Obj_t * p )                        { return Mig_ObjSiblId(p) == 0 ? NULL: Mig_ObjObj(p, Mig_ObjSiblId(p));                                       }
 static inline int          Mig_ObjRefNum( Mig_Obj_t * p )                      { return Vec_IntSize(&Mig_ObjMan(p)->vRefs) == 0 ? -1: Vec_IntEntry(&Mig_ObjMan(p)->vRefs, Mig_ObjId(p));     }
 
-static inline void         Mig_NtkIncrementTravId( Mig_Man_t * p )             { if ( p->vTravIds.pArray == NULL ) Vec_IntFill( &p->vTravIds, Mig_ManObjNum(p)+500, 0 ); p->nTravIds++;      }
+static inline void         Mig_ManIncrementTravId( Mig_Man_t * p )             { if ( p->vTravIds.pArray == NULL ) Vec_IntFill( &p->vTravIds, Mig_ManObjNum(p)+500, 0 ); p->nTravIds++;      }
 static inline void         Mig_ObjIncrementTravId( Mig_Obj_t * p )             { if ( Mig_ObjMan(p)->vTravIds.pArray == NULL ) Vec_IntFill( &Mig_ObjMan(p)->vTravIds, Mig_ManObjNum(Mig_ObjMan(p))+500, 0 ); Mig_ObjMan(p)->nTravIds++;           }
 static inline void         Mig_ObjSetTravIdCurrent( Mig_Obj_t * p )            { Vec_IntSetEntry(&Mig_ObjMan(p)->vTravIds, Mig_ObjId(p), Mig_ObjMan(p)->nTravIds );              }
 static inline void         Mig_ObjSetTravIdPrevious( Mig_Obj_t * p )           { Vec_IntSetEntry(&Mig_ObjMan(p)->vTravIds, Mig_ObjId(p), Mig_ObjMan(p)->nTravIds-1 );            }
@@ -189,8 +198,9 @@ static inline int          Mig_ObjIsTravIdCurrentId( Mig_Man_t * p, int Id )   {
     for ( p->iPage = Vec_PtrSize(&p->vPages) - 1; p->iPage >= 0 &&      \
         ((p->pPage) = (Mig_Obj_t *)Vec_PtrEntry(&p->vPages, p->iPage)); p->iPage-- ) \
         for ( pObj = (p->iPage == Vec_PtrSize(&p->vPages) - 1) ?        \
-            Mig_ManObj(p, Mig_ManObjNum(p)-1) :  p->pPage + MIG_BASE;   \
+            Mig_ManObj(p, Mig_ManObjNum(p)-1) :  p->pPage + MIG_MASK;   \
                 pObj - p->pPage >= 0; pObj-- )
+
 #define Mig_ManForEachObjVec( vVec, p, pObj, i )                        \
     for ( i = 0; (i < Vec_IntSize(vVec)) && ((pObj) = Mig_ManObj(p, Vec_IntEntry(vVec,i))); i++ )
 #define Mig_ManForEachNode( p, pObj )                                   \
@@ -228,12 +238,12 @@ static inline int          Mig_ObjIsTravIdCurrentId( Mig_Man_t * p, int Id )   {
 static inline Mig_Obj_t * Mig_ManAppendObj( Mig_Man_t * p )
 {
     Mig_Obj_t * pObj;
+    assert( p->nObjs < MIG_NONE );
     if ( p->nObjs >= (Vec_PtrSize(&p->vPages) << MIG_BASE) )
     {
-        Mig_Obj_t * pPage;
-        int i;
+        Mig_Obj_t * pPage; int i;
         assert( p->nObjs == (Vec_PtrSize(&p->vPages) << MIG_BASE) );
-        pPage = ABC_FALLOC( Mig_Obj_t, MIG_MASK + 3 );
+        pPage = ABC_FALLOC( Mig_Obj_t, MIG_MASK + 3 ); // 1 for mask, 1 for prefix, 1 for sentinel
         *((void **)pPage) = p;
         *((void ***)(pPage + 1) - 1) = Vec_PtrArray(&p->vPages);
         Vec_PtrPush( &p->vPages, pPage + 1 );
@@ -242,16 +252,8 @@ static inline Mig_Obj_t * Mig_ManAppendObj( Mig_Man_t * p )
                 *((void ***)pPage - 1) = Vec_PtrArray(&p->vPages);
     }
     pObj = Mig_ManObj( p, p->nObjs++ );
-    Mig_FanSetCompl( pObj, 0, 0 );
-    Mig_FanSetCompl( pObj, 1, 0 );
-    Mig_FanSetCompl( pObj, 2, 0 );
-    Mig_FanSetCompl( pObj, 3, 0 );
-    Mig_FanSetType( pObj, 0, 0 );
-    Mig_FanSetType( pObj, 1, 0 );
-    Mig_FanSetType( pObj, 2, 0 );
-    Mig_FanSetType( pObj, 3, 0 );
     assert( Mig_ObjIsNone(pObj) );
-    Mig_ObjSetId( pObj, p->nObjs - 1 );
+    Mig_ObjSetId( pObj, p->nObjs-1 );
     return pObj;
 }
 static inline int Mig_ManAppendCi( Mig_Man_t * p )  
@@ -271,50 +273,47 @@ static inline int Mig_ManAppendCo( Mig_Man_t * p, int iLit0 )
     Vec_IntPush( &p->vCos, Mig_ObjId(pObj) );
     return Mig_ObjId( pObj ) << 1;
 }
+static inline int Mig_ManAppendBuf( Mig_Man_t * p, int iLit0 )  
+{ 
+    Mig_Obj_t * pObj;
+    pObj = Mig_ManAppendObj( p );    
+    Mig_ObjSetFaninLit( pObj, 0, iLit0 );
+    return Mig_ObjId( pObj ) << 1;
+}
 static inline int Mig_ManAppendAnd( Mig_Man_t * p, int iLit0, int iLit1 )  
 { 
     Mig_Obj_t * pObj = Mig_ManAppendObj( p );
     assert( iLit0 != iLit1 );
     Mig_ObjSetFaninLit( pObj, 0, iLit0 < iLit1 ? iLit0 : iLit1 );
     Mig_ObjSetFaninLit( pObj, 1, iLit0 < iLit1 ? iLit1 : iLit0 );
-    Mig_ObjSetAnd( pObj );
     return Mig_ObjId( pObj ) << 1;
 }
-/*
-static inline int Mig_ManAppendOr( Mig_Man_t * p, int iLit0, int iLit1 )
-{
-    return Abc_LitNot(Mig_ManAppendAnd( p, Abc_LitNot(iLit0), Abc_LitNot(iLit1) ));
-}
-static inline int Mig_ManAppendMux( Mig_Man_t * p, int iCtrl, int iData1, int iData0 )  
-{ 
-    int iTemp0 = Mig_ManAppendAnd( p, Abc_LitNot(iCtrl), iData0 );
-    int iTemp1 = Mig_ManAppendAnd( p, iCtrl, iData1 );
-    return Abc_LitNotCond( Mig_ManAppendAnd( p, Abc_LitNot(iTemp0), Abc_LitNot(iTemp1) ), 1 );
-}
-static inline int Mig_ManAppendXor( Mig_Man_t * p, int iLit0, int iLit1 )  
-{ 
-    return Mig_ManAppendMux( p, iLit0, Abc_LitNot(iLit1), iLit1 );
-}
-*/
 static inline int Mig_ManAppendXor( Mig_Man_t * p, int iLit0, int iLit1 )  
 { 
     Mig_Obj_t * pObj = Mig_ManAppendObj( p );
     assert( iLit0 != iLit1 );
     assert( !Abc_LitIsCompl(iLit0) && !Abc_LitIsCompl(iLit1) );
-    Mig_ObjSetFaninLit( pObj, 0, iLit0 < iLit1 ? iLit0 : iLit1 );
-    Mig_ObjSetFaninLit( pObj, 1, iLit0 < iLit1 ? iLit1 : iLit0 );
-    Mig_ObjSetXor( pObj );
+    Mig_ObjSetFaninLit( pObj, 0, iLit0 < iLit1 ? iLit1 : iLit0 );
+    Mig_ObjSetFaninLit( pObj, 1, iLit0 < iLit1 ? iLit0 : iLit1 );
     return Mig_ObjId( pObj ) << 1;
 }
 static inline int Mig_ManAppendMux( Mig_Man_t * p, int iLit0, int iLit1, int iCtrl )  
 { 
     Mig_Obj_t * pObj = Mig_ManAppendObj( p );
-    assert( iLit0 != iLit1 );
+    assert( iLit0 != iLit1 && iLit0 != iCtrl && iLit1 != iCtrl );
     assert( !Abc_LitIsCompl(iLit0) || !Abc_LitIsCompl(iLit1) );
     Mig_ObjSetFaninLit( pObj, 0, iLit0 < iLit1 ? iLit0 : iLit1 );
     Mig_ObjSetFaninLit( pObj, 1, iLit0 < iLit1 ? iLit1 : iLit0 );
     Mig_ObjSetFaninLit( pObj, 2, iLit0 < iLit1 ? iCtrl : Abc_LitNot(iCtrl) );
-    Mig_ObjSetMux( pObj );
+    return Mig_ObjId( pObj ) << 1;
+}
+static inline int Mig_ManAppendMaj( Mig_Man_t * p, int iLit0, int iLit1, int iLit2 )  
+{ 
+    Mig_Obj_t * pObj = Mig_ManAppendObj( p );
+    assert( iLit0 != iLit1 && iLit0 != iLit2 && iLit1 != iLit2 );
+    Mig_ObjSetFaninLit( pObj, 0, iLit0 < iLit1 ? iLit1 : iLit0 );
+    Mig_ObjSetFaninLit( pObj, 1, iLit0 < iLit1 ? iLit0 : iLit1 );
+    Mig_ObjSetFaninLit( pObj, 2, iLit2 );
     return Mig_ObjId( pObj ) << 1;
 }
 
@@ -348,11 +347,9 @@ static inline void Mig_ManStop( Mig_Man_t * p )
     // attributes
     ABC_FREE( p->vTravIds.pArray );
     ABC_FREE( p->vCopies.pArray );
-    ABC_FREE( p->vNexts.pArray );
     ABC_FREE( p->vLevels.pArray );
     ABC_FREE( p->vRefs.pArray );
-    ABC_FREE( p->vEquivs.pArray );
-    ABC_FREE( p->vReprs.pArray );
+    ABC_FREE( p->vSibls.pArray );
     // pages
     Vec_PtrForEachEntry( Mig_Obj_t *, &p->vPages, p->pPage, p->iPage )
         --p->pPage, ABC_FREE( p->pPage );
@@ -420,7 +417,7 @@ int Mig_ManSuppSize_rec( Mig_Obj_t * pObj )
 int Mig_ManSuppSize2_rec( Mig_Man_t * p, int iObj )
 {
     Mig_Obj_t * pObj;
-    if ( iObj == 0x3FFFFFFF )
+    if ( iObj == MIG_NONE )
         return 0;
     if ( Mig_ObjIsTravIdCurrentId(p, iObj) )
         return 0;
@@ -1213,8 +1210,8 @@ int Mpm_ManDeriveCuts( Mpm_Man_t * p, Mig_Obj_t * pObj )
 
     // start storage with choice cuts
     p->nCutStore = 0;
-    if ( Mig_ObjEquivId(pObj) )
-        Mpm_ObjTranslateCutsToStore( p, Mig_ObjEquiv(pObj), pMapObj->mRequired );
+    if ( Mig_ObjSiblId(pObj) )
+        Mpm_ObjTranslateCutsToStore( p, Mig_ObjSibl(pObj), pMapObj->mRequired );
 
     // check that the best cut is ok
     if ( Mpm_ObjCutList(p, pObj) > 0 ) // cut list is assigned
