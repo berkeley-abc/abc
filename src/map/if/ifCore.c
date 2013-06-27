@@ -162,6 +162,7 @@ int If_ManPerformMappingComb( If_Man_t * p )
         fclose( pTable );
     }
 */
+    p->pPars->FinalDelay = p->RequiredGlo;
     return 1;
 }
 

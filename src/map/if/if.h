@@ -140,6 +140,7 @@ struct If_Par_t_
     int                nLatchesCoBox; // the number of white box inputs among the COs
     int                fLiftLeaves;   // shift the leaves for seq mapping
     int                fUseCoAttrs;   // use CO attributes
+    float              FinalDelay;    // final delay after mapping
     If_LibLut_t *      pLutLib;       // the LUT library
     float *            pTimesArr;     // arrival times
     float *            pTimesReq;     // required times
