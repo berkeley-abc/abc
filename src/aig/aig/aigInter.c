@@ -271,7 +271,7 @@ timeSat += Abc_Clock() - clk;
     // create the resulting manager
 clk = Abc_Clock();
     pManInter = Inta_ManAlloc();
-    pRes = (Aig_Man_t *)Inta_ManInterpolate( pManInter, (Sto_Man_t *)pSatCnf, vVarsAB, fVerbose );
+    pRes = (Aig_Man_t *)Inta_ManInterpolate( pManInter, (Sto_Man_t *)pSatCnf, 0, vVarsAB, fVerbose );
     Inta_ManFree( pManInter );
 timeInt += Abc_Clock() - clk;
 /*

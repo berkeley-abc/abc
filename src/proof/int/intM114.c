@@ -304,11 +304,13 @@ clk = Abc_Clock();
 */
 
     pManInterA = Inta_ManAlloc();
-    p->pInterNew = (Aig_Man_t *)Inta_ManInterpolate( pManInterA, (Sto_Man_t *)pSatCnf, p->vVarsAB, 0 );
+    p->pInterNew = (Aig_Man_t *)Inta_ManInterpolate( pManInterA, (Sto_Man_t *)pSatCnf, nTimeNewOut, p->vVarsAB, 0 );
     Inta_ManFree( pManInterA );
 
 p->timeInt += Abc_Clock() - clk;
     Sto_ManFree( (Sto_Man_t *)pSatCnf );
+    if ( p->pInterNew == NULL )
+        RetValue = -1;
     return RetValue;
 }
 

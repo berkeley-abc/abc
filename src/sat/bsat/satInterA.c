@@ -948,13 +948,16 @@ void Inta_ManPrepareInter( Inta_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void * Inta_ManInterpolate( Inta_Man_t * p, Sto_Man_t * pCnf, void * vVarsAB, int fVerbose )
+void * Inta_ManInterpolate( Inta_Man_t * p, Sto_Man_t * pCnf, abctime TimeToStop, void * vVarsAB, int fVerbose )
 {
     Aig_Man_t * pRes;
     Aig_Obj_t * pObj;
     Sto_Cls_t * pClause;
     int RetValue = 1;
     abctime clkTotal = Abc_Clock();
+
+    if ( Abc_Clock() > TimeToStop )
+        return NULL;
 
     // check that the CNF makes sense
     assert( pCnf->nVars > 0 && pCnf->nClauses > 0 );
@@ -980,7 +983,15 @@ void * Inta_ManInterpolate( Inta_Man_t * p, Sto_Man_t * pCnf, void * vVarsAB, in
 
     // write the root clauses
     Sto_ManForEachClauseRoot( p->pCnf, pClause )
+    {
         Inta_ManProofWriteOne( p, pClause );
+        if ( TimeToStop && Abc_Clock() > TimeToStop )
+        {
+            Aig_ManStop( pRes );
+            p->pAig = NULL;
+            return NULL;
+        }
+    }
 
     // propagate root level assignments
     if ( Inta_ManProcessRoots( p ) )
@@ -994,6 +1005,12 @@ void * Inta_ManInterpolate( Inta_Man_t * p, Sto_Man_t * pCnf, void * vVarsAB, in
             {
                 RetValue = 0;
                 break;
+            }
+            if ( TimeToStop && Abc_Clock() > TimeToStop )
+            {
+                Aig_ManStop( pRes );
+                p->pAig = NULL;
+                return NULL;
             }
         }
     }
