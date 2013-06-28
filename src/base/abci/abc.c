@@ -22492,6 +22492,7 @@ usage:
 int Abc_CommandInduction( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+    int nTimeOut;
     int nFramesMax;
     int nConfMax;
     int fUnique;
@@ -22500,17 +22501,18 @@ int Abc_CommandInduction( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fVerbose;
     int fVeryVerbose;
     int c;
-    extern int Abc_NtkDarInduction( Abc_Ntk_t * pNtk, int nFramesMax, int nConfMax, int fUnique, int fUniqueAll, int fGetCex, int fVerbose, int fVeryVerbose );
+    extern int Abc_NtkDarInduction( Abc_Ntk_t * pNtk, int nTimeOut, int nFramesMax, int nConfMax, int fUnique, int fUniqueAll, int fGetCex, int fVerbose, int fVeryVerbose );
     // set defaults
-    nFramesMax   =   100;
-    nConfMax     =  1000;
+    nTimeOut     =     0;
+    nFramesMax   =     0;
+    nConfMax     =     0;
     fUnique      =     0;
     fUniqueAll   =     0;
     fGetCex      =     0;
     fVerbose     =     0;
     fVeryVerbose =     0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FCuaxvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FCTuaxvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -22534,6 +22536,17 @@ int Abc_CommandInduction( Abc_Frame_t * pAbc, int argc, char ** argv )
             nConfMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( nConfMax < 0 )
+                goto usage;
+            break;
+        case 'T':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-T\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nTimeOut = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nTimeOut < 0 )
                 goto usage;
             break;
         case 'u':
@@ -22584,7 +22597,7 @@ int Abc_CommandInduction( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // modify the current network
-    pAbc->Status = Abc_NtkDarInduction( pNtk, nFramesMax, nConfMax, fUnique, fUniqueAll, fGetCex, fVerbose, fVeryVerbose );
+    pAbc->Status = Abc_NtkDarInduction( pNtk, nTimeOut, nFramesMax, nConfMax, fUnique, fUniqueAll, fGetCex, fVerbose, fVeryVerbose );
     if ( fGetCex )
     {
         Abc_FrameReplaceCex( pAbc, &pNtk->pSeqModel );
@@ -22592,10 +22605,11 @@ int Abc_CommandInduction( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     return 0;
 usage:
-    Abc_Print( -2, "usage: ind [-FC num] [-uaxvwh]\n" );
+    Abc_Print( -2, "usage: ind [-FCT num] [-uaxvwh]\n" );
     Abc_Print( -2, "\t         runs the inductive case of the K-step induction\n" );
     Abc_Print( -2, "\t-F num : the max number of timeframes [default = %d]\n", nFramesMax );
     Abc_Print( -2, "\t-C num : the max number of conflicts by SAT solver [default = %d]\n", nConfMax );
+    Abc_Print( -2, "\t-T num : the limit on runtime per output in seconds [default = %d]\n", nTimeOut );
     Abc_Print( -2, "\t-u     : toggle adding uniqueness constraints on demand [default = %s]\n", fUnique? "yes": "no" );
     Abc_Print( -2, "\t-a     : toggle adding uniqueness constraints always [default = %s]\n", fUniqueAll? "yes": "no" );
     Abc_Print( -2, "\t-x     : toggle returning CEX to induction for the top frame [default = %s]\n", fGetCex? "yes": "no" );

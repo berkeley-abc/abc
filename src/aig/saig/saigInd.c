@@ -142,7 +142,7 @@ void Saig_ManAddUniqueness( sat_solver * pSat, Vec_Int_t * vState, int nRegs, in
   SeeAlso     []
 
 ***********************************************************************/
-int Saig_ManInduction( Aig_Man_t * p, int nFramesMax, int nConfMax, int fUnique, int fUniqueAll, int fGetCex, int fVerbose, int fVeryVerbose )
+int Saig_ManInduction( Aig_Man_t * p, int nTimeOut, int nFramesMax, int nConfMax, int fUnique, int fUniqueAll, int fGetCex, int fVerbose, int fVeryVerbose )
 {
     sat_solver * pSat;
     Aig_Man_t * pAigPart;
@@ -152,7 +152,7 @@ int Saig_ManInduction( Aig_Man_t * p, int nFramesMax, int nConfMax, int fUnique,
     Aig_Obj_t * pObjPi, * pObjPiCopy, * pObjPo;
     int i, k, f, Lits[2], status = -1, RetValue, nSatVarNum, nConfPrev;
     int nOldSize, iReg, iLast, fAdded, nConstrs = 0, nClauses = 0;
-    abctime clk;
+    abctime clk, nTimeToStop = nTimeOut ? nTimeOut * CLOCKS_PER_SEC + Abc_Clock() : 0;
     assert( fUnique == 0 || fUniqueAll == 0 );
     assert( Saig_ManPoNum(p) == 1 );
     Aig_ManSetCioIds( p );
@@ -167,6 +167,10 @@ int Saig_ManInduction( Aig_Man_t * p, int nFramesMax, int nConfMax, int fUnique,
     // start the solver
     pSat = sat_solver_new();
     sat_solver_setnvars( pSat, 1000 );
+
+    // set runtime limit
+    if ( nTimeToStop )
+        sat_solver_set_runtime_limit( pSat, nTimeToStop );
 
     // iterate backward unrolling
     RetValue = -1;
@@ -312,7 +316,7 @@ nextrun:
             }
             printf( "\n" );
         }
-        if ( f == nFramesMax - 1 )
+        if ( nFramesMax && f == nFramesMax - 1 )
         {
             // derive counter-example
             assert( status == l_True );
@@ -357,7 +361,9 @@ nextrun:
     }
     if ( fVerbose )
     {
-        if ( status == l_Undef )
+        if ( nTimeToStop && Abc_Clock() >= nTimeToStop )
+            printf( "Timeout (%d sec) was reached during iteration %d.\n", nTimeOut, f+1 );
+        else if ( status == l_Undef )
             printf( "Conflict limit (%d) was reached during iteration %d.\n", nConfMax, f+1 );
         else if ( fUnique || fUniqueAll )
             printf( "Completed %d interations and added %d uniqueness constraints.\n", f+1, nConstrs );

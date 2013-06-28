@@ -3451,7 +3451,7 @@ Abc_Ntk_t * Abc_NtkDarTempor( Abc_Ntk_t * pNtk, int nFrames, int TimeOut, int nC
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkDarInduction( Abc_Ntk_t * pNtk, int nFramesMax, int nConfMax, int fUnique, int fUniqueAll, int fGetCex, int fVerbose, int fVeryVerbose )
+int Abc_NtkDarInduction( Abc_Ntk_t * pNtk, int nTimeOut, int nFramesMax, int nConfMax, int fUnique, int fUniqueAll, int fGetCex, int fVerbose, int fVeryVerbose )
 { 
     Aig_Man_t * pMan;
     abctime clkTotal = Abc_Clock();
@@ -3459,7 +3459,7 @@ int Abc_NtkDarInduction( Abc_Ntk_t * pNtk, int nFramesMax, int nConfMax, int fUn
     pMan = Abc_NtkToDar( pNtk, 0, 1 );
     if ( pMan == NULL )
         return -1;
-    RetValue = Saig_ManInduction( pMan, nFramesMax, nConfMax, fUnique, fUniqueAll, fGetCex, fVerbose, fVeryVerbose );
+    RetValue = Saig_ManInduction( pMan, nTimeOut, nFramesMax, nConfMax, fUnique, fUniqueAll, fGetCex, fVerbose, fVeryVerbose );
     if ( RetValue == 1 )
     {
         Abc_Print( 1, "Networks are equivalent.   " );
