@@ -1212,7 +1212,7 @@ void Mpm_ObjDerefFaninCuts( Mpm_Man_t * p, Mig_Obj_t * pObj )
     Mig_Obj_t * pFanin;
     int i;
     Mig_ObjForEachFanin( pObj, pFanin, i )
-        if ( --Mpm_ManObj(p, pFanin)->nMigRefs == 0 )
+        if ( !Mig_ObjIsCi(pObj) && --Mpm_ManObj(p, pFanin)->nMigRefs == 0 )
             Mpm_ObjRecycleCuts( p, pFanin );
     if ( Mig_ObjSiblId(pObj) )
         Mpm_ObjRecycleCuts( p, Mig_ObjSibl(pObj) );
@@ -1399,7 +1399,10 @@ void Mpm_ManPerform( Mpm_Man_t * p )
     abctime clk = Abc_Clock();
     int i;
     Mig_ManForEachCi( p->pMig, pObj, i )
+    {
         Mpm_ManObj(p, pObj)->iCutList = Mpm_CutCreateUnit( p, pObj );
+        Mpm_ManObj(p, pObj)->nMapRefs = Mig_ObjRefNum(pObj);
+    }
     Mig_ManForEachNode( p->pMig, pObj )
         Mpm_ManDeriveCuts( p, pObj );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
