@@ -22,7 +22,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <assert.h>
-#ifdef LIN
+#if defined(LIN) || defined(LIN64)
 #include <unistd.h>
 #endif
 
@@ -127,7 +127,7 @@ void Gia_CreateHeader( FILE * pFile, int Type, int Size, unsigned char * pBuffer
     fprintf( pFile, " " );
     fprintf( pFile, "%.16d", Size );
     fprintf( pFile, " " );
-  #ifndef LIN
+  #if !defined(LIN) && !defined(LIN64)
     RetValue = fwrite( pBuffer, Size, 1, pFile );
     assert( RetValue == 1 || Size == 0);
     fflush( pFile );
