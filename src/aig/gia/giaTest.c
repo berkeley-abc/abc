@@ -614,6 +614,7 @@ struct Mpm_Man_t_
     void *           pManDsd;
     int              pPerm[MPM_VAR_MAX]; 
     // statistics
+    int              nCutsMerged;
     abctime          timeFanin;
     abctime          timeDerive;
     abctime          timeMerge;
@@ -805,6 +806,7 @@ static inline int Mpm_ObjDeriveCut( Mpm_Man_t * p, Mpm_Cut_t ** pCuts, Mpm_Cut_t
     pCut->iFunc    = 0;  pCut->iFunc = ~pCut->iFunc;
     pCut->fUseless = 0;
     assert( pCut->nLeaves > 0 );
+    p->nCutsMerged++;
     return 1;
 }
 
@@ -973,14 +975,15 @@ static inline void Mpm_ManPrepareCutStore( Mpm_Man_t * p )
 // compares cut against those present in the store
 int Mpm_ObjAddCutToStore( Mpm_Man_t * p, Mpm_Cut_t * pCut, int ArrTime )
 {
+    int fEnableContainment = 1;
     Mpm_Uni_t * pUnit, * pUnitNew;
     int k, iPivot, last;
-    abctime clk;
     // create new unit
-    pUnitNew = Mpm_CutToUnit( p, pCut );
 #ifdef MIG_RUNTIME
+    abctime clk;
 clk = Abc_Clock();
 #endif
+    pUnitNew = Mpm_CutToUnit( p, pCut );
     Mpm_CutSetupInfo( p, pCut, ArrTime, &pUnitNew->Inf );
 #ifdef MIG_RUNTIME
 p->timeEval += Abc_Clock() - clk;
@@ -1002,6 +1005,9 @@ p->timeEval += Abc_Clock() - clk;
     for ( iPivot = p->nCutStore - 1; iPivot >= 0; iPivot-- )
         if ( p->pCutCmp(&pUnitNew->Inf, &p->pCutStore[iPivot]->Inf) > 0 ) // iPivot-th cut is better than new cut
             break;
+
+    if ( fEnableContainment )
+    {
 #ifdef MIG_RUNTIME
 clk = Abc_Clock();
 #endif
@@ -1023,14 +1029,19 @@ p->timeCompare += Abc_Clock() - clk;
             return 0;
         }
     }
-    // special case when the best cut is useless
-    if ( p->pCutStore[0]->fUseless )
+    }
+
+    // special case when the best cut is useless while the new cut is not
+    if ( p->pCutStore[0]->fUseless && !pUnitNew->fUseless )
         iPivot = -1;
     // insert this cut at location iPivot
     iPivot++;
     for ( k = p->nCutStore++; k > iPivot; k-- )
         p->pCutStore[k] = p->pCutStore[k-1];
     p->pCutStore[iPivot] = pUnitNew;
+
+    if ( fEnableContainment )
+    {
     // filter other cuts using this cut
     for ( k = last = iPivot+1; k < p->nCutStore; k++ )
     {
@@ -1051,6 +1062,8 @@ p->timeCompare += Abc_Clock() - clk;
 #ifdef MIG_RUNTIME
 p->timeCompare += Abc_Clock() - clk;
 #endif
+    }
+
     // remove the last cut if too many
     if ( p->nCutStore == p->nNumCuts )
         Mpm_UnitRecycle( p, p->pCutStore[--p->nCutStore] );
@@ -1256,7 +1269,7 @@ static inline void Mpm_ManPrintStatsInit( Mpm_Man_t * p )
 }
 static inline void Mpm_ManPrintStats( Mpm_Man_t * p )
 {
-    printf( "Memory usage:  Mig = %.2f MB  Map = %.2f MB  Cut = %.2f MB    Total = %.2f MB.\n", 
+    printf( "Memory usage:  Mig = %.2f MB  Map = %.2f MB  Cut = %.2f MB    Total = %.2f MB.  ", 
         1.0 * Mig_ManMemory(p->pMig) / (1 << 20), 
         1.0 * Mig_ManObjNum(p->pMig) * sizeof(Mpm_Obj_t) / (1 << 20), 
         1.0 * Mmr_StepMemory(p->pManCuts) / (1 << 17), 
@@ -1264,6 +1277,8 @@ static inline void Mpm_ManPrintStats( Mpm_Man_t * p )
         1.0 * Mig_ManObjNum(p->pMig) * sizeof(Mpm_Obj_t) / (1 << 20) +
         1.0 * Mmr_StepMemory(p->pManCuts) / (1 << 17) );
 
+#ifdef MIG_RUNTIME    
+    printf( "\n" );
     p->timeTotal = Abc_Clock() - p->timeTotal;
     p->timeOther = p->timeTotal - (p->timeFanin + p->timeDerive);
 
@@ -1276,6 +1291,9 @@ static inline void Mpm_ManPrintStats( Mpm_Man_t * p )
     ABC_PRTP( "- Adding cuts to storage   ", p->timeStore  , p->timeTotal );
     ABC_PRTP( "Other                      ", p->timeOther  , p->timeTotal );
     ABC_PRTP( "TOTAL                      ", p->timeTotal  , p->timeTotal );
+#else
+    Abc_PrintTime( 1, "Time", Abc_Clock() - p->timeTotal );
+#endif
 }
 
 
@@ -1445,11 +1463,13 @@ p->timeStore += Abc_Clock() - clk;
 }
 int Mpm_ManDeriveCuts( Mpm_Man_t * p, Mig_Obj_t * pObj )
 {
-    static int Flag = 0;
+//    static int Flag = 0;
     Mpm_Obj_t * pMapObj = Mpm_ManObj(p, pObj);
     Mpm_Cut_t * pCuts[3];
     int c0, c1, c2;
+#ifdef MIG_RUNTIME
     abctime clk;
+#endif
     Mpm_ManPrepareCutStore( p );
     // check that the best cut is ok
     pMapObj = Mpm_ManObj(p, pObj);
@@ -1701,12 +1721,13 @@ void Mpm_ManPerformRound( Mpm_Man_t * p )
 {
     Mig_Obj_t * pObj;
     abctime clk = Abc_Clock();
+    p->nCutsMerged = 0;
     Mig_ManForEachNode( p->pMig, pObj )
         Mpm_ManDeriveCuts( p, pObj );
     Mpm_ManFinalizeRound( p );
-    printf( "Del =%5d.  Ar =%8d.  Edge =%8d.  Cuts =%10d.  Max =%10d.  Rem =%6d.  ", 
+    printf( "Del =%5d.  Ar =%8d.  Edge =%8d.  Cut =%10d. Max =%10d.  Rem =%6d.  ", 
         p->GloRequired, p->GloArea, p->GloEdge, 
-        p->pManCuts->nEntriesAll, p->pManCuts->nEntriesMax, p->pManCuts->nEntries );
+        p->nCutsMerged, p->pManCuts->nEntriesMax, p->pManCuts->nEntries );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 }
 void Mpm_ManPerform( Mpm_Man_t * p )
