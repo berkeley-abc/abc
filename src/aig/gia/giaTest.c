@@ -24,6 +24,7 @@
 
 ABC_NAMESPACE_IMPL_START
 
+//#define MIG_RUNTIME
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -613,9 +614,12 @@ struct Mpm_Man_t_
     void *           pManDsd;
     int              pPerm[MPM_VAR_MAX]; 
     // statistics
-    abctime          timeCut;
-    abctime          timeFan;
+    abctime          timeFanin;
     abctime          timeDerive;
+    abctime          timeMerge;
+    abctime          timeEval;
+    abctime          timeCompare;
+    abctime          timeStore;
     abctime          timeOther;
     abctime          timeTotal;
 };
@@ -789,21 +793,18 @@ static inline int Mpm_ManObjPres( Mpm_Man_t * p, int k, int iLit )
 }
 static inline int Mpm_ObjDeriveCut( Mpm_Man_t * p, Mpm_Cut_t ** pCuts, Mpm_Cut_t * pCut )
 {
-    abctime clk = clock();
     int i, c;
     pCut->nLeaves = 0;
     for ( c = 0; pCuts[c] && c < 3; c++ )
         for ( i = 0; i < (int)pCuts[c]->nLeaves; i++ )
             if ( !Mpm_ManObjPres( p, i, pCuts[c]->pLeaves[i] ) )
             {
-                p->timeCut += clock() - clk;
                 return 0;
             }
     pCut->hNext    = 0;
     pCut->iFunc    = 0;  pCut->iFunc = ~pCut->iFunc;
     pCut->fUseless = 0;
     assert( pCut->nLeaves > 0 );
-    p->timeCut += clock() - clk;
     return 1;
 }
 
@@ -977,7 +978,13 @@ int Mpm_ObjAddCutToStore( Mpm_Man_t * p, Mpm_Cut_t * pCut, int ArrTime )
     abctime clk;
     // create new unit
     pUnitNew = Mpm_CutToUnit( p, pCut );
+#ifdef MIG_RUNTIME
+clk = Abc_Clock();
+#endif
     Mpm_CutSetupInfo( p, pCut, ArrTime, &pUnitNew->Inf );
+#ifdef MIG_RUNTIME
+p->timeEval += Abc_Clock() - clk;
+#endif
     // special case when the cut store is empty
     if ( p->nCutStore == 0 )
     {
@@ -995,7 +1002,9 @@ int Mpm_ObjAddCutToStore( Mpm_Man_t * p, Mpm_Cut_t * pCut, int ArrTime )
     for ( iPivot = p->nCutStore - 1; iPivot >= 0; iPivot-- )
         if ( p->pCutCmp(&pUnitNew->Inf, &p->pCutStore[iPivot]->Inf) > 0 ) // iPivot-th cut is better than new cut
             break;
+#ifdef MIG_RUNTIME
 clk = Abc_Clock();
+#endif
     // filter this cut using other cuts
     for ( k = 0; k <= iPivot; k++ )
     {
@@ -1008,6 +1017,9 @@ clk = Abc_Clock();
 //            Mpm_CutPrint( pUnitNew->pLeaves, pUnitNew->nLeaves );
 //            Mpm_CutPrint( pUnit->pLeaves, pUnit->nLeaves );
             Mpm_UnitRecycle( p, pUnitNew );
+#ifdef MIG_RUNTIME
+p->timeCompare += Abc_Clock() - clk;
+#endif
             return 0;
         }
     }
@@ -1036,7 +1048,9 @@ clk = Abc_Clock();
         p->pCutStore[last++] = p->pCutStore[k];
     }
     p->nCutStore = last;
-p->timeOther += Abc_Clock() - clk;
+#ifdef MIG_RUNTIME
+p->timeCompare += Abc_Clock() - clk;
+#endif
     // remove the last cut if too many
     if ( p->nCutStore == p->nNumCuts )
         Mpm_UnitRecycle( p, p->pCutStore[--p->nCutStore] );
@@ -1250,12 +1264,20 @@ static inline void Mpm_ManPrintStats( Mpm_Man_t * p )
         1.0 * Mig_ManObjNum(p->pMig) * sizeof(Mpm_Obj_t) / (1 << 20) +
         1.0 * Mmr_StepMemory(p->pManCuts) / (1 << 17) );
 
-    Abc_PrintTime( 1, "Cuts  ", p->timeCut );
-    Abc_PrintTime( 1, "Fans  ", p->timeFan );
-    Abc_PrintTime( 1, "Derive", p->timeDerive );
-    Abc_PrintTime( 1, "Other ", p->timeOther );
-    Abc_PrintTime( 1, "TOTAL ", Abc_Clock() - p->timeTotal );
+    p->timeTotal = Abc_Clock() - p->timeTotal;
+    p->timeOther = p->timeTotal - (p->timeFanin + p->timeDerive);
+
+    Abc_Print( 1, "Runtime breakdown:\n" );
+    ABC_PRTP( "Precomputing fanin info    ", p->timeFanin  , p->timeTotal );
+    ABC_PRTP( "Complete cut computation   ", p->timeDerive , p->timeTotal );
+    ABC_PRTP( "- Merging cuts             ", p->timeMerge  , p->timeTotal );
+    ABC_PRTP( "- Evaluting cut parameters ", p->timeEval   , p->timeTotal );
+    ABC_PRTP( "- Checking cut containment ", p->timeCompare, p->timeTotal );
+    ABC_PRTP( "- Adding cuts to storage   ", p->timeStore  , p->timeTotal );
+    ABC_PRTP( "Other                      ", p->timeOther  , p->timeTotal );
+    ABC_PRTP( "TOTAL                      ", p->timeTotal  , p->timeTotal );
 }
+
 
 /**Function*************************************************************
 
@@ -1388,15 +1410,36 @@ void Mpm_ObjUpdateCut( Mpm_Cut_t * pCut, int * pPerm, int nLeaves )
 static inline int Mpm_ManDeriveCutNew( Mpm_Man_t * p, Mpm_Cut_t ** pCuts, int Required )
 {
 //    int fUseFunc = 0;
-    int ArrTime;
     Mpm_Cut_t * pCut = p->pCutTemp;
+    int ArrTime;
+#ifdef MIG_RUNTIME
+abctime clk = clock();
+#endif
     Mpm_ManObjPresClean( p );
     if ( !Mpm_ObjDeriveCut( p, pCuts, pCut ) )
+    {
+#ifdef MIG_RUNTIME
+p->timeMerge += clock() - clk;
+#endif
         return 1;
+    }
+#ifdef MIG_RUNTIME
+p->timeMerge += clock() - clk;
+clk = clock();
+#endif
     ArrTime = Mpm_CutGetArrTime( p, pCut );
+#ifdef MIG_RUNTIME
+p->timeEval += clock() - clk;
+#endif
     if ( ArrTime > Required )
         return 1;
+#ifdef MIG_RUNTIME
+clk = Abc_Clock();
+#endif
     Mpm_ObjAddCutToStore( p, pCut, ArrTime );
+#ifdef MIG_RUNTIME
+p->timeStore += Abc_Clock() - clk;
+#endif
     return 1;
     // return 0 if const or buffer cut is derived - reset all cuts to contain only one
 }
@@ -1424,11 +1467,17 @@ int Mpm_ManDeriveCuts( Mpm_Man_t * p, Mig_Obj_t * pObj )
     if ( p->pMig->vSibls.nSize && Mig_ObjSiblId(pObj) )
         Mpm_ObjAddChoiceCutsToStore( p, Mig_ObjSibl(pObj), pMapObj->mRequired );
     // compute signatures for fanin cuts
+#ifdef MIG_RUNTIME
 clk = Abc_Clock();
+#endif
     Mpm_ObjPrepareFanins( p, pObj );
-p->timeFan += Abc_Clock() - clk;
+#ifdef MIG_RUNTIME
+p->timeFanin += Abc_Clock() - clk;
+#endif
     // compute cuts in the internal storage
+#ifdef MIG_RUNTIME
 clk = Abc_Clock();
+#endif
     if ( Mig_ObjIsNode2(pObj) )
     {
         // go through cut pairs
@@ -1450,7 +1499,9 @@ clk = Abc_Clock();
                     goto finish;
     }
     else assert( 0 );
+#ifdef MIG_RUNTIME
 p->timeDerive += Abc_Clock() - clk;
+#endif
 finish:
     // transform internal storage into regular cuts
 //    if ( Flag == 0 && p->nCutStore == p->nNumCuts - 1 )
