@@ -93,8 +93,8 @@ static inline void Mmr_FlexStop( Mmr_Flex_t * p )
 {
     word * pPage;
     int i;
-    if ( 1 && Vec_PtrSize(&p->vPages) )
-        printf( "Using %3d pages of %6d words each with %6d entries (max = %6d). Total memory %5.2f MB.\n", 
+    if ( 0 && Vec_PtrSize(&p->vPages) )
+        printf( "Using %3d pages of %6d words each with %6d entries (max = %6d). Total memory = %5.2f MB.\n", 
             Vec_PtrSize(&p->vPages), p->nPageBase ? 1 << p->nPageBase : 0, p->nEntries, p->nEntriesMax, 
             1.0 * Vec_PtrSize(&p->vPages) * (1 << p->nPageBase) * 8 / (1 << 20) );
     Vec_PtrForEachEntry( word *, &p->vPages, pPage, i )
@@ -162,8 +162,8 @@ static inline void Mmr_FixedStop( Mmr_Fixed_t * p, int fFreeLast )
 {
     word * pPage;
     int i;
-    if ( 1 && Vec_PtrSize(&p->vPages) )
-        printf( "Using %3d pages of %6d words each with %6d entries (max = %6d) of size %d. Total memory %5.2f MB.\n", 
+    if ( 0 && Vec_PtrSize(&p->vPages) )
+        printf( "Using %3d pages of %6d words each with %6d entries (max = %6d) of size %d. Total memory = %5.2f MB.\n", 
             Vec_PtrSize(&p->vPages), p->nPageBase ? 1 << p->nPageBase : 0, p->nEntries, p->nEntriesMax, p->nEntryWords,
             1.0 * Vec_PtrSize(&p->vPages) * (1 << p->nPageBase) * 8 / (1 << 20) );
     Vec_PtrForEachEntry( word *, &p->vPages, pPage, i )
@@ -197,6 +197,10 @@ static inline void Mmr_FixedRecycle( Mmr_Fixed_t * p, int h )
     p->nEntries--;
     memset( Mmr_FixedEntry(p, h), 0xFF, sizeof(word) * p->nEntryWords );
     Vec_IntPush( &p->vFrees, h );
+}
+static inline int Mmr_FixedMemory( Mmr_Fixed_t * p )
+{
+    return Vec_PtrSize(&p->vPages) * (p->PageMask + 1);
 }
 
  
@@ -246,6 +250,13 @@ static inline void Mmr_StepRecycle( Mmr_Step_t * p, int h )
 {
     p->nEntries--;
     Mmr_FixedRecycle( p->pMems + (h & p->uMask), (h >> p->nBits) );
+}
+static inline int Mmr_StepMemory( Mmr_Step_t * p )
+{
+    int i, Mem = 0;
+    for ( i = 1; i <= p->uMask; i++ )
+        Mem += Mmr_FixedMemory( p->pMems + i );
+    return Mem;
 }
 
 
