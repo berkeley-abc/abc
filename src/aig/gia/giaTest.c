@@ -47,14 +47,14 @@ typedef struct Mig_Obj_t_ Mig_Obj_t;
 struct Mig_Obj_t_
 {
     Mig_Fan_t      pFans[4];     // fanins
-    int            hCutBest;     // cut best
-    int            hCutList;     // cut list
+/*
     int            nMapRefs;     // exact mapping references
     int            nEstRefs;     // estimated mapping references
     int            mRequired;    // required time
     int            mTime;        // arrival time
     int            mArea;        // area
     int            mEdge;        // edge
+*/
 };
 
 typedef struct Mig_Man_t_ Mig_Man_t;
@@ -77,6 +77,7 @@ struct Mig_Man_t_
     Vec_Int_t      vRefs;        // ref counters
     Vec_Int_t      vRefs2;       // ref counters
     Vec_Int_t      vSibls;       // choice nodes
+    void *         pMan;         // mapping manager
 };
 
 /*
@@ -385,6 +386,7 @@ static inline int Mig_ManMemory( Mig_Man_t * p )
     return Vec_PtrSize(&p->vPages) * (MIG_MASK + 1) * sizeof(Mig_Obj_t);
 }
 
+
 /**Function*************************************************************
 
   Synopsis    []
@@ -615,6 +617,15 @@ struct Mpm_Man_t_
 //    Dsd_Man_t *      pManDsd;
     void *           pManDsd;
     int              pPerm[MPM_VAR_MAX]; 
+    // mapping attributes
+    Vec_Int_t        vCutBests;                // cut best
+    Vec_Int_t        vCutLists;                // cut list
+    Vec_Int_t        vMapRefs;                 // exact mapping references
+    Vec_Int_t        vEstRefs;                 // estimated mapping references
+    Vec_Int_t        vRequireds;               // required time
+    Vec_Int_t        vTimes;                   // arrival time
+    Vec_Int_t        vAreas;                   // area
+    Vec_Int_t        vEdges;                   // edge
     // statistics
     int              nCutsMerged;
     abctime          timeFanin;
@@ -627,11 +638,39 @@ struct Mpm_Man_t_
     abctime          timeTotal;
 };
 
+static inline int    Mpm_ObjCutBest( Mpm_Man_t * p, Mig_Obj_t * pObj )              { return Vec_IntEntry(&p->vCutBests, Mig_ObjId(pObj));            }
+static inline void   Mpm_ObjSetCutBest( Mpm_Man_t * p, Mig_Obj_t * pObj, int i )    { Vec_IntWriteEntry(&p->vCutBests, Mig_ObjId(pObj), i);           }
+
+static inline int    Mpm_ObjCutList( Mpm_Man_t * p, Mig_Obj_t * pObj )              { return Vec_IntEntry(&p->vCutLists, Mig_ObjId(pObj));            }
+static inline int *  Mpm_ObjCutListP( Mpm_Man_t * p, Mig_Obj_t * pObj )             { return Vec_IntEntryP(&p->vCutLists, Mig_ObjId(pObj));           }
+static inline void   Mpm_ObjSetCutList( Mpm_Man_t * p, Mig_Obj_t * pObj, int i )    { Vec_IntWriteEntry(&p->vCutLists, Mig_ObjId(pObj), i);           }
+
+static inline int    Mpm_ObjMapRef( Mpm_Man_t * p, Mig_Obj_t * pObj )               { return Vec_IntEntry(&p->vMapRefs, Mig_ObjId(pObj));             }
+static inline void   Mpm_ObjSetMapRef( Mpm_Man_t * p, Mig_Obj_t * pObj, int i )     { Vec_IntWriteEntry(&p->vMapRefs, Mig_ObjId(pObj), i);            }
+static inline void   Mpm_ManCleanMapRefs( Mpm_Man_t * p )                           { Vec_IntFill( &p->vMapRefs, Mig_ManObjNum(p->pMig), 0 );         }
+ 
+static inline int    Mpm_ObjEstRef( Mpm_Man_t * p, Mig_Obj_t * pObj )               { return Vec_IntEntry(&p->vEstRefs, Mig_ObjId(pObj));             }
+static inline void   Mpm_ObjSetEstRef( Mpm_Man_t * p, Mig_Obj_t * pObj, int i )     { Vec_IntWriteEntry(&p->vEstRefs, Mig_ObjId(pObj), i);            }
+
+static inline int    Mpm_ObjRequired( Mpm_Man_t * p, Mig_Obj_t * pObj )             { return Vec_IntEntry(&p->vRequireds, Mig_ObjId(pObj));           }
+static inline void   Mpm_ObjSetRequired( Mpm_Man_t * p, Mig_Obj_t * pObj, int i )   { Vec_IntWriteEntry(&p->vRequireds, Mig_ObjId(pObj), i);          }
+static inline void   Mpm_ManCleanRequired( Mpm_Man_t * p )                          { Vec_IntFill(&p->vRequireds,Mig_ManObjNum(p->pMig),ABC_INFINITY);}
+
+static inline int    Mpm_ObjTime( Mpm_Man_t * p, Mig_Obj_t * pObj )                 { return Vec_IntEntry(&p->vTimes, Mig_ObjId(pObj));               }
+static inline void   Mpm_ObjSetTime( Mpm_Man_t * p, Mig_Obj_t * pObj, int i )       { Vec_IntWriteEntry(&p->vTimes, Mig_ObjId(pObj), i);              }
+
+static inline int    Mpm_ObjArea( Mpm_Man_t * p, Mig_Obj_t * pObj )                 { return Vec_IntEntry(&p->vAreas, Mig_ObjId(pObj));               }
+static inline void   Mpm_ObjSetArea( Mpm_Man_t * p, Mig_Obj_t * pObj, int i )       { Vec_IntWriteEntry(&p->vAreas, Mig_ObjId(pObj), i);              }
+
+static inline int    Mpm_ObjEdge( Mpm_Man_t * p, Mig_Obj_t * pObj )                 { return Vec_IntEntry(&p->vEdges, Mig_ObjId(pObj));               }
+static inline void   Mpm_ObjSetEdge( Mpm_Man_t * p, Mig_Obj_t * pObj, int i )       { Vec_IntWriteEntry(&p->vEdges, Mig_ObjId(pObj), i);              }
+
+
 // iterators over object cuts
 #define Mpm_ObjForEachCut( p, pObj, hCut, pCut )                         \
-    for ( hCut = pObj->hCutList; hCut && (pCut = Mpm_CutFetch(p, hCut)); hCut = pCut->hNext )
+    for ( hCut = Mpm_ObjCutList(p, pObj); hCut && (pCut = Mpm_CutFetch(p, hCut)); hCut = pCut->hNext )
 #define Mpm_ObjForEachCutSafe( p, pObj, hCut, pCut, hNext )              \
-    for ( hCut = pObj->hCutList; hCut && (pCut = Mpm_CutFetch(p, hCut)) && ((hNext = pCut->hNext), 1); hCut = hNext )
+    for ( hCut = Mpm_ObjCutList(p, pObj); hCut && (pCut = Mpm_CutFetch(p, hCut)) && ((hNext = pCut->hNext), 1); hCut = hNext )
 
 // iterators over cut leaves
 #define Mpm_CutForEachLeafId( pCut, iLeafId, i )                         \
@@ -666,9 +705,9 @@ static inline Mpm_Cut_t * Mpm_CutFetch( Mpm_Man_t * p, int h )
     assert( Mpm_CutWordNum(pCut->nLeaves) == (h & p->pManCuts->uMask) );
     return pCut;
 }
-static inline Mpm_Cut_t * Mpm_ObjCutBest( Mpm_Man_t * p, Mig_Obj_t * pObj )   
+static inline Mpm_Cut_t * Mpm_ObjCutBestP( Mpm_Man_t * p, Mig_Obj_t * pObj )  
 { 
-    return Mpm_CutFetch( p, pObj->hCutBest );   
+    return Mpm_CutFetch( p, Mpm_ObjCutBest(p, pObj) );
 }
 static inline int Mpm_CutCreateZero( Mpm_Man_t * p )  
 { 
@@ -715,6 +754,7 @@ static inline int Mpm_CutCopySet( Mpm_Man_t * p, Mig_Obj_t * pObj, int fCompl )
     *pList = 0;
     return iList;
 }
+/*
 static inline void Mpm_CutRef( Mpm_Man_t * p, int * pLeaves, int nLeaves )  
 {
     int i;
@@ -727,6 +767,7 @@ static inline void Mpm_CutDeref( Mpm_Man_t * p, int * pLeaves, int nLeaves )
     for ( i = 0; i < nLeaves; i++ )
         Mig_ManObj( p->pMig, Abc_Lit2Var(pLeaves[i]) )->nMapRefs--;
 }
+*/
 static inline void Mpm_CutPrint( int * pLeaves, int nLeaves )  
 { 
     int i;
@@ -764,7 +805,7 @@ int Mpm_ManNodeIfToGia_rec( Gia_Man_t * pNew, Mpm_Man_t * pMan, Mig_Obj_t * pObj
     Mpm_Cut_t * pCut;
     int iFunc, iFunc0, iFunc1;
     // get the best cut
-    pCut = Mpm_ObjCutBest( pMan, pObj );
+    pCut = Mpm_ObjCutBestP( pMan, pObj );
     // if the cut is visited, return the result
     if ( Mpm_CutDataInt(pCut) )
         return Mpm_CutDataInt(pCut);
@@ -802,11 +843,11 @@ int Mpm_ManNodeIfToGia( Gia_Man_t * pNew, Mpm_Man_t * pMan, Mig_Obj_t * pObj, Ve
     Mig_Obj_t * pFanin;
     int i, iRes;
     // get the best cut
-    pCut = Mpm_ObjCutBest( pMan, pObj );
+    pCut = Mpm_ObjCutBestP( pMan, pObj );
     assert( pCut->nLeaves > 1 );
     // set the leaf variables
     Mpm_CutForEachLeaf( pMan->pMig, pCut, pFanin, i )
-        Mpm_CutSetDataInt( Mpm_ObjCutBest(pMan, pFanin), Vec_IntEntry(vLeaves, i) );
+        Mpm_CutSetDataInt( Mpm_ObjCutBestP(pMan, pFanin), Vec_IntEntry(vLeaves, i) );
     // recursively compute the function while collecting visited cuts
     Vec_PtrClear( pMan->vTemp );
     iRes = Mpm_ManNodeIfToGia_rec( pNew, pMan, pObj, pMan->vTemp, fHash ); 
@@ -817,7 +858,7 @@ int Mpm_ManNodeIfToGia( Gia_Man_t * pNew, Mpm_Man_t * pMan, Mig_Obj_t * pObj, Ve
     }
     // clean the cuts
     Mpm_CutForEachLeaf( pMan->pMig, pCut, pFanin, i )
-        Mpm_CutSetDataInt( Mpm_ObjCutBest(pMan, pFanin), 0 );
+        Mpm_CutSetDataInt( Mpm_ObjCutBestP(pMan, pFanin), 0 );
     Vec_PtrForEachEntry( Mpm_Cut_t *, pMan->vTemp, pCut, i )
         Mpm_CutSetDataInt( pCut, 0 );
     return iRes;
@@ -848,13 +889,13 @@ Gia_Man_t * Mpm_ManFromIfLogic( Mpm_Man_t * pMan )
     Mig_ManCleanCopy( pMan->pMig );
     Mig_ManForEachObj( pMan->pMig, pObj )
     {
-        if ( pObj->nMapRefs == 0 && !Mig_ObjIsTerm(pObj) )
+        if ( !Mpm_ObjMapRef(pMan, pObj) && !Mig_ObjIsTerm(pObj) )
             continue;
         if ( Mig_ObjIsNode(pObj) )
         {
             // collect leaves of the best cut
             Vec_IntClear( vLeaves );
-            pCutBest = Mpm_ObjCutBest( pMan, pObj );
+            pCutBest = Mpm_ObjCutBestP( pMan, pObj );
             Mpm_CutForEachLeaf( pMan->pMig, pCutBest, pFanin, k )
                 Vec_IntPush( vLeaves, Mig_ObjCopy(pFanin) );
             // perform one of the two types of mapping: with and without structures
@@ -1021,35 +1062,38 @@ static inline word Mpm_CutGetSign( Mpm_Cut_t * pCut )
 }
 static inline int  Mpm_CutGetArrTime( Mpm_Man_t * p, Mpm_Cut_t * pCut )  
 {
-    Mig_Obj_t * pLeaf;
     int * pDelays = p->pLibLut->pLutDelays[pCut->nLeaves];
-    int i, ArrTime = 0;
-    Mpm_CutForEachLeaf( p->pMig, pCut, pLeaf, i )
-        ArrTime = Abc_MaxInt( ArrTime, pLeaf->mTime + pDelays[i] );
+    int * pmTimes = Vec_IntArray( &p->vTimes );
+    int i, iLeaf, ArrTime = 0;
+    Mpm_CutForEachLeafId( pCut, iLeaf, i )
+        ArrTime = Abc_MaxInt( ArrTime, pmTimes[iLeaf] + pDelays[i] );
     return ArrTime;
 }
 static inline void Mpm_CutSetupInfo( Mpm_Man_t * p, Mpm_Cut_t * pCut, int ArrTime, Mpm_Inf_t * pInfo )  
 {
-    Mig_Obj_t * pLeaf;
-    int i;
+    int * pmMapRefs = Vec_IntArray( &p->vMapRefs );
+    int * pmEstRefs = Vec_IntArray( &p->vEstRefs );
+    int * pmArea    = Vec_IntArray( &p->vAreas );
+    int * pmEdge    = Vec_IntArray( &p->vEdges );
+    int i, iLeaf;
     memset( pInfo, 0, sizeof(Mpm_Inf_t) );
     pInfo->nLeaves = pCut->nLeaves;
     pInfo->mTime   = ArrTime;
     pInfo->mArea   = p->pLibLut->pLutAreas[pCut->nLeaves];
     pInfo->mEdge   = MPM_UNIT_EDGE * pCut->nLeaves;
-    Mpm_CutForEachLeaf( p->pMig, pCut, pLeaf, i )
+    Mpm_CutForEachLeafId( pCut, iLeaf, i )
     {
-        if ( p->fMainRun && pLeaf->nMapRefs == 0 ) // not used in the mapping
+        if ( p->fMainRun && pmMapRefs[iLeaf] == 0 ) // not used in the mapping
         {
-            pInfo->mArea += pLeaf->mArea;
-            pInfo->mEdge += pLeaf->mEdge;
+            pInfo->mArea += pmArea[iLeaf];
+            pInfo->mEdge += pmEdge[iLeaf];
         }
         else
         {
-            assert( pLeaf->nEstRefs > 0 );
-            pInfo->mArea += MPM_UNIT_REFS * pLeaf->mArea / pLeaf->nEstRefs;
-            pInfo->mEdge += MPM_UNIT_REFS * pLeaf->mEdge / pLeaf->nEstRefs;
-//            pInfo->mAveRefs += MPM_UNIT_EDGE * pLeaf->nMapRefs;
+            assert( pmEstRefs[iLeaf] > 0 );
+            pInfo->mArea += MPM_UNIT_REFS * pmArea[iLeaf] / pmEstRefs[iLeaf];
+            pInfo->mEdge += MPM_UNIT_REFS * pmEdge[iLeaf] / pmEstRefs[iLeaf];
+//            pInfo->mAveRefs += MPM_UNIT_EDGE * pmMapRefs[iLeaf];
         }
         pInfo->uSign |= ((word)1 << (Abc_Lit2Var(pCut->pLeaves[i]) & 0x3F));
     }
@@ -1246,7 +1290,7 @@ void Mpm_ObjTranslateCutsFromStore( Mpm_Man_t * p, Mig_Obj_t * pObj, int fAddUni
 {
     Mpm_Cut_t * pCut;
     Mpm_Uni_t * pUnit;
-    int i, *pList = &pObj->hCutList;
+    int i, *pList = Mpm_ObjCutListP( p, pObj );
     assert( p->nCutStore > 0 && p->nCutStore <= p->nNumCuts );
     // translate cuts
     *pList = 0;
@@ -1272,53 +1316,45 @@ void Mpm_ObjTranslateCutsFromStore( Mpm_Man_t * p, Mig_Obj_t * pObj, int fAddUni
   SeeAlso     []
 
 ***********************************************************************/
-static inline void Mpm_ManResetRequired( Mpm_Man_t * p )
-{
-    Mig_Obj_t * pObj;
-    Mig_ManForEachObj( p->pMig, pObj )
-    {
-        pObj->mRequired = ABC_INFINITY;
-        pObj->nMapRefs = 0;
-    }
-}
 static inline int Mpm_ManFindArrivalMax( Mpm_Man_t * p )
 {
+    int * pmTimes = Vec_IntArray( &p->vTimes );
     Mig_Obj_t * pObj;
     int i, ArrMax = 0;
     Mig_ManForEachCo( p->pMig, pObj, i )
-        ArrMax = Abc_MaxInt( ArrMax, Mig_ObjFanin0(pObj)->mTime );
+        ArrMax = Abc_MaxInt( ArrMax, pmTimes[ Mig_ObjFaninId0(pObj) ] );
     return ArrMax;
 }
 static inline void Mpm_ManFinalizeRound( Mpm_Man_t * p )
 {
+    int * pMapRefs  = Vec_IntArray( &p->vMapRefs );
+    int * pRequired = Vec_IntArray( &p->vRequireds );
     Mig_Obj_t * pObj;
-    Mig_Obj_t * pFanin;
     Mpm_Cut_t * pCut;
     int * pDelays;
-    int i, Required;
+    int i, iLeaf;
     p->GloArea = 0;
     p->GloEdge = 0;
     p->GloRequired = Mpm_ManFindArrivalMax(p);
-    Mpm_ManResetRequired( p );
+    Mpm_ManCleanMapRefs( p );
+    Mpm_ManCleanRequired( p );
     Mig_ManForEachObjReverse( p->pMig, pObj )
     {
         if ( Mig_ObjIsCo(pObj) )
         {
-            pFanin = Mig_ObjFanin0(pObj);
-            pFanin->mRequired = p->GloRequired;
-            pFanin->nMapRefs++;
+            pRequired[Mig_ObjFaninId0(pObj)] = p->GloRequired;
+            pMapRefs [Mig_ObjFaninId0(pObj)]++;
         }
         else if ( Mig_ObjIsNode(pObj) )
         {
-            if ( pObj->nMapRefs > 0 )
+            if ( pMapRefs[Mig_ObjId(pObj)] )
             {
-                pCut = Mpm_ObjCutBest( p, pObj );
-                pDelays = p->pLibLut->pLutDelays[pCut->nLeaves];
-                Required = pObj->mRequired;
-                Mpm_CutForEachLeaf( p->pMig, pCut, pFanin, i )
+                pCut     = Mpm_ObjCutBestP( p, pObj );
+                pDelays  = p->pLibLut->pLutDelays[pCut->nLeaves];
+                Mpm_CutForEachLeafId( pCut, iLeaf, i )
                 {
-                    pFanin->mRequired = Abc_MinInt( pFanin->mRequired, Required - pDelays[i] );
-                    pFanin->nMapRefs++;
+                    pRequired[iLeaf] = Abc_MinInt( pRequired[iLeaf], pRequired[Mig_ObjId(pObj)] - pDelays[i] );
+                    pMapRefs [iLeaf]++;
                 }
                 p->GloArea += p->pLibLut->pLutAreas[pCut->nLeaves];
                 p->GloEdge += pCut->nLeaves;
@@ -1328,8 +1364,9 @@ static inline void Mpm_ManFinalizeRound( Mpm_Man_t * p )
         {
         }
 //        pObj->EstRefs = (float)((2.0 * pObj->EstRefs + pObj->nRefs) / 3.0);
-        if ( p->fMainRun )
-            pObj->nEstRefs = (2 * pObj->nEstRefs + MPM_UNIT_REFS * pObj->nMapRefs) / 3;
+
+//        if ( p->fMainRun )
+//            pObj->nEstRefs = (2 * pObj->nEstRefs + MPM_UNIT_REFS * pObj->nMapRefs) / 3;
     }
     p->GloArea /= MPM_UNIT_AREA;
 }
@@ -1400,8 +1437,18 @@ static inline Mpm_Man_t * Mpm_ManStart( Mig_Man_t * pMig, Mpm_LibLut_t * pLib, i
     p->pCutTemp  = (Mpm_Cut_t *)ABC_CALLOC( word, Mpm_CutWordNum(p->nLutSize) );
     Vec_StrGrow( &p->vObjShared, 32 );
     p->vTemp     = Vec_PtrAlloc( 1000 );
+    // mapping attributes
+    Vec_IntFill( &p->vCutBests, Mig_ManObjNum(pMig), 0 );
+    Vec_IntFill( &p->vCutLists, Mig_ManObjNum(pMig), 0 );
+    Vec_IntFill( &p->vMapRefs, Mig_ManObjNum(pMig), 0 );
+    Vec_IntFill( &p->vEstRefs, Mig_ManObjNum(pMig), 0 );
+    Vec_IntFill( &p->vRequireds, Mig_ManObjNum(pMig), 0 );
+    Vec_IntFill( &p->vTimes, Mig_ManObjNum(pMig), 0 );
+    Vec_IntFill( &p->vAreas, Mig_ManObjNum(pMig), 0 );
+    Vec_IntFill( &p->vEdges, Mig_ManObjNum(pMig), 0 );
     // start DSD manager
     p->pManDsd   = NULL;
+    pMig->pMan   = p;
     return p;
 }
 static inline void Mpm_ManStop( Mpm_Man_t * p )
@@ -1412,6 +1459,15 @@ static inline void Mpm_ManStop( Mpm_Man_t * p )
     ABC_FREE( p->vObjShared.pArray );
     ABC_FREE( p->pCutTemp );
     ABC_FREE( p->pObjPres );
+    // mapping attributes
+    ABC_FREE( p->vCutBests.pArray );
+    ABC_FREE( p->vCutLists.pArray );
+    ABC_FREE( p->vMapRefs.pArray );
+    ABC_FREE( p->vEstRefs.pArray );
+    ABC_FREE( p->vRequireds.pArray );
+    ABC_FREE( p->vTimes.pArray );
+    ABC_FREE( p->vAreas.pArray );
+    ABC_FREE( p->vEdges.pArray );
     ABC_FREE( p );
 }
 static inline void Mpm_ManPrintStatsInit( Mpm_Man_t * p )
@@ -1465,7 +1521,7 @@ static inline void Mpm_ObjRecycleCuts( Mpm_Man_t * p, Mig_Obj_t * pObj )
     int hCut, hNext;
     Mpm_ObjForEachCutSafe( p, pObj, hCut, pCut, hNext )
         Mmr_StepRecycle( p->pManCuts, hCut );
-    pObj->hCutList = 0;
+    Mpm_ObjSetCutList( p, pObj, 0 );
 }
 static inline void Mpm_ObjDerefFaninCuts( Mpm_Man_t * p, Mig_Obj_t * pObj )
 {
@@ -1618,25 +1674,27 @@ int Mpm_ManDeriveCuts( Mpm_Man_t * p, Mig_Obj_t * pObj )
 //    static int Flag = 0;
     Mpm_Cut_t * pCuts[3];
     Mpm_Uni_t * pUnit;
-    int c0, c1, c2;
+    int Required = Mpm_ObjRequired(p, pObj);
+    int c0, c1, c2, hCutBest;
 #ifdef MIG_RUNTIME
     abctime clk;
 #endif
     Mpm_ManPrepareCutStore( p );
     // check that the best cut is ok
-    assert( pObj->hCutList == 0 );
-    if ( pObj->hCutBest > 0 ) // cut list is assigned
+    hCutBest = Mpm_ObjCutBest( p, pObj );
+    assert( Mpm_ObjCutList(p, pObj) == 0 );
+    if ( hCutBest > 0 ) // cut list is assigned
     {
-        Mpm_Cut_t * pCut = Mpm_ObjCutBest( p, pObj ); assert( pCut->hNext == 0 );
-        pObj->mTime = Mpm_CutGetArrTime(p, pCut);
-        if ( pObj->mTime > pObj->mRequired )
-            printf( "Arrival time (%d) exceeds required time (%d) at object %d.\n", pObj->mTime, pObj->mRequired, Mig_ObjId(pObj) );
+        Mpm_Cut_t * pCut = Mpm_ObjCutBestP( p, pObj ); 
+        assert( pCut->hNext == 0 );
+        if ( Mpm_ObjTime(p, pObj) > Required )
+            printf( "Arrival time (%d) exceeds required time (%d) at object %d.\n", Mpm_ObjTime(p, pObj), Required, Mig_ObjId(pObj) );
         if ( p->fMainRun )
-            Mpm_ObjAddCutToStore( p, pCut, pObj->mTime );
+            Mpm_ObjAddCutToStore( p, pCut, Mpm_ObjTime(p, pObj) );
     }
     // start storage with choice cuts
     if ( p->pMig->vSibls.nSize && Mig_ObjSiblId(pObj) )
-        Mpm_ObjAddChoiceCutsToStore( p, Mig_ObjSibl(pObj), pObj->mRequired );
+        Mpm_ObjAddChoiceCutsToStore( p, Mig_ObjSibl(pObj), Required );
     // compute signatures for fanin cuts
 #ifdef MIG_RUNTIME
 clk = Abc_Clock();
@@ -1656,7 +1714,7 @@ clk = Abc_Clock();
         for ( c0 = 0; c0 < p->nCuts[0] && (pCuts[0] = p->pCuts[0][c0]); c0++ )
         for ( c1 = 0; c1 < p->nCuts[1] && (pCuts[1] = p->pCuts[1][c1]); c1++ )
             if ( Abc_TtCountOnes(p->pSigns[0][c0] | p->pSigns[1][c1]) <= p->nLutSize )
-                if ( !Mpm_ManDeriveCutNew( p, pCuts, pObj->mRequired ) )
+                if ( !Mpm_ManDeriveCutNew( p, pCuts, Required ) )
                     goto finish;
     }
     else if ( Mig_ObjIsNode3(pObj) )
@@ -1666,7 +1724,7 @@ clk = Abc_Clock();
         for ( c1 = 0; c1 < p->nCuts[1] && (pCuts[1] = p->pCuts[1][c1]); c1++ )
         for ( c2 = 0; c2 < p->nCuts[2] && (pCuts[2] = p->pCuts[2][c2]); c2++ )
             if ( Abc_TtCountOnes(p->pSigns[0][c0] | p->pSigns[1][c1] | p->pSigns[2][c2]) <= p->nLutSize )
-                if ( !Mpm_ManDeriveCutNew( p, pCuts, pObj->mRequired ) )
+                if ( !Mpm_ManDeriveCutNew( p, pCuts, Required ) )
                     goto finish;
     }
     else assert( 0 );
@@ -1681,18 +1739,19 @@ finish:
     // save best cut
     assert( p->nCutStore > 0 );
     pUnit = p->pCutStore[0];
-    if ( pUnit->Inf.mTime <= pObj->mRequired )
+    if ( pUnit->Inf.mTime <= Required )
     {
         Mpm_Cut_t * pCut;
-        if ( pObj->hCutBest )
-            Mmr_StepRecycle( p->pManCuts, pObj->hCutBest );
-        pObj->hCutBest = Mpm_CutCreate( p, pUnit->pLeaves, pUnit->nLeaves, pUnit->fUseless, &pCut );
-        pObj->mTime = pUnit->Inf.mTime;
-        pObj->mArea = pUnit->Inf.mArea;
-        pObj->mEdge = pUnit->Inf.mEdge;
+        if ( hCutBest )
+            Mmr_StepRecycle( p->pManCuts, hCutBest );
+        hCutBest = Mpm_CutCreate( p, pUnit->pLeaves, pUnit->nLeaves, pUnit->fUseless, &pCut );
+        Mpm_ObjSetCutBest( p, pObj, hCutBest );
+        Mpm_ObjSetTime( p, pObj, pUnit->Inf.mTime );
+        Mpm_ObjSetArea( p, pObj, pUnit->Inf.mArea );
+        Mpm_ObjSetEdge( p, pObj, pUnit->Inf.mEdge );
     }
     else assert( !p->fMainRun );
-    assert( pObj->hCutBest > 0 );
+    assert( hCutBest > 0 );
     // transform internal storage into regular cuts
     Mpm_ObjTranslateCutsFromStore( p, pObj, Mig_ObjRefNum(pObj) > 0 );
     // dereference fanin cuts and reference node
@@ -1743,15 +1802,19 @@ Gia_Man_t * Mpm_ManPerformTest( Mig_Man_t * pMig )
     Mpm_LibLut_t * pLib;
     Mpm_Man_t * p;
     Mig_Obj_t * pObj;
-    int i;
+    int i, hCut;
     pLib = Mpm_LibLutSetSimple( 6 );
     p = Mpm_ManStart( pMig, pLib, 8 );
     Mpm_ManPrintStatsInit( p );
-    Mpm_ManResetRequired( p );
+    Mpm_ManCleanRequired( p );
     Mig_ManForEachCi( p->pMig, pObj, i )
-        pObj->hCutList = pObj->hCutBest = Mpm_CutCreateUnit( p, Mig_ObjId(pObj) );
+    {
+        hCut = Mpm_CutCreateUnit( p, Mig_ObjId(pObj) );
+        Mpm_ObjSetCutBest( p, pObj, hCut );
+        Mpm_ObjSetCutList( p, pObj, hCut );
+    }
     Mig_ManForEachCand( p->pMig, pObj )
-        pObj->nEstRefs = MPM_UNIT_REFS * Mig_ObjRefNum(pObj);
+        Mpm_ObjSetEstRef( p, pObj, MPM_UNIT_REFS * Mig_ObjRefNum(pObj) );
     Mpm_ManPerform( p );
     Mpm_ManPrintStats( p );
     pNew = Mpm_ManFromIfLogic( p );
