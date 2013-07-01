@@ -956,7 +956,7 @@ void * Inta_ManInterpolate( Inta_Man_t * p, Sto_Man_t * pCnf, abctime TimeToStop
     int RetValue = 1;
     abctime clkTotal = Abc_Clock();
 
-    if ( Abc_Clock() > TimeToStop )
+    if ( TimeToStop && Abc_Clock() > TimeToStop )
         return NULL;
 
     // check that the CNF makes sense
