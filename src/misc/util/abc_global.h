@@ -77,6 +77,7 @@
 
 #include <time.h>
 #include <stdarg.h>
+#include <stdlib.h>
 
 ////////////////////////////////////////////////////////////////////////
 ///                         NAMESPACES                               ///
