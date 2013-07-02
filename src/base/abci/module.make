@@ -58,6 +58,7 @@ SRC +=    src/base/abci/abc.c \
     src/base/abci/abcRpo.c \
     src/base/abci/abcRr.c \
     src/base/abci/abcSat.c \
+    src/base/abci/abcSaucy.c \
     src/base/abci/abcScorr.c \
     src/base/abci/abcSense.c \
     src/base/abci/abcSpeedup.c \
