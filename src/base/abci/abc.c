@@ -23113,7 +23113,7 @@ int Abc_CommandBm2( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fDelete1, fDelete2; 
     Abc_Obj_t * pObj;
     char ** pArgvNew;
-    int c, nArgcNew, i;    
+    int c, nArgcNew, i; 
 
     extern void saucyGateWay( Abc_Ntk_t * pNtk, Abc_Obj_t * pNodePo, FILE * gFile, int fBooleanMatching,
                               int fLookForSwaps, int fFixOutputs, int fFixInputs, int fQuiet, int fPrintTree);
@@ -23187,8 +23187,8 @@ usage:
     Abc_Print( -2, "\t        performs Boolean matching (PP-equivalence)\n" );
     Abc_Print( -2, "\t        for equivalent circuits, permutation that maps one circuit\n" );
     Abc_Print( -2, "\t        to another is printed to standard output (PIs and POs of the\n" );
-    Abc_Print( -2, "\t        first network have prefix \"N1:\", while PIs and POs of the\n" );    
-    Abc_Print( -2, "\t        second network have prefix \"N2:\")\n" );    
+    Abc_Print( -2, "\t        first network have prefix \"N1:\", while PIs and POs of the\n" ); 
+    Abc_Print( -2, "\t        second network have prefix \"N2:\")\n" ); 
     Abc_Print( -2, "\t-h    : print the command usage\n");
     Abc_Print( -2, "\tfile1 : the file with the first network\n");
     Abc_Print( -2, "\tfile2 : the file with the second network\n");
@@ -23246,20 +23246,20 @@ int Abc_CommandSaucy( Abc_Frame_t * pAbc, int argc, char ** argv )
             outputName = argv[globalUtilOptind];
             if ( !strcmp(argv[globalUtilOptind], "all") )
                 fOutputsOneAtTime ^= 1;
-            globalUtilOptind++;            
+            globalUtilOptind++;         
             break;
         case 'F':
             if ( globalUtilOptind >= argc )
             {
                 Abc_Print( -1, "Command line switch \"-F\" should be followed by a file name.\n" );
                 goto usage;
-            }            
+            }           
             if ( (gFile = fopen( argv[globalUtilOptind], "w" )) == NULL )
             {
-                Abc_Print( -1, "Cannot create output file \"%s\". ", argv[globalUtilOptind] );                
+                Abc_Print( -1, "Cannot create output file \"%s\". ", argv[globalUtilOptind] );              
                 return 1;
             }
-            globalUtilOptind++;            
+            globalUtilOptind++;         
             break;
         case 'i':
             fFixOutputs ^= 1;
@@ -23284,7 +23284,7 @@ int Abc_CommandSaucy( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
     }    
     
-    pNtk = Abc_FrameReadNtk(pAbc);    
+    pNtk = Abc_FrameReadNtk(pAbc);  
 
     if ( pNtk == NULL )
     {
@@ -23307,7 +23307,7 @@ int Abc_CommandSaucy( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_NtkForEachPo( pNtk, pNodePo, i ) {
             printf("Ouput %s\n\n", Abc_ObjName(pNodePo));
             saucyGateWay( pNtk, pNodePo, gFile, 0, fLookForSwaps, fFixOutputs, fFixInputs, fQuiet, fPrintTree );
-            printf("----------------------------------------\n");            
+            printf("----------------------------------------\n");           
         }
         fclose(hadi);
     } else if (outputName != NULL) {
@@ -23318,10 +23318,10 @@ int Abc_CommandSaucy( Abc_Frame_t * pAbc, int argc, char ** argv )
                 saucyGateWay( pNtk, pNodePo, gFile, 0, fLookForSwaps, fFixOutputs, fFixInputs, fQuiet, fPrintTree );
                 Abc_NtkDelete( pNtk );
                 return 0;
-            }    
+            }   
         }
         Abc_Print( -1, "Output not found\n" );
-        return 1;        
+        return 1;       
     } else
         saucyGateWay( pNtk, NULL, gFile, 0, fLookForSwaps, fFixOutputs, fFixInputs, fQuiet, fPrintTree );
 
@@ -23332,9 +23332,9 @@ int Abc_CommandSaucy( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     Abc_Print( -2, "usage: saucy3 [-O <name>] [-F <file>] [-iosqvh]\n\n" );
     Abc_Print( -2, "\t            computes functional symmetries of the netowrk\n" );
-    Abc_Print( -2, "\t            prints symmetry generators to the standard output\n" );    
+    Abc_Print( -2, "\t            prints symmetry generators to the standard output\n" );   
     Abc_Print( -2, "\t-O <name> : (optional) compute symmetries only for output given by name\n");
-    Abc_Print( -2, "\t            only inputs in the output cone are permuted\n");    
+    Abc_Print( -2, "\t            only inputs in the output cone are permuted\n");  
     Abc_Print( -2, "\t            (special case) name=all, compute symmetries for each\n" );
     Abc_Print( -2, "\t            output, but only one output at a time\n" );
     Abc_Print( -2, "\t            [default = compute symmetries by permuting all I/Os]\n" );
@@ -23343,7 +23343,7 @@ usage:
     Abc_Print( -2, "\t-o        : permute just the outputs (fix the inputs) [default = no]\n");
     Abc_Print( -2, "\t-s        : only look for swaps of inputs [default = no]\n");
     Abc_Print( -2, "\t-q        : quiet (do not print symmetry generators) [default = no]\n");
-    Abc_Print( -2, "\t-v        : verbose (print the search tree) [default = no]\n");    
+    Abc_Print( -2, "\t-v        : verbose (print the search tree) [default = no]\n");   
     Abc_Print( -2, "\t-h        : print the command usage\n"); 
 
     Abc_Print( -2, "\t            \n" );

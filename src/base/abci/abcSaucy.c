@@ -16,7 +16,7 @@
 
   Revision    [No revisions so far]
 
-  Comments    []                            
+  Comments    []                          
 
   Debugging   [There are some part of the code that are commented out. Those parts mostly print
                the contents of the data structures to the standard output. Un-comment them if you 
@@ -30,8 +30,8 @@
 ABC_NAMESPACE_IMPL_START
 
 /* on/off switches */
-#define REFINE_BY_SIM_1        0
-#define REFINE_BY_SIM_2        0
+#define REFINE_BY_SIM_1     0
+#define REFINE_BY_SIM_2     0
 #define BACKTRACK_BY_SAT    1
 #define SELECT_DYNAMICALLY  0
 
@@ -82,17 +82,17 @@ struct sim_result {
     int *inVec;
     int *outVec;
     int inVecSignature;
-    int outVecOnes;    
+    int outVecOnes; 
     double activity;
 };
 
 struct saucy {
     /* Graph data */
     int n;           /* Size of domain */
-    int *adj;         /* Neighbors of k: edg[adj[k]]..edg[adj[k+1]] */
-    int *edg;         /* Actual neighbor data */
-    int *dadj;         /* Fanin neighbor indices, for digraphs */
-    int *dedg;         /* Fanin neighbor data, for digraphs */    
+    int *adj;        /* Neighbors of k: edg[adj[k]]..edg[adj[k+1]] */
+    int *edg;        /* Actual neighbor data */
+    int *dadj;       /* Fanin neighbor indices, for digraphs */
+    int *dedg;       /* Fanin neighbor data, for digraphs */    
 
     /* Coloring data */
     struct coloring left, right;
@@ -175,7 +175,7 @@ struct saucy {
     int * depAdj;
     int * depEdg;
     Vec_Int_t ** iDep, ** oDep;
-    Vec_Int_t ** obs, ** ctrl;    
+    Vec_Int_t ** obs, ** ctrl;  
     Vec_Ptr_t ** topOrder;
     Vec_Ptr_t * randomVectorArray_sim1;
     int * randomVectorSplit_sim1;
@@ -203,17 +203,17 @@ static char *bits(int n) { return ABC_CALLOC(char, n); }
 static char *               getVertexName(Abc_Ntk_t *pNtk, int v);
 static int *                generateProperInputVector(Abc_Ntk_t * pNtk, struct coloring *c, Vec_Int_t * randomVector);
 static int                  ifInputVectorsAreConsistent(struct saucy * s, int * leftVec, int * rightVec);
-static int                    ifOutputVectorsAreConsistent(struct saucy * s, int * leftVec, int * rightVec);
-static Vec_Ptr_t **            findTopologicalOrder(Abc_Ntk_t * pNtk);
-static void                    getDependencies(Abc_Ntk_t *pNtk, Vec_Int_t** iDep, Vec_Int_t** oDep);
+static int                  ifOutputVectorsAreConsistent(struct saucy * s, int * leftVec, int * rightVec);
+static Vec_Ptr_t **         findTopologicalOrder(Abc_Ntk_t * pNtk);
+static void                 getDependencies(Abc_Ntk_t *pNtk, Vec_Int_t** iDep, Vec_Int_t** oDep);
 static struct saucy_graph * buildDepGraph (Abc_Ntk_t *pNtk, Vec_Int_t ** iDep, Vec_Int_t ** oDep);
 static struct saucy_graph * buildSim1Graph(Abc_Ntk_t * pNtk, struct coloring *c, Vec_Int_t * randVec, Vec_Int_t ** iDep, Vec_Int_t ** oDep);
 static struct saucy_graph * buildSim2Graph(Abc_Ntk_t * pNtk, struct coloring *c, Vec_Int_t * randVec, Vec_Int_t ** iDep, Vec_Int_t ** oDep, Vec_Ptr_t ** topOrder, Vec_Int_t ** obs,  Vec_Int_t ** ctrl);
 static Vec_Int_t *          assignRandomBitsToCells(Abc_Ntk_t * pNtk, struct coloring *c);
-int                            Abc_NtkCecSat_saucy(Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int * pModel);
-struct sim_result *            analyzeConflict(Abc_Ntk_t * pNtk, int * pModel, int fVerbose);
+static int                  Abc_NtkCecSat_saucy(Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int * pModel);
+static struct sim_result *  analyzeConflict(Abc_Ntk_t * pNtk, int * pModel, int fVerbose);
 static void                 bumpActivity (struct saucy * s, struct sim_result * cex);
-static void                    reduceDB(struct saucy * s);
+static void                 reduceDB(struct saucy * s);
 
 
 static int
@@ -273,7 +273,7 @@ print_automorphism_ntk2(FILE *f, int n, const int *gamma, int nsupp, const int *
             fprintf(f, " %d ", j-1);
         }
 
-        /* Finish off the orbit */        
+        /* Finish off the orbit */      
     }
     fprintf(f, "-1\n");
 
@@ -287,7 +287,7 @@ print_automorphism_ntk2(FILE *f, int n, const int *gamma, int nsupp, const int *
 
 static int
 print_automorphism_quiet(FILE *f, int n, const int *gamma, int nsupp, const int *support, char * marks, Abc_Ntk_t * pNtk)
-{    
+{   
     return 1;
 }
 
@@ -548,7 +548,7 @@ add_conterexample(struct saucy *s, struct sim_result * cex)
 static int
 is_undirected_automorphism(struct saucy *s)
 {
-    int i, j, ret;    
+    int i, j, ret;  
 
     for (i = 0; i < s->ndiffs; ++i) {
         j = s->unsupp[i];
@@ -564,7 +564,7 @@ is_undirected_automorphism(struct saucy *s)
         add_conterexample(s, cex);
 
         cex = analyzeConflict( s->pNtk_permuted, s->pModel, s->fPrintTree );
-        add_conterexample(s, cex);        
+        add_conterexample(s, cex);      
         
         s->activityInc *= (1 / CLAUSE_DECAY);
         if (Vec_PtrSize(s->satCounterExamples) >= MAX_LEARNTS)
@@ -1149,7 +1149,7 @@ static int
 refineByDepGraph(struct saucy *s, struct coloring *c) 
 {
     s->adj = s->depAdj;
-    s->edg = s->depEdg;    
+    s->edg = s->depEdg; 
 
     return refine(s, c);
 }
@@ -1157,15 +1157,15 @@ refineByDepGraph(struct saucy *s, struct coloring *c)
 static int
 backtrackBysatCounterExamples(struct saucy *s, struct coloring *c)
 {
-    int i, j, res;    
+    int i, j, res;  
     struct sim_result * cex1, * cex2;
     int * flag = zeros(Vec_PtrSize(s->satCounterExamples));
 
     if (c == &s->left) return 1;
-    if (Vec_PtrSize(s->satCounterExamples) == 0) return 1;        
+    if (Vec_PtrSize(s->satCounterExamples) == 0) return 1;      
 
-    for (i = 0; i < Vec_PtrSize(s->satCounterExamples); i++) {    
-        cex1 = Vec_PtrEntry(s->satCounterExamples, i);        
+    for (i = 0; i < Vec_PtrSize(s->satCounterExamples); i++) {  
+        cex1 = Vec_PtrEntry(s->satCounterExamples, i);      
 
         for (j = 0; j < Vec_PtrSize(s->satCounterExamples); j++) {
             if (flag[j]) continue;
@@ -1227,8 +1227,8 @@ refineBySim1_init(struct saucy *s, struct coloring *c)
         }
         if (allOutputsAreDistinguished) break;
 
-        randVec = assignRandomBitsToCells(s->pNtk, c);        
-         g = buildSim1Graph(s->pNtk, c, randVec, s->iDep, s->oDep);
+        randVec = assignRandomBitsToCells(s->pNtk, c);      
+        g = buildSim1Graph(s->pNtk, c, randVec, s->iDep, s->oDep);
         assert(g != NULL);
 
         s->adj = g->adj;
@@ -1240,7 +1240,7 @@ refineBySim1_init(struct saucy *s, struct coloring *c)
                 add_induce(s, c, j);
         refine(s, c);
 
-        if (s->nsplits > nsplits) {            
+        if (s->nsplits > nsplits) {         
             i = 0; /* reset i */
             /* do more refinement by dependency graph */
             for (j = 0; j < s->n; j += c->clen[j]+1)                
@@ -1252,7 +1252,7 @@ refineBySim1_init(struct saucy *s, struct coloring *c)
         ABC_FREE( g->adj );
         ABC_FREE( g->edg );
         ABC_FREE( g );
-    }    
+    }   
 
     return 1;
 }
@@ -1281,8 +1281,8 @@ refineBySim1_left(struct saucy *s, struct coloring *c)
         }
         if (allOutputsAreDistinguished) break;
 
-        randVec = assignRandomBitsToCells(s->pNtk, c);        
-         g = buildSim1Graph(s->pNtk, c, randVec, s->iDep, s->oDep);
+        randVec = assignRandomBitsToCells(s->pNtk, c);      
+        g = buildSim1Graph(s->pNtk, c, randVec, s->iDep, s->oDep);
         assert(g != NULL);
 
         s->adj = g->adj;
@@ -1311,7 +1311,7 @@ refineBySim1_left(struct saucy *s, struct coloring *c)
         ABC_FREE( g );
     }
 
-    s->randomVectorSplit_sim1[s->lev] = Vec_PtrSize(s->randomVectorArray_sim1);    
+    s->randomVectorSplit_sim1[s->lev] = Vec_PtrSize(s->randomVectorArray_sim1); 
 
     return 1;
 }
@@ -1347,7 +1347,7 @@ refineBySim1_other(struct saucy *s, struct coloring *c)
             ret = 0;
         }
 
-        if (ret) {        
+        if (ret) {      
             /* do more refinement now by dependency graph */
             for (j = 0; j < s->n; j += c->clen[j]+1)                
                     add_induce(s, c, j);
@@ -1359,7 +1359,7 @@ refineBySim1_other(struct saucy *s, struct coloring *c)
         ABC_FREE( g );
 
         if (!ret) return 0;
-    }    
+    }   
 
     return 1;
 }
@@ -1373,7 +1373,7 @@ refineBySim2_init(struct saucy *s, struct coloring *c)
     int nsplits;    
     
     for (i = 0; i < NUM_SIM2_ITERATION; i++) {
-        randVec = assignRandomBitsToCells(s->pNtk, c);        
+        randVec = assignRandomBitsToCells(s->pNtk, c);      
         g = buildSim2Graph(s->pNtk, c, randVec, s->iDep, s->oDep, s->topOrder, s->obs,  s->ctrl);
         assert(g != NULL);
 
@@ -1386,7 +1386,7 @@ refineBySim2_init(struct saucy *s, struct coloring *c)
                 add_induce(s, c, j);
         refine(s, c);
 
-        if (s->nsplits > nsplits) {                        
+        if (s->nsplits > nsplits) {                     
             i = 0; /* reset i */
             /* do more refinement by dependency graph */
             for (j = 0; j < s->n; j += c->clen[j]+1)                
@@ -1413,7 +1413,7 @@ refineBySim2_left(struct saucy *s, struct coloring *c)
     int nsplits;    
     
     for (i = 0; i < NUM_SIM2_ITERATION; i++) {
-        randVec = assignRandomBitsToCells(s->pNtk, c);        
+        randVec = assignRandomBitsToCells(s->pNtk, c);      
         g = buildSim2Graph(s->pNtk, c, randVec, s->iDep, s->oDep, s->topOrder, s->obs,  s->ctrl);
         assert(g != NULL);
 
@@ -1443,7 +1443,7 @@ refineBySim2_left(struct saucy *s, struct coloring *c)
         ABC_FREE( g );
     }
 
-    s->randomVectorSplit_sim2[s->lev] = Vec_PtrSize(s->randomVectorArray_sim2);    
+    s->randomVectorSplit_sim2[s->lev] = Vec_PtrSize(s->randomVectorArray_sim2); 
 
     return 1;
 }
@@ -1457,7 +1457,7 @@ refineBySim2_other(struct saucy *s, struct coloring *c)
     int ret, nsplits;
 
     for (i = s->randomVectorSplit_sim2[s->lev-1]; i < s->randomVectorSplit_sim2[s->lev]; i++) {
-        randVec = Vec_PtrEntry(s->randomVectorArray_sim2, i);        
+        randVec = Vec_PtrEntry(s->randomVectorArray_sim2, i);       
         g = buildSim2Graph(s->pNtk, c, randVec, s->iDep, s->oDep, s->topOrder, s->obs,  s->ctrl);
 
         if (g == NULL) {
@@ -1468,7 +1468,7 @@ refineBySim2_other(struct saucy *s, struct coloring *c)
         s->adj = g->adj;
         s->edg = g->edg;    
 
-        nsplits = s->nsplits;        
+        nsplits = s->nsplits;       
 
         for (j = 0; j < s->n; j += c->clen[j]+1)            
                 add_induce(s, c, j);
@@ -1511,10 +1511,10 @@ check_OPP_only_has_swaps(struct saucy *s, struct coloring *c)
     left_cfront = Vec_IntAlloc (1);
     right_cfront = Vec_IntAlloc (1);
 
-    for (cell = 0; cell < s->n; cell += (s->left.clen[cell]+1)) {                
+    for (cell = 0; cell < s->n; cell += (s->left.clen[cell]+1)) {               
         for (j = cell; j <= (cell+s->left.clen[cell]); j++) {
             Vec_IntPush(left_cfront, s->left.cfront[s->right.lab[j]]);
-            Vec_IntPush(right_cfront, s->right.cfront[s->left.lab[j]]);                
+            Vec_IntPush(right_cfront, s->right.cfront[s->left.lab[j]]);             
         }
         Vec_IntSortUnsigned(left_cfront);
         Vec_IntSortUnsigned(right_cfront);
@@ -1541,12 +1541,12 @@ check_OPP_for_Boolean_matching(struct saucy *s, struct coloring *c)
     int j, cell;
     int countN1Left, countN2Left;
     int countN1Right, countN2Right;
-    char *name;    
+    char *name; 
 
     if (c == &s->left)
-        return 1;        
+        return 1;       
 
-    for (cell = 0; cell < s->n; cell += (s->right.clen[cell]+1)) {    
+    for (cell = 0; cell < s->n; cell += (s->right.clen[cell]+1)) {  
         countN1Left = countN2Left = countN1Right = countN2Right = 0;
 
         for (j = cell; j <= (cell+s->right.clen[cell]); j++) {
@@ -1573,7 +1573,7 @@ check_OPP_for_Boolean_matching(struct saucy *s, struct coloring *c)
 
         if (countN1Left != countN2Right || countN2Left != countN1Right)
             return 0;
-    }    
+    }   
     
     return 1;
 }
@@ -1616,7 +1616,7 @@ double_check_OPP_isomorphism(struct saucy *s, struct coloring * c)
         }
         if ((sum1 != sum2) || (xor1 != xor2))
             return 0;
-    }    
+    }   
 
     return 1;
 }
@@ -1636,7 +1636,7 @@ descend(struct saucy *s, struct coloring *c, int target, int min)
     s->difflev[s->lev] = s->ndiffs;
     s->undifflev[s->lev] = s->nundiffs;
     ++s->lev;
-    s->split(s, c, target, back);    
+    s->split(s, c, target, back);   
 
     /* Now go and do some work */
     //print_partition(&s->left, NULL, s->n, s->pNtk, 1);    
@@ -1672,7 +1672,7 @@ select_smallest_max_connected_cell(struct saucy *s, int start, int end)
     
     cell = start;
     while( !s->left.clen[cell] ) cell++;
-    while( cell < end ) {        
+    while( cell < end ) {       
         if (s->left.clen[cell] <= smallest_cell_size) {
             int i, connections = 0;;
             for (i = s->depAdj[s->left.lab[cell]]; i < s->depAdj[s->left.lab[cell]+1]; i++) {
@@ -1710,11 +1710,11 @@ descend_leftmost(struct saucy *s)
         else
             target = min = select_smallest_max_connected_cell(s, Abc_NtkPoNum(s->pNtk), s->n);
         if (s->fPrintTree) 
-            printf("%s->%s\n", getVertexName(s->pNtk, s->left.lab[min]), getVertexName(s->pNtk, s->left.lab[min]));        
+            printf("%s->%s\n", getVertexName(s->pNtk, s->left.lab[min]), getVertexName(s->pNtk, s->left.lab[min]));     
         s->splitvar[s->lev] = s->left.lab[min];
         s->start[s->lev] = target;
         s->splitlev[s->lev] = s->nsplits;
-        if (!descend(s, &s->left, target, min)) return 0;        
+        if (!descend(s, &s->left, target, min)) return 0;       
     }
     s->splitlev[s->lev] = s->n;
     return 1;
@@ -1778,7 +1778,7 @@ select_dynamically(struct saucy *s, int *target, int *lmin, int *rmin)
         if (s->right.cfront[s->left.lab[*lmin]] == *target)
             *rmin = s->right.unlab[s->left.lab[*lmin]];
         return;
-    }    
+    }   
     
     /* we should never get here */
     abort();
@@ -1828,7 +1828,7 @@ descend_left(struct saucy *s)
         }
         descend(s, &s->left, target, lmin);
         s->splitlev[s->lev] = s->nsplits;
-        s->split = split_other;        
+        s->split = split_other;     
         if (SELECT_DYNAMICALLY) {
             s->refineBySim1 = refineBySim1_other;
             s->refineBySim2 = refineBySim2_other;
@@ -2047,7 +2047,7 @@ rewind_coloring(struct saucy *s, struct coloring *c, int lev)
 
 static void
 rewind_simulation_vectors(struct saucy *s, int lev)
-{    
+{   
     int i;
     for (i = s->randomVectorSplit_sim1[lev]; i < Vec_PtrSize(s->randomVectorArray_sim1); i++)
         Vec_IntFree(Vec_PtrEntry(s->randomVectorArray_sim1, i));
@@ -2113,7 +2113,7 @@ backtrack(struct saucy *s)
     min = backtrack_loop(s);
     tmp = s->nsplits;
     s->nsplits = old;
-    rewind_coloring(s, &s->left, s->lev+1);    
+    rewind_coloring(s, &s->left, s->lev+1); 
     s->nsplits = tmp;
     if (SELECT_DYNAMICALLY)
         rewind_simulation_vectors(s, s->lev+1);
@@ -2129,7 +2129,7 @@ backtrack_bad(struct saucy *s)
     min = backtrack_loop(s);
     if (BACKTRACK_BY_SAT) {
         int oldLev = s->lev;
-        while (!backtrackBysatCounterExamples(s, &s->right)) {                            
+        while (!backtrackBysatCounterExamples(s, &s->right)) {                          
             min = backtrack_loop(s);            
             if (!s->lev) {
                 if (s->fPrintTree)
@@ -2137,13 +2137,13 @@ backtrack_bad(struct saucy *s)
                 return -1;
             }
         }
-        if (s->fPrintTree)            
+        if (s->fPrintTree)          
             if (s->lev < oldLev) 
                 printf("Backtrack by SAT from level %d to %d\n", oldLev, s->lev);
     }
     tmp = s->nsplits;
     s->nsplits = s->splitlev[old];
-    rewind_coloring(s, &s->left, s->lev+1);    
+    rewind_coloring(s, &s->left, s->lev+1); 
     s->nsplits = tmp;
     if (SELECT_DYNAMICALLY)
         rewind_simulation_vectors(s, s->lev+1);
@@ -2153,7 +2153,7 @@ backtrack_bad(struct saucy *s)
 
 void
 prepare_permutation_ntk(struct saucy *s) 
-{        
+{       
     int i;
     Abc_Obj_t * pObj, * pObjPerm;
     int numouts = Abc_NtkPoNum(s->pNtk);
@@ -2164,14 +2164,14 @@ prepare_permutation_ntk(struct saucy *s)
     for (i = 0; i < s->n; ++i) {        
         if (i < numouts) {
             pObj     = Vec_PtrEntry(s->pNtk->vPos, i);
-            pObjPerm = Vec_PtrEntry(s->pNtk_permuted->vPos, s->gamma[i]);            
+            pObjPerm = Vec_PtrEntry(s->pNtk_permuted->vPos, s->gamma[i]);           
         }
-        else {            
+        else {          
             pObj     = Vec_PtrEntry(s->pNtk->vPis, i - numouts);
             pObjPerm = Vec_PtrEntry(s->pNtk_permuted->vPis, s->gamma[i] - numouts);
             
         }
-        Abc_ObjAssignName( pObjPerm, Abc_ObjName(pObj), NULL );            
+        Abc_ObjAssignName( pObjPerm, Abc_ObjName(pObj), NULL );         
     }
 
     Abc_NtkOrderObjsByName( s->pNtk_permuted, 1 );
@@ -2188,7 +2188,7 @@ prepare_permutation_ntk(struct saucy *s)
     Abc_NtkForEachCo( s->pNtk_permuted, pObj, i )
         printf (" %d", Abc_ObjId(pObj)-1-Abc_NtkPiNum(s->pNtk_permuted));
     Abc_NtkForEachCi( s->pNtk_permuted, pObj, i )
-        printf (" %d", Abc_ObjId(pObj)-1+Abc_NtkPoNum(s->pNtk_permuted));    
+        printf (" %d", Abc_ObjId(pObj)-1+Abc_NtkPoNum(s->pNtk_permuted));   
     printf("\n");*/
 }
 
@@ -2207,7 +2207,7 @@ prepare_permutation(struct saucy *s)
 
 void
 unprepare_permutation_ntk(struct saucy *s) 
-{        
+{       
     int i;
     Abc_Obj_t * pObj, * pObjPerm;
     int numouts = Abc_NtkPoNum(s->pNtk);
@@ -2218,14 +2218,14 @@ unprepare_permutation_ntk(struct saucy *s)
     for (i = 0; i < s->n; ++i) {        
         if (i < numouts) {
             pObj     = Vec_PtrEntry(s->pNtk->vPos, s->gamma[i]);
-            pObjPerm = Vec_PtrEntry(s->pNtk_permuted->vPos, i);            
+            pObjPerm = Vec_PtrEntry(s->pNtk_permuted->vPos, i);         
         }
-        else {            
+        else {          
             pObj     = Vec_PtrEntry(s->pNtk->vPis, s->gamma[i] - numouts);
             pObjPerm = Vec_PtrEntry(s->pNtk_permuted->vPis, i - numouts);
             
         }
-        Abc_ObjAssignName( pObjPerm, Abc_ObjName(pObj), NULL );            
+        Abc_ObjAssignName( pObjPerm, Abc_ObjName(pObj), NULL );         
     }
 
     Abc_NtkOrderObjsByName( s->pNtk_permuted, 1 );
@@ -2233,13 +2233,13 @@ unprepare_permutation_ntk(struct saucy *s)
 
 
 static void
-unprepare_permutation(struct saucy *s)    
+unprepare_permutation(struct saucy *s)  
 {
     int i;
     unprepare_permutation_ntk(s);
     for (i = 0; i < s->ndiffs; ++i) {
         s->gamma[s->unsupp[i]] = s->unsupp[i];
-    }    
+    }   
 }
 
 static int
@@ -2261,7 +2261,7 @@ do_search(struct saucy *s)
     if (s->fPrintTree && s->lev > 0) {
         //printf("in level %d: %d->%d\n", s->lev, s->left.lab[s->splitwho[s->nsplits]], s->right.lab[min]);
         printf("in level %d: %s->%s\n", s->lev, getVertexName(s->pNtk, s->left.lab[s->splitwho[s->nsplits]]), getVertexName(s->pNtk, s->right.lab[min]));
-    }    
+    }   
 
     /* Keep going while there are tree nodes to expand */
     while (s->lev) {
@@ -2279,7 +2279,7 @@ do_search(struct saucy *s)
                 s->stats->support += s->ndiffs;
                 update_theta(s);                
                 s->print_automorphism(s->gFile, s->n, s->gamma, s->ndiffs, s->unsupp, s->marks, s->pNtk);
-                unprepare_permutation(s);                
+                unprepare_permutation(s);               
                 return 1;
             }
             else {
@@ -2293,8 +2293,8 @@ do_search(struct saucy *s)
         if (s->fPrintTree) {
             printf("BAD NODE\n");
             if (s->lev > 0) {
-                //printf("in level %d: %d->%d\n", s->lev, s->left.lab[s->splitwho[s->nsplits]], s->right.lab[min]);        
-                printf("in level %d: %s->%s\n", s->lev, getVertexName(s->pNtk, s->left.lab[s->splitwho[s->nsplits]]), getVertexName(s->pNtk, s->right.lab[min]));                                
+                //printf("in level %d: %d->%d\n", s->lev, s->left.lab[s->splitwho[s->nsplits]], s->right.lab[min]);     
+                printf("in level %d: %s->%s\n", s->lev, getVertexName(s->pNtk, s->left.lab[s->splitwho[s->nsplits]]), getVertexName(s->pNtk, s->right.lab[min]));                               
             }
         }
     }
@@ -2315,17 +2315,17 @@ saucy_search(
     const int *colors,
     struct saucy_stats *stats)
 {
-    int i, j, max = 0;    
+    int i, j, max = 0;  
     struct saucy_graph *g;
 
     extern Abc_Ntk_t * Abc_NtkDup( Abc_Ntk_t * pNtk );
 
     /* Save network information */
     s->pNtk = pNtk;
-    s->pNtk_permuted = Abc_NtkDup( pNtk );    
+    s->pNtk_permuted = Abc_NtkDup( pNtk );  
 
     /* Builde dependency graph */
-    g = buildDepGraph(pNtk, s->iDep, s->oDep);    
+    g = buildDepGraph(pNtk, s->iDep, s->oDep);  
 
     /* Save graph information */
     s->n = g->n;
@@ -2335,7 +2335,7 @@ saucy_search(
     s->dedg = g->edg + g->e;*/
 
     /* Save client information */
-    s->stats = stats;        
+    s->stats = stats;       
 
     /* Polymorphism */
     if (directed) {
@@ -2350,7 +2350,7 @@ saucy_search(
     }
 
     /* Initialize scalars */
-    s->indmin = 0;    
+    s->indmin = 0;  
     s->lev = s->anc = 1;
     s->ndiffs = s->nundiffs = s->ndiffnons = 0;
     s->activityInc = 1;
@@ -2439,7 +2439,7 @@ saucy_search(
     s->nextnon[j] = s->n;
 
     /* Preprocessing after initial coloring */
-    s->split = split_init;    
+    s->split = split_init;  
     s->refineBySim1 = refineBySim1_init;
     s->refineBySim2 = refineBySim2_init;    
 
@@ -2460,9 +2460,9 @@ saucy_search(
     s->refineBySim1 = refineBySim1_left;
     s->refineBySim2 = refineBySim2_left;
     descend_leftmost(s);    
-    s->split = split_other;    
+    s->split = split_other; 
     s->refineBySim1 = refineBySim1_other;
-    s->refineBySim2 = refineBySim2_other;    
+    s->refineBySim2 = refineBySim2_other;   
 
     /* Our common ancestor with zeta is the current level */
     s->stats->levels = s->anc = s->lev;
@@ -2630,18 +2630,18 @@ saucy_alloc(Abc_Ntk_t * pNtk)
     s->obs  = ABC_ALLOC( Vec_Int_t*,  numins );
     s->ctrl = ABC_ALLOC( Vec_Int_t*,  numouts );
 
-    for(i = 0; i < numins; i++) {        
+    for(i = 0; i < numins; i++) {       
         s->iDep[i] = Vec_IntAlloc( 1 );
         s->obs[i] = Vec_IntAlloc( 1 );
     }
-    for(i = 0; i < numouts; i++) {        
+    for(i = 0; i < numouts; i++) {      
         s->oDep[i] = Vec_IntAlloc( 1 );
         s->ctrl[i] = Vec_IntAlloc( 1 );
-    }    
+    }   
 
-    s->randomVectorArray_sim1 = Vec_PtrAlloc( n );    
+    s->randomVectorArray_sim1 = Vec_PtrAlloc( n );  
     s->randomVectorSplit_sim1 = zeros( n );
-    s->randomVectorArray_sim2 = Vec_PtrAlloc( n );    
+    s->randomVectorArray_sim2 = Vec_PtrAlloc( n );  
     s->randomVectorSplit_sim2= zeros( n );
 
     s->satCounterExamples = Vec_PtrAlloc( 1 );
@@ -2690,14 +2690,14 @@ print_stats(FILE *f, struct saucy_stats stats )
 
 static char * 
 getVertexName(Abc_Ntk_t *pNtk, int v)
-{    
+{   
     Abc_Obj_t * pObj;
     int numouts =  Abc_NtkPoNum(pNtk);
 
     if (v < numouts)    
         pObj = Vec_PtrEntry(pNtk->vPos, v);
     else
-        pObj = Vec_PtrEntry(pNtk->vPis, v - numouts);        
+        pObj = Vec_PtrEntry(pNtk->vPis, v - numouts);       
     
     return Abc_ObjName(pObj);
 }
@@ -2714,7 +2714,7 @@ findTopologicalOrder( Abc_Ntk_t * pNtk )
     /* start the array of nodes */
     vNodes = ABC_ALLOC(Vec_Ptr_t *, Abc_NtkPiNum(pNtk));
     for(i = 0; i < Abc_NtkPiNum(pNtk); i++)
-        vNodes[i] = Vec_PtrAlloc(50);    
+        vNodes[i] = Vec_PtrAlloc(50);   
     
     Abc_NtkForEachCi( pNtk, pObj, i )
     {
@@ -2731,9 +2731,9 @@ findTopologicalOrder( Abc_Ntk_t * pNtk )
 
 static void 
 getDependencies(Abc_Ntk_t *pNtk, Vec_Int_t** iDep, Vec_Int_t** oDep)
-{    
+{   
     Vec_Ptr_t * vSuppFun;
-    int i, j;    
+    int i, j;   
     
     vSuppFun = Sim_ComputeFunSupp(pNtk, 0);
     for(i = 0; i < Abc_NtkPoNum(pNtk); i++) {
@@ -2763,7 +2763,7 @@ getDependencies(Abc_Ntk_t *pNtk, Vec_Int_t** iDep, Vec_Int_t** oDep)
 
     for(i = 0; i < Abc_NtkPoNum(pNtk); i++)
         for(j = 0; j < Vec_IntSize(oDep[i]); j++)
-            Vec_IntPush(iDep[Vec_IntEntry(oDep[i], j)], i);    
+            Vec_IntPush(iDep[Vec_IntEntry(oDep[i], j)], i); 
     
 
     /*for(i = 0; i < Abc_NtkPoNum(pNtk); i++)
@@ -2784,13 +2784,13 @@ getDependencies(Abc_Ntk_t *pNtk, Vec_Int_t** iDep, Vec_Int_t** oDep)
         printf("\n");
     }
 
-    printf("\n");    */    
+    printf("\n");   */  
 }
 
 static void 
 getDependenciesDummy(Abc_Ntk_t *pNtk, Vec_Int_t** iDep, Vec_Int_t** oDep)
-{        
-    int i, j;    
+{       
+    int i, j;   
     
     /* let's assume that every output is dependent on every input */
     for(i = 0; i < Abc_NtkPoNum(pNtk); i++)
@@ -2804,14 +2804,14 @@ getDependenciesDummy(Abc_Ntk_t *pNtk, Vec_Int_t** iDep, Vec_Int_t** oDep)
 
 static struct saucy_graph *
 buildDepGraph(Abc_Ntk_t *pNtk, Vec_Int_t ** iDep, Vec_Int_t ** oDep)
-{        
+{       
     int i, j, k;    
     struct saucy_graph *g = NULL;
-    int n, e, *adj, *edg;    
+    int n, e, *adj, *edg;   
 
     n = Abc_NtkPoNum(pNtk) + Abc_NtkPiNum(pNtk);
     for (e = 0, i = 0; i < Abc_NtkPoNum(pNtk); i++)
-        e += Vec_IntSize(oDep[i]);    
+        e += Vec_IntSize(oDep[i]);  
 
     g = ABC_ALLOC(struct saucy_graph, 1);
     adj = zeros(n+1);
@@ -2820,17 +2820,17 @@ buildDepGraph(Abc_Ntk_t *pNtk, Vec_Int_t ** iDep, Vec_Int_t ** oDep)
     g->n = n;
     g->e = e;
     g->adj = adj;
-    g->edg = edg;    
+    g->edg = edg;   
 
     adj[0] = 0;
     for (i = 0; i < n; i++) {
         /* first add outputs and then inputs */
-        if ( i < Abc_NtkPoNum(pNtk)) {             
+        if ( i < Abc_NtkPoNum(pNtk)) {          
             adj[i+1] = adj[i] + Vec_IntSize(oDep[i]);
             for (k = 0, j = adj[i]; j < adj[i+1]; j++, k++)
                 edg[j] = Vec_IntEntry(oDep[i], k) + Abc_NtkPoNum(pNtk);
         }
-        else {            
+        else {          
             adj[i+1] = adj[i] + Vec_IntSize(iDep[i-Abc_NtkPoNum(pNtk)]);
             for (k = 0, j = adj[i]; j < adj[i+1]; j++, k++)
                 edg[j] = Vec_IntEntry(iDep[i-Abc_NtkPoNum(pNtk)], k);
@@ -2871,7 +2871,7 @@ generateProperInputVector( Abc_Ntk_t * pNtk, struct coloring *c, Vec_Int_t * ran
     int numins =  Abc_NtkPiNum(pNtk);
     int n = numouts + numins;
 
-    vPiValues = ABC_ALLOC( int,  numins);    
+    vPiValues = ABC_ALLOC( int,  numins);   
 
     for (i = numouts, k = 0; i < n; i += (c->clen[i]+1), k++) {
         if (k == Vec_IntSize(randomVector)) break;
@@ -2902,19 +2902,19 @@ ifInputVectorsAreConsistent( struct saucy * s, int * leftVec, int * rightVec )
     int numouts =  Abc_NtkPoNum(s->pNtk);
     int n = numouts + Abc_NtkPiNum(s->pNtk);
 
-    for (i = numouts; i < n; i += (s->right.clen[i]+1)) {        
+    for (i = numouts; i < n; i += (s->right.clen[i]+1)) {       
         lab = s->left.lab[i] - numouts;
         left_bit = leftVec[lab];
         for (j = i+1; j <= (i + s->right.clen[i]); j++) {
-            lab = s->left.lab[j] - numouts;            
+            lab = s->left.lab[j] - numouts;         
             if (left_bit != leftVec[lab]) return -1;
-        }        
+        }       
         
         lab = s->right.lab[i] - numouts;
         right_bit = rightVec[lab];
         for (j = i+1; j <= (i + s->right.clen[i]); j++) {
             lab = s->right.lab[j] - numouts;            
-            if (right_bit != rightVec[lab]) return 0;            
+            if (right_bit != rightVec[lab]) return 0;           
         }
 
         if (left_bit != right_bit) 
@@ -2931,9 +2931,9 @@ ifOutputVectorsAreConsistent( struct saucy * s, int * leftVec, int * rightVec )
     int i, j;
     int count1, count2;
 
-    for (i = 0; i < Abc_NtkPoNum(s->pNtk); i += (s->right.clen[i]+1)) {        
+    for (i = 0; i < Abc_NtkPoNum(s->pNtk); i += (s->right.clen[i]+1)) {     
         count1 = count2 = 0;
-        for (j = i; j <= (i + s->right.clen[i]); j++) {            
+        for (j = i; j <= (i + s->right.clen[i]); j++) {         
             if (leftVec[s->left.lab[j]]) count1++;
             if (rightVec[s->right.lab[j]]) count2++;
         }
@@ -2974,7 +2974,7 @@ buildSim1Graph( Abc_Ntk_t * pNtk, struct coloring *c, Vec_Int_t * randVec, Vec_I
     g->n = n;
     g->e = e;
     g->adj = adj;
-    g->edg = edg;    
+    g->edg = edg;   
 
     adj[0] = 0;
     for (i = 0; i < numouts; i++) {
@@ -3005,10 +3005,10 @@ buildSim1Graph( Abc_Ntk_t * pNtk, struct coloring *c, Vec_Int_t * randVec, Vec_I
         printf("\n");
     }*/
 
-    ABC_FREE( vPiValues );    
+    ABC_FREE( vPiValues );  
     ABC_FREE( output );
     
-    return g;    
+    return g;   
 }
 
 static struct saucy_graph *
@@ -3028,11 +3028,11 @@ buildSim2Graph( Abc_Ntk_t * pNtk, struct coloring *c, Vec_Int_t * randVec, Vec_I
     if (vPiValues == NULL) 
         return NULL;
 
-    output = Abc_NtkVerifySimulatePattern( pNtk, vPiValues );    
+    output = Abc_NtkVerifySimulatePattern( pNtk, vPiValues );   
     
     for (i = 0; i < numins; i++) {
         if (!c->clen[c->cfront[i+numouts]]) continue;
-        if (vPiValues[i] == 0)    vPiValues[i] = 1;
+        if (vPiValues[i] == 0)  vPiValues[i] = 1;
         else                    vPiValues[i] = 0;
 
         output2 = Abc_NtkSimulateOneNode( pNtk, vPiValues, i, topOrder );
@@ -3045,11 +3045,11 @@ buildSim2Graph( Abc_Ntk_t * pNtk, struct coloring *c, Vec_Int_t * randVec, Vec_I
             }
         }
 
-        if (vPiValues[i] == 0)    vPiValues[i] = 1;
+        if (vPiValues[i] == 0)  vPiValues[i] = 1;
         else                    vPiValues[i] = 0;
 
         ABC_FREE( output2 );
-    }        
+    }       
 
     /* build the graph */
     g = ABC_ALLOC(struct saucy_graph, 1);
@@ -3059,7 +3059,7 @@ buildSim2Graph( Abc_Ntk_t * pNtk, struct coloring *c, Vec_Int_t * randVec, Vec_I
     g->n = n;
     g->e = e;
     g->adj = adj;
-    g->edg = edg;        
+    g->edg = edg;       
 
     adj[0] = 0;
     for (i = 0; i < numouts; i++) {
@@ -3082,7 +3082,7 @@ buildSim2Graph( Abc_Ntk_t * pNtk, struct coloring *c, Vec_Int_t * randVec, Vec_I
     }*/
 
     ABC_FREE( output );
-    ABC_FREE( vPiValues );    
+    ABC_FREE( vPiValues );  
     for (j = 0; j < numins; j++)
         Vec_IntClear(obs[j]);
     for (j = 0; j < numouts; j++)
@@ -3109,7 +3109,7 @@ bumpActivity( struct saucy * s, struct sim_result * cex )
 
 static void
 reduceDB( struct saucy * s )
-{    
+{   
     int i, j;
     double extra_lim = s->activityInc / Vec_PtrSize(s->satCounterExamples);    /* Remove any clause below this activity */
     struct sim_result * cex;
@@ -3120,7 +3120,7 @@ reduceDB( struct saucy * s )
             if (cex->activity < extra_lim) {
                 ABC_FREE(cex->inVec);
                 ABC_FREE(cex->outVec);
-                ABC_FREE(cex);                        
+                ABC_FREE(cex);                      
             }
             else if (j < i) {
                 Vec_PtrWriteEntry(s->satCounterExamples, j, cex);
@@ -3137,7 +3137,7 @@ reduceDB( struct saucy * s )
 
 static struct sim_result *
 analyzeConflict( Abc_Ntk_t * pNtk, int * pModel, int fVerbose )
-{    
+{   
     Abc_Obj_t * pNode;
     int i, count = 0;
     int * pValues;
@@ -3145,9 +3145,9 @@ analyzeConflict( Abc_Ntk_t * pNtk, int * pModel, int fVerbose )
     int numouts = Abc_NtkPoNum(pNtk);
     int numins = Abc_NtkPiNum(pNtk);
     
-    cex = ABC_ALLOC(struct sim_result, 1);    
+    cex = ABC_ALLOC(struct sim_result, 1);  
     cex->inVec = ints( numins );
-    cex->outVec =  ints( numouts );    
+    cex->outVec =  ints( numouts ); 
 
     /* get the CO values under this model */
     pValues = Abc_NtkVerifySimulatePattern( pNtk, pModel );    
@@ -3157,10 +3157,10 @@ analyzeConflict( Abc_Ntk_t * pNtk, int * pModel, int fVerbose )
     Abc_NtkForEachCo( pNtk, pNode, i ) {
         cex->outVec[Abc_ObjId(pNode)-numins-1] = pValues[i];
         if (pValues[i]) count++;
-    }    
+    }   
     
     cex->outVecOnes = count;
-    cex->activity = 0;    
+    cex->activity = 0;  
 
     if (fVerbose) {
         Abc_NtkForEachCi( pNtk, pNode, i )
@@ -3185,7 +3185,7 @@ Abc_NtkCecSat_saucy( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int * pModel )
     int i;
 
     nConfLimit = 10000;
-    nInsLimit = 0;    
+    nInsLimit = 0;  
 
     /* get the miter of the two networks */
     pMiter = Abc_NtkMiter( pNtk1, pNtk2, 1, 0, 0, 0 );
@@ -3199,9 +3199,9 @@ Abc_NtkCecSat_saucy( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int * pModel )
     {
         //printf( "Networks are NOT EQUIVALENT after structural hashing.\n" );
         /* report the error */
-        pMiter->pModel = Abc_NtkVerifyGetCleanModel( pMiter, 1 );        
+        pMiter->pModel = Abc_NtkVerifyGetCleanModel( pMiter, 1 );       
         for (i = 0; i < Abc_NtkPiNum(pNtk1); i++)
-            pModel[i] = pMiter->pModel[i];    
+            pModel[i] = pMiter->pModel[i];  
         ABC_FREE( pMiter->pModel );
         Abc_NtkDelete( pMiter );
         return 0;
@@ -3232,7 +3232,7 @@ Abc_NtkCecSat_saucy( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int * pModel )
         printf( "Networks are NOT EQUIVALENT after SAT.\n" );
     else
         printf( "Networks are equivalent after SAT.\n" );*/
-    if ( pCnf->pModel ) {        
+    if ( pCnf->pModel ) {       
         for (i = 0; i < Abc_NtkPiNum(pNtk1); i++)
             pModel[i] = pCnf->pModel[i];
     }
@@ -3250,7 +3250,7 @@ void saucyGateWay( Abc_Ntk_t * pNtkOrig, Abc_Obj_t * pNodePo, FILE * gFile, int 
     struct saucy *s;
     struct saucy_stats stats;
     int *colors;
-    int i, clk = clock();    
+    int i, clk = clock();   
     
     if (pNodePo == NULL)
         pNtk = Abc_NtkDup( pNtkOrig );
@@ -3265,14 +3265,14 @@ void saucyGateWay( Abc_Ntk_t * pNtkOrig, Abc_Obj_t * pNodePo, FILE * gFile, int 
 
     s = saucy_alloc( pNtk );    
 
-    /******* Getting Dependencies *******/    
-    printf("Build functional dependency graph (dependency stats are below) ... ");        
+    /******* Getting Dependencies *******/  
+    printf("Build functional dependency graph (dependency stats are below) ... ");      
     getDependencies( pNtk, s->iDep, s->oDep );
     printf("\t--------------------\n");
     /************************************/
 
     /* Finding toplogical orde */
-    s->topOrder = findTopologicalOrder( pNtk );                    
+    s->topOrder = findTopologicalOrder( pNtk );                 
 
     /* Setting graph colors: outputs = 0 and inputs = 1 */
     colors = ints(Abc_NtkPoNum(pNtk) + Abc_NtkPiNum(pNtk));
@@ -3286,12 +3286,12 @@ void saucyGateWay( Abc_Ntk_t * pNtkOrig, Abc_Obj_t * pNodePo, FILE * gFile, int 
     if (fFixInputs) {
         int c = (fFixOutputs) ? Abc_NtkPoNum(pNtk) : 1;
         for (i = 0; i < Abc_NtkPiNum(pNtk); i++)
-            colors[i+Abc_NtkPoNum(pNtk)] = c+i;        
+            colors[i+Abc_NtkPoNum(pNtk)] = c+i;     
     } else {
         int c = (fFixOutputs) ? Abc_NtkPoNum(pNtk) : 1;
         for (i = 0; i < Abc_NtkPiNum(pNtk); i++)
-            colors[i+Abc_NtkPoNum(pNtk)] = c;    
-    }    
+            colors[i+Abc_NtkPoNum(pNtk)] = c;   
+    }   
 
     /* Are we looking for Boolean matching? */
     s->fBooleanMatching = fBooleanMatching;
@@ -3321,7 +3321,7 @@ void saucyGateWay( Abc_Ntk_t * pNtkOrig, Abc_Obj_t * pNodePo, FILE * gFile, int 
     /* Set input permutations option */
     s->fLookForSwaps = fLookForSwaps;
 
-    saucy_search(pNtk, s, 0, colors, &stats);    
+    saucy_search(pNtk, s, 0, colors, &stats);   
     print_stats(stdout, stats);
     if (fBooleanMatching) {
         if (stats.grpsize_base > 1 || stats.grpsize_exp > 0)
@@ -3335,7 +3335,7 @@ void saucyGateWay( Abc_Ntk_t * pNtkOrig, Abc_Obj_t * pNodePo, FILE * gFile, int 
     if (1) {
         FILE * hadi = fopen("hadi.txt", "a");
         fprintf(hadi, "group size = %fe%d\n",
-        stats.grpsize_base, stats.grpsize_exp);    
+        stats.grpsize_base, stats.grpsize_exp); 
         fclose(hadi);
     }
 
