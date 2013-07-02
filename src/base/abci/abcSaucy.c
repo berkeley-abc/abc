@@ -43,26 +43,6 @@ int NUM_SIM2_ITERATION;
 #define CLAUSE_DECAY 0.9
 #define MAX_LEARNTS  50
 
-static int  *ints(int n) { return ABC_ALLOC(int, n); }
-static int  *zeros(int n) { return ABC_CALLOC(int, n); }
-static char *bits(int n) { return ABC_CALLOC(char, n); }
-
-static char *               getVertexName(Abc_Ntk_t *pNtk, int v);
-static int *                generateProperInputVector(Abc_Ntk_t * pNtk, struct coloring *c, Vec_Int_t * randomVector);
-static int                  ifInputVectorsAreConsistent(struct saucy * s, int * leftVec, int * rightVec);
-static int                    ifOutputVectorsAreConsistent(struct saucy * s, int * leftVec, int * rightVec);
-static Vec_Ptr_t **            findTopologicalOrder(Abc_Ntk_t * pNtk);
-static void                    getDependencies(Abc_Ntk_t *pNtk, Vec_Int_t** iDep, Vec_Int_t** oDep);
-static struct saucy_graph * buildDepGraph (Abc_Ntk_t *pNtk, Vec_Int_t ** iDep, Vec_Int_t ** oDep);
-static struct saucy_graph * buildSim1Graph(Abc_Ntk_t * pNtk, struct coloring *c, Vec_Int_t * randVec, Vec_Int_t ** iDep, Vec_Int_t ** oDep);
-static struct saucy_graph * buildSim2Graph(Abc_Ntk_t * pNtk, struct coloring *c, Vec_Int_t * randVec, Vec_Int_t ** iDep, Vec_Int_t ** oDep, Vec_Ptr_t ** topOrder, Vec_Int_t ** obs,  Vec_Int_t ** ctrl);
-static Vec_Int_t *          assignRandomBitsToCells(Abc_Ntk_t * pNtk, struct coloring *c);
-int                            Abc_NtkCecSat_saucy(Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int * pModel);
-struct sim_result *            analyzeConflict(Abc_Ntk_t * pNtk, int * pModel, int fVerbose);
-static void                 bumpActivity (struct saucy * s, struct sim_result * cex);
-static void                    reduceDB(struct saucy * s);
-
-
 /*
  * saucy.c 
  *
@@ -215,6 +195,26 @@ struct saucy {
     int (*refineBySim2)(struct saucy *, struct coloring *);
     int (*print_automorphism)(FILE *f, int n, const int *gamma, int nsupp, const int *support, char * marks, Abc_Ntk_t * pNtk);
 };
+
+static int  *ints(int n) { return ABC_ALLOC(int, n); }
+static int  *zeros(int n) { return ABC_CALLOC(int, n); }
+static char *bits(int n) { return ABC_CALLOC(char, n); }
+
+static char *               getVertexName(Abc_Ntk_t *pNtk, int v);
+static int *                generateProperInputVector(Abc_Ntk_t * pNtk, struct coloring *c, Vec_Int_t * randomVector);
+static int                  ifInputVectorsAreConsistent(struct saucy * s, int * leftVec, int * rightVec);
+static int                    ifOutputVectorsAreConsistent(struct saucy * s, int * leftVec, int * rightVec);
+static Vec_Ptr_t **            findTopologicalOrder(Abc_Ntk_t * pNtk);
+static void                    getDependencies(Abc_Ntk_t *pNtk, Vec_Int_t** iDep, Vec_Int_t** oDep);
+static struct saucy_graph * buildDepGraph (Abc_Ntk_t *pNtk, Vec_Int_t ** iDep, Vec_Int_t ** oDep);
+static struct saucy_graph * buildSim1Graph(Abc_Ntk_t * pNtk, struct coloring *c, Vec_Int_t * randVec, Vec_Int_t ** iDep, Vec_Int_t ** oDep);
+static struct saucy_graph * buildSim2Graph(Abc_Ntk_t * pNtk, struct coloring *c, Vec_Int_t * randVec, Vec_Int_t ** iDep, Vec_Int_t ** oDep, Vec_Ptr_t ** topOrder, Vec_Int_t ** obs,  Vec_Int_t ** ctrl);
+static Vec_Int_t *          assignRandomBitsToCells(Abc_Ntk_t * pNtk, struct coloring *c);
+int                            Abc_NtkCecSat_saucy(Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int * pModel);
+struct sim_result *            analyzeConflict(Abc_Ntk_t * pNtk, int * pModel, int fVerbose);
+static void                 bumpActivity (struct saucy * s, struct sim_result * cex);
+static void                    reduceDB(struct saucy * s);
+
 
 static int
 print_automorphism_ntk(FILE *f, int n, const int *gamma, int nsupp, const int *support, char * marks, Abc_Ntk_t * pNtk)
