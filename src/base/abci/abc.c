@@ -22991,7 +22991,7 @@ int Abc_CommandFold( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( Abc_NtkConstrNum(pNtk) == 0 )
     {
-        Abc_Print( -1, "The network has no constraints.\n" );
+        Abc_Print( 0, "The network has no constraints.\n" );
         return 0;
     }
     if ( Abc_NtkIsComb(pNtk) )
