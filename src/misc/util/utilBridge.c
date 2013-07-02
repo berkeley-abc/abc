@@ -122,16 +122,18 @@ Vec_Str_t * Gia_ManToBridgeVec( Gia_Man_t * p )
 ***********************************************************************/
 void Gia_CreateHeader( FILE * pFile, int Type, int Size, unsigned char * pBuffer )
 {
-    int RetValue;
     fprintf( pFile, "%.6d", Type );
     fprintf( pFile, " " );
     fprintf( pFile, "%.16d", Size );
     fprintf( pFile, " " );
-  #if !defined(LIN) && !defined(LIN64)
+#if !defined(LIN) && !defined(LIN64)
+    {
+    int RetValue;
     RetValue = fwrite( pBuffer, Size, 1, pFile );
     assert( RetValue == 1 || Size == 0);
     fflush( pFile );
-  #else
+    }
+#else
     fflush(pFile);
     int fd = fileno(pFile);
 
@@ -144,7 +146,7 @@ void Gia_CreateHeader( FILE * pFile, int Type, int Size, unsigned char * pBuffer
         }
         bytes_written += n;
     }
-  #endif
+#endif
 }
 
 
