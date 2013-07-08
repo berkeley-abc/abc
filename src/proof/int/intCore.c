@@ -280,13 +280,11 @@ p->timeEqu += Abc_Clock() - clk;
 clk = Abc_Clock();
             if ( p->pInterNew )
             {
-                Abc_PrintTime( 1, "Before time", clock() - clkTotal );
                 // save the timeout value
                 p->pInterNew->Time2Quit = nTimeNewOut;
 //                Ioa_WriteAiger( p->pInterNew, "interpol.aig", 0, 0 );
                 p->pInterNew = Dar_ManRwsat( pAigTemp = p->pInterNew, 1, 0 );
 //                p->pInterNew = Dar_ManRwsat( pAigTemp = p->pInterNew, 0, 0 );
-                Abc_PrintTime( 1, "After time", clock() - clkTotal );
                 Aig_ManStop( pAigTemp );
                 if ( p->pInterNew == NULL )
                 {
