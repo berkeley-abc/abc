@@ -112,6 +112,8 @@ int Dar_ManRewrite( Aig_Man_t * pAig, Dar_RwrPar_t * pPars )
 //    Aig_ManOrderStart( pAig );
 //    Aig_ManForEachNodeInOrder( pAig, pObj )
     {
+        if ( pAig->Time2Quit && !(i & 256) && Abc_Clock() > pAig->Time2Quit )
+            break;
 //        Bar_ProgressUpdate( pProgress, 100*pAig->nAndPrev/pAig->nAndTotal, NULL );
 //        Bar_ProgressUpdate( pProgress, i, NULL );
         if ( !Aig_ObjIsNode(pObj) )

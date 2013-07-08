@@ -526,6 +526,8 @@ int Dar_ManRefactor( Aig_Man_t * pAig, Dar_RefPar_t * pPars )
             continue;
         if ( i > nNodesOld )
             break;
+        if ( pAig->Time2Quit && !(i & 256) && Abc_Clock() > pAig->Time2Quit )
+            break;
         Vec_VecClear( p->vCuts );
 
 //printf( "\nConsidering node %d.\n", pObj->Id );

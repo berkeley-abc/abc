@@ -521,6 +521,8 @@ Aig_Obj_t * Dar_Balance_rec( Aig_Man_t * pNew, Aig_Obj_t * pObjOld, Vec_Vec_t * 
     for ( i = 0; i < Vec_PtrSize(vSuper); i++ )
     {
         pObjNew = Dar_Balance_rec( pNew, Aig_Regular((Aig_Obj_t *)vSuper->pArray[i]), vStore, Level + 1, fUpdateLevel );
+        if ( pObjNew == NULL )
+            return NULL;
         vSuper->pArray[i] = Aig_NotCond( pObjNew, Aig_IsComplement((Aig_Obj_t *)vSuper->pArray[i]) );
     }
     // build the supergate
@@ -529,6 +531,8 @@ Aig_Obj_t * Dar_Balance_rec( Aig_Man_t * pNew, Aig_Obj_t * pObjOld, Vec_Vec_t * 
 #else
     pObjNew = Dar_BalanceBuildSuper( pNew, vSuper, Aig_ObjType(pObjOld), fUpdateLevel );
 #endif
+    if ( pNew->Time2Quit && !(Aig_Regular(pObjNew)->Id & 255) && Abc_Clock() > pNew->Time2Quit )
+        return NULL;
     // make sure the balanced node is not assigned
 //    assert( pObjOld->Level >= Aig_Regular(pObjNew)->Level );
     assert( pObjOld->pData == NULL );
@@ -559,6 +563,7 @@ Aig_Man_t * Dar_ManBalance( Aig_Man_t * p, int fUpdateLevel )
     pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     pNew->nAsserts = p->nAsserts;
     pNew->nConstrs = p->nConstrs;
+    pNew->Time2Quit = p->Time2Quit;
     if ( p->vFlopNums )
         pNew->vFlopNums = Vec_IntDup( p->vFlopNums );
     // map the PI nodes
@@ -588,6 +593,12 @@ Aig_Man_t * Dar_ManBalance( Aig_Man_t * p, int fUpdateLevel )
                 // perform balancing
                 pDriver = Aig_ObjReal_rec( Aig_ObjChild0(pObj) );
                 pObjNew = Dar_Balance_rec( pNew, Aig_Regular(pDriver), vStore, 0, fUpdateLevel );
+                if ( pObjNew == NULL )
+                {
+                    Vec_VecFree( vStore );
+                    Aig_ManStop( pNew );
+                    return NULL;
+                }
                 pObjNew = Aig_NotCond( pObjNew, Aig_IsComplement(pDriver) );
                 // save arrival time of the output
                 arrTime = (float)Aig_Regular(pObjNew)->Level;
@@ -613,6 +624,12 @@ Aig_Man_t * Dar_ManBalance( Aig_Man_t * p, int fUpdateLevel )
         {
             pDriver = Aig_ObjReal_rec( Aig_ObjChild0(pObj) );
             pObjNew = Dar_Balance_rec( pNew, Aig_Regular(pDriver), vStore, 0, fUpdateLevel );
+            if ( pObjNew == NULL )
+            {
+                Vec_VecFree( vStore );
+                Aig_ManStop( pNew );
+                return NULL;
+            }
             pObjNew = Aig_NotCond( pObjNew, Aig_IsComplement(pDriver) );
             pObjNew = Aig_ObjCreateCo( pNew, pObjNew );
         }

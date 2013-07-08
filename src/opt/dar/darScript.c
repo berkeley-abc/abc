@@ -72,6 +72,7 @@ Aig_Man_t * Dar_ManRwsat( Aig_Man_t * pAig, int fBalance, int fVerbose )
 //alias rwsat       "st; rw -l; b -l; rw -l; rf -l"
 {
     Aig_Man_t * pTemp;
+    abctime Time = pAig->Time2Quit;
 
     Dar_RwrPar_t ParsRwr, * pParsRwr = &ParsRwr;
     Dar_RefPar_t ParsRef, * pParsRef = &ParsRef;
@@ -92,41 +93,56 @@ Aig_Man_t * Dar_ManRwsat( Aig_Man_t * pAig, int fBalance, int fVerbose )
     // balance
     if ( fBalance )
     {
+    pAig->Time2Quit = Time;
     pAig = Dar_ManBalance( pTemp = pAig, 0 );
     Aig_ManStop( pTemp );
     if ( fVerbose ) printf( "Balance:   " ), Aig_ManPrintStats( pAig );
+    if ( Time && Abc_Clock() > Time )
+        { if ( pAig ) Aig_ManStop( pAig ); return NULL; }
     }
    
 //Aig_ManDumpBlif( pAig, "inter.blif", NULL, NULL );
 //printf( "3" );
     // rewrite
+    pAig->Time2Quit = Time;
     Dar_ManRewrite( pAig, pParsRwr );
     pAig = Aig_ManDupDfs( pTemp = pAig ); 
     Aig_ManStop( pTemp );
     if ( fVerbose ) printf( "Rewrite:   " ), Aig_ManPrintStats( pAig );
+    if ( Time && Abc_Clock() > Time )
+        { if ( pAig ) Aig_ManStop( pAig ); return NULL; }
 
 //printf( "4" );
     // refactor
+    pAig->Time2Quit = Time;
     Dar_ManRefactor( pAig, pParsRef );
     pAig = Aig_ManDupDfs( pTemp = pAig ); 
     Aig_ManStop( pTemp );
     if ( fVerbose ) printf( "Refactor:  " ), Aig_ManPrintStats( pAig );
+    if ( Time && Abc_Clock() > Time )
+        { if ( pAig ) Aig_ManStop( pAig ); return NULL; }
 
 //printf( "5" );
     // balance
     if ( fBalance )
     {
+    pAig->Time2Quit = Time;
     pAig = Dar_ManBalance( pTemp = pAig, 0 );
     Aig_ManStop( pTemp );
     if ( fVerbose ) printf( "Balance:   " ), Aig_ManPrintStats( pAig );
+    if ( Time && Abc_Clock() > Time )
+        { if ( pAig ) Aig_ManStop( pAig ); return NULL; }
     }
-    
+
 //printf( "6" );
     // rewrite
+    pAig->Time2Quit = Time;
     Dar_ManRewrite( pAig, pParsRwr );
     pAig = Aig_ManDupDfs( pTemp = pAig ); 
     Aig_ManStop( pTemp );
     if ( fVerbose ) printf( "Rewrite:   " ), Aig_ManPrintStats( pAig );
+    if ( Time && Abc_Clock() > Time )
+        { if ( pAig ) Aig_ManStop( pAig ); return NULL; }
 
 //printf( "7" );
     return pAig;

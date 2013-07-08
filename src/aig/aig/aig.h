@@ -160,6 +160,7 @@ struct Aig_Man_t_
     Vec_Int_t *      vProbs;         // probability of node being 1 
     Vec_Int_t *      vCiNumsOrig;    // original CI names
     int              nComplEdges;    // complemented edges
+    abctime          Time2Quit;
     // timing statistics
     abctime          time1;
     abctime          time2;
