@@ -201,8 +201,8 @@ static inline int Sfm_NtkCheckRoot( Sfm_Ntk_t * p, int iNode, int nLevelMax )
 {
     int i, iFanout;
     // the node is the root if one of the following is true:
-    // (1) the node has more than fanouts than the limit
-    if ( Sfm_ObjFanoutNum(p, iNode) > p->pPars->nFanoutMax )
+    // (1) the node has more than fanouts than the limit or has no fanouts (should not happen in general)
+    if ( Sfm_ObjFanoutNum(p, iNode) == 0 || Sfm_ObjFanoutNum(p, iNode) > p->pPars->nFanoutMax )
         return 1;
     // (2) the node has CO fanouts
     // (3) the node has fanouts above the cutoff level
