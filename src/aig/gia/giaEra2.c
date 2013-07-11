@@ -1713,7 +1713,8 @@ int Gia_ManArePerform( Gia_Man_t * pAig, int nStatesMax, int fMiter, int fVerbos
         return -1;
     }
     ABC_FREE( pAig->pCexSeq );
-    p = Gia_ManAreCreate( Gia_ManCompress2(pAig, 0, 0) );
+//    p = Gia_ManAreCreate( Gia_ManCompress2(pAig, 0, 0) );
+    p = Gia_ManAreCreate( Gia_ManDup(pAig) );
     p->fMiter = fMiter;
     Gia_ManAreCubeProcess( p, Gia_ManAreCreateStaInit(p) );
     for ( p->iStaCur = 1; p->iStaCur < p->nStas; p->iStaCur++ )
@@ -1726,7 +1727,7 @@ int Gia_ManArePerform( Gia_Man_t * pAig, int nStatesMax, int fMiter, int fVerbos
             RetValue = -1;
             break;
         }
-        if ( fVerbose && p->iStaCur % 5000 == 0 )
+        if ( fVerbose )//&& p->iStaCur % 5000 == 0 )
             Gia_ManArePrintReport( p, clk, 0 );
     }
     Gia_ManArePrintReport( p, clk, 1 );
