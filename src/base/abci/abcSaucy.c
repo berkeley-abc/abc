@@ -2555,7 +2555,7 @@ saucy_free(struct saucy *s)
     ABC_FREE(s->randomVectorSplit_sim2);
     Abc_NtkDelete( s->pNtk_permuted );
     for (i = 0; i < Vec_PtrSize(s->satCounterExamples); i++) {
-        struct sim_result * cex = Vec_PtrEntry(s->satCounterExamples, i);
+        struct sim_result * cex = (struct sim_result *)Vec_PtrEntry(s->satCounterExamples, i);
         ABC_FREE( cex->inVec );
         ABC_FREE( cex->outVec );
         ABC_FREE( cex );
