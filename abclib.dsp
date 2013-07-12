@@ -2295,10 +2295,6 @@ SOURCE=.\src\map\if\ifDec16.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\map\if\ifDsd.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\src\map\if\ifLibBox.c
 # End Source File
 # Begin Source File
@@ -2484,6 +2480,58 @@ SOURCE=.\src\map\scl\sclUpsize.c
 # Begin Source File
 
 SOURCE=.\src\map\scl\sclUtil.c
+# End Source File
+# End Group
+# Begin Group "mpm"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\map\mpm\mpm.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\map\mpm\mpm.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\map\mpm\mpmAbc.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\map\mpm\mpmCore.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\map\mpm\mpmInt.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\map\mpm\mpmLib.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\map\mpm\mpmMap.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\map\mpm\mpmMig.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\map\mpm\mpmMig.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\map\mpm\mpmPre.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\map\mpm\mpmTruth.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\map\mpm\mpmUtil.c
 # End Source File
 # End Group
 # End Group
@@ -3664,10 +3712,6 @@ SOURCE=.\src\aig\gia\giaSweeper.c
 # Begin Source File
 
 SOURCE=.\src\aig\gia\giaSwitch.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\gia\giaTest.c
 # End Source File
 # Begin Source File
 

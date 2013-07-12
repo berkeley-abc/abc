@@ -15,7 +15,7 @@ MODULES := \
 	src/bdd/cudd src/bdd/dsd src/bdd/epd src/bdd/mtr src/bdd/parse \
 	src/bdd/reo src/bdd/cas \
 	src/map/mapper src/map/mio src/map/super src/map/if \
-	src/map/amap src/map/cov src/map/scl \
+	src/map/amap src/map/cov src/map/scl src/map/mpm \
 	src/misc/extra src/misc/mvc src/misc/st src/misc/util src/misc/nm \
 	src/misc/vec src/misc/hash src/misc/tim src/misc/bzlib src/misc/zlib \
 	src/misc/mem src/misc/bar src/misc/bbl \

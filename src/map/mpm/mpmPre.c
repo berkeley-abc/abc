@@ -1,24 +1,29 @@
 /**CFile****************************************************************
 
-  FileName    [ifDsd.c]
+  FileName    [mpmPre.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
-  PackageName [FPGA mapping based on priority cuts.]
+  PackageName [Configurable technology mapper.]
 
-  Synopsis    [Sequential mapping.]
+  Synopsis    [DSD-related precomputations.]
 
   Author      [Alan Mishchenko]
   
   Affiliation [UC Berkeley]
 
-  Date        [Ver. 1.0. Started - November 21, 2006.]
+  Date        [Ver. 1.0. Started - June 1, 2013.]
 
-  Revision    [$Id: ifDsd.c,v 1.00 2006/11/21 00:00:00 alanmi Exp $]
+  Revision    [$Id: mpmPre.c,v 1.00 2013/06/01 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
+ 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <assert.h>
 
-#include "if.h"
+#include "misc/vec/vec.h"
 #include "misc/vec/vecHsh.h"
 #include "misc/extra/extra.h"
 

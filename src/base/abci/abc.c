@@ -54,6 +54,7 @@
 #include "proof/ssc/ssc.h"
 #include "opt/sfm/sfm.h"
 #include "bool/rpo/rpo.h"
+#include "map/mpm/mpm.h"
 
 #ifndef _WIN32
 #include <unistd.h>
@@ -371,6 +372,7 @@ static int Abc_CommandAbc9Sweep              ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9Force              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Embed              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9If                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9If2                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Trace              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Speedup            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Era                ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -921,6 +923,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&force",        Abc_CommandAbc9Force,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&embed",        Abc_CommandAbc9Embed,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&if",           Abc_CommandAbc9If,           0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&if2",          Abc_CommandAbc9If2,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&trace",        Abc_CommandAbc9Trace,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&speedup",      Abc_CommandAbc9Speedup,      0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&era",          Abc_CommandAbc9Era,          0 );
@@ -10114,7 +10117,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
-
+/*
     if ( pNtk == NULL )
     {
         Abc_Print( -1, "Empty network.\n" );
@@ -10126,7 +10129,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "This command works only for logic networks.\n" );
         return 1;
     }
-
+*/
 /*
     if ( Abc_NtkLatchNum(pNtk) == 0 )
     {
@@ -10163,8 +10166,12 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 */
-    if ( pNtk )
-        Abc_NtkMakeLegit( pNtk ); 
+//    if ( pNtk )
+//        Abc_NtkMakeLegit( pNtk ); 
+    {
+        extern void Ifd_ManDsdTest();
+        Ifd_ManDsdTest();
+    }
     return 0;
 usage:
     Abc_Print( -2, "usage: test [-CKDN] [-aovwh] <file_name>\n" );
@@ -29444,7 +29451,7 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
     pNew = Gia_ManPerformMapping( pAbc->pGia, pPars, 1 );
     if ( pNew == NULL )
     {
-        Abc_Print( -1, "Abc_CommandAbc9If(): Mapping of the AIG has failed.\n" );
+        Abc_Print( -1, "Abc_CommandAbc9If(): Mapping of GIA has failed.\n" );
         return 1;
     }
     Abc_FrameUpdateGia( pAbc, pNew );
@@ -29489,6 +29496,74 @@ usage:
     Abc_Print( -2, "\t-k       : toggles enabling additional check [default = %s]\n", pPars->fEnableCheck10? "yes": "no" );
     Abc_Print( -2, "\t-c       : toggles enabling additional feature [default = %s]\n", pPars->fEnableRealPos? "yes": "no" );
     Abc_Print( -2, "\t-z       : toggles deriving LUTs when mapping into LUT structures [default = %s]\n", pPars->fDeriveLuts? "yes": "no" );
+    Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h       : prints the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9If2( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern Gia_Man_t * Mpm_ManMappingTest( Gia_Man_t * p, Mpm_Par_t * pPars );
+    char Buffer[200];
+    Gia_Man_t * pNew;
+    Mpm_Par_t Pars, * pPars = &Pars;
+    int c;
+    // set defaults
+    Mpm_ManSetParsDefault( pPars );
+//    pPars->pLutLib = (If_LibLut_t *)pAbc->pLibLut;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Dvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'D':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-D\" should be followed by a floating point number.\n" );
+                goto usage;
+            }
+            pPars->DelayTarget = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->DelayTarget <= 0.0 )
+                goto usage;
+            break;
+        case 'v':
+            pPars->fVerbose ^= 1;
+            break;
+        case 'h':
+        default:
+            goto usage;
+        }
+    }
+    // perform mapping
+    pNew = Mpm_ManMappingTest( pAbc->pGia, pPars );
+    if ( pNew == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9If2(): Mapping of GIA has failed.\n" );
+        return 1;
+    }
+    Abc_FrameUpdateGia( pAbc, pNew );
+    return 0;
+
+usage:
+    if ( pPars->DelayTarget == -1 )
+        sprintf(Buffer, "best possible" );
+    else
+        sprintf(Buffer, "%.2f", pPars->DelayTarget );
+    Abc_Print( -2, "usage: &if2 [-D num] [-vh]\n" );
+    Abc_Print( -2, "\t           performs technology mapping of the network\n" );
+    Abc_Print( -2, "\t-D num   : sets the delay constraint for the mapping [default = %s]\n", Buffer );
     Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : prints the command usage\n");
     return 1;
@@ -30654,11 +30729,13 @@ int Abc_CommandAbc9ReachY( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9ReachN(): The current AIG has no latches.\n" );
         return 0;
     }
+/*
     if ( Gia_ManObjNum(pAbc->pGia) >= (1<<16) )
     {
         Abc_Print( -1, "Abc_CommandAbc9ReachN(): Currently cannot handle AIGs with more than %d objects.\n", (1<<16) );
         return 0;
     }
+*/
     pMan          = Gia_ManToAigSimple( pAbc->pGia );
     pAbc->Status  = Llb_Nonlin4CoreReach( pMan, pPars );
     pAbc->nFrames = pPars->iFrame;
@@ -32589,7 +32666,7 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    extern Gia_Man_t * Bmc_CexDepthTest( Gia_Man_t * p, Abc_Cex_t * pCex, int nFrames, int fVerbose );
 //    extern Gia_Man_t * Bmc_CexTarget( Gia_Man_t * p, int nFrames );
 //    extern void Gia_ManMuxProfiling( Gia_Man_t * p );
-    extern Gia_Man_t * Mig_ManTest( Gia_Man_t * pGia );
+//    extern Gia_Man_t * Mig_ManTest( Gia_Man_t * pGia );
 
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "Fsvh" ) ) != EOF )
@@ -32659,8 +32736,8 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    pTemp = Bmc_CexTarget( pAbc->pGia, nFrames );
 //    Abc_FrameUpdateGia( pAbc, pTemp );
 //    Gia_ManMuxProfiling( pAbc->pGia );
-    pTemp = Mig_ManTest( pAbc->pGia );
-    Abc_FrameUpdateGia( pAbc, pTemp );
+//    pTemp = Mig_ManTest( pAbc->pGia );
+//    Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 usage:
     Abc_Print( -2, "usage: &test [-F num] [-svh]\n" );
