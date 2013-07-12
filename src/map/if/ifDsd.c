@@ -327,7 +327,8 @@ int Ifd_ManHashFindOrAdd( Ifd_Man_t * p, int iDsd0, int iDsd1, int iDsdC, int Ty
         else if ( Type == 2 )
             pObj->fWay = Ifd_ManObjFromLit(p, iDsd0)->fWay || Ifd_ManObjFromLit(p, iDsd1)->fWay;
         else if ( Type == 3 )
-            pObj->fWay = (Ifd_ManObjFromLit(p, iDsd0)->fWay && Ifd_ManObjFromLit(p, iDsd1)->fWay) || (iDsd0 == iDsd1 && Ifd_ManObjFromLit(p, iDsdC)->fWay);
+//            pObj->fWay = (Ifd_ManObjFromLit(p, iDsd0)->fWay && Ifd_ManObjFromLit(p, iDsd1)->fWay) || (Abc_Lit2Var(iDsd0) == Abc_Lit2Var(iDsd1) && Ifd_ManObjFromLit(p, iDsdC)->fWay);
+            pObj->fWay = (Ifd_ManObjFromLit(p, iDsd0)->fWay && Ifd_ManObjFromLit(p, iDsd1)->fWay) || (iDsd0 == Abc_LitNot(iDsd1) && Ifd_ManObjFromLit(p, iDsdC)->fWay);
         else assert( 0 );
         pObj->pFans[0] = iDsd0;
         pObj->pFans[1] = iDsd1;
@@ -776,36 +777,98 @@ Vec_Wrd_t * Extra_Truth6AllConfigs( word t, int * pComp, int * pPerm, int nVars 
     }
     return vTruths;
 }
-int Ifd_ManDsdTest() 
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ifd_ManDsdTest33() 
 {
     int nVars = 6;
+    FILE * pFile;
+    char pFileName[32];
     Vec_Wrd_t * vTruths = Ifd_ManDsdTruths( nVars );
-    Vec_Wrd_t * vConfigs;
+    Vec_Wrd_t * vVariants;
     Vec_Int_t * vUniques;
+    Vec_Wrd_t * vTruthRes = Vec_WrdAlloc( 4000000 );
+    Vec_Int_t * vConfgRes = Vec_IntAlloc( 4000000 );
     int * pComp, * pPerm;
-    word Truth;
-    int i, Counter = 0;
+    word Truth, Variant;
+    int i, k, Uniq, Runner, Counter = 0;
+    assert( nVars >= 3 && nVars <= 6 );
+    assert( Vec_WrdSize(vTruths) < (1<<10) );
     pComp = Extra_GreyCodeSchedule( nVars );
     pPerm = Extra_PermSchedule( nVars );
     Vec_WrdForEachEntry( vTruths, Truth, i )
     {
-        vConfigs = Extra_Truth6AllConfigs( Truth, pComp, pPerm, nVars );
-        vUniques = Hsh_WrdManHashArray( vConfigs, 1 );
+        vVariants = Extra_Truth6AllConfigs( Truth, pComp, pPerm, nVars );
+        vUniques = Hsh_WrdManHashArray( vVariants, 1 );
+        Runner = 0;
+        Vec_IntForEachEntry( vUniques, Uniq, k )
+            if ( Runner == Uniq )
+            {
+                Variant = Vec_WrdEntry(vVariants, k);
+                Vec_WrdPush( vTruthRes, Variant );
+                Vec_IntPush( vConfgRes, (Extra_TruthSupportSize((unsigned *)&Variant, 6)<<26)|(i << 16)|k );
+                Runner++;
+            }
         Vec_IntUniqify( vUniques );
+        assert( Runner == Vec_IntSize(vUniques) );
         Counter += Vec_IntSize(vUniques);
-
 //printf( "%5d : ", i ); Kit_DsdPrintFromTruth( &Truth, nVars ), printf( "  " ), Vec_IntPrint( vUniques ), printf( "\n" );
-
         Vec_IntFree( vUniques );
-        Vec_WrdFree( vConfigs );
+        Vec_WrdFree( vVariants );
     }
     Vec_WrdFree( vTruths );
     ABC_FREE( pPerm );
     ABC_FREE( pComp );
     printf( "Total = %d.\n", Counter );
+    assert( Vec_WrdSize(vTruthRes) == Counter );
+    // write the data into a file
+    sprintf( pFileName, "dsdfuncs%d.dat", nVars );
+    pFile = fopen( pFileName, "wb" );
+    fwrite( Vec_WrdArray(vTruthRes), sizeof(word), Vec_WrdSize(vTruthRes), pFile );
+    fwrite( Vec_IntArray(vConfgRes), sizeof(int), Vec_IntSize(vConfgRes), pFile );
+    fclose( pFile );
+    printf( "File \"%s\" with %d 6-input functions has been written out.\n", pFileName, Vec_IntSize(vConfgRes) );
+    Vec_WrdFree( vTruthRes );
+    Vec_IntFree( vConfgRes );
     return 1;
 }
 
+int Ifd_ManDsdTest() 
+{
+    abctime clk = Abc_Clock();
+    FILE * pFile;
+    char * pFileName = "dsdfuncs6.dat";
+    int size = Extra_FileSize( pFileName ) / 12;  // 3504275
+    Vec_Wrd_t * vTruthRes = Vec_WrdAlloc( size + 1 );
+    Vec_Int_t * vConfgRes = Vec_IntAlloc( size );
+    Hsh_IntMan_t * pHash;
+
+    pFile = fopen( pFileName, "rb" );
+    fread( Vec_WrdArray(vTruthRes), sizeof(word), size, pFile );
+    fread( Vec_IntArray(vConfgRes), sizeof(int), size, pFile );
+    vTruthRes->nSize = size;
+    vConfgRes->nSize = size;
+    // create hash table
+    pHash = Hsh_WrdManHashArrayStart( vTruthRes, 1 );
+    // experiment with functions
+
+    // cleanup
+    Hsh_IntManStop( pHash );
+    Vec_WrdFree( vTruthRes );
+    Vec_IntFree( vConfgRes );
+    Abc_PrintTime( 1, "Reading file", Abc_Clock() - clk );
+    return 1;
+}
 
 
 ////////////////////////////////////////////////////////////////////////

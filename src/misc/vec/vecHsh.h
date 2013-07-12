@@ -207,6 +207,19 @@ static inline Vec_Int_t * Hsh_WrdManHashArray( Vec_Wrd_t * vDataW, int nSize )
     Hsh_IntManStop( p );
     return vRes;
 }
+static inline Hsh_IntMan_t * Hsh_WrdManHashArrayStart( Vec_Wrd_t * vDataW, int nSize )
+{
+    Hsh_IntMan_t * p;
+    Vec_Int_t Data = { 2*Vec_WrdCap(vDataW), 2*Vec_WrdSize(vDataW), (int *)Vec_WrdArray(vDataW) };
+    Vec_Int_t * vData = &Data;
+    int i, nEntries = Vec_IntSize(vData) / (2*nSize);
+    assert( Vec_IntSize(vData) % (2*nSize) == 0 );
+    p = Hsh_IntManStart( vData, (2*nSize), nEntries );
+    for ( i = 0; i < nEntries; i++ )
+        Hsh_IntManAdd( p, i );
+    assert( Vec_WrdSize(p->vObjs) == nEntries );
+    return p;
+}
 
 /**Function*************************************************************
 
