@@ -10040,7 +10040,7 @@ usage:
 ***********************************************************************/
 int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+//    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     int nCutMax      =  1;
     int nLeafMax     = 10;
     int nDivMax      = 50;
@@ -29560,7 +29560,7 @@ usage:
     if ( pPars->DelayTarget == -1 )
         sprintf(Buffer, "best possible" );
     else
-        sprintf(Buffer, "%.2f", pPars->DelayTarget );
+        sprintf(Buffer, "%d", pPars->DelayTarget );
     Abc_Print( -2, "usage: &if2 [-D num] [-vh]\n" );
     Abc_Print( -2, "\t           performs technology mapping of the network\n" );
     Abc_Print( -2, "\t-D num   : sets the delay constraint for the mapping [default = %s]\n", Buffer );
@@ -32647,7 +32647,7 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    Gia_Man_t * pTemp = NULL;
+//    Gia_Man_t * pTemp = NULL;
     int c, fVerbose = 0;
     int nFrames = 3;
     int fSwitch = 0;

@@ -533,7 +533,7 @@ add_conterexample(struct saucy *s, struct sim_result * cex)
     }
 
     for (i = 0; i < Vec_PtrSize(s->satCounterExamples); i++) {
-        savedcex = Vec_PtrEntry(s->satCounterExamples, i);
+        savedcex = (struct sim_result *)Vec_PtrEntry(s->satCounterExamples, i);
         if (savedcex->inVecSignature == cex->inVecSignature) {
             //bumpActivity(s, savedcex);
             return 0;
@@ -1165,12 +1165,12 @@ backtrackBysatCounterExamples(struct saucy *s, struct coloring *c)
     if (Vec_PtrSize(s->satCounterExamples) == 0) return 1;      
 
     for (i = 0; i < Vec_PtrSize(s->satCounterExamples); i++) {  
-        cex1 = Vec_PtrEntry(s->satCounterExamples, i);      
+        cex1 = (struct sim_result *)Vec_PtrEntry(s->satCounterExamples, i);      
 
         for (j = 0; j < Vec_PtrSize(s->satCounterExamples); j++) {
             if (flag[j]) continue;
         
-            cex2 = Vec_PtrEntry(s->satCounterExamples, j);
+            cex2 = (struct sim_result *)Vec_PtrEntry(s->satCounterExamples, j);
             res = ifInputVectorsAreConsistent(s, cex1->inVec, cex2->inVec);
 
             if (res == -2) {
@@ -1325,7 +1325,7 @@ refineBySim1_other(struct saucy *s, struct coloring *c)
     int ret, nsplits;
 
     for (i = s->randomVectorSplit_sim1[s->lev-1]; i < s->randomVectorSplit_sim1[s->lev]; i++) {
-        randVec = Vec_PtrEntry(s->randomVectorArray_sim1, i);
+        randVec = (Vec_Int_t *)Vec_PtrEntry(s->randomVectorArray_sim1, i);
         g = buildSim1Graph(s->pNtk, c, randVec, s->iDep, s->oDep);
 
         if (g == NULL) {
@@ -1457,7 +1457,7 @@ refineBySim2_other(struct saucy *s, struct coloring *c)
     int ret, nsplits;
 
     for (i = s->randomVectorSplit_sim2[s->lev-1]; i < s->randomVectorSplit_sim2[s->lev]; i++) {
-        randVec = Vec_PtrEntry(s->randomVectorArray_sim2, i);       
+        randVec = (Vec_Int_t *)Vec_PtrEntry(s->randomVectorArray_sim2, i);       
         g = buildSim2Graph(s->pNtk, c, randVec, s->iDep, s->oDep, s->topOrder, s->obs,  s->ctrl);
 
         if (g == NULL) {
@@ -2050,11 +2050,11 @@ rewind_simulation_vectors(struct saucy *s, int lev)
 {   
     int i;
     for (i = s->randomVectorSplit_sim1[lev]; i < Vec_PtrSize(s->randomVectorArray_sim1); i++)
-        Vec_IntFree(Vec_PtrEntry(s->randomVectorArray_sim1, i));
+        Vec_IntFree((Vec_Int_t *)Vec_PtrEntry(s->randomVectorArray_sim1, i));
     Vec_PtrShrink(s->randomVectorArray_sim1, s->randomVectorSplit_sim1[lev]);
 
     for (i = s->randomVectorSplit_sim2[lev]; i < Vec_PtrSize(s->randomVectorArray_sim2); i++)                      
-        Vec_IntFree(Vec_PtrEntry(s->randomVectorArray_sim2, i));    
+        Vec_IntFree((Vec_Int_t *)Vec_PtrEntry(s->randomVectorArray_sim2, i));    
     Vec_PtrShrink(s->randomVectorArray_sim2, s->randomVectorSplit_sim2[lev]);
 }
 
@@ -2163,12 +2163,12 @@ prepare_permutation_ntk(struct saucy *s)
 
     for (i = 0; i < s->n; ++i) {        
         if (i < numouts) {
-            pObj     = Vec_PtrEntry(s->pNtk->vPos, i);
-            pObjPerm = Vec_PtrEntry(s->pNtk_permuted->vPos, s->gamma[i]);           
+            pObj     = (Abc_Obj_t *)Vec_PtrEntry(s->pNtk->vPos, i);
+            pObjPerm = (Abc_Obj_t *)Vec_PtrEntry(s->pNtk_permuted->vPos, s->gamma[i]);           
         }
         else {          
-            pObj     = Vec_PtrEntry(s->pNtk->vPis, i - numouts);
-            pObjPerm = Vec_PtrEntry(s->pNtk_permuted->vPis, s->gamma[i] - numouts);
+            pObj     = (Abc_Obj_t *)Vec_PtrEntry(s->pNtk->vPis, i - numouts);
+            pObjPerm = (Abc_Obj_t *)Vec_PtrEntry(s->pNtk_permuted->vPis, s->gamma[i] - numouts);
             
         }
         Abc_ObjAssignName( pObjPerm, Abc_ObjName(pObj), NULL );         
@@ -2217,12 +2217,12 @@ unprepare_permutation_ntk(struct saucy *s)
 
     for (i = 0; i < s->n; ++i) {        
         if (i < numouts) {
-            pObj     = Vec_PtrEntry(s->pNtk->vPos, s->gamma[i]);
-            pObjPerm = Vec_PtrEntry(s->pNtk_permuted->vPos, i);         
+            pObj     = (Abc_Obj_t *)Vec_PtrEntry(s->pNtk->vPos, s->gamma[i]);
+            pObjPerm = (Abc_Obj_t *)Vec_PtrEntry(s->pNtk_permuted->vPos, i);         
         }
         else {          
-            pObj     = Vec_PtrEntry(s->pNtk->vPis, s->gamma[i] - numouts);
-            pObjPerm = Vec_PtrEntry(s->pNtk_permuted->vPis, i - numouts);
+            pObj     = (Abc_Obj_t *)Vec_PtrEntry(s->pNtk->vPis, s->gamma[i] - numouts);
+            pObjPerm = (Abc_Obj_t *)Vec_PtrEntry(s->pNtk_permuted->vPis, i - numouts);
             
         }
         Abc_ObjAssignName( pObjPerm, Abc_ObjName(pObj), NULL );         
@@ -2546,9 +2546,9 @@ saucy_free(struct saucy *s)
         Vec_IntFree( s->ctrl[i] );
     }
     for (i = 0; i < Vec_PtrSize(s->randomVectorArray_sim1); i++)
-        Vec_IntFree(Vec_PtrEntry(s->randomVectorArray_sim1, i));
+        Vec_IntFree((Vec_Int_t *)Vec_PtrEntry(s->randomVectorArray_sim1, i));
     for (i = 0; i < Vec_PtrSize(s->randomVectorArray_sim2); i++)
-        Vec_IntFree(Vec_PtrEntry(s->randomVectorArray_sim2, i));
+        Vec_IntFree((Vec_Int_t *)Vec_PtrEntry(s->randomVectorArray_sim2, i));
     Vec_PtrFree( s->randomVectorArray_sim1 );
     Vec_PtrFree( s->randomVectorArray_sim2 );
     ABC_FREE(s->randomVectorSplit_sim1);
@@ -2695,9 +2695,9 @@ getVertexName(Abc_Ntk_t *pNtk, int v)
     int numouts =  Abc_NtkPoNum(pNtk);
 
     if (v < numouts)    
-        pObj = Vec_PtrEntry(pNtk->vPos, v);
+        pObj = (Abc_Obj_t *)Vec_PtrEntry(pNtk->vPos, v);
     else
-        pObj = Vec_PtrEntry(pNtk->vPis, v - numouts);       
+        pObj = (Abc_Obj_t *)Vec_PtrEntry(pNtk->vPis, v - numouts);       
     
     return Abc_ObjName(pObj);
 }
@@ -3100,7 +3100,7 @@ bumpActivity( struct saucy * s, struct sim_result * cex )
     if ( (cex->activity += s->activityInc) > 1e20 ) {
         /* Rescale: */
         for (i = 0; i < Vec_PtrSize(s->satCounterExamples); i++) {
-            cex2 = Vec_PtrEntry(s->satCounterExamples, i);
+            cex2 = (struct sim_result *)Vec_PtrEntry(s->satCounterExamples, i);
             cex2->activity *= 1e-20;
         }
         s->activityInc *= 1e-20; 
@@ -3116,7 +3116,7 @@ reduceDB( struct saucy * s )
 
     while (Vec_PtrSize(s->satCounterExamples) > (0.7 * MAX_LEARNTS)) {
         for (i = j = 0; i < Vec_PtrSize(s->satCounterExamples); i++) {
-            cex = Vec_PtrEntry(s->satCounterExamples, i);
+            cex = (struct sim_result *)Vec_PtrEntry(s->satCounterExamples, i);
             if (cex->activity < extra_lim) {
                 ABC_FREE(cex->inVec);
                 ABC_FREE(cex->outVec);
