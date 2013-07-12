@@ -211,7 +211,7 @@ word Ifd_ObjTruth_rec( Ifd_Man_t * p, int iLit, int * pCounter )
         ABC_CONST(0xFFFFFFFF00000000)
     };
     Ifd_Obj_t * pDsd;
-    word Fun0, Fun1, Fun2;
+    word Fun0, Fun1, Fun2 = 0;
     assert( !Abc_LitIsCompl(iLit) );
     if ( iLit == 2 )
         return s_Truths6[(*pCounter)++];
@@ -281,7 +281,7 @@ int Ifd_ManHashLookup( Ifd_Man_t * p, int iDsd0, int iDsd1, int iDsdC, int Type 
     pData[1] = iDsd1;
     pData[2] = iDsdC;
     pData[3] = Type;
-    return *Hsh_IntManLookup( p->vHash, pData );
+    return *Hsh_IntManLookup( p->vHash, (unsigned *)pData );
 }
 void Ifd_ManHashInsert( Ifd_Man_t * p, int iDsd0, int iDsd1, int iDsdC, int Type, int Res )
 {
@@ -464,7 +464,6 @@ int Ifd_ManFindDsd_rec( Ifd_Man_t * pMan, char * pStr, char ** p, int * pMatches
     if ( **p == '<' ) // mux
     {
         int Temp[3], * pTemp = Temp, Res;
-        char * pOld = *p;
         char * q = pStr + pMatches[ *p - pStr ];
         assert( **p == '<' && *q == '>' );
         // derive MAX components
@@ -527,8 +526,8 @@ int Ifd_ManFindDsd( Ifd_Man_t * pMan, char * p )
 void Ifd_ManDsdTest2()
 {
     char * p = "(abc)";
-    char * q = "(a[bc])";
-    char * r = "[<abc>(def)]";
+//    char * q = "(a[bc])";
+//    char * r = "[<abc>(def)]";
     Ifd_Man_t * pMan = Ifd_ManStart();
     int iLit = Ifd_ManFindDsd( pMan, p );
     Ifd_ObjPrint( pMan, iLit );
@@ -853,14 +852,14 @@ int Ifd_ManDsdTest()
     abctime clk = Abc_Clock();
     FILE * pFile;
     char * pFileName = "dsdfuncs6.dat";
-    int size = Extra_FileSize( pFileName ) / 12;  // 3504275
+    int RetValue, size = Extra_FileSize( pFileName ) / 12;  // 3504275
     Vec_Wrd_t * vTruthRes = Vec_WrdAlloc( size + 1 );
     Vec_Int_t * vConfgRes = Vec_IntAlloc( size );
     Hsh_IntMan_t * pHash;
 
     pFile = fopen( pFileName, "rb" );
-    fread( Vec_WrdArray(vTruthRes), sizeof(word), size, pFile );
-    fread( Vec_IntArray(vConfgRes), sizeof(int), size, pFile );
+    RetValue = fread( Vec_WrdArray(vTruthRes), sizeof(word), size, pFile );
+    RetValue = fread( Vec_IntArray(vConfgRes), sizeof(int), size, pFile );
     vTruthRes->nSize = size;
     vConfgRes->nSize = size;
     // create hash table
