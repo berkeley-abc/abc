@@ -347,7 +347,7 @@ Literal_t* Rpo_Recursion(unsigned* target, Literal_t** vecLit, int nLit, int nLi
         maxLitIndex = (edge->idx1 > edge->idx2) ? edge->idx1 : edge->idx2;
         oldLit1 = vecLit[minLitIndex];
         oldLit2 = vecLit[maxLitIndex];
-        newLit = Lit_GroupLiterals(oldLit1, oldLit2, edge->connectionType, nVars);
+        newLit = Lit_GroupLiterals(oldLit1, oldLit2, (Operator_t)edge->connectionType, nVars);
         vecLit[minLitIndex] = newLit;
         vecLit[maxLitIndex] = NULL;
 
