@@ -63,7 +63,7 @@ struct Mpm_Cut_t_
     unsigned         fCompl    :  1;
     unsigned         fUseless  :  1;           // internal flag
     unsigned         nLeaves   :  5;           // leaves
-    int              pLeaves[0];               // leaves
+    int              pLeaves[1];               // leaves
 };
 typedef struct Mpm_Uni_t_ Mpm_Uni_t;  // 48 bytes
 struct Mpm_Uni_t_
@@ -74,11 +74,8 @@ struct Mpm_Uni_t_
     int              mAveRefs;                 // area references
     word             uSign;                    // cut signature
     int              Cost;                     // user cost
-    unsigned         iFunc     : 25;           // function
-    unsigned         fCompl    :  1;
-    unsigned         fUseless  :  1;           // internal flag
-    unsigned         nLeaves   :  5;           // leaves
-    int              pLeaves[MPM_VAR_MAX];     // leaves
+    Mpm_Cut_t        pCut;                     // new cut
+    int              Data[MPM_VAR_MAX];        // padding
 };
 
 typedef struct Mpm_Man_t_ Mpm_Man_t;
@@ -102,14 +99,12 @@ struct Mpm_Man_t_
     int              nCutStore;                // number of cuts in storage
     Mpm_Uni_t *      pCutStore[MPM_CUT_MAX+1]; // storage for cuts
     Mpm_Uni_t        pCutUnits[MPM_CUT_MAX+1]; // cut info units
-    Vec_Int_t        vFreeUnits;               // free cut info units
+    Vec_Ptr_t        vFreeUnits;               // free cut info units
     Vec_Ptr_t *      vTemp;                    // storage for cuts
     // object presence
     unsigned char *  pObjPres;                 // object presence
     int              pObjPresUsed[MPM_VAR_MAX];
     int              nObjPresUsed;
-
-    Mpm_Cut_t *      pCutTemp;                 // temporary cut
     Vec_Str_t        vObjShared;               // object presence
     // cut comparison
     int (* pCutCmp) (Mpm_Uni_t *, Mpm_Uni_t *);// procedure to compare cuts
@@ -155,7 +150,7 @@ struct Mpm_Man_t_
 static inline int         Mpm_ObjCutBest( Mpm_Man_t * p, Mig_Obj_t * pObj )              { return Vec_IntEntry(&p->vCutBests, Mig_ObjId(pObj));            }
 static inline void        Mpm_ObjSetCutBest( Mpm_Man_t * p, Mig_Obj_t * pObj, int i )    { Vec_IntWriteEntry(&p->vCutBests, Mig_ObjId(pObj), i);           }
 
-static inline int         Mpm_CutWordNum( int nLeaves )                                  { return ((sizeof(Mpm_Cut_t)/sizeof(int) + nLeaves + 1) >> 1);    }
+static inline int         Mpm_CutWordNum( int nLeaves )                                  { return ((sizeof(Mpm_Cut_t) + (nLeaves << 2)) >> 3);             }
 static inline Mpm_Cut_t * Mpm_CutFetch( Mpm_Man_t * p, int h )                           { Mpm_Cut_t * pCut = (Mpm_Cut_t *)Mmr_StepEntry( p->pManCuts, h );  assert( Mpm_CutWordNum(pCut->nLeaves) == (h & p->pManCuts->uMask) ); return pCut; }
 static inline Mpm_Cut_t * Mpm_ObjCutBestP( Mpm_Man_t * p, Mig_Obj_t * pObj )             { return Mpm_CutFetch( p, Mpm_ObjCutBest(p, pObj) );              }
 
@@ -212,7 +207,7 @@ static inline void        Mpm_VarsSwap( int * V2P, int * P2V, int iVar, int jVar
 /*=== mpmAbc.c ===========================================================*/
 extern Mig_Man_t *           Mig_ManCreate( void * pGia );
 extern void *                Mpm_ManFromIfLogic( Mpm_Man_t * pMan );
-/*=== mpmCore.c ===========================================================*/
+/*=== mpmMan.c ===========================================================*/
 extern Mpm_Man_t *           Mpm_ManStart( Mig_Man_t * pMig, Mpm_Par_t * pPars );
 extern void                  Mpm_ManStop( Mpm_Man_t * p );
 extern void                  Mpm_ManPrintStatsInit( Mpm_Man_t * p );

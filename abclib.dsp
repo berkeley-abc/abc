@@ -2503,11 +2503,19 @@ SOURCE=.\src\map\mpm\mpmCore.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\map\mpm\mpmDsd.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\map\mpm\mpmInt.h
 # End Source File
 # Begin Source File
 
 SOURCE=.\src\map\mpm\mpmLib.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\map\mpm\mpmMan.c
 # End Source File
 # Begin Source File
 

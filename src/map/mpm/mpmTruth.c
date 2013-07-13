@@ -100,7 +100,7 @@ int Mpm_CutComputeTruth6( Mpm_Man_t * p, Mpm_Cut_t * pCut, Mpm_Cut_t * pCut0, Mp
     word * pTruthC = NULL;
     word t0 = (fCompl0 ^ pCut0->fCompl ^ Abc_LitIsCompl(pCut0->iFunc)) ? ~*pTruth0 : *pTruth0;
     word t1 = (fCompl1 ^ pCut1->fCompl ^ Abc_LitIsCompl(pCut1->iFunc)) ? ~*pTruth1 : *pTruth1;
-    word tC, t;
+    word tC = 0, t = 0;
     t0 = Mpm_TruthStretch6( t0, pCut, pCut0, p->nLutSize );
     t1 = Mpm_TruthStretch6( t1, pCut, pCut1, p->nLutSize );
     if ( pCutC )

@@ -60,6 +60,7 @@ struct Mpm_Par_t_
     int              nNumCuts;
     int              DelayTarget;
     int              fUseTruth;
+    int              fUseDsd;
     int              fCutMin;
     int              fDeriveLuts;
     int              fVerbose;
