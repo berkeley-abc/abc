@@ -263,7 +263,7 @@ static inline Mpm_Uni_t * Mpm_CutSetupInfo( Mpm_Man_t * p, Mpm_Cut_t * pCut, int
     int * pmEdge   = Vec_IntArray( &p->vEdges );
     int i, iLeaf;
 
-    Mpm_Uni_t * pUnit = Vec_PtrEntryLast(&p->vFreeUnits);
+    Mpm_Uni_t * pUnit = (Mpm_Uni_t *)Vec_PtrEntryLast(&p->vFreeUnits);
     if ( &pUnit->pCut != pCut )
     {
         pUnit->pCut.iFunc   = pCut->iFunc;
@@ -367,7 +367,7 @@ p->timeCompare += Abc_Clock() - clk;
         iPivot = -1;
 
     // add the cut to storage
-    assert( pUnitNew == Vec_PtrEntryLast(&p->vFreeUnits) );
+    assert( pUnitNew == (Mpm_Uni_t *)Vec_PtrEntryLast(&p->vFreeUnits) );
     Vec_PtrPop( &p->vFreeUnits );
 
     // insert this cut at location iPivot
