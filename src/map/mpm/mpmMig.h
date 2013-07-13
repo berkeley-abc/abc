@@ -342,7 +342,9 @@ static inline int Mig_ManAppendMaj( Mig_Man_t * p, int iLit0, int iLit1, int iLi
 extern Mig_Man_t *           Mig_ManStart();
 extern void                  Mig_ManStop( Mig_Man_t * p );
 extern void                  Mig_ManSetRefs( Mig_Man_t * p, int fSkipCos );
-
+extern int                   Mig_ManAndNum( Mig_Man_t * p );
+extern int                   Mig_ManXorNum( Mig_Man_t * p );
+extern int                   Mig_ManMuxNum( Mig_Man_t * p );
 
 ABC_NAMESPACE_HEADER_END
 

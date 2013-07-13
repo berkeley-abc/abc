@@ -145,9 +145,10 @@ void Mpm_ManStop( Mpm_Man_t * p )
 ***********************************************************************/
 void Mpm_ManPrintStatsInit( Mpm_Man_t * p )
 {
-    printf( "K = %d.  C = %d.  Cands = %d. Choices = %d.   CutMin = %d. Truth = %d.\n", 
+    printf( "K = %d.  C = %d.  Cands = %d. XOR = %d. MUX = %d. Choices = %d.   CutMin = %d. Truth = %d.\n", 
         p->nLutSize, p->nNumCuts, 
-        Mig_ManCiNum(p->pMig) + Mig_ManNodeNum(p->pMig), 0, 
+        Mig_ManCiNum(p->pMig) + Mig_ManNodeNum(p->pMig), 
+        Mig_ManXorNum(p->pMig), Mig_ManMuxNum(p->pMig), 0, 
         p->pPars->fCutMin, p->pPars->fUseTruth );
 }
 void Mpm_ManPrintStats( Mpm_Man_t * p )

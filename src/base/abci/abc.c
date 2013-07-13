@@ -29522,7 +29522,7 @@ int Abc_CommandAbc9If2( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set defaults
     Mpm_ManSetParsDefault( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KDmzvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KDtmzvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -29552,6 +29552,9 @@ int Abc_CommandAbc9If2( Abc_Frame_t * pAbc, int argc, char ** argv )
             globalUtilOptind++;
             if ( pPars->DelayTarget <= 0.0 )
                 goto usage;
+            break;
+        case 't':
+            pPars->fUseGates ^= 1;
             break;
         case 'm':
             pPars->fCutMin ^= 1;
@@ -29587,10 +29590,11 @@ usage:
         sprintf(Buffer, "best possible" );
     else
         sprintf(Buffer, "%d", pPars->DelayTarget );
-    Abc_Print( -2, "usage: &if2 [-KD num] [-mzvh]\n" );
+    Abc_Print( -2, "usage: &if2 [-KD num] [-tmzvh]\n" );
     Abc_Print( -2, "\t           performs technology mapping of the network\n" );
     Abc_Print( -2, "\t-K num   : sets the LUT size for the mapping [default = %d]\n", nLutSize );
     Abc_Print( -2, "\t-D num   : sets the delay constraint for the mapping [default = %s]\n", Buffer );
+    Abc_Print( -2, "\t-t       : enables using AND/XOR/MUX nodes instead of simple AIG [default = %s]\n", pPars->fUseGates? "yes": "no" );
     Abc_Print( -2, "\t-m       : enables cut minimization by removing vacuous variables [default = %s]\n", pPars->fCutMin? "yes": "no" );
     Abc_Print( -2, "\t-z       : toggles deriving LUTs when mapping into LUT structures [default = %s]\n", pPars->fDeriveLuts? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );

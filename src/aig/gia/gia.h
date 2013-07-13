@@ -1043,6 +1043,9 @@ extern int                 Gia_MmStepReadMemUsage( Gia_MmStep_t * p );
 /*=== giaMini.c ===========================================================*/
 extern Gia_Man_t *         Gia_ManReadMiniAig( char * pFileName );
 extern void                Gia_ManWriteMiniAig( Gia_Man_t * pGia, char * pFileName );
+/*=== giaMuxes.c ===========================================================*/
+extern Gia_Man_t *         Gia_ManDupMuxes( Gia_Man_t * p );
+extern Gia_Man_t *         Gia_ManDupNoMuxes( Gia_Man_t * p );
 /*=== giaPat.c ===========================================================*/
 extern void                Gia_SatVerifyPattern( Gia_Man_t * p, Gia_Obj_t * pRoot, Vec_Int_t * vCex, Vec_Int_t * vVisit );
 /*=== giaRetime.c ===========================================================*/

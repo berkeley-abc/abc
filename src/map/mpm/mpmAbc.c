@@ -59,7 +59,11 @@ Mig_Man_t * Mig_ManCreate( void * pGia )
     // create objects
     Gia_ManForEachObj1( p, pObj, i )
     {
-        if ( Gia_ObjIsAnd(pObj) )
+        if ( Gia_ObjIsMux(p, i) )
+            pObj->Value = Mig_ManAppendMux( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj), Gia_ObjFanin2Copy(p, pObj) );
+        else if ( Gia_ObjIsXor(pObj) )
+            pObj->Value = Mig_ManAppendXor( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        else if ( Gia_ObjIsAnd(pObj) )
             pObj->Value = Mig_ManAppendAnd( pNew, Mig_ObjFanin0Copy(pObj), Mig_ObjFanin1Copy(pObj) );
         else if ( Gia_ObjIsCi(pObj) )
             pObj->Value = Mig_ManAppendCi( pNew );
@@ -88,7 +92,8 @@ int Mpm_ManNodeIfToGia_rec( Gia_Man_t * pNew, Mpm_Man_t * pMan, Mig_Obj_t * pObj
 {
     Mig_Obj_t * pTemp;
     Mpm_Cut_t * pCut;
-    int iFunc, iFunc0, iFunc1;
+    int iFunc, iFunc0, iFunc1, iFunc2 = 0;
+    assert( fHash == 0 );
     // get the best cut
     pCut = Mpm_ObjCutBestP( pMan, pObj );
     // if the cut is visited, return the result
@@ -110,11 +115,34 @@ int Mpm_ManNodeIfToGia_rec( Gia_Man_t * pNew, Mpm_Man_t * pMan, Mig_Obj_t * pObj
         iFunc1 = Mpm_ManNodeIfToGia_rec( pNew, pMan, Mig_ObjFanin1(pTemp), vVisited, fHash );
         if ( iFunc1 == ~0 )
             continue;
+        if ( Mig_ObjIsNode3(pTemp) )
+        {
+            iFunc2 = Mpm_ManNodeIfToGia_rec( pNew, pMan, Mig_ObjFanin2(pTemp), vVisited, fHash );
+            if ( iFunc2 == ~0 )
+                continue;
+            iFunc2 = Abc_LitNotCond(iFunc2, Mig_ObjFaninC2(pTemp));
+        }
+        iFunc0 = Abc_LitNotCond(iFunc0, Mig_ObjFaninC0(pTemp));
+        iFunc1 = Abc_LitNotCond(iFunc1, Mig_ObjFaninC1(pTemp));
         // both branches are solved
         if ( fHash )
-            iFunc = Gia_ManHashAnd( pNew, Abc_LitNotCond(iFunc0, Mig_ObjFaninC0(pTemp)), Abc_LitNotCond(iFunc1, Mig_ObjFaninC1(pTemp)) ); 
+        {
+            if ( Mig_ObjIsMux(pTemp) )
+                iFunc = Gia_ManHashMux( pNew, iFunc2, iFunc1, iFunc0 );
+            else if ( Mig_ObjIsXor(pTemp) )
+                iFunc = Gia_ManHashXor( pNew, iFunc0, iFunc1 );
+            else 
+                iFunc = Gia_ManHashAnd( pNew, iFunc0, iFunc1 ); 
+        }
         else
-            iFunc = Gia_ManAppendAnd( pNew, Abc_LitNotCond(iFunc0, Mig_ObjFaninC0(pTemp)), Abc_LitNotCond(iFunc1, Mig_ObjFaninC1(pTemp)) ); 
+        {
+            if ( Mig_ObjIsMux(pTemp) )
+                iFunc = Gia_ManAppendMux( pNew, iFunc2, iFunc1, iFunc0 );
+            else if ( Mig_ObjIsXor(pTemp) )
+                iFunc = Gia_ManAppendXor( pNew, iFunc0, iFunc1 );
+            else 
+                iFunc = Gia_ManAppendAnd( pNew, iFunc0, iFunc1 ); 
+        }
         if ( Mig_ObjPhase(pTemp) != Mig_ObjPhase(pObj) )
             iFunc = Abc_LitNot(iFunc);
         Mpm_CutSetDataInt( pCut, iFunc );

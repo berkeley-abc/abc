@@ -76,6 +76,38 @@ void Mig_ManStop( Mig_Man_t * p )
     ABC_FREE( p );
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Mig_ManTypeNum( Mig_Man_t * p, int Type )
+{
+    Mig_Obj_t * pObj;
+    int Counter = 0;
+    Mig_ManForEachNode( p, pObj )
+        Counter += (Mig_ObjNodeType(pObj) == Type);
+    return Counter;
+}
+int Mig_ManAndNum( Mig_Man_t * p )
+{
+    return Mig_ManTypeNum(p, 1);
+}
+int Mig_ManXorNum( Mig_Man_t * p )
+{
+    return Mig_ManTypeNum(p, 2);
+}
+int Mig_ManMuxNum( Mig_Man_t * p )
+{
+    return Mig_ManTypeNum(p, 3);
+}
+
 
 /**Function*************************************************************
 

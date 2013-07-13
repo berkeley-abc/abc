@@ -84,7 +84,14 @@ Gia_Man_t * Mpm_ManMappingTest( Gia_Man_t * pGia, Mpm_Par_t * pPars )
 {
     Mig_Man_t * p;
     Gia_Man_t * pNew;
-    p = Mig_ManCreate( pGia );
+    if ( pPars->fUseGates )
+    {
+        pGia = Gia_ManDupMuxes( pGia );
+        p = Mig_ManCreate( pGia );
+        Gia_ManStop( pGia );
+    }
+    else
+        p = Mig_ManCreate( pGia );
     pNew = Mpm_ManPerformTest( p, pPars );
     Mig_ManStop( p );
     return pNew;

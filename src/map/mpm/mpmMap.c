@@ -540,7 +540,6 @@ static inline int Mpm_ObjDeriveCut( Mpm_Man_t * p, Mpm_Cut_t ** pCuts, Mpm_Cut_t
     pCut->iFunc    = 0;  pCut->iFunc = ~pCut->iFunc;
     pCut->fUseless = 0;
     pCut->fCompl   = 0;
-//    assert( pCut->nLeaves > 0 );
     p->nCutsMerged++;
     if ( p->pPars->fUseTruth )
         Vec_IntSelectSort( pCut->pLeaves, pCut->nLeaves );

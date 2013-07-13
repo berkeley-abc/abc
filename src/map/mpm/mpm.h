@@ -59,6 +59,7 @@ struct Mpm_Par_t_
     Mpm_LibLut_t *   pLib;
     int              nNumCuts;
     int              DelayTarget;
+    int              fUseGates;
     int              fUseTruth;
     int              fUseDsd;
     int              fCutMin;
