@@ -47,36 +47,37 @@ static inline int Mpm_CutTruthMinimize6( Mpm_Man_t * p, Mpm_Cut_t * pCut )
 {
     unsigned uSupport;
     int i, k, nSuppSize;
-    word t = *Mpm_CutTruth( p, Abc_Lit2Var(pCut->iFunc) );
     // compute the support of the cut's function
+    word t = *Mpm_CutTruth( p, Abc_Lit2Var(pCut->iFunc) );
     uSupport = Abc_Tt6SupportAndSize( t, Mpm_CutLeafNum(pCut), &nSuppSize );
     if ( nSuppSize == Mpm_CutLeafNum(pCut) )
         return 0;
-    if ( nSuppSize < 2 )
-        p->nSmallSupp++;
+    p->nSmallSupp += (int)(nSuppSize < 2);
     // update leaves and signature
     for ( i = k = 0; i < Mpm_CutLeafNum(pCut); i++ )
     {
-        if ( !(uSupport & (1 << i)) )
-            continue;    
-        if ( k < i )
+        if ( ((uSupport >> i) & 1) )
         {
-            pCut->pLeaves[k] = pCut->pLeaves[i];
-            Abc_TtSwapVars( &t, p->nLutSize, k, i );
+            if ( k < i )
+            {
+                pCut->pLeaves[k] = pCut->pLeaves[i];
+                Abc_TtSwapVars( &t, p->nLutSize, k, i );
+            }
+            k++;
         }
-        k++;
+        else
+        {
+            int iObj = Abc_Lit2Var( pCut->pLeaves[i] );
+            int Res = Vec_IntRemove( &p->vObjPresUsed, iObj );
+            assert( Res == 1 );
+            p->pObjPres[iObj] = (unsigned char)0xFF; 
+        }
     }
     assert( k == nSuppSize );
     pCut->nLeaves = nSuppSize;
-    assert( nSuppSize == Abc_TtSupportSize(&t, Mpm_CutLeafNum(pCut)) );
+    assert( nSuppSize == Abc_TtSupportSize(&t, 6) );
     // save the result
-    if ( t & 1 )
-    {
-        t = ~t;
-        pCut->iFunc = Abc_Var2Lit( Vec_MemHashInsert( p->vTtMem, &t ), 1 );
-    }
-    else
-        pCut->iFunc = Abc_Var2Lit( Vec_MemHashInsert( p->vTtMem, &t ), 0 );
+    pCut->iFunc = Abc_Var2Lit( Vec_MemHashInsert(p->vTtMem, &t), Abc_LitIsCompl(pCut->iFunc) );
     return 1;
 }
 static inline word Mpm_TruthStretch6( word Truth, Mpm_Cut_t * pCut, Mpm_Cut_t * pCut0, int nLimit )
@@ -134,8 +135,8 @@ int Mpm_CutComputeTruth6( Mpm_Man_t * p, Mpm_Cut_t * pCut, Mpm_Cut_t * pCut0, Mp
     }
 #endif
 
-//    if ( p->pPars->fCutMin )
-//        return Mpm_CutTruthMinimize6( p, pCut );
+    if ( p->pPars->fCutMin )
+        return Mpm_CutTruthMinimize6( p, pCut );
     return 0;
 }
 

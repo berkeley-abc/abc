@@ -103,8 +103,7 @@ struct Mpm_Man_t_
     Vec_Ptr_t *      vTemp;                    // storage for cuts
     // object presence
     unsigned char *  pObjPres;                 // object presence
-    int              pObjPresUsed[MPM_VAR_MAX];
-    int              nObjPresUsed;
+    Vec_Int_t        vObjPresUsed;             // used objects   
     Vec_Str_t        vObjShared;               // object presence
     // cut comparison
     int (* pCutCmp) (Mpm_Uni_t *, Mpm_Uni_t *);// procedure to compare cuts

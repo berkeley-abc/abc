@@ -170,12 +170,12 @@ static inline void Mpm_CutDeref( Mpm_Man_t * p, int * pLeaves, int nLeaves )
         Mig_ManObj( p->pMig, Abc_Lit2Var(pLeaves[i]) )->nMapRefs--;
 }
 */
-static inline void Mpm_CutPrint( int * pLeaves, int nLeaves )  
+static inline void Mpm_CutPrint( Mpm_Cut_t * pCut )  
 { 
     int i;
-    printf( "%d : { ", nLeaves );
-    for ( i = 0; i < nLeaves; i++ )
-        printf( "%d ", pLeaves[i] );
+    printf( "%d : { ", pCut->nLeaves );
+    for ( i = 0; i < (int)pCut->nLeaves; i++ )
+        printf( "%d ", pCut->pLeaves[i] );
     printf( "}\n" );
 }
 static inline void Mpm_CutPrintAll( Mpm_Man_t * p )  
@@ -184,46 +184,33 @@ static inline void Mpm_CutPrintAll( Mpm_Man_t * p )
     for ( i = 0; i < p->nCutStore; i++ )
     {
         printf( "%2d : ", i );
-        Mpm_CutPrint( p->pCutStore[i]->pCut.pLeaves, p->pCutStore[i]->pCut.nLeaves );
+        Mpm_CutPrint( &p->pCutStore[i]->pCut );
     }
 }
-
-/**Function*************************************************************
-
-  Synopsis    [Cut merging.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-static inline int Mpm_ManSetIsSmaller( Mpm_Man_t * p, int * pLits, int nLits, int nTotal ) // check if pCut is contained in the current one (p->pCutTemp)
+static inline int Mpm_ManSetIsSmaller( Mpm_Man_t * p, Mpm_Cut_t * pCut, int nTotal ) // check if pCut is contained in the current one (p->pCutTemp)
 {
     int i, Index;
-    for ( i = 0; i < nLits; i++ )
+    for ( i = 0; i < (int)pCut->nLeaves; i++ )
     {
-        Index = (int)p->pObjPres[Abc_Lit2Var(pLits[i])];
+        Index = (int)p->pObjPres[Abc_Lit2Var(pCut->pLeaves[i])];
         if ( Index == 0xFF )
             return 0;
-        assert( Index < nTotal );
+//        assert( Index < nTotal );
     }
     return 1;
 }
-static inline int Mpm_ManSetIsBigger( Mpm_Man_t * p, int * pLits, int nLits, int nTotal ) // check if pCut contains the current one (p->pCutTemp)
+static inline int Mpm_ManSetIsBigger( Mpm_Man_t * p, Mpm_Cut_t * pCut, int nTotal ) // check if pCut contains the current one (p->pCutTemp)
 {
-    int i, Index;
-    unsigned uMask = 0;
-    for ( i = 0; i < nLits; i++ )
+    int i, Index, Counter = 0;
+    for ( i = 0; i < (int)pCut->nLeaves; i++ )
     {
-        Index = (int)p->pObjPres[Abc_Lit2Var(pLits[i])];
+        Index = (int)p->pObjPres[Abc_Lit2Var(pCut->pLeaves[i])];
         if ( Index == 0xFF )
             continue;
-        assert( Index < nTotal );
-        uMask |= (1 << Index);
+//        assert( Index < nTotal );
+        Counter++;
     }
-    return uMask == ~(~(unsigned)0 << nTotal);
+    return (int)(Counter == nTotal);
 }
 
 /**Function*************************************************************
@@ -278,6 +265,7 @@ static inline Mpm_Uni_t * Mpm_CutSetupInfo( Mpm_Man_t * p, Mpm_Cut_t * pCut, int
     pUnit->mEdge    = MPM_UNIT_EDGE * pCut->nLeaves;
     pUnit->mAveRefs = 0;
     pUnit->Cost     = 0;
+    pUnit->uSign    = 0;
     Mpm_CutForEachLeafId( pCut, iLeaf, i )
     {
         if ( p->fMainRun && pMapRefs[iLeaf] == 0 ) // not used in the mapping
@@ -294,7 +282,7 @@ static inline Mpm_Uni_t * Mpm_CutSetupInfo( Mpm_Man_t * p, Mpm_Cut_t * pCut, int
         }
         pUnit->uSign |= ((word)1 << (iLeaf & 0x3F));
     }
-    pUnit->mAveRefs = pUnit->mAveRefs * MPM_UNIT_EDGE / pCut->nLeaves;
+    pUnit->mAveRefs = pUnit->mAveRefs * MPM_UNIT_EDGE / Abc_MaxInt(pCut->nLeaves, 1);
     return pUnit;
 }
 
@@ -352,7 +340,7 @@ clk = Abc_Clock();
             pUnit = p->pCutStore[k];
             if ( pUnitNew->pCut.nLeaves >= pUnit->pCut.nLeaves && 
                 (pUnitNew->uSign & pUnit->uSign) == pUnit->uSign && 
-                 Mpm_ManSetIsSmaller(p, pUnit->pCut.pLeaves, pUnit->pCut.nLeaves, pUnitNew->pCut.nLeaves) )
+                 Mpm_ManSetIsSmaller(p, &pUnit->pCut, pUnitNew->pCut.nLeaves) )
             {
 #ifdef MIG_RUNTIME
 p->timeCompare += Abc_Clock() - clk;
@@ -384,7 +372,7 @@ p->timeCompare += Abc_Clock() - clk;
             pUnit = p->pCutStore[k];
             if ( pUnitNew->pCut.nLeaves <= pUnit->pCut.nLeaves && 
                 (pUnitNew->uSign & pUnit->uSign) == pUnitNew->uSign && 
-                 Mpm_ManSetIsBigger(p, pUnit->pCut.pLeaves, pUnit->pCut.nLeaves, pUnitNew->pCut.nLeaves) )
+                 Mpm_ManSetIsBigger(p, &pUnit->pCut, pUnitNew->pCut.nLeaves) )
             {
                 Vec_PtrPush( &p->vFreeUnits, pUnit );
                 continue;
@@ -422,7 +410,7 @@ void Mpm_ObjAddChoiceCutsToStore( Mpm_Man_t * p, Mig_Obj_t * pObj, int ReqTime )
 // create cuts at the node from storage
 void Mpm_ObjTranslateCutsFromStore( Mpm_Man_t * p, Mig_Obj_t * pObj, int fAddUnit )
 {
-    Mpm_Cut_t * pCut;
+    Mpm_Cut_t * pCut = NULL;
     Mpm_Uni_t * pUnit;
     int i, *pList = Mpm_ObjCutListP( p, pObj );
     assert( p->nCutStore > 0 && p->nCutStore <= p->nNumCuts );
@@ -435,6 +423,8 @@ void Mpm_ObjTranslateCutsFromStore( Mpm_Man_t * p, Mig_Obj_t * pObj, int fAddUni
         pList  = &pCut->hNext;
         Vec_PtrPush( &p->vFreeUnits, pUnit );
     }
+    if ( p->nCutStore == 1 && pCut->nLeaves < 2 )
+        fAddUnit = 0;
     *pList = fAddUnit ? Mpm_CutCreateUnit( p, Mig_ObjId(pObj) ) : 0;
     assert( Vec_PtrSize(&p->vFreeUnits) == p->nNumCuts + 1 );
 }
@@ -513,16 +503,26 @@ static inline int Mpm_ObjDeriveCut( Mpm_Man_t * p, Mpm_Cut_t ** pCuts, Mpm_Cut_t
 {
     int i, c, iObj;
     // clean present objects
-    for ( i = 0; i < p->nObjPresUsed; i++ )
-        p->pObjPres[p->pObjPresUsed[i]] = (unsigned char)0xFF; 
-    p->nObjPresUsed = 0;
+//    Vec_IntForEachEntry( &p->vObjPresUsed, iObj, i )
+//        p->pObjPres[iObj] = (unsigned char)0xFF; 
+    for ( i = 0; i < p->vObjPresUsed.nSize; i++ )
+        p->pObjPres[p->vObjPresUsed.pArray[i]] = (unsigned char)0xFF;
+    Vec_IntClear(&p->vObjPresUsed);   
     Vec_StrClear(&p->vObjShared);   
     // check present objects
 //    for ( i = 0; i < Mig_ManObjNum(p->pMig); i++ )
 //        assert( p->pObjPres[i] == (unsigned char)0xFF );
-    // collect cuts    
+    // base cut
     pCut->nLeaves = 0;
-    for ( c = 0; pCuts[c] && c < 3; c++ )
+    for ( i = 0; i < (int)pCuts[0]->nLeaves; i++ )
+    {
+        iObj = Abc_Lit2Var(pCuts[0]->pLeaves[i]);
+        Vec_IntPush( &p->vObjPresUsed, iObj );
+        p->pObjPres[iObj] = pCut->nLeaves;        
+        pCut->pLeaves[pCut->nLeaves++] = pCuts[0]->pLeaves[i];
+    }
+    // remaining cuts
+    for ( c = 1; pCuts[c] && c < 3; c++ )
     {
         for ( i = 0; i < (int)pCuts[c]->nLeaves; i++ )
         {
@@ -531,7 +531,7 @@ static inline int Mpm_ObjDeriveCut( Mpm_Man_t * p, Mpm_Cut_t ** pCuts, Mpm_Cut_t
                 continue;
             if ( (int)pCut->nLeaves == p->nLutSize )
                 return 0;
-            p->pObjPresUsed[p->nObjPresUsed++] = iObj;
+            Vec_IntPush( &p->vObjPresUsed, iObj );
             p->pObjPres[iObj] = pCut->nLeaves;        
             pCut->pLeaves[pCut->nLeaves++] = pCuts[c]->pLeaves[i];
         }
@@ -564,6 +564,10 @@ p->timeMerge += clock() - clk;
         return 1;
     }
 
+    // derive truth table
+    if ( p->pPars->fUseTruth )
+        Mpm_CutComputeTruth6( p, pCut, pCuts[0], pCuts[1], pCuts[2], Mig_ObjFaninC0(pObj), Mig_ObjFaninC1(pObj), Mig_ObjFaninC2(pObj), Mig_ObjNodeType(pObj) ); 
+
 #ifdef MIG_RUNTIME
 p->timeMerge += clock() - clk;
 clk = clock();
@@ -575,10 +579,6 @@ p->timeEval += clock() - clk;
 
     if ( p->fMainRun && ArrTime > Required )
         return 1;
-
-    // derive truth table
-    if ( p->pPars->fUseTruth )
-        Mpm_CutComputeTruth6( p, pCut, pCuts[0], pCuts[1], pCuts[2], Mig_ObjFaninC0(pObj), Mig_ObjFaninC1(pObj), Mig_ObjFaninC2(pObj), Mig_ObjNodeType(pObj) ); 
 
 #ifdef MIG_RUNTIME
 clk = Abc_Clock();
@@ -673,6 +673,8 @@ finish:
         Mpm_ObjSetTime( p, pObj, p->pCutStore[0]->mTime );
         Mpm_ObjSetArea( p, pObj, p->pCutStore[0]->mArea );
         Mpm_ObjSetEdge( p, pObj, p->pCutStore[0]->mEdge );
+//        if ( pCut->nLeaves < 1 )
+//            printf( "%d ", pCut->nLeaves );
     }
     else assert( !p->fMainRun );
     assert( hCutBest > 0 );
@@ -837,9 +839,10 @@ void Mpm_ManPerformRound( Mpm_Man_t * p )
     Mig_ManForEachNode( p->pMig, pObj )
         Mpm_ManDeriveCuts( p, pObj );
     Mpm_ManFinalizeRound( p );
-    printf( "Del =%5d.  Ar =%8d.  Edge =%8d.  Cut =%10d. Max =%10d.  Rem =%6d.  ", 
+    printf( "Del =%5d.  Ar =%8d.  Edge =%8d.  Cut =%10d. Max =%10d.  Tru =%6d. Small =%5d. ", 
         p->GloRequired, p->GloArea, p->GloEdge, 
-        p->nCutsMerged, p->pManCuts->nEntriesMax, p->pManCuts->nEntries );
+        p->nCutsMerged, p->pManCuts->nEntriesMax, 
+        p->vTtMem ? p->vTtMem->nEntries : 0, p->nSmallSupp );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 }
 void Mpm_ManPerform( Mpm_Man_t * p )

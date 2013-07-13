@@ -65,6 +65,7 @@ Mpm_Man_t * Mpm_ManStart( Mig_Man_t * pMig, Mpm_Par_t * pPars )
     for ( i = p->nNumCuts; i >= 0; i-- )
         Vec_PtrPush( &p->vFreeUnits, p->pCutUnits + i );
     p->pObjPres  = ABC_FALLOC( unsigned char, Mig_ManObjNum(pMig) );
+    Vec_IntGrow( &p->vObjPresUsed, p->nLutSize );
     Vec_StrGrow( &p->vObjShared, 32 );
     p->vTemp     = Vec_PtrAlloc( 1000 );
     // mapping attributes
@@ -114,6 +115,7 @@ void Mpm_ManStop( Mpm_Man_t * p )
     }
     Vec_PtrFree( p->vTemp );
     Mmr_StepStop( p->pManCuts );
+    ABC_FREE( p->vObjPresUsed.pArray );
     ABC_FREE( p->vFreeUnits.pArray );
     ABC_FREE( p->vObjShared.pArray );
     ABC_FREE( p->pObjPres );

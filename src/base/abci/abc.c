@@ -29589,7 +29589,7 @@ usage:
         sprintf(Buffer, "%d", pPars->DelayTarget );
     Abc_Print( -2, "usage: &if2 [-KD num] [-mzvh]\n" );
     Abc_Print( -2, "\t           performs technology mapping of the network\n" );
-    Abc_Print( -2, "\t-K num   : sets the LUT size for the mapping [default = %s]\n", nLutSize );
+    Abc_Print( -2, "\t-K num   : sets the LUT size for the mapping [default = %d]\n", nLutSize );
     Abc_Print( -2, "\t-D num   : sets the delay constraint for the mapping [default = %s]\n", Buffer );
     Abc_Print( -2, "\t-m       : enables cut minimization by removing vacuous variables [default = %s]\n", pPars->fCutMin? "yes": "no" );
     Abc_Print( -2, "\t-z       : toggles deriving LUTs when mapping into LUT structures [default = %s]\n", pPars->fDeriveLuts? "yes": "no" );
