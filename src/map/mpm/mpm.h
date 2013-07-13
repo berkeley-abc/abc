@@ -56,7 +56,12 @@ struct Mpm_LibLut_t_
 typedef struct Mpm_Par_t_ Mpm_Par_t;
 struct Mpm_Par_t_
 {
+    Mpm_LibLut_t *   pLib;
+    int              nNumCuts;
     int              DelayTarget;
+    int              fUseTruth;
+    int              fCutMin;
+    int              fDeriveLuts;
     int              fVerbose;
 };
 
@@ -71,6 +76,9 @@ struct Mpm_Par_t_
 
 /*=== mpmCore.c ===========================================================*/
 extern void           Mpm_ManSetParsDefault( Mpm_Par_t * p );
+/*=== mpmLib.c ===========================================================*/
+extern Mpm_LibLut_t * Mpm_LibLutSetSimple( int nLutSize );
+extern void           Mpm_LibLutFree( Mpm_LibLut_t * pLib );
 
 ABC_NAMESPACE_HEADER_END
 

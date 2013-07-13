@@ -29518,15 +29518,30 @@ int Abc_CommandAbc9If2( Abc_Frame_t * pAbc, int argc, char ** argv )
     char Buffer[200];
     Gia_Man_t * pNew;
     Mpm_Par_t Pars, * pPars = &Pars;
-    int c;
+    int c, nLutSize = 6;
     // set defaults
     Mpm_ManSetParsDefault( pPars );
-//    pPars->pLutLib = (If_LibLut_t *)pAbc->pLibLut;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Dvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KDmzvh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'K':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-K\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            globalUtilOptind++;
+            nLutSize = atoi(argv[globalUtilOptind]);
+            if ( nLutSize < 2 || nLutSize > 16 )
+            {
+                Abc_Print( -1, "LUT size %d is not supported.\n", nLutSize );
+                goto usage;
+            }
+            assert( pPars->pLib == NULL );
+            pPars->pLib = Mpm_LibLutSetSimple( nLutSize );
+            break;
         case 'D':
             if ( globalUtilOptind >= argc )
             {
@@ -29538,6 +29553,12 @@ int Abc_CommandAbc9If2( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( pPars->DelayTarget <= 0.0 )
                 goto usage;
             break;
+        case 'm':
+            pPars->fCutMin ^= 1;
+            break;
+        case 'z':
+            pPars->fDeriveLuts ^= 1;
+            break;
         case 'v':
             pPars->fVerbose ^= 1;
             break;
@@ -29546,8 +29567,13 @@ int Abc_CommandAbc9If2( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
+    if ( pPars->pLib == NULL )
+        pPars->pLib = Mpm_LibLutSetSimple( nLutSize );
+    if ( pPars->fCutMin )
+        pPars->fUseTruth = 1;
     // perform mapping
     pNew = Mpm_ManMappingTest( pAbc->pGia, pPars );
+    Mpm_LibLutFree( pPars->pLib );
     if ( pNew == NULL )
     {
         Abc_Print( -1, "Abc_CommandAbc9If2(): Mapping of GIA has failed.\n" );
@@ -29561,9 +29587,12 @@ usage:
         sprintf(Buffer, "best possible" );
     else
         sprintf(Buffer, "%d", pPars->DelayTarget );
-    Abc_Print( -2, "usage: &if2 [-D num] [-vh]\n" );
+    Abc_Print( -2, "usage: &if2 [-KD num] [-mzvh]\n" );
     Abc_Print( -2, "\t           performs technology mapping of the network\n" );
+    Abc_Print( -2, "\t-K num   : sets the LUT size for the mapping [default = %s]\n", nLutSize );
     Abc_Print( -2, "\t-D num   : sets the delay constraint for the mapping [default = %s]\n", Buffer );
+    Abc_Print( -2, "\t-m       : enables cut minimization by removing vacuous variables [default = %s]\n", pPars->fCutMin? "yes": "no" );
+    Abc_Print( -2, "\t-z       : toggles deriving LUTs when mapping into LUT structures [default = %s]\n", pPars->fDeriveLuts? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : prints the command usage\n");
     return 1;

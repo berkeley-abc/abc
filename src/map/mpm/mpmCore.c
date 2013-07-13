@@ -46,8 +46,13 @@ ABC_NAMESPACE_IMPL_START
 void Mpm_ManSetParsDefault( Mpm_Par_t * p )
 {
     memset( p, 0, sizeof(Mpm_Par_t) );
-    p->DelayTarget    =      -1;  // delay target
-    p->fVerbose       =       0;  // verbose output
+    p->pLib           =   NULL;  // LUT library
+    p->nNumCuts       =      8;  // cut number
+    p->fUseTruth      =      0;  // uses truth tables
+    p->fCutMin        =      0;  // enables cut minimization
+    p->DelayTarget    =     -1;  // delay target
+    p->fDeriveLuts    =      0;  // use truth tables to derive AIG structure
+    p->fVerbose       =      0;  // verbose output
 }
 
 /**Function*************************************************************
@@ -61,20 +66,17 @@ void Mpm_ManSetParsDefault( Mpm_Par_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Mpm_ManPerformTest( Mig_Man_t * pMig )
+Gia_Man_t * Mpm_ManPerformTest( Mig_Man_t * pMig, Mpm_Par_t * pPars )
 {
     Gia_Man_t * pNew;
-    Mpm_LibLut_t * pLib;
     Mpm_Man_t * p;
-    pLib = Mpm_LibLutSetSimple( 6 );
-    p = Mpm_ManStart( pMig, pLib, 8 );
+    p = Mpm_ManStart( pMig, pPars );
     Mpm_ManPrintStatsInit( p );
     Mpm_ManPrepare( p );
     Mpm_ManPerform( p );
     Mpm_ManPrintStats( p );
     pNew = (Gia_Man_t *)Mpm_ManFromIfLogic( p );
     Mpm_ManStop( p );
-    Mpm_LibLutFree( pLib );
     return pNew;
 }
 Gia_Man_t * Mpm_ManMappingTest( Gia_Man_t * pGia, Mpm_Par_t * pPars )
@@ -82,7 +84,7 @@ Gia_Man_t * Mpm_ManMappingTest( Gia_Man_t * pGia, Mpm_Par_t * pPars )
     Mig_Man_t * p;
     Gia_Man_t * pNew;
     p = Mig_ManCreate( pGia );
-    pNew = Mpm_ManPerformTest( p );
+    pNew = Mpm_ManPerformTest( p, pPars );
     Mig_ManStop( p );
     return pNew;
 }

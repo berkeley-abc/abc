@@ -140,6 +140,7 @@ static inline int          Mig_ObjIsAnd( Mig_Obj_t * p )                       {
 static inline int          Mig_ObjIsXor( Mig_Obj_t * p )                       { return Mig_ObjIsNode2( p ) && Mig_FanId(p, 0) > Mig_FanId(p, 1); } 
 static inline int          Mig_ObjIsMux( Mig_Obj_t * p )                       { return Mig_ObjIsNode3( p );                                } 
 static inline int          Mig_ObjIsCand( Mig_Obj_t * p )                      { return Mig_ObjIsNode(p) || Mig_ObjIsCi(p);                 } 
+static inline int          Mig_ObjNodeType( Mig_Obj_t * p )                    { return Mig_ObjIsAnd(p) ? 1 : (Mig_ObjIsXor(p) ? 2 : 3);    } 
 
 static inline int          Mig_ObjId( Mig_Obj_t * p )                          { return Mig_FanId( p, 3 );                                  }
 static inline void         Mig_ObjSetId( Mig_Obj_t * p, int v )                { Mig_FanSetId( p, 3, v );                                   }

@@ -584,6 +584,12 @@ int Gia_ManFromIfLogicCreateLut( Gia_Man_t * pNew, word * pRes, Vec_Int_t * vLea
 {
     int i, iLit, iObjLit1;
     iObjLit1 = Kit_TruthToGia( pNew, (unsigned *)pRes, Vec_IntSize(vLeaves), vCover, vLeaves, 0 );
+    // do not create LUT in the simple case
+    if ( Abc_Lit2Var(iObjLit1) == 0 )
+        return iObjLit1;
+    Vec_IntForEachEntry( vLeaves, iLit, i )
+        if ( Abc_Lit2Var(iObjLit1) == Abc_Lit2Var(iLit) )
+            return iObjLit1;
     // write mapping
     Vec_IntSetEntry( vMapping, Abc_Lit2Var(iObjLit1), Vec_IntSize(vMapping2) );
     Vec_IntPush( vMapping2, Vec_IntSize(vLeaves) );

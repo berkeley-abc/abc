@@ -20,6 +20,7 @@
 
 #include "aig/gia/gia.h"
 #include "mpmInt.h"
+#include "misc/util/utilTruth.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -182,16 +183,29 @@ void * Mpm_ManFromIfLogic( Mpm_Man_t * pMan )
             pCutBest = Mpm_ObjCutBestP( pMan, pObj );
             Mpm_CutForEachLeaf( pMan->pMig, pCutBest, pFanin, k )
                 Vec_IntPush( vLeaves, Mig_ObjCopy(pFanin) );
-            // perform one of the two types of mapping: with and without structures
-            iLitNew = Mpm_ManNodeIfToGia( pNew, pMan, pObj, vLeaves, 0 );
-            // write mapping
-            Vec_IntSetEntry( vMapping, Abc_Lit2Var(iLitNew), Vec_IntSize(vMapping2) );
-            Vec_IntPush( vMapping2, Vec_IntSize(vLeaves) );
-            Vec_IntForEachEntry( vLeaves, Entry, k )
-                assert( Abc_Lit2Var(Entry) < Abc_Lit2Var(iLitNew) );
-            Vec_IntForEachEntry( vLeaves, Entry, k )
-                Vec_IntPush( vMapping2, Abc_Lit2Var(Entry)  );
-            Vec_IntPush( vMapping2, Abc_Lit2Var(iLitNew) );
+            if ( pMan->pPars->fDeriveLuts && pMan->pPars->fUseTruth )
+            {
+                extern int Gia_ManFromIfLogicNode( Gia_Man_t * pNew, int iObj, Vec_Int_t * vLeaves, Vec_Int_t * vLeavesTemp, 
+                    word * pRes, char * pStr, Vec_Int_t * vCover, Vec_Int_t * vMapping, Vec_Int_t * vMapping2, Vec_Int_t * vPacking );
+                word * pTruth = Mpm_CutTruth(pMan, Abc_Lit2Var(pCutBest->iFunc));
+//                Kit_DsdPrintFromTruth( pTruth, Vec_IntSize(vLeaves) );  printf( "\n" );
+                // perform decomposition of the cut
+                iLitNew = Gia_ManFromIfLogicNode( pNew, Mig_ObjId(pObj), vLeaves, vLeaves2, pTruth, NULL, vCover, vMapping, vMapping2, vPacking );
+                iLitNew = Abc_LitNotCond( iLitNew, pCutBest->fCompl ^ Abc_LitIsCompl(pCutBest->iFunc) );
+            }
+            else
+            {
+                // perform one of the two types of mapping: with and without structures
+                iLitNew = Mpm_ManNodeIfToGia( pNew, pMan, pObj, vLeaves, 0 );
+                // write mapping
+                Vec_IntSetEntry( vMapping, Abc_Lit2Var(iLitNew), Vec_IntSize(vMapping2) );
+                Vec_IntPush( vMapping2, Vec_IntSize(vLeaves) );
+                Vec_IntForEachEntry( vLeaves, Entry, k )
+                    assert( Abc_Lit2Var(Entry) < Abc_Lit2Var(iLitNew) );
+                Vec_IntForEachEntry( vLeaves, Entry, k )
+                    Vec_IntPush( vMapping2, Abc_Lit2Var(Entry)  );
+                Vec_IntPush( vMapping2, Abc_Lit2Var(iLitNew) );
+            }
         }
         else if ( Mig_ObjIsCi(pObj) )
             iLitNew = Gia_ManAppendCi(pNew);
