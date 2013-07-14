@@ -20,7 +20,6 @@
 
 #include "aig/gia/gia.h"
 #include "mpmInt.h"
-#include "misc/util/utilTruth.h"
 
 ABC_NAMESPACE_IMPL_START
 

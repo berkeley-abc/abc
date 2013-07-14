@@ -26,6 +26,7 @@
 #include "misc/vec/vec.h"
 #include "misc/vec/vecHsh.h"
 #include "misc/extra/extra.h"
+#include "bool/kit/kit.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -37,7 +38,8 @@ ABC_NAMESPACE_IMPL_START
 typedef struct Ifd_Obj_t_ Ifd_Obj_t;
 struct Ifd_Obj_t_
 {
-    unsigned          nFreq : 24;   // frequency
+    unsigned          nFreq : 18;   // frequency
+    unsigned          nAnds :  6;   // number of AND gates
     unsigned          nSupp :  5;   // support size
     unsigned          Type  :  2;   // type
     unsigned          fWay  :  1;   // transparent edge
@@ -53,11 +55,10 @@ struct Ifd_Man_t_
     // hashing operations
     Vec_Int_t *       vArgs;     // iDsd1 op iDsdC
     Vec_Int_t *       vRes;      // result of operation
-    Vec_Int_t *       vOffs;     // offsets in the array of permutations
-    Vec_Str_t *       vPerms;    // storage for permutations
     Hsh_IntMan_t *    vHash;     // hash table 
     Vec_Int_t *       vMarks;    // marks where given N begins
     Vec_Wrd_t *       vTruths;   // truth tables
+    Vec_Int_t *       vClauses;  // truth tables
     // other data
     Vec_Int_t *       vSuper;
 
@@ -72,6 +73,7 @@ static inline Ifd_Obj_t * Ifd_ManObj( Ifd_Man_t * p, int i )           { assert(
 static inline Ifd_Obj_t * Ifd_ManObjFromLit( Ifd_Man_t * p, int iLit ) { return Ifd_ManObj( p, Abc_Lit2Var(iLit) );                                             }
 static inline int         Ifd_ObjId( Ifd_Man_t * p, Ifd_Obj_t * pObj ) { assert( pObj - p->pObjs >= 0 && pObj - p->pObjs < p->nObjs );  return pObj - p->pObjs; }
 static inline int         Ifd_LitSuppSize( Ifd_Man_t * p, int iLit )   { return iLit > 0 ? Ifd_ManObjFromLit(p, iLit)->nSupp : 0;                               }
+static inline int         Ifd_LitNumAnds( Ifd_Man_t * p, int iLit )    { return iLit > 0 ? Ifd_ManObjFromLit(p, iLit)->nAnds : 0;                               }
 
 #define Ifd_ManForEachNodeWithSupp( p, nVars, pLeaf, i )                       \
     for ( i = Vec_IntEntry(p->vMarks, nVars); (i < Vec_IntEntry(p->vMarks, nVars+1)) && (pLeaf = Ifd_ManObj(p, i)); i++ )
@@ -105,8 +107,6 @@ Ifd_Man_t * Ifd_ManStart()
     // hashing operations
     p->vArgs      = Vec_IntAlloc( 4000 );
     p->vRes       = Vec_IntAlloc( 1000 );
-//    p->vOffs      = Vec_IntAlloc( 1000 );
-//    p->vPerms     = Vec_StrAlloc( 1000 );
     p->vHash      = Hsh_IntManStart( p->vArgs, 4, 1000 );
     p->vMarks     = Vec_IntAlloc( 100 );
     Vec_IntPush( p->vMarks, 0 );
@@ -115,6 +115,7 @@ Ifd_Man_t * Ifd_ManStart()
     // other data
     p->vSuper     = Vec_IntAlloc( 1000 );
     p->vTruths    = Vec_WrdAlloc( 1000 );
+    p->vClauses   = Vec_IntAlloc( 1000 );
     return p;
 }
 void Ifd_ManStop( Ifd_Man_t * p )
@@ -129,9 +130,8 @@ void Ifd_ManStop( Ifd_Man_t * p )
 
     Vec_IntFreeP( &p->vArgs );
     Vec_IntFreeP( &p->vRes );
-//    Vec_IntFree( p->vOffs );
-//    Vec_StrFree( p->vPerms );
     Vec_WrdFreeP( &p->vTruths );
+    Vec_IntFreeP( &p->vClauses );
     Vec_IntFreeP( &p->vMarks );
     Hsh_IntManStop( p->vHash );
     Vec_IntFreeP( &p->vSuper );
@@ -193,7 +193,11 @@ void Ifd_ManPrint( Ifd_Man_t * p )
     for ( i = 0; i < p->nObjs; i++ )
     {
         word Fun = Vec_WrdEntry( p->vTruths, i );
-        printf( "    { %d, ABC_CONST(", Extra_TruthSupportSize((unsigned *)&Fun, 6) );
+        printf( "    { " );
+        printf( "%d, ", Extra_TruthSupportSize((unsigned *)&Fun, 6) );
+        printf( "%2d, ", Ifd_LitNumAnds(p, Abc_Var2Lit(i, 0)) );
+        printf( "%2d, ", Vec_IntEntry(p->vClauses, i) );
+        printf( "ABC_CONST(" );
         Extra_PrintHex( stdout, (unsigned *)&Fun, 6 ); 
         printf( "), \"" );
         Ifd_ObjPrint( p, Abc_Var2Lit( i, 0 ) );
@@ -276,6 +280,69 @@ void Ifd_ManTruthAll( Ifd_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Mpm_ComputeCnfSizeOne( word Truth, int nVars, Vec_Int_t * vCover, Vec_Str_t * vCnf )
+{
+    Vec_StrClear( vCnf );
+    if ( Truth == 0 || ~Truth == 0 )
+    {
+//        assert( nVars == 0 );
+        Vec_StrPush( vCnf, (char)(Truth == 0) );
+        Vec_StrPush( vCnf, (char)-1 );
+        return 1;
+    }
+    else 
+    {
+        int i, k, c, RetValue, Literal, Cube, nCubes = 0;
+        assert( nVars > 0 );
+        for ( c = 0; c < 2; c ++ )
+        {
+            Truth = c ? ~Truth : Truth;
+            RetValue = Kit_TruthIsop( (unsigned *)&Truth, nVars, vCover, 0 );
+            assert( RetValue == 0 );
+            nCubes += Vec_IntSize( vCover );
+            Vec_IntForEachEntry( vCover, Cube, i )
+            {
+                for ( k = 0; k < nVars; k++ )
+                {
+                    Literal = 3 & (Cube >> (k << 1));
+                    if ( Literal == 1 )      // '0'  -> pos lit
+                        Vec_StrPush( vCnf, (char)Abc_Var2Lit(k, 0) );
+                    else if ( Literal == 2 ) // '1'  -> neg lit
+                        Vec_StrPush( vCnf, (char)Abc_Var2Lit(k, 1) );
+                    else if ( Literal != 0 )
+                        assert( 0 );
+                }
+                Vec_StrPush( vCnf, (char)Abc_Var2Lit(nVars, c) );
+                Vec_StrPush( vCnf, (char)-1 );
+            }
+        }
+        return nCubes;
+    }
+}
+void Mpm_ComputeCnfSizeAll( Ifd_Man_t * p )
+{
+    Vec_Int_t * vCover = Vec_IntAlloc( 1 << 16 );
+    Vec_Str_t * vCnf = Vec_StrAlloc( 1000 );
+    word Truth;
+    int i;
+    assert( Vec_IntSize(p->vClauses) == 0 );
+    Vec_WrdForEachEntry( p->vTruths, Truth, i )
+        Vec_IntPush( p->vClauses, Mpm_ComputeCnfSizeOne(Truth, 6, vCover, vCnf) );
+    Vec_IntFree( vCover );
+    Vec_StrFree( vCnf );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Canonicizing DSD structures.]
 
   Description []
@@ -326,7 +393,7 @@ int Ifd_ManHashFindOrAdd( Ifd_Man_t * p, int iDsd0, int iDsd1, int iDsdC, int Ty
         iObj = Vec_IntEntry(p->vRes, Value);
         Vec_IntShrink( p->vArgs, Vec_IntSize(p->vArgs) - 4 );
         pObj = Ifd_ManObj( p, iObj );
-        pObj->nFreq++;
+//        pObj->nFreq++;
         assert( (int)pObj->Type == Type );
         assert( (int)pObj->nSupp == Ifd_LitSuppSize(p, iDsd0) + Ifd_LitSuppSize(p, iDsd1) + Ifd_LitSuppSize(p, iDsdC) );
     }
@@ -337,8 +404,9 @@ int Ifd_ManHashFindOrAdd( Ifd_Man_t * p, int iDsd0, int iDsd1, int iDsdC, int Ty
         assert( p->nObjs < p->nObjsAlloc );
         iObj = p->nObjs;
         pObj = Ifd_ManObj( p, p->nObjs++ );
-        pObj->nFreq = 1;
+//        pObj->nFreq = 1;
         pObj->nSupp = Ifd_LitSuppSize(p, iDsd0) + Ifd_LitSuppSize(p, iDsd1) + Ifd_LitSuppSize(p, iDsdC); 
+        pObj->nAnds = Ifd_LitNumAnds(p, iDsd0) + Ifd_LitNumAnds(p, iDsd1) + Ifd_LitNumAnds(p, iDsdC) + ((Type == 1) ? 1 : 3); 
         pObj->Type  = Type;
         if ( Type == 1 )
             pObj->fWay = 0;
@@ -615,6 +683,7 @@ Vec_Wrd_t * Ifd_ManDsdTruths( int nVars )
         Vec_IntPush( pMan->vMarks, pMan->nObjs );
     }
     Ifd_ManTruthAll( pMan );
+    Mpm_ComputeCnfSizeAll( pMan );
 //    Ifd_ManPrint( pMan );
     vTruths = pMan->vTruths; pMan->vTruths = NULL;
     Ifd_ManStop( pMan );

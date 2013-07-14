@@ -19,7 +19,6 @@
 ***********************************************************************/
 
 #include "mpmInt.h"
-#include "misc/util/utilTruth.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -167,6 +166,14 @@ static inline int Mpm_ManSetIsBigger( Mpm_Man_t * p, Mpm_Cut_t * pCut, int nTota
   SeeAlso     []
 
 ***********************************************************************/
+static inline int Mpm_CutGetArea( Mpm_Man_t * p, Mpm_Cut_t * pCut )  
+{
+    if ( p->pPars->fMap4Cnf )
+        return MPM_UNIT_AREA * p->pDsd6[Abc_Lit2Var(pCut->iFunc)].nClauses;
+    if ( p->pPars->fMap4Aig )
+        return MPM_UNIT_AREA * p->pDsd6[Abc_Lit2Var(pCut->iFunc)].nAnds;
+    return p->pLibLut->pLutAreas[pCut->nLeaves];
+}
 static inline word Mpm_CutGetSign( Mpm_Cut_t * pCut )  
 {
     int i, iLeaf;
@@ -204,7 +211,7 @@ static inline Mpm_Uni_t * Mpm_CutSetupInfo( Mpm_Man_t * p, Mpm_Cut_t * pCut, int
     }
 
     pUnit->mTime    = ArrTime;
-    pUnit->mArea    = p->pLibLut->pLutAreas[pCut->nLeaves];
+    pUnit->mArea    = Mpm_CutGetArea( p, pCut );
     pUnit->mEdge    = MPM_UNIT_EDGE * pCut->nLeaves;
     pUnit->mAveRefs = 0;
     pUnit->Cost     = 0;
@@ -444,7 +451,7 @@ static inline void Mpm_ObjPrepareFanins( Mpm_Man_t * p, Mig_Obj_t * pObj )
 ***********************************************************************/
 static inline int Mpm_ObjDeriveCut( Mpm_Man_t * p, Mpm_Cut_t ** pCuts, Mpm_Cut_t * pCut )
 {
-    int i, c, iObj;
+    int i, c, iObj, fDisj = 1;
     // clean present objects
 //    Vec_IntForEachEntry( &p->vObjPresUsed, iObj, i )
 //        p->pObjPres[iObj] = (unsigned char)0xFF; 
@@ -488,6 +495,8 @@ static inline int Mpm_ObjDeriveCut( Mpm_Man_t * p, Mpm_Cut_t ** pCuts, Mpm_Cut_t
                 p->pObjPres[iObj] = pCut->nLeaves;        
                 pCut->pLeaves[pCut->nLeaves++] = pCuts[c]->pLeaves[i];
             }
+            else
+                fDisj = 0;
             p->uPermMask[c] ^= (((i & 7) ^ 7) << (3*p->pObjPres[iObj]));
             assert( Abc_Lit2Var(pCuts[c]->pLeaves[i]) == Abc_Lit2Var(pCut->pLeaves[p->pObjPres[iObj]]) );
             if ( pCuts[c]->pLeaves[i] != pCut->pLeaves[p->pObjPres[iObj]] )
@@ -495,6 +504,7 @@ static inline int Mpm_ObjDeriveCut( Mpm_Man_t * p, Mpm_Cut_t ** pCuts, Mpm_Cut_t
         }
 //        Mpm_ManPrintPerm( p->uPermMask[c] ); printf( "\n" );
     }
+//    printf( "%d", fDisj );
     pCut->hNext    = 0;
     pCut->iFunc    = 0;  pCut->iFunc = ~pCut->iFunc;
     pCut->fUseless = 0;
@@ -525,7 +535,7 @@ p->timeMerge += clock() - clk;
 
     // derive truth table
     if ( p->pPars->fUseTruth )
-        Mpm_CutComputeTruth6( p, pCut, pCuts[0], pCuts[1], pCuts[2], Mig_ObjFaninC0(pObj), Mig_ObjFaninC1(pObj), Mig_ObjFaninC2(pObj), Mig_ObjNodeType(pObj) ); 
+        Mpm_CutComputeTruth( p, pCut, pCuts[0], pCuts[1], pCuts[2], Mig_ObjFaninC0(pObj), Mig_ObjFaninC1(pObj), Mig_ObjFaninC2(pObj), Mig_ObjNodeType(pObj) ); 
     else if ( p->pPars->fUseDsd )
     {
         if ( !Mpm_CutComputeDsd6( p, pCut, pCuts[0], pCuts[1], pCuts[2], Mig_ObjFaninC0(pObj), Mig_ObjFaninC1(pObj), Mig_ObjFaninC2(pObj), Mig_ObjNodeType(pObj) ) )
@@ -694,6 +704,8 @@ static inline void Mpm_ManFinalizeRound( Mpm_Man_t * p )
     p->GloArea = 0;
     p->GloEdge = 0;
     p->GloRequired = Mpm_ManFindArrivalMax(p);
+    if ( p->pPars->DelayTarget != -1 )
+        p->GloRequired = Abc_MaxInt( p->GloRequired, p->pPars->DelayTarget );
     Mpm_ManCleanMapRefs( p );
     Mpm_ManCleanRequired( p );
     Mig_ManForEachObjReverse( p->pMig, pObj )
@@ -716,7 +728,7 @@ static inline void Mpm_ManFinalizeRound( Mpm_Man_t * p )
                     pRequired[iLeaf] = Abc_MinInt( pRequired[iLeaf], Required - pDelays[i] );
                     pMapRefs [iLeaf]++;
                 }
-                p->GloArea += p->pLibLut->pLutAreas[pCut->nLeaves];
+                p->GloArea += Mpm_CutGetArea( p, pCut );
                 p->GloEdge += pCut->nLeaves;
             }
         }
@@ -816,7 +828,7 @@ void Mpm_ManPerformRound( Mpm_Man_t * p )
     Mig_ManForEachNode( p->pMig, pObj )
         Mpm_ManDeriveCuts( p, pObj );
     Mpm_ManFinalizeRound( p );
-    printf( "Del =%5d.  Ar =%8d.  Edge =%8d.  Cut =%10d. Max =%10d.  Tru =%6d. Small =%5d. ", 
+    printf( "Del =%5d.  Ar =%8d.  Edge =%8d.  Cut =%10d. Max =%8d.  Tru =%8d. Small =%6d. ", 
         p->GloRequired, p->GloArea, p->GloEdge, 
         p->nCutsMerged, p->pManCuts->nEntriesMax, 
         p->vTtMem ? p->vTtMem->nEntries : 0, p->nSmallSupp );
@@ -824,24 +836,34 @@ void Mpm_ManPerformRound( Mpm_Man_t * p )
 }
 void Mpm_ManPerform( Mpm_Man_t * p )
 {
-    p->pCutCmp = Mpm_CutCompareDelay;
-    Mpm_ManPerformRound( p );
+    if ( p->pPars->fMap4Cnf )
+    {
+        p->pCutCmp = Mpm_CutCompareArea;
+        Mpm_ManPerformRound( p );   
+    }
+    else
+    {
+        p->pCutCmp = Mpm_CutCompareDelay;
+        Mpm_ManPerformRound( p );
+        if ( p->pPars->fOneRound )
+            return;
     
-    p->pCutCmp = Mpm_CutCompareDelay2;
-    Mpm_ManPerformRound( p );
+        p->pCutCmp = Mpm_CutCompareDelay2;
+        Mpm_ManPerformRound( p );
     
-    p->pCutCmp = Mpm_CutCompareArea;
-    Mpm_ManPerformRound( p );   
+        p->pCutCmp = Mpm_CutCompareArea;
+        Mpm_ManPerformRound( p );   
 
-    p->fMainRun = 1;
+        p->fMainRun = 1;
 
-    p->pCutCmp = Mpm_CutCompareArea;
-    Mpm_ManComputeEstRefs( p );
-    Mpm_ManPerformRound( p );
+        p->pCutCmp = Mpm_CutCompareArea;
+        Mpm_ManComputeEstRefs( p );
+        Mpm_ManPerformRound( p );
 
-    p->pCutCmp = Mpm_CutCompareArea2;
-    Mpm_ManComputeEstRefs( p );
-    Mpm_ManPerformRound( p );
+        p->pCutCmp = Mpm_CutCompareArea2;
+        Mpm_ManComputeEstRefs( p );
+        Mpm_ManPerformRound( p );
+    }
 }
 
 

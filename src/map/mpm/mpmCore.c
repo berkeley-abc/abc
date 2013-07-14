@@ -51,8 +51,11 @@ void Mpm_ManSetParsDefault( Mpm_Par_t * p )
     p->fUseTruth      =      0;  // uses truth tables
     p->fUseDsd        =      0;  // uses DSDs
     p->fCutMin        =      0;  // enables cut minimization
+    p->fOneRound      =      0;  // enabled one round
     p->DelayTarget    =     -1;  // delay target
     p->fDeriveLuts    =      0;  // use truth tables to derive AIG structure
+    p->fMap4Cnf       =      0;  // mapping for CNF
+    p->fMap4Aig       =      0;  // mapping for AIG
     p->fVerbose       =      0;  // verbose output
     p->fVeryVerbose   =      0;  // verbose output
 }

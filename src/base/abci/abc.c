@@ -29522,7 +29522,7 @@ int Abc_CommandAbc9If2( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set defaults
     Mpm_ManSetParsDefault( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KDtmzvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KDtmzrcuvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -29532,8 +29532,8 @@ int Abc_CommandAbc9If2( Abc_Frame_t * pAbc, int argc, char ** argv )
                 Abc_Print( -1, "Command line switch \"-K\" should be followed by a positive integer.\n" );
                 goto usage;
             }
-            globalUtilOptind++;
             nLutSize = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
             if ( nLutSize < 2 || nLutSize > 16 )
             {
                 Abc_Print( -1, "LUT size %d is not supported.\n", nLutSize );
@@ -29562,6 +29562,15 @@ int Abc_CommandAbc9If2( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'z':
             pPars->fDeriveLuts ^= 1;
             break;
+        case 'r':
+            pPars->fOneRound ^= 1;
+            break;
+        case 'c':
+            pPars->fMap4Cnf ^= 1;
+            break;
+        case 'u':
+            pPars->fMap4Aig ^= 1;
+            break;
         case 'v':
             pPars->fVerbose ^= 1;
             break;
@@ -29575,6 +29584,8 @@ int Abc_CommandAbc9If2( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( pPars->pLib == NULL )
         pPars->pLib = Mpm_LibLutSetSimple( nLutSize );
+    if ( pPars->fMap4Cnf )
+        pPars->fUseDsd = 1;
     if ( pPars->fCutMin )
 //        pPars->fUseTruth = 1;
         pPars->fUseDsd = 1;
@@ -29594,13 +29605,16 @@ usage:
         sprintf(Buffer, "best possible" );
     else
         sprintf(Buffer, "%d", pPars->DelayTarget );
-    Abc_Print( -2, "usage: &if2 [-KD num] [-tmzvwh]\n" );
+    Abc_Print( -2, "usage: &if2 [-KD num] [-tmzrcuvwh]\n" );
     Abc_Print( -2, "\t           performs technology mapping of the network\n" );
     Abc_Print( -2, "\t-K num   : sets the LUT size for the mapping [default = %d]\n", nLutSize );
     Abc_Print( -2, "\t-D num   : sets the delay constraint for the mapping [default = %s]\n", Buffer );
     Abc_Print( -2, "\t-t       : enables using AND/XOR/MUX nodes instead of simple AIG [default = %s]\n", pPars->fUseGates? "yes": "no" );
     Abc_Print( -2, "\t-m       : enables cut minimization by removing vacuous variables [default = %s]\n", pPars->fCutMin? "yes": "no" );
     Abc_Print( -2, "\t-z       : toggles deriving LUTs when mapping into LUT structures [default = %s]\n", pPars->fDeriveLuts? "yes": "no" );
+    Abc_Print( -2, "\t-r       : toggles using one round of mapping [default = %s]\n", pPars->fOneRound? "yes": "no" );
+    Abc_Print( -2, "\t-c       : toggles mapping for CNF computation [default = %s]\n", pPars->fMap4Cnf? "yes": "no" );
+    Abc_Print( -2, "\t-u       : toggles mapping for AIG computation [default = %s]\n", pPars->fMap4Aig? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w       : toggles very verbose output [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : prints the command usage\n");

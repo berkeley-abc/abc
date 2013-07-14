@@ -357,6 +357,7 @@ void Abc_TruthStoreRead( char * pFileName, Abc_TtStore_t * p )
 void Abc_TtStoreWrite( char * pFileName, Abc_TtStore_t * p, int fBinary )
 {
     FILE * pFile;
+    char pBuffer[1000];
     int i, nBytes = 8 * Abc_Truth6WordNum( p->nVars );
     pFile = fopen( pFileName, "wb" );
     if ( pFile == NULL )
@@ -369,7 +370,11 @@ void Abc_TtStoreWrite( char * pFileName, Abc_TtStore_t * p, int fBinary )
         if ( fBinary )
             fwrite( p->pFuncs[i], nBytes, 1, pFile );
         else
-            Abc_TruthWriteHex( pFile, p->pFuncs[i], p->nVars ), fprintf( pFile, "\n" );
+        {
+            Abc_TruthWriteHex( pFile, p->pFuncs[i], p->nVars ), fprintf( pFile, "    " );
+            Dau_DsdDecompose( p->pFuncs[i], p->nVars, 0, (int)(p->nVars <= 10), pBuffer );
+            fprintf( pFile, "%s\n", pBuffer );
+        }
     }
     fclose( pFile );
 }

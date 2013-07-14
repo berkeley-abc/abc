@@ -63,7 +63,10 @@ struct Mpm_Par_t_
     int              fUseTruth;
     int              fUseDsd;
     int              fCutMin;
+    int              fOneRound;
     int              fDeriveLuts;
+    int              fMap4Cnf;
+    int              fMap4Aig;
     int              fVerbose;
     int              fVeryVerbose;
 };

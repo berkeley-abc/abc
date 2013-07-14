@@ -48,6 +48,8 @@ Mpm_Man_t * Mpm_ManStart( Mig_Man_t * pMig, Mpm_Par_t * pPars )
     int i;
     assert( sizeof(Mpm_Uni_t) % sizeof(word) == 0 );      // aligned info to word boundary
     assert( pPars->nNumCuts <= MPM_CUT_MAX );
+    assert( !pPars->fUseTruth || pPars->pLib->LutMax <= 16 );
+    assert( !pPars->fUseDsd || pPars->pLib->LutMax <= 6 );
     Mig_ManSetRefs( pMig, 1 );
     // alloc
     p = ABC_CALLOC( Mpm_Man_t, 1 );
@@ -81,12 +83,11 @@ Mpm_Man_t * Mpm_ManStart( Mig_Man_t * pMig, Mpm_Par_t * pPars )
     assert( !p->pPars->fUseTruth || !p->pPars->fUseDsd );
     if ( p->pPars->fUseTruth )
     { 
-        word Truth = 0;
         p->vTtMem = Vec_MemAlloc( p->nTruWords, 12 ); // 32 KB/page for 6-var functions
         Vec_MemHashAlloc( p->vTtMem, 10000 );
-        p->funcCst0 = Vec_MemHashInsert( p->vTtMem, &Truth );
-        Truth = ABC_CONST(0xAAAAAAAAAAAAAAAA);
-        p->funcVar0 = Vec_MemHashInsert( p->vTtMem, &Truth );
+        p->funcCst0 = Vec_MemHashInsert( p->vTtMem, p->Truth );
+        Abc_TtUnit( p->Truth, p->nTruWords );
+        p->funcVar0 = Vec_MemHashInsert( p->vTtMem, p->Truth );
     }
     else if ( p->pPars->fUseDsd )
     {
@@ -112,6 +113,16 @@ Mpm_Man_t * Mpm_ManStart( Mig_Man_t * pMig, Mpm_Par_t * pPars )
 ***********************************************************************/
 void Mpm_ManStop( Mpm_Man_t * p )
 {
+    if ( p->pPars->fUseTruth )
+    {
+        char * pFileName = "truths.txt";
+        FILE * pFile = fopen( pFileName, "wb" );
+        Vec_MemDump( pFile, p->vTtMem );
+        fclose( pFile );
+        printf( "Dumpted %d %d-var truth tables into file \"%s\" (%.2f MB).\n", 
+            Vec_MemEntryNum(p->vTtMem), p->nLutSize, pFileName,
+            (16.0 * p->nTruWords + 1.0) * Vec_MemEntryNum(p->vTtMem) / (1 << 20) );
+    }
     if ( p->pPars->fUseDsd )
         Mpm_ManPrintDsdStats( p );
     if ( p->vTtMem ) 

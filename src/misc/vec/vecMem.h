@@ -268,16 +268,26 @@ static inline void Vec_MemShrink( Vec_Mem_t * p, int nEntriesNew )
   SeeAlso     []
 
 ***********************************************************************/
-static inline void Vec_MemPrint( Vec_Mem_t * p )
+static inline void Vec_MemDumpDigit( FILE * pFile, int HexDigit )
+{
+    assert( HexDigit >= 0 && HexDigit < 16 );
+    if ( HexDigit < 10 )
+        fprintf( pFile, "%d", HexDigit );
+    else
+        fprintf( pFile, "%c", 'A' + HexDigit-10 );
+}
+static inline void Vec_MemDump( FILE * pFile, Vec_Mem_t * pVec )
 {
     word * pEntry;
-    int i;
-    printf( "Memory vector has %d entries: ", Vec_MemEntryNum(p) );
-    Vec_MemForEachEntry( p, pEntry, i )
+    int i, w, d;
+    if ( pFile == stdout )
+        printf( "Memory vector has %d entries: ", Vec_MemEntryNum(pVec) );
+    Vec_MemForEachEntry( pVec, pEntry, i )
     {
-        printf( "%3d : ", i );
-        // add printout here
-        printf( "\n" );
+        for ( w = pVec->nEntrySize - 1; w >= 0; w-- )
+            for ( d = 15; d >= 0; d-- )
+                Vec_MemDumpDigit( pFile, (int)(pEntry[w] >> (d<<2)) & 15 );
+        fprintf( pFile, "\n" );
     }
 }
 

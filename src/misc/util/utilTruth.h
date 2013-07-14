@@ -128,6 +128,12 @@ static inline void Abc_TtFill( word * pOut, int nWords )
     for ( w = 0; w < nWords; w++ )
         pOut[w] = ~(word)0;
 }
+static inline void Abc_TtUnit( word * pOut, int nWords )
+{
+    int w;
+    for ( w = 0; w < nWords; w++ )
+        pOut[w] = s_Truths6[0];
+}
 static inline void Abc_TtNot( word * pOut, int nWords )
 {
     int w;

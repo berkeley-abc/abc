@@ -32,10 +32,11 @@
 #include <assert.h>
 
 //#include "misc/tim/tim.h"
+#include "misc/mem/mem2.h"
 #include "misc/vec/vec.h"
 #include "misc/vec/vecMem.h"
 #include "misc/vec/vecHsh.h"
-#include "misc/mem/mem2.h"
+#include "misc/util/utilTruth.h"
 #include "mpmMig.h"
 #include "mpm.h"
 
@@ -83,6 +84,8 @@ typedef struct Mpm_Dsd_t_ Mpm_Dsd_t;
 struct Mpm_Dsd_t_
 {
     int              nVars;                    // support size
+    int              nAnds;                    // the number of AND gates
+    int              nClauses;                 // the number of CNF clauses
     word             uTruth;                   // truth table
     char *           pStr;                     // description 
 };
@@ -124,6 +127,10 @@ struct Mpm_Man_t_
     Vec_Mem_t *      vTtMem;                   // truth table memory and hash table
     int              funcCst0;                 // constant 0
     int              funcVar0;                 // variable 0
+    word             Truth0[1024];
+    word             Truth1[1024];
+    word             TruthC[1024];
+    word             Truth[1024];
     // DSD
     Mpm_Dsd_t *      pDsd6;                    // NPN class information
     Hsh_IntMan_t *   pHash;                    // maps DSD functions into NPN classes
@@ -242,7 +249,7 @@ extern void                  Mpm_CutPrint( Mpm_Cut_t * pCut );
 extern void                  Mpm_ManPrepare( Mpm_Man_t * p );
 extern void                  Mpm_ManPerform( Mpm_Man_t * p );
 /*=== mpmTruth.c ===========================================================*/
-extern int                   Mpm_CutComputeTruth6( Mpm_Man_t * p, Mpm_Cut_t * pCut, Mpm_Cut_t * pCut0, Mpm_Cut_t * pCut1, Mpm_Cut_t * pCutC, int fCompl0, int fCompl1, int fComplC, int Type );
+extern int                   Mpm_CutComputeTruth( Mpm_Man_t * p, Mpm_Cut_t * pCut, Mpm_Cut_t * pCut0, Mpm_Cut_t * pCut1, Mpm_Cut_t * pCutC, int fCompl0, int fCompl1, int fComplC, int Type );
 
 extern void                  Kit_DsdPrintFromTruth( unsigned * pTruth, int nVars );
 
