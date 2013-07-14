@@ -57,7 +57,6 @@ Mpm_Man_t * Mpm_ManStart( Mig_Man_t * pMig, Mpm_Par_t * pPars )
     p->nLutSize  = pPars->pLib->LutMax;
     p->nTruWords = pPars->fUseTruth ? Abc_Truth6WordNum(p->nLutSize) : 0;
     p->nNumCuts  = pPars->nNumCuts;
-    p->timeTotal = Abc_Clock();
     // cuts
     assert( Mpm_CutWordNum(32) < 32 ); // using 5 bits for word count
     p->pManCuts  = Mmr_StepStart( 13, Abc_Base2Log(Mpm_CutWordNum(p->nLutSize) + 1) );
@@ -79,10 +78,9 @@ Mpm_Man_t * Mpm_ManStart( Mig_Man_t * pMig, Mpm_Par_t * pPars )
     Vec_IntFill( &p->vAreas, Mig_ManObjNum(pMig), 0 );
     Vec_IntFill( &p->vEdges, Mig_ManObjNum(pMig), 0 );
     // start DSD manager
-    p->pManDsd   = NULL;
-    pMig->pMan   = p;
+    assert( !p->pPars->fUseTruth || !p->pPars->fUseDsd );
     if ( p->pPars->fUseTruth )
-    {
+    { 
         word Truth = 0;
         p->vTtMem = Vec_MemAlloc( p->nTruWords, 12 ); // 32 KB/page for 6-var functions
         Vec_MemHashAlloc( p->vTtMem, 10000 );
@@ -90,8 +88,14 @@ Mpm_Man_t * Mpm_ManStart( Mig_Man_t * pMig, Mpm_Par_t * pPars )
         Truth = ABC_CONST(0xAAAAAAAAAAAAAAAA);
         p->funcVar0 = Vec_MemHashInsert( p->vTtMem, &Truth );
     }
-    else 
+    else if ( p->pPars->fUseDsd )
+    {
+        Mpm_ManPrecomputePerms( p );
         p->funcVar0 = 1;
+    }
+    // finish
+    p->timeTotal = Abc_Clock();
+    pMig->pMan = p;
     return p;
 }
 
@@ -108,10 +112,20 @@ Mpm_Man_t * Mpm_ManStart( Mig_Man_t * pMig, Mpm_Par_t * pPars )
 ***********************************************************************/
 void Mpm_ManStop( Mpm_Man_t * p )
 {
+    if ( p->pPars->fUseDsd )
+        Mpm_ManPrintDsdStats( p );
     if ( p->vTtMem ) 
     {
         Vec_MemHashFree( p->vTtMem );
         Vec_MemFree( p->vTtMem );
+    }
+    if ( p->pHash )
+    {
+        Vec_WrdFree( p->vPerm6 );
+        Vec_IntFree( p->vMap2Perm );
+        Vec_IntFree( p->vConfgRes );
+        Vec_IntFree( p->pHash->vData );
+        Hsh_IntManStop( p->pHash );
     }
     Vec_PtrFree( p->vTemp );
     Mmr_StepStop( p->pManCuts );
@@ -145,11 +159,11 @@ void Mpm_ManStop( Mpm_Man_t * p )
 ***********************************************************************/
 void Mpm_ManPrintStatsInit( Mpm_Man_t * p )
 {
-    printf( "K = %d.  C = %d.  Cands = %d. XOR = %d. MUX = %d. Choices = %d.   CutMin = %d. Truth = %d.\n", 
+    printf( "K = %d.  C = %d.  Cand = %d. XOR = %d. MUX = %d. Choice = %d.  CutMin = %d. Truth = %d. DSD = %d.\n", 
         p->nLutSize, p->nNumCuts, 
         Mig_ManCiNum(p->pMig) + Mig_ManNodeNum(p->pMig), 
         Mig_ManXorNum(p->pMig), Mig_ManMuxNum(p->pMig), 0, 
-        p->pPars->fCutMin, p->pPars->fUseTruth );
+        p->pPars->fCutMin, p->pPars->fUseTruth, p->pPars->fUseDsd );
 }
 void Mpm_ManPrintStats( Mpm_Man_t * p )
 {

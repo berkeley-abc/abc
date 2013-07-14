@@ -54,6 +54,7 @@ void Mpm_ManSetParsDefault( Mpm_Par_t * p )
     p->DelayTarget    =     -1;  // delay target
     p->fDeriveLuts    =      0;  // use truth tables to derive AIG structure
     p->fVerbose       =      0;  // verbose output
+    p->fVeryVerbose   =      0;  // verbose output
 }
 
 /**Function*************************************************************

@@ -183,6 +183,7 @@ void * Mpm_ManFromIfLogic( Mpm_Man_t * pMan )
     Mig_Obj_t * pObj, * pFanin;
     Vec_Int_t * vMapping, * vMapping2, * vPacking = NULL;
     Vec_Int_t * vLeaves, * vLeaves2, * vCover;
+    word uTruth, * pTruth = &uTruth;
     int i, k, Entry, iLitNew;
 //    assert( !pMan->pPars->fDeriveLuts || pMan->pPars->fTruth );
     // start mapping and packing
@@ -211,11 +212,14 @@ void * Mpm_ManFromIfLogic( Mpm_Man_t * pMan )
             pCutBest = Mpm_ObjCutBestP( pMan, pObj );
             Mpm_CutForEachLeaf( pMan->pMig, pCutBest, pFanin, k )
                 Vec_IntPush( vLeaves, Mig_ObjCopy(pFanin) );
-            if ( pMan->pPars->fDeriveLuts && pMan->pPars->fUseTruth )
+            if ( pMan->pPars->fDeriveLuts && (pMan->pPars->fUseTruth || pMan->pPars->fUseDsd) )
             {
                 extern int Gia_ManFromIfLogicNode( Gia_Man_t * pNew, int iObj, Vec_Int_t * vLeaves, Vec_Int_t * vLeavesTemp, 
                     word * pRes, char * pStr, Vec_Int_t * vCover, Vec_Int_t * vMapping, Vec_Int_t * vMapping2, Vec_Int_t * vPacking );
-                word * pTruth = Mpm_CutTruth(pMan, Abc_Lit2Var(pCutBest->iFunc));
+                if ( pMan->pPars->fUseTruth )
+                    pTruth = Mpm_CutTruth(pMan, Abc_Lit2Var(pCutBest->iFunc));
+                else
+                    uTruth = Mpm_CutTruthFromDsd( pMan, pCutBest, Abc_Lit2Var(pCutBest->iFunc) );
 //                Kit_DsdPrintFromTruth( pTruth, Vec_IntSize(vLeaves) );  printf( "\n" );
                 // perform decomposition of the cut
                 iLitNew = Gia_ManFromIfLogicNode( pNew, Mig_ObjId(pObj), vLeaves, vLeaves2, pTruth, NULL, vCover, vMapping, vMapping2, vPacking );

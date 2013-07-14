@@ -94,6 +94,7 @@ static inline word Mpm_TruthStretch6( word Truth, Mpm_Cut_t * pCut, Mpm_Cut_t * 
     }
     return Truth;
 }
+//#define MPM_TRY_NEW
 int Mpm_CutComputeTruth6( Mpm_Man_t * p, Mpm_Cut_t * pCut, Mpm_Cut_t * pCut0, Mpm_Cut_t * pCut1, Mpm_Cut_t * pCutC, int fCompl0, int fCompl1, int fComplC, int Type )
 {
     word * pTruth0 = Mpm_CutTruth( p, Abc_Lit2Var(pCut0->iFunc) );
@@ -129,9 +130,10 @@ int Mpm_CutComputeTruth6( Mpm_Man_t * p, Mpm_Cut_t * pCut, Mpm_Cut_t * pCut0, Mp
 
 #ifdef MPM_TRY_NEW
     {
+        extern unsigned      Abc_TtCanonicize( word * pTruth, int nVars, char * pCanonPerm );
         word tCopy = t;
         char pCanonPerm[16];
-        Abc_TtCanonicize( &tCopy, pCut->nLimit, pCanonPerm );
+        Abc_TtCanonicize( &tCopy, p->nLutSize, pCanonPerm );
     }
 #endif
 

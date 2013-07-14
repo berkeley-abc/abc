@@ -210,9 +210,18 @@ static inline Vec_Int_t * Hsh_WrdManHashArray( Vec_Wrd_t * vDataW, int nSize )
 static inline Hsh_IntMan_t * Hsh_WrdManHashArrayStart( Vec_Wrd_t * vDataW, int nSize )
 {
     Hsh_IntMan_t * p;
-    Vec_Int_t Data = { 2*Vec_WrdCap(vDataW), 2*Vec_WrdSize(vDataW), (int *)Vec_WrdArray(vDataW) };
-    Vec_Int_t * vData = &Data;
-    int i, nEntries = Vec_IntSize(vData) / (2*nSize);
+    int i, nEntries = Vec_WrdSize(vDataW) / nSize;
+    Vec_Int_t * vData = Vec_IntAlloc( 2*Vec_WrdSize(vDataW) );
+    memcpy( Vec_IntArray(vData), Vec_WrdArray(vDataW), sizeof(word)*Vec_WrdSize(vDataW) );
+    vData->nSize = 2*Vec_WrdSize(vDataW);
+/*
+    for ( i = 0; i < 30; i++ )
+    {
+        extern void Extra_PrintHex( FILE * pFile, unsigned * pTruth, int nVars );
+        Extra_PrintHex( stdout, (unsigned *) Vec_WrdEntryP(vDataW, i), 6 );  printf( "  " );
+        Kit_DsdPrintFromTruth( (unsigned *) Vec_WrdEntryP(vDataW, i), 6 );   printf( "\n" );
+    }
+*/
     assert( Vec_IntSize(vData) % (2*nSize) == 0 );
     p = Hsh_IntManStart( vData, (2*nSize), nEntries );
     for ( i = 0; i < nEntries; i++ )

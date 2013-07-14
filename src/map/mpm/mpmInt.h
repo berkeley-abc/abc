@@ -34,6 +34,7 @@
 //#include "misc/tim/tim.h"
 #include "misc/vec/vec.h"
 #include "misc/vec/vecMem.h"
+#include "misc/vec/vecHsh.h"
 #include "misc/mem/mem2.h"
 #include "mpmMig.h"
 #include "mpm.h"
@@ -78,6 +79,14 @@ struct Mpm_Uni_t_
     int              Data[MPM_VAR_MAX];        // padding
 };
 
+typedef struct Mpm_Dsd_t_ Mpm_Dsd_t;
+struct Mpm_Dsd_t_
+{
+    int              nVars;                    // support size
+    word             uTruth;                   // truth table
+    char *           pStr;                     // description 
+};
+
 typedef struct Mpm_Man_t_ Mpm_Man_t;
 struct Mpm_Man_t_
 {
@@ -111,14 +120,19 @@ struct Mpm_Man_t_
     int              nCuts[3];                 // fanin cut counts
     Mpm_Cut_t *      pCuts[3][MPM_CUT_MAX+1];  // fanin cuts
     word             pSigns[3][MPM_CUT_MAX+1]; // fanin cut signatures
-    // functionality
-//    Dsd_Man_t *      pManDsd;
-    void *           pManDsd;
-    int              pPerm[MPM_VAR_MAX]; 
+    // truth tables
     Vec_Mem_t *      vTtMem;                   // truth table memory and hash table
     int              funcCst0;                 // constant 0
     int              funcVar0;                 // variable 0
+    // DSD
+    Mpm_Dsd_t *      pDsd6;                    // NPN class information
+    Hsh_IntMan_t *   pHash;                    // maps DSD functions into NPN classes
+    Vec_Int_t *      vConfgRes;                // configurations
+    Vec_Wrd_t *      vPerm6;                   // permutations of DSD classes
+    char             Perm6[720][6];            // permutations
+    Vec_Int_t *      vMap2Perm;                // maps number into its permutation
     unsigned         uPermMask[3];
+    unsigned         uComplMask[3];
     // mapping attributes
     Vec_Int_t        vCutBests;                // cut best
     Vec_Int_t        vCutLists;                // cut list
@@ -129,8 +143,11 @@ struct Mpm_Man_t_
     Vec_Int_t        vTimes;                   // arrival time
     Vec_Int_t        vAreas;                   // area
     Vec_Int_t        vEdges;                   // edge
+    int              nCountDsd[600];
+    int              nNonDsd;
     // statistics
     int              nCutsMerged;
+    int              nCutsMergedAll;
     int              nSmallSupp;
     abctime          timeFanin;
     abctime          timeDerive;
@@ -212,15 +229,22 @@ extern void                  Mpm_ManStop( Mpm_Man_t * p );
 extern void                  Mpm_ManPrintStatsInit( Mpm_Man_t * p );
 extern void                  Mpm_ManPrintStats( Mpm_Man_t * p );
 /*=== mpmDsd.c ===========================================================*/
+extern void                  Mpm_ManPrintDsdStats( Mpm_Man_t * p );
+extern void                  Mpm_ManPrintPerm( unsigned s );
+extern void                  Mpm_ManPrecomputePerms( Mpm_Man_t * p );
+extern word                  Mpm_CutTruthFromDsd( Mpm_Man_t * pMan, Mpm_Cut_t * pCut, int iDsdLit );
+extern int                   Mpm_CutComputeDsd6( Mpm_Man_t * p, Mpm_Cut_t * pCut, Mpm_Cut_t * pCut0, Mpm_Cut_t * pCut1, Mpm_Cut_t * pCutC, int fCompl0, int fCompl1, int fComplC, int Type );
 /*=== mpmLib.c ===========================================================*/
 extern Mpm_LibLut_t *        Mpm_LibLutSetSimple( int nLutSize );
 extern void                  Mpm_LibLutFree( Mpm_LibLut_t * pLib );
 /*=== mpmMap.c ===========================================================*/
+extern void                  Mpm_CutPrint( Mpm_Cut_t * pCut );
 extern void                  Mpm_ManPrepare( Mpm_Man_t * p );
 extern void                  Mpm_ManPerform( Mpm_Man_t * p );
 /*=== mpmTruth.c ===========================================================*/
 extern int                   Mpm_CutComputeTruth6( Mpm_Man_t * p, Mpm_Cut_t * pCut, Mpm_Cut_t * pCut0, Mpm_Cut_t * pCut1, Mpm_Cut_t * pCutC, int fCompl0, int fCompl1, int fComplC, int Type );
 
+extern void                  Kit_DsdPrintFromTruth( unsigned * pTruth, int nVars );
 
 ABC_NAMESPACE_HEADER_END
 

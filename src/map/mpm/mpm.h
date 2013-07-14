@@ -65,6 +65,7 @@ struct Mpm_Par_t_
     int              fCutMin;
     int              fDeriveLuts;
     int              fVerbose;
+    int              fVeryVerbose;
 };
 
 ////////////////////////////////////////////////////////////////////////

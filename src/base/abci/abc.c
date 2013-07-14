@@ -29522,7 +29522,7 @@ int Abc_CommandAbc9If2( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set defaults
     Mpm_ManSetParsDefault( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KDtmzvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KDtmzvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -29565,6 +29565,9 @@ int Abc_CommandAbc9If2( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'v':
             pPars->fVerbose ^= 1;
             break;
+        case 'w':
+            pPars->fVeryVerbose ^= 1;
+            break;
         case 'h':
         default:
             goto usage;
@@ -29573,7 +29576,8 @@ int Abc_CommandAbc9If2( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( pPars->pLib == NULL )
         pPars->pLib = Mpm_LibLutSetSimple( nLutSize );
     if ( pPars->fCutMin )
-        pPars->fUseTruth = 1;
+//        pPars->fUseTruth = 1;
+        pPars->fUseDsd = 1;
     // perform mapping
     pNew = Mpm_ManMappingTest( pAbc->pGia, pPars );
     Mpm_LibLutFree( pPars->pLib );
@@ -29590,7 +29594,7 @@ usage:
         sprintf(Buffer, "best possible" );
     else
         sprintf(Buffer, "%d", pPars->DelayTarget );
-    Abc_Print( -2, "usage: &if2 [-KD num] [-tmzvh]\n" );
+    Abc_Print( -2, "usage: &if2 [-KD num] [-tmzvwh]\n" );
     Abc_Print( -2, "\t           performs technology mapping of the network\n" );
     Abc_Print( -2, "\t-K num   : sets the LUT size for the mapping [default = %d]\n", nLutSize );
     Abc_Print( -2, "\t-D num   : sets the delay constraint for the mapping [default = %s]\n", Buffer );
@@ -29598,6 +29602,7 @@ usage:
     Abc_Print( -2, "\t-m       : enables cut minimization by removing vacuous variables [default = %s]\n", pPars->fCutMin? "yes": "no" );
     Abc_Print( -2, "\t-z       : toggles deriving LUTs when mapping into LUT structures [default = %s]\n", pPars->fDeriveLuts? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-w       : toggles very verbose output [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : prints the command usage\n");
     return 1;
 }

@@ -172,19 +172,32 @@ void Ifd_ObjPrint( Ifd_Man_t * p, int iLit )
 {
     int Counter = 0;
     if ( iLit == 0 )
-        { printf( "0\n" ); return; }
+        { printf( "0" ); return; }
     if ( iLit == 1 )
-        { printf( "1\n" ); return; }
+        { printf( "1" ); return; }
     Ifd_ObjPrint_rec( p, iLit, &Counter, 1 );
-    printf( "\n" );
 }
-void Ifd_ManPrint( Ifd_Man_t * p )
+void Ifd_ManPrint2( Ifd_Man_t * p )
 {
     int i;
     for ( i = 0; i < p->nObjs; i++ )
     {
         printf( "%4d : ", i );
         Ifd_ObjPrint( p, Abc_Var2Lit( i, 0 ) );
+        printf( "\n" );
+    }
+}
+void Ifd_ManPrint( Ifd_Man_t * p )
+{
+    int i;
+    for ( i = 0; i < p->nObjs; i++ )
+    {
+        word Fun = Vec_WrdEntry( p->vTruths, i );
+        printf( "    { %d, ABC_CONST(", Extra_TruthSupportSize((unsigned *)&Fun, 6) );
+        Extra_PrintHex( stdout, (unsigned *)&Fun, 6 ); 
+        printf( "), \"" );
+        Ifd_ObjPrint( p, Abc_Var2Lit( i, 0 ) );
+        printf( "\" },   // %4d \n", i );
     }
 }
 
@@ -532,6 +545,7 @@ void Ifd_ManDsdTest2()
     int iLit = Ifd_ManFindDsd( pMan, p );
     Ifd_ObjPrint( pMan, iLit );
     Ifd_ManStop( pMan );
+    printf( "\n" );
 }
 
 /**Function*************************************************************
@@ -600,8 +614,8 @@ Vec_Wrd_t * Ifd_ManDsdTruths( int nVars )
         // bookmark
         Vec_IntPush( pMan->vMarks, pMan->nObjs );
     }
-//    Ifd_ManPrint( pMan );
     Ifd_ManTruthAll( pMan );
+//    Ifd_ManPrint( pMan );
     vTruths = pMan->vTruths; pMan->vTruths = NULL;
     Ifd_ManStop( pMan );
     return vTruths;
@@ -753,25 +767,26 @@ Vec_Wrd_t * Extra_Truth6AllConfigs( word t, int * pComp, int * pPerm, int nVars 
     int nPerms = Extra_Factorial( nVars );
     int nSwaps = (1 << nVars);
     Vec_Wrd_t * vTruths = Vec_WrdStart( nPerms * nSwaps );
-    word tCur, tTemp1, tTemp2;
-    int i, p, c;
-    for ( i = 1; i < 2; i++ )
+    word tCur = t, tTemp1, tTemp2;
+    int p, c, Config;
+
+    tTemp1 = tCur;
+    for ( p = 0; p < nPerms; p++ )
     {
-        tCur = i ? ~t : t;
-        tTemp1 = tCur;
-        for ( p = 0; p < nPerms; p++ )
+        tCur = Extra_Truth6SwapAdjacent( tCur, pPerm[p] );
+        Config = 0;
+        tTemp2 = tCur;
+        for ( c = 0; c < nSwaps; c++ )
         {
-            tTemp2 = tCur;
-            for ( c = 0; c < nSwaps; c++ )
-            {
-                Vec_WrdWriteEntry( vTruths, (p << (nVars))|c, tCur );
-                tCur = Extra_Truth6ChangePhase( tCur, pComp[c] );
-            }
-            assert( tTemp2 == tCur );
-            tCur = Extra_Truth6SwapAdjacent( tCur, pPerm[p] );
+            Vec_WrdWriteEntry( vTruths, (p << nVars)|Config, tCur );
+            tCur = Extra_Truth6ChangePhase( tCur, pComp[c] );
+            Config ^= (1 << pComp[c]);
         }
-        assert( tTemp1 == tCur );
+        assert( Config == 0 );
+        assert( tTemp2 == tCur );
     }
+    assert( tTemp1 == tCur );
+
     if ( t )
     {
         int i;
@@ -793,7 +808,7 @@ Vec_Wrd_t * Extra_Truth6AllConfigs( word t, int * pComp, int * pPerm, int nVars 
   SeeAlso     []
 
 ***********************************************************************/
-int Ifd_ManDsdTest33() 
+int Ifd_ManDsdTest() 
 {
     int nVars = 6;
     FILE * pFile;
@@ -801,6 +816,7 @@ int Ifd_ManDsdTest33()
     Vec_Wrd_t * vTruths = Ifd_ManDsdTruths( nVars );
     Vec_Wrd_t * vVariants;
     Vec_Int_t * vUniques;
+    Vec_Int_t * vCompls;
     Vec_Wrd_t * vTruthRes = Vec_WrdAlloc( 4000000 );
     Vec_Int_t * vConfgRes = Vec_IntAlloc( 4000000 );
     int * pComp, * pPerm;
@@ -808,19 +824,29 @@ int Ifd_ManDsdTest33()
     int i, k, Uniq, Runner, Counter = 0;
     assert( nVars >= 3 && nVars <= 6 );
     assert( Vec_WrdSize(vTruths) < (1<<10) );
+    vCompls = Vec_IntAlloc( 720 * 64 );
     pComp = Extra_GreyCodeSchedule( nVars );
     pPerm = Extra_PermSchedule( nVars );
     Vec_WrdForEachEntry( vTruths, Truth, i )
     {
         vVariants = Extra_Truth6AllConfigs( Truth, pComp, pPerm, nVars );
+        // save compl bits
+        Vec_IntClear( vCompls );
+        Vec_WrdForEachEntry( vVariants, Variant, k )
+        {
+            Vec_IntPush( vCompls, (int)(Variant & 1) );
+            Vec_WrdWriteEntry( vVariants, k, Variant & 1 ? ~Variant : Variant );
+        }
+        // uniqify
         vUniques = Hsh_WrdManHashArray( vVariants, 1 );
         Runner = 0;
         Vec_IntForEachEntry( vUniques, Uniq, k )
             if ( Runner == Uniq )
             {
                 Variant = Vec_WrdEntry(vVariants, k);
+                assert( (Variant & 1) == 0 );
                 Vec_WrdPush( vTruthRes, Variant );
-                Vec_IntPush( vConfgRes, (Extra_TruthSupportSize((unsigned *)&Variant, 6)<<26)|(i << 16)|k );
+                Vec_IntPush( vConfgRes, (i << 17)|(Vec_IntEntry(vCompls, k) << 16)|k );
                 Runner++;
             }
         Vec_IntUniqify( vUniques );
@@ -829,7 +855,8 @@ int Ifd_ManDsdTest33()
 //printf( "%5d : ", i ); Kit_DsdPrintFromTruth( &Truth, nVars ), printf( "  " ), Vec_IntPrint( vUniques ), printf( "\n" );
         Vec_IntFree( vUniques );
         Vec_WrdFree( vVariants );
-    }
+    } 
+    Vec_IntFree( vCompls );
     Vec_WrdFree( vTruths );
     ABC_FREE( pPerm );
     ABC_FREE( pComp );
@@ -847,12 +874,12 @@ int Ifd_ManDsdTest33()
     return 1;
 }
 
-int Ifd_ManDsdTest() 
+int Ifd_ManDsdTest33() 
 {
     abctime clk = Abc_Clock();
     FILE * pFile;
     char * pFileName = "dsdfuncs6.dat";
-    int RetValue, size = Extra_FileSize( pFileName ) / 12;  // 3504275
+    int RetValue, size = Extra_FileSize( pFileName ) / 12;  // 2866420
     Vec_Wrd_t * vTruthRes = Vec_WrdAlloc( size + 1 );
     Vec_Int_t * vConfgRes = Vec_IntAlloc( size );
     Hsh_IntMan_t * pHash;
