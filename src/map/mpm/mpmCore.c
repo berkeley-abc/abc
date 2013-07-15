@@ -76,10 +76,12 @@ Gia_Man_t * Mpm_ManPerformTest( Mig_Man_t * pMig, Mpm_Par_t * pPars )
     Gia_Man_t * pNew;
     Mpm_Man_t * p;
     p = Mpm_ManStart( pMig, pPars );
-    Mpm_ManPrintStatsInit( p );
+    if ( p->pPars->fVerbose ) 
+        Mpm_ManPrintStatsInit( p );
     Mpm_ManPrepare( p );
     Mpm_ManPerform( p );
-    Mpm_ManPrintStats( p );
+    if ( p->pPars->fVerbose ) 
+        Mpm_ManPrintStats( p );
     pNew = (Gia_Man_t *)Mpm_ManFromIfLogic( p );
     Mpm_ManStop( p );
     return pNew;

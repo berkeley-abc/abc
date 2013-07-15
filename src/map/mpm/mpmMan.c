@@ -113,7 +113,7 @@ Mpm_Man_t * Mpm_ManStart( Mig_Man_t * pMig, Mpm_Par_t * pPars )
 ***********************************************************************/
 void Mpm_ManStop( Mpm_Man_t * p )
 {
-    if ( p->pPars->fUseTruth )
+    if ( p->pPars->fUseTruth && p->pPars->fVeryVerbose )
     {
         char * pFileName = "truths.txt";
         FILE * pFile = fopen( pFileName, "wb" );
@@ -123,7 +123,7 @@ void Mpm_ManStop( Mpm_Man_t * p )
             Vec_MemEntryNum(p->vTtMem), p->nLutSize, pFileName,
             (16.0 * p->nTruWords + 1.0) * Vec_MemEntryNum(p->vTtMem) / (1 << 20) );
     }
-    if ( p->pPars->fUseDsd )
+    if ( p->pPars->fUseDsd && p->pPars->fVerbose )
         Mpm_ManPrintDsdStats( p );
     if ( p->vTtMem ) 
     {
