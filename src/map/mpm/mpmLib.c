@@ -46,7 +46,7 @@ Mpm_LibLut_t * Mpm_LibLutSetSimple( int nLutSize )
 {
     Mpm_LibLut_t * pLib;
     int i, k;
-    assert( nLutSize < MPM_VAR_MAX );
+    assert( nLutSize <= MPM_VAR_MAX );
     pLib = ABC_CALLOC( Mpm_LibLut_t, 1 );
     pLib->LutMax = nLutSize;
     for ( i = 1; i <= pLib->LutMax; i++ )

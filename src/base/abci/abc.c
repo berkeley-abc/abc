@@ -29522,7 +29522,7 @@ int Abc_CommandAbc9If2( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set defaults
     Mpm_ManSetParsDefault( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KDtmzrcuvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KCDtmzrcuvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -29541,6 +29541,17 @@ int Abc_CommandAbc9If2( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             assert( pPars->pLib == NULL );
             pPars->pLib = Mpm_LibLutSetSimple( nLutSize );
+            break;
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-C\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            pPars->nNumCuts = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nNumCuts < 0 )
+                goto usage;
             break;
         case 'D':
             if ( globalUtilOptind >= argc )
@@ -29605,9 +29616,10 @@ usage:
         sprintf(Buffer, "best possible" );
     else
         sprintf(Buffer, "%d", pPars->DelayTarget );
-    Abc_Print( -2, "usage: &if2 [-KD num] [-tmzrcuvwh]\n" );
+    Abc_Print( -2, "usage: &if2 [-KCD num] [-tmzrcuvwh]\n" );
     Abc_Print( -2, "\t           performs technology mapping of the network\n" );
     Abc_Print( -2, "\t-K num   : sets the LUT size for the mapping [default = %d]\n", nLutSize );
+    Abc_Print( -2, "\t-C num   : the max number of priority cuts (0 < num < 2^12) [default = %d]\n", pPars->nNumCuts );
     Abc_Print( -2, "\t-D num   : sets the delay constraint for the mapping [default = %s]\n", Buffer );
     Abc_Print( -2, "\t-t       : enables using AND/XOR/MUX nodes instead of simple AIG [default = %s]\n", pPars->fUseGates? "yes": "no" );
     Abc_Print( -2, "\t-m       : enables cut minimization by removing vacuous variables [default = %s]\n", pPars->fCutMin? "yes": "no" );

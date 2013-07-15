@@ -737,7 +737,7 @@ void Mpm_ManPrecomputePerms( Mpm_Man_t * p )
     // 0(1:1) 1(2:1) 2(4:2) 3(10:6) 4(33:23) 5(131:98) 6(595:464)
     int nClasses[7] = { 1, 2, 4, 10, 33, 131, 595 };
     int nPerms = Extra_Factorial( nVars );
-    int nSwaps = (1 << nVars);
+//    int nSwaps = (1 << nVars);
     int * pComp, * pPerm;
     int i, k, x, One, OneCopy, Num;
     Vec_Int_t * vVars;
@@ -886,7 +886,6 @@ int Mpm_CutComputeDsd6( Mpm_Man_t * p, Mpm_Cut_t * pCut, Mpm_Cut_t * pCut0, Mpm_
     int fVerbose = 0;
     int i, Config, iClass, Entry, fCompl = 0;
     int pLeavesNew[6] = { -1, -1, -1, -1, -1, -1 };
-    char * pPerm6;
     word t = 0;
     if ( pCutC == NULL )
     {
@@ -894,7 +893,6 @@ int Mpm_CutComputeDsd6( Mpm_Man_t * p, Mpm_Cut_t * pCut, Mpm_Cut_t * pCut0, Mpm_
         int iClass0  = Abc_Lit2Var(pCut0->iFunc);
         int iClass1  = Abc_Lit2Var(pCut1->iFunc);
         word Truth0  = p->pDsd6[iClass0].uTruth;
-        word Truth1  = p->pDsd6[iClass1].uTruth;
         int Perm1    = Vec_IntEntry( p->vMap2Perm, p->uPermMask[1] );
         word Truth1p = Vec_WrdEntry( p->vPerm6, iClass1 * 720 + Perm1 );
         if ( p->uComplMask[1] )
@@ -915,7 +913,6 @@ if ( fVerbose )
 {
 Mpm_ManPrintPerm( p->uPermMask[1] );               printf( "\n" );
 Kit_DsdPrintFromTruth( (unsigned *)&Truth0, 6 );   printf( "\n" );
-Kit_DsdPrintFromTruth( (unsigned *)&Truth1, 6 );   printf( "\n" );
 Kit_DsdPrintFromTruth( (unsigned *)&Truth1p, 6 );  printf( "\n" );
 Kit_DsdPrintFromTruth( (unsigned *)&t, 6 );        printf( "\n" );
 }
@@ -927,8 +924,6 @@ Kit_DsdPrintFromTruth( (unsigned *)&t, 6 );        printf( "\n" );
         int iClass1  = Abc_Lit2Var(pCut1->iFunc);
         int iClassC  = Abc_Lit2Var(pCutC->iFunc);
         word Truth0  = p->pDsd6[iClass0].uTruth;
-        word Truth1  = p->pDsd6[iClass1].uTruth;
-        word TruthC  = p->pDsd6[iClassC].uTruth;
         int Perm1    = Vec_IntEntry( p->vMap2Perm, p->uPermMask[1] );
         int PermC    = Vec_IntEntry( p->vMap2Perm, p->uPermMask[2] );
         word Truth1p = Vec_WrdEntry( p->vPerm6, iClass1 * 720 + Perm1 );
@@ -968,7 +963,6 @@ Kit_DsdPrintFromTruth( (unsigned *)&t, 6 );        printf( "\n" );
     pCut->iFunc = Abc_Var2Lit( iClass, fCompl );
     Config &= 0xFFFF;
     assert( (Config >> 6) < 720 );
-    pPerm6 = p->Perm6[Config >> 6];
 
 if ( fVerbose )
 {
@@ -978,10 +972,10 @@ Mpm_CutPrint( pCut );
 }
 
     for ( i = 0; i < (int)pCut->nLeaves; i++ )
-        pLeavesNew[pPerm6[i]] = Abc_LitNotCond( pCut->pLeaves[i], (Config >> i) & 1 );
+        pLeavesNew[(int)p->Perm6[Config >> 6]] = Abc_LitNotCond( pCut->pLeaves[i], (Config >> i) & 1 );
     pCut->nLeaves = p->pDsd6[iClass].nVars;
-    for ( i = 0; i < (int)pCut->nLeaves; i++ )
-        assert( pLeavesNew[i] != -1 );
+//    for ( i = 0; i < (int)pCut->nLeaves; i++ )
+//        assert( pLeavesNew[i] != -1 );
     for ( i = 0; i < (int)pCut->nLeaves; i++ )
         pCut->pLeaves[i] = pLeavesNew[i];
     p->nCountDsd[iClass]++;

@@ -232,7 +232,9 @@ int Abc_NtkPerformMfs( Abc_Ntk_t * pNtk, Sfm_Par_t * pPars )
     nNodes = Sfm_NtkPerform( p, pPars );
     // call the fast extract procedure
     if ( nNodes == 0 )
-        Abc_Print( 1, "The network is not changed by \"mfs\".\n" );
+    {
+//        Abc_Print( 1, "The network is not changed by \"mfs\".\n" );
+    }
     else
     {
         Abc_NtkInsertMfs( pNtk, p );

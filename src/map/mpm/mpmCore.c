@@ -90,6 +90,8 @@ Gia_Man_t * Mpm_ManMappingTest( Gia_Man_t * pGia, Mpm_Par_t * pPars )
 {
     Mig_Man_t * p;
     Gia_Man_t * pNew;
+    assert( pPars->pLib->LutMax <= MPM_VAR_MAX );
+    assert( pPars->nNumCuts <= MPM_CUT_MAX );
     if ( pPars->fUseGates )
     {
         pGia = Gia_ManDupMuxes( pGia );

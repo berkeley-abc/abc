@@ -138,8 +138,8 @@ static inline int Mpm_CutTruthMinimize7( Mpm_Man_t * p, Mpm_Cut_t * pCut )
         }
     }
     assert( k == nSuppSize );
+    assert( nSuppSize == Abc_TtSupportSize(p->Truth, Mpm_CutLeafNum(pCut)) );
     pCut->nLeaves = nSuppSize;
-    assert( nSuppSize == Abc_TtSupportSize(p->Truth, 6) );
     // save the result
     pCut->iFunc = Abc_Var2Lit( Vec_MemHashInsert(p->vTtMem, p->Truth), Abc_LitIsCompl(pCut->iFunc) );
     return 1;

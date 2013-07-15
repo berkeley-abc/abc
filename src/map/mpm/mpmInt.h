@@ -46,7 +46,7 @@ ABC_NAMESPACE_HEADER_START
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
  
-#define MPM_CUT_MAX      64
+#define MPM_CUT_MAX      32
 
 #define MPM_UNIT_TIME     1
 #define MPM_UNIT_AREA    20
@@ -77,7 +77,7 @@ struct Mpm_Uni_t_
     word             uSign;                    // cut signature
     int              Cost;                     // user cost
     Mpm_Cut_t        pCut;                     // new cut
-    int              Data[MPM_VAR_MAX];        // padding
+    int              Data[MPM_VAR_MAX-1];      // padding
 };
 
 typedef struct Mpm_Dsd_t_ Mpm_Dsd_t;
@@ -127,10 +127,10 @@ struct Mpm_Man_t_
     Vec_Mem_t *      vTtMem;                   // truth table memory and hash table
     int              funcCst0;                 // constant 0
     int              funcVar0;                 // variable 0
-    word             Truth0[1024];
-    word             Truth1[1024];
-    word             TruthC[1024];
-    word             Truth[1024];
+    word             Truth0[(1 << ((MPM_VAR_MAX)-6))];
+    word             Truth1[(1 << ((MPM_VAR_MAX)-6))];
+    word             TruthC[(1 << ((MPM_VAR_MAX)-6))];
+    word             Truth[(1 << ((MPM_VAR_MAX)-6))];
     // DSD
     Mpm_Dsd_t *      pDsd6;                    // NPN class information
     Hsh_IntMan_t *   pHash;                    // maps DSD functions into NPN classes
