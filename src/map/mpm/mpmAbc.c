@@ -43,6 +43,41 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
+void Mig_ManCreateChoices( Mig_Man_t * pMig, Gia_Man_t * p )
+{
+    Gia_Obj_t * pObj;
+    int i;
+    assert( Mig_ManObjNum(pMig) == Gia_ManObjNum(p) );
+    assert( Vec_IntSize(&pMig->vSibls) == 0 );
+    Vec_IntFill( &pMig->vSibls, Gia_ManObjNum(p), 0 );
+    Gia_ManMarkFanoutDrivers( p );
+    Gia_ManForEachObj( p, pObj, i )
+    {
+        Gia_ObjSetPhase( pObj );
+        assert( Abc_Lit2Var(pObj->Value) == i );
+        Mig_ObjSetPhase( Mig_ManObj(pMig, i), pObj->fPhase );
+        if ( Gia_ObjSibl(p, i) && pObj->fMark0 )
+        {
+            Gia_Obj_t * pSibl, * pPrev;
+            for ( pPrev = pObj, pSibl = Gia_ObjSiblObj(p, i); pSibl; pPrev = pSibl, pSibl = Gia_ObjSiblObj(p, Gia_ObjId(p, pSibl)) )
+                Mig_ObjSetSiblId( Mig_ManObj(pMig, Abc_Lit2Var(pPrev->Value)), Abc_Lit2Var(pSibl->Value) );
+            pMig->nChoices++;
+        }
+    }
+    Gia_ManCleanMark0( p );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 static inline int Mig_ObjFanin0Copy( Gia_Obj_t * pObj ) { return Abc_LitNotCond( Gia_ObjFanin0(pObj)->Value, Gia_ObjFaninC0(pObj) );     }
 static inline int Mig_ObjFanin1Copy( Gia_Obj_t * pObj ) { return Abc_LitNotCond( Gia_ObjFanin1(pObj)->Value, Gia_ObjFaninC1(pObj) );     }
 Mig_Man_t * Mig_ManCreate( void * pGia )
@@ -51,11 +86,9 @@ Mig_Man_t * Mig_ManCreate( void * pGia )
     Mig_Man_t * pNew;
     Gia_Obj_t * pObj;
     int i;
-    // create the new manager
     pNew = Mig_ManStart();
     pNew->pName = Abc_UtilStrsav( p->pName );
     Gia_ManConst0(p)->Value = 0;
-    // create objects
     Gia_ManForEachObj1( p, pObj, i )
     {
         if ( Gia_ObjIsMux(p, i) )
@@ -71,6 +104,8 @@ Mig_Man_t * Mig_ManCreate( void * pGia )
         else assert( 0 );
     }
     Mig_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    if ( p->pSibls )
+        Mig_ManCreateChoices( pNew, p );
     return pNew;
 }
 
@@ -86,7 +121,7 @@ Mig_Man_t * Mig_ManCreate( void * pGia )
 
 ***********************************************************************/
 static inline unsigned Mpm_CutDataInt( Mpm_Cut_t * pCut )                    { return pCut->hNext;  }
-static inline void     Mpm_CutSetDataInt( Mpm_Cut_t * pCut, unsigned Data )  { pCut->hNext = Data;  }
+static inline void     Mpm_CutSetDataInt( Mpm_Cut_t * pCut, int Data )       { pCut->hNext = Data;  }
 int Mpm_ManNodeIfToGia_rec( Gia_Man_t * pNew, Mpm_Man_t * pMan, Mig_Obj_t * pObj, Vec_Ptr_t * vVisited, int fHash )
 {
     Mig_Obj_t * pTemp;

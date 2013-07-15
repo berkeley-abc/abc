@@ -50,7 +50,7 @@ Mpm_Man_t * Mpm_ManStart( Mig_Man_t * pMig, Mpm_Par_t * pPars )
     assert( pPars->nNumCuts <= MPM_CUT_MAX );
     assert( !pPars->fUseTruth || pPars->pLib->LutMax <= 16 );
     assert( !pPars->fUseDsd || pPars->pLib->LutMax <= 6 );
-    Mig_ManSetRefs( pMig, 1 );
+    Mig_ManSetRefs( pMig );
     // alloc
     p = ABC_CALLOC( Mpm_Man_t, 1 );
     p->pMig      = pMig;
@@ -119,7 +119,7 @@ void Mpm_ManStop( Mpm_Man_t * p )
         FILE * pFile = fopen( pFileName, "wb" );
         Vec_MemDump( pFile, p->vTtMem );
         fclose( pFile );
-        printf( "Dumpted %d %d-var truth tables into file \"%s\" (%.2f MB).\n", 
+        printf( "Dumped %d %d-var truth tables into file \"%s\" (%.2f MB).\n", 
             Vec_MemEntryNum(p->vTtMem), p->nLutSize, pFileName,
             (16.0 * p->nTruWords + 1.0) * Vec_MemEntryNum(p->vTtMem) / (1 << 20) );
     }
@@ -171,9 +171,8 @@ void Mpm_ManStop( Mpm_Man_t * p )
 void Mpm_ManPrintStatsInit( Mpm_Man_t * p )
 {
     printf( "K = %d.  C = %d.  Cand = %d. XOR = %d. MUX = %d. Choice = %d.  CutMin = %d. Truth = %d. DSD = %d.\n", 
-        p->nLutSize, p->nNumCuts, 
-        Mig_ManCiNum(p->pMig) + Mig_ManNodeNum(p->pMig), 
-        Mig_ManXorNum(p->pMig), Mig_ManMuxNum(p->pMig), 0, 
+        p->nLutSize, p->nNumCuts, Mig_ManCandNum(p->pMig), 
+        Mig_ManXorNum(p->pMig), Mig_ManMuxNum(p->pMig), p->pMig->nChoices, 
         p->pPars->fCutMin, p->pPars->fUseTruth, p->pPars->fUseDsd );
 }
 void Mpm_ManPrintStats( Mpm_Man_t * p )
@@ -189,10 +188,9 @@ void Mpm_ManPrintStats( Mpm_Man_t * p )
 #ifdef MIG_RUNTIME    
     printf( "\n" );
     p->timeTotal = Abc_Clock() - p->timeTotal;
-    p->timeOther = p->timeTotal - (p->timeFanin + p->timeDerive);
+    p->timeOther = p->timeTotal - p->timeDerive;
 
     Abc_Print( 1, "Runtime breakdown:\n" );
-    ABC_PRTP( "Precomputing fanin info    ", p->timeFanin  , p->timeTotal );
     ABC_PRTP( "Complete cut computation   ", p->timeDerive , p->timeTotal );
     ABC_PRTP( "- Merging cuts             ", p->timeMerge  , p->timeTotal );
     ABC_PRTP( "- Evaluting cut parameters ", p->timeEval   , p->timeTotal );

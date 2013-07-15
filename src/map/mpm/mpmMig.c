@@ -120,23 +120,18 @@ int Mig_ManMuxNum( Mig_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Mig_ManSetRefs( Mig_Man_t * p, int fSkipCos )
+void Mig_ManSetRefs( Mig_Man_t * p )
 {
     Mig_Obj_t * pObj;
     int i, iFanin;
     // increment references
     Vec_IntFill( &p->vRefs, Mig_ManObjNum(p), 0 );
-    Mig_ManForEachNode( p, pObj )
+    Mig_ManForEachObj( p, pObj )
+    {
         Mig_ObjForEachFaninId( pObj, iFanin, i )
             Vec_IntAddToEntry( &p->vRefs, iFanin, 1 );
-    if ( !fSkipCos )
-    {
-        // and CO references
-        Mig_ManForEachCo( p, pObj, i )
-            Vec_IntAddToEntry( &p->vRefs, Mig_ObjFaninId(pObj, 0), 1 );
-        // check that internal nodes have fanins
-        Mig_ManForEachNode( p, pObj )
-            assert( Vec_IntEntry(&p->vRefs, Mig_ObjId(pObj)) > 0 );
+        if ( Mig_ObjSiblId(pObj) )
+            Vec_IntAddToEntry( &p->vRefs, Mig_ObjSiblId(pObj), 1 );
     }
 }
 

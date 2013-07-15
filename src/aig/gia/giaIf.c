@@ -409,6 +409,7 @@ If_Man_t * Gia_ManToIf( Gia_Man_t * p, If_Par_t * pPars )
     // create levels with choices
     Gia_ManChoiceLevel( p );
     // mark representative nodes
+    if ( p->pSibls )
     Gia_ManMarkFanoutDrivers( p );
     // start the mapping manager and set its parameters
     pIfMan = If_ManStart( pPars );
@@ -445,12 +446,13 @@ If_Man_t * Gia_ManToIf( Gia_Man_t * p, If_Par_t * pPars )
         {
             Gia_Obj_t * pSibl, * pPrev;
             for ( pPrev = pObj, pSibl = Gia_ObjSiblObj(p, i); pSibl; pPrev = pSibl, pSibl = Gia_ObjSiblObj(p, Gia_ObjId(p, pSibl)) )
-                If_ObjSetChoice( If_ManObj(pIfMan, Gia_ObjValue(pObj)), If_ManObj(pIfMan, Gia_ObjValue(pSibl)) );
+                If_ObjSetChoice( If_ManObj(pIfMan, Gia_ObjValue(pPrev)), If_ManObj(pIfMan, Gia_ObjValue(pSibl)) );
             If_ManCreateChoice( pIfMan, If_ManObj(pIfMan, Gia_ObjValue(pObj)) );
             pPars->fExpRed = 0;
         }
 //        assert( If_ObjLevel(pIfObj) == Gia_ObjLevel(pNode) );
     }
+    if ( p->pSibls )
     Gia_ManCleanMark0( p );
     return pIfMan;
 }

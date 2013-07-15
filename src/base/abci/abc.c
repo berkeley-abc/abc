@@ -29587,8 +29587,8 @@ int Abc_CommandAbc9If2( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( pPars->fMap4Cnf )
         pPars->fUseDsd = 1;
     if ( pPars->fCutMin )
-//        pPars->fUseTruth = 1;
-        pPars->fUseDsd = 1;
+        pPars->fUseTruth = 1;
+//        pPars->fUseDsd = 1;
     // perform mapping
     pNew = Mpm_ManMappingTest( pAbc->pGia, pPars );
     Mpm_LibLutFree( pPars->pLib );

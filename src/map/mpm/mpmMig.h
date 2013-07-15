@@ -64,6 +64,7 @@ struct Mig_Man_t_
     char *         pName;        // name
     int            nObjs;        // number of objects
     int            nRegs;        // number of flops
+    int            nChoices;     // number of choices
     Vec_Ptr_t      vPages;       // memory pages
     Vec_Int_t      vCis;         // CI IDs
     Vec_Int_t      vCos;         // CO IDs
@@ -109,6 +110,7 @@ static inline int          Mig_ManRegNum( Mig_Man_t * p )      { return p->nRegs
 static inline int          Mig_ManObjNum( Mig_Man_t * p )      { return p->nObjs;                                                           }
 static inline int          Mig_ManNodeNum( Mig_Man_t * p )     { return p->nObjs - Vec_IntSize(&p->vCis) - Vec_IntSize(&p->vCos) - 1;       }
 static inline int          Mig_ManCandNum( Mig_Man_t * p )     { return Mig_ManCiNum(p) + Mig_ManNodeNum(p);                                }
+static inline int          Mig_ManChoiceNum( Mig_Man_t * p )   { return p->nChoices;                                                        }
 static inline void         Mig_ManSetRegNum( Mig_Man_t * p, int v )   { p->nRegs = v;                                                       }
 
 static inline Mig_Obj_t *  Mig_ManPage( Mig_Man_t * p, int v ) { return (Mig_Obj_t *)Vec_PtrEntry(&p->vPages, Mig_IdPage(v));               }
@@ -147,7 +149,7 @@ static inline void         Mig_ObjSetId( Mig_Obj_t * p, int v )                {
 static inline int          Mig_ObjCioId( Mig_Obj_t * p )                       { assert( Mig_ObjIsTerm(p) ); return Mig_FanId( p, 2 );      }
 static inline void         Mig_ObjSetCioId( Mig_Obj_t * p, int v )             { assert( Mig_FanIsNone(p, 1) ); Mig_FanSetId( p, 2, v );    }
 static inline int          Mig_ObjPhase( Mig_Obj_t * p )                       { return Mig_FanCompl( p, 3 );                               }
-static inline void         Mig_ObjSetPhase( Mig_Obj_t * p, int v )             { Mig_FanSetCompl( p, 3, 1 );                                }
+static inline void         Mig_ObjSetPhase( Mig_Obj_t * p, int v )             { Mig_FanSetCompl( p, 3, v );                                }
 
 static inline Mig_Man_t *  Mig_ObjMan( Mig_Obj_t * p )                         { return *((Mig_Man_t**)(p - Mig_IdCell(Mig_ObjId(p)) - 1)); }
 //static inline Mig_Obj_t ** Mig_ObjPageP( Mig_Obj_t * p )                       { return *((Mig_Obj_t***)(p - Mig_IdCell(Mig_ObjId(p))) - 1);} 
@@ -185,8 +187,9 @@ static inline int          Mig_ObjWhatFanin( Mig_Obj_t * p, int i )            {
 static inline void         Mig_ObjSetFaninLit( Mig_Obj_t * p, int i, int l )   { assert( l >= 0 && (l >> 1) < Mig_ObjId(p) ); Mig_FanSetId(p, i, Abc_Lit2Var(l)); Mig_FanSetCompl(p, i, Abc_LitIsCompl(l));       }
 
 static inline int          Mig_ObjSiblId( Mig_Obj_t * p )                      { return Vec_IntSize(&Mig_ObjMan(p)->vSibls) == 0 ? 0: Vec_IntEntry(&Mig_ObjMan(p)->vSibls, Mig_ObjId(p));    }
-static inline Mig_Obj_t *  Mig_ObjSibl( Mig_Obj_t * p )                        { return Mig_ObjSiblId(p) == 0 ? NULL: Mig_ObjObj(p, Mig_ObjSiblId(p));                                       }
-static inline int          Mig_ObjRefNum( Mig_Obj_t * p )                      { return Vec_IntEntry(&Mig_ObjMan(p)->vRefs, Mig_ObjId(p));           }
+static inline void         Mig_ObjSetSiblId( Mig_Obj_t * p, int s )            { assert( s > 0 && Mig_ObjId(p) > s ); Vec_IntWriteEntry( &Mig_ObjMan(p)->vSibls, Mig_ObjId(p), s );          }
+static inline Mig_Obj_t *  Mig_ObjSibl( Mig_Obj_t * p )                        { return Mig_ObjSiblId(p) == 0 ? NULL: Mig_ObjObj(p, Mig_ObjSiblId(p));  }
+static inline int          Mig_ObjRefNum( Mig_Obj_t * p )                      { return Vec_IntEntry(&Mig_ObjMan(p)->vRefs, Mig_ObjId(p));              }
 
 static inline void         Mig_ManCleanCopy( Mig_Man_t * p )                   { if ( p->vCopies.pArray == NULL ) Vec_IntFill( &p->vCopies, Mig_ManObjNum(p), -1 );              }
 static inline int          Mig_ObjCopy( Mig_Obj_t * p )                        { return Vec_IntSize(&Mig_ObjMan(p)->vCopies) == 0 ? -1: Vec_IntEntry(&Mig_ObjMan(p)->vCopies, Mig_ObjId(p));      }
@@ -341,7 +344,7 @@ static inline int Mig_ManAppendMaj( Mig_Man_t * p, int iLit0, int iLit1, int iLi
 /*=== mpmMig.c ===========================================================*/
 extern Mig_Man_t *           Mig_ManStart();
 extern void                  Mig_ManStop( Mig_Man_t * p );
-extern void                  Mig_ManSetRefs( Mig_Man_t * p, int fSkipCos );
+extern void                  Mig_ManSetRefs( Mig_Man_t * p );
 extern int                   Mig_ManAndNum( Mig_Man_t * p );
 extern int                   Mig_ManXorNum( Mig_Man_t * p );
 extern int                   Mig_ManMuxNum( Mig_Man_t * p );

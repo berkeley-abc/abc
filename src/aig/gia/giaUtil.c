@@ -339,6 +339,7 @@ void Gia_ManFillValue( Gia_Man_t * p )
 ***********************************************************************/
 void Gia_ObjSetPhase( Gia_Obj_t * pObj )  
 {
+    assert( !Gia_ObjIsXor(pObj) );
     if ( Gia_ObjIsAnd(pObj) )
         pObj->fPhase = (Gia_ObjPhase(Gia_ObjFanin0(pObj)) ^ Gia_ObjFaninC0(pObj)) & 
                        (Gia_ObjPhase(Gia_ObjFanin1(pObj)) ^ Gia_ObjFaninC1(pObj));
@@ -1342,8 +1343,9 @@ void Gia_ManMarkFanoutDrivers( Gia_Man_t * p )
 {
     Gia_Obj_t * pObj;
     int i;
-    Gia_ManCleanMark0( p );
     Gia_ManForEachObj( p, pObj, i )
+    {
+        pObj->fMark0 = 0;
         if ( Gia_ObjIsAnd(pObj) )
         {
             Gia_ObjFanin0(pObj)->fMark0 = 1;
@@ -1351,6 +1353,7 @@ void Gia_ManMarkFanoutDrivers( Gia_Man_t * p )
         }
         else if ( Gia_ObjIsCo(pObj) )
             Gia_ObjFanin0(pObj)->fMark0 = 1;
+    }
 }
 
 

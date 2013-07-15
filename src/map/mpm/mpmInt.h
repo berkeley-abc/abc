@@ -156,7 +156,6 @@ struct Mpm_Man_t_
     int              nCutsMerged;
     int              nCutsMergedAll;
     int              nSmallSupp;
-    abctime          timeFanin;
     abctime          timeDerive;
     abctime          timeMerge;
     abctime          timeEval;
@@ -184,7 +183,6 @@ static inline void        Mpm_ObjSetCutList( Mpm_Man_t * p, Mig_Obj_t * pObj, in
 static inline int         Mpm_CutLeafNum( Mpm_Cut_t * pCut )                             { return pCut->nLeaves;                                           }
 static inline word *      Mpm_CutTruth( Mpm_Man_t * p, int iFunc )                       { return Vec_MemReadEntry(p->vTtMem, iFunc);                      }
 
-static inline void        Mpm_ManSetMigRefs( Mpm_Man_t * p )                             { assert( Vec_IntSize(&p->vMigRefs) == Vec_IntSize(&p->pMig->vRefs) ); memcpy( Vec_IntArray(&p->vMigRefs), Vec_IntArray(&p->pMig->vRefs), sizeof(int) * Mig_ManObjNum(p->pMig) ); }
 static inline int         Mig_ObjMigRefNum( Mpm_Man_t * p, Mig_Obj_t * pObj )            { return Vec_IntEntry(&p->vMigRefs, Mig_ObjId(pObj));             }
 static inline int         Mig_ObjMigRefDec( Mpm_Man_t * p, Mig_Obj_t * pObj )            { return Vec_IntAddToEntry(&p->vMigRefs, Mig_ObjId(pObj), -1);    }
 
