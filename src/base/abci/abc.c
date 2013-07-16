@@ -3746,23 +3746,25 @@ usage:
 int Abc_CommandEliminate( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
-    int nMaxSize;
     int ElimValue;
+    int nMaxSize;
+    int nIterMax;
     int fGreedy;
     int fReverse;
     int fVerbose;
     int c;
     extern int Abc_NtkEliminate( Abc_Ntk_t * pNtk, int nMaxSize, int fReverse, int fVerbose );
-    extern int Abc_NtkEliminate1( Abc_Ntk_t * pNtk, int ElimValue, int nMaxSize, int fReverse, int fVerbose );
+    extern int Abc_NtkEliminate1( Abc_Ntk_t * pNtk, int ElimValue, int nMaxSize, int nIterMax, int fReverse, int fVerbose );
 
     // set the defaults
-    nMaxSize  = 30;
     ElimValue = -1;
+    nMaxSize  = 12;
+    nIterMax  =  1;
     fGreedy   =  0;
     fReverse  =  0;
     fVerbose  =  0;
     Extra_UtilGetoptReset();
-    while ( (c = Extra_UtilGetopt(argc, argv, "VNgrvh")) != EOF )
+    while ( (c = Extra_UtilGetopt(argc, argv, "VNIgrvh")) != EOF )
     {
         switch (c)
         {
@@ -3786,6 +3788,17 @@ int Abc_CommandEliminate( Abc_Frame_t * pAbc, int argc, char ** argv )
                 nMaxSize = atoi(argv[globalUtilOptind]);
                 globalUtilOptind++;
                 if ( nMaxSize <= 0 )
+                    goto usage;
+                break;
+            case 'I':
+                if ( globalUtilOptind >= argc )
+                {
+                    Abc_Print( -1, "Command line switch \"-I\" should be followed by a positive integer.\n" );
+                    goto usage;
+                }
+                nIterMax = atoi(argv[globalUtilOptind]);
+                globalUtilOptind++;
+                if ( nIterMax <= 0 )
                     goto usage;
                 break;
             case 'g':
@@ -3826,15 +3839,16 @@ int Abc_CommandEliminate( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( fGreedy )
         Abc_NtkEliminate( pNtk, nMaxSize, fReverse, fVerbose );
     else
-        Abc_NtkEliminate1( pNtk, ElimValue, nMaxSize, fReverse, fVerbose );
+        Abc_NtkEliminate1( pNtk, ElimValue, nMaxSize, nIterMax, fReverse, fVerbose );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: eliminate [-VN <num>] [-grvh]\n");
+    Abc_Print( -2, "usage: eliminate [-VNI <num>] [-grvh]\n");
     Abc_Print( -2, "\t           traditional \"eliminate -1\", which collapses the node into its fanout\n");
     Abc_Print( -2, "\t           if the node's variable appears in the fanout's factored form only once\n");
     Abc_Print( -2, "\t-V <num> : the \"value\" parameter used by \"eliminate\" in SIS [default = %d]\n", ElimValue );
     Abc_Print( -2, "\t-N <num> : the maximum node support after collapsing [default = %d]\n", nMaxSize );
+    Abc_Print( -2, "\t-I <num> : the maximum number of iterations [default = %d]\n", nIterMax );
     Abc_Print( -2, "\t-g       : toggle using greedy eliminate (without \"value\") [default = %s]\n", fGreedy? "yes": "no" );
     Abc_Print( -2, "\t-r       : use the reverse topological order [default = %s]\n", fReverse? "yes": "no" );
     Abc_Print( -2, "\t-v       : print verbose information [default = %s]\n", fVerbose? "yes": "no" );

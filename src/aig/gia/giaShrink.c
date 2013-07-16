@@ -106,8 +106,8 @@ Gia_Man_t * Gia_ManMapShrink4( Gia_Man_t * p, int fKeepLevel, int fVerbose )
             // change from node IDs to their literals
             Gia_ManForEachObjVec( vLeaves, p, pFanin, k )
             {
-                assert( Gia_ObjValue(pFanin) != ~0 ); 
-                Vec_IntWriteEntry( vLeaves, k, Gia_ObjValue(pFanin) );
+//                assert( Gia_ObjValue(pFanin) != ~0 ); 
+                Vec_IntWriteEntry( vLeaves, k, Gia_ObjValue(pFanin) != ~0 ? Gia_ObjValue(pFanin) : 0 );
             }
             // derive new structre
             if ( Gia_ManTruthIsConst0(pTruth, Vec_IntSize(vLeaves)) )

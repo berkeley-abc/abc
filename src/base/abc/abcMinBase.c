@@ -578,6 +578,22 @@ int Abc_NodeCollapse1( Abc_Obj_t * pFanin, Abc_Obj_t * pFanout, Vec_Ptr_t * vFan
     Abc_NtkDeleteObj_rec( pFanout, 1 );
     return 1;
 }
+int Abc_NodeIsExor( Abc_Obj_t * pNode )
+{
+    Hop_Man_t * pMan;
+    word Truth;
+    if ( Abc_ObjFaninNum(pNode) < 3 || Abc_ObjFaninNum(pNode) > 6 )
+        return 0;
+    pMan = (Hop_Man_t *)pNode->pNtk->pManFunc;
+    Truth = Hop_ManComputeTruth6( pMan, (Hop_Obj_t *)pNode->pData, Abc_ObjFaninNum(pNode) );
+    if ( Truth == 0x6666666666666666 || Truth == 0x9999999999999999 || 
+         Truth == 0x9696969696969696 || Truth == 0x6969696969696969 || 
+         Truth == 0x6996699669966996 || Truth == 0x9669966996699669 || 
+         Truth == 0x9669699696696996 || Truth == 0x6996966969969669 ||
+         Truth == 0x6996966996696996 || Truth == 0x9669699669969669 )
+         return 1;
+    return 0;
+}
 int Abc_NtkEliminate1One( Abc_Ntk_t * pNtk, int ElimValue, int nMaxSize, int fReverse, int fVerbose )
 {
     Vec_Ptr_t * vFanouts, * vFanins, * vNodes;
@@ -606,6 +622,8 @@ int Abc_NtkEliminate1One( Abc_Ntk_t * pNtk, int ElimValue, int nMaxSize, int fRe
         if ( Abc_NodeFindCoFanout(pNode) != NULL )
             continue;
         if ( Abc_ObjFaninNum(pNode) > nMaxSize )
+            continue;
+        if ( Abc_NodeIsExor(pNode) )
             continue;
         // skip nodes with more than one fanout
 //        if ( Abc_ObjFanoutNum(pNode) != 1 ) 
@@ -642,10 +660,10 @@ int Abc_NtkEliminate1One( Abc_Ntk_t * pNtk, int ElimValue, int nMaxSize, int fRe
     ABC_FREE( pPermFanout );
     return 1;
 }
-int Abc_NtkEliminate1( Abc_Ntk_t * pNtk, int ElimValue, int nMaxSize, int fReverse, int fVerbose )
+int Abc_NtkEliminate1( Abc_Ntk_t * pNtk, int ElimValue, int nMaxSize, int nIterMax, int fReverse, int fVerbose )
 {
     int i;
-    for ( i = 0; i < 3; i++ )
+    for ( i = 0; i < nIterMax; i++ )
     {
         int nNodes = Abc_NtkNodeNum(pNtk);
 //        printf( "%d ", nNodes );

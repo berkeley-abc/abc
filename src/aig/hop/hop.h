@@ -326,7 +326,8 @@ extern void            Hop_TableDelete( Hop_Man_t * p, Hop_Obj_t * pObj );
 extern int             Hop_TableCountEntries( Hop_Man_t * p );
 extern void            Hop_TableProfile( Hop_Man_t * p );
 /*=== hopTruth.c ========================================================*/
-unsigned *             Hop_ManConvertAigToTruth( Hop_Man_t * p, Hop_Obj_t * pRoot, int nVars, Vec_Int_t * vTruth, int fMsbFirst );
+extern unsigned *      Hop_ManConvertAigToTruth( Hop_Man_t * p, Hop_Obj_t * pRoot, int nVars, Vec_Int_t * vTruth, int fMsbFirst );
+extern word            Hop_ManComputeTruth6( Hop_Man_t * p, Hop_Obj_t * pObj, int nVars );
 /*=== hopUtil.c =========================================================*/
 extern void            Hop_ManIncrementTravId( Hop_Man_t * p );
 extern void            Hop_ManCleanData( Hop_Man_t * p );

@@ -218,6 +218,53 @@ unsigned * Hop_ManConvertAigToTruth( Hop_Man_t * p, Hop_Obj_t * pRoot, int nVars
     return pTruth;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Compute truth table.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static word Truth[8] = 
+{
+    ABC_CONST(0xAAAAAAAAAAAAAAAA),
+    ABC_CONST(0xCCCCCCCCCCCCCCCC),
+    ABC_CONST(0xF0F0F0F0F0F0F0F0),
+    ABC_CONST(0xFF00FF00FF00FF00),
+    ABC_CONST(0xFFFF0000FFFF0000),
+    ABC_CONST(0xFFFFFFFF00000000),
+    ABC_CONST(0x0000000000000000),
+    ABC_CONST(0xFFFFFFFFFFFFFFFF)
+};
+word Hop_ManComputeTruth6_rec( Hop_Man_t * p, Hop_Obj_t * pObj )
+{
+    word Truth0, Truth1;
+    if ( Hop_ObjIsPi(pObj) )
+        return Truth[pObj->iData];
+    assert( Hop_ObjIsNode(pObj) );
+    Truth0 = Hop_ManComputeTruth6_rec( p, Hop_ObjFanin0(pObj) );
+    Truth1 = Hop_ManComputeTruth6_rec( p, Hop_ObjFanin1(pObj) );
+    Truth0 = Hop_ObjFaninC0(pObj) ? ~Truth0 : Truth0;
+    Truth1 = Hop_ObjFaninC1(pObj) ? ~Truth1 : Truth1;
+    return Truth0 & Truth1;
+}
+word Hop_ManComputeTruth6( Hop_Man_t * p, Hop_Obj_t * pObj, int nVars )
+{
+    word Truth;
+    int i;
+    if ( Hop_ObjIsConst1( Hop_Regular(pObj) ) )
+        return Hop_IsComplement(pObj) ? 0 : ~(word)0;
+    for ( i = 0; i < nVars; i++ )
+        Hop_ManPi( p, i )->iData = i;
+    Truth = Hop_ManComputeTruth6_rec( p, Hop_Regular(pObj) );
+    return Hop_IsComplement(pObj) ? ~Truth : Truth;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
