@@ -737,9 +737,9 @@ Abc_Ntk_t * Abc_NtkBottom( Abc_Ntk_t * pNtk, int Level )
                 Abc_ObjAddFanin( pObj->pCopy, pFanin->pCopy );
 
     // create new primary outputs
-    Abc_NtkForEachNode( pNtk, pObj, i )
+    Abc_NtkForEachObj( pNtk, pObj, i )
         Abc_ObjForEachFanin( pObj, pFanin, k )
-            if ( pObj->pCopy == NULL && pFanin->pCopy != NULL && Abc_ObjIsNode(pFanin) )
+            if ( !pObj->pCopy && pFanin->pCopy && Abc_ObjIsNode(pFanin) )
             {
                 Abc_Obj_t * pNodeNew = Abc_NtkCreatePo(pNtkNew);
                 Abc_ObjAddFanin( pNodeNew, pFanin->pCopy );
