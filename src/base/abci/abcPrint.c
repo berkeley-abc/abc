@@ -70,6 +70,7 @@ int Abc_NtkCompareAndSaveBest( Abc_Ntk_t * pNtk )
         int    nPis;   // the number of primary inputs
         int    nPos;   // the number of primary outputs
     } ParsNew, ParsBest = { 0 };
+    char * pFileNameOut;
     // free storage for the name
     if ( pNtk == NULL )
     {
@@ -100,7 +101,8 @@ int Abc_NtkCompareAndSaveBest( Abc_Ntk_t * pNtk )
         ParsBest.nPis  = ParsNew.nPis;
         ParsBest.nPos  = ParsNew.nPos;
         // writ the network
-        Io_Write( pNtk, "best.blif", IO_FILE_BLIF );
+        pFileNameOut = Extra_FileNameGenericAppend( pNtk->pSpec, "_best.blif" );
+        Io_Write( pNtk, pFileNameOut, IO_FILE_BLIF );
         return 1;
     }
     return 0;
@@ -193,7 +195,19 @@ float Abc_NtkGetArea( Abc_Ntk_t * pNtk )
 ***********************************************************************/
 void Abc_NtkPrintStats( Abc_Ntk_t * pNtk, int fFactored, int fSaveBest, int fDumpResult, int fUseLutLib, int fPrintMuxes, int fPower, int fGlitch )
 {
-    int Num;
+    if ( fPrintMuxes && Abc_NtkIsStrash(pNtk) )
+    {
+        extern int Abc_NtkCountMuxes( Abc_Ntk_t * pNtk );
+        int nXors = Abc_NtkGetExorNum(pNtk);
+        int nMuxs = Abc_NtkCountMuxes(pNtk) - nXors;
+        int nAnds = Abc_NtkNodeNum(pNtk) - (nMuxs + nXors) * 3;
+        Abc_Print( 1, "XMA stats:  " );
+        Abc_Print( 1,"Xor =%7d (%6.2f %%)  ", nXors, 300.0 * nXors / Abc_NtkNodeNum(pNtk) );
+        Abc_Print( 1,"Mux =%7d (%6.2f %%)  ", nMuxs, 300.0 * nMuxs / Abc_NtkNodeNum(pNtk) );
+        Abc_Print( 1,"And =%7d (%6.2f %%)",   nAnds, 100.0 * nAnds / Abc_NtkNodeNum(pNtk) );
+        Abc_Print( 1,"\n" );
+        return;
+    }
     if ( fSaveBest )
         Abc_NtkCompareAndSaveBest( pNtk );
     if ( fDumpResult )
@@ -225,16 +239,8 @@ void Abc_NtkPrintStats( Abc_Ntk_t * pNtk, int fFactored, int fSaveBest, int fDum
     else if ( Abc_NtkIsStrash(pNtk) )
     {
         Abc_Print( 1,"  and =%7d", Abc_NtkNodeNum(pNtk) );
-        if ( (Num = Abc_NtkGetChoiceNum(pNtk)) )
-            Abc_Print( 1," (choice = %d)", Num );
-        if ( fPrintMuxes )
-        {
-            extern int Abc_NtkCountMuxes( Abc_Ntk_t * pNtk );
-            Num = Abc_NtkGetExorNum(pNtk);
-            Abc_Print( 1," (exor = %d)", Num );
-            Abc_Print( 1," (mux = %d)", Abc_NtkCountMuxes(pNtk)-Num );
-            Abc_Print( 1," (pure and = %d)", Abc_NtkNodeNum(pNtk) - (Abc_NtkCountMuxes(pNtk) * 3) );
-        }
+        if ( Abc_NtkGetChoiceNum(pNtk) )
+            Abc_Print( 1," (choice = %d)", Abc_NtkGetChoiceNum(pNtk) );
     }
     else
     {
