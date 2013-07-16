@@ -696,6 +696,64 @@ Abc_Ntk_t * Abc_NtkDouble( Abc_Ntk_t * pNtk )
 
 /**Function*************************************************************
 
+  Synopsis    [Duplicate the bottom levels of the network.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkBottom( Abc_Ntk_t * pNtk, int Level )
+{
+    char Buffer[500];
+    Abc_Ntk_t * pNtkNew; 
+    Abc_Obj_t * pObj, * pFanin;
+    int i, k;
+    assert( Abc_NtkIsLogic(pNtk) );
+    assert( Abc_NtkLatchNum(pNtk) == 0 );
+
+    // start the network
+    pNtkNew = Abc_NtkAlloc( pNtk->ntkType, pNtk->ntkFunc, 1 );
+    sprintf( Buffer, "%s%s", pNtk->pName, "_bot" );
+    pNtkNew->pName = Extra_UtilStrsav(Buffer);
+
+    // clean the node copy fields
+    Abc_NtkCleanCopy( pNtk );
+    // clone CIs/CIs/boxes
+    Abc_NtkForEachPi( pNtk, pObj, i )
+        Abc_NtkDupObj( pNtkNew, pObj, 1 );
+
+    // copy the internal nodes
+    // duplicate the nets and nodes (CIs/COs/latches already dupped)
+    Abc_NtkForEachObj( pNtk, pObj, i )
+        if ( pObj->pCopy == NULL && Abc_ObjIsNode(pObj) && Abc_ObjLevel(pObj) <= Level )
+            Abc_NtkDupObj(pNtkNew, pObj, 0);
+    // reconnect all objects (no need to transfer attributes on edges)
+    Abc_NtkForEachObj( pNtk, pObj, i )
+        Abc_ObjForEachFanin( pObj, pFanin, k )
+            if ( pObj->pCopy && pFanin->pCopy )
+                Abc_ObjAddFanin( pObj->pCopy, pFanin->pCopy );
+
+    // create new primary outputs
+    Abc_NtkForEachNode( pNtk, pObj, i )
+        Abc_ObjForEachFanin( pObj, pFanin, k )
+            if ( pObj->pCopy == NULL && pFanin->pCopy != NULL && Abc_ObjIsNode(pFanin) )
+            {
+                Abc_Obj_t * pNodeNew = Abc_NtkCreatePo(pNtkNew);
+                Abc_ObjAddFanin( pNodeNew, pFanin->pCopy );
+                Abc_ObjAssignName( pNodeNew, Abc_ObjName(pNodeNew), NULL );
+            }
+
+    // perform the final check
+    if ( !Abc_NtkCheck( pNtkNew ) )
+        fprintf( stdout, "Abc_NtkBottom(): Network check has failed.\n" );
+    return pNtkNew;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Attaches the second network at the bottom of the first.]
 
   Description [Returns the first network. Deletes the second network.]
