@@ -643,7 +643,6 @@ static Mpm_Dsd_t s_DsdClass6[595] = {
 void Mpm_ManPrintDsdStats( Mpm_Man_t * p )
 {
     int i, Absent = 0;
-
     for ( i = 0; i < 595; i++ )
     {
         if ( p->nCountDsd[i] == 0 )
@@ -659,9 +658,9 @@ void Mpm_ManPrintDsdStats( Mpm_Man_t * p )
             printf( "\n" );
         }
     }
-    printf( "Unused classes = %d (%.2f %%). Non-DSD cuts = %d (%.2f %%).\n", 
-        Absent, 100.0 * Absent / 595, 
-        p->nNonDsd, 100.0 * p->nNonDsd / p->nCutsMergedAll );
+    printf( "Unused classes = %d (%.2f %%).  ",  Absent, 100.0 * Absent / 595 );
+    printf( "Non-DSD cuts = %d (%.2f %%).  ",   p->nNonDsd, 100.0 * p->nNonDsd / p->nCutsMergedAll );
+    printf( "No-match cuts = %d (%.2f %%).\n",  p->nNoMatch, 100.0 * p->nNoMatch / p->nCutsMergedAll );
 }
 
 /**Function*************************************************************
@@ -872,6 +871,31 @@ word Mpm_CutTruthFromDsd( Mpm_Man_t * pMan, Mpm_Cut_t * pCut, int iClass )
 
 /**Function*************************************************************
 
+  Synopsis    [Checks hash table for DSD class.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Mpm_CutCheckDsd6( Mpm_Man_t * p, word t )
+{
+    int fCompl, Entry, Config;
+    if ( (fCompl = (t & 1)) )
+        t = ~t;
+    Entry = *Hsh_IntManLookup( p->pHash, (unsigned *)&t );
+    if ( Entry == -1 )
+        return -1;
+    Config = Vec_IntEntry( p->vConfgRes, Entry );
+    if ( fCompl )
+        Config ^= (1 << 16);
+    return Config;
+}
+
+/**Function*************************************************************
+
   Synopsis    []
 
   Description []
@@ -884,7 +908,7 @@ word Mpm_CutTruthFromDsd( Mpm_Man_t * pMan, Mpm_Cut_t * pCut, int iClass )
 int Mpm_CutComputeDsd6( Mpm_Man_t * p, Mpm_Cut_t * pCut, Mpm_Cut_t * pCut0, Mpm_Cut_t * pCut1, Mpm_Cut_t * pCutC, int fCompl0, int fCompl1, int fComplC, int Type )
 {
     int fVerbose = 0;
-    int i, Config, iClass, Entry, fCompl = 0;
+    int i, Config, iClass, fCompl;
     int pLeavesNew[6] = { -1, -1, -1, -1, -1, -1 };
     word t = 0;
     if ( pCutC == NULL )
@@ -946,23 +970,31 @@ Kit_DsdPrintFromTruth( (unsigned *)&t, 6 );        printf( "\n" );
         t = (tC & t1) | (~tC & t0);
     }
 
-    if ( t & 1 )   
-    { 
-        fCompl = 1; t = ~t; 
-    }
-    Entry = *Hsh_IntManLookup( p->pHash, (unsigned *)&t );
-    if ( Entry == -1 )
+    // find configuration
+    Config = Mpm_CutCheckDsd6( p, t );
+    if ( Config == -1 )
     {
         p->nNonDsd++;
         return 0;
     }
-    Config = Vec_IntEntry( p->vConfgRes, Entry );
-    if ( Config & (1 << 16) )
-        fCompl ^= 1;
+
+    // get the class
     iClass = Config >> 17;
-    pCut->iFunc = Abc_Var2Lit( iClass, fCompl );
+    fCompl = (Config >> 16) & 1;
     Config &= 0xFFFF;
-    assert( (Config >> 6) < 720 );
+
+    // check if the gate exists
+    if ( p->pPars->fMap4Gates )
+    {
+        if ( Vec_IntEntry(p->vGateNpnConfig, iClass) < 0 )
+        {
+            p->nNoMatch++;
+            return 0;
+        }
+    }
+
+    // set the function
+    pCut->iFunc = Abc_Var2Lit( iClass, fCompl );
 
 if ( fVerbose )
 {
@@ -971,11 +1003,13 @@ Mpm_CutPrint( pCut1 );
 Mpm_CutPrint( pCut );
 }
 
+    // update cut
+    assert( (Config >> 6) < 720 );
     for ( i = 0; i < (int)pCut->nLeaves; i++ )
-        pLeavesNew[(int)p->Perm6[Config >> 6]] = Abc_LitNotCond( pCut->pLeaves[i], (Config >> i) & 1 );
+        pLeavesNew[(int)(p->Perm6[Config >> 6][i])] = Abc_LitNotCond( pCut->pLeaves[i], (Config >> i) & 1 );
     pCut->nLeaves = p->pDsd6[iClass].nVars;
-//    for ( i = 0; i < (int)pCut->nLeaves; i++ )
-//        assert( pLeavesNew[i] != -1 );
+    for ( i = 0; i < (int)pCut->nLeaves; i++ )
+        assert( pLeavesNew[i] != -1 );
     for ( i = 0; i < (int)pCut->nLeaves; i++ )
         pCut->pLeaves[i] = pLeavesNew[i];
     p->nCountDsd[iClass]++;

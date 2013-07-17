@@ -138,6 +138,8 @@ void Mpm_ManStop( Mpm_Man_t * p )
         Vec_IntFree( p->pHash->vData );
         Hsh_IntManStop( p->pHash );
     }
+    Vec_IntFreeP( &p->vNpnCosts );
+    Vec_IntFreeP( &p->vGateNpnConfig );
     Vec_PtrFree( p->vTemp );
     Mmr_StepStop( p->pManCuts );
     ABC_FREE( p->vObjPresUsed.pArray );

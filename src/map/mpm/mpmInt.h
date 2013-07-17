@@ -101,10 +101,10 @@ struct Mpm_Man_t_
     int              nTruWords;                // words in the truth table
     Mpm_LibLut_t *   pLibLut;                  // LUT library
     // mapping attributes  
-    int              GloRequired;              // global arrival time
-    int              GloArea;                  // total area
-    int              GloEdge;                  // total edge
     int              fMainRun;                 // after preprocessing is finished
+    int              GloRequired;              // global arrival time
+    word             GloArea;                  // total area
+    word             GloEdge;                  // total edge
     // cut management
     Mmr_Step_t *     pManCuts;                 // cut memory
     // temporary cut storage
@@ -140,6 +140,8 @@ struct Mpm_Man_t_
     Vec_Int_t *      vMap2Perm;                // maps number into its permutation
     unsigned         uPermMask[3];
     unsigned         uComplMask[3];
+    Vec_Int_t *      vGateNpnConfig;
+    Vec_Int_t *      vNpnCosts;                // area cost of each NPN class
     // mapping attributes
     Vec_Int_t        vCutBests;                // cut best
     Vec_Int_t        vCutLists;                // cut list
@@ -152,6 +154,7 @@ struct Mpm_Man_t_
     Vec_Int_t        vEdges;                   // edge
     int              nCountDsd[600];
     int              nNonDsd;
+    int              nNoMatch;
     // statistics
     int              nCutsMerged;
     int              nCutsMergedAll;
@@ -218,6 +221,8 @@ static inline void        Mpm_VarsSwap( int * V2P, int * P2V, int iVar, int jVar
 // iterators over cut leaves
 #define Mpm_CutForEachLeafId( pCut, iLeafId, i )                         \
     for ( i = 0; i < (int)pCut->nLeaves && ((iLeafId = Abc_Lit2Var(pCut->pLeaves[i])), 1); i++ )
+#define Mpm_CutForEachLeafLit( pCut, iLeafLit, i )                         \
+    for ( i = 0; i < (int)pCut->nLeaves && ((iLeafLit = pCut->pLeaves[i]), 1); i++ )
 #define Mpm_CutForEachLeaf( p, pCut, pLeaf, i )                          \
     for ( i = 0; i < (int)pCut->nLeaves && (pLeaf = Mig_ManObj(p, Abc_Lit2Var(pCut->pLeaves[i]))); i++ )
 
@@ -238,7 +243,10 @@ extern void                  Mpm_ManPrintDsdStats( Mpm_Man_t * p );
 extern void                  Mpm_ManPrintPerm( unsigned s );
 extern void                  Mpm_ManPrecomputePerms( Mpm_Man_t * p );
 extern word                  Mpm_CutTruthFromDsd( Mpm_Man_t * pMan, Mpm_Cut_t * pCut, int iDsdLit );
+extern int                   Mpm_CutCheckDsd6( Mpm_Man_t * p, word t );
 extern int                   Mpm_CutComputeDsd6( Mpm_Man_t * p, Mpm_Cut_t * pCut, Mpm_Cut_t * pCut0, Mpm_Cut_t * pCut1, Mpm_Cut_t * pCutC, int fCompl0, int fCompl1, int fComplC, int Type );
+/*=== mpmGates.c ===========================================================*/
+extern Vec_Int_t *           Mpm_ManFindDsdMatches( Mpm_Man_t * p, void * pScl, Vec_Int_t ** pvNpnCosts );
 /*=== mpmLib.c ===========================================================*/
 extern Mpm_LibLut_t *        Mpm_LibLutSetSimple( int nLutSize );
 extern void                  Mpm_LibLutFree( Mpm_LibLut_t * pLib );

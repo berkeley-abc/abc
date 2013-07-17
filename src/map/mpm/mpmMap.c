@@ -158,6 +158,8 @@ static inline int Mpm_CutGetArea( Mpm_Man_t * p, Mpm_Cut_t * pCut )
         return MPM_UNIT_AREA * p->pDsd6[Abc_Lit2Var(pCut->iFunc)].nClauses;
     if ( p->pPars->fMap4Aig )
         return MPM_UNIT_AREA * p->pDsd6[Abc_Lit2Var(pCut->iFunc)].nAnds;
+    if ( p->pPars->fMap4Gates )
+        return MPM_UNIT_AREA * Vec_IntEntry( p->vNpnCosts, Abc_Lit2Var(pCut->iFunc) );
     return p->pLibLut->pLutAreas[pCut->nLeaves];
 }
 static inline word Mpm_CutGetSign( Mpm_Cut_t * pCut )  

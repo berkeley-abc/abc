@@ -57,6 +57,7 @@ typedef struct Mpm_Par_t_ Mpm_Par_t;
 struct Mpm_Par_t_
 {
     Mpm_LibLut_t *   pLib;
+    void *           pScl;
     int              nNumCuts;
     int              DelayTarget;
     int              fUseGates;
@@ -67,6 +68,7 @@ struct Mpm_Par_t_
     int              fDeriveLuts;
     int              fMap4Cnf;
     int              fMap4Aig;
+    int              fMap4Gates;
     int              fVerbose;
     int              fVeryVerbose;
 };

@@ -2507,6 +2507,10 @@ SOURCE=.\src\map\mpm\mpmDsd.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\map\mpm\mpmGates.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\map\mpm\mpmInt.h
 # End Source File
 # Begin Source File

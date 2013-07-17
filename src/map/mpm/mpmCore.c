@@ -56,6 +56,7 @@ void Mpm_ManSetParsDefault( Mpm_Par_t * p )
     p->fDeriveLuts    =      0;  // use truth tables to derive AIG structure
     p->fMap4Cnf       =      0;  // mapping for CNF
     p->fMap4Aig       =      0;  // mapping for AIG
+    p->fMap4Gates     =      0;  // mapping for gates
     p->fVerbose       =      0;  // verbose output
     p->fVeryVerbose   =      0;  // verbose output
 }
@@ -71,13 +72,15 @@ void Mpm_ManSetParsDefault( Mpm_Par_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Mpm_ManPerformTest( Mig_Man_t * pMig, Mpm_Par_t * pPars )
+Gia_Man_t * Mpm_ManPerformLutMapping( Mig_Man_t * pMig, Mpm_Par_t * pPars )
 {
     Gia_Man_t * pNew;
     Mpm_Man_t * p;
     p = Mpm_ManStart( pMig, pPars );
     if ( p->pPars->fVerbose ) 
         Mpm_ManPrintStatsInit( p );
+//    if ( p->pPars->fMap4Gates )
+//        p->vGateNpnConfig = Mpm_ManFindDsdMatches( p, p->pPars->pScl, &p->vNpnCosts );
     Mpm_ManPrepare( p );
     Mpm_ManPerform( p );
     if ( p->pPars->fVerbose ) 
@@ -86,7 +89,7 @@ Gia_Man_t * Mpm_ManPerformTest( Mig_Man_t * pMig, Mpm_Par_t * pPars )
     Mpm_ManStop( p );
     return pNew;
 }
-Gia_Man_t * Mpm_ManMappingTest( Gia_Man_t * pGia, Mpm_Par_t * pPars )
+Gia_Man_t * Mpm_ManLutMapping( Gia_Man_t * pGia, Mpm_Par_t * pPars )
 {
     Mig_Man_t * p;
     Gia_Man_t * pNew;
@@ -100,7 +103,7 @@ Gia_Man_t * Mpm_ManMappingTest( Gia_Man_t * pGia, Mpm_Par_t * pPars )
     }
     else
         p = Mig_ManCreate( pGia );
-    pNew = Mpm_ManPerformTest( p, pPars );
+    pNew = Mpm_ManPerformLutMapping( p, pPars );
     Mig_ManStop( p );
     return pNew;
 }

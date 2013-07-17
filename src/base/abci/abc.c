@@ -29528,15 +29528,17 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9If2( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Gia_Man_t * Mpm_ManMappingTest( Gia_Man_t * p, Mpm_Par_t * pPars );
+    extern Abc_Ntk_t * Mpm_ManCellMapping( Gia_Man_t * p, Mpm_Par_t * pPars, void * pMio );
+    extern Gia_Man_t * Mpm_ManLutMapping( Gia_Man_t * p, Mpm_Par_t * pPars );
     char Buffer[200];
+    Abc_Ntk_t * pTemp;
     Gia_Man_t * pNew;
     Mpm_Par_t Pars, * pPars = &Pars;
     int c, nLutSize = 6;
     // set defaults
     Mpm_ManSetParsDefault( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KCDtmzrcuvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KCDtmzrcuxvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -29596,6 +29598,9 @@ int Abc_CommandAbc9If2( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'u':
             pPars->fMap4Aig ^= 1;
             break;
+        case 'x':
+            pPars->fMap4Gates ^= 1;
+            break;
         case 'v':
             pPars->fVerbose ^= 1;
             break;
@@ -29612,17 +29617,48 @@ int Abc_CommandAbc9If2( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( pPars->fMap4Cnf )
         pPars->fUseDsd = 1;
     if ( pPars->fCutMin )
-        pPars->fUseTruth = 1;
-//        pPars->fUseDsd = 1;
-    // perform mapping
-    pNew = Mpm_ManMappingTest( pAbc->pGia, pPars );
-    Mpm_LibLutFree( pPars->pLib );
-    if ( pNew == NULL )
+        pPars->fUseDsd = 1;
+//        pPars->fUseTruth = 1;
+    if ( pPars->fMap4Gates )
     {
-        Abc_Print( -1, "Abc_CommandAbc9If2(): Mapping of GIA has failed.\n" );
-        return 1;
+        pPars->fUseDsd = 1;
+        if ( pAbc->pLibScl == NULL )
+        {
+            Abc_Print( -1, "There is no SCL library available.\n" );
+            return 1;
+        }
+        pPars->pScl = pAbc->pLibScl;
     }
-    Abc_FrameUpdateGia( pAbc, pNew );
+    if ( pPars->fUseDsd || pPars->fUseTruth )
+        pPars->fDeriveLuts = 1;
+    // perform mapping
+    if ( pPars->fMap4Gates )
+    {
+        if ( Abc_FrameReadLibGen() == NULL )
+        {
+            Abc_Print( -1, "There is no GENLIB library available.\n" );
+            return 1;
+        }
+        pTemp = Mpm_ManCellMapping( pAbc->pGia, pPars, Abc_FrameReadLibGen() );
+        Mpm_LibLutFree( pPars->pLib );
+        if ( pTemp == NULL )
+        {
+            Abc_Print( -1, "Abc_CommandAbc9If2(): Mapping into standard cells has failed.\n" );
+            return 1;
+        }
+        Abc_FrameReplaceCurrentNetwork( pAbc, pTemp );
+    }
+    else
+    {
+        pNew = Mpm_ManLutMapping( pAbc->pGia, pPars );
+        Mpm_LibLutFree( pPars->pLib );
+        if ( pNew == NULL )
+        {
+            Abc_Print( -1, "Abc_CommandAbc9If2(): Mapping into LUTs has failed.\n" );
+            return 1;
+        }
+        Abc_FrameUpdateGia( pAbc, pNew );
+    }
     return 0;
 
 usage:
@@ -29630,7 +29666,7 @@ usage:
         sprintf(Buffer, "best possible" );
     else
         sprintf(Buffer, "%d", pPars->DelayTarget );
-    Abc_Print( -2, "usage: &if2 [-KCD num] [-tmzrcuvwh]\n" );
+    Abc_Print( -2, "usage: &if2 [-KCD num] [-tmzrcuxvwh]\n" );
     Abc_Print( -2, "\t           performs technology mapping of the network\n" );
     Abc_Print( -2, "\t-K num   : sets the LUT size for the mapping [default = %d]\n", nLutSize );
     Abc_Print( -2, "\t-C num   : the max number of priority cuts (0 < num < 2^12) [default = %d]\n", pPars->nNumCuts );
@@ -29641,6 +29677,7 @@ usage:
     Abc_Print( -2, "\t-r       : toggles using one round of mapping [default = %s]\n", pPars->fOneRound? "yes": "no" );
     Abc_Print( -2, "\t-c       : toggles mapping for CNF computation [default = %s]\n", pPars->fMap4Cnf? "yes": "no" );
     Abc_Print( -2, "\t-u       : toggles mapping for AIG computation [default = %s]\n", pPars->fMap4Aig? "yes": "no" );
+    Abc_Print( -2, "\t-x       : toggles mapping for standard cells [default = %s]\n", pPars->fMap4Gates? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w       : toggles very verbose output [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : prints the command usage\n");
