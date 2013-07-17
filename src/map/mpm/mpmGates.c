@@ -82,7 +82,7 @@ Vec_Int_t * Mpm_ManFindDsdMatches( Mpm_Man_t * p, void * pScl, Vec_Int_t ** pvNp
         printf( "Gate %5d  %-30s : ", pRepr->Id, pRepr->pName );
         printf( "Class %3d  ", iClass );
         printf( "Area %10.3f  ", pRepr->area );
-        Extra_PrintBinary( stdout, &Config, 17 );
+        Extra_PrintBinary( stdout, (unsigned *)&Config, 17 );
         printf( "   " );
         Kit_DsdPrintFromTruth( (unsigned *)&Truth, pRepr->n_inputs ); printf( "\n" );
     }
