@@ -221,6 +221,8 @@ int Sfm_NodeResub( Sfm_Ntk_t * p, int iNode )
             if ( Sfm_NodeResubSolve( p, iNode, i, 0 ) )
                 return 1;
         }
+    if ( p->pPars->fArea )
+        return 0;
     // try removing redundant edges
     Sfm_ObjForEachFanin( p, iNode, iFanin, i )
         if ( !(Sfm_ObjIsNode(p, iFanin) && Sfm_ObjFanoutNum(p, iFanin) == 1) )
