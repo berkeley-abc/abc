@@ -415,7 +415,7 @@ void If_ObjPerformMappingChoice( If_Man_t * p, If_Obj_t * pObj, int Mode, int fP
     // generate cuts
     for ( pTemp = pObj->pEquiv; pTemp; pTemp = pTemp->pEquiv )
     {
-        assert( pTemp->nRefs == 0 );
+//        assert( pTemp->nRefs == 0 );
 //        assert( p->pPars->fSeqMap || pTemp->pCutSet->nCuts > 0 ); // June 9, 2009
         if ( pTemp->pCutSet->nCuts == 0 )
             continue;
