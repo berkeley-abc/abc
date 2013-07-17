@@ -814,7 +814,7 @@ void Mpm_ManPerformRound( Mpm_Man_t * p )
     if ( p->pPars->fVerbose )
     {
     printf( "Del =%5d.  Ar =%8d.  Edge =%8d.  Cut =%10d. Max =%8d.  Tru =%8d. Small =%6d. ", 
-        p->GloRequired, p->GloArea, p->GloEdge, 
+        p->GloRequired, (int)p->GloArea, (int)p->GloEdge, 
         p->nCutsMerged, p->pManCuts->nEntriesMax, 
         p->vTtMem ? p->vTtMem->nEntries : 0, p->nSmallSupp );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
