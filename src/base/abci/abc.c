@@ -29555,8 +29555,6 @@ int Abc_CommandAbc9If2( Abc_Frame_t * pAbc, int argc, char ** argv )
                 Abc_Print( -1, "LUT size %d is not supported.\n", nLutSize );
                 goto usage;
             }
-            assert( pPars->pLib == NULL );
-            pPars->pLib = Mpm_LibLutSetSimple( nLutSize );
             break;
         case 'C':
             if ( globalUtilOptind >= argc )
@@ -29612,8 +29610,6 @@ int Abc_CommandAbc9If2( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
-    if ( pPars->pLib == NULL )
-        pPars->pLib = Mpm_LibLutSetSimple( nLutSize );
     if ( pPars->fMap4Cnf )
         pPars->fUseDsd = 1;
     if ( pPars->fCutMin )
@@ -29631,7 +29627,13 @@ int Abc_CommandAbc9If2( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( pPars->fUseDsd || pPars->fUseTruth )
         pPars->fDeriveLuts = 1;
+    if ( pPars->fUseDsd && nLutSize != 6 )
+    {
+        Abc_Print( -1, "Currently DSD can only be used with 6-input cuts.\n" );
+        return 1;
+    }
     // perform mapping
+    assert( pPars->pLib == NULL );
     if ( pPars->fMap4Gates )
     {
         if ( Abc_FrameReadLibGen() == NULL )
@@ -29639,6 +29641,7 @@ int Abc_CommandAbc9If2( Abc_Frame_t * pAbc, int argc, char ** argv )
             Abc_Print( -1, "There is no GENLIB library available.\n" );
             return 1;
         }
+        pPars->pLib = Mpm_LibLutSetSimple( nLutSize );
         pTemp = Mpm_ManCellMapping( pAbc->pGia, pPars, Abc_FrameReadLibGen() );
         Mpm_LibLutFree( pPars->pLib );
         if ( pTemp == NULL )
@@ -29650,6 +29653,7 @@ int Abc_CommandAbc9If2( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     else
     {
+        pPars->pLib = Mpm_LibLutSetSimple( nLutSize );
         pNew = Mpm_ManLutMapping( pAbc->pGia, pPars );
         Mpm_LibLutFree( pPars->pLib );
         if ( pNew == NULL )

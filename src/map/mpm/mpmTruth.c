@@ -91,13 +91,6 @@ static inline int Mpm_CutTruthMinimize6( Mpm_Man_t * p, Mpm_Cut_t * pCut )
             }
             k++;
         }
-        else
-        {
-            int iObj = Abc_Lit2Var( pCut->pLeaves[i] );
-            int Res = Vec_IntRemove( &p->vObjPresUsed, iObj );
-            assert( Res == 1 );
-            p->pObjPres[iObj] = (unsigned char)0xFF; 
-        }
     }
     assert( k == nSuppSize );
     pCut->nLeaves = nSuppSize;
@@ -128,13 +121,6 @@ static inline int Mpm_CutTruthMinimize7( Mpm_Man_t * p, Mpm_Cut_t * pCut )
                 Abc_TtSwapVars( p->Truth, p->nLutSize, k, i );
             }
             k++;
-        }
-        else
-        {
-            int iObj = Abc_Lit2Var( pCut->pLeaves[i] );
-            int Res = Vec_IntRemove( &p->vObjPresUsed, iObj );
-            assert( Res == 1 );
-            p->pObjPres[iObj] = (unsigned char)0xFF; 
         }
     }
     assert( k == nSuppSize );

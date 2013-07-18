@@ -343,65 +343,14 @@ p->timeCompare += Abc_Clock() - clk;
 ***********************************************************************/
 static inline Mpm_Cut_t * Mpm_ManMergeCuts( Mpm_Man_t * p, Mpm_Cut_t * pCut0, Mpm_Cut_t * pCut1, Mpm_Cut_t * pCut2 )
 {
-    int fUsePres = 0;
     Mpm_Cut_t * pTemp, * pCut = &((Mpm_Uni_t *)Vec_PtrEntryLast(&p->vFreeUnits))->pCut;
-    int i, c, iObj, fDisj = 1;
-
-    if ( fUsePres )
+    int i, c, iObj, iPlace;
+    // base cut
+    memcpy( pCut->pLeaves, pCut0->pLeaves, sizeof(int) * pCut0->nLeaves );
+    pCut->nLeaves = pCut0->nLeaves;
+    // remaining cuts
+    if ( p->pPars->fUseDsd )
     {
-        // clean present objects
-        for ( i = 0; i < p->vObjPresUsed.nSize; i++ )
-            p->pObjPres[p->vObjPresUsed.pArray[i]] = (unsigned char)0xFF;
-        Vec_IntClear(&p->vObjPresUsed);   
-        // check present objects
-    //    for ( i = 0; i < Mig_ManObjNum(p->pMig); i++ )
-    //        assert( p->pObjPres[i] == (unsigned char)0xFF );
-        // base cut
-        pCut->nLeaves = 0;
-        for ( i = 0; i < (int)pCut0->nLeaves; i++ )
-        {
-            iObj = Abc_Lit2Var(pCut0->pLeaves[i]);
-            Vec_IntPush( &p->vObjPresUsed, iObj );
-            p->pObjPres[iObj] = pCut->nLeaves;        
-            pCut->pLeaves[pCut->nLeaves++] = pCut0->pLeaves[i];
-        }
-        // remaining cuts
-        for ( c = 1; c < 3; c++ )
-        {
-            pTemp = (c == 1) ? pCut1 : pCut2;
-            if ( pTemp == NULL )
-                break;
-            p->uPermMask[c] = 0x3FFFF; // 18 bits
-            p->uComplMask[c] = 0;     
-            for ( i = 0; i < (int)pTemp->nLeaves; i++ )
-            {
-                iObj = Abc_Lit2Var(pTemp->pLeaves[i]);
-                if ( p->pObjPres[iObj] == (unsigned char)0xFF )
-                {
-                    if ( (int)pCut->nLeaves == p->nLutSize )
-                        return NULL;
-                    Vec_IntPush( &p->vObjPresUsed, iObj );
-                    p->pObjPres[iObj] = pCut->nLeaves;        
-                    pCut->pLeaves[pCut->nLeaves++] = pTemp->pLeaves[i];
-                }
-                else
-                    fDisj = 0;
-                p->uPermMask[c] ^= (((i & 7) ^ 7) << (3*p->pObjPres[iObj]));
-                assert( Abc_Lit2Var(pTemp->pLeaves[i]) == Abc_Lit2Var(pCut->pLeaves[p->pObjPres[iObj]]) );
-                if ( pTemp->pLeaves[i] != pCut->pLeaves[p->pObjPres[iObj]] )
-                    p->uComplMask[c] |= (1 << p->pObjPres[iObj]);
-            }
-    //        Mpm_ManPrintPerm( p->uPermMask[c] ); printf( "\n" );
-        }
-    }
-    else
-    {
-        int iPlace;
-        // base cut
-        pCut->nLeaves = 0;
-        for ( i = 0; i < (int)pCut0->nLeaves; i++ )
-            pCut->pLeaves[pCut->nLeaves++] = pCut0->pLeaves[i];
-        // remaining cuts
         for ( c = 1; c < 3; c++ )
         {
             pTemp = (c == 1) ? pCut1 : pCut2;
@@ -421,16 +370,34 @@ static inline Mpm_Cut_t * Mpm_ManMergeCuts( Mpm_Man_t * p, Mpm_Cut_t * pCut0, Mp
                         return NULL;
                     pCut->pLeaves[pCut->nLeaves++] = pTemp->pLeaves[i];
                 }
-                else
-                    fDisj = 0;
                 p->uPermMask[c] ^= (((i & 7) ^ 7) << (3*iPlace));
-                assert( Abc_Lit2Var(pTemp->pLeaves[i]) == Abc_Lit2Var(pCut->pLeaves[iPlace]) );
                 if ( pTemp->pLeaves[i] != pCut->pLeaves[iPlace] )
                     p->uComplMask[c] |= (1 << iPlace);
             }
         }
     }
-//    printf( "%d", fDisj );
+    else
+    {
+        for ( c = 1; c < 3; c++ )
+        {
+            pTemp = (c == 1) ? pCut1 : pCut2;
+            if ( pTemp == NULL )
+                break;
+            for ( i = 0; i < (int)pTemp->nLeaves; i++ )
+            {
+                iObj = Abc_Lit2Var(pTemp->pLeaves[i]);
+                for ( iPlace = 0; iPlace < (int)pCut->nLeaves; iPlace++ )
+                    if ( iObj == Abc_Lit2Var(pCut->pLeaves[iPlace]) )
+                        break;
+                if ( iPlace == (int)pCut->nLeaves )
+                {
+                    if ( (int)pCut->nLeaves == p->nLutSize )
+                        return NULL;
+                    pCut->pLeaves[pCut->nLeaves++] = pTemp->pLeaves[i];
+                }
+            }
+        }
+    }
     if ( pCut1 == NULL )
     {
         pCut->hNext    = 0;
@@ -455,37 +422,50 @@ static inline int Mpm_ManExploreNewCut( Mpm_Man_t * p, Mig_Obj_t * pObj, Mpm_Cut
 {
     Mpm_Cut_t * pCut;
     int ArrTime;
-
 #ifdef MIG_RUNTIME
 abctime clk = clock();
 #endif
-    pCut = Mpm_ManMergeCuts( p, pCut0, pCut1, pCut2 );
-    if ( pCut == NULL )
+
+    if ( pCut0->nLeaves >= pCut1->nLeaves )
     {
+        pCut = Mpm_ManMergeCuts( p, pCut0, pCut1, pCut2 );
 #ifdef MIG_RUNTIME
 p->timeMerge += clock() - clk;
 #endif
-        return 1;
-    }
-
-    // derive truth table
-    if ( p->pPars->fUseTruth )
-        Mpm_CutComputeTruth( p, pCut, pCut0, pCut1, pCut2, Mig_ObjFaninC0(pObj), Mig_ObjFaninC1(pObj), Mig_ObjFaninC2(pObj), Mig_ObjNodeType(pObj) ); 
-    else if ( p->pPars->fUseDsd )
-    {
-        if ( !Mpm_CutComputeDsd6( p, pCut, pCut0, pCut1, pCut2, Mig_ObjFaninC0(pObj), Mig_ObjFaninC1(pObj), Mig_ObjFaninC2(pObj), Mig_ObjNodeType(pObj) ) )
+        if ( pCut == NULL )
             return 1;
+        if ( p->pPars->fUseTruth )
+            Mpm_CutComputeTruth( p, pCut, pCut0, pCut1, pCut2, Mig_ObjFaninC0(pObj), Mig_ObjFaninC1(pObj), Mig_ObjFaninC2(pObj), Mig_ObjNodeType(pObj) ); 
+        else if ( p->pPars->fUseDsd )
+        {
+            if ( !Mpm_CutComputeDsd6( p, pCut, pCut0, pCut1, pCut2, Mig_ObjFaninC0(pObj), Mig_ObjFaninC1(pObj), Mig_ObjFaninC2(pObj), Mig_ObjNodeType(pObj) ) )
+                return 1;
+        }
+    }
+    else
+    {
+        pCut = Mpm_ManMergeCuts( p, pCut1, pCut0, pCut2 );
+#ifdef MIG_RUNTIME
+p->timeMerge += clock() - clk;
+#endif
+        if ( pCut == NULL )
+            return 1;
+        if ( p->pPars->fUseTruth )
+            Mpm_CutComputeTruth( p, pCut, pCut1, pCut0, pCut2, Mig_ObjFaninC1(pObj), Mig_ObjFaninC0(pObj), 1 ^ Mig_ObjFaninC2(pObj), Mig_ObjNodeType(pObj) ); 
+        else if ( p->pPars->fUseDsd )
+        {
+            if ( !Mpm_CutComputeDsd6( p, pCut, pCut1, pCut0, pCut2, Mig_ObjFaninC1(pObj), Mig_ObjFaninC0(pObj), 1 ^ Mig_ObjFaninC2(pObj), Mig_ObjNodeType(pObj) ) )
+                return 1;
+        }
     }
 
 #ifdef MIG_RUNTIME
-p->timeMerge += clock() - clk;
 clk = clock();
 #endif
     ArrTime = Mpm_CutGetArrTime( p, pCut );
 #ifdef MIG_RUNTIME
 p->timeEval += clock() - clk;
 #endif
-
     if ( p->fMainRun && ArrTime > Required )
         return 1;
 
@@ -497,11 +477,11 @@ clk = Abc_Clock();
 p->timeStore += Abc_Clock() - clk;
 #endif
 
-    // return 0 if const or buffer cut is derived - reset all cuts to contain only one
+/*
+    // return 0 if const or buffer cut is derived - reset all cuts to contain only one --- does not work
 //    if ( pCut->nLeaves < 2 && p->nCutStore == 1 )
 //        return 0;
-/*
-    if ( pCut->nLeaves < 2 )
+    if ( pCut->nLeaves < 2 ) 
     {
         int i;
         assert( p->nCutStore >= 1 );

@@ -113,9 +113,6 @@ struct Mpm_Man_t_
     Mpm_Uni_t        pCutUnits[MPM_CUT_MAX+1]; // cut info units
     Vec_Ptr_t        vFreeUnits;               // free cut info units
     Vec_Ptr_t *      vTemp;                    // storage for cuts
-    // object presence
-    unsigned char *  pObjPres;                 // object presence
-    Vec_Int_t        vObjPresUsed;             // used objects   
     // cut comparison
     int (* pCutCmp) (Mpm_Uni_t *, Mpm_Uni_t *);// procedure to compare cuts
     // fanin cuts/signatures
