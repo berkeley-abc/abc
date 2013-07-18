@@ -20,6 +20,7 @@
 
 #include "if.h"
 #include "bool/kit/kit.h"
+#include "misc/vec/vecMem.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -76,6 +77,9 @@ extern void Kit_DsdPrintFromTruth( unsigned * pTruth, int nVars );
 extern void Extra_PrintBinary( FILE * pFile, unsigned Sign[], int nBits );
 
 extern int If_CluSupportSize( word * t, int nVars );
+
+int s_Count2 = 0;
+int s_Count3 = 0;
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -1613,6 +1617,8 @@ If_Grp_t If_CluCheck( If_Man_t * p, word * pTruth0, int nVars, int iVarStart, in
 
     if ( G1.nVars == 0 ) 
     {
+        s_Count2++;
+
         // detect easy cofs
         if ( iVarStart == 0 )
             G1 = If_CluDecUsingCofs( pTruth, nVars, nLutLeaf );
@@ -1769,6 +1775,7 @@ If_Grp_t If_CluCheck3( If_Man_t * p, word * pTruth0, int nVars, int nLutLeaf, in
             return G1;
         }
     }
+    s_Count3++;
 
     // check two-node decomposition
     G1 = If_CluCheck( p, pTruth0, nVars, 0, nLutLeaf, nLutRoot + nLutLeaf2 - 1, &R2, &Func0, &Func1, pLeftOver, 0 );
@@ -2024,6 +2031,16 @@ float If_CutDelayLutStruct( If_Man_t * p, If_Cut_t * pCut, char * pStr, float Wi
     return 1.0 + If_CluDelayMax( &G3, Delays );
 }
 
+//#define IF_TRY_NEW
+
+#ifdef IF_TRY_NEW
+static Vec_Mem_t * s_vTtMem = NULL;
+static Vec_Mem_t * s_vTtMem2 = NULL;
+int If_TtMemCutNum()  { return Vec_MemEntryNum(s_vTtMem); }
+int If_TtMemCutNum2() { return Vec_MemEntryNum(s_vTtMem2); }
+//        printf( "Unique TTs = %d.  Unique classes = %d.    ", If_TtMemCutNum(), If_TtMemCutNum2() );
+//        printf( "Check2 = %d.  Check3 = %d.\n", s_Count2, s_Count3 );
+#endif
 
 /**Function*************************************************************
 
@@ -2040,6 +2057,38 @@ int If_CutPerformCheck16( If_Man_t * p, unsigned * pTruth, int nVars, int nLeave
 {
     If_Grp_t G1 = {0};//, G3 = {0};
     int i, nLutLeaf, nLutLeaf2, nLutRoot, Length;
+
+#ifdef IF_TRY_NEW
+    {
+        word pCopy[1024];
+        int nWords = Abc_TruthWordNum(nVars);
+        int iNum;
+        if ( s_vTtMem == NULL )
+        {
+            s_vTtMem = Vec_MemAlloc( Abc_Truth6WordNum(nVars), 12 ); // 32 KB/page for 6-var functions
+            Vec_MemHashAlloc( s_vTtMem, 10000 );
+        }
+        if ( s_vTtMem2 == NULL )
+        {
+            s_vTtMem2 = Vec_MemAlloc( Abc_Truth6WordNum(nVars), 12 ); // 32 KB/page for 6-var functions
+            Vec_MemHashAlloc( s_vTtMem2, 10000 );
+        }
+        memcpy( pCopy, pTruth, sizeof(word) * Abc_Truth6WordNum(nVars) );
+        if ( pCopy[0] & 1 )
+            for ( i = 0; i < nWords; i++ )
+                pCopy[i] = ~pCopy[i];
+        iNum = Vec_MemHashInsert( s_vTtMem, pCopy );
+        if ( iNum == Vec_MemEntryNum(s_vTtMem) - 1 )
+        {
+            int pCanonPerm[16];
+            char pCanonPermC[16];
+            Abc_TtCanonicize( pCopy, nVars, pCanonPermC );
+//            If_CluSemiCanonicize( pCopy, nVars, pCanonPerm );
+            Vec_MemHashInsert( s_vTtMem2, pCopy );
+        }
+    }
+#endif
+
     // if cutmin is disabled, minimize the cut
     if ( !p->pPars->fCutMin && If_CluSupportSize((word *)pTruth, nVars) < nLeaves )
     {
