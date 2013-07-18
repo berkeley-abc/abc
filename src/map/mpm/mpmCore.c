@@ -79,8 +79,6 @@ Gia_Man_t * Mpm_ManPerformLutMapping( Mig_Man_t * pMig, Mpm_Par_t * pPars )
     p = Mpm_ManStart( pMig, pPars );
     if ( p->pPars->fVerbose ) 
         Mpm_ManPrintStatsInit( p );
-//    if ( p->pPars->fMap4Gates )
-//        p->vGateNpnConfig = Mpm_ManFindDsdMatches( p, p->pPars->pScl, &p->vNpnCosts );
     Mpm_ManPrepare( p );
     Mpm_ManPerform( p );
     if ( p->pPars->fVerbose ) 

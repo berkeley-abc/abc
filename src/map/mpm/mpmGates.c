@@ -100,19 +100,24 @@ Vec_Int_t * Mpm_ManFindDsdMatches( Mpm_Man_t * p, void * pScl, Vec_Int_t ** pvNp
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Ptr_t * Mpm_ManFindCells( Mio_Library_t * pMio, SC_Lib * pScl, Vec_Int_t * vNpnGates )
+Vec_Ptr_t * Mpm_ManFindCells( Mio_Library_t * pMio, SC_Lib * pScl, Vec_Int_t * vNpnConfigs )
 {
     Vec_Ptr_t * vNpnGatesMio;
     Mio_Gate_t * pMioGate;
     SC_Cell * pCell;
-    int iCell, iClass;
-    vNpnGatesMio = Vec_PtrStart( Vec_IntSize(vNpnGates) );
-    Vec_IntForEachEntry( vNpnGates, iCell, iClass )
+    int Config, iClass;
+    vNpnGatesMio = Vec_PtrStart( Vec_IntSize(vNpnConfigs) );
+    Vec_IntForEachEntry( vNpnConfigs, Config, iClass )
     {
-        if ( iCell == -1 )
+        if ( Config == -1 )
             continue;
-        pCell = SC_LibCell( pScl, (iCell >> 17) );
+        pCell = SC_LibCell( pScl, (Config >> 17) );
         pMioGate = Mio_LibraryReadGateByName( pMio, pCell->pName, NULL );
+        if ( pMioGate == NULL )
+        {
+            Vec_PtrFree( vNpnGatesMio );
+            return NULL;
+        }
         assert( pMioGate != NULL );
         Vec_PtrWriteEntry( vNpnGatesMio, iClass, pMioGate );
     }
@@ -160,10 +165,15 @@ Abc_Ntk_t * Mpm_ManDeriveMappedAbcNtk( Mpm_Man_t * p, Mio_Library_t * pMio )
     Abc_Obj_t * pObj, * pFanin;
     Mig_Obj_t * pNode;
     Mpm_Cut_t * pCutBest;
-    int i, k, iNode, iMigLit, fCompl;
+    int i, k, iNode, iMigLit, fCompl, Config;
 
     // find mapping of SCL cells into MIO cells
-    vNpnGatesMio = Mpm_ManFindCells( pMio, (SC_Lib *)p->pPars->pScl, p->vGateNpnConfig );
+    vNpnGatesMio = Mpm_ManFindCells( pMio, (SC_Lib *)p->pPars->pScl, p->vNpnConfigs );
+    if ( vNpnGatesMio == NULL )
+    {
+        printf( "Genlib library does not match SCL library.\n" );
+        return NULL;
+    }
 
     // create mapping for each phase of each node
     vCopy = Vec_IntStartFull( 2 * Mig_ManObjNum(p->pMig) );
@@ -185,25 +195,39 @@ Abc_Ntk_t * Mpm_ManDeriveMappedAbcNtk( Mpm_Man_t * p, Mio_Library_t * pMio )
     Abc_NtkAddDummyPiNames( pNtk );
 
     // create constant nodes
-    pObj = Abc_NtkCreateNodeConst0(pNtk);
-    Vec_IntWriteEntry( vCopy, Abc_Var2Lit( 0, 0 ), Abc_ObjId(pObj) );
-    pObj = Abc_NtkCreateNodeConst1(pNtk);
-    Vec_IntWriteEntry( vCopy, Abc_Var2Lit( 0, 1 ), Abc_ObjId(pObj) );
+    Mig_ManForEachCo( p->pMig, pNode, i )
+        if ( Mig_ObjFaninLit(pNode, 0) == 0 )
+        {
+            pObj = Abc_NtkCreateNodeConst0(pNtk);
+            Vec_IntWriteEntry( vCopy, Abc_Var2Lit( 0, 0 ), Abc_ObjId(pObj) );
+            break;
+        }
+    Mig_ManForEachCo( p->pMig, pNode, i )
+        if ( Mig_ObjFaninLit(pNode, 0) == 1 )
+        {
+            pObj = Abc_NtkCreateNodeConst1(pNtk);
+            Vec_IntWriteEntry( vCopy, Abc_Var2Lit( 0, 1 ), Abc_ObjId(pObj) );
+            break;
+        }
 
     // create internal nodes
     Vec_IntForEachEntry( vNodes, iNode, i )
     {
-        pNode = Mig_ManObj( p->pMig, iNode );
-        pCutBest = Mpm_ObjCutBestP( p, pNode );
+        pCutBest = Mpm_ObjCutBestP( p, Mig_ManObj(p->pMig, iNode) );
+        Config = Vec_IntEntry( p->vNpnConfigs, Abc_Lit2Var(pCutBest->iFunc) );
         pObj = Abc_NtkCreateNode( pNtk );
         pObj->pData = Vec_PtrEntry( vNpnGatesMio, Abc_Lit2Var(pCutBest->iFunc) );
-        fCompl = Abc_LitIsCompl(pCutBest->iFunc);
-        Mpm_CutForEachLeafLit( pCutBest, iMigLit, k )
+        assert( pObj->pData != NULL );
+        fCompl = Abc_LitIsCompl(pCutBest->iFunc) ^ ((Config >> 16) & 1);
+        Config &= 0xFFFF;
+        for ( k = 0; k < (int)pCutBest->nLeaves; k++ )
         {
-            pFanin = Mpm_ManGetAbcNode( pNtk, vCopy, iMigLit );
+            assert( (Config >> 6) < 720 );
+            iMigLit = pCutBest->pLeaves[ (int)(p->Perm6[Config >> 6][k]) ];
+            pFanin = Mpm_ManGetAbcNode( pNtk, vCopy, Abc_LitNotCond(iMigLit, (Config >> k) & 1) );
             Abc_ObjAddFanin( pObj, pFanin );
         }
-        Vec_IntWriteEntry( vCopy, Abc_Var2Lit( iNode, fCompl ), Abc_ObjId(pObj) );
+        Vec_IntWriteEntry( vCopy, Abc_Var2Lit(iNode, fCompl), Abc_ObjId(pObj) );
     }
 
     // create primary outputs
@@ -241,7 +265,7 @@ Abc_Ntk_t * Mpm_ManPerformCellMapping( Mig_Man_t * pMig, Mpm_Par_t * pPars, Mio_
     p = Mpm_ManStart( pMig, pPars );
     if ( p->pPars->fVerbose ) 
         Mpm_ManPrintStatsInit( p );
-    p->vGateNpnConfig = Mpm_ManFindDsdMatches( p, p->pPars->pScl, &p->vNpnCosts );
+    p->vNpnConfigs = Mpm_ManFindDsdMatches( p, p->pPars->pScl, &p->vNpnCosts );
     Mpm_ManPrepare( p );
     Mpm_ManPerform( p );
     if ( p->pPars->fVerbose ) 

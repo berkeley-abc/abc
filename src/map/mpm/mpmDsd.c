@@ -986,7 +986,7 @@ Kit_DsdPrintFromTruth( (unsigned *)&t, 6 );        printf( "\n" );
     // check if the gate exists
     if ( p->pPars->fMap4Gates )
     {
-        if ( Vec_IntEntry(p->vGateNpnConfig, iClass) < 0 )
+        if ( Vec_IntEntry(p->vNpnConfigs, iClass) < 0 )
         {
             p->nNoMatch++;
             return 0;

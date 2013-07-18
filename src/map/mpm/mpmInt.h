@@ -140,7 +140,7 @@ struct Mpm_Man_t_
     Vec_Int_t *      vMap2Perm;                // maps number into its permutation
     unsigned         uPermMask[3];
     unsigned         uComplMask[3];
-    Vec_Int_t *      vGateNpnConfig;
+    Vec_Int_t *      vNpnConfigs;
     Vec_Int_t *      vNpnCosts;                // area cost of each NPN class
     // mapping attributes
     Vec_Int_t        vCutBests;                // cut best
