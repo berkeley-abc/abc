@@ -34,7 +34,6 @@ ABC_NAMESPACE_HEADER_START
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
-//#define MIG_RUNTIME
 #define MIG_NONE 0x7FFFFFFF
 //#define MIG_MASK 0x0000FFFF
 //#define MIG_BASE 16

@@ -26,6 +26,8 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
+#define MIG_RUNTIME
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -115,40 +117,21 @@ static inline void Mpm_CutPrintAll( Mpm_Man_t * p )
         Mpm_CutPrint( &p->pCutStore[i]->pCut );
     }
 }
-static inline int Mpm_ManFindLeaf( Mpm_Cut_t * pNew, int iObj )
+static inline int Mpm_CutFindLeaf( Mpm_Cut_t * pNew, int iObj )
 {
     int i;
     for ( i = 0; i < (int)pNew->nLeaves; i++ )
         if ( Abc_Lit2Var(pNew->pLeaves[i]) == iObj )
             return i;
-    return 0xFF;
+    return i;
 }
-static inline int Mpm_ManSetIsSmaller( Mpm_Man_t * p, Mpm_Cut_t * pNew, Mpm_Cut_t * pCut, int nTotal ) // check if pCut is contained in the current one
+static inline int Mpm_CutIsContained( Mpm_Man_t * p, Mpm_Cut_t * pBase, Mpm_Cut_t * pCut ) // check if pCut is contained pBase
 {
-    int i, Index;
+    int i;
     for ( i = 0; i < (int)pCut->nLeaves; i++ )
-    {
-//        Index = (int)p->pObjPres[Abc_Lit2Var(pCut->pLeaves[i])];
-        Index = Mpm_ManFindLeaf( pNew, Abc_Lit2Var(pCut->pLeaves[i]) );
-        if ( Index == 0xFF )
+        if ( Mpm_CutFindLeaf( pBase, Abc_Lit2Var(pCut->pLeaves[i]) ) == (int)pBase->nLeaves )
             return 0;
-//        assert( Index < nTotal );
-    }
     return 1;
-}
-static inline int Mpm_ManSetIsBigger( Mpm_Man_t * p, Mpm_Cut_t * pNew, Mpm_Cut_t * pCut, int nTotal ) // check if pCut contains the current one
-{
-    int i, Index, Counter = 0;
-    for ( i = 0; i < (int)pCut->nLeaves; i++ )
-    {
-//        Index = (int)p->pObjPres[Abc_Lit2Var(pCut->pLeaves[i])];
-        Index = Mpm_ManFindLeaf( pNew, Abc_Lit2Var(pCut->pLeaves[i]) );
-        if ( Index == 0xFF )
-            continue;
-//        assert( Index < nTotal );
-        Counter++;
-    }
-    return (int)(Counter == nTotal);
 }
 
 /**Function*************************************************************
@@ -222,6 +205,9 @@ static inline Mpm_Uni_t * Mpm_CutSetupInfo( Mpm_Man_t * p, Mpm_Cut_t * pCut, int
         pUnit->uSign |= ((word)1 << (iLeaf & 0x3F));
     }
     pUnit->mAveRefs = pUnit->mAveRefs * MPM_UNIT_EDGE / Abc_MaxInt(pCut->nLeaves, 1);
+    assert( pUnit->mTime <= 0x3FFFFFFF );
+    assert( pUnit->mArea <= 0x3FFFFFFF );
+    assert( pUnit->mEdge <= 0x3FFFFFFF );
     return pUnit;
 }
 
@@ -278,7 +264,7 @@ clk = Abc_Clock();
             pUnit = p->pCutStore[k];
             if ( pUnitNew->pCut.nLeaves >= pUnit->pCut.nLeaves && 
                 (pUnitNew->uSign & pUnit->uSign) == pUnit->uSign && 
-                 Mpm_ManSetIsSmaller(p, &pUnitNew->pCut, &pUnit->pCut, pUnitNew->pCut.nLeaves) )
+                 Mpm_CutIsContained(p, &pUnitNew->pCut, &pUnit->pCut) )
             {
 #ifdef MIG_RUNTIME
 p->timeCompare += Abc_Clock() - clk;
@@ -310,7 +296,7 @@ p->timeCompare += Abc_Clock() - clk;
             pUnit = p->pCutStore[k];
             if ( pUnitNew->pCut.nLeaves <= pUnit->pCut.nLeaves && 
                 (pUnitNew->uSign & pUnit->uSign) == pUnitNew->uSign && 
-                 Mpm_ManSetIsBigger(p, &pUnitNew->pCut, &pUnit->pCut, pUnitNew->pCut.nLeaves) )
+                 Mpm_CutIsContained(p, &pUnit->pCut, &pUnitNew->pCut) )
             {
                 Vec_PtrPush( &p->vFreeUnits, pUnit );
                 continue;
@@ -344,7 +330,7 @@ p->timeCompare += Abc_Clock() - clk;
 static inline Mpm_Cut_t * Mpm_ManMergeCuts( Mpm_Man_t * p, Mpm_Cut_t * pCut0, Mpm_Cut_t * pCut1, Mpm_Cut_t * pCut2 )
 {
     Mpm_Cut_t * pTemp, * pCut = &((Mpm_Uni_t *)Vec_PtrEntryLast(&p->vFreeUnits))->pCut;
-    int i, c, iObj, iPlace;
+    int i, c, iPlace;
     // base cut
     memcpy( pCut->pLeaves, pCut0->pLeaves, sizeof(int) * pCut0->nLeaves );
     pCut->nLeaves = pCut0->nLeaves;
@@ -360,10 +346,7 @@ static inline Mpm_Cut_t * Mpm_ManMergeCuts( Mpm_Man_t * p, Mpm_Cut_t * pCut0, Mp
             p->uComplMask[c] = 0;     
             for ( i = 0; i < (int)pTemp->nLeaves; i++ )
             {
-                iObj = Abc_Lit2Var(pTemp->pLeaves[i]);
-                for ( iPlace = 0; iPlace < (int)pCut->nLeaves; iPlace++ )
-                    if ( iObj == Abc_Lit2Var(pCut->pLeaves[iPlace]) )
-                        break;
+                iPlace = Mpm_CutFindLeaf( pCut, Abc_Lit2Var(pTemp->pLeaves[i]) );
                 if ( iPlace == (int)pCut->nLeaves )
                 {
                     if ( (int)pCut->nLeaves == p->nLutSize )
@@ -385,10 +368,7 @@ static inline Mpm_Cut_t * Mpm_ManMergeCuts( Mpm_Man_t * p, Mpm_Cut_t * pCut0, Mp
                 break;
             for ( i = 0; i < (int)pTemp->nLeaves; i++ )
             {
-                iObj = Abc_Lit2Var(pTemp->pLeaves[i]);
-                for ( iPlace = 0; iPlace < (int)pCut->nLeaves; iPlace++ )
-                    if ( iObj == Abc_Lit2Var(pCut->pLeaves[iPlace]) )
-                        break;
+                iPlace = Mpm_CutFindLeaf( pCut, Abc_Lit2Var(pTemp->pLeaves[i]) );
                 if ( iPlace == (int)pCut->nLeaves )
                 {
                     if ( (int)pCut->nLeaves == p->nLutSize )
