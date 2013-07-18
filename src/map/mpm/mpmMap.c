@@ -115,24 +115,34 @@ static inline void Mpm_CutPrintAll( Mpm_Man_t * p )
         Mpm_CutPrint( &p->pCutStore[i]->pCut );
     }
 }
-static inline int Mpm_ManSetIsSmaller( Mpm_Man_t * p, Mpm_Cut_t * pCut, int nTotal ) // check if pCut is contained in the current one
+static inline int Mpm_ManFindLeaf( Mpm_Cut_t * pNew, int iObj )
+{
+    int i;
+    for ( i = 0; i < (int)pNew->nLeaves; i++ )
+        if ( Abc_Lit2Var(pNew->pLeaves[i]) == iObj )
+            return i;
+    return 0xFF;
+}
+static inline int Mpm_ManSetIsSmaller( Mpm_Man_t * p, Mpm_Cut_t * pNew, Mpm_Cut_t * pCut, int nTotal ) // check if pCut is contained in the current one
 {
     int i, Index;
     for ( i = 0; i < (int)pCut->nLeaves; i++ )
     {
-        Index = (int)p->pObjPres[Abc_Lit2Var(pCut->pLeaves[i])];
+//        Index = (int)p->pObjPres[Abc_Lit2Var(pCut->pLeaves[i])];
+        Index = Mpm_ManFindLeaf( pNew, Abc_Lit2Var(pCut->pLeaves[i]) );
         if ( Index == 0xFF )
             return 0;
 //        assert( Index < nTotal );
     }
     return 1;
 }
-static inline int Mpm_ManSetIsBigger( Mpm_Man_t * p, Mpm_Cut_t * pCut, int nTotal ) // check if pCut contains the current one
+static inline int Mpm_ManSetIsBigger( Mpm_Man_t * p, Mpm_Cut_t * pNew, Mpm_Cut_t * pCut, int nTotal ) // check if pCut contains the current one
 {
     int i, Index, Counter = 0;
     for ( i = 0; i < (int)pCut->nLeaves; i++ )
     {
-        Index = (int)p->pObjPres[Abc_Lit2Var(pCut->pLeaves[i])];
+//        Index = (int)p->pObjPres[Abc_Lit2Var(pCut->pLeaves[i])];
+        Index = Mpm_ManFindLeaf( pNew, Abc_Lit2Var(pCut->pLeaves[i]) );
         if ( Index == 0xFF )
             continue;
 //        assert( Index < nTotal );
@@ -268,7 +278,7 @@ clk = Abc_Clock();
             pUnit = p->pCutStore[k];
             if ( pUnitNew->pCut.nLeaves >= pUnit->pCut.nLeaves && 
                 (pUnitNew->uSign & pUnit->uSign) == pUnit->uSign && 
-                 Mpm_ManSetIsSmaller(p, &pUnit->pCut, pUnitNew->pCut.nLeaves) )
+                 Mpm_ManSetIsSmaller(p, &pUnitNew->pCut, &pUnit->pCut, pUnitNew->pCut.nLeaves) )
             {
 #ifdef MIG_RUNTIME
 p->timeCompare += Abc_Clock() - clk;
@@ -300,7 +310,7 @@ p->timeCompare += Abc_Clock() - clk;
             pUnit = p->pCutStore[k];
             if ( pUnitNew->pCut.nLeaves <= pUnit->pCut.nLeaves && 
                 (pUnitNew->uSign & pUnit->uSign) == pUnitNew->uSign && 
-                 Mpm_ManSetIsBigger(p, &pUnit->pCut, pUnitNew->pCut.nLeaves) )
+                 Mpm_ManSetIsBigger(p, &pUnitNew->pCut, &pUnit->pCut, pUnitNew->pCut.nLeaves) )
             {
                 Vec_PtrPush( &p->vFreeUnits, pUnit );
                 continue;
@@ -333,52 +343,92 @@ p->timeCompare += Abc_Clock() - clk;
 ***********************************************************************/
 static inline Mpm_Cut_t * Mpm_ManMergeCuts( Mpm_Man_t * p, Mpm_Cut_t * pCut0, Mpm_Cut_t * pCut1, Mpm_Cut_t * pCut2 )
 {
+    int fUsePres = 0;
     Mpm_Cut_t * pTemp, * pCut = &((Mpm_Uni_t *)Vec_PtrEntryLast(&p->vFreeUnits))->pCut;
     int i, c, iObj, fDisj = 1;
-    // clean present objects
-    for ( i = 0; i < p->vObjPresUsed.nSize; i++ )
-        p->pObjPres[p->vObjPresUsed.pArray[i]] = (unsigned char)0xFF;
-    Vec_IntClear(&p->vObjPresUsed);   
-    Vec_StrClear(&p->vObjShared);   
-    // check present objects
-//    for ( i = 0; i < Mig_ManObjNum(p->pMig); i++ )
-//        assert( p->pObjPres[i] == (unsigned char)0xFF );
-    // base cut
-    pCut->nLeaves = 0;
-    for ( i = 0; i < (int)pCut0->nLeaves; i++ )
+
+    if ( fUsePres )
     {
-        iObj = Abc_Lit2Var(pCut0->pLeaves[i]);
-        Vec_IntPush( &p->vObjPresUsed, iObj );
-        p->pObjPres[iObj] = pCut->nLeaves;        
-        pCut->pLeaves[pCut->nLeaves++] = pCut0->pLeaves[i];
-    }
-    // remaining cuts
-    for ( c = 1; c < 3; c++ )
-    {
-        pTemp = (c == 1) ? pCut1 : pCut2;
-        if ( pTemp == NULL )
-            break;
-        p->uPermMask[c] = 0x3FFFF; // 18 bits
-        p->uComplMask[c] = 0;     
-        for ( i = 0; i < (int)pTemp->nLeaves; i++ )
+        // clean present objects
+        for ( i = 0; i < p->vObjPresUsed.nSize; i++ )
+            p->pObjPres[p->vObjPresUsed.pArray[i]] = (unsigned char)0xFF;
+        Vec_IntClear(&p->vObjPresUsed);   
+        // check present objects
+    //    for ( i = 0; i < Mig_ManObjNum(p->pMig); i++ )
+    //        assert( p->pObjPres[i] == (unsigned char)0xFF );
+        // base cut
+        pCut->nLeaves = 0;
+        for ( i = 0; i < (int)pCut0->nLeaves; i++ )
         {
-            iObj = Abc_Lit2Var(pTemp->pLeaves[i]);
-            if ( p->pObjPres[iObj] == (unsigned char)0xFF )
-            {
-                if ( (int)pCut->nLeaves == p->nLutSize )
-                    return NULL;
-                Vec_IntPush( &p->vObjPresUsed, iObj );
-                p->pObjPres[iObj] = pCut->nLeaves;        
-                pCut->pLeaves[pCut->nLeaves++] = pTemp->pLeaves[i];
-            }
-            else
-                fDisj = 0;
-            p->uPermMask[c] ^= (((i & 7) ^ 7) << (3*p->pObjPres[iObj]));
-            assert( Abc_Lit2Var(pTemp->pLeaves[i]) == Abc_Lit2Var(pCut->pLeaves[p->pObjPres[iObj]]) );
-            if ( pTemp->pLeaves[i] != pCut->pLeaves[p->pObjPres[iObj]] )
-                p->uComplMask[c] |= (1 << p->pObjPres[iObj]);
+            iObj = Abc_Lit2Var(pCut0->pLeaves[i]);
+            Vec_IntPush( &p->vObjPresUsed, iObj );
+            p->pObjPres[iObj] = pCut->nLeaves;        
+            pCut->pLeaves[pCut->nLeaves++] = pCut0->pLeaves[i];
         }
-//        Mpm_ManPrintPerm( p->uPermMask[c] ); printf( "\n" );
+        // remaining cuts
+        for ( c = 1; c < 3; c++ )
+        {
+            pTemp = (c == 1) ? pCut1 : pCut2;
+            if ( pTemp == NULL )
+                break;
+            p->uPermMask[c] = 0x3FFFF; // 18 bits
+            p->uComplMask[c] = 0;     
+            for ( i = 0; i < (int)pTemp->nLeaves; i++ )
+            {
+                iObj = Abc_Lit2Var(pTemp->pLeaves[i]);
+                if ( p->pObjPres[iObj] == (unsigned char)0xFF )
+                {
+                    if ( (int)pCut->nLeaves == p->nLutSize )
+                        return NULL;
+                    Vec_IntPush( &p->vObjPresUsed, iObj );
+                    p->pObjPres[iObj] = pCut->nLeaves;        
+                    pCut->pLeaves[pCut->nLeaves++] = pTemp->pLeaves[i];
+                }
+                else
+                    fDisj = 0;
+                p->uPermMask[c] ^= (((i & 7) ^ 7) << (3*p->pObjPres[iObj]));
+                assert( Abc_Lit2Var(pTemp->pLeaves[i]) == Abc_Lit2Var(pCut->pLeaves[p->pObjPres[iObj]]) );
+                if ( pTemp->pLeaves[i] != pCut->pLeaves[p->pObjPres[iObj]] )
+                    p->uComplMask[c] |= (1 << p->pObjPres[iObj]);
+            }
+    //        Mpm_ManPrintPerm( p->uPermMask[c] ); printf( "\n" );
+        }
+    }
+    else
+    {
+        int iPlace;
+        // base cut
+        pCut->nLeaves = 0;
+        for ( i = 0; i < (int)pCut0->nLeaves; i++ )
+            pCut->pLeaves[pCut->nLeaves++] = pCut0->pLeaves[i];
+        // remaining cuts
+        for ( c = 1; c < 3; c++ )
+        {
+            pTemp = (c == 1) ? pCut1 : pCut2;
+            if ( pTemp == NULL )
+                break;
+            p->uPermMask[c] = 0x3FFFF; // 18 bits
+            p->uComplMask[c] = 0;     
+            for ( i = 0; i < (int)pTemp->nLeaves; i++ )
+            {
+                iObj = Abc_Lit2Var(pTemp->pLeaves[i]);
+                for ( iPlace = 0; iPlace < (int)pCut->nLeaves; iPlace++ )
+                    if ( iObj == Abc_Lit2Var(pCut->pLeaves[iPlace]) )
+                        break;
+                if ( iPlace == (int)pCut->nLeaves )
+                {
+                    if ( (int)pCut->nLeaves == p->nLutSize )
+                        return NULL;
+                    pCut->pLeaves[pCut->nLeaves++] = pTemp->pLeaves[i];
+                }
+                else
+                    fDisj = 0;
+                p->uPermMask[c] ^= (((i & 7) ^ 7) << (3*iPlace));
+                assert( Abc_Lit2Var(pTemp->pLeaves[i]) == Abc_Lit2Var(pCut->pLeaves[iPlace]) );
+                if ( pTemp->pLeaves[i] != pCut->pLeaves[iPlace] )
+                    p->uComplMask[c] |= (1 << iPlace);
+            }
+        }
     }
 //    printf( "%d", fDisj );
     if ( pCut1 == NULL )

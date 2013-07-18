@@ -116,7 +116,6 @@ struct Mpm_Man_t_
     // object presence
     unsigned char *  pObjPres;                 // object presence
     Vec_Int_t        vObjPresUsed;             // used objects   
-    Vec_Str_t        vObjShared;               // object presence
     // cut comparison
     int (* pCutCmp) (Mpm_Uni_t *, Mpm_Uni_t *);// procedure to compare cuts
     // fanin cuts/signatures
