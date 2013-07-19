@@ -27,6 +27,7 @@
 #include "misc/vec/vecHsh.h"
 #include "misc/extra/extra.h"
 #include "bool/kit/kit.h"
+#include "misc/util/utilTruth.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -866,6 +867,7 @@ Vec_Wrd_t * Extra_Truth6AllConfigs( word t, int * pComp, int * pPerm, int nVars 
     return vTruths;
 }
 
+
 /**Function*************************************************************
 
   Synopsis    []
@@ -877,7 +879,54 @@ Vec_Wrd_t * Extra_Truth6AllConfigs( word t, int * pComp, int * pPerm, int nVars 
   SeeAlso     []
 
 ***********************************************************************/
+void Ifd_ComputeSignature( word uTruth, int pCounts[6] )
+{
+    int v, Pos, Neg, Xor;
+    for ( v = 0; v < 6; v++ )
+    {
+        Neg = Abc_TtCountOnes( Abc_Tt6Cofactor0(uTruth, v) ) / 2;
+        Pos = Abc_TtCountOnes( Abc_Tt6Cofactor1(uTruth, v) ) / 2;
+        Xor = Abc_TtCountOnes( Abc_Tt6Cofactor0(uTruth, v) ^ Abc_Tt6Cofactor1(uTruth, v) ) / 2;
+        if ( Pos <= Neg )
+            pCounts[v] = (Pos << 20) | (Neg << 10) | Xor;
+        else
+            pCounts[v] = (Neg << 20) | (Pos << 10) | Xor;
+    }
+    Vec_IntSelectSort( pCounts, 6 );
+}
 int Ifd_ManDsdTest() 
+{
+    int nVars = 6;
+    Vec_Wrd_t * vTruths = Ifd_ManDsdTruths( nVars );
+    int i, v, pCounts[6];
+    word uTruth;
+    Vec_WrdForEachEntry( vTruths, uTruth, i )
+    {
+        Ifd_ComputeSignature( uTruth, pCounts );
+        // print
+        printf( "%5d :  ", i ); 
+        for ( v = 0; v < 6; v++ )
+            printf( "%2d %2d %2d   ", (pCounts[v] >> 20) & 0xFF, (pCounts[v] >> 10) & 0xFF, (pCounts[v] >> 0) & 0xFF );
+        printf( "  " );
+        Kit_DsdPrintFromTruth( (unsigned *)&uTruth, nVars );
+        printf( "\n" );
+    }
+    Vec_WrdFree( vTruths );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ifd_ManDsdTest33() 
 {
     int nVars = 6;
     FILE * pFile;
@@ -943,7 +992,7 @@ int Ifd_ManDsdTest()
     return 1;
 }
 
-int Ifd_ManDsdTest33() 
+int Ifd_ManDsdTest55() 
 {
     abctime clk = Abc_Clock();
     FILE * pFile;
