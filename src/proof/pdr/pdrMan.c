@@ -53,6 +53,8 @@ Pdr_Man_t * Pdr_ManStart( Aig_Man_t * pAig, Pdr_Par_t * pPars, Vec_Int_t * vPrio
     p->pQueue   = NULL;
     p->pOrder   = ABC_ALLOC( int, Aig_ManRegNum(pAig) );
     p->vActVars = Vec_IntAlloc( 256 );
+    if ( !p->pPars->fMonoCnf )
+        p->vVLits   = Vec_WecStart( Aig_ManLevels(pAig) );
     // internal use
     p->vPrio    = vPrioInit ? vPrioInit : Vec_IntStart( Aig_ManRegNum(pAig) );  // priority flops
     p->vLits    = Vec_IntAlloc( 100 );  // array of literals
@@ -138,9 +140,13 @@ void Pdr_ManStop( Pdr_Man_t * p )
     Cnf_DataFree( p->pCnf2 );
     if ( p->pvId2Vars )
     for ( i = 0; i < Aig_ManObjNumMax(p->pAig); i++ )
-        Vec_IntFreeP( &p->pvId2Vars[i] );
+        ABC_FREE( p->pvId2Vars[i].pArray );
     ABC_FREE( p->pvId2Vars );
-    Vec_VecFreeP( (Vec_Vec_t **)&p->vVar2Ids );
+//    Vec_VecFreeP( (Vec_Vec_t **)&p->vVar2Ids );
+    for ( i = 0; i < Vec_PtrSize(&p->vVar2Ids); i++ )
+        Vec_IntFree( (Vec_Int_t *)Vec_PtrEntry(&p->vVar2Ids, i) );
+    ABC_FREE( p->vVar2Ids.pArray );
+    Vec_WecFreeP( &p->vVLits );
     // CNF manager
     Cnf_ManStop( p->pCnfMan );
     // internal use

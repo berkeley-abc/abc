@@ -69,17 +69,18 @@ static inline int Pdr_ObjSatVar1( Pdr_Man_t * p, int k, Aig_Obj_t * pObj )
 ***********************************************************************/
 static inline int Pdr_ObjSatVar2FindOrAdd( Pdr_Man_t * p, int k, Aig_Obj_t * pObj )
 { 
+    Vec_Int_t * vId2Vars = p->pvId2Vars + Aig_ObjId(pObj);
     assert( p->pCnf2->pObj2Count[Aig_ObjId(pObj)] >= 0 );
-    if ( p->pvId2Vars[Aig_ObjId(pObj)] == NULL )
-        p->pvId2Vars[Aig_ObjId(pObj)] = Vec_IntStart( 16 );
-    if ( Vec_IntGetEntry( p->pvId2Vars[Aig_ObjId(pObj)], k ) == 0 )
+    if ( Vec_IntSize(vId2Vars) == 0 )
+        Vec_IntGrow(vId2Vars, 2 * k + 1);
+    if ( Vec_IntGetEntry(vId2Vars, k) == 0 )
     {
         sat_solver * pSat = Pdr_ManSolver(p, k);
-        Vec_Int_t * vVar2Ids = (Vec_Int_t *)Vec_PtrEntry(p->vVar2Ids, k);
+        Vec_Int_t * vVar2Ids = (Vec_Int_t *)Vec_PtrEntry(&p->vVar2Ids, k);
         int iVarNew = Vec_IntSize( vVar2Ids );
         assert( iVarNew > 0 );
         Vec_IntPush( vVar2Ids, Aig_ObjId(pObj) );
-        Vec_IntWriteEntry( p->pvId2Vars[Aig_ObjId(pObj)], k, iVarNew );
+        Vec_IntWriteEntry( vId2Vars, k, iVarNew );
         sat_solver_setnvars( pSat, iVarNew + 1 );
         if ( k == 0 && Saig_ObjIsLo(p->pAig, pObj) ) // initialize the register output
         {
@@ -90,7 +91,7 @@ static inline int Pdr_ObjSatVar2FindOrAdd( Pdr_Man_t * p, int k, Aig_Obj_t * pOb
             sat_solver_compress( pSat );
         }
     }
-    return Vec_IntEntry( p->pvId2Vars[Aig_ObjId(pObj)], k );
+    return Vec_IntEntry( vId2Vars, k );
 }
 
 /**Function*************************************************************
@@ -104,11 +105,11 @@ static inline int Pdr_ObjSatVar2FindOrAdd( Pdr_Man_t * p, int k, Aig_Obj_t * pOb
   SeeAlso     []
 
 ***********************************************************************/
-int Pdr_ObjSatVar2( Pdr_Man_t * p, int k, Aig_Obj_t * pObj )
+int Pdr_ObjSatVar2( Pdr_Man_t * p, int k, Aig_Obj_t * pObj, int Level )
 {
-    sat_solver * pSat;
     Vec_Int_t * vLits;
-    Vec_Int_t * vVar2Ids = (Vec_Int_t *)Vec_PtrEntry(p->vVar2Ids, k);
+    sat_solver * pSat;
+    Vec_Int_t * vVar2Ids = (Vec_Int_t *)Vec_PtrEntry(&p->vVar2Ids, k);
     int nVarCount = Vec_IntSize(vVar2Ids);
     int iVarThis  = Pdr_ObjSatVar2FindOrAdd( p, k, pObj );
     int * pLit, i, iVar, nClauses, iFirstClause, RetValue;
@@ -121,20 +122,19 @@ int Pdr_ObjSatVar2( Pdr_Man_t * p, int k, Aig_Obj_t * pObj )
     iFirstClause = p->pCnf2->pObj2Clause[Aig_ObjId(pObj)];
     assert( nClauses > 0 );
     pSat = Pdr_ManSolver(p, k);
-    vLits = Vec_IntAlloc( 16 );
+    vLits = Vec_WecEntry( p->vVLits, Level );
     for ( i = iFirstClause; i < iFirstClause + nClauses; i++ )
     {
         Vec_IntClear( vLits );
         for ( pLit = p->pCnf2->pClauses[i]; pLit < p->pCnf2->pClauses[i+1]; pLit++ )
         {
-            iVar = Pdr_ObjSatVar2( p, k, Aig_ManObj(p->pAig, lit_var(*pLit)) );
+            iVar = Pdr_ObjSatVar2( p, k, Aig_ManObj(p->pAig, lit_var(*pLit)), Level+1 );
             Vec_IntPush( vLits, toLitCond( iVar, lit_sign(*pLit) ) );
         }
         RetValue = sat_solver_addclause( pSat, Vec_IntArray(vLits), Vec_IntArray(vLits)+Vec_IntSize(vLits) );
         assert( RetValue );
         (void) RetValue;
     }
-    Vec_IntFree( vLits );
     return iVarThis;
 }
 
@@ -154,7 +154,7 @@ int Pdr_ObjSatVar( Pdr_Man_t * p, int k, Aig_Obj_t * pObj )
     if ( p->pPars->fMonoCnf )
         return Pdr_ObjSatVar1( p, k, pObj );
     else
-        return Pdr_ObjSatVar2( p, k, pObj );
+        return Pdr_ObjSatVar2( p, k, pObj, 0 );
 }
 
 
@@ -197,7 +197,7 @@ static inline int Pdr_ObjRegNum2( Pdr_Man_t * p, int k, int iSatVar )
 {
     Aig_Obj_t * pObj;
     int ObjId;
-    Vec_Int_t * vVar2Ids = (Vec_Int_t *)Vec_PtrEntry(p->vVar2Ids, k);
+    Vec_Int_t * vVar2Ids = (Vec_Int_t *)Vec_PtrEntry(&p->vVar2Ids, k);
     assert( iSatVar > 0 && iSatVar < Vec_IntSize(vVar2Ids) );
     ObjId = Vec_IntEntry( vVar2Ids, iSatVar );
     if ( ObjId == -1 ) // activation variable
@@ -246,7 +246,7 @@ int Pdr_ManFreeVar( Pdr_Man_t * p, int k )
         return sat_solver_nvars( Pdr_ManSolver(p, k) );
     else
     {
-        Vec_Int_t * vVar2Ids = (Vec_Int_t *)Vec_PtrEntry( p->vVar2Ids, k );
+        Vec_Int_t * vVar2Ids = (Vec_Int_t *)Vec_PtrEntry( &p->vVar2Ids, k );
         Vec_IntPush( vVar2Ids, -1 );
         return Vec_IntSize( vVar2Ids ) - 1;
     }
@@ -303,22 +303,22 @@ static inline sat_solver * Pdr_ManNewSolver2( sat_solver * pSat, Pdr_Man_t * p, 
     if ( p->pCnf2 == NULL )
     {
         p->pCnf2     = Cnf_DeriveOtherWithMan( p->pCnfMan, p->pAig, 0 );
-        p->pvId2Vars = ABC_CALLOC( Vec_Int_t *, Aig_ManObjNumMax(p->pAig) );
-        p->vVar2Ids  = Vec_PtrAlloc( 256 );
+        p->pvId2Vars = ABC_CALLOC( Vec_Int_t, Aig_ManObjNumMax(p->pAig) );
+        Vec_PtrGrow( &p->vVar2Ids, 256 );
     }
     // update the variable mapping
-    vVar2Ids = (Vec_Int_t *)Vec_PtrGetEntry( p->vVar2Ids, k );
+    vVar2Ids = (Vec_Int_t *)Vec_PtrGetEntry( &p->vVar2Ids, k );
     if ( vVar2Ids == NULL )
     {
         vVar2Ids = Vec_IntAlloc( 500 );
-        Vec_PtrWriteEntry( p->vVar2Ids, k, vVar2Ids );
+        Vec_PtrWriteEntry( &p->vVar2Ids, k, vVar2Ids );
     }
     Vec_IntForEachEntry( vVar2Ids, Entry, i )
     {
         if ( Entry == -1 )
             continue;
-        assert( Vec_IntEntry( p->pvId2Vars[Entry], k ) > 0 );
-        Vec_IntWriteEntry( p->pvId2Vars[Entry], k, 0 );
+        assert( Vec_IntEntry( p->pvId2Vars + Entry, k ) > 0 );
+        Vec_IntWriteEntry( p->pvId2Vars + Entry, k, 0 );
     }
     Vec_IntClear( vVar2Ids );
     Vec_IntPush( vVar2Ids, -1 );

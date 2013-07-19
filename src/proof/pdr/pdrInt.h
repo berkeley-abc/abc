@@ -26,6 +26,7 @@
 ////////////////////////////////////////////////////////////////////////
 
 #include "aig/saig/saig.h"
+#include "misc/vec/vecWec.h"
 #include "sat/cnf/cnf.h"
 #include "sat/bsat/satSolver.h"
 #include "pdr.h" 
@@ -73,8 +74,9 @@ struct Pdr_Man_t_
     Vec_Int_t * vVar2Reg;  // mapping of SAT var into registers
     // dynamic CNF representation
     Cnf_Dat_t * pCnf2;     // CNF for this AIG
-    Vec_Int_t** pvId2Vars; // for each used ObjId, maps frame into SAT var
-    Vec_Ptr_t * vVar2Ids;  // for each used frame, maps SAT var into ObjId
+    Vec_Int_t * pvId2Vars; // for each used ObjId, maps frame into SAT var
+    Vec_Ptr_t   vVar2Ids;  // for each used frame, maps SAT var into ObjId
+    Vec_Wec_t * vVLits;    // CNF literals
     // data representation
     int         iOutCur;   // current output
     Vec_Ptr_t * vCexes;    // counter-examples for each output
