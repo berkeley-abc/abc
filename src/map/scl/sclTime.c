@@ -109,7 +109,7 @@ static inline void Abc_SclTimeNodePrint( SC_Man * p, Abc_Obj_t * pObj, int fRise
 {
     printf( "%7d : ",             Abc_ObjId(pObj) );
     printf( "%d ",                Abc_ObjFaninNum(pObj) );
-    printf( "%d ",                Abc_ObjFanoutNum(pObj) );
+    printf( "%2d ",               Abc_ObjFanoutNum(pObj) );
     printf( "%-*s ",              Length, Abc_SclObjCell(p, pObj)->pName );
     if ( fRise >= 0 )
     printf( "(%s)   ",            fRise ? "rise" : "fall" );
@@ -162,7 +162,7 @@ void Abc_SclTimeNtkPrint( SC_Man * p, int fShowAll, int fShort )
         pObj = Abc_ObjFanin0(pPivot);
         while ( pObj && Abc_ObjIsNode(pObj) )
         {
-            printf( "C-path %2d -- ", i-- );
+            printf( "C-path %3d -- ", i-- );
             Abc_SclTimeNodePrint( p, pObj, fRise, nLength, maxDelay );
             pObj = Abc_SclFindMostCriticalFanin( p, &fRise, pObj );
         }

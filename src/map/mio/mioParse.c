@@ -484,7 +484,7 @@ int Mio_ParseCheckFormula( Mio_Gate_t * pGate, char * pForm )
     for ( pPin = Mio_GateReadPins(pGate), i = 0; pPin; pPin = Mio_PinReadNext(pPin), i++ )
         if ( fVisit[i] == 0 )
         {
-            printf( "Skipping gate \"%s\" because pin \"%s\" does not appear in the formula \"%s\".\n", pGate->pName, Mio_PinReadName(pPin), pForm );
+//            printf( "Skipping gate \"%s\" because pin \"%s\" does not appear in the formula \"%s\".\n", pGate->pName, Mio_PinReadName(pPin), pForm );
             return 0;
         }
     return 1;

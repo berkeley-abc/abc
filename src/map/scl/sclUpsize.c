@@ -572,6 +572,8 @@ void Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_UpSizePars * pPar
     Abc_SclTimeNtkRecompute( p, &p->SumArea, &p->MaxDelay, 0 );
     if ( pPars->fVerbose )
         Abc_SclUpsizePrint( p, i, pPars->Window, nAllPos/(i?i:1), nAllNodes/(i?i:1), nAllUpsizes/(i?i:1), nAllTfos/(i?i:1), 1 );
+    else
+        printf( "                                                                                                                                              \r" );
     // report runtime
     p->timeTotal = Abc_Clock() - p->timeTotal;
     if ( pPars->fVerbose )
