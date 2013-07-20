@@ -63,6 +63,7 @@ struct Cnf_Dat_t_
     int *           pVarNums;        // the number of CNF variable for each node ID (-1 if unused)
     int *           pObj2Clause;     // the mapping of objects into clauses
     int *           pObj2Count;      // the mapping of objects into clause number
+    unsigned char * pClaPols;        // polarity of input literals in each clause
     Vec_Int_t *     vMapping;        // mapping of internal nodes
 };
 
@@ -176,6 +177,7 @@ extern Vec_Ptr_t *     Aig_ManScanMapping( Cnf_Man_t * p, int fCollect );
 extern Vec_Ptr_t *     Cnf_ManScanMapping( Cnf_Man_t * p, int fCollect, int fPreorder );
 extern Vec_Int_t *     Cnf_DataCollectCiSatNums( Cnf_Dat_t * pCnf, Aig_Man_t * p );
 extern Vec_Int_t *     Cnf_DataCollectCoSatNums( Cnf_Dat_t * pCnf, Aig_Man_t * p );
+extern unsigned char * Cnf_DataDeriveLitPolarities( Cnf_Dat_t * p );
 /*=== cnfWrite.c ========================================================*/
 extern Vec_Int_t *     Cnf_ManWriteCnfMapping( Cnf_Man_t * p, Vec_Ptr_t * vMapped );
 extern void            Cnf_SopConvertToVector( char * pSop, int nCubes, Vec_Int_t * vCover );

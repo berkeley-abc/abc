@@ -156,7 +156,7 @@ static inline abctime      Pdr_ManTimeLimit( Pdr_Man_t * p )
 /*=== pdrCex.c ==========================================================*/
 extern Abc_Cex_t *     Pdr_ManDeriveCex( Pdr_Man_t * p );
 /*=== pdrCnf.c ==========================================================*/
-extern int             Pdr_ObjSatVar( Pdr_Man_t * p, int k, Aig_Obj_t * pObj );
+extern int             Pdr_ObjSatVar( Pdr_Man_t * p, int k, int Pol, Aig_Obj_t * pObj );
 extern int             Pdr_ObjRegNum( Pdr_Man_t * p, int k, int iSatVar );
 extern int             Pdr_ManFreeVar( Pdr_Man_t * p, int k );
 extern sat_solver *    Pdr_ManNewSolver( sat_solver * pSat, Pdr_Man_t * p, int k, int fInit );

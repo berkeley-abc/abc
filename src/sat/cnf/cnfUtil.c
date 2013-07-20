@@ -229,6 +229,66 @@ Vec_Int_t * Cnf_DataCollectCoSatNums( Cnf_Dat_t * pCnf, Aig_Man_t * p )
     return vCoIds;
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+unsigned char * Cnf_DataDeriveLitPolarities( Cnf_Dat_t * p )
+{
+    int i, c, iClaBeg, iClaEnd, * pLit;
+    unsigned * pPols0 = ABC_CALLOC( unsigned, Aig_ManObjNumMax(p->pMan) );
+    unsigned * pPols1 = ABC_CALLOC( unsigned, Aig_ManObjNumMax(p->pMan) );
+    unsigned char * pPres = ABC_CALLOC( unsigned char, p->nClauses );
+    for ( i = 0; i < Aig_ManObjNumMax(p->pMan); i++ )
+    {
+        if ( p->pObj2Count[i] == 0 )
+            continue;
+        iClaBeg = p->pObj2Clause[i];
+        iClaEnd = p->pObj2Clause[i] + p->pObj2Count[i];
+        // go through the negative polarity clauses
+        for ( c = iClaBeg; c < iClaEnd; c++ )
+            for ( pLit = p->pClauses[c]+1; pLit < p->pClauses[c+1]; pLit++ )
+                if ( Abc_LitIsCompl(p->pClauses[c][0]) )
+                    pPols0[Abc_Lit2Var(*pLit)] |= (unsigned)(2 - Abc_LitIsCompl(*pLit));  // taking the opposite (!) -- not the case
+                else
+                    pPols1[Abc_Lit2Var(*pLit)] |= (unsigned)(2 - Abc_LitIsCompl(*pLit));  // taking the opposite (!) -- not the case
+        // record these clauses
+        for ( c = iClaBeg; c < iClaEnd; c++ )
+            for ( pLit = p->pClauses[c]+1; pLit < p->pClauses[c+1]; pLit++ )
+                if ( Abc_LitIsCompl(p->pClauses[c][0]) )
+                    pPres[c] = (unsigned char)( (unsigned)pPres[c] | (pPols0[Abc_Lit2Var(*pLit)] << (2*(pLit-p->pClauses[c]-1))) );
+                else
+                    pPres[c] = (unsigned char)( (unsigned)pPres[c] | (pPols1[Abc_Lit2Var(*pLit)] << (2*(pLit-p->pClauses[c]-1))) );
+        // clean negative polarity
+        for ( c = iClaBeg; c < iClaEnd; c++ )
+            for ( pLit = p->pClauses[c]+1; pLit < p->pClauses[c+1]; pLit++ )
+                pPols0[Abc_Lit2Var(*pLit)] = pPols1[Abc_Lit2Var(*pLit)] = 0;
+    }
+    ABC_FREE( pPols0 );
+    ABC_FREE( pPols1 );
+/*
+//    for ( c = 0; c < p->nClauses; c++ )
+    for ( c = 0; c < 100; c++ )
+    {
+        printf( "Clause %6d : ", c );
+        for ( i = 0; i < 4; i++ )
+            printf( "%d ", ((unsigned)pPres[c] >> (2*i)) & 3 );
+        printf( "  " );
+        for ( pLit = p->pClauses[c]; pLit < p->pClauses[c+1]; pLit++ )
+            printf( "%6d ", *pLit );
+        printf( "\n" );
+    }
+*/
+    return pPres;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

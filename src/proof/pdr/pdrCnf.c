@@ -67,7 +67,110 @@ static inline int Pdr_ObjSatVar1( Pdr_Man_t * p, int k, Aig_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
+//#define USE_PG
+#ifdef USE_PG
 static inline int Pdr_ObjSatVar2FindOrAdd( Pdr_Man_t * p, int k, Aig_Obj_t * pObj )
+{ 
+    Vec_Int_t * vId2Vars = p->pvId2Vars + Aig_ObjId(pObj);
+    assert( p->pCnf2->pObj2Count[Aig_ObjId(pObj)] >= 0 );
+    if ( Vec_IntSize(vId2Vars) == 0 )
+        Vec_IntGrow(vId2Vars, 2 * k + 1);
+    if ( Vec_IntGetEntry(vId2Vars, k) == 0 )
+    {
+        sat_solver * pSat = Pdr_ManSolver(p, k);
+        Vec_Int_t * vVar2Ids = (Vec_Int_t *)Vec_PtrEntry(&p->vVar2Ids, k);
+        int iVarNew = Vec_IntSize( vVar2Ids );
+        assert( iVarNew > 0 );
+        Vec_IntPush( vVar2Ids, Aig_ObjId(pObj) );
+        Vec_IntWriteEntry( vId2Vars, k, iVarNew << 2 );
+        sat_solver_setnvars( pSat, iVarNew + 1 );
+        if ( k == 0 && Saig_ObjIsLo(p->pAig, pObj) ) // initialize the register output
+        {
+            int Lit = toLitCond( iVarNew, 1 );
+            int RetValue = sat_solver_addclause( pSat, &Lit, &Lit + 1 );
+            assert( RetValue == 1 );
+            (void) RetValue;
+            sat_solver_compress( pSat );
+        }
+    }
+    return Vec_IntEntry( vId2Vars, k );
+}
+int Pdr_ObjSatVar2( Pdr_Man_t * p, int k, Aig_Obj_t * pObj, int Level, int Pol )
+{
+    Vec_Int_t * vLits;
+    sat_solver * pSat;
+    Vec_Int_t * vVar2Ids = (Vec_Int_t *)Vec_PtrEntry(&p->vVar2Ids, k);
+    int nVarCount = Vec_IntSize(vVar2Ids);
+    int iVarThis  = Pdr_ObjSatVar2FindOrAdd( p, k, pObj );
+    int * pLit, i, iVar, iClaBeg, iClaEnd, RetValue;
+    int PolPres = (iVarThis & 3);
+    iVarThis >>= 2;
+    if ( Aig_ObjIsCi(pObj) )
+        return iVarThis;
+//    Pol = 3;
+//    if ( nVarCount != Vec_IntSize(vVar2Ids) || (Pol & ~PolPres) )
+    if ( (Pol & ~PolPres) )
+    {
+        *Vec_IntEntryP( p->pvId2Vars + Aig_ObjId(pObj), k ) |= Pol;
+        iClaBeg = p->pCnf2->pObj2Clause[Aig_ObjId(pObj)];
+        iClaEnd = iClaBeg + p->pCnf2->pObj2Count[Aig_ObjId(pObj)];
+        assert( iClaBeg < iClaEnd );
+/*
+        if ( (Pol & ~PolPres) != 3 )
+        for ( i = iFirstClause; i < iFirstClause + nClauses; i++ )
+        {
+            printf( "Clause %5d : ", i );
+            for ( iVar = 0; iVar < 4; iVar++ )
+                printf( "%d ", ((unsigned)p->pCnf2->pClaPols[i] >> (2*iVar)) & 3 );
+            printf( "  " );
+            for ( pLit = p->pCnf2->pClauses[i]; pLit < p->pCnf2->pClauses[i+1]; pLit++ )
+                printf( "%6d ", *pLit );
+            printf( "\n" );
+        }
+*/
+        pSat = Pdr_ManSolver(p, k);
+        vLits = Vec_WecEntry( p->vVLits, Level );
+        if ( (Pol & ~PolPres) == 3 )
+        {
+            assert( nVarCount + 1 == Vec_IntSize(vVar2Ids) );
+            for ( i = iClaBeg; i < iClaEnd; i++ )
+            {
+                Vec_IntClear( vLits );
+                Vec_IntPush( vLits, toLitCond( iVarThis, lit_sign(p->pCnf2->pClauses[i][0]) ) );
+                for ( pLit = p->pCnf2->pClauses[i]+1; pLit < p->pCnf2->pClauses[i+1]; pLit++ )
+                {
+                    iVar = Pdr_ObjSatVar2( p, k, Aig_ManObj(p->pAig, lit_var(*pLit)), Level+1, 3 );
+                    Vec_IntPush( vLits, toLitCond( iVar, lit_sign(*pLit) ) );
+                }
+                RetValue = sat_solver_addclause( pSat, Vec_IntArray(vLits), Vec_IntArray(vLits)+Vec_IntSize(vLits) );
+                assert( RetValue );
+                (void) RetValue;
+            }
+        }
+        else // if ( (Pol & ~PolPres) == 2 || (Pol & ~PolPres) == 1 ) // write pos/neg polarity
+        {
+            assert( (Pol & ~PolPres) );
+            for ( i = iClaBeg; i < iClaEnd; i++ )
+            if ( 2 - !Abc_LitIsCompl(p->pCnf2->pClauses[i][0]) == (Pol & ~PolPres) ) // taking opposite literal
+            {
+                Vec_IntClear( vLits );
+                Vec_IntPush( vLits, toLitCond( iVarThis, Abc_LitIsCompl(p->pCnf2->pClauses[i][0]) ) );
+                for ( pLit = p->pCnf2->pClauses[i]+1; pLit < p->pCnf2->pClauses[i+1]; pLit++ )
+                {
+                    iVar = Pdr_ObjSatVar2( p, k, Aig_ManObj(p->pAig, lit_var(*pLit)), Level+1, ((unsigned)p->pCnf2->pClaPols[i] >> (2*(pLit-p->pCnf2->pClauses[i]-1))) & 3 );
+                    Vec_IntPush( vLits, toLitCond( iVar, lit_sign(*pLit) ) );
+                }
+                RetValue = sat_solver_addclause( pSat, Vec_IntArray(vLits), Vec_IntArray(vLits)+Vec_IntSize(vLits) );
+                assert( RetValue );
+                (void) RetValue;
+            }
+        }
+    }
+    return iVarThis;
+}
+
+#else
+static inline int Pdr_ObjSatVar2FindOrAdd( Pdr_Man_t * p, int k, Aig_Obj_t * pObj, int * pfNewVar )
 { 
     Vec_Int_t * vId2Vars = p->pvId2Vars + Aig_ObjId(pObj);
     assert( p->pCnf2->pObj2Count[Aig_ObjId(pObj)] >= 0 );
@@ -90,45 +193,30 @@ static inline int Pdr_ObjSatVar2FindOrAdd( Pdr_Man_t * p, int k, Aig_Obj_t * pOb
             (void) RetValue;
             sat_solver_compress( pSat );
         }
+        *pfNewVar = 1;
     }
     return Vec_IntEntry( vId2Vars, k );
 }
-
-/**Function*************************************************************
-
-  Synopsis    [Recursively adds CNF for the given object.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Pdr_ObjSatVar2( Pdr_Man_t * p, int k, Aig_Obj_t * pObj, int Level )
+int Pdr_ObjSatVar2( Pdr_Man_t * p, int k, Aig_Obj_t * pObj, int Level, int Pol )
 {
     Vec_Int_t * vLits;
     sat_solver * pSat;
-    Vec_Int_t * vVar2Ids = (Vec_Int_t *)Vec_PtrEntry(&p->vVar2Ids, k);
-    int nVarCount = Vec_IntSize(vVar2Ids);
-    int iVarThis  = Pdr_ObjSatVar2FindOrAdd( p, k, pObj );
-    int * pLit, i, iVar, nClauses, iFirstClause, RetValue;
-    if ( nVarCount == Vec_IntSize(vVar2Ids) )
+    int fNewVar = 0, iVarThis  = Pdr_ObjSatVar2FindOrAdd( p, k, pObj, &fNewVar );
+    int * pLit, i, iVar, iClaBeg, iClaEnd, RetValue;
+    if ( Aig_ObjIsCi(pObj) || !fNewVar )
         return iVarThis;
-    assert( nVarCount + 1 == Vec_IntSize(vVar2Ids) );
-    if ( Aig_ObjIsCi(pObj) )
-        return iVarThis;
-    nClauses = p->pCnf2->pObj2Count[Aig_ObjId(pObj)];
-    iFirstClause = p->pCnf2->pObj2Clause[Aig_ObjId(pObj)];
-    assert( nClauses > 0 );
+    iClaBeg = p->pCnf2->pObj2Clause[Aig_ObjId(pObj)];
+    iClaEnd = iClaBeg + p->pCnf2->pObj2Count[Aig_ObjId(pObj)];
+    assert( iClaBeg < iClaEnd );
     pSat = Pdr_ManSolver(p, k);
     vLits = Vec_WecEntry( p->vVLits, Level );
-    for ( i = iFirstClause; i < iFirstClause + nClauses; i++ )
+    for ( i = iClaBeg; i < iClaEnd; i++ )
     {
         Vec_IntClear( vLits );
-        for ( pLit = p->pCnf2->pClauses[i]; pLit < p->pCnf2->pClauses[i+1]; pLit++ )
+        Vec_IntPush( vLits, toLitCond( iVarThis, lit_sign(p->pCnf2->pClauses[i][0]) ) );
+        for ( pLit = p->pCnf2->pClauses[i]+1; pLit < p->pCnf2->pClauses[i+1]; pLit++ )
         {
-            iVar = Pdr_ObjSatVar2( p, k, Aig_ManObj(p->pAig, lit_var(*pLit)), Level+1 );
+            iVar = Pdr_ObjSatVar2( p, k, Aig_ManObj(p->pAig, lit_var(*pLit)), Level+1, Pol );
             Vec_IntPush( vLits, toLitCond( iVar, lit_sign(*pLit) ) );
         }
         RetValue = sat_solver_addclause( pSat, Vec_IntArray(vLits), Vec_IntArray(vLits)+Vec_IntSize(vLits) );
@@ -137,6 +225,7 @@ int Pdr_ObjSatVar2( Pdr_Man_t * p, int k, Aig_Obj_t * pObj, int Level )
     }
     return iVarThis;
 }
+#endif
 
 /**Function*************************************************************
 
@@ -149,12 +238,12 @@ int Pdr_ObjSatVar2( Pdr_Man_t * p, int k, Aig_Obj_t * pObj, int Level )
   SeeAlso     []
 
 ***********************************************************************/
-int Pdr_ObjSatVar( Pdr_Man_t * p, int k, Aig_Obj_t * pObj )
+int Pdr_ObjSatVar( Pdr_Man_t * p, int k, int Pol, Aig_Obj_t * pObj )
 {
     if ( p->pPars->fMonoCnf )
         return Pdr_ObjSatVar1( p, k, pObj );
     else
-        return Pdr_ObjSatVar2( p, k, pObj, 0 );
+        return Pdr_ObjSatVar2( p, k, pObj, 0, Pol );
 }
 
 
@@ -277,7 +366,7 @@ static inline sat_solver * Pdr_ManNewSolver1( sat_solver * pSat, Pdr_Man_t * p, 
         assert( p->vVar2Reg == NULL );
         p->vVar2Reg = Vec_IntStartFull( p->pCnf1->nVars );
         Saig_ManForEachLi( p->pAig, pObj, i )
-            Vec_IntWriteEntry( p->vVar2Reg, Pdr_ObjSatVar(p, k, pObj), i );
+            Vec_IntWriteEntry( p->vVar2Reg, Pdr_ObjSatVar(p, k, 3, pObj), i );
     }
     pSat = (sat_solver *)Cnf_DataWriteIntoSolverInt( pSat, p->pCnf1, 1, fInit );
     sat_solver_set_runtime_limit( pSat, p->timeToStop );
@@ -303,6 +392,9 @@ static inline sat_solver * Pdr_ManNewSolver2( sat_solver * pSat, Pdr_Man_t * p, 
     if ( p->pCnf2 == NULL )
     {
         p->pCnf2     = Cnf_DeriveOtherWithMan( p->pCnfMan, p->pAig, 0 );
+#ifdef USE_PG
+        p->pCnf2->pClaPols = Cnf_DataDeriveLitPolarities( p->pCnf2 );
+#endif
         p->pvId2Vars = ABC_CALLOC( Vec_Int_t, Aig_ManObjNumMax(p->pAig) );
         Vec_PtrGrow( &p->vVar2Ids, 256 );
     }

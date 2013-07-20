@@ -57,9 +57,8 @@ sat_solver * Pdr_ManCreateSolver( Pdr_Man_t * p, int k )
     Vec_VecExpand( p->vClauses, k );
     Vec_IntPush( p->vActVars, 0 );
     // add property cone
-//    Pdr_ObjSatVar( p, k, Aig_ManCo(p->pAig, (p->pPars->iOutput==-1)?0:p->pPars->iOutput ) );
     Saig_ManForEachPo( p->pAig, pObj, i )
-        Pdr_ObjSatVar( p, k, pObj );
+        Pdr_ObjSatVar( p, k, 1, pObj );
     return pSat;
 }
 
@@ -146,6 +145,7 @@ Vec_Int_t * Pdr_ManCubeToLits( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, int fCom
     int i, iVar, iVarMax = 0;
     abctime clk = Abc_Clock();
     Vec_IntClear( p->vLits );
+    assert( !(fNext && fCompl) );
     for ( i = 0; i < pCube->nLits; i++ )
     {
         if ( pCube->Lits[i] == -1 )
@@ -154,7 +154,7 @@ Vec_Int_t * Pdr_ManCubeToLits( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, int fCom
             pObj = Saig_ManLi( p->pAig, lit_var(pCube->Lits[i]) );
         else
             pObj = Saig_ManLo( p->pAig, lit_var(pCube->Lits[i]) );
-        iVar = Pdr_ObjSatVar( p, k, pObj ); assert( iVar >= 0 );
+        iVar = Pdr_ObjSatVar( p, k, fNext ? 2 - lit_sign(pCube->Lits[i]) : 3, pObj ); assert( iVar >= 0 );
         iVarMax = Abc_MaxInt( iVarMax, iVar );
         Vec_IntPush( p->vLits, toLitCond( iVar, fCompl ^ lit_sign(pCube->Lits[i]) ) );
     }
@@ -185,7 +185,7 @@ void Pdr_ManSetPropertyOutput( Pdr_Man_t * p, int k )
         // skip solved outputs
         if ( p->vCexes && Vec_PtrEntry(p->vCexes, i) )
             continue;
-        Lit = toLitCond( Pdr_ObjSatVar(p, k, pObj), 1 ); // neg literal
+        Lit = toLitCond( Pdr_ObjSatVar(p, k, 1, pObj), 1 ); // neg literal
         RetValue = sat_solver_addclause( pSat, &Lit, &Lit + 1 );
         assert( RetValue == 1 );
     }
@@ -235,7 +235,7 @@ void Pdr_ManCollectValues( Pdr_Man_t * p, int k, Vec_Int_t * vObjIds, Vec_Int_t 
     pSat = Pdr_ManSolver(p, k);
     Aig_ManForEachObjVec( vObjIds, p->pAig, pObj, i )
     {
-        iVar = Pdr_ObjSatVar( p, k, pObj ); assert( iVar >= 0 );
+        iVar = Pdr_ObjSatVar( p, k, 3, pObj ); assert( iVar >= 0 );
         Vec_IntPush( vValues, sat_solver_var_value(pSat, iVar) );
     }
 }
@@ -293,7 +293,7 @@ int Pdr_ManCheckCube( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppPr
     if ( pCube == NULL ) // solve the property
     {
         clk = Abc_Clock();
-        Lit = toLit( Pdr_ObjSatVar(p, k, Aig_ManCo(p->pAig, p->iOutCur)) ); // pos literal (property fails)
+        Lit = toLit( Pdr_ObjSatVar(p, k, 2, Aig_ManCo(p->pAig, p->iOutCur)) ); // pos literal (property fails)
         Limit = sat_solver_set_runtime_limit( pSat, Pdr_ManTimeLimit(p) );
         RetValue = sat_solver_solve( pSat, &Lit, &Lit + 1, nConfLimit, 0, 0, 0 );
         sat_solver_set_runtime_limit( pSat, Limit );
