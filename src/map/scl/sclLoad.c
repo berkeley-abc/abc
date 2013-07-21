@@ -146,7 +146,8 @@ void Abc_SclComputeLoad( SC_Man * p )
     Abc_NtkForEachObj( p->pNtk, pObj, i )
     {
         SC_Pair * pLoad = Abc_SclObjLoad( p, pObj );
-        pLoad->rise = pLoad->fall = 0.0;
+        if ( !Abc_ObjIsPo(pObj) )
+            pLoad->rise = pLoad->fall = 0.0;
     }
     // add cell load
     Abc_NtkForEachNode1( p->pNtk, pObj, i )
@@ -159,6 +160,14 @@ void Abc_SclComputeLoad( SC_Man * p )
             pLoad->rise += pPin->rise_cap;
             pLoad->fall += pPin->fall_cap;
         }
+    }
+    // add PO load
+    Abc_NtkForEachPo( p->pNtk, pObj, i )
+    {
+        SC_Pair * pLoadPo = Abc_SclObjLoad( p, pObj );
+        SC_Pair * pLoad = Abc_SclObjLoad( p, Abc_ObjFanin0(pObj) );
+        pLoad->rise += pLoadPo->rise;
+        pLoad->fall += pLoadPo->fall;
     }
     if ( p->pWLoadUsed == NULL )
         return;

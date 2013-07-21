@@ -193,9 +193,26 @@ static inline void Abc_SclManFree( SC_Man * p )
 }
 static inline void Abc_SclManCleanTime( SC_Man * p )
 {
+    Vec_Flt_t * vSlews;
+    Abc_Obj_t * pObj;
+    int i;
+    vSlews = Vec_FltAlloc( 2 * Abc_NtkPiNum(p->pNtk) );
+    Abc_NtkForEachPi( p->pNtk, pObj, i )
+    {
+        SC_Pair * pSlew = Abc_SclObjSlew( p, pObj );
+        Vec_FltPush( vSlews, pSlew->rise );
+        Vec_FltPush( vSlews, pSlew->fall );
+    }
     memset( p->pDepts, 0, sizeof(SC_Pair) * p->nObjs );
     memset( p->pTimes, 0, sizeof(SC_Pair) * p->nObjs );
     memset( p->pSlews, 0, sizeof(SC_Pair) * p->nObjs );
+    Abc_NtkForEachPi( p->pNtk, pObj, i )
+    {
+        SC_Pair * pSlew = Abc_SclObjSlew( p, pObj );
+        pSlew->rise = Vec_FltEntry( vSlews, 2 * i + 0 );
+        pSlew->fall = Vec_FltEntry( vSlews, 2 * i + 1 );
+    }
+    Vec_FltFree( vSlews );
 }
 
 

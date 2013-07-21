@@ -111,7 +111,7 @@ static inline void Abc_SclTimeNodePrint( SC_Man * p, Abc_Obj_t * pObj, int fRise
     printf( "%7d : ",             Abc_ObjId(pObj) );
     printf( "%d ",                Abc_ObjFaninNum(pObj) );
     printf( "%2d ",               Abc_ObjFanoutNum(pObj) );
-    printf( "%-*s ",              Length, Abc_SclObjCell(p, pObj)->pName );
+    printf( "%-*s ",              Length, Abc_ObjIsPi(pObj) ? "pi" : Abc_SclObjCell(p, pObj)->pName );
     if ( fRise >= 0 )
     printf( "(%s)   ",            fRise ? "rise" : "fall" );
     printf( "delay = (" );
@@ -161,7 +161,7 @@ void Abc_SclTimeNtkPrint( SC_Man * p, int fShowAll, int fShort )
         }
         // print timing
         pObj = Abc_ObjFanin0(pPivot);
-        while ( pObj && Abc_ObjIsNode(pObj) )
+        while ( pObj )//&& Abc_ObjIsNode(pObj) )
         {
             printf( "C-path %3d -- ", i-- );
             Abc_SclTimeNodePrint( p, pObj, fRise, nLength, maxDelay );
@@ -334,6 +334,72 @@ void Abc_SclTimeNtkRecompute( SC_Man * p, float * pArea, float * pDelay, int fRe
 
 /**Function*************************************************************
 
+  Synopsis    [Read input slew and output load.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_SclManReadSlewAndLoad( SC_Man * p, Abc_Ntk_t * pNtk )
+{
+    Abc_Time_t * pTime;
+    Abc_Obj_t * pObj;
+    int i;
+    if ( pNtk->pManTime == NULL )
+        return;
+    // read input slew    
+    pTime = Abc_NtkReadDefaultInputDrive( pNtk );
+    if ( Abc_MaxFloat(pTime->Rise, pTime->Fall) != 0 )
+    {
+        printf( "Default input slew is specified (%.2f ps; %.2f ps).\n", pTime->Rise, pTime->Fall );
+        Abc_NtkForEachPi( pNtk, pObj, i )
+        {
+            SC_Pair * pSlew = Abc_SclObjSlew( p, pObj );
+            pSlew->rise = SC_LibTimeFromPs( p->pLib, pTime->Rise );
+            pSlew->fall = SC_LibTimeFromPs( p->pLib, pTime->Fall );
+        }
+    }
+    if ( Abc_NodeReadInputDrive(pNtk, 0) != NULL )
+    {
+        printf( "Input slews for some primary inputs are specified.\n" );
+        Abc_NtkForEachPi( pNtk, pObj, i )
+        {
+            SC_Pair * pSlew = Abc_SclObjSlew( p, pObj );
+            pTime = Abc_NodeReadInputDrive(pNtk, i);
+            pSlew->rise = SC_LibTimeFromPs( p->pLib, pTime->Rise );
+            pSlew->fall = SC_LibTimeFromPs( p->pLib, pTime->Fall );
+        }
+    }
+    // read output load
+    pTime = Abc_NtkReadDefaultOutputLoad( pNtk );
+    if ( Abc_MaxFloat(pTime->Rise, pTime->Fall) != 0 )
+    {
+        printf( "Default output load is specified (%.2f ff; %.2f ff).\n", pTime->Rise, pTime->Fall );
+        Abc_NtkForEachPo( pNtk, pObj, i )
+        {
+            SC_Pair * pSlew = Abc_SclObjLoad( p, pObj );
+            pSlew->rise = SC_LibCapFromFf( p->pLib, pTime->Rise );
+            pSlew->fall = SC_LibCapFromFf( p->pLib, pTime->Fall );
+        }
+    }
+    if ( Abc_NodeReadOutputLoad(pNtk, 0) != NULL )
+    {
+        printf( "Output loads for some primary outputs are specified.\n" );
+        Abc_NtkForEachPo( pNtk, pObj, i )
+        {
+            SC_Pair * pSlew = Abc_SclObjLoad( p, pObj );
+            pTime = Abc_NodeReadOutputLoad(pNtk, i);
+            pSlew->rise = SC_LibCapFromFf( p->pLib, pTime->Rise );
+            pSlew->fall = SC_LibCapFromFf( p->pLib, pTime->Fall );
+        }
+    }
+}
+
+/**Function*************************************************************
+
   Synopsis    [Prepare timing manager.]
 
   Description []
@@ -348,6 +414,7 @@ SC_Man * Abc_SclManStart( SC_Lib * pLib, Abc_Ntk_t * pNtk, int fUseWireLoads, in
     SC_Man * p = Abc_SclManAlloc( pLib, pNtk );
     assert( p->vGates == NULL );
     p->vGates = Abc_SclManFindGates( pLib, pNtk );
+    Abc_SclManReadSlewAndLoad( p, pNtk );
     if ( fUseWireLoads )
         p->pWLoadUsed = Abc_SclFindWireLoadModel( pLib, Abc_SclGetTotalArea(p) );
     Abc_SclTimeNtkRecompute( p, &p->SumArea0, &p->MaxDelay0, fDept, DUser );

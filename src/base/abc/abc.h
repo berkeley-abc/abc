@@ -113,7 +113,6 @@ typedef enum {
 
 typedef struct Abc_Lib_t_       Abc_Lib_t;
 typedef struct Abc_Ntk_t_       Abc_Ntk_t;
-struct Abc_Obj_t_;
 typedef struct Abc_Obj_t_       Abc_Obj_t;
 typedef struct Abc_Aig_t_       Abc_Aig_t;
 typedef struct Abc_ManTime_t_   Abc_ManTime_t;

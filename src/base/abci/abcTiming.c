@@ -125,12 +125,12 @@ Abc_Time_t * Abc_NtkReadDefaultOutputLoad( Abc_Ntk_t * pNtk )
 Abc_Time_t * Abc_NodeReadInputDrive( Abc_Ntk_t * pNtk, int iPi )
 {
     assert( pNtk->pManTime );
-    return pNtk->pManTime->tInDrive + iPi;
+    return pNtk->pManTime->tInDrive ? pNtk->pManTime->tInDrive + iPi : NULL;
 }
 Abc_Time_t * Abc_NodeReadOutputLoad( Abc_Ntk_t * pNtk, int iPo )
 {
     assert( pNtk->pManTime );
-    return pNtk->pManTime->tOutLoad + iPo;
+    return pNtk->pManTime->tOutLoad ? pNtk->pManTime->tOutLoad + iPo : NULL;
 }
 float Abc_NodeReadInputDriveWorst( Abc_Ntk_t * pNtk, int iPi )
 {

@@ -229,6 +229,7 @@ static inline SC_Pin  *   SC_CellPin( SC_Cell * p, int i )          { return (SC
 static inline Vec_Wrd_t * SC_CellFunc( SC_Cell * p )                { return SC_CellPin(p, p->n_inputs)->vFunc;                       }
 
 static inline double      SC_LibCapFf( SC_Lib * p, double cap )     { return cap * p->unit_cap_fst * pow(10.0, 15 - p->unit_cap_snd); }
+static inline double      SC_LibCapFromFf( SC_Lib * p, double cap ) { return cap / p->unit_cap_fst / pow(10.0, 15 - p->unit_cap_snd); }
 static inline double      SC_LibTimePs( SC_Lib * p, double time )   { return time * pow(10.0, 12 - p->unit_time);                     }
 static inline double      SC_LibTimeFromPs( SC_Lib * p, double ps ) { return ps / pow(10.0, 12 - p->unit_time);                       }
 
