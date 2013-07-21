@@ -475,16 +475,16 @@ void Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_UpSizePars * pPar
     {
         printf( "Upsizing parameters: " );
         printf( "Iters =%5d.  ",          pPars->nIters   );
-        printf( "Time window =%3d %%. ",  pPars->Window   );
+        printf( "Time win =%3d %%. ",     pPars->Window   );
         printf( "Update ratio =%3d %%. ", pPars->Ratio    );
-        printf( "Max steps =%3d. ",       pPars->Notches  );
         printf( "UseDept =%2d. ",         pPars->fUseDept );
+        printf( "UseWL =%2d. ",           pPars->fUseWireLoads );
         printf( "Timeout =%4d sec",       pPars->TimeOut  );
         printf( "\n" );
     }
 
     // prepare the manager; collect init stats
-    p = Abc_SclManStart( pLib, pNtk, 1, pPars->fUseDept, 0 );
+    p = Abc_SclManStart( pLib, pNtk, pPars->fUseWireLoads, pPars->fUseDept, 0 );
     p->timeTotal  = Abc_Clock();
     assert( p->vGatesBest == NULL );
     p->vGatesBest = Vec_IntDup( p->vGates );
@@ -572,7 +572,7 @@ void Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_UpSizePars * pPar
     if ( pPars->fVerbose )
         Abc_SclUpsizePrint( p, i, pPars->Window, nAllPos/(i?i:1), nAllNodes/(i?i:1), nAllUpsizes/(i?i:1), nAllTfos/(i?i:1), 1 );
     else
-        printf( "                                                                                                                                              \r" );
+        printf( "                                                                                                                                                  \r" );
     // report runtime
     p->timeTotal = Abc_Clock() - p->timeTotal;
     if ( pPars->fVerbose )

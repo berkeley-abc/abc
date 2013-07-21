@@ -85,6 +85,7 @@ struct SC_UpSizePars_
     int        TimeOut;
     int        fUseDept;
     int        fDumpStats;
+    int        fUseWireLoads;
     int        fVerbose;
     int        fVeryVerbose;
 };
@@ -98,6 +99,7 @@ struct SC_DnSizePars_
     int        TimeOut;
     int        fUseDept;
     int        fDumpStats;
+    int        fUseWireLoads;
     int        fVerbose;
     int        fVeryVerbose;
 };
@@ -480,7 +482,7 @@ extern void          Abc_SclPrintCells( SC_Lib * p );
 extern Vec_Int_t *   Abc_SclManFindGates( SC_Lib * pLib, Abc_Ntk_t * p );
 extern void          Abc_SclManSetGates( SC_Lib * pLib, Abc_Ntk_t * p, Vec_Int_t * vGates );
 extern void          Abc_SclPrintGateSizes( SC_Lib * pLib, Abc_Ntk_t * p );
-extern void          Abc_SclMinsizePerform( SC_Lib * pLib, Abc_Ntk_t * p, int fVerbose );
+extern void          Abc_SclMinsizePerform( SC_Lib * pLib, Abc_Ntk_t * p, int fUseMax, int fVerbose );
 
 
 ABC_NAMESPACE_HEADER_END

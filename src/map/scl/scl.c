@@ -35,7 +35,6 @@ static int Scl_CommandPrintGS ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Scl_CommandStime   ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Scl_CommandTopo    ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Scl_CommandBuffer  ( Abc_Frame_t * pAbc, int argc, char **argv );
-static int Scl_CommandGsize   ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Scl_CommandUpsize  ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Scl_CommandDnsize  ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Scl_CommandMinsize ( Abc_Frame_t * pAbc, int argc, char **argv );
@@ -69,7 +68,6 @@ void Scl_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "SCL mapping",  "upsize",     Scl_CommandUpsize,   1 ); 
     Cmd_CommandAdd( pAbc, "SCL mapping",  "dnsize",     Scl_CommandDnsize,   1 ); 
     Cmd_CommandAdd( pAbc, "SCL mapping",  "print_buf",  Scl_CommandPrintBuf, 1 ); 
-//    Cmd_CommandAdd( pAbc, "SCL mapping",  "gsize",      Scl_CommandGsize,    1 ); 
 }
 void Scl_End( Abc_Frame_t * pAbc )
 {
@@ -360,7 +358,7 @@ usage:
     fprintf( pAbc->Err, "\t         performs STA using Liberty library\n" );
     fprintf( pAbc->Err, "\t-c     : toggle using wire-loads if specified [default = %s]\n", fUseWireLoads? "yes": "no" );
     fprintf( pAbc->Err, "\t-a     : display timing information for all nodes [default = %s]\n", fShowAll? "yes": "no" );
-    fprintf( pAbc->Err, "\t-s     : display timing information without critical path [default = %s]\n", fShort? "yes": "no" );
+    fprintf( pAbc->Err, "\t-s     : display timing information for critical path [default = %s]\n", fShort? "yes": "no" );
     fprintf( pAbc->Err, "\t-d     : toggle dumping statistics into a file [default = %s]\n", fDumpStats? "yes": "no" );
     fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
     return 1;
@@ -517,12 +515,15 @@ usage:
 int Scl_CommandMinsize( Abc_Frame_t * pAbc, int argc, char **argv )
 {
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
-    int c, fVerbose = 0;
+    int c, fUseMax = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "mvh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'm':
+            fUseMax ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -554,151 +555,15 @@ int Scl_CommandMinsize( Abc_Frame_t * pAbc, int argc, char **argv )
         return 1;
     }
 
-    Abc_SclMinsizePerform( (SC_Lib *)pAbc->pLibScl, pNtk, fVerbose );
+    Abc_SclMinsizePerform( (SC_Lib *)pAbc->pLibScl, pNtk, fUseMax, fVerbose );
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: minsize [-vh]\n" );
+    fprintf( pAbc->Err, "usage: minsize [-mvh]\n" );
     fprintf( pAbc->Err, "\t           downsized all gates to their minimum size\n" );
+    fprintf( pAbc->Err, "\t-m       : toggle upsizing gates to their maximum size [default = %s]\n", fUseMax? "yes": "no" );
     fprintf( pAbc->Err, "\t-v       : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pAbc->Err, "\t-h       : print the command usage\n");
-    return 1;
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Scl_CommandGsize( Abc_Frame_t * pAbc, int argc, char **argv )
-{
-    SC_SizePars Pars, * pPars = &Pars;
-    int c;
-    memset( pPars, 0, sizeof(SC_SizePars) );
-    pPars->nSteps        = 1000000;
-    pPars->nRange        = 0;
-    pPars->nRangeF       = 10;
-    pPars->nTimeOut      = 300;
-    pPars->fTryAll       = 1;
-    pPars->fUseWireLoads = 1;
-    pPars->fPrintCP      = 0;
-    pPars->fVerbose      = 0;
-    pPars->fVeryVerbose  = 0;
-
-    Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "NWUTacpvwh" ) ) != EOF )
-    {
-        switch ( c )
-        {
-            case 'N':
-                if ( globalUtilOptind >= argc )
-                {
-                    Abc_Print( -1, "Command line switch \"-N\" should be followed by a positive integer.\n" );
-                    goto usage;
-                }
-                pPars->nSteps = atoi(argv[globalUtilOptind]);
-                globalUtilOptind++;
-                if ( pPars->nSteps <= 0 ) 
-                    goto usage;
-                break;
-            case 'W':
-                if ( globalUtilOptind >= argc )
-                {
-                    Abc_Print( -1, "Command line switch \"-W\" should be followed by a positive integer.\n" );
-                    goto usage;
-                }
-                pPars->nRange = atoi(argv[globalUtilOptind]);
-                globalUtilOptind++;
-                if ( pPars->nRange < 0 ) 
-                    goto usage;
-                break;
-            case 'U':
-                if ( globalUtilOptind >= argc )
-                {
-                    Abc_Print( -1, "Command line switch \"-U\" should be followed by a positive integer.\n" );
-                    goto usage;
-                }
-                pPars->nRangeF = atoi(argv[globalUtilOptind]);
-                globalUtilOptind++;
-                if ( pPars->nRangeF < 0 ) 
-                    goto usage;
-                break;
-            case 'T':
-                if ( globalUtilOptind >= argc )
-                {
-                    Abc_Print( -1, "Command line switch \"-T\" should be followed by a positive integer.\n" );
-                    goto usage;
-                }
-                pPars->nTimeOut = atoi(argv[globalUtilOptind]);
-                globalUtilOptind++;
-                if ( pPars->nTimeOut < 0 ) 
-                    goto usage;
-                break;
-            case 'a':
-                pPars->fTryAll ^= 1;
-                break;
-            case 'c':
-                pPars->fUseWireLoads ^= 1;
-                break;
-            case 'p':
-                pPars->fPrintCP ^= 1;
-                break;
-            case 'v':
-                pPars->fVerbose ^= 1;
-                break;
-            case 'w':
-                pPars->fVeryVerbose ^= 1;
-                break;
-            case 'h':
-                goto usage;
-            default:
-                goto usage;
-        }
-    }
-
-    if ( Abc_FrameReadNtk(pAbc) == NULL )
-    {
-        fprintf( pAbc->Err, "There is no current network.\n" );
-        return 1;
-    }
-    if ( !Abc_NtkHasMapping(Abc_FrameReadNtk(pAbc)) )
-    {
-        fprintf( pAbc->Err, "The current network is not mapped.\n" );
-        return 1;
-    }
-    if ( !Abc_SclCheckNtk(Abc_FrameReadNtk(pAbc), 0) )
-    {
-        fprintf( pAbc->Err, "The current network is not in a topo order (run \"topo\").\n" );
-        return 1;
-    }
-    if ( pAbc->pLibScl == NULL )
-    {
-        fprintf( pAbc->Err, "There is no Liberty library available.\n" );
-        return 1;
-    }
-
-//    Abc_SclSizingPerform( (SC_Lib *)pAbc->pLibScl, Abc_FrameReadNtk(pAbc), pPars );
-    return 0;
-
-usage:
-    fprintf( pAbc->Err, "usage: gsize [-NWUT num] [-acpvwh]\n" );
-    fprintf( pAbc->Err, "\t           performs gate sizing using Liberty library\n" );
-    fprintf( pAbc->Err, "\t-N <num> : the number of gate-sizing steps performed [default = %d]\n", pPars->nSteps );
-    fprintf( pAbc->Err, "\t-W <num> : delay window (in percent) of near-critical COs [default = %d]\n", pPars->nRange );
-    fprintf( pAbc->Err, "\t-U <num> : delay window (in percent) of near-critical fanins [default = %d]\n", pPars->nRangeF );
-    fprintf( pAbc->Err, "\t-T <num> : an approximate timeout, in seconds [default = %d]\n", pPars->nTimeOut );
-    fprintf( pAbc->Err, "\t-a       : try resizing all gates (not only critical) [default = %s]\n", pPars->fTryAll? "yes": "no" );
-    fprintf( pAbc->Err, "\t-c       : toggle using wire-loads if specified [default = %s]\n", pPars->fUseWireLoads? "yes": "no" );
-    fprintf( pAbc->Err, "\t-p       : toggle printing critical path before and after sizing [default = %s]\n", pPars->fPrintCP? "yes": "no" );
-    fprintf( pAbc->Err, "\t-v       : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
-    fprintf( pAbc->Err, "\t-w       : toggle printing even more information [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
-    fprintf( pAbc->Err, "\t-h       : print the help massage\n" );
     return 1;
 }
 
@@ -726,11 +591,12 @@ int Scl_CommandUpsize( Abc_Frame_t * pAbc, int argc, char **argv )
     pPars->Notches       =   20;
     pPars->TimeOut       =    0;
     pPars->fUseDept      =    1;
+    pPars->fUseWireLoads =    1;
     pPars->fDumpStats    =    0;
     pPars->fVerbose      =    0;
     pPars->fVeryVerbose  =    0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "IJWRNTsdvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "IJWRNTcsdvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -800,6 +666,9 @@ int Scl_CommandUpsize( Abc_Frame_t * pAbc, int argc, char **argv )
             if ( pPars->TimeOut < 0 ) 
                 goto usage;
             break;
+        case 'c':
+            pPars->fUseWireLoads ^= 1;
+            break;
         case 's':
             pPars->fUseDept ^= 1;
             break;
@@ -844,7 +713,7 @@ int Scl_CommandUpsize( Abc_Frame_t * pAbc, int argc, char **argv )
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: upsize [-IJWRNT num] [-sdvwh]\n" );
+    fprintf( pAbc->Err, "usage: upsize [-IJWRNT num] [-csdvwh]\n" );
     fprintf( pAbc->Err, "\t           selectively increases gate sizes on the critical path\n" );
     fprintf( pAbc->Err, "\t-I <num> : the number of upsizing iterations to perform [default = %d]\n", pPars->nIters );
     fprintf( pAbc->Err, "\t-J <num> : the number of iterations without improvement to stop [default = %d]\n", pPars->nIterNoChange );
@@ -852,6 +721,7 @@ usage:
     fprintf( pAbc->Err, "\t-R <num> : ratio of critical nodes (in percent) to update [default = %d]\n", pPars->Ratio );
     fprintf( pAbc->Err, "\t-N <num> : limit on discrete upsizing steps at a node [default = %d]\n", pPars->Notches );
     fprintf( pAbc->Err, "\t-T <num> : approximate timeout in seconds [default = %d]\n", pPars->TimeOut );
+    fprintf( pAbc->Err, "\t-c       : toggle using wire-loads if specified [default = %s]\n", pPars->fUseWireLoads? "yes": "no" );
     fprintf( pAbc->Err, "\t-s       : toggle using slack based on departure times [default = %s]\n", pPars->fUseDept? "yes": "no" );
     fprintf( pAbc->Err, "\t-d       : toggle dumping statistics into a file [default = %s]\n", pPars->fDumpStats? "yes": "no" );
     fprintf( pAbc->Err, "\t-v       : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
@@ -882,11 +752,12 @@ int Scl_CommandDnsize( Abc_Frame_t * pAbc, int argc, char **argv )
     pPars->nIterNoChange =   50;
     pPars->TimeOut       =    0;
     pPars->fUseDept      =    1;
+    pPars->fUseWireLoads =    1;
     pPars->fDumpStats    =    0;
     pPars->fVerbose      =    0;
     pPars->fVeryVerbose  =    0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "DIJTsdvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "DIJTcsdvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -934,6 +805,9 @@ int Scl_CommandDnsize( Abc_Frame_t * pAbc, int argc, char **argv )
             if ( pPars->TimeOut < 0 ) 
                 goto usage;
             break;
+        case 'c':
+            pPars->fUseWireLoads ^= 1;
+            break;
         case 's':
             pPars->fUseDept ^= 1;
             break;
@@ -978,12 +852,13 @@ int Scl_CommandDnsize( Abc_Frame_t * pAbc, int argc, char **argv )
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: dnsize [-DIJT num] [-sdvwh]\n" );
+    fprintf( pAbc->Err, "usage: dnsize [-DIJT num] [-csdvwh]\n" );
     fprintf( pAbc->Err, "\t           selectively decreases gate sizes while maintaining delay\n" );
     fprintf( pAbc->Err, "\t-D <num> : the target max delay after downsizing in picosecs [default = %.2f]\n", pPars->DUser );
     fprintf( pAbc->Err, "\t-I <num> : the number of upsizing iterations to perform [default = %d]\n", pPars->nIters );
     fprintf( pAbc->Err, "\t-J <num> : the number of iterations without improvement to stop [default = %d]\n", pPars->nIterNoChange );
     fprintf( pAbc->Err, "\t-T <num> : approximate timeout in seconds [default = %d]\n", pPars->TimeOut );
+    fprintf( pAbc->Err, "\t-c       : toggle using wire-loads if specified [default = %s]\n", pPars->fUseWireLoads? "yes": "no" );
     fprintf( pAbc->Err, "\t-s       : toggle using slack based on departure times [default = %s]\n", pPars->fUseDept? "yes": "no" );
     fprintf( pAbc->Err, "\t-d       : toggle dumping statistics into a file [default = %s]\n", pPars->fDumpStats? "yes": "no" );
     fprintf( pAbc->Err, "\t-v       : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );

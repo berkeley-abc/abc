@@ -303,17 +303,33 @@ void Abc_SclPrintGateSizes( SC_Lib * pLib, Abc_Ntk_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_SclMinsizePerform( SC_Lib * pLib, Abc_Ntk_t * p, int fVerbose )
+SC_Cell * Abc_SclFindMaxAreaCell( SC_Cell * pRepr )
+{
+    SC_Cell * pCell, * pBest = pRepr;
+    float AreaBest = pRepr->area;
+    int i;
+    SC_RingForEachCell( pRepr, pCell, i )
+        if ( AreaBest < pCell->area )
+        {
+            AreaBest = pCell->area;
+            pBest = pCell;
+        }
+    return pBest;
+}
+void Abc_SclMinsizePerform( SC_Lib * pLib, Abc_Ntk_t * p, int fUseMax, int fVerbose )
 {
     Vec_Int_t * vMinCells, * vGates;
-    SC_Cell * pCell, * pRepr = NULL;
+    SC_Cell * pCell, * pRepr = NULL, * pBest = NULL;
     Abc_Obj_t * pObj;
     int i, k, gateId;
     // map each gate in the library into its min-size prototype
     vMinCells = Vec_IntStartFull( Vec_PtrSize(pLib->vCells) );
     SC_LibForEachCellClass( pLib, pRepr, i )
+    {
+        pBest = fUseMax ? Abc_SclFindMaxAreaCell(pRepr) : pRepr;
         SC_RingForEachCell( pRepr, pCell, k )
-            Vec_IntWriteEntry( vMinCells, pCell->Id, pRepr->Id );
+            Vec_IntWriteEntry( vMinCells, pCell->Id, pBest->Id );
+    }
     // update each cell
     vGates = Abc_SclManFindGates( pLib, p );
     Abc_NtkForEachNode1( p, pObj, i )
@@ -328,7 +344,6 @@ void Abc_SclMinsizePerform( SC_Lib * pLib, Abc_Ntk_t * p, int fVerbose )
     Vec_IntFree( vMinCells );
     Vec_IntFree( vGates );
 }
-
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

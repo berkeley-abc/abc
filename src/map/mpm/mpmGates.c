@@ -218,7 +218,7 @@ Abc_Ntk_t * Mpm_ManDeriveMappedAbcNtk( Mpm_Man_t * p, Mio_Library_t * pMio )
         pObj = Abc_NtkCreateNode( pNtk );
         pObj->pData = Vec_PtrEntry( vNpnGatesMio, Abc_Lit2Var(pCutBest->iFunc) );
         assert( pObj->pData != NULL );
-        fCompl = Abc_LitIsCompl(pCutBest->iFunc) ^ ((Config >> 16) & 1);
+        fCompl = pCutBest->fCompl ^ Abc_LitIsCompl(pCutBest->iFunc) ^ ((Config >> 16) & 1);
         Config &= 0xFFFF;
         for ( k = 0; k < (int)pCutBest->nLeaves; k++ )
         {

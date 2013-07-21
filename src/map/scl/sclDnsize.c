@@ -254,12 +254,13 @@ void Abc_SclDnsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_DnSizePars * pPar
         printf( "Delay =%8.2f ps. ", pPars->DUser    );
         printf( "Iters =%5d.  ",     pPars->nIters   );
         printf( "UseDept =%2d. ",    pPars->fUseDept );
+        printf( "UseWL =%2d. ",      pPars->fUseWireLoads );
         printf( "Timeout =%4d sec",  pPars->TimeOut  );
         printf( "\n" );
     }
 
     // prepare the manager; collect init stats
-    p = Abc_SclManStart( pLib, pNtk, 1, pPars->fUseDept, SC_LibTimeFromPs(pLib, pPars->DUser) );
+    p = Abc_SclManStart( pLib, pNtk, pPars->fUseWireLoads, pPars->fUseDept, SC_LibTimeFromPs(pLib, pPars->DUser) );
     p->timeTotal  = Abc_Clock();
     assert( p->vGatesBest == NULL );
     p->vGatesBest = Vec_IntDup( p->vGates );
