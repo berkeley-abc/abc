@@ -178,7 +178,6 @@ Abc_Ntk_t * Io_ReadBlifMv( char * pFileName, int fBlifMv, int fCheck )
     p->pDesign->pManFunc = NULL;
     // prepare the file for parsing
     Io_MvReadPreparse( p );
-    vGlobalLtlArray = Vec_PtrAlloc( 100 );
     // parse interfaces of each network and construct the network
     if ( Io_MvReadInterfaces( p ) )
         pDesign = Io_MvParse( p );
@@ -249,6 +248,7 @@ Abc_Ntk_t * Io_ReadBlifMv( char * pFileName, int fBlifMv, int fCheck )
     if ( pNtk->pSpec == NULL )
         pNtk->pSpec = Extra_UtilStrsav( pFileName );
 
+    vGlobalLtlArray = Vec_PtrAlloc( 100 );
     Vec_PtrForEachEntry( char *, vGlobalLtlArray, pLtlProp, i )
         Vec_PtrPush( pNtk->vLtlProperties, pLtlProp );
     Vec_PtrFreeP( &vGlobalLtlArray );

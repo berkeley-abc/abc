@@ -431,16 +431,12 @@ void Abc_ManTimeStop( Abc_ManTime_t * p )
         ABC_FREE( p->tInDrive );
     if ( p->tOutLoad )
         ABC_FREE( p->tOutLoad );
-    if ( p->vArrs->nSize > 0 )
-    {
+    if ( Vec_PtrSize(p->vArrs) > 0 )
         ABC_FREE( p->vArrs->pArray[0] );
-        Vec_PtrFree( p->vArrs );
-    }
-    if ( p->vReqs->nSize > 0 )
-    {
+    Vec_PtrFree( p->vArrs );
+    if ( Vec_PtrSize(p->vReqs) > 0 )
         ABC_FREE( p->vReqs->pArray[0] );
-        Vec_PtrFree( p->vReqs );
-    }
+    Vec_PtrFree( p->vReqs );
     ABC_FREE( p );
 }
 
