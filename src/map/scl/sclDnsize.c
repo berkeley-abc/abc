@@ -99,7 +99,7 @@ void Abc_SclFindWindow( Abc_Obj_t * pPivot, Vec_Int_t ** pvNodes, Vec_Int_t ** p
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_SclCheckImprovement( SC_Man * p, Abc_Obj_t * pObj, Vec_Int_t * vNodes, Vec_Int_t * vEvals )
+int Abc_SclCheckImprovement( SC_Man * p, Abc_Obj_t * pObj, Vec_Int_t * vNodes, Vec_Int_t * vEvals, int Notches, int DelayGap )
 {
     Abc_Obj_t * pTemp;
     SC_Cell * pCellOld, * pCellNew;
@@ -114,11 +114,13 @@ clk = Abc_Clock();
     Abc_SclLoadStore( p, pObj );
     // try different gate sizes for this node
     gateBest = -1;
-    dGainBest = -ABC_INFINITY; //0.0;
-    SC_RingForEachCell( pCellOld, pCellNew, i )
+    dGainBest = -SC_LibTimeFromPs(p->pLib, (float)DelayGap);
+    SC_RingForEachCellRev( pCellOld, pCellNew, i )
     {
         if ( pCellNew->area >= pCellOld->area )
             continue;
+        if ( i > Notches )
+            break;
         // set new cell
         Abc_SclObjSetCell( p, pObj, pCellNew );
         Abc_SclUpdateLoad( p, pObj, pCellOld, pCellNew );
@@ -240,7 +242,7 @@ void Abc_SclDnsizePrint( SC_Man * p, int Iter, int nAttempts, int nOverlaps, int
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_SclDnsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_DnSizePars * pPars )
+void Abc_SclDnsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPars )
 {
     SC_Man * p;
     Abc_Obj_t * pObj;
@@ -250,17 +252,18 @@ void Abc_SclDnsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_DnSizePars * pPar
 
     if ( pPars->fVerbose )
     {
-        printf( "Downsizing parameters: " );
-        printf( "Delay =%8.2f ps. ", pPars->DUser    );
-        printf( "Iters =%5d.  ",     pPars->nIters   );
-        printf( "UseDept =%2d. ",    pPars->fUseDept );
-        printf( "UseWL =%2d. ",      pPars->fUseWireLoads );
-        printf( "Timeout =%4d sec",  pPars->TimeOut  );
+        printf( "Parameters: " );
+        printf( "Iters =%5d.  ",          pPars->nIters    );
+        printf( "UseDept =%2d. ",         pPars->fUseDept  );
+        printf( "UseWL =%2d. ",           pPars->fUseWireLoads );
+        printf( "Target =%5d ps. ",       pPars->DelayUser );
+        printf( "DelayGap =%3d ps. ",     pPars->DelayGap );
+        printf( "Timeout =%4d sec",       pPars->TimeOut   );
         printf( "\n" );
     }
 
     // prepare the manager; collect init stats
-    p = Abc_SclManStart( pLib, pNtk, pPars->fUseWireLoads, pPars->fUseDept, SC_LibTimeFromPs(pLib, pPars->DUser) );
+    p = Abc_SclManStart( pLib, pNtk, pPars->fUseWireLoads, pPars->fUseDept, SC_LibTimeFromPs(pLib, pPars->DelayUser) );
     p->timeTotal  = Abc_Clock();
     assert( p->vGatesBest == NULL );
     p->vGatesBest = Vec_IntDup( p->vGates );
@@ -281,38 +284,35 @@ void Abc_SclDnsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_DnSizePars * pPar
             Abc_NtkIncrementTravId( pNtk );
             while ( Vec_QueSize(p->vNodeByGain) > 0 )
             {
-clk = Abc_Clock();
+                clk = Abc_Clock();
                 pObj = Abc_NtkObj( p->pNtk, Vec_QuePop(p->vNodeByGain) );
                 Abc_SclFindWindow( pObj, &vNodes, &vEvals );
-p->timeCone += Abc_Clock() - clk;
+                p->timeCone += Abc_Clock() - clk;
                 if ( Abc_SclCheckOverlap( p->pNtk, vNodes ) )
                     nOverlap++, Vec_IntPush( vTryLater, Abc_ObjId(pObj) );
                 else 
-                    nChanges += Abc_SclCheckImprovement( p, pObj, vNodes, vEvals );
+                    nChanges += Abc_SclCheckImprovement( p, pObj, vNodes, vEvals, pPars->Notches, pPars->DelayGap );
                 nAttempt++;
             }
             Abc_NtkForEachObjVec( vTryLater, pNtk, pObj, k )
                 Vec_QuePush( p->vNodeByGain, Abc_ObjId(pObj) );
-clk = Abc_Clock();
-            Abc_SclTimeNtkRecompute( p, NULL, NULL, pPars->fUseDept, pPars->DUser );
-p->timeTime += Abc_Clock() - clk;
+
+            clk = Abc_Clock();
+            Abc_SclTimeNtkRecompute( p, &p->SumArea, &p->MaxDelay, pPars->fUseDept, pPars->DelayUser );
+            p->timeTime += Abc_Clock() - clk;
 
             p->MaxDelay = Abc_SclReadMaxDelay( p );
-            if ( pPars->fUseDept && pPars->DUser > 0 && p->MaxDelay < pPars->DUser )
-                p->MaxDelay = pPars->DUser;
+            if ( pPars->fUseDept && pPars->DelayUser > 0 && p->MaxDelay < pPars->DelayUser )
+                p->MaxDelay = pPars->DelayUser;
             Abc_SclDnsizePrint( p, nRounds++, nAttempt, nOverlap, nChanges, pPars->fVeryVerbose ); 
-            nAttemptAll += nAttempt;
-            nOverlapAll += nOverlap;
-            nChangesAll += nChanges;
+            nAttemptAll += nAttempt; nOverlapAll += nOverlap; nChangesAll += nChanges;
             if ( nRuntimeLimit && Abc_Clock() > nRuntimeLimit )
                 break;
         }
         // recompute
-        Abc_SclTimeNtkRecompute( p, &p->SumArea, &p->MaxDelay, pPars->fUseDept, pPars->DUser );
+//        Abc_SclTimeNtkRecompute( p, &p->SumArea, &p->MaxDelay, pPars->fUseDept, pPars->DelayUser );
         if ( pPars->fVerbose )
             Abc_SclDnsizePrint( p, -1, nAttemptAll, nOverlapAll, nChangesAll, 1 ); 
-        else
-            printf( "                                                                                                                          \r" );
         if ( nRuntimeLimit && Abc_Clock() > nRuntimeLimit )
             break;
         if ( nAttemptAll == 0 )
@@ -321,6 +321,8 @@ p->timeTime += Abc_Clock() - clk;
     Vec_IntFree( vNodes );
     Vec_IntFree( vEvals );
     Vec_IntFree( vTryLater );
+    if ( !pPars->fVerbose )
+        printf( "                                                                                                                               \r" );
 
     // report runtime
     p->timeTotal = Abc_Clock() - p->timeTotal;
@@ -333,8 +335,8 @@ p->timeTime += Abc_Clock() - clk;
         ABC_PRTP( "Runtime: Other        ", p->timeOther, p->timeTotal );
         ABC_PRTP( "Runtime: TOTAL        ", p->timeTotal, p->timeTotal );
     }
-//    if ( pPars->fDumpStats )
-//        Abc_SclDumpStats( p, "stats2.txt", p->timeTotal );
+    if ( pPars->fDumpStats )
+        Abc_SclDumpStats( p, "stats2.txt", p->timeTotal );
     if ( nRuntimeLimit && Abc_Clock() > nRuntimeLimit )
         printf( "Gate sizing timed out at %d seconds.\n", pPars->TimeOut );
 

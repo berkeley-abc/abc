@@ -63,39 +63,13 @@ typedef enum      // -- timing sense, positive-, negative- or non-unate
 typedef struct SC_SizePars_    SC_SizePars;
 struct SC_SizePars_
 {
-    int        nSteps;
-    int        nRange;
-    int        nRangeF;
-    int        nTimeOut;
-    int        fTryAll;
-    int        fUseWireLoads;
-    int        fPrintCP;
-    int        fVerbose;
-    int        fVeryVerbose;
-};
-
-typedef struct SC_UpSizePars_    SC_UpSizePars;
-struct SC_UpSizePars_
-{
     int        nIters;
     int        nIterNoChange;
-    int        Window;
-    int        Ratio;
+    int        Window;           // used for upsizing
+    int        Ratio;            // used for upsizing
     int        Notches;
-    int        TimeOut;
-    int        fUseDept;
-    int        fDumpStats;
-    int        fUseWireLoads;
-    int        fVerbose;
-    int        fVeryVerbose;
-};
-
-typedef struct SC_DnSizePars_    SC_DnSizePars;
-struct SC_DnSizePars_
-{
-    float      DUser;
-    int        nIters;
-    int        nIterNoChange;
+    int        DelayUser;
+    int        DelayGap;
     int        TimeOut;
     int        fUseDept;
     int        fDumpStats;
@@ -242,6 +216,7 @@ static inline double      SC_LibTimeFromPs( SC_Lib * p, double ps ) { return ps 
 #define SC_CellForEachPinIn( p, pPin, i )        Vec_PtrForEachEntryStop( SC_Pin *, p->vPins, pPin, i, p->n_inputs )
 #define SC_CellForEachPinOut( p, pPin, i )       Vec_PtrForEachEntryStart( SC_Pin *, p->vPins, pPin, i, p->n_inputs )
 #define SC_RingForEachCell( pRing, pCell, i )    for ( i = 0, pCell = pRing; i == 0 || pCell != pRing; pCell = pCell->pNext, i++ )
+#define SC_RingForEachCellRev( pRing, pCell, i ) for ( i = 0, pCell = pRing; i == 0 || pCell != pRing; pCell = pCell->pPrev, i++ )
 #define SC_PinForEachRTiming( p, pRTime, i )     Vec_PtrForEachEntry( SC_Timings *, p->vRTimings, pRTime, i )
 
 
@@ -459,7 +434,7 @@ static inline void Abc_SclLibFree( SC_Lib * p )
 extern int           Abc_SclCheckNtk( Abc_Ntk_t * p, int fVerbose );
 extern Abc_Ntk_t *   Abc_SclPerformBuffering( Abc_Ntk_t * p, int Degree, int fVerbose );
 /*=== sclDnsize.c ===============================================================*/
-extern void          Abc_SclDnsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_DnSizePars * pPars );
+extern void          Abc_SclDnsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPars );
 /*=== sclFile.c ===============================================================*/
 extern SC_Lib *      Abc_SclRead( char * pFileName );
 extern void          Abc_SclWrite( char * pFileName, SC_Lib * p );
@@ -471,10 +446,8 @@ extern SC_WireLoad * Abc_SclFindWireLoadModel( SC_Lib * p, float Area );
 /*=== sclTime.c ===============================================================*/
 extern void          Abc_SclTimePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int fUseWireLoads, int fShowAll, int fShort, int fDumpStats );
 extern void          Abc_SclPrintBuffers( SC_Lib * pLib, Abc_Ntk_t * pNtk, int fVerbose );
-/*=== sclSize.c ===============================================================*/
-extern void          Abc_SclSizingPerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * p );
 /*=== sclUpsize.c ===============================================================*/
-extern void          Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_UpSizePars * pPars );
+extern void          Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPars );
 /*=== sclUtil.c ===============================================================*/
 extern void          Abc_SclHashCells( SC_Lib * p );
 extern int           Abc_SclCellFind( SC_Lib * p, char * pName );

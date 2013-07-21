@@ -194,16 +194,17 @@ void Abc_SclUnmarkCriticalNodeWindow( SC_Man * p, Vec_Int_t * vPath )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Abc_SclFindNodesToUpdate( Abc_Obj_t * pPivot, Vec_Int_t ** pvEvals )
+void Abc_SclFindNodesToUpdate( Abc_Obj_t * pPivot, Vec_Int_t ** pvNodes, Vec_Int_t ** pvEvals )
 {
     Abc_Ntk_t * p = Abc_ObjNtk(pPivot);
     Abc_Obj_t * pObj, * pNext, * pNext2;
-    Vec_Int_t * vNodes;
+    Vec_Int_t * vNodes = *pvNodes;
+    Vec_Int_t * vEvals = *pvEvals;
     int i, k;
     assert( Abc_ObjIsNode(pPivot) );
     assert( pPivot->fMarkA );
     // collect fanins, node, and fanouts
-    vNodes = Vec_IntAlloc( 16 );
+    Vec_IntClear( vNodes );
     Abc_ObjForEachFanin( pPivot, pNext, i )
         if ( Abc_ObjIsNode(pNext) && Abc_ObjFaninNum(pNext) > 0 )
             Vec_IntPush( vNodes, Abc_ObjId(pNext) );
@@ -224,21 +225,20 @@ Vec_Int_t * Abc_SclFindNodesToUpdate( Abc_Obj_t * pPivot, Vec_Int_t ** pvEvals )
         pObj->fMarkB = 1;
     }
     // collect nodes visible from the critical paths
-    *pvEvals = Vec_IntAlloc( 10 );
+    Vec_IntClear( vEvals );
     Abc_NtkForEachObjVec( vNodes, p, pObj, i )
         Abc_ObjForEachFanout( pObj, pNext, k )
             if ( pNext->fMarkA && !pNext->fMarkB )
 //            if ( !pNext->fMarkB )
             {
                 assert( pObj->fMarkB );
-                Vec_IntPush( *pvEvals, Abc_ObjId(pObj) );
+                Vec_IntPush( vEvals, Abc_ObjId(pObj) );
                 break;
             }
-    assert( Vec_IntSize(*pvEvals) > 0 );
+    assert( Vec_IntSize(vEvals) > 0 );
     // label nodes
     Abc_NtkForEachObjVec( vNodes, p, pObj, i )
         pObj->fMarkB = 0;
-    return vNodes;
 }
 
 
@@ -253,7 +253,7 @@ Vec_Int_t * Abc_SclFindNodesToUpdate( Abc_Obj_t * pPivot, Vec_Int_t ** pvEvals )
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_SclFindUpsizes( SC_Man * p, Vec_Int_t * vPathNodes, int Ratio, int Notches, int iIter )
+int Abc_SclFindUpsizes( SC_Man * p, Vec_Int_t * vPathNodes, int Ratio, int Notches, int iIter, int DelayGap )
 {
     SC_Cell * pCellOld, * pCellNew;
     Vec_Int_t * vRecalcs, * vEvals;
@@ -262,6 +262,8 @@ int Abc_SclFindUpsizes( SC_Man * p, Vec_Int_t * vPathNodes, int Ratio, int Notch
     int i, k, n, gateBest, Limit, iIterLast;
 
     // compute savings due to upsizing each node
+    vRecalcs = Vec_IntAlloc( 100 );
+    vEvals = Vec_IntAlloc( 100 );
     Vec_QueClear( p->vNodeByGain );
     Abc_NtkForEachObjVec( vPathNodes, p->pNtk, pObj, i )
     {
@@ -269,7 +271,7 @@ int Abc_SclFindUpsizes( SC_Man * p, Vec_Int_t * vPathNodes, int Ratio, int Notch
         if ( iIterLast >= 0 && iIterLast + 10 > iIter )
             continue;
         // compute nodes to recalculate timing and nodes to evaluate afterwards
-        vRecalcs = Abc_SclFindNodesToUpdate( pObj, &vEvals );
+        Abc_SclFindNodesToUpdate( pObj, &vRecalcs, &vEvals );
         assert( Vec_IntSize(vEvals) > 0 );
         //printf( "%d -> %d\n", Vec_IntSize(vRecalcs), Vec_IntSize(vEvals) );
         // save old gate, timing, fanin load
@@ -278,7 +280,7 @@ int Abc_SclFindUpsizes( SC_Man * p, Vec_Int_t * vPathNodes, int Ratio, int Notch
         Abc_SclLoadStore( p, pObj );
         // try different gate sizes for this node
         gateBest = -1;
-        dGainBest = 0.0;
+        dGainBest = -SC_LibTimeFromPs(p->pLib, (float)DelayGap);
         SC_RingForEachCell( pCellOld, pCellNew, k )
         {
             if ( pCellNew == pCellOld )
@@ -316,15 +318,14 @@ int Abc_SclFindUpsizes( SC_Man * p, Vec_Int_t * vPathNodes, int Ratio, int Notch
         // put back old cell and timing
         Abc_SclObjSetCell( p, pObj, pCellOld );
         Abc_SclConeRestore( p, vRecalcs );
-        // cleanup
-        Vec_IntFree( vRecalcs );
-        Vec_IntFree( vEvals );
     }
-    if ( Vec_QueSize(p->vNodeByGain) < 3 )
+    Vec_IntFree( vRecalcs );
+    Vec_IntFree( vEvals );
+    if ( Vec_QueSize(p->vNodeByGain) == 0 )
         return 0;
 
-    Limit = Abc_MinInt( Vec_QueSize(p->vNodeByGain), (int)(0.01 * Ratio * Vec_IntSize(vPathNodes)) + 1 ); 
-//printf( "\nSelecting %d out of %d\n", Limit, Vec_QueSize(p->vNodeByGain) );
+    Limit = Abc_MinInt( Vec_QueSize(p->vNodeByGain), Abc_MaxInt((int)(0.01 * Ratio * Vec_IntSize(vPathNodes)), 1) ); 
+    //printf( "\nSelecting %d out of %d\n", Limit, Vec_QueSize(p->vNodeByGain) );
     for ( i = 0; i < Limit; i++ )
     {
         // get the object
@@ -334,8 +335,8 @@ int Abc_SclFindUpsizes( SC_Man * p, Vec_Int_t * vPathNodes, int Ratio, int Notch
         pCellOld = Abc_SclObjCell( p, pObj );
         pCellNew = SC_LibCell( p->pLib, Vec_IntEntry(p->vNode2Gate, Abc_ObjId(pObj)) );
         assert( pCellNew != NULL );
-//        printf( "%6d  %20s -> %20s  ", Abc_ObjId(pObj), pCellOld->pName, pCellNew->pName );
-//        printf( "gain is %f\n", Vec_FltEntry(p->vNode2Gain, Abc_ObjId(pObj)) );
+        //printf( "%6d  %20s -> %20s  ", Abc_ObjId(pObj), pCellOld->pName, pCellNew->pName );
+        //printf( "gain is %f\n", Vec_FltEntry(p->vNode2Gain, Abc_ObjId(pObj)) );
         // update gate
         Abc_SclUpdateLoad( p, pObj, pCellOld, pCellNew );
         p->SumArea += pCellNew->area - pCellOld->area;
@@ -439,7 +440,7 @@ void Abc_SclUpsizePrint( SC_Man * p, int Iter, int win, int nPathPos, int nPathN
     printf( "TFO:%6d. ",     nTFOs );
     printf( "A: " );
     printf( "%.2f ",         p->SumArea );
-    printf( "(%+5.1f %%)  ",   100.0 * (p->SumArea - p->SumArea0)/ p->SumArea0 );
+    printf( "(%+5.1f %%)  ", 100.0 * (p->SumArea - p->SumArea0)/ p->SumArea0 );
     printf( "D: " );
     printf( "%.2f ps ",      SC_LibTimePs(p->pLib, p->MaxDelay) );
     printf( "(%+5.1f %%)  ", 100.0 * (p->MaxDelay - p->MaxDelay0)/ p->MaxDelay0 );
@@ -461,7 +462,7 @@ void Abc_SclUpsizePrint( SC_Man * p, int Iter, int win, int nPathPos, int nPathN
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_UpSizePars * pPars )
+void Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPars )
 {
     SC_Man * p;
     Vec_Int_t * vPathPos = NULL;    // critical POs
@@ -473,12 +474,14 @@ void Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_UpSizePars * pPar
 
     if ( pPars->fVerbose )
     {
-        printf( "Upsizing parameters: " );
+        printf( "Parameters: " );
         printf( "Iters =%5d.  ",          pPars->nIters   );
         printf( "Time win =%3d %%. ",     pPars->Window   );
         printf( "Update ratio =%3d %%. ", pPars->Ratio    );
         printf( "UseDept =%2d. ",         pPars->fUseDept );
         printf( "UseWL =%2d. ",           pPars->fUseWireLoads );
+        printf( "Target =%5d ps. ",       pPars->DelayUser );
+        printf( "DelayGap =%3d ps. ",     pPars->DelayGap );
         printf( "Timeout =%4d sec",       pPars->TimeOut  );
         printf( "\n" );
     }
@@ -504,7 +507,7 @@ void Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_UpSizePars * pPar
 
             // selectively upsize the nodes
             clk = Abc_Clock();
-            nUpsizes   = Abc_SclFindUpsizes( p, vPathNodes, pPars->Ratio, pPars->Notches, i );
+            nUpsizes   = Abc_SclFindUpsizes( p, vPathNodes, pPars->Ratio, pPars->Notches, i, pPars->DelayGap );
             p->timeSize += Abc_Clock() - clk;
 
             // unmark critical path
@@ -545,13 +548,6 @@ void Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_UpSizePars * pPar
         }
         else
             nFramesNoChange++;
-        if ( nFramesNoChange > pPars->nIterNoChange )
-        {
-            Vec_IntFree( vPathPos );
-            Vec_IntFree( vPathNodes );
-            Vec_IntFree( vTFO );
-            break;
-        }
 
         // report and cleanup
         Abc_SclUpsizePrint( p, i, win, Vec_IntSize(vPathPos), Vec_IntSize(vPathNodes), nUpsizes, Vec_IntSize(vTFO), pPars->fVeryVerbose || (pPars->fVerbose && nFramesNoChange == 0) ); //|| (i == nIters-1) );
@@ -564,6 +560,12 @@ void Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_UpSizePars * pPar
         Vec_IntFree( vTFO );
         // check timeout
         if ( nRuntimeLimit && Abc_Clock() > nRuntimeLimit )
+            break;
+        // check no change
+        if ( nFramesNoChange > pPars->nIterNoChange )
+            break;
+        // check best delay
+        if ( p->BestDelay <= SC_LibTimeFromPs(p->pLib, (float)pPars->DelayUser) )
             break;
     }
     // update for best gates and recompute timing

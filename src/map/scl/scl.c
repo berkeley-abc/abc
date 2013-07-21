@@ -580,15 +580,17 @@ usage:
 ***********************************************************************/
 int Scl_CommandUpsize( Abc_Frame_t * pAbc, int argc, char **argv )
 {
-    SC_UpSizePars Pars, * pPars = &Pars;
+    SC_SizePars Pars, * pPars = &Pars;
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     int c;
-    memset( pPars, 0, sizeof(SC_UpSizePars) );
+    memset( pPars, 0, sizeof(SC_SizePars) );
     pPars->nIters        = 1000;
     pPars->nIterNoChange =   50;
     pPars->Window        =    2;
     pPars->Ratio         =   10;
-    pPars->Notches       =   20;
+    pPars->Notches       = 1000;
+    pPars->DelayUser     =    0;
+    pPars->DelayGap      =    0;
     pPars->TimeOut       =    0;
     pPars->fUseDept      =    1;
     pPars->fUseWireLoads =    1;
@@ -596,7 +598,7 @@ int Scl_CommandUpsize( Abc_Frame_t * pAbc, int argc, char **argv )
     pPars->fVerbose      =    0;
     pPars->fVeryVerbose  =    0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "IJWRNTcsdvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "IJWRNDGTcsdvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -654,6 +656,26 @@ int Scl_CommandUpsize( Abc_Frame_t * pAbc, int argc, char **argv )
             globalUtilOptind++;
             if ( pPars->Notches < 0 ) 
                 goto usage;
+            break;
+        case 'D':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-D\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            pPars->DelayUser = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->DelayUser < 0 ) 
+                goto usage;
+            break;
+        case 'G':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-G\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            pPars->DelayGap = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
             break;
         case 'T':
             if ( globalUtilOptind >= argc )
@@ -713,13 +735,15 @@ int Scl_CommandUpsize( Abc_Frame_t * pAbc, int argc, char **argv )
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: upsize [-IJWRNT num] [-csdvwh]\n" );
+    fprintf( pAbc->Err, "usage: upsize [-IJWRNDGT num] [-csdvwh]\n" );
     fprintf( pAbc->Err, "\t           selectively increases gate sizes on the critical path\n" );
     fprintf( pAbc->Err, "\t-I <num> : the number of upsizing iterations to perform [default = %d]\n", pPars->nIters );
     fprintf( pAbc->Err, "\t-J <num> : the number of iterations without improvement to stop [default = %d]\n", pPars->nIterNoChange );
     fprintf( pAbc->Err, "\t-W <num> : delay window (in percent) of near-critical COs [default = %d]\n", pPars->Window );
     fprintf( pAbc->Err, "\t-R <num> : ratio of critical nodes (in percent) to update [default = %d]\n", pPars->Ratio );
     fprintf( pAbc->Err, "\t-N <num> : limit on discrete upsizing steps at a node [default = %d]\n", pPars->Notches );
+    fprintf( pAbc->Err, "\t-D <num> : delay target set by the user, in picoseconds [default = %d]\n", pPars->DelayUser );
+    fprintf( pAbc->Err, "\t-G <num> : delay gap during updating, in picoseconds [default = %d]\n", pPars->DelayGap );
     fprintf( pAbc->Err, "\t-T <num> : approximate timeout in seconds [default = %d]\n", pPars->TimeOut );
     fprintf( pAbc->Err, "\t-c       : toggle using wire-loads if specified [default = %s]\n", pPars->fUseWireLoads? "yes": "no" );
     fprintf( pAbc->Err, "\t-s       : toggle using slack based on departure times [default = %s]\n", pPars->fUseDept? "yes": "no" );
@@ -743,13 +767,15 @@ usage:
 ***********************************************************************/
 int Scl_CommandDnsize( Abc_Frame_t * pAbc, int argc, char **argv )
 {
-    SC_DnSizePars Pars, * pPars = &Pars;
+    SC_SizePars Pars, * pPars = &Pars;
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     int c;
-    memset( pPars, 0, sizeof(SC_DnSizePars) );
-    pPars->DUser         =    0;
+    memset( pPars, 0, sizeof(SC_SizePars) );
     pPars->nIters        =    5;
     pPars->nIterNoChange =   50;
+    pPars->Notches       = 1000;
+    pPars->DelayUser     =    0;
+    pPars->DelayGap      = 1000;
     pPars->TimeOut       =    0;
     pPars->fUseDept      =    1;
     pPars->fUseWireLoads =    1;
@@ -757,21 +783,10 @@ int Scl_CommandDnsize( Abc_Frame_t * pAbc, int argc, char **argv )
     pPars->fVerbose      =    0;
     pPars->fVeryVerbose  =    0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "DIJTcsdvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "IJNDGTcsdvwh" ) ) != EOF )
     {
         switch ( c )
         {
-        case 'D':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-D\" should be followed by a positive integer.\n" );
-                goto usage;
-            }
-            pPars->DUser = atof(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( pPars->DUser < 0 ) 
-                goto usage;
-            break;
         case 'I':
             if ( globalUtilOptind >= argc )
             {
@@ -793,6 +808,37 @@ int Scl_CommandDnsize( Abc_Frame_t * pAbc, int argc, char **argv )
             globalUtilOptind++;
             if ( pPars->nIterNoChange < 0 ) 
                 goto usage;
+            break;
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-N\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            pPars->Notches = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->Notches < 0 ) 
+                goto usage;
+            break;
+        case 'D':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-D\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            pPars->DelayUser = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->DelayUser < 0 ) 
+                goto usage;
+            break;
+        case 'G':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-G\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            pPars->DelayGap = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
             break;
         case 'T':
             if ( globalUtilOptind >= argc )
@@ -852,11 +898,13 @@ int Scl_CommandDnsize( Abc_Frame_t * pAbc, int argc, char **argv )
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: dnsize [-DIJT num] [-csdvwh]\n" );
+    fprintf( pAbc->Err, "usage: dnsize [-IJNDGT num] [-csdvwh]\n" );
     fprintf( pAbc->Err, "\t           selectively decreases gate sizes while maintaining delay\n" );
-    fprintf( pAbc->Err, "\t-D <num> : the target max delay after downsizing in picosecs [default = %.2f]\n", pPars->DUser );
     fprintf( pAbc->Err, "\t-I <num> : the number of upsizing iterations to perform [default = %d]\n", pPars->nIters );
     fprintf( pAbc->Err, "\t-J <num> : the number of iterations without improvement to stop [default = %d]\n", pPars->nIterNoChange );
+    fprintf( pAbc->Err, "\t-N <num> : limit on discrete upsizing steps at a node [default = %d]\n", pPars->Notches );
+    fprintf( pAbc->Err, "\t-D <num> : delay target set by the user, in picoseconds [default = %d]\n", pPars->DelayUser );
+    fprintf( pAbc->Err, "\t-G <num> : delay gap during updating, in picoseconds [default = %d]\n", pPars->DelayGap );
     fprintf( pAbc->Err, "\t-T <num> : approximate timeout in seconds [default = %d]\n", pPars->TimeOut );
     fprintf( pAbc->Err, "\t-c       : toggle using wire-loads if specified [default = %s]\n", pPars->fUseWireLoads? "yes": "no" );
     fprintf( pAbc->Err, "\t-s       : toggle using slack based on departure times [default = %s]\n", pPars->fUseDept? "yes": "no" );

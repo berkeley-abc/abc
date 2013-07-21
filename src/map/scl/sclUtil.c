@@ -335,6 +335,8 @@ void Abc_SclMinsizePerform( SC_Lib * pLib, Abc_Ntk_t * p, int fUseMax, int fVerb
     Abc_NtkForEachNode1( p, pObj, i )
     {
         gateId = Vec_IntEntry( vGates, i );
+//        if ( SC_LibCell(pLib, gateId)->n_outputs > 1 )
+//            continue;
         assert( gateId >= 0 && gateId < Vec_PtrSize(pLib->vCells) );
         gateId = Vec_IntEntry( vMinCells, gateId );
         assert( gateId >= 0 && gateId < Vec_PtrSize(pLib->vCells) );
