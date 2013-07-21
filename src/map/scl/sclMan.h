@@ -109,10 +109,13 @@ static inline SC_Pair * Abc_SclObjSlew2( SC_Man * p, Abc_Obj_t * pObj )         
 static inline float     Abc_SclObjTimeMax( SC_Man * p, Abc_Obj_t * pObj )           { return Abc_MaxFloat(Abc_SclObjTime(p, pObj)->rise, Abc_SclObjTime(p, pObj)->fall);  }
 static inline float     Abc_SclObjDepthMax( SC_Man * p, Abc_Obj_t * pObj )          { return Abc_MaxFloat(Abc_SclObjDept(p, pObj)->rise, Abc_SclObjDept(p, pObj)->fall);  }
 static inline float     Abc_SclObjGetSlack( SC_Man * p, Abc_Obj_t * pObj, float D ) { return D - Abc_MaxFloat(Abc_SclObjTime(p, pObj)->rise + Abc_SclObjDept(p, pObj)->rise, Abc_SclObjTime(p, pObj)->fall + Abc_SclObjDept(p, pObj)->fall);  }
+static inline float     Abc_SclObjGetSlackR( SC_Man * p, Abc_Obj_t * pObj, float D ){ return D - (Abc_SclObjTime(p, pObj)->rise + Abc_SclObjDept(p, pObj)->rise);  }
+static inline float     Abc_SclObjGetSlackF( SC_Man * p, Abc_Obj_t * pObj, float D ){ return D - (Abc_SclObjTime(p, pObj)->fall + Abc_SclObjDept(p, pObj)->fall);  }
 static inline float     Abc_SclObjSlack( SC_Man * p, Abc_Obj_t * pObj )             { return p->pSlack[Abc_ObjId(pObj)];   }
 
 static inline void      Abc_SclObjDupFanin( SC_Man * p, Abc_Obj_t * pObj )          { assert( Abc_ObjIsCo(pObj) ); *Abc_SclObjTime(p, pObj) = *Abc_SclObjTime(p, Abc_ObjFanin0(pObj));  }
 static inline float     Abc_SclObjGain( SC_Man * p, Abc_Obj_t * pObj )              { return (Abc_SclObjTime2(p, pObj)->rise - Abc_SclObjTime(p, pObj)->rise) + (Abc_SclObjTime2(p, pObj)->fall - Abc_SclObjTime(p, pObj)->fall); }
+static inline int       Abc_SclObjLegal( SC_Man * p, Abc_Obj_t * pObj, float D )    { return Abc_SclObjTime(p, pObj)->rise <= Abc_SclObjTime2(p, pObj)->rise + Abc_SclObjGetSlackR(p, pObj, D) && Abc_SclObjTime(p, pObj)->fall <= Abc_SclObjTime2(p, pObj)->fall + Abc_SclObjGetSlackF(p, pObj, D); }
 
 static inline double    Abc_SclObjLoadFf( SC_Man * p, Abc_Obj_t * pObj, int fRise ) { return SC_LibCapFf( p->pLib, fRise ? Abc_SclObjLoad(p, pObj)->rise : Abc_SclObjLoad(p, pObj)->fall); }
 static inline double    Abc_SclObjTimePs( SC_Man * p, Abc_Obj_t * pObj, int fRise ) { return SC_LibTimePs(p->pLib, fRise ? Abc_SclObjTime(p, pObj)->rise : Abc_SclObjTime(p, pObj)->fall); }
@@ -360,9 +363,9 @@ static inline void Abc_SclDumpStats( SC_Man * p, char * pFileName, abctime Time 
 extern Abc_Obj_t * Abc_SclFindCriticalCo( SC_Man * p, int * pfRise );
 extern Abc_Obj_t * Abc_SclFindMostCriticalFanin( SC_Man * p, int * pfRise, Abc_Obj_t * pNode );
 extern void        Abc_SclTimeNtkPrint( SC_Man * p, int fShowAll, int fShort );
-extern SC_Man *    Abc_SclManStart( SC_Lib * pLib, Abc_Ntk_t * pNtk, int fUseWireLoads, int fDept );
+extern SC_Man *    Abc_SclManStart( SC_Lib * pLib, Abc_Ntk_t * pNtk, int fUseWireLoads, int fDept, float DUser );
 extern void        Abc_SclTimeCone( SC_Man * p, Vec_Int_t * vCone );
-extern void        Abc_SclTimeNtkRecompute( SC_Man * p, float * pArea, float * pDelay, int fReverse );
+extern void        Abc_SclTimeNtkRecompute( SC_Man * p, float * pArea, float * pDelay, int fReverse, float DUser );
 /*=== sclTime.c =============================================================*/
 extern void        Abc_SclComputeLoad( SC_Man * p );
 extern void        Abc_SclUpdateLoad( SC_Man * p, Abc_Obj_t * pObj, SC_Cell * pOld, SC_Cell * pNew );

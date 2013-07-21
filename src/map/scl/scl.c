@@ -37,7 +37,9 @@ static int Scl_CommandTopo    ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Scl_CommandBuffer  ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Scl_CommandGsize   ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Scl_CommandUpsize  ( Abc_Frame_t * pAbc, int argc, char **argv );
+static int Scl_CommandDnsize  ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Scl_CommandMinsize ( Abc_Frame_t * pAbc, int argc, char **argv );
+static int Scl_CommandPrintBuf( Abc_Frame_t * pAbc, int argc, char **argv );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -65,6 +67,8 @@ void Scl_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "SCL mapping",  "buffer",     Scl_CommandBuffer,   1 ); 
     Cmd_CommandAdd( pAbc, "SCL mapping",  "minsize",    Scl_CommandMinsize,  1 ); 
     Cmd_CommandAdd( pAbc, "SCL mapping",  "upsize",     Scl_CommandUpsize,   1 ); 
+    Cmd_CommandAdd( pAbc, "SCL mapping",  "dnsize",     Scl_CommandDnsize,   1 ); 
+    Cmd_CommandAdd( pAbc, "SCL mapping",  "print_buf",  Scl_CommandPrintBuf, 1 ); 
 //    Cmd_CommandAdd( pAbc, "SCL mapping",  "gsize",      Scl_CommandGsize,    1 ); 
 }
 void Scl_End( Abc_Frame_t * pAbc )
@@ -298,10 +302,10 @@ usage:
 int Scl_CommandStime( Abc_Frame_t * pAbc, int argc, char **argv )
 {
     int c;
-    int fShowAll = 0;
+    int fShowAll      = 0;
     int fUseWireLoads = 1;
-    int fShort = 0;
-    int fDumpStats = 0;
+    int fShort        = 1;
+    int fDumpStats    = 0;
 
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "casdh" ) ) != EOF )
@@ -840,7 +844,7 @@ int Scl_CommandUpsize( Abc_Frame_t * pAbc, int argc, char **argv )
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: upsize [-IJWRNT num] [-dvwh]\n" );
+    fprintf( pAbc->Err, "usage: upsize [-IJWRNT num] [-sdvwh]\n" );
     fprintf( pAbc->Err, "\t           selectively increases gate sizes on the critical path\n" );
     fprintf( pAbc->Err, "\t-I <num> : the number of upsizing iterations to perform [default = %d]\n", pPars->nIters );
     fprintf( pAbc->Err, "\t-J <num> : the number of iterations without improvement to stop [default = %d]\n", pPars->nIterNoChange );
@@ -852,6 +856,200 @@ usage:
     fprintf( pAbc->Err, "\t-d       : toggle dumping statistics into a file [default = %s]\n", pPars->fDumpStats? "yes": "no" );
     fprintf( pAbc->Err, "\t-v       : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
     fprintf( pAbc->Err, "\t-w       : toggle printing more verbose information [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
+    fprintf( pAbc->Err, "\t-h       : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Scl_CommandDnsize( Abc_Frame_t * pAbc, int argc, char **argv )
+{
+    SC_DnSizePars Pars, * pPars = &Pars;
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+    int c;
+    memset( pPars, 0, sizeof(SC_DnSizePars) );
+    pPars->DUser         =    0;
+    pPars->nIters        =    5;
+    pPars->nIterNoChange =   50;
+    pPars->TimeOut       =    0;
+    pPars->fUseDept      =    1;
+    pPars->fDumpStats    =    0;
+    pPars->fVerbose      =    0;
+    pPars->fVeryVerbose  =    0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "DIJTsdvwh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'D':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-D\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            pPars->DUser = atof(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->DUser < 0 ) 
+                goto usage;
+            break;
+        case 'I':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-I\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            pPars->nIters = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nIters < 0 ) 
+                goto usage;
+            break;
+        case 'J':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-J\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            pPars->nIterNoChange = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nIterNoChange < 0 ) 
+                goto usage;
+            break;
+        case 'T':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-T\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            pPars->TimeOut = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->TimeOut < 0 ) 
+                goto usage;
+            break;
+        case 's':
+            pPars->fUseDept ^= 1;
+            break;
+        case 'd':
+            pPars->fDumpStats ^= 1;
+            break;
+        case 'v':
+            pPars->fVerbose ^= 1;
+            break;
+        case 'w':
+            pPars->fVeryVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( Abc_FrameReadNtk(pAbc) == NULL )
+    {
+        fprintf( pAbc->Err, "There is no current network.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkHasMapping(Abc_FrameReadNtk(pAbc)) )
+    {
+        fprintf( pAbc->Err, "The current network is not mapped.\n" );
+        return 1;
+    }
+    if ( !Abc_SclCheckNtk(Abc_FrameReadNtk(pAbc), 0) )
+    {
+        fprintf( pAbc->Err, "The current network is not in a topo order (run \"topo\").\n" );
+        return 1;
+    }
+    if ( pAbc->pLibScl == NULL )
+    {
+        fprintf( pAbc->Err, "There is no Liberty library available.\n" );
+        return 1;
+    }
+
+    Abc_SclDnsizePerform( (SC_Lib *)pAbc->pLibScl, pNtk, pPars );
+    return 0;
+
+usage:
+    fprintf( pAbc->Err, "usage: dnsize [-DIJT num] [-sdvwh]\n" );
+    fprintf( pAbc->Err, "\t           selectively decreases gate sizes while maintaining delay\n" );
+    fprintf( pAbc->Err, "\t-D <num> : the target max delay after downsizing in picosecs [default = %.2f]\n", pPars->DUser );
+    fprintf( pAbc->Err, "\t-I <num> : the number of upsizing iterations to perform [default = %d]\n", pPars->nIters );
+    fprintf( pAbc->Err, "\t-J <num> : the number of iterations without improvement to stop [default = %d]\n", pPars->nIterNoChange );
+    fprintf( pAbc->Err, "\t-T <num> : approximate timeout in seconds [default = %d]\n", pPars->TimeOut );
+    fprintf( pAbc->Err, "\t-s       : toggle using slack based on departure times [default = %s]\n", pPars->fUseDept? "yes": "no" );
+    fprintf( pAbc->Err, "\t-d       : toggle dumping statistics into a file [default = %s]\n", pPars->fDumpStats? "yes": "no" );
+    fprintf( pAbc->Err, "\t-v       : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
+    fprintf( pAbc->Err, "\t-w       : toggle printing more verbose information [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
+    fprintf( pAbc->Err, "\t-h       : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Scl_CommandPrintBuf( Abc_Frame_t * pAbc, int argc, char **argv )
+{
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+    int c, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( Abc_FrameReadNtk(pAbc) == NULL )
+    {
+        fprintf( pAbc->Err, "There is no current network.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkHasMapping(Abc_FrameReadNtk(pAbc)) )
+    {
+        fprintf( pAbc->Err, "The current network is not mapped.\n" );
+        return 1;
+    }
+    if ( !Abc_SclCheckNtk(Abc_FrameReadNtk(pAbc), 0) )
+    {
+        fprintf( pAbc->Err, "The current network is not in a topo order (run \"topo\").\n" );
+        return 1;
+    }
+    if ( pAbc->pLibScl == NULL )
+    {
+        fprintf( pAbc->Err, "There is no Liberty library available.\n" );
+        return 1;
+    }
+
+    Abc_SclPrintBuffers( (SC_Lib *)pAbc->pLibScl, pNtk, fVerbose );
+    return 0;
+
+usage:
+    fprintf( pAbc->Err, "usage: minsize [-vh]\n" );
+    fprintf( pAbc->Err, "\t           downsized all gates to their minimum size\n" );
+    fprintf( pAbc->Err, "\t-v       : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pAbc->Err, "\t-h       : print the command usage\n");
     return 1;
 }

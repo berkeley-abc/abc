@@ -1,5 +1,6 @@
 SRC +=  src/map/scl/scl.c \
     src/map/scl/sclBuff.c \
+    src/map/scl/sclDnsize.c \
     src/map/scl/sclFile.c \
     src/map/scl/sclLoad.c \
     src/map/scl/sclTime.c \

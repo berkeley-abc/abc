@@ -180,7 +180,7 @@ void Abc_SclPrintCells( SC_Lib * p )
             printf( "  %3d : ",       i+1 );
             printf( "%-*s  ",         nLength, pCell->pName );
             printf( "%2d   ",         pCell->drive_strength );
-            printf( "A =%8.3f   D =", pCell->area );
+            printf( "A =%8.2f  D =", pCell->area );
             // print linear approximation
             for ( j = 0; j < 3; j++ )
             {
@@ -189,8 +189,15 @@ void Abc_SclPrintCells( SC_Lib * p )
                 {
                     SC_Timings * pRTime = (SC_Timings *)Vec_PtrEntry( pPin->vRTimings, 0 );
                     SC_Timing * pTime = (SC_Timing *)Vec_PtrEntry( pRTime->vTimings, 0 );
-                    printf( "%7.3f ", pTime->pCellRise->approx[0][j] );
+                    printf( " %6.2f", j ? pTime->pCellRise->approx[0][j] : SC_LibTimePs(p, pTime->pCellRise->approx[0][j]) );
                 }
+            }
+            // print input capacitance
+            printf( "   Cap =" );
+            for ( j = 0; j < pCell->n_inputs; j++ )
+            {
+                SC_Pin * pPin = SC_CellPin( pCell, j );
+                printf( " %6.2f", SC_LibCapFf(p, pPin->rise_cap) );
             }
             printf( "\n" );
         }

@@ -89,6 +89,19 @@ struct SC_UpSizePars_
     int        fVeryVerbose;
 };
 
+typedef struct SC_DnSizePars_    SC_DnSizePars;
+struct SC_DnSizePars_
+{
+    float      DUser;
+    int        nIters;
+    int        nIterNoChange;
+    int        TimeOut;
+    int        fUseDept;
+    int        fDumpStats;
+    int        fVerbose;
+    int        fVeryVerbose;
+};
+
 ////////////////////////////////////////////////////////////////////////
 ///                    STRUCTURE DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -209,12 +222,13 @@ struct SC_Lib_
 ///                       MACRO DEFINITIONS                          ///
 ////////////////////////////////////////////////////////////////////////
 
-static inline SC_Cell *   SC_LibCell( SC_Lib * p, int i )          { return (SC_Cell *)Vec_PtrEntry(p->vCells, i);                 }
-static inline SC_Pin  *   SC_CellPin( SC_Cell * p, int i )         { return (SC_Pin *)Vec_PtrEntry(p->vPins, i);                   }
-static inline Vec_Wrd_t * SC_CellFunc( SC_Cell * p )               { return SC_CellPin(p, p->n_inputs)->vFunc;                     }
+static inline SC_Cell *   SC_LibCell( SC_Lib * p, int i )           { return (SC_Cell *)Vec_PtrEntry(p->vCells, i);                   }
+static inline SC_Pin  *   SC_CellPin( SC_Cell * p, int i )          { return (SC_Pin *)Vec_PtrEntry(p->vPins, i);                     }
+static inline Vec_Wrd_t * SC_CellFunc( SC_Cell * p )                { return SC_CellPin(p, p->n_inputs)->vFunc;                       }
 
-static inline double      SC_LibCapFf( SC_Lib * p, double cap )    { return cap * p->unit_cap_fst * pow(10.0, 15 - p->unit_cap_snd); }
-static inline double      SC_LibTimePs( SC_Lib * p, double time )  { return time * pow(10.0, 12 - p->unit_time);                     }
+static inline double      SC_LibCapFf( SC_Lib * p, double cap )     { return cap * p->unit_cap_fst * pow(10.0, 15 - p->unit_cap_snd); }
+static inline double      SC_LibTimePs( SC_Lib * p, double time )   { return time * pow(10.0, 12 - p->unit_time);                     }
+static inline double      SC_LibTimeFromPs( SC_Lib * p, double ps ) { return ps / pow(10.0, 12 - p->unit_time);                       }
 
 #define SC_LibForEachCell( p, pCell, i )         Vec_PtrForEachEntry( SC_Cell *, p->vCells, pCell, i )
 #define SC_LibForEachCellClass( p, pCell, i )    Vec_PtrForEachEntry( SC_Cell *, p->vCellClasses, pCell, i )
@@ -441,6 +455,8 @@ static inline void Abc_SclLibFree( SC_Lib * p )
 /*=== sclBuff.c ===============================================================*/
 extern int           Abc_SclCheckNtk( Abc_Ntk_t * p, int fVerbose );
 extern Abc_Ntk_t *   Abc_SclPerformBuffering( Abc_Ntk_t * p, int Degree, int fVerbose );
+/*=== sclDnsize.c ===============================================================*/
+extern void          Abc_SclDnsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_DnSizePars * pPars );
 /*=== sclFile.c ===============================================================*/
 extern SC_Lib *      Abc_SclRead( char * pFileName );
 extern void          Abc_SclWrite( char * pFileName, SC_Lib * p );
@@ -451,6 +467,7 @@ extern void          Abc_SclSave( char * pFileName, SC_Lib * pScl );
 extern SC_WireLoad * Abc_SclFindWireLoadModel( SC_Lib * p, float Area );
 /*=== sclTime.c ===============================================================*/
 extern void          Abc_SclTimePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int fUseWireLoads, int fShowAll, int fShort, int fDumpStats );
+extern void          Abc_SclPrintBuffers( SC_Lib * pLib, Abc_Ntk_t * pNtk, int fVerbose );
 /*=== sclSize.c ===============================================================*/
 extern void          Abc_SclSizingPerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * p );
 /*=== sclUpsize.c ===============================================================*/

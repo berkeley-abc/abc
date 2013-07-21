@@ -384,7 +384,7 @@ void Abc_SclUpsizePrintDiffs( SC_Man * p, SC_Lib * pLib, Abc_Ntk_t * pNtk )
     memcpy( pSlews, p->pSlews, sizeof(SC_Pair) * p->nObjs );
     memcpy( pLoads, p->pLoads, sizeof(SC_Pair) * p->nObjs );
 
-    Abc_SclTimeNtkRecompute( p, NULL, NULL, 0 );
+    Abc_SclTimeNtkRecompute( p, NULL, NULL, 0, 0 );
 
     Abc_NtkForEachNode( pNtk, pObj, k )
     {
@@ -437,17 +437,16 @@ void Abc_SclUpsizePrint( SC_Man * p, int Iter, int win, int nPathPos, int nPathN
     printf( "Path:%6d. ",    nPathNodes );
     printf( "Gate:%5d. ",    nUpsizes );
     printf( "TFO:%6d. ",     nTFOs );
-    printf( "B: " );
-    printf( "%.2f ps ",      SC_LibTimePs(p->pLib, p->BestDelay) );
-    printf( "(%+5.1f %%)  ", 100.0 * (p->BestDelay - p->MaxDelay0)/ p->MaxDelay0 );
+    printf( "A: " );
+    printf( "%.2f ",         p->SumArea );
+    printf( "(%+5.1f %%)  ",   100.0 * (p->SumArea - p->SumArea0)/ p->SumArea0 );
     printf( "D: " );
     printf( "%.2f ps ",      SC_LibTimePs(p->pLib, p->MaxDelay) );
     printf( "(%+5.1f %%)  ", 100.0 * (p->MaxDelay - p->MaxDelay0)/ p->MaxDelay0 );
-    printf( "A: " );
-    printf( "%.2f ",         p->SumArea );
-    printf( "(%+5.1f %%)",   100.0 * (p->SumArea - p->SumArea0)/ p->SumArea0 );
-    printf( "%8.2f",         1.0*(Abc_Clock() - p->timeTotal)/(CLOCKS_PER_SEC) );
-    printf( "    " );
+    printf( "B: " );
+    printf( "%.2f ps ",      SC_LibTimePs(p->pLib, p->BestDelay) );
+    printf( "(%+5.1f %%)",   100.0 * (p->BestDelay - p->MaxDelay0)/ p->MaxDelay0 );
+    printf( "%8.2f sec",     1.0*(Abc_Clock() - p->timeTotal)/(CLOCKS_PER_SEC) );
     printf( "%c", fVerbose ? '\n' : '\r' );
 }
 
@@ -474,7 +473,7 @@ void Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_UpSizePars * pPar
 
     if ( pPars->fVerbose )
     {
-        printf( "Sizing parameters: " );
+        printf( "Upsizing parameters: " );
         printf( "Iters =%5d.  ",          pPars->nIters   );
         printf( "Time window =%3d %%. ",  pPars->Window   );
         printf( "Update ratio =%3d %%. ", pPars->Ratio    );
@@ -485,7 +484,7 @@ void Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_UpSizePars * pPar
     }
 
     // prepare the manager; collect init stats
-    p = Abc_SclManStart( pLib, pNtk, 1, pPars->fUseDept );
+    p = Abc_SclManStart( pLib, pNtk, 1, pPars->fUseDept, 0 );
     p->timeTotal  = Abc_Clock();
     assert( p->vGatesBest == NULL );
     p->vGatesBest = Vec_IntDup( p->vGates );
@@ -526,7 +525,7 @@ void Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_UpSizePars * pPar
         if ( pPars->fUseDept )
         {
             vTFO = Vec_IntAlloc( 0 );
-            Abc_SclTimeNtkRecompute( p, NULL, NULL, pPars->fUseDept );
+            Abc_SclTimeNtkRecompute( p, NULL, NULL, pPars->fUseDept, 0 );
         }
         else
         {
@@ -555,7 +554,7 @@ void Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_UpSizePars * pPar
         }
 
         // report and cleanup
-        Abc_SclUpsizePrint( p, i, win, Vec_IntSize(vPathPos), Vec_IntSize(vPathNodes), nUpsizes, Vec_IntSize(vTFO), pPars->fVeryVerbose ); //|| (i == nIters-1) );
+        Abc_SclUpsizePrint( p, i, win, Vec_IntSize(vPathPos), Vec_IntSize(vPathNodes), nUpsizes, Vec_IntSize(vTFO), pPars->fVeryVerbose || (pPars->fVerbose && nFramesNoChange == 0) ); //|| (i == nIters-1) );
         nAllPos     += Vec_IntSize(vPathPos);
         nAllNodes   += Vec_IntSize(vPathNodes);
         nAllTfos    += Vec_IntSize(vTFO);
@@ -569,7 +568,7 @@ void Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_UpSizePars * pPar
     }
     // update for best gates and recompute timing
     ABC_SWAP( Vec_Int_t *, p->vGatesBest, p->vGates );
-    Abc_SclTimeNtkRecompute( p, &p->SumArea, &p->MaxDelay, 0 );
+    Abc_SclTimeNtkRecompute( p, &p->SumArea, &p->MaxDelay, 0, 0 );
     if ( pPars->fVerbose )
         Abc_SclUpsizePrint( p, i, pPars->Window, nAllPos/(i?i:1), nAllNodes/(i?i:1), nAllUpsizes/(i?i:1), nAllTfos/(i?i:1), 1 );
     else

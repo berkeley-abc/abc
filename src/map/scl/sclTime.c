@@ -20,6 +20,7 @@
 
 #include "sclInt.h"
 #include "sclMan.h"
+#include "map/mio/mio.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -300,7 +301,7 @@ void Abc_SclTimeCone( SC_Man * p, Vec_Int_t * vCone )
         printf( "after (%6.1f ps  %6.1f ps)\n", Abc_SclObjTimePs(p, pObj, 1), Abc_SclObjTimePs(p, pObj, 0) );
     }
 }
-void Abc_SclTimeNtkRecompute( SC_Man * p, float * pArea, float * pDelay, int fReverse )
+void Abc_SclTimeNtkRecompute( SC_Man * p, float * pArea, float * pDelay, int fReverse, float DUser )
 {
     Abc_Obj_t * pObj;
     float D;
@@ -316,6 +317,8 @@ void Abc_SclTimeNtkRecompute( SC_Man * p, float * pArea, float * pDelay, int fRe
         Vec_QueUpdate( p->vQue, i );
     }
     D = Abc_SclReadMaxDelay( p );
+    if ( fReverse && DUser > 0 && D < DUser )
+        D = DUser;
     if ( pArea )
         *pArea = Abc_SclGetTotalArea( p );
     if ( pDelay )
@@ -340,14 +343,14 @@ void Abc_SclTimeNtkRecompute( SC_Man * p, float * pArea, float * pDelay, int fRe
   SeeAlso     []
 
 ***********************************************************************/
-SC_Man * Abc_SclManStart( SC_Lib * pLib, Abc_Ntk_t * pNtk, int fUseWireLoads, int fDept )
+SC_Man * Abc_SclManStart( SC_Lib * pLib, Abc_Ntk_t * pNtk, int fUseWireLoads, int fDept, float DUser )
 {
     SC_Man * p = Abc_SclManAlloc( pLib, pNtk );
     assert( p->vGates == NULL );
     p->vGates = Abc_SclManFindGates( pLib, pNtk );
     if ( fUseWireLoads )
         p->pWLoadUsed = Abc_SclFindWireLoadModel( pLib, Abc_SclGetTotalArea(p) );
-    Abc_SclTimeNtkRecompute( p, &p->SumArea0, &p->MaxDelay0, fDept );
+    Abc_SclTimeNtkRecompute( p, &p->SumArea0, &p->MaxDelay0, fDept, DUser );
     p->SumArea = p->SumArea0;
     return p;
 }
@@ -366,10 +369,129 @@ SC_Man * Abc_SclManStart( SC_Lib * pLib, Abc_Ntk_t * pNtk, int fUseWireLoads, in
 void Abc_SclTimePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int fUseWireLoads, int fShowAll, int fShort, int fDumpStats )
 {
     SC_Man * p;
-    p = Abc_SclManStart( pLib, pNtk, fUseWireLoads, 1 );   
+    p = Abc_SclManStart( pLib, pNtk, fUseWireLoads, 1, 0 );   
     Abc_SclTimeNtkPrint( p, fShowAll, fShort );
     if ( fDumpStats )
         Abc_SclDumpStats( p, "stats.txt", 0 );
+    Abc_SclManFree( p );
+}
+
+
+
+/**Function*************************************************************
+
+  Synopsis    [Printing out fanin information.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_SclCheckCommonInputs( Abc_Obj_t * pObj, Abc_Obj_t * pFanin )
+{
+    Abc_Obj_t * pTemp;
+    int i;
+    Abc_ObjForEachFanin( pObj, pTemp, i )
+        if ( Abc_NodeFindFanin( pFanin, pTemp ) >= 0 )
+        {
+            printf( "Node %d and its fanin %d have common fanin %d.\n", Abc_ObjId(pObj), Abc_ObjId(pFanin), Abc_ObjId(pTemp) );
+
+            printf( "%-16s : ", Mio_GateReadName((Mio_Gate_t *)pObj->pData) ); 
+            Abc_ObjPrint( stdout, pObj );
+
+            printf( "%-16s : ", Mio_GateReadName((Mio_Gate_t *)pFanin->pData) ); 
+            Abc_ObjPrint( stdout, pFanin );
+
+            if ( pTemp->pData )
+            printf( "%-16s : ", Mio_GateReadName((Mio_Gate_t *)pTemp->pData) ); 
+            Abc_ObjPrint( stdout, pTemp );
+            return 1;
+        }
+    return 0;
+}
+void Abc_SclPrintFaninPairs( SC_Man * p, Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pObj, * pFanin;
+    int i, k;
+    Abc_NtkForEachNode( pNtk, pObj, i )
+        Abc_ObjForEachFanin( pObj, pFanin, k )
+            if ( Abc_ObjIsNode(pFanin) && Abc_ObjFanoutNum(pFanin) == 1 )
+                Abc_SclCheckCommonInputs( pObj, pFanin );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Printing out buffer information.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Abc_ObjIsBuffer( Abc_Obj_t * pObj ) { return Abc_ObjIsNode(pObj) && Abc_ObjFaninNum(pObj) == 1; }
+int Abc_SclCountNonBufferFanouts( Abc_Obj_t * pObj )
+{
+    Abc_Obj_t * pFanout;
+    int i, Counter = 0;
+    if ( !Abc_ObjIsBuffer(pObj) )
+        return 1;
+    Abc_ObjForEachFanout( pObj, pFanout, i )
+        Counter += Abc_SclCountNonBufferFanouts( pFanout );
+    return Counter;
+}
+int Abc_SclHasBufferFanout( Abc_Obj_t * pObj )
+{
+    Abc_Obj_t * pFanout;
+    int i;
+    Abc_ObjForEachFanout( pObj, pFanout, i )
+        if ( Abc_ObjIsBuffer(pFanout) )
+            return 1;
+    return 0;
+}
+void Abc_Scl_PrintBuffers( SC_Man * p, Abc_Obj_t * pObj, int nOffset )
+{
+//    SC_Cell_t * pCell = Abc_SclObjCell(p, pObj);
+    Abc_Obj_t * pFanout;
+    int i;
+    assert( Abc_ObjIsBuffer(pObj) );
+    for ( i = 0; i < nOffset; i++ )
+        printf( "    " );
+    printf( "%6d: %-16s (%2d:%3d)  ", Abc_ObjId(pObj), Mio_GateReadName((Mio_Gate_t *)pObj->pData), 
+        Abc_ObjFanoutNum(pObj), Abc_SclCountNonBufferFanouts(pObj) );
+    for ( ; i < 4; i++ )
+        printf( "    " );
+    printf( "a =%5.2f  ",      Abc_SclObjCell(p, pObj)->area );
+    printf( "d = (" );
+    printf( "%7.2f ps; ",      Abc_SclObjTimePs(p, pObj, 1) );
+    printf( "%7.2f ps)  ",     Abc_SclObjTimePs(p, pObj, 0) );
+    printf( "l =%6.2f ff   ",  Abc_SclObjLoadFf(p, pObj, 0 ) );
+    printf( "s =%6.2f ps   ",  Abc_SclObjSlewPs(p, pObj, 0 ) );
+    printf( "sl =%6.2f ps",    Abc_SclObjSlack(p, pObj) );
+    printf( "\n" );
+    Abc_ObjForEachFanout( pObj, pFanout, i )
+        if ( Abc_ObjIsBuffer(pFanout) )
+            Abc_Scl_PrintBuffers( p, pFanout, nOffset + 1 );
+}
+void Abc_SclPrintBufferTrees( SC_Man * p, Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pObj;
+    int i;
+    Abc_NtkForEachObj( pNtk, pObj, i )
+        if ( Abc_ObjIsBuffer(pObj) && Abc_SclHasBufferFanout(pObj) )
+            Abc_Scl_PrintBuffers( p, pObj, 0 ), printf( "\n" );
+}
+void Abc_SclPrintBuffers( SC_Lib * pLib, Abc_Ntk_t * pNtk, int fVerbose )
+{
+    int fUseWireLoads = 0;
+    SC_Man * p;
+    assert( Abc_NtkIsMappedLogic(pNtk) );
+    p = Abc_SclManStart( pLib, pNtk, fUseWireLoads, 1, 0 ); 
+    Abc_SclPrintBufferTrees( p, pNtk ); 
+//    Abc_SclPrintFaninPairs( p, pNtk );
     Abc_SclManFree( p );
 }
 
