@@ -861,7 +861,7 @@ void Abc_NtkPrintLevel( FILE * pFile, Abc_Ntk_t * pNtk, int fProfile, int fListN
                 DelayInt = 0;
             else
             {
-                DelayCur  = Abc_NodeReadArrival( Abc_ObjFanin0(pNode) )->Worst;
+                DelayCur  = Abc_NodeReadArrivalWorst( Abc_ObjFanin0(pNode) );
                 DelayInt  = (int)(DelayCur / DelayDelta);
                 if ( DelayInt >= nIntervals )
                     DelayInt = nIntervals - 1;

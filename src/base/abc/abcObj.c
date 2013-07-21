@@ -121,11 +121,13 @@ Abc_Obj_t * Abc_NtkCreateObj( Abc_Ntk_t * pNtk, Abc_ObjType_t Type )
         case ABC_OBJ_CONST1: 
             assert(0); 
             break;
-        case ABC_OBJ_PI:     
+        case ABC_OBJ_PI:
+            pObj->iTemp = Vec_PtrSize(pNtk->vCis);
             Vec_PtrPush( pNtk->vPis, pObj );
             Vec_PtrPush( pNtk->vCis, pObj );
             break;
         case ABC_OBJ_PO:     
+            pObj->iTemp = Vec_PtrSize(pNtk->vCos);
             Vec_PtrPush( pNtk->vPos, pObj );
             Vec_PtrPush( pNtk->vCos, pObj );
             break;

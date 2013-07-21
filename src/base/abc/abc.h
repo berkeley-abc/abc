@@ -124,7 +124,6 @@ struct Abc_Time_t_
 {
     float             Rise;
     float             Fall;
-    float             Worst;
 };
 
 struct Abc_Obj_t_     // 48/72 bytes (32-bits/64-bits)
@@ -899,16 +898,28 @@ extern ABC_DLL int                Abc_NtkCleanupNodes( Abc_Ntk_t * pNtk, Vec_Ptr
 extern ABC_DLL int                Abc_NtkCleanupSeq( Abc_Ntk_t * pNtk, int fLatchSweep, int fAutoSweep, int fVerbose );
 extern ABC_DLL int                Abc_NtkSweepBufsInvs( Abc_Ntk_t * pNtk, int fVerbose );
 /*=== abcTiming.c ==========================================================*/
-extern ABC_DLL Abc_Time_t *       Abc_NodeReadArrival( Abc_Obj_t * pNode );
-extern ABC_DLL Abc_Time_t *       Abc_NodeReadRequired( Abc_Obj_t * pNode );
 extern ABC_DLL Abc_Time_t *       Abc_NtkReadDefaultArrival( Abc_Ntk_t * pNtk );
 extern ABC_DLL Abc_Time_t *       Abc_NtkReadDefaultRequired( Abc_Ntk_t * pNtk );
+extern ABC_DLL Abc_Time_t *       Abc_NodeReadArrival( Abc_Obj_t * pNode );
+extern ABC_DLL Abc_Time_t *       Abc_NodeReadRequired( Abc_Obj_t * pNode );
 extern ABC_DLL float              Abc_NodeReadArrivalAve( Abc_Obj_t * pNode );
 extern ABC_DLL float              Abc_NodeReadRequiredAve( Abc_Obj_t * pNode );
+extern ABC_DLL float              Abc_NodeReadArrivalWorst( Abc_Obj_t * pNode );
+extern ABC_DLL float              Abc_NodeReadRequiredWorst( Abc_Obj_t * pNode );
+extern ABC_DLL Abc_Time_t *       Abc_NtkReadDefaultInputDrive( Abc_Ntk_t * pNtk );
+extern ABC_DLL Abc_Time_t *       Abc_NtkReadDefaultOutputLoad( Abc_Ntk_t * pNtk );
+extern ABC_DLL Abc_Time_t *       Abc_NodeReadInputDrive( Abc_Ntk_t * pNtk, int iPi );
+extern ABC_DLL Abc_Time_t *       Abc_NodeReadOutputLoad( Abc_Ntk_t * pNtk, int iPo );
+extern ABC_DLL float              Abc_NodeReadInputDriveWorst( Abc_Ntk_t * pNtk, int iPi );
+extern ABC_DLL float              Abc_NodeReadOutputLoadWorst( Abc_Ntk_t * pNtk, int iPo );
 extern ABC_DLL void               Abc_NtkTimeSetDefaultArrival( Abc_Ntk_t * pNtk, float Rise, float Fall );
 extern ABC_DLL void               Abc_NtkTimeSetDefaultRequired( Abc_Ntk_t * pNtk, float Rise, float Fall );
 extern ABC_DLL void               Abc_NtkTimeSetArrival( Abc_Ntk_t * pNtk, int ObjId, float Rise, float Fall );
 extern ABC_DLL void               Abc_NtkTimeSetRequired( Abc_Ntk_t * pNtk, int ObjId, float Rise, float Fall );
+extern ABC_DLL void               Abc_NtkTimeSetDefaultInputDrive( Abc_Ntk_t * pNtk, float Rise, float Fall );
+extern ABC_DLL void               Abc_NtkTimeSetDefaultOutputLoad( Abc_Ntk_t * pNtk, float Rise, float Fall );
+extern ABC_DLL void               Abc_NtkTimeSetInputDrive( Abc_Ntk_t * pNtk, int PiNum, float Rise, float Fall );
+extern ABC_DLL void               Abc_NtkTimeSetOutputLoad( Abc_Ntk_t * pNtk, int PoNum, float Rise, float Fall );
 extern ABC_DLL void               Abc_NtkTimeInitialize( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkOld );
 extern ABC_DLL void               Abc_ManTimeStop( Abc_ManTime_t * p );
 extern ABC_DLL void               Abc_ManTimeDup( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtkNew );

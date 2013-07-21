@@ -35,6 +35,10 @@ struct Abc_ManTime_t_
     Abc_Time_t     tReqDef;
     Vec_Ptr_t  *   vArrs;
     Vec_Ptr_t  *   vReqs;
+    Abc_Time_t     tInDriveDef;
+    Abc_Time_t     tOutLoadDef;
+    Abc_Time_t *   tInDrive;
+    Abc_Time_t *   tOutLoad;
 };
 
 // static functions
@@ -51,41 +55,7 @@ static inline Abc_Time_t * Abc_NodeRequired( Abc_Obj_t * pNode ) {  return (Abc_
 
 /**Function*************************************************************
 
-  Synopsis    [Reads the arrival time of the node.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Abc_Time_t * Abc_NodeReadArrival( Abc_Obj_t * pNode )
-{
-    assert( pNode->pNtk->pManTime );
-    return Abc_NodeArrival(pNode);
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Reads the arrival time of the node.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Abc_Time_t * Abc_NodeReadRequired( Abc_Obj_t * pNode )
-{
-    assert( pNode->pNtk->pManTime );
-    return Abc_NodeRequired(pNode);
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Reads the arrival time of the node.]
+  Synopsis    [Reads the arrival.required time of the node.]
 
   Description []
                
@@ -99,43 +69,41 @@ Abc_Time_t * Abc_NtkReadDefaultArrival( Abc_Ntk_t * pNtk )
     assert( pNtk->pManTime );
     return &pNtk->pManTime->tArrDef;
 }
-
-/**Function*************************************************************
-
-  Synopsis    [Reads the arrival time of the node.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
 Abc_Time_t * Abc_NtkReadDefaultRequired( Abc_Ntk_t * pNtk )
 {
     assert( pNtk->pManTime );
     return &pNtk->pManTime->tReqDef;
 }
-
-/**Function*************************************************************
-
-  Synopsis    [Reads average arrival time of the node.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
+Abc_Time_t * Abc_NodeReadArrival( Abc_Obj_t * pNode )
+{
+    assert( pNode->pNtk->pManTime );
+    return Abc_NodeArrival(pNode);
+}
+Abc_Time_t * Abc_NodeReadRequired( Abc_Obj_t * pNode )
+{
+    assert( pNode->pNtk->pManTime );
+    return Abc_NodeRequired(pNode);
+}
 float Abc_NodeReadArrivalAve( Abc_Obj_t * pNode )
 {
     return 0.5 * Abc_NodeArrival(pNode)->Rise + 0.5 * Abc_NodeArrival(pNode)->Fall;
 }
+float Abc_NodeReadRequiredAve( Abc_Obj_t * pNode )
+{
+    return 0.5 * Abc_NodeReadRequired(pNode)->Rise + 0.5 * Abc_NodeReadRequired(pNode)->Fall;
+}
+float Abc_NodeReadArrivalWorst( Abc_Obj_t * pNode )
+{
+    return Abc_MaxFloat( Abc_NodeArrival(pNode)->Rise, Abc_NodeArrival(pNode)->Fall );
+}
+float Abc_NodeReadRequiredWorst( Abc_Obj_t * pNode )
+{
+    return Abc_MaxFloat( Abc_NodeReadRequired(pNode)->Rise, Abc_NodeReadRequired(pNode)->Fall );
+}
 
 /**Function*************************************************************
 
-  Synopsis    [Reads average required time of the node.]
+  Synopsis    [Reads the input drive / output load of the node.]
 
   Description []
                
@@ -144,9 +112,33 @@ float Abc_NodeReadArrivalAve( Abc_Obj_t * pNode )
   SeeAlso     []
 
 ***********************************************************************/
-float Abc_NodeReadRequiredAve( Abc_Obj_t * pNode )
+Abc_Time_t * Abc_NtkReadDefaultInputDrive( Abc_Ntk_t * pNtk )
 {
-    return 0.5 * Abc_NodeReadRequired(pNode)->Rise + 0.5 * Abc_NodeReadRequired(pNode)->Fall;
+    assert( pNtk->pManTime );
+    return &pNtk->pManTime->tInDriveDef;
+}
+Abc_Time_t * Abc_NtkReadDefaultOutputLoad( Abc_Ntk_t * pNtk )
+{
+    assert( pNtk->pManTime );
+    return &pNtk->pManTime->tOutLoadDef;
+}
+Abc_Time_t * Abc_NodeReadInputDrive( Abc_Ntk_t * pNtk, int iPi )
+{
+    assert( pNtk->pManTime );
+    return pNtk->pManTime->tInDrive + iPi;
+}
+Abc_Time_t * Abc_NodeReadOutputLoad( Abc_Ntk_t * pNtk, int iPo )
+{
+    assert( pNtk->pManTime );
+    return pNtk->pManTime->tOutLoad + iPo;
+}
+float Abc_NodeReadInputDriveWorst( Abc_Ntk_t * pNtk, int iPi )
+{
+    return Abc_MaxFloat( Abc_NodeReadInputDrive(pNtk, iPi)->Rise, Abc_NodeReadInputDrive(pNtk, iPi)->Fall );
+}
+float Abc_NodeReadOutputLoadWorst( Abc_Ntk_t * pNtk, int iPo )
+{
+    return Abc_MaxFloat( Abc_NodeReadOutputLoad(pNtk, iPo)->Rise, Abc_NodeReadOutputLoad(pNtk, iPo)->Fall );
 }
 
 /**Function*************************************************************
@@ -168,20 +160,7 @@ void Abc_NtkTimeSetDefaultArrival( Abc_Ntk_t * pNtk, float Rise, float Fall )
         pNtk->pManTime = Abc_ManTimeStart();
     pNtk->pManTime->tArrDef.Rise  = Rise;
     pNtk->pManTime->tArrDef.Fall  = Fall;
-    pNtk->pManTime->tArrDef.Worst = Abc_MaxFloat( Rise, Fall );
 }
-
-/**Function*************************************************************
-
-  Synopsis    [Sets the default arrival time for the network.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
 void Abc_NtkTimeSetDefaultRequired( Abc_Ntk_t * pNtk, float Rise, float Fall )
 {
     if ( Rise == 0.0 && Fall == 0.0 )
@@ -190,7 +169,6 @@ void Abc_NtkTimeSetDefaultRequired( Abc_Ntk_t * pNtk, float Rise, float Fall )
         pNtk->pManTime = Abc_ManTimeStart();
     pNtk->pManTime->tReqDef.Rise  = Rise;
     pNtk->pManTime->tReqDef.Fall  = Fall;
-    pNtk->pManTime->tReqDef.Worst = Abc_MaxFloat( Rise, Fall );
 }
 
 /**Function*************************************************************
@@ -218,20 +196,7 @@ void Abc_NtkTimeSetArrival( Abc_Ntk_t * pNtk, int ObjId, float Rise, float Fall 
     pTime = (Abc_Time_t *)vTimes->pArray[ObjId];
     pTime->Rise  = Rise;
     pTime->Fall  = Fall;
-    pTime->Worst = Abc_MaxFloat( Rise, Fall );
 }
-
-/**Function*************************************************************
-
-  Synopsis    [Sets the arrival time for an object.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
 void Abc_NtkTimeSetRequired( Abc_Ntk_t * pNtk, int ObjId, float Rise, float Fall )
 {
     Vec_Ptr_t * vTimes;
@@ -246,7 +211,76 @@ void Abc_NtkTimeSetRequired( Abc_Ntk_t * pNtk, int ObjId, float Rise, float Fall
     pTime = (Abc_Time_t *)vTimes->pArray[ObjId];
     pTime->Rise  = Rise;
     pTime->Fall  = Fall;
-    pTime->Worst = Abc_MaxFloat( Rise, Fall );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Sets the default arrival time for the network.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkTimeSetDefaultInputDrive( Abc_Ntk_t * pNtk, float Rise, float Fall )
+{
+    if ( Rise == 0.0 && Fall == 0.0 )
+        return;
+    if ( pNtk->pManTime == NULL )
+        pNtk->pManTime = Abc_ManTimeStart();
+    pNtk->pManTime->tInDriveDef.Rise  = Rise;
+    pNtk->pManTime->tInDriveDef.Fall  = Fall;
+}
+void Abc_NtkTimeSetDefaultOutputLoad( Abc_Ntk_t * pNtk, float Rise, float Fall )
+{
+    if ( Rise == 0.0 && Fall == 0.0 )
+        return;
+    if ( pNtk->pManTime == NULL )
+        pNtk->pManTime = Abc_ManTimeStart();
+    pNtk->pManTime->tOutLoadDef.Rise  = Rise;
+    pNtk->pManTime->tOutLoadDef.Fall  = Fall;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Sets the arrival time for an object.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkTimeSetInputDrive( Abc_Ntk_t * pNtk, int PiNum, float Rise, float Fall )
+{
+    Abc_Time_t * pTime;
+    assert( PiNum >= 0 && PiNum < Abc_NtkCiNum(pNtk) );
+    if ( pNtk->pManTime == NULL )
+        pNtk->pManTime = Abc_ManTimeStart();
+    if ( pNtk->pManTime->tInDriveDef.Rise == Rise && pNtk->pManTime->tInDriveDef.Fall == Fall )
+        return;
+    if ( pNtk->pManTime->tInDrive == NULL )
+        pNtk->pManTime->tInDrive = ABC_CALLOC( Abc_Time_t, Abc_NtkCiNum(pNtk) );
+    pTime = pNtk->pManTime->tInDrive + PiNum;
+    pTime->Rise  = Rise;
+    pTime->Fall  = Fall;
+}
+void Abc_NtkTimeSetOutputLoad( Abc_Ntk_t * pNtk, int PoNum, float Rise, float Fall )
+{
+    Abc_Time_t * pTime;
+    assert( PoNum >= 0 && PoNum < Abc_NtkCoNum(pNtk) );
+    if ( pNtk->pManTime == NULL )
+        pNtk->pManTime = Abc_ManTimeStart();
+    if ( pNtk->pManTime->tOutLoadDef.Rise == Rise && pNtk->pManTime->tOutLoadDef.Fall == Fall )
+        return;
+    if ( pNtk->pManTime->tOutLoad == NULL )
+        pNtk->pManTime->tOutLoad = ABC_CALLOC( Abc_Time_t, Abc_NtkCoNum(pNtk) );
+    pTime = pNtk->pManTime->tOutLoad + PoNum;
+    pTime->Rise  = Rise;
+    pTime->Fall  = Fall;
 }
 
 /**Function*************************************************************
@@ -283,7 +317,7 @@ void Abc_NtkTimeInitialize( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkOld )
     Abc_NtkForEachPi( pNtk, pObj, i )
     {
         pTime = ppTimes[pObj->Id];
-        if ( pTime->Worst != -ABC_INFINITY )
+        if ( Abc_MaxFloat(pTime->Fall, pTime->Rise) != -ABC_INFINITY )
             continue;
         *pTime = pNtkOld ? *Abc_NodeReadArrival(Abc_NtkPi(pNtkOld, i)) : pNtk->pManTime->tArrDef;
     }
@@ -292,7 +326,7 @@ void Abc_NtkTimeInitialize( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkOld )
     Abc_NtkForEachPo( pNtk, pObj, i )
     {
         pTime = ppTimes[pObj->Id];
-        if ( pTime->Worst != -ABC_INFINITY )
+        if ( Abc_MaxFloat(pTime->Fall, pTime->Rise) != -ABC_INFINITY )
             continue;
         *pTime = pNtkOld ? *Abc_NodeReadRequired(Abc_NtkPo(pNtkOld, i)) : pNtk->pManTime->tReqDef;
     }
@@ -301,7 +335,7 @@ void Abc_NtkTimeInitialize( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkOld )
     Abc_NtkForEachLatchOutput( pNtk, pObj, i )
     {
         pTime = ppTimes[pObj->Id];
-        pTime->Fall = pTime->Rise = pTime->Worst = 0.0;
+        pTime->Fall = pTime->Rise = 0.0;
     }
 }
 
@@ -335,24 +369,24 @@ void Abc_NtkTimePrepare( Abc_Ntk_t * pNtk )
     Abc_NtkForEachNode( pNtk, pObj, i )
     {
         pTime = ppTimes[pObj->Id];
-        pTime->Fall = pTime->Rise = pTime->Worst = -ABC_INFINITY;
+        pTime->Fall = pTime->Rise = -ABC_INFINITY;
     }
     Abc_NtkForEachPo( pNtk, pObj, i )
     {
         pTime = ppTimes[pObj->Id];
-        pTime->Fall = pTime->Rise = pTime->Worst = -ABC_INFINITY;
+        pTime->Fall = pTime->Rise = -ABC_INFINITY;
     }
     // clean required except for POs
     ppTimes = (Abc_Time_t **)pNtk->pManTime->vReqs->pArray;
     Abc_NtkForEachNode( pNtk, pObj, i )
     {
         pTime = ppTimes[pObj->Id];
-        pTime->Fall = pTime->Rise = pTime->Worst = -ABC_INFINITY;
+        pTime->Fall = pTime->Rise = -ABC_INFINITY;
     }
     Abc_NtkForEachPi( pNtk, pObj, i )
     {
         pTime = ppTimes[pObj->Id];
-        pTime->Fall = pTime->Rise = pTime->Worst = -ABC_INFINITY;
+        pTime->Fall = pTime->Rise = -ABC_INFINITY;
     }
 }
 
@@ -393,6 +427,10 @@ Abc_ManTime_t * Abc_ManTimeStart()
 ***********************************************************************/
 void Abc_ManTimeStop( Abc_ManTime_t * p )
 {
+    if ( p->tInDrive )
+        ABC_FREE( p->tInDrive );
+    if ( p->tOutLoad )
+        ABC_FREE( p->tOutLoad );
     if ( p->vArrs->nSize > 0 )
     {
         ABC_FREE( p->vArrs->pArray[0] );
@@ -424,8 +462,8 @@ void Abc_ManTimeDup( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtkNew )
     int i;
     if ( pNtkOld->pManTime == NULL )
         return;
-    assert( Abc_NtkPiNum(pNtkOld) == Abc_NtkPiNum(pNtkNew) );
-    assert( Abc_NtkPoNum(pNtkOld) == Abc_NtkPoNum(pNtkNew) );
+    assert( Abc_NtkCiNum(pNtkOld) == Abc_NtkCiNum(pNtkNew) );
+    assert( Abc_NtkCoNum(pNtkOld) == Abc_NtkCoNum(pNtkNew) );
     assert( Abc_NtkLatchNum(pNtkOld) == Abc_NtkLatchNum(pNtkNew) );
     // create the new timing manager
     pNtkNew->pManTime = Abc_ManTimeStart();
@@ -443,6 +481,19 @@ void Abc_ManTimeDup( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtkNew )
     ppTimesNew = (Abc_Time_t **)pNtkNew->pManTime->vReqs->pArray;
     Abc_NtkForEachCo( pNtkOld, pObj, i )
         *ppTimesNew[ Abc_NtkCo(pNtkNew,i)->Id ] = *ppTimesOld[ pObj->Id ];
+    // duplicate input drive
+    pNtkNew->pManTime->tInDriveDef = pNtkOld->pManTime->tInDriveDef; 
+    pNtkNew->pManTime->tOutLoadDef = pNtkOld->pManTime->tOutLoadDef; 
+    if ( pNtkOld->pManTime->tInDrive )
+    {
+        pNtkNew->pManTime->tInDrive = ABC_ALLOC( Abc_Time_t, Abc_NtkCiNum(pNtkOld) );
+        memcpy( pNtkNew->pManTime->tInDrive, pNtkOld->pManTime->tInDrive, sizeof(Abc_Time_t) * Abc_NtkCiNum(pNtkOld) );
+    }
+    if ( pNtkOld->pManTime->tOutLoad )
+    {
+        pNtkNew->pManTime->tOutLoad = ABC_ALLOC( Abc_Time_t, Abc_NtkCiNum(pNtkOld) );
+        memcpy( pNtkNew->pManTime->tOutLoad, pNtkOld->pManTime->tOutLoad, sizeof(Abc_Time_t) * Abc_NtkCoNum(pNtkOld) );
+    }
 }
 
 /**Function*************************************************************
@@ -481,7 +532,6 @@ void Abc_ManTimeExpand( Abc_ManTime_t * p, int nSize, int fProgressive )
         pTime = (Abc_Time_t *)vTimes->pArray[i];
         pTime->Rise  = -ABC_INFINITY;
         pTime->Fall  = -ABC_INFINITY;
-        pTime->Worst = -ABC_INFINITY;    
     }
 
     vTimes = p->vReqs;
@@ -496,7 +546,6 @@ void Abc_ManTimeExpand( Abc_ManTime_t * p, int nSize, int fProgressive )
         pTime = (Abc_Time_t *)vTimes->pArray[i];
         pTime->Rise  = -ABC_INFINITY;
         pTime->Fall  = -ABC_INFINITY;
-        pTime->Worst = -ABC_INFINITY;    
     }
 }
 
@@ -529,7 +578,7 @@ void Abc_NtkSetNodeLevelsArrival( Abc_Ntk_t * pNtkOld )
     Abc_NtkForEachPi( pNtkOld, pNodeOld, i )
     {
         pNodeNew = pNodeOld->pCopy;
-        pNodeNew->Level = (int)(Abc_NodeArrival(pNodeOld)->Worst / tAndDelay);
+        pNodeNew->Level = (int)(Abc_NodeReadArrivalWorst(pNodeOld) / tAndDelay);
     }
 }
 
@@ -593,7 +642,7 @@ float * Abc_NtkGetCiArrivalFloats( Abc_Ntk_t * pNtk )
         return p;
     // set the PI arrival times
     Abc_NtkForEachPi( pNtk, pNode, i )
-        p[i] = Abc_NodeArrival(pNode)->Worst;
+        p[i] = Abc_NodeReadArrivalWorst(pNode);
     return p;
 }
 float * Abc_NtkGetCoRequiredFloats( Abc_Ntk_t * pNtk )
@@ -606,7 +655,7 @@ float * Abc_NtkGetCoRequiredFloats( Abc_Ntk_t * pNtk )
     // set the PO required times
     p = ABC_CALLOC( float, Abc_NtkCoNum(pNtk) );
     Abc_NtkForEachPo( pNtk, pNode, i )
-        p[i] = Abc_NodeRequired(pNode)->Worst;
+        p[i] = Abc_NodeReadRequiredWorst(pNode);
     return p;
 }
 
@@ -772,7 +821,6 @@ void Abc_NodeDelayTraceArrival( Abc_Obj_t * pNode, Vec_Int_t * vSlacks )
         }
         pPin = Mio_PinReadNext(pPin);
     }
-    pTimeOut->Worst = Abc_MaxFloat( pTimeOut->Rise, pTimeOut->Fall );
 
     // compute edge slacks
     if ( vSlacks )
@@ -858,8 +906,8 @@ float Abc_NtkDelayTrace( Abc_Ntk_t * pNtk, Abc_Obj_t * pOut, Abc_Obj_t * pIn, in
     {
         pDriver = Abc_ObjFanin0(pNode);
         pTime   = Abc_NodeArrival(pDriver);
-        if ( tArrivalMax < pTime->Worst )
-            tArrivalMax = pTime->Worst;
+        if ( tArrivalMax < Abc_MaxFloat(pTime->Fall, pTime->Rise) )
+            tArrivalMax = Abc_MaxFloat(pTime->Fall, pTime->Rise);
     }
 
     // determine the output to print
@@ -869,7 +917,7 @@ float Abc_NtkDelayTrace( Abc_Ntk_t * pNtk, Abc_Obj_t * pOut, Abc_Obj_t * pIn, in
         {
             pDriver = Abc_ObjFanin0(pNode);
             pTime   = Abc_NodeArrival(pDriver);
-            if ( tArrivalMax == pTime->Worst )
+            if ( tArrivalMax == Abc_MaxFloat(pTime->Fall, pTime->Rise) )
                 pOut = pNode;
         }
         assert( pOut != NULL );
@@ -894,7 +942,7 @@ float Abc_NtkDelayTrace( Abc_Ntk_t * pNtk, Abc_Obj_t * pOut, Abc_Obj_t * pIn, in
             int k, iFanin, Length = 0;
             Abc_Obj_t * pFanin;
             // check the additional slack
-            SlackAdd = Abc_NodeRequired(pOut)->Worst - Abc_NodeArrival(Abc_ObjFanin0(pOut))->Worst;
+            SlackAdd = Abc_NodeReadRequiredWorst(pOut) - Abc_NodeReadArrivalWorst(Abc_ObjFanin0(pOut));
             // collect the critical path
             Abc_NtkDelayTraceCritPathCollect_rec( vSlacks, Abc_ObjFanin0(pOut), vBest, vPath );
             if ( pIn == NULL )
@@ -912,14 +960,14 @@ float Abc_NtkDelayTrace( Abc_Ntk_t * pNtk, Abc_Obj_t * pOut, Abc_Obj_t * pIn, in
                 if ( Abc_ObjIsCi(pNode) )
                 {
                     printf( "Primary input \"%s\".   ", Abc_ObjName(pNode) );
-                    printf( "Arrival time =%6.1f. ", Abc_NodeReadArrival(pNode)->Worst );
+                    printf( "Arrival time =%6.1f. ", Abc_NodeReadArrivalWorst(pNode) );
                     printf( "\n" );
                     continue;
                 }
                 if ( Abc_ObjIsCo(pNode) )
                 {
                     printf( "Primary output \"%s\".   ", Abc_ObjName(pNode) );
-                    printf( "Arrival =%6.1f. ", Abc_NodeReadArrival(pNode)->Worst );
+                    printf( "Arrival =%6.1f. ", Abc_NodeReadArrivalWorst(pNode) );
                 }
                 else
                 {
@@ -932,18 +980,18 @@ float Abc_NtkDelayTrace( Abc_Ntk_t * pNtk, Abc_Obj_t * pOut, Abc_Obj_t * pIn, in
                     for ( k = strlen(Mio_GateReadName((Mio_Gate_t *)pNode->pData)); k < Length; k++ )
                         printf( " " );
                     printf( "   " );
-                    printf( "Arrival =%6.1f.   ", Abc_NodeReadArrival(pNode)->Worst );
+                    printf( "Arrival =%6.1f.   ", Abc_NodeReadArrivalWorst(pNode) );
                     printf( "I/O times: (" );
                     Abc_ObjForEachFanin( pNode, pFanin, k )
-                        printf( "%s%.1f", (k? ", ":""), Abc_NodeReadArrival(pFanin)->Worst );
+                        printf( "%s%.1f", (k? ", ":""), Abc_NodeReadArrivalWorst(pFanin) );
 //                    printf( " -> %.1f)", Abc_NodeReadArrival(pNode)->Worst + Slack + SlackAdd );
-                    printf( " -> %.1f)", Abc_NodeReadArrival(pNode)->Worst );
+                    printf( " -> %.1f)", Abc_NodeReadArrivalWorst(pNode) );
                 }
                 printf( "\n" );
             }
             printf( "Level %3d : ", Abc_ObjLevel(Abc_ObjFanin0(pOut)) + 1 );
             printf( "Primary output \"%s\".   ", Abc_ObjName(pOut) );
-            printf( "Required time = %6.1f.  ", Abc_NodeRequired(pOut)->Worst );
+            printf( "Required time = %6.1f.  ", Abc_NodeReadRequiredWorst(pOut) );
             printf( "Path slack = %6.1f.\n", SlackAdd );
         }
         Vec_PtrFree( vPath );

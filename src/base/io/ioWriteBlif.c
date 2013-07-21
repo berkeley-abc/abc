@@ -714,6 +714,30 @@ void Io_WriteTimingInfo( FILE * pFile, Abc_Ntk_t * pNtk )
     }
 
     fprintf( pFile, "\n" );
+
+    pTimeDef = Abc_NtkReadDefaultInputDrive( pNtk );
+    if ( pTimeDef->Rise != 0.0 || pTimeDef->Fall != 0.0 )
+        fprintf( pFile, ".default_input_drive %g %g\n", pTimeDef->Rise, pTimeDef->Fall );
+    Abc_NtkForEachPi( pNtk, pNode, i )
+    {
+        pTime = Abc_NodeReadInputDrive( pNtk, i );
+        if ( pTime->Rise == pTimeDef->Rise && pTime->Fall == pTimeDef->Fall )
+            continue;
+        fprintf( pFile, ".input_drive %s %g %g\n", Abc_ObjName(Abc_ObjFanout0(pNode)), pTime->Rise, pTime->Fall );
+    }
+
+    pTimeDef = Abc_NtkReadDefaultOutputLoad( pNtk );
+    if ( pTimeDef->Rise != 0.0 || pTimeDef->Fall != 0.0 )
+        fprintf( pFile, ".default_output_load %g %g\n", pTimeDef->Rise, pTimeDef->Fall );
+    Abc_NtkForEachPo( pNtk, pNode, i )
+    {
+        pTime = Abc_NodeReadOutputLoad( pNtk, i );
+        if ( pTime->Rise == pTimeDef->Rise && pTime->Fall == pTimeDef->Fall )
+            continue;
+        fprintf( pFile, ".output_load %s %g %g\n", Abc_ObjName(Abc_ObjFanin0(pNode)), pTime->Rise, pTime->Fall );
+    }
+
+    fprintf( pFile, "\n" );
 }
 
 

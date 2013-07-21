@@ -67,6 +67,10 @@ static int Io_ReadBlifNetworkInputArrival( Io_ReadBlif_t * p, Vec_Ptr_t * vToken
 static int Io_ReadBlifNetworkOutputRequired( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens );
 static int Io_ReadBlifNetworkDefaultInputArrival( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens );
 static int Io_ReadBlifNetworkDefaultOutputRequired( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens );
+static int Io_ReadBlifNetworkInputDrive( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens );
+static int Io_ReadBlifNetworkOutputLoad( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens );
+static int Io_ReadBlifNetworkDefaultInputDrive( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens );
+static int Io_ReadBlifNetworkDefaultOutputLoad( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens );
 static int Io_ReadBlifNetworkAndGateDelay( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens );
 static int Io_ReadBlifNetworkConnectBoxes( Io_ReadBlif_t * p, Abc_Ntk_t * pNtkMaster );
 
@@ -276,6 +280,14 @@ Abc_Ntk_t * Io_ReadBlifNetworkOne( Io_ReadBlif_t * p )
             fStatus = Io_ReadBlifNetworkDefaultInputArrival( p, p->vTokens );
         else if ( !strcmp( pDirective, ".default_output_required" ) )
             fStatus = Io_ReadBlifNetworkDefaultOutputRequired( p, p->vTokens );
+        else if ( !strcmp( pDirective, ".input_drive" ) )
+            fStatus = Io_ReadBlifNetworkInputDrive( p, p->vTokens );
+        else if ( !strcmp( pDirective, ".output_load" ) )
+            fStatus = Io_ReadBlifNetworkOutputLoad( p, p->vTokens );
+        else if ( !strcmp( pDirective, ".default_input_drive" ) )
+            fStatus = Io_ReadBlifNetworkDefaultInputDrive( p, p->vTokens );
+        else if ( !strcmp( pDirective, ".default_output_load" ) )
+            fStatus = Io_ReadBlifNetworkDefaultOutputLoad( p, p->vTokens );
         else if ( !strcmp( pDirective, ".and_gate_delay" ) )
             fStatus = Io_ReadBlifNetworkAndGateDelay( p, p->vTokens );
 //        else if ( !strcmp( pDirective, ".subckt" ) )
@@ -974,6 +986,181 @@ int Io_ReadBlifNetworkDefaultOutputRequired( Io_ReadBlif_t * p, Vec_Ptr_t * vTok
     }
     // set the arrival time
     Abc_NtkTimeSetDefaultRequired( p->pNtkCur, (float)TimeRise, (float)TimeFall );
+    return 0;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Io_ReadBlifNetworkInputDrive( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens )
+{
+    Abc_Obj_t * pNet;
+    char * pFoo1, * pFoo2;
+    double TimeRise, TimeFall;
+ 
+    // make sure this is indeed the .inputs line
+    assert( strncmp( (char *)vTokens->pArray[0], ".input_drive", 12 ) == 0 );
+    if ( vTokens->nSize != 4 )
+    {
+        p->LineCur = Extra_FileReaderGetLineNumber(p->pReader, 0);
+        sprintf( p->sError, "Wrong number of arguments on .input_drive line." );
+        Io_ReadBlifPrintErrorMessage( p );
+        return 1;
+    }
+    pNet = Abc_NtkFindNet( p->pNtkCur, (char *)vTokens->pArray[1] );
+    if ( pNet == NULL )
+    {
+        p->LineCur = Extra_FileReaderGetLineNumber(p->pReader, 0);
+        sprintf( p->sError, "Cannot find object corresponding to %s on .input_drive line.", (char*)vTokens->pArray[1] );
+        Io_ReadBlifPrintErrorMessage( p );
+        return 1;
+    }
+    TimeRise = strtod( (char *)vTokens->pArray[2], &pFoo1 );
+    TimeFall = strtod( (char *)vTokens->pArray[3], &pFoo2 );
+    if ( *pFoo1 != '\0' || *pFoo2 != '\0' )
+    {
+        p->LineCur = Extra_FileReaderGetLineNumber(p->pReader, 0);
+        sprintf( p->sError, "Bad value (%s %s) for rise or fall time on .input_drive line.", (char*)vTokens->pArray[2], (char*)vTokens->pArray[3] );
+        Io_ReadBlifPrintErrorMessage( p );
+        return 1;
+    }
+    // set the arrival time
+    Abc_NtkTimeSetInputDrive( p->pNtkCur, Abc_NtkObj(p->pNtkCur, Abc_ObjFanin0(pNet)->Id)->iTemp, (float)TimeRise, (float)TimeFall );
+    return 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Io_ReadBlifNetworkOutputLoad( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens )
+{
+    Abc_Obj_t * pNet;
+    char * pFoo1, * pFoo2;
+    double TimeRise, TimeFall;
+ 
+    // make sure this is indeed the .inputs line
+    assert( strncmp( (char *)vTokens->pArray[0], ".output_load", 12 ) == 0 );
+    if ( vTokens->nSize != 4 )
+    {
+        p->LineCur = Extra_FileReaderGetLineNumber(p->pReader, 0);
+        sprintf( p->sError, "Wrong number of arguments on .output_load line." );
+        Io_ReadBlifPrintErrorMessage( p );
+        return 1;
+    }
+    pNet = Abc_NtkFindNet( p->pNtkCur, (char *)vTokens->pArray[1] );
+    if ( pNet == NULL )
+    {
+        p->LineCur = Extra_FileReaderGetLineNumber(p->pReader, 0);
+        sprintf( p->sError, "Cannot find object corresponding to %s on .output_load line.", (char*)vTokens->pArray[1] );
+        Io_ReadBlifPrintErrorMessage( p );
+        return 1;
+    }
+    TimeRise = strtod( (char *)vTokens->pArray[2], &pFoo1 );
+    TimeFall = strtod( (char *)vTokens->pArray[3], &pFoo2 );
+    if ( *pFoo1 != '\0' || *pFoo2 != '\0' )
+    {
+        p->LineCur = Extra_FileReaderGetLineNumber(p->pReader, 0);
+        sprintf( p->sError, "Bad value (%s %s) for rise or fall time on .output_load line.", (char*)vTokens->pArray[2], (char*)vTokens->pArray[3] );
+        Io_ReadBlifPrintErrorMessage( p );
+        return 1;
+    }
+    // set the arrival time
+    Abc_NtkTimeSetOutputLoad( p->pNtkCur, Abc_NtkObj(p->pNtkCur, Abc_ObjFanout0(pNet)->Id)->iTemp, (float)TimeRise, (float)TimeFall );
+    return 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Io_ReadBlifNetworkDefaultInputDrive( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens )
+{
+    char * pFoo1, * pFoo2;
+    double TimeRise, TimeFall;
+
+    // make sure this is indeed the .inputs line
+    assert( strncmp( (char *)vTokens->pArray[0], ".default_input_drive", 21 ) == 0 );
+    if ( vTokens->nSize != 3 )
+    {
+        p->LineCur = Extra_FileReaderGetLineNumber(p->pReader, 0);
+        sprintf( p->sError, "Wrong number of arguments on .default_input_drive line." );
+        Io_ReadBlifPrintErrorMessage( p );
+        return 1;
+    }
+    TimeRise = strtod( (char *)vTokens->pArray[1], &pFoo1 );
+    TimeFall = strtod( (char *)vTokens->pArray[2], &pFoo2 );
+    if ( *pFoo1 != '\0' || *pFoo2 != '\0' )
+    {
+        p->LineCur = Extra_FileReaderGetLineNumber(p->pReader, 0);
+        sprintf( p->sError, "Bad value (%s %s) for rise or fall time on .default_input_drive line.", (char*)vTokens->pArray[1], (char*)vTokens->pArray[2] );
+        Io_ReadBlifPrintErrorMessage( p );
+        return 1;
+    }
+    // set the arrival time
+    Abc_NtkTimeSetDefaultInputDrive( p->pNtkCur, (float)TimeRise, (float)TimeFall );
+    return 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Io_ReadBlifNetworkDefaultOutputLoad( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens )
+{
+    char * pFoo1, * pFoo2;
+    double TimeRise, TimeFall;
+
+    // make sure this is indeed the .inputs line
+    assert( strncmp( (char *)vTokens->pArray[0], ".default_output_load", 21 ) == 0 );
+    if ( vTokens->nSize != 3 )
+    {
+        p->LineCur = Extra_FileReaderGetLineNumber(p->pReader, 0);
+        sprintf( p->sError, "Wrong number of arguments on .default_output_load line." );
+        Io_ReadBlifPrintErrorMessage( p );
+        return 1;
+    }
+    TimeRise = strtod( (char *)vTokens->pArray[1], &pFoo1 );
+    TimeFall = strtod( (char *)vTokens->pArray[2], &pFoo2 );
+    if ( *pFoo1 != '\0' || *pFoo2 != '\0' )
+    {
+        p->LineCur = Extra_FileReaderGetLineNumber(p->pReader, 0);
+        sprintf( p->sError, "Bad value (%s %s) for rise or fall time on .default_output_load line.", (char*)vTokens->pArray[1], (char*)vTokens->pArray[2] );
+        Io_ReadBlifPrintErrorMessage( p );
+        return 1;
+    }
+    // set the arrival time
+    Abc_NtkTimeSetDefaultOutputLoad( p->pNtkCur, (float)TimeRise, (float)TimeFall );
     return 0;
 }
 
