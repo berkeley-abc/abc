@@ -495,6 +495,9 @@ void Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPars 
 
     // perform upsizing
     nAllPos = nAllNodes = nAllTfos = nAllUpsizes = 0;
+    if ( p->BestDelay <= SC_LibTimeFromPs(p->pLib, (float)pPars->DelayUser) )
+        printf( "Current delay (%.2f ps) is better than the target delay (%.2f ps).\n", SC_LibTimePs(p->pLib, p->BestDelay), (float)pPars->DelayUser );
+    else
     for ( i = 0; i < pPars->nIters; i++ )
     {
         for ( win = pPars->Window; win <= 100;  win *= 2 )

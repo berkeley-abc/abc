@@ -45,16 +45,16 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Mpm_ManFindDsdMatches( Mpm_Man_t * p, void * pScl, Vec_Int_t ** pvNpnCosts )
+Vec_Wec_t * Mpm_ManFindDsdMatches( Mpm_Man_t * p, void * pScl )
 {
     int fVerbose = p->pPars->fVeryVerbose;
     SC_Lib * pLib = (SC_Lib *)pScl;
-    Vec_Int_t * vClasses;
+    Vec_Wec_t * vClasses;
+    Vec_Int_t * vClass;
     SC_Cell * pRepr;
     int i, Config, iClass;
     word Truth;
-    vClasses = Vec_IntStartFull( 600 );
-    *pvNpnCosts = Vec_IntStartFull( 600 );
+    vClasses = Vec_WecStart( 600 );
     SC_LibForEachCellClass( pLib, pRepr, i )
     {
         if ( pRepr->n_inputs > 6 || pRepr->n_outputs > 1 )
@@ -74,8 +74,8 @@ Vec_Int_t * Mpm_ManFindDsdMatches( Mpm_Man_t * p, void * pScl, Vec_Int_t ** pvNp
         iClass = Config >> 17;
         Config = (pRepr->Id << 17) | (Config & 0x1FFFF);
         // write gate and NPN config for this DSD class
-        Vec_IntWriteEntry( vClasses, iClass, Config );
-        Vec_IntWriteEntry( *pvNpnCosts, iClass, (int)(100 * pRepr->area) );
+        vClass = Vec_WecEntry( vClasses, iClass );
+        Vec_IntPush( vClass, Config );
         if ( !fVerbose )
             continue;
 
@@ -100,17 +100,19 @@ Vec_Int_t * Mpm_ManFindDsdMatches( Mpm_Man_t * p, void * pScl, Vec_Int_t ** pvNp
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Ptr_t * Mpm_ManFindCells( Mio_Library_t * pMio, SC_Lib * pScl, Vec_Int_t * vNpnConfigs )
+Vec_Ptr_t * Mpm_ManFindCells( Mio_Library_t * pMio, SC_Lib * pScl, Vec_Wec_t * vNpnConfigs )
 {
     Vec_Ptr_t * vNpnGatesMio;
+    Vec_Int_t * vClass;
     Mio_Gate_t * pMioGate;
     SC_Cell * pCell;
     int Config, iClass;
-    vNpnGatesMio = Vec_PtrStart( Vec_IntSize(vNpnConfigs) );
-    Vec_IntForEachEntry( vNpnConfigs, Config, iClass )
+    vNpnGatesMio = Vec_PtrStart( Vec_WecSize(vNpnConfigs) );
+    Vec_WecForEachLevel( vNpnConfigs, vClass, iClass )
     {
-        if ( Config == -1 )
+        if ( Vec_IntSize(vClass) == 0 )
             continue;
+        Config = Vec_IntEntry(vClass, 0);
         pCell = SC_LibCell( pScl, (Config >> 17) );
         pMioGate = Mio_LibraryReadGateByName( pMio, pCell->pName, NULL );
         if ( pMioGate == NULL )
@@ -161,7 +163,7 @@ Abc_Ntk_t * Mpm_ManDeriveMappedAbcNtk( Mpm_Man_t * p, Mio_Library_t * pMio )
 {
     Abc_Ntk_t * pNtk;
     Vec_Ptr_t * vNpnGatesMio;
-    Vec_Int_t * vNodes, * vCopy;
+    Vec_Int_t * vNodes, * vCopy, * vClass;
     Abc_Obj_t * pObj, * pFanin;
     Mig_Obj_t * pNode;
     Mpm_Cut_t * pCutBest;
@@ -214,7 +216,8 @@ Abc_Ntk_t * Mpm_ManDeriveMappedAbcNtk( Mpm_Man_t * p, Mio_Library_t * pMio )
     Vec_IntForEachEntry( vNodes, iNode, i )
     {
         pCutBest = Mpm_ObjCutBestP( p, Mig_ManObj(p->pMig, iNode) );
-        Config = Vec_IntEntry( p->vNpnConfigs, Abc_Lit2Var(pCutBest->iFunc) );
+        vClass = Vec_WecEntry( p->vNpnConfigs, Abc_Lit2Var(pCutBest->iFunc) );
+        Config = Vec_IntEntry( vClass, 0 );
         pObj = Abc_NtkCreateNode( pNtk );
         pObj->pData = Vec_PtrEntry( vNpnGatesMio, Abc_Lit2Var(pCutBest->iFunc) );
         assert( pObj->pData != NULL );
@@ -265,7 +268,7 @@ Abc_Ntk_t * Mpm_ManPerformCellMapping( Mig_Man_t * pMig, Mpm_Par_t * pPars, Mio_
     p = Mpm_ManStart( pMig, pPars );
     if ( p->pPars->fVerbose ) 
         Mpm_ManPrintStatsInit( p );
-    p->vNpnConfigs = Mpm_ManFindDsdMatches( p, p->pPars->pScl, &p->vNpnCosts );
+    p->vNpnConfigs = Mpm_ManFindDsdMatches( p, p->pPars->pScl );
     Mpm_ManPrepare( p );
     Mpm_ManPerform( p );
     if ( p->pPars->fVerbose ) 

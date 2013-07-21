@@ -36,6 +36,7 @@
 #include "misc/vec/vec.h"
 #include "misc/vec/vecMem.h"
 #include "misc/vec/vecHsh.h"
+#include "misc/vec/vecWec.h"
 #include "misc/util/utilTruth.h"
 #include "mpmMig.h"
 #include "mpm.h"
@@ -136,8 +137,7 @@ struct Mpm_Man_t_
     Vec_Int_t *      vMap2Perm;                // maps number into its permutation
     unsigned         uPermMask[3];
     unsigned         uComplMask[3];
-    Vec_Int_t *      vNpnConfigs;
-    Vec_Int_t *      vNpnCosts;                // area cost of each NPN class
+    Vec_Wec_t *      vNpnConfigs;
     // mapping attributes
     Vec_Int_t        vCutBests;                // cut best
     Vec_Int_t        vCutLists;                // cut list
@@ -242,7 +242,7 @@ extern word                  Mpm_CutTruthFromDsd( Mpm_Man_t * pMan, Mpm_Cut_t * 
 extern int                   Mpm_CutCheckDsd6( Mpm_Man_t * p, word t );
 extern int                   Mpm_CutComputeDsd6( Mpm_Man_t * p, Mpm_Cut_t * pCut, Mpm_Cut_t * pCut0, Mpm_Cut_t * pCut1, Mpm_Cut_t * pCutC, int fCompl0, int fCompl1, int fComplC, int Type );
 /*=== mpmGates.c ===========================================================*/
-extern Vec_Int_t *           Mpm_ManFindDsdMatches( Mpm_Man_t * p, void * pScl, Vec_Int_t ** pvNpnCosts );
+extern Vec_Wec_t *           Mpm_ManFindDsdMatches( Mpm_Man_t * p, void * pScl );
 /*=== mpmLib.c ===========================================================*/
 extern Mpm_LibLut_t *        Mpm_LibLutSetSimple( int nLutSize );
 extern void                  Mpm_LibLutFree( Mpm_LibLut_t * pLib );
