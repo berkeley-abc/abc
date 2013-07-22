@@ -21,7 +21,8 @@
 #include "mpmInt.h"
 #include "misc/st/st.h"
 #include "map/mio/mio.h"
-#include "map/scl/sclInt.h"
+#include "map/scl/sclSize.h"
+#include "map/scl/sclTime.h"
 
 ABC_NAMESPACE_IMPL_START
 

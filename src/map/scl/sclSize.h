@@ -1,6 +1,6 @@
 /**CFile****************************************************************
 
-  FileName    [sclMan.h]
+  FileName    [sclSize.h]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
@@ -14,19 +14,21 @@
 
   Date        [Ver. 1.0. Started - August 24, 2012.]
 
-  Revision    [$Id: sclMan.h,v 1.0 2012/08/24 00:00:00 alanmi Exp $]
+  Revision    [$Id: sclSize.h,v 1.0 2012/08/24 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
-#ifndef ABC__map__scl__sclMan_h
-#define ABC__map__scl__sclMan_h
+#ifndef ABC__map__scl__sclSize_h
+#define ABC__map__scl__sclSize_h
 
 
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
 
+#include "base/abc/abc.h"
 #include "misc/vec/vecQue.h"
+#include "sclLib.h"
 
 ABC_NAMESPACE_HEADER_START
 
@@ -38,15 +40,7 @@ ABC_NAMESPACE_HEADER_START
 ///                    STRUCTURE DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
-typedef struct SC_Pair_         SC_Pair;
 typedef struct SC_Man_          SC_Man;
-
-struct SC_Pair_ 
-{
-    float          rise;
-    float          fall;
-};
-
 struct SC_Man_ 
 {
     SC_Lib *       pLib;          // library
@@ -376,16 +370,30 @@ static inline void Abc_SclDumpStats( SC_Man * p, char * pFileName, abctime Time 
 }
 
 
-/*=== sclTime.c =============================================================*/
-extern Abc_Obj_t * Abc_SclFindCriticalCo( SC_Man * p, int * pfRise );
-extern Abc_Obj_t * Abc_SclFindMostCriticalFanin( SC_Man * p, int * pfRise, Abc_Obj_t * pNode );
-extern void        Abc_SclTimeNtkPrint( SC_Man * p, int fShowAll, int fShort );
-extern SC_Man *    Abc_SclManStart( SC_Lib * pLib, Abc_Ntk_t * pNtk, int fUseWireLoads, int fDept, float DUser );
-extern void        Abc_SclTimeCone( SC_Man * p, Vec_Int_t * vCone );
-extern void        Abc_SclTimeNtkRecompute( SC_Man * p, float * pArea, float * pDelay, int fReverse, float DUser );
-/*=== sclTime.c =============================================================*/
-extern void        Abc_SclComputeLoad( SC_Man * p );
-extern void        Abc_SclUpdateLoad( SC_Man * p, Abc_Obj_t * pObj, SC_Cell * pOld, SC_Cell * pNew );
+/*=== sclBuff.c ===============================================================*/
+extern int           Abc_SclCheckNtk( Abc_Ntk_t * p, int fVerbose );
+extern Abc_Ntk_t *   Abc_SclPerformBuffering( Abc_Ntk_t * p, int Degree, int fVerbose );
+/*=== sclDnsize.c ===============================================================*/
+extern void          Abc_SclDnsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPars );
+/*=== sclLoad.c ===============================================================*/
+extern void          Abc_SclComputeLoad( SC_Man * p );
+extern void          Abc_SclUpdateLoad( SC_Man * p, Abc_Obj_t * pObj, SC_Cell * pOld, SC_Cell * pNew );
+/*=== sclSize.c ===============================================================*/
+extern Abc_Obj_t *   Abc_SclFindCriticalCo( SC_Man * p, int * pfRise );
+extern Abc_Obj_t *   Abc_SclFindMostCriticalFanin( SC_Man * p, int * pfRise, Abc_Obj_t * pNode );
+extern void          Abc_SclTimeNtkPrint( SC_Man * p, int fShowAll, int fShort );
+extern SC_Man *      Abc_SclManStart( SC_Lib * pLib, Abc_Ntk_t * pNtk, int fUseWireLoads, int fDept, float DUser );
+extern void          Abc_SclTimeCone( SC_Man * p, Vec_Int_t * vCone );
+extern void          Abc_SclTimeNtkRecompute( SC_Man * p, float * pArea, float * pDelay, int fReverse, float DUser );
+extern void          Abc_SclTimePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int fUseWireLoads, int fShowAll, int fShort, int fDumpStats );
+extern void          Abc_SclPrintBuffers( SC_Lib * pLib, Abc_Ntk_t * pNtk, int fVerbose );
+/*=== sclUpsize.c ===============================================================*/
+extern void          Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPars );
+/*=== sclUtil.c ===============================================================*/
+extern Vec_Int_t *   Abc_SclManFindGates( SC_Lib * pLib, Abc_Ntk_t * p );
+extern void          Abc_SclManSetGates( SC_Lib * pLib, Abc_Ntk_t * p, Vec_Int_t * vGates );
+extern void          Abc_SclPrintGateSizes( SC_Lib * pLib, Abc_Ntk_t * p );
+extern void          Abc_SclMinsizePerform( SC_Lib * pLib, Abc_Ntk_t * p, int fUseMax, int fVerbose );
 
 
 ABC_NAMESPACE_HEADER_END

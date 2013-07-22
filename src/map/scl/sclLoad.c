@@ -18,8 +18,7 @@
 
 ***********************************************************************/
 
-#include "sclInt.h"
-#include "sclMan.h"
+#include "sclSize.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -31,63 +30,6 @@ ABC_NAMESPACE_IMPL_START
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
-
-/**Function*************************************************************
-
-  Synopsis    [Returns the wireload model for the given area.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-SC_WireLoad * Abc_SclFindWireLoadModel( SC_Lib * p, float Area )
-{
-    SC_WireLoad * pWL = NULL;
-    char * pWLoadUsed = NULL;
-    int i;
-    if ( p->default_wire_load_sel && strlen(p->default_wire_load_sel) )
-    {
-        SC_WireLoadSel * pWLS = NULL;
-        SC_LibForEachWireLoadSel( p, pWLS, i )
-            if ( !strcmp(pWLS->pName, p->default_wire_load_sel) )
-                break;
-        if ( i == Vec_PtrSize(p->vWireLoadSels) )
-        {
-            Abc_Print( -1, "Cannot find wire load selection model \"%s\".\n", p->default_wire_load_sel );
-            exit(1);
-        }
-        for ( i = 0; i < Vec_FltSize(pWLS->vAreaFrom); i++)
-            if ( Area >= Vec_FltEntry(pWLS->vAreaFrom, i) && Area <  Vec_FltEntry(pWLS->vAreaTo, i) )
-            {
-                pWLoadUsed = (char *)Vec_PtrEntry(pWLS->vWireLoadModel, i);
-                break;
-            }
-        if ( i == Vec_FltSize(pWLS->vAreaFrom) )
-            pWLoadUsed = (char *)Vec_PtrEntryLast(pWLS->vWireLoadModel);
-    }
-    else if ( p->default_wire_load && strlen(p->default_wire_load) )
-        pWLoadUsed = p->default_wire_load;
-    else
-    {
-        Abc_Print( 0, "No wire model given.\n" );
-        return NULL;
-    }
-    // Get the actual table and reformat it for 'wire_cap' output:
-    assert( pWLoadUsed != NULL );
-    SC_LibForEachWireLoad( p, pWL, i )
-        if ( !strcmp(pWL->pName, pWLoadUsed) )
-            break;
-    if ( i == Vec_PtrSize(p->vWireLoads) )
-    {
-        Abc_Print( -1, "Cannot find wire load model \"%s\".\n", pWLoadUsed );
-        exit(1);
-    }
-//    printf( "Using wireload model \"%s\".\n", pWL->pName );
-    return pWL;
-}
 
 /**Function*************************************************************
 

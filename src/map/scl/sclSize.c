@@ -1,12 +1,12 @@
 /**CFile****************************************************************
 
-  FileName    [sclTime.c]
+  FileName    [sclSize.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
   PackageName [Standard-cell library representation.]
 
-  Synopsis    [Static timing analysis using Liberty delay model.]
+  Synopsis    [Core timing analysis used in gate-sizing.]
 
   Author      [Alan Mishchenko, Niklas Een]
   
@@ -14,12 +14,11 @@
 
   Date        [Ver. 1.0. Started - August 24, 2012.]
 
-  Revision    [$Id: sclTime.c,v 1.0 2012/08/24 00:00:00 alanmi Exp $]
+  Revision    [$Id: sclSize.c,v 1.0 2012/08/24 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
-#include "sclInt.h"
-#include "sclMan.h"
+#include "sclSize.h"
 #include "map/mio/mio.h"
 
 ABC_NAMESPACE_IMPL_START

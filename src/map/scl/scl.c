@@ -18,7 +18,7 @@
 
 ***********************************************************************/
 
-#include "sclInt.h"
+#include "sclSize.h"
 #include "base/main/mainInt.h"
 
 ABC_NAMESPACE_IMPL_START

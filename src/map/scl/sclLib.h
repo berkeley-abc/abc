@@ -1,6 +1,6 @@
 /**CFile****************************************************************
 
-  FileName    [sclInt.h]
+  FileName    [sclLib.h]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
@@ -14,12 +14,12 @@
 
   Date        [Ver. 1.0. Started - August 24, 2012.]
 
-  Revision    [$Id: sclInt.h,v 1.0 2012/08/24 00:00:00 alanmi Exp $]
+  Revision    [$Id: sclLib.h,v 1.0 2012/08/24 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
-#ifndef ABC__map__scl__sclInt_h
-#define ABC__map__scl__sclInt_h
+#ifndef ABC__map__scl__sclLib_h
+#define ABC__map__scl__sclLib_h
 
 
 ////////////////////////////////////////////////////////////////////////
@@ -31,8 +31,7 @@
 #include <string.h>
 #include <assert.h>
 #include <math.h>
-
-#include "base/abc/abc.h"
+#include "misc/vec/vec.h"
 
 ABC_NAMESPACE_HEADER_START
 
@@ -76,6 +75,13 @@ struct SC_SizePars_
     int        fUseWireLoads;
     int        fVerbose;
     int        fVeryVerbose;
+};
+
+typedef struct SC_Pair_         SC_Pair;
+struct SC_Pair_ 
+{
+    float      rise;
+    float      fall;
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -430,33 +436,17 @@ static inline void Abc_SclLibFree( SC_Lib * p )
 }
 
 
-/*=== sclBuff.c ===============================================================*/
-extern int           Abc_SclCheckNtk( Abc_Ntk_t * p, int fVerbose );
-extern Abc_Ntk_t *   Abc_SclPerformBuffering( Abc_Ntk_t * p, int Degree, int fVerbose );
-/*=== sclDnsize.c ===============================================================*/
-extern void          Abc_SclDnsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPars );
-/*=== sclFile.c ===============================================================*/
+/*=== sclLib.c ===============================================================*/
 extern SC_Lib *      Abc_SclRead( char * pFileName );
 extern void          Abc_SclWrite( char * pFileName, SC_Lib * p );
 extern void          Abc_SclWriteText( char * pFileName, SC_Lib * p );
 extern void          Abc_SclLoad( char * pFileName, SC_Lib ** ppScl );
 extern void          Abc_SclSave( char * pFileName, SC_Lib * pScl );
-/*=== sclLoad.c ===============================================================*/
-extern SC_WireLoad * Abc_SclFindWireLoadModel( SC_Lib * p, float Area );
-/*=== sclTime.c ===============================================================*/
-extern void          Abc_SclTimePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int fUseWireLoads, int fShowAll, int fShort, int fDumpStats );
-extern void          Abc_SclPrintBuffers( SC_Lib * pLib, Abc_Ntk_t * pNtk, int fVerbose );
-/*=== sclUpsize.c ===============================================================*/
-extern void          Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPars );
-/*=== sclUtil.c ===============================================================*/
 extern void          Abc_SclHashCells( SC_Lib * p );
 extern int           Abc_SclCellFind( SC_Lib * p, char * pName );
 extern void          Abc_SclLinkCells( SC_Lib * p );
 extern void          Abc_SclPrintCells( SC_Lib * p );
-extern Vec_Int_t *   Abc_SclManFindGates( SC_Lib * pLib, Abc_Ntk_t * p );
-extern void          Abc_SclManSetGates( SC_Lib * pLib, Abc_Ntk_t * p, Vec_Int_t * vGates );
-extern void          Abc_SclPrintGateSizes( SC_Lib * pLib, Abc_Ntk_t * p );
-extern void          Abc_SclMinsizePerform( SC_Lib * pLib, Abc_Ntk_t * p, int fUseMax, int fVerbose );
+extern SC_WireLoad * Abc_SclFindWireLoadModel( SC_Lib * p, float Area );
 
 
 ABC_NAMESPACE_HEADER_END

@@ -2459,11 +2459,11 @@ SOURCE=.\src\map\scl\sclDnsize.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\map\scl\sclFile.c
+SOURCE=.\src\map\scl\sclLib.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\map\scl\sclInt.h
+SOURCE=.\src\map\scl\sclLib.h
 # End Source File
 # Begin Source File
 
@@ -2471,11 +2471,15 @@ SOURCE=.\src\map\scl\sclLoad.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\map\scl\sclMan.h
+SOURCE=.\src\map\scl\sclSize.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\map\scl\sclTime.c
+SOURCE=.\src\map\scl\sclSize.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\map\scl\sclTime.h
 # End Source File
 # Begin Source File
 

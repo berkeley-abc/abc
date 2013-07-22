@@ -1,12 +1,12 @@
 /**CFile****************************************************************
 
-  FileName    [sclFile.c]
+  FileName    [sclLib.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
   PackageName [Standard-cell library representation.]
 
-  Synopsis    [Input/output procedures for simplified library representation.]
+  Synopsis    [Standard cell library.]
 
   Author      [Alan Mishchenko, Niklas Een]
   
@@ -14,12 +14,14 @@
 
   Date        [Ver. 1.0. Started - August 24, 2012.]
 
-  Revision    [$Id: sclFile.c,v 1.0 2012/08/24 00:00:00 alanmi Exp $]
+  Revision    [$Id: sclLib.c,v 1.0 2012/08/24 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
-#include "sclInt.h"
+#include "sclLib.h"
+#include "misc/st/st.h"
 #include "map/mio/mio.h"
+#include "bool/kit/kit.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -27,8 +29,6 @@ ABC_NAMESPACE_IMPL_START
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
-
-extern void Extra_PrintHex( FILE * pFile, unsigned Sign[], int nBits );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -666,6 +666,234 @@ void Abc_SclWriteText( char * pFileName, SC_Lib * p )
     }
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Reading library from file.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static unsigned Abc_SclHashString( char * pName, int TableSize ) 
+{
+    static int s_Primes[10] = { 1291, 1699, 2357, 4177, 5147, 5647, 6343, 7103, 7873, 8147 };
+    unsigned i, Key = 0;
+    for ( i = 0; pName[i] != '\0'; i++ )
+        Key += s_Primes[i%10]*pName[i]*pName[i];
+    return Key % TableSize;
+}
+int * Abc_SclHashLookup( SC_Lib * p, char * pName )
+{
+    int i;
+    for ( i = Abc_SclHashString(pName, p->nBins); i < p->nBins; i = (i + 1) % p->nBins )
+        if ( p->pBins[i] == -1 || !strcmp(pName, SC_LibCell(p, p->pBins[i])->pName) )
+            return p->pBins + i;
+    assert( 0 );
+    return NULL;
+}
+void Abc_SclHashCells( SC_Lib * p )
+{
+    SC_Cell * pCell;
+    int i, * pPlace;
+    assert( p->nBins == 0 );
+    p->nBins = Abc_PrimeCudd( 5 * Vec_PtrSize(p->vCells) );
+    p->pBins = ABC_FALLOC( int, p->nBins );
+    SC_LibForEachCell( p, pCell, i )
+    {
+        pPlace = Abc_SclHashLookup( p, pCell->pName );
+        assert( *pPlace == -1 );
+        *pPlace = i;
+    }
+}
+int Abc_SclCellFind( SC_Lib * p, char * pName )
+{
+    return *Abc_SclHashLookup( p, pName );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Links equal gates into rings while sorting them by area.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static int Abc_SclCompareCells( SC_Cell ** pp1, SC_Cell ** pp2 )
+{
+    if ( (*pp1)->n_inputs < (*pp2)->n_inputs )
+        return -1;
+    if ( (*pp1)->n_inputs > (*pp2)->n_inputs )
+        return 1;
+    if ( (*pp1)->area < (*pp2)->area )
+        return -1;
+    if ( (*pp1)->area > (*pp2)->area )
+        return 1;
+    return strcmp( (*pp1)->pName, (*pp2)->pName );
+}
+void Abc_SclLinkCells( SC_Lib * p )
+{
+    SC_Cell * pCell, * pRepr = NULL;
+    int i, k;
+    assert( Vec_PtrSize(p->vCellClasses) == 0 );
+    SC_LibForEachCell( p, pCell, i )
+    {
+        // find gate with the same function
+        SC_LibForEachCellClass( p, pRepr, k )
+            if ( pCell->n_inputs  == pRepr->n_inputs && 
+                 pCell->n_outputs == pRepr->n_outputs && 
+                 Vec_WrdEqual(SC_CellFunc(pCell), SC_CellFunc(pRepr)) )
+                break;
+        if ( k == Vec_PtrSize(p->vCellClasses) )
+        {
+            Vec_PtrPush( p->vCellClasses, pCell );
+            pCell->pNext = pCell->pPrev = pCell;
+            continue;
+        }
+        // add it to the list before the cell
+        pRepr->pPrev->pNext = pCell; pCell->pNext = pRepr;
+        pCell->pPrev = pRepr->pPrev; pRepr->pPrev = pCell;
+    }
+    // sort cells by size the then by name
+    qsort( (void *)Vec_PtrArray(p->vCellClasses), Vec_PtrSize(p->vCellClasses), sizeof(void *), (int(*)(const void *,const void *))Abc_SclCompareCells );
+    // sort cell lists
+    SC_LibForEachCellClass( p, pRepr, k )
+    {
+        Vec_Ptr_t * vList = Vec_PtrAlloc( 100 );
+        SC_RingForEachCell( pRepr, pCell, i )
+            Vec_PtrPush( vList, pCell );
+        qsort( (void *)Vec_PtrArray(vList), Vec_PtrSize(vList), sizeof(void *), (int(*)(const void *,const void *))Abc_SclCompareCells );
+        // create new representative
+        pRepr = (SC_Cell *)Vec_PtrEntry( vList, 0 );
+        pRepr->pNext = pRepr->pPrev = pRepr;
+        pRepr->Order = 0;
+        // relink cells
+        Vec_PtrForEachEntryStart( SC_Cell *, vList, pCell, i, 1 )
+        {
+            pRepr->pPrev->pNext = pCell; pCell->pNext = pRepr;
+            pCell->pPrev = pRepr->pPrev; pRepr->pPrev = pCell;
+            pCell->Order = i;
+        }
+        // update list
+        Vec_PtrWriteEntry( p->vCellClasses, k, pRepr );
+        Vec_PtrFree( vList );
+    }
+}
+void Abc_SclPrintCells( SC_Lib * p )
+{
+    SC_Cell * pCell, * pRepr;
+    int i, k, j, nLength = 0;
+    assert( Vec_PtrSize(p->vCellClasses) > 0 );
+    printf( "Library \"%s\" ", p->pName );
+    printf( "containing %d cells in %d classes.\n", 
+        Vec_PtrSize(p->vCells), Vec_PtrSize(p->vCellClasses) );
+    // find the longest name
+    SC_LibForEachCellClass( p, pRepr, k )
+        SC_RingForEachCell( pRepr, pCell, i )
+            nLength = Abc_MaxInt( nLength, strlen(pRepr->pName) );
+    // print cells
+    SC_LibForEachCellClass( p, pRepr, k )
+    {
+        printf( "Class%3d : ", k );
+        printf( "Ins = %d  ",  pRepr->n_inputs );
+        printf( "Outs = %d",   pRepr->n_outputs );
+        for ( i = 0; i < pRepr->n_outputs; i++ )
+        {
+            printf( "   "  );
+            Kit_DsdPrintFromTruth( (unsigned *)Vec_WrdArray(SC_CellPin(pRepr, pRepr->n_inputs+i)->vFunc), pRepr->n_inputs );
+        }
+        printf( "\n" );
+        SC_RingForEachCell( pRepr, pCell, i )
+        {
+            printf( "  %3d : ",       i+1 );
+            printf( "%-*s  ",         nLength, pCell->pName );
+            printf( "%2d   ",         pCell->drive_strength );
+            printf( "A =%8.2f  D =", pCell->area );
+            // print linear approximation
+            for ( j = 0; j < 3; j++ )
+            {
+                SC_Pin * pPin = SC_CellPin( pCell, pCell->n_inputs );
+                if ( Vec_PtrSize(pPin->vRTimings) > 0 )
+                {
+                    SC_Timings * pRTime = (SC_Timings *)Vec_PtrEntry( pPin->vRTimings, 0 );
+                    SC_Timing * pTime = (SC_Timing *)Vec_PtrEntry( pRTime->vTimings, 0 );
+                    printf( " %6.2f", j ? pTime->pCellRise->approx[0][j] : SC_LibTimePs(p, pTime->pCellRise->approx[0][j]) );
+                }
+            }
+            // print input capacitance
+            printf( "   Cap =" );
+            for ( j = 0; j < pCell->n_inputs; j++ )
+            {
+                SC_Pin * pPin = SC_CellPin( pCell, j );
+                printf( " %6.2f", SC_LibCapFf(p, pPin->rise_cap) );
+            }
+            printf( "\n" );
+        }
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the wireload model for the given area.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+SC_WireLoad * Abc_SclFindWireLoadModel( SC_Lib * p, float Area )
+{
+    SC_WireLoad * pWL = NULL;
+    char * pWLoadUsed = NULL;
+    int i;
+    if ( p->default_wire_load_sel && strlen(p->default_wire_load_sel) )
+    {
+        SC_WireLoadSel * pWLS = NULL;
+        SC_LibForEachWireLoadSel( p, pWLS, i )
+            if ( !strcmp(pWLS->pName, p->default_wire_load_sel) )
+                break;
+        if ( i == Vec_PtrSize(p->vWireLoadSels) )
+        {
+            Abc_Print( -1, "Cannot find wire load selection model \"%s\".\n", p->default_wire_load_sel );
+            exit(1);
+        }
+        for ( i = 0; i < Vec_FltSize(pWLS->vAreaFrom); i++)
+            if ( Area >= Vec_FltEntry(pWLS->vAreaFrom, i) && Area <  Vec_FltEntry(pWLS->vAreaTo, i) )
+            {
+                pWLoadUsed = (char *)Vec_PtrEntry(pWLS->vWireLoadModel, i);
+                break;
+            }
+        if ( i == Vec_FltSize(pWLS->vAreaFrom) )
+            pWLoadUsed = (char *)Vec_PtrEntryLast(pWLS->vWireLoadModel);
+    }
+    else if ( p->default_wire_load && strlen(p->default_wire_load) )
+        pWLoadUsed = p->default_wire_load;
+    else
+    {
+        Abc_Print( 0, "No wire model given.\n" );
+        return NULL;
+    }
+    // Get the actual table and reformat it for 'wire_cap' output:
+    assert( pWLoadUsed != NULL );
+    SC_LibForEachWireLoad( p, pWL, i )
+        if ( !strcmp(pWL->pName, pWLoadUsed) )
+            break;
+    if ( i == Vec_PtrSize(p->vWireLoads) )
+    {
+        Abc_Print( -1, "Cannot find wire load model \"%s\".\n", pWLoadUsed );
+        exit(1);
+    }
+//    printf( "Using wireload model \"%s\".\n", pWL->pName );
+    return pWL;
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

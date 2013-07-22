@@ -18,7 +18,7 @@
 
 ***********************************************************************/
 
-#include "sclInt.h"
+#include "sclSize.h"
 #include "map/mio/mio.h"
 
 ABC_NAMESPACE_IMPL_START
