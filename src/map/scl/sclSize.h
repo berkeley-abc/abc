@@ -106,6 +106,7 @@ static inline float     Abc_SclObjGetSlack( SC_Man * p, Abc_Obj_t * pObj, float 
 static inline float     Abc_SclObjGetSlackR( SC_Man * p, Abc_Obj_t * pObj, float D ){ return D - (Abc_SclObjTime(p, pObj)->rise + Abc_SclObjDept(p, pObj)->rise);  }
 static inline float     Abc_SclObjGetSlackF( SC_Man * p, Abc_Obj_t * pObj, float D ){ return D - (Abc_SclObjTime(p, pObj)->fall + Abc_SclObjDept(p, pObj)->fall);  }
 static inline float     Abc_SclObjSlack( SC_Man * p, Abc_Obj_t * pObj )             { return p->pSlack[Abc_ObjId(pObj)];   }
+static inline float     Abc_SclObjLoadAve( SC_Man * p, Abc_Obj_t * pObj )           { return 0.5 * (Abc_SclObjLoad(p, pObj)->rise + Abc_SclObjLoad(p, pObj)->fall); }
 
 static inline void      Abc_SclObjDupFanin( SC_Man * p, Abc_Obj_t * pObj )          { assert( Abc_ObjIsCo(pObj) ); *Abc_SclObjTime(p, pObj) = *Abc_SclObjTime(p, Abc_ObjFanin0(pObj));  }
 static inline float     Abc_SclObjGain( SC_Man * p, Abc_Obj_t * pObj )              { return 0.5*((Abc_SclObjTime2(p, pObj)->rise - Abc_SclObjTime(p, pObj)->rise) + (Abc_SclObjTime2(p, pObj)->fall - Abc_SclObjTime(p, pObj)->fall)); }

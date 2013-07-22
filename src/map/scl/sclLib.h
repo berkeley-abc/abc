@@ -207,11 +207,16 @@ struct SC_Lib_
 static inline SC_Cell *   SC_LibCell( SC_Lib * p, int i )           { return (SC_Cell *)Vec_PtrEntry(p->vCells, i);                   }
 static inline SC_Pin  *   SC_CellPin( SC_Cell * p, int i )          { return (SC_Pin *)Vec_PtrEntry(p->vPins, i);                     }
 static inline Vec_Wrd_t * SC_CellFunc( SC_Cell * p )                { return SC_CellPin(p, p->n_inputs)->vFunc;                       }
+static inline float       SC_CellPinCap( SC_Cell * p, int i )       { return 0.5 * (SC_CellPin(p, i)->rise_cap + SC_CellPin(p, i)->fall_cap); }
+static inline char *      SC_CellPinOutFunc( SC_Cell * p, int i )   { return SC_CellPin(p, p->n_inputs + i)->func_text;               }
+static inline char *      SC_CellPinName( SC_Cell * p, int i )      { return SC_CellPin(p, i)->pName;                                 }
 
 static inline double      SC_LibCapFf( SC_Lib * p, double cap )     { return cap * p->unit_cap_fst * pow(10.0, 15 - p->unit_cap_snd); }
 static inline double      SC_LibCapFromFf( SC_Lib * p, double cap ) { return cap / p->unit_cap_fst / pow(10.0, 15 - p->unit_cap_snd); }
 static inline double      SC_LibTimePs( SC_Lib * p, double time )   { return time * pow(10.0, 12 - p->unit_time);                     }
 static inline double      SC_LibTimeFromPs( SC_Lib * p, double ps ) { return ps / pow(10.0, 12 - p->unit_time);                       }
+
+
 
 #define SC_LibForEachCell( p, pCell, i )         Vec_PtrForEachEntry( SC_Cell *, p->vCells, pCell, i )
 #define SC_LibForEachCellClass( p, pCell, i )    Vec_PtrForEachEntry( SC_Cell *, p->vCellClasses, pCell, i )
@@ -436,6 +441,101 @@ static inline void Abc_SclLibFree( SC_Lib * p )
 }
 
 
+/**Function*************************************************************
+
+  Synopsis    [Lookup table delay computation.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline float Scl_LibLookup( SC_Surface * p, float slew, float load )
+{
+    float * pIndex0, * pIndex1, * pDataS, * pDataS1;
+    float sfrac, lfrac, p0, p1;
+    int s, l;
+
+    // Find closest sample points in surface:
+    pIndex0 = Vec_FltArray(p->vIndex0);
+    for ( s = 1; s < Vec_FltSize(p->vIndex0)-1; s++ )
+        if ( pIndex0[s] > slew )
+            break;
+    s--;
+
+    pIndex1 = Vec_FltArray(p->vIndex1);
+    for ( l = 1; l < Vec_FltSize(p->vIndex1)-1; l++ )
+        if ( pIndex1[l] > load )
+            break;
+    l--;
+
+    // Interpolate (or extrapolate) function value from sample points:
+    sfrac = (slew - pIndex0[s]) / (pIndex0[s+1] - pIndex0[s]);
+    lfrac = (load - pIndex1[l]) / (pIndex1[l+1] - pIndex1[l]);
+
+    pDataS  = Vec_FltArray( (Vec_Flt_t *)Vec_PtrEntry(p->vData, s) );
+    pDataS1 = Vec_FltArray( (Vec_Flt_t *)Vec_PtrEntry(p->vData, s+1) );
+
+    p0 = pDataS [l] + lfrac * (pDataS [l+1] - pDataS [l]);
+    p1 = pDataS1[l] + lfrac * (pDataS1[l+1] - pDataS1[l]);
+
+    return p0 + sfrac * (p1 - p0);      // <<== multiply result with K factor here 
+}
+static inline void Scl_LibPinArrival( SC_Timing * pTime, SC_Pair * pArrIn, SC_Pair * pSlewIn, SC_Pair * pLoad, SC_Pair * pArrOut, SC_Pair * pSlewOut )
+{
+    if (pTime->tsense == sc_ts_Pos || pTime->tsense == sc_ts_Non)
+    {
+        pArrOut->rise  = Abc_MaxFloat( pArrOut->rise,  pArrIn->rise + Scl_LibLookup(pTime->pCellRise,  pSlewIn->rise, pLoad->rise) );
+        pArrOut->fall  = Abc_MaxFloat( pArrOut->fall,  pArrIn->fall + Scl_LibLookup(pTime->pCellFall,  pSlewIn->fall, pLoad->fall) );
+        pSlewOut->rise = Abc_MaxFloat( pSlewOut->rise,                Scl_LibLookup(pTime->pRiseTrans, pSlewIn->rise, pLoad->rise) );
+        pSlewOut->fall = Abc_MaxFloat( pSlewOut->fall,                Scl_LibLookup(pTime->pFallTrans, pSlewIn->fall, pLoad->fall) );
+    }
+    if (pTime->tsense == sc_ts_Neg || pTime->tsense == sc_ts_Non)
+    {
+        pArrOut->rise  = Abc_MaxFloat( pArrOut->rise,  pArrIn->fall + Scl_LibLookup(pTime->pCellRise,  pSlewIn->fall, pLoad->rise) );
+        pArrOut->fall  = Abc_MaxFloat( pArrOut->fall,  pArrIn->rise + Scl_LibLookup(pTime->pCellFall,  pSlewIn->rise, pLoad->fall) );
+        pSlewOut->rise = Abc_MaxFloat( pSlewOut->rise,                Scl_LibLookup(pTime->pRiseTrans, pSlewIn->fall, pLoad->rise) );
+        pSlewOut->fall = Abc_MaxFloat( pSlewOut->fall,                Scl_LibLookup(pTime->pFallTrans, pSlewIn->rise, pLoad->fall) );
+    }
+}
+static inline void Scl_LibPinDeparture( SC_Timing * pTime, SC_Pair * pDepIn, SC_Pair * pSlewIn, SC_Pair * pLoad, SC_Pair * pDepOut )
+{
+    if (pTime->tsense == sc_ts_Pos || pTime->tsense == sc_ts_Non)
+    {
+        pDepIn->rise  = Abc_MaxFloat( pDepIn->rise,  pDepOut->rise + Scl_LibLookup(pTime->pCellRise,  pSlewIn->rise, pLoad->rise) );
+        pDepIn->fall  = Abc_MaxFloat( pDepIn->fall,  pDepOut->fall + Scl_LibLookup(pTime->pCellFall,  pSlewIn->fall, pLoad->fall) );
+    }
+    if (pTime->tsense == sc_ts_Neg || pTime->tsense == sc_ts_Non)
+    {
+        pDepIn->fall  = Abc_MaxFloat( pDepIn->fall,  pDepOut->rise + Scl_LibLookup(pTime->pCellRise,  pSlewIn->fall, pLoad->rise) );
+        pDepIn->rise  = Abc_MaxFloat( pDepIn->rise,  pDepOut->fall + Scl_LibLookup(pTime->pCellFall,  pSlewIn->rise, pLoad->fall) );
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes input capacitance.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline float Abc_SclGatePinCapAve( SC_Lib * p, SC_Cell * pCell )
+{
+    SC_Pin * pPin;
+    int k;
+    float Cap = 0.0;
+    SC_CellForEachPinIn( pCell, pPin, k )
+        Cap += 0.5 * (pPin->rise_cap + pPin->fall_cap);
+    return Cap / pCell->n_inputs;
+}
+
+
 /*=== sclLib.c ===============================================================*/
 extern SC_Lib *      Abc_SclRead( char * pFileName );
 extern void          Abc_SclWrite( char * pFileName, SC_Lib * p );
@@ -447,7 +547,7 @@ extern int           Abc_SclCellFind( SC_Lib * p, char * pName );
 extern void          Abc_SclLinkCells( SC_Lib * p );
 extern void          Abc_SclPrintCells( SC_Lib * p );
 extern SC_WireLoad * Abc_SclFindWireLoadModel( SC_Lib * p, float Area );
-
+extern void          Abc_SclDumpGenlib( char * pFileName, SC_Lib * p, float Slew, float Gain );
 
 ABC_NAMESPACE_HEADER_END
 

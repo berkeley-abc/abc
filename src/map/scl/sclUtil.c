@@ -20,6 +20,7 @@
 
 #include "sclSize.h"
 #include "map/mio/mio.h"
+#include "base/main/main.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -174,6 +175,25 @@ void Abc_SclMinsizePerform( SC_Lib * pLib, Abc_Ntk_t * p, int fUseMax, int fVerb
     Vec_IntFree( vMinCells );
     Vec_IntFree( vGates );
 }
+
+/**Function*************************************************************
+
+  Synopsis    [Returns gate formula by name.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+char * Abc_SclFindGateFormula( char * pGateName, char * pOutName )
+{
+    Mio_Library_t * pLib = (Mio_Library_t *)Abc_FrameReadLibGen();
+    Mio_Gate_t * pGate = Mio_LibraryReadGateByName( pLib, pGateName, pOutName );
+    return Mio_GateReadForm(pGate);
+}
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

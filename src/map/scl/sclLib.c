@@ -785,58 +785,6 @@ void Abc_SclLinkCells( SC_Lib * p )
         Vec_PtrFree( vList );
     }
 }
-void Abc_SclPrintCells( SC_Lib * p )
-{
-    SC_Cell * pCell, * pRepr;
-    int i, k, j, nLength = 0;
-    assert( Vec_PtrSize(p->vCellClasses) > 0 );
-    printf( "Library \"%s\" ", p->pName );
-    printf( "containing %d cells in %d classes.\n", 
-        Vec_PtrSize(p->vCells), Vec_PtrSize(p->vCellClasses) );
-    // find the longest name
-    SC_LibForEachCellClass( p, pRepr, k )
-        SC_RingForEachCell( pRepr, pCell, i )
-            nLength = Abc_MaxInt( nLength, strlen(pRepr->pName) );
-    // print cells
-    SC_LibForEachCellClass( p, pRepr, k )
-    {
-        printf( "Class%3d : ", k );
-        printf( "Ins = %d  ",  pRepr->n_inputs );
-        printf( "Outs = %d",   pRepr->n_outputs );
-        for ( i = 0; i < pRepr->n_outputs; i++ )
-        {
-            printf( "   "  );
-            Kit_DsdPrintFromTruth( (unsigned *)Vec_WrdArray(SC_CellPin(pRepr, pRepr->n_inputs+i)->vFunc), pRepr->n_inputs );
-        }
-        printf( "\n" );
-        SC_RingForEachCell( pRepr, pCell, i )
-        {
-            printf( "  %3d : ",       i+1 );
-            printf( "%-*s  ",         nLength, pCell->pName );
-            printf( "%2d   ",         pCell->drive_strength );
-            printf( "A =%8.2f  D =", pCell->area );
-            // print linear approximation
-            for ( j = 0; j < 3; j++ )
-            {
-                SC_Pin * pPin = SC_CellPin( pCell, pCell->n_inputs );
-                if ( Vec_PtrSize(pPin->vRTimings) > 0 )
-                {
-                    SC_Timings * pRTime = (SC_Timings *)Vec_PtrEntry( pPin->vRTimings, 0 );
-                    SC_Timing * pTime = (SC_Timing *)Vec_PtrEntry( pRTime->vTimings, 0 );
-                    printf( " %6.2f", j ? pTime->pCellRise->approx[0][j] : SC_LibTimePs(p, pTime->pCellRise->approx[0][j]) );
-                }
-            }
-            // print input capacitance
-            printf( "   Cap =" );
-            for ( j = 0; j < pCell->n_inputs; j++ )
-            {
-                SC_Pin * pPin = SC_CellPin( pCell, j );
-                printf( " %6.2f", SC_LibCapFf(p, pPin->rise_cap) );
-            }
-            printf( "\n" );
-        }
-    }
-}
 
 /**Function*************************************************************
 
@@ -893,6 +841,252 @@ SC_WireLoad * Abc_SclFindWireLoadModel( SC_Lib * p, float Area )
     }
 //    printf( "Using wireload model \"%s\".\n", pWL->pName );
     return pWL;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Compute delay parameters of pin/cell/class.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_SclComputeParametersPin( SC_Lib * p, SC_Cell * pCell, int iPin, float Slew, float * pLD, float * pPD )
+{
+    SC_Timings * pRTime;
+    SC_Timing * pTime = NULL;
+    SC_Pin * pPin;
+    SC_Pair ArrIn  = { 0.0, 0.0 };
+    SC_Pair SlewIn = { Slew, Slew };
+    SC_Pair Load0, Load1, Load2;
+    SC_Pair ArrOut0 = { 0.0, 0.0 };
+    SC_Pair ArrOut1 = { 0.0, 0.0 };
+    SC_Pair ArrOut2 = { 0.0, 0.0 };
+    SC_Pair SlewOut = { 0.0, 0.0 };
+    Vec_Flt_t * vIndex;
+    assert( iPin >= 0 && iPin < pCell->n_inputs );
+    pPin = SC_CellPin( pCell, pCell->n_inputs );
+    // find timing info for this pin
+    assert( Vec_PtrSize(pPin->vRTimings) == pCell->n_inputs );
+    pRTime = (SC_Timings *)Vec_PtrEntry( pPin->vRTimings, iPin );
+    assert( Vec_PtrSize(pRTime->vTimings) == 1 );
+    pTime = (SC_Timing *)Vec_PtrEntry( pRTime->vTimings, 0 );
+    // get load points
+    vIndex = pTime->pCellRise->vIndex1; // capacitance
+    Load0.rise = Load0.fall = 0.0;
+    Load1.rise = Load1.fall = Vec_FltEntry( vIndex, 0 );
+    Load2.rise = Load2.fall = Vec_FltEntry( vIndex, Vec_FltSize(vIndex) - 2 );
+    // compute delay
+    Scl_LibPinArrival( pTime, &ArrIn, &SlewIn, &Load0, &ArrOut0, &SlewOut );
+    Scl_LibPinArrival( pTime, &ArrIn, &SlewIn, &Load1, &ArrOut1, &SlewOut );
+    Scl_LibPinArrival( pTime, &ArrIn, &SlewIn, &Load2, &ArrOut2, &SlewOut );
+    ArrOut0.rise = 0.5 * (ArrOut0.rise + ArrOut0.fall);
+    ArrOut1.rise = 0.5 * (ArrOut1.rise + ArrOut1.fall);
+    ArrOut2.rise = 0.5 * (ArrOut2.rise + ArrOut2.fall);
+    // get tangent
+    *pLD = (ArrOut2.rise - ArrOut1.rise) / ((Load2.rise - Load1.rise) / SC_CellPinCap(pCell, iPin));
+    // get constant
+    *pPD = ArrOut0.rise;
+}
+void Abc_SclComputeParametersCell( SC_Lib * p, SC_Cell * pCell, float Slew, float * pLD, float * pPD )
+{
+    SC_Pin * pPin;
+    float LD, PD, ld, pd;
+    int i;
+    LD = PD = ld = pd = 0;
+    SC_CellForEachPinIn( pCell, pPin, i )
+    {
+        Abc_SclComputeParametersPin( p, pCell, i, Slew, &ld, &pd );
+        LD += ld; PD += pd;
+    }
+    *pLD = LD / pCell->n_inputs;
+    *pPD = PD / pCell->n_inputs;
+}
+void Abc_SclComputeParametersClass( SC_Lib * p, SC_Cell * pRepr, float Slew, float * pLD, float * pPD )
+{
+    SC_Cell * pCell;
+    float LD, PD, ld, pd;
+    int i, Count = 0;
+    LD = PD = ld = pd = 0;
+    SC_RingForEachCell( pRepr, pCell, i )
+    {
+        Abc_SclComputeParametersCell( p, pCell, Slew, &ld, &pd );
+        LD += ld; PD += pd;
+        Count++;
+    }
+    *pLD = LD / Count;
+    *pPD = PD / Count;
+}
+void Abc_SclComputeParametersClassPin( SC_Lib * p, SC_Cell * pRepr, int iPin, float Slew, float * pLD, float * pPD )
+{
+    SC_Cell * pCell;
+    float LD, PD, ld, pd;
+    int i, Count = 0;
+    LD = PD = ld = pd = 0;
+    SC_RingForEachCell( pRepr, pCell, i )
+    {
+        Abc_SclComputeParametersPin( p, pCell, Slew, iPin, &ld, &pd );
+        LD += ld; PD += pd;
+        Count++;
+    }
+    *pLD = LD / Count;
+    *pPD = PD / Count;
+}
+float Abc_SclComputeDelayCellPin( SC_Lib * p, SC_Cell * pCell, int iPin, float Slew, float Gain )
+{
+    float LD = 0, PD = 0;
+    Abc_SclComputeParametersPin( p, pCell, iPin, Slew, &LD, &PD );
+    return LD * Gain + PD;
+}
+float Abc_SclComputeDelayClassPin( SC_Lib * p, SC_Cell * pRepr, int iPin, float Slew, float Gain )
+{
+    SC_Cell * pCell;
+    float Delay = 0;
+    int i, Count = 0;
+    SC_RingForEachCell( pRepr, pCell, i )
+    {
+        Delay += Abc_SclComputeDelayCellPin( p, pCell, iPin, Slew, Gain );
+        Count++;
+    }
+    return Delay / Count;
+}
+float Abc_SclComputeAreaClass( SC_Cell * pRepr )
+{
+    SC_Cell * pCell;
+    float Area = 0;
+    int i, Count = 0;
+    SC_RingForEachCell( pRepr, pCell, i )
+    {
+        Area += pCell->area;
+        Count++;
+    }
+    return Area / Count;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Print cells]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_SclPrintCells( SC_Lib * p )
+{
+    SC_Cell * pCell, * pRepr;
+    int i, k, nLength = 0;
+    float LD = 0, PD = 0;
+    float SlewDef = 100;
+    assert( Vec_PtrSize(p->vCellClasses) > 0 );
+    printf( "Library \"%s\" ", p->pName );
+    printf( "containing %d cells in %d classes.\n", 
+        Vec_PtrSize(p->vCells), Vec_PtrSize(p->vCellClasses) );
+    // find the longest name
+    SC_LibForEachCellClass( p, pRepr, k )
+        SC_RingForEachCell( pRepr, pCell, i )
+            nLength = Abc_MaxInt( nLength, strlen(pRepr->pName) );
+    // print cells
+    SC_LibForEachCellClass( p, pRepr, k )
+    {
+        printf( "Class%3d : ", k );
+        printf( "Ins = %d  ",  pRepr->n_inputs );
+        printf( "Outs = %d",   pRepr->n_outputs );
+        for ( i = 0; i < pRepr->n_outputs; i++ )
+        {
+            printf( "   "  );
+            Kit_DsdPrintFromTruth( (unsigned *)Vec_WrdArray(SC_CellPin(pRepr, pRepr->n_inputs+i)->vFunc), pRepr->n_inputs );
+        }
+        printf( "\n" );
+        SC_RingForEachCell( pRepr, pCell, i )
+        {
+            Abc_SclComputeParametersCell( p, pCell, SlewDef, &LD, &PD );
+            printf( "  %3d : ",       i+1 );
+            printf( "%-*s  ",         nLength, pCell->pName );
+            printf( "%2d   ",         pCell->drive_strength );
+            printf( "A =%8.2f  ",     pCell->area );
+            printf( "C =%6.2f ff  ",  Abc_SclGatePinCapAve(p, pCell) );
+            printf( "LD =%8.2f ps  ", LD );
+            printf( "PD =%8.2f ps",   PD );
+            printf( "\n" );
+        }
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Derive GENLIB library.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Str_t * Abc_SclDeriveGenlib( SC_Lib * p, float Slew, float Gain )
+{
+    extern char * Abc_SclFindGateFormula( char * pGateName, char * pOutName );
+    char Buffer[200];
+    Vec_Str_t * vStr;
+    SC_Cell * pRepr;
+    SC_Pin * pPin;
+    int i, k, Count = 0;
+    vStr = Vec_StrAlloc( 1000 );
+    Vec_StrPrintStr( vStr, "GATE          _const0_  0.000000  z=CONST0;\n" );
+    Vec_StrPrintStr( vStr, "GATE          _const1_  0.000000  z=CONST1;\n" );
+    SC_LibForEachCellClass( p, pRepr, i )
+    {
+        if ( pRepr->n_outputs > 1 )
+            continue;
+        assert( strlen(pRepr->pName) < 200 );
+        Vec_StrPrintStr( vStr, "GATE " );
+        sprintf( Buffer, "%-16s", pRepr->pName );
+        Vec_StrPrintStr( vStr, Buffer );
+        Vec_StrPrintStr( vStr, " " );
+        sprintf( Buffer, "%7.2f", Abc_SclComputeAreaClass(pRepr) );
+        Vec_StrPrintStr( vStr, Buffer );
+        Vec_StrPrintStr( vStr, " " );
+        Vec_StrPrintStr( vStr, SC_CellPinName(pRepr, pRepr->n_inputs) );
+        Vec_StrPrintStr( vStr, "=" );
+//        Vec_StrPrintStr( vStr, SC_CellPinOutFunc(pRepr, 0) );
+        Vec_StrPrintStr( vStr, Abc_SclFindGateFormula(pRepr->pName, SC_CellPinName(pRepr, pRepr->n_inputs)) );
+        Vec_StrPrintStr( vStr, ";\n" );
+        SC_CellForEachPinIn( pRepr, pPin, k )
+        {
+            float Delay = Abc_SclComputeDelayClassPin( p, pRepr, k, Slew, Gain );
+            Vec_StrPrintStr( vStr, "         PIN " );
+            sprintf( Buffer, "%-4s", pPin->pName );
+            Vec_StrPrintStr( vStr, Buffer );
+            sprintf( Buffer, " UNKNOWN  1  999  %7.2f  0.00  %7.2f  0.00\n", Delay, Delay );
+            Vec_StrPrintStr( vStr, Buffer );
+        }
+        Count++;
+    }
+    Vec_StrPrintStr( vStr, "\n.end\n" );
+    Vec_StrPush( vStr, '\0' );
+//    printf( "%s", Vec_StrArray(vStr) );
+    printf( "GENLIB library with %d gates is produced.\n", Count );
+    return vStr;
+}
+void Abc_SclDumpGenlib( char * pFileName, SC_Lib * p, float Slew, float Gain )
+{
+    Vec_Str_t * vStr;
+    FILE * pFile = fopen( pFileName, "wb" );
+    if ( pFile == NULL )
+    {
+        printf( "Cannot open file \"%s\" for writing.\n", pFileName );
+        return;
+    }
+    vStr = Abc_SclDeriveGenlib( p, Slew, Gain );
+    fprintf( pFile, "%s", Vec_StrArray(vStr) );
+    Vec_StrFree( vStr );
+    fclose( pFile );
 }
 
 ////////////////////////////////////////////////////////////////////////

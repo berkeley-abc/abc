@@ -205,78 +205,24 @@ static inline void Scl_ConeClear( SC_Time * p, Vec_Int_t * vCone )
   SeeAlso     []
 
 ***********************************************************************/
-static inline float Scl_Lookup( SC_Surface * p, float slew, float load )
-{
-    float * pIndex0, * pIndex1, * pDataS, * pDataS1;
-    float sfrac, lfrac, p0, p1;
-    int s, l;
-
-    // Find closest sample points in surface:
-    pIndex0 = Vec_FltArray(p->vIndex0);
-    for ( s = 1; s < Vec_FltSize(p->vIndex0)-1; s++ )
-        if ( pIndex0[s] > slew )
-            break;
-    s--;
-
-    pIndex1 = Vec_FltArray(p->vIndex1);
-    for ( l = 1; l < Vec_FltSize(p->vIndex1)-1; l++ )
-        if ( pIndex1[l] > load )
-            break;
-    l--;
-
-    // Interpolate (or extrapolate) function value from sample points:
-    sfrac = (slew - pIndex0[s]) / (pIndex0[s+1] - pIndex0[s]);
-    lfrac = (load - pIndex1[l]) / (pIndex1[l+1] - pIndex1[l]);
-
-    pDataS  = Vec_FltArray( (Vec_Flt_t *)Vec_PtrEntry(p->vData, s) );
-    pDataS1 = Vec_FltArray( (Vec_Flt_t *)Vec_PtrEntry(p->vData, s+1) );
-
-    p0 = pDataS [l] + lfrac * (pDataS [l+1] - pDataS [l]);
-    p1 = pDataS1[l] + lfrac * (pDataS1[l+1] - pDataS1[l]);
-
-    return p0 + sfrac * (p1 - p0);      // <<== multiply result with K factor here 
-}
-static inline void Scl_TimeFanin( SC_Time * p, SC_Timing * pTime, int iObj, int iFanin )
+static inline void Scl_PinTimeArrival( SC_Time * p, SC_Timing * pTime, int iObj, int iFanin )
 {
     SC_Pair * pArrIn   = Scl_ObjTime( p, iFanin );
     SC_Pair * pSlewIn  = Scl_ObjSlew( p, iFanin );
     SC_Pair * pLoad    = Scl_ObjLoad( p, iObj );
     SC_Pair * pArrOut  = Scl_ObjTime( p, iObj );   // modified
     SC_Pair * pSlewOut = Scl_ObjSlew( p, iObj );   // modified
-
-    if (pTime->tsense == sc_ts_Pos || pTime->tsense == sc_ts_Non)
-    {
-        pArrOut->rise  = Abc_MaxFloat( pArrOut->rise,  pArrIn->rise + Scl_Lookup(pTime->pCellRise,  pSlewIn->rise, pLoad->rise) );
-        pArrOut->fall  = Abc_MaxFloat( pArrOut->fall,  pArrIn->fall + Scl_Lookup(pTime->pCellFall,  pSlewIn->fall, pLoad->fall) );
-        pSlewOut->rise = Abc_MaxFloat( pSlewOut->rise,                Scl_Lookup(pTime->pRiseTrans, pSlewIn->rise, pLoad->rise) );
-        pSlewOut->fall = Abc_MaxFloat( pSlewOut->fall,                Scl_Lookup(pTime->pFallTrans, pSlewIn->fall, pLoad->fall) );
-    }
-    if (pTime->tsense == sc_ts_Neg || pTime->tsense == sc_ts_Non)
-    {
-        pArrOut->rise  = Abc_MaxFloat( pArrOut->rise,  pArrIn->fall + Scl_Lookup(pTime->pCellRise,  pSlewIn->fall, pLoad->rise) );
-        pArrOut->fall  = Abc_MaxFloat( pArrOut->fall,  pArrIn->rise + Scl_Lookup(pTime->pCellFall,  pSlewIn->rise, pLoad->fall) );
-        pSlewOut->rise = Abc_MaxFloat( pSlewOut->rise,                Scl_Lookup(pTime->pRiseTrans, pSlewIn->fall, pLoad->rise) );
-        pSlewOut->fall = Abc_MaxFloat( pSlewOut->fall,                Scl_Lookup(pTime->pFallTrans, pSlewIn->rise, pLoad->fall) );
-    }
+    Scl_LibPinArrival( pTime, pArrIn, pSlewIn, pLoad, pArrOut, pSlewOut );
 }
-static inline void Scl_DeptFanin( SC_Time * p, SC_Timing * pTime, int iObj, int iFanin )
+static inline void Scl_PinTimeDeparture( SC_Time * p, SC_Timing * pTime, int iObj, int iFanin )
 {
     SC_Pair * pDepIn   = Scl_ObjDept( p, iFanin );   // modified
     SC_Pair * pSlewIn  = Scl_ObjSlew( p, iFanin );
     SC_Pair * pLoad    = Scl_ObjLoad( p, iObj );
     SC_Pair * pDepOut  = Scl_ObjDept( p, iObj );
-
-    if (pTime->tsense == sc_ts_Pos || pTime->tsense == sc_ts_Non)
-    {
-        pDepIn->rise  = Abc_MaxFloat( pDepIn->rise,  pDepOut->rise + Scl_Lookup(pTime->pCellRise,  pSlewIn->rise, pLoad->rise) );
-        pDepIn->fall  = Abc_MaxFloat( pDepIn->fall,  pDepOut->fall + Scl_Lookup(pTime->pCellFall,  pSlewIn->fall, pLoad->fall) );
-    }
-    if (pTime->tsense == sc_ts_Neg || pTime->tsense == sc_ts_Non)
-    {
-        pDepIn->fall  = Abc_MaxFloat( pDepIn->fall,  pDepOut->rise + Scl_Lookup(pTime->pCellRise,  pSlewIn->fall, pLoad->rise) );
-        pDepIn->rise  = Abc_MaxFloat( pDepIn->rise,  pDepOut->fall + Scl_Lookup(pTime->pCellFall,  pSlewIn->rise, pLoad->fall) );
-    }
+    Scl_LibPinDeparture( pTime, pDepIn, pSlewIn, pLoad, pDepOut );
 }
+
 
 
 ABC_NAMESPACE_HEADER_END

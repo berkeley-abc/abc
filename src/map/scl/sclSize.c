@@ -107,17 +107,19 @@ Abc_Obj_t * Abc_SclFindMostCriticalFanin( SC_Man * p, int * pfRise, Abc_Obj_t * 
 ***********************************************************************/
 static inline void Abc_SclTimeNodePrint( SC_Man * p, Abc_Obj_t * pObj, int fRise, int Length, float maxDelay )
 {
+    SC_Cell * pCell = Abc_ObjIsNode(pObj) ? Abc_SclObjCell(p, pObj) : NULL;
     printf( "%6d : ",          Abc_ObjId(pObj) );
     printf( "%d ",             Abc_ObjFaninNum(pObj) );
     printf( "%2d ",            Abc_ObjFanoutNum(pObj) );
-    printf( "%-*s ",           Length, Abc_ObjIsNode(pObj) ? Abc_SclObjCell(p, pObj)->pName : "pi" );
+    printf( "%-*s ",           Length, pCell ? pCell->pName : "pi" );
     if ( fRise >= 0 )
     printf( "(%s)  ",          fRise ? "rise" : "fall" );
-    printf( "A =%7.2f  ",      Abc_ObjIsNode(pObj) ? Abc_SclObjCell(p, pObj)->area : 0.0 );
+    printf( "A =%7.2f  ",      pCell ? pCell->area : 0.0 );
     printf( "D = (" );
     printf( "%8.2f ps",        Abc_SclObjTimePs(p, pObj, 1) );
     printf( "%8.2f ps )  ",    Abc_SclObjTimePs(p, pObj, 0) );
     printf( "L =%7.2f ff  ",   Abc_SclObjLoadFf(p, pObj, fRise >= 0 ? fRise : 0 ) );
+    printf( "G =%5.2f  ",      pCell ? Abc_SclObjLoadAve(p, pObj) / SC_CellPinCap(pCell, 0) : 0.0 );
     printf( "S =%7.2f ps  ",   Abc_SclObjSlewPs(p, pObj, fRise >= 0 ? fRise : 0 ) );
     printf( "SL =%6.2f ps",    Abc_SclObjSlack(p, pObj) );
     printf( "\n" );
@@ -181,77 +183,22 @@ void Abc_SclTimeNtkPrint( SC_Man * p, int fShowAll, int fShort )
   SeeAlso     []
 
 ***********************************************************************/
-static inline float Abc_SclLookup( SC_Surface * p, float slew, float load )
-{
-    float * pIndex0, * pIndex1, * pDataS, * pDataS1;
-    float sfrac, lfrac, p0, p1;
-    int s, l;
-
-    // Find closest sample points in surface:
-    pIndex0 = Vec_FltArray(p->vIndex0);
-    for ( s = 1; s < Vec_FltSize(p->vIndex0)-1; s++ )
-        if ( pIndex0[s] > slew )
-            break;
-    s--;
-
-    pIndex1 = Vec_FltArray(p->vIndex1);
-    for ( l = 1; l < Vec_FltSize(p->vIndex1)-1; l++ )
-        if ( pIndex1[l] > load )
-            break;
-    l--;
-
-    // Interpolate (or extrapolate) function value from sample points:
-    sfrac = (slew - pIndex0[s]) / (pIndex0[s+1] - pIndex0[s]);
-    lfrac = (load - pIndex1[l]) / (pIndex1[l+1] - pIndex1[l]);
-
-    pDataS  = Vec_FltArray( (Vec_Flt_t *)Vec_PtrEntry(p->vData, s) );
-    pDataS1 = Vec_FltArray( (Vec_Flt_t *)Vec_PtrEntry(p->vData, s+1) );
-
-    p0 = pDataS [l] + lfrac * (pDataS [l+1] - pDataS [l]);
-    p1 = pDataS1[l] + lfrac * (pDataS1[l+1] - pDataS1[l]);
-
-    return p0 + sfrac * (p1 - p0);      // <<== multiply result with K factor here 
-}
-void Abc_SclTimeFanin( SC_Man * p, SC_Timing * pTime, Abc_Obj_t * pObj, Abc_Obj_t * pFanin )
+static inline void Abc_SclTimeFanin( SC_Man * p, SC_Timing * pTime, Abc_Obj_t * pObj, Abc_Obj_t * pFanin )
 {
     SC_Pair * pArrIn   = Abc_SclObjTime( p, pFanin );
     SC_Pair * pSlewIn  = Abc_SclObjSlew( p, pFanin );
     SC_Pair * pLoad    = Abc_SclObjLoad( p, pObj );
     SC_Pair * pArrOut  = Abc_SclObjTime( p, pObj );   // modified
     SC_Pair * pSlewOut = Abc_SclObjSlew( p, pObj );   // modified
-
-    if (pTime->tsense == sc_ts_Pos || pTime->tsense == sc_ts_Non)
-    {
-        pArrOut->rise  = Abc_MaxFloat( pArrOut->rise,  pArrIn->rise + Abc_SclLookup(pTime->pCellRise,  pSlewIn->rise, pLoad->rise) );
-        pArrOut->fall  = Abc_MaxFloat( pArrOut->fall,  pArrIn->fall + Abc_SclLookup(pTime->pCellFall,  pSlewIn->fall, pLoad->fall) );
-        pSlewOut->rise = Abc_MaxFloat( pSlewOut->rise,                Abc_SclLookup(pTime->pRiseTrans, pSlewIn->rise, pLoad->rise) );
-        pSlewOut->fall = Abc_MaxFloat( pSlewOut->fall,                Abc_SclLookup(pTime->pFallTrans, pSlewIn->fall, pLoad->fall) );
-    }
-    if (pTime->tsense == sc_ts_Neg || pTime->tsense == sc_ts_Non)
-    {
-        pArrOut->rise  = Abc_MaxFloat( pArrOut->rise,  pArrIn->fall + Abc_SclLookup(pTime->pCellRise,  pSlewIn->fall, pLoad->rise) );
-        pArrOut->fall  = Abc_MaxFloat( pArrOut->fall,  pArrIn->rise + Abc_SclLookup(pTime->pCellFall,  pSlewIn->rise, pLoad->fall) );
-        pSlewOut->rise = Abc_MaxFloat( pSlewOut->rise,                Abc_SclLookup(pTime->pRiseTrans, pSlewIn->fall, pLoad->rise) );
-        pSlewOut->fall = Abc_MaxFloat( pSlewOut->fall,                Abc_SclLookup(pTime->pFallTrans, pSlewIn->rise, pLoad->fall) );
-    }
+    Scl_LibPinArrival( pTime, pArrIn, pSlewIn, pLoad, pArrOut, pSlewOut );
 }
-void Abc_SclDeptFanin( SC_Man * p, SC_Timing * pTime, Abc_Obj_t * pObj, Abc_Obj_t * pFanin )
+static inline void Abc_SclDeptFanin( SC_Man * p, SC_Timing * pTime, Abc_Obj_t * pObj, Abc_Obj_t * pFanin )
 {
     SC_Pair * pDepIn   = Abc_SclObjDept( p, pFanin );   // modified
     SC_Pair * pSlewIn  = Abc_SclObjSlew( p, pFanin );
     SC_Pair * pLoad    = Abc_SclObjLoad( p, pObj );
     SC_Pair * pDepOut  = Abc_SclObjDept( p, pObj );
-
-    if (pTime->tsense == sc_ts_Pos || pTime->tsense == sc_ts_Non)
-    {
-        pDepIn->rise  = Abc_MaxFloat( pDepIn->rise,  pDepOut->rise + Abc_SclLookup(pTime->pCellRise,  pSlewIn->rise, pLoad->rise) );
-        pDepIn->fall  = Abc_MaxFloat( pDepIn->fall,  pDepOut->fall + Abc_SclLookup(pTime->pCellFall,  pSlewIn->fall, pLoad->fall) );
-    }
-    if (pTime->tsense == sc_ts_Neg || pTime->tsense == sc_ts_Non)
-    {
-        pDepIn->fall  = Abc_MaxFloat( pDepIn->fall,  pDepOut->rise + Abc_SclLookup(pTime->pCellRise,  pSlewIn->fall, pLoad->rise) );
-        pDepIn->rise  = Abc_MaxFloat( pDepIn->rise,  pDepOut->fall + Abc_SclLookup(pTime->pCellFall,  pSlewIn->rise, pLoad->fall) );
-    }
+    Scl_LibPinDeparture( pTime, pDepIn, pSlewIn, pLoad, pDepOut );
 }
 void Abc_SclTimeNode( SC_Man * p, Abc_Obj_t * pObj, int fDept )
 {

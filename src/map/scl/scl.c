@@ -39,6 +39,7 @@ static int Scl_CommandUpsize  ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Scl_CommandDnsize  ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Scl_CommandMinsize ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Scl_CommandPrintBuf( Abc_Frame_t * pAbc, int argc, char **argv );
+static int Scl_CommandDumpGen ( Abc_Frame_t * pAbc, int argc, char **argv );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -57,17 +58,18 @@ static int Scl_CommandPrintBuf( Abc_Frame_t * pAbc, int argc, char **argv );
 ***********************************************************************/
 void Scl_Init( Abc_Frame_t * pAbc )
 {
-    Cmd_CommandAdd( pAbc, "SCL mapping",  "read_scl",   Scl_CommandRead,     0 ); 
-    Cmd_CommandAdd( pAbc, "SCL mapping",  "write_scl",  Scl_CommandWrite,    0 ); 
-    Cmd_CommandAdd( pAbc, "SCL mapping",  "print_scl",  Scl_CommandPrint,    0 ); 
-    Cmd_CommandAdd( pAbc, "SCL mapping",  "print_gs",   Scl_CommandPrintGS,  0 ); 
-    Cmd_CommandAdd( pAbc, "SCL mapping",  "stime",      Scl_CommandStime,    0 ); 
-    Cmd_CommandAdd( pAbc, "SCL mapping",  "topo",       Scl_CommandTopo,     1 ); 
-    Cmd_CommandAdd( pAbc, "SCL mapping",  "buffer",     Scl_CommandBuffer,   1 ); 
-    Cmd_CommandAdd( pAbc, "SCL mapping",  "minsize",    Scl_CommandMinsize,  1 ); 
-    Cmd_CommandAdd( pAbc, "SCL mapping",  "upsize",     Scl_CommandUpsize,   1 ); 
-    Cmd_CommandAdd( pAbc, "SCL mapping",  "dnsize",     Scl_CommandDnsize,   1 ); 
-    Cmd_CommandAdd( pAbc, "SCL mapping",  "print_buf",  Scl_CommandPrintBuf, 1 ); 
+    Cmd_CommandAdd( pAbc, "SCL mapping",  "read_scl",    Scl_CommandRead,     0 ); 
+    Cmd_CommandAdd( pAbc, "SCL mapping",  "write_scl",   Scl_CommandWrite,    0 ); 
+    Cmd_CommandAdd( pAbc, "SCL mapping",  "print_scl",   Scl_CommandPrint,    0 ); 
+    Cmd_CommandAdd( pAbc, "SCL mapping",  "print_gs",    Scl_CommandPrintGS,  0 ); 
+    Cmd_CommandAdd( pAbc, "SCL mapping",  "stime",       Scl_CommandStime,    0 ); 
+    Cmd_CommandAdd( pAbc, "SCL mapping",  "topo",        Scl_CommandTopo,     1 ); 
+    Cmd_CommandAdd( pAbc, "SCL mapping",  "buffer",      Scl_CommandBuffer,   1 ); 
+    Cmd_CommandAdd( pAbc, "SCL mapping",  "minsize",     Scl_CommandMinsize,  1 ); 
+    Cmd_CommandAdd( pAbc, "SCL mapping",  "upsize",      Scl_CommandUpsize,   1 ); 
+    Cmd_CommandAdd( pAbc, "SCL mapping",  "dnsize",      Scl_CommandDnsize,   1 ); 
+    Cmd_CommandAdd( pAbc, "SCL mapping",  "print_buf",   Scl_CommandPrintBuf, 0 ); 
+    Cmd_CommandAdd( pAbc, "SCL mapping",  "dump_genlib", Scl_CommandDumpGen,  0 ); 
 }
 void Scl_End( Abc_Frame_t * pAbc )
 {
@@ -972,6 +974,81 @@ int Scl_CommandPrintBuf( Abc_Frame_t * pAbc, int argc, char **argv )
 usage:
     fprintf( pAbc->Err, "usage: minsize [-vh]\n" );
     fprintf( pAbc->Err, "\t           downsized all gates to their minimum size\n" );
+    fprintf( pAbc->Err, "\t-v       : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( pAbc->Err, "\t-h       : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Scl_CommandDumpGen( Abc_Frame_t * pAbc, int argc, char **argv )
+{
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+    char * pFileName;
+    float Slew = 100;
+    float Gain = 2;
+    int c, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "SGvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'S':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-S\" should be followed by a floating point number.\n" );
+                goto usage;
+            }
+            Slew = (float)atof(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( Slew <= 0.0 )
+                goto usage;
+            break;
+        case 'G':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-G\" should be followed by a floating point number.\n" );
+                goto usage;
+            }
+            Gain = (float)atof(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( Gain <= 0.0 )
+                goto usage;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pLibScl == NULL )
+    {
+        fprintf( pAbc->Err, "There is no Liberty library available.\n" );
+        goto usage;
+    }
+    if ( argc != globalUtilOptind + 1 )
+        goto usage;
+    pFileName = argv[globalUtilOptind];
+    Abc_SclDumpGenlib( pFileName, (SC_Lib *)pAbc->pLibScl, Slew, Gain );
+    return 0;
+
+usage:
+    fprintf( pAbc->Err, "usage: dump_genlib [-SG float] [-vh]\n" );
+    fprintf( pAbc->Err, "\t           writes GENLIB file for SCL library\n" );
+    fprintf( pAbc->Err, "\t-S float : the slew parameter used to generate the library [default = %.2f]\n", Slew );
+    fprintf( pAbc->Err, "\t-G float : the gain parameter used to generate the library [default = %.2f]\n", Gain );
     fprintf( pAbc->Err, "\t-v       : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pAbc->Err, "\t-h       : print the command usage\n");
     return 1;

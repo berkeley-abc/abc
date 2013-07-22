@@ -468,7 +468,7 @@ void Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPars 
     Vec_Int_t * vPathNodes = NULL;  // critical nodes and PIs
     Vec_Int_t * vTFO;
     abctime clk, nRuntimeLimit = pPars->TimeOut ? pPars->TimeOut * CLOCKS_PER_SEC + Abc_Clock() : 0;
-    int i, win, nUpsizes = -1, nFramesNoChange = 0;
+    int i = 0, win, nUpsizes = -1, nFramesNoChange = 0;
     int nAllPos, nAllNodes, nAllTfos, nAllUpsizes;
 
     if ( pPars->fVerbose )
