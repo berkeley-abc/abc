@@ -981,6 +981,9 @@ Gia_Man_t * Gia_ManFromIfLogic( If_Man_t * pIfMan )
         if ( If_ObjIsAnd(pIfObj) )
         {
             pCutBest = If_ObjCutBest( pIfObj );
+            // perform sorting of cut leaves by delay, so that the slowest pin drives the fastest input of the LUT
+            if ( !pIfMan->pPars->fDelayOpt && !pIfMan->pPars->pLutStruct && !pIfMan->pPars->fUserRecLib && !pIfMan->pPars->nGateSize )
+                If_CutRotatePins( pIfMan, pCutBest );
             // collect leaves of the best cut
             Vec_IntClear( vLeaves );
             If_CutForEachLeaf( pIfMan, pCutBest, pIfLeaf, k )
