@@ -992,7 +992,6 @@ usage:
 ***********************************************************************/
 int Scl_CommandDumpGen( Abc_Frame_t * pAbc, int argc, char **argv )
 {
-    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     char * pFileName;
     float Slew = 100;
     float Gain = 2;

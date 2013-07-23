@@ -63,15 +63,19 @@ Vec_Int_t * Abc_SclManFindGates( SC_Lib * pLib, Abc_Ntk_t * p )
 void Abc_SclManSetGates( SC_Lib * pLib, Abc_Ntk_t * p, Vec_Int_t * vGates )
 {
     Abc_Obj_t * pObj;
-    int i;
+    int i, Counter = 0, CounterAll = 0;
     Abc_NtkForEachNode1( p, pObj, i )
     {
         SC_Cell * pCell = SC_LibCell( pLib, Vec_IntEntry(vGates, Abc_ObjId(pObj)) );
         assert( pCell->n_inputs == Abc_ObjFaninNum(pObj) );
         pObj->pData = Mio_LibraryReadGateByName( (Mio_Library_t *)p->pManFunc, pCell->pName, NULL );
+        Counter += (pObj->pData == NULL);
         assert( pObj->fMarkA == 0 && pObj->fMarkB == 0 );
+        CounterAll++;
 //printf( "Found gate %s\n", pCell->name );
     }
+    if ( Counter )
+        printf( "Could not find %d (out of %d) gates in the current library.\n", Counter, CounterAll );
 }
 
 /**Function*************************************************************

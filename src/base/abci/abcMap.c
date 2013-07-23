@@ -167,6 +167,46 @@ ABC_PRT( "Total runtime", Abc_Clock() - clkTotal );
   SeeAlso     []
 
 ***********************************************************************/
+Map_Time_t * Abc_NtkMapCopyCiArrival( Abc_Ntk_t * pNtk, Abc_Time_t * ppTimes )
+{
+    Map_Time_t * p;
+    int i;
+    p = ABC_CALLOC( Map_Time_t, Abc_NtkCiNum(pNtk) );
+    for ( i = 0; i < Abc_NtkCiNum(pNtk); i++ )
+    {
+        p->Fall = ppTimes[i].Fall;
+        p->Rise = ppTimes[i].Rise;
+        p->Worst = Abc_MaxFloat( p->Fall, p->Rise );
+    }
+    ABC_FREE( ppTimes );
+    return p;
+}
+Map_Time_t * Abc_NtkMapCopyCoRequired( Abc_Ntk_t * pNtk, Abc_Time_t * ppTimes )
+{
+    Map_Time_t * p;
+    int i;
+    p = ABC_CALLOC( Map_Time_t, Abc_NtkCoNum(pNtk) );
+    for ( i = 0; i < Abc_NtkCoNum(pNtk); i++ )
+    {
+        p->Fall = ppTimes[i].Fall;
+        p->Rise = ppTimes[i].Rise;
+        p->Worst = Abc_MaxFloat( p->Fall, p->Rise );
+    }
+    ABC_FREE( ppTimes );
+    return p;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Load the network into manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 Map_Man_t * Abc_NtkToMap( Abc_Ntk_t * pNtk, double DelayTarget, int fRecovery, float * pSwitching, int fVerbose )
 {
     Map_Man_t * pMan;
@@ -185,8 +225,8 @@ Map_Man_t * Abc_NtkToMap( Abc_Ntk_t * pNtk, double DelayTarget, int fRecovery, f
     Map_ManSetAreaRecovery( pMan, fRecovery );
     Map_ManSetOutputNames( pMan, Abc_NtkCollectCioNames(pNtk, 1) );
     Map_ManSetDelayTarget( pMan, (float)DelayTarget );
-    Map_ManSetInputArrivals( pMan, (Map_Time_t *)Abc_NtkGetCiArrivalTimes(pNtk) );
-    Map_ManSetOutputRequireds( pMan, (Map_Time_t *)Abc_NtkGetCoRequiredTimes(pNtk) );
+    Map_ManSetInputArrivals( pMan, Abc_NtkMapCopyCiArrival(pNtk, Abc_NtkGetCiArrivalTimes(pNtk)) );
+    Map_ManSetOutputRequireds( pMan, Abc_NtkMapCopyCoRequired(pNtk, Abc_NtkGetCoRequiredTimes(pNtk)) );
 
     // create PIs and remember them in the old nodes
     Abc_NtkCleanCopy( pNtk );
