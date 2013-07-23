@@ -1099,7 +1099,7 @@ void Abc_SclDumpGenlib( char * pFileName, SC_Lib * p, float Slew, float Gain, in
     Vec_Str_t * vStr;
     FILE * pFile;
     if ( pFileName == NULL )
-        sprintf( FileName, "%s_s%03d_g%03d_m%d.genlib", p->pName, (int)Slew, (int)Gain, nGatesMin, &nCellCount );
+        sprintf( FileName, "%s_s%03d_g%03d_m%d.genlib", p->pName, (int)Slew, (int)Gain, nGatesMin );
     else
         sprintf( FileName, "%s", pFileName );
     pFile = fopen( FileName, "wb" );
