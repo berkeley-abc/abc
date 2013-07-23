@@ -108,23 +108,23 @@ Abc_Obj_t * Abc_SclFindMostCriticalFanin( SC_Man * p, int * pfRise, Abc_Obj_t * 
 static inline void Abc_SclTimeNodePrint( SC_Man * p, Abc_Obj_t * pObj, int fRise, int Length, float maxDelay )
 {
     SC_Cell * pCell = Abc_ObjIsNode(pObj) ? Abc_SclObjCell(p, pObj) : NULL;
-    printf( "%6d : ",          Abc_ObjId(pObj) );
-    printf( "%d ",             Abc_ObjFaninNum(pObj) );
-    printf( "%2d ",            Abc_ObjFanoutNum(pObj) );
-    printf( "%-*s ",           Length, pCell ? pCell->pName : "pi" );
-    if ( fRise >= 0 )
-    printf( "(%s)  ",          fRise ? "rise" : "fall" );
-    printf( "A =%7.2f  ",      pCell ? pCell->area : 0.0 );
-    printf( "D = (" );
-    printf( "%8.2f ps",        Abc_SclObjTimePs(p, pObj, 1) );
-    printf( "%8.2f ps )  ",    Abc_SclObjTimePs(p, pObj, 0) );
-    printf( "L =%7.2f ff  ",   Abc_SclObjLoadFf(p, pObj, fRise >= 0 ? fRise : 0 ) );
-    printf( "G =%5.2f  ",      pCell ? Abc_SclObjLoadAve(p, pObj) / SC_CellPinCap(pCell, 0) : 0.0 );
-    printf( "S =%7.2f ps  ",   Abc_SclObjSlewPs(p, pObj, fRise >= 0 ? fRise : 0 ) );
-    printf( "SL =%6.2f ps",    Abc_SclObjSlack(p, pObj) );
+    printf( "%6d : ",           Abc_ObjId(pObj) );
+    printf( "%d ",              Abc_ObjFaninNum(pObj) );
+    printf( "%2d ",             Abc_ObjFanoutNum(pObj) );
+    printf( "%-*s ",            Length, pCell ? pCell->pName : "pi" );
+    printf( "A =%7.2f  ",       pCell ? pCell->area : 0.0 );
+    printf( "D%s =",            fRise ? "r" : "f" );
+    printf( "%5.0f ",           Abc_MaxFloat(Abc_SclObjTimePs(p, pObj, 0), Abc_SclObjTimePs(p, pObj, 1)) );
+    printf( "%4.0f ps  ",       -Abc_AbsFloat(Abc_SclObjTimePs(p, pObj, 0) - Abc_SclObjTimePs(p, pObj, 1)) );
+    printf( "S =%5.0f ps  ",    Abc_SclObjSlewPs(p, pObj, fRise >= 0 ? fRise : 0 ) );
+    printf( "Cin =%4.0f ff  ",  pCell ? Abc_SclGatePinCapAve(p->pLib, pCell) : 0.0 );
+    printf( "Cout =%5.0f ff  ", Abc_SclObjLoadFf(p, pObj, fRise >= 0 ? fRise : 0 ) );
+    printf( "Cmax =%5.0f ff  ", pCell ? SC_CellPin(pCell, pCell->n_inputs)->max_out_cap : 0.0 );
+    printf( "G =%4.1f  ",       pCell ? Abc_SclObjLoadAve(p, pObj) / SC_CellPinCap(pCell, 0) : 0.0 );
+    printf( "SL =%5.1f ps",     Abc_SclObjSlack(p, pObj) );
     printf( "\n" );
 }
-void Abc_SclTimeNtkPrint( SC_Man * p, int fShowAll, int fShort )
+void Abc_SclTimeNtkPrint( SC_Man * p, int fShowAll, int fPrintPath )
 {
     int i, nLength = 0, fRise = 0;
     Abc_Obj_t * pObj, * pPivot = Abc_SclFindCriticalCo( p, &fRise ); 
@@ -134,7 +134,7 @@ void Abc_SclTimeNtkPrint( SC_Man * p, int fShowAll, int fShort )
     printf( "Gates = %6d.  ",              Abc_NtkNodeNum(p->pNtk) );
     printf( "Area = %12.2f.  ",            Abc_SclGetTotalArea( p ) );
     printf( "Critical delay = %8.2f ps\n", maxDelay );
-    if ( fShort )
+    if ( !fPrintPath )
         return;
 
     if ( fShowAll )
@@ -165,7 +165,7 @@ void Abc_SclTimeNtkPrint( SC_Man * p, int fShowAll, int fShort )
         pObj = Abc_ObjFanin0(pPivot);
         while ( pObj )//&& Abc_ObjIsNode(pObj) )
         {
-            printf( "C-path %3d -- ", i-- );
+            printf( "Path%3d -- ", i-- );
             Abc_SclTimeNodePrint( p, pObj, fRise, nLength, maxDelay );
             pObj = Abc_SclFindMostCriticalFanin( p, &fRise, pObj );
         }
@@ -380,11 +380,11 @@ SC_Man * Abc_SclManStart( SC_Lib * pLib, Abc_Ntk_t * pNtk, int fUseWireLoads, in
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_SclTimePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int fUseWireLoads, int fShowAll, int fShort, int fDumpStats )
+void Abc_SclTimePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int fUseWireLoads, int fShowAll, int fPrintPath, int fDumpStats )
 {
     SC_Man * p;
     p = Abc_SclManStart( pLib, pNtk, fUseWireLoads, 1, 0 );   
-    Abc_SclTimeNtkPrint( p, fShowAll, fShort );
+    Abc_SclTimeNtkPrint( p, fShowAll, fPrintPath );
     if ( fDumpStats )
         Abc_SclDumpStats( p, "stats.txt", 0 );
     Abc_SclManFree( p );

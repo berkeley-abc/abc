@@ -703,7 +703,7 @@ void Io_WriteTimingInfo( FILE * pFile, Abc_Ntk_t * pNtk )
     }
 
     pTimeDef = Abc_NtkReadDefaultRequired( pNtk );
-    if ( pTimeDef->Rise != 0.0 || pTimeDef->Fall != 0.0 )
+    if ( pTimeDef->Rise != ABC_INFINITY || pTimeDef->Fall != ABC_INFINITY )
         fprintf( pFile, ".default_output_required %g %g\n", pTimeDef->Rise, pTimeDef->Fall );
     Abc_NtkForEachPo( pNtk, pNode, i )
     {

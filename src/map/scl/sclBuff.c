@@ -127,7 +127,7 @@ int Abc_SclComputeReverseLevel( Abc_Obj_t * pObj )
         Level = Abc_MaxInt( Level, pFanout->Level );
     return Level + 1;
 }
-Abc_Obj_t * Abc_SclPerformBufferingOne( Abc_Obj_t * pObj, int Degree, int fVerbose )
+Abc_Obj_t * Abc_SclPerformBufferingOne( Abc_Obj_t * pObj, int Degree, int fUseInvs, int fVerbose )
 {
     Vec_Ptr_t * vFanouts;
     Abc_Obj_t * pBuffer, * pFanout;
@@ -138,7 +138,10 @@ Abc_Obj_t * Abc_SclPerformBufferingOne( Abc_Obj_t * pObj, int Degree, int fVerbo
     Abc_NodeCollectFanouts( pObj, vFanouts );
     Vec_PtrSort( vFanouts, (int (*)(void))Abc_NodeCompareLevels );
     // select the first Degree fanouts
-    pBuffer = Abc_NtkCreateNodeBuf( pObj->pNtk, NULL );
+    if ( fUseInvs )
+        pBuffer = Abc_NtkCreateNodeInv( pObj->pNtk, NULL );
+    else
+        pBuffer = Abc_NtkCreateNodeBuf( pObj->pNtk, NULL );
     // check if it is possible to not increase level
     if ( Vec_PtrSize(vFanouts) < 2 * Degree )
     {
@@ -176,7 +179,7 @@ Abc_Obj_t * Abc_SclPerformBufferingOne( Abc_Obj_t * pObj, int Degree, int fVerbo
     pBuffer->Level = Abc_SclComputeReverseLevel( pBuffer );
     return pBuffer;
 }
-void Abc_SclPerformBuffering_rec( Abc_Obj_t * pObj, int Degree, int fVerbose )
+void Abc_SclPerformBuffering_rec( Abc_Obj_t * pObj, int Degree, int fUseInvs, int fVerbose )
 {
     Abc_Obj_t * pFanout;
     int i;
@@ -189,20 +192,22 @@ void Abc_SclPerformBuffering_rec( Abc_Obj_t * pObj, int Degree, int fVerbose )
     assert( Abc_ObjIsCi(pObj) || Abc_ObjIsNode(pObj) );
     // buffer fanouts and collect reverse levels
     Abc_ObjForEachFanout( pObj, pFanout, i )
-        Abc_SclPerformBuffering_rec( pFanout, Degree, fVerbose );
+        Abc_SclPerformBuffering_rec( pFanout, Degree, fUseInvs, fVerbose );
     // perform buffering as long as needed
     while ( Abc_ObjFanoutNum(pObj) > Degree )
-        Abc_SclPerformBufferingOne( pObj, Degree, fVerbose );
+        Abc_SclPerformBufferingOne( pObj, Degree, fUseInvs, fVerbose );
     // compute the new level of the node
     pObj->Level = Abc_SclComputeReverseLevel( pObj );
 }
-Abc_Ntk_t * Abc_SclPerformBuffering( Abc_Ntk_t * p, int Degree, int fVerbose )
+Abc_Ntk_t * Abc_SclPerformBuffering( Abc_Ntk_t * p, int Degree, int fUseInvs, int fVerbose )
 {
     Vec_Int_t * vCiLevs;
     Abc_Ntk_t * pNew;
     Abc_Obj_t * pObj;
     int i;
     assert( Abc_NtkHasMapping(p) );
+    if ( fUseInvs )
+        printf( "Warning!!! Using inverters instead of buffers.\n" );
     // remember CI levels
     vCiLevs = Vec_IntAlloc( Abc_NtkCiNum(p) );
     Abc_NtkForEachCi( p, pObj, i )
@@ -210,7 +215,7 @@ Abc_Ntk_t * Abc_SclPerformBuffering( Abc_Ntk_t * p, int Degree, int fVerbose )
     // perform buffering
     Abc_NtkIncrementTravId( p );        
     Abc_NtkForEachCi( p, pObj, i )
-        Abc_SclPerformBuffering_rec( pObj, Degree, fVerbose );
+        Abc_SclPerformBuffering_rec( pObj, Degree, fUseInvs, fVerbose );
     // recompute logic levels
     Abc_NtkForEachCi( p, pObj, i )
         pObj->Level = Vec_IntEntry( vCiLevs, i );

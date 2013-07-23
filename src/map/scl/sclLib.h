@@ -544,10 +544,11 @@ extern void          Abc_SclLoad( char * pFileName, SC_Lib ** ppScl );
 extern void          Abc_SclSave( char * pFileName, SC_Lib * pScl );
 extern void          Abc_SclHashCells( SC_Lib * p );
 extern int           Abc_SclCellFind( SC_Lib * p, char * pName );
+extern int           Abc_SclClassCellNum( SC_Cell * pClass );
 extern void          Abc_SclLinkCells( SC_Lib * p );
-extern void          Abc_SclPrintCells( SC_Lib * p );
+extern void          Abc_SclPrintCells( SC_Lib * p, float Slew, float Gain );
 extern SC_WireLoad * Abc_SclFindWireLoadModel( SC_Lib * p, float Area );
-extern void          Abc_SclDumpGenlib( char * pFileName, SC_Lib * p, float Slew, float Gain );
+extern void          Abc_SclDumpGenlib( char * pFileName, SC_Lib * p, float Slew, float Gain, int nGatesMin );
 
 ABC_NAMESPACE_HEADER_END
 

@@ -300,8 +300,8 @@ void Abc_NtkTimeInitialize( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkOld )
     Abc_Time_t ** ppTimes, * pTime;
     int i;
     assert( pNtkOld == NULL || pNtkOld->pManTime != NULL );
-    assert( pNtkOld == NULL || Abc_NtkPiNum(pNtk) == Abc_NtkPiNum(pNtkOld) );
-    assert( pNtkOld == NULL || Abc_NtkPoNum(pNtk) == Abc_NtkPoNum(pNtkOld) );
+    assert( pNtkOld == NULL || Abc_NtkCiNum(pNtk) == Abc_NtkCiNum(pNtkOld) );
+    assert( pNtkOld == NULL || Abc_NtkCoNum(pNtk) == Abc_NtkCoNum(pNtkOld) );
     if ( pNtk->pManTime == NULL )
         return;
     Abc_ManTimeExpand( pNtk->pManTime, Abc_NtkObjNumMax(pNtk), 0 );
@@ -314,7 +314,7 @@ void Abc_NtkTimeInitialize( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkOld )
     }
     // set the default timing
     ppTimes = (Abc_Time_t **)pNtk->pManTime->vArrs->pArray;
-    Abc_NtkForEachPi( pNtk, pObj, i )
+    Abc_NtkForEachCi( pNtk, pObj, i )
     {
         pTime = ppTimes[pObj->Id];
         if ( Abc_MaxFloat(pTime->Fall, pTime->Rise) != -ABC_INFINITY )
@@ -323,10 +323,10 @@ void Abc_NtkTimeInitialize( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkOld )
     }
     // set the default timing
     ppTimes = (Abc_Time_t **)pNtk->pManTime->vReqs->pArray;
-    Abc_NtkForEachPo( pNtk, pObj, i )
+    Abc_NtkForEachCo( pNtk, pObj, i )
     {
         pTime = ppTimes[pObj->Id];
-        if ( Abc_MaxFloat(pTime->Fall, pTime->Rise) != -ABC_INFINITY )
+        if ( Abc_MaxFloat(pTime->Fall, pTime->Rise) != ABC_INFINITY )
             continue;
         *pTime = pNtkOld ? *Abc_NodeReadRequired(Abc_NtkPo(pNtkOld, i)) : pNtk->pManTime->tReqDef;
     }
@@ -371,7 +371,7 @@ void Abc_NtkTimePrepare( Abc_Ntk_t * pNtk )
         pTime = ppTimes[pObj->Id];
         pTime->Fall = pTime->Rise = -ABC_INFINITY;
     }
-    Abc_NtkForEachPo( pNtk, pObj, i )
+    Abc_NtkForEachCo( pNtk, pObj, i )
     {
         pTime = ppTimes[pObj->Id];
         pTime->Fall = pTime->Rise = -ABC_INFINITY;
@@ -381,12 +381,12 @@ void Abc_NtkTimePrepare( Abc_Ntk_t * pNtk )
     Abc_NtkForEachNode( pNtk, pObj, i )
     {
         pTime = ppTimes[pObj->Id];
-        pTime->Fall = pTime->Rise = -ABC_INFINITY;
+        pTime->Fall = pTime->Rise = ABC_INFINITY;
     }
-    Abc_NtkForEachPi( pNtk, pObj, i )
+    Abc_NtkForEachCi( pNtk, pObj, i )
     {
         pTime = ppTimes[pObj->Id];
-        pTime->Fall = pTime->Rise = -ABC_INFINITY;
+        pTime->Fall = pTime->Rise = ABC_INFINITY;
     }
 }
 
@@ -411,6 +411,8 @@ Abc_ManTime_t * Abc_ManTimeStart()
     memset( p, 0, sizeof(Abc_ManTime_t) );
     p->vArrs = Vec_PtrAlloc( 0 );
     p->vReqs = Vec_PtrAlloc( 0 );
+    p->tReqDef.Rise = ABC_INFINITY;
+    p->tReqDef.Fall = ABC_INFINITY;
     return p;
 }
 
@@ -540,8 +542,8 @@ void Abc_ManTimeExpand( Abc_ManTime_t * p, int nSize, int fProgressive )
     for ( i = nSizeOld; i < nSizeNew; i++ )
     {
         pTime = (Abc_Time_t *)vTimes->pArray[i];
-        pTime->Rise  = -ABC_INFINITY;
-        pTime->Fall  = -ABC_INFINITY;
+        pTime->Rise  = ABC_INFINITY;
+        pTime->Fall  = ABC_INFINITY;
     }
 }
 
@@ -571,7 +573,7 @@ void Abc_NtkSetNodeLevelsArrival( Abc_Ntk_t * pNtkOld )
     if ( Abc_FrameReadLibGen() == NULL || Mio_LibraryReadNand2((Mio_Library_t *)Abc_FrameReadLibGen()) == NULL )
         return;
     tAndDelay = Mio_LibraryReadDelayNand2Max((Mio_Library_t *)Abc_FrameReadLibGen());
-    Abc_NtkForEachPi( pNtkOld, pNodeOld, i )
+    Abc_NtkForEachCi( pNtkOld, pNodeOld, i )
     {
         pNodeNew = pNodeOld->pCopy;
         pNodeNew->Level = (int)(Abc_NodeReadArrivalWorst(pNodeOld) / tAndDelay);
@@ -598,7 +600,7 @@ Abc_Time_t * Abc_NtkGetCiArrivalTimes( Abc_Ntk_t * pNtk )
     if ( pNtk->pManTime == NULL )
         return p;
     // set the PI arrival times
-    Abc_NtkForEachPi( pNtk, pNode, i )
+    Abc_NtkForEachCi( pNtk, pNode, i )
         p[i] = *Abc_NodeArrival(pNode);
     return p;
 }
@@ -611,7 +613,7 @@ Abc_Time_t * Abc_NtkGetCoRequiredTimes( Abc_Ntk_t * pNtk )
     if ( pNtk->pManTime == NULL )
         return p;
     // set the PO required times
-    Abc_NtkForEachPo( pNtk, pNode, i )
+    Abc_NtkForEachCo( pNtk, pNode, i )
         p[i] = *Abc_NodeRequired(pNode);
     return p;
 }
@@ -636,8 +638,13 @@ float * Abc_NtkGetCiArrivalFloats( Abc_Ntk_t * pNtk )
     p = ABC_CALLOC( float, Abc_NtkCiNum(pNtk) );
     if ( pNtk->pManTime == NULL )
         return p;
+    Abc_NtkForEachCi( pNtk, pNode, i )
+        if ( Abc_NodeReadArrivalWorst(pNode) != 0 )
+            break;
+    if ( i == Abc_NtkCiNum(pNtk) )
+        return NULL;
     // set the PI arrival times
-    Abc_NtkForEachPi( pNtk, pNode, i )
+    Abc_NtkForEachCi( pNtk, pNode, i )
         p[i] = Abc_NodeReadArrivalWorst(pNode);
     return p;
 }
@@ -648,9 +655,14 @@ float * Abc_NtkGetCoRequiredFloats( Abc_Ntk_t * pNtk )
     int i;
     if ( pNtk->pManTime == NULL )
         return NULL;
+    Abc_NtkForEachCo( pNtk, pNode, i )
+        if ( Abc_NodeReadRequiredWorst(pNode) != ABC_INFINITY )
+            break;
+    if ( i == Abc_NtkCoNum(pNtk) )
+        return NULL;
     // set the PO required times
     p = ABC_CALLOC( float, Abc_NtkCoNum(pNtk) );
-    Abc_NtkForEachPo( pNtk, pNode, i )
+    Abc_NtkForEachCo( pNtk, pNode, i )
         p[i] = Abc_NodeReadRequiredWorst(pNode);
     return p;
 }

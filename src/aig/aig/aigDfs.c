@@ -398,13 +398,12 @@ Vec_Ptr_t * Aig_ManDfsChoices( Aig_Man_t * p )
     {
         if ( Aig_ObjEquiv(p, pObj) == NULL )
             continue;
-
         Counter = 0;
         for ( pObj = Aig_ObjEquiv(p, pObj) ; pObj; pObj = Aig_ObjEquiv(p, pObj) )
             Counter++;
-        printf( "%d ", Counter );
+//        printf( "%d ", Counter );
     }
-    printf( "\n" );
+//    printf( "\n" );
 
     assert( p->pEquivs != NULL );
     Aig_ManIncrementTravId( p );

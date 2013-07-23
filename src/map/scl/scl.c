@@ -30,7 +30,7 @@ ABC_NAMESPACE_IMPL_START
 
 static int Scl_CommandRead    ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Scl_CommandWrite   ( Abc_Frame_t * pAbc, int argc, char **argv );
-static int Scl_CommandPrint   ( Abc_Frame_t * pAbc, int argc, char **argv );
+static int Scl_CommandPrintScl( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Scl_CommandPrintGS ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Scl_CommandStime   ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Scl_CommandTopo    ( Abc_Frame_t * pAbc, int argc, char **argv );
@@ -60,7 +60,8 @@ void Scl_Init( Abc_Frame_t * pAbc )
 {
     Cmd_CommandAdd( pAbc, "SCL mapping",  "read_scl",    Scl_CommandRead,     0 ); 
     Cmd_CommandAdd( pAbc, "SCL mapping",  "write_scl",   Scl_CommandWrite,    0 ); 
-    Cmd_CommandAdd( pAbc, "SCL mapping",  "print_scl",   Scl_CommandPrint,    0 ); 
+    Cmd_CommandAdd( pAbc, "SCL mapping",  "print_scl",   Scl_CommandPrintScl, 0 ); 
+    Cmd_CommandAdd( pAbc, "SCL mapping",  "dump_genlib", Scl_CommandDumpGen,  0 ); 
     Cmd_CommandAdd( pAbc, "SCL mapping",  "print_gs",    Scl_CommandPrintGS,  0 ); 
     Cmd_CommandAdd( pAbc, "SCL mapping",  "stime",       Scl_CommandStime,    0 ); 
     Cmd_CommandAdd( pAbc, "SCL mapping",  "topo",        Scl_CommandTopo,     1 ); 
@@ -69,7 +70,6 @@ void Scl_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "SCL mapping",  "upsize",      Scl_CommandUpsize,   1 ); 
     Cmd_CommandAdd( pAbc, "SCL mapping",  "dnsize",      Scl_CommandDnsize,   1 ); 
     Cmd_CommandAdd( pAbc, "SCL mapping",  "print_buf",   Scl_CommandPrintBuf, 0 ); 
-    Cmd_CommandAdd( pAbc, "SCL mapping",  "dump_genlib", Scl_CommandDumpGen,  0 ); 
 }
 void Scl_End( Abc_Frame_t * pAbc )
 {
@@ -203,19 +203,42 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
-int Scl_CommandPrint( Abc_Frame_t * pAbc, int argc, char **argv )
+int Scl_CommandPrintScl( Abc_Frame_t * pAbc, int argc, char **argv )
 {
+    float Slew = 200;
+    float Gain = 100;
     int c;
-
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "SGh" ) ) != EOF )
     {
         switch ( c )
         {
-            case 'h':
+        case 'S':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-S\" should be followed by a floating point number.\n" );
                 goto usage;
-            default:
+            }
+            Slew = (float)atof(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( Slew <= 0.0 )
                 goto usage;
+            break;
+        case 'G':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-G\" should be followed by a floating point number.\n" );
+                goto usage;
+            }
+            Gain = (float)atof(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( Gain <= 0.0 )
+                goto usage;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
         }
     }
     if ( pAbc->pLibScl == NULL )
@@ -225,13 +248,102 @@ int Scl_CommandPrint( Abc_Frame_t * pAbc, int argc, char **argv )
     }
 
     // save current library
-    Abc_SclPrintCells( (SC_Lib *)pAbc->pLibScl );
+    Abc_SclPrintCells( (SC_Lib *)pAbc->pLibScl, Slew, Gain );
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: print_scl [-h]\n" );
-    fprintf( pAbc->Err, "\t         prints statistics of Liberty library\n" );
-    fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
+    fprintf( pAbc->Err, "usage: print_scl [-SG float] [-h]\n" );
+    fprintf( pAbc->Err, "\t           prints statistics of Liberty library\n" );
+    fprintf( pAbc->Err, "\t-S float : the slew parameter used to generate the library [default = %.2f]\n", Slew );
+    fprintf( pAbc->Err, "\t-G float : the gain parameter used to generate the library [default = %.2f]\n", Gain );
+    fprintf( pAbc->Err, "\t-h       : print the help massage\n" );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Scl_CommandDumpGen( Abc_Frame_t * pAbc, int argc, char **argv )
+{
+    char * pFileName = NULL;
+    float Slew = 100;
+    float Gain = 2;
+    int nGatesMin = 4;
+    int c, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "SGMvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'S':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-S\" should be followed by a floating point number.\n" );
+                goto usage;
+            }
+            Slew = (float)atof(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( Slew <= 0.0 )
+                goto usage;
+            break;
+        case 'G':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-G\" should be followed by a floating point number.\n" );
+                goto usage;
+            }
+            Gain = (float)atof(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( Gain <= 0.0 )
+                goto usage;
+            break;
+        case 'M':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-M\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            nGatesMin = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nGatesMin < 0 ) 
+                goto usage;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pLibScl == NULL )
+    {
+        fprintf( pAbc->Err, "There is no Liberty library available.\n" );
+        goto usage;
+    }
+    if ( argc == globalUtilOptind + 1 )
+        pFileName = argv[globalUtilOptind];
+    Abc_SclDumpGenlib( pFileName, (SC_Lib *)pAbc->pLibScl, Slew, Gain, nGatesMin );
+    return 0;
+
+usage:
+    fprintf( pAbc->Err, "usage: dump_genlib [-SG float] [-M num] [-vh] <file>\n" );
+    fprintf( pAbc->Err, "\t           writes GENLIB file for SCL library\n" );
+    fprintf( pAbc->Err, "\t-S float : the slew parameter used to generate the library [default = %.2f]\n", Slew );
+    fprintf( pAbc->Err, "\t-G float : the gain parameter used to generate the library [default = %.2f]\n", Gain );
+    fprintf( pAbc->Err, "\t-M num   : skip gate classes whose size is less than this [default = %d]\n", nGatesMin );
+    fprintf( pAbc->Err, "\t-v       : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( pAbc->Err, "\t-h       : print the command usage\n");
+    fprintf( pAbc->Err, "\t<file>   : optional GENLIB file name\n");
     return 1;
 }
 
@@ -304,11 +416,11 @@ int Scl_CommandStime( Abc_Frame_t * pAbc, int argc, char **argv )
     int c;
     int fShowAll      = 0;
     int fUseWireLoads = 1;
-    int fShort        = 1;
+    int fPrintPath    = 0;
     int fDumpStats    = 0;
 
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "casdh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "capdh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -318,8 +430,8 @@ int Scl_CommandStime( Abc_Frame_t * pAbc, int argc, char **argv )
             case 'a':
                 fShowAll ^= 1;
                 break;
-            case 's':
-                fShort ^= 1;
+            case 'p':
+                fPrintPath ^= 1;
                 break;
             case 'd':
                 fDumpStats ^= 1;
@@ -352,15 +464,15 @@ int Scl_CommandStime( Abc_Frame_t * pAbc, int argc, char **argv )
         return 1;
     }
 
-    Abc_SclTimePerform( (SC_Lib *)pAbc->pLibScl, Abc_FrameReadNtk(pAbc), fUseWireLoads, fShowAll, fShort, fDumpStats );
+    Abc_SclTimePerform( (SC_Lib *)pAbc->pLibScl, Abc_FrameReadNtk(pAbc), fUseWireLoads, fShowAll, fPrintPath, fDumpStats );
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: stime [-casdh]\n" );
+    fprintf( pAbc->Err, "usage: stime [-capdh]\n" );
     fprintf( pAbc->Err, "\t         performs STA using Liberty library\n" );
     fprintf( pAbc->Err, "\t-c     : toggle using wire-loads if specified [default = %s]\n", fUseWireLoads? "yes": "no" );
     fprintf( pAbc->Err, "\t-a     : display timing information for all nodes [default = %s]\n", fShowAll? "yes": "no" );
-    fprintf( pAbc->Err, "\t-s     : display timing information for critical path [default = %s]\n", fShort? "yes": "no" );
+    fprintf( pAbc->Err, "\t-p     : display timing information for critical path [default = %s]\n", fPrintPath? "yes": "no" );
     fprintf( pAbc->Err, "\t-d     : toggle dumping statistics into a file [default = %s]\n", fDumpStats? "yes": "no" );
     fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
     return 1;
@@ -442,12 +554,13 @@ int Scl_CommandBuffer( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     Abc_Ntk_t * pNtkRes;
-    int Degree;
+    int Degree, fUseInvs;
     int c, fVerbose;
     Degree   = 4;
+    fUseInvs = 0;
     fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Nvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Nivh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -461,6 +574,9 @@ int Scl_CommandBuffer( Abc_Frame_t * pAbc, int argc, char ** argv )
             globalUtilOptind++;
             if ( Degree < 0 ) 
                 goto usage;
+            break;
+        case 'i':
+            fUseInvs ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -484,7 +600,7 @@ int Scl_CommandBuffer( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // modify the current network
-    pNtkRes = Abc_SclPerformBuffering( pNtk, Degree, fVerbose );
+    pNtkRes = Abc_SclPerformBuffering( pNtk, Degree, fUseInvs, fVerbose );
     if ( pNtkRes == NULL )
     {
         Abc_Print( -1, "The command has failed.\n" );
@@ -495,9 +611,10 @@ int Scl_CommandBuffer( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: buffer [-N num] [-vh]\n" );
+    fprintf( pAbc->Err, "usage: buffer [-N num] [-ivh]\n" );
     fprintf( pAbc->Err, "\t           performs buffering of the mapped network\n" );
     fprintf( pAbc->Err, "\t-N <num> : the max allowed fanout count of node/buffer [default = %d]\n", Degree );
+    fprintf( pAbc->Err, "\t-i       : toggle using interters instead of buffers [default = %s]\n", fUseInvs? "yes": "no" );
     fprintf( pAbc->Err, "\t-v       : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pAbc->Err, "\t-h       : print the command usage\n");
     return 1;
@@ -974,80 +1091,6 @@ int Scl_CommandPrintBuf( Abc_Frame_t * pAbc, int argc, char **argv )
 usage:
     fprintf( pAbc->Err, "usage: minsize [-vh]\n" );
     fprintf( pAbc->Err, "\t           downsized all gates to their minimum size\n" );
-    fprintf( pAbc->Err, "\t-v       : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
-    fprintf( pAbc->Err, "\t-h       : print the command usage\n");
-    return 1;
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Scl_CommandDumpGen( Abc_Frame_t * pAbc, int argc, char **argv )
-{
-    char * pFileName;
-    float Slew = 100;
-    float Gain = 2;
-    int c, fVerbose = 0;
-    Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "SGvh" ) ) != EOF )
-    {
-        switch ( c )
-        {
-        case 'S':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-S\" should be followed by a floating point number.\n" );
-                goto usage;
-            }
-            Slew = (float)atof(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( Slew <= 0.0 )
-                goto usage;
-            break;
-        case 'G':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-G\" should be followed by a floating point number.\n" );
-                goto usage;
-            }
-            Gain = (float)atof(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( Gain <= 0.0 )
-                goto usage;
-            break;
-        case 'v':
-            fVerbose ^= 1;
-            break;
-        case 'h':
-            goto usage;
-        default:
-            goto usage;
-        }
-    }
-    if ( pAbc->pLibScl == NULL )
-    {
-        fprintf( pAbc->Err, "There is no Liberty library available.\n" );
-        goto usage;
-    }
-    if ( argc != globalUtilOptind + 1 )
-        goto usage;
-    pFileName = argv[globalUtilOptind];
-    Abc_SclDumpGenlib( pFileName, (SC_Lib *)pAbc->pLibScl, Slew, Gain );
-    return 0;
-
-usage:
-    fprintf( pAbc->Err, "usage: dump_genlib [-SG float] [-vh]\n" );
-    fprintf( pAbc->Err, "\t           writes GENLIB file for SCL library\n" );
-    fprintf( pAbc->Err, "\t-S float : the slew parameter used to generate the library [default = %.2f]\n", Slew );
-    fprintf( pAbc->Err, "\t-G float : the gain parameter used to generate the library [default = %.2f]\n", Gain );
     fprintf( pAbc->Err, "\t-v       : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pAbc->Err, "\t-h       : print the command usage\n");
     return 1;
