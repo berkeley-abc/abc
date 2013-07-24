@@ -1001,6 +1001,15 @@ int Io_ReadBlifNetworkDefaultOutputRequired( Io_ReadBlif_t * p, Vec_Ptr_t * vTok
   SeeAlso     []
 
 ***********************************************************************/
+int Io_ReadFindCiId( Abc_Ntk_t * pNtk, Abc_Obj_t * pObj )
+{
+    Abc_Obj_t * pTemp;
+    int i;
+    Abc_NtkForEachCi( pNtk, pTemp, i )
+        if ( pTemp == pObj )
+            return i;
+    return -1;
+}
 int Io_ReadBlifNetworkInputDrive( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens )
 {
     Abc_Obj_t * pNet;
@@ -1034,7 +1043,7 @@ int Io_ReadBlifNetworkInputDrive( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens )
         return 1;
     }
     // set the arrival time
-    Abc_NtkTimeSetInputDrive( p->pNtkCur, Abc_NtkObj(p->pNtkCur, Abc_ObjFanin0(pNet)->Id)->iTemp, (float)TimeRise, (float)TimeFall );
+    Abc_NtkTimeSetInputDrive( p->pNtkCur, Io_ReadFindCiId(p->pNtkCur, Abc_NtkObj(p->pNtkCur, Abc_ObjFanin0(pNet)->Id)), (float)TimeRise, (float)TimeFall );
     return 0;
 }
 
@@ -1049,6 +1058,15 @@ int Io_ReadBlifNetworkInputDrive( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens )
   SeeAlso     []
 
 ***********************************************************************/
+int Io_ReadFindCoId( Abc_Ntk_t * pNtk, Abc_Obj_t * pObj )
+{
+    Abc_Obj_t * pTemp;
+    int i;
+    Abc_NtkForEachPo( pNtk, pTemp, i )
+        if ( pTemp == pObj )
+            return i;
+    return -1;
+}
 int Io_ReadBlifNetworkOutputLoad( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens )
 {
     Abc_Obj_t * pNet;
@@ -1082,7 +1100,7 @@ int Io_ReadBlifNetworkOutputLoad( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens )
         return 1;
     }
     // set the arrival time
-    Abc_NtkTimeSetOutputLoad( p->pNtkCur, Abc_NtkObj(p->pNtkCur, Abc_ObjFanout0(pNet)->Id)->iTemp, (float)TimeRise, (float)TimeFall );
+    Abc_NtkTimeSetOutputLoad( p->pNtkCur, Io_ReadFindCoId(p->pNtkCur, Abc_NtkObj(p->pNtkCur, Abc_ObjFanout0(pNet)->Id)), (float)TimeRise, (float)TimeFall );
     return 0;
 }
 

@@ -232,6 +232,13 @@ void Abc_NtkTimeSetDefaultInputDrive( Abc_Ntk_t * pNtk, float Rise, float Fall )
         pNtk->pManTime = Abc_ManTimeStart();
     pNtk->pManTime->tInDriveDef.Rise  = Rise;
     pNtk->pManTime->tInDriveDef.Fall  = Fall;
+    if ( pNtk->pManTime->tInDrive != NULL )
+    {
+        int i;
+        for ( i = 0; i < Abc_NtkCiNum(pNtk); i++ )
+            if ( pNtk->pManTime->tInDrive[i].Rise == 0 && pNtk->pManTime->tInDrive[i].Fall == 0 )
+                pNtk->pManTime->tInDrive[i] = pNtk->pManTime->tInDriveDef;
+    }
 }
 void Abc_NtkTimeSetDefaultOutputLoad( Abc_Ntk_t * pNtk, float Rise, float Fall )
 {
@@ -241,6 +248,13 @@ void Abc_NtkTimeSetDefaultOutputLoad( Abc_Ntk_t * pNtk, float Rise, float Fall )
         pNtk->pManTime = Abc_ManTimeStart();
     pNtk->pManTime->tOutLoadDef.Rise  = Rise;
     pNtk->pManTime->tOutLoadDef.Fall  = Fall;
+    if ( pNtk->pManTime->tOutLoad != NULL )
+    {
+        int i;
+        for ( i = 0; i < Abc_NtkCoNum(pNtk); i++ )
+            if ( pNtk->pManTime->tOutLoad[i].Rise == 0 && pNtk->pManTime->tOutLoad[i].Fall == 0 )
+                pNtk->pManTime->tOutLoad[i] = pNtk->pManTime->tOutLoadDef;
+    }
 }
 
 /**Function*************************************************************
@@ -263,7 +277,12 @@ void Abc_NtkTimeSetInputDrive( Abc_Ntk_t * pNtk, int PiNum, float Rise, float Fa
     if ( pNtk->pManTime->tInDriveDef.Rise == Rise && pNtk->pManTime->tInDriveDef.Fall == Fall )
         return;
     if ( pNtk->pManTime->tInDrive == NULL )
+    {
+        int i;
         pNtk->pManTime->tInDrive = ABC_CALLOC( Abc_Time_t, Abc_NtkCiNum(pNtk) );
+        for ( i = 0; i < Abc_NtkCiNum(pNtk); i++ )
+            pNtk->pManTime->tInDrive[i] = pNtk->pManTime->tInDriveDef;
+    }
     pTime = pNtk->pManTime->tInDrive + PiNum;
     pTime->Rise  = Rise;
     pTime->Fall  = Fall;
@@ -277,7 +296,12 @@ void Abc_NtkTimeSetOutputLoad( Abc_Ntk_t * pNtk, int PoNum, float Rise, float Fa
     if ( pNtk->pManTime->tOutLoadDef.Rise == Rise && pNtk->pManTime->tOutLoadDef.Fall == Fall )
         return;
     if ( pNtk->pManTime->tOutLoad == NULL )
+    {
+        int i;
         pNtk->pManTime->tOutLoad = ABC_CALLOC( Abc_Time_t, Abc_NtkCoNum(pNtk) );
+        for ( i = 0; i < Abc_NtkCoNum(pNtk); i++ )
+            pNtk->pManTime->tOutLoad[i] = pNtk->pManTime->tOutLoadDef;
+    }
     pTime = pNtk->pManTime->tOutLoad + PoNum;
     pTime->Rise  = Rise;
     pTime->Fall  = Fall;
