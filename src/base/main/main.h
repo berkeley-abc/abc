@@ -103,6 +103,7 @@ extern ABC_DLL void *          Abc_FrameReadLibGen();
 extern ABC_DLL void *          Abc_FrameReadLibGen2();                    
 extern ABC_DLL void *          Abc_FrameReadLibSuper();                  
 extern ABC_DLL void *          Abc_FrameReadLibVer();                  
+extern ABC_DLL void *          Abc_FrameReadLibScl();                  
 extern ABC_DLL void *          Abc_FrameReadManDd();                     
 extern ABC_DLL void *          Abc_FrameReadManDec();                    
 extern ABC_DLL char *          Abc_FrameReadFlag( char * pFlag ); 

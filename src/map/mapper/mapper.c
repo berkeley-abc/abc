@@ -142,8 +142,14 @@ int Map_CommandReadLibrary( Abc_Frame_t * pAbc, int argc, char **argv )
     }
     fclose( pFile );
 
+    if ( Abc_FrameReadLibGen() == NULL )
+    {
+        fprintf( pErr, "Genlib library should be read in first..\n" );
+        return 1;
+    }
+
     // set the new network
-    pLib = Map_SuperLibCreate( NULL, FileName, ExcludeFile, fAlgorithm, fVerbose );
+    pLib = Map_SuperLibCreate( (Mio_Library_t *)Abc_FrameReadLibGen(), NULL, FileName, ExcludeFile, fAlgorithm, fVerbose );
     if ( pLib == NULL )
     {
         fprintf( pErr, "Reading supergate library has failed.\n" );

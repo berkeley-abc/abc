@@ -57,7 +57,7 @@ static Abc_Obj_t *  Abc_NodeFromMapSuperChoice_rec( Abc_Ntk_t * pNtkNew, Map_Sup
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkMap( Abc_Ntk_t * pNtk, double DelayTarget, double AreaMulti, double DelayMulti, int fRecovery, int fSwitching, int fVerbose )
+Abc_Ntk_t * Abc_NtkMap( Abc_Ntk_t * pNtk, double DelayTarget, double AreaMulti, double DelayMulti, float Slew, float Gain, int nGatesMin, int fRecovery, int fSwitching, int fVerbose )
 {
     static int fUseMulti = 0;
     int fShowSwitching = 1;
@@ -66,17 +66,18 @@ Abc_Ntk_t * Abc_NtkMap( Abc_Ntk_t * pNtk, double DelayTarget, double AreaMulti, 
     Vec_Int_t * vSwitching = NULL;
     float * pSwitching = NULL;
     abctime clk, clkTotal = Abc_Clock();
-    Mio_Library_t * pLib = (Mio_Library_t *)Abc_FrameReadLibGen();
-
+    Mio_Library_t * pLib;
     assert( Abc_NtkIsStrash(pNtk) );
-
-    // check that the library is available
+    // derive library from SCL
+    if ( Abc_FrameReadLibScl() )
+        Mio_SclDeriveGenlib( Abc_FrameReadLibScl(), Slew, Gain, nGatesMin );
+    // quit if there is no library
+    pLib = Abc_FrameReadLibGen();
     if ( pLib == NULL )
     {
         printf( "The current library is not available.\n" );
         return 0;
     }
-
     if ( AreaMulti != 0.0 )
         fUseMulti = 1, printf( "The cell areas are multiplied by the factor: <num_fanins> ^ (%.2f).\n", AreaMulti );
     if ( DelayMulti != 0.0 )
@@ -91,8 +92,6 @@ Abc_Ntk_t * Abc_NtkMap( Abc_Ntk_t * pNtk, double DelayTarget, double AreaMulti, 
     // derive the supergate library
     if ( fUseMulti || Abc_FrameReadLibSuper() == NULL )
     {
-//        printf( "A simple supergate library is derived from gate library \"%s\".\n", 
-//            Mio_LibraryReadName((Mio_Library_t *)Abc_FrameReadLibGen()) );
         if ( fVerbose )
             printf( "Converting \"%s\" into supergate library \"%s\".\n", 
                 Mio_LibraryReadName(pLib), Extra_FileNameGenericAppend(Mio_LibraryReadName(pLib), ".super") );

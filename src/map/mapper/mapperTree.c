@@ -142,6 +142,7 @@ Map_Super_t * Map_LibraryReadGateTree( Map_SuperLib_t * pLib, char * pBuffer, in
   SeeAlso     []
 
 ***********************************************************************/
+/*
 int Map_LibraryReadFileTree( Map_SuperLib_t * pLib, FILE * pFile, char *pFileName )
 {
     ProgressBar * pProgress;
@@ -299,6 +300,7 @@ int Map_LibraryReadTree2( Map_SuperLib_t * pLib, char * pFileName, char * pExclu
     // prepare the info about the library
     return Map_LibraryDeriveGateInfo( pLib, tExcludeGate );
 }
+*/
 
 /**Function*************************************************************
 
@@ -386,7 +388,7 @@ int Map_LibraryCompareLibNames( char * pName1, char * pName2 )
   SeeAlso     []
 
 ***********************************************************************/
-int Map_LibraryReadFileTreeStr( Map_SuperLib_t * pLib, Vec_Str_t * vStr, char * pFileName )
+int Map_LibraryReadFileTreeStr( Map_SuperLib_t * pLib, Mio_Library_t * pGenlib, Vec_Str_t * vStr, char * pFileName )
 {
     ProgressBar * pProgress;
     char pBuffer[5000];
@@ -410,7 +412,8 @@ int Map_LibraryReadFileTreeStr( Map_SuperLib_t * pLib, Vec_Str_t * vStr, char * 
     }
 
     pLibName = strtok( pTemp, " \t\r\n" );
-    pLib->pGenlib = (Mio_Library_t *)Abc_FrameReadLibGen();
+//    pLib->pGenlib = (Mio_Library_t *)Abc_FrameReadLibGen();
+    pLib->pGenlib = pGenlib;
 //    if ( pLib->pGenlib == NULL || strcmp( , pLibName ) )
     if ( pLib->pGenlib == NULL || Map_LibraryCompareLibNames(Mio_LibraryReadName(pLib->pGenlib), pLibName) )
     {
@@ -519,7 +522,7 @@ int Map_LibraryReadFileTreeStr( Map_SuperLib_t * pLib, Vec_Str_t * vStr, char * 
     pLib->nSupersReal = nCounter;
     return 1;
 }
-int Map_LibraryReadTree( Map_SuperLib_t * pLib, char * pFileName, char * pExcludeFile )
+int Map_LibraryReadTree( Map_SuperLib_t * pLib, Mio_Library_t * pGenlib, char * pFileName, char * pExcludeFile )
 {
     char * pBuffer;
     Vec_Str_t * vStr;
@@ -554,7 +557,7 @@ int Map_LibraryReadTree( Map_SuperLib_t * pLib, char * pFileName, char * pExclud
         fprintf ( Abc_FrameReadOut( pAbc ), "Read %d gates from exclude file\n", num );
     }
     
-    Status = Map_LibraryReadFileTreeStr( pLib, vStr, pFileName );
+    Status = Map_LibraryReadFileTreeStr( pLib, pGenlib, vStr, pFileName );
     Vec_StrFree( vStr );
     if ( Status == 0 )
         return 0;

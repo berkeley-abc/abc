@@ -1044,7 +1044,7 @@ void Abc_SclPrintCells( SC_Lib * p, float Slew, float Gain )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Str_t * Abc_SclDeriveGenlib( SC_Lib * p, float Slew, float Gain, int nGatesMin, int * pnCellCount )
+Vec_Str_t * Abc_SclDeriveGenlibStr( SC_Lib * p, float Slew, float Gain, int nGatesMin, int * pnCellCount )
 {
     extern char * Abc_SclFindGateFormula( char * pGateName, char * pOutName );
     char Buffer[200];
@@ -1090,7 +1090,8 @@ Vec_Str_t * Abc_SclDeriveGenlib( SC_Lib * p, float Slew, float Gain, int nGatesM
     Vec_StrPush( vStr, '\0' );
 //    printf( "%s", Vec_StrArray(vStr) );
 //    printf( "GENLIB library with %d gates is produced.\n", Count );
-    *pnCellCount = Count;
+    if ( pnCellCount )
+        *pnCellCount = Count;
     return vStr;
 }
 void Abc_SclDumpGenlib( char * pFileName, SC_Lib * p, float Slew, float Gain, int nGatesMin )
@@ -1109,11 +1110,24 @@ void Abc_SclDumpGenlib( char * pFileName, SC_Lib * p, float Slew, float Gain, in
         printf( "Cannot open file \"%s\" for writing.\n", FileName );
         return;
     }
-    vStr = Abc_SclDeriveGenlib( p, Slew, Gain, nGatesMin, &nCellCount );
+    vStr = Abc_SclDeriveGenlibStr( p, Slew, Gain, nGatesMin, &nCellCount );
     fprintf( pFile, "%s", Vec_StrArray(vStr) );
     Vec_StrFree( vStr );
     fclose( pFile );
     printf( "Written GENLIB library with %d gates into file \"%s\".\n", nCellCount, FileName );
+}
+void Mio_SclDeriveGenlib( void * pScl, float Slew, float Gain, int nGatesMin )
+{
+    int nGateCount = 0;
+    Vec_Str_t * vStr = Abc_SclDeriveGenlibStr( pScl, Slew, Gain, nGatesMin, &nGateCount );
+    Vec_Str_t * vStr2 = Vec_StrDup( vStr );
+    int RetValue = Mio_UpdateGenlib2( vStr, vStr2, ((SC_Lib *)pScl)->pName, 0 );
+    Vec_StrFree( vStr );
+    Vec_StrFree( vStr2 );
+    if ( RetValue )
+        printf( "Internally derived GENLIB library \"%s\" with %d gates.\n", ((SC_Lib *)pScl)->pName, nGateCount );
+    else
+        printf( "Reading library has filed.\n" );
 }
 
 ////////////////////////////////////////////////////////////////////////

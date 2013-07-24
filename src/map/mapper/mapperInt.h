@@ -378,7 +378,7 @@ extern void              Map_NodeAddFaninFanout( Map_Node_t * pFanin, Map_Node_t
 extern void              Map_NodeRemoveFaninFanout( Map_Node_t * pFanin, Map_Node_t * pFanoutToRemove );
 extern int               Map_NodeGetFanoutNum( Map_Node_t * pNode );
 /*=== mapperLib.c ============================================================*/
-extern Map_SuperLib_t *  Map_SuperLibCreate( Vec_Str_t * vStr, char * pFileName, char * pExcludeFile, int  fAlgorithm, int  fVerbose );
+extern Map_SuperLib_t *  Map_SuperLibCreate( Mio_Library_t * pGenlib, Vec_Str_t * vStr, char * pFileName, char * pExcludeFile, int  fAlgorithm, int  fVerbose );
 extern void              Map_SuperLibFree( Map_SuperLib_t * p );
 /*=== mapperMatch.c ===============================================================*/
 extern int               Map_MappingMatches( Map_Man_t * p );
@@ -406,8 +406,8 @@ extern float             Map_MappingGetArea( Map_Man_t * pMan, Map_NodeVec_t * v
 extern void              Map_MappingShow( Map_Man_t * pMan, char * pFileName );
 /*=== mapperTree.c ===============================================================*/
 extern int               Map_LibraryDeriveGateInfo( Map_SuperLib_t * pLib, st__table * tExcludeGate );
-extern int               Map_LibraryReadFileTreeStr( Map_SuperLib_t * pLib, Vec_Str_t * vStr, char * pFileName );
-extern int               Map_LibraryReadTree( Map_SuperLib_t * pLib, char * pFileName, char * pExcludeFile );
+extern int               Map_LibraryReadFileTreeStr( Map_SuperLib_t * pLib, Mio_Library_t * pGenlib, Vec_Str_t * vStr, char * pFileName );
+extern int               Map_LibraryReadTree( Map_SuperLib_t * pLib, Mio_Library_t * pGenlib, char * pFileName, char * pExcludeFile );
 extern void              Map_LibraryPrintTree( Map_SuperLib_t * pLib );
 /*=== mapperSuper.c ===============================================================*/
 extern int               Map_LibraryRead( Map_SuperLib_t * p, char * pFileName );

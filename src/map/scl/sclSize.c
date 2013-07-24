@@ -129,6 +129,7 @@ void Abc_SclTimeNtkPrint( SC_Man * p, int fShowAll, int fPrintPath )
     int i, nLength = 0, fRise = 0;
     Abc_Obj_t * pObj, * pPivot = Abc_SclFindCriticalCo( p, &fRise ); 
     float maxDelay = Abc_SclObjTimePs(p, pPivot, fRise);
+    p->ReportDelay = maxDelay;
 
     printf( "WireLoad model = \"%s\".  ",  p->pWLoadUsed ? p->pWLoadUsed->pName : "none" );
     printf( "Gates = %6d.  ",              Abc_NtkNodeNum(p->pNtk) );

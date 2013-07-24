@@ -56,6 +56,7 @@ void *      Abc_FrameReadLibGen()                            { return s_GlobalFr
 void *      Abc_FrameReadLibGen2()                           { return s_GlobalFrame->pLibGen2;     } 
 void *      Abc_FrameReadLibSuper()                          { return s_GlobalFrame->pLibSuper;    } 
 void *      Abc_FrameReadLibVer()                            { return s_GlobalFrame->pLibVer;      } 
+void *      Abc_FrameReadLibScl()                            { return s_GlobalFrame->pLibScl;      } 
 void *      Abc_FrameReadManDd()                             { if ( s_GlobalFrame->dd == NULL )      s_GlobalFrame->dd = Cudd_Init( 0, 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );  return s_GlobalFrame->dd;      } 
 void *      Abc_FrameReadManDec()                            { if ( s_GlobalFrame->pManDec == NULL ) s_GlobalFrame->pManDec = Dec_ManStart();                                        return s_GlobalFrame->pManDec; } 
 char *      Abc_FrameReadFlag( char * pFlag )                { return Cmd_FlagReadByName( s_GlobalFrame, pFlag );   } 

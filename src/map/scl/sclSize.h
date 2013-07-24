@@ -73,6 +73,7 @@ struct SC_Man_
     float          SumArea0;      // total area at the begining 
     float          MaxDelay0;     // max delay at the begining
     float          BestDelay;     // best delay in the middle
+    float          ReportDelay;   // delay to report
     // runtime statistics
     abctime        timeTotal;     // starting/total time
     abctime        timeCone;      // critical path selection 
@@ -364,8 +365,8 @@ static inline void Abc_SclDumpStats( SC_Man * p, char * pFileName, abctime Time 
     fprintf( pTable, "%d ", Abc_NtkPoNum(p->pNtk) );
     fprintf( pTable, "%d ", Abc_NtkNodeNum(p->pNtk) );
     fprintf( pTable, "%d ", (int)p->SumArea );
-    fprintf( pTable, "%d ", (int)SC_LibTimePs(p->pLib, p->MaxDelay) );
-    fprintf( pTable, "%.2f ", 1.0*Time/CLOCKS_PER_SEC );
+    fprintf( pTable, "%d ", (int)p->ReportDelay );
+//    fprintf( pTable, "%.2f ", 1.0*Time/CLOCKS_PER_SEC );
     fprintf( pTable, "\n" );
     fclose( pTable );
 }

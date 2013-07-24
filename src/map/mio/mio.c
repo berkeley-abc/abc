@@ -110,6 +110,63 @@ void Mio_End( Abc_Frame_t * pAbc )
     Amap_LibFree( (Amap_Lib_t *)Abc_FrameReadLibGen2() );
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Mio_UpdateGenlib( Mio_Library_t * pLib )
+{
+    // free the current superlib because it depends on the old Mio library
+    if ( Abc_FrameReadLibSuper() )
+    {
+        Map_SuperLibFree( (Map_SuperLib_t *)Abc_FrameReadLibSuper() );
+        Abc_FrameSetLibSuper( NULL );
+    }
+
+    // replace the current library
+    Mio_LibraryDelete( (Mio_Library_t *)Abc_FrameReadLibGen() );
+    Abc_FrameSetLibGen( pLib );
+
+    // replace the current library
+    Amap_LibFree( (Amap_Lib_t *)Abc_FrameReadLibGen2() );
+    Abc_FrameSetLibGen2( NULL );
+}
+int Mio_UpdateGenlib2( Vec_Str_t * vStr, Vec_Str_t * vStr2, char * pFileName, int fVerbose )
+{
+    Mio_Library_t * pLib;
+    // set the new network
+    pLib = Mio_LibraryRead( pFileName, Vec_StrArray(vStr), NULL, fVerbose );  
+    if ( pLib == NULL )
+        return 0;
+
+    // free the current superlib because it depends on the old Mio library
+    if ( Abc_FrameReadLibSuper() )
+    {
+        Map_SuperLibFree( (Map_SuperLib_t *)Abc_FrameReadLibSuper() );
+        Abc_FrameSetLibSuper( NULL );
+    }
+
+    // replace the current library
+    Mio_LibraryDelete( (Mio_Library_t *)Abc_FrameReadLibGen() );
+    Abc_FrameSetLibGen( pLib );
+
+    // set the new network
+    pLib = (Mio_Library_t *)Amap_LibReadAndPrepare( pFileName, Vec_StrArray(vStr2), 0, 0 );  
+    if ( pLib == NULL )
+        return 0;
+
+    // replace the current library
+    Amap_LibFree( (Amap_Lib_t *)Abc_FrameReadLibGen2() );
+    Abc_FrameSetLibGen2( pLib );
+    return 1;
+}
 
 /**Function*************************************************************
 
@@ -155,11 +212,8 @@ int Mio_CommandReadLiberty( Abc_Frame_t * pAbc, int argc, char **argv )
         }
     }
 
-
     if ( argc != globalUtilOptind + 1 )
-    {
         goto usage;
-    }
 
     // get the input file name
     pFileName = argv[globalUtilOptind];
@@ -183,43 +237,17 @@ int Mio_CommandReadLiberty( Abc_Frame_t * pAbc, int argc, char **argv )
     }
     else
     {
-        Mio_Library_t * pLib;
         Vec_Str_t * vStr, * vStr2;
-
+        int RetValue;
         vStr = Amap_LibertyParseStr( pFileName, fVerbose );
         if ( vStr == NULL )
             return 0;
-        vStr2 = Vec_StrDup( vStr );
-
-        // set the new network
-        pLib = Mio_LibraryRead( pFileName, Vec_StrArray(vStr), NULL, fVerbose );  
+        vStr2 = Vec_StrDup(vStr);
+        RetValue = Mio_UpdateGenlib2( vStr, vStr2, pFileName, fVerbose );
         Vec_StrFree( vStr );
-        if ( pLib == NULL )
-        {
-            Vec_StrFree( vStr2 );
-            return 0;
-        }
-
-        // free the current superlib because it depends on the old Mio library
-        if ( Abc_FrameReadLibSuper() )
-        {
-            Map_SuperLibFree( (Map_SuperLib_t *)Abc_FrameReadLibSuper() );
-            Abc_FrameSetLibSuper( NULL );
-        }
-
-        // replace the current library
-        Mio_LibraryDelete( (Mio_Library_t *)Abc_FrameReadLibGen() );
-        Abc_FrameSetLibGen( pLib );
-
-        // set the new network
-        pLib = (Mio_Library_t *)Amap_LibReadAndPrepare( pFileName, Vec_StrArray(vStr2), 0, 0 );  
         Vec_StrFree( vStr2 );
-        if ( pLib == NULL )
-            return 0;
-
-        // replace the current library
-        Amap_LibFree( (Amap_Lib_t *)Abc_FrameReadLibGen2() );
-        Abc_FrameSetLibGen2( pLib );
+        if ( !RetValue )
+            printf( "Reading library has filed.\n" );
     }
     return 0;
 
@@ -331,26 +359,16 @@ int Mio_CommandReadGenlib( Abc_Frame_t * pAbc, int argc, char **argv )
     if ( WireDelay != 0.0 )
         Mio_LibraryShiftDelay( pLib, WireDelay );
 
-    // free the current superlib because it depends on the old Mio library
-    if ( Abc_FrameReadLibSuper() )
-    {
-        Map_SuperLibFree( (Map_SuperLib_t *)Abc_FrameReadLibSuper() );
-        Abc_FrameSetLibSuper( NULL );
-    }
+    // prepare libraries
+    Mio_UpdateGenlib( pLib );
 
     // replace the current library
-    Mio_LibraryDelete( (Mio_Library_t *)Abc_FrameReadLibGen() );
-    Abc_FrameSetLibGen( pLib );
-
-    // set the new network
     pLib2 = Amap_LibReadAndPrepare( pFileName, NULL, 0, 0 );  
     if ( pLib2 == NULL )
     {
-        fprintf( pErr, "Reading genlib library has failed.\n" );
+        fprintf( pErr, "Reading second genlib library has failed.\n" );
         return 1;
     }
-    // replace the current library
-    Amap_LibFree( (Amap_Lib_t *)Abc_FrameReadLibGen2() );
     Abc_FrameSetLibGen2( pLib2 );
     return 0;
 
