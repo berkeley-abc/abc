@@ -31,6 +31,7 @@ ABC_NAMESPACE_IMPL_START
 static int Scl_CommandRead    ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Scl_CommandWrite   ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Scl_CommandPrintScl( Abc_Frame_t * pAbc, int argc, char **argv );
+static int Scl_CommandDumpGen ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Scl_CommandPrintGS ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Scl_CommandStime   ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Scl_CommandTopo    ( Abc_Frame_t * pAbc, int argc, char **argv );
@@ -39,7 +40,6 @@ static int Scl_CommandUpsize  ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Scl_CommandDnsize  ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Scl_CommandMinsize ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Scl_CommandPrintBuf( Abc_Frame_t * pAbc, int argc, char **argv );
-static int Scl_CommandDumpGen ( Abc_Frame_t * pAbc, int argc, char **argv );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -274,8 +274,8 @@ usage:
 int Scl_CommandDumpGen( Abc_Frame_t * pAbc, int argc, char **argv )
 {
     char * pFileName = NULL;
-    float Slew = 100;
-    float Gain = 2;
+    float Slew = 200;
+    float Gain = 100;
     int nGatesMin = 4;
     int c, fVerbose = 0;
     Extra_UtilGetoptReset();

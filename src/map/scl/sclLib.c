@@ -1066,7 +1066,8 @@ Vec_Str_t * Abc_SclDeriveGenlib( SC_Lib * p, float Slew, float Gain, int nGatesM
         sprintf( Buffer, "%-16s", pRepr->pName );
         Vec_StrPrintStr( vStr, Buffer );
         Vec_StrPrintStr( vStr, " " );
-        sprintf( Buffer, "%7.2f", Abc_SclComputeAreaClass(pRepr) );
+//        sprintf( Buffer, "%7.2f", Abc_SclComputeAreaClass(pRepr) );
+        sprintf( Buffer, "%7.2f", pRepr->area );
         Vec_StrPrintStr( vStr, Buffer );
         Vec_StrPrintStr( vStr, " " );
         Vec_StrPrintStr( vStr, SC_CellPinName(pRepr, pRepr->n_inputs) );
