@@ -556,11 +556,12 @@ int Scl_CommandBuffer( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_Ntk_t * pNtkRes;
     int Degree, fUseInvs;
     int c, fVerbose;
+    int fOldAlgo = 0;
     Degree   = 4;
     fUseInvs = 0;
     fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Nivh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Naivh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -574,6 +575,9 @@ int Scl_CommandBuffer( Abc_Frame_t * pAbc, int argc, char ** argv )
             globalUtilOptind++;
             if ( Degree < 0 ) 
                 goto usage;
+            break;
+        case 'a':
+            fOldAlgo ^= 1;
             break;
         case 'i':
             fUseInvs ^= 1;
@@ -600,7 +604,10 @@ int Scl_CommandBuffer( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // modify the current network
-    pNtkRes = Abc_SclPerformBuffering( pNtk, Degree, fUseInvs, fVerbose );
+    if ( fOldAlgo )
+        pNtkRes = Abc_SclPerformBuffering( pNtk, Degree, fUseInvs, fVerbose );
+    else
+        pNtkRes = Abc_SclBufPerform( pNtk, fVerbose );
     if ( pNtkRes == NULL )
     {
         Abc_Print( -1, "The command has failed.\n" );
@@ -611,9 +618,10 @@ int Scl_CommandBuffer( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: buffer [-N num] [-ivh]\n" );
+    fprintf( pAbc->Err, "usage: buffer [-N num] [-aivh]\n" );
     fprintf( pAbc->Err, "\t           performs buffering of the mapped network\n" );
     fprintf( pAbc->Err, "\t-N <num> : the max allowed fanout count of node/buffer [default = %d]\n", Degree );
+    fprintf( pAbc->Err, "\t-a       : toggle using old algorithm [default = %s]\n", fOldAlgo? "yes": "no" );
     fprintf( pAbc->Err, "\t-i       : toggle using interters instead of buffers [default = %s]\n", fUseInvs? "yes": "no" );
     fprintf( pAbc->Err, "\t-v       : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pAbc->Err, "\t-h       : print the command usage\n");

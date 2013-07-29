@@ -375,6 +375,8 @@ static inline void Abc_SclDumpStats( SC_Man * p, char * pFileName, abctime Time 
 /*=== sclBuff.c ===============================================================*/
 extern int           Abc_SclCheckNtk( Abc_Ntk_t * p, int fVerbose );
 extern Abc_Ntk_t *   Abc_SclPerformBuffering( Abc_Ntk_t * p, int Degree, int fUseInvs, int fVerbose );
+/*=== sclBuffer.c ===============================================================*/
+extern Abc_Ntk_t *   Abc_SclBufPerform( Abc_Ntk_t * pNtk, int fVerbose );
 /*=== sclDnsize.c ===============================================================*/
 extern void          Abc_SclDnsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPars );
 /*=== sclLoad.c ===============================================================*/

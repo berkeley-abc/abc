@@ -198,6 +198,15 @@ char * Mio_GateReadPinName( Mio_Gate_t * pGate, int iPin )
             return Mio_PinReadName(pPin);
     return NULL;
 }
+float Mio_GateReadPinDelay( Mio_Gate_t * pGate, int iPin )
+{
+    Mio_Pin_t * pPin;
+    int i = 0;
+    Mio_GateForEachPin( pGate, pPin )
+        if ( i++ == iPin )
+            return 0.5 * pPin->dDelayBlockRise + 0.5 * pPin->dDelayBlockFall;
+    return ABC_INFINITY;
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
