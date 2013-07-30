@@ -711,14 +711,16 @@ void Abc_SclHashCells( SC_Lib * p )
 }
 int Abc_SclCellFind( SC_Lib * p, char * pName )
 {
-    return *Abc_SclHashLookup( p, pName );
+    int *pPlace = Abc_SclHashLookup( p, pName );
+    return pPlace ? *pPlace : -1;
 }
 int Abc_SclClassCellNum( SC_Cell * pClass )
 {
     SC_Cell * pCell;
     int i, Count = 0;
     SC_RingForEachCell( pClass, pCell, i )
-        Count++;
+        if ( !pCell->fSkip )
+            Count++;
     return Count;
 }
 
@@ -955,14 +957,15 @@ float Abc_SclComputeDelayClassPin( SC_Lib * p, SC_Cell * pRepr, int iPin, float 
     float Delay = 0;
     int i, Count = 0;
     SC_RingForEachCell( pRepr, pCell, i )
-        Count++;
-    SC_RingForEachCell( pRepr, pCell, i )
     {
-        if ( pRepr == pCell && Count > 1 ) // skip the first gate
+        if ( pCell->fSkip ) 
             continue;
+//        if ( pRepr == pCell ) // skip the first gate
+//            continue;
         Delay += Abc_SclComputeDelayCellPin( p, pCell, iPin, Slew, Gain );
+        Count++;
     }
-    return Delay / Abc_MaxInt(1, Count-1);
+    return Delay / Abc_MaxInt(1, Count);
 }
 float Abc_SclComputeAreaClass( SC_Cell * pRepr )
 {
@@ -971,6 +974,8 @@ float Abc_SclComputeAreaClass( SC_Cell * pRepr )
     int i, Count = 0;
     SC_RingForEachCell( pRepr, pCell, i )
     {
+        if ( pCell->fSkip ) 
+            continue;
         Area += pCell->area;
         Count++;
     }
@@ -988,6 +993,35 @@ float Abc_SclComputeAreaClass( SC_Cell * pRepr )
   SeeAlso     []
 
 ***********************************************************************/
+void Abc_SclMarkSkippedCells( SC_Lib * p )
+{
+    char FileName[1000];
+    char Buffer[1000], * pName;
+    SC_Cell * pCell;
+    FILE * pFile;
+    int CellId, nSkipped = 0;
+    sprintf( FileName, "%s.skip", p->pName );
+    pFile = fopen( FileName, "rb" );
+    if ( pFile == NULL )
+        return;
+    while ( fgets( Buffer, 999, pFile ) != NULL )
+    {
+        pName = strtok( Buffer, "\r\n\t " );
+        if ( pName == NULL )
+            continue;
+        CellId = Abc_SclCellFind( p, pName );
+        if ( CellId == -1 )
+        {
+            printf( "Cannot find cell \"%s\" in the library \"%s\".\n", pName, p->pName );
+            continue;
+        }
+        pCell = SC_LibCell( p, CellId );
+        pCell->fSkip = 1;
+        nSkipped++;
+    }
+    fclose( pFile );
+    printf( "Marked %d cells for skipping in the library \"%s\".\n", nSkipped, p->pName );
+}
 void Abc_SclPrintCells( SC_Lib * p, float Slew, float Gain )
 {
     SC_Cell * pCell, * pRepr;
@@ -998,6 +1032,7 @@ void Abc_SclPrintCells( SC_Lib * p, float Slew, float Gain )
     printf( "has %d cells in %d classes.  ", 
         Vec_PtrSize(p->vCells), Vec_PtrSize(p->vCellClasses) );
     printf( "Delay estimate is based on slew %.2f and gain %.2f.\n", Slew, Gain );
+    Abc_SclMarkSkippedCells( p );
     // find the longest name
     SC_LibForEachCellClass( p, pRepr, k )
         SC_RingForEachCell( pRepr, pCell, i )
@@ -1017,7 +1052,9 @@ void Abc_SclPrintCells( SC_Lib * p, float Slew, float Gain )
         SC_RingForEachCell( pRepr, pCell, i )
         {
             Abc_SclComputeParametersCell( p, pCell, Slew, &ED, &PD );
-            printf( "  %3d : ",       i+1 );
+            printf( "  %3d ",         i+1 );
+            printf( "%s",             pCell->fSkip ? "s" : " " );
+            printf( " : " );
             printf( "%-*s  ",         nLength, pCell->pName );
             printf( "%2d   ",         pCell->drive_strength );
             printf( "A =%8.2f   ",    pCell->area );
@@ -1027,7 +1064,7 @@ void Abc_SclPrintCells( SC_Lib * p, float Slew, float Gain )
             printf( "C =%5.1f ff   ", Abc_SclGatePinCapAve(p, pCell) );
             printf( "Lm =%5.1f ff  ", 0.01 * Gain * Abc_SclGatePinCapAve(p, pCell) );
 //            printf( "MaxS =%5.1f ps  ",   SC_CellPin(pCell, pCell->n_inputs)->max_out_slew );
-            printf( "Lm2 =%5.0f ff",  SC_CellPin(pCell, pCell->n_inputs)->max_out_cap );
+            printf( "Lm2 =%5.0f ff ",  SC_CellPin(pCell, pCell->n_inputs)->max_out_cap );
             printf( "\n" );
         }
     }
@@ -1052,6 +1089,7 @@ Vec_Str_t * Abc_SclDeriveGenlibStr( SC_Lib * p, float Slew, float Gain, int nGat
     SC_Cell * pRepr;
     SC_Pin * pPin;
     int i, k, Count = 2;
+    Abc_SclMarkSkippedCells( p );
     vStr = Vec_StrAlloc( 1000 );
     Vec_StrPrintStr( vStr, "GATE _const0_            0.00 z=CONST0;\n" );
     Vec_StrPrintStr( vStr, "GATE _const1_            0.00 z=CONST1;\n" );
@@ -1078,6 +1116,7 @@ Vec_Str_t * Abc_SclDeriveGenlibStr( SC_Lib * p, float Slew, float Gain, int nGat
         SC_CellForEachPinIn( pRepr, pPin, k )
         {
             float Delay = Abc_SclComputeDelayClassPin( p, pRepr, k, Slew, Gain );
+            assert( Delay > 0 );
             Vec_StrPrintStr( vStr, "         PIN " );
             sprintf( Buffer, "%-4s", pPin->pName );
             Vec_StrPrintStr( vStr, Buffer );

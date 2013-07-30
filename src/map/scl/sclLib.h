@@ -166,6 +166,7 @@ struct SC_Cell_
 {
     char *         pName;
     int            Id;
+    int            fSkip;          // skip this cell during genlib computation
     int            seq;            // -- set to TRUE by parser if a sequential element
     int            unsupp;         // -- set to TRUE by parser if cell contains information we cannot handle
     float          area;

@@ -358,25 +358,37 @@ static inline SC_Cell * Abc_SclObjResiable( SC_Man * p, Abc_Obj_t * pObj, int fU
 ***********************************************************************/
 static inline void Abc_SclDumpStats( SC_Man * p, char * pFileName, abctime Time )
 {
+    static char FileNameOld[1000] = {0};
+    static int nNodesOld, nAreaOld, nDelayOld;
     FILE * pTable;
     pTable = fopen( pFileName, "a+" );
-    fprintf( pTable, "%s ", p->pNtk->pName );
-    fprintf( pTable, "%d ", Abc_NtkPiNum(p->pNtk) );
-    fprintf( pTable, "%d ", Abc_NtkPoNum(p->pNtk) );
-    fprintf( pTable, "%d ", Abc_NtkNodeNum(p->pNtk) );
-    fprintf( pTable, "%d ", (int)p->SumArea );
-    fprintf( pTable, "%d ", (int)p->ReportDelay );
-//    fprintf( pTable, "%.2f ", 1.0*Time/CLOCKS_PER_SEC );
-    fprintf( pTable, "\n" );
+    if ( strcmp( FileNameOld, p->pNtk->pName ) )
+    {
+        sprintf( FileNameOld, "%s", p->pNtk->pName );
+        fprintf( pTable, "\n" );
+        fprintf( pTable, "%s ", p->pNtk->pName );
+        fprintf( pTable, "%d ", Abc_NtkPiNum(p->pNtk) );
+        fprintf( pTable, "%d ", Abc_NtkPoNum(p->pNtk) );
+        fprintf( pTable, "%d ", (nNodesOld = Abc_NtkNodeNum(p->pNtk)) );
+        fprintf( pTable, "%d ", (nAreaOld  = (int)p->SumArea)         );
+        fprintf( pTable, "%d ", (nDelayOld = (int)p->ReportDelay)     );
+    }
+    else
+    {
+        fprintf( pTable, " " );
+        fprintf( pTable, "%.1f ", 100.0 * Abc_NtkNodeNum(p->pNtk) / nNodesOld );
+        fprintf( pTable, "%.1f ", 100.0 * (int)p->SumArea         / nAreaOld  );
+        fprintf( pTable, "%.1f ", 100.0 * (int)p->ReportDelay     / nDelayOld );
+    }
+    //    fprintf( pTable, "%.2f ", 1.0*Time/CLOCKS_PER_SEC );
     fclose( pTable );
 }
 
 
-/*=== sclBuff.c ===============================================================*/
+/*=== sclBuffer.c ===============================================================*/
 extern int           Abc_SclCheckNtk( Abc_Ntk_t * p, int fVerbose );
 extern Abc_Ntk_t *   Abc_SclPerformBuffering( Abc_Ntk_t * p, int Degree, int fUseInvs, int fVerbose );
-/*=== sclBuffer.c ===============================================================*/
-extern Abc_Ntk_t *   Abc_SclBufPerform( Abc_Ntk_t * pNtk, int fVerbose );
+extern Abc_Ntk_t *   Abc_SclBufPerform( Abc_Ntk_t * pNtk, int FanMin, int FanMax, int fVerbose );
 /*=== sclDnsize.c ===============================================================*/
 extern void          Abc_SclDnsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPars );
 /*=== sclLoad.c ===============================================================*/
