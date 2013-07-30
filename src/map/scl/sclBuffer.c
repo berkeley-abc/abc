@@ -90,13 +90,18 @@ static inline int Abc_SclObjIsBufInv( Abc_Obj_t * pObj )
 {
     return Abc_ObjIsNode(pObj) && Abc_ObjFaninNum(pObj) == 1;
 }
+static inline int Abc_SclIsInv( Abc_Obj_t * pObj )
+{
+    assert( Abc_ObjIsNode(pObj) );
+    return Mio_GateReadTruth((Mio_Gate_t *)pObj->pData) == ABC_CONST(0x5555555555555555);
+}
 int Abc_SclGetRealFaninLit( Abc_Obj_t * pObj )
 {
     int iLit;
     if ( !Abc_SclObjIsBufInv(pObj) )
         return Abc_Var2Lit( Abc_ObjId(pObj), 0 );
     iLit = Abc_SclGetRealFaninLit( Abc_ObjFanin0(pObj) );
-    return Abc_LitNotCond( iLit, Abc_NodeIsInv(pObj) );
+    return Abc_LitNotCond( iLit, Abc_SclIsInv(pObj) );
 }
 Abc_Ntk_t * Abc_SclUnBufferPerform( Abc_Ntk_t * pNtk, int fVerbose )
 {
@@ -106,7 +111,7 @@ Abc_Ntk_t * Abc_SclUnBufferPerform( Abc_Ntk_t * pNtk, int fVerbose )
     // assign inverters
     vLits = Vec_IntStartFull( Abc_NtkObjNumMax(pNtk) );
     Abc_NtkForEachNode( pNtk, pObj, i )
-        if ( Abc_NodeIsInv(pObj) && !Abc_SclObjIsBufInv(Abc_ObjFanin0(pObj)) )
+        if ( Abc_SclIsInv(pObj) && !Abc_SclObjIsBufInv(Abc_ObjFanin0(pObj)) )
             Vec_IntWriteEntry( vLits, Abc_ObjFaninId0(pObj), Abc_ObjId(pObj) );
     // transfer fanins
     Abc_NtkForEachNodeCo( pNtk, pObj, i )
@@ -680,7 +685,7 @@ void Abc_BufPerformOne( Buf_Man_t * p, int iPivot, int fVerbose )
 {
     Abc_Obj_t * pObj, * pFanout;
     int i, j, nCrit, nNonCrit;
-    int DelayMax = p->DelayMax;
+//    int DelayMax = p->DelayMax;
     assert( Abc_NtkObjNumMax(p->pNtk) + 30 < p->nObjAlloc );
     pObj     = Abc_NtkObj( p->pNtk, iPivot );
 //    assert( Vec_FltEntry(p->vCounts, iPivot) == (float)Abc_ObjFanoutNum(pObj) );
