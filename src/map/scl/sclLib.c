@@ -1158,7 +1158,7 @@ void Abc_SclDumpGenlib( char * pFileName, SC_Lib * p, float Slew, float Gain, in
 void Mio_SclDeriveGenlib( void * pScl, float Slew, float Gain, int nGatesMin )
 {
     int nGateCount = 0;
-    Vec_Str_t * vStr = Abc_SclDeriveGenlibStr( pScl, Slew, Gain, nGatesMin, &nGateCount );
+    Vec_Str_t * vStr = Abc_SclDeriveGenlibStr( (SC_Lib *)pScl, Slew, Gain, nGatesMin, &nGateCount );
     Vec_Str_t * vStr2 = Vec_StrDup( vStr );
     int RetValue = Mio_UpdateGenlib2( vStr, vStr2, ((SC_Lib *)pScl)->pName, 0 );
     Vec_StrFree( vStr );
