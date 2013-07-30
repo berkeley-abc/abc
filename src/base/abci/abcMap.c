@@ -72,7 +72,7 @@ Abc_Ntk_t * Abc_NtkMap( Abc_Ntk_t * pNtk, double DelayTarget, double AreaMulti, 
     if ( Abc_FrameReadLibScl() )
         Mio_SclDeriveGenlib( Abc_FrameReadLibScl(), Slew, Gain, nGatesMin );
     // quit if there is no library
-    pLib = Abc_FrameReadLibGen();
+    pLib = (Mio_Library_t *)Abc_FrameReadLibGen();
     if ( pLib == NULL )
     {
         printf( "The current library is not available.\n" );
