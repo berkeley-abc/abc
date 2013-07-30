@@ -102,6 +102,7 @@ struct Map_ManStruct_t_
     Map_NodeVec_t *     vNodesAll;     // the array of all nodes
     Map_NodeVec_t *     vNodesTemp;    // the array of all nodes
     Map_NodeVec_t *     vMapping;      // the array of internal nodes used in the mapping
+    float *             pNodeDelays;   // the array of node delays
 
     // info about the original circuit
     char **             ppOutputNames; // the primary output names

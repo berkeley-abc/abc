@@ -450,6 +450,9 @@ void Map_MappingSetPiArrivalTimes( Map_Man_t * p )
         pNode = p->pInputs[i];
         // set the arrival time of the positive phase
         pNode->tArrival[1] = p->pInputArrivals[i];
+        pNode->tArrival[1].Rise  += p->pNodeDelays ? p->pNodeDelays[pNode->Num] : 0;
+        pNode->tArrival[1].Fall  += p->pNodeDelays ? p->pNodeDelays[pNode->Num] : 0;
+        pNode->tArrival[1].Worst += p->pNodeDelays ? p->pNodeDelays[pNode->Num] : 0;
         // set the arrival time of the negative phase
         pNode->tArrival[0].Rise  = pNode->tArrival[1].Fall + p->pSuperLib->tDelayInv.Rise;
         pNode->tArrival[0].Fall  = pNode->tArrival[1].Rise + p->pSuperLib->tDelayInv.Fall;

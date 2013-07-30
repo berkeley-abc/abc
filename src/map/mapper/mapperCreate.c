@@ -264,6 +264,7 @@ void Map_ManFree( Map_Man_t * p )
     if ( p->pCounters ) ABC_FREE( p->pCounters );
     Extra_MmFixedStop( p->mmNodes );
     Extra_MmFixedStop( p->mmCuts );
+    ABC_FREE( p->pNodeDelays );
     ABC_FREE( p->pInputArrivals );
     ABC_FREE( p->pOutputRequireds );
     ABC_FREE( p->pInputs );
@@ -271,6 +272,35 @@ void Map_ManFree( Map_Man_t * p )
     ABC_FREE( p->pBins );
     ABC_FREE( p->ppOutputNames );
     ABC_FREE( p );
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Creates node delays.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Map_ManCreateNodeDelays( Map_Man_t * p, int LogFan )
+{
+    Map_Node_t * pNode;
+    int k;
+    assert( p->pNodeDelays == NULL );
+    p->pNodeDelays = ABC_CALLOC( float, p->vNodesAll->nSize );
+    for ( k = 0; k < p->vNodesAll->nSize; k++ )
+    {
+        pNode = p->vNodesAll->pArray[k];
+        if ( pNode->nRefs == 0 )
+            continue;
+        p->pNodeDelays[k] = 0.014426 * LogFan * p->pSuperLib->tDelayInv.Worst * log( (double)pNode->nRefs ); // 1.4426 = 1/ln(2)
+//        printf( "%d = %d (%.2f)  ", k, pNode->nRefs, p->pNodeDelays[k] );
+    }
+//    printf( "\n" );
 }
 
 

@@ -76,6 +76,7 @@ struct Map_TimeStruct_t_
 /*=== mapperCreate.c =============================================================*/
 extern Map_Man_t *     Map_ManCreate( int nInputs, int nOutputs, int fVerbose );
 extern Map_Node_t *    Map_NodeCreate( Map_Man_t * p, Map_Node_t * p1, Map_Node_t * p2 );
+extern void            Map_ManCreateNodeDelays( Map_Man_t * p, int LogFan );
 extern void            Map_ManFree( Map_Man_t * pMan );
 extern void            Map_ManPrintTimeStats( Map_Man_t * p );
 extern void            Map_ManPrintStatsToFile( char * pName, float Area, float Delay, abctime Time );
