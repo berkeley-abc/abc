@@ -77,6 +77,70 @@ static inline int  Abc_BufEdgeSlack( Buf_Man_t * p, Abc_Obj_t * pObj, Abc_Obj_t 
 
 /**Function*************************************************************
 
+  Synopsis    [Removes buffers and inverters.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Abc_SclObjIsBufInv( Abc_Obj_t * pObj )
+{
+    return Abc_ObjIsNode(pObj) && Abc_ObjFaninNum(pObj) == 1;
+}
+int Abc_SclGetRealFaninLit( Abc_Obj_t * pObj )
+{
+    int iLit;
+    if ( !Abc_SclObjIsBufInv(pObj) )
+        return Abc_Var2Lit( Abc_ObjId(pObj), 0 );
+    iLit = Abc_SclGetRealFaninLit( Abc_ObjFanin0(pObj) );
+    return Abc_LitNotCond( iLit, Abc_NodeIsInv(pObj) );
+}
+Abc_Ntk_t * Abc_SclUnBufferPerform( Abc_Ntk_t * pNtk, int fVerbose )
+{
+    Vec_Int_t * vLits;
+    Abc_Obj_t * pObj, * pFanin, * pFaninNew;
+    int i, k, iLit, nNodesOld = Abc_NtkObjNumMax(pNtk);
+    // assign inverters
+    vLits = Vec_IntStartFull( Abc_NtkObjNumMax(pNtk) );
+    Abc_NtkForEachNode( pNtk, pObj, i )
+        if ( Abc_NodeIsInv(pObj) && !Abc_SclObjIsBufInv(Abc_ObjFanin0(pObj)) )
+            Vec_IntWriteEntry( vLits, Abc_ObjFaninId0(pObj), Abc_ObjId(pObj) );
+    // transfer fanins
+    Abc_NtkForEachNodeCo( pNtk, pObj, i )
+    {
+        if ( i >= nNodesOld )
+            break;
+        Abc_ObjForEachFanin( pObj, pFanin, k )
+        {
+            if ( !Abc_SclObjIsBufInv(pFanin) )
+                continue;
+            iLit = Abc_SclGetRealFaninLit( pFanin );
+            pFaninNew = Abc_NtkObj( pNtk, Abc_Lit2Var(iLit) );
+            if ( Abc_LitIsCompl(iLit) )
+            {
+                if ( Vec_IntEntry( vLits, Abc_Lit2Var(iLit) ) == -1 )
+                {
+                    pFaninNew = Abc_NtkCreateNodeInv( pNtk, pFaninNew );
+                    Vec_IntWriteEntry( vLits, Abc_Lit2Var(iLit), Abc_ObjId(pFaninNew) );
+                }
+                else
+                    pFaninNew = Abc_NtkObj( pNtk, Vec_IntEntry( vLits, Abc_Lit2Var(iLit) ) );
+                assert( Abc_ObjFaninNum(pFaninNew) == 1 );
+            }
+            if ( pFanin != pFaninNew )
+                Abc_ObjPatchFanin( pObj, pFanin, pFaninNew );
+        }
+    }
+    Vec_IntFree( vLits );
+    // duplicate network in topo order
+    return Abc_NtkDupDfs( pNtk );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Make sure the network is in topo order without dangling nodes.]
 
   Description [Returns 1 iff the network is fine.]

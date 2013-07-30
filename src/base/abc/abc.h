@@ -468,6 +468,12 @@ static inline void        Abc_ObjSetMvVar( Abc_Obj_t * pObj, void * pV) { Vec_At
 #define Abc_AigForEachAnd( pNtk, pNode, i )                                                        \
     for ( i = 0; (i < Vec_PtrSize((pNtk)->vObjs)) && (((pNode) = Abc_NtkObj(pNtk, i)), 1); i++ )   \
         if ( (pNode) == NULL || !Abc_AigNodeIsAnd(pNode) ) {} else
+#define Abc_NtkForEachNodeCi( pNtk, pNode, i )                                                       \
+    for ( i = 0; (i < Vec_PtrSize((pNtk)->vObjs)) && (((pNode) = Abc_NtkObj(pNtk, i)), 1); i++ )   \
+        if ( (pNode) == NULL || (!Abc_ObjIsNode(pNode) && !Abc_ObjIsCi(pNode)) ) {} else
+#define Abc_NtkForEachNodeCo( pNtk, pNode, i )                                                       \
+    for ( i = 0; (i < Vec_PtrSize((pNtk)->vObjs)) && (((pNode) = Abc_NtkObj(pNtk, i)), 1); i++ )   \
+        if ( (pNode) == NULL || (!Abc_ObjIsNode(pNode) && !Abc_ObjIsCo(pNode)) ) {} else
 // various boxes
 #define Abc_NtkForEachBox( pNtk, pObj, i )                                                         \
     for ( i = 0; (i < Vec_PtrSize((pNtk)->vBoxes)) && (((pObj) = Abc_NtkBox(pNtk, i)), 1); i++ )

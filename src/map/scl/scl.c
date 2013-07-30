@@ -36,9 +36,11 @@ static int Scl_CommandPrintGS ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Scl_CommandStime   ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Scl_CommandTopo    ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Scl_CommandBuffer  ( Abc_Frame_t * pAbc, int argc, char **argv );
+static int Scl_CommandUnBuffer( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Scl_CommandUpsize  ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Scl_CommandDnsize  ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Scl_CommandMinsize ( Abc_Frame_t * pAbc, int argc, char **argv );
+static int Scl_CommandMaxsize ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Scl_CommandPrintBuf( Abc_Frame_t * pAbc, int argc, char **argv );
 
 ////////////////////////////////////////////////////////////////////////
@@ -66,7 +68,9 @@ void Scl_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "SCL mapping",  "stime",       Scl_CommandStime,    0 ); 
     Cmd_CommandAdd( pAbc, "SCL mapping",  "topo",        Scl_CommandTopo,     1 ); 
     Cmd_CommandAdd( pAbc, "SCL mapping",  "buffer",      Scl_CommandBuffer,   1 ); 
+    Cmd_CommandAdd( pAbc, "SCL mapping",  "unbuffer",    Scl_CommandUnBuffer, 1 ); 
     Cmd_CommandAdd( pAbc, "SCL mapping",  "minsize",     Scl_CommandMinsize,  1 ); 
+    Cmd_CommandAdd( pAbc, "SCL mapping",  "maxsize",     Scl_CommandMaxsize,  1 ); 
     Cmd_CommandAdd( pAbc, "SCL mapping",  "upsize",      Scl_CommandUpsize,   1 ); 
     Cmd_CommandAdd( pAbc, "SCL mapping",  "dnsize",      Scl_CommandDnsize,   1 ); 
     Cmd_CommandAdd( pAbc, "SCL mapping",  "print_buf",   Scl_CommandPrintBuf, 0 ); 
@@ -652,18 +656,72 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
-int Scl_CommandMinsize( Abc_Frame_t * pAbc, int argc, char **argv )
+int Scl_CommandUnBuffer( Abc_Frame_t * pAbc, int argc, char **argv )
 {
-    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
-    int c, fUseMax = 0, fVerbose = 0;
+    Abc_Ntk_t * pNtkRes, * pNtk = Abc_FrameReadNtk(pAbc);
+    int c, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "mvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
     {
         switch ( c )
         {
-        case 'm':
-            fUseMax ^= 1;
+        case 'v':
+            fVerbose ^= 1;
             break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        fprintf( pAbc->Err, "There is no current network.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkIsLogic(pNtk) )
+    {
+        fprintf( pAbc->Err, "The current network is not a logic network.\n" );
+        return 1;
+    }
+    pNtkRes = Abc_SclUnBufferPerform( pNtk, fVerbose );
+    if ( pNtkRes == NULL )
+    {
+        Abc_Print( -1, "The command has failed.\n" );
+        return 1;
+    }
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    return 0;
+
+usage:
+    fprintf( pAbc->Err, "usage: unbuffer [-vh]\n" );
+    fprintf( pAbc->Err, "\t           collapses buffer/inverter trees\n" );
+    fprintf( pAbc->Err, "\t-v       : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( pAbc->Err, "\t-h       : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Scl_CommandMinsize( Abc_Frame_t * pAbc, int argc, char **argv )
+{
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+    int c, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {
         case 'v':
             fVerbose ^= 1;
             break;
@@ -695,13 +753,74 @@ int Scl_CommandMinsize( Abc_Frame_t * pAbc, int argc, char **argv )
         return 1;
     }
 
-    Abc_SclMinsizePerform( (SC_Lib *)pAbc->pLibScl, pNtk, fUseMax, fVerbose );
+    Abc_SclMinsizePerform( (SC_Lib *)pAbc->pLibScl, pNtk, 0, fVerbose );
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: minsize [-mvh]\n" );
-    fprintf( pAbc->Err, "\t           downsized all gates to their minimum size\n" );
-    fprintf( pAbc->Err, "\t-m       : toggle upsizing gates to their maximum size [default = %s]\n", fUseMax? "yes": "no" );
+    fprintf( pAbc->Err, "usage: minsize [-vh]\n" );
+    fprintf( pAbc->Err, "\t           downsizes all gates to their minimum size\n" );
+    fprintf( pAbc->Err, "\t-v       : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( pAbc->Err, "\t-h       : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Scl_CommandMaxsize( Abc_Frame_t * pAbc, int argc, char **argv )
+{
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+    int c, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( Abc_FrameReadNtk(pAbc) == NULL )
+    {
+        fprintf( pAbc->Err, "There is no current network.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkHasMapping(Abc_FrameReadNtk(pAbc)) )
+    {
+        fprintf( pAbc->Err, "The current network is not mapped.\n" );
+        return 1;
+    }
+    if ( !Abc_SclCheckNtk(Abc_FrameReadNtk(pAbc), 0) )
+    {
+        fprintf( pAbc->Err, "The current network is not in a topo order (run \"topo\").\n" );
+        return 1;
+    }
+    if ( pAbc->pLibScl == NULL )
+    {
+        fprintf( pAbc->Err, "There is no Liberty library available.\n" );
+        return 1;
+    }
+
+    Abc_SclMinsizePerform( (SC_Lib *)pAbc->pLibScl, pNtk, 1, fVerbose );
+    return 0;
+
+usage:
+    fprintf( pAbc->Err, "usage: maxsize [-vh]\n" );
+    fprintf( pAbc->Err, "\t           upsizes all gates to their maximum size\n" );
     fprintf( pAbc->Err, "\t-v       : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pAbc->Err, "\t-h       : print the command usage\n");
     return 1;
