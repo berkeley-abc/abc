@@ -50,6 +50,7 @@ static int CmdCommandUndo          ( Abc_Frame_t * pAbc, int argc, char ** argv 
 static int CmdCommandRecall        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int CmdCommandEmpty         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 #if defined(WIN32) && !defined(__cplusplus)
+static int CmdCommandScanDir       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int CmdCommandLs            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int CmdCommandScrGen        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 #endif
@@ -96,6 +97,7 @@ void Cmd_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Basic", "recall",        CmdCommandRecall,          0 );
     Cmd_CommandAdd( pAbc, "Basic", "empty",         CmdCommandEmpty,           0 );
 #if defined(WIN32) && !defined(__cplusplus)
+    Cmd_CommandAdd( pAbc, "Basic", "scandir",       CmdCommandScanDir,         0 );
     Cmd_CommandAdd( pAbc, "Basic", "ls",            CmdCommandLs,              0 );
     Cmd_CommandAdd( pAbc, "Basic", "scrgen",        CmdCommandScrGen,          0 );
 #endif
@@ -1134,6 +1136,128 @@ extern int  _findclose( long handle );
 
 //extern char * _getcwd( char * buffer, int maxlen );
 //extern int    _chdir( const char *dirname );
+
+
+/**Function*************************************************************
+
+  Synopsis    [Command to print the contents of the current directory (Windows).]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int CmdCommandScanDir( Abc_Frame_t * pAbc, int argc, char **argv )
+{
+    struct _finddata_t c_file;
+    char * pDirStr = NULL;
+    long   hFile;
+    char   c;
+
+    Extra_UtilGetoptReset();
+    while ( (c = Extra_UtilGetopt(argc, argv, "D") ) != EOF )
+    {
+        switch (c)
+        {
+            case 'D':
+                if ( globalUtilOptind >= argc )
+                {
+                    fprintf( pAbc->Err, "Command line switch \"-D\" should be followed by a string.\n" );
+                    goto usage;
+                }
+                pDirStr = argv[globalUtilOptind];
+                globalUtilOptind++;
+                break;
+            default:
+                goto usage;
+        }
+    }
+    if ( pDirStr )
+    {
+        if ( _chdir(pDirStr) )
+        {
+            printf( "Cannot change to directory: %s\n", pDirStr );
+            return 0;
+        }
+    }
+
+    if( (hFile = _findfirst( "*.txt", &c_file )) == -1L )
+    {
+        if ( pDirStr )
+            printf( "No .txt files in the current directory.\n" );
+        else
+            printf( "No .txt files in directory: %s\n", pDirStr );
+    }
+    else
+    {
+        do
+        {
+            FILE * pFile = fopen( c_file.name, "rb" );
+            char * pStr1 = "Property UNDECIDED.  Time =";
+            char * pStr2 = "Property proved.  Time =";
+            char * pStr3 = "Time =";
+            char * pBuffer, * pPlace, * pThis, * pThat;
+            char FileName[100];
+            float Time = 0;
+            // get the file name
+            sprintf( FileName, "%s", c_file.name );
+            pThis = strrchr( FileName, '_' );
+            pThat = strchr( FileName, '.' );
+            if ( pThis == NULL || pThat == NULL || pThis >= pThat )
+            {
+//                printf( "Something is wrong with the file name %s\n", c_file.name );
+                continue;
+            }
+            *pThat = 0;
+            pThis++;
+            // get the time
+            if ( pFile == NULL )
+            {
+                printf( "Cannot open file %s\n", c_file.name );
+                continue;
+            }
+            fclose( pFile );
+            pBuffer = Extra_FileReadContents( c_file.name );
+            pPlace = strstr( pBuffer, pStr1 );
+            if ( pPlace == NULL )
+            {
+                pPlace = strstr( pBuffer, pStr2 );
+                if ( pPlace == NULL )
+                {
+                    pPlace = strstr( pBuffer, pStr3 );
+                    if ( pPlace == NULL )
+                    {
+//                        printf( "Cannot find substrings in file %s\n", c_file.name );
+                        ABC_FREE( pBuffer );
+                        continue;
+                    }
+                    else
+                        pPlace += strlen( pStr3 );
+                }
+                else
+                    pPlace += strlen( pStr2 );
+            }
+            else
+                pPlace += strlen( pStr1 );
+            sscanf( pPlace, "%f", &Time );
+            printf( "%s %.2f\n", pThis, Time );
+            ABC_FREE( pBuffer );
+        }
+        while( _findnext( hFile, &c_file ) == 0 );
+        _findclose( hFile );
+    }
+    return 0;
+
+usage:
+    fprintf( pAbc->Err, "usage: scandir [-D string]\n" );
+    fprintf( pAbc->Err, "            performs custom scanning of the files in the given directory\n" );
+    fprintf( pAbc->Err, "\t-D str  : the directory to read files from [default = current]\n" );
+    return 1;
+}
+
+
 
 /**Function*************************************************************
 
