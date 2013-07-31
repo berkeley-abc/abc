@@ -267,7 +267,7 @@ int Abc_SclFindUpsizes( SC_Man * p, Vec_Int_t * vPathNodes, int Ratio, int Notch
     Abc_NtkForEachObjVec( vPathNodes, p->pNtk, pObj, i )
     {
         iIterLast = Vec_IntEntry(p->vNodeIter, Abc_ObjId(pObj));
-        if ( iIterLast >= 0 && iIterLast + 10 > iIter )
+        if ( iIterLast >= 0 && iIterLast + 5 > iIter )
             continue;
         // compute nodes to recalculate timing and nodes to evaluate afterwards
         Abc_SclFindNodesToUpdate( pObj, &vRecalcs, &vEvals );
