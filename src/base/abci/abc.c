@@ -391,6 +391,7 @@ static int Abc_CommandAbc9Cycle              ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9Cone               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9PoPart             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9MultiProve         ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Bmc                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 //static int Abc_CommandAbc9PoPart2            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 //static int Abc_CommandAbc9CexCut             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 //static int Abc_CommandAbc9CexMerge           ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -942,6 +943,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&cone",         Abc_CommandAbc9Cone,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&popart",       Abc_CommandAbc9PoPart,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&mprove",       Abc_CommandAbc9MultiProve,   0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&bmc",          Abc_CommandAbc9Bmc,          0 );
 //    Cmd_CommandAdd( pAbc, "ABC9",         "&popart2",      Abc_CommandAbc9PoPart2,      0 );
 //    Cmd_CommandAdd( pAbc, "ABC9",         "&cexcut",       Abc_CommandAbc9CexCut,       0 );
 //    Cmd_CommandAdd( pAbc, "ABC9",         "&cexmerge",     Abc_CommandAbc9CexMerge,     0 );
@@ -31532,6 +31534,90 @@ usage:
     Abc_Print( -2, "\t-G num : the size of one group [default = %d]\n", nGroupSize );
     Abc_Print( -2, "\t-S str : the command line to be executed for each group [default = %s]\n", pCommLine ? pCommLine : "none" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Bmc( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Bmc_PerformBmc( Gia_Man_t * pGia, Bmc_LadPar_t * pPars );
+    int c;
+    Bmc_LadPar_t Pars, * pPars = &Pars;
+    memset( pPars, 0, sizeof(Bmc_LadPar_t) );
+    pPars->nStart        =    0;  // starting timeframe
+    pPars->nFramesMax    =    0;  // maximum number of timeframes 
+    pPars->nConfLimit    =    0;  // maximum number of conflicts at a node
+    pPars->fLoadCnf      =    0;  // dynamic CNF loading
+    pPars->fVerbose      =    0;  // verbose 
+    pPars->fNotVerbose   =    0;  // skip line-by-line print-out 
+    pPars->iFrame        =    0;  // explored up to this frame
+    pPars->nFailOuts     =    0;  // the number of failed outputs
+    pPars->nDropOuts     =    0;  // the number of dropped outputs
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "SFcvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'S':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-S\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nStart = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nStart < 0 )
+                goto usage;
+            break;
+        case 'F':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-F\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nFramesMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nFramesMax < 0 )
+                goto usage;
+            break;
+        case 'c':
+            pPars->fLoadCnf ^= 1;
+            break;
+        case 'v':
+            pPars->fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Rpm(): There is no AIG.\n" );
+        return 0;
+    }
+    Bmc_PerformBmc( pAbc->pGia, pPars );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &bmc [-SF num] [-cvh]\n" );
+    Abc_Print( -2, "\t         performs bounded model checking\n" );
+    Abc_Print( -2, "\t-S num : the starting timeframe [default = %d]\n",              pPars->nStart );
+    Abc_Print( -2, "\t-F num : the maximum number of timeframes [default = %d]\n",    pPars->nFramesMax );
+    Abc_Print( -2, "\t-c     : toggle dynamic CNF loading [default = %s]\n",          pPars->fLoadCnf? "yes": "no" );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }

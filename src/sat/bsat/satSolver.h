@@ -45,6 +45,7 @@ extern sat_solver* sat_solver_new(void);
 extern void        sat_solver_delete(sat_solver* s);
 
 extern int         sat_solver_addclause(sat_solver* s, lit* begin, lit* end);
+extern int         sat_solver_clause_new(sat_solver* s, lit* begin, lit* end, int learnt);
 extern int         sat_solver_simplify(sat_solver* s);
 extern int         sat_solver_solve(sat_solver* s, lit* begin, lit* end, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimit, ABC_INT64_T nConfLimitGlobal, ABC_INT64_T nInsLimitGlobal);
 extern void        sat_solver_restart( sat_solver* s );
@@ -129,6 +130,7 @@ struct sat_solver_t
     char*       assigns;       // Current values of variables.
     char*       polarity;      //
     char*       tags;          //
+    char*       loads;         //
 
     int*        orderpos;      // Index in variable order.
     int*        reasons;       //
@@ -183,6 +185,10 @@ struct sat_solver_t
     int         nRoots;
 
     veci        temp_clause;    // temporary storage for a CNF clause
+
+    // CNF loading
+    void *      pCnfMan;           // external CNF manager
+    int(*pCnfFunc)(void * p, int); // external callback
 };
 
 static inline clause * clause_read( sat_solver * s, cla h )          

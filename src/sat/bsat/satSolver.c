@@ -399,7 +399,7 @@ static inline int sat_clause_compute_lbd( sat_solver* s, clause* c )
 
 /* pre: size > 1 && no variable occurs twice
  */
-static int clause_create_new(sat_solver* s, lit* begin, lit* end, int learnt)
+int sat_solver_clause_new(sat_solver* s, lit* begin, lit* end, int learnt)
 {
     int fUseBinaryClauses = 1;
     int size;
@@ -478,6 +478,25 @@ static inline int sat_solver_enqueue(sat_solver* s, lit l, int from)
     if (var_value(s, v) != varX)
         return var_value(s, v) == lit_sign(l);
     else{
+        if ( s->pCnfFunc )
+        {
+            if ( lit_sign(l) )
+            {
+                if ( (s->loads[v] & 1) == 0 )
+                {
+                    s->loads[v] ^= 1;
+                    s->pCnfFunc( s->pCnfMan, l );
+                }
+            }
+            else
+            {
+                if ( (s->loads[v] & 2) == 0 )
+                {
+                    s->loads[v] ^= 2;
+                    s->pCnfFunc( s->pCnfMan, l );
+                }
+            }
+        }
         // New fact -- store it.
 #ifdef VERBOSEDEBUG
         printf(L_IND"bind("L_LIT")\n", L_ind, L_lit(l));
@@ -561,7 +580,7 @@ static void sat_solver_record(sat_solver* s, veci* cls)
 {
     lit*    begin = veci_begin(cls);
     lit*    end   = begin + veci_size(cls);
-    int     h     = (veci_size(cls) > 1) ? clause_create_new(s,begin,end,1) : 0;
+    int     h     = (veci_size(cls) > 1) ? sat_solver_clause_new(s,begin,end,1) : 0;
     sat_solver_enqueue(s,*begin,h);
     assert(veci_size(cls) > 0);
     if ( h == 0 )
@@ -1026,6 +1045,8 @@ void sat_solver_setnvars(sat_solver* s,int n)
     if (s->cap < n){
         int old_cap = s->cap;
         while (s->cap < n) s->cap = s->cap*2+1;
+        if ( s->cap < 50000 )
+            s->cap = 50000;
 
         s->wlists    = ABC_REALLOC(veci,   s->wlists,   s->cap*2);
 //        s->vi        = ABC_REALLOC(varinfo,s->vi,       s->cap);
@@ -1033,6 +1054,7 @@ void sat_solver_setnvars(sat_solver* s,int n)
         s->assigns   = ABC_REALLOC(char,   s->assigns,  s->cap);
         s->polarity  = ABC_REALLOC(char,   s->polarity, s->cap);
         s->tags      = ABC_REALLOC(char,   s->tags,     s->cap);
+        s->loads     = ABC_REALLOC(char,   s->loads,    s->cap);
 #ifdef USE_FLOAT_ACTIVITY
         s->activity  = ABC_REALLOC(double,   s->activity, s->cap);
 #else
@@ -1070,6 +1092,7 @@ void sat_solver_setnvars(sat_solver* s,int n)
         s->assigns [var] = varX;
         s->polarity[var] = 0;
         s->tags    [var] = 0;
+        s->loads   [var] = 0;
         s->orderpos[var] = veci_size(&s->order);
         s->reasons [var] = 0;
         s->model   [var] = 0; 
@@ -1113,6 +1136,7 @@ void sat_solver_delete(sat_solver* s)
         ABC_FREE(s->assigns  );
         ABC_FREE(s->polarity );
         ABC_FREE(s->tags     );
+        ABC_FREE(s->loads    );
         ABC_FREE(s->activity );
         ABC_FREE(s->activity2);
         ABC_FREE(s->pFreqs   );
@@ -1188,6 +1212,7 @@ double sat_solver_memory( sat_solver* s )
     Mem += s->cap * sizeof(char);     // ABC_FREE(s->assigns  );
     Mem += s->cap * sizeof(char);     // ABC_FREE(s->polarity );
     Mem += s->cap * sizeof(char);     // ABC_FREE(s->tags     );
+    Mem += s->cap * sizeof(char);     // ABC_FREE(s->loads    );
 #ifdef USE_FLOAT_ACTIVITY
     Mem += s->cap * sizeof(double);   // ABC_FREE(s->activity );
 #else
@@ -1484,10 +1509,9 @@ int sat_solver_addclause(sat_solver* s, lit* begin, lit* end)
         return sat_solver_enqueue(s,*begin,0);
 
     // create new clause
-    clause_create_new(s,begin,j,0);
+    sat_solver_clause_new(s,begin,j,0);
     return true;
 }
-
 
 double luby(double y, int x)
 {

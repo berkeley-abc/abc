@@ -68,6 +68,20 @@ struct Saig_ParBmc_t_
     int(*pFuncOnFail)(int,Abc_Cex_t*); // called for a failed output in MO mode
 };
 
+ 
+typedef struct Bmc_LadPar_t_ Bmc_LadPar_t;
+struct Bmc_LadPar_t_
+{
+    int         nStart;         // starting timeframe
+    int         nFramesMax;     // maximum number of timeframes 
+    int         nConfLimit;     // maximum number of conflicts at a node
+    int         fLoadCnf;       // dynamic CNF loading
+    int         fVerbose;       // verbose 
+    int         fNotVerbose;    // skip line-by-line print-out 
+    int         iFrame;         // explored up to this frame
+    int         nFailOuts;      // the number of failed outputs
+    int         nDropOuts;      // the number of dropped outputs
+};
 
 ////////////////////////////////////////////////////////////////////////
 ///                      MACRO DEFINITIONS                           ///
