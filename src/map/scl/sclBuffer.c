@@ -36,6 +36,7 @@ struct Buf_Man_t_
     // parameters
     int            nFanMin;   // the smallest fanout count to consider
     int            nFanMax;   // the largest fanout count allowed off CP
+    int            fBufPis;   // enables buffing of the combinational inputs
     // internal deta
     Abc_Ntk_t *    pNtk;      // logic network
     Vec_Int_t *    vOffsets;  // offsets into edge delays
@@ -372,7 +373,7 @@ void Abc_BufCreateEdges( Buf_Man_t * p, Abc_Obj_t * pObj )
 }
 void Abc_BufAddToQue( Buf_Man_t * p, Abc_Obj_t * pObj )
 {
-    if ( Abc_ObjFanoutNum(pObj) < p->nFanMin )
+    if ( Abc_ObjFanoutNum(pObj) < p->nFanMin || (!p->fBufPis && Abc_ObjIsCi(pObj)) )
         return;
     Vec_FltWriteEntry( p->vCounts, Abc_ObjId(pObj), Abc_ObjFanoutNum(pObj) );
     if ( Vec_QueIsMember(p->vQue, Abc_ObjId(pObj)) )
@@ -484,7 +485,7 @@ void Abc_BufUpdateDep( Buf_Man_t * p, Abc_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
-Buf_Man_t * Buf_ManStart( Abc_Ntk_t * pNtk, int FanMin, int FanMax )
+Buf_Man_t * Buf_ManStart( Abc_Ntk_t * pNtk, int FanMin, int FanMax, int fBufPis )
 {
     Buf_Man_t * p;
     Abc_Obj_t * pObj;
@@ -494,6 +495,7 @@ Buf_Man_t * Buf_ManStart( Abc_Ntk_t * pNtk, int FanMin, int FanMax )
     p->pNtk      = pNtk;
     p->nFanMin   = FanMin;
     p->nFanMax   = FanMax;
+    p->fBufPis   = fBufPis;
     // allocate arrays
     p->nObjStart = Abc_NtkObjNumMax(p->pNtk);
     p->nObjAlloc = (6 * Abc_NtkObjNumMax(p->pNtk) / 3) + 100;
@@ -793,10 +795,10 @@ printf( "Doing nothing\n" );
 //    if ( DelayMax != p->DelayMax )
 //        printf( "%d (%.2f)  ", p->DelayMax, 1.0 * p->DelayMax * p->DelayInv / BUF_SCALE );
 }
-Abc_Ntk_t * Abc_SclBufPerform( Abc_Ntk_t * pNtk, int FanMin, int FanMax, int fVerbose )
+Abc_Ntk_t * Abc_SclBufPerform( Abc_Ntk_t * pNtk, int FanMin, int FanMax, int fBufPis, int fVerbose )
 {
     Abc_Ntk_t * pNew;
-    Buf_Man_t * p = Buf_ManStart( pNtk, FanMin, FanMax );
+    Buf_Man_t * p = Buf_ManStart( pNtk, FanMin, FanMax, fBufPis );
     int i, Limit = ABC_INFINITY;
     for ( i = 0; i < Limit && Vec_QueSize(p->vQue); i++ )
         Abc_BufPerformOne( p, Vec_QuePop(p->vQue), fVerbose );
