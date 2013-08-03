@@ -1153,6 +1153,7 @@ int CmdCommandScanDir( Abc_Frame_t * pAbc, int argc, char **argv )
 {
     struct _finddata_t c_file;
     char * pDirStr = NULL;
+    char*  pDirCur = NULL;
     long   hFile;
     char   c;
 
@@ -1174,8 +1175,15 @@ int CmdCommandScanDir( Abc_Frame_t * pAbc, int argc, char **argv )
                 goto usage;
         }
     }
+
+
     if ( pDirStr )
     {
+        if( (pDirCur = _getcwd( NULL, 0 )) == NULL )
+        {
+            printf( "Cannot read current directory\n" );
+            return 0;
+        }
         if ( _chdir(pDirStr) )
         {
             printf( "Cannot change to directory: %s\n", pDirStr );
@@ -1247,6 +1255,16 @@ int CmdCommandScanDir( Abc_Frame_t * pAbc, int argc, char **argv )
         }
         while( _findnext( hFile, &c_file ) == 0 );
         _findclose( hFile );
+    }
+    if ( pDirStr )
+    {
+        if ( _chdir(pDirCur) )
+        {
+            ABC_FREE( pDirCur );
+            printf( "Cannot change to directory: %s\n", pDirCur );
+            return 0;
+        }
+        ABC_FREE( pDirCur );
     }
     return 0;
 
