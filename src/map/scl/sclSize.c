@@ -298,6 +298,7 @@ void Abc_SclManReadSlewAndLoad( SC_Man * p, Abc_Ntk_t * pNtk )
     int i;
     if ( pNtk->pManTime == NULL )
         return;
+/*
     // read input slew    
     pTime = Abc_NtkReadDefaultInputDrive( pNtk );
     if ( Abc_MaxFloat(pTime->Rise, pTime->Fall) != 0 )
@@ -319,6 +320,27 @@ void Abc_SclManReadSlewAndLoad( SC_Man * p, Abc_Ntk_t * pNtk )
             pTime = Abc_NodeReadInputDrive(pNtk, i);
             pSlew->rise = SC_LibTimeFromPs( p->pLib, pTime->Rise );
             pSlew->fall = SC_LibTimeFromPs( p->pLib, pTime->Fall );
+        }
+    }
+*/
+    pTime = Abc_NtkReadDefaultInputDrive( pNtk );
+    if ( Abc_MaxFloat(pTime->Rise, pTime->Fall) != 0 )
+    {
+        printf( "Default input drive strength is specified (%.2f ff; %.2f ff).\n", pTime->Rise, pTime->Fall );
+        if ( p->pInDrive == NULL )
+            p->pInDrive = ABC_CALLOC( float, Abc_NtkObjNumMax(pNtk) );
+        Abc_NtkForEachPi( pNtk, pObj, i )
+            p->pInDrive[Abc_ObjId(pObj)] = 0.5 * SC_LibCapFromFf( p->pLib, pTime->Rise ) + 0.5 * SC_LibCapFromFf( p->pLib, pTime->Fall );
+    }
+    if ( Abc_NodeReadInputDrive(pNtk, 0) != NULL )
+    {
+        printf( "Input drive strengths for some primary inputs are specified.\n" );
+        if ( p->pInDrive == NULL )
+            p->pInDrive = ABC_CALLOC( float, Abc_NtkObjNumMax(pNtk) );
+        Abc_NtkForEachPi( pNtk, pObj, i )
+        {
+            pTime = Abc_NodeReadInputDrive(pNtk, i);
+            p->pInDrive[Abc_ObjId(pObj)] = 0.5 * SC_LibCapFromFf( p->pLib, pTime->Rise ) + 0.5 * SC_LibCapFromFf( p->pLib, pTime->Fall );
         }
     }
     // read output load
@@ -510,6 +532,30 @@ void Abc_SclPrintBuffers( SC_Lib * pLib, Abc_Ntk_t * pNtk, int fVerbose )
     Abc_SclManFree( p );
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Checks if the input drive capability is ok.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_SclInputDriveOk( SC_Man * p, Abc_Obj_t * pObj, SC_Cell * pCell )
+{
+    Abc_Obj_t * pFanin;
+    int i;
+    assert( Abc_ObjFaninNum(pObj) == pCell->n_inputs );
+    Abc_ObjForEachFanin( pObj, pFanin, i )
+        if ( Abc_ObjIsPi(pFanin) && p->pInDrive[Abc_ObjId(pFanin)] > 0 && 
+            (p->pInDrive[Abc_ObjId(pFanin)] / Abc_ObjFanoutNum(pFanin)) < 
+            Abc_MaxFloat(SC_CellPin(pCell, i)->rise_cap, SC_CellPin(pCell, i)->fall_cap) )
+                return 0;
+    return 1;
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

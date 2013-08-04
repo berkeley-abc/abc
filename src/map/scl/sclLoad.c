@@ -111,18 +111,36 @@ void Abc_SclComputeLoad( SC_Man * p )
         pLoad->rise += pLoadPo->rise;
         pLoad->fall += pLoadPo->fall;
     }
-    if ( p->pWLoadUsed == NULL )
-        return;
     // add wire load
-    vWireCaps = Abc_SclFindWireCaps( p, p->pWLoadUsed );
-    Abc_NtkForEachNode1( p->pNtk, pObj, i )
+    if ( p->pWLoadUsed != NULL )
     {
-        SC_Pair * pLoad = Abc_SclObjLoad( p, pObj );
-        k = Abc_MinInt( Vec_FltSize(vWireCaps)-1, Abc_ObjFanoutNum(pObj) );
-        pLoad->rise += Vec_FltEntry(vWireCaps, k);
-        pLoad->fall += Vec_FltEntry(vWireCaps, k);
+        vWireCaps = Abc_SclFindWireCaps( p, p->pWLoadUsed );
+        Abc_NtkForEachNode1( p->pNtk, pObj, i )
+        {
+            SC_Pair * pLoad = Abc_SclObjLoad( p, pObj );
+            k = Abc_MinInt( Vec_FltSize(vWireCaps)-1, Abc_ObjFanoutNum(pObj) );
+            pLoad->rise += Vec_FltEntry(vWireCaps, k);
+            pLoad->fall += Vec_FltEntry(vWireCaps, k);
+        }
+        Abc_NtkForEachPi( p->pNtk, pObj, i )
+        {
+            SC_Pair * pLoad = Abc_SclObjLoad( p, pObj );
+            k = Abc_MinInt( Vec_FltSize(vWireCaps)-1, Abc_ObjFanoutNum(pObj) );
+            pLoad->rise += Vec_FltEntry(vWireCaps, k);
+            pLoad->fall += Vec_FltEntry(vWireCaps, k);
+        }
+        Vec_FltFree( vWireCaps );
     }
-    Vec_FltFree( vWireCaps );
+    // check input loads
+    if ( p->pInDrive != NULL )
+    {
+        Abc_NtkForEachPi( p->pNtk, pObj, i )
+        {
+            SC_Pair * pLoad = Abc_SclObjLoad( p, pObj );
+            if ( p->pInDrive[Abc_ObjId(pObj)] != 0 && (pLoad->rise > p->pInDrive[Abc_ObjId(pObj)] || pLoad->fall > p->pInDrive[Abc_ObjId(pObj)]) )
+                printf( "Maximum input drive strength is exceeded at primary input %d.\n", i );
+        }
+    }
 }
 
 /**Function*************************************************************

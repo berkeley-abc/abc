@@ -58,7 +58,8 @@ struct SC_Man_
     SC_Pair *      pSlews;        // slews for each gate
     SC_Pair *      pTimes2;       // arrivals for each gate
     SC_Pair *      pSlews2;       // slews for each gate
-    float *        pSlack;        // slacks for each gate
+    float *        pSlack;        // slacks for each gatt
+    float *        pInDrive;      // maximum input drive strength
     Vec_Flt_t *    vTimesOut;     // output arrival times
     Vec_Que_t *    vQue;          // outputs by their time
     SC_WireLoad *  pWLoadUsed;    // name of the used WireLoad model
@@ -185,6 +186,7 @@ static inline void Abc_SclManFree( SC_Man * p )
     ABC_FREE( p->pTimes2 );
     ABC_FREE( p->pSlews2 );
     ABC_FREE( p->pSlack );
+    ABC_FREE( p->pInDrive );
     ABC_FREE( p );
 }
 static inline void Abc_SclManCleanTime( SC_Man * p )
@@ -404,6 +406,7 @@ extern void          Abc_SclTimeCone( SC_Man * p, Vec_Int_t * vCone );
 extern void          Abc_SclTimeNtkRecompute( SC_Man * p, float * pArea, float * pDelay, int fReverse, float DUser );
 extern void          Abc_SclTimePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int fUseWireLoads, int fShowAll, int fPrintPath, int fDumpStats );
 extern void          Abc_SclPrintBuffers( SC_Lib * pLib, Abc_Ntk_t * pNtk, int fVerbose );
+extern int           Abc_SclInputDriveOk( SC_Man * p, Abc_Obj_t * pObj, SC_Cell * pCell );
 /*=== sclUpsize.c ===============================================================*/
 extern void          Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPars );
 /*=== sclUtil.c ===============================================================*/

@@ -286,6 +286,8 @@ int Abc_SclFindUpsizes( SC_Man * p, Vec_Int_t * vPathNodes, int Ratio, int Notch
                 continue;
             if ( k > Notches )
                 break;
+            if ( p->pInDrive && !Abc_SclInputDriveOk( p, pObj, pCellNew ) )
+                continue;
             // set new cell
             Abc_SclObjSetCell( p, pObj, pCellNew );
             Abc_SclUpdateLoad( p, pObj, pCellOld, pCellNew );
