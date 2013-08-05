@@ -488,7 +488,7 @@ void Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPars 
     }
 
     // prepare the manager; collect init stats
-    p = Abc_SclManStart( pLib, pNtk, pPars->fUseWireLoads, pPars->fUseDept, 0 );
+    p = Abc_SclManStart( pLib, pNtk, pPars->fUseWireLoads, pPars->fUseDept, 0, pPars->BuffTreeEst );
     p->timeTotal  = Abc_Clock();
     assert( p->vGatesBest == NULL );
     p->vGatesBest = Vec_IntDup( p->vGates );

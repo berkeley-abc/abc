@@ -63,6 +63,11 @@ struct SC_Man_
     Vec_Flt_t *    vTimesOut;     // output arrival times
     Vec_Que_t *    vQue;          // outputs by their time
     SC_WireLoad *  pWLoadUsed;    // name of the used WireLoad model
+    // buffer trees
+    float          EstLoadMax;    // max ratio of Cout/Cin when this kicks in
+    float          EstLoadAve;    // average load of the gate
+    float          EstLinear;     // linear coefficient
+    int            nEstNodes;     // the number of estimations
     // intermediate data
     Vec_Que_t *    vNodeByGain;   // nodes by gain
     Vec_Flt_t *    vNode2Gain;    // mapping node into its gain
@@ -401,10 +406,10 @@ extern void          Abc_SclUpdateLoad( SC_Man * p, Abc_Obj_t * pObj, SC_Cell * 
 extern Abc_Obj_t *   Abc_SclFindCriticalCo( SC_Man * p, int * pfRise );
 extern Abc_Obj_t *   Abc_SclFindMostCriticalFanin( SC_Man * p, int * pfRise, Abc_Obj_t * pNode );
 extern void          Abc_SclTimeNtkPrint( SC_Man * p, int fShowAll, int fPrintPath );
-extern SC_Man *      Abc_SclManStart( SC_Lib * pLib, Abc_Ntk_t * pNtk, int fUseWireLoads, int fDept, float DUser );
+extern SC_Man *      Abc_SclManStart( SC_Lib * pLib, Abc_Ntk_t * pNtk, int fUseWireLoads, int fDept, float DUser, int nTreeCRatio );
 extern void          Abc_SclTimeCone( SC_Man * p, Vec_Int_t * vCone );
 extern void          Abc_SclTimeNtkRecompute( SC_Man * p, float * pArea, float * pDelay, int fReverse, float DUser );
-extern void          Abc_SclTimePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int fUseWireLoads, int fShowAll, int fPrintPath, int fDumpStats );
+extern void          Abc_SclTimePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int nTreeCRatio, int fUseWireLoads, int fShowAll, int fPrintPath, int fDumpStats );
 extern void          Abc_SclPrintBuffers( SC_Lib * pLib, Abc_Ntk_t * pNtk, int fVerbose );
 extern int           Abc_SclInputDriveOk( SC_Man * p, Abc_Obj_t * pObj, SC_Cell * pCell );
 /*=== sclUpsize.c ===============================================================*/

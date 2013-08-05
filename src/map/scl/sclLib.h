@@ -70,6 +70,7 @@ struct SC_SizePars_
     int        DelayUser;
     int        DelayGap;
     int        TimeOut;
+    int        BuffTreeEst;      // ratio for buffer tree estimation
     int        fUseDept;
     int        fDumpStats;
     int        fUseWireLoads;

@@ -141,6 +141,26 @@ void Abc_SclComputeLoad( SC_Man * p )
                 printf( "Maximum input drive strength is exceeded at primary input %d.\n", i );
         }
     }
+    // calculate average load
+    if ( p->EstLoadMax )
+    {
+        double TotalLoad = 0;
+        int nObjs = 0;
+        Abc_NtkForEachNode1( p->pNtk, pObj, i )
+        {
+            SC_Pair * pLoad = Abc_SclObjLoad( p, pObj );
+            TotalLoad += 0.5 * pLoad->fall + 0.5 * pLoad->rise;
+            nObjs++;
+        }
+        Abc_NtkForEachPi( p->pNtk, pObj, i )
+        {
+            SC_Pair * pLoad = Abc_SclObjLoad( p, pObj );
+            TotalLoad += 0.5 * pLoad->fall + 0.5 * pLoad->rise;
+            nObjs++;
+        }
+        p->EstLoadAve = (float)(TotalLoad / nObjs);
+//        printf( "Average load = %.2f\n", p->EstLoadAve );
+    }
 }
 
 /**Function*************************************************************

@@ -422,12 +422,24 @@ int Scl_CommandStime( Abc_Frame_t * pAbc, int argc, char **argv )
     int fUseWireLoads = 1;
     int fPrintPath    = 0;
     int fDumpStats    = 0;
+    int nTreeCRatio   = 0;
 
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "capdh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Xcapdh" ) ) != EOF )
     {
         switch ( c )
         {
+            case 'X':
+                if ( globalUtilOptind >= argc )
+                {
+                    Abc_Print( -1, "Command line switch \"-X\" should be followed by a positive integer.\n" );
+                    goto usage;
+                }
+                nTreeCRatio = atoi(argv[globalUtilOptind]);
+                globalUtilOptind++;
+                if ( nTreeCRatio < 0 ) 
+                    goto usage;
+                break;
             case 'c':
                 fUseWireLoads ^= 1;
                 break;
@@ -468,12 +480,13 @@ int Scl_CommandStime( Abc_Frame_t * pAbc, int argc, char **argv )
         return 1;
     }
 
-    Abc_SclTimePerform( (SC_Lib *)pAbc->pLibScl, Abc_FrameReadNtk(pAbc), fUseWireLoads, fShowAll, fPrintPath, fDumpStats );
+    Abc_SclTimePerform( (SC_Lib *)pAbc->pLibScl, Abc_FrameReadNtk(pAbc), nTreeCRatio, fUseWireLoads, fShowAll, fPrintPath, fDumpStats );
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: stime [-capdh]\n" );
+    fprintf( pAbc->Err, "usage: stime [-X num] [-capdth]\n" );
     fprintf( pAbc->Err, "\t         performs STA using Liberty library\n" );
+    fprintf( pAbc->Err, "\t-X     : min Cout/Cave ratio for tree estimations [default = %d]\n", nTreeCRatio );
     fprintf( pAbc->Err, "\t-c     : toggle using wire-loads if specified [default = %s]\n", fUseWireLoads? "yes": "no" );
     fprintf( pAbc->Err, "\t-a     : display timing information for all nodes [default = %s]\n", fShowAll? "yes": "no" );
     fprintf( pAbc->Err, "\t-p     : display timing information for critical path [default = %s]\n", fPrintPath? "yes": "no" );
@@ -856,13 +869,14 @@ int Scl_CommandUpsize( Abc_Frame_t * pAbc, int argc, char **argv )
     pPars->DelayUser     =    0;
     pPars->DelayGap      =    0;
     pPars->TimeOut       =    0;
+    pPars->BuffTreeEst   =    0;
     pPars->fUseDept      =    1;
     pPars->fUseWireLoads =    1;
     pPars->fDumpStats    =    0;
     pPars->fVerbose      =    0;
     pPars->fVeryVerbose  =    0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "IJWRNDGTcsdvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "IJWRNDGTXcsdvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -952,6 +966,17 @@ int Scl_CommandUpsize( Abc_Frame_t * pAbc, int argc, char **argv )
             if ( pPars->TimeOut < 0 ) 
                 goto usage;
             break;
+        case 'X':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-X\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            pPars->BuffTreeEst = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->BuffTreeEst < 0 ) 
+                goto usage;
+            break;
         case 'c':
             pPars->fUseWireLoads ^= 1;
             break;
@@ -999,7 +1024,7 @@ int Scl_CommandUpsize( Abc_Frame_t * pAbc, int argc, char **argv )
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: upsize [-IJWRNDGT num] [-csdvwh]\n" );
+    fprintf( pAbc->Err, "usage: upsize [-IJWRNDGTX num] [-csdvwh]\n" );
     fprintf( pAbc->Err, "\t           selectively increases gate sizes on the critical path\n" );
     fprintf( pAbc->Err, "\t-I <num> : the number of upsizing iterations to perform [default = %d]\n", pPars->nIters );
     fprintf( pAbc->Err, "\t-J <num> : the number of iterations without improvement to stop [default = %d]\n", pPars->nIterNoChange );
@@ -1009,6 +1034,7 @@ usage:
     fprintf( pAbc->Err, "\t-D <num> : delay target set by the user, in picoseconds [default = %d]\n", pPars->DelayUser );
     fprintf( pAbc->Err, "\t-G <num> : delay gap during updating, in picoseconds [default = %d]\n", pPars->DelayGap );
     fprintf( pAbc->Err, "\t-T <num> : approximate timeout in seconds [default = %d]\n", pPars->TimeOut );
+    fprintf( pAbc->Err, "\t-X <num> : ratio for buffer tree estimation [default = %d]\n", pPars->BuffTreeEst );
     fprintf( pAbc->Err, "\t-c       : toggle using wire-loads if specified [default = %s]\n", pPars->fUseWireLoads? "yes": "no" );
     fprintf( pAbc->Err, "\t-s       : toggle using slack based on departure times [default = %s]\n", pPars->fUseDept? "yes": "no" );
     fprintf( pAbc->Err, "\t-d       : toggle dumping statistics into a file [default = %s]\n", pPars->fDumpStats? "yes": "no" );
@@ -1041,13 +1067,14 @@ int Scl_CommandDnsize( Abc_Frame_t * pAbc, int argc, char **argv )
     pPars->DelayUser     =    0;
     pPars->DelayGap      = 1000;
     pPars->TimeOut       =    0;
+    pPars->BuffTreeEst   =    0;
     pPars->fUseDept      =    1;
     pPars->fUseWireLoads =    1;
     pPars->fDumpStats    =    0;
     pPars->fVerbose      =    0;
     pPars->fVeryVerbose  =    0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "IJNDGTcsdvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "IJNDGTXcsdvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -1115,6 +1142,17 @@ int Scl_CommandDnsize( Abc_Frame_t * pAbc, int argc, char **argv )
             if ( pPars->TimeOut < 0 ) 
                 goto usage;
             break;
+        case 'X':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-X\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            pPars->BuffTreeEst = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->BuffTreeEst < 0 ) 
+                goto usage;
+            break;
         case 'c':
             pPars->fUseWireLoads ^= 1;
             break;
@@ -1162,7 +1200,7 @@ int Scl_CommandDnsize( Abc_Frame_t * pAbc, int argc, char **argv )
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: dnsize [-IJNDGT num] [-csdvwh]\n" );
+    fprintf( pAbc->Err, "usage: dnsize [-IJNDGTX num] [-csdvwh]\n" );
     fprintf( pAbc->Err, "\t           selectively decreases gate sizes while maintaining delay\n" );
     fprintf( pAbc->Err, "\t-I <num> : the number of upsizing iterations to perform [default = %d]\n", pPars->nIters );
     fprintf( pAbc->Err, "\t-J <num> : the number of iterations without improvement to stop [default = %d]\n", pPars->nIterNoChange );
@@ -1170,6 +1208,7 @@ usage:
     fprintf( pAbc->Err, "\t-D <num> : delay target set by the user, in picoseconds [default = %d]\n", pPars->DelayUser );
     fprintf( pAbc->Err, "\t-G <num> : delay gap during updating, in picoseconds [default = %d]\n", pPars->DelayGap );
     fprintf( pAbc->Err, "\t-T <num> : approximate timeout in seconds [default = %d]\n", pPars->TimeOut );
+    fprintf( pAbc->Err, "\t-X <num> : ratio for buffer tree estimation [default = %d]\n", pPars->BuffTreeEst );
     fprintf( pAbc->Err, "\t-c       : toggle using wire-loads if specified [default = %s]\n", pPars->fUseWireLoads? "yes": "no" );
     fprintf( pAbc->Err, "\t-s       : toggle using slack based on departure times [default = %s]\n", pPars->fUseDept? "yes": "no" );
     fprintf( pAbc->Err, "\t-d       : toggle dumping statistics into a file [default = %s]\n", pPars->fDumpStats? "yes": "no" );
@@ -1234,8 +1273,8 @@ int Scl_CommandPrintBuf( Abc_Frame_t * pAbc, int argc, char **argv )
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: minsize [-vh]\n" );
-    fprintf( pAbc->Err, "\t           downsized all gates to their minimum size\n" );
+    fprintf( pAbc->Err, "usage: print_buf [-vh]\n" );
+    fprintf( pAbc->Err, "\t           prints buffers trees of the current design\n" );
     fprintf( pAbc->Err, "\t-v       : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pAbc->Err, "\t-h       : print the command usage\n");
     return 1;
