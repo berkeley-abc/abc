@@ -20,6 +20,7 @@
 
 #include "sclSize.h"
 #include "map/mio/mio.h"
+#include "misc/vec/vecWec.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -121,7 +122,7 @@ static inline void Abc_SclTimeNodePrint( SC_Man * p, Abc_Obj_t * pObj, int fRise
     printf( "Cout =%5.0f ff  ", Abc_SclObjLoadFf(p, pObj, fRise >= 0 ? fRise : 0 ) );
     printf( "Cmax =%5.0f ff  ", pCell ? SC_CellPin(pCell, pCell->n_inputs)->max_out_cap : 0.0 );
     printf( "G =%5.1f  ",       pCell ? Abc_SclObjLoadAve(p, pObj) / SC_CellPinCap(pCell, 0) : 0.0 );
-    printf( "SL =%5.1f ps",     Abc_SclObjSlack(p, pObj) );
+    printf( "SL =%5.1f ps",     Abc_SclObjSlackPs(p, pObj) );
     printf( "\n" );
 }
 void Abc_SclTimeNtkPrint( SC_Man * p, int fShowAll, int fPrintPath )
@@ -201,6 +202,11 @@ static inline void Abc_SclDeptFanin( SC_Man * p, SC_Timing * pTime, Abc_Obj_t * 
     SC_Pair * pDepOut  = Abc_SclObjDept( p, pObj );
     Scl_LibPinDeparture( pTime, pDepIn, pSlewIn, pLoad, pDepOut );
 }
+static inline float Abc_SclObjLoadValue( SC_Man * p, Abc_Obj_t * pObj )
+{
+//    float Value = Abc_MaxFloat(pLoad->fall, pLoad->rise) / (p->EstLoadAve * p->EstLoadMax);
+    return 0.5 * (Abc_SclObjLoad(p, pObj)->fall + Abc_SclObjLoad(p, pObj)->rise) / (p->EstLoadAve * p->EstLoadMax);
+}
 void Abc_SclTimeNode( SC_Man * p, Abc_Obj_t * pObj, int fDept )
 {
     SC_Timings * pRTime;
@@ -213,8 +219,7 @@ void Abc_SclTimeNode( SC_Man * p, Abc_Obj_t * pObj, int fDept )
     float LoadFall = pLoad->fall;
     float DeptRise = 0;
     float DeptFall = 0;
-//    float Value = Abc_MaxFloat(pLoad->fall, pLoad->rise) / (p->EstLoadAve * p->EstLoadMax);
-    float Value = 0.5 * (pLoad->fall + pLoad->rise) / (p->EstLoadAve * p->EstLoadMax);
+    float Value = p->EstLoadMax ? Abc_SclObjLoadValue( p, pObj ) : 0;
     if ( Abc_ObjIsCo(pObj) )
     {
         if ( !fDept )
@@ -325,8 +330,6 @@ void Abc_SclTimeNtkRecompute( SC_Man * p, float * pArea, float * pDelay, int fRe
             p->pSlack[i] = Abc_MaxFloat( 0.0, Abc_SclObjGetSlack(p, pObj, D) );
         }
     }
-    if ( p->nEstNodes )
-        printf( "Estimated nodes = %d.\n", p->nEstNodes );
 }
 
 /**Function*************************************************************
@@ -626,7 +629,7 @@ void Abc_SclPrintBuffersOne( SC_Man * p, Abc_Obj_t * pObj, int nOffset )
     printf( "%6.0f ps)  ",     Abc_SclObjTimePs(p, pObj, 0) );
     printf( "l =%5.0f ff  ",   Abc_SclObjLoadFf(p, pObj, 0 ) );
     printf( "s =%5.0f ps   ",  Abc_SclObjSlewPs(p, pObj, 0 ) );
-    printf( "sl =%5.0f ps   ", Abc_SclObjSlack(p, pObj) );
+    printf( "sl =%5.0f ps   ", Abc_SclObjSlackPs(p, pObj) );
     if ( nOffset == 0 )
     {
     printf( "L =%5.0f ff   ",  SC_LibCapFf( p->pLib, Abc_SclCountNonBufferLoad(p, pObj) ) );
@@ -696,6 +699,103 @@ int Abc_SclInputDriveOk( SC_Man * p, Abc_Obj_t * pObj, SC_Cell * pCell )
             Abc_MaxFloat(SC_CellPin(pCell, i)->rise_cap, SC_CellPin(pCell, i)->fall_cap) )
                 return 0;
     return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Select nodes that need to be buffered.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Wec_t * Abc_SclSelectSplitNodes( SC_Man * p, Abc_Ntk_t * pNtk )
+{
+    Vec_Wec_t * vSplits;
+    Vec_Int_t * vCrits, * vNonCrits, * vLevel;
+    Abc_Obj_t * pObj, * pFanout;
+    int i, k;
+    assert( p->EstLoadMax > 0 );
+    vCrits = Vec_IntAlloc( 1000 );
+    vNonCrits = Vec_IntAlloc( 1000 );
+    vSplits = Vec_WecAlloc( 1000 );
+    Abc_NtkForEachNodeCi( pNtk, pObj, i )
+    {
+        if ( Abc_SclObjLoadValue(p, pObj) < 1 )
+        {
+//            printf( "%d ", Abc_ObjFanoutNum(pObj) );
+            continue;
+        }
+/*
+        printf( "%d : %.0f   ", i, 0.5 * (Abc_SclObjLoad(p, pObj)->fall + Abc_SclObjLoad(p, pObj)->rise) );
+        Abc_ObjForEachFanout( pObj, pFanout, k )
+            printf( "%.1f ", Abc_SclGatePinCapAve(p->pLib, Abc_SclObjCell(p, pFanout)) );
+        printf( "\n" );
+*/
+        // skip non-critical nodes
+//        if ( Abc_SclObjSlack(p, pObj) > 100 )
+//            continue;
+        // collect non-critical fanouts of the node
+        Vec_IntClear( vCrits );
+        Vec_IntClear( vNonCrits );
+        Abc_ObjForEachFanout( pObj, pFanout, k )
+            if ( Abc_SclObjSlack(p, pFanout) < 100 )
+                Vec_IntPush( vCrits, Abc_ObjId(pFanout) );
+            else
+                Vec_IntPush( vNonCrits, Abc_ObjId(pFanout) );
+//        assert( Vec_IntSize(vNonCrits) < Abc_ObjFanoutNum(pObj) );
+        // skip if there is nothing to split
+//        if ( Vec_IntSize(vNonCrits) < 2 )
+//            continue;
+        // remember them
+        vLevel = Vec_WecPushLevel( vSplits );
+        Vec_IntPush( vLevel, i );
+        Vec_IntAppend( vLevel, vCrits );
+        // remember them
+        vLevel = Vec_WecPushLevel( vSplits );
+        Vec_IntPush( vLevel, i );
+        Vec_IntAppend( vLevel, vNonCrits );
+    }
+    Vec_IntFree( vCrits );
+    Vec_IntFree( vNonCrits );
+    // print out
+    printf( "Collected %d nodes to split.\n", Vec_WecSize(vSplits) );
+    return vSplits;
+}
+void Abc_SclPerformSplit( SC_Man * p, Abc_Ntk_t * pNtk, Vec_Wec_t * vSplits )
+{
+    Abc_Obj_t * pObj, * pObjInv, * pFanout;
+    Vec_Int_t * vLevel;
+    int i, k;
+    assert( pNtk->vPhases != NULL );
+    Vec_WecForEachLevel( vSplits, vLevel, i )
+    {
+        pObj = Abc_NtkObj( pNtk, Vec_IntEntry(vLevel, 0) );
+        pObjInv = Abc_NtkCreateNodeInv( pNtk, pObj );
+        Abc_NtkForEachObjVecStart( vLevel, pNtk, pFanout, k, 1 )
+        {
+            Abc_ObjFaninFlipPhase( pFanout, Abc_NodeFindFanin(pFanout, pObj) );
+            Abc_ObjPatchFanin( pFanout, pObj, pObjInv );
+        }
+    }
+    Vec_IntFillExtra( pNtk->vPhases, Abc_NtkObjNumMax(pNtk), 0 );
+}
+Abc_Ntk_t * Abc_SclBuffSizeStep( SC_Lib * pLib, Abc_Ntk_t * pNtk, int nTreeCRatio, int fUseWireLoads )
+{
+    SC_Man * p;
+    Vec_Wec_t * vSplits;
+    p = Abc_SclManStart( pLib, pNtk, fUseWireLoads, 1, 0, nTreeCRatio );
+    Abc_SclTimeNtkPrint( p, 0, 0 );
+    if ( p->nEstNodes )
+        printf( "Estimated nodes = %d.\n", p->nEstNodes );
+    vSplits = Abc_SclSelectSplitNodes( p, pNtk );
+    Abc_SclPerformSplit( p, pNtk, vSplits );
+    Vec_WecFree( vSplits );
+    Abc_SclManFree( p );
+    return Abc_NtkDupDfs( pNtk );
 }
 
 ////////////////////////////////////////////////////////////////////////

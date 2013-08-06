@@ -78,6 +78,28 @@ static inline int  Abc_BufEdgeSlack( Buf_Man_t * p, Abc_Obj_t * pObj, Abc_Obj_t 
 
 /**Function*************************************************************
 
+  Synopsis    [Make sure fanins of gates are not duplicated.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_SclReportDupFanins( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pObj, * pFanin, * pFanin2;
+    int i, k, k2;
+    Abc_NtkForEachNode( pNtk, pObj, i )
+        Abc_ObjForEachFanin( pObj, pFanin, k )
+            Abc_ObjForEachFanin( pObj, pFanin2, k2 )
+                if ( k != k2 && pFanin == pFanin2 )
+                    printf( "Node %d has dup fanin %d.\n", i, Abc_ObjId(pFanin) );    
+}
+
+/**Function*************************************************************
+
   Synopsis    [Removes buffers and inverters.]
 
   Description []
@@ -244,6 +266,7 @@ Abc_Ntk_t * Abc_SclUnBufferPhase( Abc_Ntk_t * pNtk, int fVerbose )
     pNtkNew = Abc_NtkDupDfs( pNtk );
     if ( fVerbose )
         printf( "Max depth = %d.\n", Abc_SclCountMaxPhases(pNtkNew) );
+    Abc_SclReportDupFanins( pNtkNew );
     return pNtkNew;
 }
 
@@ -292,6 +315,20 @@ int Abc_SclCheckNtk( Abc_Ntk_t * p, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
+void Abc_NodeInvUpdateFanPolarity( Abc_Obj_t * pObj )
+{
+    Abc_Obj_t * pFanout;
+    int i;
+    assert( Abc_SclObjIsBufInv(pObj) );
+    Abc_ObjForEachFanout( pObj, pFanout, i )
+    {
+        if ( Abc_SclObjIsBufInv(pFanout) )
+            Abc_NodeInvUpdateFanPolarity( pFanout );
+        else
+            Abc_ObjFaninFlipPhase( pFanout, Abc_NodeFindFanin(pFanout, pObj) );
+    }
+}
+
 int Abc_NodeCompareLevels( Abc_Obj_t ** pp1, Abc_Obj_t ** pp2 )
 {
     int Diff = Abc_ObjLevel(*pp1) - Abc_ObjLevel(*pp2);
@@ -364,12 +401,16 @@ Abc_Obj_t * Abc_SclPerformBufferingOne( Abc_Obj_t * pObj, int Degree, int fUseIn
     Vec_PtrFree( vFanouts );
     Abc_ObjAddFanin( pBuffer, pObj );
     pBuffer->Level = Abc_SclComputeReverseLevel( pBuffer );
+    if ( fUseInvs )
+        Abc_NodeInvUpdateFanPolarity( pBuffer );
     return pBuffer;
 }
-void Abc_SclPerformBuffering_rec( Abc_Obj_t * pObj, int Degree, int fUseInvs, int fVerbose )
+void Abc_SclPerformBuffering_rec( Abc_Obj_t * pObj, int DegreeR, int Degree, int fUseInvs, int fVerbose )
 {
+    Vec_Ptr_t * vFanouts;
+    Abc_Obj_t * pBuffer;
     Abc_Obj_t * pFanout;
-    int i;
+    int i, nOldFanNum;
     if ( Abc_NodeIsTravIdCurrent( pObj ) )
         return;
     Abc_NodeSetTravIdCurrent( pObj );
@@ -379,14 +420,32 @@ void Abc_SclPerformBuffering_rec( Abc_Obj_t * pObj, int Degree, int fUseInvs, in
     assert( Abc_ObjIsCi(pObj) || Abc_ObjIsNode(pObj) );
     // buffer fanouts and collect reverse levels
     Abc_ObjForEachFanout( pObj, pFanout, i )
-        Abc_SclPerformBuffering_rec( pFanout, Degree, fUseInvs, fVerbose );
+        Abc_SclPerformBuffering_rec( pFanout, DegreeR, Degree, fUseInvs, fVerbose );
     // perform buffering as long as needed
+    nOldFanNum = Abc_ObjFanoutNum(pObj);
     while ( Abc_ObjFanoutNum(pObj) > Degree )
         Abc_SclPerformBufferingOne( pObj, Degree, fUseInvs, fVerbose );
+    // add yet another level of buffers
+    if ( DegreeR && nOldFanNum > DegreeR )
+    {
+        if ( fUseInvs )
+            pBuffer = Abc_NtkCreateNodeInv( pObj->pNtk, NULL );
+        else
+            pBuffer = Abc_NtkCreateNodeBuf( pObj->pNtk, NULL );
+        vFanouts = Vec_PtrAlloc( Abc_ObjFanoutNum(pObj) );
+        Abc_NodeCollectFanouts( pObj, vFanouts );
+        Vec_PtrForEachEntry( Abc_Obj_t *, vFanouts, pFanout, i )
+            Abc_ObjPatchFanin( pFanout, pObj, pBuffer );
+        Vec_PtrFree( vFanouts );
+        Abc_ObjAddFanin( pBuffer, pObj );
+        pBuffer->Level = Abc_SclComputeReverseLevel( pBuffer );
+        if ( fUseInvs )
+            Abc_NodeInvUpdateFanPolarity( pBuffer );
+    }
     // compute the new level of the node
     pObj->Level = Abc_SclComputeReverseLevel( pObj );
 }
-Abc_Ntk_t * Abc_SclPerformBuffering( Abc_Ntk_t * p, int Degree, int fUseInvs, int fVerbose )
+Abc_Ntk_t * Abc_SclPerformBuffering( Abc_Ntk_t * p, int DegreeR, int Degree, int fUseInvs, int fVerbose )
 {
     Vec_Int_t * vCiLevs;
     Abc_Ntk_t * pNew;
@@ -394,7 +453,11 @@ Abc_Ntk_t * Abc_SclPerformBuffering( Abc_Ntk_t * p, int Degree, int fUseInvs, in
     int i;
     assert( Abc_NtkHasMapping(p) );
     if ( fUseInvs )
+    {
         printf( "Warning!!! Using inverters instead of buffers.\n" );
+        if ( p->vPhases == NULL )
+            printf( "The phases are not given. The result will not verify.\n" );
+    }
     // remember CI levels
     vCiLevs = Vec_IntAlloc( Abc_NtkCiNum(p) );
     Abc_NtkForEachCi( p, pObj, i )
@@ -402,13 +465,16 @@ Abc_Ntk_t * Abc_SclPerformBuffering( Abc_Ntk_t * p, int Degree, int fUseInvs, in
     // perform buffering
     Abc_NtkIncrementTravId( p );        
     Abc_NtkForEachCi( p, pObj, i )
-        Abc_SclPerformBuffering_rec( pObj, Degree, fUseInvs, fVerbose );
+        Abc_SclPerformBuffering_rec( pObj, DegreeR, Degree, fUseInvs, fVerbose );
     // recompute logic levels
     Abc_NtkForEachCi( p, pObj, i )
         pObj->Level = Vec_IntEntry( vCiLevs, i );
     Abc_NtkForEachNode( p, pObj, i )
         Abc_ObjLevelNew( pObj );
     Vec_IntFree( vCiLevs );
+    // if phases are present
+    if ( p->vPhases )
+        Vec_IntFillExtra( p->vPhases, Abc_NtkObjNumMax(p), 0 );
     // duplication in topo order
     pNew = Abc_NtkDupDfs( p );
     Abc_SclCheckNtk( pNew, fVerbose );

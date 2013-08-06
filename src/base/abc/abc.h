@@ -387,8 +387,8 @@ static inline Abc_Obj_t * Abc_ObjChild0Data( Abc_Obj_t * pObj )      { return Ab
 static inline Abc_Obj_t * Abc_ObjChild1Data( Abc_Obj_t * pObj )      { return Abc_ObjNotCond( (Abc_Obj_t *)Abc_ObjFanin1(pObj)->pData, Abc_ObjFaninC1(pObj) );    }
 static inline Abc_Obj_t * Abc_ObjFromLit( Abc_Ntk_t * p, int iLit )  { return Abc_ObjNotCond( Abc_NtkObj(p, Abc_Lit2Var(iLit)), Abc_LitIsCompl(iLit) );           }
 static inline int         Abc_ObjToLit( Abc_Obj_t * p )              { return Abc_Var2Lit( Abc_ObjId(Abc_ObjRegular(p)), Abc_ObjIsComplement(p) );                }
-static inline int         Abc_ObjFaninPhase( Abc_Obj_t * p, int i )  { assert(p->pNtk->vPhases); return (Vec_IntEntry(p->pNtk->vPhases, Abc_ObjId(p)) >> i) & 1;  } 
-static inline void        Abc_ObjFaninFlipPhase( Abc_Obj_t * p,int i){ assert(p->pNtk->vPhases); *Vec_IntEntryP(p->pNtk->vPhases, Abc_ObjId(p)) ^= (1 << i);      } 
+static inline int         Abc_ObjFaninPhase( Abc_Obj_t * p, int i )  { assert(p->pNtk->vPhases); assert( i >= 0 && i < Abc_ObjFaninNum(p) ); return (Vec_IntEntry(p->pNtk->vPhases, Abc_ObjId(p)) >> i) & 1;  } 
+static inline void        Abc_ObjFaninFlipPhase( Abc_Obj_t * p,int i){ assert(p->pNtk->vPhases); assert( i >= 0 && i < Abc_ObjFaninNum(p) ); *Vec_IntEntryP(p->pNtk->vPhases, Abc_ObjId(p)) ^= (1 << i);      } 
 
 // checking the AIG node types
 static inline int         Abc_AigNodeIsConst( Abc_Obj_t * pNode )    { assert(Abc_NtkIsStrash(Abc_ObjRegular(pNode)->pNtk));  return Abc_ObjRegular(pNode)->Type == ABC_OBJ_CONST1;       }

@@ -37,10 +37,11 @@ static int Scl_CommandStime   ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Scl_CommandTopo    ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Scl_CommandBuffer  ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Scl_CommandUnBuffer( Abc_Frame_t * pAbc, int argc, char **argv );
-static int Scl_CommandUpsize  ( Abc_Frame_t * pAbc, int argc, char **argv );
-static int Scl_CommandDnsize  ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Scl_CommandMinsize ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Scl_CommandMaxsize ( Abc_Frame_t * pAbc, int argc, char **argv );
+static int Scl_CommandUpsize  ( Abc_Frame_t * pAbc, int argc, char **argv );
+static int Scl_CommandDnsize  ( Abc_Frame_t * pAbc, int argc, char **argv );
+static int Scl_CommandBsize   ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Scl_CommandPrintBuf( Abc_Frame_t * pAbc, int argc, char **argv );
 
 ////////////////////////////////////////////////////////////////////////
@@ -73,6 +74,7 @@ void Scl_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "SCL mapping",  "maxsize",     Scl_CommandMaxsize,  1 ); 
     Cmd_CommandAdd( pAbc, "SCL mapping",  "upsize",      Scl_CommandUpsize,   1 ); 
     Cmd_CommandAdd( pAbc, "SCL mapping",  "dnsize",      Scl_CommandDnsize,   1 ); 
+    Cmd_CommandAdd( pAbc, "SCL mapping",  "bsize",       Scl_CommandBsize,    1 ); 
     Cmd_CommandAdd( pAbc, "SCL mapping",  "print_buf",   Scl_CommandPrintBuf, 0 ); 
 }
 void Scl_End( Abc_Frame_t * pAbc )
@@ -571,17 +573,18 @@ int Scl_CommandBuffer( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     Abc_Ntk_t * pNtkRes;
-    int FanMin, FanMax, fAddInvs, fUseInvs, fBufPis;
+    int FanMin, FanMax, FanMaxR, fAddInvs, fUseInvs, fBufPis;
     int c, fVerbose;
     int fOldAlgo = 0;
     FanMin   =  6;
     FanMax   = 14;
+    FanMaxR  =  0;
     fAddInvs =  0;
     fUseInvs =  0;
     fBufPis  =  0;
     fVerbose =  0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "NMaixpvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "NMRaixpvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -605,6 +608,17 @@ int Scl_CommandBuffer( Abc_Frame_t * pAbc, int argc, char ** argv )
             FanMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( FanMax < 0 ) 
+                goto usage;
+            break;
+        case 'R':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-R\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            FanMaxR = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( FanMaxR < 0 ) 
                 goto usage;
             break;
         case 'a':
@@ -649,7 +663,7 @@ int Scl_CommandBuffer( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( fAddInvs )
         pNtkRes = Abc_SclBufferPhase( pNtk, fVerbose );
     else if ( fOldAlgo )
-        pNtkRes = Abc_SclPerformBuffering( pNtk, FanMax, fUseInvs, fVerbose );
+        pNtkRes = Abc_SclPerformBuffering( pNtk, FanMaxR, FanMax, fUseInvs, fVerbose );
     else
         pNtkRes = Abc_SclBufPerform( pNtk, FanMin, FanMax, fBufPis, fVerbose );
     if ( pNtkRes == NULL )
@@ -662,10 +676,11 @@ int Scl_CommandBuffer( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: buffer [-NM num] [-aixpvh]\n" );
+    fprintf( pAbc->Err, "usage: buffer [-NMR num] [-aixpvh]\n" );
     fprintf( pAbc->Err, "\t           performs buffering of the mapped network\n" );
     fprintf( pAbc->Err, "\t-N <num> : the min fanout considered by the algorithm [default = %d]\n", FanMin );
     fprintf( pAbc->Err, "\t-M <num> : the max allowed fanout count of node/buffer [default = %d]\n", FanMax );
+    fprintf( pAbc->Err, "\t-R <num> : the max allowed fanout count of root node [default = %d]\n", FanMaxR );
     fprintf( pAbc->Err, "\t-a       : toggle using old algorithm [default = %s]\n", fOldAlgo? "yes": "no" );
     fprintf( pAbc->Err, "\t-i       : toggle adding interters instead of buffering [default = %s]\n", fAddInvs? "yes": "no" );
     fprintf( pAbc->Err, "\t-x       : toggle using interters instead of buffers [default = %s]\n", fUseInvs? "yes": "no" );
@@ -1234,6 +1249,94 @@ usage:
     fprintf( pAbc->Err, "\t-v       : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
     fprintf( pAbc->Err, "\t-w       : toggle printing more verbose information [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
     fprintf( pAbc->Err, "\t-h       : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Scl_CommandBsize( Abc_Frame_t * pAbc, int argc, char **argv )
+{
+    extern Abc_Ntk_t * Abc_SclBuffSizeStep( SC_Lib * pLib, Abc_Ntk_t * pNtk, int nTreeCRatio, int fUseWireLoads );
+    Abc_Ntk_t * pNtkRes;
+    int c;
+    int fUseWireLoads = 1;
+    int nTreeCRatio   = 0;
+
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Xch" ) ) != EOF )
+    {
+        switch ( c )
+        {
+            case 'X':
+                if ( globalUtilOptind >= argc )
+                {
+                    Abc_Print( -1, "Command line switch \"-X\" should be followed by a positive integer.\n" );
+                    goto usage;
+                }
+                nTreeCRatio = atoi(argv[globalUtilOptind]);
+                globalUtilOptind++;
+                if ( nTreeCRatio < 0 ) 
+                    goto usage;
+                break;
+            case 'c':
+                fUseWireLoads ^= 1;
+                break;
+           case 'h':
+                goto usage;
+            default:
+                goto usage;
+        }
+    }
+
+    if ( Abc_FrameReadNtk(pAbc) == NULL )
+    {
+        fprintf( pAbc->Err, "There is no current network.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkHasMapping(Abc_FrameReadNtk(pAbc)) )
+    {
+        fprintf( pAbc->Err, "The current network is not mapped.\n" );
+        return 1;
+    }
+    if ( !Abc_SclCheckNtk(Abc_FrameReadNtk(pAbc), 0) )
+    {
+        fprintf( pAbc->Err, "The current network is not in a topo order (run \"topo\").\n" );
+        return 1;
+    }
+    if ( pAbc->pLibScl == NULL )
+    {
+        fprintf( pAbc->Err, "There is no Liberty library available.\n" );
+        return 1;
+    }
+    if ( Abc_FrameReadNtk(pAbc)->vPhases == 0 )
+    {
+        fprintf( pAbc->Err, "There is no phases available.\n" );
+        return 1;
+    }
+    pNtkRes = Abc_SclBuffSizeStep( (SC_Lib *)pAbc->pLibScl, Abc_FrameReadNtk(pAbc), nTreeCRatio, fUseWireLoads );
+    if ( pNtkRes == NULL )
+    {
+        Abc_Print( -1, "The command has failed.\n" );
+        return 1;
+    }
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    return 0;
+
+usage:
+    fprintf( pAbc->Err, "usage: bsize [-X num] [-ch]\n" );
+    fprintf( pAbc->Err, "\t         performs STA using Liberty library\n" );
+    fprintf( pAbc->Err, "\t-X     : min Cout/Cave ratio for tree estimations [default = %d]\n", nTreeCRatio );
+    fprintf( pAbc->Err, "\t-c     : toggle using wire-loads if specified [default = %s]\n", fUseWireLoads? "yes": "no" );
+    fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
     return 1;
 }
 
