@@ -2698,6 +2698,30 @@ int Abc_NtkIsTopo( Abc_Ntk_t * pNtk )
     return (int)(Counter == 0);
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Transfers phase information to the new network.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkTransferPhases( Abc_Ntk_t * pNtkNew, Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pObj;
+    int i;
+    assert( pNtk->vPhases != NULL );
+    assert( Vec_IntSize(pNtk->vPhases) == Abc_NtkObjNumMax(pNtk) );
+    assert( pNtkNew->vPhases == NULL );
+    pNtkNew->vPhases = Vec_IntStart( Abc_NtkObjNumMax(pNtkNew) );
+    Abc_NtkForEachObj( pNtk, pObj, i )
+        if ( pObj->pCopy && !Abc_ObjIsNone( (Abc_Obj_t *)pObj->pCopy ) )
+            Vec_IntWriteEntry( pNtkNew->vPhases, Abc_ObjId( (Abc_Obj_t *)pObj->pCopy ), Vec_IntEntry(pNtk->vPhases, i) );
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

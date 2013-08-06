@@ -323,6 +323,8 @@ void Abc_NtkFinalize( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew )
     // duplicate timing manager
     if ( pNtk->pManTime )
         Abc_NtkTimeInitialize( pNtkNew, pNtk );
+    if ( pNtk->vPhases )
+        Abc_NtkTransferPhases( pNtkNew, pNtk );
 }
 
 /**Function*************************************************************
@@ -478,6 +480,8 @@ Abc_Ntk_t * Abc_NtkDup( Abc_Ntk_t * pNtk )
     // duplicate timing manager
     if ( pNtk->pManTime )
         Abc_NtkTimeInitialize( pNtkNew, pNtk );
+    if ( pNtk->vPhases )
+        Abc_NtkTransferPhases( pNtkNew, pNtk );
     // check correctness
     if ( !Abc_NtkCheck( pNtkNew ) )
         fprintf( stdout, "Abc_NtkDup(): Network check has failed.\n" );
@@ -514,6 +518,8 @@ Abc_Ntk_t * Abc_NtkDupDfs( Abc_Ntk_t * pNtk )
     // duplicate timing manager
     if ( pNtk->pManTime )
         Abc_NtkTimeInitialize( pNtkNew, pNtk );
+    if ( pNtk->vPhases )
+        Abc_NtkTransferPhases( pNtkNew, pNtk );
     // check correctness
     if ( !Abc_NtkCheck( pNtkNew ) )
         fprintf( stdout, "Abc_NtkDup(): Network check has failed.\n" );
@@ -1310,6 +1316,7 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
     // free the timing manager
     if ( pNtk->pManTime )
         Abc_ManTimeStop( pNtk->pManTime );
+    Vec_IntFreeP( &pNtk->vPhases );
     // start the functionality manager
     if ( Abc_NtkIsStrash(pNtk) )
         Abc_AigFree( (Abc_Aig_t *)pNtk->pManFunc );

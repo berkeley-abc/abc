@@ -204,6 +204,7 @@ struct Abc_Ntk_t_
     void *            pExcare;       // the EXDC network (if given)
     void *            pData;         // misc
     Abc_Ntk_t *       pCopy;         // copy of this network
+    Vec_Int_t *       vPhases;       // fanins phases in the mapped netlist
     float *           pLutTimes;     // arrivals/requireds/slacks using LUT-delay model
     Vec_Ptr_t *       vOnehots;      // names of one-hot-encoded registers
     Vec_Int_t *       vObjPerm;      // permutation saved
@@ -386,6 +387,8 @@ static inline Abc_Obj_t * Abc_ObjChild0Data( Abc_Obj_t * pObj )      { return Ab
 static inline Abc_Obj_t * Abc_ObjChild1Data( Abc_Obj_t * pObj )      { return Abc_ObjNotCond( (Abc_Obj_t *)Abc_ObjFanin1(pObj)->pData, Abc_ObjFaninC1(pObj) );    }
 static inline Abc_Obj_t * Abc_ObjFromLit( Abc_Ntk_t * p, int iLit )  { return Abc_ObjNotCond( Abc_NtkObj(p, Abc_Lit2Var(iLit)), Abc_LitIsCompl(iLit) );           }
 static inline int         Abc_ObjToLit( Abc_Obj_t * p )              { return Abc_Var2Lit( Abc_ObjId(Abc_ObjRegular(p)), Abc_ObjIsComplement(p) );                }
+static inline int         Abc_ObjFaninPhase( Abc_Obj_t * p, int i )  { assert(p->pNtk->vPhases); return (Vec_IntEntry(p->pNtk->vPhases, Abc_ObjId(p)) >> i) & 1;  } 
+static inline void        Abc_ObjFaninFlipPhase( Abc_Obj_t * p,int i){ assert(p->pNtk->vPhases); *Vec_IntEntryP(p->pNtk->vPhases, Abc_ObjId(p)) ^= (1 << i);      } 
 
 // checking the AIG node types
 static inline int         Abc_AigNodeIsConst( Abc_Obj_t * pNode )    { assert(Abc_NtkIsStrash(Abc_ObjRegular(pNode)->pNtk));  return Abc_ObjRegular(pNode)->Type == ABC_OBJ_CONST1;       }
@@ -999,7 +1002,7 @@ extern ABC_DLL void               Abc_NtkInvertConstraints( Abc_Ntk_t * pNtk );
 extern ABC_DLL void               Abc_NtkPrintCiLevels( Abc_Ntk_t * pNtk );
 extern ABC_DLL void               Abc_NtkReverseTopoOrder( Abc_Ntk_t * pNtk );
 extern ABC_DLL int                Abc_NtkIsTopo( Abc_Ntk_t * pNtk );
-
+extern ABC_DLL void               Abc_NtkTransferPhases( Abc_Ntk_t * pNtkNew, Abc_Ntk_t * pNtk );
 
 
 /*=== abcVerify.c ==========================================================*/

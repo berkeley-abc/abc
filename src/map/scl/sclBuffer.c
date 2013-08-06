@@ -147,6 +147,83 @@ Abc_Ntk_t * Abc_SclUnBufferPerform( Abc_Ntk_t * pNtk, int fVerbose )
 
 /**Function*************************************************************
 
+  Synopsis    [Removes buffers and inverters.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_SclBufferPhase( Abc_Ntk_t * pNtk, int fVerbose )
+{
+    Abc_Ntk_t * pNtkNew;
+    Vec_Int_t * vInvs;
+    Abc_Obj_t * pObj, * pFanin, * pFaninNew;
+    int nNodesOld = Abc_NtkObjNumMax(pNtk);
+    int i, k, Counter = 0;
+    assert( pNtk->vPhases != NULL );
+    vInvs = Vec_IntStart( Abc_NtkObjNumMax(pNtk) );
+    Abc_NtkForEachNodeCo( pNtk, pObj, i )
+    {
+        if ( i >= nNodesOld )
+            break;
+        Abc_ObjForEachFanin( pObj, pFanin, k )
+        {
+            if ( !Abc_ObjFaninPhase(pObj, k) )
+                continue;
+            if ( Vec_IntEntry(vInvs, Abc_ObjId(pFanin)) == 0 )
+            {
+                pFaninNew = Abc_NtkCreateNodeInv( pNtk, pFanin );
+                Vec_IntWriteEntry( vInvs, Abc_ObjId(pFanin), Abc_ObjId(pFaninNew) );
+                Counter++;
+            }
+            pFaninNew = Abc_NtkObj( pNtk, Vec_IntEntry(vInvs, Abc_ObjId(pFanin)) );
+            Abc_ObjPatchFanin( pObj, pFanin, pFaninNew );
+        }
+    }
+//    printf( "Added %d inverters.\n", Counter );
+    Vec_IntFree( vInvs );
+    Vec_IntFillExtra( pNtk->vPhases, Abc_NtkObjNumMax(pNtk), 0 );
+    // duplicate network in topo order
+    vInvs = pNtk->vPhases;
+    pNtk->vPhases = NULL;
+    pNtkNew = Abc_NtkDupDfs( pNtk );
+    pNtk->vPhases = vInvs;
+    return pNtkNew;
+}
+Abc_Ntk_t * Abc_SclUnBufferPhase( Abc_Ntk_t * pNtk, int fVerbose )
+{
+    Abc_Obj_t * pObj, * pFanin, * pFaninNew;
+    int i, k, iLit, Counter = 0;
+    assert( pNtk->vPhases == NULL );
+    pNtk->vPhases = Vec_IntStart( Abc_NtkObjNumMax(pNtk) );
+    Abc_NtkForEachNodeCo( pNtk, pObj, i )
+    {
+        if ( Abc_SclObjIsBufInv(pObj) )
+            continue;
+        Abc_ObjForEachFanin( pObj, pFanin, k )
+        {
+            iLit = Abc_SclGetRealFaninLit( pFanin );
+            pFaninNew = Abc_NtkObj( pNtk, Abc_Lit2Var(iLit) );
+            if ( pFaninNew == pFanin )
+                continue;
+            // skip fanins which are already fanins of the node
+            if ( Abc_NodeFindFanin( pObj, pFaninNew ) >= 0 )
+                continue;
+            Abc_ObjPatchFanin( pObj, pFanin, pFaninNew );
+            if ( Abc_LitIsCompl(iLit) )
+                Abc_ObjFaninFlipPhase( pObj, k ), Counter++;
+        }
+    }
+//    printf( "Saved %d fanin phase bits.\n", Counter );
+    // duplicate network in topo order
+    return Abc_NtkDupDfs( pNtk );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Make sure the network is in topo order without dangling nodes.]
 
   Description [Returns 1 iff the network is fine.]

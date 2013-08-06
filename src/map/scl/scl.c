@@ -571,16 +571,17 @@ int Scl_CommandBuffer( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     Abc_Ntk_t * pNtkRes;
-    int FanMin, FanMax, fUseInvs, fBufPis;
+    int FanMin, FanMax, fAddInvs, fUseInvs, fBufPis;
     int c, fVerbose;
     int fOldAlgo = 0;
     FanMin   =  6;
     FanMax   = 14;
+    fAddInvs =  0;
     fUseInvs =  0;
     fBufPis  =  0;
     fVerbose =  0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "NMaipvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "NMaixpvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -610,6 +611,9 @@ int Scl_CommandBuffer( Abc_Frame_t * pAbc, int argc, char ** argv )
             fOldAlgo ^= 1;
             break;
         case 'i':
+            fAddInvs ^= 1;
+            break;
+        case 'x':
             fUseInvs ^= 1;
             break;
         case 'p':
@@ -635,9 +639,16 @@ int Scl_CommandBuffer( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "This command can only be applied to a logic network.\n" );
         return 1;
     }
+    if ( fAddInvs && pNtk->vPhases == NULL )
+    {
+        Abc_Print( -1, "Fanin phase information is not avaiable.\n" );
+        return 1;
+    }
 
     // modify the current network
-    if ( fOldAlgo )
+    if ( fAddInvs )
+        pNtkRes = Abc_SclBufferPhase( pNtk, fVerbose );
+    else if ( fOldAlgo )
         pNtkRes = Abc_SclPerformBuffering( pNtk, FanMax, fUseInvs, fVerbose );
     else
         pNtkRes = Abc_SclBufPerform( pNtk, FanMin, FanMax, fBufPis, fVerbose );
@@ -651,12 +662,13 @@ int Scl_CommandBuffer( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: buffer [-NM num] [-aipvh]\n" );
+    fprintf( pAbc->Err, "usage: buffer [-NM num] [-aixpvh]\n" );
     fprintf( pAbc->Err, "\t           performs buffering of the mapped network\n" );
     fprintf( pAbc->Err, "\t-N <num> : the min fanout considered by the algorithm [default = %d]\n", FanMin );
     fprintf( pAbc->Err, "\t-M <num> : the max allowed fanout count of node/buffer [default = %d]\n", FanMax );
     fprintf( pAbc->Err, "\t-a       : toggle using old algorithm [default = %s]\n", fOldAlgo? "yes": "no" );
-    fprintf( pAbc->Err, "\t-i       : toggle using interters instead of buffers [default = %s]\n", fUseInvs? "yes": "no" );
+    fprintf( pAbc->Err, "\t-i       : toggle adding interters instead of buffering [default = %s]\n", fAddInvs? "yes": "no" );
+    fprintf( pAbc->Err, "\t-x       : toggle using interters instead of buffers [default = %s]\n", fUseInvs? "yes": "no" );
     fprintf( pAbc->Err, "\t-p       : toggle buffering primary inputs [default = %s]\n", fBufPis? "yes": "no" );
     fprintf( pAbc->Err, "\t-v       : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pAbc->Err, "\t-h       : print the command usage\n");
@@ -677,12 +689,15 @@ usage:
 int Scl_CommandUnBuffer( Abc_Frame_t * pAbc, int argc, char **argv )
 {
     Abc_Ntk_t * pNtkRes, * pNtk = Abc_FrameReadNtk(pAbc);
-    int c, fVerbose = 0;
+    int c, fRemInv = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "ivh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'i':
+            fRemInv ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -703,7 +718,10 @@ int Scl_CommandUnBuffer( Abc_Frame_t * pAbc, int argc, char **argv )
         fprintf( pAbc->Err, "The current network is not a logic network.\n" );
         return 1;
     }
-    pNtkRes = Abc_SclUnBufferPerform( pNtk, fVerbose );
+    if ( fRemInv )
+        pNtkRes = Abc_SclUnBufferPhase( pNtk, fVerbose );
+    else
+        pNtkRes = Abc_SclUnBufferPerform( pNtk, fVerbose );
     if ( pNtkRes == NULL )
     {
         Abc_Print( -1, "The command has failed.\n" );
@@ -713,8 +731,9 @@ int Scl_CommandUnBuffer( Abc_Frame_t * pAbc, int argc, char **argv )
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: unbuffer [-vh]\n" );
+    fprintf( pAbc->Err, "usage: unbuffer [-ivh]\n" );
     fprintf( pAbc->Err, "\t           collapses buffer/inverter trees\n" );
+    fprintf( pAbc->Err, "\t-i       : toggle removing interters [default = %s]\n", fRemInv? "yes": "no" );
     fprintf( pAbc->Err, "\t-v       : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pAbc->Err, "\t-h       : print the command usage\n");
     return 1;
