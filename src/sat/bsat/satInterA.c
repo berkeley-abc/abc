@@ -66,9 +66,7 @@ struct Inta_Man_t_
     int *           pProofNums;   // the proof numbers for each clause (size nClauses)
     FILE *          pFile;        // the file for proof recording
     // internal verification
-    lit *           pResLits;     // the literals of the resolvent   
-    int             nResLits;     // the number of literals of the resolvent
-    int             nResLitsAlloc;// the number of literals of the resolvent
+    Vec_Int_t *     vResLits;
     // runtime stats
     abctime         timeBcp;      // the runtime for BCP
     abctime         timeTrace;    // the runtime of trace construction
@@ -112,8 +110,7 @@ Inta_Man_t * Inta_ManAlloc()
     p = (Inta_Man_t *)ABC_ALLOC( char, sizeof(Inta_Man_t) );
     memset( p, 0, sizeof(Inta_Man_t) );
     // verification
-    p->nResLitsAlloc = (1<<16);
-    p->pResLits = ABC_ALLOC( lit, p->nResLitsAlloc );
+    p->vResLits = Vec_IntAlloc( 1000 );
     // parameters
     p->fProofWrite = 0;
     p->fProofVerif = 1;
@@ -266,7 +263,7 @@ ABC_PRT( "TOTAL   ", p->timeTotal );
     ABC_FREE( p->pVarTypes );
     ABC_FREE( p->pReasons );
     ABC_FREE( p->pWatches );
-    ABC_FREE( p->pResLits );
+    Vec_IntFree( p->vResLits );
     ABC_FREE( p );
 }
 
@@ -304,12 +301,12 @@ void Inta_ManPrintClause( Inta_Man_t * p, Sto_Cls_t * pClause )
   SeeAlso     []
 
 ***********************************************************************/
-void Inta_ManPrintResolvent( lit * pResLits, int nResLits )
+void Inta_ManPrintResolvent( Vec_Int_t * vResLits )
 {
-    int i;
+    int i, Entry;
     printf( "Resolvent: {" );
-    for ( i = 0; i < nResLits; i++ )
-        printf( " %d", pResLits[i] );
+    Vec_IntForEachEntry( vResLits, Entry, i )
+        printf( " %d", Entry );
     printf( " }\n" );
 }
 
@@ -552,9 +549,9 @@ int Inta_ManProofTraceOne( Inta_Man_t * p, Sto_Cls_t * pConflict, Sto_Cls_t * pF
     // collect resolvent literals
     if ( p->fProofVerif )
     {
-        assert( (int)pConflict->nLits <= p->nResLitsAlloc );
-        memcpy( p->pResLits, pConflict->pLits, sizeof(lit) * pConflict->nLits );
-        p->nResLits = pConflict->nLits;
+        Vec_IntClear( p->vResLits );
+        for ( i = 0; i < (int)pConflict->nLits; i++ )
+            Vec_IntPush( p->vResLits, pConflict->pLits[i] );
     }
 
     // mark all the variables in the conflict as seen
@@ -606,38 +603,34 @@ int Inta_ManProofTraceOne( Inta_Man_t * p, Sto_Cls_t * pConflict, Sto_Cls_t * pF
         // resolve the temporary resolvent with the reason clause
         if ( p->fProofVerif )
         {
-            int v1, v2; 
+            int v1, v2, Entry; 
             if ( fPrint )
-                Inta_ManPrintResolvent( p->pResLits, p->nResLits );
+                Inta_ManPrintResolvent( p->vResLits );
             // check that the var is present in the resolvent
-            for ( v1 = 0; v1 < p->nResLits; v1++ )
-                if ( lit_var(p->pResLits[v1]) == Var )
+            Vec_IntForEachEntry( p->vResLits, Entry, v1 )
+                if ( lit_var(Entry) == Var )
                     break;
-            if ( v1 == p->nResLits )
+            if ( v1 == Vec_IntSize(p->vResLits) )
                 printf( "Recording clause %d: Cannot find variable %d in the temporary resolvent.\n", pFinal->Id, Var );
-            if ( p->pResLits[v1] != lit_neg(pReason->pLits[0]) )
+            if ( Entry != lit_neg(pReason->pLits[0]) )
                 printf( "Recording clause %d: The resolved variable %d is in the wrong polarity.\n", pFinal->Id, Var );
-            // remove this variable from the resolvent
-            assert( lit_var(p->pResLits[v1]) == Var );
-            p->nResLits--;
-            for ( ; v1 < p->nResLits; v1++ )
-                p->pResLits[v1] = p->pResLits[v1+1];
+            // remove variable v1 from the resolvent
+            assert( lit_var(Entry) == Var );
+            Vec_IntRemove( p->vResLits, Entry );
             // add variables of the reason clause
             for ( v2 = 1; v2 < (int)pReason->nLits; v2++ )
             {
-                for ( v1 = 0; v1 < p->nResLits; v1++ )
-                    if ( lit_var(p->pResLits[v1]) == lit_var(pReason->pLits[v2]) )
+                Vec_IntForEachEntry( p->vResLits, Entry, v1 )
+                    if ( lit_var(Entry) == lit_var(pReason->pLits[v2]) )
                         break;
                 // if it is a new variable, add it to the resolvent
-                if ( v1 == p->nResLits ) 
+                if ( v1 == Vec_IntSize(p->vResLits) ) 
                 {
-                    if ( p->nResLits == p->nResLitsAlloc )
-                        printf( "Recording clause %d: Ran out of space for intermediate resolvent.\n", pFinal->Id );
-                    p->pResLits[ p->nResLits++ ] = pReason->pLits[v2];
+                    Vec_IntPush( p->vResLits, pReason->pLits[v2] );
                     continue;
                 }
                 // if the variable is the same, the literal should be the same too
-                if ( p->pResLits[v1] == pReason->pLits[v2] )
+                if ( Entry == pReason->pLits[v2] )
                     continue;
                 // the literal is different
                 printf( "Recording clause %d: Trying to resolve the clause with more than one opposite literal.\n", pFinal->Id );
@@ -656,37 +649,37 @@ int Inta_ManProofTraceOne( Inta_Man_t * p, Sto_Cls_t * pConflict, Sto_Cls_t * pF
     // use the resulting clause to check the correctness of resolution
     if ( p->fProofVerif )
     {
-        int v1, v2; 
+        int v1, v2, Entry; 
         if ( fPrint )
-            Inta_ManPrintResolvent( p->pResLits, p->nResLits );
-        for ( v1 = 0; v1 < p->nResLits; v1++ )
+            Inta_ManPrintResolvent( p->vResLits );
+        Vec_IntForEachEntry( p->vResLits, Entry, v1 )
         {
             for ( v2 = 0; v2 < (int)pFinal->nLits; v2++ )
-                if ( pFinal->pLits[v2] == p->pResLits[v1] )
+                if ( pFinal->pLits[v2] == Entry )
                     break;
             if ( v2 < (int)pFinal->nLits )
                 continue;
             break;
         }
-        if ( v1 < p->nResLits )
+        if ( v1 < Vec_IntSize(p->vResLits) )
         {
             printf( "Recording clause %d: The final resolvent is wrong.\n", pFinal->Id );
             Inta_ManPrintClause( p, pConflict );
-            Inta_ManPrintResolvent( p->pResLits, p->nResLits );
+            Inta_ManPrintResolvent( p->vResLits );
             Inta_ManPrintClause( p, pFinal );
         }
 
         // if there are literals in the clause that are not in the resolvent
         // it means that the derived resolvent is stronger than the clause
         // we can replace the clause with the resolvent by removing these literals
-        if ( p->nResLits != (int)pFinal->nLits )
+        if ( Vec_IntSize(p->vResLits) != (int)pFinal->nLits )
         {
             for ( v1 = 0; v1 < (int)pFinal->nLits; v1++ )
             {
-                for ( v2 = 0; v2 < p->nResLits; v2++ )
-                    if ( pFinal->pLits[v1] == p->pResLits[v2] )
+                Vec_IntForEachEntry( p->vResLits, Entry, v2 )
+                    if ( pFinal->pLits[v1] == Entry )
                         break;
-                if ( v2 < p->nResLits )
+                if ( v2 < Vec_IntSize(p->vResLits) )
                     continue;
                 // remove literal v1 from the final clause
                 pFinal->nLits--;
@@ -694,7 +687,7 @@ int Inta_ManProofTraceOne( Inta_Man_t * p, Sto_Cls_t * pConflict, Sto_Cls_t * pF
                     pFinal->pLits[v2] = pFinal->pLits[v2+1];
                 v1--;
             }
-            assert( p->nResLits == (int)pFinal->nLits );
+            assert( Vec_IntSize(p->vResLits) == (int)pFinal->nLits );
         }
     }
 p->timeTrace += Abc_Clock() - clk;
