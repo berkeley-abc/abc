@@ -603,7 +603,7 @@ int Inta_ManProofTraceOne( Inta_Man_t * p, Sto_Cls_t * pConflict, Sto_Cls_t * pF
         // resolve the temporary resolvent with the reason clause
         if ( p->fProofVerif )
         {
-            int v1, v2, Entry; 
+            int v1, v2, Entry = -1; 
             if ( fPrint )
                 Inta_ManPrintResolvent( p->vResLits );
             // check that the var is present in the resolvent
@@ -649,7 +649,7 @@ int Inta_ManProofTraceOne( Inta_Man_t * p, Sto_Cls_t * pConflict, Sto_Cls_t * pF
     // use the resulting clause to check the correctness of resolution
     if ( p->fProofVerif )
     {
-        int v1, v2, Entry; 
+        int v1, v2, Entry = -1; 
         if ( fPrint )
             Inta_ManPrintResolvent( p->vResLits );
         Vec_IntForEachEntry( p->vResLits, Entry, v1 )
