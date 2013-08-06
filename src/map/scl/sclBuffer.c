@@ -156,13 +156,30 @@ Abc_Ntk_t * Abc_SclUnBufferPerform( Abc_Ntk_t * pNtk, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
+int Abc_SclCountMaxPhases( Abc_Ntk_t * pNtk )
+{
+    Vec_Int_t * vPhLevel;
+    Abc_Obj_t * pObj, * pFanin;
+    int i, k, Max = 0, MaxAll = 0;
+    vPhLevel = Vec_IntStart( Abc_NtkObjNumMax(pNtk) );
+    Abc_NtkForEachNodeCo( pNtk, pObj, i )
+    {
+        Max = 0;
+        Abc_ObjForEachFanin( pObj, pFanin, k )
+            Max = Abc_MaxInt( Max, Vec_IntEntry(vPhLevel, Abc_ObjId(pFanin)) + Abc_ObjFaninPhase(pObj, k) );
+        Vec_IntWriteEntry( vPhLevel, i, Max );
+        MaxAll = Abc_MaxInt( MaxAll, Max );
+    }
+    Vec_IntFree( vPhLevel );
+    return MaxAll;
+}
 Abc_Ntk_t * Abc_SclBufferPhase( Abc_Ntk_t * pNtk, int fVerbose )
 {
     Abc_Ntk_t * pNtkNew;
     Vec_Int_t * vInvs;
     Abc_Obj_t * pObj, * pFanin, * pFaninNew;
     int nNodesOld = Abc_NtkObjNumMax(pNtk);
-    int i, k, Counter = 0;
+    int i, k, Counter = 0, Total = 0;
     assert( pNtk->vPhases != NULL );
     vInvs = Vec_IntStart( Abc_NtkObjNumMax(pNtk) );
     Abc_NtkForEachNodeCo( pNtk, pObj, i )
@@ -171,6 +188,7 @@ Abc_Ntk_t * Abc_SclBufferPhase( Abc_Ntk_t * pNtk, int fVerbose )
             break;
         Abc_ObjForEachFanin( pObj, pFanin, k )
         {
+            Total++;
             if ( !Abc_ObjFaninPhase(pObj, k) )
                 continue;
             if ( Vec_IntEntry(vInvs, Abc_ObjId(pFanin)) == 0 )
@@ -183,7 +201,8 @@ Abc_Ntk_t * Abc_SclBufferPhase( Abc_Ntk_t * pNtk, int fVerbose )
             Abc_ObjPatchFanin( pObj, pFanin, pFaninNew );
         }
     }
-//    printf( "Added %d inverters.\n", Counter );
+    if ( fVerbose )
+        printf( "Added %d (%.2f %%) inverters.\n", Counter, 100.0 * Counter / Total );
     Vec_IntFree( vInvs );
     Vec_IntFillExtra( pNtk->vPhases, Abc_NtkObjNumMax(pNtk), 0 );
     // duplicate network in topo order
@@ -195,8 +214,9 @@ Abc_Ntk_t * Abc_SclBufferPhase( Abc_Ntk_t * pNtk, int fVerbose )
 }
 Abc_Ntk_t * Abc_SclUnBufferPhase( Abc_Ntk_t * pNtk, int fVerbose )
 {
+    Abc_Ntk_t * pNtkNew;
     Abc_Obj_t * pObj, * pFanin, * pFaninNew;
-    int i, k, iLit, Counter = 0;
+    int i, k, iLit, Counter = 0, Total = 0;
     assert( pNtk->vPhases == NULL );
     pNtk->vPhases = Vec_IntStart( Abc_NtkObjNumMax(pNtk) );
     Abc_NtkForEachNodeCo( pNtk, pObj, i )
@@ -205,6 +225,7 @@ Abc_Ntk_t * Abc_SclUnBufferPhase( Abc_Ntk_t * pNtk, int fVerbose )
             continue;
         Abc_ObjForEachFanin( pObj, pFanin, k )
         {
+            Total++;
             iLit = Abc_SclGetRealFaninLit( pFanin );
             pFaninNew = Abc_NtkObj( pNtk, Abc_Lit2Var(iLit) );
             if ( pFaninNew == pFanin )
@@ -217,9 +238,13 @@ Abc_Ntk_t * Abc_SclUnBufferPhase( Abc_Ntk_t * pNtk, int fVerbose )
                 Abc_ObjFaninFlipPhase( pObj, k ), Counter++;
         }
     }
-//    printf( "Saved %d fanin phase bits.\n", Counter );
+    if ( fVerbose )
+        printf( "Saved %d (%.2f %%) fanin phase bits.  ", Counter, 100.0 * Counter / Total );
     // duplicate network in topo order
-    return Abc_NtkDupDfs( pNtk );
+    pNtkNew = Abc_NtkDupDfs( pNtk );
+    if ( fVerbose )
+        printf( "Max depth = %d.\n", Abc_SclCountMaxPhases(pNtkNew) );
+    return pNtkNew;
 }
 
 /**Function*************************************************************
