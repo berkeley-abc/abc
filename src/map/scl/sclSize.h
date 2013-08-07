@@ -53,13 +53,13 @@ struct SC_Man_
     Vec_Int_t *    vUpdates2;     // sizing updates in this round
     // timing information
     SC_Pair *      pLoads;        // loads for each gate
-    SC_Pair *      pLoads2;       // loads for each gate
-    SC_Pair *      pLoads3;       // loads for each gate
     SC_Pair *      pDepts;        // departures for each gate
     SC_Pair *      pTimes;        // arrivals for each gate
     SC_Pair *      pSlews;        // slews for each gate
     SC_Pair *      pTimes2;       // arrivals for each gate
     SC_Pair *      pSlews2;       // slews for each gate
+    Vec_Flt_t *    vLoads2;       // backup storage for loads
+    Vec_Flt_t *    vLoads3;       // backup storage for loads
     float *        pSlack;        // slacks for each gatt
     float *        pInDrive;      // maximum input drive strength
     Vec_Int_t *    vBestFans;     // best fanouts
@@ -103,8 +103,6 @@ static inline SC_Cell * Abc_SclObjCell( SC_Man * p, Abc_Obj_t * pObj )          
 static inline void      Abc_SclObjSetCell( SC_Man * p, Abc_Obj_t * pObj, SC_Cell * pCell ) { Vec_IntWriteEntry( p->vGates, Abc_ObjId(pObj), pCell->Id );    }
 
 static inline SC_Pair * Abc_SclObjLoad( SC_Man * p, Abc_Obj_t * pObj )              { return p->pLoads + Abc_ObjId(pObj);  }
-static inline SC_Pair * Abc_SclObjLoad2( SC_Man * p, Abc_Obj_t * pObj )             { return p->pLoads2 + Abc_ObjId(pObj); }
-static inline SC_Pair * Abc_SclObjLoad3( SC_Man * p, Abc_Obj_t * pObj )             { return p->pLoads3 + Abc_ObjId(pObj); }
 static inline SC_Pair * Abc_SclObjDept( SC_Man * p, Abc_Obj_t * pObj )              { return p->pDepts + Abc_ObjId(pObj);  }
 static inline SC_Pair * Abc_SclObjTime( SC_Man * p, Abc_Obj_t * pObj )              { return p->pTimes + Abc_ObjId(pObj);  }
 static inline SC_Pair * Abc_SclObjSlew( SC_Man * p, Abc_Obj_t * pObj )              { return p->pSlews + Abc_ObjId(pObj);  }
@@ -153,8 +151,6 @@ static inline SC_Man * Abc_SclManAlloc( SC_Lib * pLib, Abc_Ntk_t * pNtk )
     p->pNtk      = pNtk;
     p->nObjs     = Abc_NtkObjNumMax(pNtk);
     p->pLoads    = ABC_CALLOC( SC_Pair, p->nObjs );
-    p->pLoads2   = ABC_CALLOC( SC_Pair, p->nObjs );
-    p->pLoads3   = ABC_CALLOC( SC_Pair, p->nObjs );
     p->pDepts    = ABC_CALLOC( SC_Pair, p->nObjs );
     p->pTimes    = ABC_CALLOC( SC_Pair, p->nObjs );
     p->pSlews    = ABC_CALLOC( SC_Pair, p->nObjs );
@@ -169,6 +165,8 @@ static inline SC_Man * Abc_SclManAlloc( SC_Lib * pLib, Abc_Ntk_t * pNtk )
         Vec_QuePush( p->vQue, i );
     p->vUpdates  = Vec_IntAlloc( 1000 );
     p->vUpdates2 = Vec_IntAlloc( 1000 );
+    p->vLoads2   = Vec_FltAlloc( 1000 );
+    p->vLoads3   = Vec_FltAlloc( 1000 );
     // intermediate data
     p->vNode2Gain  = Vec_FltStart( p->nObjs );
     p->vNode2Gate  = Vec_IntStart( p->nObjs );
@@ -184,6 +182,8 @@ static inline void Abc_SclManFree( SC_Man * p )
     Vec_FltFreeP( &p->vNode2Gain );
     Vec_IntFreeP( &p->vNode2Gate );
     // intermediate data
+    Vec_FltFreeP( &p->vLoads2 );
+    Vec_FltFreeP( &p->vLoads3 );
     Vec_IntFreeP( &p->vUpdates );
     Vec_IntFreeP( &p->vUpdates2 );
     Vec_IntFreeP( &p->vGatesBest );
@@ -194,8 +194,6 @@ static inline void Abc_SclManFree( SC_Man * p )
     Vec_IntFreeP( &p->vGates );
     Vec_IntFreeP( &p->vBestFans );
     ABC_FREE( p->pLoads );
-    ABC_FREE( p->pLoads2 );
-    ABC_FREE( p->pLoads3 );
     ABC_FREE( p->pDepts );
     ABC_FREE( p->pTimes );
     ABC_FREE( p->pSlews );
@@ -288,32 +286,50 @@ static inline void Abc_SclLoadStore( SC_Man * p, Abc_Obj_t * pObj )
 {
     Abc_Obj_t * pFanin;
     int i;
+    Vec_FltClear( p->vLoads2 );
     Abc_ObjForEachFanin( pObj, pFanin, i )
-        *Abc_SclObjLoad2(p, pFanin) = *Abc_SclObjLoad(p, pFanin);
+    {
+        Vec_FltPush( p->vLoads2, Abc_SclObjLoad(p, pFanin)->rise );
+        Vec_FltPush( p->vLoads2, Abc_SclObjLoad(p, pFanin)->fall );
+    }
 }
 static inline void Abc_SclLoadRestore( SC_Man * p, Abc_Obj_t * pObj )
 {
     Abc_Obj_t * pFanin;
     int i;
+    assert( Vec_FltSize(p->vLoads2) == 2 * Abc_ObjFaninNum(pObj) );
     Abc_ObjForEachFanin( pObj, pFanin, i )
-        *Abc_SclObjLoad(p, pFanin) = *Abc_SclObjLoad2(p, pFanin);
+    {
+        Abc_SclObjLoad(p, pFanin)->rise = Vec_FltEntry(p->vLoads2, 2*i);
+        Abc_SclObjLoad(p, pFanin)->fall = Vec_FltEntry(p->vLoads2, 2*i+1);
+    }
 }
 
 static inline void Abc_SclLoadStore3( SC_Man * p, Abc_Obj_t * pObj )
 {
     Abc_Obj_t * pFanin;
     int i;
-    *Abc_SclObjLoad3(p, pObj) = *Abc_SclObjLoad(p, pObj);
+    Vec_FltClear( p->vLoads3 );
     Abc_ObjForEachFanin( pObj, pFanin, i )
-        *Abc_SclObjLoad3(p, pFanin) = *Abc_SclObjLoad(p, pFanin);
+    {
+        Vec_FltPush( p->vLoads3, Abc_SclObjLoad(p, pFanin)->rise );
+        Vec_FltPush( p->vLoads3, Abc_SclObjLoad(p, pFanin)->fall );
+    }
+    Vec_FltPush( p->vLoads3, Abc_SclObjLoad(p, pObj)->rise );
+    Vec_FltPush( p->vLoads3, Abc_SclObjLoad(p, pObj)->fall );
 }
 static inline void Abc_SclLoadRestore3( SC_Man * p, Abc_Obj_t * pObj )
 {
     Abc_Obj_t * pFanin;
     int i;
-    *Abc_SclObjLoad(p, pObj) = *Abc_SclObjLoad3(p, pObj);
+    assert( Vec_FltSize(p->vLoads3) == 2 * Abc_ObjFaninNum(pObj) + 2 );
     Abc_ObjForEachFanin( pObj, pFanin, i )
-        *Abc_SclObjLoad(p, pFanin) = *Abc_SclObjLoad3(p, pFanin);
+    {
+        Abc_SclObjLoad(p, pFanin)->rise = Vec_FltEntry(p->vLoads3, 2*i);
+        Abc_SclObjLoad(p, pFanin)->fall = Vec_FltEntry(p->vLoads3, 2*i+1);
+    }
+    Abc_SclObjLoad(p, pObj)->rise = Vec_FltEntry(p->vLoads3, 2*i);
+    Abc_SclObjLoad(p, pObj)->fall = Vec_FltEntry(p->vLoads3, 2*i+1);
 }
 
 /**Function*************************************************************
