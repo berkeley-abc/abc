@@ -252,13 +252,290 @@ void Abc_SclFindNodesToUpdate( Abc_Obj_t * pPivot, Vec_Int_t ** pvNodes, Vec_Int
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_SclFindUpsizes( SC_Man * p, Vec_Int_t * vPathNodes, int Ratio, int Notches, int iIter, int DelayGap )
+int Abc_SclFindBypasses( SC_Man * p, Vec_Int_t * vPathNodes, int Ratio, int Notches, int iIter, int DelayGap, int fVeryVerbose )
+{
+    SC_Cell * pCellOld, * pCellNew;
+    Vec_Ptr_t * vFanouts;
+    Vec_Int_t * vRecalcs, * vEvals;
+    Abc_Obj_t * pObj, * pTemp, * pBuffer, * pFanout;
+    float dGain, dGainBest, dGainBest2;
+    int i, j, k, n, gateBest, gateBest2, fanBest, Counter = 0;
+
+    // compute savings due to bypassing buffers
+    vFanouts = Vec_PtrAlloc( 100 );
+    vRecalcs = Vec_IntAlloc( 100 );
+    vEvals = Vec_IntAlloc( 100 );
+    Vec_QueClear( p->vNodeByGain );
+    Abc_NtkForEachObjVec( vPathNodes, p->pNtk, pBuffer, i )
+    {
+        assert( pBuffer->fMarkC == 0 );
+        if ( Abc_ObjFaninNum(pBuffer) != 1 )
+            continue;
+        pObj = Abc_ObjFanin0(pBuffer);
+        if ( !Abc_ObjIsNode(pObj) )
+            continue;
+        // here we have pBuffer and its fanin pObj, which is a logic node
+
+        // compute nodes to recalculate timing and nodes to evaluate afterwards
+        Abc_SclFindNodesToUpdate( pObj, &vRecalcs, &vEvals );
+        assert( Vec_IntSize(vEvals) > 0 );
+        //printf( "%d -> %d\n", Vec_IntSize(vRecalcs), Vec_IntSize(vEvals) );
+
+        // consider fanouts of this node
+        fanBest = -1;
+        gateBest2 = -1;
+        dGainBest2 = 0;
+        Abc_NodeCollectFanouts( pBuffer, vFanouts );
+        Vec_PtrForEachEntry( Abc_Obj_t *, vFanouts, pFanout, j )
+        {
+            // skip COs
+            if ( Abc_ObjIsCo(pFanout) )
+                continue;
+            // skip non-critical fanouts
+            if ( !pFanout->fMarkA )
+                continue;
+            // skip if fanin already has fanout as a fanout
+            if ( Abc_NodeFindFanin(pFanout, pObj) >= 0 )
+                continue;
+            // prepare
+            Abc_SclLoadStore3( p, pBuffer );
+            Abc_SclUpdateLoadSplit( p, pBuffer, pFanout );
+            Abc_ObjPatchFanin( pFanout, pBuffer, pObj );
+            // size the fanin
+            // save old gate, timing, fanin load
+            pCellOld = Abc_SclObjCell( p, pObj );
+            Abc_SclConeStore( p, vRecalcs );
+            Abc_SclLoadStore( p, pObj );
+            // try different gate sizes for the fanin
+            gateBest = -1;
+            dGainBest = -SC_LibTimeFromPs(p->pLib, (float)DelayGap);
+            SC_RingForEachCell( pCellOld, pCellNew, k )
+            {
+                if ( pCellNew == pCellOld )
+                    continue;
+                if ( k > Notches )
+                    break;
+                if ( p->pInDrive && !Abc_SclInputDriveOk( p, pObj, pCellNew ) )
+                    continue;
+                // set new cell
+                Abc_SclObjSetCell( p, pObj, pCellNew );
+                Abc_SclUpdateLoad( p, pObj, pCellOld, pCellNew );
+                // recompute timing
+                Abc_SclTimeCone( p, vRecalcs );
+                // set old cell
+                Abc_SclObjSetCell( p, pObj, pCellOld );
+                Abc_SclLoadRestore( p, pObj );
+                // evaluate gain
+                dGain = 0.0;
+                Abc_NtkForEachObjVec( vEvals, p->pNtk, pTemp, n )
+                    dGain += Abc_SclObjGain( p, pTemp );
+                dGain /= Vec_IntSize(vEvals);
+                // save best gain
+                if ( dGainBest < dGain )
+                {
+                    dGainBest = dGain;
+                    gateBest = pCellNew->Id;
+                }
+            }
+            // put back old cell and timing
+            Abc_SclObjSetCell( p, pObj, pCellOld );
+            Abc_SclConeRestore( p, vRecalcs );
+
+            // compare gain
+            if ( dGainBest2 < dGainBest )
+            {
+                dGainBest2 = dGainBest;
+                gateBest2 = gateBest;
+                fanBest = Abc_ObjId(pFanout);
+            }
+
+            Abc_SclLoadRestore3( p, pBuffer );
+            Abc_ObjPatchFanin( pFanout, pObj, pBuffer );
+        }
+
+        // remember savings
+        if ( gateBest2 >= 0 )
+        {
+            assert( dGainBest2 > 0.0 );
+            Vec_FltWriteEntry( p->vNode2Gain, Abc_ObjId(pBuffer), dGainBest2 );
+            Vec_IntWriteEntry( p->vNode2Gate, Abc_ObjId(pBuffer), gateBest2 );
+            Vec_QuePush( p->vNodeByGain, Abc_ObjId(pBuffer) );
+            Vec_IntWriteEntry( p->vBestFans, Abc_ObjId(pBuffer), fanBest );
+        }
+
+        if ( ++Counter == 17 )
+            break;
+
+    }
+    Vec_PtrFree( vFanouts );
+    Vec_IntFree( vRecalcs );
+    Vec_IntFree( vEvals );
+    if ( Vec_QueSize(p->vNodeByGain) == 0 )
+        return 0;
+
+    // accept changes for that are half above the average and do not overlap
+    Counter = 0;
+    dGainBest2 = -1;
+    vFanouts = Vec_PtrAlloc( 100 );
+    while ( Vec_QueSize(p->vNodeByGain) )
+    {
+        int iNode = Vec_QuePop(p->vNodeByGain);
+        Abc_Obj_t * pObj    = Abc_NtkObj( p->pNtk, iNode );
+        Abc_Obj_t * pFanout = Abc_NtkObj( p->pNtk, Vec_IntEntry(p->vBestFans, iNode) );
+        Abc_Obj_t * pFanin  = Abc_ObjFanin0(pObj);
+        if ( pObj->fMarkC || pFanout->fMarkC || pFanin->fMarkC )
+            continue;
+        pObj->fMarkC = 1;
+        pFanout->fMarkC = 1;
+        pFanin->fMarkC = 1;
+        Vec_PtrPush( vFanouts, pObj );
+        Vec_PtrPush( vFanouts, pFanout );
+        Vec_PtrPush( vFanouts, pFanin );
+        // remember gain
+        if ( dGainBest2 == -1 )
+            dGainBest2 = Vec_FltEntry(p->vNode2Gain, iNode);
+        else if ( dGainBest2 > 2*Vec_FltEntry(p->vNode2Gain, iNode) )
+            break;
+        // redirect
+        Abc_ObjPatchFanin( pFanout, pObj, pFanin );
+        // remember
+        Vec_IntPush( p->vUpdates2, Abc_ObjId(pFanout) );
+        Vec_IntPush( p->vUpdates2, Abc_ObjId(pFanin) );
+        Vec_IntPush( p->vUpdates2, Abc_ObjId(pObj) );
+        // find old and new gates
+        pCellOld = Abc_SclObjCell( p, pFanin );
+        pCellNew = SC_LibCell( p->pLib, Vec_IntEntry(p->vNode2Gate, iNode) );
+        // update cell
+        p->SumArea += pCellNew->area - pCellOld->area;
+        Abc_SclObjSetCell( p, pFanin, pCellNew );
+        // record the update
+        Vec_IntPush( p->vUpdates, Abc_ObjId(pFanin) );
+        Vec_IntPush( p->vUpdates, pCellNew->Id );
+        // remember when this node was upsized
+        Vec_IntWriteEntry( p->vNodeIter, Abc_ObjId(pFanout), 0 );
+        Vec_IntWriteEntry( p->vNodeIter, Abc_ObjId(pFanin), 0 );
+        Vec_IntWriteEntry( p->vNodeIter, Abc_ObjId(pObj), 0 );
+        // update polarity
+        if ( p->pNtk->vPhases && Abc_SclIsInv(pObj) )
+            Abc_NodeInvUpdateObjFanoutPolarity( pFanin, pFanout );
+        // report
+        if ( fVeryVerbose )
+            printf( "Node %6d  Redir fanout %6d to fanin %6d.  Gain = %7.1f ps.   Replacing gate %12s by gate %12s.\n", 
+                Abc_ObjId(pObj), Abc_ObjId(pFanout), Abc_ObjId(pFanin), 
+                Vec_FltEntry(p->vNode2Gain, iNode), pCellOld->pName, pCellNew->pName );
+/*
+        // check if the node became useless
+        if ( Abc_ObjFanoutNum(pObj) == 0 )
+        {
+            pCellOld = Abc_SclObjCell( p, pObj );
+            p->SumArea -= pCellOld->area;
+            Abc_NtkDeleteObj_rec( pObj, 1 );
+            printf( "Removed node %d.\n", iNode );
+        }
+*/
+        Counter++;
+    }
+    Vec_PtrForEachEntry( Abc_Obj_t *, vFanouts, pFanout, j )
+        pFanout->fMarkC = 0;
+    Vec_PtrFree( vFanouts );
+
+/*
+    Limit = Abc_MinInt( Vec_QueSize(p->vNodeByGain), Abc_MaxInt((int)(0.01 * Ratio * Vec_IntSize(vPathNodes)), 1) ); 
+    //printf( "\nSelecting %d out of %d\n", Limit, Vec_QueSize(p->vNodeByGain) );
+    for ( i = 0; i < Limit; i++ )
+    {
+        // get the object
+        pObj = Abc_NtkObj( p->pNtk, Vec_QuePop(p->vNodeByGain) );
+        assert( pObj->fMarkA );
+        // find old and new gates
+        pCellOld = Abc_SclObjCell( p, pObj );
+        pCellNew = SC_LibCell( p->pLib, Vec_IntEntry(p->vNode2Gate, Abc_ObjId(pObj)) );
+        assert( pCellNew != NULL );
+        //printf( "%6d  %20s -> %20s  ", Abc_ObjId(pObj), pCellOld->pName, pCellNew->pName );
+        //printf( "gain is %f\n", Vec_FltEntry(p->vNode2Gain, Abc_ObjId(pObj)) );
+        // update gate
+        Abc_SclUpdateLoad( p, pObj, pCellOld, pCellNew );
+        p->SumArea += pCellNew->area - pCellOld->area;
+        Abc_SclObjSetCell( p, pObj, pCellNew );
+        // record the update
+        Vec_IntPush( p->vUpdates, Abc_ObjId(pObj) );
+        Vec_IntPush( p->vUpdates, pCellNew->Id );
+        // remember when this node was upsized
+        Vec_IntWriteEntry( p->vNodeIter, Abc_ObjId(pObj), iIter );
+    }
+*/
+    return Counter;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Check marked fanin/fanouts.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+ 
+***********************************************************************/
+int Abc_SclObjCheckMarkedFanFans( Abc_Obj_t * pObj )
+{
+    Abc_Obj_t * pNext;
+    int i;
+    if ( pObj->fMarkC )
+        return 1;
+    Abc_ObjForEachFanin( pObj, pNext, i )
+        if ( pNext->fMarkC )
+            return 1;
+    Abc_ObjForEachFanout( pObj, pNext, i )
+        if ( pNext->fMarkC )
+            return 1;
+    return 0;
+}
+void Abc_SclObjMarkFanFans( Abc_Obj_t * pObj, Vec_Ptr_t * vNodes )
+{
+//    Abc_Obj_t * pNext;
+//    int i;
+    if ( pObj->fMarkC == 0 )
+    {
+        Vec_PtrPush( vNodes, pObj );
+        pObj->fMarkC = 1;
+    }
+/*
+    Abc_ObjForEachFanin( pObj, pNext, i )
+        if ( pNext->fMarkC == 0 )
+        {
+            Vec_PtrPush( vNodes, pNext );
+            pNext->fMarkC = 1;
+        }
+    Abc_ObjForEachFanout( pObj, pNext, i )
+        if ( pNext->fMarkC == 0 )
+        {
+            Vec_PtrPush( vNodes, pNext );
+            pNext->fMarkC = 1;
+        }
+*/
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes the set of gates to upsize.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_SclFindUpsizes( SC_Man * p, Vec_Int_t * vPathNodes, int Ratio, int Notches, int iIter, int DelayGap, int fMoreConserf )
 {
     SC_Cell * pCellOld, * pCellNew;
     Vec_Int_t * vRecalcs, * vEvals;
+    Vec_Ptr_t * vFanouts;
     Abc_Obj_t * pObj, * pTemp;
-    float dGain, dGainBest;
-    int i, k, n, gateBest, Limit, iIterLast;
+    float dGain, dGainBest, dGainBest2;
+    int i, k, n, gateBest, Limit, Counter, iIterLast;
 
     // compute savings due to upsizing each node
     vRecalcs = Vec_IntAlloc( 100 );
@@ -266,6 +543,7 @@ int Abc_SclFindUpsizes( SC_Man * p, Vec_Int_t * vPathNodes, int Ratio, int Notch
     Vec_QueClear( p->vNodeByGain );
     Abc_NtkForEachObjVec( vPathNodes, p->pNtk, pObj, i )
     {
+        assert( pObj->fMarkC == 0 );
         iIterLast = Vec_IntEntry(p->vNodeIter, Abc_ObjId(pObj));
         if ( iIterLast >= 0 && iIterLast + 5 > iIter )
             continue;
@@ -308,6 +586,9 @@ int Abc_SclFindUpsizes( SC_Man * p, Vec_Int_t * vPathNodes, int Ratio, int Notch
                 gateBest = pCellNew->Id;
             }
         }
+        // put back old cell and timing
+        Abc_SclObjSetCell( p, pObj, pCellOld );
+        Abc_SclConeRestore( p, vRecalcs );
         // remember savings
         if ( gateBest >= 0 )
         {
@@ -316,15 +597,12 @@ int Abc_SclFindUpsizes( SC_Man * p, Vec_Int_t * vPathNodes, int Ratio, int Notch
             Vec_IntWriteEntry( p->vNode2Gate, Abc_ObjId(pObj), gateBest );
             Vec_QuePush( p->vNodeByGain, Abc_ObjId(pObj) );
         }
-        // put back old cell and timing
-        Abc_SclObjSetCell( p, pObj, pCellOld );
-        Abc_SclConeRestore( p, vRecalcs );
     }
     Vec_IntFree( vRecalcs );
     Vec_IntFree( vEvals );
     if ( Vec_QueSize(p->vNodeByGain) == 0 )
         return 0;
-
+/*
     Limit = Abc_MinInt( Vec_QueSize(p->vNodeByGain), Abc_MaxInt((int)(0.01 * Ratio * Vec_IntSize(vPathNodes)), 1) ); 
     //printf( "\nSelecting %d out of %d\n", Limit, Vec_QueSize(p->vNodeByGain) );
     for ( i = 0; i < Limit; i++ )
@@ -348,18 +626,85 @@ int Abc_SclFindUpsizes( SC_Man * p, Vec_Int_t * vPathNodes, int Ratio, int Notch
         // remember when this node was upsized
         Vec_IntWriteEntry( p->vNodeIter, Abc_ObjId(pObj), iIter );
     }
-    return Limit;
+return Limit;
+*/
+
+    Limit = Abc_MinInt( Vec_QueSize(p->vNodeByGain), Abc_MaxInt((int)(0.01 * Ratio * Vec_IntSize(vPathNodes)), 1) ); 
+    dGainBest2 = -1;
+    Counter = 0;
+    vFanouts = Vec_PtrAlloc( 100 );
+    while ( Vec_QueSize(p->vNodeByGain) )
+    {
+        int iNode = Vec_QuePop(p->vNodeByGain);
+        Abc_Obj_t * pObj = Abc_NtkObj( p->pNtk, iNode );
+        assert( pObj->fMarkA );
+        if ( Abc_SclObjCheckMarkedFanFans( pObj ) )
+            continue;
+        Abc_SclObjMarkFanFans( pObj, vFanouts );
+        // remember gain
+        if ( dGainBest2 == -1 )
+            dGainBest2 = Vec_FltEntry(p->vNode2Gain, iNode);
+//        else if ( dGainBest2 > (fMoreConserf ? 1.5 : 3)*Vec_FltEntry(p->vNode2Gain, iNode) )
+        else if ( dGainBest2 > 3*Vec_FltEntry(p->vNode2Gain, iNode) )
+            break;
+//        printf( "%.1f ", Vec_FltEntry(p->vNode2Gain, iNode) );
+
+        // find old and new gates
+        pCellOld = Abc_SclObjCell( p, pObj );
+        pCellNew = SC_LibCell( p->pLib, Vec_IntEntry(p->vNode2Gate, Abc_ObjId(pObj)) );
+        assert( pCellNew != NULL );
+        //printf( "%6d  %20s -> %20s  ", Abc_ObjId(pObj), pCellOld->pName, pCellNew->pName );
+        //printf( "gain is %f\n", Vec_FltEntry(p->vNode2Gain, Abc_ObjId(pObj)) );
+        // update gate
+        Abc_SclUpdateLoad( p, pObj, pCellOld, pCellNew );
+        p->SumArea += pCellNew->area - pCellOld->area;
+        Abc_SclObjSetCell( p, pObj, pCellNew );
+        // record the update
+        Vec_IntPush( p->vUpdates, Abc_ObjId(pObj) );
+        Vec_IntPush( p->vUpdates, pCellNew->Id );
+        // remember when this node was upsized
+        Vec_IntWriteEntry( p->vNodeIter, Abc_ObjId(pObj), iIter );
+        Counter++;
+        if ( Counter == Limit )
+            break;
+    }
+//    printf( "\n" );
+
+    Vec_PtrForEachEntry( Abc_Obj_t *, vFanouts, pObj, i )
+        pObj->fMarkC = 0;
+    Vec_PtrFree( vFanouts );
+    return Counter;
 }
-void Abc_SclApplyUpdateToBest( Vec_Int_t * vGates, Vec_Int_t * vGatesBest, Vec_Int_t * vUpdate )
+void Abc_SclApplyUpdateToBest( Vec_Int_t * vGatesBest, Vec_Int_t * vGates, Vec_Int_t * vUpdate )
 {
     int i, ObjId, GateId, GateId2; 
     Vec_IntForEachEntryDouble( vUpdate, ObjId, GateId, i )
         Vec_IntWriteEntry( vGatesBest, ObjId, GateId );
     Vec_IntClear( vUpdate );
-    Vec_IntForEachEntryTwo( vGates, vGatesBest, GateId, GateId2, i )
+    Vec_IntForEachEntryTwo( vGatesBest, vGates, GateId, GateId2, i )
         assert( GateId == GateId2 );
+//    Vec_IntClear( vGatesBest );
+//    Vec_IntAppend( vGatesBest, vGates );
 }
+void Abc_SclUndoRecentChanges( Abc_Ntk_t * pNtk, Vec_Int_t * vTrans )
+{
+    int i;
+    assert( Vec_IntSize(vTrans) % 3 == 0 );
+    for ( i = Vec_IntSize(vTrans)/3 - 1; i >= 0; i-- )
+    {
+        Abc_Obj_t * pFanout = Abc_NtkObj( pNtk, Vec_IntEntry(vTrans, 3*i+0) );
+        Abc_Obj_t * pFanin  = Abc_NtkObj( pNtk, Vec_IntEntry(vTrans, 3*i+1) );
+        Abc_Obj_t * pObj    = Abc_NtkObj( pNtk, Vec_IntEntry(vTrans, 3*i+2) );
+        Abc_ObjPatchFanin( pFanout, pFanin, pObj );
 
+//        printf( "Node %6d  Redir fanout %6d from fanin %6d. \n", 
+//            Abc_ObjId(pObj), Abc_ObjId(pFanout), Abc_ObjId(pFanin) );
+
+        // update polarity
+        if ( pNtk->vPhases && Abc_SclIsInv(pObj) )
+            Abc_NodeInvUpdateObjFanoutPolarity( pObj, pFanout );
+    }
+}
 
 /**Function*************************************************************
 
@@ -463,6 +808,33 @@ void Abc_SclUpsizePrint( SC_Man * p, int Iter, int win, int nPathPos, int nPathN
   SeeAlso     []
 
 ***********************************************************************/
+void Abc_SclUpsizeRemoveDangling( SC_Man * p, Abc_Ntk_t * pNtk )
+{
+    SC_Cell * pCell;
+    Abc_Obj_t * pObj;
+    int i;
+    Abc_NtkForEachNode( pNtk, pObj, i )
+        if ( Abc_ObjFanoutNum(pObj) == 0 )
+        {
+            pCell = Abc_SclObjCell( p, pObj );
+            p->SumArea -= pCell->area;
+            Abc_NtkDeleteObj_rec( pObj, 1 );
+            printf( "Removed node %d.\n", i );
+        }
+
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 void Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPars )
 {
     SC_Man * p;
@@ -511,7 +883,10 @@ void Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPars 
 
             // selectively upsize the nodes
             clk = Abc_Clock();
-            nUpsizes   = Abc_SclFindUpsizes( p, vPathNodes, pPars->Ratio, pPars->Notches, i, pPars->DelayGap );
+            if ( pPars->BypassFreq && i && (i % pPars->BypassFreq) == 0 )
+                nUpsizes = Abc_SclFindBypasses( p, vPathNodes, pPars->Ratio, pPars->Notches, i, pPars->DelayGap, pPars->fVeryVerbose );
+            else
+                nUpsizes = Abc_SclFindUpsizes( p, vPathNodes, pPars->Ratio, pPars->Notches, i, pPars->DelayGap, (pPars->BypassFreq > 0) );
             p->timeSize += Abc_Clock() - clk;
 
             // unmark critical path
@@ -547,7 +922,8 @@ void Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPars 
         if ( p->BestDelay > p->MaxDelay )
         {
             p->BestDelay = p->MaxDelay;
-            Abc_SclApplyUpdateToBest( p->vGates, p->vGatesBest, p->vUpdates );
+            Abc_SclApplyUpdateToBest( p->vGatesBest, p->vGates, p->vUpdates );
+            Vec_IntClear( p->vUpdates2 );
             nFramesNoChange = 0;
         }
         else
@@ -574,6 +950,10 @@ void Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPars 
     }
     // update for best gates and recompute timing
     ABC_SWAP( Vec_Int_t *, p->vGatesBest, p->vGates );
+    if ( pPars->BypassFreq != 0 )
+        Abc_SclUndoRecentChanges( p->pNtk, p->vUpdates2 );
+    if ( pPars->BypassFreq != 0 )
+        Abc_SclUpsizeRemoveDangling( p, pNtk );
     Abc_SclTimeNtkRecompute( p, &p->SumArea, &p->MaxDelay, 0, 0 );
     if ( pPars->fVerbose )
         Abc_SclUpsizePrint( p, i, pPars->Window, nAllPos/(i?i:1), nAllNodes/(i?i:1), nAllUpsizes/(i?i:1), nAllTfos/(i?i:1), 1 );

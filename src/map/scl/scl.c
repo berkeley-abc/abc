@@ -904,13 +904,14 @@ int Scl_CommandUpsize( Abc_Frame_t * pAbc, int argc, char **argv )
     pPars->DelayGap      =    0;
     pPars->TimeOut       =    0;
     pPars->BuffTreeEst   =    0;
+    pPars->BypassFreq    =    0;
     pPars->fUseDept      =    1;
     pPars->fUseWireLoads =    1;
     pPars->fDumpStats    =    0;
     pPars->fVerbose      =    0;
     pPars->fVeryVerbose  =    0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "IJWRNDGTXcsdvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "IJWRNDGTXBcsdvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -1011,6 +1012,17 @@ int Scl_CommandUpsize( Abc_Frame_t * pAbc, int argc, char **argv )
             if ( pPars->BuffTreeEst < 0 ) 
                 goto usage;
             break;
+        case 'B':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-B\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            pPars->BypassFreq = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->BypassFreq < 0 ) 
+                goto usage;
+            break;
         case 'c':
             pPars->fUseWireLoads ^= 1;
             break;
@@ -1058,7 +1070,7 @@ int Scl_CommandUpsize( Abc_Frame_t * pAbc, int argc, char **argv )
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: upsize [-IJWRNDGTX num] [-csdvwh]\n" );
+    fprintf( pAbc->Err, "usage: upsize [-IJWRNDGTXB num] [-csdvwh]\n" );
     fprintf( pAbc->Err, "\t           selectively increases gate sizes on the critical path\n" );
     fprintf( pAbc->Err, "\t-I <num> : the number of upsizing iterations to perform [default = %d]\n", pPars->nIters );
     fprintf( pAbc->Err, "\t-J <num> : the number of iterations without improvement to stop [default = %d]\n", pPars->nIterNoChange );
@@ -1069,6 +1081,7 @@ usage:
     fprintf( pAbc->Err, "\t-G <num> : delay gap during updating, in picoseconds [default = %d]\n", pPars->DelayGap );
     fprintf( pAbc->Err, "\t-T <num> : approximate timeout in seconds [default = %d]\n", pPars->TimeOut );
     fprintf( pAbc->Err, "\t-X <num> : ratio for buffer tree estimation [default = %d]\n", pPars->BuffTreeEst );
+    fprintf( pAbc->Err, "\t-B <num> : frequency of bypass transforms [default = %d]\n", pPars->BypassFreq );
     fprintf( pAbc->Err, "\t-c       : toggle using wire-loads if specified [default = %s]\n", pPars->fUseWireLoads? "yes": "no" );
     fprintf( pAbc->Err, "\t-s       : toggle using slack based on departure times [default = %s]\n", pPars->fUseDept? "yes": "no" );
     fprintf( pAbc->Err, "\t-d       : toggle dumping statistics into a file [default = %s]\n", pPars->fDumpStats? "yes": "no" );

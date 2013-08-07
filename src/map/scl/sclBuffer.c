@@ -113,7 +113,7 @@ static inline int Abc_SclObjIsBufInv( Abc_Obj_t * pObj )
 {
     return Abc_ObjIsNode(pObj) && Abc_ObjFaninNum(pObj) == 1;
 }
-static inline int Abc_SclIsInv( Abc_Obj_t * pObj )
+int Abc_SclIsInv( Abc_Obj_t * pObj )
 {
     assert( Abc_ObjIsNode(pObj) );
     return Mio_GateReadTruth((Mio_Gate_t *)pObj->pData) == ABC_CONST(0x5555555555555555);
@@ -315,7 +315,7 @@ int Abc_SclCheckNtk( Abc_Ntk_t * p, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NodeInvUpdateFanPolarity( Abc_Obj_t * pObj )
+void Abc_NodeInvUpdateFanPolarity( Abc_Obj_t * pObj, int fVerbose )
 {
     Abc_Obj_t * pFanout;
     int i;
@@ -323,12 +323,23 @@ void Abc_NodeInvUpdateFanPolarity( Abc_Obj_t * pObj )
     Abc_ObjForEachFanout( pObj, pFanout, i )
     {
         if ( Abc_SclObjIsBufInv(pFanout) )
-            Abc_NodeInvUpdateFanPolarity( pFanout );
+            Abc_NodeInvUpdateFanPolarity( pFanout, fVerbose );
         else
+        {
             Abc_ObjFaninFlipPhase( pFanout, Abc_NodeFindFanin(pFanout, pObj) );
+//            if ( fVerbose )
+//                printf( "Flipping fanin %d of node %d.\n", Abc_NodeFindFanin(pFanout, pObj), Abc_ObjId(pFanout) );
+        }
     }
 }
-
+void Abc_NodeInvUpdateObjFanoutPolarity( Abc_Obj_t * pObj, Abc_Obj_t * pFanout )
+{
+    if ( Abc_SclObjIsBufInv(pFanout) )
+        Abc_NodeInvUpdateFanPolarity( pFanout, 1 );
+    else
+        Abc_ObjFaninFlipPhase( pFanout, Abc_NodeFindFanin(pFanout, pObj) );
+//    printf( "\n" );
+}
 int Abc_NodeCompareLevels( Abc_Obj_t ** pp1, Abc_Obj_t ** pp2 )
 {
     int Diff = Abc_ObjLevel(*pp1) - Abc_ObjLevel(*pp2);
@@ -402,7 +413,7 @@ Abc_Obj_t * Abc_SclPerformBufferingOne( Abc_Obj_t * pObj, int Degree, int fUseIn
     Abc_ObjAddFanin( pBuffer, pObj );
     pBuffer->Level = Abc_SclComputeReverseLevel( pBuffer );
     if ( fUseInvs )
-        Abc_NodeInvUpdateFanPolarity( pBuffer );
+        Abc_NodeInvUpdateFanPolarity( pBuffer, 0 );
     return pBuffer;
 }
 void Abc_SclPerformBuffering_rec( Abc_Obj_t * pObj, int DegreeR, int Degree, int fUseInvs, int fVerbose )
@@ -440,7 +451,7 @@ void Abc_SclPerformBuffering_rec( Abc_Obj_t * pObj, int DegreeR, int Degree, int
         Abc_ObjAddFanin( pBuffer, pObj );
         pBuffer->Level = Abc_SclComputeReverseLevel( pBuffer );
         if ( fUseInvs )
-            Abc_NodeInvUpdateFanPolarity( pBuffer );
+            Abc_NodeInvUpdateFanPolarity( pBuffer, 0 );
     }
     // compute the new level of the node
     pObj->Level = Abc_SclComputeReverseLevel( pObj );

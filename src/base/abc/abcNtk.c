@@ -325,6 +325,8 @@ void Abc_NtkFinalize( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew )
         Abc_NtkTimeInitialize( pNtkNew, pNtk );
     if ( pNtk->vPhases )
         Abc_NtkTransferPhases( pNtkNew, pNtk );
+    if ( pNtk->pWLoadUsed )
+        pNtkNew->pWLoadUsed = Abc_UtilStrsav( pNtk->pWLoadUsed );
 }
 
 /**Function*************************************************************
@@ -482,6 +484,8 @@ Abc_Ntk_t * Abc_NtkDup( Abc_Ntk_t * pNtk )
         Abc_NtkTimeInitialize( pNtkNew, pNtk );
     if ( pNtk->vPhases )
         Abc_NtkTransferPhases( pNtkNew, pNtk );
+    if ( pNtk->pWLoadUsed )
+        pNtkNew->pWLoadUsed = Abc_UtilStrsav( pNtk->pWLoadUsed );
     // check correctness
     if ( !Abc_NtkCheck( pNtkNew ) )
         fprintf( stdout, "Abc_NtkDup(): Network check has failed.\n" );
@@ -520,6 +524,8 @@ Abc_Ntk_t * Abc_NtkDupDfs( Abc_Ntk_t * pNtk )
         Abc_NtkTimeInitialize( pNtkNew, pNtk );
     if ( pNtk->vPhases )
         Abc_NtkTransferPhases( pNtkNew, pNtk );
+    if ( pNtk->pWLoadUsed )
+        pNtkNew->pWLoadUsed = Abc_UtilStrsav( pNtk->pWLoadUsed );
     // check correctness
     if ( !Abc_NtkCheck( pNtkNew ) )
         fprintf( stdout, "Abc_NtkDup(): Network check has failed.\n" );
@@ -1346,6 +1352,7 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
             Vec_AttFree( (Vec_Att_t *)pAttrMan, 1 );
         }
     Vec_PtrFree( pNtk->vAttrs );
+    ABC_FREE( pNtk->pWLoadUsed );
     ABC_FREE( pNtk->pName );
     ABC_FREE( pNtk->pSpec );
     ABC_FREE( pNtk->pLutTimes );

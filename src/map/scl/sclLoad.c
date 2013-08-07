@@ -37,7 +37,7 @@ ABC_NAMESPACE_IMPL_START
 
   Description []
                
-  SideEffects []
+  SideEffects []`
 
   SeeAlso     []
 
@@ -186,6 +186,23 @@ void Abc_SclUpdateLoad( SC_Man * p, Abc_Obj_t * pObj, SC_Cell * pOld, SC_Cell * 
         pLoad->rise += pPinNew->rise_cap - pPinOld->rise_cap;
         pLoad->fall += pPinNew->fall_cap - pPinOld->fall_cap;
     }
+}
+void Abc_SclUpdateLoadSplit( SC_Man * p, Abc_Obj_t * pBuffer, Abc_Obj_t * pFanout )
+{
+    SC_Pin * pPin;
+    SC_Pair * pLoad;
+    int iFanin = Abc_NodeFindFanin( pFanout, pBuffer );
+    assert( iFanin >= 0 );
+    assert( Abc_ObjFaninNum(pBuffer) == 1 );
+    pPin = SC_CellPin( Abc_SclObjCell(p, pFanout), iFanin );
+    // update load of the buffer
+    pLoad = Abc_SclObjLoad( p, pBuffer );
+    pLoad->rise -= pPin->rise_cap;
+    pLoad->fall -= pPin->fall_cap;
+    // update load of the fanin
+    pLoad = Abc_SclObjLoad( p, Abc_ObjFanin0(pBuffer) );
+    pLoad->rise += pPin->rise_cap;
+    pLoad->fall += pPin->fall_cap;
 }
 
 ////////////////////////////////////////////////////////////////////////

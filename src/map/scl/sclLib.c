@@ -807,9 +807,25 @@ void Abc_SclLinkCells( SC_Lib * p )
   SeeAlso     []
 
 ***********************************************************************/
-SC_WireLoad * Abc_SclFindWireLoadModel( SC_Lib * p, float Area )
+SC_WireLoad * Abc_SclFetchWireLoadModel( SC_Lib * p, char * pWLoadUsed )
 {
     SC_WireLoad * pWL = NULL;
+    int i;
+    // Get the actual table and reformat it for 'wire_cap' output:
+    assert( pWLoadUsed != NULL );
+    SC_LibForEachWireLoad( p, pWL, i )
+        if ( !strcmp(pWL->pName, pWLoadUsed) )
+            break;
+    if ( i == Vec_PtrSize(p->vWireLoads) )
+    {
+        Abc_Print( -1, "Cannot find wire load model \"%s\".\n", pWLoadUsed );
+        exit(1);
+    }
+//    printf( "Using wireload model \"%s\".\n", pWL->pName );
+    return pWL;
+}
+SC_WireLoad * Abc_SclFindWireLoadModel( SC_Lib * p, float Area )
+{
     char * pWLoadUsed = NULL;
     int i;
     if ( p->default_wire_load_sel && strlen(p->default_wire_load_sel) )
@@ -839,18 +855,7 @@ SC_WireLoad * Abc_SclFindWireLoadModel( SC_Lib * p, float Area )
         Abc_Print( 0, "No wire model given.\n" );
         return NULL;
     }
-    // Get the actual table and reformat it for 'wire_cap' output:
-    assert( pWLoadUsed != NULL );
-    SC_LibForEachWireLoad( p, pWL, i )
-        if ( !strcmp(pWL->pName, pWLoadUsed) )
-            break;
-    if ( i == Vec_PtrSize(p->vWireLoads) )
-    {
-        Abc_Print( -1, "Cannot find wire load model \"%s\".\n", pWLoadUsed );
-        exit(1);
-    }
-//    printf( "Using wireload model \"%s\".\n", pWL->pName );
-    return pWL;
+    return Abc_SclFetchWireLoadModel( p, pWLoadUsed );
 }
 
 /**Function*************************************************************

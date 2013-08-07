@@ -205,6 +205,7 @@ struct Abc_Ntk_t_
     void *            pData;         // misc
     Abc_Ntk_t *       pCopy;         // copy of this network
     Vec_Int_t *       vPhases;       // fanins phases in the mapped netlist
+    char *            pWLoadUsed;    // wire load model used
     float *           pLutTimes;     // arrivals/requireds/slacks using LUT-delay model
     Vec_Ptr_t *       vOnehots;      // names of one-hot-encoded registers
     Vec_Int_t *       vObjPerm;      // permutation saved

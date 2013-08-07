@@ -419,7 +419,7 @@ void Abc_SclManReadSlewAndLoad( SC_Man * p, Abc_Ntk_t * pNtk )
         }
     }
 }
-
+ 
 /**Function*************************************************************
 
   Synopsis    [Prepare timing manager.]
@@ -443,7 +443,15 @@ SC_Man * Abc_SclManStart( SC_Lib * pLib, Abc_Ntk_t * pNtk, int fUseWireLoads, in
     p->vGates = Abc_SclManFindGates( pLib, pNtk );
     Abc_SclManReadSlewAndLoad( p, pNtk );
     if ( fUseWireLoads )
-        p->pWLoadUsed = Abc_SclFindWireLoadModel( pLib, Abc_SclGetTotalArea(p) );
+    {
+        if ( pNtk->pWLoadUsed == NULL )
+        {            
+            p->pWLoadUsed = Abc_SclFindWireLoadModel( pLib, Abc_SclGetTotalArea(p) );
+            pNtk->pWLoadUsed = Abc_UtilStrsav( p->pWLoadUsed->pName );
+        }
+        else
+            p->pWLoadUsed = Abc_SclFetchWireLoadModel( pLib, pNtk->pWLoadUsed );
+    }
     Abc_SclTimeNtkRecompute( p, &p->SumArea0, &p->MaxDelay0, fDept, DUser );
     p->SumArea = p->SumArea0;
     return p;

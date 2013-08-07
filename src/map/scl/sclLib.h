@@ -71,6 +71,7 @@ struct SC_SizePars_
     int        DelayGap;
     int        TimeOut;
     int        BuffTreeEst;      // ratio for buffer tree estimation
+    int        BypassFreq;       // frequency to try bypassing
     int        fUseDept;
     int        fDumpStats;
     int        fUseWireLoads;
@@ -550,6 +551,7 @@ extern int           Abc_SclClassCellNum( SC_Cell * pClass );
 extern void          Abc_SclLinkCells( SC_Lib * p );
 extern void          Abc_SclPrintCells( SC_Lib * p, float Slew, float Gain );
 extern SC_WireLoad * Abc_SclFindWireLoadModel( SC_Lib * p, float Area );
+extern SC_WireLoad * Abc_SclFetchWireLoadModel( SC_Lib * p, char * pName );
 extern void          Abc_SclDumpGenlib( char * pFileName, SC_Lib * p, float Slew, float Gain, int nGatesMin );
 
 ABC_NAMESPACE_HEADER_END
