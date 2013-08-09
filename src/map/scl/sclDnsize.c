@@ -102,7 +102,7 @@ int Abc_SclCheckImprovement( SC_Man * p, Abc_Obj_t * pObj, Vec_Int_t * vNodes, V
 {
     Abc_Obj_t * pTemp;
     SC_Cell * pCellOld, * pCellNew;
-    float dGain, dGainBest, gGainCur;
+    float dGain, dGainBest;
     int i, k, gateBest;
     abctime clk;
 clk = Abc_Clock();
@@ -132,20 +132,6 @@ clk = Abc_Clock();
         Abc_SclObjSetCell( pObj, pCellOld );
         Abc_SclLoadRestore( p, pObj );
         // evaluate gain
-/*
-        dGain = 0.0;
-        Abc_NtkForEachObjVec( vEvals, p->pNtk, pTemp, k )
-            if ( Abc_SclObjLegal(p, pTemp, p->MaxDelay0) )
-            {
-                gGainCur = Abc_SclObjGain( p, pTemp );
-                dGain += (gGainCur > 0) ? gGainCur : 1.0 * gGainCur;
-            }
-            else
-                break;
-        if ( k < Vec_IntSize(vEvals) )
-            continue;
-        dGain /= Vec_IntSize(vEvals);
-*/
         dGain = Abc_SclEvalPerformLegal( p, vEvals, p->MaxDelay0 );
         if ( dGain == -1 )
             continue;

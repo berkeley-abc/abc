@@ -271,9 +271,8 @@ void Abc_SclFindNodesToUpdate( Abc_Obj_t * pPivot, Vec_Int_t ** pvNodes, Vec_Int
 int Abc_SclFindBestCell( SC_Man * p, Abc_Obj_t * pObj, Vec_Int_t * vRecalcs, Vec_Int_t * vEvals, int Notches, int DelayGap, float * pGainBest )
 {
     SC_Cell * pCellOld, * pCellNew;
-    Abc_Obj_t * pTemp;
-    float dGain, dGainBest, gGainCur;
-    int k, n, gateBest;
+    float dGain, dGainBest;
+    int k, gateBest;
     // save old gate, timing, fanin load
     pCellOld = Abc_SclObjCell( pObj );
     Abc_SclConeStore( p, vRecalcs );
@@ -298,18 +297,8 @@ int Abc_SclFindBestCell( SC_Man * p, Abc_Obj_t * pObj, Vec_Int_t * vRecalcs, Vec
         // set old cell
         Abc_SclObjSetCell( pObj, pCellOld );
         Abc_SclLoadRestore( p, pObj );
-        // evaluate gain
-
-        dGain = 0.0;
-        Abc_NtkForEachObjVec( vEvals, p->pNtk, pTemp, n )
-        {
-            gGainCur = Abc_SclObjGain( p, pTemp );
-            dGain += (gGainCur > 0) ? gGainCur : 2.0 * gGainCur;
-        }
-        dGain /= Vec_IntSize(vEvals);
-
-//        dGain = Abc_SclEvalPerform( p, vEvals );
         // save best gain
+        dGain = Abc_SclEvalPerform( p, vEvals );
         if ( dGainBest < dGain )
         {
             dGainBest = dGain;
