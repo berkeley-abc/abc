@@ -1351,6 +1351,8 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
 //printf( "deleting attr\n" );
             Vec_AttFree( (Vec_Att_t *)pAttrMan, 1 );
         }
+    assert( pNtk->pSCLib == NULL );
+    Vec_IntFreeP( &pNtk->vGates );
     Vec_PtrFree( pNtk->vAttrs );
     ABC_FREE( pNtk->pWLoadUsed );
     ABC_FREE( pNtk->pName );

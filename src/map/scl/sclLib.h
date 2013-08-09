@@ -178,7 +178,10 @@ struct SC_Cell_
     int            n_outputs;      // -- 'pins[n_inputs .. n_inputs+n_outputs-1]' are output pins
     SC_Cell *      pNext;          // same-functionality cells linked into a ring by area
     SC_Cell *      pPrev;          // same-functionality cells linked into a ring by area
+    SC_Cell *      pRepr;          // representative of the class
+    SC_Cell *      pAve;           // average size cell of this class
     int            Order;          // order of the gate in the list
+    int            nGates;         // the number of gates in the list      
 };
 
 struct SC_Lib_ 
@@ -211,6 +214,7 @@ static inline SC_Cell *   SC_LibCell( SC_Lib * p, int i )           { return (SC
 static inline SC_Pin  *   SC_CellPin( SC_Cell * p, int i )          { return (SC_Pin *)Vec_PtrEntry(p->vPins, i);                     }
 static inline Vec_Wrd_t * SC_CellFunc( SC_Cell * p )                { return SC_CellPin(p, p->n_inputs)->vFunc;                       }
 static inline float       SC_CellPinCap( SC_Cell * p, int i )       { return 0.5 * (SC_CellPin(p, i)->rise_cap + SC_CellPin(p, i)->fall_cap); }
+static inline float       SC_CellPinCapAve( SC_Cell * p )           { int i; float c = 0; for (i = 0; i < p->n_inputs; i++) c += SC_CellPinCap(p, i); return c / p->n_inputs; }
 static inline char *      SC_CellPinOutFunc( SC_Cell * p, int i )   { return SC_CellPin(p, p->n_inputs + i)->func_text;               }
 static inline char *      SC_CellPinName( SC_Cell * p, int i )      { return SC_CellPin(p, i)->pName;                                 }
 
@@ -519,7 +523,7 @@ static inline void Scl_LibPinDeparture( SC_Timing * pTime, SC_Pair * pDepIn, SC_
 
 /**Function*************************************************************
 
-  Synopsis    [Computes input capacitance.]
+  Synopsis    [Compute one timing edge.]
 
   Description []
                
@@ -528,16 +532,31 @@ static inline void Scl_LibPinDeparture( SC_Timing * pTime, SC_Pair * pDepIn, SC_
   SeeAlso     []
 
 ***********************************************************************/
-static inline float Abc_SclGatePinCapAve( SC_Lib * p, SC_Cell * pCell )
+static inline float Scl_LibPinTime( SC_Cell * pCell, int iPin, float load )
 {
     SC_Pin * pPin;
-    int k;
-    float Cap = 0.0;
-    SC_CellForEachPinIn( pCell, pPin, k )
-        Cap += 0.5 * (pPin->rise_cap + pPin->fall_cap);
-    return Cap / pCell->n_inputs;
+    SC_Timings * pRTime;
+    SC_Timing * pTime;
+    SC_Pair Load = { load, load };
+    SC_Pair ArrIn  = { 0.0, 0.0 };
+    SC_Pair ArrOut = { 0.0, 0.0 };
+    SC_Pair SlewIn = { 0.0, 0.0 };
+    SC_Pair SlewOut = { 0.0, 0.0 };
+    Vec_Flt_t * vIndex0;
+    assert( iPin >= 0 && iPin < pCell->n_inputs );
+    pPin = SC_CellPin( pCell, pCell->n_inputs );
+    // find timing info for this pin
+    assert( Vec_PtrSize(pPin->vRTimings) == pCell->n_inputs );
+    pRTime = (SC_Timings *)Vec_PtrEntry( pPin->vRTimings, iPin );
+    assert( Vec_PtrSize(pRTime->vTimings) == 1 );
+    pTime = (SC_Timing *)Vec_PtrEntry( pRTime->vTimings, 0 );
+    // get delay points
+    vIndex0 = pTime->pCellRise->vIndex0; // slew
+    SlewIn.fall = Vec_FltEntry( vIndex0, Vec_FltSize(vIndex0)/2 );
+    SlewIn.rise = Vec_FltEntry( vIndex0, Vec_FltSize(vIndex0)/2 );
+    Scl_LibPinArrival( pTime, &ArrIn, &SlewIn, &Load, &ArrOut, &SlewOut );
+    return 0.5 * (ArrOut.fall + ArrOut.rise);
 }
-
 
 /*=== sclLib.c ===============================================================*/
 extern SC_Lib *      Abc_SclRead( char * pFileName );
@@ -550,6 +569,8 @@ extern int           Abc_SclCellFind( SC_Lib * p, char * pName );
 extern int           Abc_SclClassCellNum( SC_Cell * pClass );
 extern void          Abc_SclLinkCells( SC_Lib * p );
 extern void          Abc_SclPrintCells( SC_Lib * p, float Slew, float Gain );
+extern SC_Cell *     Abc_SclFindInvertor( SC_Lib * p );
+extern SC_Cell *     Abc_SclFindSmallestGate( SC_Cell * p, float CinMin );
 extern SC_WireLoad * Abc_SclFindWireLoadModel( SC_Lib * p, float Area );
 extern SC_WireLoad * Abc_SclFetchWireLoadModel( SC_Lib * p, char * pName );
 extern void          Abc_SclDumpGenlib( char * pFileName, SC_Lib * p, float Slew, float Gain, int nGatesMin );

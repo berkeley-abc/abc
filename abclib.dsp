@@ -2459,6 +2459,10 @@ SOURCE=.\src\map\scl\sclBuffer.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\map\scl\sclBufSize.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\map\scl\sclDnsize.c
 # End Source File
 # Begin Source File

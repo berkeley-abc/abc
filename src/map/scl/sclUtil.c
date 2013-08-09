@@ -44,29 +44,30 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Abc_SclManFindGates( SC_Lib * pLib, Abc_Ntk_t * p )
+void Abc_SclMioGates2SclGates( SC_Lib * pLib, Abc_Ntk_t * p )
 {
-    Vec_Int_t * vVec;
     Abc_Obj_t * pObj;
     int i;
-    vVec = Vec_IntStartFull( Abc_NtkObjNumMax(p) );
+    assert( p->vGates == NULL );
+    p->vGates = Vec_IntStartFull( Abc_NtkObjNumMax(p) );
     Abc_NtkForEachNode1( p, pObj, i )
     {
         char * pName = Mio_GateReadName((Mio_Gate_t *)pObj->pData);
         int gateId = Abc_SclCellFind( pLib, pName );
         assert( gateId >= 0 );
-        Vec_IntWriteEntry( vVec, i, gateId );
+        Vec_IntWriteEntry( p->vGates, i, gateId );
 //printf( "Found gate %s\n", pName );
     }
-    return vVec;
+    p->pSCLib = pLib;
 }
-void Abc_SclManSetGates( SC_Lib * pLib, Abc_Ntk_t * p, Vec_Int_t * vGates )
+void Abc_SclSclGates2MioGates( SC_Lib * pLib, Abc_Ntk_t * p )
 {
     Abc_Obj_t * pObj;
     int i, Counter = 0, CounterAll = 0;
+    assert( p->vGates != NULL );
     Abc_NtkForEachNode1( p, pObj, i )
     {
-        SC_Cell * pCell = SC_LibCell( pLib, Vec_IntEntry(vGates, Abc_ObjId(pObj)) );
+        SC_Cell * pCell = Abc_SclObjCell(pObj);
         assert( pCell->n_inputs == Abc_ObjFaninNum(pObj) );
         pObj->pData = Mio_LibraryReadGateByName( (Mio_Library_t *)p->pManFunc, pCell->pName, NULL );
         Counter += (pObj->pData == NULL);
@@ -76,6 +77,8 @@ void Abc_SclManSetGates( SC_Lib * pLib, Abc_Ntk_t * p, Vec_Int_t * vGates )
     }
     if ( Counter )
         printf( "Could not find %d (out of %d) gates in the current library.\n", Counter, CounterAll );
+    Vec_IntFreeP( &p->vGates );
+    p->pSCLib = NULL;
 }
 
 /**Function*************************************************************
@@ -119,10 +122,10 @@ void Abc_SclManPrintGateSizes( SC_Lib * pLib, Abc_Ntk_t * p, Vec_Int_t * vGates 
 }
 void Abc_SclPrintGateSizes( SC_Lib * pLib, Abc_Ntk_t * p )
 {
-    Vec_Int_t * vGates;
-    vGates = Abc_SclManFindGates( pLib, p );
-    Abc_SclManPrintGateSizes( pLib, p, vGates );
-    Vec_IntFree( vGates );
+    Abc_SclMioGates2SclGates( pLib, p );
+    Abc_SclManPrintGateSizes( pLib, p, p->vGates );
+    Vec_IntFreeP( &p->vGates );
+    p->pSCLib = NULL;
 }
 
 /**Function*************************************************************
@@ -149,13 +152,12 @@ SC_Cell * Abc_SclFindMaxAreaCell( SC_Cell * pRepr )
         }
     return pBest;
 }
-void Abc_SclMinsizePerform( SC_Lib * pLib, Abc_Ntk_t * p, int fUseMax, int fVerbose )
+Vec_Int_t * Abc_SclFindMinAreas( SC_Lib * pLib, int fUseMax )
 {
-    Vec_Int_t * vMinCells, * vGates;
+    Vec_Int_t * vMinCells;
     SC_Cell * pCell, * pRepr = NULL, * pBest = NULL;
-    Abc_Obj_t * pObj;
-    int i, k, gateId;
-    // map each gate in the library into its min-size prototype
+    int i, k;
+    // map each gate in the library into its min/max-size prototype
     vMinCells = Vec_IntStartFull( Vec_PtrSize(pLib->vCells) );
     SC_LibForEachCellClass( pLib, pRepr, i )
     {
@@ -163,21 +165,39 @@ void Abc_SclMinsizePerform( SC_Lib * pLib, Abc_Ntk_t * p, int fUseMax, int fVerb
         SC_RingForEachCell( pRepr, pCell, k )
             Vec_IntWriteEntry( vMinCells, pCell->Id, pBest->Id );
     }
-    // update each cell
-    vGates = Abc_SclManFindGates( pLib, p );
+    return vMinCells;
+}
+void Abc_SclMinsizePerform( SC_Lib * pLib, Abc_Ntk_t * p, int fUseMax, int fVerbose )
+{
+    Vec_Int_t * vMinCells;
+    Abc_Obj_t * pObj;
+    int i, gateId;
+    vMinCells = Abc_SclFindMinAreas( pLib, fUseMax );
+    Abc_SclMioGates2SclGates( pLib, p );
     Abc_NtkForEachNode1( p, pObj, i )
     {
-        gateId = Vec_IntEntry( vGates, i );
-//        if ( SC_LibCell(pLib, gateId)->n_outputs > 1 )
-//            continue;
+        gateId = Vec_IntEntry( p->vGates, i );
         assert( gateId >= 0 && gateId < Vec_PtrSize(pLib->vCells) );
         gateId = Vec_IntEntry( vMinCells, gateId );
         assert( gateId >= 0 && gateId < Vec_PtrSize(pLib->vCells) );
-        Vec_IntWriteEntry( vGates, i, gateId );
+        Vec_IntWriteEntry( p->vGates, i, gateId );
     }
-    Abc_SclManSetGates( pLib, p, vGates );
+    Abc_SclSclGates2MioGates( pLib, p );
     Vec_IntFree( vMinCells );
-    Vec_IntFree( vGates );
+}
+int Abc_SclCountMinSize( SC_Lib * pLib, Abc_Ntk_t * p, int fUseMax )
+{
+    Vec_Int_t * vMinCells;
+    Abc_Obj_t * pObj;
+    int i, gateId, Counter = 0;
+    vMinCells = Abc_SclFindMinAreas( pLib, fUseMax );
+    Abc_NtkForEachNode1( p, pObj, i )
+    {
+        gateId = Vec_IntEntry( p->vGates, i );
+        Counter += ( gateId == Vec_IntEntry(vMinCells, gateId) );
+    }
+    Vec_IntFree( vMinCells );
+    return Counter;
 }
 
 /**Function*************************************************************

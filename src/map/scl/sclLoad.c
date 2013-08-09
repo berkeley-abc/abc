@@ -94,7 +94,7 @@ void Abc_SclComputeLoad( SC_Man * p )
     // add cell load
     Abc_NtkForEachNode1( p->pNtk, pObj, i )
     {
-        SC_Cell * pCell = Abc_SclObjCell( p, pObj );
+        SC_Cell * pCell = Abc_SclObjCell( pObj );
         Abc_ObjForEachFanin( pObj, pFanin, k )
         {
             SC_Pair * pLoad = Abc_SclObjLoad( p, pFanin );
@@ -142,7 +142,7 @@ void Abc_SclComputeLoad( SC_Man * p )
         }
     }
     // calculate average load
-    if ( p->EstLoadMax )
+//    if ( p->EstLoadMax )
     {
         double TotalLoad = 0;
         int nObjs = 0;
@@ -194,7 +194,7 @@ void Abc_SclUpdateLoadSplit( SC_Man * p, Abc_Obj_t * pBuffer, Abc_Obj_t * pFanou
     int iFanin = Abc_NodeFindFanin( pFanout, pBuffer );
     assert( iFanin >= 0 );
     assert( Abc_ObjFaninNum(pBuffer) == 1 );
-    pPin = SC_CellPin( Abc_SclObjCell(p, pFanout), iFanin );
+    pPin = SC_CellPin( Abc_SclObjCell(pFanout), iFanin );
     // update load of the buffer
     pLoad = Abc_SclObjLoad( p, pBuffer );
     pLoad->rise -= pPin->rise_cap;

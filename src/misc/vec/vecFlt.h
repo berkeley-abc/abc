@@ -336,6 +336,11 @@ static inline float Vec_FltEntry( Vec_Flt_t * p, int i )
     assert( i >= 0 && i < p->nSize );
     return p->pArray[i];
 }
+static inline float * Vec_FltEntryP( Vec_Flt_t * p, int i )
+{
+    assert( i >= 0 && i < p->nSize );
+    return p->pArray + i;
+}
 
 /**Function*************************************************************
 

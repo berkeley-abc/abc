@@ -749,6 +749,7 @@ static int Abc_SclCompareCells( SC_Cell ** pp1, SC_Cell ** pp2 )
 }
 void Abc_SclLinkCells( SC_Lib * p )
 {
+    Vec_Ptr_t * vList;
     SC_Cell * pCell, * pRepr = NULL;
     int i, k;
     assert( Vec_PtrSize(p->vCellClasses) == 0 );
@@ -770,30 +771,69 @@ void Abc_SclLinkCells( SC_Lib * p )
         pRepr->pPrev->pNext = pCell; pCell->pNext = pRepr;
         pCell->pPrev = pRepr->pPrev; pRepr->pPrev = pCell;
     }
-    // sort cells by size the then by name
+    // sort cells by size then by name
     qsort( (void *)Vec_PtrArray(p->vCellClasses), Vec_PtrSize(p->vCellClasses), sizeof(void *), (int(*)(const void *,const void *))Abc_SclCompareCells );
     // sort cell lists
+    vList = Vec_PtrAlloc( 100 );
     SC_LibForEachCellClass( p, pRepr, k )
     {
-        Vec_Ptr_t * vList = Vec_PtrAlloc( 100 );
+        Vec_PtrClear( vList );
         SC_RingForEachCell( pRepr, pCell, i )
             Vec_PtrPush( vList, pCell );
         qsort( (void *)Vec_PtrArray(vList), Vec_PtrSize(vList), sizeof(void *), (int(*)(const void *,const void *))Abc_SclCompareCells );
         // create new representative
         pRepr = (SC_Cell *)Vec_PtrEntry( vList, 0 );
         pRepr->pNext = pRepr->pPrev = pRepr;
+        pRepr->pRepr = pRepr;
+        pRepr->pAve  = (SC_Cell *)Vec_PtrEntry( vList, Vec_PtrSize(vList)/2 );
         pRepr->Order = 0;
+        pRepr->nGates = Vec_PtrSize(vList);
         // relink cells
         Vec_PtrForEachEntryStart( SC_Cell *, vList, pCell, i, 1 )
         {
             pRepr->pPrev->pNext = pCell; pCell->pNext = pRepr;
             pCell->pPrev = pRepr->pPrev; pRepr->pPrev = pCell;
+            pCell->pRepr = pRepr;
+            pCell->pAve  = (SC_Cell *)Vec_PtrEntry( vList, Vec_PtrSize(vList)/2 );
             pCell->Order = i;
+            pCell->nGates = Vec_PtrSize(vList);
         }
         // update list
         Vec_PtrWriteEntry( p->vCellClasses, k, pRepr );
-        Vec_PtrFree( vList );
     }
+    Vec_PtrFree( vList );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the largest inverter.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+SC_Cell * Abc_SclFindInvertor( SC_Lib * p )
+{
+    SC_Cell * pCell = NULL;
+    int k;
+    SC_LibForEachCellClass( p, pCell, k )
+        if ( pCell->n_inputs == 1 && Vec_WrdEntry(SC_CellPin(pCell, 1)->vFunc, 0) == ABC_CONST(0x5555555555555555) )
+            break;
+    // take representative
+    return pCell ? pCell->pRepr : NULL;
+}
+SC_Cell * Abc_SclFindSmallestGate( SC_Cell * p, float CinMin )
+{
+    SC_Cell * pRes = NULL;
+    int i;
+    SC_RingForEachCell( p->pRepr, pRes, i )
+        if ( SC_CellPinCapAve(pRes) > CinMin )
+            return pRes;
+    // take the largest gate
+    return p->pRepr->pPrev;
 }
 
 /**Function*************************************************************
@@ -1066,8 +1106,8 @@ void Abc_SclPrintCells( SC_Lib * p, float Slew, float Gain )
             printf( "D =%6.0f ps   ", 0.01 * ED * Gain + PD );
             printf( "ED =%6.0f ps  ", ED );
             printf( "PD =%6.0f ps  ", PD );
-            printf( "C =%5.1f ff   ", Abc_SclGatePinCapAve(p, pCell) );
-            printf( "Lm =%5.1f ff  ", 0.01 * Gain * Abc_SclGatePinCapAve(p, pCell) );
+            printf( "C =%5.1f ff   ", SC_CellPinCapAve(pCell) );
+            printf( "Lm =%5.1f ff  ", 0.01 * Gain * SC_CellPinCapAve(pCell) );
 //            printf( "MaxS =%5.1f ps  ",   SC_CellPin(pCell, pCell->n_inputs)->max_out_slew );
             printf( "Lm2 =%5.0f ff ",  SC_CellPin(pCell, pCell->n_inputs)->max_out_cap );
             printf( "\n" );

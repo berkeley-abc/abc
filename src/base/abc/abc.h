@@ -204,6 +204,9 @@ struct Abc_Ntk_t_
     void *            pExcare;       // the EXDC network (if given)
     void *            pData;         // misc
     Abc_Ntk_t *       pCopy;         // copy of this network
+    void *            pBSMan;        // application manager
+    void *            pSCLib;        // SC library
+    Vec_Int_t *       vGates;        // SC library gates
     Vec_Int_t *       vPhases;       // fanins phases in the mapped netlist
     char *            pWLoadUsed;    // wire load model used
     float *           pLutTimes;     // arrivals/requireds/slacks using LUT-delay model

@@ -47,7 +47,7 @@ struct SC_Man_
     Abc_Ntk_t *    pNtk;          // network
     int            nObjs;         // allocated size
     // get assignment
-    Vec_Int_t *    vGates;        // mapping of objId into gateId
+//    Vec_Int_t *    vGates;        // mapping of objId into gateId
     Vec_Int_t *    vGatesBest;    // best gate sizes found so far
     Vec_Int_t *    vUpdates;      // sizing updates in this round
     Vec_Int_t *    vUpdates2;     // sizing updates in this round
@@ -99,8 +99,9 @@ struct SC_Man_
 ///                       MACRO DEFINITIONS                          ///
 ////////////////////////////////////////////////////////////////////////
 
-static inline SC_Cell * Abc_SclObjCell( SC_Man * p, Abc_Obj_t * pObj )              { return SC_LibCell( p->pLib, Vec_IntEntry(p->vGates, Abc_ObjId(pObj)) );       }
-static inline void      Abc_SclObjSetCell( SC_Man * p, Abc_Obj_t * pObj, SC_Cell * pCell ) { Vec_IntWriteEntry( p->vGates, Abc_ObjId(pObj), pCell->Id );    }
+static inline SC_Lib  * Abc_SclObjLib( Abc_Obj_t * p )                              { return (SC_Lib *)p->pNtk->pSCLib;    }
+static inline SC_Cell * Abc_SclObjCell( Abc_Obj_t * p )                             { return SC_LibCell( Abc_SclObjLib(p), Vec_IntEntry(p->pNtk->vGates, Abc_ObjId(p)) ); }
+static inline void      Abc_SclObjSetCell( Abc_Obj_t * p, SC_Cell * pCell )         { Vec_IntWriteEntry( p->pNtk->vGates, Abc_ObjId(p), pCell->Id );                      }
 
 static inline SC_Pair * Abc_SclObjLoad( SC_Man * p, Abc_Obj_t * pObj )              { return p->pLoads + Abc_ObjId(pObj);  }
 static inline SC_Pair * Abc_SclObjDept( SC_Man * p, Abc_Obj_t * pObj )              { return p->pDepts + Abc_ObjId(pObj);  }
@@ -177,6 +178,8 @@ static inline SC_Man * Abc_SclManAlloc( SC_Lib * pLib, Abc_Ntk_t * pNtk )
 }
 static inline void Abc_SclManFree( SC_Man * p )
 {
+    p->pNtk->pSCLib = NULL;
+    Vec_IntFreeP( &p->pNtk->vGates );
     Vec_IntFreeP( &p->vNodeIter );
     Vec_QueFreeP( &p->vNodeByGain );
     Vec_FltFreeP( &p->vNode2Gain );
@@ -191,7 +194,7 @@ static inline void Abc_SclManFree( SC_Man * p )
     Vec_QueCheck( p->vQue );
     Vec_QueFreeP( &p->vQue );
     Vec_FltFreeP( &p->vTimesOut );
-    Vec_IntFreeP( &p->vGates );
+//    Vec_IntFreeP( &p->vGates );
     Vec_IntFreeP( &p->vBestFans );
     ABC_FREE( p->pLoads );
     ABC_FREE( p->pDepts );
@@ -349,7 +352,7 @@ static inline float Abc_SclGetTotalArea( SC_Man * p )
     Abc_Obj_t * pObj;
     int i;
     Abc_NtkForEachNode1( p->pNtk, pObj, i )
-        Area += Abc_SclObjCell( p, pObj )->area;
+        Area += Abc_SclObjCell(pObj)->area;
     return Area;
 }
 static inline float Abc_SclGetMaxDelay( SC_Man * p )
@@ -389,7 +392,7 @@ static inline float Abc_SclReadMaxDelay( SC_Man * p )
 ***********************************************************************/
 static inline SC_Cell * Abc_SclObjResiable( SC_Man * p, Abc_Obj_t * pObj, int fUpsize )
 {
-    SC_Cell * pOld = Abc_SclObjCell( p, pObj );
+    SC_Cell * pOld = Abc_SclObjCell(pObj);
     if ( fUpsize )
         return pOld->pNext->Order > pOld->Order ? pOld->pNext : NULL;
     else
@@ -435,10 +438,13 @@ static inline void Abc_SclDumpStats( SC_Man * p, char * pFileName, abctime Time 
     fclose( pTable );
 }
 
-
+/*=== sclBufSize.c ===============================================================*/
+extern Abc_Ntk_t *   Abc_SclBufSizePerform( Abc_Ntk_t * pNtk, SC_Lib * pLib, int GainRatio, int nDegree, int fAddBufs, int fBufPis, int fVerbose );
 /*=== sclBuffer.c ===============================================================*/
 extern int           Abc_SclIsInv( Abc_Obj_t * pObj );
+extern void          Abc_NodeInvUpdateFanPolarity( Abc_Obj_t * pObj );
 extern void          Abc_NodeInvUpdateObjFanoutPolarity( Abc_Obj_t * pObj, Abc_Obj_t * pFanout );
+extern void          Abc_SclReportDupFanins( Abc_Ntk_t * pNtk );
 extern Abc_Ntk_t *   Abc_SclUnBufferPerform( Abc_Ntk_t * pNtk, int fVerbose );
 extern Abc_Ntk_t *   Abc_SclUnBufferPhase( Abc_Ntk_t * pNtk, int fVerbose );
 extern Abc_Ntk_t *   Abc_SclBufferPhase( Abc_Ntk_t * pNtk, int fVerbose );
@@ -462,12 +468,14 @@ extern void          Abc_SclTimePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int nT
 extern void          Abc_SclPrintBuffers( SC_Lib * pLib, Abc_Ntk_t * pNtk, int fVerbose );
 extern int           Abc_SclInputDriveOk( SC_Man * p, Abc_Obj_t * pObj, SC_Cell * pCell );
 /*=== sclUpsize.c ===============================================================*/
+extern int           Abc_SclCountNearCriticalNodes( SC_Man * p );
 extern void          Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPars );
 /*=== sclUtil.c ===============================================================*/
-extern Vec_Int_t *   Abc_SclManFindGates( SC_Lib * pLib, Abc_Ntk_t * p );
-extern void          Abc_SclManSetGates( SC_Lib * pLib, Abc_Ntk_t * p, Vec_Int_t * vGates );
+extern void          Abc_SclMioGates2SclGates( SC_Lib * pLib, Abc_Ntk_t * p );
+extern void          Abc_SclSclGates2MioGates( SC_Lib * pLib, Abc_Ntk_t * p );
 extern void          Abc_SclPrintGateSizes( SC_Lib * pLib, Abc_Ntk_t * p );
 extern void          Abc_SclMinsizePerform( SC_Lib * pLib, Abc_Ntk_t * p, int fUseMax, int fVerbose );
+extern int           Abc_SclCountMinSize( SC_Lib * pLib, Abc_Ntk_t * p, int fUseMax );
 
 
 ABC_NAMESPACE_HEADER_END

@@ -181,6 +181,20 @@ void Abc_SclUnmarkCriticalNodeWindow( SC_Man * p, Vec_Int_t * vPath )
     Abc_NtkForEachObjVec( vPath, p->pNtk, pObj, i )
         pObj->fMarkA = 0;
 }
+int Abc_SclCountNearCriticalNodes( SC_Man * p )
+{
+    int RetValue;
+    Vec_Int_t * vPathPos, * vPathNodes;
+    vPathPos   = Abc_SclFindCriticalCoWindow( p, 5 );
+    vPathNodes = Abc_SclFindCriticalNodeWindow( p, vPathPos, 5, 0 );
+    RetValue   = Vec_IntSize(vPathNodes);
+    Abc_SclUnmarkCriticalNodeWindow( p, vPathNodes );
+    Abc_SclUnmarkCriticalNodeWindow( p, vPathPos );
+    Vec_IntFree( vPathPos );
+    Vec_IntFree( vPathNodes );
+    return RetValue;
+}
+
 
 /**Function*************************************************************
 
@@ -261,7 +275,7 @@ int Abc_SclFindBestCell( SC_Man * p, Abc_Obj_t * pObj, Vec_Int_t * vRecalcs, Vec
     float dGain, dGainBest, gGainCur;
     int k, n, gateBest;
     // save old gate, timing, fanin load
-    pCellOld = Abc_SclObjCell( p, pObj );
+    pCellOld = Abc_SclObjCell( pObj );
     Abc_SclConeStore( p, vRecalcs );
     Abc_SclLoadStore( p, pObj );
     // try different gate sizes for this node
@@ -276,12 +290,12 @@ int Abc_SclFindBestCell( SC_Man * p, Abc_Obj_t * pObj, Vec_Int_t * vRecalcs, Vec
         if ( p->pInDrive && !Abc_SclInputDriveOk( p, pObj, pCellNew ) )
             continue;
         // set new cell
-        Abc_SclObjSetCell( p, pObj, pCellNew );
+        Abc_SclObjSetCell( pObj, pCellNew );
         Abc_SclUpdateLoad( p, pObj, pCellOld, pCellNew );
         // recompute timing
         Abc_SclTimeCone( p, vRecalcs );
         // set old cell
-        Abc_SclObjSetCell( p, pObj, pCellOld );
+        Abc_SclObjSetCell( pObj, pCellOld );
         Abc_SclLoadRestore( p, pObj );
         // evaluate gain
         dGain = 0.0;
@@ -299,7 +313,7 @@ int Abc_SclFindBestCell( SC_Man * p, Abc_Obj_t * pObj, Vec_Int_t * vRecalcs, Vec
         }
     }
     // put back old cell and timing
-    Abc_SclObjSetCell( p, pObj, pCellOld );
+    Abc_SclObjSetCell( pObj, pCellOld );
     Abc_SclConeRestore( p, vRecalcs );
     *pGainBest = dGainBest;
     return gateBest;
@@ -438,11 +452,11 @@ int Abc_SclFindBypasses( SC_Man * p, Vec_Int_t * vPathNodes, int Ratio, int Notc
         Vec_IntPush( p->vUpdates2, Abc_ObjId(pFanin) );
         Vec_IntPush( p->vUpdates2, Abc_ObjId(pBuf) );
         // find old and new gates
-        pCellOld = Abc_SclObjCell( p, pFanin );
+        pCellOld = Abc_SclObjCell( pFanin );
         pCellNew = SC_LibCell( p->pLib, Vec_IntEntry(p->vNode2Gate, iNode) );
         // update cell
         p->SumArea += pCellNew->area - pCellOld->area;
-        Abc_SclObjSetCell( p, pFanin, pCellNew );
+        Abc_SclObjSetCell( pFanin, pCellNew );
         // record the update
         Vec_IntPush( p->vUpdates, Abc_ObjId(pFanin) );
         Vec_IntPush( p->vUpdates, pCellNew->Id );
@@ -462,7 +476,7 @@ int Abc_SclFindBypasses( SC_Man * p, Vec_Int_t * vPathNodes, int Ratio, int Notc
         // check if the node became useless
         if ( Abc_ObjFanoutNum(pBuf) == 0 )
         {
-            pCellOld = Abc_SclObjCell( p, pBuf );
+            pCellOld = Abc_SclObjCell( pBuf );
             p->SumArea -= pCellOld->area;
             Abc_NtkDeleteObj_rec( pBuf, 1 );
             printf( "Removed node %d.\n", iNode );
@@ -583,7 +597,7 @@ int Abc_SclFindUpsizes( SC_Man * p, Vec_Int_t * vPathNodes, int Ratio, int Notch
         pObj = Abc_NtkObj( p->pNtk, Vec_QuePop(p->vNodeByGain) );
         assert( pObj->fMarkA );
         // find old and new gates
-        pCellOld = Abc_SclObjCell( p, pObj );
+        pCellOld = Abc_SclObjCell( pObj );
         pCellNew = SC_LibCell( p->pLib, Vec_IntEntry(p->vNode2Gate, Abc_ObjId(pObj)) );
         assert( pCellNew != NULL );
         //printf( "%6d  %20s -> %20s  ", Abc_ObjId(pObj), pCellOld->pName, pCellNew->pName );
@@ -622,7 +636,7 @@ return Limit;
 //        printf( "%.1f ", Vec_FltEntry(p->vNode2Gain, iNode) );
 
         // find old and new gates
-        pCellOld = Abc_SclObjCell( p, pObj );
+        pCellOld = Abc_SclObjCell( pObj );
         pCellNew = SC_LibCell( p->pLib, Vec_IntEntry(p->vNode2Gate, Abc_ObjId(pObj)) );
         assert( pCellNew != NULL );
         //printf( "%6d  %20s -> %20s  ", Abc_ObjId(pObj), pCellOld->pName, pCellNew->pName );
@@ -630,7 +644,7 @@ return Limit;
         // update gate
         Abc_SclUpdateLoad( p, pObj, pCellOld, pCellNew );
         p->SumArea += pCellNew->area - pCellOld->area;
-        Abc_SclObjSetCell( p, pObj, pCellNew );
+        Abc_SclObjSetCell( pObj, pCellNew );
         // record the update
         Vec_IntPush( p->vUpdates, Abc_ObjId(pObj) );
         Vec_IntPush( p->vUpdates, pCellNew->Id );
@@ -788,7 +802,7 @@ void Abc_SclUpsizeRemoveDangling( SC_Man * p, Abc_Ntk_t * pNtk )
     Abc_NtkForEachNode( pNtk, pObj, i )
         if ( Abc_ObjFanoutNum(pObj) == 0 )
         {
-            pCell = Abc_SclObjCell( p, pObj );
+            pCell = Abc_SclObjCell( pObj );
             p->SumArea -= pCell->area;
             Abc_NtkDeleteObj_rec( pObj, 1 );
 //            printf( "Removed node %d.\n", i );
@@ -834,7 +848,7 @@ void Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPars 
     p = Abc_SclManStart( pLib, pNtk, pPars->fUseWireLoads, pPars->fUseDept, 0, pPars->BuffTreeEst );
     p->timeTotal  = Abc_Clock();
     assert( p->vGatesBest == NULL );
-    p->vGatesBest = Vec_IntDup( p->vGates );
+    p->vGatesBest = Vec_IntDup( p->pNtk->vGates );
     p->BestDelay  = p->MaxDelay0;
 
     // perform upsizing
@@ -893,7 +907,7 @@ void Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPars 
         if ( p->BestDelay > p->MaxDelay )
         {
             p->BestDelay = p->MaxDelay;
-            Abc_SclApplyUpdateToBest( p->vGatesBest, p->vGates, p->vUpdates );
+            Abc_SclApplyUpdateToBest( p->vGatesBest, p->pNtk->vGates, p->vUpdates );
             Vec_IntClear( p->vUpdates2 );
             nFramesNoChange = 0;
         }
@@ -920,7 +934,7 @@ void Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPars 
             break;
     }
     // update for best gates and recompute timing
-    ABC_SWAP( Vec_Int_t *, p->vGatesBest, p->vGates );
+    ABC_SWAP( Vec_Int_t *, p->vGatesBest, p->pNtk->vGates );
     if ( pPars->BypassFreq != 0 )
         Abc_SclUndoRecentChanges( p->pNtk, p->vUpdates2 );
     if ( pPars->BypassFreq != 0 )
@@ -947,7 +961,7 @@ void Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPars 
         printf( "Gate sizing timed out at %d seconds.\n", pPars->TimeOut );
 
     // save the result and quit
-    Abc_SclManSetGates( pLib, pNtk, p->vGates ); // updates gate pointers
+    Abc_SclSclGates2MioGates( pLib, pNtk ); // updates gate pointers
     Abc_SclManFree( p );
 //    Abc_NtkCleanMarkAB( pNtk );
 }
