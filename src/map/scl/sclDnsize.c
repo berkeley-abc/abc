@@ -110,6 +110,7 @@ clk = Abc_Clock();
     // save old gate, timing, fanin load
     pCellOld = Abc_SclObjCell( pObj );
     Abc_SclConeStore( p, vNodes );
+    Abc_SclEvalStore( p, vEvals );
     Abc_SclLoadStore( p, pObj );
     // try different gate sizes for this node
     gateBest = -1;
@@ -131,6 +132,7 @@ clk = Abc_Clock();
         Abc_SclObjSetCell( pObj, pCellOld );
         Abc_SclLoadRestore( p, pObj );
         // evaluate gain
+/*
         dGain = 0.0;
         Abc_NtkForEachObjVec( vEvals, p->pNtk, pTemp, k )
             if ( Abc_SclObjLegal(p, pTemp, p->MaxDelay0) )
@@ -143,6 +145,10 @@ clk = Abc_Clock();
         if ( k < Vec_IntSize(vEvals) )
             continue;
         dGain /= Vec_IntSize(vEvals);
+*/
+        dGain = Abc_SclEvalPerformLegal( p, vEvals, p->MaxDelay0 );
+        if ( dGain == -1 )
+            continue;
         // save best gain
         if ( dGainBest < dGain )
         {

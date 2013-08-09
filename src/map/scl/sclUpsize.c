@@ -277,6 +277,7 @@ int Abc_SclFindBestCell( SC_Man * p, Abc_Obj_t * pObj, Vec_Int_t * vRecalcs, Vec
     // save old gate, timing, fanin load
     pCellOld = Abc_SclObjCell( pObj );
     Abc_SclConeStore( p, vRecalcs );
+    Abc_SclEvalStore( p, vEvals );
     Abc_SclLoadStore( p, pObj );
     // try different gate sizes for this node
     gateBest = -1;
@@ -298,6 +299,7 @@ int Abc_SclFindBestCell( SC_Man * p, Abc_Obj_t * pObj, Vec_Int_t * vRecalcs, Vec
         Abc_SclObjSetCell( pObj, pCellOld );
         Abc_SclLoadRestore( p, pObj );
         // evaluate gain
+
         dGain = 0.0;
         Abc_NtkForEachObjVec( vEvals, p->pNtk, pTemp, n )
         {
@@ -305,6 +307,8 @@ int Abc_SclFindBestCell( SC_Man * p, Abc_Obj_t * pObj, Vec_Int_t * vRecalcs, Vec
             dGain += (gGainCur > 0) ? gGainCur : 2.0 * gGainCur;
         }
         dGain /= Vec_IntSize(vEvals);
+
+//        dGain = Abc_SclEvalPerform( p, vEvals );
         // save best gain
         if ( dGainBest < dGain )
         {
@@ -461,9 +465,9 @@ int Abc_SclFindBypasses( SC_Man * p, Vec_Int_t * vPathNodes, int Ratio, int Notc
         Vec_IntPush( p->vUpdates, Abc_ObjId(pFanin) );
         Vec_IntPush( p->vUpdates, pCellNew->Id );
         // remember when this node was upsized
-        Vec_IntWriteEntry( p->vNodeIter, Abc_ObjId(pFanout), 0 );
-        Vec_IntWriteEntry( p->vNodeIter, Abc_ObjId(pBuf), 0 );
-        Vec_IntWriteEntry( p->vNodeIter, Abc_ObjId(pFanin), 0 );
+        Vec_IntWriteEntry( p->vNodeIter, Abc_ObjId(pFanout), -1 );
+        Vec_IntWriteEntry( p->vNodeIter, Abc_ObjId(pBuf), -1 );
+        Vec_IntWriteEntry( p->vNodeIter, Abc_ObjId(pFanin), -1 );
         // update polarity
         if ( p->pNtk->vPhases && Abc_SclIsInv(pBuf) )
             Abc_NodeInvUpdateObjFanoutPolarity( pFanin, pFanout );

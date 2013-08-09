@@ -205,16 +205,27 @@ static inline void Abc_SclDeptFanin( SC_Man * p, SC_Timing * pTime, Abc_Obj_t * 
     SC_Pair * pDepOut  = Abc_SclObjDept( p, pObj );
     Scl_LibPinDeparture( pTime, pDepIn, pSlewIn, pLoad, pDepOut );
 }
+static inline void Abc_SclDeptObj( SC_Man * p, Abc_Obj_t * pObj )
+{
+    SC_Cell * pCell;
+    SC_Timing * pTime;
+    Abc_Obj_t * pFanout;
+    int i;
+    pCell = Abc_SclObjCell( pObj );
+    Abc_ObjForEachFanout( pObj, pFanout, i )
+    {
+        pTime = Scl_CellPinTime( pCell, Abc_NodeFindFanin(pFanout, pObj) );
+        Abc_SclDeptFanin( p, pTime, pFanout, pObj );
+    }
+}
 static inline float Abc_SclObjLoadValue( SC_Man * p, Abc_Obj_t * pObj )
 {
 //    float Value = Abc_MaxFloat(pLoad->fall, pLoad->rise) / (p->EstLoadAve * p->EstLoadMax);
-    return 0.5 * (Abc_SclObjLoad(p, pObj)->fall + Abc_SclObjLoad(p, pObj)->rise) / (p->EstLoadAve * p->EstLoadMax);
+    return (0.5 * Abc_SclObjLoad(p, pObj)->fall + 0.5 * Abc_SclObjLoad(p, pObj)->rise) / (p->EstLoadAve * p->EstLoadMax);
 }
 void Abc_SclTimeNode( SC_Man * p, Abc_Obj_t * pObj, int fDept )
 {
-    SC_Timings * pRTime;
     SC_Timing * pTime;
-    SC_Pin * pPin;
     SC_Cell * pCell;
     int k;
     SC_Pair * pLoad = Abc_SclObjLoad( p, pObj );
@@ -223,6 +234,7 @@ void Abc_SclTimeNode( SC_Man * p, Abc_Obj_t * pObj, int fDept )
     float DeptRise = 0;
     float DeptFall = 0;
     float Value = p->EstLoadMax ? Abc_SclObjLoadValue( p, pObj ) : 0;
+    Abc_Obj_t * pFanin;
     if ( Abc_ObjIsCo(pObj) )
     {
         if ( !fDept )
@@ -248,19 +260,14 @@ void Abc_SclTimeNode( SC_Man * p, Abc_Obj_t * pObj, int fDept )
     }
     // get the library cell
     pCell = Abc_SclObjCell( pObj );
-    // get the output pin
-//    assert( pCell->n_outputs == 1 );
-    pPin = SC_CellPin( pCell, pCell->n_inputs );
-    // compute timing using each fanin
-    assert( Vec_PtrSize(pPin->vRTimings) == pCell->n_inputs );
-    SC_PinForEachRTiming( pPin, pRTime, k )
+    // compute for each fanin
+    Abc_ObjForEachFanin( pObj, pFanin, k )
     {
-        assert( Vec_PtrSize(pRTime->vTimings) == 1 );
-        pTime = (SC_Timing *)Vec_PtrEntry( pRTime->vTimings, 0 );
+        pTime = Scl_CellPinTime( pCell, k );
         if ( fDept )
-            Abc_SclDeptFanin( p, pTime, pObj, Abc_ObjFanin(pObj, k) );
+            Abc_SclDeptFanin( p, pTime, pObj, pFanin );
         else
-            Abc_SclTimeFanin( p, pTime, pObj, Abc_ObjFanin(pObj, k) );
+            Abc_SclTimeFanin( p, pTime, pObj, pFanin );
     }
     if ( p->EstLoadMax && Value > 1 )
     {
@@ -385,7 +392,7 @@ void Abc_SclManReadSlewAndLoad( SC_Man * p, Abc_Ntk_t * pNtk )
         if ( p->pInDrive == NULL )
             p->pInDrive = ABC_CALLOC( float, Abc_NtkObjNumMax(pNtk) );
         Abc_NtkForEachPi( pNtk, pObj, i )
-            p->pInDrive[Abc_ObjId(pObj)] = 0.5 * SC_LibCapFromFf( p->pLib, pTime->Rise ) + 0.5 * SC_LibCapFromFf( p->pLib, pTime->Fall );
+            p->pInDrive[Abc_ObjId(pObj)] = SC_LibCapFromFf( p->pLib, 0.5 * pTime->Rise + 0.5 * pTime->Fall );
     }
     if ( Abc_NodeReadInputDrive(pNtk, 0) != NULL )
     {
@@ -395,7 +402,7 @@ void Abc_SclManReadSlewAndLoad( SC_Man * p, Abc_Ntk_t * pNtk )
         Abc_NtkForEachPi( pNtk, pObj, i )
         {
             pTime = Abc_NodeReadInputDrive(pNtk, i);
-            p->pInDrive[Abc_ObjId(pObj)] = 0.5 * SC_LibCapFromFf( p->pLib, pTime->Rise ) + 0.5 * SC_LibCapFromFf( p->pLib, pTime->Fall );
+            p->pInDrive[Abc_ObjId(pObj)] = SC_LibCapFromFf( p->pLib, 0.5 * pTime->Rise + 0.5 * pTime->Fall );
         }
     }
     // read output load

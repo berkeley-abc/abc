@@ -815,12 +815,13 @@ void Abc_SclLinkCells( SC_Lib * p )
   SeeAlso     []
 
 ***********************************************************************/
-SC_Cell * Abc_SclFindInvertor( SC_Lib * p )
+SC_Cell * Abc_SclFindInvertor( SC_Lib * p, int fFindBuff )
 {
     SC_Cell * pCell = NULL;
+    word Truth = fFindBuff ? ABC_CONST(0x5555555555555555) : ABC_CONST(0xAAAAAAAAAAAAAAAA);
     int k;
     SC_LibForEachCellClass( p, pCell, k )
-        if ( pCell->n_inputs == 1 && Vec_WrdEntry(SC_CellPin(pCell, 1)->vFunc, 0) == ABC_CONST(0x5555555555555555) )
+        if ( pCell->n_inputs == 1 && Vec_WrdEntry(SC_CellPin(pCell, 1)->vFunc, 0) == Truth )
             break;
     // take representative
     return pCell ? pCell->pRepr : NULL;
@@ -911,26 +912,16 @@ SC_WireLoad * Abc_SclFindWireLoadModel( SC_Lib * p, float Area )
 ***********************************************************************/
 void Abc_SclComputeParametersPin( SC_Lib * p, SC_Cell * pCell, int iPin, float Slew, float * pED, float * pPD )
 {
-    SC_Timings * pRTime;
-    SC_Timing * pTime = NULL;
-    SC_Pin * pPin;
+    SC_Pair Load0, Load1, Load2;
     SC_Pair ArrIn  = { 0.0, 0.0 };
     SC_Pair SlewIn = { Slew, Slew };
-    SC_Pair Load0, Load1, Load2;
     SC_Pair ArrOut0 = { 0.0, 0.0 };
     SC_Pair ArrOut1 = { 0.0, 0.0 };
     SC_Pair ArrOut2 = { 0.0, 0.0 };
     SC_Pair SlewOut = { 0.0, 0.0 };
-    Vec_Flt_t * vIndex;
-    assert( iPin >= 0 && iPin < pCell->n_inputs );
-    pPin = SC_CellPin( pCell, pCell->n_inputs );
-    // find timing info for this pin
-    assert( Vec_PtrSize(pPin->vRTimings) == pCell->n_inputs );
-    pRTime = (SC_Timings *)Vec_PtrEntry( pPin->vRTimings, iPin );
-    assert( Vec_PtrSize(pRTime->vTimings) == 1 );
-    pTime = (SC_Timing *)Vec_PtrEntry( pRTime->vTimings, 0 );
+    SC_Timing * pTime = Scl_CellPinTime( pCell, iPin );
+    Vec_Flt_t * vIndex = pTime->pCellRise->vIndex1; // capacitance
     // get load points
-    vIndex = pTime->pCellRise->vIndex1; // capacitance
     Load0.rise = Load0.fall = 0.0;
     Load1.rise = Load1.fall = Vec_FltEntry( vIndex, 0 );
     Load2.rise = Load2.fall = Vec_FltEntry( vIndex, Vec_FltSize(vIndex) - 2 );
@@ -938,9 +929,9 @@ void Abc_SclComputeParametersPin( SC_Lib * p, SC_Cell * pCell, int iPin, float S
     Scl_LibPinArrival( pTime, &ArrIn, &SlewIn, &Load0, &ArrOut0, &SlewOut );
     Scl_LibPinArrival( pTime, &ArrIn, &SlewIn, &Load1, &ArrOut1, &SlewOut );
     Scl_LibPinArrival( pTime, &ArrIn, &SlewIn, &Load2, &ArrOut2, &SlewOut );
-    ArrOut0.rise = 0.5 * (ArrOut0.rise + ArrOut0.fall);
-    ArrOut1.rise = 0.5 * (ArrOut1.rise + ArrOut1.fall);
-    ArrOut2.rise = 0.5 * (ArrOut2.rise + ArrOut2.fall);
+    ArrOut0.rise = 0.5 * ArrOut0.rise + 0.5 * ArrOut0.fall;
+    ArrOut1.rise = 0.5 * ArrOut1.rise + 0.5 * ArrOut1.fall;
+    ArrOut2.rise = 0.5 * ArrOut2.rise + 0.5 * ArrOut2.fall;
     // get tangent
     *pED = (ArrOut2.rise - ArrOut1.rise) / ((Load2.rise - Load1.rise) / SC_CellPinCap(pCell, iPin));
     // get constant
@@ -983,7 +974,7 @@ void Abc_SclComputeParametersClassPin( SC_Lib * p, SC_Cell * pRepr, int iPin, fl
     ED = PD = ed = pd = 0;
     SC_RingForEachCell( pRepr, pCell, i )
     {
-        Abc_SclComputeParametersPin( p, pCell, Slew, iPin, &ed, &pd );
+        Abc_SclComputeParametersPin( p, pCell, iPin, Slew, &ed, &pd );
         ED += ed; PD += pd;
         Count++;
     }

@@ -34,6 +34,7 @@ struct Bus_Man_t_
     // parameters
     float          Gain;      // target gain
     int            nDegree;   // max branching factor
+    int            fAddBufs;  // add buffers
     int            fBufPis;   // use CI buffering
     int            fVerbose;  // verbose
     // user data
@@ -50,11 +51,11 @@ struct Bus_Man_t_
 
 static inline Bus_Man_t * Bus_SclObjMan( Abc_Obj_t * p )                     { return (Bus_Man_t *)p->pNtk->pBSMan;                                  }
 static inline float       Bus_SclObjCin( Abc_Obj_t * p )                     { return Vec_FltEntry( Bus_SclObjMan(p)->vCins, Abc_ObjId(p) );         }
-static inline void        Bus_SclObjSetCin( Abc_Obj_t * p, float load )      { Vec_FltWriteEntry( Bus_SclObjMan(p)->vCins, Abc_ObjId(p), load );     }
+static inline void        Bus_SclObjSetCin( Abc_Obj_t * p, float cap )       { Vec_FltWriteEntry( Bus_SclObjMan(p)->vCins, Abc_ObjId(p), cap );      }
 static inline float       Bus_SclObjLoad( Abc_Obj_t * p )                    { return Vec_FltEntry( Bus_SclObjMan(p)->vLoads, Abc_ObjId(p) );        }
-static inline void        Bus_SclObjSetLoad( Abc_Obj_t * p, float load )     { Vec_FltWriteEntry( Bus_SclObjMan(p)->vLoads, Abc_ObjId(p), load );    }
+static inline void        Bus_SclObjSetLoad( Abc_Obj_t * p, float cap )      { Vec_FltWriteEntry( Bus_SclObjMan(p)->vLoads, Abc_ObjId(p), cap );     }
 static inline float       Bus_SclObjDept( Abc_Obj_t * p )                    { return Vec_FltEntry( Bus_SclObjMan(p)->vDepts, Abc_ObjId(p) );        }
-static inline void        Bus_SclObjUpdateDept( Abc_Obj_t * p, float dept )  { float *q = Vec_FltEntryP( Bus_SclObjMan(p)->vDepts, Abc_ObjId(p) ); if (*q < dept) *q = dept;  }
+static inline void        Bus_SclObjUpdateDept( Abc_Obj_t * p, float time )  { float *q = Vec_FltEntryP( Bus_SclObjMan(p)->vDepts, Abc_ObjId(p) ); if (*q < time) *q = time;  }
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -71,17 +72,18 @@ static inline void        Bus_SclObjUpdateDept( Abc_Obj_t * p, float dept )  { f
   SeeAlso     []
 
 ***********************************************************************/
-Bus_Man_t * Bus_ManStart( Abc_Ntk_t * pNtk, SC_Lib * pLib, int GainRatio, int nDegree, int fBufPis, int fVerbose )
+Bus_Man_t * Bus_ManStart( Abc_Ntk_t * pNtk, SC_Lib * pLib, int GainRatio, int nDegree, int fAddBufs, int fBufPis, int fVerbose )
 {
     Bus_Man_t * p;
     p = ABC_CALLOC( Bus_Man_t, 1 );
     p->Gain     = 0.01 * GainRatio;
     p->nDegree  = nDegree;
+    p->fAddBufs = fAddBufs;
     p->fBufPis  = fBufPis;
     p->fVerbose = fVerbose;
     p->pNtk     = pNtk;
     p->pLib     = pLib;
-    p->pInv     = Abc_SclFindInvertor(pLib)->pAve;
+    p->pInv     = Abc_SclFindInvertor(pLib, fAddBufs)->pAve;
     p->vCins    = Vec_FltStart( 2*Abc_NtkObjNumMax(pNtk) );
     p->vLoads   = Vec_FltStart( 2*Abc_NtkObjNumMax(pNtk) );
     p->vDepts   = Vec_FltStart( 2*Abc_NtkObjNumMax(pNtk) );
@@ -118,7 +120,7 @@ void Bus_ManReadInOutLoads( Bus_Man_t * p )
     {
         printf( "Default input drive strength is specified (%.2f ff; %.2f ff).\n", pTime->Rise, pTime->Fall );
         Abc_NtkForEachPi( p->pNtk, pObj, i )
-            Vec_FltWriteEntry( p->vLoads, Abc_ObjId(pObj), 0.5 * SC_LibCapFromFf(p->pLib, pTime->Rise) + 0.5 * SC_LibCapFromFf(p->pLib, pTime->Fall) );
+            Bus_SclObjSetCin( pObj, SC_LibCapFromFf(p->pLib, 0.5 * pTime->Rise + 0.5 * pTime->Fall) );
     }
     if ( Abc_NodeReadInputDrive(p->pNtk, 0) != NULL )
     {
@@ -126,7 +128,7 @@ void Bus_ManReadInOutLoads( Bus_Man_t * p )
         Abc_NtkForEachPi( p->pNtk, pObj, i )
         {
             pTime = Abc_NodeReadInputDrive(p->pNtk, i);
-            Vec_FltWriteEntry( p->vLoads, Abc_ObjId(pObj), 0.5 * SC_LibCapFromFf(p->pLib, pTime->Rise) + 0.5 * SC_LibCapFromFf(p->pLib, pTime->Fall) );
+            Bus_SclObjSetCin( pObj, SC_LibCapFromFf(p->pLib, 0.5 * pTime->Rise + 0.5 * pTime->Fall) );
         }
     }
     // read output load
@@ -135,7 +137,7 @@ void Bus_ManReadInOutLoads( Bus_Man_t * p )
     {
         printf( "Default output load is specified (%.2f ff; %.2f ff).\n", pTime->Rise, pTime->Fall );
         Abc_NtkForEachPo( p->pNtk, pObj, i )
-            Vec_FltWriteEntry( p->vLoads, Abc_ObjId(pObj), 0.5 * SC_LibCapFromFf(p->pLib, pTime->Rise) + 0.5 * SC_LibCapFromFf(p->pLib, pTime->Fall) );
+            Bus_SclObjSetCin( pObj, SC_LibCapFromFf(p->pLib, 0.5 * pTime->Rise + 0.5 * pTime->Fall) );
     }
     if ( Abc_NodeReadOutputLoad(p->pNtk, 0) != NULL )
     {
@@ -143,7 +145,7 @@ void Bus_ManReadInOutLoads( Bus_Man_t * p )
         Abc_NtkForEachPo( p->pNtk, pObj, i )
         {
             pTime = Abc_NodeReadOutputLoad(p->pNtk, i);
-            Vec_FltWriteEntry( p->vLoads, Abc_ObjId(pObj), 0.5 * SC_LibCapFromFf(p->pLib, pTime->Rise) + 0.5 * SC_LibCapFromFf(p->pLib, pTime->Fall) );
+            Bus_SclObjSetCin( pObj, SC_LibCapFromFf(p->pLib, 0.5 * pTime->Rise + 0.5 * pTime->Fall) );
         }
     }
     // read arrival/required times
@@ -191,7 +193,7 @@ float Abc_NtkComputeNodeDept( Abc_Obj_t * pObj )
             continue;
         Load = Bus_SclObjLoad( pFanout );
         Dept = Bus_SclObjDept( pFanout );
-        Edge = Scl_LibPinTime( Abc_SclObjCell(pFanout), Abc_NodeFindFanin(pFanout, pObj), Load );
+        Edge = Scl_LibPinArrivalEstimate( Abc_SclObjCell(pFanout), Abc_NodeFindFanin(pFanout, pObj), Load );
         Bus_SclObjUpdateDept( pObj, Dept + Edge );
         assert( Edge > 0 );
         assert( Load > 0 );
@@ -208,7 +210,7 @@ void Abc_NtkUpdateFaninDeparture( Bus_Man_t * p, Abc_Obj_t * pObj, float Load )
     Dept = Bus_SclObjDept( pObj );
     Abc_ObjForEachFanin( pObj, pFanin, i )
     {
-        Edge = Scl_LibPinTime( pCell, i, Load );
+        Edge = Scl_LibPinArrivalEstimate( pCell, i, Load );
         Bus_SclObjUpdateDept( pFanin, Dept + Edge );
     }
 }
@@ -276,7 +278,7 @@ Abc_Obj_t * Abc_SclAddOneInv( Bus_Man_t * p, Abc_Obj_t * pObj, Vec_Ptr_t * vFano
 {
     SC_Cell * pCellNew;
     Abc_Obj_t * pFanout, * pInv;
-    float Target = SC_CellPinCap( p->pInv, 0 ) * Gain;
+    float Target = SC_CellPinCap(p->pInv, 0) * Gain;
     float Load = 0;
     int i, iStop;
     Vec_PtrForEachEntryStop( Abc_Obj_t *, vFanouts, pFanout, iStop, Degree )
@@ -286,7 +288,10 @@ Abc_Obj_t * Abc_SclAddOneInv( Bus_Man_t * p, Abc_Obj_t * pObj, Vec_Ptr_t * vFano
             break;
     }
     // create inverter
-    pInv = Abc_NtkCreateNodeInv( p->pNtk, NULL );
+    if ( p->fAddBufs )
+        pInv = Abc_NtkCreateNodeBuf( p->pNtk, NULL );
+    else
+        pInv = Abc_NtkCreateNodeInv( p->pNtk, NULL );
     assert( (int)Abc_ObjId(pInv) < Vec_FltSize(p->vDepts) );
     Vec_PtrForEachEntryStop( Abc_Obj_t *, vFanouts, pFanout, i, iStop )
     {
@@ -358,7 +363,7 @@ Abc_Ntk_t * Abc_SclBufSizePerform( Abc_Ntk_t * pNtk, SC_Lib * pLib, int GainRati
     if ( !Abc_SclCheckNtk( pNtk, 0 ) )
         return NULL;
     Abc_SclReportDupFanins( pNtk );
-    p = Bus_ManStart( pNtk, pLib, GainRatio, nDegree, fBufPis, fVerbose );
+    p = Bus_ManStart( pNtk, pLib, GainRatio, nDegree, fAddBufs, fBufPis, fVerbose );
     Bus_ManReadInOutLoads( p );
     Abc_SclBufSize( p );
     Bus_ManStop( p );
