@@ -330,7 +330,7 @@ void Abc_SclBufSize( Bus_Man_t * p )
         {
             // add one or more inverters
             Abc_NodeCollectFanouts( pObj, vFanouts );
-            Vec_PtrSort( vFanouts, (int(*)(const void *,const void *))Bus_SclCompareFanouts );
+            Vec_PtrSort( vFanouts, (int(*)(void))Bus_SclCompareFanouts );
             do 
             {
                 pInv = Abc_SclAddOneInv( p, pObj, vFanouts, p->Gain, p->nDegree );
