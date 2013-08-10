@@ -705,17 +705,20 @@ usage:
 ***********************************************************************/
 int Scl_CommandBufSize( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
-    Abc_Ntk_t * pNtkRes;
-    int c, GainRatio, nDegree, fSizeOnly, fBufPis, fAddBufs, fVerbose;
-    GainRatio = 150;
-    nDegree   =   4;
-    fSizeOnly =   0;
-    fAddBufs  =   0;
-    fBufPis   =   0;
-    fVerbose  =   0;
+    SC_BusPars Pars, * pPars = &Pars;
+    Abc_Ntk_t * pNtkRes, * pNtk = Abc_FrameReadNtk(pAbc);
+    int c;
+    memset( pPars, 0, sizeof(SC_BusPars) );
+    pPars->GainRatio     =  100;
+    pPars->Slew          =  500;
+    pPars->nDegree       =    4;
+    pPars->fSizeOnly     =    0;
+    pPars->fAddBufs      =    0;
+    pPars->fBufPis       =    0;
+    pPars->fVerbose      =    0;
+    pPars->fVeryVerbose  =    0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "GNsbpvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "GSNsbpvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -725,9 +728,20 @@ int Scl_CommandBufSize( Abc_Frame_t * pAbc, int argc, char ** argv )
                 Abc_Print( -1, "Command line switch \"-G\" should be followed by a positive integer.\n" );
                 goto usage;
             }
-            GainRatio = atoi(argv[globalUtilOptind]);
+            pPars->GainRatio = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( GainRatio < 0 ) 
+            if ( pPars->GainRatio < 0 ) 
+                goto usage;
+            break;
+        case 'S':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-S\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            pPars->Slew = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->Slew < 0 ) 
                 goto usage;
             break;
         case 'N':
@@ -736,22 +750,25 @@ int Scl_CommandBufSize( Abc_Frame_t * pAbc, int argc, char ** argv )
                 Abc_Print( -1, "Command line switch \"-N\" should be followed by a positive integer.\n" );
                 goto usage;
             }
-            nDegree = atoi(argv[globalUtilOptind]);
+            pPars->nDegree = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nDegree < 0 ) 
+            if ( pPars->nDegree < 0 ) 
                 goto usage;
             break;
         case 's':
-            fSizeOnly ^= 1;
+            pPars->fSizeOnly ^= 1;
             break;
         case 'b':
-            fAddBufs ^= 1;
+            pPars->fAddBufs ^= 1;
             break;
         case 'p':
-            fBufPis ^= 1;
+            pPars->fBufPis ^= 1;
             break;
         case 'v':
-            fVerbose ^= 1;
+            pPars->fVerbose ^= 1;
+            break;
+        case 'w':
+            pPars->fVeryVerbose ^= 1;
             break;
         case 'h':
             goto usage;
@@ -770,13 +787,13 @@ int Scl_CommandBufSize( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "This command can only be applied to a logic network.\n" );
         return 1;
     }
-    if ( !fSizeOnly && !fAddBufs && pNtk->vPhases == NULL )
+    if ( !pPars->fSizeOnly && !pPars->fAddBufs && pNtk->vPhases == NULL )
     {
         Abc_Print( -1, "Fanin phase information is not avaiable.\n" );
         return 1;
     }
     // modify the current network
-    pNtkRes = Abc_SclBufSizePerform( pNtk, (SC_Lib *)pAbc->pLibScl, GainRatio, nDegree, fSizeOnly, fAddBufs, fBufPis, fVerbose );
+    pNtkRes = Abc_SclBufSizePerform( pNtk, (SC_Lib *)pAbc->pLibScl, pPars );
     if ( pNtkRes == NULL )
     {
         Abc_Print( -1, "The command has failed.\n" );
@@ -787,14 +804,16 @@ int Scl_CommandBufSize( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: bufsize [-GM num] [-sbpvh]\n" );
+    fprintf( pAbc->Err, "usage: bufsize [-GSM num] [-sbpvwh]\n" );
     fprintf( pAbc->Err, "\t           performs buffering and sizing and mapped network\n" );
-    fprintf( pAbc->Err, "\t-G <num> : target gain percentage [default = %d]\n", GainRatio );
-    fprintf( pAbc->Err, "\t-M <num> : the maximum fanout degree [default = %d]\n", nDegree );
-    fprintf( pAbc->Err, "\t-s       : toggle performing only sizing [default = %s]\n", fSizeOnly? "yes": "no" );
-    fprintf( pAbc->Err, "\t-b       : toggle using buffers instead of inverters [default = %s]\n", fAddBufs? "yes": "no" );
-    fprintf( pAbc->Err, "\t-p       : toggle buffering primary inputs [default = %s]\n", fBufPis? "yes": "no" );
-    fprintf( pAbc->Err, "\t-v       : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( pAbc->Err, "\t-G <num> : target gain percentage [default = %d]\n", pPars->GainRatio );
+    fprintf( pAbc->Err, "\t-S <num> : target slew in pisoseconds [default = %d]\n", pPars->Slew );
+    fprintf( pAbc->Err, "\t-M <num> : the maximum fanout degree [default = %d]\n", pPars->nDegree );
+    fprintf( pAbc->Err, "\t-s       : toggle performing only sizing [default = %s]\n", pPars->fSizeOnly? "yes": "no" );
+    fprintf( pAbc->Err, "\t-b       : toggle using buffers instead of inverters [default = %s]\n", pPars->fAddBufs? "yes": "no" );
+    fprintf( pAbc->Err, "\t-p       : toggle buffering primary inputs [default = %s]\n", pPars->fBufPis? "yes": "no" );
+    fprintf( pAbc->Err, "\t-v       : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
+    fprintf( pAbc->Err, "\t-w       : toggle printing more verbose information [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
     fprintf( pAbc->Err, "\t-h       : print the command usage\n");
     return 1;
 } 

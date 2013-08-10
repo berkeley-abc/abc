@@ -493,7 +493,7 @@ static inline void Abc_SclDumpStats( SC_Man * p, char * pFileName, abctime Time 
 }
 
 /*=== sclBufSize.c ===============================================================*/
-extern Abc_Ntk_t *   Abc_SclBufSizePerform( Abc_Ntk_t * pNtk, SC_Lib * pLib, int GainRatio, int nDegree, int fSizeOnly, int fAddBufs, int fBufPis, int fVerbose );
+extern Abc_Ntk_t *   Abc_SclBufSizePerform( Abc_Ntk_t * pNtk, SC_Lib * pLib, SC_BusPars * pPars );
 /*=== sclBuffer.c ===============================================================*/
 extern int           Abc_SclIsInv( Abc_Obj_t * pObj );
 extern void          Abc_NodeInvUpdateFanPolarity( Abc_Obj_t * pObj );

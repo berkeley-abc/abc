@@ -59,6 +59,13 @@ typedef enum      // -- timing sense, positive-, negative- or non-unate
     sc_ts_Non,
 } SC_TSense;
 
+typedef struct SC_Pair_         SC_Pair;
+struct SC_Pair_ 
+{
+    float      rise;
+    float      fall;
+};
+
 typedef struct SC_SizePars_    SC_SizePars;
 struct SC_SizePars_
 {
@@ -79,11 +86,17 @@ struct SC_SizePars_
     int        fVeryVerbose;
 };
 
-typedef struct SC_Pair_         SC_Pair;
-struct SC_Pair_ 
+typedef struct SC_BusPars_     SC_BusPars;
+struct SC_BusPars_
 {
-    float      rise;
-    float      fall;
+    int        GainRatio;       // target gain
+    int        Slew;            // target slew
+    int        nDegree;         // max branching factor
+    int        fSizeOnly;       // perform only sizing
+    int        fAddBufs;        // add buffers
+    int        fBufPis;         // use CI buffering
+    int        fVerbose;        // verbose
+    int        fVeryVerbose;    // verbose
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -550,7 +563,7 @@ static inline SC_Timing * Scl_CellPinTime( SC_Cell * pCell, int iPin )
     assert( Vec_PtrSize(pRTime->vTimings) == 1 );
     return (SC_Timing *)Vec_PtrEntry( pRTime->vTimings, 0 );
 }
-static inline float Scl_LibPinArrivalEstimate( SC_Cell * pCell, int iPin, float load )
+static inline float Scl_LibPinArrivalEstimate( SC_Cell * pCell, int iPin, float Slew, float load )
 {
     SC_Pair Load = { load, load };
     SC_Pair ArrIn  = { 0.0, 0.0 };
@@ -558,8 +571,8 @@ static inline float Scl_LibPinArrivalEstimate( SC_Cell * pCell, int iPin, float 
     SC_Pair SlewIn = { 0.0, 0.0 };
     SC_Pair SlewOut = { 0.0, 0.0 };
     SC_Timing * pTime = Scl_CellPinTime( pCell, iPin );
-    Vec_Flt_t * vIndex0 = pTime->pCellRise->vIndex0; // slew
-    SlewIn.fall = SlewIn.rise = Vec_FltEntry( vIndex0, Vec_FltSize(vIndex0)/2 );
+//    Vec_Flt_t * vIndex0 = pTime->pCellRise->vIndex0; // slew
+    SlewIn.fall = SlewIn.rise = Slew; //Vec_FltEntry( vIndex0, Vec_FltSize(vIndex0)/2 );
     Scl_LibPinArrival( pTime, &ArrIn, &SlewIn, &Load, &ArrOut, &SlewOut );
     return  0.5 * ArrOut.fall +  0.5 * ArrOut.rise;
 }

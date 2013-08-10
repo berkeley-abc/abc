@@ -31,14 +31,8 @@ ABC_NAMESPACE_IMPL_START
 typedef struct Bus_Man_t_ Bus_Man_t;
 struct Bus_Man_t_
 {
-    // parameters
-    float          Gain;      // target gain
-    int            nDegree;   // max branching factor
-    int            fSizeOnly; // perform only sizing
-    int            fAddBufs;  // add buffers
-    int            fBufPis;   // use CI buffering
-    int            fVerbose;  // verbose
     // user data
+    SC_BusPars *   pPars;     // parameters    
     Abc_Ntk_t *    pNtk;      // user's network
     // library
     SC_Lib *       pLib;      // cell library
@@ -73,19 +67,14 @@ static inline void        Bus_SclObjUpdateDept( Abc_Obj_t * p, float time )  { f
   SeeAlso     []
 
 ***********************************************************************/
-Bus_Man_t * Bus_ManStart( Abc_Ntk_t * pNtk, SC_Lib * pLib, int GainRatio, int nDegree, int fSizeOnly, int fAddBufs, int fBufPis, int fVerbose )
+Bus_Man_t * Bus_ManStart( Abc_Ntk_t * pNtk, SC_Lib * pLib, SC_BusPars * pPars )
 {
     Bus_Man_t * p;
     p = ABC_CALLOC( Bus_Man_t, 1 );
-    p->Gain      = 0.01 * GainRatio;
-    p->nDegree   = nDegree;
-    p->fSizeOnly = fSizeOnly;
-    p->fAddBufs  = fAddBufs;
-    p->fBufPis   = fBufPis;
-    p->fVerbose  = fVerbose;
+    p->pPars     = pPars;
     p->pNtk      = pNtk;
     p->pLib      = pLib;
-    p->pInv      = Abc_SclFindInvertor(pLib, fAddBufs)->pAve;
+    p->pInv      = Abc_SclFindInvertor(pLib, pPars->fAddBufs)->pAve;
     p->vCins     = Vec_FltStart( 2*Abc_NtkObjNumMax(pNtk) );
     p->vLoads    = Vec_FltStart( 2*Abc_NtkObjNumMax(pNtk) );
     p->vDepts    = Vec_FltStart( 2*Abc_NtkObjNumMax(pNtk) );
@@ -187,7 +176,7 @@ float Abc_NtkComputeNodeLoad( Abc_Obj_t * pObj )
     Bus_SclObjSetLoad( pObj, Load );
     return Load;
 }
-float Abc_NtkComputeNodeDept( Abc_Obj_t * pObj )
+float Abc_NtkComputeNodeDept( Abc_Obj_t * pObj, float Slew )
 {
     Abc_Obj_t * pFanout;
     float Load, Dept, Edge;
@@ -199,7 +188,7 @@ float Abc_NtkComputeNodeDept( Abc_Obj_t * pObj )
             continue;
         Load = Bus_SclObjLoad( pFanout );
         Dept = Bus_SclObjDept( pFanout );
-        Edge = Scl_LibPinArrivalEstimate( Abc_SclObjCell(pFanout), Abc_NodeFindFanin(pFanout, pObj), Load );
+        Edge = Scl_LibPinArrivalEstimate( Abc_SclObjCell(pFanout), Abc_NodeFindFanin(pFanout, pObj), Slew, Load );
         Bus_SclObjUpdateDept( pObj, Dept + Edge );
         assert( Edge > 0 );
 //        assert( Load > 0 );
@@ -294,7 +283,7 @@ Abc_Obj_t * Abc_SclAddOneInv( Bus_Man_t * p, Abc_Obj_t * pObj, Vec_Ptr_t * vFano
             break;
     }
     // create inverter
-    if ( p->fAddBufs )
+    if ( p->pPars->fAddBufs )
         pInv = Abc_NtkCreateNodeBuf( p->pNtk, NULL );
     else
         pInv = Abc_NtkCreateNodeInv( p->pNtk, NULL );
@@ -313,7 +302,7 @@ Abc_Obj_t * Abc_SclAddOneInv( Bus_Man_t * p, Abc_Obj_t * pObj, Vec_Ptr_t * vFano
     Bus_SclObjSetCin( pInv, SC_CellPinCap(pCellNew, 0) );
     // update timing
     Abc_NtkComputeNodeLoad( pInv );
-    Abc_NtkComputeNodeDept( pInv );
+    Abc_NtkComputeNodeDept( pInv, p->pPars->Slew );
     // update phases
     if ( p->pNtk->vPhases && Abc_SclIsInv(pInv) )
         Abc_NodeInvUpdateFanPolarity( pInv );
@@ -325,8 +314,8 @@ void Abc_SclBufSize( Bus_Man_t * p )
     Vec_Ptr_t * vFanouts;
     Abc_Obj_t * pObj, * pInv;
     abctime clk = Abc_Clock();
-    float Dept, DeptMax = 0;
-    float Load, Cin;
+    float Gain = 0.01 * p->pPars->GainRatio;
+    float Load, Cin, Dept, DeptMax = 0;
     int i;
     vFanouts = Vec_PtrAlloc( 100 );
     Abc_SclMioGates2SclGates( p->pLib, p->pNtk );
@@ -339,29 +328,29 @@ void Abc_SclBufSize( Bus_Man_t * p )
         pCell = Abc_SclObjCell( pObj );
         Cin = SC_CellPinCapAve( pCell->pAve );
         // consider upsizing the gate
-        if ( !p->fSizeOnly && Load > p->Gain * Cin )
+        if ( !p->pPars->fSizeOnly && Load > Gain * Cin )
         {
             // add one or more inverters
             Abc_NodeCollectFanouts( pObj, vFanouts );
             Vec_PtrSort( vFanouts, (int(*)(void))Bus_SclCompareFanouts );
             do 
             {
-                pInv = Abc_SclAddOneInv( p, pObj, vFanouts, p->Gain, p->nDegree );
+                pInv = Abc_SclAddOneInv( p, pObj, vFanouts, Gain, p->pPars->nDegree );
                 Bus_SclInsertFanout( vFanouts, pInv );
                 Load = Bus_SclObjCin( pInv );
             }
-            while ( Vec_PtrSize(vFanouts) > 1 || Load > p->Gain * Cin );
+            while ( Vec_PtrSize(vFanouts) > 1 || Load > Gain * Cin );
             // connect last inverter
             assert( Abc_ObjFanin0(pInv) == NULL );
             Abc_ObjAddFanin( pInv, pObj );
             Bus_SclObjSetLoad( pObj, Load );
         } 
         // create cell
-        pCellNew = Abc_SclFindSmallestGate( pCell, Load / p->Gain );
+        pCellNew = Abc_SclFindSmallestGate( pCell, Load / Gain );
         Abc_SclObjSetCell( pObj, pCellNew );
-        Dept = Abc_NtkComputeNodeDept( pObj );
+        Dept = Abc_NtkComputeNodeDept( pObj, p->pPars->Slew );
         DeptMax = Abc_MaxFloat( DeptMax, Dept );
-        if ( p->fVerbose )
+        if ( p->pPars->fVerbose )
         {
             printf( "Node %7d : ", i );
             printf( "%12s ", pCellNew->pName );
@@ -373,20 +362,21 @@ void Abc_SclBufSize( Bus_Man_t * p )
     }
     Abc_SclSclGates2MioGates( p->pLib, p->pNtk );
     Vec_PtrFree( vFanouts );
-    if ( p->fVerbose )
+    if ( p->pPars->fVerbose )
     {
-        printf( "Largest departure time = %7.0f ps  ", SC_LibTimePs(p->pLib, DeptMax) );
+        printf( "Target gain =%5d. Target slew =%5d.  Delay =%7.0f ps  ", 
+            p->pPars->GainRatio, p->pPars->Slew, SC_LibTimePs(p->pLib, DeptMax) );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     }
 }
-Abc_Ntk_t * Abc_SclBufSizePerform( Abc_Ntk_t * pNtk, SC_Lib * pLib, int GainRatio, int nDegree, int fSizeOnly, int fAddBufs, int fBufPis, int fVerbose )
+Abc_Ntk_t * Abc_SclBufSizePerform( Abc_Ntk_t * pNtk, SC_Lib * pLib, SC_BusPars * pPars )
 {
     Abc_Ntk_t * pNtkNew;
     Bus_Man_t * p;
     if ( !Abc_SclCheckNtk( pNtk, 0 ) )
         return NULL;
     Abc_SclReportDupFanins( pNtk );
-    p = Bus_ManStart( pNtk, pLib, GainRatio, nDegree, fSizeOnly, fAddBufs, fBufPis, fVerbose );
+    p = Bus_ManStart( pNtk, pLib, pPars );
     Bus_ManReadInOutLoads( p );
     Abc_SclBufSize( p );
     Bus_ManStop( p );
