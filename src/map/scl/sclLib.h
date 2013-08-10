@@ -95,6 +95,7 @@ struct SC_BusPars_
     int        fSizeOnly;       // perform only sizing
     int        fAddBufs;        // add buffers
     int        fBufPis;         // use CI buffering
+    int        fUseWireLoads;   // wire loads
     int        fVerbose;        // verbose
     int        fVeryVerbose;    // verbose
 };

@@ -32,15 +32,17 @@ typedef struct Bus_Man_t_ Bus_Man_t;
 struct Bus_Man_t_
 {
     // user data
-    SC_BusPars *   pPars;     // parameters    
-    Abc_Ntk_t *    pNtk;      // user's network
+    SC_BusPars *   pPars;      // parameters    
+    Abc_Ntk_t *    pNtk;       // user's network
     // library
-    SC_Lib *       pLib;      // cell library
-    SC_Cell *      pInv;      // base interter (largest/average/???)
+    SC_Lib *       pLib;       // cell library
+    SC_Cell *      pInv;       // base interter (largest/average/???)
+    SC_WireLoad *  pWLoadUsed; // name of the used WireLoad model
+    Vec_Flt_t *    vWireCaps;  // estimated wire loads
     // internal
-    Vec_Flt_t *    vCins;     // input cap for fanouts
-    Vec_Flt_t *    vLoads;    // loads for all nodes
-    Vec_Flt_t *    vDepts;    // departure times
+    Vec_Flt_t *    vCins;      // input cap for fanouts
+    Vec_Flt_t *    vLoads;     // loads for all nodes
+    Vec_Flt_t *    vDepts;     // departure times
 };
 
 
@@ -75,6 +77,17 @@ Bus_Man_t * Bus_ManStart( Abc_Ntk_t * pNtk, SC_Lib * pLib, SC_BusPars * pPars )
     p->pNtk      = pNtk;
     p->pLib      = pLib;
     p->pInv      = Abc_SclFindInvertor(pLib, pPars->fAddBufs)->pAve;
+    if ( pPars->fUseWireLoads )
+    {
+        if ( pNtk->pWLoadUsed == NULL )
+        {            
+            p->pWLoadUsed = Abc_SclFindWireLoadModel( pLib, Abc_SclGetTotalArea(pNtk) );
+            pNtk->pWLoadUsed = Abc_UtilStrsav( p->pWLoadUsed->pName );
+        }
+        else
+            p->pWLoadUsed = Abc_SclFetchWireLoadModel( pLib, pNtk->pWLoadUsed );
+    }
+    p->vWireCaps = Abc_SclFindWireCaps( p->pWLoadUsed );
     p->vCins     = Vec_FltStart( 2*Abc_NtkObjNumMax(pNtk) );
     p->vLoads    = Vec_FltStart( 2*Abc_NtkObjNumMax(pNtk) );
     p->vDepts    = Vec_FltStart( 2*Abc_NtkObjNumMax(pNtk) );
@@ -83,6 +96,7 @@ Bus_Man_t * Bus_ManStart( Abc_Ntk_t * pNtk, SC_Lib * pLib, SC_BusPars * pPars )
 }
 void Bus_ManStop( Bus_Man_t * p )
 {
+    Vec_FltFree( p->vWireCaps );
     Vec_FltFree( p->vCins );
     Vec_FltFree( p->vLoads );
     Vec_FltFree( p->vDepts );
@@ -165,7 +179,7 @@ void Abc_NtkComputeFanoutCins( Abc_Obj_t * pObj )
             Bus_SclObjSetCin( pFanout, cap );
         }
 }
-float Abc_NtkComputeNodeLoad( Abc_Obj_t * pObj )
+float Abc_NtkComputeNodeLoad( Bus_Man_t * p, Abc_Obj_t * pObj )
 {
     Abc_Obj_t * pFanout;
     float Load = 0;
@@ -173,6 +187,7 @@ float Abc_NtkComputeNodeLoad( Abc_Obj_t * pObj )
     assert( Bus_SclObjLoad(pObj) == 0 );
     Abc_ObjForEachFanout( pObj, pFanout, i )
         Load += Bus_SclObjCin( pFanout );
+    Load += Abc_SclFindWireLoad( p->vWireCaps, pObj );
     Bus_SclObjSetLoad( pObj, Load );
     return Load;
 }
@@ -195,21 +210,6 @@ float Abc_NtkComputeNodeDept( Abc_Obj_t * pObj, float Slew )
     }
     return Bus_SclObjDept( pObj );
 }
-/*
-void Abc_NtkUpdateFaninDeparture( Bus_Man_t * p, Abc_Obj_t * pObj, float Load )
-{
-    SC_Cell * pCell = Abc_SclObjCell( pObj );
-    Abc_Obj_t * pFanin;
-    float Dept, Edge;
-    int i;
-    Dept = Bus_SclObjDept( pObj );
-    Abc_ObjForEachFanin( pObj, pFanin, i )
-    {
-        Edge = Scl_LibPinArrivalEstimate( pCell, i, Load );
-        Bus_SclObjUpdateDept( pFanin, Dept + Edge );
-    }
-}
-*/
 
 /**Function*************************************************************
 
@@ -301,7 +301,7 @@ Abc_Obj_t * Abc_SclAddOneInv( Bus_Man_t * p, Abc_Obj_t * pObj, Vec_Ptr_t * vFano
     Vec_IntSetEntry( p->pNtk->vGates, Abc_ObjId(pInv), pCellNew->Id );
     Bus_SclObjSetCin( pInv, SC_CellPinCap(pCellNew, 0) );
     // update timing
-    Abc_NtkComputeNodeLoad( pInv );
+    Abc_NtkComputeNodeLoad( p, pInv );
     Abc_NtkComputeNodeDept( pInv, p->pPars->Slew );
     // update phases
     if ( p->pNtk->vPhases && Abc_SclIsInv(pInv) )
@@ -323,7 +323,7 @@ void Abc_SclBufSize( Bus_Man_t * p )
     {
         // compute load
         Abc_NtkComputeFanoutCins( pObj );
-        Load = Abc_NtkComputeNodeLoad( pObj );
+        Load = Abc_NtkComputeNodeLoad( p, pObj );
         // consider the gate
         pCell = Abc_SclObjCell( pObj );
         Cin = SC_CellPinCapAve( pCell->pAve );

@@ -400,12 +400,12 @@ static inline void Abc_SclConeClean( SC_Man * p, Vec_Int_t * vCone )
   SeeAlso     []
 
 ***********************************************************************/
-static inline float Abc_SclGetTotalArea( SC_Man * p )
+static inline float Abc_SclGetTotalArea( Abc_Ntk_t * pNtk )
 {
     double Area = 0;
     Abc_Obj_t * pObj;
     int i;
-    Abc_NtkForEachNode1( p->pNtk, pObj, i )
+    Abc_NtkForEachNode1( pNtk, pObj, i )
         Area += Abc_SclObjCell(pObj)->area;
     return Area;
 }
@@ -508,6 +508,8 @@ extern Abc_Ntk_t *   Abc_SclBufPerform( Abc_Ntk_t * pNtk, int FanMin, int FanMax
 /*=== sclDnsize.c ===============================================================*/
 extern void          Abc_SclDnsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPars );
 /*=== sclLoad.c ===============================================================*/
+extern Vec_Flt_t *   Abc_SclFindWireCaps( SC_WireLoad * pWL );
+extern float         Abc_SclFindWireLoad( Vec_Flt_t * vWireCaps, Abc_Obj_t * pObj );
 extern void          Abc_SclAddWireLoad( SC_Man * p, Abc_Obj_t * pObj, int fSubtr );
 extern void          Abc_SclComputeLoad( SC_Man * p );
 extern void          Abc_SclUpdateLoad( SC_Man * p, Abc_Obj_t * pObj, SC_Cell * pOld, SC_Cell * pNew );

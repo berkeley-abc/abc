@@ -136,7 +136,7 @@ void Abc_SclTimeNtkPrint( SC_Man * p, int fShowAll, int fPrintPath )
     printf( "Gates = %6d   ",             Abc_NtkNodeNum(p->pNtk) );
     printf( "Cave = %5.1f   ",            p->EstLoadAve );
     printf( "Min = %5.1f %%   ",          100.0 * Abc_SclCountMinSize(p->pLib, p->pNtk, 0) / Abc_NtkNodeNum(p->pNtk) );
-    printf( "Area = %12.2f   ",           Abc_SclGetTotalArea( p ) );
+    printf( "Area = %12.2f   ",           Abc_SclGetTotalArea(p->pNtk) );
     printf( "Delay = %8.2f ps  ",         maxDelay );
     printf( "Min = %5.1f %%  ",           100.0 * Abc_SclCountNearCriticalNodes(p) / Abc_NtkNodeNum(p->pNtk) );
     printf( "                        \n" );
@@ -324,7 +324,7 @@ void Abc_SclTimeNtkRecompute( SC_Man * p, float * pArea, float * pDelay, int fRe
     if ( fReverse && DUser > 0 && D < DUser )
         D = DUser;
     if ( pArea )
-        *pArea = Abc_SclGetTotalArea( p );
+        *pArea = Abc_SclGetTotalArea(p->pNtk);
     if ( pDelay )
         *pDelay = D;
     if ( fReverse )
@@ -600,7 +600,7 @@ SC_Man * Abc_SclManStart( SC_Lib * pLib, Abc_Ntk_t * pNtk, int fUseWireLoads, in
     {
         if ( pNtk->pWLoadUsed == NULL )
         {            
-            p->pWLoadUsed = Abc_SclFindWireLoadModel( pLib, Abc_SclGetTotalArea(p) );
+            p->pWLoadUsed = Abc_SclFindWireLoadModel( pLib, Abc_SclGetTotalArea(p->pNtk) );
             pNtk->pWLoadUsed = Abc_UtilStrsav( p->pWLoadUsed->pName );
         }
         else

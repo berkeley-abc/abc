@@ -42,7 +42,7 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Flt_t * Abc_SclFindWireCaps( SC_Man * p, SC_WireLoad * pWL )
+Vec_Flt_t * Abc_SclFindWireCaps( SC_WireLoad * pWL )
 {
     Vec_Flt_t * vCaps = NULL;
     float EntryPrev, EntryCur;
@@ -79,14 +79,14 @@ Vec_Flt_t * Abc_SclFindWireCaps( SC_Man * p, SC_WireLoad * pWL )
   SeeAlso     []
 
 ***********************************************************************/
-static inline float Abc_SclFindWireLoad( SC_Man * p, Abc_Obj_t * pObj )
+float Abc_SclFindWireLoad( Vec_Flt_t * vWireCaps, Abc_Obj_t * pObj )
 {
-    int nFans = Abc_MinInt( Vec_FltSize(p->vWireCaps)-1, Abc_ObjFanoutNum(pObj) );
-    return p->vWireCaps ? Vec_FltEntry(p->vWireCaps, nFans) : 0;
+    int nFans = Abc_MinInt( Vec_FltSize(vWireCaps)-1, Abc_ObjFanoutNum(pObj) );
+    return vWireCaps ? Vec_FltEntry(vWireCaps, nFans) : 0;
 }
 void Abc_SclAddWireLoad( SC_Man * p, Abc_Obj_t * pObj, int fSubtr )
 {
-    float Load = Abc_SclFindWireLoad( p, pObj );
+    float Load = Abc_SclFindWireLoad( p->vWireCaps, pObj );
     Abc_SclObjLoad(p, pObj)->rise += fSubtr ? -Load : Load;
     Abc_SclObjLoad(p, pObj)->fall += fSubtr ? -Load : Load;
 }
@@ -125,7 +125,7 @@ void Abc_SclComputeLoad( SC_Man * p )
     if ( p->pWLoadUsed != NULL )
     {
         if ( p->vWireCaps == NULL )
-            p->vWireCaps = Abc_SclFindWireCaps( p, p->pWLoadUsed );
+            p->vWireCaps = Abc_SclFindWireCaps( p->pWLoadUsed );
         Abc_NtkForEachNode1( p->pNtk, pObj, i )
             Abc_SclAddWireLoad( p, pObj, 0 );
         Abc_NtkForEachPi( p->pNtk, pObj, i )

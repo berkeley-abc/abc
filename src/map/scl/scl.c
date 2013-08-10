@@ -715,10 +715,11 @@ int Scl_CommandBufSize( Abc_Frame_t * pAbc, int argc, char ** argv )
     pPars->fSizeOnly     =    0;
     pPars->fAddBufs      =    0;
     pPars->fBufPis       =    0;
+    pPars->fUseWireLoads =    1;
     pPars->fVerbose      =    0;
     pPars->fVeryVerbose  =    0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "GSNsbpvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "GSNsbpcvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -764,6 +765,9 @@ int Scl_CommandBufSize( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'p':
             pPars->fBufPis ^= 1;
             break;
+        case 'c':
+            pPars->fUseWireLoads ^= 1;
+            break;
         case 'v':
             pPars->fVerbose ^= 1;
             break;
@@ -804,7 +808,7 @@ int Scl_CommandBufSize( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: bufsize [-GSM num] [-sbpvwh]\n" );
+    fprintf( pAbc->Err, "usage: bufsize [-GSM num] [-sbpcvwh]\n" );
     fprintf( pAbc->Err, "\t           performs buffering and sizing and mapped network\n" );
     fprintf( pAbc->Err, "\t-G <num> : target gain percentage [default = %d]\n", pPars->GainRatio );
     fprintf( pAbc->Err, "\t-S <num> : target slew in pisoseconds [default = %d]\n", pPars->Slew );
@@ -812,6 +816,7 @@ usage:
     fprintf( pAbc->Err, "\t-s       : toggle performing only sizing [default = %s]\n", pPars->fSizeOnly? "yes": "no" );
     fprintf( pAbc->Err, "\t-b       : toggle using buffers instead of inverters [default = %s]\n", pPars->fAddBufs? "yes": "no" );
     fprintf( pAbc->Err, "\t-p       : toggle buffering primary inputs [default = %s]\n", pPars->fBufPis? "yes": "no" );
+    fprintf( pAbc->Err, "\t-c       : toggle using wire-loads if specified [default = %s]\n", pPars->fUseWireLoads? "yes": "no" );
     fprintf( pAbc->Err, "\t-v       : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
     fprintf( pAbc->Err, "\t-w       : toggle printing more verbose information [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
     fprintf( pAbc->Err, "\t-h       : print the command usage\n");
