@@ -707,14 +707,15 @@ int Scl_CommandBufSize( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     Abc_Ntk_t * pNtkRes;
-    int c, GainRatio, nDegree, fBufPis, fAddBufs, fVerbose;
-    GainRatio = 200;
+    int c, GainRatio, nDegree, fSizeOnly, fBufPis, fAddBufs, fVerbose;
+    GainRatio = 150;
     nDegree   =   4;
+    fSizeOnly =   0;
     fAddBufs  =   0;
     fBufPis   =   0;
     fVerbose  =   0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "GNbpvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "GNsbpvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -739,6 +740,9 @@ int Scl_CommandBufSize( Abc_Frame_t * pAbc, int argc, char ** argv )
             globalUtilOptind++;
             if ( nDegree < 0 ) 
                 goto usage;
+            break;
+        case 's':
+            fSizeOnly ^= 1;
             break;
         case 'b':
             fAddBufs ^= 1;
@@ -766,13 +770,13 @@ int Scl_CommandBufSize( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "This command can only be applied to a logic network.\n" );
         return 1;
     }
-    if ( !fAddBufs && pNtk->vPhases == NULL )
+    if ( !fSizeOnly && !fAddBufs && pNtk->vPhases == NULL )
     {
         Abc_Print( -1, "Fanin phase information is not avaiable.\n" );
         return 1;
     }
     // modify the current network
-    pNtkRes = Abc_SclBufSizePerform( pNtk, (SC_Lib *)pAbc->pLibScl, GainRatio, nDegree, fAddBufs, fBufPis, fVerbose );
+    pNtkRes = Abc_SclBufSizePerform( pNtk, (SC_Lib *)pAbc->pLibScl, GainRatio, nDegree, fSizeOnly, fAddBufs, fBufPis, fVerbose );
     if ( pNtkRes == NULL )
     {
         Abc_Print( -1, "The command has failed.\n" );
@@ -783,10 +787,11 @@ int Scl_CommandBufSize( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: bufsize [-GM num] [-bpvh]\n" );
+    fprintf( pAbc->Err, "usage: bufsize [-GM num] [-sbpvh]\n" );
     fprintf( pAbc->Err, "\t           performs buffering and sizing and mapped network\n" );
     fprintf( pAbc->Err, "\t-G <num> : target gain percentage [default = %d]\n", GainRatio );
     fprintf( pAbc->Err, "\t-M <num> : the maximum fanout degree [default = %d]\n", nDegree );
+    fprintf( pAbc->Err, "\t-s       : toggle performing only sizing [default = %s]\n", fSizeOnly? "yes": "no" );
     fprintf( pAbc->Err, "\t-b       : toggle using buffers instead of inverters [default = %s]\n", fAddBufs? "yes": "no" );
     fprintf( pAbc->Err, "\t-p       : toggle buffering primary inputs [default = %s]\n", fBufPis? "yes": "no" );
     fprintf( pAbc->Err, "\t-v       : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );

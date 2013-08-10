@@ -188,6 +188,14 @@ static inline SC_Man * Abc_SclManAlloc( SC_Lib * pLib, Abc_Ntk_t * pNtk )
 }
 static inline void Abc_SclManFree( SC_Man * p )
 {
+    Abc_Obj_t * pObj;
+    int i;
+    // set CI/CO ids
+    Abc_NtkForEachCi( p->pNtk, pObj, i )
+        pObj->iData = 0;
+    Abc_NtkForEachCo( p->pNtk, pObj, i )
+        pObj->iData = 0;
+    // other
     p->pNtk->pSCLib = NULL;
     Vec_IntFreeP( &p->pNtk->vGates );
     Vec_IntFreeP( &p->vNodeIter );
@@ -485,7 +493,7 @@ static inline void Abc_SclDumpStats( SC_Man * p, char * pFileName, abctime Time 
 }
 
 /*=== sclBufSize.c ===============================================================*/
-extern Abc_Ntk_t *   Abc_SclBufSizePerform( Abc_Ntk_t * pNtk, SC_Lib * pLib, int GainRatio, int nDegree, int fAddBufs, int fBufPis, int fVerbose );
+extern Abc_Ntk_t *   Abc_SclBufSizePerform( Abc_Ntk_t * pNtk, SC_Lib * pLib, int GainRatio, int nDegree, int fSizeOnly, int fAddBufs, int fBufPis, int fVerbose );
 /*=== sclBuffer.c ===============================================================*/
 extern int           Abc_SclIsInv( Abc_Obj_t * pObj );
 extern void          Abc_NodeInvUpdateFanPolarity( Abc_Obj_t * pObj );
