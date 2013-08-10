@@ -87,6 +87,7 @@ Bus_Man_t * Bus_ManStart( Abc_Ntk_t * pNtk, SC_Lib * pLib, SC_BusPars * pPars )
         else
             p->pWLoadUsed = Abc_SclFetchWireLoadModel( pLib, pNtk->pWLoadUsed );
     }
+    if ( p->pWLoadUsed )
     p->vWireCaps = Abc_SclFindWireCaps( p->pWLoadUsed );
     p->vCins     = Vec_FltStart( 2*Abc_NtkObjNumMax(pNtk) );
     p->vLoads    = Vec_FltStart( 2*Abc_NtkObjNumMax(pNtk) );
@@ -182,12 +183,12 @@ void Abc_NtkComputeFanoutCins( Abc_Obj_t * pObj )
 float Abc_NtkComputeNodeLoad( Bus_Man_t * p, Abc_Obj_t * pObj )
 {
     Abc_Obj_t * pFanout;
-    float Load = 0;
+    float Load;
     int i;
     assert( Bus_SclObjLoad(pObj) == 0 );
+    Load = Abc_SclFindWireLoad( p->vWireCaps, pObj );
     Abc_ObjForEachFanout( pObj, pFanout, i )
         Load += Bus_SclObjCin( pFanout );
-    Load += Abc_SclFindWireLoad( p->vWireCaps, pObj );
     Bus_SclObjSetLoad( pObj, Load );
     return Load;
 }
@@ -206,7 +207,6 @@ float Abc_NtkComputeNodeDept( Abc_Obj_t * pObj, float Slew )
         Edge = Scl_LibPinArrivalEstimate( Abc_SclObjCell(pFanout), Abc_NodeFindFanin(pFanout, pObj), Slew, Load );
         Bus_SclObjUpdateDept( pObj, Dept + Edge );
         assert( Edge > 0 );
-//        assert( Load > 0 );
     }
     return Bus_SclObjDept( pObj );
 }
@@ -364,8 +364,8 @@ void Abc_SclBufSize( Bus_Man_t * p )
     Vec_PtrFree( vFanouts );
     if ( p->pPars->fVerbose )
     {
-        printf( "Target gain =%5d. Target slew =%5d.  Delay =%7.0f ps  ", 
-            p->pPars->GainRatio, p->pPars->Slew, SC_LibTimePs(p->pLib, DeptMax) );
+        printf( "WireLoads = %d. Target gain =%5d. Target slew =%5d.  Delay =%7.0f ps  ", 
+            p->pPars->fUseWireLoads, p->pPars->GainRatio, p->pPars->Slew, SC_LibTimePs(p->pLib, DeptMax) );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     }
 }
