@@ -82,9 +82,9 @@ Abc_Obj_t * Abc_SclFindMostCriticalFanin( SC_Man * p, int * pfRise, Abc_Obj_t * 
     *pfRise = 0;
     // find min-slack node
     Abc_ObjForEachFanin( pNode, pFanin, i )
-        if ( fMinSlack > Abc_SclObjSlack( p, pFanin ) )
+        if ( fMinSlack > Abc_SclObjGetSlack( p, pFanin, p->MaxDelay0 ) )
         {
-            fMinSlack = Abc_SclObjSlack( p, pFanin );
+            fMinSlack = Abc_SclObjGetSlack( p, pFanin, p->MaxDelay0 );
             pPivot = pFanin;
         }
     if ( pPivot == NULL )
@@ -122,7 +122,7 @@ static inline void Abc_SclTimeNodePrint( SC_Man * p, Abc_Obj_t * pObj, int fRise
     printf( "Cout =%5.0f ff  ", Abc_SclObjLoadFf(p, pObj, fRise >= 0 ? fRise : 0 ) );
     printf( "Cmax =%5.0f ff  ", pCell ? SC_CellPin(pCell, pCell->n_inputs)->max_out_cap : 0.0 );
     printf( "G =%5.1f  ",       pCell ? Abc_SclObjLoadAve(p, pObj) / SC_CellPinCap(pCell, 0) : 0.0 );
-    printf( "SL =%5.1f ps",     Abc_SclObjSlackPs(p, pObj) );
+    printf( "SL =%5.1f ps",     Abc_SclObjSlackPs(p, pObj, p->MaxDelay0) );
     printf( "\n" );
 }
 void Abc_SclTimeNtkPrint( SC_Man * p, int fShowAll, int fPrintPath )
@@ -207,14 +207,15 @@ static inline void Abc_SclDeptFanin( SC_Man * p, SC_Timing * pTime, Abc_Obj_t * 
 }
 static inline void Abc_SclDeptObj( SC_Man * p, Abc_Obj_t * pObj )
 {
-    SC_Cell * pCell;
     SC_Timing * pTime;
     Abc_Obj_t * pFanout;
     int i;
-    pCell = Abc_SclObjCell( pObj );
+    SC_PairClean( Abc_SclObjDept(p, pObj) );
     Abc_ObjForEachFanout( pObj, pFanout, i )
     {
-        pTime = Scl_CellPinTime( pCell, Abc_NodeFindFanin(pFanout, pObj) );
+        if ( Abc_ObjIsCo(pFanout) )
+            continue;
+        pTime = Scl_CellPinTime( Abc_SclObjCell(pFanout), Abc_NodeFindFanin(pFanout, pObj) );
         Abc_SclDeptFanin( p, pTime, pFanout, pObj );
     }
 }
@@ -238,7 +239,11 @@ void Abc_SclTimeNode( SC_Man * p, Abc_Obj_t * pObj, int fDept )
     if ( Abc_ObjIsCo(pObj) )
     {
         if ( !fDept )
+        {
             Abc_SclObjDupFanin( p, pObj );
+            Vec_FltWriteEntry( p->vTimesOut, pObj->iData, Abc_SclObjTimeMax(p, pObj) );
+            Vec_QueUpdate( p->vQue, pObj->iData );
+        }
         return;
     }
     assert( Abc_ObjIsNode(pObj) );
@@ -293,7 +298,7 @@ void Abc_SclTimeCone( SC_Man * p, Vec_Int_t * vCone )
     int fVerbose = 0;
     Abc_Obj_t * pObj;
     int i;
-    Abc_SclConeClear( p, vCone );
+    Abc_SclConeClean( p, vCone );
     Abc_NtkForEachObjVec( vCone, p->pNtk, pObj, i )
     {
         if ( fVerbose && Abc_ObjIsNode(pObj) )
@@ -316,11 +321,7 @@ void Abc_SclTimeNtkRecompute( SC_Man * p, float * pArea, float * pDelay, int fRe
     Abc_NtkForEachNode1( p->pNtk, pObj, i )
         Abc_SclTimeNode( p, pObj, 0 );
     Abc_NtkForEachCo( p->pNtk, pObj, i )
-    {
-        Abc_SclObjDupFanin( p, pObj );
-        Vec_FltWriteEntry( p->vTimesOut, i, Abc_SclObjTimeMax(p, pObj) );
-        Vec_QueUpdate( p->vQue, i );
-    }
+        Abc_SclTimeNode( p, pObj, 0 );
     D = Abc_SclReadMaxDelay( p );
     if ( fReverse && DUser > 0 && D < DUser )
         D = DUser;
@@ -333,13 +334,123 @@ void Abc_SclTimeNtkRecompute( SC_Man * p, float * pArea, float * pDelay, int fRe
         p->nEstNodes = 0;
         Abc_NtkForEachNodeReverse1( p->pNtk, pObj, i )
             Abc_SclTimeNode( p, pObj, 1 );
-        Abc_NtkForEachObj( p->pNtk, pObj, i )
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Incremental timing update.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Abc_SclTimeIncUpdateClean( SC_Man * p )
+{
+    Vec_Int_t * vLevel;
+    Abc_Obj_t * pObj;
+    int i, k;
+    Vec_WecForEachLevel( p->vLevels, vLevel, i )
+    {
+        Abc_NtkForEachObjVec( vLevel, p->pNtk, pObj, k )
         {
-//            if ( Abc_SclObjGetSlack(p, pObj, D) < 0 )
-//                printf( "%.2f ", Abc_SclObjGetSlack(p, pObj, D) );
-            p->pSlack[i] = Abc_MaxFloat( 0.0, Abc_SclObjGetSlack(p, pObj, D) );
+            assert( pObj->fMarkC == 1 );
+            pObj->fMarkC = 0;
+        }
+        Vec_IntClear( vLevel );
+    }
+}
+static inline void Abc_SclTimeIncAddNode( SC_Man * p, Abc_Obj_t * pObj )
+{
+    assert( pObj->fMarkC == 0 );
+    pObj->fMarkC = 1;
+    Vec_IntPush( Vec_WecEntry(p->vLevels, Abc_ObjLevel(pObj)), Abc_ObjId(pObj) );
+    p->nIncUpdates++;
+}
+static inline void Abc_SclTimeIncAddFanins( SC_Man * p, Abc_Obj_t * pObj )
+{
+    Abc_Obj_t * pFanin;
+    int i;
+    Abc_ObjForEachFanin( pObj, pFanin, i )
+        if ( !pFanin->fMarkC && Abc_ObjIsNode(pFanin) )
+            Abc_SclTimeIncAddNode( p, pFanin );
+}
+static inline void Abc_SclTimeIncAddFanouts( SC_Man * p, Abc_Obj_t * pObj )
+{
+    Abc_Obj_t * pFanout;
+    int i;
+    Abc_ObjForEachFanout( pObj, pFanout, i )
+        if ( !pFanout->fMarkC )
+            Abc_SclTimeIncAddNode( p, pFanout );
+}
+static inline void Abc_SclTimeIncUpdateArrival( SC_Man * p )
+{
+    Vec_Int_t * vLevel;
+    SC_Pair ArrOut, SlewOut;
+    SC_Pair * pArrOut, *pSlewOut;
+    Abc_Obj_t * pObj;
+    float E = (float)0.1;
+    int i, k;
+    Vec_WecForEachLevel( p->vLevels, vLevel, i )
+    {
+        Abc_NtkForEachObjVec( vLevel, p->pNtk, pObj, k )
+        {
+            if ( Abc_ObjIsCo(pObj) )
+            {
+                Abc_SclObjDupFanin( p, pObj );
+                Vec_FltWriteEntry( p->vTimesOut, pObj->iData, Abc_SclObjTimeMax(p, pObj) );
+                Vec_QueUpdate( p->vQue, pObj->iData );
+                continue;
+            }
+            pArrOut  = Abc_SclObjTime( p, pObj );
+            pSlewOut = Abc_SclObjSlew( p, pObj );
+            SC_PairMove( &ArrOut,  pArrOut  );
+            SC_PairMove( &SlewOut, pSlewOut );
+            Abc_SclTimeNode( p, pObj, 0 );
+//            if ( !SC_PairEqual(&ArrOut, pArrOut) || !SC_PairEqual(&SlewOut, pSlewOut) )
+            if ( !SC_PairEqualE(&ArrOut, pArrOut, E) || !SC_PairEqualE(&SlewOut, pSlewOut, E) )
+                Abc_SclTimeIncAddFanouts( p, pObj );
         }
     }
+    p->MaxDelay = Abc_SclReadMaxDelay( p );
+}
+static inline void Abc_SclTimeIncUpdateDeparture( SC_Man * p )
+{
+    Vec_Int_t * vLevel;
+    SC_Pair DepOut, * pDepOut;
+    Abc_Obj_t * pObj;
+    float E = (float)0.1;
+    int i, k;
+    Vec_WecForEachLevelReverse( p->vLevels, vLevel, i )
+    {
+        Abc_NtkForEachObjVec( vLevel, p->pNtk, pObj, k )
+        {
+            pDepOut = Abc_SclObjDept( p, pObj );
+            SC_PairMove( &DepOut, pDepOut );
+            Abc_SclDeptObj( p, pObj );
+//            if ( !SC_PairEqual(&DepOut, pDepOut) )
+            if ( !SC_PairEqualE(&DepOut, pDepOut, E) )
+                Abc_SclTimeIncAddFanins( p, pObj );
+        }
+    }
+    p->MaxDelay = Abc_SclReadMaxDelay( p );
+}
+void Abc_SclTimeIncUpdate( SC_Man * p )
+{
+    if ( p->nIncUpdates == 0 )
+        return;
+    Abc_SclTimeIncUpdateArrival( p );
+    Abc_SclTimeIncUpdateDeparture( p );
+    Abc_SclTimeIncUpdateClean( p );
+    p->nIncUpdates = 0;
+}
+void Abc_SclTimeIncInsert( SC_Man * p, Abc_Obj_t * pObj )
+{
+    Abc_SclTimeIncAddFanins( p, pObj );
+    Abc_SclTimeIncAddNode( p, pObj );
 }
 
 /**Function*************************************************************
@@ -389,20 +500,20 @@ void Abc_SclManReadSlewAndLoad( SC_Man * p, Abc_Ntk_t * pNtk )
     if ( Abc_MaxFloat(pTime->Rise, pTime->Fall) != 0 )
     {
         printf( "Default input drive strength is specified (%.2f ff; %.2f ff).\n", pTime->Rise, pTime->Fall );
-        if ( p->pInDrive == NULL )
-            p->pInDrive = ABC_CALLOC( float, Abc_NtkObjNumMax(pNtk) );
+        if ( p->vInDrive == NULL )
+            p->vInDrive = Vec_FltStart( Abc_NtkCiNum(pNtk) );
         Abc_NtkForEachPi( pNtk, pObj, i )
-            p->pInDrive[Abc_ObjId(pObj)] = SC_LibCapFromFf( p->pLib, 0.5 * pTime->Rise + 0.5 * pTime->Fall );
+            Abc_SclObjSetInDrive( p, pObj, SC_LibCapFromFf( p->pLib, 0.5 * pTime->Rise + 0.5 * pTime->Fall ) );
     }
     if ( Abc_NodeReadInputDrive(pNtk, 0) != NULL )
     {
         printf( "Input drive strengths for some primary inputs are specified.\n" );
-        if ( p->pInDrive == NULL )
-            p->pInDrive = ABC_CALLOC( float, Abc_NtkObjNumMax(pNtk) );
+        if ( p->vInDrive == NULL )
+            p->vInDrive = Vec_FltStart( Abc_NtkCiNum(pNtk) );
         Abc_NtkForEachPi( pNtk, pObj, i )
         {
             pTime = Abc_NodeReadInputDrive(pNtk, i);
-            p->pInDrive[Abc_ObjId(pObj)] = SC_LibCapFromFf( p->pLib, 0.5 * pTime->Rise + 0.5 * pTime->Fall );
+            Abc_SclObjSetInDrive( p, pObj, SC_LibCapFromFf( p->pLib, 0.5 * pTime->Rise + 0.5 * pTime->Fall ) );
         }
     }
     // read output load
@@ -462,7 +573,8 @@ SC_Man * Abc_SclManStart( SC_Lib * pLib, Abc_Ntk_t * pNtk, int fUseWireLoads, in
             p->pWLoadUsed = Abc_SclFetchWireLoadModel( pLib, pNtk->pWLoadUsed );
     }
     Abc_SclTimeNtkRecompute( p, &p->SumArea0, &p->MaxDelay0, fDept, DUser );
-    p->SumArea = p->SumArea0;
+    p->SumArea  = p->SumArea0;
+    p->MaxDelay = p->MaxDelay0;
     return p;
 }
 
@@ -646,7 +758,7 @@ void Abc_SclPrintBuffersOne( SC_Man * p, Abc_Obj_t * pObj, int nOffset )
     printf( "%6.0f ps)  ",     Abc_SclObjTimePs(p, pObj, 0) );
     printf( "l =%5.0f ff  ",   Abc_SclObjLoadFf(p, pObj, 0 ) );
     printf( "s =%5.0f ps   ",  Abc_SclObjSlewPs(p, pObj, 0 ) );
-    printf( "sl =%5.0f ps   ", Abc_SclObjSlackPs(p, pObj) );
+    printf( "sl =%5.0f ps   ", Abc_SclObjSlackPs(p, pObj, p->MaxDelay0) );
     if ( nOffset == 0 )
     {
     printf( "L =%5.0f ff   ",  SC_LibCapFf( p->pLib, Abc_SclCountNonBufferLoad(p, pObj) ) );
@@ -711,9 +823,8 @@ int Abc_SclInputDriveOk( SC_Man * p, Abc_Obj_t * pObj, SC_Cell * pCell )
     int i;
     assert( Abc_ObjFaninNum(pObj) == pCell->n_inputs );
     Abc_ObjForEachFanin( pObj, pFanin, i )
-        if ( Abc_ObjIsPi(pFanin) && p->pInDrive[Abc_ObjId(pFanin)] > 0 && 
-            (p->pInDrive[Abc_ObjId(pFanin)] / Abc_ObjFanoutNum(pFanin)) < 
-            Abc_MaxFloat(SC_CellPin(pCell, i)->rise_cap, SC_CellPin(pCell, i)->fall_cap) )
+        if ( Abc_ObjIsPi(pFanin) && Abc_SclObjInDrive(p, pFanin) > 0 && 
+            (Abc_SclObjInDrive(p, pFanin) / Abc_ObjFanoutNum(pFanin)) < SC_CellPinCap( pCell, i ) )
                 return 0;
     return 1;
 }
@@ -759,7 +870,7 @@ Vec_Wec_t * Abc_SclSelectSplitNodes( SC_Man * p, Abc_Ntk_t * pNtk )
         Vec_IntClear( vCrits );
         Vec_IntClear( vNonCrits );
         Abc_ObjForEachFanout( pObj, pFanout, k )
-            if ( Abc_SclObjSlack(p, pFanout) < 100 )
+            if ( Abc_SclObjGetSlack(p, pFanout, p->MaxDelay0) < 100 )
                 Vec_IntPush( vCrits, Abc_ObjId(pFanout) );
             else
                 Vec_IntPush( vNonCrits, Abc_ObjId(pFanout) );

@@ -210,6 +210,15 @@ struct SC_Lib_
 ///                       MACRO DEFINITIONS                          ///
 ////////////////////////////////////////////////////////////////////////
 
+static inline void        SC_PairClean( SC_Pair * d )               { d->rise = d->fall = 0;                 }
+static inline float       SC_PairMax( SC_Pair * d )                 { return Abc_MaxFloat(d->rise, d->fall); }
+static inline float       SC_PairMin( SC_Pair * d )                 { return Abc_MinFloat(d->rise, d->fall); }
+static inline float       SC_PairAve( SC_Pair * d )                 { return 0.5 * d->rise + 0.5 * d->fall;  }
+static inline void        SC_PairDup( SC_Pair * d, SC_Pair * s )    { *d = *s;                               }
+static inline void        SC_PairMove( SC_Pair * d, SC_Pair * s )   { *d = *s; s->rise = s->fall = 0;        }
+static inline int         SC_PairEqual( SC_Pair * d, SC_Pair * s )  { return d->rise == s->rise && d->fall == s->fall;                }
+static inline int         SC_PairEqualE( SC_Pair * d, SC_Pair * s, float E )  { return d->rise - s->rise < E && s->rise - d->rise < E &&  d->fall - s->fall < E && s->fall - d->fall < E;    }
+
 static inline SC_Cell *   SC_LibCell( SC_Lib * p, int i )           { return (SC_Cell *)Vec_PtrEntry(p->vCells, i);                   }
 static inline SC_Pin  *   SC_CellPin( SC_Cell * p, int i )          { return (SC_Pin *)Vec_PtrEntry(p->vPins, i);                     }
 static inline Vec_Wrd_t * SC_CellFunc( SC_Cell * p )                { return SC_CellPin(p, p->n_inputs)->vFunc;                       }
@@ -222,8 +231,6 @@ static inline double      SC_LibCapFf( SC_Lib * p, double cap )     { return cap
 static inline double      SC_LibCapFromFf( SC_Lib * p, double cap ) { return cap / p->unit_cap_fst / pow(10.0, 15 - p->unit_cap_snd); }
 static inline double      SC_LibTimePs( SC_Lib * p, double time )   { return time * pow(10.0, 12 - p->unit_time);                     }
 static inline double      SC_LibTimeFromPs( SC_Lib * p, double ps ) { return ps / pow(10.0, 12 - p->unit_time);                       }
-
-
 
 #define SC_LibForEachCell( p, pCell, i )         Vec_PtrForEachEntry( SC_Cell *, p->vCells, pCell, i )
 #define SC_LibForEachCellClass( p, pCell, i )    Vec_PtrForEachEntry( SC_Cell *, p->vCellClasses, pCell, i )

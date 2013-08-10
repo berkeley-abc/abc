@@ -132,12 +132,12 @@ void Abc_SclComputeLoad( SC_Man * p )
         Vec_FltFree( vWireCaps );
     }
     // check input loads
-    if ( p->pInDrive != NULL )
+    if ( p->vInDrive != NULL )
     {
         Abc_NtkForEachPi( p->pNtk, pObj, i )
         {
             SC_Pair * pLoad = Abc_SclObjLoad( p, pObj );
-            if ( p->pInDrive[Abc_ObjId(pObj)] != 0 && (pLoad->rise > p->pInDrive[Abc_ObjId(pObj)] || pLoad->fall > p->pInDrive[Abc_ObjId(pObj)]) )
+            if ( Abc_SclObjInDrive(p, pObj) != 0 && (pLoad->rise > Abc_SclObjInDrive(p, pObj) || pLoad->fall > Abc_SclObjInDrive(p, pObj)) )
                 printf( "Maximum input drive strength is exceeded at primary input %d.\n", i );
         }
     }

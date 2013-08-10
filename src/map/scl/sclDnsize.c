@@ -121,7 +121,7 @@ clk = Abc_Clock();
             continue;
         if ( i > Notches )
             break;
-        if ( p->pInDrive && !Abc_SclInputDriveOk( p, pObj, pCellNew ) )
+        if ( p->vInDrive && !Abc_SclInputDriveOk( p, pObj, pCellNew ) )
             continue;
         // set new cell
         Abc_SclObjSetCell( pObj, pCellNew );
@@ -156,7 +156,9 @@ p->timeSize += Abc_Clock() - clk;
         // mark used nodes with the current trav ID
         Abc_NtkForEachObjVec( vNodes, p->pNtk, pTemp, k )
             Abc_NodeSetTravIdCurrent( pTemp );
-        // to need to update load and timing...
+        // update load and timing...
+        Abc_SclUpdateLoad( p, pObj, pCellOld, pCellNew );
+        Abc_SclTimeIncInsert( p, pObj );
         return 1;
     }
     return 0;
@@ -223,7 +225,7 @@ void Abc_SclDnsizePrint( SC_Man * p, int Iter, int nAttempts, int nOverlaps, int
     printf( "D: " );
     printf( "%.2f ps ",      SC_LibTimePs(p->pLib, p->MaxDelay) );
     printf( "(%+5.1f %%)  ", 100.0 * (p->MaxDelay - p->MaxDelay0)/ p->MaxDelay0 );
-    printf( "%8.2f sec",     1.0*(Abc_Clock() - p->timeTotal)/(CLOCKS_PER_SEC) );
+    printf( "%8.2f sec    ", 1.0*(Abc_Clock() - p->timeTotal)/(CLOCKS_PER_SEC) );
     printf( "%c", fVerbose ? '\n' : '\r' );
 }
 
@@ -294,7 +296,10 @@ void Abc_SclDnsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPars 
                 Vec_QuePush( p->vNodeByGain, Abc_ObjId(pObj) );
 
             clk = Abc_Clock();
-            Abc_SclTimeNtkRecompute( p, &p->SumArea, &p->MaxDelay, pPars->fUseDept, pPars->DelayUser );
+            if ( p->nIncUpdates )
+                Abc_SclTimeIncUpdate( p );
+            else
+                Abc_SclTimeNtkRecompute( p, &p->SumArea, &p->MaxDelay, pPars->fUseDept, pPars->DelayUser );
             p->timeTime += Abc_Clock() - clk;
 
             p->MaxDelay = Abc_SclReadMaxDelay( p );

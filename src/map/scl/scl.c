@@ -1001,7 +1001,7 @@ int Scl_CommandUpsize( Abc_Frame_t * pAbc, int argc, char **argv )
     memset( pPars, 0, sizeof(SC_SizePars) );
     pPars->nIters        = 1000;
     pPars->nIterNoChange =   50;
-    pPars->Window        =    2;
+    pPars->Window        =    1;
     pPars->Ratio         =   10;
     pPars->Notches       = 1000;
     pPars->DelayUser     =    0;
