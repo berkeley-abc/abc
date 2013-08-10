@@ -296,7 +296,7 @@ void Abc_SclDnsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPars 
                 Vec_QuePush( p->vNodeByGain, Abc_ObjId(pObj) );
 
             clk = Abc_Clock();
-            if ( p->nIncUpdates )
+            if ( Vec_IntSize(p->vChanged) )
                 Abc_SclTimeIncUpdate( p );
             else
                 Abc_SclTimeNtkRecompute( p, &p->SumArea, &p->MaxDelay, pPars->fUseDept, pPars->DelayUser );

@@ -53,6 +53,7 @@ struct SC_Man_
     Vec_Int_t *    vUpdates2;     // sizing updates in this round
     // timing information
     SC_WireLoad *  pWLoadUsed;    // name of the used WireLoad model
+    Vec_Flt_t *    vWireCaps;     // wire capacitances
     SC_Pair *      pLoads;        // loads for each gate
     SC_Pair *      pDepts;        // departures for each gate
     SC_Pair *      pTimes;        // arrivals for each gate
@@ -78,6 +79,7 @@ struct SC_Man_
     Vec_Int_t *    vBestFans;     // best fanouts
     // incremental timing update
     Vec_Wec_t *    vLevels;
+    Vec_Int_t *    vChanged; 
     int            nIncUpdates;
     // optimization parameters
     float          SumArea;       // total area
@@ -174,8 +176,9 @@ static inline SC_Man * Abc_SclManAlloc( SC_Lib * pLib, Abc_Ntk_t * pNtk )
     Vec_QueSetCosts( p->vNodeByGain, Vec_FltArrayP(p->vNode2Gain) );
     p->vNodeIter   = Vec_IntStartFull( p->nObjs );
     p->vLevels     = Vec_WecStart( 2 * Abc_NtkLevel(pNtk) );
+    p->vChanged    = Vec_IntAlloc( 100 );
     Abc_NtkForEachCo( pNtk, pObj, i )
-        pObj->Level = Abc_ObjFanin0(pObj)->Level;
+        pObj->Level = Abc_ObjFanin0(pObj)->Level + 1;
     // set CI/CO ids
     Abc_NtkForEachCi( pNtk, pObj, i )
         pObj->iData = i;
@@ -200,12 +203,14 @@ static inline void Abc_SclManFree( SC_Man * p )
     Vec_IntFreeP( &p->vUpdates2 );
     Vec_IntFreeP( &p->vGatesBest );
     Vec_WecFreeP( &p->vLevels );
+    Vec_IntFreeP( &p->vChanged );
 //    Vec_QuePrint( p->vQue );
     Vec_QueCheck( p->vQue );
     Vec_QueFreeP( &p->vQue );
     Vec_FltFreeP( &p->vTimesOut );
     Vec_IntFreeP( &p->vBestFans );
     Vec_FltFreeP( &p->vInDrive );
+    Vec_FltFreeP( &p->vWireCaps );
     ABC_FREE( p->pLoads );
     ABC_FREE( p->pDepts );
     ABC_FREE( p->pTimes );
@@ -495,6 +500,7 @@ extern Abc_Ntk_t *   Abc_SclBufPerform( Abc_Ntk_t * pNtk, int FanMin, int FanMax
 /*=== sclDnsize.c ===============================================================*/
 extern void          Abc_SclDnsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPars );
 /*=== sclLoad.c ===============================================================*/
+extern void          Abc_SclAddWireLoad( SC_Man * p, Abc_Obj_t * pObj, int fSubtr );
 extern void          Abc_SclComputeLoad( SC_Man * p );
 extern void          Abc_SclUpdateLoad( SC_Man * p, Abc_Obj_t * pObj, SC_Cell * pOld, SC_Cell * pNew );
 extern void          Abc_SclUpdateLoadSplit( SC_Man * p, Abc_Obj_t * pBuffer, Abc_Obj_t * pFanout );
@@ -507,6 +513,7 @@ extern void          Abc_SclTimeCone( SC_Man * p, Vec_Int_t * vCone );
 extern void          Abc_SclTimeNtkRecompute( SC_Man * p, float * pArea, float * pDelay, int fReverse, float DUser );
 extern void          Abc_SclTimeIncUpdate( SC_Man * p );
 extern void          Abc_SclTimeIncInsert( SC_Man * p, Abc_Obj_t * pObj );
+extern void          Abc_SclTimeIncUpdateLevel( Abc_Obj_t * pObj );
 extern void          Abc_SclTimePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int nTreeCRatio, int fUseWireLoads, int fShowAll, int fPrintPath, int fDumpStats );
 extern void          Abc_SclPrintBuffers( SC_Lib * pLib, Abc_Ntk_t * pNtk, int fVerbose );
 extern int           Abc_SclInputDriveOk( SC_Man * p, Abc_Obj_t * pObj, SC_Cell * pCell );

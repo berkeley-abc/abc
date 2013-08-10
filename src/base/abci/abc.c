@@ -19626,6 +19626,12 @@ int Abc_CommandCec( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
     }
 
+    if ( pNtk->vPhases != NULL )
+    {
+        Abc_Print( -1, "Cannot compare networks with phases defined.\n" );
+        return 1;
+    }
+
     pArgvNew = argv + globalUtilOptind;
     nArgcNew = argc - globalUtilOptind;
     if ( !Abc_NtkPrepareTwoNtks( stdout, pNtk, pArgvNew, nArgcNew, &pNtk1, &pNtk2, &fDelete1, &fDelete2 ) )

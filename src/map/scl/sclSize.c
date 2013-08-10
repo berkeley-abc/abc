@@ -435,13 +435,32 @@ static inline void Abc_SclTimeIncUpdateDeparture( SC_Man * p )
             if ( !SC_PairEqualE(&DepOut, pDepOut, E) )
                 Abc_SclTimeIncAddFanins( p, pObj );
         }
-    }
+    } 
     p->MaxDelay = Abc_SclReadMaxDelay( p );
+}
+void Abc_SclTimeIncCheckLevel( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pObj;
+    int i;
+    Abc_NtkForEachObj( pNtk, pObj, i )
+        if ( (int)pObj->Level != Abc_ObjLevelNew(pObj) )
+            printf( "Level of node %d is out of date!\n", i );
 }
 void Abc_SclTimeIncUpdate( SC_Man * p )
 {
-    if ( p->nIncUpdates == 0 )
+    Abc_Obj_t * pObj;
+    int i;
+    if ( Vec_IntSize(p->vChanged) == 0 )
         return;
+//    Abc_SclTimeIncCheckLevel( p->pNtk );
+    Abc_NtkForEachObjVec( p->vChanged, p->pNtk, pObj, i )
+    {
+        if ( pObj->fMarkC )
+            continue;
+        Abc_SclTimeIncAddFanins( p, pObj );
+        Abc_SclTimeIncAddNode( p, pObj );
+    }
+    Vec_IntClear( p->vChanged );
     Abc_SclTimeIncUpdateArrival( p );
     Abc_SclTimeIncUpdateDeparture( p );
     Abc_SclTimeIncUpdateClean( p );
@@ -449,9 +468,24 @@ void Abc_SclTimeIncUpdate( SC_Man * p )
 }
 void Abc_SclTimeIncInsert( SC_Man * p, Abc_Obj_t * pObj )
 {
-    Abc_SclTimeIncAddFanins( p, pObj );
-    Abc_SclTimeIncAddNode( p, pObj );
+    Vec_IntPush( p->vChanged, Abc_ObjId(pObj) );
 }
+void Abc_SclTimeIncUpdateLevel_rec( Abc_Obj_t * pObj )
+{
+    Abc_Obj_t * pFanout;
+    int i, LevelNew = Abc_ObjLevelNew(pObj);
+    if ( LevelNew == (int)pObj->Level )
+        return;
+    pObj->Level = LevelNew;
+    Abc_ObjForEachFanout( pObj, pFanout, i )
+        Abc_SclTimeIncUpdateLevel_rec( pFanout );
+}
+void Abc_SclTimeIncUpdateLevel( Abc_Obj_t * pObj )
+{
+    Abc_SclTimeIncUpdateLevel_rec( pObj );
+}
+
+
 
 /**Function*************************************************************
 

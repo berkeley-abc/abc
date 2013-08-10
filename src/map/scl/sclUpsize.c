@@ -436,7 +436,24 @@ int Abc_SclFindBypasses( SC_Man * p, Vec_Int_t * vPathNodes, int Ratio, int Notc
         pFanout = Abc_NtkObj( p->pNtk, Vec_IntEntry(p->vBestFans, iNode) );
         pBuf    = Abc_NtkObj( p->pNtk, iNode );
         pFanin  = Abc_ObjFanin0(pBuf);
-        assert( p->pNtk->vPhases == NULL ); // problem!
+        if ( p->pNtk->vPhases == NULL )
+        {
+            // update fanin
+            if ( Abc_SclIsInv(pBuf) )
+            {
+                if ( !Abc_ObjIsNode(pFanin) || !Abc_SclIsInv(pFanin) )
+                {
+                    assert( 0 );
+                    continue;
+                }
+                pFanin = Abc_ObjFanin0(pFanin);
+                if ( !Abc_ObjIsNode(pFanin) )
+                {
+                    assert( 0 );
+                    continue;
+                }
+            }
+        }
         if ( pFanout->fMarkB || pBuf->fMarkB || pFanin->fMarkB )
             continue;
         pFanout->fMarkB = 1;
@@ -451,21 +468,28 @@ int Abc_SclFindBypasses( SC_Man * p, Vec_Int_t * vPathNodes, int Ratio, int Notc
         else if ( dGainBest2 > 2*Vec_FltEntry(p->vNode2Gain, iNode) )
             break;
         // redirect
+        Abc_SclUpdateLoadSplit( p, pBuf, pFanout );
+        Abc_SclAddWireLoad( p, pBuf, 1 );
+        Abc_SclAddWireLoad( p, pFanin, 1 );
         Abc_ObjPatchFanin( pFanout, pBuf, pFanin );
+        Abc_SclAddWireLoad( p, pBuf, 0 );
+        Abc_SclAddWireLoad( p, pFanin, 0 );
+        Abc_SclTimeIncUpdateLevel( pFanout );
         // remember
         Vec_IntPush( p->vUpdates2, Abc_ObjId(pFanout) );
         Vec_IntPush( p->vUpdates2, Abc_ObjId(pFanin) );
         Vec_IntPush( p->vUpdates2, Abc_ObjId(pBuf) );
-        // find old and new gates
+        // update cell
         pCellOld = Abc_SclObjCell( pFanin );
         pCellNew = SC_LibCell( p->pLib, Vec_IntEntry(p->vNode2Gate, iNode) );
-        // update cell
         p->SumArea += pCellNew->area - pCellOld->area;
         Abc_SclObjSetCell( pFanin, pCellNew );
         Abc_SclUpdateLoad( p, pFanin, pCellOld, pCellNew );
         // record the update
         Vec_IntPush( p->vUpdates, Abc_ObjId(pFanin) );
         Vec_IntPush( p->vUpdates, pCellNew->Id );
+        Abc_SclTimeIncInsert( p, pFanout );
+        Abc_SclTimeIncInsert( p, pBuf );
         Abc_SclTimeIncInsert( p, pFanin );
         // remember when this node was upsized
         Vec_IntWriteEntry( p->vNodeIter, Abc_ObjId(pFanout), -1 );
@@ -691,11 +715,11 @@ void Abc_SclUndoRecentChanges( Abc_Ntk_t * pNtk, Vec_Int_t * vTrans )
         Abc_Obj_t * pFanout = Abc_NtkObj( pNtk, Vec_IntEntry(vTrans, 3*i+0) );
         Abc_Obj_t * pFanin  = Abc_NtkObj( pNtk, Vec_IntEntry(vTrans, 3*i+1) );
         Abc_Obj_t * pObj    = Abc_NtkObj( pNtk, Vec_IntEntry(vTrans, 3*i+2) );
+        // we do not update load here because times will be recomputed
         Abc_ObjPatchFanin( pFanout, pFanin, pObj );
-
+        Abc_SclTimeIncUpdateLevel( pFanout );
 //        printf( "Node %6d  Redir fanout %6d from fanin %6d. \n", 
 //            Abc_ObjId(pObj), Abc_ObjId(pFanout), Abc_ObjId(pFanin) );
-
         // update polarity
         if ( pNtk->vPhases && Abc_SclIsInv(pObj) )
             Abc_NodeInvUpdateObjFanoutPolarity( pObj, pFanout );
@@ -902,8 +926,11 @@ void Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPars 
         if ( pPars->fUseDept )
         {
             vTFO = Vec_IntAlloc( 0 );
-            if ( p->nIncUpdates )
+            if ( Vec_IntSize(p->vChanged) )//&& pPars->BypassFreq == 0 )
+            {
+//                Abc_SclComputeLoad( p );
                 Abc_SclTimeIncUpdate( p );
+            }
             else
                 Abc_SclTimeNtkRecompute( p, NULL, NULL, pPars->fUseDept, 0 );
         }

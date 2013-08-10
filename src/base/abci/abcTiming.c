@@ -1053,7 +1053,7 @@ int Abc_ObjLevelNew( Abc_Obj_t * pObj )
     int i, Level = 0;
     Abc_ObjForEachFanin( pObj, pFanin, i )
         Level = Abc_MaxFloat( Level, Abc_ObjLevel(pFanin) );
-    return Level + 1;
+    return Level + (int)(Abc_ObjFaninNum(pObj) > 0);
 }
 
 /**Function*************************************************************

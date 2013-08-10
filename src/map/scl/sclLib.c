@@ -741,9 +741,13 @@ static int Abc_SclCompareCells( SC_Cell ** pp1, SC_Cell ** pp2 )
         return -1;
     if ( (*pp1)->n_inputs > (*pp2)->n_inputs )
         return 1;
-    if ( (*pp1)->area < (*pp2)->area )
+//    if ( (*pp1)->area < (*pp2)->area )
+//        return -1;
+//    if ( (*pp1)->area > (*pp2)->area )
+//        return 1;
+    if ( SC_CellPinCapAve(*pp1) < SC_CellPinCapAve(*pp2) )
         return -1;
-    if ( (*pp1)->area > (*pp2)->area )
+    if ( SC_CellPinCapAve(*pp1) > SC_CellPinCapAve(*pp2) )
         return 1;
     return strcmp( (*pp1)->pName, (*pp2)->pName );
 }
