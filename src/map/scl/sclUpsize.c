@@ -800,10 +800,10 @@ void Abc_SclUpsizePrint( SC_Man * p, int Iter, int win, int nPathPos, int nPathN
 {
     printf( "%4d ",          Iter );
     printf( "Win:%3d. ",     win );
-    printf( "PO:%5d. ",      nPathPos );
-    printf( "Path:%6d. ",    nPathNodes );
+    printf( "PO:%6d. ",      nPathPos );
+    printf( "Path:%7d. ",    nPathNodes );
     printf( "Gate:%5d. ",    nUpsizes );
-    printf( "TFO:%6d. ",     nTFOs );
+    printf( "TFO:%7d. ",     nTFOs );
     printf( "A: " );
     printf( "%.2f ",         p->SumArea );
     printf( "(%+5.1f %%)  ", 100.0 * (p->SumArea - p->SumArea0)/ p->SumArea0 );
@@ -859,9 +859,8 @@ void Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPars 
     SC_Man * p;
     Vec_Int_t * vPathPos = NULL;    // critical POs
     Vec_Int_t * vPathNodes = NULL;  // critical nodes and PIs
-    Vec_Int_t * vTFO;
     abctime clk, nRuntimeLimit = pPars->TimeOut ? pPars->TimeOut * CLOCKS_PER_SEC + Abc_Clock() : 0;
-    int i = 0, win, nUpsizes = -1, nFramesNoChange = 0;
+    int i = 0, win, nUpsizes = -1, nFramesNoChange = 0, nConeSize = 0;
     int nAllPos, nAllNodes, nAllTfos, nAllUpsizes;
     if ( pPars->fVerbose )
     {
@@ -925,19 +924,17 @@ void Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPars 
         clk = Abc_Clock();
         if ( pPars->fUseDept )
         {
-            vTFO = Vec_IntAlloc( 0 );
-            if ( Vec_IntSize(p->vChanged) )//&& pPars->BypassFreq == 0 )
-            {
-//                Abc_SclComputeLoad( p );
-                Abc_SclTimeIncUpdate( p );
-            }
+            if ( Vec_IntSize(p->vChanged) )
+                nConeSize = Abc_SclTimeIncUpdate( p );
             else
                 Abc_SclTimeNtkRecompute( p, NULL, NULL, pPars->fUseDept, 0 );
         }
         else
         {
-            vTFO = Abc_SclFindTFO( p->pNtk, vPathNodes );
+            Vec_Int_t * vTFO = Abc_SclFindTFO( p->pNtk, vPathNodes );
             Abc_SclTimeCone( p, vTFO );
+            nConeSize = Vec_IntSize( vTFO );
+            Vec_IntFree( vTFO );
         }
         p->timeTime += Abc_Clock() - clk;
 //        Abc_SclUpsizePrintDiffs( p, pLib, pNtk );
@@ -955,14 +952,13 @@ void Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPars 
             nFramesNoChange++;
 
         // report and cleanup
-        Abc_SclUpsizePrint( p, i, win, Vec_IntSize(vPathPos), Vec_IntSize(vPathNodes), nUpsizes, Vec_IntSize(vTFO), pPars->fVeryVerbose || (pPars->fVerbose && nFramesNoChange == 0) ); //|| (i == nIters-1) );
+        Abc_SclUpsizePrint( p, i, win, Vec_IntSize(vPathPos), Vec_IntSize(vPathNodes), nUpsizes, nConeSize, pPars->fVeryVerbose || (pPars->fVerbose && nFramesNoChange == 0) ); //|| (i == nIters-1) );
         nAllPos     += Vec_IntSize(vPathPos);
         nAllNodes   += Vec_IntSize(vPathNodes);
-        nAllTfos    += Vec_IntSize(vTFO);
+        nAllTfos    += nConeSize;
         nAllUpsizes += nUpsizes;
         Vec_IntFree( vPathPos );
         Vec_IntFree( vPathNodes );
-        Vec_IntFree( vTFO );
         // check timeout
         if ( nRuntimeLimit && Abc_Clock() > nRuntimeLimit )
             break;

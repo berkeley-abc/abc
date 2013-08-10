@@ -519,7 +519,7 @@ extern void          Abc_SclTimeNtkPrint( SC_Man * p, int fShowAll, int fPrintPa
 extern SC_Man *      Abc_SclManStart( SC_Lib * pLib, Abc_Ntk_t * pNtk, int fUseWireLoads, int fDept, float DUser, int nTreeCRatio );
 extern void          Abc_SclTimeCone( SC_Man * p, Vec_Int_t * vCone );
 extern void          Abc_SclTimeNtkRecompute( SC_Man * p, float * pArea, float * pDelay, int fReverse, float DUser );
-extern void          Abc_SclTimeIncUpdate( SC_Man * p );
+extern int           Abc_SclTimeIncUpdate( SC_Man * p );
 extern void          Abc_SclTimeIncInsert( SC_Man * p, Abc_Obj_t * pObj );
 extern void          Abc_SclTimeIncUpdateLevel( Abc_Obj_t * pObj );
 extern void          Abc_SclTimePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int nTreeCRatio, int fUseWireLoads, int fShowAll, int fPrintPath, int fDumpStats );

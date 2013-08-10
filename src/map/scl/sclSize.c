@@ -446,12 +446,12 @@ void Abc_SclTimeIncCheckLevel( Abc_Ntk_t * pNtk )
         if ( (int)pObj->Level != Abc_ObjLevelNew(pObj) )
             printf( "Level of node %d is out of date!\n", i );
 }
-void Abc_SclTimeIncUpdate( SC_Man * p )
+int Abc_SclTimeIncUpdate( SC_Man * p )
 {
     Abc_Obj_t * pObj;
-    int i;
+    int i, RetValue;
     if ( Vec_IntSize(p->vChanged) == 0 )
-        return;
+        return 0;
 //    Abc_SclTimeIncCheckLevel( p->pNtk );
     Abc_NtkForEachObjVec( p->vChanged, p->pNtk, pObj, i )
     {
@@ -464,7 +464,9 @@ void Abc_SclTimeIncUpdate( SC_Man * p )
     Abc_SclTimeIncUpdateArrival( p );
     Abc_SclTimeIncUpdateDeparture( p );
     Abc_SclTimeIncUpdateClean( p );
+    RetValue = p->nIncUpdates;
     p->nIncUpdates = 0;
+    return RetValue;
 }
 void Abc_SclTimeIncInsert( SC_Man * p, Abc_Obj_t * pObj )
 {
