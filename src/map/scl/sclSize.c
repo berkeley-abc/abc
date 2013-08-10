@@ -132,14 +132,14 @@ void Abc_SclTimeNtkPrint( SC_Man * p, int fShowAll, int fPrintPath )
     float maxDelay = Abc_SclObjTimePs(p, pPivot, fRise);
     p->ReportDelay = maxDelay;
 
-    printf( "WireLoad model = \"%s\"   ", p->pWLoadUsed ? p->pWLoadUsed->pName : "none" );
-    printf( "Gates = %6d   ",             Abc_NtkNodeNum(p->pNtk) );
-    printf( "Cave = %5.1f   ",            p->EstLoadAve );
-    printf( "Min = %5.1f %%   ",          100.0 * Abc_SclCountMinSize(p->pLib, p->pNtk, 0) / Abc_NtkNodeNum(p->pNtk) );
-    printf( "Area = %12.2f   ",           Abc_SclGetTotalArea(p->pNtk) );
-    printf( "Delay = %8.2f ps  ",         maxDelay );
-    printf( "Min = %5.1f %%  ",           100.0 * Abc_SclCountNearCriticalNodes(p) / Abc_NtkNodeNum(p->pNtk) );
-    printf( "                        \n" );
+    printf( "WireLoad model = \"%s\"  ", p->pWLoadUsed ? p->pWLoadUsed->pName : "none" );
+    printf( "Gates = %6d   ",            Abc_NtkNodeNum(p->pNtk) );
+    printf( "Cave = %5.1f ff   ",        p->EstLoadAve );
+    printf( "Area = %12.2f ",            Abc_SclGetTotalArea(p->pNtk) );
+    printf( "(%5.1f %%)   ",             100.0 * Abc_SclCountMinSize(p->pLib, p->pNtk, 0) / Abc_NtkNodeNum(p->pNtk) );
+    printf( "Delay = %8.2f ps  ",        maxDelay );
+    printf( "(%5.1f %%)   ",             100.0 * Abc_SclCountNearCriticalNodes(p) / Abc_NtkNodeNum(p->pNtk) );
+    printf( "                            \n" );
     if ( fShowAll )
     {
 //        printf( "Timing information for all nodes: \n" );
@@ -453,9 +453,9 @@ int Abc_SclTimeIncUpdate( SC_Man * p )
 //    Abc_SclTimeIncCheckLevel( p->pNtk );
     Abc_NtkForEachObjVec( p->vChanged, p->pNtk, pObj, i )
     {
+        Abc_SclTimeIncAddFanins( p, pObj );
         if ( pObj->fMarkC )
             continue;
-        Abc_SclTimeIncAddFanins( p, pObj );
         Abc_SclTimeIncAddNode( p, pObj );
     }
     Vec_IntClear( p->vChanged );

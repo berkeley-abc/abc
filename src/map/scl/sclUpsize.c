@@ -425,6 +425,8 @@ int Abc_SclFindBypasses( SC_Man * p, Vec_Int_t * vPathNodes, int Ratio, int Notc
     Vec_IntFree( vEvals );
     if ( Vec_QueSize(p->vNodeByGain) == 0 )
         return 0;
+    if ( fVeryVerbose )
+        printf( "\n" );
 
     // accept changes for that are half above the average and do not overlap
     Counter = 0;
@@ -500,9 +502,13 @@ int Abc_SclFindBypasses( SC_Man * p, Vec_Int_t * vPathNodes, int Ratio, int Notc
             Abc_NodeInvUpdateObjFanoutPolarity( pFanin, pFanout );
         // report
         if ( fVeryVerbose )
-            printf( "Node %6d  Redir fanout %6d to fanin %6d.  Gain = %7.1f ps.   Replacing gate %12s by gate %12s.\n", 
-                Abc_ObjId(pBuf), Abc_ObjId(pFanout), Abc_ObjId(pFanin), 
-                Vec_FltEntry(p->vNode2Gain, iNode), pCellOld->pName, pCellNew->pName );
+        {
+            printf( "Node %6d  Redir fanout %6d to fanin %6d.  Gain = %7.1f ps. ", 
+                Abc_ObjId(pBuf), Abc_ObjId(pFanout), Abc_ObjId(pFanin), Vec_FltEntry(p->vNode2Gain, iNode) );
+            printf( "Gate %12s (%2d/%2d)  -> %12s (%2d/%2d) \n", 
+                pCellOld->pName, pCellOld->Order, pCellOld->nGates, 
+                pCellNew->pName, pCellNew->Order, pCellNew->nGates );
+        }
 /*
         // check if the node became useless
         if ( Abc_ObjFanoutNum(pBuf) == 0 )
