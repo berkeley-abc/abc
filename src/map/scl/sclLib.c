@@ -1092,19 +1092,18 @@ void Abc_SclPrintCells( SC_Lib * p, float Slew, float Gain )
         SC_RingForEachCell( pRepr, pCell, i )
         {
             Abc_SclComputeParametersCell( p, pCell, Slew, &ED, &PD );
-            printf( "  %3d ",         i+1 );
-            printf( "%s",             pCell->fSkip ? "s" : " " );
+            printf( "  %3d ",          i+1 );
+            printf( "%s",              pCell->fSkip ? "s" : " " );
             printf( " : " );
-            printf( "%-*s  ",         nLength, pCell->pName );
-            printf( "%2d   ",         pCell->drive_strength );
-            printf( "A =%8.2f   ",    pCell->area );
-            printf( "D =%6.0f ps   ", 0.01 * ED * Gain + PD );
-            printf( "ED =%6.0f ps  ", ED );
-            printf( "PD =%6.0f ps  ", PD );
-            printf( "C =%5.1f ff   ", SC_CellPinCapAve(pCell) );
-            printf( "Lm =%5.1f ff  ", 0.01 * Gain * SC_CellPinCapAve(pCell) );
-//            printf( "MaxS =%5.1f ps  ",   SC_CellPin(pCell, pCell->n_inputs)->max_out_slew );
-            printf( "Lm2 =%5.0f ff ",  SC_CellPin(pCell, pCell->n_inputs)->max_out_cap );
+            printf( "%-*s  ",          nLength, pCell->pName );
+            printf( "%2d   ",          pCell->drive_strength );
+            printf( "A =%8.2f   ",     pCell->area );
+            printf( "D =%6.0f ps   ",  0.01 * ED * Gain + PD );
+            printf( "ED =%6.0f ps  ",  ED );
+            printf( "PD =%6.0f ps  ",  PD );
+            printf( "C =%5.1f ff  ",   SC_CellPinCapAve(pCell) );
+            printf( "Cm =%5.0f ff   ", SC_CellPin(pCell, pCell->n_inputs)->max_out_cap );
+            printf( "Sm =%5.1f ps  ",  SC_CellPin(pCell, pCell->n_inputs)->max_out_slew );
             printf( "\n" );
         }
     }

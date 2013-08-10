@@ -121,7 +121,7 @@ static inline void Abc_SclTimeNodePrint( SC_Man * p, Abc_Obj_t * pObj, int fRise
     printf( "Cin =%4.0f ff  ",  pCell ? SC_CellPinCapAve(pCell) : 0.0 );
     printf( "Cout =%5.0f ff  ", Abc_SclObjLoadFf(p, pObj, fRise >= 0 ? fRise : 0 ) );
     printf( "Cmax =%5.0f ff  ", pCell ? SC_CellPin(pCell, pCell->n_inputs)->max_out_cap : 0.0 );
-    printf( "G =%5.1f  ",       pCell ? Abc_SclObjLoadAve(p, pObj) / SC_CellPinCap(pCell, 0) : 0.0 );
+    printf( "G =%5d  ",         pCell ? (int)(100.0 * Abc_SclObjLoadAve(p, pObj) / SC_CellPinCapAve(pCell)) : 0 );
     printf( "SL =%5.1f ps",     Abc_SclObjSlackPs(p, pObj, p->MaxDelay0) );
     printf( "\n" );
 }
@@ -138,10 +138,8 @@ void Abc_SclTimeNtkPrint( SC_Man * p, int fShowAll, int fPrintPath )
     printf( "Min = %5.1f %%   ",          100.0 * Abc_SclCountMinSize(p->pLib, p->pNtk, 0) / Abc_NtkNodeNum(p->pNtk) );
     printf( "Area = %12.2f   ",           Abc_SclGetTotalArea( p ) );
     printf( "Delay = %8.2f ps  ",         maxDelay );
-    printf( "Min = %5.1f %%\n",           100.0 * Abc_SclCountNearCriticalNodes(p) / Abc_NtkNodeNum(p->pNtk) );
-    if ( !fPrintPath )
-        return;
-
+    printf( "Min = %5.1f %%  ",           100.0 * Abc_SclCountNearCriticalNodes(p) / Abc_NtkNodeNum(p->pNtk) );
+    printf( "                        \n" );
     if ( fShowAll )
     {
 //        printf( "Timing information for all nodes: \n" );
@@ -154,7 +152,7 @@ void Abc_SclTimeNtkPrint( SC_Man * p, int fShowAll, int fPrintPath )
             if ( Abc_ObjFaninNum(pObj) > 0 )
                 Abc_SclTimeNodePrint( p, pObj, -1, nLength, maxDelay );
     }
-    else
+    if ( fPrintPath )
     {
 //        printf( "Critical path: \n" );
         // find the longest cell name

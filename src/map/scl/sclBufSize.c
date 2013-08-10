@@ -355,7 +355,7 @@ void Abc_SclBufSize( Bus_Man_t * p )
             printf( "Node %7d : ", i );
             printf( "%12s ", pCellNew->pName );
             printf( "(%2d/%2d)  ", pCellNew->Order, pCellNew->nGates );
-            printf( "gain =%5.2f  ", Load / SC_CellPinCapAve(pCellNew) );
+            printf( "gain =%5d  ", (int)(100.0 * Load / SC_CellPinCapAve(pCellNew)) );
             printf( "dept =%7.0f ps  ", SC_LibTimePs(p->pLib, Dept) );
             printf( "\n" );
         }
