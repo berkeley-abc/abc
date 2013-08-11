@@ -704,8 +704,8 @@ Buf_Man_t * Buf_ManStart( Abc_Ntk_t * pNtk, int FanMin, int FanMax, int fBufPis 
 //    Abc_NtkForEachNode( p->pNtk, pObj, i )
 //        printf( "%4d : %4d %4d\n", i, Abc_BufNodeArr(p, pObj), Abc_BufNodeDep(p, pObj) );
     // create fanout queue
-    Abc_NtkForEachCi( p->pNtk, pObj, i )
-        Abc_BufAddToQue( p, pObj );
+//    Abc_NtkForEachCi( p->pNtk, pObj, i )
+//        Abc_BufAddToQue( p, pObj );
     Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
         Abc_BufAddToQue( p, pObj );
     Vec_PtrFree( vNodes );
@@ -860,7 +860,7 @@ int Abc_BufCountNonCritical( Buf_Man_t * p, Abc_Obj_t * pObj )
             Vec_IntPush( p->vNonCrit, Abc_ObjId(pFanout) );
     return Vec_IntSize(p->vNonCrit);
 }
-void Abc_BufPerformOne( Buf_Man_t * p, int iPivot, int fVerbose )
+void Abc_BufPerformOne( Buf_Man_t * p, int iPivot, int fSkipDup, int fVerbose )
 {
     Abc_Obj_t * pObj, * pFanout;
     int i, j, nCrit, nNonCrit;
@@ -889,11 +889,12 @@ printf( "ObjId = %6d : %-10s   FI = %d. FO =%4d.  Crit =%4d.  ",
         Abc_BufUpdateDep( p, pBuffer );
         Abc_BufAddToQue( p, pObj );
         Abc_BufAddToQue( p, pBuffer );
+        Abc_SclTimeIncUpdateLevel( pBuffer );
         p->nSeparate++;
 if ( fVerbose )
 printf( "Adding buffer\n" );
     }
-    else if ( nCrit > 0 && Abc_ObjIsNode(pObj) && Abc_ObjFanoutNum(pObj) > p->nFanMin )//&& Abc_ObjFaninNum(pObj) < 2 )
+    else if ( !fSkipDup && nCrit > 0 && Abc_ObjIsNode(pObj) && Abc_ObjFanoutNum(pObj) > p->nFanMin )//&& Abc_ObjLevel(pObj) < 4 )//&& Abc_ObjFaninNum(pObj) < 2 )
     {
         // (2) only critical are present - duplicate
         Abc_Obj_t * pClone = Abc_NtkDupObj( p->pNtk, pObj, 0 );
@@ -911,7 +912,9 @@ printf( "Adding buffer\n" );
         Abc_BufAddToQue( p, pClone );
         Abc_ObjForEachFanin( pObj, pFanout, i )
             Abc_BufAddToQue( p, pFanout );
+        Abc_SclTimeIncUpdateLevel( pClone );
         p->nDuplicate++;
+//        printf( "Duplicating %s on level %d\n", Mio_GateReadName((Mio_Gate_t *)pObj->pData), Abc_ObjLevel(pObj) );
 if ( fVerbose )
 printf( "Duplicating node\n" );
     }
@@ -963,6 +966,8 @@ printf( "Adding %d buffers\n", nDegree );
         Abc_BufUpdateDep( p, pObj );
         for ( i = 0; i < nDegree; i++ )
             Abc_BufAddToQue( p, Abc_NtkObj(p->pNtk, iFirstBuf + i) );
+        for ( i = 0; i < nDegree; i++ )
+            Abc_SclTimeIncUpdateLevel( Abc_NtkObj(p->pNtk, iFirstBuf + i) );
     }
     else
     {
@@ -972,13 +977,16 @@ printf( "Doing nothing\n" );
 //    if ( DelayMax != p->DelayMax )
 //        printf( "%d (%.2f)  ", p->DelayMax, 1.0 * p->DelayMax * p->DelayInv / BUF_SCALE );
 }
-Abc_Ntk_t * Abc_SclBufPerform( Abc_Ntk_t * pNtk, int FanMin, int FanMax, int fBufPis, int fVerbose )
+Abc_Ntk_t * Abc_SclBufPerform( Abc_Ntk_t * pNtk, int FanMin, int FanMax, int fBufPis, int fSkipDup, int fVerbose )
 {
     Abc_Ntk_t * pNew;
     Buf_Man_t * p = Buf_ManStart( pNtk, FanMin, FanMax, fBufPis );
     int i, Limit = ABC_INFINITY;
+    Abc_NtkLevel( pNtk );
+    if ( Abc_NtkNodeNum(pNtk) < 1000 )
+        fSkipDup = 1;
     for ( i = 0; i < Limit && Vec_QueSize(p->vQue); i++ )
-        Abc_BufPerformOne( p, Vec_QuePop(p->vQue), fVerbose );
+        Abc_BufPerformOne( p, Vec_QuePop(p->vQue), fSkipDup, fVerbose );
     Buf_ManStop( p );
 //    Abc_BufReplaceBufsByInvs( pNtk );
     // duplicate network in topo order

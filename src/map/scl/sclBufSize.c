@@ -80,7 +80,7 @@ Bus_Man_t * Bus_ManStart( Abc_Ntk_t * pNtk, SC_Lib * pLib, SC_BusPars * pPars )
     p->pPars     = pPars;
     p->pNtk      = pNtk;
     p->pLib      = pLib;
-    p->pInv      = Abc_SclFindInvertor(pLib, pPars->fAddBufs)->pAve;
+    p->pInv      = Abc_SclFindInvertor(pLib, pPars->fAddBufs)->pRepr->pPrev;//->pAve;
     if ( pPars->fUseWireLoads )
     { 
         if ( pNtk->pWLoadUsed == NULL )

@@ -400,6 +400,15 @@ static inline void Abc_SclConeClean( SC_Man * p, Vec_Int_t * vCone )
   SeeAlso     []
 
 ***********************************************************************/
+static inline float Abc_SclGetAverageSize( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pObj;
+    double Total = 0;
+    int i, Count = 0;
+    Abc_NtkForEachNode1( pNtk, pObj, i )
+        Count++, Total += 100.0*Abc_SclObjCell(pObj)->Order/Abc_SclObjCell(pObj)->nGates;
+    return (float)(Total / Count);
+}
 static inline float Abc_SclGetTotalArea( Abc_Ntk_t * pNtk )
 {
     double Area = 0;
@@ -504,7 +513,7 @@ extern Abc_Ntk_t *   Abc_SclUnBufferPhase( Abc_Ntk_t * pNtk, int fVerbose );
 extern Abc_Ntk_t *   Abc_SclBufferPhase( Abc_Ntk_t * pNtk, int fVerbose );
 extern int           Abc_SclCheckNtk( Abc_Ntk_t * p, int fVerbose );
 extern Abc_Ntk_t *   Abc_SclPerformBuffering( Abc_Ntk_t * p, int DegreeR, int Degree, int fUseInvs, int fVerbose );
-extern Abc_Ntk_t *   Abc_SclBufPerform( Abc_Ntk_t * pNtk, int FanMin, int FanMax, int fBufPis, int fVerbose );
+extern Abc_Ntk_t *   Abc_SclBufPerform( Abc_Ntk_t * pNtk, int FanMin, int FanMax, int fBufPis, int fSkipDup, int fVerbose );
 /*=== sclDnsize.c ===============================================================*/
 extern void          Abc_SclDnsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPars );
 /*=== sclLoad.c ===============================================================*/

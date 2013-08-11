@@ -469,8 +469,8 @@ int Abc_SclFindBypasses( SC_Man * p, Vec_Int_t * vPathNodes, int Ratio, int Notc
         // remember gain
         if ( dGainBest2 == -1 )
             dGainBest2 = Vec_FltEntry(p->vNode2Gain, iNode);
-        else if ( dGainBest2 > 2*Vec_FltEntry(p->vNode2Gain, iNode) )
-            break;
+//        else if ( dGainBest2 > 2*Vec_FltEntry(p->vNode2Gain, iNode) )
+//            break;
         // redirect
         Abc_SclUpdateLoadSplit( p, pBuf, pFanout );
         Abc_SclAddWireLoad( p, pBuf, 1 );
@@ -932,7 +932,7 @@ void Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPars 
         clk = Abc_Clock();
         if ( pPars->fUseDept )
         {
-            if ( Vec_IntSize(p->vChanged) && pPars->BypassFreq == 0 )
+            if ( Vec_IntSize(p->vChanged) && !(pPars->BypassFreq && i && (i % pPars->BypassFreq) == 0) )
                 nConeSize = Abc_SclTimeIncUpdate( p );
             else
                 Abc_SclTimeNtkRecompute( p, NULL, NULL, pPars->fUseDept, 0 );

@@ -575,7 +575,7 @@ int Scl_CommandBuffer( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     Abc_Ntk_t * pNtkRes;
-    int FanMin, FanMax, FanMaxR, fAddInvs, fUseInvs, fBufPis;
+    int FanMin, FanMax, FanMaxR, fAddInvs, fUseInvs, fBufPis, fSkipDup;
     int c, fVerbose;
     int fOldAlgo = 0;
     FanMin   =  6;
@@ -584,9 +584,10 @@ int Scl_CommandBuffer( Abc_Frame_t * pAbc, int argc, char ** argv )
     fAddInvs =  0;
     fUseInvs =  0;
     fBufPis  =  0;
+    fSkipDup =  0;
     fVerbose =  0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "NMRaixpvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "NMRaixpdvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -635,6 +636,9 @@ int Scl_CommandBuffer( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'p':
             fBufPis ^= 1;
             break;
+        case 'd':
+            fSkipDup ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -667,7 +671,7 @@ int Scl_CommandBuffer( Abc_Frame_t * pAbc, int argc, char ** argv )
     else if ( fOldAlgo )
         pNtkRes = Abc_SclPerformBuffering( pNtk, FanMaxR, FanMax, fUseInvs, fVerbose );
     else
-        pNtkRes = Abc_SclBufPerform( pNtk, FanMin, FanMax, fBufPis, fVerbose );
+        pNtkRes = Abc_SclBufPerform( pNtk, FanMin, FanMax, fBufPis, fSkipDup, fVerbose );
     if ( pNtkRes == NULL )
     {
         Abc_Print( -1, "The command has failed.\n" );
@@ -678,7 +682,7 @@ int Scl_CommandBuffer( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: buffer [-NMR num] [-aixpvh]\n" );
+    fprintf( pAbc->Err, "usage: buffer [-NMR num] [-aixpdvh]\n" );
     fprintf( pAbc->Err, "\t           performs buffering of the mapped network\n" );
     fprintf( pAbc->Err, "\t-N <num> : the min fanout considered by the algorithm [default = %d]\n", FanMin );
     fprintf( pAbc->Err, "\t-M <num> : the max allowed fanout count of node/buffer [default = %d]\n", FanMax );
@@ -687,6 +691,7 @@ usage:
     fprintf( pAbc->Err, "\t-i       : toggle adding interters instead of buffering [default = %s]\n", fAddInvs? "yes": "no" );
     fprintf( pAbc->Err, "\t-x       : toggle using interters instead of buffers [default = %s]\n", fUseInvs? "yes": "no" );
     fprintf( pAbc->Err, "\t-p       : toggle buffering primary inputs [default = %s]\n", fBufPis? "yes": "no" );
+    fprintf( pAbc->Err, "\t-d       : toggle disabling gate duplication [default = %s]\n", fSkipDup? "yes": "no" );
     fprintf( pAbc->Err, "\t-v       : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pAbc->Err, "\t-h       : print the command usage\n");
     return 1;
@@ -710,8 +715,8 @@ int Scl_CommandBufSize( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     memset( pPars, 0, sizeof(SC_BusPars) );
     pPars->GainRatio     =  200;
-    pPars->Slew          =   80;
-    pPars->nDegree       =    4;
+    pPars->Slew          =  100;
+    pPars->nDegree       =    8;
     pPars->fSizeOnly     =    0;
     pPars->fAddBufs      =    0;
     pPars->fBufPis       =    0;
