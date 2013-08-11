@@ -215,9 +215,10 @@ int Scl_CommandPrintScl( Abc_Frame_t * pAbc, int argc, char **argv )
 {
     float Slew = 200;
     float Gain = 100;
+    int fInvOnly = 0;
     int c;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "SGh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "SGih" ) ) != EOF )
     {
         switch ( c )
         {
@@ -243,6 +244,9 @@ int Scl_CommandPrintScl( Abc_Frame_t * pAbc, int argc, char **argv )
             if ( Gain <= 0.0 )
                 goto usage;
             break;
+        case 'i':
+            fInvOnly ^= 1;
+            break;
         case 'h':
             goto usage;
         default:
@@ -256,14 +260,15 @@ int Scl_CommandPrintScl( Abc_Frame_t * pAbc, int argc, char **argv )
     }
 
     // save current library
-    Abc_SclPrintCells( (SC_Lib *)pAbc->pLibScl, Slew, Gain );
+    Abc_SclPrintCells( (SC_Lib *)pAbc->pLibScl, Slew, Gain, fInvOnly );
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: print_scl [-SG float] [-h]\n" );
+    fprintf( pAbc->Err, "usage: print_scl [-SG float] [-ih]\n" );
     fprintf( pAbc->Err, "\t           prints statistics of Liberty library\n" );
     fprintf( pAbc->Err, "\t-S float : the slew parameter used to generate the library [default = %.2f]\n", Slew );
     fprintf( pAbc->Err, "\t-G float : the gain parameter used to generate the library [default = %.2f]\n", Gain );
+    fprintf( pAbc->Err, "\t-i       : toggle printing invs/bufs only [default = %s]\n", fInvOnly? "yes": "no" );
     fprintf( pAbc->Err, "\t-h       : print the help massage\n" );
     return 1;
 }

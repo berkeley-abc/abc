@@ -856,7 +856,7 @@ int Abc_BufCountNonCritical( Buf_Man_t * p, Abc_Obj_t * pObj )
     int i;
     Vec_IntClear( p->vNonCrit );
     Abc_ObjForEachFanout( pObj, pFanout, i )
-        if ( Abc_BufEdgeSlack( p, pObj, pFanout ) > 5*BUF_SCALE/2 )
+        if ( Abc_BufEdgeSlack( p, pObj, pFanout ) > 7*BUF_SCALE/2 )
             Vec_IntPush( p->vNonCrit, Abc_ObjId(pFanout) );
     return Vec_IntSize(p->vNonCrit);
 }
@@ -983,8 +983,8 @@ Abc_Ntk_t * Abc_SclBufPerform( Abc_Ntk_t * pNtk, int FanMin, int FanMax, int fBu
     Buf_Man_t * p = Buf_ManStart( pNtk, FanMin, FanMax, fBufPis );
     int i, Limit = ABC_INFINITY;
     Abc_NtkLevel( pNtk );
-    if ( Abc_NtkNodeNum(pNtk) < 1000 )
-        fSkipDup = 1;
+//    if ( Abc_NtkNodeNum(pNtk) < 1000 )
+//        fSkipDup = 1;
     for ( i = 0; i < Limit && Vec_QueSize(p->vQue); i++ )
         Abc_BufPerformOne( p, Vec_QuePop(p->vQue), fSkipDup, fVerbose );
     Buf_ManStop( p );

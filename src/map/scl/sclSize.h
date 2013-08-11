@@ -400,6 +400,14 @@ static inline void Abc_SclConeClean( SC_Man * p, Vec_Int_t * vCone )
   SeeAlso     []
 
 ***********************************************************************/
+static inline int Abc_SclGetBufInvCount( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pObj;
+    int i, Count = 0;
+    Abc_NtkForEachNode( pNtk, pObj, i )
+        Count += (Abc_ObjFaninNum(pObj) == 1);
+    return Count;
+}
 static inline float Abc_SclGetAverageSize( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pObj;
@@ -477,6 +485,7 @@ static inline void Abc_SclDumpStats( SC_Man * p, char * pFileName, abctime Time 
 {
     static char FileNameOld[1000] = {0};
     static int nNodesOld, nAreaOld, nDelayOld;
+    static abctime clk = 0;
     FILE * pTable;
     pTable = fopen( pFileName, "a+" );
     if ( strcmp( FileNameOld, p->pNtk->pName ) )
@@ -489,6 +498,7 @@ static inline void Abc_SclDumpStats( SC_Man * p, char * pFileName, abctime Time 
         fprintf( pTable, "%d ", (nNodesOld = Abc_NtkNodeNum(p->pNtk)) );
         fprintf( pTable, "%d ", (nAreaOld  = (int)p->SumArea)         );
         fprintf( pTable, "%d ", (nDelayOld = (int)p->ReportDelay)     );
+        clk = Abc_Clock();
     }
     else
     {
@@ -496,8 +506,8 @@ static inline void Abc_SclDumpStats( SC_Man * p, char * pFileName, abctime Time 
         fprintf( pTable, "%.1f ", 100.0 * Abc_NtkNodeNum(p->pNtk) / nNodesOld );
         fprintf( pTable, "%.1f ", 100.0 * (int)p->SumArea         / nAreaOld  );
         fprintf( pTable, "%.1f ", 100.0 * (int)p->ReportDelay     / nDelayOld );
+        fprintf( pTable, "%.2f", 1.0*(Abc_Clock() - clk)/CLOCKS_PER_SEC );
     }
-    //    fprintf( pTable, "%.2f ", 1.0*Time/CLOCKS_PER_SEC );
     fclose( pTable );
 }
 

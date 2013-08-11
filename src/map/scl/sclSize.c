@@ -132,15 +132,16 @@ void Abc_SclTimeNtkPrint( SC_Man * p, int fShowAll, int fPrintPath )
     float maxDelay = Abc_SclObjTimePs(p, pPivot, fRise);
     p->ReportDelay = maxDelay;
 
-    printf( "WireLoad model = \"%s\"  ", p->pWLoadUsed ? p->pWLoadUsed->pName : "none" );
-    printf( "Gates =%7d ",               Abc_NtkNodeNum(p->pNtk) );
-    printf( "(%5.1f %%)   ",             Abc_SclGetAverageSize(p->pNtk) );
-    printf( "Cave =%5.1f ff   ",         p->EstLoadAve );
-    printf( "Area =%12.2f ",             Abc_SclGetTotalArea(p->pNtk) );
-    printf( "(%5.1f %%)   ",             100.0 * Abc_SclCountMinSize(p->pLib, p->pNtk, 0) / Abc_NtkNodeNum(p->pNtk) );
-    printf( "Delay =%9.2f ps  ",         maxDelay );
-    printf( "(%5.1f %%)   ",             100.0 * Abc_SclCountNearCriticalNodes(p) / Abc_NtkNodeNum(p->pNtk) );
-    printf( "                            \n" );
+    printf( "WireLoad = \"%s\"  ", p->pWLoadUsed ? p->pWLoadUsed->pName : "none" );
+    printf( "Gates =%7d ",         Abc_NtkNodeNum(p->pNtk) );
+    printf( "(%5.1f %%)   ",       100.0 * Abc_SclGetBufInvCount(p->pNtk) / Abc_NtkNodeNum(p->pNtk) );
+    printf( "Cap =%5.1f ff ",      p->EstLoadAve );
+    printf( "(%5.1f %%)   ",       Abc_SclGetAverageSize(p->pNtk) );
+    printf( "Area =%12.2f ",       Abc_SclGetTotalArea(p->pNtk) );
+    printf( "(%5.1f %%)   ",       100.0 * Abc_SclCountMinSize(p->pLib, p->pNtk, 0) / Abc_NtkNodeNum(p->pNtk) );
+    printf( "Delay =%9.2f ps  ",   maxDelay );
+    printf( "(%5.1f %%)   ",       100.0 * Abc_SclCountNearCriticalNodes(p) / Abc_NtkNodeNum(p->pNtk) );
+    printf( "                      \n" );
     if ( fShowAll )
     {
 //        printf( "Timing information for all nodes: \n" );

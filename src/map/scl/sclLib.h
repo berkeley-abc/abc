@@ -588,7 +588,7 @@ extern void          Abc_SclHashCells( SC_Lib * p );
 extern int           Abc_SclCellFind( SC_Lib * p, char * pName );
 extern int           Abc_SclClassCellNum( SC_Cell * pClass );
 extern void          Abc_SclLinkCells( SC_Lib * p );
-extern void          Abc_SclPrintCells( SC_Lib * p, float Slew, float Gain );
+extern void          Abc_SclPrintCells( SC_Lib * p, float Slew, float Gain, int fInvOnly );
 extern SC_Cell *     Abc_SclFindInvertor( SC_Lib * p, int fFindBuff );
 extern SC_Cell *     Abc_SclFindSmallestGate( SC_Cell * p, float CinMin );
 extern SC_WireLoad * Abc_SclFindWireLoadModel( SC_Lib * p, float Area );

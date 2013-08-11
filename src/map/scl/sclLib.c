@@ -914,7 +914,7 @@ SC_WireLoad * Abc_SclFindWireLoadModel( SC_Lib * p, float Area )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_SclComputeParametersPin( SC_Lib * p, SC_Cell * pCell, int iPin, float Slew, float * pED, float * pPD )
+void Abc_SclComputeParametersPin( SC_Lib * p, SC_Cell * pCell, int iPin, float Slew, float * pLD, float * pPD )
 {
     SC_Pair Load0, Load1, Load2;
     SC_Pair ArrIn  = { 0.0, 0.0 };
@@ -937,59 +937,59 @@ void Abc_SclComputeParametersPin( SC_Lib * p, SC_Cell * pCell, int iPin, float S
     ArrOut1.rise = 0.5 * ArrOut1.rise + 0.5 * ArrOut1.fall;
     ArrOut2.rise = 0.5 * ArrOut2.rise + 0.5 * ArrOut2.fall;
     // get tangent
-    *pED = (ArrOut2.rise - ArrOut1.rise) / ((Load2.rise - Load1.rise) / SC_CellPinCap(pCell, iPin));
+    *pLD = (ArrOut2.rise - ArrOut1.rise) / ((Load2.rise - Load1.rise) / SC_CellPinCap(pCell, iPin));
     // get constant
     *pPD = ArrOut0.rise;
 }
-void Abc_SclComputeParametersCell( SC_Lib * p, SC_Cell * pCell, float Slew, float * pED, float * pPD )
+void Abc_SclComputeParametersCell( SC_Lib * p, SC_Cell * pCell, float Slew, float * pLD, float * pPD )
 {
     SC_Pin * pPin;
-    float ED, PD, ed, pd;
+    float LD, PD, ld, pd;
     int i;
-    ED = PD = ed = pd = 0;
+    LD = PD = ld = pd = 0;
     SC_CellForEachPinIn( pCell, pPin, i )
     {
-        Abc_SclComputeParametersPin( p, pCell, i, Slew, &ed, &pd );
-        ED += ed; PD += pd;
+        Abc_SclComputeParametersPin( p, pCell, i, Slew, &ld, &pd );
+        LD += ld; PD += pd;
     }
-    *pED = ED / pCell->n_inputs;
+    *pLD = LD / pCell->n_inputs;
     *pPD = PD / pCell->n_inputs;
 }
-void Abc_SclComputeParametersClass( SC_Lib * p, SC_Cell * pRepr, float Slew, float * pED, float * pPD )
+void Abc_SclComputeParametersClass( SC_Lib * p, SC_Cell * pRepr, float Slew, float * pLD, float * pPD )
 {
     SC_Cell * pCell;
-    float ED, PD, ed, pd;
+    float LD, PD, ld, pd;
     int i, Count = 0;
-    ED = PD = ed = pd = 0;
+    LD = PD = ld = pd = 0;
     SC_RingForEachCell( pRepr, pCell, i )
     {
-        Abc_SclComputeParametersCell( p, pCell, Slew, &ed, &pd );
-        ED += ed; PD += pd;
+        Abc_SclComputeParametersCell( p, pCell, Slew, &ld, &pd );
+        LD += ld; PD += pd;
         Count++;
     }
-    *pED = ED / Count;
+    *pLD = LD / Count;
     *pPD = PD / Count;
 }
-void Abc_SclComputeParametersClassPin( SC_Lib * p, SC_Cell * pRepr, int iPin, float Slew, float * pED, float * pPD )
+void Abc_SclComputeParametersClassPin( SC_Lib * p, SC_Cell * pRepr, int iPin, float Slew, float * pLD, float * pPD )
 {
     SC_Cell * pCell;
-    float ED, PD, ed, pd;
+    float LD, PD, ld, pd;
     int i, Count = 0;
-    ED = PD = ed = pd = 0;
+    LD = PD = ld = pd = 0;
     SC_RingForEachCell( pRepr, pCell, i )
     {
-        Abc_SclComputeParametersPin( p, pCell, iPin, Slew, &ed, &pd );
-        ED += ed; PD += pd;
+        Abc_SclComputeParametersPin( p, pCell, iPin, Slew, &ld, &pd );
+        LD += ld; PD += pd;
         Count++;
     }
-    *pED = ED / Count;
+    *pLD = LD / Count;
     *pPD = PD / Count;
 }
 float Abc_SclComputeDelayCellPin( SC_Lib * p, SC_Cell * pCell, int iPin, float Slew, float Gain )
 {
-    float ED = 0, PD = 0;
-    Abc_SclComputeParametersPin( p, pCell, iPin, Slew, &ED, &PD );
-    return 0.01 * ED * Gain + PD;
+    float LD = 0, PD = 0;
+    Abc_SclComputeParametersPin( p, pCell, iPin, Slew, &LD, &PD );
+    return 0.01 * LD * Gain + PD;
 }
 float Abc_SclComputeDelayClassPin( SC_Lib * p, SC_Cell * pRepr, int iPin, float Slew, float Gain )
 {
@@ -1062,11 +1062,11 @@ void Abc_SclMarkSkippedCells( SC_Lib * p )
     fclose( pFile );
     printf( "Marked %d cells for skipping in the library \"%s\".\n", nSkipped, p->pName );
 }
-void Abc_SclPrintCells( SC_Lib * p, float Slew, float Gain )
+void Abc_SclPrintCells( SC_Lib * p, float Slew, float Gain, int fInvOnly )
 {
     SC_Cell * pCell, * pRepr;
     int i, k, nLength = 0;
-    float ED = 0, PD = 0;
+    float LD = 0, PD = 0;
     assert( Vec_PtrSize(p->vCellClasses) > 0 );
     printf( "Library \"%s\" ", p->pName );
     printf( "has %d cells in %d classes.  ", 
@@ -1080,6 +1080,8 @@ void Abc_SclPrintCells( SC_Lib * p, float Slew, float Gain )
     // print cells
     SC_LibForEachCellClass( p, pRepr, k )
     {
+        if ( fInvOnly && pRepr->n_inputs != 1 )
+            continue;
         printf( "Class%3d : ", k );
         printf( "Ins = %d  ",  pRepr->n_inputs );
         printf( "Outs = %d",   pRepr->n_outputs );
@@ -1091,19 +1093,19 @@ void Abc_SclPrintCells( SC_Lib * p, float Slew, float Gain )
         printf( "\n" );
         SC_RingForEachCell( pRepr, pCell, i )
         {
-            Abc_SclComputeParametersCell( p, pCell, Slew, &ED, &PD );
-            printf( "  %3d ",          i+1 );
-            printf( "%s",              pCell->fSkip ? "s" : " " );
+            Abc_SclComputeParametersCell( p, pCell, Slew, &LD, &PD );
+            printf( "  %3d ",           i+1 );
+            printf( "%s",               pCell->fSkip ? "s" : " " );
             printf( " : " );
-            printf( "%-*s  ",          nLength, pCell->pName );
-            printf( "%2d   ",          pCell->drive_strength );
-            printf( "A =%8.2f   ",     pCell->area );
-            printf( "D =%6.0f ps   ",  0.01 * ED * Gain + PD );
-            printf( "ED =%6.0f ps  ",  ED );
-            printf( "PD =%6.0f ps  ",  PD );
-            printf( "C =%5.1f ff  ",   SC_CellPinCapAve(pCell) );
-            printf( "Cm =%5.0f ff   ", SC_CellPin(pCell, pCell->n_inputs)->max_out_cap );
-            printf( "Sm =%5.1f ps  ",  SC_CellPin(pCell, pCell->n_inputs)->max_out_slew );
+            printf( "%-*s  ",           nLength, pCell->pName );
+            printf( "%2d   ",           pCell->drive_strength );
+            printf( "A =%8.2f    ",      pCell->area );
+            printf( "D =%5.0f ps  ",    0.01 * LD * Gain + PD );
+            printf( "LD =%5.0f ps  ",   LD );
+            printf( "PD =%5.0f ps    ", PD );
+            printf( "C =%5.1f ff  ",    SC_CellPinCapAve(pCell) );
+            printf( "Cm =%5.0f ff    ", SC_CellPin(pCell, pCell->n_inputs)->max_out_cap );
+            printf( "Sm =%5.1f ps ",    SC_CellPin(pCell, pCell->n_inputs)->max_out_slew );
             printf( "\n" );
         }
     }
