@@ -434,7 +434,7 @@ void Abc_SclBufSize( Bus_Man_t * p )
         Abc_SclObjSetCell( pObj, pCellNew );
         if ( p->pPars->fVeryVerbose )
             Abc_SclOneNodePrint( p, pObj );
-        assert( Abc_ObjFanoutNum(pObj) <= p->pPars->nDegree );
+        assert( p->pPars->fSizeOnly || Abc_ObjFanoutNum(pObj) <= p->pPars->nDegree );
     }
     Abc_NtkForEachCi( p->pNtk, pObj, i )
         DeptMax = Abc_MaxFloat( DeptMax, Abc_NtkComputeNodeDeparture(pObj, p->pPars->Slew) );
