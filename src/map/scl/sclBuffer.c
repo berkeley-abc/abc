@@ -201,7 +201,7 @@ Abc_Ntk_t * Abc_SclBufferPhase( Abc_Ntk_t * pNtk, int fVerbose )
     Vec_Int_t * vInvs;
     Abc_Obj_t * pObj, * pFanin, * pFaninNew;
     int nNodesOld = Abc_NtkObjNumMax(pNtk);
-    int i, k, Counter = 0, Total = 0;
+    int i, k, Counter = 0, Counter2 = 0, Total = 0;
     assert( pNtk->vPhases != NULL );
     vInvs = Vec_IntStart( Abc_NtkObjNumMax(pNtk) );
     Abc_NtkForEachNodeCo( pNtk, pObj, i )
@@ -213,7 +213,7 @@ Abc_Ntk_t * Abc_SclBufferPhase( Abc_Ntk_t * pNtk, int fVerbose )
             Total++;
             if ( !Abc_ObjFaninPhase(pObj, k) )
                 continue;
-            if ( Vec_IntEntry(vInvs, Abc_ObjId(pFanin)) == 0 )
+            if ( Vec_IntEntry(vInvs, Abc_ObjId(pFanin)) == 0 || Abc_ObjIsCi(pFanin) ) // allow PIs to have high fanout - to be fixed later
             {
                 pFaninNew = Abc_NtkCreateNodeInv( pNtk, pFanin );
                 Vec_IntWriteEntry( vInvs, Abc_ObjId(pFanin), Abc_ObjId(pFaninNew) );
@@ -221,10 +221,12 @@ Abc_Ntk_t * Abc_SclBufferPhase( Abc_Ntk_t * pNtk, int fVerbose )
             }
             pFaninNew = Abc_NtkObj( pNtk, Vec_IntEntry(vInvs, Abc_ObjId(pFanin)) );
             Abc_ObjPatchFanin( pObj, pFanin, pFaninNew );
+            Counter2++;
         }
     }
     if ( fVerbose )
-        printf( "Added %d (%.2f %%) inverters.\n", Counter, 100.0 * Counter / Total );
+        printf( "Added %d inverters (%.2f %% fanins) (%.2f %% compl fanins).\n", 
+            Counter, 100.0 * Counter / Total, 100.0 * Counter2 / Total );
     Vec_IntFree( vInvs );
     Vec_IntFillExtra( pNtk->vPhases, Abc_NtkObjNumMax(pNtk), 0 );
     // duplicate network in topo order
@@ -319,9 +321,10 @@ void Abc_NodeInvUpdateFanPolarity( Abc_Obj_t * pObj )
 {
     Abc_Obj_t * pFanout;
     int i;
-    assert( Abc_SclObjIsBufInv(pObj) );
+    assert( Abc_ObjFaninNum(pObj) == 0 || Abc_SclObjIsBufInv(pObj) );
     Abc_ObjForEachFanout( pObj, pFanout, i )
     {
+        assert( Abc_ObjFaninNum(pFanout) > 0 );
         if ( Abc_SclObjIsBufInv(pFanout) )
             Abc_NodeInvUpdateFanPolarity( pFanout );
         else

@@ -564,17 +564,17 @@ static inline SC_Timing * Scl_CellPinTime( SC_Cell * pCell, int iPin )
     assert( Vec_PtrSize(pRTime->vTimings) == 1 );
     return (SC_Timing *)Vec_PtrEntry( pRTime->vTimings, 0 );
 }
-static inline float Scl_LibPinArrivalEstimate( SC_Cell * pCell, int iPin, float Slew, float load )
+static inline float Scl_LibPinArrivalEstimate( SC_Cell * pCell, int iPin, float Slew, float Load )
 {
-    SC_Pair Load = { load, load };
+    SC_Pair LoadIn = { Load, Load };
     SC_Pair ArrIn  = { 0.0, 0.0 };
     SC_Pair ArrOut = { 0.0, 0.0 };
     SC_Pair SlewIn = { 0.0, 0.0 };
     SC_Pair SlewOut = { 0.0, 0.0 };
-    SC_Timing * pTime = Scl_CellPinTime( pCell, iPin );
 //    Vec_Flt_t * vIndex0 = pTime->pCellRise->vIndex0; // slew
-    SlewIn.fall = SlewIn.rise = Slew; //Vec_FltEntry( vIndex0, Vec_FltSize(vIndex0)/2 );
-    Scl_LibPinArrival( pTime, &ArrIn, &SlewIn, &Load, &ArrOut, &SlewOut );
+//    SlewIn.fall = SlewIn.rise = Vec_FltEntry( vIndex0, Vec_FltSize(vIndex0)/2 );
+    SlewIn.fall = SlewIn.rise = Slew; 
+    Scl_LibPinArrival( Scl_CellPinTime(pCell, iPin), &ArrIn, &SlewIn, &LoadIn, &ArrOut, &SlewOut );
     return  0.5 * ArrOut.fall +  0.5 * ArrOut.rise;
 }
 

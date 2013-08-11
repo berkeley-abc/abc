@@ -360,7 +360,7 @@ int Abc_SclFindBypasses( SC_Man * p, Vec_Int_t * vPathNodes, int Ratio, int Notc
         {
             if ( Abc_SclIsInv(pBuf) )
             {
-                if ( !Abc_ObjIsNode(pFanin) || !Abc_SclIsInv(pFanin) )
+                if ( !Abc_SclIsInv(pFanin) )
                     continue;
                 pFanin = Abc_ObjFanin0(pFanin);
                 if ( !Abc_ObjIsNode(pFanin) )
@@ -425,7 +425,7 @@ int Abc_SclFindBypasses( SC_Man * p, Vec_Int_t * vPathNodes, int Ratio, int Notc
     Vec_IntFree( vEvals );
     if ( Vec_QueSize(p->vNodeByGain) == 0 )
         return 0;
-    if ( fVeryVerbose )
+    if ( fVeryVerbose ) 
         printf( "\n" );
 
     // accept changes for that are half above the average and do not overlap
@@ -438,12 +438,14 @@ int Abc_SclFindBypasses( SC_Man * p, Vec_Int_t * vPathNodes, int Ratio, int Notc
         pFanout = Abc_NtkObj( p->pNtk, Vec_IntEntry(p->vBestFans, iNode) );
         pBuf    = Abc_NtkObj( p->pNtk, iNode );
         pFanin  = Abc_ObjFanin0(pBuf);
+        if ( pFanout->fMarkB || pBuf->fMarkB )
+            continue;
         if ( p->pNtk->vPhases == NULL )
         {
             // update fanin
             if ( Abc_SclIsInv(pBuf) )
             {
-                if ( !Abc_ObjIsNode(pFanin) || !Abc_SclIsInv(pFanin) )
+                if ( !Abc_SclIsInv(pFanin) )
                 {
                     assert( 0 );
                     continue;
@@ -456,7 +458,7 @@ int Abc_SclFindBypasses( SC_Man * p, Vec_Int_t * vPathNodes, int Ratio, int Notc
                 }
             }
         }
-        if ( pFanout->fMarkB || pBuf->fMarkB || pFanin->fMarkB )
+        if ( pFanin->fMarkB )
             continue;
         pFanout->fMarkB = 1;
         pBuf->fMarkB = 1;
@@ -930,7 +932,7 @@ void Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPars 
         clk = Abc_Clock();
         if ( pPars->fUseDept )
         {
-            if ( Vec_IntSize(p->vChanged) )
+            if ( Vec_IntSize(p->vChanged) && pPars->BypassFreq == 0 )
                 nConeSize = Abc_SclTimeIncUpdate( p );
             else
                 Abc_SclTimeNtkRecompute( p, NULL, NULL, pPars->fUseDept, 0 );

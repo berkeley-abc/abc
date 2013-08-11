@@ -709,8 +709,8 @@ int Scl_CommandBufSize( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_Ntk_t * pNtkRes, * pNtk = Abc_FrameReadNtk(pAbc);
     int c;
     memset( pPars, 0, sizeof(SC_BusPars) );
-    pPars->GainRatio     =  150;
-    pPars->Slew          =  300;
+    pPars->GainRatio     =  200;
+    pPars->Slew          =   80;
     pPars->nDegree       =    4;
     pPars->fSizeOnly     =    0;
     pPars->fAddBufs      =    0;
@@ -719,7 +719,7 @@ int Scl_CommandBufSize( Abc_Frame_t * pAbc, int argc, char ** argv )
     pPars->fVerbose      =    0;
     pPars->fVeryVerbose  =    0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "GSNsbpcvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "GSDsbpcvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -745,7 +745,7 @@ int Scl_CommandBufSize( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( pPars->Slew < 0 ) 
                 goto usage;
             break;
-        case 'N':
+        case 'D':
             if ( globalUtilOptind >= argc )
             {
                 Abc_Print( -1, "Command line switch \"-N\" should be followed by a positive integer.\n" );
@@ -808,11 +808,11 @@ int Scl_CommandBufSize( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: bufsize [-GSM num] [-sbpcvwh]\n" );
+    fprintf( pAbc->Err, "usage: bufsize [-GSD num] [-sbpcvwh]\n" );
     fprintf( pAbc->Err, "\t           performs buffering and sizing and mapped network\n" );
     fprintf( pAbc->Err, "\t-G <num> : target gain percentage [default = %d]\n", pPars->GainRatio );
     fprintf( pAbc->Err, "\t-S <num> : target slew in pisoseconds [default = %d]\n", pPars->Slew );
-    fprintf( pAbc->Err, "\t-M <num> : the maximum fanout degree [default = %d]\n", pPars->nDegree );
+    fprintf( pAbc->Err, "\t-D <num> : the maximum fanout degree [default = %d]\n", pPars->nDegree );
     fprintf( pAbc->Err, "\t-s       : toggle performing only sizing [default = %s]\n", pPars->fSizeOnly? "yes": "no" );
     fprintf( pAbc->Err, "\t-b       : toggle using buffers instead of inverters [default = %s]\n", pPars->fAddBufs? "yes": "no" );
     fprintf( pAbc->Err, "\t-p       : toggle buffering primary inputs [default = %s]\n", pPars->fBufPis? "yes": "no" );

@@ -822,7 +822,7 @@ void Abc_SclLinkCells( SC_Lib * p )
 SC_Cell * Abc_SclFindInvertor( SC_Lib * p, int fFindBuff )
 {
     SC_Cell * pCell = NULL;
-    word Truth = fFindBuff ? ABC_CONST(0x5555555555555555) : ABC_CONST(0xAAAAAAAAAAAAAAAA);
+    word Truth = fFindBuff ? ABC_CONST(0xAAAAAAAAAAAAAAAA) : ABC_CONST(0x5555555555555555);
     int k;
     SC_LibForEachCellClass( p, pCell, k )
         if ( pCell->n_inputs == 1 && Vec_WrdEntry(SC_CellPin(pCell, 1)->vFunc, 0) == Truth )

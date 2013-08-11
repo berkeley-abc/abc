@@ -41,14 +41,18 @@ struct Bus_Man_t_
     Vec_Flt_t *    vWireCaps;  // estimated wire loads
     // internal
     Vec_Flt_t *    vCins;      // input cap for fanouts
+    Vec_Flt_t *    vETimes;    // fanout edge departures
     Vec_Flt_t *    vLoads;     // loads for all nodes
     Vec_Flt_t *    vDepts;     // departure times
+    Vec_Ptr_t *    vFanouts;   // fanout array
 };
 
 
 static inline Bus_Man_t * Bus_SclObjMan( Abc_Obj_t * p )                     { return (Bus_Man_t *)p->pNtk->pBSMan;                                  }
 static inline float       Bus_SclObjCin( Abc_Obj_t * p )                     { return Vec_FltEntry( Bus_SclObjMan(p)->vCins, Abc_ObjId(p) );         }
 static inline void        Bus_SclObjSetCin( Abc_Obj_t * p, float cap )       { Vec_FltWriteEntry( Bus_SclObjMan(p)->vCins, Abc_ObjId(p), cap );      }
+static inline float       Bus_SclObjETime( Abc_Obj_t * p )                   { return Vec_FltEntry( Bus_SclObjMan(p)->vETimes, Abc_ObjId(p) );       }
+static inline void        Bus_SclObjSetETime( Abc_Obj_t * p, float time )    { Vec_FltWriteEntry( Bus_SclObjMan(p)->vETimes, Abc_ObjId(p), time );   }
 static inline float       Bus_SclObjLoad( Abc_Obj_t * p )                    { return Vec_FltEntry( Bus_SclObjMan(p)->vLoads, Abc_ObjId(p) );        }
 static inline void        Bus_SclObjSetLoad( Abc_Obj_t * p, float cap )      { Vec_FltWriteEntry( Bus_SclObjMan(p)->vLoads, Abc_ObjId(p), cap );     }
 static inline float       Bus_SclObjDept( Abc_Obj_t * p )                    { return Vec_FltEntry( Bus_SclObjMan(p)->vDepts, Abc_ObjId(p) );        }
@@ -78,7 +82,7 @@ Bus_Man_t * Bus_ManStart( Abc_Ntk_t * pNtk, SC_Lib * pLib, SC_BusPars * pPars )
     p->pLib      = pLib;
     p->pInv      = Abc_SclFindInvertor(pLib, pPars->fAddBufs)->pAve;
     if ( pPars->fUseWireLoads )
-    {
+    { 
         if ( pNtk->pWLoadUsed == NULL )
         {            
             p->pWLoadUsed = Abc_SclFindWireLoadModel( pLib, Abc_SclGetTotalArea(pNtk) );
@@ -89,18 +93,22 @@ Bus_Man_t * Bus_ManStart( Abc_Ntk_t * pNtk, SC_Lib * pLib, SC_BusPars * pPars )
     }
     if ( p->pWLoadUsed )
     p->vWireCaps = Abc_SclFindWireCaps( p->pWLoadUsed );
-    p->vCins     = Vec_FltStart( 2*Abc_NtkObjNumMax(pNtk) );
-    p->vLoads    = Vec_FltStart( 2*Abc_NtkObjNumMax(pNtk) );
-    p->vDepts    = Vec_FltStart( 2*Abc_NtkObjNumMax(pNtk) );
+    p->vCins     = Vec_FltStart( 2*Abc_NtkObjNumMax(pNtk) + 1000 );
+    p->vETimes   = Vec_FltStart( 2*Abc_NtkObjNumMax(pNtk) + 1000 );
+    p->vLoads    = Vec_FltStart( 2*Abc_NtkObjNumMax(pNtk) + 1000 );
+    p->vDepts    = Vec_FltStart( 2*Abc_NtkObjNumMax(pNtk) + 1000 );
+    p->vFanouts  = Vec_PtrAlloc( 100 );
     pNtk->pBSMan = p;
     return p;
 }
 void Bus_ManStop( Bus_Man_t * p )
 {
-    Vec_FltFree( p->vWireCaps );
-    Vec_FltFree( p->vCins );
-    Vec_FltFree( p->vLoads );
-    Vec_FltFree( p->vDepts );
+    Vec_PtrFreeP( &p->vFanouts );
+    Vec_FltFreeP( &p->vWireCaps );
+    Vec_FltFreeP( &p->vCins );
+    Vec_FltFreeP( &p->vETimes );
+    Vec_FltFreeP( &p->vLoads );
+    Vec_FltFreeP( &p->vDepts );
     ABC_FREE( p );
 }
 
@@ -120,6 +128,8 @@ void Bus_ManReadInOutLoads( Bus_Man_t * p )
     Abc_Time_t * pTime;
     Abc_Obj_t * pObj;
     int i;
+    if ( p->pNtk->pManTime == NULL )
+        return;
     // read input load
     pTime = Abc_NtkReadDefaultInputDrive( p->pNtk );
     if ( Abc_MaxFloat(pTime->Rise, pTime->Fall) != 0 )
@@ -168,16 +178,36 @@ void Bus_ManReadInOutLoads( Bus_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkComputeFanoutCins( Abc_Obj_t * pObj )
+static inline float Abc_NtkComputeEdgeDept( Abc_Obj_t * pFanout, int iFanin, float Slew )
+{
+    float Load = Bus_SclObjLoad( pFanout );
+    float Dept = Bus_SclObjDept( pFanout );
+    float Edge = Scl_LibPinArrivalEstimate( Abc_SclObjCell(pFanout), iFanin, Slew, Load );
+//if ( Abc_ObjFaninNum(pFanout) == 0 )
+//printf( "Edge = %.2f\n", Edge );
+    assert( Edge > 0 );
+    return Dept + Edge;
+}
+float Abc_NtkComputeNodeDeparture( Abc_Obj_t * pObj, float Slew )
+{
+    Abc_Obj_t * pFanout;
+    int i;
+    assert( Bus_SclObjDept(pObj) == 0 );
+    Abc_ObjForEachFanout( pObj, pFanout, i )
+        if ( !Abc_ObjIsCo(pFanout) ) // add required times here
+            Bus_SclObjUpdateDept( pObj, Abc_NtkComputeEdgeDept(pFanout, Abc_NodeFindFanin(pFanout, pObj), Slew) );
+    return Bus_SclObjDept( pObj );
+}
+void Abc_NtkComputeFanoutInfo( Abc_Obj_t * pObj, float Slew )
 {
     Abc_Obj_t * pFanout;
     int i;
     Abc_ObjForEachFanout( pObj, pFanout, i )
-        if ( Abc_ObjIsNode(pFanout) )
+        if ( !Abc_ObjIsCo(pFanout) )
         {
-            float cap = SC_CellPinCap( Abc_SclObjCell(pFanout), Abc_NodeFindFanin(pFanout, pObj) );
-            assert( cap > 0 );
-            Bus_SclObjSetCin( pFanout, cap );
+            int iFanin = Abc_NodeFindFanin(pFanout, pObj);;
+            Bus_SclObjSetETime( pFanout, Abc_NtkComputeEdgeDept(pFanout, iFanin, Slew) );
+            Bus_SclObjSetCin( pFanout, SC_CellPinCap( Abc_SclObjCell(pFanout), iFanin ) );
         }
 }
 float Abc_NtkComputeNodeLoad( Bus_Man_t * p, Abc_Obj_t * pObj )
@@ -186,29 +216,38 @@ float Abc_NtkComputeNodeLoad( Bus_Man_t * p, Abc_Obj_t * pObj )
     float Load;
     int i;
     assert( Bus_SclObjLoad(pObj) == 0 );
-    Load = Abc_SclFindWireLoad( p->vWireCaps, pObj );
+    Load = Abc_SclFindWireLoad( p->vWireCaps, Abc_ObjFanoutNum(pObj) );
     Abc_ObjForEachFanout( pObj, pFanout, i )
         Load += Bus_SclObjCin( pFanout );
     Bus_SclObjSetLoad( pObj, Load );
     return Load;
 }
-float Abc_NtkComputeNodeDept( Abc_Obj_t * pObj, float Slew )
+float Abc_NtkComputeFanoutLoad( Bus_Man_t * p, Vec_Ptr_t * vFanouts )
 {
     Abc_Obj_t * pFanout;
-    float Load, Dept, Edge;
+    float Load;
     int i;
-    assert( Bus_SclObjDept(pObj) == 0 );
+    Load = Abc_SclFindWireLoad( p->vWireCaps, Vec_PtrSize(vFanouts) );
+    Vec_PtrForEachEntry( Abc_Obj_t *, vFanouts, pFanout, i )
+        Load += Bus_SclObjCin( pFanout );
+    return Load;
+}
+void Abc_NtkPrintFanoutProfile( Abc_Obj_t * pObj )
+{
+    Abc_Obj_t * pFanout;
+    int i;
+    printf( "Obj %6d fanouts (%d): ", Abc_ObjId(pObj), Abc_ObjFanoutNum(pObj) );
     Abc_ObjForEachFanout( pObj, pFanout, i )
-    {
-        if ( Abc_ObjIsCo(pFanout) ) // add required times here
-            continue;
-        Load = Bus_SclObjLoad( pFanout );
-        Dept = Bus_SclObjDept( pFanout );
-        Edge = Scl_LibPinArrivalEstimate( Abc_SclObjCell(pFanout), Abc_NodeFindFanin(pFanout, pObj), Slew, Load );
-        Bus_SclObjUpdateDept( pObj, Dept + Edge );
-        assert( Edge > 0 );
-    }
-    return Bus_SclObjDept( pObj );
+        printf( "%3d : time = %7.2f ps   load = %7.2f ff\n", i, Bus_SclObjETime(pFanout), Bus_SclObjCin(pFanout) );
+    printf( "\n" );
+}
+void Abc_NtkPrintFanoutProfileVec( Vec_Ptr_t * vFanouts )
+{
+    Abc_Obj_t * pFanout;
+    int i;
+    printf( "Fanout profile (%d):\n", Vec_PtrSize(vFanouts) );
+    Vec_PtrForEachEntry( Abc_Obj_t *, vFanouts, pFanout, i )
+        printf( "%3d : time = %7.2f ps   load = %7.2f ff\n", i, Bus_SclObjETime(pFanout), Bus_SclObjCin(pFanout) );
 }
 
 /**Function*************************************************************
@@ -224,14 +263,14 @@ float Abc_NtkComputeNodeDept( Abc_Obj_t * pObj, float Slew )
 ***********************************************************************/
 int Bus_SclCompareFanouts( Abc_Obj_t ** pp1, Abc_Obj_t ** pp2 )
 {
-    float Espilon = 10; // 10 ps
-    if ( Bus_SclObjDept(*pp1) < Bus_SclObjDept(*pp2) - Espilon )
+    float Espilon = 0;//10; // 10 ps
+    if ( Bus_SclObjETime(*pp1) < Bus_SclObjETime(*pp2) - Espilon )
         return -1;
-    if ( Bus_SclObjDept(*pp1) > Bus_SclObjDept(*pp2) + Espilon )
+    if ( Bus_SclObjETime(*pp1) > Bus_SclObjETime(*pp2) + Espilon )
         return 1;
-    if ( Bus_SclObjCin(*pp1) > Bus_SclObjCin(*pp2) - Espilon )
+    if ( Bus_SclObjCin(*pp1) > Bus_SclObjCin(*pp2) )
         return -1;
-    if ( Bus_SclObjCin(*pp1) < Bus_SclObjCin(*pp2) + Espilon )
+    if ( Bus_SclObjCin(*pp1) < Bus_SclObjCin(*pp2) )
         return 1;
     return -1;
 }
@@ -239,8 +278,6 @@ void Bus_SclInsertFanout( Vec_Ptr_t * vFanouts, Abc_Obj_t * pObj )
 {
     Abc_Obj_t * pCur;
     int i, k;
-    assert( Bus_SclObjDept(pObj) > 0 );
-    assert( Bus_SclObjLoad(pObj) > 0 );
     // compact array
     for ( i = k = 0; i < Vec_PtrSize(vFanouts); i++ )
         if ( Vec_PtrEntry(vFanouts, i) != NULL )
@@ -257,6 +294,22 @@ void Bus_SclInsertFanout( Vec_Ptr_t * vFanouts, Abc_Obj_t * pObj )
         ABC_SWAP( void *, Vec_PtrArray(vFanouts)[i-1], Vec_PtrArray(vFanouts)[i] );
     }
 }
+void Bus_SclCheckSortedFanout( Vec_Ptr_t * vFanouts )
+{
+    Abc_Obj_t * pObj, * pNext;
+    int i;
+    for ( i = 0; i < Vec_PtrSize(vFanouts) - 1; i++ )
+    {
+        pObj  = (Abc_Obj_t *)Vec_PtrEntry(vFanouts, i);
+        pNext = (Abc_Obj_t *)Vec_PtrEntry(vFanouts, i+1);
+        if ( Bus_SclCompareFanouts( &pObj, &pNext ) != -1 )
+        {
+            printf( "Fanouts %d and %d are out of order.\n", i, i+1 );
+            Abc_NtkPrintFanoutProfileVec( vFanouts );
+            return;
+        }
+    }
+}
 
 /**Function*************************************************************
 
@@ -269,18 +322,36 @@ void Bus_SclInsertFanout( Vec_Ptr_t * vFanouts, Abc_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Obj_t * Abc_SclAddOneInv( Bus_Man_t * p, Abc_Obj_t * pObj, Vec_Ptr_t * vFanouts, float Gain, int Degree )
+void Abc_SclOneNodePrint( Bus_Man_t * p, Abc_Obj_t * pObj )
+{
+    SC_Cell * pCell = Abc_SclObjCell(pObj);
+    printf( "%s%7d :  ",        (Abc_ObjFaninNum(pObj) == 0) ? " Inv" : "Node", Abc_ObjId(pObj) );
+    printf( "%d/%2d   ",        Abc_ObjFaninNum(pObj) ? Abc_ObjFaninNum(pObj) : 1, Abc_ObjFanoutNum(pObj) );
+    printf( "%12s ",            pCell->pName );
+    printf( "(%2d/%2d)  ",      pCell->Order, pCell->nGates );
+    printf( "gain =%5d  ",      (int)(100.0 * Bus_SclObjLoad(pObj) / SC_CellPinCapAve(pCell)) );
+    printf( "dept =%7.0f ps  ", SC_LibTimePs(p->pLib, Bus_SclObjDept(pObj)) );
+    printf( "\n" );
+}
+Abc_Obj_t * Abc_SclAddOneInv( Bus_Man_t * p, Abc_Obj_t * pObj, Vec_Ptr_t * vFanouts, float Gain )
 {
     SC_Cell * pCellNew;
     Abc_Obj_t * pFanout, * pInv;
     float Target = SC_CellPinCap(p->pInv, 0) * Gain;
-    float Load = 0;
+    float LoadWirePrev, LoadWireThis, LoadNew, Load = 0;
+    int Limit = Abc_MinInt( p->pPars->nDegree, Vec_PtrSize(vFanouts) );
     int i, iStop;
-    Vec_PtrForEachEntryStop( Abc_Obj_t *, vFanouts, pFanout, iStop, Degree )
+    Bus_SclCheckSortedFanout( vFanouts );
+    Vec_PtrForEachEntryStop( Abc_Obj_t *, vFanouts, pFanout, iStop, Limit )
     {
-        Load += Bus_SclObjCin( pFanout );
+        LoadWirePrev = p->vWireCaps ? Vec_FltEntry(p->vWireCaps, iStop) : 0;
+        LoadWireThis = p->vWireCaps ? Vec_FltEntry(p->vWireCaps, iStop+1) : 0;
+        Load += Bus_SclObjCin( pFanout ) - LoadWirePrev + LoadWireThis;
         if ( Load > Target )
+        {
+            iStop++;
             break;
+        }
     }
     // create inverter
     if ( p->pPars->fAddBufs )
@@ -288,10 +359,11 @@ Abc_Obj_t * Abc_SclAddOneInv( Bus_Man_t * p, Abc_Obj_t * pObj, Vec_Ptr_t * vFano
     else
         pInv = Abc_NtkCreateNodeInv( p->pNtk, NULL );
     assert( (int)Abc_ObjId(pInv) < Vec_FltSize(p->vDepts) );
-    Vec_PtrForEachEntryStop( Abc_Obj_t *, vFanouts, pFanout, i, iStop )
+    Limit = Abc_MinInt( iStop, Vec_PtrSize(vFanouts) );
+    Vec_PtrForEachEntryStop( Abc_Obj_t *, vFanouts, pFanout, i, Limit )
     {
         Vec_PtrWriteEntry( vFanouts, i, NULL );
-        if ( Abc_ObjFanin0(pFanout) == NULL )
+        if ( Abc_ObjFaninNum(pFanout) == 0 )
             Abc_ObjAddFanin( pFanout, pInv );
         else
             Abc_ObjPatchFanin( pFanout, pObj, pInv );
@@ -299,10 +371,13 @@ Abc_Obj_t * Abc_SclAddOneInv( Bus_Man_t * p, Abc_Obj_t * pObj, Vec_Ptr_t * vFano
     // set the gate
     pCellNew = Abc_SclFindSmallestGate( p->pInv, Load / Gain );
     Vec_IntSetEntry( p->pNtk->vGates, Abc_ObjId(pInv), pCellNew->Id );
+    // set departure and load
+    Abc_NtkComputeNodeDeparture( pInv, p->pPars->Slew );
+    LoadNew = Abc_NtkComputeNodeLoad( p, pInv );
+    assert( LoadNew - Load < 1 && Load - LoadNew < 1 );
+    // set fanout info for the inverter
     Bus_SclObjSetCin( pInv, SC_CellPinCap(pCellNew, 0) );
-    // update timing
-    Abc_NtkComputeNodeLoad( p, pInv );
-    Abc_NtkComputeNodeDept( pInv, p->pPars->Slew );
+    Bus_SclObjSetETime( pInv, Abc_NtkComputeEdgeDept(pInv, 0, p->pPars->Slew) );
     // update phases
     if ( p->pNtk->vPhases && Abc_SclIsInv(pInv) )
         Abc_NodeInvUpdateFanPolarity( pInv );
@@ -311,61 +386,64 @@ Abc_Obj_t * Abc_SclAddOneInv( Bus_Man_t * p, Abc_Obj_t * pObj, Vec_Ptr_t * vFano
 void Abc_SclBufSize( Bus_Man_t * p )
 {
     SC_Cell * pCell, * pCellNew;
-    Vec_Ptr_t * vFanouts;
-    Abc_Obj_t * pObj, * pInv;
+    Abc_Obj_t * pObj, * pFanout;
     abctime clk = Abc_Clock();
-    float Gain = 0.01 * p->pPars->GainRatio;
-    float Load, Cin, Dept, DeptMax = 0;
-    int i;
-    vFanouts = Vec_PtrAlloc( 100 );
+    float GainInv = 0.01 * p->pPars->GainRatio;
+    float GainGate = (float)1.0 * GainInv;
+    float Load, LoadNew, Cin, DeptMax = 0;
+    int i, k, nObjOld = Abc_NtkObjNumMax(p->pNtk);
     Abc_SclMioGates2SclGates( p->pLib, p->pNtk );
     Abc_NtkForEachNodeReverse1( p->pNtk, pObj, i )
     {
         // compute load
-        Abc_NtkComputeFanoutCins( pObj );
+        Abc_NtkComputeFanoutInfo( pObj, p->pPars->Slew );
         Load = Abc_NtkComputeNodeLoad( p, pObj );
         // consider the gate
         pCell = Abc_SclObjCell( pObj );
         Cin = SC_CellPinCapAve( pCell->pAve );
+//        Cin = SC_CellPinCapAve( pCell->pRepr->pNext );
         // consider upsizing the gate
-        if ( !p->pPars->fSizeOnly && Load > Gain * Cin )
+        if ( !p->pPars->fSizeOnly && (Abc_ObjFanoutNum(pObj) > p->pPars->nDegree || Load > GainGate * Cin) )
         {
             // add one or more inverters
-            Abc_NodeCollectFanouts( pObj, vFanouts );
-            Vec_PtrSort( vFanouts, (int(*)(void))Bus_SclCompareFanouts );
+            Abc_NodeCollectFanouts( pObj, p->vFanouts );
+            Vec_PtrSort( p->vFanouts, (int(*)(void))Bus_SclCompareFanouts );
             do 
             {
-                pInv = Abc_SclAddOneInv( p, pObj, vFanouts, Gain, p->pPars->nDegree );
-                Bus_SclInsertFanout( vFanouts, pInv );
-                Load = Bus_SclObjCin( pInv );
+                Abc_Obj_t * pInv;
+                if ( p->pPars->fVeryVerbose )
+                    Abc_NtkPrintFanoutProfileVec( p->vFanouts );
+                pInv = Abc_SclAddOneInv( p, pObj, p->vFanouts, GainInv );
+                if ( p->pPars->fVeryVerbose )
+                    Abc_SclOneNodePrint( p, pInv );
+                Bus_SclInsertFanout( p->vFanouts, pInv );
+                Load = Abc_NtkComputeFanoutLoad( p, p->vFanouts );
             }
-            while ( Vec_PtrSize(vFanouts) > 1 || Load > Gain * Cin );
-            // connect last inverter
-            assert( Abc_ObjFanin0(pInv) == NULL );
-            Abc_ObjAddFanin( pInv, pObj );
-            Bus_SclObjSetLoad( pObj, Load );
+            while ( Vec_PtrSize(p->vFanouts) > p->pPars->nDegree || Load > GainGate * Cin );
+            // update node fanouts
+            Vec_PtrForEachEntry( Abc_Obj_t *, p->vFanouts, pFanout, k )
+                if ( Abc_ObjFaninNum(pFanout) == 0 )
+                    Abc_ObjAddFanin( pFanout, pObj );
+            Bus_SclObjSetLoad( pObj, 0 );
+            LoadNew = Abc_NtkComputeNodeLoad( p, pObj );
+            assert( LoadNew - Load < 1 && Load - LoadNew < 1 );
         } 
+        Abc_NtkComputeNodeDeparture( pObj, p->pPars->Slew );
         // create cell
-        pCellNew = Abc_SclFindSmallestGate( pCell, Load / Gain );
+        pCellNew = Abc_SclFindSmallestGate( pCell, Load / GainGate );
         Abc_SclObjSetCell( pObj, pCellNew );
-        Dept = Abc_NtkComputeNodeDept( pObj, p->pPars->Slew );
-        DeptMax = Abc_MaxFloat( DeptMax, Dept );
-        if ( p->pPars->fVerbose )
-        {
-            printf( "Node %7d : ", i );
-            printf( "%12s ", pCellNew->pName );
-            printf( "(%2d/%2d)  ", pCellNew->Order, pCellNew->nGates );
-            printf( "gain =%5d  ", (int)(100.0 * Load / SC_CellPinCapAve(pCellNew)) );
-            printf( "dept =%7.0f ps  ", SC_LibTimePs(p->pLib, Dept) );
-            printf( "\n" );
-        }
+        if ( p->pPars->fVeryVerbose )
+            Abc_SclOneNodePrint( p, pObj );
+        assert( Abc_ObjFanoutNum(pObj) <= p->pPars->nDegree );
     }
+    Abc_NtkForEachCi( p->pNtk, pObj, i )
+        DeptMax = Abc_MaxFloat( DeptMax, Abc_NtkComputeNodeDeparture(pObj, p->pPars->Slew) );
     Abc_SclSclGates2MioGates( p->pLib, p->pNtk );
-    Vec_PtrFree( vFanouts );
     if ( p->pPars->fVerbose )
     {
-        printf( "WireLoads = %d. Target gain =%5d. Target slew =%5d.  Delay =%7.0f ps  ", 
-            p->pPars->fUseWireLoads, p->pPars->GainRatio, p->pPars->Slew, SC_LibTimePs(p->pLib, DeptMax) );
+        printf( "WireLoads = %d. Degree = %d.  Target gain =%5d  Slew =%5d   Inv = %6d  Delay =%7.0f ps   ", 
+            p->pPars->fUseWireLoads, p->pPars->nDegree, p->pPars->GainRatio, p->pPars->Slew, 
+            Abc_NtkObjNumMax(p->pNtk) - nObjOld, SC_LibTimePs(p->pLib, DeptMax) );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     }
 }

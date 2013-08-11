@@ -79,14 +79,15 @@ Vec_Flt_t * Abc_SclFindWireCaps( SC_WireLoad * pWL )
   SeeAlso     []
 
 ***********************************************************************/
-float Abc_SclFindWireLoad( Vec_Flt_t * vWireCaps, Abc_Obj_t * pObj )
+float Abc_SclFindWireLoad( Vec_Flt_t * vWireCaps, int nFans )
 {
-    int nFans = Abc_MinInt( Vec_FltSize(vWireCaps)-1, Abc_ObjFanoutNum(pObj) );
-    return vWireCaps ? Vec_FltEntry(vWireCaps, nFans) : 0;
+    if ( vWireCaps == NULL )
+        return 0;
+    return Vec_FltEntry( vWireCaps, Abc_MinInt(nFans, Vec_FltSize(vWireCaps)-1) );
 }
 void Abc_SclAddWireLoad( SC_Man * p, Abc_Obj_t * pObj, int fSubtr )
 {
-    float Load = Abc_SclFindWireLoad( p->vWireCaps, pObj );
+    float Load = Abc_SclFindWireLoad( p->vWireCaps, Abc_ObjFanoutNum(pObj) );
     Abc_SclObjLoad(p, pObj)->rise += fSubtr ? -Load : Load;
     Abc_SclObjLoad(p, pObj)->fall += fSubtr ? -Load : Load;
 }
