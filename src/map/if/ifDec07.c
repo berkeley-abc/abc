@@ -455,10 +455,12 @@ word If_Dec7Perform( word t0[2], int fDerive )
     // start arrays
     for ( i = 0; i < 7; i++ )
     {
+/*
         if ( i < 6 )
             assert( If_Dec6HasVar( t[0], i ) || If_Dec6HasVar( t[1], i ) );
         else
             assert( t[0] != t[1] );
+*/
         Pla2Var[i] = Var2Pla[i] = i;
     }
     // generate permutations

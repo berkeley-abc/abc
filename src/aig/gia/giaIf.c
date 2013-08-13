@@ -235,6 +235,34 @@ void Gia_ManPrintMappingStats( Gia_Man_t * p )
     Abc_Print( 1, "lev =%5d  ", LevelMax );
     Abc_Print( 1, "mem =%5.2f MB", 4.0*(Gia_ManObjNum(p) + 2*nLuts + nFanins)/(1<<20) );
     Abc_Print( 1, "\n" );
+
+    {
+        char * pFileName = "stats_map.txt";
+        static char FileNameOld[1000] = {0};
+        static int nNodesOld, nAreaOld, nDelayOld;
+        static abctime clk = 0;
+        FILE * pTable = fopen( pFileName, "a+" );
+        if ( strcmp( FileNameOld, p->pName ) )
+        {
+            sprintf( FileNameOld, "%s", p->pName );
+            fprintf( pTable, "\n" );
+            fprintf( pTable, "%s  ", p->pName );
+            fprintf( pTable, "%d ", Gia_ManCiNum(p) );
+            fprintf( pTable, "%d ", Gia_ManCoNum(p) );
+            fprintf( pTable, "%d  ", Gia_ManAndNum(p) );
+            fprintf( pTable, "%d ", nLuts           );
+            fprintf( pTable, "%d ", LevelMax        );
+            clk = Abc_Clock();
+        }
+        else
+        {
+            fprintf( pTable, " " );
+            fprintf( pTable, "%d ", nLuts           );
+            fprintf( pTable, "%d ", LevelMax        );
+//            fprintf( pTable, "%.2f", 1.0*(Abc_Clock() - clk)/CLOCKS_PER_SEC );
+        }
+        fclose( pTable );
+    }
 }
 
 /**Function*************************************************************
@@ -344,6 +372,7 @@ void Gia_ManChoiceLevel_rec( Gia_Man_t * p, Gia_Obj_t * pObj )
         if ( LevelMax < Gia_ObjLevel(p, pNext) )
             LevelMax = Gia_ObjLevel(p, pNext);
         LevelMax++;
+        assert( LevelMax > 0 );
 
         // get the level of the nodes in the choice node
         if ( (pNext = Gia_ObjSiblObj(p, Gia_ObjId(p, pObj))) )

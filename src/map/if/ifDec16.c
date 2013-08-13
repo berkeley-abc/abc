@@ -1749,6 +1749,133 @@ If_Grp_t If_CluCheck( If_Man_t * p, word * pTruth0, int nVars, int iVarStart, in
     return G1;
 }
 
+
+static inline word Abc_Tt6Cofactor0( word t, int iVar )
+{
+    assert( iVar >= 0 && iVar < 6 );
+    return (t &~Truth6[iVar]) | ((t &~Truth6[iVar]) << (1<<iVar));
+}
+static inline word Abc_Tt6Cofactor1( word t, int iVar )
+{
+    assert( iVar >= 0 && iVar < 6 );
+    return (t & Truth6[iVar]) | ((t & Truth6[iVar]) >> (1<<iVar));
+}
+int If_CluCheckDecIn( word t, int nVars )
+{
+    int v, u, Cof2[2], Cof4[4];
+//    for ( v = 0; v < nVars; v++ )
+    for ( v = 0; v < 1; v++ ) // restrict to the first (decomposed) input
+    {
+        Cof2[0] = Abc_Tt6Cofactor0( t, v );
+        Cof2[1] = Abc_Tt6Cofactor1( t, v );
+        for ( u = v+1; u < nVars; u++ )
+        {
+            Cof4[0] = Abc_Tt6Cofactor0( Cof2[0], u );
+            Cof4[1] = Abc_Tt6Cofactor1( Cof2[0], u );
+            Cof4[2] = Abc_Tt6Cofactor0( Cof2[1], u );
+            Cof4[3] = Abc_Tt6Cofactor1( Cof2[1], u );
+            if ( Cof4[0] == Cof4[1] && Cof4[0] == Cof4[2] )
+                return 1;
+            if ( Cof4[0] == Cof4[2] && Cof4[0] == Cof4[3] )
+                return 1;
+            if ( Cof4[0] == Cof4[1] && Cof4[0] == Cof4[3] )
+                return 1;
+            if ( Cof4[1] == Cof4[2] && Cof4[1] == Cof4[3] )
+                return 1;
+        }
+    }
+    return 0;
+}
+int If_CluCheckDecInU( word t, int nVars )
+{
+    int v, u, Cof2[2], Cof4[4];
+//    for ( v = 0; v < nVars; v++ )
+    for ( v = 0; v < 1; v++ ) // restrict to the first (decomposed) input
+    {
+        Cof2[0] = Abc_Tt6Cofactor0( t, v );
+        Cof2[1] = Abc_Tt6Cofactor1( t, v );
+        for ( u = v+1; u < nVars; u++ )
+        {
+            Cof4[0] = Abc_Tt6Cofactor0( Cof2[0], u );
+            Cof4[1] = Abc_Tt6Cofactor1( Cof2[0], u );
+            Cof4[2] = Abc_Tt6Cofactor0( Cof2[1], u );
+            Cof4[3] = Abc_Tt6Cofactor1( Cof2[1], u );
+            if ( Cof4[0] == Cof4[1] && Cof4[0] == Cof4[2] )
+                return 1;
+            if ( Cof4[0] == Cof4[2] && Cof4[0] == Cof4[3] )
+                return 1;
+        }
+    }
+    return 0;
+}
+int If_CluCheckDecOut( word t, int nVars )
+{
+    int v;
+    for ( v = 0; v < nVars; v++ )
+        if ( 
+             (t & Truth6[v]) == 0   ||  //  F * !a
+             (~t & Truth6[v]) == 0  ||  // !F * !a
+             (t & ~Truth6[v]) == 0  ||  //  F *  a
+             (~t & ~Truth6[v]) == 0     // !F *  a   
+           )
+            return 1;
+    return 0;
+}
+int If_CluCheckDecOutU( word t, int nVars )
+{
+    int v;
+    for ( v = 0; v < nVars; v++ )
+        if ( 
+             (t & ~Truth6[v]) == 0  ||  //  F *  a
+             (~t & ~Truth6[v]) == 0     // !F *  a   
+           )
+            return 1;
+    return 0;
+}
+
+int If_CutPerformCheck45( If_Man_t * p, unsigned * pTruth, int nVars, int nLeaves, char * pStr )
+{    
+    // 5LUT -> 4LUT
+    If_Grp_t G, R;
+    word Func0, Func1;
+    G = If_CluCheck( p, (word *)pTruth, nLeaves, 0, 5, 4, &R, &Func0, &Func1, NULL, 0 );
+    if ( G.nVars == 0 )
+        return 0;
+    Func0 = If_CluAdjust( Func0, R.nVars );
+    Func1 = If_CluAdjust( Func1, G.nVars );
+#if 0
+    Kit_DsdPrintFromTruth( pTruth, nVars ); printf( "\n" );
+    Kit_DsdPrintFromTruth( (unsigned*)&Func0, R.nVars ); printf( "\n" );
+    Kit_DsdPrintFromTruth( (unsigned*)&Func1, G.nVars ); printf( "\n" );
+    If_CluPrintGroup( &R );
+    If_CluPrintGroup( &G );
+#endif
+    if ( G.nVars < 5 || (p->pPars->fEnableCheck75 && If_CluCheckDecOut(Func1, 5)) || (p->pPars->fEnableCheck75u && If_CluCheckDecOutU(Func1, 5)) )
+        return 1;
+    return 0;
+}
+int If_CutPerformCheck54( If_Man_t * p, unsigned * pTruth, int nVars, int nLeaves, char * pStr )
+{    
+    // 4LUT -> 5LUT
+    If_Grp_t G, R;
+    word Func0, Func1;
+    G = If_CluCheck( p, (word *)pTruth, nLeaves, 0, 4, 5, &R, &Func0, &Func1, NULL, 0 );
+    if ( G.nVars == 0 )
+        return 0;
+    Func0 = If_CluAdjust( Func0, R.nVars );
+    Func1 = If_CluAdjust( Func1, G.nVars );
+#if 0
+    Kit_DsdPrintFromTruth( pTruth, nVars ); printf( "\n" );
+    Kit_DsdPrintFromTruth( (unsigned*)&Func0, R.nVars ); printf( "\n" );
+    Kit_DsdPrintFromTruth( (unsigned*)&Func1, G.nVars ); printf( "\n" );
+    If_CluPrintGroup( &R );
+    If_CluPrintGroup( &G );
+#endif
+    if ( R.nVars < 5 || (p->pPars->fEnableCheck75 && If_CluCheckDecIn(Func0, 5)) || (p->pPars->fEnableCheck75u && If_CluCheckDecInU(Func0, 5)) )
+        return 1;
+    return 0;
+}
+
 // returns the best group found
 If_Grp_t If_CluCheck3( If_Man_t * p, word * pTruth0, int nVars, int nLutLeaf, int nLutLeaf2, int nLutRoot, 
                       If_Grp_t * pR, If_Grp_t * pG2, word * pFunc0, word * pFunc1, word * pFunc2 )

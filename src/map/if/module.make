@@ -5,6 +5,7 @@ SRC +=  src/map/if/ifCom.c \
     src/map/if/ifDec08.c \
     src/map/if/ifDec10.c \
     src/map/if/ifDec16.c \
+    src/map/if/ifDec75.c \
     src/map/if/ifLibBox.c \
     src/map/if/ifLibLut.c \
     src/map/if/ifMan.c \

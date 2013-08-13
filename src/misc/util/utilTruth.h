@@ -1067,6 +1067,50 @@ static inline void Abc_TtSwapVars( word * pTruth, int nVars, int iVar, int jVar 
 
 /**Function*************************************************************
 
+  Synopsis    [Support minimization.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Abc_TtShrink( word * pF, int nVars, int nVarsAll, unsigned Phase )
+{
+    int i, k, Var = 0;
+    assert( nVarsAll <= 16 );
+    for ( i = 0; i < nVarsAll; i++ )
+        if ( Phase & (1 << i) )
+        {
+            for ( k = i-1; k >= Var; k-- )
+                Abc_TtSwapAdjacent( pF, Abc_TtWordNum(nVarsAll), k );
+            Var++;
+        }
+    assert( Var == nVars );
+}
+static inline int Abc_TtMinimumBase( word * t, int * pSupp, int nVarsAll, int * pnVars )
+{
+    int v, iVar = 0, uSupp = 0;
+    assert( nVarsAll <= 16 );
+    for ( v = 0; v < nVarsAll; v++ )
+        if ( Abc_TtHasVar( t, nVarsAll, v ) )
+        {
+            uSupp |= (1 << v);
+            if ( pSupp )
+                pSupp[iVar] = pSupp[v];
+            iVar++;
+        }
+    if ( pnVars )
+        *pnVars = iVar;
+    if ( uSupp == 0 || Abc_TtSuppIsMinBase( uSupp ) )
+        return 0;
+    Abc_TtShrink( t, iVar, nVarsAll, uSupp );
+    return 1;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Implemeting given NPN config.]
 
   Description []

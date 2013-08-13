@@ -77,6 +77,7 @@ static inline int Dau_DsdReadVar( char * p )  { if ( *p == '!' ) p++; return *p 
 /*=== dauCanon.c ==========================================================*/
 extern unsigned      Abc_TtCanonicize( word * pTruth, int nVars, char * pCanonPerm );
 /*=== dauDsd.c  ==========================================================*/
+extern int *         Dau_DsdComputeMatches( char * p );
 extern int           Dau_DsdDecompose( word * pTruth, int nVarsInit, int fSplitPrime, int fWriteTruth, char * pRes );
 extern void          Dau_DsdPrintFromTruth( FILE * pFile, word * pTruth, int nVarsInit );
 extern word *        Dau_DsdToTruth( char * p, int nVars );

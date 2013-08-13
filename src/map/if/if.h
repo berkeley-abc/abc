@@ -117,6 +117,8 @@ struct If_Par_t_
     int                fEnableCheck07;// enable additional checking
     int                fEnableCheck08;// enable additional checking
     int                fEnableCheck10;// enable additional checking
+    int                fEnableCheck75;// enable additional checking
+    int                fEnableCheck75u;// enable additional checking
     int                fEnableRealPos;// enable additional feature
     int                fUseDsd;       // compute DSD of the cut functions
     int                fDeriveLuts;   // enables deriving LUT structures
@@ -492,6 +494,9 @@ extern int             If_CutPerformCheck07( If_Man_t * p, unsigned * pTruth, in
 extern int             If_CutPerformCheck08( If_Man_t * p, unsigned * pTruth, int nVars, int nLeaves, char * pStr );
 extern int             If_CutPerformCheck10( If_Man_t * p, unsigned * pTruth, int nVars, int nLeaves, char * pStr );
 extern int             If_CutPerformCheck16( If_Man_t * p, unsigned * pTruth, int nVars, int nLeaves, char * pStr );
+extern int             If_CutPerformCheck45( If_Man_t * p, unsigned * pTruth, int nVars, int nLeaves, char * pStr );
+extern int             If_CutPerformCheck54( If_Man_t * p, unsigned * pTruth, int nVars, int nLeaves, char * pStr );
+extern int             If_CutPerformCheck75( If_Man_t * p, unsigned * pTruth, int nVars, int nLeaves, char * pStr );
 extern float           If_CutDelayLutStruct( If_Man_t * p, If_Cut_t * pCut, char * pStr, float WireDelay );
 extern int             If_CluCheckExt( void * p, word * pTruth, int nVars, int nLutLeaf, int nLutRoot, 
                            char * pLut0, char * pLut1, word * pFunc0, word * pFunc1 );
