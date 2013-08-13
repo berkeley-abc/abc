@@ -1796,13 +1796,13 @@ int If_CluCheckDecInU( word t, int nVars )
         Cof2[1] = Abc_Tt6Cofactor1( t, v );
         for ( u = v+1; u < nVars; u++ )
         {
-            Cof4[0] = Abc_Tt6Cofactor0( Cof2[0], u );
-            Cof4[1] = Abc_Tt6Cofactor1( Cof2[0], u );
-            Cof4[2] = Abc_Tt6Cofactor0( Cof2[1], u );
-            Cof4[3] = Abc_Tt6Cofactor1( Cof2[1], u );
-            if ( Cof4[0] == Cof4[1] && Cof4[0] == Cof4[2] )
+            Cof4[0] = Abc_Tt6Cofactor0( Cof2[0], u ); // 00
+            Cof4[1] = Abc_Tt6Cofactor1( Cof2[0], u ); // 01
+            Cof4[2] = Abc_Tt6Cofactor0( Cof2[1], u ); // 10
+            Cof4[3] = Abc_Tt6Cofactor1( Cof2[1], u ); // 11 
+            if ( Cof4[0] == Cof4[1] && Cof4[0] == Cof4[2] ) //  F * a
                 return 1;
-            if ( Cof4[0] == Cof4[2] && Cof4[0] == Cof4[3] )
+            if ( Cof4[0] == Cof4[2] && Cof4[0] == Cof4[3] ) // !F * a
                 return 1;
         }
     }
