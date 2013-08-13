@@ -205,7 +205,6 @@ int Dau_DsdCheckDecAndExist( char * pDsd )
 int If_CutPerformCheck75__( If_Man_t * p, unsigned * pTruth, int nVars, int nLeaves, char * pStr )
 {
     char pDsdStr[1000];
-    int fDerive = 0;
     int nSizeNonDec, nDecExists, nDecAndExists;
     static int Counter = 0;
     Counter++;

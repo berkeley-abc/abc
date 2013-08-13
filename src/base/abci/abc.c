@@ -29454,17 +29454,7 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
         pPars->pFuncCell = If_CutPerformCheck10;
         pPars->fCutMin = 1;
     }
-    if ( pPars->fEnableCheck75 )
-    {
-        if ( pPars->nLutSize < 6 || pPars->nLutSize > 8 )
-        {
-            Abc_Print( -1, "This feature only works for {6,7,8}-LUTs.\n" );
-            return 1;
-        }
-        pPars->pFuncCell = If_CutPerformCheck75;
-        pPars->fCutMin = 1;
-    }
-    if ( pPars->fEnableCheck75u )
+    if ( pPars->fEnableCheck75 || pPars->fEnableCheck75u )
     {
         if ( pPars->nLutSize < 6 || pPars->nLutSize > 8 )
         {
