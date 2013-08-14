@@ -235,7 +235,7 @@ void Gia_ManPrintMappingStats( Gia_Man_t * p )
     Abc_Print( 1, "lev =%5d  ", LevelMax );
     Abc_Print( 1, "mem =%5.2f MB", 4.0*(Gia_ManObjNum(p) + 2*nLuts + nFanins)/(1<<20) );
     Abc_Print( 1, "\n" );
-/*
+
     {
         char * pFileName = "stats_map.txt";
         static char FileNameOld[1000] = {0};
@@ -262,7 +262,7 @@ void Gia_ManPrintMappingStats( Gia_Man_t * p )
         }
         fclose( pTable );
     }
-*/
+
 }
 
 /**Function*************************************************************
@@ -704,9 +704,12 @@ int Gia_ManFromIfLogicNode( Gia_Man_t * pNew, int iObj, Vec_Int_t * vLeaves, Vec
         // create mapping
         iObjLit1 = Gia_ManFromIfLogicCreateLut( pNew, pRes, vLeaves, vCover, vMapping, vMapping2 );
         // write packing
-        Vec_IntPush( vPacking, 1 );
-        Vec_IntPush( vPacking, Abc_Lit2Var(iObjLit1) );
-        Vec_IntAddToEntry( vPacking, 0, 1 );
+        if ( !Gia_ObjIsCi(Gia_ManObj(pNew, Abc_Lit2Var(iObjLit1))) )
+        {
+            Vec_IntPush( vPacking, 1 );
+            Vec_IntPush( vPacking, Abc_Lit2Var(iObjLit1) );
+            Vec_IntAddToEntry( vPacking, 0, 1 );
+        }
         return iObjLit1;
     }
     else
@@ -753,6 +756,14 @@ int Gia_ManFromIfLogicNode( Gia_Man_t * pNew, int iObj, Vec_Int_t * vLeaves, Vec
                 Vec_IntPush( vMapping2, 0 );
             }
             return iObjLit1;
+        }
+        // check for elementary truth table
+        for ( i = 0; i < nLeaves; i++ )
+        {
+            if ( Kit_TruthIsEqual((unsigned *)pRes, (unsigned *)pTruths[i], nLeaves) )
+                return Vec_IntEntry(vLeaves, i);
+            if ( Kit_TruthIsOpposite((unsigned *)pRes, (unsigned *)pTruths[i], nLeaves) )
+                return Abc_LitNot(Vec_IntEntry(vLeaves, i));
         }
 
         // perform decomposition
