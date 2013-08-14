@@ -235,7 +235,7 @@ void Gia_ManPrintMappingStats( Gia_Man_t * p )
     Abc_Print( 1, "lev =%5d  ", LevelMax );
     Abc_Print( 1, "mem =%5.2f MB", 4.0*(Gia_ManObjNum(p) + 2*nLuts + nFanins)/(1<<20) );
     Abc_Print( 1, "\n" );
-
+/*
     {
         char * pFileName = "stats_map.txt";
         static char FileNameOld[1000] = {0};
@@ -262,7 +262,7 @@ void Gia_ManPrintMappingStats( Gia_Man_t * p )
         }
         fclose( pTable );
     }
-
+*/
 }
 
 /**Function*************************************************************
@@ -643,38 +643,17 @@ int Gia_ManFromIfLogicCreateLut( Gia_Man_t * pNew, word * pRes, Vec_Int_t * vLea
   SeeAlso     []
 
 ***********************************************************************/
-int Gia_ManFromIfLogicNode( Gia_Man_t * pNew, int iObj, Vec_Int_t * vLeaves, Vec_Int_t * vLeavesTemp, 
+int Gia_ManFromIfLogicNode( If_Man_t * p, Gia_Man_t * pNew, int iObj, Vec_Int_t * vLeaves, Vec_Int_t * vLeavesTemp, 
     word * pRes, char * pStr, Vec_Int_t * vCover, Vec_Int_t * vMapping, Vec_Int_t * vMapping2, Vec_Int_t * vPacking )
 {
     int nLeaves = Vec_IntSize(vLeaves);
     int i, Length, nLutLeaf, nLutLeaf2, nLutRoot, iObjLit1, iObjLit2, iObjLit3;
-    // check simple case
-/*
-    static word s_Truths6[6] = {
-        ABC_CONST(0xAAAAAAAAAAAAAAAA),
-        ABC_CONST(0xCCCCCCCCCCCCCCCC),
-        ABC_CONST(0xF0F0F0F0F0F0F0F0),
-        ABC_CONST(0xFF00FF00FF00FF00),
-        ABC_CONST(0xFFFF0000FFFF0000),
-        ABC_CONST(0xFFFFFFFF00000000)
-    };
-    if ( *pRes == 0 || ~*pRes == 0 )
-        return Abc_LitNotCond( 0, ~*pRes == 0 );
-    for ( i = 0; i < Vec_IntSize(vLeaves); i++ )
-        if ( *pRes == s_Truths6[i] || ~*pRes == s_Truths6[i] )
-            return Abc_LitNotCond( Vec_IntEntry(vLeaves, i), ~*pRes == s_Truths6[i] );
-*/
-/*
-    if ( *pRes == 0 || ~*pRes == 0 )
-        printf( "Const\n" );
-    for ( i = 0; i < Vec_IntSize(vLeaves); i++ )
-        if ( *pRes == s_Truths6[i] || ~*pRes == s_Truths6[i] )
-            printf( "Literal\n" );
-*/
+    // workaround for the special case
+    if ( p->pPars->fEnableCheck75 || p->pPars->fEnableCheck75u )
+        pStr = "54";
     // check if there is no LUT structures
     if ( pStr == NULL )
         return Gia_ManFromIfLogicCreateLut( pNew, pRes, vLeaves, vCover, vMapping, vMapping2 );
-
     // quit if parameters are wrong
     Length = strlen(pStr);
     if ( Length != 2 && Length != 3 )
@@ -767,9 +746,27 @@ int Gia_ManFromIfLogicNode( Gia_Man_t * pNew, int iObj, Vec_Int_t * vLeaves, Vec
         }
 
         // perform decomposition
-        if ( Length == 2 )
+        if ( p->pPars->fEnableCheck75 || p->pPars->fEnableCheck75u ) 
         {
-            if ( !If_CluCheckExt( NULL, pRes, nLeaves, nLutLeaf, nLutRoot, pLut0, pLut1, &Func0, &Func1 ) )
+//            if ( nLeaves < 8 && If_CutPerformCheck16( p, (unsigned *)pTruth, nVars, nLeaves, "44" ) )
+            if ( nLeaves < 8 && If_CluCheckExt( NULL, pRes, nLeaves, 4, 4, pLut0, pLut1, &Func0, &Func1 ) )
+            {
+                nLutLeaf = 4;
+                nLutRoot = 4;
+            }
+//            if ( If_CutPerformCheck45( p, (unsigned *)pTruth, nVars, nLeaves, pStr ) )
+            else if ( If_CluCheckExt( NULL, pRes, nLeaves, 5, 4, pLut0, pLut1, &Func0, &Func1 ) )
+            {
+                nLutLeaf = 5;
+                nLutRoot = 4;
+            }
+//            if ( If_CutPerformCheck54( p, (unsigned *)pTruth, nVars, nLeaves, pStr ) )
+            else if ( If_CluCheckExt( NULL, pRes, nLeaves, 4, 5, pLut0, pLut1, &Func0, &Func1 ) )
+            {
+                nLutLeaf = 4;
+                nLutRoot = 5;
+            }
+            else
             {
                 Extra_PrintHex( stdout, (unsigned *)pRes, nLeaves );  printf( "    " );
                 Kit_DsdPrintFromTruth( (unsigned*)pRes, nLeaves );  printf( "\n" );
@@ -779,12 +776,25 @@ int Gia_ManFromIfLogicNode( Gia_Man_t * pNew, int iObj, Vec_Int_t * vLeaves, Vec
         }
         else
         {
-            if ( !If_CluCheckExt3( NULL, pRes, nLeaves, nLutLeaf, nLutLeaf2, nLutRoot, pLut0, pLut1, pLut2, &Func0, &Func1, &Func2 ) )
+            if ( Length == 2 )
             {
-                Extra_PrintHex( stdout, (unsigned *)pRes, nLeaves );  printf( "    " );
-                Kit_DsdPrintFromTruth( (unsigned*)pRes, nLeaves );  printf( "\n" );
-                printf( "Node %d is not decomposable. Deriving LUT structures has failed.\n", iObj );
-                return -1;
+                if ( !If_CluCheckExt( NULL, pRes, nLeaves, nLutLeaf, nLutRoot, pLut0, pLut1, &Func0, &Func1 ) )
+                {
+                    Extra_PrintHex( stdout, (unsigned *)pRes, nLeaves );  printf( "    " );
+                    Kit_DsdPrintFromTruth( (unsigned*)pRes, nLeaves );  printf( "\n" );
+                    printf( "Node %d is not decomposable. Deriving LUT structures has failed.\n", iObj );
+                    return -1;
+                }
+            }
+            else
+            {
+                if ( !If_CluCheckExt3( NULL, pRes, nLeaves, nLutLeaf, nLutLeaf2, nLutRoot, pLut0, pLut1, pLut2, &Func0, &Func1, &Func2 ) )
+                {
+                    Extra_PrintHex( stdout, (unsigned *)pRes, nLeaves );  printf( "    " );
+                    Kit_DsdPrintFromTruth( (unsigned*)pRes, nLeaves );  printf( "\n" );
+                    printf( "Node %d is not decomposable. Deriving LUT structures has failed.\n", iObj );
+                    return -1;
+                }
             }
         }
 
@@ -1001,7 +1011,7 @@ Gia_Man_t * Gia_ManFromIfLogic( If_Man_t * pIfMan )
     // start mapping and packing
     vMapping  = Vec_IntStart( If_ManObjNum(pIfMan) );
     vMapping2 = Vec_IntStart( 1 );
-    if ( pIfMan->pPars->fDeriveLuts && pIfMan->pPars->pLutStruct )
+    if ( pIfMan->pPars->fDeriveLuts && (pIfMan->pPars->pLutStruct || pIfMan->pPars->fEnableCheck75 || pIfMan->pPars->fEnableCheck75u) )
     {
         vPacking = Vec_IntAlloc( 1000 );
         Vec_IntPush( vPacking, 0 );
@@ -1039,7 +1049,7 @@ Gia_Man_t * Gia_ManFromIfLogic( If_Man_t * pIfMan )
                     pTruthTable = &Truth;
                 }
                 // perform decomposition of the cut
-                pIfObj->iCopy = Gia_ManFromIfLogicNode( pNew, i, vLeaves, vLeaves2, pTruthTable, pIfMan->pPars->pLutStruct, vCover, vMapping, vMapping2, vPacking );
+                pIfObj->iCopy = Gia_ManFromIfLogicNode( pIfMan, pNew, i, vLeaves, vLeaves2, pTruthTable, pIfMan->pPars->pLutStruct, vCover, vMapping, vMapping2, vPacking );
                 pIfObj->iCopy = Abc_LitNotCond( pIfObj->iCopy, pCutBest->fCompl );
             }
             else

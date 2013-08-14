@@ -29456,6 +29456,11 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( pPars->fEnableCheck75 || pPars->fEnableCheck75u )
     {
+        if ( pPars->fEnableCheck75 && pPars->fEnableCheck75u )
+        {
+            Abc_Print( -1, "Switches -f and -u are not compatible.\n" );
+            return 1;
+        }
         if ( pPars->nLutSize < 6 || pPars->nLutSize > 8 )
         {
             Abc_Print( -1, "This feature only works for {6,7,8}-LUTs.\n" );

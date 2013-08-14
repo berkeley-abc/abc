@@ -306,13 +306,15 @@ int If_CutPerformCheck75( If_Man_t * p, unsigned * pTruth0, int nVars, int nLeav
     word * pTruthW = (word *)pTruth0;
     word pTruth[4] = { pTruthW[0], pTruthW[1], pTruthW[2], pTruthW[3] };
     assert( nLeaves <= 8 );
-    Abc_TtMinimumBase( pTruth, NULL, nLeaves, &nLeaves );
+    if ( !p->pPars->fCutMin )
+        Abc_TtMinimumBase( pTruth, NULL, nLeaves, &nLeaves );
     if ( nLeaves < 6 )
         return 1;
 //    if ( nLeaves < 8 && If_CutPerformCheck07( p, (unsigned *)pTruth, nVars, nLeaves, "44" ) )
     if ( nLeaves < 8 && If_CutPerformCheck16( p, (unsigned *)pTruth, nVars, nLeaves, "44" ) )
         return 1;
-    if ( p->pPars->fEnableCheck75 && nLeaves == 8 )
+    // this is faster but not compatible with -z
+    if ( !p->pPars->fDeriveLuts && p->pPars->fEnableCheck75 && nLeaves == 8 )
     {
 //        char pDsdStr[1000] = "(!(abd)!(c!([fe][gh])))";
         char pDsdStr[1000];
