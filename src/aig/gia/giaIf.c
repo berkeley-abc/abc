@@ -235,7 +235,7 @@ void Gia_ManPrintMappingStats( Gia_Man_t * p )
     Abc_Print( 1, "lev =%5d  ", LevelMax );
     Abc_Print( 1, "mem =%5.2f MB", 4.0*(Gia_ManObjNum(p) + 2*nLuts + nFanins)/(1<<20) );
     Abc_Print( 1, "\n" );
-
+/*
     {
         char * pFileName = "stats_map.txt";
         static char FileNameOld[1000] = {0};
@@ -262,7 +262,7 @@ void Gia_ManPrintMappingStats( Gia_Man_t * p )
         }
         fclose( pTable );
     }
-
+*/
 }
 
 /**Function*************************************************************
