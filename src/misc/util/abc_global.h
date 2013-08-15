@@ -272,7 +272,7 @@ static inline int      Abc_Lit2LitL( int * pMap, int Lit )    { return Abc_LitNo
 typedef ABC_INT64_T abctime;
 static inline abctime Abc_Clock()
 {
-#if defined(LIN) || defined(LIN64)
+#if defined(LIN) || defined(LIN64) && !(__APPLE__ & __MACH__)
     struct timespec ts;
     if ( clock_gettime(CLOCK_THREAD_CPUTIME_ID, &ts) < 0 ) 
         return (abctime)-1;

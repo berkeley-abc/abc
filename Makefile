@@ -63,7 +63,11 @@ endif
 
 endif
 
-LIBS := -ldl -lrt
+# LIBS := -ldl -lrt
+LIBS := -ldl
+ifneq ($(findstring Darwin, $(shell uname)), Darwin)
+   LIBS += -lrt
+endif
 
 ifneq ($(READLINE),0)
 CFLAGS += -DABC_USE_READLINE
