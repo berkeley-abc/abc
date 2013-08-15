@@ -235,7 +235,7 @@ void Gia_ManPrintMappingStats( Gia_Man_t * p )
     Abc_Print( 1, "lev =%5d  ", LevelMax );
     Abc_Print( 1, "mem =%5.2f MB", 4.0*(Gia_ManObjNum(p) + 2*nLuts + nFanins)/(1<<20) );
     Abc_Print( 1, "\n" );
-/*
+
     {
         char * pFileName = "stats_map.txt";
         static char FileNameOld[1000] = {0};
@@ -262,7 +262,7 @@ void Gia_ManPrintMappingStats( Gia_Man_t * p )
         }
         fclose( pTable );
     }
-*/
+
 }
 
 /**Function*************************************************************
@@ -649,7 +649,7 @@ int Gia_ManFromIfLogicNode( If_Man_t * p, Gia_Man_t * pNew, int iObj, Vec_Int_t 
     int nLeaves = Vec_IntSize(vLeaves);
     int i, Length, nLutLeaf, nLutLeaf2, nLutRoot, iObjLit1, iObjLit2, iObjLit3;
     // workaround for the special case
-    if ( p->pPars->fEnableCheck75 || p->pPars->fEnableCheck75u )
+    if ( p && (p->pPars->fEnableCheck75 || p->pPars->fEnableCheck75u) )
         pStr = "54";
     // check if there is no LUT structures
     if ( pStr == NULL )
@@ -746,7 +746,7 @@ int Gia_ManFromIfLogicNode( If_Man_t * p, Gia_Man_t * pNew, int iObj, Vec_Int_t 
         }
 
         // perform decomposition
-        if ( p->pPars->fEnableCheck75 || p->pPars->fEnableCheck75u ) 
+        if ( p && (p->pPars->fEnableCheck75 || p->pPars->fEnableCheck75u) ) 
         {
 //            if ( nLeaves < 8 && If_CutPerformCheck16( p, (unsigned *)pTruth, nVars, nLeaves, "44" ) )
             if ( nLeaves < 8 && If_CluCheckExt( NULL, pRes, nLeaves, 4, 4, pLut0, pLut1, &Func0, &Func1 ) )
