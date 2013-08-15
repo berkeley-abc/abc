@@ -248,15 +248,15 @@ void * Mpm_ManFromIfLogic( Mpm_Man_t * pMan )
                 Vec_IntPush( vLeaves, Mig_ObjCopy(pFanin) );
             if ( pMan->pPars->fDeriveLuts && (pMan->pPars->fUseTruth || pMan->pPars->fUseDsd) )
             {
-                extern int Gia_ManFromIfLogicNode( void * p, Gia_Man_t * pNew, int iObj, Vec_Int_t * vLeaves, Vec_Int_t * vLeavesTemp, 
-                    word * pRes, char * pStr, Vec_Int_t * vCover, Vec_Int_t * vMapping, Vec_Int_t * vMapping2, Vec_Int_t * vPacking );
+                extern int Gia_ManFromIfLogicNode( Gia_Man_t * pNew, int iObj, Vec_Int_t * vLeaves, Vec_Int_t * vLeavesTemp, 
+                    word * pRes, char * pStr, Vec_Int_t * vCover, Vec_Int_t * vMapping, Vec_Int_t * vMapping2, Vec_Int_t * vPacking, int fCheck75 );
                 if ( pMan->pPars->fUseTruth )
                     pTruth = Mpm_CutTruth(pMan, Abc_Lit2Var(pCutBest->iFunc));
                 else
                     uTruth = Mpm_CutTruthFromDsd( pMan, pCutBest, Abc_Lit2Var(pCutBest->iFunc) );
 //                Kit_DsdPrintFromTruth( pTruth, Vec_IntSize(vLeaves) );  printf( "\n" );
                 // perform decomposition of the cut
-                iLitNew = Gia_ManFromIfLogicNode( NULL, pNew, Mig_ObjId(pObj), vLeaves, vLeaves2, pTruth, NULL, vCover, vMapping, vMapping2, vPacking );
+                iLitNew = Gia_ManFromIfLogicNode( pNew, Mig_ObjId(pObj), vLeaves, vLeaves2, pTruth, NULL, vCover, vMapping, vMapping2, vPacking, 0 );
                 iLitNew = Abc_LitNotCond( iLitNew, pCutBest->fCompl ^ Abc_LitIsCompl(pCutBest->iFunc) );
             }
             else

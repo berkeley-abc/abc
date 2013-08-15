@@ -643,13 +643,13 @@ int Gia_ManFromIfLogicCreateLut( Gia_Man_t * pNew, word * pRes, Vec_Int_t * vLea
   SeeAlso     []
 
 ***********************************************************************/
-int Gia_ManFromIfLogicNode( If_Man_t * p, Gia_Man_t * pNew, int iObj, Vec_Int_t * vLeaves, Vec_Int_t * vLeavesTemp, 
-    word * pRes, char * pStr, Vec_Int_t * vCover, Vec_Int_t * vMapping, Vec_Int_t * vMapping2, Vec_Int_t * vPacking )
+int Gia_ManFromIfLogicNode( Gia_Man_t * pNew, int iObj, Vec_Int_t * vLeaves, Vec_Int_t * vLeavesTemp, 
+    word * pRes, char * pStr, Vec_Int_t * vCover, Vec_Int_t * vMapping, Vec_Int_t * vMapping2, Vec_Int_t * vPacking, int fCheck75 )
 {
     int nLeaves = Vec_IntSize(vLeaves);
     int i, Length, nLutLeaf, nLutLeaf2, nLutRoot, iObjLit1, iObjLit2, iObjLit3;
     // workaround for the special case
-    if ( p && (p->pPars->fEnableCheck75 || p->pPars->fEnableCheck75u) )
+    if ( fCheck75 )
         pStr = "54";
     // check if there is no LUT structures
     if ( pStr == NULL )
@@ -746,7 +746,7 @@ int Gia_ManFromIfLogicNode( If_Man_t * p, Gia_Man_t * pNew, int iObj, Vec_Int_t 
         }
 
         // perform decomposition
-        if ( p && (p->pPars->fEnableCheck75 || p->pPars->fEnableCheck75u) ) 
+        if ( fCheck75 ) 
         {
 //            if ( nLeaves < 8 && If_CutPerformCheck16( p, (unsigned *)pTruth, nVars, nLeaves, "44" ) )
             if ( nLeaves < 8 && If_CluCheckExt( NULL, pRes, nLeaves, 4, 4, pLut0, pLut1, &Func0, &Func1 ) )
@@ -1049,7 +1049,7 @@ Gia_Man_t * Gia_ManFromIfLogic( If_Man_t * pIfMan )
                     pTruthTable = &Truth;
                 }
                 // perform decomposition of the cut
-                pIfObj->iCopy = Gia_ManFromIfLogicNode( pIfMan, pNew, i, vLeaves, vLeaves2, pTruthTable, pIfMan->pPars->pLutStruct, vCover, vMapping, vMapping2, vPacking );
+                pIfObj->iCopy = Gia_ManFromIfLogicNode( pNew, i, vLeaves, vLeaves2, pTruthTable, pIfMan->pPars->pLutStruct, vCover, vMapping, vMapping2, vPacking, (pIfMan->pPars->fEnableCheck75 || pIfMan->pPars->fEnableCheck75u) );
                 pIfObj->iCopy = Abc_LitNotCond( pIfObj->iCopy, pCutBest->fCompl );
             }
             else
