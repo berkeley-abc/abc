@@ -1878,15 +1878,72 @@ void Abc_NtkRemovePo( Abc_Ntk_t * pNtk, int iOutput, int fRemoveConst0 )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkPermute( Abc_Ntk_t * pNtk, int fInputs, int fOutputs, int fFlops )
+Vec_Int_t * Abc_NtkReadFlopPerm( char * pFileName, int nFlops )
+{
+    char Buffer[1000];
+    FILE * pFile;
+    Vec_Int_t * vFlops;
+    int iFlop;
+    pFile = fopen( pFileName, "rb" );
+    if ( pFile == NULL )
+    {
+        printf( "Cannot open input file \"%s\".\n", pFileName );
+        return NULL;
+    }
+    vFlops = Vec_IntAlloc( nFlops );
+    while ( fgets( Buffer, 1000, pFile ) != NULL )
+    {
+        if ( Buffer[0] == ' ' || Buffer[0] == '\r' || Buffer[0] == '\n' )
+            continue;
+        iFlop = atoi( Buffer );
+        if ( iFlop < 0 || iFlop >= nFlops )
+        {
+            printf( "Flop ID (%d) is out of range.\n", iFlop );
+            fclose( pFile );
+            Vec_IntFree( vFlops );
+            return NULL;
+        }
+        Vec_IntPush( vFlops, iFlop );
+    }
+    fclose( pFile );
+    if ( Vec_IntSize(vFlops) != nFlops )
+    {
+        printf( "The number of flops read in from file (%d) is different from the number of flops in the circuit (%d).\n", iFlop, nFlops );
+        Vec_IntFree( vFlops );
+        return NULL;
+    }
+    return vFlops;    
+}
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkPermute( Abc_Ntk_t * pNtk, int fInputs, int fOutputs, int fFlops, char * pFlopPermFile )
 {
     Abc_Obj_t * pTemp;
     Vec_Int_t * vInputs, * vOutputs, * vFlops, * vTemp;
     int i, k, Entry;
     // start permutation arrays
+    if ( pFlopPermFile )
+    {
+        vFlops = Abc_NtkReadFlopPerm( pFlopPermFile, Abc_NtkLatchNum(pNtk) );
+        if ( vFlops == NULL )
+            return;
+        fInputs  = 0;
+        fOutputs = 0;
+        fFlops   = 0;
+    }
+    else
+        vFlops   = Vec_IntStartNatural( Abc_NtkLatchNum(pNtk) );
     vInputs  = Vec_IntStartNatural( Abc_NtkPiNum(pNtk) );
     vOutputs = Vec_IntStartNatural( Abc_NtkPoNum(pNtk) );
-    vFlops   = Vec_IntStartNatural( Abc_NtkLatchNum(pNtk) );
     // permute inputs
     if ( fInputs )
     for ( i = 0; i < Abc_NtkPiNum(pNtk); i++ )

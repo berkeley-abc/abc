@@ -894,7 +894,7 @@ void Ifd_ComputeSignature( word uTruth, int pCounts[6] )
     }
     Vec_IntSelectSort( pCounts, 6 );
 }
-int Ifd_ManDsdTest() 
+int Ifd_ManDsdTest33() 
 {
     int nVars = 6;
     Vec_Wrd_t * vTruths = Ifd_ManDsdTruths( nVars );
@@ -926,7 +926,7 @@ int Ifd_ManDsdTest()
   SeeAlso     []
 
 ***********************************************************************/
-int Ifd_ManDsdTest33() 
+int Ifd_ManDsdTest() 
 {
     int nVars = 6;
     FILE * pFile;

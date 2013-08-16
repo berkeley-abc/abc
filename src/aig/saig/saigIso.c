@@ -600,7 +600,7 @@ Aig_Man_t * Iso_ManTest888( Aig_Man_t * pAig1, int fVerbose )
     Vec_Int_t * vMap;
     
     pNtk = Abc_NtkFromAigPhase( pAig1 );
-    Abc_NtkPermute( pNtk, 1, 0, 1 );
+    Abc_NtkPermute( pNtk, 1, 0, 1, NULL );
     pAig2 = Abc_NtkToDar( pNtk, 0, 1 );
     Abc_NtkDelete( pNtk );
 

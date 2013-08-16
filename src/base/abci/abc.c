@@ -19404,16 +19404,26 @@ int Abc_CommandPermute( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern Abc_Ntk_t * Abc_NtkRestrashRandom( Abc_Ntk_t * pNtk );
     Abc_Ntk_t * pNtk = pAbc->pNtkCur, * pNtkRes = NULL;
+    char * pFlopPermFile = NULL;
     int fInputs = 1;
     int fOutputs = 1;
     int fFlops = 1;
     int fNodes = 1;
     int c;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "iofnh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Fiofnh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'F':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-F\" should be followed by a file name.\n" );
+                goto usage;
+            }
+            pFlopPermFile = argv[globalUtilOptind];
+            globalUtilOptind++;
+            break;
         case 'i':
             fInputs ^= 1;
             break;
@@ -19452,18 +19462,19 @@ int Abc_CommandPermute( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Command \"permute\" has failed.\n" );
         return 1;
     }
-    Abc_NtkPermute( pNtkRes, fInputs, fOutputs, fFlops );
+    Abc_NtkPermute( pNtkRes, fInputs, fOutputs, fFlops, pFlopPermFile );
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: permute [-iofnh]\n" );
-    Abc_Print( -2, "\t        performs random permutation of inputs/outputs/flops\n" );
-    Abc_Print( -2, "\t-i    : toggle permuting primary inputs [default = %s]\n", fInputs? "yes": "no" );
-    Abc_Print( -2, "\t-o    : toggle permuting primary outputs [default = %s]\n", fOutputs? "yes": "no" );
-    Abc_Print( -2, "\t-f    : toggle permuting flip-flops [default = %s]\n", fFlops? "yes": "no" );
-    Abc_Print( -2, "\t-n    : toggle deriving new topological ordering of nodes [default = %s]\n", fNodes? "yes": "no" );
-    Abc_Print( -2, "\t-h    : print the command usage\n");
+    Abc_Print( -2, "usage: permute [-iofnh] [-F filename]\n" );
+    Abc_Print( -2, "\t                performs random permutation of inputs/outputs/flops\n" );
+    Abc_Print( -2, "\t-i            : toggle permuting primary inputs [default = %s]\n", fInputs? "yes": "no" );
+    Abc_Print( -2, "\t-o            : toggle permuting primary outputs [default = %s]\n", fOutputs? "yes": "no" );
+    Abc_Print( -2, "\t-f            : toggle permuting flip-flops [default = %s]\n", fFlops? "yes": "no" );
+    Abc_Print( -2, "\t-n            : toggle deriving new topological ordering of nodes [default = %s]\n", fNodes? "yes": "no" );
+    Abc_Print( -2, "\t-h            : print the command usage\n");
+    Abc_Print( -2, "\t-F <filename> : (optional) file with the flop permutation\n" );
     return 1;
 }
 
@@ -23227,7 +23238,7 @@ int Abc_CommandBm2( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     
-    Abc_NtkPermute(pNtk2, 1, 1, 0 );
+    Abc_NtkPermute(pNtk2, 1, 1, 0, NULL );
     Abc_NtkShortNames(pNtk2);
 
     Abc_NtkForEachCi( pNtk1, pObj, i ) {
