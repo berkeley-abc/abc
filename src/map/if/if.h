@@ -226,6 +226,7 @@ struct If_Man_t_
     int                nCutsCount[32];
     int                nCutsCountAll;
     int                nCutsUselessAll;
+    int                nCuts5, nCuts5a;
 //    Abc_Nam_t *        pNamDsd;
     int                iNamVar;
     Dss_Man_t *        pDsdMan;

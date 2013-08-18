@@ -151,6 +151,7 @@ void If_ManStop( If_Man_t * p )
             if ( p->nCutsUseless[i] )
                 Abc_Print( 1, "Useless cuts %2d  = %9d  (out of %9d)  (%6.2f %%)\n", i, p->nCutsUseless[i], p->nCutsCount[i], 100.0*p->nCutsUseless[i]/(p->nCutsCount[i]+1) );
         Abc_Print( 1, "Useless cuts all = %9d  (out of %9d)  (%6.2f %%)\n", p->nCutsUselessAll, p->nCutsCountAll, 100.0*p->nCutsUselessAll/(p->nCutsCountAll+1) );
+        Abc_Print( 1, "Statistics about 5-cuts: Total = %d  Non-decomposable = %d (%.2f %%)\n", p->nCuts5, p->nCuts5-p->nCuts5a, 100.0*(p->nCuts5-p->nCuts5a)/p->nCuts5 );
     }
     if ( p->pPars->fUseDsd )
     {
