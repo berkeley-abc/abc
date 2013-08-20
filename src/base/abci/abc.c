@@ -26008,7 +26008,7 @@ int Abc_CommandAbc9Sim3( Abc_Frame_t * pAbc, int argc, char ** argv )
     Ssw_RarSetDefaultParams( pPars );
     // parse command line
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FWBRSNTGvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FWBRSNTGgvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -26100,6 +26100,9 @@ int Abc_CommandAbc9Sim3( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( pPars->TimeOutGap < 0 )
                 goto usage;
             break;
+        case 'g':
+            pPars->fUseFfGrouping ^= 1;
+            break;
         case 'v':
             pPars->fVerbose ^= 1;
             break;
@@ -26120,7 +26123,7 @@ int Abc_CommandAbc9Sim3( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &sim3 [-FWBRNT num] [-vh]\n" );
+    Abc_Print( -2, "usage: &sim3 [-FWBRNT num] [-gvh]\n" );
     Abc_Print( -2, "\t         performs random simulation of the sequential miter\n" );
     Abc_Print( -2, "\t-F num : the number of frames to simulate [default = %d]\n",       pPars->nFrames );
     Abc_Print( -2, "\t-W num : the number of words to simulate [default = %d]\n",        pPars->nWords );
@@ -26129,6 +26132,7 @@ usage:
     Abc_Print( -2, "\t-S num : the number of rounds before a restart [default = %d]\n",  pPars->nRestart );
     Abc_Print( -2, "\t-N num : random number seed (1 <= num <= 1000) [default = %d]\n",  pPars->nRandSeed );
     Abc_Print( -2, "\t-T num : approximate runtime limit in seconds [default = %d]\n",   pPars->TimeOut );
+    Abc_Print( -2, "\t-g     : toggle heuristic flop grouping [default = %s]\n",    pPars->fUseFfGrouping? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n",    pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;

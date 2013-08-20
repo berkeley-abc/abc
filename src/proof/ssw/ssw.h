@@ -105,6 +105,7 @@ struct Ssw_RarPars_t_
     int              fMiter;
     int              fUseCex;
     int              fLatchOnly;
+    int              fUseFfGrouping;
     int              nSolved;
     Abc_Cex_t *      pCex;
     int(*pFuncOnFail)(int,Abc_Cex_t*); // called for a failed output in MO mode
