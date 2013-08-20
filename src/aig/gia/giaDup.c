@@ -591,37 +591,27 @@ Gia_Man_t * Gia_ManDupPerm( Gia_Man_t * p, Vec_Int_t * vPiPerm )
 }
 Gia_Man_t * Gia_ManDupPermFlop( Gia_Man_t * p, Vec_Int_t * vFfPerm )
 {
-    Vec_Int_t * vLits;
+    Vec_Int_t * vPermInv;
     Gia_Man_t * pNew;
     Gia_Obj_t * pObj;
     int i;
     assert( Vec_IntSize(vFfPerm) == Gia_ManRegNum(p) );
-
+    vPermInv = Vec_IntInvert( vFfPerm, -1 );
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
     pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     Gia_ManConst0(p)->Value = 0;
-    Gia_ManForEachCi( p, pObj, i )
+    Gia_ManForEachPi( p, pObj, i )
         pObj->Value = Gia_ManAppendCi(pNew);
-
-    vLits = Vec_IntAlloc( Gia_ManRegNum(p) );
-    for ( i = 0; i < Gia_ManRegNum(p); i++ )
-        Vec_IntPush( vLits, Gia_ManRo(p, Vec_IntEntry(vFfPerm, i))->Value );
     Gia_ManForEachRo( p, pObj, i )
-        pObj->Value = Vec_IntEntry(vLits, i);
-
+        Gia_ManRo(p, Vec_IntEntry(vPermInv, i))->Value = Gia_ManAppendCi(pNew);
     Gia_ManForEachAnd( p, pObj, i )
         pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
     Gia_ManForEachPo( p, pObj, i )
         pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
-
-    Vec_IntClear( vLits );
-    for ( i = 0; i < Gia_ManRegNum(p); i++ )
-        Vec_IntPush( vLits, Gia_ObjFanin0Copy( Gia_ManRi(p, Vec_IntEntry(vFfPerm, i)) ) );
     Gia_ManForEachRi( p, pObj, i )
-        pObj->Value = Gia_ManAppendCo( pNew, Vec_IntEntry(vLits, i) );
-    Vec_IntFree( vLits );
-
+        pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy( Gia_ManRi(p, Vec_IntEntry(vPermInv, i)) ) );
+    Vec_IntFree( vPermInv );
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
     return pNew;
 }
