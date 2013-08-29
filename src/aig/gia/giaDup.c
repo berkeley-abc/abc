@@ -615,6 +615,51 @@ Gia_Man_t * Gia_ManDupPermFlop( Gia_Man_t * p, Vec_Int_t * vFfPerm )
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
     return pNew;
 }
+Gia_Man_t * Gia_ManDupSpreadFlop( Gia_Man_t * p, Vec_Int_t * vFfMask )
+{
+    Gia_Man_t * pNew;
+    Gia_Obj_t * pObj;
+    int i, k, Entry;
+    assert( Vec_IntSize(vFfMask) >= Gia_ManRegNum(p) );
+    pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManForEachPi( p, pObj, i )
+        pObj->Value = Gia_ManAppendCi(pNew);
+    k = 0;
+    Vec_IntForEachEntry( vFfMask, Entry, i )
+        if ( Entry == -1 )
+            Gia_ManAppendCi(pNew);
+        else
+            Gia_ManRo(p, k++)->Value = Gia_ManAppendCi(pNew);
+    assert( k == Gia_ManRegNum(p) );
+    Gia_ManForEachAnd( p, pObj, i )
+        pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    Gia_ManForEachPo( p, pObj, i )
+        pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    k = 0;
+    Vec_IntForEachEntry( vFfMask, Entry, i )
+        if ( Entry == -1 )
+            Gia_ManAppendCo( pNew, 0 );
+        else
+        {
+            pObj = Gia_ManRi( p, k++ );
+            pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+        }
+    assert( k == Gia_ManRegNum(p) );
+    Gia_ManSetRegNum( pNew, Vec_IntSize(vFfMask) );
+    return pNew;
+}
+Gia_Man_t * Gia_ManDupPermFlopGap( Gia_Man_t * p, Vec_Int_t * vFfMask )
+{
+    Vec_Int_t * vPerm = Vec_IntCondense( vFfMask, -1 );
+    Gia_Man_t * pPerm = Gia_ManDupPermFlop( p, vPerm );
+    Gia_Man_t * pSpread = Gia_ManDupSpreadFlop( pPerm, vFfMask );
+    Vec_IntFree( vPerm );
+    Gia_ManStop( pPerm );
+    return pSpread;
+}
 
 /**Function*************************************************************
 

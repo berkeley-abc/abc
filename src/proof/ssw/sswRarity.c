@@ -1133,7 +1133,7 @@ finish:
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Ssw_RarRandomPermFlop( int nFlops )
+Vec_Int_t * Ssw_RarRandomPermFlop( int nFlops, int nUnused )
 {
     Vec_Int_t * vPerm;
     int i, k, * pArray;
@@ -1146,6 +1146,15 @@ Vec_Int_t * Ssw_RarRandomPermFlop( int nFlops )
         k = rand() % nFlops;
         ABC_SWAP( int, pArray[i], pArray[k] );
     }
+    printf( "Randomly adding %d unused flops.\n", nUnused );
+    for ( i = 0; i < nUnused; i++ )
+    {
+        k = rand() % Vec_IntSize(vPerm);
+        Vec_IntPush( vPerm, -1 );
+        pArray = Vec_IntArray( vPerm );
+        ABC_SWAP( int, pArray[Vec_IntSize(vPerm)-1], pArray[k] );
+    }
+//    Vec_IntPrint(vPerm);
     return vPerm;
 }
 
@@ -1166,8 +1175,8 @@ int Ssw_RarSimulateGia( Gia_Man_t * p, Ssw_RarPars_t * pPars )
     int RetValue;
     if ( pPars->fUseFfGrouping )
     {
-        Vec_Int_t * vPerm = Ssw_RarRandomPermFlop( Gia_ManRegNum(p) );
-        Gia_Man_t * pTemp = Gia_ManDupPermFlop( p, vPerm );
+        Vec_Int_t * vPerm = Ssw_RarRandomPermFlop( Gia_ManRegNum(p), 10 );
+        Gia_Man_t * pTemp = Gia_ManDupPermFlopGap( p, vPerm );
         Vec_IntFree( vPerm );
         pAig = Gia_ManToAigSimple( pTemp );
         Gia_ManStop( pTemp );

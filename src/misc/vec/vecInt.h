@@ -1054,6 +1054,27 @@ static inline Vec_Int_t * Vec_IntInvert( Vec_Int_t * p, int Fill )
   SeeAlso     []
 
 ***********************************************************************/
+static inline Vec_Int_t * Vec_IntCondense( Vec_Int_t * p, int Fill ) 
+{
+    int Entry, i;
+    Vec_Int_t * vRes = Vec_IntAlloc( Vec_IntSize(p) );
+    Vec_IntForEachEntry( p, Entry, i )
+        if ( Entry != Fill )
+            Vec_IntPush( vRes, Entry );
+    return vRes;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 static inline int Vec_IntSum( Vec_Int_t * p ) 
 {
     int i, Counter = 0;
