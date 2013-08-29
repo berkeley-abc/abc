@@ -390,7 +390,7 @@ float * Tim_ManGetArrTimes( Tim_Man_t * p )
             break;
     if ( i == Tim_ManPiNum(p) )
         return NULL;
-    pTimes  = ABC_ALLOC( float, Tim_ManPiNum(p) );
+    pTimes  = ABC_FALLOC( float, Tim_ManCiNum(p) );
     Tim_ManForEachPi( p, pObj, i )
         pTimes[i] = pObj->timeArr;
     return pTimes;
@@ -405,7 +405,7 @@ float * Tim_ManGetReqTimes( Tim_Man_t * p )
             break;
     if ( i == Tim_ManPoNum(p) )
         return NULL;
-    pTimes  = ABC_ALLOC( float, Tim_ManPoNum(p) );
+    pTimes  = ABC_FALLOC( float, Tim_ManCoNum(p) );
     Tim_ManForEachPo( p, pObj, i )
         pTimes[k++] = pObj->timeArr;
     assert( k == Tim_ManPoNum(p) );

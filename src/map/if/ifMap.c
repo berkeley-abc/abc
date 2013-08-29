@@ -273,7 +273,20 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
                 p->nCutsUseless[pCut->nLeaves] += pCut->fUseless;
                 p->nCutsCountAll++;
                 p->nCutsCount[pCut->nLeaves]++;
-                if ( p->pPars->fVerbose && pCut->nLeaves == 5 )
+                // skip 5-input cuts, which cannot be decomposed
+                if ( (p->pPars->fEnableCheck75 || p->pPars->fEnableCheck75u) && pCut->nLeaves == 5 && pCut->nLimit == 5 )
+                {
+                    extern int If_CluCheckDecIn( word t, int nVars );
+                    extern int If_CluCheckDecOut( word t, int nVars );
+                    unsigned TruthU = *If_CutTruth(pCut);
+                    word Truth = (((word)TruthU << 32) | (word)TruthU);
+                    p->nCuts5++;
+                    if ( If_CluCheckDecIn( Truth, 5 ) || If_CluCheckDecOut( Truth, 5 ) )
+                        p->nCuts5a++;
+                    else
+                        continue;
+                }
+                else if ( p->pPars->fVerbose && pCut->nLeaves == 5 )
                 {
                     extern int If_CluCheckDecIn( word t, int nVars );
                     extern int If_CluCheckDecOut( word t, int nVars );
