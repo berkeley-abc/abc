@@ -509,6 +509,9 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fSkipS
         Vec_Str_t * vStr;
         unsigned char * pCurTemp;
         pCur++;
+        // skip new line if present
+        if ( *pCur == '\n' )
+            pCur++;
         while ( pCur < (unsigned char *)pContents + nFileSize )
         {
             // read extra AIG
@@ -1119,7 +1122,7 @@ void Gia_AigerWrite( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
     }
 
     // write the comment
-    fprintf( pFile, "c" );
+    fprintf( pFile, "c\n" );
 
     // write additional AIG
     if ( p->pAigExtra )
