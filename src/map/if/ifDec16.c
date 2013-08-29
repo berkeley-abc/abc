@@ -1760,6 +1760,31 @@ static inline word Abc_Tt6Cofactor1( word t, int iVar )
     assert( iVar >= 0 && iVar < 6 );
     return (t & Truth6[iVar]) | ((t & Truth6[iVar]) >> (1<<iVar));
 }
+int If_CluCheckDecInAny( word t, int nVars )
+{
+    int v, u, Cof2[2], Cof4[4];
+    for ( v = 0; v < nVars; v++ )
+    {
+        Cof2[0] = Abc_Tt6Cofactor0( t, v );
+        Cof2[1] = Abc_Tt6Cofactor1( t, v );
+        for ( u = v+1; u < nVars; u++ )
+        {
+            Cof4[0] = Abc_Tt6Cofactor0( Cof2[0], u );
+            Cof4[1] = Abc_Tt6Cofactor1( Cof2[0], u );
+            Cof4[2] = Abc_Tt6Cofactor0( Cof2[1], u );
+            Cof4[3] = Abc_Tt6Cofactor1( Cof2[1], u );
+            if ( Cof4[0] == Cof4[1] && Cof4[0] == Cof4[2] )
+                return 1;
+            if ( Cof4[0] == Cof4[2] && Cof4[0] == Cof4[3] )
+                return 1;
+            if ( Cof4[0] == Cof4[1] && Cof4[0] == Cof4[3] )
+                return 1;
+            if ( Cof4[1] == Cof4[2] && Cof4[1] == Cof4[3] )
+                return 1;
+        }
+    }
+    return 0;
+}
 int If_CluCheckDecIn( word t, int nVars )
 {
     int v, u, Cof2[2], Cof4[4];
