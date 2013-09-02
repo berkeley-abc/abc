@@ -42,6 +42,7 @@ ABC_NAMESPACE_HEADER_START
 
 struct sat_solver2_t;
 typedef struct sat_solver2_t sat_solver2;
+typedef struct Int2_Man_t_ Int2_Man_t;
 
 extern sat_solver2* sat_solver2_new(void);
 extern void         sat_solver2_delete(sat_solver2* s);
@@ -71,6 +72,14 @@ extern void *       Sat_ProofCore( sat_solver2 * s );
 extern void *       Sat_ProofInterpolant( sat_solver2 * s, void * pGloVars );
 extern word *       Sat_ProofInterpolantTruth( sat_solver2 * s, void * pGloVars );
 extern void         Sat_ProofCheck( sat_solver2 * s );
+
+// interpolation APIs
+extern Int2_Man_t * Int2_ManStart( sat_solver2 * pSat, int * pGloVars, int nGloVars );
+extern void         Int2_ManStop( Int2_Man_t * p );
+extern int          Int2_ManChainStart( Int2_Man_t * p, clause * c );
+extern int          Int2_ManChainResolve( Int2_Man_t * p, clause * c, int iLit, int varA );
+extern void *       Int2_ManReadInterpolant( sat_solver2 * s );
+
 
 //=================================================================================================
 // Solver representation:
@@ -156,6 +165,8 @@ struct sat_solver2_t
     int             hProofLast;     // in proof-logging mode, the ID of the final conflict clause (conf_final)
     Prf_Man_t *     pPrf2;          // another proof manager
     double          dPrfMemory;     // memory used by the proof-logger
+    Int2_Man_t *    pInt2;          // interpolation manager
+    int             tempInter;      // temporary storage for the interpolant
 
     // statistics
     stats_t         stats;

@@ -362,7 +362,6 @@ void Abc_NtkCecFraigPart( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, in
 ***********************************************************************/
 void Abc_NtkCecFraigPartAuto( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, int fVerbose )
 {
-    extern int Abc_NtkCombinePos( Abc_Ntk_t * pNtk, int fAnd );
     extern Vec_Ptr_t * Abc_NtkPartitionSmart( Abc_Ntk_t * pNtk, int nPartSizeLimit, int fVerbose );
     extern void Abc_NtkConvertCos( Abc_Ntk_t * pNtk, Vec_Int_t * vOuts, Vec_Ptr_t * vOnePtr );
 
@@ -416,7 +415,7 @@ void Abc_NtkCecFraigPartAuto( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds
         // get this part of the miter
         Abc_NtkConvertCos( pMiter, vOne, vOnePtr );
         pMiterPart = Abc_NtkCreateConeArray( pMiter, vOnePtr, 0 );
-        Abc_NtkCombinePos( pMiterPart, 0 );
+        Abc_NtkCombinePos( pMiterPart, 0, 0 );
         // check the miter for being constant
         RetValue = Abc_NtkMiterIsConstant( pMiterPart );
         if ( RetValue == 0 )

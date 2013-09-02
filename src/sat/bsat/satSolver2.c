@@ -169,6 +169,8 @@ static inline void proof_chain_start( sat_solver2* s, clause* c )
 {
     if ( !s->fProofLogging )
         return;
+    if ( s->pInt2 )
+        s->tempInter = Int2_ManChainStart( s->pInt2, c );
     if ( s->pPrf2 )
         Prf_ManChainStart( s->pPrf2, c );
     if ( s->pPrf1 )
@@ -186,6 +188,11 @@ static inline void proof_chain_resolve( sat_solver2* s, clause* cls, int Var )
 {
     if ( !s->fProofLogging )
         return;
+    if ( s->pInt2 )
+    {
+        clause* c = cls ? cls : var_unit_clause( s, Var );
+        s->tempInter = Int2_ManChainResolve( s->pInt2, c, s->tempInter, var_is_partA(s,Var) );
+    }
     if ( s->pPrf2 )
     {
         clause* c = cls ? cls : var_unit_clause( s, Var );
@@ -204,6 +211,12 @@ static inline int proof_chain_stop( sat_solver2* s )
 {
     if ( !s->fProofLogging )
         return 0;
+    if ( s->pInt2 )
+    {
+        int h = s->tempInter; 
+        s->tempInter = -1; 
+        return h;
+    }
     if ( s->pPrf2 )
         Prf_ManChainStop( s->pPrf2 );
     if ( s->pPrf1 )
@@ -410,7 +423,7 @@ static int clause2_create_new(sat_solver2* s, lit* begin, lit* end, int learnt, 
             assert( proof_id );
         c->lbd = sat_clause_compute_lbd( s, c );
         assert( clause_id(c) == veci_size(&s->act_clas) );
-        if ( s->pPrf1 )
+        if ( s->pPrf1 || s->pInt2 )
             veci_push(&s->claProofs, proof_id);
 //        veci_push(&s->act_clas, (1<<10));
         veci_push(&s->act_clas, 0);
@@ -1141,6 +1154,7 @@ sat_solver2* sat_solver2_new(void)
     // proof-logging
     veci_new(&s->claProofs);
 //    s->pPrf1 = Vec_SetAlloc( 20 );
+    s->tempInter = -1;
 
     // initialize clause pointers
     s->hLearntLast            = -1; // the last learnt clause 
@@ -1244,6 +1258,7 @@ void sat_solver2_delete(sat_solver2* s)
 //    veci_delete(&s->proofs);
     Vec_SetFree( s->pPrf1 );
     Prf_ManStop( s->pPrf2 );
+    Int2_ManStop( s->pInt2 );
 
     // delete arrays
     if (s->vi != 0){

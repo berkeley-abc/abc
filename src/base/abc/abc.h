@@ -689,7 +689,7 @@ extern ABC_DLL Abc_Ntk_t *        Abc_NtkMiterQuantifyPis( Abc_Ntk_t * pNtk );
 extern ABC_DLL int                Abc_NtkMiterIsConstant( Abc_Ntk_t * pMiter );
 extern ABC_DLL void               Abc_NtkMiterReport( Abc_Ntk_t * pMiter );
 extern ABC_DLL Abc_Ntk_t *        Abc_NtkFrames( Abc_Ntk_t * pNtk, int nFrames, int fInitial, int fVerbose );
-extern ABC_DLL int                Abc_NtkCombinePos( Abc_Ntk_t * pNtk, int fAnd );
+extern ABC_DLL int                Abc_NtkCombinePos( Abc_Ntk_t * pNtk, int fAnd, int fXor );
 /*=== abcNames.c ====================================================*/
 extern ABC_DLL char *             Abc_ObjName( Abc_Obj_t * pNode );
 extern ABC_DLL char *             Abc_ObjAssignName( Abc_Obj_t * pObj, char * pName, char * pSuffix );

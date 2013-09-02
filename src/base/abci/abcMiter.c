@@ -1148,7 +1148,7 @@ int Abc_NtkDemiter( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkCombinePos( Abc_Ntk_t * pNtk, int fAnd )
+int Abc_NtkCombinePos( Abc_Ntk_t * pNtk, int fAnd, int fXor )
 {
     Abc_Obj_t * pNode, * pMiter;
     int i;
@@ -1165,6 +1165,8 @@ int Abc_NtkCombinePos( Abc_Ntk_t * pNtk, int fAnd )
     Abc_NtkForEachPo( pNtk, pNode, i )
         if ( fAnd )
             pMiter = Abc_AigAnd( (Abc_Aig_t *)pNtk->pManFunc, pMiter, Abc_ObjChild0(pNode) );
+        else if ( fXor )
+            pMiter = Abc_AigXor( (Abc_Aig_t *)pNtk->pManFunc, pMiter, Abc_ObjChild0(pNode) );
         else
             pMiter = Abc_AigOr( (Abc_Aig_t *)pNtk->pManFunc, pMiter, Abc_ObjChild0(pNode) );
     // remove the POs and their names

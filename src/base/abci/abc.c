@@ -6560,17 +6560,21 @@ int Abc_CommandOrPos( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);//, * pNtkRes;
     int fReverse = 0;
     int fComb = 0;
+    int fXor = 0;
     int c;
-    extern int Abc_NtkCombinePos( Abc_Ntk_t * pNtk, int fAnd );
+    extern int Abc_NtkCombinePos( Abc_Ntk_t * pNtk, int fAnd, int fXor );
 
     // set defaults
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "rh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "rxh" ) ) != EOF )
     {
         switch ( c )
         {
         case 'r':
             fReverse ^= 1;
+            break;
+        case 'x':
+            fXor ^= 1;
             break;
         case 'c':
             fComb ^= 1;
@@ -6612,7 +6616,7 @@ int Abc_CommandOrPos( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     else
     {
-        if ( !Abc_NtkCombinePos( pNtk, 0 ) )
+        if ( !Abc_NtkCombinePos( pNtk, 0, fXor ) )
         {
             Abc_Print( -1, "ORing the POs has failed.\n" );
             return 1;
@@ -6626,9 +6630,10 @@ int Abc_CommandOrPos( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: orpos [-rh]\n" );
+    Abc_Print( -2, "usage: orpos [-rxh]\n" );
     Abc_Print( -2, "\t        creates single-output miter by ORing the POs of the current network\n" );
     Abc_Print( -2, "\t-r    : performs the reverse transform (OR decomposition) [default = %s]\n", fReverse? "yes": "no" );
+    Abc_Print( -2, "\t-x    : toggles combining the PO using XOR [default = %s]\n", fXor? "yes": "no" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;
 }
@@ -6689,7 +6694,7 @@ int Abc_CommandAndPos( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // get the new network
-    if ( !Abc_NtkCombinePos( pNtk, 1 ) )
+    if ( !Abc_NtkCombinePos( pNtk, 1, 0 ) )
     {
         Abc_Print( -1, "ANDing the POs has failed.\n" );
         return 1;
@@ -22100,7 +22105,7 @@ int Abc_CommandBmcInter( Abc_Frame_t * pAbc, int argc, char ** argv )
         {
             Abc_Ntk_t * pNtkNew = Abc_NtkDup( pNtk );
             Abc_Print( 0, "All %d outputs will be ORed together.\n", Abc_NtkPoNum(pNtk) );
-            if ( !Abc_NtkCombinePos( pNtkNew, 0 ) )
+            if ( !Abc_NtkCombinePos( pNtkNew, 0, 0 ) )
             {
                 Abc_NtkDelete( pNtkNew );
                 Abc_Print( -1, "ORing outputs has failed.\n" );
@@ -32953,7 +32958,7 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-//    Gia_Man_t * pTemp = NULL;
+    Gia_Man_t * pTemp = NULL;
     int c, fVerbose = 0;
     int nFrames = 3;
     int fSwitch = 0;
@@ -32973,6 +32978,7 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    extern Gia_Man_t * Bmc_CexTarget( Gia_Man_t * p, int nFrames );
 //    extern void Gia_ManMuxProfiling( Gia_Man_t * p );
 //    extern Gia_Man_t * Mig_ManTest( Gia_Man_t * pGia );
+    extern Gia_Man_t * Gia_ManInterTest( Gia_Man_t * p );
 
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "Fsvh" ) ) != EOF )
@@ -33044,6 +33050,8 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    Gia_ManMuxProfiling( pAbc->pGia );
 //    pTemp = Mig_ManTest( pAbc->pGia );
 //    Abc_FrameUpdateGia( pAbc, pTemp );
+    pTemp = Gia_ManInterTest( pAbc->pGia );
+    Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 usage:
     Abc_Print( -2, "usage: &test [-F num] [-svh]\n" );
