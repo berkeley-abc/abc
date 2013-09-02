@@ -24991,12 +24991,15 @@ int Abc_CommandAbc9Get( Abc_Frame_t * pAbc, int argc, char ** argv )
     Aig_Man_t * pAig;
     Gia_Man_t * pGia, * pTemp;
     char * pInits;
-    int c, fNames = 0, fVerbose = 0;
+    int c, fMapped = 0, fNames = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "nvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "mnvh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'm':
+            fMapped ^= 1;
+            break;
         case 'n':
             fNames ^= 1;
             break;
@@ -25014,17 +25017,26 @@ int Abc_CommandAbc9Get( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( !Abc_NtkIsStrash( pAbc->pNtkCur ) )
     {
-        // derive comb GIA
-        pStrash = Abc_NtkStrash( pAbc->pNtkCur, 0, 1, 0 );
-        pAig = Abc_NtkToDar( pStrash, 0, 0 );
-        Abc_NtkDelete( pStrash );
-        pGia = Gia_ManFromAig( pAig );
-        Aig_ManStop( pAig );
-        // perform undc/zero
-        pInits = Abc_NtkCollectLatchValuesStr( pAbc->pNtkCur );
-        pGia = Gia_ManDupZeroUndc( pTemp = pGia, pInits, fVerbose );
-        Gia_ManStop( pTemp );
-        ABC_FREE( pInits );
+        if ( fMapped )
+        {
+            assert( Abc_NtkIsLogic(pAbc->pNtkCur) );
+            Abc_NtkToAig( pAbc->pNtkCur );
+            pGia = Abc_NtkAigToGia( pAbc->pNtkCur );
+        }
+        else
+        {
+            // derive comb GIA
+            pStrash = Abc_NtkStrash( pAbc->pNtkCur, 0, 1, 0 );
+            pAig = Abc_NtkToDar( pStrash, 0, 0 );
+            Abc_NtkDelete( pStrash );
+            pGia = Gia_ManFromAig( pAig );
+            Aig_ManStop( pAig );
+            // perform undc/zero
+            pInits = Abc_NtkCollectLatchValuesStr( pAbc->pNtkCur );
+            pGia = Gia_ManDupZeroUndc( pTemp = pGia, pInits, fVerbose );
+            Gia_ManStop( pTemp );
+            ABC_FREE( pInits );
+        }
     }
     else
     {
@@ -25045,10 +25057,11 @@ int Abc_CommandAbc9Get( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &get [-nvh] <file>\n" );
+    Abc_Print( -2, "usage: &get [-mnvh] <file>\n" );
     Abc_Print( -2, "\t         converts the current network into GIA and moves it to the &-space\n" );
     Abc_Print( -2, "\t         (if the network is a sequential logic network, normalizes the flops\n" );
     Abc_Print( -2, "\t         to have const-0 initial values, equivalent to \"undc; st; zero\")\n" );
+    Abc_Print( -2, "\t-m     : toggles preserving the current mapping [default = %s]\n", fMapped? "yes": "no" );
     Abc_Print( -2, "\t-n     : toggles saving CI/CO names of the AIG [default = %s]\n", fNames? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggles additional verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");

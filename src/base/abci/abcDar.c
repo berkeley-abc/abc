@@ -777,7 +777,7 @@ Abc_Ntk_t * Abc_NtkFromMappedGia( Gia_Man_t * p )
             printf( "Duplicated %d gates to decouple the CO drivers.\n", nDupGates );
     }
     // remove const node if it is not used
-    if ( Abc_ObjFanoutNum(pConst0) == 0 )
+    if ( !Abc_ObjIsNone(pConst0) && Abc_ObjFanoutNum(pConst0) == 0 )
         Abc_NtkDeleteObj( pConst0 );
 
     assert( Gia_ManPiNum(p) == Abc_NtkPiNum(pNtkNew) );

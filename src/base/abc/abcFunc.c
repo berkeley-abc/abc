@@ -868,6 +868,118 @@ DdNode * Abc_ConvertAigToBdd( DdManager * dd, Hop_Obj_t * pRoot )
 
 
 
+/**Function*************************************************************
+
+  Synopsis    [Converts the network from AIG to GIA representation.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_ConvertAigToGia_rec1( Gia_Man_t * p, Hop_Obj_t * pObj )
+{
+    assert( !Hop_IsComplement(pObj) );
+    if ( !Hop_ObjIsNode(pObj) || Hop_ObjIsMarkA(pObj) )
+        return;
+    Abc_ConvertAigToGia_rec1( p, Hop_ObjFanin0(pObj) ); 
+    Abc_ConvertAigToGia_rec1( p, Hop_ObjFanin1(pObj) );
+    pObj->iData = Gia_ManAppendAnd2( p, Hop_ObjChild0CopyI(pObj), Hop_ObjChild1CopyI(pObj) );
+    assert( !Hop_ObjIsMarkA(pObj) ); // loop detection
+    Hop_ObjSetMarkA( pObj );
+}
+void Abc_ConvertAigToGia_rec2( Hop_Obj_t * pObj )
+{
+    assert( !Hop_IsComplement(pObj) );
+    if ( !Hop_ObjIsNode(pObj) || !Hop_ObjIsMarkA(pObj) )
+        return;
+    Abc_ConvertAigToGia_rec2( Hop_ObjFanin0(pObj) ); 
+    Abc_ConvertAigToGia_rec2( Hop_ObjFanin1(pObj) );
+    assert( Hop_ObjIsMarkA(pObj) ); // loop detection
+    Hop_ObjClearMarkA( pObj );
+}
+int Abc_ConvertAigToGia( Gia_Man_t * p, Hop_Obj_t * pRoot )
+{
+    assert( !Hop_IsComplement(pRoot) );
+    if ( Hop_ObjIsConst1( pRoot ) )
+        return 1;
+    Abc_ConvertAigToGia_rec1( p, pRoot );
+    Abc_ConvertAigToGia_rec2( pRoot );
+    return pRoot->iData;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Converts the network from AIG to BDD representation.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Abc_NtkAigToGia( Abc_Ntk_t * p )
+{
+    Gia_Man_t * pNew;
+    Hop_Man_t * pHopMan;
+    Hop_Obj_t * pHopObj;
+    Vec_Int_t * vMapping;
+    Vec_Ptr_t * vNodes;
+    Abc_Obj_t * pNode, * pFanin;
+    int i, k, nObjs;
+    assert( Abc_NtkIsAigLogic(p) );
+    pHopMan = (Hop_Man_t *)p->pManFunc;
+    // create new manager
+    pNew = Gia_ManStart( 10000 );
+    pNew->pName = Abc_UtilStrsav( Abc_NtkName(p) );
+    Abc_NtkCleanCopy( p );
+    Hop_ManConst1(pHopMan)->iData = 1;
+    // create primary inputs
+    Abc_NtkForEachCi( p, pNode, i )
+        pNode->iTemp = Gia_ManAppendCi(pNew);
+    // find the number of objects
+    nObjs = Abc_NtkCiNum(p) + Abc_NtkCoNum(p);
+    Abc_NtkForEachNode( p, pNode, i )
+        nObjs += 2 + Hop_DagSize( (Hop_Obj_t *)pNode->pData );
+    vMapping = Vec_IntStart( nObjs );
+    // iterate through nodes used in the mapping
+    vNodes = Abc_NtkDfs( p, 0 );
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNode, i )
+    {
+        Abc_ObjForEachFanin( pNode, pFanin, k )
+            Hop_ManPi(pHopMan, k)->iData = pFanin->iTemp;
+        pHopObj = Hop_Regular( (Hop_Obj_t *)pNode->pData );
+        if ( Hop_DagSize(pHopObj) > 0 )
+        {
+            assert( Abc_ObjFaninNum(pNode) <= Hop_ManPiNum(pHopMan) );
+            Abc_ConvertAigToGia( pNew, pHopObj );
+            if ( !Gia_ObjIsAnd(Gia_ManObj(pNew, Abc_Lit2Var(pHopObj->iData))) )
+                continue;
+            if ( Vec_IntEntry(vMapping, Abc_Lit2Var(pHopObj->iData)) )
+                continue;
+            Vec_IntWriteEntry( vMapping, Abc_Lit2Var(pHopObj->iData), Vec_IntSize(vMapping) );
+            Vec_IntPush( vMapping, Abc_ObjFaninNum(pNode) );
+            Abc_ObjForEachFanin( pNode, pFanin, k )
+                Vec_IntPush( vMapping, Abc_Lit2Var(pFanin->iTemp)  );
+            Vec_IntPush( vMapping, Abc_Lit2Var(pHopObj->iData) );
+        }
+        pNode->iTemp = Abc_LitNotCond( pHopObj->iData, Hop_IsComplement( (Hop_Obj_t *)pNode->pData ) );
+    }
+    Vec_PtrFree( vNodes );
+    // create primary outputs
+    Abc_NtkForEachCo( p, pNode, i )
+        Gia_ManAppendCo( pNew, Abc_ObjFanin0(pNode)->iTemp );
+    Gia_ManSetRegNum( pNew, Abc_NtkLatchNum(p) );
+    // finish mapping 
+    assert( Gia_ManObjNum(pNew) <= nObjs );
+    assert( pNew->vMapping == NULL );
+    pNew->vMapping = vMapping;
+    return pNew;
+}
+
 
 /**Function*************************************************************
 
