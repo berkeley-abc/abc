@@ -941,9 +941,9 @@ Gia_Man_t * Abc_NtkAigToGia( Abc_Ntk_t * p )
     Abc_NtkForEachCi( p, pNode, i )
         pNode->iTemp = Gia_ManAppendCi(pNew);
     // find the number of objects
-    nObjs = Abc_NtkCiNum(p) + Abc_NtkCoNum(p);
+    nObjs = 1 + Abc_NtkCiNum(p) + Abc_NtkCoNum(p);
     Abc_NtkForEachNode( p, pNode, i )
-        nObjs += 2 + Hop_DagSize( (Hop_Obj_t *)pNode->pData );
+        nObjs += Hop_DagSize( (Hop_Obj_t *)pNode->pData );
     vMapping = Vec_IntStart( nObjs );
     // iterate through nodes used in the mapping
     vNodes = Abc_NtkDfs( p, 0 );
