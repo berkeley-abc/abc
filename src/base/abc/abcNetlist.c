@@ -153,8 +153,7 @@ Abc_Ntk_t * Abc_NtkLogicToNetlist( Abc_Ntk_t * pNtk )
     assert( Abc_NtkIsLogic(pNtk) );
 
     // remove dangling nodes
-    if ( pNtk->vRealNodes == NULL )
-        Abc_NtkCleanup( pNtk, 0 );
+    Abc_NtkCleanup( pNtk, 0 );
 
     // make sure the CO names are unique
     Abc_NtkCheckUniqueCiNames( pNtk );
@@ -222,16 +221,6 @@ Abc_Ntk_t * Abc_NtkLogicToNetlist( Abc_Ntk_t * pNtk )
     Abc_NtkForEachNode( pNtk, pObj, i )
         Abc_ObjForEachFanin( pObj, pFanin, k )
             Abc_ObjAddFanin( pObj->pCopy, pFanin->pCopy->pCopy );
-    // remap the real nodess
-    if ( pNtk->vRealNodes )
-    {
-        assert( pNtkNew->vRealNodes == NULL );
-        pNtkNew->vRealNodes = Vec_IntAlloc( Vec_IntSize(pNtk->vRealNodes) );
-        Abc_NtkForEachObjVec( pNtk->vRealNodes, pNtk, pObj, i )
-            Vec_IntPush( pNtkNew->vRealNodes, Abc_ObjId(pObj->pCopy) );
-        assert( Vec_IntSize(pNtk->vRealNodes) == Vec_IntSize(pNtkNew->vRealNodes) );
-    }
-
     // duplicate EXDC 
     if ( pNtk->pExdc )
         pNtkNew->pExdc = Abc_NtkToNetlist( pNtk->pExdc );

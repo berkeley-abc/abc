@@ -630,7 +630,7 @@ float If_CutDelay( If_Man_t * p, If_Obj_t * pObj, If_Cut_t * pCut )
     If_Obj_t * pLeaf;
     float Delay, DelayCur;
     float * pLutDelays;
-    int i, Shift, Pin2PinDelay, iLeaf;
+    int i, Shift, Pin2PinDelay;//, iLeaf;
     assert( p->pPars->fSeqMap || pCut->nLeaves > 1 );
     Delay = -IF_FLOAT_LARGE;
     if ( p->pPars->pLutLib )
@@ -651,9 +651,9 @@ float If_CutDelay( If_Man_t * p, If_Obj_t * pObj, If_Cut_t * pCut )
         {
             If_CutForEachLeaf( p, pCut, pLeaf, i )
             {
-                if ( p->pDriverCuts && p->pDriverCuts[pObj->Id] && (iLeaf = Vec_IntFind(p->pDriverCuts[pObj->Id], pLeaf->Id)) >= 0 )
-                    DelayCur = If_ObjCutBest(pLeaf)->Delay + s_ExtraDel[pObj->fDriver][iLeaf];
-                else
+//                if ( p->pDriverCuts && p->pDriverCuts[pObj->Id] && (iLeaf = Vec_IntFind(p->pDriverCuts[pObj->Id], pLeaf->Id)) >= 0 )
+//                    DelayCur = If_ObjCutBest(pLeaf)->Delay + s_ExtraDel[pObj->fDriver][iLeaf];
+//                else
                     DelayCur = If_ObjCutBest(pLeaf)->Delay + pLutDelays[0];
                 Delay = IF_MAX( Delay, DelayCur );
             }
@@ -685,9 +685,9 @@ float If_CutDelay( If_Man_t * p, If_Obj_t * pObj, If_Cut_t * pCut )
             {
                 If_CutForEachLeaf( p, pCut, pLeaf, i )
                 {
-                    if ( p->pDriverCuts && p->pDriverCuts[pObj->Id] && (iLeaf = Vec_IntFind(p->pDriverCuts[pObj->Id], pLeaf->Id)) >= 0 )
-                        DelayCur = If_ObjCutBest(pLeaf)->Delay + ((pObj->fDriver && iLeaf == 2) ? 0.0 : 1.0);
-                    else
+//                    if ( p->pDriverCuts && p->pDriverCuts[pObj->Id] && (iLeaf = Vec_IntFind(p->pDriverCuts[pObj->Id], pLeaf->Id)) >= 0 )
+//                        DelayCur = If_ObjCutBest(pLeaf)->Delay + ((pObj->fDriver && iLeaf == 2) ? 0.0 : 1.0);
+//                    else
                         DelayCur = If_ObjCutBest(pLeaf)->Delay + 1.0;
                     Delay = IF_MAX( Delay, DelayCur );
                 }
@@ -715,7 +715,7 @@ void If_CutPropagateRequired( If_Man_t * p, If_Obj_t * pObj, If_Cut_t * pCut, fl
     If_Obj_t * pLeaf;
     float * pLutDelays;
     float Required;
-    int i, Pin2PinDelay, iLeaf;
+    int i, Pin2PinDelay;//, iLeaf;
     assert( !p->pPars->fLiftLeaves );
     // compute the pins
     if ( p->pPars->pLutLib )
@@ -737,9 +737,9 @@ void If_CutPropagateRequired( If_Man_t * p, If_Obj_t * pObj, If_Cut_t * pCut, fl
             Required = ObjRequired;
             If_CutForEachLeaf( p, pCut, pLeaf, i )
             {
-                if ( p->pDriverCuts && p->pDriverCuts[pObj->Id] && (iLeaf = Vec_IntFind(p->pDriverCuts[pObj->Id], pLeaf->Id)) >= 0 )
-                    pLeaf->Required = IF_MIN( pLeaf->Required, Required - s_ExtraDel[pObj->fDriver][iLeaf] );
-                else
+//                if ( p->pDriverCuts && p->pDriverCuts[pObj->Id] && (iLeaf = Vec_IntFind(p->pDriverCuts[pObj->Id], pLeaf->Id)) >= 0 )
+//                    pLeaf->Required = IF_MIN( pLeaf->Required, Required - s_ExtraDel[pObj->fDriver][iLeaf] );
+//                else
                     pLeaf->Required = IF_MIN( pLeaf->Required, Required - pLutDelays[0] );
             }
         }
@@ -760,9 +760,9 @@ void If_CutPropagateRequired( If_Man_t * p, If_Obj_t * pObj, If_Cut_t * pCut, fl
             Required = ObjRequired;
             If_CutForEachLeaf( p, pCut, pLeaf, i )
             {
-                if ( p->pDriverCuts && p->pDriverCuts[pObj->Id] && (iLeaf = Vec_IntFind(p->pDriverCuts[pObj->Id], pLeaf->Id)) >= 0 )
-                    pLeaf->Required = IF_MIN( pLeaf->Required, Required - (float)((pObj->fDriver && iLeaf == 2) ? 0.0 : 1.0) );
-                else
+//                if ( p->pDriverCuts && p->pDriverCuts[pObj->Id] && (iLeaf = Vec_IntFind(p->pDriverCuts[pObj->Id], pLeaf->Id)) >= 0 )
+//                    pLeaf->Required = IF_MIN( pLeaf->Required, Required - (float)((pObj->fDriver && iLeaf == 2) ? 0.0 : 1.0) );
+//                else
                     pLeaf->Required = IF_MIN( pLeaf->Required, Required - (float)1.0 );
             }
         }

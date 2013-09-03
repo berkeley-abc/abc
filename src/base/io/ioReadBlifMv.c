@@ -120,7 +120,7 @@ static Io_MvVar_t *      Abc_NtkMvVarDup( Abc_Ntk_t * pNtk, Io_MvVar_t * pVar );
 static int               Io_MvCharIsSpace( char s )  { return s == ' ' || s == '\t' || s == '\r' || s == '\n';  }
 static int               Io_MvCharIsMvSymb( char s ) { return s == '(' || s == ')' || s == '{' || s == '}' || s == '-' || s == ',' || s == '!';  }
 
-static Vec_Vec_t *       Io_MvExtractBoxInfo( Abc_Ntk_t * pNtk );
+//static Vec_Vec_t *       Io_MvExtractBoxInfo( Abc_Ntk_t * pNtk );
 
 extern void              Abc_NtkStartMvVars( Abc_Ntk_t * pNtk );
 
@@ -253,7 +253,7 @@ Abc_Ntk_t * Io_ReadBlifMv( char * pFileName, int fBlifMv, int fCheck )
         Vec_PtrPush( pNtk->vLtlProperties, pLtlProp );
     Vec_PtrFreeP( &vGlobalLtlArray );
 
-    pNtk->vRealPos = Io_MvExtractBoxInfo( pNtk );
+//    pNtk->vRealPos = Io_MvExtractBoxInfo( pNtk );
     return pNtk;
 }
 
@@ -994,7 +994,6 @@ static int Io_MvParseLineOutputs( Io_MvMod_t * p, char * pLine )
     Vec_Ptr_t * vTokens = p->pMan->vTokens;
     char * pToken;
     int i;
-    p->pNtk->nRealPos = Abc_NtkPoNum(p->pNtk);
     Io_MvSplitIntoTokens( vTokens, pLine, '\0' );
     pToken = (char *)Vec_PtrEntry(vTokens, 0);
     assert( !strcmp(pToken, "outputs") );
@@ -2231,242 +2230,6 @@ static inline int Abc_MapBox2Prev( Vec_Ptr_t * vDrivers, Vec_Int_t * vMapIn, Vec
 {
     Abc_Obj_t * pNode = (Abc_Obj_t *)Vec_PtrEntry(vDrivers, Id+2);
     return Vec_IntEntry( vMapOut, Abc_ObjId(Abc_ObjFanin0(Abc_ObjFanin0(pNode))) );
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-static Vec_Vec_t * Io_MvExtractBoxInfo_( Abc_Ntk_t * pNtk )
-{
-    Vec_Int_t * vMapIn, * vMapOut, * vList;
-    Vec_Ptr_t * vBoxInfo, * vDrivers;
-    Abc_Obj_t * pObj;
-    int i, boxId;
-
-    // quit if there is no boxes
-    if ( pNtk->nRealPos == 0 || (Abc_NtkPoNum(pNtk) - pNtk->nRealPos) % 5 != 0 )
-        return NULL;
-
-    // allocate
-    vBoxInfo = Vec_PtrAlloc( 10 );
-    vDrivers = Vec_PtrAlloc( Abc_NtkPoNum(pNtk) );
-    vMapIn   = Vec_IntStartFull( Abc_NtkObjNumMax(pNtk) );
-    vMapOut  = Vec_IntStartFull( Abc_NtkObjNumMax(pNtk) );
-
-    // collect drivers
-    Abc_NtkForEachPo( pNtk, pObj, i )
-        Vec_PtrPush( vDrivers, Abc_ObjFanin0(Abc_ObjFanin0(pObj)) );
-
-    // map box signals into box numbers            
-    for ( i = pNtk->nRealPos; i < Abc_NtkPoNum(pNtk); i += 5 )
-    {
-//        int k;
-//        for ( k = 0; k < 5; k++ )
-//            printf( "%d ", Abc_ObjFanin0(Abc_ObjFanin0(Abc_ObjFanin0(Abc_NtkPo(pNtk,i+k))))->Id );
-//        printf( "\n" );
-        Abc_MapBoxSetPrevNext( vDrivers, vMapIn, vMapOut, i );
-    }
-
-    // find those that do not have input mapped
-    for ( i = pNtk->nRealPos; i < Abc_NtkPoNum(pNtk); i += 5 )
-    {
-        if ( Abc_MapBox2Prev( vDrivers, vMapIn, vMapOut, i ) != ~0 )
-            continue;
-        // create new list
-        vList = Vec_IntAlloc( 32 );
-        boxId = i;
-        while ( boxId != ~0 )
-        {
-            Vec_IntPush( vList, boxId );
-            boxId = Abc_MapBox2Next( vDrivers, vMapIn, vMapOut, boxId );
-        }
-        Vec_PtrPush( vBoxInfo, vList );
-//printf( " %d", Vec_IntSize(vList) );
-    }
-//printf( "\n" );
-    if ( 5 * Vec_VecSizeSize((Vec_Vec_t *)vBoxInfo) != (Abc_NtkPoNum(pNtk) - pNtk->nRealPos) )
-        printf( "Mismatch in the number of boxes!!!\n" );
-
-    // clean up
-    Vec_IntFree( vMapIn );
-    Vec_IntFree( vMapOut );
-    Vec_PtrFree( vDrivers );
-    return (Vec_Vec_t *)vBoxInfo;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Compares strings up to the first underscore.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Io_MvExtractCompareStr( char * pName1, char * pName2 )
-{
-    while ( *pName1 && *pName1 != '_' && (*pName1 == *pName2) )
-        pName1++, pName2++;
-    return *pName1 - *pName2;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Returns the first number of the string.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Io_MvExtractReadNum1( char * pName )
-{
-    while ( *pName && (*pName < '0' || *pName > '9') )
-        pName++;
-    if ( *pName == 0 )
-        return -1;
-    return atoi( pName );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Returns the second number of the string.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Io_MvExtractReadNum2( char * pName )
-{
-    int Counter = 0;
-    while ( *pName )
-    {
-        Counter += (*pName++ == '_');
-        if ( Counter == 2 )
-            break;
-    }
-    if ( *pName == 0 )
-        return -1;
-    return atoi( pName );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Procedure used for sorting the nodes in decreasing order of levels.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Io_MvExtractCompareNames( Abc_Obj_t ** pp1, Abc_Obj_t ** pp2 )
-{
-    char * pName1 = (char *)(*pp1)->pCopy;
-    char * pName2 = (char *)(*pp2)->pCopy;
-//    int Diff = Io_MvExtractReadNum1(pName1) - Io_MvExtractReadNum1(pName2);
-    int Diff = Io_MvExtractCompareStr( pName1, pName2 );
-    if ( Diff < 0 )
-        return -1;
-    if ( Diff > 0 ) 
-        return 1;
-    Diff = Io_MvExtractReadNum2(pName1) - Io_MvExtractReadNum2(pName2);
-    if ( Diff < 0 )
-        return -1;
-    if ( Diff > 0 ) 
-        return 1;
-    return 0; 
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-static Vec_Vec_t * Io_MvExtractBoxInfo( Abc_Ntk_t * pNtk )
-{
-    int fVerbose = 0;
-    Vec_Vec_t * vBoxInfo = NULL;
-    Vec_Ptr_t * vPetals;
-    Abc_Obj_t * pObj;
-    char * pPrev, * pThis;
-    int i, Level;
-
-    // quit if there is no boxes
-    if ( pNtk->nRealPos == 0 || (Abc_NtkPoNum(pNtk) - pNtk->nRealPos) % 5 != 0 )
-        return NULL;
-
-    // transfer names
-    Abc_NtkForEachPo( pNtk, pObj, i )
-    {
-        pObj->pCopy = (Abc_Obj_t *)Abc_ObjName( Abc_ObjFanin0(pObj) );
-        pObj->iData = i;
-    }
-
-    // collect POs
-    vPetals = Vec_PtrAlloc( Abc_NtkPoNum(pNtk) );
-    for ( i = pNtk->nRealPos; i < Abc_NtkPoNum(pNtk); i += 5 )
-        Vec_PtrPush( vPetals, Abc_NtkPo(pNtk, i) );
-
-    // sort by name
-    qsort( (void *)Vec_PtrArray(vPetals), Vec_PtrSize(vPetals), sizeof(Abc_Obj_t *), 
-        (int (*)(const void *, const void *)) Io_MvExtractCompareNames );
-
-    // sort the POs
-    Level = -1;
-    pPrev = "dummy";
-    vBoxInfo = Vec_VecAlloc( 32 );
-    Vec_PtrForEachEntry( Abc_Obj_t *, vPetals, pObj, i )
-    {
-        pThis = (char *)pObj->pCopy;
-        if ( Io_MvExtractCompareStr( pPrev, pThis ) )
-        {
-            Level++;
-            if ( fVerbose )
-                printf( "\n" );
-        }
-        Vec_VecPushInt( vBoxInfo, Level, pObj->iData );
-        if ( fVerbose )
-            printf( "%s ", (char *)pObj->pCopy );
-        pPrev = pThis;
-    }
-    if ( fVerbose )
-        printf( "\n" );
-    if ( 5 * Vec_VecSizeSize(vBoxInfo) != (Abc_NtkPoNum(pNtk) - pNtk->nRealPos) )
-        printf( "Mismatch in the number of boxes!!!\n" );
-
-    // clean up
-    Vec_PtrFree( vPetals );
-
-    // remove names
-    Abc_NtkForEachPo( pNtk, pObj, i )
-    {
-        pObj->pCopy = NULL;
-        pObj->iData = 0;
-    }
-    return vBoxInfo;
 }
 
 ////////////////////////////////////////////////////////////////////////

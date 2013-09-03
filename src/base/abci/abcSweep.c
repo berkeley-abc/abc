@@ -972,13 +972,6 @@ int Abc_NtkSweepBufsInvs( Abc_Ntk_t * pNtk, int fVerbose )
     pMan = (Hop_Man_t *)pNtk->pManFunc;
     // label selected nodes
     Abc_NtkIncrementTravId( pNtk );
-    if ( pNtk->vRealNodes )
-    {
-        Abc_Obj_t * pObj;
-        assert( Vec_IntSize(pNtk->vRealNodes) == Abc_NtkPoNum(pNtk) - pNtk->nRealPos );
-        Abc_NtkForEachObjVec( pNtk->vRealNodes, pNtk, pObj, i )
-            Abc_NodeSetTravIdCurrent( pObj );
-    }
     // iterate till no improvement
     while ( fChanges )
     {

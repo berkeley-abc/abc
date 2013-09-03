@@ -15378,7 +15378,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     fLutMux = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KCFAGNDEWSqaflepmrsdbugyojikcnvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KCFAGNDEWSqaflepmrsdbugyojiknvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -15550,9 +15550,6 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'k':
             pPars->fEnableCheck10 ^= 1;
-            break;
-        case 'c':
-            pPars->fEnableRealPos ^= 1;
             break;
         case 'n':
             pPars->fUseDsd ^= 1;
@@ -15847,7 +15844,6 @@ usage:
     Abc_Print( -2, "\t-j       : toggles enabling additional check [default = %s]\n", pPars->fEnableCheck07? "yes": "no" );
     Abc_Print( -2, "\t-i       : toggles enabling additional check [default = %s]\n", pPars->fEnableCheck08? "yes": "no" );
     Abc_Print( -2, "\t-k       : toggles enabling additional check [default = %s]\n", pPars->fEnableCheck10? "yes": "no" );
-    Abc_Print( -2, "\t-c       : toggles enabling additional feature [default = %s]\n", pPars->fEnableRealPos? "yes": "no" );
     Abc_Print( -2, "\t-n       : toggles computing DSDs of the cut functions [default = %s]\n", pPars->fUseDsd? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : prints the command usage\n");
@@ -29225,7 +29221,7 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     pPars->pLutLib = (If_LibLut_t *)pAbc->pLibLut;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KCFAGDEWSqalepmrsdbgyojikfuczvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KCFAGDEWSqalepmrsdbgyojikfuzvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -29386,9 +29382,6 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'u':
             pPars->fEnableCheck75u ^= 1;
-            break;
-        case 'c':
-            pPars->fEnableRealPos ^= 1;
             break;
         case 'z':
             pPars->fDeriveLuts ^= 1;
@@ -29616,7 +29609,6 @@ usage:
     Abc_Print( -2, "\t-k       : toggles enabling additional check [default = %s]\n", pPars->fEnableCheck10? "yes": "no" );
     Abc_Print( -2, "\t-f       : toggles enabling additional check [default = %s]\n", pPars->fEnableCheck75? "yes": "no" );
     Abc_Print( -2, "\t-u       : toggles enabling additional check [default = %s]\n", pPars->fEnableCheck75u? "yes": "no" );
-    Abc_Print( -2, "\t-c       : toggles enabling additional feature [default = %s]\n", pPars->fEnableRealPos? "yes": "no" );
     Abc_Print( -2, "\t-z       : toggles deriving LUTs when mapping into LUT structures [default = %s]\n", pPars->fDeriveLuts? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : prints the command usage\n");

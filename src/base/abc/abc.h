@@ -171,10 +171,6 @@ struct Abc_Ntk_t_
     int nObjCounts[ABC_OBJ_NUMBER];  // the number of objects by type
     int               nObjs;         // the number of live objs
     int               nConstrs;      // the number of constraints
-    int               nRealPos;      // the number of real POs
-    float             nRealDelay;    // temporary mapping data
-    float             nRealLuts;     // temporary mapping data
-    float             nRealArea;     // temporary mapping data
     // the backup network and the step number
     Abc_Ntk_t *       pNetBackup;    // the pointer to the previous backup network
     int               iStep;         // the generation number for the given network
@@ -212,8 +208,6 @@ struct Abc_Ntk_t_
     float *           pLutTimes;     // arrivals/requireds/slacks using LUT-delay model
     Vec_Ptr_t *       vOnehots;      // names of one-hot-encoded registers
     Vec_Int_t *       vObjPerm;      // permutation saved
-    Vec_Vec_t *       vRealPos;      // additional PO info
-    Vec_Int_t *       vRealNodes;    // additional PO info
     Vec_Int_t *       vTopo;
     // node attributes
     Vec_Ptr_t *       vAttrs;        // managers of various node attributes (node functionality, global BDDs, etc)
