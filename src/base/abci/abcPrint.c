@@ -193,7 +193,7 @@ float Abc_NtkGetArea( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkPrintStats( Abc_Ntk_t * pNtk, int fFactored, int fSaveBest, int fDumpResult, int fUseLutLib, int fPrintMuxes, int fPower, int fGlitch )
+void Abc_NtkPrintStats( Abc_Ntk_t * pNtk, int fFactored, int fSaveBest, int fDumpResult, int fUseLutLib, int fPrintMuxes, int fPower, int fGlitch, int fSkipBuf )
 {
     if ( fPrintMuxes && Abc_NtkIsStrash(pNtk) )
     {
@@ -242,7 +242,7 @@ void Abc_NtkPrintStats( Abc_Ntk_t * pNtk, int fFactored, int fSaveBest, int fDum
     }
     else
     {
-        Abc_Print( 1,"  nd =%6d", Abc_NtkNodeNum(pNtk) );
+        Abc_Print( 1,"  nd =%6d", Abc_NtkNodeNum(pNtk) - (fSkipBuf ? Abc_NtkGetBufNum(pNtk) : 0) );
         Abc_Print( 1,"  edge =%7d", Abc_NtkGetTotalFanins(pNtk) );
     }
 
@@ -386,7 +386,7 @@ void Abc_NtkPrintStats( Abc_Ntk_t * pNtk, int fFactored, int fSaveBest, int fDum
 
     fflush( stdout );
     if ( pNtk->pExdc )
-        Abc_NtkPrintStats( pNtk->pExdc, fFactored, fSaveBest, fDumpResult, fUseLutLib, fPrintMuxes, fPower, fGlitch );
+        Abc_NtkPrintStats( pNtk->pExdc, fFactored, fSaveBest, fDumpResult, fUseLutLib, fPrintMuxes, fPower, fGlitch, fSkipBuf );
 }
 
 /**Function*************************************************************

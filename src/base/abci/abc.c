@@ -1046,6 +1046,7 @@ int Abc_CommandPrintStats( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fPrintMuxes;
     int fPower;
     int fGlitch;
+    int fSkipBuf;
     int c;
 
     pNtk = Abc_FrameReadNtk(pAbc);
@@ -1059,8 +1060,9 @@ int Abc_CommandPrintStats( Abc_Frame_t * pAbc, int argc, char ** argv )
     fPrintMuxes = 0;
     fPower = 0;
     fGlitch = 0;
+    fSkipBuf = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "fbdltmpgh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "fbdltmpgsh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -1088,6 +1090,9 @@ int Abc_CommandPrintStats( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'g':
             fGlitch ^= 1;
             break;
+        case 's':
+            fSkipBuf ^= 1;
+            break;
         case 'h':
             goto usage;
         default:
@@ -1105,7 +1110,7 @@ int Abc_CommandPrintStats( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Cannot print LUT delay for a non-logic network.\n" );
         return 1;
     }
-    Abc_NtkPrintStats( pNtk, fFactor, fSaveBest, fDumpResult, fUseLutLib, fPrintMuxes, fPower, fGlitch );
+    Abc_NtkPrintStats( pNtk, fFactor, fSaveBest, fDumpResult, fUseLutLib, fPrintMuxes, fPower, fGlitch, fSkipBuf );
     if ( fPrintTime )
     {
         pAbc->TimeTotal += pAbc->TimeCommand;
@@ -1115,7 +1120,7 @@ int Abc_CommandPrintStats( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: print_stats [-fbdltmpgh]\n" );
+    Abc_Print( -2, "usage: print_stats [-fbdltmpgsh]\n" );
     Abc_Print( -2, "\t        prints the network statistics\n" );
     Abc_Print( -2, "\t-f    : toggles printing the literal count in the factored forms [default = %s]\n", fFactor? "yes": "no" );
     Abc_Print( -2, "\t-b    : toggles saving the best logic network in \"best.blif\" [default = %s]\n", fSaveBest? "yes": "no" );
@@ -1124,7 +1129,8 @@ usage:
     Abc_Print( -2, "\t-t    : toggles printing runtime statistics [default = %s]\n", fPrintTime? "yes": "no" );
     Abc_Print( -2, "\t-m    : toggles printing MUX statistics [default = %s]\n", fPrintMuxes? "yes": "no" );
     Abc_Print( -2, "\t-p    : toggles printing power dissipation due to switching [default = %s]\n", fPower? "yes": "no" );
-    Abc_Print( -2, "\t-q    : toggles printing percentage of increased power due to glitching [default = %s]\n", fGlitch? "yes": "no" );
+    Abc_Print( -2, "\t-g    : toggles printing percentage of increased power due to glitching [default = %s]\n", fGlitch? "yes": "no" );
+    Abc_Print( -2, "\t-s    : toggles not counting single-output nodes as nodes [default = %s]\n", fSkipBuf? "yes": "no" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;
 }
@@ -1205,7 +1211,7 @@ int Abc_CommandPrintExdc( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     else
         Abc_Print( 1, "EXDC network statistics: \n" );
-    Abc_NtkPrintStats( pNtk->pExdc, 0, 0, 0, 0, 0, 0, 0 );
+    Abc_NtkPrintStats( pNtk->pExdc, 0, 0, 0, 0, 0, 0, 0, 0 );
     return 0;
 
 usage:

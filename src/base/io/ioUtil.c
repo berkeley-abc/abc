@@ -261,8 +261,6 @@ Abc_Ntk_t * Io_Read( char * pFileName, Io_FileType_t FileType, int fCheck )
     // consider the case of BLIF-MV
     if ( Io_ReadFileType(pFileName) == IO_FILE_BLIFMV )
     {
-//Abc_NtkPrintStats( stdout, pNtk, 0 );
-//    Io_WriteBlifMv( pNtk, "_temp_.mv" );
         pNtk = Abc_NtkStrashBlifMv( pTemp = pNtk );
         Abc_NtkDelete( pTemp );
         if ( pNtk == NULL )
