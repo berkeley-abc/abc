@@ -195,12 +195,13 @@ float Abc_NtkGetArea( Abc_Ntk_t * pNtk )
 ***********************************************************************/
 void Abc_NtkPrintStats( Abc_Ntk_t * pNtk, int fFactored, int fSaveBest, int fDumpResult, int fUseLutLib, int fPrintMuxes, int fPower, int fGlitch, int fSkipBuf )
 {
+    int nSingles = fSkipBuf ? Abc_NtkGetBufNum(pNtk) : 0;
     if ( fPrintMuxes && Abc_NtkIsStrash(pNtk) )
     {
         extern int Abc_NtkCountMuxes( Abc_Ntk_t * pNtk );
         int nXors = Abc_NtkGetExorNum(pNtk);
         int nMuxs = Abc_NtkCountMuxes(pNtk) - nXors;
-        int nAnds = Abc_NtkNodeNum(pNtk) - (nMuxs + nXors) * 3;
+        int nAnds = Abc_NtkNodeNum(pNtk) - (nMuxs + nXors) * 3 - nSingles;
         Abc_Print( 1, "XMA stats:  " );
         Abc_Print( 1,"Xor =%7d (%6.2f %%)  ", nXors, 300.0 * nXors / Abc_NtkNodeNum(pNtk) );
         Abc_Print( 1,"Mux =%7d (%6.2f %%)  ", nMuxs, 300.0 * nMuxs / Abc_NtkNodeNum(pNtk) );
@@ -230,7 +231,7 @@ void Abc_NtkPrintStats( Abc_Ntk_t * pNtk, int fFactored, int fSaveBest, int fDum
     if ( Abc_NtkIsNetlist(pNtk) )
     {
         Abc_Print( 1,"  net =%5d", Abc_NtkNetNum(pNtk) );
-        Abc_Print( 1,"  nd =%5d",  Abc_NtkNodeNum(pNtk) );
+        Abc_Print( 1,"  nd =%5d",  Abc_NtkNodeNum(pNtk) - nSingles );
         Abc_Print( 1,"  wbox =%3d", Abc_NtkWhiteboxNum(pNtk) );
         Abc_Print( 1,"  bbox =%3d", Abc_NtkBlackboxNum(pNtk) );
     }
@@ -242,8 +243,8 @@ void Abc_NtkPrintStats( Abc_Ntk_t * pNtk, int fFactored, int fSaveBest, int fDum
     }
     else
     {
-        Abc_Print( 1,"  nd =%6d", Abc_NtkNodeNum(pNtk) - (fSkipBuf ? Abc_NtkGetBufNum(pNtk) : 0) );
-        Abc_Print( 1,"  edge =%7d", Abc_NtkGetTotalFanins(pNtk) );
+        Abc_Print( 1,"  nd =%6d", Abc_NtkNodeNum(pNtk) - nSingles );
+        Abc_Print( 1,"  edge =%7d", Abc_NtkGetTotalFanins(pNtk) - nSingles );
     }
 
     if ( Abc_NtkIsStrash(pNtk) || Abc_NtkIsNetlist(pNtk) )
@@ -252,16 +253,16 @@ void Abc_NtkPrintStats( Abc_Ntk_t * pNtk, int fFactored, int fSaveBest, int fDum
     else if ( Abc_NtkHasSop(pNtk) )
     {
 
-        Abc_Print( 1,"  cube =%6d",  Abc_NtkGetCubeNum(pNtk) );
+        Abc_Print( 1,"  cube =%6d",  Abc_NtkGetCubeNum(pNtk) - nSingles );
         if ( fFactored )
-            Abc_Print( 1,"  lit(sop) =%6d",  Abc_NtkGetLitNum(pNtk) );
+            Abc_Print( 1,"  lit(sop) =%6d",  Abc_NtkGetLitNum(pNtk) - nSingles );
         if ( fFactored )
-            Abc_Print( 1,"  lit(fac) =%6d",  Abc_NtkGetLitFactNum(pNtk) );
+            Abc_Print( 1,"  lit(fac) =%6d",  Abc_NtkGetLitFactNum(pNtk) - nSingles );
     }
     else if ( Abc_NtkHasAig(pNtk) )
-        Abc_Print( 1,"  aig  =%6d",  Abc_NtkGetAigNodeNum(pNtk) );
+        Abc_Print( 1,"  aig  =%6d",  Abc_NtkGetAigNodeNum(pNtk) - nSingles );
     else if ( Abc_NtkHasBdd(pNtk) )
-        Abc_Print( 1,"  bdd  =%6d",  Abc_NtkGetBddNodeNum(pNtk) );
+        Abc_Print( 1,"  bdd  =%6d",  Abc_NtkGetBddNodeNum(pNtk) - nSingles );
     else if ( Abc_NtkHasMapping(pNtk) )
     {
         Abc_Print( 1,"  area =%5.2f", Abc_NtkGetMappedArea(pNtk) );
@@ -296,13 +297,6 @@ void Abc_NtkPrintStats( Abc_Ntk_t * pNtk, int fFactored, int fSaveBest, int fDum
             printf( "\nCurrently computes glitching only for K-LUT networks with K <= 6." );
     }
     Abc_Print( 1,"\n" );
-
-    {
-//        extern int Abc_NtkPrintSubraphSizes( Abc_Ntk_t * pNtk );
-//        Abc_NtkPrintSubraphSizes( pNtk );
-    }
-
-//    Abc_NtkCrossCut( pNtk );
 
     // print the statistic into a file
 /*
