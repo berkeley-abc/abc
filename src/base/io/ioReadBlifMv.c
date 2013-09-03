@@ -120,8 +120,6 @@ static Io_MvVar_t *      Abc_NtkMvVarDup( Abc_Ntk_t * pNtk, Io_MvVar_t * pVar );
 static int               Io_MvCharIsSpace( char s )  { return s == ' ' || s == '\t' || s == '\r' || s == '\n';  }
 static int               Io_MvCharIsMvSymb( char s ) { return s == '(' || s == ')' || s == '{' || s == '}' || s == '-' || s == ',' || s == '!';  }
 
-//static Vec_Vec_t *       Io_MvExtractBoxInfo( Abc_Ntk_t * pNtk );
-
 extern void              Abc_NtkStartMvVars( Abc_Ntk_t * pNtk );
 
 ////////////////////////////////////////////////////////////////////////
@@ -252,8 +250,6 @@ Abc_Ntk_t * Io_ReadBlifMv( char * pFileName, int fBlifMv, int fCheck )
     Vec_PtrForEachEntry( char *, vGlobalLtlArray, pLtlProp, i )
         Vec_PtrPush( pNtk->vLtlProperties, pLtlProp );
     Vec_PtrFreeP( &vGlobalLtlArray );
-
-//    pNtk->vRealPos = Io_MvExtractBoxInfo( pNtk );
     return pNtk;
 }
 

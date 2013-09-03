@@ -192,7 +192,6 @@ struct If_Man_t_
     int                fNextRound;    // set to 1 after the first round
     int                nChoices;      // the number of choice nodes
     Vec_Int_t *        vSwitching;    // switching activity of each node
-//    Vec_Int_t **       pDriverCuts;   // temporary driver cuts
     int                pPerm[3][IF_MAX_LUTSIZE]; // permutations
     unsigned           uSharedMask;   // mask of shared variables
     int                nShared;       // the number of shared variables

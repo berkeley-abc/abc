@@ -140,10 +140,6 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
     If_Set_t * pCutSet;
     If_Cut_t * pCut0, * pCut1, * pCut;
     int i, k;
-
-//    assert( p->pPars->fSeqMap || !If_ObjIsAnd(pObj->pFanin0) || pObj->pFanin0->pCutSet->nCuts > 1 );
-//    assert( p->pPars->fSeqMap || !If_ObjIsAnd(pObj->pFanin1) || pObj->pFanin1->pCutSet->nCuts > 1 );
-
     assert( p->pPars->fSeqMap || !If_ObjIsAnd(pObj->pFanin0) || pObj->pFanin0->pCutSet->nCuts > 0 );
     assert( p->pPars->fSeqMap || !If_ObjIsAnd(pObj->pFanin1) || pObj->pFanin1->pCutSet->nCuts > 0 );
 
@@ -155,39 +151,6 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
         else if ( Mode == 1 )
             pObj->EstRefs = (float)((2.0 * pObj->EstRefs + pObj->nRefs) / 3.0);
     }
-/*
-    // process special cut
-    if ( p->pDriverCuts && p->pDriverCuts[pObj->Id] )
-    {
-        pCut = If_ObjCutBest(pObj);
-        if ( pCut->nLeaves == 0 )
-        {
-            pCut->nLeaves = Vec_IntSize( p->pDriverCuts[pObj->Id] );
-            Vec_IntForEachEntry( p->pDriverCuts[pObj->Id], k, i )
-                pCut->pLeaves[i] = k;
-            assert( pCut->pLeaves[0] <= pCut->pLeaves[1] );
-//            if ( pObj->nRefs > 0 )
-//                If_CutAreaRef( p, pCut );
-        }
-        pCut->Delay = If_CutDelaySpecial( p, pCut, pObj->fDriver );
-        pCut->Area  = (Mode == 2)? 1 : If_CutAreaFlow( p, pCut );
-        if ( p->pPars->fEdge )
-            pCut->Edge = (Mode == 2)? 3 : If_CutEdgeFlow( p, pCut );
-        if ( p->pPars->fPower )
-            pCut->Power  = (Mode == 2)? 0 : If_CutPowerFlow( p, pCut, pObj );
-
-        // prepare the cutset
-        pCutSet = If_ManSetupNodeCutSet( p, pObj );
-        // copy best cut
-        If_CutCopy( p, pCutSet->ppCuts[pCutSet->nCuts++], If_ObjCutBest(pObj) );
-        // add the trivial cut to the set
-        If_ManSetupCutTriv( p, pCutSet->ppCuts[pCutSet->nCuts++], pObj->Id );
-        // free the cuts
-        If_ManDerefNodeCutSet( p, pObj );
-        assert( pCutSet->nCuts == 2 );
-        return;
-    }
-*/
     // deref the selected cut
     if ( Mode && pObj->nRefs > 0 )
         If_CutAreaDeref( p, If_ObjCutBest(pObj) );
@@ -200,8 +163,6 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
     if ( pCut->nLeaves > 0 )
     {
         // recompute the parameters of the best cut
-///        if ( p->pPars->pLutStruct )
-///            pCut->Delay = If_CutDelayLutStruct( p, pCut, p->pPars->pLutStruct, p->pPars->WireDelay );
         if ( p->pPars->fUserRecLib )
         {
             assert( Abc_NtkRecIsRunning() + Abc_NtkRecIsRunning2() + Abc_NtkRecIsRunning3() == 1 );
