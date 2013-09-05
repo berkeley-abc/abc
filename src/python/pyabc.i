@@ -741,7 +741,7 @@ def cex_get_vector():
        
 def status_get_vector():
     
-    return [ _Cex(_status_get_vec(i)) for i in xrange(_status_get_vec_len()) ]
+    return [ _status_get_vec(i) for i in xrange(_status_get_vec_len()) ]
        
 def cex_get():
 
