@@ -75,7 +75,7 @@ int Gia_ManBmcPerform( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
     Gia_Man_t * pFrames;
     abctime clk = Abc_Clock();
     int nFramesMax = pPars->nFramesMax ? pPars->nFramesMax : ABC_INFINITY;
-    int i, f, iStart, status = -1, Counter = 0;
+    int i, f, iStart, status = -1;//, Counter = 0;
     p = Unr_ManUnrollStart( pGia, pPars->fVeryVerbose );
     for ( f = 0; f < nFramesMax; f++ )
     {
@@ -89,7 +89,7 @@ int Gia_ManBmcPerform( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
         {
             if ( pPars->fVerbose )
             {
-                printf( "Frame %4d :  PI =%9d. AIG =%9d.  Trivally UNSAT.   Mem =%6.1f Mb   ", 
+                printf( "Frame %4d :  PI =%9d.  AIG =%9d.  Trivally UNSAT.   Mem =%7.1f Mb   ", 
                     f, Gia_ManPiNum(pFrames), Gia_ManAndNum(pFrames), Gia_ManMemory(pFrames) );
                 Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
             }
@@ -97,13 +97,19 @@ int Gia_ManBmcPerform( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
         }
         if ( pPars->fVerbose )
         {
-            printf( "Frame %4d :  PI =%9d. AIG =%9d.  And =%9d.   Mem =%6.1f Mb   ", 
+            printf( "Frame %4d :  PI =%9d.  AIG =%9d.  And =%9d.   Mem =%7.1f Mb   ", 
                 f, Gia_ManPiNum(pFrames), Gia_ManAndNum(pFrames), Gia_ManCountUnmarked(pFrames, iStart), Gia_ManMemory(pFrames) );
             Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
         }
 //        if ( ++Counter == 10 )
 //            break;
     }
+    // dump unfolded frames
+    pFrames = Gia_ManCleanup( pFrames );
+    Gia_AigerWrite( pFrames, "frames.aig", 0, 0 );
+    printf( "Dumped unfolded frames into file \"frames.aig\".\n" );
+    Gia_ManStop( pFrames );
+    // cleanup
     Unr_ManFree( p );
     return status;
 }
