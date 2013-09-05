@@ -247,6 +247,32 @@ Abc_Cex_t* _cex_get_vec(int i)
     return Abc_CexDup( pCex, -1 ); 
 }
 
+int _status_get_vec_len()
+{
+    Abc_Frame_t* pAbc = Abc_FrameGetGlobalFrame();
+    Vec_Int_t* vStatusVec = Abc_FrameReadStatusVec(pAbc);
+    
+    if( ! vStatusVec )
+    {
+        return 0;
+    }
+    
+    return Vec_IntSize(vStatusVec);
+}
+
+int _status_get_vec(int i)
+{
+    Abc_Frame_t* pAbc = Abc_FrameGetGlobalFrame();
+    Vec_Int_t* vStatusVec = Abc_FrameReadStatusVec(pAbc);
+
+    if( ! vStatusVec )
+    {
+        return NULL;
+    }
+
+    return Vec_IntEntry( vStatusVec, i );
+}
+
 void _cex_put(Abc_Cex_t* pCex)
 {
     if ( pCex )
@@ -649,6 +675,8 @@ int  is_const_po( int iPoNum );
 Abc_Cex_t* _cex_get();
 int _cex_get_vec_len();
 Abc_Cex_t* _cex_get_vec(int i);
+int _status_get_vec_len();
+int _status_get_vec(int i);
 void _cex_put(Abc_Cex_t* pCex);
 void _cex_free(Abc_Cex_t* pCex);
 int _cex_n_regs(Abc_Cex_t* pCex);
@@ -710,6 +738,10 @@ class _Cex(object):
 def cex_get_vector():
     
     return [ _Cex(_cex_get_vec(i)) for i in xrange(_cex_get_vec_len()) ]
+       
+def status_get_vector():
+    
+    return [ _Cex(_status_get_vec(i)) for i in xrange(_status_get_vec_len()) ]
        
 def cex_get():
 

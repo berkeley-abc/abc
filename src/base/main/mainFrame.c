@@ -65,6 +65,7 @@ int         Abc_FrameReadBmcFrames( Abc_Frame_t * p )        { return s_GlobalFr
 int         Abc_FrameReadProbStatus( Abc_Frame_t * p )       { return s_GlobalFrame->Status;       }               
 Abc_Cex_t * Abc_FrameReadCex( Abc_Frame_t * p )              { return s_GlobalFrame->pCex;         }        
 Vec_Ptr_t * Abc_FrameReadCexVec( Abc_Frame_t * p )           { return s_GlobalFrame->vCexVec;      }        
+Vec_Int_t * Abc_FrameReadStatusVec( Abc_Frame_t * p )        { return s_GlobalFrame->vStatuses;    }        
 Vec_Ptr_t * Abc_FrameReadPoEquivs( Abc_Frame_t * p )         { return s_GlobalFrame->vPoEquivs;    }        
 Vec_Int_t * Abc_FrameReadPoStatuses( Abc_Frame_t * p )       { return s_GlobalFrame->vStatuses;    }        
 Vec_Int_t * Abc_FrameReadObjIds( Abc_Frame_t * p )           { return s_GlobalFrame->vAbcObjIds;   }        
