@@ -89,20 +89,20 @@ int Gia_ManBmcPerform( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
         {
             if ( pPars->fVerbose )
             {
-                printf( "Frame %4d :  AIG =%9d.  Trivally UNSAT.   Memory = %5.1f Mb   ", 
-                    f, Gia_ManAndNum(pFrames), Gia_ManMemory(pFrames) );
+                printf( "Frame %4d :  PI =%9d. AIG =%9d.  Trivally UNSAT.   Mem =%6.1f Mb   ", 
+                    f, Gia_ManPiNum(pFrames), Gia_ManAndNum(pFrames), Gia_ManMemory(pFrames) );
                 Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
             }
             continue;
         }
         if ( pPars->fVerbose )
         {
-            printf( "Frame %4d :  AIG =%9d.  And =%9d.   Memory = %5.1f Mb   ", 
-                f, Gia_ManAndNum(pFrames), Gia_ManCountUnmarked(pFrames, iStart), Gia_ManMemory(pFrames) );
+            printf( "Frame %4d :  PI =%9d. AIG =%9d.  And =%9d.   Mem =%6.1f Mb   ", 
+                f, Gia_ManPiNum(pFrames), Gia_ManAndNum(pFrames), Gia_ManCountUnmarked(pFrames, iStart), Gia_ManMemory(pFrames) );
             Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
         }
-        if ( ++Counter == 10 )
-            break;
+//        if ( ++Counter == 10 )
+//            break;
     }
     Unr_ManFree( p );
     return status;
