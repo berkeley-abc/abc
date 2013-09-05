@@ -672,7 +672,7 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fSkipS
                 if ( fVerbose ) printf( "Finished reading extension \"q\".\n" );
             }
             // read switching activity
-            else if ( *pCur == 's' )
+            else if ( *pCur == 'u' )
             { 
                 unsigned char * pSwitching;
                 pCur++;
@@ -1258,7 +1258,7 @@ void Gia_AigerWrite( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
     // write switching activity
     if ( p->pSwitching )
     {
-        fprintf( pFile, "s" );
+        fprintf( pFile, "u" );
         Gia_FileWriteBufferSize( pFile, Gia_ManObjNum(p) );
         fwrite( p->pSwitching, 1, Gia_ManObjNum(p), pFile );
     }

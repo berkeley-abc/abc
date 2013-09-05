@@ -19644,7 +19644,7 @@ int Abc_CommandCec( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
     }
 
-    if ( pNtk->vPhases != NULL )
+    if ( pNtk && pNtk->vPhases != NULL )
     {
         Abc_Print( -1, "Cannot compare networks with phases defined.\n" );
         return 1;
@@ -32958,7 +32958,7 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Gia_Man_t * pTemp = NULL;
     int c, fVerbose = 0;
-    int nFrames = 3;
+    int nFrames = 10;
     int fSwitch = 0;
 //    extern Gia_Man_t * Gia_VtaTest( Gia_Man_t * p );
 //    extern int Gia_ManSuppSizeTest( Gia_Man_t * p );
@@ -32967,7 +32967,7 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    extern void Ga2_ManComputeTest( Gia_Man_t * p );
 //    extern void Bmc_CexTest( Gia_Man_t * p, Abc_Cex_t * pCex, int fVerbose );
 //    extern void Gia_IsoTest( Gia_Man_t * p, Abc_Cex_t * pCex, int fVerbose );
-//    extern void Unr_ManTest( Gia_Man_t * pGia );
+    extern void Unr_ManTest( Gia_Man_t * pGia, int nFrames );
 //    extern int Gia_ManVerify( Gia_Man_t * pGia );
 //    extern Gia_Man_t * Gia_ManOptimizeRing( Gia_Man_t * p );
 //    extern void Gia_ManCollectSeqTest( Gia_Man_t * p );
@@ -32976,7 +32976,7 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    extern Gia_Man_t * Bmc_CexTarget( Gia_Man_t * p, int nFrames );
 //    extern void Gia_ManMuxProfiling( Gia_Man_t * p );
 //    extern Gia_Man_t * Mig_ManTest( Gia_Man_t * pGia );
-    extern Gia_Man_t * Gia_ManInterTest( Gia_Man_t * p );
+//    extern Gia_Man_t * Gia_ManInterTest( Gia_Man_t * p );
 
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "Fsvh" ) ) != EOF )
@@ -33036,7 +33036,7 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    Ga2_ManComputeTest( pAbc->pGia );
 //    Bmc_CexTest( pAbc->pGia, pAbc->pCex, fVerbose );
 //    Gia_IsoTest( pAbc->pGia, pAbc->pCex, 0 );
-//    Unr_ManTest( pAbc->pGia );
+    Unr_ManTest( pAbc->pGia, nFrames );
 //    Gia_ManVerifyWithBoxes( pAbc->pGia );
 //    Gia_ManCollectSeqTest( pAbc->pGia );
 //    pTemp = Gia_ManOptimizeRing( pAbc->pGia );
@@ -33048,8 +33048,8 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    Gia_ManMuxProfiling( pAbc->pGia );
 //    pTemp = Mig_ManTest( pAbc->pGia );
 //    Abc_FrameUpdateGia( pAbc, pTemp );
-    pTemp = Gia_ManInterTest( pAbc->pGia );
-    Abc_FrameUpdateGia( pAbc, pTemp );
+//    pTemp = Gia_ManInterTest( pAbc->pGia );
+//    Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 usage:
     Abc_Print( -2, "usage: &test [-F num] [-svh]\n" );
