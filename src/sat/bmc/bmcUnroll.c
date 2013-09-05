@@ -37,8 +37,10 @@ struct Unr_Obj_t_
     unsigned              fCompl1 :  1; // complemented bit
     unsigned              uRDiff0 : 15; // rank diff of the fanin
     unsigned              uRDiff1 : 15; // rank diff of the fanin
-    unsigned              RankMax : 16; // max rank diff between node and its fanout
-    unsigned              RankCur : 16; // cur rank of the node
+    unsigned              fItIsPi :  1; // remember attributes
+    unsigned              fItIsPo :  1; // remember attributes
+    unsigned              RankMax : 15; // max rank diff between node and its fanout
+    unsigned              RankCur : 15; // cur rank of the node
     unsigned              OrigId;       // original object ID
     unsigned              Res[1];       // RankMax entries
 };
@@ -48,7 +50,7 @@ struct Unr_Man_t_
 {
     // input data
     Gia_Man_t *           pGia;           // the user's AIG manager
-//    Gia_Man_t *           pNew;           // unrolling manager
+    Gia_Man_t *           pFrames;        // unrolled manager
     int                   nObjs;          // the number of objects
     // intermediate data
     Vec_Int_t *           vOrder;         // ordering of GIA objects
@@ -59,13 +61,15 @@ struct Unr_Man_t_
     int *                 pObjs;          // storage for unroling objects
     int *                 pEnd;           // end of storage
     Vec_Int_t *           vObjLim;        // handle of the first object in each frame
-    Vec_Int_t *           vResLits;       // resulting literals
     Vec_Int_t *           vCiMap;         // mapping of GIA CIs into unrolling objects
     Vec_Int_t *           vCoMap;         // mapping of GIA POs into unrolling objects
+    Vec_Int_t *           vPiLits;        // storage for PI literals
 };
 
 static inline Unr_Obj_t * Unr_ManObj( Unr_Man_t * p, int h )  { assert( h >= 0 && h < p->pEnd - p->pObjs ); return (Unr_Obj_t *)(p->pObjs + h);  }
-static inline int         Unr_ObjSize( Unr_Obj_t * pObj )     { return 0x7FFFFFFE & (sizeof(Unr_Obj_t) / sizeof(int) + pObj->RankMax);           }
+static inline int         Unr_ObjSizeInt( int Rank )          { return 0xFFFFFFFE & (sizeof(Unr_Obj_t) / sizeof(int) + Rank);                    }
+static inline int         Unr_ObjSize( Unr_Obj_t * pObj )     { return Unr_ObjSizeInt(pObj->RankMax);                                            }
+
 static inline int Unr_ManFanin0Value( Unr_Man_t * p, Unr_Obj_t * pObj )
 {
     Unr_Obj_t * pFanin = Unr_ManObj( p, pObj->hFan0 );
@@ -89,7 +93,8 @@ static inline int Unr_ManObjReadValue( Unr_Obj_t * pObj )
 }
 static inline void Unr_ManObjSetValue( Unr_Obj_t * pObj, int Value )
 {
-    pObj->RankCur = (0xFFFF & (pObj->RankCur + 1)) % pObj->RankMax;
+    assert( Value >= 0 );
+    pObj->RankCur = (UNR_DIFF_NULL & (pObj->RankCur + 1)) % pObj->RankMax;
     pObj->Res[ pObj->RankCur ] = Value;
 }
 
@@ -134,10 +139,12 @@ void Unr_ManProfileRanks( Vec_Int_t * vRanks )
         Vec_IntAddToEntry( vCounts, Rank, 1 );
     Vec_IntForEachEntry( vCounts, Count, i )
     {
+        if ( Count == 0 )
+            continue;
         printf( "%2d : %8d  (%6.2f %%)\n", i, Count, 100.0 * Count / Vec_IntSize(vRanks) );
         nExtras += Count * i;
     }
-    printf( "Extra space = %d (%6.2f %%)\n", nExtras, 100.0 * nExtras / Vec_IntSize(vRanks) );
+    printf( "Extra space = %d (%6.2f %%)  ", nExtras, 100.0 * nExtras / Vec_IntSize(vRanks) );
     Vec_IntFree( vCounts );
 }
 
@@ -177,15 +184,13 @@ void Unr_ManSetup_rec( Unr_Man_t * p, int iObj, int iTent, Vec_Int_t * vRoots )
     }
     Vec_IntPush( p->vOrder, iObj );
 }
-void Unr_ManSetup( Unr_Man_t * p )
+void Unr_ManSetup( Unr_Man_t * p, int fVerbose )
 {
     Vec_Int_t * vRoots, * vRoots2, * vMap;
     Unr_Obj_t * pUnrObj;
     Gia_Obj_t * pObj;
-    int i, k, t, iObj, Rank, nInts, * pInts;
+    int i, k, t, iObj, nInts, * pInts;
     abctime clk = Abc_Clock();
-    vRoots  = Vec_IntAlloc( 100 );
-    vRoots2 = Vec_IntAlloc( 100 );
     // create zero rank
     assert( Vec_IntSize(p->vOrder) == 0 );
     Vec_IntPush( p->vOrder, 0 );
@@ -193,9 +198,11 @@ void Unr_ManSetup( Unr_Man_t * p )
     Vec_IntWriteEntry( p->vTents, 0, 0 );
     Vec_IntWriteEntry( p->vRanks, 0, 0 );
     // start from the POs
+    vRoots  = Vec_IntAlloc( 100 );
+    vRoots2 = Vec_IntAlloc( 100 );
     Gia_ManForEachPo( p->pGia, pObj, i )
         Unr_ManSetup_rec( p, Gia_ObjId(p->pGia, pObj), 0, vRoots );
-    // iterate through tents
+    // collect tents
     while ( Vec_IntSize(vRoots) > 0 )
     {
         Vec_IntPush( p->vOrderLim, Vec_IntSize(p->vOrder) );
@@ -208,14 +215,14 @@ void Unr_ManSetup( Unr_Man_t * p )
     Vec_IntFree( vRoots );
     Vec_IntFree( vRoots2 );
     // allocate memory
-    nInts = Vec_IntSize(p->vOrder) * (sizeof(Unr_Obj_t) / sizeof(int));
-    Vec_IntForEachEntry( p->vRanks, Rank, i )
-        nInts += 0x7FFFFFFE & (Rank + 1);
+    nInts = 0;
+    Vec_IntForEachEntry( p->vOrder, iObj, i )
+        nInts += Unr_ObjSizeInt( Vec_IntEntry(p->vRanks, iObj) + 1 );
     p->pObjs = pInts = ABC_CALLOC( int, nInts );
     p->pEnd = p->pObjs + nInts;
     // create const0 node
     pUnrObj = Unr_ManObj( p, pInts - p->pObjs );
-    pUnrObj->RankMax = 1;
+    pUnrObj->RankMax = Vec_IntEntry(p->vRanks, 0) + 1;
     pUnrObj->uRDiff0 = pUnrObj->uRDiff1 = UNR_DIFF_NULL;
     pUnrObj->Res[0]  = 0; // const0
     // map the objects
@@ -241,20 +248,16 @@ void Unr_ManSetup( Unr_Man_t * p )
             else if ( Gia_ObjIsRo(p->pGia, pObj) )
                 pUnrObj->uRDiff0 = 0;
             pUnrObj->RankMax = Vec_IntEntry(p->vRanks, iObj) + 1;
-            pUnrObj->RankCur = 0xFFFF;
+            pUnrObj->RankCur = UNR_DIFF_NULL;
             pUnrObj->OrigId  = iObj;
             for ( k = 0; k < (int)pUnrObj->RankMax; k++ )
                 pUnrObj->Res[k] = -1;
+            assert( ((pInts - p->pObjs) & 1) == 0 ); // align for 64-bits
             Vec_IntWriteEntry( vMap, iObj, pInts - p->pObjs );
             pInts += Unr_ObjSize( pUnrObj );
         }
     }
-    assert( pInts - p->pObjs <= nInts );
-Unr_ManProfileRanks( p->vRanks );
-    Vec_IntFreeP( &p->vOrder );
-    Vec_IntFreeP( &p->vOrderLim );
-    Vec_IntFreeP( &p->vRanks );
-//    Vec_IntFreeP( &p->vTents );
+    assert( pInts - p->pObjs == nInts );
     // label the objects
     Gia_ManForEachObj( p->pGia, pObj, i )
     {
@@ -265,18 +268,23 @@ Unr_ManProfileRanks( p->vRanks );
         {
             pUnrObj->hFan0   = Vec_IntEntry( vMap, Gia_ObjFaninId0(pObj, i) );
             pUnrObj->fCompl0 = Gia_ObjFaninC0(pObj);
-            assert( pUnrObj->hFan0 != ~0 );
+            pUnrObj->fItIsPo = Gia_ObjIsPo(p->pGia, pObj);
         }
         if ( Gia_ObjIsAnd(pObj) )
         {
             pUnrObj->hFan1   = Vec_IntEntry( vMap, Gia_ObjFaninId1(pObj, i) );
             pUnrObj->fCompl1 = Gia_ObjFaninC1(pObj);
-            assert( pUnrObj->hFan1 != ~0);
         }
         else if ( Gia_ObjIsRo(p->pGia, pObj) )
         {
             pUnrObj->hFan0   = Vec_IntEntry( vMap, Gia_ObjId(p->pGia, Gia_ObjRoToRi(p->pGia, pObj)) );
             pUnrObj->fCompl0 = 0;
+        }
+        else if ( Gia_ObjIsPi(p->pGia, pObj) )
+        {
+            pUnrObj->hFan0   = Gia_ObjCioId(pObj);           // remember CIO id
+            pUnrObj->hFan1   = Vec_IntEntry(p->vTents, i);   // remember tent
+            pUnrObj->fItIsPi = 1;
         }
     }
     // store CI/PO objects;
@@ -285,9 +293,17 @@ Unr_ManProfileRanks( p->vRanks );
     Gia_ManForEachCo( p->pGia, pObj, i )
         Vec_IntPush( p->vCoMap, Vec_IntEntry(vMap, Gia_ObjId(p->pGia, pObj)) );
     Vec_IntFreeP( &vMap );
-
-    printf( "Memory usage = %6.2f MB\n", 4.0 * nInts / (1<<20) );
-    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+    // print stats
+    if ( fVerbose )
+    {
+        Unr_ManProfileRanks( p->vRanks );
+        printf( "Memory usage = %6.2f MB  ", 4.0 * nInts / (1<<20) );
+        Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+    }
+    Vec_IntFreeP( &p->vOrder );
+    Vec_IntFreeP( &p->vOrderLim );
+    Vec_IntFreeP( &p->vRanks );
+    Vec_IntFreeP( &p->vTents );
 }
 
 
@@ -309,21 +325,22 @@ Unr_Man_t * Unr_ManAlloc( Gia_Man_t * pGia )
     p = ABC_CALLOC( Unr_Man_t, 1 );
     p->pGia      = pGia;
     p->nObjs     = Gia_ManObjNum(pGia);
-//    p->pNew      = Gia_ManStart( 10000 );
     p->vOrder    = Vec_IntAlloc( p->nObjs );
     p->vOrderLim = Vec_IntAlloc( 100 );
     p->vTents    = Vec_IntStartFull( p->nObjs );
     p->vRanks    = Vec_IntStart( p->nObjs );
     p->vObjLim   = Vec_IntAlloc( 100 );
-    p->vResLits  = Vec_IntAlloc( Gia_ManPoNum(pGia) );
     p->vCiMap    = Vec_IntAlloc( Gia_ManCiNum(pGia) );
     p->vCoMap    = Vec_IntAlloc( Gia_ManCoNum(pGia) );
+    p->vPiLits   = Vec_IntAlloc( 10000 );
+    p->pFrames   = Gia_ManStart( 10000 );
+    p->pFrames->pName = Abc_UtilStrsav( pGia->pName );
+    Gia_ManHashStart( p->pFrames );
     return p;
 }
 void Unr_ManFree( Unr_Man_t * p )
 {
-//    Gia_ManStop( p->pNew );
-    Vec_IntFreeP( &p->vTents );
+    Gia_ManStop( p->pFrames );
     // intermediate data
     Vec_IntFreeP( &p->vOrder );
     Vec_IntFreeP( &p->vOrderLim );
@@ -331,9 +348,9 @@ void Unr_ManFree( Unr_Man_t * p )
     Vec_IntFreeP( &p->vRanks );
     // unrolling data
     Vec_IntFreeP( &p->vObjLim );
-    Vec_IntFreeP( &p->vResLits );
     Vec_IntFreeP( &p->vCiMap );
     Vec_IntFreeP( &p->vCoMap );
+    Vec_IntFreeP( &p->vPiLits );
     ABC_FREE( p->pObjs );
     ABC_FREE( p );
 }
@@ -349,69 +366,53 @@ void Unr_ManFree( Unr_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
+void Unr_ManUnrollStart( Unr_Man_t * p )
+{
+    int i, iHandle;
+    for ( i = 0; i < Gia_ManRegNum(p->pGia); i++ )
+        if ( (iHandle = Vec_IntEntry(p->vCoMap, Gia_ManPoNum(p->pGia) + i)) != -1 )
+            Unr_ManObjSetValue( Unr_ManObj(p, iHandle), 0 );
+}
+void Unr_ManUnrollFrame( Unr_Man_t * p, int f )
+{
+    int i, iLit, iLit0, iLit1, hStart;
+    for ( i = 0; i < Gia_ManPiNum(p->pGia); i++ )
+        Vec_IntPush( p->vPiLits, Gia_ManAppendCi(p->pFrames) );
+    hStart = Vec_IntEntry( p->vObjLim, Abc_MaxInt(0, Vec_IntSize(p->vObjLim)-1-f) );
+    while ( p->pObjs + hStart < p->pEnd )
+    {
+        Unr_Obj_t * pUnrObj = Unr_ManObj( p, hStart );
+        if ( pUnrObj->uRDiff0 != UNR_DIFF_NULL && pUnrObj->uRDiff1 != UNR_DIFF_NULL ) // AND node
+        {
+            iLit0 = Unr_ManFanin0Value( p, pUnrObj );
+            iLit1 = Unr_ManFanin1Value( p, pUnrObj );
+            iLit  = Gia_ManHashAnd( p->pFrames, iLit0, iLit1 );
+            Unr_ManObjSetValue( pUnrObj, iLit );
+        }
+        else if ( pUnrObj->uRDiff0 != UNR_DIFF_NULL && pUnrObj->uRDiff1 == UNR_DIFF_NULL ) // PO/RI/RO
+        {
+            iLit  = Unr_ManFanin0Value( p, pUnrObj );
+            Unr_ManObjSetValue( pUnrObj, iLit );
+            if ( pUnrObj->fItIsPo )
+                Gia_ManAppendCo( p->pFrames, iLit );
+        }
+        else // PI  (pUnrObj->hFan0 is CioId; pUnrObj->hFan1 is tent)
+        {
+            assert( pUnrObj->fItIsPi && f >= (int)pUnrObj->hFan1 );
+            iLit = Vec_IntEntry( p->vPiLits, Gia_ManPiNum(p->pGia) * (f - pUnrObj->hFan1) + pUnrObj->hFan0 );
+            Unr_ManObjSetValue( pUnrObj, iLit );
+        }
+        hStart += Unr_ObjSize( pUnrObj );
+    }
+    assert( p->pObjs + hStart == p->pEnd );
+}
 Gia_Man_t * Unr_ManUnroll( Unr_Man_t * p, int nFrames )
 {
-    Gia_Man_t * pTemp, * pFrames;
-    Unr_Obj_t * pUnrObj;
-    Vec_Int_t * vPiLits;
-    int f, i, iLit, iLit0, iLit1, hStart;
-    pFrames = Gia_ManStart( 10000 );
-    pFrames->pName = Abc_UtilStrsav( p->pGia->pName );
-    Gia_ManHashAlloc( pFrames );
-    // create flop values
-    for ( i = 0; i < Gia_ManRegNum(p->pGia); i++ )
-    {
-        if ( Vec_IntEntry(p->vCoMap, Gia_ManPoNum(p->pGia) + i) == -1 )
-            continue;
-        pUnrObj = Unr_ManObj( p, Vec_IntEntry(p->vCoMap, Gia_ManPoNum(p->pGia) + i) );
-        Unr_ManObjSetValue( pUnrObj, 0 );
-    }
-    vPiLits = Vec_IntAlloc( nFrames * Gia_ManPiNum(p->pGia) );
+    int f;
+    Unr_ManUnrollStart( p );
     for ( f = 0; f < nFrames; f++ )
-    {
-        for ( i = 0; i < Gia_ManPiNum(p->pGia); i++ )
-            Vec_IntPush( vPiLits, Gia_ManAppendCi(pFrames) );
-        hStart = Vec_IntEntry( p->vObjLim, Abc_MaxInt(0, Vec_IntSize(p->vObjLim)-1-f) );
-        while ( p->pObjs + hStart < p->pEnd )
-        {
-            pUnrObj = Unr_ManObj( p, hStart );
-            if ( pUnrObj->uRDiff0 != UNR_DIFF_NULL && pUnrObj->uRDiff1 != UNR_DIFF_NULL )
-            {
-                iLit0 = Unr_ManFanin0Value( p, pUnrObj );
-                iLit1 = Unr_ManFanin1Value( p, pUnrObj );
-                iLit  = Gia_ManHashAnd( pFrames, iLit0, iLit1 );
-                assert( iLit >= 0 );
-                Unr_ManObjSetValue( pUnrObj, iLit );
-            }
-            else if ( pUnrObj->uRDiff0 != UNR_DIFF_NULL && pUnrObj->uRDiff1 == UNR_DIFF_NULL )
-            {
-                iLit  = Unr_ManFanin0Value( p, pUnrObj );
-                assert( iLit >= 0 );
-                Unr_ManObjSetValue( pUnrObj, iLit );
-            }
-            else
-            {
-                Gia_Obj_t * pObj = Gia_ManObj(p->pGia, pUnrObj->OrigId);
-                assert( Gia_ObjIsPi(p->pGia, pObj) );
-                assert( f >= Vec_IntEntry(p->vTents, pUnrObj->OrigId) );
-                iLit = Vec_IntEntry( vPiLits, Gia_ManPiNum(p->pGia) * (f - Vec_IntEntry(p->vTents, pUnrObj->OrigId)) + Gia_ObjCioId(pObj) );
-                Unr_ManObjSetValue( pUnrObj, iLit );
-            }
-            hStart += Unr_ObjSize( pUnrObj );
-        }
-        assert( p->pObjs + hStart == p->pEnd );
-        for ( i = 0; i < Gia_ManPoNum(p->pGia); i++ )
-        {
-            pUnrObj = Unr_ManObj(p, Vec_IntEntry(p->vCoMap, i));
-            Gia_ManAppendCo( pFrames, Unr_ManObjReadValue(pUnrObj) );
-        }
-    }
-    Vec_IntFree( vPiLits );
-    Gia_ManHashStop( pFrames );
-    Gia_ManSetRegNum( pFrames, 0 );
-    pFrames = Gia_ManCleanup( pTemp = pFrames );
-    Gia_ManStop( pTemp );
-    return pFrames;
+        Unr_ManUnrollFrame( p, f );
+    return Gia_ManCleanup( p->pFrames );
 }
 
 /**Function*************************************************************
@@ -470,14 +471,10 @@ Gia_Man_t * Unr_ManUnrollSimple( Gia_Man_t * pGia, int nFrames )
 void Unr_ManTest( Gia_Man_t * pGia, int nFrames )
 {
     Gia_Man_t * pFrames0, * pFrames1;
-    Unr_Man_t * p;
-
     abctime clk = Abc_Clock();
+    Unr_Man_t * p;
     p = Unr_ManAlloc( pGia );
-    Unr_ManSetup( p );
-    Abc_PrintTime( 1, "Prepare", Abc_Clock() - clk );
-
-    clk = Abc_Clock();
+    Unr_ManSetup( p, 1 );
     pFrames0 = Unr_ManUnroll( p, nFrames );
     Abc_PrintTime( 1, "Unroll ", Abc_Clock() - clk );
 
@@ -491,6 +488,7 @@ Gia_ManPrintStats( pFrames0, 0, 0, 0 );
 Gia_ManPrintStats( pFrames1, 0, 0, 0 );
 Gia_AigerWrite( pFrames0, "frames0.aig", 0, 0 );
 Gia_AigerWrite( pFrames1, "frames1.aig", 0, 0 );
+
     Gia_ManStop( pFrames0 );
     Gia_ManStop( pFrames1 );
 }
