@@ -26137,8 +26137,12 @@ int Abc_CommandAbc9Sim3( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Sim3(): There is no AIG.\n" );
         return 1;
     }
+    if ( Gia_ManRegNum(pAbc->pGia) == 0 )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Sim3(): This command works only for sequential AIGs.\n" );
+        return 0;
+    }
     pAbc->Status = Ssw_RarSimulateGia( pAbc->pGia, pPars );
-//    pAbc->nFrames = pAbc->pGia->pCexSeq->iFrame;
     Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexSeq );
     return 0;
 
