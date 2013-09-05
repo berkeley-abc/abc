@@ -906,8 +906,11 @@ Gia_Man_t * Gia_ManDupMarked( Gia_Man_t * p )
     Gia_Man_t * pNew;
     Gia_Obj_t * pObj;
     int i, nRos = 0, nRis = 0;
+    int CountMarked = 0;
+    Gia_ManForEachObj1( p, pObj, i )
+        CountMarked += pObj->fMark0;
     Gia_ManFillValue( p );
-    pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew = Gia_ManStart( Gia_ManObjNum(p) - CountMarked );
     if ( p->pMuxes )
         pNew->pMuxes = ABC_CALLOC( unsigned, pNew->nObjsAlloc );
     pNew->nConstrs = p->nConstrs;
@@ -917,8 +920,10 @@ Gia_Man_t * Gia_ManDupMarked( Gia_Man_t * p )
     Gia_ManForEachObj1( p, pObj, i )
     {
         if ( pObj->fMark0 )
+        {
+            pObj->fMark0 = 0;
             continue;
-        pObj->fMark0 = 0;
+        }
         if ( Gia_ObjIsAnd(pObj) )
         {
             if ( Gia_ObjIsXor(pObj) )
