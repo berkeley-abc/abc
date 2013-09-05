@@ -129,6 +129,27 @@ void Gia_ManStop( Gia_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Returns memory used in megabytes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+float Gia_ManMemory( Gia_Man_t * p )
+{
+    word Memory = sizeof(Gia_Man_t);
+    Memory += sizeof(Gia_Obj_t) * Gia_ManObjNum(p);
+    Memory += sizeof(int) * Gia_ManCiNum(p);
+    Memory += sizeof(int) * Gia_ManCoNum(p);
+    Memory += sizeof(int) * p->nHTable * (p->pHTable != NULL);
+    return (float)(int)(Memory / (1 << 20)) + (float)(1e-6 * (int)(Memory % (1 << 20)));
+}
+
+/**Function*************************************************************
+
   Synopsis    [Stops the AIG manager.]
 
   Description []

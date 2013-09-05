@@ -31,7 +31,7 @@ ABC_NAMESPACE_IMPL_START
 typedef struct Bmc_Lad_t_ Bmc_Lad_t;  
 struct Bmc_Lad_t_
 {
-    Bmc_LadPar_t *   pPars;     // parameters
+    Bmc_AndPar_t *   pPars;     // parameters
     Gia_Man_t *      pGia;      // unrolled AIG
     sat_solver *     pSat;      // SAT solvers
     Vec_Int_t *      vSat2Id;   // maps SAT var into its node
@@ -123,7 +123,7 @@ int Bmc_LadAddCnf_rec( Bmc_Lad_t * p, int Id )
   SeeAlso     []
 
 ***********************************************************************/
-Bmc_Lad_t * Bmc_LadStart( Gia_Man_t * pGia, Bmc_LadPar_t * pPars )
+Bmc_Lad_t * Bmc_LadStart( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
 {
     Bmc_Lad_t * p;
     int Lit;
@@ -164,7 +164,7 @@ void Bmc_LadStop( Bmc_Lad_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Bmc_PerformBmc( Gia_Man_t * pGia, Bmc_LadPar_t * pPars )
+void Bmc_PerformBmc( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
 {
     int nConfLimit = 0;
     Bmc_Lad_t * p;

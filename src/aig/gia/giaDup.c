@@ -907,7 +907,7 @@ Gia_Man_t * Gia_ManDupMarked( Gia_Man_t * p )
     Gia_Obj_t * pObj;
     int i, nRos = 0, nRis = 0;
     int CountMarked = 0;
-    Gia_ManForEachObj1( p, pObj, i )
+    Gia_ManForEachObj( p, pObj, i )
         CountMarked += pObj->fMark0;
     Gia_ManFillValue( p );
     pNew = Gia_ManStart( Gia_ManObjNum(p) - CountMarked );
@@ -945,6 +945,7 @@ Gia_Man_t * Gia_ManDupMarked( Gia_Man_t * p )
             nRis += Gia_ObjIsRi(p, pObj);
         }
     }
+    assert( pNew->nObjsAlloc == pNew->nObjs );
     assert( nRos == nRis );
     Gia_ManSetRegNum( pNew, nRos );
     if ( p->pReprs && p->pNexts )

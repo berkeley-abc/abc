@@ -31611,21 +31611,22 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Bmc( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Bmc_PerformBmc( Gia_Man_t * pGia, Bmc_LadPar_t * pPars );
+//    extern void Bmc_PerformBmc( Gia_Man_t * pGia, Bmc_AndPar_t * pPars );
     int c;
-    Bmc_LadPar_t Pars, * pPars = &Pars;
-    memset( pPars, 0, sizeof(Bmc_LadPar_t) );
+    Bmc_AndPar_t Pars, * pPars = &Pars;
+    memset( pPars, 0, sizeof(Bmc_AndPar_t) );
     pPars->nStart        =    0;  // starting timeframe
     pPars->nFramesMax    =    0;  // maximum number of timeframes 
     pPars->nConfLimit    =    0;  // maximum number of conflicts at a node
     pPars->fLoadCnf      =    0;  // dynamic CNF loading
     pPars->fVerbose      =    0;  // verbose 
+    pPars->fVeryVerbose  =    0;  // very verbose 
     pPars->fNotVerbose   =    0;  // skip line-by-line print-out 
     pPars->iFrame        =    0;  // explored up to this frame
     pPars->nFailOuts     =    0;  // the number of failed outputs
     pPars->nDropOuts     =    0;  // the number of dropped outputs
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "SFcvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "SFcvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -31657,6 +31658,9 @@ int Abc_CommandAbc9Bmc( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'v':
             pPars->fVerbose ^= 1;
             break;
+        case 'w':
+            pPars->fVeryVerbose ^= 1;
+            break;
         case 'h':
             goto usage;
         default:
@@ -31668,16 +31672,18 @@ int Abc_CommandAbc9Bmc( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Rpm(): There is no AIG.\n" );
         return 0;
     }
-    Bmc_PerformBmc( pAbc->pGia, pPars );
+//    Bmc_PerformBmc( pAbc->pGia, pPars );
+    Gia_ManBmcPerform( pAbc->pGia, pPars );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &bmc [-SF num] [-cvh]\n" );
+    Abc_Print( -2, "usage: &bmc [-SF num] [-cvwh]\n" );
     Abc_Print( -2, "\t         performs bounded model checking\n" );
     Abc_Print( -2, "\t-S num : the starting timeframe [default = %d]\n",              pPars->nStart );
     Abc_Print( -2, "\t-F num : the maximum number of timeframes [default = %d]\n",    pPars->nFramesMax );
     Abc_Print( -2, "\t-c     : toggle dynamic CNF loading [default = %s]\n",          pPars->fLoadCnf? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-w     : toggle printing information about unfolding [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }

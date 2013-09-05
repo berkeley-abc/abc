@@ -45,7 +45,6 @@ struct Unr_Obj_t_
     unsigned              Res[1];       // RankMax entries
 };
 
-typedef struct Unr_Man_t_ Unr_Man_t;
 struct Unr_Man_t_
 {
     // input data
@@ -366,14 +365,18 @@ void Unr_ManFree( Unr_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Unr_ManUnrollStart( Unr_Man_t * p )
+Unr_Man_t * Unr_ManUnrollStart( Gia_Man_t * pGia, int fVerbose )
 {
     int i, iHandle;
+    Unr_Man_t * p;
+    p = Unr_ManAlloc( pGia );
+    Unr_ManSetup( p, fVerbose );
     for ( i = 0; i < Gia_ManRegNum(p->pGia); i++ )
         if ( (iHandle = Vec_IntEntry(p->vCoMap, Gia_ManPoNum(p->pGia) + i)) != -1 )
             Unr_ManObjSetValue( Unr_ManObj(p, iHandle), 0 );
+    return p;
 }
-void Unr_ManUnrollFrame( Unr_Man_t * p, int f )
+Gia_Man_t * Unr_ManUnrollFrame( Unr_Man_t * p, int f )
 {
     int i, iLit, iLit0, iLit1, hStart;
     for ( i = 0; i < Gia_ManPiNum(p->pGia); i++ )
@@ -405,14 +408,19 @@ void Unr_ManUnrollFrame( Unr_Man_t * p, int f )
         hStart += Unr_ObjSize( pUnrObj );
     }
     assert( p->pObjs + hStart == p->pEnd );
+    return p->pFrames;
 }
-Gia_Man_t * Unr_ManUnroll( Unr_Man_t * p, int nFrames )
+Gia_Man_t * Unr_ManUnroll( Gia_Man_t * pGia, int nFrames )
 {
+    Unr_Man_t * p;
+    Gia_Man_t * pFrames;
     int f;
-    Unr_ManUnrollStart( p );
+    p = Unr_ManUnrollStart( pGia, 1 );
     for ( f = 0; f < nFrames; f++ )
         Unr_ManUnrollFrame( p, f );
-    return Gia_ManCleanup( p->pFrames );
+    pFrames = Gia_ManCleanup( p->pFrames );
+    Unr_ManFree( p );
+    return pFrames;
 }
 
 /**Function*************************************************************
@@ -472,14 +480,8 @@ void Unr_ManTest( Gia_Man_t * pGia, int nFrames )
 {
     Gia_Man_t * pFrames0, * pFrames1;
     abctime clk = Abc_Clock();
-    Unr_Man_t * p;
-    p = Unr_ManAlloc( pGia );
-    Unr_ManSetup( p, 1 );
-    pFrames0 = Unr_ManUnroll( p, nFrames );
+    pFrames0 = Unr_ManUnroll( pGia, nFrames );
     Abc_PrintTime( 1, "Unroll ", Abc_Clock() - clk );
-
-    Unr_ManFree( p );
-
     clk = Abc_Clock();
     pFrames1 = Unr_ManUnrollSimple( pGia, nFrames );
     Abc_PrintTime( 1, "UnrollS", Abc_Clock() - clk );

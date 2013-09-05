@@ -1018,6 +1018,7 @@ extern void                Gia_ManSolveProblem( Gia_Man_t * pGia, Emb_Par_t * pP
 extern Gia_Man_t *         Gia_ManStart( int nObjsMax ); 
 extern void                Gia_ManStop( Gia_Man_t * p );  
 extern void                Gia_ManStopP( Gia_Man_t ** p );  
+extern float               Gia_ManMemory( Gia_Man_t * p );
 extern void                Gia_ManPrintStats( Gia_Man_t * p, int fTents, int fSwitch, int fCut ); 
 extern void                Gia_ManPrintStatsShort( Gia_Man_t * p ); 
 extern void                Gia_ManPrintMiterStatus( Gia_Man_t * p ); 

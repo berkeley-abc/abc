@@ -38,7 +38,10 @@ ABC_NAMESPACE_HEADER_START
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
 ////////////////////////////////////////////////////////////////////////
- 
+
+// unrolling manager 
+typedef struct Unr_Man_t_ Unr_Man_t;
+
 typedef struct Saig_ParBmc_t_ Saig_ParBmc_t;
 struct Saig_ParBmc_t_
 {
@@ -69,14 +72,15 @@ struct Saig_ParBmc_t_
 };
 
  
-typedef struct Bmc_LadPar_t_ Bmc_LadPar_t;
-struct Bmc_LadPar_t_
+typedef struct Bmc_AndPar_t_ Bmc_AndPar_t;
+struct Bmc_AndPar_t_
 {
     int         nStart;         // starting timeframe
     int         nFramesMax;     // maximum number of timeframes 
     int         nConfLimit;     // maximum number of conflicts at a node
     int         fLoadCnf;       // dynamic CNF loading
     int         fVerbose;       // verbose 
+    int         fVeryVerbose;   // very verbose 
     int         fNotVerbose;    // skip line-by-line print-out 
     int         iFrame;         // explored up to this frame
     int         nFailOuts;      // the number of failed outputs
@@ -98,11 +102,17 @@ extern int               Saig_BmcPerform( Aig_Man_t * pAig, int nStart, int nFra
 /*=== bmcBmc3.c ==========================================================*/
 extern void              Saig_ParBmcSetDefaultParams( Saig_ParBmc_t * p );
 extern int               Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars );
+/*=== bmcBmcAnd.c ==========================================================*/
+extern int               Gia_ManBmcPerform( Gia_Man_t * p, Bmc_AndPar_t * pPars );
 /*=== bmcCexCut.c ==========================================================*/
 extern Gia_Man_t *       Bmc_GiaTargetStates( Gia_Man_t * p, Abc_Cex_t * pCex, int iFrBeg, int iFrEnd, int fCombOnly, int fGenAll, int fAllFrames, int fVerbose );
 extern Aig_Man_t *       Bmc_AigTargetStates( Aig_Man_t * p, Abc_Cex_t * pCex, int iFrBeg, int iFrEnd, int fCombOnly, int fGenAll, int fAllFrames, int fVerbose );
 /*=== bmcCexMin.c ==========================================================*/
 extern Abc_Cex_t *       Saig_ManCexMinPerform( Aig_Man_t * pAig, Abc_Cex_t * pCex );
+/*=== bmcUnroll.c ==========================================================*/
+extern Unr_Man_t *       Unr_ManUnrollStart( Gia_Man_t * pGia, int fVerbose );
+extern Gia_Man_t *       Unr_ManUnrollFrame( Unr_Man_t * p, int f );
+extern void              Unr_ManFree( Unr_Man_t * p );
 
 
 ABC_NAMESPACE_HEADER_END
