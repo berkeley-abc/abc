@@ -267,7 +267,7 @@ int _status_get_vec(int i)
 
     if( ! vStatusVec )
     {
-        return NULL;
+        return -1;
     }
 
     return Vec_IntEntry( vStatusVec, i );
