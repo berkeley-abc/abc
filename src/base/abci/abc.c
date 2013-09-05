@@ -32966,7 +32966,7 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    Gia_Man_t * pTemp = NULL;
+//    Gia_Man_t * pTemp = NULL;
     int c, fVerbose = 0;
     int nFrames = 10;
     int fSwitch = 0;

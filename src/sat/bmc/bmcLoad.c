@@ -166,7 +166,7 @@ void Bmc_LadStop( Bmc_Lad_t * p )
 ***********************************************************************/
 void Bmc_PerformBmc( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
 {
-    int nConfLimit = 0;
+//    int nConfLimit = 0;
     Bmc_Lad_t * p;
     Gia_Obj_t * pObj;
     int i, status, Lit;
