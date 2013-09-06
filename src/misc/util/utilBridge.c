@@ -501,7 +501,7 @@ void Gia_ManFromBridgeTest( char * pFileName )
     p = Gia_ManFromBridge( pFile, NULL );
     fclose ( pFile );
 
-    Gia_ManPrintStats( p, 0, 0, 0 );
+    Gia_ManPrintStats( p, NULL );
     Gia_AigerWrite( p, "temp.aig", 0, 0 );
 
     Gia_ManToBridgeAbsNetlistTest( "par_.dump", p, BRIDGE_ABS_NETLIST );

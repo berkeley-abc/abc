@@ -487,8 +487,8 @@ void Unr_ManTest( Gia_Man_t * pGia, int nFrames )
     pFrames1 = Unr_ManUnrollSimple( pGia, nFrames );
     Abc_PrintTime( 1, "UnrollS", Abc_Clock() - clk );
 
-Gia_ManPrintStats( pFrames0, 0, 0, 0 );
-Gia_ManPrintStats( pFrames1, 0, 0, 0 );
+Gia_ManPrintStats( pFrames0, NULL );
+Gia_ManPrintStats( pFrames1, NULL );
 Gia_AigerWrite( pFrames0, "frames0.aig", 0, 0 );
 Gia_AigerWrite( pFrames1, "frames1.aig", 0, 0 );
 

@@ -213,7 +213,7 @@ void Gia_SweeperPrintStats( Gia_Man_t * pGia )
     ABC_PRTP( "    Undecided   ", p->timeSatUndec, p->timeTotal );
     ABC_PRTP( "TOTAL RUNTIME   ", p->timeTotal,    p->timeTotal );
     printf( "GIA: " );
-    Gia_ManPrintStats( pGia, 0, 0, 0 );
+    Gia_ManPrintStats( pGia, NULL );
     printf( "SAT calls = %d. Sat = %d. Unsat = %d. Undecided = %d.  Proofs = %d.\n", 
         p->nSatCalls, p->nSatCallsSat, p->nSatCallsUnsat, p->nSatCallsUndec, p->nSatProofs );
     Sat_SolverPrintStats( stdout, p->pSat );

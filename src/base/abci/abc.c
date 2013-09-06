@@ -25260,23 +25260,25 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Ps( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
+    Gps_Par_t Pars, * pPars = &Pars;
     int c;
-    int fTents = 0;
-    int fSwitch = 0;
-    int fCut = 0;
+    memset( pPars, 0, sizeof(Gps_Par_t) );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "tpch" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "tpcnh" ) ) != EOF )
     {
         switch ( c )
         {
         case 't':
-            fTents ^= 1;
+            pPars->fTents ^= 1;
             break;
         case 'p':
-            fSwitch ^= 1;
+            pPars->fSwitch ^= 1;
             break;
         case 'c':
-            fCut ^= 1;
+            pPars->fCut ^= 1;
+            break;
+        case 'n':
+            pPars->fNpn ^= 1;
             break;
         case 'h':
             goto usage;
@@ -25289,15 +25291,16 @@ int Abc_CommandAbc9Ps( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Ps(): There is no AIG.\n" );
         return 1;
     }
-    Gia_ManPrintStats( pAbc->pGia, fTents, fSwitch, fCut );
+    Gia_ManPrintStats( pAbc->pGia, pPars );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &ps [-tpch]\n" );
+    Abc_Print( -2, "usage: &ps [-tpcnh]\n" );
     Abc_Print( -2, "\t        prints stats of the current AIG\n" );
-    Abc_Print( -2, "\t-t    : toggle printing BMC tents [default = %s]\n", fTents? "yes": "no" );
-    Abc_Print( -2, "\t-p    : toggle printing switching activity [default = %s]\n", fSwitch? "yes": "no" );
-    Abc_Print( -2, "\t-c    : toggle printing the size of frontier cut [default = %s]\n", fCut? "yes": "no" );
+    Abc_Print( -2, "\t-t    : toggle printing BMC tents [default = %s]\n", pPars->fTents? "yes": "no" );
+    Abc_Print( -2, "\t-p    : toggle printing switching activity [default = %s]\n", pPars->fSwitch? "yes": "no" );
+    Abc_Print( -2, "\t-c    : toggle printing the size of frontier cut [default = %s]\n", pPars->fCut? "yes": "no" );
+    Abc_Print( -2, "\t-n    : toggle printing NPN classes of functions [default = %s]\n", pPars->fNpn? "yes": "no" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;
 }

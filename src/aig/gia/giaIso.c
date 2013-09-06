@@ -1139,7 +1139,7 @@ Gia_Man_t * Gia_ManIsoReduce( Gia_Man_t * pInit, Vec_Ptr_t ** pvPosEquivs, Vec_P
             iPo = Vec_IntEntry(vLevel, 0);
             printf( "%6d %6d %6d : ", i, Vec_IntSize(vLevel), iPo );
             pPart = Gia_ManDupCones( p, &iPo, 1, 1 );
-            Gia_ManPrintStats(pPart, 0, 0, 0);
+            Gia_ManPrintStats(pPart, NULL);
             Gia_ManStop( pPart );
         }
 

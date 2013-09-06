@@ -148,14 +148,14 @@ Gia_Man_t * Bmc_CexTarget( Gia_Man_t * p, int nFrames )
     {
         printf( "%3d : ", i );
         if ( i % Gia_ManPiNum(p) == 0 )
-            Gia_ManPrintStats( pNew, 0, 0, 0 );
+            Gia_ManPrintStats( pNew, NULL );
         pNew = Gia_ManDupExist( pTemp = pNew, i );
         Gia_ManStop( pTemp );
     }
-    Gia_ManPrintStats( pNew, 0, 0, 0 );
+    Gia_ManPrintStats( pNew, NULL );
     pNew = Gia_ManDupLastPis( pTemp = pNew, Gia_ManRegNum(p) );
     Gia_ManStop( pTemp );  
-    Gia_ManPrintStats( pNew, 0, 0, 0 );
+    Gia_ManPrintStats( pNew, NULL );
     pTemp = Gia_ManDupAppendCones( p, &pNew, 1, 1 );
     Gia_ManStop( pNew );
     Gia_AigerWrite( pTemp, "miter3.aig", 0, 0 );
@@ -352,7 +352,7 @@ Gia_Man_t * Bmc_CexBuildNetwork2Test( Gia_Man_t * p, Abc_Cex_t * pCex, int nFram
     {
         printf( "Frame %5d : ", i );
         pNew = Bmc_CexBuildNetwork2_( p, pCex, i );
-        Gia_ManPrintStats( pNew, 0, 0, 0 );
+        Gia_ManPrintStats( pNew, NULL );
         Vec_PtrPush( vCones, pNew );
     }
     pNew = Gia_ManDupAppendCones( p, (Gia_Man_t **)Vec_PtrArray(vCones), Vec_PtrSize(vCones), 1 );

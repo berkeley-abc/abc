@@ -326,7 +326,7 @@ void Gia_ManPrintChoiceStats( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManPrintStats( Gia_Man_t * p, int fTents, int fSwitch, int fCut )
+void Gia_ManPrintStats( Gia_Man_t * p, Gps_Par_t * pPars )
 {
     if ( p->pName )
         printf( "%-8s : ", p->pName );
@@ -337,13 +337,12 @@ void Gia_ManPrintStats( Gia_Man_t * p, int fTents, int fSwitch, int fCut )
         printf( "  ff =%7d", Gia_ManRegNum(p) );
     printf( "  and =%8d", Gia_ManAndNum(p) );
     printf( "  lev =%5d", Gia_ManLevelNum(p) ); Vec_IntFreeP( &p->vLevels );
-    if ( fCut )
+    if ( pPars && pPars->fCut )
         printf( "  cut = %d(%d)", Gia_ManCrossCut(p, 0), Gia_ManCrossCut(p, 1) );
-//    printf( "  mem =%5.2f MB", 1.0*(sizeof(Gia_Obj_t)*p->nObjs + sizeof(int)*(Vec_IntSize(p->vCis) + Vec_IntSize(p->vCos)))/(1<<20) );
-    printf( "  mem =%5.2f MB", 1.0*(sizeof(Gia_Obj_t)*p->nObjsAlloc + sizeof(int)*(Vec_IntCap(p->vCis) + Vec_IntCap(p->vCos)))/(1<<20) );
+    printf( "  mem =%5.2f MB", Gia_ManMemory(p) );
     if ( Gia_ManHasDangling(p) )
         printf( "  ch =%5d", Gia_ManEquivCountClasses(p) );
-    if ( fSwitch )
+    if ( pPars && pPars->fSwitch )
     {
         if ( p->pSwitching )
             printf( "  power =%7.2f", Gia_ManEvaluateSwitching(p) );
@@ -360,6 +359,8 @@ void Gia_ManPrintStats( Gia_Man_t * p, int fTents, int fSwitch, int fCut )
         Gia_ManPrintChoiceStats( p );
     if ( Gia_ManHasMapping(p) )
         Gia_ManPrintMappingStats( p );
+    if ( pPars && pPars->fNpn && Gia_ManHasMapping(p) && Gia_ManLutSizeMax(p) <= 4 )
+        Gia_ManPrintNpnClasses( p );
     if ( p->vPacking )
         Gia_ManPrintPackingStats( p );
     if ( p->pPlacement )
@@ -370,7 +371,7 @@ void Gia_ManPrintStats( Gia_Man_t * p, int fTents, int fSwitch, int fCut )
     Gia_ManPrintFlopClasses( p );
     Gia_ManPrintGateClasses( p );
     Gia_ManPrintObjClasses( p );
-    if ( fTents )
+    if ( pPars && pPars->fTents )
     {
 /*
         int k, Entry, Prev = 1;

@@ -345,7 +345,7 @@ int Gia_ManBmcPerform( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
         // report statistics
         if ( pPars->fVerbose )
         {
-            printf( "%4d :  PI =%9d.  AIG =%9d.  Var =%8d.  In =%6d.  And =%9d.  Cla =%9d.  Conf =%9d.  Mem =%7.1f Mb   ", 
+            printf( "%4d :  PI =%9d.  AIG =%9d.  Var =%8d.  In =%6d.  And =%9d.  Cla =%9d.  Conf =%9d.  Mem =%7.1f MB   ", 
                 f, Gia_ManPiNum(p->pFrames), Gia_ManAndNum(p->pFrames), 
                 p->nSatVars-1, Vec_IntSize(p->vInputs), Vec_IntSize(p->vNodes), 
                 sat_solver_nclauses(p->pSat), sat_solver_nconflicts(p->pSat), Gia_ManMemory(p->pFrames) );

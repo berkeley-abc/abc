@@ -130,10 +130,10 @@ Gia_Man_t * Gia_ManOptimizeRing( Gia_Man_t * p )
     int i;
     assert( p->nConstrs == 0 );
     printf( "User AIG: " );
-    Gia_ManPrintStats( p, 0, 0, 0 );
+    Gia_ManPrintStats( p, NULL );
     pTemp = Gia_ManDropContained( p );
     printf( "Drop AIG: " );
-    Gia_ManPrintStats( pTemp, 0, 0, 0 );
+    Gia_ManPrintStats( pTemp, NULL );
 //    return pTemp;
     if ( Gia_ManPoNum(pTemp) == 1 )
         return pTemp;
@@ -158,7 +158,7 @@ Gia_Man_t * Gia_ManOptimizeRing( Gia_Man_t * p )
         Gia_ManStop( pAux );
         // report results
         printf( "AIG%3d  : ", i );
-        Gia_ManPrintStats( pTemp, 0, 0, 0 );
+        Gia_ManPrintStats( pTemp, NULL );
     }
     pTemp->nConstrs = 0;
     return pTemp;

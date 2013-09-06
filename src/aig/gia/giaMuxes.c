@@ -147,9 +147,9 @@ Gia_Man_t * Gia_ManDupMuxesTest( Gia_Man_t * p )
     Gia_Man_t * pNew, * pNew2;
     pNew = Gia_ManDupMuxes( p );
     pNew2 = Gia_ManDupNoMuxes( pNew );
-    Gia_ManPrintStats( p, 0, 0, 0 );
-    Gia_ManPrintStats( pNew, 0, 0, 0 );
-    Gia_ManPrintStats( pNew2, 0, 0, 0 );
+    Gia_ManPrintStats( p, NULL );
+    Gia_ManPrintStats( pNew, NULL );
+    Gia_ManPrintStats( pNew2, NULL );
     Gia_ManStop( pNew );
 //    Gia_ManStop( pNew2 );
     return pNew2;

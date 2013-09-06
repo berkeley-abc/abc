@@ -220,7 +220,7 @@ Gia_Man_t * Gia_ManInterTest( Gia_Man_t * p )
 
     // derive interpolant
     pInter = (Gia_Man_t *)Int2_ManReadInterpolant( pSat );
-    Gia_ManPrintStats( pInter, 0, 0, 0 );
+    Gia_ManPrintStats( pInter, NULL );
     Abc_PrintTime( 1, "Total interpolation time", Abc_Clock() - clk );
 
     // clean up

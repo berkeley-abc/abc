@@ -385,9 +385,9 @@ Gia_Man_t * Ssc_PerformSweepingConstr( Gia_Man_t * p, Ssc_Pars_t * pPars )
     if ( pPars->fVerbose )
     {
         printf( "User AIG: " );
-        Gia_ManPrintStats( pAig, 0, 0, 0 );
+        Gia_ManPrintStats( pAig, NULL );
         printf( "Care AIG: " );
-        Gia_ManPrintStats( pCare, 0, 0, 0 );
+        Gia_ManPrintStats( pCare, NULL );
     }
 
     pAig = Gia_ManDupLevelized( pResult = pAig );

@@ -956,7 +956,7 @@ Gia_Man_t * Gia_ManFramesInitSpecial( Gia_Man_t * pAig, int nFrames, int fVerbos
         if ( fVerbose && (f % 100 == 0) )
         {
             printf( "%6d : ", f );
-            Gia_ManPrintStats( pFrames, 0, 0, 0 );
+            Gia_ManPrintStats( pFrames, NULL );
         }
         Gia_ManForEachRo( pAig, pObj, i )
             pObj->Value = f ? Gia_ObjRoToRi( pAig, pObj )->Value : 0;

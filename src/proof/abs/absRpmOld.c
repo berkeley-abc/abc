@@ -147,7 +147,7 @@ Gia_Man_t * Abs_RpmPerformOld( Gia_Man_t * p, int fVerbose )
     if ( fVerbose )
     {
         printf( "Original AIG:\n" );
-        Gia_ManPrintStats( p, 0, 0, 0 );
+        Gia_ManPrintStats( p, NULL );
     }
 
     // perform input trimming
@@ -155,7 +155,7 @@ Gia_Man_t * Abs_RpmPerformOld( Gia_Man_t * p, int fVerbose )
     if ( fVerbose )
     {
         printf( "After PI trimming:\n" );
-        Gia_ManPrintStats( pNew, 0, 0, 0 );
+        Gia_ManPrintStats( pNew, NULL );
     }
     // transform GIA
     pNew = Gia_ManDupIn2Ff( pTmp = pNew );
@@ -163,7 +163,7 @@ Gia_Man_t * Abs_RpmPerformOld( Gia_Man_t * p, int fVerbose )
     if ( fVerbose )
     {
         printf( "After PI-2-FF transformation:\n" );
-        Gia_ManPrintStats( pNew, 0, 0, 0 );
+        Gia_ManPrintStats( pNew, NULL );
     }
 
     // derive AIG
@@ -178,7 +178,7 @@ Gia_Man_t * Abs_RpmPerformOld( Gia_Man_t * p, int fVerbose )
     if ( fVerbose )
     {
         printf( "After min-area retiming:\n" );
-        Gia_ManPrintStats( pNew, 0, 0, 0 );
+        Gia_ManPrintStats( pNew, NULL );
     }
 
     // transform back
@@ -187,7 +187,7 @@ Gia_Man_t * Abs_RpmPerformOld( Gia_Man_t * p, int fVerbose )
     if ( fVerbose )
     {
         printf( "After FF-2-PI tranformation:\n" );
-        Gia_ManPrintStats( pNew, 0, 0, 0 );
+        Gia_ManPrintStats( pNew, NULL );
     }
     return pNew;
 }

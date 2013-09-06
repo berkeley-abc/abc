@@ -181,6 +181,15 @@ struct Gia_Man_t_
 
 
 
+typedef struct Gps_Par_t_ Gps_Par_t;
+struct Gps_Par_t_
+{
+    int            fTents;
+    int            fSwitch;
+    int            fCut;
+    int            fNpn;
+};
+
 typedef struct Emb_Par_t_ Emb_Par_t;
 struct Emb_Par_t_
 {
@@ -1019,7 +1028,7 @@ extern Gia_Man_t *         Gia_ManStart( int nObjsMax );
 extern void                Gia_ManStop( Gia_Man_t * p );  
 extern void                Gia_ManStopP( Gia_Man_t ** p );  
 extern float               Gia_ManMemory( Gia_Man_t * p );
-extern void                Gia_ManPrintStats( Gia_Man_t * p, int fTents, int fSwitch, int fCut ); 
+extern void                Gia_ManPrintStats( Gia_Man_t * p, Gps_Par_t * pPars ); 
 extern void                Gia_ManPrintStatsShort( Gia_Man_t * p ); 
 extern void                Gia_ManPrintMiterStatus( Gia_Man_t * p ); 
 extern void                Gia_ManSetRegNum( Gia_Man_t * p, int nRegs );
