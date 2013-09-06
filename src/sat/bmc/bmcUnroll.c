@@ -408,6 +408,7 @@ Gia_Man_t * Unr_ManUnrollFrame( Unr_Man_t * p, int f )
         hStart += Unr_ObjSize( pUnrObj );
     }
     assert( p->pObjs + hStart == p->pEnd );
+    assert( Gia_ManPoNum(p->pFrames) == (f + 1) * Gia_ManPoNum(p->pGia) );
     return p->pFrames;
 }
 Gia_Man_t * Unr_ManUnroll( Gia_Man_t * pGia, int nFrames )
