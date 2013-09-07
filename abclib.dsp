@@ -3679,6 +3679,10 @@ SOURCE=.\src\aig\gia\giaIso2.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\gia\giaJf.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\gia\giaMan.c
 # End Source File
 # Begin Source File

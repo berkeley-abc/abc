@@ -138,14 +138,14 @@ void Gia_ManStop( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-float Gia_ManMemory( Gia_Man_t * p )
+double Gia_ManMemory( Gia_Man_t * p )
 {
-    word Memory = sizeof(Gia_Man_t);
+    double Memory = sizeof(Gia_Man_t);
     Memory += sizeof(Gia_Obj_t) * Gia_ManObjNum(p);
     Memory += sizeof(int) * Gia_ManCiNum(p);
     Memory += sizeof(int) * Gia_ManCoNum(p);
     Memory += sizeof(int) * p->nHTable * (p->pHTable != NULL);
-    return (float)(int)(Memory / (1 << 20)) + (float)(1e-6 * (int)(Memory % (1 << 20)));
+    return Memory;
 }
 
 /**Function*************************************************************
@@ -339,7 +339,7 @@ void Gia_ManPrintStats( Gia_Man_t * p, Gps_Par_t * pPars )
     printf( "  lev =%5d", Gia_ManLevelNum(p) ); Vec_IntFreeP( &p->vLevels );
     if ( pPars && pPars->fCut )
         printf( "  cut = %d(%d)", Gia_ManCrossCut(p, 0), Gia_ManCrossCut(p, 1) );
-    printf( "  mem =%5.2f MB", Gia_ManMemory(p) );
+    printf( "  mem =%5.2f MB", Gia_ManMemory(p)/(1<<20) );
     if ( Gia_ManHasDangling(p) )
         printf( "  ch =%5d", Gia_ManEquivCountClasses(p) );
     if ( pPars && pPars->fSwitch )
@@ -554,8 +554,8 @@ void Gia_ManPrintNpnClasses( Gia_Man_t * p )
     {
         if ( ClassCounts[i] == 0 )
             continue;
-        if ( 100.0 * ClassCounts[i] / (nTotal+1) < 0.1 ) // do not show anything below 0.1 percent
-            continue;
+//        if ( 100.0 * ClassCounts[i] / (nTotal+1) < 0.1 ) // do not show anything below 0.1 percent
+//            continue;
         OtherClasses += ClassCounts[i];
         Abc_Print( 1, "Class %3d :  Count = %6d   (%7.2f %%)   %s\n", 
             i, ClassCounts[i], 100.0 * ClassCounts[i] / (nTotal+1), pNames[i] );

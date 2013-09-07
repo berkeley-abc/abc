@@ -373,6 +373,7 @@ static int Abc_CommandAbc9Force              ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9Embed              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9If                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9If2                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Jf                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Trace              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Speedup            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Era                ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -568,6 +569,8 @@ void Abc_FrameUpdateGia( Abc_Frame_t * pAbc, Gia_Man_t * pNew )
         Abc_Print( -1, "Abc_FrameUpdateGia(): Tranformation has failed.\n" );
         return;
     }
+    if ( pNew == pAbc->pGia )
+        return;
     // transfer names
     if (!pNew->vNamesIn && pAbc->pGia && pAbc->pGia->vNamesIn && Gia_ManCiNum(pNew) == Vec_PtrSize(pAbc->pGia->vNamesIn))
     {
@@ -925,6 +928,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&embed",        Abc_CommandAbc9Embed,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&if",           Abc_CommandAbc9If,           0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&if2",          Abc_CommandAbc9If2,          0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&jf",           Abc_CommandAbc9Jf,           0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&trace",        Abc_CommandAbc9Trace,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&speedup",      Abc_CommandAbc9Speedup,      0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&era",          Abc_CommandAbc9Era,          0 );
@@ -29801,6 +29805,123 @@ usage:
     return 1;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Jf( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    char Buffer[200];
+    Jf_Par_t Pars, * pPars = &Pars;
+    Gia_Man_t * pNew;
+    int c;
+    Jf_ManSetDefaultPars( pPars );
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KCRDavwh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'K':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-K\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            pPars->nLutSize = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nLutSize < 2 || pPars->nLutSize > pPars->nLutSizeMax )
+            {
+                Abc_Print( -1, "LUT size %d is not supported.\n", pPars->nLutSize );
+                goto usage;
+            }
+            break;
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-C\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            pPars->nCutNum = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nCutNum < 1 || pPars->nCutNum > pPars->nCutNumMax )
+            {
+                Abc_Print( -1, "This number of cuts (%d) is not supported.\n", pPars->nCutNum );
+                goto usage;
+            }
+            break;
+        case 'R':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-R\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            pPars->nRounds = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nRounds < 0 )
+                goto usage;
+            break;
+        case 'D':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-D\" should be followed by a floating point number.\n" );
+                goto usage;
+            }
+            pPars->DelayTarget = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->DelayTarget <= 0.0 )
+                goto usage;
+            break;
+        case 'a':
+            pPars->fAreaOnly ^= 1;
+            break;
+        case 'v':
+            pPars->fVerbose ^= 1;
+            break;
+        case 'w':
+            pPars->fVeryVerbose ^= 1;
+            break;
+        case 'h':
+        default:
+            goto usage;
+        }
+    }
+    pNew = Jf_ManPerformMapping( pAbc->pGia, pPars );
+    if ( pNew == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9If2(): Mapping into LUTs has failed.\n" );
+        return 1;
+    }
+    Abc_FrameUpdateGia( pAbc, pNew );
+    return 0;
+
+usage:
+    if ( pPars->DelayTarget == -1 )
+        sprintf(Buffer, "best possible" );
+    else
+        sprintf(Buffer, "%d", pPars->DelayTarget );
+    Abc_Print( -2, "usage: &jf [-KCRD num] [-avwh]\n" );
+    Abc_Print( -2, "\t           performs technology mapping of the network\n" );
+    Abc_Print( -2, "\t-K num   : LUT size for the mapping (2 <= K <= %d) [default = %d]\n", pPars->nLutSizeMax, pPars->nLutSize );
+    Abc_Print( -2, "\t-C num   : the max number of priority cuts (1 <= C <= %d) [default = %d]\n", pPars->nCutNumMax, pPars->nCutNum );
+    Abc_Print( -2, "\t-R num   : the number of mapping rounds [default = %d]\n", pPars->nRounds );
+    Abc_Print( -2, "\t-D num   : sets the delay constraint for the mapping [default = %s]\n", Buffer );
+    Abc_Print( -2, "\t-a       : toggles area-oriented mapping [default = %s]\n", pPars->fAreaOnly? "yes": "no" );
+    Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-w       : toggles very verbose output [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h       : prints the command usage\n");
+    return 1;
+}
+
+
+
 /**Function*************************************************************
 
   Synopsis    []
@@ -32985,7 +33106,7 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    extern void Ga2_ManComputeTest( Gia_Man_t * p );
 //    extern void Bmc_CexTest( Gia_Man_t * p, Abc_Cex_t * pCex, int fVerbose );
 //    extern void Gia_IsoTest( Gia_Man_t * p, Abc_Cex_t * pCex, int fVerbose );
-    extern void Unr_ManTest( Gia_Man_t * pGia, int nFrames );
+//    extern void Unr_ManTest( Gia_Man_t * pGia, int nFrames );
 //    extern int Gia_ManVerify( Gia_Man_t * pGia );
 //    extern Gia_Man_t * Gia_ManOptimizeRing( Gia_Man_t * p );
 //    extern void Gia_ManCollectSeqTest( Gia_Man_t * p );
@@ -33054,7 +33175,7 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    Ga2_ManComputeTest( pAbc->pGia );
 //    Bmc_CexTest( pAbc->pGia, pAbc->pCex, fVerbose );
 //    Gia_IsoTest( pAbc->pGia, pAbc->pCex, 0 );
-    Unr_ManTest( pAbc->pGia, nFrames );
+//    Unr_ManTest( pAbc->pGia, nFrames );
 //    Gia_ManVerifyWithBoxes( pAbc->pGia );
 //    Gia_ManCollectSeqTest( pAbc->pGia );
 //    pTemp = Gia_ManOptimizeRing( pAbc->pGia );

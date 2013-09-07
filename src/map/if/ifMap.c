@@ -333,6 +333,12 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
         If_CutSort( p, pCutSet, pCut );
 //        If_CutTraverse( p, pObj, pCut );
     } 
+/*
+    printf( "Node %d\n", pObj->Id );
+    for ( i = 0; i < pCutSet->nCuts; i++ )
+        If_CutPrint( pCutSet->ppCuts[i] );
+    printf( "\n" );
+*/
     assert( pCutSet->nCuts > 0 );
 
     // add the trivial cut to the set
