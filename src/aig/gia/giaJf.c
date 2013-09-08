@@ -527,6 +527,12 @@ void Jf_ObjComputeCuts( Jf_Man_t * p, Gia_Obj_t * pObj )
 void Jf_ManComputeCuts( Jf_Man_t * p )
 {
     Gia_Obj_t * pObj; int i;
+    if ( p->pPars->fVerbose )
+    {
+        printf( "Aig: CI = %d  CO = %d  AND = %d    ", Gia_ManCiNum(p->pGia), Gia_ManCoNum(p->pGia), Gia_ManAndNum(p->pGia) );
+        printf( "LutSize = %d  CutMax = %d  Rounds = %d\n", p->pPars->nLutSize, p->pPars->nCutNum, p->pPars->nRounds );
+        printf( "Computing cuts...\r" );
+    }
     Gia_ManForEachObj( p->pGia, pObj, i )
     {
         if ( Gia_ObjIsCi(pObj) || Gia_ObjIsBuf(pObj) )
@@ -538,12 +544,10 @@ void Jf_ManComputeCuts( Jf_Man_t * p )
     }
     if ( p->pPars->fVerbose )
     {
-        printf( "Aig: CI = %d  CO = %d  AND = %d    ", Gia_ManCiNum(p->pGia), Gia_ManCoNum(p->pGia), Gia_ManAndNum(p->pGia) );
-        printf( "LutSize = %d  CutMax = %d  Rounds = %d\n", p->pPars->nLutSize, p->pPars->nCutNum, p->pPars->nRounds );
-        printf( "CutPair = %d  ",  p->CutCount[0] );
-        printf( "Merge = %d  ",    p->CutCount[1] );
-        printf( "Eval = %d  ",     p->CutCount[2] );
-        printf( "Cut = %d  ",      p->CutCount[3] );
+        printf( "CutPair = %lu  ", p->CutCount[0] );
+        printf( "Merge = %lu  ",   p->CutCount[1] );
+        printf( "Eval = %lu  ",    p->CutCount[2] );
+        printf( "Cut = %lu  ",     p->CutCount[3] );
         Abc_PrintTime( 1, "Time",  Abc_Clock() - p->clkStart );
         printf( "Memory:  " );
         printf( "Gia = %.2f MB  ", Gia_ManMemory(p->pGia) / (1<<20) );
@@ -722,9 +726,9 @@ void Jf_ManPrintStats( Jf_Man_t * p, char * pTitle )
     if ( !p->pPars->fVerbose )
         return;
     printf( "%s :  ", pTitle );
-    printf( "Time =%6d   ", p->pPars->Delay );
-    printf( "Area =%8d   ", p->pPars->Area );
-    printf( "Edge =%8d   ", p->pPars->Edge );
+    printf( "Level =%6d   ", p->pPars->Delay );
+    printf( "Area =%9d   ",  p->pPars->Area );
+    printf( "Edge =%9d   ",  p->pPars->Edge );
     Abc_PrintTime( 1, "Time", Abc_Clock() - p->clkStart );
 }
 Gia_Man_t * Jf_ManPerformMapping( Gia_Man_t * pGia, Jf_Par_t * pPars )
