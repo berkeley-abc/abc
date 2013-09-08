@@ -312,6 +312,43 @@ void Gia_ManPrintPackingStats( Gia_Man_t * p )
     Abc_Print( 1, "\n" );
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManPrintNodeProfile( int * pCounts, int nSizeMax )
+{
+    int i, SizeAll = 0, NodeAll = 0;
+    for ( i = 0; i <= nSizeMax; i++ )
+    {
+        SizeAll += i * pCounts[i];
+        NodeAll += pCounts[i];
+    }
+    Abc_Print( 1, "LUT = %d : ", NodeAll );
+    for ( i = 2; i <= nSizeMax; i++ )
+        Abc_Print( 1, "%d=%d %.1f %%  ", i, pCounts[i], 100.0*pCounts[i]/NodeAll );
+    Abc_Print( 1, "Ave = %.2f\n", 1.0*SizeAll/(NodeAll ? NodeAll : 1) );
+}
+void Gia_ManPrintLutStats( Gia_Man_t * p )
+{
+    int i, nSizeMax, pCounts[33] = {0};
+    nSizeMax = Gia_ManLutSizeMax( p );
+    if ( nSizeMax > 32 )
+    {
+        Abc_Print( 1, "The max LUT size (%d) is too large.\n", nSizeMax );
+        return;
+    }
+    Gia_ManForEachLut( p, i )
+        pCounts[ Gia_ObjLutSize(p, i) ]++;
+    Gia_ManPrintNodeProfile( pCounts, nSizeMax );
+}
 
 /**Function*************************************************************
 

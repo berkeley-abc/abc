@@ -25268,7 +25268,7 @@ int Abc_CommandAbc9Ps( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     memset( pPars, 0, sizeof(Gps_Par_t) );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "tpcnh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "tpcnlh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -25283,6 +25283,9 @@ int Abc_CommandAbc9Ps( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'n':
             pPars->fNpn ^= 1;
+            break;
+        case 'l':
+            pPars->fLutProf ^= 1;
             break;
         case 'h':
             goto usage;
@@ -25299,12 +25302,13 @@ int Abc_CommandAbc9Ps( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &ps [-tpcnh]\n" );
+    Abc_Print( -2, "usage: &ps [-tpcnlh]\n" );
     Abc_Print( -2, "\t        prints stats of the current AIG\n" );
     Abc_Print( -2, "\t-t    : toggle printing BMC tents [default = %s]\n", pPars->fTents? "yes": "no" );
     Abc_Print( -2, "\t-p    : toggle printing switching activity [default = %s]\n", pPars->fSwitch? "yes": "no" );
     Abc_Print( -2, "\t-c    : toggle printing the size of frontier cut [default = %s]\n", pPars->fCut? "yes": "no" );
     Abc_Print( -2, "\t-n    : toggle printing NPN classes of functions [default = %s]\n", pPars->fNpn? "yes": "no" );
+    Abc_Print( -2, "\t-l    : toggle printing LUT size profile [default = %s]\n", pPars->fLutProf? "yes": "no" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;
 }

@@ -781,7 +781,8 @@ void Jf_ManDeriveMapping( Jf_Man_t * p )
     Vec_Int_t * vMapping;
     Gia_Obj_t * pObj; 
     int i, k, * pCut;
-    vMapping = Vec_IntStart( Gia_ManObjNum(p->pGia) );
+    vMapping = Vec_IntAlloc( Gia_ManObjNum(p->pGia) + p->pPars->Edge + p->pPars->Area * 2 );
+    Vec_IntFill( vMapping, Gia_ManObjNum(p->pGia), 0 );
     Gia_ManForEachAnd( p->pGia, pObj, i )
     {
         if ( Gia_ObjIsBuf(pObj) || Gia_ObjRefNum(p->pGia, pObj) == 0 )
@@ -792,6 +793,7 @@ void Jf_ManDeriveMapping( Jf_Man_t * p )
             Vec_IntPush( vMapping, pCut[k] );
         Vec_IntPush( vMapping, i );
     }
+    assert( Vec_IntSize(vMapping) == Vec_IntCap(vMapping) );
     p->pGia->vMapping = vMapping;
 //    Gia_ManMappingVerify( p->pGia );
 }
