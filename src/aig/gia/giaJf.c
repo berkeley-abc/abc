@@ -227,7 +227,7 @@ static inline int Jf_CutFindLeaf( int * pCut, int iObj )
             return 1;
     return 0;
 }
-static inline int Jf_CutMerge( int * pCut0, int * pCut1, int * pCut, int LutSize )
+static inline int Jf_CutMerge2( int * pCut0, int * pCut1, int * pCut, int LutSize )
 {
     int i;
     if ( pCut0[0] > pCut1[0] )
@@ -239,7 +239,7 @@ static inline int Jf_CutMerge( int * pCut0, int * pCut1, int * pCut, int LutSize
         if ( Jf_CutFindLeaf(pCut1, pCut0[i]) )
             continue;
         if ( pCut[0] == LutSize )
-            return 1;
+            return 0;
         pCut[++pCut[0]] = pCut0[i];
     }
     memcpy( pCut + 1, pCut1 + 1, sizeof(int) * pCut1[0] );
@@ -251,7 +251,62 @@ static inline int Jf_CutMerge( int * pCut0, int * pCut1, int * pCut, int LutSize
             for ( k = 0; k < i; k++ )
                 assert( pCut[i+1] != pCut[k+1] );
     }
-    return 0;
+    return 1;
+}
+static inline int Jf_CutMerge( int * pCut0, int * pCut1, int * pCut, int LutSize )
+{ 
+    int * pC0 = pCut0 + 1;
+    int * pC1 = pCut1 + 1;
+    int * pC = pCut + 1;
+    int i, k, c, s;
+    // the case of the largest cut sizes
+    if ( pCut0[0] == LutSize && pCut1[0] == LutSize )
+    {
+        for ( i = 0; i < pCut0[0]; i++ )
+        {
+            if ( pC0[i] != pC1[i] )
+                return 0;
+            pC[i] = pC0[i];
+        }
+        pCut[0] = LutSize;
+        return 1;
+    }
+    // compare two cuts with different numbers
+    i = k = c = s = 0;
+    while ( 1 )
+    {
+        if ( c == LutSize ) return 0;
+        if ( pC0[i] < pC1[k] )
+        {
+            pC[c++] = pC0[i++];
+            if ( i >= pCut0[0] ) goto FlushCut1;
+        }
+        else if ( pC0[i] > pC1[k] )
+        {
+            pC[c++] = pC1[k++];
+            if ( k >= pCut1[0] ) goto FlushCut0;
+        }
+        else
+        {
+            pC[c++] = pC0[i++]; k++;
+            if ( i >= pCut0[0] ) goto FlushCut1;
+            if ( k >= pCut1[0] ) goto FlushCut0;
+        }
+    }
+
+FlushCut0:
+    if ( c + pCut0[0] > LutSize + i ) return 0;
+    while ( i < pCut0[0] )
+        pC[c++] = pC0[i++];
+    pCut[0] = c;
+    return 1;
+
+FlushCut1:
+    if ( c + pCut1[0] > LutSize + k ) return 0;
+    while ( k < pCut1[0] )
+        pC[c++] = pC1[k++];
+    pCut[0] = c;
+    return 1;
 }
 static inline int Jf_CutIsContained( int * pBase, int * pCut ) // check if pCut is contained pBase
 {
@@ -522,7 +577,7 @@ void Jf_ObjComputeCuts( Jf_Man_t * p, Gia_Obj_t * pObj )
         if ( Jf_CountBits(Sign0[i] | Sign1[k]) > LutSize )
             continue;
         p->CutCount[1]++;
-        if ( Jf_CutMerge(pCut0, pCut1, pSto[c]->pCut, LutSize) )
+        if ( !Jf_CutMerge(pCut0, pCut1, pSto[c]->pCut, LutSize) )
             continue;
         p->CutCount[2]++;
         pSto[c]->Sign = Sign0[i] | Sign1[k];
