@@ -88,7 +88,7 @@ int Saig_ManStatesAreEqual( sat_solver * pSat, Vec_Int_t * vState, int nRegs, in
   SeeAlso     []
 
 ***********************************************************************/
-void Saig_ManAddUniqueness( sat_solver * pSat, Vec_Int_t * vState, int nRegs, int i, int k, int * pnSatVarNum, int * pnClauses )
+int Saig_ManAddUniqueness( sat_solver * pSat, Vec_Int_t * vState, int nRegs, int i, int k, int * pnSatVarNum, int * pnClauses, int fVerbose )
 {
     int * pStateI = (int *)Vec_IntArray(vState) + nRegs * i;
     int * pStateK = (int *)Vec_IntArray(vState) + nRegs * k;
@@ -99,8 +99,9 @@ void Saig_ManAddUniqueness( sat_solver * pSat, Vec_Int_t * vState, int nRegs, in
     for ( v = 0; v < nRegs; v++ )
         if ( pStateI[v] >= 0 && pStateK[v] == -1 )
         {
-//            printf( "Cannot constrain an incomplete state.\n" );
-            return;
+            if ( fVerbose )
+                printf( "Cannot constrain an incomplete state.\n" );
+            return 0;
         }
     // add XORs
     nSatVarsOld = *pnSatVarNum;
@@ -111,8 +112,9 @@ void Saig_ManAddUniqueness( sat_solver * pSat, Vec_Int_t * vState, int nRegs, in
             RetValue = Cnf_DataAddXorClause( pSat, pStateI[v], pStateK[v], (*pnSatVarNum)++ );
             if ( RetValue == 0 )
             {
-                printf( "SAT solver became UNSAT.\n" );
-                return;
+                if ( fVerbose )
+                    printf( "SAT solver became UNSAT after adding a uniqueness constraint.\n" );
+                return 1;
             }
         }
     // add OR clause
@@ -126,9 +128,11 @@ void Saig_ManAddUniqueness( sat_solver * pSat, Vec_Int_t * vState, int nRegs, in
     ABC_FREE( pClause );
     if ( RetValue == 0 )
     {
-        printf( "SAT solver became UNSAT.\n" );
-        return;
+        if ( fVerbose )
+            printf( "SAT solver became UNSAT after adding a uniqueness constraint.\n" );
+        return 1;
     }
+    return 0;
 }
 
 /**Function*************************************************************
@@ -271,15 +275,22 @@ int Saig_ManInduction( Aig_Man_t * p, int nTimeOut, int nFramesMax, int nConfMax
                 Vec_IntWriteEntry( vState, nOldSize+iReg, pCnfPart->pVarNums[pObjPiCopy->Id] );
             }
         } 
+        assert( Vec_IntSize(vState)%Aig_ManRegNum(p) == 0 );
         iLast = Vec_IntSize(vState)/Aig_ManRegNum(p);
         if ( fUniqueAll )
         {
             for ( i = 1; i < iLast-1; i++ )
             {
                 nConstrs++;
-                Saig_ManAddUniqueness( pSat, vState, Aig_ManRegNum(p), i, iLast-1, &nSatVarNum, &nClauses );
                 if ( fVeryVerbose )
-                    printf( "added constaint for %3d and %3d\n", i, iLast-1 );
+                    printf( "Adding constaint for state %2d and state %2d.\n", i, iLast-1 );
+                if ( Saig_ManAddUniqueness( pSat, vState, Aig_ManRegNum(p), i, iLast-1, &nSatVarNum, &nClauses, fVerbose ) )
+                    break;
+            }
+            if ( i < iLast-1 )
+            {
+                RetValue = 1;
+                break;
             }
         }
 
@@ -290,7 +301,7 @@ nextrun:
         status = sat_solver_solve( pSat, NULL, NULL, (ABC_INT64_T)nConfMax, 0, 0, 0 );
         if ( fVerbose )
         {
-            printf( "%4d : PI =%5d. PO =%5d. AIG =%5d. Var =%7d. Clau =%7d. Conf =%7d. ",
+            printf( "Frame %4d : PI =%5d. PO =%5d. AIG =%5d. Var =%7d. Clau =%7d. Conf =%7d. ",
                 f, Aig_ManCiNum(pAigPart), Aig_ManCoNum(pAigPart), Aig_ManNodeNum(pAigPart), 
                 nSatVarNum, nClauses, (int)pSat->stats.conflicts-nConfPrev );
             ABC_PRT( "Time", Abc_Clock() - clk );
@@ -311,7 +322,7 @@ nextrun:
                 if ( i && (i % Aig_ManRegNum(p)) == 0 )
                     printf( "\n" );
                 if ( (i % Aig_ManRegNum(p)) == 0 )
-                    printf( "%3d : ", i/Aig_ManRegNum(p) );
+                    printf( "       State %3d : ", i/Aig_ManRegNum(p) );
                 printf( "%c", (iReg >= 0) ? ('0' + sat_solver_var_value(pSat, iReg)) : 'x' );
             }
             printf( "\n" );
@@ -341,23 +352,29 @@ nextrun:
         if ( fUnique )
         {
             for ( i = 1; i < iLast; i++ )
-            for ( k = i+1; k < iLast; k++ )
             {
-                if ( !Saig_ManStatesAreEqual( pSat, vState, Aig_ManRegNum(p), i, k ) )
-                    continue;
-                nConstrs++;
-                fAdded = 1;
-                Saig_ManAddUniqueness( pSat, vState, Aig_ManRegNum(p), i, k, &nSatVarNum, &nClauses );
-                if ( fVeryVerbose )
-                    printf( "added constaint for %3d and %3d\n", i, k );
+                for ( k = i+1; k < iLast; k++ )
+                {
+                    if ( !Saig_ManStatesAreEqual( pSat, vState, Aig_ManRegNum(p), i, k ) )
+                        continue;
+                    nConstrs++;
+                    fAdded = 1;
+                    if ( fVeryVerbose )
+                        printf( "Adding constaint for state %2d and state %2d.\n", i, k );
+                    if ( Saig_ManAddUniqueness( pSat, vState, Aig_ManRegNum(p), i, k, &nSatVarNum, &nClauses, fVerbose ) )
+                        break;
+                }
+                if ( k < iLast )
+                    break;
+            }
+            if ( i < iLast )
+            {
+                RetValue = 1;
+                break;
             }
         }
         if ( fAdded )
-        {
-//            if ( fVeryVerbose )
-//                printf( "Trying a new run.\n" );
             goto nextrun;
-        }
     }
     if ( fVerbose )
     {
