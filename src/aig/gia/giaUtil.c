@@ -1138,6 +1138,10 @@ void Gia_ObjPrint( Gia_Man_t * p, Gia_Obj_t * pObj )
             Gia_ObjFaninId1p(p, pObj), (Gia_ObjFaninC1(pObj)? "\'" : " ") );
     if ( p->pRefs )
         printf( " (refs = %3d)", Gia_ObjRefNum(p, pObj) );
+    if ( pObj->fMark0 )
+        printf( " mark0" );
+    if ( pObj->fMark1 )
+        printf( " mark1" );
     printf( "\n" );
 /*
     if ( p->pRefs )
@@ -1188,6 +1192,26 @@ void Gia_ManPrintCo( Gia_Man_t * p, Gia_Obj_t * pObj )
     printf( "TFI cone of CO number %d:\n", Gia_ObjCioId(pObj) );
     Gia_ManPrintCo_rec( p, Gia_ObjFanin0(pObj) );
     Gia_ObjPrint( p, pObj );
+}
+void Gia_ManPrintCollect_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vNodes )
+{
+    if ( Vec_IntFind(vNodes, Gia_ObjId(p, pObj)) >= 0 )
+        return;
+    assert( Gia_ObjIsAnd(pObj) );
+    Gia_ManPrintCollect_rec( p, Gia_ObjFanin0(pObj), vNodes );
+    Gia_ManPrintCollect_rec( p, Gia_ObjFanin1(pObj), vNodes );
+    Vec_IntPush( vNodes, Gia_ObjId(p, pObj) );
+}
+void Gia_ManPrintCone( Gia_Man_t * p, Gia_Obj_t * pObj, int * pLeaves, int nLeaves, Vec_Int_t * vNodes )
+{
+    int i;
+    Vec_IntClear( vNodes );
+    for ( i = 0; i < nLeaves; i++ )
+        Vec_IntPush( vNodes, pLeaves[i] );
+    Gia_ManPrintCollect_rec( p, pObj, vNodes );
+    printf( "GIA logic cone for node %d:\n", Gia_ObjId(p, pObj) );
+    Gia_ManForEachObjVec( vNodes, p, pObj, i )
+        Gia_ObjPrint( p, pObj );
 }
 
 /**Function*************************************************************

@@ -241,6 +241,7 @@ struct Jf_Par_t_
     int            nRounds;
     int            DelayTarget;
     int            fAreaOnly;
+    int            fCoarsen;
     int            fVerbose;
     int            fVeryVerbose;
     int            nLutSizeMax;
@@ -1204,6 +1205,7 @@ extern Vec_Int_t *         Gia_ManGetDangling( Gia_Man_t * p );
 extern void                Gia_ObjPrint( Gia_Man_t * p, Gia_Obj_t * pObj );
 extern void                Gia_ManPrint( Gia_Man_t * p );
 extern void                Gia_ManPrintCo( Gia_Man_t * p, Gia_Obj_t * pObj );
+extern void                Gia_ManPrintCone( Gia_Man_t * p, Gia_Obj_t * pObj, int * pLeaves, int nLeaves, Vec_Int_t * vNodes );
 extern void                Gia_ManInvertConstraints( Gia_Man_t * pAig );
 extern void                Gia_ManInvertPos( Gia_Man_t * pAig );
 extern int                 Gia_ManCompare( Gia_Man_t * p1, Gia_Man_t * p2 );

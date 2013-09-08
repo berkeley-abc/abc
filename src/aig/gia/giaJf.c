@@ -55,6 +55,7 @@ struct Jf_Man_t_
     float (*pCutCmp) (Jf_Cut_t *, Jf_Cut_t *);// procedure to compare cuts
     abctime          clkStart;    // starting time
     word             CutCount[4]; // statistics
+    int              nCoarse;     // coarse nodes
 };
 
 static inline int    Jf_ObjCutH( Jf_Man_t * p, int i )    { return Vec_IntEntry(&p->vCuts, i);                       }
@@ -82,8 +83,9 @@ static inline float  Jf_ObjRefs( Jf_Man_t * p, int i )    { return Vec_FltEntry(
   SeeAlso     []
 
 ***********************************************************************/
-float * Jf_ManInitRefs( Gia_Man_t * p )
+float * Jf_ManInitRefs( Jf_Man_t * pMan )
 {
+    Gia_Man_t * p = pMan->pGia;
     Gia_Obj_t * pObj, * pCtrl, * pData0, * pData1;
     float * pRes; int i;
     assert( p->pRefs == NULL );
@@ -104,6 +106,20 @@ float * Jf_ManInitRefs( Gia_Man_t * p )
     }
     Gia_ManForEachCo( p, pObj, i )
         Gia_ObjRefFanin0Inc( p, pObj );
+    // mark XOR/MUX internal nodes, which are not used elsewhere
+    if ( pMan->pPars->fCoarsen )
+    {
+        pMan->nCoarse = 0;
+        Gia_ManForEachAnd( p, pObj, i )
+        {
+            if ( Gia_ObjIsBuf(pObj) || !Gia_ObjIsMuxType(pObj) )
+                continue;
+            if ( Gia_ObjRefNum(p, Gia_ObjFanin0(pObj)) == 1 )
+                Gia_ObjFanin0(pObj)->fMark0 = 1, pMan->nCoarse++;
+            if ( Gia_ObjRefNum(p, Gia_ObjFanin1(pObj)) == 1 )
+                Gia_ObjFanin1(pObj)->fMark0 = 1, pMan->nCoarse++;
+        }
+    }
     // multiply by factor
     pRes = ABC_ALLOC( float, Gia_ManObjNum(p) );
     for ( i = 0; i < Gia_ManObjNum(p); i++ )
@@ -136,7 +152,7 @@ Jf_Man_t * Jf_ManAlloc( Gia_Man_t * pGia, Jf_Par_t * pPars )
     Vec_IntFill( &p->vDep,  Gia_ManObjNum(pGia), 0 );
     Vec_FltFill( &p->vFlow, Gia_ManObjNum(pGia), 0 );
     p->vRefs.nCap = p->vRefs.nSize = Gia_ManObjNum(pGia);
-    p->vRefs.pArray = Jf_ManInitRefs( pGia );
+    p->vRefs.pArray = Jf_ManInitRefs( p );
     Vec_SetAlloc_( &p->pMem, 20 );
     p->vTemp     = Vec_IntAlloc( 1000 );
     p->clkStart  = Abc_Clock();
@@ -144,6 +160,8 @@ Jf_Man_t * Jf_ManAlloc( Gia_Man_t * pGia, Jf_Par_t * pPars )
 }
 void Jf_ManFree( Jf_Man_t * p )
 {
+    if ( p->pPars->fCoarsen )
+        Gia_ManCleanMark0( p->pGia );
     ABC_FREE( p->pGia->pRefs );
     ABC_FREE( p->vCuts.pArray );
     ABC_FREE( p->vArr.pArray );
@@ -180,6 +198,13 @@ static inline void Jf_ObjCutPrint( int * pCuts )
     Jf_ObjForEachCut( pCuts, pCut, i )
         Jf_CutPrint( pCut );
     printf( "\n" );
+}
+static inline void Jf_ObjBestCutConePrint( Jf_Man_t * p, Gia_Obj_t * pObj )
+{
+    int * pCut = Jf_ObjCutBest( p, Gia_ObjId(p->pGia, pObj) );
+    printf( "Best cut of node %d : ", Gia_ObjId(p->pGia, pObj) );
+    Jf_CutPrint( pCut );
+    Gia_ManPrintCone( p->pGia, pObj, pCut+1, pCut[0], p->vTemp );
 }
 static inline unsigned Jf_CutGetSign( int * pCut )
 {
@@ -506,6 +531,21 @@ void Jf_ObjComputeCuts( Jf_Man_t * p, Gia_Obj_t * pObj )
         c = Jf_ObjAddCutToStore( p, pSto, c, CutNum );
         assert( c <= CutNum );
     }
+    // fix the case when both fanins have no unit cuts
+    if ( c == 0 )
+    {
+        assert( !pObj->fMark0 );
+        assert( Gia_ObjFanin0(pObj)->fMark0 );
+        assert( Gia_ObjFanin1(pObj)->fMark0 );
+        Vec_IntClear( p->vTemp );
+        Vec_IntPushUnique( p->vTemp, Gia_ObjFaninId0p(p->pGia, Gia_ObjFanin0(pObj)) );
+        Vec_IntPushUnique( p->vTemp, Gia_ObjFaninId1p(p->pGia, Gia_ObjFanin0(pObj)) );
+        Vec_IntPushUnique( p->vTemp, Gia_ObjFaninId0p(p->pGia, Gia_ObjFanin1(pObj)) );
+        Vec_IntPushUnique( p->vTemp, Gia_ObjFaninId1p(p->pGia, Gia_ObjFanin1(pObj)) );
+        pSto[c]->pCut[0] = Vec_IntSize(p->vTemp);
+        memcpy( pSto[c]->pCut + 1, Vec_IntArray(p->vTemp), sizeof(int) * Vec_IntSize(p->vTemp) );
+        c++;
+    }
 //    Jf_ObjCheckPtrs( pSto, CutNum );
 //    Jf_ObjCheckStore( p, pSto, c, iObj );
     p->CutCount[3] += c;
@@ -553,6 +593,8 @@ void Jf_ManComputeCuts( Jf_Man_t * p )
         printf( "Gia = %.2f MB  ", Gia_ManMemory(p->pGia) / (1<<20) );
         printf( "Man = %.2f MB  ", 6.0 * sizeof(int) * Gia_ManObjNum(p->pGia) / (1<<20) );
         printf( "Cuts = %.2f MB",  Vec_ReportMemory(&p->pMem) / (1<<20) );
+        if ( p->nCoarse )
+        printf( "   Coarse = %d (%.1f %%)",  p->nCoarse, 100.0 * p->nCoarse / Gia_ManObjNum(p->pGia) );
         printf( "\n" );
     }
 }
@@ -603,6 +645,7 @@ int Jf_ManComputeRefs( Jf_Man_t * p )
             Gia_ObjRefInc( p->pGia, Gia_ObjFanin0(pObj) );
         else if ( Gia_ObjIsAnd(pObj) && Gia_ObjRefNum(p->pGia, pObj) > 0 )
         {
+            assert( !pObj->fMark0 );
             Jf_CutRef( p, Jf_ObjCutBest(p, i) );
             p->pPars->Edge += Jf_ObjCutBest(p, i)[0];
             p->pPars->Area++;
@@ -654,7 +697,7 @@ void Jf_ManPropagateFlow( Jf_Man_t * p, int fEdge )
     Gia_ManForEachObj( p->pGia, pObj, i )
         if ( Gia_ObjIsBuf(pObj) )
             Jf_ObjPropagateBuf( p, pObj, 0 );
-        else if ( Gia_ObjIsAnd(pObj) )
+        else if ( Gia_ObjIsAnd(pObj) && !pObj->fMark0 )
             Jf_ObjComputeBestCut( p, pObj, fEdge, 0 );
     Jf_ManComputeRefs( p );
 }
@@ -668,6 +711,7 @@ void Jf_ManPropagateEla( Jf_Man_t * p, int fEdge )
             Jf_ObjPropagateBuf( p, pObj, 1 );
         else if ( Gia_ObjIsAnd(pObj) && Gia_ObjRefNum(p->pGia, pObj) > 0 )
         {
+            assert( !pObj->fMark0 );
             CostBef = Jf_CutDeref_rec( p, Jf_ObjCutBest(p, i), fEdge, ABC_INFINITY );
             Jf_ObjComputeBestCut( p, pObj, fEdge, 1 );
             CostAft = Jf_CutRef_rec( p, Jf_ObjCutBest(p, i), fEdge, ABC_INFINITY );
@@ -716,6 +760,7 @@ void Jf_ManSetDefaultPars( Jf_Par_t * pPars )
     pPars->nRounds      =  1;
     pPars->DelayTarget  = -1;
     pPars->fAreaOnly    =  1;
+    pPars->fCoarsen     =  1;
     pPars->fVerbose     =  0;
     pPars->fVeryVerbose =  0;
     pPars->nLutSizeMax  =  JF_LEAF_MAX;
