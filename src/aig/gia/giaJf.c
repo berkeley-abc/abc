@@ -375,7 +375,7 @@ int Jf_CutRef_rec( Jf_Man_t * p, int * pCut, int fEdge, int Limit )
     for ( i = 1; i <= pCut[0]; i++ )
         if ( Gia_ObjRefIncId( p->pGia, pCut[i] ) == 0 )
             Count += Jf_CutRef_rec( p, Jf_ObjCutBest(p, pCut[i]), fEdge, Limit - 1 );
-    return Count + (fEdge ? pCut[0] : 1);
+    return Count + (fEdge ? (1 << 16) + pCut[0] : 1);
 }
 int Jf_CutDeref_rec( Jf_Man_t * p, int * pCut, int fEdge, int Limit )
 {
@@ -385,7 +385,7 @@ int Jf_CutDeref_rec( Jf_Man_t * p, int * pCut, int fEdge, int Limit )
     for ( i = 1; i <= pCut[0]; i++ )
         if ( Gia_ObjRefDecId( p->pGia, pCut[i] ) == 0 )
             Count += Jf_CutDeref_rec( p, Jf_ObjCutBest(p, pCut[i]), fEdge, Limit - 1 );
-    return Count + (fEdge ? pCut[0] : 1);
+    return Count + (fEdge ? (1 << 16) + pCut[0] : 1);
 }
 static inline int Jf_CutElaOld( Jf_Man_t * p, int * pCut, int fEdge )
 {
@@ -405,7 +405,7 @@ int Jf_CutRef2_rec( Jf_Man_t * p, int * pCut, int fEdge, int Limit )
         if ( Gia_ObjRefIncId( p->pGia, pCut[i] ) == 0 )
             Count += Jf_CutRef2_rec( p, Jf_ObjCutBest(p, pCut[i]), fEdge, Limit - 1 );
     }
-    return Count + (fEdge ? pCut[0] : 1);
+    return Count + (fEdge ? (1 << 16) + pCut[0] : 1);
 }
 static inline int Jf_CutEla( Jf_Man_t * p, int * pCut, int fEdge )
 {
