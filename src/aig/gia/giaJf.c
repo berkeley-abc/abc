@@ -290,7 +290,7 @@ static inline float Jf_CutFlow( Jf_Man_t * p, int * pCut )
   SeeAlso     []
 
 ***********************************************************************/
-static inline int Jf_CutMerge2( int * pCut0, int * pCut1, int * pCut, int LutSize )
+static inline int Jf_CutMerge( int * pCut0, int * pCut1, int * pCut, int LutSize )
 { 
     int * pC0 = pCut0 + 1;
     int * pC1 = pCut1 + 1;
@@ -365,7 +365,7 @@ static inline int Jf_CutFindLeaf0( int * pCut, int iObj )
             return i;
     return i;
 }
-static inline int Jf_CutIsContained0( int * pBase, int * pCut ) // check if pCut is contained pBase
+static inline int Jf_CutIsContained( int * pBase, int * pCut ) // check if pCut is contained pBase
 {
     int i;
     for ( i = 1; i <= pCut[0]; i++ )
@@ -408,7 +408,7 @@ static inline int Jf_CutFindLeaf( int * pCut, int iLit )
             return i;
     return i;
 }
-static inline int Jf_CutIsContained( int * pBase, int * pCut ) // check if pCut is contained pBase
+static inline int Jf_CutIsContained9( int * pBase, int * pCut ) // check if pCut is contained pBase
 {
     int i;
     for ( i = 1; i <= pCut[0]; i++ )
@@ -430,7 +430,7 @@ static inline int Jf_CutMerge8( int * pCut0, int * pCut1, int * pCut, int LutSiz
     memcpy( pCut + 1, pCut0 + 1, sizeof(int) * pCut0[0] );
     return 1;
 }
-static inline int Jf_CutMerge( int * pCut0, int * pCut1, int * pCut, int LutSize )
+static inline int Jf_CutMerge9( int * pCut0, int * pCut1, int * pCut, int LutSize )
 {
     int ConfigMask = 0x3FFFF; // 18 bits
     int i, iPlace;
