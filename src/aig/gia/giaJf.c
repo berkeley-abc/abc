@@ -319,6 +319,31 @@ static inline float Jf_CutFlow( Jf_Man_t * p, int * pCut )
   SeeAlso     []
 
 ***********************************************************************/
+static inline int Jf_CutIsContainedOrder( int * pBase, int * pCut ) // check if pCut is contained pBase
+{
+    int nSizeB = Jf_CutSize(pBase);
+    int nSizeC = Jf_CutSize(pCut);
+    int i, k;
+    if ( nSizeB == nSizeC )
+    {
+        for ( i = 1; i <= nSizeB; i++ )
+            if ( pBase[i] != pCut[i] )
+                return 0;
+        return 1;
+    }
+    assert( nSizeB > nSizeC ); 
+    for ( i = k = 1; i <= nSizeB; i++ )
+    {
+        if ( pBase[i] > pCut[k] )
+            return 0;
+        if ( pBase[i] == pCut[k] )
+        {
+            if ( k++ == nSizeC )
+                return 1;
+        }
+    }
+    return 0;
+}
 static inline int Jf_CutMergeOrder( int * pCut0, int * pCut1, int * pCut, int LutSize )
 { 
     int nSize0 = Jf_CutSize(pCut0);
@@ -500,7 +525,7 @@ static inline int Jf_CutMerge( int * pCut0, int * pCut1, int * pCut, int LutSize
   SeeAlso     []
 
 ***********************************************************************/
-int Jf_ObjCutFilter( Jf_Man_t * p, Jf_Cut_t ** pSto, int c )
+int Jf_ObjCutFilterBoth( Jf_Man_t * p, Jf_Cut_t ** pSto, int c )
 {
     int k, last;
     // filter this cut using other cuts
@@ -526,6 +551,29 @@ int Jf_ObjCutFilter( Jf_Man_t * p, Jf_Cut_t ** pSto, int c )
     if ( last < c )
         ABC_SWAP( Jf_Cut_t *, pSto[last], pSto[c] );
     return last;
+}
+int Jf_ObjCutFilter( Jf_Man_t * p, Jf_Cut_t ** pSto, int c )
+{
+    int k;
+/*
+    if ( p->pPars->fCutMin )
+    {
+        for ( k = 0; k < c; k++ )
+            if ( pSto[c]->pCut[0] >= pSto[k]->pCut[0] && 
+                (pSto[c]->Sign & pSto[k]->Sign) == pSto[k]->Sign && 
+                 Jf_CutIsContained(pSto[c]->pCut, pSto[k]->pCut) )
+                 return 0;
+    }
+    else
+*/
+    {
+        for ( k = 0; k < c; k++ )
+            if ( pSto[c]->pCut[0] >= pSto[k]->pCut[0] && 
+                (pSto[c]->Sign & pSto[k]->Sign) == pSto[k]->Sign && 
+                 Jf_CutIsContainedOrder(pSto[c]->pCut, pSto[k]->pCut) )
+                 return 0;
+    }
+    return 1;
 }
 
 /**Function*************************************************************
@@ -657,26 +705,52 @@ static inline int Jf_ObjAddCutToStore( Jf_Man_t * p, Jf_Cut_t ** pSto, int c, in
         if ( p->pCutCmp(pSto[iPivot], pSto[c]) < 0 ) // iPivot-th cut is better than new cut
             break;
     // filter this cut using other cuts
-    for ( k = 0; k <= iPivot; k++ )
-        if ( pSto[c]->pCut[0] >= pSto[k]->pCut[0] && 
-            (pSto[c]->Sign & pSto[k]->Sign) == pSto[k]->Sign && 
-             Jf_CutIsContained(pSto[c]->pCut, pSto[k]->pCut) )
-                return c;
+    if ( p->pPars->fCutMin )
+    {
+        for ( k = 0; k <= iPivot; k++ )
+            if ( pSto[c]->pCut[0] >= pSto[k]->pCut[0] && 
+                (pSto[c]->Sign & pSto[k]->Sign) == pSto[k]->Sign && 
+                 Jf_CutIsContained(pSto[c]->pCut, pSto[k]->pCut) )
+                    return c;
+    }
+    else
+    {
+        for ( k = 0; k <= iPivot; k++ )
+            if ( pSto[c]->pCut[0] >= pSto[k]->pCut[0] && 
+                (pSto[c]->Sign & pSto[k]->Sign) == pSto[k]->Sign && 
+                 Jf_CutIsContainedOrder(pSto[c]->pCut, pSto[k]->pCut) )
+                    return c;
+    }
     // insert this cut after iPivot
     pTemp = pSto[c];
     for ( ++iPivot, k = c++; k > iPivot; k-- )
         pSto[k] = pSto[k-1];
     pSto[iPivot] = pTemp;
     // filter other cuts using this cut
-    for ( k = last = iPivot+1; k < c; k++ )
-        if ( !(pSto[iPivot]->pCut[0] <= pSto[k]->pCut[0] && 
-              (pSto[iPivot]->Sign & pSto[k]->Sign) == pSto[iPivot]->Sign && 
-               Jf_CutIsContained(pSto[k]->pCut, pSto[iPivot]->pCut)) )
-        {
-            if ( last++ == k )
-                continue;
-            ABC_SWAP( Jf_Cut_t *, pSto[last-1], pSto[k] );
-        }
+    if ( p->pPars->fCutMin )
+    {
+        for ( k = last = iPivot+1; k < c; k++ )
+            if ( !(pSto[iPivot]->pCut[0] <= pSto[k]->pCut[0] && 
+                  (pSto[iPivot]->Sign & pSto[k]->Sign) == pSto[iPivot]->Sign && 
+                   Jf_CutIsContained(pSto[k]->pCut, pSto[iPivot]->pCut)) )
+            {
+                if ( last++ == k )
+                    continue;
+                ABC_SWAP( Jf_Cut_t *, pSto[last-1], pSto[k] );
+            }
+    }
+    else
+    {
+        for ( k = last = iPivot+1; k < c; k++ )
+            if ( !(pSto[iPivot]->pCut[0] <= pSto[k]->pCut[0] && 
+                  (pSto[iPivot]->Sign & pSto[k]->Sign) == pSto[iPivot]->Sign && 
+                   Jf_CutIsContainedOrder(pSto[k]->pCut, pSto[iPivot]->pCut)) )
+            {
+                if ( last++ == k )
+                    continue;
+                ABC_SWAP( Jf_Cut_t *, pSto[last-1], pSto[k] );
+            }
+    }
     c = last;
     // remove the last cut if too many
     if ( c == cMax + 1 )
@@ -768,7 +842,7 @@ void Jf_ObjComputeCuts( Jf_Man_t * p, Gia_Obj_t * pObj )
     Jf_Cut_t   Sto[JF_CUT_MAX+1];   // cut storage
     Jf_Cut_t * pSto[JF_CUT_MAX+1];  // pointers to cut storage
     int *      pCut0, * pCut1, * pCuts0, * pCuts1;
-    int        iDsdLit0, iDsdLit1;
+    int        iDsdLit0, iDsdLit1, nOldSupp;
     int        Config, i, k, c = 0;
     // prepare cuts
     for ( i = 0; i <= CutNum; i++ )
@@ -793,21 +867,30 @@ void Jf_ObjComputeCuts( Jf_Man_t * p, Gia_Obj_t * pObj )
         {
             if ( !(Config = Jf_CutMerge(pCut0, pCut1, pSto[c]->pCut, LutSize)) )
                 continue;
+            pSto[c]->Sign = Sign0[i] | Sign1[k];
+//            if ( !Jf_ObjCutFilter(p, pSto, c) )
+//                continue;
+            nOldSupp = pSto[c]->pCut[0];
             iDsdLit0 = Abc_LitNotCond( Jf_CutFunc(pCut0), Gia_ObjFaninC0(pObj) );
             iDsdLit1 = Abc_LitNotCond( Jf_CutFunc(pCut1), Gia_ObjFaninC1(pObj) );
             pSto[c]->iFunc = Sdm_ManComputeFunc( p->pDsd, iDsdLit0, iDsdLit1, pSto[c]->pCut, Config, 0 );
             if ( pSto[c]->iFunc == -1 )
                 continue;
+            assert( pSto[c]->pCut[0] <= nOldSupp );
+            if ( pSto[c]->pCut[0] < nOldSupp )
+                pSto[c]->Sign = Jf_CutGetSign( pSto[c]->pCut );
             //pSto[c]->Cost = Sdm_ManReadCnfSize( p->pDsd, Abc_Lit2Var(pSto[c]->iFunc) );
         }
         else
         {
             if ( !Jf_CutMergeOrder(pCut0, pCut1, pSto[c]->pCut, LutSize) )
                 continue;
+            pSto[c]->Sign = Sign0[i] | Sign1[k];
+//            if ( !Jf_ObjCutFilter(p, pSto, c) )
+//                continue;
         }
 //        Jf_CutCheck( pSto[c]->pCut );
         p->CutCount[2]++;
-        pSto[c]->Sign = p->pPars->fCutMin ? Jf_CutGetSign(pSto[c]->pCut) : Sign0[i] | Sign1[k];
         pSto[c]->Time = p->pPars->fAreaOnly ? 0 : Jf_CutArr(p, pSto[c]->pCut);
         pSto[c]->Flow = Jf_CutFlow(p, pSto[c]->pCut);
         c = Jf_ObjAddCutToStore( p, pSto, c, CutNum );
@@ -821,13 +904,13 @@ void Jf_ObjComputeCuts( Jf_Man_t * p, Gia_Obj_t * pObj )
         pSto[0]->Sign = Jf_CutGetSign( pSto[0]->pCut );
         pSto[0]->Time = p->pPars->fAreaOnly ? 0 : Jf_CutArr(p, pSto[0]->pCut);
         pSto[0]->Flow = Jf_CutFlow(p, pSto[0]->pCut);
-        pSto[c]->iFunc = (pSto[0]->pCut[0] == 2) ? 6 : 18; // set function
+        pSto[c]->iFunc = p->pPars->fCutMin ? ((pSto[0]->pCut[0] == 2) ? 6 : 18) : 0; // set function -- functionality bug!
         pSto[c]->Cost = 4;
         c = 1;
     }
     // add elementary cut
     if ( !pObj->fMark0 )
-        pSto[c]->iFunc = 2, pSto[c]->pCut[0] = 1, pSto[c]->pCut[1] = Jf_ObjLit(iObj), c++; // set function
+        pSto[c]->iFunc = p->pPars->fCutMin ? 2 : 0, pSto[c]->pCut[0] = 1, pSto[c]->pCut[1] = Jf_ObjLit(iObj), c++; // set function
     // reorder cuts
 //    Jf_ObjSortCuts( pSto + 1, c - 1 );
 //    Jf_ObjCheckPtrs( pSto, CutNum );
