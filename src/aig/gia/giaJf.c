@@ -746,7 +746,7 @@ void Jf_ObjComputeCuts( Jf_Man_t * p, Gia_Obj_t * pObj )
     Jf_ObjForEachCut( pCuts1, pCut1, i )
         Sign1[i] = Jf_CutGetSign( pCut1 );
     // merge cuts
-    p->CutCount[0] += Jf_CutSize(pCut0) * Jf_CutSize(pCut1);
+    p->CutCount[0] += pCuts0[0] * pCuts1[0];
     Jf_ObjForEachCut( pCuts0, pCut0, i )
     Jf_ObjForEachCut( pCuts1, pCut1, k )
     {
@@ -783,8 +783,8 @@ void Jf_ObjComputeCuts( Jf_Man_t * p, Gia_Obj_t * pObj )
     p->CutCount[3] += c;
     // save best info
     Vec_IntWriteEntry( &p->vArr,  iObj, pSto[0]->Time );
-//    Vec_FltWriteEntry( &p->vFlow, iObj, (pSto[0]->Flow + 1) / Jf_ObjRefs(p, iObj) );
-    Vec_FltWriteEntry( &p->vFlow, iObj, (pSto[0]->Flow + ((1 << 6) + pSto[0]->pCut[0])) / Jf_ObjRefs(p, iObj) );
+    Vec_FltWriteEntry( &p->vFlow, iObj, (pSto[0]->Flow + 1) / Jf_ObjRefs(p, iObj) );
+//    Vec_FltWriteEntry( &p->vFlow, iObj, (pSto[0]->Flow + ((1 << 6) + pSto[0]->pCut[0])) / Jf_ObjRefs(p, iObj) );
     // add cuts to storage cuts
     Vec_IntClear( p->vTemp );
     Vec_IntPush( p->vTemp, c );
