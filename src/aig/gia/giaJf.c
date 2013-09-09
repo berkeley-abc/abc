@@ -773,6 +773,7 @@ void Jf_ObjComputeCuts( Jf_Man_t * p, Gia_Obj_t * pObj )
         pSto[0]->Flow = Jf_CutFlow(p, pSto[0]->pCut);
         c = 1;
     }
+
     // add elementary cut
     if ( !pObj->fMark0 )
         pSto[c]->pCut[0] = 1, pSto[c]->pCut[1] = Jf_ObjLit(iObj), c++; // set function
@@ -783,7 +784,7 @@ void Jf_ObjComputeCuts( Jf_Man_t * p, Gia_Obj_t * pObj )
     // save best info
     Vec_IntWriteEntry( &p->vArr,  iObj, pSto[0]->Time );
 //    Vec_FltWriteEntry( &p->vFlow, iObj, (pSto[0]->Flow + 1) / Jf_ObjRefs(p, iObj) );
-    Vec_FltWriteEntry( &p->vFlow, iObj, (pSto[0]->Flow + ((1 << 6) + pSto[c]->pCut[0])) / Jf_ObjRefs(p, iObj) );
+    Vec_FltWriteEntry( &p->vFlow, iObj, (pSto[0]->Flow + ((1 << 6) + pSto[0]->pCut[0])) / Jf_ObjRefs(p, iObj) );
     // add cuts to storage cuts
     Vec_IntClear( p->vTemp );
     Vec_IntPush( p->vTemp, c );
