@@ -35,7 +35,7 @@ ABC_NAMESPACE_IMPL_START
 typedef struct Jf_Cut_t_ Jf_Cut_t; 
 struct Jf_Cut_t_
 {
-    unsigned         Sign;   
+    word             Sign;   
     float            Flow;
     int              Time;
     int              iFunc;
@@ -231,18 +231,40 @@ static inline void Jf_CutCheck( int * pCut )
         for ( k = 1; k < i; k++ )
             assert( Jf_CutLit(pCut, i) != Jf_CutLit(pCut, k) );
 }
-static inline unsigned Jf_CutGetSign( int * pCut )
+static inline int Jf_CountBitsSimple( unsigned n )
+{
+    int i, Count = 0;
+    for ( i = 0; i < 32; i++ )
+        Count += ((n >> i) & 1);
+    return Count;
+}
+static inline int Jf_CountBits32( unsigned i )
+{
+    i = i - ((i >> 1) & 0x55555555);
+    i = (i & 0x33333333) + ((i >> 2) & 0x33333333);
+    i = ((i + (i >> 4)) & 0x0F0F0F0F);
+    return (i*(0x01010101))>>24;
+}
+static inline int Jf_CountBits( word i )
+{
+    i = i - ((i >> 1) & 0x5555555555555555);
+    i = (i & 0x3333333333333333) + ((i >> 2) & 0x3333333333333333);
+    i = ((i + (i >> 4)) & 0x0F0F0F0F0F0F0F0F);
+    return (i*(0x0101010101010101))>>56;
+}
+static inline unsigned Jf_CutGetSign32( int * pCut )
 {
     unsigned Sign = 0; int i; 
     for ( i = 1; i <= Jf_CutSize(pCut); i++ )
         Sign |= 1 << (Jf_CutVar(pCut, i) & 0x1F);
     return Sign;
 }
-static inline int Jf_CountBits( unsigned i )
+static inline word Jf_CutGetSign( int * pCut )
 {
-    i = i - ((i >> 1) & 0x55555555);
-    i = (i & 0x33333333) + ((i >> 2) & 0x33333333);
-    return (((i + (i >> 4)) & 0x0F0F0F0F) * 0x01010101) >> 24;
+    word Sign = 0; int i; 
+    for ( i = 1; i <= Jf_CutSize(pCut); i++ )
+        Sign |= ((word)1) << (Jf_CutVar(pCut, i) & 0x3F);
+    return Sign;
 }
 static inline int Jf_CutArr( Jf_Man_t * p, int * pCut )
 {
@@ -251,6 +273,7 @@ static inline int Jf_CutArr( Jf_Man_t * p, int * pCut )
         Time = Abc_MaxInt( Time, Jf_ObjArr(p, Jf_CutVar(pCut, i)) );
     return Time + 1; 
 }
+
 static inline void Jf_ObjSetBestCut( int * pCuts, int * pCut, Vec_Int_t * vTemp )
 {
     assert( pCuts < pCut );
@@ -738,8 +761,8 @@ void Jf_ObjComputeCuts( Jf_Man_t * p, Gia_Obj_t * pObj )
     int        LutSize = p->pPars->nLutSize;
     int        CutNum = p->pPars->nCutNum;
     int        iObj = Gia_ObjId(p->pGia, pObj);
-    unsigned   Sign0[JF_CUT_MAX+1]; // signatures of the first cut
-    unsigned   Sign1[JF_CUT_MAX+1]; // signatures of the second cut
+    word       Sign0[JF_CUT_MAX+1]; // signatures of the first cut
+    word       Sign1[JF_CUT_MAX+1]; // signatures of the second cut
     Jf_Cut_t   Sto[JF_CUT_MAX+1];   // cut storage
     Jf_Cut_t * pSto[JF_CUT_MAX+1];  // pointers to cut storage
     int *      pCut0, * pCut1, * pCuts0, * pCuts1;
