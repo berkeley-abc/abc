@@ -319,16 +319,18 @@ static inline float Jf_CutFlow( Jf_Man_t * p, int * pCut )
   SeeAlso     []
 
 ***********************************************************************/
-static inline int Jf_CutMerge2( int * pCut0, int * pCut1, int * pCut, int LutSize )
+static inline int Jf_CutMergeOrder( int * pCut0, int * pCut1, int * pCut, int LutSize )
 { 
+    int nSize0 = Jf_CutSize(pCut0);
+    int nSize1 = Jf_CutSize(pCut1);
     int * pC0 = pCut0 + 1;
     int * pC1 = pCut1 + 1;
     int * pC = pCut + 1;
     int i, k, c, s;
     // the case of the largest cut sizes
-    if ( pCut0[0] == LutSize && pCut1[0] == LutSize )
+    if ( nSize0 == LutSize && nSize1 == LutSize )
     {
-        for ( i = 0; i < pCut0[0]; i++ )
+        for ( i = 0; i < nSize0; i++ )
         {
             if ( pC0[i] != pC1[i] )
                 return 0;
@@ -345,31 +347,31 @@ static inline int Jf_CutMerge2( int * pCut0, int * pCut1, int * pCut, int LutSiz
         if ( pC0[i] < pC1[k] )
         {
             pC[c++] = pC0[i++];
-            if ( i >= pCut0[0] ) goto FlushCut1;
+            if ( i >= nSize0 ) goto FlushCut1;
         }
         else if ( pC0[i] > pC1[k] )
         {
             pC[c++] = pC1[k++];
-            if ( k >= pCut1[0] ) goto FlushCut0;
+            if ( k >= nSize1 ) goto FlushCut0;
         }
         else
         {
             pC[c++] = pC0[i++]; k++;
-            if ( i >= pCut0[0] ) goto FlushCut1;
-            if ( k >= pCut1[0] ) goto FlushCut0;
+            if ( i >= nSize0 ) goto FlushCut1;
+            if ( k >= nSize1 ) goto FlushCut0;
         }
     }
 
 FlushCut0:
-    if ( c + pCut0[0] > LutSize + i ) return 0;
-    while ( i < pCut0[0] )
+    if ( c + nSize0 > LutSize + i ) return 0;
+    while ( i < nSize0 )
         pC[c++] = pC0[i++];
     pCut[0] = c;
     return 1;
 
 FlushCut1:
-    if ( c + pCut1[0] > LutSize + k ) return 0;
-    while ( k < pCut1[0] )
+    if ( c + nSize1 > LutSize + k ) return 0;
+    while ( k < nSize1 )
         pC[c++] = pC1[k++];
     pCut[0] = c;
     return 1;
@@ -445,7 +447,7 @@ static inline int Jf_CutIsContained( int * pBase, int * pCut ) // check if pCut 
             return 0;
     return 1;
 }
-static inline int Jf_CutMerge8( int * pCut0, int * pCut1, int * pCut, int LutSize )
+static inline int Jf_CutMerge1( int * pCut0, int * pCut1, int * pCut, int LutSize )
 {
     int nSize0 = Jf_CutSize(pCut0);
     int nSize1 = Jf_CutSize(pCut1), i;
@@ -766,10 +768,11 @@ void Jf_ObjComputeCuts( Jf_Man_t * p, Gia_Obj_t * pObj )
     Jf_Cut_t   Sto[JF_CUT_MAX+1];   // cut storage
     Jf_Cut_t * pSto[JF_CUT_MAX+1];  // pointers to cut storage
     int *      pCut0, * pCut1, * pCuts0, * pCuts1;
+    int        iDsdLit0, iDsdLit1;
     int        Config, i, k, c = 0;
     // prepare cuts
     for ( i = 0; i <= CutNum; i++ )
-        pSto[i] = Sto + i;
+        pSto[i] = Sto + i, pSto[i]->iFunc = pSto[i]->Cost = 0;
     // compute signatures
     pCuts0 = Jf_ObjCuts( p, Gia_ObjFaninId0(pObj, iObj) );
     Jf_ObjForEachCut( pCuts0, pCut0, i )
@@ -786,18 +789,21 @@ void Jf_ObjComputeCuts( Jf_Man_t * p, Gia_Obj_t * pObj )
         if ( Jf_CountBits(Sign0[i] | Sign1[k]) > LutSize )
             continue;
         p->CutCount[1]++;        
-        if ( !(Config = Jf_CutMerge(pCut0, pCut1, pSto[c]->pCut, LutSize)) )
-            continue;
-        pSto[c]->iFunc = pSto[c]->Cost = 0;
         if ( p->pPars->fCutMin )
         {
-            int iDsdLit0 = Abc_LitNotCond( Jf_CutFunc(pCut0), Gia_ObjFaninC0(pObj) );
-            int iDsdLit1 = Abc_LitNotCond( Jf_CutFunc(pCut1), Gia_ObjFaninC1(pObj) );
+            if ( !(Config = Jf_CutMerge(pCut0, pCut1, pSto[c]->pCut, LutSize)) )
+                continue;
+            iDsdLit0 = Abc_LitNotCond( Jf_CutFunc(pCut0), Gia_ObjFaninC0(pObj) );
+            iDsdLit1 = Abc_LitNotCond( Jf_CutFunc(pCut1), Gia_ObjFaninC1(pObj) );
             pSto[c]->iFunc = Sdm_ManComputeFunc( p->pDsd, iDsdLit0, iDsdLit1, pSto[c]->pCut, Config, 0 );
-//            pSto[c]->iFunc = Sdm_ManComputeFunc( p->pDsd, iDsdLit0, iDsdLit1, NULL, Config, 0 );
             if ( pSto[c]->iFunc == -1 )
                 continue;
             //pSto[c]->Cost = Sdm_ManReadCnfSize( p->pDsd, Abc_Lit2Var(pSto[c]->iFunc) );
+        }
+        else
+        {
+            if ( !Jf_CutMergeOrder(pCut0, pCut1, pSto[c]->pCut, LutSize) )
+                continue;
         }
 //        Jf_CutCheck( pSto[c]->pCut );
         p->CutCount[2]++;
