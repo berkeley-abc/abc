@@ -221,6 +221,7 @@ extern Sdm_Man_t * Sdm_ManRead();
 extern void        Sdm_ManQuit();
 extern int         Sdm_ManComputeFunc( Sdm_Man_t * p, int iDsdLit0, int iDsdLit1, int * pCut, int uMask, int fXor );
 extern int         Sdm_ManReadCnfSize( Sdm_Man_t * p, int iDsd );
+extern char *      Sdm_ManReadDsdStr( Sdm_Man_t * p, int iDsd );
 extern void        Sdm_ManPrintDsdStats( Sdm_Man_t * p, int fVerbose );
 
 /*=== extraUtilProgress.c ================================================================*/

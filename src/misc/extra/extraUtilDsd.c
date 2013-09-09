@@ -44,7 +44,9 @@ struct Sdm_Dsd_t_
     char *           pStr;                     // description 
 };
 
-static Sdm_Dsd_t s_DsdClass6[595] = { 
+#define DSD_CLASS_NUM 595
+
+static Sdm_Dsd_t s_DsdClass6[DSD_CLASS_NUM] = { 
     { 0,  0,  1, ABC_CONST(0x0000000000000000), "0" },   //    0
     { 1,  0,  2, ABC_CONST(0xAAAAAAAAAAAAAAAA), "a" },   //    1
     { 2,  1,  3, ABC_CONST(0x8888888888888888), "(ab)" },   //    2
@@ -651,7 +653,7 @@ struct Sdm_Man_t_
     Vec_Wrd_t *      vPerm6;                   // permutations of DSD classes
     Vec_Int_t *      vMap2Perm;                // maps number into its permutation
     char             Perm6[720][6];            // permutations
-    int              nCountDsd[600];
+    int              nCountDsd[DSD_CLASS_NUM];
     int              nNonDsd;
     int              nAllDsd;
 };
@@ -674,7 +676,7 @@ struct Sdm_Man_t_
 void Sdm_ManPrintDsdStats( Sdm_Man_t * p, int fVerbose )
 {
     int i, Absent = 0;
-    for ( i = 0; i < 595; i++ )
+    for ( i = 0; i < DSD_CLASS_NUM; i++ )
     {
         if ( p->nCountDsd[i] == 0 )
         {
@@ -689,7 +691,7 @@ void Sdm_ManPrintDsdStats( Sdm_Man_t * p, int fVerbose )
             printf( "\n" );
         }
     }
-    printf( "Unused classes = %d (%.2f %%).  ", Absent, 100.0 * Absent / 595 );
+    printf( "Unused classes = %d (%.2f %%).  ", Absent, 100.0 * Absent / DSD_CLASS_NUM );
     printf( "Non-DSD cuts = %d (%.2f %%).  ",   p->nNonDsd, 100.0 * p->nNonDsd / p->nAllDsd );
     printf( "\n" );
 }
@@ -841,7 +843,7 @@ void Sdm_ManPrecomputePerms( Sdm_Man_t * p )
 
     // store permuted truth tables
     assert( p->vPerm6 == NULL );
-    p->vPerm6 = Vec_WrdAlloc( nPerms * 595 );
+    p->vPerm6 = Vec_WrdAlloc( nPerms * DSD_CLASS_NUM );
     for ( i = 0; i < nClasses[nVars]; i++ )
     {
         word uTruth = s_DsdClass6[i].uTruth;
@@ -924,8 +926,8 @@ int Sdm_ManComputeFunc( Sdm_Man_t * p, int iDsdLit0, int iDsdLit1, int * pCut, i
     p->nAllDsd++;
 
     assert( uMask > 1 );
-    assert( iDsdLit0 < 595 * 2 );
-    assert( iDsdLit1 < 595 * 2 );
+    assert( iDsdLit0 < DSD_CLASS_NUM * 2 );
+    assert( iDsdLit1 < DSD_CLASS_NUM * 2 );
 //    Sdm_ManPrintPerm( PermMask );                      printf( "\n" );
     Truth0  = p->pDsd6[Abc_Lit2Var(iDsdLit0)].uTruth;
     Truth1p = Vec_WrdEntry( p->vPerm6, Abc_Lit2Var(iDsdLit1) * 720 + Vec_IntEntry(p->vMap2Perm, PermMask ) );
@@ -981,6 +983,7 @@ Kit_DsdPrintFromTruth( (unsigned *)&t, 6 );        printf( "\n" );
         for ( i = 0; i < pCut[0]; i++ )
             pCut[i+1] = pLeavesNew[i];
     }
+    assert( iClass < DSD_CLASS_NUM );
     p->nCountDsd[iClass]++;
     return Res;
 }
@@ -999,6 +1002,10 @@ Kit_DsdPrintFromTruth( (unsigned *)&t, 6 );        printf( "\n" );
 int Sdm_ManReadCnfSize( Sdm_Man_t * p, int iDsd )
 {
     return p->pDsd6[iDsd].nClauses;
+}
+char * Sdm_ManReadDsdStr( Sdm_Man_t * p, int iDsd )
+{
+    return p->pDsd6[iDsd].pStr;
 }
 
 
@@ -1046,6 +1053,7 @@ Sdm_Man_t * Sdm_ManRead()
 {
     if ( s_SdmMan == NULL )
         s_SdmMan = Sdm_ManAlloc();
+    memset( s_SdmMan->nCountDsd, 0, sizeof(int) * DSD_CLASS_NUM );
     return s_SdmMan;
 }
 void Sdm_ManQuit()
