@@ -213,6 +213,16 @@ extern word        Extra_Truth6MinimumHeuristic( word t );
 /* fast computation of N-canoninical form up to 6 inputs */
 extern int         Extra_TruthCanonFastN( int nVarsMax, int nVarsReal, unsigned * pt, unsigned ** pptRes, char ** ppfRes );
 
+/*=== extraUtilDsd.c ========================================================*/
+
+typedef struct Sdm_Man_t_ Sdm_Man_t; 
+extern int         Sdm_ManCanRead();
+extern Sdm_Man_t * Sdm_ManRead();
+extern void        Sdm_ManQuit();
+extern int         Sdm_ManComputeFunc( Sdm_Man_t * p, int iDsdLit0, int iDsdLit1, int * pCut, int uMask, int fXor );
+extern int         Sdm_ManReadCnfSize( Sdm_Man_t * p, int iDsd );
+extern void        Sdm_ManPrintDsdStats( Sdm_Man_t * p, int fVerbose );
+
 /*=== extraUtilProgress.c ================================================================*/
 
 typedef struct ProgressBarStruct ProgressBar;

@@ -8,6 +8,7 @@ SRC +=    src/misc/extra/extraBddAuto.c \
     src/misc/extra/extraBddUnate.c \
     src/misc/extra/extraUtilBitMatrix.c \
     src/misc/extra/extraUtilCanon.c \
+    src/misc/extra/extraUtilDsd.c \
     src/misc/extra/extraUtilFile.c \
     src/misc/extra/extraUtilMemory.c \
     src/misc/extra/extraUtilMisc.c \

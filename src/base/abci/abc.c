@@ -981,6 +981,9 @@ void Abc_Init( Abc_Frame_t * pAbc )
         extern void Dau_DsdTest();
         Dau_DsdTest();
     }
+
+    if ( Sdm_ManCanRead() )
+        Sdm_ManRead();
 }
 
 /**Function*************************************************************
@@ -1014,6 +1017,10 @@ void Abc_End( Abc_Frame_t * pAbc )
     {
         extern void Npn_ManClean();
         Npn_ManClean();
+    }
+    {
+        extern void Sdm_ManQuit();
+        Sdm_ManQuit();
     }
     Abc_NtkFraigStoreClean();
     if ( Abc_FrameGetGlobalFrame()->pGia )
@@ -29731,6 +29738,13 @@ int Abc_CommandAbc9If2( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
+
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Empty GIA network.\n" );
+        return 1;
+    }
+
     if ( pPars->fMap4Cnf )
         pPars->fUseDsd = 1;
     if ( pPars->fCutMin )
@@ -29829,7 +29843,7 @@ int Abc_CommandAbc9Jf( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     Jf_ManSetDefaultPars( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KCRDacvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KCRDacmvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -29889,6 +29903,9 @@ int Abc_CommandAbc9Jf( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'c':
             pPars->fCoarsen ^= 1;
             break;
+        case 'm':
+            pPars->fCutMin ^= 1;
+            break;
         case 'v':
             pPars->fVerbose ^= 1;
             break;
@@ -29900,6 +29917,19 @@ int Abc_CommandAbc9Jf( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
+
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Empty GIA network.\n" );
+        return 1;
+    }
+
+    if ( pPars->fCutMin && !Sdm_ManCanRead() )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9If2(): Cannot input DSD data from file.\n" );
+        return 1;
+    }
+
     pNew = Jf_ManPerformMapping( pAbc->pGia, pPars );
     if ( pNew == NULL )
     {
@@ -29922,6 +29952,7 @@ usage:
     Abc_Print( -2, "\t-D num   : sets the delay constraint for the mapping [default = %s]\n", Buffer );
     Abc_Print( -2, "\t-a       : toggles area-oriented mapping [default = %s]\n", pPars->fAreaOnly? "yes": "no" );
     Abc_Print( -2, "\t-c       : toggles coarsening the subject graph [default = %s]\n", pPars->fCoarsen? "yes": "no" );
+    Abc_Print( -2, "\t-m       : toggles cut minimization [default = %s]\n", pPars->fCutMin? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w       : toggles very verbose output [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : prints the command usage\n");

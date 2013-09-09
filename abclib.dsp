@@ -2631,6 +2631,10 @@ SOURCE=.\src\misc\extra\extraUtilCanon.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\misc\extra\extraUtilDsd.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\misc\extra\extraUtilFile.c
 # End Source File
 # Begin Source File

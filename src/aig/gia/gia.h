@@ -243,6 +243,7 @@ struct Jf_Par_t_
     int            DelayTarget;
     int            fAreaOnly;
     int            fCoarsen;
+    int            fCutMin;
     int            fVerbose;
     int            fVeryVerbose;
     int            nLutSizeMax;
