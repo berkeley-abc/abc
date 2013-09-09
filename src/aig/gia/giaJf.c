@@ -40,7 +40,7 @@ struct Jf_Cut_t_
     int              Time;
     int              iFunc;
     int              Cost;
-    int              pCut[JF_LEAF_MAX+2];
+    int              pCut[JF_LEAF_MAX+1];
 };
 
 typedef struct Jf_Man_t_ Jf_Man_t; 
@@ -765,6 +765,7 @@ void Jf_ObjComputeCuts( Jf_Man_t * p, Gia_Obj_t * pObj )
         p->CutCount[1]++;        
         if ( !(Config = Jf_CutMerge(pCut0, pCut1, pSto[c]->pCut, LutSize)) )
             continue;
+        pSto[c]->iFunc = pSto[c]->Cost = 0;
         if ( p->pPars->fCutMin )
         {
             int iDsdLit0 = Abc_LitNotCond( Jf_CutFunc(pCut0), Gia_ObjFaninC0(pObj) );
@@ -773,7 +774,7 @@ void Jf_ObjComputeCuts( Jf_Man_t * p, Gia_Obj_t * pObj )
 //            pSto[c]->iFunc = Sdm_ManComputeFunc( p->pDsd, iDsdLit0, iDsdLit1, NULL, Config, 0 );
             if ( pSto[c]->iFunc == -1 )
                 continue;
-            pSto[c]->Cost = 0;//Sdm_ManReadCnfSize( p->pDsd, Abc_Lit2Var(pSto[c]->iFunc) );
+            //pSto[c]->Cost = Sdm_ManReadCnfSize( p->pDsd, Abc_Lit2Var(pSto[c]->iFunc) );
         }
 //        Jf_CutCheck( pSto[c]->pCut );
         p->CutCount[2]++;
