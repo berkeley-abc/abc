@@ -37,7 +37,7 @@ struct Jf_Cut_t_
     unsigned         Sign;   
     float            Flow;
     int              Time;
-    int              pCut[JF_LEAF_MAX+1];
+    int              pCut[JF_LEAF_MAX+2];
 };
 
 typedef struct Jf_Man_t_ Jf_Man_t; 
@@ -65,8 +65,20 @@ static inline int    Jf_ObjArr( Jf_Man_t * p, int i )     { return Vec_IntEntry(
 static inline int    Jf_ObjDep( Jf_Man_t * p, int i )     { return Vec_IntEntry(&p->vDep, i);                        }
 static inline float  Jf_ObjFlow( Jf_Man_t * p, int i )    { return Vec_FltEntry(&p->vFlow, i);                       }
 static inline float  Jf_ObjRefs( Jf_Man_t * p, int i )    { return Vec_FltEntry(&p->vRefs, i);                       }
+//static inline int    Jf_ObjLit( int i )                   { return i;                                                }
+static inline int    Jf_ObjLit( int i )                   { return Abc_Var2Lit( i, 0 );                              }
 
-#define Jf_ObjForEachCut( pList, pCut, i )   for ( i = 0, pCut = pList + 1; i < pList[0]; i++, pCut += pCut[0] + 1 )
+static inline int    Jf_CutSize( int * pCut )             { return pCut[0] & 0x1F;                                   }
+static inline int    Jf_CutFunc( int * pCut )             { return (pCut[0] >> 5) & 0x7FF;                           }
+static inline int    Jf_CutCost( int * pCut )             { return (pCut[0] >> 16) & 0xFFFF;                         }
+static inline int *  Jf_CutLits( int * pCut )             { return pCut + 1;                                         }
+static inline int    Jf_CutLit( int * pCut, int i )       { return pCut[i]; assert(i);                               }
+//static inline int    Jf_CutVar( int * pCut, int i )       { return pCut[i]; assert(i);                               }
+static inline int    Jf_CutVar( int * pCut, int i )       { return Abc_Lit2Var(pCut[i]); assert(i);                  }
+
+
+#define Jf_ObjForEachCut( pList, pCut, i )   for ( i = 0, pCut = pList + 1; i < pList[0]; i++, pCut += Jf_CutSize(pCut) + 1 )
+#define Jf_CutForEachVar( pCut, Var, i )     for ( i = 1; i <= Jf_CutSize(pCut) && (Var = Jf_CutVar(pCut, i)); i++ )
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -187,9 +199,9 @@ void Jf_ManFree( Jf_Man_t * p )
 static inline void Jf_CutPrint( int * pCut )
 {
     int i; 
-    printf( "%d {", pCut[0] );
-    for ( i = 1; i <= pCut[0]; i++ )
-        printf( " %d", pCut[i] );
+    printf( "%d {", Jf_CutSize(pCut) );
+    for ( i = 1; i <= Jf_CutSize(pCut); i++ )
+        printf( " %d", Jf_CutLit(pCut, i) );
     printf( " }\n" );
 }
 static inline void Jf_ObjCutPrint( int * pCuts )
@@ -204,13 +216,20 @@ static inline void Jf_ObjBestCutConePrint( Jf_Man_t * p, Gia_Obj_t * pObj )
     int * pCut = Jf_ObjCutBest( p, Gia_ObjId(p->pGia, pObj) );
     printf( "Best cut of node %d : ", Gia_ObjId(p->pGia, pObj) );
     Jf_CutPrint( pCut );
-    Gia_ManPrintCone( p->pGia, pObj, pCut+1, pCut[0], p->vTemp );
+    Gia_ManPrintCone( p->pGia, pObj, Jf_CutLits(pCut), Jf_CutSize(pCut), p->vTemp );
+}
+static inline void Jf_CutCheck( int * pCut )
+{
+    int i, k;
+    for ( i = 2; i <= Jf_CutSize(pCut); i++ )
+        for ( k = 1; k < i; k++ )
+            assert( Jf_CutLit(pCut, i) != Jf_CutLit(pCut, k) );
 }
 static inline unsigned Jf_CutGetSign( int * pCut )
 {
     unsigned Sign = 0; int i; 
-    for ( i = 1; i <= pCut[0]; i++ )
-        Sign |= 1 << (pCut[i] & 31);
+    for ( i = 1; i <= Jf_CutSize(pCut); i++ )
+        Sign |= 1 << (Jf_CutVar(pCut, i) & 0x1F);
     return Sign;
 }
 static inline int Jf_CountBits( unsigned i )
@@ -219,41 +238,59 @@ static inline int Jf_CountBits( unsigned i )
     i = (i & 0x33333333) + ((i >> 2) & 0x33333333);
     return (((i + (i >> 4)) & 0x0F0F0F0F) * 0x01010101) >> 24;
 }
-static inline int Jf_CutFindLeaf( int * pCut, int iObj )
+static inline int Jf_CutArr( Jf_Man_t * p, int * pCut )
+{
+    int i, Time = 0;
+    for ( i = 1; i <= Jf_CutSize(pCut); i++ )
+        Time = Abc_MaxInt( Time, Jf_ObjArr(p, Jf_CutVar(pCut, i)) );
+    return Time + 1; 
+}
+static inline void Jf_ObjSetBestCut( int * pCuts, int * pCut, Vec_Int_t * vTemp )
+{
+    assert( pCuts < pCut );
+    if ( ++pCuts < pCut )
+    {
+        int nBlock = pCut - pCuts;
+        int nSize = Jf_CutSize(pCut) + 1;
+        Vec_IntGrow( vTemp, nBlock );
+        memmove( Vec_IntArray(vTemp), pCuts, sizeof(int) * nBlock );
+        memmove( pCuts, pCut, sizeof(int) * nSize );
+        memmove( pCuts + nSize, Vec_IntArray(vTemp), sizeof(int) * nBlock );
+    }
+}
+static inline void Jf_CutRef( Jf_Man_t * p, int * pCut )
 {
     int i;
-    for ( i = 1; i <= pCut[0]; i++ )
-        if ( pCut[i] == iObj )
-            return 1;
-    return 0;
+    for ( i = 1; i <= Jf_CutSize(pCut); i++ )
+        Gia_ObjRefIncId( p->pGia, Jf_CutVar(pCut, i) );
 }
+static inline void Jf_CutDeref( Jf_Man_t * p, int * pCut )
+{
+    int i;
+    for ( i = 1; i <= Jf_CutSize(pCut); i++ )
+        Gia_ObjRefDecId( p->pGia, Jf_CutVar(pCut, i) );
+}
+static inline float Jf_CutFlow( Jf_Man_t * p, int * pCut )
+{
+    float Flow = 0; int i; 
+    for ( i = 1; i <= Jf_CutSize(pCut); i++ )
+        Flow += Jf_ObjFlow( p, Jf_CutVar(pCut, i) );
+    assert( Flow >= 0 );
+    return Flow; 
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Cut merging.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 static inline int Jf_CutMerge2( int * pCut0, int * pCut1, int * pCut, int LutSize )
-{
-    int i;
-    if ( pCut0[0] > pCut1[0] )
-        ABC_SWAP( int *, pCut0, pCut1 );
-    assert( pCut0[0] <= pCut1[0] );
-    pCut[0] = pCut1[0];
-    for ( i = 1; i <= pCut0[0]; i++ )
-    {
-        if ( Jf_CutFindLeaf(pCut1, pCut0[i]) )
-            continue;
-        if ( pCut[0] == LutSize )
-            return 0;
-        pCut[++pCut[0]] = pCut0[i];
-    }
-    memcpy( pCut + 1, pCut1 + 1, sizeof(int) * pCut1[0] );
-//    Vec_IntSelectSort( pCut + 1, pCut[0] );
-    if ( 0 )
-    {
-        int i, k;
-        for ( i = 1; i < pCut[0]; i++ )
-            for ( k = 0; k < i; k++ )
-                assert( pCut[i+1] != pCut[k+1] );
-    }
-    return 1;
-}
-static inline int Jf_CutMerge( int * pCut0, int * pCut1, int * pCut, int LutSize )
 { 
     int * pC0 = pCut0 + 1;
     int * pC1 = pCut1 + 1;
@@ -308,52 +345,177 @@ FlushCut1:
     pCut[0] = c;
     return 1;
 }
+
+/**Function*************************************************************
+
+  Synopsis    [Cut merging.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Jf_CutFindLeaf0( int * pCut, int iObj )
+{
+    int i;
+    for ( i = 1; i <= pCut[0]; i++ )
+        if ( pCut[i] == iObj )
+            return i;
+    return i;
+}
+static inline int Jf_CutIsContained0( int * pBase, int * pCut ) // check if pCut is contained pBase
+{
+    int i;
+    for ( i = 1; i <= pCut[0]; i++ )
+        if ( Jf_CutFindLeaf0(pBase, pCut[i]) > pBase[0] )
+            return 0;
+    return 1;
+}
+static inline int Jf_CutMerge0( int * pCut0, int * pCut1, int * pCut, int LutSize )
+{
+    int i;
+    pCut[0] = pCut0[0];
+    for ( i = 1; i <= pCut1[0]; i++ )
+    {
+        if ( Jf_CutFindLeaf0(pCut0, pCut1[i]) <= pCut0[0] )
+            continue;
+        if ( pCut[0] == LutSize )
+            return 0;
+        pCut[++pCut[0]] = pCut1[i];
+    }
+    memcpy( pCut + 1, pCut0 + 1, sizeof(int) * pCut0[0] );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Cut merging.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Jf_CutFindLeaf( int * pCut, int iLit )
+{
+    int i;
+    for ( i = 1; i <= pCut[0]; i++ )
+        if ( Abc_Lit2Var(pCut[i]) == iLit )
+            return i;
+    return i;
+}
 static inline int Jf_CutIsContained( int * pBase, int * pCut ) // check if pCut is contained pBase
 {
     int i;
     for ( i = 1; i <= pCut[0]; i++ )
-        if ( !Jf_CutFindLeaf(pBase, pCut[i]) )
+        if ( Jf_CutFindLeaf(pBase, Abc_Lit2Var(pCut[i])) > pBase[0] )
             return 0;
     return 1;
 }
-static inline int Jf_CutArr( Jf_Man_t * p, int * pCut )
-{
-    int i, Time = 0;
-    for ( i = 1; i <= pCut[0]; i++ )
-        Time = Abc_MaxInt( Time, Jf_ObjArr(p, pCut[i]) );
-    return Time + 1; 
-}
-static inline void Jf_ObjSetBestCut( int * pCuts, int * pCut, Vec_Int_t * vTemp )
-{
-    int * pTemp, nSize;
-    assert( pCuts < pCut );
-    if ( pCuts + 1 == pCut )
-        return;
-    Vec_IntClear( vTemp );
-    for ( pTemp = pCuts + 1; pTemp < pCut; pTemp++ )
-        Vec_IntPush( vTemp, *pTemp );
-    nSize = pCut[0] + 1;
-    memcpy( pCuts + 1, pCut, sizeof(int) * nSize );
-    memcpy( pCuts + 1 + nSize, Vec_IntArray(vTemp), sizeof(int) * Vec_IntSize(vTemp) );
-}
-static inline void Jf_CutRef( Jf_Man_t * p, int * pCut )
+static inline int Jf_CutMerge8( int * pCut0, int * pCut1, int * pCut, int LutSize )
 {
     int i;
-    for ( i = 1; i <= pCut[0]; i++ )
-        Gia_ObjRefIncId( p->pGia, pCut[i] );
+    pCut[0] = pCut0[0];
+    for ( i = 1; i <= pCut1[0]; i++ )
+        if ( Jf_CutFindLeaf(pCut0, Abc_Lit2Var(pCut1[i])) > pCut0[0] )
+        {
+            if ( pCut[0] == LutSize )
+                return 0;
+            pCut[++pCut[0]] = pCut1[i];
+        }
+    memcpy( pCut + 1, pCut0 + 1, sizeof(int) * pCut0[0] );
+    return 1;
 }
-static inline void Jf_CutDeref( Jf_Man_t * p, int * pCut )
+static inline int Jf_CutMerge( int * pCut0, int * pCut1, int * pCut, int LutSize )
 {
-    int i;
-    for ( i = 1; i <= pCut[0]; i++ )
-        Gia_ObjRefDecId( p->pGia, pCut[i] );
+    int ConfigMask = 0x3FFFF; // 18 bits
+    int i, iPlace;
+    pCut[0] = pCut0[0];
+    for ( i = 1; i <= pCut1[0]; i++ )
+    {
+        iPlace = Jf_CutFindLeaf(pCut0, Abc_Lit2Var(pCut1[i]));
+        if ( iPlace > pCut0[0] )
+        {
+            if ( pCut[0] == LutSize )
+                return 0;
+            pCut[++pCut[0]] = pCut1[i];
+        }
+        ConfigMask ^= ((((i-1) & 7) ^ 7) << (3*(iPlace-1)));
+        if ( pCut0[iPlace] != pCut1[i] )
+            ConfigMask |= (1 << (iPlace+17));
+    }
+    memcpy( pCut + 1, pCut0 + 1, sizeof(int) * pCut0[0] );
+    pCut[pCut[0]+1] = ConfigMask;
+    return 1;
 }
-static inline float Jf_CutFlow( Jf_Man_t * p, int * pCut )
+
+
+/**Function*************************************************************
+
+  Synopsis    [Cut filtering.]
+
+  Description [Returns the number of cuts after filtering and the last
+  cut in the last entry.  If the cut is filtered, its size is set to -1.]
+               
+  SideEffects [This was found to be 15% slower.]
+
+  SeeAlso     []
+
+***********************************************************************/
+int Jf_ObjCutFilter( Jf_Man_t * p, Jf_Cut_t ** pSto, int c )
 {
-    float Flow = 0; int i; 
-    for ( i = 1; i <= pCut[0]; i++ )
-        Flow += Jf_ObjFlow( p, pCut[i] );
-    return Flow; 
+    int k, last;
+    // filter this cut using other cuts
+    for ( k = 0; k < c; k++ )
+        if ( pSto[c]->pCut[0] >= pSto[k]->pCut[0] && 
+            (pSto[c]->Sign & pSto[k]->Sign) == pSto[k]->Sign && 
+             Jf_CutIsContained(pSto[c]->pCut, pSto[k]->pCut) )
+        {
+                pSto[c]->pCut[0] = -1;
+                return c;
+        }
+    // filter other cuts using this cut
+    for ( k = last = 0; k < c; k++ )
+        if ( !(pSto[c]->pCut[0] < pSto[k]->pCut[0] && 
+              (pSto[c]->Sign & pSto[k]->Sign) == pSto[c]->Sign && 
+               Jf_CutIsContained(pSto[k]->pCut, pSto[c]->pCut)) )
+        {
+            if ( last++ == k )
+                continue;
+            ABC_SWAP( Jf_Cut_t *, pSto[last-1], pSto[k] );
+        }
+    assert( last <= c );
+    if ( last < c )
+        ABC_SWAP( Jf_Cut_t *, pSto[last], pSto[c] );
+    return last;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Sorting cuts by size.]
+
+  Description []
+               
+  SideEffects [Did not really help.]
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Jf_ObjSortCuts( Jf_Cut_t ** pSto, int nSize )
+{
+    int i, j, best_i;
+    for ( i = 0; i < nSize-1; i++ )
+    {
+        best_i = i;
+        for ( j = i+1; j < nSize; j++ )
+            if ( pSto[j]->pCut[0] < pSto[best_i]->pCut[0] )
+                best_i = j;
+        ABC_SWAP( Jf_Cut_t *, pSto[i], pSto[best_i] );
+    }
 }
 
 /**Function*************************************************************
@@ -369,23 +531,23 @@ static inline float Jf_CutFlow( Jf_Man_t * p, int * pCut )
 ***********************************************************************/
 int Jf_CutRef_rec( Jf_Man_t * p, int * pCut, int fEdge, int Limit )
 {
-    int i, Count = 0;
-    if ( pCut[0] == 1 || Limit == 0 ) // terminal
+    int i, Var, Count = 0;
+    if ( Jf_CutSize(pCut) == 1 || Limit == 0 ) // terminal
         return 0;
-    for ( i = 1; i <= pCut[0]; i++ )
-        if ( Gia_ObjRefIncId( p->pGia, pCut[i] ) == 0 )
-            Count += Jf_CutRef_rec( p, Jf_ObjCutBest(p, pCut[i]), fEdge, Limit - 1 );
-    return Count + (fEdge ? (1 << 16) + pCut[0] : 1);
+    Jf_CutForEachVar( pCut, Var, i )
+        if ( Gia_ObjRefIncId( p->pGia, Var ) == 0 )
+            Count += Jf_CutRef_rec( p, Jf_ObjCutBest(p, Var), fEdge, Limit - 1 );
+    return Count + (fEdge ? (1 << 16) + Jf_CutSize(pCut) : 1);
 }
 int Jf_CutDeref_rec( Jf_Man_t * p, int * pCut, int fEdge, int Limit )
 {
-    int i, Count = 0;
-    if ( pCut[0] == 1 || Limit == 0 ) // terminal
+    int i, Var, Count = 0;
+    if ( Jf_CutSize(pCut) == 1 || Limit == 0 ) // terminal
         return 0;
-    for ( i = 1; i <= pCut[0]; i++ )
-        if ( Gia_ObjRefDecId( p->pGia, pCut[i] ) == 0 )
-            Count += Jf_CutDeref_rec( p, Jf_ObjCutBest(p, pCut[i]), fEdge, Limit - 1 );
-    return Count + (fEdge ? (1 << 16) + pCut[0] : 1);
+    Jf_CutForEachVar( pCut, Var, i )
+        if ( Gia_ObjRefDecId( p->pGia, Var ) == 0 )
+            Count += Jf_CutDeref_rec( p, Jf_ObjCutBest(p, Var), fEdge, Limit - 1 );
+    return Count + (fEdge ? (1 << 16) + Jf_CutSize(pCut) : 1);
 }
 static inline int Jf_CutElaOld( Jf_Man_t * p, int * pCut, int fEdge )
 {
@@ -396,16 +558,16 @@ static inline int Jf_CutElaOld( Jf_Man_t * p, int * pCut, int fEdge )
 }
 int Jf_CutRef2_rec( Jf_Man_t * p, int * pCut, int fEdge, int Limit )
 {
-    int i, Count = 0;
-    if ( pCut[0] == 1 || Limit == 0 ) // terminal
+    int i, Var, Count = 0;
+    if ( Jf_CutSize(pCut) == 1 || Limit == 0 ) // terminal
         return 0;
-    for ( i = 1; i <= pCut[0]; i++ )
+    Jf_CutForEachVar( pCut, Var, i )
     {
-        Vec_IntPush( p->vTemp, pCut[i] );
-        if ( Gia_ObjRefIncId( p->pGia, pCut[i] ) == 0 )
-            Count += Jf_CutRef2_rec( p, Jf_ObjCutBest(p, pCut[i]), fEdge, Limit - 1 );
+        if ( Gia_ObjRefIncId( p->pGia, Var ) == 0 )
+            Count += Jf_CutRef2_rec( p, Jf_ObjCutBest(p, Var), fEdge, Limit - 1 );
+        Vec_IntPush( p->vTemp, Var );
     }
-    return Count + (fEdge ? (1 << 16) + pCut[0] : 1);
+    return Count + (fEdge ? (1 << 16) + Jf_CutSize(pCut) : 1);
 }
 static inline int Jf_CutEla( Jf_Man_t * p, int * pCut, int fEdge )
 {
@@ -533,19 +695,33 @@ static inline void Jf_ObjCheckStore( Jf_Man_t * p, Jf_Cut_t ** pSto, int c, int 
 static inline void Jf_ObjAssignCut( Jf_Man_t * p, Gia_Obj_t * pObj )
 {
     int iObj = Gia_ObjId(p->pGia, pObj);
-    int pStore[3] = { 1, 1, iObj };
+    int pClause[3] = { 1, 1, Jf_ObjLit(iObj) }; // set function!
     assert( Gia_ObjIsCi(pObj) || Gia_ObjIsBuf(pObj) );
-    Vec_IntWriteEntry( &p->vCuts, iObj, Vec_SetAppend( &p->pMem, pStore, 3 ) );
+    Vec_IntWriteEntry( &p->vCuts, iObj, Vec_SetAppend( &p->pMem, pClause, 3 ) );
 }
 static inline void Jf_ObjPropagateBuf( Jf_Man_t * p, Gia_Obj_t * pObj, int fReverse )
 {
     int iObj = Gia_ObjId( p->pGia, pObj );
     int iFanin = Gia_ObjFaninId0( pObj, iObj );
+    assert( 0 );
     assert( Gia_ObjIsBuf(pObj) );
     if ( fReverse )
         ABC_SWAP( int, iObj, iFanin );
     Vec_IntWriteEntry( &p->vArr,  iObj, Jf_ObjArr(p, iFanin) );
     Vec_FltWriteEntry( &p->vFlow, iObj, Jf_ObjFlow(p, iFanin) );
+}
+static inline void Jf_ObjBypassNode( Gia_Man_t * p, Gia_Obj_t * pObj, int * pCut, Vec_Int_t * vTemp )
+{
+    assert( !pObj->fMark0 );
+    assert( Gia_ObjFanin0(pObj)->fMark0 );
+    assert( Gia_ObjFanin1(pObj)->fMark0 );
+    Vec_IntClear( vTemp );
+    Vec_IntPushUnique( vTemp, Jf_ObjLit(Gia_ObjFaninId0p(p, Gia_ObjFanin0(pObj))) );
+    Vec_IntPushUnique( vTemp, Jf_ObjLit(Gia_ObjFaninId1p(p, Gia_ObjFanin0(pObj))) );
+    Vec_IntPushUnique( vTemp, Jf_ObjLit(Gia_ObjFaninId0p(p, Gia_ObjFanin1(pObj))) );
+    Vec_IntPushUnique( vTemp, Jf_ObjLit(Gia_ObjFaninId1p(p, Gia_ObjFanin1(pObj))) );
+    pCut[0] = Vec_IntSize(vTemp); // set function!
+    memcpy( pCut + 1, Vec_IntArray(vTemp), sizeof(int) * Vec_IntSize(vTemp) );
 }
 void Jf_ObjComputeCuts( Jf_Man_t * p, Gia_Obj_t * pObj )
 {
@@ -570,7 +746,7 @@ void Jf_ObjComputeCuts( Jf_Man_t * p, Gia_Obj_t * pObj )
     Jf_ObjForEachCut( pCuts1, pCut1, i )
         Sign1[i] = Jf_CutGetSign( pCut1 );
     // merge cuts
-    p->CutCount[0] += pCuts0[0] * pCuts1[0];
+    p->CutCount[0] += Jf_CutSize(pCut0) * Jf_CutSize(pCut1);
     Jf_ObjForEachCut( pCuts0, pCut0, i )
     Jf_ObjForEachCut( pCuts1, pCut1, k )
     {
@@ -579,6 +755,7 @@ void Jf_ObjComputeCuts( Jf_Man_t * p, Gia_Obj_t * pObj )
         p->CutCount[1]++;
         if ( !Jf_CutMerge(pCut0, pCut1, pSto[c]->pCut, LutSize) )
             continue;
+//        Jf_CutCheck( pSto[c]->pCut );
         p->CutCount[2]++;
         pSto[c]->Sign = Sign0[i] | Sign1[k];
         pSto[c]->Time = p->pPars->fAreaOnly ? 0 : Jf_CutArr(p, pSto[c]->pCut);
@@ -586,37 +763,33 @@ void Jf_ObjComputeCuts( Jf_Man_t * p, Gia_Obj_t * pObj )
         c = Jf_ObjAddCutToStore( p, pSto, c, CutNum );
         assert( c <= CutNum );
     }
+//    Jf_ObjCheckStore( p, pSto, c, iObj );
     // fix the case when both fanins have no unit cuts
     if ( c == 0 )
     {
-        assert( !pObj->fMark0 );
-        assert( Gia_ObjFanin0(pObj)->fMark0 );
-        assert( Gia_ObjFanin1(pObj)->fMark0 );
-        Vec_IntClear( p->vTemp );
-        Vec_IntPushUnique( p->vTemp, Gia_ObjFaninId0p(p->pGia, Gia_ObjFanin0(pObj)) );
-        Vec_IntPushUnique( p->vTemp, Gia_ObjFaninId1p(p->pGia, Gia_ObjFanin0(pObj)) );
-        Vec_IntPushUnique( p->vTemp, Gia_ObjFaninId0p(p->pGia, Gia_ObjFanin1(pObj)) );
-        Vec_IntPushUnique( p->vTemp, Gia_ObjFaninId1p(p->pGia, Gia_ObjFanin1(pObj)) );
-        pSto[c]->pCut[0] = Vec_IntSize(p->vTemp);
-        memcpy( pSto[c]->pCut + 1, Vec_IntArray(p->vTemp), sizeof(int) * Vec_IntSize(p->vTemp) );
-        c++;
+        Jf_ObjBypassNode( p->pGia, pObj, pSto[0]->pCut, p->vTemp );
+        pSto[0]->Sign = Jf_CutGetSign( pSto[0]->pCut );
+        pSto[0]->Time = p->pPars->fAreaOnly ? 0 : Jf_CutArr(p, pSto[0]->pCut);
+        pSto[0]->Flow = Jf_CutFlow(p, pSto[0]->pCut);
+        c = 1;
     }
+    // add elementary cut
+    if ( !pObj->fMark0 )
+        pSto[c]->pCut[0] = 1, pSto[c]->pCut[1] = Jf_ObjLit(iObj), c++; // set function
+    // reorder cuts
+//    Jf_ObjSortCuts( pSto + 1, c - 1 );
 //    Jf_ObjCheckPtrs( pSto, CutNum );
-//    Jf_ObjCheckStore( p, pSto, c, iObj );
     p->CutCount[3] += c;
     // save best info
     Vec_IntWriteEntry( &p->vArr,  iObj, pSto[0]->Time );
-    Vec_FltWriteEntry( &p->vFlow, iObj, (pSto[0]->Flow + 1) / Jf_ObjRefs(p, iObj) );
-    // collect cuts
+//    Vec_FltWriteEntry( &p->vFlow, iObj, (pSto[0]->Flow + 1) / Jf_ObjRefs(p, iObj) );
+    Vec_FltWriteEntry( &p->vFlow, iObj, (pSto[0]->Flow + ((1 << 6) + pSto[c]->pCut[0])) / Jf_ObjRefs(p, iObj) );
+    // add cuts to storage cuts
     Vec_IntClear( p->vTemp );
-    Vec_IntPush( p->vTemp, c + !pObj->fMark0 );
+    Vec_IntPush( p->vTemp, c );
     for ( i = 0; i < c; i++ )
         for ( k = 0; k <= pSto[i]->pCut[0]; k++ )
             Vec_IntPush( p->vTemp, pSto[i]->pCut[k] );
-    // add elementary cut
-    if ( !pObj->fMark0 )
-        Vec_IntPush( p->vTemp, 1 ), Vec_IntPush( p->vTemp, iObj );
-    // save cuts
     Vec_IntWriteEntry( &p->vCuts, iObj, Vec_SetAppend(&p->pMem, Vec_IntArray(p->vTemp), Vec_IntSize(p->vTemp)) );
 }
 void Jf_ManComputeCuts( Jf_Man_t * p )
@@ -627,6 +800,7 @@ void Jf_ManComputeCuts( Jf_Man_t * p )
         printf( "Aig: CI = %d  CO = %d  AND = %d    ", Gia_ManCiNum(p->pGia), Gia_ManCoNum(p->pGia), Gia_ManAndNum(p->pGia) );
         printf( "LutSize = %d  CutMax = %d  Rounds = %d\n", p->pPars->nLutSize, p->pPars->nCutNum, p->pPars->nRounds );
         printf( "Computing cuts...\r" );
+        fflush( stdout );
     }
     Gia_ManForEachObj( p->pGia, pObj, i )
     {
@@ -651,6 +825,7 @@ void Jf_ManComputeCuts( Jf_Man_t * p )
         if ( p->nCoarse )
         printf( "   Coarse = %d (%.1f %%)",  p->nCoarse, 100.0 * p->nCoarse / Gia_ManObjNum(p->pGia) );
         printf( "\n" );
+        fflush( stdout );
     }
 }
 
@@ -702,13 +877,14 @@ int Jf_ManComputeRefs( Jf_Man_t * p )
         {
             assert( !pObj->fMark0 );
             Jf_CutRef( p, Jf_ObjCutBest(p, i) );
-            p->pPars->Edge += Jf_ObjCutBest(p, i)[0];
+            p->pPars->Edge += Jf_CutSize(Jf_ObjCutBest(p, i));
             p->pPars->Area++;
         }
         // blend references and normalize flow
-        nRefsNew = Abc_MaxFloat( 1.0, 0.25 * pRefs[i] + 0.75 * p->pGia->pRefs[i] );
+        nRefsNew = Abc_MaxFloat( 1, 0.25 * pRefs[i] + 0.75 * p->pGia->pRefs[i] );
         pFlow[i] = pFlow[i] * pRefs[i] / nRefsNew;
         pRefs[i] = nRefsNew;
+        assert( pFlow[i] >= 0 );
     }
     p->pPars->Delay = Jf_ManComputeDelay( p, 1 );
     return p->pPars->Area;
@@ -734,14 +910,14 @@ void Jf_ObjComputeBestCut( Jf_Man_t * p, Gia_Obj_t * pObj, int fEdge, int fEla )
     float Area, AreaBest = ABC_INFINITY;
     Jf_ObjForEachCut( pCuts, pCut, i )
     {
-        if ( pCut[0] == 1 ) continue;
+        if ( Jf_CutSize(pCut) == 1 ) continue;
         Area = fEla ? Jf_CutEla(p, pCut, fEdge) : Jf_CutFlow(p, pCut);
         if ( pCutBest == NULL || AreaBest > Area || (AreaBest == Area && TimeBest > (Time = Jf_CutArr(p, pCut))) )
             pCutBest = pCut, AreaBest = Area, TimeBest = Time;
     }
     Vec_IntWriteEntry( &p->vArr,  iObj, Jf_CutArr(p, pCutBest) );
     if ( !fEla )
-    Vec_FltWriteEntry( &p->vFlow, iObj, (AreaBest + (fEdge ? pCut[0] : 1)) / Jf_ObjRefs(p, iObj) );
+    Vec_FltWriteEntry( &p->vFlow, iObj, (AreaBest + (fEdge ? Jf_CutSize(pCut) : 1)) / Jf_ObjRefs(p, iObj) );
     Jf_ObjSetBestCut( pCuts, pCutBest, p->vTemp );
 //    Jf_CutPrint( Jf_ObjCutBest(p, iObj) ); printf( "\n" );
 }
@@ -789,7 +965,7 @@ void Jf_ManDeriveMapping( Jf_Man_t * p )
             continue;
         pCut = Jf_ObjCutBest( p, i );
         Vec_IntWriteEntry( vMapping, i, Vec_IntSize(vMapping) );
-        for ( k = 0; k <= pCut[0]; k++ )
+        for ( k = 0; k <= Jf_CutSize(pCut); k++ )
             Vec_IntPush( vMapping, pCut[k] );
         Vec_IntPush( vMapping, i );
     }
@@ -832,6 +1008,7 @@ void Jf_ManPrintStats( Jf_Man_t * p, char * pTitle )
     printf( "Area =%9d   ",  p->pPars->Area );
     printf( "Edge =%9d   ",  p->pPars->Edge );
     Abc_PrintTime( 1, "Time", Abc_Clock() - p->clkStart );
+    fflush( stdout );
 }
 Gia_Man_t * Jf_ManPerformMapping( Gia_Man_t * pGia, Jf_Par_t * pPars )
 {
