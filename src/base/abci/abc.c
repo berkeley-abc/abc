@@ -393,6 +393,7 @@ static int Abc_CommandAbc9Cone               ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9PoPart             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9MultiProve         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Bmc                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9SatTest            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 //static int Abc_CommandAbc9PoPart2            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 //static int Abc_CommandAbc9CexCut             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 //static int Abc_CommandAbc9CexMerge           ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -948,6 +949,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&popart",       Abc_CommandAbc9PoPart,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&mprove",       Abc_CommandAbc9MultiProve,   0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&bmc",          Abc_CommandAbc9Bmc,          0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&sattest",      Abc_CommandAbc9SatTest,      0 );
 //    Cmd_CommandAdd( pAbc, "ABC9",         "&popart2",      Abc_CommandAbc9PoPart2,      0 );
 //    Cmd_CommandAdd( pAbc, "ABC9",         "&cexcut",       Abc_CommandAbc9CexCut,       0 );
 //    Cmd_CommandAdd( pAbc, "ABC9",         "&cexmerge",     Abc_CommandAbc9CexMerge,     0 );
@@ -31774,7 +31776,6 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Bmc( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-//    extern void Bmc_PerformBmc( Gia_Man_t * pGia, Bmc_AndPar_t * pPars );
     int c;
     Bmc_AndPar_t Pars, * pPars = &Pars;
     memset( pPars, 0, sizeof(Bmc_AndPar_t) );
@@ -31836,10 +31837,9 @@ int Abc_CommandAbc9Bmc( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( pAbc->pGia == NULL )
     {
-        Abc_Print( -1, "Abc_CommandAbc9Rpm(): There is no AIG.\n" );
+        Abc_Print( -1, "Abc_CommandAbc9Bmc(): There is no AIG.\n" );
         return 0;
     }
-//    Bmc_PerformBmc( pAbc->pGia, pPars );
     Gia_ManBmcPerform( pAbc->pGia, pPars );
     return 0;
 
@@ -31852,6 +31852,55 @@ usage:
     Abc_Print( -2, "\t-d     : toggle dumping unfolded timeframes [default = %s]\n",          pPars->fDumpFrames? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n",         pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w     : toggle printing information about unfolding [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9SatTest( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Bmc_LoadTest( Gia_Man_t * pGia, int fLoadCnf, int fVerbose );
+    int c, fLoadCnf = 0, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "cvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'c':
+            fLoadCnf ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9SatTest(): There is no AIG.\n" );
+        return 0;
+    }
+    Bmc_LoadTest( pAbc->pGia, fLoadCnf, fVerbose );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &sattest [-cvh]\n" );
+    Abc_Print( -2, "\t         performs testing of dynamic CNF loading\n" );
+    Abc_Print( -2, "\t-c     : toggle dynamic CNF loading [default = %s]\n",          fLoadCnf? "yes": "no" );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }

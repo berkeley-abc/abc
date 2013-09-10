@@ -28,8 +28,8 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-typedef struct Bmc_Lad_t_ Bmc_Lad_t;  
-struct Bmc_Lad_t_
+typedef struct Bmc_Load_t_ Bmc_Load_t;  
+struct Bmc_Load_t_
 {
     Bmc_AndPar_t *   pPars;     // parameters
     Gia_Man_t *      pGia;      // unrolled AIG
@@ -57,7 +57,7 @@ struct Bmc_Lad_t_
   SeeAlso     []
 
 ***********************************************************************/
-int Bmc_LadGetSatVar( Bmc_Lad_t * p, int Id )
+int Bmc_LoadGetSatVar( Bmc_Load_t * p, int Id )
 {
     Gia_Obj_t * pObj = Gia_ManObj( p->pGia, Id );
     if ( pObj->Value == 0 )
@@ -68,9 +68,9 @@ int Bmc_LadGetSatVar( Bmc_Lad_t * p, int Id )
     }
     return pObj->Value;
 }
-int Bmc_LadAddCnf( void * pMan, int iLit )
+int Bmc_LoadAddCnf( void * pMan, int iLit )
 {
-    Bmc_Lad_t * p = (Bmc_Lad_t *)pMan;
+    Bmc_Load_t * p = (Bmc_Load_t *)pMan;
     int Lits[3], iVar = Abc_Lit2Var(iLit);
     Gia_Obj_t * pObj = Gia_ManObj( p->pGia, Vec_IntEntry(p->vSat2Id, iVar) );
     p->nCallBacks1++;
@@ -82,32 +82,32 @@ int Bmc_LadAddCnf( void * pMan, int iLit )
     Lits[0] = Abc_LitNot(iLit);
     if ( Abc_LitIsCompl(iLit) )
     {
-        Lits[1] = Abc_Var2Lit( Bmc_LadGetSatVar(p, Gia_ObjFaninId0p(p->pGia, pObj)), !Gia_ObjFaninC0(pObj) );
-        Lits[2] = Abc_Var2Lit( Bmc_LadGetSatVar(p, Gia_ObjFaninId1p(p->pGia, pObj)), !Gia_ObjFaninC1(pObj) );
+        Lits[1] = Abc_Var2Lit( Bmc_LoadGetSatVar(p, Gia_ObjFaninId0p(p->pGia, pObj)), !Gia_ObjFaninC0(pObj) );
+        Lits[2] = Abc_Var2Lit( Bmc_LoadGetSatVar(p, Gia_ObjFaninId1p(p->pGia, pObj)), !Gia_ObjFaninC1(pObj) );
         sat_solver_clause_new( p->pSat, Lits, Lits + 3, 0 );
         pObj->fMark1 = 1;
     }
     else
     {
-        Lits[1] = Abc_Var2Lit( Bmc_LadGetSatVar(p, Gia_ObjFaninId0p(p->pGia, pObj)), Gia_ObjFaninC0(pObj) );
+        Lits[1] = Abc_Var2Lit( Bmc_LoadGetSatVar(p, Gia_ObjFaninId0p(p->pGia, pObj)), Gia_ObjFaninC0(pObj) );
         sat_solver_clause_new( p->pSat, Lits, Lits + 2, 0 );
-        Lits[1] = Abc_Var2Lit( Bmc_LadGetSatVar(p, Gia_ObjFaninId1p(p->pGia, pObj)), Gia_ObjFaninC1(pObj) );
+        Lits[1] = Abc_Var2Lit( Bmc_LoadGetSatVar(p, Gia_ObjFaninId1p(p->pGia, pObj)), Gia_ObjFaninC1(pObj) );
         sat_solver_clause_new( p->pSat, Lits, Lits + 2, 0 );
         pObj->fMark0 = 1;
     }
     p->nCallBacks2++;
     return 1;
 }
-int Bmc_LadAddCnf_rec( Bmc_Lad_t * p, int Id )
+int Bmc_LoadAddCnf_rec( Bmc_Load_t * p, int Id )
 {
-    int iVar = Bmc_LadGetSatVar( p, Id );
+    int iVar = Bmc_LoadGetSatVar( p, Id );
     Gia_Obj_t * pObj = Gia_ManObj( p->pGia, Id );
     if ( Gia_ObjIsAnd(pObj) && !(pObj->fMark0 && pObj->fMark1) )
     {
-        Bmc_LadAddCnf( p, Abc_Var2Lit(iVar, 0) );
-        Bmc_LadAddCnf( p, Abc_Var2Lit(iVar, 1) );
-        Bmc_LadAddCnf_rec( p, Gia_ObjFaninId0(pObj, Id) );
-        Bmc_LadAddCnf_rec( p, Gia_ObjFaninId1(pObj, Id) );
+        Bmc_LoadAddCnf( p, Abc_Var2Lit(iVar, 0) );
+        Bmc_LoadAddCnf( p, Abc_Var2Lit(iVar, 1) );
+        Bmc_LoadAddCnf_rec( p, Gia_ObjFaninId0(pObj, Id) );
+        Bmc_LoadAddCnf_rec( p, Gia_ObjFaninId1(pObj, Id) );
     }
     return iVar;
 }
@@ -123,30 +123,24 @@ int Bmc_LadAddCnf_rec( Bmc_Lad_t * p, int Id )
   SeeAlso     []
 
 ***********************************************************************/
-Bmc_Lad_t * Bmc_LadStart( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
+Bmc_Load_t * Bmc_LoadStart( Gia_Man_t * pGia )
 {
-    Bmc_Lad_t * p;
+    Bmc_Load_t * p;
     int Lit;
     Gia_ManSetPhase( pGia );
     Gia_ManCleanValue( pGia );
     Gia_ManCreateRefs( pGia );
-    p = ABC_CALLOC( Bmc_Lad_t, 1 );
-    p->pPars     = pPars;
+    p = ABC_CALLOC( Bmc_Load_t, 1 );
     p->pGia      = pGia;
     p->pSat      = sat_solver_new();
     p->vSat2Id   = Vec_IntAlloc( 1000 );
     Vec_IntPush( p->vSat2Id, 0 );
     // create constant node
-    Lit = Abc_Var2Lit( Bmc_LadGetSatVar(p, 0), 1 );
+    Lit = Abc_Var2Lit( Bmc_LoadGetSatVar(p, 0), 1 );
     sat_solver_addclause( p->pSat, &Lit, &Lit + 1 );
-    // add callback for CNF loading
-    if ( pPars->fLoadCnf )
-        p->pSat->pCnfMan  = p;
-    if ( pPars->fLoadCnf )
-        p->pSat->pCnfFunc = Bmc_LadAddCnf;
     return p;
 }
-void Bmc_LadStop( Bmc_Lad_t * p )
+void Bmc_LoadStop( Bmc_Load_t * p )
 {
     Vec_IntFree( p->vSat2Id );
     sat_solver_delete( p->pSat );
@@ -164,28 +158,36 @@ void Bmc_LadStop( Bmc_Lad_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Bmc_PerformBmc( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
+void Bmc_LoadTest( Gia_Man_t * pGia, int fLoadCnf, int fVerbose )
 {
-//    int nConfLimit = 0;
-    Bmc_Lad_t * p;
+    int nConfLimit = 0;
+    Bmc_Load_t * p;
     Gia_Obj_t * pObj;
     int i, status, Lit;
     abctime clk = Abc_Clock();
-    p = Bmc_LadStart( pGia, pPars );
+    // create the loading manager
+    p = Bmc_LoadStart( pGia );
+    // add callback for CNF loading
+    if ( fLoadCnf )
+    {
+        p->pSat->pCnfMan  = p;
+        p->pSat->pCnfFunc = Bmc_LoadAddCnf;
+    }
+    // solve SAT problem for each PO
     Gia_ManForEachPo( pGia, pObj, i )
     {
-        if ( pPars->fLoadCnf )
-            Lit = Abc_Var2Lit( Bmc_LadGetSatVar(p, Gia_ObjFaninId0p(pGia, pObj)), Gia_ObjFaninC0(pObj) );
+        if ( fLoadCnf )
+            Lit = Abc_Var2Lit( Bmc_LoadGetSatVar(p, Gia_ObjFaninId0p(pGia, pObj)), Gia_ObjFaninC0(pObj) );
         else
-            Lit = Abc_Var2Lit( Bmc_LadAddCnf_rec(p, Gia_ObjFaninId0p(pGia, pObj)), Gia_ObjFaninC0(pObj) );
-        if ( pPars->fVerbose )
+            Lit = Abc_Var2Lit( Bmc_LoadAddCnf_rec(p, Gia_ObjFaninId0p(pGia, pObj)), Gia_ObjFaninC0(pObj) );
+        if ( fVerbose )
         {
             printf( "Frame%4d :  ", i );
             printf( "Vars = %6d  ", Vec_IntSize(p->vSat2Id) );
             printf( "Clas = %6d  ", sat_solver_nclauses(p->pSat) );
         }
-        status = sat_solver_solve( p->pSat, &Lit, &Lit + 1, (ABC_INT64_T)pPars->nConfLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
-        if ( pPars->fVerbose )
+        status = sat_solver_solve( p->pSat, &Lit, &Lit + 1, (ABC_INT64_T)nConfLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
+        if ( fVerbose )
         {
             printf( "Conf = %6d  ", sat_solver_nconflicts(p->pSat) );
             if ( status == l_False )
@@ -198,7 +200,7 @@ void Bmc_PerformBmc( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
         }
     }
     printf( "Callbacks = %d.  Loadings = %d.\n", p->nCallBacks1, p->nCallBacks2 );
-    Bmc_LadStop( p );
+    Bmc_LoadStop( p );
 }
 
 ////////////////////////////////////////////////////////////////////////
