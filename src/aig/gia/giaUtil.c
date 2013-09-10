@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "gia.h"
+#include "base/main/mainInt.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -1561,8 +1562,6 @@ int Gia_ManHasChoices_very_old( Gia_Man_t * p )
     return 1;
 }
 
-
-#include "base/main/mainInt.h"
 
 /**Function*************************************************************
 
