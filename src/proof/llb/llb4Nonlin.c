@@ -19,6 +19,8 @@
 ***********************************************************************/
 
 #include "llbInt.h"
+#include "base/abc/abc.h"
+#include "aig/gia/giaAig.h"
 
 ABC_NAMESPACE_IMPL_START
  
@@ -888,8 +890,9 @@ printf( "Before = %d.  After = %d.\n", Cudd_DagSize(bAux), Cudd_DagSize(p->bCurr
     // report
     if ( !p->pPars->fSilent )
         printf( "The miter is proved unreachable after %d iterations.  ", nIters );
+    if ( !p->pPars->fSilent )
+        Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     p->pPars->iFrame = nIters - 1;
-    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     return 1; // unreachable
 }
 
@@ -1082,6 +1085,95 @@ int Llb_Nonlin4CoreReach( Aig_Man_t * pAig, Gia_ParLlb_t * pPars )
         Llb_MnxStop( pMnn );
     }
     return RetValue;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Takes an AIG and returns an AIG representing reachable states.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Man_t * Llb_ReachableStates( Aig_Man_t * pAig )
+{
+    extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
+    Vec_Int_t * vPermute;
+    Vec_Ptr_t * vNames;
+    Gia_ParLlb_t Pars, * pPars = &Pars;
+    DdManager * dd;
+    DdNode * bReached;
+    Llb_Mnx_t * pMnn;
+    Abc_Ntk_t * pNtk, * pNtkMuxes;
+    Aig_Obj_t * pObj;
+    int i, RetValue;
+    abctime clk = Abc_Clock();
+
+    // create parameters
+    Llb_ManSetDefaultParams( pPars );
+    pPars->fSkipOutCheck = 1;
+    pPars->fCluster      = 0;
+    pPars->fReorder      = 0;
+    pPars->fSilent       = 1;
+    pPars->nBddMax       = 100;
+    pPars->nClusterMax   = 500;
+
+    // run reachability
+    pMnn = Llb_MnxStart( pAig, pPars );
+    RetValue = Llb_Nonlin4Reachability( pMnn );
+    assert( RetValue == 1 );
+
+    // print BDD
+//    Extra_bddPrint( pMnn->dd, pMnn->bReached ); 
+//    Extra_bddPrintSupport( pMnn->dd, pMnn->bReached ); 
+//    printf( "\n" );
+
+    // collect flop output variables
+    vPermute = Vec_IntStartFull( Cudd_ReadSize(pMnn->dd) );
+    Saig_ManForEachLo( pAig, pObj, i )
+        Vec_IntWriteEntry( vPermute, Llb_ObjBddVar(pMnn->vOrder, pObj), i );
+
+    // transfer the reached state BDD into the new manager
+    dd = Cudd_Init( Saig_ManRegNum(pAig), 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
+    Cudd_AutodynEnable( dd,  CUDD_REORDER_SYMM_SIFT );
+    bReached = Extra_TransferPermute( pMnn->dd, dd, pMnn->bReached, Vec_IntArray(vPermute) );  Cudd_Ref( bReached );
+    Vec_IntFree( vPermute );
+    assert( Cudd_ReadSize(dd) == Saig_ManRegNum(pAig) );
+
+    // quit reachability engine
+    pMnn->timeTotal = Abc_Clock() - clk;
+    Llb_MnxStop( pMnn );
+
+    // derive the network
+    vNames = Abc_NodeGetFakeNames( Saig_ManRegNum(pAig) );
+    pNtk = Abc_NtkDeriveFromBdd( dd, bReached, "reached", vNames );
+    Abc_NodeFreeNames( vNames );
+    Cudd_RecursiveDeref( dd, bReached );
+    Cudd_Quit( dd );
+
+    // convert
+    pNtkMuxes = Abc_NtkBddToMuxes( pNtk );
+    Abc_NtkDelete( pNtk );
+    pNtk = Abc_NtkStrash( pNtkMuxes, 0, 1, 0 );
+    Abc_NtkDelete( pNtkMuxes );
+    pAig = Abc_NtkToDar( pNtk, 0, 0 );
+    Abc_NtkDelete( pNtk );
+    return pAig;
+}
+Gia_Man_t * Llb_ReachableStatesGia( Gia_Man_t * p )
+{
+    Gia_Man_t * pNew;
+    Aig_Man_t * pAig, * pReached;
+    pAig = Gia_ManToAigSimple( p );
+    pReached = Llb_ReachableStates( pAig );
+    Aig_ManStop( pAig );
+    pNew = Gia_ManFromAigSimple( pReached );
+    Aig_ManStop( pReached );
+    return pNew;
 }
 
 ////////////////////////////////////////////////////////////////////////

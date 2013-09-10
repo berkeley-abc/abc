@@ -33183,7 +33183,7 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-//    Gia_Man_t * pTemp = NULL;
+    Gia_Man_t * pTemp = NULL;
     int c, fVerbose = 0;
     int nFrames = 10;
     int fSwitch = 0;
@@ -33204,6 +33204,7 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    extern void Gia_ManMuxProfiling( Gia_Man_t * p );
 //    extern Gia_Man_t * Mig_ManTest( Gia_Man_t * pGia );
 //    extern Gia_Man_t * Gia_ManInterTest( Gia_Man_t * p );
+    extern Gia_Man_t * Llb_ReachableStatesGia( Gia_Man_t * p );
 
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "Fsvh" ) ) != EOF )
@@ -33277,6 +33278,8 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    Abc_FrameUpdateGia( pAbc, pTemp );
 //    pTemp = Gia_ManInterTest( pAbc->pGia );
 //    Abc_FrameUpdateGia( pAbc, pTemp );
+    pTemp = Llb_ReachableStatesGia( pAbc->pGia );
+    Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 usage:
     Abc_Print( -2, "usage: &test [-F num] [-svh]\n" );
