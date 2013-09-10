@@ -668,6 +668,8 @@ Gia_Man_t * Gia_ManIsoReduce2( Gia_Man_t * pGia, Vec_Ptr_t ** pvPosEquivs, Vec_P
     vEquivs2 = Gia_Iso2ManCheckIsoClasses( pGia, vEquivs );
     Vec_WecFree( vEquivs );
     vEquivs = vEquivs2;
+    // sort equiv classes by the first integer
+    Vec_WecSortByFirstInt( vEquivs, 0 );
     // find the first outputs
     vRemains = Vec_WecCollectFirsts( vEquivs );
     // derive the final GIA
