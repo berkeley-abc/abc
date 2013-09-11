@@ -717,11 +717,15 @@ int Gia_ManBmcPerform( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
 {
     Bmc_Mna_t * p;
     int nFramesMax, f, i=0, Lit, status, RetValue = -2;
+    abctime clk = Abc_Clock();
     p = Bmc_MnaAlloc();
     p->pFrames = Gia_ManBmcUnroll( pGia, pPars->nFramesMax, pPars->nFramesAdd, pPars->fVeryVerbose );
     nFramesMax = Gia_ManPoNum(p->pFrames) / Gia_ManPoNum(pGia);
     if ( pPars->fVerbose )
-        printf( "Performed unfolding for %d frames.\n", nFramesMax );
+    {
+        printf( "Performed unfolding for %d frames.  ", nFramesMax );
+        Abc_PrintTime( 1, "Unfolding time", Abc_Clock() - clk );
+    }
     if ( pPars->fVerbose )
         Gia_ManPrintStats( p->pFrames, NULL );
     for ( f = 0; f < nFramesMax; f++ )
