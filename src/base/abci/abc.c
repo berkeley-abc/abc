@@ -31781,6 +31781,7 @@ int Abc_CommandAbc9Bmc( Abc_Frame_t * pAbc, int argc, char ** argv )
     memset( pPars, 0, sizeof(Bmc_AndPar_t) );
     pPars->nStart        =    0;  // starting timeframe
     pPars->nFramesMax    =    0;  // maximum number of timeframes 
+    pPars->nFramesAdd    =   50;  // the number of additional frames
     pPars->nConfLimit    =    0;  // maximum number of conflicts at a node
     pPars->fLoadCnf      =    0;  // dynamic CNF loading
     pPars->fDumpFrames   =    0;  // dump unrolled timeframes
@@ -31791,7 +31792,7 @@ int Abc_CommandAbc9Bmc( Abc_Frame_t * pAbc, int argc, char ** argv )
     pPars->nFailOuts     =    0;  // the number of failed outputs
     pPars->nDropOuts     =    0;  // the number of dropped outputs
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "SFcdvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "SFAcdvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -31815,6 +31816,17 @@ int Abc_CommandAbc9Bmc( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->nFramesMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( pPars->nFramesMax < 0 )
+                goto usage;
+            break;
+        case 'A':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-A\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nFramesAdd = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nFramesAdd < 0 )
                 goto usage;
             break;
         case 'c':
@@ -31844,10 +31856,11 @@ int Abc_CommandAbc9Bmc( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &bmc [-SF num] [-cdvwh]\n" );
+    Abc_Print( -2, "usage: &bmc [-SFA num] [-cdvwh]\n" );
     Abc_Print( -2, "\t         performs bounded model checking\n" );
     Abc_Print( -2, "\t-S num : the starting timeframe [default = %d]\n",                      pPars->nStart );
     Abc_Print( -2, "\t-F num : the maximum number of timeframes [default = %d]\n",            pPars->nFramesMax );
+    Abc_Print( -2, "\t-A num : the number of additional frames to unroll [default = %d]\n",   pPars->nFramesAdd );
     Abc_Print( -2, "\t-c     : toggle dynamic CNF loading [default = %s]\n",                  pPars->fLoadCnf? "yes": "no" );
     Abc_Print( -2, "\t-d     : toggle dumping unfolded timeframes [default = %s]\n",          pPars->fDumpFrames? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n",         pPars->fVerbose? "yes": "no" );

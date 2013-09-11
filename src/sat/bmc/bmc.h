@@ -77,6 +77,7 @@ struct Bmc_AndPar_t_
 {
     int         nStart;         // starting timeframe
     int         nFramesMax;     // maximum number of timeframes 
+    int         nFramesAdd;     // the number of additional frames
     int         nConfLimit;     // maximum number of conflicts at a node
     int         fLoadCnf;       // dynamic CNF loading
     int         fDumpFrames;    // dump unrolled timeframes

@@ -43,9 +43,330 @@ struct Bmc_Mna_t_
     abctime             clkStart; // starting time
 };
 
+static inline int Gia_ManTerSimInfoGet( unsigned * pInfo, int i )
+{
+    return 3 & (pInfo[i >> 4] >> ((i & 15) << 1));
+}
+static inline void Gia_ManTerSimInfoSet( unsigned * pInfo, int i, int Value )
+{
+    assert( Value >= GIA_ZER && Value <= GIA_UND );
+    Value ^= Gia_ManTerSimInfoGet( pInfo, i );
+    pInfo[i >> 4] ^= (Value << ((i & 15) << 1));
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
+
+/**Function*************************************************************
+
+  Synopsis    [Performs ternary simulation of the manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Bmc_MnaTernary( Gia_Man_t * p, int nFrames, int nFramesAdd, int fVerbose, int * iFirst )
+{
+    Vec_Ptr_t * vStates;
+    unsigned * pState;
+    int nStateWords = Abc_BitWordNum( 2*Gia_ManCoNum(p) );
+    Gia_Obj_t * pObj, * pObjRo;
+    int f, i, Count[4];
+    abctime clk = Abc_Clock();
+    Gia_ManConst0(p)->Value = GIA_ZER;
+    Gia_ManForEachPi( p, pObj, i )
+        pObj->Value = GIA_UND;
+    Gia_ManForEachRi( p, pObj, i )
+        pObj->Value = GIA_ZER;
+    *iFirst = -1;
+    vStates = Vec_PtrAlloc( 100 );
+    for ( f = 0; ; f++ )
+    {
+        // if frames are given, break at frames
+        if ( nFrames && f == nFrames )
+            break;
+        // if frames are not given, break after nFramesAdd from the first x-valued
+        if ( !nFrames && *iFirst >= 0 && f == *iFirst + nFramesAdd )
+            break;
+        // aassign CI values
+        Gia_ManForEachRiRo( p, pObj, pObjRo, i )
+            pObjRo->Value = pObj->Value;
+        Gia_ManForEachAnd( p, pObj, i )
+            pObj->Value = Gia_XsimAndCond( Gia_ObjFanin0(pObj)->Value, Gia_ObjFaninC0(pObj), Gia_ObjFanin1(pObj)->Value, Gia_ObjFaninC1(pObj) );
+        // compute and save CO values
+        pState = ABC_ALLOC( unsigned, nStateWords );
+        Gia_ManForEachCo( p, pObj, i )
+        {
+            pObj->Value = Gia_XsimNotCond( Gia_ObjFanin0(pObj)->Value, Gia_ObjFaninC0(pObj) );
+            Gia_ManTerSimInfoSet( pState, i, pObj->Value );
+            if ( *iFirst == -1 && i < Gia_ManPoNum(p) && pObj->Value == GIA_UND )
+                *iFirst = f;
+        }
+        Vec_PtrPush( vStates, pState );
+        // print statistics
+        if ( !fVerbose )
+            continue;
+        Count[0] = Count[1] = Count[2] = Count[3] = 0;
+        Gia_ManForEachRi( p, pObj, i )
+            Count[pObj->Value]++;
+        printf( "%5d : 0 =%7d    1 =%7d    x =%7d    all =%7d   out = %s\n", 
+            f, Count[GIA_ZER], Count[GIA_ONE], Count[GIA_UND], Gia_ManRegNum(p), 
+            Gia_ManPo(p, 0)->Value == GIA_UND ? "x" : "0" );  
+    }
+//    assert( Vec_PtrSize(vStates) == nFrames );
+    if ( fVerbose )
+        printf( "Finished %d frames. First x-valued PO is in frame %d.  ", nFrames, *iFirst );
+    if ( fVerbose )
+        Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+    return vStates;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Collect AIG nodes for the group of POs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Bmc_MnaCollect_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vNodes, unsigned * pState )
+{
+    if ( pObj->fPhase )
+        return;
+    pObj->fPhase = 1;
+    if ( Gia_ObjIsAnd(pObj) )
+    {
+        Bmc_MnaCollect_rec( p, Gia_ObjFanin0(pObj), vNodes, pState );
+        Bmc_MnaCollect_rec( p, Gia_ObjFanin1(pObj), vNodes, pState );
+        pObj->Value = Gia_XsimAndCond( Gia_ObjFanin0(pObj)->Value, Gia_ObjFaninC0(pObj), Gia_ObjFanin1(pObj)->Value, Gia_ObjFaninC1(pObj) );
+    }
+    else if ( Gia_ObjIsRo(p, pObj) )
+        pObj->Value = pState ? Gia_ManTerSimInfoGet( pState, Gia_ObjCioId(Gia_ObjRoToRi(p, pObj)) ) : GIA_ZER;
+    else if ( Gia_ObjIsPi(p, pObj) )
+        pObj->Value = GIA_UND;
+    else assert( 0 );
+    Vec_IntPush( vNodes, Gia_ObjId(p, pObj) );
+}
+void Bmc_MnaCollect( Gia_Man_t * p, Vec_Int_t * vCos, Vec_Int_t * vNodes, unsigned * pState )
+{
+    Gia_Obj_t * pObj;
+    int i;
+    Vec_IntClear( vNodes );
+    Gia_ManConst0(p)->fPhase = 1;
+    Gia_ManConst0(p)->Value = GIA_ZER;
+    Gia_ManForEachObjVec( vCos, p, pObj, i )
+    {
+        assert( Gia_ObjIsCo(pObj) );
+        Bmc_MnaCollect_rec( p, Gia_ObjFanin0(pObj), vNodes, pState );
+        pObj->Value = Gia_XsimNotCond( Gia_ObjFanin0(pObj)->Value, Gia_ObjFaninC0(pObj) );
+        assert( pObj->Value == GIA_UND );
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Select related logic cones for the COs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Bmc_MnaSelect_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vLeaves )
+{
+    if ( !pObj->fPhase )
+        return;
+    pObj->fPhase = 0;
+    assert( pObj->Value == GIA_UND );
+    if ( Gia_ObjIsAnd(pObj) )
+    {
+        if ( Gia_ObjFanin0(pObj)->Value == GIA_UND )
+            Bmc_MnaSelect_rec( p, Gia_ObjFanin0(pObj), vLeaves );
+        else assert( Gia_ObjFanin0(pObj)->Value + Gia_ObjFaninC0(pObj) == GIA_ONE );
+        if ( Gia_ObjFanin1(pObj)->Value == GIA_UND )
+            Bmc_MnaSelect_rec( p, Gia_ObjFanin1(pObj), vLeaves );
+        else assert( Gia_ObjFanin1(pObj)->Value + Gia_ObjFaninC1(pObj) == GIA_ONE );
+    }
+    else if ( Gia_ObjIsRo(p, pObj) )
+        Vec_IntPush( vLeaves, Gia_ObjId(p, Gia_ObjRoToRi(p, pObj)) );
+}
+void Bmc_MnaSelect( Gia_Man_t * p, Vec_Int_t * vCos, Vec_Int_t * vNodes, Vec_Int_t * vLeaves )
+{
+    Gia_Obj_t * pObj;
+    int i;
+    Vec_IntClear( vLeaves );
+    Gia_ManForEachObjVec( vCos, p, pObj, i )
+        Bmc_MnaSelect_rec( p, Gia_ObjFanin0(pObj), vLeaves );
+    Gia_ManConst0(p)->fPhase = 0;
+    Gia_ManForEachObjVec( vNodes, p, pObj, i )
+        pObj->fPhase = 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Build AIG for the selected cones.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Bmc_MnaBuild_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Gia_Man_t * pNew, Vec_Int_t * vMap )
+{
+    if ( !pObj->fPhase )
+        return;
+    pObj->fPhase = 0;
+    assert( pObj->Value == GIA_UND );
+    if ( Gia_ObjIsAnd(pObj) )
+    {
+        int iLit0 = 1, iLit1 = 1;
+        if ( Gia_ObjFanin0(pObj)->Value == GIA_UND )
+            Bmc_MnaBuild_rec( p, Gia_ObjFanin0(pObj), pNew, vMap );
+        if ( Gia_ObjFanin1(pObj)->Value == GIA_UND )
+            Bmc_MnaBuild_rec( p, Gia_ObjFanin1(pObj), pNew, vMap );
+        if ( Gia_ObjFanin0(pObj)->Value == GIA_UND )
+            iLit0 = Abc_LitNotCond( Vec_IntEntry(vMap, Gia_ObjFaninId0p(p, pObj)), Gia_ObjFaninC0(pObj) );
+        if ( Gia_ObjFanin1(pObj)->Value == GIA_UND )
+            iLit1 = Abc_LitNotCond( Vec_IntEntry(vMap, Gia_ObjFaninId1p(p, pObj)), Gia_ObjFaninC1(pObj) );
+        Vec_IntWriteEntry( vMap, Gia_ObjId(p, pObj), Gia_ManHashAnd(pNew, iLit0, iLit1) );
+    }
+    else if ( Gia_ObjIsRo(p, pObj) )
+        assert( Vec_IntEntry(vMap, Gia_ObjId(p, pObj)) != -1 );
+    else if ( Gia_ObjIsPi(p, pObj) )
+        Vec_IntWriteEntry( vMap, Gia_ObjId(p, pObj), Gia_ManAppendCi(pNew) );
+    else assert( 0 );
+}
+void Bmc_MnaBuild( Gia_Man_t * p, Vec_Int_t * vCos, Vec_Int_t * vNodes, Gia_Man_t * pNew, Vec_Int_t * vMap )
+{
+    Gia_Obj_t * pObj;
+    int i, iLit;
+    Gia_ManForEachObjVec( vCos, p, pObj, i )
+    {
+        assert( Gia_ObjIsCo(pObj) );
+        Bmc_MnaBuild_rec( p, Gia_ObjFanin0(pObj), pNew, vMap );
+        iLit = Abc_LitNotCond( Vec_IntEntry(vMap, Gia_ObjFaninId0p(p, pObj)), Gia_ObjFaninC0(pObj) );
+        Vec_IntWriteEntry( vMap, Gia_ObjId(p, pObj), iLit );
+    }
+    Gia_ManConst0(p)->fPhase = 0;
+    Gia_ManForEachObjVec( vNodes, p, pObj, i )
+        pObj->fPhase = 0;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Compute the first non-trivial timeframe.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManBmcUnroll( Gia_Man_t * pGia, int nFramesMax, int nFramesAdd, int fVerbose )
+{
+    Gia_Obj_t * pObj;
+    Gia_Man_t * pNew, * pTemp;
+    Vec_Ptr_t * vStates, * vBegins;
+    Vec_Int_t * vRoots, * vCone, * vLeaves, * vMap;
+    unsigned * pStateF, * pStateP;
+    int f, i, iFirst;
+    Gia_ManCleanPhase( pGia );
+    vCone = Vec_IntAlloc( 1000 );
+    vLeaves = Vec_IntAlloc( 1000 );
+    // perform ternary simulation
+    vStates = Bmc_MnaTernary( pGia, nFramesMax, nFramesAdd, fVerbose, &iFirst );
+    // go backward
+    vBegins = Vec_PtrStart( Vec_PtrSize(vStates) );
+    for ( f = Vec_PtrSize(vStates) - 1; f >= 0; f-- )
+    {
+        // get ternary states
+        pStateF = (unsigned *)Vec_PtrEntry(vStates, f);
+        pStateP = f ? (unsigned *)Vec_PtrEntry(vStates, f-1) : 0;
+        // collect roots of this frame
+        vRoots = Vec_IntAlloc( 100 );
+        Gia_ManForEachPo( pGia, pObj, i )
+            if ( Gia_ManTerSimInfoGet( pStateF, Gia_ObjCioId(pObj) ) == GIA_UND )
+                Vec_IntPush( vRoots, Gia_ObjId(pGia, pObj) );
+        // add leaves from the previous frame
+        Vec_IntAppend( vRoots, vLeaves );
+        Vec_PtrWriteEntry( vBegins, f, vRoots );
+        // find the cone
+        Bmc_MnaCollect( pGia, vRoots, vCone, pStateP ); // computes vCone
+        Bmc_MnaSelect( pGia, vRoots, vCone, vLeaves );  // computes vLeaves 
+        if ( fVerbose )
+        printf( "Frame %4d :  Roots = %6d  Leaves = %6d  Cone = %6d\n", 
+            f, Vec_IntSize(vRoots), Vec_IntSize(vLeaves), Vec_IntSize(vCone) );
+        if ( Vec_IntSize(vLeaves) == 0 )
+            break;
+        // it is possible that some of the POs are still ternary... 
+    }
+    assert( f >= 0 );
+    // go forward
+    vMap = Vec_IntStartFull( Gia_ManObjNum(pGia) );
+    pNew = Gia_ManStart( 10000 );
+    pNew->pName = Abc_UtilStrsav( pGia->pName );
+    Gia_ManHashStart( pNew );
+    for ( f = 0; f < Vec_PtrSize(vStates); f++ )
+    {
+        vRoots = (Vec_Int_t *)Vec_PtrEntry( vBegins, f );
+        if ( vRoots == NULL )
+        {
+            Gia_ManForEachPo( pGia, pObj, i )
+                Gia_ManAppendCo( pNew, 0 );
+            continue;
+        }
+        // get ternary states
+        pStateF = (unsigned *)Vec_PtrEntry(vStates, f);
+        pStateP = f ? (unsigned *)Vec_PtrEntry(vStates, f-1) : 0;
+        // clean POs
+        Gia_ManForEachPo( pGia, pObj, i )
+            Vec_IntWriteEntry( vMap, Gia_ObjId(pGia, pObj), 0 );
+        // find the cone
+        Bmc_MnaCollect( pGia, vRoots, vCone, pStateP );   // computes vCone
+        Bmc_MnaBuild( pGia, vRoots, vCone, pNew, vMap );  // computes pNew       
+        if ( fVerbose )
+        printf( "Frame %4d :  Roots = %6d  Leaves = %6d  Cone = %6d\n", 
+            f, Vec_IntSize(vRoots), Vec_IntSize(vLeaves), Vec_IntSize(vCone) );
+        // create POs
+        Gia_ManForEachPo( pGia, pObj, i )
+            Gia_ManAppendCo( pNew, Vec_IntEntry(vMap, Gia_ObjId(pGia, pObj)) );
+        // set a new map
+        Gia_ManForEachObjVec( vRoots, pGia, pObj, i )
+            if ( Gia_ObjIsRi(pGia, pObj) )
+                Vec_IntWriteEntry( vMap, Gia_ObjId(pGia, Gia_ObjRiToRo(pGia, pObj)), Vec_IntEntry(vMap, Gia_ObjId(pGia, pObj)) );
+//            else if ( Gia_ObjIsPo(pGia, pObj) )
+//                Gia_ManAppendCo( pNew, Vec_IntEntry(vMap, Gia_ObjId(pGia, pObj)) );
+//            else assert( 0 );
+    }
+    Gia_ManHashStop( pNew );
+    Vec_VecFree( (Vec_Vec_t *)vBegins );
+    Vec_PtrFreeFree( vStates );
+    Vec_IntFree( vLeaves );
+    Vec_IntFree( vCone );
+    Vec_IntFree( vMap );
+    // cleanup
+//    Gia_ManPrintStats( pNew, NULL );
+    pNew = Gia_ManCleanup( pTemp = pNew );
+    Gia_ManStop( pTemp );
+//    Gia_ManPrintStats( pNew, NULL );
+    return pNew;
+}
+ 
+
 
 /**Function*************************************************************
 
@@ -255,7 +576,7 @@ void Gia_ManBmcAddCone_rec( Bmc_Mna_t * p, Gia_Obj_t * pObj )
     else
         Vec_IntPush( p->vInputs, iObj );
 }
-void Gia_ManBmcAddCone( Bmc_Mna_t * p, int iStart )
+void Gia_ManBmcAddCone( Bmc_Mna_t * p, int iStart, int iStop )
 {
     Gia_Obj_t * pObj;
     int i;
@@ -263,7 +584,7 @@ void Gia_ManBmcAddCone( Bmc_Mna_t * p, int iStart )
     Vec_IntClear( p->vInputs );
     Vec_IntClear( p->vOutputs );
     Vec_IntFillExtra( p->vId2Var, Gia_ManObjNum(p->pFrames), 0 );
-    for ( i = iStart; i < Gia_ManPoNum(p->pFrames); i++ )
+    for ( i = iStart; i < iStop; i++ )
     {
         pObj = Gia_ManPo(p->pFrames, i);
         if ( Gia_ObjChild0(pObj) == Gia_ManConst0(p->pFrames) )
@@ -289,10 +610,10 @@ void Gia_ManBmcAddCone( Bmc_Mna_t * p, int iStart )
   SeeAlso     []
 
 ***********************************************************************/
-int Gia_ManBmcCheckOutputs( Gia_Man_t * pFrames, int iStart )
+int Gia_ManBmcCheckOutputs( Gia_Man_t * pFrames, int iStart, int iStop )
 {
     int i;
-    for ( i = iStart; i < Gia_ManPoNum(pFrames); i++ )
+    for ( i = iStart; i < iStop; i++ )
         if ( Gia_ObjChild0(Gia_ManPo(pFrames, i)) != Gia_ManConst0(pFrames) )
             return 0;
     return 1;
@@ -309,24 +630,25 @@ int Gia_ManBmcCheckOutputs( Gia_Man_t * pFrames, int iStart )
   SeeAlso     []
 
 ***********************************************************************/
-int Gia_ManBmcPerform( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
+int Gia_ManBmcPerform_Unr( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
 {
     Unr_Man_t * pUnroll;
-    Bmc_Mna_t * p = Bmc_MnaAlloc();
+    Bmc_Mna_t * p;
     int nFramesMax = pPars->nFramesMax ? pPars->nFramesMax : ABC_INFINITY;
     int f, i=0, Lit, status, RetValue = -2;
+    p = Bmc_MnaAlloc();
     pUnroll = Unr_ManUnrollStart( pGia, pPars->fVeryVerbose );
     for ( f = 0; f < nFramesMax; f++ )
     {
         p->pFrames = Unr_ManUnrollFrame( pUnroll, f );
-        if ( !Gia_ManBmcCheckOutputs( p->pFrames, f * Gia_ManPoNum(pGia) ) )
+        if ( !Gia_ManBmcCheckOutputs( p->pFrames, f * Gia_ManPoNum(pGia), (f+1) * Gia_ManPoNum(pGia) ) )
         {
             // create another slice
-            Gia_ManBmcAddCone( p, f * Gia_ManPoNum(pGia) );
+            Gia_ManBmcAddCone( p, f * Gia_ManPoNum(pGia), (f+1) * Gia_ManPoNum(pGia) );
             // create CNF in the SAT solver
             Gia_ManBmcAddCnf( p, p->pFrames, p->vInputs, p->vNodes, p->vOutputs );
             // try solving the outputs
-            for ( i = f * Gia_ManPoNum(pGia); i < Gia_ManPoNum(p->pFrames); i++ )
+            for ( i = f * Gia_ManPoNum(pGia); i < (f+1) * Gia_ManPoNum(pGia); i++ )
             {
                 Gia_Obj_t * pObj = Gia_ManPo(p->pFrames, i);
                 if ( Gia_ObjChild0(pObj) == Gia_ManConst0(p->pFrames) )
@@ -376,6 +698,91 @@ int Gia_ManBmcPerform( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
     }
     // cleanup
     Unr_ManFree( pUnroll );
+    Bmc_MnaFree( p );
+    return RetValue;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManBmcPerform( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
+{
+    Bmc_Mna_t * p;
+    int nFramesMax, f, i=0, Lit, status, RetValue = -2;
+    p = Bmc_MnaAlloc();
+    p->pFrames = Gia_ManBmcUnroll( pGia, pPars->nFramesMax, pPars->nFramesAdd, pPars->fVeryVerbose );
+    nFramesMax = Gia_ManPoNum(p->pFrames) / Gia_ManPoNum(pGia);
+    if ( pPars->fVerbose )
+        printf( "Performed unfolding for %d frames.\n", nFramesMax );
+    if ( pPars->fVerbose )
+        Gia_ManPrintStats( p->pFrames, NULL );
+    for ( f = 0; f < nFramesMax; f++ )
+    {
+        if ( !Gia_ManBmcCheckOutputs( p->pFrames, f * Gia_ManPoNum(pGia), (f+1) * Gia_ManPoNum(pGia) ) )
+        {
+            // create another slice
+            Gia_ManBmcAddCone( p, f * Gia_ManPoNum(pGia), (f+1) * Gia_ManPoNum(pGia) );
+            // create CNF in the SAT solver
+            Gia_ManBmcAddCnf( p, p->pFrames, p->vInputs, p->vNodes, p->vOutputs );
+            // try solving the outputs
+            for ( i = f * Gia_ManPoNum(pGia); i < (f+1) * Gia_ManPoNum(pGia); i++ )
+            {
+                Gia_Obj_t * pObj = Gia_ManPo(p->pFrames, i);
+                if ( Gia_ObjChild0(pObj) == Gia_ManConst0(p->pFrames) )
+                    continue;
+                Lit = Abc_Var2Lit( Vec_IntEntry(p->vId2Var, Gia_ObjId(p->pFrames, pObj)), 0 );
+                status = sat_solver_solve( p->pSat, &Lit, &Lit + 1, (ABC_INT64_T)pPars->nConfLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
+                if ( status == l_False ) // unsat
+                    continue;
+                if ( status == l_True ) // sat
+                    RetValue = 0;
+                if ( status == l_Undef ) // undecided
+                    RetValue = -1;
+                break;
+            }
+            // report statistics
+            if ( pPars->fVerbose )
+            {
+                printf( "%4d :  PI =%9d.  AIG =%9d.  Var =%8d.  In =%6d.  And =%9d.  Cla =%9d.  Conf =%9d.  Mem =%7.1f MB   ", 
+                    f, Gia_ManPiNum(p->pFrames), Gia_ManAndNum(p->pFrames), 
+                    p->nSatVars-1, Vec_IntSize(p->vInputs), Vec_IntSize(p->vNodes), 
+                    sat_solver_nclauses(p->pSat), sat_solver_nconflicts(p->pSat), Gia_ManMemory(p->pFrames)/(1<<20) );
+                Abc_PrintTime( 1, "Time", Abc_Clock() - p->clkStart );
+            }
+        }
+        if ( RetValue != -2 )
+        {
+            if ( RetValue == -1 )
+                printf( "SAT solver reached conflict/runtime limit in frame %d.\n", f );
+            else
+            {
+                printf( "Output %d of miter \"%s\" was asserted in frame %d.  ", 
+                    i - f * Gia_ManPoNum(pGia), Gia_ManName(pGia), f );
+                Abc_PrintTime( 1, "Time", Abc_Clock() - p->clkStart );
+            }
+            break;
+        }
+    }
+    if ( RetValue == -2 )
+        RetValue = -1;
+    // dump unfolded frames
+    if ( pPars->fDumpFrames )
+    {
+        p->pFrames = Gia_ManCleanup( p->pFrames );
+        Gia_AigerWrite( p->pFrames, "frames.aig", 0, 0 );
+        printf( "Dumped unfolded frames into file \"frames.aig\".\n" );
+        Gia_ManStop( p->pFrames );
+    }
+    // cleanup
+    Gia_ManStop( p->pFrames );
     Bmc_MnaFree( p );
     return RetValue;
 }
