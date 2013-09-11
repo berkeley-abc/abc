@@ -618,6 +618,15 @@ int Gia_ManBmcCheckOutputs( Gia_Man_t * pFrames, int iStart, int iStop )
             return 0;
     return 1;
 }
+int Gia_ManBmcFindFirst( Gia_Man_t * pFrames )
+{
+    Gia_Obj_t * pObj;
+    int i;
+    Gia_ManForEachPo( pFrames, pObj, i )
+        if ( Gia_ObjChild0(pObj) != Gia_ManConst0(pFrames) )
+            return i;
+    return -1;
+}
 
 /**Function*************************************************************
 
@@ -723,11 +732,16 @@ int Gia_ManBmcPerform( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
     nFramesMax = Gia_ManPoNum(p->pFrames) / Gia_ManPoNum(pGia);
     if ( pPars->fVerbose )
     {
-        printf( "Performed unfolding for %d frames.  ", nFramesMax );
-        Abc_PrintTime( 1, "Unfolding time", Abc_Clock() - clk );
+        printf( "Unfolding for %d frames with first non-trivial PO %d.  ", nFramesMax, Gia_ManBmcFindFirst(p->pFrames) );
+        Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     }
     if ( pPars->fVerbose )
         Gia_ManPrintStats( p->pFrames, NULL );
+    if ( pPars->fDumpFrames )
+    {
+        Gia_AigerWrite( p->pFrames, "frames.aig", 0, 0 );
+        printf( "Dumped unfolded frames into file \"frames.aig\".\n" );
+    }
     for ( f = 0; f < nFramesMax; f++ )
     {
         if ( !Gia_ManBmcCheckOutputs( p->pFrames, f * Gia_ManPoNum(pGia), (f+1) * Gia_ManPoNum(pGia) ) )
@@ -777,14 +791,6 @@ int Gia_ManBmcPerform( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
     }
     if ( RetValue == -2 )
         RetValue = -1;
-    // dump unfolded frames
-    if ( pPars->fDumpFrames )
-    {
-        p->pFrames = Gia_ManCleanup( p->pFrames );
-        Gia_AigerWrite( p->pFrames, "frames.aig", 0, 0 );
-        printf( "Dumped unfolded frames into file \"frames.aig\".\n" );
-        Gia_ManStop( p->pFrames );
-    }
     // cleanup
     Gia_ManStop( p->pFrames );
     Bmc_MnaFree( p );
