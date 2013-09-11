@@ -2521,6 +2521,54 @@ Gia_Man_t * Gia_ManDupFromVecs( Gia_Man_t * p, Vec_Int_t * vCis, Vec_Int_t * vAn
     return pNew;
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManDupSliced( Gia_Man_t * p, int nSuppMax )
+{
+    Gia_Man_t * pNew;
+    Gia_Obj_t * pObj;
+    int i;
+    // start the new manager
+    pNew = Gia_ManStart( 5000 );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    // create constant and PIs
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManForEachCi( p, pObj, i )
+        pObj->Value = Gia_ManAppendCi( pNew );
+    // create internal nodes
+    Gia_ManCleanMark01(p);
+    Gia_ManForEachAnd( p, pObj, i )
+        if ( Gia_ManSuppSize(p, &i, 1) <= nSuppMax )
+        {
+            pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+            pObj->fMark0 = 1;
+        }
+        else 
+        {
+            Gia_ObjFanin0(pObj)->fMark1 = 1;
+            Gia_ObjFanin1(pObj)->fMark1 = 1;
+        }
+    Gia_ManForEachCo( p, pObj, i )
+        Gia_ObjFanin0(pObj)->fMark1 = 1;
+    // add POs for the nodes pointed to
+    Gia_ManForEachAnd( p, pObj, i )
+        if ( pObj->fMark0 && pObj->fMark1 )
+            Gia_ManAppendCo( pNew, pObj->Value );
+    // cleanup and leave
+    Gia_ManCleanMark01(p);
+    return pNew;
+}
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

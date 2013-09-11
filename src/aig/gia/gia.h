@@ -975,6 +975,7 @@ extern Gia_Man_t *         Gia_ManDupCones( Gia_Man_t * p, int * pPos, int nPos,
 extern Gia_Man_t *         Gia_ManDupOneHot( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManDupLevelized( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManDupFromVecs( Gia_Man_t * p, Vec_Int_t * vCis, Vec_Int_t * vAnds, Vec_Int_t * vCos, int nRegs );
+extern Gia_Man_t *         Gia_ManDupSliced( Gia_Man_t * p, int nSuppMax );
 /*=== giaEnable.c ==========================================================*/
 extern void                Gia_ManDetectSeqSignals( Gia_Man_t * p, int fSetReset, int fVerbose );
 extern Gia_Man_t *         Gia_ManUnrollAndCofactor( Gia_Man_t * p, int nFrames, int nFanMax, int fVerbose );

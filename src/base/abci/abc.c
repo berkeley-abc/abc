@@ -390,6 +390,7 @@ static int Abc_CommandAbc9Iso                ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9CexInfo            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Cycle              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Cone               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Slice              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9PoPart             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9MultiProve         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Bmc                ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -946,6 +947,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&cexinfo",      Abc_CommandAbc9CexInfo,      0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&cycle",        Abc_CommandAbc9Cycle,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&cone",         Abc_CommandAbc9Cone,         0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&slice",        Abc_CommandAbc9Slice,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&popart",       Abc_CommandAbc9PoPart,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&mprove",       Abc_CommandAbc9MultiProve,   0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&bmc",          Abc_CommandAbc9Bmc,          0 );
@@ -31515,6 +31517,64 @@ usage:
     Abc_Print( -2, "\t-R num : (optional) the number of outputs to extract [default = %d]\n", nOutRange );
     Abc_Print( -2, "\t-P num : (optional) the partition number to extract [default = %d]\n", iPartNum );
     Abc_Print( -2, "\t-a     : toggle keeping all CIs or structral support only [default = %s]\n", fUseAllCis? "all": "structural" );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Slice( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Gia_Man_t * pTemp;
+    int c, nSuppSize = 6, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Svh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'S':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-S\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nSuppSize = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nSuppSize < 0 )
+                goto usage;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Slice(): There is no AIG.\n" );
+        return 1;
+    }
+    pTemp = Gia_ManDupSliced( pAbc->pGia, nSuppSize );
+    Abc_FrameUpdateGia( pAbc, pTemp );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &slice [-S num] [-vh]\n" );
+    Abc_Print( -2, "\t         cuts the lower part of the AIG with nodes using their support\n" );
+    Abc_Print( -2, "\t-S num : the largest support size to keep in the slide [default = %d]\n", nSuppSize );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
