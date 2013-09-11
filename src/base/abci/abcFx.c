@@ -948,7 +948,7 @@ void Fx_ManUpdate( Fx_Man_t * p, int iDiv )
 
     // if the input cover is not prime, it may happen that we are extracting divisor (x + !x)
     // although it is not strictly correct, it seems to be fine to just skip such divisors
-    if ( Abc_Lit2Var(Lit0) == Abc_Lit2Var(Lit1) )
+    if ( Abc_Lit2Var(Lit0) == Abc_Lit2Var(Lit1) && Vec_IntSize(Hsh_VecReadEntry(p->pHash, iDiv)) == 2 )
         return;
 
     // collect single-cube-divisor cubes
