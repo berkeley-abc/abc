@@ -990,7 +990,7 @@ Kit_DsdPrintFromTruth( (unsigned *)&t, 6 );        printf( "\n" );
 
 /**Function*************************************************************
 
-  Synopsis    [Returns CNF size for the given DSD class.]
+  Synopsis    []
 
   Description []
                
@@ -999,9 +999,21 @@ Kit_DsdPrintFromTruth( (unsigned *)&t, 6 );        printf( "\n" );
   SeeAlso     []
 
 ***********************************************************************/
-int Sdm_ManReadCnfSize( Sdm_Man_t * p, int iDsd )
+int Sdm_ManReadDsdVarNum( Sdm_Man_t * p, int iDsd )
+{
+    return p->pDsd6[iDsd].nVars;
+}
+int Sdm_ManReadDsdAndNum( Sdm_Man_t * p, int iDsd )
+{
+    return p->pDsd6[iDsd].nAnds;
+}
+int Sdm_ManReadDsdClauseNum( Sdm_Man_t * p, int iDsd )
 {
     return p->pDsd6[iDsd].nClauses;
+}
+word Sdm_ManReadDsdTruth( Sdm_Man_t * p, int iDsd )
+{
+    return p->pDsd6[iDsd].uTruth;
 }
 char * Sdm_ManReadDsdStr( Sdm_Man_t * p, int iDsd )
 {

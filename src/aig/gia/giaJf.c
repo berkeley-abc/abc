@@ -21,6 +21,7 @@
 #include "gia.h"
 #include "misc/vec/vecSet.h"
 #include "misc/extra/extra.h"
+#include "bool/kit/kit.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -74,6 +75,8 @@ static inline int    Jf_ObjLit( int i, int c )            { return Abc_Var2Lit( 
 
 static inline int    Jf_CutSize( int * pCut )             { return pCut[0] & 0x1F;                                   }
 static inline int    Jf_CutFunc( int * pCut )             { return (pCut[0] >> 5) & 0x7FF;                           }
+static inline int    Jf_CutFuncClass( int * pCut )        { return Abc_Lit2Var(Jf_CutFunc(pCut));                    }
+static inline int    Jf_CutFuncCompl( int * pCut )        { return Abc_LitIsCompl(Jf_CutFunc(pCut));                 }
 static inline int    Jf_CutCost( int * pCut )             { return (pCut[0] >> 16) & 0xFFFF;                         }
 static inline int *  Jf_CutLits( int * pCut )             { return pCut + 1;                                         }
 static inline int    Jf_CutLit( int * pCut, int i )       { assert(i);return pCut[i];                                }
@@ -81,7 +84,10 @@ static inline int    Jf_CutLit( int * pCut, int i )       { assert(i);return pCu
 static inline int    Jf_CutVar( int * pCut, int i )       {  assert(i);return Abc_Lit2Var(pCut[i]);                  }
 
 #define Jf_ObjForEachCut( pList, pCut, i )   for ( i = 0, pCut = pList + 1; i < pList[0]; i++, pCut += Jf_CutSize(pCut) + 1 )
+#define Jf_CutForEachLit( pCut, Lit, i )     for ( i = 1; i <= Jf_CutSize(pCut) && (Lit = Jf_CutLit(pCut, i)); i++ )
 #define Jf_CutForEachVar( pCut, Var, i )     for ( i = 1; i <= Jf_CutSize(pCut) && (Var = Jf_CutVar(pCut, i)); i++ )
+
+extern int Kit_TruthToGia( Gia_Man_t * pMan, unsigned * pTruth, int nVars, Vec_Int_t * vMemory, Vec_Int_t * vLeaves, int fHash );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -161,7 +167,7 @@ void Jf_ManProfileClasses( Jf_Man_t * p )
     Gia_ManForEachAnd( p->pGia, pObj, i )
         if ( !Gia_ObjIsBuf(pObj) && Gia_ObjRefNumId(p->pGia, i) )
         {
-            iFunc = Abc_Lit2Var( Jf_CutFunc( Jf_ObjCutBest(p, i) ) );
+            iFunc = Jf_CutFuncClass( Jf_ObjCutBest(p, i) );
             assert( iFunc < 595 );
             Counts[iFunc]++;
             Total++;
@@ -924,7 +930,7 @@ void Jf_ObjComputeCuts( Jf_Man_t * p, Gia_Obj_t * pObj )
             assert( pSto[c]->pCut[0] <= nOldSupp );
             if ( pSto[c]->pCut[0] < nOldSupp )
                 pSto[c]->Sign = Jf_CutGetSign( pSto[c]->pCut );
-            //pSto[c]->Cost = Sdm_ManReadCnfSize( p->pDsd, Abc_Lit2Var(pSto[c]->iFunc) );
+            //pSto[c]->Cost = Sdm_ManReadDsdClauseNum( p->pDsd, Abc_Lit2Var(pSto[c]->iFunc) );
         }
         else
         {
@@ -1124,17 +1130,111 @@ void Jf_ManPropagateEla( Jf_Man_t * p, int fEdge )
             CostBef = Jf_CutDeref_rec( p, Jf_ObjCutBest(p, i), fEdge, ABC_INFINITY );
             Jf_ObjComputeBestCut( p, pObj, fEdge, 1 );
             CostAft = Jf_CutRef_rec( p, Jf_ObjCutBest(p, i), fEdge, ABC_INFINITY );
-            assert( CostBef >= CostAft ); // does not hold because of JF_EDGE_LIM
+//            assert( CostBef >= CostAft ); // does not hold because of JF_EDGE_LIM
             p->pPars->Edge += Jf_CutSize(Jf_ObjCutBest(p, i));
             p->pPars->Area++;
         }
     p->pPars->Delay = Jf_ManComputeDelay( p, 1 );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Derives the result of mapping.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Jf_ManDeriveMappingGia( Jf_Man_t * p )
+{
+    Gia_Man_t * pNew;
+    Gia_Obj_t * pObj; 
+    Vec_Int_t * vCopies   = Vec_IntStart( Gia_ManObjNum(p->pGia) );
+    Vec_Int_t * vMapping  = Vec_IntStart( 2 * Gia_ManObjNum(p->pGia) );
+    Vec_Int_t * vMapping2 = Vec_IntStart( 1 );
+    Vec_Int_t * vCover    = Vec_IntAlloc( 1 << 16 );
+    Vec_Int_t * vLeaves   = Vec_IntAlloc( 16 );
+    int i, k, iLit, * pCut;
+    word uTruth;
+    assert( p->pPars->fCutMin );
+    // create new manager
+    pNew = Gia_ManStart( Gia_ManObjNum(p->pGia) );
+    pNew->pName = Abc_UtilStrsav( p->pGia->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pGia->pSpec );
+    // map primary inputs
+    Gia_ManForEachCi( p->pGia, pObj, i )
+        Vec_IntWriteEntry( vCopies, Gia_ObjId(p->pGia, pObj), Gia_ManAppendCi(pNew) );
+    // iterate through nodes used in the mapping
+    Gia_ManForEachAnd( p->pGia, pObj, i )
+    {
+        if ( Gia_ObjIsBuf(pObj) || Gia_ObjRefNum(p->pGia, pObj) == 0 )
+            continue;
+        pCut = Jf_ObjCutBest( p, i );
+        assert( Jf_CutSize(pCut) <= 6 );
+        if ( Jf_CutSize(pCut) == 0 )
+        {
+            assert( Jf_CutFuncClass(pCut) == 0 );
+            Vec_IntWriteEntry( vCopies, i, Jf_CutFunc(pCut) );
+            continue;
+        }
+        if ( Jf_CutSize(pCut) == 1 )
+        {
+            assert( Jf_CutFuncClass(pCut) == 1 );
+            iLit = Abc_Lit2LitL( Vec_IntArray(vCopies), Jf_CutLit(pCut, 1) );
+            Vec_IntWriteEntry( vCopies, i, iLit );
+            continue;
+        }
+        // collect leaves
+        Vec_IntClear( vLeaves );
+        Jf_CutForEachLit( pCut, iLit, k )
+            Vec_IntPush( vLeaves, Abc_Lit2LitL(Vec_IntArray(vCopies), iLit) );
+        // create GIA
+        uTruth = Sdm_ManReadDsdTruth( p->pDsd, Jf_CutFuncClass(pCut) );
+        iLit = Kit_TruthToGia( pNew, (unsigned *)&uTruth, Vec_IntSize(vLeaves), vCover, vLeaves, 0 );
+        iLit = Abc_LitNotCond( iLit, Jf_CutFuncCompl(pCut) );
+        Vec_IntWriteEntry( vCopies, i, iLit );
+        // create mapping
+        Vec_IntSetEntry( vMapping, Abc_Lit2Var(iLit), Vec_IntSize(vMapping2) );
+        Vec_IntPush( vMapping2, Vec_IntSize(vLeaves) );
+        Vec_IntForEachEntry( vLeaves, iLit, k )
+            Vec_IntPush( vMapping2, Abc_Lit2Var(iLit) );
+        Vec_IntPush( vMapping2, Abc_Lit2Var(Vec_IntEntry(vCopies, i)) );
+    }
+    Gia_ManForEachCo( p->pGia, pObj, i )
+    {
+        iLit = Vec_IntEntry( vCopies, Gia_ObjFaninId0p(p->pGia, pObj) );
+        Gia_ManAppendCo( pNew, Abc_LitNotCond(iLit, Gia_ObjFaninC0(pObj)) );
+    }
+    Vec_IntFree( vCopies );
+    Vec_IntFree( vCover );
+    Vec_IntFree( vLeaves );
+    // finish mapping 
+    if ( Vec_IntSize(vMapping) > Gia_ManObjNum(pNew) )
+        Vec_IntShrink( vMapping, Gia_ManObjNum(pNew) );
+    else
+        Vec_IntFillExtra( vMapping, Gia_ManObjNum(pNew), 0 );
+    assert( Vec_IntSize(vMapping) == Gia_ManObjNum(pNew) );
+    Vec_IntForEachEntry( vMapping, iLit, i )
+        if ( iLit > 0 )
+            Vec_IntAddToEntry( vMapping, i, Gia_ManObjNum(pNew) );
+    Vec_IntAppend( vMapping, vMapping2 );
+    Vec_IntFree( vMapping2 );
+    // attach mapping and packing
+    assert( pNew->vMapping == NULL );
+    pNew->vMapping = vMapping;
+//    Gia_ManMappingVerify( p->pGia );
+    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p->pGia) );
+    return pNew;
 }
 void Jf_ManDeriveMapping( Jf_Man_t * p )
 {
     Vec_Int_t * vMapping;
     Gia_Obj_t * pObj; 
     int i, k, * pCut;
+    assert( !p->pPars->fCutMin );
     vMapping = Vec_IntAlloc( Gia_ManObjNum(p->pGia) + p->pPars->Edge + p->pPars->Area * 2 );
     Vec_IntFill( vMapping, Gia_ManObjNum(p->pGia), 0 );
     Gia_ManForEachAnd( p->pGia, pObj, i )
@@ -1193,6 +1293,7 @@ void Jf_ManPrintStats( Jf_Man_t * p, char * pTitle )
 }
 Gia_Man_t * Jf_ManPerformMapping( Gia_Man_t * pGia, Jf_Par_t * pPars )
 {
+    Gia_Man_t * pNew = pGia;
     Jf_Man_t * p; int i;
     p = Jf_ManAlloc( pGia, pPars );
     p->pCutCmp = pPars->fAreaOnly ? Jf_CutCompareArea : Jf_CutCompareDelay;
@@ -1204,9 +1305,12 @@ Gia_Man_t * Jf_ManPerformMapping( Gia_Man_t * pGia, Jf_Par_t * pPars )
         Jf_ManPropagateEla( p, 0 );          Jf_ManPrintStats( p, "Area " );
         Jf_ManPropagateEla( p, 1 );          Jf_ManPrintStats( p, "Edge " );
     }
-    Jf_ManDeriveMapping( p );
+    if ( p->pPars->fCutMin )
+        pNew = Jf_ManDeriveMappingGia(p);
+    else
+        Jf_ManDeriveMapping(p);
     Jf_ManFree( p );
-    return pGia;
+    return pNew;
 }
 
 ////////////////////////////////////////////////////////////////////////
