@@ -135,9 +135,9 @@ float * Jf_ManInitRefs( Jf_Man_t * pMan )
         {
             if ( !Gia_ObjIsMuxType(pObj) )
                 continue;
-            if ( Gia_ObjRefNum(p, Gia_ObjFanin0(pObj)) == 1 )
+            if ( !Gia_ObjIsMuxType(Gia_ObjFanin0(pObj)) && Gia_ObjRefNum(p, Gia_ObjFanin0(pObj)) == 1 )
                 Jf_ObjCleanUnit(Gia_ObjFanin0(pObj)), pMan->nCoarse++;
-            if ( Gia_ObjRefNum(p, Gia_ObjFanin1(pObj)) == 1 )
+            if ( !Gia_ObjIsMuxType(Gia_ObjFanin1(pObj)) && Gia_ObjRefNum(p, Gia_ObjFanin1(pObj)) == 1 )
                 Jf_ObjCleanUnit(Gia_ObjFanin1(pObj)), pMan->nCoarse++;
         }
     }
@@ -939,12 +939,22 @@ void Jf_ObjComputeCuts( Jf_Man_t * p, Gia_Obj_t * pObj )
 //    Jf_ObjCheckStore( p, pSto, c, iObj );
     // add two variable cut
     if ( !Jf_ObjIsUnit(pObj) && !Jf_ObjHasCutWithSize(pSto, c, 2) )
-        pSto[c]->iFunc = p->pPars->fCutMin ? 4 : 0, pSto[c]->pCut[0] = 2, 
-        pSto[c]->pCut[1] = Jf_ObjLit(Gia_ObjFaninId0(pObj, iObj), Gia_ObjFaninC0(pObj)), 
-        pSto[c]->pCut[2] = Jf_ObjLit(Gia_ObjFaninId1(pObj, iObj), Gia_ObjFaninC1(pObj)), c++; // set function
+    {
+        assert( Jf_ObjIsUnit(Gia_ObjFanin0(pObj)) && Jf_ObjIsUnit(Gia_ObjFanin1(pObj)) );
+        pSto[c]->iFunc = p->pPars->fCutMin ? 4 : 0; // set function
+        pSto[c]->pCut[0] = 2; 
+        pSto[c]->pCut[1] = Jf_ObjLit(Gia_ObjFaninId0(pObj, iObj), Gia_ObjFaninC0(pObj)); 
+        pSto[c]->pCut[2] = Jf_ObjLit(Gia_ObjFaninId1(pObj, iObj), Gia_ObjFaninC1(pObj)); 
+        c++;
+    }
     // add elementary cut
     if ( Jf_ObjIsUnit(pObj) && !(p->pPars->fCutMin && Jf_ObjHasCutWithSize(pSto, c, 1)) )
-        pSto[c]->iFunc = p->pPars->fCutMin ? 2 : 0, pSto[c]->pCut[0] = 1, pSto[c]->pCut[1] = Jf_ObjLit(iObj, 0), c++; // set function
+    {
+        pSto[c]->iFunc = p->pPars->fCutMin ? 2 : 0; // set function
+        pSto[c]->pCut[0] = 1;
+        pSto[c]->pCut[1] = Jf_ObjLit(iObj, 0);
+        c++;
+    }
     // reorder cuts
 //    Jf_ObjSortCuts( pSto + 1, c - 1 );
 //    Jf_ObjCheckPtrs( pSto, CutNum );
@@ -1120,7 +1130,7 @@ void Jf_ManPropagateEla( Jf_Man_t * p, int fEdge )
             CostBef = Jf_CutDeref_rec( p, Jf_ObjCutBest(p, i), fEdge, ABC_INFINITY );
             Jf_ObjComputeBestCut( p, pObj, fEdge, 1 );
             CostAft = Jf_CutRef_rec( p, Jf_ObjCutBest(p, i), fEdge, ABC_INFINITY );
-            assert( CostBef >= CostAft ); // does not hold because of JF_EDGE_LIM
+//            assert( CostBef >= CostAft ); // does not hold because of JF_EDGE_LIM
             p->pPars->Edge += Jf_CutSize(Jf_ObjCutBest(p, i));
             p->pPars->Area++;
         }
