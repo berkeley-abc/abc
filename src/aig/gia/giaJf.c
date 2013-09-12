@@ -35,11 +35,11 @@ ABC_NAMESPACE_IMPL_START
 typedef struct Jf_Cut_t_ Jf_Cut_t; 
 struct Jf_Cut_t_
 {
-    word             Sign;   
-    float            Flow;
-    int              Time;
-    int              iFunc;
-    int              pCut[JF_LEAF_MAX+1];
+    word             Sign;        // signature
+    float            Flow;        // flow
+    int              Time;        // arrival time
+    int              iFunc;       // function 
+    int              pCut[JF_LEAF_MAX+1]; // cut
 };
 
 typedef struct Jf_Man_t_ Jf_Man_t; 
@@ -1222,7 +1222,6 @@ Gia_Man_t * Jf_ManDeriveMappingGia( Jf_Man_t * p )
     }
     Gia_ManForEachCo( p->pGia, pObj, i )
     {
-        int s = Gia_ObjFaninId0p(p->pGia, pObj);
         iLit = Vec_IntEntry( vCopies, Gia_ObjFaninId0p(p->pGia, pObj) );
         Gia_ManAppendCo( pNew, Abc_LitNotCond(iLit, Gia_ObjFaninC0(pObj)) );
     }
@@ -1243,7 +1242,6 @@ Gia_Man_t * Jf_ManDeriveMappingGia( Jf_Man_t * p )
     // attach mapping and packing
     assert( pNew->vMapping == NULL );
     pNew->vMapping = vMapping;
-//    Gia_ManMappingVerify( p->pGia );
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p->pGia) );
     return pNew;
 }
