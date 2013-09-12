@@ -746,7 +746,7 @@ int Gia_ObjIsMuxType( Gia_Obj_t * pNode )
     // check that the node is regular
     assert( !Gia_IsComplement(pNode) );
     // if the node is not AND, this is not MUX
-    if ( !Gia_ObjIsAnd(pNode) )
+    if ( !Gia_ObjIsAnd(pNode) || Gia_ObjIsBuf(pNode) )
         return 0;
     // if the children are not complemented, this is not MUX
     if ( !Gia_ObjFaninC0(pNode) || !Gia_ObjFaninC1(pNode) )
@@ -780,7 +780,7 @@ int Gia_ObjRecognizeExor( Gia_Obj_t * pObj, Gia_Obj_t ** ppFan0, Gia_Obj_t ** pp
 {
     Gia_Obj_t * p0, * p1;
     assert( !Gia_IsComplement(pObj) );
-    if ( !Gia_ObjIsAnd(pObj) )
+    if ( !Gia_ObjIsAnd(pObj) || Gia_ObjIsBuf(pObj) )
         return 0;
     assert( Gia_ObjIsAnd(pObj) );
     p0 = Gia_ObjChild0(pObj);

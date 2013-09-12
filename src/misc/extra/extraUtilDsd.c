@@ -692,7 +692,7 @@ void Sdm_ManPrintDsdStats( Sdm_Man_t * p, int fVerbose )
         }
     }
     printf( "Unused classes = %d (%.2f %%).  ", Absent, 100.0 * Absent / DSD_CLASS_NUM );
-    printf( "Non-DSD cuts = %d (%.2f %%).  ",   p->nNonDsd, 100.0 * p->nNonDsd / p->nAllDsd );
+    printf( "Non-DSD cuts = %d (%.2f %%).  ",   p->nNonDsd, 100.0 * p->nNonDsd / Abc_MaxInt(1, p->nAllDsd) );
     printf( "\n" );
 }
 
@@ -919,6 +919,7 @@ int Sdm_ManCheckDsd6( Sdm_Man_t * p, word t )
 ***********************************************************************/
 int Sdm_ManComputeFunc( Sdm_Man_t * p, int iDsdLit0, int iDsdLit1, int * pCut, int uMask, int fXor )
 {
+//    int fVerbose = 0;
     int i, Config, iClass, fCompl, Res;
     int PermMask = uMask & 0x3FFFF;
     int ComplMask = uMask >> 18;
@@ -928,7 +929,6 @@ int Sdm_ManComputeFunc( Sdm_Man_t * p, int iDsdLit0, int iDsdLit1, int * pCut, i
     assert( uMask > 1 );
     assert( iDsdLit0 < DSD_CLASS_NUM * 2 );
     assert( iDsdLit1 < DSD_CLASS_NUM * 2 );
-//    Sdm_ManPrintPerm( PermMask );                      printf( "\n" );
     Truth0  = p->pDsd6[Abc_Lit2Var(iDsdLit0)].uTruth;
     Truth1p = Vec_WrdEntry( p->vPerm6, Abc_Lit2Var(iDsdLit1) * 720 + Vec_IntEntry(p->vMap2Perm, PermMask ) );
     if ( ComplMask )
@@ -939,9 +939,10 @@ int Sdm_ManComputeFunc( Sdm_Man_t * p, int iDsdLit0, int iDsdLit1, int * pCut, i
     t1 = Abc_LitIsCompl(iDsdLit1) ? ~Truth1p : Truth1p;
     t = fXor ? t0 ^ t1 : t0 & t1;
 /*
-if ( 0 )
+if ( fVerbose )
 {
 Sdm_ManPrintPerm( PermMask );                      printf( "\n" );
+Extra_PrintBinary( stdout, &ComplMask, 6 );        printf( "\n" );
 Kit_DsdPrintFromTruth( (unsigned *)&Truth0, 6 );   printf( "\n" );
 Kit_DsdPrintFromTruth( (unsigned *)&Truth1p, 6 );  printf( "\n" );
 Kit_DsdPrintFromTruth( (unsigned *)&t, 6 );        printf( "\n" );
@@ -951,12 +952,6 @@ Kit_DsdPrintFromTruth( (unsigned *)&t, 6 );        printf( "\n" );
     Config = Sdm_ManCheckDsd6( p, t );
     if ( Config == -1 )
     {
-/*
-Sdm_ManPrintPerm( PermMask );                      printf( "\n" );
-Kit_DsdPrintFromTruth( (unsigned *)&Truth0, 6 );   printf( "\n" );
-Kit_DsdPrintFromTruth( (unsigned *)&Truth1p, 6 );  printf( "\n" );
-Kit_DsdPrintFromTruth( (unsigned *)&t, 6 );        printf( "\n" );
-*/
         p->nNonDsd++;
         return -1;
     }
