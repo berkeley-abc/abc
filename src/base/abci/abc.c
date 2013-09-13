@@ -29847,7 +29847,7 @@ int Abc_CommandAbc9Jf( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     Jf_ManSetDefaultPars( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KCRDacmtvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KCRDaekmtcvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -29904,7 +29904,10 @@ int Abc_CommandAbc9Jf( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'a':
             pPars->fAreaOnly ^= 1;
             break;
-        case 'c':
+        case 'e':
+            pPars->fOptEdge ^= 1;
+            break;
+        case 'k':
             pPars->fCoarsen ^= 1;
             break;
         case 'm':
@@ -29912,6 +29915,9 @@ int Abc_CommandAbc9Jf( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 't':
             pPars->fUseTts ^= 1;
+            break;
+        case 'c':
+            pPars->fGenCnf ^= 1;
             break;
         case 'v':
             pPars->fVerbose ^= 1;
@@ -29951,16 +29957,18 @@ usage:
         sprintf(Buffer, "best possible" );
     else
         sprintf(Buffer, "%d", pPars->DelayTarget );
-    Abc_Print( -2, "usage: &jf [-KCRD num] [-acmtvwh]\n" );
+    Abc_Print( -2, "usage: &jf [-KCRD num] [-akmtcvwh]\n" );
     Abc_Print( -2, "\t           performs technology mapping of the network\n" );
     Abc_Print( -2, "\t-K num   : LUT size for the mapping (2 <= K <= %d) [default = %d]\n", pPars->nLutSizeMax, pPars->nLutSize );
     Abc_Print( -2, "\t-C num   : the max number of priority cuts (1 <= C <= %d) [default = %d]\n", pPars->nCutNumMax, pPars->nCutNum );
     Abc_Print( -2, "\t-R num   : the number of mapping rounds [default = %d]\n", pPars->nRounds );
     Abc_Print( -2, "\t-D num   : sets the delay constraint for the mapping [default = %s]\n", Buffer );
     Abc_Print( -2, "\t-a       : toggles area-oriented mapping [default = %s]\n", pPars->fAreaOnly? "yes": "no" );
-    Abc_Print( -2, "\t-c       : toggles coarsening the subject graph [default = %s]\n", pPars->fCoarsen? "yes": "no" );
+    Abc_Print( -2, "\t-e       : toggles edge vs node minimization [default = %s]\n", pPars->fOptEdge? "yes": "no" );
+    Abc_Print( -2, "\t-k       : toggles coarsening the subject graph [default = %s]\n", pPars->fCoarsen? "yes": "no" );
     Abc_Print( -2, "\t-m       : toggles cut minimization [default = %s]\n", pPars->fCutMin? "yes": "no" );
     Abc_Print( -2, "\t-t       : toggles truth tables for minimization [default = %s]\n", pPars->fUseTts? "yes": "no" );
+    Abc_Print( -2, "\t-c       : toggles mapping for CNF generation [default = %s]\n", pPars->fGenCnf? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w       : toggles very verbose output [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : prints the command usage\n");

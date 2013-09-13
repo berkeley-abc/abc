@@ -1014,6 +1014,14 @@ char * Sdm_ManReadDsdStr( Sdm_Man_t * p, int iDsd )
 {
     return p->pDsd6[iDsd].pStr;
 }
+void Sdm_ManReadCnfCosts( Sdm_Man_t * p, int * pCosts, int nCosts )
+{
+    int i;
+    assert( nCosts == DSD_CLASS_NUM );
+    pCosts[0] = pCosts[1] = 0;
+    for ( i = 2; i < DSD_CLASS_NUM; i++ )
+        pCosts[i] = Sdm_ManReadDsdClauseNum( p, i );
+}
 
 
 /**Function*************************************************************
@@ -1103,6 +1111,46 @@ void Sdm_ManTest()
     iDsd = Sdm_ManComputeFunc( p, iDsd0, iDsd1, pCut, uMask, 0 );
     Sdm_ManFree( p );
 }
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+/*
+void Sdm_ManCompareCnfSizes()
+{
+    Vec_Int_t * vMemory;
+    word uTruth;
+    int i, nSop0, nSop1, nVars, nCla, RetValue;
+    vMemory = Vec_IntAlloc( 1 << 16 );
+    for ( i = 1; i < DSD_CLASS_NUM; i++ )
+    {
+        uTruth = Sdm_ManReadDsdTruth( s_SdmMan, i );
+        nVars = Sdm_ManReadDsdVarNum( s_SdmMan, i );
+        nCla = Sdm_ManReadDsdClauseNum( s_SdmMan, i );
+
+        RetValue = Kit_TruthIsop( &uTruth, nVars, vMemory, 0 );
+        nSop0 = Vec_IntSize(vMemory);
+
+        uTruth = ~uTruth;
+        RetValue = Kit_TruthIsop( &uTruth, nVars, vMemory, 0 );
+        nSop1 = Vec_IntSize(vMemory);
+
+        if ( nSop0 + nSop1 != nCla )
+            printf( "Class %4d : %d + %d != %d\n", i, nSop0, nSop1, nCla );
+        else
+            printf( "Class %4d : %d + %d == %d\n", i, nSop0, nSop1, nCla );
+    }
+    Vec_IntFree( vMemory );
+}
+*/
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

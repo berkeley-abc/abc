@@ -675,6 +675,42 @@ int If_CutComputeTruth2( If_Man_t * p, If_Cut_t * pCut, If_Cut_t * pCut0, If_Cut
     return 0;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Truth table computation.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+/*
+int If_CutComputeTruth3( If_Man_t * p, If_Cut_t * pCut, If_Cut_t * pCut0, If_Cut_t * pCut1, int fCompl0, int fCompl1 )
+{
+    int fCompl, truthId;
+    int iFuncLit0   = pCut0->iDsd;
+    int iFuncLit1   = pCut1->iDsd;
+    int nWords      = Abc_TtWordNum( pCut->nLimit );
+    word * pTruth0s = Vec_MemReadEntry( p->vTtMem, Abc_Lit2Var(iFuncLit0) );
+    word * pTruth1s = Vec_MemReadEntry( p->vTtMem, Abc_Lit2Var(iFuncLit1) );
+    word * pTruth0  = (word *)p->puTemp[0];
+    word * pTruth1  = (word *)p->puTemp[1];
+    word * pTruth   = (word *)p->puTemp[2];
+    Abc_TtCopy( pTruth0, pTruth0s, nWords, fCompl0 ^ pCut0->fCompl ^ Abc_LitIsCompl(iFuncLit0) );
+    Abc_TtCopy( pTruth1, pTruth1s, nWords, fCompl1 ^ pCut1->fCompl ^ Abc_LitIsCompl(iFuncLit1) );
+    Abc_TtStretch( pTruth0, pCut->nLimit, pCut0->pLeaves, pCut0->nLeaves, pCut->pLeaves, pCut->nLeaves );
+    Abc_TtStretch( pTruth1, pCut->nLimit, pCut1->pLeaves, pCut1->nLeaves, pCut->pLeaves, pCut->nLeaves );
+    fCompl         = (pTruth0[0] & pTruth1[0] & 1);
+    Abc_TtAnd( pTruth, pTruth0, pTruth1, nWords, fCompl );
+    pCut->nLeaves  = Abc_TtMinBase( pTruth, pCut->pLeaves, pCut->nLeaves );
+    truthId        = Vec_MemHashInsert( p->vTtMem, pTruth );
+    pCut->iDsd     = Abc_Var2Lit( truthId, fCompl );
+    assert( (pTruth[0] & 1) == 0 );
+    return 1;
+}
+*/
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

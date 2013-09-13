@@ -226,6 +226,7 @@ extern int         Sdm_ManReadDsdAndNum( Sdm_Man_t * p, int iDsd );
 extern int         Sdm_ManReadDsdClauseNum( Sdm_Man_t * p, int iDsd );
 extern word        Sdm_ManReadDsdTruth( Sdm_Man_t * p, int iDsd );
 extern char *      Sdm_ManReadDsdStr( Sdm_Man_t * p, int iDsd );
+extern void        Sdm_ManReadCnfCosts( Sdm_Man_t * p, int * pCosts, int nCosts );
 
 /*=== extraUtilProgress.c ================================================================*/
 

@@ -242,16 +242,19 @@ struct Jf_Par_t_
     int            nRounds;
     int            DelayTarget;
     int            fAreaOnly;
+    int            fOptEdge;
     int            fCoarsen;
     int            fCutMin;
     int            fUseTts;
+    int            fGenCnf;
     int            fVerbose;
     int            fVeryVerbose;
     int            nLutSizeMax;
     int            nCutNumMax;
-    int            Delay;
-    int            Area;
-    int            Edge;
+    word           Delay;
+    word           Area;
+    word           Edge;
+    word           Clause;
 };
 
 static inline unsigned     Gia_ObjCutSign( unsigned ObjId )       { return (1 << (ObjId & 31));                                 }
