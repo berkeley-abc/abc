@@ -644,7 +644,6 @@ static Sdm_Dsd_t s_DsdClass6[DSD_CLASS_NUM] = {
     { 6,  9,  8, ABC_CONST(0xFFFF0000F066F066), "<<[ab]cd>ef>" }    //  594
 };
 
-typedef struct Sdm_Man_t_ Sdm_Man_t; 
 struct Sdm_Man_t_
 {
     Sdm_Dsd_t *      pDsd6;                    // NPN class information
