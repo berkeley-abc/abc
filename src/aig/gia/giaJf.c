@@ -190,7 +190,7 @@ void Jf_ManProfileClasses( Jf_Man_t * p )
     Gia_Obj_t * pObj; 
     int Counts[595] = {0}, Costs[595] = {0};
     int i, iFunc, Total = 0, CostTotal = 0, Other = 0, CostOther = 0;
-    printf( "DSD classes that appear in more than %.1f %% mapped nodes:\n", 0.1 * p->pPars->nVerbLimit );
+    printf( "DSD classes that appear in more than %.1f %% of mapped nodes:\n", 0.1 * p->pPars->nVerbLimit );
     Gia_ManForEachAnd( p->pGia, pObj, i )
         if ( !Gia_ObjIsBuf(pObj) && Gia_ObjRefNumId(p->pGia, i) )
         {
@@ -1034,6 +1034,8 @@ void Jf_ObjComputeCuts( Jf_Man_t * p, Gia_Obj_t * pObj, int fEdge )
             pSto[c]->iFunc = Sdm_ManComputeFunc( p->pDsd, Jf_ObjFunc0(pObj, pCut0), Jf_ObjFunc1(pObj, pCut1), pSto[c]->pCut, Config, 0 );
             if ( pSto[c]->iFunc == -1 )
                 continue;
+            if ( p->pPars->fGenCnf && Jf_CutCnfSizeF(p, Abc_Lit2Var(pSto[c]->iFunc)) >= 12 )
+                continue;
             assert( pSto[c]->pCut[0] <= nOldSupp );
             if ( pSto[c]->pCut[0] < nOldSupp )
                 pSto[c]->Sign = Jf_CutGetSign( pSto[c]->pCut );
@@ -1439,7 +1441,10 @@ Gia_Man_t * Jf_ManPerformMapping( Gia_Man_t * pGia, Jf_Par_t * pPars )
     Jf_ManComputeRefs( p );                         Jf_ManPrintStats( p, "Start" );
     for ( i = 0; i < pPars->nRounds; i++ )
     {
+        if ( !p->pPars->fGenCnf )
+        {
         Jf_ManPropagateFlow( p, pPars->fOptEdge );  Jf_ManPrintStats( p, "Flow " );
+        }
         Jf_ManPropagateEla( p, 0 );                 Jf_ManPrintStats( p, "Area " );
         Jf_ManPropagateEla( p, 1 );                 Jf_ManPrintStats( p, "Edge " );
     }
