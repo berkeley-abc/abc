@@ -244,6 +244,7 @@ struct Jf_Par_t_
     int            fAreaOnly;
     int            fCoarsen;
     int            fCutMin;
+    int            fUseTts;
     int            fVerbose;
     int            fVeryVerbose;
     int            nLutSizeMax;

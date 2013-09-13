@@ -1111,6 +1111,52 @@ static inline int Abc_TtMinimumBase( word * t, int * pSupp, int nVarsAll, int * 
 
 /**Function*************************************************************
 
+  Synopsis    [Cut minimization.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Abc_TtMinBase( word * pTruth, int * pVars, int nVars ) 
+{
+    int i, k;
+    for ( i = k = 0; i < nVars; i++ )
+    {
+        if ( !Abc_TtHasVar( pTruth, nVars, i ) )
+            continue;
+        if ( k < i )
+        {
+            pVars[k] = pVars[i];
+            Abc_TtSwapVars( pTruth, nVars, k, i );
+        }
+        k++;
+    }
+    if ( k == nVars )
+        return k;
+    assert( k < nVars );
+//    assert( k == Abc_TtSupportSize(pTruth, nVars) );
+    return k;
+}
+static inline void Abc_TtStretch( word * pTruth0, int nVars, int * pCut0, int nCutSize0, int * pCut, int nCutSize )
+{
+    int i, k;
+    for ( i = nCutSize - 1, k = nCutSize0 - 1; i >= 0 && k >= 0; i-- )
+    {
+        if ( pCut[i] > pCut0[k] )
+            continue;
+        assert( pCut[i] == pCut0[k] );
+        if ( k < i )
+            Abc_TtSwapVars( pTruth0, nVars, k, i );
+        k--;
+    }
+    assert( k == -1 );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Implemeting given NPN config.]
 
   Description []
