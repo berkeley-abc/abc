@@ -188,31 +188,46 @@ float * Jf_ManInitRefs( Jf_Man_t * pMan )
 void Jf_ManProfileClasses( Jf_Man_t * p )
 {
     Gia_Obj_t * pObj; 
-    int i, iFunc, Total = 0, Other = 0, Counts[595] = {0};
-    printf( "DSD class statistics:\n" );
+    int Counts[595] = {0}, Costs[595] = {0};
+    int i, iFunc, Total = 0, CostTotal = 0, Other = 0, CostOther = 0;
+    printf( "DSD classes that appear in more than %.1f %% mapped nodes:\n", 0.1 * p->pPars->nVerbLimit );
     Gia_ManForEachAnd( p->pGia, pObj, i )
         if ( !Gia_ObjIsBuf(pObj) && Gia_ObjRefNumId(p->pGia, i) )
         {
             iFunc = Jf_CutFuncClass( Jf_ObjCutBest(p, i) );
             assert( iFunc < 595 );
+            if ( p->pPars->fGenCnf )
+            {
+                Costs[iFunc] += Jf_CutCnfSizeF(p, iFunc);
+                CostTotal += Jf_CutCnfSizeF(p, iFunc);
+            }
             Counts[iFunc]++;
             Total++;
         }
+    CostTotal = Abc_MaxInt(CostTotal, 1);
+    Total = Abc_MaxInt(Total, 1);
     for ( i = 0; i < 595; i++ )
-        if ( Counts[i] && 100.0 * Counts[i] / Total >= 1.0 )
+        if ( Counts[i] && 100.0 * Counts[i] / Total >= 0.1 * p->pPars->nVerbLimit )
         {
             printf( "%5d  :  ", i );
             printf( "%-20s   ", Sdm_ManReadDsdStr(p->pDsd, i) );
             printf( "%8d  ",    Counts[i] );
-            printf( "%5.1f %%", 100.0 * Counts[i] / Total );
+            printf( "%5.1f %%   ", 100.0 * Counts[i] / Total );
+            printf( "%8d  ",    Costs[i] );
+            printf( "%5.1f %%", 100.0 * Costs[i] / CostTotal );
             printf( "\n" );
         }
         else
+        {
             Other += Counts[i];
+            CostOther += Costs[i];
+        }
     printf( "Other  :  " );
     printf( "%-20s   ",   "" );
     printf( "%8d  ",    Other );
-    printf( "%5.1f %%", 100.0 * Other / Total );
+    printf( "%5.1f %%   ", 100.0 * Other / Total );
+    printf( "%8d  ",    CostOther );
+    printf( "%5.1f %%", 100.0 * CostOther / CostTotal );
     printf( "\n" );
 }
 
@@ -727,7 +742,6 @@ int Jf_CutDeref_rec( Jf_Man_t * p, int * pCut )
 static inline int Jf_CutAreaOld( Jf_Man_t * p, int * pCut )
 {
     int Ela1, Ela2;
-    assert( p->pPars->fGenCnf || Jf_CutCost(pCut) > 0 );
     Ela1 = Jf_CutRef_rec( p, pCut );
     Ela2 = Jf_CutDeref_rec( p, pCut );
     assert( Ela1 == Ela2 );
@@ -759,7 +773,6 @@ int Jf_CutAreaRefEdge_rec( Jf_Man_t * p, int * pCut, int Limit )
 static inline int Jf_CutArea( Jf_Man_t * p, int * pCut, int fEdge )
 {
     int Ela, Entry, i;
-    assert( p->pPars->fGenCnf || Jf_CutCost(pCut) > 0 );
     Vec_IntClear( p->vTemp );
     if ( fEdge )
         Ela = Jf_CutAreaRefEdge_rec( p, pCut, ABC_INFINITY );
@@ -1202,7 +1215,6 @@ void Jf_ObjComputeBestCut( Jf_Man_t * p, Gia_Obj_t * pObj, int fEdge, int fEla )
         if ( Jf_CutIsTriv(pCut, iObj) ) continue;
         if ( fEdge && !fEla ) 
             Jf_CutSetCost(pCut, Jf_CutSize(pCut));
-        assert( p->pPars->fGenCnf || Jf_CutCost(pCut) > 0 );
         Area = fEla ? Jf_CutArea(p, pCut, fEdge) : Jf_CutFlow(p, pCut) + Jf_CutCost(pCut);
         if ( pCutBest == NULL || AreaBest > Area || (AreaBest == Area && TimeBest > (Time = Jf_CutArr(p, pCut))) )
             pCutBest = pCut, AreaBest = Area, TimeBest = Time;
@@ -1386,6 +1398,7 @@ void Jf_ManSetDefaultPars( Jf_Par_t * pPars )
     pPars->nLutSize     =  6;
     pPars->nCutNum      =  8;
     pPars->nRounds      =  1;
+    pPars->nVerbLimit   =  5;
     pPars->DelayTarget  = -1;
     pPars->fAreaOnly    =  1;
     pPars->fOptEdge     =  1; 
@@ -1403,11 +1416,11 @@ void Jf_ManPrintStats( Jf_Man_t * p, char * pTitle )
     if ( !p->pPars->fVerbose )
         return;
     printf( "%s :  ", pTitle );
-    printf( "Level =%6d   ", p->pPars->Delay );
-    printf( "Area =%9d   ",  p->pPars->Area );
-    printf( "Edge =%9d   ",  p->pPars->Edge );
+    printf( "Level =%6lu   ", p->pPars->Delay );
+    printf( "Area =%9lu   ",  p->pPars->Area );
+    printf( "Edge =%9lu   ",  p->pPars->Edge );
     if ( p->pPars->fGenCnf )
-    printf( "Cnf =%9d   ",   p->pPars->Clause );
+    printf( "Cnf =%9lu   ",   p->pPars->Clause );
     Abc_PrintTime( 1, "Time", Abc_Clock() - p->clkStart );
     fflush( stdout );
 }

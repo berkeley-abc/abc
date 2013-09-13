@@ -240,6 +240,7 @@ struct Jf_Par_t_
     int            nLutSize;
     int            nCutNum;
     int            nRounds;
+    int            nVerbLimit;
     int            DelayTarget;
     int            fAreaOnly;
     int            fOptEdge;
