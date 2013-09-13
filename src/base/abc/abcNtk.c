@@ -1771,7 +1771,7 @@ void Abc_NtkDropOneOutput( Abc_Ntk_t * pNtk, int iOutput, int fSkipSweep, int fU
     pObj = Abc_NtkPo( pNtk, iOutput );
     if ( Abc_ObjFanin0(pObj) == Abc_AigConst1(pNtk) )
     {
-        if ( !Abc_ObjFaninC0(pObj) )
+        if ( !Abc_ObjFaninC0(pObj) ^ fUseConst1 )
             Abc_ObjXorFaninC( pObj, 0 );
         return;
     }
