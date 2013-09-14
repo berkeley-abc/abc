@@ -1024,6 +1024,8 @@ void Jf_ObjComputeCuts( Jf_Man_t * p, Gia_Obj_t * pObj, int fEdge )
             assert( pSto[c]->pCut[0] <= nOldSupp );
             if ( pSto[c]->pCut[0] < nOldSupp )
                 pSto[c]->Sign = Jf_CutGetSign( pSto[c]->pCut );
+            if ( pSto[c]->iFunc >= (1 << 22) )
+                printf( "Hard limit on the number of different Boolean functions (2^21) is reached. Quitting...\n" ), exit(1);
         }
         else
         {

@@ -374,6 +374,7 @@ static int Abc_CommandAbc9Embed              ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9If                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9If2                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Jf                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Struct             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Trace              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Speedup            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Era                ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -931,6 +932,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&if",           Abc_CommandAbc9If,           0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&if2",          Abc_CommandAbc9If2,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&jf",           Abc_CommandAbc9Jf,           0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&struct",       Abc_CommandAbc9Struct,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&trace",        Abc_CommandAbc9Trace,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&speedup",      Abc_CommandAbc9Speedup,      0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&era",          Abc_CommandAbc9Era,          0 );
@@ -29987,6 +29989,65 @@ usage:
     return 1;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Struct( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Gia_ManTestStruct( Gia_Man_t * p );
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+    int c, fVerbose;
+    pNtk = Abc_FrameReadNtk(pAbc);
+    // set defaults
+    fVerbose   = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Struct(): There is no AIG to map.\n" );
+        return 1;
+    }
+    if ( !Gia_ManHasMapping(pAbc->pGia) )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Struct(): Mapping of the AIG is not defined.\n" );
+        return 1;
+    }
+    if ( Gia_ManLutSizeMax(pAbc->pGia) >= 8 )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Struct(): Can only handle nodes with less than 8 inputs.\n" );
+        return 1;
+    }
+    Gia_ManTestStruct( pAbc->pGia );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &struct [-vh]\n" );
+    Abc_Print( -2, "\t           checks decomposition structures of the current mapping\n" );
+    Abc_Print( -2, "\t-v       : toggle printing optimization summary [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h       : print the command usage\n");
+    return 1;
+}
 
 
 /**Function*************************************************************

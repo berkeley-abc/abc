@@ -1366,6 +1366,55 @@ Gia_Man_t * Gia_ManPerformMapping( Gia_Man_t * p, void * pp, int fNormalized )
     return pNew;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Tests decomposition structures.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     [] 
+
+***********************************************************************/
+void Gia_ManTestStruct( Gia_Man_t * p )
+{
+    int nCutMax = 7;
+    int LutCount[8] = {0}, LutNDecomp[8] = {0};
+    int i, k, iFan, nFanins, Status;
+    Vec_Int_t * vLeaves;
+    word * pTruth;
+
+    vLeaves = Vec_IntAlloc( 100 );
+    Gia_ObjComputeTruthTableStart( p, nCutMax );
+    Gia_ManForEachLut( p, i )
+    {
+        nFanins = Gia_ObjLutSize(p, i);
+        assert( nFanins <= 7 );
+        LutCount[Abc_MaxInt(nFanins, 5)]++;
+        if ( nFanins <= 5 )
+            continue;
+        Vec_IntClear( vLeaves );
+        Gia_LutForEachFanin( p, i, iFan, k )
+            Vec_IntPush( vLeaves, iFan );
+        pTruth = Gia_ObjComputeTruthTableCut( p, Gia_ManObj(p, i), vLeaves );
+        // check if it is decomposable
+        Status = If_CutPerformCheck07( NULL, (unsigned *)pTruth, 7, nFanins, NULL );
+        if ( Status == 1 )
+            continue;
+        LutNDecomp[nFanins]++;
+        if ( LutNDecomp[nFanins] > 10 )
+            continue;
+        Kit_DsdPrintFromTruth( (unsigned *)pTruth, nFanins ); printf( "\n" );
+    }
+    Gia_ObjComputeTruthTableStop( p );
+
+    printf( "LUT5 = %d    ", LutCount[5] );
+    printf( "LUT6 = %d  NonDec = %d (%.2f %%)    ", LutCount[6], LutNDecomp[6], 100.0 * LutNDecomp[6]/Abc_MaxInt(LutCount[6], 1) );
+    printf( "LUT7 = %d  NonDec = %d (%.2f %%)    ", LutCount[7], LutNDecomp[7], 100.0 * LutNDecomp[7]/Abc_MaxInt(LutCount[7], 1) );
+    printf( "\n" );
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
