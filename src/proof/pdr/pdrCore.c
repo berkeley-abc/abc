@@ -610,8 +610,6 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
                 if ( p->pPars->vOutMap ) Vec_IntWriteEntry( p->pPars->vOutMap, p->iOutCur, 0 );
                 Abc_Print( 1, "Output %*d was trivially asserted in frame %2d (solved %*d out of %*d outputs).\n",  
                     nOutDigits, p->iOutCur, k, nOutDigits, p->pPars->nFailOuts, nOutDigits, Saig_ManPoNum(p->pAig) );
-                if ( p->vCexes == NULL )
-                    p->vCexes = Vec_PtrStart( Saig_ManPoNum(p->pAig) );
                 assert( Vec_PtrEntry(p->vCexes, p->iOutCur) == NULL );
                 Vec_PtrWriteEntry( p->vCexes, p->iOutCur, p->pPars->fStoreCex ? Pdr_ManDeriveCex(p) : (void *)(ABC_PTRINT_T)1 );
                 if ( p->pPars->pFuncOnFail && p->pPars->pFuncOnFail(p->iOutCur, p->pPars->fStoreCex ? (Abc_Cex_t *)Vec_PtrEntry(p->vCexes, p->iOutCur) : NULL) )
@@ -712,8 +710,6 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
                         }
                         p->pPars->nFailOuts++;
                         if ( p->pPars->vOutMap ) Vec_IntWriteEntry( p->pPars->vOutMap, p->iOutCur, 0 );
-                        if ( p->vCexes == NULL )
-                            p->vCexes = Vec_PtrStart( Saig_ManPoNum(p->pAig) );
                         assert( Vec_PtrEntry(p->vCexes, p->iOutCur) == NULL );
                         Vec_PtrWriteEntry( p->vCexes, p->iOutCur, p->pPars->fStoreCex ? Pdr_ManDeriveCex(p) : (void *)(ABC_PTRINT_T)1 );
                         if ( p->pPars->pFuncOnFail && p->pPars->pFuncOnFail(p->iOutCur, p->pPars->fStoreCex ? (Abc_Cex_t *)Vec_PtrEntry(p->vCexes, p->iOutCur) : NULL) )
@@ -743,7 +739,7 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
                 abctime timeSince = Abc_Clock() - clkOne;
                 assert( p->pTime4Outs[p->iOutCur] > 0 );
                 p->pTime4Outs[p->iOutCur] = (p->pTime4Outs[p->iOutCur] > timeSince) ? p->pTime4Outs[p->iOutCur] - timeSince : 0;
-                if ( p->pTime4Outs[p->iOutCur] == 0 && (p->vCexes == NULL || Vec_PtrEntry(p->vCexes, p->iOutCur) == NULL) )
+                if ( p->pTime4Outs[p->iOutCur] == 0 && Vec_PtrEntry(p->vCexes, p->iOutCur) == NULL ) // undecided
                 {
                     p->pPars->nDropOuts++;
                     if ( p->pPars->vOutMap ) 
@@ -799,7 +795,7 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
                 for ( k = 0; k < Saig_ManPoNum(p->pAig); k++ )
                     if ( Vec_IntEntry(p->pPars->vOutMap, k) == -2 ) // unknown
                         Vec_IntWriteEntry( p->pPars->vOutMap, k, 1 ); // unsat
-            return p->vCexes ? 0 : 1; // UNSAT
+            return (Vec_PtrCountZero(p->vCexes) == Vec_PtrSize(p->vCexes)) ? 1 : 0; // UNSAT
         }
         if ( p->pPars->fVerbose ) 
             Pdr_ManPrintProgress( p, 0, Abc_Clock() - clkStart );
