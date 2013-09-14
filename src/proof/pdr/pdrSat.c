@@ -185,6 +185,9 @@ void Pdr_ManSetPropertyOutput( Pdr_Man_t * p, int k )
         // skip solved outputs
         if ( p->vCexes && Vec_PtrEntry(p->vCexes, i) )
             continue;
+        // skip timedout outputs
+        if ( p->pPars->vOutMap && Vec_IntEntry(p->pPars->vOutMap, i) == -1 )
+            continue;
         Lit = toLitCond( Pdr_ObjSatVar(p, k, 1, pObj), 1 ); // neg literal
         RetValue = sat_solver_addclause( pSat, &Lit, &Lit + 1 );
         assert( RetValue == 1 );

@@ -336,7 +336,7 @@ void Pdr_ManVerifyInvariant( Pdr_Man_t * p )
     kThis = Vec_PtrSize(p->vSolvers);
     pSat  = Pdr_ManCreateSolver( p, kThis );
     // add the property output
-    Pdr_ManSetPropertyOutput( p, kThis );
+//    Pdr_ManSetPropertyOutput( p, kThis );
     // add the clauses
     Vec_PtrForEachEntry( Pdr_Set_t *, vCubes, pCube, i )
     {

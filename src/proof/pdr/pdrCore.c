@@ -491,8 +491,16 @@ int Pdr_ManBlockCube( Pdr_Man_t * p, Pdr_Set_t * pCube )
             // check other frames
             assert( pPred == NULL );
             for ( k = pThis->iFrame; k < kMax; k++ )
-                if ( !Pdr_ManCheckCube( p, k, pCubeMin, NULL, 0 ) )
+            {
+                RetValue = Pdr_ManCheckCube( p, k, pCubeMin, NULL, 0 );
+                if ( RetValue == -1 )
+                {
+                    Pdr_OblDeref( pThis );
+                    return -1;
+                }
+                if ( !RetValue )
                     break;
+            }
 
             // add new clause
             if ( p->pPars->fVeryVerbose )
@@ -740,8 +748,8 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
                     p->pPars->nDropOuts++;
                     if ( p->pPars->vOutMap ) 
                         Vec_IntWriteEntry( p->pPars->vOutMap, p->iOutCur, -1 );
-                    if ( p->pPars->fVerbose ) 
-                        printf( "Timing out on output %d.\n", p->iOutCur );
+                    if ( !p->pPars->fNotVerbose ) 
+                        Abc_Print( 1, "Timing out on output %*d.\n", nOutDigits, p->iOutCur );
                 }
                 p->timeToStopOne = 0;
             }
