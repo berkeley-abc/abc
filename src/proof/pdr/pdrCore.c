@@ -738,8 +738,10 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
                 if ( p->pTime4Outs[p->iOutCur] == 0 && (p->vCexes == NULL || Vec_PtrEntry(p->vCexes, p->iOutCur) == NULL) )
                 {
                     p->pPars->nDropOuts++;
-                    if ( p->pPars->vOutMap ) Vec_IntWriteEntry( p->pPars->vOutMap, p->iOutCur, -1 );
-//                    printf( "Dropping output %d.\n", p->iOutCur );
+                    if ( p->pPars->vOutMap ) 
+                        Vec_IntWriteEntry( p->pPars->vOutMap, p->iOutCur, -1 );
+                    if ( p->pPars->fVerbose ) 
+                        printf( "Timing out on output %d.\n", p->iOutCur );
                 }
                 p->timeToStopOne = 0;
             }

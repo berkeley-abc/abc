@@ -2469,6 +2469,13 @@ int Abc_CommandPrintStatus( Abc_Frame_t * pAbc, int argc, char ** argv )
                 printf( "In total, %d (out of %d) outputs are \"sat\" but CEXes are not recorded.\n", Counter, Vec_PtrSize(pAbc->vCexVec) );
         }
     }
+    if ( pAbc->vStatuses )
+    {
+        int i, Entry;
+        Vec_IntForEachEntry( pAbc->vStatuses, Entry, i )
+            printf( "%d=%d  ", i, Entry );
+        printf( "\n" );
+    }
     return 0;
 
 usage:
