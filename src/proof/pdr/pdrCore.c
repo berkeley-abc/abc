@@ -795,7 +795,11 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
                 for ( k = 0; k < Saig_ManPoNum(p->pAig); k++ )
                     if ( Vec_IntEntry(p->pPars->vOutMap, k) == -2 ) // unknown
                         Vec_IntWriteEntry( p->pPars->vOutMap, k, 1 ); // unsat
-            return (Vec_PtrCountZero(p->vCexes) == Vec_PtrSize(p->vCexes)) ? 1 : 0; // UNSAT
+            if ( p->pPars->nProveOuts == Saig_ManPoNum(p->pAig) )
+                return 1; // UNSAT
+            if ( p->pPars->nFailOuts > 0 )
+                return 0; // SAT
+            return -1; 
         }
         if ( p->pPars->fVerbose ) 
             Pdr_ManPrintProgress( p, 0, Abc_Clock() - clkStart );
