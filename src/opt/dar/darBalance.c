@@ -513,10 +513,6 @@ Aig_Obj_t * Dar_Balance_rec( Aig_Man_t * pNew, Aig_Obj_t * pObjOld, Vec_Vec_t * 
     // check if supergate contains two nodes in the opposite polarity
     if ( vSuper->nSize == 0 )
         return (Aig_Obj_t *)(pObjOld->pData = Aig_ManConst0(pNew));
-    if ( vSuper->nSize == 1 )
-        return (Aig_Obj_t *)((Aig_Obj_t *)Vec_PtrEntry(vSuper, 0))->pData;
-    if ( Vec_PtrSize(vSuper) < 2 )
-        printf( "Dar_Balance_rec: Internal error!\n" );
     // for each old node, derive the new well-balanced node
     for ( i = 0; i < Vec_PtrSize(vSuper); i++ )
     {
@@ -525,6 +521,9 @@ Aig_Obj_t * Dar_Balance_rec( Aig_Man_t * pNew, Aig_Obj_t * pObjOld, Vec_Vec_t * 
             return NULL;
         vSuper->pArray[i] = Aig_NotCond( pObjNew, Aig_IsComplement((Aig_Obj_t *)vSuper->pArray[i]) );
     }
+    // check for exactly one node
+    if ( vSuper->nSize == 1 )
+        return (Aig_Obj_t *)Vec_PtrEntry(vSuper, 0);
     // build the supergate
 #ifdef USE_LUTSIZE_BALANCE
     pObjNew = Dar_BalanceBuildSuperTop( pNew, vSuper, Aig_ObjType(pObjOld), fUpdateLevel, 6 );
