@@ -19,6 +19,8 @@
 ***********************************************************************/
 
 #include "sclLib.h"
+#include "misc/st/st.h"
+#include "map/mio/mio.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -476,7 +478,8 @@ char * Scl_LibertyFileContents( char * pFileName, int nContents )
 {
     FILE * pFile = fopen( pFileName, "rb" );
     char * pContents = ABC_ALLOC( char, nContents+1 );
-    int RetValue = fread( pContents, nContents, 1, pFile );
+    int RetValue;
+    RetValue = fread( pContents, nContents, 1, pFile );
     fclose( pFile );
     pContents[nContents] = 0;
     return pContents;
@@ -1240,7 +1243,6 @@ Vec_Str_t * Scl_LibertyReadSclStr( Scl_Tree_t * p, int fVerbose, int fVeryVerbos
         // output pins
         Scl_ItemForEachChildName( p, pCell, pPin, "pin" )
         {
-            extern Vec_Wrd_t * Mio_ParseFormulaTruth( char * pFormInit, char ** ppVarNames, int nVars );
             if ( !Scl_LibertyReadPinFormula(p, pPin) ) // skip input pin
                 continue;
             assert( Scl_LibertyReadPinDirection(p, pPin) == 1 );
