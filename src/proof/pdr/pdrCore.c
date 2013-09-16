@@ -27,6 +27,8 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
+extern int Gia_ManToBridgeResult( FILE * pFile, int Result, Abc_Cex_t * pCex, int iPoProved );
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -574,6 +576,7 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
     int fPrintClauses = 0;
     Pdr_Set_t * pCube = NULL;
     Aig_Obj_t * pObj;
+    Abc_Cex_t * pCexNew;
     int k, RetValue = -1;
     int nOutDigits = Abc_Base10Log( Saig_ManPoNum(p->pAig) );
     abctime clkStart = Abc_Clock(), clkOne = 0;
@@ -603,15 +606,19 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
             {
                 if ( !p->pPars->fSolveAll )
                 {
-                    p->pAig->pSeqModel = Abc_CexMakeTriv( Aig_ManRegNum(p->pAig), Saig_ManPiNum(p->pAig), Saig_ManPoNum(p->pAig), k*Saig_ManPoNum(p->pAig)+p->iOutCur );
+                    pCexNew = Abc_CexMakeTriv( Aig_ManRegNum(p->pAig), Saig_ManPiNum(p->pAig), Saig_ManPoNum(p->pAig), k*Saig_ManPoNum(p->pAig)+p->iOutCur );
+                    p->pAig->pSeqModel = pCexNew;
                     return 0; // SAT
                 }
+                pCexNew = (p->pPars->fUseBridge || p->pPars->fStoreCex) ? Abc_CexMakeTriv( Aig_ManRegNum(p->pAig), Saig_ManPiNum(p->pAig), Saig_ManPoNum(p->pAig), k*Saig_ManPoNum(p->pAig)+p->iOutCur ) : (Abc_Cex_t *)(ABC_PTRINT_T)1;
                 p->pPars->nFailOuts++;
                 if ( p->pPars->vOutMap ) Vec_IntWriteEntry( p->pPars->vOutMap, p->iOutCur, 0 );
                 Abc_Print( 1, "Output %*d was trivially asserted in frame %2d (solved %*d out of %*d outputs).\n",  
                     nOutDigits, p->iOutCur, k, nOutDigits, p->pPars->nFailOuts, nOutDigits, Saig_ManPoNum(p->pAig) );
                 assert( Vec_PtrEntry(p->vCexes, p->iOutCur) == NULL );
-                Vec_PtrWriteEntry( p->vCexes, p->iOutCur, p->pPars->fStoreCex ? Pdr_ManDeriveCex(p) : (void *)(ABC_PTRINT_T)1 );
+                if ( p->pPars->fUseBridge )
+                    Gia_ManToBridgeResult( stdout, 0, pCexNew, pCexNew->iPo );
+                Vec_PtrWriteEntry( p->vCexes, p->iOutCur, pCexNew );
                 if ( p->pPars->pFuncOnFail && p->pPars->pFuncOnFail(p->iOutCur, p->pPars->fStoreCex ? (Abc_Cex_t *)Vec_PtrEntry(p->vCexes, p->iOutCur) : NULL) )
                 {
                     if ( p->pPars->fVerbose ) 
@@ -709,9 +716,12 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
                             return 0; // SAT
                         }
                         p->pPars->nFailOuts++;
+                        pCexNew = (p->pPars->fUseBridge || p->pPars->fStoreCex) ? Pdr_ManDeriveCex(p) : (Abc_Cex_t *)(ABC_PTRINT_T)1;
                         if ( p->pPars->vOutMap ) Vec_IntWriteEntry( p->pPars->vOutMap, p->iOutCur, 0 );
                         assert( Vec_PtrEntry(p->vCexes, p->iOutCur) == NULL );
-                        Vec_PtrWriteEntry( p->vCexes, p->iOutCur, p->pPars->fStoreCex ? Pdr_ManDeriveCex(p) : (void *)(ABC_PTRINT_T)1 );
+                        if ( p->pPars->fUseBridge )
+                            Gia_ManToBridgeResult( stdout, 0, pCexNew, pCexNew->iPo );
+                        Vec_PtrWriteEntry( p->vCexes, p->iOutCur, pCexNew );
                         if ( p->pPars->pFuncOnFail && p->pPars->pFuncOnFail(p->iOutCur, p->pPars->fStoreCex ? (Abc_Cex_t *)Vec_PtrEntry(p->vCexes, p->iOutCur) : NULL) )
                         {
                             if ( p->pPars->fVerbose ) 
@@ -794,7 +804,11 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
             if ( p->pPars->vOutMap )
                 for ( k = 0; k < Saig_ManPoNum(p->pAig); k++ )
                     if ( Vec_IntEntry(p->pPars->vOutMap, k) == -2 ) // unknown
+                    {
                         Vec_IntWriteEntry( p->pPars->vOutMap, k, 1 ); // unsat
+                        if ( p->pPars->fUseBridge )
+                            Gia_ManToBridgeResult( stdout, 1, NULL, k );
+                    }
             if ( p->pPars->nProveOuts == Saig_ManPoNum(p->pAig) )
                 return 1; // UNSAT
             if ( p->pPars->nFailOuts > 0 )

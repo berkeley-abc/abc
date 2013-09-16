@@ -12547,7 +12547,7 @@ usage:
 ***********************************************************************/
 int Abc_CommandSendStatus( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern int Gia_ManToBridgeResult( FILE * pFile, int Result, Abc_Cex_t * pCex );
+    extern int Gia_ManToBridgeResult( FILE * pFile, int Result, Abc_Cex_t * pCex, int iPoProved );
     int c;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "" ) ) != EOF )
@@ -12570,7 +12570,7 @@ int Abc_CommandSendStatus( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Status is \"sat\", but current CEX is not available.\n" );
         return 1;
     }
-    Gia_ManToBridgeResult( stdout, pAbc->Status, pAbc->pCex );
+    Gia_ManToBridgeResult( stdout, pAbc->Status, pAbc->pCex, 0 );
     return 0;
 
 usage:
@@ -23754,6 +23754,7 @@ int Abc_CommandPdr( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
     // run the procedure
+    pPars->fUseBridge = pAbc->fBatchMode;
     pAbc->Status  = Abc_NtkDarPdr( pNtk, pPars );
     pAbc->nFrames = pNtk->vSeqModelVec ? -1 : pPars->iFrame;
     Abc_FrameReplacePoStatuses( pAbc, &pPars->vOutMap );

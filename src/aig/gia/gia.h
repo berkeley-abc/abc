@@ -762,6 +762,18 @@ static inline void Gia_AigerWriteUnsigned( Vec_Str_t * vStr, unsigned x )
     ch = x;
     Vec_StrPush( vStr, ch );
 }
+static inline void Gia_AigerWriteUnsignedFile( FILE * pFile, unsigned x )
+{
+    unsigned char ch;
+    while (x & ~0x7f)
+    {
+        ch = (x & 0x7f) | 0x80;
+        fputc( ch, pFile );
+        x >>= 7;
+    }
+    ch = x;
+    fputc( ch, pFile );
+}
 static inline int Gia_AigerWriteUnsignedBuffer( unsigned char * pBuffer, int Pos, unsigned x )
 {
     unsigned char ch;
