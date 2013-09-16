@@ -327,7 +327,7 @@ Gia_Man_t *  Gia_ManFromBridgeReadBody( int Size, unsigned char * pBuffer, Vec_I
 
     // create POs
     nProps = Gia_AigerReadUnsigned( &pBuffer );
-    assert( nProps == 1 );
+//    assert( nProps == 1 );
     for ( i = 0; i < nProps; i++ )
     {
         iFan0 = Gia_AigerReadUnsigned( &pBuffer );
