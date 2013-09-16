@@ -28,6 +28,7 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
+static int Scl_CommandReadLib ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Scl_CommandRead    ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Scl_CommandWrite   ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Scl_CommandPrintScl( Abc_Frame_t * pAbc, int argc, char **argv );
@@ -51,6 +52,29 @@ static int Scl_CommandPrintBuf( Abc_Frame_t * pAbc, int argc, char **argv );
 
 /**Function*************************************************************
 
+  Synopsis    [Updating library in the frameframe.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_SclLoad( SC_Lib * pLib, SC_Lib ** ppScl )
+{
+    if ( *ppScl )
+    {
+        Abc_SclLibFree( *ppScl );
+        *ppScl = NULL;
+    }
+    assert( *ppScl == NULL );
+    if ( pLib )
+        *(SC_Lib **)ppScl = pLib;
+}
+
+/**Function*************************************************************
+
   Synopsis    []
 
   Description []
@@ -62,6 +86,7 @@ static int Scl_CommandPrintBuf( Abc_Frame_t * pAbc, int argc, char **argv );
 ***********************************************************************/
 void Scl_Init( Abc_Frame_t * pAbc )
 {
+    Cmd_CommandAdd( pAbc, "SCL mapping",  "read_lib",    Scl_CommandReadLib,  0 ); 
     Cmd_CommandAdd( pAbc, "SCL mapping",  "read_scl",    Scl_CommandRead,     0 ); 
     Cmd_CommandAdd( pAbc, "SCL mapping",  "write_scl",   Scl_CommandWrite,    0 ); 
     Cmd_CommandAdd( pAbc, "SCL mapping",  "print_scl",   Scl_CommandPrintScl, 0 ); 
@@ -97,24 +122,142 @@ void Scl_End( Abc_Frame_t * pAbc )
   SeeAlso     []
 
 ***********************************************************************/
-int Scl_CommandRead( Abc_Frame_t * pAbc, int argc, char ** argv )
+int Scl_CommandReadLib( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     char * pFileName;
     FILE * pFile;
-    int c, fVerbose = 0;
+    SC_Lib * pLib;
+    int c, fDump = 0;
+    float Slew = 200;
+    float Gain = 100;
+    int nGatesMin = 4;
+    int fVerbose = 1;
+    int fVeryVerbose = 0;
 
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "SGMdvwh" ) ) != EOF )
     {
         switch ( c )
         {
-            case 'v':
-                fVerbose ^= 1;
-                break;
-            case 'h':
+        case 'S':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-S\" should be followed by a floating point number.\n" );
                 goto usage;
-            default:
+            }
+            Slew = (float)atof(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( Slew <= 0.0 )
                 goto usage;
+            break;
+        case 'G':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-G\" should be followed by a floating point number.\n" );
+                goto usage;
+            }
+            Gain = (float)atof(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( Gain <= 0.0 )
+                goto usage;
+            break;
+        case 'M':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-M\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            nGatesMin = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nGatesMin < 0 ) 
+                goto usage;
+            break;
+        case 'd':
+            fDump ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'w':
+            fVeryVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( argc != globalUtilOptind + 1 )
+        goto usage;
+    // get the input file name
+    pFileName = argv[globalUtilOptind];
+    if ( (pFile = fopen( pFileName, "rb" )) == NULL )
+    {
+        fprintf( pAbc->Err, "Cannot open input file \"%s\". \n", pFileName );
+        return 1;
+    }
+    fclose( pFile );
+    // read new library
+    pLib = Abc_SclReadLiberty( pFileName, fVerbose, fVeryVerbose );
+    if ( pLib == NULL )
+    {
+        fprintf( pAbc->Err, "Reading SCL library from file \"%s\" has failed. \n", pFileName );
+        return 1;
+    }
+    Abc_SclLoad( pLib, (SC_Lib **)&pAbc->pLibScl );
+    // dump the resulting library
+    if ( fDump && pAbc->pLibScl )
+        Abc_SclWriteLiberty( Extra_FileNameGenericAppend(pFileName, "_temp.lib"), (SC_Lib *)pAbc->pLibScl );
+    // extract genlib library
+    if ( pAbc->pLibScl )
+        Abc_SclDeriveGenlib( pAbc->pLibScl, Slew, Gain, nGatesMin );
+    return 0;
+
+usage:
+    fprintf( pAbc->Err, "usage: read_lib [-SG float] [-M num] [-dvwh] <file>\n" );
+    fprintf( pAbc->Err, "\t           reads Liberty library from file\n" );
+    fprintf( pAbc->Err, "\t-S float : the slew parameter used to generate the library [default = %.2f]\n", Slew );
+    fprintf( pAbc->Err, "\t-G float : the gain parameter used to generate the library [default = %.2f]\n", Gain );
+    fprintf( pAbc->Err, "\t-M num   : skip gate classes whose size is less than this [default = %d]\n", nGatesMin );
+    fprintf( pAbc->Err, "\t-d       : toggle dumping the parsed library into file \"*_temp.lib\" [default = %s]\n", fDump? "yes": "no" );
+    fprintf( pAbc->Err, "\t-v       : toggle writing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( pAbc->Err, "\t-v       : toggle writing information about skipped gates [default = %s]\n", fVeryVerbose? "yes": "no" );
+    fprintf( pAbc->Err, "\t-h       : prints the command summary\n" );
+    fprintf( pAbc->Err, "\t<file>   : the name of a file to read\n" );
+    return 1;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Scl_CommandRead( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pFile;
+    SC_Lib * pLib;
+    char * pFileName;
+    int c, fDump = 0;
+
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "dh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'd':
+            fDump ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
         }
     }
     if ( argc != globalUtilOptind + 1 )
@@ -130,15 +273,21 @@ int Scl_CommandRead( Abc_Frame_t * pAbc, int argc, char ** argv )
     fclose( pFile );
 
     // read new library
-    Abc_SclLoad( pFileName, (SC_Lib **)&pAbc->pLibScl );
-    if ( fVerbose )
-        Abc_SclWriteText( "scl_out.txt", (SC_Lib *)pAbc->pLibScl );
+    pLib = Abc_SclReadFromFile( pFileName );
+    if ( pLib == NULL )
+    {
+        fprintf( pAbc->Err, "Reading SCL library from file \"%s\" has failed. \n", pFileName );
+        return 1;
+    }
+    Abc_SclLoad( pLib, (SC_Lib **)&pAbc->pLibScl );
+    if ( fDump )
+        Abc_SclWriteLiberty( Extra_FileNameGenericAppend(pFileName, "_temp.lib"), (SC_Lib *)pAbc->pLibScl );
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: read_scl [-vh] <file>\n" );
-    fprintf( pAbc->Err, "\t         reads Liberty library from file\n" );
-    fprintf( pAbc->Err, "\t-v     : toggle writing the result into file \"scl_out.txt\" [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( pAbc->Err, "usage: read_scl [-dh] <file>\n" );
+    fprintf( pAbc->Err, "\t         reads extracted Liberty library from file\n" );
+    fprintf( pAbc->Err, "\t-d     : toggle dumping the parsed library into file \"*_temp.lib\" [default = %s]\n", fDump? "yes": "no" );
     fprintf( pAbc->Err, "\t-h     : prints the command summary\n" );
     fprintf( pAbc->Err, "\t<file> : the name of a file to read\n" );
     return 1;
@@ -166,10 +315,10 @@ int Scl_CommandWrite( Abc_Frame_t * pAbc, int argc, char **argv )
     {
         switch ( c )
         {
-            case 'h':
-                goto usage;
-            default:
-                goto usage;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
         }
     }
     if ( argc != globalUtilOptind + 1 )
@@ -189,12 +338,12 @@ int Scl_CommandWrite( Abc_Frame_t * pAbc, int argc, char **argv )
     fclose( pFile );
 
     // save current library
-    Abc_SclSave( pFileName, (SC_Lib *)pAbc->pLibScl );
+    Abc_SclWriteScl( pFileName, (SC_Lib *)pAbc->pLibScl );
     return 0;
 
 usage:
     fprintf( pAbc->Err, "usage: write_scl [-h] <file>\n" );
-    fprintf( pAbc->Err, "\t         write Liberty library into file\n" );
+    fprintf( pAbc->Err, "\t         write extracted Liberty library into file\n" );
     fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
     fprintf( pAbc->Err, "\t<file> : the name of the file to write\n" );
     return 1;
@@ -216,9 +365,10 @@ int Scl_CommandPrintScl( Abc_Frame_t * pAbc, int argc, char **argv )
     float Slew = 200;
     float Gain = 100;
     int fInvOnly = 0;
+    int fShort = 0;
     int c;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "SGih" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "SGish" ) ) != EOF )
     {
         switch ( c )
         {
@@ -247,6 +397,9 @@ int Scl_CommandPrintScl( Abc_Frame_t * pAbc, int argc, char **argv )
         case 'i':
             fInvOnly ^= 1;
             break;
+        case 's':
+            fShort ^= 1;
+            break;
         case 'h':
             goto usage;
         default:
@@ -260,15 +413,16 @@ int Scl_CommandPrintScl( Abc_Frame_t * pAbc, int argc, char **argv )
     }
 
     // save current library
-    Abc_SclPrintCells( (SC_Lib *)pAbc->pLibScl, Slew, Gain, fInvOnly );
+    Abc_SclPrintCells( (SC_Lib *)pAbc->pLibScl, Slew, Gain, fInvOnly, fShort );
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: print_scl [-SG float] [-ih]\n" );
+    fprintf( pAbc->Err, "usage: print_scl [-SG float] [-ish]\n" );
     fprintf( pAbc->Err, "\t           prints statistics of Liberty library\n" );
     fprintf( pAbc->Err, "\t-S float : the slew parameter used to generate the library [default = %.2f]\n", Slew );
     fprintf( pAbc->Err, "\t-G float : the gain parameter used to generate the library [default = %.2f]\n", Gain );
     fprintf( pAbc->Err, "\t-i       : toggle printing invs/bufs only [default = %s]\n", fInvOnly? "yes": "no" );
+    fprintf( pAbc->Err, "\t-s       : toggle printing in short format [default = %s]\n", fShort? "yes": "no" );
     fprintf( pAbc->Err, "\t-h       : print the help massage\n" );
     return 1;
 }

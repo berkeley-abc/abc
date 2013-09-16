@@ -82,7 +82,7 @@ static inline char *    Mio_UtilStrsav( char * s )     { return s ? strcpy(ABC_A
 /*=== mio.c =============================================================*/
 extern void              Mio_UpdateGenlib( Mio_Library_t * pLib );
 extern int               Mio_UpdateGenlib2( Vec_Str_t * vStr, Vec_Str_t * vStr2, char * pFileName, int fVerbose );
-extern void              Mio_SclDeriveGenlib( void * pScl, float Slew, float Gain, int nGatesMin );
+extern void              Abc_SclDeriveGenlib( void * pScl, float Slew, float Gain, int nGatesMin );
 /*=== mioApi.c =============================================================*/
 extern char *            Mio_LibraryReadName       ( Mio_Library_t * pLib );
 extern int               Mio_LibraryReadGateNum    ( Mio_Library_t * pLib );

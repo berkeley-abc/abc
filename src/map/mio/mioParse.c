@@ -399,6 +399,8 @@ Vec_Wrd_t * Mio_ParseFormulaTruth( char * pFormInit, char ** ppVarNames, int nVa
     Vec_Wrd_t * vTruth;
     // derive expression
     vExpr = Mio_ParseFormula( pFormInit, ppVarNames, nVars );
+    if ( vExpr == NULL )
+        return NULL;
     // convert it into a truth table
     vTruth = Vec_WrdStart( Abc_Truth6WordNum(nVars) );
     Exp_Truth( nVars, vExpr, Vec_WrdArray(vTruth) );

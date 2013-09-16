@@ -2479,11 +2479,19 @@ SOURCE=.\src\map\scl\sclDnsize.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\map\scl\sclLib.c
+SOURCE=.\src\map\scl\sclLib.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\map\scl\sclLib.h
+SOURCE=.\src\map\scl\sclLiberty.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\map\scl\sclLibScl.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\map\scl\sclLibUtil.c
 # End Source File
 # Begin Source File
 

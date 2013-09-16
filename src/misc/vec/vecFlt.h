@@ -664,6 +664,26 @@ static inline float Vec_FltFindMin( Vec_Flt_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Vec_FltPrint( Vec_Flt_t * vVec )
+{
+    int i; float Entry;
+    printf( "Vector has %d entries: {", Vec_FltSize(vVec) );
+    Vec_FltForEachEntry( vVec, Entry, i )
+        printf( " %f", Entry );
+    printf( " }\n" );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Comparison procedure for two floats.]
 
   Description []

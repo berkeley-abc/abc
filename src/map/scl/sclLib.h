@@ -201,6 +201,7 @@ struct SC_Cell_
 struct SC_Lib_ 
 {
     char *         pName;
+    char *         pFileName;
     char *         default_wire_load;
     char *         default_wire_load_sel;
     float          default_max_out_slew;   // -- 'default_max_transition'; this is copied to each output pin where 'max_transition' is not defined  (not used)
@@ -237,7 +238,7 @@ static inline SC_Cell *   SC_LibCell( SC_Lib * p, int i )           { return (SC
 static inline SC_Pin  *   SC_CellPin( SC_Cell * p, int i )          { return (SC_Pin *)Vec_PtrEntry(p->vPins, i);                     }
 static inline Vec_Wrd_t * SC_CellFunc( SC_Cell * p )                { return SC_CellPin(p, p->n_inputs)->vFunc;                       }
 static inline float       SC_CellPinCap( SC_Cell * p, int i )       { return 0.5 * SC_CellPin(p, i)->rise_cap + 0.5 * SC_CellPin(p, i)->fall_cap; }
-static inline float       SC_CellPinCapAve( SC_Cell * p )           { int i; float c = 0; for (i = 0; i < p->n_inputs; i++) c += SC_CellPinCap(p, i); return c / p->n_inputs; }
+static inline float       SC_CellPinCapAve( SC_Cell * p )           { int i; float c = 0; for (i = 0; i < p->n_inputs; i++) c += SC_CellPinCap(p, i); return c / Abc_MaxInt(1, p->n_inputs); }
 static inline char *      SC_CellPinOutFunc( SC_Cell * p, int i )   { return SC_CellPin(p, p->n_inputs + i)->func_text;               }
 static inline char *      SC_CellPinName( SC_Cell * p, int i )      { return SC_CellPin(p, i)->pName;                                 }
 
@@ -462,6 +463,7 @@ static inline void Abc_SclLibFree( SC_Lib * p )
     Vec_PtrFree( p->vCells );
     Vec_PtrFree( p->vCellClasses );
     ABC_FREE( p->pName );
+    ABC_FREE( p->pFileName );
     ABC_FREE( p->default_wire_load );
     ABC_FREE( p->default_wire_load_sel );
     ABC_FREE( p->pBins );
@@ -578,22 +580,27 @@ static inline float Scl_LibPinArrivalEstimate( SC_Cell * pCell, int iPin, float 
     return  0.5 * ArrOut.fall +  0.5 * ArrOut.rise;
 }
 
-/*=== sclLib.c ===============================================================*/
-extern SC_Lib *      Abc_SclRead( char * pFileName );
-extern void          Abc_SclWrite( char * pFileName, SC_Lib * p );
-extern void          Abc_SclWriteText( char * pFileName, SC_Lib * p );
-extern void          Abc_SclLoad( char * pFileName, SC_Lib ** ppScl );
-extern void          Abc_SclSave( char * pFileName, SC_Lib * pScl );
+/*=== sclLiberty.c ===============================================================*/
+extern SC_Lib *      Abc_SclReadLiberty( char * pFileName, int fVerbose, int fVeryVerbose );
+/*=== sclLibScl.c ===============================================================*/
+extern SC_Lib *      Abc_SclReadFromStr( Vec_Str_t * vOut );
+extern SC_Lib *      Abc_SclReadFromFile( char * pFileName );
+extern void          Abc_SclWriteScl( char * pFileName, SC_Lib * p );
+extern void          Abc_SclWriteLiberty( char * pFileName, SC_Lib * p );
+/*=== sclLibUtil.c ===============================================================*/
 extern void          Abc_SclHashCells( SC_Lib * p );
 extern int           Abc_SclCellFind( SC_Lib * p, char * pName );
 extern int           Abc_SclClassCellNum( SC_Cell * pClass );
 extern void          Abc_SclLinkCells( SC_Lib * p );
-extern void          Abc_SclPrintCells( SC_Lib * p, float Slew, float Gain, int fInvOnly );
+extern void          Abc_SclPrintCells( SC_Lib * p, float Slew, float Gain, int fInvOnly, int fShort );
 extern SC_Cell *     Abc_SclFindInvertor( SC_Lib * p, int fFindBuff );
 extern SC_Cell *     Abc_SclFindSmallestGate( SC_Cell * p, float CinMin );
 extern SC_WireLoad * Abc_SclFindWireLoadModel( SC_Lib * p, float Area );
 extern SC_WireLoad * Abc_SclFetchWireLoadModel( SC_Lib * p, char * pName );
 extern void          Abc_SclDumpGenlib( char * pFileName, SC_Lib * p, float Slew, float Gain, int nGatesMin );
+extern void          Abc_SclDeriveGenlib( void * pScl, float Slew, float Gain, int nGatesMin );
+
+
 
 ABC_NAMESPACE_HEADER_END
 

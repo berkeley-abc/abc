@@ -990,6 +990,10 @@ void Abc_Init( Abc_Frame_t * pAbc )
 
     if ( Sdm_ManCanRead() )
         Sdm_ManRead();
+    {
+//        extern void Scl_LibertyTest();
+//        Scl_LibertyTest();
+    }
 }
 
 /**Function*************************************************************

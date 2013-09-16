@@ -551,7 +551,7 @@ void Extra_PrintHex( FILE * pFile, unsigned * pTruth, int nVars )
     // write the number into the file
     fprintf( pFile, "0x" );
     nMints  = (1 << nVars);
-    nDigits = nMints / 4;
+    nDigits = nMints / 4 + ((nMints % 4) > 0);
     for ( k = nDigits - 1; k >= 0; k-- )
     {
         Digit = ((pTruth[k/8] >> (k * 4)) & 15);
@@ -569,7 +569,7 @@ void Extra_PrintHexReverse( FILE * pFile, unsigned * pTruth, int nVars )
     // write the number into the file
     fprintf( pFile, "0x" );
     nMints  = (1 << nVars);
-    nDigits = nMints / 4;
+    nDigits = nMints / 4 + ((nMints % 4) > 0);
     for ( k = 0; k < nDigits; k++ )
     {
         Digit = ((pTruth[k/8] >> (k * 4)) & 15);

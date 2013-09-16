@@ -220,7 +220,7 @@ int Mio_CommandReadLiberty( Abc_Frame_t * pAbc, int argc, char **argv )
     if ( (pFile = Io_FileOpen( pFileName, "open_path", "r", 0 )) == NULL )
     {
         fprintf( pErr, "Cannot open input file \"%s\". ", pFileName );
-        if ( (pFileName = Extra_FileGetSimilarName( pFileName, ".genlib", ".lib", ".gen", ".g", NULL )) )
+        if ( (pFileName = Extra_FileGetSimilarName( pFileName, ".genlib", ".lib", ".scl", ".g", NULL )) )
             fprintf( pErr, "Did you mean \"%s\"?", pFileName );
         fprintf( pErr, "\n" );
         return 1;
@@ -338,7 +338,7 @@ int Mio_CommandReadGenlib( Abc_Frame_t * pAbc, int argc, char **argv )
     if ( (pFile = Io_FileOpen( pFileName, "open_path", "r", 0 )) == NULL )
     {
         fprintf( pErr, "Cannot open input file \"%s\". ", pFileName );
-        if ( (pFileName = Extra_FileGetSimilarName( pFileName, ".genlib", ".lib", ".gen", ".g", NULL )) )
+        if ( (pFileName = Extra_FileGetSimilarName( pFileName, ".genlib", ".lib", ".scl", ".g", NULL )) )
             fprintf( pErr, "Did you mean \"%s\"?", pFileName );
         fprintf( pErr, "\n" );
         return 1;
