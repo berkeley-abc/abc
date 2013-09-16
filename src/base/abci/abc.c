@@ -23754,7 +23754,7 @@ int Abc_CommandPdr( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
     // run the procedure
-    pPars->fUseBridge = pAbc->fBatchMode;
+    pPars->fUseBridge = pAbc->fBridgeMode;
     pAbc->Status  = Abc_NtkDarPdr( pNtk, pPars );
     pAbc->nFrames = pNtk->vSeqModelVec ? -1 : pPars->iFrame;
     Abc_FrameReplacePoStatuses( pAbc, &pPars->vOutMap );
