@@ -31,7 +31,7 @@ ABC_NAMESPACE_IMPL_START
 static int Scl_CommandReadLib ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Scl_CommandRead    ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Scl_CommandWrite   ( Abc_Frame_t * pAbc, int argc, char **argv );
-static int Scl_CommandPrintScl( Abc_Frame_t * pAbc, int argc, char **argv );
+static int Scl_CommandPrintLib( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Scl_CommandDumpGen ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Scl_CommandPrintGS ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Scl_CommandStime   ( Abc_Frame_t * pAbc, int argc, char **argv );
@@ -89,7 +89,7 @@ void Scl_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "SCL mapping",  "read_lib",    Scl_CommandReadLib,  0 ); 
     Cmd_CommandAdd( pAbc, "SCL mapping",  "read_scl",    Scl_CommandRead,     0 ); 
     Cmd_CommandAdd( pAbc, "SCL mapping",  "write_scl",   Scl_CommandWrite,    0 ); 
-    Cmd_CommandAdd( pAbc, "SCL mapping",  "print_scl",   Scl_CommandPrintScl, 0 ); 
+    Cmd_CommandAdd( pAbc, "SCL mapping",  "print_lib",   Scl_CommandPrintLib, 0 ); 
     Cmd_CommandAdd( pAbc, "SCL mapping",  "dump_genlib", Scl_CommandDumpGen,  0 ); 
     Cmd_CommandAdd( pAbc, "SCL mapping",  "print_gs",    Scl_CommandPrintGS,  0 ); 
     Cmd_CommandAdd( pAbc, "SCL mapping",  "stime",       Scl_CommandStime,    0 ); 
@@ -360,7 +360,7 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
-int Scl_CommandPrintScl( Abc_Frame_t * pAbc, int argc, char **argv )
+int Scl_CommandPrintLib( Abc_Frame_t * pAbc, int argc, char **argv )
 {
     float Slew = 200;
     float Gain = 100;
@@ -417,7 +417,7 @@ int Scl_CommandPrintScl( Abc_Frame_t * pAbc, int argc, char **argv )
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: print_scl [-SG float] [-ish]\n" );
+    fprintf( pAbc->Err, "usage: print_lib [-SG float] [-ish]\n" );
     fprintf( pAbc->Err, "\t           prints statistics of Liberty library\n" );
     fprintf( pAbc->Err, "\t-S float : the slew parameter used to generate the library [default = %.2f]\n", Slew );
     fprintf( pAbc->Err, "\t-G float : the gain parameter used to generate the library [default = %.2f]\n", Gain );
