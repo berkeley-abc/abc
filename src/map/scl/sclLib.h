@@ -580,6 +580,21 @@ static inline float Scl_LibPinArrivalEstimate( SC_Cell * pCell, int iPin, float 
     Scl_LibPinArrival( Scl_CellPinTime(pCell, iPin), &ArrIn, &SlewIn, &LoadIn, &ArrOut, &SlewOut );
     return  0.5 * ArrOut.fall +  0.5 * ArrOut.rise;
 }
+static inline void Scl_LibHandleInputDriver( SC_Cell * pCell, SC_Pair * pLoadIn, SC_Pair * pArrOut, SC_Pair * pSlewOut )
+{
+    SC_Pair LoadIn   = { 0.0, 0.0 }; // zero input load
+    SC_Pair ArrIn    = { 0.0, 0.0 }; // zero input time
+    SC_Pair SlewIn   = { 0.0, 0.0 }; // zero input slew
+    SC_Pair ArrOut0  = { 0.0, 0.0 }; // output time under zero load
+    SC_Pair ArrOut1  = { 0.0, 0.0 }; // output time under given load
+    SC_Pair SlewOut  = { 0.0, 0.0 }; // output slew under zero load 
+    pSlewOut->fall = pSlewOut->rise = 0;
+    assert( pCell->n_inputs == 1 );
+    Scl_LibPinArrival( Scl_CellPinTime(pCell, 0), &ArrIn, &SlewIn, &LoadIn, &ArrOut0, &SlewOut );
+    Scl_LibPinArrival( Scl_CellPinTime(pCell, 0), &ArrIn, &SlewIn, pLoadIn, &ArrOut1, pSlewOut );
+    pArrOut->fall = ArrOut1.fall - ArrOut0.fall;
+    pArrOut->rise = ArrOut1.rise - ArrOut0.rise;
+}
 
 /*=== sclLiberty.c ===============================================================*/
 extern SC_Lib *      Abc_SclReadLiberty( char * pFileName, int fVerbose, int fVeryVerbose );

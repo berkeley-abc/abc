@@ -226,6 +226,7 @@ static inline void Abc_SclManFree( SC_Man * p )
     ABC_FREE( p->pSlews );
     ABC_FREE( p );
 }
+/*
 static inline void Abc_SclManCleanTime( SC_Man * p )
 {
     Vec_Flt_t * vSlews;
@@ -248,6 +249,26 @@ static inline void Abc_SclManCleanTime( SC_Man * p )
         pSlew->fall = Vec_FltEntry( vSlews, 2 * i + 1 );
     }
     Vec_FltFree( vSlews );
+}
+*/
+static inline void Abc_SclManCleanTime( SC_Man * p )
+{
+    memset( p->pTimes, 0, sizeof(SC_Pair) * p->nObjs );
+    memset( p->pSlews, 0, sizeof(SC_Pair) * p->nObjs );
+    memset( p->pDepts, 0, sizeof(SC_Pair) * p->nObjs );
+    if ( p->pPiDrive != NULL )
+    {
+        SC_Pair * pSlew, * pTime, * pLoad;
+        Abc_Obj_t * pObj;
+        int i;
+        Abc_NtkForEachPi( p->pNtk, pObj, i )
+        {
+            pLoad = Abc_SclObjLoad( p, pObj );
+            pTime = Abc_SclObjTime( p, pObj );
+            pSlew = Abc_SclObjSlew( p, pObj );
+            Scl_LibHandleInputDriver( p->pPiDrive, pLoad, pTime, pSlew );
+        }
+    }
 }
 
 

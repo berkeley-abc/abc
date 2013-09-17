@@ -328,8 +328,8 @@ Amap_Lib_t * Amap_ParseTokens( Vec_Ptr_t * vTokens, int fVerbose )
     Amap_Lib_t * p;
     Amap_Gat_t * pGate, * pPrev;
     Amap_Pin_t * pPin;
-    char * pToken;
-    int i, nPins, iPos = 0;
+    char * pToken, * pMoGate = NULL;
+    int i, nPins, iPos = 0, Count = 0;
     p = Amap_LibAlloc();
     pToken = (char *)Vec_PtrEntry(vTokens, iPos++);
     do 
@@ -420,10 +420,15 @@ Amap_Lib_t * Amap_ParseTokens( Vec_Ptr_t * vTokens, int fVerbose )
         if ( pPrev && !strcmp(pPrev->pName, pGate->pName) )
         {
             pPrev->pTwin = pGate, pGate->pTwin = pPrev;
-            printf( "Warning: Detected multi-output gate \"%s\".\n", pGate->pName );
+//            printf( "Warning: Detected multi-output gate \"%s\".\n", pGate->pName );
+            if ( pMoGate == NULL )
+                pMoGate = pGate->pName;
+            Count++;
         }
         pPrev = pGate;
     }
+    if ( Count )
+        printf( "Warning: Detected %d multi-output gates (for example, \"%s\").\n", Count, pMoGate );
     return p;
 }
 

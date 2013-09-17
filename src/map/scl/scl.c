@@ -422,6 +422,9 @@ int Scl_CommandReadScl( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_SclLoad( pLib, (SC_Lib **)&pAbc->pLibScl );
     if ( fDump )
         Abc_SclWriteLiberty( Extra_FileNameGenericAppend(pFileName, "_temp.lib"), (SC_Lib *)pAbc->pLibScl );
+    // extract genlib library
+    if ( pAbc->pLibScl )
+        Abc_SclInstallGenlib( pAbc->pLibScl, 0, 0, 0 );
     return 0;
 
 usage:

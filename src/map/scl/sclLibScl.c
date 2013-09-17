@@ -404,20 +404,15 @@ static void Abc_SclWriteLibrary( Vec_Str_t * vOut, SC_Lib * p )
             Vec_StrPutS( vOut, pPin->pName );
             Vec_StrPutF( vOut, pPin->max_out_cap );
             Vec_StrPutF( vOut, pPin->max_out_slew );
+            Vec_StrPutI( vOut, pCell->n_inputs );
 
             // write function
-            if ( pPin->func_text == NULL )
-            {
-                // formula is not given - write empty string
-                Vec_StrPutS( vOut, "" );
-                // write truth table
-                assert( Vec_WrdSize(pPin->vFunc) == Abc_Truth6WordNum(pCell->n_inputs) );
-                Vec_StrPutI( vOut, pCell->n_inputs );
-                Vec_WrdForEachEntry( pPin->vFunc, uWord, k ) // -- 'size = 1u << (n_vars - 6)'
-                    Vec_StrPutW( vOut, uWord );  // -- 64-bit number, written uncompressed (low-byte first)
-            }
-            else // formula is given
-                Vec_StrPutS( vOut, pPin->func_text );
+            Vec_StrPutS( vOut, pPin->func_text ? pPin->func_text : "" );
+
+            // write truth table
+            assert( Vec_WrdSize(pPin->vFunc) == Abc_Truth6WordNum(pCell->n_inputs) );
+            Vec_WrdForEachEntry( pPin->vFunc, uWord, k ) // -- 'size = 1u << (n_vars - 6)'
+                Vec_StrPutW( vOut, uWord );  // -- 64-bit number, written uncompressed (low-byte first)
 
             // Write 'rtiming': (pin-to-pin timing tables for this particular output)
             assert( Vec_PtrSize(pPin->vRTimings) == pCell->n_inputs );

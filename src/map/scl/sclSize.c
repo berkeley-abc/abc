@@ -116,14 +116,14 @@ static inline void Abc_SclTimeNodePrint( SC_Man * p, Abc_Obj_t * pObj, int fRise
     printf( "%-*s ",            Length, pCell ? pCell->pName : "pi" );
     printf( "A =%7.2f  ",       pCell ? pCell->area : 0.0 );
     printf( "D%s =",            fRise ? "r" : "f" );
-    printf( "%5.0f",            Abc_MaxFloat(Abc_SclObjTimePs(p, pObj, 0), Abc_SclObjTimePs(p, pObj, 1)) );
-    printf( "%6.0f ps  ",       -Abc_AbsFloat(Abc_SclObjTimePs(p, pObj, 0) - Abc_SclObjTimePs(p, pObj, 1)) );
-    printf( "S =%5.0f ps  ",    Abc_SclObjSlewPs(p, pObj, fRise >= 0 ? fRise : 0 ) );
-    printf( "Cin =%4.0f ff  ",  pCell ? SC_CellPinCapAve(pCell) : 0.0 );
-    printf( "Cout =%5.0f ff  ", Abc_SclObjLoadFf(p, pObj, fRise >= 0 ? fRise : 0 ) );
-    printf( "Cmax =%5.0f ff  ", pCell ? SC_CellPin(pCell, pCell->n_inputs)->max_out_cap : 0.0 );
+    printf( "%6.1f",            Abc_MaxFloat(Abc_SclObjTimePs(p, pObj, 0), Abc_SclObjTimePs(p, pObj, 1)) );
+    printf( "%7.1f ps  ",       -Abc_AbsFloat(Abc_SclObjTimePs(p, pObj, 0) - Abc_SclObjTimePs(p, pObj, 1)) );
+    printf( "S =%6.1f ps  ",    Abc_SclObjSlewPs(p, pObj, fRise >= 0 ? fRise : 0) );
+    printf( "Cin =%5.1f ff  ",  pCell ? SC_LibCapFf(p->pLib, SC_CellPinCapAve(pCell)) : 0.0 );
+    printf( "Cout =%6.1f ff  ", Abc_SclObjLoadFf(p, pObj, fRise >= 0 ? fRise : 0) );
+    printf( "Cmax =%6.1f ff  ", pCell ? SC_LibCapFf(p->pLib, SC_CellPin(pCell, pCell->n_inputs)->max_out_cap) : 0.0 );
     printf( "G =%5d  ",         pCell ? (int)(100.0 * Abc_SclObjLoadAve(p, pObj) / SC_CellPinCapAve(pCell)) : 0 );
-    printf( "SL =%5.1f ps",     Abc_SclObjSlackPs(p, pObj, p->MaxDelay0) );
+    printf( "SL =%6.1f ps",     Abc_SclObjSlackPs(p, pObj, p->MaxDelay0) );
     printf( "\n" );
 }
 void Abc_SclTimeNtkPrint( SC_Man * p, int fShowAll, int fPrintPath )
@@ -527,6 +527,7 @@ void Abc_SclManReadSlewAndLoad( SC_Man * p, Abc_Ntk_t * pNtk )
 //            printf( "Default PI driving cell is specified (%s).\n", Abc_FrameReadDrivingCell() );
             p->pPiDrive = SC_LibCell( p->pLib, iCell );
             assert( p->pPiDrive != NULL );
+            assert( p->pPiDrive->n_inputs == 1 );
         }
     }
     if ( pNtk->pManTime == NULL )
