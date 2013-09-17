@@ -478,6 +478,7 @@ static inline int sat_solver_enqueue(sat_solver* s, lit l, int from)
     if (var_value(s, v) != varX)
         return var_value(s, v) == lit_sign(l);
     else{
+/*
         if ( s->pCnfFunc )
         {
             if ( lit_sign(l) )
@@ -497,6 +498,7 @@ static inline int sat_solver_enqueue(sat_solver* s, lit l, int from)
                 }
             }
         }
+*/
         // New fact -- store it.
 #ifdef VERBOSEDEBUG
         printf(L_IND"bind("L_LIT")\n", L_ind, L_lit(l));
@@ -876,6 +878,7 @@ static void sat_solver_analyze(sat_solver* s, int h, veci* learnt)
 #endif
 }
 
+//#define TEST_CNF_LOAD
 
 int sat_solver_propagate(sat_solver* s)
 {
@@ -886,6 +889,31 @@ int sat_solver_propagate(sat_solver* s)
     //printf("sat_solver_propagate\n");
     while (hConfl == 0 && s->qtail - s->qhead > 0){
         lit   p     = s->trail[s->qhead++];
+        int   v     = lit_var(p);
+
+#ifdef TEST_CNF_LOAD
+        if ( s->pCnfFunc )
+        {
+            if ( lit_sign(p) )
+            {
+                if ( (s->loads[v] & 1) == 0 )
+                {
+                    s->loads[v] ^= 1;
+                    s->pCnfFunc( s->pCnfMan, p );
+                }
+            }
+            else
+            {
+                if ( (s->loads[v] & 2) == 0 )
+                {
+                    s->loads[v] ^= 2;
+                    s->pCnfFunc( s->pCnfMan, p );
+                }
+            }
+        }
+        {
+#endif
+
         veci* ws    = sat_solver_read_wlist(s,p);
         int*  begin = veci_begin(ws);
         int*  end   = begin + veci_size(ws);
@@ -959,6 +987,9 @@ int sat_solver_propagate(sat_solver* s)
 
         s->stats.inspects += j - veci_begin(ws);
         veci_resize(ws,j - veci_begin(ws));
+#ifdef TEST_CNF_LOAD
+        }
+#endif
     }
 
     return hConfl;
