@@ -407,7 +407,7 @@ static void Abc_SclWriteLibrary( Vec_Str_t * vOut, SC_Lib * p )
             Vec_StrPutI( vOut, pCell->n_inputs );
 
             // write function
-            Vec_StrPutS( vOut, pPin->func_text ? pPin->func_text : "" );
+            Vec_StrPutS( vOut, pPin->func_text ? pPin->func_text : (char *)"" );
 
             // write truth table
             assert( Vec_WrdSize(pPin->vFunc) == Abc_Truth6WordNum(pCell->n_inputs) );
