@@ -265,6 +265,7 @@ void Abc_NtkPrintStats( Abc_Ntk_t * pNtk, int fFactored, int fSaveBest, int fDum
         Abc_Print( 1,"  bdd  =%6d",  Abc_NtkGetBddNodeNum(pNtk) - nSingles );
     else if ( Abc_NtkHasMapping(pNtk) )
     {
+        assert( pNtk->pManFunc == Abc_FrameReadLibGen() );
         Abc_Print( 1,"  area =%5.2f", Abc_NtkGetMappedArea(pNtk) );
         Abc_Print( 1,"  delay =%5.2f", Abc_NtkDelayTrace(pNtk, NULL, NULL, 0) );
     }

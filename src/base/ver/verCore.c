@@ -121,6 +121,9 @@ Ver_Man_t * Ver_ParseStart( char * pFileName, Abc_Lib_t * pGateLib )
     // create the design library and assign the technology library
     p->pDesign   = Abc_LibCreate( pFileName );
     p->pDesign->pLibrary = pGateLib;
+    // derive library from SCL
+//    if ( Abc_FrameReadLibScl() )
+//        Abc_SclInstallGenlib( Abc_FrameReadLibScl(), 0, 0, 0 );
     p->pDesign->pGenlib = Abc_FrameReadLibGen();
     return p;
 }

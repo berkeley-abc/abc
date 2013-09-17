@@ -66,13 +66,18 @@ Abc_Ntk_t * Abc_NtkMap( Abc_Ntk_t * pNtk, double DelayTarget, double AreaMulti, 
     Vec_Int_t * vSwitching = NULL;
     float * pSwitching = NULL;
     abctime clk, clkTotal = Abc_Clock();
-    Mio_Library_t * pLib;
+    Mio_Library_t * pLib = (Mio_Library_t *)Abc_FrameReadLibGen();
+
     assert( Abc_NtkIsStrash(pNtk) );
     // derive library from SCL
+    // if the library is created here, it will be deleted when pSuperLib is deleted in Map_SuperLibFree()
     if ( Abc_FrameReadLibScl() )
-        Abc_SclDeriveGenlib( Abc_FrameReadLibScl(), Slew, Gain, nGatesMin );
+    {
+        pLib = Abc_SclDeriveGenlib( Abc_FrameReadLibScl(), Slew, Gain, nGatesMin );
+        if ( Abc_FrameReadLibGen() )
+            Mio_LibraryTransferDelays( (Mio_Library_t *)Abc_FrameReadLibGen(), pLib );
+    }
     // quit if there is no library
-    pLib = (Mio_Library_t *)Abc_FrameReadLibGen();
     if ( pLib == NULL )
     {
         printf( "The current library is not available.\n" );
@@ -423,6 +428,7 @@ Abc_Obj_t * Abc_NodeFromMapPhase_rec( Abc_Ntk_t * pNtkNew, Map_Node_t * pNodeMap
 ***********************************************************************/
 Abc_Obj_t * Abc_NodeFromMapSuper_rec( Abc_Ntk_t * pNtkNew, Map_Node_t * pNodeMap, Map_Super_t * pSuper, Abc_Obj_t * pNodePis[], int nNodePis )
 {
+    Mio_Library_t * pLib = (Mio_Library_t *)Abc_FrameReadLibGen();
     Mio_Gate_t * pRoot;
     Map_Super_t ** ppFanins;
     Abc_Obj_t * pNodeNew, * pNodeFanin;
@@ -449,6 +455,7 @@ Abc_Obj_t * Abc_NodeFromMapSuper_rec( Abc_Ntk_t * pNtkNew, Map_Node_t * pNodeMap
             return Abc_NtkCreateNodeConst0(pNtkNew);
         }
     }
+    pRoot = Mio_LibraryReadGateByName( pLib, Mio_GateReadName(pRoot), NULL );
 
     // get information about the fanins of the supergate
     nFanins  = Map_SuperReadFaninNum( pSuper );
@@ -685,6 +692,7 @@ void Abc_NodeFromMapCutPhase( Abc_Ntk_t * pNtkNew, Map_Cut_t * pCut, int fPhase 
 ***********************************************************************/
 Abc_Obj_t * Abc_NodeFromMapSuperChoice_rec( Abc_Ntk_t * pNtkNew, Map_Super_t * pSuper, Abc_Obj_t * pNodePis[], int nNodePis )
 {
+    Mio_Library_t * pLib = (Mio_Library_t *)Abc_FrameReadLibGen();
     Mio_Gate_t * pRoot;
     Map_Super_t ** ppFanins;
     Abc_Obj_t * pNodeNew, * pNodeFanin;
@@ -711,6 +719,7 @@ Abc_Obj_t * Abc_NodeFromMapSuperChoice_rec( Abc_Ntk_t * pNtkNew, Map_Super_t * p
             return Abc_NtkCreateNodeConst0(pNtkNew);
         }
     }
+    pRoot = Mio_LibraryReadGateByName( pLib, Mio_GateReadName(pRoot), NULL );
 
     // get information about the fanins of the supergate
     nFanins  = Map_SuperReadFaninNum( pSuper );

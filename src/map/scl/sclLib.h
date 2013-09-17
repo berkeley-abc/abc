@@ -234,6 +234,7 @@ static inline void        SC_PairMove( SC_Pair * d, SC_Pair * s )   { *d = *s; s
 static inline int         SC_PairEqual( SC_Pair * d, SC_Pair * s )  { return d->rise == s->rise && d->fall == s->fall;                }
 static inline int         SC_PairEqualE( SC_Pair * d, SC_Pair * s, float E )  { return d->rise - s->rise < E && s->rise - d->rise < E &&  d->fall - s->fall < E && s->fall - d->fall < E;    }
 
+static inline int         SC_LibCellNum( SC_Lib * p )               { return Vec_PtrSize(p->vCells);                                  }
 static inline SC_Cell *   SC_LibCell( SC_Lib * p, int i )           { return (SC_Cell *)Vec_PtrEntry(p->vCells, i);                   }
 static inline SC_Pin  *   SC_CellPin( SC_Cell * p, int i )          { return (SC_Pin *)Vec_PtrEntry(p->vPins, i);                     }
 static inline Vec_Wrd_t * SC_CellFunc( SC_Cell * p )                { return SC_CellPin(p, p->n_inputs)->vFunc;                       }
@@ -598,8 +599,7 @@ extern SC_Cell *     Abc_SclFindSmallestGate( SC_Cell * p, float CinMin );
 extern SC_WireLoad * Abc_SclFindWireLoadModel( SC_Lib * p, float Area );
 extern SC_WireLoad * Abc_SclFetchWireLoadModel( SC_Lib * p, char * pName );
 extern void          Abc_SclDumpGenlib( char * pFileName, SC_Lib * p, float Slew, float Gain, int nGatesMin );
-extern void          Abc_SclDeriveGenlib( void * pScl, float Slew, float Gain, int nGatesMin );
-
+extern void          Abc_SclInstallGenlib( void * pScl, float Slew, float Gain, int nGatesMin );
 
 
 ABC_NAMESPACE_HEADER_END

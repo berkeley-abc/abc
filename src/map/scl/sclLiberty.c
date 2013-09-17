@@ -848,6 +848,8 @@ void Scl_LibertyReadWireLoadSelect( Scl_Tree_t * p, Vec_Str_t * vOut )
             float  First  = atof( strtok(pHead, " ,") );
             float  Second = atof( strtok(NULL, " ,") );
             char * pThird = strtok(NULL, " ");
+            if ( pThird[0] == '\"' )
+                assert(pThird[strlen(pThird)-1] == '\"'), pThird[strlen(pThird)-1] = 0, pThird++;
             Vec_StrPutF_( vOut, First );
             Vec_StrPutF_( vOut, Second );
             Vec_StrPutS_( vOut, pThird );

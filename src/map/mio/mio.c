@@ -82,7 +82,7 @@ static char * pMcncGenlib[25] = {
 ***********************************************************************/
 void Mio_Init( Abc_Frame_t * pAbc )
 {
-    Cmd_CommandAdd( pAbc, "SC mapping", "read_liberty",   Mio_CommandReadLiberty,  0 ); 
+//    Cmd_CommandAdd( pAbc, "SC mapping", "read_liberty",   Mio_CommandReadLiberty,  0 ); 
 
     Cmd_CommandAdd( pAbc, "SC mapping", "read_genlib",    Mio_CommandReadGenlib,  0 ); 
     Cmd_CommandAdd( pAbc, "SC mapping", "write_genlib",   Mio_CommandWriteGenlib, 0 ); 

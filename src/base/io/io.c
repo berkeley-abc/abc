@@ -205,7 +205,7 @@ int IoCommandRead( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( !strcmp( Extra_FileNameExtension(pFileName), "genlib" )  )
         sprintf( Command, "read_genlib %s", pFileName );
     else if ( !strcmp( Extra_FileNameExtension(pFileName), "lib" ) )
-        sprintf( Command, "read_liberty %s", pFileName );
+        sprintf( Command, "read_lib %s", pFileName );
     else if ( !strcmp( Extra_FileNameExtension(pFileName), "scl" ) )
         sprintf( Command, "read_scl %s", pFileName );
     else if ( !strcmp( Extra_FileNameExtension(pFileName), "super" ) )

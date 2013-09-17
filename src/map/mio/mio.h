@@ -82,7 +82,6 @@ static inline char *    Mio_UtilStrsav( char * s )     { return s ? strcpy(ABC_A
 /*=== mio.c =============================================================*/
 extern void              Mio_UpdateGenlib( Mio_Library_t * pLib );
 extern int               Mio_UpdateGenlib2( Vec_Str_t * vStr, Vec_Str_t * vStr2, char * pFileName, int fVerbose );
-extern void              Abc_SclDeriveGenlib( void * pScl, float Slew, float Gain, int nGatesMin );
 /*=== mioApi.c =============================================================*/
 extern char *            Mio_LibraryReadName       ( Mio_Library_t * pLib );
 extern int               Mio_LibraryReadGateNum    ( Mio_Library_t * pLib );
@@ -161,10 +160,13 @@ extern Mio_Gate_t *      Mio_GateCreatePseudo( int nInputs );
 extern void              Mio_LibraryShiftDelay( Mio_Library_t * pLib, double Shift );
 extern void              Mio_LibraryMultiArea( Mio_Library_t * pLib, double Multi );
 extern void              Mio_LibraryMultiDelay( Mio_Library_t * pLib, double Multi );
+extern void              Mio_LibraryTransferDelays( Mio_Library_t * pLibD, Mio_Library_t * pLibS );
+
+/*=== sclUtil.c =========================================================*/
+extern Mio_Library_t *   Abc_SclDeriveGenlibSimple( void * pScl );
+extern Mio_Library_t *   Abc_SclDeriveGenlib( void * pScl, float Slew, float Gain, int nGatesMin );
 
 ABC_NAMESPACE_HEADER_END
-
-
 
 #endif
 

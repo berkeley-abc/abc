@@ -169,9 +169,8 @@ void Map_SuperLibFree( Map_SuperLib_t * p )
     if ( p == NULL ) return;
     if ( p->pGenlib )
     {
-//        assert( p->pGenlib == Abc_FrameReadLibGen() );
-//        Mio_LibraryDelete( p->pGenlib );
-//        Abc_FrameSetLibGen( NULL );
+        if ( p->pGenlib != Abc_FrameReadLibGen() )
+            Mio_LibraryDelete( p->pGenlib );
         p->pGenlib = NULL;
     }
     if ( p->tTableC )
@@ -204,14 +203,17 @@ int Map_SuperLibDeriveFromGenlib( Mio_Library_t * pLib, int fVerbose )
     char * pFileName;
     if ( pLib == NULL )
         return 0;
+
     // compute supergates
     vStr = Super_PrecomputeStr( pLib, 5, 1, 100000000, 10000000, 10000000, 100, 1, 0 );
     if ( vStr == NULL )
         return 0;
+
     // create supergate library
     pFileName = Extra_FileNameGenericAppend( Mio_LibraryReadName(pLib), ".super" );
     pLibSuper = Map_SuperLibCreate( pLib, vStr, pFileName, NULL, 1, 0 );
     Vec_StrFree( vStr );
+
     // replace the library
     Map_SuperLibFree( (Map_SuperLib_t *)Abc_FrameReadLibSuper() );
     Abc_FrameSetLibSuper( pLibSuper );

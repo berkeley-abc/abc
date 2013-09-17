@@ -260,7 +260,7 @@ void Mio_WriteLibrary( FILE * pFile, Mio_Library_t * pLib, int fPrintSops )
         Mio_GateForEachPin( pGate, pPin )
             NameLen = Abc_MaxInt( NameLen, strlen(pPin->pName) );
     }
-    fprintf( pFile, "# The genlib library \"%s\".\n", pLib->pName );
+    fprintf( pFile, "# The genlib library \"%s\" written by ABC on %s\n\n", pLib->pName, Extra_TimeStamp() );
     for ( i = 0; i < pLib->nGates; i++ )
         Mio_WriteGate( pFile, pLib->ppGates0[i], GateLen, NameLen, FormLen, fPrintSops, fAllPins );
 }
@@ -705,6 +705,38 @@ void Mio_LibraryMultiDelay( Mio_Library_t * pLib, double Multi )
     }
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Transfers delays from the second to the first.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Mio_LibraryTransferDelays( Mio_Library_t * pLibD, Mio_Library_t * pLibS )
+{
+    Mio_Gate_t * pGateD, * pGateS;
+    Mio_Pin_t * pPinD, * pPinS;
+    Mio_LibraryForEachGate( pLibS, pGateS )
+    {
+        Mio_LibraryForEachGate( pLibD, pGateD )
+        {
+            if ( pGateD->uTruth != pGateS->uTruth )
+                continue;
+            pPinS = Mio_GateReadPins( pGateS );
+            Mio_GateForEachPin( pGateD, pPinD )
+            {
+                pPinD->dDelayBlockRise = pPinS->dDelayBlockRise;
+                pPinD->dDelayBlockFall = pPinS->dDelayBlockFall;
+                pPinD->dDelayBlockMax  = pPinS->dDelayBlockMax;
+                pPinS = Mio_PinReadNext(pPinS);
+            }
+        }
+    }
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

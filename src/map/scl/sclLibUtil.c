@@ -67,7 +67,7 @@ void Abc_SclHashCells( SC_Lib * p )
     SC_Cell * pCell;
     int i, * pPlace;
     assert( p->nBins == 0 );
-    p->nBins = Abc_PrimeCudd( 5 * Vec_PtrSize(p->vCells) );
+    p->nBins = Abc_PrimeCudd( 5 * SC_LibCellNum(p) );
     p->pBins = ABC_FALLOC( int, p->nBins );
     SC_LibForEachCell( p, pCell, i )
     {
@@ -494,6 +494,78 @@ void Abc_SclPrintCells( SC_Lib * p, float Slew, float Gain, int fInvOnly, int fS
 
 /**Function*************************************************************
 
+  Synopsis    [Derives simple GENLIB library.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Str_t * Abc_SclProduceGenlibStrSimple( SC_Lib * p )
+{
+    char Buffer[200];
+    Vec_Str_t * vStr;
+    SC_Cell * pCell;
+    SC_Pin * pPin, * pPinOut;
+    int i, j, k, Count = 2;
+    // mark skipped cells
+//    Abc_SclMarkSkippedCells( p );
+    vStr = Vec_StrAlloc( 1000 );
+    Vec_StrPrintStr( vStr, "GATE _const0_            0.00 z=CONST0;\n" );
+    Vec_StrPrintStr( vStr, "GATE _const1_            0.00 z=CONST1;\n" );
+    SC_LibForEachCell( p, pCell, i )
+    {
+        if ( pCell->n_inputs == 0 )
+            continue;
+        assert( strlen(pCell->pName) < 200 );
+        SC_CellForEachPinOut( pCell, pPinOut, j )
+        {
+            Vec_StrPrintStr( vStr, "GATE " );
+            sprintf( Buffer, "%-16s", pCell->pName );
+            Vec_StrPrintStr( vStr, Buffer );
+            Vec_StrPrintStr( vStr, " " );
+            sprintf( Buffer, "%7.2f", pCell->area );
+            Vec_StrPrintStr( vStr, Buffer );
+            Vec_StrPrintStr( vStr, " " );
+            Vec_StrPrintStr( vStr, pPinOut->pName );
+            Vec_StrPrintStr( vStr, "=" );
+            Vec_StrPrintStr( vStr, pPinOut->func_text ? pPinOut->func_text : "?" );
+            Vec_StrPrintStr( vStr, ";\n" );
+            SC_CellForEachPinIn( pCell, pPin, k )
+            {
+                Vec_StrPrintStr( vStr, "         PIN " );
+                sprintf( Buffer, "%-4s", pPin->pName );
+                Vec_StrPrintStr( vStr, Buffer );
+                sprintf( Buffer, " UNKNOWN  1  999  1.00  0.00  1.00  0.00\n" );
+                Vec_StrPrintStr( vStr, Buffer );
+            }
+            Count++;
+        }
+    }
+    Vec_StrPrintStr( vStr, "\n.end\n" );
+    Vec_StrPush( vStr, '\0' );
+//    printf( "GENLIB library with %d gates is produced:\n", Count );
+//    printf( "%s", Vec_StrArray(vStr) );
+    return vStr;
+}
+Mio_Library_t * Abc_SclDeriveGenlibSimple( void * pScl )
+{
+    SC_Lib * p = (SC_Lib *)pScl;
+    Vec_Str_t * vStr = Abc_SclProduceGenlibStrSimple( p );
+    Mio_Library_t * pLib = Mio_LibraryRead( p->pFileName, Vec_StrArray(vStr), NULL, 0 );  
+    Vec_StrFree( vStr );
+    if ( pLib )
+        printf( "Internally derived GENLIB library \"%s\" with %d gates.\n", p->pName, SC_LibCellNum(p) );
+    else
+        printf( "Reading library has filed.\n" );
+    return pLib;
+}
+
+
+/**Function*************************************************************
+
   Synopsis    [Derive GENLIB library.]
 
   Description []
@@ -503,7 +575,7 @@ void Abc_SclPrintCells( SC_Lib * p, float Slew, float Gain, int fInvOnly, int fS
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Str_t * Abc_SclDeriveGenlibStr( SC_Lib * p, float Slew, float Gain, int nGatesMin, int * pnCellCount )
+Vec_Str_t * Abc_SclProduceGenlibStr( SC_Lib * p, float Slew, float Gain, int nGatesMin, int * pnCellCount )
 {
     char Buffer[200];
     Vec_Str_t * vStr;
@@ -565,8 +637,8 @@ Vec_Str_t * Abc_SclDeriveGenlibStr( SC_Lib * p, float Slew, float Gain, int nGat
 }
 void Abc_SclDumpGenlib( char * pFileName, SC_Lib * p, float Slew, float Gain, int nGatesMin )
 {
-    char FileName[1000];
     int nCellCount = 0;
+    char FileName[1000];
     Vec_Str_t * vStr;
     FILE * pFile;
     if ( pFileName == NULL )
@@ -579,22 +651,52 @@ void Abc_SclDumpGenlib( char * pFileName, SC_Lib * p, float Slew, float Gain, in
         printf( "Cannot open file \"%s\" for writing.\n", FileName );
         return;
     }
-    vStr = Abc_SclDeriveGenlibStr( p, Slew, Gain, nGatesMin, &nCellCount );
+    vStr = Abc_SclProduceGenlibStr( p, Slew, Gain, nGatesMin, &nCellCount );
     fprintf( pFile, "%s", Vec_StrArray(vStr) );
     Vec_StrFree( vStr );
     fclose( pFile );
     printf( "Written GENLIB library with %d gates into file \"%s\".\n", nCellCount, FileName );
 }
-void Abc_SclDeriveGenlib( void * pScl, float Slew, float Gain, int nGatesMin )
+Mio_Library_t * Abc_SclDeriveGenlib( void * pScl, float Slew, float Gain, int nGatesMin )
 {
-    int nGateCount = 0;
-    Vec_Str_t * vStr = Abc_SclDeriveGenlibStr( (SC_Lib *)pScl, Slew, Gain, nGatesMin, &nGateCount );
-    Vec_Str_t * vStr2 = Vec_StrDup( vStr );
-    int RetValue = Mio_UpdateGenlib2( vStr, vStr2, ((SC_Lib *)pScl)->pName, 0 );
+    int nCellCount = 0;
+    SC_Lib * p = (SC_Lib *)pScl;
+    Vec_Str_t * vStr = Abc_SclProduceGenlibStr( p, Slew, Gain, nGatesMin, &nCellCount );
+    Mio_Library_t * pLib = Mio_LibraryRead( p->pFileName, Vec_StrArray(vStr), NULL, 0 );  
+    Vec_StrFree( vStr );
+    if ( pLib )
+        printf( "Internally derived GENLIB library \"%s\" with %d gates.\n", p->pName, nCellCount );
+    else
+        printf( "Reading library has filed.\n" );
+    return pLib;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Install library.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_SclInstallGenlib( void * pScl, float Slew, float Gain, int nGatesMin )
+{
+    SC_Lib * p = (SC_Lib *)pScl;
+    Vec_Str_t * vStr, * vStr2;
+    int RetValue, nGateCount = SC_LibCellNum(p);
+    if ( Gain == 0 )
+        vStr = Abc_SclProduceGenlibStrSimple(p);
+    else
+        vStr = Abc_SclProduceGenlibStr( p, Slew, Gain, nGatesMin, &nGateCount );
+    vStr2 = Vec_StrDup( vStr );
+    RetValue = Mio_UpdateGenlib2( vStr, vStr2, p->pName, 0 );
     Vec_StrFree( vStr );
     Vec_StrFree( vStr2 );
     if ( RetValue )
-        printf( "Internally derived GENLIB library \"%s\" with %d gates.\n", ((SC_Lib *)pScl)->pName, nGateCount );
+        printf( "Internally derived GENLIB library \"%s\" with %d gates.\n", p->pName, nGateCount );
     else
         printf( "Reading library has filed.\n" );
 }
