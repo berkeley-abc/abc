@@ -52,6 +52,7 @@ struct Pdr_Par_t_
     int fMonoCnf;         // monolythic CNF
     int fDumpInv;         // dump inductive invariant
     int fShortest;        // forces bug traces to be shortest
+    int fReuseProofOblig; // reuses proof-obligationgs in the last timeframe
     int fSkipGeneral;     // skips expensive generalization step
     int fVerbose;         // verbose output`
     int fVeryVerbose;     // very verbose output

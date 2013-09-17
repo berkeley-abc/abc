@@ -23622,7 +23622,7 @@ int Abc_CommandPdr( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     Pdr_ManSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "MFCRTHGaxrmsdgvwzh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "MFCRTHGaxrmspdgvwzh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -23718,6 +23718,9 @@ int Abc_CommandPdr( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 's':
             pPars->fShortest ^= 1;
             break;
+        case 'p':
+            pPars->fReuseProofOblig ^= 1;
+            break;
         case 'd':
             pPars->fDumpInv ^= 1;
             break;
@@ -23781,6 +23784,7 @@ usage:
     Abc_Print( -2, "\t-r     : toggle using more effort in generalization [default = %s]\n",                 pPars->fTwoRounds? "yes": "no" );
     Abc_Print( -2, "\t-m     : toggle using monolythic CNF computation [default = %s]\n",                    pPars->fMonoCnf? "yes": "no" );
     Abc_Print( -2, "\t-s     : toggle creating only shortest counter-examples [default = %s]\n",             pPars->fShortest? "yes": "no" );
+    Abc_Print( -2, "\t-p     : toggle using proof-obligations from the last timeframe [default = %s]\n",     pPars->fReuseProofOblig? "yes": "no" );
     Abc_Print( -2, "\t-d     : toggle dumping inductive invariant [default = %s]\n",                         pPars->fDumpInv? "yes": "no" );
     Abc_Print( -2, "\t-g     : toggle skipping expensive generalization step [default = %s]\n",              pPars->fSkipGeneral? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing optimization summary [default = %s]\n",                       pPars->fVerbose? "yes": "no" );

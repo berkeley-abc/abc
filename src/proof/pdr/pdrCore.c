@@ -525,7 +525,7 @@ int Pdr_ManBlockCube( Pdr_Man_t * p, Pdr_Set_t * pCube )
             for ( i = 1; i <= k; i++ )
                 Pdr_ManSolverAddClause( p, i, pCubeMin );
             // schedule proof obligation
-            if ( !p->pPars->fShortest )
+            if ( (k < kMax || p->pPars->fReuseProofOblig) && !p->pPars->fShortest )
             {
                 pThis->iFrame = k+1;
                 pThis->prio   = Prio--;
