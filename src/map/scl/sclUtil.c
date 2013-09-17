@@ -218,6 +218,41 @@ char * Abc_SclFindGateFormula( char * pGateName, char * pOutName )
     return Mio_GateReadForm(pGate);
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Reads timing constraints.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_SclReadTimingConstr( Abc_Frame_t * pAbc, char * pFileName, int fVerbose )
+{
+    char Buffer[1000], * pToken;
+    FILE * pFile = fopen( pFileName, "rb" );
+    while ( fgets( Buffer, 1000, pFile ) )
+    {
+        pToken = strtok( Buffer, " \t\r\n" );
+        if ( !strcmp(pToken, "set_driving_cell") )
+        {
+            Abc_FrameSetDrivingCell( Abc_UtilStrsav(strtok(NULL, " \t\r\n")) );
+            if ( fVerbose ) 
+                printf( "Setting driving cell to be \"%s\".\n", Abc_FrameReadDrivingCell() );
+        }
+        else if ( !strcmp(pToken, "set_load") )
+        {
+            Abc_FrameSetMaxLoad( atof(strtok(NULL, " \t\r\n")) );
+            if ( fVerbose ) 
+                printf( "Setting driving cell to be %f.\n", Abc_FrameReadMaxLoad() );
+        }
+        else 
+            printf( "Unrecognized token \"%s\".\n", pToken );
+    }
+    fclose( pFile );
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

@@ -146,6 +146,11 @@ extern ABC_DLL void            Abc_FrameReplaceCexVec( Abc_Frame_t * pAbc, Vec_P
 extern ABC_DLL void            Abc_FrameReplacePoEquivs( Abc_Frame_t * pAbc, Vec_Ptr_t ** pvPoEquivs );
 extern ABC_DLL void            Abc_FrameReplacePoStatuses( Abc_Frame_t * pAbc, Vec_Int_t ** pvStatuses );
 
+extern ABC_DLL char *          Abc_FrameReadDrivingCell();              
+extern ABC_DLL float           Abc_FrameReadMaxLoad();
+extern ABC_DLL void            Abc_FrameSetDrivingCell( char * pName );
+extern ABC_DLL void            Abc_FrameSetMaxLoad( float Load );
+
 ABC_NAMESPACE_HEADER_END
 
 #endif

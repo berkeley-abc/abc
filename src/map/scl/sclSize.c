@@ -21,6 +21,7 @@
 #include "sclSize.h"
 #include "map/mio/mio.h"
 #include "misc/vec/vecWec.h"
+#include "base/main/main.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -505,6 +506,29 @@ void Abc_SclManReadSlewAndLoad( SC_Man * p, Abc_Ntk_t * pNtk )
     Abc_Time_t * pTime;
     Abc_Obj_t * pObj;
     int i;
+    if ( Abc_FrameReadMaxLoad() )
+    {
+        float MaxLoad = Abc_FrameReadMaxLoad();
+//        printf( "Default output load is specified (%f ff).\n", SC_LibCapFf(p->pLib, MaxLoad) );
+        Abc_NtkForEachPo( pNtk, pObj, i )
+        {
+            SC_Pair * pLoad = Abc_SclObjLoad( p, pObj );
+            pLoad->rise = SC_LibCapFromFf( p->pLib, MaxLoad );
+            pLoad->fall = SC_LibCapFromFf( p->pLib, MaxLoad );
+        }
+    }
+    if ( Abc_FrameReadDrivingCell() )
+    {
+        int iCell = Abc_SclCellFind( p->pLib, Abc_FrameReadDrivingCell() );
+        if ( iCell == -1 )
+            printf( "Cannot find the default PI driving cell (%s) in the library.\n", Abc_FrameReadDrivingCell() );
+        else
+        {
+//            printf( "Default PI driving cell is specified (%s).\n", Abc_FrameReadDrivingCell() );
+            p->pPiDrive = SC_LibCell( p->pLib, iCell );
+            assert( p->pPiDrive != NULL );
+        }
+    }
     if ( pNtk->pManTime == NULL )
         return;
 /*

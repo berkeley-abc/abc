@@ -91,6 +91,11 @@ int         Abc_FrameIsBatchMode()                           { return s_GlobalFr
 int         Abc_FrameIsBridgeMode()                          { return s_GlobalFrame ? s_GlobalFrame->fBridgeMode : 0;             } 
 void        Abc_FrameSetBridgeMode()                         { if ( s_GlobalFrame ) s_GlobalFrame->fBridgeMode = 1;               } 
 
+char *      Abc_FrameReadDrivingCell()                       { return s_GlobalFrame->pDrivingCell;    }              
+float       Abc_FrameReadMaxLoad()                           { return s_GlobalFrame->MaxLoad;         }      
+void        Abc_FrameSetDrivingCell( char * pName )          { ABC_FREE(s_GlobalFrame->pDrivingCell); s_GlobalFrame->pDrivingCell   = pName; }      
+void        Abc_FrameSetMaxLoad( float Load )                { s_GlobalFrame->MaxLoad        = Load;  }      
+
 /**Function*************************************************************
 
   Synopsis    [Returns 1 if the flag is enabled without value or with value 1.]
@@ -199,6 +204,7 @@ void Abc_FrameDeallocate( Abc_Frame_t * p )
     }
     Vec_PtrFreeP( &p->vLTLProperties_global );
     Abc_FrameDeleteAllNetworks( p );
+    ABC_FREE( p->pDrivingCell );
     ABC_FREE( p->pCex2 );
     ABC_FREE( p->pCex );
     ABC_FREE( p );

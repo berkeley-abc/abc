@@ -511,6 +511,8 @@ float Abc_BufComputeArr( Buf_Man_t * p, Abc_Obj_t * pObj )
     float DelayF, Delay = -ABC_INFINITY;
     Abc_ObjForEachFanin( pObj, pFanin, i )
     {
+        if ( Vec_IntEntry(p->vOffsets, Abc_ObjId(pObj)) == -ABC_INFINITY )
+            continue;
         DelayF = Abc_BufNodeArr(p, pFanin) + Abc_BufEdgeDelay(p, pObj, i);
         if ( Delay < DelayF )
             Delay = DelayF;
@@ -525,6 +527,8 @@ float Abc_BufComputeDep( Buf_Man_t * p, Abc_Obj_t * pObj )
     float DelayF, Delay = -ABC_INFINITY;
     Abc_ObjForEachFanout( pObj, pFanout, i )
     {
+        if ( Vec_IntEntry(p->vOffsets, Abc_ObjId(pFanout)) == -ABC_INFINITY )
+            continue;
         DelayF = Abc_BufNodeDep(p, pFanout) + Abc_BufEdgeDelay(p, pFanout, Abc_NodeFindFanin(pFanout, pObj));
         if ( Delay < DelayF )
             Delay = DelayF;
@@ -752,12 +756,12 @@ void Buf_ManStop( Buf_Man_t * p )
 Vec_Int_t * Abc_BufSortByDelay( Buf_Man_t * p, int iPivot )
 {
     Abc_Obj_t * pObj, * pFanout;
-    int i, * pOrder;
+    int i, Slack, * pOrder;
     Vec_IntClear( p->vDelays );
     pObj = Abc_NtkObj( p->pNtk, iPivot );
     Abc_ObjForEachFanout( pObj, pFanout, i )
     {
-        int Slack = Abc_BufEdgeSlack(p, pObj, pFanout);
+        Slack = Abc_BufEdgeSlack(p, pObj, pFanout);
         assert( Slack >= 0 );
         Vec_IntPush( p->vDelays, Abc_MaxInt(0, Slack) );
     }

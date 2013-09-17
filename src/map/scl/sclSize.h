@@ -61,6 +61,7 @@ struct SC_Man_
     Vec_Flt_t *    vInDrive;      // maximum input drive strength
     Vec_Flt_t *    vTimesOut;     // output arrival times
     Vec_Que_t *    vQue;          // outputs by their time
+    SC_Cell *      pPiDrive;      // cell driving primary inputs
     // backup information
     Vec_Flt_t *    vLoads2;       // backup storage for loads
     Vec_Flt_t *    vLoads3;       // backup storage for loads

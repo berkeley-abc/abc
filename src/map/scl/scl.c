@@ -28,24 +28,26 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static int Scl_CommandReadLib ( Abc_Frame_t * pAbc, int argc, char **argv );
-static int Scl_CommandWriteLib( Abc_Frame_t * pAbc, int argc, char **argv );
-static int Scl_CommandReadScl ( Abc_Frame_t * pAbc, int argc, char **argv );
-static int Scl_CommandWriteScl( Abc_Frame_t * pAbc, int argc, char **argv );
-static int Scl_CommandPrintLib( Abc_Frame_t * pAbc, int argc, char **argv );
-static int Scl_CommandDumpGen ( Abc_Frame_t * pAbc, int argc, char **argv );
-static int Scl_CommandPrintGS ( Abc_Frame_t * pAbc, int argc, char **argv );
-static int Scl_CommandStime   ( Abc_Frame_t * pAbc, int argc, char **argv );
-static int Scl_CommandTopo    ( Abc_Frame_t * pAbc, int argc, char **argv );
-static int Scl_CommandBuffer  ( Abc_Frame_t * pAbc, int argc, char **argv );
-static int Scl_CommandBufSize ( Abc_Frame_t * pAbc, int argc, char **argv );
-static int Scl_CommandUnBuffer( Abc_Frame_t * pAbc, int argc, char **argv );
-static int Scl_CommandMinsize ( Abc_Frame_t * pAbc, int argc, char **argv );
-static int Scl_CommandMaxsize ( Abc_Frame_t * pAbc, int argc, char **argv );
-static int Scl_CommandUpsize  ( Abc_Frame_t * pAbc, int argc, char **argv );
-static int Scl_CommandDnsize  ( Abc_Frame_t * pAbc, int argc, char **argv );
-static int Scl_CommandBsize   ( Abc_Frame_t * pAbc, int argc, char **argv );
-static int Scl_CommandPrintBuf( Abc_Frame_t * pAbc, int argc, char **argv );
+static int Scl_CommandReadLib    ( Abc_Frame_t * pAbc, int argc, char **argv );
+static int Scl_CommandWriteLib   ( Abc_Frame_t * pAbc, int argc, char **argv );
+static int Scl_CommandReadScl    ( Abc_Frame_t * pAbc, int argc, char **argv );
+static int Scl_CommandWriteScl   ( Abc_Frame_t * pAbc, int argc, char **argv );
+static int Scl_CommandPrintLib   ( Abc_Frame_t * pAbc, int argc, char **argv );
+static int Scl_CommandDumpGen    ( Abc_Frame_t * pAbc, int argc, char **argv );
+static int Scl_CommandPrintGS    ( Abc_Frame_t * pAbc, int argc, char **argv );
+static int Scl_CommandStime      ( Abc_Frame_t * pAbc, int argc, char **argv );
+static int Scl_CommandTopo       ( Abc_Frame_t * pAbc, int argc, char **argv );
+static int Scl_CommandBuffer     ( Abc_Frame_t * pAbc, int argc, char **argv );
+static int Scl_CommandBufSize    ( Abc_Frame_t * pAbc, int argc, char **argv );
+static int Scl_CommandUnBuffer   ( Abc_Frame_t * pAbc, int argc, char **argv );
+static int Scl_CommandMinsize    ( Abc_Frame_t * pAbc, int argc, char **argv );
+static int Scl_CommandMaxsize    ( Abc_Frame_t * pAbc, int argc, char **argv );
+static int Scl_CommandUpsize     ( Abc_Frame_t * pAbc, int argc, char **argv );
+static int Scl_CommandDnsize     ( Abc_Frame_t * pAbc, int argc, char **argv );
+static int Scl_CommandBsize      ( Abc_Frame_t * pAbc, int argc, char **argv );
+static int Scl_CommandPrintBuf   ( Abc_Frame_t * pAbc, int argc, char **argv );
+static int Scl_CommandSetConstr  ( Abc_Frame_t * pAbc, int argc, char **argv );
+static int Scl_CommandPrintConstr( Abc_Frame_t * pAbc, int argc, char **argv );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -87,24 +89,26 @@ void Abc_SclLoad( SC_Lib * pLib, SC_Lib ** ppScl )
 ***********************************************************************/
 void Scl_Init( Abc_Frame_t * pAbc )
 {
-    Cmd_CommandAdd( pAbc, "SCL mapping",  "read_lib",    Scl_CommandReadLib,  0 ); 
-    Cmd_CommandAdd( pAbc, "SCL mapping",  "write_lib",   Scl_CommandWriteLib, 0 ); 
-    Cmd_CommandAdd( pAbc, "SCL mapping",  "print_lib",   Scl_CommandPrintLib, 0 ); 
-    Cmd_CommandAdd( pAbc, "SCL mapping",  "read_scl",    Scl_CommandReadScl,  0 ); 
-    Cmd_CommandAdd( pAbc, "SCL mapping",  "write_scl",   Scl_CommandWriteScl, 0 ); 
-    Cmd_CommandAdd( pAbc, "SCL mapping",  "dump_genlib", Scl_CommandDumpGen,  0 ); 
-    Cmd_CommandAdd( pAbc, "SCL mapping",  "print_gs",    Scl_CommandPrintGS,  0 ); 
-    Cmd_CommandAdd( pAbc, "SCL mapping",  "stime",       Scl_CommandStime,    0 ); 
-    Cmd_CommandAdd( pAbc, "SCL mapping",  "topo",        Scl_CommandTopo,     1 ); 
-    Cmd_CommandAdd( pAbc, "SCL mapping",  "buffer",      Scl_CommandBuffer,   1 ); 
-    Cmd_CommandAdd( pAbc, "SCL mapping",  "bufsize",     Scl_CommandBufSize,  1 ); 
-    Cmd_CommandAdd( pAbc, "SCL mapping",  "unbuffer",    Scl_CommandUnBuffer, 1 ); 
-    Cmd_CommandAdd( pAbc, "SCL mapping",  "minsize",     Scl_CommandMinsize,  1 ); 
-    Cmd_CommandAdd( pAbc, "SCL mapping",  "maxsize",     Scl_CommandMaxsize,  1 ); 
-    Cmd_CommandAdd( pAbc, "SCL mapping",  "upsize",      Scl_CommandUpsize,   1 ); 
-    Cmd_CommandAdd( pAbc, "SCL mapping",  "dnsize",      Scl_CommandDnsize,   1 ); 
-    Cmd_CommandAdd( pAbc, "SCL mapping",  "bsize",       Scl_CommandBsize,    1 ); 
-    Cmd_CommandAdd( pAbc, "SCL mapping",  "print_buf",   Scl_CommandPrintBuf, 0 ); 
+    Cmd_CommandAdd( pAbc, "SCL mapping",  "read_lib",      Scl_CommandReadLib,    0 ); 
+    Cmd_CommandAdd( pAbc, "SCL mapping",  "write_lib",     Scl_CommandWriteLib,   0 ); 
+    Cmd_CommandAdd( pAbc, "SCL mapping",  "print_lib",     Scl_CommandPrintLib,   0 ); 
+    Cmd_CommandAdd( pAbc, "SCL mapping",  "read_scl",      Scl_CommandReadScl,    0 ); 
+    Cmd_CommandAdd( pAbc, "SCL mapping",  "write_scl",     Scl_CommandWriteScl,   0 ); 
+    Cmd_CommandAdd( pAbc, "SCL mapping",  "dump_genlib",   Scl_CommandDumpGen,    0 ); 
+    Cmd_CommandAdd( pAbc, "SCL mapping",  "print_gs",      Scl_CommandPrintGS,    0 ); 
+    Cmd_CommandAdd( pAbc, "SCL mapping",  "stime",         Scl_CommandStime,      0 ); 
+    Cmd_CommandAdd( pAbc, "SCL mapping",  "topo",          Scl_CommandTopo,       1 ); 
+    Cmd_CommandAdd( pAbc, "SCL mapping",  "buffer",        Scl_CommandBuffer,     1 ); 
+    Cmd_CommandAdd( pAbc, "SCL mapping",  "bufsize",       Scl_CommandBufSize,    1 ); 
+    Cmd_CommandAdd( pAbc, "SCL mapping",  "unbuffer",      Scl_CommandUnBuffer,   1 ); 
+    Cmd_CommandAdd( pAbc, "SCL mapping",  "minsize",       Scl_CommandMinsize,    1 ); 
+    Cmd_CommandAdd( pAbc, "SCL mapping",  "maxsize",       Scl_CommandMaxsize,    1 ); 
+    Cmd_CommandAdd( pAbc, "SCL mapping",  "upsize",        Scl_CommandUpsize,     1 ); 
+    Cmd_CommandAdd( pAbc, "SCL mapping",  "dnsize",        Scl_CommandDnsize,     1 ); 
+    Cmd_CommandAdd( pAbc, "SCL mapping",  "bsize",         Scl_CommandBsize,      1 ); 
+    Cmd_CommandAdd( pAbc, "SCL mapping",  "print_buf",     Scl_CommandPrintBuf,   0 ); 
+    Cmd_CommandAdd( pAbc, "SCL mapping",  "set_constr",    Scl_CommandSetConstr,  0 ); 
+    Cmd_CommandAdd( pAbc, "SCL mapping",  "print_constr",  Scl_CommandPrintConstr,0 ); 
 }
 void Scl_End( Abc_Frame_t * pAbc )
 {
@@ -1767,6 +1771,103 @@ usage:
     fprintf( pAbc->Err, "\t           prints buffers trees of the current design\n" );
     fprintf( pAbc->Err, "\t-v       : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pAbc->Err, "\t-h       : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Scl_CommandSetConstr( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Abc_SclReadTimingConstr( Abc_Frame_t * pAbc, char * pFileName, int fVerbose );
+    FILE * pFile;
+    char * pFileName;
+    int c, fVerbose = 0;
+
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( argc != globalUtilOptind + 1 )
+        goto usage;
+
+    // get the input file name
+    pFileName = argv[globalUtilOptind];
+    if ( (pFile = fopen( pFileName, "rb" )) == NULL )
+    {
+        fprintf( pAbc->Err, "Cannot open input file \"%s\". \n", pFileName );
+        return 1;
+    }
+    fclose( pFile );
+    Abc_SclReadTimingConstr( pAbc, pFileName, fVerbose );
+    return 0;
+
+usage:
+    fprintf( pAbc->Err, "usage: set_constr [-vh] <file>\n" );
+    fprintf( pAbc->Err, "\t         sets timing constraints for standard-cell designs\n" );
+    fprintf( pAbc->Err, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( pAbc->Err, "\t-h     : prints the command summary\n" );
+    fprintf( pAbc->Err, "\t<file> : the name of a file to read\n" );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Scl_CommandPrintConstr( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    int c, fVerbose = 0;
+
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    printf( "Primary input driving cell = %s\n", Abc_FrameReadDrivingCell() );
+    printf( "Primary output maximum load = %f\n", Abc_FrameReadMaxLoad() );
+    return 0;
+
+usage:
+    fprintf( pAbc->Err, "usage: print_constr [-vh] <file>\n" );
+    fprintf( pAbc->Err, "\t         prints current timing constraints\n" );
+    fprintf( pAbc->Err, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( pAbc->Err, "\t-h     : prints the command summary\n" );
+    fprintf( pAbc->Err, "\t<file> : the name of a file to read\n" );
     return 1;
 }
 

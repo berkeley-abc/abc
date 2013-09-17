@@ -93,6 +93,9 @@ struct Abc_Frame_t_
     void *          pLibSuper;     // the current supergate library
     void *          pLibVer;       // the current Verilog library
     void *          pLibScl;       // the current Liberty library
+    // timing constraints
+    char *          pDrivingCell;  // name of the driving cell
+    float           MaxLoad;       // maximum output load
 
     // new code
     Gia_Man_t *     pGia;          // alternative current network as a light-weight AIG
