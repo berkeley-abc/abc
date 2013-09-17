@@ -182,13 +182,11 @@ void If_ManComputeRequired( If_Man_t * p )
         {
             // get the global required times
             p->RequiredGlo = If_ManDelayMax( p, 0 );
-/*
-            ////////////////////////////////////////
-            // redefine the delay target (positive number means percentage)    
-            if ( p->pPars->DelayTarget > 0 )
-                p->pPars->DelayTarget = p->RequiredGlo * (100.0 + p->pPars->DelayTarget) / 100.0; 
-            ////////////////////////////////////////
-*/
+
+            // find new delay target
+            if ( p->pPars->nRelaxRatio && p->pPars->DelayTargetNew == 0 )
+                p->pPars->DelayTargetNew = p->RequiredGlo * (100.0 + p->pPars->nRelaxRatio) / 100.0; 
+
             // update the required times according to the target
             if ( p->pPars->DelayTarget != -1 )
             {
@@ -210,6 +208,8 @@ void If_ManComputeRequired( If_Man_t * p )
                     p->RequiredGlo = p->pPars->DelayTarget;
                 }
             }
+            else if ( p->pPars->DelayTargetNew > 0 ) // relax the required times 
+                p->RequiredGlo = p->pPars->DelayTargetNew;
             // do not propagate required times if area minimization is requested
             if ( p->pPars->fAreaOnly ) 
                 return;
@@ -239,6 +239,11 @@ void If_ManComputeRequired( If_Man_t * p )
     {
         // get the global required times
         p->RequiredGlo = If_ManDelayMax( p, 0 );
+
+        // find new delay target
+        if ( p->pPars->nRelaxRatio && p->pPars->DelayTargetNew == 0 )
+            p->pPars->DelayTargetNew = p->RequiredGlo * (100.0 + p->pPars->nRelaxRatio) / 100.0; 
+
         // update the required times according to the target
         if ( p->pPars->DelayTarget != -1 )
         {
@@ -260,6 +265,9 @@ void If_ManComputeRequired( If_Man_t * p )
                 p->RequiredGlo = p->pPars->DelayTarget;
             }
         }
+        else if ( p->pPars->DelayTargetNew > 0 ) // relax the required times 
+            p->RequiredGlo = p->pPars->DelayTargetNew;
+
         // do not propagate required times if area minimization is requested
         if ( p->pPars->fAreaOnly ) 
             return;

@@ -102,6 +102,7 @@ struct If_Par_t_
     int                nNonDecLimit;  // the max size of non-dec nodes
     float              DelayTarget;   // delay target
     float              Epsilon;       // value used in comparison floating point numbers
+    int                nRelaxRatio;   // delay relaxation ratio
     int                fPreprocess;   // preprossing
     int                fArea;         // area-oriented mapping
     int                fFancy;        // a fancy feature
@@ -141,6 +142,7 @@ struct If_Par_t_
     int                nLatchesCoBox; // the number of white box inputs among the COs
     int                fLiftLeaves;   // shift the leaves for seq mapping
     int                fUseCoAttrs;   // use CO attributes
+    float              DelayTargetNew;// new delay target
     float              FinalDelay;    // final delay after mapping
     If_LibLut_t *      pLutLib;       // the LUT library
     float *            pTimesArr;     // arrival times
