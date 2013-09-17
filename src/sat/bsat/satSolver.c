@@ -888,10 +888,10 @@ int sat_solver_propagate(sat_solver* s)
 
     //printf("sat_solver_propagate\n");
     while (hConfl == 0 && s->qtail - s->qhead > 0){
-        lit   p     = s->trail[s->qhead++];
-        int   v     = lit_var(p);
+        lit p = s->trail[s->qhead++];
 
 #ifdef TEST_CNF_LOAD
+        int v = lit_var(p);
         if ( s->pCnfFunc )
         {
             if ( lit_sign(p) )
