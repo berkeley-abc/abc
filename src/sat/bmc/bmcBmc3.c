@@ -64,6 +64,8 @@ struct Gia_ManBmc_t_
     char * pSopSizes, ** pSops;    // CNF representation
 };
 
+extern int Gia_ManToBridgeResult( FILE * pFile, int Result, Abc_Cex_t * pCex, int iPoProved );
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -1424,6 +1426,11 @@ clkOther += Abc_Clock() - clk2;
                         nOutDigits, i, f, nOutDigits, pPars->nFailOuts, nOutDigits, Saig_ManPoNum(pAig) );
                 if ( p->vCexes == NULL )
                     p->vCexes = Vec_PtrStart( Saig_ManPoNum(pAig) );
+                if ( p->pPars->fUseBridge )
+                {
+                    Abc_Cex_t * pCexNew = Abc_CexMakeTriv( Aig_ManRegNum(pAig), Saig_ManPiNum(pAig), Saig_ManPoNum(pAig), f*Saig_ManPoNum(pAig)+i );
+                    Gia_ManToBridgeResult( stdout, 0, pCexNew, pCexNew->iPo );
+                }
                 Vec_PtrWriteEntry( p->vCexes, i, pPars->fStoreCex ? Abc_CexMakeTriv( Aig_ManRegNum(pAig), Saig_ManPiNum(pAig), Saig_ManPoNum(pAig), f*Saig_ManPoNum(pAig)+i ) : (void *)(ABC_PTRINT_T)1 );
                 if ( pPars->pFuncOnFail && pPars->pFuncOnFail(i, pPars->fStoreCex ? (Abc_Cex_t *)Vec_PtrEntry(p->vCexes, i) : NULL) )
                 {
@@ -1514,6 +1521,11 @@ nTimeSat += Abc_Clock() - clk2;
                         nOutDigits, i, f, nOutDigits, pPars->nFailOuts, nOutDigits, Saig_ManPoNum(pAig) );
                 if ( p->vCexes == NULL )
                     p->vCexes = Vec_PtrStart( Saig_ManPoNum(pAig) );
+                if ( p->pPars->fUseBridge )
+                {
+                    Abc_Cex_t * pCexNew = Saig_ManGenerateCex( p, f, i );
+                    Gia_ManToBridgeResult( stdout, 0, pCexNew, pCexNew->iPo );
+                }
                 Vec_PtrWriteEntry( p->vCexes, i, pPars->fStoreCex? Saig_ManGenerateCex( p, f, i ) : (void *)(ABC_PTRINT_T)1 );
                 if ( pPars->pFuncOnFail && pPars->pFuncOnFail(i, pPars->fStoreCex ? (Abc_Cex_t *)Vec_PtrEntry(p->vCexes, i) : NULL) )
                 {

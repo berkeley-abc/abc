@@ -21901,6 +21901,7 @@ int Abc_CommandBmc3( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Constraints have to be folded (use \"fold\").\n" );
         return 0;
     }
+    pPars->fUseBridge = pAbc->fBridgeMode;
     pAbc->Status = Abc_NtkDarBmc3( pNtk, pPars, fOrDecomp );
     pAbc->nFrames = pNtk->vSeqModelVec ? -1 : pPars->iFrame;
     if ( pLogFileName )
