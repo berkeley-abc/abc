@@ -101,7 +101,7 @@ Abc_Ntk_t * Io_ReadNetlist( char * pFileName, Io_FileType_t FileType, int fCheck
     Abc_Ntk_t * pNtk;
     if ( FileType == IO_FILE_NONE || FileType == IO_FILE_UNKNOWN )
     {
-        fprintf( stdout, "The generic file reader requires a known file extension.\n" );
+        fprintf( stdout, "Generic file reader requires a known file extension to open \"%s\".\n", pFileName );
         return NULL;
     }
     // check if the file exists

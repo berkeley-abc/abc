@@ -202,24 +202,6 @@ int Abc_SclCountMinSize( SC_Lib * pLib, Abc_Ntk_t * p, int fUseMax )
 
 /**Function*************************************************************
 
-  Synopsis    [Returns gate formula by name.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-char * Abc_SclFindGateFormula( char * pGateName, char * pOutName )
-{
-    Mio_Library_t * pLib = (Mio_Library_t *)Abc_FrameReadLibGen();
-    Mio_Gate_t * pGate = Mio_LibraryReadGateByName( pLib, pGateName, pOutName );
-    return Mio_GateReadForm(pGate);
-}
-
-/**Function*************************************************************
-
   Synopsis    [Reads timing constraints.]
 
   Description []

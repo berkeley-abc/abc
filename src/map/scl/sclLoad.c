@@ -115,7 +115,7 @@ void Abc_SclComputeLoad( SC_Man * p )
         }
     }
     // add PO load
-    Abc_NtkForEachPo( p->pNtk, pObj, i )
+    Abc_NtkForEachCo( p->pNtk, pObj, i )
     {
         SC_Pair * pLoadPo = Abc_SclObjLoad( p, pObj );
         SC_Pair * pLoad = Abc_SclObjLoad( p, Abc_ObjFanin0(pObj) );

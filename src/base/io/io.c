@@ -210,6 +210,8 @@ int IoCommandRead( Abc_Frame_t * pAbc, int argc, char ** argv )
         sprintf( Command, "read_scl %s", pFileName );
     else if ( !strcmp( Extra_FileNameExtension(pFileName), "super" ) )
         sprintf( Command, "read_super %s", pFileName );
+    else if ( !strcmp( Extra_FileNameExtension(pFileName), "constr" ) )
+        sprintf( Command, "read_constr %s", pFileName );
     else if ( !strcmp( Extra_FileNameExtension(pFileName), "c" ) )
         sprintf( Command, "so %s", pFileName );
     if ( Command[0] )

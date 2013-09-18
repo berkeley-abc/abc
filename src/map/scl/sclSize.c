@@ -136,7 +136,7 @@ void Abc_SclTimeNtkPrint( SC_Man * p, int fShowAll, int fPrintPath )
     printf( "WireLoad = \"%s\"  ", p->pWLoadUsed ? p->pWLoadUsed->pName : "none" );
     printf( "Gates =%7d ",         Abc_NtkNodeNum(p->pNtk) );
     printf( "(%5.1f %%)   ",       100.0 * Abc_SclGetBufInvCount(p->pNtk) / Abc_NtkNodeNum(p->pNtk) );
-    printf( "Cap =%5.1f ff ",      p->EstLoadAve );
+    printf( "Cap =%5.1f ff ",      SC_LibCapFf(p->pLib, p->EstLoadAve) );
     printf( "(%5.1f %%)   ",       Abc_SclGetAverageSize(p->pNtk) );
     printf( "Area =%12.2f ",       Abc_SclGetTotalArea(p->pNtk) );
     printf( "(%5.1f %%)   ",       100.0 * Abc_SclCountMinSize(p->pLib, p->pNtk, 0) / Abc_NtkNodeNum(p->pNtk) );
