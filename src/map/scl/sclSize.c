@@ -225,6 +225,16 @@ static inline float Abc_SclObjLoadValue( SC_Man * p, Abc_Obj_t * pObj )
 //    float Value = Abc_MaxFloat(pLoad->fall, pLoad->rise) / (p->EstLoadAve * p->EstLoadMax);
     return (0.5 * Abc_SclObjLoad(p, pObj)->fall + 0.5 * Abc_SclObjLoad(p, pObj)->rise) / (p->EstLoadAve * p->EstLoadMax);
 }
+static inline void Abc_SclTimeCi( SC_Man * p, Abc_Obj_t * pObj )
+{
+    if ( p->pPiDrive != NULL )
+    {
+        SC_Pair * pLoad = Abc_SclObjLoad( p, pObj );
+        SC_Pair * pTime = Abc_SclObjTime( p, pObj );
+        SC_Pair * pSlew = Abc_SclObjSlew( p, pObj );
+        Scl_LibHandleInputDriver( p->pPiDrive, pLoad, pTime, pSlew );
+    }
+}
 void Abc_SclTimeNode( SC_Man * p, Abc_Obj_t * pObj, int fDept )
 {
     SC_Timing * pTime;
@@ -237,6 +247,12 @@ void Abc_SclTimeNode( SC_Man * p, Abc_Obj_t * pObj, int fDept )
     float DeptFall = 0;
     float Value = p->EstLoadMax ? Abc_SclObjLoadValue( p, pObj ) : 0;
     Abc_Obj_t * pFanin;
+    if ( Abc_ObjIsCi(pObj) )
+    {
+        assert( !fDept );
+        Abc_SclTimeCi( p, pObj );
+        return;
+    }
     if ( Abc_ObjIsCo(pObj) )
     {
         if ( !fDept )
@@ -319,6 +335,8 @@ void Abc_SclTimeNtkRecompute( SC_Man * p, float * pArea, float * pDelay, int fRe
     Abc_SclComputeLoad( p );
     Abc_SclManCleanTime( p );
     p->nEstNodes = 0;
+    Abc_NtkForEachCi( p->pNtk, pObj, i )
+        Abc_SclTimeNode( p, pObj, 0 );
     Abc_NtkForEachNode1( p->pNtk, pObj, i )
         Abc_SclTimeNode( p, pObj, 0 );
     Abc_NtkForEachCo( p->pNtk, pObj, i )
@@ -376,7 +394,8 @@ static inline void Abc_SclTimeIncAddFanins( SC_Man * p, Abc_Obj_t * pObj )
     Abc_Obj_t * pFanin;
     int i;
     Abc_ObjForEachFanin( pObj, pFanin, i )
-        if ( !pFanin->fMarkC && Abc_ObjIsNode(pFanin) )
+//        if ( !pFanin->fMarkC && Abc_ObjIsNode(pFanin) )
+        if ( !pFanin->fMarkC )
             Abc_SclTimeIncAddNode( p, pFanin );
 }
 static inline void Abc_SclTimeIncAddFanouts( SC_Man * p, Abc_Obj_t * pObj )

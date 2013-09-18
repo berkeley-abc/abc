@@ -256,6 +256,7 @@ static inline void Abc_SclManCleanTime( SC_Man * p )
     memset( p->pTimes, 0, sizeof(SC_Pair) * p->nObjs );
     memset( p->pSlews, 0, sizeof(SC_Pair) * p->nObjs );
     memset( p->pDepts, 0, sizeof(SC_Pair) * p->nObjs );
+/*
     if ( p->pPiDrive != NULL )
     {
         SC_Pair * pSlew, * pTime, * pLoad;
@@ -269,6 +270,7 @@ static inline void Abc_SclManCleanTime( SC_Man * p )
             Scl_LibHandleInputDriver( p->pPiDrive, pLoad, pTime, pSlew );
         }
     }
+*/
 }
 
 

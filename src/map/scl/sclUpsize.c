@@ -222,7 +222,8 @@ void Abc_SclFindNodesToUpdate( Abc_Obj_t * pPivot, Vec_Int_t ** pvNodes, Vec_Int
     // collect fanins, node, and fanouts
     Vec_IntClear( vNodes );
     Abc_ObjForEachFanin( pPivot, pNext, i )
-        if ( Abc_ObjIsNode(pNext) && Abc_ObjFaninNum(pNext) > 0 )
+//        if ( Abc_ObjIsNode(pNext) && Abc_ObjFaninNum(pNext) > 0 )
+        if ( Abc_ObjIsCi(pNext) || Abc_ObjFaninNum(pNext) > 0 )
             Vec_IntPush( vNodes, Abc_ObjId(pNext) );
     Vec_IntPush( vNodes, Abc_ObjId(pPivot) );
     if ( pExtra )
