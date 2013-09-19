@@ -1210,7 +1210,7 @@ Vec_Str_t * Scl_LibertyReadSclStr( Scl_Tree_t * p, int fVerbose, int fVeryVerbos
             continue;
         // top level information
         Vec_StrPutS_( vOut, Scl_LibertyReadString(p, pCell->Head) );
-        Vec_StrPutF_( vOut, atof(Scl_LibertyReadCellArea(p, pCell)) );
+        Vec_StrPutF_( vOut, Scl_LibertyReadCellArea(p, pCell) ? atof(Scl_LibertyReadCellArea(p, pCell)) : 1 );
         Vec_StrPutI_( vOut, Scl_LibertyReadDeriveStrength(p, pCell) );
         // pin count
         nOutputs = Scl_LibertyReadCellOutputNum( p, pCell );
