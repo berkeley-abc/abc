@@ -1658,6 +1658,12 @@ int Gia_ManPerformGla( Gia_Man_t * pAig, Abs_Par_t * pPars )
                     Vec_IntFree( vPPis );
                     if ( pPars->fVerbose )
                         Ga2_ManAbsPrintFrame( p, f, sat_solver2_nconflicts(p->pSat)-nConflsBeg, c+1, Abc_Clock() - clk, 0 );
+                    // check if the number of objects is below limit
+                    if ( Vec_IntSize(p->vAbs) >= p->nMarked * (100 - pPars->nRatioMin/2) / 100 )
+                    {
+                        Status = l_Undef;
+                        goto finish;
+                    }
                     continue;
                 }
                 p->timeUnsat += Abc_Clock() - clk2;
@@ -1823,6 +1829,8 @@ finish:
             Abc_Print( 1, "GLA exceeded %d conflicts in frame %d with a %d-stable abstraction.  ", pPars->nConfLimit, p->pPars->iFrameProved+1, p->pPars->nFramesNoChange );
         else if ( Vec_IntSize(p->vAbs) >= p->nMarked * (100 - pPars->nRatioMin) / 100 )
             Abc_Print( 1, "GLA found the ratio of abstracted objects to exceed %d %% in frame %d.  ", pPars->nRatioMin, p->pPars->iFrameProved+1 );
+        else if ( Vec_IntSize(p->vAbs) >= p->nMarked * (100 - pPars->nRatioMin/2) / 100 )
+            Abc_Print( 1, "GLA found the ratio of abstracted objects during refinement to exceed %d %% in frame %d.  ", pPars->nRatioMin/2, p->pPars->iFrameProved+1 );
         else
             Abc_Print( 1, "GLA finished %d frames and produced a %d-stable abstraction.  ", p->pPars->iFrameProved+1, p->pPars->nFramesNoChange );
         p->pPars->iFrame = p->pPars->iFrameProved;
