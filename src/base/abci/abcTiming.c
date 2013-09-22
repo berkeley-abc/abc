@@ -343,7 +343,7 @@ void Abc_NtkTimeInitialize( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkOld )
         pTime = ppTimes[pObj->Id];
         if ( Abc_MaxFloat(pTime->Fall, pTime->Rise) != -ABC_INFINITY )
             continue;
-        *pTime = pNtkOld ? *Abc_NodeReadArrival(Abc_NtkPi(pNtkOld, i)) : pNtk->pManTime->tArrDef;
+        *pTime = pNtkOld ? *Abc_NodeReadArrival(Abc_NtkCi(pNtkOld, i)) : pNtk->pManTime->tArrDef;
     }
     // set the default timing
     ppTimes = (Abc_Time_t **)pNtk->pManTime->vReqs->pArray;
@@ -352,7 +352,7 @@ void Abc_NtkTimeInitialize( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkOld )
         pTime = ppTimes[pObj->Id];
         if ( Abc_MaxFloat(pTime->Fall, pTime->Rise) != ABC_INFINITY )
             continue;
-        *pTime = pNtkOld ? *Abc_NodeReadRequired(Abc_NtkPo(pNtkOld, i)) : pNtk->pManTime->tReqDef;
+        *pTime = pNtkOld ? *Abc_NodeReadRequired(Abc_NtkCo(pNtkOld, i)) : pNtk->pManTime->tReqDef;
     }
     // set the 0 arrival times for latch outputs and constant nodes
     ppTimes = (Abc_Time_t **)pNtk->pManTime->vArrs->pArray;

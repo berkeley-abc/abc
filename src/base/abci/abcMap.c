@@ -765,6 +765,164 @@ Abc_Obj_t * Abc_NtkFetchTwinNode( Abc_Obj_t * pNode )
 }
 
 
+/**Function*************************************************************
+
+  Synopsis    [Dumps mapped network in the mini-mapped format.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Abc_NtkWriteMiniMapping( Abc_Ntk_t * pNtk )
+{
+    Vec_Ptr_t * vNodes;
+    Vec_Int_t * vMapping;
+    Vec_Str_t * vGates;
+    Abc_Obj_t * pObj, * pFanin;
+    int i, k, nNodes, nFanins, nExtra, * pArray;
+    assert( Abc_NtkHasMapping(pNtk) );
+    // collect nodes in the DFS order
+    vNodes = Abc_NtkDfs( pNtk, 0 );
+    // assign unique numbers
+    nNodes = nFanins = 0;
+    Abc_NtkForEachCi( pNtk, pObj, i )
+        pObj->iTemp = nNodes++;
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
+        pObj->iTemp = nNodes++, nFanins += Abc_ObjFaninNum(pObj);
+    // allocate attay to store mapping (4 counters + N entries
+    vMapping = Vec_IntAlloc( 4 + Abc_NtkNodeNum(pNtk) + nFanins + Abc_NtkCoNum(pNtk) );
+    // write the numbers of CI/CO/Node/FF
+    Vec_IntPush( vMapping, Abc_NtkCiNum(pNtk) );
+    Vec_IntPush( vMapping, Abc_NtkCoNum(pNtk) );
+    Vec_IntPush( vMapping, Abc_NtkNodeNum(pNtk) );
+    Vec_IntPush( vMapping, Abc_NtkLatchNum(pNtk) );
+    // write the nodes
+    vGates = Vec_StrAlloc( 10000 );
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
+    {
+        Vec_IntPush( vMapping, Abc_ObjFaninNum(pObj) );
+        Abc_ObjForEachFanin( pObj, pFanin, k )
+            Vec_IntPush( vMapping, pFanin->iTemp );
+        Vec_StrPrintStr( vGates, Mio_GateReadName((Mio_Gate_t *)pObj->pData) );
+        Vec_StrPush( vGates, '\0' );
+    }
+    // write the COs literals
+    Abc_NtkForEachCo( pNtk, pObj, i )
+        Vec_IntPush( vMapping, Abc_ObjFanin0(pObj)->iTemp );
+    // finish off the array
+    nExtra = 4 - Vec_StrSize(vGates) % 4;
+    for ( i = 0; i < nExtra; i++ )
+        Vec_StrPush( vGates, '\0' );
+    // add gates to the array
+    assert( Vec_StrSize(vGates) % 4 == 0 );
+    nExtra = Vec_StrSize(vGates) / 4;
+    pArray = (int *)Vec_StrArray(vGates);
+    for ( i = 0; i < nExtra; i++ )
+        Vec_IntPush( vMapping, pArray[i] );
+    // cleanup and return
+    Vec_PtrFree( vNodes );
+    Vec_StrFree( vGates );
+    return vMapping;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Prints mapped network represented in mini-mapped format.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkPrintMiniMapping( int * pArray )
+{
+    int nCis, nCos, nNodes, nFlops;
+    int i, k, nLeaves, Pos = 4;
+    char * pBuffer, * pName;
+    nCis = pArray[0];
+    nCos = pArray[1];
+    nNodes = pArray[2];
+    nFlops = pArray[3];
+    printf( "Mapped network has %d CIs, %d COs, %d gates, and %d flops.\n", nCis, nCos, nNodes, nFlops );
+    printf( "The first %d object IDs (from 0 to %d) are reserved for the CIs.\n", nCis, nCis - 1 );
+    for ( i = 0; i < nNodes; i++ )
+    {
+        printf( "Node %d has fanins {", nCis + i );
+        nLeaves = pArray[Pos++];
+        for ( k = 0; k < nLeaves; k++ )
+            printf( " %d", pArray[Pos++] );
+        printf( " }\n" );
+    }
+    for ( i = 0; i < nCos; i++ )
+        printf( "CO %d is driven by node %d\n", i, pArray[Pos++] );
+    pBuffer = (char *)(pArray + Pos);
+    for ( i = 0; i < nNodes; i++ )
+    {
+        pName = pBuffer;
+        pBuffer += strlen(pName) + 1;
+        printf( "Node %d has gate \"%s\"\n", nCis + i, pName );
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [This procedure outputs an array representing mini-mapped network.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int * Abc_NtkOutputMiniMapping( Abc_Frame_t * pAbc )
+{
+    Abc_Ntk_t * pNtk;
+    Vec_Int_t * vMapping;
+    int * pArray;
+    if ( pAbc == NULL )
+        printf( "ABC framework is not initialized by calling Abc_Start()\n" );
+    pNtk = Abc_FrameReadNtk( pAbc );
+    if ( pNtk == NULL )
+        printf( "Current network in ABC framework is not defined.\n" );
+    if ( !Abc_NtkHasMapping(pNtk) )
+        printf( "Current network in ABC framework is not mapped.\n" );
+    // derive mini-mapping
+    vMapping = Abc_NtkWriteMiniMapping( pNtk );
+    pArray = Vec_IntArray( vMapping );
+    ABC_FREE( vMapping );
+    // print mini-mapping (optional)
+//    Abc_NtkPrintMiniMapping( pArray );
+    // return the array representation of mini-mapping
+    return pArray;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Test mini-mapped format.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkTestMiniMapping( Abc_Ntk_t * p )
+{
+    Vec_Int_t * vMapping;
+    vMapping = Abc_NtkWriteMiniMapping( p );
+    Abc_NtkPrintMiniMapping( Vec_IntArray(vMapping) );
+    printf( "Array has size %d ints.\n", Vec_IntSize(vMapping) );
+    Vec_IntFree( vMapping );
+}
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
