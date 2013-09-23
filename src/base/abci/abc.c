@@ -32690,7 +32690,7 @@ int Abc_CommandAbc9Gla( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c, fNewAlgo = 1;
     Abs_ParSetDefaults( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FSCLDETRPBAtfardmnscbpquwvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FSCLDETRQPBAtfardmnscbpquwvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -32780,6 +32780,17 @@ int Abc_CommandAbc9Gla( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->nRatioMin = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( pPars->nRatioMin < 0 )
+                goto usage;
+            break;
+        case 'Q':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-Q\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nRatioMin2 = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nRatioMin2 < 0 )
                 goto usage;
             break;
         case 'P':
@@ -32900,7 +32911,7 @@ int Abc_CommandAbc9Gla( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &gla [-FSCLDETRPB num] [-A file] [-fardmnscbpquwvh]\n" );
+    Abc_Print( -2, "usage: &gla [-FSCLDETRQPB num] [-A file] [-fardmnscbpquwvh]\n" );
     Abc_Print( -2, "\t          fixed-time-frame gate-level proof- and cex-based abstraction\n" );
     Abc_Print( -2, "\t-F num  : the max number of timeframes to unroll [default = %d]\n", pPars->nFramesMax );
     Abc_Print( -2, "\t-S num  : the starting time frame (0=unused) [default = %d]\n", pPars->nFramesStart );
@@ -32909,7 +32920,8 @@ usage:
     Abc_Print( -2, "\t-D num  : delta value for learned clause removal [default = %d]\n", pPars->nLearnedDelta );
     Abc_Print( -2, "\t-E num  : ratio percentage for learned clause removal [default = %d]\n", pPars->nLearnedPerce );
     Abc_Print( -2, "\t-T num  : an approximate timeout, in seconds [default = %d]\n", pPars->nTimeOut );
-    Abc_Print( -2, "\t-R num  : stop when abstraction size exceeds (100-num) percent of objects (0<=num<=100) [default = %d]\n", pPars->nRatioMin );
+    Abc_Print( -2, "\t-R num  : stop when abstraction size exceeds num %% (0<=num<=100) [default = %d]\n", pPars->nRatioMin );
+    Abc_Print( -2, "\t-Q num  : stop when abstraction size exceeds num %% during refinement (0<=num<=100) [default = %d]\n", pPars->nRatioMin2 );
     Abc_Print( -2, "\t-P num  : maximum percentage of added objects before a restart (0<=num<=100) [default = %d]\n", pPars->nRatioMax );
     Abc_Print( -2, "\t-B num  : the number of stable frames to call prover or dump abstraction [default = %d]\n", pPars->nFramesNoChangeLim );
     Abc_Print( -2, "\t-A file : file name for dumping abstrated model [default = \"glabs.aig\"]\n" );

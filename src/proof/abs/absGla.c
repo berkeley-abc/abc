@@ -1534,8 +1534,8 @@ int Gia_ManPerformGla( Gia_Man_t * pAig, Abs_Par_t * pPars )
     if ( p->pPars->fVerbose )
     {
         Abc_Print( 1, "Running gate-level abstraction (GLA) with the following parameters:\n" );
-        Abc_Print( 1, "FrameMax = %d  ConfMax = %d  Timeout = %d  RatioMin = %d %%  RatioMax = %d %%\n", 
-            pPars->nFramesMax, pPars->nConfLimit, pPars->nTimeOut, pPars->nRatioMin, pPars->nRatioMax );
+        Abc_Print( 1, "FrameMax = %d  ConfMax = %d  Timeout = %d  Limit = %d %%  Limit2 = %d %%  RatioMax = %d %%\n", 
+            pPars->nFramesMax, pPars->nConfLimit, pPars->nTimeOut, pPars->nRatioMin, pPars->nRatioMin2, pPars->nRatioMax );
         Abc_Print( 1, "LrnStart = %d  LrnDelta = %d  LrnRatio = %d %%  Skip = %d  SimpleCNF = %d  Dump = %d\n", 
             pPars->nLearnedStart, pPars->nLearnedDelta, pPars->nLearnedPerce, pPars->fUseSkip, pPars->fUseSimple, pPars->fDumpVabs|pPars->fDumpMabs );
         if ( pPars->fDumpVabs || pPars->fDumpMabs )
@@ -1659,7 +1659,7 @@ int Gia_ManPerformGla( Gia_Man_t * pAig, Abs_Par_t * pPars )
                     if ( pPars->fVerbose )
                         Ga2_ManAbsPrintFrame( p, f, sat_solver2_nconflicts(p->pSat)-nConflsBeg, c+1, Abc_Clock() - clk, 0 );
                     // check if the number of objects is below limit
-                    if ( Vec_IntSize(p->vAbs) >= p->nMarked * (100 - pPars->nRatioMin/2) / 100 )
+                    if ( pPars->nRatioMin2 && Vec_IntSize(p->vAbs) >= p->nMarked * pPars->nRatioMin2 / 100 )
                     {
                         Status = l_Undef;
                         goto finish;
@@ -1755,7 +1755,7 @@ int Gia_ManPerformGla( Gia_Man_t * pAig, Abs_Par_t * pPars )
                 Vec_IntFreeP( &pAig->vGateClasses );
                 pAig->vGateClasses = Ga2_ManAbsTranslate( p );
                 // check if the number of objects is below limit
-                if ( Vec_IntSize(p->vAbs) >= p->nMarked * (100 - pPars->nRatioMin) / 100 )
+                if ( pPars->nRatioMin && Vec_IntSize(p->vAbs) >= p->nMarked * pPars->nRatioMin / 100 )
                 {
                     Status = l_Undef;
                     goto finish;
@@ -1827,10 +1827,10 @@ finish:
             Abc_Print( 1, "GLA reached timeout %d sec in frame %d with a %d-stable abstraction.    ", p->pPars->nTimeOut, p->pPars->iFrameProved+1, p->pPars->nFramesNoChange );
         else if ( pPars->nConfLimit && sat_solver2_nconflicts(p->pSat) >= pPars->nConfLimit )
             Abc_Print( 1, "GLA exceeded %d conflicts in frame %d with a %d-stable abstraction.  ", pPars->nConfLimit, p->pPars->iFrameProved+1, p->pPars->nFramesNoChange );
-        else if ( Vec_IntSize(p->vAbs) >= p->nMarked * (100 - pPars->nRatioMin) / 100 )
-            Abc_Print( 1, "GLA found the ratio of abstracted objects to exceed %d %% in frame %d.  ", pPars->nRatioMin, p->pPars->iFrameProved+1 );
-        else if ( Vec_IntSize(p->vAbs) >= p->nMarked * (100 - pPars->nRatioMin/2) / 100 )
-            Abc_Print( 1, "GLA found the ratio of abstracted objects during refinement to exceed %d %% in frame %d.  ", pPars->nRatioMin/2, p->pPars->iFrameProved+1 );
+        else if ( pPars->nRatioMin2 && Vec_IntSize(p->vAbs) >= p->nMarked * pPars->nRatioMin2 / 100 )
+            Abc_Print( 1, "GLA found that the size of abstraction exceeds %d %% in frame %d during refinement.  ", pPars->nRatioMin2, p->pPars->iFrameProved+1 );
+        else if ( pPars->nRatioMin && Vec_IntSize(p->vAbs) >= p->nMarked * pPars->nRatioMin / 100 )
+            Abc_Print( 1, "GLA found that the size of abstraction exceeds %d %% in frame %d.  ", pPars->nRatioMin, p->pPars->iFrameProved+1 );
         else
             Abc_Print( 1, "GLA finished %d frames and produced a %d-stable abstraction.  ", p->pPars->iFrameProved+1, p->pPars->nFramesNoChange );
         p->pPars->iFrame = p->pPars->iFrameProved;

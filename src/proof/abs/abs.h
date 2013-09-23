@@ -55,7 +55,8 @@ struct Abs_Par_t_
     int            nLearnedDelta;      // delta increase of learned clauses
     int            nLearnedPerce;      // percentage of clauses to leave
     int            nTimeOut;           // timeout in seconds
-    int            nRatioMin;          // stop when less than this % of object is abstracted
+    int            nRatioMin;          // stop when less than this % of object is unabstracted
+    int            nRatioMin2;         // stop when less than this % of object is unabstracted during refinement
     int            nRatioMax;          // restart when the number of abstracted object is more than this
     int            fUseTermVars;       // use terminal variables
     int            fUseRollback;       // use rollback to the starting number of frames
