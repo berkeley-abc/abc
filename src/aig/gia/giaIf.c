@@ -668,6 +668,54 @@ int Gia_ManFromIfLogicCreateLut( Gia_Man_t * pNew, word * pRes, Vec_Int_t * vLea
     return iObjLit1;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Write mapping for LUT with given fanins.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManFromIfLogicCreateLutSpecial( Gia_Man_t * pNew, word * pRes, Vec_Int_t * vLeaves, Vec_Int_t * vLeavesTemp, Vec_Int_t * vCover, Vec_Int_t * vMapping, Vec_Int_t * vMapping2, Vec_Int_t * vPacking )
+{
+    word z = If_CutPerformDerive07( NULL, (unsigned *)pRes, Vec_IntSize(vLeaves), Vec_IntSize(vLeaves), NULL );
+    word Truth;
+    int i, iObjLit1, iObjLit2;
+    // create first LUT
+    Vec_IntClear( vLeavesTemp );
+    for ( i = 0; i < 4; i++ )
+    {
+        int v = (int)((z >> (16+(i<<2))) & 7);
+        Vec_IntPush( vLeavesTemp, Vec_IntEntry(vLeaves, v) );
+    }
+    Truth = (z & 0xffff);
+    Truth |= (Truth << 16);
+    Truth |= (Truth << 32);
+    iObjLit1 = Gia_ManFromIfLogicCreateLut( pNew, &Truth, vLeavesTemp, vCover, vMapping, vMapping2 );
+    // create second LUT
+    Vec_IntClear( vLeavesTemp );
+    for ( i = 0; i < 4; i++ )
+    {
+        int v =  (int)((z >> (48+(i<<2))) & 7);
+        if ( v == 7 )
+            Vec_IntPush( vLeavesTemp, iObjLit1 );
+        else
+            Vec_IntPush( vLeavesTemp, Vec_IntEntry(vLeaves, v) );
+    }
+    Truth = ((z >> 32) & 0xffff);
+    Truth |= (Truth << 16);
+    Truth |= (Truth << 32);
+    iObjLit2 = Gia_ManFromIfLogicCreateLut( pNew, &Truth, vLeavesTemp, vCover, vMapping, vMapping2 );
+    // write packing
+    Vec_IntPush( vPacking, 2 );
+    Vec_IntPush( vPacking, Abc_Lit2Var(iObjLit1) );
+    Vec_IntPush( vPacking, Abc_Lit2Var(iObjLit2) );
+    Vec_IntAddToEntry( vPacking, 0, 1 );
+    return iObjLit2;
+}
 
 /**Function*************************************************************
 
@@ -681,13 +729,31 @@ int Gia_ManFromIfLogicCreateLut( Gia_Man_t * pNew, word * pRes, Vec_Int_t * vLea
 
 ***********************************************************************/
 int Gia_ManFromIfLogicNode( Gia_Man_t * pNew, int iObj, Vec_Int_t * vLeaves, Vec_Int_t * vLeavesTemp, 
-    word * pRes, char * pStr, Vec_Int_t * vCover, Vec_Int_t * vMapping, Vec_Int_t * vMapping2, Vec_Int_t * vPacking, int fCheck75 )
+    word * pRes, char * pStr, Vec_Int_t * vCover, Vec_Int_t * vMapping, Vec_Int_t * vMapping2, Vec_Int_t * vPacking, int fCheck75, int fCheck44e )
 {
     int nLeaves = Vec_IntSize(vLeaves);
     int i, Length, nLutLeaf, nLutLeaf2, nLutRoot, iObjLit1, iObjLit2, iObjLit3;
     // workaround for the special case
     if ( fCheck75 )
         pStr = "54";
+    // perform special case matching for 44
+    if ( fCheck44e )
+    {
+        if ( Vec_IntSize(vLeaves) <= 4 )
+        {
+            // create mapping
+            iObjLit1 = Gia_ManFromIfLogicCreateLut( pNew, pRes, vLeaves, vCover, vMapping, vMapping2 );
+            // write packing
+            if ( !Gia_ObjIsCi(Gia_ManObj(pNew, Abc_Lit2Var(iObjLit1))) )
+            {
+                Vec_IntPush( vPacking, 1 );
+                Vec_IntPush( vPacking, Abc_Lit2Var(iObjLit1) );
+                Vec_IntAddToEntry( vPacking, 0, 1 );
+            }
+            return iObjLit1;
+        }
+        return Gia_ManFromIfLogicCreateLutSpecial( pNew, pRes, vLeaves, vLeavesTemp, vCover, vMapping, vMapping2, vPacking );
+    }
     // check if there is no LUT structures
     if ( pStr == NULL )
         return Gia_ManFromIfLogicCreateLut( pNew, pRes, vLeaves, vCover, vMapping, vMapping2 );
@@ -1045,10 +1111,12 @@ Gia_Man_t * Gia_ManFromIfLogic( If_Man_t * pIfMan )
     word Truth = 0, * pTruthTable;
     int i, k, Entry;
     assert( !pIfMan->pPars->fDeriveLuts || pIfMan->pPars->fTruth );
+    if ( pIfMan->pPars->fEnableCheck07 )
+        pIfMan->pPars->fDeriveLuts = 0;
     // start mapping and packing
     vMapping  = Vec_IntStart( If_ManObjNum(pIfMan) );
     vMapping2 = Vec_IntStart( 1 );
-    if ( pIfMan->pPars->fDeriveLuts && (pIfMan->pPars->pLutStruct || pIfMan->pPars->fEnableCheck75 || pIfMan->pPars->fEnableCheck75u) )
+    if ( pIfMan->pPars->fDeriveLuts && (pIfMan->pPars->pLutStruct || pIfMan->pPars->fEnableCheck75 || pIfMan->pPars->fEnableCheck75u || pIfMan->pPars->fEnableCheck07) )
     {
         vPacking = Vec_IntAlloc( 1000 );
         Vec_IntPush( vPacking, 0 );
@@ -1068,7 +1136,7 @@ Gia_Man_t * Gia_ManFromIfLogic( If_Man_t * pIfMan )
         {
             pCutBest = If_ObjCutBest( pIfObj );
             // perform sorting of cut leaves by delay, so that the slowest pin drives the fastest input of the LUT
-            if ( !pIfMan->pPars->fDelayOpt && !pIfMan->pPars->pLutStruct && !pIfMan->pPars->fUserRecLib && !pIfMan->pPars->nGateSize && !pIfMan->pPars->fEnableCheck75 && !pIfMan->pPars->fEnableCheck75u )
+            if ( !pIfMan->pPars->fDelayOpt && !pIfMan->pPars->pLutStruct && !pIfMan->pPars->fUserRecLib && !pIfMan->pPars->nGateSize && !pIfMan->pPars->fEnableCheck75 && !pIfMan->pPars->fEnableCheck75u && !pIfMan->pPars->fEnableCheck07 )
                 If_CutRotatePins( pIfMan, pCutBest );
             // collect leaves of the best cut
             Vec_IntClear( vLeaves );
@@ -1086,7 +1154,7 @@ Gia_Man_t * Gia_ManFromIfLogic( If_Man_t * pIfMan )
                     pTruthTable = &Truth;
                 }
                 // perform decomposition of the cut
-                pIfObj->iCopy = Gia_ManFromIfLogicNode( pNew, i, vLeaves, vLeaves2, pTruthTable, pIfMan->pPars->pLutStruct, vCover, vMapping, vMapping2, vPacking, (pIfMan->pPars->fEnableCheck75 || pIfMan->pPars->fEnableCheck75u) );
+                pIfObj->iCopy = Gia_ManFromIfLogicNode( pNew, i, vLeaves, vLeaves2, pTruthTable, pIfMan->pPars->pLutStruct, vCover, vMapping, vMapping2, vPacking, (pIfMan->pPars->fEnableCheck75 || pIfMan->pPars->fEnableCheck75u), pIfMan->pPars->fEnableCheck07 );
                 pIfObj->iCopy = Abc_LitNotCond( pIfObj->iCopy, pCutBest->fCompl );
             }
             else

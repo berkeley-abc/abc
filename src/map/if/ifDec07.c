@@ -675,6 +675,54 @@ int If_Dec7PickBestMux( word t[2], word c0r[2], word c1r[2] )
   SeeAlso     []
 
 ***********************************************************************/
+word If_CutPerformDerive07( If_Man_t * p, unsigned * pTruth, int nVars, int nLeaves, char * pStr )
+{
+    if ( nLeaves < 5 )
+        return 1;
+    if ( nLeaves == 5 )
+    {
+        word z, t = ((word *)pTruth)[0];
+//        if ( If_Dec6CheckMux(t) >= 0 )
+//            return 1;
+        z = If_Dec6Perform( t, 1 );
+        If_Dec6Verify( t, z );
+        return z;
+    }
+    if ( nLeaves == 6 )
+    {
+        word z, t = ((word *)pTruth)[0];
+//        if ( If_Dec6CheckMux(t) >= 0 )
+//            return 1;
+        z = If_Dec6Perform( t, 1 );
+        If_Dec6Verify( t, z );
+        return z;
+    }
+    if ( nLeaves == 7 )
+    {
+        word z, t[2];
+        t[0] = ((word *)pTruth)[0];
+        t[1] = ((word *)pTruth)[1];
+        if ( If_Dec7CheckMux(t) >= 0 )
+            return 1;
+        z = If_Dec7Perform( t, 1 );
+        If_Dec7Verify( t, z );
+        return z;
+    }
+    assert( 0 );
+    return 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs additional check.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int If_CutPerformCheck07( If_Man_t * p, unsigned * pTruth, int nVars, int nLeaves, char * pStr )
 {
     int fDerive = 0;
