@@ -792,8 +792,8 @@ Vec_Int_t * Abc_NtkWriteMiniMapping( Abc_Ntk_t * pNtk )
         pObj->iTemp = nNodes++;
     Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
         pObj->iTemp = nNodes++, nFanins += Abc_ObjFaninNum(pObj);
-    // allocate attay to store mapping (4 counters + N entries
-    vMapping = Vec_IntAlloc( 4 + Abc_NtkNodeNum(pNtk) + nFanins + Abc_NtkCoNum(pNtk) );
+    // allocate attay to store mapping (4 counters + fanins for each node + PO drivers + gate names)
+    vMapping = Vec_IntAlloc( 4 + Abc_NtkNodeNum(pNtk) + nFanins + Abc_NtkCoNum(pNtk) + 10000 );
     // write the numbers of CI/CO/Node/FF
     Vec_IntPush( vMapping, Abc_NtkCiNum(pNtk) );
     Vec_IntPush( vMapping, Abc_NtkCoNum(pNtk) );
@@ -806,6 +806,7 @@ Vec_Int_t * Abc_NtkWriteMiniMapping( Abc_Ntk_t * pNtk )
         Vec_IntPush( vMapping, Abc_ObjFaninNum(pObj) );
         Abc_ObjForEachFanin( pObj, pFanin, k )
             Vec_IntPush( vMapping, pFanin->iTemp );
+        // remember this gate (to be added to the mapping later)
         Vec_StrPrintStr( vGates, Mio_GateReadName((Mio_Gate_t *)pObj->pData) );
         Vec_StrPush( vGates, '\0' );
     }
@@ -904,7 +905,7 @@ int * Abc_NtkOutputMiniMapping( Abc_Frame_t * pAbc )
 
 /**Function*************************************************************
 
-  Synopsis    [Test mini-mapped format.]
+  Synopsis    [Test for mini-mapped format.]
 
   Description []
                

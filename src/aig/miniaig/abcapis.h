@@ -53,6 +53,10 @@ extern int    Cmd_CommandExecute( void * pAbc, char * pCommandLine );
 extern void   Abc_NtkInputMiniAig( void * pAbc, void * pMiniAig );
 extern void * Abc_NtkOutputMiniAig( void * pAbc );
 
+// procedures to return the mapped network
+extern int *  Abc_NtkOutputMiniMapping( Abc_Frame_t * pAbc );
+extern void   Abc_NtkPrintMiniMapping( int * pArray );
+
 // procedures to access verifization status and a counter-example
 extern int    Abc_FrameReadProbStatus( void * pAbc );   
 extern void * Abc_FrameReadCex( void * pAbc );    
