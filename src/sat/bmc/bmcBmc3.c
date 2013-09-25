@@ -232,8 +232,8 @@ void Saig_ManBmcTerSimTest( Aig_Man_t * p )
     int i;
     vInfos = Saig_ManBmcTerSim( p );
     Vec_PtrForEachEntry( unsigned *, vInfos, pInfo, i )
-        printf( "%d=%d ", i, Saig_ManBmcTerSimCount01(p, pInfo) );
-    printf( "\n" );
+        Abc_Print( 1, "%d=%d ", i, Saig_ManBmcTerSimCount01(p, pInfo) );
+    Abc_Print( 1, "\n" );
     Vec_PtrFreeFree( vInfos );
 }
 
@@ -275,8 +275,8 @@ void Saig_ManBmcCountNonternary( Aig_Man_t * p, Vec_Ptr_t * vInfos, int iFrame )
     assert( Saig_ManBmcSimInfoGet( pInfo, Aig_ManCo(p, 0) ) == SAIG_TER_UND );
     Saig_ManBmcCountNonternary_rec( p, Aig_ObjFanin0(Aig_ManCo(p, 0)), vInfos, pInfo, iFrame, pCounters );
     for ( i = 0; i <= iFrame; i++ )
-        printf( "%d=%d ", i, pCounters[i] );
-    printf( "\n" );
+        Abc_Print( 1, "%d=%d ", i, pCounters[i] );
+    Abc_Print( 1, "\n" );
     ABC_FREE( pCounters );
 }
 
@@ -309,14 +309,14 @@ Vec_Ptr_t * Saig_ManBmcTerSimPo( Aig_Man_t * p )
     for ( i = 0; ; i++ )
     {
         if ( i % 100 == 0 )
-            printf( "Frame %5d\n", i );
+            Abc_Print( 1, "Frame %5d\n", i );
         pInfo = Saig_ManBmcTerSimOne( p, pInfo );
         Vec_PtrPush( vInfos, pInfo );
         nPoBin = Saig_ManBmcTerSimCount01Po( p, pInfo );
         if ( nPoBin < Saig_ManPoNum(p) )
             break;
     }
-    printf( "Detected terminary PO in frame %d.\n", i );
+    Abc_Print( 1, "Detected terminary PO in frame %d.\n", i );
     Saig_ManBmcCountNonternary( p, vInfos, i );
     return vInfos;
 }
@@ -443,8 +443,8 @@ void Saig_ManBmcSectionsTest( Aig_Man_t * p )
     int i;
     vSects = Saig_ManBmcSections( p );
     Vec_VecForEachLevel( vSects, vOne, i )
-        printf( "%d=%d ", i, Vec_PtrSize(vOne) );
-    printf( "\n" );
+        Abc_Print( 1, "%d=%d ", i, Vec_PtrSize(vOne) );
+    Abc_Print( 1, "\n" );
     Vec_VecFree( vSects );
 }
 
@@ -547,14 +547,14 @@ void Saig_ManBmcSupergateTest( Aig_Man_t * p )
     Vec_Ptr_t * vSuper;
     Aig_Obj_t * pObj;
     int i;
-    printf( "Supergates: " );
+    Abc_Print( 1, "Supergates: " );
     Saig_ManForEachPo( p, pObj, i )
     {
         vSuper = Saig_ManBmcSupergate( p, i );
-        printf( "%d=%d(%d) ", i, Vec_PtrSize(vSuper), Saig_ManBmcCountRefed(p, vSuper) );
+        Abc_Print( 1, "%d=%d(%d) ", i, Vec_PtrSize(vSuper), Saig_ManBmcCountRefed(p, vSuper) );
         Vec_PtrFree( vSuper );
     }
-    printf( "\n" );
+    Abc_Print( 1, "\n" );
 }
 
 /**Function*************************************************************
@@ -578,7 +578,7 @@ void Saig_ManBmcWriteBlif( Aig_Man_t * p, Vec_Int_t * vMapping, char * pFileName
     pFile = fopen( pFileName, "w" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open file %s\n", pFileName );
+        Abc_Print( 1, "Cannot open file %s\n", pFileName );
         return;
     }
     fprintf( pFile, ".model test\n" );
@@ -767,10 +767,10 @@ void Saig_Bmc3ManStop( Gia_ManBmc_t * p )
     if ( p->pPars->fVerbose )
     {
         int nUsedVars = sat_solver_count_usedvars(p->pSat);
-        printf( "LStart(P) = %d  LDelta(Q) = %d  LRatio(R) = %d  ReduceDB = %d  Vars = %d  Used = %d (%.2f %%)\n", 
+        Abc_Print( 1, "LStart(P) = %d  LDelta(Q) = %d  LRatio(R) = %d  ReduceDB = %d  Vars = %d  Used = %d (%.2f %%)\n", 
             p->pSat->nLearntStart, p->pSat->nLearntDelta, p->pSat->nLearntRatio, 
             p->pSat->nDBreduces, p->pSat->size, nUsedVars, 100.0*nUsedVars/p->pSat->size );
-        printf( "Buffs = %d. Dups = %d.   Hash hits = %d.  Hash misses = %d.  UniProps = %d.\n", 
+        Abc_Print( 1, "Buffs = %d. Dups = %d.   Hash hits = %d.  Hash misses = %d.  UniProps = %d.\n", 
             p->nBufNum, p->nDupNum, p->nHashHit, p->nHashMiss, p->nUniProps );
     }
 //    Aig_ManCleanMarkA( p->pAig );
@@ -957,7 +957,7 @@ static inline void Saig_ManBmcAddClauses( Gia_ManBmc_t * p, int uTruth, int Lits
     {
         if ( i )
             uTruth = 0xffff & ~uTruth;
-//        Extra_PrintBinary( stdout, &uTruth, 16 ); printf( "\n" );
+//        Extra_PrintBinary( stdout, &uTruth, 16 ); Abc_Print( 1, "\n" );
         for ( k = 0; k < p->pSopSizes[uTruth]; k++ )
         {
             nClaLits = 0;
@@ -1323,10 +1323,10 @@ int Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars )
     p->pSat->nLearntMax   = p->pSat->nLearntStart;
     if ( pPars->fVerbose )
     {
-        printf( "Running \"bmc3\". PI/PO/Reg = %d/%d/%d. And =%7d. Lev =%6d. ObjNums =%6d. Sect =%3d.\n", 
+        Abc_Print( 1, "Running \"bmc3\". PI/PO/Reg = %d/%d/%d. And =%7d. Lev =%6d. ObjNums =%6d. Sect =%3d.\n", 
             Saig_ManPiNum(pAig), Saig_ManPoNum(pAig), Saig_ManRegNum(pAig),
             Aig_ManNodeNum(pAig), Aig_ManLevelNum(pAig), p->nObjNums, Vec_VecSize(p->vSects) );
-        printf( "Params: FramesMax = %d. Start = %d. ConfLimit = %d. TimeOut = %d. SolveAll = %d.\n", 
+        Abc_Print( 1, "Params: FramesMax = %d. Start = %d. ConfLimit = %d. TimeOut = %d. SolveAll = %d.\n", 
             pPars->nFramesMax, pPars->nStart, pPars->nConfLimit, pPars->nTimeOut, pPars->fSolveAll );
     } 
     pPars->nFramesMax = pPars->nFramesMax ? pPars->nFramesMax : ABC_INFINITY;
@@ -1390,12 +1390,12 @@ int Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars )
             // check for timeout
             if ( pPars->nTimeOutGap && pPars->timeLastSolved && Abc_Clock() > pPars->timeLastSolved + pPars->nTimeOutGap * CLOCKS_PER_SEC )
             {
-                printf( "Reached gap timeout (%d seconds).\n",  pPars->nTimeOutGap );
+                Abc_Print( 1, "Reached gap timeout (%d seconds).\n",  pPars->nTimeOutGap );
                 goto finish;
             }
             if ( nTimeToStop && Abc_Clock() > nTimeToStop )
             {
-                printf( "Reached timeout (%d seconds).\n",  pPars->nTimeOut );
+                Abc_Print( 1, "Reached timeout (%d seconds).\n",  pPars->nTimeOut );
                 goto finish;
             }
             // skip solved outputs
@@ -1416,7 +1416,7 @@ clkOther += Abc_Clock() - clk2;
                 if ( !pPars->fSolveAll )
                 {
                     Abc_Cex_t * pCex = Abc_CexMakeTriv( Aig_ManRegNum(pAig), Saig_ManPiNum(pAig), Saig_ManPoNum(pAig), f*Saig_ManPoNum(pAig)+i );
-                    printf( "Output %d is trivially SAT in frame %d.\n", i, f );
+                    Abc_Print( 1, "Output %d is trivially SAT in frame %d.\n", i, f );
                     ABC_FREE( pAig->pSeqModel );
                     pAig->pSeqModel = pCex;
                     goto finish;
@@ -1492,22 +1492,22 @@ nTimeSat += Abc_Clock() - clk2;
                 {
                     if ( pPars->fVerbose )
                     {
-                        printf( "%4d %s : ", f,  fUnfinished ? "-" : "+" );
-                        printf( "Var =%8.0f. ",  (double)p->nSatVars );
-                        printf( "Cla =%9.0f. ",  (double)p->pSat->stats.clauses );
-                        printf( "Conf =%7.0f. ", (double)p->pSat->stats.conflicts );
-//                        printf( "Imp =%10.0f. ", (double)p->pSat->stats.propagations );
-                        printf( "Uni =%7.0f. ",(double)sat_solver_count_assigned(p->pSat) );
+                        Abc_Print( 1, "%4d %s : ", f,  fUnfinished ? "-" : "+" );
+                        Abc_Print( 1, "Var =%8.0f. ",  (double)p->nSatVars );
+                        Abc_Print( 1, "Cla =%9.0f. ",  (double)p->pSat->stats.clauses );
+                        Abc_Print( 1, "Conf =%7.0f. ", (double)p->pSat->stats.conflicts );
+//                        Abc_Print( 1, "Imp =%10.0f. ", (double)p->pSat->stats.propagations );
+                        Abc_Print( 1, "Uni =%7.0f. ",(double)sat_solver_count_assigned(p->pSat) );
 //                        ABC_PRT( "Time", Abc_Clock() - clk );
-                        printf( "%4.0f MB",      4.25*(f+1)*p->nObjNums /(1<<20) );
-                        printf( "%4.0f MB",      1.0*sat_solver_memory(p->pSat)/(1<<20) );
-                        printf( "%9.2f sec  ",   (float)(Abc_Clock() - clkTotal)/(float)(CLOCKS_PER_SEC) );
-//                        printf( "\n" );
+                        Abc_Print( 1, "%4.0f MB",      4.25*(f+1)*p->nObjNums /(1<<20) );
+                        Abc_Print( 1, "%4.0f MB",      1.0*sat_solver_memory(p->pSat)/(1<<20) );
+                        Abc_Print( 1, "%9.2f sec  ",   (float)(Abc_Clock() - clkTotal)/(float)(CLOCKS_PER_SEC) );
+//                        Abc_Print( 1, "\n" );
 //                        ABC_PRMn( "Id2Var", (f+1)*p->nObjNums*4 );
 //                        ABC_PRMn( "SAT", 42 * p->pSat->size + 16 * (int)p->pSat->stats.clauses + 4 * (int)p->pSat->stats.clauses_literals );
-//                        printf( "S =%6d. ", p->nBufNum );
-//                        printf( "D =%6d. ", p->nDupNum );
-                        printf( "\n" );
+//                        Abc_Print( 1, "S =%6d. ", p->nBufNum );
+//                        Abc_Print( 1, "D =%6d. ", p->nDupNum );
+                        Abc_Print( 1, "\n" );
                         fflush( stdout );
                     }
                     ABC_FREE( pAig->pSeqModel );
@@ -1555,31 +1555,31 @@ nTimeUndec += Abc_Clock() - clk2;
             if ( fFirst == 1 && f > 0 && p->pSat->stats.conflicts > 1 )
             {
                 fFirst = 0;
-//                printf( "Outputs of frames up to %d are trivially UNSAT.\n", f );
+//                Abc_Print( 1, "Outputs of frames up to %d are trivially UNSAT.\n", f );
             }
-            printf( "%4d %s : ", f, fUnfinished ? "-" : "+" );
-            printf( "Var =%8.0f. ", (double)p->nSatVars );
-//            printf( "Used =%8.0f. ", (double)sat_solver_count_usedvars(p->pSat) );
-            printf( "Cla =%9.0f. ", (double)p->pSat->stats.clauses );
-            printf( "Conf =%7.0f. ",(double)p->pSat->stats.conflicts );
-//            printf( "Imp =%10.0f. ", (double)p->pSat->stats.propagations );
-            printf( "Uni =%7.0f. ",(double)sat_solver_count_assigned(p->pSat) );
+            Abc_Print( 1, "%4d %s : ", f, fUnfinished ? "-" : "+" );
+            Abc_Print( 1, "Var =%8.0f. ", (double)p->nSatVars );
+//            Abc_Print( 1, "Used =%8.0f. ", (double)sat_solver_count_usedvars(p->pSat) );
+            Abc_Print( 1, "Cla =%9.0f. ", (double)p->pSat->stats.clauses );
+            Abc_Print( 1, "Conf =%7.0f. ",(double)p->pSat->stats.conflicts );
+//            Abc_Print( 1, "Imp =%10.0f. ", (double)p->pSat->stats.propagations );
+            Abc_Print( 1, "Uni =%7.0f. ",(double)sat_solver_count_assigned(p->pSat) );
             if ( pPars->fSolveAll )
-                printf( "CEX =%5d. ", pPars->nFailOuts );
+                Abc_Print( 1, "CEX =%5d. ", pPars->nFailOuts );
             if ( pPars->nTimeOutOne )
-                printf( "T/O =%4d. ", pPars->nDropOuts );
+                Abc_Print( 1, "T/O =%4d. ", pPars->nDropOuts );
 //            ABC_PRT( "Time", Abc_Clock() - clk );
-//            printf( "%4.0f MB",     4.0*Vec_IntSize(p->vVisited) /(1<<20) );
-            printf( "%4.0f MB",     4.0*(f+1)*p->nObjNums /(1<<20) );
-            printf( "%4.0f MB",     1.0*sat_solver_memory(p->pSat)/(1<<20) );
-//            printf( " %6d %6d ",   p->nLitUsed, p->nLitUseless );
-            printf( "%9.2f sec ",  1.0*(Abc_Clock() - clkTotal)/CLOCKS_PER_SEC );
-//            printf( "\n" );
+//            Abc_Print( 1, "%4.0f MB",     4.0*Vec_IntSize(p->vVisited) /(1<<20) );
+            Abc_Print( 1, "%4.0f MB",     4.0*(f+1)*p->nObjNums /(1<<20) );
+            Abc_Print( 1, "%4.0f MB",     1.0*sat_solver_memory(p->pSat)/(1<<20) );
+//            Abc_Print( 1, " %6d %6d ",   p->nLitUsed, p->nLitUseless );
+            Abc_Print( 1, "%9.2f sec ",  1.0*(Abc_Clock() - clkTotal)/CLOCKS_PER_SEC );
+//            Abc_Print( 1, "\n" );
 //            ABC_PRMn( "Id2Var", (f+1)*p->nObjNums*4 );
 //            ABC_PRMn( "SAT", 42 * p->pSat->size + 16 * (int)p->pSat->stats.clauses + 4 * (int)p->pSat->stats.clauses_literals );
-//            printf( "Simples = %6d. ", p->nBufNum );
-//            printf( "Dups = %6d. ", p->nDupNum );
-            printf( "\n" );
+//            Abc_Print( 1, "Simples = %6d. ", p->nBufNum );
+//            Abc_Print( 1, "Dups = %6d. ", p->nDupNum );
+            Abc_Print( 1, "\n" );
             fflush( stdout );
         }
     }
@@ -1592,12 +1592,12 @@ nTimeUndec += Abc_Clock() - clk2;
 finish:
     if ( pPars->fVerbose )
     {
-        printf( "Runtime:  " );
-        printf( "CNF = %.1f sec (%.1f %%)  ",   1.0*clkOther/CLOCKS_PER_SEC,   100.0*clkOther/(Abc_Clock() - clkTotal)   );
-        printf( "UNSAT = %.1f sec (%.1f %%)  ", 1.0*nTimeUnsat/CLOCKS_PER_SEC, 100.0*nTimeUnsat/(Abc_Clock() - clkTotal) );
-        printf( "SAT = %.1f sec (%.1f %%)  ",   1.0*nTimeSat/CLOCKS_PER_SEC,   100.0*nTimeSat/(Abc_Clock() - clkTotal)   );
-        printf( "UNDEC = %.1f sec (%.1f %%)",   1.0*nTimeUndec/CLOCKS_PER_SEC, 100.0*nTimeUndec/(Abc_Clock() - clkTotal) );
-        printf( "\n" );
+        Abc_Print( 1, "Runtime:  " );
+        Abc_Print( 1, "CNF = %.1f sec (%.1f %%)  ",   1.0*clkOther/CLOCKS_PER_SEC,   100.0*clkOther/(Abc_Clock() - clkTotal)   );
+        Abc_Print( 1, "UNSAT = %.1f sec (%.1f %%)  ", 1.0*nTimeUnsat/CLOCKS_PER_SEC, 100.0*nTimeUnsat/(Abc_Clock() - clkTotal) );
+        Abc_Print( 1, "SAT = %.1f sec (%.1f %%)  ",   1.0*nTimeSat/CLOCKS_PER_SEC,   100.0*nTimeSat/(Abc_Clock() - clkTotal)   );
+        Abc_Print( 1, "UNDEC = %.1f sec (%.1f %%)",   1.0*nTimeUndec/CLOCKS_PER_SEC, 100.0*nTimeUndec/(Abc_Clock() - clkTotal) );
+        Abc_Print( 1, "\n" );
     }
     Saig_Bmc3ManStop( p );
     fflush( stdout );
