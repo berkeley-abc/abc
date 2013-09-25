@@ -60,6 +60,9 @@ struct Hsh_Int4Man_t_
 ////////////////////////////////////////////////////////////////////////
 
 static inline Hsh_Int4Obj_t * Hsh_Int4Obj( Hsh_Int4Man_t * p, int iObj )    { return iObj ? (Hsh_Int4Obj_t *)Vec_IntEntryP(p->vObjs, 4*iObj) : NULL;  }
+static inline int             Hsh_Int4ObjRes( Hsh_Int4Man_t * p, int i )    { return Hsh_Int4Obj(p, i)->iRes;                                         }
+static inline void            Hsh_Int4ObjInc( Hsh_Int4Man_t * p, int i )    { Hsh_Int4Obj(p, i)->iRes++;                                              }
+static inline void            Hsh_Int4ObjDec( Hsh_Int4Man_t * p, int i )    { Hsh_Int4Obj(p, i)->iRes--;                                              }
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///

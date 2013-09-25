@@ -1214,14 +1214,15 @@ void Sdm_ManDivTest()
     Vec_WrdForEachEntry( vDivs, u, i )
     {
         printf( "%2d : ", i );
-        Kit_DsdPrintFromTruth( (unsigned *)&u, 6 ); printf( "\n" );
+//        Kit_DsdPrintFromTruth( (unsigned *)&u, 6 ); 
+        printf( "\n" );
     }
 
     RetValue = Rsb_ManPerformResub6( pManRsb, 6, t, vDivs, &t0, &t1, 1 );
     if ( RetValue )
     {
-        Kit_DsdPrintFromTruth( (unsigned *)&t0, 6 ); printf( "\n" );
-        Kit_DsdPrintFromTruth( (unsigned *)&t1, 6 ); printf( "\n" );
+//        Kit_DsdPrintFromTruth( (unsigned *)&t0, 6 ); printf( "\n" );
+//        Kit_DsdPrintFromTruth( (unsigned *)&t1, 6 ); printf( "\n" );
         printf( "Decomposition exits.\n" );
     }
 
