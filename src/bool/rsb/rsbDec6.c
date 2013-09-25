@@ -334,7 +334,7 @@ int Rsb_DecInitCexes( int nVars, word * f, word ** g, int nGs, int nGsAll, word 
   SeeAlso     []
 
 ***********************************************************************/
-unsigned Rsb_DecPerformInt( Rsb_Man_t * p, int nVars, word * f, word ** g, int nGs, int nGsAll ) 
+unsigned Rsb_DecPerformInt( Rsb_Man_t * p, int nVars, word * f, word ** g, int nGs, int nGsAll, int fFindAll ) 
 {
     word * pCexes = Vec_WrdArray(p->vCexes);
     unsigned * pPat = (unsigned *)Vec_IntArray(p->vDecPats);
@@ -365,7 +365,17 @@ unsigned Rsb_DecPerformInt( Rsb_Man_t * p, int nVars, word * f, word ** g, int n
         pDivs[0] = g[i];  p->vFanins->pArray[0] = i;
         uTruth = Rsb_DecCheck( nVars, f, pDivs, Vec_IntSize(p->vFanins), pPat, &iCexA, &iCexB );
         if ( uTruth )
-            return uTruth;
+        {
+            if ( fFindAll )
+            {
+                uTruth = (unsigned)Abc_Tt6Stretch( (word)uTruth, 1 );
+                Kit_DsdPrintFromTruth( &uTruth, 1 ); printf( "   " );
+                Vec_IntPrint(p->vFanins);
+                continue;
+            }
+            else
+                return uTruth;
+        }
         if ( nCexes == 64 )
             return 0;
         Rsb_DecVerifyCex( f, pDivs, Vec_IntSize(p->vFanins), iCexA, iCexB );
@@ -388,7 +398,17 @@ unsigned Rsb_DecPerformInt( Rsb_Man_t * p, int nVars, word * f, word ** g, int n
         pDivs[1] = g[k];  p->vFanins->pArray[1] = k;
         uTruth = Rsb_DecCheck( nVars, f, pDivs, Vec_IntSize(p->vFanins), pPat, &iCexA, &iCexB );
         if ( uTruth )
-            return uTruth;
+        {
+            if ( fFindAll )
+            {
+                uTruth = (unsigned)Abc_Tt6Stretch( (word)uTruth, 2 );
+                Kit_DsdPrintFromTruth( &uTruth, 2 ); printf( "   " );
+                Vec_IntPrint(p->vFanins);
+                continue;
+            }
+            else
+                return uTruth;
+        }
         if ( nCexes == 64 )
             return 0;
         Rsb_DecVerifyCex( f, pDivs, Vec_IntSize(p->vFanins), iCexA, iCexB );
@@ -414,7 +434,17 @@ unsigned Rsb_DecPerformInt( Rsb_Man_t * p, int nVars, word * f, word ** g, int n
         pDivs[2] = g[j];  p->vFanins->pArray[2] = j;
         uTruth = Rsb_DecCheck( nVars, f, pDivs, Vec_IntSize(p->vFanins), pPat, &iCexA, &iCexB );
         if ( uTruth )
-            return uTruth;
+        {
+            if ( fFindAll )
+            {
+                uTruth = (unsigned)Abc_Tt6Stretch( (word)uTruth, 3 );
+                Kit_DsdPrintFromTruth( &uTruth, 3 ); printf( "   " );
+                Vec_IntPrint(p->vFanins);
+                continue;
+            }
+            else
+                return uTruth;
+        }
         if ( nCexes == 64 )
             return 0;
         Rsb_DecVerifyCex( f, pDivs, Vec_IntSize(p->vFanins), iCexA, iCexB );
@@ -443,7 +473,17 @@ unsigned Rsb_DecPerformInt( Rsb_Man_t * p, int nVars, word * f, word ** g, int n
         pDivs[3] = g[n];  p->vFanins->pArray[3] = n;
         uTruth = Rsb_DecCheck( nVars, f, pDivs, Vec_IntSize(p->vFanins), pPat, &iCexA, &iCexB );
         if ( uTruth )
-            return uTruth;
+        {
+            if ( fFindAll )
+            {
+                uTruth = (unsigned)Abc_Tt6Stretch( (word)uTruth, 4 );
+                Kit_DsdPrintFromTruth( &uTruth, 4 ); printf( "   " );
+                Vec_IntPrint(p->vFanins);
+                continue;
+            }
+            else
+                return uTruth;
+        }
         if ( nCexes == 64 )
             return 0;
         Rsb_DecVerifyCex( f, pDivs, Vec_IntSize(p->vFanins), iCexA, iCexB );
@@ -611,7 +651,7 @@ unsigned Rsb_ManPerform( Rsb_Man_t * p, int nVars, word * f, word ** g, int nGs,
 if ( fVerbose )
 vTries = Vec_IntAlloc( 100 );
     assert( nGs < nGsAll );
-    uTruth = Rsb_DecPerformInt( p, nVars, f, g, nGs, nGsAll );
+    uTruth = Rsb_DecPerformInt( p, nVars, f, g, nGs, nGsAll, 0 );
 
     if ( uTruth )
     {
@@ -653,12 +693,13 @@ Vec_IntFree( vTries );
 ***********************************************************************/
 int Rsb_ManPerformResub6( Rsb_Man_t * p, int nVarsAll, word uTruth, Vec_Wrd_t * vDivTruths, word * puTruth0, word * puTruth1, int fVerbose )
 {
-    word * pGs[64];
+    word * pGs[200];
     unsigned uTruthRes;
     int i, nVars, nGs = Vec_WrdSize(vDivTruths);
+    assert( nGs < 200 );
     for ( i = 0; i < nGs; i++ )
         pGs[i] = Vec_WrdEntryP(vDivTruths,i);
-    uTruthRes = Rsb_DecPerformInt( p, nVarsAll, &uTruth, pGs, nGs, nGs );
+    uTruthRes = Rsb_DecPerformInt( p, nVarsAll, &uTruth, pGs, nGs, nGs, 0 );
     if ( uTruthRes == 0 )
         return 0;
 

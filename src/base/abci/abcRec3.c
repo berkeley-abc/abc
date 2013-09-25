@@ -1035,7 +1035,15 @@ Hop_Obj_t * Abc_RecToHop3( Hop_Man_t * pMan, If_Man_t * pIfMan, If_Cut_t * pCut,
     If_CutFindBestStruct( pIfMan, pCut, pCanonPerm, &uCanonPhase, &BestPo );
     assert( BestPo >= 0 );
     pGiaPo = Gia_ManCo( pGia, BestPo );
-
+/*
+if ( If_CutLeaveNum(pCut) == 6 )
+{
+printf( "\n" );
+Kit_DsdPrintFromTruth( If_CutTruth(pCut), If_CutLeaveNum(pCut) ); printf( "\n" );
+//Gia_ManPrintCo( pGia, pGiaPo );
+Gia_ManPrintCone2( pGia, pGiaPo );
+}
+*/
     // collect internal nodes into pGia->vTtNodes
     if ( pGia->vTtNodes == NULL )
         pGia->vTtNodes = Vec_IntAlloc( 256 );

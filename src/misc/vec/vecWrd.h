@@ -1120,6 +1120,24 @@ static inline void Vec_WrdSortUnsigned( Vec_Wrd_t * p )
 }
 
 
+/**Function*************************************************************
+
+  Synopsis    [Appends the contents of the second vector.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Vec_WrdAppend( Vec_Wrd_t * vVec1, Vec_Wrd_t * vVec2 )
+{
+    word Entry; int i;
+    Vec_WrdForEachEntry( vVec2, Entry, i )
+        Vec_WrdPush( vVec1, Entry );
+}
+
 
 ABC_NAMESPACE_HEADER_END
 

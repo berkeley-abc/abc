@@ -1194,6 +1194,7 @@ void Gia_ManPrintCo( Gia_Man_t * p, Gia_Obj_t * pObj )
     Gia_ManPrintCo_rec( p, Gia_ObjFanin0(pObj) );
     Gia_ObjPrint( p, pObj );
 }
+
 void Gia_ManPrintCollect_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vNodes )
 {
     if ( Vec_IntFind(vNodes, Gia_ObjId(p, pObj)) >= 0 )
@@ -1213,6 +1214,28 @@ void Gia_ManPrintCone( Gia_Man_t * p, Gia_Obj_t * pObj, int * pLeaves, int nLeav
     printf( "GIA logic cone for node %d:\n", Gia_ObjId(p, pObj) );
     Gia_ManForEachObjVec( vNodes, p, pObj, i )
         Gia_ObjPrint( p, pObj );
+}
+
+void Gia_ManPrintCollect2_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vNodes )
+{
+    if ( Vec_IntFind(vNodes, Gia_ObjId(p, pObj)) >= 0 )
+        return;
+    if ( Gia_ObjIsCo(pObj) || Gia_ObjIsAnd(pObj) )
+        Gia_ManPrintCollect2_rec( p, Gia_ObjFanin0(pObj), vNodes );
+    if ( Gia_ObjIsAnd(pObj) )
+        Gia_ManPrintCollect2_rec( p, Gia_ObjFanin1(pObj), vNodes );
+    Vec_IntPush( vNodes, Gia_ObjId(p, pObj) );
+}
+void Gia_ManPrintCone2( Gia_Man_t * p, Gia_Obj_t * pObj )
+{
+    Vec_Int_t * vNodes;
+    int i;
+    vNodes = Vec_IntAlloc( 100 );
+    Gia_ManPrintCollect2_rec( p, pObj, vNodes );
+    printf( "GIA logic cone for node %d:\n", Gia_ObjId(p, pObj) );
+    Gia_ManForEachObjVec( vNodes, p, pObj, i )
+        Gia_ObjPrint( p, pObj );
+    Vec_IntFree( vNodes );
 }
 
 /**Function*************************************************************

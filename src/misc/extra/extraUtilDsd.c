@@ -27,6 +27,7 @@
 #include "misc/vec/vec.h"
 #include "misc/vec/vecHsh.h"
 #include "misc/util/utilTruth.h"
+#include "bool/rsb/rsb.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -1150,6 +1151,84 @@ void Sdm_ManCompareCnfSizes()
     Vec_IntFree( vMemory );
 }
 */
+
+
+/**Function*************************************************************
+
+  Synopsis    [Collect DSD divisors of the function.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Sdm_ManDivCollect_rec( word t, Vec_Wrd_t ** pvDivs )
+{
+    int i, Config, Counter = 0;
+    // check if function is decomposable
+    Config = Sdm_ManCheckDsd6( s_SdmMan, t );
+    if ( Config != -1 && (Config >> 17) < 2 )
+        return;
+    for ( i = 0; i < 6; i++ )
+    {
+        if ( !Abc_Tt6HasVar( t, i ) )
+            continue;
+        Sdm_ManDivCollect_rec( Abc_Tt6Cofactor0(t, i), pvDivs );
+        Sdm_ManDivCollect_rec( Abc_Tt6Cofactor1(t, i), pvDivs );
+        Counter++;
+    }
+    if ( Config != -1 && Counter >= 2 && Counter <= 4 )
+    {
+        Vec_WrdPush( pvDivs[Counter], (t & 1) ? ~t : t );
+//        Kit_DsdPrintFromTruth( (unsigned *)&t, 6 ); printf( "\n" );
+    }
+}
+void Sdm_ManDivTest()
+{
+//    word u, t0, t1, t = ABC_CONST(0xB0F0BBFFB0F0BAFE);
+//    word u, t0, t1, t = ABC_CONST(0x3F1F3F13FFDFFFD3);
+    word u, t0, t1, t = ABC_CONST(0x3F3FFFFF37003700);
+    Rsb_Man_t * pManRsb = Rsb_ManAlloc( 6, 200, 3, 1 );
+    Vec_Wrd_t * pvDivs[7] = { NULL };
+    Vec_Wrd_t * vDivs = Vec_WrdAlloc( 100 );
+    int i, RetValue;
+
+    // collect divisors
+    for ( i = 2; i <= 4; i++ )
+        pvDivs[i] = Vec_WrdAlloc( 100 );
+    Sdm_ManDivCollect_rec( t, pvDivs );
+    for ( i = 2; i <= 4; i++ )
+        Vec_WrdUniqify( pvDivs[i] );
+
+    // prepare the set
+    vDivs = Vec_WrdAlloc( 100 );
+    for ( i = 0; i < 6; i++ )
+        Vec_WrdPush( vDivs, s_Truths6[i] );
+    for ( i = 2; i <= 4; i++ )
+        Vec_WrdAppend( vDivs, pvDivs[i] );
+    for ( i = 2; i <= 4; i++ )
+        Vec_WrdFree( pvDivs[i] );
+
+    Vec_WrdForEachEntry( vDivs, u, i )
+    {
+        printf( "%2d : ", i );
+        Kit_DsdPrintFromTruth( (unsigned *)&u, 6 ); printf( "\n" );
+    }
+
+    RetValue = Rsb_ManPerformResub6( pManRsb, 6, t, vDivs, &t0, &t1, 1 );
+    if ( RetValue )
+    {
+        Kit_DsdPrintFromTruth( (unsigned *)&t0, 6 ); printf( "\n" );
+        Kit_DsdPrintFromTruth( (unsigned *)&t1, 6 ); printf( "\n" );
+        printf( "Decomposition exits.\n" );
+    }
+
+
+    Vec_WrdFree( vDivs );
+    Rsb_ManFree( pManRsb );
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
