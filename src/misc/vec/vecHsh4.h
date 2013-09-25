@@ -60,6 +60,8 @@ struct Hsh_Int4Man_t_
 ////////////////////////////////////////////////////////////////////////
 
 static inline Hsh_Int4Obj_t * Hsh_Int4Obj( Hsh_Int4Man_t * p, int iObj )    { return iObj ? (Hsh_Int4Obj_t *)Vec_IntEntryP(p->vObjs, 4*iObj) : NULL;  }
+static inline int             Hsh_Int4ObjData0( Hsh_Int4Man_t * p, int i )  { return Hsh_Int4Obj(p, i)->iData0;                                       }
+static inline int             Hsh_Int4ObjData1( Hsh_Int4Man_t * p, int i )  { return Hsh_Int4Obj(p, i)->iData1;                                       }
 static inline int             Hsh_Int4ObjRes( Hsh_Int4Man_t * p, int i )    { return Hsh_Int4Obj(p, i)->iRes;                                         }
 static inline void            Hsh_Int4ObjInc( Hsh_Int4Man_t * p, int i )    { Hsh_Int4Obj(p, i)->iRes++;                                              }
 static inline void            Hsh_Int4ObjDec( Hsh_Int4Man_t * p, int i )    { Hsh_Int4Obj(p, i)->iRes--;                                              }
@@ -112,7 +114,7 @@ static inline int Hsh_Int4ManEntryNum( Hsh_Int4Man_t * p )
 ***********************************************************************/
 static inline int Hsh_Int4ManHash( int iData0, int iData1, int nTableSize )
 {
-    return (4177 * iData0 + 7873 * iData1) % nTableSize;
+    return (4177 * (unsigned)iData0 + 7873 * (unsigned)iData1) % (unsigned)nTableSize;
 }
 static inline int * Hsh_Int4ManLookup( Hsh_Int4Man_t * p, int iData0, int iData1 )
 {
@@ -141,6 +143,7 @@ static inline int Hsh_Int4ManInsert( Hsh_Int4Man_t * p, int iData0, int iData1, 
     nObjs = Vec_IntSize(p->vObjs)/4;
     if ( nObjs > Vec_IntSize(p->vTable) )
     {
+//        printf( "Resizing...\n" );
         Vec_IntFill( p->vTable, Abc_PrimeCudd(2*Vec_IntSize(p->vTable)), 0 );
         for ( i = 1; i < nObjs; i++ )
         {
@@ -153,14 +156,13 @@ static inline int Hsh_Int4ManInsert( Hsh_Int4Man_t * p, int iData0, int iData1, 
     }
     pPlace = Hsh_Int4ManLookup( p, iData0, iData1 );
     if ( *pPlace )
-        return 0;
-    assert( *pPlace == 0 );
+        return *pPlace;
     *pPlace = nObjs;
     Vec_IntPush( p->vObjs, iData0 );
     Vec_IntPush( p->vObjs, iData1 );
     Vec_IntPush( p->vObjs, iRes );
     Vec_IntPush( p->vObjs, 0 );
-    return 1;
+    return nObjs;
 }
 
 /**Function*************************************************************

@@ -76,7 +76,7 @@ Unm_Man_t * Unm_ManAlloc( Gia_Man_t * pGia )
     Gia_ManIncrementTravId( p->pNew );
     p->pNew->nObjs = 1;
     // start hashing
-    p->pHash = Hsh_Int4ManStart( 10 );
+    p->pHash = Hsh_Int4ManStart( 1000 );
     // truth tables
     p->vTruths = Vec_WrdStart( Gia_ManObjNum(pGia) );
     p->vLeaves = Vec_IntStart( 10 );
@@ -103,7 +103,7 @@ Gia_Man_t * Unm_ManFree( Unm_Man_t * p )
 
 /**Function*************************************************************
 
-  Synopsis    []
+  Synopsis    [Computes truth tables for all LUTs.]
 
   Description []
 
@@ -130,11 +130,78 @@ void Unm_ManComputeTruths( Unm_Man_t * p )
         // compute truth table 
         uTruth = Shr_ManComputeTruth6( p->pGia, pObj, p->vLeaves, vTruths2 );
         Vec_WrdWriteEntry( p->vTruths, i, uTruth );
-        if ( i % 100 == 0 )
-            Kit_DsdPrintFromTruth( (unsigned *)&uTruth, 6 ), printf( "\n" );
+//        if ( i % 100 == 0 )
+//            Kit_DsdPrintFromTruth( (unsigned *)&uTruth, 6 ), printf( "\n" );
     }
     Vec_WrdFreeP( &vTruths2 );
 }
+
+/**Function*************************************************************
+
+  Synopsis    [Computes information about node pairs.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Unm_ManPrintPairStats( Unm_Man_t * p )
+{
+    int i, Num, nRefs, nPairs = 0, nTotal = 0, Counter[51] = {0};
+    Num = Hsh_Int4ManEntryNum( p->pHash );
+    for ( i = 1; i <= Num; i++ )
+    {
+        nRefs = Abc_MinInt( 50, Hsh_Int4ObjRes(p->pHash, i) );
+        nTotal += nRefs;
+        Counter[nRefs]++;
+        nPairs += (nRefs > 1);
+//        printf( "(%c, %c) %d\n", 'a' + Hsh_Int4ObjData0(p->pHash, i)-1, 'a' + Hsh_Int4ObjData1(p->pHash, i)-1, nRefs );
+//        printf( "(%4d, %4d) %d\n", Hsh_Int4ObjData0(p->pHash, i), Hsh_Int4ObjData1(p->pHash, i), nRefs );
+    }
+    for ( i = 0; i < 51; i++ )
+        if ( Counter[i] > 0 )
+            printf( "%3d : %7d  %7.2f %%\n", i, Counter[i], 100.0 * Counter[i] * i / nTotal );
+    return nPairs;
+}
+void Unm_ManComputePairs( Unm_Man_t * p )
+{
+    Gia_Obj_t * pObj;
+    int i, k, j, FanK, FanJ, Num;
+    word Total = 0, Pairs = 0, Pairs2 = 0;
+    Gia_ManSetRefsMapped( p->pGia );
+    Gia_ManForEachLut( p->pGia, i )
+    {
+        Total += Gia_ObjLutSize(p->pGia, i) * (Gia_ObjLutSize(p->pGia, i) - 1) / 2;
+        pObj = Gia_ManObj( p->pGia, i );
+        // collect leaves of this gate  
+        Vec_IntClear( p->vLeaves );
+        Gia_LutForEachFanin( p->pGia, i, Num, k )
+            if ( Gia_ObjRefNumId(p->pGia, Num) > 1 )
+                Vec_IntPush( p->vLeaves, Num );
+        if ( Vec_IntSize(p->vLeaves) < 2 )
+            continue;
+        Pairs += Vec_IntSize(p->vLeaves) * (Vec_IntSize(p->vLeaves) - 1) / 2;
+        // enumerate pairs
+        Vec_IntForEachEntry( p->vLeaves, FanK, k )
+        Vec_IntForEachEntryStart( p->vLeaves, FanJ, j, k+1 )
+        {
+            if ( FanK > FanJ )
+                ABC_SWAP( int, FanK, FanJ );
+            Num = Hsh_Int4ManInsert( p->pHash, FanK, FanJ, 0 );
+            Hsh_Int4ObjInc( p->pHash, Num );
+        }
+    }
+    Total = Abc_MaxWord( Total, 1 );
+    Pairs2 = Unm_ManPrintPairStats( p );
+    printf( "Total = %8d    Pairs = %8d %7.2f %%    Pairs2 = %8d %7.2f %%\n", (int)Total, 
+        (int)Pairs,  100.0 * (int)Pairs / (int)Total, 
+        (int)Pairs2, 100.0 * (int)Pairs2 / (int)Total );
+    // print statistics
+    
+}
+
 
 /**Function*************************************************************
 
@@ -151,7 +218,8 @@ Gia_Man_t * Unm_ManTest( Gia_Man_t * pGia )
 {
     Unm_Man_t * p;
     p = Unm_ManAlloc( pGia );
-    Unm_ManComputeTruths( p );
+//    Unm_ManComputeTruths( p );
+    Unm_ManComputePairs( p );
     Abc_PrintTime( 1, "Time", Abc_Clock() - p->clkStart );
     return Unm_ManFree( p );
 }
