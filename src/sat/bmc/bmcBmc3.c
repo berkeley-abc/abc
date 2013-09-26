@@ -1427,9 +1427,13 @@ clkOther += Abc_Clock() - clk2;
                         nOutDigits, i, f, nOutDigits, pPars->nFailOuts, nOutDigits, Saig_ManPoNum(pAig) );
                 if ( p->vCexes == NULL )
                     p->vCexes = Vec_PtrStart( Saig_ManPoNum(pAig) );
-                pCexNew = (p->pPars->fUseBridge || pPars->fStoreCex) ? Abc_CexMakeTriv( Aig_ManRegNum(pAig), Saig_ManPiNum(pAig), Saig_ManPoNum(pAig), f*Saig_ManPoNum(pAig)+i ) : (void *)(ABC_PTRINT_T)1;
+                pCexNew = (p->pPars->fUseBridge || pPars->fStoreCex) ? Abc_CexMakeTriv( Aig_ManRegNum(pAig), Saig_ManPiNum(pAig), Saig_ManPoNum(pAig), f*Saig_ManPoNum(pAig)+i ) : (Abc_Cex_t *)(ABC_PTRINT_T)1;
                 if ( p->pPars->fUseBridge )
+                {
                     Gia_ManToBridgeResult( stdout, 0, pCexNew, pCexNew->iPo );
+                    Abc_CexFree( pCexNew );
+                    pCexNew = (Abc_Cex_t *)(ABC_PTRINT_T)1;
+                }
                 Vec_PtrWriteEntry( p->vCexes, i, pCexNew );
                 if ( pPars->pFuncOnFail && pPars->pFuncOnFail(i, pPars->fStoreCex ? (Abc_Cex_t *)Vec_PtrEntry(p->vCexes, i) : NULL) )
                 {
@@ -1520,9 +1524,13 @@ nTimeSat += Abc_Clock() - clk2;
                         nOutDigits, i, f, nOutDigits, pPars->nFailOuts, nOutDigits, Saig_ManPoNum(pAig) );
                 if ( p->vCexes == NULL )
                     p->vCexes = Vec_PtrStart( Saig_ManPoNum(pAig) );
-                pCexNew = (p->pPars->fUseBridge || pPars->fStoreCex) ? Saig_ManGenerateCex( p, f, i ) : (void *)(ABC_PTRINT_T)1;
+                pCexNew = (p->pPars->fUseBridge || pPars->fStoreCex) ? Saig_ManGenerateCex( p, f, i ) : (Abc_Cex_t *)(ABC_PTRINT_T)1;
                 if ( p->pPars->fUseBridge )
+                {
                     Gia_ManToBridgeResult( stdout, 0, pCexNew, pCexNew->iPo );
+                    Abc_CexFree( pCexNew );
+                    pCexNew = (Abc_Cex_t *)(ABC_PTRINT_T)1;
+                }
                 Vec_PtrWriteEntry( p->vCexes, i, pCexNew );
                 if ( pPars->pFuncOnFail && pPars->pFuncOnFail(i, pPars->fStoreCex ? (Abc_Cex_t *)Vec_PtrEntry(p->vCexes, i) : NULL) )
                 {
