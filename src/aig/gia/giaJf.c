@@ -753,7 +753,7 @@ int Jf_CutAreaRef_rec( Jf_Man_t * p, int * pCut, int Limit )
     int i, Var, Count = Jf_CutCost(pCut);
     Jf_CutForEachVar( pCut, Var, i )
     {
-        if ( Gia_ObjRefIncId(p->pGia, Var) == 0 && !Jf_CutIsTriv(Jf_ObjCutBest(p, Var), Var) && Limit > 1 )
+        if ( !Gia_ObjRefIncId(p->pGia, Var) && !Jf_CutIsTriv(Jf_ObjCutBest(p, Var), Var) && Limit > 1 )
             Count += Jf_CutAreaRef_rec( p, Jf_ObjCutBest(p, Var), Limit - 1 );
         Vec_IntPush( p->vTemp, Var );
     }
@@ -764,7 +764,7 @@ int Jf_CutAreaRefEdge_rec( Jf_Man_t * p, int * pCut, int Limit )
     int i, Var, Count = (Jf_CutCost(pCut) << 4) | Jf_CutSize(pCut);
     Jf_CutForEachVar( pCut, Var, i )
     {
-        if ( Gia_ObjRefIncId(p->pGia, Var) == 0 && !Jf_CutIsTriv(Jf_ObjCutBest(p, Var), Var) && Limit > 1 )
+        if ( !Gia_ObjRefIncId(p->pGia, Var) && !Jf_CutIsTriv(Jf_ObjCutBest(p, Var), Var) && Limit > 1 )
             Count += Jf_CutAreaRefEdge_rec( p, Jf_ObjCutBest(p, Var), Limit - 1 );
         Vec_IntPush( p->vTemp, Var );
     }
@@ -781,6 +781,30 @@ static inline int Jf_CutArea( Jf_Man_t * p, int * pCut, int fEdge )
     Vec_IntForEachEntry( p->vTemp, Entry, i )
         Gia_ObjRefDecId( p->pGia, Entry );
     return Ela;
+}
+// returns 1 if MFFC size is less than limit
+int Jf_CutCheckMffc_rec( Jf_Man_t * p, int * pCut, int Limit )
+{
+    int i, Var;
+    Jf_CutForEachVar( pCut, Var, i )
+    {
+        int fRecur = (!Gia_ObjRefDecId(p->pGia, Var) && !Jf_CutIsTriv(Jf_ObjCutBest(p, Var), Var));
+        Vec_IntPush( p->vTemp, Var );
+        if ( Vec_IntSize(p->vTemp) >= Limit )
+            return 0;
+        if ( fRecur && !Jf_CutCheckMffc_rec( p, Jf_ObjCutBest(p, Var), Limit ) )
+            return 0;
+    }
+    return 1;
+}
+static inline int Jf_CutCheckMffc( Jf_Man_t * p, int * pCut, int Limit )
+{
+    int RetValue, Entry, i;
+    Vec_IntClear( p->vTemp );
+    RetValue = Jf_CutCheckMffc_rec( p, pCut, Limit );
+    Vec_IntForEachEntry( p->vTemp, Entry, i )
+        Gia_ObjRefIncId( p->pGia, Entry );
+    return RetValue;
 }
 
 /**Function*************************************************************
@@ -1251,11 +1275,14 @@ void Jf_ManPropagateEla( Jf_Man_t * p, int fEdge )
         else if ( Gia_ObjIsAnd(pObj) && Gia_ObjRefNum(p->pGia, pObj) > 0 )
         {
             assert( Jf_ObjIsUnit(pObj) );
-            CostBef = Jf_CutDeref_rec( p, Jf_ObjCutBest(p, i) );
-            Jf_ObjComputeBestCut( p, pObj, fEdge, 1 );
-            CostAft = Jf_CutRef_rec( p, Jf_ObjCutBest(p, i) );
-//            if ( CostBef != CostAft )  printf( "%d -> %d   ", CostBef, CostAft );
-            assert( CostBef >= CostAft ); // does not hold because of JF_EDGE_LIM
+            if ( Jf_CutCheckMffc(p, Jf_ObjCutBest(p, i), 50) )
+            {
+                CostBef = Jf_CutDeref_rec( p, Jf_ObjCutBest(p, i) );
+                Jf_ObjComputeBestCut( p, pObj, fEdge, 1 );
+                CostAft = Jf_CutRef_rec( p, Jf_ObjCutBest(p, i) );
+    //            if ( CostBef != CostAft )  printf( "%d -> %d   ", CostBef, CostAft );
+                assert( CostBef >= CostAft ); // does not hold because of JF_EDGE_LIM
+            }
             if ( p->pPars->fGenCnf )
             p->pPars->Clause += Jf_CutCnfSize(p, Jf_ObjCutBest(p, i));
             p->pPars->Edge += Jf_CutSize(Jf_ObjCutBest(p, i));
