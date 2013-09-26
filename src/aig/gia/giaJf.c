@@ -81,12 +81,12 @@ static inline float  Jf_ObjRefs( Jf_Man_t * p, int i )      { return Vec_FltEntr
 static inline int    Jf_ObjLit( int i, int c )              { return Abc_Var2Lit( i, c );                              }
 
 static inline int    Jf_CutSize( int * pCut )               { return pCut[0] & 0xF;                                    }  //  4 bits
-static inline int    Jf_CutCost( int * pCut )               { return (pCut[0] >> 4) & 0x3F;                            }  //  6 bits
-static inline int    Jf_CutFunc( int * pCut )               { return (pCut[0] >> 10);                                  }  // 22 bits
-static inline int    Jf_CutSetAll( int f, int c, int s )    { return (f << 10) | (c << 4) | s;                         }
+static inline int    Jf_CutCost( int * pCut )               { return (pCut[0] >> 4) & 0xF;                             }  //  4 bits
+static inline int    Jf_CutFunc( int * pCut )               { return ((unsigned)pCut[0] >> 8);                         }  // 24 bits
+static inline int    Jf_CutSetAll( int f, int c, int s )    { return (f << 8) | (c << 4) | s;                          }
 static inline void   Jf_CutSetSize( int * pCut, int s )     { assert(s>=0 && s<16); pCut[0] ^= (Jf_CutSize(pCut) ^ s); }
-static inline void   Jf_CutSetCost( int * pCut, int c )     { assert(c>=0 && c<64); pCut[0] ^=((Jf_CutCost(pCut) ^ c) << 4); }
-static inline void   Jf_CutSetFunc( int * pCut, int f )     { assert(f>=0); pCut[0] ^=((Jf_CutFunc(pCut) ^ f) << 10);  }
+static inline void   Jf_CutSetCost( int * pCut, int c )     { assert(c>=0 && c<16); pCut[0] ^=((Jf_CutCost(pCut) ^ c) << 4); }
+static inline void   Jf_CutSetFunc( int * pCut, int f )     { assert(f>=0); pCut[0] ^=((Jf_CutFunc(pCut) ^ f) << 8);   }
 
 static inline int    Jf_CutFuncClass( int * pCut )          { return Abc_Lit2Var(Jf_CutFunc(pCut));                    }
 static inline int    Jf_CutFuncCompl( int * pCut )          { return Abc_LitIsCompl(Jf_CutFunc(pCut));                 }
@@ -1048,8 +1048,8 @@ void Jf_ObjComputeCuts( Jf_Man_t * p, Gia_Obj_t * pObj, int fEdge )
             assert( pSto[c]->pCut[0] <= nOldSupp );
             if ( pSto[c]->pCut[0] < nOldSupp )
                 pSto[c]->Sign = Jf_CutGetSign( pSto[c]->pCut );
-            if ( pSto[c]->iFunc >= (1 << 22) )
-                printf( "Hard limit on the number of different Boolean functions (2^21) is reached. Quitting...\n" ), exit(1);
+            if ( pSto[c]->iFunc >= (1 << 24) )
+                printf( "Hard limit on the number of different Boolean functions (2^23) is reached. Quitting...\n" ), exit(1);
         }
         else
         {
@@ -1060,7 +1060,7 @@ void Jf_ObjComputeCuts( Jf_Man_t * p, Gia_Obj_t * pObj, int fEdge )
             pSto[c]->iFunc = Sdm_ManComputeFunc( p->pDsd, Jf_ObjFunc0(pObj, pCut0), Jf_ObjFunc1(pObj, pCut1), pSto[c]->pCut, Config, 0 );
             if ( pSto[c]->iFunc == -1 )
                 continue;
-            if ( p->pPars->fGenCnf && Jf_CutCnfSizeF(p, Abc_Lit2Var(pSto[c]->iFunc)) >= 12 )
+            if ( p->pPars->fGenCnf && Jf_CutCnfSizeF(p, Abc_Lit2Var(pSto[c]->iFunc)) >= 12 ) // no more than 15
                 continue;
             assert( pSto[c]->pCut[0] <= nOldSupp );
             if ( pSto[c]->pCut[0] < nOldSupp )
