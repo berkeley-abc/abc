@@ -285,7 +285,17 @@ void Jf_ManFree( Jf_Man_t * p )
         Sdm_ManPrintDsdStats( p->pDsd, 0 );
     if ( p->pPars->fVerbose && p->vTtMem )
         printf( "Unique truth tables = %d. Memory = %.2f MB\n", Vec_MemEntryNum(p->vTtMem), Vec_MemMemory(p->vTtMem) / (1<<20) ); 
-    if ( p->pPars->fVeryVerbose && p->pPars->fCutMin )
+    if ( p->pPars->fVeryVerbose && p->pPars->fUseTts )
+    {
+        char * pFileName = "truths.txt";
+        FILE * pFile = fopen( pFileName, "wb" );
+        Vec_MemDump( pFile, p->vTtMem );
+        fclose( pFile );
+        printf( "Dumped %d %d-var truth tables into file \"%s\" (%.2f MB).\n", 
+            Vec_MemEntryNum(p->vTtMem), p->pPars->nLutSize, pFileName,
+            17.0 * Vec_MemEntryNum(p->vTtMem) / (1 << 20) );
+    }
+    if ( p->pPars->fVeryVerbose && !p->pPars->fUseTts && p->pPars->fCutMin )
         Jf_ManProfileClasses( p );
     if ( p->pPars->fCoarsen )
         Gia_ManCleanMark0( p->pGia );
@@ -1209,7 +1219,7 @@ int Jf_ManComputeRefs( Jf_Man_t * p )
         }
     }
     // blend references and normalize flow
-    Gia_ManForEachObj( p->pGia, pObj, i )
+    for ( i = 0; i < Gia_ManObjNum(p->pGia); i++ )
     {
         if ( p->pPars->fOptEdge )
             nRefsNew = Abc_MaxFloat( 1, 0.8 * pRefs[i] + 0.2 * p->pGia->pRefs[i] );
