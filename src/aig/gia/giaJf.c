@@ -1207,7 +1207,10 @@ int Jf_ManComputeRefs( Jf_Man_t * p )
             p->pPars->Edge += Jf_CutSize(pCut);
             p->pPars->Area++;
         }
-        // blend references and normalize flow
+    }
+    // blend references and normalize flow
+    Gia_ManForEachObj( p->pGia, pObj, i )
+    {
         if ( p->pPars->fOptEdge )
             nRefsNew = Abc_MaxFloat( 1, 0.8 * pRefs[i] + 0.2 * p->pGia->pRefs[i] );
         else
@@ -1216,6 +1219,7 @@ int Jf_ManComputeRefs( Jf_Man_t * p )
         pRefs[i] = nRefsNew;
         assert( pFlow[i] >= 0 );
     }
+    // compute delay
     p->pPars->Delay = Jf_ManComputeDelay( p, 1 );
     return p->pPars->Area;
 }
@@ -1308,8 +1312,8 @@ Gia_Man_t * Jf_ManDeriveMappingGia( Jf_Man_t * p )
     Gia_Man_t * pNew;
     Gia_Obj_t * pObj; 
     Vec_Int_t * vCopies   = Vec_IntStartFull( Gia_ManObjNum(p->pGia) );
-    Vec_Int_t * vMapping  = Vec_IntStart( 2 * Gia_ManObjNum(p->pGia) );
-    Vec_Int_t * vMapping2 = Vec_IntStart( 1 );
+    Vec_Int_t * vMapping  = Vec_IntStart( 2 * Gia_ManObjNum(p->pGia) + (int)p->pPars->Edge + 2 * (int)p->pPars->Area );
+    Vec_Int_t * vMapping2 = Vec_IntStart( (int)p->pPars->Edge + 2 * (int)p->pPars->Area + 1000 );
     Vec_Int_t * vCover    = Vec_IntAlloc( 1 << 16 );
     Vec_Int_t * vLeaves   = Vec_IntAlloc( 16 );
     int i, k, iLit, Class, * pCut;
