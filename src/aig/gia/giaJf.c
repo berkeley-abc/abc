@@ -24,6 +24,7 @@
 #include "misc/extra/extra.h"
 #include "bool/kit/kit.h"
 #include "misc/util/utilTruth.h"
+#include "opt/dau/dau.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -1428,6 +1429,82 @@ void Jf_ManDeriveMapping( Jf_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Derive GIA without mapping.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Jf_ManDeriveGia( Jf_Man_t * p )
+{
+    Gia_Man_t * pNew;
+    Gia_Obj_t * pObj; 
+    Vec_Int_t * vCopies   = Vec_IntStartFull( Gia_ManObjNum(p->pGia) );
+    Vec_Int_t * vCover    = Vec_IntAlloc( 1 << 16 );
+    Vec_Int_t * vLeaves   = Vec_IntAlloc( 16 );
+    int i, k, iLit, Class, * pCut;
+    word uTruth;
+    assert( p->pPars->fCutMin );
+    // create new manager
+    pNew = Gia_ManStart( Gia_ManObjNum(p->pGia) );
+    pNew->pName = Abc_UtilStrsav( p->pGia->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pGia->pSpec );
+    // map primary inputs
+    Vec_IntWriteEntry( vCopies, 0, 0 );
+    Gia_ManForEachCi( p->pGia, pObj, i )
+        Vec_IntWriteEntry( vCopies, Gia_ObjId(p->pGia, pObj), Gia_ManAppendCi(pNew) );
+    // iterate through nodes used in the mapping
+    Gia_ManHashStart( pNew );
+    Gia_ManForEachAnd( p->pGia, pObj, i )
+    {
+       if ( Gia_ObjIsBuf(pObj) || Gia_ObjRefNum(p->pGia, pObj) == 0 )
+            continue;
+        pCut = Jf_ObjCutBest( p, i );
+//        printf( "Best cut of node %d:  ", i );  Jf_CutPrint(pCut);
+        Class = Jf_CutFuncClass( pCut );
+        uTruth = p->pPars->fUseTts ? *Vec_MemReadEntry(p->vTtMem, Class) : Sdm_ManReadDsdTruth(p->pDsd, Class);
+        assert( p->pDsd == NULL || Sdm_ManReadDsdVarNum(p->pDsd, Class) == Jf_CutSize(pCut) );
+        if ( Jf_CutSize(pCut) == 0 )
+        {
+            assert( Class == 0 );
+            Vec_IntWriteEntry( vCopies, i, Jf_CutFunc(pCut) );
+            continue;
+        }
+        if ( Jf_CutSize(pCut) == 1 )
+        {
+            assert( Class == 1 );
+            iLit = Abc_LitNotCond( Jf_CutLit(pCut, 1) , Jf_CutFuncCompl(pCut) );
+            iLit = Abc_Lit2LitL( Vec_IntArray(vCopies), iLit );
+            Vec_IntWriteEntry( vCopies, i, iLit );
+            continue;
+        }
+        // collect leaves
+        Vec_IntClear( vLeaves );
+        Jf_CutForEachLit( pCut, iLit, k )
+            Vec_IntPush( vLeaves, Abc_Lit2LitL(Vec_IntArray(vCopies), iLit) );
+        // create GIA
+        iLit = Dsm_ManDeriveGia( pNew, uTruth, vLeaves, vCover );
+        iLit = Abc_LitNotCond( iLit, Jf_CutFuncCompl(pCut) );
+        Vec_IntWriteEntry( vCopies, i, iLit );
+    }
+    Gia_ManForEachCo( p->pGia, pObj, i )
+    {
+        iLit = Vec_IntEntry( vCopies, Gia_ObjFaninId0p(p->pGia, pObj) );
+        Gia_ManAppendCo( pNew, Abc_LitNotCond(iLit, Gia_ObjFaninC0(pObj)) );
+    }
+    Vec_IntFree( vCopies );
+    Vec_IntFree( vLeaves );
+    Vec_IntFree( vCover );
+    Gia_ManHashStop( pNew );
+    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p->pGia) );
+    return pNew;
+}
+
+/**Function*************************************************************
+
   Synopsis    []
 
   Description []
@@ -1451,6 +1528,7 @@ void Jf_ManSetDefaultPars( Jf_Par_t * pPars )
     pPars->fCutMin      =  0;
     pPars->fUseTts      =  0;
     pPars->fGenCnf      =  0;
+    pPars->fPureAig     =  0;
     pPars->fVerbose     =  0;
     pPars->fVeryVerbose =  0;
     pPars->nLutSizeMax  =  JF_LEAF_MAX;
@@ -1491,7 +1569,9 @@ Gia_Man_t * Jf_ManPerformMapping( Gia_Man_t * pGia, Jf_Par_t * pPars )
         Jf_ManPropagateEla( p, 0 );                 Jf_ManPrintStats( p, "Area " );
         Jf_ManPropagateEla( p, 1 );                 Jf_ManPrintStats( p, "Edge " );
     }
-    if ( p->pPars->fCutMin )
+    if ( p->pPars->fPureAig )
+        pNew = Jf_ManDeriveGia(p);
+    else if ( p->pPars->fCutMin )
         pNew = Jf_ManDeriveMappingGia(p);
     else
         Jf_ManDeriveMapping(p);

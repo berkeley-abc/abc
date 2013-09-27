@@ -248,6 +248,7 @@ struct Jf_Par_t_
     int            fCutMin;
     int            fUseTts;
     int            fGenCnf;
+    int            fPureAig;
     int            fVerbose;
     int            fVeryVerbose;
     int            nLutSizeMax;

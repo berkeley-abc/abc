@@ -1021,7 +1021,7 @@ static inline int Dau_DsdWritePrime( Dau_Dsd_t * p, word * pTruth, int * pVars, 
             int nNonDecSize;
             // compose the result
             Dau_DsdWriteString( p, "<" );
-            Dau_DsdWriteVar( p, pVars[vBest], 0 );
+            Dau_DsdWriteVar( p, vBest, 0 );
             // split decomposition
             Abc_TtCofactor1p( pCofTemp, pTruth, nWords, vBest );
             nNonDecSize = Dau_DsdDecompose( pCofTemp, nVars, 0, p->fWriteTruth, pRes );

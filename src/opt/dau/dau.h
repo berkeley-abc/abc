@@ -87,6 +87,9 @@ extern int           Dau_DsdCountAnds( char * pDsd );
 extern void          Dau_DsdTruthCompose_rec( word * pFunc, word pFanins[DAU_MAX_VAR][DAU_MAX_WORD], word * pRes, int nVars, int nWordsR );
 extern int           Dau_DsdCheck1Step( word * pTruth, int nVarsInit );
 
+/*=== dauGia.c  ==========================================================*/
+extern int           Dsm_ManDeriveGia( void * p, word uTruth, Vec_Int_t * vLeaves, Vec_Int_t * vCover );
+
 /*=== dauMerge.c  ==========================================================*/
 extern void          Dau_DsdRemoveBraces( char * pDsd, int * pMatches );
 extern char *        Dau_DsdMerge( char * pDsd0i, int * pPerm0, char * pDsd1i, int * pPerm1, int fCompl0, int fCompl1, int nVars );
