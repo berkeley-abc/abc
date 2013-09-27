@@ -1321,6 +1321,7 @@ static inline int Dau_Dsd6DecomposeTripleVarsOuter( Dau_Dsd_t * p, word  * pTrut
     Dau_Dsd_t P1, * p1 = &P1;
     word tCof0, tCof1;
     p1->fSplitPrime = 0;
+    p1->fWriteTruth = p->fWriteTruth;
     // move this variable to the top
     ABC_SWAP( int, pVars[v], pVars[nVars-1] );
     Abc_TtSwapVars( pTruth, nVars, v, nVars-1 );
