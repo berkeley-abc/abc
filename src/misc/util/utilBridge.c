@@ -180,6 +180,19 @@ int Gia_ManToBridgeBadAbs( FILE * pFile )
     return 1;
 }
 
+
+static int aigerNumSize( unsigned x )
+{
+    int sz = 1;
+    while (x & ~0x7f)
+    {
+        sz++;
+        x >>= 7;
+    }
+    return sz;
+}
+
+
 /**Function*************************************************************
 
   Synopsis    []
@@ -195,7 +208,7 @@ void Gia_ManFromBridgeHolds( FILE * pFile, int iPoProved )
 {
     fprintf( pFile, "%.6d", 101 /*message type = Result*/);
     fprintf( pFile, " " );
-    fprintf( pFile, "%.16d", 4 /*size in bytes*/);
+    fprintf( pFile, "%.16d", 3 + aigerNumSize(iPoProved) /*size in bytes*/);
     fprintf( pFile, " " );
 
     fputc( (char)BRIDGE_VALUE_1, pFile ); // true
@@ -208,7 +221,7 @@ void Gia_ManFromBridgeUnknown( FILE * pFile, int iPoUnknown )
 {
     fprintf( pFile, "%.6d", 101 /*message type = Result*/);
     fprintf( pFile, " " );
-    fprintf( pFile, "%.16d", 3 /*size in bytes*/);
+    fprintf( pFile, "%.16d", 2 + aigerNumSize(iPoUnknown) /*size in bytes*/);
     fprintf( pFile, " " );
 
     fputc( (char)BRIDGE_VALUE_X, pFile ); // undef
