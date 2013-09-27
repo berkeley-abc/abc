@@ -1500,6 +1500,7 @@ Gia_Man_t * Jf_ManDeriveGia( Jf_Man_t * p )
     Vec_IntFree( vCover );
     Gia_ManHashStop( pNew );
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p->pGia) );
+//    Dsm_ManReportStats();
     return pNew;
 }
 

@@ -30,6 +30,11 @@ ABC_NAMESPACE_IMPL_START
 
 extern int Kit_TruthToGia( Gia_Man_t * pMan, unsigned * pTruth, int nVars, Vec_Int_t * vMemory, Vec_Int_t * vLeaves, int fHash );
 
+
+static int m_Calls = 0;
+static int m_NonDsd = 0;
+static int m_Non1Step = 0;
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -175,6 +180,7 @@ int Dau_DsdToGia_rec( Gia_Man_t * pGia, char * pStr, char ** p, int * pMatches, 
         vLeaves.nSize = nVars;
         vLeaves.pArray = Fanins;        
         Res = Kit_TruthToGia( pGia, (unsigned *)&Func, nVars, vCover, &vLeaves, 1 );
+        m_Non1Step++;
         return Abc_LitNotCond( Res, fCompl );
     }
     assert( 0 );
@@ -209,10 +215,30 @@ int Dsm_ManDeriveGia( void * p, word uTruth, Vec_Int_t * vLeaves, Vec_Int_t * vC
     Gia_Man_t * pGia = (Gia_Man_t *)p;
     char pDsd[1000];
     int nSizeNonDec;
+    m_Calls++;
 //    static int Counter = 0; Counter++;
     nSizeNonDec = Dau_DsdDecompose( &uTruth, Vec_IntSize(vLeaves), 1, 1, pDsd );
+    if ( nSizeNonDec )
+        m_NonDsd++;
 //    printf( "%s\n", pDsd );
     return Dau_DsdToGia( pGia, pDsd, Vec_IntArray(vLeaves), vCover );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Convert TT to GIA via DSD.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Dsm_ManReportStats()
+{
+    printf( "Calls = %d. NonDSD = %d. Non1Step = %d.\n", m_Calls, m_NonDsd, m_Non1Step );
+    m_Calls = m_NonDsd = m_Non1Step = 0;
 }
 
 

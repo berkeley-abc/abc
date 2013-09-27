@@ -496,19 +496,20 @@ static inline Gia_Obj_t * Gia_ManAppendObj( Gia_Man_t * p )
 { 
     if ( p->nObjs == p->nObjsAlloc )
     {
-        if ( 2 * p->nObjsAlloc > (1 << 29) )
+        int nObjNew = Abc_MinInt( 2 * p->nObjsAlloc, (1 << 29) );
+        if ( p->nObjs == (1 << 29) )
             printf( "Hard limit on the number of nodes (2^29) is reached. Quitting...\n" ), exit(1);
         if ( p->fVerbose )
-            printf("Extending GIA object storage: %d -> %d.\n", p->nObjsAlloc, 2 * p->nObjsAlloc );
+            printf("Extending GIA object storage: %d -> %d.\n", p->nObjsAlloc, nObjNew );
         assert( p->nObjsAlloc > 0 );
-        p->pObjs = ABC_REALLOC( Gia_Obj_t, p->pObjs, 2 * p->nObjsAlloc );
-        memset( p->pObjs + p->nObjsAlloc, 0, sizeof(Gia_Obj_t) * p->nObjsAlloc );
+        p->pObjs = ABC_REALLOC( Gia_Obj_t, p->pObjs, nObjNew );
+        memset( p->pObjs + p->nObjsAlloc, 0, sizeof(Gia_Obj_t) * (nObjNew - p->nObjsAlloc) );
         if ( p->pMuxes )
         {
-            p->pMuxes = ABC_REALLOC( unsigned, p->pMuxes, 2 * p->nObjsAlloc );
-            memset( p->pMuxes + p->nObjsAlloc, 0, sizeof(unsigned) * p->nObjsAlloc );
+            p->pMuxes = ABC_REALLOC( unsigned, p->pMuxes, nObjNew );
+            memset( p->pMuxes + p->nObjsAlloc, 0, sizeof(unsigned) * (nObjNew - p->nObjsAlloc) );
         }
-        p->nObjsAlloc *= 2;
+        p->nObjsAlloc = nObjNew;
     }
     return Gia_ManObj( p, p->nObjs++ );
 }
