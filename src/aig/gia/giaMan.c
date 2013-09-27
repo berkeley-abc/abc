@@ -45,8 +45,8 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManStart( int nObjsMax )  
-{ 
+Gia_Man_t * Gia_ManStart( int nObjsMax )
+{
     Gia_Man_t * p;
     assert( nObjsMax > 0 );
     p = ABC_CALLOC( Gia_Man_t, 1 );
@@ -70,7 +70,7 @@ Gia_Man_t * Gia_ManStart( int nObjsMax )
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManStop( Gia_Man_t * p )  
+void Gia_ManStop( Gia_Man_t * p )
 {
     Gia_ManStaticFanoutStop( p );
     Tim_ManStopP( (Tim_Man_t **)&p->pManTime );
@@ -185,8 +185,8 @@ void Gia_ManPrintClasses_old( Gia_Man_t * p )
     if ( p->vFlopClasses == NULL )
         return;
     Gia_ManForEachRo( p, pObj, i )
-        printf( "%d", Vec_IntEntry(p->vFlopClasses, i) );
-    printf( "\n" );
+        Abc_Print( 1, "%d", Vec_IntEntry(p->vFlopClasses, i) );
+    Abc_Print( 1, "\n" );
 
     {
         Gia_Man_t * pTemp;
@@ -220,7 +220,7 @@ void Gia_ManPrintPlacement( Gia_Man_t * p )
         nFixed += p->pPlacement[i].fFixed;
         nUndef += p->pPlacement[i].fUndef;
     }
-    printf( "Placement:  Objects = %8d.  Fixed = %8d.  Undef = %8d.\n", Gia_ManObjNum(p), nFixed, nUndef );
+    Abc_Print( 1, "Placement:  Objects = %8d.  Fixed = %8d.  Undef = %8d.\n", Gia_ManObjNum(p), nFixed, nUndef );
 }
 
 
@@ -235,7 +235,7 @@ void Gia_ManPrintPlacement( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManPrintTents_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vObjs )  
+void Gia_ManPrintTents_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vObjs )
 {
     if ( Gia_ObjIsTravIdCurrent(p, pObj) )
         return;
@@ -247,7 +247,7 @@ void Gia_ManPrintTents_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vObjs )
     if ( Gia_ObjIsAnd(pObj) )
         Gia_ManPrintTents_rec( p, Gia_ObjFanin1(pObj), vObjs );
 }
-void Gia_ManPrintTents( Gia_Man_t * p )  
+void Gia_ManPrintTents( Gia_Man_t * p )
 {
     Vec_Int_t * vObjs;
     Gia_Obj_t * pObj;
@@ -263,7 +263,7 @@ void Gia_ManPrintTents( Gia_Man_t * p )
     Gia_ManForEachPo( p, pObj, i )
         Gia_ManPrintTents_rec( p, pObj, vObjs );
     // build tents
-    printf( "Tents:  " );
+    Abc_Print( 1, "Tents:  " );
     for ( t = 1; nSizePrev < Vec_IntSize(vObjs); t++ )
     {
         int nPis = 0;
@@ -274,10 +274,10 @@ void Gia_ManPrintTents( Gia_Man_t * p )
             if ( Gia_ObjIsRo(p, Gia_ManObj(p, iObjId)) )
                 Gia_ManPrintTents_rec( p, Gia_ObjRoToRi(p, Gia_ManObj(p, iObjId)), vObjs );
         }
-        printf( "%d=%d(%d)  ", t, nSizeCurr - nSizePrev, nPis );
+        Abc_Print( 1, "%d=%d(%d)  ", t, nSizeCurr - nSizePrev, nPis );
         nSizePrev = nSizeCurr;
     }
-    printf( " Unused=%d\n", Gia_ManObjNum(p) - Vec_IntSize(vObjs) );
+    Abc_Print( 1, " Unused=%d\n", Gia_ManObjNum(p) - Vec_IntSize(vObjs) );
     Vec_IntFree( vObjs );
     // the remaining objects are PIs without fanout
 //    Gia_ManForEachObj( p, pObj, i )
@@ -329,28 +329,28 @@ void Gia_ManPrintChoiceStats( Gia_Man_t * p )
 void Gia_ManPrintStats( Gia_Man_t * p, Gps_Par_t * pPars )
 {
     if ( p->pName )
-        printf( "%-8s : ", p->pName );
-    printf( "i/o =%7d/%7d", Gia_ManPiNum(p), Gia_ManPoNum(p) );
+        Abc_Print( 1, "%-8s : ", p->pName );
+    Abc_Print( 1, "i/o =%7d/%7d", Gia_ManPiNum(p), Gia_ManPoNum(p) );
     if ( Gia_ManConstrNum(p) )
-        printf( "(c=%d)", Gia_ManConstrNum(p) );
+        Abc_Print( 1, "(c=%d)", Gia_ManConstrNum(p) );
     if ( Gia_ManRegNum(p) )
-        printf( "  ff =%7d", Gia_ManRegNum(p) );
-    printf( "  and =%8d", Gia_ManAndNum(p) );
-    printf( "  lev =%5d", Gia_ManLevelNum(p) ); Vec_IntFreeP( &p->vLevels );
+        Abc_Print( 1, "  ff =%7d", Gia_ManRegNum(p) );
+    Abc_Print( 1, "  and =%8d", Gia_ManAndNum(p) );
+    Abc_Print( 1, "  lev =%5d", Gia_ManLevelNum(p) ); Vec_IntFreeP( &p->vLevels );
     if ( pPars && pPars->fCut )
-        printf( "  cut = %d(%d)", Gia_ManCrossCut(p, 0), Gia_ManCrossCut(p, 1) );
-    printf( "  mem =%5.2f MB", Gia_ManMemory(p)/(1<<20) );
+        Abc_Print( 1, "  cut = %d(%d)", Gia_ManCrossCut(p, 0), Gia_ManCrossCut(p, 1) );
+    Abc_Print( 1, "  mem =%5.2f MB", Gia_ManMemory(p)/(1<<20) );
     if ( Gia_ManHasDangling(p) )
-        printf( "  ch =%5d", Gia_ManEquivCountClasses(p) );
+        Abc_Print( 1, "  ch =%5d", Gia_ManEquivCountClasses(p) );
     if ( pPars && pPars->fSwitch )
     {
         if ( p->pSwitching )
-            printf( "  power =%7.2f", Gia_ManEvaluateSwitching(p) );
+            Abc_Print( 1, "  power =%7.2f", Gia_ManEvaluateSwitching(p) );
         else
-            printf( "  power =%7.2f", Gia_ManComputeSwitching(p, 48, 16, 0) );
+            Abc_Print( 1, "  power =%7.2f", Gia_ManComputeSwitching(p, 48, 16, 0) );
     }
-//    printf( "obj =%5d  ", Gia_ManObjNum(p) );
-    printf( "\n" );
+//    Abc_Print( 1, "obj =%5d  ", Gia_ManObjNum(p) );
+    Abc_Print( 1, "\n" );
 
 //    Gia_ManSatExperiment( p );
     if ( p->pReprs && p->pNexts )
@@ -379,11 +379,11 @@ void Gia_ManPrintStats( Gia_Man_t * p, Gps_Par_t * pPars )
         int k, Entry, Prev = 1;
         Vec_Int_t * vLimit = Vec_IntAlloc( 1000 );
         Gia_Man_t * pNew = Gia_ManUnrollDup( p, vLimit );
-        printf( "Tents:  " );
+        Abc_Print( 1, "Tents:  " );
         Vec_IntForEachEntryStart( vLimit, Entry, k, 1 )
-            printf( "%d=%d  ", k, Entry-Prev ), Prev = Entry;
-        printf( " Unused=%d.", Gia_ManObjNum(p) - Gia_ManObjNum(pNew) );
-        printf( "\n" );
+            Abc_Print( 1, "%d=%d  ", k, Entry-Prev ), Prev = Entry;
+        Abc_Print( 1, " Unused=%d.", Gia_ManObjNum(p) - Gia_ManObjNum(pNew) );
+        Abc_Print( 1, "\n" );
         Vec_IntFree( vLimit );
         Gia_ManStop( pNew );
 */
@@ -396,7 +396,7 @@ void Gia_ManPrintStats( Gia_Man_t * p, Gps_Par_t * pPars )
   Synopsis    [Prints stats for the AIG.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -404,20 +404,20 @@ void Gia_ManPrintStats( Gia_Man_t * p, Gps_Par_t * pPars )
 ***********************************************************************/
 void Gia_ManPrintStatsShort( Gia_Man_t * p )
 {
-    printf( "i/o =%7d/%7d  ", Gia_ManPiNum(p), Gia_ManPoNum(p) );
-    printf( "ff =%7d  ", Gia_ManRegNum(p) );
-    printf( "and =%8d  ", Gia_ManAndNum(p) );
-    printf( "lev =%5d  ", Gia_ManLevelNum(p) );
-//    printf( "mem =%5.2f MB", 12.0*Gia_ManObjNum(p)/(1<<20) );
-    printf( "\n" );
+    Abc_Print( 1, "i/o =%7d/%7d  ", Gia_ManPiNum(p), Gia_ManPoNum(p) );
+    Abc_Print( 1, "ff =%7d  ", Gia_ManRegNum(p) );
+    Abc_Print( 1, "and =%8d  ", Gia_ManAndNum(p) );
+    Abc_Print( 1, "lev =%5d  ", Gia_ManLevelNum(p) );
+//    Abc_Print( 1, "mem =%5.2f MB", 12.0*Gia_ManObjNum(p)/(1<<20) );
+    Abc_Print( 1, "\n" );
 }
- 
+
 /**Function*************************************************************
 
   Synopsis    [Prints stats for the AIG.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -459,7 +459,7 @@ void Gia_ManPrintMiterStatus( Gia_Man_t * p )
         else
             nUndec++;
     }
-    printf( "Outputs = %7d.  Unsat = %7d.  Sat = %7d.  Undec = %7d.\n", 
+    Abc_Print( 1, "Outputs = %7d.  Unsat = %7d.  Sat = %7d.  Undec = %7d.\n",
         Gia_ManPoNum(p), nUnsat, nSat, nUndec );
 }
 
@@ -494,13 +494,13 @@ void Gia_ManSetRegNum( Gia_Man_t * p, int nRegs )
 ***********************************************************************/
 void Gia_ManReportImprovement( Gia_Man_t * p, Gia_Man_t * pNew )
 {
-    printf( "REG: Beg = %5d. End = %5d. (R =%5.1f %%)  ",
-        Gia_ManRegNum(p), Gia_ManRegNum(pNew), 
+    Abc_Print( 1, "REG: Beg = %5d. End = %5d. (R =%5.1f %%)  ",
+        Gia_ManRegNum(p), Gia_ManRegNum(pNew),
         Gia_ManRegNum(p)? 100.0*(Gia_ManRegNum(p)-Gia_ManRegNum(pNew))/Gia_ManRegNum(p) : 0.0 );
-    printf( "AND: Beg = %6d. End = %6d. (R =%5.1f %%)",
-        Gia_ManAndNum(p), Gia_ManAndNum(pNew), 
+    Abc_Print( 1, "AND: Beg = %6d. End = %6d. (R =%5.1f %%)",
+        Gia_ManAndNum(p), Gia_ManAndNum(pNew),
         Gia_ManAndNum(p)? 100.0*(Gia_ManAndNum(p)-Gia_ManAndNum(pNew))/Gia_ManAndNum(p) : 0.0 );
-    printf( "\n" );
+    Abc_Print( 1, "\n" );
 }
 
 /**Function*************************************************************
@@ -599,4 +599,3 @@ void Gia_ManPrintNpnClasses( Gia_Man_t * p )
 
 
 ABC_NAMESPACE_IMPL_END
-
