@@ -1231,6 +1231,37 @@ void Sdm_ManDivTest()
     Rsb_ManFree( pManRsb );
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Generation of node test.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+/*
+#include "bool/kit/kit.h"
+void Sdm_ManNodeGenTest()
+{
+    extern Kit_Graph_t * Kit_TruthToGraph( unsigned * pTruth, int nVars, Vec_Int_t * vMemory );
+    Sdm_Man_t * p = s_SdmMan;
+    Vec_Int_t * vCover;
+    Kit_Graph_t * pGraph;
+    int i;
+    vCover = Vec_IntAlloc( 1 << 16 );
+    for ( i = 2; i < DSD_CLASS_NUM; i++ )
+    {
+        pGraph = Kit_TruthToGraph( (unsigned *)&p->pDsd6[i].uTruth, p->pDsd6[i].nVars, vCover );
+        printf( "%d %s %d %d   ", i, p->pDsd6[i].pStr, Kit_GraphNodeNum(pGraph), p->pDsd6[i].nAnds );
+    }
+    printf( "\n" );
+}
+*/
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
