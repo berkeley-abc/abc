@@ -19,7 +19,7 @@
 ***********************************************************************/
 
 #include "gia.h"
-#include "misc/vec/vecHsh4.h"
+#include "misc/vec/vecHash.h"
 #include "misc/util/utilTruth.h"
 
 
@@ -35,8 +35,10 @@ struct Unm_Man_t_
 {
     Gia_Man_t *        pGia;           // user's AIG
     Gia_Man_t *        pNew;           // constructed AIG
-    Hsh_Int4Man_t *    pHash;          // hash table
+    Hash_IntMan_t *    pHash;          // hash table
     int                nNewSize;       // expected size of new manager
+    Vec_Int_t *        vUsed;          // used nodes
+    Vec_Int_t *        vId2Used;       // mapping of obj IDs into used node IDs
     Vec_Wrd_t *        vTruths;        // truth tables
     Vec_Int_t *        vLeaves;        // temporary storage for leaves
     abctime            clkStart;       // starting the clock
@@ -47,6 +49,202 @@ extern word Shr_ManComputeTruth6( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * v
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
+
+/**Function*************************************************************
+
+  Synopsis    [Check if the function is decomposable with the given pair.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Unm_ManCheckAnd( word t, int i, int j, word * pOut )
+{
+    word c0 = Abc_Tt6Cofactor0( t, i );
+    word c1 = Abc_Tt6Cofactor1( t, i );
+    word c00 = Abc_Tt6Cofactor0( c0, j );
+    word c01 = Abc_Tt6Cofactor1( c0, j );
+    word c10 = Abc_Tt6Cofactor0( c1, j );
+    word c11 = Abc_Tt6Cofactor1( c1, j );
+    if ( c00 == c01 && c00 == c10 ) //  i *  j
+    {
+        if ( pOut ) *pOut = (~s_Truths6[i] & c00) | (s_Truths6[i] & c11);
+        return 0;
+    }
+    if ( c11 == c00 && c11 == c10 ) //  i * !j
+    {
+        if ( pOut ) *pOut = (~s_Truths6[i] & c11) | (s_Truths6[i] & c01);
+        return 1;
+    }
+    if ( c11 == c00 && c11 == c01 ) // !i *  j
+    {
+        if ( pOut ) *pOut = (~s_Truths6[i] & c11) | (s_Truths6[i] & c10);
+        return 2;
+    }
+    if ( c11 == c01 && c11 == c10 ) // !i * !j
+    {
+        if ( pOut ) *pOut = (~s_Truths6[i] & c11) | (s_Truths6[i] & c00);
+        return 3;
+    }
+    if ( c00 == c11 && c01 == c10 )
+    {
+        if ( pOut ) *pOut = (~s_Truths6[i] & c11) | (s_Truths6[i] & c10);
+        return 4;
+    }
+    return -1;
+}
+static inline int Unm_ManCheckMux( word t, int i, word * pOut )
+{
+    word c0 = Abc_Tt6Cofactor0( t, i );
+    word c1 = Abc_Tt6Cofactor1( t, i );
+    word c00, c01, c10, c11;
+    int k, fPres0, fPres1, iVar0 = -1, iVar1 = -1;
+    for ( k = 0; k < 6; k++ )
+    {
+        if ( k == i ) continue;
+        fPres0 = Abc_Tt6HasVar( c0, k );
+        fPres1 = Abc_Tt6HasVar( c1, k );
+        if ( fPres0 && !fPres1 )
+        {
+            if ( iVar0 >= 0 )
+                return -1;
+            iVar0 = k;
+        }
+        if ( !fPres0 && fPres1 )
+        {
+            if ( iVar1 >= 0 )
+                return -1;
+            iVar1 = k;
+        }
+    }
+    if ( iVar0 == -1 || iVar1 == -1 )
+        return -1;
+    c00 = Abc_Tt6Cofactor0( c0, iVar0 );
+    c01 = Abc_Tt6Cofactor1( c0, iVar0 );
+    c10 = Abc_Tt6Cofactor0( c1, iVar1 );
+    c11 = Abc_Tt6Cofactor1( c1, iVar1 );
+    if ( c00 ==  c10 && c01 ==  c11 ) //  ITE(i,  iVar1,  iVar0)
+    {
+        if ( pOut ) *pOut = (~s_Truths6[i] & c10) | (s_Truths6[i] & c11);
+        return (Abc_Var2Lit(iVar1, 0) << 16) | Abc_Var2Lit(iVar0, 0);
+    }
+    if ( c00 == ~c10 && c01 == ~c11 ) //  ITE(i,  iVar1, !iVar0)
+    {
+        if ( pOut ) *pOut = (~s_Truths6[i] & c10) | (s_Truths6[i] & c11);
+        return (Abc_Var2Lit(iVar1, 0) << 16) | Abc_Var2Lit(iVar0, 1);
+    }
+    return -1;
+}
+void Unm_ManCheckTest2()
+{
+    word t, t1, Out, Var0, Var1, Var0_, Var1_;
+    int iVar0, iVar1, i, Res;
+    for ( iVar0 = 0; iVar0 < 6; iVar0++ )
+    for ( iVar1 = 0; iVar1 < 6; iVar1++ )
+    {
+        if ( iVar0 == iVar1 )
+            continue;
+        Var0 = s_Truths6[iVar0];
+        Var1 = s_Truths6[iVar1];
+        for ( i = 0; i < 5; i++ )
+        {
+            Var0_ = ((i >> 0) & 1) ? ~Var0 : Var0;
+            Var1_ = ((i >> 1) & 1) ? ~Var1 : Var1;
+
+            t = Var0_ & Var1_;
+            if ( i == 4 )
+                t = ~(Var0_ ^ Var1_);
+
+//            Kit_DsdPrintFromTruth( (unsigned *)&t, 6 ), printf( "\n" );
+
+            Res = Unm_ManCheckAnd( t, iVar0, iVar1, &Out );
+            if ( Res == -1 )
+            {
+                printf( "No decomposition\n" );
+                continue;
+            }
+
+            Var0_ = s_Truths6[iVar0];
+            Var0_ = ((Res >> 0) & 1) ? ~Var0_ : Var0_;
+
+            Var1_ = s_Truths6[iVar1];
+            Var1_ = ((Res >> 1) & 1) ? ~Var1_ : Var1_;
+
+            t1 = Var0_ & Var1_;
+            if ( Res == 4 )
+                t1 = Var0_ ^ Var1_;
+
+            t1 = (~t1 & Abc_Tt6Cofactor0(Out, iVar0)) | (t1 & Abc_Tt6Cofactor1(Out, iVar0));
+
+//            Kit_DsdPrintFromTruth( (unsigned *)&t1, 6 ), printf( "\n" );
+
+            if ( t1 != t )
+                printf( "Verification failed.\n" );
+            else
+                printf( "Verification succeeded.\n" );
+        }
+    }
+}
+void Unm_ManCheckTest()
+{
+    word t, t1, Out, Ctrl, Var0, Var1, Ctrl_, Var0_, Var1_;
+    int iVar0, iVar1, iCtrl, i, Res;
+    for ( iCtrl = 0; iCtrl < 6; iCtrl++ )
+    for ( iVar0 = 0; iVar0 < 6; iVar0++ )
+    for ( iVar1 = 0; iVar1 < 6; iVar1++ )
+    {
+        if ( iCtrl == iVar0 || iCtrl == iVar1 || iVar0 == iVar1 )
+            continue;
+        Ctrl = s_Truths6[iCtrl];
+        Var0 = s_Truths6[iVar0];
+        Var1 = s_Truths6[iVar1];
+        for ( i = 0; i < 8; i++ )
+        {
+            Ctrl_ = ((i >> 0) & 1) ? ~Ctrl : Ctrl;
+            Var0_ = ((i >> 1) & 1) ? ~Var0 : Var0;
+            Var1_ = ((i >> 2) & 1) ? ~Var1 : Var1;
+
+            t = (~Ctrl_ & Var0_) | (Ctrl_ & Var1_);
+
+//            Kit_DsdPrintFromTruth( (unsigned *)&t, 6 ), printf( "\n" );
+
+            Res = Unm_ManCheckMux( t, iCtrl, &Out );
+            if ( Res == -1 )
+            {
+                printf( "No decomposition\n" );
+                continue;
+            }
+
+//            Kit_DsdPrintFromTruth( (unsigned *)&Out, 6 ), printf( "\n" );
+
+            Ctrl_ = s_Truths6[iCtrl];
+            Var0_ = s_Truths6[Abc_Lit2Var(Res & 0xFFFF)];
+            Var0_ = Abc_LitIsCompl(Res & 0xFFFF) ? ~Var0_ : Var0_;
+
+            Res >>= 16;
+            Var1_ = s_Truths6[Abc_Lit2Var(Res & 0xFFFF)];
+            Var1_ = Abc_LitIsCompl(Res & 0xFFFF) ? ~Var1_ : Var1_;
+
+            t1 = (~Ctrl_ & Var0_) | (Ctrl_ & Var1_);
+
+//            Kit_DsdPrintFromTruth( (unsigned *)&t1, 6 ), printf( "\n" );
+//            Kit_DsdPrintFromTruth( (unsigned *)&Out, 6 ), printf( "\n" );
+
+            t1 = (~t1 & Abc_Tt6Cofactor0(Out, iCtrl)) | (t1 & Abc_Tt6Cofactor1(Out, iCtrl));
+
+//            Kit_DsdPrintFromTruth( (unsigned *)&t1, 6 ), printf( "\n" );
+
+            if ( t1 != t )
+                printf( "Verification failed.\n" );
+            else
+                printf( "Verification succeeded.\n" );
+        }
+    }
+}
+
 
 /**Function*************************************************************
 
@@ -76,9 +274,8 @@ Unm_Man_t * Unm_ManAlloc( Gia_Man_t * pGia )
     Gia_ManIncrementTravId( p->pNew );
     p->pNew->nObjs = 1;
     // start hashing
-    p->pHash = Hsh_Int4ManStart( 1000 );
+    p->pHash = Hash_IntManStart( 1000 );
     // truth tables
-    p->vTruths = Vec_WrdStart( Gia_ManObjNum(pGia) );
     p->vLeaves = Vec_IntStart( 10 );
     return p;
 }
@@ -91,49 +288,16 @@ Gia_Man_t * Unm_ManFree( Unm_Man_t * p )
     // truth tables
     Vec_WrdFreeP( &p->vTruths );
     Vec_IntFreeP( &p->vLeaves );
+    Vec_IntFreeP( &p->vUsed );
+    Vec_IntFreeP( &p->vId2Used );
     // free data structures
-    Hsh_Int4ManStop( p->pHash );
+    Hash_IntManStop( p->pHash );
     ABC_FREE( p );
 
     Gia_ManStop( pTemp );
     pTemp = NULL;
 
     return pTemp;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Computes truth tables for all LUTs.]
-
-  Description []
-
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Unm_ManComputeTruths( Unm_Man_t * p )
-{
-    Vec_Wrd_t * vTruths2;
-    Gia_Obj_t * pObj;
-    int i, k, iNode;
-    word uTruth;
-    vTruths2 = Vec_WrdStart( Gia_ManObjNum(p->pGia) );
-    Gia_ManForEachLut( p->pGia, i )
-    {
-        pObj = Gia_ManObj( p->pGia, i );
-        // collect leaves of this gate  
-        Vec_IntClear( p->vLeaves );
-        Gia_LutForEachFanin( p->pGia, i, iNode, k )
-            Vec_IntPush( p->vLeaves, iNode );
-        assert( Vec_IntSize(p->vLeaves) <= 6 );
-        // compute truth table 
-        uTruth = Shr_ManComputeTruth6( p->pGia, pObj, p->vLeaves, vTruths2 );
-        Vec_WrdWriteEntry( p->vTruths, i, uTruth );
-//        if ( i % 100 == 0 )
-//            Kit_DsdPrintFromTruth( (unsigned *)&uTruth, 6 ), printf( "\n" );
-    }
-    Vec_WrdFreeP( &vTruths2 );
 }
 
 /**Function*************************************************************
@@ -147,33 +311,53 @@ void Unm_ManComputeTruths( Unm_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Unm_ManPrintPairStats( Unm_Man_t * p )
+int Unm_ManPrintPairStats( Hash_IntMan_t * pHash, int nTotal0, int nPairs0, int nPairs1, int fUseLit )
 {
-    int i, Num, nRefs, nPairs = 0, nTotal = 0, Counter[51] = {0};
-    Num = Hsh_Int4ManEntryNum( p->pHash );
+    int i, Num, nRefs, nPairs = 0, nTotal = 0, Counter[21] = {0};
+    Num = Hash_IntManEntryNum( pHash );
     for ( i = 1; i <= Num; i++ )
     {
-        nRefs = Abc_MinInt( 50, Hsh_Int4ObjRes(p->pHash, i) );
+        nRefs = Abc_MinInt( 20, Hash_IntObjData2(pHash, i) );
         nTotal += nRefs;
         Counter[nRefs]++;
         nPairs += (nRefs > 1);
-//        printf( "(%c, %c) %d\n", 'a' + Hsh_Int4ObjData0(p->pHash, i)-1, 'a' + Hsh_Int4ObjData1(p->pHash, i)-1, nRefs );
-//        printf( "(%4d, %4d) %d\n", Hsh_Int4ObjData0(p->pHash, i), Hsh_Int4ObjData1(p->pHash, i), nRefs );
+/*
+        if ( fUseLit )
+            printf( "(%c%c, %c%c) %d\n", 
+                Abc_LitIsCompl(Hash_IntObjData0(pHash, i)-2) ? '!' : ' ', 
+                'a' + Abc_Lit2Var(Hash_IntObjData0(pHash, i)-2), 
+                Abc_LitIsCompl(Hash_IntObjData1(pHash, i)-2) ? '!' : ' ', 
+                'a' + Abc_Lit2Var(Hash_IntObjData1(pHash, i)-2), nRefs );
+        else
+            printf( "( %c,  %c) %d\n", 
+                'a' + Hash_IntObjData0(pHash, i)-1, 
+                'a' + Hash_IntObjData1(pHash, i)-1, nRefs );
+*/
+//        printf( "(%4d, %4d) %d\n", Hash_IntObjData0(pHash, i), Hash_IntObjData1(pHash, i), nRefs );
+
     }
-    for ( i = 0; i < 51; i++ )
+    printf( "Statistics for pairs appearing less than 20 times:\n" );
+    for ( i = 0; i < 21; i++ )
         if ( Counter[i] > 0 )
-            printf( "%3d : %7d  %7.2f %%\n", i, Counter[i], 100.0 * Counter[i] * i / nTotal );
+            printf( "%3d : %7d  %7.2f %%\n", i, Counter[i], 100.0 * Counter[i] * i / Abc_MaxInt(nTotal, 1) );
+    printf( "Pairs:  Total = %8d    Init = %8d %7.2f %%    Final = %8d %7.2f %%    Real = %8d %7.2f %%\n", nTotal0, 
+        nPairs0,  100.0 * nPairs0 / Abc_MaxInt(nTotal0, 1), 
+        nPairs, 100.0 * nPairs / Abc_MaxInt(nTotal0, 1), 
+        nPairs1, 100.0 * nPairs1 / Abc_MaxInt(nTotal0, 1) );
     return nPairs;
 }
-void Unm_ManComputePairs( Unm_Man_t * p )
+Vec_Int_t * Unm_ManComputePairs( Unm_Man_t * p, int fVerbose )
 {
     Gia_Obj_t * pObj;
-    int i, k, j, FanK, FanJ, Num;
-    word Total = 0, Pairs = 0, Pairs2 = 0;
+    Vec_Int_t * vPairs = Vec_IntAlloc( 1000 );
+    Vec_Int_t * vNum2Obj = Vec_IntStart( 1 );
+    Hash_IntMan_t * pHash = Hash_IntManStart( 1000 );
+    int nTotal = 0, nPairs0 = 0, nPairs = 0;
+    int i, k, j, FanK, FanJ, Num, nRefs;
     Gia_ManSetRefsMapped( p->pGia );
     Gia_ManForEachLut( p->pGia, i )
     {
-        Total += Gia_ObjLutSize(p->pGia, i) * (Gia_ObjLutSize(p->pGia, i) - 1) / 2;
+        nTotal += Gia_ObjLutSize(p->pGia, i) * (Gia_ObjLutSize(p->pGia, i) - 1) / 2;
         pObj = Gia_ManObj( p->pGia, i );
         // collect leaves of this gate  
         Vec_IntClear( p->vLeaves );
@@ -182,24 +366,176 @@ void Unm_ManComputePairs( Unm_Man_t * p )
                 Vec_IntPush( p->vLeaves, Num );
         if ( Vec_IntSize(p->vLeaves) < 2 )
             continue;
-        Pairs += Vec_IntSize(p->vLeaves) * (Vec_IntSize(p->vLeaves) - 1) / 2;
+        nPairs0 += Vec_IntSize(p->vLeaves) * (Vec_IntSize(p->vLeaves) - 1) / 2;
         // enumerate pairs
         Vec_IntForEachEntry( p->vLeaves, FanK, k )
         Vec_IntForEachEntryStart( p->vLeaves, FanJ, j, k+1 )
         {
             if ( FanK > FanJ )
                 ABC_SWAP( int, FanK, FanJ );
-            Num = Hsh_Int4ManInsert( p->pHash, FanK, FanJ, 0 );
-            Hsh_Int4ObjInc( p->pHash, Num );
+            Num = Hash_Int2ManInsert( pHash, FanK, FanJ, 0 );
+            nRefs = Hash_Int2ObjInc(pHash, Num);
+            if ( nRefs == 0 )
+            {
+                assert( Num == Hash_IntManEntryNum(pHash) );
+                assert( Num == Vec_IntSize(vNum2Obj) );
+                Vec_IntPush( vNum2Obj, i );
+                continue;
+            }
+            if ( nRefs == 1 )
+            {
+                assert( Num < Vec_IntSize(vNum2Obj) );
+                Vec_IntPush( vPairs, Vec_IntEntry(vNum2Obj, Num) );
+                Vec_IntPush( vPairs, FanK );
+                Vec_IntPush( vPairs, FanJ);
+            }
+            Vec_IntPush( vPairs, i );
+            Vec_IntPush( vPairs, FanK );
+            Vec_IntPush( vPairs, FanJ );
         }
     }
-    Total = Abc_MaxWord( Total, 1 );
-    Pairs2 = Unm_ManPrintPairStats( p );
-    printf( "Total = %8d    Pairs = %8d %7.2f %%    Pairs2 = %8d %7.2f %%\n", (int)Total, 
-        (int)Pairs,  100.0 * (int)Pairs / (int)Total, 
-        (int)Pairs2, 100.0 * (int)Pairs2 / (int)Total );
-    // print statistics
-    
+    Vec_IntFree( vNum2Obj );
+    if ( fVerbose )
+        nPairs = Unm_ManPrintPairStats( pHash, nTotal, nPairs0, Vec_IntSize(vPairs) / 3, 0 );
+    Hash_IntManStop( pHash );
+    return vPairs;    
+}
+// finds used nodes
+Vec_Int_t * Unm_ManFindUsedNodes( Vec_Int_t * vPairs, int nObjs )
+{
+    Vec_Int_t * vNodes = Vec_IntAlloc( 1000 );
+    Vec_Str_t * vMarks = Vec_StrStart( nObjs ); int i;
+    for ( i = 0; i < Vec_IntSize(vPairs); i += 3 )
+        Vec_StrWriteEntry( vMarks, Vec_IntEntry(vPairs, i), 1 );
+    for ( i = 0; i < nObjs; i++ )
+        if ( Vec_StrEntry( vMarks, i ) )
+            Vec_IntPush( vNodes, i );
+    Vec_StrFree( vMarks );
+    printf( "The number of used nodes = %d\n", Vec_IntSize(vNodes) );
+    return vNodes;
+}
+// computes truth table for selected nodes
+Vec_Wrd_t * Unm_ManComputeTruths( Unm_Man_t * p )
+{
+    Vec_Wrd_t * vTruthsTemp, * vTruths;
+    int i, k, iObj, iNode;
+    word uTruth;
+    vTruths = Vec_WrdAlloc( Vec_IntSize(p->vUsed) );
+    vTruthsTemp = Vec_WrdStart( Gia_ManObjNum(p->pGia) );
+    Vec_IntForEachEntry( p->vUsed, iObj, i )
+    {
+        assert( Gia_ObjIsLut(p->pGia, iObj) );
+        // collect leaves of this gate  
+        Vec_IntClear( p->vLeaves );
+        Gia_LutForEachFanin( p->pGia, iObj, iNode, k )
+            Vec_IntPush( p->vLeaves, iNode );
+        assert( Vec_IntSize(p->vLeaves) <= 6 );
+        // compute truth table 
+        uTruth = Shr_ManComputeTruth6( p->pGia, Gia_ManObj(p->pGia, iObj), p->vLeaves, vTruthsTemp );
+        Vec_WrdPush( vTruths, uTruth );
+//        if ( i % 100 == 0 )
+//            Kit_DsdPrintFromTruth( (unsigned *)&uTruth, 6 ), printf( "\n" );
+    }
+    Vec_WrdFreeP( &vTruthsTemp );
+    return vTruths;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Collects decomposable pairs.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Unm_ManCollectDecomp( Unm_Man_t * p, Vec_Int_t * vPairs, int fVerbose )
+{
+    word uTruth; int nNonUnique = 0;
+    int i, k, j, s, iObj, iNode, iUsed, FanK, FanJ, Res, Num, nRefs;
+    Vec_Int_t * vNum2Obj = Vec_IntStart( 1 );
+    Vec_Int_t * vPairs2 = Vec_IntAlloc( 1000 );
+    assert( Hash_IntManEntryNum(p->pHash) == 0 );
+    for ( i = 0; i < Vec_IntSize(vPairs); i += 3 )
+    {
+        iObj = Vec_IntEntry( vPairs, i );
+        assert( Gia_ObjIsLut(p->pGia, iObj) );
+        // collect leaves of this gate  
+        Vec_IntClear( p->vLeaves );
+        Gia_LutForEachFanin( p->pGia, iObj, iNode, s )
+            Vec_IntPush( p->vLeaves, iNode );
+        assert( Vec_IntSize(p->vLeaves) <= 6 );
+        FanK = Vec_IntEntry(vPairs, i+1);
+        FanJ = Vec_IntEntry(vPairs, i+2);
+        k = Vec_IntFind( p->vLeaves, FanK );
+        j = Vec_IntFind( p->vLeaves, FanJ );
+        assert( FanK < FanJ );
+        iUsed = Vec_IntEntry( p->vId2Used, iObj );
+        uTruth = Vec_WrdEntry( p->vTruths, iUsed );
+        Res = Unm_ManCheckAnd( uTruth, k, j, NULL );
+        if ( Res == -1 )
+            continue;
+        // derive literals
+        FanK = Abc_Var2Lit( FanK, ((Res >> 0) & 1) );
+        FanJ = Abc_Var2Lit( FanJ, ((Res >> 1) & 1) );
+        if ( Res == 4 )
+            ABC_SWAP( int, FanK, FanJ );
+        Num = Hash_Int2ManInsert( p->pHash, FanK, FanJ, 0 );
+        nRefs = Hash_Int2ObjInc(p->pHash, Num);
+        if ( nRefs == 0 )
+        {
+            assert( Num == Hash_IntManEntryNum(p->pHash) );
+            assert( Num == Vec_IntSize(vNum2Obj) );
+            Vec_IntPush( vNum2Obj, iObj );
+            continue;
+        }
+        if ( nRefs == 1 )
+        {
+            assert( Num < Vec_IntSize(vNum2Obj) );
+            Vec_IntPush( vPairs2, Vec_IntEntry(vNum2Obj, Num) );
+            Vec_IntPush( vPairs2, FanK );
+            Vec_IntPush( vPairs2, FanJ );
+            nNonUnique++;
+        }
+        Vec_IntPush( vPairs2, iObj );
+        Vec_IntPush( vPairs2, FanK );
+        Vec_IntPush( vPairs2, FanJ );
+    }
+    Vec_IntFree( vNum2Obj );
+    if ( fVerbose )
+        Unm_ManPrintPairStats( p->pHash, Vec_IntSize(vPairs)/3, Hash_IntManEntryNum(p->pHash), Vec_IntSize(vPairs2)/3, 1 );
+//    Hash_IntManStop( pHash );
+    return vPairs2;    
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Compute truth tables for the selected nodes.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Unm_ManWork( Unm_Man_t * p )
+{
+    Vec_Int_t * vPairs, * vPairs2;
+    // find the duplicated pairs
+    vPairs = Unm_ManComputePairs( p, 1 );
+    // find the used nodes
+    p->vUsed = Unm_ManFindUsedNodes( vPairs, Gia_ManObjNum(p->pGia) );
+    p->vId2Used = Vec_IntInvert( p->vUsed, -1 );
+    Vec_IntFillExtra( p->vId2Used, Gia_ManObjNum(p->pGia), -1 );
+    // compute truth tables for used nodes
+    p->vTruths = Unm_ManComputeTruths( p );
+    // derive new pairs
+    vPairs2 = Unm_ManCollectDecomp( p, vPairs, 1 );
+    Vec_IntFreeP( &vPairs );
+    Vec_IntFreeP( &vPairs2 );
 }
 
 
@@ -218,8 +554,8 @@ Gia_Man_t * Unm_ManTest( Gia_Man_t * pGia )
 {
     Unm_Man_t * p;
     p = Unm_ManAlloc( pGia );
-//    Unm_ManComputeTruths( p );
-    Unm_ManComputePairs( p );
+    Unm_ManWork( p );
+
     Abc_PrintTime( 1, "Time", Abc_Clock() - p->clkStart );
     return Unm_ManFree( p );
 }

@@ -2783,11 +2783,7 @@ SOURCE=.\src\misc\vec\vecFlt.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\misc\vec\vecHsh.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\vec\vecHsh4.h
+SOURCE=.\src\misc\vec\vecHash.h
 # End Source File
 # Begin Source File
 
