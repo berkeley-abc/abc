@@ -664,6 +664,155 @@ int If_Dec7PickBestMux( word t[2], word c0r[2], word c1r[2] )
 }
 
 
+
+/**Function*************************************************************
+
+  Synopsis    [Checks decomposability ]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+// count the number of unique cofactors
+static inline int If_Dec5CofCount2( word t, int x, int y )
+{
+    int i, Mask;
+    assert( x >= 0 && x < 4 );
+    assert( y >= 0 && y < 4 );
+
+    for ( Mask = i = 0; i < 16; i++ )
+        if ( !((i >> x) & 1) && !((i >> y) & 1) )
+            Mask |= (1 << ((t >> (i<<1)) & 3));
+    if ( BitCount8[Mask & 0xF] > 2 )
+        return 0;
+
+    for ( Mask = i = 0; i < 16; i++ )
+        if ( ((i >> x) & 1) && !((i >> y) & 1) )
+            Mask |= (1 << ((t >> (i<<1)) & 3));
+    if ( BitCount8[Mask & 0xF] > 2 )
+        return 0;
+
+    for ( Mask = i = 0; i < 16; i++ )
+        if ( !((i >> x) & 1) && ((i >> y) & 1) )
+            Mask |= (1 << ((t >> (i<<1)) & 3));
+    if ( BitCount8[Mask & 0xF] > 2 )
+        return 0;
+
+    for ( Mask = i = 0; i < 16; i++ )
+        if ( ((i >> x) & 1) && ((i >> y) & 1) )
+            Mask |= (1 << ((t >> (i<<1)) & 3));
+    if ( BitCount8[Mask & 0xF] > 2 )
+        return 0;
+
+    return 1;
+}
+word If_Dec5Perform( word t, int fDerive )
+{
+    int Pla2Var[7], Var2Pla[7];
+    int i, j, v;
+    word t0 = t;
+    word c0, c1, c00, c01, c10, c11;
+    for ( i = 0; i < 5; i++ )
+    {
+        c0 = If_Dec6Cofactor( t, i, 0 );
+        c1 = If_Dec6Cofactor( t, i, 1 );
+        if ( c0 == 0 )
+            return 1;
+        if ( ~c0 == 0 )
+            return 1;
+        if ( c1 == 0 )
+            return 1;
+        if ( ~c1 == 0 )
+            return 1;
+       if ( c0 == ~c1 )
+            return 1;
+    }
+    for ( i = 0; i < 4; i++ )
+    {
+        c0 = If_Dec6Cofactor( t, i, 0 );
+        c1 = If_Dec6Cofactor( t, i, 1 );
+        for ( j = i + 1; j < 5; j++ )
+        {
+            c00 = If_Dec6Cofactor( c0, j, 0 );
+            c01 = If_Dec6Cofactor( c0, j, 1 );
+            c10 = If_Dec6Cofactor( c1, j, 0 );
+            c11 = If_Dec6Cofactor( c1, j, 1 );
+            if ( c00 == c01 && c00 == c10 )
+                return 1;
+            if ( c11 == c01 && c11 == c10 )
+                return 1;
+            if ( c11 == c00 && c11 == c01 )
+                return 1;
+            if ( c11 == c00 && c11 == c10 )
+                return 1;
+            if ( c00 == c11 && c01 == c10 )
+                return 1;
+        }
+    }
+    // start arrays
+    for ( i = 0; i < 7; i++ )
+        Pla2Var[i] = Var2Pla[i] = i;
+    // generate permutations
+    for ( v = 0; v < 5; v++ )
+    {
+        t = If_Dec6MoveTo( t, v, 0, Pla2Var, Var2Pla );
+        If_DecVerifyPerm( Pla2Var, Var2Pla );
+        for ( i = 0; i < 4; i++ )
+            for ( j = i + 1; j < 4; j++ )
+                if ( If_Dec5CofCount2( t, i, j ) )
+                    return 1;
+    }
+/*
+    // start arrays
+    for ( i = 0; i < 7; i++ )
+        Pla2Var[i] = Var2Pla[i] = i;
+
+    t = t0;
+    for ( v = 0; v < 5; v++ )
+    {
+        int x, y;
+
+        t = If_Dec6MoveTo( t, v, 0, Pla2Var, Var2Pla );
+        If_DecVerifyPerm( Pla2Var, Var2Pla );
+
+        for ( i = 0; i < 16; i++ )
+            printf( "%d ", ((t >> (i<<1)) & 3) );
+        printf( "\n" );
+
+        for ( x = 0; x < 4; x++ )
+        for ( y = x + 1; y < 4; y++ )
+        {
+            for ( i = 0; i < 16; i++ )
+                if ( !((i >> x) & 1) && !((i >> y) & 1) )
+                    printf( "%d ", ((t >> (i<<1)) & 3) );
+            printf( "\n" );
+
+            for ( i = 0; i < 16; i++ )
+                if ( ((i >> x) & 1) && !((i >> y) & 1) )
+                    printf( "%d ", ((t >> (i<<1)) & 3) );
+            printf( "\n" );
+
+            for ( i = 0; i < 16; i++ )
+                if ( !((i >> x) & 1) && ((i >> y) & 1) )
+                    printf( "%d ", ((t >> (i<<1)) & 3) );
+            printf( "\n" );
+
+            for ( i = 0; i < 16; i++ )
+                if ( ((i >> x) & 1) && ((i >> y) & 1) )
+                    printf( "%d ", ((t >> (i<<1)) & 3) );
+            printf( "\n" );
+            printf( "\n" );
+        }
+    }
+*/
+//    Kit_DsdPrintFromTruth( (unsigned *)&t, 5 ); printf( "\n" );
+    return 0;
+}
+
+
 /**Function*************************************************************
 
   Synopsis    [Performs additional check.]
@@ -726,8 +875,15 @@ word If_CutPerformDerive07( If_Man_t * p, unsigned * pTruth, int nVars, int nLea
 int If_CutPerformCheck07( If_Man_t * p, unsigned * pTruth, int nVars, int nLeaves, char * pStr )
 {
     int fDerive = 0;
-    if ( nLeaves < 6 )
+    if ( nLeaves < 5 )
         return 1;
+    if ( nLeaves == 5 )
+    {
+        word t = ((word)pTruth[0] << 32) | (word)pTruth[0];
+        if ( If_Dec5Perform( t, fDerive ) )
+            return 1;
+        return 0;
+    }
     if ( nLeaves == 6 )
     {
         word z, t = ((word *)pTruth)[0];
