@@ -3599,6 +3599,10 @@ SOURCE=.\src\aig\gia\giaAigerExt.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\gia\giaBalance.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\gia\giaBidec.c
 # End Source File
 # Begin Source File

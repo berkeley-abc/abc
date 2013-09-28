@@ -557,7 +557,7 @@ void Gia_ManCreateRefs( Gia_Man_t * p )
         {
             Gia_ObjRefFanin0Inc( p, pObj );
             Gia_ObjRefFanin1Inc( p, pObj );
-            if ( Gia_ObjIsMux(p, i) )
+            if ( Gia_ObjIsMuxId(p, i) )
                 Gia_ObjRefFanin2Inc( p, pObj );
         }
         else if ( Gia_ObjIsCo(pObj) )
@@ -1128,7 +1128,7 @@ void Gia_ObjPrint( Gia_Man_t * p, Gia_Obj_t * pObj )
         printf( "XOR( %4d%s, %4d%s )", 
             Gia_ObjFaninId0p(p, pObj), (Gia_ObjFaninC0(pObj)? "\'" : " "), 
             Gia_ObjFaninId1p(p, pObj), (Gia_ObjFaninC1(pObj)? "\'" : " ") );
-    else if ( Gia_ObjIsMux(p, Gia_ObjId(p, pObj)) )
+    else if ( Gia_ObjIsMuxId(p, Gia_ObjId(p, pObj)) )
         printf( "MUX( %4d%s, %4d%s, %4d%s )", 
             Gia_ObjFaninId2p(p, pObj), (Gia_ObjFaninC2(p, pObj)? "\'" : " "), 
             Gia_ObjFaninId1p(p, pObj), (Gia_ObjFaninC1(pObj)? "\'" : " "), 
@@ -1482,7 +1482,7 @@ Vec_Int_t * Gia_ManFirstFanouts( Gia_Man_t * p )
                 Vec_IntWriteEntry(vFans, Gia_ObjFaninId0p(p, pObj), i);
             if ( Vec_IntEntry(vFans, Gia_ObjFaninId1p(p, pObj)) == 0 )
                 Vec_IntWriteEntry(vFans, Gia_ObjFaninId1p(p, pObj), i);
-            if ( Gia_ObjIsMux(p, i) && Vec_IntEntry(vFans, Gia_ObjFaninId2p(p, pObj)) == 0 )
+            if ( Gia_ObjIsMuxId(p, i) && Vec_IntEntry(vFans, Gia_ObjFaninId2p(p, pObj)) == 0 )
                 Vec_IntWriteEntry(vFans, Gia_ObjFaninId2p(p, pObj), i);
         }
         else if ( Gia_ObjIsCo(pObj) )

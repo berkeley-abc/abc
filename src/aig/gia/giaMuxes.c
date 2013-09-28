@@ -113,7 +113,7 @@ Gia_Man_t * Gia_ManDupNoMuxes( Gia_Man_t * p )
     Gia_ManHashStart( pNew );
     Gia_ManForEachAnd( p, pObj, i )
     {
-        if ( Gia_ObjIsMux(p, i) )
+        if ( Gia_ObjIsMuxId(p, i) )
             pObj->Value = Gia_ManHashMux( pNew, Gia_ObjFanin2Copy(p, pObj), Gia_ObjFanin1Copy(pObj), Gia_ObjFanin0Copy(pObj) );
         else if ( Gia_ObjIsXor(pObj) )
             pObj->Value = Gia_ManHashXor( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
@@ -170,7 +170,7 @@ Gia_Man_t * Gia_ManDupMuxesTest( Gia_Man_t * p )
 int Gia_MuxRef_rec( Gia_Man_t * p, int iObj )
 {
     Gia_Obj_t * pObj;
-    if ( !Gia_ObjIsMux(p, iObj) )
+    if ( !Gia_ObjIsMuxId(p, iObj) )
         return 0;
     pObj = Gia_ManObj( p, iObj );
     if ( Gia_ObjRefInc(p, pObj) )
@@ -182,7 +182,7 @@ int Gia_MuxRef_rec( Gia_Man_t * p, int iObj )
 int Gia_MuxRef( Gia_Man_t * p, int iObj )
 {
     Gia_Obj_t * pObj = Gia_ManObj( p, iObj );
-    assert( Gia_ObjIsMux(p, iObj) );
+    assert( Gia_ObjIsMuxId(p, iObj) );
     return Gia_MuxRef_rec( p, Gia_ObjFaninId0p(p, pObj) ) + 
            Gia_MuxRef_rec( p, Gia_ObjFaninId1p(p, pObj) ) + 
            Gia_MuxRef_rec( p, Gia_ObjFaninId2p(p, pObj) ) + 1;
@@ -190,7 +190,7 @@ int Gia_MuxRef( Gia_Man_t * p, int iObj )
 int Gia_MuxDeref_rec( Gia_Man_t * p, int iObj )
 {
     Gia_Obj_t * pObj;
-    if ( !Gia_ObjIsMux(p, iObj) )
+    if ( !Gia_ObjIsMuxId(p, iObj) )
         return 0;
     pObj = Gia_ManObj( p, iObj );
     if ( Gia_ObjRefDec(p, pObj) )
@@ -202,7 +202,7 @@ int Gia_MuxDeref_rec( Gia_Man_t * p, int iObj )
 int Gia_MuxDeref( Gia_Man_t * p, int iObj )
 {
     Gia_Obj_t * pObj = Gia_ManObj( p, iObj );
-    assert( Gia_ObjIsMux(p, iObj) );
+    assert( Gia_ObjIsMuxId(p, iObj) );
     return Gia_MuxDeref_rec( p, Gia_ObjFaninId0p(p, pObj) ) + 
            Gia_MuxDeref_rec( p, Gia_ObjFaninId1p(p, pObj) ) + 
            Gia_MuxDeref_rec( p, Gia_ObjFaninId2p(p, pObj) ) + 1;
@@ -210,7 +210,7 @@ int Gia_MuxDeref( Gia_Man_t * p, int iObj )
 int Gia_MuxMffcSize( Gia_Man_t * p, int iObj )
 {
     int Count1, Count2;
-    if ( !Gia_ObjIsMux(p, iObj) )
+    if ( !Gia_ObjIsMuxId(p, iObj) )
         return 0;
     Count1 = Gia_MuxDeref( p, iObj );
     Count2 = Gia_MuxRef( p, iObj );
@@ -232,10 +232,10 @@ int Gia_MuxMffcSize( Gia_Man_t * p, int iObj )
 void Gia_MuxStructPrint_rec( Gia_Man_t * p, int iObj, int fFirst )
 {
     Gia_Obj_t * pObj = Gia_ManObj( p, iObj );
-    if ( !fFirst && (!Gia_ObjIsMux(p, iObj) || Gia_ObjRefNumId(p, iObj) > 0) )
+    if ( !fFirst && (!Gia_ObjIsMuxId(p, iObj) || Gia_ObjRefNumId(p, iObj) > 0) )
         return;
     printf( " [(%s", Gia_ObjFaninC2(p, pObj)? "!": "" );
-    if ( !Gia_ObjIsMux(p, Gia_ObjFaninId2p(p, pObj)) )
+    if ( !Gia_ObjIsMuxId(p, Gia_ObjFaninId2p(p, pObj)) )
         printf( "%d", Gia_ObjFaninId2p(p, pObj) );
     else
         Gia_MuxStructPrint_rec( p, Gia_ObjFaninId2p(p, pObj), 0 );
@@ -248,7 +248,7 @@ void Gia_MuxStructPrint_rec( Gia_Man_t * p, int iObj, int fFirst )
 void Gia_MuxStructPrint( Gia_Man_t * p, int iObj )
 {
     int Count1, Count2;
-    assert( Gia_ObjIsMux(p, iObj) );
+    assert( Gia_ObjIsMuxId(p, iObj) );
     Count1 = Gia_MuxDeref( p, iObj );
     Gia_MuxStructPrint_rec( p, iObj, 1 );
     Count2 = Gia_MuxRef( p, iObj );
@@ -287,7 +287,7 @@ void Gia_ManMuxProfiling( Gia_Man_t * p )
         Total++;
         nRefs = Gia_ObjRefNumId(pNew, i);
         assert( nRefs > 0 );
-        if ( nRefs > 1 || !Gia_ObjIsMux(pNew, Vec_IntEntry(vFans, i)) )
+        if ( nRefs > 1 || !Gia_ObjIsMuxId(pNew, Vec_IntEntry(vFans, i)) )
         {
             Roots++;
             Size = Gia_MuxMffcSize(pNew, i);

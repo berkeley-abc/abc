@@ -91,7 +91,7 @@ Mig_Man_t * Mig_ManCreate( void * pGia )
     Gia_ManConst0(p)->Value = 0;
     Gia_ManForEachObj1( p, pObj, i )
     {
-        if ( Gia_ObjIsMux(p, i) )
+        if ( Gia_ObjIsMuxId(p, i) )
             pObj->Value = Mig_ManAppendMux( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj), Gia_ObjFanin2Copy(p, pObj) );
         else if ( Gia_ObjIsXor(pObj) )
             pObj->Value = Mig_ManAppendXor( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );

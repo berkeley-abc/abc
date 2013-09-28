@@ -178,6 +178,9 @@ struct Gia_Man_t_
     Vec_Int_t *    vTtNodes;      // internal nodes
     Vec_Ptr_t *    vTtInputs;     // truth tables for constant and primary inputs
     Vec_Wrd_t *    vTtMemory;     // truth tables for internal nodes
+    // balancing
+    Vec_Int_t *    vStore;        // node storage  
+    Vec_Int_t *    vSuper;        // supergate
 };
 
 
@@ -371,7 +374,9 @@ static inline int          Gia_ObjIsCi( Gia_Obj_t * pObj )                     {
 static inline int          Gia_ObjIsCo( Gia_Obj_t * pObj )                     { return pObj->fTerm && pObj->iDiff0 != GIA_NONE; } 
 static inline int          Gia_ObjIsAnd( Gia_Obj_t * pObj )                    { return!pObj->fTerm && pObj->iDiff0 != GIA_NONE; } 
 static inline int          Gia_ObjIsXor( Gia_Obj_t * pObj )                    { return Gia_ObjIsAnd(pObj) && pObj->iDiff0 < pObj->iDiff1; } 
-static inline int          Gia_ObjIsMux( Gia_Man_t * p, int iObj )             { return p->pMuxes && p->pMuxes[iObj] > 0;        } 
+static inline int          Gia_ObjIsMuxId( Gia_Man_t * p, int iObj )           { return p->pMuxes && p->pMuxes[iObj] > 0;        } 
+static inline int          Gia_ObjIsMux( Gia_Man_t * p, Gia_Obj_t * pObj )     { return Gia_ObjIsMuxId( p, Gia_ObjId(p, pObj) ); } 
+static inline int          Gia_ObjIsAndReal( Gia_Man_t * p, Gia_Obj_t * pObj ) { return Gia_ObjIsAnd(pObj) && pObj->iDiff0 > pObj->iDiff1 && !Gia_ObjIsMux(p, pObj); } 
 static inline int          Gia_ObjIsBuf( Gia_Obj_t * pObj )                    { return pObj->iDiff0 == pObj->iDiff1 && pObj->iDiff0 != GIA_NONE; } 
 static inline int          Gia_ObjIsCand( Gia_Obj_t * pObj )                   { return Gia_ObjIsAnd(pObj) || Gia_ObjIsCi(pObj); } 
 static inline int          Gia_ObjIsConst0( Gia_Obj_t * pObj )                 { return pObj->iDiff0 == GIA_NONE && pObj->iDiff1 == GIA_NONE;     } 
@@ -445,6 +450,9 @@ static inline void         Gia_ObjSetLevelId( Gia_Man_t * p, int Id, int l )   {
 static inline void         Gia_ObjSetLevel( Gia_Man_t * p, Gia_Obj_t * pObj, int l )  { Gia_ObjSetLevelId( p, Gia_ObjId(p,pObj), l );       }
 static inline void         Gia_ObjSetCoLevel( Gia_Man_t * p, Gia_Obj_t * pObj )  { assert( Gia_ObjIsCo(pObj)  ); Gia_ObjSetLevel( p, pObj, Gia_ObjLevel(p,Gia_ObjFanin0(pObj)) );                                                }
 static inline void         Gia_ObjSetAndLevel( Gia_Man_t * p, Gia_Obj_t * pObj ) { assert( Gia_ObjIsAnd(pObj) ); Gia_ObjSetLevel( p, pObj, 1+Abc_MaxInt(Gia_ObjLevel(p,Gia_ObjFanin0(pObj)),Gia_ObjLevel(p,Gia_ObjFanin1(pObj))) ); }
+static inline void         Gia_ObjSetXorLevel( Gia_Man_t * p, Gia_Obj_t * pObj ) { assert( Gia_ObjIsXor(pObj) ); Gia_ObjSetLevel( p, pObj, 2+Abc_MaxInt(Gia_ObjLevel(p,Gia_ObjFanin0(pObj)),Gia_ObjLevel(p,Gia_ObjFanin1(pObj))) ); }
+static inline void         Gia_ObjSetMuxLevel( Gia_Man_t * p, Gia_Obj_t * pObj ) { assert( Gia_ObjIsMux(p,pObj) ); Gia_ObjSetLevel( p, pObj, 2+Abc_MaxInt( Abc_MaxInt(Gia_ObjLevel(p,Gia_ObjFanin0(pObj)),Gia_ObjLevel(p,Gia_ObjFanin1(pObj))), Gia_ObjLevel(p,Gia_ObjFanin2(p,pObj))) ); }
+static inline void         Gia_ObjSetGateLevel( Gia_Man_t * p, Gia_Obj_t * pObj ){ if ( Gia_ObjIsMux(p,pObj) ) Gia_ObjSetMuxLevel(p, pObj); else if ( Gia_ObjIsXor(pObj) ) Gia_ObjSetXorLevel(p, pObj); else if ( Gia_ObjIsAnd(pObj) ) Gia_ObjSetAndLevel(p, pObj); }
 
 static inline int          Gia_ObjNum( Gia_Man_t * p, Gia_Obj_t * pObj )       { return (int)(unsigned char)Vec_StrGetEntry(p->vTtNums, Gia_ObjId(p,pObj));                  }
 static inline void         Gia_ObjSetNum( Gia_Man_t * p, Gia_Obj_t * pObj, int n ) { assert( n >= 0 && n < 254 ); Vec_StrSetEntry(p->vTtNums, Gia_ObjId(p,pObj), (char)n);   }
@@ -499,6 +507,7 @@ static inline Gia_Obj_t * Gia_ManAppendObj( Gia_Man_t * p )
         int nObjNew = Abc_MinInt( 2 * p->nObjsAlloc, (1 << 29) );
         if ( p->nObjs == (1 << 29) )
             printf( "Hard limit on the number of nodes (2^29) is reached. Quitting...\n" ), exit(1);
+        assert( p->nObjs < nObjNew );
         if ( p->fVerbose )
             printf("Extending GIA object storage: %d -> %d.\n", p->nObjsAlloc, nObjNew );
         assert( p->nObjsAlloc > 0 );
@@ -887,7 +896,7 @@ static inline int         Gia_ObjLutFanin( Gia_Man_t * p, int Id, int i )   { re
 #define Gia_ManForEachAndReverse( p, pObj, i )                          \
     for ( i = p->nObjs - 1; (i > 0) && ((pObj) = Gia_ManObj(p, i)); i-- )  if ( !Gia_ObjIsAnd(pObj) ) {} else
 #define Gia_ManForEachMux( p, pObj, i )                                 \
-    for ( i = 0; (i < p->nObjs) && ((pObj) = Gia_ManObj(p, i)); i++ )      if ( !Gia_ObjIsMux(p, i) ) {} else
+    for ( i = 0; (i < p->nObjs) && ((pObj) = Gia_ManObj(p, i)); i++ )      if ( !Gia_ObjIsMuxId(p, i) ) {} else
 #define Gia_ManForEachCi( p, pObj, i )                                  \
     for ( i = 0; (i < Vec_IntSize(p->vCis)) && ((pObj) = Gia_ManCi(p, i)); i++ )
 #define Gia_ManForEachCo( p, pObj, i )                                  \
@@ -920,6 +929,7 @@ extern void                Gia_DumpAiger( Gia_Man_t * p, char * pFilePrefix, int
 extern Vec_Str_t *         Gia_AigerWriteIntoMemoryStr( Gia_Man_t * p );
 extern Vec_Str_t *         Gia_AigerWriteIntoMemoryStrPart( Gia_Man_t * p, Vec_Int_t * vCis, Vec_Int_t * vAnds, Vec_Int_t * vCos, int nRegs );
 extern void                Gia_AigerWriteSimple( Gia_Man_t * pInit, char * pFileName );
+extern Gia_Man_t *         Gia_ManBalance( Gia_Man_t * p, int fSimpleAnd, int fVerbose );
 /*=== giaBidec.c ===========================================================*/
 extern unsigned *          Gia_ManConvertAigToTruth( Gia_Man_t * p, Gia_Obj_t * pRoot, Vec_Int_t * vLeaves, Vec_Int_t * vTruth, Vec_Int_t * vVisited );
 extern Gia_Man_t *         Gia_ManPerformBidec( Gia_Man_t * p, int fVerbose );

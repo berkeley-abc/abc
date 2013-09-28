@@ -1,6 +1,7 @@
 SRC +=    src/aig/gia/giaAig.c \
     src/aig/gia/giaAiger.c \
     src/aig/gia/giaAigerExt.c \
+    src/aig/gia/giaBalance.c \
     src/aig/gia/giaBidec.c \
     src/aig/gia/giaCCof.c \
     src/aig/gia/giaCex.c \
