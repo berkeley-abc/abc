@@ -27415,8 +27415,9 @@ int Abc_CommandAbc9Balance( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fSimpleAnd   = 0;
     int fKeepLevel   = 0;
     int c, fVerbose  = 1;
+    int fVeryVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Nealvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Nealvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -27443,6 +27444,9 @@ int Abc_CommandAbc9Balance( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'v':
             fVerbose ^= 1;
             break;
+        case 'w':
+            fVeryVerbose ^= 1;
+            break;
         case 'h':
             goto usage;
         default:
@@ -27460,20 +27464,21 @@ int Abc_CommandAbc9Balance( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     if ( fMultiExt )
-        pTemp = Gia_ManMultiExtract( pAbc->pGia, fSimpleAnd, nNewNodesMax, fVerbose );
+        pTemp = Gia_ManMultiExtract( pAbc->pGia, fSimpleAnd, nNewNodesMax, fVerbose, fVeryVerbose );
     else
         pTemp = Gia_ManBalance( pAbc->pGia, fSimpleAnd, fVerbose );
     Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &b [-N num] [-ealvh]\n" );
+    Abc_Print( -2, "usage: &b [-N num] [-ealvwh]\n" );
     Abc_Print( -2, "\t         performs AIG balancing to reduce delay\n" );
     Abc_Print( -2, "\t-N num : the max fanout count to skip a divisor [default = %d]\n", nNewNodesMax );
     Abc_Print( -2, "\t-e     : toggle extacting shared logic while balancing [default = %s]\n", fMultiExt? "yes": "no" );
     Abc_Print( -2, "\t-a     : toggle using AND instead of AND/XOR/MUX [default = %s]\n", fSimpleAnd? "yes": "no" );
     Abc_Print( -2, "\t-l     : toggle level update during shrinking [default = %s]\n", fKeepLevel? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-w     : toggle printing additional information [default = %s]\n", fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }

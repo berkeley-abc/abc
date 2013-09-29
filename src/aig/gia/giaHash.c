@@ -527,6 +527,10 @@ int Gia_ManHashMuxReal( Gia_Man_t * p, int iLitC, int iLit1, int iLit0 )
     assert( iLit0 > 1 && iLit1 > 1 && iLitC > 1 );
     if ( iLit0 == iLit1 )
         return iLit0;
+    if ( iLitC == iLit0 || iLitC == Abc_LitNot(iLit1) )
+        return Gia_ManHashAnd(p, iLit0, iLit1);
+    if ( iLitC == iLit1 || iLitC == Abc_LitNot(iLit0) )
+        return Gia_ManHashOr(p, iLit0, iLit1);
     if ( Abc_Lit2Var(iLit0) == Abc_Lit2Var(iLit1) )
         return Gia_ManHashXorReal( p, iLitC, iLit0 );
     if ( iLit0 > iLit1 )

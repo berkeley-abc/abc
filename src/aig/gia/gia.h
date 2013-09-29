@@ -931,7 +931,7 @@ extern Vec_Str_t *         Gia_AigerWriteIntoMemoryStrPart( Gia_Man_t * p, Vec_I
 extern void                Gia_AigerWriteSimple( Gia_Man_t * pInit, char * pFileName );
 /*=== giaBalance.c ===========================================================*/
 extern Gia_Man_t *         Gia_ManBalance( Gia_Man_t * p, int fSimpleAnd, int fVerbose );
-extern Gia_Man_t *         Gia_ManMultiExtract( Gia_Man_t * p, int fSimpleAnd, int nNewNodesMax, int fVerbose );
+extern Gia_Man_t *         Gia_ManMultiExtract( Gia_Man_t * p, int fSimpleAnd, int nNewNodesMax, int fVerbose, int fVeryVerbose );
 /*=== giaBidec.c ===========================================================*/
 extern unsigned *          Gia_ManConvertAigToTruth( Gia_Man_t * p, Gia_Obj_t * pRoot, Vec_Int_t * vLeaves, Vec_Int_t * vTruth, Vec_Int_t * vVisited );
 extern Gia_Man_t *         Gia_ManPerformBidec( Gia_Man_t * p, int fVerbose );

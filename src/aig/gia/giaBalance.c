@@ -29,6 +29,32 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
+// operation manager
+typedef struct Dam_Man_t_ Dam_Man_t;
+struct Dam_Man_t_
+{
+    Gia_Man_t *      pGia;      // user's AIG
+    Vec_Int_t *      vNod2Set;  // node ID into fanin set
+    Vec_Int_t *      vDiv2Nod;  // div ID into fanin set
+    Vec_Int_t *      vSetStore; // stored multisets
+    Vec_Int_t *      vNodStore; // stored divisors
+    Vec_Flt_t *      vCounts;   // occur counts
+    Vec_Que_t *      vQue;      // pairs by count
+    Hash_IntMan_t *  vHash;     // pair hash table
+    abctime          clkStart;  // starting the clock
+    int              nDivs;     // extracted divisor count
+    int              nAnds;     // total AND node count
+    int              nGain;     // total gain in AND nodes
+    int              nGainX;    // gain from XOR nodes
+};
+
+static inline int    Dam_ObjHand( Dam_Man_t * p, int i )     { return i < Vec_IntSize(p->vNod2Set) ? Vec_IntEntry(p->vNod2Set, i) : 0;                      }
+static inline int *  Dam_ObjSet( Dam_Man_t * p, int i )      { int h = Dam_ObjHand(p, i); if ( h == 0 ) return NULL; return Vec_IntEntryP(p->vSetStore, h); }
+
+static inline int    Dam_DivHand( Dam_Man_t * p, int d )     { return d < Vec_IntSize(p->vDiv2Nod) ? Vec_IntEntry(p->vDiv2Nod, d) : 0;                      }
+static inline int *  Dam_DivSet( Dam_Man_t * p, int d )      { int h = Dam_DivHand(p, d); if ( h == 0 ) return NULL; return Vec_IntEntryP(p->vNodStore, h); }
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -187,18 +213,19 @@ void Gia_ManCreateGate( Gia_Man_t * pNew, Gia_Obj_t * pObj, Vec_Int_t * vSuper )
 }
 int Gia_ManBalanceGate( Gia_Man_t * pNew, Gia_Obj_t * pObj, Vec_Int_t * vSuper, int * pLits, int nLits )
 {
-    if ( nLits == 2 )
+    Vec_IntClear( vSuper );
+    if ( nLits == 1 )
+        Vec_IntPush( vSuper, pLits[0] );
+    else if ( nLits == 2 )
     {
-        Vec_IntClear( vSuper );
         Vec_IntPush( vSuper, pLits[0] );
         Vec_IntPush( vSuper, pLits[1] );
         Gia_ManCreateGate( pNew, pObj, vSuper );
     }
     else if ( nLits > 2 )
     {
-        int i, * pArray, * pPerm;
         // collect levels
-        Vec_IntClear( vSuper );
+        int i, * pArray, * pPerm;
         for ( i = 0; i < nLits; i++ )
             Vec_IntPush( vSuper, Gia_ObjLevelId(pNew, Abc_Lit2Var(pLits[i])) );
         // sort by level
@@ -332,30 +359,6 @@ Gia_Man_t * Gia_ManBalance( Gia_Man_t * p, int fSimpleAnd, int fVerbose )
 
 
 
-
-// operation manager
-typedef struct Dam_Man_t_ Dam_Man_t;
-struct Dam_Man_t_
-{
-    Gia_Man_t *      pGia;      // user's AIG
-    Vec_Int_t *      vNod2Set;  // node ID into fanin set
-    Vec_Int_t *      vDiv2Nod;  // div ID into fanin set
-    Vec_Int_t *      vSetStore; // stored multisets
-    Vec_Int_t *      vNodStore; // stored divisors
-    Vec_Flt_t *      vCounts;   // occur counts
-    Vec_Que_t *      vQue;      // pairs by count
-    Hash_IntMan_t *  vHash;     // pair hash table
-    abctime          clkStart;  // starting the clock
-    int              nAnds;     // total AND node count
-    int              nDivs;     // extracted divisor count
-};
-
-static inline int    Dam_ObjHand( Dam_Man_t * p, int i )     { return i < Vec_IntSize(p->vNod2Set) ? Vec_IntEntry(p->vNod2Set, i) : 0;                      }
-static inline int *  Dam_ObjSet( Dam_Man_t * p, int i )      { int h = Dam_ObjHand(p, i); if ( h == 0 ) return NULL; return Vec_IntEntryP(p->vSetStore, h); }
-
-static inline int    Dam_DivHand( Dam_Man_t * p, int d )     { return d < Vec_IntSize(p->vDiv2Nod) ? Vec_IntEntry(p->vDiv2Nod, d) : 0;                      }
-static inline int *  Dam_DivSet( Dam_Man_t * p, int d )      { int h = Dam_DivHand(p, d); if ( h == 0 ) return NULL; return Vec_IntEntryP(p->vNodStore, h); }
-
 /**Function*************************************************************
 
   Synopsis    []
@@ -477,7 +480,7 @@ void Dam_ManCreateMultiRefs( Dam_Man_t * p, Vec_Int_t ** pvRefsAnd, Vec_Int_t **
     *pvRefsAnd = vRefsAnd;
     *pvRefsXor = vRefsXor;
 }
-void Dam_ManCreatePairs( Dam_Man_t * p )
+void Dam_ManCreatePairs( Dam_Man_t * p, int fVerbose )
 {
     Gia_Obj_t * pObj;
     Hash_IntMan_t * vHash;
@@ -499,9 +502,11 @@ void Dam_ManCreatePairs( Dam_Man_t * p )
         Vec_IntClear(vSuper);
         if ( Gia_ObjIsXor(pObj) )
         {
+//            printf( "%d -> ", pSet[0] );
             for ( k = 1; k <= pSet[0]; k++ )
                 if ( Vec_IntEntry(vRefsXor, Abc_Lit2Var(pSet[k])) > 1 )
                     Vec_IntPush( vSuper, pSet[k] );
+//            printf( "%d    ", Vec_IntSize(vSuper) );
         }
         else if ( Gia_ObjIsAndReal(p->pGia, pObj) )
         {
@@ -553,7 +558,7 @@ void Dam_ManCreatePairs( Dam_Man_t * p )
         Num = Hash_Int2ManInsert( p->vHash, Hash_IntObjData0(vHash, i), Hash_IntObjData1(vHash, i), 0 );
         assert( Num == Hash_IntManEntryNum(p->vHash) );
         assert( Num == Vec_FltSize(p->vCounts) );
-        Vec_FltPush( p->vCounts, nRefs );
+        Vec_FltPush( p->vCounts, nRefs-1 );
         Vec_QuePush( p->vQue, Num );
         // remember divisors
         assert( Num == Vec_IntSize(p->vDiv2Nod) );
@@ -579,15 +584,16 @@ void Dam_ManCreatePairs( Dam_Man_t * p )
         if ( Num == -1 )
             continue;
         pSet = Dam_DivSet( p, Num );
-        assert( pSet[0] < Vec_FltEntry(p->vCounts, Num) );
+        assert( pSet[0] <= Vec_FltEntry(p->vCounts, Num) );
         pSet[++pSet[0]] = iNode;
     }
     Vec_IntFree( vRemap );
     Vec_IntFree( vDivs );
     // make sure divisors are added correctly
     for ( i = 1; i <= nDivsUsed; i++ )
-        assert( Dam_DivSet(p, i)[0] == Vec_FltEntry(p->vCounts, i) );
-
+        assert( Dam_DivSet(p, i)[0] == Vec_FltEntry(p->vCounts, i)+1 );
+    if ( !fVerbose )
+        return;
     // print stats
     printf( "Pairs:" );
     printf( "  Total =%9d (%6.2f %%)", nPairsAll,   100.0 * nPairsAll   / Abc_MaxInt(nPairsAll, 1) );
@@ -695,20 +701,23 @@ Gia_Man_t * Dam_ManMultiAig( Dam_Man_t * pMan )
 void Dam_PrintDiv( Dam_Man_t * p, int iDiv )
 {
     if ( iDiv == 0 )
-        printf( "Final statistics after extracting %6d divisors:         ", p->nDivs );
+        printf( "Final statistics after extracting %6d divisors:          ", p->nDivs );
     else
     {
+        char Buffer[100];
         int iData0 = Hash_IntObjData0(p->vHash, iDiv);
         int iData1 = Hash_IntObjData1(p->vHash, iDiv);
-        printf( "%4d : ",       p->nDivs+1 );
-        printf( "Div %7d : ",   iDiv );
+        printf( "Div%5d : ",  p->nDivs+1 );
+        printf( "D%-8d = ",   iDiv );
+        sprintf( Buffer, "%c%d", Abc_LitIsCompl(iData0)? '!':' ', Abc_Lit2Var(iData0) );
+        printf( "%8s ",   Buffer );
+        printf( "%c  ",     (iData0 < iData1) ? '*' : '+' );
+        sprintf( Buffer, "%c%d", Abc_LitIsCompl(iData1)? '!':' ', Abc_Lit2Var(iData1) );
+        printf( "%8s   ", Buffer );
         printf( "Weight %5d  ", (int)Vec_FltEntry(p->vCounts, iDiv) );
-        printf( "%s(",          iData0 < iData1 ? "AND" : "XOR" );
-        printf( "%7d ",         iData0 );
-        printf( "%7d )   ",     iData1 );
     }
     printf( "Divs =%8d  ",  Hash_IntManEntryNum(p->vHash) );
-    printf( "Ands =%7d  ",  p->nAnds );
+    printf( "Ands =%8d  ",  p->nAnds - p->nGain );
     Abc_PrintTime( 1, "Time", Abc_Clock() - p->clkStart );
 }
 void Dam_PrintQue( Dam_Man_t * p )
@@ -727,10 +736,23 @@ void Dam_PrintQue( Dam_Man_t * p )
         printf( "\n" );
     }
 }
-void Dam_ManUpdateNode( Dam_Man_t * p, int iObj, int iLit0, int iLit1, int iLitNew )
+int Dam_ManUpdateNode( Dam_Man_t * p, int iObj, int iLit0, int iLit1, int iLitNew )
 {
     int i, k, c, Num, iLit, iLit2;
     int * pSet = Dam_ObjSet( p, iObj );
+    // check if literal can be found
+    for ( i = 1; i <= pSet[0]; i++ )
+        if ( pSet[i] == iLit0 )
+            break;
+    if ( i > pSet[0] )
+        return 0;
+    // check if literal can be found
+    for ( i = 1; i <= pSet[0]; i++ )
+        if ( pSet[i] == iLit1 )
+            break;
+    if ( i > pSet[0] )
+        return 0;
+    // compact literals
     for ( k = i = 1; i <= pSet[0]; i++ )
     {
         if ( iLit0 == pSet[i] || iLit1 == pSet[i] )
@@ -754,10 +776,10 @@ void Dam_ManUpdateNode( Dam_Man_t * p, int iObj, int iLit0, int iLit1, int iLitN
     pSet[k] = iLitNew;
     pSet[0] = k;
     // add new divisors
-    for ( i = 1; i < pSet[0]; i++ )
-    {
-    }
-
+//    for ( i = 1; i < pSet[0]; i++ )
+//    {
+//    }
+    return 1;
 }
 void Dam_ManUpdate( Dam_Man_t * p, int iDiv )
 {
@@ -765,6 +787,7 @@ void Dam_ManUpdate( Dam_Man_t * p, int iDiv )
     int iLit1 = Hash_IntObjData1(p->vHash, iDiv);
     int i, iLitNew, * pNods = Dam_DivSet( p, iDiv );
     int fThisIsXor = (iLit0 > iLit1);
+    int nPresent = 0;
 //    Dam_PrintQue( p );
     if ( fThisIsXor )
         iLitNew = Gia_ManAppendXorReal( p->pGia, iLit0, iLit1 );
@@ -773,15 +796,13 @@ void Dam_ManUpdate( Dam_Man_t * p, int iDiv )
     // replace entries
     assert( pNods[0] >= 2 );
     for ( i = 1; i <= pNods[0]; i++ )
-        Dam_ManUpdateNode( p, pNods[i], iLit0, iLit1, iLitNew );
-    // update reference counters of AND/XOR nodes
-
+        nPresent += Dam_ManUpdateNode( p, pNods[i], iLit0, iLit1, iLitNew );
+    // update reference counters of AND/XOR nodes here!
     // update costs
     Vec_FltWriteEntry( p->vCounts, iDiv, 0 );
-    p->nAnds -= (1 + 2 * fThisIsXor) * (pNods[0] - 1);
+    p->nGain += (1 + 2 * fThisIsXor) * (nPresent - 1);
+    p->nGainX += 3 * fThisIsXor * (nPresent - 1);
     p->nDivs++;
-//    Dam_PrintQue( p );
-//    printf( "\n" );
 }
 
 /**Function*************************************************************
@@ -795,36 +816,44 @@ void Dam_ManUpdate( Dam_Man_t * p, int iDiv )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Dam_ManMultiExtractInt( Gia_Man_t * p, int nNewNodesMax, int fVerbose )
+Gia_Man_t * Dam_ManMultiExtractInt( Gia_Man_t * pGia, int nNewNodesMax, int fVerbose, int fVeryVerbose )
 {
     Gia_Man_t * pNew;
-    Dam_Man_t * pMan;
+    Dam_Man_t * p;
     int i, iDiv;
-//    nNewNodesMax = 1;
-    pMan = Dam_ManAlloc( p );
-    Dam_ManCreatePairs( pMan );
-    for ( i = 0; i < nNewNodesMax && Vec_QueTopCost(pMan->vQue) > 1; i++ )
+    p = Dam_ManAlloc( pGia );
+    Dam_ManCreatePairs( p, fVerbose );
+    for ( i = 0; i < nNewNodesMax && Vec_QueTopCost(p->vQue) > 0; i++ )
     {
-        iDiv = Vec_QuePop(pMan->vQue);
-        if ( fVerbose )
-            Dam_PrintDiv( pMan, iDiv );
-        Dam_ManUpdate( pMan, iDiv );
+        iDiv = Vec_QuePop(p->vQue);
+        if ( fVeryVerbose )
+            Dam_PrintDiv( p, iDiv );
+        Dam_ManUpdate( p, iDiv );
     }
+    if ( fVeryVerbose )
+        Dam_PrintDiv( p, 0 );
+    pNew = Dam_ManMultiAig( p );
     if ( fVerbose )
-        Dam_PrintDiv( pMan, 0 );
-    pNew = Dam_ManMultiAig( pMan );
-    if ( fVerbose )
-        Abc_PrintTime( 1, "Time", Abc_Clock() - pMan->clkStart );
-    Dam_ManFree( pMan );
+    {
+        int nDivsAll = Hash_IntManEntryNum(p->vHash);
+        int nDivsUsed = p->nDivs;
+        printf( "Div:  " );
+        printf( "  Total =%9d (%6.2f %%) ",   nDivsAll,   100.0 * nDivsAll    / Abc_MaxInt(nDivsAll, 1) );
+        printf( "  Used =%9d (%6.2f %%)",     nDivsUsed,  100.0 * nDivsUsed   / Abc_MaxInt(nDivsAll, 1) );
+        printf( "  Gain =%6d (%6.2f %%)",     p->nGain,   100.0 * p->nGain / Abc_MaxInt(p->nAnds, 1) );
+        printf( "  GainX = %d  ",             p->nGainX  );
+        Abc_PrintTime( 1, "Time", Abc_Clock() - p->clkStart );
+    }
+    Dam_ManFree( p );
     return pNew;
 }
-Gia_Man_t * Gia_ManMultiExtract( Gia_Man_t * p, int fSimpleAnd, int nNewNodesMax, int fVerbose )
+Gia_Man_t * Gia_ManMultiExtract( Gia_Man_t * p, int fSimpleAnd, int nNewNodesMax, int fVerbose, int fVeryVerbose )
 {
     Gia_Man_t * pNew, * pNew1, * pNew2;
     if ( fVerbose )     Gia_ManPrintStats( p, NULL );
     pNew = fSimpleAnd ? Gia_ManDup( p ) : Gia_ManDupMuxes( p );
     if ( fVerbose )     Gia_ManPrintStats( pNew, NULL );
-    pNew1 = Dam_ManMultiExtractInt( pNew, nNewNodesMax, fVerbose );
+    pNew1 = Dam_ManMultiExtractInt( pNew, nNewNodesMax, fVerbose, fVeryVerbose );
     if ( fVerbose )     Gia_ManPrintStats( pNew1, NULL );
     Gia_ManStop( pNew );
     pNew2 = Gia_ManDupNoMuxes( pNew1 );
