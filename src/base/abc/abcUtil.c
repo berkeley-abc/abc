@@ -2666,7 +2666,7 @@ Abc_Ntk_t * Abc_NtkFromPla( char ** pPlas, int nInputs, int nOutputs )
     if ( !Abc_NtkCheck( pNtkSop ) )
         fprintf( stdout, "Abc_NtkFromPla(): Network check has failed.\n" );
     // perform fast_extract
-    Abc_NtkSetDefaultParams( p );
+    Abc_NtkSetDefaultFxParams( p );
     Abc_NtkFastExtract( pNtkSop, p );
     Abc_NtkFxuFreeInfo( p );
     // convert to an AIG

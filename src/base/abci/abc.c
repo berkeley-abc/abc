@@ -3632,14 +3632,14 @@ usage:
 ***********************************************************************/
 int Abc_CommandFastExtract( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern int Abc_NtkFxPerform( Abc_Ntk_t * pNtk, int nNewNodesMax, int nLitCountMax, int fVerbose );
+    extern int Abc_NtkFxPerform( Abc_Ntk_t * pNtk, int nNewNodesMax, int nLitCountMax, int fVerbose, int fVeryVerbose );
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     Fxu_Data_t Params, * p = &Params;
     int c, fNewAlgo = 1;
     // set the defaults
-    Abc_NtkSetDefaultParams( p );
+    Abc_NtkSetDefaultFxParams( p );
     Extra_UtilGetoptReset();
-    while ( (c = Extra_UtilGetopt(argc, argv, "SDNWMsdzcnvh")) != EOF )
+    while ( (c = Extra_UtilGetopt(argc, argv, "SDNWMsdzcnvwh")) != EOF )
     {
         switch (c)
         {
@@ -3716,6 +3716,9 @@ int Abc_CommandFastExtract( Abc_Frame_t * pAbc, int argc, char ** argv )
             case 'v':
                 p->fVerbose ^= 1;
                 break;
+            case 'w':
+                p->fVeryVerbose ^= 1;
+                break;
             case 'h':
                 goto usage;
                 break;
@@ -3746,14 +3749,14 @@ int Abc_CommandFastExtract( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // the nodes to be merged are linked into the special linked list
     if ( fNewAlgo )
-        Abc_NtkFxPerform( pNtk, p->nNodesExt, p->LitCountMax, p->fVerbose );
+        Abc_NtkFxPerform( pNtk, p->nNodesExt, p->LitCountMax, p->fVerbose, p->fVeryVerbose );
     else
         Abc_NtkFastExtract( pNtk, p );
     Abc_NtkFxuFreeInfo( p );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: fx [-SDNWM <num>] [-sdzcnvh]\n");
+    Abc_Print( -2, "usage: fx [-SDNWM <num>] [-sdzcnvwh]\n");
     Abc_Print( -2, "\t           performs unate fast extract on the current network\n");
     Abc_Print( -2, "\t-S <num> : max number of single-cube divisors to consider [default = %d]\n", p->nSingleMax );
     Abc_Print( -2, "\t-D <num> : max number of double-cube divisors to consider [default = %d]\n", p->nPairsMax );
@@ -3766,6 +3769,7 @@ usage:
     Abc_Print( -2, "\t-c       : use complement in the binary case [default = %s]\n", p->fUseCompl? "yes": "no" );
     Abc_Print( -2, "\t-n       : use new implementation of fast extract [default = %s]\n", fNewAlgo? "yes": "no" );
     Abc_Print( -2, "\t-v       : print verbose information [default = %s]\n", p->fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-w       : print additional information [default = %s]\n", p->fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;
 }
@@ -27414,7 +27418,7 @@ int Abc_CommandAbc9Balance( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fMultiExt    = 0;
     int fSimpleAnd   = 0;
     int fKeepLevel   = 0;
-    int c, fVerbose  = 1;
+    int c, fVerbose  = 0;
     int fVeryVerbose = 0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "Nealvwh" ) ) != EOF )

@@ -50,6 +50,7 @@ struct FxuDataStruct
     int               fUse0;            // set to 1 to have 0-weight also extracted
     int               fUseCompl;        // set to 1 to have complement taken into account
     int               fVerbose;         // set to 1 to have verbose output
+    int               fVeryVerbose;     // set to 1 to have more verbose output
     int               nNodesExt;        // the number of divisors to extract
     int               nSingleMax;       // the max number of single-cube divisors to consider
     int               nPairsMax;        // the max number of double-cube divisors to consider
@@ -77,7 +78,7 @@ struct FxuDataStruct
 ////////////////////////////////////////////////////////////////////////
 
 /*===== fxu.c ==========================================================*/
-extern void   Abc_NtkSetDefaultParams( Fxu_Data_t * p );
+extern void   Abc_NtkSetDefaultFxParams( Fxu_Data_t * p );
 extern int    Abc_NtkFastExtract( Abc_Ntk_t * pNtk, Fxu_Data_t * p );
 extern void   Abc_NtkFxuFreeInfo( Fxu_Data_t * p );
 

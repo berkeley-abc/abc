@@ -135,7 +135,7 @@ Gia_Man_t * Shr_ManFree( Shr_Man_t * p )
     {
         p->pNew = Gia_ManCleanup( pTemp = p->pNew );
         if ( Gia_ManAndNum(p->pNew) != Gia_ManAndNum(pTemp) )
-            printf( "Gia_ManShrink6() node reduction after sweep %6d -> %6d.\n", Gia_ManAndNum(pTemp), Gia_ManAndNum(p->pNew) );
+            printf( "Node reduction after sweep %6d -> %6d.\n", Gia_ManAndNum(pTemp), Gia_ManAndNum(p->pNew) );
         Gia_ManStop( pTemp );
     }
     Gia_ManSetRegNum( p->pNew, Gia_ManRegNum(p->pGia) );

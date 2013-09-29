@@ -49,7 +49,7 @@ extern int  Fxu_FastExtract( Fxu_Data_t * pData );
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkSetDefaultParams( Fxu_Data_t * p )
+void Abc_NtkSetDefaultFxParams( Fxu_Data_t * p )
 {
     memset( p, 0, sizeof(Fxu_Data_t) );
     p->nSingleMax =  20000;

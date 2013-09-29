@@ -299,9 +299,9 @@ int Abc_NtkFxCheck( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkFxPerform( Abc_Ntk_t * pNtk, int nNewNodesMax, int LitCountMax, int fVerbose )
+int Abc_NtkFxPerform( Abc_Ntk_t * pNtk, int nNewNodesMax, int LitCountMax, int fVerbose, int fVeryVerbose )
 {
-    extern int Fx_FastExtract( Vec_Wec_t * vCubes, int ObjIdMax, int nNewNodesMax, int LitCountMax, int fVerbose );
+    extern int Fx_FastExtract( Vec_Wec_t * vCubes, int ObjIdMax, int nNewNodesMax, int LitCountMax, int fVerbose, int fVeryVerbose );
     Vec_Wec_t * vCubes;
     assert( Abc_NtkIsSopLogic(pNtk) );
     // check unique fanins
@@ -318,7 +318,7 @@ int Abc_NtkFxPerform( Abc_Ntk_t * pNtk, int nNewNodesMax, int LitCountMax, int f
     // collect information about the covers
     vCubes = Abc_NtkFxRetrieve( pNtk );
     // call the fast extract procedure
-    if ( Fx_FastExtract( vCubes, Abc_NtkObjNumMax(pNtk), nNewNodesMax, LitCountMax, fVerbose ) > 0 )
+    if ( Fx_FastExtract( vCubes, Abc_NtkObjNumMax(pNtk), nNewNodesMax, LitCountMax, fVerbose, fVeryVerbose ) > 0 )
     {
         // update the network
         Abc_NtkFxInsert( pNtk, vCubes );
@@ -486,6 +486,7 @@ static void Fx_PrintStats( Fx_Man_t * p, abctime clk )
     printf( "Divs  =%7d  ", Hsh_VecSize(p->pHash) );
     printf( "Divs+ =%7d  ", Vec_QueSize(p->vPrio) );
     printf( "Compl =%6d  ", p->nDivMux[1] );
+    printf( "Extr  =%6d  ", p->nDivs );
 //    printf( "DivsS =%6d  ", p->nDivsS );
 //    printf( "PairS =%6d  ", p->nPairsS );
 //    printf( "PairD =%6d  ", p->nPairsD );
@@ -1110,9 +1111,9 @@ void Fx_ManUpdate( Fx_Man_t * p, int iDiv )
   SeeAlso     []
 
 ***********************************************************************/
-int Fx_FastExtract( Vec_Wec_t * vCubes, int ObjIdMax, int nNewNodesMax, int LitCountMax, int fVerbose )
+int Fx_FastExtract( Vec_Wec_t * vCubes, int ObjIdMax, int nNewNodesMax, int LitCountMax, int fVerbose, int fVeryVerbose )
 {
-    int fVeryVerbose = 0;
+    int fVeryVeryVerbose = 0;
     int i, iDiv;
     Fx_Man_t * p;
     abctime clk = Abc_Clock();
@@ -1130,12 +1131,14 @@ int Fx_FastExtract( Vec_Wec_t * vCubes, int ObjIdMax, int nNewNodesMax, int LitC
     for ( i = 0; i < nNewNodesMax && Vec_QueTopCost(p->vPrio) > 0.0; i++ )
     {
         iDiv = Vec_QuePop(p->vPrio);
-        if ( fVerbose )
+        if ( fVeryVerbose )
             Fx_PrintDiv( p, iDiv );
         Fx_ManUpdate( p, iDiv );
-        if ( fVeryVerbose )
+        if ( fVeryVeryVerbose )
             Fx_PrintMatrix( p );
     }
+    if ( fVerbose )
+        Fx_PrintStats( p, Abc_Clock() - clk );
     Fx_ManStop( p );
     // return the result
     Vec_WecRemoveEmpty( vCubes );
