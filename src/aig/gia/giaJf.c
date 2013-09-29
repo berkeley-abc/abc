@@ -1416,7 +1416,7 @@ void Jf_ManDeriveMapping( Jf_Man_t * p )
             continue;
         pCut = Jf_ObjCutBest( p, i );
         Vec_IntWriteEntry( vMapping, i, Vec_IntSize(vMapping) );
-        assert( Jf_CutSize(pCut) <= 6 );
+        assert( !p->pPars->fCutMin || Jf_CutSize(pCut) <= 6 );
         Vec_IntPush( vMapping, Jf_CutSize(pCut) );
         for ( k = 1; k <= Jf_CutSize(pCut); k++ )
             Vec_IntPush( vMapping, Jf_CutVar(pCut, k) );
