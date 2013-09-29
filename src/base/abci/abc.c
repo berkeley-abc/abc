@@ -29970,7 +29970,7 @@ int Abc_CommandAbc9Jf( Abc_Frame_t * pAbc, int argc, char ** argv )
     Gia_Man_t * pNew; int c;
     Jf_ManSetDefaultPars( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KCRDWaekmtcgvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KCRDWaekmdcgvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -30047,8 +30047,8 @@ int Abc_CommandAbc9Jf( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'm':
             pPars->fCutMin ^= 1;
             break;
-        case 't':
-            pPars->fUseTts ^= 1;
+        case 'd':
+            pPars->fFuncDsd ^= 1;
             break;
         case 'c':
             pPars->fGenCnf ^= 1;
@@ -30094,7 +30094,7 @@ usage:
         sprintf(Buffer, "best possible" );
     else
         sprintf(Buffer, "%d", pPars->DelayTarget );
-    Abc_Print( -2, "usage: &jf [-KCRDW num] [-akmtcgvwh]\n" );
+    Abc_Print( -2, "usage: &jf [-KCRDW num] [-akmdcgvwh]\n" );
     Abc_Print( -2, "\t           performs technology mapping of the network\n" );
     Abc_Print( -2, "\t-K num   : LUT size for the mapping (2 <= K <= %d) [default = %d]\n", pPars->nLutSizeMax, pPars->nLutSize );
     Abc_Print( -2, "\t-C num   : the max number of priority cuts (1 <= C <= %d) [default = %d]\n", pPars->nCutNumMax, pPars->nCutNum );
@@ -30105,7 +30105,7 @@ usage:
     Abc_Print( -2, "\t-e       : toggles edge vs node minimization [default = %s]\n", pPars->fOptEdge? "yes": "no" );
     Abc_Print( -2, "\t-k       : toggles coarsening the subject graph [default = %s]\n", pPars->fCoarsen? "yes": "no" );
     Abc_Print( -2, "\t-m       : toggles cut minimization [default = %s]\n", pPars->fCutMin? "yes": "no" );
-    Abc_Print( -2, "\t-t       : toggles truth tables for minimization [default = %s]\n", pPars->fUseTts? "yes": "no" );
+    Abc_Print( -2, "\t-d       : toggles using DSD to represent cut functions [default = %s]\n", pPars->fFuncDsd? "yes": "no" );
     Abc_Print( -2, "\t-c       : toggles mapping for CNF generation [default = %s]\n", pPars->fGenCnf? "yes": "no" );
     Abc_Print( -2, "\t-g       : toggles generating AIG without mapping [default = %s]\n", pPars->fPureAig? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );

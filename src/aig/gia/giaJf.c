@@ -252,7 +252,7 @@ Jf_Man_t * Jf_ManAlloc( Gia_Man_t * pGia, Jf_Par_t * pPars )
     p = ABC_CALLOC( Jf_Man_t, 1 );
     p->pGia      = pGia;
     p->pPars     = pPars;
-    if ( pPars->fCutMin && pPars->fUseTts )
+    if ( pPars->fCutMin && !pPars->fFuncDsd )
     {
         word uTruth; int Value;
         p->vTtMem    = Vec_MemAlloc( 1, 12 ); // 32 KB/page for 6-var functions
@@ -260,7 +260,7 @@ Jf_Man_t * Jf_ManAlloc( Gia_Man_t * pGia, Jf_Par_t * pPars )
         uTruth = ABC_CONST(0x0000000000000000); Value = Vec_MemHashInsert( p->vTtMem, &uTruth ); assert( Value == 0 );
         uTruth = ABC_CONST(0xAAAAAAAAAAAAAAAA); Value = Vec_MemHashInsert( p->vTtMem, &uTruth ); assert( Value == 1 );
     }
-    else if ( pPars->fCutMin && !pPars->fUseTts )
+    else if ( pPars->fCutMin && pPars->fFuncDsd )
     {
         p->pDsd = Sdm_ManRead();
         if ( pPars->fGenCnf )
@@ -286,7 +286,9 @@ void Jf_ManFree( Jf_Man_t * p )
         Sdm_ManPrintDsdStats( p->pDsd, 0 );
     if ( p->pPars->fVerbose && p->vTtMem )
         printf( "Unique truth tables = %d. Memory = %.2f MB\n", Vec_MemEntryNum(p->vTtMem), Vec_MemMemory(p->vTtMem) / (1<<20) ); 
-    if ( p->pPars->fVeryVerbose && p->pPars->fUseTts )
+    if ( p->pPars->fVeryVerbose && p->pPars->fCutMin && p->pPars->fFuncDsd )
+        Jf_ManProfileClasses( p );
+    if ( p->pPars->fVeryVerbose && p->pPars->fCutMin && !p->pPars->fFuncDsd )
     {
         char * pFileName = "truths.txt";
         FILE * pFile = fopen( pFileName, "wb" );
@@ -296,8 +298,6 @@ void Jf_ManFree( Jf_Man_t * p )
             Vec_MemEntryNum(p->vTtMem), p->pPars->nLutSize, pFileName,
             17.0 * Vec_MemEntryNum(p->vTtMem) / (1 << 20) );
     }
-    if ( p->pPars->fVeryVerbose && !p->pPars->fUseTts && p->pPars->fCutMin )
-        Jf_ManProfileClasses( p );
     if ( p->pPars->fCoarsen )
         Gia_ManCleanMark0( p->pGia );
     ABC_FREE( p->pGia->pRefs );
@@ -306,7 +306,7 @@ void Jf_ManFree( Jf_Man_t * p )
     ABC_FREE( p->vDep.pArray );
     ABC_FREE( p->vFlow.pArray );
     ABC_FREE( p->vRefs.pArray );
-    if ( p->pPars->fCutMin && p->pPars->fUseTts )
+    if ( p->pPars->fCutMin && !p->pPars->fFuncDsd )
     {
         Vec_MemHashFree( p->vTtMem );
         Vec_MemFree( p->vTtMem );
@@ -1049,20 +1049,7 @@ void Jf_ObjComputeCuts( Jf_Man_t * p, Gia_Obj_t * pObj, int fEdge )
                 continue;
             pSto[c]->Sign = Sign0[i] | Sign1[k];
         }
-        else if ( p->pPars->fUseTts )
-        {
-            if ( !Jf_CutMergeOrder(pCut0, pCut1, pSto[c]->pCut, LutSize) )
-                continue;
-            pSto[c]->Sign = Sign0[i] | Sign1[k];
-            nOldSupp = pSto[c]->pCut[0];
-            pSto[c]->iFunc = Jf_TtComputeForCut( p, Jf_ObjFunc0(pObj, pCut0), Jf_ObjFunc1(pObj, pCut1), pCut0, pCut1, pSto[c]->pCut );
-            assert( pSto[c]->pCut[0] <= nOldSupp );
-            if ( pSto[c]->pCut[0] < nOldSupp )
-                pSto[c]->Sign = Jf_CutGetSign( pSto[c]->pCut );
-            if ( pSto[c]->iFunc >= (1 << 24) )
-                printf( "Hard limit on the number of different Boolean functions (2^23) is reached. Quitting...\n" ), exit(1);
-        }
-        else
+        else if ( p->pPars->fFuncDsd )
         {
             if ( !(Config = Jf_CutMerge2(pCut0, pCut1, pSto[c]->pCut, LutSize)) )
                 continue;
@@ -1076,6 +1063,19 @@ void Jf_ObjComputeCuts( Jf_Man_t * p, Gia_Obj_t * pObj, int fEdge )
             assert( pSto[c]->pCut[0] <= nOldSupp );
             if ( pSto[c]->pCut[0] < nOldSupp )
                 pSto[c]->Sign = Jf_CutGetSign( pSto[c]->pCut );
+        }
+        else
+        {
+            if ( !Jf_CutMergeOrder(pCut0, pCut1, pSto[c]->pCut, LutSize) )
+                continue;
+            pSto[c]->Sign = Sign0[i] | Sign1[k];
+            nOldSupp = pSto[c]->pCut[0];
+            pSto[c]->iFunc = Jf_TtComputeForCut( p, Jf_ObjFunc0(pObj, pCut0), Jf_ObjFunc1(pObj, pCut1), pCut0, pCut1, pSto[c]->pCut );
+            assert( pSto[c]->pCut[0] <= nOldSupp );
+            if ( pSto[c]->pCut[0] < nOldSupp )
+                pSto[c]->Sign = Jf_CutGetSign( pSto[c]->pCut );
+            if ( pSto[c]->iFunc >= (1 << 24) )
+                printf( "Hard limit on the number of different Boolean functions (2^23) is reached. Quitting...\n" ), exit(1);
         }
         p->CutCount[2]++;
         pSto[c]->Time = p->pPars->fAreaOnly ? 0 : Jf_CutArr(p, pSto[c]->pCut);
@@ -1346,7 +1346,7 @@ Gia_Man_t * Jf_ManDeriveMappingGia( Jf_Man_t * p )
         pCut = Jf_ObjCutBest( p, i );
 //        printf( "Best cut of node %d:  ", i );  Jf_CutPrint(pCut);
         Class = Jf_CutFuncClass( pCut );
-        uTruth = p->pPars->fUseTts ? *Vec_MemReadEntry(p->vTtMem, Class) : Sdm_ManReadDsdTruth(p->pDsd, Class);
+        uTruth = p->pPars->fFuncDsd ? Sdm_ManReadDsdTruth(p->pDsd, Class) : *Vec_MemReadEntry(p->vTtMem, Class);
         assert( p->pDsd == NULL || Sdm_ManReadDsdVarNum(p->pDsd, Class) == Jf_CutSize(pCut) );
         if ( Jf_CutSize(pCut) == 0 )
         {
@@ -1465,7 +1465,7 @@ Gia_Man_t * Jf_ManDeriveGia( Jf_Man_t * p )
         pCut = Jf_ObjCutBest( p, i );
 //        printf( "Best cut of node %d:  ", i );  Jf_CutPrint(pCut);
         Class = Jf_CutFuncClass( pCut );
-        uTruth = p->pPars->fUseTts ? *Vec_MemReadEntry(p->vTtMem, Class) : Sdm_ManReadDsdTruth(p->pDsd, Class);
+        uTruth = p->pPars->fFuncDsd ? Sdm_ManReadDsdTruth(p->pDsd, Class) : *Vec_MemReadEntry(p->vTtMem, Class);
         assert( p->pDsd == NULL || Sdm_ManReadDsdVarNum(p->pDsd, Class) == Jf_CutSize(pCut) );
         if ( Jf_CutSize(pCut) == 0 )
         {
@@ -1527,7 +1527,7 @@ void Jf_ManSetDefaultPars( Jf_Par_t * pPars )
     pPars->fOptEdge     =  1; 
     pPars->fCoarsen     =  0;
     pPars->fCutMin      =  0;
-    pPars->fUseTts      =  0;
+    pPars->fFuncDsd      =  0;
     pPars->fGenCnf      =  0;
     pPars->fPureAig     =  0;
     pPars->fVerbose     =  0;
@@ -1554,8 +1554,8 @@ Gia_Man_t * Jf_ManPerformMapping( Gia_Man_t * pGia, Jf_Par_t * pPars )
     Jf_Man_t * p; int i;
     assert( !pPars->fCutMin || pPars->nLutSize <= 6 );
     if ( pPars->fGenCnf )
-        pPars->fCutMin = 1, pPars->fUseTts = pPars->fOptEdge = 0;
-    if ( pPars->fCutMin && pPars->fUseTts )
+        pPars->fCutMin = 1, pPars->fFuncDsd = 1, pPars->fOptEdge = 0;
+    if ( pPars->fCutMin && !pPars->fFuncDsd )
         pPars->fCoarsen = 0;
     p = Jf_ManAlloc( pGia, pPars );
     p->pCutCmp = pPars->fAreaOnly ? Jf_CutCompareArea : Jf_CutCompareDelay;

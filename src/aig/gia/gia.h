@@ -249,7 +249,7 @@ struct Jf_Par_t_
     int            fOptEdge;
     int            fCoarsen;
     int            fCutMin;
-    int            fUseTts;
+    int            fFuncDsd;
     int            fGenCnf;
     int            fPureAig;
     int            fVerbose;
