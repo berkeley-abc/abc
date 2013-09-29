@@ -737,10 +737,10 @@ void Dam_PrintQue( Dam_Man_t * p )
         printf( "\n" );
     }
 }
-int Dam_ManUpdateNode( Dam_Man_t * p, int iObj, int iLit0, int iLit1, int iLitNew )
+int Dam_ManUpdateNode( Dam_Man_t * p, int iObj, int iLit0, int iLit1, int iLitNew, Vec_Int_t * vDivs )
 {
-    int i, k, c, Num, iLit, iLit2;
     int * pSet = Dam_ObjSet( p, iObj );
+    int i, k, c, Num, iLit, iLit2, fPres;
     // check if literal can be found
     for ( i = 1; i <= pSet[0]; i++ )
         if ( pSet[i] == iLit0 )
@@ -754,12 +754,14 @@ int Dam_ManUpdateNode( Dam_Man_t * p, int iObj, int iLit0, int iLit1, int iLitNe
     if ( i > pSet[0] )
         return 0;
     // compact literals
+    Vec_IntPush( vDivs, -iObj );
     for ( k = i = 1; i <= pSet[0]; i++ )
     {
         if ( iLit0 == pSet[i] || iLit1 == pSet[i] )
             continue;
         pSet[k++] = iLit = pSet[i];
         // reduce weights of the divisors
+        fPres = 0;
         for ( c = 0; c < 2; c++ )
         {
             iLit2 = c ? iLit1 : iLit0;
@@ -771,24 +773,30 @@ int Dam_ManUpdateNode( Dam_Man_t * p, int iObj, int iLit0, int iLit1, int iLitNe
             {
                 Vec_FltAddToEntry( p->vCounts, Num, -1 );
                 Vec_QueUpdate( p->vQue, Num );
+                fPres |= (1 << c);
             }
         }
+        if ( fPres != 3 )
+            continue;
+        if ( (iLit > iLitNew) ^ (iLit0 > iLit1) )
+            Num = Hash_Int2ManInsert( p->vHash, iLitNew, iLit, 0 );
+        else
+            Num = Hash_Int2ManInsert( p->vHash, iLit, iLitNew, 0 );
+        Hash_Int2ObjInc( p->vHash, Num );
+        Vec_IntPush( vDivs, Num );
     }
     pSet[k] = iLitNew;
     pSet[0] = k;
-    // add new divisors
-//    for ( i = 1; i < pSet[0]; i++ )
-//    {
-//    }
     return 1;
 }
 void Dam_ManUpdate( Dam_Man_t * p, int iDiv )
 {
+    Vec_Int_t * vDivs = p->pGia->vSuper;
     int iLit0 = Hash_IntObjData0(p->vHash, iDiv);
     int iLit1 = Hash_IntObjData1(p->vHash, iDiv);
-    int i, iLitNew, * pNods = Dam_DivSet( p, iDiv );
-    int fThisIsXor = (iLit0 > iLit1);
-    int nPresent = 0;
+    int i, iLitNew, * pSet, * pNods = Dam_DivSet( p, iDiv );
+    int nPresent = 0, nPairsStart, nPairsStop, pPairsNew, nRefs;
+    int fThisIsXor = (iLit0 > iLit1), iDivTemp, iNode;
 //    Dam_PrintQue( p );
     if ( fThisIsXor )
         iLitNew = Gia_ManAppendXorReal( p->pGia, iLit0, iLit1 );
@@ -796,9 +804,48 @@ void Dam_ManUpdate( Dam_Man_t * p, int iDiv )
         iLitNew = Gia_ManAppendAnd( p->pGia, iLit0, iLit1 );
     // replace entries
     assert( pNods[0] >= 2 );
+    nPairsStart = Hash_IntManEntryNum(p->vHash) + 1;
+    Vec_IntClear( vDivs );
     for ( i = 1; i <= pNods[0]; i++ )
-        nPresent += Dam_ManUpdateNode( p, pNods[i], iLit0, iLit1, iLitNew );
-    // update reference counters of AND/XOR nodes here!
+        nPresent += Dam_ManUpdateNode( p, pNods[i], iLit0, iLit1, iLitNew, vDivs );
+    nPairsStop = Hash_IntManEntryNum(p->vHash) + 1;
+    // extend arrayvs
+    pPairsNew = 0;
+    Vec_FltFillExtra( p->vCounts, nPairsStop, 0 );
+    Vec_IntFillExtra( p->vDiv2Nod, nPairsStop, -1 );
+    for ( i = nPairsStart; i < nPairsStop; i++ )
+    {
+        nRefs = Hash_IntObjData2(p->vHash, i);
+        if ( nRefs < 2 )
+            continue;
+        Vec_FltWriteEntry( p->vCounts, i, nRefs-1 );
+        Vec_QuePush( p->vQue, i );
+        // remember divisors
+        Vec_IntWriteEntry( p->vDiv2Nod, i, Vec_IntSize(p->vNodStore) );
+        Vec_IntPush( p->vNodStore, 0 );
+        Vec_IntFillExtra( p->vNodStore, Vec_IntSize(p->vNodStore) + nRefs, -1 );
+        pPairsNew++;
+    }
+    printf( "Added %d new pairs\n", pPairsNew );
+    // fill in the divisors
+    iNode = -1;
+    Vec_IntForEachEntry( vDivs, iDivTemp, i )
+    {
+        if ( iDivTemp < 0 )
+        {
+            iNode = -iDivTemp;
+            continue;
+        }
+        if ( Vec_IntEntry(p->vDiv2Nod, iDivTemp) == -1 )
+            continue;
+        pSet = Dam_DivSet( p, iDivTemp );
+        assert( pSet[0] <= Vec_FltEntry(p->vCounts, iDivTemp) );
+        pSet[++pSet[0]] = iNode;
+    }
+    // make sure divisors are added correctly
+    for ( i = nPairsStart; i < nPairsStop; i++ )
+        if ( Vec_IntEntry(p->vDiv2Nod, i) > 0 )
+            assert( Dam_DivSet(p, i)[0] == Vec_FltEntry(p->vCounts, i)+1 );
     // update costs
     Vec_FltWriteEntry( p->vCounts, iDiv, 0 );
     p->nGain += (1 + 2 * fThisIsXor) * (nPresent - 1);
