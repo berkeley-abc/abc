@@ -179,8 +179,8 @@ struct Gia_Man_t_
     Vec_Ptr_t *    vTtInputs;     // truth tables for constant and primary inputs
     Vec_Wrd_t *    vTtMemory;     // truth tables for internal nodes
     // balancing
-    Vec_Int_t *    vStore;        // node storage  
     Vec_Int_t *    vSuper;        // supergate
+    Vec_Int_t *    vStore;        // node storage  
 };
 
 
@@ -929,7 +929,9 @@ extern void                Gia_DumpAiger( Gia_Man_t * p, char * pFilePrefix, int
 extern Vec_Str_t *         Gia_AigerWriteIntoMemoryStr( Gia_Man_t * p );
 extern Vec_Str_t *         Gia_AigerWriteIntoMemoryStrPart( Gia_Man_t * p, Vec_Int_t * vCis, Vec_Int_t * vAnds, Vec_Int_t * vCos, int nRegs );
 extern void                Gia_AigerWriteSimple( Gia_Man_t * pInit, char * pFileName );
+/*=== giaBalance.c ===========================================================*/
 extern Gia_Man_t *         Gia_ManBalance( Gia_Man_t * p, int fSimpleAnd, int fVerbose );
+extern Gia_Man_t *         Gia_ManMultiExtract( Gia_Man_t * p, int fSimpleAnd, int nNewNodesMax, int fVerbose );
 /*=== giaBidec.c ===========================================================*/
 extern unsigned *          Gia_ManConvertAigToTruth( Gia_Man_t * p, Gia_Obj_t * pRoot, Vec_Int_t * vLeaves, Vec_Int_t * vTruth, Vec_Int_t * vVisited );
 extern Gia_Man_t *         Gia_ManPerformBidec( Gia_Man_t * p, int fVerbose );

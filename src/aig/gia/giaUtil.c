@@ -1008,13 +1008,19 @@ int Gia_ManHasDangling( Gia_Man_t * p )
     Gia_ManForEachObj( p, pObj, i )
     {
         pObj->fMark0 = 0;
-        if ( Gia_ObjIsAnd(pObj) )
+        if ( Gia_ObjIsCo(pObj) )
+            Gia_ObjFanin0(pObj)->fMark0 = 1;
+        else if ( Gia_ObjIsMux(p, pObj) )
+        {
+            Gia_ObjFanin0(pObj)->fMark0 = 1;
+            Gia_ObjFanin1(pObj)->fMark0 = 1;
+            Gia_ObjFanin2(p, pObj)->fMark0 = 1;
+        }
+        else if ( Gia_ObjIsAnd(pObj) )
         {
             Gia_ObjFanin0(pObj)->fMark0 = 1;
             Gia_ObjFanin1(pObj)->fMark0 = 1;
         }
-        else if ( Gia_ObjIsCo(pObj) )
-            Gia_ObjFanin0(pObj)->fMark0 = 1;
     }
     Gia_ManForEachAnd( p, pObj, i )
         Counter += !pObj->fMark0;

@@ -2791,6 +2791,10 @@ SOURCE=.\src\misc\vec\vecHash.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\misc\vec\vecHsh.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\misc\vec\vecInt.h
 # End Source File
 # Begin Source File

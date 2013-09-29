@@ -77,6 +77,8 @@ void Gia_ManStop( Gia_Man_t * p )
     assert( p->pManTime == NULL );
     Vec_PtrFreeFree( p->vNamesIn );
     Vec_PtrFreeFree( p->vNamesOut );
+    Vec_IntFreeP( &p->vSuper );
+    Vec_IntFreeP( &p->vStore );
     Vec_IntFreeP( &p->vClassNew );
     Vec_IntFreeP( &p->vClassOld );
     Vec_WrdFreeP( &p->vSims );
@@ -335,13 +337,19 @@ void Gia_ManPrintStats( Gia_Man_t * p, Gps_Par_t * pPars )
         Abc_Print( 1, "(c=%d)", Gia_ManConstrNum(p) );
     if ( Gia_ManRegNum(p) )
         Abc_Print( 1, "  ff =%7d", Gia_ManRegNum(p) );
-    Abc_Print( 1, "  and =%8d", Gia_ManAndNum(p) );
+    Abc_Print( 1, "  %s =%8d", p->pMuxes? "nod" : "and", Gia_ManAndNum(p) );
     Abc_Print( 1, "  lev =%5d", Gia_ManLevelNum(p) ); Vec_IntFreeP( &p->vLevels );
     if ( pPars && pPars->fCut )
         Abc_Print( 1, "  cut = %d(%d)", Gia_ManCrossCut(p, 0), Gia_ManCrossCut(p, 1) );
     Abc_Print( 1, "  mem =%5.2f MB", Gia_ManMemory(p)/(1<<20) );
     if ( Gia_ManHasDangling(p) )
         Abc_Print( 1, "  ch =%5d", Gia_ManEquivCountClasses(p) );
+    if ( p->pMuxes )
+    {
+        Abc_Print( 1, "  and =%5d", Gia_ManAndNum(p)-Gia_ManXorNum(p)-Gia_ManMuxNum(p) );
+        Abc_Print( 1, "  xor =%5d", Gia_ManXorNum(p) );
+        Abc_Print( 1, "  mux =%5d", Gia_ManMuxNum(p) );
+    }
     if ( pPars && pPars->fSwitch )
     {
         if ( p->pSwitching )
