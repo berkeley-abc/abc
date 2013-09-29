@@ -32,7 +32,7 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-#define JF_LEAF_MAX   6
+#define JF_LEAF_MAX   8
 #define JF_CUT_MAX   16
 
 typedef struct Jf_Cut_t_ Jf_Cut_t; 

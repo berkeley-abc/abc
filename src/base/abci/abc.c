@@ -30074,16 +30074,22 @@ int Abc_CommandAbc9Jf( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
-    if ( pPars->fCutMin && !Sdm_ManCanRead() )
+    if ( (pPars->fCutMin || pPars->fGenCnf) && pPars->nLutSize > 6 )
     {
-        Abc_Print( -1, "Abc_CommandAbc9If2(): Cannot input DSD data from file.\n" );
+        Abc_Print( -1, "Abc_CommandAbc9Jf(): Cut minimization works for LUT6 or less.\n" );
+        return 1;
+    }
+
+    if ( ((pPars->fCutMin && pPars->fFuncDsd) || pPars->fGenCnf) && !Sdm_ManCanRead() )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Jf(): Cannot input DSD data from file.\n" );
         return 1;
     }
 
     pNew = Jf_ManPerformMapping( pAbc->pGia, pPars );
     if ( pNew == NULL )
     {
-        Abc_Print( -1, "Abc_CommandAbc9If2(): Mapping into LUTs has failed.\n" );
+        Abc_Print( -1, "Abc_CommandAbc9Jf(): Mapping into LUTs has failed.\n" );
         return 1;
     }
     Abc_FrameUpdateGia( pAbc, pNew );
