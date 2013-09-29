@@ -217,7 +217,7 @@ int Dsm_ManDeriveGia( void * p, word uTruth, Vec_Int_t * vLeaves, Vec_Int_t * vC
     int nSizeNonDec;
     m_Calls++;
 //    static int Counter = 0; Counter++;
-    nSizeNonDec = Dau_DsdDecompose( &uTruth, Vec_IntSize(vLeaves), 1, 1, pDsd );
+    nSizeNonDec = Dau_DsdDecompose( &uTruth, Vec_IntSize(vLeaves), 0, 1, pDsd );
     if ( nSizeNonDec )
         m_NonDsd++;
 //    printf( "%s\n", pDsd );

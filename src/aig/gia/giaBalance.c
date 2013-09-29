@@ -491,7 +491,7 @@ void Dam_ManCreatePairs( Dam_Man_t * p, int fVerbose )
     Dam_ManCollectSets( p );
     vSuper = p->pGia->vSuper;
     vDivs  = Vec_IntAlloc( Gia_ManObjNum(p->pGia) );
-    vHash  = Hash_IntManStart( Gia_ManObjNum(p->pGia) );
+    vHash  = Hash_IntManStart( Gia_ManObjNum(p->pGia)/2 );
     Dam_ManCreateMultiRefs( p, &vRefsAnd, &vRefsXor );
     Gia_ManForEachAnd( p->pGia, pObj, i )
     {
@@ -537,8 +537,9 @@ void Dam_ManCreatePairs( Dam_Man_t * p, int fVerbose )
     }
     Vec_IntFree( vRefsAnd );
     Vec_IntFree( vRefsXor );
+//    Hash_IntManProfile( vHash );
     // remove entries that appear only once
-    p->vHash     = Hash_IntManStart( 2 * nDivsUsed );
+    p->vHash     = Hash_IntManStart( 3 * nDivsUsed /2 );
     p->vCounts   = Vec_FltAlloc( 2 * nDivsUsed );           Vec_FltPush( p->vCounts, ABC_INFINITY );
     p->vQue      = Vec_QueAlloc( Vec_FltCap(p->vCounts) );
     Vec_QueSetCosts( p->vQue, Vec_FltArrayP(p->vCounts) );

@@ -102,6 +102,19 @@ static inline int Hash_IntManEntryNum( Hash_IntMan_t * p )
 {
     return Vec_IntSize(p->vObjs)/4 - 1;
 }
+static inline void Hash_IntManProfile( Hash_IntMan_t * p )
+{
+    Hash_IntObj_t * pObj;
+    int i, Count, Entry;
+    Vec_IntForEachEntry( p->vTable, Entry, i )
+    {
+        Count = 0;
+        for ( pObj = Hash_IntObj( p, Entry ); pObj; pObj = Hash_IntObj( p, pObj->iNext ) )
+            Count++;
+        printf( "%d ", Count );
+    }
+    printf( "\n" );
+}
 
 /**Function*************************************************************
 
