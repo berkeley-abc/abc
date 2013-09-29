@@ -772,7 +772,8 @@ int Dam_ManUpdateNode( Dam_Man_t * p, int iObj, int iLit0, int iLit1, int iLitNe
             if ( Num > 0 )
             {
                 Vec_FltAddToEntry( p->vCounts, Num, -1 );
-                Vec_QueUpdate( p->vQue, Num );
+                if ( Vec_QueIsMember(p->vQue, Num) )
+                    Vec_QueUpdate( p->vQue, Num );
                 fPres |= (1 << c);
             }
         }
@@ -826,7 +827,7 @@ void Dam_ManUpdate( Dam_Man_t * p, int iDiv )
         Vec_IntFillExtra( p->vNodStore, Vec_IntSize(p->vNodStore) + nRefs, -1 );
         pPairsNew++;
     }
-    printf( "Added %d new pairs\n", pPairsNew );
+//    printf( "Added %d new pairs\n", pPairsNew );
     // fill in the divisors
     iNode = -1;
     Vec_IntForEachEntry( vDivs, iDivTemp, i )
