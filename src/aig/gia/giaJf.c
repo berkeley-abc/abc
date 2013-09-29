@@ -1118,7 +1118,7 @@ void Jf_ObjComputeCuts( Jf_Man_t * p, Gia_Obj_t * pObj, int fEdge )
     Vec_IntPush( p->vTemp, c );
     for ( i = 0; i < c; i++ )
     {
-        assert( pSto[i]->pCut[0] <= 6 );
+        assert( !p->pPars->fCutMin || pSto[i]->pCut[0] <= 6 );
         pSto[i]->Cost = p->pPars->fGenCnf ? Jf_CutCnfSizeF(p, Abc_Lit2Var(pSto[i]->iFunc)) : 1;
         Vec_IntPush( p->vTemp, Jf_CutSetAll(pSto[i]->iFunc, pSto[i]->Cost, pSto[i]->pCut[0]) );
         for ( k = 1; k <= pSto[i]->pCut[0]; k++ )
