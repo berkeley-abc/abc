@@ -130,7 +130,7 @@ int Gia_ManFactorNode( Gia_Man_t * p, char * pSop, Vec_Int_t * vLeaves )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Wrd_t * Gia_ManComputeTruths( Gia_Man_t * p, int nCutSize, int nLutNum )
+Vec_Wrd_t * Gia_ManComputeTruths( Gia_Man_t * p, int nCutSize, int nLutNum, int fReverse )
 {
     Vec_Wrd_t * vTruths;
     Vec_Int_t vLeaves;
@@ -146,6 +146,8 @@ Vec_Wrd_t * Gia_ManComputeTruths( Gia_Man_t * p, int nCutSize, int nLutNum )
         vLeaves.pArray = Gia_ObjLutFanins( p, i );
         assert( Vec_IntCheckUniqueSmall(&vLeaves) );
         Vec_IntSelectSort( Vec_IntArray(&vLeaves), Vec_IntSize(&vLeaves) );
+        if ( !fReverse )
+            Vec_IntReverseOrder( &vLeaves );
         // compute truth table
         pTruth = Gia_ObjComputeTruthTableCut( p, Gia_ManObj(p, i), &vLeaves );
         for ( k = 0; k < nWords; k++ )
@@ -179,19 +181,19 @@ int Gia_ManAssignNumbers( Gia_Man_t * p )
         Gia_ManObj(p, i)->Value = Counter++;
     return Counter;
 }
-Vec_Wec_t * Gia_ManFxRetrieve( Gia_Man_t * p, Vec_Str_t ** pvCompl )
+Vec_Wec_t * Gia_ManFxRetrieve( Gia_Man_t * p, Vec_Str_t ** pvCompl, int fReverse )
 {
     Vec_Wec_t * vCubes;
     Vec_Wrd_t * vTruths;
     Vec_Int_t * vCube, * vCover;
     int nItems, nCutSize, nWords;
     int i, c, v, Lit, Cube, Counter = 0;
-    abctime clk = Abc_Clock();
+//    abctime clk = Abc_Clock();
     nItems = Gia_ManAssignNumbers( p );
     // compute truth tables
     nCutSize = Gia_ManLutSizeMax( p );
     nWords = Abc_Truth6WordNum( nCutSize );
-    vTruths = Gia_ManComputeTruths( p, Abc_MaxInt(6, nCutSize), nItems - Gia_ManCiNum(p) );
+    vTruths = Gia_ManComputeTruths( p, Abc_MaxInt(6, nCutSize), nItems - Gia_ManCiNum(p), fReverse );
     vCover = Vec_IntAlloc( 1 << 16 );
     // collect cubes
     vCubes = Vec_WecAlloc( 1000 );
@@ -231,7 +233,7 @@ Vec_Wec_t * Gia_ManFxRetrieve( Gia_Man_t * p, Vec_Str_t ** pvCompl )
     assert( Counter * nWords == Vec_WrdSize(vTruths) );
     Vec_WrdFree( vTruths );
     Vec_IntFree( vCover );
-    Abc_PrintTime( 1, "Setup time", Abc_Clock() - clk );
+//    Abc_PrintTime( 1, "Setup time", Abc_Clock() - clk );
     return vCubes;
 }
 
@@ -310,7 +312,7 @@ Gia_Man_t * Gia_ManFxInsert( Gia_Man_t * p, Vec_Wec_t * vCubes, Vec_Str_t * vCom
     Vec_Int_t * vOrder, * vFirst, * vCount, * vFanins;
     Vec_Int_t * vCopies, * vCube, * vMap;
     int k, c, v, Lit, Var, iItem;
-    abctime clk = Abc_Clock();
+//    abctime clk = Abc_Clock();
     // prepare the cubes
     vOrder = Gia_ManFxTopoOrder( vCubes, Gia_ManCiNum(p), Vec_StrSize(vCompls), &vFirst, &vCount );
     if ( vOrder == NULL )
@@ -396,7 +398,7 @@ Gia_Man_t * Gia_ManFxInsert( Gia_Man_t * p, Vec_Wec_t * vCubes, Vec_Str_t * vCom
     // remove dangling nodes
     pNew = Gia_ManCleanup( pTemp = pNew );
     Gia_ManStop( pTemp );
-    Abc_PrintTime( 1, "Setdn time", Abc_Clock() - clk );
+//    Abc_PrintTime( 1, "Setdn time", Abc_Clock() - clk );
     return pNew;
 }
 
@@ -411,20 +413,20 @@ Gia_Man_t * Gia_ManFxInsert( Gia_Man_t * p, Vec_Wec_t * vCubes, Vec_Str_t * vCom
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManPerformFx( Gia_Man_t * p, int nNewNodesMax, int LitCountMax, int fVerbose, int fVeryVerbose )
+Gia_Man_t * Gia_ManPerformFx( Gia_Man_t * p, int nNewNodesMax, int LitCountMax, int fReverse, int fVerbose, int fVeryVerbose )
 {
     extern int Fx_FastExtract( Vec_Wec_t * vCubes, int ObjIdMax, int nNewNodesMax, int LitCountMax, int fVerbose, int fVeryVerbose );
     Gia_Man_t * pNew = NULL;
     Vec_Wec_t * vCubes;
     Vec_Str_t * vCompl;
-    abctime clk;
+//    abctime clk;
     assert( Gia_ManHasMapping(p) );   
     // collect information
-    vCubes = Gia_ManFxRetrieve( p, &vCompl );
+    vCubes = Gia_ManFxRetrieve( p, &vCompl, fReverse );
     // call the fast extract procedure
-    clk = Abc_Clock();
+//    clk = Abc_Clock();
     Fx_FastExtract( vCubes, Vec_StrSize(vCompl), nNewNodesMax, LitCountMax, fVerbose, fVeryVerbose );
-    Abc_PrintTime( 1, "Fx runtime", Abc_Clock() - clk );
+//    Abc_PrintTime( 1, "Fx runtime", Abc_Clock() - clk );
     // insert information
     pNew = Gia_ManFxInsert( p, vCubes, vCompl );
     // cleanup

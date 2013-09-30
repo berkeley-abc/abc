@@ -27415,15 +27415,16 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Fx( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Gia_Man_t * Gia_ManPerformFx( Gia_Man_t * p, int nNewNodesMax, int LitCountMax, int fVerbose, int fVeryVerbose );
+    extern Gia_Man_t * Gia_ManPerformFx( Gia_Man_t * p, int nNewNodesMax, int LitCountMax, int fReverse, int fVerbose, int fVeryVerbose );
     Gia_Man_t * pTemp;
     int nNewNodesMax = 1000000;
     int LitCountMax  =       0;
+    int fReverse     =       0;
     int c, fVerbose  =       0;
     int fVeryVerbose =       0;
     // set the defaults
     Extra_UtilGetoptReset();
-    while ( (c = Extra_UtilGetopt(argc, argv, "NMvh")) != EOF )
+    while ( (c = Extra_UtilGetopt(argc, argv, "NMrvh")) != EOF )
     {
         switch (c)
         {
@@ -27449,6 +27450,9 @@ int Abc_CommandAbc9Fx( Abc_Frame_t * pAbc, int argc, char ** argv )
                 if ( LitCountMax < 0 )
                     goto usage;
                 break;
+            case 'r':
+                fReverse ^= 1;
+                break;
             case 'v':
                 fVerbose ^= 1;
                 break;
@@ -27469,7 +27473,7 @@ int Abc_CommandAbc9Fx( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Shrink(): Mapping of the AIG is not defined.\n" );
         return 1;
     }
-    pTemp = Gia_ManPerformFx( pAbc->pGia, nNewNodesMax, LitCountMax, fVerbose, fVeryVerbose );
+    pTemp = Gia_ManPerformFx( pAbc->pGia, nNewNodesMax, LitCountMax, fReverse, fVerbose, fVeryVerbose );
     if ( pTemp != NULL )
         Abc_FrameUpdateGia( pAbc, pTemp );
     else
@@ -27481,6 +27485,7 @@ usage:
     Abc_Print( -2, "\t           extract shared logic using the classical \"fast_extract\" algorithm\n");
     Abc_Print( -2, "\t-N <num> : max number of divisors to extract during this run [default = %d]\n", nNewNodesMax );
     Abc_Print( -2, "\t-M <num> : upper bound on literal count of divisors to extract [default = %d]\n", LitCountMax );
+    Abc_Print( -2, "\t-r       : reversing variable order during ISOP computation [default = %s]\n", fReverse? "yes": "no" );
     Abc_Print( -2, "\t-v       : print verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;
