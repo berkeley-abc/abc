@@ -412,13 +412,14 @@ void Fx_ManComputeLevel( Fx_Man_t * p )
     p->vLevels = Vec_IntStart( p->nVars );
     Vec_WecForEachLevel( p->vCubes, vCube, i )
     {
-        Vec_IntUpdateEntry( p->vLevels, Vec_IntEntry(vCube, 0), Fx_ManComputeLevelCube(p, vCube) );
-        if ( iVar == Vec_IntEntry(vCube, 0) )
-            continue;
-        // add the number of cubes
-        Vec_IntAddToEntry( p->vLevels, iVar, i - iFirst );
-        iVar = Vec_IntEntry(vCube, 0);
-        iFirst = i;
+        if ( iVar != Vec_IntEntry(vCube, 0) )
+        {
+            // add the number of cubes
+            Vec_IntAddToEntry( p->vLevels, iVar, i - iFirst );
+            iVar = Vec_IntEntry(vCube, 0);
+            iFirst = i;
+        }
+        Vec_IntUpdateEntry( p->vLevels, iVar, Fx_ManComputeLevelCube(p, vCube) );
     }
 }
 
