@@ -39,9 +39,12 @@ struct Dam_Man_t_
     Vec_Int_t *      vSetStore; // stored multisets
     Vec_Int_t *      vNodStore; // stored divisors
     Vec_Flt_t *      vCounts;   // occur counts
+    Vec_Int_t *      vNodLevR;  // node reverse level
+    Vec_Int_t *      vDivLevR;  // divisor reverse level
     Vec_Que_t *      vQue;      // pairs by count
     Hash_IntMan_t *  vHash;     // pair hash table
     abctime          clkStart;  // starting the clock
+    int              nLevelMax; // maximum level
     int              nDivs;     // extracted divisor count
     int              nAnds;     // total AND node count
     int              nGain;     // total gain in AND nodes
@@ -387,6 +390,8 @@ Dam_Man_t * Dam_ManAlloc( Gia_Man_t * pGia )
 }
 void Dam_ManFree( Dam_Man_t * p )
 {   
+    Vec_IntFreeP( &p->vDivLevR );
+    Vec_IntFreeP( &p->vNodLevR );
     Vec_IntFreeP( &p->vNod2Set );
     Vec_IntFreeP( &p->vDiv2Nod );
     Vec_IntFreeP( &p->vSetStore );
@@ -461,11 +466,11 @@ void Dam_ManCollectSets( Dam_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Dam_ManDivLevel( Gia_Man_t * p, int iLit0, int iLit1 )
+int Dam_ManDivSlack( Dam_Man_t * p, int iLit0, int iLit1, int LevR )
 {
-    int Lev0 = Gia_ObjLevel(p, Gia_ManObj(p, Abc_Lit2Var(iLit0)));
-    int Lev1 = Gia_ObjLevel(p, Gia_ManObj(p, Abc_Lit2Var(iLit1)));
-    return Abc_MaxInt(Lev0, Lev1) + 1 + (int)(iLit0 > iLit1);
+    int Lev0 = Gia_ObjLevel(p->pGia, Gia_ManObj(p->pGia, Abc_Lit2Var(iLit0)));
+    int Lev1 = Gia_ObjLevel(p->pGia, Gia_ManObj(p->pGia, Abc_Lit2Var(iLit1)));
+    return p->nLevelMax - LevR - Abc_MaxInt(Lev0, Lev1) - 1 - (int)(iLit0 > iLit1);
 }
 void Dam_ManCreateMultiRefs( Dam_Man_t * p, Vec_Int_t ** pvRefsAnd, Vec_Int_t ** pvRefsXor )  
 {
@@ -497,16 +502,18 @@ void Dam_ManCreatePairs( Dam_Man_t * p, int fVerbose )
 {
     Gia_Obj_t * pObj;
     Hash_IntMan_t * vHash;
-    Vec_Int_t * vRefsAnd, * vRefsXor, * vSuper, * vDivs, * vRemap;
+    Vec_Int_t * vRefsAnd, * vRefsXor, * vSuper, * vDivs, * vRemap, * vLevRMax;
     int i, j, k, Num, FanK, FanJ, nRefs, iNode, iDiv, * pSet;
     int nPairsAll = 0, nPairsTried = 0, nPairsUsed = 0, nPairsXor = 0;
     int nDivsAll = 0, nDivsUsed = 0, nDivsXor = 0;
     Dam_ManCollectSets( p );
-    Gia_ManLevelNum( p->pGia );
+    p->nLevelMax = Gia_ManLevelNum( p->pGia );
+    p->vNodLevR = Gia_ManReverseLevel( p->pGia );
     Vec_IntFillExtra( p->pGia->vLevels, 3*Gia_ManObjNum(p->pGia)/2, 0 );
     vSuper = p->pGia->vSuper;
     vDivs  = Vec_IntAlloc( Gia_ManObjNum(p->pGia) );
     vHash  = Hash_IntManStart( Gia_ManObjNum(p->pGia)/2 );
+    vLevRMax = Vec_IntStart( 1000 );
     Dam_ManCreateMultiRefs( p, &vRefsAnd, &vRefsXor );
     Gia_ManForEachAnd( p->pGia, pObj, i )
     {
@@ -546,6 +553,10 @@ void Dam_ManCreatePairs( Dam_Man_t * p, int fVerbose )
                 nDivsXor += Gia_ObjIsXor(pObj);
             }
             Vec_IntPush( vDivs, Num ); // remember devisor
+            // update reverse level
+            if ( Num >= Vec_IntSize(vLevRMax) )
+                Vec_IntFillExtra( vLevRMax, 3 * Vec_IntSize(vLevRMax) / 2, 0 );
+            Vec_IntUpdateEntry( vLevRMax, Num, Vec_IntEntry(p->vNodLevR, i) );
         }
     }
     Vec_IntFree( vRefsAnd );
@@ -572,7 +583,7 @@ void Dam_ManCreatePairs( Dam_Man_t * p, int fVerbose )
         Num = Hash_Int2ManInsert( p->vHash, Hash_IntObjData0(vHash, i), Hash_IntObjData1(vHash, i), 0 );
         assert( Num == Hash_IntManEntryNum(p->vHash) );
         assert( Num == Vec_FltSize(p->vCounts) );
-        Vec_FltPush( p->vCounts, nRefs ); //+ 0.01*Dam_ManDivLevel(p->pGia, Hash_IntObjData0(vHash, i), Hash_IntObjData1(vHash, i)) );
+        Vec_FltPush( p->vCounts, nRefs + 0.001*Dam_ManDivSlack(p, Hash_IntObjData0(vHash, i), Hash_IntObjData1(vHash, i), Vec_IntEntry(vLevRMax, i)) );
         Vec_QuePush( p->vQue, Num );
         // remember divisors
         assert( Num == Vec_IntSize(p->vDiv2Nod) );
@@ -585,6 +596,7 @@ void Dam_ManCreatePairs( Dam_Man_t * p, int fVerbose )
     assert( Vec_FltSize(p->vCounts) == Hash_IntManEntryNum(p->vHash)+1 );
     assert( Vec_IntSize(p->vDiv2Nod) == nDivsUsed+1 );
     Hash_IntManStop( vHash );
+    Vec_IntFree( vLevRMax );
     // fill in the divisors
     iNode = -1;
     Vec_IntForEachEntry( vDivs, iDiv, i )
@@ -602,6 +614,8 @@ void Dam_ManCreatePairs( Dam_Man_t * p, int fVerbose )
     }
     Vec_IntFree( vRemap );
     Vec_IntFree( vDivs );
+    // create storage for reverse level of divisor during update
+    p->vDivLevR = Vec_IntStart( 2 * nDivsUsed );
     // make sure divisors are added correctly
 //    for ( i = 1; i <= nDivsUsed; i++ )
 //        assert( Dam_DivSet(p, i)[0] == Vec_FltEntry(p->vCounts, i)+1 );
@@ -799,6 +813,10 @@ int Dam_ManUpdateNode( Dam_Man_t * p, int iObj, int iLit0, int iLit1, int iLitNe
             Num = Hash_Int2ManInsert( p->vHash, iLit, iLitNew, 0 );
         Hash_Int2ObjInc( p->vHash, Num );
         Vec_IntPush( vDivs, Num );
+        // update reverse level
+        if ( Num >= Vec_IntSize(p->vDivLevR) )
+            Vec_IntFillExtra( p->vDivLevR, 3 * Vec_IntSize(p->vDivLevR) / 2, 0 );
+        Vec_IntUpdateEntry( p->vDivLevR, Num, Vec_IntEntry(p->vNodLevR, iObj) );
     }
     pSet[k] = iLitNew;
     pSet[0] = k;
@@ -835,7 +853,7 @@ void Dam_ManUpdate( Dam_Man_t * p, int iDiv )
         nRefs = Hash_IntObjData2(p->vHash, i);
         if ( nRefs < 2 )
             continue;
-        Vec_FltWriteEntry( p->vCounts, i, nRefs + 0.01*Dam_ManDivLevel(p->pGia, Hash_IntObjData0(p->vHash, i), Hash_IntObjData1(p->vHash, i)) );
+        Vec_FltWriteEntry( p->vCounts, i, nRefs + 0.001*Dam_ManDivSlack(p, Hash_IntObjData0(p->vHash, i), Hash_IntObjData1(p->vHash, i), Vec_IntEntry(p->vDivLevR, i)) );
         Vec_QuePush( p->vQue, i );
         // remember divisors
         Vec_IntWriteEntry( p->vDiv2Nod, i, Vec_IntSize(p->vNodStore) );

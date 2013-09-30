@@ -508,6 +508,70 @@ int Gia_ManLevelNum( Gia_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Compute reverse levels.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Gia_ManReverseLevel( Gia_Man_t * p )  
+{
+    Vec_Int_t * vLevelRev;
+    Gia_Obj_t * pObj;
+    int i;
+    vLevelRev = Vec_IntStart( Gia_ManObjNum(p) );
+    Gia_ManForEachAndReverse( p, pObj, i )
+    {
+        int LevelR = Vec_IntEntry( vLevelRev, i );
+        if ( Gia_ObjIsMux(p, pObj) )
+        {
+            Vec_IntUpdateEntry( vLevelRev, Gia_ObjFaninId0(pObj, i), LevelR + 2 );
+            Vec_IntUpdateEntry( vLevelRev, Gia_ObjFaninId1(pObj, i), LevelR + 2 );
+            Vec_IntUpdateEntry( vLevelRev, Gia_ObjFaninId2(p, i), LevelR + 2 );
+        }
+        else if ( Gia_ObjIsXor(pObj) )
+        {
+            Vec_IntUpdateEntry( vLevelRev, Gia_ObjFaninId0(pObj, i), LevelR + 2 );
+            Vec_IntUpdateEntry( vLevelRev, Gia_ObjFaninId1(pObj, i), LevelR + 2 );
+        }
+        else
+        {
+            Vec_IntUpdateEntry( vLevelRev, Gia_ObjFaninId0(pObj, i), LevelR + 1 );
+            Vec_IntUpdateEntry( vLevelRev, Gia_ObjFaninId1(pObj, i), LevelR + 1 );
+        }
+    }
+    return vLevelRev;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Compute required levels.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Gia_ManRequiredLevel( Gia_Man_t * p )  
+{
+    Vec_Int_t * vRequired;
+    Gia_Obj_t * pObj;
+    int i, LevelMax = 0;
+    vRequired = Gia_ManReverseLevel( p );
+    Gia_ManForEachCi( p, pObj, i )
+        LevelMax = Abc_MaxInt( LevelMax, Vec_IntEntry(vRequired, Gia_ObjId(p, pObj)) );
+    Gia_ManForEachObj( p, pObj, i )
+        Vec_IntWriteEntry( vRequired, i, LevelMax - Vec_IntEntry(vRequired, i) );
+    return vRequired;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Assigns levels.]
 
   Description []
