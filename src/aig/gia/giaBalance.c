@@ -853,7 +853,7 @@ void Dam_ManUpdate( Dam_Man_t * p, int iDiv )
         nRefs = Hash_IntObjData2(p->vHash, i);
         if ( nRefs < 2 )
             continue;
-        Vec_FltWriteEntry( p->vCounts, i, nRefs + 0.001*Dam_ManDivSlack(p, Hash_IntObjData0(p->vHash, i), Hash_IntObjData1(p->vHash, i), Vec_IntEntry(p->vDivLevR, i)) );
+        Vec_FltWriteEntry( p->vCounts, i, nRefs + 0.0001*Dam_ManDivSlack(p, Hash_IntObjData0(p->vHash, i), Hash_IntObjData1(p->vHash, i), Vec_IntEntry(p->vDivLevR, i)) );
         Vec_QuePush( p->vQue, i );
         // remember divisors
         Vec_IntWriteEntry( p->vDiv2Nod, i, Vec_IntSize(p->vNodStore) );
