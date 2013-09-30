@@ -470,7 +470,8 @@ int Dam_ManDivSlack( Dam_Man_t * p, int iLit0, int iLit1, int LevR )
 {
     int Lev0 = Gia_ObjLevel(p->pGia, Gia_ManObj(p->pGia, Abc_Lit2Var(iLit0)));
     int Lev1 = Gia_ObjLevel(p->pGia, Gia_ManObj(p->pGia, Abc_Lit2Var(iLit1)));
-    return p->nLevelMax - LevR - Abc_MaxInt(Lev0, Lev1) - 1 - (int)(iLit0 > iLit1);
+    int Slack = p->nLevelMax - LevR - Abc_MaxInt(Lev0, Lev1) - 1 - (int)(iLit0 > iLit1);
+    return Abc_MinInt( Slack, 100 );
 }
 void Dam_ManCreateMultiRefs( Dam_Man_t * p, Vec_Int_t ** pvRefsAnd, Vec_Int_t ** pvRefsXor )  
 {
@@ -583,7 +584,7 @@ void Dam_ManCreatePairs( Dam_Man_t * p, int fVerbose )
         Num = Hash_Int2ManInsert( p->vHash, Hash_IntObjData0(vHash, i), Hash_IntObjData1(vHash, i), 0 );
         assert( Num == Hash_IntManEntryNum(p->vHash) );
         assert( Num == Vec_FltSize(p->vCounts) );
-        Vec_FltPush( p->vCounts, nRefs + 0.001*Dam_ManDivSlack(p, Hash_IntObjData0(vHash, i), Hash_IntObjData1(vHash, i), Vec_IntEntry(vLevRMax, i)) );
+        Vec_FltPush( p->vCounts, nRefs + 0.005*Dam_ManDivSlack(p, Hash_IntObjData0(vHash, i), Hash_IntObjData1(vHash, i), Vec_IntEntry(vLevRMax, i)) );
         Vec_QuePush( p->vQue, Num );
         // remember divisors
         assert( Num == Vec_IntSize(p->vDiv2Nod) );
@@ -853,7 +854,7 @@ void Dam_ManUpdate( Dam_Man_t * p, int iDiv )
         nRefs = Hash_IntObjData2(p->vHash, i);
         if ( nRefs < 2 )
             continue;
-        Vec_FltWriteEntry( p->vCounts, i, nRefs + 0.0001*Dam_ManDivSlack(p, Hash_IntObjData0(p->vHash, i), Hash_IntObjData1(p->vHash, i), Vec_IntEntry(p->vDivLevR, i)) );
+        Vec_FltWriteEntry( p->vCounts, i, nRefs + 0.001*Dam_ManDivSlack(p, Hash_IntObjData0(p->vHash, i), Hash_IntObjData1(p->vHash, i), Vec_IntEntry(p->vDivLevR, i)) );
         Vec_QuePush( p->vQue, i );
         // remember divisors
         Vec_IntWriteEntry( p->vDiv2Nod, i, Vec_IntSize(p->vNodStore) );

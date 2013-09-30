@@ -95,6 +95,7 @@ struct Fx_Man_t_
     Vec_Flt_t *     vWeights;   // divisor weights
     Vec_Que_t *     vPrio;      // priority queue for divisors by weight
     Vec_Int_t *     vVarCube;   // mapping ObjId into its first cube
+    Vec_Int_t *     vLevels;    // variable levels
     // temporary data to update the data-structure when a divisor is extracted
     Vec_Int_t *     vCubesS;    // single cubes for the given divisor
     Vec_Int_t *     vCubesD;    // cube pairs for the given divisor
@@ -368,6 +369,7 @@ void Fx_ManStop( Fx_Man_t * p )
     Vec_FltFree( p->vWeights );
     Vec_QueFree( p->vPrio );
     Vec_IntFree( p->vVarCube );
+    Vec_IntFree( p->vLevels );
     // temporary data
     Vec_IntFree( p->vCubesS );
     Vec_IntFree( p->vCubesD );
@@ -375,6 +377,49 @@ void Fx_ManStop( Fx_Man_t * p )
     Vec_IntFree( p->vCubeFree );
     Vec_IntFree( p->vDiv );
     ABC_FREE( p );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Compute levels of the nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Fx_ManComputeLevelDiv( Fx_Man_t * p, Vec_Int_t * vCubeFree )
+{
+    int i, Lit, Level = 0;
+    Vec_IntForEachEntry( vCubeFree, Lit, i )
+        Level = Abc_MaxInt( Level, Vec_IntEntry(p->vLevels, Abc_Lit2Var(Abc_Lit2Var(Lit))) );
+    return Abc_MinInt( Level, 200 );
+}
+static inline int Fx_ManComputeLevelCube( Fx_Man_t * p, Vec_Int_t * vCube )
+{
+    int k, Lit, Level = 0;
+    Vec_IntForEachEntryStart( vCube, Lit, k, 1 )
+        Level = Abc_MaxInt( Level, Vec_IntEntry(p->vLevels, Abc_Lit2Var(Lit)) );
+    return Level;
+}
+void Fx_ManComputeLevel( Fx_Man_t * p )
+{
+    Vec_Int_t * vCube;
+    int i, iVar, iFirst = 0;
+    iVar = Vec_IntEntry( Vec_WecEntry(p->vCubes,0), 0 );
+    p->vLevels = Vec_IntStart( p->nVars );
+    Vec_WecForEachLevel( p->vCubes, vCube, i )
+    {
+        Vec_IntUpdateEntry( p->vLevels, Vec_IntEntry(vCube, 0), Fx_ManComputeLevelCube(p, vCube) );
+        if ( iVar == Vec_IntEntry(vCube, 0) )
+            continue;
+        // add the number of cubes
+        Vec_IntAddToEntry( p->vLevels, iVar, i - iFirst );
+        iVar = Vec_IntEntry(vCube, 0);
+        iFirst = i;
+    }
 }
 
 /**Function*************************************************************
@@ -748,7 +793,7 @@ int Fx_ManCubeSingleCubeDivisors( Fx_Man_t * p, Vec_Int_t * vPivot, int fRemove,
         {
             if ( Vec_FltSize(p->vWeights) == iDiv )
             {
-                Vec_FltPush(p->vWeights, -2);
+                Vec_FltPush(p->vWeights, -2 -0.001 * Fx_ManComputeLevelDiv(p, p->vCubeFree));
                 p->nDivsS++;
             }
             assert( iDiv < Vec_FltSize(p->vWeights) );
@@ -800,7 +845,7 @@ void Fx_ManCubeDoubleCubeDivisors( Fx_Man_t * p, int iFirst, Vec_Int_t * vPivot,
         if ( !fRemove )
         {
             if ( iDiv == Vec_FltSize(p->vWeights) )
-                Vec_FltPush(p->vWeights, -Vec_IntSize(p->vCubeFree));
+                Vec_FltPush(p->vWeights, -Vec_IntSize(p->vCubeFree) -0.001 * Fx_ManComputeLevelDiv(p, p->vCubeFree));
             assert( iDiv < Vec_FltSize(p->vWeights) );
             Vec_FltAddToEntry( p->vWeights, iDiv, Base + Vec_IntSize(p->vCubeFree) - 1 );
             p->nPairsD++;
@@ -938,7 +983,7 @@ void Fx_ManUpdate( Fx_Man_t * p, int iDiv )
     Vec_Int_t * vCube, * vCube2, * vLitP, * vLitN;
     Vec_Int_t * vDiv = p->vDiv;
     int nLitsNew = p->nLits - (int)Vec_FltEntry(p->vWeights, iDiv);
-    int i, k, Lit0, Lit1, iVarNew, RetValue;
+    int i, k, Lit0, Lit1, iVarNew, RetValue, Level;
 
     // get the divisor and select pivot variables
     p->nDivs++;
@@ -996,6 +1041,7 @@ void Fx_ManUpdate( Fx_Man_t * p, int iDiv )
     {
         Vec_IntPush( vCube, Abc_LitNot(Lit0) );
         Vec_IntPush( vCube, Abc_LitNot(Lit1) );
+        Level = 1 + Fx_ManComputeLevelCube( p, vCube );
     }
     else
     {
@@ -1003,7 +1049,10 @@ void Fx_ManUpdate( Fx_Man_t * p, int iDiv )
         vCube = Vec_WecEntry( p->vCubes, Vec_WecSize(p->vCubes) - 2 );
         Vec_IntPush( vCube2, iVarNew );
         Fx_ManDivAddLits( vCube, vCube2, vDiv );
+        Level = 2 + Abc_MaxInt( Fx_ManComputeLevelCube(p, vCube), Fx_ManComputeLevelCube(p, vCube2) );
     }
+    assert( Vec_IntSize(p->vLevels) == iVarNew );
+    Vec_IntPush( p->vLevels, Level );
     // do not add new cubes to the matrix 
     p->nLits += Vec_IntSize( vDiv );
     // create new literals
@@ -1121,6 +1170,7 @@ int Fx_FastExtract( Vec_Wec_t * vCubes, int ObjIdMax, int nNewNodesMax, int LitC
     p = Fx_ManStart( vCubes );
     p->LitCountMax = LitCountMax;
     Fx_ManCreateLiterals( p, ObjIdMax );
+    Fx_ManComputeLevel( p );
     Fx_ManCreateDivisors( p );
     if ( fVeryVerbose )
         Fx_PrintMatrix( p );
