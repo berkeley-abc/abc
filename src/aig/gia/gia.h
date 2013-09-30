@@ -454,8 +454,12 @@ static inline void         Gia_ObjSetXorLevel( Gia_Man_t * p, Gia_Obj_t * pObj )
 static inline void         Gia_ObjSetMuxLevel( Gia_Man_t * p, Gia_Obj_t * pObj ) { assert( Gia_ObjIsMux(p,pObj) ); Gia_ObjSetLevel( p, pObj, 2+Abc_MaxInt( Abc_MaxInt(Gia_ObjLevel(p,Gia_ObjFanin0(pObj)),Gia_ObjLevel(p,Gia_ObjFanin1(pObj))), Gia_ObjLevel(p,Gia_ObjFanin2(p,pObj))) ); }
 static inline void         Gia_ObjSetGateLevel( Gia_Man_t * p, Gia_Obj_t * pObj ){ if ( Gia_ObjIsMux(p,pObj) ) Gia_ObjSetMuxLevel(p, pObj); else if ( Gia_ObjIsXor(pObj) ) Gia_ObjSetXorLevel(p, pObj); else if ( Gia_ObjIsAnd(pObj) ) Gia_ObjSetAndLevel(p, pObj); }
 
-static inline int          Gia_ObjNum( Gia_Man_t * p, Gia_Obj_t * pObj )           { return Vec_IntGetEntry(p->vTtNums, Gia_ObjId(p,pObj));               }
-static inline void         Gia_ObjSetNum( Gia_Man_t * p, Gia_Obj_t * pObj, int n ) { assert( n >= 0 ); Vec_IntSetEntry(p->vTtNums, Gia_ObjId(p,pObj), n); }
+static inline int          Gia_ObjHasNumId( Gia_Man_t * p, int Id )                { return Vec_IntEntry(p->vTtNums, Id) > -ABC_INFINITY;     }
+static inline int          Gia_ObjNumId( Gia_Man_t * p, int Id )                   { return Vec_IntEntry(p->vTtNums, Id);                     }
+static inline int          Gia_ObjNum( Gia_Man_t * p, Gia_Obj_t * pObj )           { return Vec_IntEntry(p->vTtNums, Gia_ObjId(p,pObj));      }
+static inline void         Gia_ObjSetNumId( Gia_Man_t * p, int Id, int n )         { Vec_IntWriteEntry(p->vTtNums, Id, n);                    }
+static inline void         Gia_ObjSetNum( Gia_Man_t * p, Gia_Obj_t * pObj, int n ) { Vec_IntWriteEntry(p->vTtNums, Gia_ObjId(p,pObj), n);     }
+static inline void         Gia_ObjResetNumId( Gia_Man_t * p, int Id )              { Vec_IntWriteEntry(p->vTtNums, Id, -ABC_INFINITY);        }
 
 static inline int          Gia_ObjRefNumId( Gia_Man_t * p, int Id )            { return p->pRefs[Id];                              }
 static inline int          Gia_ObjRefIncId( Gia_Man_t * p, int Id )            { return p->pRefs[Id]++;                            }
