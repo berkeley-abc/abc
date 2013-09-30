@@ -496,7 +496,7 @@ int Gia_ManLevelNum( Gia_Man_t * p )
     Gia_ManForEachObj( p, pObj, i )
     {
         if ( Gia_ObjIsAnd(pObj) )
-            Gia_ObjSetAndLevel( p, pObj );
+            Gia_ObjSetGateLevel( p, pObj );
         else if ( Gia_ObjIsCo(pObj) )
             Gia_ObjSetCoLevel( p, pObj );
         else

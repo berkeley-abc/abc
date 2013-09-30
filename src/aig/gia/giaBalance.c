@@ -123,7 +123,10 @@ void Gia_ManSimplifyAnd( Vec_Int_t * vSuper )
 void Gia_ManSuperCollectXor_rec( Gia_Man_t * p, Gia_Obj_t * pObj )
 {
     assert( !Gia_IsComplement(pObj) );
-    if ( !Gia_ObjIsXor(pObj) || Gia_ObjRefNum(p, pObj) > 1 || Vec_IntSize(p->vSuper) > 100 )
+    if ( !Gia_ObjIsXor(pObj) || 
+        Gia_ObjRefNum(p, pObj) > 2 || 
+        (Gia_ObjRefNum(p, pObj) == 2 && (Gia_ObjRefNum(p, Gia_ObjFanin0(pObj)) == 1 || Gia_ObjRefNum(p, Gia_ObjFanin1(pObj)) == 1)) || 
+        Vec_IntSize(p->vSuper) > 100 )
     {
         Vec_IntPush( p->vSuper, Gia_ObjToLit(p, pObj) );
         return;
@@ -134,7 +137,11 @@ void Gia_ManSuperCollectXor_rec( Gia_Man_t * p, Gia_Obj_t * pObj )
 }
 void Gia_ManSuperCollectAnd_rec( Gia_Man_t * p, Gia_Obj_t * pObj )
 {
-    if ( Gia_IsComplement(pObj) || !Gia_ObjIsAndReal(p, pObj) || Gia_ObjRefNum(p, pObj) > 1 || Vec_IntSize(p->vSuper) > 100 )
+    if ( Gia_IsComplement(pObj) || 
+        !Gia_ObjIsAndReal(p, pObj) || 
+        Gia_ObjRefNum(p, pObj) > 2 || 
+        (Gia_ObjRefNum(p, pObj) == 2 && (Gia_ObjRefNum(p, Gia_ObjFanin0(pObj)) == 1 || Gia_ObjRefNum(p, Gia_ObjFanin1(pObj)) == 1)) || 
+        Vec_IntSize(p->vSuper) > 100 )
     {
         Vec_IntPush( p->vSuper, Gia_ObjToLit(p, pObj) );
         return;
@@ -434,7 +441,7 @@ void Dam_ManCollectSets( Dam_Man_t * p )
 {
     Gia_Obj_t * pObj;
     int i;
-    Gia_ManCreateRefs( p->pGia ); 
+    Gia_ManCreateRefs( p->pGia );
     p->vNod2Set  = Vec_IntStart( Gia_ManObjNum(p->pGia) );
     p->vSetStore = Vec_IntAlloc( Gia_ManObjNum(p->pGia) );
     Vec_IntPush( p->vSetStore, -1 );
@@ -454,6 +461,12 @@ void Dam_ManCollectSets( Dam_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
+int Dam_ManDivLevel( Gia_Man_t * p, int iLit0, int iLit1 )
+{
+    int Lev0 = Gia_ObjLevel(p, Gia_ManObj(p, Abc_Lit2Var(iLit0)));
+    int Lev1 = Gia_ObjLevel(p, Gia_ManObj(p, Abc_Lit2Var(iLit1)));
+    return Abc_MaxInt(Lev0, Lev1) + 1 + (int)(iLit0 > iLit1);
+}
 void Dam_ManCreateMultiRefs( Dam_Man_t * p, Vec_Int_t ** pvRefsAnd, Vec_Int_t ** pvRefsXor )  
 {
     Vec_Int_t * vRefsAnd, * vRefsXor;
@@ -489,6 +502,8 @@ void Dam_ManCreatePairs( Dam_Man_t * p, int fVerbose )
     int nPairsAll = 0, nPairsTried = 0, nPairsUsed = 0, nPairsXor = 0;
     int nDivsAll = 0, nDivsUsed = 0, nDivsXor = 0;
     Dam_ManCollectSets( p );
+    Gia_ManLevelNum( p->pGia );
+    Vec_IntFillExtra( p->pGia->vLevels, 3*Gia_ManObjNum(p->pGia)/2, 0 );
     vSuper = p->pGia->vSuper;
     vDivs  = Vec_IntAlloc( Gia_ManObjNum(p->pGia) );
     vHash  = Hash_IntManStart( Gia_ManObjNum(p->pGia)/2 );
@@ -502,11 +517,9 @@ void Dam_ManCreatePairs( Dam_Man_t * p, int fVerbose )
         Vec_IntClear(vSuper);
         if ( Gia_ObjIsXor(pObj) )
         {
-//            printf( "%d -> ", pSet[0] );
             for ( k = 1; k <= pSet[0]; k++ )
                 if ( Vec_IntEntry(vRefsXor, Abc_Lit2Var(pSet[k])) > 1 )
                     Vec_IntPush( vSuper, pSet[k] );
-//            printf( "%d    ", Vec_IntSize(vSuper) );
         }
         else if ( Gia_ObjIsAndReal(p->pGia, pObj) )
         {
@@ -559,7 +572,7 @@ void Dam_ManCreatePairs( Dam_Man_t * p, int fVerbose )
         Num = Hash_Int2ManInsert( p->vHash, Hash_IntObjData0(vHash, i), Hash_IntObjData1(vHash, i), 0 );
         assert( Num == Hash_IntManEntryNum(p->vHash) );
         assert( Num == Vec_FltSize(p->vCounts) );
-        Vec_FltPush( p->vCounts, nRefs-1 );
+        Vec_FltPush( p->vCounts, nRefs ); //+ 0.01*Dam_ManDivLevel(p->pGia, Hash_IntObjData0(vHash, i), Hash_IntObjData1(vHash, i)) );
         Vec_QuePush( p->vQue, Num );
         // remember divisors
         assert( Num == Vec_IntSize(p->vDiv2Nod) );
@@ -585,14 +598,13 @@ void Dam_ManCreatePairs( Dam_Man_t * p, int fVerbose )
         if ( Num == -1 )
             continue;
         pSet = Dam_DivSet( p, Num );
-        assert( pSet[0] <= Vec_FltEntry(p->vCounts, Num) );
         pSet[++pSet[0]] = iNode;
     }
     Vec_IntFree( vRemap );
     Vec_IntFree( vDivs );
     // make sure divisors are added correctly
-    for ( i = 1; i <= nDivsUsed; i++ )
-        assert( Dam_DivSet(p, i)[0] == Vec_FltEntry(p->vCounts, i)+1 );
+//    for ( i = 1; i <= nDivsUsed; i++ )
+//        assert( Dam_DivSet(p, i)[0] == Vec_FltEntry(p->vCounts, i)+1 );
     if ( !fVerbose )
         return;
     // print stats
@@ -715,7 +727,7 @@ void Dam_PrintDiv( Dam_Man_t * p, int iDiv )
         printf( "%c  ",     (iData0 < iData1) ? '*' : '+' );
         sprintf( Buffer, "%c%d", Abc_LitIsCompl(iData1)? '!':' ', Abc_Lit2Var(iData1) );
         printf( "%8s   ", Buffer );
-        printf( "Weight %5d  ", (int)Vec_FltEntry(p->vCounts, iDiv) );
+        printf( "Weight %9.2f  ", Vec_FltEntry(p->vCounts, iDiv) );
     }
     printf( "Divs =%8d  ",  Hash_IntManEntryNum(p->vHash) );
     printf( "Ands =%8d  ",  p->nAnds - p->nGain );
@@ -729,11 +741,11 @@ void Dam_PrintQue( Dam_Man_t * p )
     {
         int iLit0 = Hash_IntObjData0(p->vHash, i);
         int iLit1 = Hash_IntObjData1(p->vHash, i);
-        printf( "Div %7d : ",   i );
-        printf( "Weight %5d  ", (int)Vec_FltEntry(p->vCounts, i) );
-        printf( "F = %c%c ",    Abc_LitIsCompl(iLit0) ? '!': ' ', 'a' + Abc_Lit2Var(iLit0)-1 );
-        printf( "%c ",          (Hash_IntObjData0(p->vHash, i) < Hash_IntObjData1(p->vHash, i)) ? '*':'+' );
-        printf( "%c%c   ",      Abc_LitIsCompl(iLit1) ? '!': ' ', 'a' + Abc_Lit2Var(iLit1)-1 );
+        printf( "Div %7d : ",     i );
+        printf( "Weight %9.2f  ", Vec_FltEntry(p->vCounts, i) );
+        printf( "F = %c%c ",      Abc_LitIsCompl(iLit0) ? '!': ' ', 'a' + Abc_Lit2Var(iLit0)-1 );
+        printf( "%c ",            (Hash_IntObjData0(p->vHash, i) < Hash_IntObjData1(p->vHash, i)) ? '*':'+' );
+        printf( "%c%c   ",        Abc_LitIsCompl(iLit1) ? '!': ' ', 'a' + Abc_Lit2Var(iLit1)-1 );
         printf( "\n" );
     }
 }
@@ -773,8 +785,10 @@ int Dam_ManUpdateNode( Dam_Man_t * p, int iObj, int iLit0, int iLit1, int iLitNe
             {
                 Vec_FltAddToEntry( p->vCounts, Num, -1 );
                 if ( Vec_QueIsMember(p->vQue, Num) )
+                {
                     Vec_QueUpdate( p->vQue, Num );
-                fPres |= (1 << c);
+                    fPres |= (1 << c);
+                }
             }
         }
         if ( fPres != 3 )
@@ -803,6 +817,8 @@ void Dam_ManUpdate( Dam_Man_t * p, int iDiv )
         iLitNew = Gia_ManAppendXorReal( p->pGia, iLit0, iLit1 );
     else
         iLitNew = Gia_ManAppendAnd( p->pGia, iLit0, iLit1 );
+    Gia_ObjSetGateLevel( p->pGia, Gia_ManObj(p->pGia, Abc_Lit2Var(iLitNew)) );
+//    printf( "%d ", Gia_ObjLevel(p->pGia, Gia_ManObj(p->pGia, Abc_Lit2Var(iLitNew))) );
     // replace entries
     assert( pNods[0] >= 2 );
     nPairsStart = Hash_IntManEntryNum(p->vHash) + 1;
@@ -819,7 +835,7 @@ void Dam_ManUpdate( Dam_Man_t * p, int iDiv )
         nRefs = Hash_IntObjData2(p->vHash, i);
         if ( nRefs < 2 )
             continue;
-        Vec_FltWriteEntry( p->vCounts, i, nRefs-1 );
+        Vec_FltWriteEntry( p->vCounts, i, nRefs + 0.01*Dam_ManDivLevel(p->pGia, Hash_IntObjData0(p->vHash, i), Hash_IntObjData1(p->vHash, i)) );
         Vec_QuePush( p->vQue, i );
         // remember divisors
         Vec_IntWriteEntry( p->vDiv2Nod, i, Vec_IntSize(p->vNodStore) );
@@ -840,13 +856,12 @@ void Dam_ManUpdate( Dam_Man_t * p, int iDiv )
         if ( Vec_IntEntry(p->vDiv2Nod, iDivTemp) == -1 )
             continue;
         pSet = Dam_DivSet( p, iDivTemp );
-        assert( pSet[0] <= Vec_FltEntry(p->vCounts, iDivTemp) );
         pSet[++pSet[0]] = iNode;
     }
     // make sure divisors are added correctly
     for ( i = nPairsStart; i < nPairsStop; i++ )
         if ( Vec_IntEntry(p->vDiv2Nod, i) > 0 )
-            assert( Dam_DivSet(p, i)[0] == Vec_FltEntry(p->vCounts, i)+1 );
+            assert( Dam_DivSet(p, i)[0] == Hash_IntObjData2(p->vHash, i) );
     // update costs
     Vec_FltWriteEntry( p->vCounts, iDiv, 0 );
     p->nGain += (1 + 2 * fThisIsXor) * (nPresent - 1);
