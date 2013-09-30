@@ -38,8 +38,8 @@ static word s_Truth6[6] = {
 
 static inline word * Gla_ObjTruthElem( Gia_Man_t * p, int i )            { return (word *)Vec_PtrEntry( p->vTtInputs, i );                                           }
 static inline word * Gla_ObjTruthNode( Gia_Man_t * p, Gia_Obj_t * pObj ) { return Vec_WrdArray(p->vTtMemory) + p->nTtWords * Gia_ObjNum(p, pObj);                    }
-static inline word * Gla_ObjTruthFree1( Gia_Man_t * p )                  { return Vec_WrdArray(p->vTtMemory) + p->nTtWords * 254;                                    }
-static inline word * Gla_ObjTruthFree2( Gia_Man_t * p )                  { return Vec_WrdArray(p->vTtMemory) + p->nTtWords * 255;                                    }
+static inline word * Gla_ObjTruthFree1( Gia_Man_t * p )                  { return Vec_WrdArray(p->vTtMemory) + Vec_WrdSize(p->vTtMemory) - p->nTtWords * 1;          }
+static inline word * Gla_ObjTruthFree2( Gia_Man_t * p )                  { return Vec_WrdArray(p->vTtMemory) + Vec_WrdSize(p->vTtMemory) - p->nTtWords * 2;          }
 static inline word * Gla_ObjTruthConst0( Gia_Man_t * p, word * pDst )                   { int w; for ( w = 0; w < p->nTtWords; w++ ) pDst[w] = 0; return pDst;                      }
 static inline word * Gla_ObjTruthDup( Gia_Man_t * p, word * pDst, word * pSrc, int c )  { int w; for ( w = 0; w < p->nTtWords; w++ ) pDst[w] = c ? ~pSrc[w] : pSrc[w]; return pDst; }
 
@@ -143,28 +143,22 @@ word Gia_ObjComputeTruthTable6( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vSu
   SeeAlso     []
 
 ***********************************************************************/
-int Gia_ObjCollectInternal_rec( Gia_Man_t * p, Gia_Obj_t * pObj )
+void Gia_ObjCollectInternal_rec( Gia_Man_t * p, Gia_Obj_t * pObj )
 {
     if ( !Gia_ObjIsAnd(pObj) )
-        return 0;
+        return;
     if ( pObj->fMark0 )
-        return 0;
+        return;
     pObj->fMark0 = 1;
     Gia_ObjCollectInternal_rec( p, Gia_ObjFanin0(pObj) );
     Gia_ObjCollectInternal_rec( p, Gia_ObjFanin1(pObj) );
-    if ( Vec_IntSize(p->vTtNodes) > 253 )
-        return 1;
     Gia_ObjSetNum( p, pObj, Vec_IntSize(p->vTtNodes) );
     Vec_IntPush( p->vTtNodes, Gia_ObjId(p, pObj) );
-    return 0;
 }
-int Gia_ObjCollectInternal( Gia_Man_t * p, Gia_Obj_t * pObj )
+void Gia_ObjCollectInternal( Gia_Man_t * p, Gia_Obj_t * pObj )
 {
-    int RetValue;
     Vec_IntClear( p->vTtNodes );
-    RetValue = Gia_ObjCollectInternal_rec( p, pObj );
-    assert( Vec_IntSize(p->vTtNodes) < 254 );
-    return RetValue;
+    Gia_ObjCollectInternal_rec( p, pObj );
 }
 
 /**Function*************************************************************
@@ -188,7 +182,7 @@ word * Gia_ObjComputeTruthTable( Gia_Man_t * p, Gia_Obj_t * pObj )
     {
         p->nTtVars   = Gia_ManPiNum( p );
         p->nTtWords  = (p->nTtVars <= 6 ? 1 : (1 << (p->nTtVars - 6)));
-        p->vTtNums   = Vec_StrAlloc( Gia_ManObjNum(p) + 1000 );
+        p->vTtNums   = Vec_IntAlloc( Gia_ManObjNum(p) + 1000 );
         p->vTtNodes  = Vec_IntAlloc( 256 );
         p->vTtInputs = Vec_PtrAllocTruthTables( p->nTtVars );
         p->vTtMemory = Vec_WrdStart( p->nTtWords * 256 );
@@ -201,13 +195,10 @@ word * Gia_ObjComputeTruthTable( Gia_Man_t * p, Gia_Obj_t * pObj )
     }
     // collect internal nodes
     pRoot = Gia_ObjIsCo(pObj) ? Gia_ObjFanin0(pObj) : pObj;
-    if ( Gia_ObjCollectInternal( p, pRoot ) )
-    {
-        Gia_ManForEachObjVec( p->vTtNodes, p, pTemp, i )
-            pTemp->fMark0 = 0;
-        return NULL;
-    }
+    Gia_ObjCollectInternal( p, pRoot );
     // compute the truth table for internal nodes
+    if ( Vec_WrdSize(p->vTtMemory) < p->nTtWords * (Vec_IntSize(p->vTtNodes) + 2) )
+        Vec_WrdFillExtra( p->vTtMemory, p->nTtWords * (Vec_IntSize(p->vTtNodes) + 2), 0 );
     Gia_ManForEachObjVec( p->vTtNodes, p, pTemp, i )
     {
         pTemp->fMark0 = 0; // unmark nodes marked by Gia_ObjCollectInternal()
@@ -283,21 +274,18 @@ void Gia_ObjComputeTruthTableTest( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Gia_ObjCollectInternalCut_rec( Gia_Man_t * p, Gia_Obj_t * pObj )
+void Gia_ObjCollectInternalCut_rec( Gia_Man_t * p, Gia_Obj_t * pObj )
 {
     if ( pObj->fMark0 )
-        return 0;
-    assert( Gia_ObjIsAnd(pObj) );
-    if ( Gia_ObjCollectInternalCut_rec( p, Gia_ObjFanin0(pObj) ) )
-        return 1;
-    if ( Gia_ObjCollectInternalCut_rec( p, Gia_ObjFanin1(pObj) ) )
-        return 1;
+        return;
     pObj->fMark0 = 1;
+    assert( Gia_ObjIsAnd(pObj) );
+    Gia_ObjCollectInternalCut_rec( p, Gia_ObjFanin0(pObj) );
+    Gia_ObjCollectInternalCut_rec( p, Gia_ObjFanin1(pObj) );
     Gia_ObjSetNum( p, pObj, Vec_IntSize(p->vTtNodes) );
     Vec_IntPush( p->vTtNodes, Gia_ObjId(p, pObj) );
-    return (Vec_IntSize(p->vTtNodes) >= 254);
 }
-int Gia_ObjCollectInternalCut( Gia_Man_t * p, Gia_Obj_t * pRoot, Vec_Int_t * vLeaves )
+void Gia_ObjCollectInternalCut( Gia_Man_t * p, Gia_Obj_t * pRoot, Vec_Int_t * vLeaves )
 {
     Gia_Obj_t * pObj;
     int i;
@@ -311,7 +299,7 @@ int Gia_ObjCollectInternalCut( Gia_Man_t * p, Gia_Obj_t * pRoot, Vec_Int_t * vLe
     }
     assert( pRoot->fMark0 == 0 ); // the root cannot be one of the leaves
     Vec_IntClear( p->vTtNodes );
-    return Gia_ObjCollectInternalCut_rec( p, pRoot );
+    Gia_ObjCollectInternalCut_rec( p, pRoot );
 }
 
 /**Function*************************************************************
@@ -329,17 +317,17 @@ void Gia_ObjComputeTruthTableStart( Gia_Man_t * p, int nVarsMax )
 {
     assert( p->vTtMemory == NULL );
     p->nTtVars   = nVarsMax;
-    p->nTtWords  = (p->nTtVars <= 6 ? 1 : (1 << (p->nTtVars - 6)));
-    p->vTtNums   = Vec_StrAlloc( Gia_ManObjNum(p) + 1000 );
+    p->nTtWords  = Abc_Truth6WordNum( p->nTtVars );
+    p->vTtNums   = Vec_IntAlloc( Gia_ManObjNum(p) + 1000 );
     p->vTtNodes  = Vec_IntAlloc( 256 );
     p->vTtInputs = Vec_PtrAllocTruthTables( p->nTtVars );
-    p->vTtMemory = Vec_WrdStart( p->nTtWords * 256 );
+    p->vTtMemory = Vec_WrdStart( p->nTtWords * 64 );
 }
 void Gia_ObjComputeTruthTableStop( Gia_Man_t * p )
 {
     p->nTtVars   = 0;
     p->nTtWords  = 0;
-    Vec_StrFreeP( &p->vTtNums );
+    Vec_IntFreeP( &p->vTtNums );
     Vec_IntFreeP( &p->vTtNodes );
     Vec_PtrFreeP( &p->vTtInputs );
     Vec_WrdFreeP( &p->vTtMemory );
@@ -364,21 +352,10 @@ word * Gia_ObjComputeTruthTableCut( Gia_Man_t * p, Gia_Obj_t * pRoot, Vec_Int_t 
     assert( p->vTtMemory != NULL );
     assert( Vec_IntSize(vLeaves) <= p->nTtVars );
     // collect internal nodes
-    if ( Gia_ObjCollectInternalCut( p, pRoot, vLeaves ) )
-    {
-        // unmark nodes makred by Gia_ObjCollectInternal()
-        Gia_ManForEachObjVec( p->vTtNodes, p, pTemp, i )
-            pTemp->fMark0 = 0; 
-        // unmark leaves marked by Gia_ObjCollectInternal()
-        Gia_ManForEachObjVec( vLeaves, p, pTemp, i )
-        {
-            assert( pTemp->fMark0 == 1 );
-            pTemp->fMark0 = 0; 
-        }
-        return NULL;
-    }
+    Gia_ObjCollectInternalCut( p, pRoot, vLeaves );
     // compute the truth table for internal nodes
-    assert( Vec_IntSize(p->vTtNodes) < 254 );
+    if ( Vec_WrdSize(p->vTtMemory) < p->nTtWords * (Vec_IntSize(p->vTtNodes) + 2) )
+        Vec_WrdFillExtra( p->vTtMemory, p->nTtWords * (Vec_IntSize(p->vTtNodes) + 2), 0 );
     Gia_ManForEachObjVec( p->vTtNodes, p, pTemp, i )
     {
         pTemp->fMark0 = 0; // unmark nodes marked by Gia_ObjCollectInternal()

@@ -896,7 +896,7 @@ Gia_Man_t * Dam_ManMultiExtractInt( Gia_Man_t * pGia, int nNewNodesMax, int fVer
     Dam_ManFree( p );
     return pNew;
 }
-Gia_Man_t * Gia_ManMultiExtract( Gia_Man_t * p, int fSimpleAnd, int nNewNodesMax, int fVerbose, int fVeryVerbose )
+Gia_Man_t * Gia_ManAreaBalance( Gia_Man_t * p, int fSimpleAnd, int nNewNodesMax, int fVerbose, int fVeryVerbose )
 {
     Gia_Man_t * pNew, * pNew1, * pNew2;
     if ( fVerbose )     Gia_ManPrintStats( p, NULL );

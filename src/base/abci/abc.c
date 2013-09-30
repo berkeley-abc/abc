@@ -350,6 +350,7 @@ static int Abc_CommandAbc9Enable             ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9Dc2                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Bidec              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Shrink             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Fx                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Balance            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Miter              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Miter2             ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -909,6 +910,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&dc2",          Abc_CommandAbc9Dc2,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&bidec",        Abc_CommandAbc9Bidec,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&shrink",       Abc_CommandAbc9Shrink,       0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&fx",           Abc_CommandAbc9Fx,           0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&b",            Abc_CommandAbc9Balance,      0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&miter",        Abc_CommandAbc9Miter,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&miter2",       Abc_CommandAbc9Miter2,       0 );
@@ -27411,17 +27413,101 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
+int Abc_CommandAbc9Fx( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern Gia_Man_t * Gia_ManPerformFx( Gia_Man_t * p, int nNewNodesMax, int LitCountMax, int fVerbose, int fVeryVerbose );
+    Gia_Man_t * pTemp;
+    int nNewNodesMax = 1000000;
+    int LitCountMax  =       0;
+    int c, fVerbose  =       0;
+    int fVeryVerbose =       0;
+    // set the defaults
+    Extra_UtilGetoptReset();
+    while ( (c = Extra_UtilGetopt(argc, argv, "NMvh")) != EOF )
+    {
+        switch (c)
+        {
+            case 'N':
+                if ( globalUtilOptind >= argc )
+                {
+                    Abc_Print( -1, "Command line switch \"-N\" should be followed by an integer.\n" );
+                    goto usage;
+                }
+                nNewNodesMax = atoi(argv[globalUtilOptind]);
+                globalUtilOptind++;
+                if ( nNewNodesMax < 0 )
+                    goto usage;
+                break;
+            case 'M':
+                if ( globalUtilOptind >= argc )
+                {
+                    Abc_Print( -1, "Command line switch \"-M\" should be followed by an integer.\n" );
+                    goto usage;
+                }
+                LitCountMax = atoi(argv[globalUtilOptind]);
+                globalUtilOptind++;
+                if ( LitCountMax < 0 )
+                    goto usage;
+                break;
+            case 'v':
+                fVerbose ^= 1;
+                break;
+            case 'h':
+                goto usage;
+                break;
+            default:
+                goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Shrink(): There is no AIG.\n" );
+        return 1;
+    }
+    if ( !Gia_ManHasMapping(pAbc->pGia) )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Shrink(): Mapping of the AIG is not defined.\n" );
+        return 1;
+    }
+    pTemp = Gia_ManPerformFx( pAbc->pGia, nNewNodesMax, LitCountMax, fVerbose, fVeryVerbose );
+    if ( pTemp != NULL )
+        Abc_FrameUpdateGia( pAbc, pTemp );
+    else
+        Abc_Print( -1, "Abc_CommandAbc9Fx(): Command has failed.\n" );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &fx [-NM <num>] [-vh]\n");
+    Abc_Print( -2, "\t           extract shared logic using the classical \"fast_extract\" algorithm\n");
+    Abc_Print( -2, "\t-N <num> : max number of divisors to extract during this run [default = %d]\n", nNewNodesMax );
+    Abc_Print( -2, "\t-M <num> : upper bound on literal count of divisors to extract [default = %d]\n", LitCountMax );
+    Abc_Print( -2, "\t-v       : print verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h       : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Abc_CommandAbc9Balance( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Gia_Man_t * pTemp = NULL;
     int nNewNodesMax = ABC_INFINITY;
-    int fMultiExt    = 0;
+    int fDelayOnly   = 0;
     int fSimpleAnd   = 0;
     int fKeepLevel   = 0;
     int c, fVerbose  = 0;
     int fVeryVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Nealvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Ndalvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -27436,8 +27522,8 @@ int Abc_CommandAbc9Balance( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( nNewNodesMax < 0 )
                 goto usage;
             break;
-        case 'e':
-            fMultiExt ^= 1;
+        case 'd':
+            fDelayOnly ^= 1;
             break;
         case 'a':
             fSimpleAnd ^= 1;
@@ -27467,20 +27553,20 @@ int Abc_CommandAbc9Balance( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Balance(): The current AIG is mapped.\n" );
         return 1;
     }
-    if ( fMultiExt )
-        pTemp = Gia_ManMultiExtract( pAbc->pGia, fSimpleAnd, nNewNodesMax, fVerbose, fVeryVerbose );
-    else
+    if ( fDelayOnly )
         pTemp = Gia_ManBalance( pAbc->pGia, fSimpleAnd, fVerbose );
+    else
+        pTemp = Gia_ManAreaBalance( pAbc->pGia, fSimpleAnd, nNewNodesMax, fVerbose, fVeryVerbose );
     Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &b [-N num] [-ealvwh]\n" );
-    Abc_Print( -2, "\t         performs AIG balancing to reduce delay\n" );
+    Abc_Print( -2, "usage: &b [-N num] [-davwh]\n" );
+    Abc_Print( -2, "\t         performs AIG balancing to reduce delay and area\n" );
     Abc_Print( -2, "\t-N num : the max fanout count to skip a divisor [default = %d]\n", nNewNodesMax );
-    Abc_Print( -2, "\t-e     : toggle extacting shared logic while balancing [default = %s]\n", fMultiExt? "yes": "no" );
+    Abc_Print( -2, "\t-d     : toggle delay only balancing [default = %s]\n", fDelayOnly? "yes": "no" );
     Abc_Print( -2, "\t-a     : toggle using AND instead of AND/XOR/MUX [default = %s]\n", fSimpleAnd? "yes": "no" );
-    Abc_Print( -2, "\t-l     : toggle level update during shrinking [default = %s]\n", fKeepLevel? "yes": "no" );
+//    Abc_Print( -2, "\t-l     : toggle level update during shrinking [default = %s]\n", fKeepLevel? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w     : toggle printing additional information [default = %s]\n", fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");

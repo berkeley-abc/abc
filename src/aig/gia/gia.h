@@ -174,7 +174,7 @@ struct Gia_Man_t_
     // truth table computation for small functions
     int            nTtVars;       // truth table variables
     int            nTtWords;      // truth table words
-    Vec_Str_t *    vTtNums;       // object numbers
+    Vec_Int_t *    vTtNums;       // object numbers
     Vec_Int_t *    vTtNodes;      // internal nodes
     Vec_Ptr_t *    vTtInputs;     // truth tables for constant and primary inputs
     Vec_Wrd_t *    vTtMemory;     // truth tables for internal nodes
@@ -454,8 +454,8 @@ static inline void         Gia_ObjSetXorLevel( Gia_Man_t * p, Gia_Obj_t * pObj )
 static inline void         Gia_ObjSetMuxLevel( Gia_Man_t * p, Gia_Obj_t * pObj ) { assert( Gia_ObjIsMux(p,pObj) ); Gia_ObjSetLevel( p, pObj, 2+Abc_MaxInt( Abc_MaxInt(Gia_ObjLevel(p,Gia_ObjFanin0(pObj)),Gia_ObjLevel(p,Gia_ObjFanin1(pObj))), Gia_ObjLevel(p,Gia_ObjFanin2(p,pObj))) ); }
 static inline void         Gia_ObjSetGateLevel( Gia_Man_t * p, Gia_Obj_t * pObj ){ if ( Gia_ObjIsMux(p,pObj) ) Gia_ObjSetMuxLevel(p, pObj); else if ( Gia_ObjIsXor(pObj) ) Gia_ObjSetXorLevel(p, pObj); else if ( Gia_ObjIsAnd(pObj) ) Gia_ObjSetAndLevel(p, pObj); }
 
-static inline int          Gia_ObjNum( Gia_Man_t * p, Gia_Obj_t * pObj )       { return (int)(unsigned char)Vec_StrGetEntry(p->vTtNums, Gia_ObjId(p,pObj));                  }
-static inline void         Gia_ObjSetNum( Gia_Man_t * p, Gia_Obj_t * pObj, int n ) { assert( n >= 0 && n < 254 ); Vec_StrSetEntry(p->vTtNums, Gia_ObjId(p,pObj), (char)n);   }
+static inline int          Gia_ObjNum( Gia_Man_t * p, Gia_Obj_t * pObj )           { return Vec_IntGetEntry(p->vTtNums, Gia_ObjId(p,pObj));               }
+static inline void         Gia_ObjSetNum( Gia_Man_t * p, Gia_Obj_t * pObj, int n ) { assert( n >= 0 ); Vec_IntSetEntry(p->vTtNums, Gia_ObjId(p,pObj), n); }
 
 static inline int          Gia_ObjRefNumId( Gia_Man_t * p, int Id )            { return p->pRefs[Id];                              }
 static inline int          Gia_ObjRefIncId( Gia_Man_t * p, int Id )            { return p->pRefs[Id]++;                            }
@@ -931,7 +931,7 @@ extern Vec_Str_t *         Gia_AigerWriteIntoMemoryStrPart( Gia_Man_t * p, Vec_I
 extern void                Gia_AigerWriteSimple( Gia_Man_t * pInit, char * pFileName );
 /*=== giaBalance.c ===========================================================*/
 extern Gia_Man_t *         Gia_ManBalance( Gia_Man_t * p, int fSimpleAnd, int fVerbose );
-extern Gia_Man_t *         Gia_ManMultiExtract( Gia_Man_t * p, int fSimpleAnd, int nNewNodesMax, int fVerbose, int fVeryVerbose );
+extern Gia_Man_t *         Gia_ManAreaBalance( Gia_Man_t * p, int fSimpleAnd, int nNewNodesMax, int fVerbose, int fVeryVerbose );
 /*=== giaBidec.c ===========================================================*/
 extern unsigned *          Gia_ManConvertAigToTruth( Gia_Man_t * p, Gia_Obj_t * pRoot, Vec_Int_t * vLeaves, Vec_Int_t * vTruth, Vec_Int_t * vVisited );
 extern Gia_Man_t *         Gia_ManPerformBidec( Gia_Man_t * p, int fVerbose );
@@ -1193,7 +1193,7 @@ extern Gia_Man_t *         Gia_ManUpdateExtraAig( void * pTime, Gia_Man_t * pAig
 /*=== giaTruth.c ===========================================================*/
 extern word                Gia_ObjComputeTruthTable6Lut( Gia_Man_t * p, int iObj, Vec_Wrd_t * vTemp );
 extern word                Gia_ObjComputeTruthTable6( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vSupp, Vec_Wrd_t * vTruths );
-extern int                 Gia_ObjCollectInternal( Gia_Man_t * p, Gia_Obj_t * pObj );
+extern void                Gia_ObjCollectInternal( Gia_Man_t * p, Gia_Obj_t * pObj );
 extern word *              Gia_ObjComputeTruthTable( Gia_Man_t * p, Gia_Obj_t * pObj );
 extern void                Gia_ObjComputeTruthTableStart( Gia_Man_t * p, int nVarsMax );
 extern void                Gia_ObjComputeTruthTableStop( Gia_Man_t * p );

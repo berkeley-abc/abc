@@ -481,12 +481,12 @@ static void Fx_PrintMatrix( Fx_Man_t * p )
 }
 static void Fx_PrintStats( Fx_Man_t * p, abctime clk )
 {
-    printf( "Cubes =%7d  ", Vec_WecSizeUsed(p->vCubes) );
-    printf( "Lits  =%7d  ", Vec_WecSizeUsed(p->vLits) );
-    printf( "Divs  =%7d  ", Hsh_VecSize(p->pHash) );
-    printf( "Divs+ =%7d  ", Vec_QueSize(p->vPrio) );
-    printf( "Compl =%6d  ", p->nDivMux[1] );
-    printf( "Extr  =%6d  ", p->nDivs );
+    printf( "Cubes =%8d  ", Vec_WecSizeUsed(p->vCubes) );
+    printf( "Lits  =%8d  ", Vec_WecSizeUsed(p->vLits) );
+    printf( "Divs  =%8d  ", Hsh_VecSize(p->pHash) );
+    printf( "Divs+ =%8d  ", Vec_QueSize(p->vPrio) );
+    printf( "Compl =%8d  ", p->nDivMux[1] );
+    printf( "Extr  =%7d  ", p->nDivs );
 //    printf( "DivsS =%6d  ", p->nDivsS );
 //    printf( "PairS =%6d  ", p->nPairsS );
 //    printf( "PairD =%6d  ", p->nPairsD );
