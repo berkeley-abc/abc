@@ -30,6 +30,7 @@ ABC_NAMESPACE_IMPL_START
 
 extern int Kit_TruthToGia( Gia_Man_t * pMan, unsigned * pTruth, int nVars, Vec_Int_t * vMemory, Vec_Int_t * vLeaves, int fHash );
 
+#define DAU_DSD_MAX_VAR 8
 
 static int m_Calls = 0;
 static int m_NonDsd = 0;
@@ -86,11 +87,8 @@ int Dau_DsdToGia_rec( Gia_Man_t * pGia, char * pStr, char ** p, int * pMatches, 
     int fCompl = 0;
     if ( **p == '!' )
         (*p)++, fCompl = 1;
-    if ( **p >= 'a' && **p <= 'f' ) // var
-    {
-        assert( **p - 'a' >= 0 && **p - 'a' < 6 );
+    if ( **p >= 'a' && **p < 'a' + DAU_DSD_MAX_VAR ) // var
         return Abc_LitNotCond( pLits[**p - 'a'], fCompl );
-    }
     if ( **p == '(' ) // and/or
     {
         char * q = pStr + pMatches[ *p - pStr ];
@@ -121,7 +119,7 @@ int Dau_DsdToGia_rec( Gia_Man_t * pGia, char * pStr, char ** p, int * pMatches, 
     {
         int nVars = 0;
         int Temp[3], * pTemp = Temp, Res;
-        int Fanins[6], * pLits2;
+        int Fanins[DAU_DSD_MAX_VAR], * pLits2;
         char * pOld = *p;
         char * q = pStr + pMatches[ *p - pStr ];
         // read fanins
@@ -164,7 +162,7 @@ int Dau_DsdToGia_rec( Gia_Man_t * pGia, char * pStr, char ** p, int * pMatches, 
     if ( (**p >= 'A' && **p <= 'F') || (**p >= '0' && **p <= '9') )
     {
         word Func;
-        int Fanins[6], Res; 
+        int Fanins[DAU_DSD_MAX_VAR], Res; 
         Vec_Int_t vLeaves;
         char * q;
         int i, nVars = Abc_TtReadHex( &Func, *p );
@@ -216,6 +214,7 @@ int Dsm_ManDeriveGia( void * p, word * pTruth, Vec_Int_t * vLeaves, Vec_Int_t * 
     char pDsd[1000];
     int nSizeNonDec;
     m_Calls++;
+    assert( Vec_IntSize(vLeaves) <= DAU_DSD_MAX_VAR );
 //    static int Counter = 0; Counter++;
     nSizeNonDec = Dau_DsdDecompose( pTruth, Vec_IntSize(vLeaves), 0, 1, pDsd );
     if ( nSizeNonDec )
