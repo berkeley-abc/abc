@@ -1499,7 +1499,7 @@ Gia_Man_t * Jf_ManDeriveGia( Jf_Man_t * p )
         Jf_CutForEachLit( pCut, iLit, k )
             Vec_IntPush( vLeaves, Abc_Lit2LitL(Vec_IntArray(vCopies), iLit) );
         // create GIA
-        iLit = Dsm_ManDeriveGia( pNew, pTruth, vLeaves, vCover );
+        iLit = Dsm_ManTruthToGia( pNew, pTruth, vLeaves, vCover );
         iLit = Abc_LitNotCond( iLit, (p->pPars->fCutMin && Jf_CutFuncCompl(pCut)) );
         Vec_IntWriteEntry( vCopies, i, iLit );
     }

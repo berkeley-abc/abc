@@ -207,7 +207,7 @@ int Dau_DsdToGia( Gia_Man_t * pGia, char * p, int * pLits, Vec_Int_t * vCover )
   SeeAlso     []
 
 ***********************************************************************/
-int Dsm_ManDeriveGia( void * p, word * pTruth, Vec_Int_t * vLeaves, Vec_Int_t * vCover )
+int Dsm_ManTruthToGia( void * p, word * pTruth, Vec_Int_t * vLeaves, Vec_Int_t * vCover )
 {
     Gia_Man_t * pGia = (Gia_Man_t *)p;
     char pDsd[1000];
@@ -238,6 +238,67 @@ void Dsm_ManReportStats()
     printf( "Calls = %d. NonDSD = %d. Non1Step = %d.\n", m_Calls, m_NonDsd, m_Non1Step );
     m_Calls = m_NonDsd = m_Non1Step = 0;
 }
+
+/**Function*************************************************************
+
+  Synopsis    [Performs structural hashing on the LUT functions.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void * Dsm_ManDeriveGia( void * pGia )
+{
+    Gia_Man_t * p = (Gia_Man_t *)pGia;
+    Gia_Man_t * pNew, * pTemp;
+    Vec_Int_t * vCover, * vLeaves;
+    Gia_Obj_t * pObj; 
+    int k, i, iLut, iVar;
+    word * pTruth;
+    assert( Gia_ManHasMapping(p) );   
+    // create new manager
+    pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    // map primary inputs
+    Gia_ManFillValue(p);
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManForEachCi( p, pObj, i )
+        pObj->Value = Gia_ManAppendCi(pNew);
+    // iterate through nodes used in the mapping
+    vLeaves = Vec_IntAlloc( 16 );
+    vCover  = Vec_IntAlloc( 1 << 16 );
+    Gia_ManHashStart( pNew );
+    Gia_ObjComputeTruthTableStart( p, Gia_ManLutSizeMax(p) );
+    Gia_ManForEachLut( p, iLut )
+    {
+        // collect leaves
+        Vec_IntClear( vLeaves );
+        Gia_LutForEachFanin( p, iLut, iVar, k )
+            Vec_IntPush( vLeaves, iVar );
+        pTruth = Gia_ObjComputeTruthTableCut( p, Gia_ManObj(p, iLut), vLeaves );
+        // collect incoming literals
+        Vec_IntClear( vLeaves );
+        Gia_LutForEachFanin( p, iLut, iVar, k )
+            Vec_IntPush( vLeaves, Gia_ManObj(p, iVar)->Value );
+        Gia_ManObj(p, iLut)->Value = Dsm_ManTruthToGia( pNew, pTruth, vLeaves, vCover );
+    }
+    Gia_ObjComputeTruthTableStop( p );
+    Gia_ManForEachCo( p, pObj, i )
+        pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    Gia_ManHashStop( pNew );
+    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    Vec_IntFree( vLeaves );
+    Vec_IntFree( vCover );
+    // perform cleanup
+    pNew = Gia_ManCleanup( pTemp = pNew );
+    Gia_ManStop( pTemp );
+    return pNew;
+}
+
 
 
 ////////////////////////////////////////////////////////////////////////

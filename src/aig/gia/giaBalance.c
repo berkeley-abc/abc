@@ -21,6 +21,7 @@
 #include "gia.h"
 #include "misc/vec/vecHash.h"
 #include "misc/vec/vecQue.h"
+#include "opt/dau/dau.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -906,7 +907,7 @@ Gia_Man_t * Dam_ManMultiExtractInt( Gia_Man_t * pGia, int nNewNodesMax, int fVer
     int i, iDiv;
     p = Dam_ManAlloc( pGia );
     Dam_ManCreatePairs( p, fVerbose );
-    for ( i = 0; i < nNewNodesMax && Vec_QueTopCost(p->vQue) > 0; i++ )
+    for ( i = 0; i < nNewNodesMax && Vec_QueTopCost(p->vQue) > 2; i++ )
     {
         iDiv = Vec_QuePop(p->vQue);
         if ( fVeryVerbose )
@@ -932,13 +933,19 @@ Gia_Man_t * Dam_ManMultiExtractInt( Gia_Man_t * pGia, int nNewNodesMax, int fVer
 }
 Gia_Man_t * Gia_ManAreaBalance( Gia_Man_t * p, int fSimpleAnd, int nNewNodesMax, int fVerbose, int fVeryVerbose )
 {
-    Gia_Man_t * pNew, * pNew1, * pNew2;
-    if ( fVerbose )     Gia_ManPrintStats( p, NULL );
-    pNew = fSimpleAnd ? Gia_ManDup( p ) : Gia_ManDupMuxes( p );
+    Gia_Man_t * pNew0, * pNew, * pNew1, * pNew2;
+    // get the starting manager
+    pNew0 = Gia_ManHasMapping(p) ? (Gia_Man_t *)Dsm_ManDeriveGia(p) : p;
+    if ( fVerbose )     Gia_ManPrintStats( pNew0, NULL );
+    // derive internal manager
+    pNew = fSimpleAnd ? Gia_ManDup( pNew0 ) : Gia_ManDupMuxes( pNew0 );
     if ( fVerbose )     Gia_ManPrintStats( pNew, NULL );
+    if ( pNew0 != p ) Gia_ManStop( pNew0 );
+    // perform the operation
     pNew1 = Dam_ManMultiExtractInt( pNew, nNewNodesMax, fVerbose, fVeryVerbose );
     if ( fVerbose )     Gia_ManPrintStats( pNew1, NULL );
     Gia_ManStop( pNew );
+    // derive the final result
     pNew2 = Gia_ManDupNoMuxes( pNew1 );
     if ( fVerbose )     Gia_ManPrintStats( pNew2, NULL );
     Gia_ManStop( pNew1 );

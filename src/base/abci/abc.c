@@ -27553,11 +27553,6 @@ int Abc_CommandAbc9Balance( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Balance(): There is no AIG.\n" );
         return 1;
     }
-    if ( Gia_ManHasMapping(pAbc->pGia) )
-    {
-        Abc_Print( -1, "Abc_CommandAbc9Balance(): The current AIG is mapped.\n" );
-        return 1;
-    }
     if ( fDelayOnly )
         pTemp = Gia_ManBalance( pAbc->pGia, fSimpleAnd, fVerbose );
     else
