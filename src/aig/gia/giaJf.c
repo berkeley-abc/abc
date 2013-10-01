@@ -1446,8 +1446,7 @@ Gia_Man_t * Jf_ManDeriveGia( Jf_Man_t * p )
     Vec_Int_t * vCover    = Vec_IntAlloc( 1 << 16 );
     Vec_Int_t * vLeaves   = Vec_IntAlloc( 16 );
     int i, k, iLit, Class, * pCut;
-    word uTruth;
-    assert( p->pPars->fCutMin );
+    word * pTruth, uTruth = 0;
     // create new manager
     pNew = Gia_ManStart( Gia_ManObjNum(p->pGia) );
     pNew->pName = Abc_UtilStrsav( p->pGia->pName );
@@ -1457,6 +1456,8 @@ Gia_Man_t * Jf_ManDeriveGia( Jf_Man_t * p )
     Gia_ManForEachCi( p->pGia, pObj, i )
         Vec_IntWriteEntry( vCopies, Gia_ObjId(p->pGia, pObj), Gia_ManAppendCi(pNew) );
     // iterate through nodes used in the mapping
+    if ( !p->pPars->fCutMin )
+        Gia_ObjComputeTruthTableStart( p->pGia, p->pPars->nLutSize );
     Gia_ManHashStart( pNew );
     Gia_ManForEachAnd( p->pGia, pObj, i )
     {
@@ -1464,30 +1465,42 @@ Gia_Man_t * Jf_ManDeriveGia( Jf_Man_t * p )
             continue;
         pCut = Jf_ObjCutBest( p, i );
 //        printf( "Best cut of node %d:  ", i );  Jf_CutPrint(pCut);
-        Class = Jf_CutFuncClass( pCut );
-        uTruth = p->pPars->fFuncDsd ? Sdm_ManReadDsdTruth(p->pDsd, Class) : *Vec_MemReadEntry(p->vTtMem, Class);
-        assert( p->pDsd == NULL || Sdm_ManReadDsdVarNum(p->pDsd, Class) == Jf_CutSize(pCut) );
-        if ( Jf_CutSize(pCut) == 0 )
+        // get the truth table
+        if ( p->pPars->fCutMin )
         {
-            assert( Class == 0 );
-            Vec_IntWriteEntry( vCopies, i, Jf_CutFunc(pCut) );
-            continue;
+            Class = Jf_CutFuncClass( pCut );
+            uTruth = p->pPars->fFuncDsd ? Sdm_ManReadDsdTruth(p->pDsd, Class) : *Vec_MemReadEntry(p->vTtMem, Class);
+            assert( p->pDsd == NULL || Sdm_ManReadDsdVarNum(p->pDsd, Class) == Jf_CutSize(pCut) );
+            if ( Jf_CutSize(pCut) == 0 )
+            {
+                assert( Class == 0 );
+                Vec_IntWriteEntry( vCopies, i, Jf_CutFunc(pCut) );
+                continue;
+            }
+            if ( Jf_CutSize(pCut) == 1 )
+            {
+                assert( Class == 1 );
+                iLit = Abc_LitNotCond( Jf_CutLit(pCut, 1) , Jf_CutFuncCompl(pCut) );
+                iLit = Abc_Lit2LitL( Vec_IntArray(vCopies), iLit );
+                Vec_IntWriteEntry( vCopies, i, iLit );
+                continue;
+            }
+            pTruth = &uTruth;
         }
-        if ( Jf_CutSize(pCut) == 1 )
+        else
         {
-            assert( Class == 1 );
-            iLit = Abc_LitNotCond( Jf_CutLit(pCut, 1) , Jf_CutFuncCompl(pCut) );
-            iLit = Abc_Lit2LitL( Vec_IntArray(vCopies), iLit );
-            Vec_IntWriteEntry( vCopies, i, iLit );
-            continue;
+            Vec_IntClear( vLeaves );
+            Jf_CutForEachLit( pCut, iLit, k )
+                Vec_IntPush( vLeaves, Abc_Lit2Var(iLit) );
+            pTruth = Gia_ObjComputeTruthTableCut( p->pGia, pObj, vLeaves );
         }
-        // collect leaves
+        // collect incoming literals
         Vec_IntClear( vLeaves );
         Jf_CutForEachLit( pCut, iLit, k )
             Vec_IntPush( vLeaves, Abc_Lit2LitL(Vec_IntArray(vCopies), iLit) );
         // create GIA
-        iLit = Dsm_ManDeriveGia( pNew, uTruth, vLeaves, vCover );
-        iLit = Abc_LitNotCond( iLit, Jf_CutFuncCompl(pCut) );
+        iLit = Dsm_ManDeriveGia( pNew, pTruth, vLeaves, vCover );
+        iLit = Abc_LitNotCond( iLit, (p->pPars->fCutMin && Jf_CutFuncCompl(pCut)) );
         Vec_IntWriteEntry( vCopies, i, iLit );
     }
     Gia_ManForEachCo( p->pGia, pObj, i )
@@ -1495,6 +1508,8 @@ Gia_Man_t * Jf_ManDeriveGia( Jf_Man_t * p )
         iLit = Vec_IntEntry( vCopies, Gia_ObjFaninId0p(p->pGia, pObj) );
         Gia_ManAppendCo( pNew, Abc_LitNotCond(iLit, Gia_ObjFaninC0(pObj)) );
     }
+    if ( !p->pPars->fCutMin )
+        Gia_ObjComputeTruthTableStop( p->pGia );
     Vec_IntFree( vCopies );
     Vec_IntFree( vLeaves );
     Vec_IntFree( vCover );
@@ -1527,7 +1542,7 @@ void Jf_ManSetDefaultPars( Jf_Par_t * pPars )
     pPars->fOptEdge     =  1; 
     pPars->fCoarsen     =  0;
     pPars->fCutMin      =  0;
-    pPars->fFuncDsd      =  0;
+    pPars->fFuncDsd     =  0;
     pPars->fGenCnf      =  0;
     pPars->fPureAig     =  0;
     pPars->fVerbose     =  0;

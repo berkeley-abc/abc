@@ -193,7 +193,7 @@ Vec_Wec_t * Gia_ManFxRetrieve( Gia_Man_t * p, Vec_Str_t ** pvCompl, int fReverse
     // compute truth tables
     nCutSize = Gia_ManLutSizeMax( p );
     nWords = Abc_Truth6WordNum( nCutSize );
-    vTruths = Gia_ManComputeTruths( p, Abc_MaxInt(6, nCutSize), nItems - Gia_ManCiNum(p), fReverse );
+    vTruths = Gia_ManComputeTruths( p, nCutSize, nItems - Gia_ManCiNum(p), fReverse );
     vCover = Vec_IntAlloc( 1 << 16 );
     // collect cubes
     vCubes = Vec_WecAlloc( 1000 );

@@ -210,14 +210,14 @@ int Dau_DsdToGia( Gia_Man_t * pGia, char * p, int * pLits, Vec_Int_t * vCover )
   SeeAlso     []
 
 ***********************************************************************/
-int Dsm_ManDeriveGia( void * p, word uTruth, Vec_Int_t * vLeaves, Vec_Int_t * vCover )
+int Dsm_ManDeriveGia( void * p, word * pTruth, Vec_Int_t * vLeaves, Vec_Int_t * vCover )
 {
     Gia_Man_t * pGia = (Gia_Man_t *)p;
     char pDsd[1000];
     int nSizeNonDec;
     m_Calls++;
 //    static int Counter = 0; Counter++;
-    nSizeNonDec = Dau_DsdDecompose( &uTruth, Vec_IntSize(vLeaves), 0, 1, pDsd );
+    nSizeNonDec = Dau_DsdDecompose( pTruth, Vec_IntSize(vLeaves), 0, 1, pDsd );
     if ( nSizeNonDec )
         m_NonDsd++;
 //    printf( "%s\n", pDsd );

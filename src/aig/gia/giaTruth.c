@@ -185,7 +185,7 @@ word * Gia_ObjComputeTruthTable( Gia_Man_t * p, Gia_Obj_t * pObj )
         p->nTtWords  = Abc_Truth6WordNum( p->nTtVars );
         p->vTtNums   = Vec_IntStart( Gia_ManObjNum(p) + 1000 );
         p->vTtNodes  = Vec_IntAlloc( 256 );
-        p->vTtInputs = Vec_PtrAllocTruthTables( p->nTtVars );
+        p->vTtInputs = Vec_PtrAllocTruthTables( Abc_MaxInt(6, p->nTtVars) );
         p->vTtMemory = Vec_WrdStart( p->nTtWords * 256 );
     }
     else
@@ -285,7 +285,7 @@ void Gia_ObjComputeTruthTableStart( Gia_Man_t * p, int nVarsMax )
     p->nTtVars   = nVarsMax;
     p->nTtWords  = Abc_Truth6WordNum( p->nTtVars );
     p->vTtNodes  = Vec_IntAlloc( 256 );
-    p->vTtInputs = Vec_PtrAllocTruthTables( p->nTtVars );
+    p->vTtInputs = Vec_PtrAllocTruthTables( Abc_MaxInt(6, p->nTtVars) );
     p->vTtMemory = Vec_WrdStart( p->nTtWords * 64 );
     p->vTtNums   = Vec_IntAlloc( Gia_ManObjNum(p) + 1000 );
     Vec_IntFill( p->vTtNums, Vec_IntCap(p->vTtNums), -ABC_INFINITY );
