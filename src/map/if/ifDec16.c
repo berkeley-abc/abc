@@ -24,7 +24,7 @@
 
 ABC_NAMESPACE_IMPL_START
 
-//#define IF_USE_CASE3
+#define IF_USE_CASE3 0  // 0 allowed; 1 not allowed; 2 exclusive
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -1305,7 +1305,7 @@ int If_CluCheckNonDisjointGroup( word * pF, int nVars, int * V2P, int * P2V, If_
 
 
 // finds a good var group (cof count < 6; vars are MSBs)
-If_Grp_t If_CluFindGroup( word * pF, int nVars, int iVarStart, int * V2P, int * P2V, int nBSsize, int fDisjoint )
+If_Grp_t If_CluFindGroup( word * pF, int nVars, int iVarStart, int iVarStop, int * V2P, int * P2V, int nBSsize, int fDisjoint )
 {
     int fVerbose = 0;
     int nRounds = 2;//nBSsize;
@@ -1313,6 +1313,7 @@ If_Grp_t If_CluFindGroup( word * pF, int nVars, int iVarStart, int * V2P, int * 
     int i, r, v, nCofs, VarBest, nCofsBest2;
     assert( nVars > nBSsize && nVars >= nBSsize + iVarStart && nVars <= CLU_VAR_MAX );
     assert( nBSsize >= 2 && nBSsize <= 6 );
+    assert( !iVarStart || !iVarStop );
     // start with the default group
     g->nVars = nBSsize;
     g->nMyu = If_CluCountCofs( pF, nVars, nBSsize, 0, NULL );
@@ -1368,7 +1369,7 @@ If_Grp_t If_CluFindGroup( word * pF, int nVars, int iVarStart, int * V2P, int * 
         // find the best var to remove
         VarBest = P2V[nVars-1-nBSsize];
         nCofsBest2 = If_CluCountCofs( pF, nVars, nBSsize, 0, NULL );
-        for ( v = nVars-nBSsize; v < nVars; v++ )
+        for ( v = nVars-nBSsize; v < nVars-iVarStop; v++ )
         {
 //            If_CluMoveVar( pF, nVars, V2P, P2V, P2V[v], nVars-1-nBSsize );
             If_CluMoveVar2( pF, nVars, V2P, P2V, P2V[v], nVars-1-nBSsize );
@@ -1551,7 +1552,7 @@ int If_CluMinimumBase( word * t, int * pSupp, int nVarsAll, int * pnVars )
 }
 
 // returns the best group found
-If_Grp_t If_CluCheck( If_Man_t * p, word * pTruth0, int nVars, int iVarStart, int nLutLeaf, int nLutRoot, 
+If_Grp_t If_CluCheck( If_Man_t * p, word * pTruth0, int nVars, int iVarStart, int iVarStop, int nLutLeaf, int nLutRoot, 
                      If_Grp_t * pR, word * pFunc0, word * pFunc1, word * pLeftOver, int fHashing )
 {
 //    int fEnableHashing = 0;
@@ -1615,6 +1616,10 @@ If_Grp_t If_CluCheck( If_Man_t * p, word * pTruth0, int nVars, int iVarStart, in
             If_CluUns2Grp( *pHashed, &G1 );
     }
 
+    // update the variable order so that the first var was the last one
+    if ( iVarStop )
+        If_CluMoveVar( pF, nVars, V2P, P2V, 0, nVars-1 );
+
     if ( G1.nVars == 0 ) 
     {
         s_Count2++;
@@ -1625,7 +1630,7 @@ If_Grp_t If_CluCheck( If_Man_t * p, word * pTruth0, int nVars, int iVarStart, in
         if ( G1.nVars == 0 )
         {
             // perform testing
-            G1 = If_CluFindGroup( pF, nVars, iVarStart, V2P, P2V, nLutLeaf, nLutLeaf + nLutRoot == nVars + 1 );
+            G1 = If_CluFindGroup( pF, nVars, iVarStart, iVarStop, V2P, P2V, nLutLeaf, nLutLeaf + nLutRoot == nVars + 1 );
     //        If_CluCheckPerm( pTruth, pF, nVars, V2P, P2V );
             if ( G1.nVars == 0 )
             {
@@ -1633,7 +1638,7 @@ If_Grp_t If_CluCheck( If_Man_t * p, word * pTruth0, int nVars, int iVarStart, in
                 if ( nVars < nLutLeaf + nLutRoot - 2 )
                 {
                     nLutLeaf--;
-                    G1 = If_CluFindGroup( pF, nVars, iVarStart, V2P, P2V, nLutLeaf, nLutLeaf + nLutRoot == nVars + 1 );
+                    G1 = If_CluFindGroup( pF, nVars, iVarStart, iVarStop, V2P, P2V, nLutLeaf, nLutLeaf + nLutRoot == nVars + 1 );
                     nLutLeaf++;
                 }
                 // perform testing with a smaller set
@@ -1641,7 +1646,7 @@ If_Grp_t If_CluCheck( If_Man_t * p, word * pTruth0, int nVars, int iVarStart, in
                 {
                     nLutLeaf--;
                     nLutLeaf--;
-                    G1 = If_CluFindGroup( pF, nVars, iVarStart, V2P, P2V, nLutLeaf, nLutLeaf + nLutRoot == nVars + 1 );
+                    G1 = If_CluFindGroup( pF, nVars, iVarStart, iVarStop, V2P, P2V, nLutLeaf, nLutLeaf + nLutRoot == nVars + 1 );
                     nLutLeaf++;
                     nLutLeaf++;
                 }
@@ -1649,7 +1654,7 @@ If_Grp_t If_CluCheck( If_Man_t * p, word * pTruth0, int nVars, int iVarStart, in
                 {
                     // perform testing with a different order
                     If_CluReverseOrder( pF, nVars, V2P, P2V, iVarStart );
-                    G1 = If_CluFindGroup( pF, nVars, iVarStart, V2P, P2V, nLutLeaf, nLutLeaf + nLutRoot == nVars + 1 );
+                    G1 = If_CluFindGroup( pF, nVars, iVarStart, iVarStop, V2P, P2V, nLutLeaf, nLutLeaf + nLutRoot == nVars + 1 );
 
                     // check permutation
     //                If_CluCheckPerm( pTruth, pF, nVars, V2P, P2V );
@@ -1863,7 +1868,7 @@ int If_CutPerformCheck45( If_Man_t * p, unsigned * pTruth, int nVars, int nLeave
     // 5LUT -> 4LUT
     If_Grp_t G, R;
     word Func0, Func1;
-    G = If_CluCheck( p, (word *)pTruth, nLeaves, 0, 5, 4, &R, &Func0, &Func1, NULL, 0 );
+    G = If_CluCheck( p, (word *)pTruth, nLeaves, 0, 0, 5, 4, &R, &Func0, &Func1, NULL, 0 );
     if ( G.nVars == 0 )
         return 0;
     Func0 = If_CluAdjust( Func0, R.nVars );
@@ -1884,7 +1889,7 @@ int If_CutPerformCheck54( If_Man_t * p, unsigned * pTruth, int nVars, int nLeave
     // 4LUT -> 5LUT
     If_Grp_t G, R;
     word Func0, Func1;
-    G = If_CluCheck( p, (word *)pTruth, nLeaves, 0, 4, 5, &R, &Func0, &Func1, NULL, 0 );
+    G = If_CluCheck( p, (word *)pTruth, nLeaves, 0, 0, 4, 5, &R, &Func0, &Func1, NULL, 0 );
     if ( G.nVars == 0 )
         return 0;
     Func0 = If_CluAdjust( Func0, R.nVars );
@@ -1930,7 +1935,7 @@ If_Grp_t If_CluCheck3( If_Man_t * p, word * pTruth0, int nVars, int nLutLeaf, in
     s_Count3++;
 
     // check two-node decomposition
-    G1 = If_CluCheck( p, pTruth0, nVars, 0, nLutLeaf, nLutRoot + nLutLeaf2 - 1, &R2, &Func0, &Func1, pLeftOver, 0 );
+    G1 = If_CluCheck( p, pTruth0, nVars, 0, 0, nLutLeaf, nLutRoot + nLutLeaf2 - 1, &R2, &Func0, &Func1, pLeftOver, 0 );
     // decomposition does not exist
     if ( G1.nVars == 0 )
     {
@@ -2015,11 +2020,14 @@ If_Grp_t If_CluCheck3( If_Man_t * p, word * pTruth0, int nVars, int nLutLeaf, in
     }
 
     // the new variable is at the bottom - skip it (iVarStart = 1)
-#ifdef IF_USE_CASE3
-    G2 = If_CluCheck( p, pLeftOver, R2.nVars, 0, nLutLeaf2, nLutRoot, &R, &Func0, &Func2, NULL, 0 );
-#else
-    G2 = If_CluCheck( p, pLeftOver, R2.nVars, 1, nLutLeaf2, nLutRoot, &R, &Func0, &Func2, NULL, 0 );
-#endif
+    if ( IF_USE_CASE3 == 0 )
+        G2 = If_CluCheck( p, pLeftOver, R2.nVars, 0, 0, nLutLeaf2, nLutRoot, &R, &Func0, &Func2, NULL, 0 );
+    else if ( IF_USE_CASE3 == 1 )
+        G2 = If_CluCheck( p, pLeftOver, R2.nVars, 1, 0, nLutLeaf2, nLutRoot, &R, &Func0, &Func2, NULL, 0 );
+    else if ( IF_USE_CASE3 == 2 )
+        G2 = If_CluCheck( p, pLeftOver, R2.nVars, 0, 1, nLutLeaf2, nLutRoot, &R, &Func0, &Func2, NULL, 0 );
+    else assert( 0 );
+
     if ( G2.nVars == 0 )
     {
         if ( pHashed )
@@ -2061,7 +2069,7 @@ int If_CluCheckExt( void * pMan, word * pTruth, int nVars, int nLutLeaf, int nLu
 {
     If_Man_t * p = (If_Man_t *)pMan;
     If_Grp_t G, R;
-    G = If_CluCheck( p, pTruth, nVars, 0, nLutLeaf, nLutRoot, &R, pFunc0, pFunc1, NULL, 0 );
+    G = If_CluCheck( p, pTruth, nVars, 0, 0, nLutLeaf, nLutRoot, &R, pFunc0, pFunc1, NULL, 0 );
     memcpy( pLut0, &R, sizeof(If_Grp_t) );
     memcpy( pLut1, &G, sizeof(If_Grp_t) );
 //    memcpy( pLut2, &G2, sizeof(If_Grp_t) );
@@ -2145,7 +2153,7 @@ float If_CutDelayLutStruct( If_Man_t * p, If_Cut_t * pCut, char * pStr, float Wi
     }
 
     // derive the first group
-    G1 = If_CluCheck( p, (word *)If_CutTruth(pCut), nLeaves, 0, nLutLeaf, nLutRoot, NULL, NULL, NULL, NULL, 1 );
+    G1 = If_CluCheck( p, (word *)If_CutTruth(pCut), nLeaves, 0, 0, nLutLeaf, nLutRoot, NULL, NULL, NULL, NULL, 1 );
     if ( G1.nVars == 0 )
         return ABC_INFINITY;
 
@@ -2287,7 +2295,7 @@ int If_CutPerformCheck16( If_Man_t * p, unsigned * pTruth, int nVars, int nLeave
 
     // derive the first group
     if ( Length == 2 )
-        G1 = If_CluCheck( p, (word *)pTruth, nLeaves, 0, nLutLeaf, nLutRoot, NULL, NULL, NULL, NULL, 1 );
+        G1 = If_CluCheck( p, (word *)pTruth, nLeaves, 0, 0, nLutLeaf, nLutRoot, NULL, NULL, NULL, NULL, 1 );
     else
         G1 = If_CluCheck3( p, (word *)pTruth, nLeaves, nLutLeaf, nLutLeaf2, nLutRoot, NULL, NULL, NULL, NULL, NULL );
 
