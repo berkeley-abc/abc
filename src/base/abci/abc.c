@@ -15420,7 +15420,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     fLutMux = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KCFAGNDEWSqaflepmrsdbugyojiknvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KCFAGNDEWSTqaflepmrsdbugyojiknvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -15538,6 +15538,17 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
                 Abc_Print( -1, "Command line switch \"-S\" should be followed by a 2- or 3-char string (e.g. \"44\" or \"555\").\n" );
                 goto usage;
             }
+            break;
+        case 'T':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-T\" should be followed by a positive integer 0,1,or 2.\n" );
+                goto usage;
+            }
+            pPars->nStructType = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nStructType < 0 || pPars->nStructType > 2 )
+                goto usage;
             break;
         case 'q':
             pPars->fPreprocess ^= 1;
@@ -15856,7 +15867,7 @@ usage:
         sprintf(LutSize, "library" );
     else
         sprintf(LutSize, "%d", pPars->nLutSize );
-    Abc_Print( -2, "usage: if [-KCFANG num] [-DEW float] [-S str] [-qarlepmsdbugyojikcnvh]\n" );
+    Abc_Print( -2, "usage: if [-KCFANGT num] [-DEW float] [-S str] [-qarlepmsdbugyojikcnvh]\n" );
     Abc_Print( -2, "\t           performs FPGA technology mapping of the network\n" );
     Abc_Print( -2, "\t-K num   : the number of LUT inputs (2 < num < %d) [default = %s]\n", IF_MAX_LUTSIZE+1, LutSize );
     Abc_Print( -2, "\t-C num   : the max number of priority cuts (0 < num < 2^12) [default = %d]\n", pPars->nCutsMax );
@@ -15868,6 +15879,7 @@ usage:
     Abc_Print( -2, "\t-E float : sets epsilon used for tie-breaking [default = %f]\n", pPars->Epsilon );
     Abc_Print( -2, "\t-W float : sets wire delay between adjects LUTs [default = %f]\n", pPars->WireDelay );
     Abc_Print( -2, "\t-S str   : string representing the LUT structure [default = %s]\n", pPars->pLutStruct ? pPars->pLutStruct : "not used" );
+    Abc_Print( -2, "\t-T num   : the type of LUT structures [default = any]\n", pPars->nStructType );
     Abc_Print( -2, "\t-q       : toggles preprocessing using several starting points [default = %s]\n", pPars->fPreprocess? "yes": "no" );
     Abc_Print( -2, "\t-a       : toggles area-oriented mapping [default = %s]\n", pPars->fArea? "yes": "no" );
 //    Abc_Print( -2, "\t-f       : toggles one fancy feature [default = %s]\n", pPars->fFancy? "yes": "no" );

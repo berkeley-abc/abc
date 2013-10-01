@@ -24,8 +24,6 @@
 
 ABC_NAMESPACE_IMPL_START
 
-#define IF_USE_CASE3 0  // 0 allowed; 1 not allowed; 2 exclusive
-
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -2020,11 +2018,11 @@ If_Grp_t If_CluCheck3( If_Man_t * p, word * pTruth0, int nVars, int nLutLeaf, in
     }
 
     // the new variable is at the bottom - skip it (iVarStart = 1)
-    if ( IF_USE_CASE3 == 0 )
+    if ( p->pPars->nStructType == 0 ) // allowed
         G2 = If_CluCheck( p, pLeftOver, R2.nVars, 0, 0, nLutLeaf2, nLutRoot, &R, &Func0, &Func2, NULL, 0 );
-    else if ( IF_USE_CASE3 == 1 )
+    else if ( p->pPars->nStructType == 1 ) // not allowed
         G2 = If_CluCheck( p, pLeftOver, R2.nVars, 1, 0, nLutLeaf2, nLutRoot, &R, &Func0, &Func2, NULL, 0 );
-    else if ( IF_USE_CASE3 == 2 )
+    else if ( p->pPars->nStructType == 2 ) // required
         G2 = If_CluCheck( p, pLeftOver, R2.nVars, 0, 1, nLutLeaf2, nLutRoot, &R, &Func0, &Func2, NULL, 0 );
     else assert( 0 );
 

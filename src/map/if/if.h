@@ -103,6 +103,7 @@ struct If_Par_t_
     float              DelayTarget;   // delay target
     float              Epsilon;       // value used in comparison floating point numbers
     int                nRelaxRatio;   // delay relaxation ratio
+    int                nStructType;   // type of the structure
     int                fPreprocess;   // preprossing
     int                fArea;         // area-oriented mapping
     int                fFancy;        // a fancy feature
