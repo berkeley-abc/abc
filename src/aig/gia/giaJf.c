@@ -1440,7 +1440,7 @@ void Jf_ManDeriveMapping( Jf_Man_t * p )
 ***********************************************************************/
 Gia_Man_t * Jf_ManDeriveGia( Jf_Man_t * p )
 {
-    Gia_Man_t * pNew;
+    Gia_Man_t * pNew, * pTemp;
     Gia_Obj_t * pObj; 
     Vec_Int_t * vCopies   = Vec_IntStartFull( Gia_ManObjNum(p->pGia) );
     Vec_Int_t * vCover    = Vec_IntAlloc( 1 << 16 );
@@ -1516,6 +1516,9 @@ Gia_Man_t * Jf_ManDeriveGia( Jf_Man_t * p )
     Gia_ManHashStop( pNew );
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p->pGia) );
 //    Dsm_ManReportStats();
+    // perform cleanup
+    pNew = Gia_ManCleanup( pTemp = pNew );
+    Gia_ManStop( pTemp );
     return pNew;
 }
 

@@ -161,11 +161,10 @@ int Dau_DsdToGia_rec( Gia_Man_t * pGia, char * pStr, char ** p, int * pMatches, 
     }
     if ( (**p >= 'A' && **p <= 'F') || (**p >= '0' && **p <= '9') )
     {
-        word Func;
+        Vec_Int_t vLeaves;  char * q;
+        word pFunc[DAU_DSD_MAX_VAR > 6 ? (1 << (DAU_DSD_MAX_VAR-6)) : 1];
         int Fanins[DAU_DSD_MAX_VAR], Res; 
-        Vec_Int_t vLeaves;
-        char * q;
-        int i, nVars = Abc_TtReadHex( &Func, *p );
+        int i, nVars = Abc_TtReadHex( pFunc, *p );
         *p += Abc_TtHexDigitNum( nVars );
         q = pStr + pMatches[ *p - pStr ];
         assert( **p == '{' && *q == '}' );
@@ -177,7 +176,7 @@ int Dau_DsdToGia_rec( Gia_Man_t * pGia, char * pStr, char ** p, int * pMatches, 
         vLeaves.nCap = nVars;
         vLeaves.nSize = nVars;
         vLeaves.pArray = Fanins;        
-        Res = Kit_TruthToGia( pGia, (unsigned *)&Func, nVars, vCover, &vLeaves, 1 );
+        Res = Kit_TruthToGia( pGia, (unsigned *)pFunc, nVars, vCover, &vLeaves, 1 );
         m_Non1Step++;
         return Abc_LitNotCond( Res, fCompl );
     }
