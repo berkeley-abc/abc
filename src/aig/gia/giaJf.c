@@ -1517,8 +1517,11 @@ Gia_Man_t * Jf_ManDeriveGia( Jf_Man_t * p )
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p->pGia) );
 //    Dsm_ManReportStats();
     // perform cleanup
-    pNew = Gia_ManCleanup( pTemp = pNew );
-    Gia_ManStop( pTemp );
+    if ( !p->pPars->fCutMin )
+    {
+        pNew = Gia_ManCleanup( pTemp = pNew );
+        Gia_ManStop( pTemp );
+    }
     return pNew;
 }
 
