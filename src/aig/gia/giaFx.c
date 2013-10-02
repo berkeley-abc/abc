@@ -22,6 +22,8 @@
 #include "bool/kit/kit.h"
 #include "misc/vec/vecWec.h"
 #include "bool/dec/dec.h"
+#include "opt/dau/dau.h"
+#include "misc/util/utilTruth.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -309,7 +311,7 @@ Gia_Man_t * Gia_ManFxInsert( Gia_Man_t * p, Vec_Wec_t * vCubes, Vec_Str_t * vCom
 {
     Gia_Man_t * pNew, * pTemp;
     Gia_Obj_t * pObj; Vec_Str_t * vSop;
-    Vec_Int_t * vOrder, * vFirst, * vCount, * vFanins;
+    Vec_Int_t * vOrder, * vFirst, * vCount, * vFanins, * vCover;
     Vec_Int_t * vCopies, * vCube, * vMap;
     int k, c, v, Lit, Var, iItem;
 //    abctime clk = Abc_Clock();
@@ -331,6 +333,7 @@ Gia_Man_t * Gia_ManFxInsert( Gia_Man_t * p, Vec_Wec_t * vCubes, Vec_Str_t * vCom
     Vec_IntFillExtra( vCopies, Vec_IntSize(vOrder), -1 );
     // add AIG nodes in the topological order
     vSop = Vec_StrAlloc( 1000 );
+    vCover = Vec_IntAlloc( 1 << 16 );
     vFanins = Vec_IntAlloc( 100 );
     Vec_IntForEachEntryStart( vOrder, iItem, k, Gia_ManCiNum(p) )
     {
@@ -348,32 +351,63 @@ Gia_Man_t * Gia_ManFxInsert( Gia_Man_t * p, Vec_Wec_t * vCubes, Vec_Str_t * vCom
                     Vec_IntPush( vFanins, Abc_Lit2Var(Lit) );
                 }
         }
-        // create SOPs
-        Vec_StrClear( vSop );
-        for ( c = 0; c < nCubes; c++ )
+        if ( Vec_IntSize(vFanins) > 6 )
         {
-            for ( v = 0; v < Vec_IntSize(vFanins); v++ )
-                Vec_StrPush( vSop, '-' );
-            vCube = Vec_WecEntry( vCubes, iFirst + c );
-            Vec_IntForEachEntryStart( vCube, Lit, v, 1 )
+            // create SOP
+            Vec_StrClear( vSop );
+            for ( c = 0; c < nCubes; c++ )
             {
-                Lit = Abc_Lit2LitV( Vec_IntArray(vMap), Lit );
-                assert( Lit >= 0 && Abc_Lit2Var(Lit) < Vec_IntSize(vFanins) );
-                Vec_StrWriteEntry( vSop, Vec_StrSize(vSop) - Vec_IntSize(vFanins) + Abc_Lit2Var(Lit), (char)(Abc_LitIsCompl(Lit)? '0' : '1') );
+                for ( v = 0; v < Vec_IntSize(vFanins); v++ )
+                    Vec_StrPush( vSop, '-' );
+                vCube = Vec_WecEntry( vCubes, iFirst + c );
+                Vec_IntForEachEntryStart( vCube, Lit, v, 1 )
+                {
+                    Lit = Abc_Lit2LitV( Vec_IntArray(vMap), Lit );
+                    assert( Lit >= 0 && Abc_Lit2Var(Lit) < Vec_IntSize(vFanins) );
+                    Vec_StrWriteEntry( vSop, Vec_StrSize(vSop) - Vec_IntSize(vFanins) + Abc_Lit2Var(Lit), (char)(Abc_LitIsCompl(Lit)? '0' : '1') );
+                }
+                Vec_StrPush( vSop, ' ' );
+                Vec_StrPush( vSop, '1' );
+                Vec_StrPush( vSop, '\n' );
             }
-            Vec_StrPush( vSop, ' ' );
-            Vec_StrPush( vSop, '1' );
-            Vec_StrPush( vSop, '\n' );
+            Vec_StrPush( vSop, '\0' );
+            // collect fanins
+            Vec_IntForEachEntry( vFanins, Var, v )
+            {
+                Vec_IntWriteEntry( vMap, Var, -1 );
+                Vec_IntWriteEntry( vFanins, v, Vec_IntEntry(vCopies, Var) );
+            }
+            // derive new AIG
+            Lit = Gia_ManFactorNode( pNew, Vec_StrArray(vSop), vFanins );
         }
-        Vec_StrPush( vSop, '\0' );
-        // collect fanins
-        Vec_IntForEachEntry( vFanins, Var, v )
+        else
         {
-            Vec_IntWriteEntry( vMap, Var, -1 );
-            Vec_IntWriteEntry( vFanins, v, Vec_IntEntry(vCopies, Var) );
+            word uTruth = 0, uCube;
+            for ( c = 0; c < nCubes; c++ )
+            {
+                uCube = ~(word)0;
+                vCube = Vec_WecEntry( vCubes, iFirst + c );
+                Vec_IntForEachEntryStart( vCube, Lit, v, 1 )
+                {
+                    Lit = Abc_Lit2LitV( Vec_IntArray(vMap), Lit );
+                    assert( Lit >= 0 && Abc_Lit2Var(Lit) < Vec_IntSize(vFanins) );
+                    uCube &= Abc_LitIsCompl(Lit) ? ~s_Truths6[Abc_Lit2Var(Lit)] : s_Truths6[Abc_Lit2Var(Lit)];
+                }
+                uTruth |= uCube;
+            }
+            // complement constant
+            if ( uTruth == 0 )
+                uTruth = ~uTruth;
+            // collect fanins
+            Vec_IntForEachEntry( vFanins, Var, v )
+            {
+                Vec_IntWriteEntry( vMap, Var, -1 );
+                Vec_IntWriteEntry( vFanins, v, Vec_IntEntry(vCopies, Var) );
+            }
+            // create truth table
+            Lit = Dsm_ManTruthToGia( pNew, &uTruth, vFanins, vCover );
         }
-        // derive new AIG
-        Lit = Gia_ManFactorNode( pNew, Vec_StrArray(vSop), vFanins );
+        // complement if the original SOP was complemented
         Lit = Abc_LitNotCond( Lit, (iItem < Vec_StrSize(vCompls)) && (Vec_StrEntry(vCompls, iItem) > 0) );
         // remeber this literal
         assert( Vec_IntEntry(vCopies, iItem) == -1 );
@@ -395,6 +429,7 @@ Gia_Man_t * Gia_ManFxInsert( Gia_Man_t * p, Vec_Wec_t * vCubes, Vec_Str_t * vCom
     Vec_IntFree( vCopies );
     Vec_IntFree( vMap );
     Vec_StrFree( vSop );
+    Vec_IntFree( vCover );
     // remove dangling nodes
     pNew = Gia_ManCleanup( pTemp = pNew );
     Gia_ManStop( pTemp );
