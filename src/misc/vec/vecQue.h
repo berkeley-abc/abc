@@ -47,7 +47,7 @@ struct Vec_Que_t_
     float **        pCostsFlt;  // owned by the caller
 };
 
-static inline float Vec_QueCost( Vec_Que_t * p, int v ) { return *p->pCostsFlt ? (*p->pCostsFlt)[v] : v; }
+static inline float Vec_QuePrio( Vec_Que_t * p, int v ) { return *p->pCostsFlt ? (*p->pCostsFlt)[v] : v; }
 
 ////////////////////////////////////////////////////////////////////////
 ///                      MACRO DEFINITIONS                           ///
@@ -92,7 +92,7 @@ static inline void Vec_QueFreeP( Vec_Que_t ** p )
         Vec_QueFree( *p );
     *p = NULL;
 }
-static inline void Vec_QueSetCosts( Vec_Que_t * p, float ** pCosts )
+static inline void Vec_QueSetPriority( Vec_Que_t * p, float ** pCosts )
 {
     assert( p->pCostsFlt == NULL );
     p->pCostsFlt = pCosts;
@@ -140,9 +140,9 @@ static inline int Vec_QueTop( Vec_Que_t * p )
 {
     return Vec_QueSize(p) > 0 ? p->pHeap[1] : -1;
 }
-static inline float Vec_QueTopCost( Vec_Que_t * p )
+static inline float Vec_QueTopPriority( Vec_Que_t * p )
 {
-    return Vec_QueSize(p) > 0 ? Vec_QueCost(p, p->pHeap[1]) : -ABC_INFINITY;
+    return Vec_QueSize(p) > 0 ? Vec_QuePrio(p, p->pHeap[1]) : -ABC_INFINITY;
 }
 
 /**Function*************************************************************
@@ -158,13 +158,13 @@ static inline float Vec_QueTopCost( Vec_Que_t * p )
 ***********************************************************************/
 static inline int Vec_QueMoveUp( Vec_Que_t * p, int v )
 {
-    float Cost = Vec_QueCost(p, v);
+    float Cost = Vec_QuePrio(p, v);
     int i      = p->pOrder[v];
     int parent = i >> 1;
     int fMoved = 0;
     assert( p->pOrder[v] != -1 );
     assert( p->pHeap[i] == v );
-    while ( i > 1 && Cost > Vec_QueCost(p, p->pHeap[parent]) )
+    while ( i > 1 && Cost > Vec_QuePrio(p, p->pHeap[parent]) )
     {
         p->pHeap[i]            = p->pHeap[parent];
         p->pOrder[p->pHeap[i]] = i;
@@ -178,15 +178,15 @@ static inline int Vec_QueMoveUp( Vec_Que_t * p, int v )
 }
 static inline void Vec_QueMoveDown( Vec_Que_t * p, int v )
 {
-    float Cost = Vec_QueCost(p, v);
+    float Cost = Vec_QuePrio(p, v);
     int i      = p->pOrder[v];
     int child  = i << 1;
     while ( child < p->nSize )
     {
-        if ( child + 1 < p->nSize && Vec_QueCost(p, p->pHeap[child]) < Vec_QueCost(p, p->pHeap[child+1]) )
+        if ( child + 1 < p->nSize && Vec_QuePrio(p, p->pHeap[child]) < Vec_QuePrio(p, p->pHeap[child+1]) )
             child++;
         assert( child < p->nSize );
-        if ( Cost >= Vec_QueCost(p, p->pHeap[child]))
+        if ( Cost >= Vec_QuePrio(p, p->pHeap[child]))
             break;
         p->pHeap[i]            = p->pHeap[child];
         p->pOrder[p->pHeap[i]] = i;
@@ -269,7 +269,7 @@ static inline void Vec_QuePrint( Vec_Que_t * p )
         printf( "\n" );
         for ( m = 0; m < k; m++ )
             if ( i+m < p->nSize )
-                printf( "%-5.0f", Vec_QueCost(p, p->pHeap[i+m]) );
+                printf( "%-5.0f", Vec_QuePrio(p, p->pHeap[i+m]) );
         printf( "\n" );
         printf( "\n" );
     }
@@ -307,10 +307,10 @@ static inline void Vec_QueCheck( Vec_Que_t * p )
     {
         child = i << 1;
         if ( child < p->nSize )
-            assert( Vec_QueCost(p, p->pHeap[i]) >= Vec_QueCost(p, p->pHeap[child]) );
+            assert( Vec_QuePrio(p, p->pHeap[i]) >= Vec_QuePrio(p, p->pHeap[child]) );
         child++;
         if ( child < p->nSize )
-            assert( Vec_QueCost(p, p->pHeap[i]) >= Vec_QueCost(p, p->pHeap[child]) );
+            assert( Vec_QuePrio(p, p->pHeap[i]) >= Vec_QuePrio(p, p->pHeap[child]) );
     }
 }
 
@@ -333,7 +333,7 @@ static inline void Vec_QueTest( Vec_Flt_t * vCosts )
 
     // start the queue
     p = Vec_QueAlloc( Vec_FltSize(vCosts) );
-    Vec_QueSetCosts( p, Vec_FltArrayP(vCosts) );
+    Vec_QueSetPriority( p, Vec_FltArrayP(vCosts) );
     for ( i = 0; i < Vec_FltSize(vCosts); i++ )
         Vec_QuePush( p, i );
 //    Vec_QuePrint( p );

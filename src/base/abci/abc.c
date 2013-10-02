@@ -27436,7 +27436,7 @@ int Abc_CommandAbc9Fx( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fVeryVerbose =       0;
     // set the defaults
     Extra_UtilGetoptReset();
-    while ( (c = Extra_UtilGetopt(argc, argv, "NMrvh")) != EOF )
+    while ( (c = Extra_UtilGetopt(argc, argv, "NMrvwh")) != EOF )
     {
         switch (c)
         {
@@ -27467,6 +27467,9 @@ int Abc_CommandAbc9Fx( Abc_Frame_t * pAbc, int argc, char ** argv )
                 break;
             case 'v':
                 fVerbose ^= 1;
+                break;
+            case 'w':
+                fVeryVerbose ^= 1;
                 break;
             case 'h':
                 goto usage;
@@ -27499,6 +27502,7 @@ usage:
     Abc_Print( -2, "\t-M <num> : upper bound on literal count of divisors to extract [default = %d]\n", LitCountMax );
     Abc_Print( -2, "\t-r       : reversing variable order during ISOP computation [default = %s]\n", fReverse? "yes": "no" );
     Abc_Print( -2, "\t-v       : print verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-w       : toggle printing additional information [default = %s]\n", fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;
 }

@@ -689,7 +689,7 @@ Buf_Man_t * Buf_ManStart( Abc_Ntk_t * pNtk, int FanMin, int FanMax, int fBufPis 
     Vec_IntFill( p->vArr,     p->nObjAlloc, 0 );
     Vec_IntFill( p->vDep,     p->nObjAlloc, 0 );
     Vec_FltFill( p->vCounts,  p->nObjAlloc, -ABC_INFINITY );
-    Vec_QueSetCosts( p->vQue, Vec_FltArrayP(p->vCounts) );
+    Vec_QueSetPriority( p->vQue, Vec_FltArrayP(p->vCounts) );
     // collect edge delays
     p->DelayInv  = Mio_GateReadPinDelay( Mio_LibraryReadInv((Mio_Library_t *)pNtk->pManFunc), 0 );
     p->vEdges    = Vec_IntAlloc( 1000 );

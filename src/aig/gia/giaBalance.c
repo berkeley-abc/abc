@@ -568,7 +568,7 @@ void Dam_ManCreatePairs( Dam_Man_t * p, int fVerbose )
     p->vHash     = Hash_IntManStart( 3 * nDivsUsed /2 );
     p->vCounts   = Vec_FltAlloc( 2 * nDivsUsed );           Vec_FltPush( p->vCounts, ABC_INFINITY );
     p->vQue      = Vec_QueAlloc( Vec_FltCap(p->vCounts) );
-    Vec_QueSetCosts( p->vQue, Vec_FltArrayP(p->vCounts) );
+    Vec_QueSetPriority( p->vQue, Vec_FltArrayP(p->vCounts) );
     // mapping div to node
     p->vDiv2Nod  = Vec_IntAlloc( 2 * nDivsUsed );           Vec_IntPush( p->vDiv2Nod, ABC_INFINITY );
     p->vNodStore = Vec_IntAlloc( Gia_ManObjNum(p->pGia) );  Vec_IntPush( p->vNodStore, -1 );
@@ -907,7 +907,7 @@ Gia_Man_t * Dam_ManMultiExtractInt( Gia_Man_t * pGia, int nNewNodesMax, int fVer
     int i, iDiv;
     p = Dam_ManAlloc( pGia );
     Dam_ManCreatePairs( p, fVerbose );
-    for ( i = 0; i < nNewNodesMax && Vec_QueTopCost(p->vQue) > 2; i++ )
+    for ( i = 0; i < nNewNodesMax && Vec_QueTopPriority(p->vQue) >= 2; i++ )
     {
         iDiv = Vec_QuePop(p->vQue);
         if ( fVeryVerbose )

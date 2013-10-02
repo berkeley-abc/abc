@@ -395,7 +395,7 @@ static inline int Fx_ManComputeLevelDiv( Fx_Man_t * p, Vec_Int_t * vCubeFree )
     int i, Lit, Level = 0;
     Vec_IntForEachEntry( vCubeFree, Lit, i )
         Level = Abc_MaxInt( Level, Vec_IntEntry(p->vLevels, Abc_Lit2Var(Abc_Lit2Var(Lit))) );
-    return Abc_MinInt( Level, 200 );
+    return Abc_MinInt( Level, 800 );
 }
 static inline int Fx_ManComputeLevelCube( Fx_Man_t * p, Vec_Int_t * vCube )
 {
@@ -473,7 +473,7 @@ static inline void Fx_PrintDiv( Fx_Man_t * p, int iDiv )
     int i;
     printf( "%4d : ", p->nDivs );
     printf( "Div %7d : ", iDiv );
-    printf( "Weight %5d  ", (int)Vec_FltEntry(p->vWeights, iDiv) );
+    printf( "Weight %12.5f  ", Vec_FltEntry(p->vWeights, iDiv) );
 //    printf( "Compl %4d  ", p->nCompls );
     Fx_PrintDivOne( Hsh_VecReadEntry(p->pHash, iDiv) );
     for ( i = Vec_IntSize(Hsh_VecReadEntry(p->pHash, iDiv)) + 3; i < 16; i++ )
@@ -503,6 +503,8 @@ static void Fx_PrintMatrix( Fx_Man_t * p )
     Vec_Int_t * vCube;
     int i, v, Lit, nObjs;
     char * pLine;
+    if ( Vec_WecSize(p->vLits)/2 > 26 )
+        return;
     printf( "         " );
     nObjs = Vec_WecSize(p->vLits)/2;
     for ( i = 0; i < Abc_MinInt(nObjs, 26); i++ )
@@ -794,7 +796,7 @@ int Fx_ManCubeSingleCubeDivisors( Fx_Man_t * p, Vec_Int_t * vPivot, int fRemove,
         {
             if ( Vec_FltSize(p->vWeights) == iDiv )
             {
-                Vec_FltPush(p->vWeights, -2 -0.001 * Fx_ManComputeLevelDiv(p, p->vCubeFree));
+                Vec_FltPush(p->vWeights, -2 + 0.9 - 0.001 * Fx_ManComputeLevelDiv(p, p->vCubeFree));
                 p->nDivsS++;
             }
             assert( iDiv < Vec_FltSize(p->vWeights) );
@@ -846,7 +848,7 @@ void Fx_ManCubeDoubleCubeDivisors( Fx_Man_t * p, int iFirst, Vec_Int_t * vPivot,
         if ( !fRemove )
         {
             if ( iDiv == Vec_FltSize(p->vWeights) )
-                Vec_FltPush(p->vWeights, -Vec_IntSize(p->vCubeFree) -0.001 * Fx_ManComputeLevelDiv(p, p->vCubeFree));
+                Vec_FltPush(p->vWeights, -Vec_IntSize(p->vCubeFree) + 0.9 - 0.0009 * Fx_ManComputeLevelDiv(p, p->vCubeFree));
             assert( iDiv < Vec_FltSize(p->vWeights) );
             Vec_FltAddToEntry( p->vWeights, iDiv, Base + Vec_IntSize(p->vCubeFree) - 1 );
             p->nPairsD++;
@@ -884,7 +886,7 @@ void Fx_ManCreateDivisors( Fx_Man_t * p )
         Fx_ManCubeDoubleCubeDivisors( p, i+1, vCube, 0, 0 ); // add - no update
     // create queue with all divisors
     p->vPrio = Vec_QueAlloc( Vec_FltSize(p->vWeights) );
-    Vec_QueSetCosts( p->vPrio, Vec_FltArrayP(p->vWeights) );
+    Vec_QueSetPriority( p->vPrio, Vec_FltArrayP(p->vWeights) );
     Vec_FltForEachEntry( p->vWeights, Weight, i )
         if ( Weight > 0.0 )
             Vec_QuePush( p->vPrio, i );
@@ -985,6 +987,8 @@ void Fx_ManUpdate( Fx_Man_t * p, int iDiv )
     Vec_Int_t * vDiv = p->vDiv;
     int nLitsNew = p->nLits - (int)Vec_FltEntry(p->vWeights, iDiv);
     int i, k, Lit0, Lit1, iVarNew, RetValue, Level;
+    float Diff = Vec_FltEntry(p->vWeights, iDiv) - (float)((int)Vec_FltEntry(p->vWeights, iDiv));
+    assert( Diff > 0.0 && Diff < 1.0 );
 
     // get the divisor and select pivot variables
     p->nDivs++;
@@ -1179,7 +1183,7 @@ int Fx_FastExtract( Vec_Wec_t * vCubes, int ObjIdMax, int nNewNodesMax, int LitC
         Fx_PrintStats( p, Abc_Clock() - clk );
     // perform extraction
     p->timeStart = Abc_Clock();
-    for ( i = 0; i < nNewNodesMax && Vec_QueTopCost(p->vPrio) > 0.0; i++ )
+    for ( i = 0; i < nNewNodesMax && Vec_QueTopPriority(p->vPrio) > 0.0; i++ )
     {
         iDiv = Vec_QuePop(p->vPrio);
         if ( fVeryVerbose )
