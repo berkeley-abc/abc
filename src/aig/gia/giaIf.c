@@ -728,7 +728,7 @@ int Gia_ManFromIfLogicCreateLutSpecial( Gia_Man_t * pNew, word * pRes, Vec_Int_t
   SeeAlso     []
 
 ***********************************************************************/
-int Gia_ManFromIfLogicNode( If_Man_t * pIfMan, Gia_Man_t * pNew, int iObj, Vec_Int_t * vLeaves, Vec_Int_t * vLeavesTemp, 
+int Gia_ManFromIfLogicNode( void * pIfMan, Gia_Man_t * pNew, int iObj, Vec_Int_t * vLeaves, Vec_Int_t * vLeavesTemp, 
     word * pRes, char * pStr, Vec_Int_t * vCover, Vec_Int_t * vMapping, Vec_Int_t * vMapping2, Vec_Int_t * vPacking, int fCheck75, int fCheck44e )
 {
     int nLeaves = Vec_IntSize(vLeaves);
