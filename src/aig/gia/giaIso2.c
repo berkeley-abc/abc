@@ -672,10 +672,6 @@ Gia_Man_t * Gia_ManIsoReduce2( Gia_Man_t * pGia, Vec_Ptr_t ** pvPosEquivs, Vec_P
     Vec_WecSortByFirstInt( vEquivs, 0 );
     // find the first outputs
     vRemains = Vec_WecCollectFirsts( vEquivs );
-    printf( "%d\n", Gia_ObjFaninC0(Gia_ManPo(pGia, 3)) );
-    printf( "%d\n", Gia_ObjFaninC0(Gia_ManPo(pGia, 34)) );
-    printf( "%d\n", Gia_ObjFaninC0(Gia_ManPo(pGia, 39)) );
-    printf( "%d\n", Gia_ObjFaninC0(Gia_ManPo(pGia, 279)) );
     // derive the final GIA
     pPart = Gia_ManDupCones( pGia, Vec_IntArray(vRemains), Vec_IntSize(vRemains), 0 );
     Vec_IntFree( vRemains );
