@@ -89,7 +89,7 @@ extern int           Dau_DsdCheck1Step( word * pTruth, int nVarsInit );
 
 /*=== dauGia.c  ==========================================================*/
 extern int           Dsm_ManTruthToGia( void * p, word * pTruth, Vec_Int_t * vLeaves, Vec_Int_t * vCover );
-extern void *        Dsm_ManDeriveGia( void * p );
+extern void *        Dsm_ManDeriveGia( void * p, int fUseMuxes );
 
 /*=== dauMerge.c  ==========================================================*/
 extern void          Dau_DsdRemoveBraces( char * pDsd, int * pMatches );

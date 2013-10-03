@@ -36,13 +36,14 @@ struct Dam_Man_t_
 {
     Gia_Man_t *      pGia;      // user's AIG
     Vec_Int_t *      vNod2Set;  // node ID into fanin set
-    Vec_Int_t *      vDiv2Nod;  // div ID into fanin set
-    Vec_Int_t *      vSetStore; // stored multisets
-    Vec_Int_t *      vNodStore; // stored divisors
+    Vec_Int_t *      vDiv2Nod;  // div ID into root node set
+    Vec_Int_t *      vSetStore; // fanin set storage
+    Vec_Int_t *      vNodStore; // root node set storage
     Vec_Flt_t *      vCounts;   // occur counts
     Vec_Int_t *      vNodLevR;  // node reverse level
     Vec_Int_t *      vDivLevR;  // divisor reverse level
-    Vec_Que_t *      vQue;      // pairs by count
+    Vec_Int_t *      vVisit;    // visited MUXes
+    Vec_Que_t *      vQue;      // pairs by their weight
     Hash_IntMan_t *  vHash;     // pair hash table
     abctime          clkStart;  // starting the clock
     int              nLevelMax; // maximum level
@@ -386,11 +387,13 @@ Dam_Man_t * Dam_ManAlloc( Gia_Man_t * pGia )
     Dam_Man_t * p;
     p = ABC_CALLOC( Dam_Man_t, 1 );
     p->clkStart = Abc_Clock();
+    p->vVisit = Vec_IntAlloc( 1000 );
     p->pGia = pGia;
     return p;
 }
 void Dam_ManFree( Dam_Man_t * p )
 {   
+    Vec_IntFreeP( &p->vVisit );
     Vec_IntFreeP( &p->vDivLevR );
     Vec_IntFreeP( &p->vNodLevR );
     Vec_IntFreeP( &p->vNod2Set );
@@ -425,6 +428,10 @@ void Dam_ManCollectSets_rec( Dam_Man_t * p, int Id )
         return;
     if ( Gia_ObjIsMux(p->pGia, pObj) )
     {
+        if ( pObj->fMark0 )
+            return;
+        pObj->fMark0 = 1;
+        Vec_IntPush( p->vVisit, Id );
         Dam_ManCollectSets_rec( p, Gia_ObjFaninId0(pObj, Id) );
         Dam_ManCollectSets_rec( p, Gia_ObjFaninId1(pObj, Id) );
         Dam_ManCollectSets_rec( p, Gia_ObjFaninId2(p->pGia, Id) );
@@ -451,9 +458,12 @@ void Dam_ManCollectSets( Dam_Man_t * p )
     p->vNod2Set  = Vec_IntStart( Gia_ManObjNum(p->pGia) );
     p->vSetStore = Vec_IntAlloc( Gia_ManObjNum(p->pGia) );
     Vec_IntPush( p->vSetStore, -1 );
+    Vec_IntClear( p->vVisit );
     Gia_ManForEachCo( p->pGia, pObj, i )
         Dam_ManCollectSets_rec( p, Gia_ObjFaninId0p(p->pGia, pObj) );
     ABC_FREE( p->pGia->pRefs );
+    Gia_ManForEachObjVec( p->vVisit, p->pGia, pObj, i )
+        pObj->fMark0 = 0;
 }
 
 /**Function*************************************************************
@@ -900,7 +910,7 @@ void Dam_ManUpdate( Dam_Man_t * p, int iDiv )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Dam_ManMultiExtractInt( Gia_Man_t * pGia, int nNewNodesMax, int fVerbose, int fVeryVerbose )
+Gia_Man_t * Dam_ManAreaBalanceInt( Gia_Man_t * pGia, int nNewNodesMax, int fVerbose, int fVeryVerbose )
 {
     Gia_Man_t * pNew;
     Dam_Man_t * p;
@@ -935,14 +945,14 @@ Gia_Man_t * Gia_ManAreaBalance( Gia_Man_t * p, int fSimpleAnd, int nNewNodesMax,
 {
     Gia_Man_t * pNew0, * pNew, * pNew1, * pNew2;
     // get the starting manager
-    pNew0 = Gia_ManHasMapping(p) ? (Gia_Man_t *)Dsm_ManDeriveGia(p) : p;
+    pNew0 = Gia_ManHasMapping(p) ? (Gia_Man_t *)Dsm_ManDeriveGia(p, 0) : p;
     if ( fVerbose )     Gia_ManPrintStats( pNew0, NULL );
     // derive internal manager
     pNew = fSimpleAnd ? Gia_ManDup( pNew0 ) : Gia_ManDupMuxes( pNew0 );
     if ( fVerbose )     Gia_ManPrintStats( pNew, NULL );
     if ( pNew0 != p ) Gia_ManStop( pNew0 );
     // perform the operation
-    pNew1 = Dam_ManMultiExtractInt( pNew, nNewNodesMax, fVerbose, fVeryVerbose );
+    pNew1 = Dam_ManAreaBalanceInt( pNew, nNewNodesMax, fVerbose, fVeryVerbose );
     if ( fVerbose )     Gia_ManPrintStats( pNew1, NULL );
     Gia_ManStop( pNew );
     // derive the final result
@@ -950,6 +960,36 @@ Gia_Man_t * Gia_ManAreaBalance( Gia_Man_t * p, int fSimpleAnd, int nNewNodesMax,
     if ( fVerbose )     Gia_ManPrintStats( pNew2, NULL );
     Gia_ManStop( pNew1 );
     return pNew2;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Synthesis script.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Dam_ManAigSyn( Gia_Man_t * p, int fVerbose, int fVeryVerbose )
+{
+    Gia_Man_t * pNew, * pTemp;
+    Jf_Par_t Pars, * pPars = &Pars;
+    Jf_ManSetDefaultPars( pPars );
+    // perform balancing
+    pNew = Gia_ManAreaBalance( p, 0, ABC_INFINITY, fVeryVerbose, 0 );
+    if ( fVerbose )     Gia_ManPrintStats( pNew, NULL );
+    // perform mapping
+    pNew = Jf_ManPerformMapping( pTemp = pNew, pPars );
+    if ( fVerbose )     Gia_ManPrintStats( pNew, NULL );
+//    Gia_ManStop( pTemp );
+    // perform balancing
+    pNew = Gia_ManAreaBalance( pTemp = pNew, 0, ABC_INFINITY, fVeryVerbose, 0 );
+    if ( fVerbose )     Gia_ManPrintStats( pNew, NULL );
+    Gia_ManStop( pTemp );
+    return pNew;
 }
 
 ////////////////////////////////////////////////////////////////////////

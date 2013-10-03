@@ -82,6 +82,7 @@ struct Bmc_AndPar_t_
     int         nConfLimit;     // maximum number of conflicts at a node
     int         fLoadCnf;       // dynamic CNF loading
     int         fDumpFrames;    // dump unrolled timeframes
+    int         fUseSynth;      // use synthesis
     int         fVerbose;       // verbose 
     int         fVeryVerbose;   // very verbose 
     int         fNotVerbose;    // skip line-by-line print-out 

@@ -68,7 +68,10 @@ int Dau_DsdToGiaCompose_rec( Gia_Man_t * pGia, word Func, int * pFanins, int nVa
         return Dau_DsdToGiaCompose_rec( pGia, Func, pFanins, nVars );
     t0 = Dau_DsdToGiaCompose_rec( pGia, Abc_Tt6Cofactor0(Func, nVars), pFanins, nVars );
     t1 = Dau_DsdToGiaCompose_rec( pGia, Abc_Tt6Cofactor1(Func, nVars), pFanins, nVars );
-    return Gia_ManHashMux( pGia, pFanins[nVars], t1, t0 );
+    if ( pGia->pMuxes )
+        return Gia_ManHashMuxReal( pGia, pFanins[nVars], t1, t0 );
+    else
+        return Gia_ManHashMux( pGia, pFanins[nVars], t1, t0 );
 }
 
 /**Function*************************************************************
@@ -110,7 +113,10 @@ int Dau_DsdToGia_rec( Gia_Man_t * pGia, char * pStr, char ** p, int * pMatches, 
         for ( (*p)++; *p < q; (*p)++ )
         {
             Lit = Dau_DsdToGia_rec( pGia, pStr, p, pMatches, pLits, vCover );
-            Res = Gia_ManHashXor( pGia, Res, Lit );
+            if ( pGia->pMuxes )
+                Res = Gia_ManHashXorReal( pGia, Res, Lit );
+            else
+                Res = Gia_ManHashXor( pGia, Res, Lit );
         }
         assert( *p == q );
         return Abc_LitNotCond( Res, fCompl );
@@ -156,7 +162,10 @@ int Dau_DsdToGia_rec( Gia_Man_t * pGia, char * pStr, char ** p, int * pMatches, 
             assert( **p == '{' && *q == '}' );
             *p = q;
         }
-        Res = Gia_ManHashMux( pGia, Temp[0], Temp[1], Temp[2] );
+        if ( pGia->pMuxes )
+            Res = Gia_ManHashMuxReal( pGia, Temp[0], Temp[1], Temp[2] );
+        else
+            Res = Gia_ManHashMux( pGia, Temp[0], Temp[1], Temp[2] );
         return Abc_LitNotCond( Res, fCompl );
     }
     if ( (**p >= 'A' && **p <= 'F') || (**p >= '0' && **p <= '9') )
@@ -250,7 +259,7 @@ void Dsm_ManReportStats()
   SeeAlso     []
 
 ***********************************************************************/
-void * Dsm_ManDeriveGia( void * pGia )
+void * Dsm_ManDeriveGia( void * pGia, int fUseMuxes )
 {
     Gia_Man_t * p = (Gia_Man_t *)pGia;
     Gia_Man_t * pNew, * pTemp;
@@ -263,6 +272,8 @@ void * Dsm_ManDeriveGia( void * pGia )
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
     pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    if ( fUseMuxes )
+        pNew->pMuxes = ABC_CALLOC( unsigned, pNew->nObjsAlloc );
     // map primary inputs
     Gia_ManFillValue(p);
     Gia_ManConst0(p)->Value = 0;

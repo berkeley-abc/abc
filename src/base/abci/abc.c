@@ -32163,6 +32163,7 @@ int Abc_CommandAbc9Bmc( Abc_Frame_t * pAbc, int argc, char ** argv )
     pPars->nConfLimit    =    0;  // maximum number of conflicts at a node
     pPars->fLoadCnf      =    0;  // dynamic CNF loading
     pPars->fDumpFrames   =    0;  // dump unrolled timeframes
+    pPars->fUseSynth     =    0;  // use synthesis
     pPars->fVerbose      =    0;  // verbose 
     pPars->fVeryVerbose  =    0;  // very verbose 
     pPars->fNotVerbose   =    0;  // skip line-by-line print-out 
@@ -32170,7 +32171,7 @@ int Abc_CommandAbc9Bmc( Abc_Frame_t * pAbc, int argc, char ** argv )
     pPars->nFailOuts     =    0;  // the number of failed outputs
     pPars->nDropOuts     =    0;  // the number of dropped outputs
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "SFAcdvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "SFAcdsvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -32213,6 +32214,9 @@ int Abc_CommandAbc9Bmc( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'd':
             pPars->fDumpFrames ^= 1;
             break;
+        case 's':
+            pPars->fUseSynth ^= 1;
+            break;
         case 'v':
             pPars->fVerbose ^= 1;
             break;
@@ -32236,13 +32240,14 @@ int Abc_CommandAbc9Bmc( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &bmc [-SFA num] [-cdvwh]\n" );
+    Abc_Print( -2, "usage: &bmc [-SFA num] [-cdsvwh]\n" );
     Abc_Print( -2, "\t         performs bounded model checking\n" );
     Abc_Print( -2, "\t-S num : the starting timeframe [default = %d]\n",                      pPars->nStart );
     Abc_Print( -2, "\t-F num : the maximum number of timeframes [default = %d]\n",            pPars->nFramesMax );
     Abc_Print( -2, "\t-A num : the number of additional frames to unroll [default = %d]\n",   pPars->nFramesAdd );
     Abc_Print( -2, "\t-c     : toggle dynamic CNF loading [default = %s]\n",                  pPars->fLoadCnf? "yes": "no" );
     Abc_Print( -2, "\t-d     : toggle dumping unfolded timeframes [default = %s]\n",          pPars->fDumpFrames? "yes": "no" );
+    Abc_Print( -2, "\t-s     : toggle synthesizing unrolled timeframes [default = %s]\n",     pPars->fUseSynth? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n",         pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w     : toggle printing information about unfolding [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
