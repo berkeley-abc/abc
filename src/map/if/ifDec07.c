@@ -713,7 +713,7 @@ word If_Dec5Perform( word t, int fDerive )
 {
     int Pla2Var[7], Var2Pla[7];
     int i, j, v;
-    word t0 = t;
+//    word t0 = t;
     word c0, c1, c00, c01, c10, c11;
     for ( i = 0; i < 5; i++ )
     {

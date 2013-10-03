@@ -775,12 +775,6 @@ int Gia_ManBmcPerform( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
     abctime clk = Abc_Clock();
     p = Bmc_MnaAlloc();
     p->pFrames = Gia_ManBmcUnroll( pGia, pPars->nFramesMax, pPars->nFramesAdd, pPars->fVeryVerbose, &p->vPiMap );
-    if ( pPars->fUseSynth )
-    {
-        Gia_Man_t * pTemp = p->pFrames;
-        p->pFrames = Dam_ManAigSyn( pTemp, pPars->fVerbose, 0 );
-        Gia_ManStop( pTemp );
-    }
     nFramesMax = Gia_ManPoNum(p->pFrames) / Gia_ManPoNum(pGia);
     if ( pPars->fVerbose )
     {
@@ -789,6 +783,14 @@ int Gia_ManBmcPerform( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
     }
     if ( pPars->fVerbose )
         Gia_ManPrintStats( p->pFrames, NULL );
+    if ( pPars->fUseSynth )
+    {
+        Gia_Man_t * pTemp = p->pFrames;
+        p->pFrames = Dam_ManAigSyn( pTemp, pPars->fVerbose, 0 );
+        Gia_ManStop( pTemp );
+        if ( pPars->fVerbose )
+            Gia_ManPrintStats( p->pFrames, NULL );
+    }
     if ( pPars->fDumpFrames )
     {
         Gia_AigerWrite( p->pFrames, "frames.aig", 0, 0 );
