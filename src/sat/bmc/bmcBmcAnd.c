@@ -781,16 +781,14 @@ int Gia_ManBmcPerform( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
         printf( "Unfolding for %d frames with first non-trivial PO %d.  ", nFramesMax, Gia_ManBmcFindFirst(p->pFrames) );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     }
-    if ( pPars->fVerbose )
-        Gia_ManPrintStats( p->pFrames, NULL );
     if ( pPars->fUseSynth )
     {
         Gia_Man_t * pTemp = p->pFrames;
         p->pFrames = Dam_ManAigSyn( pTemp, pPars->fVerbose, 0 );
         Gia_ManStop( pTemp );
-        if ( pPars->fVerbose )
-            Gia_ManPrintStats( p->pFrames, NULL );
     }
+    else if ( pPars->fVerbose )
+        Gia_ManPrintStats( p->pFrames, NULL );
     if ( pPars->fDumpFrames )
     {
         Gia_AigerWrite( p->pFrames, "frames.aig", 0, 0 );

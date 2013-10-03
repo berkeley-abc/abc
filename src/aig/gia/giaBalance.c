@@ -978,6 +978,7 @@ Gia_Man_t * Dam_ManAigSyn( Gia_Man_t * p, int fVerbose, int fVeryVerbose )
     Gia_Man_t * pNew, * pTemp;
     Jf_Par_t Pars, * pPars = &Pars;
     Jf_ManSetDefaultPars( pPars );
+    if ( fVerbose )     Gia_ManPrintStats( p, NULL );
     // perform balancing
     pNew = Gia_ManAreaBalance( p, 0, ABC_INFINITY, fVeryVerbose, 0 );
     if ( fVerbose )     Gia_ManPrintStats( pNew, NULL );
