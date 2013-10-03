@@ -429,14 +429,18 @@ void Mio_ParseFormulaTruthTest( char * pFormInit, char ** ppVarNames, int nVars 
 int Mio_ParseCheckName( Mio_Gate_t * pGate, char ** ppStr )
 {
     Mio_Pin_t * pPin;
-    int i;
+    int i, iBest;
+    // find the longest pin name that matches substring
+    char * pNameBest = NULL;
     for ( pPin = Mio_GateReadPins(pGate), i = 0; pPin; pPin = Mio_PinReadNext(pPin), i++ )
         if ( !strncmp( *ppStr, Mio_PinReadName(pPin), strlen(Mio_PinReadName(pPin)) ) )
-        {
-            *ppStr += strlen(Mio_PinReadName(pPin)) - 1;
-            return i;
-        }
-    return -1;
+            if ( pNameBest == NULL || strlen(pNameBest) < strlen(Mio_PinReadName(pPin)) )
+                pNameBest = Mio_PinReadName(pPin), iBest = i;
+    // if pin is not found, return -1
+    if ( pNameBest == NULL )
+        return -1;
+    *ppStr += strlen(pNameBest) - 1;
+    return iBest;
 }
 int Mio_ParseCheckFormula( Mio_Gate_t * pGate, char * pForm )
 {

@@ -90,6 +90,14 @@ int Abc_SclClassCellNum( SC_Cell * pClass )
             Count++;
     return Count;
 }
+int Abc_SclLibClassNum( SC_Lib * pLib )
+{
+    SC_Cell * pRepr;
+    int i, Count = 0;
+    SC_LibForEachCellClass( pLib, pRepr, i )
+        Count++;
+    return Count;
+}
 
 /**Function*************************************************************
 
@@ -472,19 +480,22 @@ void Abc_SclPrintCells( SC_Lib * p, float Slew, float Gain, int fInvOnly, int fS
                 continue;
             SC_RingForEachCell( pRepr, pCell, j )
             {
-                Abc_SclComputeParametersCell( p, pCell, Slew, &LD, &PD );
                 printf( "  %3d ",           j+1 );
                 printf( "%s",               pCell->fSkip ? "s" : " " );
                 printf( " : " );
                 printf( "%-*s  ",           nLength, pCell->pName );
                 printf( "%2d   ",           pCell->drive_strength );
                 printf( "A =%8.2f    ",     pCell->area );
-                printf( "D =%6.1f ps  ",    0.01 * Gain * LD + PD );
-                printf( "LD =%6.1f ps  ",   LD );
-                printf( "PD =%6.1f ps    ", PD );
-                printf( "C =%5.1f ff  ",    SC_LibCapFf(p, SC_CellPinCapAve(pCell)) );
-                printf( "Cm =%5.0f ff    ", SC_LibCapFf(p, SC_CellPin(pCell, pCell->n_inputs)->max_out_cap) );
-                printf( "Sm =%5.1f ps ",    SC_LibTimePs(p, SC_CellPin(pCell, pCell->n_inputs)->max_out_slew) );
+                if ( pCell->n_outputs == 1 )
+                {
+                    Abc_SclComputeParametersCell( p, pCell, Slew, &LD, &PD );
+                    printf( "D =%6.1f ps  ",    0.01 * Gain * LD + PD );
+                    printf( "LD =%6.1f ps  ",   LD );
+                    printf( "PD =%6.1f ps    ", PD );
+                    printf( "C =%5.1f ff  ",    SC_LibCapFf(p, SC_CellPinCapAve(pCell)) );
+                    printf( "Cm =%5.0f ff    ", SC_LibCapFf(p, SC_CellPin(pCell, pCell->n_inputs)->max_out_cap) );
+                    printf( "Sm =%5.1f ps ",    SC_LibTimePs(p, SC_CellPin(pCell, pCell->n_inputs)->max_out_slew) );
+                }
                 printf( "\n" );
             }
             break;

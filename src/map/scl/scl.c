@@ -212,6 +212,12 @@ int Scl_CommandReadLib( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( pAbc->Err, "Reading SCL library from file \"%s\" has failed. \n", pFileName );
         return 1;
     }
+    if ( Abc_SclLibClassNum(pLib) < 3 )
+    {
+        fprintf( pAbc->Err, "Library with only %d cell classes cannot be used.\n", Abc_SclLibClassNum(pLib) );
+        Abc_SclLibFree(pLib);
+        return 0;
+    }
     Abc_SclLoad( pLib, (SC_Lib **)&pAbc->pLibScl );
     // dump the resulting library
     if ( fDump && pAbc->pLibScl )

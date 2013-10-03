@@ -921,7 +921,7 @@ Vec_Flt_t * Scl_LibertyReadFloatVec( char * pName )
         Vec_FltPush( vValues, atof(pToken) );
     return vValues;
 }
-void Scl_LibertyReadTable( Scl_Tree_t * p, Vec_Str_t * vOut, Scl_Item_t * pTiming, char * pName, Vec_Ptr_t * vTemples )
+int Scl_LibertyReadTable( Scl_Tree_t * p, Vec_Str_t * vOut, Scl_Item_t * pTiming, char * pName, Vec_Ptr_t * vTemples )
 {
     Vec_Flt_t * vIndex1 = NULL;
     Vec_Flt_t * vIndex2 = NULL;
@@ -935,7 +935,7 @@ void Scl_LibertyReadTable( Scl_Tree_t * p, Vec_Str_t * vOut, Scl_Item_t * pTimin
     Scl_ItemForEachChildName( p, pTiming, pTable, pName )
         break;
     if ( pTable == NULL )
-        { printf( "Table cannot be found\n" ); return; }
+        return 0;
     // find the template
     pTempl = Scl_LibertyReadString(p, pTable->Head);
     if ( pTempl == NULL || pTempl[0] == 0 )
@@ -951,7 +951,7 @@ void Scl_LibertyReadTable( Scl_Tree_t * p, Vec_Str_t * vOut, Scl_Item_t * pTimin
                 assert(vValues == NULL), vValues = Scl_LibertyReadFloatVec( Scl_LibertyReadString(p, pItem->Head) );
         }
         if ( vIndex1 == NULL || vIndex2 == NULL || vValues == NULL )
-            { printf( "Incomplete table specification\n" ); return; }
+            { printf( "Incomplete table specification\n" ); return 0; }
         // dump the table
         vInd1 = vIndex1;
         vInd2 = vIndex2;
@@ -986,7 +986,7 @@ void Scl_LibertyReadTable( Scl_Tree_t * p, Vec_Str_t * vOut, Scl_Item_t * pTimin
                 break;
             }
         if ( iPlace == -1 )
-            { printf( "Template cannot be found in the template library\n" ); return; }
+            { printf( "Template cannot be found in the template library\n" ); return 0; }
         // read the numbers
         Scl_ItemForEachChild( p, pTable, pItem )
         {
@@ -1068,6 +1068,7 @@ void Scl_LibertyReadTable( Scl_Tree_t * p, Vec_Str_t * vOut, Scl_Item_t * pTimin
     Vec_FltFreeP( &vValues );
     Vec_StrPut_( vOut );
     Vec_StrPut_( vOut );
+    return 1;
 }
 void Scl_LibertyPrintTemplates( Vec_Ptr_t * vRes )
 {
@@ -1210,7 +1211,8 @@ Vec_Str_t * Scl_LibertyReadSclStr( Scl_Tree_t * p, int fVerbose, int fVeryVerbos
             continue;
         // top level information
         Vec_StrPutS_( vOut, Scl_LibertyReadString(p, pCell->Head) );
-        Vec_StrPutF_( vOut, Scl_LibertyReadCellArea(p, pCell) ? atof(Scl_LibertyReadCellArea(p, pCell)) : 1 );
+        pName = Scl_LibertyReadCellArea(p, pCell);
+        Vec_StrPutF_( vOut, pName ? atof(pName) : 1 );
         Vec_StrPutI_( vOut, Scl_LibertyReadDeriveStrength(p, pCell) );
         // pin count
         nOutputs = Scl_LibertyReadCellOutputNum( p, pCell );
@@ -1274,10 +1276,19 @@ Vec_Str_t * Scl_LibertyReadSclStr( Scl_Tree_t * p, int fVerbose, int fVeryVerbos
                 Vec_StrPutI_( vOut, Scl_LibertyReadTimingSense(p, pTiming) );
                 Vec_StrPut_( vOut );
                 Vec_StrPut_( vOut );
-                Scl_LibertyReadTable( p, vOut, pTiming, "cell_rise",       vTemples );
-                Scl_LibertyReadTable( p, vOut, pTiming, "cell_fall",       vTemples );
-                Scl_LibertyReadTable( p, vOut, pTiming, "rise_transition", vTemples );
-                Scl_LibertyReadTable( p, vOut, pTiming, "fall_transition", vTemples );
+                // some cells only have 'rise' or 'fall' but not both - here we work around this
+                if ( !Scl_LibertyReadTable( p, vOut, pTiming, "cell_rise",           vTemples ) )
+                    if ( !Scl_LibertyReadTable( p, vOut, pTiming, "cell_fall",       vTemples ) )
+                            { printf( "Table cannot be found\n" ); return NULL; }                              
+                if ( !Scl_LibertyReadTable( p, vOut, pTiming, "cell_fall",           vTemples ) )
+                    if ( !Scl_LibertyReadTable( p, vOut, pTiming, "cell_rise",       vTemples ) )
+                            { printf( "Table cannot be found\n" ); return NULL; }                              
+                if ( !Scl_LibertyReadTable( p, vOut, pTiming, "rise_transition",     vTemples ) )
+                    if ( !Scl_LibertyReadTable( p, vOut, pTiming, "fall_transition", vTemples ) )
+                            { printf( "Table cannot be found\n" ); return NULL; }                              
+                if ( !Scl_LibertyReadTable( p, vOut, pTiming, "fall_transition",     vTemples ) )
+                    if ( !Scl_LibertyReadTable( p, vOut, pTiming, "rise_transition", vTemples ) )
+                            { printf( "Table cannot be found\n" ); return NULL; }          
             }
         }
         Vec_StrPut_( vOut );
