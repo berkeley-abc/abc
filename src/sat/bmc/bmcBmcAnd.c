@@ -34,6 +34,7 @@ typedef struct Bmc_Mna_t_ Bmc_Mna_t;
 struct Bmc_Mna_t_
 {
     Gia_Man_t *         pFrames;  // time frames
+    Vec_Int_t *         vPiMap;   // maps unrolled GIA PIs into user GIA PIs
     Vec_Int_t *         vId2Var;  // maps GIA IDs into SAT vars
     Vec_Int_t *         vInputs;  // inputs of the cone
     Vec_Int_t *         vOutputs; // outputs of the cone
@@ -284,7 +285,7 @@ Gia_Man_t * Gia_ManBmcUnroll( Gia_Man_t * pGia, int nFramesMax, int nFramesAdd, 
     Gia_Obj_t * pObj;
     Gia_Man_t * pNew, * pTemp;
     Vec_Ptr_t * vStates, * vBegins;
-    Vec_Int_t * vRoots, * vCone, * vLeaves, * vMap, * vPiMap;
+    Vec_Int_t * vRoots, * vCone, * vLeaves, * vMap;
     unsigned * pStateF, * pStateP;
     int f, i, iFirst;
     Gia_ManCleanPhase( pGia );
@@ -293,7 +294,7 @@ Gia_Man_t * Gia_ManBmcUnroll( Gia_Man_t * pGia, int nFramesMax, int nFramesAdd, 
     // perform ternary simulation
     vStates = Bmc_MnaTernary( pGia, nFramesMax, nFramesAdd, fVerbose, &iFirst );
     // go backward
-    vPiMap = Vec_IntAlloc( 1000 );
+    *pvPiMap = Vec_IntAlloc( 1000 );
     vBegins = Vec_PtrStart( Vec_PtrSize(vStates) );
     for ( f = Vec_PtrSize(vStates) - 1; f >= 0; f-- )
     {
@@ -340,9 +341,9 @@ Gia_Man_t * Gia_ManBmcUnroll( Gia_Man_t * pGia, int nFramesMax, int nFramesAdd, 
         Gia_ManForEachPo( pGia, pObj, i )
             Vec_IntWriteEntry( vMap, Gia_ObjId(pGia, pObj), 0 );
         // find the cone
-        Vec_IntPush( vPiMap, -f-1 );
+        Vec_IntPush( *pvPiMap, -f-1 );
         Bmc_MnaCollect( pGia, vRoots, vCone, pStateP );   // computes vCone
-        Bmc_MnaBuild( pGia, vRoots, vCone, pNew, vMap, vPiMap );  // computes pNew       
+        Bmc_MnaBuild( pGia, vRoots, vCone, pNew, vMap, *pvPiMap );  // computes pNew       
         if ( fVerbose )
         printf( "Frame %4d :  Roots = %6d  Leaves = %6d  Cone = %6d\n", 
             f, Vec_IntSize(vRoots), Vec_IntSize(vLeaves), Vec_IntSize(vCone) );
@@ -368,7 +369,6 @@ Gia_Man_t * Gia_ManBmcUnroll( Gia_Man_t * pGia, int nFramesMax, int nFramesAdd, 
     pNew = Gia_ManCleanup( pTemp = pNew );
     Gia_ManStop( pTemp );
 //    Gia_ManPrintStats( pNew, NULL );
-    *pvPiMap = vPiMap;
     return pNew;
 }
  
@@ -400,6 +400,7 @@ Bmc_Mna_t * Bmc_MnaAlloc()
 }
 void Bmc_MnaFree( Bmc_Mna_t * p )
 {
+    Vec_IntFreeP( &p->vPiMap );
     Vec_IntFreeP( &p->vId2Var );
     Vec_IntFreeP( &p->vInputs );
     Vec_IntFreeP( &p->vOutputs );
@@ -493,7 +494,7 @@ int Gia_ManBmcAssignVarIds( Bmc_Mna_t * p, Vec_Int_t * vIns, Vec_Int_t * vUsed, 
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManBmcAddCnf( Bmc_Mna_t * p, Gia_Man_t * pGia, Vec_Int_t * vIns, Vec_Int_t * vNodes, Vec_Int_t * vOuts, Vec_Int_t * vSatMap )
+void Gia_ManBmcAddCnf( Bmc_Mna_t * p, Gia_Man_t * pGia, Vec_Int_t * vIns, Vec_Int_t * vNodes, Vec_Int_t * vOuts )
 {
     Gia_Man_t * pNew = Gia_ManBmcDupCone( pGia, vIns, vNodes, vOuts );
     Aig_Man_t * pAig = Gia_ManToAigSimple( pNew );
@@ -661,7 +662,7 @@ int Gia_ManBmcPerform_Unr( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
             // create another slice
             Gia_ManBmcAddCone( p, f * Gia_ManPoNum(pGia), (f+1) * Gia_ManPoNum(pGia) );
             // create CNF in the SAT solver
-            Gia_ManBmcAddCnf( p, p->pFrames, p->vInputs, p->vNodes, p->vOutputs, NULL );
+            Gia_ManBmcAddCnf( p, p->pFrames, p->vInputs, p->vNodes, p->vOutputs );
             // try solving the outputs
             for ( i = f * Gia_ManPoNum(pGia); i < (f+1) * Gia_ManPoNum(pGia); i++ )
             {
@@ -728,27 +729,30 @@ int Gia_ManBmcPerform_Unr( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Cex_t * Gia_ManBmcCexGen( Gia_Man_t * p, sat_solver * pSat, Vec_Int_t * vPiMap, Vec_Int_t * vSatMap, int iOut )
+Abc_Cex_t * Gia_ManBmcCexGen( Bmc_Mna_t * pMan, Gia_Man_t * p, int iOut )
 {
     Abc_Cex_t * pCex;
-    int i, iOrigPi, iFramePi = 0, iSatVar, iFrame = -1;
+    int i, iObjId, iSatVar, iOrigPi;
+    int iFramePi = 0, iFrame = -1;
     pCex = Abc_CexAlloc( Gia_ManRegNum(p), Gia_ManPiNum(p), iOut / Gia_ManPoNum(p) + 1 );
-    pCex->iPo = iOut % Gia_ManPoNum(p);
     pCex->iFrame = iOut / Gia_ManPoNum(p);
+    pCex->iPo = iOut % Gia_ManPoNum(p);
     // fill in the input values
-    Vec_IntForEachEntry( vPiMap, iOrigPi, i )
+    Vec_IntForEachEntry( pMan->vPiMap, iOrigPi, i )
     {
         if ( iOrigPi < 0 )
         {
             iFrame = -iOrigPi-1;
             continue;
         }
-        // iOrigPi in iFrame has index iFramePi in the frames
-        iSatVar = Vec_IntEntry( vSatMap, iFramePi );
-        if ( sat_solver_var_value(pSat, iSatVar) )
-            Abc_InfoSetBit( pCex->pData, Gia_ManRegNum(p) + Gia_ManPiNum(p) * iFrame + iFramePi );
+        // iOrigPi in iFrame of pGia has PI index iFramePi in pMan->pFrames,
+        iObjId = Gia_ObjId( pMan->pFrames, Gia_ManPi(pMan->pFrames, iFramePi) );
+        iSatVar = Vec_IntEntry( pMan->vId2Var, iObjId );
+        if ( sat_solver_var_value(pMan->pSat, iSatVar) )
+            Abc_InfoSetBit( pCex->pData, Gia_ManRegNum(p) + Gia_ManPiNum(p) * iFrame + iOrigPi );
         iFramePi++;
     }
+    assert( iFramePi == Gia_ManPiNum(pMan->pFrames) );
     return pCex;
 }
 
@@ -766,11 +770,10 @@ Abc_Cex_t * Gia_ManBmcCexGen( Gia_Man_t * p, sat_solver * pSat, Vec_Int_t * vPiM
 int Gia_ManBmcPerform( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
 {
     Bmc_Mna_t * p;
-    Vec_Int_t * vPiMap, * vSatMap;
     int nFramesMax, f, i=0, Lit, status, RetValue = -2;
     abctime clk = Abc_Clock();
     p = Bmc_MnaAlloc();
-    p->pFrames = Gia_ManBmcUnroll( pGia, pPars->nFramesMax, pPars->nFramesAdd, pPars->fVeryVerbose, &vPiMap );
+    p->pFrames = Gia_ManBmcUnroll( pGia, pPars->nFramesMax, pPars->nFramesAdd, pPars->fVeryVerbose, &p->vPiMap );
     nFramesMax = Gia_ManPoNum(p->pFrames) / Gia_ManPoNum(pGia);
     if ( pPars->fVerbose )
     {
@@ -784,7 +787,6 @@ int Gia_ManBmcPerform( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
         Gia_AigerWrite( p->pFrames, "frames.aig", 0, 0 );
         printf( "Dumped unfolded frames into file \"frames.aig\".\n" );
     }
-    vSatMap = Vec_IntStartFull( Gia_ManPoNum(p->pFrames) );
     for ( f = 0; f < nFramesMax; f++ )
     {
         if ( !Gia_ManBmcCheckOutputs( p->pFrames, f * Gia_ManPoNum(pGia), (f+1) * Gia_ManPoNum(pGia) ) )
@@ -792,7 +794,7 @@ int Gia_ManBmcPerform( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
             // create another slice
             Gia_ManBmcAddCone( p, f * Gia_ManPoNum(pGia), (f+1) * Gia_ManPoNum(pGia) );
             // create CNF in the SAT solver
-            Gia_ManBmcAddCnf( p, p->pFrames, p->vInputs, p->vNodes, p->vOutputs, vSatMap );
+            Gia_ManBmcAddCnf( p, p->pFrames, p->vInputs, p->vNodes, p->vOutputs );
             // try solving the outputs
             for ( i = f * Gia_ManPoNum(pGia); i < (f+1) * Gia_ManPoNum(pGia); i++ )
             {
@@ -825,14 +827,15 @@ int Gia_ManBmcPerform( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
                 printf( "SAT solver reached conflict/runtime limit in frame %d.\n", f );
             else
             {
-//                ABC_FREE( pGia->pCexSeq );
-//                pGia->pCexSeq = Gia_ManBmcCexGen( pGia, p->pSat, vPiMap, vSatMap, i );
+                ABC_FREE( pGia->pCexSeq );
+                pGia->pCexSeq = Gia_ManBmcCexGen( p, pGia, i );
                 printf( "Output %d of miter \"%s\" was asserted in frame %d.  ", 
                     i - f * Gia_ManPoNum(pGia), Gia_ManName(pGia), f );
                 Abc_PrintTime( 1, "Time", Abc_Clock() - p->clkStart );
             }
             break;
         }
+        pPars->iFrame = f;
     }
     if ( RetValue == -2 )
         RetValue = -1;
