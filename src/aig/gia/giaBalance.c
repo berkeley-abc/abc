@@ -129,9 +129,9 @@ void Gia_ManSuperCollectXor_rec( Gia_Man_t * p, Gia_Obj_t * pObj )
 {
     assert( !Gia_IsComplement(pObj) );
     if ( !Gia_ObjIsXor(pObj) || 
-        Gia_ObjRefNum(p, pObj) > 1 || 
-//        Gia_ObjRefNum(p, pObj) > 2 || 
-//        (Gia_ObjRefNum(p, pObj) == 2 && (Gia_ObjRefNum(p, Gia_ObjFanin0(pObj)) == 1 || Gia_ObjRefNum(p, Gia_ObjFanin1(pObj)) == 1)) || 
+//        Gia_ObjRefNum(p, pObj) > 1 || 
+        Gia_ObjRefNum(p, pObj) > 2 || 
+        (Gia_ObjRefNum(p, pObj) == 2 && (Gia_ObjRefNum(p, Gia_ObjFanin0(pObj)) == 1 || Gia_ObjRefNum(p, Gia_ObjFanin1(pObj)) == 1)) || 
         Vec_IntSize(p->vSuper) > 100 )
     {
         Vec_IntPush( p->vSuper, Gia_ObjToLit(p, pObj) );
@@ -145,9 +145,9 @@ void Gia_ManSuperCollectAnd_rec( Gia_Man_t * p, Gia_Obj_t * pObj )
 {
     if ( Gia_IsComplement(pObj) || 
         !Gia_ObjIsAndReal(p, pObj) || 
-        Gia_ObjRefNum(p, pObj) > 1 || 
-//        Gia_ObjRefNum(p, pObj) > 2 || 
-//        (Gia_ObjRefNum(p, pObj) == 2 && (Gia_ObjRefNum(p, Gia_ObjFanin0(pObj)) == 1 || Gia_ObjRefNum(p, Gia_ObjFanin1(pObj)) == 1)) || 
+//        Gia_ObjRefNum(p, pObj) > 1 || 
+        Gia_ObjRefNum(p, pObj) > 2 || 
+        (Gia_ObjRefNum(p, pObj) == 2 && (Gia_ObjRefNum(p, Gia_ObjFanin0(pObj)) == 1 || Gia_ObjRefNum(p, Gia_ObjFanin1(pObj)) == 1)) || 
         Vec_IntSize(p->vSuper) > 100 )
     {
         Vec_IntPush( p->vSuper, Gia_ObjToLit(p, pObj) );

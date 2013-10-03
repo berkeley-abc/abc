@@ -63,7 +63,7 @@ Gia_Man_t * Gia_ManDupMuxes( Gia_Man_t * p )
     Gia_ManHashStart( pNew );
     Gia_ManForEachAnd( p, pObj, i )
     {
-        if ( !Gia_ObjIsMuxType(pObj) || (Gia_ObjRefNum(p, Gia_ObjFanin0(pObj)) > 1 && Gia_ObjRefNum(p, Gia_ObjFanin1(pObj)) > 1) )
+        if ( !Gia_ObjIsMuxType(pObj) || (Gia_ObjRefNum(p, Gia_ObjFanin0(pObj)) > 1 || Gia_ObjRefNum(p, Gia_ObjFanin1(pObj)) > 1) )
             pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
         else if ( Gia_ObjRecognizeExor(pObj, &pFan0, &pFan1) )
             pObj->Value = Gia_ManHashXorReal( pNew, Gia_ObjLitCopy(p, Gia_ObjToLit(p, pFan0)), Gia_ObjLitCopy(p, Gia_ObjToLit(p, pFan1)) );
