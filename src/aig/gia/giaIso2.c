@@ -575,12 +575,13 @@ Vec_Wec_t * Gia_Iso2ManCheckIsoClassesSkip( Gia_Man_t * p, Vec_Wec_t * vEquivs )
     Vec_Int_t * vMap0 = Vec_IntStart( Gia_ManObjNum(p) );
     Vec_Int_t * vMap1 = Vec_IntStart( Gia_ManObjNum(p) );
     Vec_Int_t * vClass, * vClass2;
-    int i, k, Entry;
+    int i, k, Entry, Counter = 0;
     vEquivs2 = Vec_WecAlloc( 2 * Vec_WecSize(vEquivs) );
     Vec_WecForEachLevel( vEquivs, vClass, i )
     {
-        if ( i % 100 == 0 )
-            printf( "%8d finished...\r", i );
+        if ( i % 50 == 0 )
+            printf( "Finished %8d outputs (out of %8d)...\r", Counter, Gia_ManPoNum(p) ), fflush(stdout);
+        Counter += Vec_IntSize(vClass);
         if ( Vec_IntSize(vClass) < 2 || Gia_Iso2ManCheckIsoClassOneSkip(p, vClass, vRoots, vVec0, vVec1, vMap0, vMap1) )
         {
             vClass2 = Vec_WecPushLevel( vEquivs2 );
@@ -633,16 +634,16 @@ Vec_Wec_t * Gia_Iso2ManCheckIsoClasses( Gia_Man_t * p, Vec_Wec_t * vEquivs )
     Vec_Int_t * vMap0 = Vec_IntStart( Gia_ManObjNum(p) );
     Vec_Int_t * vMap1 = Vec_IntStart( Gia_ManObjNum(p) );
     Vec_Int_t * vClass, * vClass2, * vNewClass;
-    int i;
+    int i, Counter = 0;
     vNewClass = Vec_IntAlloc( 100 );
     vEquivs2 = Vec_WecAlloc( 2 * Vec_WecSize(vEquivs) );
     Vec_WecForEachLevel( vEquivs, vClass, i )
     {
-        if ( i % 100 == 0 )
-            printf( "%8d finished...\r", i );
+        if ( i % 50 == 0 )
+            printf( "Finished %8d outputs (out of %8d)...\r", Counter, Gia_ManPoNum(p) ), fflush(stdout);
         // split this class
         Gia_Iso2ManCheckIsoClassOne( p, vClass, vRoots, vVec0, vVec1, vMap0, vMap1, vNewClass );
-        assert( Vec_IntSize(vClass) > 0 );
+        Counter += Vec_IntSize(vClass);
         // add remaining class
         vClass2 = Vec_WecPushLevel( vEquivs2 );
         *vClass2 = *vClass;
